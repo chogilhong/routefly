@@ -18,6 +18,7 @@
     var map;
     var mapReady;            // 지도 스타일이 읽힌 뒤 경로 층을 붙이고 풀리는 약속 - 목록은 이것을 기다리지 않습니다
     var courses = [];
+    var list = { q: null, truncated: false, seq: 0, timer: 0 };   // 목록 상태 - 검색어가 있으면 검색, 없으면 지도 범위
     var cur = null;          // 지금 코스 {id, course, lon[], lat[], ele[], dist[], total, pois[], markers[]}
     var anim = { running: false, d: 0, speedIdx: 0, last: 0, bearing: 0, raf: 0 };
 
@@ -129,6 +130,29 @@
     }
 
     function addRouteLayers() {
+        // 코스 출발점(목록과 같은 코스들) - 가까운 것은 묶어서 큰 원으로. 누르면 그 코스를 엽니다.
+        map.addSource("starts", { type: "geojson", data: startsData(), cluster: true, clusterRadius: 42, clusterMaxZoom: 13 });
+        map.addLayer({ id: "starts-cluster", type: "circle", source: "starts", filter: ["has", "point_count"],
+            paint: { "circle-color": "rgba(255,183,3,0.82)", "circle-stroke-color": "#ffffff", "circle-stroke-width": 2,
+                     "circle-radius": ["step", ["get", "point_count"], 13, 10, 17, 50, 22, 200, 28] } });
+        map.addLayer({ id: "starts-point", type: "circle", source: "starts", filter: ["!", ["has", "point_count"]],
+            paint: { "circle-color": ROUTE_COLOR, "circle-radius": 6, "circle-stroke-color": "#ffffff", "circle-stroke-width": 2 } });
+        map.on("click", "starts-point", function (e) {
+            var f = e.features && e.features[0];
+            if (f) select(f.properties.id);
+        });
+        map.on("click", "starts-cluster", function (e) {
+            var f = e.features && e.features[0];
+            if (!f) return;
+            Promise.resolve(map.getSource("starts").getClusterExpansionZoom(f.properties.cluster_id)).then(function (z) {
+                map.easeTo({ center: f.geometry.coordinates, zoom: z + 0.5 });
+            });
+        });
+        ["starts-point", "starts-cluster"].forEach(function (id) {
+            map.on("mouseenter", id, function () { map.getCanvas().style.cursor = "pointer"; });
+            map.on("mouseleave", id, function () { map.getCanvas().style.cursor = ""; });
+        });
+
         map.addSource("route", { type: "geojson", lineMetrics: true, data: emptyLine() });
         map.addSource("head", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
         // 전체 경로(흐리게) - 비행 전에도 코스가 보이게
@@ -165,14 +189,76 @@
 
     // ------------------------------------------------------------------ 코스 목록
 
+    function startsData() {
+        return { type: "FeatureCollection", features: courses.map(function (c) {
+            return { type: "Feature", properties: { id: c.course_id, name: c.name },
+                     geometry: { type: "Point", coordinates: [+c.start_lon, +c.start_lat] } };
+        }) };
+    }
+
+    /** 지금 지도 범위(경위도 사각형). 기울인 화면은 바깥 사각형입니다. */
+    function viewBbox() {
+        var b = map.getBounds();
+        var w = Math.max(-180, b.getWest()), e = Math.min(180, b.getEast());
+        var s = Math.max(-85, b.getSouth()), n = Math.min(85, b.getNorth());
+        if (w >= e || s >= n) return null;
+        return [w, s, e, n].map(function (v) { return v.toFixed(5); }).join(",");
+    }
+
+    /**
+     * 목록 다시 받기. 검색어가 있으면 전국에서 이름으로, 없으면 지금 지도 범위 안에서.
+     * 늦게 온 옛 응답이 새 목록을 덮지 않게 순번(seq)을 봅니다.
+     */
+    function loadCourses() {
+        var url = "api/courses";
+        if (list.q) url += "?q=" + encodeURIComponent(list.q);
+        else if (map) {
+            var bb = viewBbox();
+            if (bb) url += "?bbox=" + bb;
+        }
+        var seq = ++list.seq;
+        return getJson(url).then(function (j) {
+            if (seq !== list.seq) return;
+            courses = j.courses || [];
+            list.truncated = !!j.truncated;
+            renderList();
+            if (map.getSource("starts")) map.getSource("starts").setData(startsData());
+        }).catch(function (e) {
+            if (seq !== list.seq) return;
+            listMessage("코스 목록을 불러오지 못했습니다: " + e.message);
+        });
+    }
+
+    /** 지도를 움직인 뒤 잠깐 멈추면 그 범위로 목록을 다시 받습니다(검색 중 · 비행 중에는 그대로). */
+    function scheduleViewLoad() {
+        if (list.q || anim.running) return;
+        clearTimeout(list.timer);
+        list.timer = setTimeout(loadCourses, 450);
+    }
+
+    function listMessage(text) {
+        var box = $("list");
+        box.textContent = "";
+        var e = document.createElement("div");
+        e.className = "empty";
+        e.textContent = text;
+        box.appendChild(e);
+    }
+
     function renderList() {
-        var list = $("list");
-        list.textContent = "";
+        var box = $("list");
+        box.textContent = "";
+        var head = document.createElement("div");
+        head.className = "count";
+        head.textContent = (list.q ? "\u201C" + list.q + "\u201D 검색 " : "지도 범위 안 ") + num(courses.length) + "개"
+            + (list.truncated ? " 넘음 - 앞 " + num(courses.length) + "개만 보여 줍니다. " + (list.q ? "검색어를 더 적어 주세요." : "지도를 확대하거나 검색하세요.") : "");
+        box.appendChild(head);
         if (!courses.length) {
             var e = document.createElement("div");
             e.className = "empty";
-            e.textContent = "아직 코스가 없습니다. routefly-batch 의 forestTrail(산림청 등산로) 또는 courseImport(GPX) 배치가 코스를 넣으면 나타납니다.";
-            list.appendChild(e);
+            e.textContent = list.q ? "이름에 이 검색어가 든 코스가 없습니다."
+                : "이 범위에 코스가 없습니다. 지도를 옮기거나 위에서 검색하세요. (코스는 routefly-batch 의 forestTrail · courseImport 배치가 넣습니다)";
+            box.appendChild(e);
             return;
         }
         courses.forEach(function (c) {
@@ -188,7 +274,7 @@
             item.appendChild(nm);
             item.appendChild(st);
             item.addEventListener("click", function () { select(c.course_id); });
-            list.appendChild(item);
+            box.appendChild(item);
         });
     }
 
@@ -215,6 +301,8 @@
             c.total = c.dist[c.dist.length - 1];
             c.plan = flightPlan(c.total);
             cur = c;
+            // 고른 코스의 출발점 점은 "출발" 이름표와 겹치므로 감춥니다
+            map.setFilter("starts-point", ["all", ["!", ["has", "point_count"]], ["!=", ["get", "id"], id]]);
             try { history.replaceState(null, "", "#c=" + encodeURIComponent(id)); } catch (e) { /* 주소를 못 바꿔도 됩니다 */ }
 
             map.getSource("route").setData({ type: "Feature", properties: {},
@@ -433,6 +521,7 @@
         var p = at(cur, anim.d), ahead = at(cur, Math.min(anim.d + cur.plan.lookAhead, cur.total));
         anim.bearing = bearingOf(p.lon, p.lat, ahead.lon, ahead.lat);
         anim.running = true;
+        setStartsVisible(false);   // 비행 중에는 다른 코스 출발점이 화면을 어지럽히지 않게
         setPlayButton();
         // 좁은 화면에서는 목록을 접어 지도를 넓게 씁니다
         if (isNarrow() && !$("side").classList.contains("closed")) $("toggle").click();
@@ -452,7 +541,14 @@
         });
     }
 
+    function setStartsVisible(on) {
+        ["starts-point", "starts-cluster"].forEach(function (id) {
+            if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", on ? "visible" : "none");
+        });
+    }
+
     function stop() {
+        if (anim.running && map) setStartsVisible(true);
         anim.running = false;
         if (anim.raf) cancelAnimationFrame(anim.raf);
         anim.raf = 0;
@@ -492,20 +588,33 @@
                 resolve();
             });
         });
-        getJson("api/courses").then(function (j) {
-            courses = j.courses || [];
-            renderList();
-            var m = /[#&]c=([^&]+)/.exec(location.hash);
-            var want = m ? decodeURIComponent(m[1]) : null;
-            if (want && courses.some(function (c) { return c.course_id === want; })) select(want);
-        }).catch(function (e) {
-            $("list").textContent = "";
-            var el = document.createElement("div");
-            el.className = "empty";
-            el.textContent = "코스 목록을 불러오지 못했습니다: " + e.message;
-            $("list").appendChild(el);
-        });
+        // 처음 목록은 지도가 뜨기 전에 바로 받습니다(처음 화면 = 우리나라 전체 범위).
+        loadCourses();
+        map.on("moveend", scheduleViewLoad);
+        var m = /[#&]c=([^&]+)/.exec(location.hash);
+        if (m) select(decodeURIComponent(m[1]));
     }
+
+    // 검색 - 입력을 멈추면(0.3초) 찾습니다. 지우면 다시 지도 범위 목록으로.
+    $("q").addEventListener("input", function () {
+        var v = this.value.trim();
+        clearTimeout(list.timer);
+        list.timer = setTimeout(function () {
+            list.q = v || null;
+            loadCourses();
+        }, 300);
+    });
+    $("q").addEventListener("keydown", function (e) {
+        if (e.key === "Enter") {
+            clearTimeout(list.timer);
+            list.q = this.value.trim() || null;
+            loadCourses();
+        } else if (e.key === "Escape") {
+            this.value = "";
+            list.q = null;
+            loadCourses();
+        }
+    });
 
     $("play").addEventListener("click", function () { if (anim.running) stop(); else play(); });
     $("speed").addEventListener("click", function () {

@@ -27,7 +27,7 @@
 | `RouteflyConfig` | 설정 파일 읽기(investing 의 InvestingConfig 와 같은 방식) |
 | `Db` | 요청마다 JDBC 연결 |
 | `CourseQueries` | 코스 표 읽기 + 요청 값 검사(코스 ID · bbox · kind) |
-| `CoursesServlet` | `GET /api/courses[?bbox=minLon,minLat,maxLon,maxLat][&kind=hike]` - 코스 목록(요약) |
+| `CoursesServlet` | `GET /api/courses[?q=이름][&bbox=minLon,minLat,maxLon,maxLat][&kind=hike]` - 코스 목록(요약, 최대 300개 + `truncated`) |
 | `CourseServlet` | `GET /api/course?id=<코스ID>` - 요약 + 경로 점 `[경도,위도,고도,누적거리]` + 이름표 |
 | `MapConfigServlet` | `GET /api/map-config` - V-World 키 · 지형 타일 주소 |
 | `webapp/index.html`, `js/app.js` | 지도 화면(MapLibre) |
@@ -43,6 +43,9 @@
 - **비행**: `▶ 비행` - 출발점으로 날아간 뒤 경로를 따라갑니다. 코스 길이에 맞춰 줌 · 앞보기 거리 · 시간
   (1× 기준 20~90초)을 정하므로 등산로부터 장거리 경로까지 같은 방식으로 씁니다. `1× / 2× / 4×` 빠르기,
   `전체` 로 코스 전체 보기. 지도를 직접 끌거나 돌리면 멈춥니다. 스페이스 키로 멈춤 / 이어서.
+- **코스 고르기**: 검색어가 없으면 **지금 지도 범위 안의 코스**를 목록으로 보여 주고(지도를 움직이면 다시 받음),
+  검색창에 이름(예: "설악산", "공룡")을 적으면 전국에서 찾습니다. 지도에는 목록 코스의 출발점이 점으로 찍히고,
+  가까운 점은 큰 원으로 묶입니다(누르면 확대). 점을 누르면 그 코스를 엽니다. 300개가 넘으면 "확대하거나 검색하세요" 를 띄웁니다.
 - **고도 그래프**: 지나온 구간을 칠하고 커서가 따라갑니다. 그래프를 누르면 그 거리로 옮깁니다.
 - **이름표**: GPX 의 `<wpt>`. 비행 중에는 그 지점에 닿을 때 나타납니다.
 - 주소 `#c=<코스ID>` 로 그 코스를 바로 엽니다. 휴대폰 화면에서는 비행을 시작하면 목록을 접습니다.

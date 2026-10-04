@@ -86,4 +86,17 @@ public class WebBasicsTest {
         assertEquals(5567, Json.value(5567).getAsInt());
         assertEquals("2026-10-04 20:47:19", Json.value(java.sql.Timestamp.valueOf("2026-10-04 20:47:19")).getAsString());
     }
+
+    @Test
+    public void nameSearch() {
+        assertNull(CourseQueries.parseQuery(null));
+        assertNull(CourseQueries.parseQuery("   "));
+        assertEquals("설악산 공룡", CourseQueries.parseQuery("  설악산   공룡 "));
+        assertEquals(CourseQueries.MAX_QUERY, CourseQueries.parseQuery("가".repeat(80)).length());
+        assertEquals("%공룡%", CourseQueries.likePattern("공룡"));
+        // % _ \ 는 글자 그대로 찾습니다(모든 코스가 걸리지 않게)
+        assertEquals("%100\\%%", CourseQueries.likePattern("100%"));
+        assertEquals("%a\\_b%", CourseQueries.likePattern("a_b"));
+        assertEquals("%a\\\\b%", CourseQueries.likePattern("a\\b"));
+    }
 }

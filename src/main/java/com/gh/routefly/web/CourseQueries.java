@@ -22,8 +22,14 @@ final class CourseQueries {
     private CourseQueries() {
     }
 
-    /** 목록에 한 번에 내주는 최대 코스 수. */
-    static final int LIST_LIMIT = 500;
+    /**
+     * 목록에 한 번에 내주는 최대 코스 수. 산림청 등산로를 넣으면 전국 수천 개라, 화면은 이름 검색이나
+     * 지도 범위로 좁혀서 받습니다. 이보다 많으면 truncated=true 로 알려 "더 확대하세요" 를 띄웁니다.
+     */
+    static final int LIST_LIMIT = 300;
+
+    /** 검색어 최대 길이. */
+    static final int MAX_QUERY = 50;
 
     /** routefly-batch 의 코스 ID 규칙과 같습니다(파일 이름 - 영문 소문자 · 숫자 · - · _). */
     static final Pattern COURSE_ID = Pattern.compile("[a-z0-9][a-z0-9_-]{0,63}");
@@ -43,6 +49,19 @@ final class CourseQueries {
         String k = raw.trim().toLowerCase(Locale.ROOT);
         if (!KIND.matcher(k).matches()) throw new IllegalArgumentException("kind 는 영문 소문자로 적습니다(예: hike).");
         return k;
+    }
+
+    /** 순수 함수 - 이름 검색어. 비었으면 null. 앞뒤 공백을 떼고 50자까지. */
+    static String parseQuery(String raw) {
+        if (raw == null) return null;
+        String q = raw.trim().replaceAll("\\s+", " ");
+        if (q.isEmpty()) return null;
+        return q.length() > MAX_QUERY ? q.substring(0, MAX_QUERY) : q;
+    }
+
+    /** 순수 함수 - LIKE '%검색어%' 패턴. % _ \ 는 글자 그대로 찾게 이스케이프합니다. */
+    static String likePattern(String q) {
+        return "%" + q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
     }
 
     /**
@@ -78,8 +97,11 @@ final class CourseQueries {
         return BigDecimal.valueOf(v).toPlainString();
     }
 
-    /** 코스 목록(경로 점은 빼고 요약만). bbox · kind 는 없으면 null. */
-    static JsonArray list(Connection c, double[] bbox, String kind) throws Exception {
+    /**
+     * 코스 목록(경로 점은 빼고 요약만). bbox · kind · q 는 없으면 null.
+     * 최대 {@link #LIST_LIMIT} + 1 줄을 읽습니다 - 한 줄이 더 있으면 잘렸다는 뜻입니다(서블릿이 떼고 알림).
+     */
+    static JsonArray list(Connection c, double[] bbox, String kind, String q) throws Exception {
         StringBuilder sql = new StringBuilder("SELECT ").append(LIST_COLUMNS).append(" FROM route_course");
         List<Object> params = new ArrayList<>();
         List<String> where = new ArrayList<>();
@@ -92,8 +114,12 @@ final class CourseQueries {
             where.add("kind = ?");
             params.add(kind);
         }
+        if (q != null) {
+            where.add("name LIKE ?");
+            params.add(likePattern(q));
+        }
         if (!where.isEmpty()) sql.append(" WHERE ").append(String.join(" AND ", where));
-        sql.append(" ORDER BY name LIMIT ").append(LIST_LIMIT);
+        sql.append(" ORDER BY name LIMIT ").append(LIST_LIMIT + 1);
         return Json.rows(c, sql.toString(), params.toArray());
     }
 

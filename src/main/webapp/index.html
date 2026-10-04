@@ -29,7 +29,12 @@ html, body { margin:0; height:100%; background:#0f141b; color:var(--tx); font-fa
 #side h1 span { color:var(--route); }
 #toggle { margin-left:auto; border:1px solid var(--ln); background:transparent; color:var(--dim); border-radius:6px; padding:3px 8px; font-size:12px; cursor:pointer; }
 #list { overflow-y:auto; padding:4px 0; }
-#side.closed #list { display:none; }
+#side.closed #list, #side.closed .search { display:none; }
+.search { padding:8px 12px 6px; border-bottom:1px solid var(--ln); }
+.search input { width:100%; padding:7px 10px; border-radius:7px; border:1px solid var(--ln); background:rgba(255,255,255,0.08);
+                color:var(--tx); font-size:13.5px; outline:none; }
+.search input:focus { border-color:var(--route); }
+.count { padding:7px 12px 3px; font-size:11.5px; color:var(--faint); line-height:1.4; }
 #side.closed header { border-bottom:0; }
 .course { padding:9px 12px; cursor:pointer; border-left:3px solid transparent; }
 .course:hover { background:rgba(255,255,255,0.05); }
@@ -85,6 +90,7 @@ html, body { margin:0; height:100%; background:#0f141b; color:var(--tx); font-fa
         <h1>route<span>fly</span></h1>
         <button type="button" id="toggle">접기</button>
     </header>
+    <div class="search"><input type="search" id="q" placeholder="코스 · 산 이름 검색 (예: 설악산, 공룡)" autocomplete="off" maxlength="50"></div>
     <div id="list"><div class="empty">코스를 불러오는 중…</div></div>
 </div>
 
