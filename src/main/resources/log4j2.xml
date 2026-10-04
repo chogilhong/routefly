@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+  <!-- investing 과 같은 설정입니다(토토니안과 같음).
+       메시지 속 줄바꿈을 " | " 로 펴서 한 줄로 찍습니다(가짜 로그 줄 끼워 넣기 방지).
+       90일이 지난 지난 날짜 로그 파일은 넘어갈 때 지웁니다. -->
+  <Appenders>
+    <Console name="Console" target="SYSTEM_OUT"><PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%t] %c{1} - %replace{%msg}{[\r\n]+}{ | }%n"/></Console>
+    <RollingFile name="RouteflyFile" fileName="${sys:catalina.base}/logs/routefly.log" filePattern="${sys:catalina.base}/logs/routefly-%d{yyyy-MM-dd}-%i.log.gz">
+      <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%t] %c - %replace{%msg}{[\r\n]+}{ | }%n"/>
+      <Policies><TimeBasedTriggeringPolicy/><SizeBasedTriggeringPolicy size="10 MB"/></Policies>
+      <DefaultRolloverStrategy max="14">
+        <Delete basePath="${sys:catalina.base}/logs" maxDepth="1">
+          <IfFileName glob="routefly-*.log.gz"/>
+          <IfLastModified age="90d"/>
+        </Delete>
+      </DefaultRolloverStrategy>
+    </RollingFile>
+  </Appenders>
+  <Loggers>
+    <Logger name="com.gh.routefly" level="info" additivity="false"><AppenderRef ref="Console"/><AppenderRef ref="RouteflyFile"/></Logger>
+    <Root level="warn"><AppenderRef ref="Console"/><AppenderRef ref="RouteflyFile"/></Root>
+  </Loggers>
+</Configuration>

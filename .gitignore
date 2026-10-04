@@ -1,0 +1,18 @@
+# 빌드 산출물
+/target/
+/bin/
+
+# 이클립스 (m2e 가 생성합니다 - 커밋하지 않습니다)
+.project
+.classpath
+.settings/
+
+# 실제 설정 - 접속정보 · 지도 키가 들어가므로 절대 커밋하지 않습니다(*.example 만 커밋)
+config.properties
+
+# Claude Code 개인 설정
+/.claude/settings.local.json
+
+# 로그
+/logs/
+*.log

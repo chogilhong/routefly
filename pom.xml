@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="
+            http://maven.apache.org/POM/4.0.0
+            http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.gh</groupId>
+    <artifactId>routefly</artifactId>
+    <version>0.1.0</version>
+
+    <!-- Web Application -->
+    <packaging>war</packaging>
+
+    <name>routefly</name>
+    <description>gh routefly Web Project - 경로를 3D 지형 위에서 따라가며 보여 줍니다</description>
+
+    <url>http://localhost:8080/routefly</url>
+
+
+    <!-- ========================================================= -->
+    <!-- Properties                                                -->
+    <!-- investing 과 같은 버전으로 맞췄습니다(토토니안과 같음).     -->
+    <!-- ========================================================= -->
+
+    <properties>
+
+        <!-- Java -->
+        <java.version>17</java.version>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- Jakarta -->
+        <jakarta.servlet.version>6.1.0</jakarta.servlet.version>
+
+    </properties>
+
+
+    <dependencies>
+
+        <!-- ===================================================== -->
+        <!-- Jakarta Servlet (WebSocket · JSP · MyBatis 는 아직 안 씀) -->
+        <!-- Tomcat 11.0 / Servlet 6.1                             -->
+        <!-- ===================================================== -->
+
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+            <version>${jakarta.servlet.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+
+        <!-- ===================================================== -->
+        <!-- Gson                                                  -->
+        <!-- ===================================================== -->
+
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.14.0</version>
+        </dependency>
+
+
+        <!-- ===================================================== -->
+        <!-- Log4j2                                                -->
+        <!-- ===================================================== -->
+
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+            <version>2.24.3</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>2.24.3</version>
+        </dependency>
+
+
+        <!-- ===================================================== -->
+        <!-- MariaDB                                               -->
+        <!-- ===================================================== -->
+
+        <dependency>
+            <groupId>org.mariadb.jdbc</groupId>
+            <artifactId>mariadb-java-client</artifactId>
+            <version>3.5.10</version>
+            <scope>compile</scope>
+        </dependency>
+
+
+        <!-- ===================================================== -->
+        <!-- Testing (JUnit 4)                                     -->
+        <!-- ===================================================== -->
+
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13.2</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+
+    <build>
+
+        <finalName>routefly</finalName>
+
+        <plugins>
+
+            <!-- Java Compiler -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+
+                <configuration>
+                    <release>17</release>
+                    <encoding>UTF-8</encoding>
+                </configuration>
+            </plugin>
+
+
+            <!-- WAR -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-war-plugin</artifactId>
+                <version>3.4.0</version>
+
+                <configuration>
+                    <failOnMissingWebXml>false</failOnMissingWebXml>
+                </configuration>
+            </plugin>
+
+        </plugins>
+
+    </build>
+
+</project>

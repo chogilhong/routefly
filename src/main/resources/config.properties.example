@@ -1,0 +1,22 @@
+# routefly 설정 견본
+#
+# 실제 파일은 저장소 밖에 둡니다(investing 과 같은 방식):
+#   C:\GH\config\routefly\config.properties
+# 톰캣 실행 인자에 -Droutefly.config=C:\GH\config\routefly\config.properties 를 넣어 읽게 합니다.
+# 실제 값(DB 비밀번호, 지도 키)은 이 견본에 적지 마십시오.
+
+# ---------------------------------------------------------------- DB (MariaDB)
+# routefly-batch 가 코스를 넣는 DB 입니다. 웹은 읽기만 하므로 SELECT 권한만 있으면 됩니다.
+db.url=jdbc:mariadb://127.0.0.1:3306/routefly
+db.user=
+db.password=
+
+# ---------------------------------------------------------------- 지도
+# 배경 위성사진: 국토교통부 V-World 인증키(https://www.vworld.kr 에서 무료 발급, 서비스 주소를 등록).
+# 비우면 위성사진 없이 지형 음영만 보여 줍니다.
+# ※ 이 키는 브라우저로 내려갑니다(지도 타일을 브라우저가 직접 받기 때문). V-World 키는 등록한 주소에서만 동작합니다.
+map.vworld.key=
+
+# 3D 지형(고도) 타일. routefly-batch 의 dem.url 과 같은 것을 쓰면 고도 그래프와 지형이 맞습니다.
+# 비우면 아래 기본값(AWS Open Data Terrain Tiles, Terrarium 형식).
+map.dem.url=https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png
