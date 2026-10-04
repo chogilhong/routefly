@@ -20,7 +20,7 @@
     var courses = [];
     var list = { q: null, truncated: false, seq: 0, timer: 0 };   // 목록 상태 - 검색어가 있으면 검색, 없으면 지도 범위
     var cur = null;          // 지금 코스 {id, course, lon[], lat[], ele[], dist[], total, pois[], markers[]}
-    var anim = { running: false, d: 0, speedIdx: 0, last: 0, bearing: 0, raf: 0 };
+    var anim = { running: false, d: 0, speedIdx: 0, last: 0, bearing: 0, pitch: 70, pitchWant: 70, pitchAt: 0, raf: 0 };
 
     // ------------------------------------------------------------------ 작은 도구
 
@@ -496,7 +496,37 @@
         }
     }
 
-    var FLY_PITCH = 70;
+    var FLY_PITCH = 70;        // 평소 기울기 - 낮게 깔아 앞길을 내다봅니다
+    var MIN_PITCH = 35;        // 능선에 가릴 때 이 정도까지 카메라를 들어 올립니다
+    var CLEAR_M = 40;          // 시선과 지형 사이에 남길 여유(m)
+
+    /**
+     * 현재 위치 p 를 bearing 방향 뒤에서 볼 때, 시선이 지형에 막히지 않는 가장 낮은(가장 많이 기운) 기울기.
+     * 봉우리를 넘어 내려가는 길처럼 바로 뒤 능선이 더 높으면 70° 시선은 능선에 걸려 경로가 안 보입니다.
+     * 카메라 쪽으로 몇 곳의 지형 높이를 재서, 각 지점을 넘으려면 시선이 얼마나 서야 하는지 구합니다.
+     */
+    function clearPitch(p, bearing) {
+        if (!map.getTerrain || !map.getTerrain()) return FLY_PITCH;
+        var headE = map.queryTerrainElevation([p.lon, p.lat]);
+        if (headE == null) return FLY_PITCH;
+        // 카메라 ~ 화면 중심 거리(m) - MapLibre 와 같은 식(시야각 · 화면 높이 · 줌)
+        var fov = (map.getVerticalFieldOfView ? map.getVerticalFieldOfView() : 36.87) * Math.PI / 180;
+        var px = 0.5 / Math.tan(fov / 2) * map.getCanvas().clientHeight;
+        var mpp = 40075016.686 * Math.cos(p.lat * Math.PI / 180) / (512 * Math.pow(2, map.getZoom()));
+        var dist = px * mpp;
+        var back = (bearing + 180) * Math.PI / 180, need = 90 - FLY_PITCH;   // 시선이 지평선에서 서야 할 각도
+        var maxX = dist * Math.sin(FLY_PITCH * Math.PI / 180);
+        [0.02, 0.04, 0.07, 0.1, 0.14, 0.19, 0.25, 0.33, 0.43, 0.55, 0.7, 0.85].forEach(function (f) {
+            var x = maxX * f;
+            var dLat = Math.cos(back) * x / 111320, dLon = Math.sin(back) * x / (111320 * Math.cos(p.lat * Math.PI / 180));
+            var e = map.queryTerrainElevation([p.lon + dLon, p.lat + dLat]);
+            if (e == null || !e) return;   // 아직 안 받은 지형은 0 - 건너뜁니다
+            var a = Math.atan2(e + CLEAR_M - headE, x) * 180 / Math.PI;
+            // 이 각도로 선 카메라가 이 지점보다 멀리 있어야 걸리는 것 - 가까운 카메라는 그 위에 있습니다
+            if (a > need && dist * Math.sin((90 - a) * Math.PI / 180) > x) need = a;
+        });
+        return Math.max(MIN_PITCH, Math.min(FLY_PITCH, 90 - need));
+    }
 
     /**
      * 앞쪽 경로가 향하는 방향(도). 한 점이 아니라 앞 구간 세 곳을 향한 방향의 평균이라,
@@ -531,7 +561,18 @@
                 var k = dt ? 1 - Math.exp(-dt / 700) : 1;
                 anim.bearing = (anim.bearing + angleDiff(anim.bearing, want) * k + 360) % 360;
             }
-            map.jumpTo({ center: [p.lon, p.lat], bearing: anim.bearing, pitch: FLY_PITCH, zoom: c.plan.zoom,
+            // 능선 검사는 0.15초마다(지형 높이 읽기가 공짜는 아니라서). 지금 자리와 조금 앞 자리 중 더 서야 하는 쪽으로 -
+            // 미리 들어 올려야 넘어간 뒤에 갑자기 가리지 않습니다.
+            var now = performance.now();
+            if (!dt || now - anim.pitchAt > 150) {
+                anim.pitchAt = now;
+                anim.pitchWant = Math.min(clearPitch(p, anim.bearing),
+                                          clearPitch(at(c, Math.min(d + c.plan.lookAhead * 0.6, c.total)), anim.bearing));
+            }
+            // 가릴 때는 빨리 들고(0.4초), 풀릴 때는 천천히 내립니다(1.5초) - 오르내림이 출렁이지 않게
+            var kp = dt ? 1 - Math.exp(-dt / (anim.pitchWant < anim.pitch ? 400 : 1500)) : 1;
+            anim.pitch += (anim.pitchWant - anim.pitch) * kp;
+            map.jumpTo({ center: [p.lon, p.lat], bearing: anim.bearing, pitch: anim.pitch, zoom: c.plan.zoom,
                          padding: flightPadding() });
         }
     }
@@ -569,7 +610,9 @@
         }
         // 인트로 - 지금 자리에서 높이 떠올랐다가 출발 지점 뒤로 내려앉습니다(curve 가 클수록 높이 뜸).
         // 처음부터일 때는 조금 길게, 이어서일 때는 짧게.
-        map.flyTo({ center: [p.lon, p.lat], zoom: cur.plan.zoom, pitch: FLY_PITCH, bearing: anim.bearing,
+        anim.pitch = anim.pitchWant = anim.d === 0 ? FLY_PITCH : Math.min(anim.pitch, FLY_PITCH);
+        anim.pitchAt = 0;
+        map.flyTo({ center: [p.lon, p.lat], zoom: cur.plan.zoom, pitch: anim.pitch, bearing: anim.bearing,
                     duration: anim.d === 0 ? 3800 : 1600, curve: anim.d === 0 ? 1.7 : 1.2, essential: true,
                     padding: flightPadding() });
         map.once("moveend", function () {
