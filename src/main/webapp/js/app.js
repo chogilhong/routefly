@@ -171,7 +171,7 @@
         if (!courses.length) {
             var e = document.createElement("div");
             e.className = "empty";
-            e.textContent = "아직 코스가 없습니다. routefly-batch 의 data/courses 에 GPX 를 넣고 courseImport 배치를 돌리면 나타납니다.";
+            e.textContent = "아직 코스가 없습니다. routefly-batch 의 forestTrail(산림청 등산로) 또는 courseImport(GPX) 배치가 코스를 넣으면 나타납니다.";
             list.appendChild(e);
             return;
         }
