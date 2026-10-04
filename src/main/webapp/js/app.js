@@ -79,7 +79,7 @@
     function flightPlan(totalM) {
         var k = Math.max(totalM / 1000, 0.5);
         return {
-            zoom: Math.max(9.5, Math.min(15.2, 15.2 - 0.6 * Math.log2(k / 5))),
+            zoom: Math.max(9.8, Math.min(15.6, 15.6 - 0.6 * Math.log2(k / 5))),
             lookAhead: Math.max(150, Math.min(totalM * 0.04, 8000)),
             durationMs: Math.max(20000, Math.min(k * 2500, 90000))
         };
@@ -155,17 +155,24 @@
 
         map.addSource("route", { type: "geojson", lineMetrics: true, data: emptyLine() });
         map.addSource("head", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-        // 전체 경로(흐리게) - 비행 전에도 코스가 보이게
+        // 남은 길(흰 점선) - 비행 전에도 코스가 보이게
         map.addLayer({ id: "route-all", type: "line", source: "route",
+            layout: { "line-join": "round", "line-cap": "butt" },
+            paint: { "line-color": "#ffffff", "line-opacity": 0.75, "line-width": 2.5, "line-dasharray": [1.2, 1.4] } });
+        // 지나온 길 - 그림자 테두리 + 번짐 + 본선(밝은 위성사진 위에서도 또렷하게)
+        map.addLayer({ id: "route-casing", type: "line", source: "route",
             layout: { "line-join": "round", "line-cap": "round" },
-            paint: { "line-color": "#ffffff", "line-opacity": 0.55, "line-width": 3 } });
-        // 지나온 길 - 번짐 + 본선
+            paint: { "line-width": 9, "line-opacity": 0.45, "line-gradient": progressGradient(0, "rgba(20,14,0,1)") } });
         map.addLayer({ id: "route-glow", type: "line", source: "route",
             layout: { "line-join": "round", "line-cap": "round" },
-            paint: { "line-width": 12, "line-blur": 8, "line-opacity": 0.55, "line-gradient": progressGradient(0) } });
+            paint: { "line-width": 16, "line-blur": 10, "line-opacity": 0.6, "line-gradient": progressGradient(0) } });
         map.addLayer({ id: "route-done", type: "line", source: "route",
             layout: { "line-join": "round", "line-cap": "round" },
             paint: { "line-width": 5, "line-gradient": progressGradient(0) } });
+        // 현재 위치 - 바깥 원이 숨 쉬듯 커졌다 작아집니다(tick 에서)
+        map.addLayer({ id: "head-halo", type: "circle", source: "head",
+            paint: { "circle-radius": 14, "circle-color": ROUTE_COLOR, "circle-opacity": 0.3, "circle-blur": 0.4,
+                     "circle-pitch-alignment": "map" } });
         map.addLayer({ id: "head", type: "circle", source: "head",
             paint: { "circle-radius": 7, "circle-color": ROUTE_COLOR, "circle-stroke-color": "#ffffff", "circle-stroke-width": 2.5,
                      "circle-pitch-alignment": "map" } });
@@ -174,23 +181,26 @@
     function emptyLine() { return { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: [] } }; }
 
     /** 경로선 0~p 만 칠하는 색 식. p 는 0~1 (line-progress 는 선 길이 비율입니다). */
-    function progressGradient(p) {
-        var clear = "rgba(255,183,3,0)";
+    function progressGradient(p, color) {
+        var on = color || ROUTE_COLOR, clear = "rgba(255,183,3,0)";
         if (p <= 0.0001) return ["step", ["line-progress"], clear, 1, clear];
-        if (p >= 0.9999) return ["step", ["line-progress"], ROUTE_COLOR, 1, ROUTE_COLOR];
-        return ["step", ["line-progress"], ROUTE_COLOR, p, clear];
+        if (p >= 0.9999) return ["step", ["line-progress"], on, 1, on];
+        return ["step", ["line-progress"], on, p, clear];
     }
 
     function setProgressPaint(p) {
         var g = progressGradient(p);
         map.setPaintProperty("route-done", "line-gradient", g);
         map.setPaintProperty("route-glow", "line-gradient", g);
+        map.setPaintProperty("route-casing", "line-gradient", progressGradient(p, "rgba(20,14,0,1)"));
     }
 
     // ------------------------------------------------------------------ 코스 목록
 
     function startsData() {
-        return { type: "FeatureCollection", features: courses.map(function (c) {
+        return { type: "FeatureCollection", features: courses.filter(function (c) {
+            return !cur || c.course_id !== cur.id;
+        }).map(function (c) {
             return { type: "Feature", properties: { id: c.course_id, name: c.name },
                      geometry: { type: "Point", coordinates: [+c.start_lon, +c.start_lat] } };
         }) };
@@ -301,8 +311,8 @@
             c.total = c.dist[c.dist.length - 1];
             c.plan = flightPlan(c.total);
             cur = c;
-            // 고른 코스의 출발점 점은 "출발" 이름표와 겹치므로 감춥니다
-            map.setFilter("starts-point", ["all", ["!", ["has", "point_count"]], ["!=", ["get", "id"], id]]);
+            // 고른 코스의 출발점은 "출발" 이름표와 겹치므로 점 자료에서 뺍니다(묶음 원에도 안 들어가게)
+            map.getSource("starts").setData(startsData());
             try { history.replaceState(null, "", "#c=" + encodeURIComponent(id)); } catch (e) { /* 주소를 못 바꿔도 됩니다 */ }
 
             map.getSource("route").setData({ type: "Feature", properties: {},
@@ -340,10 +350,13 @@
         $("hud").style.bottom = isNarrow() && $("bottom").offsetHeight ? ($("bottom").offsetHeight + 24) + "px" : "";
     }
 
-    /** 따라가는 동안 현재 위치가 아래 판(고도 그래프)에 가리지 않게 화면 중심을 그 위로 올립니다. */
+    /**
+     * 따라가는 동안의 화면 여백. 아래는 고도 그래프 판만큼 비우고, 위를 넉넉히 비워 현재 위치가
+     * 화면 아래쪽(약 2/3 지점)에 오게 합니다 - 앞길과 하늘이 더 넓게 보입니다.
+     */
     function flightPadding() {
-        var b = $("bottom");
-        return { top: 0, left: 0, right: 0, bottom: b.offsetHeight ? b.offsetHeight + 20 : 0 };
+        var b = $("bottom"), bottom = b.offsetHeight ? b.offsetHeight + 20 : 0;
+        return { top: Math.round((window.innerHeight - bottom) * 0.38), left: 0, right: 0, bottom: bottom };
     }
 
     /** 코스 전체가 보이게(살짝 기울여서). */
@@ -483,21 +496,43 @@
         }
     }
 
-    /** 진행 거리 d 의 화면 한 장. moveCamera=false 면 카메라는 그대로. */
-    function frameAt(d, moveCamera) {
+    var FLY_PITCH = 70;
+
+    /**
+     * 앞쪽 경로가 향하는 방향(도). 한 점이 아니라 앞 구간 세 곳을 향한 방향의 평균이라,
+     * 지그재그 등산로에서도 시선이 좌우로 흔들리지 않습니다.
+     */
+    function lookBearing(c, d) {
+        var p = at(c, d), x = 0, y = 0;
+        [0.5, 1, 1.6].forEach(function (k, i) {
+            var q = at(c, Math.min(d + c.plan.lookAhead * k, c.total));
+            if (q.lon === p.lon && q.lat === p.lat) return;
+            var b = bearingOf(p.lon, p.lat, q.lon, q.lat) * Math.PI / 180, w = 1 + i;
+            x += Math.sin(b) * w;
+            y += Math.cos(b) * w;
+        });
+        return x === 0 && y === 0 ? anim.bearing : (Math.atan2(x, y) * 180 / Math.PI + 360) % 360;
+    }
+
+    /**
+     * 진행 거리 d 의 화면 한 장. dt(ms)는 지난 프레임과의 간격 - 0 이면 카메라를 그 자리로 바로 옮깁니다.
+     * 카메라는 현재 위치를 화면 아래쪽에 두고 낮게 기울여, 뒤에서 따라가며 앞길을 내다보는 시점입니다(flightPadding).
+     */
+    function frameAt(d, moveCamera, dt) {
         var c = cur, p = at(c, d);
         setProgressPaint(d / c.total);
         setHead(p);
         updateHud(d);
         showMarkersUpTo(d);
         if (moveCamera) {
-            var ahead = at(c, Math.min(d + c.plan.lookAhead, c.total));
             if (d < c.total - 1) {
-                var want = bearingOf(p.lon, p.lat, ahead.lon, ahead.lat);
-                // 방향은 천천히 따라 돌립니다(경로가 꺾일 때마다 화면이 휙 돌지 않게)
-                anim.bearing += angleDiff(anim.bearing, want) * 0.04;
+                var want = lookBearing(c, d);
+                // 시간 기준으로 부드럽게(프레임 수와 상관없이 약 0.7초에 63% 따라감)
+                var k = dt ? 1 - Math.exp(-dt / 700) : 1;
+                anim.bearing = (anim.bearing + angleDiff(anim.bearing, want) * k + 360) % 360;
             }
-            map.jumpTo({ center: [p.lon, p.lat], bearing: anim.bearing, pitch: 62, zoom: c.plan.zoom, padding: flightPadding() });
+            map.jumpTo({ center: [p.lon, p.lat], bearing: anim.bearing, pitch: FLY_PITCH, zoom: c.plan.zoom,
+                         padding: flightPadding() });
         }
     }
 
@@ -506,7 +541,8 @@
         var dt = Math.min(now - anim.last, 100);   // 탭이 뒤로 갔다 오면 한 번에 건너뛰지 않게
         anim.last = now;
         anim.d = Math.min(cur.total, anim.d + cur.total / cur.plan.durationMs * dt * SPEEDS[anim.speedIdx]);
-        frameAt(anim.d, true);
+        frameAt(anim.d, true, dt);
+        map.setPaintProperty("head-halo", "circle-radius", 13 + 5 * Math.sin(now / 260));
         if (anim.d >= cur.total) {
             stop();
             setTimeout(function () { if (!anim.running) overview(false); }, 900);
@@ -518,8 +554,8 @@
     function play() {
         if (!cur) return;
         if (anim.d >= cur.total) anim.d = 0;
-        var p = at(cur, anim.d), ahead = at(cur, Math.min(anim.d + cur.plan.lookAhead, cur.total));
-        anim.bearing = bearingOf(p.lon, p.lat, ahead.lon, ahead.lat);
+        var p = at(cur, anim.d);
+        anim.bearing = lookBearing(cur, anim.d);
         anim.running = true;
         setStartsVisible(false);   // 비행 중에는 다른 코스 출발점이 화면을 어지럽히지 않게
         setPlayButton();
@@ -531,8 +567,10 @@
             setHead(p);
             updateHud(0);
         }
-        // 지금 자리에서 출발 지점까지 먼저 날아간 뒤 따라가기를 시작합니다
-        map.flyTo({ center: [p.lon, p.lat], zoom: cur.plan.zoom, pitch: 62, bearing: anim.bearing, duration: 2200, essential: true,
+        // 인트로 - 지금 자리에서 높이 떠올랐다가 출발 지점 뒤로 내려앉습니다(curve 가 클수록 높이 뜸).
+        // 처음부터일 때는 조금 길게, 이어서일 때는 짧게.
+        map.flyTo({ center: [p.lon, p.lat], zoom: cur.plan.zoom, pitch: FLY_PITCH, bearing: anim.bearing,
+                    duration: anim.d === 0 ? 3800 : 1600, curve: anim.d === 0 ? 1.7 : 1.2, essential: true,
                     padding: flightPadding() });
         map.once("moveend", function () {
             if (!anim.running) return;
