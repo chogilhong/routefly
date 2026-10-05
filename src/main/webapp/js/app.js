@@ -113,7 +113,9 @@
             layers.push({ id: "sat", type: "raster", source: "sat" });
             layers.push({ id: "hillshade", type: "hillshade", source: "hillshade",
                 paint: { "hillshade-exaggeration": 0.25, "hillshade-shadow-color": "#000000" } });
-            layers.push({ id: "label", type: "raster", source: "label", paint: { "raster-opacity": 0.9 } });
+            // 지명 · 도로 겹침. 글자가 길을 따라 비스듬히 쓰여 우리 이름표와 겹치므로 비행 중에는 흐리게 숨깁니다(setMapLabels).
+            layers.push({ id: "label", type: "raster", source: "label",
+                paint: { "raster-opacity": 0.9, "raster-opacity-transition": { duration: 800, delay: 0 } } });
         } else {
             // 위성사진 키가 없으면 지형 음영만으로 그립니다(산 모양은 그대로 보입니다).
             layers.push({ id: "hillshade", type: "hillshade", source: "hillshade",
@@ -720,6 +722,7 @@
         anim.bearing = lookBearing(cur, anim.d);
         anim.running = true;
         setStartsVisible(false);   // 비행 중에는 다른 코스 출발점이 화면을 어지럽히지 않게
+        setMapLabels(false);
         setPlayButton();
         // 좁은 화면에서는 목록을 접어 지도를 넓게 씁니다
         if (isNarrow() && !$("side").classList.contains("closed")) $("toggle").click();
@@ -747,6 +750,11 @@
         });
     }
 
+    /** V-World 지명 겹침 - 비행 중에는 숨겨 우리 이름표(반듯한 아이콘 + 글씨)만 보이게. */
+    function setMapLabels(on) {
+        if (map.getLayer("label")) map.setPaintProperty("label", "raster-opacity", on ? 0.9 : 0);
+    }
+
     function setStartsVisible(on) {
         ["starts-point", "starts-cluster"].forEach(function (id) {
             if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", on ? "visible" : "none");
@@ -754,7 +762,10 @@
     }
 
     function stop() {
-        if (anim.running && map) setStartsVisible(true);
+        if (anim.running && map) {
+            setStartsVisible(true);
+            setMapLabels(true);
+        }
         anim.running = false;
         document.body.classList.remove("flying");
         if (anim.raf) cancelAnimationFrame(anim.raf);
