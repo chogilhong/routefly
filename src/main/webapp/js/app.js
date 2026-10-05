@@ -396,7 +396,10 @@
         var nearEnd = c.pois.some(function (p) { return +p.dist_m > c.total - 60 && +p.off_route_m < 60; });
         if (!nearStart) c.markers.push({ dist: -1, m: poiMarker("출발", null, [c.lon[0], c.lat[0]], "always") });
         c.pois.forEach(function (p) {
-            var sub = p.ele_m != null ? num(p.ele_m) + "m" : null;
+            // 출발 · 도착 자리의 이름표는 그 이름으로 출발 / 도착을 대신합니다(예: 오색(남설악탐방지원센터) · 출발)
+            var atStart = +p.dist_m < 60 && +p.off_route_m < 60, atEnd = +p.dist_m > c.total - 60 && +p.off_route_m < 60;
+            var sub = [atStart ? "출발" : atEnd ? "도착" : null, p.ele_m != null ? num(p.ele_m) + "m" : null]
+                .filter(function (x) { return x; }).join(" · ") || null;
             c.markers.push({ dist: +p.dist_m < 60 ? -1 : +p.dist_m, m: poiMarker(p.name, sub, [+p.lon, +p.lat], +p.dist_m < 60 ? "always" : "") });
         });
         if (!nearEnd) c.markers.push({ dist: c.total, m: poiMarker("도착", null, [c.lon[n], c.lat[n]]) });
@@ -652,7 +655,9 @@
         if (/[?&]debug\b/.test(location.search)) window.routeflyDebug = { map: map, anim: anim, at: function (d) { return at(cur, d); } };   // 시험용
         map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
         // 출처 표시(지형 · 위성사진 이용 조건)는 아래 판에 가리지 않게 확대 버튼 아래에 둡니다.
-        map.addControl(new maplibregl.AttributionControl({ compact: true }), "top-right");
+        // 코스 · 지점 이름은 routefly-batch 가 OpenStreetMap 지명(ODbL)으로 붙입니다 - 출처를 같이 표시합니다.
+        map.addControl(new maplibregl.AttributionControl({ compact: true,
+            customAttribution: "지명: <a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\" rel=\"noopener\">© OpenStreetMap contributors</a>" }), "top-right");
         map.on("error", function (e) {
             // 타일 한 장이 안 와도 지도는 계속 씁니다 - 콘솔에만 남깁니다.
             if (window.console) console.warn("map", e && e.error ? e.error.message : e);
