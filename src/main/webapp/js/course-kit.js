@@ -17,9 +17,43 @@
     }
     function km(m) { return num(m / 1000, 2); }
 
+    /** 화면에 쓸 장소 이름 - "설악산국립공원사무소남설악탐방지원센터" → "남설악탐방지원센터", "중청 대피소" → "중청대피소". */
+    function cleanName(name) {
+        var n = String(name || "").trim().replace(/\s+/g, " ");
+        var cut = n.replace(/^\S{0,12}?(국립공원(관리)?(공단|사무소)?|도립공원(관리)?사무소|군립공원(관리)?사무소|관리사무소)\s*(?=\S*(탐방지원센터|탐방안내소|안내소|안내센터|분소|매표소))/, "").trim();
+        if (cut.length < 2) cut = n;
+        return cut.replace(/\s+(탐방지원센터|탐방안내소|안내소|분소|매표소|대피소|휴게소|주차장|폭포)$/, "$1");
+    }
+
+    function distM(lat1, lon1, lat2, lon2) {
+        var r = Math.PI / 180, dLat = (lat2 - lat1) * r, dLon = (lon2 - lon1) * r;
+        var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * r) * Math.cos(lat2 * r) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        return 6371000 * 2 * Math.asin(Math.sqrt(a));
+    }
+
+    /**
+     * 이름표 정리 - 이름을 다듬고, 같은 곳이 여러 이름으로 들어온 것을 하나만 남깁니다
+     * (이름이 서로 들어 있고 200m 안, 또는 40m 안이면 같은 곳). 경로 순서 · 짧은 이름 먼저.
+     */
+    function dedupePois(pois) {
+        var key = function (s) { return s.replace(/[\s()·]/g, ""); };
+        var list = (pois || []).map(function (p) { return Object.assign({}, p, { name: cleanName(p.name) }); })
+            .sort(function (a, b) { return Math.round(+a.dist_m / 20) - Math.round(+b.dist_m / 20) || a.name.length - b.name.length; });
+        var kept = [];
+        list.forEach(function (p) {
+            var k = key(p.name);
+            var dup = kept.some(function (w) {
+                var d = distM(+w.lat, +w.lon, +p.lat, +p.lon), wk = key(w.name);
+                return d < 40 || wk === k || (wk.indexOf(k) >= 0 || k.indexOf(wk) >= 0) && d < 200;
+            });
+            if (!dup) kept.push(p);
+        });
+        return kept;
+    }
+
     /** 코스 자료(api/course 응답) → 계산하기 쉬운 모양. */
     function fromApi(id, j) {
-        var c = { id: id, course: j.course, lon: [], lat: [], ele: [], dist: [], pois: j.pois || [], markers: [] };
+        var c = { id: id, course: j.course, lon: [], lat: [], ele: [], dist: [], pois: dedupePois(j.pois), markers: [] };
         (j.points || []).forEach(function (p) {
             c.lon.push(+p[0]); c.lat.push(+p[1]); c.ele.push(p[2] == null ? null : +p[2]); c.dist.push(+p[3]);
         });
@@ -293,7 +327,7 @@
     }
 
     global.RF = {
-        LINE_COLOR: LINE_COLOR, num: num, km: km, fromApi: fromApi, at: at, grade: grade, ascentLeft: ascentLeft,
+        LINE_COLOR: LINE_COLOR, num: num, km: km, fromApi: fromApi, cleanName: cleanName, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
     };
 })(window);

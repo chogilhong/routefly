@@ -290,9 +290,7 @@
             clearMarkers();
             var pts = j.points;
             if (!pts || pts.length < 2) throw new Error("경로 점이 없습니다.");
-            var c = { id: id, course: j.course, lon: [], lat: [], ele: [], dist: [], pois: j.pois || [], markers: [] };
-            pts.forEach(function (p) { c.lon.push(+p[0]); c.lat.push(+p[1]); c.ele.push(p[2] == null ? null : +p[2]); c.dist.push(+p[3]); });
-            c.total = c.dist[c.dist.length - 1];
+            var c = RF.fromApi(id, j);   // 이름표는 여기서 다듬고 같은 곳 겹침을 뺍니다
             c.plan = flightPlan(c.total);
             cur = c;
             // 고른 코스의 출발점은 "출발" 이름표와 겹치므로 점 자료에서 뺍니다(묶음 원에도 안 들어가게)

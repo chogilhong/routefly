@@ -80,11 +80,9 @@
             var key = encodeURIComponent(cfg.vworldKey);
             sources.sat = { type: "raster", tileSize: 256, minzoom: 6, maxzoom: 19,
                 tiles: ["https://api.vworld.kr/req/wmts/1.0.0/" + key + "/Satellite/{z}/{y}/{x}.jpeg"], attribution: "위성사진: 국토교통부 V-World" };
-            sources.label = { type: "raster", tileSize: 256, minzoom: 6, maxzoom: 19,
-                tiles: ["https://api.vworld.kr/req/wmts/1.0.0/" + key + "/Hybrid/{z}/{y}/{x}.png"] };
             layers.push({ id: "sat", type: "raster", source: "sat" });
             layers.push({ id: "hillshade", type: "hillshade", source: "hillshade", paint: { "hillshade-exaggeration": 0.2 } });
-            layers.push({ id: "label", type: "raster", source: "label", paint: { "raster-opacity": 0.85 } });   // 걸을 때는 길 · 지명이 도움이 됩니다
+            // V-World 지명 겹침은 쓰지 않습니다 - 우리 이름표와 같은 이름이 비스듬히 한 번 더 나와 겹쳐 보입니다
         } else {
             layers.push({ id: "hillshade", type: "hillshade", source: "hillshade",
                 paint: { "hillshade-exaggeration": 0.65, "hillshade-shadow-color": "#3d4a3a", "hillshade-highlight-color": "#fbf7ea" } });
