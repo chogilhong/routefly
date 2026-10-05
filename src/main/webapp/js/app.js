@@ -57,24 +57,8 @@
     /** a → b 로 가는 가장 짧은 회전(-180 ~ 180). */
     function angleDiff(a, b) { return ((b - a + 540) % 360) - 180; }
 
-    /** 진행 거리 d(m)의 위치 · 고도. 누적 거리 배열에서 이분 탐색 후 선형 보간. */
-    function at(c, d) {
-        var dist = c.dist, n = dist.length;
-        if (d <= 0) return { lon: c.lon[0], lat: c.lat[0], ele: c.ele[0] };
-        if (d >= c.total) return { lon: c.lon[n - 1], lat: c.lat[n - 1], ele: c.ele[n - 1] };
-        var lo = 0, hi = n - 1;
-        while (hi - lo > 1) {
-            var mid = (lo + hi) >> 1;
-            if (dist[mid] <= d) lo = mid; else hi = mid;
-        }
-        var span = dist[hi] - dist[lo], t = span > 0 ? (d - dist[lo]) / span : 0;
-        var e0 = c.ele[lo], e1 = c.ele[hi];
-        return {
-            lon: c.lon[lo] + (c.lon[hi] - c.lon[lo]) * t,
-            lat: c.lat[lo] + (c.lat[hi] - c.lat[lo]) * t,
-            ele: e0 == null || e1 == null ? null : e0 + (e1 - e0) * t
-        };
-    }
+    /** 진행 거리 d(m)의 위치 · 고도(course-kit.js). */
+    var at = RF.at;
 
     /** 코스 길이에 맞춘 따라가기 줌 · 앞을 보는 거리 · 비행 시간(1× 기준). 등산로부터 장거리까지 한 식으로. */
     function flightPlan(totalM) {
@@ -330,6 +314,8 @@
                 + (j.course.ele_source === "none" ? " · 고도 자료 없음" : "");
             $("bottom").style.display = "block";
             $("hud").style.display = "block";
+            $("mini").style.display = "block";
+            $("hikeLink").href = "hike.html#c=" + encodeURIComponent(id);
             renderProfile(c);
             placeHud();
             updateHud(0);
@@ -376,21 +362,7 @@
 
     // ------------------------------------------------------------------ 이름표
 
-    /** 순수 함수 - 지점 이름으로 아이콘(이름표 종류는 표에 없어 이름 끝말로 봅니다). */
-    function poiIcon(name) {
-        var n = (name || "").replace(/\(.*\)$/, "").trim();
-        if (/(지원센터|안내소|안내센터|분소|매표소|사무소)/.test(name)) return "ℹ️";
-        if (/주차장/.test(n)) return "🅿️";
-        if (/케이블카/.test(n)) return "🚡";
-        if (/(대피소|산장|쉼터|휴게소)/.test(n)) return "🛖";
-        if (/폭포/.test(n)) return "💧";
-        if (/(굴|동굴)$/.test(n)) return "🕳️";
-        if (/(사|암)$/.test(n)) return "🛕";
-        if (/(령|재|고개|치|목)$/.test(n)) return "🚩";
-        if (/(봉|산|정상|峰)$/.test(n) || /정상/.test(n)) return "⛰️";
-        if (/(대|바위|전망대)$/.test(n)) return "🪨";
-        return "📍";
-    }
+    var poiIcon = RF.poiIcon;   // 지점 이름으로 아이콘(course-kit.js)
 
     /** 지도 위 이름표 - 아이콘 + 흰 글씨(영상처럼 상자 없이). 아이콘 자리가 그 지점입니다. */
     function poiMarker(text, sub, lngLat, cls) {
@@ -508,66 +480,15 @@
 
     // ------------------------------------------------------------------ 고도 그래프
 
-    var PW = 1000, PH = 100;
-
+    /** 아래 고도 그래프(지점 이름 · km 눈금) + 작은 평면 지도(km 번호 · 지금 위치) - course-kit.js. */
     function renderProfile(c) {
-        var box = $("profile");
-        box.textContent = "";
-        var eles = c.ele.filter(function (e) { return e != null; });
-        if (eles.length < 2) {
-            var e = document.createElement("div");
-            e.className = "cap";
-            e.style.cssText = "left:0;top:30px;font-size:12px";
-            e.textContent = "고도 자료가 없는 코스입니다 - 거리만 표시합니다.";
-            box.appendChild(e);
-            c.profile = null;
-            return;
-        }
-        var min = Math.min.apply(null, eles), max = Math.max.apply(null, eles);
-        var pad = Math.max((max - min) * 0.12, 5);
-        var lo = min - pad, hi = max + pad;
-        var pts = [];
-        for (var i = 0; i < c.dist.length; i++) {
-            if (c.ele[i] == null) continue;
-            pts.push((c.dist[i] / c.total * PW).toFixed(1) + "," + ((1 - (c.ele[i] - lo) / (hi - lo)) * PH).toFixed(1));
-        }
-        var ns = "http://www.w3.org/2000/svg";
-        var svg = document.createElementNS(ns, "svg");
-        svg.setAttribute("viewBox", "0 0 " + PW + " " + PH);
-        svg.setAttribute("preserveAspectRatio", "none");
-        svg.innerHTML =
-            '<defs><linearGradient id="pf" x1="0" y1="0" x2="0" y2="1">'
-            + '<stop offset="0" stop-color="' + LINE_COLOR + '" stop-opacity="0.55"/>'
-            + '<stop offset="1" stop-color="' + LINE_COLOR + '" stop-opacity="0.05"/></linearGradient>'
-            + '<clipPath id="done"><rect id="doneRect" x="0" y="0" width="0" height="' + PH + '"/></clipPath></defs>'
-            + '<polygon points="0,' + PH + ' ' + pts.join(" ") + ' ' + PW + ',' + PH + '" fill="rgba(255,255,255,0.10)"/>'
-            + '<polyline points="' + pts.join(" ") + '" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>'
-            + '<g clip-path="url(#done)"><polygon points="0,' + PH + ' ' + pts.join(" ") + ' ' + PW + ',' + PH + '" fill="url(#pf)"/>'
-            + '<polyline points="' + pts.join(" ") + '" fill="none" stroke="' + LINE_COLOR + '" stroke-width="2.5" vector-effect="non-scaling-stroke"/></g>'
-            + '<line id="cursor" x1="0" x2="0" y1="0" y2="' + PH + '" stroke="#ffffff" stroke-width="1.5" vector-effect="non-scaling-stroke"/>';
-        box.appendChild(svg);
-        caption(box, "left:3px;top:0", "최고 " + num(max) + "m");
-        caption(box, "left:3px;bottom:1px", "최저 " + num(min) + "m");
-        caption(box, "right:3px;bottom:1px", km(c.total) + "km");
-        c.profile = { cursor: svg.querySelector("#cursor"), done: svg.querySelector("#doneRect") };
-
-        // 그래프를 누르면 그 거리로 옮깁니다(멈춘 상태로)
-        box.onclick = function (ev) {
-            var r = box.getBoundingClientRect();
-            var d = Math.max(0, Math.min(1, (ev.clientX - r.left) / r.width)) * c.total;
+        c.profile = RF.profile($("profile"), c, { onSeek: function (d) {
             stop();
             anim.d = d;
             seekCaptions(d);
             frameAt(d, true);
-        };
-    }
-
-    function caption(box, css, text) {
-        var el = document.createElement("div");
-        el.className = "cap";
-        el.style.cssText = css;
-        el.textContent = text;
-        box.appendChild(el);
+        } });
+        c.mini = RF.miniMap($("mini"), c);
     }
 
     // ------------------------------------------------------------------ 비행
@@ -600,12 +521,10 @@
         $("hudKm").textContent = km(d);
         var p = cur ? at(cur, d) : null;
         $("hudEle").textContent = p && p.ele != null ? "고도 " + num(p.ele) + "m" : "고도 -";
-        if (cur && cur.profile) {
-            var x = (d / cur.total * PW).toFixed(1);
-            cur.profile.cursor.setAttribute("x1", x);
-            cur.profile.cursor.setAttribute("x2", x);
-            cur.profile.done.setAttribute("width", x);
-        }
+        var g = cur ? RF.grade(cur, d) : null;
+        $("hudGrade").textContent = g == null ? "" : "경사 " + (g > 0 ? "+" : "") + num(g) + "%";
+        if (cur && cur.profile) cur.profile.set(d);
+        if (cur && cur.mini) cur.mini.set(d);
     }
 
     var FLY_PITCH = 58;        // 평소 기울기 - 비스듬히 내려다보며 앞길이 화면 위쪽으로 뻗게(영상처럼)

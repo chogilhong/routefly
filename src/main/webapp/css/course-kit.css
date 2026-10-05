@@ -1,0 +1,17 @@
+/* routefly 공통 - 고도 그래프 · 작은 평면 지도(course-kit.js). 비행 화면과 산행 화면이 같이 씁니다. */
+.rf-profile { position:relative; }
+.rf-profile svg { width:100%; height:100%; display:block; }
+.rf-cap { position:absolute; font-size:10.5px; color:#cfd6df; pointer-events:none; background:rgba(18,24,33,0.6); padding:0 3px; border-radius:3px; }
+.rf-empty { left:0; top:30px; font-size:12px; }
+.rf-tick { position:absolute; bottom:1px; transform:translateX(-50%); font-size:10px; color:#cfd6df; pointer-events:none;
+           text-shadow:0 1px 2px #000; }
+.rf-tick::before { content:""; position:absolute; left:50%; bottom:13px; width:1px; height:5px; background:rgba(255,255,255,0.45); }
+.rf-pdot { position:absolute; width:7px; height:7px; margin:-3.5px 0 0 -3.5px; border-radius:50%; background:#ff4d4f;
+           border:1.2px solid #fff; pointer-events:none; }
+/* 지점 이름 - 점 위에서 비스듬히(영상처럼) */
+.rf-plabel { position:absolute; transform-origin:0 100%; transform:translate(2px, -8px) rotate(-38deg); white-space:nowrap;
+             font-size:10.5px; font-weight:bold; color:#fff; pointer-events:none; text-shadow:0 0 2px #000, 0 1px 2px #000; }
+.rf-plabel.end { transform-origin:100% 100%; transform:translate(-2px, -8px) rotate(38deg); }
+.rf-me { position:absolute; width:11px; height:11px; margin:-5.5px 0 0 -5.5px; border-radius:50%; background:#38d9ea;
+         border:2px solid #fff; box-shadow:0 0 6px rgba(56,217,234,0.9); pointer-events:none; }
+.rf-mini svg { width:100%; height:100%; display:block; }
