@@ -104,12 +104,16 @@
             attributionControl: false, pitchWithRotate: false, dragRotate: false, touchPitch: false });
         map.touchZoomRotate.disableRotation();   // 북쪽이 늘 위(작은 화면에서 길 잃지 않게)
         map.addControl(new maplibregl.AttributionControl({ compact: true,
-            customAttribution: "지명: © OpenStreetMap contributors" }), "top-right");
+            customAttribution: "등산로: 산림청 등산로정보 | 지명: © OpenStreetMap contributors | <a href=\"about.html\">안내</a>" }), "top-right");
         // 작은 화면에서는 출처를 ⓘ 로 접어 둡니다(누르면 펼쳐짐) - 지도를 가리지 않게
-        map.once("load", function () {
+        // (MapLibre 는 처음에 펼쳐 두고 첫 끌기 때 접습니다 - 바로 접고, 지도가 다 뜬 뒤에도 한 번 더)
+        function foldAttrib() {
             var a = document.querySelector(".maplibregl-ctrl-attrib");
             if (a) a.classList.remove("maplibregl-compact-show");
-        });
+        }
+        foldAttrib();
+        map.once("styledata", foldAttrib);
+        map.once("load", foldAttrib);
         map.addControl(new maplibregl.ScaleControl({ maxWidth: 90 }), "bottom-left");
         ["dragstart", "zoomstart"].forEach(function (ev) {
             map.on(ev, function (e) { if (e.originalEvent) setFollow(false); });   // 손으로 움직이면 따라가기를 끕니다
@@ -234,8 +238,29 @@
 
     // ------------------------------------------------------------------ 산행
 
+    var SAFETY_KEY = "rf-safety-ok-v1";   // 안전 · 위치 안내를 읽었는지(내용을 크게 바꾸면 v2 로)
+
+    function safetyOk() {
+        try { return localStorage.getItem(SAFETY_KEY) === "1"; } catch (e) { return false; }
+    }
+
+    /** 실제 산행을 처음 시작할 때 안전 · 위치 안내를 보여 주고, 확인하면 시작합니다. */
+    function askSafety(then) {
+        var box = $("safety");
+        box.style.display = "flex";
+        $("safetyChk").checked = false;
+        $("safetyGo").disabled = true;
+        $("safetyGo").onclick = function () {
+            try { localStorage.setItem(SAFETY_KEY, "1"); } catch (e) { /* 저장 못 하면 다음에 다시 물음 */ }
+            box.style.display = "none";
+            then();
+        };
+        $("safetyNo").onclick = function () { box.style.display = "none"; };
+    }
+
     function start(sim) {
         if (!c) return;
+        if (!sim && !safetyOk()) { askSafety(function () { start(false); }); return; }
         if (!sim && !navigator.geolocation) { toast("이 기기는 위치(GPS)를 쓸 수 없습니다."); return; }
         if (!sim && !window.isSecureContext) {
             toast("GPS 는 https 주소에서만 켜집니다. 지금은 \"모의 산행\" 으로 화면을 시험해 보세요.", 6000);
@@ -484,6 +509,7 @@
 
     // ------------------------------------------------------------------ 시작
 
+    $("safetyChk").addEventListener("change", function () { $("safetyGo").disabled = !this.checked; });
     $("go").addEventListener("click", function () { if (hike.running) stopHike(true); else start(false); });
     $("sim").addEventListener("click", function () { start(true); });
     $("follow").addEventListener("click", function () {

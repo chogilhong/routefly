@@ -710,7 +710,8 @@
         // 출처 표시(지형 · 위성사진 이용 조건)는 아래 판에 가리지 않게 확대 버튼 아래에 둡니다.
         // 코스 · 지점 이름은 routefly-batch 가 OpenStreetMap 지명(ODbL)으로 붙입니다 - 출처를 같이 표시합니다.
         map.addControl(new maplibregl.AttributionControl({ compact: true,
-            customAttribution: "지명: <a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\" rel=\"noopener\">© OpenStreetMap contributors</a>" }), "top-right");
+            customAttribution: "등산로: 산림청 등산로정보 | 지명: <a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\" rel=\"noopener\">© OpenStreetMap contributors</a>"
+                + " | <a href=\"about.html\">안전 · 개인정보 · 출처 안내</a>" }), "top-right");
         map.on("error", function (e) {
             // 타일 한 장이 안 와도 지도는 계속 씁니다 - 콘솔에만 남깁니다.
             if (window.console) console.warn("map", e && e.error ? e.error.message : e);

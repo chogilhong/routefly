@@ -93,6 +93,22 @@ button { font-family:inherit; }
 #toast { position:fixed; left:50%; bottom:120px; transform:translateX(-50%); z-index:20; display:none; max-width:calc(100% - 32px);
          padding:10px 14px; border-radius:10px; background:rgba(0,0,0,0.85); color:#fff; font-size:14px; line-height:1.45; text-align:center; }
 .maplibregl-ctrl-attrib { font-size:10px; }
+
+/* 안전 · 위치 안내 */
+#safety { position:fixed; inset:0; z-index:30; display:none; align-items:flex-end; justify-content:center; background:rgba(0,0,0,0.6); }
+#safety .sbox { width:100%; max-width:520px; max-height:92dvh; overflow-y:auto; background:var(--panel); border-radius:16px 16px 0 0;
+                padding:18px 16px calc(env(safe-area-inset-bottom) + 14px); }
+#safety h2 { margin:0 0 8px; font-size:18px; }
+#safety ul { margin:0 0 10px; padding-left:18px; }
+#safety li { font-size:14px; line-height:1.55; margin:5px 0; }
+#safety .chk { display:flex; align-items:center; gap:8px; font-size:15px; font-weight:bold; padding:10px 0; }
+#safety .chk input { width:20px; height:20px; }
+#safety .more { color:var(--sky); font-size:13px; text-decoration:none; }
+#safety .sbtn { display:flex; gap:8px; margin-top:12px; }
+#safety .sbtn button { flex:1; height:46px; border-radius:10px; border:1px solid var(--ln); background:rgba(255,255,255,0.06); color:var(--tx);
+                       font-size:15px; font-weight:bold; }
+#safety .sbtn button.main { flex:2; background:var(--sky); border-color:var(--sky); color:#062b30; }
+#safety .sbtn button:disabled { opacity:0.4; }
 </style>
 </head>
 <body>
@@ -100,6 +116,7 @@ button { font-family:inherit; }
     <a href="./" title="비행 화면으로">‹</a>
     <div class="nm" id="name">코스를 고르세요</div>
     <span id="gps">GPS 꺼짐</span>
+    <a href="about.html" title="안전 · 개인정보 · 출처 안내" style="font-size:17px">ⓘ</a>
 </div>
 
 <div id="mapWrap">
@@ -140,10 +157,31 @@ button { font-family:inherit; }
             <button type="button" id="nearMe">📍 내 주변 코스</button>
         </div>
     </header>
-    <div id="pickList"><div class="msg">산 이름으로 찾거나, 산 입구에서 "내 주변 코스" 를 누르세요.</div></div>
+    <div id="pickList"><div class="msg">산 이름으로 찾거나, 산 입구에서 "내 주변 코스" 를 누르세요.<br><br>
+        <a href="about.html" style="color:#38d9ea">⚠ 안전 · 위치 · 출처 안내</a></div></div>
 </div>
 
 <div id="toast"></div>
+
+<!-- 처음 "산행 시작" 할 때 한 번 - 안전 · 위치 안내 -->
+<div id="safety">
+    <div class="sbox">
+        <h2>산행 전에 꼭 읽어 주세요</h2>
+        <ul>
+            <li><b>참고용 정보입니다.</b> 등산로 자료는 산림청 2016년 기준이라 실제 길과 다를 수 있습니다.</li>
+            <li><b>통제 구간</b>(자연휴식년제 · 산불조심기간 · 기상 특보)은 들어 있지 않습니다. <b>현지 안내판 · 관리자 지시를 따르세요.</b></li>
+            <li>GPS 는 숲 · 계곡에서 수십 m 틀릴 수 있고, 통신이 끊기면 지도가 안 보일 수 있습니다. 보조 배터리를 챙기세요.</li>
+            <li><b>긴급 상황은 119</b> - 등산로 위치표지판 · 국가지점번호를 알려 주세요.</li>
+            <li>📍 <b>위치는 이 핸드폰 안에서만</b> 진행 거리 계산에 쓰고, 서버로 보내거나 저장하지 않습니다.</li>
+        </ul>
+        <label class="chk"><input type="checkbox" id="safetyChk"> 위 내용을 읽고 확인했습니다</label>
+        <a href="about.html" class="more">자세한 안내 보기 ›</a>
+        <div class="sbtn">
+            <button type="button" id="safetyNo">취소</button>
+            <button type="button" id="safetyGo" class="main" disabled>확인하고 시작</button>
+        </div>
+    </div>
+</div>
 
 <script src="vendor/maplibre-gl-5.24.0/maplibre-gl.js"></script>
 <script src="js/course-kit.js"></script>
