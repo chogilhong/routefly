@@ -62,16 +62,34 @@ html, body { margin:0; height:100%; background:#0f141b; color:var(--tx); font-fa
 #profile svg { width:100%; height:100%; display:block; }
 #profile .cap { position:absolute; font-size:10.5px; color:var(--dim); pointer-events:none; background:rgba(18,24,33,0.65); padding:0 3px; border-radius:3px; }
 
-/* 지도 위 이름표 · 출발/도착 */
-.poi { pointer-events:none; opacity:0; transform:translateY(6px); transition:opacity .45s, transform .45s; }
+/* 지도 위 이름표 - 아이콘 + 흰 글씨(상자 없이). 아이콘 자리가 그 지점입니다. */
+.poi { pointer-events:none; opacity:0; transform:translateY(6px); transition:opacity .45s, transform .45s;
+       display:flex; flex-direction:column; align-items:center; }
 .poi.on, .poi.always { opacity:1; transform:none; }
-/* 영상 같은 핀 이름표 - 상자 대신 그림자 글자 + 가는 기둥 + 점 */
-.poi .lb { color:#fff; padding:0 2px; font-size:15px; font-weight:bold; white-space:nowrap; letter-spacing:0.2px;
-           text-shadow:0 1px 2px rgba(0,0,0,0.9), 0 0 6px rgba(0,0,0,0.6); text-align:center; }
-.poi .lb small { display:block; font-size:11px; font-weight:normal; color:#e9eef4; margin:0; }
-.poi .stem { width:1.5px; height:34px; background:linear-gradient(rgba(255,255,255,0.95), rgba(255,255,255,0.55)); margin:2px auto 0;
-             box-shadow:0 0 2px rgba(0,0,0,0.6); }
-.poi .dot { width:9px; height:9px; border-radius:50%; background:#fff; margin:-1px auto 0; box-shadow:0 0 0 2px rgba(0,0,0,0.35), 0 0 6px rgba(255,255,255,0.7); }
+.poi .lb { color:#fff; padding:0 2px 2px; font-size:13.5px; font-weight:bold; white-space:nowrap; letter-spacing:0.2px;
+           text-shadow:0 0 3px #000, 0 1px 2px rgba(0,0,0,0.95), 0 0 8px rgba(0,0,0,0.6); text-align:center; line-height:1.25; }
+.poi .lb small { display:block; font-size:10.5px; font-weight:normal; color:#e9eef4; margin:0; }
+.poi .ic { width:26px; height:26px; border-radius:8px; background:rgba(255,255,255,0.92); display:flex; align-items:center;
+           justify-content:center; font-size:15px; line-height:1; box-shadow:0 1px 4px rgba(0,0,0,0.55); }
+
+/* 현재 위치 - 흰 테두리 동그란 배지 */
+.head-badge { width:32px; height:32px; border-radius:50%; background:#1f8fa0; border:3px solid #fff;
+              box-shadow:0 0 0 2px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center;
+              pointer-events:none; z-index:1; }
+
+/* 비행 중 큰 자막(화면 가운데) */
+#caption { position:absolute; left:50%; top:56%; transform:translate(-50%, 8px); z-index:3; pointer-events:none;
+           text-align:center; opacity:0; transition:opacity .5s, transform .5s; max-width:calc(100% - 32px); }
+#caption.on { opacity:1; transform:translate(-50%, 0); }
+#caption .t { color:#fff; font-size:clamp(24px, 3.4vw, 40px); font-weight:900; letter-spacing:0.5px; line-height:1.2;
+              -webkit-text-stroke:1px rgba(0,0,0,0.85);
+              text-shadow:0 2px 0 #000, 0 0 6px rgba(0,0,0,0.9), 0 0 18px rgba(0,0,0,0.6); }
+#caption .s { margin-top:6px; color:#f1f5f9; font-size:clamp(14px, 1.6vw, 19px); font-weight:bold;
+              text-shadow:0 1px 2px #000, 0 0 6px rgba(0,0,0,0.85); }
+
+/* 비행 중에는 목록을 숨겨 지도를 꽉 차게 */
+#side { transition:opacity .4s; }
+body.flying #side { opacity:0; pointer-events:none; }
 
 #msg { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); padding:14px 18px; font-size:14px; color:var(--dim);
        z-index:3; display:none; max-width:min(420px, calc(100% - 32px)); text-align:center; line-height:1.5; }
@@ -81,6 +99,7 @@ html, body { margin:0; height:100%; background:#0f141b; color:var(--tx); font-fa
     #hud { top:auto; right:12px; bottom:170px; }        /* 실제 높이는 app.js 가 아래 판 높이에 맞춰 다시 정합니다 */
     #title span.opt { display:none; }
     #profile { height:70px; }
+    #caption { top:46%; }
 }
 </style>
 </head>
@@ -113,6 +132,8 @@ html, body { margin:0; height:100%; background:#0f141b; color:var(--tx); font-fa
     </div>
     <div id="profile"></div>
 </div>
+
+<div id="caption" aria-live="polite"></div>
 
 <div id="msg" class="panel"></div>
 
