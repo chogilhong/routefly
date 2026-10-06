@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-<title>routefly 산행</title>
+<title>routefly 따라가기</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1">
 <meta name="theme-color" content="#11161d">
 <meta name="mobile-web-app-capable" content="yes">
@@ -198,7 +198,7 @@ button { font-family:inherit; }
 <div id="profile"></div>
 
 <div id="bar">
-    <button type="button" id="sim" title="코스를 따라 걷는 흉내(GPS 없이 시험)">모의</button>
+    <button type="button" id="sim" title="코스를 따라 가는 흉내(GPS 없이 시험)">모의</button>
     <button type="button" id="save" title="산속 통신이 끊겨도 보이게 이 코스와 지도를 핸드폰에 저장">📥 저장</button>
     <button type="button" id="share" title="이 코스 링크 보내기">공유</button>
     <button type="button" id="go" class="main">산행 시작</button>
@@ -206,7 +206,7 @@ button { font-family:inherit; }
 
 <div id="pick">
     <header>
-        <h1>route<span>fly</span> 산행</h1>
+        <h1>route<span>fly</span> 따라가기</h1>
         <input type="search" id="q" placeholder="코스 · 산 이름 (예: 설악산, 대청봉)" autocomplete="off" maxlength="50">
         <div class="tabs" id="kindTabs">
             <button type="button" data-kind="" class="on">전체</button>
@@ -244,7 +244,7 @@ button { font-family:inherit; }
         </div>
         <div class="tip" style="margin-top:4px">문자에 들어갈 글(문자 앱이 열리면 <b>보내기</b>를 눌러야 갑니다)</div>
         <pre id="sosBody" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;background:rgba(255,255,255,0.05);border-radius:8px;padding:8px 10px;margin:4px 0 8px;color:#dfe6ee"></pre>
-        <p class="tip">구조대에 <b>국가지점번호</b>를 불러 주세요. 등산로의 <b>위치표지판 번호</b>가 보이면 그것도 함께.<br>
+        <p class="tip">구조대에 <b>국가지점번호</b>를 불러 주세요. 길가의 <b>위치표지판 번호</b>가 보이면 그것도 함께.<br>
             통화가 안 되면 문자 신고를 쓰세요. <b>위치 사진</b>은 공유 창에서 <b>메시지</b>를 골라 받는 사람에 <b>119</b>를 넣어 보내세요.<br>
             배터리를 아끼려면 화면 밝기를 낮추세요.</p>
         <div class="sbtn">
@@ -257,9 +257,9 @@ button { font-family:inherit; }
 <!-- 산행을 끝냈을 때 - 기록 요약 · GPX 저장 -->
 <div id="doneSheet" class="sheet">
     <div class="sbox">
-        <h2>산행 기록</h2>
+        <h2 id="doneTitle">산행 기록</h2>
         <div class="where" id="doneSum"></div>
-        <p class="tip">기록은 이 핸드폰에만 남습니다("내 기록"). GPX 로 저장하면 다른 등산 앱 · 지도에서도 열 수 있습니다.</p>
+        <p class="tip">기록은 이 핸드폰에만 남습니다("내 기록"). GPX 로 저장하면 다른 등산 · 운동 앱 · 지도에서도 열 수 있습니다.</p>
         <div class="sbtn">
             <button type="button" id="doneGpx">GPX 저장</button>
             <button type="button" id="doneClose" class="main">닫기</button>
@@ -279,12 +279,12 @@ button { font-family:inherit; }
 <!-- 처음 "산행 시작" 할 때 한 번 - 안전 · 위치 안내 -->
 <div id="safety">
     <div class="sbox">
-        <h2>산행 전에 꼭 읽어 주세요</h2>
+        <h2>출발 전에 꼭 읽어 주세요</h2>
         <ul>
-            <li><b>참고용 정보입니다.</b> 등산로 자료는 산림청 2016년 기준이라 실제 길과 다를 수 있습니다.</li>
+            <li><b>참고용 정보입니다.</b> 코스 자료(등산로 산림청 2016년 기준 · 걷기길 두루누비 · 자전거길 OpenStreetMap)는 실제 길과 다를 수 있습니다.</li>
             <li><b>통제 구간</b>(자연휴식년제 · 산불조심기간 · 기상 특보)은 들어 있지 않습니다. <b>현지 안내판 · 관리자 지시를 따르세요.</b></li>
             <li>GPS 는 숲 · 계곡에서 수십 m 틀릴 수 있고, 통신이 끊기면 지도가 안 보일 수 있습니다. 보조 배터리를 챙기세요.</li>
-            <li><b>긴급 상황은 119</b> - 등산로 위치표지판 · 국가지점번호를 알려 주세요.</li>
+            <li><b>긴급 상황은 119</b> - 길가의 위치표지판 · 국가지점번호를 알려 주세요.</li>
             <li>📍 <b>위치는 이 핸드폰 안에서만</b> 진행 거리 계산에 쓰고, 서버로 보내거나 저장하지 않습니다.</li>
         </ul>
         <label class="chk"><input type="checkbox" id="safetyChk"> 위 내용을 읽고 확인했습니다</label>

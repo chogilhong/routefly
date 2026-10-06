@@ -10,7 +10,7 @@
      자료: /api/courses (목록) · /api/course?id= (한 코스) · /api/map-config (지도 키) - routefly-batch 가 넣은 표를 읽기만 합니다.
      지도: MapLibre GL JS 5.24.0 (vendor 폴더, BSD-3) - CDN 없이 이 앱이 직접 내려줍니다. -->
 <link rel="manifest" href="manifest.json">
-<meta property="og:title" content="routefly - 3D로 미리 날아 보는 등산 코스">
+<meta property="og:title" content="routefly - 3D로 미리 날아 보는 등산 · 걷기 · 자전거 코스">
 <meta property="og:description" content="코스를 3D 지형 위에서 미리 보고, 핸드폰으로 따라 걷기">
 <meta property="og:image" content="img/og.png">
 <link rel="stylesheet" href="vendor/maplibre-gl-5.24.0/maplibre-gl.css">
@@ -149,7 +149,7 @@ body.flying #side { opacity:0; pointer-events:none; }
             <button type="button" id="play" class="main">▶ 비행</button>
             <button type="button" id="speed" title="빠르기">0.25×</button>
             <button type="button" id="overview" title="코스 전체 보기">전체</button>
-            <a id="hikeLink" class="btn" href="hike.html" title="핸드폰으로 이 코스를 따라 걷는 산행 화면">📱 산행</a>
+            <a id="hikeLink" class="btn" href="hike.html" title="핸드폰으로 이 코스를 따라가는 화면(GPS)">📱 따라가기</a>
             <button type="button" id="shareBtn" title="이 코스 링크 보내기" style="display:none">공유</button>
         </div>
     </div>

@@ -1,7 +1,7 @@
 {
-  "name": "routefly 산행",
+  "name": "routefly",
   "short_name": "routefly",
-  "description": "3D 로 미리 날아 보고, 핸드폰으로 따라 걷는 등산 코스",
+  "description": "3D 로 미리 날아 보고, 핸드폰으로 따라가는 등산 · 걷기 · 자전거 코스",
   "lang": "ko",
   "start_url": "hike.html",
   "scope": "./",

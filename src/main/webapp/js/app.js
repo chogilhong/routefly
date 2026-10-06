@@ -507,7 +507,7 @@
 
     var headMarker = null;
 
-    /** 현재 위치 - 흰 테두리 동그란 배지(등산객) + 바닥 번짐. p 가 null 이면 숨깁니다. */
+    /** 현재 위치 - 흰 테두리 동그란 배지(종류별 사람 그림) + 바닥 번짐. p 가 null 이면 숨깁니다. */
     function setHead(p) {
         map.getSource("head").setData({ type: "FeatureCollection", features: p ? [{
             type: "Feature", properties: {}, geometry: { type: "Point", coordinates: [p.lon, p.lat] } }] : [] });
@@ -515,15 +515,16 @@
             if (headMarker) headMarker.getElement().style.display = "none";
             return;
         }
+        var kind = cur && cur.course ? cur.course.kind : "hike";
         if (!headMarker) {
             var el = document.createElement("div");
             el.className = "head-badge";
-            el.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><g fill="#fff">'
-                + '<circle cx="13" cy="4" r="2.2"/>'
-                + '<path d="M11.2 7.6l-2.6 1.6-1 4 1.6.4.8-3 1.2-.6-1 5.2-2.4 5.6 1.8.8 2.4-5.4 1.8 2v5h1.9v-5.8l-2.2-2.6.6-3 1 1.6 2.6.6.4-1.7-2-.5-1.6-2.8c-.5-.8-1.5-1.2-2.4-.9z"/>'
-                + '<path d="M18.6 9.2l-1 .2 1.2 13.4h.9z"/></g></svg>';
             headMarker = new maplibregl.Marker({ element: el, anchor: "center", pitchAlignment: "viewport" })
                 .setLngLat([p.lon, p.lat]).addTo(map);
+        }
+        if (headMarker.kind !== kind) {   // 종류에 맞는 사람 그림(등산객 · 걷는 사람 · 자전거)
+            headMarker.getElement().innerHTML = RF.personSvg(kind, 18);
+            headMarker.kind = kind;
         }
         headMarker.getElement().style.display = "";
         headMarker.setLngLat([p.lon, p.lat]);

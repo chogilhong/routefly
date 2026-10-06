@@ -247,10 +247,28 @@
 
     /** 종류별 이름 · 표준 빠르기 - 예상 시간에 씁니다. 등산 · 걷기는 오르막 600m/h 를 더합니다(네이스미스). */
     var KINDS = {
-        hike: { label: "등산", kmh: 4, climb: 600, icon: "⛰️" },
-        walk: { label: "걷기", kmh: 4, climb: 600, icon: "🚶" },
-        bike: { label: "자전거", kmh: 15, climb: 0, icon: "🚴" }
+        hike: { label: "등산", kmh: 4, climb: 600, icon: "⛰️", act: "산행", sos: "등산 중", simKmh: 3.5, svg: "hiker" },
+        walk: { label: "걷기", kmh: 4, climb: 600, icon: "🚶", act: "걷기", sos: "걷기 중", simKmh: 4, svg: "walker" },
+        bike: { label: "자전거", kmh: 15, climb: 0, icon: "🚴", act: "라이딩", sos: "자전거 타던 중", simKmh: 15, svg: "cyclist" }
     };
+
+    /** 종류별 사람 그림(흰색, 24×24) - 비행 화면의 현재 위치 배지. 등산은 스틱 든 등산객, 걷기는 걷는 사람, 자전거는 자전거 탄 사람. */
+    var PERSON = {
+        hiker: '<g fill="#fff"><circle cx="13" cy="4" r="2.2"/>'
+            + '<path d="M11.2 7.6l-2.6 1.6-1 4 1.6.4.8-3 1.2-.6-1 5.2-2.4 5.6 1.8.8 2.4-5.4 1.8 2v5h1.9v-5.8l-2.2-2.6.6-3 1 1.6 2.6.6.4-1.7-2-.5-1.6-2.8c-.5-.8-1.5-1.2-2.4-.9z"/>'
+            + '<path d="M18.6 9.2l-1 .2 1.2 13.4h.9z"/></g>',
+        walker: '<g fill="#fff"><circle cx="13" cy="4" r="2.2"/>'
+            + '<path d="M11.2 7.6l-2.6 1.6-1 4 1.6.4.8-3 1.2-.6-1 5.2-2.4 5.6 1.8.8 2.4-5.4 1.8 2v5h1.9v-5.8l-2.2-2.6.6-3 1 1.6 2.6.6.4-1.7-2-.5-1.6-2.8c-.5-.8-1.5-1.2-2.4-.9z"/></g>',
+        cyclist: '<g fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'
+            + '<circle cx="5.5" cy="17" r="3.6"/><circle cx="18.5" cy="17" r="3.6"/>'
+            + '<path d="M5.5 17l4-7h6l3 7M9.5 10l3.5 7h-7.5M15.5 10l-1-2.5h-2"/>'
+            + '<path d="M12.5 13.5l-2.3-4.2 3.6-2.2 2.4 3.3h2.3" stroke-width="2"/></g>'
+            + '<circle cx="16.2" cy="4" r="2.1" fill="#fff"/>'
+    };
+    function personSvg(kind, size) {
+        var s = size || 18;
+        return '<svg viewBox="0 0 24 24" width="' + s + '" height="' + s + '" aria-hidden="true">' + PERSON[kindOf(kind).svg] + '</svg>';
+    }
     function kindOf(k) { return KINDS[k] || KINDS.hike; }
 
     /** 순수 함수 - 표준 소요 시간(ms). */
@@ -413,6 +431,6 @@
     global.RF = {
         LINE_COLOR: LINE_COLOR, num: num, km: km, fromApi: fromApi, cleanName: cleanName, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
-        sunset: sunset, KINDS: KINDS, kindOf: kindOf, standardMs: standardMs, distM: distM, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
+        sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, standardMs: standardMs, distM: distM, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
     };
 })(window);
