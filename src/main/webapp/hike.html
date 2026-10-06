@@ -122,6 +122,10 @@ button { font-family:inherit; }
 .sheet .big { display:block; text-align:center; text-decoration:none; font-size:18px; font-weight:bold; padding:14px; border-radius:12px; margin-bottom:8px; }
 .sheet .call { background:#e03131; color:#fff; }
 .sheet .sms { background:rgba(255,255,255,0.08); color:var(--tx); border:1px solid var(--ln); font-size:15px; }
+.sheet .photo { width:100%; font-family:inherit; cursor:pointer; background:#1971c2; color:#fff; border:0; font-size:16px; }
+.sheet .photo:disabled { opacity:0.5; }
+#sosPhotoBox { display:none; margin:4px 0 8px; text-align:center; }
+#sosPhotoBox img { width:100%; border-radius:8px; border:1px solid var(--ln); }
 .sheet .where { background:rgba(255,255,255,0.04); border-radius:10px; padding:6px 10px; margin:8px 0; }
 .sheet .where div { display:flex; justify-content:space-between; gap:10px; padding:6px 0; border-bottom:1px solid var(--ln); font-size:14px; }
 .sheet .where div:last-child { border-bottom:0; }
@@ -227,6 +231,11 @@ button { font-family:inherit; }
         <h2 style="color:#ff6b6b">🚨 긴급 신고</h2>
         <a class="big call" href="tel:119">📞 119 전화</a>
         <a class="big sms" id="sosSms" href="sms:119">✉️ 119 문자 신고(위치 넣어 보냄)</a>
+        <button type="button" class="big photo" id="sosPhoto">📷 위치 사진 보내기(지도 + 위치 글)</button>
+        <div id="sosPhotoBox">
+            <img id="sosPhotoImg" alt="내 위치 지도 사진">
+            <p class="tip" id="sosPhotoTip"></p>
+        </div>
         <div class="where">
             <div><span>국가지점번호</span><b id="sosGrid">-</b></div>
             <div><span>위도 · 경도</span><b id="sosLatLon">-</b></div>
@@ -236,7 +245,8 @@ button { font-family:inherit; }
         <div class="tip" style="margin-top:4px">문자에 들어갈 글(문자 앱이 열리면 <b>보내기</b>를 눌러야 갑니다)</div>
         <pre id="sosBody" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;background:rgba(255,255,255,0.05);border-radius:8px;padding:8px 10px;margin:4px 0 8px;color:#dfe6ee"></pre>
         <p class="tip">구조대에 <b>국가지점번호</b>를 불러 주세요. 등산로의 <b>위치표지판 번호</b>가 보이면 그것도 함께.<br>
-            통화가 안 되면 문자 신고를 쓰세요. 배터리를 아끼려면 화면 밝기를 낮추세요.</p>
+            통화가 안 되면 문자 신고를 쓰세요. <b>위치 사진</b>은 공유 창에서 <b>메시지</b>를 골라 받는 사람에 <b>119</b>를 넣어 보내세요.<br>
+            배터리를 아끼려면 화면 밝기를 낮추세요.</p>
         <div class="sbtn">
             <button type="button" id="sosCopy">위치 복사</button>
             <button type="button" id="sosClose" class="main">닫기</button>

@@ -819,6 +819,8 @@
         if (nx) lines.push("다음 지점: " + nx.name + "까지 " + km(+nx.dist_m - hike.d) + "km");
         lines.push("시각: " + clock(Date.now()));
         var body = lines.join("\n");
+        sosNow = { f: f, lines: lines, body: body };
+        $("sosPhoto").disabled = !f;
         $("sosBody").textContent = body;
         $("sosSms").href = "sms:119" + (/iPhone|iPad/.test(navigator.userAgent) ? "&" : "?") + "body=" + encodeURIComponent(body);
         $("sosCopy").onclick = function () {
@@ -827,8 +829,174 @@
         };
     }
 
+    // ---- 위치 사진: 지금 지도(내 위치 · 코스 · 주변 등산로) + 문자와 같은 위치 글을 한 장으로 만들어 공유 창으로 보냅니다
+    //      (문자 앱이 링크로 글만 받으므로 사진은 공유 창 → 메시지 → 받는 사람 119 로 보냅니다)
+
+    var sosNow = { f: null, lines: [], body: "" };
+
+    function waitIdle(ms) {
+        return new Promise(function (resolve) {
+            var done = false, finish = function () { if (!done) { done = true; resolve(); } };
+            map.once("idle", finish);
+            setTimeout(finish, ms);
+        });
+    }
+
+    /** 지도 그림을 2D 그림판으로 옮깁니다 - WebGL 은 그린 바로 그때(render 이벤트 안)에만 읽을 수 있습니다. */
+    function grabMap() {
+        return new Promise(function (resolve) {
+            map.once("render", function () {
+                var cv = map.getCanvas(), out = document.createElement("canvas");
+                out.width = cv.width; out.height = cv.height;
+                out.getContext("2d").drawImage(cv, 0, 0);
+                resolve(out);
+            });
+            map.triggerRepaint();
+        });
+    }
+
+    function scaleBar(mpp) {   // 화면 90px 안에 들어가는 깔끔한 거리
+        var steps = [20, 50, 100, 200, 500, 1000, 2000, 5000], m = steps[0];
+        steps.forEach(function (x) { if (x / mpp <= 110) m = x; });
+        return { m: m, px: m / mpp, label: m >= 1000 ? (m / 1000) + "km" : m + "m" };
+    }
+
+    function drawLabel(g, text, x, y, size, color) {
+        g.font = "bold " + size + "px sans-serif";
+        g.lineWidth = size * 0.28; g.strokeStyle = "rgba(0,0,0,0.85)"; g.lineJoin = "round";
+        g.strokeText(text, x, y);
+        g.fillStyle = color; g.fillText(text, x, y);
+    }
+
+    function sosImage(f, lines) {
+        var cam = { center: map.getCenter(), zoom: map.getZoom(), bearing: map.getBearing() };
+        var zoom = f.acc && f.acc > 300 ? 14 : 15;
+        map.jumpTo({ center: [f.lon, f.lat], zoom: zoom, bearing: 0 });
+        return waitIdle(8000).then(grabMap).then(function (shot) {
+            var cssW = map.getContainer().clientWidth || shot.width;
+            var px = shot.width / cssW;                        // 화면 1px 이 그림에서 몇 px
+            var W = Math.max(720, shot.width), k = W / shot.width, u = px * k;   // u: 화면 1px → 결과 px
+            var mapH = Math.round(shot.height * k);
+            var fs = Math.round(W / 26), lh = Math.round(fs * 1.45), pad = Math.round(fs * 0.8);
+            var H = mapH + pad * 2 + lh * lines.length + Math.round(fs * 1.2);
+            var out = document.createElement("canvas");
+            out.width = W; out.height = H;
+            var g = out.getContext("2d");
+            g.fillStyle = "#11161d"; g.fillRect(0, 0, W, H);
+            g.drawImage(shot, 0, 0, W, mapH);
+
+            function xy(lon, lat) { var p = map.project([lon, lat]); return { x: p.x * u, y: p.y * u }; }
+            g.save();
+            g.beginPath(); g.rect(0, 0, W, mapH); g.clip();
+            // 코스 이름표(지도 위 DOM 표시는 사진에 안 찍히므로 직접 씁니다)
+            g.textAlign = "left"; g.textBaseline = "middle";
+            (c ? c.pois : []).forEach(function (q) {
+                var p = xy(+q.lon, +q.lat);
+                if (p.x < 0 || p.y < 0 || p.x > W || p.y > mapH) return;
+                g.beginPath(); g.arc(p.x, p.y, 4 * u, 0, Math.PI * 2);
+                g.fillStyle = "#ffd43b"; g.fill(); g.lineWidth = 1.5 * u; g.strokeStyle = "#000"; g.stroke();
+                drawLabel(g, RF.poiIcon(q.name) + " " + q.name, p.x + 7 * u, p.y, Math.round(12 * u), "#fff");
+            });
+            // 내 위치 - 오차 원 + 빨간 점 + "내 위치"
+            var me = xy(f.lon, f.lat);
+            var mpp = 40075016.686 * Math.cos(f.lat * Math.PI / 180) / (512 * Math.pow(2, map.getZoom()));   // 화면 1px 당 m
+            if (f.acc) {
+                g.beginPath(); g.arc(me.x, me.y, Math.max(8 * u, f.acc / mpp * u), 0, Math.PI * 2);
+                g.fillStyle = "rgba(255,59,48,0.18)"; g.fill();
+                g.lineWidth = 2 * u; g.strokeStyle = "rgba(255,59,48,0.9)"; g.stroke();
+            }
+            g.beginPath(); g.arc(me.x, me.y, 9 * u, 0, Math.PI * 2);
+            g.fillStyle = "#ff3b30"; g.fill(); g.lineWidth = 3 * u; g.strokeStyle = "#fff"; g.stroke();
+            g.textAlign = "center";
+            drawLabel(g, "내 위치", me.x, me.y - 22 * u, Math.round(15 * u), "#ff8787");
+            g.restore();
+            // 북쪽 · 축척
+            g.textAlign = "left";
+            drawLabel(g, "▲ 북", 10 * u, 18 * u, Math.round(13 * u), "#fff");
+            var sb = scaleBar(mpp), y0 = mapH - 14 * u;
+            g.fillStyle = "rgba(0,0,0,0.6)"; g.fillRect(8 * u, y0 - 18 * u, sb.px * u + 16 * u, 26 * u);
+            g.fillStyle = "#fff"; g.fillRect(16 * u, y0, sb.px * u, 3 * u);
+            g.font = "bold " + Math.round(11 * u) + "px sans-serif"; g.textBaseline = "alphabetic";
+            g.fillText(sb.label, 16 * u, y0 - 4 * u);
+            // 위치 글(문자와 똑같은 내용)
+            var y = mapH + pad + lh * 0.75;
+            lines.forEach(function (t, i) {
+                g.font = (i === 0 ? "bold " : "") + fs + "px sans-serif";
+                g.fillStyle = i === 0 ? "#ff6b6b" : (/^국가지점번호/.test(t) ? "#ffd43b" : "#eef2f6");
+                g.fillText(t, pad, y, W - pad * 2);
+                y += lh;
+            });
+            g.font = Math.round(fs * 0.62) + "px sans-serif"; g.fillStyle = "#8a96a3";
+            g.fillText("지도: " + (cfg.vworldKey ? "위성사진 국토교통부 V-World · " : "") + "지형 Terrain Tiles · 등산로 산림청 · routefly", pad, H - pad * 0.7, W - pad * 2);
+            return out;
+        }).finally(function () {
+            map.jumpTo(cam);
+        });
+    }
+
+    function stamp(ms) {
+        var d = new Date(ms), p = function (n) { return (n < 10 ? "0" : "") + n; };
+        return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + "-" + p(d.getHours()) + p(d.getMinutes());
+    }
+
+    var PHOTO_LABEL = "📷 위치 사진 보내기(지도 + 위치 글)";
+    var photoReady = null;   // 만든 사진 {file, url, body} - 공유가 막히면(누른 지 오래됨) 한 번 더 누를 때 보냅니다
+
+    function sharePhoto(p) {
+        if (!(navigator.canShare && navigator.canShare({ files: [p.file] }))) {
+            // 공유 창을 못 쓰는 브라우저 - 사진을 저장하게 합니다
+            var a = document.createElement("a");
+            a.href = p.url; a.download = p.file.name;
+            document.body.appendChild(a); a.click(); a.remove();
+            $("sosPhotoTip").innerHTML = "이 브라우저는 바로 보내기를 못 합니다. 사진을 저장했습니다(안 되면 사진을 <b>길게 눌러 저장</b>).<br>" +
+                "문자 앱에서 119 에게 사진을 붙여 보내세요.";
+            return Promise.resolve();
+        }
+        $("sosPhotoTip").innerHTML = "공유 창에서 <b>메시지</b> → 받는 사람 <b>119</b> → 보내기. 공유 창이 닫혔으면 버튼을 다시 누르세요.";
+        return navigator.share({ files: [p.file], text: p.body }).catch(function (e) {
+            if (e && e.name === "NotAllowedError") {   // 사진 만드는 사이 '누름'이 만료됨 - 한 번 더 누르게
+                $("sosPhoto").textContent = "📤 사진 보내기(한 번 더 누르세요)";
+                toast("사진이 준비됐습니다. 📤 버튼을 한 번 더 누르세요.", 5000);
+                return "again";
+            }
+            if (e && e.name !== "AbortError") throw e;
+        });
+    }
+
+    $("sosPhoto").addEventListener("click", function () {
+        var now0 = sosNow, btn = $("sosPhoto");
+        if (!now0.f) { toast("위치를 찾은 뒤에 만들 수 있습니다."); return; }
+        if (photoReady && photoReady.f === now0.f && photoReady.body === now0.body) {   // 이미 만든 사진 - 바로 보냅니다
+            sharePhoto(photoReady).then(function (r) { if (r !== "again") btn.textContent = PHOTO_LABEL; })
+                .catch(function (e) { toast("보내기 실패: " + (e && e.message || e), 5000); });
+            return;
+        }
+        btn.disabled = true;
+        btn.textContent = "📷 사진 만드는 중…";
+        var label = PHOTO_LABEL;
+        sosImage(now0.f, now0.lines).then(function (cv) {
+            return new Promise(function (resolve, reject) {
+                cv.toBlob(function (b) { b ? resolve(b) : reject(new Error("그림 저장 실패")); }, "image/jpeg", 0.88);
+            });
+        }).then(function (blob) {
+            var name = "sos119-" + stamp(Date.now()) + ".jpg";
+            var img = $("sosPhotoImg");
+            if (photoReady) URL.revokeObjectURL(photoReady.url);
+            photoReady = { f: now0.f, body: now0.body, url: URL.createObjectURL(blob), file: new File([blob], name, { type: "image/jpeg" }) };
+            img.src = photoReady.url;
+            $("sosPhotoBox").style.display = "block";
+            return sharePhoto(photoReady);
+        }).then(function (r) {
+            if (r === "again") label = "📤 사진 보내기(한 번 더 누르세요)";
+        }).catch(function (e) {
+            toast("사진을 못 만들었습니다: " + (e && e.message || e) + " - 문자 신고를 쓰세요.", 5000);
+        }).finally(function () { btn.disabled = false; btn.textContent = label; });
+    });
+
     $("sos").addEventListener("click", function () {
         $("sosSheet").style.display = "flex";
+        $("sosPhotoBox").style.display = "none";
+        $("sosPhoto").textContent = PHOTO_LABEL;
         var fresh = hike.fix && Date.now() - (hike.sim ? Date.now() : hike.fix.t) < 60000 ? hike.fix : null;
         fillSos(fresh);
         if (!fresh && navigator.geolocation && window.isSecureContext) {
