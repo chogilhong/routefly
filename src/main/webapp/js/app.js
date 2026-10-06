@@ -204,18 +204,26 @@
      * 늦게 온 옛 응답이 새 목록을 덮지 않게 순번(seq)을 봅니다.
      */
     function loadCourses() {
-        var url = "api/courses?";
+        var url = "api/courses?", inView = false;
         if (list.q) url += "q=" + encodeURIComponent(list.q);
         else if (map) {
             var bb = viewBbox();
-            if (bb) url += "bbox=" + bb;
+            if (bb) { url += "bbox=" + bb; inView = true; }
         }
         if (list.kind) url += "&kind=" + list.kind;   // 등산 · 걷기 · 자전거
         var seq = ++list.seq;
         return getJson(url).then(function (j) {
+            // 종류 탭(걷기 · 자전거)인데 지금 지도 범위에 하나도 없으면 전국에서 그 종류를 보여 줍니다
+            // (둘레길 · 자전거길은 해안 · 강을 따라 있어 산을 보고 있으면 범위 밖일 때가 많습니다)
+            if (inView && list.kind && !(j.courses || []).length) {
+                return getJson("api/courses?kind=" + list.kind).then(function (all) { all.nationwide = true; return all; });
+            }
+            return j;
+        }).then(function (j) {
             if (seq !== list.seq) return;
             courses = j.courses || [];
             list.truncated = !!j.truncated;
+            list.nationwide = !!j.nationwide;
             renderList();
             if (map.getSource("starts")) map.getSource("starts").setData(startsData());
         }).catch(function (e) {
@@ -245,14 +253,16 @@
         box.textContent = "";
         var head = document.createElement("div");
         head.className = "count";
-        head.textContent = (list.q ? "\u201C" + list.q + "\u201D 검색 " : "지도 범위 안 ") + num(courses.length) + "개"
+        head.textContent = (list.q ? "\u201C" + list.q + "\u201D 검색 "
+                : list.nationwide ? (courses.length ? "이 범위에는 없어 전국 " + RF.kindOf(list.kind).label + " 코스 " : "전국 " + RF.kindOf(list.kind).label + " 코스 ") : "지도 범위 안 ") + num(courses.length) + "개"
             + (list.truncated ? " 넘음 - 앞 " + num(courses.length) + "개만 보여 줍니다. " + (list.q ? "검색어를 더 적어 주세요." : "지도를 확대하거나 검색하세요.") : "");
         box.appendChild(head);
         if (!courses.length) {
             var e = document.createElement("div");
             e.className = "empty";
             e.textContent = list.q ? "이름에 이 검색어가 든 코스가 없습니다."
-                : "이 범위에 코스가 없습니다. 지도를 옮기거나 위에서 검색하세요. (코스는 routefly-batch 의 forestTrail · courseImport 배치가 넣습니다)";
+                : list.nationwide ? "아직 " + RF.kindOf(list.kind).label + " 코스가 없습니다. (routefly-batch 배치가 넣습니다)"
+                : "이 범위에 코스가 없습니다. 지도를 옮기거나 위에서 검색하세요. (코스는 routefly-batch 의 forestTrail · durunubi · courseImport 배치가 넣습니다)";
             box.appendChild(e);
             return;
         }
