@@ -314,8 +314,8 @@
                 geometry: { type: "LineString", coordinates: c.lon.map(function (lon, i) { return [lon, c.lat[i]]; }) } });
             anim.d = 0;
             setProgressPaint(0);
-            setHead(null);
             addMarkers(c);
+            setHead(at(c, 0));   // 고르자마자 출발점에 종류별 배지(등산객 · 걷는 사람 · 자전거) - 이름표보다 위에
             c.captions = buildCaptions(c);
             c.capIdx = 0;
             hideCaption();

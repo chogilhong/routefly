@@ -159,18 +159,31 @@
     }
 
     /** 순수 함수 - 지점 이름으로 아이콘(이름표 종류는 표에 없어 이름 끝말로 봅니다). */
+    /**
+     * 이름표 그림. Windows 10 글꼴에도 있는 이모지만 씁니다(🪨 · 🛖 · 🛕 처럼 최근 이모지는 빈칸으로 보임).
+     * 걷기길 · 자전거길 지명(해수욕장 · 공원 · 역 · 항 · 다리 · 인증센터)도.
+     */
     function poiIcon(name) {
         var n = (name || "").replace(/\(.*\)$/, "").trim();
+        if (/인증센터/.test(n)) return "🚲";
         if (/(지원센터|안내소|안내센터|분소|매표소|사무소)/.test(name)) return "ℹ️";
         if (/주차장/.test(n)) return "🅿️";
         if (/케이블카/.test(n)) return "🚡";
-        if (/(대피소|산장|쉼터|휴게소)/.test(n)) return "🛖";
+        if (/(대피소|산장|쉼터|휴게소)/.test(n)) return "🏠";
+        if (/(해수욕장|해변|해안)/.test(n)) return "🏖️";
+        if (/(등대|항|포구|선착장|부두)$/.test(n)) return "⚓";
+        if (/(역|터미널)$/.test(n)) return "🚉";
+        if (/(대교|다리|교)$/.test(n)) return "🌉";
+        if (/(공원|수목원|광장)$/.test(n) || /공원/.test(n)) return "🌳";
+        if (/시장$/.test(n)) return "🛒";
+        if (/(호|저수지|댐|보)$/.test(n)) return "💧";
         if (/폭포/.test(n)) return "💧";
         if (/(굴|동굴)$/.test(n)) return "🕳️";
-        if (/(사|암)$/.test(n)) return "🛕";
+        if (/(사|암)$/.test(n)) return "🏯";
         if (/(령|재|고개|치|목)$/.test(n)) return "🚩";
         if (/(봉|산|정상|峰)$/.test(n) || /정상/.test(n)) return "⛰️";
-        if (/(대|바위|전망대)$/.test(n)) return "🪨";
+        if (/전망대$/.test(n)) return "🔭";
+        if (/(대|바위)$/.test(n)) return "🗻";
         return "📍";
     }
 
