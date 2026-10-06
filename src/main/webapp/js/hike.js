@@ -110,7 +110,7 @@
             attributionControl: false, pitchWithRotate: false, dragRotate: false, touchPitch: false });
         map.touchZoomRotate.disableRotation();   // 북쪽이 늘 위(작은 화면에서 길 잃지 않게)
         map.addControl(new maplibregl.AttributionControl({ compact: true,
-            customAttribution: "등산로: 산림청 등산로정보 | 걷기 · 자전거길: 한국관광공사 두루누비 | 지명: © OpenStreetMap contributors | <a href=\"about.html\">안내</a>" }), "top-right");
+            customAttribution: "등산로: 산림청 등산로정보 | 걷기길: 한국관광공사 두루누비 | 지명 · 자전거길: © OpenStreetMap contributors | <a href=\"about.html\">안내</a>" }), "top-right");
         // 작은 화면에서는 출처를 ⓘ 로 접어 둡니다(누르면 펼쳐짐) - 지도를 가리지 않게
         // (MapLibre 는 처음에 펼쳐 두고 첫 끌기 때 접습니다 - 바로 접고, 지도가 다 뜬 뒤에도 한 번 더)
         function foldAttrib() {
