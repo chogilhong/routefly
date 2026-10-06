@@ -6,7 +6,7 @@
  *   - 지도 타일(V-World 위성사진 · 지형): 받아 둔 것이 있으면 그것(오프라인 저장 · 본 적 있는 곳), 없으면 받아서 조금 남겨 둠
  *   - MapLibre(vendor): 바뀌지 않으므로 받아 둔 것 먼저
  */
-var SHELL = "rf-shell-v1", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
+var SHELL = "rf-shell-v2", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
 var TILE_KEEP = 1500;   // 지나가며 본 타일은 이만큼만 남깁니다(저장 공간)
 
 var SHELL_FILES = ["hike.html", "about.html", "./", "css/course-kit.css", "js/course-kit.js", "js/hike.js", "js/app.js",
@@ -40,9 +40,15 @@ function trimTiles() {
     });
 }
 
-/** 인터넷 먼저, 안 되면 받아 둔 것(어느 캐시든). 받은 것은 cacheName 에 고쳐 둡니다. */
+/**
+ * 인터넷 먼저, 안 되면 받아 둔 것(어느 캐시든). 받은 것은 cacheName 에 고쳐 둡니다.
+ * 브라우저 캐시를 거치지 않고 서버에 바뀌었는지 묻습니다(no-cache) - 서버가 캐시 시간을 안 정하면 브라우저가 예전 app.js 를
+ * 몇 시간씩 "새것" 으로 써서, 배포해도 화면이 안 바뀌던 문제. 그대로면 서버가 304 로 짧게 답합니다.
+ */
 function networkFirst(req, cacheName) {
-    return fetch(req).then(function (res) {
+    var fresh = req.mode === "navigate" ? fetch(req, { cache: "no-cache" }).catch(function () { return fetch(req); })
+        : fetch(new Request(req, { cache: "no-cache" }));
+    return fresh.then(function (res) {
         if (res && res.ok) {
             var copy = res.clone();
             caches.open(cacheName).then(function (c) { c.put(req, copy); });
