@@ -22,7 +22,15 @@
     var prof = null;           // ① 고도 그래프
     var meMarker = null;
     var hike = { running: false, sim: false, start: 0, d: 0, off: 0, watch: null, timer: 0, simTimer: 0, simClock: 0,
-                 simLast: 0, simD: 0, speed: null, hist: [], wake: null, follow: true, arrived: false, lastFix: 0 };
+                 simLast: 0, simD: 0, speed: null, hist: [], wake: null, follow: true, arrived: false, lastFix: 0,
+                 fix: null,            // 마지막 위치 {lat, lon, acc, alt, t} - SOS 에 씁니다
+                 track: [],            // 걸은 자리 [[위도, 경도, 시각, 고도]] - 기록 · GPX
+                 walked: 0,            // 걸은 거리(m)
+                 alerted: {},          // 이미 알린 갈림길(진행 거리)
+                 sunWarned: false };
+    var trails = [];                   // 주변 등산로(api/trails) - 코스에서 벗어났을 때 가장 가까운 길 찾기
+    var compass = { on: false, up: false, heading: null, lastTurn: 0 };   // 나침반 - on: 켜짐, up: 내 방향으로 지도 돌림
+    var kindFilter = "";
 
     function now() { return hike.sim ? hike.simClock : Date.now(); }
 
@@ -118,13 +126,26 @@
         });
         mapReady = new Promise(function (resolve) {
             map.once("style.load", function () {
-                map.addSource("route", { type: "geojson", lineMetrics: true, data: { type: "FeatureCollection", features: [] } });
+                var empty = { type: "FeatureCollection", features: [] };
+                // 주변 다른 등산로 - 흐린 선(코스 밖으로 빠졌을 때 어느 길로 돌아갈지 보이게)
+                map.addSource("trails", { type: "geojson", data: empty });
+                map.addLayer({ id: "trails", type: "line", source: "trails", layout: { "line-join": "round", "line-cap": "round" },
+                    paint: { "line-color": "#ffe8a3", "line-opacity": 0.55, "line-width": 2, "line-dasharray": [2, 1.5] } });
+                map.addSource("route", { type: "geojson", lineMetrics: true, data: empty });
                 map.addLayer({ id: "route-case", type: "line", source: "route", layout: { "line-join": "round", "line-cap": "round" },
                     paint: { "line-color": "#000", "line-opacity": 0.45, "line-width": 8 } });
                 map.addLayer({ id: "route-all", type: "line", source: "route", layout: { "line-join": "round", "line-cap": "round" },
                     paint: { "line-color": "#ffffff", "line-width": 4.5 } });
                 map.addLayer({ id: "route-done", type: "line", source: "route", layout: { "line-join": "round", "line-cap": "round" },
                     paint: { "line-width": 5, "line-gradient": progressGradient(0) } });
+                // 갈림길 - 글자 없이 작은 점
+                map.addSource("junctions", { type: "geojson", data: empty });
+                map.addLayer({ id: "junctions", type: "circle", source: "junctions",
+                    paint: { "circle-radius": 4.5, "circle-color": "#ffffff", "circle-stroke-color": "#1a73e8", "circle-stroke-width": 2 } });
+                // 코스에서 벗어났을 때 가장 가까운 길까지 점선
+                map.addSource("guide", { type: "geojson", data: empty });
+                map.addLayer({ id: "guide", type: "line", source: "guide",
+                    paint: { "line-color": "#ff5d5d", "line-width": 3, "line-dasharray": [1.5, 1.2] } });
                 resolve();
             });
         });
@@ -162,12 +183,63 @@
             e.querySelector(".ic").textContent = RF.poiIcon(q.name);
             ms.push(new maplibregl.Marker({ element: e, anchor: "bottom", offset: [0, 11] }).setLngLat([q.lon, q.lat]).addTo(map));
         });
+        map.getSource("junctions").setData({ type: "FeatureCollection", features: (c.junctions || []).map(function (jd) {
+            var jp = RF.at(c, jd);
+            return { type: "Feature", properties: {}, geometry: { type: "Point", coordinates: [jp.lon, jp.lat] } };
+        }) });
         var b = new maplibregl.LngLatBounds();
         for (var i = 0; i < c.lon.length; i++) b.extend([c.lon[i], c.lat[i]]);
         map.fitBounds(b, { padding: 40, duration: 0, maxZoom: 16 });
+        loadTrails();
+    }
+
+    /** 코스 범위(+약 1km)의 주변 등산로. 오프라인이면 저장해 둔 것(서비스 워커)을 씁니다. */
+    function courseBbox(pad) {
+        var w = Math.min.apply(null, c.lon) - pad, e = Math.max.apply(null, c.lon) + pad;
+        var s = Math.min.apply(null, c.lat) - pad, n = Math.max.apply(null, c.lat) + pad;
+        // API 는 0.2° 안만 받습니다 - 넓은 코스는 가운데 0.2° 만
+        if (e - w > 0.2) { var cx = (w + e) / 2; w = cx - 0.099; e = cx + 0.099; }
+        if (n - s > 0.2) { var cy = (s + n) / 2; s = cy - 0.099; n = cy + 0.099; }
+        return [w, s, e, n].map(function (v) { return v.toFixed(5); }).join(",");
+    }
+
+    function loadTrails() {
+        trails = [];
+        var id = c.id;
+        getJson("api/trails?bbox=" + courseBbox(0.01)).then(function (j) {
+            if (!c || c.id !== id) return;
+            trails = (j.trails || []).filter(function (t) { return t.id !== id && t.coords.length > 1; }).map(function (t) {
+                var tc = { name: t.name, lon: [], lat: [], dist: [0], ele: [] };
+                t.coords.forEach(function (p, i) {
+                    tc.lon.push(p[0]); tc.lat.push(p[1]); tc.ele.push(null);
+                    if (i) tc.dist.push(tc.dist[i - 1] + RF.distM(tc.lat[i - 1], tc.lon[i - 1], p[1], p[0]));
+                });
+                tc.total = tc.dist[tc.dist.length - 1];
+                return tc;
+            });
+            map.getSource("trails").setData({ type: "FeatureCollection", features: trails.map(function (t) {
+                return { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: t.lon.map(function (lon, i) { return [lon, t.lat[i]]; }) } };
+            }) });
+        }).catch(function () { /* 주변 길은 없어도 됩니다 */ });
+    }
+
+    /** 가장 가까운 등산로 자리 - 지금 코스와 주변 길 가운데. {lat, lon, off, name(다른 길이면)} */
+    function nearestTrail(lat, lon) {
+        var s0 = RF.snap(c, lat, lon, null), p0 = RF.at(c, s0.d);
+        var best = { lat: p0.lat, lon: p0.lon, off: s0.off, name: null };
+        trails.forEach(function (t) {
+            var st = RF.snap(t, lat, lon, null);
+            if (st.off < best.off) {
+                var pt = RF.at(t, st.d);
+                best = { lat: pt.lat, lon: pt.lon, off: st.off, name: t.name };
+            }
+        });
+        return best;
     }
 
     function setMe(lat, lon, heading) {
+        // 멈춰 있을 때(GPS 방향이 없을 때)는 나침반 방향을 씁니다
+        if ((heading == null || !isFinite(heading) || (hike.speed != null && hike.speed < 0.5)) && compass.heading != null) heading = compass.heading;
         if (!meMarker) {
             var e = document.createElement("div");
             e.className = "me";
@@ -200,6 +272,7 @@
             document.title = c.course.name + " - routefly 산행";
             drawCourse();
             prof = RF.profile($("profile"), c, {});
+            try { $("save").textContent = JSON.parse(localStorage.getItem("rf-offline") || "[]").indexOf(id) >= 0 ? "✅ 저장됨" : "📥 저장"; } catch (e) { /* 무시 */ }
             // 이 기기에 남은 산행 기록(새로 고침 · 화면 꺼짐 뒤에도 이어서)
             var saved = loadSaved();
             hike.d = saved ? saved.d : 0;
@@ -227,11 +300,111 @@
 
     function save() {
         if (hike.sim) return;
-        try { localStorage.setItem(saveKey(), JSON.stringify({ start: hike.start, d: hike.d })); } catch (e) { /* 저장 못 해도 산행은 계속 */ }
+        try { localStorage.setItem(saveKey(), JSON.stringify({ start: hike.start, d: hike.d, walked: hike.walked })); } catch (e) { /* 저장 못 해도 산행은 계속 */ }
     }
 
     function clearSaved() {
-        try { localStorage.removeItem(saveKey()); } catch (e) { /* 무시 */ }
+        try {
+            localStorage.removeItem(saveKey());
+            localStorage.removeItem(saveKey() + "-track");
+        } catch (e) { /* 무시 */ }
+    }
+
+    // ------------------------------------------------------------------ 기록(걸은 길) · GPX
+
+    function loadTrack() {
+        try { return JSON.parse(localStorage.getItem(saveKey() + "-track") || "[]"); } catch (e) { return []; }
+    }
+
+    /** 걸은 자리 하나 - 8m 넘게 움직였거나 1분 지났을 때만(배터리 · 저장 공간 아끼게). */
+    function addTrack(lat, lon, t, alt) {
+        var last = hike.track[hike.track.length - 1];
+        if (last) {
+            var d = RF.distM(last[0], last[1], lat, lon);
+            if (d < 8 && t - last[2] < 60000) return;
+            if (d < 300) hike.walked += d;   // GPS 튐(한 번에 300m 넘게)은 거리에 넣지 않습니다
+        }
+        hike.track.push([Math.round(lat * 1e6) / 1e6, Math.round(lon * 1e6) / 1e6, Math.round(t), alt == null ? null : Math.round(alt)]);
+        if (hike.sim) return;
+        try { localStorage.setItem(saveKey() + "-track", JSON.stringify(hike.track)); } catch (e) { /* 공간이 모자라도 산행은 계속 */ }
+    }
+
+    function records() {
+        try { return JSON.parse(localStorage.getItem("rf-records") || "[]"); } catch (e) { return []; }
+    }
+
+    /** 순수 함수 - 기록 → GPX 1.1 글. */
+    function toGpx(rec) {
+        var esc = function (x) { return String(x).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); };
+        var pts = rec.track.map(function (p) {
+            return '<trkpt lat="' + p[0] + '" lon="' + p[1] + '">' + (p[3] != null ? "<ele>" + p[3] + "</ele>" : "")
+                + "<time>" + new Date(p[2]).toISOString() + "</time></trkpt>";
+        }).join("\n");
+        return '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="routefly" xmlns="http://www.topografix.com/GPX/1/1">\n'
+            + "<metadata><name>" + esc(rec.name) + "</name><time>" + new Date(rec.start).toISOString() + "</time></metadata>\n"
+            + "<trk><name>" + esc(rec.name) + "</name><type>" + esc(rec.kind || "hike") + "</type><trkseg>\n" + pts + "\n</trkseg></trk>\n</gpx>\n";
+    }
+
+    function downloadGpx(rec) {
+        var blob = new Blob([toGpx(rec)], { type: "application/gpx+xml" });
+        var a = document.createElement("a");
+        var d = new Date(rec.start);
+        a.href = URL.createObjectURL(blob);
+        a.download = "routefly-" + d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0")
+            + "-" + (rec.courseId || "track") + ".gpx";
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    }
+
+    /** 산행을 끝낼 때 - 기록을 "내 기록" 에 남기고 요약을 보여 줍니다(최근 20개만). */
+    function finishRecord() {
+        if (hike.track.length < 2) return;
+        var rec = { courseId: c.id, name: c.course.name, kind: c.course.kind, start: hike.start, end: now(),
+                    walked: Math.round(hike.walked), done: Math.round(hike.d), track: hike.track };
+        var list = records();
+        list.unshift(rec);
+        try { localStorage.setItem("rf-records", JSON.stringify(list.slice(0, 20))); } catch (e) {
+            try { localStorage.setItem("rf-records", JSON.stringify(list.slice(0, 5))); } catch (e2) { /* 공간 부족 */ }
+        }
+        var sum = $("doneSum");
+        sum.innerHTML = "";
+        [["코스", rec.name], ["걸은 거리", km(rec.walked) + " km"], ["코스 진행", km(rec.done) + " / " + km(c.total) + " km"],
+         ["걸린 시간", hhmmss(rec.end - rec.start)], ["기록 점", rec.track.length + "개"]].forEach(function (r) {
+            var row = document.createElement("div"), a = document.createElement("span"), b = document.createElement("b");
+            a.textContent = r[0]; b.textContent = r[1];
+            row.appendChild(a); row.appendChild(b); sum.appendChild(row);
+        });
+        $("doneGpx").onclick = function () { downloadGpx(rec); };
+        $("doneSheet").style.display = "flex";
+    }
+
+    function showRecords() {
+        var box = $("recList"), list = records();
+        box.innerHTML = "";
+        if (!list.length) {
+            box.innerHTML = '<p class="tip">아직 기록이 없습니다. 산행을 시작했다가 "산행 끝내기" 를 누르면 남습니다.</p>';
+        }
+        list.forEach(function (r, i) {
+            var row = document.createElement("div");
+            row.className = "rec";
+            var info = document.createElement("div"), b = document.createElement("b"), sp = document.createElement("span");
+            b.textContent = r.name;
+            var d = new Date(r.start);
+            sp.textContent = d.getFullYear() + "." + (d.getMonth() + 1) + "." + d.getDate() + " · " + km(r.walked) + "km · " + hhmmss(r.end - r.start);
+            info.appendChild(b); info.appendChild(sp);
+            var g = document.createElement("button"); g.textContent = "GPX"; g.onclick = function () { downloadGpx(r); };
+            var x = document.createElement("button"); x.textContent = "지우기";
+            x.onclick = function () {
+                if (!confirm("이 기록을 지울까요?")) return;
+                var l = records(); l.splice(i, 1);
+                try { localStorage.setItem("rf-records", JSON.stringify(l)); } catch (e) { /* 무시 */ }
+                showRecords();
+            };
+            row.appendChild(info); row.appendChild(g); row.appendChild(x);
+            box.appendChild(row);
+        });
+        $("recSheet").style.display = "flex";
     }
 
     // ------------------------------------------------------------------ 산행
@@ -273,10 +446,16 @@
         hike.simClock = Date.now();
         hike.start = saved ? saved.start : now();
         hike.d = saved ? saved.d : 0;
+        hike.track = saved ? loadTrack() : [];
+        hike.walked = saved && saved.walked ? saved.walked : 0;
+        hike.alerted = {};
+        hike.sunWarned = false;
+        $("save").style.display = "none";
         setFollow(true);
         $("go").textContent = sim ? "모의 끝내기" : "산행 끝내기";
         $("go").classList.add("stop");
         $("sim").style.display = "none";
+        $("share").style.display = "none";
         $("arrived").style.display = "none";
         if (sim) {
             hike.simD = 0;
@@ -304,11 +483,19 @@
         clearInterval(hike.timer);
         clearInterval(hike.simTimer);
         if (hike.wake) { try { hike.wake.release(); } catch (e) { /* 무시 */ } hike.wake = null; }
-        if (!hike.sim) clearSaved();
+        var wasSim = hike.sim;
+        if (!wasSim) {
+            finishRecord();
+            clearSaved();
+        }
         hike.sim = false;
         $("go").textContent = "산행 시작";
         $("go").classList.remove("stop");
         $("sim").style.display = "";
+        $("save").style.display = "";
+        $("share").style.display = "";
+        $("turn").style.display = "none";
+        map.getSource("guide").setData({ type: "FeatureCollection", features: [] });
         $("gps").textContent = "GPS 꺼짐";
         $("gps").className = "";
         $("offroute").style.display = "none";
@@ -339,6 +526,8 @@
             $("gps").textContent = "GPS ±" + (acc == null ? "?" : Math.round(acc)) + "m";
             if (acc != null && acc > 100) return;   // 너무 부정확한 위치는 쓰지 않습니다(실내 · 계곡 첫 신호)
         }
+        hike.fix = { lat: co.latitude, lon: co.longitude, acc: acc, alt: co.altitude, t: t };
+        addTrack(co.latitude, co.longitude, t, co.altitude);
         var s = RF.snap(c, co.latitude, co.longitude, hike.lastFix ? hike.d : null);
         hike.lastFix = t;
         hike.off = s.off;
@@ -361,8 +550,25 @@
             $("arrived").style.display = "block";
             if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
         }
+        checkJunction();
         save();
         render();
+    }
+
+    /** 갈림길 80m 앞이면 한 번 알립니다(진동 + 파란 띠) - "40m 앞 갈림길 · 오른쪽 길". */
+    function checkJunction() {
+        var box = $("turn");
+        if (hike.off > OFF_ROUTE_M) { box.style.display = "none"; return; }
+        var next = null;
+        (c.junctions || []).forEach(function (jd) { if (jd > hike.d - 15 && (next == null || jd < next)) next = jd; });
+        if (next == null || next - hike.d > 80) { box.style.display = "none"; return; }
+        var ahead = Math.max(0, Math.round(next - hike.d));
+        box.textContent = "🔀 " + (ahead < 15 ? "갈림길" : ahead + "m 앞 갈림길") + " · " + RF.turnWord(c, next);
+        box.style.display = "block";
+        if (!hike.alerted[next]) {
+            hike.alerted[next] = true;
+            if (navigator.vibrate) navigator.vibrate([120, 80, 120]);
+        }
     }
 
     /** 모의 산행 - 코스를 따라 걷는 위치를 만들어 onFix 에 넣습니다(약간 흔들리게). */
@@ -396,7 +602,7 @@
      * 지금까지 걸은 빠르기 비율을 곱합니다(10분 넘게 걸은 뒤부터, 0.6~2.5배).
      */
     function remainingMs(elapsed) {
-        var std = function (distM, ascM) { return (distM / 4000 + ascM / 600) * 3600000; };
+        var std = function (distM, ascM) { return RF.standardMs(c.course.kind, distM, ascM); };
         var left = std(c.total - hike.d, RF.ascentLeft(c, hike.d));
         var factor = 1;
         var doneStd = std(hike.d, RF.ascentLeft(c, 0) - RF.ascentLeft(c, hike.d));
@@ -415,10 +621,23 @@
         var elapsed = hike.running ? now() - hike.start : 0;
         setV("sTime", hhmmss(elapsed));
         setV("sAsc", num(RF.ascentLeft(c, d)), "m");
+        var nowMs = hike.running ? now() : Date.now();
+        var sun = RF.sunset(nowMs, c.lat[0], c.lon[0]);
+        $("sunTxt").textContent = sun ? "· 일몰 " + clock(sun) : "";
+        $("etaBox").classList.remove("late");
         if (d >= c.total - ARRIVE_M) setV("sEta", "도착");
         else {
-            var rem = remainingMs(elapsed);
-            setV("sEta", clock((hike.running ? now() : Date.now()) + rem), " (" + Math.floor(rem / 3600000) + "시간 " + Math.round(rem / 60000) % 60 + "분)");
+            var rem = remainingMs(elapsed), eta = nowMs + rem;
+            setV("sEta", clock(eta), " (" + Math.floor(rem / 3600000) + "시간 " + Math.round(rem / 60000) % 60 + "분)");
+            // 해 지기 30분 전까지 못 닿을 것 같으면 빨갛게 + 한 번 알림
+            if (sun && eta > sun - 1800000) {
+                $("etaBox").classList.add("late");
+                if (hike.running && !hike.sunWarned) {
+                    hike.sunWarned = true;
+                    toast("⚠ 예상 도착이 해 지기 30분 전(" + clock(sun - 1800000) + ")보다 늦습니다. 일찍 돌아서는 것도 생각하세요.", 8000);
+                    if (navigator.vibrate) navigator.vibrate([300, 150, 300]);
+                }
+            }
         }
         var nx = RF.nextPoi(c, d);
         if (nx) {
@@ -434,13 +653,20 @@
         } else {
             $("next").textContent = "다음 지점 없음 - 끝까지 " + km(Math.max(0, c.total - d)) + "km";
         }
-        // 코스에서 벗어남 - 코스 쪽 방향을 알려 줍니다
-        if (hike.running && hike.off > OFF_ROUTE_M && meMarker) {
-            var me = meMarker.getLngLat(), s = RF.snap(c, me.lat, me.lng, null), sp = RF.at(c, s.d);
-            $("offroute").textContent = "⚠ 코스에서 " + num(hike.off) + "m 벗어났습니다 · 코스는 " + dirWord(bearing(me.lat, me.lng, sp.lat, sp.lon));
-            $("offroute").style.display = "block";
+        // 코스에서 벗어남 - 가장 가까운 등산로(지금 코스 · 주변 길)까지 거리 · 방향, 지도에 점선
+        if (hike.running && hike.off > OFF_ROUTE_M && hike.fix) {
+            var me = hike.fix, nt = nearestTrail(me.lat, me.lon), br = bearing(me.lat, me.lon, nt.lat, nt.lon);
+            // 화살표: 나침반이 있으면 핸드폰 위쪽 기준(그쪽으로 몸을 돌려 걷게), 없으면 지도(북쪽 위) 기준
+            var rel = compass.heading != null ? br - compass.heading : br - map.getBearing();
+            $("guideArrow").style.transform = "rotate(" + rel + "deg)";   // 화살표 그림은 위쪽을 가리킵니다
+            $("offText").textContent = "코스에서 " + num(hike.off) + "m 벗어남 · " + (nt.name ? "가장 가까운 길(" + nt.name + ")" : "가장 가까운 등산로")
+                + "까지 " + num(nt.off) + "m · " + dirWord(br);
+            $("offroute").style.display = "flex";
+            map.getSource("guide").setData({ type: "Feature", properties: {},
+                geometry: { type: "LineString", coordinates: [[me.lon, me.lat], [nt.lon, nt.lat]] } });
         } else {
             $("offroute").style.display = "none";
+            if (map.getSource("guide")) map.getSource("guide").setData({ type: "FeatureCollection", features: [] });
         }
         if (prof) prof.set(d);
         if (map.getLayer("route-done")) map.setPaintProperty("route-done", "line-gradient", progressGradient(d / c.total));
@@ -484,7 +710,7 @@
         var q = this.value.trim();
         searchTimer = setTimeout(function () {
             if (!q) return;
-            getJson("api/courses?q=" + encodeURIComponent(q)).then(function (j) { listCourses(j.courses || [], null); })
+            getJson("api/courses?q=" + encodeURIComponent(q) + (kindFilter ? "&kind=" + kindFilter : "")).then(function (j) { listCourses(j.courses || [], null); })
                 .catch(function (e) { toast("검색 실패: " + e.message); });
         }, 300);
     });
@@ -494,7 +720,8 @@
         toast("현재 위치를 찾는 중…");
         navigator.geolocation.getCurrentPosition(function (pos) {
             var lat = pos.coords.latitude, lon = pos.coords.longitude, r = 0.045;   // 약 5km
-            getJson("api/courses?bbox=" + [lon - r, lat - r, lon + r, lat + r].map(function (v) { return v.toFixed(5); }).join(","))
+            getJson("api/courses?bbox=" + [lon - r, lat - r, lon + r, lat + r].map(function (v) { return v.toFixed(5); }).join(",")
+                    + (kindFilter ? "&kind=" + kindFilter : ""))
                 .then(function (j) {
                     var rows = (j.courses || []).map(function (x) {
                         x.away = distM(lat, lon, +x.start_lat, +x.start_lon);
@@ -508,6 +735,173 @@
     // ------------------------------------------------------------------ 시작
 
     $("safetyChk").addEventListener("change", function () { $("safetyGo").disabled = !this.checked; });
+    [].forEach.call(document.querySelectorAll("#kindTabs button"), function (b) {
+        b.addEventListener("click", function () {
+            kindFilter = b.getAttribute("data-kind");
+            [].forEach.call(document.querySelectorAll("#kindTabs button"), function (x) { x.classList.toggle("on", x === b); });
+            var ev = document.createEvent("Event"); ev.initEvent("input", true, true); $("q").dispatchEvent(ev);
+        });
+    });
+    $("myRecords").addEventListener("click", showRecords);
+    $("recClose").addEventListener("click", function () { $("recSheet").style.display = "none"; });
+    $("doneClose").addEventListener("click", function () { $("doneSheet").style.display = "none"; });
+
+    // ------------------------------------------------------------------ 나침반
+
+    function onOrientation(e) {
+        var h = null;
+        if (e.webkitCompassHeading != null) h = e.webkitCompassHeading;                 // 아이폰
+        else if (e.absolute && e.alpha != null) h = (360 - e.alpha) % 360;              // 안드로이드(절대 방위)
+        if (h == null) return;
+        var sa = screen.orientation && screen.orientation.angle ? screen.orientation.angle : (window.orientation || 0);
+        h = (h + sa + 360) % 360;   // 가로 화면 보정
+        compass.heading = h;
+        $("compass").querySelector(".needle").style.transform = "rotate(" + (-h + (compass.up ? h : 0)) + "deg)";
+        $("compassText").textContent = Math.round(h) + "°";
+        var t = performance.now();
+        if (compass.up && t - compass.lastTurn > 120) {   // 내 방향으로 지도 돌리기(초당 8번까지)
+            compass.lastTurn = t;
+            map.rotateTo(h, { duration: 100 });
+        }
+        if (meMarker && hike.fix) setMe(hike.fix.lat, hike.fix.lon, null);
+    }
+
+    function compassOn() {
+        var go = function () {
+            compass.on = true;
+            if ("ondeviceorientationabsolute" in window) window.addEventListener("deviceorientationabsolute", onOrientation);
+            else window.addEventListener("deviceorientation", onOrientation);
+            $("compass").classList.add("on");
+            setTimeout(function () { if (compass.heading == null) toast("이 기기에서는 나침반 방향을 읽지 못했습니다(센서 없음 · 권한 거부).", 5000); }, 2500);
+        };
+        // 아이폰은 사용자가 누른 순간에 권한을 물어야 합니다
+        if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === "function") {
+            DeviceOrientationEvent.requestPermission().then(function (r) { if (r === "granted") go(); else toast("나침반 권한이 거부되었습니다."); })
+                .catch(function () { toast("나침반 권한을 받지 못했습니다."); });
+        } else {
+            go();
+        }
+    }
+
+    $("compass").addEventListener("click", function () {
+        if (!compass.on) { compassOn(); return; }
+        compass.up = !compass.up;   // 켜진 뒤 누르면: 내 방향으로 지도 돌리기 ↔ 북쪽 위로
+        $("compass").classList.toggle("up", compass.up);
+        if (!compass.up) map.rotateTo(0, { duration: 300 });
+        toast(compass.up ? "내가 보는 방향이 위로 오게 지도를 돌립니다." : "북쪽이 위로 오게 되돌렸습니다.", 2500);
+    });
+
+    // ------------------------------------------------------------------ SOS
+
+    function fillSos(f) {
+        $("sosGrid").textContent = f ? (RF.nationalPoint(f.lat, f.lon) || "범위 밖") : "위치를 찾는 중…";
+        $("sosLatLon").textContent = f ? f.lat.toFixed(5) + ", " + f.lon.toFixed(5) + (f.acc ? " (±" + Math.round(f.acc) + "m)" : "") : "-";
+        var ele = f && f.alt != null ? Math.round(f.alt) : (c ? RF.at(c, hike.d).ele : null);
+        $("sosEle").textContent = ele == null ? "-" : num(ele) + "m";
+        $("sosCourse").textContent = c ? c.course.name + (hike.running ? " · " + km(hike.d) + "km 지점" : "") : "-";
+        var body = "[등산 중 긴급] " + (f ? "국가지점번호 " + (RF.nationalPoint(f.lat, f.lon) || "-") + " / 위경도 " + f.lat.toFixed(5) + "," + f.lon.toFixed(5) : "위치 확인 중")
+            + (c ? " / " + c.course.name : "") + (ele != null ? " / 해발 " + Math.round(ele) + "m" : "");
+        $("sosSms").href = "sms:119" + (/iPhone|iPad/.test(navigator.userAgent) ? "&" : "?") + "body=" + encodeURIComponent(body);
+        $("sosCopy").onclick = function () {
+            (navigator.clipboard ? navigator.clipboard.writeText(body) : Promise.reject()).then(function () { toast("위치를 복사했습니다."); })
+                .catch(function () { prompt("아래 글을 길게 눌러 복사하세요", body); });
+        };
+    }
+
+    $("sos").addEventListener("click", function () {
+        $("sosSheet").style.display = "flex";
+        var fresh = hike.fix && Date.now() - (hike.sim ? Date.now() : hike.fix.t) < 60000 ? hike.fix : null;
+        fillSos(fresh);
+        if (!fresh && navigator.geolocation && window.isSecureContext) {
+            navigator.geolocation.getCurrentPosition(function (pos) {
+                fillSos({ lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy, alt: pos.coords.altitude, t: Date.now() });
+            }, function () { $("sosGrid").textContent = "위치를 못 찾음 - 표지판 번호를 불러 주세요"; },
+            { enableHighAccuracy: true, timeout: 20000, maximumAge: 30000 });
+        } else if (!fresh) {
+            $("sosGrid").textContent = "위치를 못 씀(https 필요) - 표지판 번호를 불러 주세요";
+        }
+    });
+    $("sosClose").addEventListener("click", function () { $("sosSheet").style.display = "none"; });
+
+    // ------------------------------------------------------------------ 공유 · 오프라인 저장
+
+    $("share").addEventListener("click", function () {
+        if (!c) return;
+        var url = new URL("s/" + encodeURIComponent(c.id) + "?to=hike", location.href).href;
+        var text = c.course.name + " · " + km(c.total) + "km";
+        if (navigator.share) navigator.share({ title: c.course.name, text: text, url: url }).catch(function () {});
+        else (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(function () { toast("링크를 복사했습니다: " + url, 5000); })
+            .catch(function () { prompt("링크를 복사하세요", url); });
+    });
+
+    /** 지도 타일 주소들 - 코스 범위의 z(lo~hi). */
+    function tileUrls(template, z0, z1, bbox) {
+        var out = [];
+        function tx(lon, z) { return Math.floor((lon + 180) / 360 * Math.pow(2, z)); }
+        function ty(lat, z) { var r = lat * Math.PI / 180; return Math.floor((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * Math.pow(2, z)); }
+        for (var z = z0; z <= z1; z++) {
+            for (var x = tx(bbox[0], z); x <= tx(bbox[2], z); x++) {
+                for (var y = ty(bbox[3], z); y <= ty(bbox[1], z); y++) {
+                    out.push(template.replace("{z}", z).replace("{x}", x).replace("{y}", y));
+                }
+            }
+        }
+        return out;
+    }
+
+    /**
+     * 오프라인 저장 - 코스 · 주변 길 자료와 코스 둘레(약 500m) 지도 그림을 핸드폰에 받아 둡니다(서비스 워커가 통신이 끊기면 씀).
+     * 타일은 3,000장 안으로 - 넘으면 가장 자세한 단계를 줄입니다.
+     */
+    $("save").addEventListener("click", function () {
+        if (!c) return;
+        if (!("caches" in window) || !window.isSecureContext) { toast("오프라인 저장은 https 주소에서만 됩니다.", 5000); return; }
+        var pad = 0.005, b = [Math.min.apply(null, c.lon) - pad, Math.min.apply(null, c.lat) - pad, Math.max.apply(null, c.lon) + pad, Math.max.apply(null, c.lat) + pad];
+        var style = map.getStyle(), urls = [];
+        var zMax = 16, list;
+        do {
+            list = [];
+            Object.keys(style.sources).forEach(function (k) {
+                var src = style.sources[k];
+                if (!src.tiles || !src.tiles[0]) return;
+                var hi = Math.min(zMax, src.maxzoom || 16);
+                list = list.concat(tileUrls(src.tiles[0], 10, hi, b));
+            });
+            zMax--;
+        } while (list.length > 3000 && zMax >= 12);
+        urls = ["api/course?id=" + encodeURIComponent(c.id), "api/trails?bbox=" + courseBbox(0.01), "api/map-config"].concat(list);
+        var btn = $("save"), done = 0, failed = 0, i = 0;
+        btn.disabled = true;
+        caches.open("rf-offline-v1").then(function (cache) {
+            function next() {
+                if (i >= urls.length) return Promise.resolve();
+                var u = urls[i++];
+                return fetch(u, { mode: "cors" }).then(function (r) {
+                    if (r.ok) return cache.put(u, r);
+                    failed++;
+                }).catch(function () { failed++; }).then(function () {
+                    done++;
+                    btn.textContent = Math.round(done / urls.length * 100) + "%";
+                    return next();
+                });
+            }
+            return Promise.all([next(), next(), next(), next(), next(), next()]);
+        }).then(function () {
+            btn.disabled = false;
+            btn.textContent = "✅ 저장됨";
+            try {
+                var saved = JSON.parse(localStorage.getItem("rf-offline") || "[]");
+                if (saved.indexOf(c.id) < 0) saved.push(c.id);
+                localStorage.setItem("rf-offline", JSON.stringify(saved));
+            } catch (e) { /* 무시 */ }
+            toast("오프라인 저장 끝 - 지도 " + (urls.length - 3) + "장" + (failed ? " (못 받은 " + failed + "장)" : "") + ". 통신이 끊겨도 이 코스는 보입니다.", 6000);
+        }).catch(function (e) {
+            btn.disabled = false;
+            btn.textContent = "📥 저장";
+            toast("저장하지 못했습니다: " + e.message, 5000);
+        });
+    });
+
     $("go").addEventListener("click", function () { if (hike.running) stopHike(true); else start(false); });
     $("sim").addEventListener("click", function () { start(true); });
     $("follow").addEventListener("click", function () {
@@ -527,7 +921,9 @@
     }).then(function (j) {
         cfg = { demUrl: j.demUrl || "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png", vworldKey: j.vworldKey || null };
         startMap();
-        if (/[?&]debug\b/.test(location.search)) window.routeflyHike = { map: map, hike: hike, get c() { return c; } };   // 시험용
+        if (/[?&]debug\b/.test(location.search)) window.routeflyHike = { map: map, hike: hike, get c() { return c; },   // 시험용
+            fix: function (lat, lon) { onFix({ timestamp: now(), coords: { latitude: lat, longitude: lon, accuracy: 5, speed: 1, heading: null } }); },
+            heading: function (h) { onOrientation({ webkitCompassHeading: h }); } };
         route();
     });
 })();

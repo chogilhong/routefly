@@ -12,6 +12,8 @@
      ① 고도 그래프(지점 이름 · km 눈금 · 지금 위치) ② 산행 기록(진행 · 남은 거리 · 해발 · 경사 · 속도 · 시간 · 다음 지점 · 예상 도착)
      ③ 경로 지도(북쪽 위, km 번호 · 지점 · 내 위치 · 방향).
      GPS 는 https(또는 localhost)에서만 켜집니다. -->
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="img/icon-192.png">
 <link rel="stylesheet" href="vendor/maplibre-gl-5.24.0/maplibre-gl.css">
 <link rel="stylesheet" href="css/course-kit.css">
 <style>
@@ -36,9 +38,9 @@ button { font-family:inherit; }
 #follow { position:absolute; right:10px; bottom:12px; width:44px; height:44px; border-radius:50%; border:0; z-index:2;
           background:#fff; color:#1a73e8; font-size:22px; box-shadow:0 2px 8px rgba(0,0,0,0.45); }
 #follow.on { background:#1a73e8; color:#fff; }
-#offroute { position:absolute; left:10px; right:52px; top:10px; z-index:3; display:none; padding:9px 12px; border-radius:10px;
+#offroute { position:absolute; left:66px; right:52px; top:10px; z-index:3; display:none; padding:9px 12px; border-radius:10px;
             background:rgba(220,38,38,0.94); color:#fff; font-size:14px; font-weight:bold; box-shadow:0 2px 8px rgba(0,0,0,0.5); }
-#arrived { position:absolute; left:10px; right:10px; top:10px; z-index:3; display:none; padding:12px; border-radius:10px;
+#arrived { position:absolute; left:66px; right:10px; top:64px; z-index:3; display:none; padding:12px; border-radius:10px;
            background:rgba(22,163,74,0.95); color:#fff; font-size:16px; font-weight:bold; text-align:center; }
 
 /* 지도 위 표시 */
@@ -109,6 +111,50 @@ button { font-family:inherit; }
                        font-size:15px; font-weight:bold; }
 #safety .sbtn button.main { flex:2; background:var(--sky); border-color:var(--sky); color:#062b30; }
 #safety .sbtn button:disabled { opacity:0.4; }
+
+/* SOS · 기록 시트(안전 안내와 같은 모양) */
+#sos { margin-left:2px; height:28px; padding:0 9px; border-radius:14px; border:0; background:#e03131; color:#fff; font-weight:900;
+       font-size:12.5px; letter-spacing:0.5px; }
+.sheet { position:fixed; inset:0; z-index:30; display:none; align-items:flex-end; justify-content:center; background:rgba(0,0,0,0.6); }
+.sheet .sbox { width:100%; max-width:520px; max-height:92dvh; overflow-y:auto; background:var(--panel); border-radius:16px 16px 0 0;
+               padding:18px 16px calc(env(safe-area-inset-bottom) + 14px); }
+.sheet h2 { margin:0 0 10px; font-size:18px; }
+.sheet .big { display:block; text-align:center; text-decoration:none; font-size:18px; font-weight:bold; padding:14px; border-radius:12px; margin-bottom:8px; }
+.sheet .call { background:#e03131; color:#fff; }
+.sheet .sms { background:rgba(255,255,255,0.08); color:var(--tx); border:1px solid var(--ln); font-size:15px; }
+.sheet .where { background:rgba(255,255,255,0.04); border-radius:10px; padding:6px 10px; margin:8px 0; }
+.sheet .where div { display:flex; justify-content:space-between; gap:10px; padding:6px 0; border-bottom:1px solid var(--ln); font-size:14px; }
+.sheet .where div:last-child { border-bottom:0; }
+.sheet .where span { color:var(--dim); }
+.sheet .where b { text-align:right; font-variant-numeric:tabular-nums; }
+.sheet .tip { font-size:12.5px; color:var(--dim); line-height:1.55; margin:6px 0; }
+.sheet .sbtn { display:flex; gap:8px; margin-top:10px; }
+.sheet .sbtn button { flex:1; height:46px; border-radius:10px; border:1px solid var(--ln); background:rgba(255,255,255,0.06); color:var(--tx);
+                      font-size:15px; font-weight:bold; }
+.sheet .sbtn button.main { flex:2; background:var(--sky); border-color:var(--sky); color:#062b30; }
+#recList .rec { display:flex; align-items:center; gap:8px; padding:10px 0; border-bottom:1px solid var(--ln); font-size:13.5px; }
+#recList .rec div { flex:1; min-width:0; }
+#recList .rec b { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#recList .rec span { color:var(--dim); font-size:12px; }
+#recList .rec button { height:34px; padding:0 10px; border-radius:8px; border:1px solid var(--ln); background:rgba(255,255,255,0.06); color:var(--tx); }
+
+/* 나침반 · 갈림길 · 길 안내 화살표 */
+#compass { position:absolute; left:10px; top:10px; z-index:2; width:48px; height:48px; border-radius:50%; border:0; background:#fff;
+           box-shadow:0 2px 8px rgba(0,0,0,0.45); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0; }
+#compass .needle { color:#e03131; font-size:15px; line-height:1; transition:transform .25s linear; }
+#compass .hd { font-size:10px; font-weight:bold; color:#333; line-height:1.1; }
+#compass.on { box-shadow:0 0 0 3px #38d9ea, 0 2px 8px rgba(0,0,0,0.45); }
+#compass.up { box-shadow:0 0 0 3px #1a73e8, 0 2px 8px rgba(0,0,0,0.45); }
+#turn { position:absolute; left:66px; right:10px; top:10px; z-index:3; display:none; padding:10px 12px; border-radius:10px;
+        background:rgba(26,115,232,0.95); color:#fff; font-size:15px; font-weight:bold; box-shadow:0 2px 8px rgba(0,0,0,0.5); }
+#offroute { display:none; align-items:center; gap:10px; }
+#offroute .arrow { display:inline-block; font-size:26px; line-height:1; transition:transform .3s; }
+#etaBox.late { background:rgba(220,38,38,0.25); }
+#sunTxt { color:var(--dim); }
+.tabs { display:flex; gap:6px; margin-top:8px; overflow-x:auto; }
+.tabs button { flex:0 0 auto; height:34px; padding:0 12px; border-radius:17px; border:1px solid var(--ln); background:rgba(255,255,255,0.06);
+               color:var(--tx); font-size:13.5px; }
+.tabs button.on { background:var(--sky); border-color:var(--sky); color:#062b30; font-weight:bold; }
 </style>
 </head>
 <body>
@@ -117,11 +163,14 @@ button { font-family:inherit; }
     <div class="nm" id="name">코스를 고르세요</div>
     <span id="gps">GPS 꺼짐</span>
     <a href="about.html" title="안전 · 개인정보 · 출처 안내" style="font-size:17px">ⓘ</a>
+    <button type="button" id="sos" title="119 긴급 신고 · 내 위치">SOS</button>
 </div>
 
 <div id="mapWrap">
     <div id="map"></div>
-    <div id="offroute"></div>
+    <div id="offroute"><span class="arrow" id="guideArrow"><svg viewBox="0 0 24 24" width="30" height="30"><path d="M12 2 L20 20 L12 15.5 L4 20 Z" fill="#fff" stroke="#7a0000" stroke-width="1.2" stroke-linejoin="round"/></svg></span><span id="offText"></span></div>
+    <div id="turn"></div>
+    <button type="button" id="compass" title="나침반 - 누를 때마다: 켜기 → 내 방향으로 지도 돌리기 → 북쪽 위로"><span class="needle">▲</span><span class="hd" id="compassText">N</span></button>
     <div id="arrived"></div>
     <button type="button" id="follow" class="on" title="내 위치 따라가기">⌖</button>
 </div>
@@ -138,14 +187,16 @@ button { font-family:inherit; }
     </div>
     <div class="grid" style="grid-template-columns:1fr 1fr; margin-top:4px">
         <div class="st"><div class="k">남은 오르막</div><div class="v" id="sAsc">-<small>m</small></div></div>
-        <div class="st"><div class="k">예상 도착</div><div class="v" id="sEta">-</div></div>
+        <div class="st" id="etaBox"><div class="k">예상 도착 <span id="sunTxt"></span></div><div class="v" id="sEta">-</div></div>
     </div>
 </div>
 
 <div id="profile"></div>
 
 <div id="bar">
-    <button type="button" id="sim" title="코스를 따라 걷는 흉내(GPS 없이 시험)">모의 산행</button>
+    <button type="button" id="sim" title="코스를 따라 걷는 흉내(GPS 없이 시험)">모의</button>
+    <button type="button" id="save" title="산속 통신이 끊겨도 보이게 이 코스와 지도를 핸드폰에 저장">📥 저장</button>
+    <button type="button" id="share" title="이 코스 링크 보내기">공유</button>
     <button type="button" id="go" class="main">산행 시작</button>
 </div>
 
@@ -153,8 +204,15 @@ button { font-family:inherit; }
     <header>
         <h1>route<span>fly</span> 산행</h1>
         <input type="search" id="q" placeholder="코스 · 산 이름 (예: 설악산, 대청봉)" autocomplete="off" maxlength="50">
+        <div class="tabs" id="kindTabs">
+            <button type="button" data-kind="" class="on">전체</button>
+            <button type="button" data-kind="hike">⛰️ 등산</button>
+            <button type="button" data-kind="walk">🚶 걷기</button>
+            <button type="button" data-kind="bike">🚴 자전거</button>
+        </div>
         <div class="row">
             <button type="button" id="nearMe">📍 내 주변 코스</button>
+            <button type="button" id="myRecords">📒 내 기록</button>
         </div>
     </header>
     <div id="pickList"><div class="msg">산 이름으로 찾거나, 산 입구에서 "내 주변 코스" 를 누르세요.<br><br>
@@ -162,6 +220,49 @@ button { font-family:inherit; }
 </div>
 
 <div id="toast"></div>
+
+<!-- SOS - 119 전화 · 문자, 내 위치(국가지점번호) -->
+<div id="sosSheet" class="sheet">
+    <div class="sbox">
+        <h2 style="color:#ff6b6b">🚨 긴급 신고</h2>
+        <a class="big call" href="tel:119">📞 119 전화</a>
+        <a class="big sms" id="sosSms" href="sms:119">✉️ 119 문자 신고(위치 넣어 보냄)</a>
+        <div class="where">
+            <div><span>국가지점번호</span><b id="sosGrid">-</b></div>
+            <div><span>위도 · 경도</span><b id="sosLatLon">-</b></div>
+            <div><span>해발</span><b id="sosEle">-</b></div>
+            <div><span>코스</span><b id="sosCourse">-</b></div>
+        </div>
+        <p class="tip">구조대에 <b>국가지점번호</b>를 불러 주세요. 등산로의 <b>위치표지판 번호</b>가 보이면 그것도 함께.<br>
+            통화가 안 되면 문자 신고를 쓰세요. 배터리를 아끼려면 화면 밝기를 낮추세요.</p>
+        <div class="sbtn">
+            <button type="button" id="sosCopy">위치 복사</button>
+            <button type="button" id="sosClose" class="main">닫기</button>
+        </div>
+    </div>
+</div>
+
+<!-- 산행을 끝냈을 때 - 기록 요약 · GPX 저장 -->
+<div id="doneSheet" class="sheet">
+    <div class="sbox">
+        <h2>산행 기록</h2>
+        <div class="where" id="doneSum"></div>
+        <p class="tip">기록은 이 핸드폰에만 남습니다("내 기록"). GPX 로 저장하면 다른 등산 앱 · 지도에서도 열 수 있습니다.</p>
+        <div class="sbtn">
+            <button type="button" id="doneGpx">GPX 저장</button>
+            <button type="button" id="doneClose" class="main">닫기</button>
+        </div>
+    </div>
+</div>
+
+<!-- 내 기록 -->
+<div id="recSheet" class="sheet">
+    <div class="sbox">
+        <h2>📒 내 기록 <small style="font-size:12px;color:#9aa6b4">(이 핸드폰에만 저장)</small></h2>
+        <div id="recList"></div>
+        <div class="sbtn"><button type="button" id="recClose" class="main">닫기</button></div>
+    </div>
+</div>
 
 <!-- 처음 "산행 시작" 할 때 한 번 - 안전 · 위치 안내 -->
 <div id="safety">
@@ -186,5 +287,9 @@ button { font-family:inherit; }
 <script src="vendor/maplibre-gl-5.24.0/maplibre-gl.js"></script>
 <script src="js/course-kit.js"></script>
 <script src="js/hike.js"></script>
+<script>
+// 홈 화면에 추가 · 오프라인 - https(또는 localhost)에서만 됩니다
+if ("serviceWorker" in navigator && window.isSecureContext) navigator.serviceWorker.register("sw.js").catch(function () {});
+</script>
 </body>
 </html>

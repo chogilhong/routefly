@@ -1,0 +1,86 @@
+/*
+ * routefly 서비스 워커 - 산속에서 통신이 끊겨도 산행 화면이 열리고, 저장해 둔 코스 · 지도가 보이게.
+ *
+ *   - 화면 파일(html · js · css): 인터넷이 되면 늘 새로 받고(배포하면 바로 반영), 안 되면 받아 둔 것
+ *   - API(코스 · 주변 길 · 지도 설정): 위와 같음(새로 받으면 받아 둔 것도 고침)
+ *   - 지도 타일(V-World 위성사진 · 지형): 받아 둔 것이 있으면 그것(오프라인 저장 · 본 적 있는 곳), 없으면 받아서 조금 남겨 둠
+ *   - MapLibre(vendor): 바뀌지 않으므로 받아 둔 것 먼저
+ */
+var SHELL = "rf-shell-v1", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
+var TILE_KEEP = 1500;   // 지나가며 본 타일은 이만큼만 남깁니다(저장 공간)
+
+var SHELL_FILES = ["hike.html", "about.html", "./", "css/course-kit.css", "js/course-kit.js", "js/hike.js", "js/app.js",
+    "vendor/maplibre-gl-5.24.0/maplibre-gl.js", "vendor/maplibre-gl-5.24.0/maplibre-gl.css", "favicon.svg", "manifest.json",
+    "img/icon-192.png", "img/icon-512.png"];
+
+self.addEventListener("install", function (e) {
+    e.waitUntil(caches.open(SHELL).then(function (c) { return c.addAll(SHELL_FILES); }).catch(function () { /* 하나 못 받아도 설치는 */ }));
+    self.skipWaiting();
+});
+
+self.addEventListener("activate", function (e) {
+    var keep = [SHELL, API, TILES, OFFLINE];
+    e.waitUntil(caches.keys().then(function (names) {
+        return Promise.all(names.filter(function (n) { return n.indexOf("rf-") === 0 && keep.indexOf(n) < 0; })
+            .map(function (n) { return caches.delete(n); }));
+    }).then(function () { return self.clients.claim(); }));
+});
+
+function isTile(url) {
+    return url.indexOf("api.vworld.kr/req/wmts") >= 0 || url.indexOf("elevation-tiles-prod") >= 0;
+}
+
+var puts = 0;
+function trimTiles() {
+    return caches.open(TILES).then(function (c) {
+        return c.keys().then(function (keys) {
+            var extra = keys.length - TILE_KEEP;
+            return Promise.all(keys.slice(0, Math.max(0, extra)).map(function (k) { return c.delete(k); }));
+        });
+    });
+}
+
+/** 인터넷 먼저, 안 되면 받아 둔 것(어느 캐시든). 받은 것은 cacheName 에 고쳐 둡니다. */
+function networkFirst(req, cacheName) {
+    return fetch(req).then(function (res) {
+        if (res && res.ok) {
+            var copy = res.clone();
+            caches.open(cacheName).then(function (c) { c.put(req, copy); });
+        }
+        return res;
+    }).catch(function () {
+        return caches.match(req, { ignoreVary: true }).then(function (hit) {
+            return hit || new Response(JSON.stringify({ success: false, message: "오프라인 - 저장해 둔 자료가 없습니다." }),
+                { status: 503, headers: { "Content-Type": "application/json; charset=UTF-8" } });
+        });
+    });
+}
+
+/** 받아 둔 것 먼저, 없으면 받아서(타일이면 조금 남겨 둠). */
+function cacheFirst(req, cacheName) {
+    return caches.match(req, { ignoreVary: true }).then(function (hit) {
+        if (hit) return hit;
+        return fetch(req).then(function (res) {
+            if (res && res.ok && cacheName) {
+                var copy = res.clone();
+                caches.open(cacheName).then(function (c) {
+                    c.put(req, copy);
+                    if (cacheName === TILES && ++puts % 50 === 0) trimTiles();
+                });
+            }
+            return res;
+        });
+    });
+}
+
+self.addEventListener("fetch", function (e) {
+    var req = e.request;
+    if (req.method !== "GET") return;
+    var url = req.url;
+    if (isTile(url)) { e.respondWith(cacheFirst(req, TILES)); return; }
+    if (url.indexOf(self.location.origin) !== 0) return;   // 그 밖의 다른 사이트는 손대지 않음
+    if (url.indexOf("/api/") >= 0) { e.respondWith(networkFirst(req, API)); return; }
+    if (url.indexOf("/vendor/") >= 0) { e.respondWith(cacheFirst(req, SHELL)); return; }
+    if (url.indexOf("/s/") >= 0) return;   // 공유 링크는 서버로
+    e.respondWith(networkFirst(req, SHELL));
+});

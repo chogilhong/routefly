@@ -51,9 +51,15 @@
         return kept;
     }
 
-    /** 코스 자료(api/course 응답) → 계산하기 쉬운 모양. */
+    var JUNCTION = "갈림길";   // routefly-batch 가 넣는 갈림길 이름표 - 지도 글자 대신 산행 화면 미리 알림에 씁니다
+
+    /** 코스 자료(api/course 응답) → 계산하기 쉬운 모양. 갈림길은 이름표와 따로 c.junctions(진행 거리 목록). */
     function fromApi(id, j) {
-        var c = { id: id, course: j.course, lon: [], lat: [], ele: [], dist: [], pois: dedupePois(j.pois), markers: [] };
+        var all = j.pois || [];
+        var c = { id: id, course: j.course, lon: [], lat: [], ele: [], dist: [], markers: [],
+                  pois: dedupePois(all.filter(function (p) { return p.name !== JUNCTION; })),
+                  junctions: all.filter(function (p) { return p.name === JUNCTION; }).map(function (p) { return +p.dist_m; })
+                      .sort(function (a, b) { return a - b; }) };
         (j.points || []).forEach(function (p) {
             c.lon.push(+p[0]); c.lat.push(+p[1]); c.ele.push(p[2] == null ? null : +p[2]); c.dist.push(+p[3]);
         });
@@ -173,6 +179,84 @@
         if (cls) e.className = cls;
         if (text != null) e.textContent = text;
         return e;
+    }
+
+    /** 순수 함수 - 갈림길 d 에서 코스가 꺾는 쪽(앞뒤 40m 방향 차이). "오른쪽 길" · "왼쪽 길" · "직진". */
+    function turnWord(c, d) {
+        var a = at(c, Math.max(0, d - 40)), m = at(c, d), b = at(c, Math.min(c.total, d + 40));
+        var b1 = bearingOf(a.lat, a.lon, m.lat, m.lon), b2 = bearingOf(m.lat, m.lon, b.lat, b.lon);
+        var diff = ((b2 - b1 + 540) % 360) - 180;
+        if (Math.abs(diff) < 25) return "직진";
+        return (Math.abs(diff) < 60 ? "살짝 " : "") + (diff > 0 ? "오른쪽 길" : "왼쪽 길");
+    }
+
+    function bearingOf(lat1, lon1, lat2, lon2) {
+        var r = Math.PI / 180, y = Math.sin((lon2 - lon1) * r) * Math.cos(lat2 * r);
+        var x = Math.cos(lat1 * r) * Math.sin(lat2 * r) - Math.sin(lat1 * r) * Math.cos(lat2 * r) * Math.cos((lon2 - lon1) * r);
+        return (Math.atan2(y, x) / r + 360) % 360;
+    }
+
+    /**
+     * 순수 함수 - 위경도 → UTM-K(EPSG:5179, GRS80 · 중앙경선 127.5° · 원점 38° · 축척 0.9996 · 1,000,000 / 2,000,000).
+     * 국가지점번호를 셈하려고 씁니다(WGS84 와 GRS80 차이는 무시해도 되는 수준).
+     */
+    function utmk(lat, lon) {
+        var a = 6378137, f = 1 / 298.257222101, e2 = 2 * f - f * f, ep2 = e2 / (1 - e2), k0 = 0.9996;
+        var r = Math.PI / 180, phi = lat * r, lam = lon * r, phi0 = 38 * r, lam0 = 127.5 * r;
+        function M(p) {
+            var e4 = e2 * e2, e6 = e4 * e2;
+            return a * ((1 - e2 / 4 - 3 * e4 / 64 - 5 * e6 / 256) * p - (3 * e2 / 8 + 3 * e4 / 32 + 45 * e6 / 1024) * Math.sin(2 * p)
+                + (15 * e4 / 256 + 45 * e6 / 1024) * Math.sin(4 * p) - (35 * e6 / 3072) * Math.sin(6 * p));
+        }
+        var N = a / Math.sqrt(1 - e2 * Math.sin(phi) * Math.sin(phi)), T = Math.tan(phi) * Math.tan(phi);
+        var C = ep2 * Math.cos(phi) * Math.cos(phi), A = (lam - lam0) * Math.cos(phi);
+        var x = 1000000 + k0 * N * (A + (1 - T + C) * Math.pow(A, 3) / 6 + (5 - 18 * T + T * T + 72 * C - 58 * ep2) * Math.pow(A, 5) / 120);
+        var y = 2000000 + k0 * (M(phi) - M(phi0) + N * Math.tan(phi) * (A * A / 2 + (5 - T + 9 * C + 4 * C * C) * Math.pow(A, 4) / 24
+            + (61 - 58 * T + T * T + 600 * C - 330 * ep2) * Math.pow(A, 6) / 720));
+        return { x: x, y: y };
+    }
+
+    /**
+     * 순수 함수 - 국가지점번호(예: "다사 5371 5148"). 구조대가 쓰는 전국 10m 격자 주소 - 산의 위치표지판에 적힌 번호와 같은 체계.
+     * 글자는 100km 칸(가~아), 숫자는 그 안의 동 · 북 거리를 10m 단위로. 범위 밖이면 null.
+     */
+    function nationalPoint(lat, lon) {
+        var p = utmk(lat, lon), L = "가나다라마바사아";
+        var ix = Math.floor(p.x / 100000) - 7, iy = Math.floor(p.y / 100000) - 13;
+        if (ix < 0 || ix > 7 || iy < 0 || iy > 7) return null;
+        var pad = function (v) { v = String(Math.floor(v)); while (v.length < 4) v = "0" + v; return v; };
+        return L.charAt(ix) + L.charAt(iy) + " " + pad((p.x % 100000) / 10) + " " + pad((p.y % 100000) / 10);
+    }
+
+    /** 순수 함수 - 그날 해 지는 시각(ms, 그 위치 기준). 극지방처럼 해가 안 지면 null. (Almanac for Computers 공식) */
+    function sunset(dateMs, lat, lon) {
+        var r = Math.PI / 180, d = new Date(dateMs);
+        var start = Date.UTC(d.getUTCFullYear(), 0, 0), N = Math.floor((Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - start) / 86400000);
+        var lngHour = lon / 15, t = N + (18 - lngHour) / 24;
+        var Mn = 0.9856 * t - 3.289;
+        var L = (Mn + 1.916 * Math.sin(Mn * r) + 0.020 * Math.sin(2 * Mn * r) + 282.634 + 360) % 360;
+        var RA = (Math.atan(0.91764 * Math.tan(L * r)) / r + 360) % 360;
+        RA = (RA + (Math.floor(L / 90) * 90 - Math.floor(RA / 90) * 90)) / 15;
+        var sinDec = 0.39782 * Math.sin(L * r), cosDec = Math.cos(Math.asin(sinDec));
+        var cosH = (Math.cos(90.833 * r) - sinDec * Math.sin(lat * r)) / (cosDec * Math.cos(lat * r));
+        if (cosH > 1 || cosH < -1) return null;
+        var H = Math.acos(cosH) / r / 15;
+        var UT = ((H + RA - 0.06571 * t - 6.622 - lngHour) % 24 + 24) % 24;
+        return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) + UT * 3600000;
+    }
+
+    /** 종류별 이름 · 표준 빠르기 - 예상 시간에 씁니다. 등산 · 걷기는 오르막 600m/h 를 더합니다(네이스미스). */
+    var KINDS = {
+        hike: { label: "등산", kmh: 4, climb: 600, icon: "⛰️" },
+        walk: { label: "걷기", kmh: 4, climb: 600, icon: "🚶" },
+        bike: { label: "자전거", kmh: 15, climb: 0, icon: "🚴" }
+    };
+    function kindOf(k) { return KINDS[k] || KINDS.hike; }
+
+    /** 순수 함수 - 표준 소요 시간(ms). */
+    function standardMs(kind, distM, ascM) {
+        var k = kindOf(kind);
+        return (distM / 1000 / k.kmh + (k.climb ? ascM / k.climb : 0)) * 3600000;
     }
 
     // ------------------------------------------------------------------ ① 고도 그래프
@@ -328,6 +412,7 @@
 
     global.RF = {
         LINE_COLOR: LINE_COLOR, num: num, km: km, fromApi: fromApi, cleanName: cleanName, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
-        nextPoi: nextPoi, snap: snap, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
+        nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
+        sunset: sunset, KINDS: KINDS, kindOf: kindOf, standardMs: standardMs, distM: distM, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
     };
 })(window);

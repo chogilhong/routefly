@@ -1,0 +1,16 @@
+{
+  "name": "routefly 산행",
+  "short_name": "routefly",
+  "description": "3D 로 미리 날아 보고, 핸드폰으로 따라 걷는 등산 코스",
+  "lang": "ko",
+  "start_url": "hike.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#11161d",
+  "theme_color": "#11161d",
+  "icons": [
+    { "src": "img/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

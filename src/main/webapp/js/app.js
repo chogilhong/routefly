@@ -19,7 +19,7 @@
     var map;
     var mapReady;            // 지도 스타일이 읽힌 뒤 경로 층을 붙이고 풀리는 약속 - 목록은 이것을 기다리지 않습니다
     var courses = [];
-    var list = { q: null, truncated: false, seq: 0, timer: 0 };   // 목록 상태 - 검색어가 있으면 검색, 없으면 지도 범위
+    var list = { q: null, kind: "", truncated: false, seq: 0, timer: 0 };   // 목록 상태 - 검색어가 있으면 검색, 없으면 지도 범위
     var cur = null;          // 지금 코스 {id, course, lon[], lat[], ele[], dist[], total, pois[], markers[]}
     var anim = { running: false, d: 0, speedIdx: 0, last: 0, bearing: 0, pitch: 70, pitchWant: 70, pitchAt: 0, raf: 0 };
 
@@ -204,12 +204,13 @@
      * 늦게 온 옛 응답이 새 목록을 덮지 않게 순번(seq)을 봅니다.
      */
     function loadCourses() {
-        var url = "api/courses";
-        if (list.q) url += "?q=" + encodeURIComponent(list.q);
+        var url = "api/courses?";
+        if (list.q) url += "q=" + encodeURIComponent(list.q);
         else if (map) {
             var bb = viewBbox();
-            if (bb) url += "?bbox=" + bb;
+            if (bb) url += "bbox=" + bb;
         }
+        if (list.kind) url += "&kind=" + list.kind;   // 등산 · 걷기 · 자전거
         var seq = ++list.seq;
         return getJson(url).then(function (j) {
             if (seq !== list.seq) return;
@@ -273,7 +274,9 @@
     }
 
     function statLine(c) {
-        var parts = [km(c.distance_m) + "km"];
+        var k = RF.kindOf(c.kind), parts = [(c.kind && c.kind !== "hike" ? k.icon + " " : "") + km(c.distance_m) + "km"];
+        var t = RF.standardMs(c.kind, +c.distance_m, c.ascent_m == null ? 0 : +c.ascent_m);
+        parts.push("약 " + (t >= 3600000 ? Math.floor(t / 3600000) + "시간 " : "") + Math.round(t / 60000) % 60 + "분");
         if (c.ascent_m != null) parts.push("오르막 " + num(c.ascent_m) + "m");
         if (c.ele_max_m != null) parts.push("최고 " + num(c.ele_max_m) + "m");
         return parts.join(" · ");
@@ -314,6 +317,7 @@
             $("hud").style.display = "block";
             $("mini").style.display = "block";
             $("hikeLink").href = "hike.html#c=" + encodeURIComponent(id);
+            $("shareBtn").style.display = "";
             renderProfile(c);
             placeHud();
             updateHud(0);
@@ -754,6 +758,22 @@
         }
     });
 
+    // 등산 · 걷기 · 자전거
+    [].forEach.call(document.querySelectorAll("#kindTabs button"), function (b) {
+        b.addEventListener("click", function () {
+            list.kind = b.getAttribute("data-kind");
+            [].forEach.call(document.querySelectorAll("#kindTabs button"), function (x) { x.classList.toggle("on", x === b); });
+            loadCourses();
+        });
+    });
+    // 공유 - 카카오톡 등에 붙이면 코스 카드(이름 · 거리 · 오르막)가 뜨는 링크(/s/코스ID)
+    $("shareBtn").addEventListener("click", function () {
+        if (!cur) return;
+        var url = new URL("s/" + encodeURIComponent(cur.id), location.href).href;
+        if (navigator.share) { navigator.share({ title: cur.course.name, url: url }).catch(function () {}); return; }
+        (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(function () { show("링크를 복사했습니다: " + url); setTimeout(function () { show(null); }, 2500); })
+            .catch(function () { prompt("링크를 복사하세요", url); });
+    });
     $("play").addEventListener("click", function () { if (anim.running) stop(); else play(); });
     $("speed").addEventListener("click", function () {
         anim.speedIdx = (anim.speedIdx + 1) % SPEEDS.length;

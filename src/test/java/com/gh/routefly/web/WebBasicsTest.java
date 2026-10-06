@@ -99,4 +99,21 @@ public class WebBasicsTest {
         assertEquals("%a\\_b%", CourseQueries.likePattern("a_b"));
         assertEquals("%a\\\\b%", CourseQueries.likePattern("a\\b"));
     }
+
+    @Test
+    public void trailsThinWkt() {
+        assertEquals("[[128.1,38.1],[128.12346,38.3],[128.5,38.5]]",
+                TrailsServlet.thinWkt("LINESTRING(128.1 38.1,128.2 38.2,128.123456 38.3,128.4 38.4,128.5 38.5)", 2).toString());
+        assertEquals("[]", TrailsServlet.thinWkt(null, 3).toString());
+    }
+
+    @Test
+    public void sharePageEscapesAndRedirects() {
+        String html = ShareServlet.page("설악 <b>\"", "d", "https://x/s/a", "https://x/img/og.png", "https://x/#c=a");
+        assertTrue(html, html.contains("og:title\" content=\"설악 &lt;b&gt;&quot;\""));
+        assertTrue(html, html.contains("location.replace(\"https://x/#c=a\")"));
+        assertFalse(html.contains("<b>"));
+        assertEquals("5.81km · 오르막 1,460m · 최고 1,700m · 3D 로 미리 날아 보고 핸드폰으로 따라 걷기",
+                ShareServlet.describe(5810, 1460, 1700.4));
+    }
 }

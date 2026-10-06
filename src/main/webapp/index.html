@@ -9,6 +9,10 @@
 <!-- 경로를 3D 지형 위에서 따라가며 보여 주는 화면.
      자료: /api/courses (목록) · /api/course?id= (한 코스) · /api/map-config (지도 키) - routefly-batch 가 넣은 표를 읽기만 합니다.
      지도: MapLibre GL JS 5.24.0 (vendor 폴더, BSD-3) - CDN 없이 이 앱이 직접 내려줍니다. -->
+<link rel="manifest" href="manifest.json">
+<meta property="og:title" content="routefly - 3D로 미리 날아 보는 등산 코스">
+<meta property="og:description" content="코스를 3D 지형 위에서 미리 보고, 핸드폰으로 따라 걷기">
+<meta property="og:image" content="img/og.png">
 <link rel="stylesheet" href="vendor/maplibre-gl-5.24.0/maplibre-gl.css">
 <link rel="stylesheet" href="css/course-kit.css">
 <style>
@@ -35,6 +39,10 @@ html, body { margin:0; height:100%; background:#0f141b; color:var(--tx); font-fa
 .search input { width:100%; padding:7px 10px; border-radius:7px; border:1px solid var(--ln); background:rgba(255,255,255,0.08);
                 color:var(--tx); font-size:13.5px; outline:none; }
 .search input:focus { border-color:var(--route); }
+.kinds { display:flex; gap:5px; margin-top:7px; }
+.kinds button { flex:1; height:26px; border-radius:13px; border:1px solid var(--ln); background:rgba(255,255,255,0.05); color:var(--dim);
+                font-size:12px; cursor:pointer; padding:0; white-space:nowrap; }
+.kinds button.on { background:var(--route); border-color:var(--route); color:#1b1b1b; font-weight:bold; }
 .count { padding:7px 12px 3px; font-size:11.5px; color:var(--faint); line-height:1.4; }
 #side.closed header { border-bottom:0; }
 .course { padding:9px 12px; cursor:pointer; border-left:3px solid transparent; }
@@ -117,7 +125,13 @@ body.flying #side { opacity:0; pointer-events:none; }
         <h1>route<span>fly</span></h1>
         <button type="button" id="toggle">접기</button>
     </header>
-    <div class="search"><input type="search" id="q" placeholder="코스 · 산 이름 검색 (예: 설악산, 공룡)" autocomplete="off" maxlength="50"></div>
+    <div class="search"><input type="search" id="q" placeholder="코스 · 산 이름 검색 (예: 설악산, 공룡)" autocomplete="off" maxlength="50">
+        <div class="kinds" id="kindTabs">
+            <button type="button" data-kind="" class="on">전체</button>
+            <button type="button" data-kind="hike">⛰️ 등산</button>
+            <button type="button" data-kind="walk">🚶 걷기</button>
+            <button type="button" data-kind="bike">🚴 자전거</button>
+        </div></div>
     <div id="list"><div class="empty">코스를 불러오는 중…</div></div>
 </div>
 
@@ -136,6 +150,7 @@ body.flying #side { opacity:0; pointer-events:none; }
             <button type="button" id="speed" title="빠르기">0.25×</button>
             <button type="button" id="overview" title="코스 전체 보기">전체</button>
             <a id="hikeLink" class="btn" href="hike.html" title="핸드폰으로 이 코스를 따라 걷는 산행 화면">📱 산행</a>
+            <button type="button" id="shareBtn" title="이 코스 링크 보내기" style="display:none">공유</button>
         </div>
     </div>
     <div id="profile"></div>
@@ -150,5 +165,8 @@ body.flying #side { opacity:0; pointer-events:none; }
 <script src="vendor/maplibre-gl-5.24.0/maplibre-gl.js"></script>
 <script src="js/course-kit.js"></script>
 <script src="js/app.js"></script>
+<script>
+if ("serviceWorker" in navigator && window.isSecureContext) navigator.serviceWorker.register("sw.js").catch(function () {});
+</script>
 </body>
 </html>
