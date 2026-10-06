@@ -14,14 +14,14 @@
 
     var ROUTE_COLOR = "#ffb703";   // 화면 강조색(목록 · 버튼 · 출발점)
     var LINE_COLOR = "#38d9ea";    // 지나온 길 - 위성사진 위에서 잘 보이는 하늘색(영상처럼)
-    var SPEEDS = [0.5, 1, 2, 4];   // 빠르기 단추가 차례로 돕니다(처음은 1×)
+    var SPEEDS = [0.5, 1, 2, 4];   // 빠르기 단추가 차례로 돕니다(처음은 0.5×)
 
     var map;
     var mapReady;            // 지도 스타일이 읽힌 뒤 경로 층을 붙이고 풀리는 약속 - 목록은 이것을 기다리지 않습니다
     var courses = [];
     var list = { q: null, truncated: false, seq: 0, timer: 0 };   // 목록 상태 - 검색어가 있으면 검색, 없으면 지도 범위
     var cur = null;          // 지금 코스 {id, course, lon[], lat[], ele[], dist[], total, pois[], markers[]}
-    var anim = { running: false, d: 0, speedIdx: 1, last: 0, bearing: 0, pitch: 70, pitchWant: 70, pitchAt: 0, raf: 0 };
+    var anim = { running: false, d: 0, speedIdx: 0, last: 0, bearing: 0, pitch: 70, pitchWant: 70, pitchAt: 0, raf: 0 };
 
     // ------------------------------------------------------------------ 작은 도구
 
