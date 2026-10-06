@@ -796,11 +796,30 @@
     function fillSos(f) {
         $("sosGrid").textContent = f ? (RF.nationalPoint(f.lat, f.lon) || "범위 밖") : "위치를 찾는 중…";
         $("sosLatLon").textContent = f ? f.lat.toFixed(5) + ", " + f.lon.toFixed(5) + (f.acc ? " (±" + Math.round(f.acc) + "m)" : "") : "-";
-        var ele = f && f.alt != null ? Math.round(f.alt) : (c ? RF.at(c, hike.d).ele : null);
-        $("sosEle").textContent = ele == null ? "-" : num(ele) + "m";
-        $("sosCourse").textContent = c ? c.course.name + (hike.running ? " · " + km(hike.d) + "km 지점" : "") : "-";
-        var body = "[등산 중 긴급] " + (f ? "국가지점번호 " + (RF.nationalPoint(f.lat, f.lon) || "-") + " / 위경도 " + f.lat.toFixed(5) + "," + f.lon.toFixed(5) : "위치 확인 중")
-            + (c ? " / " + c.course.name : "") + (ele != null ? " / 해발 " + Math.round(ele) + "m" : "");
+        // 해발: GPS 고도가 있으면 그것, 없으면 산행 중 코스 위에 있을 때만 코스 고도(아니면 엉뚱한 값이라 비움)
+        var ele = null, eleNote = "";
+        if (f && f.alt != null) ele = Math.round(f.alt);
+        else if (c && hike.running && hike.off <= OFF_ROUTE_M) { ele = RF.at(c, hike.d).ele; eleNote = " (코스 기준)"; }
+        $("sosEle").textContent = ele == null ? "-" : num(ele) + "m" + eleNote;
+        var where = c && hike.running ? km(hike.d) + "km 지점" + (hike.off > OFF_ROUTE_M ? " · 코스에서 " + num(hike.off) + "m 벗어남" : "") : "";
+        $("sosCourse").textContent = c ? c.course.name + (where ? " · " + where : "") : "-";
+
+        // 보낼 글 - 화면에 보이는 내용 그대로(구조대가 읽기 쉽게 줄바꿈)
+        var lines = ["[등산 중 긴급 신고]"];
+        if (f) {
+            lines.push("국가지점번호: " + (RF.nationalPoint(f.lat, f.lon) || "-"));
+            lines.push("위치: " + f.lat.toFixed(5) + ", " + f.lon.toFixed(5) + (f.acc ? " (오차 약 " + Math.round(f.acc) + "m)" : ""));
+            if (f.acc && f.acc > 100) lines.push("※ GPS 오차가 큼 - 주변 위치표지판 번호를 함께 확인 바람");
+        } else {
+            lines.push("위치: 확인 못 함 - 위치표지판 번호로 연락 바람");
+        }
+        if (ele != null) lines.push("해발: " + Math.round(ele) + "m" + eleNote);
+        if (c) lines.push("코스: " + c.course.name + (where ? " (" + where + ")" : ""));
+        var nx = c && hike.running ? RF.nextPoi(c, hike.d) : null;
+        if (nx) lines.push("다음 지점: " + nx.name + "까지 " + km(+nx.dist_m - hike.d) + "km");
+        lines.push("시각: " + clock(Date.now()));
+        var body = lines.join("\n");
+        $("sosBody").textContent = body;
         $("sosSms").href = "sms:119" + (/iPhone|iPad/.test(navigator.userAgent) ? "&" : "?") + "body=" + encodeURIComponent(body);
         $("sosCopy").onclick = function () {
             (navigator.clipboard ? navigator.clipboard.writeText(body) : Promise.reject()).then(function () { toast("위치를 복사했습니다."); })
