@@ -14,6 +14,7 @@ $deps = @(@(
   'junit\junit\4.13.2\junit-4.13.2.jar',
   'org\hamcrest\hamcrest-core\1.3\hamcrest-core-1.3.jar',
   'com\google\code\gson\gson\2.14.0\gson-2.14.0.jar',
+  'org\mybatis\mybatis\3.5.19\mybatis-3.5.19.jar',
   'org\apache\logging\log4j\log4j-api\2.24.3\log4j-api-2.24.3.jar',
   'org\apache\logging\log4j\log4j-core\2.24.3\log4j-core-2.24.3.jar',
   'jakarta\servlet\jakarta.servlet-api\6.1.0\jakarta.servlet-api-6.1.0.jar'

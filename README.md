@@ -14,6 +14,7 @@
      ```sql
      GRANT SELECT ON routefly.* TO '웹계정'@'localhost';
      ```
+   - `db.pool.maxActive` / `db.pool.maxIdle` - DB 연결 풀 크기(기본 10 / 5). 비우면 기본값.
    - `map.vworld.key` - 배경 위성사진(국토교통부 V-World, 무료 발급, 서비스 주소 등록). 비우면 지형 음영만 나옵니다.
    - `map.dem.url` - 3D 지형 타일. 비우면 AWS Terrain Tiles(routefly-batch 의 기본 `dem.url` 과 같음).
 2. 다른 위치에 두려면 톰캣 실행 인자에 `-Droutefly.config=<경로>` 를 넣습니다.

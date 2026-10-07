@@ -37,13 +37,16 @@
         <!-- Jakarta -->
         <jakarta.servlet.version>6.1.0</jakarta.servlet.version>
 
+        <!-- MyBatis(연결 풀 PooledDataSource 만 씀, investing 과 같은 버전) -->
+        <mybatis.version>3.5.19</mybatis.version>
+
     </properties>
 
 
     <dependencies>
 
         <!-- ===================================================== -->
-        <!-- Jakarta Servlet (WebSocket · JSP · MyBatis 는 아직 안 씀) -->
+        <!-- Jakarta Servlet (WebSocket · JSP 는 아직 안 씀)      -->
         <!-- Tomcat 11.0 / Servlet 6.1                             -->
         <!-- ===================================================== -->
 
@@ -80,6 +83,17 @@
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
             <version>2.24.3</version>
+        </dependency>
+
+
+        <!-- ===================================================== -->
+        <!-- MyBatis (DB 연결 풀만, 2026-10-07)                     -->
+        <!-- ===================================================== -->
+
+        <dependency>
+            <groupId>org.mybatis</groupId>
+            <artifactId>mybatis</artifactId>
+            <version>${mybatis.version}</version>
         </dependency>
 
 
