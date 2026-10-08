@@ -31,7 +31,7 @@
                  passed: {},           // 음성으로 알린 지점(이름)
                  kmSpoken: 0,          // 음성으로 알린 거리 이정(1km · 자전거 5km 단위)
                  wasOff: false,        // 코스에서 벗어나 있음(음성 - 벗어날 때 · 돌아올 때 한 번씩)
-                 d0: 0,                // 이번에 시작한 진행 거리(오른 높이 · 칼로리는 여기서부터)
+                 d0: null,             // 처음 코스에 닿은 진행 거리(오른 높이 · 칼로리는 여기서부터, 아직 안 닿았으면 null)
                  bgWatch: null };      // 앱 - 백그라운드 위치 감시 번호
     var trails = [];                   // 주변 등산로(api/trails) - 코스에서 벗어났을 때 가장 가까운 길 찾기
     var compass = { on: false, up: false, heading: null, lastTurn: 0 };   // 나침반 - on: 켜짐, up: 내 방향으로 지도 돌림
@@ -236,8 +236,9 @@
 
     /** 이번 기록의 칼로리 · 걸음 · 오른 높이. 거리는 GPS 로 걸은 거리(없으면 코스 진행), 높이는 코스 고도로. */
     function effort() {
-        var dist = Math.max(hike.walked || 0, Math.max(0, hike.d - (hike.d0 || 0)));
-        var cl = c ? RF.climbBetween(c, hike.d0 || 0, hike.d) : { up: 0, down: 0 };
+        var d0 = hike.d0 == null ? hike.d : hike.d0;   // 아직 코스에 닿기 전이면 코스 진행은 0
+        var dist = Math.max(hike.walked || 0, Math.max(0, hike.d - d0));
+        var cl = c ? RF.climbBetween(c, d0, hike.d) : { up: 0, down: 0 };
         var kind = c ? c.course.kind : "hike";
         return { dist: dist, up: Math.round(cl.up), kcal: RF.kcal(kind, body.kg, dist, cl.up, cl.down), steps: RF.steps(kind, body.cm, dist) };
     }
@@ -442,12 +443,19 @@
     }
 
     /** 가장 가까운 등산로 자리 - 지금 코스와 주변 길 가운데. {lat, lon, off, name(다른 길이면)} */
+    /** 길 안내 화살표: 나침반이 있으면 핸드폰 위쪽 기준(그쪽으로 몸을 돌려 걷게), 없으면 지도(북쪽 위) 기준. */
+    function turnGuideArrow() {
+        var rel = compass.heading != null ? hike.guideBr - compass.heading : hike.guideBr - map.getBearing();
+        $("guideArrow").style.transform = "rotate(" + rel + "deg)";   // 화살표 그림은 위쪽을 가리킵니다
+    }
+
     function nearestTrail(lat, lon) {
         var s0 = RF.snap(c, lat, lon, null), p0 = RF.at(c, s0.d);
-        var best = { lat: p0.lat, lon: p0.lon, off: s0.off, name: null };
+        var best = { lat: p0.lat, lon: p0.lon, off: s0.off, name: null, course: true };
         trails.forEach(function (t) {
             var st = RF.snap(t, lat, lon, null);
-            if (st.off < best.off) {
+            // 같은 길을 쓰는 다른 코스가 1m 가깝다고 그 이름을 대면 헷갈립니다(송산: 52m 인데 '가장 가까운 길(송산 · … → 들머리 1)')
+            if (st.off < best.off - 15) {
                 var pt = RF.at(t, st.d);
                 best = { lat: pt.lat, lon: pt.lon, off: st.off, name: t.name };
             }
@@ -685,7 +693,7 @@
         hike.sunWarned = false;
         hike.passed = {};
         hike.wasOff = false;
-        hike.d0 = saved && saved.d0 != null ? saved.d0 : hike.d;
+        hike.d0 = saved && saved.d0 != null ? saved.d0 : null;   // 첫 위치가 코스 위일 때 정합니다(코스 중간에서 시작하면 그 자리)
         hike.kmSpoken = Math.floor(hike.d / (K() === RF.KINDS.bike ? 5000 : 1000));
         voice.last = {};
         // 시작 버튼을 누른 그 순간에 말해야 아이폰도 소리를 냅니다(사용자 동작 안에서 처음 말하기)
@@ -798,7 +806,11 @@
         var s = RF.snap(c, co.latitude, co.longitude, hike.lastFix ? hike.d : null);
         hike.lastFix = t;
         hike.off = s.off;
-        if (s.off <= OFF_ROUTE_M * 2) hike.d = s.d;   // 코스에서 아주 멀면 진행 거리는 그대로 둡니다
+        if (s.off <= OFF_ROUTE_M * 2) {   // 코스에서 아주 멀면 진행 거리는 그대로 둡니다
+            // 송산: 시작 버튼을 누른 뒤 코스 0.86km 지점으로 들어갔는데 0 부터 걸은 것으로 쳐서 3분 만에 81kcal · 1,353보
+            if (hike.d0 == null) hike.d0 = s.d;
+            hike.d = s.d;
+        }
         // 빠르기 - GPS 가 주면 그것, 아니면 최근 1분 이동 거리로
         hike.hist.push({ t: t, lat: co.latitude, lon: co.longitude });
         while (hike.hist.length > 2 && t - hike.hist[0].t > 60000) hike.hist.shift();
@@ -955,15 +967,16 @@
             } else {
                 nt = nearestTrail(me.lat, me.lon);
                 br = bearing(me.lat, me.lon, nt.lat, nt.lon);
-                $("offText").textContent = "코스에서 " + distText(hike.off) + " 벗어남 · " + (nt.name ? "가장 가까운 길(" + nt.name + ")" : "가장 가까운 등산로")
-                    + "까지 " + distText(nt.off) + " · " + dirWord(br);
+                $("offText").textContent = "코스에서 " + distText(hike.off) + " 벗어남 · "
+                    + (nt.course ? "코스로 돌아가는 길 " : (nt.name ? "가장 가까운 길(" + nt.name + ")" : "가장 가까운 등산로") + "까지 ")
+                    + distText(nt.off) + " · " + dirWord(br);
                 // 벗어난 순간 한 번, 계속 벗어나 있으면 2분마다
-                say("코스에서 벗어났습니다. 가장 가까운 길은 " + dirWord(br) + " " + distSpoken(nt.off) + "입니다.",
+                say("코스에서 벗어났습니다. " + (nt.course ? "코스는 " : "가장 가까운 길은 ") + dirWord(br) + " " + distSpoken(nt.off) + "입니다.",
                     { key: "off", gap: hike.wasOff ? 120000 : 0, urgent: !hike.wasOff });
             }
             // 화살표: 나침반이 있으면 핸드폰 위쪽 기준(그쪽으로 몸을 돌려 걷게), 없으면 지도(북쪽 위) 기준
-            var rel = compass.heading != null ? br - compass.heading : br - map.getBearing();
-            $("guideArrow").style.transform = "rotate(" + rel + "deg)";   // 화살표 그림은 위쪽을 가리킵니다
+            hike.guideBr = br;
+            turnGuideArrow();
             $("offroute").style.display = "flex";
             hike.wasOff = true;
             map.getSource("guide").setData({ type: "Feature", properties: {},
@@ -975,6 +988,7 @@
                 say("코스로 돌아왔습니다.", { urgent: true });
             }
             $("offroute").style.display = "none";
+            hike.guideBr = null;
             if (map.getSource("guide")) map.getSource("guide").setData({ type: "FeatureCollection", features: [] });
         }
         if (prof) prof.set(d);
@@ -1066,6 +1080,7 @@
         var sa = screen.orientation && screen.orientation.angle ? screen.orientation.angle : (window.orientation || 0);
         h = (h + sa + 360) % 360;   // 가로 화면 보정
         compass.heading = h;
+        if (hike.guideBr != null) turnGuideArrow();   // 몸을 돌리면 화살표도 바로(GPS 를 기다리지 않고)
         $("compass").querySelector(".needle").style.transform = "rotate(" + (-h + (compass.up ? h : 0)) + "deg)";
         $("compassText").textContent = Math.round(h) + "°";
         var t = performance.now();

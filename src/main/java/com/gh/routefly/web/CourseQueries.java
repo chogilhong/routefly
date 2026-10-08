@@ -119,7 +119,14 @@ final class CourseQueries {
             params.add(likePattern(q));
         }
         if (!where.isEmpty()) sql.append(" WHERE ").append(String.join(" AND ", where));
-        sql.append(" ORDER BY name LIMIT ").append(LIST_LIMIT + 1);
+        // 검색어로 시작하는 이름이 먼저('송산' → 송산 · … 가 공주향교뒷산 · 송산리… 보다 앞)
+        if (q != null) {
+            sql.append(" ORDER BY CASE WHEN name LIKE ? THEN 0 ELSE 1 END, name");
+            params.add(likePattern(q).substring(1));
+        } else {
+            sql.append(" ORDER BY name");
+        }
+        sql.append(" LIMIT ").append(LIST_LIMIT + 1);
         return Json.rows(c, sql.toString(), params.toArray());
     }
 
