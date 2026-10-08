@@ -376,13 +376,19 @@
 
     var poiIcon = RF.poiIcon;   // 지점 이름으로 아이콘(course-kit.js)
 
-    /** 지도 위 이름표 - 아이콘 + 흰 글씨(영상처럼 상자 없이). 아이콘 자리가 그 지점입니다. */
-    function poiMarker(text, sub, lngLat, cls) {
+    /** 지도 위 이름표 - 아이콘 + 흰 글씨(영상처럼 상자 없이). 아이콘 자리가 그 지점입니다. more: 같은 자리 다른 이름들. */
+    function poiMarker(text, sub, lngLat, cls, more) {
         var el = document.createElement("div");
         el.className = "poi " + (cls || "");
         var lb = document.createElement("div");
         lb.className = "lb";
         lb.textContent = text;
+        (more || []).forEach(function (nm) {
+            var m = document.createElement("span");
+            m.className = "more";
+            m.textContent = nm;
+            lb.appendChild(m);
+        });
         if (sub) {
             var s = document.createElement("small");
             s.textContent = sub;
@@ -399,16 +405,36 @@
         var n = c.lon.length - 1;
         var nearStart = c.pois.some(function (p) { return +p.dist_m < 60 && +p.off_route_m < 60; });
         var nearEnd = c.pois.some(function (p) { return +p.dist_m > c.total - 60 && +p.off_route_m < 60; });
-        if (!nearStart) c.markers.push({ dist: -1, m: poiMarker("출발", null, [c.lon[0], c.lat[0]], "always") });
-        c.pois.forEach(function (p) {
+        if (!nearStart) c.markers.push({ dist: -1, end: true, m: poiMarker("출발", null, [c.lon[0], c.lat[0]], "always") });
+        // 같은 자리(80m 안) 이름표는 하나로 - 대표 이름 + 아래에 다른 이름들
+        RF.groupPois(c.pois, 80).forEach(function (g) {
+            var p = g.lead;
             // 출발 · 도착 자리의 이름표는 그 이름으로 출발 / 도착을 대신합니다(예: 오색(남설악탐방지원센터) · 출발)
             var atStart = +p.dist_m < 60 && +p.off_route_m < 60, atEnd = +p.dist_m > c.total - 60 && +p.off_route_m < 60;
             var sub = [atStart ? "출발" : atEnd ? "도착" : null, p.ele_m != null ? num(p.ele_m) + "m" : null]
                 .filter(function (x) { return x; }).join(" · ") || null;
-            c.markers.push({ dist: +p.dist_m < 60 ? -1 : +p.dist_m, m: poiMarker(p.name, sub, [+p.lon, +p.lat], "always") });
+            var more = g.names.slice(1, 3);
+            if (g.names.length > 3) more[1] += " 외 " + (g.names.length - 3);
+            c.markers.push({ dist: +p.dist_m < 60 ? -1 : +p.dist_m, end: atStart || atEnd,
+                m: poiMarker(p.name, sub, [+p.lon, +p.lat], "always", more) });
         });
-        if (!nearEnd) c.markers.push({ dist: c.total, m: poiMarker("도착", null, [c.lon[n], c.lat[n]], "always") });
+        if (!nearEnd) c.markers.push({ dist: c.total, end: true, m: poiMarker("도착", null, [c.lon[n], c.lat[n]], "always") });
         showMarkersUpTo(c.total);
+        declutterSoon();
+    }
+
+    /** 화면에서 포개지는 이름표 숨기기 - 출발 · 도착 먼저, 그다음 지금 위치(비행 진행)에 가까운 순. 지도가 움직일 때 0.15초마다. */
+    function declutterMarkers() {
+        if (!cur || !cur.markers) return;
+        var d = anim.d || 0;
+        RF.declutter(cur.markers.map(function (k) {
+            return { el: k.m.getElement(), prio: k.end ? -1 : Math.abs(Math.max(0, k.dist) - d) };
+        }));
+    }
+    var declutterTimer = 0;
+    function declutterSoon() {
+        if (declutterTimer) return;
+        declutterTimer = setTimeout(function () { declutterTimer = 0; declutterMarkers(); }, 150);
     }
 
     // ------------------------------------------------------------------ 자막
@@ -744,6 +770,7 @@
         // 처음 목록은 지도가 뜨기 전에 바로 받습니다(처음 화면 = 우리나라 전체 범위).
         loadCourses();
         map.on("moveend", scheduleViewLoad);
+        map.on("render", declutterSoon);   // 이름표 겹침 - 지도가 움직이는 동안 0.15초마다 다시
         var m = /[#&]c=([^&]+)/.exec(location.hash);
         if (m) select(decodeURIComponent(m[1]));
     }

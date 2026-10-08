@@ -44,11 +44,45 @@
             var k = key(p.name);
             var dup = kept.some(function (w) {
                 var d = distM(+w.lat, +w.lon, +p.lat, +p.lon), wk = key(w.name);
-                return d < 40 || wk === k || (wk.indexOf(k) >= 0 || k.indexOf(wk) >= 0) && d < 200;
+                // 이름이 다르면 가까워도 남깁니다 - 같은 자리 이름표는 groupPois 가 한 이름표로 묶습니다
+                return wk === k || (wk.indexOf(k) >= 0 || k.indexOf(wk) >= 0) && d < 200;
             });
             if (!dup) kept.push(p);
         });
         return kept;
+    }
+
+    /**
+     * 순수 함수 - 같은 자리(radiusM 안) 이름표를 한 묶음으로. 코스에 가장 가까운 것이 대표(그림 · 고도), 나머지는 이름만 덧붙입니다
+     * (예: 로타리대피소 / 법계사 / 로타리대피소샘터). [{lead, names[], pois[]}] - 대표의 진행 거리 순.
+     */
+    function groupPois(pois, radiusM) {
+        var r = radiusM || 80, groups = [];
+        (pois || []).slice().sort(function (a, b) { return (+a.off_route_m || 0) - (+b.off_route_m || 0); }).forEach(function (p) {
+            var g = null;
+            for (var i = 0; i < groups.length && !g; i++) {
+                if (distM(+groups[i].lead.lat, +groups[i].lead.lon, +p.lat, +p.lon) <= r) g = groups[i];
+            }
+            if (g) { g.pois.push(p); g.names.push(p.name); } else groups.push({ lead: p, names: [p.name], pois: [p] });
+        });
+        return groups.sort(function (a, b) { return +a.lead.dist_m - +b.lead.dist_m; });
+    }
+
+    /**
+     * 화면에서 포개지는 이름표 숨기기. items: [{el, prio}] (prio 작을수록 먼저 남김). 남긴 것과 겹치면 el 에 "hid" 를 붙입니다.
+     * 3D 로 기울여 보면 떨어진 지점도 화면에서 겹칩니다 - 출발 · 도착 · 지금 위치에 가까운 것을 남깁니다.
+     */
+    function declutter(items, pad) {
+        var p = pad == null ? 3 : pad, kept = [];
+        items.slice().sort(function (a, b) { return a.prio - b.prio; }).forEach(function (it) {
+            var r = it.el.getBoundingClientRect();
+            if (!r.width) { it.el.classList.remove("hid"); return; }
+            var hit = kept.some(function (k) {
+                return r.left < k.right + p && r.right > k.left - p && r.top < k.bottom + p && r.bottom > k.top - p;
+            });
+            it.el.classList.toggle("hid", hit);
+            if (!hit) kept.push(r);
+        });
     }
 
     var JUNCTION = "갈림길";   // routefly-batch 가 넣는 갈림길 이름표 - 지도 글자 대신 산행 화면 미리 알림에 씁니다
@@ -444,6 +478,6 @@
     global.RF = {
         LINE_COLOR: LINE_COLOR, num: num, km: km, fromApi: fromApi, cleanName: cleanName, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
-        sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, standardMs: standardMs, distM: distM, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
+        sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, standardMs: standardMs, distM: distM, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
     };
 })(window);

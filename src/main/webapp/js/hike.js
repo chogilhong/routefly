@@ -131,6 +131,15 @@
         map.once("styledata", foldAttrib);
         map.once("load", foldAttrib);
         map.addControl(new maplibregl.ScaleControl({ maxWidth: 90 }), "bottom-left");
+        // 이름표 겹침 - 지도가 움직이는 동안 0.15초마다 다시(출발 · 도착 먼저, 그다음 지금 위치에 가까운 순)
+        var declutterTimer = 0;
+        map.on("render", function () {
+            if (declutterTimer || !drawCourse.pois) return;
+            declutterTimer = setTimeout(function () {
+                declutterTimer = 0;
+                RF.declutter(drawCourse.pois.map(function (q) { return { el: q.el, prio: q.end ? -1 : Math.abs(q.d - (hike.d || 0)) }; }));
+            }, 150);
+        });
         ["dragstart", "zoomstart"].forEach(function (ev) {
             map.on(ev, function (e) { if (e.originalEvent) setFollow(false); });   // 손으로 움직이면 따라가기를 끕니다
         });
@@ -182,15 +191,24 @@
         var n = c.lon.length - 1;
         var hasStart = c.pois.some(function (q) { return +q.dist_m < 60 && +q.off_route_m < 60; });
         var hasEnd = c.pois.some(function (q) { return +q.dist_m > c.total - 60 && +q.off_route_m < 60; });
-        var list = c.pois.map(function (q) { return { name: q.name, lon: +q.lon, lat: +q.lat }; });
-        if (!hasStart) list.unshift({ name: "출발", lon: c.lon[0], lat: c.lat[0] });
-        if (!hasEnd) list.push({ name: "도착", lon: c.lon[n], lat: c.lat[n] });
+        // 같은 자리(80m 안) 이름표는 하나로 - 대표 이름 + 아래에 다른 이름들
+        var list = RF.groupPois(c.pois, 80).map(function (g) {
+            var more = g.names.slice(1, 3);
+            if (g.names.length > 3) more[1] += " 외 " + (g.names.length - 3);
+            return { name: g.lead.name, lon: +g.lead.lon, lat: +g.lead.lat, d: +g.lead.dist_m, more: more };
+        });
+        if (!hasStart) list.unshift({ name: "출발", lon: c.lon[0], lat: c.lat[0], d: 0, more: [] });
+        if (!hasEnd) list.push({ name: "도착", lon: c.lon[n], lat: c.lat[n], d: c.total, more: [] });
+        drawCourse.pois = [];
         list.forEach(function (q) {
             var e = document.createElement("div");
             e.className = "poi";
             e.innerHTML = '<div class="lb"></div><div class="ic"></div>';
-            e.querySelector(".lb").textContent = q.name;
+            var lb = e.querySelector(".lb");
+            lb.textContent = q.name;
+            q.more.forEach(function (nm) { var m = document.createElement("span"); m.className = "more"; m.textContent = nm; lb.appendChild(m); });
             e.querySelector(".ic").textContent = RF.poiIcon(q.name);
+            drawCourse.pois.push({ el: e, d: q.d, end: q.d < 60 || q.d > c.total - 60 });
             ms.push(new maplibregl.Marker({ element: e, anchor: "bottom", offset: [0, 11] }).setLngLat([q.lon, q.lat]).addTo(map));
         });
         map.getSource("junctions").setData({ type: "FeatureCollection", features: (c.junctions || []).map(function (jd) {
