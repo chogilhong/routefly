@@ -29,7 +29,8 @@
                  sunWarned: false,
                  passed: {},           // 음성으로 알린 지점(이름)
                  kmSpoken: 0,          // 음성으로 알린 거리 이정(1km · 자전거 5km 단위)
-                 wasOff: false };      // 코스에서 벗어나 있음(음성 - 벗어날 때 · 돌아올 때 한 번씩)
+                 wasOff: false,        // 코스에서 벗어나 있음(음성 - 벗어날 때 · 돌아올 때 한 번씩)
+                 d0: 0 };              // 이번에 시작한 진행 거리(오른 높이 · 칼로리는 여기서부터)      // 코스에서 벗어나 있음(음성 - 벗어날 때 · 돌아올 때 한 번씩)
     var trails = [];                   // 주변 등산로(api/trails) - 코스에서 벗어났을 때 가장 가까운 길 찾기
     var compass = { on: false, up: false, heading: null, lastTurn: 0 };   // 나침반 - on: 켜짐, up: 내 방향으로 지도 돌림
     var kindFilter = "";
@@ -135,6 +136,34 @@
             say(num(k * step / 1000) + "킬로미터 지났습니다. 남은 거리 " + skm(c.total - d) + "킬로미터"
                 + (asc >= 50 && K() !== RF.KINDS.bike ? ", 남은 오르막 " + num(asc) + "미터." : "."));
         }
+    }
+
+    // ------------------------------------------------------------------ 칼로리 · 걸음
+
+    /** 몸무게 · 키 - 칼로리 · 걸음 수 추정에 씁니다. 이 기기에만 둡니다(rf-body). 넣지 않으면 65kg · 170cm. */
+    var BODY_KEY = "rf-body";
+    var body = { kg: 65, cm: 170, set: false };
+    try { var b0 = JSON.parse(localStorage.getItem(BODY_KEY) || "null"); if (b0 && b0.kg) body = { kg: b0.kg, cm: b0.cm || 170, set: true }; } catch (e) { /* 기본값 */ }
+
+    function saveBody() {
+        body.set = true;
+        try { localStorage.setItem(BODY_KEY, JSON.stringify({ kg: body.kg, cm: body.cm })); } catch (e) { /* 이번만 */ }
+    }
+
+    function askNumber(msg, cur, min, max) {
+        var v = prompt(msg, String(cur));
+        if (v == null) return null;
+        var n = parseFloat(String(v).replace(/[^0-9.]/g, ""));
+        if (!isFinite(n) || n < min || n > max) { toast(min + " ~ " + max + " 사이로 넣어 주세요."); return null; }
+        return Math.round(n);
+    }
+
+    /** 이번 기록의 칼로리 · 걸음 · 오른 높이. 거리는 GPS 로 걸은 거리(없으면 코스 진행), 높이는 코스 고도로. */
+    function effort() {
+        var dist = Math.max(hike.walked || 0, Math.max(0, hike.d - (hike.d0 || 0)));
+        var cl = c ? RF.climbBetween(c, hike.d0 || 0, hike.d) : { up: 0, down: 0 };
+        var kind = c ? c.course.kind : "hike";
+        return { dist: dist, up: Math.round(cl.up), kcal: RF.kcal(kind, body.kg, dist, cl.up, cl.down), steps: RF.steps(kind, body.cm, dist) };
     }
 
     function getJson(url) {
@@ -414,7 +443,7 @@
 
     function save() {
         if (hike.sim) return;
-        try { localStorage.setItem(saveKey(), JSON.stringify({ start: hike.start, d: hike.d, walked: hike.walked })); } catch (e) { /* 저장 못 해도 산행은 계속 */ }
+        try { localStorage.setItem(saveKey(), JSON.stringify({ start: hike.start, d: hike.d, walked: hike.walked, d0: hike.d0 })); } catch (e) { /* 저장 못 해도 산행은 계속 */ }
     }
 
     function clearSaved() {
@@ -476,6 +505,10 @@
         if (hike.track.length < 2) return;
         var rec = { courseId: c.id, name: c.course.name, kind: c.course.kind, start: hike.start, end: now(),
                     walked: Math.round(hike.walked), done: Math.round(hike.d), track: hike.track };
+        var ef = effort();
+        rec.kcal = ef.kcal;
+        rec.steps = ef.steps;
+        rec.up = ef.up;
         var list = records();
         list.unshift(rec);
         try { localStorage.setItem("rf-records", JSON.stringify(list.slice(0, 20))); } catch (e) {
@@ -484,7 +517,10 @@
         var sum = $("doneSum");
         sum.innerHTML = "";
         [["코스", rec.name], ["걸은 거리", km(rec.walked) + " km"], ["코스 진행", km(rec.done) + " / " + km(c.total) + " km"],
-         ["걸린 시간", hhmmss(rec.end - rec.start)], ["기록 점", rec.track.length + "개"]].forEach(function (r) {
+         ["걸린 시간", hhmmss(rec.end - rec.start)], ["오른 높이", num(rec.up) + " m"],
+         ["칼로리(추정)", num(rec.kcal) + " kcal · " + body.kg + "kg 기준"]]
+            .concat(rec.steps != null ? [["걸음(추정)", num(rec.steps) + " 보"]] : [])
+            .concat([["기록 점", rec.track.length + "개"]]).forEach(function (r) {
             var row = document.createElement("div"), a = document.createElement("span"), b = document.createElement("b");
             a.textContent = r[0]; b.textContent = r[1];
             row.appendChild(a); row.appendChild(b); sum.appendChild(row);
@@ -505,7 +541,8 @@
             var info = document.createElement("div"), b = document.createElement("b"), sp = document.createElement("span");
             b.textContent = r.name;
             var d = new Date(r.start);
-            sp.textContent = d.getFullYear() + "." + (d.getMonth() + 1) + "." + d.getDate() + " · " + km(r.walked) + "km · " + hhmmss(r.end - r.start);
+            sp.textContent = d.getFullYear() + "." + (d.getMonth() + 1) + "." + d.getDate() + " · " + km(r.walked) + "km · " + hhmmss(r.end - r.start)
+                + (r.kcal != null ? " · " + num(r.kcal) + "kcal" : "") + (r.steps != null ? " · " + num(r.steps) + "보" : "");
             info.appendChild(b); info.appendChild(sp);
             var g = document.createElement("button"); g.textContent = "GPX"; g.onclick = function () { downloadGpx(r); };
             var x = document.createElement("button"); x.textContent = "지우기";
@@ -566,6 +603,7 @@
         hike.sunWarned = false;
         hike.passed = {};
         hike.wasOff = false;
+        hike.d0 = saved && saved.d0 != null ? saved.d0 : hike.d;
         hike.kmSpoken = Math.floor(hike.d / (K() === RF.KINDS.bike ? 5000 : 1000));
         voice.last = {};
         // 시작 버튼을 누른 그 순간에 말해야 아이폰도 소리를 냅니다(사용자 동작 안에서 처음 말하기)
@@ -672,7 +710,8 @@
             $("arrived").textContent = "🎉 " + (endPoi ? endPoi.name + " " : "") + "도착! " + km(c.total) + "km · " + hhmmss(now() - hike.start);
             $("arrived").style.display = "block";
             if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-            say((endPoi ? endPoi.name + " " : "") + "도착입니다. " + skm(c.total) + "킬로미터, " + spokenTime(now() - hike.start) + ". 수고하셨습니다.",
+            say((endPoi ? endPoi.name + " " : "") + "도착입니다. " + skm(c.total) + "킬로미터, " + spokenTime(now() - hike.start)
+                + ", 약 " + num(effort().kcal) + "킬로칼로리. 수고하셨습니다.",
                 { urgent: true });
         }
         checkJunction();
@@ -749,6 +788,13 @@
         var elapsed = hike.running ? now() - hike.start : 0;
         setV("sTime", hhmmss(elapsed));
         setV("sAsc", num(RF.ascentLeft(c, d)), "m");
+        var ef = effort(), bike = K() === RF.KINDS.bike;
+        setV("sKcal", num(ef.kcal), "kcal");
+        setV("sUp", num(ef.up), "m");
+        $("stepsBox").style.display = bike ? "none" : "";
+        if (!bike) setV("sSteps", num(ef.steps), "보");
+        $("kcalK").innerHTML = "칼로리 <span class=\"set\">" + body.kg + "kg ✎</span>";
+        $("stepsK").innerHTML = "걸음 <span class=\"set\">" + body.cm + "cm ✎</span>";
         var nowMs = hike.running ? now() : Date.now();
         var sun = RF.sunset(nowMs, c.lat[0], c.lon[0]);
         $("sunTxt").textContent = sun ? "· 일몰 " + clock(sun) : "";
@@ -921,6 +967,21 @@
             go();
         }
     }
+
+    $("kcalBox").addEventListener("click", function () {
+        var kg = askNumber("몸무게(kg)를 넣어 주세요. 칼로리 추정에만 쓰고 이 핸드폰에만 저장합니다.", body.kg, 20, 200);
+        if (kg == null) return;
+        body.kg = kg;
+        saveBody();
+        if (c) render();
+    });
+    $("stepsBox").addEventListener("click", function () {
+        var cm = askNumber("키(cm)를 넣어 주세요. 걸음 수(보폭) 추정에만 쓰고 이 핸드폰에만 저장합니다.", body.cm, 100, 230);
+        if (cm == null) return;
+        body.cm = cm;
+        saveBody();
+        if (c) render();
+    });
 
     $("voice").addEventListener("click", function () {
         setVoice(!voice.on);

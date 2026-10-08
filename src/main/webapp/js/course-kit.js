@@ -147,6 +147,32 @@
         return Math.max(0, c.asc[c.asc.length - 1] - c.asc[i]);
     }
 
+    /** 순수 함수 - 코스 위 d0 → d1 사이에 오른 · 내려간 높이(m). 코스 고도로 셉니다(GPS 고도는 많이 흔들림). */
+    function climbBetween(c, d0, d1) {
+        var i0 = indexAt(c, Math.min(d0, d1)), i1 = indexAt(c, Math.max(d0, d1));
+        var up = c.asc[i1] - c.asc[i0], e0 = c.ele[i0], e1 = c.ele[i1];
+        var down = e0 == null || e1 == null ? 0 : Math.max(0, up - (e1 - e0));
+        return { up: Math.max(0, up), down: down };
+    }
+
+    /**
+     * 순수 함수 - 소모 칼로리(kcal) 추정. 몸무게 kg × (평지 거리 + 오른 높이 + 내려간 높이).
+     *   걷기 · 등산: 0.7 kcal/kg/km, 오르막 0.0094 kcal/kg/m(몸을 1m 들어 올리는 일 ÷ 효율 25%), 내리막 그 1/3
+     *   자전거: 0.25 kcal/kg/km(약 15km/h), 오르막은 같고 내리막은 0
+     * 기기 만보계 · 심박 없이 거리 · 높이로만 셈하는 대략값입니다.
+     */
+    function kcal(kind, kg, distM, upM, downM) {
+        var bike = kind === "bike";
+        return Math.round(kg * ((bike ? 0.25 : 0.7) * distM / 1000 + 0.0094 * upM + (bike ? 0 : 0.0031) * downM));
+    }
+
+    /** 순수 함수 - 걸음 수 추정. 보폭 = 키 × 0.415(등산은 오르내림으로 10% 짧게). 자전거는 null. */
+    function steps(kind, cm, distM) {
+        if (kind === "bike") return null;
+        var stride = cm / 100 * 0.415 * (kind === "walk" ? 1 : 0.9);
+        return Math.round(distM / stride);
+    }
+
     /** d 다음의 이름표(출발 자리 것은 빼고). 없으면 null. */
     function nextPoi(c, d) {
         var best = null;
@@ -478,6 +504,6 @@
     global.RF = {
         LINE_COLOR: LINE_COLOR, num: num, km: km, fromApi: fromApi, cleanName: cleanName, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
-        sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, standardMs: standardMs, distM: distM, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
+        sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, distM: distM, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
     };
 })(window);

@@ -70,6 +70,8 @@ button { font-family:inherit; }
 .st .v { font-size:20px; font-weight:bold; font-variant-numeric:tabular-nums; white-space:nowrap; line-height:1.15; }
 .st .v small { font-size:11px; font-weight:normal; color:var(--dim); margin-left:1px; }
 .st.big .v { color:var(--sky); }
+.st.tap { cursor:pointer; }
+.st .k .set { color:var(--sky); }
 
 /* ① 고도 그래프 */
 #profile { flex:0 0 auto; height:92px; margin:6px 10px 4px; }
@@ -200,6 +202,11 @@ button { font-family:inherit; }
     <div class="grid" style="grid-template-columns:1fr 1fr; margin-top:4px">
         <div class="st"><div class="k">남은 오르막</div><div class="v" id="sAsc">-<small>m</small></div></div>
         <div class="st" id="etaBox"><div class="k">예상 도착 <span id="sunTxt"></span></div><div class="v" id="sEta">-</div></div>
+    </div>
+    <div class="grid" id="bodyGrid" style="margin-top:4px">
+        <div class="st tap" id="kcalBox" title="누르면 몸무게를 넣습니다"><div class="k" id="kcalK">칼로리</div><div class="v" id="sKcal">0<small>kcal</small></div></div>
+        <div class="st tap" id="stepsBox" title="누르면 키를 넣습니다"><div class="k" id="stepsK">걸음</div><div class="v" id="sSteps">0<small>보</small></div></div>
+        <div class="st"><div class="k">오른 높이</div><div class="v" id="sUp">0<small>m</small></div></div>
     </div>
 </div>
 
