@@ -13,6 +13,9 @@
     var ARRIVE_M = 30;         // 끝점까지 이 안이면 도착
     var FAR_M = 3000;          // 코스에서 이보다 멀면 "벗어남" 대신 출발점(마지막 자리)까지 안내(집 · 차 안에서 시작했을 때)
     var SIM_X = 40;            // 모의 산행 - 시간 배속
+    var TURN_BACK_M = 150;     // 코스를 따라 이만큼 되돌아가면 거꾸로 된 코스(내려가는 길)로 안내를 바꿉니다
+    var BRANCH_ON_M = 20;      // 다른 길에서 이 안이면 "그 길 위" (코스에서는 40m 넘게 떨어졌을 때)
+    var BRANCH_SWITCH_M = 120; // 다른 길로 이만큼 더 가면 그 길로 코스를 바꿉니다(들어설 때 한 번 알린 뒤)
 
     var $ = function (id) { return document.getElementById(id); };
     var num = RF.num, km = RF.km;
@@ -32,6 +35,9 @@
                  kmSpoken: 0,          // 음성으로 알린 거리 이정(1km · 자전거 5km 단위)
                  wasOff: false,        // 코스에서 벗어나 있음(음성 - 벗어날 때 · 돌아올 때 한 번씩)
                  d0: null,             // 처음 코스에 닿은 진행 거리(오른 높이 · 칼로리는 여기서부터, 아직 안 닿았으면 null)
+                 base: null,           // 코스를 바꾸기 전까지 한 것 {dist, up, down} - 칼로리 · 걸음 · 오른 높이에 더합니다
+                 branch: null,         // 코스가 아닌 다른 길 위 {id, name, d0, lastD, loading}
+                 segT0: 0,             // 지금 코스로 걷기 시작한 시각(예상 도착 빠르기 비율)
                  bgWatch: null };      // 앱 - 백그라운드 위치 감시 번호
     var trails = [];                   // 주변 등산로(api/trails) - 코스에서 벗어났을 때 가장 가까운 길 찾기
     var compass = { on: false, up: false, heading: null, lastTurn: 0 };   // 나침반 - on: 켜짐, up: 내 방향으로 지도 돌림
@@ -238,12 +244,18 @@
     function effort() {
         // 가장 멀리 간 자리(dMax)까지로 셉니다 - 되돌아 내려오면 진행 거리는 줄어도 칼로리 · 걸음 · 오른 높이는 줄지 않게
         // (송산: 1.07km 에서 되돌아와 0.85km 가 되자 116 → 79kcal, 오른 높이 104 → 60m)
+        var s = segEffort(), b = hike.base || { dist: 0, up: 0, down: 0 };
+        var dist = Math.max(hike.walked || 0, b.dist + s.dist), up = b.up + s.up, down = b.down + s.down;
+        var kind = c ? c.course.kind : "hike";
+        return { dist: dist, up: Math.round(up), kcal: RF.kcal(kind, body.kg, dist, up, down), steps: RF.steps(kind, body.cm, dist) };
+    }
+
+    /** 지금 코스에서 한 것(코스를 바꾸면 hike.base 에 더하고 0 부터). */
+    function segEffort() {
         var d0 = hike.d0 == null ? hike.d : hike.d0;   // 아직 코스에 닿기 전이면 코스 진행은 0
         var dm = Math.max(hike.dMax || 0, hike.d);
-        var dist = Math.max(hike.walked || 0, Math.max(0, dm - d0));
         var cl = c ? RF.climbBetween(c, d0, Math.max(d0, dm)) : { up: 0, down: 0 };
-        var kind = c ? c.course.kind : "hike";
-        return { dist: dist, up: Math.round(cl.up), kcal: RF.kcal(kind, body.kg, dist, cl.up, cl.down), steps: RF.steps(kind, body.cm, dist) };
+        return { dist: Math.max(0, dm - d0), up: cl.up, down: cl.down };
     }
 
     function getJson(url) {
@@ -327,6 +339,10 @@
         map.addControl(new maplibregl.ScaleControl({ maxWidth: 90 }), "bottom-left");
         // 이름표 겹침 - 지도가 움직이는 동안 0.15초마다 다시(출발 · 도착 먼저, 그다음 지금 위치에 가까운 순)
         var declutterTimer = 0;
+        map.on("rotate", function () {   // 나침반이 꺼져 있으면 바늘은 지도의 북쪽(두 손가락으로 돌렸을 때)
+            if (compass.heading == null) setNeedle(-map.getBearing());
+            if (hike.guideBr != null && compass.heading == null) turnGuideArrow();
+        });
         map.on("render", function () {
             if (declutterTimer || !drawCourse.pois) return;
             declutterTimer = setTimeout(function () {
@@ -368,7 +384,7 @@
         return new maplibregl.Marker({ element: elm, anchor: anchor || "center" }).setLngLat(lngLat).addTo(map);
     }
 
-    function drawCourse() {
+    function drawCourse(keepView) {
         (drawCourse.markers || []).forEach(function (m) { m.remove(); });
         var ms = drawCourse.markers = [];
         map.getSource("route").setData({ type: "Feature", properties: {},
@@ -409,9 +425,11 @@
             var jp = RF.at(c, jd);
             return { type: "Feature", properties: {}, geometry: { type: "Point", coordinates: [jp.lon, jp.lat] } };
         }) });
-        var b = new maplibregl.LngLatBounds();
-        for (var i = 0; i < c.lon.length; i++) b.extend([c.lon[i], c.lat[i]]);
-        map.fitBounds(b, { padding: 40, duration: 0, maxZoom: 16 });
+        if (!keepView) {   // 걷는 중에 코스를 바꿀 때는 지도를 그대로(내 위치를 따라감)
+            var b = new maplibregl.LngLatBounds();
+            for (var i = 0; i < c.lon.length; i++) b.extend([c.lon[i], c.lat[i]]);
+            map.fitBounds(b, { padding: 40, duration: 0, maxZoom: 16 });
+        }
         loadTrails();
     }
 
@@ -431,7 +449,7 @@
         getJson("api/trails?bbox=" + courseBbox(0.01)).then(function (j) {
             if (!c || c.id !== id) return;
             trails = (j.trails || []).filter(function (t) { return t.id !== id && t.coords.length > 1; }).map(function (t) {
-                var tc = { name: t.name, lon: [], lat: [], dist: [0], ele: [] };
+                var tc = { id: t.id, name: t.name, lon: [], lat: [], dist: [0], ele: [] };
                 t.coords.forEach(function (p, i) {
                     tc.lon.push(p[0]); tc.lat.push(p[1]); tc.ele.push(null);
                     if (i) tc.dist.push(tc.dist[i - 1] + RF.distM(tc.lat[i - 1], tc.lon[i - 1], p[1], p[0]));
@@ -472,7 +490,7 @@
         if (!meMarker) {
             var e = document.createElement("div");
             e.className = "me";
-            e.innerHTML = '<div class="cone"></div><div class="dot"></div>';
+            e.innerHTML = '<div class="cone"><svg viewBox="0 0 18 18" width="18" height="18"><path d="M9 1 L16 16 L9 12 L2 16 Z" fill="#1a73e8" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg></div><div class="dot"></div>';
             meMarker = marker(e, [lon, lat]);
         }
         meMarker.setLngLat([lon, lat]);
@@ -497,6 +515,8 @@
         return Promise.all([getJson("api/course?id=" + encodeURIComponent(id)), mapReady]).then(function (r) {
             c = RF.fromApi(id, r[0]);
             if (c.lon.length < 2) throw new Error("경로 점이 없습니다.");
+            var sv = loadSaved();
+            if (sv && sv.rev) c = RF.reverseCourse(c);   // 되돌아가는 길로 바꿔 걷던 산행을 이어 갈 때
             $("name").textContent = c.course.name;
             document.title = c.course.name + " - routefly";
             setKindWords();
@@ -530,7 +550,8 @@
 
     function save() {
         if (hike.sim) return;
-        try { localStorage.setItem(saveKey(), JSON.stringify({ start: hike.start, d: hike.d, walked: hike.walked, d0: hike.d0, dMax: hike.dMax })); } catch (e) { /* 저장 못 해도 산행은 계속 */ }
+        try { localStorage.setItem(saveKey(), JSON.stringify({ start: hike.start, d: hike.d, walked: hike.walked, d0: hike.d0, dMax: hike.dMax,
+                                                        base: hike.base, rev: !!c.rev, segT0: hike.segT0 })); } catch (e) { /* 저장 못 해도 산행은 계속 */ }
     }
 
     function clearSaved() {
@@ -698,6 +719,9 @@
         hike.wasOff = false;
         hike.d0 = saved && saved.d0 != null ? saved.d0 : null;   // 첫 위치가 코스 위일 때 정합니다(코스 중간에서 시작하면 그 자리)
         hike.dMax = saved && saved.dMax != null ? saved.dMax : hike.d;
+        hike.base = saved && saved.base ? saved.base : null;
+        hike.segT0 = saved && saved.segT0 ? saved.segT0 : hike.start;
+        hike.branch = null;
         hike.kmSpoken = Math.floor(hike.d / (K() === RF.KINDS.bike ? 5000 : 1000));
         voice.last = {};
         // 시작 버튼을 누른 그 순간에 말해야 아이폰도 소리를 냅니다(사용자 동작 안에서 처음 말하기)
@@ -834,6 +858,12 @@
         if (v != null) hike.speed = hike.speed == null ? v : hike.speed * 0.7 + v * 0.3;
         setMe(co.latitude, co.longitude, co.heading);
         if (hike.follow) map.easeTo({ center: [co.longitude, co.latitude], zoom: Math.max(map.getZoom(), 15), duration: 600 });
+        // 코스를 따라 되돌아가면(올라가다 내려옴) 거꾸로 된 코스로 - "벗어났다" 대신 내려가는 길 안내
+        if (!hike.sim && s.off <= OFF_ROUTE_M && hike.dMax - hike.d >= TURN_BACK_M) {
+            adoptCourse(RF.reverseCourse(c), "되돌아가는 길로 안내를 바꿨습니다.");
+            s = { d: hike.d, off: hike.off };
+        }
+        checkBranch(co.latitude, co.longitude, s);
         if (!hike.arrived && c.total - hike.d <= ARRIVE_M && s.off <= OFF_ROUTE_M) {
             hike.arrived = true;
             var endPoi = c.pois.filter(function (q) { return +q.dist_m > c.total - 60 && +q.off_route_m < 60; }).pop();
@@ -847,6 +877,78 @@
         checkJunction();
         voiceProgress();
         save();
+        render();
+    }
+
+    /**
+     * 갈림길에서 코스가 아닌 다른 길(주변 코스)로 들어섰는지. 들어설 때 한 번 알리고(빨간 띠 · 음성 - render),
+     * 그 길로 BRANCH_SWITCH_M 더 가면 그 길을 새 코스로 바꿉니다(가는 쪽으로 뒤집어서).
+     */
+    function checkBranch(lat, lon, s) {
+        if (hike.sim || s.off <= 40 || s.off > FAR_M) { hike.branch = null; return; }
+        var cur = hike.branch, pick = null;
+        trails.forEach(function (t) {
+            if (!t.id) return;
+            var st = RF.snap(t, lat, lon, cur && cur.id === t.id ? cur.lastD : null);
+            if (st.off > BRANCH_ON_M) return;
+            // 같은 길을 쓰는 코스가 여럿이면 하던 것을 그대로(번갈아 바뀌면 거리를 못 셉니다)
+            var keep = cur && cur.id === t.id;
+            if (!pick || keep || (!pick.keep && st.off < pick.st.off - 3)) {
+                if (!pick || !pick.keep) pick = { t: t, st: st, keep: keep };
+            }
+        });
+        if (!pick) { hike.branch = null; return; }
+        if (!cur || cur.id !== pick.t.id) {
+            hike.branch = { id: pick.t.id, name: pick.t.name, d0: pick.st.d, lastD: pick.st.d, loading: false };
+            return;
+        }
+        cur.lastD = pick.st.d;
+        if (!cur.loading && Math.abs(pick.st.d - cur.d0) >= BRANCH_SWITCH_M) {
+            cur.loading = true;
+            var back = pick.st.d < cur.d0;   // 그 코스를 거꾸로 걷는 중
+            getJson("api/course?id=" + encodeURIComponent(cur.id)).then(function (j) {
+                if (!hike.running || hike.branch !== cur) return;
+                var nc = RF.fromApi(cur.id, j);
+                if (nc.lon.length < 2) throw new Error("경로 점 없음");
+                adoptCourse(back ? RF.reverseCourse(nc) : nc, "가시는 길로 코스를 바꿨습니다.");
+            }).catch(function () { cur.loading = false; });
+        }
+    }
+
+    /** 걷는 중에 코스를 바꿉니다(거꾸로 · 다른 길). 걸은 길 · 시간은 그대로, 칼로리 등은 지금까지 한 것에 이어 셉니다. */
+    function adoptCourse(nc, msg) {
+        var sg = segEffort(), b = hike.base || { dist: 0, up: 0, down: 0 };
+        hike.base = { dist: b.dist + sg.dist, up: b.up + sg.up, down: b.down + sg.down };
+        var track = hike.track;
+        clearSaved();   // 예전 코스 이름으로 남긴 것
+        c = nc;
+        var f = hike.fix, s = f ? RF.snap(c, f.lat, f.lon, null) : { d: 0, off: 0 };
+        hike.d = s.d;
+        hike.off = s.off;
+        hike.d0 = s.d;
+        hike.dMax = s.d;
+        hike.segT0 = now();
+        hike.passed = {};
+        hike.alerted = {};
+        hike.arrived = false;
+        hike.branch = null;
+        hike.wasOff = false;
+        hike.guideBr = null;
+        hike.kmSpoken = Math.floor(s.d / (K() === RF.KINDS.bike ? 5000 : 1000));
+        voice.last = {};
+        $("arrived").style.display = "none";
+        $("offroute").style.display = "none";
+        $("name").textContent = c.course.name;
+        document.title = c.course.name + " - routefly";
+        try { history.replaceState(null, "", "#c=" + encodeURIComponent(c.id)); } catch (e) { /* 주소만 못 바꿈 */ }   // 새로 고침하면 이 코스로 이어서
+        drawCourse(true);
+        prof = RF.profile($("profile"), c, {});
+        try { localStorage.setItem(saveKey() + "-track", JSON.stringify(track)); } catch (e) { /* 공간 부족 */ }
+        save();
+        var end = c.course.name.split(" → ").pop();
+        toast("🔀 " + msg + "\n" + c.course.name, 6000);
+        if (navigator.vibrate) navigator.vibrate([150, 80, 150]);
+        say(msg + " " + spokenName(end) + "까지 " + skm(Math.max(0, c.total - hike.d)) + "킬로미터입니다.", { urgent: true });
         render();
     }
 
@@ -902,8 +1004,11 @@
         var std = function (distM, ascM) { return RF.standardMs(c.course.kind, distM, ascM); };
         var left = std(c.total - hike.d, RF.ascentLeft(c, hike.d));
         var factor = 1;
-        var doneStd = std(hike.d, RF.ascentLeft(c, 0) - RF.ascentLeft(c, hike.d));
-        if (elapsed > 600000 && doneStd > 300000) factor = Math.max(0.6, Math.min(2.5, elapsed / doneStd));
+        // 빠르기 비율은 지금 코스에서 걸은 만큼으로(코스를 바꾼 뒤에도 맞게)
+        var d0 = hike.d0 == null ? hike.d : Math.min(hike.d0, hike.d);
+        var doneStd = std(hike.d - d0, RF.ascentLeft(c, d0) - RF.ascentLeft(c, hike.d));
+        var segEl = hike.running && hike.segT0 ? now() - hike.segT0 : elapsed;
+        if (segEl > 600000 && doneStd > 300000) factor = Math.max(0.6, Math.min(2.5, segEl / doneStd));
         return left * factor;
     }
 
@@ -949,14 +1054,14 @@
             var np = RF.at(c, +nx.dist_m);
             var dEle = np.ele != null && p.ele != null ? np.ele - p.ele : null;
             $("next").innerHTML = "";
-            $("next").appendChild(document.createTextNode("다음 "));
+            $("next").appendChild(document.createTextNode("다음 지점 "));
             var b = document.createElement("b");
             b.textContent = nx.name;
             $("next").appendChild(b);
-            $("next").appendChild(document.createTextNode(" · " + km(+nx.dist_m - d) + "km"
-                + (dEle == null ? "" : " · " + (dEle >= 0 ? "+" : "") + num(dEle) + "m")));
+            $("next").appendChild(document.createTextNode(" · " + km(+nx.dist_m - d) + "km 앞"
+                + (dEle == null ? "" : " · " + (dEle >= 0 ? "오르막 +" : "내리막 ") + num(dEle) + "m")));
         } else {
-            $("next").textContent = "다음 지점 없음 - 끝까지 " + km(Math.max(0, c.total - d)) + "km";
+            $("next").textContent = "다음 지점 없음 - 도착까지 " + km(Math.max(0, c.total - d)) + "km";
         }
         // 코스에서 벗어남 - 가장 가까운 등산로(지금 코스 · 주변 길)까지 거리 · 방향, 지도에 점선
         if (hike.running && hike.off > OFF_ROUTE_M && hike.fix) {
@@ -978,13 +1083,24 @@
                                  : "코스에서 " + distSpoken(hike.off) + " 떨어져 있습니다.", { key: "off", gap: 600000 });
             } else {
                 nt = nearestTrail(me.lat, me.lon);
+                if (hike.branch) {   // 다른 길 위 - 코스 쪽을 가리키고, 계속 가면 바꾼다고 한 번 알림
+                    var cs = RF.snap(c, me.lat, me.lon, null), cp = RF.at(c, cs.d);
+                    nt = { lat: cp.lat, lon: cp.lon, off: cs.off, course: true };
+                }
                 br = bearing(me.lat, me.lon, nt.lat, nt.lon);
-                $("offText").textContent = "코스에서 " + distText(hike.off) + " 벗어남 · "
-                    + (nt.course ? "코스로 돌아가는 길 " : (nt.name ? "가장 가까운 길(" + nt.name + ")" : "가장 가까운 등산로") + "까지 ")
-                    + distText(nt.off) + " · " + dirWord(br);
-                // 벗어난 순간 한 번, 계속 벗어나 있으면 2분마다
-                say("코스에서 벗어났습니다. " + (nt.course ? "코스는 " : "가장 가까운 길은 ") + dirWord(br) + " " + distSpoken(nt.off) + "입니다.",
-                    { key: "off", gap: hike.wasOff ? 120000 : 0, urgent: !hike.wasOff });
+                if (hike.branch) {
+                    $("offText").textContent = "코스가 아닌 다른 길로 들어섰습니다 · 코스는 " + dirWord(br) + " " + distText(nt.off)
+                        + ". 이 길로 계속 가면 이 길로 코스를 바꿉니다.";
+                    say("코스가 아닌 다른 길로 들어섰습니다. 코스는 " + dirWord(br) + " " + distSpoken(nt.off) + "입니다. 이 길로 계속 가시면 코스를 바꿉니다.",
+                        { key: "branch", gap: 600000, urgent: true });
+                } else {
+                    $("offText").textContent = "코스에서 " + distText(hike.off) + " 벗어남 · "
+                        + (nt.course ? "코스로 돌아가는 길 " : (nt.name ? "가장 가까운 길(" + nt.name + ")" : "가장 가까운 등산로") + "까지 ")
+                        + distText(nt.off) + " · " + dirWord(br);
+                    // 벗어난 순간 한 번, 계속 벗어나 있으면 2분마다
+                    say("코스에서 벗어났습니다. " + (nt.course ? "코스는 " : "가장 가까운 길은 ") + dirWord(br) + " " + distSpoken(nt.off) + "입니다.",
+                        { key: "off", gap: hike.wasOff ? 120000 : 0, urgent: !hike.wasOff });
+                }
             }
             // 화살표: 나침반이 있으면 핸드폰 위쪽 기준(그쪽으로 몸을 돌려 걷게), 없으면 지도(북쪽 위) 기준
             hike.guideBr = br;
@@ -1093,7 +1209,7 @@
         h = (h + sa + 360) % 360;   // 가로 화면 보정
         compass.heading = h;
         if (hike.guideBr != null) turnGuideArrow();   // 몸을 돌리면 화살표도 바로(GPS 를 기다리지 않고)
-        $("compass").querySelector(".needle").style.transform = "rotate(" + (-h + (compass.up ? h : 0)) + "deg)";
+        setNeedle(-h);   // 빨간 끝 = 실제 북쪽(핸드폰 위쪽 기준)
         $("compassText").textContent = Math.round(h) + "°";
         var t = performance.now();
         if (compass.up && t - compass.lastTurn > 120) {   // 내 방향으로 지도 돌리기(초당 8번까지)
@@ -1101,6 +1217,11 @@
             map.rotateTo(h, { duration: 100 });
         }
         if (meMarker && hike.fix) setMe(hike.fix.lat, hike.fix.lon, null);
+    }
+
+    /** 나침반 바늘 - 나침반이 켜져 있으면 실제 북쪽, 꺼져 있으면 지도의 북쪽. */
+    function setNeedle(deg) {
+        $("compass").querySelector(".needle").style.transform = "rotate(" + deg + "deg)";
     }
 
     function compassOn() {
@@ -1134,6 +1255,24 @@
         saveBody();
         if (c) render();
     });
+
+    // 기록 칸 접기 · 펴기 - 아래로 밀면 접고(지도가 커짐) 위로 밀면 폅니다. 손잡이를 눌러도 됩니다. 이 기기에 기억.
+    function setCompact(on) {
+        document.body.classList.toggle("compact", on);
+        try { localStorage.setItem("rf-compact", on ? "1" : "0"); } catch (e) { /* 무시 */ }
+        if (map) setTimeout(function () { map.resize(); }, 0);
+    }
+    try { if (localStorage.getItem("rf-compact") === "1") document.body.classList.add("compact"); } catch (e) { /* 무시 */ }
+    $("grip").addEventListener("click", function () { setCompact(!document.body.classList.contains("compact")); });
+    var swipeY = null;
+    $("stats").addEventListener("touchstart", function (e) { swipeY = e.touches.length === 1 ? e.touches[0].clientY : null; }, { passive: true });
+    $("stats").addEventListener("touchend", function (e) {
+        if (swipeY == null || !e.changedTouches.length) return;
+        var dy = e.changedTouches[0].clientY - swipeY;
+        swipeY = null;
+        if (dy > 40) setCompact(true);
+        else if (dy < -40) setCompact(false);
+    }, { passive: true });
 
     $("voice").addEventListener("click", function () {
         setVoice(!voice.on);

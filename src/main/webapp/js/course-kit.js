@@ -98,13 +98,50 @@
             c.lon.push(+p[0]); c.lat.push(+p[1]); c.ele.push(p[2] == null ? null : +p[2]); c.dist.push(+p[3]);
         });
         c.total = c.dist.length ? c.dist[c.dist.length - 1] : 0;
-        // 남은 오르막을 빨리 구하려고 누적 오르막(m)을 미리 셉니다
-        c.asc = [0];
-        for (var i = 1; i < c.ele.length; i++) {
-            var de = c.ele[i] != null && c.ele[i - 1] != null ? c.ele[i] - c.ele[i - 1] : 0;
-            c.asc.push(c.asc[i - 1] + Math.max(0, de));
-        }
+        c.asc = cumAscent(c.ele);
         return c;
+    }
+
+    /** 누적 오르막(m) - 남은 오르막을 빨리 구하려고 미리 셉니다. */
+    function cumAscent(ele) {
+        var asc = [0];
+        for (var i = 1; i < ele.length; i++) {
+            var de = ele[i] != null && ele[i - 1] != null ? ele[i] - ele[i - 1] : 0;
+            asc.push(asc[i - 1] + Math.max(0, de));
+        }
+        return asc;
+    }
+
+    /** 순수 함수 - 코스 이름을 거꾸로: "송산 · 들머리 → 정상" → "송산 · 정상 → 들머리". 화살표가 없으면 "(거꾸로)" 를 붙입니다. */
+    function reverseName(name) {
+        name = name || "";
+        var a = name.indexOf(" → ");
+        if (a < 0) return name + " (거꾸로)";
+        var dot = name.lastIndexOf(" · ", a);
+        var head = dot >= 0 ? name.slice(0, dot + 3) : "";
+        return head + name.slice(head.length).split(" → ").reverse().join(" → ");
+    }
+
+    /**
+     * 코스를 거꾸로(끝 → 처음) - 올라가다 되돌아 내려올 때 그 길로 안내하려고. 이름표 · 갈림길 거리도 뒤집습니다.
+     * c.rev 는 원래 방향인지(저장한 산행을 이어 갈 때 다시 뒤집으려고).
+     */
+    function reverseCourse(c) {
+        var T = c.total, r = { id: c.id, rev: !c.rev, markers: [], lon: c.lon.slice().reverse(), lat: c.lat.slice().reverse(),
+                               ele: c.ele.slice().reverse(), total: T };
+        r.course = {};
+        for (var k in c.course) if (Object.prototype.hasOwnProperty.call(c.course, k)) r.course[k] = c.course[k];
+        r.course.name = reverseName(c.course.name);
+        r.dist = c.dist.map(function (d) { return T - d; }).reverse();
+        r.pois = c.pois.map(function (p) {
+            var q = {};
+            for (var k2 in p) if (Object.prototype.hasOwnProperty.call(p, k2)) q[k2] = p[k2];
+            q.dist_m = T - (+p.dist_m);
+            return q;
+        }).sort(function (a, b) { return a.dist_m - b.dist_m; });
+        r.junctions = (c.junctions || []).map(function (d) { return T - d; }).sort(function (a, b) { return a - b; });
+        r.asc = cumAscent(r.ele);
+        return r;
     }
 
     function indexAt(c, d) {
@@ -191,14 +228,24 @@
     function snap(c, lat, lon, prevD) {
         var kx = 111320 * Math.cos(lat * Math.PI / 180), ky = 110540;
         function search(i0, i1) {
-            var best = { d: 0, off: Infinity };
+            var best = { d: 0, off: Infinity }, cands = [];
             for (var i = Math.max(0, i0); i < Math.min(c.lon.length - 1, i1); i++) {
                 var ax = (c.lon[i] - lon) * kx, ay = (c.lat[i] - lat) * ky;
                 var bx = (c.lon[i + 1] - lon) * kx, by = (c.lat[i + 1] - lat) * ky;
                 var dx = bx - ax, dy = by - ay, len2 = dx * dx + dy * dy;
                 var t = len2 > 0 ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / len2)) : 0;
                 var px = ax + dx * t, py = ay + dy * t, off = Math.sqrt(px * px + py * py);
-                if (off < best.off) best = { d: c.dist[i] + (c.dist[i + 1] - c.dist[i]) * t, off: off };
+                var cand = { d: c.dist[i] + (c.dist[i + 1] - c.dist[i]) * t, off: off };
+                if (off < best.off) best = cand;
+                if (prevD != null) cands.push(cand);
+            }
+            // 같은 길을 갔다가 되돌아오는 코스(갔던 길로 내려옴)에서는 두 자리가 똑같이 가깝습니다 - 지난 자리에 가까운 쪽으로
+            // (먼저 지나간 자리에 붙으면 진행 거리가 뒤로 튀어 "되돌아감" 으로 잘못 봅니다)
+            if (prevD != null) {
+                var minOff = best.off;
+                cands.forEach(function (q) {
+                    if (q.off <= minOff + 10 && Math.abs(q.d - prevD) < Math.abs(best.d - prevD)) best = q;
+                });
             }
             return best;
         }
@@ -505,7 +552,7 @@
     }
 
     global.RF = {
-        LINE_COLOR: LINE_COLOR, num: num, km: km, fromApi: fromApi, cleanName: cleanName, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
+        LINE_COLOR: LINE_COLOR, num: num, km: km, fromApi: fromApi, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
         sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, distM: distM, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
     };

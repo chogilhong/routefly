@@ -56,12 +56,14 @@ button { font-family:inherit; }
            justify-content:center; font-size:13px; box-shadow:0 1px 4px rgba(0,0,0,0.5); }
 .me { width:22px; height:22px; position:relative; pointer-events:none; }
 .me .dot { position:absolute; inset:3px; border-radius:50%; background:#1a73e8; border:3px solid #fff; box-shadow:0 0 0 2px rgba(0,0,0,0.25); }
-.me .cone { position:absolute; left:50%; top:50%; width:0; height:0; margin-left:-11px; margin-top:-34px;
-            border-left:11px solid transparent; border-right:11px solid transparent; border-bottom:26px solid rgba(26,115,232,0.35);
-            transform-origin:50% 34px; display:none; }
+.me .cone { position:absolute; left:50%; top:50%; width:18px; height:18px; margin-left:-9px; margin-top:-29px;
+            transform-origin:9px 29px; display:none; line-height:0; }   /* 가는 방향 화살표(점 바깥, 뾰족한 쪽이 앞) */
 
 /* ② 산행 기록 */
 #stats { flex:0 0 auto; background:var(--panel); border-top:1px solid var(--ln); padding:8px 10px 4px; }
+#grip { width:44px; height:5px; border-radius:3px; background:rgba(255,255,255,0.28); margin:-2px auto 6px; cursor:pointer; }
+#stats { touch-action:pan-x; }   /* 위 · 아래로 미는 손짓은 접기 · 펴기에 씁니다 */
+body.compact #statGrids { display:none; }
 #next { font-size:13.5px; color:var(--tx); margin-bottom:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 #next b { color:var(--sky); }
 .grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:4px 6px; }
@@ -151,8 +153,8 @@ button { font-family:inherit; }
 /* 나침반 · 갈림길 · 길 안내 화살표 */
 #compass { position:absolute; left:10px; top:10px; z-index:2; width:48px; height:48px; border-radius:50%; border:0; background:#fff;
            box-shadow:0 2px 8px rgba(0,0,0,0.45); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0; }
-#compass .needle { color:#e03131; font-size:15px; line-height:1; transition:transform .25s linear; }
-#compass .hd { font-size:10px; font-weight:bold; color:#333; line-height:1.1; }
+#compass .needle { display:block; line-height:0; transition:transform .25s linear; }   /* 빨간 끝이 북쪽 */
+#compass .hd { font-size:9.5px; font-weight:bold; color:#333; line-height:1; margin-top:1px; }
 #compass.on { box-shadow:0 0 0 3px #38d9ea, 0 2px 8px rgba(0,0,0,0.45); }
 #compass.up { box-shadow:0 0 0 3px #1a73e8, 0 2px 8px rgba(0,0,0,0.45); }
 #voice { position:absolute; left:12px; top:66px; z-index:2; width:44px; height:44px; border-radius:50%; border:0; background:#fff;
@@ -183,14 +185,16 @@ button { font-family:inherit; }
     <div id="map"></div>
     <div id="offroute"><span class="arrow" id="guideArrow"><svg viewBox="0 0 24 24" width="30" height="30"><path d="M12 2 L20 20 L12 15.5 L4 20 Z" fill="#fff" stroke="#7a0000" stroke-width="1.2" stroke-linejoin="round"/></svg></span><span id="offText"></span></div>
     <div id="turn"></div>
-    <button type="button" id="compass" title="나침반 - 누를 때마다: 켜기 → 내 방향으로 지도 돌리기 → 북쪽 위로"><span class="needle">▲</span><span class="hd" id="compassText">N</span></button>
+    <button type="button" id="compass" title="나침반 - 누를 때마다: 켜기 → 내 방향으로 지도 돌리기 → 북쪽 위로"><span class="needle"><svg viewBox="0 0 16 30" width="13" height="25"><path d="M8 1 L13 15 L3 15 Z" fill="#e03131"/><path d="M3 15 L13 15 L8 29 Z" fill="#9aa3ad"/></svg></span><span class="hd" id="compassText">N</span></button>
     <div id="arrived"></div>
     <button type="button" id="voice" class="on" title="음성 안내 켜기 · 끄기(갈림길 · 지점 · 1km 마다 · 코스 이탈 · 도착)">🔊</button>
     <button type="button" id="follow" class="on" title="내 위치 따라가기">⌖</button>
 </div>
 
 <div id="stats">
-    <div id="next">다음 지점 -</div>
+    <div id="grip" title="기록 칸 접기 · 펴기(아래로 밀면 접고, 위로 밀면 폅니다)"></div>
+    <div id="next" title="코스를 따라 앞에 나오는 다음 이름표(봉우리 · 갈림 · 쉼터 등)와 거기까지 거리 · 높이 차이">다음 지점 -</div>
+    <div id="statGrids">
     <div class="grid">
         <div class="st big"><div class="k">진행 거리</div><div class="v" id="sDone">0.00<small>km</small></div></div>
         <div class="st"><div class="k">남은 거리</div><div class="v" id="sLeft">-<small>km</small></div></div>
@@ -207,6 +211,7 @@ button { font-family:inherit; }
         <div class="st tap" id="kcalBox" title="누르면 몸무게를 넣습니다"><div class="k" id="kcalK">칼로리</div><div class="v" id="sKcal">0<small>kcal</small></div></div>
         <div class="st tap" id="stepsBox" title="누르면 키를 넣습니다"><div class="k" id="stepsK">걸음</div><div class="v" id="sSteps">0<small>보</small></div></div>
         <div class="st"><div class="k">오른 높이</div><div class="v" id="sUp">0<small>m</small></div></div>
+    </div>
     </div>
 </div>
 
