@@ -1,0 +1,15 @@
+{
+  "appId": "kr.routefly.app",
+  "appName": "routefly",
+  "webDir": "www",
+  "server": {
+    "url": "https://CHANGE-ME.trycloudflare.com/routefly/hike.html",
+    "cleartext": false,
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false,
+    "useLegacyBridge": true
+  },
+  "plugins": {}
+}

@@ -37,6 +37,12 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다(route_course · 
   마지막에 "홍TV님 PC 의 Claude 가 할 것" 으로 무엇을 확인하면 되는지 적어 둡니다.
 - DB 표를 바꾸면 routefly-batch 의 `sql/route_ddl.sql` 에 남기고 "홍TV님이 실행할 것" 으로 적습니다.
 
-## 6. 관련 저장소
+## 6. 안드로이드 앱(app/)
+
+- Capacitor 8. 서버의 hike.html 을 띄우고(`capacitor.config.json` 의 server.url), 앱 기능(백그라운드 위치 · 음성 · 공유)은 hike.js 가 `window.Capacitor` 가 있을 때만 씁니다. 브라우저 동작은 바뀌면 안 됩니다.
+- 빌드는 홍TV님 PC 의 Android Studio 에서 합니다(클라우드에는 안드로이드 SDK 가 없음). 순서는 app/README.md.
+- 서명 키(.jks) · 키 비밀번호는 저장소에 넣지 않습니다.
+
+## 7. 관련 저장소
 
 - routefly-batch: 코스를 만들어 DB 에 담는 배치(fxms 프레임워크 - 클라우드에서는 빌드 안 됨). 표 · 칸 이름을 바꾸면 양쪽을 함께 고칩니다.

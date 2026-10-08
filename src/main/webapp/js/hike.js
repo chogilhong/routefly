@@ -30,7 +30,8 @@
                  passed: {},           // 음성으로 알린 지점(이름)
                  kmSpoken: 0,          // 음성으로 알린 거리 이정(1km · 자전거 5km 단위)
                  wasOff: false,        // 코스에서 벗어나 있음(음성 - 벗어날 때 · 돌아올 때 한 번씩)
-                 d0: 0 };              // 이번에 시작한 진행 거리(오른 높이 · 칼로리는 여기서부터)      // 코스에서 벗어나 있음(음성 - 벗어날 때 · 돌아올 때 한 번씩)
+                 d0: 0,                // 이번에 시작한 진행 거리(오른 높이 · 칼로리는 여기서부터)
+                 bgWatch: null };      // 앱 - 백그라운드 위치 감시 번호
     var trails = [];                   // 주변 등산로(api/trails) - 코스에서 벗어났을 때 가장 가까운 길 찾기
     var compass = { on: false, up: false, heading: null, lastTurn: 0 };   // 나침반 - on: 켜짐, up: 내 방향으로 지도 돌림
     var kindFilter = "";
@@ -54,6 +55,35 @@
         t.style.display = "block";
         clearTimeout(toast.timer);
         toast.timer = setTimeout(function () { t.style.display = "none"; }, ms || 3500);
+    }
+
+    // ------------------------------------------------------------------ 앱(안드로이드 · Capacitor) 안에서만
+
+    /**
+     * routefly 앱(app/ - Capacitor)이 이 화면을 띄우면 window.Capacitor 가 있습니다. 그때만 앱 기능을 씁니다:
+     *   BackgroundGeolocation - 화면을 꺼도 위치(알림창에 "따라가는 중"), TextToSpeech - 화면이 꺼져도 음성,
+     *   Filesystem + Share - SOS 사진 · GPX 를 공유 창으로(앱 안 웹뷰는 navigator.share · 내려받기가 안 됨).
+     * 브라우저에서는 모두 null 이라 지금까지처럼 웹 기능을 씁니다.
+     */
+    var CAP = window.Capacitor;
+    var NATIVE = !!(CAP && CAP.isNativePlatform && CAP.isNativePlatform());
+    function plugin(name) { return NATIVE && CAP.registerPlugin ? CAP.registerPlugin(name) : null; }
+    var BG = plugin("BackgroundGeolocation"), TTS = plugin("TextToSpeech"), FS = plugin("Filesystem"), SHARE = plugin("Share");
+
+    /** 앱 - 파일을 앱 임시 폴더에 쓰고 공유 창으로(문자 · 카카오톡 · 파일 저장 …). */
+    function nativeShareFile(name, base64, text) {
+        return FS.writeFile({ path: name, data: base64, directory: "CACHE" }).then(function (r) {
+            return SHARE.share({ title: name, text: text || "", files: [r.uri], dialogTitle: "보내기" });
+        });
+    }
+
+    function blobToBase64(blob) {
+        return new Promise(function (resolve, reject) {
+            var fr = new FileReader();
+            fr.onload = function () { resolve(String(fr.result).split(",")[1]); };
+            fr.onerror = reject;
+            fr.readAsDataURL(blob);
+        });
     }
 
     // ------------------------------------------------------------------ 음성 안내
@@ -82,11 +112,20 @@
      */
     function say(text, opt) {
         opt = opt || {};
-        if (!voice.on || !("speechSynthesis" in window) || !text) return;
+        if (!voice.on || !text || !TTS && !("speechSynthesis" in window)) return;
         var t = Date.now();
         if (opt.key) {
             if (voice.last[opt.key] && t - voice.last[opt.key] < (opt.gap || 60000)) return;
             voice.last[opt.key] = t;
+        }
+        if (TTS) {   // 앱 - 화면이 꺼져도 말합니다
+            if (opt.urgent) TTS.stop().catch(function () { /* 말하는 중이 아니면 */ });
+            else if (voice.busy) return;
+            var my = voice.busy = (voice.busy || 0) + 1;
+            TTS.speak({ text: text, lang: "ko-KR", rate: 1.0, category: "playback" })
+                .catch(function () { /* 끊긴 말 */ })
+                .then(function () { if (voice.busy === my) voice.busy = 0; });
+            return;
         }
         if (opt.urgent) speechSynthesis.cancel();
         else if (speechSynthesis.speaking || speechSynthesis.pending) return;
@@ -102,7 +141,13 @@
         try { localStorage.setItem(VOICE_KEY, on ? "on" : "off"); } catch (e) { /* 저장 못 해도 이번에는 */ }
         $("voice").textContent = on ? "🔊" : "🔇";
         $("voice").classList.toggle("on", on);
-        if (!on && "speechSynthesis" in window) speechSynthesis.cancel();
+        if (!on) stopTalking();
+    }
+
+    function stopTalking() {
+        if (TTS) TTS.stop().catch(function () { /* 무시 */ });
+        else if ("speechSynthesis" in window) speechSynthesis.cancel();
+        voice.busy = 0;
     }
 
     /** 받침이 있으면 a, 없으면 b(을/를 · 이/가). 한글이 아니면 b. */
@@ -509,12 +554,18 @@
     }
 
     function downloadGpx(rec) {
+        var d = new Date(rec.start);
+        var name = "routefly-" + d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0")
+            + "-" + (rec.courseId || "track") + ".gpx";
+        if (FS && SHARE) {   // 앱 - 공유 창으로(파일 저장 · 다른 앱으로 보내기)
+            nativeShareFile(name, btoa(unescape(encodeURIComponent(toGpx(rec)))), rec.name)
+                .catch(function (e) { toast("GPX 를 보내지 못했습니다: " + (e && e.message || e), 5000); });
+            return;
+        }
         var blob = new Blob([toGpx(rec)], { type: "application/gpx+xml" });
         var a = document.createElement("a");
-        var d = new Date(rec.start);
         a.href = URL.createObjectURL(blob);
-        a.download = "routefly-" + d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0")
-            + "-" + (rec.courseId || "track") + ".gpx";
+        a.download = name;
         document.body.appendChild(a);
         a.click();
         setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
@@ -603,8 +654,8 @@
     function start(sim) {
         if (!c) return;
         if (!sim && !safetyOk()) { askSafety(function () { start(false); }); return; }
-        if (!sim && !navigator.geolocation) { toast("이 기기는 위치(GPS)를 쓸 수 없습니다."); return; }
-        if (!sim && !window.isSecureContext) {
+        if (!sim && !BG && !navigator.geolocation) { toast("이 기기는 위치(GPS)를 쓸 수 없습니다."); return; }
+        if (!sim && !BG && !window.isSecureContext) {
             toast("GPS 는 https 주소에서만 켜집니다. 지금은 \"모의\" 로 화면을 시험해 보세요.", 6000);
             return;
         }
@@ -644,6 +695,28 @@
             $("gps").className = "";
             hike.simTimer = setInterval(simStep, 500);
             simStep();
+        } else if (BG) {
+            // 앱 - 화면을 끄거나 다른 앱으로 가도 위치를 받습니다(알림창에 "따라가는 중"이 떠 있는 동안)
+            $("gps").textContent = "GPS 찾는 중…";
+            $("gps").className = "";
+            BG.addWatcher({ backgroundTitle: "routefly - " + K().act + " 중",
+                            backgroundMessage: "화면을 꺼도 위치를 기록하고 갈림길 · 코스 이탈을 알려 줍니다.",
+                            requestPermissions: true, stale: false, distanceFilter: 3 },
+                function (loc, err) {
+                    if (err) {
+                        if (err.code === "NOT_AUTHORIZED" && confirm("위치 권한이 꺼져 있습니다. 설정을 열어 routefly 의 위치를 '앱 사용 중에만 허용' 으로 바꿀까요?")) {
+                            BG.openSettings();
+                        }
+                        onGpsError({ code: err.code === "NOT_AUTHORIZED" ? 1 : 2 });
+                        return;
+                    }
+                    if (loc) onFix({ timestamp: loc.time, coords: { latitude: loc.latitude, longitude: loc.longitude, accuracy: loc.accuracy,
+                                                                altitude: loc.altitude, speed: loc.speed, heading: loc.bearing } });
+                }).then(function (id) {
+                    if (hike.running && !hike.sim) hike.bgWatch = id;
+                    else BG.removeWatcher({ id: id });   // 그 사이 끝냈으면
+                });
+            keepAwake();
         } else {
             $("gps").textContent = "GPS 찾는 중…";
             $("gps").className = "";
@@ -658,8 +731,10 @@
         if (!hike.running) return;
         if (ask && !hike.sim && !confirm("여기서 끝낼까요? 기록(경과 시간 · 진행 거리)이 지워집니다.")) return;
         hike.running = false;
-        if ("speechSynthesis" in window) speechSynthesis.cancel();
+        stopTalking();
         if (hike.watch != null) navigator.geolocation.clearWatch(hike.watch);
+        if (hike.bgWatch != null && BG) BG.removeWatcher({ id: hike.bgWatch }).catch(function () { /* 이미 멈춤 */ });
+        hike.bgWatch = null;
         hike.watch = null;
         clearInterval(hike.timer);
         clearInterval(hike.simTimer);
@@ -1009,7 +1084,7 @@
         else toast("음성 안내를 껐습니다.", 2000);
     });
     setVoice(voice.on);
-    if (!("speechSynthesis" in window)) $("voice").style.display = "none";   // 읽어 주기가 없는 브라우저
+    if (!TTS && !("speechSynthesis" in window)) $("voice").style.display = "none";   // 읽어 주기가 없는 브라우저
 
     $("compass").addEventListener("click", function () {
         if (!compass.on) { compassOn(); return; }
@@ -1171,6 +1246,11 @@
     var photoReady = null;   // 만든 사진 {file, url, body} - 공유가 막히면(누른 지 오래됨) 한 번 더 누를 때 보냅니다
 
     function sharePhoto(p) {
+        if (FS && SHARE) {   // 앱 - 공유 창(메시지 → 받는 사람 119)
+            $("sosPhotoTip").innerHTML = "공유 창에서 <b>메시지</b> → 받는 사람 <b>119</b> → 보내기. 공유 창이 닫혔으면 버튼을 다시 누르세요.";
+            return blobToBase64(p.file).then(function (b64) { return nativeShareFile(p.file.name, b64, p.body); })
+                .catch(function (e) { if (!/cancel/i.test(String(e && e.message || e))) throw e; });
+        }
         if (!(navigator.canShare && navigator.canShare({ files: [p.file] }))) {
             // 공유 창을 못 쓰는 브라우저 - 사진을 저장하게 합니다
             var a = document.createElement("a");

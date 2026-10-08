@@ -16,3 +16,6 @@ config.properties
 # 로그
 /logs/
 *.log
+
+# 안드로이드 앱(Capacitor) - npm 패키지 · 빌드 산출물(android/.gitignore 도 있음)
+/app/node_modules/

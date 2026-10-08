@@ -1,0 +1,22 @@
+{
+  "name": "routefly-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "routefly 안드로이드 앱(Capacitor) - 서버의 routefly 화면을 띄우고 백그라운드 위치 · 음성 · 공유를 붙입니다",
+  "scripts": {
+    "url": "node scripts/set-url.js",
+    "sync": "npx cap sync android",
+    "open": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor-community/background-geolocation": "1.2.26",
+    "@capacitor-community/text-to-speech": "8.0.2",
+    "@capacitor/android": "8.5.3",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/filesystem": "8.1.4",
+    "@capacitor/share": "8.0.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.3"
+  }
+}

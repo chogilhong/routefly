@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">routefly</string>
+    <string name="title_activity_main">routefly</string>
+    <string name="package_name">kr.routefly.app</string>
+    <string name="custom_url_scheme">kr.routefly.app</string>
+    <!-- 백그라운드 위치(따라가는 중) 알림 - @capacitor-community/background-geolocation -->
+    <string name="capacitor_background_geolocation_notification_channel_name">routefly 따라가기(위치 기록)</string>
+    <string name="capacitor_background_geolocation_notification_icon">drawable/ic_tracking</string>
+    <string name="capacitor_background_geolocation_notification_color">#38D9EA</string>
+</resources>
