@@ -11,6 +11,7 @@
 
     var OFF_ROUTE_M = 50;      // 이보다 멀면 "코스에서 벗어남"
     var ARRIVE_M = 30;         // 끝점까지 이 안이면 도착
+    var FAR_M = 3000;          // 코스에서 이보다 멀면 "벗어남" 대신 출발점(마지막 자리)까지 안내(집 · 차 안에서 시작했을 때)
     var SIM_X = 40;            // 모의 산행 - 시간 배속
 
     var $ = function (id) { return document.getElementById(id); };
@@ -168,6 +169,16 @@
             var first = seg[0], last = seg[seg.length - 1], mid = seg.slice(1, -1);
             return first + "에서 " + (mid.length ? mid.join(", ") + josa(mid[mid.length - 1], "을", "를") + " 거쳐 " : "") + last + "까지";
         }).join(", ");
+    }
+
+    /** 화면 거리 - 1km 미만은 m, 넘으면 km 한 자리(179.5km) */
+    function distText(m) { return m < 1000 ? num(m) + "m" : skm(m) + "km"; }
+    function distSpoken(m) { return m < 1000 ? num(m) + "미터" : skm(m) + "킬로미터"; }
+
+    /** 출발점 이름표(없으면 null) */
+    function startName() {
+        var p = c && c.pois.filter(function (q) { return +q.dist_m < 60 && +q.off_route_m < 60; })[0];
+        return p ? p.name : null;
     }
 
     /** 말할 거리 - 소수 한 자리(5.8킬로미터) */
@@ -925,16 +936,35 @@
         }
         // 코스에서 벗어남 - 가장 가까운 등산로(지금 코스 · 주변 길)까지 거리 · 방향, 지도에 점선
         if (hike.running && hike.off > OFF_ROUTE_M && hike.fix) {
-            var me = hike.fix, nt = nearestTrail(me.lat, me.lon), br = bearing(me.lat, me.lon, nt.lat, nt.lon);
+            var me = hike.fix, nt, br, far = hike.off > FAR_M;
+            if (far !== hike.farMode) {   // 멀리 ↔ 코스 근처로 바뀌면 그 상황 안내를 바로 다시
+                hike.farMode = far;
+                hike.wasOff = false;
+                voice.last.off = 0;
+            }
+            if (far) {
+                // 아주 멀리(집 · 차로 이동 중 등) - 주변 길 말고, 아직 출발 전이면 출발점, 가던 중이면 마지막으로 있던 코스 자리로
+                var tp = RF.at(c, hike.d <= 60 ? 0 : hike.d), sp = hike.d <= 60 ? startName() : null;
+                nt = { lat: tp.lat, lon: tp.lon, off: distM(me.lat, me.lon, tp.lat, tp.lon) };
+                br = bearing(me.lat, me.lon, nt.lat, nt.lon);
+                $("offText").textContent = hike.d <= 60
+                    ? "코스 출발점" + (sp ? "(" + sp + ")" : "") + "까지 " + distText(nt.off) + " · " + dirWord(br) + ". 출발점에 가면 안내가 시작됩니다."
+                    : "코스에서 " + distText(hike.off) + " 떨어져 있습니다 · 마지막 자리까지 " + distText(nt.off) + " · " + dirWord(br);
+                say(hike.d <= 60 ? "코스 출발점까지 " + distSpoken(nt.off) + " 남았습니다. 출발점에 가면 안내를 시작합니다."
+                                 : "코스에서 " + distSpoken(hike.off) + " 떨어져 있습니다.", { key: "off", gap: 600000 });
+            } else {
+                nt = nearestTrail(me.lat, me.lon);
+                br = bearing(me.lat, me.lon, nt.lat, nt.lon);
+                $("offText").textContent = "코스에서 " + distText(hike.off) + " 벗어남 · " + (nt.name ? "가장 가까운 길(" + nt.name + ")" : "가장 가까운 등산로")
+                    + "까지 " + distText(nt.off) + " · " + dirWord(br);
+                // 벗어난 순간 한 번, 계속 벗어나 있으면 2분마다
+                say("코스에서 벗어났습니다. 가장 가까운 길은 " + dirWord(br) + " " + distSpoken(nt.off) + "입니다.",
+                    { key: "off", gap: hike.wasOff ? 120000 : 0, urgent: !hike.wasOff });
+            }
             // 화살표: 나침반이 있으면 핸드폰 위쪽 기준(그쪽으로 몸을 돌려 걷게), 없으면 지도(북쪽 위) 기준
             var rel = compass.heading != null ? br - compass.heading : br - map.getBearing();
             $("guideArrow").style.transform = "rotate(" + rel + "deg)";   // 화살표 그림은 위쪽을 가리킵니다
-            $("offText").textContent = "코스에서 " + num(hike.off) + "m 벗어남 · " + (nt.name ? "가장 가까운 길(" + nt.name + ")" : "가장 가까운 등산로")
-                + "까지 " + num(nt.off) + "m · " + dirWord(br);
             $("offroute").style.display = "flex";
-            // 벗어난 순간 한 번, 계속 벗어나 있으면 2분마다
-            say("코스에서 벗어났습니다. 가장 가까운 길은 " + dirWord(br) + " " + num(nt.off) + "미터입니다.",
-                { key: "off", gap: hike.wasOff ? 120000 : 0, urgent: !hike.wasOff });
             hike.wasOff = true;
             map.getSource("guide").setData({ type: "Feature", properties: {},
                 geometry: { type: "LineString", coordinates: [[me.lon, me.lat], [nt.lon, nt.lat]] } });
