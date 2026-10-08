@@ -432,6 +432,8 @@
         if (!keepView) {   // 걷는 중에 코스를 바꿀 때는 지도를 그대로(내 위치를 따라감)
             var b = new maplibregl.LngLatBounds();
             for (var i = 0; i < c.lon.length; i++) b.extend([c.lon[i], c.lat[i]]);
+            // 들머리 근처 주차장 · 버스 정류장도 처음 화면에 보이게
+            c.pois.forEach(function (q) { if (RF.isAccess(q) && +q.dist_m < 300) b.extend([+q.lon, +q.lat]); });
             map.fitBounds(b, { padding: 40, duration: 0, maxZoom: 16 });
         }
         loadTrails();
@@ -1095,7 +1097,7 @@
             // 아직 코스에 닿기 전이고 멀면(먼 산 · 차로 가야 할 때) 출발점 길찾기 단추
             var notYet = hike.d0 == null || hike.d <= 60;
             hike.navTo = far || (notYet && hike.off > 300)
-                ? (notYet ? { lat: c.lat[0], lon: c.lon[0], name: startName() || "코스 출발점" }
+                ? (notYet ? { lat: c.lat[0], lon: c.lon[0], name: startName() || "코스 출발점", head: true }
                           : { lat: RF.at(c, hike.d).lat, lon: RF.at(c, hike.d).lon, name: "코스 마지막 자리" })
                 : null;
             $("navBtn").style.display = hike.navTo ? "inline-block" : "none";
@@ -1116,8 +1118,19 @@
                     var cs = RF.snap(c, me.lat, me.lon, null), cp = RF.at(c, cs.d);
                     nt = { lat: cp.lat, lon: cp.lon, off: cs.off, course: true };
                 }
+                // 아직 코스에 닿기 전 - 주차장 · 정류장에서 들머리까지 걷기 안내(코스 중간이 훨씬 가까우면 거기로)
+                var toHead = false;
+                if (notYet && !hike.branch) {
+                    var h0 = RF.at(c, 0), dHead = distM(me.lat, me.lon, h0.lat, h0.lon);
+                    if (!(nt.course && nt.off < dHead / 3)) { nt = { lat: h0.lat, lon: h0.lon, off: dHead, course: true }; toHead = true; }
+                }
                 br = bearing(me.lat, me.lon, nt.lat, nt.lon);
-                if (hike.branch) {
+                if (toHead) {
+                    var hn = startName();
+                    $("offText").textContent = (hn ? "들머리(" + hn + ")" : "코스 출발점") + "까지 " + distText(nt.off) + " · " + dirWord(br)
+                        + ". 도착하면 안내가 시작됩니다.";
+                    say((hn ? spokenName(hn) : "코스 출발점") + "까지 " + dirWord(br) + " " + distSpoken(nt.off) + "입니다.", { key: "off", gap: 300000 });
+                } else if (hike.branch) {
                     $("offText").textContent = "코스가 아닌 다른 길로 들어섰습니다 · 코스는 " + dirWord(br) + " " + distText(nt.off)
                         + ". 이 길로 계속 가면 이 길로 코스를 바꿉니다.";
                     say("코스가 아닌 다른 길로 들어섰습니다. 코스는 " + dirWord(br) + " " + distSpoken(nt.off) + "입니다. 이 길로 계속 가시면 코스를 바꿉니다.",
@@ -1175,9 +1188,45 @@
      * 길찾기 - 지금 위치 → 출발점을 지도 앱으로(카카오맵 · 네이버 지도 앱 · 구글 지도). 3km 넘으면 차, 아니면 걷기.
      * 앱(안드로이드)에서는 바깥 주소를 그 앱 · 브라우저로 엽니다(Capacitor).
      */
+    /** 들머리 가는 길 이름표(배치가 들머리 1km 안에서 넣은 주차장 하나 · 정류장 둘) - 출발 쪽 것만. */
+    function accessOf() {
+        var out = { parking: null, buses: [] };
+        (c ? c.pois : []).forEach(function (p) {
+            if (!RF.isAccess(p) || +p.dist_m > 300) return;   // 끝(내려오는 들머리) 쪽 것은 빼고
+            if (/주차장/.test(p.name) && !out.parking) out.parking = p;
+            else if (/(정류장|정류소)$/.test(p.name)) out.buses.push(p);
+        });
+        return out;
+    }
+
     function openNav() {
-        var to = hike.navTo;
-        if (!to) return;
+        if (!hike.navTo) return;
+        // 차로 가야 할 만큼 멀고 들머리 근처 주차장이 있으면 주차장이 먼저(차는 들머리까지 못 들어감)
+        var acc = hike.navTo.head ? accessOf() : { parking: null, buses: [] }, me0 = hike.fix;
+        var farHead = me0 ? distM(me0.lat, me0.lon, hike.navTo.lat, hike.navTo.lon) > 3000 : true;
+        var targets = [hike.navTo];
+        if (acc.parking) {
+            var pk = { lat: +acc.parking.lat, lon: +acc.parking.lon, name: acc.parking.name, parking: true };
+            targets = farHead ? [pk, hike.navTo] : [hike.navTo, pk];
+        }
+        var box = $("navTargets");
+        box.textContent = "";
+        targets.forEach(function (t, i) {
+            var b = document.createElement("button");
+            b.type = "button";
+            b.textContent = (t.parking ? "🅿️ " : "⛰️ ") + t.name;
+            b.onclick = function () { navTo(t, acc, b); };
+            box.appendChild(b);
+            if (i === 0) navTo(t, acc, b);
+        });
+        box.style.display = targets.length > 1 ? "flex" : "none";
+        save();
+        $("navSheet").style.display = "flex";
+    }
+
+    /** 길찾기 창 - 고른 목적지로 세 지도 앱 주소를 만듭니다. */
+    function navTo(to, acc, btn) {
+        [].forEach.call($("navTargets").children, function (x) { x.classList.toggle("on", x === btn); });
         var me = hike.fix, far = me ? distM(me.lat, me.lon, to.lat, to.lon) > 3000 : true;
         var nm = String(to.name).replace(/[,/?#&]/g, " ").trim(), lat = to.lat.toFixed(6), lon = to.lon.toFixed(6);
         $("navTitle").textContent = nm + " 길찾기";
@@ -1191,12 +1240,15 @@
         $("navGoogle").href = "https://www.google.com/maps/dir/?api=1" + (from ? "&origin=" + from.lat + "," + from.lon : "")
             + "&destination=" + lat + "," + lon + "&travelmode=transit";
         // 카카오톡 안 브라우저는 지도 앱으로 넘어가면 이 화면을 닫기도 합니다 - 다시 열면 이어진다고 알려 둡니다
-        $("navTip").textContent = "지금 위치에서 " + nm + "까지 길을 지도 앱으로 엽니다. 산행 기록은 이 핸드폰에 저장되어 있어, "
+        var h0 = RF.at(c, 0), walk = to.parking ? distM(to.lat, to.lon, h0.lat, h0.lon) : 0;
+        $("navTip").textContent = "지금 위치에서 " + nm + "까지 길을 지도 앱으로 엽니다."
+            + (to.parking ? " 주차장에서 들머리까지는 약 " + distText(walk) + " 걸어서 - 이 화면이 들머리까지 안내합니다." : "")
+            + (acc.buses.length ? " 가까운 버스 정류장: " + acc.buses.map(function (b) {
+                return b.name + "(들머리에서 " + distText(distM(+b.lat, +b.lon, h0.lat, h0.lon)) + ")"; }).join(", ") + "." : "")
+            + " 산행 기록은 이 핸드폰에 저장되어 있어, "
             + (/KAKAOTALK/i.test(navigator.userAgent)
                 ? "카카오톡 안에서 이 화면이 닫혀도 같은 링크를 다시 열면 그대로 이어집니다."
                 : "길찾기 뒤 이 화면으로 돌아오거나 다시 열면 그대로 이어집니다.");
-        save();
-        $("navSheet").style.display = "flex";
     }
     $("navBtn").addEventListener("click", openNav);
     $("navClose").addEventListener("click", function () { $("navSheet").style.display = "none"; });

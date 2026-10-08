@@ -468,7 +468,7 @@
         out.push({ d: 0, text: startPoi ? bare(startPoi.name) + "에서 출발" : "출발",
                    sub: km(total) + "km" + (course.ascent_m != null ? " · 오르막 " + num(course.ascent_m) + "m" : "") });
         c.pois.forEach(function (p) {
-            if (p === startPoi || p === endPoi) return;
+            if (p === startPoi || p === endPoi || RF.isAccess(p)) return;   // 주차장 · 정류장(경로 밖)은 자막 없이 지도에만
             var e = p.ele_m != null ? " · 해발 " + num(p.ele_m) + "m" : "";
             out.push({ d: +p.dist_m, text: p.name, sub: km(+p.dist_m) + "km 지점" + e });
         });

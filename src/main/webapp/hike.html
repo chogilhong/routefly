@@ -172,6 +172,10 @@ body.compact #statGrids { display:none; }
 #offroute .otxt { flex:1; min-width:0; }
 #navBtn { display:none; margin-top:7px; height:34px; padding:0 12px; border-radius:17px; border:0; background:#fff; color:#b42318;
           font-size:14px; font-weight:bold; }
+#navTargets { display:flex; gap:6px; margin:0 0 6px; }
+#navTargets button { flex:1; min-width:0; height:40px; border-radius:10px; border:1px solid var(--ln); background:rgba(255,255,255,0.06);
+                     color:var(--tx); font-size:13.5px; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:0 6px; }
+#navTargets button.on { background:var(--sky); border-color:var(--sky); color:#062b30; }
 #navSheet .big { color:var(--tx); background:rgba(255,255,255,0.08); border:1px solid var(--ln); font-size:16px; }
 #offroute .arrow { display:inline-block; font-size:26px; line-height:1; transition:transform .3s; }
 #etaBox.late { background:rgba(220,38,38,0.25); }
@@ -313,6 +317,7 @@ body.compact #statGrids { display:none; }
 <div id="navSheet" class="sheet">
     <div class="sbox">
         <h2 id="navTitle">출발점 길찾기</h2>
+        <div id="navTargets"></div>
         <p class="tip" id="navTip">지금 위치에서 산행 출발점까지 길을 지도 앱으로 엽니다. 길찾기를 마치고 이 화면으로 돌아오면 안내가 이어집니다.</p>
         <a class="big" id="navKakao" target="_blank" rel="noopener">카카오맵</a>
         <a class="big" id="navNaver" target="_blank" rel="noopener">네이버 지도 (앱)</a>

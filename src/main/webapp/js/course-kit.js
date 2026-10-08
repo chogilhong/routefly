@@ -211,9 +211,16 @@
     }
 
     /** d 다음의 이름표(출발 자리 것은 빼고). 없으면 null. */
+    /**
+     * 경로 밖 이름표(들머리 가는 길의 주차장 · 버스 정류장 - routefly-batch 가 들머리 1km 안에서 넣음).
+     * 지도에는 보이되 '다음 지점' · 음성 · 그래프 이름 · 비행 자막에는 쓰지 않습니다.
+     */
+    function isAccess(p) { return +p.off_route_m > 100; }
+
     function nextPoi(c, d) {
         var best = null;
         c.pois.forEach(function (p) {
+            if (isAccess(p)) return;
             var pd = +p.dist_m;
             if (pd > d + 15 && (best == null || pd < +best.dist_m)) best = p;
         });
@@ -275,6 +282,7 @@
         if (/인증센터/.test(n)) return "🚲";
         if (/(지원센터|안내소|안내센터|분소|매표소|사무소)/.test(name)) return "ℹ️";
         if (/주차장/.test(n)) return "🅿️";
+        if (/(정류장|정류소)$/.test(n)) return "🚏";
         if (/케이블카/.test(n)) return "🚡";
         if (/(대피소|산장|쉼터|휴게소)/.test(n)) return "🏠";
         if (/(해수욕장|해변|해안)/.test(n)) return "🏖️";
@@ -449,7 +457,7 @@
         // 지점 - 빨간 점 + 비스듬한 이름(영상처럼). 너무 붙은 이름은 건너뜁니다.
         if (opts.labels !== false) {
             var lastX = -1;
-            c.pois.slice().sort(function (a, b) { return +a.dist_m - +b.dist_m; }).forEach(function (p) {
+            c.pois.filter(function (p) { return !isAccess(p); }).sort(function (a, b) { return +a.dist_m - +b.dist_m; }).forEach(function (p) {
                 var pd = Math.max(0, Math.min(c.total, +p.dist_m)), pa = at(c, pd);
                 if (pa.ele == null) return;
                 var xp = pd / c.total * 100;
@@ -552,7 +560,7 @@
     }
 
     global.RF = {
-        LINE_COLOR: LINE_COLOR, num: num, km: km, fromApi: fromApi, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
+        LINE_COLOR: LINE_COLOR, num: num, km: km, fromApi: fromApi, isAccess: isAccess, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
         sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, distM: distM, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
     };
