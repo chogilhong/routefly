@@ -113,6 +113,15 @@ body.flying #side { opacity:0; pointer-events:none; }
     #hud { top:auto; right:12px; bottom:170px; }        /* 실제 높이는 app.js 가 아래 판 높이에 맞춰 다시 정합니다 */
     #title span.opt { display:none; }
     #profile { height:70px; }
+    #profile .rf-plabel { display:none; }   /* 비스듬한 이름이 위 버튼 줄까지 올라가 겹침 - 이름은 지도에 나옵니다(점은 남김) */
+    #bottom { left:8px; right:8px; bottom:8px; padding:8px 8px 6px; }
+    #title b { font-size:14px; }
+    #controls { width:100%; margin-left:0; gap:4px; }   /* 버튼은 이름 아래 한 줄로, 똑같이 나눠 */
+    #controls button, #controls a.btn { flex:1 1 0; min-width:0; padding:7px 2px; font-size:12.5px; text-align:center;
+                                        white-space:nowrap; overflow:hidden; }
+    #controls button.main { min-width:0; flex-grow:1.3; }
+    #controls #hikeLink { flex-grow:1.4; }
+    #controls #speed { flex-grow:0.8; }
     #caption { top:46%; }
     #mini { top:12px; right:60px; width:104px; height:104px; }
     body:not(.flying) #mini { visibility:hidden; }   /* 좁은 화면에서는 비행 중에만(목록 자리) */
