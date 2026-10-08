@@ -393,8 +393,8 @@
         box.appendChild(svg);
 
         // km 눈금(아래)
-        var step = kmStep(c.total);
-        for (var m = step; m < c.total - Math.max(step * 0.3, c.total * 0.07); m += step) {   // 끝의 총 거리와 겹치지 않게
+        var step = kmStep(c.total), bw = box.clientWidth || 300;
+        for (var m = step; m < c.total - Math.max(step * 0.3, c.total * 0.07) && (c.total - m) / c.total * bw > 64; m += step) {   // 끝의 총 거리(10.45km)와 겹치지 않게
             var t = el("div", "rf-tick", String(Math.round(m / 1000)));
             t.style.left = (m / c.total * 100) + "%";
             box.appendChild(t);

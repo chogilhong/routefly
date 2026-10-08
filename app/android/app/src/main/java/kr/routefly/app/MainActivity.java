@@ -22,6 +22,9 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // 핸드폰 글자 크기 설정(삼성 기본이 큼)이 웹 화면 글자만 1.6배쯤 키워 그래프 이름 · 버튼이 서로 겹쳤습니다.
+        // 따라가기 화면은 밖에서 보려고 이미 큰 글자로 만들었으므로 앱 안에서는 설계한 크기(100%) 그대로 씁니다.
+        bridge.getWebView().getSettings().setTextZoom(100);
         // 안드로이드 13+ : 화면을 꺼도 위치를 기록하려면 "따라가는 중" 알림을 띄워야 하고, 알림 권한이 필요합니다.
         if (Build.VERSION.SDK_INT >= 33
                 && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
