@@ -236,9 +236,12 @@
 
     /** 이번 기록의 칼로리 · 걸음 · 오른 높이. 거리는 GPS 로 걸은 거리(없으면 코스 진행), 높이는 코스 고도로. */
     function effort() {
+        // 가장 멀리 간 자리(dMax)까지로 셉니다 - 되돌아 내려오면 진행 거리는 줄어도 칼로리 · 걸음 · 오른 높이는 줄지 않게
+        // (송산: 1.07km 에서 되돌아와 0.85km 가 되자 116 → 79kcal, 오른 높이 104 → 60m)
         var d0 = hike.d0 == null ? hike.d : hike.d0;   // 아직 코스에 닿기 전이면 코스 진행은 0
-        var dist = Math.max(hike.walked || 0, Math.max(0, hike.d - d0));
-        var cl = c ? RF.climbBetween(c, d0, hike.d) : { up: 0, down: 0 };
+        var dm = Math.max(hike.dMax || 0, hike.d);
+        var dist = Math.max(hike.walked || 0, Math.max(0, dm - d0));
+        var cl = c ? RF.climbBetween(c, d0, Math.max(d0, dm)) : { up: 0, down: 0 };
         var kind = c ? c.course.kind : "hike";
         return { dist: dist, up: Math.round(cl.up), kcal: RF.kcal(kind, body.kg, dist, cl.up, cl.down), steps: RF.steps(kind, body.cm, dist) };
     }
@@ -527,7 +530,7 @@
 
     function save() {
         if (hike.sim) return;
-        try { localStorage.setItem(saveKey(), JSON.stringify({ start: hike.start, d: hike.d, walked: hike.walked, d0: hike.d0 })); } catch (e) { /* 저장 못 해도 산행은 계속 */ }
+        try { localStorage.setItem(saveKey(), JSON.stringify({ start: hike.start, d: hike.d, walked: hike.walked, d0: hike.d0, dMax: hike.dMax })); } catch (e) { /* 저장 못 해도 산행은 계속 */ }
     }
 
     function clearSaved() {
@@ -694,6 +697,7 @@
         hike.passed = {};
         hike.wasOff = false;
         hike.d0 = saved && saved.d0 != null ? saved.d0 : null;   // 첫 위치가 코스 위일 때 정합니다(코스 중간에서 시작하면 그 자리)
+        hike.dMax = saved && saved.dMax != null ? saved.dMax : hike.d;
         hike.kmSpoken = Math.floor(hike.d / (K() === RF.KINDS.bike ? 5000 : 1000));
         voice.last = {};
         // 시작 버튼을 누른 그 순간에 말해야 아이폰도 소리를 냅니다(사용자 동작 안에서 처음 말하기)
@@ -746,9 +750,16 @@
         render();
     }
 
-    function stopHike(ask) {
+    /** 끝내기 확인 - 기록은 지우지 않고 "내 기록" 에 남깁니다(finishRecord). */
+    function askStop() {
         if (!hike.running) return;
-        if (ask && !hike.sim && !confirm("여기서 끝낼까요? 기록(경과 시간 · 진행 거리)이 지워집니다.")) return;
+        if (hike.sim) { stopHike(); return; }
+        $("endTitle").textContent = K().act + "을 여기서 끝낼까요?";
+        $("endSheet").style.display = "flex";
+    }
+
+    function stopHike() {
+        if (!hike.running) return;
         hike.running = false;
         stopTalking();
         if (hike.watch != null) navigator.geolocation.clearWatch(hike.watch);
@@ -810,6 +821,7 @@
             // 송산: 시작 버튼을 누른 뒤 코스 0.86km 지점으로 들어갔는데 0 부터 걸은 것으로 쳐서 3분 만에 81kcal · 1,353보
             if (hike.d0 == null) hike.d0 = s.d;
             hike.d = s.d;
+            hike.dMax = Math.max(hike.dMax || 0, s.d);
         }
         // 빠르기 - GPS 가 주면 그것, 아니면 최근 1분 이동 거리로
         hike.hist.push({ t: t, lat: co.latitude, lon: co.longitude });
@@ -1442,7 +1454,9 @@
         });
     });
 
-    $("go").addEventListener("click", function () { if (hike.running) stopHike(true); else start(false); });
+    $("go").addEventListener("click", function () { if (hike.running) askStop(); else start(false); });
+    $("endNo").addEventListener("click", function () { $("endSheet").style.display = "none"; });
+    $("endYes").addEventListener("click", function () { $("endSheet").style.display = "none"; stopHike(); });
     $("sim").addEventListener("click", function () { start(true); });
     $("follow").addEventListener("click", function () {
         setFollow(true);
@@ -1451,7 +1465,7 @@
 
     function route() {
         var m = /[#&]c=([^&]+)/.exec(location.hash);
-        if (hike.running) stopHike(false);
+        if (hike.running) stopHike();
         if (m) loadCourse(decodeURIComponent(m[1])); else showPick();
     }
     window.addEventListener("hashchange", route);
