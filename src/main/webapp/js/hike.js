@@ -1182,9 +1182,14 @@
         var nm = String(to.name).replace(/[,/?#&]/g, " ").trim(), lat = to.lat.toFixed(6), lon = to.lon.toFixed(6);
         $("navTitle").textContent = nm + " 길찾기";
         $("navKakao").href = "https://map.kakao.com/link/to/" + encodeURIComponent(nm) + "," + lat + "," + lon;
-        $("navNaver").href = "nmap://route/" + (far ? "car" : "walk") + "?dlat=" + lat + "&dlng=" + lon + "&dname=" + encodeURIComponent(nm)
-            + "&appname=" + encodeURIComponent(location.origin);
-        $("navGoogle").href = "https://www.google.com/maps/dir/?api=1&destination=" + lat + "," + lon + "&travelmode=" + (far ? "driving" : "walking");
+        // 네이버 지도 앱은 출발지를 비워 두면 '출발지 입력' 으로 남습니다 - 지금 위치를 출발지로 넣습니다
+        var from = me ? { lat: me.lat.toFixed(6), lon: me.lon.toFixed(6) } : null;
+        $("navNaver").href = "nmap://route/" + (far ? "car" : "walk") + "?"
+            + (from ? "slat=" + from.lat + "&slng=" + from.lon + "&sname=" + encodeURIComponent("내 위치") + "&" : "")
+            + "dlat=" + lat + "&dlng=" + lon + "&dname=" + encodeURIComponent(nm) + "&appname=" + encodeURIComponent(location.origin);
+        // 구글 지도는 우리나라에서 자동차 · 걷기 길찾기를 하지 않습니다('경로를 찾을 수 없음') - 대중교통으로
+        $("navGoogle").href = "https://www.google.com/maps/dir/?api=1" + (from ? "&origin=" + from.lat + "," + from.lon : "")
+            + "&destination=" + lat + "," + lon + "&travelmode=transit";
         // 카카오톡 안 브라우저는 지도 앱으로 넘어가면 이 화면을 닫기도 합니다 - 다시 열면 이어진다고 알려 둡니다
         $("navTip").textContent = "지금 위치에서 " + nm + "까지 길을 지도 앱으로 엽니다. 산행 기록은 이 핸드폰에 저장되어 있어, "
             + (/KAKAOTALK/i.test(navigator.userAgent)
