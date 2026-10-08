@@ -1096,12 +1096,15 @@
             }
             // 아직 코스에 닿기 전이고 멀면(먼 산 · 차로 가야 할 때) 출발점 길찾기 단추
             var notYet = hike.d0 == null || hike.d <= 60;
-            hike.navTo = far || (notYet && hike.off > 300)
+            hike.navTo = far || (notYet && hike.off > 100)   // 주차장 · 정류장(들머리 100m 밖)부터
                 ? (notYet ? { lat: c.lat[0], lon: c.lon[0], name: startName() || "코스 출발점", head: true }
                           : { lat: RF.at(c, hike.d).lat, lon: RF.at(c, hike.d).lon, name: "코스 마지막 자리" })
                 : null;
             $("navBtn").style.display = hike.navTo ? "inline-block" : "none";
-            $("navBtn").textContent = hike.navTo && !notYet ? "🚗 코스로 돌아가는 길찾기" : "🚗 출발점 길찾기";
+            // 3km 안이면 걷기 길찾기(네이버 지도 앱은 실제 길을 따라 걷기 경로) - 주차장 · 정류장에서 들머리까지
+            var nearNav = hike.navTo && !far && hike.fix && distM(hike.fix.lat, hike.fix.lon, hike.navTo.lat, hike.navTo.lon) <= 3000;
+            $("navBtn").textContent = hike.navTo && !notYet ? (nearNav ? "🚶 코스로 돌아가는 걷기 길찾기" : "🚗 코스로 돌아가는 길찾기")
+                : nearNav ? "🚶 들머리 걷기 길찾기" : "🚗 출발점 길찾기";
             if (far) {
                 // 아주 멀리(집 · 차로 이동 중 등) - 주변 길 말고, 아직 출발 전이면 출발점, 가던 중이면 마지막으로 있던 코스 자리로
                 var tp = RF.at(c, hike.d <= 60 ? 0 : hike.d), sp = hike.d <= 60 ? startName() : null;
