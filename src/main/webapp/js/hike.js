@@ -542,8 +542,8 @@
         }).catch(function (e) {
             // 배치를 다시 돌려 코스 번호가 바뀐 예전 링크 · 기록 - 같은 산 코스를 골라 보여 줍니다
             var similar = e.data && e.data.similar || [];
-            showPick();
-            if (similar.length) listCourses(similar, null, "이 코스는 자료가 새로 바뀌어 번호가 달라졌습니다. 같은 산의 코스에서 골라 주세요.");
+            showPick(similar.length > 0);   // 같은 산 목록을 보여 줄 때는 마지막 검색을 다시 하지 않습니다(늦게 온 검색이 덮어씀)
+            if (similar.length) { pickSeq++; listCourses(similar, null, "이 코스는 자료가 새로 바뀌어 번호가 달라졌습니다. 같은 산의 코스에서 골라 주세요."); }
             else toast("코스를 불러오지 못했습니다: " + e.message, 6000);
         });
     }
@@ -1157,10 +1157,10 @@
 
     // ------------------------------------------------------------------ 코스 고르기
 
-    function showPick() {
+    function showPick(noRestore) {
         $("pick").style.display = "flex";
         // 목록이 비었으면(이 화면을 새로 열었을 때) 마지막 검색을 다시
-        if (!$("pickList").querySelector(".it")) {
+        if (!noRestore && !$("pickList").querySelector(".it")) {
             var last = null;
             try { last = JSON.parse(sessionStorage.getItem(SEARCH_KEY) || "null"); } catch (e) { /* 없음 */ }
             if (last && last.q) {
@@ -1240,6 +1240,7 @@
     }
 
     var searchTimer = 0, fromList = false;
+    var pickSeq = 0;   // 목록을 새로 그릴 때마다 +1 - 늦게 온 예전 검색 응답이 새 목록을 덮지 않게
     var SEARCH_KEY = "rf-hike-search";   // 마지막 검색어 · 종류 - 코스에 들어갔다 돌아와도(새로 고침 · 앱 다시 열기 포함) 그대로
     $("q").addEventListener("input", function () {
         clearTimeout(searchTimer);
@@ -1247,7 +1248,9 @@
         try { sessionStorage.setItem(SEARCH_KEY, JSON.stringify({ q: q, kind: kindFilter })); } catch (e) { /* 무시 */ }
         searchTimer = setTimeout(function () {
             if (!q) return;
-            getJson("api/courses?q=" + encodeURIComponent(q) + (kindFilter ? "&kind=" + kindFilter : "")).then(function (j) { listCourses(j.courses || [], null); })
+            var my = ++pickSeq;
+            getJson("api/courses?q=" + encodeURIComponent(q) + (kindFilter ? "&kind=" + kindFilter : ""))
+                .then(function (j) { if (my === pickSeq) listCourses(j.courses || [], null); })
                 .catch(function (e) { toast("검색 실패: " + e.message); });
         }, 300);
     });
@@ -1256,7 +1259,7 @@
         if (!navigator.geolocation || !window.isSecureContext) { toast("위치는 https 주소에서만 쓸 수 있습니다. 산 이름으로 찾아보세요.", 5000); return; }
         toast("현재 위치를 찾는 중…");
         navigator.geolocation.getCurrentPosition(function (pos) {
-            var lat = pos.coords.latitude, lon = pos.coords.longitude, r = 0.045;   // 약 5km
+            var lat = pos.coords.latitude, lon = pos.coords.longitude, r = 0.045, my = ++pickSeq;   // 약 5km
             getJson("api/courses?bbox=" + [lon - r, lat - r, lon + r, lat + r].map(function (v) { return v.toFixed(5); }).join(",")
                     + (kindFilter ? "&kind=" + kindFilter : ""))
                 .then(function (j) {
@@ -1264,7 +1267,7 @@
                         x.away = distM(lat, lon, +x.start_lat, +x.start_lon);
                         return x;
                     }).sort(function (a, b) { return a.away - b.away; });
-                    listCourses(rows, true);
+                    if (my === pickSeq) listCourses(rows, true);
                 }).catch(function (e) { toast("코스를 찾지 못했습니다: " + e.message); });
         }, function (e) { onGpsError(e); }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 60000 });
     });
