@@ -26,7 +26,10 @@
                  track: [],            // 걸은 자리 [[위도, 경도, 시각, 고도]] - 기록 · GPX
                  walked: 0,            // 걸은 거리(m)
                  alerted: {},          // 이미 알린 갈림길(진행 거리)
-                 sunWarned: false };
+                 sunWarned: false,
+                 passed: {},           // 음성으로 알린 지점(이름)
+                 kmSpoken: 0,          // 음성으로 알린 거리 이정(1km · 자전거 5km 단위)
+                 wasOff: false };      // 코스에서 벗어나 있음(음성 - 벗어날 때 · 돌아올 때 한 번씩)
     var trails = [];                   // 주변 등산로(api/trails) - 코스에서 벗어났을 때 가장 가까운 길 찾기
     var compass = { on: false, up: false, heading: null, lastTurn: 0 };   // 나침반 - on: 켜짐, up: 내 방향으로 지도 돌림
     var kindFilter = "";
@@ -50,6 +53,88 @@
         t.style.display = "block";
         clearTimeout(toast.timer);
         toast.timer = setTimeout(function () { t.style.display = "none"; }, ms || 3500);
+    }
+
+    // ------------------------------------------------------------------ 음성 안내
+
+    /**
+     * 음성 안내 - 브라우저 내장 읽어 주기(Web Speech API, 한국어). 갈림길 · 지점 · 1km 마다 · 코스 이탈 · 일몰 · 도착.
+     * 켜고 끄기는 지도 왼쪽 🔊 버튼(이 기기에 기억). 화면이 켜져 있을 때 확실히 나옵니다(꺼지면 브라우저가 멈출 수 있음).
+     */
+    var VOICE_KEY = "rf-voice";
+    var voice = { on: true, ko: null, last: {} };
+    try { voice.on = localStorage.getItem(VOICE_KEY) !== "off"; } catch (e) { /* 기본은 켜짐 */ }
+
+    function pickVoice() {
+        if (!("speechSynthesis" in window)) return;
+        var vs = speechSynthesis.getVoices();
+        voice.ko = vs.filter(function (v) { return /^ko/i.test(v.lang); })[0] || null;
+    }
+    if ("speechSynthesis" in window) {
+        pickVoice();
+        speechSynthesis.onvoiceschanged = pickVoice;
+    }
+
+    /**
+     * 말하기. opt.key 가 있으면 같은 key 는 opt.gap(기본 60초) 안에 다시 말하지 않습니다.
+     * opt.urgent 면 하던 말을 끊고 바로(코스 이탈 · 갈림길), 아니면 말하는 중일 때 건너뜁니다(모의 40배속에서 쌓이지 않게).
+     */
+    function say(text, opt) {
+        opt = opt || {};
+        if (!voice.on || !("speechSynthesis" in window) || !text) return;
+        var t = Date.now();
+        if (opt.key) {
+            if (voice.last[opt.key] && t - voice.last[opt.key] < (opt.gap || 60000)) return;
+            voice.last[opt.key] = t;
+        }
+        if (opt.urgent) speechSynthesis.cancel();
+        else if (speechSynthesis.speaking || speechSynthesis.pending) return;
+        var u = new SpeechSynthesisUtterance(text);
+        u.lang = "ko-KR";
+        u.rate = 1.05;
+        if (voice.ko) u.voice = voice.ko;
+        speechSynthesis.speak(u);
+    }
+
+    function setVoice(on) {
+        voice.on = on;
+        try { localStorage.setItem(VOICE_KEY, on ? "on" : "off"); } catch (e) { /* 저장 못 해도 이번에는 */ }
+        $("voice").textContent = on ? "🔊" : "🔇";
+        $("voice").classList.toggle("on", on);
+        if (!on && "speechSynthesis" in window) speechSynthesis.cancel();
+    }
+
+    /** 말할 거리 - 소수 한 자리(5.8킬로미터) */
+    function skm(m) { return (Math.round(m / 100) / 10).toString(); }
+
+    /** "1시간 5분" · "40분" */
+    function spokenTime(ms) {
+        var m = Math.max(1, Math.round(ms / 60000)), h = Math.floor(m / 60);
+        return (h ? h + "시간 " : "") + (m % 60 ? (m % 60) + "분" : "").trim();
+    }
+
+    /** 1km(자전거 5km) 마다 · 지점을 지날 때 - onFix 에서 코스 위에 있을 때. */
+    function voiceProgress() {
+        if (!hike.running || hike.off > OFF_ROUTE_M) return;
+        var d = hike.d;
+        // 지점(이름표) - 지날 때 한 번. 출발 · 도착 자리는 시작 · 도착 안내가 대신합니다.
+        c.pois.forEach(function (q) {
+            var qd = +q.dist_m;
+            if (qd < 60 || qd > c.total - 60 || +q.off_route_m > 80 || hike.passed[q.name]) return;
+            if (Math.abs(d - qd) <= 30) {
+                hike.passed[q.name] = true;
+                say(q.name + "입니다." + (q.ele_m != null ? " 해발 " + num(+q.ele_m) + "미터." : ""));
+            }
+        });
+        // 거리 이정
+        var step = K() === RF.KINDS.bike ? 5000 : 1000;
+        var k = Math.floor(d / step);
+        if (c.total > step * 1.5 && k > hike.kmSpoken && c.total - d > 300) {
+            hike.kmSpoken = k;
+            var asc = RF.ascentLeft(c, d);
+            say(num(k * step / 1000) + "킬로미터 지났습니다. 남은 거리 " + skm(c.total - d) + "킬로미터"
+                + (asc >= 50 && K() !== RF.KINDS.bike ? ", 남은 오르막 " + num(asc) + "미터." : "."));
+        }
     }
 
     function getJson(url) {
@@ -479,6 +564,14 @@
         hike.walked = saved && saved.walked ? saved.walked : 0;
         hike.alerted = {};
         hike.sunWarned = false;
+        hike.passed = {};
+        hike.wasOff = false;
+        hike.kmSpoken = Math.floor(hike.d / (K() === RF.KINDS.bike ? 5000 : 1000));
+        voice.last = {};
+        // 시작 버튼을 누른 그 순간에 말해야 아이폰도 소리를 냅니다(사용자 동작 안에서 처음 말하기)
+        say(saved ? "이어서 안내합니다. 남은 거리 " + skm(Math.max(0, c.total - hike.d)) + "킬로미터."
+            : c.course.name.replace(/ · /g, ", ").replace(/\s*→\s*/g, "에서 ") + " 안내를 시작합니다. 전체 " + skm(c.total) + "킬로미터, 예상 "
+                + spokenTime(RF.standardMs(c.course.kind, c.total, RF.ascentLeft(c, 0))) + ".", { urgent: true });
         $("save").style.display = "none";
         setFollow(true);
         $("go").textContent = sim ? "모의 끝내기" : K().act + " 끝내기";
@@ -507,6 +600,7 @@
         if (!hike.running) return;
         if (ask && !hike.sim && !confirm("여기서 끝낼까요? 기록(경과 시간 · 진행 거리)이 지워집니다.")) return;
         hike.running = false;
+        if ("speechSynthesis" in window) speechSynthesis.cancel();
         if (hike.watch != null) navigator.geolocation.clearWatch(hike.watch);
         hike.watch = null;
         clearInterval(hike.timer);
@@ -578,8 +672,11 @@
             $("arrived").textContent = "🎉 " + (endPoi ? endPoi.name + " " : "") + "도착! " + km(c.total) + "km · " + hhmmss(now() - hike.start);
             $("arrived").style.display = "block";
             if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+            say((endPoi ? endPoi.name + " " : "") + "도착입니다. " + skm(c.total) + "킬로미터, " + spokenTime(now() - hike.start) + ". 수고하셨습니다.",
+                { urgent: true });
         }
         checkJunction();
+        voiceProgress();
         save();
         render();
     }
@@ -597,6 +694,8 @@
         if (!hike.alerted[next]) {
             hike.alerted[next] = true;
             if (navigator.vibrate) navigator.vibrate([120, 80, 120]);
+            var w = RF.turnWord(c, next);
+            say((ahead < 15 ? "갈림길입니다. " : ahead + "미터 앞 갈림길, ") + w + (/길$/.test(w) ? "입니다." : "하세요."), { urgent: true });
         }
     }
 
@@ -664,6 +763,7 @@
                 if (hike.running && !hike.sunWarned) {
                     hike.sunWarned = true;
                     toast("⚠ 예상 도착이 해 지기 30분 전(" + clock(sun - 1800000) + ")보다 늦습니다. 일찍 돌아서는 것도 생각하세요.", 8000);
+                    say("주의하세요. 예상 도착이 해 지기 30분 전보다 늦습니다. 일찍 돌아서는 것도 생각하세요.", { urgent: true });
                     if (navigator.vibrate) navigator.vibrate([300, 150, 300]);
                 }
             }
@@ -691,9 +791,18 @@
             $("offText").textContent = "코스에서 " + num(hike.off) + "m 벗어남 · " + (nt.name ? "가장 가까운 길(" + nt.name + ")" : "가장 가까운 등산로")
                 + "까지 " + num(nt.off) + "m · " + dirWord(br);
             $("offroute").style.display = "flex";
+            // 벗어난 순간 한 번, 계속 벗어나 있으면 2분마다
+            say("코스에서 벗어났습니다. 가장 가까운 길은 " + dirWord(br) + " " + num(nt.off) + "미터입니다.",
+                { key: "off", gap: hike.wasOff ? 120000 : 0, urgent: !hike.wasOff });
+            hike.wasOff = true;
             map.getSource("guide").setData({ type: "Feature", properties: {},
                 geometry: { type: "LineString", coordinates: [[me.lon, me.lat], [nt.lon, nt.lat]] } });
         } else {
+            if (hike.running && hike.wasOff && hike.off <= OFF_ROUTE_M) {
+                hike.wasOff = false;
+                voice.last.off = 0;
+                say("코스로 돌아왔습니다.", { urgent: true });
+            }
             $("offroute").style.display = "none";
             if (map.getSource("guide")) map.getSource("guide").setData({ type: "FeatureCollection", features: [] });
         }
@@ -812,6 +921,14 @@
             go();
         }
     }
+
+    $("voice").addEventListener("click", function () {
+        setVoice(!voice.on);
+        if (voice.on) say("음성 안내를 켰습니다.", { urgent: true });
+        else toast("음성 안내를 껐습니다.", 2000);
+    });
+    setVoice(voice.on);
+    if (!("speechSynthesis" in window)) $("voice").style.display = "none";   // 읽어 주기가 없는 브라우저
 
     $("compass").addEventListener("click", function () {
         if (!compass.on) { compassOn(); return; }

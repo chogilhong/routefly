@@ -153,6 +153,9 @@ button { font-family:inherit; }
 #compass .hd { font-size:10px; font-weight:bold; color:#333; line-height:1.1; }
 #compass.on { box-shadow:0 0 0 3px #38d9ea, 0 2px 8px rgba(0,0,0,0.45); }
 #compass.up { box-shadow:0 0 0 3px #1a73e8, 0 2px 8px rgba(0,0,0,0.45); }
+#voice { position:absolute; left:12px; top:66px; z-index:2; width:44px; height:44px; border-radius:50%; border:0; background:#fff;
+         font-size:20px; line-height:1; box-shadow:0 2px 8px rgba(0,0,0,0.45); opacity:0.75; }
+#voice.on { opacity:1; box-shadow:0 0 0 3px #38d9ea, 0 2px 8px rgba(0,0,0,0.45); }
 #turn { position:absolute; left:66px; right:10px; top:10px; z-index:3; display:none; padding:10px 12px; border-radius:10px;
         background:rgba(26,115,232,0.95); color:#fff; font-size:15px; font-weight:bold; box-shadow:0 2px 8px rgba(0,0,0,0.5); }
 #offroute { display:none; align-items:center; gap:10px; }
@@ -180,6 +183,7 @@ button { font-family:inherit; }
     <div id="turn"></div>
     <button type="button" id="compass" title="나침반 - 누를 때마다: 켜기 → 내 방향으로 지도 돌리기 → 북쪽 위로"><span class="needle">▲</span><span class="hd" id="compassText">N</span></button>
     <div id="arrived"></div>
+    <button type="button" id="voice" class="on" title="음성 안내 켜기 · 끄기(갈림길 · 지점 · 1km 마다 · 코스 이탈 · 도착)">🔊</button>
     <button type="button" id="follow" class="on" title="내 위치 따라가기">⌖</button>
 </div>
 
