@@ -261,7 +261,11 @@
     function getJson(url) {
         return fetch(url, { headers: { "Accept": "application/json" } }).then(function (r) {
             return r.json().then(function (j) {
-                if (!r.ok || j.success === false) throw new Error(j.message || ("HTTP " + r.status));
+                if (!r.ok || j.success === false) {
+                    var err = new Error(j.message || ("HTTP " + r.status));
+                    err.data = j;   // 없는 코스면 같은 산 코스(similar)가 들어 있습니다
+                    throw err;
+                }
                 return j;
             });
         });
@@ -527,13 +531,20 @@
             var saved = loadSaved();
             hike.d = saved ? saved.d : 0;
             render();
-            if (saved) {
+            if (saved && saved.t && Date.now() - saved.t < RESUME_MS && safetyOk()) {
+                // 길찾기 · 전화 등으로 나갔다가 화면이 다시 열림 - 기다리지 않고 바로 이어서 안내
+                start(false);
+                toast("진행 중이던 " + K().act + "을 이어서 안내합니다(" + km(saved.d) + "km).", 5000);
+            } else if (saved) {
                 $("go").textContent = "이어서 " + K().act;
                 toast("진행 중이던 기록이 있습니다(" + km(saved.d) + "km). \"이어서 " + K().act + "\" 버튼을 누르세요.", 5000);
             }
         }).catch(function (e) {
-            toast("코스를 불러오지 못했습니다: " + e.message, 6000);
+            // 배치를 다시 돌려 코스 번호가 바뀐 예전 링크 · 기록 - 같은 산 코스를 골라 보여 줍니다
+            var similar = e.data && e.data.similar || [];
             showPick();
+            if (similar.length) listCourses(similar, null, "이 코스는 자료가 새로 바뀌어 번호가 달라졌습니다. 같은 산의 코스에서 골라 주세요.");
+            else toast("코스를 불러오지 못했습니다: " + e.message, 6000);
         });
     }
 
@@ -551,13 +562,22 @@
     function save() {
         if (hike.sim) return;
         try { localStorage.setItem(saveKey(), JSON.stringify({ start: hike.start, d: hike.d, walked: hike.walked, d0: hike.d0, dMax: hike.dMax,
-                                                        base: hike.base, rev: !!c.rev, segT0: hike.segT0 })); } catch (e) { /* 저장 못 해도 산행은 계속 */ }
+                                                        base: hike.base, rev: !!c.rev, segT0: hike.segT0, t: Date.now() }));
+              localStorage.setItem(ACTIVE_KEY, c.id); } catch (e) { /* 저장 못 해도 산행은 계속 */ }
     }
+
+    /**
+     * 걷는 중인 코스 ID - 길찾기(카카오맵 등)로 나갔다가 이 화면이 닫혀도, 주소 없이 다시 열면 그 코스로 이어 가려고.
+     * 산행을 끝내면 지웁니다.
+     */
+    var ACTIVE_KEY = "rf-hike-active";
+    var RESUME_MS = 3 * 3600 * 1000;   // 마지막 위치 저장이 이보다 오래되면 저절로 이어 가지 않고 단추로
 
     function clearSaved() {
         try {
             localStorage.removeItem(saveKey());
             localStorage.removeItem(saveKey() + "-track");
+            if (localStorage.getItem(ACTIVE_KEY) === c.id) localStorage.removeItem(ACTIVE_KEY);
         } catch (e) { /* 무시 */ }
     }
 
@@ -1165,6 +1185,12 @@
         $("navNaver").href = "nmap://route/" + (far ? "car" : "walk") + "?dlat=" + lat + "&dlng=" + lon + "&dname=" + encodeURIComponent(nm)
             + "&appname=" + encodeURIComponent(location.origin);
         $("navGoogle").href = "https://www.google.com/maps/dir/?api=1&destination=" + lat + "," + lon + "&travelmode=" + (far ? "driving" : "walking");
+        // 카카오톡 안 브라우저는 지도 앱으로 넘어가면 이 화면을 닫기도 합니다 - 다시 열면 이어진다고 알려 둡니다
+        $("navTip").textContent = "지금 위치에서 " + nm + "까지 길을 지도 앱으로 엽니다. 산행 기록은 이 핸드폰에 저장되어 있어, "
+            + (/KAKAOTALK/i.test(navigator.userAgent)
+                ? "카카오톡 안에서 이 화면이 닫혀도 같은 링크를 다시 열면 그대로 이어집니다."
+                : "길찾기 뒤 이 화면으로 돌아오거나 다시 열면 그대로 이어집니다.");
+        save();
         $("navSheet").style.display = "flex";
     }
     $("navBtn").addEventListener("click", openNav);
@@ -1181,9 +1207,15 @@
         else location.hash = "";
     });
 
-    function listCourses(rows, from) {
+    function listCourses(rows, from, note) {
         var box = $("pickList");
         box.textContent = "";
+        if (note) {
+            var nd = document.createElement("div");
+            nd.className = "msg";
+            nd.textContent = note;
+            box.appendChild(nd);
+        }
         if (!rows.length) {
             var m = document.createElement("div");
             m.className = "msg";
@@ -1671,6 +1703,14 @@
         if (/[?&]debug\b/.test(location.search)) window.routeflyHike = { map: map, hike: hike, get c() { return c; },   // 시험용
             fix: function (lat, lon) { onFix({ timestamp: now(), coords: { latitude: lat, longitude: lon, accuracy: 5, speed: 1, heading: null } }); },
             heading: function (h) { onOrientation({ webkitCompassHeading: h }); } };
+        // 주소에 코스가 없이 열렸는데 걷던 코스가 있으면 그 코스로(카카오톡 안 브라우저에서 길찾기 뒤 화면이 닫혔을 때 등)
+        if (!/[#&]c=/.test(location.hash)) {
+            try {
+                var act = localStorage.getItem(ACTIVE_KEY);
+                var sv = act && JSON.parse(localStorage.getItem("rf-hike-" + act) || "null");
+                if (sv && sv.t && Date.now() - sv.t < RESUME_MS) history.replaceState(null, "", "#c=" + encodeURIComponent(act));
+            } catch (e) { /* 그냥 목록 */ }
+        }
         route();
     });
 })();

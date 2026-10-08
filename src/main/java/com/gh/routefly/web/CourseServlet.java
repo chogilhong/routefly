@@ -34,7 +34,12 @@ public class CourseServlet extends HttpServlet {
         try (Connection c = Db.open()) {
             JsonObject detail = CourseQueries.detail(c, id);
             if (detail == null) {
-                Json.fail(resp, HttpServletResponse.SC_NOT_FOUND, "코스가 없습니다: " + id);
+                // 배치를 다시 돌려 번호가 바뀐 예전 링크 · 기록일 수 있어 같은 산 코스를 함께 줍니다(화면이 골라 보여 줌)
+                JsonObject out = new JsonObject();
+                out.addProperty("success", false);
+                out.addProperty("message", "코스가 없습니다: " + id);
+                out.add("similar", CourseQueries.sameGroup(c, id));
+                Json.write(resp, HttpServletResponse.SC_NOT_FOUND, out, false);
                 return;
             }
             detail.addProperty("success", true);

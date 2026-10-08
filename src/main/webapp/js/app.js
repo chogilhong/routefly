@@ -41,7 +41,11 @@
         return fetch(url, { headers: { "Accept": "application/json" } }).then(function (r) {
             return r.json().catch(function () { return { success: false, message: "응답을 읽지 못했습니다 (HTTP " + r.status + ")" }; })
                 .then(function (j) {
-                    if (!r.ok || !j.success) throw new Error(j.message || ("HTTP " + r.status));
+                    if (!r.ok || !j.success) {
+                        var err = new Error(j.message || ("HTTP " + r.status));
+                        err.data = j;   // 없는 코스면 같은 산 코스(similar)
+                        throw err;
+                    }
                     return j;
                 });
         });
@@ -334,7 +338,17 @@
             renderList();
             overview(true);
         }).catch(function (e) {
-            show("코스를 불러오지 못했습니다: " + e.message);
+            // 배치를 다시 돌려 코스 번호가 바뀐 예전 링크 - 같은 산 코스를 목록에
+            var similar = e.data && e.data.similar || [];
+            if (similar.length) {
+                courses = similar;
+                list.truncated = false;
+                list.nationwide = false;
+                renderList();
+                show("이 코스는 자료가 새로 바뀌어 번호가 달라졌습니다. 목록에서 같은 산의 코스를 골라 주세요.");
+            } else {
+                show("코스를 불러오지 못했습니다: " + e.message);
+            }
         });
     }
 

@@ -38,6 +38,26 @@ final class CourseQueries {
     static final String LIST_COLUMNS = "course_id, name, kind, distance_m, ascent_m, descent_m, ele_min_m, ele_max_m,"
             + " ele_source, point_cnt, start_lat, start_lon, end_lat, end_lon, min_lat, min_lon, max_lat, max_lon";
 
+    private static final Pattern GROUP_ID = Pattern.compile("^((?:frst|osmb)-[0-9]+-)");
+
+    /**
+     * 순수 함수 - 같은 산(산림청 산 코드) · 같은 자전거길(OSM relation) 코스 ID 의 앞부분.
+     * "frst-488605302-24c8b1" → "frst-488605302-". 묶음이 없는 코스면 null.
+     * 배치를 다시 돌려 코스 번호가 바뀌면 예전 링크 · 기록이 이것으로 같은 산 코스를 찾습니다.
+     */
+    static String groupPrefix(String id) {
+        if (id == null) return null;
+        java.util.regex.Matcher m = GROUP_ID.matcher(id);
+        return m.find() ? m.group(1) : null;
+    }
+
+    /** 같은 산 · 같은 자전거길 코스 목록(없는 코스 ID 를 받았을 때). 묶음이 없으면 빈 목록. */
+    static JsonArray sameGroup(Connection c, String id) throws Exception {
+        String p = groupPrefix(id);
+        if (p == null) return new JsonArray();
+        return Json.rows(c, "SELECT " + LIST_COLUMNS + " FROM route_course WHERE course_id LIKE ? ORDER BY name LIMIT 30", p + "%");
+    }
+
     /** 순수 함수 - 코스 ID 가 규칙에 맞는가. */
     static boolean validId(String id) {
         return id != null && COURSE_ID.matcher(id).matches();

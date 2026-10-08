@@ -116,4 +116,14 @@ public class WebBasicsTest {
         assertEquals("5.81km · 오르막 1,460m · 최고 1,700m · 3D 로 미리 날아 보고 핸드폰으로 따라 걷기",
                 ShareServlet.describe(5810, 1460, 1700.4));
     }
+
+    @Test
+    public void groupPrefixFindsSameMountain() {
+        // 배치를 다시 돌려 번호가 바뀐 예전 코스(천왕봉) → 같은 산 코스를 찾을 앞부분
+        assertEquals("frst-488605302-", CourseQueries.groupPrefix("frst-488605302-24c8b1"));
+        assertEquals("osmb-123456-", CourseQueries.groupPrefix("osmb-123456-2"));
+        assertNull(CourseQueries.groupPrefix("duru-1234"));
+        assertNull(CourseQueries.groupPrefix("my-course"));
+        assertNull(CourseQueries.groupPrefix(null));
+    }
 }
