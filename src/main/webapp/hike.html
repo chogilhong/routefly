@@ -81,8 +81,8 @@ body.compact #statGrids { display:none; }
 /* 아래 단추 */
 #bar { flex:0 0 auto; display:flex; gap:8px; padding:6px 10px calc(env(safe-area-inset-bottom) + 8px); background:var(--panel); }
 #bar button { flex:1; height:46px; border-radius:10px; border:1px solid var(--ln); background:rgba(255,255,255,0.06); color:var(--tx);
-              font-size:15px; font-weight:bold; }
-#bar button.main { background:var(--sky); border-color:var(--sky); color:#062b30; flex:2; }
+              font-size:14.5px; font-weight:bold; white-space:nowrap; padding:0 4px; min-width:0; }   /* 좁은 화면에서 '시험 걷기' · '저장' 이 두 줄로 꺾이지 않게 */
+#bar button.main { background:var(--sky); border-color:var(--sky); color:#062b30; flex:1.6; }
 #bar button.stop { background:var(--warn); border-color:var(--warn); color:#fff; }
 
 /* 코스 고르기 */
@@ -174,7 +174,7 @@ body.compact #statGrids { display:none; }
 </head>
 <body>
 <div id="top">
-    <a href="./" title="비행 화면으로">‹</a>
+    <a href="./" title="미리보기(지도) 화면으로">‹</a>
     <div class="nm" id="name">코스를 고르세요</div>
     <span id="gps">GPS 꺼짐</span>
     <a href="about.html" title="안전 · 개인정보 · 출처 안내" style="font-size:17px">ⓘ</a>
@@ -218,7 +218,7 @@ body.compact #statGrids { display:none; }
 <div id="profile"></div>
 
 <div id="bar">
-    <button type="button" id="sim" title="코스를 따라 가는 흉내(GPS 없이 시험)">모의</button>
+    <button type="button" id="sim" title="코스를 따라 가는 흉내(GPS 없이 시험)">시험 걷기</button>
     <button type="button" id="save" title="산속 통신이 끊겨도 보이게 이 코스와 지도를 핸드폰에 저장">📥 저장</button>
     <button type="button" id="share" title="이 코스 링크 보내기">공유</button>
     <button type="button" id="go" class="main">산행 시작</button>

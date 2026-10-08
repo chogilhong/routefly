@@ -732,7 +732,7 @@
     }
 
     function setPlayButton() {
-        $("play").textContent = anim.running ? "❚❚ 멈춤" : (cur && anim.d > 0 && anim.d < cur.total ? "▶ 이어서" : "▶ 비행");
+        $("play").textContent = anim.running ? "❚❚ 멈춤" : (cur && anim.d > 0 && anim.d < cur.total ? "▶ 이어서" : "▶ 미리보기");
     }
 
     // ------------------------------------------------------------------ 시작

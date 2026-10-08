@@ -699,7 +699,7 @@
         if (!sim && !safetyOk()) { askSafety(function () { start(false); }); return; }
         if (!sim && !BG && !navigator.geolocation) { toast("이 기기는 위치(GPS)를 쓸 수 없습니다."); return; }
         if (!sim && !BG && !window.isSecureContext) {
-            toast("GPS 는 https 주소에서만 켜집니다. 지금은 \"모의\" 로 화면을 시험해 보세요.", 6000);
+            toast("GPS 는 https 주소에서만 켜집니다. 지금은 \"시험 걷기\" 로 화면을 시험해 보세요.", 6000);
             return;
         }
         var saved = sim ? null : loadSaved();
@@ -730,7 +730,7 @@
                 + spokenTime(RF.standardMs(c.course.kind, c.total, RF.ascentLeft(c, 0))) + ".", { urgent: true });
         $("save").style.display = "none";
         setFollow(true);
-        $("go").textContent = sim ? "모의 끝내기" : K().act + " 끝내기";
+        $("go").textContent = sim ? "시험 걷기 끝내기" : K().act + " 끝내기";
         $("go").classList.add("stop");
         $("sim").style.display = "none";
         $("share").style.display = "none";
@@ -738,7 +738,7 @@
         if (sim) {
             hike.simD = 0;
             hike.simLast = performance.now();
-            $("gps").textContent = "모의 " + SIM_X + "배속";
+            $("gps").textContent = "시험 " + SIM_X + "배속";
             $("gps").className = "";
             hike.simTimer = setInterval(simStep, 500);
             simStep();
