@@ -105,6 +105,26 @@
         if (!on && "speechSynthesis" in window) speechSynthesis.cancel();
     }
 
+    /** 받침이 있으면 a, 없으면 b(을/를 · 이/가). 한글이 아니면 b. */
+    function josa(word, a, b) {
+        var ch = (word || "").replace(/\(.*\)$/, "").trim().slice(-1), code = ch.charCodeAt(0) - 0xAC00;
+        return code >= 0 && code < 11172 && code % 28 !== 0 ? a : b;
+    }
+
+    /**
+     * 말할 코스 이름 - "지리산 천왕봉 · 산오름 → 천왕봉 → 탐방지원센터"
+     *   → "지리산 천왕봉, 산오름에서 천왕봉을 거쳐 탐방지원센터까지". 둘이면 "A에서 B까지".
+     */
+    function spokenName(name) {
+        var parts = String(name || "").split(" · ");
+        return parts.map(function (p) {
+            var seg = p.split(/\s*→\s*/).map(function (x) { return x.trim(); }).filter(function (x) { return x; });
+            if (seg.length < 2) return p;
+            var first = seg[0], last = seg[seg.length - 1], mid = seg.slice(1, -1);
+            return first + "에서 " + (mid.length ? mid.join(", ") + josa(mid[mid.length - 1], "을", "를") + " 거쳐 " : "") + last + "까지";
+        }).join(", ");
+    }
+
     /** 말할 거리 - 소수 한 자리(5.8킬로미터) */
     function skm(m) { return (Math.round(m / 100) / 10).toString(); }
 
@@ -608,7 +628,7 @@
         voice.last = {};
         // 시작 버튼을 누른 그 순간에 말해야 아이폰도 소리를 냅니다(사용자 동작 안에서 처음 말하기)
         say(saved ? "이어서 안내합니다. 남은 거리 " + skm(Math.max(0, c.total - hike.d)) + "킬로미터."
-            : c.course.name.replace(/ · /g, ", ").replace(/\s*→\s*/g, "에서 ") + " 안내를 시작합니다. 전체 " + skm(c.total) + "킬로미터, 예상 "
+            : spokenName(c.course.name) + " 안내를 시작합니다. 전체 " + skm(c.total) + "킬로미터, 예상 "
                 + spokenTime(RF.standardMs(c.course.kind, c.total, RF.ascentLeft(c, 0))) + ".", { urgent: true });
         $("save").style.display = "none";
         setFollow(true);
