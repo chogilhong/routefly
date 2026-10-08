@@ -1127,7 +1127,25 @@
 
     function showPick() {
         $("pick").style.display = "flex";
+        // 목록이 비었으면(이 화면을 새로 열었을 때) 마지막 검색을 다시
+        if (!$("pickList").querySelector(".it")) {
+            var last = null;
+            try { last = JSON.parse(sessionStorage.getItem(SEARCH_KEY) || "null"); } catch (e) { /* 없음 */ }
+            if (last && last.q) {
+                $("q").value = last.q;
+                var tab = document.querySelector('#kindTabs button[data-kind="' + (last.kind || "") + '"]');
+                if (tab) tab.click(); else { var ev = document.createEvent("Event"); ev.initEvent("input", true, true); $("q").dispatchEvent(ev); }
+            }
+        }
     }
+
+    // ‹ - 코스 목록(검색 결과 그대로)으로. 산행 중이면 먼저 끝내도록.
+    $("back").addEventListener("click", function (e) {
+        e.preventDefault();
+        if (hike.running) { toast("산행 중입니다. 코스 목록으로 가려면 먼저 아래 '" + K().act + " 끝내기' 를 눌러 주세요.", 4000); return; }
+        if (fromList) { fromList = false; history.back(); }
+        else location.hash = "";
+    });
 
     function listCourses(rows, from) {
         var box = $("pickList");
@@ -1150,15 +1168,17 @@
                 + (r.away != null ? " · 출발점까지 " + km(r.away) + "km" : "");
             it.appendChild(b);
             it.appendChild(s);
-            it.onclick = function () { location.hash = "#c=" + encodeURIComponent(r.course_id); };
+            it.onclick = function () { fromList = true; location.hash = "#c=" + encodeURIComponent(r.course_id); };
             box.appendChild(it);
         });
     }
 
-    var searchTimer = 0;
+    var searchTimer = 0, fromList = false;
+    var SEARCH_KEY = "rf-hike-search";   // 마지막 검색어 · 종류 - 코스에 들어갔다 돌아와도(새로 고침 · 앱 다시 열기 포함) 그대로
     $("q").addEventListener("input", function () {
         clearTimeout(searchTimer);
         var q = this.value.trim();
+        try { sessionStorage.setItem(SEARCH_KEY, JSON.stringify({ q: q, kind: kindFilter })); } catch (e) { /* 무시 */ }
         searchTimer = setTimeout(function () {
             if (!q) return;
             getJson("api/courses?q=" + encodeURIComponent(q) + (kindFilter ? "&kind=" + kindFilter : "")).then(function (j) { listCourses(j.courses || [], null); })

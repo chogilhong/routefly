@@ -90,6 +90,8 @@ body.compact #statGrids { display:none; }
 #pick header { padding:calc(env(safe-area-inset-top) + 12px) 14px 10px; }
 #pick h1 { margin:0 0 10px; font-size:19px; }
 #pick h1 span { color:#ffb703; }
+#pick h1 .tomap { float:right; font-size:13px; font-weight:normal; color:var(--tx); text-decoration:none; border:1px solid var(--ln);
+                  border-radius:14px; padding:5px 10px; margin-top:-1px; }
 #pick input { width:100%; height:44px; border-radius:10px; border:1px solid var(--ln); background:rgba(255,255,255,0.07); color:var(--tx);
               font-size:16px; padding:0 12px; outline:none; }
 #pick .row { display:flex; gap:8px; margin-top:8px; }
@@ -174,7 +176,7 @@ body.compact #statGrids { display:none; }
 </head>
 <body>
 <div id="top">
-    <a href="./" title="미리보기(지도) 화면으로">‹</a>
+    <a href="#" id="back" title="코스 목록(검색)으로">‹</a>
     <div class="nm" id="name">코스를 고르세요</div>
     <span id="gps">GPS 꺼짐</span>
     <a href="about.html" title="안전 · 개인정보 · 출처 안내" style="font-size:17px">ⓘ</a>
@@ -226,7 +228,7 @@ body.compact #statGrids { display:none; }
 
 <div id="pick">
     <header>
-        <h1>route<span>fly</span> 따라가기</h1>
+        <h1>route<span>fly</span> 따라가기 <a href="./" class="tomap" title="3D 지도 · 미리보기 화면으로">🗺 지도</a></h1>
         <input type="search" id="q" placeholder="코스 · 산 이름 (예: 설악산, 대청봉)" autocomplete="off" maxlength="50">
         <div class="tabs" id="kindTabs">
             <button type="button" data-kind="" class="on">전체</button>
