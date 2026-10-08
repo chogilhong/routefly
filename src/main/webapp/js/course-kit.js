@@ -412,7 +412,10 @@
                 box.appendChild(dot);
                 if (lastX >= 0 && xp - lastX < 6) return;
                 lastX = xp;
-                var lb = el("div", "rf-plabel", p.name.replace(/\(.*\)$/, "").trim() || p.name);
+                var nm = p.name.replace(/\(.*\)$/, "").trim() || p.name;
+                if (nm.length > 9) nm = nm.slice(0, 8) + "…";   // 비스듬한 이름이 길면 그래프 위 칸까지 올라감(전체 이름은 지도 · '다음' 줄에)
+                var lb = el("div", "rf-plabel", nm);
+                lb.title = p.name;
                 if (xp > 72) {   // 오른쪽 끝 이름은 왼쪽 위로 기울여 잘리지 않게
                     lb.classList.add("end");
                     lb.style.right = (100 - xp) + "%";
