@@ -703,6 +703,7 @@
             return;
         }
         var saved = sim ? null : loadSaved();
+        setCompact(false);   // 시작할 때는 기록 칸을 펼쳐서(아래로 밀면 접힘)
         hike.sim = sim;
         hike.running = true;
         hike.arrived = false;
@@ -1071,6 +1072,14 @@
                 hike.wasOff = false;
                 voice.last.off = 0;
             }
+            // 아직 코스에 닿기 전이고 멀면(먼 산 · 차로 가야 할 때) 출발점 길찾기 단추
+            var notYet = hike.d0 == null || hike.d <= 60;
+            hike.navTo = far || (notYet && hike.off > 300)
+                ? (notYet ? { lat: c.lat[0], lon: c.lon[0], name: startName() || "코스 출발점" }
+                          : { lat: RF.at(c, hike.d).lat, lon: RF.at(c, hike.d).lon, name: "코스 마지막 자리" })
+                : null;
+            $("navBtn").style.display = hike.navTo ? "inline-block" : "none";
+            $("navBtn").textContent = hike.navTo && !notYet ? "🚗 코스로 돌아가는 길찾기" : "🚗 출발점 길찾기";
             if (far) {
                 // 아주 멀리(집 · 차로 이동 중 등) - 주변 길 말고, 아직 출발 전이면 출발점, 가던 중이면 마지막으로 있던 코스 자리로
                 var tp = RF.at(c, hike.d <= 60 ? 0 : hike.d), sp = hike.d <= 60 ? startName() : null;
@@ -1093,6 +1102,9 @@
                         + ". 이 길로 계속 가면 이 길로 코스를 바꿉니다.";
                     say("코스가 아닌 다른 길로 들어섰습니다. 코스는 " + dirWord(br) + " " + distSpoken(nt.off) + "입니다. 이 길로 계속 가시면 코스를 바꿉니다.",
                         { key: "branch", gap: 600000, urgent: true });
+                } else if (notYet && nt.course) {   // 아직 코스에 닿기 전(벗어난 것이 아님)
+                    $("offText").textContent = "아직 코스 밖입니다 · 코스까지 " + distText(nt.off) + " · " + dirWord(br);
+                    say("코스까지 " + dirWord(br) + " " + distSpoken(nt.off) + "입니다.", { key: "off", gap: 300000 });
                 } else {
                     $("offText").textContent = "코스에서 " + distText(hike.off) + " 벗어남 · "
                         + (nt.course ? "코스로 돌아가는 길 " : (nt.name ? "가장 가까운 길(" + nt.name + ")" : "가장 가까운 등산로") + "까지 ")
@@ -1138,6 +1150,28 @@
             }
         }
     }
+
+    /**
+     * 길찾기 - 지금 위치 → 출발점을 지도 앱으로(카카오맵 · 네이버 지도 앱 · 구글 지도). 3km 넘으면 차, 아니면 걷기.
+     * 앱(안드로이드)에서는 바깥 주소를 그 앱 · 브라우저로 엽니다(Capacitor).
+     */
+    function openNav() {
+        var to = hike.navTo;
+        if (!to) return;
+        var me = hike.fix, far = me ? distM(me.lat, me.lon, to.lat, to.lon) > 3000 : true;
+        var nm = String(to.name).replace(/[,/?#&]/g, " ").trim(), lat = to.lat.toFixed(6), lon = to.lon.toFixed(6);
+        $("navTitle").textContent = nm + " 길찾기";
+        $("navKakao").href = "https://map.kakao.com/link/to/" + encodeURIComponent(nm) + "," + lat + "," + lon;
+        $("navNaver").href = "nmap://route/" + (far ? "car" : "walk") + "?dlat=" + lat + "&dlng=" + lon + "&dname=" + encodeURIComponent(nm)
+            + "&appname=" + encodeURIComponent(location.origin);
+        $("navGoogle").href = "https://www.google.com/maps/dir/?api=1&destination=" + lat + "," + lon + "&travelmode=" + (far ? "driving" : "walking");
+        $("navSheet").style.display = "flex";
+    }
+    $("navBtn").addEventListener("click", openNav);
+    $("navClose").addEventListener("click", function () { $("navSheet").style.display = "none"; });
+    ["navKakao", "navNaver", "navGoogle"].forEach(function (id) {
+        $(id).addEventListener("click", function () { $("navSheet").style.display = "none"; });
+    });
 
     // ‹ - 코스 목록(검색 결과 그대로)으로. 산행 중이면 먼저 끝내도록.
     $("back").addEventListener("click", function (e) {

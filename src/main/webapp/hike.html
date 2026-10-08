@@ -169,6 +169,10 @@ body.compact #statGrids { display:none; }
 #turn { position:absolute; left:66px; right:10px; top:10px; z-index:3; display:none; padding:10px 12px; border-radius:10px;
         background:rgba(26,115,232,0.95); color:#fff; font-size:15px; font-weight:bold; box-shadow:0 2px 8px rgba(0,0,0,0.5); }
 #offroute { display:none; align-items:center; gap:10px; }
+#offroute .otxt { flex:1; min-width:0; }
+#navBtn { display:none; margin-top:7px; height:34px; padding:0 12px; border-radius:17px; border:0; background:#fff; color:#b42318;
+          font-size:14px; font-weight:bold; }
+#navSheet .big { color:var(--tx); background:rgba(255,255,255,0.08); border:1px solid var(--ln); font-size:16px; }
 #offroute .arrow { display:inline-block; font-size:26px; line-height:1; transition:transform .3s; }
 #etaBox.late { background:rgba(220,38,38,0.25); }
 #sunTxt { color:var(--dim); }
@@ -189,7 +193,7 @@ body.compact #statGrids { display:none; }
 
 <div id="mapWrap">
     <div id="map"></div>
-    <div id="offroute"><span class="arrow" id="guideArrow"><svg viewBox="0 0 24 24" width="30" height="30"><path d="M12 2 L20 20 L12 15.5 L4 20 Z" fill="#fff" stroke="#7a0000" stroke-width="1.2" stroke-linejoin="round"/></svg></span><span id="offText"></span></div>
+    <div id="offroute"><span class="arrow" id="guideArrow"><svg viewBox="0 0 24 24" width="30" height="30"><path d="M12 2 L20 20 L12 15.5 L4 20 Z" fill="#fff" stroke="#7a0000" stroke-width="1.2" stroke-linejoin="round"/></svg></span><span class="otxt"><span id="offText"></span><button type="button" id="navBtn">🚗 출발점 길찾기</button></span></div>
     <div id="turn"></div>
     <button type="button" id="compass" title="나침반 - 누를 때마다: 켜기 → 내 방향으로 지도 돌리기 → 북쪽 위로"><span class="needle"><svg viewBox="0 0 16 30" width="13" height="25"><path d="M8 1 L13 15 L3 15 Z" fill="#e03131"/><path d="M3 15 L13 15 L8 29 Z" fill="#9aa3ad"/></svg></span><span class="hd" id="compassText">N</span></button>
     <div id="arrived"></div>
@@ -302,6 +306,18 @@ body.compact #statGrids { display:none; }
             <button type="button" id="endNo">계속하기</button>
             <button type="button" id="endYes" class="main">끝내기</button>
         </div>
+    </div>
+</div>
+
+<!-- 산행 출발점까지 길찾기(다른 지도 앱으로) -->
+<div id="navSheet" class="sheet">
+    <div class="sbox">
+        <h2 id="navTitle">출발점 길찾기</h2>
+        <p class="tip" id="navTip">지금 위치에서 산행 출발점까지 길을 지도 앱으로 엽니다. 길찾기를 마치고 이 화면으로 돌아오면 안내가 이어집니다.</p>
+        <a class="big" id="navKakao" target="_blank" rel="noopener">카카오맵</a>
+        <a class="big" id="navNaver" target="_blank" rel="noopener">네이버 지도 (앱)</a>
+        <a class="big" id="navGoogle" target="_blank" rel="noopener">구글 지도</a>
+        <div class="sbtn"><button type="button" id="navClose" class="main">닫기</button></div>
     </div>
 </div>
 
