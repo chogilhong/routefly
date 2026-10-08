@@ -122,6 +122,7 @@ public class WebBasicsTest {
         // 배치를 다시 돌려 번호가 바뀐 예전 코스(천왕봉) → 같은 산 코스를 찾을 앞부분
         assertEquals("frst-488605302-", CourseQueries.groupPrefix("frst-488605302-24c8b1"));
         assertEquals("osmb-123456-", CourseQueries.groupPrefix("osmb-123456-2"));
+        assertEquals("osmh-77-", CourseQueries.groupPrefix("osmh-77-3"));
         assertNull(CourseQueries.groupPrefix("duru-1234"));
         assertNull(CourseQueries.groupPrefix("my-course"));
         assertNull(CourseQueries.groupPrefix(null));
