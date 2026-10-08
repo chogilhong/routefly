@@ -22,7 +22,7 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다(route_course · 
 ## 3. 테스트
 
 - 이 PC: `.claude\run-tests.ps1 [-Only web.WebBasicsTest]` (Maven 없이 javac + JUnit 4, DB 없이 돕니다). 웹(클라우드): `mvn test` (routefly 는 웹소켓을 안 써서 totonian · investing 과 달리 그대로 됩니다).
-- 전체 테스트가 모두 통과하는 것이 정상입니다(2026-10-07 기준 15건). 하나라도 실패하면 새로 깨진 것이니 고칩니다.
+- 전체 테스트가 모두 통과하는 것이 정상입니다(2026-10-08 기준 18건). 하나라도 실패하면 새로 깨진 것이니 고칩니다.
 - 테스트 데이터는 만들거나 받으면 바로 커밋합니다.
 
 ## 4. 비밀값

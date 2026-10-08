@@ -166,6 +166,18 @@ body.compact #statGrids { display:none; }
 #voice { position:absolute; left:12px; top:66px; z-index:2; width:44px; height:44px; border-radius:50%; border:0; background:#fff;
          font-size:20px; line-height:1; box-shadow:0 2px 8px rgba(0,0,0,0.45); opacity:0.75; }
 #voice.on { opacity:1; box-shadow:0 0 0 3px #38d9ea, 0 2px 8px rgba(0,0,0,0.45); }
+/* 2026-10-08: 산행 중 사진 · 메모(📝) - 🔊 아래 */
+#noteBtn { position:absolute; left:12px; top:118px; z-index:2; width:44px; height:44px; border-radius:50%; border:0; background:#fff;
+           font-size:20px; line-height:1; box-shadow:0 2px 8px rgba(0,0,0,0.45); display:none; }
+#noteText { width:100%; min-height:70px; box-sizing:border-box; border-radius:10px; border:1px solid var(--ln); background:rgba(255,255,255,0.06);
+            color:var(--tx); font:inherit; font-size:15px; padding:8px 10px; resize:vertical; }
+#notePreview { display:none; max-width:100%; max-height:200px; border-radius:10px; margin:8px 0 0; }
+.noteMark { font-size:18px; line-height:1; filter:drop-shadow(0 1px 2px rgba(0,0,0,0.7)); cursor:pointer; }
+.noteRow { display:flex; gap:10px; padding:8px 0; border-bottom:1px solid var(--ln); align-items:flex-start; }
+.noteRow img { width:84px; height:84px; object-fit:cover; border-radius:8px; flex:none; cursor:pointer; }
+.noteRow .nt { flex:1; min-width:0; font-size:14px; line-height:1.5; white-space:pre-wrap; word-break:break-word; }
+.noteRow .nt small { display:block; color:var(--dim); font-size:12px; }
+#notesSheet { z-index:31; }   /* 내 기록 창 위에서 열립니다 */
 #turn { position:absolute; left:66px; right:10px; top:10px; z-index:3; display:none; padding:10px 12px; border-radius:10px;
         background:rgba(26,115,232,0.95); color:#fff; font-size:15px; font-weight:bold; box-shadow:0 2px 8px rgba(0,0,0,0.5); }
 #offroute { display:none; align-items:center; gap:10px; }
@@ -203,6 +215,7 @@ body.compact #statGrids { display:none; }
     <div id="arrived"></div>
     <button type="button" id="voice" class="on" title="음성 안내 켜기 · 끄기(갈림길 · 지점 · 1km 마다 · 코스 이탈 · 도착)">🔊</button>
     <button type="button" id="follow" class="on" title="내 위치 따라가기">⌖</button>
+    <button type="button" id="noteBtn" title="지금 자리에 사진 · 메모 남기기(내 기록 · GPX 에 함께)">📝</button>
 </div>
 
 <div id="stats">
@@ -251,6 +264,8 @@ body.compact #statGrids { display:none; }
         <div class="row">
             <button type="button" id="nearMe">📍 내 주변 코스</button>
             <button type="button" id="myRecords">📒 내 기록</button>
+            <button type="button" id="gpxOpen" title="다른 앱 · 친구가 보내 준 GPX 파일을 열어 그 길을 따라갑니다">📂 GPX 열기</button>
+            <input type="file" id="gpxFile" accept=".gpx,application/gpx+xml,application/xml,text/xml" hidden>
         </div>
     </header>
     <div id="pickList"><div class="msg">산 이름으로 찾거나, 산 입구에서 "내 주변 코스" 를 누르세요.<br><br>
@@ -323,6 +338,44 @@ body.compact #statGrids { display:none; }
         <a class="big" id="navNaver" target="_blank" rel="noopener">네이버 지도 (앱)</a>
         <a class="big" id="navGoogle" target="_blank" rel="noopener">구글 지도 (대중교통)</a>
         <div class="sbtn"><button type="button" id="navClose" class="main">닫기</button></div>
+    </div>
+</div>
+
+<!-- 2026-10-08: 오프라인 저장 범위 고르기 -->
+<div id="saveSheet" class="sheet">
+    <div class="sbox">
+        <h2>📥 오프라인 저장</h2>
+        <p class="tip">산속에서 통신이 끊겨도 보이게 지도 그림을 이 핸드폰에 받아 둡니다. 넓을수록 오래 걸리고 저장 공간을 씁니다(한 번에 3,000장까지 - 넘으면 가장 자세한 단계를 줄입니다).</p>
+        <button type="button" class="big sms" id="saveNear" style="width:100%"></button>
+        <button type="button" class="big sms" id="saveWide" style="width:100%"></button>
+        <button type="button" class="big sms" id="saveView" style="width:100%"></button>
+        <div class="sbtn"><button type="button" id="saveClose" class="main">닫기</button></div>
+    </div>
+</div>
+
+<!-- 2026-10-08: 산행 중 사진 · 메모 남기기 -->
+<div id="noteSheet" class="sheet">
+    <div class="sbox">
+        <h2>📝 사진 · 메모 남기기</h2>
+        <p class="tip" id="noteWhere">지금 자리</p>
+        <textarea id="noteText" maxlength="500" placeholder="메모(선택) - 예: 여기서 쉼, 물 보충, 갈림길 왼쪽"></textarea>
+        <button type="button" class="big photo" id="notePhotoBtn" style="margin-top:8px">📷 사진 찍기 · 고르기</button>
+        <input type="file" id="notePhoto" accept="image/*" capture="environment" hidden>
+        <img id="notePreview" alt="고른 사진">
+        <p class="tip">사진 · 메모는 이 핸드폰에만 남습니다(내 기록). GPX 로 저장하면 메모가 지점으로 들어갑니다.</p>
+        <div class="sbtn">
+            <button type="button" id="noteCancel">취소</button>
+            <button type="button" id="noteSave" class="main">남기기</button>
+        </div>
+    </div>
+</div>
+
+<!-- 2026-10-08: 기록의 사진 · 메모 보기 -->
+<div id="notesSheet" class="sheet">
+    <div class="sbox">
+        <h2 id="notesTitle">사진 · 메모</h2>
+        <div id="notesList"></div>
+        <div class="sbtn"><button type="button" id="notesClose" class="main">닫기</button></div>
     </div>
 </div>
 

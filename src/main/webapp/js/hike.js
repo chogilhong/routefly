@@ -2,7 +2,8 @@
  * routefly 산행 화면(hike.html) - 핸드폰으로 걸으면서 봅니다.
  *
  *   GPS 위치 → 코스 위 진행 거리(course-kit snap) → ① 고도 그래프 ② 산행 기록 ③ 경로 지도를 함께 움직입니다.
- *   코스에서 50m 넘게 벗어나면 빨간 알림, 끝점에 닿으면 도착 알림. 화면이 꺼지지 않게 Wake Lock 을 겁니다.
+ *   코스에서 50m 넘게 벗어나면 빨간 알림, 끝점에 닿으면 도착 알림. 브라우저는 화면이 꺼지지 않게 Wake Lock 을 겁니다
+ *   (앱은 화면을 꺼도 백그라운드 위치로 이어지므로 걸지 않습니다 - 배터리).
  *   새로 고침해도 산행 기록(시작 시각 · 진행 거리)은 이 기기에 남아 이어집니다(localStorage).
  *   "모의 산행" 은 GPS 없이 코스를 따라 걷는 흉내(시간 40배 빠르게) - 집에서 화면을 시험할 때.
  */
@@ -28,6 +29,7 @@
                  simLast: 0, simD: 0, speed: null, hist: [], wake: null, follow: true, arrived: false, lastFix: 0,
                  fix: null,            // 마지막 위치 {lat, lon, acc, alt, t} - SOS 에 씁니다
                  track: [],            // 걸은 자리 [[위도, 경도, 시각, 고도]] - 기록 · GPX
+                 notes: [],            // 사진 · 메모 [{t, lat, lon, ele, text, photo}] - 기록 · GPX(wpt). 사진은 IndexedDB(photo = 열쇠)
                  walked: 0,            // 걸은 거리(m)
                  alerted: {},          // 이미 알린 갈림길(진행 거리)
                  sunWarned: false,
@@ -516,9 +518,51 @@
 
     // ------------------------------------------------------------------ 코스
 
+    // ---- 2026-10-08 (홍TV님): GPX 열기 - 불러온 GPX 를 서버 코스와 같은 모양(RF.gpxToApi)으로 이 기기에 두고(최근 GPX_KEEP 개),
+    //      코스 ID "gpx-<글자 지문>" 으로 엽니다. 새로 고침 · 이어서 산행도 서버 코스처럼 됩니다. 서버에는 올리지 않습니다.
+    var GPX_PREFIX = "gpx-", GPX_LIST_KEY = "rf-gpx-list", GPX_KEEP = 10;
+    function isGpxId(id) { return String(id).indexOf(GPX_PREFIX) === 0; }
+    /** 순수 함수 - 글자 지문(같은 파일은 같은 ID). */
+    function gpxId(text) {
+        var h = 5381;
+        for (var i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) | 0;
+        return GPX_PREFIX + (h >>> 0).toString(36) + "-" + text.length.toString(36);
+    }
+    function storeGpx(id, api) {
+        var list;
+        try { list = JSON.parse(localStorage.getItem(GPX_LIST_KEY) || "[]"); } catch (e) { list = []; }
+        list = [id].concat(list.filter(function (x) { return x !== id; }));
+        list.slice(GPX_KEEP).forEach(function (old) { try { localStorage.removeItem("rf-" + old); } catch (e) { /* 무시 */ } });
+        localStorage.setItem("rf-" + id, JSON.stringify(api));   // 공간이 모자라면 여기서 던집니다(부르는 쪽이 알림)
+        localStorage.setItem(GPX_LIST_KEY, JSON.stringify(list.slice(0, GPX_KEEP)));
+    }
+    function storedGpx(id) {
+        try {
+            var j = JSON.parse(localStorage.getItem("rf-" + id) || "null");
+            if (j) return Promise.resolve(j);
+        } catch (e) { /* 아래로 */ }
+        return Promise.reject(new Error("이 기기에 그 GPX 가 없습니다. 📂 GPX 열기로 다시 여세요."));
+    }
+    $("gpxOpen").addEventListener("click", function () { $("gpxFile").value = ""; $("gpxFile").click(); });
+    $("gpxFile").addEventListener("change", function () {
+        var f = this.files && this.files[0];
+        if (!f) return;
+        if (f.size > 5 * 1024 * 1024) { toast("GPX 가 너무 큽니다(5MB 까지).", 5000); return; }
+        f.text().then(function (text) {
+            var api = RF.gpxToApi(text, f.name), id = gpxId(text);
+            storeGpx(id, api);
+            toast("GPX 를 열었습니다 - " + api.course.name + " · " + km(api.points[api.points.length - 1][3]) + "km"
+                + (api.pois.length ? " · 지점 " + api.pois.length + "개" : ""), 5000);
+            location.hash = "c=" + encodeURIComponent(id);
+        }).catch(function (e) {
+            toast("GPX 를 열지 못했습니다: " + (e && e.message || e), 6000);
+        });
+    });
+
     function loadCourse(id) {
         $("pick").style.display = "none";
-        return Promise.all([getJson("api/course?id=" + encodeURIComponent(id)), mapReady]).then(function (r) {
+        $("share").style.display = isGpxId(id) ? "none" : "";   // 이 기기에만 있는 GPX 는 링크로 보낼 수 없습니다
+        return Promise.all([isGpxId(id) ? storedGpx(id) : getJson("api/course?id=" + encodeURIComponent(id)), mapReady]).then(function (r) {
             c = RF.fromApi(id, r[0]);
             if (c.lon.length < 2) throw new Error("경로 점이 없습니다.");
             var sv = loadSaved();
@@ -579,6 +623,7 @@
         try {
             localStorage.removeItem(saveKey());
             localStorage.removeItem(saveKey() + "-track");
+            localStorage.removeItem(saveKey() + "-notes");
             if (localStorage.getItem(ACTIVE_KEY) === c.id) localStorage.removeItem(ACTIVE_KEY);
         } catch (e) { /* 무시 */ }
     }
@@ -613,8 +658,16 @@
             return '<trkpt lat="' + p[0] + '" lon="' + p[1] + '">' + (p[3] != null ? "<ele>" + p[3] + "</ele>" : "")
                 + "<time>" + new Date(p[2]).toISOString() + "</time></trkpt>";
         }).join("\n");
+        // 2026-10-08: 사진 · 메모는 지점(wpt)으로 - 이름은 메모 앞 30자(없으면 "사진"), 사진 자체는 GPX 에 넣지 않습니다
+        var wpts = (rec.notes || []).map(function (n) {
+            var nm = n.text ? n.text.replace(/\s+/g, " ").slice(0, 30) : "사진";
+            return '<wpt lat="' + n.lat + '" lon="' + n.lon + '">' + (n.ele != null ? "<ele>" + n.ele + "</ele>" : "")
+                + "<time>" + new Date(n.t).toISOString() + "</time><name>" + esc(nm) + "</name>"
+                + (n.text ? "<desc>" + esc(n.text) + "</desc>" : "") + (n.photo ? "<type>photo</type>" : "") + "</wpt>";
+        }).join("\n");
         return '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="routefly" xmlns="http://www.topografix.com/GPX/1/1">\n'
             + "<metadata><name>" + esc(rec.name) + "</name><time>" + new Date(rec.start).toISOString() + "</time></metadata>\n"
+            + (wpts ? wpts + "\n" : "")
             + "<trk><name>" + esc(rec.name) + "</name><type>" + esc(rec.kind || "hike") + "</type><trkseg>\n" + pts + "\n</trkseg></trk>\n</gpx>\n";
     }
 
@@ -641,6 +694,7 @@
         if (hike.track.length < 2) return;
         var rec = { courseId: c.id, name: c.course.name, kind: c.course.kind, start: hike.start, end: now(),
                     walked: Math.round(hike.walked), done: Math.round(hike.d), track: hike.track };
+        if (hike.notes.length) rec.notes = hike.notes.slice();
         var ef = effort();
         rec.kcal = ef.kcal;
         rec.steps = ef.steps;
@@ -650,13 +704,16 @@
         try { localStorage.setItem("rf-records", JSON.stringify(list.slice(0, 20))); } catch (e) {
             try { localStorage.setItem("rf-records", JSON.stringify(list.slice(0, 5))); } catch (e2) { /* 공간 부족 */ }
         }
+        gcPhotos();   // 20개 밖으로 밀려난 기록의 사진
         var sum = $("doneSum");
         sum.innerHTML = "";
         [["코스", rec.name], ["걸은 거리", km(rec.walked) + " km"], ["코스 진행", km(rec.done) + " / " + km(c.total) + " km"],
          ["걸린 시간", hhmmss(rec.end - rec.start)], ["오른 높이", num(rec.up) + " m"],
          ["칼로리(추정)", num(rec.kcal) + " kcal · " + body.kg + "kg 기준"]]
             .concat(rec.steps != null ? [["걸음(추정)", num(rec.steps) + " 보"]] : [])
-            .concat([["기록 점", rec.track.length + "개"]]).forEach(function (r) {
+            .concat([["기록 점", rec.track.length + "개"]])
+            .concat(rec.notes ? [["사진 · 메모", rec.notes.filter(function (n) { return n.photo; }).length + "장 · " + rec.notes.filter(function (n) { return n.text; }).length + "개"]] : [])
+            .forEach(function (r) {
             var row = document.createElement("div"), a = document.createElement("span"), b = document.createElement("b");
             a.textContent = r[0]; b.textContent = r[1];
             row.appendChild(a); row.appendChild(b); sum.appendChild(row);
@@ -681,17 +738,169 @@
                 + (r.kcal != null ? " · " + num(r.kcal) + "kcal" : "") + (r.steps != null ? " · " + num(r.steps) + "보" : "");
             info.appendChild(b); info.appendChild(sp);
             var g = document.createElement("button"); g.textContent = "GPX"; g.onclick = function () { downloadGpx(r); };
+            if (r.notes && r.notes.length) {
+                var nb = document.createElement("button"); nb.textContent = "📝 " + r.notes.length; nb.title = "사진 · 메모 보기";
+                nb.onclick = function () { showNotes(r); };
+                row.appendChild(info); info = null; row.appendChild(nb);
+            }
             var x = document.createElement("button"); x.textContent = "지우기";
             x.onclick = function () {
                 if (!confirm("이 기록을 지울까요?")) return;
                 var l = records(); l.splice(i, 1);
                 try { localStorage.setItem("rf-records", JSON.stringify(l)); } catch (e) { /* 무시 */ }
+                gcPhotos();
                 showRecords();
             };
-            row.appendChild(info); row.appendChild(g); row.appendChild(x);
+            if (info) row.appendChild(info);
+            row.appendChild(g); row.appendChild(x);
             box.appendChild(row);
         });
         $("recSheet").style.display = "flex";
+    }
+
+    // ------------------------------------------------------------------ 사진 · 메모 (2026-10-08 홍TV님 - 램블러처럼 기록에 사진 · 메모)
+
+    /** 사진 저장소 - IndexedDB "rf-photos"(localStorage 는 5MB 남짓이라 사진이 안 들어감). 열쇠 → JPEG Blob. */
+    function photoDb() {
+        return new Promise(function (resolve, reject) {
+            if (!window.indexedDB) { reject(new Error("이 브라우저는 사진을 저장할 수 없습니다.")); return; }
+            var r = indexedDB.open("rf-photos", 1);
+            r.onupgradeneeded = function () { r.result.createObjectStore("p"); };
+            r.onsuccess = function () { resolve(r.result); };
+            r.onerror = function () { reject(r.error); };
+        });
+    }
+    function photoTx(mode, fn) {
+        return photoDb().then(function (db) {
+            return new Promise(function (resolve, reject) {
+                var tx = db.transaction("p", mode), st = tx.objectStore("p"), out = fn(st);
+                tx.oncomplete = function () { db.close(); resolve(out && out.result !== undefined ? out.result : out); };
+                tx.onerror = function () { db.close(); reject(tx.error); };
+            });
+        });
+    }
+    function photoPut(id, blob) { return photoTx("readwrite", function (st) { st.put(blob, id); }); }
+    function photoGet(id) { return photoTx("readonly", function (st) { return st.get(id); }); }
+    /** 어느 기록 · 지금 산행에도 없는 사진을 지웁니다(기록을 지우거나 20개 밖으로 밀려났을 때). */
+    function gcPhotos() {
+        var keep = {};
+        records().concat([{ notes: hike.notes }]).forEach(function (r) { (r.notes || []).forEach(function (n) { if (n.photo) keep[n.photo] = 1; }); });
+        photoTx("readwrite", function (st) {
+            var q = st.getAllKeys();
+            q.onsuccess = function () { q.result.forEach(function (k) { if (!keep[k]) st.delete(k); }); };
+        }).catch(function () { /* 사진 저장소가 없으면 할 일 없음 */ });
+    }
+    /** 사진을 긴 변 PHOTO_MAX px JPEG 로 줄입니다(저장 공간). */
+    var PHOTO_MAX = 1600;
+    function shrinkPhoto(file) {
+        return new Promise(function (resolve, reject) {
+            var img = new Image(), url = URL.createObjectURL(file);
+            img.onload = function () {
+                var k = Math.min(1, PHOTO_MAX / Math.max(img.naturalWidth, img.naturalHeight));
+                var cv = document.createElement("canvas");
+                cv.width = Math.round(img.naturalWidth * k); cv.height = Math.round(img.naturalHeight * k);
+                cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+                URL.revokeObjectURL(url);
+                cv.toBlob(function (b) { if (b) resolve(b); else reject(new Error("사진을 줄이지 못했습니다.")); }, "image/jpeg", 0.8);
+            };
+            img.onerror = function () { URL.revokeObjectURL(url); reject(new Error("사진을 읽지 못했습니다.")); };
+            img.src = url;
+        });
+    }
+
+    function loadNotes() {
+        try { return JSON.parse(localStorage.getItem(saveKey() + "-notes") || "[]"); } catch (e) { return []; }
+    }
+    var noteMarkers = [];
+    function drawNoteMarkers() {
+        noteMarkers.forEach(function (m) { m.remove(); });
+        noteMarkers = (hike.notes || []).map(function (n) {
+            var el = document.createElement("div");
+            el.className = "noteMark";
+            el.textContent = n.photo ? "📷" : "📝";
+            el.title = n.text || "사진";
+            return marker(el, [n.lon, n.lat], "bottom");
+        });
+    }
+
+    var noteFile = null;
+    $("noteBtn").addEventListener("click", function () {
+        var f = hike.fix;
+        if (!f) { toast("아직 위치를 받지 못했습니다. GPS 를 잡은 뒤 다시 누르세요.", 4000); return; }
+        noteFile = null;
+        $("noteText").value = "";
+        $("notePreview").style.display = "none";
+        $("noteWhere").textContent = "지금 자리 · " + clock(now()) + (c ? " · " + km(hike.d) + "km 지점" : "") + (f.acc != null ? " · 오차 ±" + Math.round(f.acc) + "m" : "");
+        $("noteSheet").style.display = "flex";
+    });
+    $("notePhotoBtn").addEventListener("click", function () { $("notePhoto").value = ""; $("notePhoto").click(); });
+    $("notePhoto").addEventListener("change", function () {
+        var f = this.files && this.files[0];
+        if (!f) return;
+        noteFile = f;
+        var pv = $("notePreview");
+        if (pv.src) URL.revokeObjectURL(pv.src);
+        pv.src = URL.createObjectURL(f);
+        pv.style.display = "block";
+    });
+    $("noteCancel").addEventListener("click", function () { $("noteSheet").style.display = "none"; });
+    $("noteSave").addEventListener("click", function () {
+        var f = hike.fix, text = $("noteText").value.trim();
+        if (!f) return;
+        if (!text && !noteFile) { toast("메모를 쓰거나 사진을 고르세요.", 3000); return; }
+        // 해발: 코스 위면 코스 고도(GPS 고도는 흔들림 - README), 벗어나 있으면 GPS 고도
+        var at = c && hike.off <= OFF_ROUTE_M ? RF.at(c, hike.d) : null;
+        var ele = at && at.ele != null ? at.ele : f.alt;
+        var note = { t: now(), lat: Math.round(f.lat * 1e6) / 1e6, lon: Math.round(f.lon * 1e6) / 1e6,
+                     ele: ele != null ? Math.round(ele) : null, text: text || null, photo: null };
+        var btn = $("noteSave");
+        btn.disabled = true;
+        (noteFile ? shrinkPhoto(noteFile).then(function (blob) {
+            note.photo = "p" + note.t.toString(36) + Math.random().toString(36).slice(2, 6);
+            return photoPut(note.photo, blob);
+        }) : Promise.resolve()).then(function () {
+            hike.notes.push(note);
+            if (!hike.sim) try { localStorage.setItem(saveKey() + "-notes", JSON.stringify(hike.notes)); } catch (e) { /* 공간 부족 - 이번 산행 동안은 화면에 남음 */ }
+            drawNoteMarkers();
+            $("noteSheet").style.display = "none";
+            toast((note.photo ? "📷 사진" : "📝 메모") + "을 남겼습니다(" + hike.notes.length + "개).", 2500);
+        }).catch(function (e) {
+            toast("남기지 못했습니다: " + (e && e.message || e), 5000);
+        }).then(function () { btn.disabled = false; });
+    });
+
+    /** 기록 하나의 사진 · 메모 보기. 사진을 누르면 크게(새 창). */
+    function showNotes(rec) {
+        var box = $("notesList"), urls = [];
+        box.innerHTML = "";
+        $("notesTitle").textContent = "📝 " + rec.name;
+        rec.notes.forEach(function (n) {
+            var row = document.createElement("div"), t = document.createElement("div"), sm = document.createElement("small");
+            row.className = "noteRow";
+            t.className = "nt";
+            sm.textContent = clock(n.t) + (n.ele != null ? " · 해발 " + num(n.ele) + "m" : "");
+            t.appendChild(sm);
+            t.appendChild(document.createTextNode(n.text || ""));
+            if (n.photo) {
+                var img = document.createElement("img");
+                img.alt = "사진";
+                row.appendChild(img);
+                photoGet(n.photo).then(function (blob) {
+                    if (!blob) { img.alt = "(사진 없음)"; return; }
+                    var u = URL.createObjectURL(blob);
+                    urls.push(u);
+                    img.src = u;
+                    img.onclick = function () { window.open(u, "_blank"); };
+                }).catch(function () { img.alt = "(사진을 읽지 못함)"; });
+            }
+            row.appendChild(t);
+            box.appendChild(row);
+        });
+        $("notesClose").onclick = function () {
+            $("notesSheet").style.display = "none";
+            urls.forEach(function (u) { URL.revokeObjectURL(u); });
+        };
+        $("notesSheet").style.display = "flex";
     }
 
     // ------------------------------------------------------------------ 산행
@@ -735,6 +944,7 @@
         hike.start = saved ? saved.start : now();
         hike.d = saved ? saved.d : 0;
         hike.track = saved ? loadTrack() : [];
+        hike.notes = saved ? loadNotes() : [];
         hike.walked = saved && saved.walked ? saved.walked : 0;
         hike.alerted = {};
         hike.sunWarned = false;
@@ -758,6 +968,8 @@
         $("sim").style.display = "none";
         $("share").style.display = "none";
         $("arrived").style.display = "none";
+        $("noteBtn").style.display = sim ? "none" : "block";   // 시험 걷기는 기록이 남지 않아 사진 · 메모도 받지 않습니다
+        drawNoteMarkers();
         if (sim) {
             hike.simD = 0;
             hike.simLast = performance.now();
@@ -786,7 +998,9 @@
                     if (hike.running && !hike.sim) hike.bgWatch = id;
                     else BG.removeWatcher({ id: id });   // 그 사이 끝냈으면
                 });
-            keepAwake();
+            // 2026-10-08 (홍TV님 - 배터리): 앱은 화면을 꺼도 위치 · 음성 안내가 이어지므로 화면을 켜 두지 않습니다(Wake Lock 안 함).
+            // 화면이 가장 큰 배터리 소비라, 주머니에 넣고 다니라고 한 번 알립니다. 브라우저는 화면이 꺼지면 멈추므로 아래처럼 켜 둡니다.
+            toast("화면을 꺼도 기록 · 갈림길 · 코스 이탈 음성 안내가 이어집니다. 배터리를 아끼려면 화면을 꺼 두세요.", 7000);
         } else {
             $("gps").textContent = "GPS 찾는 중…";
             $("gps").className = "";
@@ -826,8 +1040,11 @@
         $("go").classList.remove("stop");
         $("sim").style.display = "";
         $("save").style.display = "";
-        $("share").style.display = "";
+        $("share").style.display = isGpxId(c.id) ? "none" : "";
         $("turn").style.display = "none";
+        $("noteBtn").style.display = "none";
+        hike.notes = [];
+        drawNoteMarkers();
         map.getSource("guide").setData({ type: "FeatureCollection", features: [] });
         $("gps").textContent = "GPS 꺼짐";
         $("gps").className = "";
@@ -840,7 +1057,7 @@
         navigator.wakeLock.request("screen").then(function (w) { hike.wake = w; }).catch(function () { /* 배터리 절약 모드 등 */ });
     }
     document.addEventListener("visibilitychange", function () {
-        if (document.visibilityState === "visible" && hike.running && !hike.sim) keepAwake();
+        if (document.visibilityState === "visible" && hike.running && !hike.sim && !BG) keepAwake();   // 앱은 화면을 켜 두지 않음(위 start)
     });
 
     function onGpsError(e) {
@@ -1690,26 +1907,50 @@
     }
 
     /**
-     * 오프라인 저장 - 코스 · 주변 길 자료와 코스 둘레(약 500m) 지도 그림을 핸드폰에 받아 둡니다(서비스 워커가 통신이 끊기면 씀).
-     * 타일은 3,000장 안으로 - 넘으면 가장 자세한 단계를 줄입니다.
+     * 오프라인 저장 - 코스 · 주변 길 자료와 지도 그림을 핸드폰에 받아 둡니다(서비스 워커가 통신이 끊기면 씀).
+     * 2026-10-08 (홍TV님 - 오프라인 범위 넓히기): 범위를 고릅니다 - 코스 둘레 약 500m(전과 같음) · 넓게 약 3km · 지금 보이는 지도.
+     * 타일은 OFFLINE_MAX 장 안으로 - 넘으면 가장 자세한 단계를 줄이고(최소 z12), z12 로도 넘으면 받지 않습니다.
      */
-    $("save").addEventListener("click", function () {
-        if (!c) return;
-        if (!("caches" in window) || !window.isSecureContext) { toast("오프라인 저장은 https 주소에서만 됩니다.", 5000); return; }
-        var pad = 0.005, b = [Math.min.apply(null, c.lon) - pad, Math.min.apply(null, c.lat) - pad, Math.max.apply(null, c.lon) + pad, Math.max.apply(null, c.lat) + pad];
-        var style = map.getStyle(), urls = [];
-        var zMax = 16, list;
+    var OFFLINE_MAX = 3000, OFFLINE_ZMIN = 10, OFFLINE_ZMAX = 16;
+    var SAVE_RANGES = { near: { pad: 0.005, label: "코스 둘레 약 500m" }, wide: { pad: 0.03, label: "넓게 - 코스 둘레 약 3km" } };
+
+    /** 그 범위([서경, 남위, 동경, 북위])에서 받을 타일 주소 - OFFLINE_MAX 안으로 가장 자세한 단계를 정합니다. 넘치면 null. */
+    function offlinePlan(b) {
+        var style = map.getStyle(), zMax = OFFLINE_ZMAX, list;
         do {
             list = [];
             Object.keys(style.sources).forEach(function (k) {
                 var src = style.sources[k];
                 if (!src.tiles || !src.tiles[0]) return;
-                var hi = Math.min(zMax, src.maxzoom || 16);
-                list = list.concat(tileUrls(src.tiles[0], 10, hi, b));
+                list = list.concat(tileUrls(src.tiles[0], OFFLINE_ZMIN, Math.min(zMax, src.maxzoom || OFFLINE_ZMAX), b));
             });
             zMax--;
-        } while (list.length > 3000 && zMax >= 12);
-        urls = ["api/course?id=" + encodeURIComponent(c.id), "api/trails?bbox=" + courseBbox(0.01), "api/map-config"].concat(list);
+        } while (list.length > OFFLINE_MAX && zMax >= 12);
+        return list.length > OFFLINE_MAX ? null : { urls: list, zMax: zMax + 1 };
+    }
+    function rangeBbox(key) {
+        if (key === "view") { var v = map.getBounds(); return [v.getWest(), v.getSouth(), v.getEast(), v.getNorth()]; }
+        var pad = SAVE_RANGES[key].pad;
+        return [Math.min.apply(null, c.lon) - pad, Math.min.apply(null, c.lat) - pad, Math.max.apply(null, c.lon) + pad, Math.max.apply(null, c.lat) + pad];
+    }
+
+    $("save").addEventListener("click", function () {
+        if (!c) return;
+        if (!("caches" in window) || !window.isSecureContext) { toast("오프라인 저장은 https 주소에서만 됩니다.", 5000); return; }
+        [["saveNear", "near", "📍 " + SAVE_RANGES.near.label], ["saveWide", "wide", "🏔 " + SAVE_RANGES.wide.label], ["saveView", "view", "🗺 지금 보이는 지도 범위"]].forEach(function (x) {
+            var plan = offlinePlan(rangeBbox(x[1])), btn = $(x[0]);
+            btn.disabled = !plan;
+            btn.textContent = x[2] + (plan ? " · " + num(plan.urls.length) + "장(가장 자세히 z" + plan.zMax + ")" : " · 너무 넓습니다(지도를 확대하세요)");
+            btn.onclick = function () { $("saveSheet").style.display = "none"; saveOffline(plan); };
+        });
+        $("saveSheet").style.display = "flex";
+    });
+    $("saveClose").addEventListener("click", function () { $("saveSheet").style.display = "none"; });
+
+    function saveOffline(plan) {
+        // 주변 길은 화면이 부르는 그 주소(loadTrails 의 courseBbox(0.01))로 받아야 오프라인에서 서비스 워커가 내줍니다.
+        var head = (isGpxId(c.id) ? [] : ["api/course?id=" + encodeURIComponent(c.id)]).concat(["api/trails?bbox=" + courseBbox(0.01), "api/map-config"]);
+        var urls = head.concat(plan.urls);
         var btn = $("save"), done = 0, failed = 0, i = 0;
         btn.disabled = true;
         caches.open("rf-offline-v1").then(function (cache) {
@@ -1734,13 +1975,13 @@
                 if (saved.indexOf(c.id) < 0) saved.push(c.id);
                 localStorage.setItem("rf-offline", JSON.stringify(saved));
             } catch (e) { /* 무시 */ }
-            toast("오프라인 저장 끝 - 지도 " + (urls.length - 3) + "장" + (failed ? " (못 받은 " + failed + "장)" : "") + ". 통신이 끊겨도 이 코스는 보입니다.", 6000);
+            toast("오프라인 저장 끝 - 지도 " + num(plan.urls.length) + "장" + (failed ? " (못 받은 " + failed + "장)" : "") + ". 통신이 끊겨도 이 범위는 보입니다.", 6000);
         }).catch(function (e) {
             btn.disabled = false;
             btn.textContent = "📥 저장";
             toast("저장하지 못했습니다: " + e.message, 5000);
         });
-    });
+    }
 
     $("go").addEventListener("click", function () { if (hike.running) askStop(); else start(false); });
     $("endNo").addEventListener("click", function () { $("endSheet").style.display = "none"; });

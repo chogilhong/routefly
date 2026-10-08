@@ -102,6 +102,69 @@
         return c;
     }
 
+    /**
+     * 2026-10-08 (홍TV님 - 다른 앱 · 친구가 준 GPX 를 열어 따라가기): GPX 글 → /api/course 와 같은 모양
+     * {course: {name, kind}, points: [[경도, 위도, 고도|null, 누적 거리]], pois: [{seq, name, lat, lon, ele_m, dist_m}]}.
+     * 규칙은 routefly-batch 의 GpxReader · CourseMath.thin 과 같습니다 - 이름공간은 보지 않고 태그 이름만, trk/trkseg/trkpt 를
+     * 파일 순서대로 이어 붙이고 trk 가 없으면 rte/rtept, 위경도가 비었거나 범위 밖이거나 (0,0) 인 점은 버림, 이름 없는 wpt 는 버림,
+     * 점은 10m 보다 가까우면 솎음(끝점은 남김). 경로 점이 2개보다 적으면 오류. 이름: metadata → trk → rte → 파일 이름.
+     * DOMParser 는 외부 엔티티 · DTD 를 받아 오지 않습니다(남이 만든 파일이라).
+     */
+    var GPX_SPACING_M = 10;
+    function gpxToApi(text, fileName) {
+        var doc = new DOMParser().parseFromString(String(text || ""), "application/xml");
+        var root = doc.documentElement;
+        if (!root || (root.localName || root.nodeName) !== "gpx" || doc.getElementsByTagName("parsererror").length) {
+            throw new Error("GPX 파일이 아닙니다.");
+        }
+        function kids(el, name) {
+            var out = [];
+            if (!el) return out;
+            for (var n = el.firstElementChild; n; n = n.nextElementSibling) if ((n.localName || n.nodeName) === name) out.push(n);
+            return out;
+        }
+        function first(el, name) { return kids(el, name)[0] || null; }
+        function txt(el) { var t = el && el.textContent != null ? el.textContent.trim() : ""; return t === "" ? null : t; }
+        function numOf(s) { var v = s == null || String(s).trim() === "" ? NaN : Number(s); return v; }
+        function valid(lat, lon) { return isFinite(lat) && isFinite(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180 && !(lat === 0 && lon === 0); }
+        function point(el) {
+            var lat = numOf(el.getAttribute("lat")), lon = numOf(el.getAttribute("lon")), e = numOf(txt(first(el, "ele")));
+            return valid(lat, lon) ? [lat, lon, isFinite(e) ? e : null] : null;
+        }
+        var raw = [];
+        kids(root, "trk").forEach(function (t) { kids(t, "trkseg").forEach(function (s) { kids(s, "trkpt").forEach(function (p) { var q = point(p); if (q) raw.push(q); }); }); });
+        if (!raw.length) kids(root, "rte").forEach(function (r) { kids(r, "rtept").forEach(function (p) { var q = point(p); if (q) raw.push(q); }); });
+        if (raw.length < 2) throw new Error("GPX 에 경로 점이 2개보다 적습니다(trk · rte).");
+        // 솎기 - CourseMath.thin 과 같은 규칙
+        var pts = [raw[0]], kept = raw[0], last = raw.length - 1;
+        for (var i = 1; i < last; i++) {
+            if (distM(kept[0], kept[1], raw[i][0], raw[i][1]) >= GPX_SPACING_M) { pts.push(raw[i]); kept = raw[i]; }
+        }
+        if (pts.length > 1 && distM(kept[0], kept[1], raw[last][0], raw[last][1]) < GPX_SPACING_M / 2) pts[pts.length - 1] = raw[last];
+        else pts.push(raw[last]);
+        var points = [], d = 0;
+        pts.forEach(function (p, k) {
+            if (k) d += distM(pts[k - 1][0], pts[k - 1][1], p[0], p[1]);
+            points.push([p[1], p[0], p[2] == null ? null : Math.round(p[2] * 10) / 10, Math.round(d)]);
+        });
+        var pois = [];
+        kids(root, "wpt").forEach(function (w) {
+            var lat = numOf(w.getAttribute("lat")), lon = numOf(w.getAttribute("lon")), nm = txt(first(w, "name"));
+            if (!valid(lat, lon) || nm == null) return;
+            var best = 0, bd = Infinity;
+            points.forEach(function (p, k) { var x = distM(lat, lon, p[1], p[0]); if (x < bd) { bd = x; best = k; } });
+            var e = numOf(txt(first(w, "ele")));
+            pois.push({ name: nm, lat: lat, lon: lon, ele_m: isFinite(e) ? e : null, dist_m: points[best][3], off_route_m: Math.round(bd) });
+        });
+        pois.sort(function (a, b) { return a.dist_m - b.dist_m; });
+        pois.forEach(function (p, k) { p.seq = k + 1; });
+        var name = txt(first(first(root, "metadata"), "name")) || txt(first(first(root, "trk"), "name")) || txt(first(first(root, "rte"), "name"))
+            || String(fileName || "GPX").replace(/\.gpx$/i, "");
+        var type = (txt(first(first(root, "trk"), "type")) || "").toLowerCase();
+        var kind = /bik|cycl|자전거|ride/.test(type) ? "bike" : /walk|걷기/.test(type) ? "walk" : "hike";
+        return { course: { name: name, kind: kind }, points: points, pois: pois };
+    }
+
     /** 누적 오르막(m) - 남은 오르막을 빨리 구하려고 미리 셉니다. */
     function cumAscent(ele) {
         var asc = [0];
@@ -600,7 +663,7 @@
     }
 
     global.RF = {
-        LINE_COLOR: LINE_COLOR, num: num, km: km, fromApi: fromApi, isAccess: isAccess, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
+        LINE_COLOR: LINE_COLOR, num: num, km: km, fromApi: fromApi, gpxToApi: gpxToApi, isAccess: isAccess, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
         sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, distM: distM, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
     };
