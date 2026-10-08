@@ -413,6 +413,32 @@
      * box 안에 고도 그래프를 그립니다. 지나온 부분은 하늘색, 지점은 빨간 점 + 비스듬한 이름, 아래에 km 눈금.
      * 돌려주는 값: {set(d)} - 지금 위치를 옮깁니다. opts.onSeek(d) 가 있으면 누른 자리로.
      */
+    /**
+     * 그래프 이름표의 기울어진 글자 상자(네 모서리, 화면 px). CSS 와 같게: 보통은 왼쪽 아래를 축으로 -38°,
+     * 끝 이름(.end)은 오른쪽 아래를 축으로 +38°, 둘 다 translate(±2px, -8px).
+     */
+    function labelRect(x, yTop, w, h, end) {
+        var cs = Math.cos(38 * Math.PI / 180), sn = Math.sin(38 * Math.PI / 180);
+        var ax = end ? x - 2 : x + 2, ay = yTop + h - 8;
+        var u = end ? [-cs, -sn] : [cs, -sn], v = end ? [sn, -cs] : [-sn, -cs];
+        var pad = 2;   // 글자 그림자만큼
+        ax -= u[0] * pad; ay -= u[1] * pad;
+        w += pad * 2;
+        return [[ax, ay], [ax + u[0] * w, ay + u[1] * w], [ax + u[0] * w + v[0] * h, ay + u[1] * w + v[1] * h], [ax + v[0] * h, ay + v[1] * h]];
+    }
+
+    /** 순수 함수 - 볼록 사각형 둘이 겹치는가(분리축). */
+    function rectsOverlap(a, b) {
+        var axes = [a, b].reduce(function (acc, r) {
+            for (var i = 0; i < 2; i++) acc.push([r[i + 1][1] - r[i][1], r[i][0] - r[i + 1][0]]);
+            return acc;
+        }, []);
+        return axes.every(function (ax) {
+            var pa = a.map(function (p) { return p[0] * ax[0] + p[1] * ax[1]; }), pb = b.map(function (p) { return p[0] * ax[0] + p[1] * ax[1]; });
+            return Math.max.apply(null, pa) > Math.min.apply(null, pb) && Math.max.apply(null, pb) > Math.min.apply(null, pa);
+        });
+    }
+
     function profile(box, c, opts) {
         opts = opts || {};
         box.textContent = "";
@@ -454,31 +480,45 @@
             t.style.left = (m / c.total * 100) + "%";
             box.appendChild(t);
         }
-        // 지점 - 빨간 점 + 비스듬한 이름(영상처럼). 너무 붙은 이름은 건너뜁니다.
+        // 지점 - 빨간 점 + 비스듬한 이름(영상처럼). 이름끼리 실제로 겹치면(기울어진 글자 상자로 셈) 뒤의 것을 뺍니다.
+        // 오르막이 이어지면 다음 이름이 앞 이름 위로 올라가 겹치므로 가로 간격만으로는 모자랍니다(지리산 그래프).
         if (opts.labels !== false) {
-            var lastX = -1;
-            c.pois.filter(function (p) { return !isAccess(p); }).sort(function (a, b) { return +a.dist_m - +b.dist_m; }).forEach(function (p) {
-                var pd = Math.max(0, Math.min(c.total, +p.dist_m)), pa = at(c, pd);
-                if (pa.ele == null) return;
-                var xp = pd / c.total * 100;
+            var bw = box.clientWidth, bh = box.clientHeight, placed = [], lastX = -1;
+            var list = c.pois.filter(function (p) { return !isAccess(p); }).map(function (p) {
+                var pd = Math.max(0, Math.min(c.total, +p.dist_m));
+                return { p: p, d: pd, a: at(c, pd) };
+            }).filter(function (q) { return q.a.ele != null; });
+            list.forEach(function (q) {
                 var dot = el("div", "rf-pdot");
-                dot.style.left = xp + "%";
-                dot.style.top = (y(pa.ele) / PH * 100) + "%";
+                dot.style.left = (q.d / c.total * 100) + "%";
+                dot.style.top = (y(q.a.ele) / PH * 100) + "%";
                 box.appendChild(dot);
-                if (lastX >= 0 && xp - lastX < 6) return;
-                lastX = xp;
-                var nm = p.name.replace(/\(.*\)$/, "").trim() || p.name;
+            });
+            // 이름을 놓는 차례: 출발 · 도착 → 가장 높은 곳 → 나머지는 거리 순
+            var top = list.reduce(function (m, q) { return m == null || q.a.ele > m.a.ele ? q : m; }, null);
+            var rank = function (q) { return q.d < 60 || q.d > c.total - 60 ? 0 : q === top ? 1 : 2; };
+            list.slice().sort(function (u, v) { return rank(u) - rank(v) || u.d - v.d; }).forEach(function (q) {
+                var xp = q.d / c.total * 100;
+                if (!bw && lastX >= 0 && Math.abs(xp - lastX) < 6) return;   // 크기를 모를 때(숨은 화면)는 예전처럼 간격으로
+                var nm = q.p.name.replace(/\(.*\)$/, "").trim() || q.p.name;
                 if (nm.length > 9) nm = nm.slice(0, 8) + "…";   // 비스듬한 이름이 길면 그래프 위 칸까지 올라감(전체 이름은 지도 · '다음' 줄에)
                 var lb = el("div", "rf-plabel", nm);
-                lb.title = p.name;
-                if (xp > 72) {   // 오른쪽 끝 이름은 왼쪽 위로 기울여 잘리지 않게
+                lb.title = q.p.name;
+                var end = xp > 72;   // 오른쪽 끝 이름은 왼쪽 위로 기울여 잘리지 않게
+                if (end) {
                     lb.classList.add("end");
                     lb.style.right = (100 - xp) + "%";
                 } else {
                     lb.style.left = xp + "%";
                 }
-                lb.style.top = (y(pa.ele) / PH * 100) + "%";
+                lb.style.top = (y(q.a.ele) / PH * 100) + "%";
                 box.appendChild(lb);
+                if (bw) {
+                    var r = labelRect(xp / 100 * bw, y(q.a.ele) / PH * bh, lb.offsetWidth, lb.offsetHeight, end);
+                    if (placed.some(function (o) { return rectsOverlap(o, r); })) { box.removeChild(lb); return; }
+                    placed.push(r);
+                }
+                lastX = xp;
             });
         }
         var capMax = el("div", "rf-cap", "최고 " + num(max) + "m"); capMax.style.cssText = "left:3px;top:0"; box.appendChild(capMax);
