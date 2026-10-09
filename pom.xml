@@ -149,6 +149,8 @@
 
                 <configuration>
                     <failOnMissingWebXml>false</failOnMissingWebXml>
+                    <!-- 2026-10-09 점검(totonian S1 과 같음): 누가 진짜 설정(키 · DB 비밀번호)을 src/main/resources 에 두어도 WAR 에 실리지 않게 -->
+                    <packagingExcludes>WEB-INF/config.properties,WEB-INF/classes/config.properties</packagingExcludes>
                 </configuration>
             </plugin>
 

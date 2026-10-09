@@ -22,7 +22,9 @@ public class SecurityTest {
     public void clientIpTrustsHeadersOnlyFromThisComputer() {
         assertEquals("1.2.3.4", SecurityFilter.clientIp("1.2.3.4", "9.9.9.9", "8.8.8.8"));          // 밖에서 바로 - 머리글 무시
         assertEquals("9.9.9.9", SecurityFilter.clientIp("127.0.0.1", "9.9.9.9", "8.8.8.8"));        // 터널 - Cloudflare 가 알려 준 곳
-        assertEquals("8.8.8.8", SecurityFilter.clientIp("0:0:0:0:0:0:0:1", null, "8.8.8.8, 10.0.0.1"));
+        // nginx 가 붙인 맨 뒤 값 - 맨 앞(8.8.8.8)은 요청한 쪽이 꾸밀 수 있음(2026-10-09 점검)
+        assertEquals("10.0.0.1", SecurityFilter.clientIp("0:0:0:0:0:0:0:1", null, "8.8.8.8, 10.0.0.1"));
+        assertEquals("10.0.0.1", SecurityFilter.clientIp("127.0.0.1", "", "10.0.0.1"));
         assertEquals("127.0.0.1", SecurityFilter.clientIp("127.0.0.1", null, null));
     }
 

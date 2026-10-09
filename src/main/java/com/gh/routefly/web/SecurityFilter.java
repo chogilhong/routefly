@@ -33,7 +33,11 @@ public class SecurityFilter extends HttpFilter {
         res.setHeader("X-Frame-Options", "SAMEORIGIN");
         res.setHeader("Content-Security-Policy", "frame-ancestors 'self'; base-uri 'self'; object-src 'none'; form-action 'self'");
         res.setHeader("Permissions-Policy", "geolocation=(self), camera=(self), microphone=(), payment=()");
+        // 2026-10-09 점검(totonian 과 같은 방식): HTTPS 로 받았을 때만 HSTS - 프록시가 TLS 를 푸는 구성에서는 붙지 않아 예전과 같음
+        if (req.isSecure()) res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
         String path = req.getRequestURI().substring(req.getContextPath().length());
+        // JSON 은 검색 결과에 나와서 좋을 것이 없습니다(공유 링크 /s/ 와 화면은 그대로 색인)
+        if (path.startsWith("/api/")) res.setHeader("X-Robots-Tag", "noindex");
         if (path.startsWith("/api/") || path.startsWith("/s/")) {
             String ip = clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For"));
             if (!LIMITER.allow(ip, System.currentTimeMillis())) {
@@ -53,7 +57,12 @@ public class SecurityFilter extends HttpFilter {
         boolean local = remote == null || remote.equals("127.0.0.1") || remote.equals("0:0:0:0:0:0:0:1") || remote.equals("::1");
         if (!local) return remote;
         if (cfIp != null && !cfIp.isBlank()) return cfIp.trim();
-        if (forwardedFor != null && !forwardedFor.isBlank()) return forwardedFor.split(",")[0].trim();
+        // 2026-10-09 점검: 맨 뒤 값 - 이 컴퓨터의 nginx 가 실제로 붙인 곳입니다. 맨 앞은 요청한 쪽이 마음대로 넣을 수 있어 제한을 피할 수 있었습니다.
+        if (forwardedFor != null && !forwardedFor.isBlank()) {
+            String[] parts = forwardedFor.split(",");
+            String last = parts[parts.length - 1].trim();
+            if (!last.isEmpty()) return last;
+        }
         return remote == null ? "?" : remote;
     }
 }
