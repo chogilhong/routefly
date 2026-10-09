@@ -123,6 +123,8 @@ public class WebBasicsTest {
         assertEquals("frst-488605302-", CourseQueries.groupPrefix("frst-488605302-24c8b1"));
         assertEquals("osmb-123456-", CourseQueries.groupPrefix("osmb-123456-2"));
         assertEquals("osmh-77-", CourseQueries.groupPrefix("osmh-77-3"));
+        assertEquals("kmp-1111020009-", CourseQueries.groupPrefix("kmp-1111020009-4"));
+        assertEquals("kmf-9900000003-", CourseQueries.groupPrefix("kmf-9900000003-2"));
         assertNull(CourseQueries.groupPrefix("duru-1234"));
         assertNull(CourseQueries.groupPrefix("my-course"));
         assertNull(CourseQueries.groupPrefix(null));
