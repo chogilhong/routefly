@@ -70,4 +70,13 @@ public class HikeScreenTest {
         assertTrue("GPX 열기는 GPX 만", html.contains("id=\"gpxFile\" accept=\".gpx,application/gpx+xml\""));
         assertTrue("산행을 끝낼 때 거릅니다", js.contains("RF.recordSkip(hike.walked, hike.track, c)) return;"));
     }
+
+    /** 2026-10-09 홍TV님: 두 화면이 같은 검색어(sessionStorage "rf-search"), 미리보기에는 '코스' · '접기' 단추 없음. */
+    @Test
+    public void bothScreensShareSearchAndPreviewHasNoToggle() throws Exception {
+        assertTrue(read("js/hike.js").contains("var SEARCH_KEY = \"rf-search\";"));
+        assertTrue(read("js/app.js").contains("var SEARCH_KEY = \"rf-search\";"));
+        assertFalse(read("index.html").contains("id=\"toggle\""));
+        assertFalse(read("js/app.js").contains("$(\"toggle\")"));
+    }
 }

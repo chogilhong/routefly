@@ -1629,13 +1629,19 @@
 
     // ------------------------------------------------------------------ 코스 고르기
 
+    // 미리보기 화면에서 '← 뒤로' 로 돌아왔을 때 브라우저가 이 화면을 그대로 살리면(bfcache) 검색어를 다시 맞춥니다
+    window.addEventListener("pageshow", function (e) {
+        if (e.persisted && $("pick").style.display !== "none" && !hike.running) showPick();
+    });
+
     function showPick(noRestore) {
         $("pick").style.display = "flex";
-        // 목록이 비었으면(이 화면을 새로 열었을 때) 마지막 검색을 다시
-        if (!noRestore && !$("pickList").querySelector(".it")) {
+        // 목록이 비었거나(이 화면을 새로 열었을 때) 미리보기 화면에서 다른 말로 찾고 왔으면 마지막 검색을 다시
+        if (!noRestore) {
             var last = null;
             try { last = JSON.parse(sessionStorage.getItem(SEARCH_KEY) || "null"); } catch (e) { /* 없음 */ }
-            if (last && last.q) {
+            var changed = last && last.q && (last.q !== $("q").value.trim() || (last.kind || "") !== (kindFilter || ""));
+            if (last && last.q && (changed || !$("pickList").querySelector(".it"))) {
                 $("q").value = last.q;
                 var tab = document.querySelector('#kindTabs button[data-kind="' + (last.kind || "") + '"]');
                 if (tab) tab.click(); else { var ev = document.createEvent("Event"); ev.initEvent("input", true, true); $("q").dispatchEvent(ev); }
@@ -1758,7 +1764,9 @@
 
     var searchTimer = 0, fromList = false;
     var pickSeq = 0;   // 목록을 새로 그릴 때마다 +1 - 늦게 온 예전 검색 응답이 새 목록을 덮지 않게
-    var SEARCH_KEY = "rf-hike-search";   // 마지막 검색어 · 종류 - 코스에 들어갔다 돌아와도(새로 고침 · 앱 다시 열기 포함) 그대로
+    // 마지막 검색어 · 종류 - 코스에 들어갔다 돌아와도(새로 고침 · 앱 다시 열기 포함) 그대로.
+    // 2026-10-09 홍TV님: 코스 미리보기(index.html · app.js)와 같은 열쇠 - 한쪽에서 '지리산' 을 넣고 넘어가면 다른 쪽에도.
+    var SEARCH_KEY = "rf-search";
     $("q").addEventListener("input", function () {
         clearTimeout(searchTimer);
         var q = this.value.trim();

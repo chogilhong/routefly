@@ -348,6 +348,7 @@
         var my = ++selectSeq;
         stop();
         show(null);
+        if (isNarrow()) setListOpen(false);   // 핸드폰 - 고른 코스가 보이게 목록을 접음('← 뒤로' 로 다시 목록)
         // 코스 자료와 지도 준비를 같이 기다립니다(느린 기기에서 지도 타일이 늦어도 목록은 먼저 뜹니다).
         // 'gpx-' 코스는 이 기기에 둔 GPX(📂 GPX 열기 - 따라가기와 같이 씀)
         var data = RF.isGpxId(id) ? RF.storedGpx(id) : getJson("api/course?id=" + encodeURIComponent(id));
@@ -748,7 +749,7 @@
         setMapLabels(false);
         setPlayButton();
         // 좁은 화면에서는 목록을 접어 지도를 넓게 씁니다
-        if (isNarrow() && !$("side").classList.contains("closed")) $("toggle").click();
+        if (isNarrow()) setListOpen(false);
         if (anim.d === 0) {
             setProgressPaint(0);
             showMarkersUpTo(0);
@@ -832,11 +833,12 @@
                 resolve();
             });
         });
-        // 처음 목록은 지도가 뜨기 전에 바로 받습니다(처음 화면 = 우리나라 전체 범위).
+        // 처음 목록은 지도가 뜨기 전에 바로 받습니다(처음 화면 = 우리나라 전체 범위). 따라가기 화면에서 찾던 말이 있으면 그것으로.
+        readSharedSearch();
         loadCourses();
-        // 핸드폰(좁은 화면)은 목록을 접은 채로 시작합니다 - 목록이 지도 위쪽 절반을 덮고 출처 상자와 겹치던 것(2026-10-09).
-        // "코스" 단추를 누르면 펼칩니다. 주소에 코스(#c=)가 있으면 select() 가 정합니다.
-        if (isNarrow() && !$("side").classList.contains("closed")) $("toggle").click();
+        // 2026-10-09 홍TV님: 목록을 펼친 채로 시작합니다('코스' · '접기' 단추를 없애 한 단계 줄임). 핸드폰에서 코스를 고르거나
+        // 날기 시작하면 목록을 접어 지도를 넓게 쓰고, '← 뒤로' 를 누르면 다시 목록으로 돌아옵니다.
+        setListOpen(true);
         map.on("moveend", scheduleViewLoad);
         map.on("render", declutterSoon);   // 이름표 겹침 - 지도가 움직이는 동안 0.15초마다 다시
         var m = /[#&]c=([^&]+)/.exec(location.hash);
@@ -849,6 +851,7 @@
         clearTimeout(list.timer);
         list.timer = setTimeout(function () {
             list.q = v || null;
+            saveSharedSearch();
             loadCourses();
         }, 300);
     });
@@ -856,10 +859,12 @@
         if (e.key === "Enter") {
             clearTimeout(list.timer);
             list.q = this.value.trim() || null;
+            saveSharedSearch();
             loadCourses();
         } else if (e.key === "Escape") {
             this.value = "";
             list.q = null;
+            saveSharedSearch();
             loadCourses();
         }
     });
@@ -869,6 +874,7 @@
         b.addEventListener("click", function () {
             list.kind = b.getAttribute("data-kind");
             [].forEach.call(document.querySelectorAll("#kindTabs button"), function (x) { x.classList.toggle("on", x === b); });
+            saveSharedSearch();
             loadCourses();
         });
     });
@@ -888,6 +894,8 @@
     $("overview").addEventListener("click", function () { stop(); overview(false); });
     // 뒤로 - 따라가기 화면에서 "코스 미리보기" 로 왔으면 그 화면으로, 바로 열었으면 따라가기 화면으로(2026-10-09)
     $("back").addEventListener("click", function () {
+        // 핸드폰에서 코스를 보는 중(목록을 접음)이면 먼저 목록으로 한 단계만
+        if (isNarrow() && $("side").classList.contains("closed")) { stop(); setListOpen(true); return; }
         var fromHere = document.referrer && document.referrer.indexOf(location.origin) === 0;
         if (fromHere && history.length > 1) history.back();
         else location.href = "hike.html";
@@ -908,6 +916,7 @@
             // 검색을 비우고 내 위치 둘레(약 10km)로 - 지도가 멈추면 그 범위 코스로 목록이 바뀝니다
             list.q = null;
             $("q").value = "";
+            saveSharedSearch();
             stop();
             map.flyTo({ center: ll, zoom: 11.5, pitch: 0, bearing: 0, duration: 1200 });
             // 지도가 멈추면 moveend → scheduleViewLoad 가 목록을 받습니다(2026-10-09 점검: 여기서 또 받아 두 번 묻던 것)
@@ -928,16 +937,42 @@
         }).catch(function (e) { show("GPX 를 열지 못했습니다: " + (e && e.message || e)); });
     });
 
-    $("toggle").addEventListener("click", function () {
+    /** 목록 펼치기 · 접기(예전 '코스' · '접기' 단추가 하던 일). */
+    function setListOpen(open) {
         var side = $("side");
-        side.classList.toggle("closed");
-        this.textContent = side.classList.contains("closed") ? "코스" : "접기";
+        side.classList.toggle("closed", !open);
         // 핸드폰에서 목록을 펼치면 펼쳐진 출처 글 상자가 검색창을 덮으므로 ⓘ 로 접습니다 - 지도를 끌 때 MapLibre 가
         // 스스로 접는 것과 같고, ⓘ 를 누르면 다시 보입니다(2026-10-09).
-        if (isNarrow() && !side.classList.contains("closed")) {
+        if (open && isNarrow()) {
             var attrib = document.querySelector(".maplibregl-ctrl-attrib.maplibregl-compact-show .maplibregl-ctrl-attrib-button");
             if (attrib) attrib.click();
         }
+    }
+
+    /**
+     * 따라가기 화면(hike.html)과 같은 검색어 · 종류(2026-10-09 홍TV님 - 한쪽에서 '지리산' 을 넣고 넘어가면 다른 쪽에도).
+     * 같은 탭의 sessionStorage "rf-search" {q, kind} 를 함께 씁니다.
+     */
+    var SEARCH_KEY = "rf-search";
+    function saveSharedSearch() {
+        try { sessionStorage.setItem(SEARCH_KEY, JSON.stringify({ q: list.q || "", kind: list.kind || "" })); } catch (e) { /* 이번만 */ }
+    }
+    /** 저장된 검색어 · 종류를 화면에 넣습니다. 바뀐 것이 있으면 true. */
+    function readSharedSearch() {
+        var last = null;
+        try { last = JSON.parse(sessionStorage.getItem(SEARCH_KEY) || "null"); } catch (e) { /* 없음 */ }
+        if (!last) return false;
+        var q = (last.q || "").trim() || null, kind = last.kind || "";
+        if (q === (list.q || null) && kind === (list.kind || "")) return false;
+        list.q = q;
+        list.kind = kind;
+        $("q").value = q || "";
+        [].forEach.call(document.querySelectorAll("#kindTabs button"), function (x) { x.classList.toggle("on", (x.getAttribute("data-kind") || "") === kind); });
+        return true;
+    }
+    // 뒤로 가기로 이 화면에 돌아왔을 때(브라우저가 예전 화면을 그대로 살린 경우) - 따라가기에서 바꾼 검색어로 다시
+    window.addEventListener("pageshow", function (e) {
+        if (e.persisted && readSharedSearch() && map) { setListOpen(true); loadCourses(); }
     });
     window.addEventListener("resize", placeHud);
     document.addEventListener("keydown", function (e) {
