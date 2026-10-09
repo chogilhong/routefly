@@ -131,6 +131,33 @@
         return true;
     }
 
+    /**
+     * 불러온 GPX 를 이 기기에 둡니다(따라가기 · 코스 미리보기가 같이 씀). 코스 ID "gpx-<글자 지문>"(같은 파일은 같은 ID),
+     * 최근 GPX_KEEP 개만. 서버에는 올리지 않습니다.
+     */
+    var GPX_PREFIX = "gpx-", GPX_LIST_KEY = "rf-gpx-list", GPX_KEEP = 10;
+    function isGpxId(id) { return String(id).indexOf(GPX_PREFIX) === 0; }
+    function gpxId(text) {
+        var h = 5381;
+        for (var i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) | 0;
+        return GPX_PREFIX + (h >>> 0).toString(36) + "-" + text.length.toString(36);
+    }
+    function storeGpx(id, api) {
+        var list;
+        try { list = JSON.parse(localStorage.getItem(GPX_LIST_KEY) || "[]"); } catch (e) { list = []; }
+        list = [id].concat(list.filter(function (x) { return x !== id; }));
+        list.slice(GPX_KEEP).forEach(function (old) { try { localStorage.removeItem("rf-" + old); } catch (e) { /* 무시 */ } });
+        localStorage.setItem("rf-" + id, JSON.stringify(api));   // 공간이 모자라면 여기서 던집니다(부르는 쪽이 알림)
+        localStorage.setItem(GPX_LIST_KEY, JSON.stringify(list.slice(0, GPX_KEEP)));
+    }
+    function storedGpx(id) {
+        try {
+            var j = JSON.parse(localStorage.getItem("rf-" + id) || "null");
+            if (j) return Promise.resolve(j);
+        } catch (e) { /* 아래로 */ }
+        return Promise.reject(new Error("이 기기에 그 GPX 가 없습니다. 📂 GPX 열기로 다시 여세요."));
+    }
+
     function gpxToApi(text, fileName) {
         var doc = new DOMParser().parseFromString(String(text || ""), "application/xml");
         var root = doc.documentElement;
@@ -683,7 +710,7 @@
     }
 
     global.RF = {
-        LINE_COLOR: LINE_COLOR, num: num, km: km, fromApi: fromApi, gpxToApi: gpxToApi, isAccess: isAccess, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
+        LINE_COLOR: LINE_COLOR, num: num, km: km, fromApi: fromApi, gpxToApi: gpxToApi, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
         sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
     };

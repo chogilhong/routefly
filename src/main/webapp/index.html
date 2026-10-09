@@ -32,10 +32,15 @@ html, body { margin:0; height:100%; background:#0f141b; color:var(--tx); font-fa
 #side header { display:flex; align-items:center; gap:8px; padding:10px 12px; border-bottom:1px solid var(--ln); }
 #side h1 { margin:0; font-size:17px; letter-spacing:0.3px; }
 #side h1 span { color:var(--route); }
-#side h1 small { font-size:13px; font-weight:normal; color:var(--dim); margin-left:6px; letter-spacing:0; }
+#side h1 { white-space:nowrap; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+#side h1 small { font-size:14px; font-weight:bold; color:var(--tx); margin-left:5px; letter-spacing:-0.2px; }
 #back { margin-left:auto; border:1px solid var(--route); background:var(--route); color:#1b1b1b; font-weight:bold; border-radius:6px;
         padding:3px 9px; font-size:12px; cursor:pointer; white-space:nowrap; }
-#toggle { border:1px solid var(--ln); background:transparent; color:var(--dim); border-radius:6px; padding:3px 8px; font-size:12px; cursor:pointer; white-space:nowrap; }
+#toggle { border:1px solid var(--route); background:var(--route); color:#1b1b1b; font-weight:bold; border-radius:6px;
+          padding:3px 9px; font-size:12px; cursor:pointer; white-space:nowrap; }   /* '뒤로' 와 같은 모양 · 색 · 글자 크기 */
+.tools { display:flex; gap:4px; margin-top:6px; }
+.tools button { flex:1 1 auto; min-width:0; height:28px; border-radius:7px; border:1px solid var(--ln); background:rgba(255,255,255,0.06); color:var(--tx);
+                font-size:11.5px; letter-spacing:-0.3px; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:0 2px; }
 #list { overflow-y:auto; padding:4px 0; }
 #side.closed #list, #side.closed .search { display:none; }
 .search { padding:8px 12px 6px; border-bottom:1px solid var(--ln); }
@@ -112,6 +117,8 @@ body.flying #side { opacity:0; pointer-events:none; }
        z-index:3; display:none; max-width:min(420px, calc(100% - 32px)); text-align:center; line-height:1.5; }
 
 @media (max-width:640px) {
+    #side h1 small { display:block; margin:2px 0 0; line-height:1.1; }   /* 좁은 화면 - '코스 미리보기' 를 routefly 아래 줄에(잘리지 않게) */
+    #side h1 { line-height:1.1; }
     #side { width:auto; right:60px; max-height:65%; }   /* 오른쪽은 확대 버튼 자리. 목록이 두세 줄만 보이던 것 - 40% → 65%(2026-10-09) */
     #hud { top:auto; right:12px; bottom:170px; }        /* 실제 높이는 app.js 가 아래 판 높이에 맞춰 다시 정합니다 */
     #title span.opt { display:none; }
@@ -147,6 +154,12 @@ body.flying #side { opacity:0; pointer-events:none; }
             <button type="button" data-kind="hike">⛰️ 등산</button>
             <button type="button" data-kind="walk">🚶 걷기</button>
             <button type="button" data-kind="bike">🚴 자전거</button>
+        </div>
+        <div class="tools">
+            <button type="button" id="nearMe" title="내 위치 둘레 코스(지도를 내 위치로)">📍 내 주변 코스</button>
+            <button type="button" id="myRecords" title="따라가기 화면의 내 기록">📒 내 기록</button>
+            <button type="button" id="gpxOpen" title="다른 앱 · 친구가 보내 준 GPX 파일을 미리 날아 봅니다">📂 GPX 열기</button>
+            <input type="file" id="gpxFile" accept=".gpx,application/gpx+xml" hidden>
         </div></div>
     <div id="list"><div class="empty">코스를 불러오는 중…</div></div>
 </div>

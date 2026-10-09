@@ -520,29 +520,7 @@
 
     // ---- 2026-10-08 (홍TV님): GPX 열기 - 불러온 GPX 를 서버 코스와 같은 모양(RF.gpxToApi)으로 이 기기에 두고(최근 GPX_KEEP 개),
     //      코스 ID "gpx-<글자 지문>" 으로 엽니다. 새로 고침 · 이어서 산행도 서버 코스처럼 됩니다. 서버에는 올리지 않습니다.
-    var GPX_PREFIX = "gpx-", GPX_LIST_KEY = "rf-gpx-list", GPX_KEEP = 10;
-    function isGpxId(id) { return String(id).indexOf(GPX_PREFIX) === 0; }
-    /** 순수 함수 - 글자 지문(같은 파일은 같은 ID). */
-    function gpxId(text) {
-        var h = 5381;
-        for (var i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) | 0;
-        return GPX_PREFIX + (h >>> 0).toString(36) + "-" + text.length.toString(36);
-    }
-    function storeGpx(id, api) {
-        var list;
-        try { list = JSON.parse(localStorage.getItem(GPX_LIST_KEY) || "[]"); } catch (e) { list = []; }
-        list = [id].concat(list.filter(function (x) { return x !== id; }));
-        list.slice(GPX_KEEP).forEach(function (old) { try { localStorage.removeItem("rf-" + old); } catch (e) { /* 무시 */ } });
-        localStorage.setItem("rf-" + id, JSON.stringify(api));   // 공간이 모자라면 여기서 던집니다(부르는 쪽이 알림)
-        localStorage.setItem(GPX_LIST_KEY, JSON.stringify(list.slice(0, GPX_KEEP)));
-    }
-    function storedGpx(id) {
-        try {
-            var j = JSON.parse(localStorage.getItem("rf-" + id) || "null");
-            if (j) return Promise.resolve(j);
-        } catch (e) { /* 아래로 */ }
-        return Promise.reject(new Error("이 기기에 그 GPX 가 없습니다. 📂 GPX 열기로 다시 여세요."));
-    }
+    var isGpxId = RF.isGpxId, gpxId = RF.gpxId, storeGpx = RF.storeGpx, storedGpx = RF.storedGpx;   // course-kit(코스 미리보기와 같이 씀)
     $("gpxOpen").addEventListener("click", function () { $("gpxFile").value = ""; $("gpxFile").click(); });
     $("gpxFile").addEventListener("change", function () {
         var f = this.files && this.files[0];
@@ -2024,7 +2002,11 @@
     function route() {
         var m = /[#&]c=([^&]+)/.exec(location.hash);
         if (hike.running) stopHike();
-        if (m) loadCourse(decodeURIComponent(m[1])); else showPick();
+        if (m) loadCourse(decodeURIComponent(m[1]));
+        else {
+            showPick();
+            if (/^#rec\b/.test(location.hash)) showRecords();   // 코스 미리보기의 '📒 내 기록'
+        }
     }
     window.addEventListener("hashchange", route);
 

@@ -35,6 +35,22 @@ public class HikeScreenTest {
         assertEquals("hike.html 에 없는 아이디", new TreeSet<String>(), missing);
     }
 
+    /** 2026-10-09 코스 미리보기(index.html) - app.js 가 찾는 아이디가 모두 있는지, 내 주변 · 내 기록 · GPX 열기가 이어져 있는지. */
+    @Test
+    public void previewScreenIdsAndTools() throws Exception {
+        String js = read("js/app.js"), html = read("index.html");
+        Set<String> used = new TreeSet<>(), missing = new TreeSet<>();
+        Matcher m = Pattern.compile("\\$\\(\"([A-Za-z][\\w-]*)\"\\)").matcher(js);
+        while (m.find()) used.add(m.group(1));
+        for (String id : used) {
+            if (!html.contains("id=\"" + id + "\"")) missing.add(id);
+        }
+        assertEquals("index.html 에 없는 아이디", new TreeSet<String>(), missing);
+        for (String id : new String[] {"nearMe", "myRecords", "gpxOpen", "gpxFile"}) assertTrue("app.js 에서 씀: " + id, used.contains(id));
+        assertTrue("내 기록은 따라가기 화면으로", js.contains("hike.html#rec") && read("js/hike.js").contains("showRecords();   // 코스 미리보기"));
+        assertTrue("GPX 를 두는 곳은 두 화면이 같이", read("js/course-kit.js").contains("storeGpx: storeGpx"));
+    }
+
     /** 이번에 더한 단추 · 창이 실제로 쓰이고 있는지(지운 뒤 한쪽만 남지 않게). */
     @Test
     public void newControlsAreWired() throws Exception {

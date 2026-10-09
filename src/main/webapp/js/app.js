@@ -330,7 +330,9 @@
         stop();
         show(null);
         // 코스 자료와 지도 준비를 같이 기다립니다(느린 기기에서 지도 타일이 늦어도 목록은 먼저 뜹니다).
-        return Promise.all([getJson("api/course?id=" + encodeURIComponent(id)), mapReady]).then(function (r) {
+        // 'gpx-' 코스는 이 기기에 둔 GPX(📂 GPX 열기 - 따라가기와 같이 씀)
+        var data = RF.isGpxId(id) ? RF.storedGpx(id) : getJson("api/course?id=" + encodeURIComponent(id));
+        return Promise.all([data, mapReady]).then(function (r) {
             var j = r[0];
             clearMarkers();
             var pts = j.points;
@@ -359,7 +361,7 @@
             $("hud").style.display = "block";
             $("mini").style.display = "block";
             $("hikeLink").href = "hike.html#c=" + encodeURIComponent(id);
-            $("shareBtn").style.display = "";
+            $("shareBtn").style.display = RF.isGpxId(id) ? "none" : "";   // 이 기기에만 있는 GPX 는 링크로 보낼 수 없습니다
             renderProfile(c);
             placeHud();
             updateHud(0);
@@ -869,6 +871,42 @@
         if (fromHere && history.length > 1) history.back();
         else location.href = "hike.html";
     });
+    // 📍 내 주변 코스 · 📒 내 기록 · 📂 GPX 열기 - 따라가기 화면의 코스 고르기와 같은 세 가지
+    var meDot = null;
+    $("nearMe").addEventListener("click", function () {
+        if (!navigator.geolocation || !window.isSecureContext) { show("위치는 https 주소에서만 쓸 수 있습니다. 산 이름으로 찾아보세요."); return; }
+        show("현재 위치를 찾는 중…");
+        navigator.geolocation.getCurrentPosition(function (pos) {
+            show(null);
+            var ll = [pos.coords.longitude, pos.coords.latitude];
+            if (!meDot) {
+                var e = document.createElement("div");
+                e.style.cssText = "width:14px;height:14px;border-radius:50%;background:#1a73e8;border:3px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,0.3)";
+                meDot = new maplibregl.Marker({ element: e }).setLngLat(ll).addTo(map);
+            } else meDot.setLngLat(ll);
+            // 검색을 비우고 내 위치 둘레(약 10km)로 - 지도가 멈추면 그 범위 코스로 목록이 바뀝니다
+            list.q = null;
+            $("q").value = "";
+            stop();
+            map.flyTo({ center: ll, zoom: 11.5, pitch: 0, bearing: 0, duration: 1200 });
+            map.once("moveend", function () { loadCourses(); });
+        }, function (e) {
+            show(e.code === 1 ? "위치 권한이 꺼져 있습니다. 브라우저 설정에서 이 사이트의 위치 권한을 허용해 주세요." : "현재 위치를 찾지 못했습니다.");
+        }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 });
+    });
+    $("myRecords").addEventListener("click", function () { location.href = "hike.html#rec"; });   // 기록은 따라가기 화면에 있습니다
+    $("gpxOpen").addEventListener("click", function () { $("gpxFile").value = ""; $("gpxFile").click(); });
+    $("gpxFile").addEventListener("change", function () {
+        var f = this.files && this.files[0];
+        if (!f) return;
+        if (f.size > 5 * 1024 * 1024) { show("GPX 가 너무 큽니다(5MB 까지)."); return; }
+        f.text().then(function (text) {
+            var api = RF.gpxToApi(text, f.name), id = RF.gpxId(text);
+            RF.storeGpx(id, api);   // 📱 따라가기로 넘어가도 같은 GPX 로
+            return select(id);
+        }).catch(function (e) { show("GPX 를 열지 못했습니다: " + (e && e.message || e)); });
+    });
+
     $("toggle").addEventListener("click", function () {
         var side = $("side");
         side.classList.toggle("closed");
