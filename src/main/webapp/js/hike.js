@@ -671,6 +671,12 @@
             + "<trk><name>" + esc(rec.name) + "</name><type>" + esc(rec.kind || "hike") + "</type><trkseg>\n" + pts + "\n</trkseg></trk>\n</gpx>\n";
     }
 
+    /** 공유 창으로 파일을 보낼 수 있는가(앱 · 핸드폰 브라우저). 단추 이름에만 씁니다. */
+    function canShareFiles() {
+        if (FS && SHARE) return true;
+        try { return !!(navigator.canShare && navigator.canShare({ files: [new File(["x"], "a.txt", { type: "text/plain" })] })); } catch (e) { return false; }
+    }
+
     function downloadGpx(rec) {
         var d = new Date(rec.start);
         var name = "routefly-" + d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0")
@@ -680,7 +686,28 @@
                 .catch(function (e) { toast("GPX 를 보내지 못했습니다: " + (e && e.message || e), 5000); });
             return;
         }
-        var blob = new Blob([toGpx(rec)], { type: "application/gpx+xml" });
+        // 핸드폰 브라우저 - 공유 창(카카오톡 · 메일 · 드라이브 · 다른 등산 앱 …). 브라우저마다 받는 파일 종류가 달라 되는 것으로
+        var text = toGpx(rec), file = null;
+        if (navigator.canShare) {
+            ["application/gpx+xml", "application/xml", "text/xml", "text/plain"].some(function (type) {
+                var f = new File([text], name, { type: type });
+                try { if (navigator.canShare({ files: [f] })) { file = f; return true; } } catch (e) { /* 다음 종류 */ }
+                return false;
+            });
+        }
+        if (file) {
+            navigator.share({ files: [file], title: rec.name, text: rec.name + " - routefly 기록" }).catch(function (e) {
+                if (e && e.name === "AbortError") return;   // 사용자가 닫음
+                saveFile(text, name);   // 공유가 막히면 내려받기로
+            });
+            return;
+        }
+        saveFile(text, name);
+    }
+
+    /** 내려받기(공유 창이 없는 컴퓨터 브라우저 등). */
+    function saveFile(text, name) {
+        var blob = new Blob([text], { type: "application/gpx+xml" });
         var a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
         a.download = name;
@@ -720,6 +747,7 @@
             row.appendChild(a); row.appendChild(b); sum.appendChild(row);
         });
         $("doneGpx").onclick = function () { downloadGpx(rec); };
+        $("doneGpx").textContent = canShareFiles() ? "📤 GPX 보내기" : "GPX 저장";
         $("doneSheet").style.display = "flex";
     }
 
@@ -738,7 +766,7 @@
             sp.textContent = d.getFullYear() + "." + (d.getMonth() + 1) + "." + d.getDate() + " · " + km(r.walked) + "km · " + hhmmss(r.end - r.start)
                 + (r.kcal != null ? " · " + num(r.kcal) + "kcal" : "") + (r.steps != null ? " · " + num(r.steps) + "보" : "");
             info.appendChild(b); info.appendChild(sp);
-            var g = document.createElement("button"); g.textContent = "GPX"; g.onclick = function () { downloadGpx(r); };
+            var g = document.createElement("button"); g.textContent = canShareFiles() ? "📤 GPX" : "GPX"; g.title = "GPX 파일 보내기 · 저장"; g.onclick = function () { downloadGpx(r); };
             if (r.notes && r.notes.length) {
                 var nb = document.createElement("button"); nb.textContent = "📝 " + r.notes.length; nb.title = "사진 · 메모 보기";
                 nb.onclick = function () { showNotes(r); };
