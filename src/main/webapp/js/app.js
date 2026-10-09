@@ -144,7 +144,7 @@
         map.addSource("grid", { type: "geojson", data: gridData() });
         map.addLayer({ id: "grid-circle", type: "circle", source: "grid",
             paint: { "circle-color": "rgba(255,183,3,0.82)", "circle-stroke-color": "#ffffff", "circle-stroke-width": 2,
-                     "circle-radius": ["step", ["get", "n"], 9, 10, 13, 50, 17, 200, 22, 1000, 28] } });
+                     "circle-radius": ["step", ["get", "n"], 6, 10, 8, 50, 10, 200, 13, 1000, 16] } });
         map.on("click", "grid-circle", function (e) {
             var f = e.features && e.features[0];
             if (f) map.easeTo({ center: f.geometry.coordinates, zoom: map.getZoom() + 2 });
@@ -863,6 +863,12 @@
         this.textContent = SPEEDS[anim.speedIdx] + "×";
     });
     $("overview").addEventListener("click", function () { stop(); overview(false); });
+    // 뒤로 - 따라가기 화면에서 "코스 미리보기" 로 왔으면 그 화면으로, 바로 열었으면 따라가기 화면으로(2026-10-09)
+    $("back").addEventListener("click", function () {
+        var fromHere = document.referrer && document.referrer.indexOf(location.origin) === 0;
+        if (fromHere && history.length > 1) history.back();
+        else location.href = "hike.html";
+    });
     $("toggle").addEventListener("click", function () {
         var side = $("side");
         side.classList.toggle("closed");

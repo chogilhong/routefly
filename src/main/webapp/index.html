@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>routefly</title>
+<title>routefly 코스 미리보기</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1">
 <meta name="theme-color" content="#15324f">
 <!-- 경로를 3D 지형 위에서 따라가며 보여 주는 화면.
@@ -32,7 +32,10 @@ html, body { margin:0; height:100%; background:#0f141b; color:var(--tx); font-fa
 #side header { display:flex; align-items:center; gap:8px; padding:10px 12px; border-bottom:1px solid var(--ln); }
 #side h1 { margin:0; font-size:17px; letter-spacing:0.3px; }
 #side h1 span { color:var(--route); }
-#toggle { margin-left:auto; border:1px solid var(--ln); background:transparent; color:var(--dim); border-radius:6px; padding:3px 8px; font-size:12px; cursor:pointer; }
+#side h1 small { font-size:13px; font-weight:normal; color:var(--dim); margin-left:6px; letter-spacing:0; }
+#back { margin-left:auto; border:1px solid var(--route); background:var(--route); color:#1b1b1b; font-weight:bold; border-radius:6px;
+        padding:3px 9px; font-size:12px; cursor:pointer; white-space:nowrap; }
+#toggle { border:1px solid var(--ln); background:transparent; color:var(--dim); border-radius:6px; padding:3px 8px; font-size:12px; cursor:pointer; white-space:nowrap; }
 #list { overflow-y:auto; padding:4px 0; }
 #side.closed #list, #side.closed .search { display:none; }
 .search { padding:8px 12px 6px; border-bottom:1px solid var(--ln); }
@@ -109,7 +112,7 @@ body.flying #side { opacity:0; pointer-events:none; }
        z-index:3; display:none; max-width:min(420px, calc(100% - 32px)); text-align:center; line-height:1.5; }
 
 @media (max-width:640px) {
-    #side { width:auto; right:60px; max-height:40%; }   /* 오른쪽은 확대 버튼 자리 */
+    #side { width:auto; right:60px; max-height:65%; }   /* 오른쪽은 확대 버튼 자리. 목록이 두세 줄만 보이던 것 - 40% → 65%(2026-10-09) */
     #hud { top:auto; right:12px; bottom:170px; }        /* 실제 높이는 app.js 가 아래 판 높이에 맞춰 다시 정합니다 */
     #title span.opt { display:none; }
     #profile { height:70px; }
@@ -134,7 +137,8 @@ body.flying #side { opacity:0; pointer-events:none; }
 
 <div id="side" class="panel">
     <header>
-        <h1>route<span>fly</span></h1>
+        <h1>route<span>fly</span><small>코스 미리보기</small></h1>
+        <button type="button" id="back" title="앞 화면(따라가기)으로">← 뒤로</button>
         <button type="button" id="toggle">접기</button>
     </header>
     <div class="search"><input type="search" id="q" placeholder="코스 · 산 이름 검색 (예: 설악산, 공룡)" autocomplete="off" maxlength="50">

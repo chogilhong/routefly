@@ -155,8 +155,11 @@ final class CourseQueries {
         return new Sql(sql.toString(), params.toArray());
     }
 
-    /** 넓게 볼 때 한 변을 몇 칸으로 나눠 셀지. */
-    static final int GRID_CELLS = 24;
+    /**
+     * 넓게 볼 때 긴 변을 몇 칸으로 나눠 셀지. 2026-10-09 홍TV님 핸드폰: 24칸이면 전국 18,780개가 원 수백 개로 겹쳐 지도를 덮어 12칸으로
+     * (세로로 긴 핸드폰 화면에서 칸 하나가 약 60px - 가장 큰 원(지름 32px)도 서로 덜 겹침).
+     */
+    static final int GRID_CELLS = 12;
 
     /**
      * 지도 범위 안 코스 수를 격자 칸마다 셉니다 - 목록이 {@link #LIST_LIMIT} 를 넘을 때 화면이 전국 · 넓은 범위의 코스 분포를 원으로 그립니다.
