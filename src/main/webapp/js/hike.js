@@ -77,6 +77,8 @@
     var CAP = window.Capacitor;
     var NATIVE = !!(CAP && CAP.isNativePlatform && CAP.isNativePlatform());
     function plugin(name) { return NATIVE && CAP.registerPlugin ? CAP.registerPlugin(name) : null; }
+    var BATTERY_KEY = "rf-battery", batterySave = false;
+    try { batterySave = localStorage.getItem(BATTERY_KEY) === "1"; } catch (e) { /* 기본은 끔 */ }
     var BG = plugin("BackgroundGeolocation"), TTS = plugin("TextToSpeech"), FS = plugin("Filesystem"), SHARE = plugin("Share");
 
     /** 앱 - 파일을 앱 임시 폴더에 쓰고 공유 창으로(문자 · 카카오톡 · 파일 저장 …). */
@@ -99,11 +101,15 @@
 
     /**
      * 음성 안내 - 브라우저 내장 읽어 주기(Web Speech API, 한국어). 갈림길 · 지점 · 1km 마다 · 코스 이탈 · 일몰 · 도착.
-     * 켜고 끄기는 지도 왼쪽 🔊 버튼(이 기기에 기억). 화면이 켜져 있을 때 확실히 나옵니다(꺼지면 브라우저가 멈출 수 있음).
+     * 지도 왼쪽 버튼으로 자세히(🔊) → 짧게(🔉) → 끔(🔇) 차례로 바꿉니다(이 기기에 기억).
+     * 짧게는 지점 이름 · 거리 이정 · 갈림길 · 이탈만 말하고 지난 시간 · 다음 지점까지는 빼고 말합니다.
+     * 화면이 켜져 있을 때 확실히 나옵니다(꺼지면 브라우저가 멈출 수 있음).
      */
     var VOICE_KEY = "rf-voice";
-    var voice = { on: true, ko: null, last: {} };
-    try { voice.on = localStorage.getItem(VOICE_KEY) !== "off"; } catch (e) { /* 기본은 켜짐 */ }
+    var VOICE_LEVELS = ["on", "short", "off"];   // 저장 값 - 예전 "on" 은 자세히
+    var voice = { on: true, level: "on", ko: null, last: {} };
+    try { var v0 = localStorage.getItem(VOICE_KEY); if (VOICE_LEVELS.indexOf(v0) >= 0) voice.level = v0; } catch (e) { /* 기본은 자세히 */ }
+    voice.on = voice.level !== "off";
 
     function pickVoice() {
         if (!("speechSynthesis" in window)) return;
@@ -145,12 +151,13 @@
         speechSynthesis.speak(u);
     }
 
-    function setVoice(on) {
-        voice.on = on;
-        try { localStorage.setItem(VOICE_KEY, on ? "on" : "off"); } catch (e) { /* 저장 못 해도 이번에는 */ }
-        $("voice").textContent = on ? "🔊" : "🔇";
-        $("voice").classList.toggle("on", on);
-        if (!on) stopTalking();
+    function setVoice(level) {
+        voice.level = level;
+        voice.on = level !== "off";
+        try { localStorage.setItem(VOICE_KEY, level); } catch (e) { /* 저장 못 해도 이번에는 */ }
+        $("voice").textContent = level === "on" ? "🔊" : level === "short" ? "🔉" : "🔇";
+        $("voice").classList.toggle("on", voice.on);
+        if (!voice.on) stopTalking();
     }
 
     function stopTalking() {
@@ -203,6 +210,7 @@
      * "출발한 지 5시간 20분. 다음 소청대피소까지 1.3킬로미터, 오르막 250미터입니다." 다음 지점이 없으면 도착까지.
      */
     function passInfo(atD) {
+        if (voice.level === "short") return "";
         var out = "출발한 지 " + spokenTime(now() - hike.start) + ".";
         var nx = RF.nextPoi(c, atD), nd = nx ? Math.min(+nx.dist_m, c.total) : c.total;
         if (nd - atD < 100) return out;   // 바로 앞이면 거리는 빼고
@@ -231,7 +239,7 @@
                 if (ele == null && q.ele_m != null) ele = +q.ele_m;
                 far = Math.max(far, +q.dist_m);
             });
-            say(names.join(", ") + "입니다." + (ele != null ? " 해발 " + num(ele) + "미터." : "") + " " + passInfo(far));
+            say((names.join(", ") + "입니다." + (ele != null ? " 해발 " + num(ele) + "미터." : "") + " " + passInfo(far)).trim());
         }
         // 거리 이정
         var step = K() === RF.KINDS.bike ? 5000 : 1000;
@@ -239,7 +247,7 @@
         if (c.total > step * 1.5 && k > hike.kmSpoken && c.total - d > 300) {
             hike.kmSpoken = k;
             var asc = RF.ascentLeft(c, d);
-            say(num(k * step / 1000) + "킬로미터 지났습니다. 출발한 지 " + spokenTime(now() - hike.start) + ". 남은 거리 " + skm(c.total - d) + "킬로미터"
+            say(num(k * step / 1000) + "킬로미터 지났습니다. " + (voice.level === "short" ? "" : "출발한 지 " + spokenTime(now() - hike.start) + ". ") + "남은 거리 " + skm(c.total - d) + "킬로미터"
                 + (asc >= 50 && K() !== RF.KINDS.bike ? ", 남은 오르막 " + num(asc) + "미터." : "."));
         }
     }
@@ -431,6 +439,10 @@
                 map.addLayer({ id: "junctions", type: "circle", source: "junctions",
                     paint: { "circle-radius": 4.5, "circle-color": "#ffffff", "circle-stroke-color": "#1a73e8", "circle-stroke-width": 2 } });
                 // 코스에서 벗어났을 때 가장 가까운 길까지 점선
+                // 내 기록 하나를 지도에 볼 때 - 보라 선(코스 선과 헷갈리지 않게)
+                map.addSource("recTrack", { type: "geojson", data: empty });
+                map.addLayer({ id: "recTrack", type: "line", source: "recTrack", layout: { "line-join": "round", "line-cap": "round" },
+                    paint: { "line-color": "#c77dff", "line-width": 4, "line-opacity": 0.9 } });
                 map.addSource("guide", { type: "geojson", data: empty });
                 map.addLayer({ id: "guide", type: "line", source: "guide",
                     paint: { "line-color": "#ff5d5d", "line-width": 3, "line-dasharray": [1.5, 1.2] } });
@@ -505,10 +517,21 @@
         return [w, s, e, n].map(function (v) { return v.toFixed(5); }).join(",");
     }
 
+    // 같은 범위(되돌아가기 · 같은 산 갈래 바꾸기)는 다시 묻지 않습니다 - 마지막 몇 개만 기억
+    var trailsMemo = [];
+    function trailsJson(url) {
+        for (var i = 0; i < trailsMemo.length; i++) if (trailsMemo[i].url === url) return trailsMemo[i].p;
+        var p = getJson(url);
+        trailsMemo.unshift({ url: url, p: p });
+        trailsMemo.length = Math.min(trailsMemo.length, 4);
+        p.catch(function () { trailsMemo = trailsMemo.filter(function (m) { return m.p !== p; }); });
+        return p;
+    }
+
     function loadTrails() {
         trails = [];
         var id = c.id;
-        getJson("api/trails?bbox=" + courseBbox(0.01)).then(function (j) {
+        trailsJson("api/trails?bbox=" + courseBbox(0.01)).then(function (j) {
             if (!c || c.id !== id) return;
             trails = (j.trails || []).filter(function (t) { return t.id !== id && t.coords.length > 1; }).map(function (t) {
                 var tc = { id: t.id, name: t.name, lon: [], lat: [], dist: [0], ele: [] };
@@ -804,6 +827,9 @@
                 nb.onclick = function () { showNotes(r); };
                 row.appendChild(info); info = null; row.appendChild(nb);
             }
+            var v = document.createElement("button"); v.textContent = "📈"; v.title = "고도 그래프 · 지도에 보기";
+            v.onclick = function () { showRecord(r); };
+            row.appendChild(v);
             var x = document.createElement("button"); x.textContent = "지우기";
             x.onclick = function () {
                 if (!confirm("이 기록을 지울까요?")) return;
@@ -817,6 +843,48 @@
             box.appendChild(row);
         });
         $("recSheet").style.display = "flex";
+    }
+
+    /**
+     * 기록 하나 보기(2026-10-09) - 요약, 고도 그래프(사진 · 메모 자리 표시), "지도에 보기" 는 지금 지도에 보라 선으로 그리고
+     * 그 범위로 옮깁니다(코스는 그대로, 다시 누르면 선을 지움). 기록에 고도가 없으면 그래프 대신 안내 글.
+     */
+    function showRecord(rec) {
+        var rc = RF.recordCourse(rec), sum = $("recViewSum");
+        $("recViewTitle").textContent = "📈 " + rec.name;
+        sum.innerHTML = "";
+        var d = new Date(rec.start);
+        var eles = rc.ele.filter(function (e) { return e != null; });
+        [["날짜", d.getFullYear() + "." + (d.getMonth() + 1) + "." + d.getDate() + " " + clock(rec.start)],
+         ["걸은 거리", km(rec.walked) + " km"], ["걸린 시간", hhmmss(rec.end - rec.start)]]
+            .concat(rec.up != null ? [["오른 높이", num(rec.up) + " m"]] : [])
+            .concat(eles.length ? [["가장 높은 곳", num(Math.max.apply(null, eles)) + " m"]] : [])
+            .concat(rec.kcal != null ? [["칼로리(추정)", num(rec.kcal) + " kcal"]] : [])
+            .forEach(function (r) {
+                var row = document.createElement("div"), a = document.createElement("span"), b = document.createElement("b");
+                a.textContent = r[0]; b.textContent = r[1];
+                row.appendChild(a); row.appendChild(b); sum.appendChild(row);
+            });
+        $("recView").style.display = "flex";   // 그래프 이름표 자리를 재려면 먼저 보여야 합니다
+        if (rc.lat.length > 1) RF.profile($("recViewProfile"), rc, {}).set(rc.total);   // 다 걸은 기록이라 끝까지 색칠
+        else $("recViewProfile").textContent = "";
+        $("recViewMap").disabled = rc.lat.length < 2;
+        $("recViewMap").onclick = function () {
+            if (!mapReady) { toast("지도가 아직 준비되지 않았습니다.", 2500); return; }
+            mapReady.then(function () {
+                map.getSource("recTrack").setData({ type: "FeatureCollection", features: [{ type: "Feature", properties: {},
+                    geometry: { type: "LineString", coordinates: rc.lon.map(function (lon, i) { return [lon, rc.lat[i]]; }) } }] });
+                var b = new maplibregl.LngLatBounds();
+                for (var i = 0; i < rc.lon.length; i++) b.extend([rc.lon[i], rc.lat[i]]);
+                setFollow(false);
+                map.fitBounds(b, { padding: 50, duration: 0, maxZoom: 16 });
+                $("recClear").style.display = "block";
+            });
+            $("recView").style.display = "none";
+            $("recSheet").style.display = "none";
+            $("pick").style.display = "none";   // 코스를 고르기 전(내 기록으로 바로 온 때)에도 지도가 보이게
+        };
+        $("recViewClose").onclick = function () { $("recView").style.display = "none"; };
     }
 
     // ------------------------------------------------------------------ 사진 · 메모 (2026-10-08 홍TV님 - 램블러처럼 기록에 사진 · 메모)
@@ -1044,7 +1112,7 @@
             $("gps").className = "";
             BG.addWatcher({ backgroundTitle: "routefly - " + K().act + " 중",
                             backgroundMessage: "화면을 꺼도 위치를 기록하고 갈림길 · 코스 이탈을 알려 줍니다.",
-                            requestPermissions: true, stale: false, distanceFilter: 3 },
+                            requestPermissions: true, stale: false, distanceFilter: batterySave ? 10 : 3 },
                 function (loc, err) {
                     if (err) {
                         if (err.code === "NOT_AUTHORIZED" && confirm("위치 권한이 꺼져 있습니다. 설정을 열어 routefly 의 위치를 '앱 사용 중에만 허용' 으로 바꿀까요?")) {
@@ -1061,7 +1129,8 @@
                 });
             // 2026-10-08 (홍TV님 - 배터리): 앱은 화면을 꺼도 위치 · 음성 안내가 이어지므로 화면을 켜 두지 않습니다(Wake Lock 안 함).
             // 화면이 가장 큰 배터리 소비라, 주머니에 넣고 다니라고 한 번 알립니다. 브라우저는 화면이 꺼지면 멈추므로 아래처럼 켜 둡니다.
-            toast("화면을 꺼도 기록 · 갈림길 · 코스 이탈 음성 안내가 이어집니다. 배터리를 아끼려면 화면을 꺼 두세요.", 7000);
+            toast("화면을 꺼도 기록 · 갈림길 · 코스 이탈 음성 안내가 이어집니다. 배터리를 아끼려면 화면을 꺼 두세요."
+                + (batterySave ? " (배터리 절약 켬)" : " 위쪽 GPS 글자를 누르면 배터리 절약 모드."), 7000);
         } else {
             $("gps").textContent = "GPS 찾는 중…";
             $("gps").className = "";
@@ -1624,6 +1693,11 @@
     });
     $("myRecords").addEventListener("click", showRecords);
     $("recClose").addEventListener("click", function () { $("recSheet").style.display = "none"; });
+    $("recClear").addEventListener("click", function () {
+        if (mapReady) mapReady.then(function () { map.getSource("recTrack").setData({ type: "FeatureCollection", features: [] }); });
+        $("recClear").style.display = "none";
+        if (!c) showPick();   // 코스 없이 기록만 보던 때 - 코스 고르기로 돌아감
+    });
     $("doneClose").addEventListener("click", function () { $("doneSheet").style.display = "none"; });
 
     // ------------------------------------------------------------------ 나침반
@@ -1669,6 +1743,19 @@
         }
     }
 
+    // 배터리 절약(앱만, 2026-10-09): 위치를 3m 대신 10m 움직일 때마다 받습니다. 코스 이탈(수십 m) 판단에는 충분하고
+    // 기록 선이 조금 거칠어집니다. 위쪽 GPS 글자를 눌러 바꾸고, 다음 "산행 시작" 부터 적용합니다. 브라우저는 바꿀 것이 없어 보이지 않습니다.
+    if (BG) {
+        $("gps").style.cursor = "pointer";   // className 은 GPS 상태가 바꿉니다
+        $("gps").title = "누르면 배터리 절약 모드 켜기 · 끄기";
+        $("gps").addEventListener("click", function () {
+            batterySave = !batterySave;
+            try { localStorage.setItem(BATTERY_KEY, batterySave ? "1" : "0"); } catch (e) { /* 이번만 */ }
+            toast((batterySave ? "배터리 절약 켬 - 위치를 10m 마다 받습니다." : "배터리 절약 끔 - 위치를 3m 마다 받습니다.")
+                + (hike.running && !hike.sim ? " 다음 산행 시작부터 적용됩니다." : ""), 4000);
+        });
+    }
+
     $("kcalBox").addEventListener("click", function () {
         var kg = askNumber("몸무게(kg)를 넣어 주세요. 칼로리 추정에만 쓰고 이 핸드폰에만 저장합니다.", body.kg, 20, 200);
         if (kg == null) return;
@@ -1703,11 +1790,12 @@
     }, { passive: true });
 
     $("voice").addEventListener("click", function () {
-        setVoice(!voice.on);
-        if (voice.on) say("음성 안내를 켰습니다.", { urgent: true });
+        setVoice(VOICE_LEVELS[(VOICE_LEVELS.indexOf(voice.level) + 1) % VOICE_LEVELS.length]);
+        if (voice.level === "on") say("음성 안내를 자세히 합니다.", { urgent: true });
+        else if (voice.level === "short") say("음성 안내를 짧게 합니다.", { urgent: true });
         else toast("음성 안내를 껐습니다.", 2000);
     });
-    setVoice(voice.on);
+    setVoice(voice.level);
     if (!TTS && !("speechSynthesis" in window)) $("voice").style.display = "none";   // 읽어 주기가 없는 브라우저
 
     $("compass").addEventListener("click", function () {

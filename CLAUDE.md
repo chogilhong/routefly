@@ -17,12 +17,16 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다(route_course · 
 - 호출하는 곳이 없는 메서드는 남기지 않습니다. 고친 뒤 되돌려 확인합니다(고친 조각을 되돌리면 그 테스트가 실제로 깨지는지).
 - 지도 출처 표시를 숨기거나 지우지 않습니다. OpenStreetMap 은 ODbL 이라 "© OpenStreetMap contributors" 가 늘 보여야 합니다(README). MapLibre 는 BSD-3.
 - 안전 문구(hike.js 의 `SAFETY_KEY`)를 바꾸면 키의 버전도 올립니다(README).
+- 보안 · 속도 필터: `SecurityFilter`(모든 응답에 보안 헤더, /api · /s 는 IP 마다 분당 120번 남짓 제한), `GzipFilter`(/api 응답 1KB 넘으면 gzip).
+  공유 링크 주소는 `site.baseUrl` 설정이 있으면 그것을, 없으면 요청의 Host 를 씁니다(X-Forwarded-Host 는 믿지 않음). 오류 응답에 내부 사정(SQL · 예외 글)을 넣지 않습니다.
 - 화면 캐시: html · js · css 는 `NoStaleFilter` 가 no-cache 로 보냅니다. 서비스워커(`src/main/webapp/sw.js`)가 캐시하는 모양이 바뀌면 그 캐시 이름(rf-shell-v2 등)의 번호를 올립니다.
 
 ## 3. 테스트
 
-- 이 PC: `.claude\run-tests.ps1 [-Only web.WebBasicsTest]` (Maven 없이 javac + JUnit 4, DB 없이 돕니다). 웹(클라우드): `mvn test` (routefly 는 웹소켓을 안 써서 totonian · investing 과 달리 그대로 됩니다).
-- 전체 테스트가 모두 통과하는 것이 정상입니다(2026-10-08 기준 18건). 하나라도 실패하면 새로 깨진 것이니 고칩니다.
+- 이 PC: `.claude\run-tests.ps1 [-Only web.WebBasicsTest]` (Maven 없이 javac + JUnit 4, DB 없이 돕니다). 웹(클라우드): `LC_ALL=C.UTF-8 mvn -o test`
+  (routefly 는 웹소켓을 안 써서 totonian · investing 과 달리 그대로 됩니다. 한글 파일 이름 때문에 LC_ALL 이 필요합니다).
+- 전체 테스트가 모두 통과하는 것이 정상입니다(2026-10-09 기준 26건). 하나라도 실패하면 새로 깨진 것이니 고칩니다.
+- course-kit.js 순수 함수는 `src/test/js/course-kit.test.js` 를 node 로 돌립니다(`CourseKitJsTest` 가 부름, node 가 없으면 건너뜀).
 - 테스트 데이터는 만들거나 받으면 바로 커밋합니다.
 
 ## 4. 비밀값
