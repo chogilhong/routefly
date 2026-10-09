@@ -55,9 +55,9 @@ public class CoursesServlet extends HttpServlet {
             if (truncated && bbox != null && q == null) out.add("grid", CourseQueries.grid(c, bbox, kind));
             Json.write(resp, HttpServletResponse.SC_OK, out, true);
         } catch (Exception e) {
-            log.warn("[COURSES] 조회 실패 - {}", e.toString());
+            log.warn("[COURSES] 조회 실패 - {} (DB 접속 설정 db.url 등 · 표 routefly-batch sql/route_ddl.sql 확인)", e.toString());
             Json.fail(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    "코스를 읽지 못했습니다. DB 접속 설정(db.url 등)과 표(routefly-batch sql/route_ddl.sql)를 확인하세요.");
+                    "코스를 읽지 못했습니다. 잠시 뒤 다시 해 주세요.");
         }
     }
 }

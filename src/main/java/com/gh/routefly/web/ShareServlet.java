@@ -50,13 +50,8 @@ public class ShareServlet extends HttpServlet {
         } catch (Exception e) {
             log.warn("[SHARE] 조회 실패 id={} - {}", id, e.toString());   // 미리 보기만 못 할 뿐 넘어가기는 됩니다
         }
-        String base = req.getScheme() + "://" + req.getServerName()
-                + (req.getServerPort() == 80 || req.getServerPort() == 443 ? "" : ":" + req.getServerPort()) + req.getContextPath();
-        // nginx 뒤라면 X-Forwarded-Proto/Host 를 따릅니다(https 주소로 카드 이미지가 나오게)
-        String fwdHost = req.getHeader("X-Forwarded-Host"), fwdProto = req.getHeader("X-Forwarded-Proto");
-        if (fwdHost != null && !fwdHost.isBlank()) {
-            base = (fwdProto != null && !fwdProto.isBlank() ? fwdProto : "https") + "://" + fwdHost.trim() + req.getContextPath();
-        }
+        String base = baseUrl(RouteflyConfig.get("site.baseUrl"), req.getScheme(), req.getServerName(), req.getServerPort(),
+                req.getContextPath(), req.getHeader("X-Forwarded-Proto"));
         String target = base + (hike ? "/hike.html#c=" : "/#c=") + id;
         resp.setStatus(HttpServletResponse.SC_OK);
         resp.setContentType("text/html");
@@ -90,6 +85,19 @@ public class ShareServlet extends HttpServlet {
                 + "</head><body style=\"background:#11161d;color:#eee;font-family:sans-serif\">"
                 + "<p><a style=\"color:#38d9ea\" href=\"" + g + "\">" + t + " 열기</a></p>"
                 + "<script>location.replace(" + jsString(target) + ");</script></body></html>";
+    }
+
+    /**
+     * 순수 함수 - 이 사이트 주소(공유 카드 · 넘어갈 주소). 설정 site.baseUrl 이 있으면 그것.
+     * 없으면 요청의 Host 로 만들되 X-Forwarded-Host 는 믿지 않습니다(2026-10-09 보안 - 누가 꾸민 머리글로 만든 페이지가
+     * Cloudflare 등에 5분 캐시돼 다른 사람이 엉뚱한 사이트로 넘어갈 수 있었음). 프로토콜은 http · https 만.
+     */
+    static String baseUrl(String configured, String scheme, String host, int port, String contextPath, String forwardedProto) {
+        if (configured != null && configured.matches("https?://[A-Za-z0-9.:\\-]+(/[\\w./-]*)?")) return configured.replaceAll("/+$", "");
+        String proto = "https".equalsIgnoreCase(forwardedProto) ? "https" : "https".equalsIgnoreCase(scheme) ? "https" : "http";
+        String h = host == null ? "localhost" : host.replaceAll("[^A-Za-z0-9.\\-]", "");
+        boolean defaultPort = port == 80 || port == 443 || "https".equals(proto) && !"https".equalsIgnoreCase(scheme);
+        return proto + "://" + h + (defaultPort ? "" : ":" + port) + contextPath;
     }
 
     static String esc(String s) {
