@@ -124,6 +124,7 @@ body.flying #side { opacity:0; pointer-events:none; }
     #controls #speed { flex-grow:0.8; }
     #caption { top:46%; }
     #mini { top:12px; right:60px; width:104px; height:104px; }
+    .maplibregl-ctrl-top-right { z-index:3; }   /* 출처 상자(OSM 등)가 목록 창 뒤로 가려지지 않게 */
     body:not(.flying) #mini { visibility:hidden; }   /* 좁은 화면에서는 비행 중에만(목록 자리) */
 }
 </style>

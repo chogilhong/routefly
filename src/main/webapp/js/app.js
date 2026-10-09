@@ -20,6 +20,7 @@
     var mapReady;            // 지도 스타일이 읽힌 뒤 경로 층을 붙이고 풀리는 약속 - 목록은 이것을 기다리지 않습니다
     var courses = [];
     var list = { q: null, kind: "", truncated: false, seq: 0, timer: 0 };   // 목록 상태 - 검색어가 있으면 검색, 없으면 지도 범위
+    var grid = null;         // 넓은 범위라 목록이 잘렸을 때 서버가 준 격자 칸별 코스 수 [{n, lon, lat}] - 출발점 대신 지도에 그립니다
     var cur = null;          // 지금 코스 {id, course, lon[], lat[], ele[], dist[], total, pois[], markers[]}
     var anim = { running: false, d: 0, speedIdx: 0, last: 0, bearing: 0, pitch: 70, pitchWant: 70, pitchAt: 0, raf: 0 };
 
@@ -139,7 +140,16 @@
                 map.easeTo({ center: f.geometry.coordinates, zoom: z + 0.5 });
             });
         });
-        ["starts-point", "starts-cluster"].forEach(function (id) {
+        // 넓은 범위: 격자 칸마다 코스 수(원 크기). 누르면 그쪽으로 확대합니다.
+        map.addSource("grid", { type: "geojson", data: gridData() });
+        map.addLayer({ id: "grid-circle", type: "circle", source: "grid",
+            paint: { "circle-color": "rgba(255,183,3,0.82)", "circle-stroke-color": "#ffffff", "circle-stroke-width": 2,
+                     "circle-radius": ["step", ["get", "n"], 9, 10, 13, 50, 17, 200, 22, 1000, 28] } });
+        map.on("click", "grid-circle", function (e) {
+            var f = e.features && e.features[0];
+            if (f) map.easeTo({ center: f.geometry.coordinates, zoom: map.getZoom() + 2 });
+        });
+        ["starts-point", "starts-cluster", "grid-circle"].forEach(function (id) {
             map.on("mouseenter", id, function () { map.getCanvas().style.cursor = "pointer"; });
             map.on("mouseleave", id, function () { map.getCanvas().style.cursor = ""; });
         });
@@ -186,12 +196,26 @@
     // ------------------------------------------------------------------ 코스 목록
 
     function startsData() {
+        // 넓은 범위(목록이 잘림)에서는 앞 300개 출발점 대신 격자 칸별 코스 수(gridData)를 그립니다
+        if (grid) return { type: "FeatureCollection", features: [] };
         return { type: "FeatureCollection", features: courses.filter(function (c) {
             return !cur || c.course_id !== cur.id;
         }).map(function (c) {
             return { type: "Feature", properties: { id: c.course_id, name: c.name },
                      geometry: { type: "Point", coordinates: [+c.start_lon, +c.start_lat] } };
         }) };
+    }
+
+    /** 격자 칸마다 코스 수 - 칸 안 출발점들의 평균 자리에 원 하나(2026-10-09 - 전국을 볼 때 이름 순 앞 300개만 찍히던 것). */
+    function gridData() {
+        return { type: "FeatureCollection", features: (grid || []).map(function (g) {
+            return { type: "Feature", properties: { n: +g.n }, geometry: { type: "Point", coordinates: [+g.lon, +g.lat] } };
+        }) };
+    }
+
+    /** 격자 원들의 코스 수 합 - 지도 범위 안 코스 수. */
+    function gridTotal() {
+        return (grid || []).reduce(function (s, g) { return s + (+g.n); }, 0);
     }
 
     /** 지금 지도 범위(경위도 사각형). 기울인 화면은 바깥 사각형입니다. */
@@ -228,8 +252,10 @@
             courses = j.courses || [];
             list.truncated = !!j.truncated;
             list.nationwide = !!j.nationwide;
+            grid = j.grid && j.grid.length ? j.grid : null;
             renderList();
             if (map.getSource("starts")) map.getSource("starts").setData(startsData());
+            if (map.getSource("grid")) map.getSource("grid").setData(gridData());
         }).catch(function (e) {
             if (seq !== list.seq) return;
             listMessage("코스 목록을 불러오지 못했습니다: " + e.message);
@@ -257,7 +283,9 @@
         box.textContent = "";
         var head = document.createElement("div");
         head.className = "count";
-        head.textContent = (list.q ? "\u201C" + list.q + "\u201D 검색 "
+        head.textContent = grid
+            ? "지도 범위 안 " + num(gridTotal()) + "개 - 가운데에서 가까운 " + num(courses.length) + "개만 목록에 보여 줍니다. 지도의 원을 누르거나 확대 · 검색하세요."
+            : (list.q ? "\u201C" + list.q + "\u201D 검색 "
                 : list.nationwide ? (courses.length ? "이 범위에는 없어 전국 " + RF.kindOf(list.kind).label + " 코스 " : "전국 " + RF.kindOf(list.kind).label + " 코스 ") : "지도 범위 안 ") + num(courses.length) + "개"
             + (list.truncated ? " 넘음 - 앞 " + num(courses.length) + "개만 보여 줍니다. " + (list.q ? "검색어를 더 적어 주세요." : "지도를 확대하거나 검색하세요.") : "");
         box.appendChild(head);
@@ -763,7 +791,7 @@
         // 출처 표시(지형 · 위성사진 이용 조건)는 아래 판에 가리지 않게 확대 버튼 아래에 둡니다.
         // 코스 · 지점 이름은 routefly-batch 가 OpenStreetMap 지명(ODbL)으로 붙입니다 - 출처를 같이 표시합니다.
         map.addControl(new maplibregl.AttributionControl({ compact: true,
-            customAttribution: "등산로: 산림청 등산로정보 | 걷기길: 한국관광공사 두루누비 | 지명 · 자전거길: <a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\" rel=\"noopener\">© OpenStreetMap contributors</a>"
+            customAttribution: "등산로: 산림청 등산로정보 | 걷기길: 한국관광공사 두루누비 | 봉우리 · 국가숲길: 한국등산·트레킹지원센터 | 지명 · 자전거길 · 등산 노선: <a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\" rel=\"noopener\">© OpenStreetMap contributors</a>"
                 + " | <a href=\"about.html\">안전 · 개인정보 · 출처 안내</a>" }), "top-right");
         map.on("error", function (e) {
             // 타일 한 장이 안 와도 지도는 계속 씁니다 - 콘솔에만 남깁니다.
@@ -783,6 +811,9 @@
         });
         // 처음 목록은 지도가 뜨기 전에 바로 받습니다(처음 화면 = 우리나라 전체 범위).
         loadCourses();
+        // 핸드폰(좁은 화면)은 목록을 접은 채로 시작합니다 - 목록이 지도 위쪽 절반을 덮고 출처 상자와 겹치던 것(2026-10-09).
+        // "코스" 단추를 누르면 펼칩니다. 주소에 코스(#c=)가 있으면 select() 가 정합니다.
+        if (isNarrow() && !$("side").classList.contains("closed")) $("toggle").click();
         map.on("moveend", scheduleViewLoad);
         map.on("render", declutterSoon);   // 이름표 겹침 - 지도가 움직이는 동안 0.15초마다 다시
         var m = /[#&]c=([^&]+)/.exec(location.hash);
@@ -836,6 +867,12 @@
         var side = $("side");
         side.classList.toggle("closed");
         this.textContent = side.classList.contains("closed") ? "코스" : "접기";
+        // 핸드폰에서 목록을 펼치면 펼쳐진 출처 글 상자가 검색창을 덮으므로 ⓘ 로 접습니다 - 지도를 끌 때 MapLibre 가
+        // 스스로 접는 것과 같고, ⓘ 를 누르면 다시 보입니다(2026-10-09).
+        if (isNarrow() && !side.classList.contains("closed")) {
+            var attrib = document.querySelector(".maplibregl-ctrl-attrib.maplibregl-compact-show .maplibregl-ctrl-attrib-button");
+            if (attrib) attrib.click();
+        }
     });
     window.addEventListener("resize", placeHud);
     document.addEventListener("keydown", function (e) {

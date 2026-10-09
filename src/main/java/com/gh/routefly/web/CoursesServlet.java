@@ -20,7 +20,8 @@ import com.google.gson.JsonObject;
  * <ul>
  *   <li>{@code q} - 이름 검색(부분 일치, 예: "공룡" → "설악산 공룡능선").</li>
  *   <li>{@code bbox} - 그 화면 범위에 걸치는 코스만(공간 인덱스).</li>
- *   <li>최대 {@value CourseQueries#LIST_LIMIT}개. 더 있으면 {@code truncated: true} - 화면이 "확대하거나 검색하세요" 를 띄웁니다.</li>
+ *   <li>최대 {@value CourseQueries#LIST_LIMIT}개. 더 있으면 {@code truncated: true} - 화면이 "확대하거나 검색하세요" 를 띄웁니다.
+ *       지도 범위로 받을 때는 범위 가운데에서 가까운 코스부터, 잘렸으면 {@code grid: [{n, lon, lat}, ...]}(격자 칸마다 코스 수)도 보냅니다.</li>
  * </ul>
  * 경로 점은 빼고 요약만 보냅니다 - 코스를 고르면 화면이 {@code /api/course} 로 한 코스를 받습니다.
  */
@@ -50,6 +51,8 @@ public class CoursesServlet extends HttpServlet {
             out.addProperty("success", true);
             out.add("courses", courses);
             out.addProperty("truncated", truncated);
+            // 넓은 범위라 잘렸으면 격자 칸마다 코스 수 - 화면이 전국 분포를 원으로 그립니다(2026-10-09)
+            if (truncated && bbox != null && q == null) out.add("grid", CourseQueries.grid(c, bbox, kind));
             Json.write(resp, HttpServletResponse.SC_OK, out, true);
         } catch (Exception e) {
             log.warn("[COURSES] 조회 실패 - {}", e.toString());

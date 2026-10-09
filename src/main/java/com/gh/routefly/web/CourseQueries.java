@@ -117,13 +117,73 @@ final class CourseQueries {
         return BigDecimal.valueOf(v).toPlainString();
     }
 
+    /** SQL 과 ? 에 들어갈 값(등장 순서). */
+    record Sql(String sql, Object[] params) {
+    }
+
     /**
      * 코스 목록(경로 점은 빼고 요약만). bbox · kind · q 는 없으면 null.
      * 최대 {@link #LIST_LIMIT} + 1 줄을 읽습니다 - 한 줄이 더 있으면 잘렸다는 뜻입니다(서블릿이 떼고 알림).
      */
     static JsonArray list(Connection c, double[] bbox, String kind, String q) throws Exception {
-        StringBuilder sql = new StringBuilder("SELECT ").append(LIST_COLUMNS).append(" FROM route_course");
+        Sql s = listSql(bbox, kind, q);
+        return Json.rows(c, s.sql(), s.params());
+    }
+
+    /**
+     * 순수 함수 - 목록 SQL. 검색어가 있으면 그 말로 시작하는 이름 먼저, 지도 범위만 있으면 범위 가운데에서 가까운 출발점 먼저
+     * (2026-10-09 홍TV님 - 전국을 볼 때 이름 순 앞 300개("116고지 · 133고지 …")만 와서 코스가 엉뚱한 곳에만 보이던 것), 둘 다 없으면 이름 순.
+     */
+    static Sql listSql(double[] bbox, String kind, String q) {
         List<Object> params = new ArrayList<>();
+        StringBuilder sql = new StringBuilder("SELECT ").append(LIST_COLUMNS).append(" FROM route_course").append(where(bbox, kind, q, params));
+        if (q != null) {
+            // 검색어로 시작하는 이름이 먼저('송산' → 송산 · … 가 공주향교뒷산 · 송산리… 보다 앞)
+            sql.append(" ORDER BY CASE WHEN name LIKE ? THEN 0 ELSE 1 END, name");
+            params.add(likePattern(q).substring(1));
+        } else if (bbox != null) {
+            // 가운데에서 가까운 순 - 경도 1° 는 위도 1° 보다 짧아(cos 위도) 곱해서 맞춥니다
+            double lat = (bbox[1] + bbox[3]) / 2, lon = (bbox[0] + bbox[2]) / 2;
+            sql.append(" ORDER BY POW(start_lat - ?, 2) + POW((start_lon - ?) * ?, 2), name");
+            params.add(lat);
+            params.add(lon);
+            params.add(Math.cos(Math.toRadians(lat)));
+        } else {
+            sql.append(" ORDER BY name");
+        }
+        sql.append(" LIMIT ").append(LIST_LIMIT + 1);
+        return new Sql(sql.toString(), params.toArray());
+    }
+
+    /** 넓게 볼 때 한 변을 몇 칸으로 나눠 셀지. */
+    static final int GRID_CELLS = 24;
+
+    /**
+     * 지도 범위 안 코스 수를 격자 칸마다 셉니다 - 목록이 {@link #LIST_LIMIT} 를 넘을 때 화면이 전국 · 넓은 범위의 코스 분포를 원으로 그립니다.
+     * 줄마다 {@code {n, lon, lat}}(칸 안 출발점 평균 자리).
+     */
+    static JsonArray grid(Connection c, double[] bbox, String kind) throws Exception {
+        Sql s = gridSql(bbox, kind);
+        return Json.rows(c, s.sql(), s.params());
+    }
+
+    /** 순수 함수 - 격자 세기 SQL. 칸 크기는 {@link #gridCellDeg}. */
+    static Sql gridSql(double[] bbox, String kind) {
+        List<Object> params = new ArrayList<>();
+        String w = where(bbox, kind, null, params);
+        double cell = gridCellDeg(bbox);
+        params.add(cell);
+        params.add(cell);
+        return new Sql("SELECT COUNT(*) AS n, AVG(start_lon) AS lon, AVG(start_lat) AS lat FROM route_course" + w
+                + " GROUP BY FLOOR(start_lon / ?), FLOOR(start_lat / ?)", params.toArray());
+    }
+
+    /** 순수 함수 - 격자 칸 크기(도). 범위의 긴 변 ÷ {@link #GRID_CELLS}, 0.01° 보다 작게는 나누지 않습니다. */
+    static double gridCellDeg(double[] bbox) {
+        return Math.max(0.01, Math.max(bbox[2] - bbox[0], bbox[3] - bbox[1]) / GRID_CELLS);
+    }
+
+    private static String where(double[] bbox, String kind, String q, List<Object> params) {
         List<String> where = new ArrayList<>();
         if (bbox != null) {
             // 공간 인덱스(spx_route_course_path)를 탑니다.
@@ -138,16 +198,7 @@ final class CourseQueries {
             where.add("name LIKE ?");
             params.add(likePattern(q));
         }
-        if (!where.isEmpty()) sql.append(" WHERE ").append(String.join(" AND ", where));
-        // 검색어로 시작하는 이름이 먼저('송산' → 송산 · … 가 공주향교뒷산 · 송산리… 보다 앞)
-        if (q != null) {
-            sql.append(" ORDER BY CASE WHEN name LIKE ? THEN 0 ELSE 1 END, name");
-            params.add(likePattern(q).substring(1));
-        } else {
-            sql.append(" ORDER BY name");
-        }
-        sql.append(" LIMIT ").append(LIST_LIMIT + 1);
-        return Json.rows(c, sql.toString(), params.toArray());
+        return where.isEmpty() ? "" : " WHERE " + String.join(" AND ", where);
     }
 
     /**

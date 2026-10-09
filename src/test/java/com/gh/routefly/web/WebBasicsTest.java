@@ -118,6 +118,32 @@ public class WebBasicsTest {
     }
 
     @Test
+    public void listOrderAndGridSql() {
+        // 2026-10-09 홍TV님 - 전국을 볼 때 이름 순 앞 300개만 와서 코스가 엉뚱한 곳에만 보이던 것
+        double[] korea = {124.5, 33.0, 131.0, 38.6};
+        CourseQueries.Sql view = CourseQueries.listSql(korea, null, null);
+        assertTrue(view.sql(), view.sql().contains("ORDER BY POW(start_lat - ?, 2) + POW((start_lon - ?) * ?, 2), name"));
+        assertEquals("? 개수와 값 개수", count(view.sql()), view.params().length);
+        assertEquals(35.8, (double) view.params()[1], 1e-9);   // 가운데 위도(0 은 bbox WKT)
+        assertEquals(127.75, (double) view.params()[2], 1e-9);
+        CourseQueries.Sql search = CourseQueries.listSql(korea, "hike", "지리산");
+        assertTrue("검색이면 이름 순 그대로", search.sql().contains("ORDER BY CASE WHEN name LIKE ? THEN 0 ELSE 1 END, name"));
+        assertEquals(count(search.sql()), search.params().length);
+        assertTrue(CourseQueries.listSql(null, null, null).sql().endsWith("ORDER BY name LIMIT " + (CourseQueries.LIST_LIMIT + 1)));
+
+        CourseQueries.Sql g = CourseQueries.gridSql(korea, "walk");
+        assertTrue(g.sql(), g.sql().contains("GROUP BY FLOOR(start_lon / ?), FLOOR(start_lat / ?)") && g.sql().contains("kind = ?"));
+        assertEquals(count(g.sql()), g.params().length);
+        assertEquals("walk", g.params()[1]);
+        assertEquals(6.5 / CourseQueries.GRID_CELLS, (double) g.params()[2], 1e-9);
+        assertEquals("아주 좁게 보면 0.01°", 0.01, CourseQueries.gridCellDeg(new double[] {127, 37, 127.01, 37.01}), 1e-12);
+    }
+
+    private static int count(String sql) {
+        return (int) sql.chars().filter(ch -> ch == '?').count();
+    }
+
+    @Test
     public void groupPrefixFindsSameMountain() {
         // 배치를 다시 돌려 번호가 바뀐 예전 코스(천왕봉) → 같은 산 코스를 찾을 앞부분
         assertEquals("frst-488605302-", CourseQueries.groupPrefix("frst-488605302-24c8b1"));
