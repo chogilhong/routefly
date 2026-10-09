@@ -115,20 +115,20 @@
     var RECORD_MIN_M = 100, RECORD_FAR_M = 3000;
 
     /**
-     * 순수 함수 - 산행 기록을 남길지. 남기면 null, 아니면 까닭 글.
+     * 순수 함수 - 산행 기록을 남기지 않을지(true 면 남기지 않음).
      * walkedM: 걸은 거리(m), track: [[위도, 경도, …], …], c: 코스({lat[], lon[]}).
      * 시작을 눌러 보고 바로 끝낸 기록(0.01km)이나, 집 · 차 안처럼 코스와 먼 곳에서 누른 기록이 쌓이지 않게 합니다.
      */
     function recordSkip(walkedM, track, c) {
-        if (!(walkedM >= RECORD_MIN_M)) return "걸은 거리가 " + RECORD_MIN_M + "m 가 안 되어";
+        if (!(walkedM >= RECORD_MIN_M)) return true;
         var n = c.lat.length, step = Math.max(1, Math.floor(n / 400)), tstep = Math.max(1, Math.floor(track.length / 200));
         for (var i = 0; i < track.length; i += tstep) {
             for (var j = 0; j < n; j += step) {
-                if (distM(track[i][0], track[i][1], c.lat[j], c.lon[j]) <= RECORD_FAR_M) return null;
+                if (distM(track[i][0], track[i][1], c.lat[j], c.lon[j]) <= RECORD_FAR_M) return false;
             }
-            if (distM(track[i][0], track[i][1], c.lat[n - 1], c.lon[n - 1]) <= RECORD_FAR_M) return null;
+            if (distM(track[i][0], track[i][1], c.lat[n - 1], c.lon[n - 1]) <= RECORD_FAR_M) return false;
         }
-        return "코스에서 " + RECORD_FAR_M / 1000 + "km 넘게 떨어진 곳이라";
+        return true;
     }
 
     function gpxToApi(text, fileName) {
