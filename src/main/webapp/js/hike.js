@@ -302,6 +302,14 @@
 
     // ------------------------------------------------------------------ 지도
 
+    /**
+     * 2026-10-09 (홍TV님): 바탕 지도 - 위성사진(sat) · 밝은 지도(light, V-World 일반지도 Base). 밖 햇빛 아래에서는
+     * 밝은 지도가 더 잘 보이기도 합니다(등산 앱 비교 영상의 연한 바탕 지도). 고른 것은 이 기기에 기억합니다.
+     */
+    var BASEMAP_KEY = "rf-basemap";
+    var basemap = "sat";
+    try { if (localStorage.getItem(BASEMAP_KEY) === "light") basemap = "light"; } catch (e) { /* 기본 위성 */ }
+
     function buildStyle(cfg) {
         var dem = { type: "raster-dem", tiles: [cfg.demUrl], encoding: "terrarium", tileSize: 256, maxzoom: 15,
             attribution: "지형: Terrain Tiles (AWS Open Data)" };
@@ -310,7 +318,10 @@
             var key = encodeURIComponent(cfg.vworldKey);
             sources.sat = { type: "raster", tileSize: 256, minzoom: 6, maxzoom: 19,
                 tiles: ["https://api.vworld.kr/req/wmts/1.0.0/" + key + "/Satellite/{z}/{y}/{x}.jpeg"], attribution: "위성사진: 국토교통부 V-World" };
-            layers.push({ id: "sat", type: "raster", source: "sat" });
+            sources.base = { type: "raster", tileSize: 256, minzoom: 6, maxzoom: 19,
+                tiles: ["https://api.vworld.kr/req/wmts/1.0.0/" + key + "/Base/{z}/{y}/{x}.png"], attribution: "지도: 국토교통부 V-World" };
+            layers.push({ id: "sat", type: "raster", source: "sat", layout: { visibility: basemap === "sat" ? "visible" : "none" } });
+            layers.push({ id: "base", type: "raster", source: "base", layout: { visibility: basemap === "light" ? "visible" : "none" } });
             layers.push({ id: "hillshade", type: "hillshade", source: "hillshade", paint: { "hillshade-exaggeration": 0.2 } });
             // V-World 지명 겹침은 쓰지 않습니다 - 우리 이름표와 같은 이름이 비스듬히 한 번 더 나와 겹쳐 보입니다
         } else {
@@ -318,6 +329,26 @@
                 paint: { "hillshade-exaggeration": 0.65, "hillshade-shadow-color": "#3d4a3a", "hillshade-highlight-color": "#fbf7ea" } });
         }
         return { version: 8, sources: sources, layers: layers };
+    }
+
+    /** 바탕 지도 바꾸기 - 타일 층은 보이기만 바꾸고, 밝은 지도에서는 코스 선을 진한 주황(흰 선이 안 보임)으로. */
+    function setBasemap(mode, quiet) {
+        basemap = mode === "light" ? "light" : "sat";
+        try { localStorage.setItem(BASEMAP_KEY, basemap); } catch (e) { /* 기억 못 해도 됨 */ }
+        var light = basemap === "light";
+        if (map.getLayer("sat")) map.setLayoutProperty("sat", "visibility", light ? "none" : "visible");
+        if (map.getLayer("base")) map.setLayoutProperty("base", "visibility", light ? "visible" : "none");
+        if (map.getLayer("hillshade")) map.setPaintProperty("hillshade", "hillshade-exaggeration", light ? 0.3 : 0.2);
+        if (map.getLayer("route-case")) {
+            map.setPaintProperty("route-case", "line-color", light ? "#ffffff" : "#000");
+            map.setPaintProperty("route-case", "line-opacity", light ? 0.95 : 0.45);
+            map.setPaintProperty("route-all", "line-color", light ? "#e8590c" : "#ffffff");
+            map.setPaintProperty("trails", "line-color", light ? "#8a6d00" : "#ffe8a3");
+        }
+        $("layerBtn").textContent = light ? "🛰️" : "🗺️";
+        $("layerBtn").title = light ? "위성사진으로" : "밝은 지도로(햇빛 아래에서 잘 보임)";
+        document.body.classList.toggle("lightmap", light);
+        if (!quiet) toast(light ? "밝은 지도" : "위성사진", 1500);
     }
 
     function progressGradient(p) {
@@ -381,6 +412,7 @@
                 map.addSource("guide", { type: "geojson", data: empty });
                 map.addLayer({ id: "guide", type: "line", source: "guide",
                     paint: { "line-color": "#ff5d5d", "line-width": 3, "line-dasharray": [1.5, 1.2] } });
+                if (cfg.vworldKey) setBasemap(basemap, true);
                 resolve();
             });
         });
@@ -1477,6 +1509,7 @@
                 ? "카카오톡 안에서 이 화면이 닫혀도 같은 링크를 다시 열면 그대로 이어집니다."
                 : "길찾기 뒤 이 화면으로 돌아오거나 다시 열면 그대로 이어집니다.");
     }
+    $("layerBtn").addEventListener("click", function () { setBasemap(basemap === "light" ? "sat" : "light"); });
     $("navBtn").addEventListener("click", openNav);
     $("navClose").addEventListener("click", function () { $("navSheet").style.display = "none"; });
     ["navKakao", "navNaver", "navGoogle"].forEach(function (id) {
@@ -1929,6 +1962,9 @@
             Object.keys(style.sources).forEach(function (k) {
                 var src = style.sources[k];
                 if (!src.tiles || !src.tiles[0]) return;
+                // 지금 보이는 바탕 지도만(위성 · 밝은 지도 둘 다 받으면 두 배)
+                var used = style.layers.filter(function (l) { return l.source === k; });
+                if (used.length && used.every(function (l) { return l.layout && l.layout.visibility === "none"; })) return;
                 list = list.concat(tileUrls(src.tiles[0], OFFLINE_ZMIN, Math.min(zMax, src.maxzoom || OFFLINE_ZMAX), b));
             });
             zMax--;
@@ -2015,6 +2051,7 @@
     }).then(function (j) {
         cfg = { demUrl: j.demUrl || "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png", vworldKey: j.vworldKey || null };
         startMap();
+        if (cfg.vworldKey) $("layerBtn").style.display = "block";   // 키가 없으면 바탕은 지형 음영 하나뿐
         if (/[?&]debug\b/.test(location.search)) window.routeflyHike = { map: map, hike: hike, get c() { return c; },   // 시험용
             fix: function (lat, lon) { onFix({ timestamp: now(), coords: { latitude: lat, longitude: lon, accuracy: 5, speed: 1, heading: null } }); },
             heading: function (h) { onOrientation({ webkitCompassHeading: h }); } };

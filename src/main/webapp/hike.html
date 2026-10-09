@@ -167,6 +167,8 @@ body.compact #statGrids { display:none; }
          font-size:20px; line-height:1; box-shadow:0 2px 8px rgba(0,0,0,0.45); opacity:0.75; }
 #voice.on { opacity:1; box-shadow:0 0 0 3px #38d9ea, 0 2px 8px rgba(0,0,0,0.45); }
 /* 2026-10-08: 산행 중 사진 · 메모(📝) - 🔊 아래 */
+#layerBtn { position:absolute; right:10px; bottom:66px; z-index:2; width:44px; height:44px; border-radius:50%; border:0; background:#fff;
+            font-size:20px; line-height:1; box-shadow:0 2px 8px rgba(0,0,0,0.45); display:none; }
 #noteBtn { position:absolute; left:12px; top:118px; z-index:2; width:44px; height:44px; border-radius:50%; border:0; background:#fff;
            font-size:20px; line-height:1; box-shadow:0 2px 8px rgba(0,0,0,0.45); display:none; }
 #noteText { width:100%; min-height:70px; box-sizing:border-box; border-radius:10px; border:1px solid var(--ln); background:rgba(255,255,255,0.06);
@@ -214,6 +216,7 @@ body.compact #statGrids { display:none; }
     <button type="button" id="compass" title="나침반 - 누를 때마다: 켜기 → 내 방향으로 지도 돌리기 → 북쪽 위로"><span class="needle"><svg viewBox="0 0 16 30" width="13" height="25"><path d="M8 1 L13 15 L3 15 Z" fill="#e03131"/><path d="M3 15 L13 15 L8 29 Z" fill="#9aa3ad"/></svg></span><span class="hd" id="compassText">N</span></button>
     <div id="arrived"></div>
     <button type="button" id="voice" class="on" title="음성 안내 켜기 · 끄기(갈림길 · 지점 · 1km 마다 · 코스 이탈 · 도착)">🔊</button>
+    <button type="button" id="layerBtn" title="밝은 지도로(햇빛 아래에서 잘 보임)">🗺️</button>
     <button type="button" id="follow" class="on" title="내 위치 따라가기">⌖</button>
     <button type="button" id="noteBtn" title="지금 자리에 사진 · 메모 남기기(내 기록 · GPX 에 함께)">📝</button>
 </div>
