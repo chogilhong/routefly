@@ -12,7 +12,7 @@ import org.junit.Test;
 public class CheckupStage3Test {
 
     private static String read(String path) throws Exception {
-        return Files.readString(Path.of(path), StandardCharsets.UTF_8);
+        return Files.readString(Path.of(path), StandardCharsets.UTF_8).replace("\r\n", "\n");   // PC 는 core.autocrlf=true 라 CRLF 로 꺼내집니다
     }
 
     @Test

@@ -15,7 +15,7 @@ import org.junit.Test;
 public class CheckupStage1Test {
 
     private static String read(String path) throws Exception {
-        return Files.readString(Path.of("src", "main", "webapp").resolve(path), StandardCharsets.UTF_8);
+        return Files.readString(Path.of("src", "main", "webapp").resolve(path), StandardCharsets.UTF_8).replace("\r\n", "\n");   // PC 는 core.autocrlf=true 라 CRLF 로 꺼내집니다
     }
 
     private static String body(String js, String head) {
