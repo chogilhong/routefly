@@ -52,6 +52,7 @@ public class HikeScreenTest {
         // 📂 GPX 열기 - 요약 칸이 없으면 거리 줄이 "-km · 약 NaN분"(PC Claude 가 황새봉 GPX 로 찾음)
         String kit = read("js/course-kit.js");
         for (String k : new String[] {"distance_m:", "ascent_m:", "ele_max_m:", "start_lat:"}) assertTrue("gpxToApi 요약 칸 " + k, kit.contains(k));
+        assertTrue("여러 구간은 이어지는 것만(떨어진 구간을 곧은 선으로 잇지 않게)", kit.contains("var raw = joinSegments(segs);"));
     }
 
     /** 이번에 더한 단추 · 창이 실제로 쓰이고 있는지(지운 뒤 한쪽만 남지 않게). */

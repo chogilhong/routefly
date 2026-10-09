@@ -158,6 +158,35 @@
         return Promise.reject(new Error("이 기기에 그 GPX 가 없습니다. 📂 GPX 열기로 다시 여세요."));
     }
 
+    var GPX_JOIN_M = 60;   // 구간(trk · trkseg) 끝끼리 이 안이면 이어진 길
+
+    /**
+     * 순수 함수 - 여러 구간을 한 줄로. 가장 긴 구간에서 시작해 끝이 GPX_JOIN_M 안에 닿는 구간만(필요하면 뒤집어) 붙입니다.
+     * 떨어진 구간(옆 가지 · 다른 날 기록)은 뺍니다 - 다 이으면 빈 곳이 곧은 선으로 지도에 그려지고 거리에도 들어갑니다
+     * (komount 돌산 4: trk 3개, 빈 곳 241m · 1,396m - 배치는 1.75km, 다 이으면 3.67km).
+     */
+    function joinSegments(segs) {
+        if (!segs.length) return [];
+        var len = function (s) { var d = 0; for (var i = 1; i < s.length; i++) d += distM(s[i - 1][0], s[i - 1][1], s[i][0], s[i][1]); return d; };
+        var rest = segs.slice().sort(function (a, b) { return len(b) - len(a); });
+        var line = rest.shift().slice();
+        for (;;) {
+            var best = null;
+            rest.forEach(function (s, k) {
+                var h = line[0], t = line[line.length - 1], a = s[0], z = s[s.length - 1];
+                [[distM(t[0], t[1], a[0], a[1]), "tail", false], [distM(t[0], t[1], z[0], z[1]), "tail", true],
+                 [distM(h[0], h[1], z[0], z[1]), "head", false], [distM(h[0], h[1], a[0], a[1]), "head", true]].forEach(function (o) {
+                    if (o[0] <= GPX_JOIN_M && (!best || o[0] < best.d)) best = { k: k, d: o[0], at: o[1], rev: o[2] };
+                });
+            });
+            if (!best) break;
+            var s = rest.splice(best.k, 1)[0].slice();
+            if (best.rev) s.reverse();
+            line = best.at === "tail" ? line.concat(s) : s.concat(line);
+        }
+        return line;
+    }
+
     function gpxToApi(text, fileName) {
         var doc = new DOMParser().parseFromString(String(text || ""), "application/xml");
         var root = doc.documentElement;
@@ -178,9 +207,18 @@
             var lat = numOf(el.getAttribute("lat")), lon = numOf(el.getAttribute("lon")), e = numOf(txt(first(el, "ele")));
             return valid(lat, lon) ? [lat, lon, isFinite(e) ? e : null] : null;
         }
-        var raw = [];
-        kids(root, "trk").forEach(function (t) { kids(t, "trkseg").forEach(function (s) { kids(s, "trkpt").forEach(function (p) { var q = point(p); if (q) raw.push(q); }); }); });
-        if (!raw.length) kids(root, "rte").forEach(function (r) { kids(r, "rtept").forEach(function (p) { var q = point(p); if (q) raw.push(q); }); });
+        var segs = [];
+        kids(root, "trk").forEach(function (t) { kids(t, "trkseg").forEach(function (s) {
+            var seg = [];
+            kids(s, "trkpt").forEach(function (p) { var q = point(p); if (q) seg.push(q); });
+            if (seg.length) segs.push(seg);
+        }); });
+        if (!segs.length) kids(root, "rte").forEach(function (r) {
+            var seg = [];
+            kids(r, "rtept").forEach(function (p) { var q = point(p); if (q) seg.push(q); });
+            if (seg.length) segs.push(seg);
+        });
+        var raw = joinSegments(segs);
         if (raw.length < 2) throw new Error("GPX 에 경로 점이 2개보다 적습니다(trk · rte).");
         // 솎기 - CourseMath.thin 과 같은 규칙
         var pts = [raw[0]], kept = raw[0], last = raw.length - 1;
