@@ -8,6 +8,9 @@
  */
 var SHELL = "rf-shell-v2", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
 var TILE_KEEP = 1500;   // 지나가며 본 타일은 이만큼만 남깁니다(저장 공간)
+// 2026-10-09 점검: API 캐시도 한도 - 지도를 움직일 때마다 목록 주소(bbox)가 하나씩 늘어 끝없이 커졌습니다.
+// 오프라인 저장한 코스는 OFFLINE 캐시에 따로 있어 지워지지 않습니다.
+var API_KEEP = 300;
 
 var SHELL_FILES = ["hike.html", "about.html", "./", "css/course-kit.css", "js/course-kit.js", "js/hike.js", "js/app.js",
     "vendor/maplibre-gl-5.24.0/maplibre-gl.js", "vendor/maplibre-gl-5.24.0/maplibre-gl.css", "favicon.svg", "manifest.json",
@@ -30,11 +33,12 @@ function isTile(url) {
     return url.indexOf("api.vworld.kr/req/wmts") >= 0 || url.indexOf("elevation-tiles-prod") >= 0;
 }
 
-var puts = 0;
-function trimTiles() {
-    return caches.open(TILES).then(function (c) {
+var puts = 0, apiPuts = 0;
+/** 오래 넣은 것부터 지워 keep 개만 남깁니다(캐시 키는 넣은 차례). */
+function trim(name, keep) {
+    return caches.open(name).then(function (c) {
         return c.keys().then(function (keys) {
-            var extra = keys.length - TILE_KEEP;
+            var extra = keys.length - keep;
             return Promise.all(keys.slice(0, Math.max(0, extra)).map(function (k) { return c.delete(k); }));
         });
     });
@@ -51,12 +55,22 @@ function networkFirst(req, cacheName) {
     return fresh.then(function (res) {
         if (res && res.ok) {
             var copy = res.clone();
-            caches.open(cacheName).then(function (c) { c.put(req, copy); });
+            caches.open(cacheName).then(function (c) {
+                return c.put(req, copy);
+            }).then(function () { if (cacheName === API && ++apiPuts % 20 === 0) trim(API, API_KEEP); });
         }
         return res;
     }).catch(function () {
         return caches.match(req, { ignoreVary: true }).then(function (hit) {
-            return hit || new Response(JSON.stringify({ success: false, message: "오프라인 - 저장해 둔 자료가 없습니다." }),
+            if (hit) return hit;
+            if (req.mode === "navigate") {   // 화면 주소면 JSON 글자 대신 안내 화면
+                return new Response('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+                    + '<title>오프라인 - routefly</title><body style="font-family:sans-serif;background:#121821;color:#e8edf3;padding:24px;line-height:1.6">'
+                    + '<h2>오프라인입니다</h2><p>인터넷이 연결되지 않았고, 이 화면은 핸드폰에 저장되어 있지 않습니다.</p>'
+                    + '<p><a href="hike.html" style="color:#38d9ea">산행 화면 열기</a> (저장해 둔 코스는 그곳에서 보입니다)</p></body>',
+                    { status: 503, headers: { "Content-Type": "text/html; charset=UTF-8" } });
+            }
+            return new Response(JSON.stringify({ success: false, message: "오프라인 - 저장해 둔 자료가 없습니다." }),
                 { status: 503, headers: { "Content-Type": "application/json; charset=UTF-8" } });
         });
     });
@@ -71,7 +85,7 @@ function cacheFirst(req, cacheName) {
                 var copy = res.clone();
                 caches.open(cacheName).then(function (c) {
                     c.put(req, copy);
-                    if (cacheName === TILES && ++puts % 50 === 0) trimTiles();
+                    if (cacheName === TILES && ++puts % 50 === 0) trim(TILES, TILE_KEEP);
                 });
             }
             return res;
@@ -83,7 +97,8 @@ self.addEventListener("fetch", function (e) {
     var req = e.request;
     if (req.method !== "GET") return;
     var url = req.url;
-    if (isTile(url)) { e.respondWith(cacheFirst(req, TILES)); return; }
+    // 오프라인 저장(hike.js saveOffline)이 받는 타일은 OFFLINE 캐시에 들어가므로 여기에는 넣지 않습니다(두 번 저장되던 것)
+    if (isTile(url)) { e.respondWith(cacheFirst(req, req.cache === "no-store" ? null : TILES)); return; }
     if (url.indexOf(self.location.origin) !== 0) return;   // 그 밖의 다른 사이트는 손대지 않음
     if (url.indexOf("/api/") >= 0) { e.respondWith(networkFirst(req, API)); return; }
     if (url.indexOf("/vendor/") >= 0) { e.respondWith(cacheFirst(req, SHELL)); return; }

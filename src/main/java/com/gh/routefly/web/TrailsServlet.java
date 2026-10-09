@@ -32,6 +32,14 @@ public class TrailsServlet extends HttpServlet {
     static final int LIMIT = 80;
     static final double MAX_SPAN = 0.2;
 
+    /**
+     * 2026-10-09 점검: MBRIntersects(공간 인덱스)는 선을 감싼 네모만 봐서, 국토종주처럼 긴 길이 범위를 지나지도 않는데 통째로 왔고
+     * 정작 가까운 길이 80개 밖으로 밀렸습니다 - 인덱스로 고른 뒤 실제로 지나는 길만(ST_Intersects), 범위 가운데서 가까운 순으로.
+     */
+    static final String SQL = "SELECT course_id, name, kind, ST_AsText(path) FROM route_course"
+            + " WHERE MBRIntersects(path, ST_GeomFromText(?, 4326)) AND ST_Intersects(path, ST_GeomFromText(?, 4326))"
+            + " ORDER BY ST_Distance(path, ST_GeomFromText(?, 4326)) LIMIT " + LIMIT;
+
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         double[] b;
@@ -46,9 +54,11 @@ public class TrailsServlet extends HttpServlet {
             return;
         }
         try (Connection c = Db.open();
-             PreparedStatement ps = c.prepareStatement("SELECT course_id, name, kind, ST_AsText(path) FROM route_course"
-                     + " WHERE MBRIntersects(path, ST_GeomFromText(?, 4326)) LIMIT " + LIMIT)) {
-            ps.setString(1, CourseQueries.bboxWkt(b));
+             PreparedStatement ps = c.prepareStatement(SQL)) {
+            String box = CourseQueries.bboxWkt(b);
+            ps.setString(1, box);
+            ps.setString(2, box);
+            ps.setString(3, "POINT(" + (b[0] + b[2]) / 2 + " " + (b[1] + b[3]) / 2 + ")");
             JsonArray trails = new JsonArray();
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -63,7 +73,7 @@ public class TrailsServlet extends HttpServlet {
             JsonObject out = new JsonObject();
             out.addProperty("success", true);
             out.add("trails", trails);
-            Json.write(resp, HttpServletResponse.SC_OK, out, true);
+            Json.ok(req, resp, out);
         } catch (Exception e) {
             log.warn("[TRAILS] 조회 실패 - {}", e.toString());
             Json.fail(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "주변 등산로를 읽지 못했습니다.");
@@ -79,7 +89,7 @@ public class TrailsServlet extends HttpServlet {
         String[] pts = wkt.substring(a + 1, z).split(",");
         for (int i = 0; i < pts.length; i++) {
             if (i % every != 0 && i != pts.length - 1) continue;
-            String[] xy = pts[i].trim().split("\\s+");
+            String[] xy = pts[i].replace("(", " ").replace(")", " ").trim().split("\\s+");   // MULTILINESTRING 이어도 500 이 나지 않게
             if (xy.length < 2) continue;
             JsonArray p = new JsonArray(2);
             p.add(Math.round(Double.parseDouble(xy[0]) * 1e5) / 1e5);

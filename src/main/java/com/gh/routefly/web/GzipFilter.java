@@ -125,6 +125,10 @@ public class GzipFilter extends HttpFilter {
             if (writer != null) writer.flush();
             byte[] body = buf.toByteArray();
             HttpServletResponse res = (HttpServletResponse) getResponse();
+            if (res.getStatus() == HttpServletResponse.SC_NOT_MODIFIED) {   // 304(ETag 같음) - 본문 없이
+                res.flushBuffer();
+                return;
+            }
             if (body.length >= MIN_BYTES) {
                 body = gzip(body);
                 res.setHeader("Content-Encoding", "gzip");

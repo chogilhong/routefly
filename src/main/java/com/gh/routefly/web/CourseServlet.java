@@ -43,7 +43,7 @@ public class CourseServlet extends HttpServlet {
                 return;
             }
             detail.addProperty("success", true);
-            Json.write(resp, HttpServletResponse.SC_OK, detail, true);
+            Json.ok(req, resp, detail);
         } catch (Exception e) {
             log.warn("[COURSE] 조회 실패 id={} - {} (DB 접속 설정 db.url 등 · 표 routefly-batch sql/route_ddl.sql 확인)", id, e.toString());
             Json.fail(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,

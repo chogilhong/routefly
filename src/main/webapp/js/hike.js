@@ -555,7 +555,29 @@
         $("guideArrow").style.transform = "rotate(" + rel + "deg)";   // 화살표 그림은 위쪽을 가리킵니다
     }
 
+    // 2026-10-09 점검: 화면은 1초마다 다시 그리는데 위치는 그대로일 때가 많습니다 - 같은 위치 · 코스 · 주변 길이면 지난 답을 씁니다
+    // (코스에서 벗어나 있는 동안 1초마다 모든 주변 길에 맞춰 보던 계산)
+    var ntMemo = null;
     function nearestTrail(lat, lon) {
+        if (ntMemo && ntMemo.lat === lat && ntMemo.lon === lon && ntMemo.c === c && ntMemo.trails === trails) return ntMemo.best;
+        var best = nearestTrailNow(lat, lon);
+        ntMemo = { lat: lat, lon: lon, c: c, trails: trails, best: best };
+        return best;
+    }
+
+    /** 칸 이름 + 고칠 수 있는 값(파란 글자) - 값이 바뀔 때만 다시 만듭니다(1초마다 innerHTML 로 새로 쓰던 것, 2026-10-09 점검). */
+    function setLabel(id, word, val) {
+        var el = $(id);
+        if (el.dataset.v === val) return;
+        el.dataset.v = val;
+        el.textContent = word;
+        var sp = document.createElement("span");
+        sp.className = "set";
+        sp.textContent = val;
+        el.appendChild(sp);
+    }
+
+    function nearestTrailNow(lat, lon) {
         var s0 = RF.snap(c, lat, lon, null), p0 = RF.at(c, s0.d);
         var best = { lat: p0.lat, lon: p0.lon, off: s0.off, name: null, course: true };
         trails.forEach(function (t) {
@@ -1480,8 +1502,8 @@
         setV("sUp", num(ef.up), "m");
         $("stepsBox").style.display = bike ? "none" : "";
         if (!bike) setV("sSteps", num(ef.steps), "보");
-        $("kcalK").innerHTML = "칼로리 <span class=\"set\">" + body.kg + "kg ✎</span>";
-        $("stepsK").innerHTML = "걸음 <span class=\"set\">" + body.cm + "cm ✎</span>";
+        setLabel("kcalK", "칼로리 ", body.kg + "kg ✎");
+        setLabel("stepsK", "걸음 ", body.cm + "cm ✎");
         var nowMs = hike.running ? now() : Date.now();
         var sun = RF.sunset(nowMs, c.lat[0], c.lon[0]);
         $("sunTxt").textContent = sun ? "· 일몰 " + clock(sun) : "";
@@ -2192,7 +2214,8 @@
             function next() {
                 if (i >= urls.length) return Promise.resolve();
                 var u = urls[i++];
-                return fetch(u, { mode: "cors" }).then(function (r) {
+                // 지도 타일은 no-store 로 - 서비스 워커가 이것을 보고 지나가며 본 타일 캐시에 두 번 넣지 않습니다(sw.js)
+                return fetch(u, { mode: "cors", cache: /^https?:/.test(u) ? "no-store" : "default" }).then(function (r) {
                     if (r.ok) return cache.put(u, r);
                     failed++;
                 }).catch(function () { failed++; }).then(function () {

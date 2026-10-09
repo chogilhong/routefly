@@ -231,6 +231,17 @@
      * 목록 다시 받기. 검색어가 있으면 전국에서 이름으로, 없으면 지금 지도 범위 안에서.
      * 늦게 온 옛 응답이 새 목록을 덮지 않게 순번(seq)을 봅니다.
      */
+    // 2026-10-09 점검: 빈 범위에서 종류 탭을 보면 지도를 움직일 때마다 같은 전국 목록을 다시 물었습니다 - 종류마다 10분 기억
+    var nationwideMemo = {};
+    function nationwide(kind) {
+        var m = nationwideMemo[kind];
+        if (m && Date.now() - m.t < 600000) return m.p;
+        var p = getJson("api/courses?kind=" + kind).then(function (all) { all.nationwide = true; return all; });
+        nationwideMemo[kind] = { t: Date.now(), p: p };
+        p.catch(function () { delete nationwideMemo[kind]; });
+        return p;
+    }
+
     function loadCourses() {
         var url = "api/courses?", inView = false;
         if (list.q) url += "q=" + encodeURIComponent(list.q);
@@ -244,7 +255,7 @@
             // 종류 탭(걷기 · 자전거)인데 지금 지도 범위에 하나도 없으면 전국에서 그 종류를 보여 줍니다
             // (둘레길 · 자전거길은 해안 · 강을 따라 있어 산을 보고 있으면 범위 밖일 때가 많습니다)
             if (inView && list.kind && !(j.courses || []).length) {
-                return getJson("api/courses?kind=" + list.kind).then(function (all) { all.nationwide = true; return all; });
+                return nationwide(list.kind);
             }
             return j;
         }).then(function (j) {
@@ -893,7 +904,7 @@
             $("q").value = "";
             stop();
             map.flyTo({ center: ll, zoom: 11.5, pitch: 0, bearing: 0, duration: 1200 });
-            map.once("moveend", function () { loadCourses(); });
+            // 지도가 멈추면 moveend → scheduleViewLoad 가 목록을 받습니다(2026-10-09 점검: 여기서 또 받아 두 번 묻던 것)
         }, function (e) {
             show(e.code === 1 ? "위치 권한이 꺼져 있습니다. 브라우저 설정에서 이 사이트의 위치 권한을 허용해 주세요." : "현재 위치를 찾지 못했습니다.");
         }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 });

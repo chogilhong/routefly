@@ -8,6 +8,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.Timestamp;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import com.google.gson.JsonArray;
@@ -62,6 +63,49 @@ final class Json {
      * JSON 응답. 코스 자료는 배치가 1시간마다 바꾸는 공개 자료라 짧게(5분) 캐시하게 둡니다.
      * 실패 응답은 캐시하지 않습니다.
      */
+    /**
+     * 2026-10-09 점검: 성공(200) 코스 자료 - ETag 를 붙이고, 브라우저 · 서비스 워커가 같은 ETag 로 다시 물으면 304(본문 없음).
+     * 서비스 워커가 늘 서버에 다시 확인(no-cache)하므로, 바뀌지 않은 자료는 산속 느린 통신에서도 몇 바이트만 오갑니다.
+     * gzip 으로 바뀌어 나갈 수 있어 약한 ETag(W/) 입니다.
+     */
+    static void ok(HttpServletRequest req, HttpServletResponse resp, JsonObject body) throws IOException {
+        String text = body.toString(), tag = etag(text);
+        resp.setHeader("ETag", tag);
+        resp.setHeader("Cache-Control", "public, max-age=300");
+        if (matches(req.getHeader("If-None-Match"), tag)) {
+            resp.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
+            return;
+        }
+        resp.setStatus(HttpServletResponse.SC_OK);
+        resp.setCharacterEncoding("UTF-8");
+        resp.setContentType("application/json;charset=UTF-8");
+        resp.getWriter().write(text);
+    }
+
+    /** 순수 함수 - 본문의 약한 ETag(SHA-256 앞 16바이트). */
+    static String etag(String text) {
+        try {
+            byte[] h = java.security.MessageDigest.getInstance("SHA-256").digest(text.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return "W/\"" + java.util.HexFormat.of().formatHex(h, 0, 16) + "\"";
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /** 순수 함수 - If-None-Match(쉼표로 여럿 · * · 강한/약한 표시 무시)에 tag 가 있는가. */
+    static boolean matches(String ifNoneMatch, String tag) {
+        if (ifNoneMatch == null || ifNoneMatch.isBlank()) return false;
+        String want = tag.startsWith("W/") ? tag.substring(2) : tag;
+        for (String t : ifNoneMatch.split(",")) {
+            t = t.trim();
+            if (t.equals("*")) return true;
+            if (t.startsWith("W/")) t = t.substring(2);
+            // gzip 을 거친 응답에 톰캣 · 프록시가 붙이는 꼬리(-gzip)도 같은 것으로
+            if (t.equals(want) || t.equals(want.substring(0, want.length() - 1) + "-gzip\"")) return true;
+        }
+        return false;
+    }
+
     static void write(HttpServletResponse resp, int status, JsonObject body, boolean cacheable) throws IOException {
         resp.setStatus(status);
         resp.setCharacterEncoding("UTF-8");
