@@ -216,14 +216,23 @@
         if (!hike.running || hike.off > OFF_ROUTE_M) return;
         var d = hike.d;
         // 지점(이름표) - 지날 때 한 번. 출발 · 도착 자리는 시작 · 도착 안내가 대신합니다.
-        c.pois.forEach(function (q) {
+        // 같은 자리(80m 안) 지점은 한 문장으로 - "법계사, 로타리대피소샘터입니다. …"(지리산 3,351m 에 둘이 겹쳐 같은 말을 두 번 했음)
+        var spoken = function (q) {
             var qd = +q.dist_m;
-            if (qd < 60 || qd > c.total - 60 || +q.off_route_m > 80 || hike.passed[q.name]) return;
-            if (Math.abs(d - qd) <= 30) {
+            return !(qd < 60 || qd > c.total - 60 || +q.off_route_m > 80 || hike.passed[q.name]);
+        };
+        var hit = c.pois.filter(function (q) { return spoken(q) && Math.abs(d - +q.dist_m) <= 30; })[0];
+        if (hit) {
+            var group = c.pois.filter(function (q) { return spoken(q) && Math.abs(+q.dist_m - +hit.dist_m) <= 80; });
+            var names = [], ele = null, far = 0;
+            group.forEach(function (q) {
                 hike.passed[q.name] = true;
-                say(q.name + "입니다." + (q.ele_m != null ? " 해발 " + num(+q.ele_m) + "미터." : "") + " " + passInfo(qd));
-            }
-        });
+                if (names.indexOf(q.name) < 0) names.push(q.name);
+                if (ele == null && q.ele_m != null) ele = +q.ele_m;
+                far = Math.max(far, +q.dist_m);
+            });
+            say(names.join(", ") + "입니다." + (ele != null ? " 해발 " + num(ele) + "미터." : "") + " " + passInfo(far));
+        }
         // 거리 이정
         var step = K() === RF.KINDS.bike ? 5000 : 1000;
         var k = Math.floor(d / step);
