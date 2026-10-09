@@ -209,7 +209,24 @@
             || String(fileName || "GPX").replace(/\.gpx$/i, "");
         var type = (txt(first(first(root, "trk"), "type")) || "").toLowerCase();
         var kind = /bik|cycl|자전거|ride/.test(type) ? "bike" : /walk|걷기/.test(type) ? "walk" : "hike";
-        return { course: { name: name, kind: kind }, points: points, pois: pois };
+        // 요약 칸(서버 코스와 같은 이름) - 목록 · 코스 미리보기 거리 줄이 씁니다(없으면 "-km · 약 NaN분")
+        var up = 0, down = 0, ref = null, lo = null, hi = null;
+        points.forEach(function (p) {
+            var e = p[2];
+            if (e == null) return;
+            lo = lo == null ? e : Math.min(lo, e);
+            hi = hi == null ? e : Math.max(hi, e);
+            // GPS 고도 흔들림은 3m 넘게 바뀔 때만 셉니다
+            if (ref == null) ref = e;
+            else if (e - ref >= 3) { up += e - ref; ref = e; }
+            else if (ref - e >= 3) { down += ref - e; ref = e; }
+        });
+        var a = pts[0], z = pts[pts.length - 1];
+        var course = { name: name, kind: kind, distance_m: points[points.length - 1][3], point_cnt: points.length,
+                       ascent_m: hi == null ? null : Math.round(up), descent_m: hi == null ? null : Math.round(down),
+                       ele_min_m: lo == null ? null : Math.round(lo), ele_max_m: hi == null ? null : Math.round(hi),
+                       start_lat: a[0], start_lon: a[1], end_lat: z[0], end_lon: z[1] };
+        return { course: course, points: points, pois: pois };
     }
 
     /** 누적 오르막(m) - 남은 오르막을 빨리 구하려고 미리 셉니다. */

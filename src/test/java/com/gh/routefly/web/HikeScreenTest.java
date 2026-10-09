@@ -49,6 +49,9 @@ public class HikeScreenTest {
         for (String id : new String[] {"nearMe", "myRecords", "gpxOpen", "gpxFile"}) assertTrue("app.js 에서 씀: " + id, used.contains(id));
         assertTrue("내 기록은 따라가기 화면으로", js.contains("hike.html#rec") && read("js/hike.js").contains("showRecords();   // 코스 미리보기"));
         assertTrue("GPX 를 두는 곳은 두 화면이 같이", read("js/course-kit.js").contains("storeGpx: storeGpx"));
+        // 📂 GPX 열기 - 요약 칸이 없으면 거리 줄이 "-km · 약 NaN분"(PC Claude 가 황새봉 GPX 로 찾음)
+        String kit = read("js/course-kit.js");
+        for (String k : new String[] {"distance_m:", "ascent_m:", "ele_max_m:", "start_lat:"}) assertTrue("gpxToApi 요약 칸 " + k, kit.contains(k));
     }
 
     /** 이번에 더한 단추 · 창이 실제로 쓰이고 있는지(지운 뒤 한쪽만 남지 않게). */
