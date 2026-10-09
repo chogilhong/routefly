@@ -118,7 +118,9 @@ body.flying #side { opacity:0; pointer-events:none; }
 @media (max-width:640px) {
     #side h1 small { display:block; margin:2px 0 0; line-height:1.1; }   /* 좁은 화면 - '코스 미리보기' 를 routefly 아래 줄에(잘리지 않게) */
     #side h1 { line-height:1.1; }
-    #side { width:auto; right:60px; max-height:65%; }   /* 오른쪽은 확대 버튼 자리. 목록이 두세 줄만 보이던 것 - 40% → 65%(2026-10-09) */
+    /* 오른쪽은 확대 버튼 자리. 목록이 한두 줄만 보이던 것(자판이 올라오면 화면이 줄어 더 적음) - 거의 화면 끝까지(2026-10-09 홍TV님).
+       코스를 고르면 목록이 저절로 접히므로 지도는 그때 넓게 보입니다. */
+    #side { width:auto; right:60px; max-height:calc(100% - 24px); }
     #hud { top:auto; right:12px; bottom:170px; }        /* 실제 높이는 app.js 가 아래 판 높이에 맞춰 다시 정합니다 */
     #title span.opt { display:none; }
     #profile { height:70px; }
