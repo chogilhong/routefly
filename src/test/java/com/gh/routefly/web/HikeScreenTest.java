@@ -47,6 +47,7 @@ public class HikeScreenTest {
         assertTrue("GPX 는 공용 코스 도구에서 읽습니다", read("js/course-kit.js").contains("gpxToApi: gpxToApi"));
         // 2026-10-09 내 기록: 100m 미만 · 코스에서 3km 넘게 떨어진 기록은 남기지 않음(판단은 공용 도구 RF.recordSkip)
         assertTrue(read("js/course-kit.js").contains("recordSkip: recordSkip"));
+        assertTrue("GPX 열기는 GPX 만", html.contains("id=\"gpxFile\" accept=\".gpx,application/gpx+xml\""));
         assertTrue("산행을 끝낼 때 거릅니다", js.contains("RF.recordSkip(hike.walked, hike.track, c)) return;"));
     }
 }
