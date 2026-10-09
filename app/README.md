@@ -41,6 +41,10 @@ npm run url -- https://abc-def.trycloudflare.com      (나온 주소 - 뒤에 /r
 3. `npm run open` → Android Studio 가 열립니다(처음에는 Gradle 준비로 몇 분)
 4. 위쪽 기기 목록에서 핸드폰을 고르고 ▶(Run) → 핸드폰에 routefly 앱이 깔리고 열립니다
 
+Android Studio 가 "Project update recommended(AGP 업그레이드)" · "Migrate to Gradle Daemon toolchain" 을 띄워도 누르지 않습니다(닫거나 Ignore).
+AGP 8.13.0 · Gradle 8.14.3 은 Capacitor 8.5 가 맞춰 둔 판이라, 혼자 올리면 Capacitor · 플러그인과 어긋나 빌드가 깨질 수 있습니다.
+올릴 때는 Capacitor 를 올리면서(`npx cap migrate`) 함께 올립니다.
+
 APK 파일만 만들려면 Android Studio 메뉴 Build → Build App Bundle(s) / APK(s) → Build APK(s).
 스토어용(.aab, 서명)은 Build → Generate Signed App Bundle - 서명 키(.jks)는 잃어버리면 앱을 고칠 수 없으니 따로 잘 보관합니다(저장소에 넣지 않음).
 
