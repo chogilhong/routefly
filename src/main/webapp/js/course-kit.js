@@ -111,6 +111,26 @@
      * DOMParser 는 외부 엔티티 · DTD 를 받아 오지 않습니다(남이 만든 파일이라).
      */
     var GPX_SPACING_M = 10;
+    /** "내 기록" 에 남기지 않는 기준(2026-10-09 홍TV님): 걸은 거리 100m 미만 · 코스에서 3km 넘게 떨어진 곳에서만 움직임. */
+    var RECORD_MIN_M = 100, RECORD_FAR_M = 3000;
+
+    /**
+     * 순수 함수 - 산행 기록을 남길지. 남기면 null, 아니면 까닭 글.
+     * walkedM: 걸은 거리(m), track: [[위도, 경도, …], …], c: 코스({lat[], lon[]}).
+     * 시작을 눌러 보고 바로 끝낸 기록(0.01km)이나, 집 · 차 안처럼 코스와 먼 곳에서 누른 기록이 쌓이지 않게 합니다.
+     */
+    function recordSkip(walkedM, track, c) {
+        if (!(walkedM >= RECORD_MIN_M)) return "걸은 거리가 " + RECORD_MIN_M + "m 가 안 되어";
+        var n = c.lat.length, step = Math.max(1, Math.floor(n / 400)), tstep = Math.max(1, Math.floor(track.length / 200));
+        for (var i = 0; i < track.length; i += tstep) {
+            for (var j = 0; j < n; j += step) {
+                if (distM(track[i][0], track[i][1], c.lat[j], c.lon[j]) <= RECORD_FAR_M) return null;
+            }
+            if (distM(track[i][0], track[i][1], c.lat[n - 1], c.lon[n - 1]) <= RECORD_FAR_M) return null;
+        }
+        return "코스에서 " + RECORD_FAR_M / 1000 + "km 넘게 떨어진 곳이라";
+    }
+
     function gpxToApi(text, fileName) {
         var doc = new DOMParser().parseFromString(String(text || ""), "application/xml");
         var root = doc.documentElement;
@@ -665,6 +685,6 @@
     global.RF = {
         LINE_COLOR: LINE_COLOR, num: num, km: km, fromApi: fromApi, gpxToApi: gpxToApi, isAccess: isAccess, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
-        sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, distM: distM, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
+        sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
     };
 })(window);

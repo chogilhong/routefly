@@ -689,9 +689,14 @@
         setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
     }
 
-    /** 산행을 끝낼 때 - 기록을 "내 기록" 에 남기고 요약을 보여 줍니다(최근 20개만). */
+    /** 산행을 끝낼 때 - 기록을 "내 기록" 에 남기고 요약을 보여 줍니다(최근 20개만). 아주 짧거나 코스와 먼 곳이면 남기지 않습니다. */
     function finishRecord() {
         if (hike.track.length < 2) return;
+        var skip = RF.recordSkip(hike.walked, hike.track, c);
+        if (skip) {
+            toast(skip + " 기록을 남기지 않았습니다.", 5000);
+            return;
+        }
         var rec = { courseId: c.id, name: c.course.name, kind: c.course.kind, start: hike.start, end: now(),
                     walked: Math.round(hike.walked), done: Math.round(hike.d), track: hike.track };
         if (hike.notes.length) rec.notes = hike.notes.slice();
