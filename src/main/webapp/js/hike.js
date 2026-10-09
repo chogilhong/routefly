@@ -1803,6 +1803,7 @@
     [].forEach.call(document.querySelectorAll("#kindTabs button"), function (b) {
         b.addEventListener("click", function () {
             kindFilter = b.getAttribute("data-kind");
+            $("q").placeholder = RF.searchPlaceholder(kindFilter);   // 종류마다 다른 안내 글
             setKindWords();
             [].forEach.call(document.querySelectorAll("#kindTabs button"), function (x) { x.classList.toggle("on", x === b); });
             var ev = document.createEvent("Event"); ev.initEvent("input", true, true); $("q").dispatchEvent(ev);

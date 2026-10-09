@@ -19,7 +19,7 @@
     var map;
     var mapReady;            // 지도 스타일이 읽힌 뒤 경로 층을 붙이고 풀리는 약속 - 목록은 이것을 기다리지 않습니다
     var courses = [];
-    var list = { q: null, kind: "", truncated: false, seq: 0, timer: 0 };   // 목록 상태 - 검색어가 있으면 검색, 없으면 지도 범위
+    var list = { q: null, kind: "", truncated: false, seq: 0, timer: 0, near: false };   // near - 📍 내 주변 코스를 누름   // 목록 상태 - 검색어가 있으면 검색, 없으면 지도 범위
     var grid = null;         // 넓은 범위라 목록이 잘렸을 때 서버가 준 격자 칸별 코스 수 [{n, lon, lat}] - 출발점 대신 지도에 그립니다
     var cur = null;          // 지금 코스 {id, course, lon[], lat[], ele[], dist[], total, pois[], markers[]}
     var anim = { running: false, d: 0, speedIdx: 0, last: 0, bearing: 0, pitch: 70, pitchWant: 70, pitchAt: 0, raf: 0 };
@@ -298,6 +298,14 @@
     function renderList() {
         var box = $("list");
         box.textContent = "";
+        // 2026-10-09 홍TV님: 검색어를 넣거나 📍 내 주변 코스를 누르기 전에는 목록을 보이지 않습니다(지도의 원 · 출발점은 그대로)
+        if (!list.q && !list.near && !cur) {
+            var hint = document.createElement("div");
+            hint.className = "empty";
+            hint.textContent = "위에 " + searchWord(list.kind) + " 이름을 넣거나 📍 내 주변 코스를 누르세요.";
+            box.appendChild(hint);
+            return;
+        }
         var head = document.createElement("div");
         head.className = "count";
         head.textContent = grid
@@ -851,6 +859,7 @@
         clearTimeout(list.timer);
         list.timer = setTimeout(function () {
             list.q = v || null;
+            list.near = false;
             saveSharedSearch();
             loadCourses();
         }, 300);
@@ -874,6 +883,7 @@
         b.addEventListener("click", function () {
             list.kind = b.getAttribute("data-kind");
             [].forEach.call(document.querySelectorAll("#kindTabs button"), function (x) { x.classList.toggle("on", x === b); });
+            $("q").placeholder = RF.searchPlaceholder(list.kind);
             saveSharedSearch();
             loadCourses();
         });
@@ -915,6 +925,7 @@
             } else meDot.setLngLat(ll);
             // 검색을 비우고 내 위치 둘레(약 10km)로 - 지도가 멈추면 그 범위 코스로 목록이 바뀝니다
             list.q = null;
+            list.near = true;
             $("q").value = "";
             saveSharedSearch();
             stop();
@@ -937,10 +948,15 @@
         }).catch(function (e) { show("GPX 를 열지 못했습니다: " + (e && e.message || e)); });
     });
 
+    /** 안내 글의 낱말 - 종류 탭에 맞춰("산 · 코스", "걷기길", "자전거길"). */
+    function searchWord(kind) { return kind === "walk" ? "걷기길" : kind === "bike" ? "자전거길" : kind === "hike" ? "산" : "코스 · 산"; }
+
     /** 목록 펼치기 · 접기(예전 '코스' · '접기' 단추가 하던 일). */
     function setListOpen(open) {
         var side = $("side");
         side.classList.toggle("closed", !open);
+        // 핸드폰에서 목록을 다시 펼치면 고른 코스의 아래 판(미리보기 · 속도 · 고도 그래프)이 목록과 겹쳤습니다 - 펼친 동안 숨김
+        document.body.classList.toggle("listopen", open);
         // 핸드폰에서 목록을 펼치면 펼쳐진 출처 글 상자가 검색창을 덮으므로 ⓘ 로 접습니다 - 지도를 끌 때 MapLibre 가
         // 스스로 접는 것과 같고, ⓘ 를 누르면 다시 보입니다(2026-10-09).
         if (open && isNarrow()) {
@@ -968,6 +984,7 @@
         list.kind = kind;
         $("q").value = q || "";
         [].forEach.call(document.querySelectorAll("#kindTabs button"), function (x) { x.classList.toggle("on", (x.getAttribute("data-kind") || "") === kind); });
+        $("q").placeholder = RF.searchPlaceholder(kind);
         return true;
     }
     // 뒤로 가기로 이 화면에 돌아왔을 때(브라우저가 예전 화면을 그대로 살린 경우) - 따라가기에서 바꾼 검색어로 다시

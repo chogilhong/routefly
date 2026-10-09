@@ -126,6 +126,7 @@ body.flying #side { opacity:0; pointer-events:none; }
     #profile { height:70px; }
     #profile .rf-plabel { display:none; }   /* 비스듬한 이름이 위 버튼 줄까지 올라가 겹침 - 이름은 지도에 나옵니다(점은 남김) */
     #bottom { left:8px; right:8px; bottom:8px; padding:8px 8px 6px; }
+    body.listopen #bottom, body.listopen #hud { display:none !important; }   /* 목록을 펼친 동안은 아래 판을 숨김(겹치던 것) */
     #title b { font-size:14px; }
     #controls { width:100%; margin-left:0; gap:4px; }   /* 버튼은 이름 아래 한 줄로, 똑같이 나눠 */
     #controls button, #controls a.btn { flex:1 1 0; min-width:0; padding:7px 2px; font-size:12.5px; text-align:center;
@@ -148,7 +149,7 @@ body.flying #side { opacity:0; pointer-events:none; }
         <h1>route<span>fly</span><small>코스 미리보기</small></h1>
         <button type="button" id="back" title="앞 화면(따라가기)으로">← 뒤로</button>
     </header>
-    <div class="search"><input type="search" id="q" placeholder="코스 · 산 이름 검색 (예: 설악산, 공룡)" autocomplete="off" maxlength="50">
+    <div class="search"><input type="search" id="q" placeholder="코스 · 산 이름 (예: 설악산, 둘레길, 국토종주)" autocomplete="off" maxlength="50">
         <div class="kinds" id="kindTabs">
             <button type="button" data-kind="" class="on">전체</button>
             <button type="button" data-kind="hike">⛰️ 등산</button>
