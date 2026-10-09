@@ -1285,7 +1285,12 @@
         if (!("wakeLock" in navigator)) return;
         navigator.wakeLock.request("screen").then(function (w) { hike.wake = w; }).catch(function () { /* 배터리 절약 모드 등 */ });
     }
+    // 2026-10-09 (홍TV님 핸드폰 - 카카오톡 브라우저에 며칠 전 화면이 열린 채로 남아 'GPX 열기' 가 안 보였음):
+    // 30분 넘게 가려져 있다가 다시 보이면, 걷는 중이 아닐 때 새로 고칩니다(주소 · 검색어는 그대로 이어짐 - 서버의 새 화면을 받음).
+    var STALE_MS = 30 * 60000, hiddenAt = 0;
     document.addEventListener("visibilitychange", function () {
+        if (document.visibilityState === "hidden") hiddenAt = Date.now();
+        else if (hiddenAt && Date.now() - hiddenAt > STALE_MS && !hike.running && navigator.onLine !== false) location.reload();
         if (document.visibilityState === "hidden" && hike.running) flushTrack();   // 앱이 닫히기 전에 걸은 길을 남김
         if (document.visibilityState === "visible" && hike.running && !hike.sim && !BG) keepAwake();   // 앱은 화면을 켜 두지 않음(위 start)
     });

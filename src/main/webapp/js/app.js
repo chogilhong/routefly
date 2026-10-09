@@ -23,6 +23,12 @@
     var grid = null;         // 넓은 범위라 목록이 잘렸을 때 서버가 준 격자 칸별 코스 수 [{n, lon, lat}] - 출발점 대신 지도에 그립니다
     var cur = null;          // 지금 코스 {id, course, lon[], lat[], ele[], dist[], total, pois[], markers[]}
     var anim = { running: false, d: 0, speedIdx: 0, last: 0, bearing: 0, pitch: 70, pitchWant: 70, pitchAt: 0, raf: 0 };
+    // 2026-10-09: 30분 넘게 가려져 있다가 다시 보이면(날아가는 중이 아닐 때) 새로 고쳐 서버의 새 화면을 받습니다 - 산행 화면과 같음
+    var hiddenAt = 0;
+    document.addEventListener("visibilitychange", function () {
+        if (document.visibilityState === "hidden") hiddenAt = Date.now();
+        else if (hiddenAt && Date.now() - hiddenAt > 30 * 60000 && !anim.running && navigator.onLine !== false) location.reload();
+    });
 
     // ------------------------------------------------------------------ 작은 도구
 
