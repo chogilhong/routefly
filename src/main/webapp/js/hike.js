@@ -198,6 +198,19 @@
         return (h ? h + "시간 " : "") + (m % 60 ? (m % 60) + "분" : "").trim();
     }
 
+    /**
+     * 지점을 지날 때 덧붙이는 말(2026-10-09 홍TV님 - 등산 앱처럼 지난 시간 · 다음 지점까지):
+     * "출발한 지 5시간 20분. 다음 소청대피소까지 1.3킬로미터, 오르막 250미터입니다." 다음 지점이 없으면 도착까지.
+     */
+    function passInfo(atD) {
+        var out = "출발한 지 " + spokenTime(now() - hike.start) + ".";
+        var nx = RF.nextPoi(c, atD), nd = nx ? Math.min(+nx.dist_m, c.total) : c.total;
+        if (nd - atD < 100) return out;   // 바로 앞이면 거리는 빼고
+        var up = RF.ascentLeft(c, atD) - RF.ascentLeft(c, nd);
+        return out + " " + (!nx ? "도착" : nd < c.total - 60 ? "다음 " + nx.name : nx.name) + "까지 " + distSpoken(Math.round((nd - atD) / 10) * 10)
+            + (up >= 30 && K() !== RF.KINDS.bike ? ", 오르막 " + num(up) + "미터입니다." : "입니다.");
+    }
+
     /** 1km(자전거 5km) 마다 · 지점을 지날 때 - onFix 에서 코스 위에 있을 때. */
     function voiceProgress() {
         if (!hike.running || hike.off > OFF_ROUTE_M) return;
@@ -208,7 +221,7 @@
             if (qd < 60 || qd > c.total - 60 || +q.off_route_m > 80 || hike.passed[q.name]) return;
             if (Math.abs(d - qd) <= 30) {
                 hike.passed[q.name] = true;
-                say(q.name + "입니다." + (q.ele_m != null ? " 해발 " + num(+q.ele_m) + "미터." : ""));
+                say(q.name + "입니다." + (q.ele_m != null ? " 해발 " + num(+q.ele_m) + "미터." : "") + " " + passInfo(qd));
             }
         });
         // 거리 이정
@@ -217,7 +230,7 @@
         if (c.total > step * 1.5 && k > hike.kmSpoken && c.total - d > 300) {
             hike.kmSpoken = k;
             var asc = RF.ascentLeft(c, d);
-            say(num(k * step / 1000) + "킬로미터 지났습니다. 남은 거리 " + skm(c.total - d) + "킬로미터"
+            say(num(k * step / 1000) + "킬로미터 지났습니다. 출발한 지 " + spokenTime(now() - hike.start) + ". 남은 거리 " + skm(c.total - d) + "킬로미터"
                 + (asc >= 50 && K() !== RF.KINDS.bike ? ", 남은 오르막 " + num(asc) + "미터." : "."));
         }
     }
