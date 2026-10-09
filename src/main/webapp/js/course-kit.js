@@ -16,6 +16,14 @@
         return Number(n).toLocaleString("ko-KR", { minimumFractionDigits: digits || 0, maximumFractionDigits: digits || 0 });
     }
     function km(m) { return num(m / 1000, 2); }
+    /**
+     * "3시간 5분" - 2026-10-09 점검: 분을 먼저 반올림하고 시 · 분을 나눕니다(예전에는 3시간 59분 40초가 "3시간 0분").
+     * withZeroHour 면 1시간 안 될 때도 "0시간 40분".
+     */
+    function hm(ms, withZeroHour) {
+        var m = Math.max(0, Math.round(ms / 60000)), h = Math.floor(m / 60);
+        return (h || withZeroHour ? h + "시간 " : "") + (m % 60) + "분";
+    }
 
     /** 화면에 쓸 장소 이름 - "설악산국립공원사무소남설악탐방지원센터" → "남설악탐방지원센터", "중청 대피소" → "중청대피소". */
     function cleanName(name) {
@@ -45,7 +53,8 @@
             var dup = kept.some(function (w) {
                 var d = distM(+w.lat, +w.lon, +p.lat, +p.lon), wk = key(w.name);
                 // 이름이 다르면 가까워도 남깁니다 - 같은 자리 이름표는 groupPois 가 한 이름표로 묶습니다
-                return wk === k || (wk.indexOf(k) >= 0 || k.indexOf(wk) >= 0) && d < 200;
+                // 2026-10-09 점검: 같은 이름도 200m 안일 때만 - 3km 떨어진 두 "쉼터" · "약수터" 는 다른 곳입니다
+                return (wk === k || wk.indexOf(k) >= 0 || k.indexOf(wk) >= 0) && d < 200;
             });
             if (!dup) kept.push(p);
         });
@@ -215,7 +224,10 @@
         return line;
     }
 
+    // 2026-10-09 점검: 남이 준 파일이라 크기 · 지점 수에 한도(지점마다 모든 점을 훑어서, 지점이 아주 많으면 화면이 멈춤)
+    var GPX_MAX_CHARS = 30 * 1024 * 1024, GPX_MAX_WPT = 1000;
     function gpxToApi(text, fileName) {
+        if (String(text || "").length > GPX_MAX_CHARS) throw new Error("GPX 파일이 너무 큽니다(30MB 까지).");
         var doc = new DOMParser().parseFromString(String(text || ""), "application/xml");
         var root = doc.documentElement;
         if (!root || (root.localName || root.nodeName) !== "gpx" || doc.getElementsByTagName("parsererror").length) {
@@ -261,8 +273,9 @@
             points.push([p[1], p[0], p[2] == null ? null : Math.round(p[2] * 10) / 10, Math.round(d)]);
         });
         var pois = [];
-        kids(root, "wpt").forEach(function (w) {
+        kids(root, "wpt").slice(0, GPX_MAX_WPT).forEach(function (w) {
             var lat = numOf(w.getAttribute("lat")), lon = numOf(w.getAttribute("lon")), nm = txt(first(w, "name"));
+            if (nm && nm.length > 80) nm = nm.slice(0, 80);
             if (!valid(lat, lon) || nm == null) return;
             var best = 0, bd = Infinity;
             points.forEach(function (p, k) { var x = distM(lat, lon, p[1], p[0]); if (x < bd) { bd = x; best = k; } });
@@ -793,7 +806,7 @@
     }
 
     global.RF = {
-        LINE_COLOR: LINE_COLOR, num: num, km: km, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
+        LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
         sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
     };

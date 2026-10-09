@@ -318,7 +318,7 @@
     function statLine(c) {
         var k = RF.kindOf(c.kind), parts = [(c.kind && c.kind !== "hike" ? k.icon + " " : "") + km(c.distance_m) + "km"];
         var t = RF.standardMs(c.kind, +c.distance_m, c.ascent_m == null ? 0 : +c.ascent_m);
-        parts.push("약 " + (t >= 3600000 ? Math.floor(t / 3600000) + "시간 " : "") + Math.round(t / 60000) % 60 + "분");
+        parts.push("약 " + RF.hm(t));
         if (c.ascent_m != null) parts.push("오르막 " + num(c.ascent_m) + "m");
         if (c.ele_max_m != null) parts.push("최고 " + num(c.ele_max_m) + "m");
         return parts.join(" · ");
@@ -326,13 +326,16 @@
 
     // ------------------------------------------------------------------ 코스 하나
 
+    var selectSeq = 0;   // 2026-10-09 점검: 늦게 온 앞 코스가 새로 고른 코스를 덮지 않게
     function select(id) {
+        var my = ++selectSeq;
         stop();
         show(null);
         // 코스 자료와 지도 준비를 같이 기다립니다(느린 기기에서 지도 타일이 늦어도 목록은 먼저 뜹니다).
         // 'gpx-' 코스는 이 기기에 둔 GPX(📂 GPX 열기 - 따라가기와 같이 씀)
         var data = RF.isGpxId(id) ? RF.storedGpx(id) : getJson("api/course?id=" + encodeURIComponent(id));
         return Promise.all([data, mapReady]).then(function (r) {
+            if (my !== selectSeq) return;
             var j = r[0];
             clearMarkers();
             var pts = j.points;
@@ -368,6 +371,7 @@
             renderList();
             overview(true);
         }).catch(function (e) {
+            if (my !== selectSeq) return;
             // 배치를 다시 돌려 코스 번호가 바뀐 예전 링크 - 같은 산 코스를 목록에
             var similar = e.data && e.data.similar || [];
             if (similar.length) {

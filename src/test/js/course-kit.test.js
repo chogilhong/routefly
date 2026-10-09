@@ -90,5 +90,15 @@ eq("recordCourse 메모 이름", rc.pois[0].name, "📝 여기 경치 좋음");
 near("recordCourse 메모 거리", rc.pois[0].dist_m, 111, 2);
 near("recordCourse 오르막", RF.ascentLeft(rc, 0), 20, 0.5);
 
+// 2026-10-09 점검: 시 · 분 반올림
+eq("hm 3시간 59분 40초", RF.hm((3 * 3600 + 59 * 60 + 40) * 1000), "4시간 0분");
+eq("hm 40분", RF.hm(40 * 60000), "40분");
+eq("hm 0시간 붙임", RF.hm(40 * 60000, true), "0시간 40분");
+
+// 2026-10-09 점검: 같은 이름이라도 멀면 둘 다 남김, 가까우면 하나
+var dd = RF.dedupePois([{ name: "쉼터", lat: 37, lon: 127, dist_m: 100 }, { name: "쉼터", lat: 37.03, lon: 127, dist_m: 3400 },
+                        { name: "쉼터", lat: 37.0005, lon: 127, dist_m: 160 }]);
+eq("dedupePois 같은 이름 먼 곳", dd.length, 2);
+
 console.log((fails ? "FAILED " : "OK ") + (runs - fails) + "/" + runs);
 process.exit(fails ? 1 : 0);

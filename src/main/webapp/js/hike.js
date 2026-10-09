@@ -227,14 +227,14 @@
         // 같은 자리(80m 안) 지점은 한 문장으로 - "법계사, 로타리대피소샘터입니다. …"(지리산 3,351m 에 둘이 겹쳐 같은 말을 두 번 했음)
         var spoken = function (q) {
             var qd = +q.dist_m;
-            return !(qd < 60 || qd > c.total - 60 || +q.off_route_m > 80 || hike.passed[q.name]);
+            return !(qd < 60 || qd > c.total - 60 || +q.off_route_m > 80 || hike.passed[q.name + "@" + Math.round(qd)]);
         };
         var hit = c.pois.filter(function (q) { return spoken(q) && Math.abs(d - +q.dist_m) <= 30; })[0];
         if (hit) {
             var group = c.pois.filter(function (q) { return spoken(q) && Math.abs(+q.dist_m - +hit.dist_m) <= 80; });
             var names = [], ele = null, far = 0;
             group.forEach(function (q) {
-                hike.passed[q.name] = true;
+                hike.passed[q.name + "@" + Math.round(+q.dist_m)] = true;   // 이름 + 자리(같은 이름 다른 쉼터)
                 if (names.indexOf(q.name) < 0) names.push(q.name);
                 if (ele == null && q.ele_m != null) ele = +q.ele_m;
                 far = Math.max(far, +q.dist_m);
@@ -614,10 +614,13 @@
         });
     });
 
+    var loadSeq = 0;   // 2026-10-09 점검: A 를 누르고 바로 B 를 누르면 늦게 온 A 가 B 를 덮지 않게
     function loadCourse(id) {
+        var my = ++loadSeq;
         $("pick").style.display = "none";
         $("share").style.display = isGpxId(id) ? "none" : "";   // 이 기기에만 있는 GPX 는 링크로 보낼 수 없습니다
         return Promise.all([isGpxId(id) ? storedGpx(id) : getJson("api/course?id=" + encodeURIComponent(id)), mapReady]).then(function (r) {
+            if (my !== loadSeq) return;   // 그 사이 다른 코스를 골랐음
             c = RF.fromApi(id, r[0]);
             if (c.lon.length < 2) throw new Error("경로 점이 없습니다.");
             var sv = loadSaved();
@@ -641,6 +644,7 @@
                 toast("진행 중이던 기록이 있습니다(" + km(saved.d) + "km). \"이어서 " + K().act + "\" 버튼을 누르세요.", 5000);
             }
         }).catch(function (e) {
+            if (my !== loadSeq) return;
             // 배치를 다시 돌려 코스 번호가 바뀐 예전 링크 · 기록 - 같은 산 코스를 골라 보여 줍니다
             var similar = e.data && e.data.similar || [];
             showPick(similar.length > 0);   // 같은 산 목록을 보여 줄 때는 마지막 검색을 다시 하지 않습니다(늦게 온 검색이 덮어씀)
@@ -672,6 +676,21 @@
      * 산행을 끝내면 지웁니다.
      */
     var ACTIVE_KEY = "rf-hike-active";
+
+    /** 2026-10-09 점검: 하루 지나 이어 할 수 없는 산행 저장분(rf-hike-<코스> · -track · -notes)을 처음에 지웁니다(쌓여 저장 공간을 채움). */
+    (function purgeOldHikes() {
+        try {
+            var old = [];
+            for (var i = 0; i < localStorage.length; i++) {
+                var k = localStorage.key(i);
+                if (!/^rf-hike-/.test(k) || k === ACTIVE_KEY || /-(track|notes)$/.test(k)) continue;
+                var v = null;
+                try { v = JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { /* 깨진 값도 지움 */ }
+                if (!v || !(Date.now() - v.start < 24 * 3600 * 1000)) old.push(k);
+            }
+            old.forEach(function (k) { localStorage.removeItem(k); localStorage.removeItem(k + "-track"); localStorage.removeItem(k + "-notes"); });
+        } catch (e) { /* 다음에 */ }
+    })();
     var RESUME_MS = 3 * 3600 * 1000;   // 마지막 위치 저장이 이보다 오래되면 저절로 이어 가지 않고 단추로
 
     function clearSaved() {
@@ -698,12 +717,62 @@
             if (d < 300) hike.walked += d;   // GPS 튐(한 번에 300m 넘게)은 거리에 넣지 않습니다
         }
         hike.track.push([Math.round(lat * 1e6) / 1e6, Math.round(lon * 1e6) / 1e6, Math.round(t), alt == null ? null : Math.round(alt)]);
-        if (hike.sim) return;
-        try { localStorage.setItem(saveKey() + "-track", JSON.stringify(hike.track)); } catch (e) { /* 공간이 모자라도 산행은 계속 */ }
+        // 2026-10-09 점검: 점마다 기록 전체를 다시 쓰면 긴 산행에서 점점 무거워집니다(점 n 개면 n² 글자) -
+        // 10점 또는 30초마다, 그리고 화면이 가려질 때(flushTrack) 씁니다. 잃어도 마지막 30초 남짓입니다.
+        if (hike.track.length % 10 === 0 || t - (hike.trackSavedT || 0) > 30000) flushTrack();
     }
 
-    function records() {
-        try { return JSON.parse(localStorage.getItem("rf-records") || "[]"); } catch (e) { return []; }
+    function flushTrack() {
+        if (hike.sim || !c || !hike.track.length) return;
+        hike.trackSavedT = now();
+        try {
+            localStorage.setItem(saveKey() + "-track", JSON.stringify(hike.track));
+        } catch (e) {   // 공간이 모자라도 산행은 계속 - 한 번만 알립니다
+            if (!hike.trackFull) { hike.trackFull = true; toast("핸드폰 저장 공간이 모자라 걸은 길을 저장하지 못했습니다. 내 기록에서 지난 기록을 지워 주세요.", 7000); }
+        }
+    }
+
+    /**
+     * 내 기록 목록. 2026-10-09 점검: 걸은 길이 든 기록 20개를 localStorage(5MB 남짓)에 두면 긴 자전거 기록 몇 개로 차서
+     * 예전 기록이 말없이 지워졌습니다 - IndexedDB("rf-records", 사진과 같은 방식)로 옮깁니다. 화면은 메모리 사본(recCache)을 읽고,
+     * 바꿀 때 IndexedDB 에 씁니다. 예전 localStorage 기록은 처음 한 번 옮기고 지웁니다. IndexedDB 가 없으면 예전처럼.
+     */
+    var REC_LS = "rf-records", REC_MAX = 30, recCache = [];
+    function recLs() { try { return JSON.parse(localStorage.getItem(REC_LS) || "[]"); } catch (e) { return []; } }
+    function recTx(mode, fn) {
+        return new Promise(function (resolve, reject) {
+            if (!window.indexedDB) { reject(new Error("no indexedDB")); return; }
+            var r = indexedDB.open("rf-records", 1);
+            r.onupgradeneeded = function () { r.result.createObjectStore("r"); };
+            r.onerror = function () { reject(r.error); };
+            r.onsuccess = function () {
+                var db = r.result, tx = db.transaction("r", mode), out = fn(tx.objectStore("r"));
+                tx.oncomplete = function () { db.close(); resolve(out && out.result); };
+                tx.onerror = function () { db.close(); reject(tx.error); };
+            };
+        });
+    }
+    var recordsReady = recTx("readonly", function (st) { return st.get("list"); }).then(function (list) {
+        if (Array.isArray(list)) { recCache = list; return; }
+        recCache = recLs();   // 처음 - 예전 기록을 옮김
+        if (!recCache.length) return;
+        return recTx("readwrite", function (st) { st.put(recCache, "list"); }).then(function () {
+            try { localStorage.removeItem(REC_LS); } catch (e) { /* 다음에 다시 */ }
+        });
+    }).catch(function () { recCache = recLs(); });
+
+    function records() { return recCache.slice(); }
+
+    /** 기록 목록을 바꿉니다. 저장에 실패하면 알립니다(예전에는 말없이 5개만 남겼음). */
+    function writeRecords(list) {
+        recCache = list.slice(0, REC_MAX);
+        return recTx("readwrite", function (st) { st.put(recCache, "list"); }).catch(function () {
+            try {
+                localStorage.setItem(REC_LS, JSON.stringify(recCache));
+            } catch (e) {
+                toast("핸드폰 저장 공간이 모자라 기록을 저장하지 못했습니다. 지난 기록을 GPX 로 보내 두고 지워 주세요.", 8000);
+            }
+        });
     }
 
     /** 순수 함수 - 기록 → GPX 1.1 글. */
@@ -771,7 +840,7 @@
         setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
     }
 
-    /** 산행을 끝낼 때 - 기록을 "내 기록" 에 남기고 요약을 보여 줍니다(최근 20개만). 아주 짧거나 코스와 먼 곳이면 남기지 않습니다. */
+    /** 산행을 끝낼 때 - 기록을 "내 기록" 에 남기고 요약을 보여 줍니다(최근 30개만). 아주 짧거나 코스와 먼 곳이면 남기지 않습니다. */
     function finishRecord() {
         if (hike.track.length < 2) return;
         if (RF.recordSkip(hike.walked, hike.track, c)) return;   // 알림 없이(2026-10-09 홍TV님)
@@ -782,12 +851,11 @@
         rec.kcal = ef.kcal;
         rec.steps = ef.steps;
         rec.up = ef.up;
-        var list = records();
-        list.unshift(rec);
-        try { localStorage.setItem("rf-records", JSON.stringify(list.slice(0, 20))); } catch (e) {
-            try { localStorage.setItem("rf-records", JSON.stringify(list.slice(0, 5))); } catch (e2) { /* 공간 부족 */ }
-        }
-        gcPhotos();   // 20개 밖으로 밀려난 기록의 사진
+        recordsReady.then(function () {
+            var list = records();
+            list.unshift(rec);
+            return writeRecords(list);
+        }).then(gcPhotos);   // 30개 밖으로 밀려난 기록의 사진
         var sum = $("doneSum");
         sum.innerHTML = "";
         [["코스", rec.name], ["걸은 거리", km(rec.walked) + " km"], ["코스 진행", km(rec.done) + " / " + km(c.total) + " km"],
@@ -807,6 +875,10 @@
     }
 
     function showRecords() {
+        recordsReady.then(drawRecords);
+    }
+
+    function drawRecords() {
         var box = $("recList"), list = records();
         box.innerHTML = "";
         if (!list.length) {
@@ -829,17 +901,15 @@
             }
             var v = document.createElement("button"); v.textContent = "📈"; v.title = "고도 그래프 · 지도에 보기";
             v.onclick = function () { showRecord(r); };
-            row.appendChild(v);
             var x = document.createElement("button"); x.textContent = "지우기";
             x.onclick = function () {
                 if (!confirm("이 기록을 지울까요?")) return;
                 var l = records(); l.splice(i, 1);
-                try { localStorage.setItem("rf-records", JSON.stringify(l)); } catch (e) { /* 무시 */ }
-                gcPhotos();
-                showRecords();
+                writeRecords(l).then(gcPhotos);
+                drawRecords();
             };
             if (info) row.appendChild(info);
-            row.appendChild(g); row.appendChild(x);
+            row.appendChild(v); row.appendChild(g); row.appendChild(x);
             box.appendChild(row);
         });
         $("recSheet").style.display = "flex";
@@ -910,10 +980,17 @@
     }
     function photoPut(id, blob) { return photoTx("readwrite", function (st) { st.put(blob, id); }); }
     function photoGet(id) { return photoTx("readonly", function (st) { return st.get(id); }); }
-    /** 어느 기록 · 지금 산행에도 없는 사진을 지웁니다(기록을 지우거나 20개 밖으로 밀려났을 때). */
+    /** 어느 기록 · 지금 산행에도 없는 사진을 지웁니다(기록을 지우거나 30개 밖으로 밀려났을 때). */
     function gcPhotos() {
-        var keep = {};
-        records().concat([{ notes: hike.notes }]).forEach(function (r) { (r.notes || []).forEach(function (n) { if (n.photo) keep[n.photo] = 1; }); });
+        var keep = {}, lists = records().concat([{ notes: hike.notes }]);
+        // 2026-10-09 점검: 이어 하려고 남겨 둔 산행(rf-hike-<코스>-notes)의 사진도 남깁니다
+        try {
+            for (var i = 0; i < localStorage.length; i++) {
+                var k = localStorage.key(i);
+                if (/^rf-hike-.+-notes$/.test(k)) lists.push({ notes: JSON.parse(localStorage.getItem(k) || "[]") });
+            }
+        } catch (e) { return; }   // 못 읽으면 지우지 않습니다
+        lists.forEach(function (r) { (r.notes || []).forEach(function (n) { if (n.photo) keep[n.photo] = 1; }); });
         photoTx("readwrite", function (st) {
             var q = st.getAllKeys();
             q.onsuccess = function () { q.result.forEach(function (k) { if (!keep[k]) st.delete(k); }); };
@@ -1187,6 +1264,7 @@
         navigator.wakeLock.request("screen").then(function (w) { hike.wake = w; }).catch(function () { /* 배터리 절약 모드 등 */ });
     }
     document.addEventListener("visibilitychange", function () {
+        if (document.visibilityState === "hidden" && hike.running) flushTrack();   // 앱이 닫히기 전에 걸은 길을 남김
         if (document.visibilityState === "visible" && hike.running && !hike.sim && !BG) keepAwake();   // 앱은 화면을 켜 두지 않음(위 start)
     });
 
@@ -1313,7 +1391,11 @@
         try { history.replaceState(null, "", "#c=" + encodeURIComponent(c.id)); } catch (e) { /* 주소만 못 바꿈 */ }   // 새로 고침하면 이 코스로 이어서
         drawCourse(true);
         prof = RF.profile($("profile"), c, {});
-        try { localStorage.setItem(saveKey() + "-track", JSON.stringify(track)); } catch (e) { /* 공간 부족 */ }
+        try {
+            localStorage.setItem(saveKey() + "-track", JSON.stringify(track));
+            // 2026-10-09 점검: 사진 · 메모도 새 이름으로 다시 남깁니다(clearSaved 가 지워 다시 열면 메모가 사라졌음)
+            if (hike.notes.length && !hike.sim) localStorage.setItem(saveKey() + "-notes", JSON.stringify(hike.notes));
+        } catch (e) { /* 공간 부족 */ }
         save();
         var end = c.course.name.split(" → ").pop();
         toast("🔀 " + msg + "\n" + c.course.name, 6000);
@@ -1407,7 +1489,7 @@
         if (d >= c.total - ARRIVE_M) setV("sEta", "도착");
         else {
             var rem = remainingMs(elapsed), eta = nowMs + rem;
-            setV("sEta", clock(eta), " (" + Math.floor(rem / 3600000) + "시간 " + Math.round(rem / 60000) % 60 + "분)");
+            setV("sEta", clock(eta), " (" + RF.hm(rem, true) + ")");
             // 해 지기 30분 전까지 못 닿을 것 같으면 빨갛게 + 한 번 알림
             if (sun && eta > sun - 1800000) {
                 $("etaBox").classList.add("late");
@@ -2147,6 +2229,14 @@
 
     function route() {
         var m = /[#&]c=([^&]+)/.exec(location.hash);
+        // 2026-10-09 점검: 핸드폰 뒤로 가기(단추 · 밀기)로 주소가 바뀌어도 걷는 중이면 묻지 않고 끝내지 않습니다 -
+        // 주소를 이 코스로 되돌리고 "끝낼까요?" 를 묻습니다(화면의 ‹ 단추와 같음). 시험 걷기는 그냥 멈춥니다.
+        if (hike.running && !hike.sim && c && !(m && decodeURIComponent(m[1]) === c.id)) {
+            try { history.pushState(null, "", "#c=" + encodeURIComponent(c.id)); } catch (e) { /* 주소만 못 되돌림 */ }
+            askStop();
+            return;
+        }
+        if (hike.running && m && c && decodeURIComponent(m[1]) === c.id) return;   // 같은 코스(되돌린 주소) - 그대로
         if (hike.running) stopHike();
         if (m) loadCourse(decodeURIComponent(m[1]));
         else {
