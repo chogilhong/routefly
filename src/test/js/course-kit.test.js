@@ -54,6 +54,35 @@ near("distM", RF.distM(37, 127, 37.001, 127), 111, 1);
     eq("빈 글", RF.signText(null), "");
 })();
 
+// 국립공원 위험지역 · 조망점 - 앞 120m 위험 알림 한 번, 조망점은 지날 때, SOS 는 가까운 구급함 · 헬기장
+(function () {
+    var j = line(11);   // 약 1.1km
+    j.spots = [{ kind: "danger", name: "낙석주의", info: "낙석주의", lat: 37.005, lon: 127, dist_m: 555 },
+               { kind: "danger", name: "미끄럼주의", info: "추락주의", lat: 37.008, lon: 127, dist_m: 888 },
+               { kind: "view", name: "제석봉 조망점", view_az: 255, view_m: 706, lat: 37.003, lon: 127, dist_m: 333 },
+               { kind: "aid", name: "산악구급함", lat: 37.002, lon: 127.001, dist_m: 222 },
+               { kind: "heli", name: "헬기장", lat: 37.009, lon: 127.002, dist_m: 999 }];
+    var c = RF.fromApi("knps-1", j), done = {};
+    eq("멀면 없음", RF.dangerAhead(c, 300, 120, done), null);
+    var s = RF.dangerAhead(c, 450, 120, done);
+    eq("120m 앞 낙석", s && s.name, "낙석주의");
+    done[RF.spotKey(s)] = true;
+    eq("알린 뒤에는 다음 것 전까지 없음", RF.dangerAhead(c, 460, 120, done), null);
+    eq("다음 위험", RF.dangerAhead(c, 800, 120, done).name, "미끄럼주의");
+    eq("위험 글 - 이름과 종류가 다르면 함께", RF.spotText(c.spots[1]), "미끄럼주의(추락주의)");
+    eq("위험 글", RF.spotText(c.spots[0]), "낙석주의");
+    eq("조망점 지날 때", RF.viewAt(c, 320, {}).name, "제석봉 조망점");
+    eq("조망점 멀면 없음", RF.viewAt(c, 250, {}), null);
+    eq("조망 글", RF.spotText(c.spots[2]), "제석봉 조망점 · 서쪽 0.71km");
+    eq("방위", [RF.azWord(0), RF.azWord(171), RF.azWord(359), RF.azWord(null)], ["북", "남", "북", ""]);
+    eq("가까운 구급함", RF.nearSpot(c, "aid", 37.002, 127.001).spot.name, "산악구급함");
+    eq("헬기장", RF.nearSpot(c, "heli", 37.0, 127.0).spot.name, "헬기장");
+    eq("2km 넘으면 없음", RF.nearSpot(c, "heli", 37.05, 127.0), null);
+    eq("아이콘", RF.spotIcon("danger"), "⚠️");
+    eq("미리보기 요약", RF.spotSummary(c.spots), "⚠️ 위험 2곳 · 🔭 조망점 1곳");
+    eq("요약 없음", RF.spotSummary(null), "");
+})();
+
 // fromApi · at · ascentLeft
 var j = line(11);
 j.pois = [{ name: "중간쉼터", dist_m: 555, off_route_m: 0, lat: 37.005, lon: 127 },

@@ -222,6 +222,8 @@ final class CourseQueries {
      *   info   : {up_min, down_min, level, notice} - 국립공원 공식 코스만(없으면 칸 없음)
      *   signs  : [{loc_no, place_name, ele_m, call_ok, lat, lon}, ...] - 경로에서 SIGN_NEAR_M 안의 국립공원 위치표지판
      *            (route_signpost, routefly-batch knpsSign). 없거나 표가 없으면 칸 없음
+     *   spots  : [{kind, name, info, ele_m, view_az, view_m, lat, lon, dist_m, off_m}, ...] - 국립공원 위험지역 · 구급함 · 헬기장 ·
+     *            공원지킴터 · 조망점(route_park_spot, knpsSpot). 위험 · 조망은 경로 100m, 나머지는 400m 안. dist_m 은 가장 가까운 경로 점의 누적 거리
      * </pre>
      */
     /** 공식 정보(route_course_info)가 있는 코스 ID 앞부분 - 국립공원 탐방로 공간데이터(routefly-batch knpsTrail). */
@@ -270,11 +272,78 @@ final class CourseQueries {
         } catch (java.sql.SQLException e) {
             // 표 없음 - 표지 없이
         }
+        // 2026-10-10 홍TV님: 국립공원 위험지역 · 조망점(낙석주의 앞 알림 · SOS 구급함 · 헬기장). 표가 없으면 빼고.
+        try {
+            JsonArray spots = spotsNear(c, points, course.get(0).getAsJsonObject());
+            if (spots.size() > 0) out.add("spots", spots);
+        } catch (java.sql.SQLException e) {
+            // 표 없음
+        }
         return out;
     }
 
+    /** 위험지역 · 조망점은 경로 이 거리(m) 안. */
+    static final double SPOT_NEAR_M = 100;
+    /** 구급함 · 헬기장 · 공원지킴터는 조금 떨어져도(SOS 에 알려 줌). */
+    static final double HELP_NEAR_M = 400;
+
+    static JsonArray spotsNear(Connection c, JsonArray points, JsonObject course) throws Exception {
+        JsonArray out = new JsonArray();
+        if (points.size() == 0 || !course.has("min_lat") || course.get("min_lat").isJsonNull()) return out;
+        double pad = 0.004;
+        try (PreparedStatement ps = c.prepareStatement("SELECT kind, name, info, ele_m, view_az, view_m, lat, lon FROM route_park_spot"
+                + " WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ?")) {
+            ps.setDouble(1, course.get("min_lat").getAsDouble() - pad);
+            ps.setDouble(2, course.get("max_lat").getAsDouble() + pad);
+            ps.setDouble(3, course.get("min_lon").getAsDouble() - pad * 1.25);
+            ps.setDouble(4, course.get("max_lon").getAsDouble() + pad * 1.25);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String kind = rs.getString(1);
+                    double lat = rs.getDouble(7), lon = rs.getDouble(8);
+                    int i = nearIndex(points, lat, lon);
+                    double off = i < 0 ? Double.POSITIVE_INFINITY : distM(points.get(i).getAsJsonArray(), lat, lon);
+                    if (off > ("danger".equals(kind) || "view".equals(kind) ? SPOT_NEAR_M : HELP_NEAR_M)) continue;
+                    JsonObject o = new JsonObject();
+                    o.addProperty("kind", kind);
+                    o.addProperty("name", rs.getString(2));
+                    o.addProperty("info", rs.getString(3));
+                    for (int k = 4; k <= 6; k++) {
+                        int v = rs.getInt(k);
+                        String col = k == 4 ? "ele_m" : k == 5 ? "view_az" : "view_m";
+                        if (rs.wasNull()) o.add(col, JsonNull.INSTANCE); else o.addProperty(col, v);
+                    }
+                    o.add("lat", new com.google.gson.JsonPrimitive(rs.getBigDecimal(7)));
+                    o.add("lon", new com.google.gson.JsonPrimitive(rs.getBigDecimal(8)));
+                    o.addProperty("dist_m", points.get(i).getAsJsonArray().get(3).getAsInt());
+                    o.addProperty("off_m", (int) Math.round(off));
+                    out.add(o);
+                }
+            }
+        }
+        return out;
+    }
+
+    /** 순수 함수 - (lat, lon) 에서 가장 가까운 경로 점의 번호. 점이 없으면 -1. */
+    static int nearIndex(JsonArray points, double lat, double lon) {
+        int best = -1;
+        double bd = Double.POSITIVE_INFINITY;
+        for (int i = 0; i < points.size(); i++) {
+            double d = distM(points.get(i).getAsJsonArray(), lat, lon);
+            if (d < bd) { bd = d; best = i; }
+        }
+        return best;
+    }
+
+    /** 순수 함수 - 경로 점 [경도, 위도, …] 와 (lat, lon) 사이 거리(m, 평면 근사). */
+    static double distM(JsonArray p, double lat, double lon) {
+        double k = Math.cos(Math.toRadians(lat));
+        double dx = (p.get(0).getAsDouble() - lon) * k, dy = p.get(1).getAsDouble() - lat;
+        return Math.sqrt(dx * dx + dy * dy) * 111_320.0;
+    }
+
     /** 경로에서 이 거리(m) 안의 위치표지판만 보냅니다(경로 밖 다른 골짜기 표지를 빼려고). */
-    static final double SIGN_NEAR_M = 150;
+    static final double SIGN_NEAR_M = 80;   // 2026-10-10 PC: 150m 는 천왕봉 둘레에서 다른 길(칼바위 · 추성마을) 표지까지 잡혔음
 
     /** 코스 범위(+ 약 200m) 안의 표지를 한 번 읽고, 경로 점에서 SIGN_NEAR_M 안의 것만. */
     static JsonArray signsNear(Connection c, JsonArray points, JsonObject course) throws Exception {
@@ -310,13 +379,7 @@ final class CourseQueries {
 
     /** 순수 함수 - (lat, lon) 에서 경로 점([경도, 위도, …])까지 가장 가까운 거리(m, 점 기준 - 점 간격이 촘촘해 충분). */
     static double nearLine(JsonArray points, double lat, double lon) {
-        double best = Double.POSITIVE_INFINITY, k = Math.cos(Math.toRadians(lat));
-        for (int i = 0; i < points.size(); i++) {
-            JsonArray p = points.get(i).getAsJsonArray();
-            double dx = (p.get(0).getAsDouble() - lon) * k, dy = p.get(1).getAsDouble() - lat;
-            double d = Math.sqrt(dx * dx + dy * dy) * 111_320.0;
-            if (d < best) best = d;
-        }
-        return best;
+        int i = nearIndex(points, lat, lon);
+        return i < 0 ? Double.POSITIVE_INFINITY : distM(points.get(i).getAsJsonArray(), lat, lon);
     }
 }

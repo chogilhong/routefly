@@ -230,7 +230,7 @@
     /** 코스 자료(api/course 응답) → 계산하기 쉬운 모양. 갈림길은 이름표와 따로 c.junctions(진행 거리 목록). */
     function fromApi(id, j) {
         var all = j.pois || [];
-        var c = { id: id, course: j.course, info: j.info || null, signs: j.signs || [], lon: [], lat: [], ele: [], dist: [], markers: [],
+        var c = { id: id, course: j.course, info: j.info || null, signs: j.signs || [], spots: j.spots || [], lon: [], lat: [], ele: [], dist: [], markers: [],
                   pois: dedupePois(all.filter(function (p) { return p.name !== JUNCTION; })),
                   junctions: all.filter(function (p) { return p.name === JUNCTION; }).map(function (p) { return +p.dist_m; })
                       .sort(function (a, b) { return a - b; }) };
@@ -263,6 +263,64 @@
         if (!ns) return "";
         var s = ns.sign, place = s.place_name ? " (" + s.place_name + ")" : "";
         return s.loc_no + " · " + (ns.m < 10 ? "바로 옆" : Math.round(ns.m) + "m") + place;
+    }
+
+    /** 국립공원 위험지역 · 조망점 종류 → 지도 아이콘. */
+    var SPOT_ICONS = { danger: "⚠️", aid: "⛑️", heli: "🚁", ranger: "🏠", view: "🔭" };
+    function spotIcon(kind) { return SPOT_ICONS[kind] || "•"; }
+
+    /** 순수 함수 - 방위(도) → 8 방위 말(255 → 서남서가 아니라 "서"). 모르면 "". */
+    function azWord(az) {
+        if (az == null || isNaN(+az)) return "";
+        return ["북", "북동", "동", "남동", "남", "남서", "서", "북서"][Math.round(((+az % 360) + 360) % 360 / 45) % 8];
+    }
+
+    /** 순수 함수 - 이름표 글: 위험 "낙석주의", 이름과 종류가 다르면 "미끄럼주의(추락주의)", 조망점 "제석봉 조망점 · 서쪽 0.7km". */
+    function spotText(s) {
+        if (!s) return "";
+        if (s.kind === "danger") return s.info && s.info !== "기타" && s.name.indexOf(s.info) < 0 ? s.name + "(" + s.info + ")" : s.name;
+        if (s.kind === "view" && s.view_az != null) return s.name + " · " + azWord(s.view_az) + "쪽" + (s.view_m ? " " + km(+s.view_m) + "km" : "");
+        return s.name;
+    }
+
+    /**
+     * 순수 함수 - d 에서 앞 aheadM 안(조금 지난 20m 까지)에 있는, 아직 알리지 않은 위험지역. 없으면 null. done 은 알린 것(spotKey → true).
+     * 2026-10-10 홍TV님: 국립공원 위험지역(낙석주의 · 추락주의 …) 앞에서 알림.
+     */
+    function dangerAhead(c, d, aheadM, done) {
+        var list = ((c && c.spots) || []).filter(function (s) { return s.kind === "danger"; });
+        for (var i = 0; i < list.length; i++) {
+            var s = list[i], ahead = +s.dist_m - d;
+            if (ahead >= -20 && ahead <= aheadM && !done[spotKey(s)]) return s;
+        }
+        return null;
+    }
+
+    /** 순수 함수 - d 에서 앞뒤 40m 안의, 아직 알리지 않은 조망점. 없으면 null. */
+    function viewAt(c, d, done) {
+        var list = ((c && c.spots) || []).filter(function (s) { return s.kind === "view"; });
+        for (var i = 0; i < list.length; i++) if (Math.abs(+list[i].dist_m - d) <= 40 && !done[spotKey(list[i])]) return list[i];
+        return null;
+    }
+
+    /** 순수 함수 - 미리보기 정보 줄에 붙일 말: "⚠️ 위험 2곳 · 🔭 조망점 1곳". 없으면 "". */
+    function spotSummary(spots) {
+        var n = { danger: 0, view: 0 };
+        (spots || []).forEach(function (s) { if (n[s.kind] != null) n[s.kind]++; });
+        return [n.danger ? "⚠️ 위험 " + n.danger + "곳" : "", n.view ? "🔭 조망점 " + n.view + "곳" : ""].filter(Boolean).join(" · ");
+    }
+
+    function spotKey(s) { return s.kind + "|" + s.lat + "|" + s.lon; }
+
+    /** 순수 함수 - (lat, lon) 에서 가장 가까운 kind(aid · heli · ranger) {spot, m}. 2km 넘으면 null. SOS 에 씁니다. */
+    function nearSpot(c, kind, lat, lon) {
+        var best = null;
+        ((c && c.spots) || []).forEach(function (s) {
+            if (s.kind !== kind) return;
+            var m = distM(lat, lon, +s.lat, +s.lon);
+            if (m <= 2000 && (!best || m < best.m)) best = { spot: s, m: m };
+        });
+        return best;
     }
 
     /**
@@ -968,7 +1026,7 @@
     }
 
     global.RF = {
-        LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
+        LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
         sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
     };

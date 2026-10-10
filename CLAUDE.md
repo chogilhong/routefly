@@ -2,7 +2,7 @@
 
 등산 · 걷기 · 자전거 코스를 3D 지형(MapLibre) 위로 날아가며 보여 주는 웹 앱과, 폰용 등산 화면(hike.html - GPS · SOS · 오프라인 PWA · GPX 기록)입니다.
 Java 17(JDK 21 로 빌드) · Jakarta Servlet 6.1 war · JDBC(MariaDB `routefly`, 연결 풀은 `Db.open()` 의 MyBatis PooledDataSource) · Gson, 톰캣 11 에서 돕니다. 로그인은 없습니다.
-DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다(route_course · route_course_point · route_course_poi).
+DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다(route_course · route_course_point · route_course_poi · route_course_info · route_signpost · route_park_spot - 뒤의 셋은 표가 없으면 빼고 보냄).
 
 ## 1. 답변
 

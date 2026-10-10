@@ -38,6 +38,7 @@
                  walked: 0,            // 걸은 거리(m)
                  alerted: {},          // 이미 알린 갈림길(진행 거리)
                  sunWarned: false,
+                 spotDone: {},         // 알린 위험지역 · 조망점(RF.spotKey → true)
                  passed: {},           // 음성으로 알린 지점(이름)
                  kmSpoken: 0,          // 음성으로 알린 거리 이정(1km · 자전거 5km 단위)
                  wasOff: false,        // 코스에서 벗어나 있음(음성 - 벗어날 때 · 돌아올 때 한 번씩)
@@ -502,6 +503,15 @@
             e.querySelector(".ic").textContent = RF.poiIcon(q.name);
             drawCourse.pois.push({ el: e, d: q.d, end: q.d < 60 || q.d > c.total - 60, top: !!q.top });
             ms.push(new maplibregl.Marker({ element: e, anchor: "bottom", offset: [0, 11] }).setLngLat([q.lon, q.lat]).addTo(map));
+        });
+        // 국립공원 위험지역 · 구급함 · 헬기장 · 공원지킴터 · 조망점 - 작은 아이콘(누르면 이름)
+        (c.spots || []).forEach(function (sp) {
+            var e = document.createElement("div");
+            e.className = "spot " + sp.kind;
+            e.textContent = RF.spotIcon(sp.kind);
+            e.title = RF.spotText(sp);
+            e.addEventListener("click", function (ev) { ev.stopPropagation(); toast(RF.spotIcon(sp.kind) + " " + RF.spotText(sp), 4000); });
+            ms.push(marker(e, [+sp.lon, +sp.lat]));
         });
         map.getSource("junctions").setData({ type: "FeatureCollection", features: (c.junctions || []).map(function (jd) {
             var jp = RF.at(c, jd);
@@ -1193,6 +1203,7 @@
         hike.walked = saved && saved.walked ? saved.walked : 0;
         hike.alerted = {};
         hike.sunWarned = false;
+        hike.spotDone = {};
         hike.passed = {};
         hike.wasOff = false;
         hike.d0 = saved && saved.d0 != null ? saved.d0 : null;   // 첫 위치가 코스 위일 때 정합니다(코스 중간에서 시작하면 그 자리)
@@ -1573,6 +1584,23 @@
                 + (dEle == null ? "" : " · " + (dEle >= 0 ? "오르막 +" : "내리막 ") + num(dEle) + "m")));
         } else {
             $("next").textContent = "다음 지점 없음 - 도착까지 " + km(Math.max(0, c.total - d)) + "km";
+        }
+        // 국립공원 위험지역 - 앞 120m 에서 한 번(소리 · 진동), 조망점은 지날 때 한 번
+        if (hike.running) {
+            var dz = RF.dangerAhead(c, d, 120, hike.spotDone);
+            if (dz) {
+                hike.spotDone[RF.spotKey(dz)] = true;
+                var ahead = Math.max(0, Math.round((+dz.dist_m - d) / 10) * 10);
+                toast("⚠️ " + (ahead > 20 ? ahead + "m 앞 " : "") + RF.spotText(dz) + " - 조심하세요", 7000);
+                say((ahead > 20 ? ahead + "미터 앞 " : "여기는 ") + (dz.info && dz.info !== "기타" ? dz.info : dz.name) + " 구간입니다. 조심하세요.", { urgent: true });
+                if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+            }
+            var vw = RF.viewAt(c, d, hike.spotDone);
+            if (vw) {
+                hike.spotDone[RF.spotKey(vw)] = true;
+                toast("🔭 " + RF.spotText(vw), 6000);
+                say(vw.name + (vw.view_az != null ? ", " + RF.azWord(vw.view_az) + "쪽 경치가 좋습니다." : "입니다."));
+            }
         }
         // 국립공원 위치표지판(지리10-05) - 지금 자리(산행 중 GPS, 아니면 코스 위 자리)에서 500m 안의 가장 가까운 것. 119 신고 때 말할 번호
         var here = hike.running && !hike.sim && hike.fix ? hike.fix : p, ns = RF.nearSign(c, here.lat, here.lon);
@@ -2031,6 +2059,11 @@
         var ns = c && here ? RF.nearSign(c, here.lat, here.lon) : null;
         $("sosSignRow").hidden = !ns;
         $("sosSign").textContent = ns ? RF.signText(ns) : "-";
+        // 가까운 구급함 · 헬기장(국립공원 위험지역 자료, 2km 안)
+        var kit = c && here ? RF.nearSpot(c, "aid", here.lat, here.lon) : null, heli = c && here ? RF.nearSpot(c, "heli", here.lat, here.lon) : null;
+        var helpTxt = [kit ? "구급함 " + Math.round(kit.m) + "m" : "", heli ? "헬기장 " + Math.round(heli.m) + "m" : ""].filter(Boolean).join(" · ");
+        $("sosHelpRow").hidden = !helpTxt;
+        $("sosHelp").textContent = helpTxt || "-";
 
         // 보낼 글 - 화면에 보이는 내용 그대로(구조대가 읽기 쉽게 줄바꿈)
         var lines = ["[" + K().sos + " 긴급 신고]"];
@@ -2042,6 +2075,7 @@
             lines.push("위치: 확인 못 함 - 위치표지판 번호로 연락 바람");
         }
         if (ns) lines.push("가까운 위치표지판: " + ns.sign.loc_no + " (약 " + Math.round(ns.m) + "m" + (ns.sign.place_name ? ", " + ns.sign.place_name : "") + ")");
+        if (heli) lines.push("가까운 헬기장: 약 " + Math.round(heli.m) + "m (" + heli.spot.lat + ", " + heli.spot.lon + ")");
         if (ele != null) lines.push("해발: " + Math.round(ele) + "m" + eleNote);
         if (c) lines.push("코스: " + c.course.name + (where ? " (" + where + ")" : ""));
         var nx = c && hike.running ? RF.nextPoi(c, hike.d) : null;

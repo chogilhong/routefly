@@ -19,5 +19,7 @@ public class SignpostNearTest {
         assertTrue(String.valueOf(d), d > 105 && d < 117);
         assertTrue(CourseQueries.nearLine(pts, 35.36, 127.70) > CourseQueries.SIGN_NEAR_M);
         assertTrue(Double.isInfinite(CourseQueries.nearLine(new JsonArray(), 35.3, 127.6)));
+        assertEquals("가까운 점 번호(위험지역 dist_m 에 씀)", 1, CourseQueries.nearIndex(pts, 35.3457, 127.6990));
+        assertEquals(-1, CourseQueries.nearIndex(new JsonArray(), 35.3, 127.6));
     }
 }
