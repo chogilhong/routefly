@@ -262,7 +262,8 @@
     function signText(ns) {
         if (!ns) return "";
         var s = ns.sign, place = s.place_name ? " (" + s.place_name + ")" : "";
-        return s.loc_no + " · " + (ns.m < 10 ? "바로 옆" : Math.round(ns.m) + "m") + place;
+        // 100m 넘으면 10m 단위(걸을 때마다 숫자가 1m 씩 바뀌어 어지럽지 않게 - 2026-10-10 PC)
+        return s.loc_no + " · " + (ns.m < 10 ? "바로 옆" : (ns.m < 100 ? Math.round(ns.m) : Math.round(ns.m / 10) * 10) + "m") + place;
     }
 
     /** 국립공원 위험지역 · 조망점 종류 → 지도 아이콘. */
@@ -284,24 +285,30 @@
     }
 
     /**
-     * 순수 함수 - d 에서 앞 aheadM 안(조금 지난 20m 까지)에 있는, 아직 알리지 않은 위험지역. 없으면 null. done 은 알린 것(spotKey → true).
+     * 순수 함수 - 아직 알리지 않은 위험지역 가운데 d 에서 앞 aheadM 안까지 온 것(이미 지난 것 포함, 걷기 시작한 fromD 앞은 뺌) 중 가장 앞의 것.
+     * 없으면 null. done 은 알린 것(spotKey → true). 지난 것도 돌려주는 까닭: 시험 걷기처럼 빨리 가면 한 번 그릴 사이에 120m 를 넘어감
+     * (2026-10-10 PC: 북한산 보문대피소 코스 위험 4곳 중 알림 2) - 부르는 쪽이 한참 지난 것은 말없이 넘깁니다.
      * 2026-10-10 홍TV님: 국립공원 위험지역(낙석주의 · 추락주의 …) 앞에서 알림.
      */
-    function dangerAhead(c, d, aheadM, done) {
-        var list = ((c && c.spots) || []).filter(function (s) { return s.kind === "danger"; });
-        for (var i = 0; i < list.length; i++) {
-            var s = list[i], ahead = +s.dist_m - d;
-            if (ahead >= -20 && ahead <= aheadM && !done[spotKey(s)]) return s;
-        }
-        return null;
+    function dangerAhead(c, d, aheadM, done, fromD) {
+        return firstUndone(c, "danger", done, (fromD || 0) - 20, d + aheadM);
     }
 
-    /** 순수 함수 - d 에서 앞뒤 40m 안의, 아직 알리지 않은 조망점. 없으면 null. */
-    function viewAt(c, d, done) {
-        var list = ((c && c.spots) || []).filter(function (s) { return s.kind === "view"; });
-        for (var i = 0; i < list.length; i++) if (Math.abs(+list[i].dist_m - d) <= 40 && !done[spotKey(list[i])]) return list[i];
-        return null;
+    /** 순수 함수 - 아직 알리지 않은 조망점 가운데 d 앞뒤 40m 까지 온 것(지난 것 포함, fromD 앞은 뺌) 중 가장 앞의 것. 없으면 null. */
+    function viewAt(c, d, done, fromD) {
+        return firstUndone(c, "view", done, (fromD || 0) - 40, d + 40);
     }
+
+    function firstUndone(c, kind, done, lo, hi) {
+        var best = null;
+        ((c && c.spots) || []).forEach(function (s) {
+            var at = +s.dist_m;
+            if (s.kind === kind && at >= lo && at <= hi && !done[spotKey(s)] && (!best || at < +best.dist_m)) best = s;
+        });
+        return best;
+    }
+
+    function spotKey(s) { return s.kind + "|" + s.lat + "|" + s.lon; }
 
     /** 순수 함수 - 미리보기 정보 줄에 붙일 말: "⚠️ 위험 2곳 · 🔭 조망점 1곳". 없으면 "". */
     function spotSummary(spots) {
@@ -309,8 +316,6 @@
         (spots || []).forEach(function (s) { if (n[s.kind] != null) n[s.kind]++; });
         return [n.danger ? "⚠️ 위험 " + n.danger + "곳" : "", n.view ? "🔭 조망점 " + n.view + "곳" : ""].filter(Boolean).join(" · ");
     }
-
-    function spotKey(s) { return s.kind + "|" + s.lat + "|" + s.lon; }
 
     /** 순수 함수 - (lat, lon) 에서 가장 가까운 kind(aid · heli · ranger) {spot, m}. 2km 넘으면 null. SOS 에 씁니다. */
     function nearSpot(c, kind, lat, lon) {

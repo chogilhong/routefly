@@ -1587,7 +1587,9 @@
         }
         // 국립공원 위험지역 - 앞 120m 에서 한 번(소리 · 진동), 조망점은 지날 때 한 번
         if (hike.running) {
-            var dz = RF.dangerAhead(c, d, 120, hike.spotDone);
+            var from = hike.d0 == null ? 0 : hike.d0, dz;
+            // 한참(60m 넘게) 지난 것은 말없이 넘기고, 알릴 것은 한 번에 하나
+            while ((dz = RF.dangerAhead(c, d, 120, hike.spotDone, from)) && +dz.dist_m < d - 60) hike.spotDone[RF.spotKey(dz)] = true;
             if (dz) {
                 hike.spotDone[RF.spotKey(dz)] = true;
                 var ahead = Math.max(0, Math.round((+dz.dist_m - d) / 10) * 10);
@@ -1595,7 +1597,8 @@
                 say((ahead > 20 ? ahead + "미터 앞 " : "여기는 ") + (dz.info && dz.info !== "기타" ? dz.info : dz.name) + " 구간입니다. 조심하세요.", { urgent: true });
                 if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
             }
-            var vw = RF.viewAt(c, d, hike.spotDone);
+            var vw;
+            while ((vw = RF.viewAt(c, d, hike.spotDone, from)) && +vw.dist_m < d - 200) hike.spotDone[RF.spotKey(vw)] = true;
             if (vw) {
                 hike.spotDone[RF.spotKey(vw)] = true;
                 toast("🔭 " + RF.spotText(vw), 6000);
@@ -2075,6 +2078,7 @@
             lines.push("위치: 확인 못 함 - 위치표지판 번호로 연락 바람");
         }
         if (ns) lines.push("가까운 위치표지판: " + ns.sign.loc_no + " (약 " + Math.round(ns.m) + "m" + (ns.sign.place_name ? ", " + ns.sign.place_name : "") + ")");
+        if (kit) lines.push("가까운 구급함: 약 " + Math.round(kit.m) + "m");
         if (heli) lines.push("가까운 헬기장: 약 " + Math.round(heli.m) + "m (" + heli.spot.lat + ", " + heli.spot.lon + ")");
         if (ele != null) lines.push("해발: " + Math.round(ele) + "m" + eleNote);
         if (c) lines.push("코스: " + c.course.name + (where ? " (" + where + ")" : ""));
