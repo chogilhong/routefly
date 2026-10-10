@@ -650,8 +650,8 @@
             if (c.lon.length < 2) throw new Error("경로 점이 없습니다.");
             var sv = loadSaved();
             if (sv && sv.rev) c = RF.reverseCourse(c);   // 되돌아가는 길로 바꿔 걷던 산행을 이어 갈 때
-            $("name").textContent = c.course.name;
-            document.title = c.course.name + " - routefly";
+            RF.showName($("name"), c.course.name);
+            document.title = RF.nameText(c.course.name) + " - routefly";
             setKindWords();
             drawCourse();
             prof = RF.profile($("profile"), c, {});
@@ -1423,8 +1423,8 @@
         voice.last = {};
         $("arrived").style.display = "none";
         $("offroute").style.display = "none";
-        $("name").textContent = c.course.name;
-        document.title = c.course.name + " - routefly";
+        RF.showName($("name"), c.course.name);
+        document.title = RF.nameText(c.course.name) + " - routefly";
         try { history.replaceState(null, "", "#c=" + encodeURIComponent(c.id)); } catch (e) { /* 주소만 못 바꿈 */ }   // 새로 고침하면 이 코스로 이어서
         drawCourse(true);
         prof = RF.profile($("profile"), c, {});
@@ -1771,7 +1771,7 @@
             var it = document.createElement("div");
             it.className = "it";
             var b = document.createElement("b");
-            b.textContent = r.name;
+            RF.showName(b, r.name);
             var s = document.createElement("span");
             s.textContent = km(+r.distance_m) + "km" + (r.ascent_m != null ? " · 오르막 " + num(+r.ascent_m) + "m" : "")
                 + (r.ele_max_m != null ? " · 최고 " + num(+r.ele_max_m) + "m" : "")

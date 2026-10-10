@@ -350,7 +350,7 @@
             item.dataset.id = c.course_id;
             var nm = document.createElement("div");
             nm.className = "nm";
-            nm.textContent = c.name;
+            RF.showName(nm, c.name);
             var st = document.createElement("div");
             st.className = "st";
             st.textContent = statLine(c);
@@ -404,7 +404,7 @@
             c.capIdx = 0;
             hideCaption();
 
-            $("courseName").textContent = j.course.name;
+            RF.showName($("courseName"), j.course.name);
             $("courseStat").textContent = statLine(j.course)
                 + (j.course.ele_source === "none" ? " · 고도 자료 없음" : "");
             $("bottom").style.display = "block";

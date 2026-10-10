@@ -66,6 +66,9 @@ eq("reverse 처음 고도", r.ele[0], 100);
 eq("reverse 남은 오르막", RF.ascentLeft(r, 0), 0);
 near("reverse 지점 거리", r.pois.filter(function (p) { return p.name === "중간쉼터"; })[0].dist_m, c.total - 555, 1);
 eq("reverseName", RF.reverseName("가 → 나 → 다"), "다 → 나 → 가");
+eq("nameParts 무리 · 길", JSON.stringify(RF.nameParts("무등산 서인봉 1코스 · 증심사 → 무등산")), JSON.stringify({ group: "무등산 서인봉 1코스", route: "증심사 → 무등산" }));
+eq("nameText 넘어가기", RF.nameText("산청 지리산 천왕봉 · 중산리탐방지원센터 → 천왕봉 → 백무동탐방지원센터"), "[산청 지리산 천왕봉] 중산리탐방지원센터 → 천왕봉 → 백무동탐방지원센터");
+eq("nameText · 없으면 그대로", RF.nameText("지리산 둘레길 3코스"), "지리산 둘레길 3코스");
 
 // cleanName
 eq("cleanName 공원사무소 떼기", RF.cleanName("설악산국립공원사무소남설악탐방지원센터"), "남설악탐방지원센터");
