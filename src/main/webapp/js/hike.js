@@ -417,7 +417,7 @@
             if (declutterTimer || !drawCourse.pois) return;
             declutterTimer = setTimeout(function () {
                 declutterTimer = 0;
-                RF.declutter(drawCourse.pois.map(function (q) { return { el: q.el, prio: q.end ? -1 : Math.abs(q.d - (hike.d || 0)) }; }));
+                RF.declutter(drawCourse.pois.map(function (q) { return { el: q.el, prio: q.end ? -2 : q.top ? -1 : Math.abs(q.d - (hike.d || 0)) }; }));
             }, 150);
         });
         ["dragstart", "zoomstart"].forEach(function (ev) {
@@ -477,10 +477,12 @@
         var hasStart = c.pois.some(function (q) { return +q.dist_m < 60 && +q.off_route_m < 60; });
         var hasEnd = c.pois.some(function (q) { return +q.dist_m > c.total - 60 && +q.off_route_m < 60; });
         // 같은 자리(80m 안) 이름표는 하나로 - 대표 이름 + 아래에 다른 이름들
-        var list = RF.groupPois(c.pois, 80).map(function (g) {
+        var groups = RF.groupPois(c.pois, 80);
+        var top = RF.summitIndex(groups.map(function (g) { return { name: g.lead.name, names: g.names, ele_m: g.lead.ele_m }; }), c.course.name);
+        var list = groups.map(function (g, gi) {
             var more = g.names.slice(1, 3);
             if (g.names.length > 3) more[1] += " 외 " + (g.names.length - 3);
-            return { name: g.lead.name, lon: +g.lead.lon, lat: +g.lead.lat, d: +g.lead.dist_m, more: more };
+            return { name: g.lead.name, lon: +g.lead.lon, lat: +g.lead.lat, d: +g.lead.dist_m, more: more, top: gi === top };
         });
         if (!hasStart) list.unshift({ name: "출발", lon: c.lon[0], lat: c.lat[0], d: 0, more: [] });
         if (!hasEnd) list.push({ name: "도착", lon: c.lon[n], lat: c.lat[n], d: c.total, more: [] });
@@ -493,7 +495,7 @@
             lb.textContent = q.name;
             q.more.forEach(function (nm) { var m = document.createElement("span"); m.className = "more"; m.textContent = nm; lb.appendChild(m); });
             e.querySelector(".ic").textContent = RF.poiIcon(q.name);
-            drawCourse.pois.push({ el: e, d: q.d, end: q.d < 60 || q.d > c.total - 60 });
+            drawCourse.pois.push({ el: e, d: q.d, end: q.d < 60 || q.d > c.total - 60, top: !!q.top });
             ms.push(new maplibregl.Marker({ element: e, anchor: "bottom", offset: [0, 11] }).setLngLat([q.lon, q.lat]).addTo(map));
         });
         map.getSource("junctions").setData({ type: "FeatureCollection", features: (c.junctions || []).map(function (jd) {

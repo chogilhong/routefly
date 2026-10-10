@@ -502,7 +502,9 @@
         var nearEnd = c.pois.some(function (p) { return +p.dist_m > c.total - 60 && +p.off_route_m < 60; });
         if (!nearStart) c.markers.push({ dist: -1, end: true, m: poiMarker("출발", null, [c.lon[0], c.lat[0]], "always") });
         // 같은 자리(80m 안) 이름표는 하나로 - 대표 이름 + 아래에 다른 이름들
-        RF.groupPois(c.pois, 80).forEach(function (g) {
+        var groups = RF.groupPois(c.pois, 80);
+        var top = RF.summitIndex(groups.map(function (g) { return { name: g.lead.name, names: g.names, ele_m: g.lead.ele_m }; }), c.course.name);
+        groups.forEach(function (g, gi) {
             var p = g.lead;
             // 출발 · 도착 자리의 이름표는 그 이름으로 출발 / 도착을 대신합니다(예: 오색(남설악탐방지원센터) · 출발)
             var atStart = +p.dist_m < 60 && +p.off_route_m < 60, atEnd = +p.dist_m > c.total - 60 && +p.off_route_m < 60;
@@ -510,7 +512,7 @@
                 .filter(function (x) { return x; }).join(" · ") || null;
             var more = g.names.slice(1, 3);
             if (g.names.length > 3) more[1] += " 외 " + (g.names.length - 3);
-            c.markers.push({ dist: +p.dist_m < 60 ? -1 : +p.dist_m, end: atStart || atEnd,
+            c.markers.push({ dist: +p.dist_m < 60 ? -1 : +p.dist_m, end: atStart || atEnd, top: gi === top,
                 m: poiMarker(p.name, sub, [+p.lon, +p.lat], "always", more) });
         });
         if (!nearEnd) c.markers.push({ dist: c.total, end: true, m: poiMarker("도착", null, [c.lon[n], c.lat[n]], "always") });
@@ -523,7 +525,7 @@
         if (!cur || !cur.markers) return;
         var d = anim.d || 0;
         RF.declutter(cur.markers.map(function (k) {
-            return { el: k.m.getElement(), prio: k.end ? -1 : Math.abs(Math.max(0, k.dist) - d) };
+            return { el: k.m.getElement(), prio: k.end ? -2 : k.top ? -1 : Math.abs(Math.max(0, k.dist) - d) };   // 출발 · 도착 다음 정상
         }));
     }
     var declutterTimer = 0;

@@ -188,6 +188,24 @@
         });
     }
 
+    /**
+     * 순수 함수 - 정상 이름표(늘 보이게 할 것)의 번호. 2026-10-10 홍TV님: 백무동 → 천왕봉 → 중산리 미리보기에 제석봉은 보이고
+     * 천왕봉이 겹침으로 숨었음. 코스 이름 길(" → ") 가운데 출발이 아닌 이름과 같은 이름표, 없으면 가장 높은 이름표. 없으면 -1.
+     * pois: [{name, ele_m}] (같은 자리 묶음이면 names 도 봄).
+     */
+    function summitIndex(pois, courseName) {
+        var route = nameParts(courseName).route.split(" → ").slice(1).map(function (x) { return x.trim(); });
+        var best = -1, bestEle = -Infinity;
+        (pois || []).forEach(function (p, i) {
+            var names = p.names || [p.name];
+            var named = names.some(function (n) { return route.indexOf(n) >= 0; }) && !/(탐방지원센터|안내소|매표소|분소|주차장|휴게소|마을)$/.test(p.name);
+            var e = p.ele_m == null ? -1 : +p.ele_m;
+            var score = (named ? 1e6 : 0) + e;
+            if (score > bestEle) { bestEle = score; best = i; }
+        });
+        return best;
+    }
+
     var JUNCTION = "갈림길";   // routefly-batch 가 넣는 갈림길 이름표 - 지도 글자 대신 산행 화면 미리 알림에 씁니다
 
     /** 코스 자료(api/course 응답) → 계산하기 쉬운 모양. 갈림길은 이름표와 따로 c.junctions(진행 거리 목록). */
@@ -902,7 +920,7 @@
     }
 
     global.RF = {
-        LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
+        LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
         sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
     };

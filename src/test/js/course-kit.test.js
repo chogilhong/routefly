@@ -68,6 +68,11 @@ near("reverse 지점 거리", r.pois.filter(function (p) { return p.name === "�
 eq("reverseName", RF.reverseName("가 → 나 → 다"), "다 → 나 → 가");
 eq("nameParts 무리 · 길", JSON.stringify(RF.nameParts("무등산 서인봉 1코스 · 증심사 → 무등산")), JSON.stringify({ group: "무등산 서인봉 1코스", route: "증심사 → 무등산" }));
 eq("nameText 넘어가기", RF.nameText("산청 지리산 천왕봉 · 중산리탐방지원센터 → 천왕봉 → 백무동탐방지원센터"), "[산청 지리산 천왕봉] 중산리탐방지원센터 → 천왕봉 → 백무동탐방지원센터");
+eq("summitIndex 코스 이름의 정상", RF.summitIndex([{ name: "백무동탐방지원센터", ele_m: 535 }, { name: "제석봉", ele_m: 1783 }, { name: "천왕봉", ele_m: 1897 },
+    { name: "중산리탐방지원센터", ele_m: 617 }], "함양 지리산 천왕봉 · 백무동탐방지원센터 → 천왕봉 → 중산리탐방지원센터"), 2);
+eq("summitIndex 이름이 없으면 가장 높은 것", RF.summitIndex([{ name: "가", ele_m: 300 }, { name: "나", ele_m: 900 }], "둘레길 1코스"), 1);
+eq("summitIndex 묶음 안 이름", RF.summitIndex([{ name: "장터목대피소", names: ["장터목대피소", "천왕봉"], ele_m: 1650 }, { name: "제석봉", ele_m: 1783 }], "지리산 · 백무동 → 천왕봉"), 0);
+eq("summitIndex 없음", RF.summitIndex([], "x"), -1);
 eq("nameText · 없으면 그대로", RF.nameText("지리산 둘레길 3코스"), "지리산 둘레길 3코스");
 
 // cleanName
