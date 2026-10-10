@@ -5,7 +5,7 @@
  *   코스에서 50m 넘게 벗어나면 빨간 알림, 끝점에 닿으면 도착 알림. 브라우저는 화면이 꺼지지 않게 Wake Lock 을 겁니다
  *   (앱은 화면을 꺼도 백그라운드 위치로 이어지므로 걸지 않습니다 - 배터리).
  *   새로 고침해도 산행 기록(시작 시각 · 진행 거리)은 이 기기에 남아 이어집니다(localStorage).
- *   "모의 산행" 은 GPS 없이 코스를 따라 걷는 흉내(실제 빠르기 - SIM_X) - 집에서 화면을 시험할 때.
+ *   "모의 산행" 은 GPS 없이 코스를 따라 걷는 흉내(처음 실제 빠르기 1×, 위쪽 글자를 누르면 5 · 10 · 40×) - 집에서 화면을 시험할 때.
  */
 (function () {
     "use strict";
@@ -13,7 +13,8 @@
     var OFF_ROUTE_M = 50;      // 이보다 멀면 "코스에서 벗어남"
     var ARRIVE_M = 30;         // 끝점까지 이 안이면 도착
     var FAR_M = 3000;          // 코스에서 이보다 멀면 "벗어남" 대신 출발점(마지막 자리)까지 안내(집 · 차 안에서 시작했을 때)
-    var SIM_X = 1;             // 모의 산행 - 시간 배속(2026-10-10 홍TV님: 40 → 1, 실제 걷는 빠르기로)
+    var SIM_SPEEDS = [1, 5, 10, 40];   // 시험 걷기 빠르기 - 처음 1×(실제 걷는 빠르기), 위쪽 "시험 1×" 를 누르면 차례로(2026-10-10 홍TV님)
+    var SIM_X = 1;
     var TURN_BACK_M = 150;     // 코스를 따라 이만큼 되돌아가면 거꾸로 된 코스(내려가는 길)로 안내를 바꿉니다
     var BRANCH_ON_M = 20;      // 다른 길에서 이 안이면 "그 길 위" (코스에서는 40m 넘게 떨어졌을 때)
     var BRANCH_SWITCH_M = 120; // 다른 길로 이만큼 더 가면 그 길로 코스를 바꿉니다(들어설 때 한 번 알린 뒤)
@@ -1212,7 +1213,10 @@
         if (sim) {
             hike.simD = 0;
             hike.simLast = performance.now();
-            $("gps").textContent = SIM_X === 1 ? "시험 걷기" : "시험 " + SIM_X + "배속";
+            SIM_X = SIM_SPEEDS[0];
+            $("gps").textContent = "시험 " + SIM_X + "×";
+            $("gps").title = "누르면 시험 걷기 빠르기 바꾸기";
+            $("gps").style.cursor = "pointer";
             $("gps").className = "";
             hike.simTimer = setInterval(simStep, 500);
             simStep();
@@ -1924,12 +1928,20 @@
         $("gps").style.cursor = "pointer";   // className 은 GPS 상태가 바꿉니다
         $("gps").title = "누르면 배터리 절약 모드 켜기 · 끄기";
         $("gps").addEventListener("click", function () {
+            if (hike.sim) return;   // 시험 걷기 중에는 빠르기 단추(아래)
             batterySave = !batterySave;
             try { localStorage.setItem(BATTERY_KEY, batterySave ? "1" : "0"); } catch (e) { /* 이번만 */ }
             toast((batterySave ? "배터리 절약 켬 - 위치를 10m 마다 받습니다." : "배터리 절약 끔 - 위치를 3m 마다 받습니다.")
                 + (hike.running && !hike.sim ? " 다음 산행 시작부터 적용됩니다." : ""), 4000);
         });
     }
+
+    // 시험 걷기 빠르기 - 1× → 5× → 10× → 40× → 1×
+    $("gps").addEventListener("click", function () {
+        if (!hike.running || !hike.sim) return;
+        SIM_X = SIM_SPEEDS[(SIM_SPEEDS.indexOf(SIM_X) + 1) % SIM_SPEEDS.length];
+        this.textContent = "시험 " + SIM_X + "×";
+    });
 
     $("kcalBox").addEventListener("click", function () {
         var kg = askNumber("몸무게(kg)를 넣어 주세요. 칼로리 추정에만 쓰고 이 핸드폰에만 저장합니다.", body.kg, 20, 200);
