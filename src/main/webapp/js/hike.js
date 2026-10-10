@@ -1285,9 +1285,9 @@
         if (!("wakeLock" in navigator)) return;
         navigator.wakeLock.request("screen").then(function (w) { hike.wake = w; }).catch(function () { /* 배터리 절약 모드 등 */ });
     }
-    // 2026-10-09 (카카오톡 브라우저에 며칠 전 화면이 남아 'GPX 열기' 가 안 보였음) → 2026-10-10 새로 배포됐을 때만 새로 고침
-    // (30분마다 무조건 새로 고쳐 깜박이던 것). 걷는 중에는 고치지 않습니다.
-    RF.reloadOnDeploy(["hike.html", "js/hike.js", "js/course-kit.js"], function () { return !hike.running; });
+    // 2026-10-09 (카카오톡 브라우저에 며칠 전 화면이 남아 'GPX 열기' 가 안 보였음) → 2026-10-10 새로 배포되면 '새 버전' 띠만 띄우고
+    // 누를 때 새로 고침(저절로 고치지 않음). 걷는 중에는 띠도 띄우지 않고 끝낸 뒤에.
+    RF.notifyDeploy(["hike.html", "js/hike.js", "js/course-kit.js"], function () { return !hike.running; });
     document.addEventListener("visibilitychange", function () {
         if (document.visibilityState === "hidden" && hike.running) flushTrack();   // 앱이 닫히기 전에 걸은 길을 남김
         if (document.visibilityState === "visible" && hike.running && !hike.sim && !BG) keepAwake();   // 앱은 화면을 켜 두지 않음(위 start)

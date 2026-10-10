@@ -23,8 +23,8 @@
     var grid = null;         // 넓은 범위라 목록이 잘렸을 때 서버가 준 격자 칸별 코스 수 [{n, lon, lat}] - 출발점 대신 지도에 그립니다
     var cur = null;          // 지금 코스 {id, course, lon[], lat[], ele[], dist[], total, pois[], markers[]}
     var anim = { running: false, d: 0, speedIdx: 0, last: 0, bearing: 0, pitch: 70, pitchWant: 70, pitchAt: 0, raf: 0 };
-    // 새로 배포됐을 때만 새로 고침(날아가는 중이 아닐 때) - 산행 화면과 같음(2026-10-10)
-    RF.reloadOnDeploy(["index.html", "js/app.js", "js/course-kit.js"], function () { return !anim.running; });
+    // 새로 배포되면 '새 버전' 띠(누를 때 새로 고침, 날아가는 중이 아닐 때) - 산행 화면과 같음(2026-10-10)
+    RF.notifyDeploy(["index.html", "js/app.js", "js/course-kit.js"], function () { return !anim.running; });
 
     // ------------------------------------------------------------------ 작은 도구
 

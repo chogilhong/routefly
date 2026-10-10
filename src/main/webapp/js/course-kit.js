@@ -18,12 +18,13 @@
     function km(m) { return num(m / 1000, 2); }
 
     /**
-     * 새로 배포됐을 때만 새로 고침(2026-10-10 홍TV님 - 30분마다 무조건 새로 고쳐 화면이 깜박이고 검색어가 사라졌음).
+     * 새로 배포되면 화면 위에 "새 버전이 있습니다 · 누르면 새로 고침" 띠를 띄웁니다(2026-10-10 홍TV님 - 저절로 새로 고치지 않고
+     * 사용자가 누를 때만. 그 전에는 다시 볼 때 저절로 새로 고쳐 보던 창 · 지도 위치가 처음으로 돌아갔음).
      * 처음에 화면 파일들(files)의 서버 표시(ETag · Last-Modified · 크기)를 HEAD 로 받아 두고, 화면이 1분 넘게 가려졌다가
-     * 다시 보일 때 한 번 더 받아 달라졌고 canReload() 가 참이면(걷는 중 · 날아가는 중이 아님) 새로 고칩니다.
-     * 인터넷이 안 되거나 서버가 표시를 안 주면 아무것도 하지 않습니다. 서비스 워커는 HEAD 를 거치지 않습니다.
+     * 다시 보일 때 한 번 더 받아 달라졌으면 띠를 띄웁니다. canShow() 가 거짓인 동안(걷는 중 · 날아가는 중)은 기다렸다가
+     * 다음에 다시 보일 때 띄웁니다. 인터넷이 안 되거나 서버가 표시를 안 주면 아무것도 하지 않습니다(서비스 워커는 HEAD 를 거치지 않음).
      */
-    function reloadOnDeploy(files, canReload) {
+    function notifyDeploy(files, canShow) {
         if (!global.fetch || !global.document) return;
         function sign() {
             return Promise.all(files.map(function (f) {
@@ -33,13 +34,26 @@
                 });
             })).then(function (a) { return a.join(";"); });
         }
-        var first = null, hiddenAt = 0;
+        var first = null, hiddenAt = 0, pending = false, bar = null;
+        function show() {
+            if (bar || !canShow()) return;
+            bar = document.createElement("button");
+            bar.type = "button";
+            bar.id = "rfNewVersion";
+            bar.textContent = "새 버전이 있습니다 · 누르면 새로 고침";
+            bar.style.cssText = "position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top, 0px) + 8px);z-index:1000;"
+                + "padding:10px 16px;border:0;border-radius:20px;background:#38d9ea;color:#062b30;font:bold 14px sans-serif;"
+                + "box-shadow:0 2px 10px rgba(0,0,0,0.45);cursor:pointer;white-space:nowrap";
+            bar.onclick = function () { location.reload(); };
+            document.body.appendChild(bar);
+        }
         sign().then(function (v) { if (v.replace(/[|;]/g, "")) first = v; }).catch(function () { /* 오프라인 - 확인 안 함 */ });
         document.addEventListener("visibilitychange", function () {
             if (document.visibilityState === "hidden") { hiddenAt = Date.now(); return; }
+            if (pending) { show(); return; }
             if (!first || !hiddenAt || Date.now() - hiddenAt < 60000) return;
             sign().then(function (v) {
-                if (v.replace(/[|;]/g, "") && v !== first && canReload()) location.reload();
+                if (v.replace(/[|;]/g, "") && v !== first) { pending = true; show(); }
             }).catch(function () { /* 오프라인 */ });
         });
     }
@@ -842,7 +856,7 @@
     }
 
     global.RF = {
-        LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, reloadOnDeploy: reloadOnDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
+        LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
         sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
     };
