@@ -123,8 +123,10 @@ body.flying #side { opacity:0; pointer-events:none; }
     #side { width:auto; right:60px; max-height:calc(100% - 24px); }
     #hud { top:auto; right:12px; bottom:170px; }        /* 실제 높이는 app.js 가 아래 판 높이에 맞춰 다시 정합니다 */
     #title span.opt { display:none; }
-    #profile { height:70px; }
-    #profile .rf-plabel { display:none; }   /* 비스듬한 이름이 위 버튼 줄까지 올라가 겹침 - 이름은 지도에 나옵니다(점은 남김) */
+    #profile { height:78px; margin-top:16px; }
+    /* 좁은 화면: 비스듬한 이름이 위 버튼 줄까지 올라가 겹쳐 다 숨겼더니 들머리 · 정상 · 날머리도 안 보였음(2026-10-10 홍TV님) -
+       출발 · 도착 · 정상(key)만 남기고, 버튼 줄과 사이를 띄움 */
+    #profile .rf-plabel:not(.key) { display:none; }
     #bottom { left:8px; right:8px; bottom:8px; padding:8px 8px 6px; }
     body.listopen #bottom, body.listopen #hud { display:none !important; }   /* 목록을 펼친 동안은 아래 판을 숨김(겹치던 것) */
     #title b { font-size:14px; }
