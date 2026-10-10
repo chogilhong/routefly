@@ -1574,6 +1574,10 @@
         } else {
             $("next").textContent = "다음 지점 없음 - 도착까지 " + km(Math.max(0, c.total - d)) + "km";
         }
+        // 국립공원 위치표지판(지리10-05) - 지금 자리(산행 중 GPS, 아니면 코스 위 자리)에서 500m 안의 가장 가까운 것. 119 신고 때 말할 번호
+        var here = hike.running && !hike.sim && hike.fix ? hike.fix : p, ns = RF.nearSign(c, here.lat, here.lon);
+        $("sign").hidden = !ns;
+        if (ns) $("sign").textContent = "📍 위치표지 " + RF.signText(ns);
         // 코스에서 벗어남 - 가장 가까운 등산로(지금 코스 · 주변 길)까지 거리 · 방향, 지도에 점선
         if (hike.running && hike.off > OFF_ROUTE_M && hike.fix) {
             var me = hike.fix, nt, br, far = hike.off > FAR_M;
@@ -2022,6 +2026,11 @@
         $("sosEle").textContent = ele == null ? "-" : num(ele) + "m" + eleNote;
         var where = c && hike.running ? km(hike.d) + "km 지점" + (hike.off > OFF_ROUTE_M ? " · 코스에서 " + num(hike.off) + "m 벗어남" : "") : "";
         $("sosCourse").textContent = c ? c.course.name + (where ? " · " + where : "") : "-";
+        // 가까운 국립공원 위치표지판 - GPS 가 없으면 산행 중 코스 위 자리로
+        var here = f || (c && hike.running && hike.off <= OFF_ROUTE_M ? RF.at(c, hike.d) : null);
+        var ns = c && here ? RF.nearSign(c, here.lat, here.lon) : null;
+        $("sosSignRow").hidden = !ns;
+        $("sosSign").textContent = ns ? RF.signText(ns) : "-";
 
         // 보낼 글 - 화면에 보이는 내용 그대로(구조대가 읽기 쉽게 줄바꿈)
         var lines = ["[" + K().sos + " 긴급 신고]"];
@@ -2032,6 +2041,7 @@
         } else {
             lines.push("위치: 확인 못 함 - 위치표지판 번호로 연락 바람");
         }
+        if (ns) lines.push("가까운 위치표지판: " + ns.sign.loc_no + " (약 " + Math.round(ns.m) + "m" + (ns.sign.place_name ? ", " + ns.sign.place_name : "") + ")");
         if (ele != null) lines.push("해발: " + Math.round(ele) + "m" + eleNote);
         if (c) lines.push("코스: " + c.course.name + (where ? " (" + where + ")" : ""));
         var nx = c && hike.running ? RF.nextPoi(c, hike.d) : null;

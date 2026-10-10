@@ -38,6 +38,22 @@ function line(n) {
 // distM - 위도 0.001° ≈ 111m
 near("distM", RF.distM(37, 127, 37.001, 127), 111, 1);
 
+// 국립공원 위치표지판 - 지금 자리에서 가장 가까운 것(500m 안)
+(function () {
+    var j = line(3);
+    j.signs = [{ loc_no: "지리10-05", place_name: "백무동매표소 시발 2.5km (참샘)", lat: 37.001, lon: 127 },
+               { loc_no: "지리10-06", place_name: null, lat: 37.004, lon: 127 }];
+    var c = RF.fromApi("knps-1", j);
+    var ns = RF.nearSign(c, 37.0012, 127);
+    eq("가까운 표지", ns.sign.loc_no, "지리10-05");
+    near("표지 거리", ns.m, 22, 1);
+    eq("표지 글", RF.signText(ns), "지리10-05 · 22m (백무동매표소 시발 2.5km (참샘))");
+    eq("바로 옆", RF.signText(RF.nearSign(c, 37.004, 127)), "지리10-06 · 바로 옆");
+    eq("500m 넘으면 없음", RF.nearSign(c, 37.02, 127), null);
+    eq("표지 없는 코스", RF.nearSign(RF.fromApi("x", line(2)), 37, 127), null);
+    eq("빈 글", RF.signText(null), "");
+})();
+
 // fromApi · at · ascentLeft
 var j = line(11);
 j.pois = [{ name: "중간쉼터", dist_m: 555, off_route_m: 0, lat: 37.005, lon: 127 },

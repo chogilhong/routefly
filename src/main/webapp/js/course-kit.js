@@ -230,7 +230,7 @@
     /** 코스 자료(api/course 응답) → 계산하기 쉬운 모양. 갈림길은 이름표와 따로 c.junctions(진행 거리 목록). */
     function fromApi(id, j) {
         var all = j.pois || [];
-        var c = { id: id, course: j.course, info: j.info || null, lon: [], lat: [], ele: [], dist: [], markers: [],
+        var c = { id: id, course: j.course, info: j.info || null, signs: j.signs || [], lon: [], lat: [], ele: [], dist: [], markers: [],
                   pois: dedupePois(all.filter(function (p) { return p.name !== JUNCTION; })),
                   junctions: all.filter(function (p) { return p.name === JUNCTION; }).map(function (p) { return +p.dist_m; })
                       .sort(function (a, b) { return a - b; }) };
@@ -240,6 +240,29 @@
         c.total = c.dist.length ? c.dist[c.dist.length - 1] : 0;
         c.asc = cumAscent(c.ele);
         return c;
+    }
+
+    /** 지금 자리에서 이 거리(m) 안의 위치표지판만 "가까운 표지" 로 봅니다(멀면 구조대에 헷갈림). */
+    var SIGN_M = 500;
+
+    /**
+     * 순수 함수 - (lat, lon) 에서 가장 가까운 국립공원 위치표지판 {sign, m}. SIGN_M 안에 없으면 null.
+     * 2026-10-10 홍TV님: 공단 다목적위치표지판(지리10-05) - 119 에 이 번호를 말하면 자리가 전해집니다.
+     */
+    function nearSign(c, lat, lon) {
+        var best = null;
+        ((c && c.signs) || []).forEach(function (s) {
+            var m = distM(lat, lon, +s.lat, +s.lon);
+            if (m <= SIGN_M && (!best || m < best.m)) best = { sign: s, m: m };
+        });
+        return best;
+    }
+
+    /** 순수 함수 - 가까운 표지 글: "지리10-05 · 120m (백무동매표소 시발 2.5km (참샘))". 없으면 "". */
+    function signText(ns) {
+        if (!ns) return "";
+        var s = ns.sign, place = s.place_name ? " (" + s.place_name + ")" : "";
+        return s.loc_no + " · " + (ns.m < 10 ? "바로 옆" : Math.round(ns.m) + "m") + place;
     }
 
     /**
@@ -945,7 +968,7 @@
     }
 
     global.RF = {
-        LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
+        LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
         sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
     };
