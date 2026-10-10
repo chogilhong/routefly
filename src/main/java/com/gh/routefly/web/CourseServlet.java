@@ -35,7 +35,7 @@ public class CourseServlet extends HttpServlet {
         try (Connection c = Db.open()) {
             // 2026-10-10 점검: 넣은 시각(배치가 코스를 다시 만들 때만 바뀜)으로 먼저 ETag 를 정해, 바뀌지 않았으면 점 수천 개를 읽기 전에 304
             JsonArray at = Json.rows(c, "SELECT imported_at FROM route_course WHERE course_id = ?", id);
-            String tag = at.size() == 0 ? null : versionTag(id, at.get(0).getAsJsonObject().get("imported_at").toString());
+            String tag = at.size() == 0 ? null : versionTag(id, at.get(0).getAsJsonObject().get("imported_at").toString() + "\n" + sideVersion(c));
             if (tag != null && Json.notModified(req, resp, tag)) return;
             JsonObject detail = CourseQueries.detail(c, id);
             if (detail == null) {
@@ -55,6 +55,23 @@ public class CourseServlet extends HttpServlet {
             Json.fail(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
                     "코스를 읽지 못했습니다. 잠시 뒤 다시 해 주세요.");
         }
+    }
+
+    /**
+     * 코스와 따로 넣는 표(위치표지판 · 위험지역 · 조망점)의 넣은 회차 - ETag 에 넣어, 그 표만 다시 넣었을 때도 새 응답이 나가게.
+     * 2026-10-10 PC: knpsSpot 을 다시 돌려 헬기장 종류가 바뀌었는데 ETag 가 같아 304 로 옛 응답을 썼음. 표가 없으면 "-".
+     */
+    static String sideVersion(Connection c) {
+        StringBuilder b = new StringBuilder();
+        for (String table : new String[] {"route_signpost", "route_park_spot"}) {
+            try {
+                JsonArray r = Json.rows(c, "SELECT MAX(loaded) AS v FROM " + table);
+                b.append(r.size() == 0 ? "-" : r.get(0).getAsJsonObject().get("v").toString()).append('|');
+            } catch (Exception e) {
+                b.append("-|");   // 표 없음
+            }
+        }
+        return b.toString();
     }
 
     /** 웹앱이 올라온 시각 - 새로 배포하면(응답 모양이 바뀌었을 수 있음) ETag 가 모두 바뀝니다. */
