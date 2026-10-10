@@ -58,7 +58,7 @@ public class TrailsServlet extends HttpServlet {
             String box = CourseQueries.bboxWkt(b);
             ps.setString(1, box);
             ps.setString(2, box);
-            ps.setString(3, "POINT(" + (b[0] + b[2]) / 2 + " " + (b[1] + b[3]) / 2 + ")");
+            ps.setString(3, "POINT(" + CourseQueries.num((b[0] + b[2]) / 2) + " " + CourseQueries.num((b[1] + b[3]) / 2) + ")");   // 1.0E-4 같은 지수 표기 없이
             JsonArray trails = new JsonArray();
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {

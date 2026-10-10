@@ -35,7 +35,8 @@ public class SecurityFilter extends HttpFilter {
         res.setHeader("Permissions-Policy", "geolocation=(self), camera=(self), microphone=(), payment=()");
         // 2026-10-09 점검(totonian 과 같은 방식): HTTPS 로 받았을 때만 HSTS - 프록시가 TLS 를 푸는 구성에서는 붙지 않아 예전과 같음
         if (req.isSecure()) res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
-        String path = req.getRequestURI().substring(req.getContextPath().length());
+        // 2026-10-10 점검: 서블릿 경로(디코딩 · ;매개변수 제거 뒤) - getRequestURI 로는 /%61pi/ · /api;x/ 가 제한 · noindex 를 피했음
+        String path = req.getServletPath() + (req.getPathInfo() == null ? "" : req.getPathInfo());
         // JSON 은 검색 결과에 나와서 좋을 것이 없습니다(공유 링크 /s/ 와 화면은 그대로 색인)
         if (path.startsWith("/api/")) res.setHeader("X-Robots-Tag", "noindex");
         if (path.startsWith("/api/") || path.startsWith("/s/")) {

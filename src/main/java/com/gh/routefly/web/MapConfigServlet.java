@@ -27,7 +27,7 @@ public class MapConfigServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        Json.write(resp, HttpServletResponse.SC_OK, body(RouteflyConfig.get("map.vworld.key"), RouteflyConfig.get("map.dem.url")), false);
+        Json.ok(req, resp, body(RouteflyConfig.get("map.vworld.key"), RouteflyConfig.get("map.dem.url")));   // 바뀌지 않는 설정 - ETag · 5분 캐시
     }
 
     /** 순수 함수 - 응답 본문. */

@@ -39,6 +39,7 @@ public class ShareServlet extends HttpServlet {
             return;
         }
         String title = "routefly 코스", desc = "3D 지형 위에서 미리 날아 보고, 핸드폰으로 따라 걷는 코스";
+        boolean failed = false;
         try (Connection c = Db.open()) {
             JsonArray rows = Json.rows(c, "SELECT name, kind, distance_m, ascent_m, ele_max_m FROM route_course WHERE course_id = ?", id);
             if (rows.size() > 0) {
@@ -48,6 +49,7 @@ public class ShareServlet extends HttpServlet {
                         r.get("ele_max_m").isJsonNull() ? null : r.get("ele_max_m").getAsDouble());
             }
         } catch (Exception e) {
+            failed = true;
             log.warn("[SHARE] 조회 실패 id={} - {}", id, e.toString());   // 미리 보기만 못 할 뿐 넘어가기는 됩니다
         }
         String base = baseUrl(RouteflyConfig.get("site.baseUrl"), req.getScheme(), req.getServerName(), req.getServerPort(),
@@ -56,7 +58,7 @@ public class ShareServlet extends HttpServlet {
         resp.setStatus(HttpServletResponse.SC_OK);
         resp.setContentType("text/html");
         resp.setCharacterEncoding(StandardCharsets.UTF_8.name());
-        resp.setHeader("Cache-Control", "public, max-age=300");
+        resp.setHeader("Cache-Control", failed ? "no-store" : "public, max-age=300");   // DB 실패 때의 빈 미리 보기는 캐시하지 않음
         PrintWriter w = resp.getWriter();
         w.print(page(title, desc, base + "/s/" + id, base + "/img/og.png", target));
     }

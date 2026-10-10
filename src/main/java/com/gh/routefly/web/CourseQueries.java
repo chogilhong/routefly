@@ -79,7 +79,8 @@ final class CourseQueries {
         if (raw == null) return null;
         String q = raw.trim().replaceAll("\\s+", " ");
         if (q.isEmpty()) return null;
-        return q.length() > MAX_QUERY ? q.substring(0, MAX_QUERY) : q;
+        // 글자(코드 포인트) 단위로 자름 - 이모지 반쪽이 남지 않게
+        return q.codePointCount(0, q.length()) > MAX_QUERY ? q.substring(0, q.offsetByCodePoints(0, MAX_QUERY)) : q;
     }
 
     /** 순수 함수 - LIKE '%검색어%' 패턴. % _ \ 는 글자 그대로 찾게 이스케이프합니다. */
@@ -116,7 +117,7 @@ final class CourseQueries {
         return "POLYGON((" + w + " " + s + "," + e + " " + s + "," + e + " " + n + "," + w + " " + n + "," + w + " " + s + "))";
     }
 
-    private static String num(double v) {
+    static String num(double v) {
         return BigDecimal.valueOf(v).toPlainString();
     }
 
@@ -180,7 +181,7 @@ final class CourseQueries {
         double cell = gridCellDeg(bbox);
         params.add(cell);
         params.add(cell);
-        return new Sql("SELECT COUNT(*) AS n, AVG(start_lon) AS lon, AVG(start_lat) AS lat FROM route_course" + w
+        return new Sql("SELECT COUNT(*) AS n, ROUND(AVG(start_lon), 5) AS lon, ROUND(AVG(start_lat), 5) AS lat FROM route_course" + w
                 + " GROUP BY FLOOR(start_lon / ?), FLOOR(start_lat / ?)", params.toArray());
     }
 
