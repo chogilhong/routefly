@@ -407,7 +407,7 @@
         map.once("styledata", foldAttrib);
         map.once("load", foldAttrib);
         map.addControl(new maplibregl.ScaleControl({ maxWidth: 90 }), "bottom-left");
-        // 이름표 겹침 - 지도가 움직이는 동안 0.15초마다 다시(출발 · 도착 먼저, 그다음 지금 위치에 가까운 순)
+        // 이름표 겹침 - 지도가 움직이는 동안 0.15초마다 다시(정상 · 출발 · 도착 먼저, 그다음 지금 위치에 가까운 순)
         var declutterTimer = 0;
         map.on("rotate", function () {   // 나침반이 꺼져 있으면 바늘은 지도의 북쪽(두 손가락으로 돌렸을 때)
             if (compass.heading == null) setNeedle(-map.getBearing());
@@ -417,7 +417,7 @@
             if (declutterTimer || !drawCourse.pois) return;
             declutterTimer = setTimeout(function () {
                 declutterTimer = 0;
-                RF.declutter(drawCourse.pois.map(function (q) { return { el: q.el, prio: q.end ? -2 : q.top ? -1 : Math.abs(q.d - (hike.d || 0)) }; }));
+                RF.declutter(drawCourse.pois.map(function (q) { return { el: q.el, prio: q.top ? -2 : q.end ? -1 : Math.abs(q.d - (hike.d || 0)) }; }));
             }, 150);
         });
         ["dragstart", "zoomstart"].forEach(function (ev) {

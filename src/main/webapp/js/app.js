@@ -520,12 +520,12 @@
         declutterSoon();
     }
 
-    /** 화면에서 포개지는 이름표 숨기기 - 출발 · 도착 먼저, 그다음 지금 위치(비행 진행)에 가까운 순. 지도가 움직일 때 0.15초마다. */
+    /** 화면에서 포개지는 이름표 숨기기 - 정상 · 출발 · 도착 먼저, 그다음 지금 위치(비행 진행)에 가까운 순. 지도가 움직일 때 0.15초마다. */
     function declutterMarkers() {
         if (!cur || !cur.markers) return;
         var d = anim.d || 0;
         RF.declutter(cur.markers.map(function (k) {
-            return { el: k.m.getElement(), prio: k.end ? -2 : k.top ? -1 : Math.abs(Math.max(0, k.dist) - d) };   // 출발 · 도착 다음 정상
+            return { el: k.m.getElement(), prio: k.top ? -2 : k.end ? -1 : Math.abs(Math.max(0, k.dist) - d) };   // 정상이 먼저(출발 이름표가 길어 정상을 가렸음), 그다음 출발 · 도착
         }));
     }
     var declutterTimer = 0;
