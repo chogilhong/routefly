@@ -14,7 +14,7 @@
 
     var ROUTE_COLOR = "#ffb703";   // 화면 강조색(목록 · 버튼 · 출발점)
     var LINE_COLOR = "#38d9ea";    // 지나온 길 - 위성사진 위에서 잘 보이는 하늘색(영상처럼)
-    var SPEEDS = [0.25, 0.5, 1, 2, 4];   // 빠르기 단추가 차례로 돕니다(처음은 0.25×)
+    var SPEEDS = [0.25, 0.5, 1, 2, 4];   // 빠르기 단추가 차례로 돕니다(처음은 1× - 2026-10-10 홍TV님)
 
     var map;
     var mapReady;            // 지도 스타일이 읽힌 뒤 경로 층을 붙이고 풀리는 약속 - 목록은 이것을 기다리지 않습니다
@@ -22,7 +22,7 @@
     var list = { q: null, kind: "", truncated: false, seq: 0, timer: 0, qTimer: 0, near: false };   // near - 📍 내 주변 코스를 누름   // 목록 상태 - 검색어가 있으면 검색, 없으면 지도 범위
     var grid = null;         // 넓은 범위라 목록이 잘렸을 때 서버가 준 격자 칸별 코스 수 [{n, lon, lat}] - 출발점 대신 지도에 그립니다
     var cur = null;          // 지금 코스 {id, course, lon[], lat[], ele[], dist[], total, pois[], markers[]}
-    var anim = { running: false, d: 0, speedIdx: 0, last: 0, bearing: 0, pitch: 70, pitchWant: 70, pitchAt: 0, raf: 0 };
+    var anim = { running: false, d: 0, speedIdx: 2, last: 0, bearing: 0, pitch: 70, pitchWant: 70, pitchAt: 0, raf: 0 };
     // 새로 배포되면 '새 버전' 띠(누를 때 새로 고침, 날아가는 중이 아닐 때) - 산행 화면과 같음(2026-10-10)
     RF.notifyDeploy(["index.html", "js/app.js", "js/course-kit.js", "css/course-kit.css"], function () { return !anim.running; });
 
