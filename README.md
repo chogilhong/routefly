@@ -20,6 +20,7 @@
 2. 다른 위치에 두려면 톰캣 실행 인자에 `-Droutefly.config=<경로>` 를 넣습니다.
 3. 이클립스: File → Import → Maven → Existing Maven Projects → 톰캣 11 서버에 추가.
    주소는 `http://localhost:8080/routefly/`.
+4. 바뀌지 않는 공개 주소로 띄우기(AWS Lightsail · Nginx · HTTPS · Cloudflare): [docs/deploy-lightsail.md](docs/deploy-lightsail.md)
 
 ## 구조
 
