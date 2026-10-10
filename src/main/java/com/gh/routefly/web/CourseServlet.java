@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 /**
@@ -32,6 +33,10 @@ public class CourseServlet extends HttpServlet {
             return;
         }
         try (Connection c = Db.open()) {
+            // 2026-10-10 점검: 넣은 시각(배치가 코스를 다시 만들 때만 바뀜)으로 먼저 ETag 를 정해, 바뀌지 않았으면 점 수천 개를 읽기 전에 304
+            JsonArray at = Json.rows(c, "SELECT imported_at FROM route_course WHERE course_id = ?", id);
+            String tag = at.size() == 0 ? null : versionTag(id, at.get(0).getAsJsonObject().get("imported_at").toString());
+            if (tag != null && Json.notModified(req, resp, tag)) return;
             JsonObject detail = CourseQueries.detail(c, id);
             if (detail == null) {
                 // 배치를 다시 돌려 번호가 바뀐 예전 링크 · 기록일 수 있어 같은 산 코스를 함께 줍니다(화면이 골라 보여 줌)
@@ -43,11 +48,20 @@ public class CourseServlet extends HttpServlet {
                 return;
             }
             detail.addProperty("success", true);
-            Json.ok(req, resp, detail);
+            if (tag == null) Json.ok(req, resp, detail);
+            else Json.send(resp, detail.toString());
         } catch (Exception e) {
             log.warn("[COURSE] 조회 실패 id={} - {} (DB 접속 설정 db.url 등 · 표 routefly-batch sql/route_ddl.sql 확인)", id, e.toString());
             Json.fail(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
                     "코스를 읽지 못했습니다. 잠시 뒤 다시 해 주세요.");
         }
+    }
+
+    /** 웹앱이 올라온 시각 - 새로 배포하면(응답 모양이 바뀌었을 수 있음) ETag 가 모두 바뀝니다. */
+    private static final long STARTED = System.currentTimeMillis();
+
+    /** 순수 함수 - 코스 하나의 ETag(코스 ID · 넣은 시각 · 배포 시각). */
+    static String versionTag(String id, String importedAt) {
+        return Json.etag(id + "\n" + importedAt + "\n" + STARTED);
     }
 }

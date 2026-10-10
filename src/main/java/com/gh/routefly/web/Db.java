@@ -21,6 +21,10 @@ final class Db {
     /** 이만큼 쉬었던 연결은 빌려 주기 전에 SELECT 1 로 살아 있는지 봅니다(밤새 쉬면 DB 의 wait_timeout 으로 끊겨 있음). */
     static final int PING_IDLE_MS = 5 * 60_000;
 
+    /** 쿼리 하나가 이보다 오래 응답이 없으면 끊습니다(db.url 에 socketTimeout 이 이미 있으면 그 값). */
+    static final int SOCKET_TIMEOUT_MS = 15_000;
+    static final int POOL_WAIT_MS = 2_000;
+
     private static volatile PooledDataSource pool;
 
     private Db() {
@@ -43,11 +47,14 @@ final class Db {
             } catch (ClassNotFoundException e) {
                 throw new SQLException("MariaDB 드라이버가 없습니다", e);
             }
+            // 2026-10-10 점검: 쿼리가 끝없이 걸리면 연결 10개가 다 묶여 화면 전체가 멈춥니다 - 소켓 시간 제한을 둡니다
+            url = withSocketTimeout(url, SOCKET_TIMEOUT_MS);
             PooledDataSource ds = new PooledDataSource("org.mariadb.jdbc.Driver", url,
                     RouteflyConfig.get("db.user"), RouteflyConfig.get("db.password"));
             ds.setPoolMaximumActiveConnections(poolSize(RouteflyConfig.get("db.pool.maxActive"), DEFAULT_MAX_ACTIVE));
             ds.setPoolMaximumIdleConnections(poolSize(RouteflyConfig.get("db.pool.maxIdle"), DEFAULT_MAX_IDLE));
             ds.setPoolMaximumCheckoutTime(CHECKOUT_TIME_MS);
+            ds.setPoolTimeToWait(POOL_WAIT_MS);
             ds.setPoolPingEnabled(true);
             ds.setPoolPingQuery("SELECT 1");
             ds.setPoolPingConnectionsNotUsedFor(PING_IDLE_MS);
@@ -61,6 +68,12 @@ final class Db {
         PooledDataSource p = pool;
         pool = null;
         if (p != null) p.forceCloseAll();
+    }
+
+    /** 순수 함수 - JDBC 주소에 socketTimeout 이 없으면 붙입니다. */
+    static String withSocketTimeout(String url, int ms) {
+        if (url.toLowerCase(java.util.Locale.ROOT).contains("sockettimeout=")) return url;
+        return url + (url.contains("?") ? "&" : "?") + "socketTimeout=" + ms;
     }
 
     /** 순수 함수 - 풀 크기 설정값. 비었거나 숫자가 아니거나 1 보다 작으면 기본값. */

@@ -41,4 +41,29 @@ public class CheckupStage4Test {
     public void failedSharePageNotCached() throws Exception {
         assertTrue(src("ShareServlet.java").contains("failed ? \"no-store\""));
     }
+
+    @Test
+    public void ipv6GroupedBy64() {
+        assertEquals("2001:db8:1:2::/64", RateLimiter.group("2001:db8:1:2:aaaa:bbbb:cccc:dddd"));
+        assertEquals("2001:db8:1:2::/64", RateLimiter.group("2001:DB8:1:2::5"));
+        assertEquals("2001:db8:0:0::/64", RateLimiter.group("2001:db8::1"));
+        assertEquals("1.2.3.4", RateLimiter.group("1.2.3.4"));
+        RateLimiter r = new RateLimiter(1, 1);
+        assertTrue(r.allow("2001:db8:1:2::1", 0));
+        assertFalse("같은 /64 는 같은 물통", r.allow("2001:db8:1:2::2", 0));
+    }
+
+    @Test
+    public void socketTimeoutAdded() {
+        assertEquals("jdbc:mariadb://h/db?socketTimeout=15000", Db.withSocketTimeout("jdbc:mariadb://h/db", 15000));
+        assertEquals("jdbc:mariadb://h/db?a=1&socketTimeout=15000", Db.withSocketTimeout("jdbc:mariadb://h/db?a=1", 15000));
+        assertEquals("있으면 그대로", "jdbc:mariadb://h/db?socketTimeout=5", Db.withSocketTimeout("jdbc:mariadb://h/db?socketTimeout=5", 15000));
+    }
+
+    @Test
+    public void courseTagChangesWithImport() {
+        assertEquals(CourseServlet.versionTag("a", "2026-10-10 12:00:00"), CourseServlet.versionTag("a", "2026-10-10 12:00:00"));
+        assertNotEquals(CourseServlet.versionTag("a", "2026-10-10 12:00:00"), CourseServlet.versionTag("a", "2026-10-10 12:00:01"));
+        assertNotEquals(CourseServlet.versionTag("a", "x"), CourseServlet.versionTag("b", "x"));
+    }
 }

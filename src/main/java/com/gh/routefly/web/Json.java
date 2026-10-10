@@ -69,13 +69,21 @@ final class Json {
      * gzip 으로 바뀌어 나갈 수 있어 약한 ETag(W/) 입니다.
      */
     static void ok(HttpServletRequest req, HttpServletResponse resp, JsonObject body) throws IOException {
-        String text = body.toString(), tag = etag(text);
+        String text = body.toString();
+        if (notModified(req, resp, etag(text))) return;
+        send(resp, text);
+    }
+
+    /** ETag · 캐시 머리글을 붙이고, 같은 ETag 로 물었으면 304 로 끝냅니다(true). 본문을 만들기 전에 판정할 수 있는 곳(코스 하나)에서 씁니다. */
+    static boolean notModified(HttpServletRequest req, HttpServletResponse resp, String tag) {
         resp.setHeader("ETag", tag);
         resp.setHeader("Cache-Control", "public, max-age=300");
-        if (matches(req.getHeader("If-None-Match"), tag)) {
-            resp.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
-            return;
-        }
+        if (!matches(req.getHeader("If-None-Match"), tag)) return false;
+        resp.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
+        return true;
+    }
+
+    static void send(HttpServletResponse resp, String text) throws IOException {
         resp.setStatus(HttpServletResponse.SC_OK);
         resp.setCharacterEncoding("UTF-8");
         resp.setContentType("application/json;charset=UTF-8");
