@@ -79,6 +79,9 @@ eq("isAccess 봉우리는 160m 까지 경로 위", RF.isAccess({ name: "소지�
 eq("isAccess 주차장 120m 는 경로 밖", RF.isAccess({ name: "백무동주차장", off_route_m: 120 }), true);
 eq("isTopName 괄호", RF.isTopName("도봉산(신선대)"), true);
 eq("isTopName 대피소 아님", RF.isTopName("장터목대피소"), false);
+eq("infoText", RF.infoText({ up_min: 240, down_min: 180, level: "2.27" }), "공단 기준 오름 " + RF.hm(240 * 60000) + " · 내림 " + RF.hm(180 * 60000) + " · 난이도 2.27");
+eq("infoText 없음", RF.infoText(null), null);
+eq("infoText 0 분은 뺌", RF.infoText({ up_min: 0, down_min: 0, level: "" }), null);
 eq("summitIndex 없음", RF.summitIndex([], "x"), -1);
 eq("nameText · 없으면 그대로", RF.nameText("지리산 둘레길 3코스"), "지리산 둘레길 3코스");
 

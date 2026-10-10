@@ -219,8 +219,12 @@ final class CourseQueries {
      *   course : 요약(목록과 같은 칸 + imported_at)
      *   points : [[경도, 위도, 고도(m) 또는 null, 누적 거리(m)], ...]  - 크기를 줄이려고 배열로 보냅니다
      *   pois   : [{seq, name, lat, lon, ele_m, dist_m, off_route_m}, ...]  - 경로 순서
+     *   info   : {up_min, down_min, level, notice} - 국립공원 공식 코스만(없으면 칸 없음)
      * </pre>
      */
+    /** 공식 정보(route_course_info)가 있는 코스 ID 앞부분 - 국립공원 탐방로 공간데이터(routefly-batch knpsTrail). */
+    static final String INFO_PREFIX = "knps-";
+
     static JsonObject detail(Connection c, String id) throws Exception {
         JsonArray course = Json.rows(c, "SELECT " + LIST_COLUMNS + ", imported_at FROM route_course WHERE course_id = ?", id);
         if (course.size() == 0) return null;
@@ -248,6 +252,15 @@ final class CourseQueries {
         out.add("pois", Json.rows(c,
                 "SELECT seq, name, lat, lon, ele_m, dist_m, off_route_m FROM route_course_poi WHERE course_id = ? ORDER BY seq",
                 id));
+        // 2026-10-10 홍TV님: 국립공원 공식 코스(knps-)는 공단 기준 시간 · 난이도(route_course_info). 표가 아직 없으면(DDL 전) 빼고 보냅니다.
+        if (id.startsWith(INFO_PREFIX)) {
+            try {
+                JsonArray info = Json.rows(c, "SELECT up_min, down_min, level, notice FROM route_course_info WHERE course_id = ?", id);
+                if (info.size() > 0) out.add("info", info.get(0));
+            } catch (java.sql.SQLException e) {
+                // 표 없음 - 공식 정보 없이
+            }
+        }
         return out;
     }
 }

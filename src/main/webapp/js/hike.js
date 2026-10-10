@@ -659,6 +659,7 @@
             if (sv && sv.rev) c = RF.reverseCourse(c);   // 되돌아가는 길로 바꿔 걷던 산행을 이어 갈 때
             RF.showName($("name"), c.course.name);
             document.title = RF.nameText(c.course.name) + " - routefly";
+            if (RF.infoText(c.info)) toast(RF.infoText(c.info), 6000);   // 국립공원 공식 코스 - 공단 기준 시간 · 난이도
             setKindWords();
             drawCourse();
             prof = RF.profile($("profile"), c, {});

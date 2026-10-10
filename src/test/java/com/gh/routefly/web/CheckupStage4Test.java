@@ -66,4 +66,11 @@ public class CheckupStage4Test {
         assertNotEquals(CourseServlet.versionTag("a", "2026-10-10 12:00:00"), CourseServlet.versionTag("a", "2026-10-10 12:00:01"));
         assertNotEquals(CourseServlet.versionTag("a", "x"), CourseServlet.versionTag("b", "x"));
     }
+
+    @Test
+    public void officialInfoOnlyForParkCourses() throws Exception {
+        String s = src("CourseQueries.java");
+        assertEquals("knps-", CourseQueries.INFO_PREFIX);
+        assertTrue("국립공원 코스만 묻고, 표가 없으면(DDL 전) 빼고 보냄", s.contains("if (id.startsWith(INFO_PREFIX))") && s.contains("catch (java.sql.SQLException e)"));
+    }
 }

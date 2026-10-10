@@ -405,8 +405,9 @@
             hideCaption();
 
             RF.showName($("courseName"), j.course.name);
+            var official = RF.infoText(j.info);   // 국립공원 공식 코스 - 공단 기준 시간 · 난이도
             $("courseStat").textContent = statLine(j.course)
-                + (j.course.ele_source === "none" ? " · 고도 자료 없음" : "");
+                + (j.course.ele_source === "none" ? " · 고도 자료 없음" : "") + (official ? " · " + official : "");
             $("bottom").style.display = "block";
             $("hud").style.display = "block";
             $("mini").style.display = "block";
