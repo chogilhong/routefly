@@ -17,7 +17,8 @@
     // 위쪽 "시험 1×" 를 누르면 2× · 4× · 0.25× · 0.5× 차례(2026-10-10 홍TV님). 시계(경과 시간 · 예상 도착)는 실제 걷는 시간으로 갑니다.
     var SIM_SPEEDS = [1, 2, 4, 0.25, 0.5];
     var SIM_SPEED = 1;   // 고른 빠르기
-    var SIM_X = 1;       // 실제 시간에 곱하는 배수 = (실제로 걷는 시간 ÷ 미리보기 1× 시간) × 고른 빠르기
+    var SIM_X = 1;       // 걷는 거리에 곱하는 배수 = (평지로 걷는 시간 ÷ 미리보기 1× 시간) × 고른 빠르기
+    var SIM_CLOCK = 1;   // 시계에 곱하는 배수 - 도착 때 경과 시간이 미리보기의 예상 시간(오르막 포함, RF.standardMs)과 같게
     var TURN_BACK_M = 150;     // 코스를 따라 이만큼 되돌아가면 거꾸로 된 코스(내려가는 길)로 안내를 바꿉니다
     var BRANCH_ON_M = 20;      // 다른 길에서 이 안이면 "그 길 위" (코스에서는 40m 넘게 떨어졌을 때)
     var BRANCH_SWITCH_M = 120; // 다른 길로 이만큼 더 가면 그 길로 코스를 바꿉니다(들어설 때 한 번 알린 뒤)
@@ -1217,7 +1218,7 @@
             hike.simD = 0;
             hike.simLast = performance.now();
             SIM_SPEED = SIM_SPEEDS[0];
-            SIM_X = simMul(SIM_SPEED);
+            simMul(SIM_SPEED);
             $("gps").textContent = "시험 " + SIM_SPEED + "×";
             $("gps").title = "누르면 시험 걷기 빠르기 바꾸기";
             $("gps").style.cursor = "pointer";
@@ -1469,23 +1470,27 @@
         }
     }
 
-    /** 시험 걷기 배수 - 이 코스를 실제로 걷는 시간을 미리보기 1× 비행 시간에 맞춘 값 × 고른 빠르기. */
+    /**
+     * 시험 걷기 배수(SIM_X · SIM_CLOCK) - 미리보기 1× 비행 시간에 코스를 다 걷고(× 고른 빠르기),
+     * 시계는 예상 시간(미리보기의 "약 5시간 10분")에 맞춥니다. 2026-10-10 PC: 시계를 평지 3.5km/h 로 셈해 3:12 로 끝났음.
+     */
     function simMul(speed) {
-        var walkMs = c.total / (K().simKmh / 3.6) * 1000;
-        return Math.max(1, walkMs / RF.flightMs(c.total)) * speed;
+        var fly = RF.flightMs(c.total);
+        SIM_X = Math.max(1, c.total / (K().simKmh / 3.6) * 1000 / fly) * speed;
+        SIM_CLOCK = Math.max(1, RF.standardMs(c.course.kind, c.total, RF.ascentLeft(c, 0)) / fly) * speed;
     }
 
     /** 모의 산행 - 코스를 따라 걷는 위치를 만들어 onFix 에 넣습니다(약간 흔들리게). */
     function simStep() {
         var nowP = performance.now(), dtReal = nowP - hike.simLast;
         hike.simLast = nowP;
-        hike.simClock += dtReal * SIM_X;
+        hike.simClock += dtReal * SIM_CLOCK;
         hike.simD = Math.min(c.total, hike.simD + K().simKmh / 3.6 * dtReal / 1000 * SIM_X);
         var p = RF.at(c, hike.simD), q = RF.at(c, Math.min(c.total, hike.simD + 20));
         var jitter = 4 / 111320;
         onFix({ timestamp: hike.simClock, coords: {
             latitude: p.lat + (Math.random() - 0.5) * jitter, longitude: p.lon + (Math.random() - 0.5) * jitter,
-            accuracy: 6, speed: K().simKmh / 3.6, heading: bearing(p.lat, p.lon, q.lat, q.lon) } });
+            accuracy: 6, speed: K().simKmh / 3.6 * SIM_X / SIM_CLOCK, heading: bearing(p.lat, p.lon, q.lat, q.lon) } });   // 시계 기준 빠르기(오르막 포함 평균)
         if (hike.simD >= c.total) clearInterval(hike.simTimer);
     }
 
@@ -1950,7 +1955,7 @@
     $("gps").addEventListener("click", function () {
         if (!hike.running || !hike.sim) return;
         SIM_SPEED = SIM_SPEEDS[(SIM_SPEEDS.indexOf(SIM_SPEED) + 1) % SIM_SPEEDS.length];
-        SIM_X = simMul(SIM_SPEED);
+        simMul(SIM_SPEED);
         this.textContent = "시험 " + SIM_SPEED + "×";
     });
 
