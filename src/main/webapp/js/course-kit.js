@@ -16,6 +16,33 @@
         return Number(n).toLocaleString("ko-KR", { minimumFractionDigits: digits || 0, maximumFractionDigits: digits || 0 });
     }
     function km(m) { return num(m / 1000, 2); }
+
+    /**
+     * 새로 배포됐을 때만 새로 고침(2026-10-10 홍TV님 - 30분마다 무조건 새로 고쳐 화면이 깜박이고 검색어가 사라졌음).
+     * 처음에 화면 파일들(files)의 서버 표시(ETag · Last-Modified · 크기)를 HEAD 로 받아 두고, 화면이 1분 넘게 가려졌다가
+     * 다시 보일 때 한 번 더 받아 달라졌고 canReload() 가 참이면(걷는 중 · 날아가는 중이 아님) 새로 고칩니다.
+     * 인터넷이 안 되거나 서버가 표시를 안 주면 아무것도 하지 않습니다. 서비스 워커는 HEAD 를 거치지 않습니다.
+     */
+    function reloadOnDeploy(files, canReload) {
+        if (!global.fetch || !global.document) return;
+        function sign() {
+            return Promise.all(files.map(function (f) {
+                return fetch(f, { method: "HEAD", cache: "no-store" }).then(function (r) {
+                    if (!r.ok) return "";
+                    return [r.headers.get("ETag"), r.headers.get("Last-Modified"), r.headers.get("Content-Length")].join("|");
+                });
+            })).then(function (a) { return a.join(";"); });
+        }
+        var first = null, hiddenAt = 0;
+        sign().then(function (v) { if (v.replace(/[|;]/g, "")) first = v; }).catch(function () { /* 오프라인 - 확인 안 함 */ });
+        document.addEventListener("visibilitychange", function () {
+            if (document.visibilityState === "hidden") { hiddenAt = Date.now(); return; }
+            if (!first || !hiddenAt || Date.now() - hiddenAt < 60000) return;
+            sign().then(function (v) {
+                if (v.replace(/[|;]/g, "") && v !== first && canReload()) location.reload();
+            }).catch(function () { /* 오프라인 */ });
+        });
+    }
     /** 검색칸 안내 글 - 종류 탭마다(2026-10-09 홍TV님: 모두 "설악산, 공룡" 이라 구분이 안 됨). 두 화면이 같이 씁니다. */
     function searchPlaceholder(kind) {
         return kind === "hike" ? "산 · 봉우리 이름 (예: 설악산, 대청봉)"
@@ -815,7 +842,7 @@
     }
 
     global.RF = {
-        LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
+        LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, reloadOnDeploy: reloadOnDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
         sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
     };

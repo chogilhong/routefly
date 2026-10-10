@@ -23,12 +23,8 @@
     var grid = null;         // 넓은 범위라 목록이 잘렸을 때 서버가 준 격자 칸별 코스 수 [{n, lon, lat}] - 출발점 대신 지도에 그립니다
     var cur = null;          // 지금 코스 {id, course, lon[], lat[], ele[], dist[], total, pois[], markers[]}
     var anim = { running: false, d: 0, speedIdx: 0, last: 0, bearing: 0, pitch: 70, pitchWant: 70, pitchAt: 0, raf: 0 };
-    // 2026-10-09: 30분 넘게 가려져 있다가 다시 보이면(날아가는 중이 아닐 때) 새로 고쳐 서버의 새 화면을 받습니다 - 산행 화면과 같음
-    var hiddenAt = 0;
-    document.addEventListener("visibilitychange", function () {
-        if (document.visibilityState === "hidden") hiddenAt = Date.now();
-        else if (hiddenAt && Date.now() - hiddenAt > 30 * 60000 && !anim.running && navigator.onLine !== false) location.reload();
-    });
+    // 새로 배포됐을 때만 새로 고침(날아가는 중이 아닐 때) - 산행 화면과 같음(2026-10-10)
+    RF.reloadOnDeploy(["index.html", "js/app.js", "js/course-kit.js"], function () { return !anim.running; });
 
     // ------------------------------------------------------------------ 작은 도구
 
@@ -967,16 +963,16 @@
 
     /**
      * 따라가기 화면(hike.html)과 같은 검색어 · 종류(2026-10-09 홍TV님 - 한쪽에서 '지리산' 을 넣고 넘어가면 다른 쪽에도).
-     * 같은 탭의 sessionStorage "rf-search" {q, kind} 를 함께 씁니다.
+     * localStorage "rf-search" {q, kind} 를 함께 씁니다(2026-10-10: 앱이 화면을 다시 열어도 남게 - sessionStorage 는 사라졌음).
      */
     var SEARCH_KEY = "rf-search";
     function saveSharedSearch() {
-        try { sessionStorage.setItem(SEARCH_KEY, JSON.stringify({ q: list.q || "", kind: list.kind || "" })); } catch (e) { /* 이번만 */ }
+        try { localStorage.setItem(SEARCH_KEY, JSON.stringify({ q: list.q || "", kind: list.kind || "" })); } catch (e) { /* 이번만 */ }
     }
     /** 저장된 검색어 · 종류를 화면에 넣습니다. 바뀐 것이 있으면 true. */
     function readSharedSearch() {
         var last = null;
-        try { last = JSON.parse(sessionStorage.getItem(SEARCH_KEY) || "null"); } catch (e) { /* 없음 */ }
+        try { last = JSON.parse(localStorage.getItem(SEARCH_KEY) || "null"); } catch (e) { /* 없음 */ }
         if (!last) return false;
         var q = (last.q || "").trim() || null, kind = last.kind || "";
         if (q === (list.q || null) && kind === (list.kind || "")) return false;

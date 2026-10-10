@@ -1285,12 +1285,10 @@
         if (!("wakeLock" in navigator)) return;
         navigator.wakeLock.request("screen").then(function (w) { hike.wake = w; }).catch(function () { /* 배터리 절약 모드 등 */ });
     }
-    // 2026-10-09 (홍TV님 핸드폰 - 카카오톡 브라우저에 며칠 전 화면이 열린 채로 남아 'GPX 열기' 가 안 보였음):
-    // 30분 넘게 가려져 있다가 다시 보이면, 걷는 중이 아닐 때 새로 고칩니다(주소 · 검색어는 그대로 이어짐 - 서버의 새 화면을 받음).
-    var STALE_MS = 30 * 60000, hiddenAt = 0;
+    // 2026-10-09 (카카오톡 브라우저에 며칠 전 화면이 남아 'GPX 열기' 가 안 보였음) → 2026-10-10 새로 배포됐을 때만 새로 고침
+    // (30분마다 무조건 새로 고쳐 깜박이던 것). 걷는 중에는 고치지 않습니다.
+    RF.reloadOnDeploy(["hike.html", "js/hike.js", "js/course-kit.js"], function () { return !hike.running; });
     document.addEventListener("visibilitychange", function () {
-        if (document.visibilityState === "hidden") hiddenAt = Date.now();
-        else if (hiddenAt && Date.now() - hiddenAt > STALE_MS && !hike.running && navigator.onLine !== false) location.reload();
         if (document.visibilityState === "hidden" && hike.running) flushTrack();   // 앱이 닫히기 전에 걸은 길을 남김
         if (document.visibilityState === "visible" && hike.running && !hike.sim && !BG) keepAwake();   // 앱은 화면을 켜 두지 않음(위 start)
     });
@@ -1639,7 +1637,7 @@
         // 목록이 비었거나(이 화면을 새로 열었을 때) 미리보기 화면에서 다른 말로 찾고 왔으면 마지막 검색을 다시
         if (!noRestore) {
             var last = null;
-            try { last = JSON.parse(sessionStorage.getItem(SEARCH_KEY) || "null"); } catch (e) { /* 없음 */ }
+            try { last = JSON.parse(localStorage.getItem(SEARCH_KEY) || "null"); } catch (e) { /* 없음 */ }
             var changed = last && last.q && (last.q !== $("q").value.trim() || (last.kind || "") !== (kindFilter || ""));
             if (last && last.q && (changed || !$("pickList").querySelector(".it"))) {
                 $("q").value = last.q;
@@ -1770,7 +1768,7 @@
     $("q").addEventListener("input", function () {
         clearTimeout(searchTimer);
         var q = this.value.trim();
-        try { sessionStorage.setItem(SEARCH_KEY, JSON.stringify({ q: q, kind: kindFilter })); } catch (e) { /* 무시 */ }
+        try { localStorage.setItem(SEARCH_KEY, JSON.stringify({ q: q, kind: kindFilter })); } catch (e) { /* 무시 */ }
         searchTimer = setTimeout(function () {
             if (!q) return;
             var my = ++pickSeq;
