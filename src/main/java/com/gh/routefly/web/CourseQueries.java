@@ -35,6 +35,9 @@ final class CourseQueries {
     static final Pattern COURSE_ID = Pattern.compile("[a-z0-9][a-z0-9_-]{0,63}");
     static final Pattern KIND = Pattern.compile("[a-z][a-z_-]{0,19}");
 
+    /** 등산 · 걷기 둘 다인 코스의 종류 값(routefly-batch 가 넣음). 등산 탭 · 걷기 탭 모두에 나옵니다. */
+    static final String TREK = "trek";
+
     static final String LIST_COLUMNS = "course_id, name, kind, distance_m, ascent_m, descent_m, ele_min_m, ele_max_m,"
             + " ele_source, point_cnt, start_lat, start_lon, end_lat, end_lon, min_lat, min_lon, max_lat, max_lon";
 
@@ -193,7 +196,12 @@ final class CourseQueries {
             where.add("MBRIntersects(path, ST_GeomFromText(?, 4326))");
             params.add(bboxWkt(bbox));
         }
-        if (kind != null) {
+        if (kind != null && (kind.equals("hike") || kind.equals("walk"))) {
+            // 2026-10-10 홍TV님: 등산 · 걷기가 애매한 코스(kind=trek - 선자령순환등산로 등)는 두 탭 모두에
+            where.add("kind IN (?, ?)");
+            params.add(kind);
+            params.add(TREK);
+        } else if (kind != null) {
             where.add("kind = ?");
             params.add(kind);
         }

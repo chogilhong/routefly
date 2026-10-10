@@ -131,11 +131,18 @@ public class WebBasicsTest {
         assertEquals(count(search.sql()), search.params().length);
         assertTrue(CourseQueries.listSql(null, null, null).sql().endsWith("ORDER BY name LIMIT " + (CourseQueries.LIST_LIMIT + 1)));
 
-        CourseQueries.Sql g = CourseQueries.gridSql(korea, "walk");
+        CourseQueries.Sql g = CourseQueries.gridSql(korea, "bike");
         assertTrue(g.sql(), g.sql().contains("GROUP BY FLOOR(start_lon / ?), FLOOR(start_lat / ?)") && g.sql().contains("kind = ?"));
         assertEquals(count(g.sql()), g.params().length);
-        assertEquals("walk", g.params()[1]);
+        assertEquals("bike", g.params()[1]);
         assertEquals(6.5 / CourseQueries.GRID_CELLS, (double) g.params()[2], 1e-9);
+        // 2026-10-10: 등산 · 걷기 탭은 애매한 코스(trek)도 함께
+        CourseQueries.Sql w = CourseQueries.gridSql(korea, "walk");
+        assertTrue(w.sql(), w.sql().contains("kind IN (?, ?)"));
+        assertEquals(count(w.sql()), w.params().length);
+        assertEquals("walk", w.params()[1]);
+        assertEquals("trek", w.params()[2]);
+        assertTrue(CourseQueries.listSql(null, "hike", null).sql().contains("kind IN (?, ?)"));
         assertEquals("아주 좁게 보면 0.01°", 0.01, CourseQueries.gridCellDeg(new double[] {127, 37, 127.01, 37.01}), 1e-12);
     }
 
