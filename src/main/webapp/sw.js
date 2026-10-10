@@ -48,19 +48,25 @@ function trim(name, keep) {
  * 인터넷 먼저, 안 되면 받아 둔 것(어느 캐시든). 받은 것은 cacheName 에 고쳐 둡니다.
  * 브라우저 캐시를 거치지 않고 서버에 바뀌었는지 묻습니다(no-cache) - 서버가 캐시 시간을 안 정하면 브라우저가 예전 app.js 를
  * 몇 시간씩 "새것" 으로 써서, 배포해도 화면이 안 바뀌던 문제. 그대로면 서버가 304 로 짧게 답합니다.
+ * 2026-10-10 점검: 산속처럼 신호가 약해 답이 끝없이 늦으면 화면이 하얗게 멈췄습니다 - NET_WAIT 안에 답이 없으면 받아 둔 것을
+ * 먼저 내주고(없으면 계속 기다림), 늦게 온 답은 뒤에서 캐시만 고칩니다(waitUntil).
  */
-function networkFirst(req, cacheName) {
+var NET_WAIT = 4000;
+function networkFirst(e, cacheName) {
+    var req = e.request;
     var fresh = req.mode === "navigate" ? fetch(req, { cache: "no-cache" }).catch(function () { return fetch(req); })
         : fetch(new Request(req, { cache: "no-cache" }));
-    return fresh.then(function (res) {
+    var net = fresh.then(function (res) {
         if (res && res.ok) {
             var copy = res.clone();
-            caches.open(cacheName).then(function (c) {
+            e.waitUntil(caches.open(cacheName).then(function (c) {
                 return c.put(req, copy);
-            }).then(function () { if (cacheName === API && ++apiPuts % 20 === 0) trim(API, API_KEEP); });
+            }).then(function () { if (cacheName === API && ++apiPuts % 20 === 0) return trim(API, API_KEEP); })
+              .catch(function () { /* 저장 공간 - 이번만 */ }));
         }
         return res;
-    }).catch(function () {
+    });
+    var netOrOffline = net.catch(function () {
         return caches.match(req, { ignoreVary: true }).then(function (hit) {
             if (hit) return hit;
             if (req.mode === "navigate") {   // 화면 주소면 JSON 글자 대신 안내 화면
@@ -74,6 +80,11 @@ function networkFirst(req, cacheName) {
                 { status: 503, headers: { "Content-Type": "application/json; charset=UTF-8" } });
         });
     });
+    e.waitUntil(net.catch(function () { /* 위에서 처리 */ }));   // 먼저 캐시를 내준 뒤에도 늦은 답으로 캐시를 고칠 때까지
+    var slow = new Promise(function (resolve) { setTimeout(resolve, NET_WAIT); }).then(function () {
+        return caches.match(req, { ignoreVary: true }).then(function (hit) { return hit || netOrOffline; });
+    });
+    return Promise.race([netOrOffline, slow]);
 }
 
 /** 받아 둔 것 먼저, 없으면 받아서(타일이면 조금 남겨 둠). */
@@ -100,8 +111,8 @@ self.addEventListener("fetch", function (e) {
     // 오프라인 저장(hike.js saveOffline)이 받는 타일은 OFFLINE 캐시에 들어가므로 여기에는 넣지 않습니다(두 번 저장되던 것)
     if (isTile(url)) { e.respondWith(cacheFirst(req, req.cache === "no-store" ? null : TILES)); return; }
     if (url.indexOf(self.location.origin) !== 0) return;   // 그 밖의 다른 사이트는 손대지 않음
-    if (url.indexOf("/api/") >= 0) { e.respondWith(networkFirst(req, API)); return; }
+    if (url.indexOf("/api/") >= 0) { e.respondWith(networkFirst(e, API)); return; }
     if (url.indexOf("/vendor/") >= 0) { e.respondWith(cacheFirst(req, SHELL)); return; }
     if (url.indexOf("/s/") >= 0) return;   // 공유 링크는 서버로
-    e.respondWith(networkFirst(req, SHELL));
+    e.respondWith(networkFirst(e, SHELL));
 });

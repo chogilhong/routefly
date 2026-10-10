@@ -42,7 +42,7 @@
                  segT0: 0,             // 지금 코스로 걷기 시작한 시각(예상 도착 빠르기 비율)
                  bgWatch: null };      // 앱 - 백그라운드 위치 감시 번호
     var trails = [];                   // 주변 등산로(api/trails) - 코스에서 벗어났을 때 가장 가까운 길 찾기
-    var compass = { on: false, up: false, heading: null, lastTurn: 0 };   // 나침반 - on: 켜짐, up: 내 방향으로 지도 돌림
+    var compass = { on: false, up: false, heading: null, lastTurn: 0, raw: null, raf: 0, listening: false };   // 나침반 - on: 켜짐, up: 내 방향으로 지도 돌림, raw: 센서가 준 마지막 방위
     var kindFilter = "";
 
     function now() { return hike.sim ? hike.simClock : Date.now(); }
@@ -156,6 +156,7 @@
         voice.on = level !== "off";
         try { localStorage.setItem(VOICE_KEY, level); } catch (e) { /* 저장 못 해도 이번에는 */ }
         $("voice").textContent = level === "on" ? "🔊" : level === "short" ? "🔉" : "🔇";
+        $("voice").setAttribute("aria-label", "음성 안내 " + (level === "on" ? "자세히" : level === "short" ? "짧게" : "꺼짐") + " - 누르면 바꿈");
         $("voice").classList.toggle("on", voice.on);
         if (!voice.on) stopTalking();
     }
@@ -292,8 +293,9 @@
 
     function getJson(url) {
         return fetch(url, { headers: { "Accept": "application/json" } }).then(function (r) {
-            return r.json().then(function (j) {
-                if (!r.ok || j.success === false) {
+            // 2026-10-10 점검: JSON 이 아닌 답(429 · 프록시 HTML)이면 r.json() 의 SyntaxError 대신 HTTP 번호를 알립니다(app.js 와 같음)
+            return r.json().catch(function () { return { success: false, message: "응답을 읽지 못했습니다 (HTTP " + r.status + ")" }; }).then(function (j) {
+                if (!r.ok || !j || j.success === false) {
                     var err = new Error(j.message || ("HTTP " + r.status));
                     err.data = j;   // 없는 코스면 같은 산 코스(similar)가 들어 있습니다
                     throw err;
@@ -376,6 +378,7 @@
             map.setPaintProperty("trails", "line-color", light ? "#8a6d00" : "#ffe8a3");
         }
         $("layerBtn").textContent = light ? "🛰️" : "🗺️";
+        $("layerBtn").setAttribute("aria-label", light ? "위성사진으로" : "밝은 지도로");
         $("layerBtn").title = light ? "위성사진으로" : "밝은 지도로(햇빛 아래에서 잘 보임)";
         document.body.classList.toggle("lightmap", light);
         if (!quiet) toast(light ? "밝은 지도" : "위성사진", 1500);
@@ -652,7 +655,7 @@
             setKindWords();
             drawCourse();
             prof = RF.profile($("profile"), c, {});
-            try { $("save").textContent = JSON.parse(localStorage.getItem("rf-offline") || "[]").indexOf(id) >= 0 ? "✅ 저장됨" : "📥 저장"; } catch (e) { /* 무시 */ }
+            $("save").textContent = offlineIds().indexOf(id) >= 0 ? "✅ 저장됨" : "📥 저장";
             // 이 기기에 남은 산행 기록(새로 고침 · 화면 꺼짐 뒤에도 이어서)
             var saved = loadSaved();
             hike.d = saved ? saved.d : 0;
@@ -768,9 +771,13 @@
             r.onupgradeneeded = function () { r.result.createObjectStore("r"); };
             r.onerror = function () { reject(r.error); };
             r.onsuccess = function () {
-                var db = r.result, tx = db.transaction("r", mode), out = fn(tx.objectStore("r"));
-                tx.oncomplete = function () { db.close(); resolve(out && out.result); };
-                tx.onerror = function () { db.close(); reject(tx.error); };
+                // 2026-10-10 점검: transaction 이 던지면(저장소 없음 · 닫힘) 약속이 끝나지 않아 기록 화면이 멈췄습니다 - 실패로 돌려줌
+                var db = r.result;
+                try {
+                    var tx = db.transaction("r", mode), out = fn(tx.objectStore("r"));
+                    tx.oncomplete = function () { db.close(); resolve(out && out.result); };
+                    tx.onerror = tx.onabort = function () { db.close(); reject(tx.error || new Error("기록 저장이 취소되었습니다.")); };
+                } catch (e) { db.close(); reject(e); }
             };
         });
     }
@@ -994,9 +1001,11 @@
     function photoTx(mode, fn) {
         return photoDb().then(function (db) {
             return new Promise(function (resolve, reject) {
-                var tx = db.transaction("p", mode), st = tx.objectStore("p"), out = fn(st);
-                tx.oncomplete = function () { db.close(); resolve(out && out.result !== undefined ? out.result : out); };
-                tx.onerror = function () { db.close(); reject(tx.error); };
+                try {   // 2026-10-10 점검: 던지면 db 를 닫고 실패로(열린 채 남지 않게)
+                    var tx = db.transaction("p", mode), st = tx.objectStore("p"), out = fn(st);
+                    tx.oncomplete = function () { db.close(); resolve(out && out.result !== undefined ? out.result : out); };
+                    tx.onerror = tx.onabort = function () { db.close(); reject(tx.error || new Error("사진 저장이 취소되었습니다.")); };
+                } catch (e) { db.close(); reject(e); }
             });
         });
     }
@@ -1265,6 +1274,7 @@
             clearSaved();
         }
         hike.sim = false;
+        compassOff();   // 2026-10-10 점검: 다 걸은 뒤에도 센서를 계속 받던 것
         $("go").textContent = K().act + " 시작";
         $("go").classList.remove("stop");
         $("sim").style.display = "";
@@ -1275,6 +1285,7 @@
         hike.notes = [];
         drawNoteMarkers();
         map.getSource("guide").setData({ type: "FeatureCollection", features: [] });
+        hike.guideShown = false;
         $("gps").textContent = "GPS 꺼짐";
         $("gps").className = "";
         $("offroute").style.display = "none";
@@ -1287,9 +1298,10 @@
     }
     // 2026-10-09 (카카오톡 브라우저에 며칠 전 화면이 남아 'GPX 열기' 가 안 보였음) → 2026-10-10 새로 배포되면 '새 버전' 띠만 띄우고
     // 누를 때 새로 고침(저절로 고치지 않음). 걷는 중에는 띠도 띄우지 않고 끝낸 뒤에.
-    RF.notifyDeploy(["hike.html", "js/hike.js", "js/course-kit.js"], function () { return !hike.running; });
+    RF.notifyDeploy(["hike.html", "js/hike.js", "js/course-kit.js", "css/course-kit.css"], function () { return !hike.running; });
     document.addEventListener("visibilitychange", function () {
         if (document.visibilityState === "hidden" && hike.running) flushTrack();   // 앱이 닫히기 전에 걸은 길을 남김
+        if (compass.on) compassListen(document.visibilityState === "visible");   // 안 보이는 동안 나침반 센서를 놓음
         if (document.visibilityState === "visible" && hike.running && !hike.sim && !BG) keepAwake();   // 앱은 화면을 켜 두지 않음(위 start)
     });
 
@@ -1609,6 +1621,7 @@
             turnGuideArrow();
             $("offroute").style.display = "flex";
             hike.wasOff = true;
+            hike.guideShown = true;
             map.getSource("guide").setData({ type: "Feature", properties: {},
                 geometry: { type: "LineString", coordinates: [[me.lon, me.lat], [nt.lon, nt.lat]] } });
         } else {
@@ -1619,7 +1632,11 @@
             }
             $("offroute").style.display = "none";
             hike.guideBr = null;
-            if (map.getSource("guide")) map.getSource("guide").setData({ type: "FeatureCollection", features: [] });
+            // 2026-10-10 점검: 매초 빈 자료를 다시 넣던 것 - 안내선을 그려 둔 때(guideShown)에만 지웁니다
+            if (hike.guideShown && map.getSource("guide")) {
+                map.getSource("guide").setData({ type: "FeatureCollection", features: [] });
+                hike.guideShown = false;
+            }
         }
         if (prof) prof.set(d);
         if (map.getLayer("route-done")) map.setPaintProperty("route-done", "line-gradient", progressGradient(d / c.total));
@@ -1638,11 +1655,17 @@
         if (!noRestore) {
             var last = null;
             try { last = JSON.parse(localStorage.getItem(SEARCH_KEY) || "null"); } catch (e) { /* 없음 */ }
-            var changed = last && last.q && (last.q !== $("q").value.trim() || (last.kind || "") !== (kindFilter || ""));
+            // 2026-10-10 점검: 검색어 없이 종류 탭만 바꾸고 왔을 때도 탭을 맞춥니다(app.js readSharedSearch 와 같음)
+            var lastKind = last ? last.kind || "" : "";
+            var kindChanged = last && lastKind !== (kindFilter || "");
+            var changed = last && last.q && (last.q !== $("q").value.trim() || kindChanged);
             if (last && last.q && (changed || !$("pickList").querySelector(".it"))) {
                 $("q").value = last.q;
-                var tab = document.querySelector('#kindTabs button[data-kind="' + (last.kind || "") + '"]');
+                var tab = document.querySelector('#kindTabs button[data-kind="' + lastKind + '"]');
                 if (tab) tab.click(); else { var ev = document.createEvent("Event"); ev.initEvent("input", true, true); $("q").dispatchEvent(ev); }
+            } else if (kindChanged) {
+                var kt = document.querySelector('#kindTabs button[data-kind="' + lastKind + '"]');
+                if (kt) kt.click();
             }
         }
     }
@@ -1769,12 +1792,13 @@
         clearTimeout(searchTimer);
         var q = this.value.trim();
         try { localStorage.setItem(SEARCH_KEY, JSON.stringify({ q: q, kind: kindFilter })); } catch (e) { /* 무시 */ }
+        // 2026-10-10 점검: 검색창을 비우면 순번을 올려, 비우기 전에 보낸 검색 응답(성공 · 실패)이 늦게 와도 버립니다
+        if (!q) { pickSeq++; return; }
         searchTimer = setTimeout(function () {
-            if (!q) return;
             var my = ++pickSeq;
             getJson("api/courses?q=" + encodeURIComponent(q) + (kindFilter ? "&kind=" + kindFilter : ""))
                 .then(function (j) { if (my === pickSeq) listCourses(j.courses || [], null); })
-                .catch(function (e) { toast("검색 실패: " + e.message); });
+                .catch(function (e) { if (my === pickSeq) toast("검색 실패: " + e.message); });
         }, 300);
     });
 
@@ -1791,7 +1815,7 @@
                         return x;
                     }).sort(function (a, b) { return a.away - b.away; });
                     if (my === pickSeq) listCourses(rows, true);
-                }).catch(function (e) { toast("코스를 찾지 못했습니다: " + e.message); });
+                }).catch(function (e) { if (my === pickSeq) toast("코스를 찾지 못했습니다: " + e.message); });
         }, function (e) { onGpsError(e); }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 60000 });
     });
 
@@ -1803,7 +1827,10 @@
             kindFilter = b.getAttribute("data-kind");
             $("q").placeholder = RF.searchPlaceholder(kindFilter);   // 종류마다 다른 안내 글
             setKindWords();
-            [].forEach.call(document.querySelectorAll("#kindTabs button"), function (x) { x.classList.toggle("on", x === b); });
+            [].forEach.call(document.querySelectorAll("#kindTabs button"), function (x) {
+                x.classList.toggle("on", x === b);
+                x.setAttribute("aria-pressed", x === b ? "true" : "false");   // 화면 읽기 프로그램에 지금 탭을 알림
+            });
             var ev = document.createEvent("Event"); ev.initEvent("input", true, true); $("q").dispatchEvent(ev);
         });
     });
@@ -1818,13 +1845,21 @@
 
     // ------------------------------------------------------------------ 나침반
 
+    // 2026-10-10 점검: 센서는 초당 60번 남짓 오는데 그때마다 화살표 · 지도 · 내 위치 표시를 다시 그려 배터리를 먹었습니다.
+    // 받은 방위만 적어 두고 그리기는 화면 한 장(requestAnimationFrame)에 한 번.
     function onOrientation(e) {
         var h = null;
         if (e.webkitCompassHeading != null) h = e.webkitCompassHeading;                 // 아이폰
         else if (e.absolute && e.alpha != null) h = (360 - e.alpha) % 360;              // 안드로이드(절대 방위)
         if (h == null) return;
         var sa = screen.orientation && screen.orientation.angle ? screen.orientation.angle : (window.orientation || 0);
-        h = (h + sa + 360) % 360;   // 가로 화면 보정
+        compass.raw = (h + sa + 360) % 360;   // 가로 화면 보정
+        if (!compass.raf) compass.raf = requestAnimationFrame(drawOrientation);
+    }
+    function drawOrientation() {
+        compass.raf = 0;
+        if (!compass.listening || compass.raw == null) return;
+        var h = compass.raw;
         compass.heading = h;
         if (hike.guideBr != null) turnGuideArrow();   // 몸을 돌리면 화살표도 바로(GPS 를 기다리지 않고)
         setNeedle(-h);   // 빨간 끝 = 실제 북쪽(핸드폰 위쪽 기준)
@@ -1842,11 +1877,33 @@
         $("compass").querySelector(".needle").style.transform = "rotate(" + deg + "deg)";
     }
 
+    /** 센서 받기 켜기 · 끄기 - 두 번 붙지 않게 compass.listening 으로 봅니다. */
+    function compassListen(on) {
+        if (on === !!compass.listening) return;
+        compass.listening = on;
+        var ev = "ondeviceorientationabsolute" in window ? "deviceorientationabsolute" : "deviceorientation";
+        if (on) window.addEventListener(ev, onOrientation);
+        else {
+            window.removeEventListener(ev, onOrientation);
+            if (compass.raf) { cancelAnimationFrame(compass.raf); compass.raf = 0; }
+        }
+    }
+
+    /** 나침반 끄기(산행을 끝냈을 때) - 센서를 놓고 바늘은 다시 지도의 북쪽. */
+    function compassOff() {
+        if (!compass.on) return;
+        compassListen(false);
+        compass.on = false;
+        compass.raw = compass.heading = null;
+        if (compass.up) { compass.up = false; if (map) map.rotateTo(0, { duration: 300 }); }
+        $("compass").classList.remove("on", "up");
+        if (map) setNeedle(-map.getBearing());
+    }
+
     function compassOn() {
         var go = function () {
             compass.on = true;
-            if ("ondeviceorientationabsolute" in window) window.addEventListener("deviceorientationabsolute", onOrientation);
-            else window.addEventListener("deviceorientation", onOrientation);
+            compassListen(true);
             $("compass").classList.add("on");
             setTimeout(function () { if (compass.heading == null) toast("이 기기에서는 나침반 방향을 읽지 못했습니다(센서 없음 · 권한 거부).", 5000); }, 2500);
         };
@@ -2212,17 +2269,76 @@
             btn.textContent = x[2] + (plan ? " · " + num(plan.urls.length) + "장(가장 자세히 z" + plan.zMax + ")" : " · 너무 넓습니다(지도를 확대하세요)");
             btn.onclick = function () { $("saveSheet").style.display = "none"; saveOffline(plan); };
         });
+        $("saveDelete").style.display = offlineIds().indexOf(c.id) >= 0 ? "" : "none";   // 저장해 둔 코스면 지우기
         $("saveSheet").style.display = "flex";
     });
     $("saveClose").addEventListener("click", function () { $("saveSheet").style.display = "none"; });
 
+    /*
+     * 2026-10-10 점검: 저장한 코스를 지울 수 없어 rf-offline-v1 이 끝없이 커졌습니다.
+     * 코스마다 받은 주소 목록을 같은 캐시의 "offline-index?c=<코스>" 에 JSON 으로 남기고(localStorage 는 3,000장 주소를 담기에 작음),
+     * 지울 때는 다른 저장 코스가 함께 쓰는 주소(겹치는 타일 · map-config)는 남깁니다.
+     */
+    var OFFLINE_CACHE = "rf-offline-v1";   // sw.js 의 OFFLINE 과 같은 이름
+    /** 오프라인 저장한 코스 번호들(localStorage "rf-offline") - 코스를 열 때(loadCourse)도 부릅니다. */
+    function offlineIds() { try { return JSON.parse(localStorage.getItem("rf-offline") || "[]"); } catch (e) { return []; } }
+    function setOfflineIds(ids) { try { localStorage.setItem("rf-offline", JSON.stringify(ids)); } catch (e) { /* 무시 */ } }
+    function offlineIndexKey(id) { return new URL("offline-index?c=" + encodeURIComponent(id), location.href).href; }
+    /** 그 코스가 받은 주소 목록(절대 주소). 예전에 저장해 목록이 없으면 null. */
+    function offlineIndex(cache, id) {
+        return cache.match(offlineIndexKey(id)).then(function (r) { return r ? r.json() : null; }).catch(function () { return null; });
+    }
+    function absUrl(u) { return new URL(u, location.href).href; }
+
+    /** 저장 지우기 - 이 코스의 주소 중 다른 저장 코스가 쓰지 않는 것만 지웁니다. */
+    function deleteOffline(id) {
+        var others = offlineIds().filter(function (x) { return x !== id; });
+        return caches.open(OFFLINE_CACHE).then(function (cache) {
+            return Promise.all([offlineIndex(cache, id)].concat(others.map(function (o) { return offlineIndex(cache, o); }))).then(function (idx) {
+                var mine = idx[0], keep = {}, legacyOther = false;
+                idx.slice(1).forEach(function (l) { if (l) l.forEach(function (u) { keep[u] = true; }); else legacyOther = true; });
+                var drop;
+                if (mine && !legacyOther) {
+                    drop = Promise.resolve(mine.filter(function (u) { return !keep[u]; }));
+                } else if (mine) {
+                    // 목록 없는 예전 저장 코스가 남아 있으면 겹치는지 알 수 없어 코스 자료만 지움(타일은 그대로)
+                    drop = Promise.resolve(mine.filter(function (u) { return u.indexOf("/api/course?") >= 0; }));
+                } else if (!others.length) {
+                    return caches.delete(OFFLINE_CACHE);   // 예전 저장 · 남은 저장 없음 - 통째로
+                } else if (!legacyOther) {
+                    // 이 코스만 예전 저장 - 다른 코스 목록에 없는 것(목록 자체는 빼고)을 모두 지움
+                    drop = cache.keys().then(function (ks) {
+                        return ks.map(function (k) { return k.url; }).filter(function (u) { return !keep[u] && u.indexOf("/offline-index?") < 0; });
+                    });
+                } else {
+                    drop = Promise.resolve(isGpxId(id) ? [] : [absUrl("api/course?id=" + encodeURIComponent(id))]);
+                }
+                return drop.then(function (urls) {
+                    return Promise.all(urls.concat([offlineIndexKey(id)]).map(function (u) { return cache.delete(u); }));
+                });
+            });
+        }).then(function () {
+            setOfflineIds(others);
+        });
+    }
+    $("saveDelete").addEventListener("click", function () {
+        if (!c || !("caches" in window)) return;
+        var id = c.id;
+        if (!confirm("이 코스의 오프라인 저장(지도 그림)을 지울까요? 다른 저장 코스와 겹치는 지도는 남깁니다.")) return;
+        $("saveSheet").style.display = "none";
+        deleteOffline(id).then(function () {
+            if (c && c.id === id) $("save").textContent = "📥 저장";
+            toast("오프라인 저장을 지웠습니다.", 3000);
+        }).catch(function (e) { toast("지우지 못했습니다: " + (e && e.message || e), 5000); });
+    });
+
     function saveOffline(plan) {
         // 주변 길은 화면이 부르는 그 주소(loadTrails 의 courseBbox(0.01))로 받아야 오프라인에서 서비스 워커가 내줍니다.
         var head = (isGpxId(c.id) ? [] : ["api/course?id=" + encodeURIComponent(c.id)]).concat(["api/trails?bbox=" + courseBbox(0.01), "api/map-config"]);
-        var urls = head.concat(plan.urls);
+        var urls = head.concat(plan.urls), id = c.id;
         var btn = $("save"), done = 0, failed = 0, i = 0;
         btn.disabled = true;
-        caches.open("rf-offline-v1").then(function (cache) {
+        caches.open(OFFLINE_CACHE).then(function (cache) {
             function next() {
                 if (i >= urls.length) return Promise.resolve();
                 var u = urls[i++];
@@ -2236,15 +2352,19 @@
                     return next();
                 });
             }
-            return Promise.all([next(), next(), next(), next(), next(), next()]);
+            return Promise.all([next(), next(), next(), next(), next(), next()]).then(function () {
+                // 받은 주소 목록 - 다시 저장하면 예전 목록과 합칩니다(범위를 바꿔 다시 받아도 예전 타일까지 지울 수 있게)
+                return offlineIndex(cache, id).then(function (old) {
+                    var all = {};
+                    (old || []).concat(urls.map(absUrl)).forEach(function (u) { all[u] = true; });
+                    return cache.put(offlineIndexKey(id), new Response(JSON.stringify(Object.keys(all)), { headers: { "Content-Type": "application/json" } }));
+                });
+            });
         }).then(function () {
             btn.disabled = false;
             btn.textContent = "✅ 저장됨";
-            try {
-                var saved = JSON.parse(localStorage.getItem("rf-offline") || "[]");
-                if (saved.indexOf(c.id) < 0) saved.push(c.id);
-                localStorage.setItem("rf-offline", JSON.stringify(saved));
-            } catch (e) { /* 무시 */ }
+            var saved = offlineIds();
+            if (saved.indexOf(id) < 0) { saved.push(id); setOfflineIds(saved); }
             toast("오프라인 저장 끝 - 지도 " + num(plan.urls.length) + "장" + (failed ? " (못 받은 " + failed + "장)" : "") + ". 통신이 끊겨도 이 범위는 보입니다.", 6000);
         }).catch(function (e) {
             btn.disabled = false;

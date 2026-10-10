@@ -28,7 +28,7 @@ button { font-family:inherit; }
        border-bottom:1px solid var(--ln); flex:0 0 auto; }
 #top a { color:var(--dim); text-decoration:none; font-size:20px; padding:0 4px; }
 /* ‹ 목록 - 코스 목록으로 돌아가는 단추(눈에 띄게) */
-#top #back { flex:0 0 auto; display:inline-flex; align-items:center; gap:2px; height:32px; padding:0 11px 0 7px; border-radius:16px;
+#top #back { flex:0 0 auto; display:inline-flex; align-items:center; gap:2px; height:40px; padding:0 11px 0 7px; border-radius:20px;   /* 2026-10-10 점검: 32 → 40px */
              background:rgba(56,217,234,0.16); border:1px solid var(--sky); color:var(--sky); font-size:14px; font-weight:bold; }
 #top #back b { font-size:22px; line-height:1; margin-top:-3px; }
 #top .nm { flex:1; min-width:0; font-size:14.5px; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -129,7 +129,7 @@ body.compact #statGrids { display:none; }
 #safety .sbtn button:disabled { opacity:0.4; }
 
 /* SOS · 기록 시트(안전 안내와 같은 모양) */
-#sos { margin-left:2px; height:36px; min-width:48px; padding:0 10px; border-radius:18px;   /* 2026-10-09 점검: 급할 때 누르기 쉽게(28px 에서) */
+#sos { margin-left:2px; height:40px; min-width:48px; padding:0 10px; border-radius:20px;   /* 2026-10-09 점검: 급할 때 누르기 쉽게(28px 에서) */
         border:0; background:#e03131; color:#fff; font-weight:900;
        font-size:12.5px; letter-spacing:0.5px; }
 .sheet { position:fixed; inset:0; z-index:30; display:none; align-items:flex-end; justify-content:center; background:rgba(0,0,0,0.6); }
@@ -157,7 +157,7 @@ body.compact #statGrids { display:none; }
 #recList .rec div { flex:1; min-width:0; }
 #recList .rec b { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 #recList .rec span { color:var(--dim); font-size:12px; }
-#recList .rec button { height:34px; padding:0 10px; border-radius:8px; border:1px solid var(--ln); background:rgba(255,255,255,0.06); color:var(--tx); }
+#recList .rec button { height:40px; padding:0 10px; border-radius:8px; border:1px solid var(--ln); background:rgba(255,255,255,0.06); color:var(--tx); }
 
 /* 나침반 · 갈림길 · 길 안내 화살표 */
 #compass { position:absolute; left:10px; top:10px; z-index:2; width:48px; height:48px; border-radius:50%; border:0; background:#fff;
@@ -184,14 +184,14 @@ body.compact #statGrids { display:none; }
 .noteRow .nt small { display:block; color:var(--dim); font-size:12px; }
 #notesSheet { z-index:31; }
 #recView { z-index:31; }
-#recClear { position:absolute; left:50%; transform:translateX(-50%); bottom:14px; z-index:2; display:none; height:34px; padding:0 12px; border-radius:17px;
+#recClear { position:absolute; left:50%; transform:translateX(-50%); bottom:14px; z-index:2; display:none; height:40px; padding:0 12px; border-radius:20px;
             border:0; background:#c77dff; color:#1b0b2a; font-weight:bold; font-size:13px; box-shadow:0 2px 8px rgba(0,0,0,0.45); cursor:pointer; }
 #recViewProfile { position:relative; height:110px; margin:8px 0 4px; }   /* 내 기록 창 위에서 열립니다 */
 #turn { position:absolute; left:66px; right:10px; top:10px; z-index:3; display:none; padding:10px 12px; border-radius:10px;
         background:rgba(26,115,232,0.95); color:#fff; font-size:15px; font-weight:bold; box-shadow:0 2px 8px rgba(0,0,0,0.5); }
 #offroute { display:none; align-items:center; gap:10px; }
 #offroute .otxt { flex:1; min-width:0; }
-#navBtn { display:none; margin-top:7px; height:34px; padding:0 12px; border-radius:17px; border:0; background:#fff; color:#b42318;
+#navBtn { display:none; margin-top:7px; height:40px; padding:0 12px; border-radius:20px; border:0; background:#fff; color:#b42318;
           font-size:14px; font-weight:bold; }
 #navTargets { display:flex; gap:6px; margin:0 0 6px; }
 #navTargets button { flex:1; min-width:0; height:40px; border-radius:10px; border:1px solid var(--ln); background:rgba(255,255,255,0.06);
@@ -202,7 +202,8 @@ body.compact #statGrids { display:none; }
 #etaBox.late { background:rgba(220,38,38,0.25); }
 #sunTxt { color:var(--dim); }
 .tabs { display:flex; gap:6px; margin-top:8px; overflow-x:auto; }
-.tabs button { flex:0 0 auto; height:34px; padding:0 12px; border-radius:17px; border:1px solid var(--ln); background:rgba(255,255,255,0.06);
+.tabs button { flex:0 0 auto; height:40px; padding:0 12px; border-radius:20px;   /* 2026-10-10 점검: 손가락 자리 34 → 40px */
+               border:1px solid var(--ln); background:rgba(255,255,255,0.06);
                color:var(--tx); font-size:13.5px; }
 .tabs button.on { background:var(--sky); border-color:var(--sky); color:#062b30; font-weight:bold; }
 </style>
@@ -212,7 +213,7 @@ body.compact #statGrids { display:none; }
     <a href="#" id="back" title="코스 목록(검색)으로"><b>‹</b>목록</a>
     <div class="nm" id="name">코스를 고르세요</div>
     <span id="gps">GPS 꺼짐</span>
-    <a href="about.html" title="안전 · 개인정보 · 출처 안내" style="font-size:17px">ⓘ</a>
+    <a href="about.html" title="안전 · 개인정보 · 출처 안내" aria-label="안전 · 개인정보 · 출처 안내" style="font-size:17px;min-width:32px;min-height:40px;display:inline-flex;align-items:center;justify-content:center">ⓘ</a>
     <button type="button" id="sos" title="119 긴급 신고 · 내 위치">SOS</button>
 </div>
 
@@ -220,13 +221,13 @@ body.compact #statGrids { display:none; }
     <div id="map"></div>
     <div id="offroute"><span class="arrow" id="guideArrow"><svg viewBox="0 0 24 24" width="30" height="30"><path d="M12 2 L20 20 L12 15.5 L4 20 Z" fill="#fff" stroke="#7a0000" stroke-width="1.2" stroke-linejoin="round"/></svg></span><span class="otxt"><span id="offText"></span><button type="button" id="navBtn">🚗 출발점 길찾기</button></span></div>
     <div id="turn"></div>
-    <button type="button" id="compass" title="나침반 - 누를 때마다: 켜기 → 내 방향으로 지도 돌리기 → 북쪽 위로"><span class="needle"><svg viewBox="0 0 16 30" width="13" height="25"><path d="M8 1 L13 15 L3 15 Z" fill="#e03131"/><path d="M3 15 L13 15 L8 29 Z" fill="#9aa3ad"/></svg></span><span class="hd" id="compassText">N</span></button>
+    <button type="button" id="compass" aria-label="나침반" title="나침반 - 누를 때마다: 켜기 → 내 방향으로 지도 돌리기 → 북쪽 위로"><span class="needle"><svg viewBox="0 0 16 30" width="13" height="25"><path d="M8 1 L13 15 L3 15 Z" fill="#e03131"/><path d="M3 15 L13 15 L8 29 Z" fill="#9aa3ad"/></svg></span><span class="hd" id="compassText">N</span></button>
     <div id="arrived"></div>
     <button type="button" id="recClear" title="지도에서 기록 선 지우기">기록 선 지우기 ✕</button>
-    <button type="button" id="voice" class="on" title="음성 안내 자세히 · 짧게 · 끄기(갈림길 · 지점 · 1km 마다 · 코스 이탈 · 도착)">🔊</button>
-    <button type="button" id="layerBtn" title="밝은 지도로(햇빛 아래에서 잘 보임)">🗺️</button>
-    <button type="button" id="follow" class="on" title="내 위치 따라가기">⌖</button>
-    <button type="button" id="noteBtn" title="지금 자리에 사진 · 메모 남기기(내 기록 · GPX 에 함께)">📝</button>
+    <button type="button" id="voice" class="on" aria-label="음성 안내 바꾸기" title="음성 안내 자세히 · 짧게 · 끄기(갈림길 · 지점 · 1km 마다 · 코스 이탈 · 도착)">🔊</button>
+    <button type="button" id="layerBtn" aria-label="밝은 지도 · 위성사진 바꾸기" title="밝은 지도로(햇빛 아래에서 잘 보임)">🗺️</button>
+    <button type="button" id="follow" class="on" aria-label="내 위치 따라가기" title="내 위치 따라가기">⌖</button>
+    <button type="button" id="noteBtn" aria-label="사진 · 메모 남기기" title="지금 자리에 사진 · 메모 남기기(내 기록 · GPX 에 함께)">📝</button>
 </div>
 
 <div id="stats">
@@ -265,12 +266,12 @@ body.compact #statGrids { display:none; }
 <div id="pick">
     <header>
         <h1>route<span>fly</span> 따라가기 <a href="./" class="tomap" title="3D 지형 위에서 코스를 미리 날아 보는 화면으로">🗺 코스 미리보기</a></h1>
-        <input type="search" id="q" placeholder="코스 · 산 이름 (예: 설악산, 둘레길, 국토종주)" autocomplete="off" maxlength="50">
-        <div class="tabs" id="kindTabs">
-            <button type="button" data-kind="" class="on">전체</button>
-            <button type="button" data-kind="hike">⛰️ 등산</button>
-            <button type="button" data-kind="walk">🚶 걷기</button>
-            <button type="button" data-kind="bike">🚴 자전거</button>
+        <input type="search" id="q" aria-label="코스 · 산 이름으로 찾기" placeholder="코스 · 산 이름 (예: 설악산, 둘레길, 국토종주)" autocomplete="off" maxlength="50">
+        <div class="tabs" id="kindTabs" role="group" aria-label="코스 종류">
+            <button type="button" data-kind="" class="on" aria-pressed="true">전체</button>
+            <button type="button" data-kind="hike" aria-pressed="false">⛰️ 등산</button>
+            <button type="button" data-kind="walk" aria-pressed="false">🚶 걷기</button>
+            <button type="button" data-kind="bike" aria-pressed="false">🚴 자전거</button>
         </div>
         <div class="row">
             <button type="button" id="nearMe">📍 내 주변 코스</button>
@@ -361,6 +362,7 @@ body.compact #statGrids { display:none; }
         <button type="button" class="big sms" id="saveNear" style="width:100%"></button>
         <button type="button" class="big sms" id="saveWide" style="width:100%"></button>
         <button type="button" class="big sms" id="saveView" style="width:100%"></button>
+        <button type="button" class="big" id="saveDelete" style="width:100%;display:none">🗑 저장 지우기 (이 코스)</button>
         <div class="sbtn"><button type="button" id="saveClose" class="main">닫기</button></div>
     </div>
 </div>

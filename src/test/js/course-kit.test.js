@@ -100,5 +100,48 @@ var dd = RF.dedupePois([{ name: "쉼터", lat: 37, lon: 127, dist_m: 100 }, { na
                         { name: "쉼터", lat: 37.0005, lon: 127, dist_m: 160 }]);
 eq("dedupePois 같은 이름 먼 곳", dd.length, 2);
 
-console.log((fails ? "FAILED " : "OK ") + (runs - fails) + "/" + runs);
-process.exit(fails ? 1 : 0);
+// 2026-10-10 5차 점검: notifyDeploy - HEAD 하나라도 실패하면 처음 표시를 남기지 않음(반쪽 표시로 띠가 잘못 뜨던 것), ✕ 로 닫기
+function deployEnv(okFirst) {
+    var calls = 0, listeners = {}, appended = [], ver = "a";
+    function el(tag) {
+        return { tag: tag, children: [], style: {}, attrs: {}, parentNode: null,
+                 appendChild: function (c) { c.parentNode = this; this.children.push(c); },
+                 removeChild: function (c) { this.children.splice(this.children.indexOf(c), 1); c.parentNode = null; },
+                 setAttribute: function (k, v) { this.attrs[k] = v; } };
+    }
+    var body = el("body");
+    var doc = { visibilityState: "visible", body: body, createElement: el,
+                addEventListener: function (n, f) { listeners[n] = f; } };
+    var fetchFn = function (f) {
+        calls++;
+        var ok = okFirst || calls > 2 || f !== "b.js";
+        return Promise.resolve({ ok: ok, headers: { get: function (h) { return h === "ETag" ? f + ver : null; } } });
+    };
+    var sb = { window: {}, console: console, fetch: fetchFn, document: doc, location: { reload: function () {} }, Date: Date };   // Date - 시계를 앞으로 돌리려고 밖의 것을 씀
+    sb.window.fetch = fetchFn; sb.window.document = doc;
+    vm.createContext(sb);
+    vm.runInContext(fs.readFileSync(path.join(__dirname, "../../main/webapp/js/course-kit.js"), "utf8"), sb);
+    sb.window.RF.notifyDeploy(["a.js", "b.js"], function () { return true; });
+    return { body: body, setVer: function (v) { ver = v; },
+             back: function () { var realNow = Date.now; doc.visibilityState = "hidden"; listeners.visibilitychange();
+                                 Date.now = function () { return realNow() + 120000; }; doc.visibilityState = "visible"; listeners.visibilitychange();
+                                 Date.now = realNow; } };
+}
+var tick = function () { return new Promise(function (r) { setTimeout(r, 0); }); };
+var envBad = deployEnv(false), envOk = deployEnv(true);
+tick().then(function () {
+    envBad.back();   // 처음 표시가 반쪽(b.js 실패)이었으면 다 받아도 띠를 띄우지 않음
+    envOk.setVer("b");   // 정상: 배포로 표시가 바뀜
+    envOk.back();
+    return tick();
+}).then(function () {
+    eq("notifyDeploy 처음 HEAD 실패면 띠 없음", envBad.body.children.length, 0);
+    eq("notifyDeploy 바뀌면 띠", envOk.body.children.length, 1);
+    var bar = envOk.body.children[0];
+    eq("notifyDeploy 띠에 새로 고침 · ✕ 두 단추", bar.children.length, 2);
+    eq("notifyDeploy ✕ 이름", bar.children[1].attrs["aria-label"], "새 버전 알림 닫기");
+    bar.children[1].onclick();
+    eq("notifyDeploy ✕ 로 닫힘", envOk.body.children.length, 0);
+    console.log((fails ? "FAILED " : "OK ") + (runs - fails) + "/" + runs);
+    process.exit(fails ? 1 : 0);
+});

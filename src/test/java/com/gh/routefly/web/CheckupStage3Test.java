@@ -32,8 +32,8 @@ public class CheckupStage3Test {
     public void phoneScreensCanZoomAndButtonsAreBigEnough() throws Exception {
         String hike = read("src/main/webapp/hike.html"), index = read("src/main/webapp/index.html");
         assertFalse("글자를 키울 수 있게", hike.contains("user-scalable=no"));
-        assertTrue(hike.contains("#sos { margin-left:2px; height:36px;"));
+        assertTrue(hike.contains("#sos { margin-left:2px; height:40px;"));   // 2026-10-10 5차 점검: 36 → 40px
         assertTrue(index.contains(".tools button { flex:1 1 auto; min-width:0; height:36px;"));
-        assertTrue(index.contains(".kinds button { flex:1; height:34px;"));
+        assertTrue(index.contains(".kinds button { flex:1; height:40px;"));   // 2026-10-10 5차 점검: 34 → 40px
     }
 }

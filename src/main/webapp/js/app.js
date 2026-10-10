@@ -19,12 +19,12 @@
     var map;
     var mapReady;            // 지도 스타일이 읽힌 뒤 경로 층을 붙이고 풀리는 약속 - 목록은 이것을 기다리지 않습니다
     var courses = [];
-    var list = { q: null, kind: "", truncated: false, seq: 0, timer: 0, near: false };   // near - 📍 내 주변 코스를 누름   // 목록 상태 - 검색어가 있으면 검색, 없으면 지도 범위
+    var list = { q: null, kind: "", truncated: false, seq: 0, timer: 0, qTimer: 0, near: false };   // near - 📍 내 주변 코스를 누름   // 목록 상태 - 검색어가 있으면 검색, 없으면 지도 범위
     var grid = null;         // 넓은 범위라 목록이 잘렸을 때 서버가 준 격자 칸별 코스 수 [{n, lon, lat}] - 출발점 대신 지도에 그립니다
     var cur = null;          // 지금 코스 {id, course, lon[], lat[], ele[], dist[], total, pois[], markers[]}
     var anim = { running: false, d: 0, speedIdx: 0, last: 0, bearing: 0, pitch: 70, pitchWant: 70, pitchAt: 0, raf: 0 };
     // 새로 배포되면 '새 버전' 띠(누를 때 새로 고침, 날아가는 중이 아닐 때) - 산행 화면과 같음(2026-10-10)
-    RF.notifyDeploy(["index.html", "js/app.js", "js/course-kit.js"], function () { return !anim.running; });
+    RF.notifyDeploy(["index.html", "js/app.js", "js/course-kit.js", "css/course-kit.css"], function () { return !anim.running; });
 
     // ------------------------------------------------------------------ 작은 도구
 
@@ -220,14 +220,23 @@
         return (grid || []).reduce(function (s, g) { return s + (+g.n); }, 0);
     }
 
-    /** 지금 지도 범위(경위도 사각형). 기울인 화면은 바깥 사각형입니다. */
+    /**
+     * 지금 지도 범위(경위도 사각형 [서, 남, 동, 북]). 기울인 화면은 바깥 사각형입니다.
+     * 2026-10-10 점검: 0.01°(약 1km) 칸으로 바깥쪽으로 넓혀 맞춥니다 - 조금씩 끌 때마다 주소가 달라 캐시 · 서버를 매번 거치던 것.
+     */
     function viewBbox() {
         var b = map.getBounds();
-        var w = Math.max(-180, b.getWest()), e = Math.min(180, b.getEast());
-        var s = Math.max(-85, b.getSouth()), n = Math.min(85, b.getNorth());
+        var w = Math.max(-180, Math.floor(b.getWest() * 100) / 100), e = Math.min(180, Math.ceil(b.getEast() * 100) / 100);
+        var s = Math.max(-85, Math.floor(b.getSouth() * 100) / 100), n = Math.min(85, Math.ceil(b.getNorth() * 100) / 100);
         if (w >= e || s >= n) return null;
-        return [w, s, e, n].map(function (v) { return v.toFixed(5); }).join(",");
+        return [w, s, e, n];
     }
+
+    /** 바깥 사각형 a 안에 b 가 다 들어가는지. */
+    function bboxInside(b, a) { return b[0] >= a[0] && b[1] >= a[1] && b[2] <= a[2] && b[3] <= a[3]; }
+
+    // 마지막으로 다 받은(잘리지 않은 · truncated=false) 지도 범위 목록 {bb, kind, courses}. 그 안으로 확대 · 이동하면 다시 묻지 않고 거릅니다.
+    var lastView = null;
 
     /**
      * 목록 다시 받기. 검색어가 있으면 전국에서 이름으로, 없으면 지금 지도 범위 안에서.
@@ -245,34 +254,50 @@
     }
 
     function loadCourses() {
-        var url = "api/courses?", inView = false;
+        var url = "api/courses?", bb = null, kind = list.kind;
         if (list.q) url += "q=" + encodeURIComponent(list.q);
         else if (map) {
-            var bb = viewBbox();
-            if (bb) { url += "bbox=" + bb; inView = true; }
+            bb = viewBbox();
+            if (bb) url += "bbox=" + bb.map(function (v) { return v.toFixed(2); }).join(",");
         }
-        if (list.kind) url += "&kind=" + list.kind;   // 등산 · 걷기 · 자전거
+        if (kind) url += "&kind=" + kind;   // 등산 · 걷기 · 자전거
         var seq = ++list.seq;
+        // 2026-10-10 점검: 다 받은 범위 안이면 서버에 묻지 않고 그 목록에서 지금 범위만 거릅니다(비어서 전국을 봐야 하면 물음)
+        if (bb && lastView && lastView.kind === kind && bboxInside(bb, lastView.bb)) {
+            var inside = lastView.courses.filter(function (x) {
+                return +x.start_lon >= bb[0] && +x.start_lat >= bb[1] && +x.start_lon <= bb[2] && +x.start_lat <= bb[3];
+            });
+            if (inside.length || !kind) {
+                showCourses({ courses: inside, truncated: false });
+                return Promise.resolve();
+            }
+        }
         return getJson(url).then(function (j) {
+            if (bb && !j.truncated) lastView = { bb: bb, kind: kind, courses: j.courses || [] };
             // 종류 탭(걷기 · 자전거)인데 지금 지도 범위에 하나도 없으면 전국에서 그 종류를 보여 줍니다
             // (둘레길 · 자전거길은 해안 · 강을 따라 있어 산을 보고 있으면 범위 밖일 때가 많습니다)
-            if (inView && list.kind && !(j.courses || []).length) {
+            if (bb && list.kind && !(j.courses || []).length) {
                 return nationwide(list.kind);
             }
             return j;
         }).then(function (j) {
             if (seq !== list.seq) return;
-            courses = j.courses || [];
-            list.truncated = !!j.truncated;
-            list.nationwide = !!j.nationwide;
-            grid = j.grid && j.grid.length ? j.grid : null;
-            renderList();
-            if (map.getSource("starts")) map.getSource("starts").setData(startsData());
-            if (map.getSource("grid")) map.getSource("grid").setData(gridData());
+            showCourses(j);
         }).catch(function (e) {
             if (seq !== list.seq) return;
             listMessage("코스 목록을 불러오지 못했습니다: " + e.message);
         });
+    }
+
+    /** 받은 목록을 목록 · 지도에 넣습니다. */
+    function showCourses(j) {
+        courses = j.courses || [];
+        list.truncated = !!j.truncated;
+        list.nationwide = !!j.nationwide;
+        grid = j.grid && j.grid.length ? j.grid : null;
+        renderList();
+        if (map.getSource("starts")) map.getSource("starts").setData(startsData());
+        if (map.getSource("grid")) map.getSource("grid").setData(gridData());
     }
 
     /** 지도를 움직인 뒤 잠깐 멈추면 그 범위로 목록을 다시 받습니다(검색 중 · 비행 중에는 그대로). */
@@ -850,10 +875,11 @@
     }
 
     // 검색 - 입력을 멈추면(0.3초) 찾습니다. 지우면 다시 지도 범위 목록으로.
+    // 2026-10-10 점검: 검색은 따로 시계(qTimer) - 지도 moveend 와 같은 list.timer 를 써서, 입력 직후 지도가 멈추면 검색이 사라졌습니다
     $("q").addEventListener("input", function () {
         var v = this.value.trim();
-        clearTimeout(list.timer);
-        list.timer = setTimeout(function () {
+        clearTimeout(list.qTimer);
+        list.qTimer = setTimeout(function () {
             list.q = v || null;
             list.near = false;
             saveSharedSearch();
@@ -862,11 +888,12 @@
     });
     $("q").addEventListener("keydown", function (e) {
         if (e.key === "Enter") {
-            clearTimeout(list.timer);
+            clearTimeout(list.qTimer);
             list.q = this.value.trim() || null;
             saveSharedSearch();
             loadCourses();
         } else if (e.key === "Escape") {
+            clearTimeout(list.qTimer);
             this.value = "";
             list.q = null;
             saveSharedSearch();
@@ -878,7 +905,10 @@
     [].forEach.call(document.querySelectorAll("#kindTabs button"), function (b) {
         b.addEventListener("click", function () {
             list.kind = b.getAttribute("data-kind");
-            [].forEach.call(document.querySelectorAll("#kindTabs button"), function (x) { x.classList.toggle("on", x === b); });
+            [].forEach.call(document.querySelectorAll("#kindTabs button"), function (x) {
+                x.classList.toggle("on", x === b);
+                x.setAttribute("aria-pressed", x === b ? "true" : "false");   // 화면 읽기 프로그램에 지금 탭을 알림
+            });
             $("q").placeholder = RF.searchPlaceholder(list.kind);
             saveSharedSearch();
             loadCourses();
@@ -979,7 +1009,11 @@
         list.q = q;
         list.kind = kind;
         $("q").value = q || "";
-        [].forEach.call(document.querySelectorAll("#kindTabs button"), function (x) { x.classList.toggle("on", (x.getAttribute("data-kind") || "") === kind); });
+        [].forEach.call(document.querySelectorAll("#kindTabs button"), function (x) {
+            var on = (x.getAttribute("data-kind") || "") === kind;
+            x.classList.toggle("on", on);
+            x.setAttribute("aria-pressed", on ? "true" : "false");
+        });
         $("q").placeholder = RF.searchPlaceholder(kind);
         return true;
     }

@@ -26,34 +26,51 @@
      */
     function notifyDeploy(files, canShow) {
         if (!global.fetch || !global.document) return;
+        // 2026-10-10 점검: 파일 하나라도 HEAD 가 실패하면(!ok) 표시 전체를 버립니다 - 예전에는 빈 칸을 넣은 채 first 로 남아,
+        // 다음에 다 받으면 "달라졌다" 로 띠가 잘못 떴습니다.
         function sign() {
             return Promise.all(files.map(function (f) {
                 return fetch(f, { method: "HEAD", cache: "no-store" }).then(function (r) {
-                    if (!r.ok) return "";
+                    if (!r.ok) throw new Error("HEAD " + f + " " + r.status);
                     return [r.headers.get("ETag"), r.headers.get("Last-Modified"), r.headers.get("Content-Length")].join("|");
                 });
             })).then(function (a) { return a.join(";"); });
         }
-        var first = null, hiddenAt = 0, pending = false, bar = null;
+        var first = null, latest = null, hiddenAt = 0, pending = false, bar = null;
         function show() {
             if (bar || !canShow()) return;
-            bar = document.createElement("button");
-            bar.type = "button";
+            // 띠 = 누르면 새로 고침, 오른쪽 작은 ✕ = 이번 배포는 띄우지 않음(걷는 중이 아니어도 지금 새로 고치기 싫을 때)
+            bar = document.createElement("div");
             bar.id = "rfNewVersion";
-            bar.textContent = "새 버전이 있습니다 · 누르면 새로 고침";
             bar.style.cssText = "position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top, 0px) + 8px);z-index:1000;"
-                + "padding:10px 16px;border:0;border-radius:20px;background:#38d9ea;color:#062b30;font:bold 14px sans-serif;"
-                + "box-shadow:0 2px 10px rgba(0,0,0,0.45);cursor:pointer;white-space:nowrap";
-            bar.onclick = function () { location.reload(); };
+                + "display:flex;align-items:center;border-radius:22px;background:#38d9ea;box-shadow:0 2px 10px rgba(0,0,0,0.45);white-space:nowrap";
+            var go = document.createElement("button");
+            go.type = "button";
+            go.textContent = "새 버전이 있습니다 · 누르면 새로 고침";
+            go.style.cssText = "min-height:44px;padding:0 6px 0 16px;border:0;background:none;color:#062b30;font:bold 14px sans-serif;cursor:pointer";
+            go.onclick = function () { location.reload(); };
+            var x = document.createElement("button");
+            x.type = "button";
+            x.textContent = "✕";
+            x.setAttribute("aria-label", "새 버전 알림 닫기");
+            x.style.cssText = "min-width:44px;min-height:44px;border:0;background:none;color:#062b30;font:bold 16px sans-serif;cursor:pointer";
+            x.onclick = function () {
+                if (bar && bar.parentNode) bar.parentNode.removeChild(bar);
+                bar = null;
+                pending = false;
+                if (latest) first = latest;   // 다음 배포 때 다시 띄움
+            };
+            bar.appendChild(go);
+            bar.appendChild(x);
             document.body.appendChild(bar);
         }
-        sign().then(function (v) { if (v.replace(/[|;]/g, "")) first = v; }).catch(function () { /* 오프라인 - 확인 안 함 */ });
+        sign().then(function (v) { if (v.replace(/[|;]/g, "")) first = v; }).catch(function () { /* 오프라인 · 하나라도 실패 - 확인 안 함 */ });
         document.addEventListener("visibilitychange", function () {
             if (document.visibilityState === "hidden") { hiddenAt = Date.now(); return; }
             if (pending) { show(); return; }
             if (!first || !hiddenAt || Date.now() - hiddenAt < 60000) return;
             sign().then(function (v) {
-                if (v.replace(/[|;]/g, "") && v !== first) { pending = true; show(); }
+                if (v.replace(/[|;]/g, "") && v !== first) { latest = v; pending = true; show(); }
             }).catch(function () { /* 오프라인 */ });
         });
     }
