@@ -233,7 +233,7 @@
         // 같은 자리(80m 안) 지점은 한 문장으로 - "법계사, 로타리대피소샘터입니다. …"(지리산 3,351m 에 둘이 겹쳐 같은 말을 두 번 했음)
         var spoken = function (q) {
             var qd = +q.dist_m;
-            return !(qd < 60 || qd > c.total - 60 || +q.off_route_m > 80 || hike.passed[q.name + "@" + Math.round(qd)]);
+            return !(qd < 60 || qd > c.total - 60 || +q.off_route_m > (RF.isTopName(q.name) ? 160 : 80) || hike.passed[q.name + "@" + Math.round(qd)]);
         };
         var hit = c.pois.filter(function (q) { return spoken(q) && Math.abs(d - +q.dist_m) <= 30; })[0];
         if (hit) {

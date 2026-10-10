@@ -75,6 +75,10 @@ eq("summitIndex 묶음 안 이름", RF.summitIndex([{ name: "장터목대피소"
 eq("flightMs 짧은 코스 20초", RF.flightMs(1000), 20000);
 eq("flightMs 11km 27.5초", RF.flightMs(11000), 27500);
 eq("flightMs 긴 코스 90초", RF.flightMs(100000), 90000);
+eq("isAccess 봉우리는 160m 까지 경로 위", RF.isAccess({ name: "소지봉", off_route_m: 140 }), false);
+eq("isAccess 주차장 120m 는 경로 밖", RF.isAccess({ name: "백무동주차장", off_route_m: 120 }), true);
+eq("isTopName 괄호", RF.isTopName("도봉산(신선대)"), true);
+eq("isTopName 대피소 아님", RF.isTopName("장터목대피소"), false);
 eq("summitIndex 없음", RF.summitIndex([], "x"), -1);
 eq("nameText · 없으면 그대로", RF.nameText("지리산 둘레길 3코스"), "지리산 둘레길 3코스");
 
