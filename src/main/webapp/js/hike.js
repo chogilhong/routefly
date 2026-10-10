@@ -1587,19 +1587,29 @@
         }
         // 국립공원 위험지역 - 앞 120m 에서 한 번(소리 · 진동), 조망점은 지날 때 한 번
         if (hike.running) {
-            var from = hike.d0 == null ? 0 : hike.d0, dz;
-            // 한참(60m 넘게) 지난 것은 말없이 넘기고, 알릴 것은 한 번에 하나
-            while ((dz = RF.dangerAhead(c, d, 120, hike.spotDone, from)) && +dz.dist_m < d - 60) hike.spotDone[RF.spotKey(dz)] = true;
-            if (dz) {
+            // 알릴 위험지역을 한 번에 모아 한 알림으로(가까이 붙은 둘이 따로 뜨면 앞 알림이 곧바로 덮여 안 보임 - 2026-10-10 PC: 4곳 중 3번).
+            // 한참(60m 넘게) 지난 것은 말없이 넘김
+            var from = hike.d0 == null ? 0 : hike.d0, dz, due = [];
+            while ((dz = RF.dangerAhead(c, d, 120, hike.spotDone, from))) {
                 hike.spotDone[RF.spotKey(dz)] = true;
-                var ahead = Math.max(0, Math.round((+dz.dist_m - d) / 10) * 10);
-                toast("⚠️ " + (ahead > 20 ? ahead + "m 앞 " : "") + RF.spotText(dz) + " - 조심하세요", 7000);
-                say((ahead > 20 ? ahead + "미터 앞 " : "여기는 ") + (dz.info && dz.info !== "기타" ? dz.info : dz.name) + " 구간입니다. 조심하세요.", { urgent: true });
+                if (+dz.dist_m >= d - 60) due.push(dz);
+            }
+            // 알릴 것 바로 뒤(50m 안)에 붙은 위험도 함께 - 따로 알리면 몇 초 만에 앞 알림을 덮음
+            if (due.length) while ((dz = RF.dangerAhead(c, +due[due.length - 1].dist_m - 120 + 50, 120, hike.spotDone, from))) {
+                hike.spotDone[RF.spotKey(dz)] = true;
+                due.push(dz);
+            }
+            if (due.length) {
+                var ahead = Math.max(0, Math.round((+due[0].dist_m - d) / 10) * 10);
+                var what = due.map(function (z) { return RF.spotText(z); }).filter(function (t, k, a) { return a.indexOf(t) === k; });
+                var words = due.map(function (z) { return z.info && z.info !== "기타" ? z.info : z.name; }).filter(function (t, k, a) { return a.indexOf(t) === k; });
+                toast("⚠️ " + (ahead > 20 ? ahead + "m 앞 " : "") + what.join(" · ") + " - 조심하세요", 7000);
+                say((ahead > 20 ? ahead + "미터 앞 " : "여기는 ") + words.join(", ") + " 구간입니다. 조심하세요.", { urgent: true });
                 if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
             }
             var vw;
             while ((vw = RF.viewAt(c, d, hike.spotDone, from)) && +vw.dist_m < d - 200) hike.spotDone[RF.spotKey(vw)] = true;
-            if (vw) {
+            if (vw && !due.length) {   // 위험 알림과 겹치면 다음 번에
                 hike.spotDone[RF.spotKey(vw)] = true;
                 toast("🔭 " + RF.spotText(vw), 6000);
                 say(vw.name + (vw.view_az != null ? ", " + RF.azWord(vw.view_az) + "쪽 경치가 좋습니다." : "입니다."));
