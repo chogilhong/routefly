@@ -5,7 +5,7 @@
  *   코스에서 50m 넘게 벗어나면 빨간 알림, 끝점에 닿으면 도착 알림. 브라우저는 화면이 꺼지지 않게 Wake Lock 을 겁니다
  *   (앱은 화면을 꺼도 백그라운드 위치로 이어지므로 걸지 않습니다 - 배터리).
  *   새로 고침해도 산행 기록(시작 시각 · 진행 거리)은 이 기기에 남아 이어집니다(localStorage).
- *   "모의 산행" 은 GPS 없이 코스를 따라 걷는 흉내(처음 실제 빠르기 1×, 위쪽 글자를 누르면 5 · 10 · 40×) - 집에서 화면을 시험할 때.
+ *   "모의 산행" 은 GPS 없이 코스를 따라 걷는 흉내(1× 는 미리보기 1× 와 같은 시간, 위쪽 글자로 빠르기) - 집에서 화면을 시험할 때.
  */
 (function () {
     "use strict";
@@ -13,8 +13,11 @@
     var OFF_ROUTE_M = 50;      // 이보다 멀면 "코스에서 벗어남"
     var ARRIVE_M = 30;         // 끝점까지 이 안이면 도착
     var FAR_M = 3000;          // 코스에서 이보다 멀면 "벗어남" 대신 출발점(마지막 자리)까지 안내(집 · 차 안에서 시작했을 때)
-    var SIM_SPEEDS = [1, 5, 10, 40];   // 시험 걷기 빠르기 - 처음 1×(실제 걷는 빠르기), 위쪽 "시험 1×" 를 누르면 차례로(2026-10-10 홍TV님)
-    var SIM_X = 1;
+    // 시험 걷기 빠르기 - 미리보기와 같게: 1× 는 미리보기 1× 비행 시간(RF.flightMs, 20 ~ 90초)에 코스를 다 걷는 빠르기,
+    // 위쪽 "시험 1×" 를 누르면 2× · 4× · 0.25× · 0.5× 차례(2026-10-10 홍TV님). 시계(경과 시간 · 예상 도착)는 실제 걷는 시간으로 갑니다.
+    var SIM_SPEEDS = [1, 2, 4, 0.25, 0.5];
+    var SIM_SPEED = 1;   // 고른 빠르기
+    var SIM_X = 1;       // 실제 시간에 곱하는 배수 = (실제로 걷는 시간 ÷ 미리보기 1× 시간) × 고른 빠르기
     var TURN_BACK_M = 150;     // 코스를 따라 이만큼 되돌아가면 거꾸로 된 코스(내려가는 길)로 안내를 바꿉니다
     var BRANCH_ON_M = 20;      // 다른 길에서 이 안이면 "그 길 위" (코스에서는 40m 넘게 떨어졌을 때)
     var BRANCH_SWITCH_M = 120; // 다른 길로 이만큼 더 가면 그 길로 코스를 바꿉니다(들어설 때 한 번 알린 뒤)
@@ -1213,12 +1216,13 @@
         if (sim) {
             hike.simD = 0;
             hike.simLast = performance.now();
-            SIM_X = SIM_SPEEDS[0];
-            $("gps").textContent = "시험 " + SIM_X + "×";
+            SIM_SPEED = SIM_SPEEDS[0];
+            SIM_X = simMul(SIM_SPEED);
+            $("gps").textContent = "시험 " + SIM_SPEED + "×";
             $("gps").title = "누르면 시험 걷기 빠르기 바꾸기";
             $("gps").style.cursor = "pointer";
             $("gps").className = "";
-            hike.simTimer = setInterval(simStep, 500);
+            hike.simTimer = setInterval(simStep, 200);   // 빨리 걸어도 지도가 덜 튀게
             simStep();
         } else if (BG) {
             // 앱 - 화면을 끄거나 다른 앱으로 가도 위치를 받습니다(알림창에 "따라가는 중"이 떠 있는 동안)
@@ -1463,6 +1467,12 @@
             var w = RF.turnWord(c, next);
             say((ahead < 15 ? "갈림길입니다. " : ahead + "미터 앞 갈림길, ") + w + (/길$/.test(w) ? "입니다." : "하세요."), { urgent: true });
         }
+    }
+
+    /** 시험 걷기 배수 - 이 코스를 실제로 걷는 시간을 미리보기 1× 비행 시간에 맞춘 값 × 고른 빠르기. */
+    function simMul(speed) {
+        var walkMs = c.total / (K().simKmh / 3.6) * 1000;
+        return Math.max(1, walkMs / RF.flightMs(c.total)) * speed;
     }
 
     /** 모의 산행 - 코스를 따라 걷는 위치를 만들어 onFix 에 넣습니다(약간 흔들리게). */
@@ -1939,8 +1949,9 @@
     // 시험 걷기 빠르기 - 1× → 5× → 10× → 40× → 1×
     $("gps").addEventListener("click", function () {
         if (!hike.running || !hike.sim) return;
-        SIM_X = SIM_SPEEDS[(SIM_SPEEDS.indexOf(SIM_X) + 1) % SIM_SPEEDS.length];
-        this.textContent = "시험 " + SIM_X + "×";
+        SIM_SPEED = SIM_SPEEDS[(SIM_SPEEDS.indexOf(SIM_SPEED) + 1) % SIM_SPEEDS.length];
+        SIM_X = simMul(SIM_SPEED);
+        this.textContent = "시험 " + SIM_SPEED + "×";
     });
 
     $("kcalBox").addEventListener("click", function () {

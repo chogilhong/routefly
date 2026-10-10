@@ -72,6 +72,9 @@ eq("summitIndex 코스 이름의 정상", RF.summitIndex([{ name: "백무동탐�
     { name: "중산리탐방지원센터", ele_m: 617 }], "함양 지리산 천왕봉 · 백무동탐방지원센터 → 천왕봉 → 중산리탐방지원센터"), 2);
 eq("summitIndex 이름이 없으면 가장 높은 것", RF.summitIndex([{ name: "가", ele_m: 300 }, { name: "나", ele_m: 900 }], "둘레길 1코스"), 1);
 eq("summitIndex 묶음 안 이름", RF.summitIndex([{ name: "장터목대피소", names: ["장터목대피소", "천왕봉"], ele_m: 1650 }, { name: "제석봉", ele_m: 1783 }], "지리산 · 백무동 → 천왕봉"), 0);
+eq("flightMs 짧은 코스 20초", RF.flightMs(1000), 20000);
+eq("flightMs 11km 27.5초", RF.flightMs(11000), 27500);
+eq("flightMs 긴 코스 90초", RF.flightMs(100000), 90000);
 eq("summitIndex 없음", RF.summitIndex([], "x"), -1);
 eq("nameText · 없으면 그대로", RF.nameText("지리산 둘레길 3코스"), "지리산 둘레길 3코스");
 

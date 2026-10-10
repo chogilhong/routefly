@@ -73,7 +73,7 @@
         return {
             zoom: Math.max(10.3, Math.min(16.1, 16.1 - 0.6 * Math.log2(k / 5))),   // 영상처럼 가깝게
             lookAhead: Math.max(150, Math.min(totalM * 0.04, 8000)),
-            durationMs: Math.max(20000, Math.min(k * 2500, 90000))
+            durationMs: RF.flightMs(totalM)   // 시험 걷기 1× 와 같은 시간(course-kit)
         };
     }
 
