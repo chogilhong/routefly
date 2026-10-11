@@ -1890,6 +1890,8 @@
     // 처음 안내 글 - 검색어를 지워 비우면 다시(2026-10-11 홍TV님: 지운 뒤에도 지리산 목록이 남았음).
     // 빈 채로 종류 탭만 누를 때(내 주변 코스 목록)는 그대로 둡니다
     var PICK_HINT = $("pickList").innerHTML, lastQ = "";
+    // 내 주변 코스를 보인 자리 - 검색창이 빈 채로 종류 탭을 바꾸면 그 자리에서 그 종류로 다시(2026-10-11 홍TV님: 등산 탭을 눌러도 그대로였음)
+    var nearAt = null;
     $("q").addEventListener("input", function () {
         clearTimeout(searchTimer);
         var q = this.value.trim();
@@ -1897,7 +1899,13 @@
         // 2026-10-10 점검: 검색창을 비우면 순번을 올려, 비우기 전에 보낸 검색 응답(성공 · 실패)이 늦게 와도 버립니다
         var wasQ = lastQ;
         lastQ = q;
-        if (!q) { pickSeq++; if (wasQ) $("pickList").innerHTML = PICK_HINT; return; }
+        if (!q) {
+            pickSeq++;
+            if (wasQ) { nearAt = null; $("pickList").innerHTML = PICK_HINT; }
+            else if (nearAt) nearList(nearAt.lat, nearAt.lon);
+            return;
+        }
+        nearAt = null;
         searchTimer = setTimeout(function () {
             var my = ++pickSeq;
             getJson("api/courses?q=" + encodeURIComponent(q) + (kindFilter ? "&kind=" + kindFilter : ""))
@@ -1910,18 +1918,24 @@
         if (!navigator.geolocation || !window.isSecureContext) { toast("위치는 https 주소에서만 쓸 수 있습니다. 산 이름으로 찾아보세요.", 5000); return; }
         toast("현재 위치를 찾는 중…");
         navigator.geolocation.getCurrentPosition(function (pos) {
-            var lat = pos.coords.latitude, lon = pos.coords.longitude, r = 0.045, my = ++pickSeq;   // 약 5km
-            getJson("api/courses?bbox=" + [lon - r, lat - r, lon + r, lat + r].map(function (v) { return v.toFixed(5); }).join(",")
-                    + (kindFilter ? "&kind=" + kindFilter : ""))
-                .then(function (j) {
-                    var rows = (j.courses || []).map(function (x) {
-                        x.away = distM(lat, lon, +x.start_lat, +x.start_lon);
-                        return x;
-                    }).sort(function (a, b) { return a.away - b.away; });
-                    if (my === pickSeq) listCourses(rows, true);
-                }).catch(function (e) { if (my === pickSeq) toast("코스를 찾지 못했습니다: " + e.message); });
+            nearList(pos.coords.latitude, pos.coords.longitude);
         }, function (e) { onGpsError(e); }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 60000 });
     });
+
+    /** 내 주변(약 5km) 코스 - 지금 종류 탭(kindFilter)으로, 출발점이 가까운 순. */
+    function nearList(lat, lon) {
+        var r = 0.045, my = ++pickSeq;   // 약 5km
+        nearAt = { lat: lat, lon: lon };
+        getJson("api/courses?bbox=" + [lon - r, lat - r, lon + r, lat + r].map(function (v) { return v.toFixed(5); }).join(",")
+                + (kindFilter ? "&kind=" + kindFilter : ""))
+            .then(function (j) {
+                var rows = (j.courses || []).map(function (x) {
+                    x.away = distM(lat, lon, +x.start_lat, +x.start_lon);
+                    return x;
+                }).sort(function (a, b) { return a.away - b.away; });
+                if (my === pickSeq) listCourses(rows, true);
+            }).catch(function (e) { if (my === pickSeq) toast("코스를 찾지 못했습니다: " + e.message); });
+    }
 
     // ------------------------------------------------------------------ 시작
 

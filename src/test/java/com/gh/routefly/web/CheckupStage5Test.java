@@ -38,7 +38,9 @@ public class CheckupStage5Test {
     public void hikeFixes() throws Exception {
         String h = web("js/hike.js");
         assertTrue("JSON 아닌 답", h.contains("return r.json().catch(function () { return { success: false, message: \"응답을 읽지 못했습니다 (HTTP \" + r.status + \")\" }; })"));
-        assertTrue("검색창 비우면 순번 · 처음 안내 글", h.contains("if (!q) { pickSeq++; if (wasQ) $(\"pickList\").innerHTML = PICK_HINT; return; }"));
+        assertTrue("검색창 비우면 순번", h.contains("if (!q) {\n            pickSeq++;"));
+        assertTrue("검색어를 지우면 처음 안내 글", h.contains("if (wasQ) { nearAt = null; $(\"pickList\").innerHTML = PICK_HINT; }"));
+        assertTrue("빈 채로 종류 탭 - 내 주변 코스를 그 종류로 다시", h.contains("else if (nearAt) nearList(nearAt.lat, nearAt.lon);"));
         assertTrue("예전 실패는 알리지 않음", h.contains(".catch(function (e) { if (my === pickSeq) toast(\"검색 실패: \" + e.message); });"));
         assertTrue("나침반 - 그리기는 화면 한 장에 한 번", h.contains("compass.raf = requestAnimationFrame(drawOrientation);"));
         assertTrue("두 번 붙지 않게", h.contains("if (on === !!compass.listening) return;"));
