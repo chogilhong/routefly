@@ -124,6 +124,11 @@ near("distM", RF.distM(37, 127, 37.001, 127), 111, 1);
     eq("한 바퀴면 그대로", RF.geoOrder([seg("a", 33.5, 33.3), seg("b", 33.3, 33.5)]).map(function (c) { return c.course_id; }), ["a", "b"]);
     eq("좌표가 없으면 그대로", RF.geoOrder([{ course_id: "x" }, { course_id: "y" }]).map(function (c) { return c.course_id; }), ["x", "y"]);
     eq("시작점이 없으면 그대로", RF.chainOrder(jiri.slice(0, 3), "없는곳").length, 3);
+    var gwStamps = {};
+    gwStamps[RF.stampKey("통일전망대(민통선내)인증센터")] = { t: 1 };
+    gwStamps[RF.stampKey("삼척임원무인인증센터")] = { t: 2 };
+    eq("긴 공식 이름도 맞음", RF.seriesProgress({ centers: ["통일전망대", "임원", "망상해변"] }, gwStamps, {}), { got: 2, of: 3 });
+    eq("없으면 null", RF.stampOf(gwStamps, "망상해변"), null);
     eq("숲길 진행", RF.seriesProgress({ prefix: "kmf-9900000006-", courses: 21 }, {}, { "kmf-9900000006-1": 1, "kmf-9900000006-2": 1, "kmf-9900000002-1": 1 }), { got: 2, of: 21 });
 })();
 

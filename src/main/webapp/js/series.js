@@ -68,7 +68,7 @@
             if (s.centers) {
                 body.appendChild(el("div", "sub", "인증센터(차례대로)"));
                 s.centers.forEach(function (n) {
-                    var st = stamps[RF.stampKey(n)], row = el("div", "row"), t = el("div", "t", (st ? "📮 " : "⬜ ") + n + " 인증센터");
+                    var st = RF.stampOf(stamps, n), row = el("div", "row"), t = el("div", "t", (st ? "📮 " : "⬜ ") + n + " 인증센터");
                     if (st) t.appendChild(el("span", null, "도장 " + day(st.t)));
                     row.appendChild(t);
                     body.appendChild(row);
