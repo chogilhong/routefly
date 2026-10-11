@@ -62,6 +62,8 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다(route_course · 
 - 승인 창 · 터미널 대화 상자는 PC Claude 가 볼 수 없습니다. 떴는지는 홍TV님께 묻습니다.
 - 메모 · 코드 주석에 남은 "사장님" 은 예전 호칭입니다. 고치지 않습니다.
 - 세션은 그 저장소 폴더에서 엽니다. `.claude/settings.json` 과 메모는 세션을 연 폴더 것만 적용됩니다.
+- 몇 분 넘게 걸리는 작업(osmBike --refetch, komount, 긴 테스트 · 빌드 등)이 끝나거나 홍TV님 결정이 필요하면 PushNotification 으로 휴대폰 알림을 보냅니다. 한 줄, 할 일부터, 200자 안.
+- 새 세션은 원격 제어(Remote Control)에 자동 연결되도록 데스크톱 앱 설정을 켜 둡니다(2026-10-11 홍TV님 요청).
 
 ### 승인 · 금지
 - 접근할 수 있는 폴더: `C:\GH\workspace`, `C:\GH\tomcat`, `D:\nginx-1.30.5\conf`, Claude 메모 폴더.
