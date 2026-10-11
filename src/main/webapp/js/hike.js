@@ -891,8 +891,35 @@
         setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
     }
 
+    // ------------------------------------------------------------------ 인증센터 도장 · 완주(2026-10-11 홍TV님 - series.html 에서 모아 봄)
+    // 기록(최근 30개)과 따로 이 핸드폰에 오래 남깁니다: rf-stamps {stampKey: {name, t, course}} · rf-done {코스ID: {name, t}}
+    var STAMPS = "rf-stamps", DONE = "rf-done";
+    function loadMap(key) { try { return JSON.parse(localStorage.getItem(key) || "{}") || {}; } catch (e) { return {}; } }
+    function saveMap(key, m) { try { localStorage.setItem(key, JSON.stringify(m)); } catch (e) { /* 저장 공간 - 이번에는 못 남김 */ } }
+
+    function stampCheck(lat, lon) {
+        if (!c) return;
+        var have = loadMap(STAMPS), due = RF.stampsDue(c, lat, lon, have, 100);
+        if (!due.length) return;
+        due.forEach(function (p) { have[RF.stampKey(p.name)] = { name: p.name, t: Date.now(), course: c.id }; });
+        saveMap(STAMPS, have);
+        var names = due.map(function (p) { return p.name; }).join(" · ");
+        toast("📮 " + names + " 도장을 찍었습니다 (모두 " + Object.keys(have).length + "곳)", 7000);
+        say(names + " 도장을 찍었습니다.");
+        if (navigator.vibrate) navigator.vibrate([100, 60, 100, 60, 200]);
+    }
+
+    /** 산행을 끝낼 때 - 코스를 끝까지 갔으면(90%) 완주로 남김(시험 걷기는 아님). */
+    function markDone() {
+        if (hike.sim || !c || RF.isGpxId(c.id) || !RF.isComplete(Math.max(hike.dMax || 0, hike.d), c.total)) return;
+        var done = loadMap(DONE);
+        if (!done[c.id]) done[c.id] = { name: c.course.name, t: Date.now() };
+        saveMap(DONE, done);
+    }
+
     /** 산행을 끝낼 때 - 기록을 "내 기록" 에 남기고 요약을 보여 줍니다(최근 30개만). 아주 짧거나 코스와 먼 곳이면 남기지 않습니다. */
     function finishRecord() {
+        markDone();
         if (hike.track.length < 2) return;
         if (RF.recordSkip(hike.walked, hike.track, c)) return;   // 알림 없이(2026-10-09 홍TV님)
         var rec = { courseId: c.id, name: c.course.name, kind: c.course.kind, start: hike.start, end: now(),
@@ -1350,6 +1377,7 @@
         }
         hike.fix = { lat: co.latitude, lon: co.longitude, acc: acc, alt: co.altitude, t: t };
         addTrack(co.latitude, co.longitude, t, co.altitude);
+        if (!hike.sim) stampCheck(co.latitude, co.longitude);   // 국토종주 인증센터 도장(실제 GPS 만)
         var s = RF.snap(c, co.latitude, co.longitude, hike.lastFix ? hike.d : null);
         hike.lastFix = t;
         hike.off = s.off;

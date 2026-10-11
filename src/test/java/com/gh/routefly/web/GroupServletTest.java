@@ -1,0 +1,44 @@
+package com.gh.routefly.web;
+
+import static org.junit.Assert.*;
+
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+
+import org.junit.Test;
+
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
+/** 국토종주 · 국가숲길 모아 보기 - /api/group 앞부분 검사와 data/series.json 의 앞부분. */
+public class GroupServletTest {
+
+    @Test
+    public void validPrefix() {
+        assertTrue(GroupServlet.validPrefix("osmb-6374513-"));
+        assertTrue(GroupServlet.validPrefix("kmf-9900000006-"));
+        assertFalse("끝의 - 없이는 다른 노선까지 잡힘", GroupServlet.validPrefix("osmb-637"));
+        assertFalse("코스 하나의 ID 는 아님", GroupServlet.validPrefix("osmb-6374513-1"));
+        assertFalse("LIKE 와일드카드", GroupServlet.validPrefix("osmb-%-"));
+        assertFalse(GroupServlet.validPrefix("knps-1-"));
+        assertFalse(GroupServlet.validPrefix(""));
+        assertFalse(GroupServlet.validPrefix(null));
+    }
+
+    @Test
+    public void seriesJsonPrefixesAreValid() throws Exception {
+        String txt = new String(Files.readAllBytes(Paths.get("src/main/webapp/data/series.json")), StandardCharsets.UTF_8);
+        JsonObject d = JsonParser.parseString(txt).getAsJsonObject();
+        int n = 0;
+        for (JsonElement g : d.getAsJsonArray("groups")) {
+            for (JsonElement s : g.getAsJsonObject().getAsJsonArray("series")) {
+                String p = s.getAsJsonObject().get("prefix").getAsString();
+                assertTrue(p + " 은 /api/group 이 받는 모양", GroupServlet.validPrefix(p));
+                n++;
+            }
+        }
+        assertEquals("국토종주 13 + 국가숲길 6", 19, n);
+    }
+}

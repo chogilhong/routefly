@@ -102,6 +102,16 @@ near("distM", RF.distM(37, 127, 37.001, 127), 111, 1);
     eq("산림청 - 봉우리만", RF.mountainOf("양평 용문봉 · 용문사 → 용문봉", "frst-6-1"), "용문봉");
     eq("봉우리 코스는 앞 낱말 그대로", RF.mountainOf("백운산 박달봉 2코스 · 흥룡사 → 박달봉", "kmp-1311010219-2"), "백운산");
     eq("팔공산은 국립공원(2023)", RF.parkOf("팔공산 · 동화사 → 비로봉"), "팔공산");
+    // 인증센터 도장 · 완주
+    eq("도장 열쇠", [RF.stampKey("섬진강댐인증센터"), RF.stampKey("배알도 수변공원 인증센터"), RF.stampKey("장군목")], ["섬진강댐", "배알도수변공원", "장군목"]);
+    var sc = { pois: [{ name: "섬진강댐인증센터", lat: 35.5207, lon: 127.1495 }, { name: "장군목인증센터", lat: 35.4605, lon: 127.2014 }, { name: "망월", lat: 35.52, lon: 127.15 }] };
+    eq("100m 안 인증센터", RF.stampsDue(sc, 35.5210, 127.1497, {}).map(function (p) { return p.name; }), ["섬진강댐인증센터"]);
+    eq("이미 찍음", RF.stampsDue(sc, 35.5210, 127.1497, { "섬진강댐": 1 }).length, 0);
+    eq("멀면 없음", RF.stampsDue(sc, 35.50, 127.15, {}).length, 0);
+    eq("완주 90%", [RF.isComplete(9000, 10000), RF.isComplete(8999, 10000), RF.isComplete(5, 0)], [true, false, false]);
+    var sj = { prefix: "osmb-6374513-", centers: ["섬진강댐", "장군목", "향가유원지"] };
+    eq("자전거길 진행", RF.seriesProgress(sj, { "섬진강댐": 1, "장군목": 1, "여의도": 1 }, {}), { got: 2, of: 3 });
+    eq("숲길 진행", RF.seriesProgress({ prefix: "kmf-9900000006-", courses: 21 }, {}, { "kmf-9900000006-1": 1, "kmf-9900000006-2": 1, "kmf-9900000002-1": 1 }), { got: 2, of: 21 });
 })();
 
 // fromApi · at · ascentLeft

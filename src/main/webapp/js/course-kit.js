@@ -302,6 +302,37 @@
         return m ? m[1] : null;
     }
 
+    /** 순수 함수 - 인증센터 도장 열쇠("섬진강댐인증센터" · "섬진강댐 인증센터" · "섬진강댐" → "섬진강댐"). */
+    function stampKey(name) { return String(name || "").replace(/\s+/g, "").replace(/인증센터$/, ""); }
+
+    /**
+     * 순수 함수 - 지금 자리(lat, lon)에서 radiusM(기본 100m) 안의, 아직 찍지 않은 인증센터 이름표들. have 는 찍은 것(stampKey → 무엇이든).
+     * 2026-10-11 홍TV님: 국토종주 인증센터 도장 - 실제 GPS 로 그 자리에 가면 찍힘(시험 걷기는 아님).
+     */
+    function stampsDue(c, lat, lon, have, radiusM) {
+        var r = radiusM || 100;
+        return ((c && c.pois) || []).filter(function (p) {
+            return /인증센터$/.test(String(p.name || "").trim()) && !(have && have[stampKey(p.name)]) && distM(lat, lon, +p.lat, +p.lon) <= r;
+        });
+    }
+
+    /** 순수 함수 - 코스를 끝까지 갔다고 볼까(가장 멀리 간 곳이 코스 길이의 90% 넘음). */
+    function isComplete(dMax, total) { return total > 0 && dMax >= total * 0.9; }
+
+    /**
+     * 순수 함수 - 묶음 하나의 진행: 자전거길은 인증센터 도장 수/센터 수, 숲길은 끝까지 간 코스 수/코스 수.
+     * series: series.json 의 한 줄, stamps: {stampKey: …}, done: {코스ID: …}.
+     */
+    function seriesProgress(series, stamps, done) {
+        if (series.centers) {
+            var got = series.centers.filter(function (n) { return stamps && stamps[stampKey(n)]; }).length;
+            return { got: got, of: series.centers.length };
+        }
+        var n = 0;
+        Object.keys(done || {}).forEach(function (id) { if (id.indexOf(series.prefix) === 0) n++; });
+        return { got: n, of: series.courses || 0 };
+    }
+
     /** 국립공원 위험지역 · 조망점 종류 → 지도 아이콘. */
     var SPOT_ICONS = { danger: "⚠️", aid: "⛑️", heli: "🚁", ranger: "🏠", view: "🔭" };
     function spotIcon(kind) { return SPOT_ICONS[kind] || "•"; }
@@ -1067,7 +1098,7 @@
     }
 
     global.RF = {
-        LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
+        LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, stampKey: stampKey, stampsDue: stampsDue, isComplete: isComplete, seriesProgress: seriesProgress, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
         sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
     };

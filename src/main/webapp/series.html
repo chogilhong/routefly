@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>routefly 국토종주 · 국가숲길</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=1">
+<meta name="theme-color" content="#11161d">
+<!-- 국토종주 자전거길(인증센터 도장) · 국가숲길(코스 완주) 모아 보기(2026-10-11 홍TV님). 도장 · 완주는 이 핸드폰에만(따라가기가 남김). -->
+<link rel="manifest" href="manifest.json">
+<style>
+:root { --bg:#11161d; --panel:#1a212b; --tx:#eef2f7; --dim:#9aa6b4; --ln:rgba(255,255,255,0.12); --sky:#38d9ea; --ok:#4ade80; }
+* { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { margin:0; background:var(--bg); color:var(--tx); font-family:Arial,"Malgun Gothic",sans-serif; }
+#top { position:sticky; top:0; z-index:2; display:flex; align-items:center; gap:8px; padding:calc(env(safe-area-inset-top) + 8px) 10px 8px;
+       background:var(--panel); border-bottom:1px solid var(--ln); }
+#top a { flex:0 0 auto; display:inline-flex; align-items:center; height:40px; padding:0 12px; border-radius:20px; text-decoration:none;
+         background:rgba(56,217,234,0.16); border:1px solid var(--sky); color:var(--sky); font-size:14px; font-weight:bold; }
+#top h1 { flex:1; margin:0; font-size:16px; }
+main { padding:10px 12px calc(env(safe-area-inset-bottom) + 20px); max-width:720px; margin:0 auto; }
+h2 { font-size:15px; margin:16px 0 4px; }
+.sum { font-size:13px; color:var(--dim); margin-bottom:8px; }
+.card { background:var(--panel); border:1px solid var(--ln); border-radius:12px; margin:8px 0; overflow:hidden; }
+.card > button { width:100%; display:flex; align-items:center; gap:10px; padding:12px; background:none; border:0; color:var(--tx); font:inherit; text-align:left; cursor:pointer; }
+.card .nm { flex:1; min-width:0; font-size:14.5px; font-weight:bold; }
+.card .nm small { display:block; font-weight:normal; font-size:12px; color:var(--dim); margin-top:2px; }
+.card .pg { flex:0 0 auto; font-size:13px; color:var(--dim); text-align:right; }
+.card .pg b { color:var(--ok); font-size:15px; }
+.bar { height:4px; background:rgba(255,255,255,0.08); }
+.bar i { display:block; height:100%; background:var(--ok); }
+.body { display:none; padding:6px 12px 12px; border-top:1px solid var(--ln); font-size:13.5px; }
+.card.open .body { display:block; }
+.row { display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid var(--ln); }
+.row:last-child { border-bottom:0; }
+.row .t { flex:1; min-width:0; }
+.row .t span { display:block; font-size:12px; color:var(--dim); }
+.row a { flex:0 0 auto; height:34px; line-height:34px; padding:0 10px; border-radius:8px; border:1px solid var(--ln); background:rgba(255,255,255,0.06);
+         color:var(--tx); text-decoration:none; font-size:13px; }
+.row a.main { background:var(--sky); color:#062026; border-color:var(--sky); font-weight:bold; }
+.tip { font-size:12.5px; color:var(--dim); line-height:1.5; }
+.sub { font-size:12.5px; color:var(--dim); margin:10px 0 2px; }
+</style>
+</head>
+<body>
+<div id="top"><a href="index.html">‹ 코스</a><h1>🏅 국토종주 · 국가숲길</h1></div>
+<main>
+    <div id="list">불러오는 중…</div>
+    <p class="tip">인증센터 도장은 "따라가기"로 실제로 걸을 때 인증센터 100m 안에 들어가면 저절로 찍힙니다(시험 걷기는 아님).
+        숲길 코스는 따라가기로 코스 길이의 90% 넘게 가면 완주로 남습니다. 도장 · 완주는 이 핸드폰에만 저장됩니다.<br>
+        노선 · 인증센터: 나무위키 "국토종주 자전거길" · 행정안전부 자전거길 DB, 국가숲길: 산림청 · 한국등산트레킹지원센터.</p>
+</main>
+<script src="js/course-kit.js"></script>
+<script src="js/series.js"></script>
+</body>
+</html>
