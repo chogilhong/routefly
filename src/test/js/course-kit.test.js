@@ -117,6 +117,12 @@ near("distM", RF.distM(37, 127, 37.001, 127), 111, 1);
     eq("지리산둘레길 걷는 차례", RF.chainOrder(jiri, "주천").map(function (c) { return c.name.split(" ")[1]; }),
         ["주천-운봉", "운봉-인월", "인월-금계", "금계-동강", "동강-수철", "수철-성심원", "성심원-운리", "운리-덕산", "덕산-위태", "위태-하동호", "하동호-삼화실",
          "삼화실-대축", "대축-원부춘", "원부춘-가탄", "가탄-송정", "송정-오미", "오미-방광", "방광-산동", "산동-주천", "오미-난동", "하동읍-서당"]);
+    // 동해안(강원): 1~4 는 남 → 북, 끊긴 묶음 5(고포 → 오분동)는 1 앞
+    var seg = function (id, a, b) { return { course_id: id, start_lat: a, start_lon: 129.1, end_lat: b, end_lon: 129.1 }; };
+    var gw = [seg("1", 37.55, 37.69), seg("2", 37.69, 38.07), seg("3", 38.07, 38.21), seg("4", 38.21, 38.55), seg("5", 37.12, 37.52)];
+    eq("동해안 땅 위 차례", RF.geoOrder(gw).map(function (c) { return c.course_id; }), ["5", "1", "2", "3", "4"]);
+    eq("한 바퀴면 그대로", RF.geoOrder([seg("a", 33.5, 33.3), seg("b", 33.3, 33.5)]).map(function (c) { return c.course_id; }), ["a", "b"]);
+    eq("좌표가 없으면 그대로", RF.geoOrder([{ course_id: "x" }, { course_id: "y" }]).map(function (c) { return c.course_id; }), ["x", "y"]);
     eq("시작점이 없으면 그대로", RF.chainOrder(jiri.slice(0, 3), "없는곳").length, 3);
     eq("숲길 진행", RF.seriesProgress({ prefix: "kmf-9900000006-", courses: 21 }, {}, { "kmf-9900000006-1": 1, "kmf-9900000006-2": 1, "kmf-9900000002-1": 1 }), { got: 2, of: 21 });
 })();

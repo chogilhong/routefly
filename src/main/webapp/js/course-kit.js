@@ -355,6 +355,29 @@
         return out.concat(left);
     }
 
+    /**
+     * 순수 함수 - 구간 코스를 땅 위 차례로: 앞 구간 끝(end_lat/lon)과 가장 가까운(nearM 안) 시작을 다음으로 잇습니다.
+     * 맨 앞은 다른 구간 끝이 nearM 안에 없는 시작. 한 바퀴(맨 앞이 없음) · 잇지 못한 구간은 원래 순서로 뒤에.
+     * 2026-10-11 PC: 동해안(강원) 5구간(고포 → 오분동)은 실제로 1구간 앞인데 맨 뒤에 보였음 - 끊긴 묶음이라 번호가 뒤.
+     */
+    function geoOrder(courses, nearM) {
+        nearM = nearM || 10000;
+        var ok = function (c) { return c && c.start_lat != null && c.end_lat != null; };
+        var gap = function (a, b) { return distM(a.end_lat, a.end_lon, b.start_lat, b.start_lon); };
+        var left = courses.slice(), out = [];
+        var head = left.filter(function (c) {
+            return ok(c) && !left.some(function (o) { return o !== c && ok(o) && gap(o, c) <= nearM; });
+        })[0];
+        for (var cur = head; cur; ) {
+            out.push(cur);
+            left.splice(left.indexOf(cur), 1);
+            var best = null, bestD = nearM;
+            left.forEach(function (o) { if (ok(o) && gap(cur, o) <= bestD) { bestD = gap(cur, o); best = o; } });
+            cur = best;
+        }
+        return out.concat(left);
+    }
+
     /** 국립공원 위험지역 · 조망점 종류 → 지도 아이콘. */
     var SPOT_ICONS = { danger: "⚠️", aid: "⛑️", heli: "🚁", ranger: "🏠", view: "🔭" };
     function spotIcon(kind) { return SPOT_ICONS[kind] || "•"; }
@@ -1120,7 +1143,7 @@
     }
 
     global.RF = {
-        LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, stampKey: stampKey, stampsDue: stampsDue, isComplete: isComplete, seriesProgress: seriesProgress, chainOrder: chainOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
+        LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, stampKey: stampKey, stampsDue: stampsDue, isComplete: isComplete, seriesProgress: seriesProgress, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
         sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
     };

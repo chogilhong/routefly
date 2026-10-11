@@ -80,7 +80,8 @@
             getJson("api/group?prefix=" + encodeURIComponent(s.prefix)).then(function (j) {
                 wait.remove();
                 if (!j.courses.length) body.appendChild(el("div", "tip", "아직 코스가 없습니다."));
-                var list = s.chainFrom ? RF.chainOrder(j.courses, s.chainFrom) : j.courses;   // 지리산둘레길: 주천-운봉부터 걷는 차례로
+                // 지리산둘레길: 주천-운봉부터 걷는 차례로. 자전거길: 구간 끝 → 다음 시작으로 땅 위 차례(끊긴 묶음의 뒷번호 구간도 제자리)
+                var list = s.chainFrom ? RF.chainOrder(j.courses, s.chainFrom) : s.centers ? RF.geoOrder(j.courses) : j.courses;
                 list.forEach(function (c) { body.appendChild(courseRow(c)); });
             }).catch(function (e) { wait.textContent = e.message || "코스를 읽지 못했습니다."; });
         });
