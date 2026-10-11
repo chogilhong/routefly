@@ -397,6 +397,7 @@
             map.getSource("route").setData({ type: "Feature", properties: {},
                 geometry: { type: "LineString", coordinates: c.lon.map(function (lon, i) { return [lon, c.lat[i]]; }) } });
             anim.d = 0;
+            setPlayButton();   // '▶ 이어서' 가 남지 않게(처음으로 - 2026-10-11)
             setProgressPaint(0);
             addMarkers(c);
             setHead(at(c, 0));   // 고르자마자 출발점에 종류별 배지(등산객 · 걷는 사람 · 자전거) - 이름표보다 위에
@@ -949,15 +950,22 @@
         anim.speedIdx = (anim.speedIdx + 1) % SPEEDS.length;
         this.textContent = SPEEDS[anim.speedIdx] + "×";
     });
-    $("overview").addEventListener("click", function () { stop(); overview(false); });
-    // 뒤로 - 따라가기 화면에서 "코스 미리보기" 로 왔으면 그 화면으로, 바로 열었으면 따라가기 화면으로(2026-10-09)
+    // 처음으로 - 미리보기 중간에 눌러도 코스를 처음 골라 들어온 화면(출발점 · 코스 전체 · 기울기 · 이름표)과 같게(2026-10-11 홍TV님)
+    $("overview").addEventListener("click", function () { if (cur) select(cur.id); });
+    // 뒤로 - 핸드폰에서 코스를 보는 중(목록을 접음)이면 먼저 목록으로 한 단계만. 목록이 보이면 '목록' 단추로
+    // 첫 화면(따라가기의 코스 목록)으로 - 공원 전체 → 미리보기로 와도 공원 화면이 아니라 첫 화면(2026-10-11 홍TV님)
     $("back").addEventListener("click", function () {
-        // 핸드폰에서 코스를 보는 중(목록을 접음)이면 먼저 목록으로 한 단계만
         if (isNarrow() && $("side").classList.contains("closed")) { stop(); setListOpen(true); return; }
-        var fromHere = document.referrer && document.referrer.indexOf(location.origin) === 0;
-        if (fromHere && history.length > 1) history.back();
+        var fromHike = document.referrer && document.referrer.indexOf(new URL("hike.html", location.href).href) === 0;
+        if (fromHike && history.length > 1) history.back();   // 따라가기에서 왔으면 그 화면 그대로(검색 결과 포함)
         else location.href = "hike.html";
     });
+    /** 뒤로 단추 글: 목록이 보이면 '‹ 목록'(첫 화면으로), 핸드폰에서 목록을 접고 코스를 보는 중이면 '← 뒤로'(목록 펼치기). */
+    function setBackLabel() {
+        var closed = isNarrow() && $("side").classList.contains("closed");
+        $("back").textContent = closed ? "← 뒤로" : "‹ 목록";
+        $("back").title = closed ? "코스 목록 펼치기" : "첫 화면(따라가기 코스 목록)으로";
+    }
     // 📍 내 주변 코스 · 📒 내 기록 · 📂 GPX 열기 - 따라가기 화면의 코스 고르기와 같은 세 가지
     var meDot = null;
     $("nearMe").addEventListener("click", function () {
@@ -1005,6 +1013,7 @@
         side.classList.toggle("closed", !open);
         // 핸드폰에서 목록을 다시 펼치면 고른 코스의 아래 판(미리보기 · 속도 · 고도 그래프)이 목록과 겹쳤습니다 - 펼친 동안 숨김
         document.body.classList.toggle("listopen", open);
+        setBackLabel();
         // 핸드폰에서 목록을 펼치면 펼쳐진 출처 글 상자가 검색창을 덮으므로 ⓘ 로 접습니다 - 지도를 끌 때 MapLibre 가
         // 스스로 접는 것과 같고, ⓘ 를 누르면 다시 보입니다(2026-10-09).
         if (open && isNarrow()) {
@@ -1044,6 +1053,8 @@
         if (e.persisted && readSharedSearch() && map) { setListOpen(true); loadCourses(); }
     });
     window.addEventListener("resize", placeHud);
+    window.addEventListener("resize", setBackLabel);
+    setBackLabel();
     document.addEventListener("keydown", function (e) {
         if (e.code === "Space" && cur && e.target === document.body) { e.preventDefault(); $("play").click(); }
     });

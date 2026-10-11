@@ -48,7 +48,7 @@
         $("layerBtn").textContent = on ? "🛰️" : "🗺️";
     }
 
-    /** 탐방로 하나를 고름 - 굵게 · 아래 칸에 이름 · 거리와 미리보기 · 따라가기. */
+    /** 탐방로 하나를 고름 - 굵게 · 아래 칸에 이름 · 거리와 미리보기 · 산행하기. */
     function pick(t) {
         map.getSource("sel").setData(t ? { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: t.coords } }
             : { type: "FeatureCollection", features: [] });
@@ -63,7 +63,7 @@
         st.textContent = RF.km(t.distance_m) + "km · 오르막 " + RF.num(t.ascent_m) + "m";
         var row = document.createElement("div");
         row.className = "row";
-        row.innerHTML = '<a href="index.html#c=' + id + '">미리보기</a><a class="main" href="hike.html#c=' + id + '">따라가기</a>';
+        row.innerHTML = '<a href="index.html#c=' + id + '">미리보기</a><a class="main" href="hike.html#c=' + id + '">산행하기</a>';
         $("sheet").appendChild(nm);
         $("sheet").appendChild(st);
         $("sheet").appendChild(row);

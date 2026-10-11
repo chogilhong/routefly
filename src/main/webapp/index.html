@@ -77,7 +77,7 @@ html, body { margin:0; height:100%; background:#0f141b; color:var(--tx); font-fa
 #title span { font-size:12.5px; color:var(--dim); }
 #controls { display:flex; gap:6px; margin-left:auto; }
 #controls button { border:1px solid var(--ln); background:rgba(255,255,255,0.06); color:var(--tx); border-radius:6px;
-                   padding:5px 10px; font-size:13px; cursor:pointer; min-width:38px; }
+                   padding:5px 10px; font-size:13px; cursor:pointer; min-width:38px; white-space:nowrap; }
 #controls a.btn { border:1px solid var(--ln); background:rgba(255,255,255,0.06); color:var(--tx); border-radius:6px;
                   padding:5px 10px; font-size:13px; text-decoration:none; white-space:nowrap; }
 #controls button.main { background:var(--route); border-color:var(--route); color:#1b1b1b; font-weight:bold; min-width:74px; }
@@ -138,6 +138,7 @@ body.flying #side { opacity:0; pointer-events:none; }
     #controls a.btn { display:flex; align-items:center; justify-content:center; }
     #controls button.main { min-width:0; flex-grow:1.3; }
     #controls #speed { flex-grow:0.8; }
+    #controls #parkLink { flex:0 0 auto; padding:7px 6px; }   /* "🏞 지리산 전체" 가 잘리지 않게 글 길이만큼(2026-10-11 홍TV님) */
     #caption { top:46%; }
     #mini { top:12px; right:60px; width:104px; height:104px; }
     .maplibregl-ctrl-top-right { z-index:3; }   /* 출처 상자(OSM 등)가 목록 창 뒤로 가려지지 않게 */
@@ -151,7 +152,7 @@ body.flying #side { opacity:0; pointer-events:none; }
 <div id="side" class="panel">
     <header>
         <h1>route<span>fly</span><small>코스 미리보기</small></h1>
-        <button type="button" id="back" title="앞 화면(따라가기)으로">← 뒤로</button>
+        <button type="button" id="back" title="첫 화면(따라가기 코스 목록)으로">‹ 목록</button>
     </header>
     <div class="search"><input type="search" id="q" aria-label="코스 · 산 이름으로 찾기" placeholder="코스 · 산 이름 (예: 설악산, 둘레길, 국토종주)" autocomplete="off" maxlength="50">
         <div class="kinds" id="kindTabs" role="group" aria-label="코스 종류">
@@ -183,7 +184,7 @@ body.flying #side { opacity:0; pointer-events:none; }
         <div id="controls">
             <button type="button" id="play" class="main">▶ 미리보기</button>
             <button type="button" id="speed" title="빠르기" aria-label="빠르기 바꾸기">1×</button>
-            <button type="button" id="overview" title="코스 전체 보기">코스 전체</button>
+            <button type="button" id="overview" title="코스를 처음 고른 화면으로(출발점 · 코스 전체)">처음으로</button>
             <button type="button" id="shareBtn" title="이 코스 링크 보내기" style="display:none">공유</button>
             <a id="parkLink" class="btn" href="park.html" title="이 공원 · 산의 탐방로 전체 보기(국립공원은 공식 지도 바로가기도)" style="display:none">🏞 공원 전체</a>
         </div>
