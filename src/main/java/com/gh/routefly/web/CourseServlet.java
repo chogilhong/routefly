@@ -76,7 +76,7 @@ public class CourseServlet extends HttpServlet {
         return v;
     }
 
-    private static String readSideVersion(Connection c) {
+    static String readSideVersion(Connection c) {
         StringBuilder b = new StringBuilder();
         for (String table : new String[] {"route_signpost", "route_park_spot"}) {
             try {

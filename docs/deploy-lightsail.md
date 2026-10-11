@@ -113,6 +113,13 @@ sudo mkdir -p /opt/tomcat/conf/Catalina/localhost && sudo chown -R tomcat: /opt/
 <Valve className="org.apache.catalina.valves.ErrorReportValve" showReport="false" showServerInfo="false" />
 ```
 
+같은 `<Host>` 안의 접속 기록(AccessLogValve)은 주소의 ?뒤를 빼고(`%U`) 30일만 둡니다 - 개인정보처리방침(privacy.html) "접속 기록" 과 맞춤:
+
+```xml
+<Valve className="org.apache.catalina.valves.AccessLogValve" directory="logs" prefix="localhost_access_log" suffix=".txt"
+       pattern="%h %t &quot;%m %U&quot; %s %b" maxDays="30" />
+```
+
 `/etc/systemd/system/tomcat.service`:
 
 ```ini
@@ -169,6 +176,10 @@ gzip_proxied any;
 gzip_min_length 1024;
 gzip_types application/javascript text/javascript text/css image/svg+xml application/manifest+json;
 gzip_vary on;
+# 접속 기록에는 주소의 ?뒤(코스 검색어 · 지도 범위 - "내 주변 코스" 는 내 둘레 약 1km 칸)를 남기지 않음 - 개인정보처리방침(privacy.html)과 맞춤.
+# 기록은 logrotate 기본(14일)으로 지워짐
+log_format routefly_noargs '$remote_addr - [$time_local] "$request_method $uri" $status $body_bytes_sent "$http_user_agent"';
+access_log /var/log/nginx/access.log routefly_noargs;
 ```
 
 `/etc/nginx/sites-available/routefly` 에 아래 6-1 또는 6-2 중 하나를 넣고:

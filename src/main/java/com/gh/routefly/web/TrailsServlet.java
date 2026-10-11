@@ -53,6 +53,8 @@ public class TrailsServlet extends HttpServlet {
             Json.fail(resp, HttpServletResponse.SC_BAD_REQUEST, "bbox 는 꼭 주고, 가로 · 세로 " + MAX_SPAN + "° 안이어야 합니다.");
             return;
         }
+        String key = ResultCache.key("trails", b), ver = ResultCache.LISTS.version();
+        if (ResultCache.LISTS.send(req, resp, key, ver)) return;
         try (Connection c = Db.open();
              PreparedStatement ps = c.prepareStatement(SQL)) {
             String box = CourseQueries.bboxWkt(b);
@@ -73,7 +75,7 @@ public class TrailsServlet extends HttpServlet {
             JsonObject out = new JsonObject();
             out.addProperty("success", true);
             out.add("trails", trails);
-            Json.ok(req, resp, out);
+            ResultCache.LISTS.ok(req, resp, key, ver, out);
         } catch (Exception e) {
             log.warn("[TRAILS] 조회 실패 - {}", e.toString());
             Json.fail(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "주변 등산로를 읽지 못했습니다.");
@@ -92,8 +94,8 @@ public class TrailsServlet extends HttpServlet {
             String[] xy = pts[i].replace("(", " ").replace(")", " ").trim().split("\\s+");   // MULTILINESTRING 이어도 500 이 나지 않게
             if (xy.length < 2) continue;
             JsonArray p = new JsonArray(2);
-            p.add(Math.round(Double.parseDouble(xy[0]) * 1e5) / 1e5);
-            p.add(Math.round(Double.parseDouble(xy[1]) * 1e5) / 1e5);
+            p.add(CourseQueries.round5(Double.parseDouble(xy[0])));
+            p.add(CourseQueries.round5(Double.parseDouble(xy[1])));
             out.add(p);
         }
         return out;

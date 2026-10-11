@@ -87,6 +87,8 @@ public class ParkServlet extends HttpServlet {
             return;
         }
         if (from != null && !CourseQueries.validId(from)) from = null;
+        String key = ResultCache.key("park", park, from), ver = ResultCache.LISTS.version();
+        if (ResultCache.LISTS.send(req, resp, key, ver)) return;
         try (Connection c = Db.open()) {
             double[] box = {180, 90, -180, -90};
             JsonArray trails = new JsonArray();
@@ -129,7 +131,7 @@ public class ParkServlet extends HttpServlet {
             if (map == null) out.add("map", JsonNull.INSTANCE); else out.addProperty("map", map);
             out.add("trails", trails);
             JsonArray bbox = new JsonArray();
-            for (double v : box) bbox.add(Math.round(v * 1e5) / 1e5);
+            for (double v : box) bbox.add(CourseQueries.round5(v));
             out.add("bbox", bbox);
             out.add("places", places(c, ids));
             try {
@@ -139,7 +141,7 @@ public class ParkServlet extends HttpServlet {
             } catch (java.sql.SQLException e) {
                 out.add("spots", new JsonArray());   // 표 없음
             }
-            Json.ok(req, resp, out);
+            ResultCache.LISTS.ok(req, resp, key, ver, out);
         } catch (Exception e) {
             log.warn("[PARK] 조회 실패 name={} - {}", park, e.toString());
             Json.fail(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "공원 탐방로를 읽지 못했습니다.");

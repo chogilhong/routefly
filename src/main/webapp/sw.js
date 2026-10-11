@@ -6,13 +6,13 @@
  *   - 지도 타일(V-World 위성사진 · 지형): 받아 둔 것이 있으면 그것(오프라인 저장 · 본 적 있는 곳), 없으면 받아서 조금 남겨 둠
  *   - MapLibre(vendor): 바뀌지 않으므로 받아 둔 것 먼저
  */
-var SHELL = "rf-shell-v5", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
+var SHELL = "rf-shell-v6", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
 var TILE_KEEP = 1500;   // 지나가며 본 타일은 이만큼만 남깁니다(저장 공간)
 // 2026-10-09 점검: API 캐시도 한도 - 지도를 움직일 때마다 목록 주소(bbox)가 하나씩 늘어 끝없이 커졌습니다.
 // 오프라인 저장한 코스는 OFFLINE 캐시에 따로 있어 지워지지 않습니다.
 var API_KEEP = 300;
 
-var SHELL_FILES = ["hike.html", "about.html", "park.html", "js/park.js", "series.html", "js/series.js", "data/series.json", "./", "css/course-kit.css", "js/course-kit.js", "js/hike.js", "js/app.js", "js/early.js", "js/sw-reg.js", "js/about.js",
+var SHELL_FILES = ["hike.html", "about.html", "park.html", "js/park.js", "series.html", "js/series.js", "data/series.json", "./", "css/course-kit.css", "js/course-kit.js", "js/hike.js", "js/app.js", "js/early.js", "js/sw-reg.js", "js/about.js", "js/onboard.js", "privacy.html",
     "vendor/maplibre-gl-5.24.0/maplibre-gl.js", "vendor/maplibre-gl-5.24.0/maplibre-gl.css", "favicon.svg", "manifest.json",
     "img/icon-192.png", "img/icon-512.png"];
 
@@ -61,7 +61,9 @@ function networkFirst(e, cacheName) {
     // 화면은 주소의 ?뒤를 스스로 읽으므로 받아 둔 것 하나로 됩니다
     var key = cacheName === SHELL ? req.url.split("#")[0].split("?")[0] : req;
     var fresh = req.mode === "navigate" ? fetch(req, { cache: "no-cache" }).catch(function () { return fetch(req); })
-        : fetch(new Request(req, { cache: "no-cache" }));
+        // API 는 서버가 정한 5분(max-age=300) 동안 브라우저가 받아 둔 것을 씀 - 예전엔 늘 no-cache 로 물어 코스를 누를 때마다
+        // 톰캣 · DB 까지 갔음(2026-10-11 오픈 전 점검). 자료는 배치가 돌 때만 바뀝니다. 화면 파일은 배포가 바로 보이게 그대로 no-cache
+        : cacheName === API ? fetch(req) : fetch(new Request(req, { cache: "no-cache" }));
     var net = fresh.then(function (res) {
         if (res && res.ok) {
             var copy = res.clone();

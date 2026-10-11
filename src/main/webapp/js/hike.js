@@ -1929,7 +1929,10 @@
     function nearList(lat, lon) {
         var r = 0.045, my = ++pickSeq;   // 약 5km
         nearAt = { lat: lat, lon: lon };
-        getJson("api/courses?bbox=" + [lon - r, lat - r, lon + r, lat + r].map(function (v) { return v.toFixed(5); }).join(",")
+        // 서버에는 약 1km 칸으로 뭉갠 자리만(2026-10-11 개인정보처리방침: 정확한 위치를 보내지 않음 · 같은 칸이면 같은 주소라 캐시도 됨).
+        // 출발점까지 거리는 아래에서 핸드폰이 정확한 위치로 셉니다
+        var qlat = Math.round(lat * 100) / 100, qlon = Math.round(lon * 100) / 100;
+        getJson("api/courses?bbox=" + [qlon - r, qlat - r, qlon + r, qlat + r].map(function (v) { return v.toFixed(3); }).join(",")
                 + (kindFilter ? "&kind=" + kindFilter : ""))
             .then(function (j) {
                 var rows = (j.courses || []).map(function (x) {

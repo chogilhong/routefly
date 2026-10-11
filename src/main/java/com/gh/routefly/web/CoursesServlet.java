@@ -43,6 +43,8 @@ public class CoursesServlet extends HttpServlet {
             Json.fail(resp, HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
             return;
         }
+        String key = ResultCache.key("courses", bbox, kind, q), ver = ResultCache.LISTS.version();
+        if (ResultCache.LISTS.send(req, resp, key, ver)) return;
         try (Connection c = Db.open()) {
             JsonArray courses = CourseQueries.list(c, bbox, kind, q);
             boolean truncated = courses.size() > CourseQueries.LIST_LIMIT;
@@ -53,7 +55,7 @@ public class CoursesServlet extends HttpServlet {
             out.addProperty("truncated", truncated);
             // 넓은 범위라 잘렸으면 격자 칸마다 코스 수 - 화면이 전국 분포를 원으로 그립니다(2026-10-09)
             if (truncated && bbox != null && q == null) out.add("grid", CourseQueries.grid(c, bbox, kind));
-            Json.ok(req, resp, out);
+            ResultCache.LISTS.ok(req, resp, key, ver, out);
         } catch (Exception e) {
             log.warn("[COURSES] 조회 실패 - {} (DB 접속 설정 db.url 등 · 표 routefly-batch sql/route_ddl.sql 확인)", e.toString());
             Json.fail(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,

@@ -70,7 +70,12 @@ final class Json {
      */
     static void ok(HttpServletRequest req, HttpServletResponse resp, JsonObject body) throws IOException {
         String text = body.toString();
-        if (notModified(req, resp, etag(text))) return;
+        ok(req, resp, text, etag(text));
+    }
+
+    /** 다 만든 JSON 글과 그 ETag 로 보냄(ResultCache 가 담아 둔 것도 같은 길로). */
+    static void ok(HttpServletRequest req, HttpServletResponse resp, String text, String tag) throws IOException {
+        if (notModified(req, resp, tag)) return;
         send(resp, text);
     }
 

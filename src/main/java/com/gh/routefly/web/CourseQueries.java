@@ -38,7 +38,14 @@ final class CourseQueries {
     /** 등산 · 걷기 둘 다인 코스의 종류 값(routefly-batch 가 넣음). 등산 탭 · 걷기 탭 모두에 나옵니다. */
     static final String TREK = "trek";
 
-    static final String LIST_COLUMNS = "course_id, name, kind, distance_m, ascent_m, descent_m, ele_min_m, ele_max_m,"
+    /**
+     * 목록 줄(/api/courses · /api/group · 없는 코스의 similar). 2026-10-11 속도: 화면이 목록 줄에서 읽는 칸만
+     * (이름 · 종류 · 거리 · 오르막 · 최고 고도 · 출발점(지도 점 · 가까운 순) · 끝점(series.js geoOrder)).
+     */
+    static final String LIST_COLUMNS = "course_id, name, kind, distance_m, ascent_m, ele_max_m, start_lat, start_lon, end_lat, end_lon";
+
+    /** 코스 하나의 요약(/api/course) - 모든 칸(signsNear · spotsNear 가 min/max 를, 화면이 ele_source 를 씀). */
+    static final String COURSE_COLUMNS = "course_id, name, kind, distance_m, ascent_m, descent_m, ele_min_m, ele_max_m,"
             + " ele_source, point_cnt, start_lat, start_lon, end_lat, end_lon, min_lat, min_lon, max_lat, max_lon";
 
     private static final Pattern GROUP_ID = Pattern.compile("^((?:frst|osmb|osmh|kmp|kmf)-[0-9]+-)");
@@ -216,7 +223,7 @@ final class CourseQueries {
     /**
      * 코스 하나 - 요약 + 경로 점 + 이름표. 없으면 null.
      * <pre>
-     *   course : 요약(목록과 같은 칸 + imported_at)
+     *   course : 요약(COURSE_COLUMNS + imported_at)
      *   points : [[경도, 위도, 고도(m) 또는 null, 누적 거리(m)], ...]  - 크기를 줄이려고 배열로 보냅니다
      *   pois   : [{seq, name, lat, lon, ele_m, dist_m, off_route_m}, ...]  - 경로 순서
      *   info   : {up_min, down_min, level, notice} - 국립공원 공식 코스만(없으면 칸 없음)
@@ -230,25 +237,31 @@ final class CourseQueries {
     static final String INFO_PREFIX = "knps-";
 
     static JsonObject detail(Connection c, String id) throws Exception {
-        JsonArray course = Json.rows(c, "SELECT " + LIST_COLUMNS + ", imported_at FROM route_course WHERE course_id = ?", id);
+        JsonArray course = Json.rows(c, "SELECT " + COURSE_COLUMNS + ", imported_at FROM route_course WHERE course_id = ?", id);
         if (course.size() == 0) return null;
 
+        // 2026-10-11 속도: 경도 · 위도는 소수 5자리(약 1m - 표는 6자리)로 보냄. 표지판 · 위험지역 찾기는 표 값 그대로(xy)
         JsonArray points = new JsonArray();
+        List<double[]> xy = new ArrayList<>();
         try (PreparedStatement ps = c.prepareStatement(
                 "SELECT lon, lat, ele_m, dist_m FROM route_course_point WHERE course_id = ? ORDER BY seq")) {
             ps.setString(1, id);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
+                    double lon = rs.getDouble(1), lat = rs.getDouble(2);
                     JsonArray p = new JsonArray(4);
-                    p.add(rs.getBigDecimal(1));
-                    p.add(rs.getBigDecimal(2));
+                    p.add(round5(lon));
+                    p.add(round5(lat));
                     BigDecimal ele = rs.getBigDecimal(3);
                     if (ele == null) p.add(JsonNull.INSTANCE); else p.add(ele);
-                    p.add(rs.getInt(4));
+                    int dist = rs.getInt(4);
+                    p.add(dist);
                     points.add(p);
+                    xy.add(new double[] {lon, lat, dist});
                 }
             }
         }
+        double[][] path = xy.toArray(new double[0][]);
 
         JsonObject out = new JsonObject();
         out.add("course", course.get(0));
@@ -267,14 +280,14 @@ final class CourseQueries {
         }
         // 2026-10-10 홍TV님: 국립공원 다목적위치표지판(지리10-05) - 따라가기 · SOS 에서 가까운 표지 번호(119 신고). 표가 없으면 빼고.
         try {
-            JsonArray signs = signsNear(c, points, course.get(0).getAsJsonObject());
+            JsonArray signs = signsNear(c, path, course.get(0).getAsJsonObject());
             if (signs.size() > 0) out.add("signs", signs);
         } catch (java.sql.SQLException e) {
             // 표 없음 - 표지 없이
         }
         // 2026-10-10 홍TV님: 국립공원 위험지역 · 조망점(낙석주의 앞 알림 · SOS 구급함 · 헬기장). 표가 없으면 빼고.
         try {
-            JsonArray spots = spotsNear(c, points, course.get(0).getAsJsonObject());
+            JsonArray spots = spotsNear(c, path, course.get(0).getAsJsonObject());
             if (spots.size() > 0) out.add("spots", spots);
         } catch (java.sql.SQLException e) {
             // 표 없음
@@ -287,9 +300,9 @@ final class CourseQueries {
     /** 구급함 · 헬기장 · 공원지킴터는 조금 떨어져도(SOS 에 알려 줌). */
     static final double HELP_NEAR_M = 400;
 
-    static JsonArray spotsNear(Connection c, JsonArray points, JsonObject course) throws Exception {
+    static JsonArray spotsNear(Connection c, double[][] points, JsonObject course) throws Exception {
         JsonArray out = new JsonArray();
-        if (points.size() == 0 || !course.has("min_lat") || course.get("min_lat").isJsonNull()) return out;
+        if (points.length == 0 || !course.has("min_lat") || course.get("min_lat").isJsonNull()) return out;
         double pad = 0.004;
         try (PreparedStatement ps = c.prepareStatement("SELECT kind, name, info, ele_m, view_az, view_m, lat, lon FROM route_park_spot"
                 + " WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ?")) {
@@ -302,7 +315,7 @@ final class CourseQueries {
                     String kind = rs.getString(1);
                     double lat = rs.getDouble(7), lon = rs.getDouble(8);
                     int i = nearIndex(points, lat, lon);
-                    double off = i < 0 ? Double.POSITIVE_INFINITY : distM(points.get(i).getAsJsonArray(), lat, lon);
+                    double off = i < 0 ? Double.POSITIVE_INFINITY : distM(points[i], lat, lon);
                     if (off > ("danger".equals(kind) || "view".equals(kind) ? SPOT_NEAR_M : HELP_NEAR_M)) continue;
                     JsonObject o = new JsonObject();
                     o.addProperty("kind", kind);
@@ -315,7 +328,7 @@ final class CourseQueries {
                     }
                     o.add("lat", new com.google.gson.JsonPrimitive(rs.getBigDecimal(7)));
                     o.add("lon", new com.google.gson.JsonPrimitive(rs.getBigDecimal(8)));
-                    o.addProperty("dist_m", points.get(i).getAsJsonArray().get(3).getAsInt());
+                    o.addProperty("dist_m", (int) points[i][2]);
                     o.addProperty("off_m", (int) Math.round(off));
                     out.add(o);
                 }
@@ -324,21 +337,26 @@ final class CourseQueries {
         return out;
     }
 
-    /** 순수 함수 - (lat, lon) 에서 가장 가까운 경로 점의 번호. 점이 없으면 -1. */
-    static int nearIndex(JsonArray points, double lat, double lon) {
+    /** 순수 함수 - 소수 5자리(약 1m). */
+    static double round5(double v) {
+        return Math.round(v * 1e5) / 1e5;
+    }
+
+    /** 순수 함수 - (lat, lon) 에서 가장 가까운 경로 점({경도, 위도, 누적 거리})의 번호. 점이 없으면 -1. */
+    static int nearIndex(double[][] points, double lat, double lon) {
         int best = -1;
         double bd = Double.POSITIVE_INFINITY;
-        for (int i = 0; i < points.size(); i++) {
-            double d = distM(points.get(i).getAsJsonArray(), lat, lon);
+        for (int i = 0; i < points.length; i++) {
+            double d = distM(points[i], lat, lon);
             if (d < bd) { bd = d; best = i; }
         }
         return best;
     }
 
-    /** 순수 함수 - 경로 점 [경도, 위도, …] 와 (lat, lon) 사이 거리(m, 평면 근사). */
-    static double distM(JsonArray p, double lat, double lon) {
+    /** 순수 함수 - 경로 점 {경도, 위도, …} 와 (lat, lon) 사이 거리(m, 평면 근사). */
+    static double distM(double[] p, double lat, double lon) {
         double k = Math.cos(Math.toRadians(lat));
-        double dx = (p.get(0).getAsDouble() - lon) * k, dy = p.get(1).getAsDouble() - lat;
+        double dx = (p[0] - lon) * k, dy = p[1] - lat;
         return Math.sqrt(dx * dx + dy * dy) * 111_320.0;
     }
 
@@ -346,9 +364,9 @@ final class CourseQueries {
     static final double SIGN_NEAR_M = 80;   // 2026-10-10 PC: 150m 는 천왕봉 둘레에서 다른 길(칼바위 · 추성마을) 표지까지 잡혔음
 
     /** 코스 범위(+ 약 200m) 안의 표지를 한 번 읽고, 경로 점에서 SIGN_NEAR_M 안의 것만. */
-    static JsonArray signsNear(Connection c, JsonArray points, JsonObject course) throws Exception {
+    static JsonArray signsNear(Connection c, double[][] points, JsonObject course) throws Exception {
         JsonArray out = new JsonArray();
-        if (points.size() == 0 || !course.has("min_lat") || course.get("min_lat").isJsonNull()) return out;
+        if (points.length == 0 || !course.has("min_lat") || course.get("min_lat").isJsonNull()) return out;
         double pad = 0.002;
         double minLat = course.get("min_lat").getAsDouble() - pad, maxLat = course.get("max_lat").getAsDouble() + pad;
         double minLon = course.get("min_lon").getAsDouble() - pad * 1.25, maxLon = course.get("max_lon").getAsDouble() + pad * 1.25;
@@ -377,9 +395,9 @@ final class CourseQueries {
         return out;
     }
 
-    /** 순수 함수 - (lat, lon) 에서 경로 점([경도, 위도, …])까지 가장 가까운 거리(m, 점 기준 - 점 간격이 촘촘해 충분). */
-    static double nearLine(JsonArray points, double lat, double lon) {
+    /** 순수 함수 - (lat, lon) 에서 경로 점({경도, 위도, …})까지 가장 가까운 거리(m, 점 기준 - 점 간격이 촘촘해 충분). */
+    static double nearLine(double[][] points, double lat, double lon) {
         int i = nearIndex(points, lat, lon);
-        return i < 0 ? Double.POSITIVE_INFINITY : distM(points.get(i).getAsJsonArray(), lat, lon);
+        return i < 0 ? Double.POSITIVE_INFINITY : distM(points[i], lat, lon);
     }
 }

@@ -41,13 +41,15 @@ public class GroupServlet extends HttpServlet {
             Json.fail(resp, HttpServletResponse.SC_BAD_REQUEST, "prefix 는 코스 ID 앞부분입니다(예: osmb-6374513-).");
             return;
         }
+        String key = ResultCache.key("group", p), ver = ResultCache.LISTS.version();
+        if (ResultCache.LISTS.send(req, resp, key, ver)) return;
         try (Connection c = Db.open()) {
             JsonObject out = new JsonObject();
             out.addProperty("success", true);
             out.addProperty("prefix", p);
             out.add("courses", Json.rows(c, "SELECT " + CourseQueries.LIST_COLUMNS + " FROM route_course WHERE course_id LIKE ? ORDER BY CHAR_LENGTH(course_id), course_id LIMIT " + LIMIT,
                     p + "%"));
-            Json.ok(req, resp, out);
+            ResultCache.LISTS.ok(req, resp, key, ver, out);
         } catch (Exception e) {
             log.warn("[GROUP] 조회 실패 prefix={} - {}", p, e.toString());
             Json.fail(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "코스를 읽지 못했습니다.");
