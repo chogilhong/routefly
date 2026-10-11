@@ -31,7 +31,7 @@ public class CheckupStage5Test {
         assertFalse("검색이 지도 시계를 쓰지 않음", app.contains("clearTimeout(list.timer);\n        list.timer = setTimeout(function () {"));
         assertTrue("0.01° 바깥으로", app.contains("Math.floor(b.getWest() * 100) / 100"));
         assertTrue("다 받은 범위 안이면 묻지 않음", app.contains("bboxInside(bb, lastView.bb)"));
-        assertTrue("잘린 목록은 기억하지 않음", app.contains("if (bb && !j.truncated) lastView ="));
+        assertTrue("잘린 목록은 기억하지 않음", app.contains("if (askBb && !j.truncated) lastView ="));
     }
 
     @Test
