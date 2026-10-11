@@ -1,0 +1,49 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(git status*)",
+      "PowerShell(git diff*)",
+      "PowerShell(git log*)",
+      "PowerShell(git show*)",
+      "PowerShell(git fetch*)",
+      "PowerShell(git pull*)",
+      "PowerShell(git add*)",
+      "PowerShell(git commit*)",
+      "PowerShell(git remote -v*)",
+      "PowerShell(git rev-parse*)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git show*)",
+      "Bash(git fetch*)",
+      "Bash(git pull*)",
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(git remote -v*)",
+      "Bash(git rev-parse*)",
+      "PowerShell(Get-ChildItem *)",
+      "PowerShell(Get-Content *)",
+      "PowerShell(Select-String *)",
+      "PowerShell(Test-Path *)",
+      "PowerShell(Get-Item *)",
+      "PowerShell(Resolve-Path *)",
+      "PowerShell(powershell -NoProfile -ExecutionPolicy Bypass -File .claude\\run-tests.ps1)",
+      "PowerShell(powershell -NoProfile -ExecutionPolicy Bypass -File .claude\\run-tests.ps1 -Only *)",
+      "PowerShell(.\\.claude\\run-tests.ps1)",
+      "PowerShell(.\\.claude\\run-tests.ps1 -Only *)",
+      "PowerShell(& .\\.claude\\run-tests.ps1)",
+      "PowerShell(& .\\.claude\\run-tests.ps1 -Only *)",
+      "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File .claude/run-tests.ps1)",
+      "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File .claude/run-tests.ps1 -Only *)",
+      "Edit(./**)"
+    ],
+    "deny": [
+      "PowerShell(git push --force*)",
+      "PowerShell(git push -f*)",
+      "PowerShell(git reset --hard*)",
+      "PowerShell(git clean *)",
+      "Read(//c/GH/config/**)",
+      "Edit(//c/GH/config/**)"
+    ]
+  }
+}
