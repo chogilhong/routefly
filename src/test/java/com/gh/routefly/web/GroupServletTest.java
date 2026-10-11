@@ -31,14 +31,21 @@ public class GroupServletTest {
     public void seriesJsonPrefixesAreValid() throws Exception {
         String txt = new String(Files.readAllBytes(Paths.get("src/main/webapp/data/series.json")), StandardCharsets.UTF_8);
         JsonObject d = JsonParser.parseString(txt).getAsJsonObject();
-        int n = 0;
+        int n = 0, named = 0;
         for (JsonElement g : d.getAsJsonArray("groups")) {
             for (JsonElement s : g.getAsJsonObject().getAsJsonArray("series")) {
-                String p = s.getAsJsonObject().get("prefix").getAsString();
+                JsonObject o = s.getAsJsonObject();
+                if (o.has("q")) {   // 코리아둘레길 - 이름으로 찾음(/api/courses?q=), 검색어 길이 안
+                    assertTrue(o.get("q").getAsString(), o.get("q").getAsString().length() <= CourseQueries.MAX_QUERY);
+                    named++;
+                    continue;
+                }
+                String p = o.get("prefix").getAsString();
                 assertTrue(p + " 은 /api/group 이 받는 모양", GroupServlet.validPrefix(p));
                 n++;
             }
         }
         assertEquals("국토종주 13 + 국가숲길 6", 19, n);
+        assertEquals("코리아둘레길 4", 4, named);
     }
 }

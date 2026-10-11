@@ -1,5 +1,5 @@
 /*
- * 국토종주 자전거길 · 국가숲길 모아 보기(series.html) - data/series.json 의 노선 · 길마다 진행(인증센터 도장 · 코스 완주)과 코스 목록.
+ * 국토종주 자전거길 · 국가숲길 · 코리아둘레길 모아 보기(series.html) - data/series.json 의 노선 · 길마다 진행(인증센터 도장 · 코스 완주)과 코스 목록.
  * 도장 · 완주는 따라가기(hike.js)가 이 핸드폰의 localStorage 에 남긴 것(rf-stamps · rf-done)을 읽기만 합니다. 2026-10-11 홍TV님.
  */
 (function () {
@@ -49,7 +49,8 @@
         var p = RF.seriesProgress(s, stamps, done);
         var box = el("div", "card"), head = el("button"), nm = el("div", "nm", s.name), pg = el("div", "pg");
         head.type = "button";
-        nm.appendChild(el("small", null, s.km + "km" + (s.centers ? " · 인증센터 " + s.centers.length + "곳" : " · " + s.courses + "코스")));
+        nm.appendChild(el("small", null, s.ids ? s.ids.length + "코스 · " + Math.round(s.meters / 1000) + "km"
+            : s.km + "km" + (s.centers ? " · 인증센터 " + s.centers.length + "곳" : " · " + s.courses + "코스")));
         pg.innerHTML = "<b>" + p.got + "</b> / " + p.of + " " + g.unit;
         head.appendChild(nm);
         head.appendChild(pg);
@@ -77,7 +78,7 @@
             body.appendChild(el("div", "sub", "코스"));
             var wait = el("div", "tip", "코스를 불러오는 중…");
             body.appendChild(wait);
-            getJson("api/group?prefix=" + encodeURIComponent(s.prefix)).then(function (j) {
+            (s.list ? Promise.resolve({ courses: s.list }) : getJson("api/group?prefix=" + encodeURIComponent(s.prefix))).then(function (j) {
                 wait.remove();
                 if (!j.courses.length) body.appendChild(el("div", "tip", "아직 코스가 없습니다."));
                 // 지리산둘레길: 주천-운봉부터 걷는 차례로. 자전거길: 구간 끝 → 다음 시작으로 땅 위 차례(끊긴 묶음의 뒷번호 구간도 제자리)
@@ -88,9 +89,22 @@
         return box;
     }
 
+    /** 이름으로 찾는 길(q - 코리아둘레길)은 그리기 전에 코스 목록을 받아 수 · 길이 · 완주를 셈. 못 받으면 0 코스로. */
+    function loadNamed(d) {
+        var named = [];
+        d.groups.forEach(function (g) { g.series.forEach(function (s) { if (s.q) named.push(s); }); });
+        return Promise.all(named.map(function (s) {
+            return getJson("api/courses?q=" + encodeURIComponent(s.q)).then(function (j) { return j.courses; }, function () { return []; }).then(function (all) {
+                s.list = RF.trailCourses(all, s.match || s.name);
+                s.ids = s.list.map(function (c) { return c.course_id; });
+                s.meters = s.list.reduce(function (m, c) { return m + (+c.distance_m || 0); }, 0);
+            });
+        })).then(function () { return d; });
+    }
+
     getJson("data/series.json").catch(function () {
         return fetch("data/series.json").then(function (r) { return r.json(); });
-    }).then(function (d) {
+    }).then(loadNamed).then(function (d) {
         var list = $("list");
         list.textContent = "";
         d.groups.forEach(function (g) {
