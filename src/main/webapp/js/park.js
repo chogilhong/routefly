@@ -1,5 +1,6 @@
 /*
- * 국립공원 전체 보기(park.html?name=지리산[&from=코스ID]) - /api/park 의 공식 탐방로 전체 선 · 이름표 · 위험지역 · 조망점.
+ * 공원 · 산 전체 보기(park.html?name=지리산[&from=코스ID]) - /api/park 의 탐방로 전체 선 · 이름표 · 위험지역 · 조망점.
+ * 국립공원은 공단 공식 탐방로, 도립 · 군립공원과 다른 산은 from 코스 둘레의 같은 산 코스(2026-10-11 홍TV님).
  * 2026-10-10 홍TV님: 공원 안내도처럼 산 전체를 한눈에. 바탕 지도는 따라가기 화면과 같은 V-World(키가 없으면 지형 음영만).
  */
 (function () {
@@ -119,7 +120,7 @@
     }
 
     function start() {
-        $("title").textContent = park ? park + " 국립공원 전체 보기" : "국립공원 전체 보기";
+        $("title").textContent = park ? park + " 전체 보기" : "전체 보기";
         if (from) $("back").href = "hike.html#c=" + encodeURIComponent(from);
         Promise.all([
             getJson("api/map-config").catch(function () { return {}; }),
@@ -127,15 +128,18 @@
         ]).then(function (r) {
             cfg = { demUrl: r[0].demUrl || "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png", vworldKey: r[0].vworldKey || null };
             data = r[1];
+            if (data.national) $("title").textContent = park + " 국립공원 전체 보기";
             if (data.map) {
                 $("official").href = data.map;
                 $("official").style.display = "inline-block";
+                $("credit").style.display = "block";
             }
             map = new maplibregl.Map({ container: "map", style: style(cfg), center: [127.8, 36.3], zoom: 7,
                 attributionControl: false, dragRotate: false, pitchWithRotate: false, touchPitch: false });
             map.touchZoomRotate.disableRotation();
             map.addControl(new maplibregl.AttributionControl({ compact: true,
-                customAttribution: "탐방로: 국립공원공단 탐방로 공간데이터 | 지명: © OpenStreetMap contributors | <a href=\"about.html\">안내</a>" }), "top-right");
+                customAttribution: (data.national ? "탐방로: 국립공원공단 탐방로 공간데이터" : "등산로: 산림청 · 한국등산트레킹지원센터 · OpenStreetMap")
+                    + " | 지명: © OpenStreetMap contributors | <a href=\"about.html\">안내</a>" }), "top-right");
             // 출처는 ⓘ 로 접어 둠(따라가기 화면과 같게 - 지도를 가리지 않게)
             var fold = function () { var a = document.querySelector(".maplibregl-ctrl-attrib"); if (a) a.classList.remove("maplibregl-compact-show"); };
             fold();

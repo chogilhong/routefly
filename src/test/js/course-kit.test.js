@@ -91,6 +91,11 @@ near("distM", RF.distM(37, 127, 37.001, 127), 111, 1);
     eq("공원 - 다른 산", RF.parkOf("지리봉 1코스"), null);
     eq("공원 - 한려해상", RF.parkOf("한려해상 · 금산 → 쌍홍문"), "한려해상");
     eq("공원 - 없음", RF.parkOf(null), null);
+    eq("산 - 도립공원", RF.mountainOf("모악산 · 화율봉 → 모악산"), "모악산");
+    eq("산 - 자락", RF.mountainOf("마이산 자락 2코스 · 마이산 북부주차장에서"), "마이산");
+    eq("산 - 괄호", RF.mountainOf("대둔산(마천대) 1코스"), "대둔산");
+    eq("산 - 아님", RF.mountainOf("한강 자전거길 · 여의도에서"), null);
+    eq("팔공산은 국립공원(2023)", RF.parkOf("팔공산 · 동화사 → 비로봉"), "팔공산");
 })();
 
 // fromApi · at · ascentLeft

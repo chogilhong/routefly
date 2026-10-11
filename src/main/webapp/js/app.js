@@ -413,9 +413,12 @@
             $("hud").style.display = "block";
             $("mini").style.display = "block";
             $("hikeLink").href = "hike.html#c=" + encodeURIComponent(id);
-            var park = RF.parkOf(j.course.name);   // 국립공원 코스면 공원 전체 보기
+            var park = RF.parkOf(j.course.name) || RF.mountainOf(j.course.name);   // 국립공원, 아니면 도립 · 군립공원 · 산   // 국립공원 코스면 공원 전체 보기
             $("parkLink").style.display = park ? "" : "none";
-            if (park) $("parkLink").href = "park.html?name=" + encodeURIComponent(park) + "&from=" + encodeURIComponent(id);
+            if (park) {
+                $("parkLink").href = "park.html?name=" + encodeURIComponent(park) + "&from=" + encodeURIComponent(id);
+                $("parkLink").textContent = "🏞 " + park + " 전체";
+            }
             $("shareBtn").style.display = RF.isGpxId(id) ? "none" : "";   // 이 기기에만 있는 GPX 는 링크로 보낼 수 없습니다
             renderProfile(c);
             placeHud();
