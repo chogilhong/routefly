@@ -150,6 +150,15 @@
             g.series.forEach(function (s) { var p = RF.seriesProgress(s, stamps, done, peakStamps); got += p.got; of += p.of; });
             list.appendChild(el("h2", null, g.icon + " " + g.title));
             list.appendChild(el("div", "sum", g.series.length + "개 · " + g.unit + " " + got + " / " + of));
+            if (g.cert) {   // 나라(기관)가 인정하는 인증 받는 곳 - routefly 도장 · 완주는 내 기록용(2026-10-11 홍TV님)
+                var cert = el("div", "cert", "공식 인증: "), link = el("a", null, g.cert.by + " ›");
+                link.href = g.cert.url;
+                link.target = "_blank";
+                link.rel = "noopener noreferrer";
+                cert.appendChild(link);
+                if (g.cert.how) cert.appendChild(el("span", null, " - " + g.cert.how));
+                list.appendChild(cert);
+            }
             g.series.forEach(function (s) { list.appendChild(card(g, s)); });
         });
     }).catch(function () { $("list").textContent = "목록을 읽지 못했습니다."; });

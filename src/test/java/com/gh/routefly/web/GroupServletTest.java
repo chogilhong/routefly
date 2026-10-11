@@ -31,8 +31,13 @@ public class GroupServletTest {
     public void seriesJsonPrefixesAreValid() throws Exception {
         String txt = new String(Files.readAllBytes(Paths.get("src/main/webapp/data/series.json")), StandardCharsets.UTF_8);
         JsonObject d = JsonParser.parseString(txt).getAsJsonObject();
-        int n = 0, named = 0, peaks = 0;
+        int n = 0, named = 0, peaks = 0, certs = 0;
         for (JsonElement g : d.getAsJsonArray("groups")) {
+            if (g.getAsJsonObject().has("cert")) {   // 공식 인증 링크 - 나라 · 공공기관(https)만
+                String u = g.getAsJsonObject().getAsJsonObject("cert").get("url").getAsString();
+                assertTrue(u, u.equals("https://www.bike.go.kr/") || u.equals("https://www.durunubi.kr/"));
+                certs++;
+            }
             for (JsonElement s : g.getAsJsonObject().getAsJsonArray("series")) {
                 JsonObject o = s.getAsJsonObject();
                 if (o.has("q")) {   // 코리아둘레길 - 이름으로 찾음(/api/courses?q=), 검색어 길이 안
@@ -53,5 +58,6 @@ public class GroupServletTest {
         assertEquals("국토종주 13 + 국가숲길 6", 19, n);
         assertEquals("코리아둘레길 4", 4, named);
         assertEquals("100대 명산 1", 1, peaks);
+        assertEquals("공식 인증 링크 - 국토종주 · 코리아둘레길", 2, certs);
     }
 }
