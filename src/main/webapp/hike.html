@@ -214,7 +214,10 @@ body.compact #statGrids { display:none; }
                border:1px solid var(--ln); background:rgba(255,255,255,0.06);
                color:var(--tx); font-size:13.5px; }
 .tabs button.on { background:var(--sky); border-color:var(--sky); color:#062b30; font-weight:bold; }
+/* 코스 없이 열면 첫 그림부터 코스 고르기 - 지도 · 스크립트를 받는 동안 뒤의 코스 화면이 잔상처럼 보였음(2026-10-11 홍TV님, 핸드폰) */
+html.picking #pick { display:flex; }
 </style>
+<script>if (!/[#&]c=/.test(location.hash)) document.documentElement.className += " picking";</script>
 </head>
 <body>
 <div id="top">
