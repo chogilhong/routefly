@@ -451,6 +451,19 @@
     /** 좁은 화면에서는 진행 거리 표시를 아래 판 바로 위에 둡니다(판 높이가 글자 줄바꿈에 따라 달라져서). */
     function placeHud() {
         $("hud").style.bottom = isNarrow() && $("bottom").offsetHeight ? ($("bottom").offsetHeight + 24) + "px" : "";
+        placeMini();
+    }
+
+    /**
+     * 넓은 화면의 작은 평면도(위 142px · 160px)는 창 높이가 낮으면 아래 판의 단추를 덮었음(2026-10-11 PC: 750px 창에서 공유 · 공원 전체 위 17px) -
+     * 아래 판 위 남은 높이에 맞춰 줄이고, 80px 도 안 되면 숨깁니다. 좁은 화면은 CSS 그대로(위 12px · 104px).
+     */
+    function placeMini() {
+        var m = $("mini"), b = $("bottom");
+        if (isNarrow() || !b.offsetHeight) { m.style.width = m.style.height = m.style.visibility = ""; return; }
+        var size = Math.min(160, b.getBoundingClientRect().top - 8 - m.offsetTop);   // 8 = 아래 판과의 틈(크기는 테두리 · 안쪽 여백 포함)
+        m.style.width = m.style.height = Math.max(size, 0) + "px";
+        m.style.visibility = size < 80 ? "hidden" : "";
     }
 
     /**
