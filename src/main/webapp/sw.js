@@ -6,18 +6,21 @@
  *   - 지도 타일(V-World 위성사진 · 지형): 받아 둔 것이 있으면 그것(오프라인 저장 · 본 적 있는 곳), 없으면 받아서 조금 남겨 둠
  *   - MapLibre(vendor): 바뀌지 않으므로 받아 둔 것 먼저
  */
-var SHELL = "rf-shell-v4", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
+var SHELL = "rf-shell-v5", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
 var TILE_KEEP = 1500;   // 지나가며 본 타일은 이만큼만 남깁니다(저장 공간)
 // 2026-10-09 점검: API 캐시도 한도 - 지도를 움직일 때마다 목록 주소(bbox)가 하나씩 늘어 끝없이 커졌습니다.
 // 오프라인 저장한 코스는 OFFLINE 캐시에 따로 있어 지워지지 않습니다.
 var API_KEEP = 300;
 
-var SHELL_FILES = ["hike.html", "about.html", "park.html", "js/park.js", "series.html", "js/series.js", "data/series.json", "./", "css/course-kit.css", "js/course-kit.js", "js/hike.js", "js/app.js",
+var SHELL_FILES = ["hike.html", "about.html", "park.html", "js/park.js", "series.html", "js/series.js", "data/series.json", "./", "css/course-kit.css", "js/course-kit.js", "js/hike.js", "js/app.js", "js/early.js", "js/sw-reg.js", "js/about.js",
     "vendor/maplibre-gl-5.24.0/maplibre-gl.js", "vendor/maplibre-gl-5.24.0/maplibre-gl.css", "favicon.svg", "manifest.json",
     "img/icon-192.png", "img/icon-512.png"];
 
 self.addEventListener("install", function (e) {
-    e.waitUntil(caches.open(SHELL).then(function (c) { return c.addAll(SHELL_FILES); }).catch(function () { /* 하나 못 받아도 설치는 */ }));
+    // 하나씩 - addAll 은 하나만 못 받아도 모두 버려 오프라인 화면이 통째로 비었음(2026-10-11 오픈 전 점검)
+    e.waitUntil(caches.open(SHELL).then(function (c) {
+        return Promise.all(SHELL_FILES.map(function (f) { return c.add(f).catch(function () { /* 이 파일만 다음에 */ }); }));
+    }));
     self.skipWaiting();
 });
 
@@ -54,20 +57,23 @@ function trim(name, keep) {
 var NET_WAIT = 4000;
 function networkFirst(e, cacheName) {
     var req = e.request;
+    // 화면 파일은 ?뒤를 뺀 주소 하나로 - park.html?name=… · ?debug 마다 한 벌씩 쌓여 끝없이 커졌음(2026-10-11 오픈 전 점검).
+    // 화면은 주소의 ?뒤를 스스로 읽으므로 받아 둔 것 하나로 됩니다
+    var key = cacheName === SHELL ? req.url.split("#")[0].split("?")[0] : req;
     var fresh = req.mode === "navigate" ? fetch(req, { cache: "no-cache" }).catch(function () { return fetch(req); })
         : fetch(new Request(req, { cache: "no-cache" }));
     var net = fresh.then(function (res) {
         if (res && res.ok) {
             var copy = res.clone();
             e.waitUntil(caches.open(cacheName).then(function (c) {
-                return c.put(req, copy);
+                return c.put(key, copy);
             }).then(function () { if (cacheName === API && ++apiPuts % 20 === 0) return trim(API, API_KEEP); })
               .catch(function () { /* 저장 공간 - 이번만 */ }));
         }
         return res;
     });
     var netOrOffline = net.catch(function () {
-        return caches.match(req, { ignoreVary: true }).then(function (hit) {
+        return caches.match(key, { ignoreVary: true }).then(function (hit) {
             if (hit) return hit;
             if (req.mode === "navigate") {   // 화면 주소면 JSON 글자 대신 안내 화면
                 return new Response('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
@@ -82,7 +88,7 @@ function networkFirst(e, cacheName) {
     });
     e.waitUntil(net.catch(function () { /* 위에서 처리 */ }));   // 먼저 캐시를 내준 뒤에도 늦은 답으로 캐시를 고칠 때까지
     var slow = new Promise(function (resolve) { setTimeout(resolve, NET_WAIT); }).then(function () {
-        return caches.match(req, { ignoreVary: true }).then(function (hit) { return hit || netOrOffline; });
+        return caches.match(key, { ignoreVary: true }).then(function (hit) { return hit || netOrOffline; });
     });
     return Promise.race([netOrOffline, slow]);
 }

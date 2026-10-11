@@ -21,7 +21,9 @@ public class NoStaleFilter extends HttpFilter {
 
     @Override
     protected void doFilter(HttpServletRequest req, HttpServletResponse res, FilterChain chain) throws IOException, ServletException {
-        if (!req.getRequestURI().contains("/vendor/")) res.setHeader("Cache-Control", "no-cache");
+        // vendor/ 는 폴더 이름에 판(maplibre-gl-5.24.0)이 있어 바뀌지 않음 - 1년 그대로 써도 됨(2026-10-11 오픈 전 점검: 예전엔 머리글이 없어 브라우저가 짐작)
+        if (req.getRequestURI().contains("/vendor/")) res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        else res.setHeader("Cache-Control", "no-cache");
         chain.doFilter(req, res);
     }
 }

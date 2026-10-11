@@ -133,7 +133,7 @@
             cfg = { demUrl: r[0].demUrl || "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png", vworldKey: r[0].vworldKey || null };
             data = r[1];
             if (data.national) $("title").textContent = park + " 국립공원 전체 보기";
-            if (data.map) {
+            if (data.map && /^https:\/\//.test(data.map)) {   // https 주소만(javascript: 등은 넣지 않음 - 2026-10-11 점검)
                 $("official").href = data.map;
                 $("official").style.display = "inline-block";
                 $("credit").style.display = "block";

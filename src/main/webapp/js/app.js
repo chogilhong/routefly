@@ -372,6 +372,17 @@
 
     // ------------------------------------------------------------------ 코스 하나
 
+    // 2026-10-11 오픈 전 점검: '처음으로' · 같은 코스를 다시 고를 때 같은 코스를 또 받았음 - 최근 5개는 받아 둔 것(실패한 것은 빼서 다시 받게)
+    var courseMemo = [];
+    function courseData(id) {
+        for (var i = 0; i < courseMemo.length; i++) if (courseMemo[i].id === id) return courseMemo[i].p;
+        var p = getJson("api/course?id=" + encodeURIComponent(id));
+        courseMemo.unshift({ id: id, p: p });
+        if (courseMemo.length > 5) courseMemo.pop();
+        p.catch(function () { courseMemo = courseMemo.filter(function (m) { return m.p !== p; }); });
+        return p;
+    }
+
     var selectSeq = 0;   // 2026-10-09 점검: 늦게 온 앞 코스가 새로 고른 코스를 덮지 않게
     function select(id) {
         var my = ++selectSeq;
@@ -380,7 +391,7 @@
         if (isNarrow()) setListOpen(false);   // 핸드폰 - 고른 코스가 보이게 목록을 접음('← 뒤로' 로 다시 목록)
         // 코스 자료와 지도 준비를 같이 기다립니다(느린 기기에서 지도 타일이 늦어도 목록은 먼저 뜹니다).
         // 'gpx-' 코스는 이 기기에 둔 GPX(📂 GPX 열기 - 따라가기와 같이 씀)
-        var data = RF.isGpxId(id) ? RF.storedGpx(id) : getJson("api/course?id=" + encodeURIComponent(id));
+        var data = RF.isGpxId(id) ? RF.storedGpx(id) : courseData(id);
         return Promise.all([data, mapReady]).then(function (r) {
             if (my !== selectSeq) return;
             var j = r[0];
@@ -894,7 +905,8 @@
         map.on("moveend", scheduleViewLoad);
         map.on("render", declutterSoon);   // 이름표 겹침 - 지도가 움직이는 동안 0.15초마다 다시
         var m = /[#&]c=([^&]+)/.exec(location.hash);
-        if (m) select(decodeURIComponent(m[1]));
+        var id = m ? RF.safeDecode(m[1]) : null;   // 깨진 주소(#c=%E0)면 그냥 목록
+        if (id) select(id);
     }
 
     // 검색 - 입력을 멈추면(0.3초) 찾습니다. 지우면 다시 지도 범위 목록으로.

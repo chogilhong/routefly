@@ -663,8 +663,9 @@
         $("share").style.display = isGpxId(id) ? "none" : "";   // 이 기기에만 있는 GPX 는 링크로 보낼 수 없습니다
         return Promise.all([isGpxId(id) ? storedGpx(id) : getJson("api/course?id=" + encodeURIComponent(id)), mapReady]).then(function (r) {
             if (my !== loadSeq) return;   // 그 사이 다른 코스를 골랐음
-            c = RF.fromApi(id, r[0]);
-            if (c.lon.length < 2) throw new Error("경로 점이 없습니다.");
+            var nc = RF.fromApi(id, r[0]);
+            if (nc.lon.length < 2) throw new Error("경로 점이 없습니다.");   // 2026-10-11 점검: 확인한 뒤에 바꿈(깨진 코스로 공유 · SOS 가 돌지 않게)
+            c = nc;
             var sv = loadSaved();
             if (sv && sv.rev) c = RF.reverseCourse(c);   // 되돌아가는 길로 바꿔 걷던 산행을 이어 갈 때
             RF.showName($("name"), c.course.name);
@@ -855,7 +856,7 @@
     function downloadGpx(rec) {
         var d = new Date(rec.start);
         var name = "routefly-" + d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0")
-            + "-" + (rec.courseId || "track") + ".gpx";
+            + "-" + String(rec.courseId || "track").replace(/[^\w.-]/g, "_") + ".gpx";   // 파일 이름에 / · .. 이 들어가지 않게(앱 저장 경로)
         if (FS && SHARE) {   // 앱 - 공유 창으로(파일 저장 · 다른 앱으로 보내기)
             nativeShareFile(name, btoa(unescape(encodeURIComponent(toGpx(rec)))), rec.name)
                 .catch(function (e) { toast("GPX 를 보내지 못했습니다: " + (e && e.message || e), 5000); });
@@ -1272,6 +1273,8 @@
             // 앱 - 화면을 끄거나 다른 앱으로 가도 위치를 받습니다(알림창에 "따라가는 중"이 떠 있는 동안)
             $("gps").textContent = "GPS 찾는 중…";
             $("gps").className = "";
+            // 2026-10-11 점검: 시작 → 끝 → 다시 시작이 첫 addWatcher 답보다 빠르면 첫 감시가 남아 위치가 두 번씩 · 알림이 안 사라졌음 - 이번 시작 번호로만
+            var bgGen = hike.bgGen = (hike.bgGen || 0) + 1;
             BG.addWatcher({ backgroundTitle: "routefly - " + K().act + " 중",
                             backgroundMessage: "화면을 꺼도 위치를 기록하고 갈림길 · 코스 이탈을 알려 줍니다.",
                             requestPermissions: true, stale: false, distanceFilter: batterySave ? 10 : 3 },
@@ -1286,9 +1289,9 @@
                     if (loc) onFix({ timestamp: loc.time, coords: { latitude: loc.latitude, longitude: loc.longitude, accuracy: loc.accuracy,
                                                                 altitude: loc.altitude, speed: loc.speed, heading: loc.bearing } });
                 }).then(function (id) {
-                    if (hike.running && !hike.sim) hike.bgWatch = id;
-                    else BG.removeWatcher({ id: id });   // 그 사이 끝냈으면
-                });
+                    if (hike.running && !hike.sim && bgGen === hike.bgGen) hike.bgWatch = id;
+                    else BG.removeWatcher({ id: id });   // 그 사이 끝냈거나 다시 시작했으면
+                }).catch(function () { onGpsError({ code: 2 }); });
             // 2026-10-08 (홍TV님 - 배터리): 앱은 화면을 꺼도 위치 · 음성 안내가 이어지므로 화면을 켜 두지 않습니다(Wake Lock 안 함).
             // 화면이 가장 큰 배터리 소비라, 주머니에 넣고 다니라고 한 번 알립니다. 브라우저는 화면이 꺼지면 멈추므로 아래처럼 켜 둡니다.
             toast("화면을 꺼도 기록 · 갈림길 · 코스 이탈 음성 안내가 이어집니다. 배터리를 아끼려면 화면을 꺼 두세요."
@@ -2524,16 +2527,18 @@
 
     function route() {
         var m = /[#&]c=([^&]+)/.exec(location.hash);
+        var hid = m ? RF.safeDecode(m[1]) : null;   // 깨진 주소면 코스 없이(코스 고르기)
+        if (m && hid == null) m = null;
         // 2026-10-09 점검: 핸드폰 뒤로 가기(단추 · 밀기)로 주소가 바뀌어도 걷는 중이면 묻지 않고 끝내지 않습니다 -
         // 주소를 이 코스로 되돌리고 "끝낼까요?" 를 묻습니다(화면의 ‹ 단추와 같음). 시험 걷기는 그냥 멈춥니다.
-        if (hike.running && !hike.sim && c && !(m && decodeURIComponent(m[1]) === c.id)) {
+        if (hike.running && !hike.sim && c && !(m && hid === c.id)) {
             try { history.pushState(null, "", "#c=" + encodeURIComponent(c.id)); } catch (e) { /* 주소만 못 되돌림 */ }
             askStop();
             return;
         }
-        if (hike.running && m && c && decodeURIComponent(m[1]) === c.id) return;   // 같은 코스(되돌린 주소) - 그대로
+        if (hike.running && m && c && hid === c.id) return;   // 같은 코스(되돌린 주소) - 그대로
         if (hike.running) stopHike();
-        if (m) loadCourse(decodeURIComponent(m[1]));
+        if (m) loadCourse(hid);
         else {
             showPick();
             if (/^#rec\b/.test(location.hash)) showRecords();   // 코스 미리보기의 '📒 내 기록'

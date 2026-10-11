@@ -68,9 +68,12 @@ CREATE DATABASE routefly CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 -- 웹은 읽기만 합니다(config.properties.example) - SELECT 만
 CREATE USER 'routefly_web'@'localhost' IDENTIFIED BY '<새 비밀번호>';
 GRANT SELECT ON routefly.* TO 'routefly_web'@'localhost';
--- 배치(9장)용 - 표를 만들고 고치므로 쓰기 권한까지
+-- 배치(9장)용 - 코스를 넣고 지우므로 쓰기 권한까지. 표 만들기 · 고치기(DDL)는 배치가 하지 않으므로 주지 않습니다
+-- (2026-10-11 오픈 전 점검: 배치가 잘못되거나 뚫려도 표를 DROP 할 수 없게. 표는 9-4 처럼 관리자로)
 CREATE USER 'routefly_batch'@'localhost' IDENTIFIED BY '<다른 새 비밀번호>';
-GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, DROP ON routefly.* TO 'routefly_batch'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON routefly.* TO 'routefly_batch'@'localhost';
+-- 웹 계정은 쿼리 하나가 5초를 넘으면 DB 가 끊음(무거운 요청이 연결을 오래 묶지 않게)
+ALTER USER 'routefly_web'@'localhost' WITH MAX_STATEMENT_TIME 5;
 EXIT;
 ```
 
@@ -91,7 +94,10 @@ sudo useradd -r -m -d /opt/tomcat -s /bin/false tomcat
 cd /tmp && wget https://dlcdn.apache.org/tomcat/tomcat-11/v11.0.X/bin/apache-tomcat-11.0.X.tar.gz
 sudo tar xzf apache-tomcat-11.0.X.tar.gz -C /opt/tomcat --strip-components=1
 sudo rm -rf /opt/tomcat/webapps/{ROOT,docs,examples,manager,host-manager}   # 기본 예제 · 관리 화면은 지움
-sudo chown -R tomcat: /opt/tomcat
+# 톰캣 프로그램 · 설정은 root 것(뚫려도 server.xml · 프로그램을 못 고치게), 톰캣은 쓰는 곳만 - 2026-10-11 오픈 전 점검
+sudo chown -R root:tomcat /opt/tomcat && sudo chmod -R g+rX,o-rwx /opt/tomcat
+sudo chown -R tomcat: /opt/tomcat/{logs,temp,work,webapps}
+sudo mkdir -p /opt/tomcat/conf/Catalina/localhost && sudo chown -R tomcat: /opt/tomcat/conf/Catalina   # 톰캣이 처음에 만드는 곳
 ```
 
 톰캣은 127.0.0.1 에서만 받게 합니다(밖에서는 Nginx 로만). `/opt/tomcat/conf/server.xml` 의 8080 Connector 에 `address="127.0.0.1"` 를 넣습니다:
@@ -99,6 +105,12 @@ sudo chown -R tomcat: /opt/tomcat
 ```xml
 <Connector port="8080" address="127.0.0.1" protocol="HTTP/1.1"
            connectionTimeout="20000" redirectPort="8443" />
+```
+
+같은 파일의 `<Host name="localhost" ...>` 안에 오류 화면이 톰캣 판 번호 · 오류 내용을 보이지 않게 넣습니다(2026-10-11 오픈 전 점검 - 없는 주소 404 에 "Apache Tomcat/11.0.x" 가 보였음):
+
+```xml
+<Valve className="org.apache.catalina.valves.ErrorReportValve" showReport="false" showServerInfo="false" />
 ```
 
 `/etc/systemd/system/tomcat.service`:
@@ -146,6 +158,19 @@ sudo apt -y install nginx certbot python3-certbot-nginx
 sudo rm /etc/nginx/sites-enabled/default
 ```
 
+`/etc/nginx/conf.d/routefly-common.conf` (2026-10-11 오픈 전 점검):
+
+```nginx
+server_tokens off;            # 응답에 nginx 판 번호를 넣지 않음
+# js · css 를 압축해서 보냄 - 지도 프로그램(maplibre-gl.js) 1,057KB → 275KB 등, 첫 방문이 약 1.4MB → 0.4MB.
+# /api 는 톰캣(GzipFilter)이 이미 압축하므로 nginx 는 그대로 넘깁니다(두 번 압축하지 않음)
+gzip on;
+gzip_proxied any;
+gzip_min_length 1024;
+gzip_types application/javascript text/javascript text/css image/svg+xml application/manifest+json;
+gzip_vary on;
+```
+
 `/etc/nginx/sites-available/routefly` 에 아래 6-1 또는 6-2 중 하나를 넣고:
 
 ```bash
@@ -181,6 +206,12 @@ server {
         client_max_body_size 2m;
     }
 }
+```
+
+certbot 이 위 파일에 `listen 443 ssl` 을 붙인 뒤, 그 443 server 블록 안에 한 줄 더 넣습니다(HTTPS 만 쓰라고 브라우저에 알림 - 톰캣은 Nginx 뒤라 https 인지 몰라 HSTS 를 못 붙임):
+
+```nginx
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 ```
 
 ### 6-2. Cloudflare 를 앞에 둘 때
@@ -310,7 +341,10 @@ chmod +x bin/routefly-batch.sh
 nano deploy/conf/batch.properties                  # 서버용으로 새로(아래)
 nano deploy/conf/databases.xml                     # url jdbc:mariadb://127.0.0.1:3306/routefly, routefly_batch 계정
 sudo chown -R routefly: /app/routefly/batch
-sudo chmod 600 deploy/conf/batch.properties deploy/conf/databases.xml
+# 프로그램(bin · jar · 쿼리 XML)은 root 것 - 배치가 받은 자료를 읽다 뚫려도 자기 프로그램을 고쳐 남지 못하게(2026-10-11 오픈 전 점검)
+sudo chown -R root:routefly bin deploy/lib deploy/conf/sql && sudo chmod -R g+rX,o-rwx bin deploy/lib deploy/conf/sql
+sudo chown root:routefly deploy/conf/batch.properties deploy/conf/databases.xml
+sudo chmod 640 deploy/conf/batch.properties deploy/conf/databases.xml   # routefly 는 읽기만
 ```
 
 서버용 `batch.properties` 는 `batch.properties.example` 을 바탕으로 만들고 이것만 다르게 둡니다.
@@ -343,6 +377,12 @@ WorkingDirectory=/app/routefly/batch
 ExecStart=/app/routefly/batch/bin/routefly-batch.sh
 Restart=on-failure
 RestartSec=60
+# 2026-10-11 오픈 전 점검: 권한을 더 얻지 못하게 · /usr /boot /etc 는 읽기만 · 집 폴더 · /tmp 는 따로, 새 파일은 남이 못 읽게
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+UMask=0027
 
 [Install]
 WantedBy=multi-user.target

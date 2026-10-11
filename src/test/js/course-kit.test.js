@@ -129,6 +129,8 @@ near("distM", RF.distM(37, 127, 37.001, 127), 111, 1);
     gwStamps[RF.stampKey("삼척임원무인인증센터")] = { t: 2 };
     eq("긴 공식 이름도 맞음", RF.seriesProgress({ centers: ["통일전망대", "임원", "망상해변"] }, gwStamps, {}), { got: 2, of: 3 });
     eq("없으면 null", RF.stampOf(gwStamps, "망상해변"), null);
+    eq("주소 풀기", RF.safeDecode("%EC%A7%80%EB%A6%AC%EC%82%B0"), "지리산");
+    eq("깨진 주소는 null(화면이 멈추지 않게)", RF.safeDecode("%E0"), null);
     eq("숲길 진행", RF.seriesProgress({ prefix: "kmf-9900000006-", courses: 21 }, {}, { "kmf-9900000006-1": 1, "kmf-9900000006-2": 1, "kmf-9900000002-1": 1 }), { got: 2, of: 21 });
 })();
 

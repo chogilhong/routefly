@@ -33,10 +33,31 @@ public class DbPoolTest {
     public void defaultsMatchExample() throws Exception {
         assertEquals(10, Db.DEFAULT_MAX_ACTIVE);
         assertEquals(5, Db.DEFAULT_MAX_IDLE);
-        assertEquals(20_000, Db.CHECKOUT_TIME_MS);
+        assertEquals("여러 쿼리를 잇는 요청보다 넉넉히(문이 연결 수만큼만 들여보냄)", 120_000, Db.CHECKOUT_TIME_MS);
         String ex = new String(Files.readAllBytes(Paths.get("src/main/resources/config.properties.example")), StandardCharsets.UTF_8);
         assertTrue(ex.contains("db.pool.maxActive=10"));
         assertTrue(ex.contains("db.pool.maxIdle=5"));
+    }
+
+    /** 2026-10-11 오픈 전 점검: 연결을 닫으면 문(세마포어)을 한 번만 다시 엶 - 두 번 닫아도 자리가 늘지 않게. */
+    @Test
+    public void gateReleasedOnceOnClose() throws Exception {
+        int[] closed = {0};
+        java.sql.Connection fake = (java.sql.Connection) java.lang.reflect.Proxy.newProxyInstance(java.sql.Connection.class.getClassLoader(),
+                new Class<?>[] {java.sql.Connection.class}, (proxy, m, args) -> {
+                    if ("close".equals(m.getName())) closed[0]++;
+                    if ("isClosed".equals(m.getName())) return closed[0] > 0;
+                    return null;
+                });
+        java.util.concurrent.Semaphore g = new java.util.concurrent.Semaphore(1);
+        g.acquire();
+        java.sql.Connection c = Db.released(fake, g);
+        assertEquals(0, g.availablePermits());
+        c.close();
+        c.close();
+        assertEquals("한 번만 돌려줌", 1, g.availablePermits());
+        assertEquals("실제 연결 close 는 그대로 넘김", 2, closed[0]);
+        assertTrue(c.isClosed());
     }
 
     /** 풀을 닫지 않으면 이클립스 F5 때마다 옛 연결이 남습니다 - 웹앱 종료 처리에서 닫아야 합니다. */

@@ -41,17 +41,24 @@ final class RateLimiter {
         return buckets.size();
     }
 
-    /** 순수 함수 - IPv6 는 앞 64비트(한 집 · 한 회선이 받는 범위)로 묶습니다. IPv4 · 그 밖은 그대로. */
+    /**
+     * 순수 함수 - IPv6 는 앞 64비트(한 집 · 한 회선이 받는 범위)로 묶습니다. IPv4 · 그 밖은 그대로.
+     * 2026-10-11 오픈 전 점검: 예전에는 "::" 줄임 표기를 앞쪽만 보고 나머지를 0 으로 채워 다른 집끼리 한 물통이 되었고,
+     * ::ffff:1.2.3.4(IPv4 를 담은 꼴)는 모두 0:0:0:0 하나로 묶였음 - 주소를 바이트로 풀어 셉니다(숫자 · : · . 만 - 이름 조회 없음).
+     */
     static String group(String ip) {
-        if (ip == null || ip.indexOf(':') < 0) return ip == null ? "?" : ip;
-        String[] p = ip.split(":", -1);
-        if (ip.contains("::")) {   // 줄인 표기 - 앞쪽 무리만 보고 모자라면 0
-            String head = ip.substring(0, ip.indexOf("::"));
-            p = head.isEmpty() ? new String[0] : head.split(":");
+        if (ip == null) return "?";
+        if (ip.indexOf(':') < 0 || !ip.matches("[0-9A-Fa-f:.]{2,45}")) return ip;
+        try {
+            java.net.InetAddress a = java.net.InetAddress.getByName(ip);
+            if (a instanceof java.net.Inet4Address) return a.getHostAddress();   // ::ffff:1.2.3.4 → 1.2.3.4
+            byte[] b = a.getAddress();
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < 8; i += 2) sb.append(Integer.toHexString(((b[i] & 0xff) << 8) | (b[i + 1] & 0xff))).append(':');
+            return sb.append(":/64").toString();
+        } catch (java.net.UnknownHostException e) {
+            return ip;
         }
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < 4; i++) sb.append(i < p.length && !p[i].isEmpty() ? p[i].toLowerCase(java.util.Locale.ROOT) : "0").append(':');
-        return sb.append(":/64").toString();
     }
 
     private void sweep(long now) {

@@ -1,7 +1,12 @@
 package com.gh.routefly.web;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.ibatis.datasource.pooled.PooledDataSource;
 
@@ -17,7 +22,8 @@ final class Db {
 
     static final int DEFAULT_MAX_ACTIVE = 10;
     static final int DEFAULT_MAX_IDLE = 5;
-    static final int CHECKOUT_TIME_MS = 20_000;
+    /** 풀이 오래 쓰는 연결을 빼앗는 기준 - 문(gate)이 연결 수만큼만 들여보내 빼앗을 일이 없지만, 여러 쿼리를 잇는 요청(15초 × 몇 번)보다 넉넉히. */
+    static final int CHECKOUT_TIME_MS = 120_000;
     /** 이만큼 쉬었던 연결은 빌려 주기 전에 SELECT 1 로 살아 있는지 봅니다(밤새 쉬면 DB 의 wait_timeout 으로 끊겨 있음). */
     static final int PING_IDLE_MS = 5 * 60_000;
 
@@ -26,12 +32,51 @@ final class Db {
     static final int POOL_WAIT_MS = 2_000;
 
     private static volatile PooledDataSource pool;
+    /**
+     * 2026-10-11 오픈 전 점검: 풀의 기다림(POOL_WAIT_MS)은 시간이 지나도 다시 기다려 끝이 없었고, 연결이 모자라면 20초 넘게 쓰는 연결을
+     * 빼앗아 갔음 - 느린 요청이 몰리면 톰캣 일꾼이 모두 묶여 화면 전체가 멈춤. 연결 수만큼만 들여보내고 2초 안에 못 받으면 곧바로 실패.
+     */
+    private static volatile Semaphore gate;
 
     private Db() {
     }
 
     static Connection open() throws SQLException {
-        return pool().getConnection();
+        PooledDataSource p = pool();
+        Semaphore g = gate;
+        try {
+            if (!g.tryAcquire(POOL_WAIT_MS, TimeUnit.MILLISECONDS)) throw new SQLException("DB 연결이 모두 쓰이는 중입니다(" + POOL_WAIT_MS + "ms)");
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new SQLException("DB 연결을 기다리다 멈췄습니다", e);
+        }
+        try {
+            return released(p.getConnection(), g);
+        } catch (SQLException | RuntimeException e) {
+            g.release();
+            throw e;
+        }
+    }
+
+    /** close() 할 때 한 번만 문을 다시 열어 주는 연결(나머지는 그대로 넘김). */
+    static Connection released(Connection c, Semaphore g) {
+        AtomicBoolean done = new AtomicBoolean();
+        return (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(), new Class<?>[] {Connection.class}, (proxy, m, args) -> {
+            if ("close".equals(m.getName()) && (args == null || args.length == 0)) {
+                try {
+                    return m.invoke(c);
+                } catch (InvocationTargetException e) {
+                    throw e.getCause();
+                } finally {
+                    if (done.compareAndSet(false, true)) g.release();
+                }
+            }
+            try {
+                return m.invoke(c, args);
+            } catch (InvocationTargetException e) {
+                throw e.getCause();
+            }
+        });
     }
 
     private static PooledDataSource pool() throws SQLException {
@@ -51,13 +96,15 @@ final class Db {
             url = withSocketTimeout(url, SOCKET_TIMEOUT_MS);
             PooledDataSource ds = new PooledDataSource("org.mariadb.jdbc.Driver", url,
                     RouteflyConfig.get("db.user"), RouteflyConfig.get("db.password"));
-            ds.setPoolMaximumActiveConnections(poolSize(RouteflyConfig.get("db.pool.maxActive"), DEFAULT_MAX_ACTIVE));
+            int max = poolSize(RouteflyConfig.get("db.pool.maxActive"), DEFAULT_MAX_ACTIVE);
+            ds.setPoolMaximumActiveConnections(max);
             ds.setPoolMaximumIdleConnections(poolSize(RouteflyConfig.get("db.pool.maxIdle"), DEFAULT_MAX_IDLE));
             ds.setPoolMaximumCheckoutTime(CHECKOUT_TIME_MS);
             ds.setPoolTimeToWait(POOL_WAIT_MS);
             ds.setPoolPingEnabled(true);
             ds.setPoolPingQuery("SELECT 1");
             ds.setPoolPingConnectionsNotUsedFor(PING_IDLE_MS);
+            gate = new Semaphore(max, true);
             pool = ds;
             return ds;
         }

@@ -217,7 +217,7 @@ body.compact #statGrids { display:none; }
 /* 코스 없이 열면 첫 그림부터 코스 고르기 - 지도 · 스크립트를 받는 동안 뒤의 코스 화면이 잔상처럼 보였음(2026-10-11 홍TV님, 핸드폰) */
 html.picking #pick { display:flex; }
 </style>
-<script>if (!/[#&]c=/.test(location.hash)) document.documentElement.className += " picking";</script>
+<script src="js/early.js"></script>
 </head>
 <body>
 <div id="top">
@@ -454,9 +454,6 @@ html.picking #pick { display:flex; }
 <script src="vendor/maplibre-gl-5.24.0/maplibre-gl.js"></script>
 <script src="js/course-kit.js"></script>
 <script src="js/hike.js"></script>
-<script>
-// 홈 화면에 추가 · 오프라인 - https(또는 localhost)에서만 됩니다
-if ("serviceWorker" in navigator && window.isSecureContext) navigator.serviceWorker.register("sw.js").catch(function () {});
-</script>
+<script src="js/sw-reg.js"></script>
 </body>
 </html>
