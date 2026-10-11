@@ -39,7 +39,9 @@ $classes = @(if ($Only.Count -gt 0) { $Only | ForEach-Object { "com.gh.routefly.
     ForEach-Object { ($_.FullName.Substring($testOut.Length + 1) -replace '\.class$','') -replace '\\','.' }
 })
 Push-Location $root
-& "$jdk\java.exe" -cp "$testOut;$mainOut;$cp" org.junit.runner.JUnitCore @classes
+# src\main\resources (knps-maps.properties etc.) must be on the class path too - 2026-10-11 ParkServletTest
+$resDir = Join-Path $root 'src\main\resources'
+& "$jdk\java.exe" -cp "$testOut;$mainOut;$resDir;$cp" org.junit.runner.JUnitCore @classes
 $rc = $LASTEXITCODE
 Pop-Location
 exit $rc

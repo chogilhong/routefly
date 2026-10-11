@@ -14,7 +14,8 @@ public class ParkServletTest {
         assertTrue(ParkServlet.PARKS.contains("한려해상"));
         assertEquals("한글 주소가 깨지지 않음(UTF-8) · 휴대폰에 가벼운 등급지도",
                 "https://www.knps.or.kr/download/park/map/지리산국립공원탐방로등급지도.jpg", ParkServlet.officialMap("지리산"));
-        assertEquals("https://www.knps.or.kr/download/park/map/map120400.pdf", ParkServlet.officialMap("설악산"));
+        assertEquals("PDF 는 PC 브라우저에서 내려받기로 넘어가 JPG 로", "https://www.knps.or.kr/download/park/map/설악산국립공원탐방로등급지도.jpg",
+                ParkServlet.officialMap("설악산"));
         assertNull("한라산은 제주도 소관이라 저작권 확인 전까지 뺌", ParkServlet.officialMap("한라산"));
         for (String p : ParkServlet.PARKS) {
             String u = ParkServlet.officialMap(p);
@@ -25,6 +26,12 @@ public class ParkServletTest {
         assertTrue(ParkServlet.MOUNTAIN.matcher("마이산").matches());
         assertFalse(ParkServlet.MOUNTAIN.matcher("모악산'; DROP").matches());
         assertFalse(ParkServlet.MOUNTAIN.matcher("송산 정상").matches());
+        // 대구 팔공산에만 공식 지도(진안 팔공산 35.73/127.59 는 아님)
+        assertTrue(ParkServlet.nearCenter("팔공산", new double[] {128.70, 36.02}));
+        assertFalse(ParkServlet.nearCenter("팔공산", new double[] {127.59, 35.73}));
+        assertFalse(ParkServlet.nearCenter("모악산", new double[] {127.0, 35.7}));
+        assertTrue(ParkServlet.inside(new double[] {127.6, 35.3}, new double[] {127.5, 35.2, 127.8, 35.4}, 0.1));
+        assertFalse("서산 가야산은 합천 가야산 공원이 아님", ParkServlet.inside(new double[] {126.6, 36.7}, new double[] {128.0, 35.7, 128.2, 35.9}, 0.1));
         assertNull("아직 확인 안 한 공원은 단추 없음", ParkServlet.officialMap("없는공원"));
     }
 }

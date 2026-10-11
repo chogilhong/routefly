@@ -413,7 +413,7 @@
             $("hud").style.display = "block";
             $("mini").style.display = "block";
             $("hikeLink").href = "hike.html#c=" + encodeURIComponent(id);
-            var park = RF.parkOf(j.course.name) || RF.mountainOf(j.course.name);   // 국립공원, 아니면 도립 · 군립공원 · 산   // 국립공원 코스면 공원 전체 보기
+            var park = RF.parkOf(j.course.name) || RF.mountainOf(j.course.name, id);   // 국립공원, 아니면 도립 · 군립공원 · 산
             $("parkLink").style.display = park ? "" : "none";
             if (park) {
                 $("parkLink").href = "park.html?name=" + encodeURIComponent(park) + "&from=" + encodeURIComponent(id);

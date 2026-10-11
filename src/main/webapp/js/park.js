@@ -90,6 +90,14 @@
         map.on("mouseenter", "trails-hit", function () { map.getCanvas().style.cursor = "pointer"; });
         map.on("mouseleave", "trails-hit", function () { map.getCanvas().style.cursor = ""; });
 
+        // 위험 · 조망 아이콘을 먼저 붙여 이름표 아래로(2026-10-11 PC: 천왕봉 · 피아골 둘레에서 아이콘이 이름 글자를 가렸음)
+        (data.spots || []).forEach(function (sp) {
+            var e = document.createElement("div");
+            e.className = "spot";
+            e.textContent = RF.spotIcon(sp.kind);
+            e.title = RF.spotText(sp);
+            new maplibregl.Marker({ element: e }).setLngLat([+sp.lon, +sp.lat]).addTo(map);
+        });
         // 이름표 - 높은 봉우리 먼저 보이게(겹치면 낮은 것을 숨김)
         data.places.forEach(function (p) {
             var e = document.createElement("div");
@@ -99,13 +107,6 @@
             e.querySelector(".lb").textContent = p.name + (p.ele_m != null && RF.isTopName(p.name) ? " " + RF.num(p.ele_m) + "m" : "");
             new maplibregl.Marker({ element: e, anchor: "bottom" }).setLngLat([+p.lon, +p.lat]).addTo(map);
             places.push({ el: e, prio: -(p.ele_m == null ? 0 : +p.ele_m) - (RF.isTopName(p.name) ? 5000 : 0) });
-        });
-        (data.spots || []).forEach(function (sp) {
-            var e = document.createElement("div");
-            e.className = "spot";
-            e.textContent = RF.spotIcon(sp.kind);
-            e.title = RF.spotText(sp);
-            new maplibregl.Marker({ element: e }).setLngLat([+sp.lon, +sp.lat]).addTo(map);
         });
         var timer = 0;
         map.on("render", function () {
@@ -124,7 +125,7 @@
         if (from) $("back").href = "hike.html#c=" + encodeURIComponent(from);
         Promise.all([
             getJson("api/map-config").catch(function () { return {}; }),
-            getJson("api/park?name=" + encodeURIComponent(park))
+            getJson("api/park?name=" + encodeURIComponent(park) + (from ? "&from=" + encodeURIComponent(from) : ""))
         ]).then(function (r) {
             cfg = { demUrl: r[0].demUrl || "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png", vworldKey: r[0].vworldKey || null };
             data = r[1];

@@ -91,20 +91,29 @@ public class ParkServlet extends HttpServlet {
             double[] box = {180, 90, -180, -90};
             JsonArray trails = new JsonArray();
             List<String> ids = new java.util.ArrayList<>();
+            double[] at = from == null ? null : center(c, from);
             boolean national = known && collect(c, "SELECT course_id, name, distance_m, ascent_m, min_lon, min_lat, max_lon, max_lat, ST_AsText(path)"
                     + " FROM route_course WHERE course_id LIKE 'knps-%' AND name LIKE ? ORDER BY name", new Object[] {park + " · %"}, trails, ids, box) > 0;
+            // 같은 이름의 다른 산(서산 가야산 · 진안 팔공산 …)이면 국립공원 화면이 아님 - from 코스가 그 공원 탐방로 범위(+약 10km) 밖
+            if (national && at != null && !inside(at, box, NEAR_PARK_DEG)) {
+                national = false;
+                trails = new JsonArray();
+                ids.clear();
+                box = new double[] {180, 90, -180, -90};
+            }
+            boolean officialHere = national || known && at != null && nearCenter(park, at);
             if (!national) {
                 // 도립 · 군립공원 · 다른 산 - from 코스 둘레의 같은 산 이름 코스(국립공원인데 공단 탐방로가 없을 때도 - 팔공산은 2023년 지정)
-                double[] at = from == null ? null : center(c, from);
                 if (at == null) {
                     Json.fail(resp, HttpServletResponse.SC_BAD_REQUEST, "from 은 그 산의 코스 ID 입니다(같은 이름 산이 여러 곳이라).");
                     return;
                 }
                 double lonPad = AROUND_DEG / Math.max(0.2, Math.cos(Math.toRadians(at[1])));
                 collect(c, "SELECT course_id, name, distance_m, ascent_m, min_lon, min_lat, max_lon, max_lat, ST_AsText(path) FROM route_course"
-                        + " WHERE (name LIKE ? OR name LIKE ?) AND kind IN ('hike', 'trek', 'walk')"
+                        + " WHERE name LIKE ? AND kind IN ('hike', 'trek', 'walk')"
                         + " AND max_lat >= ? AND min_lat <= ? AND max_lon >= ? AND min_lon <= ? ORDER BY name LIMIT " + MOUNTAIN_LIMIT,
-                        new Object[] {park + " %", park + "(%", at[1] - AROUND_DEG, at[1] + AROUND_DEG, at[0] - lonPad, at[0] + lonPad}, trails, ids, box);
+                        // 이름 어디에 있어도(산림청 코스는 앞에 시 · 군 - "김제 모악산 · …", "논산 대둔산 마천대 · …" - 2026-10-11 PC)
+                        new Object[] {"%" + park + "%", at[1] - AROUND_DEG, at[1] + AROUND_DEG, at[0] - lonPad, at[0] + lonPad}, trails, ids, box);
             }
             if (trails.size() == 0) {
                 Json.fail(resp, HttpServletResponse.SC_NOT_FOUND, park + " 코스가 아직 없습니다.");
@@ -114,7 +123,7 @@ public class ParkServlet extends HttpServlet {
             out.addProperty("success", true);
             out.addProperty("park", park);
             out.addProperty("national", national);
-            String map = known ? officialMap(park) : null;
+            String map = officialHere ? officialMap(park) : null;
             if (map == null) out.add("map", JsonNull.INSTANCE); else out.addProperty("map", map);
             out.add("trails", trails);
             JsonArray bbox = new JsonArray();
@@ -159,6 +168,29 @@ public class ParkServlet extends HttpServlet {
             }
         }
         return n;
+    }
+
+    /** 국립공원 탐방로 범위 밖으로 이만큼(도, 약 10km)까지는 그 공원으로 봄. */
+    static final double NEAR_PARK_DEG = 0.1;
+
+    /**
+     * 공단 2017 탐방로 자료에 없는 국립공원의 가운데 {경도, 위도} - 같은 이름 다른 산에 공식 지도 단추가 나오지 않게(2026-10-11 PC: 진안 팔공산).
+     * 팔공산 비로봉 · 태백산 천제단 둘레.
+     */
+    static final java.util.Map<String, double[]> PARK_CENTER = java.util.Map.of("팔공산", new double[] {128.695, 36.016}, "태백산", new double[] {128.916, 37.096});
+
+    /** 이 반경(도, 약 20km) 안이면 PARK_CENTER 의 공원. */
+    static final double PARK_CENTER_DEG = 0.2;
+
+    /** 순수 함수 - {경도, 위도} 가 범위(+pad 도) 안인가. */
+    static boolean inside(double[] at, double[] box, double pad) {
+        return at[0] >= box[0] - pad && at[0] <= box[2] + pad && at[1] >= box[1] - pad && at[1] <= box[3] + pad;
+    }
+
+    /** 순수 함수 - 공단 탐방로가 없는 국립공원의 가운데 둘레인가. */
+    static boolean nearCenter(String park, double[] at) {
+        double[] c = PARK_CENTER.get(park);
+        return c != null && Math.abs(at[0] - c[0]) <= PARK_CENTER_DEG && Math.abs(at[1] - c[1]) <= PARK_CENTER_DEG;
     }
 
     /** 코스 범위 가운데 {경도, 위도}. 없으면 null. */

@@ -285,10 +285,17 @@
 
     /**
      * 순수 함수 - 코스 이름 맨 앞의 산 이름("모악산 · 화율봉 → 모악산" · "마이산 자락 2코스" · "대둔산(마천대) 1코스" → 모악산 · 마이산 · 대둔산).
+     * id 가 산림청 코스(frst-)면 앞의 시 · 군 낱말을 건너뜀.
      * 도립 · 군립공원과 다른 산의 전체 보기용(2026-10-11 홍TV님). 국립공원이면 parkOf 가 먼저. 산 이름이 아니면 null.
      */
-    function mountainOf(name) {
-        var m = /^\[?([가-힣]{1,12}(산|봉|악|령|대))(?=[\s·(\]]|$)/.exec(String(name || "").trim());
+    function mountainOf(name, id) {
+        var n = String(name || "").replace(/^\[|\]/g, "").trim();
+        // 산림청 코스(frst-)는 앞에 시 · 군 - "김제 모악산 · …", "논산 대둔산 마천대 · …" 는 둘째 낱말(2026-10-11 PC)
+        if (/^frst-/.test(id || "")) {
+            var head = n.split(" · ")[0].split(/\s+/);
+            if (head.length >= 2 && /^[가-힣]{1,12}(산|봉|악|령|대)(\(.*\))?$/.test(head[1])) n = head.slice(1).join(" ");
+        }
+        var m = /^([가-힣]{1,12}(산|봉|악|령|대))(?=[\s·(]|$)/.exec(n);
         return m ? m[1] : null;
     }
 
