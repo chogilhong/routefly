@@ -1887,12 +1887,17 @@
     // 마지막 검색어 · 종류 - 코스에 들어갔다 돌아와도(새로 고침 · 앱 다시 열기 포함) 그대로.
     // 2026-10-09 홍TV님: 코스 미리보기(index.html · app.js)와 같은 열쇠 - 한쪽에서 '지리산' 을 넣고 넘어가면 다른 쪽에도.
     var SEARCH_KEY = "rf-search";
+    // 처음 안내 글 - 검색어를 지워 비우면 다시(2026-10-11 홍TV님: 지운 뒤에도 지리산 목록이 남았음).
+    // 빈 채로 종류 탭만 누를 때(내 주변 코스 목록)는 그대로 둡니다
+    var PICK_HINT = $("pickList").innerHTML, lastQ = "";
     $("q").addEventListener("input", function () {
         clearTimeout(searchTimer);
         var q = this.value.trim();
         try { localStorage.setItem(SEARCH_KEY, JSON.stringify({ q: q, kind: kindFilter })); } catch (e) { /* 무시 */ }
         // 2026-10-10 점검: 검색창을 비우면 순번을 올려, 비우기 전에 보낸 검색 응답(성공 · 실패)이 늦게 와도 버립니다
-        if (!q) { pickSeq++; return; }
+        var wasQ = lastQ;
+        lastQ = q;
+        if (!q) { pickSeq++; if (wasQ) $("pickList").innerHTML = PICK_HINT; return; }
         searchTimer = setTimeout(function () {
             var my = ++pickSeq;
             getJson("api/courses?q=" + encodeURIComponent(q) + (kindFilter ? "&kind=" + kindFilter : ""))
