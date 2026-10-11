@@ -52,3 +52,51 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다(route_course · 
 ## 7. 관련 저장소
 
 - routefly-batch: 코스를 만들어 DB 에 담는 배치(fxms 프레임워크 - 클라우드에서는 빌드 안 됨). 표 · 칸 이름을 바꾸면 양쪽을 함께 고칩니다.
+
+## 8. PC 에서 작업할 때 (PC Claude)
+
+홍TV님 PC 의 Claude 가 지킬 것입니다(2026-10-11 PC 메모에서 옮김). 웹(클라우드) Claude 는 참고만 합니다.
+
+### 보고
+- 보고 끝에 늘 "웹 Claude 에게 전할 말" 코드 블록을 붙입니다(홍TV님이 웹으로 옮겨 붙임).
+- 승인 창 · 터미널 대화 상자는 PC Claude 가 볼 수 없습니다. 떴는지는 홍TV님께 묻습니다.
+- 메모 · 코드 주석에 남은 "사장님" 은 예전 호칭입니다. 고치지 않습니다.
+- 세션은 그 저장소 폴더에서 엽니다. `.claude/settings.json` 과 메모는 세션을 연 폴더 것만 적용됩니다.
+
+### 승인 · 금지
+- 접근할 수 있는 폴더: `C:\GH\workspace`, `C:\GH\tomcat`, `D:\nginx-1.30.5\conf`, Claude 메모 폴더.
+  그 밖은 guard.ps1 훅이 막습니다(`C:\GH\config`, 배치 `deploy\conf` 의 batch.properties · databases.xml, tomcat-users.xml, Temp · AppData 등). 밖이 꼭 필요할 때만 승인을 요청합니다.
+- 읽기만 하는 명령(Get-Process, netstat 등)은 승인 없이 바로 씁니다.
+- 키 · 비밀번호는 대화에 붙이지도, 입력 칸에 넣지도 않습니다(로그인 · 키 입력은 홍TV님).
+- 파일 내려받기는 부탁받은 것만. 그 밖은 묻고 받습니다. 받은 압축 · 실행 파일은 새 빈 폴더에서 엽니다.
+- DB 표를 지우는(DROP) 일은 먼저 홍TV님께 알립니다. DB 계정이 필요한 SQL 은 홍TV님이 실행합니다(PC Claude 는 DB 비밀번호를 못 읽음).
+- push: 웹 Claude 가 부탁한 커밋(테스트 데이터 · docs 등)은 push 합니다. 그 밖에 PC 에서 고친 코드는 홍TV님께 묻고 push 합니다.
+  PC 에서 고치기 전에는 fetch 로 웹 쪽 새 커밋부터 확인합니다.
+
+### 커밋
+- 메시지 끝: `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
+- 메시지는 BOM 없는 UTF-8 임시 파일에 써서 `git commit -F` (PowerShell `Set-Content -Encoding utf8` 은 BOM 이 붙어 깨진 적 있음).
+- 홍TV님 로컬 수정본은 커밋하지 않습니다(예: routefly `app/capacitor.config.json` · `capacitor.settings.gradle`, `app.old`, `app/android/.idea`). pull 은 `--autostash`.
+
+### PC 경로 · 도구
+- JDK `C:\GH\java\jdk-21\bin`, Node `C:\Program Files\nodejs` (PATH 에 없으면 `$env:Path` 를 Machine + User 로 다시 읽음).
+- 톰캣(이클립스 WTP) 배포 폴더: `C:\GH\workspace\.metadata\.plugins\org.eclipse.wst.server.core\tmp0\wtpwebapps\<앱>`, 로그: `tmp0\logs\`. nginx: `D:\nginx-1.30.5\conf\nginx.conf`.
+- 주소: routefly http://localhost:8080/routefly/.
+- GitHub: Git Credential Manager 에 저장, `GCM_INTERACTIVE=never`.
+- 셸은 Bash 대신 PowerShell(승인 줄이기), 파일 읽기 · 검색은 Read · Grep · Glob, 브라우저는 browser_batch 로 묶습니다.
+
+### 배포 - PC Claude 가 이클립스 F5 대신 복사 배포
+- `target\claude-test\main` 의 class · webapp 파일을 `wtpwebapps\<앱>` 으로 복사(robocopy /XO), 리소스(src/main/resources)도 `WEB-INF\classes` 로.
+- 새 클래스만 복사하면 재로드가 안 걸립니다. 이미 로드된 설정 클래스(AppVersion · InvestingConfig · RouteflyConfig)의 시각을 바꿔 재시작을 유도합니다.
+- static final 상수가 바뀌면 그 값을 쓰는 클래스도 같이 복사합니다(예: AppVersion.VERSION → AppLifecycleListener).
+- 배포 뒤 기동 로그(버전 줄 · 설정 줄)로 확인합니다. 이클립스가 동시에 반영 중이면 복사가 막힐 수 있으니 홍TV님께 Tomcat Restart 를 부탁합니다.
+- 되돌려 확인을 자바 파일 `git checkout` 으로 하면 이클립스 자동 배포로 웹앱이 내려갑니다. target 아래 복사본으로 하거나 컴파일 실패로 갈음합니다.
+  JS 문법은 `wtpwebapps\ROOT` 임시 폴더 + `new Function` 으로 보고 지웁니다.
+
+### routefly 만
+- 터널(cloudflared 빠른 터널)을 다시 켜면 앱 주소를 바꿔 다시 깔아 줍니다.
+  1. `127.0.0.1:20241/quicktunnel` 에서 새 주소 읽기
+  2. `app/capacitor.config.json` 의 server.url 고치기(로컬 수정본, 커밋하지 않음)
+  3. `npx cap sync android`
+  4. `app\android` 에서 JAVA_HOME 을 Android Studio jbr 로 두고 `gradlew installDebug` (핸드폰 USB 연결 필요)
+- 서버로 옮기는 순서는 `docs/deploy-lightsail.md`.
