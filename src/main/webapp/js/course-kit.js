@@ -303,6 +303,34 @@
     }
 
     /** 순수 함수 - 인증센터 도장 열쇠("섬진강댐인증센터" · "섬진강댐 인증센터" · "섬진강댐" → "섬진강댐"). */
+    /**
+     * 위치를 서버로 보내지 않기(2026-10-11 위치기반서비스 비신고 요건 ② - 위치는 단말기에서만 쓰고 사업자 시스템으로 보내지 않음):
+     * 내 둘레 코스를 찾을 때 서버에는 모든 사용자에게 같은 고정 격자 칸(GRID_DEG, 약 10km)만 물어, 요청이 내 위치를 담지 않게 합니다
+     * (그 칸으로 지도를 옮겨 본 사람과 같은 요청). 거리 계산 · 고르기는 핸드폰이 합니다.
+     */
+    var GRID_DEG = 0.1;
+
+    /** 순수 함수 - 범위 [서, 남, 동, 북] 을 고정 격자 칸 경계로 바깥쪽으로 넓힘. */
+    function snapOut(bb, cell) {
+        cell = cell || GRID_DEG;
+        var k = 1e6;   // 0.1 배수의 소수 오차(0.30000000000000004) 없이
+        function down(v) { return Math.round(Math.floor(v / cell + 1e-9) * cell * k) / k; }
+        function up(v) { return Math.round(Math.ceil(v / cell - 1e-9) * cell * k) / k; }
+        return [down(bb[0]), down(bb[1]), up(bb[2]), up(bb[3])];
+    }
+
+    /** 순수 함수 - 범위와 겹치는 고정 격자 칸들([서, 남, 동, 북] 목록, 칸마다 한 번 물으면 칸마다 목록 한도까지 받음). */
+    function gridCells(bb, cell) {
+        cell = cell || GRID_DEG;
+        var s = snapOut(bb, cell), out = [], k = 1e6;
+        for (var x = s[0]; x < s[2] - 1e-9; x = Math.round((x + cell) * k) / k) {
+            for (var y = s[1]; y < s[3] - 1e-9; y = Math.round((y + cell) * k) / k) {
+                out.push([x, y, Math.round((x + cell) * k) / k, Math.round((y + cell) * k) / k]);
+            }
+        }
+        return out;
+    }
+
     /** 순수 함수 - 주소의 % 글자 풀기. 깨진 값(#c=%E0)이면 예외 대신 null - 화면이 멈추지 않게(2026-10-11 오픈 전 점검). */
     function safeDecode(s) {
         try { return decodeURIComponent(s); } catch (e) { return null; }
@@ -1160,7 +1188,7 @@
     }
 
     global.RF = {
-        LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, stampKey: stampKey, stampOf: stampOf, safeDecode: safeDecode, stampsDue: stampsDue, isComplete: isComplete, seriesProgress: seriesProgress, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
+        LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, stampKey: stampKey, stampOf: stampOf, safeDecode: safeDecode, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, isComplete: isComplete, seriesProgress: seriesProgress, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
         sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
     };

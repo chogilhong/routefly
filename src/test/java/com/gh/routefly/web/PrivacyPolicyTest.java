@@ -21,9 +21,19 @@ public class PrivacyPolicyTest {
     @Test
     public void policyMatchesCode() throws Exception {
         String policy = read("src/main/webapp/privacy.html");
-        // "내 주변 코스" 는 약 1km 칸으로 뭉갠 자리만 보냄
-        assertTrue(policy.contains("약 1km 칸으로 뭉갠 자리"));
-        assertTrue(read("src/main/webapp/js/hike.js").contains("var qlat = Math.round(lat * 100) / 100, qlon = Math.round(lon * 100) / 100;"));
+        // 위치를 서버로 보내지 않음(위치기반서비스 비신고 요건 ②) - "내 주변 코스" 도 고정 격자 칸만
+        assertTrue(policy.contains("<b>고정된 지도 칸</b>(모든 사용자에게 같음)"));
+        assertTrue(policy.contains("운영자의 서버로 보내거나 저장하지 않습니다"));
+        String hike = read("src/main/webapp/js/hike.js"), app = read("src/main/webapp/js/app.js");
+        assertTrue(hike.contains("var cells = RF.gridCells([lon - rl, lat - r, lon + rl, lat + r]);"));
+        assertTrue(hike.contains("return getJson(\"api/courses?bbox=\" + bb.map(function (v) { return v.toFixed(1); })"));
+        assertTrue(app.contains("askBb = bb && list.near ? RF.snapOut(bb) : bb;"));
+        // 그 밖에 GPS 위치(pos.coords · co.latitude 등)를 서버 주소에 넣는 곳이 없어야 함 - api/ 주소를 만드는 줄에 위도 · 경도 변수가 없는지
+        for (String line : hike.split("\n")) {
+            if (line.contains("\"api/") && line.matches(".*\\b(lat|lon|coords|latitude|longitude)\\b.*") && !line.contains("bb.map")) {
+                fail("hike.js 가 위치를 api 주소에 넣는 것 같음: " + line.trim());
+            }
+        }
         // 접속 기록에 ?뒤를 남기지 않고 14 · 30일
         String deploy = read("docs/deploy-lightsail.md");
         assertTrue(deploy.contains("access_log /var/log/nginx/access.log routefly_noargs;"));

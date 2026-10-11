@@ -255,10 +255,14 @@
 
     function loadCourses() {
         var url = "api/courses?", bb = null, kind = list.kind;
+        var askBb = null;   // 서버에 묻는 범위(내 주변이면 고정 격자로 넓힌 것)
         if (list.q) url += "q=" + encodeURIComponent(list.q);
         else if (map) {
             bb = viewBbox();
-            if (bb) url += "bbox=" + bb.map(function (v) { return v.toFixed(2); }).join(",");
+            // 2026-10-11 위치기반서비스 비신고 요건 ②: '내 주변 코스' 로 내 위치에 맞춘 화면이면 그 범위가 곧 내 위치라,
+            // 모든 사용자에게 같은 고정 격자(RF.snapOut, 약 10km)로 넓혀 묻고 지금 화면 안만 핸드폰에서 거릅니다
+            askBb = bb && list.near ? RF.snapOut(bb) : bb;
+            if (askBb) url += "bbox=" + askBb.map(function (v) { return v.toFixed(2); }).join(",");
         }
         if (kind) url += "&kind=" + kind;   // 등산 · 걷기 · 자전거
         var seq = ++list.seq;
@@ -273,7 +277,12 @@
             }
         }
         return getJson(url).then(function (j) {
-            if (bb && !j.truncated) lastView = { bb: bb, kind: kind, courses: j.courses || [] };
+            if (askBb && !j.truncated) lastView = { bb: askBb, kind: kind, courses: j.courses || [] };
+            if (askBb && askBb !== bb) {   // 넓혀 물었으면 지금 화면 안만
+                j.courses = (j.courses || []).filter(function (x) {
+                    return +x.start_lon >= bb[0] && +x.start_lat >= bb[1] && +x.start_lon <= bb[2] && +x.start_lat <= bb[3];
+                });
+            }
             // 종류 탭(걷기 · 자전거)인데 지금 지도 범위에 하나도 없으면 전국에서 그 종류를 보여 줍니다
             // (둘레길 · 자전거길은 해안 · 강을 따라 있어 산을 보고 있으면 범위 밖일 때가 많습니다)
             if (bb && list.kind && !(j.courses || []).length) {

@@ -1926,21 +1926,35 @@
     });
 
     /** 내 주변(약 5km) 코스 - 지금 종류 탭(kindFilter)으로, 출발점이 가까운 순. */
+    /** 내 주변 코스를 볼 반지름(m) - 출발점이 이 안인 코스, 가까운 순. */
+    var NEAR_M = 5000;
+
+    /**
+     * 내 주변(약 5km) 코스 - 지금 종류 탭(kindFilter)으로, 출발점이 가까운 순.
+     * 2026-10-11 위치기반서비스 비신고 요건 ②: 서버에는 내 위치를 담은 범위를 보내지 않고, 모든 사용자에게 같은 고정 격자 칸
+     * (RF.gridCells, 약 10km)만 칸마다 묻습니다. 5km 안 고르기 · 거리 계산은 핸드폰이 정확한 위치로 합니다.
+     */
     function nearList(lat, lon) {
-        var r = 0.045, my = ++pickSeq;   // 약 5km
+        var r = 0.05, my = ++pickSeq;   // 5km 를 덮는 범위(위도 0.045° · 경도는 위도가 높을수록 넓게)
         nearAt = { lat: lat, lon: lon };
-        // 서버에는 약 1km 칸으로 뭉갠 자리만(2026-10-11 개인정보처리방침: 정확한 위치를 보내지 않음 · 같은 칸이면 같은 주소라 캐시도 됨).
-        // 출발점까지 거리는 아래에서 핸드폰이 정확한 위치로 셉니다
-        var qlat = Math.round(lat * 100) / 100, qlon = Math.round(lon * 100) / 100;
-        getJson("api/courses?bbox=" + [qlon - r, qlat - r, qlon + r, qlat + r].map(function (v) { return v.toFixed(3); }).join(",")
-                + (kindFilter ? "&kind=" + kindFilter : ""))
-            .then(function (j) {
-                var rows = (j.courses || []).map(function (x) {
+        var rl = r / Math.max(0.5, Math.cos(lat * Math.PI / 180));
+        var cells = RF.gridCells([lon - rl, lat - r, lon + rl, lat + r]);
+        Promise.all(cells.map(function (bb) {
+            return getJson("api/courses?bbox=" + bb.map(function (v) { return v.toFixed(1); }).join(",")
+                + (kindFilter ? "&kind=" + kindFilter : "")).then(function (j) { return j.courses || []; });
+        })).then(function (lists) {
+            var seen = {}, rows = [];
+            lists.forEach(function (l) {
+                l.forEach(function (x) {
+                    if (seen[x.course_id]) return;
+                    seen[x.course_id] = 1;
                     x.away = distM(lat, lon, +x.start_lat, +x.start_lon);
-                    return x;
-                }).sort(function (a, b) { return a.away - b.away; });
-                if (my === pickSeq) listCourses(rows, true);
-            }).catch(function (e) { if (my === pickSeq) toast("코스를 찾지 못했습니다: " + e.message); });
+                    if (x.away <= NEAR_M) rows.push(x);
+                });
+            });
+            rows.sort(function (a, b) { return a.away - b.away; });
+            if (my === pickSeq) listCourses(rows, true);
+        }).catch(function (e) { if (my === pickSeq) toast("코스를 찾지 못했습니다: " + e.message); });
     }
 
     // ------------------------------------------------------------------ 시작
