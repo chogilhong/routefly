@@ -66,7 +66,7 @@ public class CheckupStage5Test {
     public void phoneTouchAndLabels() throws Exception {
         String index = web("index.html"), hike = web("hike.html");
         assertTrue("아이폰 확대 막기", index.contains("color:var(--tx); font-size:16px; outline:none; }"));
-        assertTrue(index.contains("padding:3px 10px; min-height:40px;"));
+        assertTrue("뒤로 · 목록 단추 40px(공원 전체 ‹ 코스 모양)", index.contains("#back { margin-left:auto; display:inline-flex; align-items:center; height:40px;"));
         assertTrue(hike.contains("height:40px; padding:0 11px 0 7px;"));
         assertTrue(hike.contains(".tabs button { flex:0 0 auto; height:40px;"));
         for (String s : new String[] { index, hike }) {

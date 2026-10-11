@@ -2541,6 +2541,10 @@
     }
     window.addEventListener("hashchange", route);
 
+    // 코스 없이 열면(첫 화면 · 코스 미리보기의 '‹ 목록') 코스 고르기를 바로 - 지도 설정을 받을 때까지 뒤의 코스 화면이
+    // 잔상처럼 보였음(2026-10-11 홍TV님). 검색 다시 하기 · 내 기록은 지도가 준비된 뒤 route() 가 그대로 합니다
+    if (!/[#&]c=/.test(location.hash)) $("pick").style.display = "flex";
+
     getJson("api/map-config").catch(function () {
         return { demUrl: "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png", vworldKey: null };
     }).then(function (j) {

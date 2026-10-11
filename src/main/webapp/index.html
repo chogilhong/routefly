@@ -34,8 +34,9 @@ html, body { margin:0; height:100%; background:#0f141b; color:var(--tx); font-fa
 #side h1 span { color:var(--route); }
 #side h1 { white-space:nowrap; min-width:0; overflow:hidden; text-overflow:ellipsis; }
 #side h1 small { font-size:14px; font-weight:bold; color:var(--tx); margin-left:5px; letter-spacing:-0.2px; }
-#back { margin-left:auto; border:1px solid var(--route); background:var(--route); color:#1b1b1b; font-weight:bold; border-radius:6px;
-        padding:3px 10px; min-height:40px; font-size:12px; cursor:pointer; white-space:nowrap; }   /* 2026-10-10 점검: 손가락 자리 32 → 40px */
+/* 공원 전체(park.html)의 '‹ 코스' 와 같은 모양(2026-10-11 홍TV님) - 둥근 하늘색 테두리 */
+#back { margin-left:auto; display:inline-flex; align-items:center; height:40px; padding:0 12px; border-radius:20px;
+        background:rgba(56,217,234,0.16); border:1px solid #38d9ea; color:#38d9ea; font-size:14px; font-weight:bold; cursor:pointer; white-space:nowrap; }
 .tools { display:flex; gap:4px; margin-top:6px; }
 .tools button { flex:1 1 auto; min-width:0; height:36px;   /* 2026-10-09 점검: 손가락으로 누르기 쉽게(28 → 36px) */
                 border-radius:7px; border:1px solid var(--ln); background:rgba(255,255,255,0.06); color:var(--tx);
