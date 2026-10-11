@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>routefly 공원 전체 보기</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=1">
+<meta name="theme-color" content="#11161d">
+<!-- 국립공원 전체 보기(2026-10-10 홍TV님 - 공원 안내도처럼 산 전체를 한눈에): 그 공원의 공단 공식 탐방로 전체 · 봉우리 · 대피소 이름표 ·
+     위험지역 · 조망점 · 헬기장, 내 위치. 탐방로를 누르면 그 코스의 미리보기 · 따라가기로. 공단 공식 안내도는 바로가기 링크만. -->
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="vendor/maplibre-gl-5.24.0/maplibre-gl.css">
+<link rel="stylesheet" href="css/course-kit.css">
+<style>
+:root { --bg:#11161d; --panel:#1a212b; --tx:#eef2f7; --dim:#9aa6b4; --ln:rgba(255,255,255,0.12); --sky:#38d9ea; }
+* { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { margin:0; height:100%; background:var(--bg); color:var(--tx); font-family:Arial,"Malgun Gothic",sans-serif; overflow:hidden; }
+body { display:flex; flex-direction:column; height:100dvh; }
+#top { display:flex; align-items:center; gap:8px; padding:calc(env(safe-area-inset-top) + 8px) 10px 8px; background:var(--panel);
+       border-bottom:1px solid var(--ln); flex:0 0 auto; }
+#back { flex:0 0 auto; display:inline-flex; align-items:center; height:40px; padding:0 12px; border-radius:20px; text-decoration:none;
+        background:rgba(56,217,234,0.16); border:1px solid var(--sky); color:var(--sky); font-size:14px; font-weight:bold; }
+#title { flex:1; min-width:0; font-size:15px; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#official { flex:0 0 auto; display:none; height:40px; line-height:40px; padding:0 12px; border-radius:20px; text-decoration:none;
+            background:rgba(255,255,255,0.08); border:1px solid var(--ln); color:var(--tx); font-size:13px; }
+#mapWrap { position:relative; flex:1 1 auto; }
+#map { position:absolute; inset:0; }
+#layerBtn { position:absolute; right:10px; bottom:84px; z-index:2; width:44px; height:44px; border-radius:50%; border:0; background:#fff;
+            font-size:20px; box-shadow:0 2px 8px rgba(0,0,0,0.45); display:none; }
+#msg { position:absolute; left:50%; top:40%; transform:translate(-50%,-50%); z-index:3; background:rgba(0,0,0,0.7); padding:10px 14px;
+       border-radius:10px; font-size:14px; text-align:center; max-width:86%; }
+#sheet { flex:0 0 auto; background:var(--panel); border-top:1px solid var(--ln); padding:10px 12px calc(env(safe-area-inset-bottom) + 10px); }
+#sheet .nm { font-size:14.5px; font-weight:bold; }
+#sheet .st { font-size:12.5px; color:var(--dim); margin:3px 0 8px; }
+#sheet .row { display:flex; gap:8px; }
+#sheet .row a { flex:1; text-align:center; height:40px; line-height:40px; border-radius:10px; text-decoration:none; font-size:14px; font-weight:bold;
+                background:rgba(255,255,255,0.08); color:var(--tx); border:1px solid var(--ln); }
+#sheet .row a.main { background:var(--sky); color:#062026; border-color:var(--sky); }
+#sheet .tip { font-size:12.5px; color:var(--dim); }
+.place { pointer-events:none; color:#fff; font-size:12px; font-weight:bold; white-space:nowrap; text-shadow:0 0 3px #000, 0 1px 2px #000;
+         display:flex; flex-direction:column; align-items:center; transition:opacity .3s; }
+.place .ic { font-size:13px; line-height:1; }
+.place.hid { opacity:0 !important; }
+.spot { font-size:14px; line-height:1; filter:drop-shadow(0 0 2px #000); cursor:pointer; }
+</style>
+</head>
+<body>
+<div id="top">
+    <a id="back" href="index.html">‹ 코스</a>
+    <div id="title">국립공원 전체 보기</div>
+    <a id="official" target="_blank" rel="noopener" title="국립공원공단 누리집의 공식 안내도(새 창)">🗺 공식 안내도</a>
+</div>
+<div id="mapWrap">
+    <div id="map"></div>
+    <button type="button" id="layerBtn" aria-label="밝은 지도 · 위성사진 바꾸기">🛰️</button>
+    <div id="msg">공원 탐방로를 불러오는 중…</div>
+</div>
+<div id="sheet"><div class="tip">탐방로를 누르면 그 코스를 미리 보거나 따라갈 수 있습니다.</div></div>
+<script src="vendor/maplibre-gl-5.24.0/maplibre-gl.js"></script>
+<script src="js/course-kit.js"></script>
+<script src="js/park.js"></script>
+</body>
+</html>

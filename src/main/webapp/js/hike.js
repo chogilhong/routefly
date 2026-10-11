@@ -670,6 +670,10 @@
             RF.showName($("name"), c.course.name);
             document.title = RF.nameText(c.course.name) + " - routefly";
             if (RF.infoText(c.info)) toast(RF.infoText(c.info), 6000);   // 국립공원 공식 코스 - 공단 기준 시간 · 난이도
+            // 국립공원 코스면 공원 전체 보기(🏞) - 그 공원 공식 탐방로 전체 · 공식 안내도 바로가기
+            var park = RF.parkOf(c.course.name);
+            $("parkBtn").style.display = park ? "block" : "none";
+            if (park) $("parkBtn").href = "park.html?name=" + encodeURIComponent(park) + "&from=" + encodeURIComponent(id);
             setKindWords();
             drawCourse();
             prof = RF.profile($("profile"), c, {});

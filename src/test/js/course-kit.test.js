@@ -85,6 +85,12 @@ near("distM", RF.distM(37, 127, 37.001, 127), 111, 1);
     eq("아이콘", RF.spotIcon("danger"), "⚠️");
     eq("미리보기 요약", RF.spotSummary(c.spots), "⚠️ 위험 2곳 · 🔭 조망점 1곳");
     eq("요약 없음", RF.spotSummary(null), "");
+    eq("공원 - 공단 코스", RF.parkOf("지리산 · 백무동 → 천왕봉"), "지리산");
+    eq("공원 - 자락", RF.parkOf("지리산 자락 21코스 · 운리 → 무명폭포"), "지리산");
+    eq("공원 - 괄호", RF.parkOf("지리산(천왕봉) 1코스"), "지리산");
+    eq("공원 - 다른 산", RF.parkOf("지리봉 1코스"), null);
+    eq("공원 - 한려해상", RF.parkOf("한려해상 · 금산 → 쌍홍문"), "한려해상");
+    eq("공원 - 없음", RF.parkOf(null), null);
 })();
 
 // fromApi · at · ascentLeft
