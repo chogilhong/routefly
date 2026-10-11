@@ -122,8 +122,10 @@
 
     function start() {
         $("title").textContent = park ? park + " 전체 보기" : "전체 보기";
-        // ‹ 코스 - 온 화면의 그 코스로: 코스 미리보기에서 왔으면(back=preview) 미리보기, 아니면 따라가기(2026-10-11 홍TV님)
-        if (from) $("back").href = (backTo === "preview" ? "index.html" : "hike.html") + "#c=" + encodeURIComponent(from);
+        // ‹ 코스 - 코스 미리보기에서 왔으면(back=preview) 따라가기의 "🗺 코스 미리보기" 와 같은 첫 화면(검색 · 목록, 2026-10-11 홍TV님),
+        // 따라가기에서 왔으면 그 코스의 따라가기
+        if (backTo === "preview") $("back").href = "./";
+        else if (from) $("back").href = "hike.html#c=" + encodeURIComponent(from);
         Promise.all([
             getJson("api/map-config").catch(function () { return {}; }),
             getJson("api/park?name=" + encodeURIComponent(park) + (from ? "&from=" + encodeURIComponent(from) : ""))

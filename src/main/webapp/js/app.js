@@ -416,7 +416,7 @@
             var park = RF.parkOf(j.course.name) || RF.mountainOf(j.course.name, id);   // 국립공원, 아니면 도립 · 군립공원 · 산
             $("parkLink").style.display = park ? "" : "none";
             if (park) {
-                $("parkLink").href = "park.html?name=" + encodeURIComponent(park) + "&from=" + encodeURIComponent(id) + "&back=preview";   // ‹ 코스 → 이 미리보기로
+                $("parkLink").href = "park.html?name=" + encodeURIComponent(park) + "&from=" + encodeURIComponent(id) + "&back=preview";   // ‹ 코스 → 코스 미리보기 첫 화면으로
                 $("parkLink").textContent = "🏞 " + park + " 전체";
             }
             $("shareBtn").style.display = RF.isGpxId(id) ? "none" : "";   // 이 기기에만 있는 GPX 는 링크로 보낼 수 없습니다
