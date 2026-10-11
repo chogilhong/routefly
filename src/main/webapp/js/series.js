@@ -80,7 +80,8 @@
             getJson("api/group?prefix=" + encodeURIComponent(s.prefix)).then(function (j) {
                 wait.remove();
                 if (!j.courses.length) body.appendChild(el("div", "tip", "아직 코스가 없습니다."));
-                j.courses.forEach(function (c) { body.appendChild(courseRow(c)); });
+                var list = s.chainFrom ? RF.chainOrder(j.courses, s.chainFrom) : j.courses;   // 지리산둘레길: 주천-운봉부터 걷는 차례로
+                list.forEach(function (c) { body.appendChild(courseRow(c)); });
             }).catch(function (e) { wait.textContent = e.message || "코스를 읽지 못했습니다."; });
         });
         return box;

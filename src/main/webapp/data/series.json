@@ -22,7 +22,7 @@
     {
       "key": "forest", "title": "국가숲길", "icon": "🌲", "unit": "코스",
       "series": [
-        { "key": "jirisan", "name": "지리산둘레길", "prefix": "kmf-9900000006-", "km": 289, "courses": 21 },
+        { "key": "jirisan", "name": "지리산둘레길", "prefix": "kmf-9900000006-", "km": 289, "courses": 21, "chainFrom": "주천" },
         { "key": "naepo", "name": "내포문화숲길", "prefix": "kmf-9900000002-", "km": 320, "courses": 5 },
         { "key": "daegwallyeong", "name": "대관령숲길", "prefix": "kmf-9900000003-", "km": 103, "courses": 16 },
         { "key": "baekdu", "name": "백두대간트레일", "prefix": "kmf-9900000004-", "km": 206, "courses": 3 },
