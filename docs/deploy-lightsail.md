@@ -1,7 +1,7 @@
 # routefly 를 AWS Lightsail 에 올리기
 
 집 PC + Cloudflare 터널(주소가 켤 때마다 바뀜) 대신, 바뀌지 않는 주소(예: `https://routefly.kr/routefly/`)로 띄우는 순서입니다.
-구성: Ubuntu 24.04 · Java 21 · 톰캣 11 · MariaDB · Nginx(HTTPS, Let's Encrypt). 앞에 Cloudflare 를 둘지는 8장에서 고릅니다.
+구성: Ubuntu 24.04 · Java 21 · 톰캣 11 · MariaDB · Nginx(HTTPS, Let's Encrypt) + routefly-batch 상주 실행(9장). 앞에 Cloudflare 를 둘지는 8장에서 고릅니다.
 
 - `routefly.kr` · `<고정 IP>` · `<키.pem>` 은 예시입니다. 실제 값으로 바꿔 씁니다.
 - 비밀번호 · 지도 키 · `.pem` 파일은 이 저장소에 넣지 않습니다.
@@ -13,7 +13,7 @@
 |---|---|---|
 | 지역 | 서울(ap-northeast-2) | 국내 사용자에게 가장 빠름 |
 | OS | Linux/Unix → OS Only → Ubuntu 24.04 LTS | 자료가 가장 많음 |
-| 요금제 | 2GB(IPv4 포함, 2026-10 기준 월 12달러 안팎) | 톰캣 + MariaDB 를 한 대에 두면 1GB 는 빠듯함 |
+| 요금제 | 4GB(IPv4 포함, 2026-10 기준 월 24달러 안팎 · 80GB SSD) | 배치 `-Xmx1g` + 톰캣 `-Xmx768m` 만 1.8GB 에 MariaDB · 리눅스가 더해짐. 웹만 올리면 2GB(월 12달러)로 충분 |
 | 도메인 | 예: `routefly.kr` | HTTPS 인증서 · 앱의 `server.url` 에 필요 |
 
 서버를 꺼 둬도(stopped) 요금은 그대로 나갑니다.
@@ -22,7 +22,7 @@
 
 1. lightsail.aws.amazon.com → Create instance
 2. 지역 Seoul → Linux/Unix → OS Only → Ubuntu 24.04 LTS
-3. 요금제 2GB → 이름 `routefly` → Create
+3. 요금제 4GB → 이름 `routefly` → Create
 4. Networking 탭 → Create static IP → 인스턴스에 붙이기(안 붙이면 다시 켤 때 IP 가 바뀜)
 5. Networking → IPv4 Firewall: SSH(22) · HTTP(80) 는 기본으로 열려 있음, HTTPS(443) 추가. 8080 · 3306 은 열지 않습니다.
 
@@ -68,7 +68,7 @@ CREATE DATABASE routefly CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 -- 웹은 읽기만 합니다(config.properties.example) - SELECT 만
 CREATE USER 'routefly_web'@'localhost' IDENTIFIED BY '<새 비밀번호>';
 GRANT SELECT ON routefly.* TO 'routefly_web'@'localhost';
--- 배치가 서버 DB 에 직접 쓸 때(9장)만
+-- 배치(9장)용 - 표를 만들고 고치므로 쓰기 권한까지
 CREATE USER 'routefly_batch'@'localhost' IDENTIFIED BY '<다른 새 비밀번호>';
 GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, DROP ON routefly.* TO 'routefly_batch'@'localhost';
 EXIT;
@@ -256,7 +256,7 @@ npm run url -- https://routefly.kr/routefly/hike.html
 | `/api` · `/s` | Lightsail | 없음(DB 결과) |
 | 앱 셸 | 폰의 서비스워커(`sw.js`) | 이미 폰에 있음 |
 
-무거운 지도 타일이 우리 서버를 거치지 않아 2GB 요금제의 전송량을 넘기기 어렵습니다.
+무거운 지도 타일이 우리 서버를 거치지 않아 요금제의 전송량(4GB 요금제 4TB)을 넘기기 어렵습니다.
 붙이는 까닭은 속도보다 보호(서버 IP 숨김 · 디도스 막기)입니다. 사용자가 늘거나 스토어에 올릴 때 붙입니다.
 
 ### 8-2. 붙이는 순서
@@ -267,14 +267,106 @@ npm run url -- https://routefly.kr/routefly/hike.html
 4. 서버 Nginx 를 6-2 로 바꿈(Cloudflare 대역만 받기 + `CF-Connecting-IP` 지우는 줄 빼기). 4 를 빼먹으면 서버 IP 로 바로 와서 `CF-Connecting-IP` 를 꾸며 넣어 횟수 제한을 피할 수 있습니다.
 5. 캐시 규칙은 기본값 그대로(no-cache 인 html · js · css 와 확장자 없는 `/api` 는 담지 않음)
 
-## 9. routefly-batch 와의 관계
+## 9. routefly-batch 도 서버에서 돌리기
 
-배치(fxms)는 지금 PC 의 DB 에 씁니다. 서버로 옮긴 뒤에는 둘 중 하나:
+배치도 서버로 옮겨 PC 를 꺼도 코스가 갱신되게 합니다(2026-10-11 홍TV님 결정). 배치는 같은 서버의 MariaDB 에 바로 넣습니다.
+PC 는 배치 개발 · 테스트 실행(`bin\run-dev.ps1`)과 jar 빌드(`bin\build.ps1`)만 하고, PC 의 작업 스케줄러 실행은 끕니다.
 
-| 방법 | 어떻게 | 장단점 |
-|---|---|---|
-| 덤프로 옮기기 | 배치가 PC DB 를 채운 뒤 4장의 `mysqldump` → `scp` → 서버에 넣기 | 간단, 손으로 함 |
-| 서버 DB 에 직접 | PC 에서 `ssh -i <키.pem> -N -L 3307:127.0.0.1:3306 ubuntu@<고정 IP>` 를 켜 두고, 배치의 DB 주소를 `127.0.0.1:3307` · `routefly_batch` 로 | 자동, 3306 을 밖에 열지 않음. 터널이 끊기면 배치가 실패 |
+저장소에 리눅스용 상주 실행 스크립트(`bin/routefly-batch.sh` · `bin/.setenv.sh`, 설치 자리 `/app/routefly/batch`)가 이미 있습니다.
+`data` · `cache` · `logs` 는 설정을 비워 두면 모두 그 아래(`<FXMS_HOME>/data/...`)를 씁니다.
+
+### 9-1. 서버에 놓을 모양
+
+```
+/app/routefly/batch/
+  bin/routefly-batch.sh, bin/.setenv.sh
+  deploy/lib/*.jar          PC 의 bin\build.ps1 결과(routefly-batch.jar + mariadb + fxms + jdom)
+  deploy/conf/              fxms.xml · classes.xml · sql/ · trailheads.txt + 서버용 batch.properties · databases.xml
+  data/                     courses · forest · knps · komount · durunubi · osm (PC 에서 받은 원본 자료)
+  cache/                    osm · dem (올리면 Overpass · DEM 을 처음부터 다시 받지 않음)
+  logs/                     배치가 만듦
+```
+
+fxms jar 는 저장소에 없으므로 PC 의 `deploy\lib` 에서만 가져옵니다. jar 는 윈도우 · 리눅스 구분이 없습니다.
+올리기 전에 PC 의 `data` · `cache` 폴더 크기를 봅니다(4GB 요금제 디스크 80GB).
+
+### 9-2. 처음 한 번
+
+```bash
+sudo useradd -r -m -d /app/routefly -s /bin/false routefly
+sudo mkdir -p /app/routefly/batch && sudo chown -R ubuntu: /app/routefly/batch   # 올리는 동안만 ubuntu 소유
+sudo locale-gen ko_KR.UTF-8                                                     # 스크립트의 LANG=ko_KR.UTF-8
+```
+
+```
+(PC)  bin\build.ps1 로 jar 만들기
+(PC)  scp -i <키.pem> -r bin deploy data cache ubuntu@<고정 IP>:/app/routefly/batch/
+```
+
+```bash
+cd /app/routefly/batch
+sed -i 's/\r$//' bin/*.sh bin/.setenv.sh          # 윈도우에서 온 줄끝(CRLF)이면 bash 가 못 읽음
+chmod +x bin/routefly-batch.sh
+nano deploy/conf/batch.properties                  # 서버용으로 새로(아래)
+nano deploy/conf/databases.xml                     # url jdbc:mariadb://127.0.0.1:3306/routefly, routefly_batch 계정
+sudo chown -R routefly: /app/routefly/batch
+sudo chmod 600 deploy/conf/batch.properties deploy/conf/databases.xml
+```
+
+서버용 `batch.properties` 는 `batch.properties.example` 을 바탕으로 만들고 이것만 다르게 둡니다.
+
+- `*.dir` · `osm.cacheDir` 는 비움(PC 의 `C:\...` 경로를 그대로 가져오면 안 됨)
+- `vworld.domain` 은 새 도메인, V-World 사이트에도 그 도메인을 등록
+- 키(`forest.serviceKey` · `durunubi.serviceKey` · `vworld.key`)는 PC 값과 같음
+
+### 9-3. 하나씩 시험한 뒤 상주로
+
+```bash
+cd /app/routefly/batch
+sudo -u routefly bin/routefly-batch.sh --once=courseImport
+sudo -u routefly bin/routefly-batch.sh --once=knpsSign
+tail -n 50 logs/batch/courseImport.log
+```
+
+`/etc/systemd/system/routefly-batch.service`:
+
+```ini
+[Unit]
+Description=routefly-batch (fxms, 상주)
+After=network-online.target mariadb.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=routefly
+WorkingDirectory=/app/routefly/batch
+ExecStart=/app/routefly/batch/bin/routefly-batch.sh
+Restart=on-failure
+RestartSec=60
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl daemon-reload && sudo systemctl enable --now routefly-batch
+sudo systemctl status routefly-batch
+```
+
+상주 실행(`BatchDaemon`)은 배치마다 정해진 주기(courseImport 1시간, forestTrail 7일, osmBike 30일 등)대로 돕니다.
+서버가 잘 돌면 PC 작업 스케줄러의 routefly-batch 작업을 "사용 안 함" 으로 바꿉니다(두 곳에서 같이 돌리지 않음).
+
+### 9-4. 배치를 고쳤을 때
+
+```
+(PC)     bin\build.ps1
+(PC)     scp -i <키.pem> deploy\lib\routefly-batch.jar ubuntu@<고정 IP>:~
+(서버)   sudo install -o routefly -g routefly -m 644 ~/routefly-batch.jar /app/routefly/batch/deploy/lib/
+         sudo systemctl restart routefly-batch
+```
+
+쿼리 XML(`deploy/conf/sql`)이나 표(`sql/route_ddl.sql`)가 바뀐 경우에는 그것도 함께 올리고, 표는 서버 DB 에서 실행합니다.
+새로 받은 원본 자료(`data/` 아래 ZIP · CSV · GPX)도 서버의 같은 자리에 올립니다.
 
 ## 10. 꼭 해 둘 것
 

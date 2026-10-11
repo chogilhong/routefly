@@ -21,6 +21,7 @@
 3. 이클립스: File → Import → Maven → Existing Maven Projects → 톰캣 11 서버에 추가.
    주소는 `http://localhost:8080/routefly/`.
 4. 바뀌지 않는 공개 주소로 띄우기(AWS Lightsail · Nginx · HTTPS · Cloudflare): [docs/deploy-lightsail.md](docs/deploy-lightsail.md)
+   검토 보고서(협업 방식 · 비용 · 상표 · 리눅스 · 배포 프로그램): [docs/review-lightsail-2026-10.md](docs/review-lightsail-2026-10.md)
 
 ## 구조
 
