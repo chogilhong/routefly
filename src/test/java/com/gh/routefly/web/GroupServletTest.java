@@ -31,13 +31,18 @@ public class GroupServletTest {
     public void seriesJsonPrefixesAreValid() throws Exception {
         String txt = new String(Files.readAllBytes(Paths.get("src/main/webapp/data/series.json")), StandardCharsets.UTF_8);
         JsonObject d = JsonParser.parseString(txt).getAsJsonObject();
-        int n = 0, named = 0;
+        int n = 0, named = 0, peaks = 0;
         for (JsonElement g : d.getAsJsonArray("groups")) {
             for (JsonElement s : g.getAsJsonObject().getAsJsonArray("series")) {
                 JsonObject o = s.getAsJsonObject();
                 if (o.has("q")) {   // 코리아둘레길 - 이름으로 찾음(/api/courses?q=), 검색어 길이 안
                     assertTrue(o.get("q").getAsString(), o.get("q").getAsString().length() <= CourseQueries.MAX_QUERY);
                     named++;
+                    continue;
+                }
+                if (o.has("summits")) {   // 100대 명산 - 정상 목록 파일(코스 묶음 아님)
+                    assertTrue(Files.exists(Paths.get("src/main/webapp/" + o.get("summits").getAsString())));
+                    peaks++;
                     continue;
                 }
                 String p = o.get("prefix").getAsString();
@@ -47,5 +52,6 @@ public class GroupServletTest {
         }
         assertEquals("국토종주 13 + 국가숲길 6", 19, n);
         assertEquals("코리아둘레길 4", 4, named);
+        assertEquals("100대 명산 1", 1, peaks);
     }
 }

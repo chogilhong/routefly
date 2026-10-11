@@ -893,12 +893,33 @@
     }
 
     // ------------------------------------------------------------------ 인증센터 도장 · 완주(2026-10-11 홍TV님 - series.html 에서 모아 봄)
-    // 기록(최근 30개)과 따로 이 핸드폰에 오래 남깁니다: rf-stamps {stampKey: {name, t, course}} · rf-done {코스ID: {name, t}}
+    // 기록(최근 30개)과 따로 이 핸드폰에 오래 남깁니다: rf-stamps {stampKey: {name, t, course}} · rf-done {코스ID: {name, t}} · rf-peaks {peakKey: {name, t, course}}
     var STAMPS = "rf-stamps", DONE = "rf-done";
     function loadMap(key) { try { return JSON.parse(localStorage.getItem(key) || "{}") || {}; } catch (e) { return {}; } }
     function saveMap(key, m) { try { localStorage.setItem(key, JSON.stringify(m)); } catch (e) { /* 저장 공간 - 이번에는 못 남김 */ } }
 
+    // 100대 명산 정상 도장(2026-10-11 홍TV님) - 코스와 상관없이 정상 150m 안. 자료(data/mountains100.json)는 처음 한 번만 받아 둠, 비면 아무것도 안 함
+    var PEAKS = "rf-peaks", peakList = null;
+    function peakCheck(lat, lon) {
+        if (peakList === null) {
+            peakList = [];
+            fetch("data/mountains100.json").then(function (r) { return r.json(); })
+                .then(function (d) { peakList = (d && d.peaks) || []; }, function () { peakList = null; });   // 못 받으면 다음 위치 때 다시
+            return;
+        }
+        if (!peakList.length) return;
+        var have = loadMap(PEAKS), due = RF.peaksDue(peakList, lat, lon, have, 150);
+        if (!due.length) return;
+        due.forEach(function (p) { have[RF.peakKey(p)] = { name: p.name, t: Date.now(), course: c ? c.id : null }; });
+        saveMap(PEAKS, have);
+        var names = due.map(function (p) { return p.name; }).join(" · ");
+        toast("⛰️ " + names + " 정상 도장을 찍었습니다 (100대 명산 " + Object.keys(have).length + "곳)", 7000);
+        say(names + " 정상 도장을 찍었습니다.");
+        if (navigator.vibrate) navigator.vibrate([100, 60, 100, 60, 200]);
+    }
+
     function stampCheck(lat, lon) {
+        peakCheck(lat, lon);
         if (!c) return;
         var have = loadMap(STAMPS), due = RF.stampsDue(c, lat, lon, have, 100);
         if (!due.length) return;
@@ -1380,7 +1401,7 @@
         }
         hike.fix = { lat: co.latitude, lon: co.longitude, acc: acc, alt: co.altitude, t: t };
         addTrack(co.latitude, co.longitude, t, co.altitude);
-        if (!hike.sim) stampCheck(co.latitude, co.longitude);   // 국토종주 인증센터 도장(실제 GPS 만)
+        if (!hike.sim) stampCheck(co.latitude, co.longitude);   // 국토종주 인증센터 · 100대 명산 정상 도장(실제 GPS 만)
         var s = RF.snap(c, co.latitude, co.longitude, hike.lastFix ? hike.d : null);
         hike.lastFix = t;
         hike.off = s.off;

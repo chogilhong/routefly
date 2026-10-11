@@ -1,13 +1,13 @@
 /*
- * 국토종주 자전거길 · 국가숲길 · 코리아둘레길 모아 보기(series.html) - data/series.json 의 노선 · 길마다 진행(인증센터 도장 · 코스 완주)과 코스 목록.
- * 도장 · 완주는 따라가기(hike.js)가 이 핸드폰의 localStorage 에 남긴 것(rf-stamps · rf-done)을 읽기만 합니다. 2026-10-11 홍TV님.
+ * 국토종주 자전거길 · 국가숲길 · 코리아둘레길 · 100대 명산 모아 보기(series.html) - data/series.json 의 노선 · 길마다 진행(인증센터 도장 · 코스 완주)과 코스 목록.
+ * 도장 · 완주는 따라가기(hike.js)가 이 핸드폰의 localStorage 에 남긴 것(rf-stamps · rf-done · rf-peaks)을 읽기만 합니다. 2026-10-11 홍TV님.
  */
 (function () {
     "use strict";
     var RF = window.RF;
     function $(id) { return document.getElementById(id); }
     function load(key) { try { return JSON.parse(localStorage.getItem(key) || "{}") || {}; } catch (e) { return {}; } }
-    var stamps = load("rf-stamps"), done = load("rf-done");
+    var stamps = load("rf-stamps"), done = load("rf-done"), peakStamps = load("rf-peaks");
 
     function getJson(url) {
         return fetch(url, { headers: { "Accept": "application/json" } }).then(function (r) {
@@ -45,7 +45,39 @@
         return row;
     }
 
+    /** 100대 명산 - 산 목록(정상 도장)만, 코스 목록은 없음. */
+    function peakCard(g, s) {
+        var p = RF.seriesProgress(s, stamps, done, peakStamps);
+        var box = el("div", "card"), head = el("button"), nm = el("div", "nm", s.name), pg = el("div", "pg");
+        head.type = "button";
+        nm.appendChild(el("small", null, s.peaks.length + "산 · 정상 150m 안에 가면 도장"));
+        pg.innerHTML = "<b>" + p.got + "</b> / " + p.of + " " + g.unit;
+        head.appendChild(nm);
+        head.appendChild(pg);
+        var bar = el("div", "bar"), fill = el("i"), body = el("div", "body");
+        fill.style.width = (p.of ? Math.round(p.got * 100 / p.of) : 0) + "%";
+        bar.appendChild(fill);
+        box.appendChild(head);
+        box.appendChild(bar);
+        box.appendChild(body);
+        var loaded = false;
+        head.addEventListener("click", function () {
+            box.classList.toggle("open");
+            if (loaded) return;
+            loaded = true;
+            s.peaks.forEach(function (k) {
+                var st = peakStamps[RF.peakKey(k)], row = el("div", "row"), t = el("div", "t", (st ? "⛰️ " : "⬜ ") + k.name);
+                var info = [k.region, k.height ? RF.num(k.height) + "m" : "", st ? "도장 " + day(st.t) : ""].filter(Boolean).join(" · ");
+                if (info) t.appendChild(el("span", null, info));
+                row.appendChild(t);
+                body.appendChild(row);
+            });
+        });
+        return box;
+    }
+
     function card(g, s) {
+        if (s.peaks) return peakCard(g, s);
         var p = RF.seriesProgress(s, stamps, done);
         var box = el("div", "card"), head = el("button"), nm = el("div", "nm", s.name), pg = el("div", "pg");
         head.type = "button";
@@ -91,15 +123,19 @@
 
     /** 이름으로 찾는 길(q - 코리아둘레길)은 그리기 전에 코스 목록을 받아 수 · 길이 · 완주를 셈. 못 받으면 0 코스로. */
     function loadNamed(d) {
-        var named = [];
-        d.groups.forEach(function (g) { g.series.forEach(function (s) { if (s.q) named.push(s); }); });
-        return Promise.all(named.map(function (s) {
+        var named = [], files = [];
+        d.groups.forEach(function (g) { g.series.forEach(function (s) { if (s.q) named.push(s); if (s.summits) files.push(s); }); });
+        // 100대 명산: 정상 목록 파일(summits)을 받아 둠. 못 받거나 비면 그 묶음을 안 보임
+        var peaksReady = files.map(function (s) {
+            return fetch(s.summits).then(function (r) { return r.json(); }).then(function (j) { s.peaks = (j && j.peaks) || []; }, function () { s.peaks = []; });
+        });
+        return Promise.all(peaksReady.concat(named.map(function (s) {
             return getJson("api/courses?q=" + encodeURIComponent(s.q)).then(function (j) { return j.courses; }, function () { return []; }).then(function (all) {
                 s.list = RF.trailCourses(all, s.match || s.name);
                 s.ids = s.list.map(function (c) { return c.course_id; });
                 s.meters = s.list.reduce(function (m, c) { return m + (+c.distance_m || 0); }, 0);
             });
-        })).then(function () { return d; });
+        }))).then(function () { return d; });
     }
 
     getJson("data/series.json").catch(function () {
@@ -109,7 +145,9 @@
         list.textContent = "";
         d.groups.forEach(function (g) {
             var got = 0, of = 0;
-            g.series.forEach(function (s) { var p = RF.seriesProgress(s, stamps, done); got += p.got; of += p.of; });
+            g.series = g.series.filter(function (s) { return !s.summits || s.peaks.length; });
+            if (!g.series.length) return;
+            g.series.forEach(function (s) { var p = RF.seriesProgress(s, stamps, done, peakStamps); got += p.got; of += p.of; });
             list.appendChild(el("h2", null, g.icon + " " + g.title));
             list.appendChild(el("div", "sum", g.series.length + "개 · " + g.unit + " " + got + " / " + of));
             g.series.forEach(function (s) { list.appendChild(card(g, s)); });

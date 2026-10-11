@@ -142,6 +142,15 @@ near("distM", RF.distM(37, 127, 37.001, 127), 111, 1);
     eq("해파랑길만 번호 순", RF.trailCourses(hp, "해파랑길").map(function (c) { return c.course_id; }), ["drnb-d", "drnb-b", "drnb-a"]);
     eq("띄어쓰기 무시", RF.trailCourses([{ course_id: "x", name: "DMZ 평화의 길 3코스" }], "DMZ평화의길").length, 1);
     eq("받아 온 ID 로 완주 셈", RF.seriesProgress({ ids: ["drnb-a", "drnb-b", "drnb-d"] }, {}, { "drnb-b": 1, "drnb-c": 1 }), { got: 1, of: 3 });
+    // 100대 명산 - 정상 도장(코스와 상관없이, 같은 이름 산은 id 로 가름)
+    var pk = [{ id: "m-a", name: "백운산", lat: 35.1, lon: 127.6 }, { id: "m-b", name: "백운산", lat: 37.9, lon: 127.4 }, { name: "지리산", lat: 35.3369, lon: 127.7306 }, { name: "좌표 없음" }];
+    eq("정상 열쇠", [RF.peakKey(pk[0]), RF.peakKey(pk[2]), RF.peakKey(null)], ["m-a", "지리산", ""]);
+    eq("150m 안 정상", RF.peaksDue(pk, 35.3375, 127.7310, {}).map(RF.peakKey), ["지리산"]);
+    eq("이미 찍은 정상", RF.peaksDue(pk, 35.3375, 127.7310, { "지리산": 1 }).length, 0);
+    eq("같은 이름 다른 산", RF.peaksDue(pk, 35.1003, 127.6, { "m-b": 1 }).map(RF.peakKey), ["m-a"]);
+    eq("멀면 없음 · 좌표 없음은 빼고", RF.peaksDue(pk, 36, 127, {}).length, 0);
+    eq("명산 진행", RF.seriesProgress({ peaks: pk }, { "지리산": 1 }, {}, { "m-b": 1, "지리산": 1 }), { got: 2, of: 4 });
+    eq("명산 자료가 비면 0", RF.seriesProgress({ peaks: [] }, {}, {}, {}), { got: 0, of: 0 });
     eq("숲길 진행", RF.seriesProgress({ prefix: "kmf-9900000006-", courses: 21 }, {}, { "kmf-9900000006-1": 1, "kmf-9900000006-2": 1, "kmf-9900000002-1": 1 }), { got: 2, of: 21 });
 })();
 

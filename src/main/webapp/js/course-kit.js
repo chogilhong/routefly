@@ -361,14 +361,31 @@
         });
     }
 
+    /** 산 정상 도장 열쇠 - 자료의 id(같은 이름 산이 여럿 - 백운산 등), 없으면 이름. */
+    function peakKey(p) { return String((p && (p.id || p.name)) || "").replace(/\s+/g, ""); }
+
+    /**
+     * 순수 함수 - 지금 자리에서 radiusM(기본 150m) 안의, 아직 도장이 없는 정상들. peaks: data/mountains100.json 의 peaks, have: {peakKey: …}.
+     * 코스와 상관없이 실제 GPS 로 그 정상에 가면 찍힘 - 핸드폰 안에서만 견줌(위치를 서버로 보내지 않음). 2026-10-11 홍TV님 100대 명산.
+     */
+    function peaksDue(peaks, lat, lon, have, radiusM) {
+        var r = radiusM || 150;
+        return (peaks || []).filter(function (p) {
+            return p && isFinite(+p.lat) && isFinite(+p.lon) && !(have && have[peakKey(p)]) && distM(lat, lon, +p.lat, +p.lon) <= r;
+        });
+    }
+
     /** 순수 함수 - 코스를 끝까지 갔다고 볼까(가장 멀리 간 곳이 코스 길이의 90% 넘음). */
     function isComplete(dMax, total) { return total > 0 && dMax >= total * 0.9; }
 
     /**
      * 순수 함수 - 묶음 하나의 진행: 자전거길은 인증센터 도장 수/센터 수, 숲길은 끝까지 간 코스 수/코스 수.
-     * series: series.json 의 한 줄, stamps: {stampKey: …}, done: {코스ID: …}.
+     * series: series.json 의 한 줄, stamps: {stampKey: …}, done: {코스ID: …}, peakStamps: {peakKey: …}(100대 명산 정상).
      */
-    function seriesProgress(series, stamps, done) {
+    function seriesProgress(series, stamps, done, peakStamps) {
+        if (Array.isArray(series.peaks)) {   // 100대 명산 - 정상 도장(rf-peaks)
+            return { got: series.peaks.filter(function (p) { return peakStamps && peakStamps[peakKey(p)]; }).length, of: series.peaks.length };
+        }
         if (series.centers) {
             var got = series.centers.filter(function (n) { return stampOf(stamps, n); }).length;
             return { got: got, of: series.centers.length };
@@ -1204,7 +1221,7 @@
     }
 
     global.RF = {
-        LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, stampKey: stampKey, stampOf: stampOf, safeDecode: safeDecode, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
+        LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, stampKey: stampKey, stampOf: stampOf, safeDecode: safeDecode, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
         sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
     };
