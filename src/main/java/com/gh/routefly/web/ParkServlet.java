@@ -109,11 +109,13 @@ public class ParkServlet extends HttpServlet {
                     return;
                 }
                 double lonPad = AROUND_DEG / Math.max(0.2, Math.cos(Math.toRadians(at[1])));
+                final String mountain = park;
                 collect(c, "SELECT course_id, name, distance_m, ascent_m, min_lon, min_lat, max_lon, max_lat, ST_AsText(path) FROM route_course"
                         + " WHERE name LIKE ? AND kind IN ('hike', 'trek', 'walk')"
-                        + " AND max_lat >= ? AND min_lat <= ? AND max_lon >= ? AND min_lon <= ? ORDER BY name LIMIT " + MOUNTAIN_LIMIT,
+                        + " AND max_lat >= ? AND min_lat <= ? AND max_lon >= ? AND min_lon <= ? ORDER BY name LIMIT " + MOUNTAIN_LIMIT * 3,
                         // 이름 어디에 있어도(산림청 코스는 앞에 시 · 군 - "김제 모악산 · …", "논산 대둔산 마천대 · …" - 2026-10-11 PC)
-                        new Object[] {"%" + park + "%", at[1] - AROUND_DEG, at[1] + AROUND_DEG, at[0] - lonPad, at[0] + lonPad}, trails, ids, box);
+                        new Object[] {"%" + park + "%", at[1] - AROUND_DEG, at[1] + AROUND_DEG, at[0] - lonPad, at[0] + lonPad}, trails, ids, box,
+                        nm -> namedFor(nm, mountain));
             }
             if (trails.size() == 0) {
                 Json.fail(resp, HttpServletResponse.SC_NOT_FOUND, park + " 코스가 아직 없습니다.");
@@ -146,11 +148,31 @@ public class ParkServlet extends HttpServlet {
 
     /** 코스 줄들을 trails · ids 에 담고 범위(box)를 넓힘. 담은 수. */
     private static int collect(Connection c, String sql, Object[] params, JsonArray trails, List<String> ids, double[] box) throws Exception {
+        return collect(c, sql, params, trails, ids, box, null);
+    }
+
+    /**
+     * 순수 함수 - 산 모드에서 쓸 코스 이름인가: 코스 이름의 앞부분(" · " 앞, 노선 이름 · 시 · 군 · 산 이름)에 그 산이 한 낱말로 있을 때만.
+     * 끝점 이름에만 든 다른 노선은 뺌(2026-10-11 PC: 마이산에 "금호남정맥 · … → 마이산" 9개, 팔공산에 가산 5, 대둔산에 인대산 4).
+     */
+    static boolean namedFor(String courseName, String mountain) {
+        if (courseName == null) return false;
+        String head = courseName.split(" · ", 2)[0];
+        for (String w : head.split("\\s+")) {
+            if (w.equals(mountain) || w.startsWith(mountain + "(")) return true;
+        }
+        return false;
+    }
+
+    private static int collect(Connection c, String sql, Object[] params, JsonArray trails, List<String> ids, double[] box,
+            java.util.function.Predicate<String> keepName) throws Exception {
         int n = 0;
         try (PreparedStatement ps = c.prepareStatement(sql)) {
             for (int i = 0; i < params.length; i++) ps.setObject(i + 1, params[i]);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
+                    if (keepName != null && !keepName.test(rs.getString(2))) continue;
+                    if (keepName != null && n >= MOUNTAIN_LIMIT) break;
                     JsonObject t = new JsonObject();
                     t.addProperty("id", rs.getString(1));
                     t.addProperty("name", rs.getString(2));

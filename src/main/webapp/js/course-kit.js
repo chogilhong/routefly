@@ -291,9 +291,12 @@
     function mountainOf(name, id) {
         var n = String(name || "").replace(/^\[|\]/g, "").trim();
         // 산림청 코스(frst-)는 앞에 시 · 군 - "김제 모악산 · …", "논산 대둔산 마천대 · …" 는 둘째 낱말(2026-10-11 PC)
+        // 낱말이 여럿이면 "…산" 으로 끝나는 마지막 낱말("서산 덕산 가야산" → 가야산, "논산 대둔산 마천대" → 대둔산), 없으면 둘째 낱말
         if (/^frst-/.test(id || "")) {
-            var head = n.split(" · ")[0].split(/\s+/);
-            if (head.length >= 2 && /^[가-힣]{1,12}(산|봉|악|령|대)(\(.*\))?$/.test(head[1])) n = head.slice(1).join(" ");
+            var head = n.split(" · ")[0].split(/\s+/), pick = -1;
+            for (var i = 1; i < head.length; i++) if (/^[가-힣]{1,12}산(\(.*\))?$/.test(head[i])) pick = i;
+            if (pick < 0 && head.length >= 2 && /^[가-힣]{1,12}(봉|악|령|대)(\(.*\))?$/.test(head[1])) pick = 1;
+            if (pick > 0) n = head.slice(pick).join(" ");
         }
         var m = /^([가-힣]{1,12}(산|봉|악|령|대))(?=[\s·(]|$)/.exec(n);
         return m ? m[1] : null;

@@ -31,6 +31,11 @@ public class ParkServletTest {
         assertFalse(ParkServlet.nearCenter("팔공산", new double[] {127.59, 35.73}));
         assertFalse(ParkServlet.nearCenter("모악산", new double[] {127.0, 35.7}));
         assertTrue(ParkServlet.inside(new double[] {127.6, 35.3}, new double[] {127.5, 35.2, 127.8, 35.4}, 0.1));
+        assertTrue(ParkServlet.namedFor("김제 모악산 · 금산사 → 모악산", "모악산"));
+        assertTrue(ParkServlet.namedFor("마이산 자락 2코스 · 북부주차장에서", "마이산"));
+        assertTrue(ParkServlet.namedFor("대둔산(마천대) 1코스", "대둔산"));
+        assertFalse("끝점에만 든 다른 노선", ParkServlet.namedFor("금호남정맥 · 부귀산 → 마이산", "마이산"));
+        assertFalse("덕숭산 수덕산은 가야산 아님", ParkServlet.namedFor("예산 덕숭산 · 수덕사 → 덕숭산", "가야산"));
         assertFalse("서산 가야산은 합천 가야산 공원이 아님", ParkServlet.inside(new double[] {126.6, 36.7}, new double[] {128.0, 35.7, 128.2, 35.9}, 0.1));
         assertNull("아직 확인 안 한 공원은 단추 없음", ParkServlet.officialMap("없는공원"));
     }
