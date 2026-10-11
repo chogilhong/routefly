@@ -7,7 +7,7 @@
     "use strict";
     var RF = window.RF;
     function $(id) { return document.getElementById(id); }
-    var q = new URLSearchParams(location.search), park = q.get("name") || "", from = q.get("from");
+    var q = new URLSearchParams(location.search), park = q.get("name") || "", from = q.get("from"), backTo = q.get("back");
     var map, light = true, cfg = null, data = null, places = [];
 
     function getJson(url) {
@@ -122,7 +122,8 @@
 
     function start() {
         $("title").textContent = park ? park + " 전체 보기" : "전체 보기";
-        if (from) $("back").href = "hike.html#c=" + encodeURIComponent(from);
+        // ‹ 코스 - 온 화면의 그 코스로: 코스 미리보기에서 왔으면(back=preview) 미리보기, 아니면 따라가기(2026-10-11 홍TV님)
+        if (from) $("back").href = (backTo === "preview" ? "index.html" : "hike.html") + "#c=" + encodeURIComponent(from);
         Promise.all([
             getJson("api/map-config").catch(function () { return {}; }),
             getJson("api/park?name=" + encodeURIComponent(park) + (from ? "&from=" + encodeURIComponent(from) : ""))
