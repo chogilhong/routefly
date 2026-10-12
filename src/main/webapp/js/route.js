@@ -109,7 +109,8 @@
             var a = document.createElement("a");
             if (k === 0) a.className = "main";
             a.href = "hike.html#c=" + encodeURIComponent(c.course_id) + d[2];
-            a.textContent = arrow ? d[0] : d[1];
+            // 자전거길은 "인증센터" 를 떼어 짧게(375px 두 단추에 "달성보인증센터 → 칠곡보인증센터" 가 잘렸음)
+            a.textContent = arrow ? d[0].replace(/인증센터/g, "") : d[1];
             a.title = d[1];
             row.appendChild(a);
         });
