@@ -240,14 +240,10 @@
     function showName(el, name, routeFirst) {
         var p = nameParts(name);
         el.textContent = "";
-        // routeFirst - 좁은 머리글(따라가기 제목)은 길("하동호 → 덕산")을 앞에, 무리는 뒤에 흐리게.
-        // 2026-10-12 홍TV님: "[지리산둘레길 2구…" 에서 잘려 어느 쪽으로 가는지 안 보였음
-        if (routeFirst && p.group) {
-            el.appendChild(document.createTextNode(p.route + " "));
-            var g2 = document.createElement("span");
-            g2.className = "rf-grp";
-            g2.textContent = "· " + p.group;
-            el.appendChild(g2);
+        // routeFirst - 좁은 머리글(따라가기 제목)은 길("하동호 → 덕산")만.
+        // 2026-10-12 홍TV님: "[지리산둘레길 2구…" 에서 잘려 어느 쪽으로 가는지 안 보였고, 무리를 뒤에 붙여도 길어서 길만
+        if (routeFirst) {
+            el.textContent = p.route;
             return;
         }
         if (p.group) {
@@ -259,10 +255,10 @@
         el.appendChild(document.createTextNode(p.route));
     }
 
-    /** 글로만 쓸 곳(창 제목 등) - "[무리] 길", routeFirst 면 "길 · 무리"(따라가기 탭 제목 - 머리글과 같게). */
+    /** 글로만 쓸 곳(창 제목 등) - "[무리] 길", routeFirst 면 길만(따라가기 탭 제목 - 머리글과 같게). */
     function nameText(name, routeFirst) {
         var p = nameParts(name);
-        if (routeFirst && p.group) return p.route + " · " + p.group;
+        if (routeFirst) return p.route;
         return p.group ? "[" + p.group + "] " + p.route : p.route;
     }
 

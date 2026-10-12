@@ -350,7 +350,7 @@ eq("infoText", RF.infoText({ up_min: 240, down_min: 180, level: "2.27" }), "공�
 eq("infoText 없음", RF.infoText(null), null);
 eq("infoText 0 분은 뺌", RF.infoText({ up_min: 0, down_min: 0, level: "" }), null);
 eq("summitIndex 없음", RF.summitIndex([], "x"), -1);
-eq("nameText 길 먼저", RF.nameText("지리산 · 백무동 → 천왕봉", true), "백무동 → 천왕봉 · 지리산");
+eq("nameText 길만", RF.nameText("지리산 · 백무동 → 천왕봉", true), "백무동 → 천왕봉");
 eq("nameText · 없으면 그대로", RF.nameText("지리산 둘레길 3코스"), "지리산 둘레길 3코스");
 
 // cleanName

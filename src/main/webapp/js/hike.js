@@ -677,7 +677,7 @@
             // 되돌아가는 길로 바꿔 걷던 산행을 이어 갈 때, 노선 안내도에서 거꾸로 방향을 골랐을 때(#c=…&rev=1, 2026-10-12)
             if (sv ? sv.rev : /[#&]rev=1(&|$)/.test(location.hash)) c = RF.reverseCourse(c);
             RF.showName($("name"), c.course.name, true);
-            document.title = RF.nameText(c.course.name, true) + " - routefly";
+            document.title = RF.nameText(c.course.name, true);   // 길만 - "- routefly" 를 붙이면 탭 · 최근 앱 목록에서 잘림(2026-10-12 홍TV님)
             if (RF.infoText(c.info)) toast(RF.infoText(c.info), 6000);   // 국립공원 공식 코스 - 공단 기준 시간 · 난이도
             // 국립공원 코스면 공원 전체 보기(🏞) - 그 공원 공식 탐방로 전체 · 공식 안내도 바로가기
             var park = RF.parkOf(c.course.name) || RF.mountainOf(c.course.name, id);   // 국립공원, 아니면 도립 · 군립공원 · 산
@@ -1513,7 +1513,7 @@
         $("arrived").style.display = "none";
         $("offroute").style.display = "none";
         RF.showName($("name"), c.course.name, true);
-        document.title = RF.nameText(c.course.name, true) + " - routefly";
+        document.title = RF.nameText(c.course.name, true);
         try { history.replaceState(null, "", "#c=" + encodeURIComponent(c.id)); } catch (e) { /* 주소만 못 바꿈 */ }   // 새로 고침하면 이 코스로 이어서
         drawCourse(true);
         prof = RF.profile($("profile"), c, {});
