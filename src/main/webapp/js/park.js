@@ -304,7 +304,7 @@
             if (noteEle && noteEle[p.name] != null) p.ele_m = noteEle[p.name];
         });
         // 서버 heads(탐방지원센터 · 탐방안내소)도 trailHeads 가 합침 - "백무동" · "백무동탐방지원센터" 처럼 같은 곳은 하나(2026-10-13 PC)
-        var hs = RF.trailHeads(segs, data.heads, flips, data.others);
+        var hs = RF.trailHeads(segs, data.heads, flips, data.others, data.places);
         showExamples(hs);
         hs.forEach(function (h) { if (!have[h.name]) data.places.push({ name: h.name, lat: h.lat, lon: h.lon, ele_m: null, head: true }); });
         data.places.forEach(function (p) {

@@ -1854,16 +1854,19 @@
      *   - 다른 자료 코스가 마을 · 휴게소 · 주차장에서 시작하는 자리(300m - 성삼재휴게소)
      * 다른 탐방로 가운데를 지나는 자리는 빼고, 봉우리 · 폭포 같은 산 위 이름도 뺌. 이름은 그 자리의 탐방지원센터 이름 → 500m 안 heads → 탐방로 끝 이름.
      * 서버 heads 가운데 가까운 들머리가 없는 것도 넣음. 같은 이름 · 300m 안, "백무동" · "백무동탐방지원센터" 처럼 앞이 같은 이름(2km 안)은 하나.
-     * segs: [{id, name, coords}], flips: routeFlips, others: [{name, coords}](다른 자료 코스). → [{name, lat, lon}].
+     * 탐방로 옆 다른 자료 코스가 절 · 주차장에서 시작하는 곳(대원사석등 → 대원사), 들머리 400m 안 절 · 주차장 이름표(도선사)도.
+     * segs: [{id, name, coords}], flips: routeFlips, others: [{name, coords}](다른 자료 코스), places: [{name, lat, lon}]. → [{name, lat, lon}].
      */
-    function trailHeads(segs, heads, flips, others) {
+    function trailHeads(segs, heads, flips, others, places) {
         var near = 150, d = function (p, q) { return distM(p[1], p[0], q[1], q[0]); }, ends = [];
-        var HEAD = /(탐방지원센터|탐방안내소|안내센터|분소|매표소|주차장|휴게소)$/;
+        var HEAD = /(탐방지원센터|탐방안내소|안내센터|분소|매표소|주차장|휴게소)$/, HEAD_PT = /(.사|탐방지원센터|탐방안내소|분소|주차장|휴게소)$/,
+            SHOP = /[&]|찻집|식당|가게|펜션|민박|카페/;
         var ACCESS = /(마을|리|동|입구|재|령|고개|주차장|휴게소|매표소|분소|탐방지원센터|탐방안내소|교|IC|정류장|중|초|중학교|초등학교)$/;
         var HIGH = /(봉|산|대|단|정상|오름|폭포|전망대|암|굴|바위|능선|고지|갈림길|탐방로 끝|쪽 끝|부근|분기점|코스\d*|탐방로\s*\d*|삼거리|사거리|경계|문)$/;
         var DEAD_HIGH = /(봉|산|정상|오름|폭포|전망대|굴|바위|능선|고지|갈림길|끝|부근|분기점|삼거리|사거리|터|옛길|제방|소|담|탕|치|대|단|문|암|코스\d*|탐방로\s*\d*)$/;
         var JUNK = /(봉|산|정상|오름|폭포|능선|갈림길|쪽끝|탐방로끝|부근|분기점|삼거리|사거리|코스\d*|탐방로\d*|문|연결선|해안가|산행)$/;
-        var clean = function (n) { return String(n || "").replace(/\s*(밑|아래|뒤)$/, "").trim(); };
+        // "우이분소 밑" → 우이분소, "강북구 우이동" → 우이동(2026-10-13 홍TV님)
+        var clean = function (n) { return String(n || "").replace(/\s*(밑|아래|뒤)$/, "").replace(/^[가-힣]{1,4}[구군시]\s+(?=[가-힣])/, "").trim(); };
         (segs || []).forEach(function (s) {
             if (!s.coords || s.coords.length < 2) return;
             var e = routeEnds(s.name), f = flips && flips[s.id];
@@ -1933,6 +1936,21 @@
         });
         // 탐방로에서 먼 서버 heads 도(다른 자료 코스 끝 - 지리산남부탐방안내소)
         (heads || []).forEach(function (h) { out.push({ name: String(h.name), lat: +h.lat, lon: +h.lon, server: true }); });
+        // 탐방로 옆(300m) 다른 자료 코스가 절 · 주차장에서 시작하면 그곳도(2026-10-13 홍TV님: 대원사 - "대원사석등 → 써리봉", 우이동 - "우이동공영주차장입구 → 백운대")
+        var onNet = function (p, lim) { return (segs || []).some(function (s) { return s.coords.some(function (q) { return d(p, q) < lim; }); }); };
+        var extra = [];
+        (others || []).forEach(function (o) {
+            var e = routeEnds(o.name), n = String(e.from || "").replace(/\s+/g, "").replace(/(석등|부도|대웅전|일주문|입구|화장실)$/, "");
+            if (o.coords && o.coords.length && HEAD_PT.test(n) && !SHOP.test(n) && onNet(o.coords[0], 300)) extra.push({ name: n, lat: o.coords[0][1], lon: o.coords[0][0] });
+        });
+        // 들머리 400m 안 절 · 주차장 이름표(배치가 탐방로 처음 · 끝 둘레에서 받음 - 도선사)
+        var base = out.slice();
+        (places || []).forEach(function (q) {
+            var n = String(q.name || "").replace(/\s+/g, ""), p = [+q.lon, +q.lat];
+            if (HEAD_PT.test(n) && !SHOP.test(n) && base.some(function (h) { return d(p, [h.lon, h.lat]) < 400; })) extra.push({ name: String(q.name).trim(), lat: p[1], lon: p[0] });
+        });
+        extra.sort(function (x, y) { return x.name.length - y.name.length; });   // "대원사" 가 "산청대원사" 보다 먼저
+        out = out.concat(extra);
         var key = function (n) { return n.replace(/\s+/g, "").replace(/(탐방지원센터|탐방안내소|안내센터|분소|매표소)$/, "").replace(/산$/, ""); };
         // 탐방지원센터 · 탐방안내소 > 분소 > 매표소(옛 이름) > 그 밖
         var rank = function (n) { return /(탐방지원센터|탐방안내소)$/.test(n) ? 3 : /분소$/.test(n) ? 2 : /매표소$/.test(n) ? 1 : 0; };
@@ -1940,7 +1958,9 @@
         out.forEach(function (h) {
             var dup = kept.filter(function (o) {
                 var x = d([o.lon, o.lat], [h.lon, h.lat]);
-                return o.name === h.name || x < 300 || (key(o.name) === key(h.name) && x < 2000);
+                // 절은 탐방지원센터 옆이어도 따로(백운대탐방지원센터 · 도선사) - 같은 자리(100m)만 하나
+                var temple = /사$/.test(o.name) !== /사$/.test(h.name);
+                return o.name === h.name || x < (temple ? 100 : 300) || (key(o.name) === key(h.name) && x < 2000) || key(h.name).indexOf(key(o.name)) >= 0 && x < 1000;   // "산청대원사" · "우이동공영주차장" 은 "대원사" · "우이동" 옆이면 하나
             })[0];
             if (!dup) { kept.push(h); return; }
             // 같은 곳이면 탐방지원센터 이름을, 자리는 탐방로 위(서버 heads 는 다른 자료 코스 끝이라 조금 떨어짐)

@@ -61,4 +61,14 @@ public class ParkServletTest {
         assertEquals(35.303, (Double) h.get(0)[1], 1e-9);
         assertEquals("화개탐방안내소", h.get(1)[0]);
     }
+
+    @Test
+    public void headPlacesFartherFromTheTrail() {
+        // 2026-10-13 홍TV님: 도선사 · 대원사도 들머리로 - 탐방로에서 떨어진 절 · 주차장은 400m 까지
+        assertTrue(ParkServlet.placeOk("천왕봉", 80));
+        assertFalse("100m 넘는 봉우리", ParkServlet.placeOk("반야봉", 150));
+        assertTrue(ParkServlet.placeOk("도선사", 330));
+        assertTrue(ParkServlet.placeOk("우이동 주차장", 200));
+        assertFalse("400m 넘음", ParkServlet.placeOk("도선사", 450));
+    }
 }

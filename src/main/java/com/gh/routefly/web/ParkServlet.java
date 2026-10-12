@@ -297,19 +297,31 @@ public class ParkServlet extends HttpServlet {
         return new java.util.ArrayList<>(out.values());
     }
 
-    /** 그 코스들의 이름표(같은 이름은 하나, 경로에서 100m 안, PLACE_LIMIT 까지). */
+    /**
+     * 경로에서 떨어진 이름표 가운데 들머리 지점(절 · 탐방지원센터 · 주차장)은 이만큼(m)까지 - 배치 knpsTrail 이 탐방로 처음 · 끝 400m 안의
+     * 들머리 지점을 이름표로 넣음(KnpsTrailBatch.HEAD_END_M, 2026-10-13 홍TV님: 도선사 · 대원사).
+     */
+    static final int HEAD_POI_M = 400;
+
+    /** 순수 함수 - 이름표를 쓸까: 경로에서 100m 안이면 모두, 그보다 멀면 들머리 지점 이름만(HEAD_POI_M 안). */
+    static boolean placeOk(String name, int offM) {
+        if (offM <= 100) return true;
+        return offM <= HEAD_POI_M && name.replaceAll("\\s+", "").matches(".+(사|탐방지원센터|탐방안내소|안내소|분소|주차장)");
+    }
+
+    /** 그 코스들의 이름표(같은 이름은 하나, 경로에서 100m 안 - 들머리 지점은 400m 안, PLACE_LIMIT 까지). */
     static JsonArray places(Connection c, List<String> ids) throws Exception {
         JsonArray out = new JsonArray();
         if (ids.isEmpty()) return out;
         Set<String> seen = new HashSet<>();
         String marks = String.join(",", java.util.Collections.nCopies(ids.size(), "?"));
-        try (PreparedStatement ps = c.prepareStatement("SELECT name, lat, lon, ele_m FROM route_course_poi WHERE course_id IN (" + marks + ")"
-                + " AND off_route_m <= 100")) {
+        try (PreparedStatement ps = c.prepareStatement("SELECT name, lat, lon, ele_m, off_route_m FROM route_course_poi WHERE course_id IN (" + marks + ")"
+                + " AND off_route_m <= " + HEAD_POI_M)) {
             for (int i = 0; i < ids.size(); i++) ps.setString(i + 1, ids.get(i));
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next() && out.size() < PLACE_LIMIT) {
                     String name = rs.getString(1);
-                    if (name == null || !seen.add(name.replaceAll("\\s+", ""))) continue;
+                    if (name == null || !placeOk(name, rs.getInt(5)) || !seen.add(name.replaceAll("\\s+", ""))) continue;
                     JsonObject o = new JsonObject();
                     o.addProperty("name", name.replaceAll("\\s+", " ").trim());
                     o.add("lat", new com.google.gson.JsonPrimitive(rs.getBigDecimal(2)));
