@@ -29,34 +29,67 @@
         $("layerBtn").textContent = on ? "🛰️" : "🗺️";
     }
 
-    /** 탐방로 하나를 고름 - 굵게 · 아래 칸에 이름 · 거리와 미리보기 · 산행하기. */
+    /**
+     * 탐방로 고르기 - 누르면 고르고 다시 누르면 뺌, 고른 것 앞 · 뒤로 이어지는 탐방로는 함께(2026-10-12 홍TV님: 등산도 노선 안내도처럼
+     * 이어진 구간으로). 아래 칸에 처음 → 끝 두 방향 단추(따라가기), 하나만 골랐으면 미리보기도.
+     */
+    var sel = [], lines = {}, flips = {}, byId = {}, emptySheet = "";
     function pick(t) {
-        map.getSource("sel").setData(t ? { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: t.coords } }
-            : { type: "FeatureCollection", features: [] });
-        if (!t) return;
-        var id = encodeURIComponent(t.id);
+        if (t) sel = RF.chainPick(sel, t.id, lines);
+        map.getSource("sel").setData({ type: "FeatureCollection", features: sel.map(function (s) {
+            return { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: lines[s.id] } };
+        }) });
+        if (!sel.length) { $("sheet").innerHTML = emptySheet; return; }
+        var ends = function (s) {
+            var e = RF.routeEnds(byId[s.id].name), a = flips[s.id] ? e.to : e.from, b = flips[s.id] ? e.from : e.to;
+            return s.rev ? [b, a] : [a, b];
+        };
+        var from = ends(sel[0])[0], to = ends(sel[sel.length - 1])[1], one = sel.length === 1 ? byId[sel[0].id] : null;
+        var meters = sel.reduce(function (m, s) { return m + (+byId[s.id].distance_m || 0); }, 0);
         $("sheet").innerHTML = "";
         var nm = document.createElement("div");
         nm.className = "nm";
-        nm.textContent = t.name;
+        nm.textContent = one ? one.name : sel.length + "구간 이어 걷기" + (from || to ? " · " + (from || "") + " → " + (to || "") : "");
         var st = document.createElement("div");
         st.className = "st";
-        st.textContent = RF.km(t.distance_m) + "km · 오르막 " + RF.num(t.ascent_m) + "m";
+        st.textContent = RF.km(meters) + "km" + (one ? " · 오르막 " + RF.num(one.ascent_m) + "m" : " · 오르막은 따라가기 화면에서");
+        if (one && !listMode) {   // 하나만 골랐으면 코스 미리보기(3D)도 - 이은 코스는 미리보기가 받지 못함
+            var pv = document.createElement("a");
+            pv.href = "index.html#c=" + encodeURIComponent(one.id);
+            pv.textContent = " · 미리보기 ›";
+            pv.className = "pv";
+            st.appendChild(pv);
+        }
         var row = document.createElement("div");
         row.className = "row";
-        // 따라가기 첫 화면 목록의 탐방 안내도 카드에서 왔으면(back=list) 단추 하나 - 그 탐방로를 따라가기 화면으로(2026-10-12 홍TV님)
-        row.innerHTML = listMode ? '<a class="main" href="hike.html#c=' + id + '">따라가기</a>'
-            : '<a href="index.html#c=' + id + '">미리보기</a><a class="main" href="hike.html#c=' + id + '">산행하기</a>';
+        var link = function (list) {
+            return "hike.html#c=" + (list.length === 1 ? encodeURIComponent(list[0].id) + (list[0].rev ? "&rev=1" : "") : encodeURIComponent(RF.joinId(list)));
+        };
+        var both = from && to;
+        [[both ? from + " → " + to : "따라가기", sel], [both ? to + " → " + from : "거꾸로 따라가기", RF.reverseSel(sel)]].forEach(function (d, k) {
+            var a = document.createElement("a");
+            if (k === 0) a.className = "main";
+            a.href = link(d[1]);
+            a.textContent = d[0];
+            row.appendChild(a);
+        });
+        var tip = document.createElement("div");
+        tip.className = "tip";
+        tip.textContent = "이어진 탐방로를 더 누르면 함께 고르고, 다시 누르면 뺍니다. 따라갈 방향을 고르세요.";
         $("sheet").appendChild(nm);
         $("sheet").appendChild(st);
+        $("sheet").appendChild(tip);
         $("sheet").appendChild(row);
     }
 
     function draw() {
-        var lines = data.trails.map(function (t, i) {
+        data.trails.forEach(function (t) { lines[t.id] = t.coords; byId[t.id] = t; });
+        // 선이 이름과 거꾸로 그려진 탐방로(이웃 탐방로 끝이 모이는 점으로 앎) - 단추 · 이름을 걸어 나가는 차례로
+        flips = RF.routeFlips(data.trails.map(function (t) { return { course_id: t.id, name: t.name }; }), lines);
+        var feats = data.trails.map(function (t, i) {
             return { type: "Feature", id: i, properties: { i: i }, geometry: { type: "LineString", coordinates: t.coords } };
         });
-        map.addSource("trails", { type: "geojson", data: { type: "FeatureCollection", features: lines } });
+        map.addSource("trails", { type: "geojson", data: { type: "FeatureCollection", features: feats } });
         map.addLayer({ id: "trails-case", type: "line", source: "trails", layout: { "line-join": "round", "line-cap": "round" },
             paint: { "line-color": "#ffffff", "line-width": 6, "line-opacity": 0.9 } });
         map.addLayer({ id: "trails", type: "line", source: "trails", layout: { "line-join": "round", "line-cap": "round" },
@@ -142,12 +175,15 @@
             $("back").href = "hike.html";
             $("sheet").classList.add("listmode");
             $("sheet").innerHTML = '<div class="tip">탐방로를 누르면 그 코스를 따라갈 수 있습니다.</div><div class="row"><a class="main" id="followNone" href="hike.html">따라가기</a></div>';
-            $("followNone").addEventListener("click", function (e) {   // 탐방로를 고르기 전(2026-10-12 홍TV님)
-                e.preventDefault();
-                alert("탐방로를 선택하세요.");
-            });
         }
         else if (from) $("back").href = "hike.html#c=" + encodeURIComponent(from);
+        // 고른 탐방로가 없을 때 아래 칸(모두 빼면 다시 이것으로). 따라가기는 아래 칸에 맡겨 받음(다시 그려도 됨)
+        emptySheet = $("sheet").innerHTML;
+        $("sheet").addEventListener("click", function (e) {
+            if (!e.target || e.target.id !== "followNone") return;
+            e.preventDefault();
+            alert("탐방로를 선택하세요.");   // 탐방로를 고르기 전(2026-10-12 홍TV님)
+        });
         Promise.all([
             getJson("api/map-config").catch(function () { return {}; }),
             getJson("api/park?name=" + encodeURIComponent(park) + (from ? "&from=" + encodeURIComponent(from) : ""))

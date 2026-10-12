@@ -37,6 +37,10 @@ body { display:flex; flex-direction:column; height:100dvh; }
                 background:rgba(255,255,255,0.08); color:var(--tx); border:1px solid var(--ln); }
 #sheet .row a.main { background:var(--sky); color:#062026; border-color:var(--sky); }
 #sheet .tip { font-size:12.5px; color:var(--dim); }
+#sheet .st .pv { color:var(--sky); text-decoration:none; }
+/* 탐방로를 고르면 아래 칸이 커져 지도가 밀리지 않게 처음부터 그 높이(노선 안내도와 같게), 내용은 아래로 */
+#sheet { box-sizing:border-box; min-height:calc(154px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; justify-content:flex-end; }
+#sheet .tip { text-align:center; margin:2px 0 10px; }
 #sheet.listmode .tip { text-align:center; margin:2px 0 10px; }   /* 목록 카드에서 온 탐방 안내도 - 안내 글과 따라가기 사이 띄움(2026-10-12 홍TV님) */
 .place { pointer-events:none; color:#fff; font-size:12px; font-weight:bold; white-space:nowrap; text-shadow:0 0 3px #000, 0 1px 2px #000;
          display:flex; flex-direction:column; align-items:center; transition:opacity .3s; }
