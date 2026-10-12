@@ -333,7 +333,10 @@ eq("parseJoinId 한 구간은 null", RF.parseJoinId("a"), null);
 var ja = RF.fromApi("k17", { course: { name: "지리산둘레길 위태-하동호", kind: "walk" }, points: [[127.82864, 35.21691, 300, 0], [127.78512, 35.16266, 200, 10880]], pois: [] });
 var jb = RF.fromApi("k21", { course: { name: "지리산둘레길 하동호-삼화실", kind: "walk" }, points: [[127.78512, 35.16266, 200, 0], [127.77048, 35.11899, 260, 9000]], pois: [] });
 var jc = RF.joinCourses([ja, jb], "k17,k21");
-eq("joinCourses 이름", jc.course.name, "지리산둘레길 2구간 · 위태 → 삼화실");
+eq("joinCourses 이름(번호 없는 길)", jc.course.name, "지리산둘레길 2구간 이어 걷기 · 위태 → 삼화실");
+var jd = RF.joinCourses([RF.fromApi("b6", { course: { name: "국토종주 낙동강 자전거길 6구간 · 달성보인증센터 → 칠곡보인증센터" }, points: [[128, 35.8, 20, 0], [128.1, 35.9, 25, 1000]], pois: [] }),
+    RF.fromApi("b7", { course: { name: "국토종주 낙동강 자전거길 7구간 · 칠곡보인증센터 → 구미보인증센터" }, points: [[128.1, 35.9, 25, 0], [128.2, 36, 30, 1000]], pois: [] })], "b6,b7");
+eq("joinCourses 이름(번호 있는 길)", jd.course.name, "국토종주 낙동강 자전거길 6~7구간 · 달성보 → 구미보");
 eq("joinCourses 거리 · 이음매 이름표 하나", [jc.total, jc.pois.map(function (p) { return p.name + "@" + p.dist_m; }).join(" ")], [19880, "위태@0 하동호@10880 삼화실@19880"]);
 eq("joinCourses 오르막", jc.course.ascent_m, 60);
 eq("거꾸로 해도 위치표지 그대로", RF.reverseCourse({ id: "x", course: { name: "a" }, lon: [1, 2], lat: [1, 2], ele: [1, 2], dist: [0, 1], total: 1, pois: [], signs: [{ loc_no: "가-1" }] }).signs.length, 1);

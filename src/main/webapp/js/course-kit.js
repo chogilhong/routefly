@@ -1181,12 +1181,19 @@
         var first = list[0].course || {}, last = list[list.length - 1].course || {}, g = nameParts(first.name).group;
         // 무리 이름: "지리산둘레길 가탄-송정" 처럼 · 가 없으면 끝의 "가-나" 를 뗀 것, "N구간 · N코스" 도 뗌
         g = String(g || String(first.name || "").replace(/\s*\(?[가-힣]+-[가-힣]+\)?\s*$/, "")).replace(/\s*\d+(?:-\d+)?\s*(?:구간|코스).*$/, "").trim();
-        var from = routeEnds(first.name).from, to = routeEnds(last.name).to;
+        // 자전거길은 "인증센터" 를 뗌(제목이 길어 잘림 - 2026-10-12 PC)
+        var short = function (x) { return x ? String(x).replace(/인증센터/g, "") : x; };
+        var from = short(routeEnds(first.name).from), to = short(routeEnds(last.name).to);
+        // "[백두대간 3구간]" 이 3구간째로 읽혀 헷갈림(2026-10-12 PC) - 번호가 있으면 "2~4구간", 없으면 "3구간 이어 걷기"
+        var nos = list.map(function (p) { return courseNo(p.course && p.course.name); });
+        var nums = nos.every(Boolean) ? nos.map(function (x) { return +String(x).split("-")[0]; }) : null;
+        var unit = /코스/.test(String(first.name || "")) ? "코스" : "구간";
+        var span = nums ? Math.min.apply(null, nums) + "~" + Math.max.apply(null, nums) + unit : list.length + "구간 이어 걷기";
         var lo = null, hi = null, down = 0;
         c.ele.forEach(function (e) { if (e != null) { lo = lo == null ? e : Math.min(lo, e); hi = hi == null ? e : Math.max(hi, e); } });
         var asc = c.asc[c.asc.length - 1] || 0, e0 = c.ele[0], e1 = c.ele[c.ele.length - 1];
         down = e0 == null || e1 == null ? null : Math.max(0, Math.round(asc - (e1 - e0)));
-        c.course = { name: g + " " + list.length + "구간" + (from || to ? " · " + (from || "") + " → " + (to || "") : ""), kind: first.kind,
+        c.course = { name: g + " " + span + (from || to ? " · " + (from || "") + " → " + (to || "") : ""), kind: first.kind,
                      distance_m: Math.round(c.total), ascent_m: Math.round(asc), descent_m: down,
                      ele_min_m: lo == null ? null : Math.round(lo), ele_max_m: hi == null ? null : Math.round(hi),
                      start_lat: c.lat[0], start_lon: c.lon[0], end_lat: c.lat[c.lat.length - 1], end_lon: c.lon[c.lon.length - 1] };
