@@ -362,6 +362,17 @@ eq("mergeBare 두 조각만 만나는 점은 지나서 이음", mb.map(function 
 eq("mergeBare 이은 구간 id(이름은 조각 선 방향 - p2 는 장불재에서 그려짐)", mb[1].id, "p1@0.0000-1.0000:큰암산>,p2@0.0000-1.0000:장불재>~");
 eq("flattenSel 이은 구간을 거꾸로 풀기", RF.joinId(RF.flattenSel([{ id: mb[1].id, rev: true }])), "p2@0.0000-1.0000:장불재>,p1@0.0000-1.0000:큰암산>~");
 eq("reverseName 에서 ↔ 까지", [RF.reverseName("무등산 · 큰암산에서"), RF.reverseName("무등산 · 장불재까지")], ["무등산 · 큰암산까지", "무등산 · 장불재에서"]);
+// 한라산 통제 시각(data/park-notes.json 그대로)
+var halla = JSON.parse(require("fs").readFileSync(__dirname + "/../../main/webapp/data/park-notes.json", "utf8")).parks["한라산"];
+var hr = RF.parkRules(halla, ["한라산 · 성판악 탐방로"], new Date(2026, 9, 12));
+eq("parkRules 10월은 동절기 · 성판악", [hr.season, hr.course.label, hr.course.gates[0].time, hr.course.down[0].time], ["동절기", "성판악", "11:30", "13:30"]);
+eq("parkRules 7월은 하절기 · 어리목", RF.parkRules(halla, ["한라산 · 어리목 → 윗세대피소"], new Date(2026, 6, 1)).course.gates.map(function (g) { return g.time; }), ["15:00", "14:00"]);
+eq("parkRules 다른 산 코스면 course 없음", RF.parkRules(halla, ["지리산 · 백무동 → 천왕봉"], new Date(2026, 6, 1)).course, null);
+eq("rulesText", RF.rulesText(hr), "성판악(동절기): 입산 05:00부터 · 성판악 입구 · 진달래밭통제소 11:30 입산 통제 · 동릉정상(백록담) 13:30 하산 · 진달래밭 ↔ 백록담 예약 필수");
+var ga = RF.gateAlerts(hr, new Date(2026, 9, 12, 11, 0).getTime(), {});
+eq("gateAlerts 30분 앞", ga.map(function (a) { return a.text; }), ["성판악 입구 · 진달래밭통제소 입산 통제까지 30분 남았습니다(11:30)."]);
+eq("gateAlerts 이미 알린 것은 빼고", RF.gateAlerts(hr, new Date(2026, 9, 12, 11, 0).getTime(), { "in|성판악 입구 · 진달래밭통제소|30": 1 }).length, 0);
+eq("gateAlerts 지난 때", RF.gateAlerts(hr, new Date(2026, 9, 12, 13, 31).getTime(), {}).map(function (a) { return a.key; }), ["down|동릉정상(백록담)|0"]);
 var full = RF.fromApi("r", { course: { name: "산 · 가 → 라" }, points: [[127.0, 35.0, 100, 0], [127.011, 35.0, 200, 1000], [127.022, 35.0, 150, 2000], [127.033, 35.0, 300, 3000]], pois: [] });
 var sl = RF.sliceCourse(full, 1 / 3, 2 / 3, "산 · 나 → 다", "r@0.3333-0.6667:나>다");
 eq("sliceCourse 거리 · 이름표", [Math.round(sl.total), sl.pois.map(function (p) { return p.name; }).join(","), sl.course.ascent_m], [1000, "나,다", 0]);

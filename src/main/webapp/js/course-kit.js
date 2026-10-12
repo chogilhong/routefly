@@ -1341,6 +1341,60 @@
         return out;
     }
 
+    /*
+     * 산의 입산 · 통제 안내(data/park-notes.json - 2026-10-12 한라산: 하절기 4~9월 · 동절기 10~3월, 코스마다 통제 지점 · 시각).
+     */
+
+    /** 순수 함수 - 그날의 계절과 코스(이름들 가운데 match 가 맞는 것)의 통제 · 하산 시각. note 가 없으면 null. */
+    function parkRules(note, names, date) {
+        if (!note) return null;
+        var m = date.getMonth() + 1, season = null;
+        Object.keys(note.seasons || {}).forEach(function (k) { if (note.seasons[k].indexOf(m) >= 0) season = k; });
+        var c = (note.courses || []).filter(function (x) {
+            var re = new RegExp(x.match);
+            return (names || []).some(function (n) { return re.test(String(n || "")); });
+        })[0] || null;
+        var at = function (list) { return (list || []).map(function (g) { return { name: g.name, time: season ? g[season] : null }; }).filter(function (g) { return g.time; }); };
+        return { season: season, open: note.open || null,
+                 course: c ? { label: c.label, reserve: c.reserve || null, gates: at(c.gates), down: at(c.down) } : null };
+    }
+
+    /** 순수 함수 - parkRules → 한 줄("성판악(하절기): 성판악 입구 · 진달래밭통제소 12:30 입산 통제 · 동릉정상(백록담) 14:30 하산 · …"). */
+    function rulesText(r) {
+        if (!r || !r.course) return null;
+        var c = r.course, parts = [];
+        c.gates.forEach(function (g) { parts.push(g.name + " " + g.time + " 입산 통제"); });
+        c.down.forEach(function (g) { parts.push(g.name + " " + g.time + " 하산"); });
+        if (c.reserve) parts.push(c.reserve);
+        if (r.open) parts.unshift("입산 " + r.open + "부터");
+        return c.label + (r.season ? "(" + r.season + ")" : "") + ": " + parts.join(" · ");
+    }
+
+    /**
+     * 순수 함수 - 지금(now) 알릴 통제 · 하산 시각: 60 · 30 · 10분 앞과 지난 때. said 에 이미 알린 열쇠가 있으면 빼고 [{key, text}].
+     * 걷는 중에만 부름(따라가기). 시각은 그날 기준.
+     */
+    function gateAlerts(r, now, said) {
+        var out = [];
+        if (!r || !r.course) return out;
+        var at = function (hm) { var p = String(hm).split(":"), d = new Date(now); d.setHours(+p[0], +p[1], 0, 0); return d.getTime(); };
+        var check = function (g, kind) {
+            var left = (at(g.time) - now) / 60000;
+            [60, 30, 10].forEach(function (th) {
+                var key = kind + "|" + g.name + "|" + th;
+                if (left <= th && left > th - 10 && !(said && said[key]))
+                    out.push({ key: key, text: g.name + (kind === "in" ? " 입산 통제" : " 하산 시각") + "까지 " + th + "분 남았습니다(" + g.time + ")." });
+            });
+            var key0 = kind + "|" + g.name + "|0";
+            if (left <= 0 && left > -15 && !(said && said[key0]))
+                out.push({ key: key0, text: g.name + (kind === "in" ? " 입산 통제 시각(" + g.time + ")이 지났습니다. 통제 지점을 지나 오를 수 없습니다."
+                    : " 하산 시각(" + g.time + ")입니다. 내려가기 시작하세요.") });
+        };
+        r.course.gates.forEach(function (g) { check(g, "in"); });
+        r.course.down.forEach(function (g) { check(g, "down"); });
+        return out;
+    }
+
     /** 순수 함수 - 처음 · 끝 이름 → "가 → 나"(같으면 "가 부근", 한쪽만이면 "가에서" · "나까지", 둘 다 없으면 ""). */
     function endsText(from, to) {
         // 같은 곳이면 "가 부근"(갈림길 · 끝처럼 어디인지 모르는 이름은 그대로 둘)
@@ -1942,6 +1996,6 @@
     global.RF = {
         LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, stampKey: stampKey, summitName: summitName, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakCourses: peakCourses, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
-        sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, flattenSel: flattenSel, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
+        sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, flattenSel: flattenSel, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
     };
 })(window);

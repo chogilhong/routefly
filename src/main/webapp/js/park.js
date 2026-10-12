@@ -189,8 +189,9 @@
         fetch("data/park-notes.json").then(function (r) { return r.json(); }).then(function (d) {
             var n = d && d.parks && d.parks[name];
             if (!n) return;
-            var el = $("note");
-            var shortLine = function () { el.textContent = "⚠ " + n.short + " ›"; };
+            var el = $("note"), today = RF.parkRules(n, [], new Date());
+            // 오늘 계절(한라산 하절기 4~9월 · 동절기 10~3월)을 앞에 - 좁아 뒤는 말줄임, 누르면 코스마다 통제 시각
+            var shortLine = function () { el.textContent = "⚠ " + (today && today.season ? "오늘 " + today.season + " · " : "") + n.short + " ›"; };
             shortLine();
             el.style.display = "block";
             el.addEventListener("click", function () {
@@ -200,10 +201,26 @@
                 setTimeout(function () { if (map) map.resize(); }, 0);   // 펼치면 지도 칸이 줄어듦
                 if (!open) { shortLine(); return; }
                 el.textContent = "";
-                n.lines.forEach(function (l) { el.appendChild(document.createTextNode("· " + l)); el.appendChild(document.createElement("br")); });
+                var line = function (t) { el.appendChild(document.createTextNode("· " + t)); el.appendChild(document.createElement("br")); };
+                n.lines.forEach(line);
+                // 코스마다 오늘 계절의 입산 통제 · 하산 시각
+                (n.courses || []).forEach(function (cc) {
+                    var r = RF.parkRules(n, [cc.label.split(" · ")[0]], new Date());
+                    if (r && r.course) line(RF.rulesText({ season: r.season, course: r.course }));
+                });
                 var by = document.createElement("small");
-                by.textContent = "출처: " + n.by + " (바뀔 수 있으니 가기 전에 확인하세요)";
+                by.textContent = "출처: " + n.by + " - 바뀔 수 있으니 가기 전에 확인하세요 ";
                 el.appendChild(by);
+                if (n.url && /^https:\/\//.test(n.url)) {   // 공고 원문(https 만)
+                    var a = document.createElement("a");
+                    a.href = n.url;
+                    a.target = "_blank";
+                    a.rel = "noopener";
+                    a.textContent = "공고 보기 ›";
+                    a.style.color = "#ffd8a8";
+                    a.addEventListener("click", function (e) { e.stopPropagation(); });
+                    by.appendChild(a);
+                }
             });
             if (map) map.resize();
         }).catch(function () { /* 안내 없이 */ });
