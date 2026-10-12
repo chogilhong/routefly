@@ -35,7 +35,8 @@ import com.google.gson.JsonObject;
  * </ul>
  * 둘 다 위험지역 · 조망점 · 헬기장(route_park_spot, 표가 없으면 빼고).
  * <pre>{success, park, national, map, bbox:[w,s,e,n], trails:[{id, name, distance_m, ascent_m, coords}], places:[{name, lat, lon, ele_m}],
- *  spots:[{kind, name, info, lat, lon}]}</pre>
+ *  heads:[{name, lat, lon}], others:[trails 와 같은 꼴 - 국립공원만], spots:[{kind, name, info, lat, lon}]}</pre>
+ * heads - 들머리 · 날머리 탐방지원센터 · 탐방안내소(다른 자료 코스 이름의 처음 · 끝 - "산청 지리산 천왕봉 · 중산리탐방지원센터 → 천왕봉").
  */
 @WebServlet(urlPatterns = {"/api/park"})
 public class ParkServlet extends HttpServlet {
@@ -137,6 +138,15 @@ public class ParkServlet extends HttpServlet {
             for (double v : box) bbox.add(CourseQueries.round5(v));
             out.add("bbox", bbox);
             out.add("places", places(c, ids));
+            out.add("heads", heads(c, box));
+            // 국립공원: 공단 자료에 빠진 탐방로를 메울 다른 자료 등산 코스(2026-10-12 홍TV님: 설악산 소공원 → 비선대 → 천불동이 공단 자료에 없어
+            // 원점회귀를 못 만듦 · 지도가 비어 보임) - 이름에 공원 이름이 든 등산 코스(둘레길 등 걷기는 뺌), 화면이 공단 탐방로와 겹치지 않는 부분만 씀
+            JsonArray others = new JsonArray();
+            if (national) collect(c, "SELECT course_id, name, distance_m, ascent_m, min_lon, min_lat, max_lon, max_lat, ST_AsText(path) FROM route_course"
+                    + " WHERE course_id NOT LIKE 'knps-%' AND name LIKE ? AND kind IN ('hike', 'trek')"
+                    + " AND max_lat >= ? AND min_lat <= ? AND max_lon >= ? AND min_lon <= ? ORDER BY course_id LIMIT " + OTHER_LIMIT,
+                    new Object[] {"%" + park + "%", box[1], box[3], box[0], box[2]}, others, new java.util.ArrayList<>(), new double[] {180, 90, -180, -90});
+            out.add("others", others);
             try {
                 out.add("spots", Json.rows(c, "SELECT kind, name, info, lat, lon FROM route_park_spot"
                         + " WHERE kind IN ('danger', 'view', 'heli', 'aid', 'ranger') AND lat BETWEEN ? AND ? AND lon BETWEEN ? AND ?",
@@ -231,6 +241,60 @@ public class ParkServlet extends HttpServlet {
                 return new double[] {(rs.getDouble(1) + rs.getDouble(3)) / 2, (rs.getDouble(2) + rs.getDouble(4)) / 2};
             }
         }
+    }
+
+    /** 국립공원 화면의 다른 자료 등산 코스 수 한도(공단 탐방로 빈 곳 메우기). */
+    static final int OTHER_LIMIT = 300;
+
+    /** 들머리 이름(탐방지원센터 · 탐방안내소)을 찾는 코스 수 한도. */
+    static final int HEAD_ROWS = 2000;
+
+    /**
+     * 공원 범위 안 코스 이름의 처음 · 끝이 탐방지원센터 · 탐방안내소인 곳(이름 · 그 끝 좌표). 2026-10-12 홍TV님: 공단 탐방로 이름은 "중산리" 뿐 -
+     * 공식 이름은 중산리탐방지원센터, 지도에도 표시. 산림청 · 등산트레킹지원센터 코스 이름에 그 이름이 있음.
+     */
+    static JsonArray heads(Connection c, double[] box) throws Exception {
+        List<String[]> rows = new java.util.ArrayList<>();
+        try (PreparedStatement ps = c.prepareStatement("SELECT name, start_lat, start_lon, end_lat, end_lon FROM route_course"
+                + " WHERE (name LIKE ? OR name LIKE ?) AND ((start_lat BETWEEN ? AND ? AND start_lon BETWEEN ? AND ?) OR (end_lat BETWEEN ? AND ? AND end_lon BETWEEN ? AND ?))"
+                + " LIMIT " + HEAD_ROWS)) {
+            Object[] p = {"%탐방지원센터%", "%탐방안내소%", box[1], box[3], box[0], box[2], box[1], box[3], box[0], box[2]};
+            for (int i = 0; i < p.length; i++) ps.setObject(i + 1, p[i]);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) rows.add(new String[] {rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5)});
+            }
+        }
+        JsonArray out = new JsonArray();
+        for (Object[] h : headsOf(rows, box)) {
+            JsonObject o = new JsonObject();
+            o.addProperty("name", (String) h[0]);
+            o.addProperty("lat", CourseQueries.round5((Double) h[1]));
+            o.addProperty("lon", CourseQueries.round5((Double) h[2]));
+            out.add(o);
+        }
+        return out;
+    }
+
+    /**
+     * 순수 함수 - 코스 [이름, 처음 위도, 처음 경도, 끝 위도, 끝 경도] 들에서 길의 처음 · 끝 낱말이 …탐방지원센터 · …탐방안내소면 [이름, 위도, 경도].
+     * 같은 이름은 처음 나온 자리 하나, 공원 범위(box) 밖 자리는 뺌.
+     */
+    static List<Object[]> headsOf(List<String[]> rows, double[] box) {
+        java.util.Map<String, Object[]> out = new java.util.LinkedHashMap<>();
+        for (String[] r : rows) {
+            if (r[0] == null) continue;
+            int i = r[0].indexOf(" · ");
+            String[] parts = (i >= 0 ? r[0].substring(i + 3) : r[0]).split(" → ");
+            String[][] ends = {{parts[0].trim(), r[1], r[2]}, {parts[parts.length - 1].trim(), r[3], r[4]}};
+            for (String[] e : ends) {
+                String n = e[0].replaceAll("\\s+", "");
+                if (!n.matches("[가-힣]{1,12}(탐방지원센터|탐방안내소)") || out.containsKey(n) || e[1] == null || e[2] == null) continue;
+                double lat = Double.parseDouble(e[1]), lon = Double.parseDouble(e[2]);
+                if (lat < box[1] || lat > box[3] || lon < box[0] || lon > box[2]) continue;
+                out.put(n, new Object[] {n, lat, lon});
+            }
+        }
+        return new java.util.ArrayList<>(out.values());
     }
 
     /** 그 코스들의 이름표(같은 이름은 하나, 경로에서 100m 안, PLACE_LIMIT 까지). */

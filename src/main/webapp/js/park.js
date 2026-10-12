@@ -59,11 +59,12 @@
         $("sheet").innerHTML = "";
         var nm = document.createElement("div");
         nm.className = "nm";
-        nm.textContent = one ? one.name : round ? (from || "") + " 원점회귀 · " + full.length + "구간"
-            : sel.length + "구간 이어 걷기" + (from || to ? " · " + RF.endsText(from, to) : "");
+        RF.nameNodes(nm, one ? one.name : round ? (from || "") + " 원점회귀 · " + full.length + "구간"
+            : sel.length + "구간 이어 걷기" + (from || to ? " · " + RF.endsText(from, to) : ""));
         var st = document.createElement("div");
         st.className = "st";
-        st.textContent = RF.km(meters) + "km" + (one && one.ascent_m != null ? " · 오르막 " + RF.num(one.ascent_m) + "m" : " · 오르막은 따라가기 화면에서");
+        st.textContent = RF.km(meters) + "km" + (one && one.ascent_m != null ? " · 오르막 " + RF.num(one.ascent_m) + "m" : " · 오르막은 따라가기 화면에서")
+            + (full.some(function (s) { return byId[s.id].extra; }) ? " · 옅은 선은 산림청 · 등산트레킹 자료" : "");
         if (one && !listMode && !one.base && one.id.indexOf("@") < 0 && one.id.indexOf(",") < 0) {   // 하나만 골랐으면 코스 미리보기(3D)도 - 이은 코스는 미리보기가 받지 못함
             var pv = document.createElement("a");
             pv.href = "index.html#c=" + encodeURIComponent(one.id);
@@ -85,7 +86,7 @@
             var a = document.createElement("a");
             if (k === 0) a.className = "main";
             a.href = link(d[1]);
-            a.textContent = d[0];
+            RF.nameNodes(a, d[0]);
             row.appendChild(a);
         });
         var tip = document.createElement("div");
@@ -119,22 +120,27 @@
             x.name = RF.aliasName(t.name, noteNames);
             return x;
         });
+        // 들머리 이름(다른 자료 코스의 탐방지원센터 · 탐방안내소) - "중산리" 끝이 중산리탐방지원센터 500m 안이면 그 이름으로
+        data.trails = RF.headAlias(data.trails, data.heads);
         data.trails.forEach(function (t) { lines[t.id] = t.coords; });
         // 선이 이름과 거꾸로 그려진 탐방로(이웃 탐방로 끝이 모이는 점으로 앎) - 단추 · 이름을 걸어 나가는 차례로
         flips = RF.routeFlips(data.trails.map(function (t) { return { course_id: t.id, name: t.name }; }), lines);
         // 갈림길에서 자른 작은 구간(주능선 노고단고개 → 천왕봉을 장터목 · 세석 · 벽소령 … 에서) - 고르기 · 그리기는 이것으로
         // 이름 없는 탐방로 조각(무등산)은 갈림길 사이로 이어 이름을 붙인 뒤 자름
-        segs = RF.splitTrails(RF.mergeBare(data.trails, data.places), flips, null, poiNames);
+        // 공단 자료에 빠진 길(설악산 소공원 → 비선대 → 천불동 …)은 다른 자료 등산 코스로 메움(옅은 색) - 공단 탐방로를 자르는 데도 씀
+        var extras = RF.gapFill(data.trails, data.others, data.places, data.heads, park);
+        extras.forEach(function (t) { lines[t.id] = t.coords; });
+        segs = RF.splitTrails(RF.mergeBare(data.trails, data.places).concat(extras), flips, null, poiNames);
         lines = {};
         segs.forEach(function (t) { lines[t.id] = t.coords; byId[t.id] = t; });
         var feats = segs.map(function (t, i) {
-            return { type: "Feature", id: i, properties: { i: i }, geometry: { type: "LineString", coordinates: t.coords } };
+            return { type: "Feature", id: i, properties: { i: i, extra: !!t.extra }, geometry: { type: "LineString", coordinates: t.coords } };
         });
         map.addSource("trails", { type: "geojson", data: { type: "FeatureCollection", features: feats } });
         map.addLayer({ id: "trails-case", type: "line", source: "trails", layout: { "line-join": "round", "line-cap": "round" },
             paint: { "line-color": "#ffffff", "line-width": 6, "line-opacity": 0.9 } });
         map.addLayer({ id: "trails", type: "line", source: "trails", layout: { "line-join": "round", "line-cap": "round" },
-            paint: { "line-color": "#e8590c", "line-width": 3 } });
+            paint: { "line-color": ["case", ["get", "extra"], "#ffa94d", "#e8590c"], "line-width": ["case", ["get", "extra"], 2.5, 3] } });
         map.addSource("sel", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
         map.addLayer({ id: "sel", type: "line", source: "sel", layout: { "line-join": "round", "line-cap": "round" },
             paint: { "line-color": RF.LINE_COLOR, "line-width": 6 } });
@@ -160,14 +166,19 @@
             spotEls.push(e);
         });
         // 이름표 - 높은 봉우리 먼저 보이게(겹치면 낮은 것을 숨김)
+        // 들머리(탐방지원센터 · 탐방안내소)도 지도에(2026-10-12 홍TV님) - 같은 이름 이름표가 이미 있으면 빼고
+        var have = {};
+        data.places.forEach(function (p) { have[String(p.name).replace(/\s+/g, "")] = true; });
+        (data.heads || []).forEach(function (h) { if (!have[h.name]) data.places.push({ name: h.name, lat: h.lat, lon: h.lon, ele_m: null, head: true }); });
         data.places.forEach(function (p) {
             var e = document.createElement("div");
-            e.className = "place";
+            e.className = "place" + (p.head ? " head" : "");
             e.innerHTML = '<span class="ic"></span><span class="lb"></span>';
-            e.querySelector(".ic").textContent = RF.poiIcon(p.name);
-            e.querySelector(".lb").textContent = RF.cleanName(p.name) + (p.ele_m != null && RF.isTopName(p.name) ? " " + RF.num(p.ele_m) + "m" : "");
+            e.querySelector(".ic").textContent = p.head ? "🏠" : RF.poiIcon(p.name);
+            RF.nameNodes(e.querySelector(".lb"), RF.cleanName(p.name) + (p.ele_m != null && RF.isTopName(p.name) ? " " + RF.num(p.ele_m) + "m" : ""));
             new maplibregl.Marker({ element: e, anchor: "bottom" }).setLngLat([+p.lon, +p.lat]).addTo(map);
-            places.push({ el: e, prio: -(p.ele_m == null ? 0 : +p.ele_m) - (RF.isTopName(p.name) ? 5000 : 0) });
+            // 들머리는 봉우리 다음으로 남김(겹치면)
+            places.push({ el: e, prio: -(p.ele_m == null ? 0 : +p.ele_m) - (RF.isTopName(p.name) ? 5000 : 0) - (p.head ? 3000 : 0) });
         });
         // 이름표끼리 · 아이콘끼리 따로 겹침 거르기, 이름표에 걸린 아이콘은 그 이름표 바로 아래로 비킴(숨기지 않음) -
         // 2026-10-12 PC: 반야봉 이름표와 같은 자리 헬기장이 어느 축척에서도 숨었음(점이 정상보다 북쪽이라 아래에 붙여도 이름표 칸 안)

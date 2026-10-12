@@ -498,7 +498,7 @@
             e.className = "poi";
             e.innerHTML = '<div class="lb"></div><div class="ic"></div>';
             var lb = e.querySelector(".lb");
-            lb.textContent = q.name;
+            RF.nameNodes(lb, q.name);   // 탐방지원센터는 작은 글씨
             q.more.forEach(function (nm) { var m = document.createElement("span"); m.className = "more"; m.textContent = nm; lb.appendChild(m); });
             e.querySelector(".ic").textContent = RF.poiIcon(q.name);
             drawCourse.pois.push({ el: e, d: q.d, end: q.d < 60 || q.d > c.total - 60, top: !!q.top });

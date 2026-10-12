@@ -114,7 +114,7 @@
         var nos = sel.map(function (s) { return RF.courseNo(byId[s.id].name); }), nums = nos.every(Boolean) ? nos.map(function (x) { return +String(x).split("-")[0]; }) : null;
         var span = nums ? Math.min.apply(null, nums) + "~" + Math.max.apply(null, nums) + (/코스/.test(byId[sel[0].id].name) ? "코스" : "구간") : sel.length + "구간 이어 걷기";
         var short0 = function (x) { return x ? String(x).replace(/인증센터/g, "") : x; };
-        nm.textContent = one ? RF.nameText(one.name) : span + (from || to ? " · " + RF.endsText(short0(from), short0(to)) : "");
+        RF.nameNodes(nm, one ? RF.nameText(one.name) : span + (from || to ? " · " + RF.endsText(short0(from), short0(to)) : ""));
         var st = document.createElement("div");
         st.className = "st";
         // 여러 구간은 오르막을 방향마다 따로 셈(목록 자료에 내리막이 없음) - 따라가기 화면에서 보임
@@ -131,7 +131,7 @@
             var a = document.createElement("a");
             if (k === 0) a.className = "main";
             a.href = link(d[1]);
-            a.textContent = d[0];
+            RF.nameNodes(a, d[0]);
             row.appendChild(a);
         });
         var tip = document.createElement("div");

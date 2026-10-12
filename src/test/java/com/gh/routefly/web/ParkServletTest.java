@@ -47,4 +47,18 @@ public class ParkServletTest {
         assertFalse("서산 가야산은 합천 가야산 공원이 아님", ParkServlet.inside(new double[] {126.6, 36.7}, new double[] {128.0, 35.7, 128.2, 35.9}, 0.1));
         assertNull("아직 확인 안 한 공원은 단추 없음", ParkServlet.officialMap("없는공원"));
     }
+
+    @Test
+    public void headsOf() {
+        double[] box = {127.4, 35.2, 127.9, 35.5};
+        java.util.List<Object[]> h = ParkServlet.headsOf(java.util.List.of(
+                new String[] {"산청 지리산 천왕봉 · 중산리탐방지원센터 → 천왕봉", "35.303", "127.7498", "35.337", "127.731"},
+                new String[] {"하동 지리산 천왕봉 · 화개탐방안내소 → 천왕봉 → 중산리탐방지원센터", "35.25", "127.62", "35.304", "127.75"},
+                new String[] {"먼 산 · 다른탐방지원센터 → 봉", "37.0", "128.0", "37.1", "128.1"},
+                new String[] {"지리산 · 천왕봉 → 장터목", "35.3", "127.7", "35.3", "127.71"}), box);
+        assertEquals(2, h.size());
+        assertEquals("중산리탐방지원센터", h.get(0)[0]);
+        assertEquals(35.303, (Double) h.get(0)[1], 1e-9);
+        assertEquals("화개탐방안내소", h.get(1)[0]);
+    }
 }

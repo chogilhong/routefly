@@ -245,7 +245,7 @@
         // routeFirst - 좁은 머리글(따라가기 제목)은 길("하동호 → 덕산")만.
         // 2026-10-12 홍TV님: "[지리산둘레길 2구…" 에서 잘려 어느 쪽으로 가는지 안 보였고, 무리를 뒤에 붙여도 길어서 길만
         if (routeFirst) {
-            el.textContent = routeOnly(name);
+            nameNodes(el, routeOnly(name));
             return;
         }
         if (p.group) {
@@ -254,7 +254,9 @@
             g.textContent = "[" + p.group + "] ";
             el.appendChild(g);
         }
-        el.appendChild(document.createTextNode(p.route));
+        var r = document.createElement("span");
+        nameNodes(r, p.route);
+        el.appendChild(r);
     }
 
     /** 길만 - "가 → 나", 국가숲길 "지리산둘레길 가탄-송정" 은 "가탄 → 송정"(2026-10-12 PC: 머리글 117px 를 넘어 잘림). */
@@ -377,8 +379,10 @@
         var n = c.lon.length - 1, e = routeEnds(c.course && c.course.name);
         if (n < 1) return;
         var near = function (d) { return c.pois.some(function (q) { return Math.abs(+q.dist_m - d) < 60 && +q.off_route_m < 60; }); };
-        if (e.from && !near(0)) c.pois.unshift({ name: e.from, lat: c.lat[0], lon: c.lon[0], ele_m: c.ele[0], dist_m: 0, off_route_m: 0, end: true });
-        if (e.to && !near(c.total)) c.pois.push({ name: e.to, lat: c.lat[n], lon: c.lon[n], ele_m: c.ele[n], dist_m: c.total, off_route_m: 0, end: true });
+        // 같은 이름 이름표가 그 끝 300m 안에 있으면 더 붙이지 않음(2026-10-12 PC: 중산리 → 천왕봉 은 천왕봉 이름표가 끝 123m 앞 - 두 번 나왔음)
+        var same = function (nm, d) { return c.pois.some(function (q) { return q.name === nm && Math.abs(+q.dist_m - d) < 300; }); };
+        if (e.from && !near(0) && !same(e.from, 0)) c.pois.unshift({ name: e.from, lat: c.lat[0], lon: c.lon[0], ele_m: c.ele[0], dist_m: 0, off_route_m: 0, end: true });
+        if (e.to && !near(c.total) && !same(e.to, c.total)) c.pois.push({ name: e.to, lat: c.lat[n], lon: c.lon[n], ele_m: c.ele[n], dist_m: c.total, off_route_m: 0, end: true });
     }
 
     /** 지금 자리에서 이 거리(m) 안의 위치표지판만 "가까운 표지" 로 봅니다(멀면 구조대에 헷갈림). */
@@ -1184,7 +1188,7 @@
                 if (prev && cum[x.k] - cum[prev.k] < MIN_M) { if (!prev.name) prev.name = x.name; return; }
                 kept.push(x);
             });
-            if (!kept.length || !total || t.merged) { out.push(t); return; }   // 이은 구간(mergeBare)은 자르지 않음 - 따라가기가 자를 수 없음
+            if (!kept.length || !total || t.merged || t.nocut) { out.push(t); return; }   // 이은 구간(mergeBare)은 자르지 않음 - 따라가기가 자를 수 없음
             var e = ends[ti], g = nameParts(t.name).group || "", title = nameParts(t.name).route;
             // 갈림길 이름을 모르면("동엽령코스" · "성판악 탐방로" 처럼 이름에 출발 · 도착이 없는 탐방로 끝) 300m 안 다른 탐방로의 이름 있는 끝에서
             var named = function (k) {
@@ -1329,6 +1333,66 @@
         });
         bare.forEach(function (t) { delete t._a; delete t._z; });
         return out;
+    }
+
+    /**
+     * 순수 함수 - 공단 탐방로(trails)에 빠진 길을 다른 자료 등산 코스(others - /api/park 의 others)로 메웁니다(2026-10-12 홍TV님:
+     * 설악산 소공원 → 비선대 → 천불동이 공단 자료에 없어 원점회귀를 못 만듦, 지도가 비어 보임).
+     * 다른 코스에서 공단 탐방로와 FAR_M 넘게 떨어진 점이 이어진 부분만 떼어(양 끝 한 점씩 붙여 공단 탐방로에 닿게), 양 끝이 공단 탐방로에 닿거나
+     * 한 끝은 닿고 다른 끝이 들머리(heads · 코스 끝) 둘레면 씀. 300m 안은 뺌, 같은 자리 · 같은 길이는 하나(dedupeSegs).
+     * → [{id: "다른코스ID@비율-비율:처음>끝", base, name: "공원 · 처음 → 끝", coords, distance_m, ascent_m: null, extra: true, nocut: true}]
+     * 끝 이름은 places · heads 가운데 300m 안 가까운 것, 없으면 "갈림길"(코스 끝이면 그 코스 이름의 처음 · 끝).
+     */
+    function gapFill(trails, others, places, heads, park) {
+        var FAR_M = 120, MIN_M = 300, d = function (p, q) { return distM(p[1], p[0], q[1], q[0]); };
+        if (!others || !others.length || !trails || !trails.length) return [];
+        var grid = {}, cell = function (p) { return Math.round(p[0] * 300) + "," + Math.round(p[1] * 300); };
+        trails.forEach(function (t) { t.coords.forEach(function (p) { (grid[cell(p)] = grid[cell(p)] || []).push(p); }); });
+        var nearKnps = function (p, lim) {
+            var cx = Math.round(p[0] * 300), cy = Math.round(p[1] * 300);
+            for (var dx = -2; dx <= 2; dx++) for (var dy = -2; dy <= 2; dy++) {
+                var g = grid[(cx + dx) + "," + (cy + dy)];
+                if (g) for (var i = 0; i < g.length; i++) if (d(p, g[i]) < lim) return true;
+            }
+            return false;
+        };
+        var named = (places || []).concat(heads || []);
+        var nameAt = function (p) {
+            var best = null, bd = 300;
+            named.forEach(function (pl) {
+                var nm = placeName(pl.name);
+                if (!nm || /^(삼각점|정상|갈림길|삼거리|사거리|헬기장|이정표)$/.test(nm)) return;
+                var x = d(p, [+pl.lon, +pl.lat]);
+                if (x < bd) { bd = x; best = nm; }
+            });
+            return best;
+        };
+        var nearHead = function (p) { return (heads || []).some(function (h) { return d(p, [+h.lon, +h.lat]) < 500; }); };
+        var out = [];
+        others.forEach(function (o) {
+            var c = o.coords;
+            if (!c || c.length < 3) return;
+            var cum = [0];
+            for (var i = 1; i < c.length; i++) cum.push(cum[i - 1] + d(c[i - 1], c[i]));
+            var total = cum[cum.length - 1], far = c.map(function (p) { return !nearKnps(p, FAR_M); }), e = routeEnds(o.name);
+            for (var a = 0; a < c.length; a++) {
+                if (!far[a]) continue;
+                var b = a;
+                while (b + 1 < c.length && far[b + 1]) b++;
+                var i0 = Math.max(0, a - 1), i1 = Math.min(c.length - 1, b + 1);
+                var attA = a > 0, attB = b < c.length - 1;   // 앞 · 뒤 점이 공단 탐방로 둘레
+                var headA = !attA && nearHead(c[0]), headB = !attB && nearHead(c[c.length - 1]);
+                a = b;
+                if (!((attA && attB) || (attA && headB) || (attB && headA))) continue;
+                if (cum[i1] - cum[i0] < MIN_M || !total) continue;
+                var from = nameAt(c[i0]) || (i0 === 0 && e.from) || "갈림길", to = nameAt(c[i1]) || (i1 === c.length - 1 && e.to) || "갈림길";
+                var r0 = cum[i0] / total, r1 = cum[i1] / total;
+                out.push({ id: o.id + "@" + r0.toFixed(4) + "-" + r1.toFixed(4) + ":" + from + ">" + to, base: o.id,
+                           name: (park ? park + " · " : "") + endsText(from, to), coords: c.slice(i0, i1 + 1),
+                           distance_m: Math.round(cum[i1] - cum[i0]), ascent_m: null, extra: true, nocut: true });
+            }
+        });
+        return dedupeSegs(out);
     }
 
     /** 순수 함수 - 고른 구간 안에 이은 구간(mergeBare)이 있으면 풀어서 코스 조각 차례로(거꾸로면 차례 · ~ 도 뒤집음). */
@@ -1484,6 +1548,52 @@
         return { type: "bad", k: -1 };
     }
 
+    /**
+     * el 에 이름 글을 넣되 "탐방지원센터" · "탐방안내소" 는 작은 글씨로(2026-10-12 홍TV님: 중산리탐방지원센터 등 - 전체 동일).
+     * 글은 textContent 로만(이름에 꺾쇠가 있어도 안전).
+     */
+    var SMALL_SUFFIX = /(탐방지원센터|탐방안내소)/;
+    function nameNodes(el, text) {
+        el.textContent = "";
+        String(text == null ? "" : text).split(SMALL_SUFFIX).forEach(function (part, i) {
+            if (!part) return;
+            if (i % 2) {
+                var s = document.createElement("small");
+                s.className = "rf-sfx";
+                s.textContent = part;
+                el.appendChild(s);
+            } else el.appendChild(document.createTextNode(part));
+        });
+    }
+
+    /**
+     * 순수 함수 - 탐방로 이름의 처음 · 끝이 들머리 이름의 앞부분이고(중산리 ↔ 중산리탐방지원센터) 그 끝 500m 안에 그 들머리가 있으면 들머리 이름으로.
+     * heads: [{name, lat, lon}](/api/park - 다른 자료 코스 이름에서 모은 탐방지원센터 · 탐방안내소). 2026-10-12 홍TV님.
+     */
+    function headAlias(trails, heads, nearM) {
+        var near = nearM == null ? 500 : nearM;
+        if (!heads || !heads.length) return trails;
+        return (trails || []).map(function (t) {
+            var e = routeEnds(t.name), names = {};
+            [e.from, e.to].forEach(function (w) {
+                if (!w || SMALL_SUFFIX.test(w)) return;
+                var key = w.replace(/\s+/g, "");
+                [t.coords[0], t.coords[t.coords.length - 1]].forEach(function (p) {
+                    heads.forEach(function (h) {
+                        var hn = String(h.name || "");
+                        if (names[w] || hn.replace(SMALL_SUFFIX, "") !== key) return;
+                        if (distM(p[1], p[0], +h.lat, +h.lon) < near) names[w] = hn;
+                    });
+                });
+            });
+            if (!Object.keys(names).length) return t;
+            var x = {};
+            for (var k in t) if (Object.prototype.hasOwnProperty.call(t, k)) x[k] = t[k];
+            x.name = aliasName(t.name, names);
+            return x;
+        });
+    }
+
     /** 순수 함수 - 이름의 길 부분에서 다른 이름으로("지리산 · 중산리 → 천왕봉" + {중산리: 중산리탐방지원센터}). names 가 없으면 그대로. */
     function aliasName(name, names) {
         if (!names) return name;
@@ -1519,7 +1629,8 @@
                 r.dist_m = off + (+q.dist_m);
                 // 이은 곳의 끝 이름표는 하나만(앞 구간 도착 = 다음 구간 출발)
                 // 이름표가 끝 이름이든 지점 이름표든(2026-10-12 PC: 원점회귀 그래프에 천왕봉이 바로 붙어 두 번)
-                if (k > 0 && +q.dist_m < 60 && c.pois.some(function (o) { return o.name === q.name && Math.abs(+o.dist_m - r.dist_m) < 60; })) return;
+                // 이은 곳 둘레 300m 안(2026-10-12 PC: 중산리 → 천왕봉 선은 천왕봉 이름표 123m 뒤에서 끝나고, 다음 구간 끝과도 115m 떨어짐)
+                if (k > 0 && +q.dist_m < 150 && c.pois.some(function (o) { return o.name === q.name && Math.abs(+o.dist_m - r.dist_m) < 300; })) return;
                 c.pois.push(r);
             });
             (p.junctions || []).forEach(function (d) { c.junctions.push(off + d); });
@@ -1925,6 +2036,7 @@
                 var nm = q.p.name.replace(/\(.*\)$/, "").trim() || q.p.name;
                 if (nm.length > 9) nm = nm.slice(0, 8) + "…";   // 비스듬한 이름이 길면 그래프 위 칸까지 올라감(전체 이름은 지도 · '다음' 줄에)
                 var lb = el("div", "rf-plabel" + (rank(q) < 2 ? " key" : ""), nm);   // key - 출발 · 도착 · 정상(좁은 화면에서도 남김)
+                nameNodes(lb, nm);   // 탐방지원센터는 작은 글씨
                 lb.title = q.p.name;
                 var end = xp > 72;   // 오른쪽 끝 이름은 왼쪽 위로 기울여 잘리지 않게
                 if (end) {
@@ -2031,6 +2143,6 @@
     global.RF = {
         LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, stampKey: stampKey, summitName: summitName, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakCourses: peakCourses, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
-        sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, flattenSel: flattenSel, chainShape: chainShape, aliasName: aliasName, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
+        sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
     };
 })(window);

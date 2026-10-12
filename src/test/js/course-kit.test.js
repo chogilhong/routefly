@@ -384,6 +384,19 @@ eq("chainShape 한 바퀴 뒤 더 감은 안 됨", RF.chainShape([{ id: "s" }, {
 var lpA = RF.fromApi("a", { course: { name: "지리산 · 중산리탐방지원센터 → 칼바위" }, points: [[127, 35, 100, 0], [127, 35.01, 300, 1000]], pois: [] });
 var lpB = RF.fromApi("b", { course: { name: "지리산 · 칼바위 → 중산리탐방지원센터" }, points: [[127, 35.01, 300, 0], [127, 35, 100, 1000]], pois: [] });
 eq("joinCourses 원점회귀 이름", RF.joinCourses([lpA, lpB], "a,b").course.name, "지리산 2구간 이어 걷기 · 중산리탐방지원센터 원점회귀");
+// 빈 곳 메우기 - 공단 탐방로 둘(가: 서쪽 · 나: 동쪽, 1.1km 떨어짐) 사이를 다른 코스가 이음
+var kn = [{ id: "k1", name: "산 · 가 → 비선대", coords: [[127.0, 35.0], [127.005, 35.0]] }, { id: "k2", name: "산 · 양폭 → 희운각", coords: [[127.017, 35.0], [127.022, 35.0]] }];
+var oth = [{ id: "o1", name: "산 다른 1코스 · 가 → 희운각", coords: [[127.0, 35.0], [127.005, 35.0], [127.008, 35.0005], [127.011, 35.0005], [127.014, 35.0005], [127.017, 35.0], [127.022, 35.0]] }];
+var gf = RF.gapFill(kn, oth, [{ name: "비선대", lon: 127.005, lat: 35.0 }, { name: "양폭대피소", lon: 127.017, lat: 35.0 }], [], "산");
+eq("gapFill 공단 탐방로 사이 빈 곳만", gf.map(function (x) { return x.name + ":" + x.base + ":" + x.extra; }), ["산 · 비선대 → 양폭대피소:o1:true"]);
+eq("gapFill 겹치는 코스만 있으면 없음", RF.gapFill(kn, [{ id: "o2", name: "x", coords: kn[0].coords.concat([[127.0052, 35.0]]) }], [], [], "산").length, 0);
+eq("headAlias 끝 500m 안 들머리 이름", RF.headAlias([{ id: "t", name: "지리산 · 중산리 → 천왕봉", coords: [[127.7491, 35.30393], [127.729, 35.3367]] }],
+    [{ name: "중산리탐방지원센터", lat: 35.303, lon: 127.7498 }])[0].name, "지리산 · 중산리탐방지원센터 → 천왕봉");
+eq("headAlias 멀면 그대로", RF.headAlias([{ id: "t", name: "지리산 · 중산리 → 천왕봉", coords: [[127.7491, 35.30393], [127.729, 35.3367]] }],
+    [{ name: "중산리탐방지원센터", lat: 35.40, lon: 127.7498 }])[0].name, "지리산 · 중산리 → 천왕봉");
+var tw1 = RF.fromApi("a", { course: { name: "지리산 · 법계사 → 천왕봉" }, points: [[127.74, 35.32, 1400, 0], [127.729, 35.3367, 1900, 2000]], pois: [{ name: "천왕봉", dist_m: 1877, off_route_m: 2, lat: 35.3368, lon: 127.7305 }] });
+var tw2 = RF.fromApi("b", { course: { name: "지리산 · 천왕봉 → 장터목" }, points: [[127.7306, 35.3370, 1915, 0], [127.716, 35.3326, 1650, 1400]], pois: [{ name: "천왕봉", dist_m: 0, off_route_m: 0, lat: 35.337, lon: 127.7306 }] });
+eq("joinCourses 이은 곳 둘레 같은 봉우리는 하나", RF.joinCourses([tw1, tw2], "a,b").pois.filter(function (p) { return p.name === "천왕봉"; }).length, 1);
 var full = RF.fromApi("r", { course: { name: "산 · 가 → 라" }, points: [[127.0, 35.0, 100, 0], [127.011, 35.0, 200, 1000], [127.022, 35.0, 150, 2000], [127.033, 35.0, 300, 3000]], pois: [] });
 var sl = RF.sliceCourse(full, 1 / 3, 2 / 3, "산 · 나 → 다", "r@0.3333-0.6667:나>다");
 eq("sliceCourse 거리 · 이름표", [Math.round(sl.total), sl.pois.map(function (p) { return p.name; }).join(","), sl.course.ascent_m], [1000, "나,다", 0]);

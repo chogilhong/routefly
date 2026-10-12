@@ -21,3 +21,6 @@
 
 /* 코스 이름 앞 "[산 · 코스]" - 길(들머리 → 정상)보다 흐리게(RF.showName) */
 .rf-grp { opacity:0.72; font-weight:500; }
+
+/* 탐방지원센터 · 탐방안내소는 작은 글씨(RF.nameNodes - 2026-10-12 홍TV님) */
+.rf-sfx { font-size:0.78em; font-weight:normal; opacity:0.85; }
