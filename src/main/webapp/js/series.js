@@ -45,6 +45,17 @@
         return row;
     }
 
+    /** 인증 받는 곳 한 줄 - routefly 도장 · 완주는 내 기록용이라 운영 기관 인증으로 보냄(2026-10-11 홍TV님). 묶음(g.cert) · 길(s.cert)마다. */
+    function certLine(cert) {
+        var line = el("div", "cert", "공식 인증: "), link = el("a", null, cert.by + " ›");
+        link.href = cert.url;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        line.appendChild(link);
+        if (cert.how) line.appendChild(el("span", null, " - " + cert.how));
+        return line;
+    }
+
     /** 100대 명산 - 산 목록(정상 도장)만, 코스 목록은 없음. */
     function peakCard(g, s) {
         var p = RF.seriesProgress(s, stamps, done, peakStamps);
@@ -66,8 +77,8 @@
             if (loaded) return;
             loaded = true;
             s.peaks.forEach(function (k) {
-                var st = peakStamps[RF.peakKey(k)], row = el("div", "row"), t = el("div", "t", (st ? "⛰️ " : "⬜ ") + k.name);
-                var info = [k.region, k.height ? RF.num(k.height) + "m" : "", st ? "도장 " + day(st.t) : ""].filter(Boolean).join(" · ");
+                var st = peakStamps[RF.peakKey(k)], row = el("div", "row"), t = el("div", "t", (st ? "⛰️ " : "⬜ ") + (k.id || k.name));
+                var info = [k.summit && k.summit !== k.name ? k.summit : "", k.height ? RF.num(k.height) + "m" : "", st ? "도장 " + day(st.t) : ""].filter(Boolean).join(" · ");
                 if (info) t.appendChild(el("span", null, info));
                 row.appendChild(t);
                 body.appendChild(row);
@@ -107,6 +118,7 @@
                     body.appendChild(row);
                 });
             }
+            if (s.cert) body.appendChild(certLine(s.cert));
             body.appendChild(el("div", "sub", "코스"));
             var wait = el("div", "tip", "코스를 불러오는 중…");
             body.appendChild(wait);
@@ -150,15 +162,7 @@
             g.series.forEach(function (s) { var p = RF.seriesProgress(s, stamps, done, peakStamps); got += p.got; of += p.of; });
             list.appendChild(el("h2", null, g.icon + " " + g.title));
             list.appendChild(el("div", "sum", g.series.length + "개 · " + g.unit + " " + got + " / " + of));
-            if (g.cert) {   // 나라(기관)가 인정하는 인증 받는 곳 - routefly 도장 · 완주는 내 기록용(2026-10-11 홍TV님)
-                var cert = el("div", "cert", "공식 인증: "), link = el("a", null, g.cert.by + " ›");
-                link.href = g.cert.url;
-                link.target = "_blank";
-                link.rel = "noopener noreferrer";
-                cert.appendChild(link);
-                if (g.cert.how) cert.appendChild(el("span", null, " - " + g.cert.how));
-                list.appendChild(cert);
-            }
+            if (g.cert) list.appendChild(certLine(g.cert));
             g.series.forEach(function (s) { list.appendChild(card(g, s)); });
         });
     }).catch(function () { $("list").textContent = "목록을 읽지 못했습니다."; });

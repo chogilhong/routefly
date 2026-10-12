@@ -140,6 +140,8 @@ near("distM", RF.distM(37, 127, 37.001, 127), 111, 1);
     var hp = [{ course_id: "drnb-a", name: "해파랑길 10코스 · 가 → 나" }, { course_id: "drnb-b", name: "해파랑길 2코스 · 다 → 라" },
               { course_id: "drnb-c", name: "남파랑길 1코스" }, { course_id: "drnb-d", name: "해파랑길 1코스 · 오륙도해맞이공원 → 해운대해수욕장" }];
     eq("해파랑길만 번호 순", RF.trailCourses(hp, "해파랑길").map(function (c) { return c.course_id; }), ["drnb-d", "drnb-b", "drnb-a"]);
+    eq("19-1코스는 19 와 20 사이", RF.trailCourses([{ course_id: "b", name: "DMZ 평화의 길 20코스" }, { course_id: "a", name: "DMZ 평화의 길 19-1코스(우회로) · 승라부대까지" },
+        { course_id: "c", name: "DMZ 평화의 길 1코스" }, { course_id: "d", name: "DMZ 평화의 길 19코스" }], "DMZ평화의길").map(function (c) { return c.course_id; }), ["c", "d", "a", "b"]);
     eq("띄어쓰기 무시", RF.trailCourses([{ course_id: "x", name: "DMZ 평화의 길 3코스" }], "DMZ평화의길").length, 1);
     eq("받아 온 ID 로 완주 셈", RF.seriesProgress({ ids: ["drnb-a", "drnb-b", "drnb-d"] }, {}, { "drnb-b": 1, "drnb-c": 1 }), { got: 1, of: 3 });
     // 100대 명산 - 정상 도장(코스와 상관없이, 같은 이름 산은 id 로 가름)

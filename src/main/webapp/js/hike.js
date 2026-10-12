@@ -910,9 +910,9 @@
         if (!peakList.length) return;
         var have = loadMap(PEAKS), due = RF.peaksDue(peakList, lat, lon, have, 150);
         if (!due.length) return;
-        due.forEach(function (p) { have[RF.peakKey(p)] = { name: p.name, t: Date.now(), course: c ? c.id : null }; });
+        due.forEach(function (p) { have[RF.peakKey(p)] = { name: p.id || p.name, t: Date.now(), course: c ? c.id : null }; });
         saveMap(PEAKS, have);
-        var names = due.map(function (p) { return p.name; }).join(" · ");
+        var names = due.map(function (p) { return (p.id || p.name) + (p.summit && p.summit !== p.name ? " " + p.summit : ""); }).join(" · ");
         toast("⛰️ " + names + " 정상 도장을 찍었습니다 (100대 명산 " + Object.keys(have).length + "곳)", 7000);
         say(names + " 정상 도장을 찍었습니다.");
         if (navigator.vibrate) navigator.vibrate([100, 60, 100, 60, 200]);

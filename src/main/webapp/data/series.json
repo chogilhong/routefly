@@ -3,7 +3,7 @@
   "groups": [
     {
       "key": "bike", "title": "국토종주 자전거길", "icon": "🚴", "unit": "인증센터",
-      "cert": { "by": "행정안전부 자전거행복나눔", "url": "https://www.bike.go.kr/", "how": "인증센터 종주수첩 도장 또는 앱 QR · GPS 인증, 메달은 유인인증센터" },
+      "cert": { "by": "행정안전부 자전거행복나눔 종주인증제", "url": "https://www.bike.go.kr/content.do?key=2006176999024", "how": "인증수첩(4,000원, 인증센터)에 모든 인증센터 도장 또는 앱 QR · GPS 사이버 인증 → 인증서 · 스티커 무료(유인 인증센터에서 받거나 무인 부스 종주인증함에 수첩을 넣으면 1~2주 뒤 우편), 메달은 우리강 이용도우미에서 유료" },
       "series": [
         { "key": "ara", "name": "아라 자전거길", "prefix": "osmb-4145848-", "km": 21, "centers": ["아라서해갑문", "아라한강갑문"] },
         { "key": "hangang", "name": "한강 자전거길(서울)", "prefix": "osmb-8280682-", "km": 56, "centers": ["여의도", "뚝섬전망콤플렉스", "광나루자전거공원"] },
@@ -23,7 +23,8 @@
     {
       "key": "forest", "title": "국가숲길", "icon": "🌲", "unit": "코스",
       "series": [
-        { "key": "jirisan", "name": "지리산둘레길", "prefix": "kmf-9900000006-", "km": 289, "courses": 21, "chainFrom": "주천" },
+        { "key": "jirisan", "name": "지리산둘레길", "prefix": "kmf-9900000006-", "km": 289, "courses": 21, "chainFrom": "주천",
+          "cert": { "by": "(사)숲길 완보순례증(민간)", "url": "http://www.trail.or.kr/wp/?page_id=8966", "how": "스탬프포켓북에 구간 스탬프하우스 · 센터 스탬프 → 센터에서 신청(인월센터 063-636-0850)" } },
         { "key": "naepo", "name": "내포문화숲길", "prefix": "kmf-9900000002-", "km": 320, "courses": 5 },
         { "key": "daegwallyeong", "name": "대관령숲길", "prefix": "kmf-9900000003-", "km": 103, "courses": 16 },
         { "key": "baekdu", "name": "백두대간트레일", "prefix": "kmf-9900000004-", "km": 206, "courses": 3 },
@@ -33,7 +34,7 @@
     },
     {
       "key": "korea", "title": "코리아둘레길", "icon": "🥾", "unit": "코스",
-      "cert": { "by": "한국관광공사 두루누비", "url": "https://www.durunubi.kr/", "how": "두루누비 앱 스탬프(코스 따라가기 · QR)로 완보 인증서" },
+      "cert": { "by": "한국관광공사 두루누비 완보인증서", "url": "https://www.durunubi.kr/koreatrail-users-guide.do", "how": "두루누비 · 스탬프투어 · 민간 앱 기록이나 코스북 스탬프(해파랑길은 현장 스탬프도) → 두루누비 마이페이지에서 완보인증서 신청 → 우편" },
       "_note": "두루누비(drnb-) 코스를 이름으로 찾음(q) - 코스 수 · 길이는 받아 온 자료로 셈(2026-10-11). 이름이 '해파랑길 1코스 · …' 꼴",
       "series": [
         { "key": "haeparang", "name": "해파랑길", "q": "해파랑길" },

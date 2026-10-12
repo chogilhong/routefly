@@ -31,15 +31,19 @@ public class GroupServletTest {
     public void seriesJsonPrefixesAreValid() throws Exception {
         String txt = new String(Files.readAllBytes(Paths.get("src/main/webapp/data/series.json")), StandardCharsets.UTF_8);
         JsonObject d = JsonParser.parseString(txt).getAsJsonObject();
-        int n = 0, named = 0, peaks = 0, certs = 0;
+        int n = 0, named = 0, peaks = 0, certs = 0, seriesCerts = 0;
         for (JsonElement g : d.getAsJsonArray("groups")) {
             if (g.getAsJsonObject().has("cert")) {   // 공식 인증 링크 - 나라 · 공공기관(https)만
                 String u = g.getAsJsonObject().getAsJsonObject("cert").get("url").getAsString();
-                assertTrue(u, u.equals("https://www.bike.go.kr/") || u.equals("https://www.durunubi.kr/"));
+                assertTrue(u, u.startsWith("https://www.bike.go.kr/") || u.startsWith("https://www.durunubi.kr/"));
                 certs++;
             }
             for (JsonElement s : g.getAsJsonObject().getAsJsonArray("series")) {
                 JsonObject o = s.getAsJsonObject();
+                if (o.has("cert")) {   // 길 하나의 인증(지리산둘레길 - (사)숲길, https 안 됨 2026-10-12 PC)
+                    assertEquals("http://www.trail.or.kr/wp/?page_id=8966", o.getAsJsonObject("cert").get("url").getAsString());
+                    seriesCerts++;
+                }
                 if (o.has("q")) {   // 코리아둘레길 - 이름으로 찾음(/api/courses?q=), 검색어 길이 안
                     assertTrue(o.get("q").getAsString(), o.get("q").getAsString().length() <= CourseQueries.MAX_QUERY);
                     named++;
@@ -59,5 +63,6 @@ public class GroupServletTest {
         assertEquals("코리아둘레길 4", 4, named);
         assertEquals("100대 명산 1", 1, peaks);
         assertEquals("공식 인증 링크 - 국토종주 · 코리아둘레길", 2, certs);
+        assertEquals("길 하나의 인증 링크 - 지리산둘레길", 1, seriesCerts);
     }
 }

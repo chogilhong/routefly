@@ -406,7 +406,8 @@
     function trailCourses(courses, name) {
         var key = String(name || "").replace(/\s+/g, "");
         // 원래 이름으로 봄(nameText 는 "[해파랑길] 1코스 · …" 로 바꿔 앞이 길 이름이 아님)
-        function no(c) { var m = /(\d+)\s*코스/.exec(String(c.name || "")); return m ? +m[1] : 1e9; }
+        // "19-1코스(우회로)" 는 19 와 20 사이(예전에는 뒤의 1 만 읽어 1코스 앞에 왔음 - 2026-10-12 PC)
+        function no(c) { var m = /(\d+)(?:-(\d+))?\s*코스/.exec(String(c.name || "")); return m ? +m[1] + (m[2] ? +m[2] / 100 : 0) : 1e9; }
         return (courses || []).filter(function (c) { return String(c.name || "").replace(/\s+/g, "").indexOf(key) === 0; })
             .sort(function (a, b) { return no(a) - no(b) || (a.name < b.name ? -1 : 1); });
     }
