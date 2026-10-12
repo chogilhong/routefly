@@ -709,6 +709,13 @@
             if (noteOf) fetch("data/park-notes.json").then(function (x) { return x.json(); }).then(function (d) {
                 var n = d && d.parks && d.parks[noteOf];
                 if (!n || my !== loadSeq) return;
+                if (n.names) {   // 산마다 다른 이름(지리산 중산리 → 중산리탐방지원센터) - 제목 · 끝 이름표
+                    c.course.name = RF.aliasName(c.course.name, n.names);
+                    (c.pois || []).forEach(function (q) { if (q.end && n.names[q.name]) q.name = n.names[q.name]; });
+                    RF.showName($("name"), c.course.name, true);
+                    document.title = RF.nameText(c.course.name, true);
+                }
+                if (!n.short) return;
                 rules = RF.parkRules(n, rawNames.concat([c.course.name]), new Date());
                 toast("⚠ " + noteOf + " " + (RF.rulesText(rules) || n.short), 12000);
             }).catch(function () { /* 안내 없이 */ });

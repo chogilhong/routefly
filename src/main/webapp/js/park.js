@@ -33,9 +33,16 @@
      * 탐방로 고르기 - 누르면 고르고 다시 누르면 뺌, 고른 것 앞 · 뒤로 이어지는 탐방로는 함께(2026-10-12 홍TV님: 등산도 노선 안내도처럼
      * 이어진 구간으로). 아래 칸에 처음 → 끝 두 방향 단추(따라가기), 하나만 골랐으면 미리보기도.
      */
-    var sel = [], lines = {}, flips = {}, byId = {}, segs = [], emptySheet = "", poiNames = {};
+    var sel = [], lines = {}, flips = {}, byId = {}, segs = [], emptySheet = "", poiNames = {}, noteNames = null;
     function pick(t) {
-        if (t) sel = RF.chainPick(sel, t.id, lines);
+        if (t) {
+            var next = RF.chainPick(sel, t.id, lines), cur = RF.chainShape(sel, lines), shape = RF.chainShape(next, lines);
+            var grows = sel.length && next.length === sel.length + 1;
+            // 처음 자리 · 지나온 갈림길로 돌아온 코스(원점회귀)는 다 된 것 - 더 이으려면 끝 구간을 빼고(2026-10-12 홍TV님)
+            if (grows && cur.type !== "path") { alert("처음 자리로 돌아온 코스입니다. 더 이으려면 마지막 구간을 먼저 빼세요."); return; }
+            if (shape.type === "bad") { alert("같은 갈림길을 두 번 지나는 코스는 고를 수 없습니다. 원점회귀는 들머리나 지나온 갈림길로 돌아오면 됩니다."); return; }
+            sel = next;
+        }
         map.getSource("sel").setData({ type: "FeatureCollection", features: sel.map(function (s) {
             return { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: lines[s.id] } };
         }) });
@@ -44,12 +51,16 @@
             var e = RF.routeEnds(byId[s.id].name), a = flips[s.id] ? e.to : e.from, b = flips[s.id] ? e.from : e.to;
             return s.rev ? [b, a] : [a, b];
         };
-        var from = ends(sel[0])[0], to = ends(sel[sel.length - 1])[1], one = sel.length === 1 ? byId[sel[0].id] : null;
-        var meters = sel.reduce(function (m, s) { return m + (+byId[s.id].distance_m || 0); }, 0);
+        var sh = RF.chainShape(sel, lines), round = sh.type === "loop" || sh.type === "lolli";
+        // 갈림길 → 한 바퀴 → 갈림길이면 들머리까지 온 길을 거꾸로 붙여 돌아옴(중산리 → 칼바위 → … → 칼바위 → 중산리)
+        var full = sh.type === "lolli" ? sel.concat(RF.reverseSel(sel.slice(0, sh.k))) : sel;
+        var from = ends(sel[0])[0], to = round ? from : ends(sel[sel.length - 1])[1], one = full.length === 1 ? byId[full[0].id] : null;
+        var meters = full.reduce(function (m, s) { return m + (+byId[s.id].distance_m || 0); }, 0);
         $("sheet").innerHTML = "";
         var nm = document.createElement("div");
         nm.className = "nm";
-        nm.textContent = one ? one.name : sel.length + "구간 이어 걷기" + (from || to ? " · " + RF.endsText(from, to) : "");
+        nm.textContent = one ? one.name : round ? (from || "") + " 원점회귀 · " + full.length + "구간"
+            : sel.length + "구간 이어 걷기" + (from || to ? " · " + RF.endsText(from, to) : "");
         var st = document.createElement("div");
         st.className = "st";
         st.textContent = RF.km(meters) + "km" + (one && one.ascent_m != null ? " · 오르막 " + RF.num(one.ascent_m) + "m" : " · 오르막은 따라가기 화면에서");
@@ -66,8 +77,11 @@
             list = RF.flattenSel(list);   // 이은 구간(무등산)은 코스 조각으로 풀어서
             return "hike.html#c=" + (list.length === 1 ? encodeURIComponent(list[0].id) + (list[0].rev ? "&rev=1" : "") : encodeURIComponent(RF.joinId(list)));
         };
-        var both = from && to;
-        [[both ? from + " → " + to : "따라가기", sel], [both ? to + " → " + from : "거꾸로 따라가기", RF.reverseSel(sel)]].forEach(function (d, k) {
+        // 원점회귀는 어느 쪽으로 먼저 도는지(한 바퀴의 첫 구간 끝 · 마지막 구간 처음 이름)
+        var loopA = round ? ends(sel[sh.k])[1] : null, loopB = round ? ends(sel[sel.length - 1])[0] : null;
+        var labels = round ? [(loopA || "이 방향") + " 쪽으로 먼저", (loopB || "반대 방향") + " 쪽으로 먼저"]
+            : from && to ? [from + " → " + to, to + " → " + from] : ["따라가기", "거꾸로 따라가기"];
+        [[labels[0], full], [labels[1], RF.reverseSel(full)]].forEach(function (d, k) {
             var a = document.createElement("a");
             if (k === 0) a.className = "main";
             a.href = link(d[1]);
@@ -76,7 +90,8 @@
         });
         var tip = document.createElement("div");
         tip.className = "tip";
-        tip.textContent = "이어진 탐방로를 더 누르면 함께 고르고, 다시 누르면 뺍니다. 따라갈 방향을 고르세요.";
+        tip.textContent = round ? "처음 자리로 돌아오는 코스입니다. 어느 쪽으로 먼저 돌지 고르세요."
+            : "이어진 탐방로를 더 누르면 함께 고르고, 다시 누르면 뺍니다. 따라갈 방향을 고르세요.";
         $("sheet").appendChild(nm);
         $("sheet").appendChild(st);
         $("sheet").appendChild(tip);
@@ -97,6 +112,13 @@
     }
 
     function draw() {
+        // 자연관찰로는 등산 코스가 아님(2026-10-12 홍TV님: 중산리탐방지원센터 앞 고리) - 빼고, 산마다 다른 이름(중산리 → 중산리탐방지원센터)
+        data.trails = data.trails.filter(function (t) { return !/자연관찰로/.test(t.name); }).map(function (t) {
+            var x = {};
+            for (var k in t) if (Object.prototype.hasOwnProperty.call(t, k)) x[k] = t[k];
+            x.name = RF.aliasName(t.name, noteNames);
+            return x;
+        });
         data.trails.forEach(function (t) { lines[t.id] = t.coords; });
         // 선이 이름과 거꾸로 그려진 탐방로(이웃 탐방로 끝이 모이는 점으로 앎) - 단추 · 이름을 걸어 나가는 차례로
         flips = RF.routeFlips(data.trails.map(function (t) { return { course_id: t.id, name: t.name }; }), lines);
@@ -186,9 +208,11 @@
 
     /** 그 산의 입산 · 통제 · 예약 안내(data/park-notes.json, 2026-10-12 홍TV님: 한라산) - 한 줄, 누르면 다 보임. 없으면 안 보임. */
     function showNote(name) {
-        fetch("data/park-notes.json").then(function (r) { return r.json(); }).then(function (d) {
+        return fetch("data/park-notes.json").then(function (r) { return r.json(); }).then(function (d) {
             var n = d && d.parks && d.parks[name];
             if (!n) return;
+            noteNames = n.names || null;   // 산마다 다른 이름(지리산 중산리 → 중산리탐방지원센터) - 그리기 전에 받음
+            if (!n.short) return;
             var el = $("note"), today = RF.parkRules(n, [], new Date());
             // 오늘 계절(한라산 하절기 4~9월 · 동절기 10~3월)을 앞에 - 좁아 뒤는 말줄임, 누르면 코스마다 통제 시각
             var shortLine = function () { el.textContent = "⚠ " + (today && today.season ? "오늘 " + today.season + " · " : "") + n.short + " ›"; };
@@ -245,7 +269,7 @@
             e.preventDefault();
             alert("탐방로를 선택하세요.");   // 탐방로를 고르기 전(2026-10-12 홍TV님)
         });
-        showNote(park);
+        var notesReady = showNote(park);
         Promise.all([
             getJson("api/map-config").catch(function () { return {}; }),
             getJson("api/park?name=" + encodeURIComponent(park) + (from ? "&from=" + encodeURIComponent(from) : ""))
@@ -261,7 +285,7 @@
                     poiNames[t.id] = { total: pts.length ? +pts[pts.length - 1][3] : 0, pois: j.pois || [] };
                 }, function () { /* 이름표 없이 */ });
             }));
-            var poiWait = Promise.race([poiReady, new Promise(function (ok) { setTimeout(ok, 4000); })]);
+            var poiWait = Promise.race([Promise.all([poiReady, notesReady]), new Promise(function (ok) { setTimeout(ok, 4000); })]);
             // 국립공원도 "지리산 탐방 안내도" - "국립공원" 을 붙이면 375px 에서 공식 지도 단추에 잘림(2026-10-12)
             if (data.map && /^https:\/\//.test(data.map)) {   // https 주소만(javascript: 등은 넣지 않음 - 2026-10-11 점검)
                 $("official").href = data.map;
