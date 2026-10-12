@@ -78,11 +78,14 @@
 
     /** 겹침 숨기기 - 번호끼리 먼저, 그다음 남은 번호와 이름표(인증센터 · 지명). 숨은 번호의 이름표는 함께 숨김. */
     function declutterAll() {
-        RF.declutter(nums);
+        // 지도 위 단추(오른쪽 위 ⓘ · 오른쪽 아래 위치 단추 · 왼쪽 아래 축척)를 먼저 둬서 그 밑 번호 · 이름표는 숨김(2026-10-12 PC)
+        var ctl = [].slice.call(document.querySelectorAll(".maplibregl-ctrl-attrib, .maplibregl-ctrl-geolocate, .maplibregl-ctrl-scale"))
+            .map(function (el) { return { el: el, prio: -1 }; });
+        RF.declutter(ctl.concat(nums));
         var shown = nums.filter(function (n) { return !n.el.classList.contains("hid"); });
         labels.forEach(function (l) { if (l.no && l.no.classList.contains("hid")) l.el.classList.add("hid"); });
         // 여백 0 - 이름표는 제 번호 바로 밑(2px)이라 기본 여백 3px 이면 제 번호와 겹친다고 봄
-        RF.declutter(shown.concat(labels.filter(function (l) { return !l.no || !l.no.classList.contains("hid"); })), 0);
+        RF.declutter(ctl.concat(shown, labels.filter(function (l) { return !l.no || !l.no.classList.contains("hid"); })), 0);
     }
 
     /** 구간 하나를 고름 - 굵게 · 아래 칸에 이름 · 거리와 따라가기. */

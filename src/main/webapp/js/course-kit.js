@@ -103,9 +103,19 @@
      * → [{name, lon, lat, start: 이 지명에서 시작하는 courses 번호(없으면 -1)}]
      */
     function routePlaces(courses, lines, nearM) {
+        // 지명으로 다듬기(2026-10-12 PC: 해파랑길 · 백두대간 지명에 가게 · 창고 이름, 긴 괄호)
+        // 가게 · 시설 이름은 빼고, 긴 괄호("(경상북도기념물제39호)")와 뒤 숫자("솔잎공원267")는 떼고, "660 봉" 은 붙이고,
+        // 탐방지원센터 · 휴게소는 앞 지명만("죽령탐방지원센터" → 죽령, "제3관문휴게소" → 제3관문)
+        function placeName(raw) {
+            var n = cleanName(raw || "").replace(/\(([^)]*)\)/g, function (m, x) { return x.length > 6 || /[0-9]/.test(x) ? "" : m; })
+                .replace(/([0-9]+)\s+(봉|고지)$/, "$1$2").replace(/([가-힣])[0-9]+$/, "$1").trim();
+            if (/(본점|해변점|역점|항점|샵|민박|낚시점|창고|쉼터|관리본부|식당|카페|펜션|모텔|마트|편의점)$|^(씨유|GS25|세븐일레븐)/.test(n)) return "";
+            var cut = n.replace(/(탐방지원센터|휴게소)$/, "");
+            return cut.length >= 2 ? cut : n;
+        }
         var near = nearM == null ? 500 : nearM, out = [];
         function add(name, p, start) {
-            name = cleanName(name || "");
+            name = placeName(name);
             // 어디나 있는 이름(삼각점 · 정상 · 안부 · 갈림길 …)은 지명이 아님 - 그 자리는 끝 점만
             if (!p || !name || /^(삼각점|정상|안부\s*\d*|갈림길|삼거리|사거리|헬기장|이정표)$/.test(name)) name = "";
             if (!p) return;
