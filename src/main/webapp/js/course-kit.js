@@ -507,10 +507,24 @@
      * 코스가 많은 노선 먼저. 이름은 "국토종주 섬진강 자전거길 1구간 · …" → 섬진강 자전거길, "지리산둘레길 주천-운봉" → 지리산둘레길.
      * 2026-10-12 홍TV님: 국토종주 자전거길 지도(나무위키 노선도)처럼 노선 전체를 한 장으로.
      */
-    function routeGuides(rows, max) {
+    function routeGuides(rows, max, series) {
         var by = {}, order = [];
+        // 다른 자료의 같은 노선(산림청 "금호남정맥 · …" = OSM 금남호남정맥) - series.json 의 이름 · aka 와 무리 이름이 같으면 그 노선(2026-10-12 PC)
+        var named = {};
+        (series || []).forEach(function (s) {
+            if (!s.prefix) return;
+            [s.name].concat(s.aka || []).forEach(function (n) { named[String(n).replace(/\s+/g, "")] = s; });
+        });
         (rows || []).forEach(function (r) {
             var id = String(r.course_id || ""), m = /^((osmb|kmf|osmh)-[0-9]+-)/.exec(id);
+            var alias = !m && named[String(nameParts(r.name).group || "").replace(/\s+/g, "")];
+            if (alias) {
+                var ak = /^((osmb|kmf|osmh)-[0-9]+-)/.exec(alias.prefix);
+                if (!ak) return;
+                if (!by[ak[1]]) { by[ak[1]] = { prefix: ak[1], name: alias.name, kind: ak[2] === "osmb" ? "bike" : ak[2] === "osmh" ? "ridge" : "walk", n: 0 }; order.push(by[ak[1]]); }
+                by[ak[1]].n++;
+                return;
+            }
             // 코리아둘레길(두루누비 drnb-) - 코스 ID 에 노선 묶음이 없어 이름("해파랑길 1코스 · …")으로 묶음, trail 로 찾음
             if (!m && /^drnb-/.test(id)) {
                 var tn = (nameParts(r.name).group || String(r.name || "")).replace(/\s*\d+(?:-\d+)?\s*코스.*$/, "").trim();

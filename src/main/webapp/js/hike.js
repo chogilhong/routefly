@@ -1874,6 +1874,12 @@
         else location.hash = "";
     });
 
+    // 노선 이름 · 다른 이름(data/series.json) - 노선 안내도 카드가 다른 자료의 같은 노선도 잡게. 못 받으면 없이
+    var seriesFlat = [];
+    fetch("data/series.json").then(function (r) { return r.json(); }).then(function (d) {
+        (d.groups || []).forEach(function (g) { seriesFlat = seriesFlat.concat(g.series || []); });
+    }).catch(function () { /* 없이 */ });
+
     function listCourses(rows, from, note) {
         var box = $("pickList");
         box.textContent = "";
@@ -1892,7 +1898,7 @@
         }
         // 탐방 안내도 먼저 - 산에 가면 탐방 안내도부터 보고 갈 코스를 고르듯(2026-10-12 홍TV님). 안내도에서 탐방로를 누르면 미리보기 · 산행하기
         // 노선 안내도 - 국토종주 자전거길 · 국가숲길 구간 코스가 있으면 그 노선 전체 지도(2026-10-12 홍TV님)
-        var routes = RF.routeGuides(rows, 2);
+        var routes = RF.routeGuides(rows, 2, seriesFlat);
         routes.forEach(function (g) {
             var a = document.createElement("a");
             a.className = "it guide";

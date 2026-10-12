@@ -55,14 +55,14 @@
     },
     {
       "key": "ridge", "title": "백두대간 · 정맥", "icon": "🏔", "unit": "구간",
-      "_note": "OpenStreetMap 등산 노선(osmHike, osmh-<OSM 노선>-n 구간) - 구간 수 · 길이는 api/group 으로 받아 셈(2026-10-12). 한남정맥은 OSM 노선이 없어 뺌. 순서는 백두대간, 한북 → 한남금북 → 금북 → 금남 → 금남호남 → 호남 → 낙동 → 낙남",
+      "_note": "OpenStreetMap 등산 노선(osmHike, osmh-<OSM 노선>-n 구간) - 구간 수 · 길이는 api/group 으로 받아 셈(2026-10-12). 한남정맥은 OSM 노선이 없어 뺌. aka 는 다른 자료의 이름(산림청 무리 '금호남정맥' - 2026-10-12 PC), 검색 목록 노선 안내도 카드가 씀. 순서는 백두대간, 한북 → 한남금북 → 금북 → 금남 → 금남호남 → 호남 → 낙동 → 낙남",
       "series": [
         { "key": "baekdu", "name": "백두대간", "prefix": "osmh-9439787-" },
         { "key": "hanbuk", "name": "한북정맥", "prefix": "osmh-17461355-" },
         { "key": "hannamgeumbuk", "name": "한남금북정맥", "prefix": "osmh-17448393-" },
         { "key": "geumbuk", "name": "금북정맥", "prefix": "osmh-19257371-" },
         { "key": "geumnam", "name": "금남정맥", "prefix": "osmh-19161069-" },
-        { "key": "geumnamhonam", "name": "금남호남정맥", "prefix": "osmh-18716489-" },
+        { "key": "geumnamhonam", "name": "금남호남정맥", "prefix": "osmh-18716489-", "aka": ["금호남정맥"] },
         { "key": "honam", "name": "호남정맥", "prefix": "osmh-18698158-" },
         { "key": "nakdong", "name": "낙동정맥", "prefix": "osmh-15597750-" },
         { "key": "naknam", "name": "낙남정맥", "prefix": "osmh-19179556-" }
