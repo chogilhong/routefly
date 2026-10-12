@@ -34,33 +34,71 @@
      * 이어진 구간으로). 아래 칸에 처음 → 끝 두 방향 단추(따라가기), 하나만 골랐으면 미리보기도.
      */
     var sel = [], lines = {}, flips = {}, byId = {}, segs = [], emptySheet = "", poiNames = {}, noteNames = null;
+    var chosen = [], startMk = null, endMk = null;
+
+    /** 고른 탐방로가 이어진 묶음별로(끝 150m 안이면 이어짐) - 빼서 끊어지면 처음 고른 것이 든 묶음만 남김. */
+    function groupOf(ids, keep) {
+        var d = function (p, q) { return RF.distM(p[1], p[0], q[1], q[0]); };
+        var touch = function (x, y) {
+            var a = lines[x], b = lines[y], ea = [a[0], a[a.length - 1]], eb = [b[0], b[b.length - 1]];
+            return ea.some(function (p) { return eb.some(function (q) { return d(p, q) < 150; }); });
+        };
+        var got = [keep], todo = ids.filter(function (x) { return x !== keep; }), grew = true;
+        while (grew) {
+            grew = false;
+            todo = todo.filter(function (x) {
+                if (got.some(function (y) { return touch(x, y); })) { got.push(x); grew = true; return false; }
+                return true;
+            });
+        }
+        return ids.filter(function (x) { return got.indexOf(x) >= 0; });
+    }
+
+    /**
+     * 탐방로 고르기 - 누르면 고르고 다시 누르면 뺌. 고른 묶음을 실제로 걷는 순서로(RF.planWalk - 들머리에서 출발, 정상 같은 막다른 갈래는 올랐다 내려옴,
+     * 갈림길에서 끝나면 들머리로 돌아옴). 이어지지 않는 탐방로를 누르면 그 탐방로로 새로(알림 없이 - 2026-10-12 홍TV님).
+     */
     function pick(t) {
         if (t) {
-            var next = RF.chainPick(sel, t.id, lines), cur = RF.chainShape(sel, lines), shape = RF.chainShape(next, lines);
-            var grows = sel.length && next.length === sel.length + 1;
-            // 처음 자리 · 지나온 갈림길로 돌아온 코스(원점회귀)는 다 된 것 - 더 이으려면 끝 구간을 빼고(2026-10-12 홍TV님)
-            if (grows && cur.type !== "path") { alert("처음 자리로 돌아온 코스입니다. 더 이으려면 마지막 구간을 먼저 빼세요."); return; }
-            if (shape.type === "bad") { alert("같은 갈림길을 두 번 지나는 코스는 고를 수 없습니다. 원점회귀는 들머리나 지나온 갈림길로 돌아오면 됩니다."); return; }
-            sel = next;
+            var k = chosen.indexOf(t.id);
+            if (k >= 0) {
+                chosen.splice(k, 1);
+                if (chosen.length && !planOf(chosen).ok) chosen = groupOf(chosen, chosen[0]);
+                if (chosen.length && !planOf(chosen).ok) chosen = [];
+            } else {
+                chosen.push(t.id);
+                if (!planOf(chosen).ok) chosen = [t.id];
+            }
         }
-        map.getSource("sel").setData({ type: "FeatureCollection", features: sel.map(function (s) {
-            return { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: lines[s.id] } };
+        var plan = chosen.length ? planOf(chosen) : { ok: false };
+        sel = plan.ok ? plan.walk : [];
+        map.getSource("sel").setData({ type: "FeatureCollection", features: chosen.map(function (id) {
+            return { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: lines[id] } };
         }) });
+        if (startMk) { startMk.remove(); startMk = null; }
+        if (endMk) { endMk.remove(); endMk = null; }
         if (!sel.length) { $("sheet").innerHTML = emptySheet; return; }
+        // 출발(들머리) · 도착을 지도에(2026-10-12 홍TV님: 중산리탐방지원센터가 들머리인데 지도에 표시)
+        var flag = function (txt, at) {
+            var e = document.createElement("div");
+            e.className = "flag";
+            e.textContent = txt;
+            return new maplibregl.Marker({ element: e, anchor: "bottom-left" }).setLngLat(at).addTo(map);
+        };
+        startMk = flag(plan.loop ? "🚩 출발 · 도착" : "🚩 출발", plan.start);
+        if (!plan.loop) endMk = flag("🏁 도착", plan.end);
         var ends = function (s) {
             var e = RF.routeEnds(byId[s.id].name), a = flips[s.id] ? e.to : e.from, b = flips[s.id] ? e.from : e.to;
             return s.rev ? [b, a] : [a, b];
         };
-        var sh = RF.chainShape(sel, lines), round = sh.type === "loop" || sh.type === "lolli";
-        // 갈림길 → 한 바퀴 → 갈림길이면 들머리까지 온 길을 거꾸로 붙여 돌아옴(중산리 → 칼바위 → … → 칼바위 → 중산리)
-        var full = sh.type === "lolli" ? sel.concat(RF.reverseSel(sel.slice(0, sh.k))) : sel;
+        var round = plan.loop, full = sel;
         var from = ends(sel[0])[0], to = round ? from : ends(sel[sel.length - 1])[1], one = full.length === 1 ? byId[full[0].id] : null;
         var meters = full.reduce(function (m, s) { return m + (+byId[s.id].distance_m || 0); }, 0);
         $("sheet").innerHTML = "";
         var nm = document.createElement("div");
         nm.className = "nm";
-        RF.nameNodes(nm, one ? one.name : round ? (from || "") + " 원점회귀 · " + full.length + "구간"
-            : sel.length + "구간 이어 걷기" + (from || to ? " · " + RF.endsText(from, to) : ""));
+        RF.nameNodes(nm, one ? one.name : round ? (from || "") + " 원점회귀 · " + chosen.length + "구간"
+            : chosen.length + "구간 이어 걷기" + (from || to ? " · " + RF.endsText(from, to) : ""));
         var st = document.createElement("div");
         st.className = "st";
         st.textContent = RF.km(meters) + "km" + (one && one.ascent_m != null ? " · 오르막 " + RF.num(one.ascent_m) + "m" : " · 오르막은 따라가기 화면에서")
@@ -78,9 +116,10 @@
             list = RF.flattenSel(list);   // 이은 구간(무등산)은 코스 조각으로 풀어서
             return "hike.html#c=" + (list.length === 1 ? encodeURIComponent(list[0].id) + (list[0].rev ? "&rev=1" : "") : encodeURIComponent(RF.joinId(list)));
         };
-        // 원점회귀는 어느 쪽으로 먼저 도는지(한 바퀴의 첫 구간 끝 · 마지막 구간 처음 이름)
-        var loopA = round ? ends(sel[sh.k])[1] : null, loopB = round ? ends(sel[sel.length - 1])[0] : null;
-        var labels = round ? [(loopA || "이 방향") + " 쪽으로 먼저", (loopB || "반대 방향") + " 쪽으로 먼저"]
+        // 원점회귀는 어느 쪽으로 먼저 도는지 - 두 방향이 처음 갈라지는 곳의 이름(들머리에서 같은 길로 오르는 부분은 건너뜀)
+        var fwdN = full.map(function (s) { return ends(s)[1]; }), bwdN = RF.reverseSel(full).map(function (s) { return ends(s)[1]; }), dv = 0;
+        while (dv < fwdN.length - 1 && fwdN[dv] === bwdN[dv]) dv++;
+        var labels = round ? [(fwdN[dv] || "이 방향") + " 쪽으로 먼저", (bwdN[dv] || "반대 방향") + " 쪽으로 먼저"]
             : from && to ? [from + " → " + to, to + " → " + from] : ["따라가기", "거꾸로 따라가기"];
         [[labels[0], full], [labels[1], RF.reverseSel(full)]].forEach(function (d, k) {
             var a = document.createElement("a");
@@ -91,7 +130,7 @@
         });
         var tip = document.createElement("div");
         tip.className = "tip";
-        tip.textContent = round ? "처음 자리로 돌아오는 코스입니다. 어느 쪽으로 먼저 돌지 고르세요."
+        tip.textContent = round ? "출발한 들머리로 돌아오는 코스입니다(정상 같은 갈래는 올랐다 같은 길로). 어느 쪽으로 먼저 돌지 고르세요."
             : "이어진 탐방로를 더 누르면 함께 고르고, 다시 누르면 뺍니다. 따라갈 방향을 고르세요.";
         $("sheet").appendChild(nm);
         $("sheet").appendChild(st);
@@ -102,11 +141,13 @@
     /**
      * 누른 자리에 선이 여럿이면(겹친 탐방로) - 고른 것에 이어지는 것, 그다음 짧은 것(구체적인 것)을. 2026-10-12 PC: 겹친 선을 누르면 다른 것이 잡혔음.
      */
+    function planOf(ids) { return RF.planWalk(ids, lines, { heads: data.heads, first: ids[0] }); }
+
     function bestHit(fs) {
         var ids = fs.map(function (f) { return f.properties.i; }).filter(function (i, k, a) { return a.indexOf(i) === k; });
         var score = function (i) {
-            var s = segs[i], inSel = sel.some(function (x) { return x.id === s.id; });
-            var joins = !inSel && sel.length && RF.chainPick(sel, s.id, lines).length > sel.length;
+            var s = segs[i], inSel = chosen.indexOf(s.id) >= 0;
+            var joins = !inSel && chosen.length && planOf(chosen.concat([s.id])).ok;
             return (inSel ? 0 : joins ? 1 : 2) * 1e7 + (+s.distance_m || 0);
         };
         return ids.sort(function (a, b) { return score(a) - score(b); })[0];

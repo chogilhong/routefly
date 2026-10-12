@@ -397,6 +397,17 @@ eq("headAlias 멀면 그대로", RF.headAlias([{ id: "t", name: "지리산 · �
 var tw1 = RF.fromApi("a", { course: { name: "지리산 · 법계사 → 천왕봉" }, points: [[127.74, 35.32, 1400, 0], [127.729, 35.3367, 1900, 2000]], pois: [{ name: "천왕봉", dist_m: 1877, off_route_m: 2, lat: 35.3368, lon: 127.7305 }] });
 var tw2 = RF.fromApi("b", { course: { name: "지리산 · 천왕봉 → 장터목" }, points: [[127.7306, 35.3370, 1915, 0], [127.716, 35.3326, 1650, 1400]], pois: [{ name: "천왕봉", dist_m: 0, off_route_m: 0, lat: 35.337, lon: 127.7306 }] });
 eq("joinCourses 이은 곳 둘레 같은 봉우리는 하나", RF.joinCourses([tw1, tw2], "a,b").pois.filter(function (p) { return p.name === "천왕봉"; }).length, 1);
+// 걷는 순서 - 중산리(T) ─s─ 칼바위(K) ─w─ 로터리(R) ─p─ 천왕봉(S, 막다른 끝), R ─e─ 순두류 쪽으로 K 에 다시(동쪽 길)
+var pw = { s: [[127.0, 35.0], [127.0, 35.01]], w: [[127.0, 35.01], [127.0, 35.03]], p: [[127.0, 35.03], [127.0, 35.04]], e: [[127.0, 35.03], [127.01, 35.02], [127.0, 35.0105]] };
+var hd = [{ name: "중산리탐방지원센터", lat: 35.0, lon: 127.0 }];
+var pl = RF.planWalk(["w", "p", "e", "s"], pw, { heads: hd, first: "w" });
+eq("planWalk 들머리 → 고리 → 정상 갔다 옴 → 들머리", [pl.ok, pl.loop, pl.walk.length, pl.walk[0].id, pl.walk[pl.walk.length - 1].id], [true, true, 6, "s", "s"]);
+eq("planWalk 정상은 두 번(올랐다 내려옴)", pl.walk.filter(function (x) { return x.id === "p"; }).map(function (x) { return x.rev; }).sort(), [false, true]);
+var pl2 = RF.planWalk(["s", "w", "p"], pw, { heads: hd, first: "s" });
+eq("planWalk 그냥 길(갈래 없음)은 한쪽으로 - 들머리 → 정상", [pl2.loop, pl2.walk.map(function (x) { return x.id + (x.rev ? "~" : ""); }).join(",")], [false, "s,w,p"]);
+eq("planWalk 이어지지 않으면 안 됨", RF.planWalk(["s", "p"], pw, {}).ok, false);
+var pw3 = { a: [[127.0, 35.0], [127.0, 35.02]], b: [[127.0, 35.02], [127.02, 35.0]] };
+eq("planWalk 들머리 둘이면 한쪽으로", RF.planWalk(["a", "b"], pw3, { heads: [{ lat: 35.0, lon: 127.0 }, { lat: 35.0, lon: 127.02 }] }).loop, false);
 var full = RF.fromApi("r", { course: { name: "산 · 가 → 라" }, points: [[127.0, 35.0, 100, 0], [127.011, 35.0, 200, 1000], [127.022, 35.0, 150, 2000], [127.033, 35.0, 300, 3000]], pois: [] });
 var sl = RF.sliceCourse(full, 1 / 3, 2 / 3, "산 · 나 → 다", "r@0.3333-0.6667:나>다");
 eq("sliceCourse 거리 · 이름표", [Math.round(sl.total), sl.pois.map(function (p) { return p.name; }).join(","), sl.course.ascent_m], [1000, "나,다", 0]);

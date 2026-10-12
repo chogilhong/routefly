@@ -1157,7 +1157,8 @@
     function splitTrails(trails, flips, nearM, poiNames) {
         // near 150m - 대피소가 능선에서 조금 떨어짐(음정 → 벽소령 끝 129m). MIN_M 300m - 짧은 조각은 처음 화면에서 10px 도 안 돼
         // 누를 수 없었음(2026-10-12 PC: 북한산 300m 안 34개) - 끝에서 · 갈림길끼리 이만큼 안은 자르지 않음
-        var near = nearM == null ? 150 : nearM, MIN_M = 300, out = [];
+        // 갈림길끼리는 JOIN_M(100m) 안만 하나로 - 300m 로 합치면 북한산 대동문 · 보국문처럼 가까운 두 갈림길이 하나가 되어 길이 끊겼음(2026-10-12)
+        var near = nearM == null ? 150 : nearM, MIN_M = 300, JOIN_M = 100, out = [];
         var ends = (trails || []).map(function (t) {
             var e = routeEnds(t.name), f = flips && flips[t.id];
             // 국립공원 "성판악 탐방로" · "관음사 탐방로" 는 들머리 이름(2026-10-12 홍TV님: 성판악탐방안내소 → … → 백록담)
@@ -1185,7 +1186,7 @@
             var kept = [];
             cuts.forEach(function (x) {
                 var prev = kept[kept.length - 1];
-                if (prev && cum[x.k] - cum[prev.k] < MIN_M) { if (!prev.name) prev.name = x.name; return; }
+                if (prev && cum[x.k] - cum[prev.k] < JOIN_M) { if (!prev.name) prev.name = x.name; return; }
                 kept.push(x);
             });
             if (!kept.length || !total || t.merged || t.nocut) { out.push(t); return; }   // 이은 구간(mergeBare)은 자르지 않음 - 따라가기가 자를 수 없음
@@ -1592,6 +1593,90 @@
             x.name = aliasName(t.name, names);
             return x;
         });
+    }
+
+    /**
+     * 순수 함수 - 고른 탐방로 묶음(차례 없음)을 실제로 걷는 순서로(2026-10-12 홍TV님: 중산리 → 칼바위 → 로터리 → 천왕봉 → 로터리 → 순두류 → 중산리 처럼
+     * 정상은 올랐다 같은 길로 내려와 다른 길로 - 한 줄로 잇는 방식으로는 못 골랐음).
+     *   - 출발: 들머리(heads 500m 안 막다른 끝), 없으면 처음 고른 탐방로의 막다른 끝, 없으면 그 처음
+     *   - 막다른 끝 가운데 다른 들머리는 도착(한쪽으로 가는 코스), 들머리가 아닌 막다른 끝(정상 · 폭포 …)은 올랐다 같은 길로(두 번)
+     *   - 그래도 갈림길에서 끝나면 출발까지 가장 짧은 길로 돌아옴(원점회귀)
+     * ids: 고른 탐방로 ID, lines: {ID: 좌표}, opts: {heads, first(처음 고른 ID), nearM}.
+     * → {ok, walk:[{id, rev}], loop, start:[경도, 위도], end:[경도, 위도]}. 이어지지 않으면 ok:false.
+     */
+    function planWalk(ids, lines, opts) {
+        opts = opts || {};
+        var near = opts.nearM == null ? 150 : opts.nearM, d = function (p, q) { return distM(p[1], p[0], q[1], q[0]); };
+        ids = (ids || []).filter(function (id) { return lines[id] && lines[id].length > 1; });
+        if (!ids.length) return { ok: false };
+        var nodes = [], node = function (p) {
+            for (var i = 0; i < nodes.length; i++) if (d(p, nodes[i]) < near) return i;
+            nodes.push(p);
+            return nodes.length - 1;
+        };
+        var E = ids.map(function (id) { var l = lines[id]; return { id: id, a: node(l[0]), b: node(l[l.length - 1]) }; });
+        var adj = nodes.map(function () { return []; });
+        E.forEach(function (e, i) { adj[e.a].push(i); adj[e.b].push(i); });
+        // 이어져 있나
+        var seen = { 0: true }, st = [0];
+        while (st.length) adj[st.pop()].forEach(function (i) { [E[i].a, E[i].b].forEach(function (n) { if (!seen[n]) { seen[n] = true; st.push(n); } }); });
+        if (Object.keys(seen).length !== nodes.length) return { ok: false };
+        var deg = adj.map(function (a) { return a.length; }), leaves = [];
+        deg.forEach(function (g, n) { if (g === 1) leaves.push(n); });
+        var isHead = function (n) { return (opts.heads || []).some(function (h) { return d(nodes[n], [+h.lon, +h.lat]) < 500; }); };
+        var firstE = E.filter(function (e) { return e.id === opts.first; })[0] || E[0];
+        var s = leaves.filter(isHead)[0];
+        if (s == null) s = [firstE.a, firstE.b].filter(function (n) { return deg[n] === 1; })[0];
+        if (s == null) s = firstE.a;
+        var others = leaves.filter(function (n) { return n !== s; }), ends = others.filter(isHead);
+        var end = ends.length ? ends[0] : null, spurs;
+        // 들머리 자료가 없고 막다른 끝이 하나뿐인 그냥 길이면 거기가 도착
+        if (end == null && others.length === 1 && E.length === nodes.length - 1) end = others[0];
+        spurs = others.filter(function (n) { return n !== end; });
+        var M = E.map(function (e) { return { id: e.id, a: e.a, b: e.b }; });   // 걷는 길(두 번 걷는 길은 두 벌)
+        spurs.forEach(function (n) { var i = adj[n][0]; M.push({ id: E[i].id, a: E[i].a, b: E[i].b }); });
+        var mdeg = nodes.map(function () { return 0; });
+        M.forEach(function (e) { mdeg[e.a]++; mdeg[e.b]++; });
+        var odd = mdeg.map(function (g, n) { return g % 2 ? n : -1; }).filter(function (n) { return n >= 0; });
+        if (odd.length === 2 && odd.indexOf(s) >= 0) {
+            var t = odd[0] === s ? odd[1] : odd[0];
+            if (t !== end) {
+                // 갈림길에서 끝남 - 출발까지 가장 짧은 길(고른 탐방로 안)을 한 번 더 걸어 돌아옴
+                var dist = {}, prev = {}, q = [t];
+                dist[t] = 0;
+                while (q.length) {
+                    q.sort(function (x, y) { return dist[x] - dist[y]; });
+                    var u = q.shift();
+                    adj[u].forEach(function (i) {
+                        var v = E[i].a === u ? E[i].b : E[i].a, L = d(nodes[E[i].a], nodes[E[i].b]) + 1;
+                        if (dist[v] == null || dist[u] + L < dist[v]) { dist[v] = dist[u] + L; prev[v] = i; q.push(v); }
+                    });
+                }
+                for (var v = s; v !== t && prev[v] != null; v = E[prev[v]].a === v ? E[prev[v]].b : E[prev[v]].a)
+                    M.push({ id: E[prev[v]].id, a: E[prev[v]].a, b: E[prev[v]].b });
+                mdeg = nodes.map(function () { return 0; });
+                M.forEach(function (e) { mdeg[e.a]++; mdeg[e.b]++; });
+                odd = mdeg.map(function (g, n) { return g % 2 ? n : -1; }).filter(function (n) { return n >= 0; });
+            }
+        }
+        if (!(odd.length === 0 || (odd.length === 2 && odd.indexOf(s) >= 0))) return { ok: false };
+        // 한 붓 그리기(Hierholzer) - s 에서
+        var madj = nodes.map(function () { return []; }), used = M.map(function () { return false; });
+        M.forEach(function (e, i) { madj[e.a].push(i); madj[e.b].push(i); });
+        var stack = [{ n: s, e: -1 }], path = [];
+        while (stack.length) {
+            var top = stack[stack.length - 1], nx = -1;
+            while (madj[top.n].length) { var i2 = madj[top.n].pop(); if (!used[i2]) { nx = i2; break; } }
+            if (nx < 0) { path.push(stack.pop()); continue; }
+            used[nx] = true;
+            stack.push({ n: M[nx].a === top.n ? M[nx].b : M[nx].a, e: nx, from: top.n });
+        }
+        path.reverse();
+        var walk = path.filter(function (x) { return x.e >= 0; }).map(function (x) { return { id: M[x.e].id, rev: M[x.e].a !== x.from }; });
+        if (walk.length !== M.length) return { ok: false };
+        var last = path[path.length - 1].n;
+        // 끝이 출발 600m 안이면 원점회귀(중산리탐방지원센터 ↔ 법계교 375m)
+        return { ok: true, walk: walk, loop: last === s || d(nodes[last], nodes[s]) < 600, start: nodes[s], end: nodes[last] };
     }
 
     /** 순수 함수 - 이름의 길 부분에서 다른 이름으로("지리산 · 중산리 → 천왕봉" + {중산리: 중산리탐방지원센터}). names 가 없으면 그대로. */
@@ -2143,6 +2228,6 @@
     global.RF = {
         LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, stampKey: stampKey, summitName: summitName, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakCourses: peakCourses, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
-        sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
+        sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
     };
 })(window);
