@@ -389,6 +389,26 @@ var kn = [{ id: "k1", name: "산 · 가 → 비선대", coords: [[127.0, 35.0], 
 var oth = [{ id: "o1", name: "산 다른 1코스 · 가 → 희운각", coords: [[127.0, 35.0], [127.005, 35.0], [127.008, 35.0005], [127.011, 35.0005], [127.014, 35.0005], [127.017, 35.0], [127.022, 35.0]] }];
 var gf = RF.gapFill(kn, oth, [{ name: "비선대", lon: 127.005, lat: 35.0 }, { name: "양폭대피소", lon: 127.017, lat: 35.0 }], [], "산");
 eq("gapFill 공단 탐방로 사이 빈 곳만", gf.map(function (x) { return x.name + ":" + x.base + ":" + x.extra; }), ["산 · 비선대 → 양폭대피소:o1:true"]);
+// 2026-10-13 홍TV님: 정상 291m 아래 갈림길이 "천왕봉" 이 되어 깃발이 "도착 천왕봉" - 봉우리 · 문은 가까울 때만
+eq("gapFill 먼 봉우리 이름은 안 붙임", RF.gapFill(kn, oth, [{ name: "천왕봉", lon: 127.005, lat: 35.0023 }, { name: "양폭대피소", lon: 127.017, lat: 35.0 }], [], "산")[0].name, "산 · 갈림길 → 양폭대피소");
+eq("gapFill 가까운 봉우리는 붙임", RF.gapFill(kn, oth, [{ name: "천왕봉", lon: 127.005, lat: 35.0009 }, { name: "양폭대피소", lon: 127.017, lat: 35.0 }], [], "산")[0].name, "산 · 천왕봉 → 양폭대피소");
+eq("peakNearM", [RF.peakNearM("천왕봉"), RF.peakNearM("남대봉 (망경봉)"), RF.peakNearM("통천문"), RF.peakNearM("세석대피소"), RF.peakNearM("전망대")].join(","), "120,120,150,Infinity,Infinity");
+// 원점회귀 예시(2026-10-13 홍TV님) - 들머리 H(127, 35)에서 봉우리 P(127.02, 35.02)로 두 길(서쪽 A · 동쪽 B), 옅은 선은 쓰지 않음
+var exSegs = [
+    { id: "ha", name: "산 · H → A", coords: [[127.0, 35.0], [127.0, 35.02]], distance_m: 2200 },
+    { id: "ap", name: "산 · A → P", coords: [[127.0, 35.02], [127.02, 35.02]], distance_m: 1800 },
+    { id: "hb", name: "산 · H → B", coords: [[127.0, 35.0], [127.02, 35.0]], distance_m: 1800 },
+    { id: "bp", name: "산 · B → P", coords: [[127.02, 35.0], [127.02, 35.02]], distance_m: 2200 },
+    { id: "xx", name: "산 · H → P", coords: [[127.0, 35.0], [127.02, 35.02]], distance_m: 2900, extra: true }];
+var exH = [{ name: "H탐방지원센터", lon: 127.0, lat: 35.0 }], exP = [{ name: "P봉", lon: 127.02, lat: 35.02, ele_m: 900 }];
+var ex1 = RF.loopExamples(exSegs, exH, exP);
+eq("loopExamples 두 길로 원점회귀", ex1.map(function (x) { return x.loop + ":" + x.head + ":" + x.peak + ":" + x.m + ":" + x.ids.slice().sort().join(","); }), ["true:H탐방지원센터:P봉:8000:ap,bp,ha,hb"]);
+var ex2 = RF.loopExamples(exSegs.slice(0, 2), exH, exP);
+eq("loopExamples 고리가 없으면 왕복", ex2.map(function (x) { return x.loop + ":" + x.m + ":" + x.walk.length; }), ["false:8000:4"]);
+var exL = {}; exSegs.forEach(function (x) { exL[x.id] = x.coords; });
+eq("planWalk 출발을 정함(고리 위 들머리)", JSON.stringify(RF.planWalk(["ap", "bp", "ha", "hb"], exL, { first: "ap", start: [127.02, 35.0] }).start), JSON.stringify([127.02, 35.0]));
+eq("planWalk 출발을 안 정하면 첫 탐방로 끝", JSON.stringify(RF.planWalk(["ap", "bp", "ha", "hb"], exL, { first: "ap" }).start), JSON.stringify([127.0, 35.02]));
+eq("loopExamples 너무 짧으면 없음", RF.loopExamples(exSegs.slice(0, 2), exH, exP, { minM: 9000 }).length, 0);
 eq("gapFill 겹치는 코스만 있으면 없음", RF.gapFill(kn, [{ id: "o2", name: "x", coords: kn[0].coords.concat([[127.0052, 35.0]]) }], [], [], "산").length, 0);
 eq("headAlias 끝 500m 안 들머리 이름", RF.headAlias([{ id: "t", name: "지리산 · 중산리 → 천왕봉", coords: [[127.7491, 35.30393], [127.729, 35.3367]] }],
     [{ name: "중산리탐방지원센터", lat: 35.303, lon: 127.7498 }])[0].name, "지리산 · 중산리탐방지원센터 → 천왕봉");

@@ -60,6 +60,7 @@
      */
     function pick(t) {
         if (t) {
+            exStart = null;
             var k = chosen.indexOf(t.id);
             if (k >= 0) {
                 chosen.splice(k, 1);
@@ -100,10 +101,31 @@
             return s.rev ? [b, a] : [a, b];
         };
         var round = plan.loop, full = sel;
-        var from = ends(sel[0])[0], to = round ? from : ends(sel[sel.length - 1])[1], one = full.length === 1 ? byId[full[0].id] : null;
+        // 이름에 출발 · 도착이 없는 탐방로("설악산 · 대청봉코스")는 그 자리 지명(300m, 봉우리는 120m)으로
+        var nearName = function (p) {
+            var best = null, bd = 300;
+            (data.places || []).forEach(function (q) {
+                var x = RF.distM(p[1], p[0], +q.lat, +q.lon), nm = RF.placeName(q.name);
+                if (nm && x < bd) { bd = x; best = x > RF.peakNearM(nm) ? null : nm; }
+            });
+            return best;
+        };
+        // 원점회귀 예시는 그 들머리 이름(북한산 구기탐방지원센터 자리 구간 끝 이름이 "비봉능선")
+        var from = (exStart && exHead) || ends(sel[0])[0] || nearName(plan.start), to = round ? from : ends(sel[sel.length - 1])[1] || nearName(plan.end);
+        var one = full.length === 1 ? byId[full[0].id] : null;
         // 깃발에 들머리 이름(서버 heads 가 없어도 - 2026-10-12 홍TV님: 탐방 안내도에 중산리탐방지원센터가 안 보였음)
-        startMk = flag((round ? "🚩 출발 · 도착 " : "🚩 출발 ") + (from || ""), plan.start);
-        if (!round) endMk = flag("🏁 도착 " + (to || ""), plan.end);
+        // 깃발은 그 이름의 지명 자리(200m 안)에 - 공단 자료 중산리 → 천왕봉 선은 정상을 지나 117m 더 그려져 있음(2026-10-13 홍TV님)
+        var at = function (name, p) {
+            var best = p, bd = 200;
+            (data.places || []).forEach(function (q) {
+                if (!name || RF.placeName(q.name) !== RF.placeName(name)) return;
+                var x = RF.distM(p[1], p[0], +q.lat, +q.lon);
+                if (x < bd) { bd = x; best = [+q.lon, +q.lat]; }
+            });
+            return best;
+        };
+        startMk = flag((round ? "🚩 출발 · 도착 " : "🚩 출발 ") + (from || ""), at(from, plan.start));
+        if (!round) endMk = flag("🏁 도착 " + (to || ""), at(to, plan.end));
         var meters = full.reduce(function (m, s) { return m + (+byId[s.id].distance_m || 0); }, 0);
         $("sheet").innerHTML = "";
         var nm = document.createElement("div");
@@ -130,7 +152,12 @@
         // 원점회귀는 어느 쪽으로 먼저 도는지 - 두 방향이 처음 갈라지는 곳의 이름(들머리에서 같은 길로 오르는 부분은 건너뜀)
         var fwdN = full.map(function (s) { return ends(s)[1]; }), bwdN = RF.reverseSel(full).map(function (s) { return ends(s)[1]; }), dv = 0;
         while (dv < fwdN.length - 1 && fwdN[dv] === bwdN[dv]) dv++;
-        var labels = round ? [(fwdN[dv] || "이 방향") + " 쪽으로 먼저", (bwdN[dv] || "반대 방향") + " 쪽으로 먼저"]
+        // "갈림길" 은 어느 쪽인지 모름 - 그 뒤 처음 이름 있는 곳(2026-10-13: 지리산 예시가 "갈림길 쪽으로 먼저")
+        var known = function (list) {
+            for (var i = dv; i < list.length; i++) if (list[i] && !/^(갈림길|탐방로 끝)$/.test(list[i])) return list[i];
+            return null;
+        };
+        var labels = round ? [(known(fwdN) || "이 방향") + " 쪽으로 먼저", (known(bwdN) || "반대 방향") + " 쪽으로 먼저"]
             : from && to ? [from + " → " + to, to + " → " + from] : ["따라가기", "거꾸로 따라가기"];
         var second = RF.reverseSel(full);
         // 들머리에서 정상 같은 막다른 곳까지면 "왕복"(올랐다 같은 길로 들머리) - 한라산 성판악 ↔ 백록담처럼 고리가 없는 산의 원점회귀(2026-10-13 홍TV님)
@@ -160,7 +187,37 @@
     /**
      * 누른 자리에 선이 여럿이면(겹친 탐방로) - 고른 것에 이어지는 것, 그다음 짧은 것(구체적인 것)을. 2026-10-12 PC: 겹친 선을 누르면 다른 것이 잡혔음.
      */
-    function planOf(ids) { return RF.planWalk(ids, lines, { heads: data.heads, first: ids[0] }); }
+    /**
+     * 원점회귀 예시(2026-10-13 홍TV님: 모든 산에 원점회귀 코스 예시) - 고른 탐방로가 없을 때 아래 칸에 높은 봉우리부터 셋.
+     * 누르면 그 구간들을 고른 것과 같음(고리가 없는 산은 정상 왕복 - 아래 칸의 "왕복" 단추).
+     */
+    var examples = [];
+    function showExamples(hs) {
+        var peaks = (data.places || []).filter(function (p) { return p.ele_m != null && /(봉|산|정상|오름|대)(\s*\(.*\))?$/.test(p.name) && !/(대피소|전망대)$/.test(p.name); });
+        examples = RF.loopExamples(segs, hs, peaks, { planHeads: data.heads });
+        if (!examples.length) return;
+        var box = document.createElement("div");
+        box.className = "ex";
+        var h = document.createElement("div");
+        h.className = "exh";
+        box.appendChild(h);
+        examples.forEach(function (x, k) {
+            var a = document.createElement("a");
+            a.href = "#";
+            a.setAttribute("data-ex", String(k));
+            RF.nameNodes(a, (x.loop ? "↻ " : "⇄ ") + x.head + " ↔ " + x.peak + (x.loop ? "" : " 왕복") + " · " + RF.km(x.m) + "km");
+            box.appendChild(a);
+        });
+        // 아래 칸 높이는 그대로(탐방로를 골랐을 때와 같게) - 안내 글은 예시 제목에 넣음
+        h.textContent = "원점회귀 예시(누르면 지도에) · 탐방로를 눌러 직접 고를 수도 있습니다";
+        var tip = $("sheet").querySelector(".tip");
+        if (tip && !listMode) tip.parentNode.removeChild(tip);
+        $("sheet").insertBefore(box, $("sheet").firstChild);
+        emptySheet = $("sheet").innerHTML;
+    }
+
+    var exStart = null, exHead = null;   // 원점회귀 예시를 눌렀을 때 그 들머리 자리 · 이름(탐방로를 직접 누르면 지움)
+    function planOf(ids) { return RF.planWalk(ids, lines, { heads: data.heads, first: ids[0], start: exStart }); }
 
     function bestHit(fs) {
         var ids = fs.map(function (f) { return f.properties.i; }).filter(function (i, k, a) { return a.indexOf(i) === k; });
@@ -234,6 +291,7 @@
         (data.heads || []).forEach(function (h) {
             if (!hs.some(function (x) { return x.name === h.name || RF.distM(x.lat, x.lon, +h.lat, +h.lon) < 300; })) hs.push(h);
         });
+        showExamples(hs);
         hs.forEach(function (h) { if (!have[h.name]) data.places.push({ name: h.name, lat: h.lat, lon: h.lon, ele_m: null, head: true }); });
         data.places.forEach(function (p) {
             var e = document.createElement("div");
@@ -341,6 +399,22 @@
         // 고른 탐방로가 없을 때 아래 칸(모두 빼면 다시 이것으로). 따라가기는 아래 칸에 맡겨 받음(다시 그려도 됨)
         emptySheet = $("sheet").innerHTML;
         $("sheet").addEventListener("click", function (e) {
+            var ex = e.target && e.target.closest ? e.target.closest("[data-ex]") : null;
+            if (ex) {
+                e.preventDefault();
+                var x = examples[+ex.getAttribute("data-ex")];
+                if (x) {
+                    chosen = x.ids.slice();
+                    exStart = x.start;
+                    exHead = x.head;
+                    pick();
+                    // 고른 예시가 보이게 확대
+                    var w = 180, so = 90, e2 = -180, n = -90;
+                    x.ids.forEach(function (id) { (lines[id] || []).forEach(function (q) { w = Math.min(w, q[0]); e2 = Math.max(e2, q[0]); so = Math.min(so, q[1]); n = Math.max(n, q[1]); }); });
+                    if (w < e2) map.fitBounds([[w, so], [e2, n]], { padding: 40, duration: 600, maxZoom: 15 });
+                }
+                return;
+            }
             if (!e.target || e.target.id !== "followNone") return;
             e.preventDefault();
             alert("탐방로를 선택하세요.");   // 탐방로를 고르기 전(2026-10-12 홍TV님)
