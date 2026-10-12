@@ -10,7 +10,7 @@
     var RF = window.RF;
     function $(id) { return document.getElementById(id); }
     var q = new URLSearchParams(location.search), prefix = q.get("prefix") || "", trail = q.get("trail") || "", backTo = q.get("back");
-    var map, data = null, series = null, nums = [], labels = [];
+    var map, data = null, series = null, nums = [], labels = [], flips = {};
     // 코스 · 구간 번호를 지도에 붙이는 노선(인증센터가 없는 것): 코리아둘레길 · 백두대간 · 정맥
     var numbered = !!trail || /^osmh-/.test(prefix);
 
@@ -104,14 +104,16 @@
         // 어느 쪽으로든 걸을 수 있게 - 정방향 · 거꾸로 두 단추(2026-10-12 홍TV님: 1 → 2 일 수도, 2 → 1 일 수도)
         var row = document.createElement("div");
         row.className = "row";
-        var fwd = RF.nameParts(c.name).route, back = RF.nameParts(RF.reverseName(c.name)).route, arrow = fwd.indexOf(" → ") >= 0;
-        [[fwd, arrow ? "따라가기 " + fwd : "따라가기", ""], [back, arrow ? "따라가기 " + back : "거꾸로 따라가기", "&rev=1"]].forEach(function (d, k) {
+        var e = RF.routeEnds(c.name), both = e.from && e.to;
+        // 선이 이름과 거꾸로 그려진 코스(국가숲길 GPX 일부) - 단추는 실제로 걸어 나가는 차례로
+        if (flips[c.course_id]) e = { from: e.to, to: e.from };
+        // 자전거길은 "인증센터" 를 떼어 짧게(375px 두 단추에 "달성보인증센터 → 칠곡보인증센터" 가 잘렸음)
+        var short = function (x) { return String(x).replace(/인증센터/g, ""); };
+        [[both ? short(e.from) + " → " + short(e.to) : "따라가기", ""], [both ? short(e.to) + " → " + short(e.from) : "거꾸로 따라가기", "&rev=1"]].forEach(function (d, k) {
             var a = document.createElement("a");
             if (k === 0) a.className = "main";
-            a.href = "hike.html#c=" + encodeURIComponent(c.course_id) + d[2];
-            // 자전거길은 "인증센터" 를 떼어 짧게(375px 두 단추에 "달성보인증센터 → 칠곡보인증센터" 가 잘렸음)
-            a.textContent = arrow ? d[0].replace(/인증센터/g, "") : d[1];
-            a.title = d[1];
+            a.href = "hike.html#c=" + encodeURIComponent(c.course_id) + d[1];
+            a.textContent = d[0];
             row.appendChild(a);
         });
         $("sheet").appendChild(nm);
@@ -170,7 +172,8 @@
         });
         map.on("mouseenter", "route-hit", function () { map.getCanvas().style.cursor = "pointer"; });
         map.on("mouseleave", "route-hit", function () { map.getCanvas().style.cursor = ""; });
-        if (numbered) drawCourseNumbers(); else drawCenters();
+        // 인증센터가 없는 노선(국가숲길 · 둘레길 · 백두대간 · 정맥)은 코스 번호 · 구간 시작 · 끝 지명
+        if (numbered || !(series && series.centers)) drawCourseNumbers(); else drawCenters();
         // 겹치는 이름표 · 번호 숨기기 - 지도가 움직이는 동안 0.15초마다 다시(둘레길 번호도)
         var timer = 0;
         map.on("render", function () {
@@ -214,6 +217,7 @@
             $("title").textContent = name + " " + km + "km" + (numbered ? " · " + data.courses.length + (trail ? "코스" : "구간") + (series && series.official ? "(공식 " + series.official + ")" : "") : "");
             document.title = name + " 노선 안내도 - routefly";
             if (!data.courses.length) { $("msg").textContent = "아직 코스가 없습니다."; return; }
+            flips = RF.routeFlips(data.courses, data.lines || {});
             map = new maplibregl.Map({ container: "map", style: RF.baseStyle(cfg), center: [127.8, 36.3], zoom: 7,
                 attributionControl: false, dragRotate: false, pitchWithRotate: false, touchPitch: false });
             map.touchZoomRotate.disableRotation();

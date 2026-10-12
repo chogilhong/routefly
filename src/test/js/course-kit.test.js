@@ -294,6 +294,17 @@ eq("노선 안내도 에서 · 까지", RF.routePlaces([{ course_id: "a", name: 
     { a: [[128, 36.9], [128.05, 36.9]], b: [[128.0501, 36.9001], [128.1, 36.85]], c: [[128.1, 36.85], [128.15, 36.8]], d: [[129, 38], [129.1, 38]] })
     .map(function (p) { return p.name + ":" + p.start + (p.last ? ":끝" : ""); }), ["창옥봉:1", "승라부대:-1:끝"]);
 eq("cumAscent 5m 넘게 바뀔 때만(배치와 같게)", RF.cumAscent ? RF.cumAscent([100, 102, 104, 106, 103, 110, null, 120]) : null, [0, 0, 0, 6, 6, 6, 6, 20]);
+eq("routeEnds", ["지리산둘레길 가탄-송정", "지리산둘레길 (가탄-송정) · 송정리 → 가탄마을민박", "백두대간 17구간 · 창옥봉에서", "DMZ 평화의 길 4코스 · 농업체험까지", "이름만"].map(function (n) {
+    var e = RF.routeEnds(n); return e.from + "|" + e.to; }), ["가탄|송정", "송정리|가탄마을민박", "창옥봉|null", "null|농업체험", "null|null"]);
+eq("마을 민박은 마을 이름", RF.routePlaces([{ course_id: "a", name: "지리산둘레길 (가탄-송정) · 송정리 → 가탄마을민박" }], { a: [[127.5, 35.2], [127.6, 35.2]] })
+    .map(function (p) { return p.name; }), ["송정리", "가탄마을"]);
+// 지리산둘레길(국가숲길) 실제 끝점 - 금계-동강 · 인월-금계 선은 이름과 거꾸로(2026-10-12 PC 자료)
+var jr = [{ course_id: "k2", name: "지리산둘레길 금계-동강" }, { course_id: "k5", name: "지리산둘레길 동강-수철" }, { course_id: "k18", name: "지리산둘레길 인월-금계" },
+    { course_id: "k15", name: "지리산둘레길 운봉-인월" }];
+var jl = { k2: [[127.76405, 35.43666], [127.68559, 35.40358]], k5: [[127.76405, 35.43666], [127.82627, 35.40499]],
+    k18: [[127.68572, 35.40364], [127.6019, 35.45919]], k15: [[127.52902, 35.44146], [127.60595, 35.45884]] };
+eq("routeFlips 이름과 거꾸로 그린 선", Object.keys(RF.routeFlips(jr, jl)).sort(), ["k18", "k2"]);
+eq("거꾸로 그린 선은 지명도 바꿔", RF.routePlaces(jr, jl).map(function (p) { return p.name + ":" + p.start; }), ["동강:0", "금계:2", "수철:-1", "인월:-1", "운봉:3"]);
 eq("둘레길 노선 안내도 카드", RF.routeGuides([{ course_id: "drnb-1", name: "해파랑길 1코스 · 오륙도해맞이공원 → 해운대해수욕장" },
     { course_id: "drnb-2", name: "해파랑길 2코스 · 해운대 → 대변항" }, { course_id: "drnb-3", name: "DMZ 평화의 길 19-1코스(우회로) · 승라부대까지" }, { course_id: "drnb-9", name: "이름만" }]),
     [{ trail: "해파랑길", name: "해파랑길", kind: "walk", n: 2 }, { trail: "DMZ 평화의 길", name: "DMZ 평화의 길", kind: "walk", n: 1 }]);

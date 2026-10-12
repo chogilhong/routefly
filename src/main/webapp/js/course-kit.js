@@ -102,6 +102,54 @@
      * 이름은 코스 이름 길("복지봉 → 팔성사")의 처음과 끝. 앞 구간 끝과 다음 구간 시작처럼 nearM 안에 이미 지명이 있으면 하나만.
      * → [{name, lon, lat, start: 이 지명에서 시작하는 courses 번호(없으면 -1)}]
      */
+    /**
+     * 순수 함수 - 코스 이름의 출발 · 도착 이름 {from, to}(모르면 null). "가 → 나 → 다" 는 가 · 다,
+     * 화살표 없는 "창옥봉에서" · "삼각점까지"(OSM 구간 한쪽 끝 - 2026-10-12 PC: 백두대간 끝 점이 둘로 보였음),
+     * 국가숲길 "지리산둘레길 가탄-송정"(2026-10-12 홍TV님: 어디가 가탄이고 어디가 송정인지).
+     */
+    function routeEnds(name) {
+        var parts = nameParts(name).route.split(" → ");
+        if (parts.length >= 2) return { from: parts[0].trim(), to: parts[parts.length - 1].trim() };
+        var one = /^(.+?)(에서|까지)$/.exec(parts[0].trim());
+        if (one) return one[2] === "에서" ? { from: one[1], to: null } : { from: null, to: one[1] };
+        var ab = /([가-힣]+)-([가-힣]+)\s*\)?\s*$/.exec(String(name || ""));
+        return ab ? { from: ab[1], to: ab[2] } : { from: null, to: null };
+    }
+
+    /**
+     * 순수 함수 - 선이 이름과 거꾸로 그려진 코스({코스ID: true}). 2026-10-12: 국가숲길 지리산둘레길 GPX 가운데 "금계-동강" ·
+     * "성심원-운리" 들은 선이 이름 뒤쪽(동강 · 운리)에서 시작함. 같은 이름이 여러 코스 끝에 나오면 그 끝들이 모이는 점이
+     * 그 곳 - 그 점이 이름 앞쪽(from)인데 선 끝에 있으면 거꾸로. 모르면 이름 차례 그대로.
+     */
+    function routeFlips(courses, lines, nearM) {
+        var near = nearM == null ? 300 : nearM, cands = {}, at = {}, out = {};
+        function key(n) { return String(n || "").replace(/\s+/g, ""); }
+        (courses || []).forEach(function (c) {
+            var l = lines && lines[c.course_id], e = routeEnds(c.name);
+            if (!l || l.length < 2) return;
+            [e.from, e.to].forEach(function (n) {
+                if (!n) return;
+                (cands[key(n)] = cands[key(n)] || []).push(l[0], l[l.length - 1]);
+            });
+        });
+        Object.keys(cands).forEach(function (k) {
+            var best = null, bn = 1;
+            cands[k].forEach(function (p) {
+                var n = cands[k].filter(function (q) { return distM(p[1], p[0], q[1], q[0]) < near; }).length;
+                if (n > bn) { bn = n; best = p; }
+            });
+            if (best) at[k] = best;
+        });
+        (courses || []).forEach(function (c) {
+            var l = lines && lines[c.course_id], e = routeEnds(c.name);
+            if (!l || l.length < 2) return;
+            var a = l[0], z = l[l.length - 1], f = e.from && at[key(e.from)], t = e.to && at[key(e.to)];
+            var d = function (p, q) { return distM(p[1], p[0], q[1], q[0]); };
+            if ((f && d(f, z) < near && d(f, a) >= near) || (t && d(t, a) < near && d(t, z) >= near)) out[c.course_id] = true;
+        });
+        return out;
+    }
+
     function routePlaces(courses, lines, nearM) {
         // 지명으로 다듬기(2026-10-12 PC: 해파랑길 · 백두대간 지명에 가게 · 창고 이름, 긴 괄호)
         // 가게 · 시설 이름은 빼고, 긴 괄호("(경상북도기념물제39호)")와 뒤 숫자("솔잎공원267")는 떼고, "660 봉" 은 붙이고,
@@ -109,6 +157,9 @@
         function placeName(raw) {
             var n = cleanName(raw || "").replace(/\(([^)]*)\)/g, function (m, x) { return x.length > 6 || /[0-9]/.test(x) ? "" : m; })
                 .replace(/([0-9]+)\s+(봉|고지)$/, "$1$2").replace(/([가-힣])[0-9]+$/, "$1").trim();
+            // 마을 이름 뒤 민박 · 펜션 · 식당은 마을 이름으로("가탄마을민박" → 가탄마을 - 2026-10-12 홍TV님: 지리산둘레길 끝 지명이 없었음)
+            var vil = /^(.+(마을|리|동))(민박|펜션|식당|슈퍼|가게)$/.exec(n);
+            if (vil) n = vil[1];
             if (/(본점|해변점|역점|항점|샵|민박|낚시점|창고|쉼터|관리본부|식당|카페|펜션|모텔|마트|편의점)$|^(씨유|GS25|세븐일레븐)/.test(n)) return "";
             var cut = n.replace(/(탐방지원센터|휴게소)$/, "");
             return cut.length >= 2 ? cut : n;
@@ -123,17 +174,14 @@
             if (at) { if (start >= 0 && at.start < 0) at.start = start; if (!at.name) at.name = name; return; }
             out.push({ name: name, lon: p[0], lat: p[1], start: start });
         }
+        var flips = routeFlips(courses, lines);
         (courses || []).forEach(function (c, i) {
-            var line = lines && lines[c.course_id], parts = nameParts(c.name).route.split(" → ");
+            var line = lines && lines[c.course_id], e = routeEnds(c.name);
             if (!line || !line.length) return;
-            // 화살표 없는 "창옥봉에서" · "삼각점까지"(OSM 구간 한쪽 끝 이름만) - 2026-10-12 PC: 백두대간 끝 점이 둘(창옥봉)로 보였음
-            if (parts.length < 2) {
-                var one = /^(.+?)(에서|까지)$/.exec(parts[0].trim());
-                if (one) add(one[1], one[2] === "에서" ? line[0] : line[line.length - 1], one[2] === "에서" ? i : -1);
-                return;
-            }
-            add(parts[0], line[0], i);
-            add(parts[parts.length - 1], line[line.length - 1], -1);
+            // 선이 이름과 거꾸로면 이름을 바꿔 붙임(선 처음 = 걸어 나가는 곳)
+            var first = flips[c.course_id] ? e.to : e.from, last = flips[c.course_id] ? e.from : e.to;
+            if (first) add(first, line[0], i);
+            if (last) add(last, line[line.length - 1], -1);
         });
         return out.filter(function (o, k) { o.last = k === out.length - 1; return o.name; });
     }
@@ -1505,6 +1553,6 @@
     global.RF = {
         LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, stampKey: stampKey, summitName: summitName, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakCourses: peakCourses, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
-        sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routePlaces: routePlaces, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
+        sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, routePlaces: routePlaces, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
     };
 })(window);
