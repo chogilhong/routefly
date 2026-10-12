@@ -119,14 +119,14 @@
         });
 
         var b = data.bbox;
-        // 작은 산은 둘레 마을 · 길까지 보이게 확대 한도 15(축척 막대 200~300m 쯤) - 2026-10-12 홍TV님: 공주향교뒷산(코스 0.3km)이 막대 50m 로 너무 크게 보였음
+        // 작은 산은 둘레 마을 · 길까지 보이게 확대 한도 14(MapLibre 512px 줌 - 폭 375px 폰에서 축척 막대 300m, 15 는 100m 였음 2026-10-12 터널로 확인) - 2026-10-12 홍TV님: 공주향교뒷산(코스 0.3km)이 막대 50m 로 너무 크게 보였음
         map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: 30, duration: 0, maxZoom: OVERVIEW_MAX_ZOOM });
         if (from) data.trails.forEach(function (t) { if (t.id === from) pick(t); });
         $("msg").style.display = "none";
     }
 
     /** 전체 보기 첫 화면의 최대 확대(손으로는 더 확대할 수 있음). */
-    var OVERVIEW_MAX_ZOOM = 15;
+    var OVERVIEW_MAX_ZOOM = 14;
 
     function start() {
         $("title").textContent = park ? park + " 전체 보기" : "전체 보기";
