@@ -156,9 +156,15 @@
         // ‹ 코스 - 코스 미리보기에서 왔으면(back=preview) 따라가기의 "🗺 코스 미리보기" 와 같은 첫 화면(검색 · 목록, 2026-10-11 홍TV님),
         // 따라가기에서 왔으면 그 코스의 따라가기
         if (backTo === "preview") $("back").href = "./";
-        else if (listMode) {   // 목록 카드에서 왔으면 ‹ 코스 대신 아래 "따라가기"(탐방로를 고르기 전에는 그 목록으로 - 검색어는 rf-search 로 남아 있음)
-            $("back").style.display = "none";
-            $("sheet").innerHTML = '<div class="tip">탐방로를 누르면 그 코스를 따라갈 수 있습니다.</div><div class="row"><a class="main" href="hike.html">따라가기</a></div>';
+        else if (listMode) {   // 목록 카드에서 왔으면: 위 "← 뒤로" 는 따라가기 화면(검색 목록 - 검색어는 rf-search 로 남아 있음), 아래 "따라가기" 는 고른 탐방로로
+            $("back").textContent = "← 뒤로";
+            $("back").href = "hike.html";
+            $("sheet").classList.add("listmode");
+            $("sheet").innerHTML = '<div class="tip">탐방로를 누르면 그 코스를 따라갈 수 있습니다.</div><div class="row"><a class="main" id="followNone" href="hike.html">따라가기</a></div>';
+            $("followNone").addEventListener("click", function (e) {   // 탐방로를 고르기 전(2026-10-12 홍TV님)
+                e.preventDefault();
+                alert("탐방로를 선택하세요.");
+            });
         }
         else if (from) $("back").href = "hike.html#c=" + encodeURIComponent(from);
         Promise.all([
