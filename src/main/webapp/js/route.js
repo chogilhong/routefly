@@ -1,5 +1,5 @@
 /*
- * 노선 안내도(route.html?prefix=osmb-6374513-[&name=섬진강 자전거길][&back=list|series]) - 국토종주 자전거길 · 국가숲길 한 노선의 구간 전체를 한 장에.
+ * 노선 안내도(route.html?prefix=osmb-6374513- 또는 ?trail=해파랑길 [&name=…][&back=list|series]) - 국토종주 자전거길 · 국가숲길 · 코리아둘레길 한 노선 전체를 한 장에.
  * 2026-10-12 홍TV님: 국토종주 자전거길 노선도(나무위키)처럼 - 빨간 노선 · 인증센터 차례 번호. 구간을 누르면 그 구간을 따라가기로.
  * 자료: /api/group?prefix=…&lines=1 (구간 목록 · 줄인 선 · 인증센터 이름표 자리), data/series.json(노선 이름 · 길이 · 인증센터 차례 · 다른 이름),
  * 도장은 이 핸드폰의 rf-stamps(따라가기가 남김)만 읽음.
@@ -8,7 +8,7 @@
     "use strict";
     var RF = window.RF;
     function $(id) { return document.getElementById(id); }
-    var q = new URLSearchParams(location.search), prefix = q.get("prefix") || "", backTo = q.get("back");
+    var q = new URLSearchParams(location.search), prefix = q.get("prefix") || "", trail = q.get("trail") || "", backTo = q.get("back");
     var map, data = null, series = null, ctrs = [];
 
     function getJson(url) {
@@ -23,11 +23,30 @@
 
     function loadStamps() { try { return JSON.parse(localStorage.getItem("rf-stamps") || "{}") || {}; } catch (e) { return {}; } }
 
-    /** series.json 에서 이 노선(prefix 가 같은 것). 없으면 null. */
+    /** series.json 에서 이 노선(prefix 가 같은 것, 둘레길은 이름이 같은 것). 없으면 null. */
     function findSeries(d) {
-        var hit = null;
-        ((d && d.groups) || []).forEach(function (g) { g.series.forEach(function (s) { if (s.prefix === prefix) hit = s; }); });
+        var hit = null, tk = trail.replace(/\s+/g, "");
+        ((d && d.groups) || []).forEach(function (g) {
+            g.series.forEach(function (s) {
+                if (prefix ? s.prefix === prefix : (s.match || s.name || "").replace(/\s+/g, "") === tk) hit = s;
+            });
+        });
         return hit;
+    }
+
+    /** 둘레길 - 코스마다 시작점에 코스 번호(1, 2, 19-1 …). */
+    function drawCourseNumbers() {
+        data.courses.forEach(function (c) {
+            var line = data.lines[c.course_id], m = /(\d+(?:-\d+)?)\s*코스/.exec(String(c.name || ""));
+            if (!line || !m) return;
+            var e = document.createElement("div");
+            e.className = "ctr num";   // 넓게 볼 때 겹치는 번호는 숨김(확대하면 보임)
+            e.innerHTML = '<div class="no"></div>';
+            e.querySelector(".no").textContent = m[1];
+            e.title = RF.nameText(c.name);
+            new maplibregl.Marker({ element: e }).setLngLat(line[0]).addTo(map);
+            ctrs.push({ el: e, prio: +m[1].split("-")[0] });
+        });
     }
 
     /** 구간 하나를 고름 - 굵게 · 아래 칸에 이름 · 거리와 따라가기. */
@@ -78,15 +97,10 @@
             new maplibregl.Marker({ element: e, anchor: "top" }).setLngLat([+at.lon, +at.lat]).addTo(map);
             ctrs.push({ el: e.querySelector(".lb"), prio: i });
         });
-        var timer = 0;
-        map.on("render", function () {
-            if (timer) return;
-            timer = setTimeout(function () { timer = 0; RF.declutter(ctrs); }, 150);
-        });
     }
 
     function draw() {
-        var ids = Object.keys(data.lines || {});
+        var ids = data.courses.map(function (c) { return c.course_id; }).filter(function (id) { return data.lines[id]; });
         var feats = data.courses.filter(function (c) { return data.lines[c.course_id]; }).map(function (c, i) {
             return { type: "Feature", properties: { i: data.courses.indexOf(c), alt: i % 2 }, geometry: { type: "LineString", coordinates: data.lines[c.course_id] } };
         });
@@ -106,7 +120,13 @@
         });
         map.on("mouseenter", "route-hit", function () { map.getCanvas().style.cursor = "pointer"; });
         map.on("mouseleave", "route-hit", function () { map.getCanvas().style.cursor = ""; });
-        drawCenters();
+        if (trail) drawCourseNumbers(); else drawCenters();
+        // 겹치는 이름표 · 번호 숨기기 - 지도가 움직이는 동안 0.15초마다 다시(둘레길 번호도)
+        var timer = 0;
+        map.on("render", function () {
+            if (timer) return;
+            timer = setTimeout(function () { timer = 0; RF.declutter(ctrs); }, 150);
+        });
         var b = null;
         ids.forEach(function (id) {
             data.lines[id].forEach(function (p) {
@@ -126,18 +146,20 @@
             e.preventDefault();
             alert("구간을 선택하세요.");
         });
-        if (!/^(osmb|kmf)-[0-9]+-$/.test(prefix)) { $("msg").textContent = "노선을 찾지 못했습니다."; return; }
+        if (!/^(osmb|kmf)-[0-9]+-$/.test(prefix) && !trail) { $("msg").textContent = "노선을 찾지 못했습니다."; return; }
         Promise.all([
             getJson("api/map-config").catch(function () { return {}; }),
-            getJson("api/group?prefix=" + encodeURIComponent(prefix) + "&lines=1"),
+            getJson(trail ? "api/group?trail=" + encodeURIComponent(trail) : "api/group?prefix=" + encodeURIComponent(prefix) + "&lines=1"),
             fetch("data/series.json").then(function (r) { return r.json(); }).catch(function () { return null; })
         ]).then(function (r) {
             var cfg = { demUrl: r[0].demUrl || "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png", vworldKey: r[0].vworldKey || null };
             data = r[1];
             series = findSeries(r[2]);
+            // 둘레길: 이름 검색이라 다른 길("DMZ 평화의 길" 로 찾은 다른 이름)도 섞일 수 있어 그 길 코스만, 코스 번호 차례로
+            if (trail) data.courses = RF.trailCourses(data.courses, trail);
             var name = (series && series.name) || q.get("name") || "노선";
             var km = series && series.km ? series.km : Math.round(data.courses.reduce(function (m, c) { return m + (+c.distance_m || 0); }, 0) / 1000);
-            $("title").textContent = name + " " + km + "km";
+            $("title").textContent = name + " " + km + "km" + (trail ? " · " + data.courses.length + "코스" + (series && series.official ? "(공식 " + series.official + ")" : "") : "");
             document.title = name + " 노선 안내도 - routefly";
             if (!data.courses.length) { $("msg").textContent = "아직 코스가 없습니다."; return; }
             map = new maplibregl.Map({ container: "map", style: RF.baseStyle(cfg), center: [127.8, 36.3], zoom: 7,

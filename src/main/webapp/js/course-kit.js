@@ -498,14 +498,24 @@
     }
 
     /**
-     * 순수 함수 - 코스 목록에 든 노선(국토종주 자전거길 osmb- · 국가숲길 kmf-)의 노선 안내도(route.html) 카드. [{prefix, name, kind, n}],
+     * 순수 함수 - 코스 목록에 든 노선(국토종주 자전거길 osmb- · 국가숲길 kmf- · 코리아둘레길 drnb-)의 노선 안내도(route.html) 카드.
+     * [{prefix 또는 trail, name, kind, n}],
      * 코스가 많은 노선 먼저. 이름은 "국토종주 섬진강 자전거길 1구간 · …" → 섬진강 자전거길, "지리산둘레길 주천-운봉" → 지리산둘레길.
      * 2026-10-12 홍TV님: 국토종주 자전거길 지도(나무위키 노선도)처럼 노선 전체를 한 장으로.
      */
     function routeGuides(rows, max) {
         var by = {}, order = [];
         (rows || []).forEach(function (r) {
-            var m = /^((osmb|kmf)-[0-9]+-)/.exec(String(r.course_id || ""));
+            var id = String(r.course_id || ""), m = /^((osmb|kmf)-[0-9]+-)/.exec(id);
+            // 코리아둘레길(두루누비 drnb-) - 코스 ID 에 노선 묶음이 없어 이름("해파랑길 1코스 · …")으로 묶음, trail 로 찾음
+            if (!m && /^drnb-/.test(id)) {
+                var tn = (nameParts(r.name).group || String(r.name || "")).replace(/\s*\d+(?:-\d+)?\s*코스.*$/, "").trim();
+                if (!tn || tn === String(r.name || "").trim()) return;
+                var tk = "trail:" + tn.replace(/\s+/g, "");
+                if (!by[tk]) { by[tk] = { trail: tn, name: tn, kind: "walk", n: 0 }; order.push(by[tk]); }
+                by[tk].n++;
+                return;
+            }
             if (!m) return;
             if (!by[m[1]]) {
                 var g = nameParts(r.name).group, nm = g ? g : String(r.name || "").split(/\s+/)[0];

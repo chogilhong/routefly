@@ -42,6 +42,9 @@ body { display:flex; flex-direction:column; height:100dvh; }
 .ctr.got .no { background:#2b8a3e; }
 .ctr .lb { margin-top:2px; color:#fff; font-size:11.5px; font-weight:bold; white-space:nowrap; text-shadow:0 0 3px #000, 0 1px 2px #000; }
 .ctr.hid .lb { opacity:0; }
+.ctr.num.hid .no { visibility:hidden; }   /* 마커 opacity 는 MapLibre 가 style 로 덮어씀 */
+/* 둘레길 코스 번호 - "19-1" 처럼 긴 번호도 안 잘리게 옆으로 늘어남 */
+.ctr.num .no { width:auto; min-width:22px; padding:0 4px; border-radius:11px; box-sizing:border-box; white-space:nowrap; font-size:11px; }
 </style>
 </head>
 <body>

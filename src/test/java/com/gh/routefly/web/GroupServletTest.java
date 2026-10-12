@@ -28,6 +28,16 @@ public class GroupServletTest {
     }
 
     @Test
+    public void trailKey() {
+        assertEquals("해파랑길", GroupServlet.trailKey("해파랑길"));
+        assertEquals("DMZ평화의길", GroupServlet.trailKey("DMZ 평화의 길"));
+        assertNull(GroupServlet.trailKey("해파랑길%"));
+        assertNull(GroupServlet.trailKey("a"));
+        assertNull(GroupServlet.trailKey(null));
+        assertNull(GroupServlet.trailKey("해파랑길'; DROP"));
+    }
+
+    @Test
     public void thinKeepsEndsAndStep() {
         java.util.List<double[]> pts = new java.util.ArrayList<>();
         for (int i = 0; i <= 10; i++) pts.add(new double[] {127 + i * 0.001, 35, i * 30});   // 30m 마다 점 11개(0 ~ 300m)

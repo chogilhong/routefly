@@ -256,6 +256,9 @@ eq("노선 안내도 카드", RF.routeGuides([{ course_id: "osmb-6374513-1", nam
     { course_id: "osmb-6374513-2", name: "국토종주 섬진강 자전거길 2구간 · 향가유원지인증센터 → 남도대교인증센터" },
     { course_id: "kmf-9900000006-1", name: "지리산둘레길 주천-운봉" }, { course_id: "frst-1-a", name: "김제 모악산 · 금산사 → 모악산" }]),
     [{ prefix: "osmb-6374513-", name: "섬진강 자전거길", kind: "bike", n: 2 }, { prefix: "kmf-9900000006-", name: "지리산둘레길", kind: "walk", n: 1 }]);
+eq("둘레길 노선 안내도 카드", RF.routeGuides([{ course_id: "drnb-1", name: "해파랑길 1코스 · 오륙도해맞이공원 → 해운대해수욕장" },
+    { course_id: "drnb-2", name: "해파랑길 2코스 · 해운대 → 대변항" }, { course_id: "drnb-3", name: "DMZ 평화의 길 19-1코스(우회로) · 승라부대까지" }, { course_id: "drnb-9", name: "이름만" }]),
+    [{ trail: "해파랑길", name: "해파랑길", kind: "walk", n: 2 }, { trail: "DMZ 평화의 길", name: "DMZ 평화의 길", kind: "walk", n: 1 }]);
 eq("검색어 든 산이 없으면 모두", RF.guideMaps(bw3, 3, "공주").length, 3);
 eq("안내도 많아야 3개", RF.guideMaps(["가산", "나산", "다산", "라산"].map(function (m, i) { return { course_id: "frst-" + i + "-x", name: "시 " + m + " · 들머리 → " + m }; })).length, 3);
 eq("isTopName 대피소 아님", RF.isTopName("장터목대피소"), false);

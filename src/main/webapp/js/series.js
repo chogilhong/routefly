@@ -154,9 +154,9 @@
                     centerRows.push(row);
                 });
             }
-            if (s.prefix) {   // 노선 안내도 - 구간 전체 지도(2026-10-12 홍TV님)
+            if (s.prefix || s.q) {   // 노선 안내도 - 구간 · 코스 전체 지도(2026-10-12 홍TV님), 코리아둘레길은 이름으로(trail)
                 var rl = el("a", "routemap", "🗺 " + s.name + " 노선 안내도 ›");
-                rl.href = "route.html?prefix=" + encodeURIComponent(s.prefix) + "&back=series";
+                rl.href = "route.html?" + (s.prefix ? "prefix=" + encodeURIComponent(s.prefix) : "trail=" + encodeURIComponent(s.match || s.name)) + "&back=series";
                 body.insertBefore(rl, body.firstChild);
             }
             if (s.cert) body.appendChild(certLine(s.cert));

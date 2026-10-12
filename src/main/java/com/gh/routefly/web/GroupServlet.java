@@ -25,6 +25,7 @@ import com.google.gson.JsonObject;
  * <p>2026-10-11 홍TV님: 국토종주 자전거길(노선마다 osmb-<OSM 노선>-n 구간) · 국가숲길(kmf-<숲길>-n 코스)을 묶어 보고 도장 · 완주를 셉니다
  * (series.html). 앞부분은 코스 ID 묶음 규칙(CourseQueries.groupPrefix)과 같은 모양만 받습니다.
  * <pre>{success, prefix, courses:[목록과 같은 칸], centers:[{course_id, name, dist_m, lat, lon}] (osmb- 만), lines:{코스ID:[[경도, 위도]…]} (lines=1)}</pre>
+ * 둘레길(두루누비): {@code GET /api/group?trail=해파랑길} - {success, trail, courses, lines}.
  */
 @WebServlet(urlPatterns = {"/api/group"})
 public class GroupServlet extends HttpServlet {
@@ -38,15 +39,48 @@ public class GroupServlet extends HttpServlet {
     /** 한 노선 인증센터 이름표 수 한도(동해안(강원) 12곳 × 구간 양 끝 - 넉넉히). */
     static final int CENTER_LIMIT = 200;
 
+    /** 순수 함수 - 둘레길 이름(trail=해파랑길 · DMZ 평화의 길)을 띄어쓰기 뺀 찾을 말로. 받을 수 없는 이름이면 null. */
+    static String trailKey(String t) {
+        if (t == null || !t.matches("[가-힣A-Za-z0-9 ]{2,20}")) return null;
+        String k = t.replace(" ", "");
+        return k.length() >= 2 ? k : null;
+    }
+
+    /** 둘레길 한 노선 - 코리아둘레길(두루누비 drnb-)은 코스 ID 에 노선 묶음이 없어 이름으로("해파랑길 1코스 · …"). 노선 안내도용 선도 함께. */
+    private void trail(HttpServletRequest req, HttpServletResponse resp, String t) throws IOException {
+        String k = trailKey(t);
+        if (k == null) {
+            Json.fail(resp, HttpServletResponse.SC_BAD_REQUEST, "trail 은 둘레길 이름입니다(예: 해파랑길).");
+            return;
+        }
+        String key = ResultCache.key("trail", k), ver = ResultCache.LISTS.version();
+        if (ResultCache.LISTS.send(req, resp, key, ver)) return;
+        String where = " WHERE course_id LIKE 'drnb-%' AND REPLACE(name, ' ', '') LIKE ?";
+        try (Connection c = Db.open()) {
+            JsonObject out = new JsonObject();
+            out.addProperty("success", true);
+            out.addProperty("trail", t);
+            out.add("courses", Json.rows(c, "SELECT " + CourseQueries.LIST_COLUMNS + " FROM route_course" + where + " ORDER BY name LIMIT " + TRAIL_LIMIT, k + "%"));
+            out.add("lines", lines(c, "SELECT p.course_id, p.lon, p.lat, p.dist_m FROM route_course_point p JOIN route_course r ON r.course_id = p.course_id"
+                    + " WHERE r.course_id LIKE 'drnb-%' AND REPLACE(r.name, ' ', '') LIKE ? ORDER BY p.course_id, p.seq", k + "%"));
+            ResultCache.LISTS.ok(req, resp, key, ver, out);
+        } catch (Exception e) {
+            log.warn("[GROUP] 둘레길 조회 실패 trail={} - {}", k, e.toString());
+            Json.fail(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "코스를 읽지 못했습니다.");
+        }
+    }
+
+    /** 둘레길 한 노선 코스 수 한도(서해랑길 공식 109). */
+    static final int TRAIL_LIMIT = 150;
+
     /** 노선 안내도 선: 구간마다 이만큼(m) 간격으로만 점을 남김(국토종주 낙동강 389km 도 가볍게). */
     static final double LINE_STEP_M = 80;
 
     /** 구간마다 줄인 선 {코스ID: [[경도, 위도], …]} - 소수 5자리. */
-    private static JsonObject lines(Connection c, String p) throws Exception {
+    private static JsonObject lines(Connection c, String sql, String param) throws Exception {
         JsonObject out = new JsonObject();
-        try (PreparedStatement ps = c.prepareStatement(
-                "SELECT course_id, lon, lat, dist_m FROM route_course_point WHERE course_id LIKE ? ORDER BY course_id, seq")) {
-            ps.setString(1, p + "%");
+        try (PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, param);
             try (ResultSet rs = ps.executeQuery()) {
                 String cur = null;
                 List<double[]> pts = new ArrayList<>();
@@ -97,6 +131,11 @@ public class GroupServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        String trail = req.getParameter("trail");
+        if (trail != null) {
+            trail(req, resp, trail);
+            return;
+        }
         String p = req.getParameter("prefix");
         if (!validPrefix(p)) {
             Json.fail(resp, HttpServletResponse.SC_BAD_REQUEST, "prefix 는 코스 ID 앞부분입니다(예: osmb-6374513-).");
@@ -117,7 +156,7 @@ public class GroupServlet extends HttpServlet {
                 out.add("centers", Json.rows(c, "SELECT course_id, name, dist_m, lat, lon FROM route_course_poi WHERE course_id LIKE ? AND name LIKE ? ORDER BY course_id, seq LIMIT "
                         + CENTER_LIMIT, p + "%", "%인증센터%"));
             }
-            if (lines) out.add("lines", lines(c, p));
+            if (lines) out.add("lines", lines(c, "SELECT course_id, lon, lat, dist_m FROM route_course_point WHERE course_id LIKE ? ORDER BY course_id, seq", p + "%"));
             ResultCache.LISTS.ok(req, resp, key, ver, out);
         } catch (Exception e) {
             log.warn("[GROUP] 조회 실패 prefix={} - {}", p, e.toString());
