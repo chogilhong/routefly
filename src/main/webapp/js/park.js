@@ -159,7 +159,13 @@
             for (var i = dv; i < list.length; i++) if (list[i] && !/(^갈림길|탐방로 끝|경계|코스\s*\d*|정자|쪽 끝|부근)$/.test(list[i])) return list[i];
             return null;
         };
-        var labels = round ? [(known(fwdN) || "이 방향") + " 쪽으로 먼저", (known(bwdN) || "반대 방향") + " 쪽으로 먼저"]
+        // 두 단추가 같은 이름이면(계룡산 갑사 - 둘 다 "삼불봉") 반대쪽은 그다음 다른 이름
+        var known2 = function (list, not) {
+            for (var i = dv; i < list.length; i++) if (list[i] && list[i] !== not && !/(^갈림길|탐방로 끝|경계|코스\s*\d*|정자|쪽 끝|부근)$/.test(list[i])) return list[i];
+            return null;
+        };
+        var k1 = known(fwdN), k2 = known2(bwdN, k1);
+        var labels = round ? [(k1 || "이 방향") + " 쪽으로 먼저", (k2 || "반대 방향") + " 쪽으로 먼저"]
             : from && to ? [from + " → " + to, to + " → " + from] : ["따라가기", "거꾸로 따라가기"];
         var second = RF.reverseSel(full);
         // 들머리에서 정상 같은 막다른 곳까지면 "왕복"(올랐다 같은 길로 들머리) - 한라산 성판악 ↔ 백록담처럼 고리가 없는 산의 원점회귀(2026-10-13 홍TV님)
@@ -306,7 +312,12 @@
         // 서버 heads(탐방지원센터 · 탐방안내소)도 trailHeads 가 합침 - "백무동" · "백무동탐방지원센터" 처럼 같은 곳은 하나(2026-10-13 PC)
         var hs = RF.trailHeads(segs, data.heads, flips, data.others, data.places);
         showExamples(hs);
-        hs.forEach(function (h) { if (!have[h.name]) data.places.push({ name: h.name, lat: h.lat, lon: h.lon, ele_m: null, head: true }); });
+        // 이미 지명 이름표가 있으면(성삼재 960m · 어승생악) 그 이름표를 들머리 표시로 - 예전에는 건너뛰어 🥾 가 없었음(2026-10-13 PC)
+        hs.forEach(function (h) {
+            var k = String(h.name).replace(/\s+/g, "");
+            if (!have[k]) { data.places.push({ name: h.name, lat: h.lat, lon: h.lon, ele_m: null, head: true }); return; }
+            data.places.forEach(function (p) { if (String(p.name).replace(/\s+/g, "") === k) p.head = true; });
+        });
         data.places.forEach(function (p) {
             var e = document.createElement("div");
             e.className = "place" + (p.head ? " head" : "");

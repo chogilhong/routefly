@@ -471,6 +471,12 @@ var th2 = RF.trailHeads([
      { name: "산 1코스 · 선물의집&찻집휴게소 → 써리봉", coords: [[127.1, 35.015], [127.12, 35.03]] }],
     [{ name: "도선사", lat: 35.0025, lon: 127.0 }, { name: "법계사", lat: 35.015, lon: 127.1 }]).map(function (h) { return h.name; }).sort();
 eq("trailHeads 절 · 다른 자료 출발 · 구 이름 빼기", th2, ["대원사", "도선사", "우이동", "유평마을"]);
+// 옅은 선 끝이 닿아도 함께 시작하는 곳(송추), 마을 · 리로 끝나는 막다른 끝(강선리)
+eq("trailHeads 옅은 선은 빼고 · 끝이 마을", RF.trailHeads([
+    { id: "a", name: "산 · 송추 → 사패능선", coords: [[127.0, 35.0], [127.0, 35.02]] },
+    { id: "x", name: "산 · 갈림길 → 갈림길", coords: [[127.01, 35.01], [127.0005, 35.0]], extra: true },
+    { id: "k", name: "산 · 곰배골입구 → 곰배령 → 강선리", coords: [[127.3, 35.0], [127.3, 35.02]] }], [], {}, [], []).map(function (h) { return h.name; }).sort(),
+    ["강선리", "곰배골입구", "송추"]);
 var full = RF.fromApi("r", { course: { name: "산 · 가 → 라" }, points: [[127.0, 35.0, 100, 0], [127.011, 35.0, 200, 1000], [127.022, 35.0, 150, 2000], [127.033, 35.0, 300, 3000]], pois: [] });
 var sl = RF.sliceCourse(full, 1 / 3, 2 / 3, "산 · 나 → 다", "r@0.3333-0.6667:나>다");
 eq("sliceCourse 거리 · 이름표", [Math.round(sl.total), sl.pois.map(function (p) { return p.name; }).join(","), sl.course.ascent_m], [1000, "나,다", 0]);

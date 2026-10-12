@@ -1911,13 +1911,16 @@
                 var c = x.s.coords, other = x.p === c[0] ? c[c.length - 1] : c[0];
                 return g.length <= count(x.s, other);
             })[0];
-            var allFrom = g.every(function (x) { return x.from && x.name; });
+            // 옅은 선(다른 자료로 메운 길) 끝은 빼고 봄(북한산 송추 - "갈림길 → 갈림길" 옅은 선이 닿아 있었음)
+            var own2 = g.filter(function (x) { return !x.s.extra; });
+            var allFrom = own2.length > 0 && own2.every(function (x) { return x.from && x.name; });
             // 탐방로 끝이 막다른 곳이면 내려온 들머리(장수대 · 운봉아래 · 다불마을) - 산 위 이름 · 옛터 · 제방은 빼고
             // 출발이 산 위(봉 · 폭포 · 삼거리)면 끝은 아래, 출발이 마을 · 입구 · 절이면 끝은 산 위, 모르면 끝 이름으로
             var deadTo = false;
             if (g.length === 1 && !g[0].from && g[0].name) {
                 var o = String(g[0].other || "").replace(/\s+/g, ""), nm0 = String(g[0].name).replace(/\s+/g, "");
-                deadTo = HIGH.test(o) ? !/(봉|산|정상|오름)$/.test(nm0) : ACCESS.test(o) || /(사|약수터)$/.test(o) ? false : !DEAD_HIGH.test(nm0);
+                // 끝 이름이 마을 · 리면 늘(설악산 "곰배골입구 → 곰배령 → 강선리")
+                deadTo = /(마을|리)$/.test(nm0) || (HIGH.test(o) ? !/(봉|산|정상|오름)$/.test(nm0) : ACCESS.test(o) || /(사|약수터)$/.test(o) ? false : !DEAD_HIGH.test(nm0));
             }
             // 다른 자료 코스가 시작하는 곳은 막다른 끝이거나 마을 · 입구 같은 이름일 때만(지리산 숯가마터 · 북한산 부왕동암문은 산 위)
             var started = (g.length === 1 && g[0].from || names.some(function (n) { return ACCESS.test(n.replace(/\s+/g, "")); }))
@@ -1960,6 +1963,8 @@
                 var x = d([o.lon, o.lat], [h.lon, h.lat]);
                 // 절은 탐방지원센터 옆이어도 따로(백운대탐방지원센터 · 도선사) - 같은 자리(100m)만 하나
                 var temple = /사$/.test(o.name) !== /사$/.test(h.name);
+                // 탐방지원센터 600m 안 그냥 지명(오색약수터 · 남설악탐방지원센터)은 같은 들머리 - 절은 빼고
+                if (!temple && Math.abs(rank(o.name) - rank(h.name)) === 3 && x < 600) return true;
                 return o.name === h.name || x < (temple ? 100 : 300) || (key(o.name) === key(h.name) && x < 2000) || key(h.name).indexOf(key(o.name)) >= 0 && x < 1000;   // "산청대원사" · "우이동공영주차장" 은 "대원사" · "우이동" 옆이면 하나
             })[0];
             if (!dup) { kept.push(h); return; }
