@@ -689,6 +689,12 @@
             RF.showName($("name"), c.course.name, true);
             document.title = RF.nameText(c.course.name, true);   // 길만 - "- routefly" 를 붙이면 탭 · 최근 앱 목록에서 잘림(2026-10-12 홍TV님)
             if (RF.infoText(c.info)) toast(RF.infoText(c.info), 6000);   // 국립공원 공식 코스 - 공단 기준 시간 · 난이도
+            // 그 산의 입산 · 통제 · 예약(data/park-notes.json - 한라산 진달래밭 통제 시간 등, 2026-10-12 홍TV님)
+            var noteOf = RF.parkOf(c.course.name) || RF.mountainOf(c.course.name, id);
+            if (noteOf) fetch("data/park-notes.json").then(function (x) { return x.json(); }).then(function (d) {
+                var n = d && d.parks && d.parks[noteOf];
+                if (n && my === loadSeq) toast("⚠ " + noteOf + ": " + n.short, 9000);
+            }).catch(function () { /* 안내 없이 */ });
             // 국립공원 코스면 공원 전체 보기(🏞) - 그 공원 공식 탐방로 전체 · 공식 안내도 바로가기
             var park = RF.parkOf(c.course.name) || RF.mountainOf(c.course.name, id);   // 국립공원, 아니면 도립 · 군립공원 · 산
             $("parkBtn").style.display = park ? "block" : "none";

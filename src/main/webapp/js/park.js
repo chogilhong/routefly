@@ -169,6 +169,31 @@
     /** 따라가기 첫 화면 목록의 탐방 안내도 카드에서 왔는가 - ‹ 코스 단추 없이, 아래는 "따라가기" 하나. */
     var listMode = backTo === "list";
 
+    /** 그 산의 입산 · 통제 · 예약 안내(data/park-notes.json, 2026-10-12 홍TV님: 한라산) - 한 줄, 누르면 다 보임. 없으면 안 보임. */
+    function showNote(name) {
+        fetch("data/park-notes.json").then(function (r) { return r.json(); }).then(function (d) {
+            var n = d && d.parks && d.parks[name];
+            if (!n) return;
+            var el = $("note");
+            var shortLine = function () { el.textContent = "⚠ " + n.short + " ›"; };
+            shortLine();
+            el.style.display = "block";
+            el.addEventListener("click", function () {
+                var open = !el.classList.contains("open");
+                el.classList.toggle("open", open);
+                el.setAttribute("aria-expanded", open ? "true" : "false");
+                setTimeout(function () { if (map) map.resize(); }, 0);   // 펼치면 지도 칸이 줄어듦
+                if (!open) { shortLine(); return; }
+                el.textContent = "";
+                n.lines.forEach(function (l) { el.appendChild(document.createTextNode("· " + l)); el.appendChild(document.createElement("br")); });
+                var by = document.createElement("small");
+                by.textContent = "출처: " + n.by + " (바뀔 수 있으니 가기 전에 확인하세요)";
+                el.appendChild(by);
+            });
+            if (map) map.resize();
+        }).catch(function () { /* 안내 없이 */ });
+    }
+
     function start() {
         $("title").textContent = park ? park + " 탐방 안내도" : "탐방 안내도";   // 2026-10-12 홍TV님: "전체 보기" → "탐방 안내도"
         // ‹ 코스 - 코스 미리보기에서 왔으면(back=preview) 따라가기의 "🗺 코스 미리보기" 와 같은 첫 화면(검색 · 목록, 2026-10-11 홍TV님),
@@ -188,6 +213,7 @@
             e.preventDefault();
             alert("탐방로를 선택하세요.");   // 탐방로를 고르기 전(2026-10-12 홍TV님)
         });
+        showNote(park);
         Promise.all([
             getJson("api/map-config").catch(function () { return {}; }),
             getJson("api/park?name=" + encodeURIComponent(park) + (from ? "&from=" + encodeURIComponent(from) : ""))
