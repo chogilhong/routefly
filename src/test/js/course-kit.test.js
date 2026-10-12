@@ -399,7 +399,7 @@ var exSegs = [
     { id: "ap", name: "산 · A → P", coords: [[127.0, 35.02], [127.02, 35.02]], distance_m: 1800 },
     { id: "hb", name: "산 · H → B", coords: [[127.0, 35.0], [127.02, 35.0]], distance_m: 1800 },
     { id: "bp", name: "산 · B → P", coords: [[127.02, 35.0], [127.02, 35.02]], distance_m: 2200 },
-    { id: "xx", name: "산 · H → P", coords: [[127.0, 35.0], [127.02, 35.02]], distance_m: 2900, extra: true }];
+    { id: "xx", name: "산 · H → P", coords: [[127.0, 35.0], [127.02, 35.02]], distance_m: 2900, extra: true }];   // 긴 옅은 선은 안 씀
 var exH = [{ name: "H탐방지원센터", lon: 127.0, lat: 35.0 }], exP = [{ name: "P봉", lon: 127.02, lat: 35.02, ele_m: 900 }];
 var ex1 = RF.loopExamples(exSegs, exH, exP);
 eq("loopExamples 두 길로 원점회귀", ex1.map(function (x) { return x.loop + ":" + x.head + ":" + x.peak + ":" + x.m + ":" + x.ids.slice().sort().join(","); }), ["true:H탐방지원센터:P봉:8000:ap,bp,ha,hb"]);
@@ -408,6 +408,9 @@ eq("loopExamples 고리가 없으면 왕복", ex2.map(function (x) { return x.lo
 var exL = {}; exSegs.forEach(function (x) { exL[x.id] = x.coords; });
 eq("planWalk 출발을 정함(고리 위 들머리)", JSON.stringify(RF.planWalk(["ap", "bp", "ha", "hb"], exL, { first: "ap", start: [127.02, 35.0] }).start), JSON.stringify([127.02, 35.0]));
 eq("planWalk 출발을 안 정하면 첫 탐방로 끝", JSON.stringify(RF.planWalk(["ap", "bp", "ha", "hb"], exL, { first: "ap" }).start), JSON.stringify([127.0, 35.02]));
+var exS = exSegs.slice(0, 4).concat([{ id: "yy", name: "산 · H → P", coords: [[127.0, 35.0], [127.02, 35.02]], distance_m: 1400, extra: true }]);
+eq("loopExamples 짧은 옅은 선은 이음으로", RF.loopExamples(exS, exH, exP)[0].ids.indexOf("yy") >= 0, true);
+eq("loopExamples 지나갈 수 없는 곳 둘레 옅은 선은 안 씀", RF.loopExamples(exS, exH, exP, { block: [[127.02, 35.02]] })[0].ids.indexOf("yy"), -1);
 eq("loopExamples 너무 짧으면 없음", RF.loopExamples(exSegs.slice(0, 2), exH, exP, { minM: 9000 }).length, 0);
 eq("gapFill 겹치는 코스만 있으면 없음", RF.gapFill(kn, [{ id: "o2", name: "x", coords: kn[0].coords.concat([[127.0052, 35.0]]) }], [], [], "산").length, 0);
 eq("headAlias 끝 500m 안 들머리 이름", RF.headAlias([{ id: "t", name: "지리산 · 중산리 → 천왕봉", coords: [[127.7491, 35.30393], [127.729, 35.3367]] }],
@@ -433,11 +436,32 @@ var pw4 = { s: [[127.0, 35.0], [127.0, 35.01]], w: [[127.0, 35.01], [127.0, 35.0
     e: [[127.0, 35.03], [127.01, 35.02], [127.0025, 35.001]] };
 var pl4 = RF.planWalk(["s", "w", "c1", "c2", "e"], pw4, { heads: [{ lat: 35.0, lon: 127.0 }, { lat: 35.001, lon: 127.0025 }], first: "s" });
 eq("planWalk 두 조각 막다른 갈래도 왕복", [pl4.ok, pl4.loop, pl4.walk.map(function (x) { return x.id + (x.rev ? "~" : ""); }).join(",")], [true, true, "s,w,c1,c2,c2~,c1~,e"]);
+eq("planWalk 정상을 지나 조금 되돌아 끝나는 한 구간은 원점회귀 아님", RF.planWalk(["t"], { t: [[127.0, 35.0], [127.0, 35.004], [126.998, 35.0025]] }, {}).loop, false);
 eq("planWalk 이어지지 않음은 apart", RF.planWalk(["s", "c2"], pw4, {}).reason, "apart");
 eq("trailHeads 막다른 끝 가운데 들머리만(봉우리 빼고, 탐방지원센터 이름 먼저)", RF.trailHeads([
     { id: "a", name: "지리산 · 중산리 → 칼바위", coords: [[127.0, 35.0], [127.0, 35.01]] }, { id: "b", name: "지리산 · 칼바위 → 천왕봉", coords: [[127.0, 35.01], [127.0, 35.02]] },
     { id: "c", name: "지리산 · 대원사 → 칼바위", coords: [[127.02, 35.01], [127.0, 35.01]] }], [{ name: "중산리탐방지원센터", lat: 35.0005, lon: 127.0 }], {})
     .map(function (h) { return h.name; }), ["중산리탐방지원센터", "대원사"]);
+// 2026-10-13 PC: 송추처럼 두 탐방로가 같이 시작하는 곳 · 원효분소(여러 탐방로가 만나도) · 관음사 탐방로 · 내려온 끝(운봉아래 → 운봉)은 들머리,
+// 올라간 끝(천은제입구 → 제방)은 아님, "백무동" 과 1km 떨어진 서버 heads "백무동탐방지원센터" 는 하나
+var th = RF.trailHeads([
+    { id: "a", name: "산 · 송추 → 사패능선", coords: [[127.0, 35.0], [127.0, 35.02]] },
+    { id: "b", name: "산 · 송추 → 오봉능선", coords: [[127.0005, 35.0], [127.01, 35.02]] },
+    { id: "c", name: "산 · 원효분소 → 서석대", coords: [[127.1, 35.0], [127.1, 35.02]] },
+    { id: "d", name: "산 · 원효분소까지", coords: [[127.12, 35.0], [127.1, 35.0]] },
+    { id: "d2", name: "산 · 원효분소에서", coords: [[127.1, 35.0], [127.1, 34.98]] },
+    { id: "e", name: "산 · 관음사 탐방로", coords: [[127.2, 35.0], [127.2, 35.02]] },
+    { id: "e2", name: "산 · 백록담 → 윗세오름", coords: [[127.2, 35.02], [127.21, 35.03]] },
+    { id: "e3", name: "산 · 백록담 → 사라오름", coords: [[127.2, 35.02], [127.19, 35.03]] },
+    { id: "f", name: "산 · 만복대 → 운봉아래", coords: [[127.0, 35.02], [127.0, 35.05]] },
+    { id: "g", name: "산 · 천은제입구 → 제방", coords: [[127.3, 35.0], [127.3, 35.02]] },
+    { id: "h", name: "산 · 백무동 → 장터목", coords: [[127.4, 35.0], [127.4, 35.02]] }],
+    [{ name: "백무동탐방지원센터", lat: 34.991, lon: 127.4 }], {}, []).map(function (h) { return h.name; }).sort();
+eq("trailHeads 함께 시작 · 분소 · 탐방로 이름 · 내려온 끝, 서버 heads 합침", th,
+    ["관음사", "백무동탐방지원센터", "송추", "운봉", "원효분소", "천은제입구"]);
+var vt = RF.viaTrim([{ id: "v", name: "지리산 · 쟁기소 → 반야봉 → 삼도봉삼거리", coords: [[127.0, 35.0], [127.0, 35.01]] },
+    { id: "w", name: "지리산 · 가 → 나 → 다", coords: [[127.0, 35.0], [127.0, 35.01]] }], [{ name: "반야봉", lat: 35.0005, lon: 127.0 }, { name: "삼도봉삼거리", lat: 35.01, lon: 127.0 }]);
+eq("viaTrim 선이 거쳐 가는 곳에서 시작하면 이름도", vt.map(function (t) { return t.name; }), ["지리산 · 반야봉 → 삼도봉삼거리", "지리산 · 가 → 나 → 다"]);
 var full = RF.fromApi("r", { course: { name: "산 · 가 → 라" }, points: [[127.0, 35.0, 100, 0], [127.011, 35.0, 200, 1000], [127.022, 35.0, 150, 2000], [127.033, 35.0, 300, 3000]], pois: [] });
 var sl = RF.sliceCourse(full, 1 / 3, 2 / 3, "산 · 나 → 다", "r@0.3333-0.6667:나>다");
 eq("sliceCourse 거리 · 이름표", [Math.round(sl.total), sl.pois.map(function (p) { return p.name; }).join(","), sl.course.ascent_m], [1000, "나,다", 0]);

@@ -33,7 +33,7 @@
      * 탐방로 고르기 - 누르면 고르고 다시 누르면 뺌, 고른 것 앞 · 뒤로 이어지는 탐방로는 함께(2026-10-12 홍TV님: 등산도 노선 안내도처럼
      * 이어진 구간으로). 아래 칸에 처음 → 끝 두 방향 단추(따라가기), 하나만 골랐으면 미리보기도.
      */
-    var sel = [], lines = {}, flips = {}, byId = {}, segs = [], emptySheet = "", poiNames = {}, noteNames = null;
+    var sel = [], lines = {}, flips = {}, byId = {}, segs = [], emptySheet = "", poiNames = {}, noteNames = null, notePass = null, noteEle = null;
     var chosen = [], startMk = null, endMk = null;
 
     /** 고른 탐방로가 이어진 묶음별로(끝 150m 안이면 이어짐) - 빼서 끊어지면 처음 고른 것이 든 묶음만 남김. */
@@ -61,6 +61,7 @@
     function pick(t) {
         if (t) {
             exStart = null;
+            exRound = null;
             var k = chosen.indexOf(t.id);
             if (k >= 0) {
                 chosen.splice(k, 1);
@@ -154,7 +155,8 @@
         while (dv < fwdN.length - 1 && fwdN[dv] === bwdN[dv]) dv++;
         // "갈림길" 은 어느 쪽인지 모름 - 그 뒤 처음 이름 있는 곳(2026-10-13: 지리산 예시가 "갈림길 쪽으로 먼저")
         var known = function (list) {
-            for (var i = dv; i < list.length; i++) if (list[i] && !/^(갈림길|탐방로 끝)$/.test(list[i])) return list[i];
+            // 행정 경계 · 코스 이름 · 정자도 길 방향 이름으로는 모름(2026-10-13 PC: "강북·도봉구 경계" · "신선봉코스" · "관음봉 정자")
+            for (var i = dv; i < list.length; i++) if (list[i] && !/(^갈림길|탐방로 끝|경계|코스\s*\d*|정자|쪽 끝|부근)$/.test(list[i])) return list[i];
             return null;
         };
         var labels = round ? [(known(fwdN) || "이 방향") + " 쪽으로 먼저", (known(bwdN) || "반대 방향") + " 쪽으로 먼저"]
@@ -163,7 +165,8 @@
         // 들머리에서 정상 같은 막다른 곳까지면 "왕복"(올랐다 같은 길로 들머리) - 한라산 성판악 ↔ 백록담처럼 고리가 없는 산의 원점회귀(2026-10-13 홍TV님)
         var headNear = function (p) { return (data.heads || []).some(function (h) { return RF.distM(p[1], p[0], +h.lat, +h.lon) < 500; }); };
         // 들머리 자료가 적은 산(한라산은 어리목탐방안내소 하나)은 끝 이름이 정상 · 봉 · 오름 · 대피소 · 분기점이면
-        if (!round && !headNear(plan.end) && (headNear(plan.start) || /(정상|봉|산|대|오름|분기점|대피소)$/.test(to || ""))) {
+        // 왕복 예시를 눌렀으면 늘(2026-10-13 PC: 범왕교 ↔ 반야봉 왕복이 편도 단추만)
+        if (!round && (exRound === false || (!headNear(plan.end) && (headNear(plan.start) || /(정상|봉|산|대|오름|분기점|대피소)$/.test(to || ""))))) {
             labels = [(from || "") + " → " + (to || "") + " 편도", (to || "정상") + " 왕복"];
             second = full.concat(RF.reverseSel(full));
         }
@@ -194,29 +197,37 @@
     var examples = [];
     function showExamples(hs) {
         var peaks = (data.places || []).filter(function (p) { return p.ele_m != null && /(봉|산|정상|오름|대)(\s*\(.*\))?$/.test(p.name) && !/(대피소|전망대)$/.test(p.name); });
-        examples = RF.loopExamples(segs, hs, peaks, { planHeads: data.heads });
+        // 지나갈 수 없는 곳(park-notes noPass - 한라산 남벽분기점 → 백록담은 길이 없음)
+        var block = [];
+        (notePass || []).forEach(function (n) {
+            (data.places || []).forEach(function (q) { if (String(q.name).replace(/\s+/g, "") === n) block.push([+q.lon, +q.lat]); });
+        });
+        examples = RF.loopExamples(segs, hs, peaks, { planHeads: data.heads, block: block });
         if (!examples.length) return;
         var box = document.createElement("div");
         box.className = "ex";
         var h = document.createElement("div");
         h.className = "exh";
         box.appendChild(h);
+        var row = document.createElement("div");
+        row.className = "exr";
+        box.appendChild(row);
         examples.forEach(function (x, k) {
             var a = document.createElement("a");
             a.href = "#";
             a.setAttribute("data-ex", String(k));
             RF.nameNodes(a, (x.loop ? "↻ " : "⇄ ") + x.head + " ↔ " + x.peak + (x.loop ? "" : " 왕복") + " · " + RF.km(x.m) + "km");
-            box.appendChild(a);
+            row.appendChild(a);
         });
         // 아래 칸 높이는 그대로(탐방로를 골랐을 때와 같게) - 안내 글은 예시 제목에 넣음
-        h.textContent = "원점회귀 예시(누르면 지도에) · 탐방로를 눌러 직접 고를 수도 있습니다";
+        h.textContent = "원점회귀 예시(옆으로 넘김) · 탐방로를 눌러 직접 고를 수도 있습니다";
         var tip = $("sheet").querySelector(".tip");
         if (tip && !listMode) tip.parentNode.removeChild(tip);
         $("sheet").insertBefore(box, $("sheet").firstChild);
         emptySheet = $("sheet").innerHTML;
     }
 
-    var exStart = null, exHead = null;   // 원점회귀 예시를 눌렀을 때 그 들머리 자리 · 이름(탐방로를 직접 누르면 지움)
+    var exStart = null, exHead = null, exRound = null;   // 원점회귀 예시를 눌렀을 때 그 들머리 자리 · 이름 · 고리인지(탐방로를 직접 누르면 지움)
     function planOf(ids) { return RF.planWalk(ids, lines, { heads: data.heads, first: ids[0], start: exStart }); }
 
     function bestHit(fs) {
@@ -239,6 +250,8 @@
         });
         // 들머리 이름(다른 자료 코스의 탐방지원센터 · 탐방안내소) - "중산리" 끝이 중산리탐방지원센터 500m 안이면 그 이름으로
         data.trails = RF.headAlias(data.trails, data.heads);
+        // 이름의 거쳐 가는 곳에서 시작 · 끝나는 선은 이름을 거기까지(지리산 "쟁기소 → 반야봉 → 삼도봉삼거리" 선은 반야봉부터)
+        data.trails = RF.viaTrim(data.trails, data.places);
         data.trails.forEach(function (t) { lines[t.id] = t.coords; });
         // 선이 이름과 거꾸로 그려진 탐방로(이웃 탐방로 끝이 모이는 점으로 앎) - 단추 · 이름을 걸어 나가는 차례로
         flips = RF.routeFlips(data.trails.map(function (t) { return { course_id: t.id, name: t.name }; }), lines);
@@ -286,11 +299,12 @@
         // 들머리 · 날머리를 지도에(2026-10-13 홍TV님: 모든 산) - 탐방로망의 막다른 끝(봉우리 · 폭포 빼고, 탐방지원센터 이름 먼저) + 다른 자료의
         // 탐방지원센터 · 탐방안내소. 같은 이름 이름표가 이미 있으면 빼고
         var have = {};
-        data.places.forEach(function (p) { have[String(p.name).replace(/\s+/g, "")] = true; });
-        var hs = RF.trailHeads(segs, data.heads, flips);
-        (data.heads || []).forEach(function (h) {
-            if (!hs.some(function (x) { return x.name === h.name || RF.distM(x.lat, x.lon, +h.lat, +h.lon) < 300; })) hs.push(h);
+        data.places.forEach(function (p) {
+            have[String(p.name).replace(/\s+/g, "")] = true;
+            if (noteEle && noteEle[p.name] != null) p.ele_m = noteEle[p.name];
         });
+        // 서버 heads(탐방지원센터 · 탐방안내소)도 trailHeads 가 합침 - "백무동" · "백무동탐방지원센터" 처럼 같은 곳은 하나(2026-10-13 PC)
+        var hs = RF.trailHeads(segs, data.heads, flips, data.others);
         showExamples(hs);
         hs.forEach(function (h) { if (!have[h.name]) data.places.push({ name: h.name, lat: h.lat, lon: h.lon, ele_m: null, head: true }); });
         data.places.forEach(function (p) {
@@ -346,6 +360,8 @@
             var n = d && d.parks && d.parks[name];
             if (!n) return;
             noteNames = n.names || null;   // 산마다 다른 이름(지리산 중산리 → 중산리탐방지원센터) - 그리기 전에 받음
+            notePass = n.noPass || null;   // 지나갈 수 없는 곳(한라산 남벽분기점) - 원점회귀 예시에서 뺌
+            noteEle = n.ele || null;   // 바로잡은 높이(지리산 천왕봉 1,915m - OSM 은 1,918m)
             if (!n.short) return;
             var el = $("note"), today = RF.parkRules(n, [], new Date());
             // 오늘 계절(한라산 하절기 4~9월 · 동절기 10~3월)을 앞에 - 좁아 뒤는 말줄임, 누르면 코스마다 통제 시각
@@ -407,6 +423,7 @@
                     chosen = x.ids.slice();
                     exStart = x.start;
                     exHead = x.head;
+                    exRound = x.loop;
                     pick();
                     // 고른 예시가 보이게 확대
                     var w = 180, so = 90, e2 = -180, n = -90;

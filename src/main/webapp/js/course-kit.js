@@ -1732,15 +1732,17 @@
         if (walk.length !== M.length) return { ok: false, reason: "shape" };
         var last = path[path.length - 1].n;
         // 끝이 출발 600m 안이면 원점회귀(중산리탐방지원센터 ↔ 법계교 375m)
-        return { ok: true, walk: walk, loop: last === s || d(nodes[last], nodes[s]) < 600, start: nodes[s], end: nodes[last] };
+        // 한 구간이 정상을 지나 조금 되돌아 끝나는 것(지리산 "갈림길 → 천왕봉" 491m)은 원점회귀가 아님 - 2km 넘게 걸을 때만(2026-10-13 PC)
+        var walkM = walk.reduce(function (m, x) { var l = lines[x.id]; for (var i = 1; i < l.length; i++) m += d(l[i - 1], l[i]); return m; }, 0);
+        return { ok: true, walk: walk, loop: last === s || (d(nodes[last], nodes[s]) < 600 && walkM > 2000), start: nodes[s], end: nodes[last] };
     }
 
     /**
      * 순수 함수 - 탐방 안내도의 원점회귀 예시(2026-10-13 홍TV님: 모든 산에 원점회귀 코스 예시). 들머리에서 봉우리까지 가장 짧은 길로 오르고,
      * 그 길을 되도록 피한 다른 길로 내려오는 고리(올라간 길과 1km 넘게 · 30% 넘게 달라야). 고리가 없으면 같은 길 왕복.
-     * 옅은 선(gapFill - 산림청 · 등산트레킹 자료)은 쓰지 않음 - 한라산 남벽분기점 → 정상처럼 막힌 길이 섞였음.
+     * 옅은 선(gapFill - 산림청 · 등산트레킹 자료)은 1.5km 안 짧은 이음만 - 한라산 남벽분기점 → 정상처럼 막힌 길이 섞였음.
      * segs: [{id, coords, distance_m, extra}], heads: [{name, lat, lon}](들머리 - 300m 안 구간 끝), peaks: [{name, lat, lon, ele_m}](150m 안 구간 끝),
-     * opts: {max(3), minM(3000), maxM(20000), planHeads(planWalk 의 heads)}.
+     * opts: {max(3), minM(3000), maxM(20000), planHeads(planWalk 의 heads), block([[경도, 위도]] - 지나갈 수 없는 곳, park-notes 의 noPass)}.
      * → [{ids, walk, loop, head, peak, m, start}] - 높은 봉우리부터, 봉우리마다 하나, 앞 예시와 절반 넘게 같은 길이면 뺌.
      */
     function loopExamples(segs, heads, peaks, opts) {
@@ -1754,7 +1756,9 @@
         };
         var E = [];
         (segs || []).forEach(function (s) {
-            if (!s.coords || s.coords.length < 2 || s.extra) return;
+            // 옅은 선은 1.5km 안 짧은 이음만(설악산 중청 → 대청봉 600m 는 공단 자료에 없음), 지나갈 수 없는 곳(opts.block - 한라산 남벽분기점) 둘레는 빼고
+            if (!s.coords || s.coords.length < 2 || (s.extra && !(+s.distance_m <= 1500))) return;
+            if (s.extra && (opts.block || []).some(function (b) { return d(s.coords[0], b) < 300 || d(s.coords[s.coords.length - 1], b) < 300; })) return;
             lines[s.id] = s.coords;
             len[s.id] = +s.distance_m || 1;
             E.push({ id: s.id, a: node(s.coords[0]), b: node(s.coords[s.coords.length - 1]), m: len[s.id] });
@@ -1788,11 +1792,11 @@
         var H = (heads || []).map(function (h) { return { h: h, n: nearest([+h.lon, +h.lat], 300) }; }).filter(function (x) { return x.n >= 0; });
         var P = (peaks || []).filter(function (p) { return p.ele_m != null; }).slice().sort(function (x, y) { return +y.ele_m - +x.ele_m; })
             .map(function (p) { return { p: p, n: nearest([+p.lon, +p.lat], 150) }; }).filter(function (x) { return x.n >= 0; });
-        var out = [], usedHead = {}, usedPeak = {};
+        var out = [], usedHead = {};
         P.forEach(function (pk) {
-            // 이웃한 봉우리(500m - 도봉산 신선대 · 자운봉)는 같은 산행이라 하나만
-            if (out.length >= max || usedPeak[placeName(pk.p.name)]) return;
-            if (out.some(function (o) { return d([+o.at.lon, +o.at.lat], [+pk.p.lon, +pk.p.lat]) < 500; })) return;
+            // 이웃한 봉우리(1km - 도봉산 신선대 · 자운봉, 설악산 대청봉 · 중청봉)는 같은 산행이라 빼고
+            if (out.length >= max) return;
+            if (out.some(function (o) { return o.at !== pk.p && d([+o.at.lon, +o.at.lat], [+pk.p.lon, +pk.p.lat]) < 1000; })) return;
             var cands = [];
             H.forEach(function (hd) {
                 if (hd.n === pk.n) return;
@@ -1811,6 +1815,8 @@
                 var plan = planWalk(ids, lines, { heads: opts.planHeads || heads, first: ids[0], start: at0 });
                 if (!plan.ok) return;
                 if (loop && !plan.loop) return;
+                // 왕복은 봉우리에서 돌아서야(지리산 범왕교 ↔ 반야봉이 쟁기소까지 가는 편도였음 - 2026-10-13 PC)
+                if (!loop && d(plan.end, nodes[pk.n]) > 200) return;
                 var walk = plan.walk;
                 if (!loop) walk = walk.concat(reverseSel(walk));   // 같은 길 왕복
                 var m = walk.reduce(function (t, x) { return t + len[x.id]; }, 0);
@@ -1820,46 +1826,160 @@
                 cands.push({ ids: ids, walk: walk, loop: loop, head: hd.h.name, peak: pn || pk.p.name, m: m, at: pk.p, start: at0 });
             });
             // 고리가 왕복보다 먼저, 그다음 아직 안 쓴 들머리, 짧은 것
-            cands.sort(function (x, y) { return (y.loop - x.loop) || ((usedHead[x.head] ? 1 : 0) - (usedHead[y.head] ? 1 : 0)) || x.m - y.m; });
+            cands = cands.filter(function (c) { return !usedHead[c.head]; });
+            cands.sort(function (x, y) { return (y.loop - x.loop) || x.m - y.m; });
             // 앞 예시와 절반 넘게 같은 길(도봉산 신선대 · 자운봉, 설악산 중청봉 · 소청봉)은 빼고
             cands = cands.filter(function (c) {
                 return !out.some(function (o) { return c.ids.filter(function (id) { return o.ids.indexOf(id) >= 0; }).length > 0.5 * Math.min(c.ids.length, o.ids.length); });
             });
-            if (!cands.length) return;
-            out.push(cands[0]);
-            usedHead[cands[0].head] = true;
-            usedPeak[placeName(pk.p.name)] = true;
+            // 높은 봉우리는 다른 들머리로 한 번 더(설악산 대청봉 - 남설악 · 한계령)
+            var per = 0;
+            cands.forEach(function (c) {
+                if (out.length >= max || usedHead[c.head] || per >= 2) return;
+                if (out.some(function (o) { return o.ids.filter(function (id) { return c.ids.indexOf(id) >= 0; }).length > 0.5 * Math.min(c.ids.length, o.ids.length); })) return;
+                out.push(c);
+                usedHead[c.head] = true;
+                per++;
+            });
         });
         return out;
     }
 
     /**
-     * 순수 함수 - 탐방로망의 들머리 · 날머리(2026-10-13 홍TV님: 모든 산에 표시). 구간 끝 가운데 다른 구간이 닿지 않는 막다른 끝(150m)에서
-     * 봉우리 · 폭포 · 전망대처럼 산 위에서 끝나는 곳은 빼고, 이름은 500m 안 탐방지원센터 · 탐방안내소(heads) → 그 구간 이름의 끝.
-     * segs: [{id, name, coords}], flips: routeFlips. → [{name, lat, lon}] (같은 이름 · 300m 안은 하나).
+     * 순수 함수 - 탐방로망의 들머리 · 날머리(2026-10-13 홍TV님: 모든 산에 표시). 구간 끝을 150m 로 묶은 자리마다:
+     *   - 이름이 탐방지원센터 · 탐방안내소 · 분소 · 매표소 · 주차장이면 들머리(원효분소 · 화엄사탐방안내소 - 여러 탐방로가 만나도)
+     *   - 거기 닿은 탐방로가 모두 거기서 시작하면 들머리(송추 → 사패능선 · 송추 → 오봉능선)
+     *   - 막다른 끝이 탐방로의 끝(이름 "… → X" 의 X)이면 X 가 마을 · 입구 · 교 같은 곳일 때만(운봉아래 · 제방 · 숯가마터는 산 위 끝)
+     *   - "관음사 탐방로" 처럼 이름에 출발 · 도착이 없으면 다른 탐방로가 덜 닿은 끝이 "관음사"
+     *   - 다른 자료 코스가 마을 · 휴게소 · 주차장에서 시작하는 자리(300m - 성삼재휴게소)
+     * 다른 탐방로 가운데를 지나는 자리는 빼고, 봉우리 · 폭포 같은 산 위 이름도 뺌. 이름은 그 자리의 탐방지원센터 이름 → 500m 안 heads → 탐방로 끝 이름.
+     * 서버 heads 가운데 가까운 들머리가 없는 것도 넣음. 같은 이름 · 300m 안, "백무동" · "백무동탐방지원센터" 처럼 앞이 같은 이름(2km 안)은 하나.
+     * segs: [{id, name, coords}], flips: routeFlips, others: [{name, coords}](다른 자료 코스). → [{name, lat, lon}].
      */
-    function trailHeads(segs, heads, flips) {
+    function trailHeads(segs, heads, flips, others) {
         var near = 150, d = function (p, q) { return distM(p[1], p[0], q[1], q[0]); }, ends = [];
+        var HEAD = /(탐방지원센터|탐방안내소|안내센터|분소|매표소|주차장|휴게소)$/;
+        var ACCESS = /(마을|리|동|입구|재|령|고개|주차장|휴게소|매표소|분소|탐방지원센터|탐방안내소|교|IC|정류장|중|초|중학교|초등학교)$/;
+        var HIGH = /(봉|산|대|단|정상|오름|폭포|전망대|암|굴|바위|능선|고지|갈림길|탐방로 끝|쪽 끝|부근|분기점|코스\d*|탐방로\s*\d*|삼거리|사거리|경계|문)$/;
+        var DEAD_HIGH = /(봉|산|정상|오름|폭포|전망대|굴|바위|능선|고지|갈림길|끝|부근|분기점|삼거리|사거리|터|옛길|제방|소|담|탕|치|대|단|문|암|코스\d*|탐방로\s*\d*)$/;
+        var JUNK = /(봉|산|정상|오름|폭포|능선|갈림길|쪽끝|탐방로끝|부근|분기점|삼거리|사거리|코스\d*|탐방로\d*|문|연결선|해안가|산행)$/;
+        var clean = function (n) { return String(n || "").replace(/\s*(밑|아래|뒤)$/, "").trim(); };
         (segs || []).forEach(function (s) {
             if (!s.coords || s.coords.length < 2) return;
             var e = routeEnds(s.name), f = flips && flips[s.id];
-            ends.push({ p: s.coords[0], name: f ? e.to : e.from, s: s });
-            ends.push({ p: s.coords[s.coords.length - 1], name: f ? e.from : e.to, s: s });
+            // "관음사 탐방로", 이름이 한 곳뿐인 탐방로("설악산 · 백담사")
+            var rt = nameParts(s.name).route, title = !e.from && !e.to && !s.extra && (/^(.+?)\s*탐방로$/.exec(rt) || (/^[가-힣]{2,8}$/.test(rt) && !/(코스|탐방로)$/.test(rt) && !HIGH.test(rt) && !DEAD_HIGH.test(rt) ? [rt, rt] : null));
+            ends.push({ p: s.coords[0], name: f ? e.to : e.from, from: !f, s: s, title: title && title[1], other: f ? e.from : e.to });
+            ends.push({ p: s.coords[s.coords.length - 1], name: f ? e.from : e.to, from: !!f, s: s, title: title && title[1], other: f ? e.to : e.from });
         });
+        // 끝 묶기
+        var groups = [];
+        ends.forEach(function (x) {
+            var g = groups.filter(function (g) { return d(g[0].p, x.p) < near; })[0];
+            if (g) g.push(x); else groups.push([x]);
+        });
+        var count = function (s, p) { return groups.filter(function (g) { return d(g[0].p, p) < near; })[0].length; };
+        var otherStarts = (others || []).map(function (o) {
+            var e = routeEnds(o.name);
+            return o.coords && o.coords.length && e.from && ACCESS.test(e.from.replace(/\s+/g, "")) ? o.coords[0] : null;
+        }).filter(Boolean);
         var out = [];
-        ends.forEach(function (x, i) {
-            var touching = ends.filter(function (y, k) { return k !== i && d(x.p, y.p) < near; }).length;
-            if (touching) return;
-            // 막다른 끝이 다른 구간 중간에 닿아도(자르지 않은 곳) 들머리 아님
-            var mid = (segs || []).some(function (s) { return s !== x.s && s.coords.some(function (q, k) { return k > 0 && k < s.coords.length - 1 && d(x.p, q) < 60; }); });
+        groups.forEach(function (g) {
+            var p = g[0].p;
+            // 다른 탐방로 가운데를 지나는 자리(자르지 않은 곳)는 들머리 아님
+            // 같은 자리에서 나란히 시작하는 탐방로(300m 안 - 북한산 송추 → 사패능선 · 송추폭포입구 → 오봉능선)는 괜찮음
+            var mid = (segs || []).some(function (s) {
+                if (g.some(function (x) { return x.s === s; })) return false;
+                var c = s.coords, cum = 0;
+                for (var k = 1; k < c.length - 1; k++) {
+                    cum += d(c[k - 1], c[k]);
+                    if (d(p, c[k]) < 60 && cum > 300 && d(p, c[0]) > 300 && d(p, c[c.length - 1]) > 300) return true;
+                }
+                return false;
+            });
             if (mid) return;
-            var h = (heads || []).filter(function (hh) { return d(x.p, [+hh.lon, +hh.lat]) < 500; })[0];
-            var name = h ? h.name : x.name;
-            if (!name || /(봉|산|대|단|정상|오름|폭포|전망대|암|굴|바위|능선|고지|갈림길|탐방로 끝|쪽 끝|부근|분기점|코스\d*)$/.test(name) || name === "삼거리") return;
-            if (out.some(function (o) { return o.name === name || d([o.lon, o.lat], x.p) < 300; })) return;
-            out.push({ name: name, lat: x.p[1], lon: x.p[0] });
+            var names = g.map(function (x) { return x.name; }).filter(Boolean);
+            var own = names.filter(function (n) { return HEAD.test(n.replace(/\s+/g, "")); })[0];
+            var server = (heads || []).filter(function (h) { return d(p, [+h.lon, +h.lat]) < 500; })
+                .sort(function (x, y) { return d(p, [+x.lon, +x.lat]) - d(p, [+y.lon, +y.lat]); })[0];
+            // 이름에 출발 · 도착이 없는 탐방로("관음사 탐방로")는 다른 탐방로가 덜 닿은 끝
+            var title = g.filter(function (x) {
+                if (!x.title) return false;
+                var c = x.s.coords, other = x.p === c[0] ? c[c.length - 1] : c[0];
+                return g.length <= count(x.s, other);
+            })[0];
+            var allFrom = g.every(function (x) { return x.from && x.name; });
+            // 탐방로 끝이 막다른 곳이면 내려온 들머리(장수대 · 운봉아래 · 다불마을) - 산 위 이름 · 옛터 · 제방은 빼고
+            // 출발이 산 위(봉 · 폭포 · 삼거리)면 끝은 아래, 출발이 마을 · 입구 · 절이면 끝은 산 위, 모르면 끝 이름으로
+            var deadTo = false;
+            if (g.length === 1 && !g[0].from && g[0].name) {
+                var o = String(g[0].other || "").replace(/\s+/g, ""), nm0 = String(g[0].name).replace(/\s+/g, "");
+                deadTo = HIGH.test(o) ? !/(봉|산|정상|오름)$/.test(nm0) : ACCESS.test(o) || /(사|약수터)$/.test(o) ? false : !DEAD_HIGH.test(nm0);
+            }
+            // 다른 자료 코스가 시작하는 곳은 막다른 끝이거나 마을 · 입구 같은 이름일 때만(지리산 숯가마터 · 북한산 부왕동암문은 산 위)
+            var started = (g.length === 1 && g[0].from || names.some(function (n) { return ACCESS.test(n.replace(/\s+/g, "")); }))
+                && otherStarts.some(function (q) { return d(p, q) < 300; });
+            if (!(own || allFrom || deadTo || title || server || started)) return;
+            var fromName = g.filter(function (x) { return x.from && x.name && !HIGH.test(x.name); }).map(function (x) { return x.name; })[0];
+            var name = own || (server && server.name) || (title && title.title) || fromName
+                || names.filter(function (n) { return !HIGH.test(n); })[0];
+            if (deadTo && !own && !server) name = g[0].name;
+            var raw = String(name || "");   // "운봉아래" 는 산 아래(봉우리 이름 빼기는 원래 이름으로)
+            name = clean(name);
+            if (!name || (!own && !server && !title && !deadTo && (HIGH.test(name) || name === "삼거리"))) return;
+            // 길 이름 · 갈림길 · 산 위 이름은 어느 쪽이든 빼고(포대능선 · 대성문 · "배나무등 쪽 끝" · 금수산코스 · 제3폭포)
+            if (!own && !server && JUNK.test(raw.replace(/\s+/g, ""))) return;
+            out.push({ name: name, lat: p[1], lon: p[0] });
         });
-        return out;
+        // 탐방로에서 먼 서버 heads 도(다른 자료 코스 끝 - 지리산남부탐방안내소)
+        (heads || []).forEach(function (h) { out.push({ name: String(h.name), lat: +h.lat, lon: +h.lon, server: true }); });
+        var key = function (n) { return n.replace(/\s+/g, "").replace(/(탐방지원센터|탐방안내소|안내센터|분소|매표소)$/, "").replace(/산$/, ""); };
+        // 탐방지원센터 · 탐방안내소 > 분소 > 매표소(옛 이름) > 그 밖
+        var rank = function (n) { return /(탐방지원센터|탐방안내소)$/.test(n) ? 3 : /분소$/.test(n) ? 2 : /매표소$/.test(n) ? 1 : 0; };
+        var kept = [];
+        out.forEach(function (h) {
+            var dup = kept.filter(function (o) {
+                var x = d([o.lon, o.lat], [h.lon, h.lat]);
+                return o.name === h.name || x < 300 || (key(o.name) === key(h.name) && x < 2000);
+            })[0];
+            if (!dup) { kept.push(h); return; }
+            // 같은 곳이면 탐방지원센터 이름을, 자리는 탐방로 위(서버 heads 는 다른 자료 코스 끝이라 조금 떨어짐)
+            if (rank(h.name) > rank(dup.name) && key(dup.name) === key(h.name)) dup.name = h.name;
+        });
+        return kept.map(function (h) { return { name: h.name, lat: h.lat, lon: h.lon }; });
+    }
+
+    /**
+     * 순수 함수 - 이름에 거쳐 가는 곳이 있는 탐방로("쟁기소 → 반야봉 → 삼도봉삼거리")의 선이 그 가운데서 시작 · 끝나면 이름을 거기까지로.
+     * 2026-10-13 PC: 공단 선은 반야봉 → 삼도봉삼거리 970m 뿐인데 처음이 "쟁기소" 라 범왕교 ↔ 반야봉 왕복이 "쟁기소" 까지 가는 편도로 보였음.
+     * 선 끝 200m 안의 places 이름이 거쳐 가는 곳이면 그 끝을 그 이름으로. → 바꾼 것만 새 객체.
+     */
+    function viaTrim(trails, places) {
+        var d = function (p, q) { return distM(p[1], p[0], q[1], q[0]); };
+        var at = {};
+        (places || []).forEach(function (p) { var k = String(p.name || "").replace(/\s+/g, ""); (at[k] = at[k] || []).push([+p.lon, +p.lat]); });
+        return (trails || []).map(function (t) {
+            var np = nameParts(t.name), parts = String(np.route || "").split(" → ");
+            if (parts.length < 3 || !t.coords || t.coords.length < 2) return t;
+            var idx = function (p) {
+                var best = -1, bd = 200;
+                parts.forEach(function (w, i) { (at[w.replace(/\s+/g, "")] || []).forEach(function (q) { var x = d(p, q); if (x < bd) { bd = x; best = i; } }); });
+                return best;
+            };
+            var a = idx(t.coords[0]), z = idx(t.coords[t.coords.length - 1]);
+            var mid = function (i) { return i > 0 && i < parts.length - 1; };
+            if (!mid(a) && !mid(z)) return t;
+            // 거꾸로 그린 선이면 처음 쪽이 이름의 끝
+            var lo, hi;
+            if (a >= 0 && z >= 0) { lo = Math.min(a, z); hi = Math.max(a, z); }
+            else if (a >= 0) { lo = a; hi = parts.length - 1; }
+            else { lo = 0; hi = z; }
+            if (hi - lo < 1) return t;
+            var x = {};
+            for (var k in t) if (Object.prototype.hasOwnProperty.call(t, k)) x[k] = t[k];
+            x.name = (np.group ? np.group + " · " : "") + parts.slice(lo, hi + 1).join(" → ");
+            return x;
+        });
     }
 
     /** 순수 함수 - 이름의 길 부분에서 다른 이름으로("지리산 · 중산리 → 천왕봉" + {중산리: 중산리탐방지원센터}). names 가 없으면 그대로. */
@@ -2412,6 +2532,6 @@
     global.RF = {
         LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, stampKey: stampKey, summitName: summitName, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakCourses: peakCourses, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
-        sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
+        sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
     };
 })(window);

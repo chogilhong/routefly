@@ -36,7 +36,7 @@ body { display:flex; flex-direction:column; height:100dvh; }
        border-radius:10px; font-size:14px; text-align:center; max-width:86%; }
 #sheet { flex:0 0 auto; background:var(--panel); border-top:1px solid var(--ln); padding:10px 12px calc(env(safe-area-inset-bottom) + 10px); }
 #sheet .nm { font-size:14.5px; font-weight:bold; }
-#sheet .st { font-size:12.5px; color:var(--dim); margin:3px 0 8px; }
+#sheet .st { font-size:12.5px; color:var(--dim); margin:3px 0 8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }   /* 한 줄 - 아래 칸 높이가 바뀌지 않게 */
 #sheet .row { display:flex; gap:8px; }
 #sheet .row a { flex:1; text-align:center; height:40px; line-height:40px; border-radius:10px; text-decoration:none; font-size:14px; font-weight:bold;
                 background:rgba(255,255,255,0.08); color:var(--tx); border:1px solid var(--ln); }
@@ -46,11 +46,13 @@ body { display:flex; flex-direction:column; height:100dvh; }
 /* 탐방로를 고르면 아래 칸이 커져 지도가 밀리지 않게 처음부터 그 높이(노선 안내도와 같게), 내용은 아래로 */
 #sheet { box-sizing:border-box; min-height:calc(154px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; justify-content:flex-end; }
 #sheet .tip { text-align:center; margin:2px 0 10px; }
-/* 원점회귀 예시(고른 탐방로가 없을 때) */
-#sheet .ex { display:flex; flex-direction:column; gap:3px; }
-#sheet .ex .exh { font-size:12px; color:var(--dim); }
-#sheet .ex a { display:block; font-size:13px; line-height:26px; padding:0 10px; border-radius:8px; text-decoration:none; color:var(--tx);
-               background:rgba(255,255,255,0.08); border:1px solid var(--ln); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+/* 원점회귀 예시(고른 탐방로가 없을 때) - 한 줄, 옆으로 넘김(아래 칸 높이가 탐방로를 골랐을 때와 같게 - 2026-10-13 PC: 217px 로 커졌음) */
+#sheet .ex { margin-bottom:8px; min-width:0; }
+#sheet .ex .exh { font-size:12px; color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:5px; }
+#sheet .ex .exr { display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; }
+#sheet .ex .exr::-webkit-scrollbar { display:none; }
+#sheet .ex a { flex:0 0 auto; font-size:13px; line-height:30px; padding:0 10px; border-radius:15px; text-decoration:none; color:var(--tx);
+               background:rgba(255,255,255,0.08); border:1px solid var(--ln); white-space:nowrap; }
 #sheet.listmode .tip { text-align:center; margin:2px 0 10px; }   /* 목록 카드에서 온 탐방 안내도 - 안내 글과 따라가기 사이 띄움(2026-10-12 홍TV님) */
 .place { pointer-events:none; color:#fff; font-size:12px; font-weight:bold; white-space:nowrap; text-shadow:0 0 3px #000, 0 1px 2px #000;
          display:flex; flex-direction:column; align-items:center; transition:opacity .3s; }

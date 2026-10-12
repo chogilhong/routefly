@@ -715,6 +715,7 @@
                     RF.showName($("name"), c.course.name, true);
                     document.title = RF.nameText(c.course.name, true);
                 }
+                if (n.ele) (c.pois || []).forEach(function (q) { if (n.ele[q.name] != null) q.ele_m = n.ele[q.name]; });   // 바로잡은 높이(천왕봉 1,915m)
                 if (!n.short) return;
                 rules = RF.parkRules(n, rawNames.concat([c.course.name]), new Date());
                 toast("⚠ " + noteOf + " " + (RF.rulesText(rules) || n.short), 12000);
