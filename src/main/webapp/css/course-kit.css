@@ -12,6 +12,9 @@
 .rf-plabel { position:absolute; transform-origin:0 100%; transform:translate(2px, -8px) rotate(-38deg); white-space:nowrap;
              font-size:10.5px; font-weight:bold; color:#fff; pointer-events:none; text-shadow:0 0 2px #000, 0 1px 2px #000; }
 .rf-plabel.end { transform-origin:100% 100%; transform:translate(-2px, -8px) rotate(38deg); }
+/* 비스듬히 쓰면 그래프 위로 넘칠 때(정상이 끝에 있는 짧은 코스) - 점 아래에 눕혀서 */
+.rf-plabel.flat { transform-origin:0 0; transform:translate(4px, 4px); }
+.rf-plabel.end.flat { transform-origin:100% 0; transform:translate(-4px, 4px); }
 .rf-me { position:absolute; width:11px; height:11px; margin:-5.5px 0 0 -5.5px; border-radius:50%; background:#38d9ea;
          border:2px solid #fff; box-shadow:0 0 6px rgba(56,217,234,0.9); pointer-events:none; }
 .rf-mini svg { width:100%; height:100%; display:block; }

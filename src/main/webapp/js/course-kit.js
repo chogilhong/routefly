@@ -1106,6 +1106,12 @@
         return [[ax, ay], [ax + u[0] * w, ay + u[1] * w], [ax + u[0] * w + v[0] * h, ay + u[1] * w + v[1] * h], [ax + v[0] * h, ay + v[1] * h]];
     }
 
+    /** 순수 함수 - 눕힌 이름(.rf-plabel.flat - 점 아래 4px, 끝 이름은 점 왼쪽으로)의 네 꼭짓점. */
+    function flatRect(x, y, w, h, end) {
+        var l = end ? x - 4 - w : x + 4, t = y + 4;
+        return [[l, t], [l + w, t], [l + w, t + h], [l, t + h]];
+    }
+
     /** 순수 함수 - 볼록 사각형 둘이 겹치는가(분리축). */
     function rectsOverlap(a, b) {
         var axes = [a, b].reduce(function (acc, r) {
@@ -1193,7 +1199,14 @@
                 lb.style.top = (y(q.a.ele) / PH * 100) + "%";
                 box.appendChild(lb);
                 if (bw) {
-                    var r = labelRect(xp / 100 * bw, y(q.a.ele) / PH * bh, lb.offsetWidth, lb.offsetHeight, end);
+                    // 비스듬한 이름이 그래프 위로 삐져나가면(정상이 끝에 있는 짧은 코스 - 위 줄 단추와 겹침) 점 아래에 눕혀 씀
+                    // (2026-10-12 홍TV님: 공주향교뒷산 "공주향교뒷산 정상" 이 미리보기 단추 줄까지 올라감)
+                    var px = xp / 100 * bw, py = y(q.a.ele) / PH * bh;
+                    var r = labelRect(px, py, lb.offsetWidth, lb.offsetHeight, end);
+                    if (Math.min(r[0][1], r[1][1], r[2][1], r[3][1]) < -2) {
+                        lb.classList.add("flat");
+                        r = flatRect(px, py, lb.offsetWidth, lb.offsetHeight, end);
+                    }
                     if (placed.some(function (o) { return rectsOverlap(o, r); })) { box.removeChild(lb); return; }
                     placed.push(r);
                 }
