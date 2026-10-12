@@ -341,6 +341,12 @@ eq("splitTrails 안 자른 것은 그대로", sp.filter(function (s) { return !s
 var up3 = { id: "u3", name: "산 · 동엽령코스", coords: [[127.011, 34.99], [127.011, 35.0003]] };
 eq("splitTrails 이름 모르는 갈림길은 조각 이름", RF.splitTrails([{ id: "r2", name: "산 · 종주코스", distance_m: 3000, coords: ridge.coords }, up3], {})
     .filter(function (s) { return s.base; }).map(function (s) { return s.name; }), ["산 · 종주코스 (1/2)", "산 · 종주코스 (2/2)"]);
+// 한라산 성판악 탐방로 - 들머리는 이름에서, 끝 "정상" 은 산 정상, 가운데는 다른 탐방로 끝(사라오름입구)
+var sp2 = RF.splitTrails([{ id: "h", name: "한라산 · 성판악 탐방로", distance_m: 3000, coords: ridge.coords },
+    { id: "s", name: "한라산 · 사라오름입구 → 사라오름", coords: [[127.011, 35.0003], [127.011, 34.99]] }], {}, null,
+    { h: { total: 3000, pois: [{ name: "한라산동능정상", dist_m: 3000 }] } });
+eq("splitTrails 탐방로 들머리 · 정상 · 이름표", sp2.filter(function (x) { return x.base; }).map(function (x) { return x.name; }),
+    ["한라산 · 성판악 → 사라오름입구", "한라산 · 사라오름입구 → 한라산 정상"]);
 var full = RF.fromApi("r", { course: { name: "산 · 가 → 라" }, points: [[127.0, 35.0, 100, 0], [127.011, 35.0, 200, 1000], [127.022, 35.0, 150, 2000], [127.033, 35.0, 300, 3000]], pois: [] });
 var sl = RF.sliceCourse(full, 1 / 3, 2 / 3, "산 · 나 → 다", "r@0.3333-0.6667:나>다");
 eq("sliceCourse 거리 · 이름표", [Math.round(sl.total), sl.pois.map(function (p) { return p.name; }).join(","), sl.course.ascent_m], [1000, "나,다", 0]);

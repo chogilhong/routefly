@@ -33,7 +33,7 @@
      * 탐방로 고르기 - 누르면 고르고 다시 누르면 뺌, 고른 것 앞 · 뒤로 이어지는 탐방로는 함께(2026-10-12 홍TV님: 등산도 노선 안내도처럼
      * 이어진 구간으로). 아래 칸에 처음 → 끝 두 방향 단추(따라가기), 하나만 골랐으면 미리보기도.
      */
-    var sel = [], lines = {}, flips = {}, byId = {}, segs = [], emptySheet = "";
+    var sel = [], lines = {}, flips = {}, byId = {}, segs = [], emptySheet = "", poiNames = {};
     function pick(t) {
         if (t) sel = RF.chainPick(sel, t.id, lines);
         map.getSource("sel").setData({ type: "FeatureCollection", features: sel.map(function (s) {
@@ -87,7 +87,7 @@
         // 선이 이름과 거꾸로 그려진 탐방로(이웃 탐방로 끝이 모이는 점으로 앎) - 단추 · 이름을 걸어 나가는 차례로
         flips = RF.routeFlips(data.trails.map(function (t) { return { course_id: t.id, name: t.name }; }), lines);
         // 갈림길에서 자른 작은 구간(주능선 노고단고개 → 천왕봉을 장터목 · 세석 · 벽소령 … 에서) - 고르기 · 그리기는 이것으로
-        segs = RF.splitTrails(data.trails, flips);
+        segs = RF.splitTrails(data.trails, flips, null, poiNames);
         lines = {};
         segs.forEach(function (t) { lines[t.id] = t.coords; byId[t.id] = t; });
         var feats = segs.map(function (t, i) {
@@ -194,6 +194,16 @@
         ]).then(function (r) {
             cfg = { demUrl: r[0].demUrl || "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png", vworldKey: r[0].vworldKey || null };
             data = r[1];
+            // 이름에 출발 · 도착이 없는 탐방로("덕유산 · 종주코스" · "한라산 · 성판악 탐방로")는 코스 이름표를 받아 갈림길 이름으로(splitTrails).
+            // 그런 탐방로만, 20개까지, 4초 안에 못 받으면 받은 것만으로 그림
+            var bare = data.trails.filter(function (t) { var e = RF.routeEnds(t.name); return !e.from && !e.to; }).slice(0, 20);
+            var poiReady = Promise.all(bare.map(function (t) {
+                return getJson("api/course?id=" + encodeURIComponent(t.id)).then(function (j) {
+                    var pts = j.points || [];
+                    poiNames[t.id] = { total: pts.length ? +pts[pts.length - 1][3] : 0, pois: j.pois || [] };
+                }, function () { /* 이름표 없이 */ });
+            }));
+            var poiWait = Promise.race([poiReady, new Promise(function (ok) { setTimeout(ok, 4000); })]);
             // 국립공원도 "지리산 탐방 안내도" - "국립공원" 을 붙이면 375px 에서 공식 지도 단추에 잘림(2026-10-12)
             if (data.map && /^https:\/\//.test(data.map)) {   // https 주소만(javascript: 등은 넣지 않음 - 2026-10-11 점검)
                 $("official").href = data.map;
@@ -213,11 +223,13 @@
             map.addControl(new maplibregl.ScaleControl({ maxWidth: 90 }), "bottom-left");
             map.addControl(new maplibregl.GeolocateControl({ positionOptions: { enableHighAccuracy: true }, trackUserLocation: true }), "bottom-right");
             map.once("load", function () {
-                draw();
-                if (cfg.vworldKey) {
-                    $("layerBtn").style.display = "block";
-                    $("layerBtn").addEventListener("click", function () { setLight(!light); });
-                }
+                poiWait.then(function () {
+                    draw();
+                    if (cfg.vworldKey) {   // 바탕 바꾸기는 탐방로 층이 생긴 뒤에
+                        $("layerBtn").style.display = "block";
+                        $("layerBtn").addEventListener("click", function () { setLight(!light); });
+                    }
+                });
             });
         }).catch(function (e) {
             $("msg").textContent = e.message || "공원 탐방로를 읽지 못했습니다.";

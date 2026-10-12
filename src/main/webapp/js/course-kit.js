@@ -150,20 +150,21 @@
         return out;
     }
 
+    // 지명으로 다듬기(2026-10-12 PC: 해파랑길 · 백두대간 지명에 가게 · 창고 이름, 긴 괄호)
+    // 가게 · 시설 이름은 빼고, 긴 괄호("(경상북도기념물제39호)")와 뒤 숫자("솔잎공원267")는 떼고, "660 봉" 은 붙이고,
+    // 탐방지원센터 · 휴게소는 앞 지명만("죽령탐방지원센터" → 죽령, "제3관문휴게소" → 제3관문)
+    function placeName(raw) {
+        var n = cleanName(raw || "").replace(/\(([^)]*)\)/g, function (m, x) { return x.length > 6 || /[0-9]/.test(x) ? "" : m; })
+            .replace(/([0-9]+)\s+(봉|고지)$/, "$1$2").replace(/([가-힣])[0-9]+$/, "$1").trim();
+        // 마을 이름 뒤 민박 · 펜션 · 식당은 마을 이름으로("가탄마을민박" → 가탄마을 - 2026-10-12 홍TV님: 지리산둘레길 끝 지명이 없었음)
+        var vil = /^(.+(마을|리|동))(민박|펜션|식당|슈퍼|가게)$/.exec(n);
+        if (vil) n = vil[1];
+        if (/(본점|해변점|역점|항점|샵|민박|낚시점|창고|쉼터|관리본부|식당|카페|펜션|모텔|마트|편의점)$|^(씨유|GS25|세븐일레븐)/.test(n)) return "";
+        var cut = n.replace(/(탐방지원센터|휴게소)$/, "");
+        return cut.length >= 2 ? cut : n;
+    }
+
     function routePlaces(courses, lines, nearM) {
-        // 지명으로 다듬기(2026-10-12 PC: 해파랑길 · 백두대간 지명에 가게 · 창고 이름, 긴 괄호)
-        // 가게 · 시설 이름은 빼고, 긴 괄호("(경상북도기념물제39호)")와 뒤 숫자("솔잎공원267")는 떼고, "660 봉" 은 붙이고,
-        // 탐방지원센터 · 휴게소는 앞 지명만("죽령탐방지원센터" → 죽령, "제3관문휴게소" → 제3관문)
-        function placeName(raw) {
-            var n = cleanName(raw || "").replace(/\(([^)]*)\)/g, function (m, x) { return x.length > 6 || /[0-9]/.test(x) ? "" : m; })
-                .replace(/([0-9]+)\s+(봉|고지)$/, "$1$2").replace(/([가-힣])[0-9]+$/, "$1").trim();
-            // 마을 이름 뒤 민박 · 펜션 · 식당은 마을 이름으로("가탄마을민박" → 가탄마을 - 2026-10-12 홍TV님: 지리산둘레길 끝 지명이 없었음)
-            var vil = /^(.+(마을|리|동))(민박|펜션|식당|슈퍼|가게)$/.exec(n);
-            if (vil) n = vil[1];
-            if (/(본점|해변점|역점|항점|샵|민박|낚시점|창고|쉼터|관리본부|식당|카페|펜션|모텔|마트|편의점)$|^(씨유|GS25|세븐일레븐)/.test(n)) return "";
-            var cut = n.replace(/(탐방지원센터|휴게소)$/, "");
-            return cut.length >= 2 ? cut : n;
-        }
         var near = nearM == null ? 500 : nearM, out = [];
         function add(name, p, start) {
             name = placeName(name);
@@ -1146,10 +1147,13 @@
      * 장터목 · 세석에서 갈라지는 탐방로와 이어 고를 수 있게). trails: [{id, name, coords, distance_m, ascent_m}], flips: routeFlips.
      * 끝에서 150m 안 · 갈림길끼리 150m 안은 자르지 않음. 자른 구간 id 는 "코스ID@비율-비율:처음>끝", 이름은 "무리 · 처음 → 끝", 오르막은 모름(null).
      */
-    function splitTrails(trails, flips, nearM) {
+    function splitTrails(trails, flips, nearM, poiNames) {
         var near = nearM == null ? 150 : nearM, MIN_M = 150, out = [];   // 150m - 대피소가 능선에서 조금 떨어짐(음정 → 벽소령 끝 129m)
         var ends = (trails || []).map(function (t) {
             var e = routeEnds(t.name), f = flips && flips[t.id];
+            // 국립공원 "성판악 탐방로" · "관음사 탐방로" 는 들머리 이름(2026-10-12 홍TV님: 성판악탐방안내소 → … → 백록담)
+            var head = !e.from && !e.to && /^(.+?)\s*탐방로$/.exec(nameParts(t.name).route);
+            if (head) e = { from: head[1], to: null };
             return { a: t.coords[0], z: t.coords[t.coords.length - 1], an: f ? e.to : e.from, zn: f ? e.from : e.to };
         });
         (trails || []).forEach(function (t, ti) {
@@ -1189,11 +1193,30 @@
                 });
                 return best;
             };
-            var bounds = [{ k: 0, name: e.an }].concat(kept, [{ k: c.length - 1, name: e.zn }]);
-            bounds.forEach(function (x) { if (!x.name) x.name = named(x.k); });
+            // 그 탐방로 자신의 이름표(api/course 의 pois - 이름에 출발 · 도착이 없는 "종주코스" · "성판악 탐방로" 만 받아 옴, 2026-10-12 홍TV님:
+            // 덕유산 종주코스 향적봉 · 중봉 · 백암봉 · 동엽령 …, 성판악 속밭대피소 · 진달래밭대피소 …) - 갈림길은 300m, 탐방로 끝은 700m 안
+            var own = function (k, lim, end) {
+                var pn = poiNames && poiNames[t.id];
+                if (!pn || !pn.total) return null;
+                var want = cum[k] / total * pn.total, best = null, bd = lim;
+                (pn.pois || []).forEach(function (q) {
+                    var nm = placeName(q.name);
+                    // 탐방로 끝의 "정상" 은 그 산 정상("한라산동능정상" → 한라산 정상)
+                    if (end && nm === "정상" && g) nm = g.replace(/^\S+\s+(?=\S+$)/, "") + " 정상";
+                    if (!nm || /^(삼각점|정상|안부\s*\d*|갈림길|삼거리|사거리|헬기장|이정표)$/.test(nm)) return;
+                    var d = Math.abs(+q.dist_m - want);
+                    if (d < bd) { bd = d; best = nm; }
+                });
+                return best;
+            };
+            var bounds = [{ k: 0, name: e.an, end: true }].concat(kept, [{ k: c.length - 1, name: e.zn, end: true }]);
+            bounds.forEach(function (x) { if (!x.name) x.name = x.end ? own(x.k, 700, true) || named(x.k) : named(x.k) || own(x.k, 300); });
             for (var b = 0; b < bounds.length - 1; b++) {
                 var s0 = bounds[b], s1 = bounds[b + 1], r0 = cum[s0.k] / total, r1 = cum[s1.k] / total;
                 var from = s0.name || "", to = s1.name || "";
+                // 한쪽만 아는 갈림길(탐방로 끝이 아닌 자른 자리)은 "갈림길" - "월하탄 → 갈림길"
+                if (from && !to && !s1.end) to = "갈림길";
+                if (to && !from && !s0.end) from = "갈림길";
                 // 그래도 모르면 "성판악 탐방로 (1/2)" - 원래 탐방로 이름 + 몇째 조각(따라가기 제목도 이것, 화살표 없이)
                 if (!from || !to) { from = title + " (" + (b + 1) + "/" + (bounds.length - 1) + ")"; to = ""; }
                 out.push({ id: t.id + "@" + r0.toFixed(4) + "-" + r1.toFixed(4) + ":" + from + ">" + to, base: t.id,
