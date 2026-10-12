@@ -1665,7 +1665,9 @@
         var firstE = E.filter(function (e) { return e.id === opts.first; })[0] || E[0];
         // 들머리가 여럿이면 탐방지원센터에 가장 가까운 곳(중산리탐방지원센터 3m · 법계교 257m)
         var headD = function (n) { return Math.min.apply(null, (opts.heads || []).map(function (h) { return d(nodes[n], [+h.lon, +h.lat]); }).concat([Infinity])); };
-        var s = leaves.filter(isHead).sort(function (x, y) { return headD(x) - headD(y); })[0];
+        // 먼저 누른 탐방로 쪽 들머리가 출발(2026-10-13 홍TV님: 한계령을 먼저 누르고 남설악을 눌렀는데 남설악이 출발이 됐음)
+        var s = [firstE.a, firstE.b].filter(function (n) { return deg[n] === 1 && isHead(n); })[0];
+        if (s == null) s = leaves.filter(isHead).sort(function (x, y) { return headD(x) - headD(y); })[0];
         if (s == null) s = [firstE.a, firstE.b].filter(function (n) { return deg[n] === 1; })[0];
         if (s == null) s = firstE.a;
         // 출발을 정해 줌(원점회귀 예시의 들머리 - 고리 위 들머리는 막다른 끝이 아니라 첫 탐방로 끝이 출발이 됐음, 2026-10-13)
@@ -1863,9 +1865,9 @@
         var HEAD = /(탐방지원센터|탐방안내소|안내센터|분소|매표소|주차장|휴게소)$/, HEAD_PT = /(.사|탐방지원센터|탐방안내소|분소|주차장|휴게소)$/,
             SHOP = /[&]|찻집|식당|가게|펜션|민박|카페/;
         var ACCESS = /(마을|리|동|입구|재|령|고개|주차장|휴게소|매표소|분소|탐방지원센터|탐방안내소|교|IC|정류장|중|초|중학교|초등학교)$/;
-        var HIGH = /(봉|산|대|단|정상|오름|폭포|전망대|암|굴|바위|능선|고지|갈림길|탐방로 끝|쪽 끝|부근|분기점|코스\d*|탐방로\s*\d*|삼거리|사거리|경계|문)$/;
-        var DEAD_HIGH = /(봉|산|정상|오름|폭포|전망대|굴|바위|능선|고지|갈림길|끝|부근|분기점|삼거리|사거리|터|옛길|제방|소|담|탕|치|대|단|문|암|코스\d*|탐방로\s*\d*)$/;
-        var JUNK = /(봉|산|정상|오름|폭포|능선|갈림길|쪽끝|탐방로끝|부근|분기점|삼거리|사거리|코스\d*|탐방로\d*|문|연결선|해안가|산행)$/;
+        var HIGH = /(대피소|산장|봉|산|대|단|정상|오름|폭포|전망대|암|굴|바위|능선|고지|갈림길|탐방로 끝|쪽 끝|부근|분기점|코스\d*|탐방로\s*\d*|삼거리|사거리|경계|문)$/;
+        var DEAD_HIGH = /(대피소|산장|봉|산|정상|오름|폭포|전망대|굴|바위|능선|고지|갈림길|끝|부근|분기점|삼거리|사거리|터|옛길|제방|소|담|탕|치|대|단|문|암|코스\d*|탐방로\s*\d*)$/;
+        var JUNK = /(대피소|산장|봉|산|정상|오름|폭포|능선|갈림길|쪽끝|탐방로끝|부근|분기점|삼거리|사거리|코스\d*|탐방로\d*|문|연결선|해안가|산행)$/;
         // "우이분소 밑" → 우이분소, "강북구 우이동" → 우이동(2026-10-13 홍TV님)
         var clean = function (n) { return String(n || "").replace(/\s*(밑|아래|뒤)$/, "").replace(/^[가-힣]{1,4}[구군시]\s+(?=[가-힣])/, "").trim(); };
         (segs || []).forEach(function (s) {

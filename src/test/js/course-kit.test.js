@@ -437,6 +437,10 @@ var pw4 = { s: [[127.0, 35.0], [127.0, 35.01]], w: [[127.0, 35.01], [127.0, 35.0
 var pl4 = RF.planWalk(["s", "w", "c1", "c2", "e"], pw4, { heads: [{ lat: 35.0, lon: 127.0 }, { lat: 35.001, lon: 127.0025 }], first: "s" });
 eq("planWalk 두 조각 막다른 갈래도 왕복", [pl4.ok, pl4.loop, pl4.walk.map(function (x) { return x.id + (x.rev ? "~" : ""); }).join(",")], [true, true, "s,w,c1,c2,c2~,c1~,e"]);
 eq("planWalk 정상을 지나 조금 되돌아 끝나는 한 구간은 원점회귀 아님", RF.planWalk(["t"], { t: [[127.0, 35.0], [127.0, 35.004], [126.998, 35.0025]] }, {}).loop, false);
+// 2026-10-13 홍TV님: 먼저 누른 탐방로 쪽 들머리가 출발(한계령 먼저 → 한계령 출발)
+var hd3 = [{ lat: 35.0, lon: 127.0 }, { lat: 35.001, lon: 127.02 }];   // 둘째 들머리는 111m 떨어짐(예전 규칙이면 첫째가 출발)
+eq("planWalk 먼저 누른 쪽이 출발", [RF.planWalk(["b", "a"], pw3, { heads: hd3, first: "b" }).start, RF.planWalk(["a", "b"], pw3, { heads: hd3, first: "a" }).start].map(JSON.stringify),
+    [JSON.stringify([127.02, 35.0]), JSON.stringify([127.0, 35.0])]);
 eq("planWalk 이어지지 않음은 apart", RF.planWalk(["s", "c2"], pw4, {}).reason, "apart");
 eq("trailHeads 막다른 끝 가운데 들머리만(봉우리 빼고, 탐방지원센터 이름 먼저)", RF.trailHeads([
     { id: "a", name: "지리산 · 중산리 → 칼바위", coords: [[127.0, 35.0], [127.0, 35.01]] }, { id: "b", name: "지리산 · 칼바위 → 천왕봉", coords: [[127.0, 35.01], [127.0, 35.02]] },

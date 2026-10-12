@@ -33,7 +33,7 @@
      * 탐방로 고르기 - 누르면 고르고 다시 누르면 뺌, 고른 것 앞 · 뒤로 이어지는 탐방로는 함께(2026-10-12 홍TV님: 등산도 노선 안내도처럼
      * 이어진 구간으로). 아래 칸에 처음 → 끝 두 방향 단추(따라가기), 하나만 골랐으면 미리보기도.
      */
-    var sel = [], lines = {}, flips = {}, byId = {}, segs = [], emptySheet = "", poiNames = {}, noteNames = null, notePass = null, noteEle = null;
+    var sel = [], lines = {}, flips = {}, byId = {}, segs = [], emptySheet = "", poiNames = {}, noteNames = null, notePass = null, noteEle = null, noteTrails = null;
     var chosen = [], startMk = null, endMk = null;
 
     /** 고른 탐방로가 이어진 묶음별로(끝 150m 안이면 이어짐) - 빼서 끊어지면 처음 고른 것이 든 묶음만 남김. */
@@ -171,7 +171,7 @@
             : from && to ? [from + " → " + to, to + " → " + from] : ["따라가기", "거꾸로 따라가기"];
         var second = RF.reverseSel(full);
         // 들머리에서 정상 같은 막다른 곳까지면 "왕복"(올랐다 같은 길로 들머리) - 한라산 성판악 ↔ 백록담처럼 고리가 없는 산의 원점회귀(2026-10-13 홍TV님)
-        var headNear = function (p) { return (data.heads || []).some(function (h) { return RF.distM(p[1], p[0], +h.lat, +h.lon) < 500; }); };
+        var headNear = function (p) { return (planHeads || data.heads || []).some(function (h) { return RF.distM(p[1], p[0], +h.lat, +h.lon) < 500; }); };
         // 들머리 자료가 적은 산(한라산은 어리목탐방안내소 하나)은 끝 이름이 정상 · 봉 · 오름 · 대피소 · 분기점이면
         // 왕복 예시를 눌렀으면 늘(2026-10-13 PC: 범왕교 ↔ 반야봉 왕복이 편도 단추만)
         if (!round && (exRound === false || (!headNear(plan.end) && (headNear(plan.start) || /(정상|봉|산|대|오름|분기점|대피소)$/.test(to || ""))))) {
@@ -210,7 +210,7 @@
         (notePass || []).forEach(function (n) {
             (data.places || []).forEach(function (q) { if (String(q.name).replace(/\s+/g, "") === n) block.push([+q.lon, +q.lat]); });
         });
-        examples = RF.loopExamples(segs, hs, peaks, { planHeads: data.heads, block: block });
+        examples = RF.loopExamples(segs, hs, peaks, { planHeads: planHeads, block: block });
         if (!examples.length) return;
         var box = document.createElement("div");
         box.className = "ex";
@@ -236,7 +236,8 @@
     }
 
     var exStart = null, exHead = null, exRound = null;   // 원점회귀 예시를 눌렀을 때 그 들머리 자리 · 이름 · 고리인지(탐방로를 직접 누르면 지움)
-    function planOf(ids) { return RF.planWalk(ids, lines, { heads: data.heads, first: ids[0], start: exStart }); }
+    var planHeads = null;
+    function planOf(ids) { return RF.planWalk(ids, lines, { heads: planHeads || data.heads, first: ids[0], start: exStart }); }
 
     function bestHit(fs) {
         var ids = fs.map(function (f) { return f.properties.i; }).filter(function (i, k, a) { return a.indexOf(i) === k; });
@@ -254,6 +255,10 @@
             var x = {};
             for (var k in t) if (Object.prototype.hasOwnProperty.call(t, k)) x[k] = t[k];
             x.name = RF.aliasName(t.name, noteNames);
+            // 공단 자료 이름이 틀린 탐방로(park-notes trails - 설악산 knps-4014 "소공원 → 희운각대피소" 는 양폭대피소 → 무너미고개)
+            Object.keys(noteTrails || {}).forEach(function (k) {
+                if (String(t.id).indexOf(k + "-") === 0) x.name = RF.nameParts(t.name).group + " · " + noteTrails[k];
+            });
             return x;
         });
         // 들머리 이름(다른 자료 코스의 탐방지원센터 · 탐방안내소) - "중산리" 끝이 중산리탐방지원센터 500m 안이면 그 이름으로
@@ -313,6 +318,8 @@
         });
         // 서버 heads(탐방지원센터 · 탐방안내소)도 trailHeads 가 합침 - "백무동" · "백무동탐방지원센터" 처럼 같은 곳은 하나(2026-10-13 PC)
         var hs = RF.trailHeads(segs, data.heads, flips, data.others, data.places);
+        // 출발 · 도착을 고르는 들머리 - 지도의 들머리 · 날머리 모두(한계령 · 송추처럼 탐방지원센터 자료에 없는 곳도)
+        planHeads = (data.heads || []).concat(hs);
         showExamples(hs);
         // 이미 지명 이름표가 있으면(성삼재 960m · 어승생악) 그 이름표를 들머리 표시로 - 예전에는 건너뛰어 🥾 가 없었음(2026-10-13 PC)
         hs.forEach(function (h) {
@@ -375,6 +382,7 @@
             noteNames = n.names || null;   // 산마다 다른 이름(지리산 중산리 → 중산리탐방지원센터) - 그리기 전에 받음
             notePass = n.noPass || null;   // 지나갈 수 없는 곳(한라산 남벽분기점) - 원점회귀 예시에서 뺌
             noteEle = n.ele || null;   // 바로잡은 높이(지리산 천왕봉 1,915m - OSM 은 1,918m)
+            noteTrails = n.trails || null;   // 이름을 바로잡은 탐방로(설악산 knps-4014)
             if (!n.short) return;
             var el = $("note"), today = RF.parkRules(n, [], new Date());
             // 오늘 계절(한라산 하절기 4~9월 · 동절기 10~3월)을 앞에 - 좁아 뒤는 말줄임, 누르면 코스마다 통제 시각

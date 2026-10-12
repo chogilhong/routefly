@@ -720,6 +720,13 @@
                     RF.showName($("name"), c.course.name, true);
                     document.title = RF.nameText(c.course.name, true);
                 }
+                // 공단 자료 이름이 틀린 탐방로(설악산 knps-4014 → 양폭대피소 → 무너미고개) - 그 탐방로 하나만 걸을 때
+                Object.keys(n.trails || {}).forEach(function (k) {
+                    if (String(id).indexOf(k + "-") !== 0 || String(id).indexOf(",") >= 0) return;
+                    c.course.name = RF.nameParts(c.course.name).group + " · " + (c.rev ? n.trails[k].split(" → ").reverse().join(" → ") : n.trails[k]);
+                    RF.showName($("name"), c.course.name, true);
+                    document.title = RF.nameText(c.course.name, true);
+                });
                 if (n.ele) (c.pois || []).forEach(function (q) { if (n.ele[q.name] != null) q.ele_m = n.ele[q.name]; });   // 바로잡은 높이(천왕봉 1,915m)
                 if (!n.short) return;
                 rules = RF.parkRules(n, rawNames.concat([c.course.name]), new Date());
