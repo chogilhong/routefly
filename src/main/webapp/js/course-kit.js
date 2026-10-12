@@ -243,7 +243,7 @@
         // routeFirst - 좁은 머리글(따라가기 제목)은 길("하동호 → 덕산")만.
         // 2026-10-12 홍TV님: "[지리산둘레길 2구…" 에서 잘려 어느 쪽으로 가는지 안 보였고, 무리를 뒤에 붙여도 길어서 길만
         if (routeFirst) {
-            el.textContent = p.route;
+            el.textContent = routeOnly(name);
             return;
         }
         if (p.group) {
@@ -255,10 +255,18 @@
         el.appendChild(document.createTextNode(p.route));
     }
 
+    /** 길만 - "가 → 나", 국가숲길 "지리산둘레길 가탄-송정" 은 "가탄 → 송정"(2026-10-12 PC: 머리글 117px 를 넘어 잘림). */
+    function routeOnly(name) {
+        var p = nameParts(name);
+        if (p.route.indexOf(" → ") >= 0) return p.route;
+        var e = routeEnds(name);
+        return e.from && e.to ? e.from + " → " + e.to : p.route;
+    }
+
     /** 글로만 쓸 곳(창 제목 등) - "[무리] 길", routeFirst 면 길만(따라가기 탭 제목 - 머리글과 같게). */
     function nameText(name, routeFirst) {
         var p = nameParts(name);
-        if (routeFirst) return p.route;
+        if (routeFirst) return routeOnly(name);
         return p.group ? "[" + p.group + "] " + p.route : p.route;
     }
 
