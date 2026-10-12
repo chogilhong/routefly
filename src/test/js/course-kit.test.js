@@ -171,6 +171,10 @@ near("distM", RF.distM(37, 127, 37.001, 127), 111, 1);
     var sjc = [{ course_id: "s1", name: "섬진강 자전거길 1구간 · 섬진강댐인증센터 → 향가유원지인증센터" },
                { course_id: "s2", name: "섬진강 자전거길 2구간 · 향가유원지인증센터 → 배알도 수변공원 인증센터" }];
     eq("이름으로", RF.centerCourses(sjc, ["섬진강댐", "향가유원지", "배알도수변공원", "장군목"]).map(function (c) { return c && c.course_id; }), ["s1", "s2", "s2", null]);
+    // 다른 이름(aka): 이름표 "영산하구둑인증센터" · OSM 오타 "망양휴계소인증센터"(2026-10-12 PC)
+    eq("다른 이름으로 구간", RF.centerCourses([{ course_id: "y1", name: "영산강 자전거길 1구간 · 영산하구둑인증센터 → 느러지인증센터", distance_m: 30000 }],
+        ["영산강하구둑"], [{ course_id: "y1", name: "영산하구둑인증센터", dist_m: 488 }], { "영산강하구둑": ["영산하구둑"] })[0].course_id, "y1");
+    eq("다른 이름으로 도장", RF.seriesProgress({ centers: ["망양휴게소", "월송정"], aka: { "망양휴게소": ["망양휴계소"] } }, { "망양휴계소": { t: 1 } }, {}), { got: 1, of: 2 });
     eq("긴 공식 이름", RF.centerCourses([{ course_id: "g", name: "동해안 자전거길 1구간 · 통일전망대(민통선내)인증센터 → 북천철교인증센터" }], ["통일전망대"])[0].course_id, "g");
     eq("명산 자료가 비면 0", RF.seriesProgress({ peaks: [] }, {}, {}, {}), { got: 0, of: 0 });
     eq("숲길 진행", RF.seriesProgress({ prefix: "kmf-9900000006-", courses: 21 }, {}, { "kmf-9900000006-1": 1, "kmf-9900000006-2": 1, "kmf-9900000002-1": 1 }), { got: 2, of: 21 });

@@ -94,6 +94,7 @@
                     var wait = el("div", "tip", "코스를 찾는 중…");
                     list.appendChild(wait);
                     getJson("api/courses?q=" + encodeURIComponent(k.name)).then(function (j) {
+                        if (!j || !Array.isArray(j.courses)) throw new Error("코스를 읽지 못했습니다. 잠시 뒤 다시 눌러 주세요.");
                         wait.remove();
                         var cs = RF.peakCourses(j.courses, k, 2000).slice(0, 8);
                         if (!cs.length) list.appendChild(el("div", "tip", "정상까지 가는 코스를 찾지 못했습니다."));
@@ -135,7 +136,7 @@
             if (s.centers) {
                 body.appendChild(el("div", "sub", "인증센터(차례대로)"));
                 s.centers.forEach(function (n) {
-                    var st = RF.stampOf(stamps, n), row = el("div", "row"), t = el("div", "t", (st ? "📮 " : "⬜ ") + n + " 인증센터");
+                    var st = RF.stampOf(stamps, n, s.aka && s.aka[n]), row = el("div", "row"), t = el("div", "t", (st ? "📮 " : "⬜ ") + n + " 인증센터");
                     if (st) t.appendChild(el("span", null, "도장 " + day(st.t)));
                     row.appendChild(t);
                     body.appendChild(row);
@@ -153,7 +154,7 @@
                 var list = s.chainFrom ? RF.chainOrder(j.courses, s.chainFrom) : s.centers ? RF.geoOrder(j.courses) : j.courses;
                 list.forEach(function (c) { body.appendChild(courseRow(c)); });
                 // 인증센터마다 그 센터를 지나는 구간의 미리보기 · 따라가기(2026-10-12 홍TV님)
-                if (centerRows.length) RF.centerCourses(list, s.centers, j.centers).forEach(function (c, i) {
+                if (centerRows.length) RF.centerCourses(list, s.centers, j.centers, s.aka).forEach(function (c, i) {
                     if (!c) return;
                     var id = encodeURIComponent(c.course_id), a = el("a", null, "미리보기"), b = el("a", "main", "따라가기");
                     a.href = "index.html#c=" + id;

@@ -341,12 +341,16 @@
     /**
      * 순수 함수 - series.json 의 센터 이름(n)에 찍힌 도장. 똑같은 키가 없으면 키에 n 이 든 것
      * (2026-10-11 PC: 공식 파일 이름은 "통일전망대(민통선내)" · "삼척임원무인" 처럼 길어 "통일전망대" · "임원" 과 안 맞았음).
+     * alts: 다른 이름(series.json aka - "영산하구둑" · OSM 오타 "망양휴계소").
      */
-    function stampOf(stamps, n) {
+    function stampOf(stamps, n, alts) {
         if (!stamps) return null;
-        var k = stampKey(n);
-        if (stamps[k]) return stamps[k];
-        for (var key in stamps) if (Object.prototype.hasOwnProperty.call(stamps, key) && k && key.indexOf(k) >= 0) return stamps[key];
+        var ks = [n].concat(alts || []).map(stampKey).filter(Boolean);
+        for (var i = 0; i < ks.length; i++) if (stamps[ks[i]]) return stamps[ks[i]];
+        for (var key in stamps) {
+            if (!Object.prototype.hasOwnProperty.call(stamps, key)) continue;
+            for (var j = 0; j < ks.length; j++) if (key.indexOf(ks[j]) >= 0) return stamps[key];
+        }
         return null;
     }
 
@@ -391,12 +395,12 @@
 
     /**
      * 순수 함수 - 인증센터마다 따라갈 구간 코스(centers 와 같은 길이, 못 찾으면 null).
-     * marks: /api/group 의 centers - 구간마다 지나는 인증센터 이름표 {course_id, name, dist_m(구간 시작에서)}.
+     * marks: /api/group 의 centers - 구간마다 지나는 인증센터 이름표 {course_id, name, dist_m(구간 시작에서)}. aka: 센터의 다른 이름(series.json).
      * 그 센터에서 출발하거나 구간 안에 있는 구간(도착 500m 앞까지) 중 가장 앞(dist_m 작은) 것, 없으면 도착하는 구간(노선 마지막 센터).
      * 이름표가 없으면(예전 서버) 구간 이름 "… · A인증센터 → B인증센터" 의 출발 · 도착으로. 공식 이름이 길어("통일전망대(민통선내)") 이름 안에 든 것으로 봄.
      * 2026-10-12 홍TV님 "인증센터마다 따라가기" - PC: 이름만으로는 구간 안 센터가 다음 구간에 붙었음(낙단보 → 9구간).
      */
-    function centerCourses(courses, centers, marks) {
+    function centerCourses(courses, centers, marks, aka) {
         var byId = {};
         (courses || []).forEach(function (c) { byId[c.course_id] = c; });
         function key(n) { return String(n || "").replace(/\s+/g, ""); }
@@ -406,20 +410,21 @@
             return parts.length >= 2 ? [parts[0], parts[parts.length - 1]] : null;
         }
         return (centers || []).map(function (n) {
-            var k = stampKey(n);
-            if (!k) return null;
+            var ks = [n].concat((aka && aka[n]) || []).map(stampKey).filter(Boolean);
+            if (!ks.length) return null;
+            var has = function (t) { return ks.some(function (k) { return t.indexOf(k) >= 0; }); };
             var best = null, bestD = Infinity, last = null;
             (marks || []).forEach(function (m) {
                 var c = byId[m.course_id];
-                if (!c || key(m.name).indexOf(k) < 0) return;
+                if (!c || !has(key(m.name))) return;
                 var d = +m.dist_m || 0, len = +c.distance_m || 0;
                 if (len && d > len - 500) { last = last || c; return; }   // 도착 - 다음 구간에서 출발하면 그쪽
                 if (d < bestD) { bestD = d; best = c; }
             });
             if (best || last) return best || last;
             var hit = null;
-            (courses || []).some(function (c) { var e = ends(c); return e && e[0].indexOf(k) >= 0 && (hit = c); });
-            if (!hit) (courses || []).some(function (c) { var e = ends(c); return e && e[1].indexOf(k) >= 0 && (hit = c); });
+            (courses || []).some(function (c) { var e = ends(c); return e && has(e[0]) && (hit = c); });
+            if (!hit) (courses || []).some(function (c) { var e = ends(c); return e && has(e[1]) && (hit = c); });
             return hit;
         });
     }
@@ -436,7 +441,7 @@
             return { got: series.peaks.filter(function (p) { return peakStamps && peakStamps[peakKey(p)]; }).length, of: series.peaks.length };
         }
         if (series.centers) {
-            var got = series.centers.filter(function (n) { return stampOf(stamps, n); }).length;
+            var got = series.centers.filter(function (n) { return stampOf(stamps, n, series.aka && series.aka[n]); }).length;
             return { got: got, of: series.centers.length };
         }
         // 이름으로 찾는 길(코리아둘레길 - 두루누비 코스 번호에 길 번호가 없음)은 받아 온 코스 ID 목록(ids)으로 셈
