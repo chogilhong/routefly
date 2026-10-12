@@ -309,6 +309,10 @@ eq("reverseName 국가숲길", RF.reverseName("지리산둘레길 가탄-송정"
 var kc = RF.fromApi("kmf-9900000006-1", { course: { name: "지리산둘레길 가탄-송정" }, points: [[127.634, 35.2005, 100, 0], [127.6, 35.203, 300, 5000], [127.573, 35.206, 120, 9960]], pois: [] });
 eq("국가숲길 출발 · 도착 이름표", kc.pois.map(function (p) { return p.name + "@" + p.dist_m; }), ["가탄@0", "송정@9960"]);
 eq("거꾸로 하면 이름표도", RF.reverseCourse(kc).pois.map(function (p) { return p.name + "@" + p.dist_m; }), ["송정@0", "가탄@9960"]);
+eq("같은 길 한 구간 노선은 그 길 카드로", RF.routeGuides([{ course_id: "kmf-9900000006-1", name: "지리산둘레길 가탄-송정" }, { course_id: "kmf-9900000006-2", name: "지리산둘레길 금계-동강" },
+    { course_id: "osmh-15635353-1", name: "지리산둘레길 (가탄-송정) · 송정리 → 가탄마을" }]), [{ prefix: "kmf-9900000006-", name: "지리산둘레길", kind: "walk", n: 2 }]);
+eq("이름이 이어지는 다른 길은 따로", RF.routeGuides([{ course_id: "osmh-9439787-1", name: "백두대간 1구간 · 진부령 → 황철봉" },
+    { course_id: "kmf-9900000009-1", name: "백두대간트레일 1코스" }]).map(function (g) { return g.name + ":" + g.kind; }), ["백두대간:ridge", "백두대간트레일:walk"]);
 eq("둘레길 노선 안내도 카드", RF.routeGuides([{ course_id: "drnb-1", name: "해파랑길 1코스 · 오륙도해맞이공원 → 해운대해수욕장" },
     { course_id: "drnb-2", name: "해파랑길 2코스 · 해운대 → 대변항" }, { course_id: "drnb-3", name: "DMZ 평화의 길 19-1코스(우회로) · 승라부대까지" }, { course_id: "drnb-9", name: "이름만" }]),
     [{ trail: "해파랑길", name: "해파랑길", kind: "walk", n: 2 }, { trail: "DMZ 평화의 길", name: "DMZ 평화의 길", kind: "walk", n: 1 }]);

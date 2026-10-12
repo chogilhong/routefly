@@ -646,10 +646,16 @@
             if (!by[m[1]]) {
                 var g = nameParts(r.name).group, nm = g ? g : String(r.name || "").split(/\s+/)[0];
                 nm = nm.replace(/^국토종주\s*/, "").replace(/\s*[0-9]+구간$/, "").trim();
-                by[m[1]] = { prefix: m[1], name: nm, kind: m[2] === "osmb" ? "bike" : m[2] === "osmh" ? "ridge" : "walk", n: 0 };
+                // ⛰ 는 백두대간 · 정맥만(OSM 등산 · 걷기 노선에는 둘레길 한 구간도 있음 - "지리산둘레길 (가탄-송정)")
+                by[m[1]] = { prefix: m[1], name: nm, kind: m[2] === "osmb" ? "bike" : m[2] === "osmh" && /대간|정맥/.test(nm) ? "ridge" : "walk", n: 0 };
                 order.push(by[m[1]]);
             }
             by[m[1]].n++;
+        });
+        // 다른 자료의 같은 길 한 구간(OSM "지리산둘레길 (가탄-송정)" ⊂ 국가숲길 지리산둘레길)은 그 길 카드에 맡김 - 2026-10-12 홍TV님
+        var key = function (s) { return String(s || "").replace(/\s+/g, ""); };
+        order = order.filter(function (g) {
+            return !order.some(function (h) { return h !== g && key(h.name) !== key(g.name) && key(g.name).indexOf(key(h.name) + "(") === 0; });   // "백두대간트레일" 은 다른 길
         });
         return order.map(function (g, i) { return { g: g, i: i }; }).sort(function (a, b) { return b.g.n - a.g.n || a.i - b.i; })
             .slice(0, max || 3).map(function (x) { return x.g; });
