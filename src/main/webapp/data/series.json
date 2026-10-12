@@ -47,7 +47,7 @@
       "key": "peaks", "title": "100대 명산", "icon": "⛰️", "unit": "정상",
       "_note": "정상 목록은 summits 파일(산림청 100대 명산 - 공공데이터 15098177 · 15097953 에서 만들 것, 지어내지 않음). 비어 있으면 화면에 안 보임(2026-10-11)",
       "series": [
-        { "key": "forest100", "name": "산림청 100대 명산", "summits": "data/mountains100.json" }
+        { "key": "forest100", "name": "산림청 100대 명산", "summits": "data/mountains100.json", "official": 100 }
       ]
     }
   ]

@@ -61,7 +61,8 @@
         var p = RF.seriesProgress(s, stamps, done, peakStamps);
         var box = el("div", "card"), head = el("button"), nm = el("div", "nm", s.name), pg = el("div", "pg");
         head.type = "button";
-        nm.appendChild(el("small", null, s.peaks.length + "산 · 정상 150m 안에 가면 도장"));
+        // 정상 자료가 없는 산(천성산 · 대암산 - GPX 가 정상 쪽을 안 지남)은 빠져 있음
+        nm.appendChild(el("small", null, s.peaks.length + "산" + (s.official > s.peaks.length ? "(" + s.official + "곳 중 정상 자료가 있는 곳)" : "") + " · 정상 150m 안에 가면 도장"));
         pg.innerHTML = "<b>" + p.got + "</b> / " + p.of + " " + g.unit;
         head.appendChild(nm);
         head.appendChild(pg);
