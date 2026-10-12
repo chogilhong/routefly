@@ -80,7 +80,8 @@
             s.peaks.forEach(function (k) {
                 var st = peakStamps[RF.peakKey(k)], row = el("div", "row"), t = el("div", "t", (st ? "⛰️ " : "⬜ ") + (k.id || k.name));
                 // 높이는 안 보임 - GPX 의 GPS 높이라 알려진 높이보다 20~35m 높음(2026-10-12 PC 견줌)
-                var info = [k.summit && k.summit !== k.name ? k.summit : "", st ? "도장 " + day(st.t) : ""].filter(Boolean).join(" · ");
+                var info = [k.summit && k.summit !== k.name ? k.summit : "", st ? "도장 " + day(st.t) : "",
+                    s.notes && s.notes[k.id] ? s.notes[k.id] : ""].filter(Boolean).join(" · ");   // notes: 정상 대신 다른 곳에서 찍는 까닭(점봉산 - 2026-10-12)
                 if (info) t.appendChild(el("span", null, info));
                 row.appendChild(t);
                 // 코스 - 산 이름으로 찾아 정상 2km 안에서 끝나는(시작하는) 코스만, 누르면 펼침(미리보기 · 따라가기)
