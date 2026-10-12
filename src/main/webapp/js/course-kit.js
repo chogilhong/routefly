@@ -125,7 +125,13 @@
         }
         (courses || []).forEach(function (c, i) {
             var line = lines && lines[c.course_id], parts = nameParts(c.name).route.split(" → ");
-            if (!line || !line.length || parts.length < 2) return;
+            if (!line || !line.length) return;
+            // 화살표 없는 "창옥봉에서" · "삼각점까지"(OSM 구간 한쪽 끝 이름만) - 2026-10-12 PC: 백두대간 끝 점이 둘(창옥봉)로 보였음
+            if (parts.length < 2) {
+                var one = /^(.+?)(에서|까지)$/.exec(parts[0].trim());
+                if (one) add(one[1], one[2] === "에서" ? line[0] : line[line.length - 1], one[2] === "에서" ? i : -1);
+                return;
+            }
             add(parts[0], line[0], i);
             add(parts[parts.length - 1], line[line.length - 1], -1);
         });

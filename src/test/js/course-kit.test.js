@@ -279,7 +279,7 @@ eq("다른 이름의 같은 노선", RF.routeGuides([{ course_id: "frst-45720010
 eq("노선 안내도 지명", RF.routePlaces([{ course_id: "a", name: "금남호남정맥 1구간 · 주화산 → 군하리" }, { course_id: "b", name: "금남호남정맥 2구간 · 군하리 → 복지봉" },
     { course_id: "c", name: "금남호남정맥 4구간 · 두산리 → 무룡고개" }, { course_id: "d", name: "DMZ 평화의 길 19-1코스 · 승라부대까지" }],
     { a: [[127.30, 35.80], [127.35, 35.80]], b: [[127.3502, 35.8001], [127.40, 35.75]], c: [[127.45, 35.70], [127.50, 35.65]], d: [[128, 38], [128.1, 38]] })
-    .map(function (p) { return p.name + ":" + p.start; }), ["주화산:0", "군하리:1", "복지봉:-1", "두산리:2", "무룡고개:-1"]);
+    .map(function (p) { return p.name + ":" + p.start; }), ["주화산:0", "군하리:1", "복지봉:-1", "두산리:2", "무룡고개:-1", "승라부대:-1"]);
 eq("노선 안내도 흔한 이름은 지명 아님", RF.routePlaces([{ course_id: "a", name: "백두대간 4구간 · 성국사 → 삼각점" }, { course_id: "b", name: "백두대간 5구간 · 삼각점 → 치밭골령" }],
     { a: [[128.4, 38.1], [128.45, 38.05]], b: [[128.4501, 38.0501], [128.5, 38]] }).map(function (p) { return p.name + ":" + p.start + (p.last ? ":끝" : ""); }),
     ["성국사:0", "치밭골령:-1:끝"]);
@@ -289,6 +289,10 @@ eq("노선 안내도 지명 다듬기", RF.routePlaces(["호미곶등대(경상�
     }), (function () { var l = {}; for (var i = 0; i < 12; i++) l["c" + i] = [[127 + i * 0.1, 36], [127 + i * 0.1 + 0.05, 36]]; return l; })())
     .filter(function (p) { return p.start >= 0; }).map(function (p) { return p.name; }),
     ["호미곶등대", "죽령", "제3관문", "솔잎공원", "660봉", "백암산(상왕봉)"]);
+eq("노선 안내도 에서 · 까지", RF.routePlaces([{ course_id: "a", name: "백두대간 16구간 · 창고 → 창옥봉" }, { course_id: "b", name: "백두대간 17구간 · 창옥봉에서" },
+    { course_id: "c", name: "백두대간 18구간 · 삼각점까지" }, { course_id: "d", name: "DMZ 평화의 길 19-1코스 · 승라부대까지" }],
+    { a: [[128, 36.9], [128.05, 36.9]], b: [[128.0501, 36.9001], [128.1, 36.85]], c: [[128.1, 36.85], [128.15, 36.8]], d: [[129, 38], [129.1, 38]] })
+    .map(function (p) { return p.name + ":" + p.start + (p.last ? ":끝" : ""); }), ["창옥봉:1", "승라부대:-1:끝"]);
 eq("둘레길 노선 안내도 카드", RF.routeGuides([{ course_id: "drnb-1", name: "해파랑길 1코스 · 오륙도해맞이공원 → 해운대해수욕장" },
     { course_id: "drnb-2", name: "해파랑길 2코스 · 해운대 → 대변항" }, { course_id: "drnb-3", name: "DMZ 평화의 길 19-1코스(우회로) · 승라부대까지" }, { course_id: "drnb-9", name: "이름만" }]),
     [{ trail: "해파랑길", name: "해파랑길", kind: "walk", n: 2 }, { trail: "DMZ 평화의 길", name: "DMZ 평화의 길", kind: "walk", n: 1 }]);
