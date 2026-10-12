@@ -674,7 +674,8 @@
                 var x = RF.fromApi(p.base, j);
                 if (p.r0 != null) {
                     var g = RF.nameParts(x.course.name).group;
-                    x = RF.sliceCourse(x, p.r0, p.r1, (g ? g + " · " : "") + (p.to ? p.from + " → " + p.to : p.from || x.course.name), p.id);
+                    var label = RF.endsText(p.from, p.to);   // 이은 구간의 첫 조각은 "가에서", 끝 조각은 "나까지"(mergeBare)
+                    x = RF.sliceCourse(x, p.r0, p.r1, label ? (g || x.course.name) + " · " + label : x.course.name, p.id);
                 }
                 return x;
             };
@@ -961,7 +962,8 @@
         var done = loadMap(DONE);
         // 여러 구간을 이어 걸었으면 구간마다 완주(도장 · 완주 화면이 구간 ID 로 셈)
         // 자른 구간(일부만 걸음)은 그 코스 완주가 아님
-        var ids = RF.parseJoinId(c.id) ? RF.parseJoinId(c.id).filter(function (p) { return p.r0 == null; }).map(function (p) { return p.id; }) : [c.id];
+        var ids = RF.parseJoinId(c.id) ? RF.parseJoinId(c.id).filter(function (p) { return p.r0 == null || (p.r0 <= 0.001 && p.r1 >= 0.999); })
+            .map(function (p) { return p.base; }) : [c.id];
         ids.forEach(function (one) { if (!done[one]) done[one] = { name: one === c.id ? c.course.name : c.course.name + " 중", t: Date.now() }; });
         saveMap(DONE, done);
     }

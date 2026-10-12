@@ -1084,6 +1084,9 @@
     function reverseName(name) {
         name = name || "";
         var a = name.indexOf(" → ");
+        // "무등산 · 가에서" ↔ "무등산 · 가까지"(이은 구간의 첫 · 끝 조각 이름 - 거꾸로 이어도 처음 · 끝 이름이 남게)
+        var one = a < 0 && /^(.*?)(\S+?)(에서|까지)$/.exec(name);
+        if (one) return one[1] + one[2] + (one[3] === "에서" ? "까지" : "에서");
         // 국가숲길 "지리산둘레길 가탄-송정" → "지리산둘레길 송정-가탄"(2026-10-12 PC: "(거꾸로)" 대신)
         var ab = a < 0 && /^(.*?)([가-힣]+)-([가-힣]+)(\s*\)?\s*)$/.exec(name);
         if (ab) return ab[1] + ab[3] + "-" + ab[2] + ab[4];
@@ -1148,7 +1151,9 @@
      * 끝에서 150m 안 · 갈림길끼리 150m 안은 자르지 않음. 자른 구간 id 는 "코스ID@비율-비율:처음>끝", 이름은 "무리 · 처음 → 끝", 오르막은 모름(null).
      */
     function splitTrails(trails, flips, nearM, poiNames) {
-        var near = nearM == null ? 150 : nearM, MIN_M = 150, out = [];   // 150m - 대피소가 능선에서 조금 떨어짐(음정 → 벽소령 끝 129m)
+        // near 150m - 대피소가 능선에서 조금 떨어짐(음정 → 벽소령 끝 129m). MIN_M 300m - 짧은 조각은 처음 화면에서 10px 도 안 돼
+        // 누를 수 없었음(2026-10-12 PC: 북한산 300m 안 34개) - 끝에서 · 갈림길끼리 이만큼 안은 자르지 않음
+        var near = nearM == null ? 150 : nearM, MIN_M = 300, out = [];
         var ends = (trails || []).map(function (t) {
             var e = routeEnds(t.name), f = flips && flips[t.id];
             // 국립공원 "성판악 탐방로" · "관음사 탐방로" 는 들머리 이름(2026-10-12 홍TV님: 성판악탐방안내소 → … → 백록담)
@@ -1179,14 +1184,15 @@
                 if (prev && cum[x.k] - cum[prev.k] < MIN_M) { if (!prev.name) prev.name = x.name; return; }
                 kept.push(x);
             });
-            if (!kept.length || !total) { out.push(t); return; }
+            if (!kept.length || !total || t.merged) { out.push(t); return; }   // 이은 구간(mergeBare)은 자르지 않음 - 따라가기가 자를 수 없음
             var e = ends[ti], g = nameParts(t.name).group || "", title = nameParts(t.name).route;
             // 갈림길 이름을 모르면("동엽령코스" · "성판악 탐방로" 처럼 이름에 출발 · 도착이 없는 탐방로 끝) 300m 안 다른 탐방로의 이름 있는 끝에서
             var named = function (k) {
                 var best = null, bd = 300;
                 ends.forEach(function (u) {
                     [[u.a, u.an], [u.z, u.zn]].forEach(function (pn) {
-                        if (!pn[1]) return;
+                        // "삼거리" · "갈림길" 은 어디인지 모름(2026-10-12 PC: 지리산 "대원교 → 삼거리")
+                        if (!pn[1] || /^(삼거리|갈림길|사거리|정상)$/.test(pn[1])) return;
                         var d = distM(pn[0][1], pn[0][0], c[k][1], c[k][0]);
                         if (d < bd) { bd = d; best = pn[1]; }
                     });
@@ -1215,16 +1221,133 @@
                 var s0 = bounds[b], s1 = bounds[b + 1], r0 = cum[s0.k] / total, r1 = cum[s1.k] / total;
                 var from = s0.name || "", to = s1.name || "";
                 // 한쪽만 아는 갈림길(탐방로 끝이 아닌 자른 자리)은 "갈림길" - "월하탄 → 갈림길"
-                if (from && !to && !s1.end) to = "갈림길";
-                if (to && !from && !s0.end) from = "갈림길";
-                // 그래도 모르면 "성판악 탐방로 (1/2)" - 원래 탐방로 이름 + 몇째 조각(따라가기 제목도 이것, 화살표 없이)
-                if (!from || !to) { from = title + " (" + (b + 1) + "/" + (bounds.length - 1) + ")"; to = ""; }
+                // 모르는 갈림길은 "갈림길", 모르는 탐방로 끝은 원래 탐방로 이름("대청봉코스(백담) → 황장폭포") - 한 탐방로 안에서 이름 방식이
+                // 섞이지 않게("(1/4)" 조각 이름은 뺐음, 2026-10-12 PC)
+                if (!from) from = s0.end ? title : "갈림길";
+                if (!to) to = s1.end ? title : "갈림길";
                 out.push({ id: t.id + "@" + r0.toFixed(4) + "-" + r1.toFixed(4) + ":" + from + ">" + to, base: t.id,
-                           name: (g ? g + " · " : "") + (to ? from + " → " + to : from), coords: c.slice(s0.k, s1.k + 1),
+                           name: (g ? g + " · " : "") + endsText(from, to), coords: c.slice(s0.k, s1.k + 1),
                            distance_m: Math.round((cum[s1.k] - cum[s0.k]) * (+t.distance_m || total) / total), ascent_m: null });
             }
         });
+        return dedupeSegs(out);
+    }
+
+    /**
+     * 순수 함수 - 같은 길이 여러 벌(산림청 코스는 같은 길을 지나는 코스가 많음 · 백무동 탐방로와 주능선의 장터목 → 천왕봉)이면 하나만.
+     * 처음 · 끝이 서로 80m 안(같은 방향이든 거꾸로든)이고 길이가 15% 안이면 같은 것 - 먼저 나온 것(자르지 않은 것 먼저)을 남김.
+     * 2026-10-12 PC: 겹친 선을 누르면 다른 것이 잡혔음.
+     */
+    function dedupeSegs(segs) {
+        var keep = [], d = function (p, q) { return distM(p[1], p[0], q[1], q[0]); };
+        segs.slice().sort(function (x, y) { return (x.base ? 1 : 0) - (y.base ? 1 : 0); }).forEach(function (s) {
+            var a = s.coords[0], z = s.coords[s.coords.length - 1], L = +s.distance_m || 0;
+            var same = keep.some(function (k) {
+                var ka = k.coords[0], kz = k.coords[k.coords.length - 1], kl = +k.distance_m || 0;
+                var ends = (d(a, ka) < 80 && d(z, kz) < 80) || (d(a, kz) < 80 && d(z, ka) < 80);
+                return ends && Math.abs(L - kl) <= 0.15 * Math.max(L, kl, 1);
+            });
+            if (!same) keep.push(s);
+        });
+        // 원래 차례대로(그리는 차례 · 테스트가 보는 차례)
+        return segs.filter(function (s) { return keep.indexOf(s) >= 0; });
+    }
+
+    /**
+     * 순수 함수 - 이름 없는 탐방로 조각(무등산 knps-pg… 103개가 모두 "무등산" - 2026-10-12 홍TV님: 무등산도 확인)을 갈림길 사이 한 구간으로 잇고
+     * 이름을 붙입니다. 두 조각만 만나는 점(갈림길이 아님)은 지나서 이음. 끝 이름은 places(탐방 안내도 지명) 가운데 가까운 것
+     * (갈림길 300m · 막다른 끝 600m), 없으면 "갈림길" · "탐방로 끝". 이은 구간 id 는 이은 코스 ID(첫 조각에 처음 이름, 끝 조각에 끝 이름 -
+     * 따라가기 제목), 하나뿐이면 "코스ID@0.0000-1.0000:처음>끝". 이름 있는 탐방로는 그대로.
+     */
+    function mergeBare(trails, places) {
+        var bare = [], out = [], d = function (p, q) { return distM(p[1], p[0], q[1], q[0]); };
+        (trails || []).forEach(function (t) {
+            var e = routeEnds(t.name);
+            if (e.from || e.to || /탐방로$/.test(nameParts(t.name).route) || !t.coords || t.coords.length < 2) out.push(t); else bare.push(t);
+        });
+        if (!bare.length) return out;
+        var nodes = [], node = function (p) {
+            for (var i = 0; i < nodes.length; i++) if (d(p, nodes[i].p) < 30) return i;
+            nodes.push({ p: p, inc: [] });
+            return nodes.length - 1;
+        };
+        bare.forEach(function (t, i) {
+            t._a = node(t.coords[0]); t._z = node(t.coords[t.coords.length - 1]);
+            nodes[t._a].inc.push(i); nodes[t._z].inc.push(i);
+        });
+        var nameAt = function (n) {
+            var deg = nodes[n].inc.length, best = null, bd = Infinity;
+            (places || []).forEach(function (pl) {
+                var nm = placeName(pl.name);
+                if (!nm || /^(삼각점|정상|갈림길|삼거리|사거리|헬기장|이정표)$/.test(nm)) return;
+                var x = d([+pl.lon, +pl.lat], nodes[n].p);
+                if (x < bd) { bd = x; best = nm; }
+            });
+            if (best && bd < (deg === 1 ? 600 : 300)) return best;
+            // 가까이 없으면 1.5km 안 지명 쪽("큰암산 쪽 갈림길") - "갈림길 → 갈림길" 만으로는 어디인지 모름
+            var kind = deg === 1 ? "끝" : "갈림길";
+            return best && bd < 1500 ? best + " 쪽 " + kind : (deg === 1 ? "탐방로 끝" : "갈림길");
+        };
+        var used = {}, chains = [];
+        var walk = function (n, i) {
+            var parts = [], cur = n;
+            while (i != null && !used[i]) {
+                used[i] = true;
+                var t = bare[i], rev = t._a !== cur;
+                parts.push({ t: t, rev: rev });
+                cur = rev ? t._a : t._z;
+                var inc = nodes[cur].inc;
+                i = inc.length === 2 ? (inc[0] === bare.indexOf(t) && inc[1] !== inc[0] ? inc[1] : inc[0]) : null;
+            }
+            chains.push({ parts: parts, a: n, z: cur });
+        };
+        nodes.forEach(function (nd, n) { if (nd.inc.length !== 2) nd.inc.forEach(function (i) { if (!used[i]) walk(n, i); }); });
+        bare.forEach(function (t, i) { if (!used[i]) walk(t._a, i); });   // 갈림길 없는 고리
+        chains.forEach(function (ch) {
+            var A = nameAt(ch.a), B = nameAt(ch.z), g = bare[0].name, coords = [], L = 0;
+            ch.parts.forEach(function (p) {
+                var c = p.rev ? p.t.coords.slice().reverse() : p.t.coords;
+                coords = coords.concat(coords.length ? c.slice(1) : c);
+                L += +p.t.distance_m || 0;
+            });
+            var id;
+            if (ch.parts.length === 1) {
+                var one = ch.parts[0];
+                id = one.t.id + "@0.0000-1.0000:" + (one.rev ? B + ">" + A : A + ">" + B);
+                coords = one.t.coords;   // 하나면 원래 방향 그대로(이름도 그 방향으로)
+                if (one.rev) { var x = A; A = B; B = x; }
+            } else {
+                // 이름은 그 조각 선이 그려진 방향으로 적음(선 처음 = 에서, 선 끝 = 까지) - 거꾸로 걷는 조각은 뒤집으면 맞게 바뀜
+                id = joinId(ch.parts.map(function (p, k) {
+                    var at = function (nm, walkStart) { return walkStart !== p.rev ? nm + ">" : ">" + nm; };
+                    var lab = k === 0 ? "@0.0000-1.0000:" + at(A, true) : k === ch.parts.length - 1 ? "@0.0000-1.0000:" + at(B, false) : "";
+                    return { id: p.t.id + lab, rev: p.rev };
+                }));
+            }
+            out.push({ id: id, name: g + " · " + endsText(A, B), coords: coords, distance_m: Math.round(L), ascent_m: ch.parts.length === 1 ? ch.parts[0].t.ascent_m : null, merged: true });
+        });
+        bare.forEach(function (t) { delete t._a; delete t._z; });
         return out;
+    }
+
+    /** 순수 함수 - 고른 구간 안에 이은 구간(mergeBare)이 있으면 풀어서 코스 조각 차례로(거꾸로면 차례 · ~ 도 뒤집음). */
+    function flattenSel(sel) {
+        var out = [];
+        (sel || []).forEach(function (s) {
+            var parts = s.id.indexOf(",") >= 0 ? parseJoinId(s.id) : null;
+            if (!parts) { out.push(s); return; }
+            (s.rev ? reverseSel(parts) : parts).forEach(function (p) { out.push({ id: p.id, rev: p.rev }); });
+        });
+        return out;
+    }
+
+    /** 순수 함수 - 처음 · 끝 이름 → "가 → 나"(같으면 "가 부근", 한쪽만이면 "가에서" · "나까지", 둘 다 없으면 ""). */
+    function endsText(from, to) {
+        // 같은 곳이면 "가 부근"(갈림길 · 끝처럼 어디인지 모르는 이름은 그대로 둘)
+        if (from && to) return from === to && !/(갈림길|끝)$/.test(from) ? from + " 부근" : from + " → " + to;
+        if (from) return from + "에서";
+        if (to) return to + "까지";
+        return "";
     }
 
     /**
@@ -1333,7 +1456,7 @@
         c.ele.forEach(function (e) { if (e != null) { lo = lo == null ? e : Math.min(lo, e); hi = hi == null ? e : Math.max(hi, e); } });
         var asc = c.asc[c.asc.length - 1] || 0, e0 = c.ele[0], e1 = c.ele[c.ele.length - 1];
         down = e0 == null || e1 == null ? null : Math.max(0, Math.round(asc - (e1 - e0)));
-        c.course = { name: g + " " + span + (from || to ? " · " + (from || "") + " → " + (to || "") : ""), kind: first.kind,
+        c.course = { name: g + " " + span + (from || to ? " · " + endsText(from, to) : ""), kind: first.kind,
                      distance_m: Math.round(c.total), ascent_m: Math.round(asc), descent_m: down,
                      ele_min_m: lo == null ? null : Math.round(lo), ele_max_m: hi == null ? null : Math.round(hi),
                      start_lat: c.lat[0], start_lon: c.lon[0], end_lat: c.lat[c.lat.length - 1], end_lon: c.lon[c.lon.length - 1] };
@@ -1819,6 +1942,6 @@
     global.RF = {
         LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, stampKey: stampKey, summitName: summitName, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakCourses: peakCourses, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
-        sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
+        sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, flattenSel: flattenSel, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
     };
 })(window);

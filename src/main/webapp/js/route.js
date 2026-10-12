@@ -113,7 +113,8 @@
         // 여러 구간: 번호가 있으면 "2~4구간", 없으면 "3구간 이어 걷기"(따라가기 제목과 같게)
         var nos = sel.map(function (s) { return RF.courseNo(byId[s.id].name); }), nums = nos.every(Boolean) ? nos.map(function (x) { return +String(x).split("-")[0]; }) : null;
         var span = nums ? Math.min.apply(null, nums) + "~" + Math.max.apply(null, nums) + (/코스/.test(byId[sel[0].id].name) ? "코스" : "구간") : sel.length + "구간 이어 걷기";
-        nm.textContent = one ? RF.nameText(one.name) : span + (from || to ? " · " + String(from || "").replace(/인증센터/g, "") + " → " + String(to || "").replace(/인증센터/g, "") : "");
+        var short0 = function (x) { return x ? String(x).replace(/인증센터/g, "") : x; };
+        nm.textContent = one ? RF.nameText(one.name) : span + (from || to ? " · " + RF.endsText(short0(from), short0(to)) : "");
         var st = document.createElement("div");
         st.className = "st";
         // 여러 구간은 오르막을 방향마다 따로 셈(목록 자료에 내리막이 없음) - 따라가기 화면에서 보임
@@ -185,7 +186,15 @@
         map.addLayer({ id: "route-hit", type: "line", source: "route", paint: { "line-color": "#000", "line-opacity": 0, "line-width": 22 } });
         map.on("click", "route-hit", function (e) {
             var f = e.features && e.features[0];
-            if (f) pick(data.courses[f.properties.i]);
+            if (!f) return;
+            // 누른 자리에 선이 여럿이면 고른 것에 이어지는 것, 그다음 짧은 것(park.js bestHit 과 같게)
+            var ii = e.features.map(function (x) { return x.properties.i; }).filter(function (v, k, a) { return a.indexOf(v) === k; });
+            var score = function (i) {
+                var c = data.courses[i], inSel = sel.some(function (x) { return x.id === c.course_id; });
+                var joins = !inSel && sel.length && RF.chainPick(sel, c.course_id, data.lines).length > sel.length;
+                return (inSel ? 0 : joins ? 1 : 2) * 1e8 + (+c.distance_m || 0);
+            };
+            pick(data.courses[ii.sort(function (a, b) { return score(a) - score(b); })[0]]);
         });
         map.on("mouseenter", "route-hit", function () { map.getCanvas().style.cursor = "pointer"; });
         map.on("mouseleave", "route-hit", function () { map.getCanvas().style.cursor = ""; });

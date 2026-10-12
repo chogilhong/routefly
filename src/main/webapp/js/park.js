@@ -49,11 +49,11 @@
         $("sheet").innerHTML = "";
         var nm = document.createElement("div");
         nm.className = "nm";
-        nm.textContent = one ? one.name : sel.length + "구간 이어 걷기" + (from || to ? " · " + (from || "") + " → " + (to || "") : "");
+        nm.textContent = one ? one.name : sel.length + "구간 이어 걷기" + (from || to ? " · " + RF.endsText(from, to) : "");
         var st = document.createElement("div");
         st.className = "st";
         st.textContent = RF.km(meters) + "km" + (one && one.ascent_m != null ? " · 오르막 " + RF.num(one.ascent_m) + "m" : " · 오르막은 따라가기 화면에서");
-        if (one && !listMode && !one.base) {   // 하나만 골랐으면 코스 미리보기(3D)도 - 이은 코스는 미리보기가 받지 못함
+        if (one && !listMode && !one.base && one.id.indexOf("@") < 0 && one.id.indexOf(",") < 0) {   // 하나만 골랐으면 코스 미리보기(3D)도 - 이은 코스는 미리보기가 받지 못함
             var pv = document.createElement("a");
             pv.href = "index.html#c=" + encodeURIComponent(one.id);
             pv.textContent = " · 미리보기 ›";
@@ -63,6 +63,7 @@
         var row = document.createElement("div");
         row.className = "row";
         var link = function (list) {
+            list = RF.flattenSel(list);   // 이은 구간(무등산)은 코스 조각으로 풀어서
             return "hike.html#c=" + (list.length === 1 ? encodeURIComponent(list[0].id) + (list[0].rev ? "&rev=1" : "") : encodeURIComponent(RF.joinId(list)));
         };
         var both = from && to;
@@ -82,12 +83,26 @@
         $("sheet").appendChild(row);
     }
 
+    /**
+     * 누른 자리에 선이 여럿이면(겹친 탐방로) - 고른 것에 이어지는 것, 그다음 짧은 것(구체적인 것)을. 2026-10-12 PC: 겹친 선을 누르면 다른 것이 잡혔음.
+     */
+    function bestHit(fs) {
+        var ids = fs.map(function (f) { return f.properties.i; }).filter(function (i, k, a) { return a.indexOf(i) === k; });
+        var score = function (i) {
+            var s = segs[i], inSel = sel.some(function (x) { return x.id === s.id; });
+            var joins = !inSel && sel.length && RF.chainPick(sel, s.id, lines).length > sel.length;
+            return (inSel ? 0 : joins ? 1 : 2) * 1e7 + (+s.distance_m || 0);
+        };
+        return ids.sort(function (a, b) { return score(a) - score(b); })[0];
+    }
+
     function draw() {
         data.trails.forEach(function (t) { lines[t.id] = t.coords; });
         // 선이 이름과 거꾸로 그려진 탐방로(이웃 탐방로 끝이 모이는 점으로 앎) - 단추 · 이름을 걸어 나가는 차례로
         flips = RF.routeFlips(data.trails.map(function (t) { return { course_id: t.id, name: t.name }; }), lines);
         // 갈림길에서 자른 작은 구간(주능선 노고단고개 → 천왕봉을 장터목 · 세석 · 벽소령 … 에서) - 고르기 · 그리기는 이것으로
-        segs = RF.splitTrails(data.trails, flips, null, poiNames);
+        // 이름 없는 탐방로 조각(무등산)은 갈림길 사이로 이어 이름을 붙인 뒤 자름
+        segs = RF.splitTrails(RF.mergeBare(data.trails, data.places), flips, null, poiNames);
         lines = {};
         segs.forEach(function (t) { lines[t.id] = t.coords; byId[t.id] = t; });
         var feats = segs.map(function (t, i) {
@@ -105,7 +120,7 @@
         map.addLayer({ id: "trails-hit", type: "line", source: "trails", paint: { "line-color": "#000", "line-opacity": 0, "line-width": 22 } });
         map.on("click", "trails-hit", function (e) {
             var f = e.features && e.features[0];
-            if (f) pick(segs[f.properties.i]);
+            if (f) pick(segs[bestHit(e.features)]);
         });
         map.on("mouseenter", "trails-hit", function () { map.getCanvas().style.cursor = "pointer"; });
         map.on("mouseleave", "trails-hit", function () { map.getCanvas().style.cursor = ""; });

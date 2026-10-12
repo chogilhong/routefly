@@ -339,14 +339,29 @@ var sp = RF.splitTrails([ridge, up1, up2], {});
 eq("splitTrails 갈림길에서 자름", sp.filter(function (s) { return s.base === "r"; }).map(function (s) { return s.name; }), ["산 · 가 → 나", "산 · 나 → 다", "산 · 다 → 라"]);
 eq("splitTrails 안 자른 것은 그대로", sp.filter(function (s) { return !s.base; }).map(function (s) { return s.id; }), ["u1", "u2"]);
 var up3 = { id: "u3", name: "산 · 동엽령코스", coords: [[127.011, 34.99], [127.011, 35.0003]] };
-eq("splitTrails 이름 모르는 갈림길은 조각 이름", RF.splitTrails([{ id: "r2", name: "산 · 종주코스", distance_m: 3000, coords: ridge.coords }, up3], {})
-    .filter(function (s) { return s.base; }).map(function (s) { return s.name; }), ["산 · 종주코스 (1/2)", "산 · 종주코스 (2/2)"]);
+eq("splitTrails 이름 모르는 갈림길은 \"갈림길\", 끝은 원래 이름", RF.splitTrails([{ id: "r2", name: "산 · 종주코스", distance_m: 3000, coords: ridge.coords }, up3], {})
+    .filter(function (s) { return s.base; }).map(function (s) { return s.name; }), ["산 · 종주코스 → 갈림길", "산 · 갈림길 → 종주코스"]);
+eq("endsText", [RF.endsText("가", "나"), RF.endsText("가", "가"), RF.endsText(null, "나"), RF.endsText("가", null), RF.endsText(null, null)], ["가 → 나", "가 부근", "나까지", "가에서", ""]);
+eq("dedupeSegs 같은 자리 · 같은 길이(거꾸로도)는 하나", RF.dedupeSegs([{ id: "a", distance_m: 1000, coords: [[127, 35], [127.01, 35]] },
+    { id: "b", distance_m: 1050, coords: [[127.01, 35], [127, 35]] }, { id: "c", distance_m: 2000, coords: [[127, 35], [127.01, 35]] }]).map(function (s) { return s.id; }), ["a", "c"]);
 // 한라산 성판악 탐방로 - 들머리는 이름에서, 끝 "정상" 은 산 정상, 가운데는 다른 탐방로 끝(사라오름입구)
 var sp2 = RF.splitTrails([{ id: "h", name: "한라산 · 성판악 탐방로", distance_m: 3000, coords: ridge.coords },
     { id: "s", name: "한라산 · 사라오름입구 → 사라오름", coords: [[127.011, 35.0003], [127.011, 34.99]] }], {}, null,
     { h: { total: 3000, pois: [{ name: "한라산동능정상", dist_m: 3000 }] } });
 eq("splitTrails 탐방로 들머리 · 정상 · 이름표", sp2.filter(function (x) { return x.base; }).map(function (x) { return x.name; }),
     ["한라산 · 성판악 → 사라오름입구", "한라산 · 사라오름입구 → 한라산 정상"]);
+// 이름 없는 조각 잇기(무등산 knps-pg) - 가(끝) ─p1─ ● ─p2(거꾸로 그림)─ 나(갈림길: p3 · p4 가 만남)
+var mb = RF.mergeBare([
+    { id: "p1", name: "무등산", distance_m: 500, coords: [[127.0, 35.0], [127.0055, 35.0]] },
+    { id: "p2", name: "무등산", distance_m: 500, coords: [[127.011, 35.0], [127.0055, 35.0]] },
+    { id: "p3", name: "무등산", distance_m: 900, coords: [[127.011, 35.0], [127.011, 35.008]] },
+    { id: "p4", name: "무등산", distance_m: 900, coords: [[127.011, 35.0], [127.021, 35.0]] },
+    { id: "k", name: "무등산 · 증심사 → 중머리재", distance_m: 100, coords: [[127.1, 35.1], [127.101, 35.1]] }],
+    [{ name: "큰암산", lon: 127.0001, lat: 35.0 }, { name: "장불재", lon: 127.0111, lat: 35.0 }]);
+eq("mergeBare 두 조각만 만나는 점은 지나서 이음", mb.map(function (x) { return x.name; }), ["무등산 · 증심사 → 중머리재", "무등산 · 큰암산 → 장불재", "무등산 · 장불재 → 장불재 쪽 끝", "무등산 · 장불재 → 장불재 쪽 끝"]);
+eq("mergeBare 이은 구간 id(이름은 조각 선 방향 - p2 는 장불재에서 그려짐)", mb[1].id, "p1@0.0000-1.0000:큰암산>,p2@0.0000-1.0000:장불재>~");
+eq("flattenSel 이은 구간을 거꾸로 풀기", RF.joinId(RF.flattenSel([{ id: mb[1].id, rev: true }])), "p2@0.0000-1.0000:장불재>,p1@0.0000-1.0000:큰암산>~");
+eq("reverseName 에서 ↔ 까지", [RF.reverseName("무등산 · 큰암산에서"), RF.reverseName("무등산 · 장불재까지")], ["무등산 · 큰암산까지", "무등산 · 장불재에서"]);
 var full = RF.fromApi("r", { course: { name: "산 · 가 → 라" }, points: [[127.0, 35.0, 100, 0], [127.011, 35.0, 200, 1000], [127.022, 35.0, 150, 2000], [127.033, 35.0, 300, 3000]], pois: [] });
 var sl = RF.sliceCourse(full, 1 / 3, 2 / 3, "산 · 나 → 다", "r@0.3333-0.6667:나>다");
 eq("sliceCourse 거리 · 이름표", [Math.round(sl.total), sl.pois.map(function (p) { return p.name; }).join(","), sl.course.ascent_m], [1000, "나,다", 0]);
