@@ -20,25 +20,6 @@
         });
     }
 
-    function style(c) {
-        var dem = { type: "raster-dem", tiles: [c.demUrl], encoding: "terrarium", tileSize: 256, maxzoom: 15, attribution: "지형: Terrain Tiles (AWS Open Data)" };
-        var sources = { hillshade: dem }, layers = [{ id: "bg", type: "background", paint: { "background-color": c.vworldKey ? "#1b2430" : "#dcd6c6" } }];
-        if (c.vworldKey) {
-            var key = encodeURIComponent(c.vworldKey);
-            sources.sat = { type: "raster", tileSize: 256, minzoom: 6, maxzoom: 19, attribution: "위성사진: 국토교통부 V-World",
-                tiles: ["https://api.vworld.kr/req/wmts/1.0.0/" + key + "/Satellite/{z}/{y}/{x}.jpeg"] };
-            sources.base = { type: "raster", tileSize: 256, minzoom: 6, maxzoom: 19, attribution: "지도: 국토교통부 V-World",
-                tiles: ["https://api.vworld.kr/req/wmts/1.0.0/" + key + "/Base/{z}/{y}/{x}.png"] };
-            layers.push({ id: "sat", type: "raster", source: "sat", layout: { visibility: "none" } });
-            layers.push({ id: "base", type: "raster", source: "base" });
-            layers.push({ id: "hillshade", type: "hillshade", source: "hillshade", paint: { "hillshade-exaggeration": 0.3 } });
-        } else {
-            layers.push({ id: "hillshade", type: "hillshade", source: "hillshade",
-                paint: { "hillshade-exaggeration": 0.65, "hillshade-shadow-color": "#3d4a3a", "hillshade-highlight-color": "#fbf7ea" } });
-        }
-        return { version: 8, sources: sources, layers: layers };
-    }
-
     function setLight(on) {
         light = on;
         if (map.getLayer("sat")) map.setLayoutProperty("sat", "visibility", on ? "none" : "visible");
@@ -179,7 +160,7 @@
                 $("official").style.display = "inline-block";
                 $("credit").style.display = "block";
             }
-            map = new maplibregl.Map({ container: "map", style: style(cfg), center: [127.8, 36.3], zoom: 7,
+            map = new maplibregl.Map({ container: "map", style: RF.baseStyle(cfg), center: [127.8, 36.3], zoom: 7,
                 attributionControl: false, dragRotate: false, pitchWithRotate: false, touchPitch: false });
             map.touchZoomRotate.disableRotation();
             map.addControl(new maplibregl.AttributionControl({ compact: true,

@@ -28,6 +28,17 @@ public class GroupServletTest {
     }
 
     @Test
+    public void thinKeepsEndsAndStep() {
+        java.util.List<double[]> pts = new java.util.ArrayList<>();
+        for (int i = 0; i <= 10; i++) pts.add(new double[] {127 + i * 0.001, 35, i * 30});   // 30m 마다 점 11개(0 ~ 300m)
+        java.util.List<double[]> t = GroupServlet.thin(pts, 80);
+        assertEquals("0 · 90 · 180 · 270 · 300(끝)", 5, t.size());
+        assertEquals(0, t.get(0)[2], 0);
+        assertEquals(300, t.get(t.size() - 1)[2], 0);
+        assertEquals(1, GroupServlet.thin(pts.subList(0, 1), 80).size());
+    }
+
+    @Test
     public void seriesJsonPrefixesAreValid() throws Exception {
         String txt = new String(Files.readAllBytes(Paths.get("src/main/webapp/data/series.json")), StandardCharsets.UTF_8);
         JsonObject d = JsonParser.parseString(txt).getAsJsonObject();

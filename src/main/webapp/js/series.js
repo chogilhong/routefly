@@ -154,6 +154,11 @@
                     centerRows.push(row);
                 });
             }
+            if (s.prefix) {   // 노선 안내도 - 구간 전체 지도(2026-10-12 홍TV님)
+                var rl = el("a", "routemap", "🗺 " + s.name + " 노선 안내도 ›");
+                rl.href = "route.html?prefix=" + encodeURIComponent(s.prefix) + "&back=series";
+                body.insertBefore(rl, body.firstChild);
+            }
             if (s.cert) body.appendChild(certLine(s.cert));
             body.appendChild(el("div", "sub", "코스"));
             var wait = el("div", "tip", "코스를 불러오는 중…");

@@ -1891,7 +1891,21 @@
             return;
         }
         // 탐방 안내도 먼저 - 산에 가면 탐방 안내도부터 보고 갈 코스를 고르듯(2026-10-12 홍TV님). 안내도에서 탐방로를 누르면 미리보기 · 산행하기
-        RF.guideMaps(rows, 3, from ? "" : lastQ).forEach(function (g) {
+        // 노선 안내도 - 국토종주 자전거길 · 국가숲길 구간 코스가 있으면 그 노선 전체 지도(2026-10-12 홍TV님)
+        var routes = RF.routeGuides(rows, 2);
+        routes.forEach(function (g) {
+            var a = document.createElement("a");
+            a.className = "it guide";
+            a.href = "route.html?prefix=" + encodeURIComponent(g.prefix) + "&name=" + encodeURIComponent(g.name) + "&back=list";
+            var gb = document.createElement("b");
+            gb.textContent = (g.kind === "bike" ? "🚴 " : "🌲 ") + g.name + " 노선 안내도";
+            var gs = document.createElement("span");
+            gs.textContent = (g.kind === "bike" ? "인증센터 · " : "") + "구간 전체를 지도로 보고 구간 고르기 · 이 목록 " + g.n + "구간";
+            a.appendChild(gb);
+            a.appendChild(gs);
+            box.appendChild(a);
+        });
+        RF.guideMaps(rows, 3 - routes.length, from ? "" : lastQ).forEach(function (g) {
             var a = document.createElement("a");
             a.className = "it guide";
             a.href = "park.html?name=" + encodeURIComponent(g.name) + "&from=" + encodeURIComponent(g.from) + "&back=list";   // ‹ 코스 → 이 목록으로

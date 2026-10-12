@@ -49,9 +49,9 @@ public class ParkServlet extends HttpServlet {
 
     /**
      * 산 이름(도립 · 군립공원 · 다른 산) - (숫자 0~4자) + 한글 1~12자 + 산 · 봉 · 악 · 령 · 대.
-     * 화면 RF.mountainOf 와 같은 규칙(2026-10-12 PC: "157고지우송대뒷산" 전체 보기가 400 - 화면만 고쳤었음).
+     * 화면 RF.mountainOf 와 같은 규칙(2026-10-12 PC: "157고지우송대뒷산" 전체 보기가 400 - 화면만 고쳤었음). 오름(제주) · 고지(100고지)도.
      */
-    static final java.util.regex.Pattern MOUNTAIN = java.util.regex.Pattern.compile("^[0-9]{0,4}[가-힣]{1,12}(산|봉|악|령|대)$");
+    static final java.util.regex.Pattern MOUNTAIN = java.util.regex.Pattern.compile("^(?:[0-9]{1,4}[가-힣]{0,12}|[가-힣]{1,12})(?:산|봉|악|령|대|오름|고지)$");
 
     /** 산 모드에서 from 코스 둘레로 볼 범위(도, 위도 · 경도 반쪽 폭) - 약 15km. */
     static final double AROUND_DEG = 0.14;

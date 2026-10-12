@@ -29,6 +29,9 @@ public class ParkServletTest {
         assertTrue("숫자로 시작하는 산(화면 mountainOf 와 같은 규칙)", ParkServlet.MOUNTAIN.matcher("157고지우송대뒷산").matches());
         assertFalse(ParkServlet.MOUNTAIN.matcher("12345산").matches());
         assertFalse(ParkServlet.MOUNTAIN.matcher("157").matches());
+        assertTrue(ParkServlet.MOUNTAIN.matcher("민오름").matches());
+        assertTrue(ParkServlet.MOUNTAIN.matcher("100고지").matches());
+        assertFalse(ParkServlet.MOUNTAIN.matcher("고지").matches());
         // 대구 팔공산에만 공식 지도(진안 팔공산 35.73/127.59 는 아님)
         assertTrue(ParkServlet.nearCenter("팔공산", new double[] {128.70, 36.02}));
         assertFalse(ParkServlet.nearCenter("팔공산", new double[] {127.59, 35.73}));

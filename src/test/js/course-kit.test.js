@@ -104,6 +104,12 @@ near("distM", RF.distM(37, 127, 37.001, 127), 111, 1);
     eq("팔공산은 국립공원(2023)", RF.parkOf("팔공산 · 동화사 → 비로봉"), "팔공산");
     eq("영어 이름 뺌", [RF.cleanName("피아골 대피소 Piagol Shelter"), RF.cleanName("Seoraksan"), RF.cleanName("K2 봉"), RF.cleanName("안부1 (Anbu 1)"), RF.cleanName("두륜산 (가련봉)")],
         ["피아골대피소", "Seoraksan", "K2 봉", "안부1", "두륜산 (가련봉)"]);
+    eq("시 · 구가 둘 이상 · 오름 · 고지", [RF.mountainOf("인천 영종 국사봉 · 서쪽 들머리 → 국사봉", "frst-281100501-707681"),
+        RF.mountainOf("전남광주통합 동구 깃대봉 · 증심사지구탐방지원센터 → 깃대봉 정상", "frst-291100401-387bca"),
+        RF.mountainOf("제주 민오름 · 주차장 → 민오름", "frst-491104904-044e90"), RF.mountainOf("100고지 · 가을 → 100고지 정상", "frst-287201304-c23fa6"),
+        RF.mountainOf("금호남정맥 · 군하 → 숫마이산", "frst-457200104-4d6317"), RF.mountainOf("금강으로가는하늘숲길 · 배봉 → 정상", "frst-428204704-63cbc5"),
+        RF.mountainOf("논산 대둔산 마천대 · 수락 → 마천대", "frst-1-a"), RF.mountainOf("서산 덕산 가야산 · 상가리 → 가야봉", "frst-5-1")],
+        ["국사봉", "깃대봉", "민오름", "100고지", null, null, "대둔산", "가야산"]);
     eq("숫자로 시작하는 산", RF.mountainOf("157고지우송대뒷산 · 주차장 → 157고지우송대뒷산 정상", "frst-301105804-12cb69"), "157고지우송대뒷산");
     // 인증센터 도장 · 완주
     eq("도장 열쇠", [RF.stampKey("섬진강댐인증센터"), RF.stampKey("배알도 수변공원 인증센터"), RF.stampKey("장군목")], ["섬진강댐", "배알도수변공원", "장군목"]);
@@ -246,6 +252,10 @@ eq("지역 없는 같은 이름은 들머리로 가름 · 사량도지리산은 
     { course_id: "frst-482202301-d", name: "통영 지리산 · 돈지 → 지리산", start_lat: 34.85, start_lon: 128.20 },
     { course_id: "kmp-5383010368-1", name: "사량도지리산 · 내지 → 지리산", start_lat: 34.84, start_lon: 128.21 }], 5).map(function (g) { return g.label + ":" + g.n; }),
     ["백운산(흥룡사):2", "통영 지리산:2", "백운산(오두재):1"]);
+eq("노선 안내도 카드", RF.routeGuides([{ course_id: "osmb-6374513-1", name: "국토종주 섬진강 자전거길 1구간 · 섬진강댐인증센터 → 향가유원지인증센터" },
+    { course_id: "osmb-6374513-2", name: "국토종주 섬진강 자전거길 2구간 · 향가유원지인증센터 → 남도대교인증센터" },
+    { course_id: "kmf-9900000006-1", name: "지리산둘레길 주천-운봉" }, { course_id: "frst-1-a", name: "김제 모악산 · 금산사 → 모악산" }]),
+    [{ prefix: "osmb-6374513-", name: "섬진강 자전거길", kind: "bike", n: 2 }, { prefix: "kmf-9900000006-", name: "지리산둘레길", kind: "walk", n: 1 }]);
 eq("검색어 든 산이 없으면 모두", RF.guideMaps(bw3, 3, "공주").length, 3);
 eq("안내도 많아야 3개", RF.guideMaps(["가산", "나산", "다산", "라산"].map(function (m, i) { return { course_id: "frst-" + i + "-x", name: "시 " + m + " · 들머리 → " + m }; })).length, 3);
 eq("isTopName 대피소 아님", RF.isTopName("장터목대피소"), false);
