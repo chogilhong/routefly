@@ -141,7 +141,7 @@ body.flying #side { opacity:0; pointer-events:none; }
     #controls a.btn { display:flex; align-items:center; justify-content:center; }
     #controls button.main { min-width:0; flex-grow:1.3; }
     #controls #speed { flex-grow:0.8; }
-    #controls #parkLink { flex:0 0 auto; padding:7px 6px; }   /* "🏞 지리산 전체" 가 잘리지 않게 글 길이만큼(2026-10-11 홍TV님) */
+    #controls #parkLink { flex:0 0 auto; padding:7px 6px; }   /* "🏞 탐방 안내도" 가 잘리지 않게 글 길이만큼(2026-10-11 홍TV님) */
     #caption { top:46%; }
     #mini { top:12px; right:60px; width:104px; height:104px; }
     .maplibregl-ctrl-top-right { z-index:3; }   /* 출처 상자(OSM 등)가 목록 창 뒤로 가려지지 않게 */
@@ -188,9 +188,8 @@ body.flying #side { opacity:0; pointer-events:none; }
         <div id="controls">
             <button type="button" id="play" class="main">▶ 미리보기</button>
             <button type="button" id="speed" title="빠르기" aria-label="빠르기 바꾸기">1×</button>
-            <button type="button" id="overview" title="코스를 처음 고른 화면으로(출발점 · 코스 전체)">처음으로</button>
             <button type="button" id="shareBtn" title="이 코스 링크 보내기" style="display:none">공유</button>
-            <a id="parkLink" class="btn" href="park.html" title="이 공원 · 산의 탐방로 전체 보기(국립공원은 공식 지도 바로가기도)" style="display:none">🏞 공원 전체</a>
+            <a id="parkLink" class="btn" href="park.html" title="이 공원 · 산의 탐방 안내도(탐방로 전체 · 국립공원은 공식 지도 바로가기도)" style="display:none">🏞 탐방 안내도</a>
         </div>
     </div>
     <div id="profile"></div>

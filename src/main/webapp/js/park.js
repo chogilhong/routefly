@@ -135,17 +135,18 @@
         });
 
         var b = data.bbox;
+        // 2026-10-12 홍TV님 "조금 키워야": 여백 30 → 옆 20(이름표가 끝에 걸쳐 잘리지 않게) · 위아래 24, 한도 14 → 14.6(막대 200m 쯤).
         // 작은 산은 둘레 마을 · 길까지 보이게 확대 한도 14(MapLibre 512px 줌 - 폭 375px 폰에서 축척 막대 300m, 15 는 100m 였음 2026-10-12 터널로 확인) - 2026-10-12 홍TV님: 공주향교뒷산(코스 0.3km)이 막대 50m 로 너무 크게 보였음
-        map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: 30, duration: 0, maxZoom: OVERVIEW_MAX_ZOOM });
+        map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: { top: 24, bottom: 24, left: 20, right: 20 }, duration: 0, maxZoom: OVERVIEW_MAX_ZOOM });
         if (from) data.trails.forEach(function (t) { if (t.id === from) pick(t); });
         $("msg").style.display = "none";
     }
 
     /** 전체 보기 첫 화면의 최대 확대(손으로는 더 확대할 수 있음). */
-    var OVERVIEW_MAX_ZOOM = 14;
+    var OVERVIEW_MAX_ZOOM = 14.6;
 
     function start() {
-        $("title").textContent = park ? park + " 전체 보기" : "전체 보기";
+        $("title").textContent = park ? park + " 탐방 안내도" : "탐방 안내도";   // 2026-10-12 홍TV님: "전체 보기" → "탐방 안내도"
         // ‹ 코스 - 코스 미리보기에서 왔으면(back=preview) 따라가기의 "🗺 코스 미리보기" 와 같은 첫 화면(검색 · 목록, 2026-10-11 홍TV님),
         // 따라가기에서 왔으면 그 코스의 따라가기
         if (backTo === "preview") $("back").href = "./";
@@ -156,7 +157,7 @@
         ]).then(function (r) {
             cfg = { demUrl: r[0].demUrl || "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png", vworldKey: r[0].vworldKey || null };
             data = r[1];
-            if (data.national) $("title").textContent = park + " 국립공원 전체 보기";
+            // 국립공원도 "지리산 탐방 안내도" - "국립공원" 을 붙이면 375px 에서 공식 지도 단추에 잘림(2026-10-12)
             if (data.map && /^https:\/\//.test(data.map)) {   // https 주소만(javascript: 등은 넣지 않음 - 2026-10-11 점검)
                 $("official").href = data.map;
                 $("official").style.display = "inline-block";

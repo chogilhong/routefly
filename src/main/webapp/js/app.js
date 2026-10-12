@@ -417,7 +417,7 @@
             map.getSource("route").setData({ type: "Feature", properties: {},
                 geometry: { type: "LineString", coordinates: c.lon.map(function (lon, i) { return [lon, c.lat[i]]; }) } });
             anim.d = 0;
-            setPlayButton();   // '▶ 이어서' 가 남지 않게(처음으로 - 2026-10-11)
+            setPlayButton();   // '▶ 이어서' 가 남지 않게(같은 코스를 다시 고를 때 - 2026-10-11)
             setProgressPaint(0);
             addMarkers(c);
             setHead(at(c, 0));   // 고르자마자 출발점에 종류별 배지(등산객 · 걷는 사람 · 자전거) - 이름표보다 위에
@@ -437,7 +437,7 @@
             $("parkLink").style.display = park ? "" : "none";
             if (park) {
                 $("parkLink").href = "park.html?name=" + encodeURIComponent(park) + "&from=" + encodeURIComponent(id) + "&back=preview";   // ‹ 코스 → 코스 미리보기 첫 화면으로
-                $("parkLink").textContent = "🏞 " + park + " 전체";
+                $("parkLink").textContent = "🏞 탐방 안내도";   // 산 이름 + "전체" 대신 늘 같은 말(2026-10-12 홍TV님)
             }
             $("shareBtn").style.display = RF.isGpxId(id) ? "none" : "";   // 이 기기에만 있는 GPX 는 링크로 보낼 수 없습니다
             renderProfile(c);
@@ -971,8 +971,6 @@
         anim.speedIdx = (anim.speedIdx + 1) % SPEEDS.length;
         this.textContent = SPEEDS[anim.speedIdx] + "×";
     });
-    // 처음으로 - 미리보기 중간에 눌러도 코스를 처음 골라 들어온 화면(출발점 · 코스 전체 · 기울기 · 이름표)과 같게(2026-10-11 홍TV님)
-    $("overview").addEventListener("click", function () { if (cur) select(cur.id); });
     // 뒤로 - 핸드폰에서 코스를 보는 중(목록을 접음)이면 먼저 목록으로 한 단계만. 목록이 보이면 '목록' 단추로
     // 첫 화면(따라가기의 코스 목록)으로 - 공원 전체 → 미리보기로 와도 공원 화면이 아니라 첫 화면(2026-10-11 홍TV님)
     $("back").addEventListener("click", function () {
