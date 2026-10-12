@@ -152,6 +152,12 @@ near("distM", RF.distM(37, 127, 37.001, 127), 111, 1);
     eq("같은 이름 다른 산", RF.peaksDue(pk, 35.1003, 127.6, { "m-b": 1 }).map(RF.peakKey), ["m-a"]);
     eq("멀면 없음 · 좌표 없음은 빼고", RF.peaksDue(pk, 36, 127, {}).length, 0);
     eq("명산 진행", RF.seriesProgress({ peaks: pk }, { "지리산": 1 }, {}, { "m-b": 1, "지리산": 1 }), { got: 2, of: 4 });
+    var pc = [{ course_id: "far", end_lat: 37.9, end_lon: 127.4, start_lat: 37.85, start_lon: 127.4 },      // 포천 백운산
+              { course_id: "b", end_lat: 35.1080, end_lon: 127.6, start_lat: 35.08, start_lon: 127.58 },    // 광양 백운산 정상 900m 앞
+              { course_id: "a", end_lat: 35.1003, end_lon: 127.6, start_lat: 35.07, start_lon: 127.57 },
+              { course_id: "down", start_lat: 35.1001, start_lon: 127.6 }, { course_id: "nocoord" }];
+    eq("정상까지 가는 코스만 가까운 차례", RF.peakCourses(pc, pk[0]).map(function (c) { return c.course_id; }), ["down", "a", "b"]);
+    eq("멀면 없음", RF.peakCourses(pc, { lat: 34, lon: 126 }).length, 0);
     eq("명산 자료가 비면 0", RF.seriesProgress({ peaks: [] }, {}, {}, {}), { got: 0, of: 0 });
     eq("숲길 진행", RF.seriesProgress({ prefix: "kmf-9900000006-", courses: 21 }, {}, { "kmf-9900000006-1": 1, "kmf-9900000006-2": 1, "kmf-9900000002-1": 1 }), { got: 2, of: 21 });
 })();
