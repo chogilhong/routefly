@@ -228,6 +228,20 @@ eq("정상 줄이기", ["지리산 천왕봉 정상", "천왕봉정상", "공주
 eq("코스 이름의 정상", RF.nameText("공주향교뒷산 · 송산리고분군모형관매표소 → 공주향교뒷산 정상"), "[공주향교뒷산] 송산리고분군모형관매표소 → 정상");
 eq("이름표 정상", RF.cleanName("덕기봉 정상"), "덕기봉");
 eq("isTopName 정상", RF.isTopName("정상"), true);
+eq("탐방 안내도 카드", RF.guideMaps([{ course_id: "frst-1-a", name: "김제 모악산 · 금산사 → 모악산" }, { course_id: "knps-1-b", name: "지리산 · 중산리 → 천왕봉" },
+    { course_id: "knps-2-c", name: "지리산 · 백무동 → 천왕봉" }, { course_id: "osmb-1-1", name: "섬진강 자전거길 1구간 · 섬진강댐인증센터 → 장군목인증센터" }]),
+    [{ name: "지리산", label: "지리산", from: "knps-1-b", n: 2 }, { name: "모악산", label: "김제 모악산", from: "frst-1-a", n: 1 }]);
+var bw3 = [{ course_id: "frst-431502201-a", name: "정선 백운산 · 오두재 → 백운산", start_lat: 37.27, start_lon: 128.59 },
+    { course_id: "frst-462300201-b", name: "광양 백운산 · 진틀 → 백운산", start_lat: 35.10, start_lon: 127.62 },
+    { course_id: "frst-462300202-c", name: "광양 백운산 · 동동 → 백운산", start_lat: 35.12, start_lon: 127.60 }, { course_id: "frst-9-d", name: "광양 갈미봉 · 매화마을 → 백운산", start_lat: 35.1, start_lon: 127.7 }];
+eq("같은 이름 다른 산은 따로 · 검색어 든 산만", RF.guideMaps(bw3, 3, "백운산").map(function (g) { return g.label + ":" + g.n; }), ["광양 백운산:2", "정선 백운산:1"]);
+eq("국립공원 코스 · 산림청 코스는 한 산, 멀리 같은 이름은 따로", RF.guideMaps([{ course_id: "knps-1-a", name: "지리산 · 중산리 → 천왕봉", start_lat: 35.27, start_lon: 127.73 },
+    { course_id: "frst-488605302-b", name: "산청 지리산 천왕봉 · 거림 → 천왕봉", start_lat: 35.30, start_lon: 127.68 },
+    { course_id: "frst-482202301-c", name: "통영 지리산 · 돈지 → 지리산", start_lat: 34.85, start_lon: 128.20 },
+    { course_id: "knps-9-d", name: "지리산 · 성삼재 → 노고단", start_lat: 35.29, start_lon: 127.51 }], 3, "지리산").map(function (g) { return g.label + ":" + g.n; }),
+    ["지리산:3", "통영 지리산:1"]);
+eq("검색어 든 산이 없으면 모두", RF.guideMaps(bw3, 3, "공주").length, 3);
+eq("안내도 많아야 3개", RF.guideMaps(["가산", "나산", "다산", "라산"].map(function (m, i) { return { course_id: "frst-" + i + "-x", name: "시 " + m + " · 들머리 → " + m }; })).length, 3);
 eq("isTopName 대피소 아님", RF.isTopName("장터목대피소"), false);
 eq("infoText", RF.infoText({ up_min: 240, down_min: 180, level: "2.27" }), "공단 기준 오름 " + RF.hm(240 * 60000) + " · 내림 " + RF.hm(180 * 60000) + " · 난이도 2.27");
 eq("infoText 없음", RF.infoText(null), null);

@@ -150,6 +150,7 @@
         // ‹ 코스 - 코스 미리보기에서 왔으면(back=preview) 따라가기의 "🗺 코스 미리보기" 와 같은 첫 화면(검색 · 목록, 2026-10-11 홍TV님),
         // 따라가기에서 왔으면 그 코스의 따라가기
         if (backTo === "preview") $("back").href = "./";
+        else if (backTo === "list") $("back").href = "hike.html";   // 따라가기 첫 화면 목록의 탐방 안내도 카드에서 왔으면 그 목록(검색어는 rf-search 로 남아 있음)
         else if (from) $("back").href = "hike.html#c=" + encodeURIComponent(from);
         Promise.all([
             getJson("api/map-config").catch(function () { return {}; }),

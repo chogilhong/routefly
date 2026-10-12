@@ -1890,6 +1890,19 @@
             box.appendChild(m);
             return;
         }
+        // 탐방 안내도 먼저 - 산에 가면 탐방 안내도부터 보고 갈 코스를 고르듯(2026-10-12 홍TV님). 안내도에서 탐방로를 누르면 미리보기 · 산행하기
+        RF.guideMaps(rows, 3, from ? "" : lastQ).forEach(function (g) {
+            var a = document.createElement("a");
+            a.className = "it guide";
+            a.href = "park.html?name=" + encodeURIComponent(g.name) + "&from=" + encodeURIComponent(g.from) + "&back=list";   // ‹ 코스 → 이 목록으로
+            var gb = document.createElement("b");
+            gb.textContent = "🏞 " + g.label + " 탐방 안내도";
+            var gs = document.createElement("span");
+            gs.textContent = "탐방로 전체를 지도로 보고 코스 고르기 · 이 목록 " + g.n + "코스";
+            a.appendChild(gb);
+            a.appendChild(gs);
+            box.appendChild(a);
+        });
         rows.forEach(function (r) {
             var it = document.createElement("div");
             it.className = "it";
