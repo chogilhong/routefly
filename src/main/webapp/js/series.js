@@ -78,7 +78,8 @@
             loaded = true;
             s.peaks.forEach(function (k) {
                 var st = peakStamps[RF.peakKey(k)], row = el("div", "row"), t = el("div", "t", (st ? "⛰️ " : "⬜ ") + (k.id || k.name));
-                var info = [k.summit && k.summit !== k.name ? k.summit : "", k.height ? RF.num(k.height) + "m" : "", st ? "도장 " + day(st.t) : ""].filter(Boolean).join(" · ");
+                // 높이는 안 보임 - GPX 의 GPS 높이라 알려진 높이보다 20~35m 높음(2026-10-12 PC 견줌)
+                var info = [k.summit && k.summit !== k.name ? k.summit : "", st ? "도장 " + day(st.t) : ""].filter(Boolean).join(" · ");
                 if (info) t.appendChild(el("span", null, info));
                 row.appendChild(t);
                 body.appendChild(row);
