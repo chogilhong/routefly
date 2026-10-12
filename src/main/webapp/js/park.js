@@ -63,7 +63,9 @@
         st.textContent = RF.km(t.distance_m) + "km · 오르막 " + RF.num(t.ascent_m) + "m";
         var row = document.createElement("div");
         row.className = "row";
-        row.innerHTML = '<a href="index.html#c=' + id + '">미리보기</a><a class="main" href="hike.html#c=' + id + '">산행하기</a>';
+        // 따라가기 첫 화면 목록의 탐방 안내도 카드에서 왔으면(back=list) 단추 하나 - 그 탐방로를 따라가기 화면으로(2026-10-12 홍TV님)
+        row.innerHTML = listMode ? '<a class="main" href="hike.html#c=' + id + '">따라가기</a>'
+            : '<a href="index.html#c=' + id + '">미리보기</a><a class="main" href="hike.html#c=' + id + '">산행하기</a>';
         $("sheet").appendChild(nm);
         $("sheet").appendChild(st);
         $("sheet").appendChild(row);
@@ -138,19 +140,26 @@
         // 2026-10-12 홍TV님 "조금 키워야": 여백 30 → 옆 20(이름표가 끝에 걸쳐 잘리지 않게) · 위아래 24, 한도 14 → 14.6(막대 200m 쯤).
         // 작은 산은 둘레 마을 · 길까지 보이게 확대 한도 14(MapLibre 512px 줌 - 폭 375px 폰에서 축척 막대 300m, 15 는 100m 였음 2026-10-12 터널로 확인) - 2026-10-12 홍TV님: 공주향교뒷산(코스 0.3km)이 막대 50m 로 너무 크게 보였음
         map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: { top: 24, bottom: 24, left: 20, right: 20 }, duration: 0, maxZoom: OVERVIEW_MAX_ZOOM });
-        if (from) data.trails.forEach(function (t) { if (t.id === from) pick(t); });
+        // 목록 카드에서 왔으면 from 은 그 산을 찾는 데만 쓰고 고르지 않음(아무 코스나 골라져 있어 헷갈렸음)
+        if (from && !listMode) data.trails.forEach(function (t) { if (t.id === from) pick(t); });
         $("msg").style.display = "none";
     }
 
     /** 전체 보기 첫 화면의 최대 확대(손으로는 더 확대할 수 있음). */
     var OVERVIEW_MAX_ZOOM = 14.6;
 
+    /** 따라가기 첫 화면 목록의 탐방 안내도 카드에서 왔는가 - ‹ 코스 단추 없이, 아래는 "따라가기" 하나. */
+    var listMode = backTo === "list";
+
     function start() {
         $("title").textContent = park ? park + " 탐방 안내도" : "탐방 안내도";   // 2026-10-12 홍TV님: "전체 보기" → "탐방 안내도"
         // ‹ 코스 - 코스 미리보기에서 왔으면(back=preview) 따라가기의 "🗺 코스 미리보기" 와 같은 첫 화면(검색 · 목록, 2026-10-11 홍TV님),
         // 따라가기에서 왔으면 그 코스의 따라가기
         if (backTo === "preview") $("back").href = "./";
-        else if (backTo === "list") $("back").href = "hike.html";   // 따라가기 첫 화면 목록의 탐방 안내도 카드에서 왔으면 그 목록(검색어는 rf-search 로 남아 있음)
+        else if (listMode) {   // 목록 카드에서 왔으면 ‹ 코스 대신 아래 "따라가기"(탐방로를 고르기 전에는 그 목록으로 - 검색어는 rf-search 로 남아 있음)
+            $("back").style.display = "none";
+            $("sheet").innerHTML = '<div class="tip">탐방로를 누르면 그 코스를 따라갈 수 있습니다.</div><div class="row"><a class="main" href="hike.html">따라가기</a></div>';
+        }
         else if (from) $("back").href = "hike.html#c=" + encodeURIComponent(from);
         Promise.all([
             getJson("api/map-config").catch(function () { return {}; }),
