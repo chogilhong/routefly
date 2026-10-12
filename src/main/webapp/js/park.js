@@ -62,6 +62,7 @@
         if (t) {
             exStart = null;
             exRound = null;
+            exPeak = null;
             var k = chosen.indexOf(t.id);
             if (k >= 0) {
                 chosen.splice(k, 1);
@@ -112,7 +113,7 @@
             return best;
         };
         // 원점회귀 예시는 그 들머리 이름(북한산 구기탐방지원센터 자리 구간 끝 이름이 "비봉능선")
-        var from = (exStart && exHead) || ends(sel[0])[0] || nearName(plan.start), to = round ? from : ends(sel[sel.length - 1])[1] || nearName(plan.end);
+        var from = (exStart && exHead) || ends(sel[0])[0] || nearName(plan.start), to = round ? from : (exStart && exPeak) || ends(sel[sel.length - 1])[1] || nearName(plan.end);
         var one = full.length === 1 ? byId[full[0].id] : null;
         // 깃발에 들머리 이름(서버 heads 가 없어도 - 2026-10-12 홍TV님: 탐방 안내도에 중산리탐방지원센터가 안 보였음)
         // 깃발은 그 이름의 지명 자리(200m 안)에 - 공단 자료 중산리 → 천왕봉 선은 정상을 지나 117m 더 그려져 있음(2026-10-13 홍TV님)
@@ -235,7 +236,9 @@
         emptySheet = $("sheet").innerHTML;
     }
 
-    var exStart = null, exHead = null, exRound = null;   // 원점회귀 예시를 눌렀을 때 그 들머리 자리 · 이름 · 고리인지(탐방로를 직접 누르면 지움)
+    // 원점회귀 예시를 눌렀을 때 그 들머리 자리 · 이름 · 고리인지 · 왕복의 봉우리(탐방로를 직접 누르면 지움) - 봉우리는 예시 이름으로
+    // (한려해상 가라산 - 거꾸로 그린 선이라 끝 이름이 "다대저수지상부" 였음)
+    var exStart = null, exHead = null, exRound = null, exPeak = null;
     var planHeads = null;
     function planOf(ids) { return RF.planWalk(ids, lines, { heads: planHeads || data.heads, first: ids[0], start: exStart }); }
 
@@ -445,6 +448,7 @@
                     exStart = x.start;
                     exHead = x.head;
                     exRound = x.loop;
+                    exPeak = x.loop ? null : x.peak;
                     pick();
                     // 고른 예시가 보이게 확대
                     var w = 180, so = 90, e2 = -180, n = -90;
