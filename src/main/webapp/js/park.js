@@ -122,7 +122,15 @@
         while (dv < fwdN.length - 1 && fwdN[dv] === bwdN[dv]) dv++;
         var labels = round ? [(fwdN[dv] || "이 방향") + " 쪽으로 먼저", (bwdN[dv] || "반대 방향") + " 쪽으로 먼저"]
             : from && to ? [from + " → " + to, to + " → " + from] : ["따라가기", "거꾸로 따라가기"];
-        [[labels[0], full], [labels[1], RF.reverseSel(full)]].forEach(function (d, k) {
+        var second = RF.reverseSel(full);
+        // 들머리에서 정상 같은 막다른 곳까지면 "왕복"(올랐다 같은 길로 들머리) - 한라산 성판악 ↔ 백록담처럼 고리가 없는 산의 원점회귀(2026-10-13 홍TV님)
+        var headNear = function (p) { return (data.heads || []).some(function (h) { return RF.distM(p[1], p[0], +h.lat, +h.lon) < 500; }); };
+        // 들머리 자료가 적은 산(한라산은 어리목탐방안내소 하나)은 끝 이름이 정상 · 봉 · 오름 · 대피소 · 분기점이면
+        if (!round && !headNear(plan.end) && (headNear(plan.start) || /(정상|봉|산|대|오름|분기점|대피소)$/.test(to || ""))) {
+            labels = [(from || "") + " → " + (to || "") + " 편도", (to || "정상") + " 왕복"];
+            second = full.concat(RF.reverseSel(full));
+        }
+        [[labels[0], full], [labels[1], second]].forEach(function (d, k) {
             var a = document.createElement("a");
             if (k === 0) a.className = "main";
             a.href = link(d[1]);

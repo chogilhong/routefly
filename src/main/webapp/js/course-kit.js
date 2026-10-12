@@ -1228,8 +1228,10 @@
                 // 한쪽만 아는 갈림길(탐방로 끝이 아닌 자른 자리)은 "갈림길" - "월하탄 → 갈림길"
                 // 모르는 갈림길은 "갈림길", 모르는 탐방로 끝은 원래 탐방로 이름("대청봉코스(백담) → 황장폭포") - 한 탐방로 안에서 이름 방식이
                 // 섞이지 않게("(1/4)" 조각 이름은 뺐음, 2026-10-12 PC)
-                if (!from) from = s0.end ? title : "갈림길";
-                if (!to) to = s1.end ? title : "갈림길";
+                // "낙타봉까지" · "선정암에서" · "장불재 부근" 같은 이름은 탐방로 이름으로 쓰지 않음("낙타봉까지 → 안양산" 이 됐음 - 2026-10-13 PC)
+                var plain = /(에서|까지|부근)$/.test(title) ? null : title;
+                if (!from) from = s0.end ? plain || "탐방로 끝" : "갈림길";
+                if (!to) to = s1.end ? plain || "탐방로 끝" : "갈림길";
                 out.push({ id: t.id + "@" + r0.toFixed(4) + "-" + r1.toFixed(4) + ":" + from + ">" + to, base: t.id,
                            name: (g ? g + " · " : "") + endsText(from, to), coords: c.slice(s0.k, s1.k + 1),
                            distance_m: Math.round((cum[s1.k] - cum[s0.k]) * (+t.distance_m || total) / total), ascent_m: null });
@@ -1240,7 +1242,7 @@
 
     /**
      * 순수 함수 - 같은 길이 여러 벌(산림청 코스는 같은 길을 지나는 코스가 많음 · 백무동 탐방로와 주능선의 장터목 → 천왕봉)이면 하나만.
-     * 처음 · 끝이 서로 150m 안(같은 방향이든 거꾸로든)이고 길이가 15% 안이면 같은 것 - 먼저 나온 것(자르지 않은 것 먼저)을 남김.
+     * 처음 · 끝이 서로 150m 안(같은 방향이든 거꾸로든)이고 길이가 25% 안이면 같은 것 - 먼저 나온 것(자르지 않은 것 먼저)을 남김.
      * 2026-10-12 PC: 겹친 선을 누르면 다른 것이 잡혔음.
      */
     function dedupeSegs(segs) {
@@ -1251,7 +1253,7 @@
                 var ka = k.coords[0], kz = k.coords[k.coords.length - 1], kl = +k.distance_m || 0;
                 // 150m - 자른 자리가 탐방로마다 조금 다름(장터목 → 천왕봉 1,361m · 1,464m 가 하나로 안 됐음 - 2026-10-12 PC)
                 var ends = (d(a, ka) < 150 && d(z, kz) < 150) || (d(a, kz) < 150 && d(z, ka) < 150);
-                return ends && Math.abs(L - kl) <= 0.15 * Math.max(L, kl, 1);
+                return ends && Math.abs(L - kl) <= 0.25 * Math.max(L, kl, 1);   // 25% - 같은 길 두 벌(설악산 중청봉 → 대청봉 550 · 436m)
             });
             if (!same) keep.push(s);
         });
@@ -1269,7 +1271,9 @@
         var bare = [], out = [], d = function (p, q) { return distM(p[1], p[0], q[1], q[0]); };
         (trails || []).forEach(function (t) {
             // 이름이 산 이름뿐인 조각만(무등산 knps-pg "무등산") - "덕유산 · 종주코스" 같은 공식 탐방로까지 잇던 것(2026-10-12 PC)
-            if (String(t.name || "").indexOf(" · ") >= 0 || !t.coords || t.coords.length < 2) out.push(t); else bare.push(t);
+            // 공단 2017 자료의 이름 없는 조각(knps-pg…)은 배치가 끝 이름을 붙여도("무등산 · 군왕봉까지") 조각이라 이어 붙임(2026-10-13 PC)
+            var piece = /^knps-pg/.test(String(t.id));
+            if ((String(t.name || "").indexOf(" · ") >= 0 && !piece) || !t.coords || t.coords.length < 2) out.push(t); else bare.push(t);
         });
         if (!bare.length) return out;
         var nodes = [], node = function (p) {
@@ -1310,7 +1314,13 @@
         nodes.forEach(function (nd, n) { if (nd.inc.length !== 2) nd.inc.forEach(function (i) { if (!used[i]) walk(n, i); }); });
         bare.forEach(function (t, i) { if (!used[i]) walk(t._a, i); });   // 갈림길 없는 고리
         chains.forEach(function (ch) {
-            var A = nameAt(ch.a), B = nameAt(ch.z), g = bare[0].name, coords = [], L = 0;
+            // 끝 이름: 그 조각 이름의 처음 · 끝(배치가 붙인 이름 - 무등산 · 군왕봉까지) 먼저, 없으면 지명
+            var own = function (p, atStart) {
+                var e = routeEnds(p.t.name);
+                return atStart ? (p.rev ? e.to : e.from) : (p.rev ? e.from : e.to);
+            };
+            var fp = ch.parts[0], lp = ch.parts[ch.parts.length - 1];
+            var A = own(fp, true) || nameAt(ch.a), B = own(lp, false) || nameAt(ch.z), g = nameParts(bare[0].name).group || bare[0].name, coords = [], L = 0;
             ch.parts.forEach(function (p) {
                 var c = p.rev ? p.t.coords.slice().reverse() : p.t.coords;
                 coords = coords.concat(coords.length ? c.slice(1) : c);
@@ -1357,6 +1367,13 @@
             }
             return false;
         };
+        // 점이 닿은 공단 탐방로와 그 탐방로 위 거리(처음부터 m) - 같은 탐방로 옆을 나란히 그린 선을 거르려고
+        var tcum = trails.map(function (t) { var cu = [0]; for (var i = 1; i < t.coords.length; i++) cu.push(cu[i - 1] + d(t.coords[i - 1], t.coords[i])); return cu; });
+        var onTrail = function (p) {
+            var best = null, bd = 200;
+            trails.forEach(function (t, ti) { t.coords.forEach(function (q, k) { var x = d(p, q); if (x < bd) { bd = x; best = { t: ti, at: tcum[ti][k] }; } }); });
+            return best;
+        };
         var named = (places || []).concat(heads || []);
         var nameAt = function (p) {
             var best = null, bd = 300;
@@ -1386,6 +1403,13 @@
                 a = b;
                 if (!((attA && attB) || (attA && headB) || (attB && headA))) continue;
                 if (cum[i1] - cum[i0] < MIN_M || !total) continue;
+                // 양 끝이 같은 공단 탐방로에 닿고 그 사이 공단 길이와 비슷하면(0.6 ~ 1.6배) 같은 길을 옆에 나란히 그린 것 - 뺌
+                // (2026-10-13: 설악산 "대청봉 → 중청봉 → 대청봉" 같은 가짜 고리가 생겼음)
+                var ta = onTrail(c[i0]), tb = onTrail(c[i1]);
+                if (ta && tb && ta.t === tb.t) {
+                    var along = Math.abs(tb.at - ta.at), run = cum[i1] - cum[i0];
+                    if (along > 0.6 * run && along < 1.6 * run) continue;
+                }
                 var from = nameAt(c[i0]) || (i0 === 0 && e.from) || "갈림길", to = nameAt(c[i1]) || (i1 === c.length - 1 && e.to) || "갈림길";
                 var r0 = cum[i0] / total, r1 = cum[i1] / total;
                 out.push({ id: o.id + "@" + r0.toFixed(4) + "-" + r1.toFixed(4) + ":" + from + ">" + to, base: o.id,
@@ -1577,7 +1601,8 @@
         return (trails || []).map(function (t) {
             var e = routeEnds(t.name), names = {};
             [e.from, e.to].forEach(function (w) {
-                if (!w || SMALL_SUFFIX.test(w)) return;
+                // 폭포 · 봉우리 · 고개 · 절 같은 자연 · 지명은 그대로(2026-10-13 PC: 설악산 용소폭포가 용소폭포탐방지원센터로 바뀌었음)
+                if (!w || SMALL_SUFFIX.test(w) || /(폭포|봉|산|대|령|재|고개|골|계곡|담|소|암|굴|바위)$/.test(w)) return;
                 var key = w.replace(/\s+/g, "");
                 [t.coords[0], t.coords[t.coords.length - 1]].forEach(function (p) {
                     heads.forEach(function (h) {
