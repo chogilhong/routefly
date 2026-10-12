@@ -223,6 +223,11 @@ eq("flightMs 긴 코스 90초", RF.flightMs(100000), 90000);
 eq("isAccess 봉우리는 160m 까지 경로 위", RF.isAccess({ name: "소지봉", off_route_m: 140 }), false);
 eq("isAccess 주차장 120m 는 경로 밖", RF.isAccess({ name: "백무동주차장", off_route_m: 120 }), true);
 eq("isTopName 괄호", RF.isTopName("도봉산(신선대)"), true);
+eq("정상 줄이기", ["지리산 천왕봉 정상", "천왕봉정상", "공주향교뒷산 정상", "국사봉 정상", "백운산  정상", "정상", "천왕봉", "한라산 백록담", "도봉산 정상"].map(RF.summitName),
+    ["천왕봉", "천왕봉", "정상", "국사봉", "정상", "정상", "천왕봉", "한라산 백록담", "정상"]);
+eq("코스 이름의 정상", RF.nameText("공주향교뒷산 · 송산리고분군모형관매표소 → 공주향교뒷산 정상"), "[공주향교뒷산] 송산리고분군모형관매표소 → 정상");
+eq("이름표 정상", RF.cleanName("덕기봉 정상"), "덕기봉");
+eq("isTopName 정상", RF.isTopName("정상"), true);
 eq("isTopName 대피소 아님", RF.isTopName("장터목대피소"), false);
 eq("infoText", RF.infoText({ up_min: 240, down_min: 180, level: "2.27" }), "공단 기준 오름 " + RF.hm(240 * 60000) + " · 내림 " + RF.hm(180 * 60000) + " · 난이도 2.27");
 eq("infoText 없음", RF.infoText(null), null);
