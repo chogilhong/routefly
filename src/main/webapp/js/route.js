@@ -101,15 +101,24 @@
         var st = document.createElement("div");
         st.className = "st";
         st.textContent = RF.km(c.distance_m) + "km · 오르막 " + RF.num(c.ascent_m) + "m";
+        // 어느 쪽으로든 걸을 수 있게 - 정방향 · 거꾸로 두 단추(2026-10-12 홍TV님: 1 → 2 일 수도, 2 → 1 일 수도)
         var row = document.createElement("div");
         row.className = "row";
-        var a = document.createElement("a");
-        a.className = "main";
-        a.href = "hike.html#c=" + encodeURIComponent(c.course_id);
-        a.textContent = "따라가기";
-        row.appendChild(a);
+        var fwd = RF.nameParts(c.name).route, back = RF.nameParts(RF.reverseName(c.name)).route, arrow = fwd.indexOf(" → ") >= 0;
+        [[fwd, arrow ? "따라가기 " + fwd : "따라가기", ""], [back, arrow ? "따라가기 " + back : "거꾸로 따라가기", "&rev=1"]].forEach(function (d, k) {
+            var a = document.createElement("a");
+            if (k === 0) a.className = "main";
+            a.href = "hike.html#c=" + encodeURIComponent(c.course_id) + d[2];
+            a.textContent = arrow ? d[0] : d[1];
+            a.title = d[1];
+            row.appendChild(a);
+        });
         $("sheet").appendChild(nm);
         $("sheet").appendChild(st);
+        var tip = document.createElement("div");
+        tip.className = "tip";
+        tip.textContent = "따라갈 방향을 고르세요.";
+        $("sheet").appendChild(tip);
         $("sheet").appendChild(row);
     }
 

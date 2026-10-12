@@ -667,7 +667,8 @@
             if (nc.lon.length < 2) throw new Error("경로 점이 없습니다.");   // 2026-10-11 점검: 확인한 뒤에 바꿈(깨진 코스로 공유 · SOS 가 돌지 않게)
             c = nc;
             var sv = loadSaved();
-            if (sv && sv.rev) c = RF.reverseCourse(c);   // 되돌아가는 길로 바꿔 걷던 산행을 이어 갈 때
+            // 되돌아가는 길로 바꿔 걷던 산행을 이어 갈 때, 노선 안내도에서 거꾸로 방향을 골랐을 때(#c=…&rev=1, 2026-10-12)
+            if (sv ? sv.rev : /[#&]rev=1(&|$)/.test(location.hash)) c = RF.reverseCourse(c);
             RF.showName($("name"), c.course.name);
             document.title = RF.nameText(c.course.name) + " - routefly";
             if (RF.infoText(c.info)) toast(RF.infoText(c.info), 6000);   // 국립공원 공식 코스 - 공단 기준 시간 · 난이도
