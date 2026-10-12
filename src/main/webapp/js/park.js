@@ -91,12 +91,15 @@
         map.on("mouseleave", "trails-hit", function () { map.getCanvas().style.cursor = ""; });
 
         // 위험 · 조망 아이콘을 먼저 붙여 이름표 아래로(2026-10-11 PC: 천왕봉 · 피아골 둘레에서 아이콘이 이름 글자를 가렸음)
+        // 아이콘도 겹침 거르기에 넣되 이름표보다 뒤(넓게 볼 때 이름표와 겹치면 숨기고, 확대하면 다시 보임 - 2026-10-12 홍TV님 "글자 겹치는 건?")
+        var spotEls = [];
         (data.spots || []).forEach(function (sp) {
             var e = document.createElement("div");
             e.className = "spot";
             e.textContent = RF.spotIcon(sp.kind);
             e.title = RF.spotText(sp);
             new maplibregl.Marker({ element: e }).setLngLat([+sp.lon, +sp.lat]).addTo(map);
+            spotEls.push(e);
         });
         // 이름표 - 높은 봉우리 먼저 보이게(겹치면 낮은 것을 숨김)
         data.places.forEach(function (p) {
@@ -104,10 +107,11 @@
             e.className = "place";
             e.innerHTML = '<span class="ic"></span><span class="lb"></span>';
             e.querySelector(".ic").textContent = RF.poiIcon(p.name);
-            e.querySelector(".lb").textContent = p.name + (p.ele_m != null && RF.isTopName(p.name) ? " " + RF.num(p.ele_m) + "m" : "");
+            e.querySelector(".lb").textContent = RF.cleanName(p.name) + (p.ele_m != null && RF.isTopName(p.name) ? " " + RF.num(p.ele_m) + "m" : "");
             new maplibregl.Marker({ element: e, anchor: "bottom" }).setLngLat([+p.lon, +p.lat]).addTo(map);
             places.push({ el: e, prio: -(p.ele_m == null ? 0 : +p.ele_m) - (RF.isTopName(p.name) ? 5000 : 0) });
         });
+        spotEls.forEach(function (e) { places.push({ el: e, prio: 1e6 }); });
         var timer = 0;
         map.on("render", function () {
             if (timer) return;
