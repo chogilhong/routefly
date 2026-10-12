@@ -700,7 +700,9 @@
             if (sv ? sv.rev : /[#&]rev=1(&|$)/.test(location.hash)) c = RF.reverseCourse(c);
             // 탐방 안내도 원점회귀 예시의 들머리 이름(#…&head=윗새재마을) - 구간 이름의 처음("새재")보다 정확
             var hm = /[#&]head=([^&]*)/.exec(location.hash), hn = hm ? RF.safeDecode(hm[1]) : "";
-            if (hn && /원점회귀$/.test(c.course.name) && hn.length <= 30) c.course.name = RF.headLoopName(c.course.name, hn);
+            // 처음 · 끝이 600m 안(제자리로 돌아옴)이면 이름에 출발 · 도착이 없는 왕복("설악산 2구간 이어 걷기")도
+            var back = c.lon.length > 1 && RF.distM(c.lat[0], c.lon[0], c.lat[c.lat.length - 1], c.lon[c.lon.length - 1]) < 600;
+            if (hn && hn.length <= 30 && (back || /원점회귀$/.test(c.course.name))) c.course.name = RF.headLoopName(c.course.name, hn, true);
             RF.showName($("name"), c.course.name, true);
             document.title = RF.nameText(c.course.name, true);   // 길만 - "- routefly" 를 붙이면 탭 · 최근 앱 목록에서 잘림(2026-10-12 홍TV님)
             if (RF.infoText(c.info)) toast(RF.infoText(c.info), 6000);   // 국립공원 공식 코스 - 공단 기준 시간 · 난이도

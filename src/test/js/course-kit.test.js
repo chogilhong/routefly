@@ -481,6 +481,8 @@ eq("groupPois 원점회귀 출발 · 도착 같은 이름은 한 줄", RF.groupP
     { name: "윗새재마을", lat: 35.3001, lon: 127.7, dist_m: 14970, off_route_m: 0 }], 80)[0].names, ["윗새재마을"]);
 eq("headLoopName", [RF.headLoopName("지리산 5구간 이어 걷기 · 새재 원점회귀", "윗새재마을"), RF.headLoopName("지리산 · 가 → 나", "윗새재마을")],
     ["지리산 5구간 이어 걷기 · 윗새재마을 원점회귀", "지리산 · 가 → 나"]);
+eq("headLoopName 이름에 출발 · 도착 없는 왕복", RF.headLoopName("설악산 2구간 이어 걷기", "남설악탐방지원센터", true), "설악산 2구간 이어 걷기 · 남설악탐방지원센터 원점회귀");
+eq("headLoopName 왕복(가 → 나 → 가)", RF.headLoopName("산 2구간 이어 걷기 · 성판악 → 정상 → 성판악", "성판악", true), "산 2구간 이어 걷기 · 성판악 원점회귀");
 var full = RF.fromApi("r", { course: { name: "산 · 가 → 라" }, points: [[127.0, 35.0, 100, 0], [127.011, 35.0, 200, 1000], [127.022, 35.0, 150, 2000], [127.033, 35.0, 300, 3000]], pois: [] });
 var sl = RF.sliceCourse(full, 1 / 3, 2 / 3, "산 · 나 → 다", "r@0.3333-0.6667:나>다");
 eq("sliceCourse 거리 · 이름표", [Math.round(sl.total), sl.pois.map(function (p) { return p.name; }).join(","), sl.course.ascent_m], [1000, "나,다", 0]);

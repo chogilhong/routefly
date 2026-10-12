@@ -2010,10 +2010,14 @@
         });
     }
 
-    /** 순수 함수 - "… · 새재 원점회귀" 의 들머리 이름을 바꿈("… · 윗새재마을 원점회귀"). 원점회귀 이름이 아니면 그대로. */
-    function headLoopName(name, head) {
+    /**
+     * 순수 함수 - "… · 새재 원점회귀" 의 들머리 이름을 바꿈("… · 윗새재마을 원점회귀"). 원점회귀 이름이 아니면 그대로,
+     * back(제자리로 돌아오는 코스)이면 "설악산 2구간 이어 걷기" → "설악산 2구간 이어 걷기 · 남설악탐방지원센터 원점회귀".
+     */
+    function headLoopName(name, head, back) {
         var n = String(name || ""), i = n.lastIndexOf(" · ");
-        if (!/원점회귀$/.test(n) || !head) return n;
+        if (!head || (!back && !/원점회귀$/.test(n))) return n;
+        if (!/원점회귀$/.test(n) && !routeEnds(n).from) return n + " · " + head + " 원점회귀";
         return (i >= 0 ? n.slice(0, i + 3) : "") + head + " 원점회귀";
     }
 
