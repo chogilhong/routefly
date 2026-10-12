@@ -376,11 +376,11 @@
     }
 
     /**
-     * 순수 함수 - 정상(peak.lat/lon)까지 가는 코스: 끝(없으면 시작)이 nearM(기본 1km) 안인 것, 가까운 차례.
+     * 순수 함수 - 정상(peak.lat/lon)까지 가는 코스: 끝(없으면 시작)이 nearM(기본 2km - 2026-10-12 PC: 강천산 · 선운산 등 코스 끝이 정상에서 1~1.8km) 안인 것, 가까운 차례.
      * 이름 검색(같은 이름 산이 여럿 - 백운산)에서 그 산 코스만 고릅니다. 2026-10-12 홍TV님 "100대 명산은 따라가기 버튼이 없어?"
      */
     function peakCourses(courses, peak, nearM) {
-        var r = nearM || 1000, out = [];
+        var r = nearM || 2000, out = [];
         (courses || []).forEach(function (c) {
             var d = Math.min(c.end_lat != null ? distM(+c.end_lat, +c.end_lon, +peak.lat, +peak.lon) : Infinity,
                              c.start_lat != null ? distM(+c.start_lat, +c.start_lon, +peak.lat, +peak.lon) : Infinity);
@@ -390,28 +390,38 @@
     }
 
     /**
-     * 순수 함수 - 인증센터마다 따라갈 구간 코스(centers 와 같은 길이, 못 찾으면 null). 구간 이름 "… · A인증센터 → B인증센터" 의
-     * 출발이 그 센터인 구간 → 없으면 도착이 그 센터인 구간(마지막 센터) → 없으면 앞 센터의 구간(구간 안 센터 - 60km 로 나눠
-     * 모든 센터가 끝점은 아님) → 그래도 없으면 뒤 센터의 구간. 공식 이름이 길어("통일전망대(민통선내)") 이름 안에 든 것으로 봄.
-     * 2026-10-12 홍TV님 "국토종주 자전거길도 인증센터마다 따라가기".
+     * 순수 함수 - 인증센터마다 따라갈 구간 코스(centers 와 같은 길이, 못 찾으면 null).
+     * marks: /api/group 의 centers - 구간마다 지나는 인증센터 이름표 {course_id, name, dist_m(구간 시작에서)}.
+     * 그 센터에서 출발하거나 구간 안에 있는 구간(도착 500m 앞까지) 중 가장 앞(dist_m 작은) 것, 없으면 도착하는 구간(노선 마지막 센터).
+     * 이름표가 없으면(예전 서버) 구간 이름 "… · A인증센터 → B인증센터" 의 출발 · 도착으로. 공식 이름이 길어("통일전망대(민통선내)") 이름 안에 든 것으로 봄.
+     * 2026-10-12 홍TV님 "인증센터마다 따라가기" - PC: 이름만으로는 구간 안 센터가 다음 구간에 붙었음(낙단보 → 9구간).
      */
-    function centerCourses(courses, centers) {
+    function centerCourses(courses, centers, marks) {
+        var byId = {};
+        (courses || []).forEach(function (c) { byId[c.course_id] = c; });
+        function key(n) { return String(n || "").replace(/\s+/g, ""); }
         function ends(c) {
-            var tail = String((c && c.name) || "").split(" · ").slice(1).join(" · ").replace(/\s+/g, "");
+            var tail = key(String((c && c.name) || "").split(" · ").slice(1).join(" · "));
             var parts = tail ? tail.split("→") : [];
             return parts.length >= 2 ? [parts[0], parts[parts.length - 1]] : null;
         }
-        var list = (courses || []).map(function (c) { return { c: c, e: ends(c) }; }).filter(function (x) { return x.e; });
-        var out = (centers || []).map(function (n) {
-            var k = stampKey(n), hit = null;
+        return (centers || []).map(function (n) {
+            var k = stampKey(n);
             if (!k) return null;
-            list.some(function (x) { return x.e[0].indexOf(k) >= 0 && (hit = x.c); });
-            if (!hit) list.some(function (x) { return x.e[1].indexOf(k) >= 0 && (hit = x.c); });
+            var best = null, bestD = Infinity, last = null;
+            (marks || []).forEach(function (m) {
+                var c = byId[m.course_id];
+                if (!c || key(m.name).indexOf(k) < 0) return;
+                var d = +m.dist_m || 0, len = +c.distance_m || 0;
+                if (len && d > len - 500) { last = last || c; return; }   // 도착 - 다음 구간에서 출발하면 그쪽
+                if (d < bestD) { bestD = d; best = c; }
+            });
+            if (best || last) return best || last;
+            var hit = null;
+            (courses || []).some(function (c) { var e = ends(c); return e && e[0].indexOf(k) >= 0 && (hit = c); });
+            if (!hit) (courses || []).some(function (c) { var e = ends(c); return e && e[1].indexOf(k) >= 0 && (hit = c); });
             return hit;
         });
-        for (var i = 1; i < out.length; i++) if (!out[i]) out[i] = out[i - 1];
-        for (var j = out.length - 2; j >= 0; j--) if (!out[j]) out[j] = out[j + 1];
-        return out;
     }
 
     /** 순수 함수 - 코스를 끝까지 갔다고 볼까(가장 멀리 간 곳이 코스 길이의 90% 넘음). */

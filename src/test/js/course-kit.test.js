@@ -158,12 +158,19 @@ near("distM", RF.distM(37, 127, 37.001, 127), 111, 1);
               { course_id: "down", start_lat: 35.1001, start_lon: 127.6 }, { course_id: "nocoord" }];
     eq("정상까지 가는 코스만 가까운 차례", RF.peakCourses(pc, pk[0]).map(function (c) { return c.course_id; }), ["down", "a", "b"]);
     eq("멀면 없음", RF.peakCourses(pc, { lat: 34, lon: 126 }).length, 0);
-    // 인증센터마다 따라갈 구간: 출발 → (마지막은) 도착 → 구간 안 센터는 앞 센터의 구간
+    // 인증센터마다 따라갈 구간 - 이름표(구간 시작에서 거리)로: 출발 · 구간 안이면 그 구간, 도착만이면(마지막 센터) 그 구간
+    var nk = [{ course_id: "n8", name: "낙동강 자전거길 8구간 · 상주상풍교인증센터 → 구미보인증센터", distance_m: 50000 },
+              { course_id: "n9", name: "낙동강 자전거길 9구간 · 상주보인증센터 → 섬마을", distance_m: 40000 },
+              { course_id: "n10", name: "낙동강 자전거길 10구간 · 구미보인증센터 → 하구둑인증센터", distance_m: 60000 }];
+    var mk = [{ course_id: "n8", name: "상주상풍교인증센터", dist_m: 0 }, { course_id: "n8", name: "낙단보인증센터", dist_m: 20000 },
+              { course_id: "n8", name: "구미보인증센터", dist_m: 49900 }, { course_id: "n9", name: "상주보인증센터", dist_m: 0 },
+              { course_id: "n10", name: "구미보인증센터", dist_m: 0 }, { course_id: "n10", name: "낙동강하구둑인증센터", dist_m: 59800 }];
+    eq("센터마다 구간(이름표)", RF.centerCourses(nk, ["상주보", "상주상풍교", "낙단보", "구미보", "낙동강하구둑", "없는곳"], mk).map(function (c) { return c && c.course_id; }),
+        ["n9", "n8", "n8", "n10", "n10", null]);
+    // 이름표가 없으면 구간 이름의 출발 → 도착
     var sjc = [{ course_id: "s1", name: "섬진강 자전거길 1구간 · 섬진강댐인증센터 → 향가유원지인증센터" },
-               { course_id: "s2", name: "섬진강 자전거길 2구간 · 향가유원지인증센터 → 배알도 수변공원 인증센터" }, { course_id: "x", name: "이름만" }];
-    eq("센터마다 구간", RF.centerCourses(sjc, ["섬진강댐", "장군목", "향가유원지", "남도대교", "배알도수변공원"]).map(function (c) { return c && c.course_id; }),
-        ["s1", "s1", "s2", "s2", "s2"]);
-    eq("앞에 없으면 뒤 구간 · 코스가 없으면 null", [RF.centerCourses(sjc, ["어디", "향가유원지"])[0].course_id, RF.centerCourses([], ["섬진강댐"])[0]], ["s2", null]);
+               { course_id: "s2", name: "섬진강 자전거길 2구간 · 향가유원지인증센터 → 배알도 수변공원 인증센터" }];
+    eq("이름으로", RF.centerCourses(sjc, ["섬진강댐", "향가유원지", "배알도수변공원", "장군목"]).map(function (c) { return c && c.course_id; }), ["s1", "s2", "s2", null]);
     eq("긴 공식 이름", RF.centerCourses([{ course_id: "g", name: "동해안 자전거길 1구간 · 통일전망대(민통선내)인증센터 → 북천철교인증센터" }], ["통일전망대"])[0].course_id, "g");
     eq("명산 자료가 비면 0", RF.seriesProgress({ peaks: [] }, {}, {}, {}), { got: 0, of: 0 });
     eq("숲길 진행", RF.seriesProgress({ prefix: "kmf-9900000006-", courses: 21 }, {}, { "kmf-9900000006-1": 1, "kmf-9900000006-2": 1, "kmf-9900000002-1": 1 }), { got: 2, of: 21 });

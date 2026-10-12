@@ -83,7 +83,7 @@
                 var info = [k.summit && k.summit !== k.name ? k.summit : "", st ? "도장 " + day(st.t) : ""].filter(Boolean).join(" · ");
                 if (info) t.appendChild(el("span", null, info));
                 row.appendChild(t);
-                // 코스 - 산 이름으로 찾아 정상 1km 안에서 끝나는(시작하는) 코스만, 누르면 펼침(미리보기 · 따라가기)
+                // 코스 - 산 이름으로 찾아 정상 2km 안에서 끝나는(시작하는) 코스만, 누르면 펼침(미리보기 · 따라가기)
                 var more = el("button", "more", "코스 ▾"), list = el("div", "sublist"), got = false;
                 more.type = "button";
                 more.addEventListener("click", function () {
@@ -95,7 +95,7 @@
                     list.appendChild(wait);
                     getJson("api/courses?q=" + encodeURIComponent(k.name)).then(function (j) {
                         wait.remove();
-                        var cs = RF.peakCourses(j.courses, k, 1000).slice(0, 8);
+                        var cs = RF.peakCourses(j.courses, k, 2000).slice(0, 8);
                         if (!cs.length) list.appendChild(el("div", "tip", "정상까지 가는 코스를 찾지 못했습니다."));
                         cs.forEach(function (c) { list.appendChild(courseRow(c)); });
                     }).catch(function (e) { got = false; wait.textContent = e.message || "코스를 읽지 못했습니다."; });
@@ -153,7 +153,7 @@
                 var list = s.chainFrom ? RF.chainOrder(j.courses, s.chainFrom) : s.centers ? RF.geoOrder(j.courses) : j.courses;
                 list.forEach(function (c) { body.appendChild(courseRow(c)); });
                 // 인증센터마다 그 센터를 지나는 구간의 미리보기 · 따라가기(2026-10-12 홍TV님)
-                if (centerRows.length) RF.centerCourses(list, s.centers).forEach(function (c, i) {
+                if (centerRows.length) RF.centerCourses(list, s.centers, j.centers).forEach(function (c, i) {
                     if (!c) return;
                     var id = encodeURIComponent(c.course_id), a = el("a", null, "미리보기"), b = el("a", "main", "따라가기");
                     a.href = "index.html#c=" + id;
