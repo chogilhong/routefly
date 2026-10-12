@@ -506,7 +506,7 @@
     function routeGuides(rows, max) {
         var by = {}, order = [];
         (rows || []).forEach(function (r) {
-            var id = String(r.course_id || ""), m = /^((osmb|kmf)-[0-9]+-)/.exec(id);
+            var id = String(r.course_id || ""), m = /^((osmb|kmf|osmh)-[0-9]+-)/.exec(id);
             // 코리아둘레길(두루누비 drnb-) - 코스 ID 에 노선 묶음이 없어 이름("해파랑길 1코스 · …")으로 묶음, trail 로 찾음
             if (!m && /^drnb-/.test(id)) {
                 var tn = (nameParts(r.name).group || String(r.name || "")).replace(/\s*\d+(?:-\d+)?\s*코스.*$/, "").trim();
@@ -520,7 +520,7 @@
             if (!by[m[1]]) {
                 var g = nameParts(r.name).group, nm = g ? g : String(r.name || "").split(/\s+/)[0];
                 nm = nm.replace(/^국토종주\s*/, "").replace(/\s*[0-9]+구간$/, "").trim();
-                by[m[1]] = { prefix: m[1], name: nm, kind: m[2] === "osmb" ? "bike" : "walk", n: 0 };
+                by[m[1]] = { prefix: m[1], name: nm, kind: m[2] === "osmb" ? "bike" : m[2] === "osmh" ? "ridge" : "walk", n: 0 };
                 order.push(by[m[1]]);
             }
             by[m[1]].n++;

@@ -256,6 +256,9 @@ eq("노선 안내도 카드", RF.routeGuides([{ course_id: "osmb-6374513-1", nam
     { course_id: "osmb-6374513-2", name: "국토종주 섬진강 자전거길 2구간 · 향가유원지인증센터 → 남도대교인증센터" },
     { course_id: "kmf-9900000006-1", name: "지리산둘레길 주천-운봉" }, { course_id: "frst-1-a", name: "김제 모악산 · 금산사 → 모악산" }]),
     [{ prefix: "osmb-6374513-", name: "섬진강 자전거길", kind: "bike", n: 2 }, { prefix: "kmf-9900000006-", name: "지리산둘레길", kind: "walk", n: 1 }]);
+eq("백두대간 · 정맥 노선 안내도 카드", RF.routeGuides([{ course_id: "osmh-9439787-1", name: "백두대간 1구간 · 진부령정상 → 황철봉 너덜지대" },
+    { course_id: "osmh-9439787-46", name: "백두대간 46구간 · 노고단대피소 → 천왕봉" }, { course_id: "osmh-19179556-7", name: "낙남정맥 7구간 · 진고개가든휴게소 → 삼각점" }]),
+    [{ prefix: "osmh-9439787-", name: "백두대간", kind: "ridge", n: 2 }, { prefix: "osmh-19179556-", name: "낙남정맥", kind: "ridge", n: 1 }]);
 eq("둘레길 노선 안내도 카드", RF.routeGuides([{ course_id: "drnb-1", name: "해파랑길 1코스 · 오륙도해맞이공원 → 해운대해수욕장" },
     { course_id: "drnb-2", name: "해파랑길 2코스 · 해운대 → 대변항" }, { course_id: "drnb-3", name: "DMZ 평화의 길 19-1코스(우회로) · 승라부대까지" }, { course_id: "drnb-9", name: "이름만" }]),
     [{ trail: "해파랑길", name: "해파랑길", kind: "walk", n: 2 }, { trail: "DMZ 평화의 길", name: "DMZ 평화의 길", kind: "walk", n: 1 }]);

@@ -19,6 +19,7 @@ public class GroupServletTest {
     public void validPrefix() {
         assertTrue(GroupServlet.validPrefix("osmb-6374513-"));
         assertTrue(GroupServlet.validPrefix("kmf-9900000006-"));
+        assertTrue("백두대간 · 정맥", GroupServlet.validPrefix("osmh-9439787-"));
         assertFalse("끝의 - 없이는 다른 노선까지 잡힘", GroupServlet.validPrefix("osmb-637"));
         assertFalse("코스 하나의 ID 는 아님", GroupServlet.validPrefix("osmb-6374513-1"));
         assertFalse("LIKE 와일드카드", GroupServlet.validPrefix("osmb-%-"));
@@ -81,7 +82,7 @@ public class GroupServletTest {
                 n++;
             }
         }
-        assertEquals("국토종주 13 + 국가숲길 6", 19, n);
+        assertEquals("국토종주 13 + 국가숲길 6 + 백두대간 · 정맥 9", 28, n);
         assertEquals("코리아둘레길 4", 4, named);
         assertEquals("100대 명산 1", 1, peaks);
         assertEquals("공식 인증 링크 - 국토종주 · 코리아둘레길", 2, certs);

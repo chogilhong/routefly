@@ -1898,7 +1898,7 @@
             a.className = "it guide";
             a.href = "route.html?" + (g.trail ? "trail=" + encodeURIComponent(g.trail) : "prefix=" + encodeURIComponent(g.prefix)) + "&name=" + encodeURIComponent(g.name) + "&back=list";
             var gb = document.createElement("b");
-            gb.textContent = (g.kind === "bike" ? "🚴 " : g.trail ? "🥾 " : "🌲 ") + g.name + " 노선 안내도";
+            gb.textContent = (g.kind === "bike" ? "🚴 " : g.kind === "ridge" ? "⛰ " : g.trail ? "🥾 " : "🌲 ") + g.name + " 노선 안내도";
             var gs = document.createElement("span");
             gs.textContent = (g.kind === "bike" ? "인증센터 · " : "") + (g.trail ? "코스" : "구간") + " 전체를 지도로 보고 고르기 · 이 목록 " + g.n + (g.trail ? "코스" : "구간");
             a.appendChild(gb);

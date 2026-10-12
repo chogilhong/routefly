@@ -1,5 +1,6 @@
 /*
- * 노선 안내도(route.html?prefix=osmb-6374513- 또는 ?trail=해파랑길 [&name=…][&back=list|series]) - 국토종주 자전거길 · 국가숲길 · 코리아둘레길 한 노선 전체를 한 장에.
+ * 노선 안내도(route.html?prefix=osmb-6374513- 또는 ?trail=해파랑길 [&name=…][&back=list|series]) - 국토종주 자전거길 · 국가숲길 · 코리아둘레길 ·
+ * 백두대간 · 정맥(osmh-, 2026-10-12 홍TV님) 한 노선 전체를 한 장에.
  * 2026-10-12 홍TV님: 국토종주 자전거길 노선도(나무위키)처럼 - 빨간 노선 · 인증센터 차례 번호. 구간을 누르면 그 구간을 따라가기로.
  * 자료: /api/group?prefix=…&lines=1 (구간 목록 · 줄인 선 · 인증센터 이름표 자리), data/series.json(노선 이름 · 길이 · 인증센터 차례 · 다른 이름),
  * 도장은 이 핸드폰의 rf-stamps(따라가기가 남김)만 읽음.
@@ -10,6 +11,8 @@
     function $(id) { return document.getElementById(id); }
     var q = new URLSearchParams(location.search), prefix = q.get("prefix") || "", trail = q.get("trail") || "", backTo = q.get("back");
     var map, data = null, series = null, ctrs = [];
+    // 코스 · 구간 번호를 지도에 붙이는 노선(인증센터가 없는 것): 코리아둘레길 · 백두대간 · 정맥
+    var numbered = !!trail || /^osmh-/.test(prefix);
 
     function getJson(url) {
         return fetch(url, { headers: { "Accept": "application/json" } }).then(function (r) {
@@ -34,10 +37,10 @@
         return hit;
     }
 
-    /** 둘레길 - 코스마다 시작점에 코스 번호(1, 2, 19-1 …). */
+    /** 둘레길 · 백두대간 · 정맥 - 코스(구간)마다 시작점에 번호(1, 2, 19-1 …). */
     function drawCourseNumbers() {
         data.courses.forEach(function (c) {
-            var line = data.lines[c.course_id], m = /(\d+(?:-\d+)?)\s*코스/.exec(String(c.name || ""));
+            var line = data.lines[c.course_id], m = /(\d+(?:-\d+)?)\s*(?:코스|구간)/.exec(String(c.name || ""));
             if (!line || !m) return;
             var e = document.createElement("div");
             e.className = "ctr num";   // 넓게 볼 때 겹치는 번호는 숨김(확대하면 보임)
@@ -120,7 +123,7 @@
         });
         map.on("mouseenter", "route-hit", function () { map.getCanvas().style.cursor = "pointer"; });
         map.on("mouseleave", "route-hit", function () { map.getCanvas().style.cursor = ""; });
-        if (trail) drawCourseNumbers(); else drawCenters();
+        if (numbered) drawCourseNumbers(); else drawCenters();
         // 겹치는 이름표 · 번호 숨기기 - 지도가 움직이는 동안 0.15초마다 다시(둘레길 번호도)
         var timer = 0;
         map.on("render", function () {
@@ -146,7 +149,7 @@
             e.preventDefault();
             alert("구간을 선택하세요.");
         });
-        if (!/^(osmb|kmf)-[0-9]+-$/.test(prefix) && !trail) { $("msg").textContent = "노선을 찾지 못했습니다."; return; }
+        if (!/^(osmb|kmf|osmh)-[0-9]+-$/.test(prefix) && !trail) { $("msg").textContent = "노선을 찾지 못했습니다."; return; }
         Promise.all([
             getJson("api/map-config").catch(function () { return {}; }),
             getJson(trail ? "api/group?trail=" + encodeURIComponent(trail) : "api/group?prefix=" + encodeURIComponent(prefix) + "&lines=1"),
@@ -157,9 +160,11 @@
             series = findSeries(r[2]);
             // 둘레길: 이름 검색이라 다른 길("DMZ 평화의 길" 로 찾은 다른 이름)도 섞일 수 있어 그 길 코스만, 코스 번호 차례로
             if (trail) data.courses = RF.trailCourses(data.courses, trail);
-            var name = (series && series.name) || q.get("name") || "노선";
+            // 이름: series.json → 주소의 name → 첫 구간 이름 앞("백두대간 1구간 · …" → 백두대간)
+            var name = (series && series.name) || q.get("name")
+                || (data.courses[0] && String(data.courses[0].name || "").replace(/\s*\d+(?:-\d+)?\s*(?:구간|코스).*$/, "").trim()) || "노선";
             var km = series && series.km ? series.km : Math.round(data.courses.reduce(function (m, c) { return m + (+c.distance_m || 0); }, 0) / 1000);
-            $("title").textContent = name + " " + km + "km" + (trail ? " · " + data.courses.length + "코스" + (series && series.official ? "(공식 " + series.official + ")" : "") : "");
+            $("title").textContent = name + " " + km + "km" + (numbered ? " · " + data.courses.length + (trail ? "코스" : "구간") + (series && series.official ? "(공식 " + series.official + ")" : "") : "");
             document.title = name + " 노선 안내도 - routefly";
             if (!data.courses.length) { $("msg").textContent = "아직 코스가 없습니다."; return; }
             map = new maplibregl.Map({ container: "map", style: RF.baseStyle(cfg), center: [127.8, 36.3], zoom: 7,

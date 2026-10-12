@@ -126,7 +126,7 @@
         var box = el("div", "card"), head = el("button"), nm = el("div", "nm", s.name), pg = el("div", "pg");
         head.type = "button";
         // 코리아둘레길: 두루누비 API 가 일부 코스만 줌 - 공식 코스 수(official)를 함께 보여 "다 걸었다" 로 오해하지 않게(2026-10-12 PC)
-        nm.appendChild(el("small", null, s.ids ? s.ids.length + "코스 · " + Math.round(s.meters / 1000) + "km" + (s.official ? " (공식 " + s.official + "코스 중 앱에 있는 것)" : "")
+        nm.appendChild(el("small", null, s.ids ? s.ids.length + g.unit + " · " + Math.round(s.meters / 1000) + "km" + (s.official ? " (공식 " + s.official + "코스 중 앱에 있는 것)" : "")
             : s.km + "km" + (s.centers ? " · 인증센터 " + s.centers.length + "곳" : " · " + s.courses + "코스")));
         pg.innerHTML = "<b>" + p.got + "</b> / " + p.of + " " + g.unit;
         head.appendChild(nm);
@@ -184,17 +184,24 @@
         return box;
     }
 
-    /** 이름으로 찾는 길(q - 코리아둘레길)은 그리기 전에 코스 목록을 받아 수 · 길이 · 완주를 셈. 못 받으면 0 코스로. */
+    /** 이름으로 찾는 길(q - 코리아둘레길) · 구간 수가 없는 노선(백두대간 · 정맥)은 그리기 전에 코스 목록을 받아 수 · 길이 · 완주를 셈. 못 받으면 0 으로. */
     function loadNamed(d) {
         var named = [], files = [];
-        d.groups.forEach(function (g) { g.series.forEach(function (s) { if (s.q) named.push(s); if (s.summits) files.push(s); }); });
+        d.groups.forEach(function (g) {
+            g.series.forEach(function (s) {
+                // 백두대간 · 정맥: 공식 구간 수가 없어 앱에 있는 구간(api/group)으로 셈
+                if (s.q || (s.prefix && s.courses == null && !s.centers)) named.push(s);
+                if (s.summits) files.push(s);
+            });
+        });
         // 100대 명산: 정상 목록 파일(summits)을 받아 둠. 못 받거나 비면 그 묶음을 안 보임
         var peaksReady = files.map(function (s) {
             return fetch(s.summits).then(function (r) { return r.json(); }).then(function (j) { s.peaks = (j && j.peaks) || []; }, function () { s.peaks = []; });
         });
         return Promise.all(peaksReady.concat(named.map(function (s) {
-            return getJson("api/courses?q=" + encodeURIComponent(s.q)).then(function (j) { return j.courses; }, function () { return []; }).then(function (all) {
-                s.list = RF.trailCourses(all, s.match || s.name);
+            var url = s.q ? "api/courses?q=" + encodeURIComponent(s.q) : "api/group?prefix=" + encodeURIComponent(s.prefix);
+            return getJson(url).then(function (j) { return j.courses; }, function () { return []; }).then(function (all) {
+                s.list = s.q ? RF.trailCourses(all, s.match || s.name) : all;
                 s.ids = s.list.map(function (c) { return c.course_id; });
                 s.meters = s.list.reduce(function (m, c) { return m + (+c.distance_m || 0); }, 0);
             });
