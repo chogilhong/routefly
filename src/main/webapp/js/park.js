@@ -33,7 +33,7 @@
      * 탐방로 고르기 - 누르면 고르고 다시 누르면 뺌, 고른 것 앞 · 뒤로 이어지는 탐방로는 함께(2026-10-12 홍TV님: 등산도 노선 안내도처럼
      * 이어진 구간으로). 아래 칸에 처음 → 끝 두 방향 단추(따라가기), 하나만 골랐으면 미리보기도.
      */
-    var sel = [], lines = {}, flips = {}, byId = {}, emptySheet = "";
+    var sel = [], lines = {}, flips = {}, byId = {}, segs = [], emptySheet = "";
     function pick(t) {
         if (t) sel = RF.chainPick(sel, t.id, lines);
         map.getSource("sel").setData({ type: "FeatureCollection", features: sel.map(function (s) {
@@ -52,8 +52,8 @@
         nm.textContent = one ? one.name : sel.length + "구간 이어 걷기" + (from || to ? " · " + (from || "") + " → " + (to || "") : "");
         var st = document.createElement("div");
         st.className = "st";
-        st.textContent = RF.km(meters) + "km" + (one ? " · 오르막 " + RF.num(one.ascent_m) + "m" : " · 오르막은 따라가기 화면에서");
-        if (one && !listMode) {   // 하나만 골랐으면 코스 미리보기(3D)도 - 이은 코스는 미리보기가 받지 못함
+        st.textContent = RF.km(meters) + "km" + (one && one.ascent_m != null ? " · 오르막 " + RF.num(one.ascent_m) + "m" : " · 오르막은 따라가기 화면에서");
+        if (one && !listMode && !one.base) {   // 하나만 골랐으면 코스 미리보기(3D)도 - 이은 코스는 미리보기가 받지 못함
             var pv = document.createElement("a");
             pv.href = "index.html#c=" + encodeURIComponent(one.id);
             pv.textContent = " · 미리보기 ›";
@@ -83,10 +83,14 @@
     }
 
     function draw() {
-        data.trails.forEach(function (t) { lines[t.id] = t.coords; byId[t.id] = t; });
+        data.trails.forEach(function (t) { lines[t.id] = t.coords; });
         // 선이 이름과 거꾸로 그려진 탐방로(이웃 탐방로 끝이 모이는 점으로 앎) - 단추 · 이름을 걸어 나가는 차례로
         flips = RF.routeFlips(data.trails.map(function (t) { return { course_id: t.id, name: t.name }; }), lines);
-        var feats = data.trails.map(function (t, i) {
+        // 갈림길에서 자른 작은 구간(주능선 노고단고개 → 천왕봉을 장터목 · 세석 · 벽소령 … 에서) - 고르기 · 그리기는 이것으로
+        segs = RF.splitTrails(data.trails, flips);
+        lines = {};
+        segs.forEach(function (t) { lines[t.id] = t.coords; byId[t.id] = t; });
+        var feats = segs.map(function (t, i) {
             return { type: "Feature", id: i, properties: { i: i }, geometry: { type: "LineString", coordinates: t.coords } };
         });
         map.addSource("trails", { type: "geojson", data: { type: "FeatureCollection", features: feats } });
@@ -101,7 +105,7 @@
         map.addLayer({ id: "trails-hit", type: "line", source: "trails", paint: { "line-color": "#000", "line-opacity": 0, "line-width": 22 } });
         map.on("click", "trails-hit", function (e) {
             var f = e.features && e.features[0];
-            if (f) pick(data.trails[f.properties.i]);
+            if (f) pick(segs[f.properties.i]);
         });
         map.on("mouseenter", "trails-hit", function () { map.getCanvas().style.cursor = "pointer"; });
         map.on("mouseleave", "trails-hit", function () { map.getCanvas().style.cursor = ""; });
@@ -155,7 +159,7 @@
         // 작은 산은 둘레 마을 · 길까지 보이게 확대 한도 14(MapLibre 512px 줌 - 폭 375px 폰에서 축척 막대 300m, 15 는 100m 였음 2026-10-12 터널로 확인) - 2026-10-12 홍TV님: 공주향교뒷산(코스 0.3km)이 막대 50m 로 너무 크게 보였음
         map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: { top: 24, bottom: 24, left: 20, right: 20 }, duration: 0, maxZoom: OVERVIEW_MAX_ZOOM });
         // 목록 카드에서 왔으면 from 은 그 산을 찾는 데만 쓰고 고르지 않음(아무 코스나 골라져 있어 헷갈렸음)
-        if (from && !listMode) data.trails.forEach(function (t) { if (t.id === from) pick(t); });
+        if (from && !listMode) segs.forEach(function (t) { if (t.id === from) pick(t); });   // 잘린 탐방로면 고르지 않음
         $("msg").style.display = "none";
     }
 

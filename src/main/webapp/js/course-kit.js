@@ -1125,11 +1125,97 @@
         return (sel || []).map(function (s) { return s.id + (s.rev ? "~" : ""); }).join(",");
     }
 
-    /** 순수 함수 - 이은 코스 ID → [{id, rev}]. 이은 것이 아니면(쉼표 없음) null. */
+    /**
+     * 순수 함수 - 이은 코스 ID → [{id, rev, base, r0, r1, from, to}]. 이은 것도 자른 것도 아니면 null.
+     * 구간 하나는 "코스ID" 또는 자른 구간 "코스ID@0.1234-0.5678:노고단고개>장터목"(코스 길이의 비율 · 끝 이름 - splitTrails),
+     * 뒤의 ~ 는 거꾸로. 자른 구간은 base 코스를 받아 sliceCourse 로 자름.
+     */
     function parseJoinId(id) {
         id = String(id || "");
-        if (id.indexOf(",") < 0) return null;
-        return id.split(",").filter(Boolean).map(function (s) { return /~$/.test(s) ? { id: s.slice(0, -1), rev: true } : { id: s, rev: false }; });
+        if (id.indexOf(",") < 0 && id.indexOf("@") < 0) return null;
+        return id.split(",").filter(Boolean).map(function (s) {
+            var rev = /~$/.test(s), one = rev ? s.slice(0, -1) : s;
+            var m = /^([^@]+)@([0-9.]+)-([0-9.]+)(?::([^>]*)>(.*))?$/.exec(one);
+            return m ? { id: one, rev: rev, base: m[1], r0: +m[2], r1: +m[3], from: m[4] || null, to: m[5] || null }
+                : { id: one, rev: rev, base: one, r0: null, r1: null, from: null, to: null };
+        });
+    }
+
+    /**
+     * 순수 함수 - 탐방로를 다른 탐방로 끝이 닿는 곳(갈림길)에서 잘라 작은 구간으로(2026-10-12 홍TV님: 주능선 노고단고개 → 천왕봉 25km 를
+     * 장터목 · 세석에서 갈라지는 탐방로와 이어 고를 수 있게). trails: [{id, name, coords, distance_m, ascent_m}], flips: routeFlips.
+     * 끝에서 150m 안 · 갈림길끼리 150m 안은 자르지 않음. 자른 구간 id 는 "코스ID@비율-비율:처음>끝", 이름은 "무리 · 처음 → 끝", 오르막은 모름(null).
+     */
+    function splitTrails(trails, flips, nearM) {
+        var near = nearM == null ? 150 : nearM, MIN_M = 150, out = [];   // 150m - 대피소가 능선에서 조금 떨어짐(음정 → 벽소령 끝 129m)
+        var ends = (trails || []).map(function (t) {
+            var e = routeEnds(t.name), f = flips && flips[t.id];
+            return { a: t.coords[0], z: t.coords[t.coords.length - 1], an: f ? e.to : e.from, zn: f ? e.from : e.to };
+        });
+        (trails || []).forEach(function (t, ti) {
+            var c = t.coords, cum = [0];
+            for (var i = 1; i < c.length; i++) cum.push(cum[i - 1] + distM(c[i - 1][1], c[i - 1][0], c[i][1], c[i][0]));
+            var total = cum[cum.length - 1], cuts = [];
+            ends.forEach(function (u, ui) {
+                if (ui === ti || trails[ui].id === t.id) return;
+                [[u.a, u.an], [u.z, u.zn]].forEach(function (pn) {
+                    var best = -1, bd = near;
+                    for (var k = 0; k < c.length; k++) {
+                        var d = distM(pn[0][1], pn[0][0], c[k][1], c[k][0]);
+                        if (d < bd) { bd = d; best = k; }
+                    }
+                    if (best < 0 || cum[best] < MIN_M || cum[best] > total - MIN_M) return;
+                    cuts.push({ k: best, name: pn[1] });
+                });
+            });
+            cuts.sort(function (x, y) { return x.k - y.k; });
+            var kept = [];
+            cuts.forEach(function (x) {
+                var prev = kept[kept.length - 1];
+                if (prev && cum[x.k] - cum[prev.k] < MIN_M) { if (!prev.name) prev.name = x.name; return; }
+                kept.push(x);
+            });
+            if (!kept.length || !total) { out.push(t); return; }
+            var e = ends[ti], g = nameParts(t.name).group || "";
+            var bounds = [{ k: 0, name: e.an }].concat(kept, [{ k: c.length - 1, name: e.zn }]);
+            for (var b = 0; b < bounds.length - 1; b++) {
+                var s0 = bounds[b], s1 = bounds[b + 1], r0 = cum[s0.k] / total, r1 = cum[s1.k] / total;
+                var from = s0.name || "", to = s1.name || "";
+                out.push({ id: t.id + "@" + r0.toFixed(4) + "-" + r1.toFixed(4) + ":" + from + ">" + to, base: t.id,
+                           name: (g ? g + " · " : "") + (from || "?") + " → " + (to || "?"), coords: c.slice(s0.k, s1.k + 1),
+                           distance_m: Math.round((cum[s1.k] - cum[s0.k]) * (+t.distance_m || total) / total), ascent_m: null });
+            }
+        });
+        return out;
+    }
+
+    /**
+     * 순수 함수 - 코스의 r0 ~ r1(길이 비율) 부분만. 이름표 · 갈림길은 그 안의 것만 거리를 당겨서, 위치표지 · 위험지역은 그대로(자리로 씀).
+     * name 은 새 이름("지리산 · 노고단고개 → 장터목") - 끝 이름표는 endPois 가 이 이름으로.
+     */
+    function sliceCourse(c, r0, r1, name, id) {
+        var d0 = Math.max(0, r0) * c.total, d1 = Math.min(1, r1) * c.total;
+        // 끝은 d1 에 닿는 첫 점(점 바로 위에서 자르면 그 점까지)
+        var i0 = indexAt(c, d0), j1 = indexAt(c, d1), i1 = Math.min(c.lon.length - 1, c.dist[j1] >= d1 - 0.5 ? j1 : j1 + 1), base = c.dist[i0];
+        var s = { id: id || c.id, rev: false, markers: [], lon: c.lon.slice(i0, i1 + 1), lat: c.lat.slice(i0, i1 + 1), ele: c.ele.slice(i0, i1 + 1),
+                  signs: c.signs || [], spots: c.spots || [], info: null };
+        s.dist = c.dist.slice(i0, i1 + 1).map(function (d) { return d - base; });
+        s.total = s.dist[s.dist.length - 1];
+        s.pois = (c.pois || []).filter(function (p) { return !p.end && +p.dist_m >= base - 1 && +p.dist_m <= base + s.total + 1; }).map(function (p) {
+            var q = {};
+            for (var k in p) if (Object.prototype.hasOwnProperty.call(p, k)) q[k] = p[k];
+            q.dist_m = +p.dist_m - base;
+            return q;
+        });
+        s.junctions = (c.junctions || []).filter(function (d) { return d >= base && d <= base + s.total; }).map(function (d) { return d - base; });
+        s.course = {};
+        for (var k2 in c.course) if (Object.prototype.hasOwnProperty.call(c.course, k2)) s.course[k2] = c.course[k2];
+        s.course.name = name || c.course.name;
+        s.course.distance_m = Math.round(s.total);
+        s.asc = cumAscent(s.ele);
+        s.course.ascent_m = Math.round(s.asc[s.asc.length - 1] || 0);
+        endPois(s);
+        return s;
     }
 
     /**
@@ -1695,6 +1781,6 @@
     global.RF = {
         LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, stampKey: stampKey, summitName: summitName, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakCourses: peakCourses, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
-        sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
+        sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
     };
 })(window);

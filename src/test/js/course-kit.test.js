@@ -329,7 +329,18 @@ eq("chainPick 끝을 다시 누르면 뺌", RF.joinId(RF.chainPick(zs, "k21", zl
 eq("chainPick 가운데를 빼면 긴 쪽", RF.joinId(RF.chainPick(RF.chainPick(zs, "k21", zl), "k17", zl)), "k4");
 eq("chainPick 거꾸로 그린 구간은 ~", RF.joinId(RF.chainPick([{ id: "k17", rev: false }], "kx", { k17: zl.k17, kx: [[127.77048, 35.11899], [127.78516, 35.16267]] })), "k17,kx~");
 eq("reverseSel", RF.joinId(RF.reverseSel(zs)), "k21~,k17~,k4~");
-eq("parseJoinId", JSON.stringify(RF.parseJoinId("a,b~")), JSON.stringify([{ id: "a", rev: false }, { id: "b", rev: true }]));
+eq("parseJoinId", RF.parseJoinId("a,b~").map(function (p) { return p.id + (p.rev ? "~" : ""); }), ["a", "b~"]);
+var pj = RF.parseJoinId("knps-1011-c90a70e8@0.2500-0.5000:장터목>천왕봉~")[0];
+eq("parseJoinId 자른 구간", [pj.base, pj.r0, pj.r1, pj.from, pj.to, pj.rev], ["knps-1011-c90a70e8", 0.25, 0.5, "장터목", "천왕봉", true]);
+// 갈림길에서 자르기 - 능선 가-라(동서 3km)에 남쪽에서 올라오는 탐방로 끝 둘(1km · 2km 자리)
+var ridge = { id: "r", name: "산 · 가 → 라", distance_m: 3000, coords: [[127.0, 35.0], [127.0055, 35.0], [127.011, 35.0], [127.0165, 35.0], [127.022, 35.0], [127.0275, 35.0], [127.033, 35.0]] };
+var up1 = { id: "u1", name: "산 · 마을1 → 나", coords: [[127.011, 34.99], [127.011, 35.0003]] }, up2 = { id: "u2", name: "산 · 마을2 → 다", coords: [[127.022, 34.99], [127.022, 34.9998]] };
+var sp = RF.splitTrails([ridge, up1, up2], {});
+eq("splitTrails 갈림길에서 자름", sp.filter(function (s) { return s.base === "r"; }).map(function (s) { return s.name; }), ["산 · 가 → 나", "산 · 나 → 다", "산 · 다 → 라"]);
+eq("splitTrails 안 자른 것은 그대로", sp.filter(function (s) { return !s.base; }).map(function (s) { return s.id; }), ["u1", "u2"]);
+var full = RF.fromApi("r", { course: { name: "산 · 가 → 라" }, points: [[127.0, 35.0, 100, 0], [127.011, 35.0, 200, 1000], [127.022, 35.0, 150, 2000], [127.033, 35.0, 300, 3000]], pois: [] });
+var sl = RF.sliceCourse(full, 1 / 3, 2 / 3, "산 · 나 → 다", "r@0.3333-0.6667:나>다");
+eq("sliceCourse 거리 · 이름표", [Math.round(sl.total), sl.pois.map(function (p) { return p.name; }).join(","), sl.course.ascent_m], [1000, "나,다", 0]);
 eq("parseJoinId 한 구간은 null", RF.parseJoinId("a"), null);
 var ja = RF.fromApi("k17", { course: { name: "지리산둘레길 위태-하동호", kind: "walk" }, points: [[127.82864, 35.21691, 300, 0], [127.78512, 35.16266, 200, 10880]], pois: [] });
 var jb = RF.fromApi("k21", { course: { name: "지리산둘레길 하동호-삼화실", kind: "walk" }, points: [[127.78512, 35.16266, 200, 0], [127.77048, 35.11899, 260, 9000]], pois: [] });

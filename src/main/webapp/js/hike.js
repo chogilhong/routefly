@@ -553,7 +553,7 @@
         var id = c.id;
         trailsJson("api/trails?bbox=" + courseBbox(0.01)).then(function (j) {
             if (!c || c.id !== id) return;
-            var mine = RF.parseJoinId(id) ? RF.parseJoinId(id).map(function (p) { return p.id; }) : [id];   // 이은 코스는 그 구간들도 빼고
+            var mine = RF.parseJoinId(id) ? RF.parseJoinId(id).map(function (p) { return p.base; }) : [id];   // 이은 코스는 그 구간들도 빼고
             trails = (j.trails || []).filter(function (t) { return mine.indexOf(t.id) < 0 && t.coords.length > 1; }).map(function (t) {
                 var tc = { id: t.id, name: t.name, lon: [], lat: [], dist: [0], ele: [] };
                 t.coords.forEach(function (p, i) {
@@ -664,13 +664,23 @@
         // 이 기기에만 있는 GPX · 여러 구간을 이은 코스(노선 안내도)는 링크로 보낼 수 없습니다
         var parts = RF.parseJoinId(id);
         $("share").style.display = isGpxId(id) || parts ? "none" : "";
-        var got = parts ? Promise.all(parts.map(function (p) { return getJson("api/course?id=" + encodeURIComponent(p.id)); }))
+        var got = parts ? Promise.all(parts.map(function (p) { return getJson("api/course?id=" + encodeURIComponent(p.base)); }))
             : isGpxId(id) ? storedGpx(id) : getJson("api/course?id=" + encodeURIComponent(id));
         return Promise.all([got, mapReady]).then(function (r) {
             if (my !== loadSeq) return;   // 그 사이 다른 코스를 골랐음
             // 여러 구간 이어 걷기(#c=구간,구간~,… - 2026-10-12 홍TV님): 구간마다 걷는 방향으로 돌려 하나로
-            var nc = parts ? RF.joinCourses(r[0].map(function (j, i) { var x = RF.fromApi(parts[i].id, j); return parts[i].rev ? RF.reverseCourse(x) : x; }), id)
-                : RF.fromApi(id, r[0]);
+            // 갈림길에서 자른 구간(코스ID@비율-비율:처음>끝 - 탐방 안내도)은 그 부분만
+            var one = function (p, j) {
+                var x = RF.fromApi(p.base, j);
+                if (p.r0 != null) {
+                    var g = RF.nameParts(x.course.name).group;
+                    x = RF.sliceCourse(x, p.r0, p.r1, (g ? g + " · " : "") + (p.from || "?") + " → " + (p.to || "?"), p.id);
+                }
+                return x;
+            };
+            var nc = !parts ? RF.fromApi(id, r[0])
+                : parts.length === 1 ? one(parts[0], r[0][0])   // 자른 구간 하나 - 거꾸로는 &rev=1 로(아래)
+                : RF.joinCourses(r[0].map(function (j, i) { var x = one(parts[i], j); return parts[i].rev ? RF.reverseCourse(x) : x; }), id);
             if (nc.lon.length < 2) throw new Error("경로 점이 없습니다.");   // 2026-10-11 점검: 확인한 뒤에 바꿈(깨진 코스로 공유 · SOS 가 돌지 않게)
             c = nc;
             var sv = loadSaved();
@@ -944,7 +954,8 @@
         if (hike.sim || !c || RF.isGpxId(c.id) || !RF.isComplete(Math.max(hike.dMax || 0, hike.d), c.total)) return;
         var done = loadMap(DONE);
         // 여러 구간을 이어 걸었으면 구간마다 완주(도장 · 완주 화면이 구간 ID 로 셈)
-        var ids = RF.parseJoinId(c.id) ? RF.parseJoinId(c.id).map(function (p) { return p.id; }) : [c.id];
+        // 자른 구간(일부만 걸음)은 그 코스 완주가 아님
+        var ids = RF.parseJoinId(c.id) ? RF.parseJoinId(c.id).filter(function (p) { return p.r0 == null; }).map(function (p) { return p.id; }) : [c.id];
         ids.forEach(function (one) { if (!done[one]) done[one] = { name: one === c.id ? c.course.name : c.course.name + " 중", t: Date.now() }; });
         saveMap(DONE, done);
     }
@@ -2520,7 +2531,8 @@
     function courseUrls(id) {
         if (isGpxId(id)) return [];
         var parts = RF.parseJoinId(id);
-        return (parts ? parts.map(function (p) { return p.id; }) : [id]).map(function (x) { return "api/course?id=" + encodeURIComponent(x); });
+        var ids = parts ? parts.map(function (p) { return p.base; }).filter(function (x, i, a) { return a.indexOf(x) === i; }) : [id];
+        return ids.map(function (x) { return "api/course?id=" + encodeURIComponent(x); });
     }
 
     /** 저장 지우기 - 이 코스의 주소 중 다른 저장 코스가 쓰지 않는 것만 지웁니다. */
