@@ -93,7 +93,8 @@
         var p = RF.seriesProgress(s, stamps, done);
         var box = el("div", "card"), head = el("button"), nm = el("div", "nm", s.name), pg = el("div", "pg");
         head.type = "button";
-        nm.appendChild(el("small", null, s.ids ? s.ids.length + "코스 · " + Math.round(s.meters / 1000) + "km"
+        // 코리아둘레길: 두루누비 API 가 일부 코스만 줌 - 공식 코스 수(official)를 함께 보여 "다 걸었다" 로 오해하지 않게(2026-10-12 PC)
+        nm.appendChild(el("small", null, s.ids ? s.ids.length + "코스 · " + Math.round(s.meters / 1000) + "km" + (s.official ? " (공식 " + s.official + "코스 중 앱에 있는 것)" : "")
             : s.km + "km" + (s.centers ? " · 인증센터 " + s.centers.length + "곳" : " · " + s.courses + "코스")));
         pg.innerHTML = "<b>" + p.got + "</b> / " + p.of + " " + g.unit;
         head.appendChild(nm);

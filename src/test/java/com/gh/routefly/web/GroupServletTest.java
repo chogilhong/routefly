@@ -46,6 +46,7 @@ public class GroupServletTest {
                 }
                 if (o.has("q")) {   // 코리아둘레길 - 이름으로 찾음(/api/courses?q=), 검색어 길이 안
                     assertTrue(o.get("q").getAsString(), o.get("q").getAsString().length() <= CourseQueries.MAX_QUERY);
+                    assertTrue(o.get("name").getAsString() + " 공식 코스 수", o.has("official") && o.get("official").getAsInt() > 0);
                     named++;
                     continue;
                 }

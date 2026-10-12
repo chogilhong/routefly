@@ -35,12 +35,12 @@
     {
       "key": "korea", "title": "코리아둘레길", "icon": "🥾", "unit": "코스",
       "cert": { "by": "한국관광공사 두루누비 완보인증서", "url": "https://www.durunubi.kr/koreatrail-users-guide.do", "how": "두루누비 · 스탬프투어 · 민간 앱 기록이나 코스북 스탬프(해파랑길은 현장 스탬프도) → 두루누비 마이페이지에서 완보인증서 신청 → 우편" },
-      "_note": "두루누비(drnb-) 코스를 이름으로 찾음(q) - 코스 수 · 길이는 받아 온 자료로 셈(2026-10-11). 이름이 '해파랑길 1코스 · …' 꼴",
+      "_note": "두루누비(drnb-) 코스를 이름으로 찾음(q) - 코스 수 · 길이는 받아 온 자료로 셈(2026-10-11). 이름이 '해파랑길 1코스 · …' 꼴. official 은 두루누비 공식 코스 수(koreatrail-introduction.do, 2026-10-12 PC) - 두루누비 API 목록이 139줄뿐이라 앱에는 일부만 있음",
       "series": [
-        { "key": "haeparang", "name": "해파랑길", "q": "해파랑길" },
-        { "key": "namparang", "name": "남파랑길", "q": "남파랑길" },
-        { "key": "seohaerang", "name": "서해랑길", "q": "서해랑길" },
-        { "key": "dmzpeace", "name": "DMZ 평화의길", "q": "평화의", "match": "DMZ평화의길" }
+        { "key": "haeparang", "name": "해파랑길", "q": "해파랑길", "official": 50 },
+        { "key": "namparang", "name": "남파랑길", "q": "남파랑길", "official": 90 },
+        { "key": "seohaerang", "name": "서해랑길", "q": "서해랑길", "official": 109 },
+        { "key": "dmzpeace", "name": "DMZ 평화의길", "q": "평화의", "match": "DMZ평화의길", "official": 35 }
       ]
     },
     {
