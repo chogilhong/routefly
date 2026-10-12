@@ -84,22 +84,32 @@
                 if (info) t.appendChild(el("span", null, info));
                 row.appendChild(t);
                 // 코스 - 산 이름으로 찾아 정상 2km 안에서 끝나는(시작하는) 코스만, 누르면 펼침(미리보기 · 따라가기)
-                var more = el("button", "more", "코스 ▾"), list = el("div", "sublist"), got = false;
+                // state: 0 안 부름 · 1 부르는 중 · 2 받음 · 3 실패(다음 누름에 바로 다시 부름 - 2026-10-12 PC: 오류 뒤 첫 누름이 닫기만 했음)
+                var more = el("button", "more", "코스 ▾"), list = el("div", "sublist"), state = 0;
                 more.type = "button";
+                var setOpen = function (open) {
+                    list.classList.toggle("open", open);
+                    more.textContent = open ? "코스 ▴" : "코스 ▾";
+                };
                 more.addEventListener("click", function () {
-                    list.classList.toggle("open");
-                    more.textContent = list.classList.contains("open") ? "코스 ▴" : "코스 ▾";
-                    if (got) return;
-                    got = true;
+                    if (state === 1) return;
+                    if (state === 2) { setOpen(!list.classList.contains("open")); return; }
+                    setOpen(true);
+                    state = 1;
+                    list.textContent = "";
                     var wait = el("div", "tip", "코스를 찾는 중…");
                     list.appendChild(wait);
                     getJson("api/courses?q=" + encodeURIComponent(k.name)).then(function (j) {
                         if (!j || !Array.isArray(j.courses)) throw new Error("코스를 읽지 못했습니다. 잠시 뒤 다시 눌러 주세요.");
                         wait.remove();
+                        state = 2;
                         var cs = RF.peakCourses(j.courses, k, 2000).slice(0, 8);
                         if (!cs.length) list.appendChild(el("div", "tip", "정상까지 가는 코스를 찾지 못했습니다."));
                         cs.forEach(function (c) { list.appendChild(courseRow(c)); });
-                    }).catch(function (e) { got = false; wait.textContent = e.message || "코스를 읽지 못했습니다."; });
+                    }).catch(function (e) {
+                        state = 3;
+                        wait.textContent = (e.message || "코스를 읽지 못했습니다.") + " (코스 ▴ 를 다시 누르면 다시 찾습니다)";
+                    });
                 });
                 row.appendChild(more);
                 body.appendChild(row);
