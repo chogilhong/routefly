@@ -259,9 +259,10 @@
         el.appendChild(document.createTextNode(p.route));
     }
 
-    /** 글로만 쓸 곳(창 제목 등) - "[무리] 길". */
-    function nameText(name) {
+    /** 글로만 쓸 곳(창 제목 등) - "[무리] 길", routeFirst 면 "길 · 무리"(따라가기 탭 제목 - 머리글과 같게). */
+    function nameText(name, routeFirst) {
         var p = nameParts(name);
+        if (routeFirst && p.group) return p.route + " · " + p.group;
         return p.group ? "[" + p.group + "] " + p.route : p.route;
     }
 
