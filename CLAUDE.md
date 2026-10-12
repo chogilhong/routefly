@@ -41,6 +41,7 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다(route_course · 
 - DB · 톰캣은 웹에서 닿지 않습니다. 코드 수정과 테스트까지 하고 커밋 · push 합니다.
 - 배포(홍TV님 PC 에서 pull → 이클립스 F5, http://localhost:8080/routefly/)와 화면 · 로그 확인은 홍TV님 PC 의 Claude 가 합니다.
   마지막에 "홍TV님 PC 의 Claude 가 할 것" 으로 무엇을 확인하면 되는지 적어 둡니다.
+  제목 줄까지 코드 블록 안에 넣어 한 번에 복사되게 합니다(2026-10-12 홍TV님).
 - DB 표를 바꾸면 routefly-batch 의 `sql/route_ddl.sql` 에 남기고 "홍TV님이 실행할 것" 으로 적습니다.
 - 웹 Claude 도 휴대폰 알림을 보냅니다(2026-10-11 홍TV님 요청): 몇 분 넘게 걸린 작업을 마쳤을 때, 홍TV님 결정 · 승인이 필요할 때 PushNotification 으로 한 줄(할 일부터, 200자 안). 바로 답한 짧은 일에는 보내지 않습니다.
 
