@@ -158,6 +158,13 @@ near("distM", RF.distM(37, 127, 37.001, 127), 111, 1);
               { course_id: "down", start_lat: 35.1001, start_lon: 127.6 }, { course_id: "nocoord" }];
     eq("정상까지 가는 코스만 가까운 차례", RF.peakCourses(pc, pk[0]).map(function (c) { return c.course_id; }), ["down", "a", "b"]);
     eq("멀면 없음", RF.peakCourses(pc, { lat: 34, lon: 126 }).length, 0);
+    // 인증센터마다 따라갈 구간: 출발 → (마지막은) 도착 → 구간 안 센터는 앞 센터의 구간
+    var sjc = [{ course_id: "s1", name: "섬진강 자전거길 1구간 · 섬진강댐인증센터 → 향가유원지인증센터" },
+               { course_id: "s2", name: "섬진강 자전거길 2구간 · 향가유원지인증센터 → 배알도 수변공원 인증센터" }, { course_id: "x", name: "이름만" }];
+    eq("센터마다 구간", RF.centerCourses(sjc, ["섬진강댐", "장군목", "향가유원지", "남도대교", "배알도수변공원"]).map(function (c) { return c && c.course_id; }),
+        ["s1", "s1", "s2", "s2", "s2"]);
+    eq("앞에 없으면 뒤 구간 · 코스가 없으면 null", [RF.centerCourses(sjc, ["어디", "향가유원지"])[0].course_id, RF.centerCourses([], ["섬진강댐"])[0]], ["s2", null]);
+    eq("긴 공식 이름", RF.centerCourses([{ course_id: "g", name: "동해안 자전거길 1구간 · 통일전망대(민통선내)인증센터 → 북천철교인증센터" }], ["통일전망대"])[0].course_id, "g");
     eq("명산 자료가 비면 0", RF.seriesProgress({ peaks: [] }, {}, {}, {}), { got: 0, of: 0 });
     eq("숲길 진행", RF.seriesProgress({ prefix: "kmf-9900000006-", courses: 21 }, {}, { "kmf-9900000006-1": 1, "kmf-9900000006-2": 1, "kmf-9900000002-1": 1 }), { got: 2, of: 21 });
 })();

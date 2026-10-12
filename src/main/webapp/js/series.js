@@ -131,6 +131,7 @@
             box.classList.toggle("open");
             if (loaded) return;
             loaded = true;
+            var centerRows = [];
             if (s.centers) {
                 body.appendChild(el("div", "sub", "인증센터(차례대로)"));
                 s.centers.forEach(function (n) {
@@ -138,6 +139,7 @@
                     if (st) t.appendChild(el("span", null, "도장 " + day(st.t)));
                     row.appendChild(t);
                     body.appendChild(row);
+                    centerRows.push(row);
                 });
             }
             if (s.cert) body.appendChild(certLine(s.cert));
@@ -150,6 +152,16 @@
                 // 지리산둘레길: 주천-운봉부터 걷는 차례로. 자전거길: 구간 끝 → 다음 시작으로 땅 위 차례(끊긴 묶음의 뒷번호 구간도 제자리)
                 var list = s.chainFrom ? RF.chainOrder(j.courses, s.chainFrom) : s.centers ? RF.geoOrder(j.courses) : j.courses;
                 list.forEach(function (c) { body.appendChild(courseRow(c)); });
+                // 인증센터마다 그 센터를 지나는 구간의 미리보기 · 따라가기(2026-10-12 홍TV님)
+                if (centerRows.length) RF.centerCourses(list, s.centers).forEach(function (c, i) {
+                    if (!c) return;
+                    var id = encodeURIComponent(c.course_id), a = el("a", null, "미리보기"), b = el("a", "main", "따라가기");
+                    a.href = "index.html#c=" + id;
+                    b.href = "hike.html#c=" + id;
+                    a.title = b.title = RF.nameText(c.name);
+                    centerRows[i].appendChild(a);
+                    centerRows[i].appendChild(b);
+                });
             }).catch(function (e) { wait.textContent = e.message || "코스를 읽지 못했습니다."; });
         });
         return box;
