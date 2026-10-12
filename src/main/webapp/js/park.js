@@ -112,11 +112,26 @@
             new maplibregl.Marker({ element: e, anchor: "bottom" }).setLngLat([+p.lon, +p.lat]).addTo(map);
             places.push({ el: e, prio: -(p.ele_m == null ? 0 : +p.ele_m) - (RF.isTopName(p.name) ? 5000 : 0) });
         });
-        spotEls.forEach(function (e) { places.push({ el: e, prio: 1e6 }); });
+        // 이름표끼리 · 아이콘끼리 따로 겹침 거르기, 이름표에 걸린 아이콘은 그 이름표 바로 아래로 비킴(숨기지 않음) -
+        // 2026-10-12 PC: 반야봉 이름표와 같은 자리 헬기장이 어느 축척에서도 숨었음(점이 정상보다 북쪽이라 아래에 붙여도 이름표 칸 안)
+        var spots = spotEls.map(function (e) { return { el: e, prio: 0 }; });
+        function placeSpots() {
+            spotEls.forEach(function (e) { e.style.marginTop = "0px"; });
+            RF.declutter(spots);
+            var boxes = places.filter(function (it) { return !it.el.classList.contains("hid"); }).map(function (it) { return it.el.getBoundingClientRect(); });
+            spotEls.forEach(function (e) {
+                if (e.classList.contains("hid")) return;
+                var r = e.getBoundingClientRect(), push = 0;
+                boxes.forEach(function (l) {
+                    if (r.left < l.right && r.right > l.left && r.top + push < l.bottom && r.bottom + push > l.top) push = l.bottom + 2 - r.top;
+                });
+                if (push > 0) e.style.marginTop = push + "px";
+            });
+        }
         var timer = 0;
         map.on("render", function () {
             if (timer) return;
-            timer = setTimeout(function () { timer = 0; RF.declutter(places); }, 150);
+            timer = setTimeout(function () { timer = 0; RF.declutter(places); placeSpots(); }, 150);
         });
 
         var b = data.bbox;

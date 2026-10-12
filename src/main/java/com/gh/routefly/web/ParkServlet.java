@@ -47,8 +47,11 @@ public class ParkServlet extends HttpServlet {
     static final List<String> PARKS = List.of("지리산", "경주", "계룡산", "한려해상", "설악산", "속리산", "한라산", "내장산", "가야산", "덕유산",
             "오대산", "주왕산", "태안해안", "다도해해상", "북한산", "치악산", "월악산", "소백산", "월출산", "변산반도", "무등산", "태백산", "팔공산");
 
-    /** 산 이름(도립 · 군립공원 · 다른 산) - 한글 1~12자 + 산 · 봉 · 악 · 령 · 대. */
-    static final java.util.regex.Pattern MOUNTAIN = java.util.regex.Pattern.compile("^[가-힣]{1,12}(산|봉|악|령|대)$");
+    /**
+     * 산 이름(도립 · 군립공원 · 다른 산) - (숫자 0~4자) + 한글 1~12자 + 산 · 봉 · 악 · 령 · 대.
+     * 화면 RF.mountainOf 와 같은 규칙(2026-10-12 PC: "157고지우송대뒷산" 전체 보기가 400 - 화면만 고쳤었음).
+     */
+    static final java.util.regex.Pattern MOUNTAIN = java.util.regex.Pattern.compile("^[0-9]{0,4}[가-힣]{1,12}(산|봉|악|령|대)$");
 
     /** 산 모드에서 from 코스 둘레로 볼 범위(도, 위도 · 경도 반쪽 폭) - 약 15km. */
     static final double AROUND_DEG = 0.14;
