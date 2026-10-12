@@ -29,9 +29,10 @@
 
 앱은 `capacitor.config.json` 의 `server.url` 을 띄웁니다. 지금은 Cloudflare 터널 주소를 넣습니다(켤 때마다 바뀜).
 ```
-cloudflared tunnel --url http://localhost:8080        (다른 PowerShell 창에서 켜 둠)
+cloudflared tunnel --url http://localhost:8090        (다른 PowerShell 창에서 켜 둠 - nginx 의 터널 전용 입구, nginx 도 켜져 있어야 함)
 npm run url -- https://abc-def.trycloudflare.com      (나온 주소 - 뒤에 /routefly/hike.html 이 붙고 안드로이드 프로젝트에 반영)
 ```
+8090 은 홍TV님 PC nginx 가 127.0.0.1 에만 여는 입구입니다(2026-10-12 - 톰캣 8080 을 바로 내놓지 않고, 낯선 주소를 막을 수 있게). nginx 가 꺼져 있으면 터널이 502.
 공개 서버가 생기면 그 주소를 한 번 넣으면 됩니다: `npm run url -- https://routefly.kr/routefly/hike.html`
 
 ## 핸드폰에 설치해 보기

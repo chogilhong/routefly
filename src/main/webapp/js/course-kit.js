@@ -94,7 +94,7 @@
     function cleanName(name) {
         var n = String(name || "").trim().replace(/\s+/g, " ");
         // 한글 이름 뒤 영어 이름은 뺌("피아골 대피소 Piagol Shelter" - OSM, 2026-10-12 지리산 전체 보기 글자 겹침)
-        if (/[가-힣]/.test(n)) n = n.replace(/\s+[A-Za-z][A-Za-z0-9 '.\-]*$/, "");
+        if (/[가-힣]/.test(n)) n = n.replace(/\s*\([A-Za-z0-9 '.\-]*\)\s*$/, "").replace(/\s+[A-Za-z][A-Za-z0-9 '.\-]*$/, "");   // 괄호 안 영어도("안부1 (Anbu 1)")
         var cut = n.replace(/^\S{0,12}?(국립공원(관리)?(공단|사무소)?|도립공원(관리)?사무소|군립공원(관리)?사무소|관리사무소)\s*(?=\S*(탐방지원센터|탐방안내소|안내소|안내센터|분소|매표소))/, "").trim();
         if (cut.length < 2) cut = n;
         return cut.replace(/\s+(탐방지원센터|탐방안내소|안내소|분소|매표소|대피소|휴게소|주차장|폭포)$/, "$1");
@@ -300,7 +300,8 @@
             if (pick < 0 && head.length >= 2 && /^[가-힣]{1,12}(봉|악|령|대)(\(.*\))?$/.test(head[1])) pick = 1;
             if (pick > 0) n = head.slice(pick).join(" ");
         }
-        var m = /^([가-힣]{1,12}(산|봉|악|령|대))(?=[\s·(]|$)/.exec(n);
+        // 숫자로 시작하는 산 이름도("157고지우송대뒷산" - 2026-10-12 PC: 전체 보기 단추가 없었음)
+        var m = /^([0-9]{0,4}[가-힣]{1,12}(산|봉|악|령|대))(?=[\s·(]|$)/.exec(n);
         return m ? m[1] : null;
     }
 

@@ -102,7 +102,9 @@ near("distM", RF.distM(37, 127, 37.001, 127), 111, 1);
     eq("산림청 - 봉우리만", RF.mountainOf("양평 용문봉 · 용문사 → 용문봉", "frst-6-1"), "용문봉");
     eq("봉우리 코스는 앞 낱말 그대로", RF.mountainOf("백운산 박달봉 2코스 · 흥룡사 → 박달봉", "kmp-1311010219-2"), "백운산");
     eq("팔공산은 국립공원(2023)", RF.parkOf("팔공산 · 동화사 → 비로봉"), "팔공산");
-    eq("영어 이름 뺌", [RF.cleanName("피아골 대피소 Piagol Shelter"), RF.cleanName("Seoraksan"), RF.cleanName("K2 봉")], ["피아골대피소", "Seoraksan", "K2 봉"]);
+    eq("영어 이름 뺌", [RF.cleanName("피아골 대피소 Piagol Shelter"), RF.cleanName("Seoraksan"), RF.cleanName("K2 봉"), RF.cleanName("안부1 (Anbu 1)"), RF.cleanName("두륜산 (가련봉)")],
+        ["피아골대피소", "Seoraksan", "K2 봉", "안부1", "두륜산 (가련봉)"]);
+    eq("숫자로 시작하는 산", RF.mountainOf("157고지우송대뒷산 · 주차장 → 157고지우송대뒷산 정상", "frst-301105804-12cb69"), "157고지우송대뒷산");
     // 인증센터 도장 · 완주
     eq("도장 열쇠", [RF.stampKey("섬진강댐인증센터"), RF.stampKey("배알도 수변공원 인증센터"), RF.stampKey("장군목")], ["섬진강댐", "배알도수변공원", "장군목"]);
     var sc = { pois: [{ name: "섬진강댐인증센터", lat: 35.5207, lon: 127.1495 }, { name: "장군목인증센터", lat: 35.4605, lon: 127.2014 }, { name: "망월", lat: 35.52, lon: 127.15 }] };

@@ -98,7 +98,8 @@
             e.className = "spot";
             e.textContent = RF.spotIcon(sp.kind);
             e.title = RF.spotText(sp);
-            new maplibregl.Marker({ element: e }).setLngLat([+sp.lon, +sp.lat]).addTo(map);
+            // 점 아래쪽에 붙임 - 이름표는 점 위쪽(anchor bottom)이라 같은 자리(반야봉 · 헬기장)여도 늘 숨지 않게(2026-10-12 PC)
+            new maplibregl.Marker({ element: e, anchor: "top" }).setLngLat([+sp.lon, +sp.lat]).addTo(map);
             spotEls.push(e);
         });
         // 이름표 - 높은 봉우리 먼저 보이게(겹치면 낮은 것을 숨김)
