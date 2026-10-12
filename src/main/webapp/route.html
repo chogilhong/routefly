@@ -28,6 +28,8 @@ body { display:flex; flex-direction:column; height:100dvh; }
 #msg { position:absolute; left:50%; top:40%; transform:translate(-50%,-50%); z-index:3; background:rgba(0,0,0,0.7); padding:10px 14px;
        border-radius:10px; font-size:14px; text-align:center; max-width:86%; }
 #sheet { flex:0 0 auto; background:var(--panel); border-top:1px solid var(--ln); padding:10px 12px calc(env(safe-area-inset-bottom) + 10px); }
+/* 구간을 고르면 아래 칸이 90 → 152px 로 커져 지도가 밀렸음(이어 누를 때 자리가 바뀜 - 2026-10-12 PC) - 처음부터 그 높이, 내용은 아래로 */
+#sheet { box-sizing:border-box; min-height:calc(154px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; justify-content:flex-end; }
 #sheet .nm { font-size:14.5px; font-weight:bold; }
 #sheet .st { font-size:12.5px; color:var(--dim); margin:3px 0 8px; }
 #sheet .row { display:flex; gap:8px; }

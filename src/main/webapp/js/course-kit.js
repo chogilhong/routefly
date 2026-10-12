@@ -237,9 +237,19 @@
     }
 
     /** el 에 코스 이름을 "[무리] 길" 로(무리는 흐리게). 글은 textContent 로만 넣습니다. */
-    function showName(el, name) {
+    function showName(el, name, routeFirst) {
         var p = nameParts(name);
         el.textContent = "";
+        // routeFirst - 좁은 머리글(따라가기 제목)은 길("하동호 → 덕산")을 앞에, 무리는 뒤에 흐리게.
+        // 2026-10-12 홍TV님: "[지리산둘레길 2구…" 에서 잘려 어느 쪽으로 가는지 안 보였음
+        if (routeFirst && p.group) {
+            el.appendChild(document.createTextNode(p.route + " "));
+            var g2 = document.createElement("span");
+            g2.className = "rf-grp";
+            g2.textContent = "· " + p.group;
+            el.appendChild(g2);
+            return;
+        }
         if (p.group) {
             var g = document.createElement("span");
             g.className = "rf-grp";
