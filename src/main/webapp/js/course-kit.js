@@ -98,8 +98,10 @@
     function summitName(name) {
         var n = String(name || "").trim();
         if (!/정상$/.test(n)) return n;
-        var words = n.replace(/\s*정상$/, "").trim().split(/\s+/), bong = null;
+        var words = n.replace(/\s*정상$/, "").trim().split(/\s+/), bong = null, last = words[words.length - 1];
         words.forEach(function (w) { if (/[가-힣]봉(\(.*\))?$/.test(w)) bong = w; });
+        // 고개의 "정상" 은 고갯마루 - 고개 이름을 그대로(2026-10-12 홍TV님: "진부령정상" → 진부령, 등산 · 걷기 · 자전거 모두)
+        if (!bong && /[가-힣](령|재|고개|치|티)$/.test(last)) return last;
         return bong || "정상";
     }
 
@@ -462,6 +464,8 @@
         (rows || []).forEach(function (r) {
             var park = parkOf(r.name), n = park || mountainOf(r.name, r.course_id);
             if (!n) return;
+            // 백두대간 · 정맥 무리("백두대간건의령고적대")는 산이 아님 - 노선 안내도(routeGuides)로(2026-10-12 PC)
+            if (!park && /대간|정맥/.test(nameParts(r.name).group || String(r.name || ""))) return;
             var lat = +r.start_lat, lon = +r.start_lon, has = r.start_lat != null && isFinite(lat) && isFinite(lon);
             // 국립공원 코스는 이름으로 한 장. 그 밖은 같은 이름이고 그 묶음 어느 코스 출발점과 20km 안이면 같은 산
             // (산림청 지리산 코스 → 지리산 국립공원), 멀면 다른 산(광양 · 정선 백운산, 통영 지리산)
