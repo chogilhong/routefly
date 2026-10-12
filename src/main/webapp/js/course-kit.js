@@ -348,7 +348,20 @@
         });
         c.total = c.dist.length ? c.dist[c.dist.length - 1] : 0;
         c.asc = cumAscent(c.ele);
+        endPois(c);
         return c;
+    }
+
+    /**
+     * 출발 · 도착 자리에 이름표가 없으면 코스 이름의 출발 · 도착 이름으로 하나씩(지도 · 고도 그래프 이름표).
+     * 2026-10-12 PC: 국가숲길(kmf) 코스는 이름표가 없어 그래프 이름 0개 · 지도 "출발 · 도착" 만 - "지리산둘레길 가탄-송정" 이면 가탄 · 송정.
+     */
+    function endPois(c) {
+        var n = c.lon.length - 1, e = routeEnds(c.course && c.course.name);
+        if (n < 1) return;
+        var near = function (d) { return c.pois.some(function (q) { return Math.abs(+q.dist_m - d) < 60 && +q.off_route_m < 60; }); };
+        if (e.from && !near(0)) c.pois.unshift({ name: e.from, lat: c.lat[0], lon: c.lon[0], ele_m: c.ele[0], dist_m: 0, off_route_m: 0, end: true });
+        if (e.to && !near(c.total)) c.pois.push({ name: e.to, lat: c.lat[n], lon: c.lon[n], ele_m: c.ele[n], dist_m: c.total, off_route_m: 0, end: true });
     }
 
     /** 지금 자리에서 이 거리(m) 안의 위치표지판만 "가까운 표지" 로 봅니다(멀면 구조대에 헷갈림). */
@@ -1046,6 +1059,9 @@
     function reverseName(name) {
         name = name || "";
         var a = name.indexOf(" → ");
+        // 국가숲길 "지리산둘레길 가탄-송정" → "지리산둘레길 송정-가탄"(2026-10-12 PC: "(거꾸로)" 대신)
+        var ab = a < 0 && /^(.*?)([가-힣]+)-([가-힣]+)(\s*\)?\s*)$/.exec(name);
+        if (ab) return ab[1] + ab[3] + "-" + ab[2] + ab[4];
         if (a < 0) return name + " (거꾸로)";
         var dot = name.lastIndexOf(" · ", a);
         var head = dot >= 0 ? name.slice(0, dot + 3) : "";

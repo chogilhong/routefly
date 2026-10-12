@@ -195,7 +195,7 @@ j.pois = [{ name: "중간쉼터", dist_m: 555, off_route_m: 0, lat: 37.005, lon:
           { name: "갈림길", dist_m: 300, off_route_m: 0 },
           { name: "주차장", dist_m: 0, off_route_m: 300, lat: 37, lon: 127.003 }];
 var c = RF.fromApi("t1", j);
-eq("fromApi 갈림길은 이름표가 아님", c.pois.map(function (p) { return p.name; }).sort(), ["주차장", "중간쉼터"]);
+eq("fromApi 갈림길은 이름표가 아님(출발 · 도착 이름표 가 · 나 는 이름에서)", c.pois.map(function (p) { return p.name; }).sort(), ["가", "나", "주차장", "중간쉼터"]);
 eq("fromApi 갈림길 거리", c.junctions, [300]);
 near("total", c.total, 1110, 5);
 near("at 가운데 고도", RF.at(c, c.total / 2).ele, 50, 1);
@@ -305,6 +305,10 @@ var jl = { k2: [[127.76405, 35.43666], [127.68559, 35.40358]], k5: [[127.76405, 
     k18: [[127.68572, 35.40364], [127.6019, 35.45919]], k15: [[127.52902, 35.44146], [127.60595, 35.45884]] };
 eq("routeFlips 이름과 거꾸로 그린 선", Object.keys(RF.routeFlips(jr, jl)).sort(), ["k18", "k2"]);
 eq("거꾸로 그린 선은 지명도 바꿔", RF.routePlaces(jr, jl).map(function (p) { return p.name + ":" + p.start; }), ["동강:0", "금계:2", "수철:-1", "인월:-1", "운봉:3"]);
+eq("reverseName 국가숲길", RF.reverseName("지리산둘레길 가탄-송정"), "지리산둘레길 송정-가탄");
+var kc = RF.fromApi("kmf-9900000006-1", { course: { name: "지리산둘레길 가탄-송정" }, points: [[127.634, 35.2005, 100, 0], [127.6, 35.203, 300, 5000], [127.573, 35.206, 120, 9960]], pois: [] });
+eq("국가숲길 출발 · 도착 이름표", kc.pois.map(function (p) { return p.name + "@" + p.dist_m; }), ["가탄@0", "송정@9960"]);
+eq("거꾸로 하면 이름표도", RF.reverseCourse(kc).pois.map(function (p) { return p.name + "@" + p.dist_m; }), ["송정@0", "가탄@9960"]);
 eq("둘레길 노선 안내도 카드", RF.routeGuides([{ course_id: "drnb-1", name: "해파랑길 1코스 · 오륙도해맞이공원 → 해운대해수욕장" },
     { course_id: "drnb-2", name: "해파랑길 2코스 · 해운대 → 대변항" }, { course_id: "drnb-3", name: "DMZ 평화의 길 19-1코스(우회로) · 승라부대까지" }, { course_id: "drnb-9", name: "이름만" }]),
     [{ trail: "해파랑길", name: "해파랑길", kind: "walk", n: 2 }, { trail: "DMZ 평화의 길", name: "DMZ 평화의 길", kind: "walk", n: 1 }]);
