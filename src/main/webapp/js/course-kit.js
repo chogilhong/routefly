@@ -97,6 +97,31 @@
      */
     var NOT_PASS = ["고수치"];
 
+    /**
+     * 순수 함수 - 노선 안내도의 구간 시작 · 끝 지명(2026-10-12 홍TV님). courses 는 그릴 차례, lines 는 {코스ID: [[경도, 위도]…]}.
+     * 이름은 코스 이름 길("복지봉 → 팔성사")의 처음과 끝. 앞 구간 끝과 다음 구간 시작처럼 nearM 안에 이미 지명이 있으면 하나만.
+     * → [{name, lon, lat, start: 이 지명에서 시작하는 courses 번호(없으면 -1)}]
+     */
+    function routePlaces(courses, lines, nearM) {
+        var near = nearM == null ? 500 : nearM, out = [];
+        function add(name, p, start) {
+            name = cleanName(name || "");
+            // 어디나 있는 이름(삼각점 · 정상 · 안부 · 갈림길 …)은 지명이 아님 - 그 자리는 끝 점만
+            if (!p || !name || /^(삼각점|정상|안부\s*\d*|갈림길|삼거리|사거리|헬기장|이정표)$/.test(name)) name = "";
+            if (!p) return;
+            var at = out.filter(function (o) { return distM(o.lat, o.lon, p[1], p[0]) < near; })[0];
+            if (at) { if (start >= 0 && at.start < 0) at.start = start; if (!at.name) at.name = name; return; }
+            out.push({ name: name, lon: p[0], lat: p[1], start: start });
+        }
+        (courses || []).forEach(function (c, i) {
+            var line = lines && lines[c.course_id], parts = nameParts(c.name).route.split(" → ");
+            if (!line || !line.length || parts.length < 2) return;
+            add(parts[0], line[0], i);
+            add(parts[parts.length - 1], line[line.length - 1], -1);
+        });
+        return out.filter(function (o, k) { o.last = k === out.length - 1; return o.name; });
+    }
+
     function summitName(name) {
         var n = String(name || "").trim();
         if (!/정상$/.test(n)) return n;
@@ -1455,6 +1480,6 @@
     global.RF = {
         LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, stampKey: stampKey, summitName: summitName, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakCourses: peakCourses, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
-        sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
+        sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, routePlaces: routePlaces, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
     };
 })(window);
