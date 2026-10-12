@@ -1518,7 +1518,8 @@
                 for (var key in q) if (Object.prototype.hasOwnProperty.call(q, key)) r[key] = q[key];
                 r.dist_m = off + (+q.dist_m);
                 // 이은 곳의 끝 이름표는 하나만(앞 구간 도착 = 다음 구간 출발)
-                if (k > 0 && q.end && +q.dist_m < 1 && c.pois.some(function (o) { return o.name === q.name && Math.abs(+o.dist_m - r.dist_m) < 60; })) return;
+                // 이름표가 끝 이름이든 지점 이름표든(2026-10-12 PC: 원점회귀 그래프에 천왕봉이 바로 붙어 두 번)
+                if (k > 0 && +q.dist_m < 60 && c.pois.some(function (o) { return o.name === q.name && Math.abs(+o.dist_m - r.dist_m) < 60; })) return;
                 c.pois.push(r);
             });
             (p.junctions || []).forEach(function (d) { c.junctions.push(off + d); });
