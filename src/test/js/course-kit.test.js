@@ -259,6 +259,11 @@ eq("노선 안내도 카드", RF.routeGuides([{ course_id: "osmb-6374513-1", nam
 eq("백두대간 · 정맥 노선 안내도 카드", RF.routeGuides([{ course_id: "osmh-9439787-1", name: "백두대간 1구간 · 진부령정상 → 황철봉 너덜지대" },
     { course_id: "osmh-9439787-46", name: "백두대간 46구간 · 노고단대피소 → 천왕봉" }, { course_id: "osmh-19179556-7", name: "낙남정맥 7구간 · 진고개가든휴게소 → 삼각점" }]),
     [{ prefix: "osmh-9439787-", name: "백두대간", kind: "ridge", n: 2 }, { prefix: "osmh-19179556-", name: "낙남정맥", kind: "ridge", n: 1 }]);
+eq("courseNo", ["해파랑길 21코스(영덕 블루로드 4코스) · 영덕해맞이공원 → 축산리", "서해랑길 64-3(지선3코스) · 시장순대 → 황태마을",
+    "서해랑길 3코스 · 영터 → 산소", "DMZ 평화의 길 19-1코스(우회로) · 승라부대까지", "백두대간 46구간 · 노고단대피소 → 천왕봉", "지리산둘레길 주천-운봉"].map(RF.courseNo),
+    ["21", "64-3", "3", "19-1", "46", null]);
+eq("trailCourses 지선 번호 차례", RF.trailCourses([{ name: "서해랑길 64-3(지선3코스) · 시장순대 → 황태마을" }, { name: "서해랑길 3코스 · 영터 → 산소" },
+    { name: "서해랑길 64코스 · 가 → 나" }], "서해랑길").map(function (c) { return RF.courseNo(c.name); }), ["3", "64", "64-3"]);
 eq("둘레길 노선 안내도 카드", RF.routeGuides([{ course_id: "drnb-1", name: "해파랑길 1코스 · 오륙도해맞이공원 → 해운대해수욕장" },
     { course_id: "drnb-2", name: "해파랑길 2코스 · 해운대 → 대변항" }, { course_id: "drnb-3", name: "DMZ 평화의 길 19-1코스(우회로) · 승라부대까지" }, { course_id: "drnb-9", name: "이름만" }]),
     [{ trail: "해파랑길", name: "해파랑길", kind: "walk", n: 2 }, { trail: "DMZ 평화의 길", name: "DMZ 평화의 길", kind: "walk", n: 1 }]);

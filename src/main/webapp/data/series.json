@@ -42,7 +42,7 @@
         { "key": "haeparang", "name": "해파랑길", "q": "해파랑길", "official": 50 },
         { "key": "namparang", "name": "남파랑길", "q": "남파랑길", "official": 90 },
         { "key": "seohaerang", "name": "서해랑길", "q": "서해랑길", "official": 109 },
-        { "key": "dmzpeace", "name": "DMZ 평화의길", "q": "평화의", "match": "DMZ평화의길", "official": 35 }
+        { "key": "dmzpeace", "name": "DMZ 평화의 길", "q": "평화의", "match": "DMZ평화의길", "official": 35 }
       ]
     },
     {

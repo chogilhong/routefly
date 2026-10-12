@@ -40,15 +40,15 @@
     /** 둘레길 · 백두대간 · 정맥 - 코스(구간)마다 시작점에 번호(1, 2, 19-1 …). */
     function drawCourseNumbers() {
         data.courses.forEach(function (c) {
-            var line = data.lines[c.course_id], m = /(\d+(?:-\d+)?)\s*(?:코스|구간)/.exec(String(c.name || ""));
-            if (!line || !m) return;
+            var line = data.lines[c.course_id], no = RF.courseNo(c.name);
+            if (!line || !no) return;
             var e = document.createElement("div");
             e.className = "ctr num";   // 넓게 볼 때 겹치는 번호는 숨김(확대하면 보임)
             e.innerHTML = '<div class="no"></div>';
-            e.querySelector(".no").textContent = m[1];
+            e.querySelector(".no").textContent = no;
             e.title = RF.nameText(c.name);
             new maplibregl.Marker({ element: e }).setLngLat(line[0]).addTo(map);
-            ctrs.push({ el: e, prio: +m[1].split("-")[0] });
+            ctrs.push({ el: e, prio: +no.split("-")[0] });
         });
     }
 
