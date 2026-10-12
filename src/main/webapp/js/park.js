@@ -82,17 +82,18 @@
         var flag = function (txt, at) {
             var e = document.createElement("div");
             e.className = "flag";
-            e.textContent = txt;
+            RF.nameNodes(e, txt);   // 탐방지원센터는 작은 글씨
             return new maplibregl.Marker({ element: e, anchor: "bottom-left" }).setLngLat(at).addTo(map);
         };
-        startMk = flag(plan.loop ? "🚩 출발 · 도착" : "🚩 출발", plan.start);
-        if (!plan.loop) endMk = flag("🏁 도착", plan.end);
         var ends = function (s) {
             var e = RF.routeEnds(byId[s.id].name), a = flips[s.id] ? e.to : e.from, b = flips[s.id] ? e.from : e.to;
             return s.rev ? [b, a] : [a, b];
         };
         var round = plan.loop, full = sel;
         var from = ends(sel[0])[0], to = round ? from : ends(sel[sel.length - 1])[1], one = full.length === 1 ? byId[full[0].id] : null;
+        // 깃발에 들머리 이름(서버 heads 가 없어도 - 2026-10-12 홍TV님: 탐방 안내도에 중산리탐방지원센터가 안 보였음)
+        startMk = flag((round ? "🚩 출발 · 도착 " : "🚩 출발 ") + (from || ""), plan.start);
+        if (!round) endMk = flag("🏁 도착 " + (to || ""), plan.end);
         var meters = full.reduce(function (m, s) { return m + (+byId[s.id].distance_m || 0); }, 0);
         $("sheet").innerHTML = "";
         var nm = document.createElement("div");
