@@ -240,6 +240,12 @@ eq("국립공원 코스 · 산림청 코스는 한 산, 멀리 같은 이름은 
     { course_id: "frst-482202301-c", name: "통영 지리산 · 돈지 → 지리산", start_lat: 34.85, start_lon: 128.20 },
     { course_id: "knps-9-d", name: "지리산 · 성삼재 → 노고단", start_lat: 35.29, start_lon: 127.51 }], 3, "지리산").map(function (g) { return g.label + ":" + g.n; }),
     ["지리산:3", "통영 지리산:1"]);
+eq("지역 없는 같은 이름은 들머리로 가름 · 사량도지리산은 통영 지리산과 한 산", RF.guideMaps([
+    { course_id: "kmp-1-a", name: "백운산 · 흥룡사 → 백운산", start_lat: 38.07, start_lon: 127.44 }, { course_id: "kmp-1-b", name: "백운산 · 광덕고개 → 백운산", start_lat: 38.10, start_lon: 127.44 },
+    { course_id: "frst-431502201-c", name: "백운산 · 오두재 → 백운산", start_lat: 37.27, start_lon: 128.59 },
+    { course_id: "frst-482202301-d", name: "통영 지리산 · 돈지 → 지리산", start_lat: 34.85, start_lon: 128.20 },
+    { course_id: "kmp-5383010368-1", name: "사량도지리산 · 내지 → 지리산", start_lat: 34.84, start_lon: 128.21 }], 5).map(function (g) { return g.label + ":" + g.n; }),
+    ["백운산(흥룡사):2", "통영 지리산:2", "백운산(오두재):1"]);
 eq("검색어 든 산이 없으면 모두", RF.guideMaps(bw3, 3, "공주").length, 3);
 eq("안내도 많아야 3개", RF.guideMaps(["가산", "나산", "다산", "라산"].map(function (m, i) { return { course_id: "frst-" + i + "-x", name: "시 " + m + " · 들머리 → " + m }; })).length, 3);
 eq("isTopName 대피소 아님", RF.isTopName("장터목대피소"), false);

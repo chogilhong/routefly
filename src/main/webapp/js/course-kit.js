@@ -459,8 +459,10 @@
             var lat = +r.start_lat, lon = +r.start_lon, has = r.start_lat != null && isFinite(lat) && isFinite(lon);
             // 국립공원 코스는 이름으로 한 장. 그 밖은 같은 이름이고 그 묶음 어느 코스 출발점과 20km 안이면 같은 산
             // (산림청 지리산 코스 → 지리산 국립공원), 멀면 다른 산(광양 · 정선 백운산, 통영 지리산)
+            // 이름이 같거나 한쪽이 다른 쪽으로 끝나면(사량도지리산 · 지리산 - 통영 사량도) 같은 이름으로 봄
+            var same = function (o) { return o.name === n || (o.name.length > n.length ? o.name.slice(-n.length) === n : n.slice(-o.name.length) === o.name); };
             var g = order.filter(function (o) {
-                if (o.name !== n) return false;
+                if (!same(o)) return false;
                 if (park && o.park) return true;
                 return has ? o.pts.some(function (q) { return distM(lat, lon, q[0], q[1]) < 20000; }) : !o.pts.length;
             })[0];
@@ -470,14 +472,29 @@
                 order.push(g);
             }
             if (park && !g.park) { g.park = true; g.label = n; g.from = r.course_id; }   // 국립공원 코스가 있으면 그 이름 · 그 코스로
+            else if (g.label === g.name) {   // 지역이 붙은 무리 이름("포천 백운산")이 뒤에 나오면 그것으로
+                var grp2 = nameParts(r.name).group || "";
+                if (grp2.indexOf(n) > 0 && grp2.length <= n.length + 6) g.label = grp2;
+            }
+            if (!g.start) g.start = firstPlace(r.name);
             if (has) g.pts.push([lat, lon]);
             g.n++;
         });
         var key = String(q || "").replace(/\s+/g, "");
         var hit = key ? order.filter(function (g) { return g.label.replace(/\s+/g, "").indexOf(key) >= 0; }) : [];
-        return (hit.length ? hit : order).map(function (g, i) { return { g: g, i: i }; })
+        var out = (hit.length ? hit : order).map(function (g, i) { return { g: g, i: i }; })
             .sort(function (a, b) { return b.g.n - a.g.n || a.i - b.i; })
-            .slice(0, max || 3).map(function (x) { return { name: x.g.name, label: x.g.label, from: x.g.from, n: x.g.n }; });
+            .slice(0, max || 3).map(function (x) { return x.g; });
+        // 그래도 같은 이름표가 둘 이상이면(지역 없는 백운산 둘) 첫 코스 들머리로 가름: "백운산(오두재)"
+        var dup = out.map(function (g) { return out.filter(function (o) { return o.label === g.label; }).length > 1; });
+        out.forEach(function (g, i) { if (dup[i] && g.start) g.label += "(" + g.start + ")"; });
+        return out.map(function (g) { return { name: g.name, label: g.label, from: g.from, n: g.n }; });
+    }
+
+    /** 순수 함수 - 코스 이름의 들머리("백운산 · 오두재 → 백운산" → 오두재). 없으면 null. */
+    function firstPlace(name) {
+        var r = nameParts(name).route.split(" → ")[0].trim();
+        return r && r !== nameParts(name).route ? r : null;
     }
 
     /** 순수 함수 - 코스를 끝까지 갔다고 볼까(가장 멀리 간 곳이 코스 길이의 90% 넘음). */
