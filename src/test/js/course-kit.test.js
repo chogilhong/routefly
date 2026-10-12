@@ -408,6 +408,16 @@ eq("planWalk 그냥 길(갈래 없음)은 한쪽으로 - 들머리 → 정상", 
 eq("planWalk 이어지지 않으면 안 됨", RF.planWalk(["s", "p"], pw, {}).ok, false);
 var pw3 = { a: [[127.0, 35.0], [127.0, 35.02]], b: [[127.0, 35.02], [127.02, 35.0]] };
 eq("planWalk 들머리 둘이면 한쪽으로", RF.planWalk(["a", "b"], pw3, { heads: [{ lat: 35.0, lon: 127.0 }, { lat: 35.0, lon: 127.02 }] }).loop, false);
+// 정상 앞에서 두 조각으로 잘린 막다른 갈래(R ─c1─ C ─c2─ S) + 동쪽 길로 들머리 옆(B, T 에서 260m)
+var pw4 = { s: [[127.0, 35.0], [127.0, 35.01]], w: [[127.0, 35.01], [127.0, 35.03]], c1: [[127.0, 35.03], [127.0, 35.036]], c2: [[127.0, 35.036], [127.0, 35.04]],
+    e: [[127.0, 35.03], [127.01, 35.02], [127.0025, 35.001]] };
+var pl4 = RF.planWalk(["s", "w", "c1", "c2", "e"], pw4, { heads: [{ lat: 35.0, lon: 127.0 }, { lat: 35.001, lon: 127.0025 }], first: "s" });
+eq("planWalk 두 조각 막다른 갈래도 왕복", [pl4.ok, pl4.loop, pl4.walk.map(function (x) { return x.id + (x.rev ? "~" : ""); }).join(",")], [true, true, "s,w,c1,c2,c2~,c1~,e"]);
+eq("planWalk 이어지지 않음은 apart", RF.planWalk(["s", "c2"], pw4, {}).reason, "apart");
+eq("trailHeads 막다른 끝 가운데 들머리만(봉우리 빼고, 탐방지원센터 이름 먼저)", RF.trailHeads([
+    { id: "a", name: "지리산 · 중산리 → 칼바위", coords: [[127.0, 35.0], [127.0, 35.01]] }, { id: "b", name: "지리산 · 칼바위 → 천왕봉", coords: [[127.0, 35.01], [127.0, 35.02]] },
+    { id: "c", name: "지리산 · 대원사 → 칼바위", coords: [[127.02, 35.01], [127.0, 35.01]] }], [{ name: "중산리탐방지원센터", lat: 35.0005, lon: 127.0 }], {})
+    .map(function (h) { return h.name; }), ["중산리탐방지원센터", "대원사"]);
 var full = RF.fromApi("r", { course: { name: "산 · 가 → 라" }, points: [[127.0, 35.0, 100, 0], [127.011, 35.0, 200, 1000], [127.022, 35.0, 150, 2000], [127.033, 35.0, 300, 3000]], pois: [] });
 var sl = RF.sliceCourse(full, 1 / 3, 2 / 3, "산 · 나 → 다", "r@0.3333-0.6667:나>다");
 eq("sliceCourse 거리 · 이름표", [Math.round(sl.total), sl.pois.map(function (p) { return p.name; }).join(","), sl.course.ascent_m], [1000, "나,다", 0]);

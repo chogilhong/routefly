@@ -67,7 +67,9 @@
                 if (chosen.length && !planOf(chosen).ok) chosen = [];
             } else {
                 chosen.push(t.id);
-                if (!planOf(chosen).ok) chosen = [t.id];
+                // 아직 이어지지 않은 탐방로는 기다렸다 이어 주는 탐방로를 누르면 합침(2026-10-13 PC: 누르는 차례에 따라 새로 골라졌음),
+                // 걸을 수 없는 모양일 때만 그 탐방로로 새로
+                if (planOf(chosen).reason === "shape") chosen = [t.id];
             }
         }
         var plan = chosen.length ? planOf(chosen) : { ok: false };
@@ -77,6 +79,14 @@
         }) });
         if (startMk) { startMk.remove(); startMk = null; }
         if (endMk) { endMk.remove(); endMk = null; }
+        if (!sel.length && chosen.length) {   // 고른 것이 아직 이어지지 않음
+            $("sheet").innerHTML = "";
+            var w = document.createElement("div");
+            w.className = "tip";
+            w.textContent = chosen.length + "구간을 골랐습니다. 아직 이어지지 않은 구간이 있습니다 - 사이 탐방로를 더 누르세요(다시 누르면 뺍니다).";
+            $("sheet").appendChild(w);
+            return;
+        }
         if (!sel.length) { $("sheet").innerHTML = emptySheet; return; }
         // 출발(들머리) · 도착을 지도에(2026-10-12 홍TV님: 중산리탐방지원센터가 들머리인데 지도에 표시)
         var flag = function (txt, at) {
@@ -216,15 +226,20 @@
             spotEls.push(e);
         });
         // 이름표 - 높은 봉우리 먼저 보이게(겹치면 낮은 것을 숨김)
-        // 들머리(탐방지원센터 · 탐방안내소)도 지도에(2026-10-12 홍TV님) - 같은 이름 이름표가 이미 있으면 빼고
+        // 들머리 · 날머리를 지도에(2026-10-13 홍TV님: 모든 산) - 탐방로망의 막다른 끝(봉우리 · 폭포 빼고, 탐방지원센터 이름 먼저) + 다른 자료의
+        // 탐방지원센터 · 탐방안내소. 같은 이름 이름표가 이미 있으면 빼고
         var have = {};
         data.places.forEach(function (p) { have[String(p.name).replace(/\s+/g, "")] = true; });
-        (data.heads || []).forEach(function (h) { if (!have[h.name]) data.places.push({ name: h.name, lat: h.lat, lon: h.lon, ele_m: null, head: true }); });
+        var hs = RF.trailHeads(segs, data.heads, flips);
+        (data.heads || []).forEach(function (h) {
+            if (!hs.some(function (x) { return x.name === h.name || RF.distM(x.lat, x.lon, +h.lat, +h.lon) < 300; })) hs.push(h);
+        });
+        hs.forEach(function (h) { if (!have[h.name]) data.places.push({ name: h.name, lat: h.lat, lon: h.lon, ele_m: null, head: true }); });
         data.places.forEach(function (p) {
             var e = document.createElement("div");
             e.className = "place" + (p.head ? " head" : "");
             e.innerHTML = '<span class="ic"></span><span class="lb"></span>';
-            e.querySelector(".ic").textContent = p.head ? "🏠" : RF.poiIcon(p.name);
+            e.querySelector(".ic").textContent = p.head ? (/(탐방지원센터|탐방안내소|분소|매표소)$/.test(p.name) ? "🏠" : "🥾") : RF.poiIcon(p.name);
             RF.nameNodes(e.querySelector(".lb"), RF.cleanName(p.name) + (p.ele_m != null && RF.isTopName(p.name) ? " " + RF.num(p.ele_m) + "m" : ""));
             new maplibregl.Marker({ element: e, anchor: "bottom" }).setLngLat([+p.lon, +p.lat]).addTo(map);
             // 들머리는 봉우리 다음으로 남김(겹치면)
