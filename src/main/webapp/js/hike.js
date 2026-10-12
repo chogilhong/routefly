@@ -1902,7 +1902,7 @@
         }
         // 탐방 안내도 먼저 - 산에 가면 탐방 안내도부터 보고 갈 코스를 고르듯(2026-10-12 홍TV님). 안내도에서 탐방로를 누르면 미리보기 · 산행하기
         // 노선 안내도 - 국토종주 자전거길 · 국가숲길 구간 코스가 있으면 그 노선 전체 지도(2026-10-12 홍TV님)
-        var routes = RF.routeGuides(rows, 2, seriesFlat);
+        var routes = RF.routeGuides(rows, 2, seriesFlat, from ? "" : lastQ);
         routes.forEach(function (g) {
             var a = document.createElement("a");
             a.className = "it guide";

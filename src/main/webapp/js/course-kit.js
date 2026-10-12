@@ -615,7 +615,7 @@
      * 코스가 많은 노선 먼저. 이름은 "국토종주 섬진강 자전거길 1구간 · …" → 섬진강 자전거길, "지리산둘레길 주천-운봉" → 지리산둘레길.
      * 2026-10-12 홍TV님: 국토종주 자전거길 지도(나무위키 노선도)처럼 노선 전체를 한 장으로.
      */
-    function routeGuides(rows, max, series) {
+    function routeGuides(rows, max, series, q) {
         var by = {}, order = [];
         // 다른 자료의 같은 노선(산림청 "금호남정맥 · …" = OSM 금남호남정맥) - series.json 의 이름 · aka 와 무리 이름이 같으면 그 노선(2026-10-12 PC)
         var named = {};
@@ -657,7 +657,9 @@
         order = order.filter(function (g) {
             return !order.some(function (h) { return h !== g && key(h.name) !== key(g.name) && key(g.name).indexOf(key(h.name) + "(") === 0; });   // "백두대간트레일" 은 다른 길
         });
-        return order.map(function (g, i) { return { g: g, i: i }; }).sort(function (a, b) { return b.g.n - a.g.n || a.i - b.i; })
+        // 검색어와 이름이 같은 노선을 맨 앞에(2026-10-12 PC: "호남정맥" 에 금남호남정맥(33) 이 호남정맥(32) 보다 위)
+        var qk = key(q), same = function (g) { return qk && key(g.name) === qk ? 1 : 0; };
+        return order.map(function (g, i) { return { g: g, i: i }; }).sort(function (a, b) { return same(b.g) - same(a.g) || b.g.n - a.g.n || a.i - b.i; })
             .slice(0, max || 3).map(function (x) { return x.g; });
     }
 
