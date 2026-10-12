@@ -674,7 +674,7 @@
                 var x = RF.fromApi(p.base, j);
                 if (p.r0 != null) {
                     var g = RF.nameParts(x.course.name).group;
-                    x = RF.sliceCourse(x, p.r0, p.r1, (g ? g + " · " : "") + (p.from || "?") + " → " + (p.to || "?"), p.id);
+                    x = RF.sliceCourse(x, p.r0, p.r1, (g ? g + " · " : "") + (p.to ? p.from + " → " + p.to : p.from || x.course.name), p.id);
                 }
                 return x;
             };

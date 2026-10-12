@@ -1176,13 +1176,28 @@
                 kept.push(x);
             });
             if (!kept.length || !total) { out.push(t); return; }
-            var e = ends[ti], g = nameParts(t.name).group || "";
+            var e = ends[ti], g = nameParts(t.name).group || "", title = nameParts(t.name).route;
+            // 갈림길 이름을 모르면("동엽령코스" · "성판악 탐방로" 처럼 이름에 출발 · 도착이 없는 탐방로 끝) 300m 안 다른 탐방로의 이름 있는 끝에서
+            var named = function (k) {
+                var best = null, bd = 300;
+                ends.forEach(function (u) {
+                    [[u.a, u.an], [u.z, u.zn]].forEach(function (pn) {
+                        if (!pn[1]) return;
+                        var d = distM(pn[0][1], pn[0][0], c[k][1], c[k][0]);
+                        if (d < bd) { bd = d; best = pn[1]; }
+                    });
+                });
+                return best;
+            };
             var bounds = [{ k: 0, name: e.an }].concat(kept, [{ k: c.length - 1, name: e.zn }]);
+            bounds.forEach(function (x) { if (!x.name) x.name = named(x.k); });
             for (var b = 0; b < bounds.length - 1; b++) {
                 var s0 = bounds[b], s1 = bounds[b + 1], r0 = cum[s0.k] / total, r1 = cum[s1.k] / total;
                 var from = s0.name || "", to = s1.name || "";
+                // 그래도 모르면 "성판악 탐방로 (1/2)" - 원래 탐방로 이름 + 몇째 조각(따라가기 제목도 이것, 화살표 없이)
+                if (!from || !to) { from = title + " (" + (b + 1) + "/" + (bounds.length - 1) + ")"; to = ""; }
                 out.push({ id: t.id + "@" + r0.toFixed(4) + "-" + r1.toFixed(4) + ":" + from + ">" + to, base: t.id,
-                           name: (g ? g + " · " : "") + (from || "?") + " → " + (to || "?"), coords: c.slice(s0.k, s1.k + 1),
+                           name: (g ? g + " · " : "") + (to ? from + " → " + to : from), coords: c.slice(s0.k, s1.k + 1),
                            distance_m: Math.round((cum[s1.k] - cum[s0.k]) * (+t.distance_m || total) / total), ascent_m: null });
             }
         });

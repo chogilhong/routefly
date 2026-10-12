@@ -338,6 +338,9 @@ var up1 = { id: "u1", name: "산 · 마을1 → 나", coords: [[127.011, 34.99],
 var sp = RF.splitTrails([ridge, up1, up2], {});
 eq("splitTrails 갈림길에서 자름", sp.filter(function (s) { return s.base === "r"; }).map(function (s) { return s.name; }), ["산 · 가 → 나", "산 · 나 → 다", "산 · 다 → 라"]);
 eq("splitTrails 안 자른 것은 그대로", sp.filter(function (s) { return !s.base; }).map(function (s) { return s.id; }), ["u1", "u2"]);
+var up3 = { id: "u3", name: "산 · 동엽령코스", coords: [[127.011, 34.99], [127.011, 35.0003]] };
+eq("splitTrails 이름 모르는 갈림길은 조각 이름", RF.splitTrails([{ id: "r2", name: "산 · 종주코스", distance_m: 3000, coords: ridge.coords }, up3], {})
+    .filter(function (s) { return s.base; }).map(function (s) { return s.name; }), ["산 · 종주코스 (1/2)", "산 · 종주코스 (2/2)"]);
 var full = RF.fromApi("r", { course: { name: "산 · 가 → 라" }, points: [[127.0, 35.0, 100, 0], [127.011, 35.0, 200, 1000], [127.022, 35.0, 150, 2000], [127.033, 35.0, 300, 3000]], pois: [] });
 var sl = RF.sliceCourse(full, 1 / 3, 2 / 3, "산 · 나 → 다", "r@0.3333-0.6667:나>다");
 eq("sliceCourse 거리 · 이름표", [Math.round(sl.total), sl.pois.map(function (p) { return p.name; }).join(","), sl.course.ascent_m], [1000, "나,다", 0]);
