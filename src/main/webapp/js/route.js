@@ -10,7 +10,7 @@
     var RF = window.RF;
     function $(id) { return document.getElementById(id); }
     var q = new URLSearchParams(location.search), prefix = q.get("prefix") || "", trail = q.get("trail") || "", backTo = q.get("back");
-    var map, data = null, series = null, nums = [], labels = [], flips = {};
+    var map, data = null, series = null, nums = [], labels = [], flips = {}, sel = [], emptySheet = "";
     // 코스 · 구간 번호를 지도에 붙이는 노선(인증센터가 없는 것): 코리아둘레길 · 백두대간 · 정맥
     var numbered = !!trail || /^osmh-/.test(prefix);
 
@@ -88,39 +88,53 @@
         RF.declutter(ctl.concat(shown, labels.filter(function (l) { return !l.no || !l.no.classList.contains("hid"); })), 0);
     }
 
-    /** 구간 하나를 고름 - 굵게 · 아래 칸에 이름 · 거리와 따라가기. */
+    /**
+     * 구간 고르기 - 누르면 고르고 다시 누르면 뺌, 고른 것 앞 · 뒤로 이어지는 구간은 함께(2026-10-12 홍TV님: 위태-하동호에 덕산-위태 ·
+     * 하동호-삼화실을 이어서). 이어지지 않는 구간을 누르면 그 구간만 새로. 아래 칸에 처음 → 끝 두 방향 단추.
+     */
     function pick(c) {
-        map.getSource("sel").setData(c && data.lines[c.course_id]
-            ? { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: data.lines[c.course_id] } }
-            : { type: "FeatureCollection", features: [] });
-        if (!c) return;
+        if (c) sel = RF.chainPick(sel, c.course_id, data.lines);
+        map.getSource("sel").setData({ type: "FeatureCollection", features: sel.filter(function (s) { return data.lines[s.id]; }).map(function (s) {
+            return { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: data.lines[s.id] } };
+        }) });
+        if (!sel.length) { $("sheet").innerHTML = emptySheet; return; }
+        var byId = {};
+        data.courses.forEach(function (x) { byId[x.course_id] = x; });
+        // 구간마다 걸어 나가는 쪽의 처음 · 끝 이름(선이 이름과 거꾸로 그려진 국가숲길 GPX · 거꾸로 이은 구간도)
+        var ends = function (s) {
+            var e = RF.routeEnds(byId[s.id].name), a = flips[s.id] ? e.to : e.from, b = flips[s.id] ? e.from : e.to;
+            return s.rev ? [b, a] : [a, b];
+        };
+        var from = ends(sel[0])[0], to = ends(sel[sel.length - 1])[1], one = sel.length === 1 ? byId[sel[0].id] : null;
+        var meters = sel.reduce(function (m, s) { return m + (+byId[s.id].distance_m || 0); }, 0);
         $("sheet").innerHTML = "";
         var nm = document.createElement("div");
         nm.className = "nm";
-        nm.textContent = RF.nameText(c.name);
+        nm.textContent = one ? RF.nameText(one.name) : sel.length + "구간 이어 걷기" + (from || to ? " · " + (from || "") + " → " + (to || "") : "");
         var st = document.createElement("div");
         st.className = "st";
-        st.textContent = RF.km(c.distance_m) + "km · 오르막 " + RF.num(c.ascent_m) + "m";
-        // 어느 쪽으로든 걸을 수 있게 - 정방향 · 거꾸로 두 단추(2026-10-12 홍TV님: 1 → 2 일 수도, 2 → 1 일 수도)
+        // 여러 구간은 오르막을 방향마다 따로 셈(목록 자료에 내리막이 없음) - 따라가기 화면에서 보임
+        st.textContent = RF.km(meters) + "km" + (one ? " · 오르막 " + RF.num(one.ascent_m) + "m" : " · 오르막은 따라가기 화면에서");
         var row = document.createElement("div");
         row.className = "row";
-        var e = RF.routeEnds(c.name), both = e.from && e.to;
-        // 선이 이름과 거꾸로 그려진 코스(국가숲길 GPX 일부) - 단추는 실제로 걸어 나가는 차례로
-        if (flips[c.course_id]) e = { from: e.to, to: e.from };
         // 자전거길은 "인증센터" 를 떼어 짧게(375px 두 단추에 "달성보인증센터 → 칠곡보인증센터" 가 잘렸음)
         var short = function (x) { return String(x).replace(/인증센터/g, ""); };
-        [[both ? short(e.from) + " → " + short(e.to) : "따라가기", ""], [both ? short(e.to) + " → " + short(e.from) : "거꾸로 따라가기", "&rev=1"]].forEach(function (d, k) {
+        var link = function (list) {
+            return "hike.html#c=" + (list.length === 1 ? encodeURIComponent(list[0].id) + (list[0].rev ? "&rev=1" : "") : encodeURIComponent(RF.joinId(list)));
+        };
+        var both = from && to;
+        [[both ? short(from) + " → " + short(to) : "따라가기", sel], [both ? short(to) + " → " + short(from) : "거꾸로 따라가기", RF.reverseSel(sel)]].forEach(function (d, k) {
             var a = document.createElement("a");
             if (k === 0) a.className = "main";
-            a.href = "hike.html#c=" + encodeURIComponent(c.course_id) + d[1];
+            a.href = link(d[1]);
             a.textContent = d[0];
             row.appendChild(a);
         });
-        $("sheet").appendChild(nm);
-        $("sheet").appendChild(st);
         var tip = document.createElement("div");
         tip.className = "tip";
-        tip.textContent = "따라갈 방향을 고르세요.";
+        tip.textContent = "이어진 구간을 더 누르면 함께 고르고, 다시 누르면 뺍니다. 따라갈 방향을 고르세요.";
+        $("sheet").appendChild(nm);
+        $("sheet").appendChild(st);
         $("sheet").appendChild(tip);
         $("sheet").appendChild(row);
     }
@@ -195,7 +209,10 @@
     function start() {
         // ← 뒤로: 따라가기 목록 카드에서 왔으면 그 목록(검색어는 rf-search 로 남아 있음), 그 밖은 도장 · 완주
         $("back").href = backTo === "list" ? "hike.html" : "series.html";
-        $("followNone").addEventListener("click", function (e) {
+        // 고른 구간이 없을 때 아래 칸(모두 빼면 다시 이것으로) - 단추는 아래 칸에 맡겨 두고 받음(다시 그려도 됨)
+        emptySheet = $("sheet").innerHTML;
+        $("sheet").addEventListener("click", function (e) {
+            if (!e.target || e.target.id !== "followNone") return;
             e.preventDefault();
             alert("구간을 선택하세요.");
         });

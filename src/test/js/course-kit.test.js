@@ -316,6 +316,27 @@ eq("이름이 이어지는 다른 길은 따로", RF.routeGuides([{ course_id: "
 eq("검색어와 같은 이름 노선이 먼저", RF.routeGuides([{ course_id: "osmh-1-1", name: "호남정맥 1구간 · 가 → 나" },
     { course_id: "osmh-2-1", name: "금남호남정맥 1구간 · 다 → 라" }, { course_id: "osmh-2-2", name: "금남호남정맥 2구간 · 라 → 마" }], 2, null, "호남 정맥").map(function (g) { return g.name; }),
     ["호남정맥", "금남호남정맥"]);
+// 여러 구간 이어 걷기 - 지리산둘레길 덕산-위태 · 위태-하동호 · 하동호-삼화실(실제 끝점)
+var zl = { k4: [[127.8498, 35.27403], [127.82866, 35.21692]], k17: [[127.82864, 35.21691], [127.78512, 35.16266]],
+    k21: [[127.78516, 35.16267], [127.77048, 35.11899]], k9: [[127.90022, 35.31553], [127.9092, 35.37977]] };
+var zs = RF.chainPick([], "k17", zl);
+zs = RF.chainPick(zs, "k21", zl);
+zs = RF.chainPick(zs, "k4", zl);
+eq("chainPick 앞 · 뒤로 이어 붙임", RF.joinId(zs), "k4,k17,k21");
+eq("chainPick 이어지지 않으면 새로", RF.joinId(RF.chainPick(zs, "k9", zl)), "k9");
+eq("chainPick 끝을 다시 누르면 뺌", RF.joinId(RF.chainPick(zs, "k21", zl)), "k4,k17");
+eq("chainPick 가운데를 빼면 긴 쪽", RF.joinId(RF.chainPick(RF.chainPick(zs, "k21", zl), "k17", zl)), "k4");
+eq("chainPick 거꾸로 그린 구간은 ~", RF.joinId(RF.chainPick([{ id: "k17", rev: false }], "kx", { k17: zl.k17, kx: [[127.77048, 35.11899], [127.78516, 35.16267]] })), "k17,kx~");
+eq("reverseSel", RF.joinId(RF.reverseSel(zs)), "k21~,k17~,k4~");
+eq("parseJoinId", JSON.stringify(RF.parseJoinId("a,b~")), JSON.stringify([{ id: "a", rev: false }, { id: "b", rev: true }]));
+eq("parseJoinId 한 구간은 null", RF.parseJoinId("a"), null);
+var ja = RF.fromApi("k17", { course: { name: "지리산둘레길 위태-하동호", kind: "walk" }, points: [[127.82864, 35.21691, 300, 0], [127.78512, 35.16266, 200, 10880]], pois: [] });
+var jb = RF.fromApi("k21", { course: { name: "지리산둘레길 하동호-삼화실", kind: "walk" }, points: [[127.78512, 35.16266, 200, 0], [127.77048, 35.11899, 260, 9000]], pois: [] });
+var jc = RF.joinCourses([ja, jb], "k17,k21");
+eq("joinCourses 이름", jc.course.name, "지리산둘레길 2구간 · 위태 → 삼화실");
+eq("joinCourses 거리 · 이음매 이름표 하나", [jc.total, jc.pois.map(function (p) { return p.name + "@" + p.dist_m; }).join(" ")], [19880, "위태@0 하동호@10880 삼화실@19880"]);
+eq("joinCourses 오르막", jc.course.ascent_m, 60);
+eq("거꾸로 해도 위치표지 그대로", RF.reverseCourse({ id: "x", course: { name: "a" }, lon: [1, 2], lat: [1, 2], ele: [1, 2], dist: [0, 1], total: 1, pois: [], signs: [{ loc_no: "가-1" }] }).signs.length, 1);
 eq("둘레길 노선 안내도 카드", RF.routeGuides([{ course_id: "drnb-1", name: "해파랑길 1코스 · 오륙도해맞이공원 → 해운대해수욕장" },
     { course_id: "drnb-2", name: "해파랑길 2코스 · 해운대 → 대변항" }, { course_id: "drnb-3", name: "DMZ 평화의 길 19-1코스(우회로) · 승라부대까지" }, { course_id: "drnb-9", name: "이름만" }]),
     [{ trail: "해파랑길", name: "해파랑길", kind: "walk", n: 2 }, { trail: "DMZ 평화의 길", name: "DMZ 평화의 길", kind: "walk", n: 1 }]);

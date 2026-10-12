@@ -1081,8 +1081,9 @@
      * c.rev 는 원래 방향인지(저장한 산행을 이어 갈 때 다시 뒤집으려고).
      */
     function reverseCourse(c) {
+        // 위치표지 · 위험지역 · 공식 정보는 자리(좌표)로 쓰므로 그대로 - 예전에는 빠져 거꾸로 걸으면 가까운 위치표지가 안 나왔음
         var T = c.total, r = { id: c.id, rev: !c.rev, markers: [], lon: c.lon.slice().reverse(), lat: c.lat.slice().reverse(),
-                               ele: c.ele.slice().reverse(), total: T };
+                               ele: c.ele.slice().reverse(), total: T, signs: c.signs || [], spots: c.spots || [], info: c.info || null, parts: c.parts };
         r.course = {};
         for (var k in c.course) if (Object.prototype.hasOwnProperty.call(c.course, k)) r.course[k] = c.course[k];
         r.course.name = reverseName(c.course.name);
@@ -1096,6 +1097,100 @@
         r.junctions = (c.junctions || []).map(function (d) { return T - d; }).sort(function (a, b) { return a - b; });
         r.asc = cumAscent(r.ele);
         return r;
+    }
+
+    /*
+     * 여러 구간 이어 걷기(2026-10-12 홍TV님: 지리산둘레길 위태-하동호에 덕산-위태 · 하동호-삼화실을 이어서).
+     * 이은 코스 ID 는 "구간ID,구간ID~,…"(~ 는 그 구간을 거꾸로). 한 구간이면 예전처럼 그 ID 하나.
+     */
+
+    /** 순수 함수 - [{id, rev}] → 이은 코스 ID. */
+    function joinId(sel) {
+        return (sel || []).map(function (s) { return s.id + (s.rev ? "~" : ""); }).join(",");
+    }
+
+    /** 순수 함수 - 이은 코스 ID → [{id, rev}]. 이은 것이 아니면(쉼표 없음) null. */
+    function parseJoinId(id) {
+        id = String(id || "");
+        if (id.indexOf(",") < 0) return null;
+        return id.split(",").filter(Boolean).map(function (s) { return /~$/.test(s) ? { id: s.slice(0, -1), rev: true } : { id: s, rev: false }; });
+    }
+
+    /**
+     * 순수 함수 - 노선 안내도에서 구간을 누를 때 고른 구간(차례대로 [{id, rev}])을 바꿈. 한 번 누르면 고르고 다시 누르면 뺌.
+     * 고른 것의 앞 끝 · 뒤 끝에 nearM 안으로 이어지는 구간이면 그쪽에 붙이고(방향은 이어지게), 이어지지 않으면 그 구간만 새로 고름.
+     * 가운데 구간을 빼면 긴 쪽을 남김(건너뛴 구간 없이 늘 이어진 것만). lines: {코스ID: [[경도, 위도]…]}.
+     */
+    function chainPick(sel, id, lines, nearM) {
+        var near = nearM == null ? 500 : nearM, l = lines && lines[id];
+        sel = (sel || []).slice();
+        var k = sel.map(function (s) { return s.id; }).indexOf(id);
+        if (k >= 0) {
+            if (k === 0) return sel.slice(1);
+            if (k === sel.length - 1) return sel.slice(0, -1);
+            return k >= sel.length - 1 - k ? sel.slice(0, k) : sel.slice(k + 1);
+        }
+        if (!l || l.length < 2) return sel;
+        if (!sel.length) return [{ id: id, rev: false }];
+        var endOf = function (s, last) { var q = lines[s.id]; return (s.rev !== last) ? q[q.length - 1] : q[0]; };
+        var S = endOf(sel[0], false), E = endOf(sel[sel.length - 1], true), a = l[0], z = l[l.length - 1];
+        var d = function (p, q) { return distM(p[1], p[0], q[1], q[0]); };
+        if (d(a, E) < near) return sel.concat([{ id: id, rev: false }]);
+        if (d(z, E) < near) return sel.concat([{ id: id, rev: true }]);
+        if (d(z, S) < near) return [{ id: id, rev: false }].concat(sel);
+        if (d(a, S) < near) return [{ id: id, rev: true }].concat(sel);
+        return [{ id: id, rev: false }];   // 이어지지 않음 - 그 구간만 새로
+    }
+
+    /** 순수 함수 - 고른 구간을 반대 방향으로(차례도 거꾸로, 구간마다 ~ 도 바꿈). */
+    function reverseSel(sel) {
+        return (sel || []).slice().reverse().map(function (s) { return { id: s.id, rev: !s.rev }; });
+    }
+
+    /**
+     * 순수 함수 - 코스 여러 개(이미 걷는 방향으로 돌린 것)를 하나로 잇습니다. 끝과 다음 처음이 떨어져 있으면 그 거리만큼 더함.
+     * 이름은 "무리 N구간 · 처음 → 끝", 이름표 · 갈림길 · 위치표지 · 위험지역은 거리를 밀어 모두. id 는 이은 코스 ID, parts 는 [{id, rev}].
+     */
+    function joinCourses(list, id) {
+        var c = { id: id, rev: false, markers: [], lon: [], lat: [], ele: [], dist: [], pois: [], junctions: [], signs: [], spots: [], info: null,
+                  parts: parseJoinId(id) || [] };
+        list.forEach(function (p, k) {
+            var off = 0, skip = 0;
+            if (c.lon.length) {
+                var n = c.lon.length - 1, gap = distM(c.lat[n], c.lon[n], p.lat[0], p.lon[0]);
+                off = c.dist[n] + gap;
+                if (gap < 1) { skip = 1; off = c.dist[n]; }
+            }
+            for (var i = skip; i < p.lon.length; i++) {
+                c.lon.push(p.lon[i]); c.lat.push(p.lat[i]); c.ele.push(p.ele[i]); c.dist.push(off + p.dist[i]);
+            }
+            (p.pois || []).forEach(function (q) {
+                var r = {};
+                for (var key in q) if (Object.prototype.hasOwnProperty.call(q, key)) r[key] = q[key];
+                r.dist_m = off + (+q.dist_m);
+                // 이은 곳의 끝 이름표는 하나만(앞 구간 도착 = 다음 구간 출발)
+                if (k > 0 && q.end && +q.dist_m < 1 && c.pois.some(function (o) { return o.name === q.name && Math.abs(+o.dist_m - r.dist_m) < 60; })) return;
+                c.pois.push(r);
+            });
+            (p.junctions || []).forEach(function (d) { c.junctions.push(off + d); });
+            c.signs = c.signs.concat(p.signs || []);
+            c.spots = c.spots.concat(p.spots || []);
+        });
+        c.total = c.dist.length ? c.dist[c.dist.length - 1] : 0;
+        c.asc = cumAscent(c.ele);
+        var first = list[0].course || {}, last = list[list.length - 1].course || {}, g = nameParts(first.name).group;
+        // 무리 이름: "지리산둘레길 가탄-송정" 처럼 · 가 없으면 끝의 "가-나" 를 뗀 것, "N구간 · N코스" 도 뗌
+        g = String(g || String(first.name || "").replace(/\s*\(?[가-힣]+-[가-힣]+\)?\s*$/, "")).replace(/\s*\d+(?:-\d+)?\s*(?:구간|코스).*$/, "").trim();
+        var from = routeEnds(first.name).from, to = routeEnds(last.name).to;
+        var lo = null, hi = null, down = 0;
+        c.ele.forEach(function (e) { if (e != null) { lo = lo == null ? e : Math.min(lo, e); hi = hi == null ? e : Math.max(hi, e); } });
+        var asc = c.asc[c.asc.length - 1] || 0, e0 = c.ele[0], e1 = c.ele[c.ele.length - 1];
+        down = e0 == null || e1 == null ? null : Math.max(0, Math.round(asc - (e1 - e0)));
+        c.course = { name: g + " " + list.length + "구간" + (from || to ? " · " + (from || "") + " → " + (to || "") : ""), kind: first.kind,
+                     distance_m: Math.round(c.total), ascent_m: Math.round(asc), descent_m: down,
+                     ele_min_m: lo == null ? null : Math.round(lo), ele_max_m: hi == null ? null : Math.round(hi),
+                     start_lat: c.lat[0], start_lon: c.lon[0], end_lat: c.lat[c.lat.length - 1], end_lon: c.lon[c.lon.length - 1] };
+        return c;
     }
 
     function indexAt(c, d) {
@@ -1577,6 +1672,6 @@
     global.RF = {
         LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, stampKey: stampKey, summitName: summitName, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakCourses: peakCourses, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
-        sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, routePlaces: routePlaces, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
+        sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
     };
 })(window);
