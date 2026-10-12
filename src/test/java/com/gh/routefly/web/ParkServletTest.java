@@ -40,6 +40,8 @@ public class ParkServletTest {
         assertTrue(ParkServlet.namedFor("김제 모악산 · 금산사 → 모악산", "모악산"));
         assertTrue(ParkServlet.namedFor("마이산 자락 2코스 · 북부주차장에서", "마이산"));
         assertTrue(ParkServlet.namedFor("대둔산(마천대) 1코스", "대둔산"));
+        assertTrue("정맥 뒤 산 이름", ParkServlet.namedFor("금남정맥안골산 · 가 → 안골산", "안골산"));
+        assertFalse("정맥 이름만", ParkServlet.namedFor("금남정맥 · 가 → 나", "안골산"));
         assertFalse("끝점에만 든 다른 노선", ParkServlet.namedFor("금호남정맥 · 부귀산 → 마이산", "마이산"));
         assertFalse("덕숭산 수덕산은 가야산 아님", ParkServlet.namedFor("예산 덕숭산 · 수덕사 → 덕숭산", "가야산"));
         assertFalse("서산 가야산은 합천 가야산 공원이 아님", ParkServlet.inside(new double[] {126.6, 36.7}, new double[] {128.0, 35.7, 128.2, 35.9}, 0.1));

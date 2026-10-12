@@ -1875,12 +1875,15 @@
     });
 
     // 노선 이름 · 다른 이름(data/series.json) - 노선 안내도 카드가 다른 자료의 같은 노선도 잡게. 못 받으면 없이
-    var seriesFlat = [];
+    // 받기 전에 그린 목록은 받은 뒤 한 번 다시 그림(느린 망 - 2026-10-12 PC)
+    var seriesFlat = [], lastList = null;
     fetch("data/series.json").then(function (r) { return r.json(); }).then(function (d) {
         (d.groups || []).forEach(function (g) { seriesFlat = seriesFlat.concat(g.series || []); });
+        if (lastList && lastList.seq === pickSeq) listCourses.apply(null, lastList.args);
     }).catch(function () { /* 없이 */ });
 
     function listCourses(rows, from, note) {
+        lastList = seriesFlat.length ? null : { args: [rows, from, note], seq: pickSeq };
         var box = $("pickList");
         box.textContent = "";
         if (note) {

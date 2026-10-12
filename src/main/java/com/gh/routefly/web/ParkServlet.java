@@ -165,6 +165,8 @@ public class ParkServlet extends HttpServlet {
         String head = courseName.split(" · ", 2)[0];
         for (String w : head.split("\\s+")) {
             if (w.equals(mountain) || w.startsWith(mountain + "(")) return true;
+            // 산림청 무리 "금남정맥안골산" = 안골산(웹 탐방 안내도 카드가 정맥 뒤 산 이름으로 엶 - 2026-10-12 PC)
+            if (w.endsWith("대간" + mountain) || w.endsWith("정맥" + mountain)) return true;
         }
         return false;
     }

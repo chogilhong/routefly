@@ -95,13 +95,16 @@
      * 순수 함수 - "…정상" 이름 줄이기: 봉우리 이름이 있으면 그 봉 이름("지리산 천왕봉 정상" · "천왕봉정상" → 천왕봉),
      * 없으면 "정상"("공주향교뒷산 정상" → 정상). "정상" 으로 끝나지 않으면 그대로. 2026-10-12 홍TV님.
      */
+    var NOT_PASS = ["고수치"];
+
     function summitName(name) {
         var n = String(name || "").trim();
         if (!/정상$/.test(n)) return n;
         var words = n.replace(/\s*정상$/, "").trim().split(/\s+/), bong = null, last = words[words.length - 1];
         words.forEach(function (w) { if (/[가-힣]봉(\(.*\))?$/.test(w)) bong = w; });
         // 고개의 "정상" 은 고갯마루 - 고개 이름을 그대로(2026-10-12 홍TV님: "진부령정상" → 진부령, 등산 · 걷기 · 자전거 모두)
-        if (!bong && /[가-힣](령|재|고개|치|티)$/.test(last)) return last;
+        // 고개가 아닌 것: 고수치(제주 서귀포 안덕면 고수치오름 - 2026-10-12 홍TV님 확인)
+        if (!bong && /[가-힣](령|재|고개|치|티)$/.test(last) && NOT_PASS.indexOf(last) < 0) return last;
         return bong || "정상";
     }
 
@@ -465,7 +468,10 @@
             var park = parkOf(r.name), n = park || mountainOf(r.name, r.course_id);
             if (!n) return;
             // 백두대간 · 정맥 무리("백두대간건의령고적대")는 산이 아님 - 노선 안내도(routeGuides)로(2026-10-12 PC)
-            if (!park && /대간|정맥/.test(nameParts(r.name).group || String(r.name || ""))) return;
+            // 다만 "금남정맥안골산" 처럼 뒤에 산 이름이 붙으면 그 산(안골산 - 2026-10-12 PC)
+            var tail = !park && /(?:대간|정맥)([가-힣]{1,12}(?:산|봉|악|오름))$/.exec(n), own = false;
+            if (tail) { n = tail[1]; own = true; }
+            else if (!park && /대간|정맥/.test(nameParts(r.name).group || String(r.name || ""))) return;
             var lat = +r.start_lat, lon = +r.start_lon, has = r.start_lat != null && isFinite(lat) && isFinite(lon);
             // 국립공원 코스는 이름으로 한 장. 그 밖은 같은 이름이고 그 묶음 어느 코스 출발점과 20km 안이면 같은 산
             // (산림청 지리산 코스 → 지리산 국립공원), 멀면 다른 산(광양 · 정선 백운산, 통영 지리산)
@@ -478,11 +484,11 @@
             })[0];
             if (!g) {
                 var grp = nameParts(r.name).group || "";
-                g = { name: n, label: grp.indexOf(n) > 0 && grp.length <= n.length + 6 ? grp : n, from: r.course_id, n: 0, park: !!park, pts: [] };
+                g = { name: n, label: !own && grp.indexOf(n) > 0 && grp.length <= n.length + 6 ? grp : n, from: r.course_id, n: 0, park: !!park, pts: [] };
                 order.push(g);
             }
             if (park && !g.park) { g.park = true; g.label = n; g.from = r.course_id; }   // 국립공원 코스가 있으면 그 이름 · 그 코스로
-            else if (g.label === g.name) {   // 지역이 붙은 무리 이름("포천 백운산")이 뒤에 나오면 그것으로
+            else if (g.label === g.name && !own) {   // 지역이 붙은 무리 이름("포천 백운산")이 뒤에 나오면 그것으로
                 var grp2 = nameParts(r.name).group || "";
                 if (grp2.indexOf(n) > 0 && grp2.length <= n.length + 6) g.label = grp2;
             }
