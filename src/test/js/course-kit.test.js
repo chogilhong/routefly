@@ -477,6 +477,10 @@ eq("trailHeads 옅은 선은 빼고 · 끝이 마을", RF.trailHeads([
     { id: "x", name: "산 · 갈림길 → 갈림길", coords: [[127.01, 35.01], [127.0005, 35.0]], extra: true },
     { id: "k", name: "산 · 곰배골입구 → 곰배령 → 강선리", coords: [[127.3, 35.0], [127.3, 35.02]] }], [], {}, [], []).map(function (h) { return h.name; }).sort(),
     ["강선리", "곰배골입구", "송추"]);
+eq("groupPois 원점회귀 출발 · 도착 같은 이름은 한 줄", RF.groupPois([{ name: "윗새재마을", lat: 35.3, lon: 127.7, dist_m: 0, off_route_m: 0 },
+    { name: "윗새재마을", lat: 35.3001, lon: 127.7, dist_m: 14970, off_route_m: 0 }], 80)[0].names, ["윗새재마을"]);
+eq("headLoopName", [RF.headLoopName("지리산 5구간 이어 걷기 · 새재 원점회귀", "윗새재마을"), RF.headLoopName("지리산 · 가 → 나", "윗새재마을")],
+    ["지리산 5구간 이어 걷기 · 윗새재마을 원점회귀", "지리산 · 가 → 나"]);
 var full = RF.fromApi("r", { course: { name: "산 · 가 → 라" }, points: [[127.0, 35.0, 100, 0], [127.011, 35.0, 200, 1000], [127.022, 35.0, 150, 2000], [127.033, 35.0, 300, 3000]], pois: [] });
 var sl = RF.sliceCourse(full, 1 / 3, 2 / 3, "산 · 나 → 다", "r@0.3333-0.6667:나>다");
 eq("sliceCourse 거리 · 이름표", [Math.round(sl.total), sl.pois.map(function (p) { return p.name; }).join(","), sl.course.ascent_m], [1000, "나,다", 0]);
