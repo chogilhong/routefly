@@ -86,8 +86,28 @@
             $("sheet").innerHTML = "";
             var w = document.createElement("div");
             w.className = "tip";
-            w.textContent = chosen.length + "구간을 골랐습니다. 아직 이어지지 않은 구간이 있습니다 - 사이 탐방로를 더 누르세요(다시 누르면 뺍니다).";
+            if (RF.canJoin(chosen, lines)) {
+                w.textContent = chosen.length + "구간을 골랐습니다. 아직 이어지지 않은 구간이 있습니다 - 사이 탐방로를 더 누르세요(다시 누르면 뺍니다).";
+                $("sheet").appendChild(w);
+                return;
+            }
+            // 사이에 이어 줄 탐방로가 없음(2026-10-13 홍TV님: 태안해안 - 기다려도 이을 수 없었음) - 떨어진 채로 이어 걷기 또는 마지막 구간만
+            var lc = RF.looseChain(chosen, lines);
+            w.textContent = chosen.length + "구간 사이에 이어 주는 탐방로가 없습니다(떨어진 거리 약 " + RF.km(lc.gapM) + "km - 길 · 해변으로 이동).";
             $("sheet").appendChild(w);
+            var row0 = document.createElement("div");
+            row0.className = "row";
+            var go = document.createElement("a");
+            go.className = "main";
+            go.textContent = "떨어진 채로 이어 걷기";
+            go.href = "hike.html#c=" + encodeURIComponent(RF.joinId(RF.flattenSel(lc.walk)));
+            var last = document.createElement("a");
+            last.textContent = "마지막 구간만";
+            last.href = "#";
+            last.addEventListener("click", function (ev) { ev.preventDefault(); chosen = chosen.slice(-1); pick(); });
+            row0.appendChild(go);
+            row0.appendChild(last);
+            $("sheet").appendChild(row0);
             return;
         }
         if (!sel.length) { $("sheet").innerHTML = emptySheet; return; }
@@ -160,7 +180,7 @@
             list = RF.flattenSel(list);   // 이은 구간(무등산)은 코스 조각으로 풀어서
             // 원점회귀 예시는 들머리 이름도(따라가기 제목 - 2026-10-13 홍TV님: "새재 원점회귀" 가 아니라 윗새재마을)
             return "hike.html#c=" + (list.length === 1 ? encodeURIComponent(list[0].id) + (list[0].rev ? "&rev=1" : "") : encodeURIComponent(RF.joinId(list)))
-                + (exHead ? "&head=" + encodeURIComponent(exHead) : "");
+                + (exHead || from ? "&head=" + encodeURIComponent(exHead || from) : "");   // 지도의 출발 이름을 따라가기 출발 이름표로(권금성 · 신흥사가 섞였음)
         };
         // 원점회귀는 어느 쪽으로 먼저 도는지 - 두 방향이 처음 갈라지는 곳의 이름(들머리에서 같은 길로 오르는 부분은 건너뜀)
         var fwdN = full.map(function (s) { return ends(s)[1]; }), bwdN = RF.reverseSel(full).map(function (s) { return ends(s)[1]; }), dv = 0;
@@ -388,7 +408,12 @@
         // 갈림길에서 자른 작은 구간(주능선 노고단고개 → 천왕봉을 장터목 · 세석 · 벽소령 … 에서) - 고르기 · 그리기는 이것으로
         // 이름 없는 탐방로 조각(무등산)은 갈림길 사이로 이어 이름을 붙인 뒤 자름
         // 공단 자료에 빠진 길(설악산 소공원 → 비선대 → 천불동 …)은 다른 자료 등산 코스로 메움(옅은 색) - 공단 탐방로를 자르는 데도 씀
-        var extras = RF.gapFill(data.trails, data.others, data.places, data.heads, park);
+        // 메운 길 끝 이름도 산마다 다른 이름으로(설악산 신흥사 → 소공원 - 2026-10-13 홍TV님)
+        var aliasPlaces = noteNames ? data.places.map(function (q) {
+            var n = String(q.name || "").replace(/\s+/g, "");
+            return Object.prototype.hasOwnProperty.call(noteNames, n) ? { name: noteNames[n], lat: q.lat, lon: q.lon, ele_m: q.ele_m } : q;
+        }) : data.places;
+        var extras = RF.gapFill(data.trails, data.others, aliasPlaces, data.heads, park);
         extras.forEach(function (t) { lines[t.id] = t.coords; });
         segs = RF.splitTrails(RF.mergeBare(data.trails, data.places).concat(extras), flips, null, poiNames);
         lines = {};
