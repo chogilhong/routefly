@@ -58,6 +58,27 @@
      * 탐방로 고르기 - 누르면 고르고 다시 누르면 뺌. 고른 묶음을 실제로 걷는 순서로(RF.planWalk - 들머리에서 출발, 정상 같은 막다른 갈래는 올랐다 내려옴,
      * 갈림길에서 끝나면 들머리로 돌아옴). 이어지지 않는 탐방로를 누르면 그 탐방로로 새로(알림 없이 - 2026-10-12 홍TV님).
      */
+    // 이어져 있지만 끝이 셋 이상으로 갈라진 묶음 - 그 끝 이름을(2026-10-13 PC: 설악산 소공원 → 비선대 → 마등령 → 무너미고개 + 갈림길 → 양폭대피소,
+    // 양폭대피소 → 무너미고개가 빠졌는데 "아직 이어지지 않은 구간"이라고만 나왔음)
+    function looseText(pts) {
+        var names = [];
+        (pts || []).forEach(function (p) {
+            var nm = null;
+            chosen.forEach(function (id) {
+                var l = lines[id], t = byId[id];
+                if (nm || !l || !t) return;
+                var e = RF.routeEnds(t.name), a = flips[id] ? e.to : e.from, b = flips[id] ? e.from : e.to;
+                if (RF.distM(p[1], p[0], l[0][1], l[0][0]) < 150) nm = a;
+                else if (RF.distM(p[1], p[0], l[l.length - 1][1], l[l.length - 1][0]) < 150) nm = b;
+            });
+            if (nm && noteNames && Object.prototype.hasOwnProperty.call(noteNames, nm.replace(/\s+/g, ""))) nm = noteNames[nm.replace(/\s+/g, "")];
+            if (nm && names.indexOf(nm) < 0) names.push(nm);
+        });
+        if (names.length < 3) return "아직 이어지지 않은 구간이 있습니다";
+        var many = ["", "", "", "세", "네", "다섯", "여섯"][names.length] || String(names.length);
+        return "끝이 " + names.join(" · ") + " " + many + " 곳으로 갈라져 있습니다";
+    }
+
     function pick(t) {
         if (t) {
             exStart = null;
@@ -88,7 +109,7 @@
             $("sheet").innerHTML = "";
             var w = document.createElement("div");
             w.className = "tip";
-            w.textContent = chosen.length + "구간을 골랐습니다. 아직 이어지지 않은 구간이 있습니다 - 사이 탐방로를 더 누르세요(다시 누르면 뺍니다).";
+            w.textContent = chosen.length + "구간을 골랐습니다. " + looseText(plan.loose) + " - 사이 탐방로를 더 누르세요(다시 누르면 뺍니다).";
             $("sheet").appendChild(w);
             return;
         }
