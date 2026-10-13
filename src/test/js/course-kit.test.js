@@ -683,3 +683,8 @@ tick().then(function () {
     console.log((fails ? "FAILED " : "OK ") + (runs - fails) + "/" + runs);
     process.exit(fails ? 1 : 0);
 });
+
+var OFN = { 가야산: { official: { "knps-7013": "가야산1코스", "knps-7012": "가야산2코스", "knps-7017": "만물상코스" } } };
+eq("officialName 공단 공식 이름(ID 앞부분)", [RF.officialName(OFN, "knps-7013-3d5c7ede"), RF.officialName(OFN, "knps-70131-aa"), RF.officialName(null, "x")], ["가야산1코스", "", ""]);
+eq("officialMatches 띄어쓰기 무시 · 두 글자부터", [RF.officialMatches(OFN, "가야산 1코스").map(function (m) { return m.key; }),
+    RF.officialMatches(OFN, "가야산").length, RF.officialMatches(OFN, "만물상")[0].park, RF.officialMatches(OFN, "가").length], [["knps-7013"], 2, "가야산", 0]);

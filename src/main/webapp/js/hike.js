@@ -2062,7 +2062,8 @@
             var b = document.createElement("b");
             RF.showName(b, RF.noteTrailName(listNotes, r.course_id, r.name));   // 이름을 바로잡은 탐방로(park-notes trails - 설악산 "백담사" → 용대리 → 백담사)
             var s = document.createElement("span");
-            s.textContent = km(+r.distance_m) + "km" + (r.ascent_m != null ? " · 오르막 " + num(+r.ascent_m) + "m" : "")
+            var ofn = RF.officialName(listNotes, r.course_id);   // 공단 공식 이름(가야산1코스)
+            s.textContent = (ofn ? "공단 " + ofn + " · " : "") + km(+r.distance_m) + "km" + (r.ascent_m != null ? " · 오르막 " + num(+r.ascent_m) + "m" : "")
                 + (r.ele_max_m != null ? " · 최고 " + num(+r.ele_max_m) + "m" : "")
                 + (r.away != null ? " · 출발점까지 " + km(r.away) + "km" : "");
             it.appendChild(b);
@@ -2127,12 +2128,25 @@
                 var tr = listNotes[pk].trails || {};
                 Object.keys(tr).forEach(function (k) { if (/-\d+$/.test(k) && /^[a-z]+-\d+-\d+$/.test(k) && tr[k].indexOf(q) >= 0) renamed.push(k); });
             });
+            // 공단 공식 이름(park-notes official)으로도 - "가야산1코스" 는 DB 이름이 "해인사 → 상왕봉(우두봉)"(2026-10-13 홍TV님)
+            var offs = RF.officialMatches(listNotes, q), offParks = [];
+            offs.forEach(function (m) { if (offParks.indexOf(m.park) < 0) offParks.push(m.park); });
+            var offRows = Promise.all(offParks.map(function (pk) {
+                return getJson("api/courses?q=" + encodeURIComponent(pk) + (kindFilter ? "&kind=" + kindFilter : "")).then(function (j) {
+                    return (j.courses || []).filter(function (c) {
+                        return offs.some(function (m) { return c.course_id === m.key || c.course_id.indexOf(m.key + "-") === 0; });
+                    });
+                }, function () { return []; });
+            }));
             Promise.all([getJson("api/courses?q=" + encodeURIComponent(q) + (kindFilter ? "&kind=" + kindFilter : ""))].concat(renamed.map(function (id) {
                 return getJson("api/course?id=" + encodeURIComponent(id)).then(function (j) { return j.course; }, function () { return null; });
-            })))
+            })).concat([offRows]))
                 .then(function (r) {
                     if (my !== pickSeq) return;
                     var rows = (r[0].courses || []).slice();
+                    r.pop().reduce(function (a, b) { return a.concat(b); }, []).reverse().forEach(function (c) {
+                        if (!rows.some(function (x) { return x.course_id === c.course_id; })) rows.unshift(c);
+                    });
                     r.slice(1).forEach(function (c) {
                         if (c && (!kindFilter || c.kind === kindFilter) && !rows.some(function (x) { return x.course_id === c.course_id; })) rows.unshift(c);
                     });
