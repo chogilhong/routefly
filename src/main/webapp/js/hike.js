@@ -773,7 +773,9 @@
                 toast("⚠ " + noteOf + " " + (RF.rulesText(rules) || n.short), 12000);
             }).catch(function () { /* 안내 없이 */ });
             // 국립공원 코스면 공원 전체 보기(🏞) - 그 공원 공식 탐방로 전체 · 공식 안내도 바로가기
-            var park = RF.parkOf(c.course.name) || RF.mountainOf(c.course.name, id);   // 국립공원, 아니면 도립 · 군립공원 · 산
+            var park = RF.parkOf(c.course.name) || RF.mountainOf(c.course.name, id)   // 국립공원, 아니면 도립 · 군립공원 · 산
+                // 둘레길("[북한산둘레길] 21구간 우이령길")도 그 공원 탐방 안내도로(🏞 만 - 통제 안내 · 지명 바꿈은 둘레길에 쓰지 않음, 2026-10-13 PC)
+                || RF.parkOf(String(c.course.name).replace(/^\[?([가-힣]+)둘레길.*$/, "$1"));
             // 목록 카드로 연 것과 같은 첫 화면(위 "← 목록" · 아래 "따라가기") - back=list 없이 열면 "‹ 코스" 가 코스 미리보기(3D)로 갔음(2026-10-13 홍TV님)
             parkHref = park ? "park.html?name=" + encodeURIComponent(park) + "&back=list" : null;
             // 탐방 안내도에서 들어온 코스(#…&via=park)만 - 검색 목록에서 바로 연 코스에는 안 보임(2026-10-13 홍TV님)
