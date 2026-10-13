@@ -44,6 +44,19 @@ h2 { font-size:15px; margin:16px 0 4px; }
             color:var(--tx); background:rgba(56,217,234,0.10); border-left:3px solid #38d9ea; }
 .cert { font-size:12.5px; color:var(--dim); margin:-2px 0 8px; }
 .cert a { color:#38d9ea; }
+/* 등산 · 걷기 · 자전거 → 묶음 접기(series.js fold) */
+.fold > .fh { width:100%; display:flex; align-items:center; gap:8px; padding:12px 4px; background:none; border:0; border-bottom:1px solid var(--ln);
+              color:var(--tx); font:inherit; text-align:left; cursor:pointer; }
+.fold .ft { flex:0 0 auto; font-weight:bold; }
+.fold .fs { flex:1; min-width:0; font-size:12.5px; color:var(--dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.fold .fa { flex:0 0 auto; color:var(--dim); transition:transform .15s; }
+.fold.open > .fh .fa { transform:rotate(180deg); }
+.fold > .fb { display:none; }
+.fold.open > .fb { display:block; }
+.fold.kind > .fh .ft { font-size:17px; }
+.fold.group { margin-left:6px; }
+.fold.group > .fh .ft { font-size:15px; }
+.fold.group > .fb { padding:4px 0 6px 4px; }
 .tip { font-size:12.5px; color:var(--dim); line-height:1.5; }
 .sub { font-size:12.5px; color:var(--dim); margin:10px 0 2px; }
 </style>

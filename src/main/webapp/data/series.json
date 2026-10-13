@@ -2,7 +2,7 @@
   "_note": "국토종주 자전거길 · 국가숲길 묶음(2026-10-11). 노선 · 길이 · 인증센터 순서는 routefly-batch docs/bike-routes.md(나무위키 2026-08-12 판, 공공데이터 3038533), 국가숲길은 docs/forest-trails.md(공공데이터 15108080 범례 · 기사). prefix 는 앱 코스 ID 앞부분. aka 는 센터의 다른 이름(실제 이름표 · 공식 파일 이름 - 2026-10-12 PC: 영산하구둑인증센터, OSM 오타 망양휴계소).",
   "groups": [
     {
-      "key": "bike", "title": "국토종주 자전거길", "icon": "🚴", "unit": "인증센터",
+      "key": "bike", "kind": "bike", "title": "국토종주 자전거길", "icon": "🚴", "unit": "인증센터",
       "cert": { "by": "행정안전부 자전거행복나눔 종주인증제", "url": "https://www.bike.go.kr/content.do?key=2006176999024", "how": "인증수첩(4,000원, 인증센터)에 모든 인증센터 도장 또는 앱 QR · GPS 사이버 인증 → 인증서 · 스티커 무료(유인 인증센터에서 받거나 무인 부스 종주인증함에 수첩을 넣으면 1~2주 뒤 우편), 메달 · 케이스는 우리강 이용도우미에서 유료" },
       "series": [
         { "key": "ara", "name": "아라 자전거길", "prefix": "osmb-4145848-", "km": 21, "centers": ["아라서해갑문", "아라한강갑문"] },
@@ -23,7 +23,7 @@
       ]
     },
     {
-      "key": "forest", "title": "국가숲길", "icon": "🌲", "unit": "코스",
+      "key": "forest", "kind": "walk", "title": "국가숲길", "icon": "🌲", "unit": "코스",
       "series": [
         { "key": "jirisan", "name": "지리산둘레길", "prefix": "kmf-9900000006-", "km": 289, "courses": 21, "chainFrom": "주천",
           "cert": { "by": "(사)숲길 완보순례증(민간)", "url": "http://www.trail.or.kr/wp/?page_id=8966", "how": "스탬프포켓북에 구간 스탬프하우스 · 센터 스탬프 → 센터에서 신청(인월센터 063-636-0850)" } },
@@ -35,7 +35,7 @@
       ]
     },
     {
-      "key": "korea", "title": "코리아둘레길", "icon": "🥾", "unit": "코스",
+      "key": "korea", "kind": "walk", "title": "코리아둘레길", "icon": "🥾", "unit": "코스",
       "cert": { "by": "한국관광공사 두루누비 완보인증서", "url": "https://www.durunubi.kr/koreatrail-users-guide.do", "how": "두루누비 · 스탬프투어 · 민간 앱 기록이나 코스북 스탬프(해파랑길은 현장 스탬프도) → 두루누비 마이페이지에서 완보인증서 신청 → 우편" },
       "_note": "두루누비(drnb-) 코스를 이름으로 찾음(q) - 코스 수 · 길이는 받아 온 자료로 셈(2026-10-11). 이름이 '해파랑길 1코스 · …' 꼴. official 은 두루누비 공식 코스 수(koreatrail-introduction.do, 2026-10-12 PC) - 두루누비 API 목록이 139줄뿐이라 앱에는 일부만 있음",
       "series": [
@@ -46,7 +46,7 @@
       ]
     },
     {
-      "key": "peaks", "title": "100대 명산", "icon": "⛰️", "unit": "정상",
+      "key": "peaks", "kind": "hike", "title": "100대 명산", "icon": "⛰️", "unit": "정상",
       "_note": "정상 목록은 summits 파일(산림청 100대 명산 - 공공데이터 15098177 · 15097953 에서 만들 것, 지어내지 않음). 비어 있으면 화면에 안 보임(2026-10-11)",
       "series": [
         { "key": "forest100", "name": "산림청 100대 명산", "summits": "data/mountains100.json", "official": 100,
@@ -54,7 +54,7 @@
       ]
     },
     {
-      "key": "ridge", "title": "백두대간 · 정맥", "icon": "🏔", "unit": "구간",
+      "key": "ridge", "kind": "hike", "title": "백두대간 · 정맥", "icon": "🏔", "unit": "구간",
       "_note": "OpenStreetMap 등산 노선(osmHike, osmh-<OSM 노선>-n 구간) - 구간 수 · 길이는 api/group 으로 받아 셈(2026-10-12). 한남정맥은 OSM 노선이 없어 뺌. aka 는 다른 자료의 이름(산림청 무리 '금호남정맥' - 2026-10-12 PC), 검색 목록 노선 안내도 카드가 씀. 순서는 백두대간, 한북 → 한남금북 → 금북 → 금남 → 금남호남 → 호남 → 낙동 → 낙남",
       "series": [
         { "key": "baekdu", "name": "백두대간", "prefix": "osmh-9439787-" },

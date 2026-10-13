@@ -208,20 +208,54 @@
         }))).then(function () { return d; });
     }
 
+    // 등산 · 걷기 · 자전거 → 묶음(국토종주 자전거길 …) → 노선 · 길 차례로 접었다 펼침, 처음엔 모두 접힘(2026-10-13 홍TV님: 전부 펼쳐 보이지 말고)
+    var KINDS = [{ key: "hike", title: "⛰️ 등산" }, { key: "walk", title: "🥾 걷기" }, { key: "bike", title: "🚴 자전거" }];
+    var OPEN_KEY = "rf-series-open";
+    var opened = load(OPEN_KEY);   // 이 핸드폰에서 펼쳐 둔 칸 - 다시 들어와도 그대로(못 읽으면 모두 접힘)
+    function fold(cls, key, title, sum) {
+        var box = el("section", "fold " + cls), head = el("button", "fh"), body = el("div", "fb");
+        head.type = "button";
+        head.appendChild(el("span", "ft", title));
+        if (sum) head.appendChild(el("span", "fs", sum));
+        head.appendChild(el("span", "fa", "▾"));
+        head.setAttribute("aria-expanded", "false");
+        var set = function (on) {
+            box.classList.toggle("open", on);
+            head.setAttribute("aria-expanded", on ? "true" : "false");
+        };
+        set(!!opened[key]);
+        head.addEventListener("click", function () {
+            var on = !box.classList.contains("open");
+            set(on);
+            if (on) opened[key] = 1; else delete opened[key];
+            try { localStorage.setItem(OPEN_KEY, JSON.stringify(opened)); } catch (e) { }
+        });
+        box.appendChild(head);
+        box.appendChild(body);
+        return { box: box, body: body };
+    }
+
     getJson("data/series.json").catch(function () {
         return fetch("data/series.json").then(function (r) { return r.json(); });
     }).then(loadNamed).then(function (d) {
         var list = $("list");
         list.textContent = "";
-        d.groups.forEach(function (g) {
-            var got = 0, of = 0;
-            g.series = g.series.filter(function (s) { return !s.summits || s.peaks.length; });
-            if (!g.series.length) return;
-            g.series.forEach(function (s) { var p = RF.seriesProgress(s, stamps, done, peakStamps); got += p.got; of += p.of; });
-            list.appendChild(el("h2", null, g.icon + " " + g.title));
-            list.appendChild(el("div", "sum", g.series.length + "개 · " + g.unit + " " + got + " / " + of));
-            if (g.cert) list.appendChild(certLine(g.cert));
-            g.series.forEach(function (s) { list.appendChild(card(g, s)); });
+        KINDS.forEach(function (k) {
+            var gs = d.groups.filter(function (g) {
+                g.series = g.series.filter(function (s) { return !s.summits || s.peaks.length; });
+                return (g.kind || "walk") === k.key && g.series.length;
+            });
+            if (!gs.length) return;
+            var kf = fold("kind", "k:" + k.key, k.title, gs.map(function (g) { return g.title; }).join(" · "));
+            list.appendChild(kf.box);
+            gs.forEach(function (g) {
+                var got = 0, of = 0;
+                g.series.forEach(function (s) { var p = RF.seriesProgress(s, stamps, done, peakStamps); got += p.got; of += p.of; });
+                var gf = fold("group", "g:" + g.key, g.icon + " " + g.title, g.series.length + "개 · " + g.unit + " " + got + " / " + of);
+                kf.body.appendChild(gf.box);
+                if (g.cert) gf.body.appendChild(certLine(g.cert));
+                g.series.forEach(function (s) { gf.body.appendChild(card(g, s)); });
+            });
         });
     }).catch(function () { $("list").textContent = "목록을 읽지 못했습니다."; });
 })();
