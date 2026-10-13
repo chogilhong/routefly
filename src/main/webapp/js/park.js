@@ -330,7 +330,8 @@
             row.className = "row";
             // 길 이름을 따라가기 제목으로(&title= - 이은 코스는 "N구간 이어 걷기" 가 됨)
             var href = "hike.html#c=" + encodeURIComponent(b.course) + (b.name ? "&title=" + encodeURIComponent(b.name) : "");
-            [["따라가기", href, true], ["예시로", "#", false]].forEach(function (d) {
+            // 둘째 단추는 처음 탐방 안내도 아래 칸으로(2026-10-13 홍TV님: "예시로" → 탐방 안내도)
+            [["따라가기", href, true], ["탐방 안내도", "#", false]].forEach(function (d) {
                 var a = document.createElement("a");
                 a.textContent = d[0];
                 a.href = d[1];

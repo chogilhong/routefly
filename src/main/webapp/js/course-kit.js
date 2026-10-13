@@ -2483,6 +2483,12 @@
         return [[l, t], [l + w, t], [l + w, t + h], [l, t + h]];
     }
 
+    /** 순수 함수 - 점 위에 눕힌 출발 이름(.rf-plabel.flat.up - 점 오른쪽 위 9px)의 네 꼭짓점. */
+    function flatUpRect(x, y, w, h) {
+        var l = x + 9, t = y - 9 - h;
+        return [[l, t], [l + w, t], [l + w, t + h], [l, t + h]];
+    }
+
     /** 순수 함수 - 볼록 사각형 둘이 겹치는가(분리축). */
     function rectsOverlap(a, b) {
         var axes = [a, b].reduce(function (acc, r) {
@@ -2581,6 +2587,12 @@
                     if (Math.min(r[0][1], r[1][1], r[2][1], r[3][1]) < -2) {
                         lb.classList.add("flat");
                         r = flatRect(px, py, lb.offsetWidth, lb.offsetHeight, end);
+                        // 출발 이름은 지금 자리 동그라미(.rf-me)에 첫 글자가 가렸음 - 점 위로 눕혀 씀(2026-10-13 홍TV님: 한계령탐방지원센터의 "한")
+                        if (q.d < 60 && !end) {
+                            var ru = flatUpRect(px, py, lb.offsetWidth, lb.offsetHeight);
+                            if (ru[0][1] >= -2) { lb.classList.add("up"); r = ru; }
+                            else lb.classList.add("past");   // 위로도 넘치면 동그라미 오른쪽으로 비켜
+                        }
                     }
                     if (placed.some(function (o) { return rectsOverlap(o, r); })) { box.removeChild(lb); return; }
                     placed.push(r);
