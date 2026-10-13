@@ -715,6 +715,9 @@
             var sv = loadSaved();
             // 되돌아가는 길로 바꿔 걷던 산행을 이어 갈 때, 노선 안내도에서 거꾸로 방향을 골랐을 때(#c=…&rev=1, 2026-10-12)
             if (sv ? sv.rev : /[#&]rev=1(&|$)/.test(location.hash)) c = RF.reverseCourse(c);
+            // 탐방 안내도 대표 코스의 길 이름(#…&title=화엄사 → 노고단 → 천왕봉 → 대원사) - 이은 코스는 "N구간 이어 걷기" 가 됨
+            var tm = /[#&]title=([^&]*)/.exec(location.hash), tt = tm ? RF.safeDecode(tm[1]) : "";
+            if (tt && tt.length <= 60) c.course.name = (RF.nameParts(c.course.name).group.replace(/\s*\d+구간 이어 걷기$/, "") || "") + (RF.nameParts(c.course.name).group ? " · " : "") + tt;
             // 탐방 안내도 원점회귀 예시의 들머리 이름(#…&head=윗새재마을) - 구간 이름의 처음("새재")보다 정확
             var hm = /[#&]head=([^&]*)/.exec(location.hash), hn = hm ? RF.safeDecode(hm[1]) : "";
             // 처음 · 끝이 600m 안(제자리로 돌아옴)이면 이름에 출발 · 도착이 없는 왕복("설악산 2구간 이어 걷기")도
@@ -2043,8 +2046,23 @@
         nearAt = null;
         searchTimer = setTimeout(function () {
             var my = ++pickSeq;
-            getJson("api/courses?q=" + encodeURIComponent(q) + (kindFilter ? "&kind=" + kindFilter : ""))
-                .then(function (j) { if (my === pickSeq) listCourses(j.courses || [], null); })
+            // 산 안내(park-notes)에서 이름을 바꾼 코스는 새 이름으로도 찾음(2026-10-13 PC: "공룡능선" 이 0개 - DB 이름은 "큰새봉 1코스")
+            var renamed = [];
+            Object.keys(listNotes || {}).forEach(function (pk) {
+                var tr = listNotes[pk].trails || {};
+                Object.keys(tr).forEach(function (k) { if (/-\d+$/.test(k) && /^[a-z]+-\d+-\d+$/.test(k) && tr[k].indexOf(q) >= 0) renamed.push(k); });
+            });
+            Promise.all([getJson("api/courses?q=" + encodeURIComponent(q) + (kindFilter ? "&kind=" + kindFilter : ""))].concat(renamed.map(function (id) {
+                return getJson("api/course?id=" + encodeURIComponent(id)).then(function (j) { return j.course; }, function () { return null; });
+            })))
+                .then(function (r) {
+                    if (my !== pickSeq) return;
+                    var rows = (r[0].courses || []).slice();
+                    r.slice(1).forEach(function (c) {
+                        if (c && (!kindFilter || c.kind === kindFilter) && !rows.some(function (x) { return x.course_id === c.course_id; })) rows.unshift(c);
+                    });
+                    listCourses(rows, null);
+                })
                 .catch(function (e) { if (my === pickSeq) toast("검색 실패: " + e.message); });
         }, 300);
     });

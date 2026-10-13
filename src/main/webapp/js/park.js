@@ -223,6 +223,16 @@
             (data.places || []).forEach(function (q) { if (String(q.name).replace(/\s+/g, "") === n) block.push([+q.lon, +q.lat]); });
         });
         examples = RF.loopExamples(segs, hs, peaks, { planHeads: planHeads, block: block });
+        // 대표 코스와 같은 왕복(들머리 · 봉우리 이름이 대표 코스 이름에 다 있음)은 빼고 - 다른 길로 도는 원점회귀는 남김
+        var key = function (n) { return String(n || "").replace(/\s+/g, "").replace(/(탐방지원센터|탐방안내소|분소)$/, "").replace(/^\S+산\s*(?=\S)/, ""); };
+        examples = examples.filter(function (x) {
+            return x.loop || !(noteBest || []).some(function (b) {
+                var bn = String(b.name || "").replace(/\s+/g, ""), hk = key(x.head);
+                // 들머리는 앞부분이 같아도("관음사지구탐방지원센터" · "관음사")
+                var headIn = bn.split("→").some(function (w) { return w && (hk.indexOf(w) === 0 || w.indexOf(hk) === 0); });
+                return headIn && (bn.indexOf(key(x.peak)) >= 0 || /정상$/.test(x.peak) && /정상/.test(bn));
+            });
+        });
         if (!examples.length && !(noteBest || []).length) return;
         var box = document.createElement("div");
         box.className = "ex";
@@ -261,25 +271,42 @@
             row.appendChild(a);
         });
         // 아래 칸 높이는 그대로(탐방로를 골랐을 때와 같게) - 안내 글은 예시 제목에 넣음
-        h.textContent = ((noteBest || []).length ? "대표 코스 · " : "") + "원점회귀 예시(옆으로 넘김) · 탐방로를 눌러 직접 고를 수도 있습니다";
+        h.textContent = ((noteBest || []).length ? "대표 코스" + (examples.length ? " · 원점회귀 예시" : "") : "원점회귀 예시") + "(옆으로 넘김) · 탐방로를 눌러 직접 고를 수도 있습니다";
         var tip = $("sheet").querySelector(".tip");
         if (tip) tip.parentNode.removeChild(tip);   // 목록에서 온 화면도(두 줄 단추로 높이가 165px 이 됐음)
         $("sheet").insertBefore(box, $("sheet").firstChild);
         emptySheet = $("sheet").innerHTML;
     }
 
-    /** 대표 코스(park-notes best)를 지도에 - 그 코스 선 · 출발 깃발, 아래 칸에 이름 · 거리 · 오르막과 따라가기 · 미리보기. */
+    /**
+     * 대표 코스(park-notes best)를 지도에 - 그 코스 선 · 출발 깃발, 아래 칸에 이름 · 거리 · 오르막과 따라가기.
+     * course 는 코스 ID 하나, 또는 이은 코스 ID("가,가~" 왕복 · "가,나@0.35-0.42:코재>무넹기보,다~" 종주 - 따라가기와 같은 꼴), name 은 보일 길 이름.
+     */
     function showBest(b) {
-        getJson("api/course?id=" + encodeURIComponent(b.course)).then(function (j) {
-            var pts = (j.points || []).map(function (p) { return [+p[0], +p[1]]; });
+        var parts = RF.parseJoinId(b.course) || [{ id: b.course, base: b.course, rev: false, r0: null, r1: null }];
+        var bases = parts.map(function (p) { return p.base; }).filter(function (x, k, arr) { return arr.indexOf(x) === k; });
+        Promise.all(bases.map(function (id) { return getJson("api/course?id=" + encodeURIComponent(id)); })).then(function (rs) {
+            var got = {};
+            bases.forEach(function (id, k) { got[id] = rs[k]; });
+            var pts = [], meters = 0;
+            parts.forEach(function (p) {
+                var j = got[p.base], P = (j && j.points) || [];
+                if (P.length < 2) return;
+                var T = +P[P.length - 1][3], d0 = p.r0 == null ? 0 : p.r0 * T, d1 = p.r1 == null ? T : p.r1 * T;
+                var seg = P.filter(function (q) { return +q[3] >= d0 - 1 && +q[3] <= d1 + 1; }).map(function (q) { return [+q[0], +q[1]]; });
+                if (p.rev) seg.reverse();
+                pts = pts.concat(seg);
+                meters += d1 - d0;
+            });
             if (pts.length < 2) return;
+            var one = parts.length === 1 ? got[parts[0].base] : null;
             chosen = [];
             exStart = exHead = exRound = exPeak = null;
             map.getSource("sel").setData({ type: "FeatureCollection", features: [{ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: pts } }] });
             if (startMk) { startMk.remove(); startMk = null; }
             if (endMk) { endMk.remove(); endMk = null; }
-            var name = RF.noteTrailName(noteAll, b.course, j.course.name), e = RF.routeEnds(name);
-            var loop = e.from && e.from === e.to;
+            var name = b.name ? park + " · " + b.name : RF.noteTrailName(noteAll, b.course, one ? one.course.name : park), e = RF.routeEnds(name);
+            var loop = !!(e.from && e.from === e.to);
             var mk = function (txt, at) {
                 var el = document.createElement("div");
                 el.className = "flag";
@@ -298,10 +325,12 @@
             RF.nameNodes(nm, "★ " + b.label + " · " + RF.nameText(name, true));
             var st = document.createElement("div");
             st.className = "st";
-            st.textContent = RF.km(+j.course.distance_m) + "km" + (j.course.ascent_m != null ? " · 오르막 " + RF.num(+j.course.ascent_m) + "m" : "") + " · 대표 코스";
+            st.textContent = RF.km(meters) + "km" + (one && one.course.ascent_m != null ? " · 오르막 " + RF.num(+one.course.ascent_m) + "m" : "") + " · 대표 코스";
             var row = document.createElement("div");
             row.className = "row";
-            [["따라가기", "hike.html#c=" + encodeURIComponent(b.course), true], ["예시로", "#", false]].forEach(function (d) {
+            // 길 이름을 따라가기 제목으로(&title= - 이은 코스는 "N구간 이어 걷기" 가 됨)
+            var href = "hike.html#c=" + encodeURIComponent(b.course) + (b.name ? "&title=" + encodeURIComponent(b.name) : "");
+            [["따라가기", href, true], ["예시로", "#", false]].forEach(function (d) {
                 var a = document.createElement("a");
                 a.textContent = d[0];
                 a.href = d[1];
@@ -310,6 +339,7 @@
                     ev.preventDefault();
                     map.getSource("sel").setData({ type: "FeatureCollection", features: [] });
                     if (startMk) { startMk.remove(); startMk = null; }
+                    if (endMk) { endMk.remove(); endMk = null; }
                     $("sheet").innerHTML = emptySheet;
                 });
                 row.appendChild(a);
