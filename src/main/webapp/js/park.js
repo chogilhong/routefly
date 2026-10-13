@@ -310,7 +310,7 @@
             map.getSource("sel").setData({ type: "FeatureCollection", features: [{ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: pts } }] });
             if (startMk) { startMk.remove(); startMk = null; }
             if (endMk) { endMk.remove(); endMk = null; }
-            var name = b.name ? park + " · " + b.name : RF.noteTrailName(noteAll, b.course, one ? one.course.name : park), e = RF.routeEnds(name);
+            var name = RF.aliasName(b.name ? park + " · " + b.name : RF.noteTrailName(noteAll, b.course, one ? one.course.name : park), noteNames), e = RF.routeEnds(name);
             var loop = !!(e.from && e.from === e.to);
             var mk = function (txt, at) {
                 var el = document.createElement("div");
@@ -383,6 +383,11 @@
             if (noteTrails) x.name = RF.noteTrailName({ p: { trails: noteTrails } }, t.id, x.name);
             return x;
         });
+        // 지명 이름표 · 서버 heads 도 산마다 다른 이름으로(설악산 신흥사 · 설악동탐방지원센터 → 소공원 - 2026-10-13 홍TV님: 메운 길 끝 · 지도 이름표 · 들머리 모두)
+        if (noteNames) data.places.concat(data.heads || []).forEach(function (q) {
+            var n = String(q.name || "").replace(/\s+/g, "");
+            if (Object.prototype.hasOwnProperty.call(noteNames, n)) q.name = noteNames[n];
+        });
         // 들머리 이름(다른 자료 코스의 탐방지원센터 · 탐방안내소) - "중산리" 끝이 중산리탐방지원센터 500m 안이면 그 이름으로
         data.trails = RF.headAlias(data.trails, data.heads);
         // 이름의 거쳐 가는 곳에서 시작 · 끝나는 선은 이름을 거기까지(지리산 "쟁기소 → 반야봉 → 삼도봉삼거리" 선은 반야봉부터)
@@ -393,12 +398,7 @@
         // 갈림길에서 자른 작은 구간(주능선 노고단고개 → 천왕봉을 장터목 · 세석 · 벽소령 … 에서) - 고르기 · 그리기는 이것으로
         // 이름 없는 탐방로 조각(무등산)은 갈림길 사이로 이어 이름을 붙인 뒤 자름
         // 공단 자료에 빠진 길(설악산 소공원 → 비선대 → 천불동 …)은 다른 자료 등산 코스로 메움(옅은 색) - 공단 탐방로를 자르는 데도 씀
-        // 메운 길 끝 이름도 산마다 다른 이름으로(설악산 신흥사 → 소공원 - 2026-10-13 홍TV님)
-        var aliasPlaces = noteNames ? data.places.map(function (q) {
-            var n = String(q.name || "").replace(/\s+/g, "");
-            return Object.prototype.hasOwnProperty.call(noteNames, n) ? { name: noteNames[n], lat: q.lat, lon: q.lon, ele_m: q.ele_m } : q;
-        }) : data.places;
-        var extras = RF.gapFill(data.trails, data.others, aliasPlaces, data.heads, park);
+        var extras = RF.gapFill(data.trails, data.others, data.places, data.heads, park);
         extras.forEach(function (t) { lines[t.id] = t.coords; });
         segs = RF.splitTrails(RF.mergeBare(data.trails, data.places).concat(extras), flips, null, poiNames);
         lines = {};

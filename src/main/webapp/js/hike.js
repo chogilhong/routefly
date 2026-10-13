@@ -694,7 +694,17 @@
         var notesP = fetch("data/park-notes.json").then(function (x) { return x.json(); }).then(function (d) { return d && d.parks; }).catch(function () { return null; });
         return Promise.all([got, mapReady, notesP]).then(function (r) {
             if (my !== loadSeq) return;   // 그 사이 다른 코스를 골랐음
-            var fix = function (cid, j) { if (j && j.course) j.course.name = RF.noteTrailName(r[2], cid, j.course.name); return j; };
+            var fix = function (cid, j) {
+                if (!j || !j.course) return j;
+                j.course.name = RF.noteTrailName(r[2], cid, j.course.name);
+                // 산마다 다른 이름(설악산 신흥사 → 소공원)도 그리기 전에 - 이름 · 이름표
+                var pk = RF.parkOf(j.course.name), nm = pk && r[2] && r[2][pk] && r[2][pk].names;
+                if (nm) {
+                    j.course.name = RF.aliasName(j.course.name, nm);
+                    (j.pois || []).forEach(function (q) { if (Object.prototype.hasOwnProperty.call(nm, q.name)) q.name = nm[q.name]; });
+                }
+                return j;
+            };
             if (parts) r[0] = r[0].map(function (j, i) { return fix(parts[i].base, j); }); else if (!isGpxId(id)) fix(id, r[0]);
             // 여러 구간 이어 걷기(#c=구간,구간~,… - 2026-10-12 홍TV님): 구간마다 걷는 방향으로 돌려 하나로
             // 갈림길에서 자른 구간(코스ID@비율-비율:처음>끝 - 탐방 안내도)은 그 부분만
@@ -739,7 +749,8 @@
                 if (!n || my !== loadSeq) return;
                 if (n.names) {   // 산마다 다른 이름(지리산 중산리 → 중산리탐방지원센터) - 제목 · 끝 이름표
                     c.course.name = RF.aliasName(c.course.name, n.names);
-                    (c.pois || []).forEach(function (q) { if (q.end && n.names[q.name]) q.name = n.names[q.name]; });
+                    // 이름표도(끝 이름표 · 지명 - 설악산 신흥사 → 소공원)
+                    (c.pois || []).forEach(function (q) { if (n.names[q.name]) q.name = n.names[q.name]; });
                     RF.showName($("name"), c.course.name, true);
                     document.title = RF.nameText(c.course.name, true);
                 }
