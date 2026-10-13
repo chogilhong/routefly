@@ -776,6 +776,8 @@
             var park = RF.parkOf(c.course.name) || RF.mountainOf(c.course.name, id);   // 국립공원, 아니면 도립 · 군립공원 · 산
             $("parkBtn").style.display = park ? "block" : "none";
             if (park) $("parkBtn").href = "park.html?name=" + encodeURIComponent(park) + "&from=" + encodeURIComponent(id);
+            parkHref = park ? $("parkBtn").href : null;
+            $("parkGo").style.display = park && !hike.running ? "" : "none";
             setKindWords();
             drawCourse();
             prof = RF.profile($("profile"), c, {});
@@ -1381,6 +1383,7 @@
         $("go").classList.add("stop");
         $("sim").style.display = "none";
         $("share").style.display = "none";
+        $("parkGo").style.display = "none";
         $("arrived").style.display = "none";
         $("noteBtn").style.display = sim ? "none" : "block";   // 시험 걷기는 기록이 남지 않아 사진 · 메모도 받지 않습니다
         drawNoteMarkers();
@@ -1463,6 +1466,7 @@
         $("sim").style.display = "";
         $("save").style.display = "";
         $("share").style.display = isGpxId(c.id) || RF.parseJoinId(c.id) ? "none" : "";
+        $("parkGo").style.display = parkHref ? "" : "none";
         $("turn").style.display = "none";
         $("noteBtn").style.display = "none";
         hike.notes = [];
@@ -2548,6 +2552,14 @@
     $("sosClose").addEventListener("click", function () { $("sosSheet").style.display = "none"; });
 
     // ------------------------------------------------------------------ 공유 · 오프라인 저장
+
+    // 아래 줄 "탐방 안내도"(2026-10-13 홍TV님) - 탐방 안내도에서 들어왔으면 뒤로(고른 대표 코스 · 구간 그대로), 아니면 그 공원 안내도로
+    var parkHref = null;
+    $("parkGo").addEventListener("click", function () {
+        if (hike.running) return;
+        if (/\/park\.html/.test(document.referrer) && history.length > 1) { history.back(); return; }
+        if (parkHref) location.href = parkHref;
+    });
 
     $("share").addEventListener("click", function () {
         if (!c) return;

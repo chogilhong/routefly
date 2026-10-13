@@ -33,6 +33,7 @@
      * 탐방로 고르기 - 누르면 고르고 다시 누르면 뺌, 고른 것 앞 · 뒤로 이어지는 탐방로는 함께(2026-10-12 홍TV님: 등산도 노선 안내도처럼
      * 이어진 구간으로). 아래 칸에 처음 → 끝 두 방향 단추(따라가기), 하나만 골랐으면 미리보기도.
      */
+    var BEST_KEY = "rf-park-best";   // 마지막으로 고른 대표 코스 {park, k}
     var sel = [], lines = {}, flips = {}, byId = {}, segs = [], emptySheet = "", poiNames = {}, noteNames = null, notePass = null, noteEle = null, noteTrails = null, noteHeads = null, noteBest = null, noteAll = null;
     var chosen = [], startMk = null, endMk = null, apartNote = false;   // apartNote - 이어지지 않는 탐방로를 눌러 새로 골랐음(한 번 알림)
 
@@ -343,6 +344,20 @@
         if (tip) tip.parentNode.removeChild(tip);   // 목록에서 온 화면도(두 줄 단추로 높이가 165px 이 됐음)
         $("sheet").insertBefore(box, $("sheet").firstChild);
         emptySheet = $("sheet").innerHTML;
+        restoreBest();
+    }
+
+    // 따라가기의 "탐방 안내도" 로 뒤로 돌아오면 고른 대표 코스를 다시 보임(2026-10-13 홍TV님) - 이 탭 동안만, 한 번
+    var bestRestored = false;
+    function restoreBest() {
+        if (bestRestored) return;
+        bestRestored = true;
+        var nav = window.performance && performance.getEntriesByType ? performance.getEntriesByType("navigation")[0] : null;
+        if (!nav || nav.type !== "back_forward") return;
+        var v = null;
+        try { v = JSON.parse(sessionStorage.getItem(BEST_KEY) || "null"); } catch (err) { v = null; }
+        var b = v && v.park === park && (noteBest || [])[v.k];
+        if (b) showBest(b);
     }
 
     /**
@@ -406,6 +421,7 @@
                     if (startMk) { startMk.remove(); startMk = null; }
                     if (endMk) { endMk.remove(); endMk = null; }
                     $("sheet").innerHTML = emptySheet;
+                    try { sessionStorage.removeItem(BEST_KEY); } catch (err) { }
                     overview(600);
                 });
                 row.appendChild(a);
@@ -634,6 +650,7 @@
             if (bt) {
                 e.preventDefault();
                 var b = (noteBest || [])[+bt.getAttribute("data-best")];
+                try { sessionStorage.setItem(BEST_KEY, JSON.stringify({ park: park, k: +bt.getAttribute("data-best") })); } catch (err) { }
                 if (b) showBest(b);
                 return;
             }
