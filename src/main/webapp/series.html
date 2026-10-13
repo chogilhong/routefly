@@ -54,9 +54,11 @@ h2 { font-size:15px; margin:16px 0 4px; }
 .fold > .fb { display:none; }
 .fold.open > .fb { display:block; }
 .fold.kind > .fh .ft { font-size:17px; }
-.fold.group { margin-left:6px; }
-.fold.group > .fh .ft { font-size:15px; }
-.fold.group > .fb { padding:4px 0 6px 4px; }
+/* 둘째 단계(100대 명산 · 백두대간 · 정맥 …)는 오른쪽으로 들이고 왼쪽 선 · 작은 글씨로 첫 단계(등산 · 걷기 · 자전거)와 구분(2026-10-13 홍TV님) */
+.fold.kind > .fb { margin-left:10px; padding-left:12px; border-left:2px solid rgba(56,217,234,0.35); }
+.fold.group > .fh { padding:10px 4px; }
+.fold.group > .fh .ft { font-size:14.5px; font-weight:bold; color:#d6dde6; }
+.fold.group > .fb { padding:4px 0 6px 0; }
 .tip { font-size:12.5px; color:var(--dim); line-height:1.5; }
 .sub { font-size:12.5px; color:var(--dim); margin:10px 0 2px; }
 </style>

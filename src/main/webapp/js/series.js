@@ -39,7 +39,7 @@
         row.appendChild(t);
         // 따라가기만(미리보기 단추는 뺌 - 2026-10-13 홍TV님)
         var b = el("a", "main", "따라가기");
-        b.href = "hike.html#c=" + encodeURIComponent(c.course_id);
+        b.href = "hike.html#c=" + encodeURIComponent(c.course_id) + "&from=series";   // 따라가기의 ‹ 가 이 화면으로
         row.appendChild(b);
         return row;
     }
@@ -73,6 +73,7 @@
         box.appendChild(body);
         var loaded = false;
         head.addEventListener("click", function () {
+            if (!box.classList.contains("open")) closeSiblings(box, "card");   // 노선 카드도 하나만 펼침
             box.classList.toggle("open");
             if (loaded) return;
             loaded = true;
@@ -88,9 +89,12 @@
                 var more = el("button", "more", "코스 ▾"), list = el("div", "sublist"), state = 0;
                 more.type = "button";
                 var setOpen = function (open) {
+                    // 산마다 코스 목록도 하나만 펼침
+                    if (open) Array.prototype.forEach.call(body.querySelectorAll(".sublist.open"), function (o) { if (o !== list && o._close) o._close(); });
                     list.classList.toggle("open", open);
                     more.textContent = open ? "코스 ▴" : "코스 ▾";
                 };
+                list._close = function () { setOpen(false); };
                 more.addEventListener("click", function () {
                     if (state === 1) return;
                     if (state === 2) { setOpen(!list.classList.contains("open")); return; }
@@ -139,6 +143,7 @@
         box.appendChild(body);
         var loaded = false;
         head.addEventListener("click", function () {
+            if (!box.classList.contains("open")) closeSiblings(box, "card");   // 노선 카드도 하나만 펼침
             box.classList.toggle("open");
             if (loaded) return;
             loaded = true;
@@ -172,7 +177,7 @@
                 if (centerRows.length) RF.centerCourses(list, s.centers, j.centers, s.aka).forEach(function (c, i) {
                     if (!c) return;
                     var b = el("a", "main", "따라가기");
-                    b.href = "hike.html#c=" + encodeURIComponent(c.course_id);
+                    b.href = "hike.html#c=" + encodeURIComponent(c.course_id) + "&from=series";   // 따라가기의 ‹ 가 이 화면으로
                     b.title = RF.nameText(c.name);
                     centerRows[i].appendChild(b);
                 });
@@ -209,6 +214,16 @@
     var KINDS = [{ key: "hike", title: "⛰️ 등산" }, { key: "walk", title: "🥾 걷기" }, { key: "bike", title: "🚴 자전거" }];
     var OPEN_KEY = "rf-series-open";
     var opened = load(OPEN_KEY);   // 이 핸드폰에서 펼쳐 둔 칸 - 다시 들어와도 그대로(못 읽으면 모두 접힘)
+    /** 같은 부모 안 같은 단계(cls)의 펼친 칸을 접음 - 칸마다 _close 가 있으면 그것으로(기억도 지움). */
+    function closeSiblings(box, cls) {
+        var p = box.parentNode;
+        if (!p) return;
+        Array.prototype.forEach.call(p.children, function (o) {
+            if (o === box || !o.classList.contains(cls) || !o.classList.contains("open")) return;
+            if (o._close) o._close(); else o.classList.remove("open");
+        });
+    }
+
     function fold(cls, key, title, sum) {
         var box = el("section", "fold " + cls), head = el("button", "fh"), body = el("div", "fb");
         head.type = "button";
@@ -221,8 +236,11 @@
             head.setAttribute("aria-expanded", on ? "true" : "false");
         };
         set(!!opened[key]);
+        box._close = function () { set(false); delete opened[key]; };
         head.addEventListener("click", function () {
             var on = !box.classList.contains("open");
+            // 하나를 펼치면 같은 단계의 다른 칸은 접음(2026-10-13 홍TV님: 100대 명산을 펼친 채 백두대간 · 정맥을 누르면 100대 명산은 접힘)
+            if (on) closeSiblings(box, "fold");
             set(on);
             if (on) opened[key] = 1; else delete opened[key];
             try { localStorage.setItem(OPEN_KEY, JSON.stringify(opened)); } catch (e) { }

@@ -1971,10 +1971,17 @@
         $(id).addEventListener("click", function () { $("navSheet").style.display = "none"; });
     });
 
+    // 도장 · 완주 화면의 따라가기로 들어왔으면(#c=…&from=series) "‹ 도장 · 완주" 로 그 화면에 돌아감(2026-10-13 홍TV님)
+    var fromSeries = /[#&]from=series(&|$)/.test(location.hash);
+    if (fromSeries) {
+        $("back").innerHTML = "<b>‹</b>도장 · 완주";
+        $("back").title = "도장 · 완주 화면으로";
+    }
     // ‹ - 코스 목록(검색 결과 그대로)으로. 산행 중이면 먼저 끝내도록.
     $("back").addEventListener("click", function (e) {
         e.preventDefault();
-        if (hike.running) { toast("산행 중입니다. 코스 목록으로 가려면 먼저 아래 '" + K().act + " 끝내기' 를 눌러 주세요.", 4000); return; }
+        if (hike.running) { toast("산행 중입니다. " + (fromSeries ? "도장 · 완주 화면" : "코스 목록") + "으로 가려면 먼저 아래 '" + K().act + " 끝내기' 를 눌러 주세요.", 4000); return; }
+        if (fromSeries) { location.href = "series.html"; return; }
         if (fromList) { fromList = false; history.back(); }
         else location.hash = "";
     });
