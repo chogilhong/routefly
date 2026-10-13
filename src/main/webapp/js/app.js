@@ -968,12 +968,13 @@
     });
     // 뒤로 - 핸드폰에서 코스를 보는 중(목록을 접음)이면 먼저 목록으로 한 단계만. 목록이 보이면 '목록' 단추로
     // 첫 화면(따라가기의 코스 목록)으로 - 공원 전체 → 미리보기로 와도 공원 화면이 아니라 첫 화면(2026-10-11 홍TV님)
+    var fromPage = document.referrer && document.referrer.indexOf(location.origin) === 0 && document.referrer.split("#")[0] !== location.href.split("#")[0];
     $("back").addEventListener("click", function () {
         // 다른 화면(탐방 안내도의 "routefly(3D) ›" 등)에서 왔으면 "← 뒤로" 는 바로 그 화면으로(2026-10-13 홍TV님)
-        var fromPage = document.referrer && document.referrer.indexOf(location.origin) === 0 && document.referrer.split("#")[0] !== location.href.split("#")[0];
+        // 다른 화면(도장 · 완주의 "fly")에서 왔으면 목록이 펼쳐져 있어도 그 화면으로 - 이 화면의 코스 목록은 이제 안 씀(2026-10-13 홍TV님)
+        if (fromPage && history.length > 1) { stop(); history.back(); return; }
         if (isNarrow() && $("side").classList.contains("closed")) {
             stop();
-            if (fromPage && history.length > 1) { history.back(); return; }
             setListOpen(true);
             return;
         }
@@ -983,7 +984,7 @@
     });
     /** 뒤로 단추 글: 목록이 보이면 '‹ 목록'(첫 화면으로), 핸드폰에서 목록을 접고 코스를 보는 중이면 '← 뒤로'(목록 펼치기). */
     function setBackLabel() {
-        var closed = isNarrow() && $("side").classList.contains("closed");
+        var closed = fromPage || (isNarrow() && $("side").classList.contains("closed"));   // 다른 화면에서 왔으면 늘 "← 뒤로"(그 화면으로)
         $("back").textContent = closed ? "← 뒤로" : "‹ 목록";
         $("back").title = closed ? "코스 목록 펼치기" : "첫 화면(따라가기 코스 목록)으로";
     }

@@ -474,10 +474,6 @@ eq("planWalk 먼저 누른 쪽이 출발", [RF.planWalk(["b", "a"], pw3, { heads
 var sp2 = { hj: [[127.0, 35.0], [127.0, 35.01]], ja: [[127.0, 35.01], [126.99, 35.03]], jb: [[127.0, 35.01], [127.01, 35.03]] };
 eq("planWalk 막다른 갈래 둘이면 apart", RF.planWalk(["hj", "ja", "jb"], sp2, { heads: [{ lat: 35.0, lon: 127.0 }], first: "hj" }).reason, "apart");
 eq("planWalk 막다른 갈래 하나는 왕복", RF.planWalk(["hj", "ja"], sp2, { heads: [{ lat: 35.0, lon: 127.0 }], first: "hj" }).ok, true);
-// 2026-10-13 홍TV님: 태안해안 - 사이에 이어 줄 탐방로가 없으면 canJoin false(서로 이을 수 없는 구간 - 새로 고름)
-var cj = { a: [[127.0, 35.0], [127.0, 35.01]], b: [[127.0, 35.02], [127.0, 35.03]], c: [[127.0, 35.01], [127.0, 35.02]] };
-eq("canJoin 사이 탐방로가 있으면 true", RF.canJoin(["a", "b"], cj), true);
-eq("canJoin 없으면 false", RF.canJoin(["a", "b"], { a: cj.a, b: cj.b }), false);
 eq("planWalk 이어지지 않음은 apart", RF.planWalk(["s", "c2"], pw4, {}).reason, "apart");
 eq("trailHeads 막다른 끝 가운데 들머리만(봉우리 빼고, 탐방지원센터 이름 먼저)", RF.trailHeads([
     { id: "a", name: "지리산 · 중산리 → 칼바위", coords: [[127.0, 35.0], [127.0, 35.01]] }, { id: "b", name: "지리산 · 칼바위 → 천왕봉", coords: [[127.0, 35.01], [127.0, 35.02]] },

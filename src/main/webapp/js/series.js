@@ -30,14 +30,22 @@
         return e;
     }
 
-    /** 코스 한 줄 - 이름 · 거리 · (완주) · 따라가기. */
+    /** "fly" - 그 코스를 3D 지형 위로 날아 보는 화면(index.html), 따라가기 왼쪽(2026-10-13 홍TV님: 지웠던 미리보기 자리). 그 화면의 ← 는 이 화면으로. */
+    function flyBtn(row, id) {
+        var a = el("a", null, "fly");
+        a.href = "index.html#c=" + encodeURIComponent(id);
+        a.title = "3D 지형 위로 날아 보기";
+        row.appendChild(a);
+    }
+
+    /** 코스 한 줄 - 이름 · 거리 · (완주) · fly · 따라가기. */
     function courseRow(c) {
         var row = el("div", "row"), t = el("div", "t");
         var d = done[c.course_id];
         t.appendChild(document.createTextNode((d ? "✅ " : "") + RF.nameText(c.name)));
         t.appendChild(el("span", null, RF.km(c.distance_m) + "km · 오르막 " + RF.num(c.ascent_m) + "m" + (d ? " · 완주 " + day(d.t) : "")));
         row.appendChild(t);
-        // 따라가기만(미리보기 단추는 뺌 - 2026-10-13 홍TV님)
+        flyBtn(row, c.course_id);
         var b = el("a", "main", "따라가기");
         b.href = "hike.html#c=" + encodeURIComponent(c.course_id) + "&from=series";   // 따라가기의 ‹ 가 이 화면으로
         row.appendChild(b);
@@ -188,6 +196,7 @@
                 // 인증센터마다 그 센터를 지나는 구간의 따라가기(2026-10-12 홍TV님)
                 if (centerRows.length) RF.centerCourses(list, s.centers, j.centers, s.aka).forEach(function (c, i) {
                     if (!c) return;
+                    flyBtn(centerRows[i], c.course_id);
                     var b = el("a", "main", "따라가기");
                     b.href = "hike.html#c=" + encodeURIComponent(c.course_id) + "&from=series";   // 따라가기의 ‹ 가 이 화면으로
                     b.title = RF.nameText(c.name);

@@ -167,6 +167,42 @@
         return null;
     }
 
+    /**
+     * 탐방로 t 를 더한 새 고르기(2026-10-13 홍TV님):
+     * - 지금 노선의 출발 · 도착에 이어지면 이어 붙임, 중간 갈림길에 붙으면 그 갈림길부터 원래 도착까지 빼고 t 가 새 도착(chainCut)
+     * - 출발 · 도착과 한 구간 떨어져 있으면 그대로 두고 기다림(사이 탐방로를 누르면 이어짐 - pendingId)
+     * - 두 구간 넘게 떨어지면 앞 노선을 지우고 t 로 새로
+     */
+    var pendingId = null;
+    function addTrail(t) {
+        if (pendingId && chosen.indexOf(pendingId) < 0) pendingId = null;
+        if (pendingId) {   // 기다리던 사이 탐방로인가 - 아니면 떨어져 있던 탐방로는 빼고 남은 노선으로 다시 봄
+            var trial = chosen.concat([t.id]), wait = pendingId;
+            pendingId = null;
+            if (planOf(trial).ok) return trial;
+            chosen = chosen.filter(function (id) { return id !== wait; });
+        }
+        if (!chosen.length) return [t.id];
+        var p = planOf(chosen);
+        if (!p.ok || !lines[t.id]) return [t.id];
+        var cut = chainCut(t);
+        if (cut) return cut;
+        var S = p.start, E = p.end, L = lines[t.id], te = [L[0], L[L.length - 1]];
+        var near = function (a, b) { return RF.distM(a[1], a[0], b[1], b[0]) < 150; };
+        var touchT = function (q) { return te.some(function (e) { return near(e, q); }); };
+        if (touchT(S) || touchT(E)) {
+            var tr = chosen.concat([t.id]);
+            return planOf(tr).ok ? tr : [t.id];   // 걸을 수 없는 모양이면 새로
+        }
+        var gap = segs.some(function (g) {
+            if (g.id === t.id || chosen.indexOf(g.id) >= 0 || !g.coords || g.coords.length < 2) return false;
+            var a = g.coords[0], b = g.coords[g.coords.length - 1];
+            return [S, E].some(function (X) { return (near(a, X) && touchT(b)) || (near(b, X) && touchT(a)); });
+        });
+        if (gap) { pendingId = t.id; return chosen.concat([t.id]); }
+        return [t.id];
+    }
+
     function pick(t) {
         if (t) {
             exStart = null;
@@ -175,19 +211,13 @@
             var k = chosen.indexOf(t.id);
             if (k >= 0) {
                 chosen.splice(k, 1);
+                if (t.id === pendingId) pendingId = null;
                 if (chosen.length && !planOf(chosen).ok) chosen = groupOf(chosen, chosen[0]);
                 if (chosen.length && !planOf(chosen).ok) chosen = [];
             } else {
-                // 노선은 출발 · 도착에서만 이어 감 - 중간 갈림길에 붙는 탐방로를 누르면 그 갈림길부터 원래 도착까지는 빼고
-                // 누른 탐방로가 새 도착(2026-10-13 홍TV님: 중간에서 갈래가 붙어 올랐다 내려오는 4구간이 됐음)
-                var cut = chainCut(t);
-                if (cut) chosen = cut;
-                else chosen.push(t.id);
-                // 아직 이어지지 않은 탐방로는 기다렸다 이어 주는 탐방로를 누르면 합침(2026-10-13 PC: 누르는 차례에 따라 새로 골라졌음),
-                // 걸을 수 없는 모양일 때만 그 탐방로로 새로
-                if (planOf(chosen).reason === "shape") chosen = [t.id];
-                // 사이에 이어 줄 탐방로가 아예 없으면(태안해안 - 서로 이을 수 없는 구간, 2026-10-13 홍TV님) 그 탐방로로 새로
-                else if (chosen.length > 1 && !RF.canJoin(chosen, lines)) { chosen = [t.id]; apartNote = true; }
+                var had = chosen.length;
+                chosen = addTrail(t);
+                if (had && chosen.length === 1 && chosen[0] === t.id) apartNote = true;   // 앞 노선을 지우고 새로 - 알림
             }
         }
         // 지도에서 직접 고른 구간도 따라가기에서 돌아오면 그대로(2026-10-13 PC) - 예시(exStart …)로 고른 것은 다시 짜지 않고 구간만
@@ -206,7 +236,8 @@
             $("sheet").innerHTML = "";
             var w = document.createElement("div");
             w.className = "tip";
-            w.textContent = chosen.length + "구간을 골랐습니다. " + looseText(plan.loose) + " - 사이 탐방로를 더 누르세요(다시 누르면 뺍니다).";
+            w.textContent = pendingId ? "앞 노선의 출발 · 도착과 한 구간 떨어져 있습니다 - 사이 탐방로를 누르면 이어집니다(다시 누르면 뺍니다)."
+                : chosen.length + "구간을 골랐습니다. " + looseText(plan.loose) + " - 사이 탐방로를 더 누르세요(다시 누르면 뺍니다).";
             $("sheet").appendChild(w);
             return;
         }
@@ -310,7 +341,7 @@
         });
         var tip = document.createElement("div");
         tip.className = "tip";
-        tip.textContent = apartNote ? "앞서 고른 구간과 이어지는 탐방로가 없어 이 구간으로 새로 골랐습니다."
+        tip.textContent = apartNote ? "앞 노선의 출발 · 도착과 두 구간 넘게 떨어져 있어 앞 노선을 지우고 이 구간으로 새로 골랐습니다."
             : round ? "출발한 들머리로 돌아오는 코스입니다(정상 같은 갈래는 올랐다 같은 길로). 어느 쪽으로 먼저 돌지 고르세요."
             : "이어진 탐방로를 더 누르면 함께 고르고, 다시 누르면 뺍니다. 따라갈 방향을 고르세요.";
         apartNote = false;
