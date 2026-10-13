@@ -58,7 +58,7 @@ public class ShareServlet extends HttpServlet {
         }
         String base = baseUrl(RouteflyConfig.get("site.baseUrl"), req.getScheme(), req.getServerName(), req.getServerPort(),
                 req.getContextPath(), req.getHeader("X-Forwarded-Proto"));
-        String target = base + (hike ? "/hike.html#c=" : "/#c=") + id;
+        String target = base + (hike ? "/hike.html#c=" : "/index.html#c=") + id;   // 예전 3D 공유 링크도 3D 화면으로 바로(첫 주소는 이제 따라가기)
         resp.setStatus(HttpServletResponse.SC_OK);
         resp.setContentType("text/html");
         resp.setCharacterEncoding(StandardCharsets.UTF_8.name());
