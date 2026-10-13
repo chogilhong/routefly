@@ -252,7 +252,8 @@
             list = RF.flattenSel(list);   // 이은 구간(무등산)은 코스 조각으로 풀어서
             // 원점회귀 예시는 들머리 이름도(따라가기 제목 - 2026-10-13 홍TV님: "새재 원점회귀" 가 아니라 윗새재마을)
             return "hike.html#c=" + (list.length === 1 ? encodeURIComponent(list[0].id) + (list[0].rev ? "&rev=1" : "") : encodeURIComponent(RF.joinId(list)))
-                + (exHead || from ? "&head=" + encodeURIComponent(exHead || from) : "");   // 지도의 출발 이름을 따라가기 출발 이름표로(권금성 · 신흥사가 섞였음)
+                + (exHead || from ? "&head=" + encodeURIComponent(exHead || from) : "")   // 지도의 출발 이름을 따라가기 출발 이름표로(권금성 · 신흥사가 섞였음)
+                + "&via=park";   // 탐방 안내도에서 들어감 - 따라가기 아래 "탐방 안내도" 단추는 이때만(2026-10-13 홍TV님)
         };
         // 원점회귀는 어느 쪽으로 먼저 도는지 - 두 방향이 처음 갈라지는 곳의 이름(들머리에서 같은 길로 오르는 부분은 건너뜀)
         var fwdN = full.map(function (s) { return ends(s)[1]; }), bwdN = RF.reverseSel(full).map(function (s) { return ends(s)[1]; }), dv = 0;
@@ -460,7 +461,8 @@
             row.className = "row";
             // 길 이름을 따라가기 제목으로(&title= - 이은 코스는 "N구간 이어 걷기" 가 됨)
             var href = "hike.html#c=" + encodeURIComponent(b.course) + (b.rev && parts.length === 1 ? "&rev=1" : "") + (b.name ? "&title=" + encodeURIComponent(b.name) : "")
-                + (b.name && e.from ? "&head=" + encodeURIComponent(e.from) : "");   // 들머리 이름표(설악산 공룡능선 - 산림청 선 처음 이름 "권금성" 대신 소공원)
+                + (b.name && e.from ? "&head=" + encodeURIComponent(e.from) : "")   // 들머리 이름표(설악산 공룡능선 - 산림청 선 처음 이름 "권금성" 대신 소공원)
+                + "&via=park";
             // 둘째 단추는 처음 탐방 안내도 아래 칸으로(2026-10-13 홍TV님: "예시로" → 탐방 안내도)
             [["따라가기", href, true], ["탐방 안내도", "#", false]].forEach(function (d) {
                 var a = document.createElement("a");
@@ -707,7 +709,7 @@
         else if (from) {   // 따라가기의 🏞 로 왔으면 그 코스 따라가기로 - 이름도 "‹ 따라가기"(2026-10-13 PC: "‹ 코스" 였음)
             $("back").textContent = "‹ 따라가기";
             // 제목 · 들머리 이름(&title · &head)도 그대로 - 빠지면 ★ 위문이 "산성분소 원점회귀" 로 바뀌었음(2026-10-13 PC)
-            var tail = (q.get("tail") || "").match(/&(title|head|rev)=[^&]*/g) || [];
+            var tail = (q.get("tail") || "").match(/&(title|head|rev|via)=[^&]*/g) || [];
             $("back").href = "hike.html#c=" + encodeURIComponent(from) + tail.join("");
         }
         // 고른 탐방로가 없을 때 아래 칸(모두 빼면 다시 이것으로). 따라가기는 아래 칸에 맡겨 받음(다시 그려도 됨)
