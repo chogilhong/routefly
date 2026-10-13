@@ -2062,7 +2062,8 @@
             var b = document.createElement("b");
             RF.showName(b, RF.noteTrailName(listNotes, r.course_id, r.name));   // 이름을 바로잡은 탐방로(park-notes trails - 설악산 "백담사" → 용대리 → 백담사)
             var s = document.createElement("span");
-            var ofn = RF.officialName(listNotes, r.course_id);   // 공단 공식 이름(가야산1코스)
+            var ofn = RF.officialName(listNotes, r.course_id);   // 공단 공식 이름(가야산1코스) - 이름에 이미 들었으면 빼고(남산제일봉1코스)
+            if (ofn && String(r.name).replace(/\s+/g, "").indexOf(ofn.replace(/\s+/g, "")) >= 0) ofn = "";
             s.textContent = (ofn ? "공단 " + ofn + " · " : "") + km(+r.distance_m) + "km" + (r.ascent_m != null ? " · 오르막 " + num(+r.ascent_m) + "m" : "")
                 + (r.ele_max_m != null ? " · 최고 " + num(+r.ele_max_m) + "m" : "")
                 + (r.away != null ? " · 출발점까지 " + km(r.away) + "km" : "");
