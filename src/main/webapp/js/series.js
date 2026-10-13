@@ -32,7 +32,7 @@
 
     /** "fly" - 그 코스를 3D 지형 위로 날아 보는 화면(index.html), 따라가기 왼쪽(2026-10-13 홍TV님: 지웠던 미리보기 자리). 그 화면의 ← 는 이 화면으로. */
     function flyBtn(row, id) {
-        var a = el("a", null, "fly");
+        var a = el("a", null, "fly(3D)");
         a.href = "index.html#c=" + encodeURIComponent(id);
         a.title = "3D 지형 위로 날아 보기";
         row.appendChild(a);
