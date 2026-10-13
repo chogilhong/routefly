@@ -778,6 +778,7 @@
             if (park) $("parkBtn").href = "park.html?name=" + encodeURIComponent(park) + "&from=" + encodeURIComponent(id);
             parkHref = park ? "park.html?name=" + encodeURIComponent(park) : null;   // from 없이 - 고른 코스 없는 첫 화면
             $("parkGo").style.display = park && !hike.running ? "" : "none";
+            barFit();
             setKindWords();
             drawCourse();
             prof = RF.profile($("profile"), c, {});
@@ -1384,6 +1385,7 @@
         $("sim").style.display = "none";
         $("share").style.display = "none";
         $("parkGo").style.display = "none";
+        barFit();
         $("arrived").style.display = "none";
         $("noteBtn").style.display = sim ? "none" : "block";   // 시험 걷기는 기록이 남지 않아 사진 · 메모도 받지 않습니다
         drawNoteMarkers();
@@ -1467,6 +1469,7 @@
         $("save").style.display = "";
         $("share").style.display = isGpxId(c.id) ? "none" : "";
         $("parkGo").style.display = parkHref ? "" : "none";
+        barFit();
         $("turn").style.display = "none";
         $("noteBtn").style.display = "none";
         hike.notes = [];
@@ -2555,6 +2558,11 @@
 
     // 아래 줄 "탐방 안내도"(2026-10-13 홍TV님) - 늘 그 공원 탐방 안내도 첫 화면(전체 지도 · 대표 코스 칩)으로
     var parkHref = null;
+    /** 아래 줄 단추가 다섯이면 #bar.many(글자 작게). 단추를 보이고 숨긴 뒤 부름. */
+    function barFit() {
+        var n = Array.prototype.filter.call($("bar").children, function (b) { return b.style.display !== "none"; }).length;
+        $("bar").classList.toggle("many", n >= 5);
+    }
     $("parkGo").addEventListener("click", function () {
         if (hike.running || !parkHref) return;
         location.href = parkHref;

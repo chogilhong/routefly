@@ -702,7 +702,10 @@
             $("sheet").classList.add("listmode");
             $("sheet").innerHTML = '<div class="tip">탐방로를 누르면 그 코스를 따라갈 수 있습니다.</div><div class="row"><a class="main" id="followNone" href="hike.html">따라가기</a></div>';
         }
-        else if (from) $("back").href = "hike.html#c=" + encodeURIComponent(from);
+        else if (from) {   // 따라가기의 🏞 로 왔으면 그 코스 따라가기로 - 이름도 "‹ 따라가기"(2026-10-13 PC: "‹ 코스" 였음)
+            $("back").textContent = "‹ 따라가기";
+            $("back").href = "hike.html#c=" + encodeURIComponent(from);
+        }
         // 고른 탐방로가 없을 때 아래 칸(모두 빼면 다시 이것으로). 따라가기는 아래 칸에 맡겨 받음(다시 그려도 됨)
         emptySheet = $("sheet").innerHTML;
         $("sheet").addEventListener("click", function (e) {
