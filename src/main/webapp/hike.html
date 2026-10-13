@@ -95,7 +95,7 @@ body.compact #statGrids { display:none; }
 /* 탐방 안내도 - 단추가 다섯이면 좁아 두 줄로(탐방 / 안내도) */
 #bar #parkGo { white-space:normal; word-break:keep-all; line-height:1.15; font-size:13.5px; }
 /* 단추 다섯(공유 · 탐방 안내도 함께)이면 글자를 조금 작게 - "시험 걷기" 가 단추 테두리에 닿았음(2026-10-13 PC) */
-#bar.many button { font-size:13px; padding:0 2px; }
+#bar.many button, #bar.many #parkGo { font-size:12.5px; padding:0 1px; letter-spacing:-0.3px; }   /* 13px 은 "시험 걷기" 가 0.3px 넘쳤음 */
 #bar button.stop { background:var(--warn); border-color:var(--warn); color:#fff; }
 
 /* 코스 고르기 */

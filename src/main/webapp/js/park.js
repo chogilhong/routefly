@@ -621,7 +621,9 @@
             var fp = RF.parseJoinId(from);
             if (fp) {
                 var ids = fp.map(function (p) { return p.id; }).filter(function (id, i, a) { return lines[id] && a.indexOf(id) === i; });
-                if (ids.length && fp.every(function (p) { return lines[p.id]; })) { fitIds(ids, 0); chosen = ids; pick(); }
+                var bestOf = (noteBest || []).filter(function (b) { return b.course === from; })[0];
+                if (bestOf) showBest(bestOf);   // ★ 대표 코스(북한산 위문 - 통째 탐방로는 갈림길에서 잘려 구간 id 와 다름)
+                else if (ids.length && fp.every(function (p) { return lines[p.id]; })) { fitIds(ids, 0); chosen = ids; pick(); }
             } else segs.forEach(function (t) { if (t.id === from) pick(t); });   // 잘린 탐방로면 고르지 않음
         }
         $("msg").style.display = "none";
@@ -704,7 +706,9 @@
         }
         else if (from) {   // 따라가기의 🏞 로 왔으면 그 코스 따라가기로 - 이름도 "‹ 따라가기"(2026-10-13 PC: "‹ 코스" 였음)
             $("back").textContent = "‹ 따라가기";
-            $("back").href = "hike.html#c=" + encodeURIComponent(from);
+            // 제목 · 들머리 이름(&title · &head)도 그대로 - 빠지면 ★ 위문이 "산성분소 원점회귀" 로 바뀌었음(2026-10-13 PC)
+            var tail = (q.get("tail") || "").match(/&(title|head|rev)=[^&]*/g) || [];
+            $("back").href = "hike.html#c=" + encodeURIComponent(from) + tail.join("");
         }
         // 고른 탐방로가 없을 때 아래 칸(모두 빼면 다시 이것으로). 따라가기는 아래 칸에 맡겨 받음(다시 그려도 됨)
         emptySheet = $("sheet").innerHTML;

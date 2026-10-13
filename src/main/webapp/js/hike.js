@@ -775,8 +775,10 @@
             // 국립공원 코스면 공원 전체 보기(🏞) - 그 공원 공식 탐방로 전체 · 공식 안내도 바로가기
             var park = RF.parkOf(c.course.name) || RF.mountainOf(c.course.name, id);   // 국립공원, 아니면 도립 · 군립공원 · 산
             $("parkBtn").style.display = park ? "block" : "none";
-            if (park) $("parkBtn").href = "park.html?name=" + encodeURIComponent(park) + "&from=" + encodeURIComponent(id);
-            parkHref = park ? "park.html?name=" + encodeURIComponent(park) : null;   // from 없이 - 고른 코스 없는 첫 화면
+            if (park) $("parkBtn").href = "park.html?name=" + encodeURIComponent(park) + "&from=" + encodeURIComponent(id)
+                + "&tail=" + encodeURIComponent((location.hash.match(/&(title|head|rev)=[^&]*/g) || []).join(""));   // ‹ 따라가기 로 돌아올 때 제목 · 들머리 이름
+            // 목록 카드로 연 것과 같은 첫 화면(위 "← 목록" · 아래 "따라가기") - back=list 없이 열면 "‹ 코스" 가 코스 미리보기(3D)로 갔음(2026-10-13 홍TV님)
+            parkHref = park ? "park.html?name=" + encodeURIComponent(park) + "&back=list" : null;
             $("parkGo").style.display = park && !hike.running ? "" : "none";
             barFit();
             setKindWords();
