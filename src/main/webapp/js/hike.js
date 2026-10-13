@@ -701,7 +701,11 @@
                 var pk = RF.parkOf(j.course.name), nm = pk && r[2] && r[2][pk] && r[2][pk].names;
                 if (nm) {
                     j.course.name = RF.aliasName(j.course.name, nm);
-                    (j.pois || []).forEach(function (q) { if (Object.prototype.hasOwnProperty.call(nm, q.name)) q.name = nm[q.name]; });
+                    // 이름표는 들머리 · 날머리 자리(처음 · 끝 300m 안)만 - 떨어진 신흥사(절)까지 소공원이 되어 지도에 소공원이 둘이었음(2026-10-13)
+                    var T = j.points && j.points.length ? +j.points[j.points.length - 1][3] : 0;
+                    (j.pois || []).forEach(function (q) {
+                        if (Object.prototype.hasOwnProperty.call(nm, q.name) && !(+q.off_route_m > 300) && (+q.dist_m < 300 || +q.dist_m > T - 300)) q.name = nm[q.name];
+                    });
                 }
                 return j;
             };
@@ -732,8 +736,15 @@
             var hm = /[#&]head=([^&]*)/.exec(location.hash), hn = hm ? RF.safeDecode(hm[1]) : "";
             // 처음 · 끝이 600m 안(제자리로 돌아옴)이면 이름에 출발 · 도착이 없는 왕복("설악산 2구간 이어 걷기")도
             var back = c.lon.length > 1 && RF.distM(c.lat[0], c.lon[0], c.lat[c.lat.length - 1], c.lon[c.lon.length - 1]) < 600;
-            if (hn && hn.length <= 30 && (back || /원점회귀$/.test(c.course.name))) c.course.name = RF.headLoopName(c.course.name, hn, true);
+            if (hn && hn.length <= 30 && !tt && (back || /원점회귀$/.test(c.course.name))) c.course.name = RF.headLoopName(c.course.name, hn, true);
             // 탐방 안내도의 출발 이름을 출발 이름표로(그 자리 다른 지명 "권금성" 이 출발로 보였음 - 2026-10-13 홍TV님). 같은 이름이 처음 300m 안에 있으면 그대로
+            // 들머리 자리(처음 · 원점회귀면 끝 100m 안)의 다른 이름도 들머리 이름으로(2026-10-13 PC: ★ 공룡능선 소공원 출발인데 산림청 선 이름 "권금성" 이 처음 · 끝에)
+            var total = +c.total || 0;
+            if (hn && hn.length <= 30) c.pois.forEach(function (q) {
+                if (+q.off_route_m > 100) return;   // 길에서 떨어진 것(소공원 정류장 · 화장실)은 그대로
+                if (+q.dist_m < 100) q.name = hn;
+                else if (back && +q.dist_m > total - 100) { q.name = hn; q.again = true; }   // 돌아온 끝 이름표는 그래프에만
+            });
             if (hn && hn.length <= 30 && !c.pois.some(function (q) { return q.name === hn && +q.dist_m < 300; }))
                 c.pois.unshift({ name: hn, lat: c.lat[0], lon: c.lon[0], ele_m: c.ele[0], dist_m: 0, off_route_m: 0, end: true });
             RF.showName($("name"), c.course.name, true);
@@ -750,7 +761,9 @@
                 if (n.names) {   // 산마다 다른 이름(지리산 중산리 → 중산리탐방지원센터) - 제목 · 끝 이름표
                     c.course.name = RF.aliasName(c.course.name, n.names);
                     // 이름표도(끝 이름표 · 지명 - 설악산 신흥사 → 소공원)
-                    (c.pois || []).forEach(function (q) { if (n.names[q.name]) q.name = n.names[q.name]; });
+                    (c.pois || []).forEach(function (q) {
+                        if (Object.prototype.hasOwnProperty.call(n.names, q.name) && !(+q.off_route_m > 300) && (+q.dist_m < 300 || +q.dist_m > c.total - 300)) q.name = n.names[q.name];
+                    });
                     RF.showName($("name"), c.course.name, true);
                     document.title = RF.nameText(c.course.name, true);
                 }

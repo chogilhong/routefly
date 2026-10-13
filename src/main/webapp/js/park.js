@@ -355,7 +355,8 @@
             var row = document.createElement("div");
             row.className = "row";
             // 길 이름을 따라가기 제목으로(&title= - 이은 코스는 "N구간 이어 걷기" 가 됨)
-            var href = "hike.html#c=" + encodeURIComponent(b.course) + (b.rev && parts.length === 1 ? "&rev=1" : "") + (b.name ? "&title=" + encodeURIComponent(b.name) : "");
+            var href = "hike.html#c=" + encodeURIComponent(b.course) + (b.rev && parts.length === 1 ? "&rev=1" : "") + (b.name ? "&title=" + encodeURIComponent(b.name) : "")
+                + (b.name && e.from ? "&head=" + encodeURIComponent(e.from) : "");   // 들머리 이름표(설악산 공룡능선 - 산림청 선 처음 이름 "권금성" 대신 소공원)
             // 둘째 단추는 처음 탐방 안내도 아래 칸으로(2026-10-13 홍TV님: "예시로" → 탐방 안내도)
             [["따라가기", href, true], ["탐방 안내도", "#", false]].forEach(function (d) {
                 var a = document.createElement("a");
@@ -399,9 +400,10 @@
         data.trails = data.trails.filter(function (t) { return !/자연관찰로/.test(t.name); }).map(function (t) {
             var x = {};
             for (var k in t) if (Object.prototype.hasOwnProperty.call(t, k)) x[k] = t[k];
-            x.name = RF.aliasName(t.name, noteNames);
             // 공단 자료 이름이 틀린 탐방로(park-notes trails - 설악산 knps-4014 "소공원 → 희운각대피소" 는 양폭대피소 → 무너미고개)
-            if (noteTrails) x.name = RF.noteTrailName({ p: { trails: noteTrails } }, t.id, x.name);
+            x.name = noteTrails ? RF.noteTrailName({ p: { trails: noteTrails } }, t.id, t.name) : t.name;
+            // 산마다 다른 이름은 고친 이름에도(2026-10-13 PC: 설악산 knps-40111 "설악동탐방지원센터 → 비룡폭포쉼터" 로 들머리 🏠 가 설악동탐방지원센터로 남았음)
+            x.name = RF.aliasName(x.name, noteNames);
             return x;
         });
         // 지명 이름표 · 서버 heads 도 산마다 다른 이름으로(설악산 신흥사 · 설악동탐방지원센터 → 소공원 - 2026-10-13 홍TV님: 메운 길 끝 · 지도 이름표 · 들머리 모두)
