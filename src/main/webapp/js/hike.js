@@ -2065,6 +2065,17 @@
                 + (r.away != null ? " · 출발점까지 " + km(r.away) + "km" : "");
             it.appendChild(b);
             it.appendChild(s);
+            // fly(3D) - 3D 지형 위로 날아 보기(2026-10-13 홍TV님: 실제 코스만, 탐방 안내도 카드는 뺌). 그 화면 ← 는 이 목록으로
+            if (!isGpxId(r.course_id)) {
+                var fly = document.createElement("a");
+                fly.className = "fly";
+                fly.textContent = "fly(3D)";
+                fly.href = "index.html#c=" + encodeURIComponent(r.course_id);
+                fly.title = "3D 지형 위로 날아 보기";
+                fly.onclick = function (e) { e.stopPropagation(); };
+                it.classList.add("hasfly");
+                it.appendChild(fly);
+            }
             it.onclick = function () { fromList = true; location.hash = "#c=" + encodeURIComponent(r.course_id); };
             box.appendChild(it);
         });
