@@ -401,6 +401,7 @@
         map = new maplibregl.Map({ container: "map", style: buildStyle(cfg), center: [127.8, 36.3], zoom: 6.2,
             attributionControl: false, pitchWithRotate: false, dragRotate: false, touchPitch: false });
         map.touchZoomRotate.disableRotation();   // 북쪽이 늘 위(작은 화면에서 길 잃지 않게)
+        RF.spotsByZoom(map);   // 위험 · 조망 아이콘은 확대했을 때만
         map.addControl(new maplibregl.AttributionControl({ compact: true,
             customAttribution: "등산로: 산림청 등산로정보 | 걷기길: 한국관광공사 두루누비 | 지명 · 자전거길: © OpenStreetMap contributors | <a href=\"about.html\">안내</a>" }), "top-right");
         // 작은 화면에서는 출처를 ⓘ 로 접어 둡니다(누르면 펼쳐짐) - 지도를 가리지 않게

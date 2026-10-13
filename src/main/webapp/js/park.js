@@ -497,6 +497,7 @@
             map = new maplibregl.Map({ container: "map", style: RF.baseStyle(cfg), center: [127.8, 36.3], zoom: 7,
                 attributionControl: false, dragRotate: false, pitchWithRotate: false, touchPitch: false });
             map.touchZoomRotate.disableRotation();
+            RF.spotsByZoom(map);   // 위험 · 조망 아이콘은 확대했을 때만
             map.addControl(new maplibregl.AttributionControl({ compact: true,
                 customAttribution: (data.national ? "탐방로: 국립공원공단 탐방로 공간데이터" : "등산로: 산림청 · 한국등산트레킹지원센터 · OpenStreetMap")
                     + " | 지명: © OpenStreetMap contributors | <a href=\"about.html\">안내</a>" }), "top-right");

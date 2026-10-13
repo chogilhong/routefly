@@ -73,6 +73,7 @@ body.compact #statGrids { display:none; }
 #sign { font-size:12.5px; color:var(--tx); margin:-3px 0 6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; opacity:.85; }
 #sign[hidden], #sosSignRow[hidden], #sosHelpRow[hidden] { display:none; }
 .spot { font-size:15px; line-height:1; filter:drop-shadow(0 0 2px #000); cursor:pointer; }
+.far .spot { display:none; }   /* 넓게 볼 때는 숨김(RF.spotsByZoom) - 확대하면 보임 */
 .spot.aid, .spot.heli, .spot.ranger { font-size:13px; opacity:.9; }
 .grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:4px 6px; }
 .st { background:rgba(255,255,255,0.04); border-radius:8px; padding:5px 7px 4px; min-width:0; }

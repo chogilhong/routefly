@@ -501,6 +501,13 @@ var stA = [{ id: "nm", name: "북한산 · 비매칭코스", coords: [[127.0, 35
 var stN = { nm: { total: 1110, pois: [{ name: "청봉사", dist_m: 880 }, { name: "보현봉", dist_m: 5 }] } };
 eq("splitTrails 끝 이름은 200m 안(봉우리는 700m)", RF.splitTrails(stA, {}, null, stN).filter(function (x) { return x.base === "nm"; }).map(function (x) { return x.name; }),
     ["북한산 · 보현봉 → 가", "북한산 · 가 → 비매칭코스"]);
+// 2026-10-13 홍TV님: 넓게 볼 때 '낙석주의' 같은 아이콘은 숨기고 확대하면 보이게
+var zcls = {}, zfn = null, zz = 12;
+var zmap = { getContainer: function () { return { classList: { toggle: function (c, on) { zcls[c] = on; } } }; }, getZoom: function () { return zz; }, on: function (ev, f) { zfn = f; } };
+RF.spotsByZoom(zmap);
+var zFar = zcls.far;
+zz = 15; zfn();
+eq("spotsByZoom 넓게는 far, 확대하면 풀림", [zFar, zcls.far], [true, false]);
 var full = RF.fromApi("r", { course: { name: "산 · 가 → 라" }, points: [[127.0, 35.0, 100, 0], [127.011, 35.0, 200, 1000], [127.022, 35.0, 150, 2000], [127.033, 35.0, 300, 3000]], pois: [] });
 var sl = RF.sliceCourse(full, 1 / 3, 2 / 3, "산 · 나 → 다", "r@0.3333-0.6667:나>다");
 eq("sliceCourse 거리 · 이름표", [Math.round(sl.total), sl.pois.map(function (p) { return p.name; }).join(","), sl.course.ascent_m], [1000, "나,다", 0]);
