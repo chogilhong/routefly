@@ -57,6 +57,7 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
     k.pois = [{ name: "문화공원11(부안공원)", lat: 37, lon: 127, dist_m: 0 }, { name: "월출산(천황봉)", lat: 37.001, lon: 127, dist_m: 100 }];
     var c2 = RF.fromApi("drnb-50", k);
     eq("번호 붙은 공원 이름", c2.course.name, "서해랑길 50코스 · 부안공원 → 동진대교");
+    eq("공원 뒤 번호", RF.nameText("서해랑길 16코스 · 수변공원49까지"), "[서해랑길 16코스] 수변공원까지");
     eq("이름표도", c2.pois.map(function (q) { return q.name; }).join(","), "부안공원,월출산(천황봉),동진대교");
 })();
 

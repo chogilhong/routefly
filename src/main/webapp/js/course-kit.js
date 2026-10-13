@@ -367,7 +367,9 @@
     var AUTO_POI = /^(gpx|wpt|wp|waypoint|point|pt)[-_ ]?\d+$/i;
 
     var NUMBERED_PARK = /[^\s·→()\d]+\d+\s*\(([^()]+공원)\)/g;
-    function numberedPark(name) { return name == null ? name : String(name).replace(NUMBERED_PARK, "$1"); }
+    // "수변공원49까지"(서해랑길 16코스) - 공원 이름 뒤 관리 번호도 뗌
+    var PARK_NO = /([가-힣](?:공원|광장))\d+(?![\d)])/g;
+    function numberedPark(name) { return name == null ? name : String(name).replace(NUMBERED_PARK, "$1").replace(PARK_NO, "$1"); }
 
     function fromApi(id, j) {
         var raw = j.pois || [];

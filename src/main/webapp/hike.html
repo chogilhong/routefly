@@ -99,8 +99,6 @@ body.compact #statGrids { display:none; }
 #pick header { padding:calc(env(safe-area-inset-top) + 12px) 14px 10px; }
 #pick h1 { margin:0 0 10px; font-size:19px; }
 #pick h1 span { color:#ffb703; }
-#pick h1 .tomap { float:right; font-size:13px; font-weight:normal; color:var(--tx); text-decoration:none; border:1px solid var(--ln);
-                  border-radius:14px; padding:5px 10px; margin-top:-1px; }
 #pick input { width:100%; height:44px; border-radius:10px; border:1px solid var(--ln); background:rgba(255,255,255,0.07); color:var(--tx);
               font-size:16px; padding:0 12px; outline:none; }
 #pick .row { display:flex; gap:8px; margin-top:8px; }
@@ -300,7 +298,7 @@ html.picking #pick { display:flex; }
 
 <div id="pick">
     <header>
-        <h1>route<span>fly</span> 따라가기 <a href="./" class="tomap" title="3D 지형 위에서 코스를 미리 날아 보는 화면으로">🗺 코스 미리보기</a></h1>
+        <h1>route<span>fly</span> 따라가기</h1>
         <input type="search" id="q" aria-label="코스 · 산 이름으로 찾기" placeholder="코스 · 산 이름 (예: 설악산, 둘레길, 국토종주)" autocomplete="off" maxlength="50">
         <div class="tabs" id="kindTabs" role="group" aria-label="코스 종류">
             <button type="button" data-kind="" class="on" aria-pressed="true">전체</button>
@@ -335,7 +333,6 @@ html.picking #pick { display:flex; }
             <div class="ob-icon">🔍</div>
             <h2>코스 찾기</h2>
             <p>산 이름으로 찾거나 산 입구에서 <b>📍 내 주변 코스</b>를 누르세요. 위의 <b>등산 · 걷기 · 자전거</b> 탭으로 종류를 고릅니다.</p>
-            <p><b>🗺 코스 미리보기</b>에서는 코스를 3D 지형 위로 날아 보며 오르막 · 정상을 미리 봅니다.</p>
         </div>
         <div class="ob-page" hidden>
             <div class="ob-icon">🥾</div>
