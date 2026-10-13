@@ -678,8 +678,12 @@
         $("share").style.display = isGpxId(id) || parts ? "none" : "";
         var got = parts ? Promise.all(parts.map(function (p) { return getJson("api/course?id=" + encodeURIComponent(p.base)); }))
             : isGpxId(id) ? storedGpx(id) : getJson("api/course?id=" + encodeURIComponent(id));
-        return Promise.all([got, mapReady]).then(function (r) {
+        // 산 안내(park-notes)를 먼저 받아 이름을 바로잡은 탐방로는 그 이름으로(들머리 · 날머리 이름표 - 설악산 "대청봉코스(백담)" → 백담사 → 소청봉)
+        var notesP = fetch("data/park-notes.json").then(function (x) { return x.json(); }).then(function (d) { return d && d.parks; }).catch(function () { return null; });
+        return Promise.all([got, mapReady, notesP]).then(function (r) {
             if (my !== loadSeq) return;   // 그 사이 다른 코스를 골랐음
+            var fix = function (cid, j) { if (j && j.course) j.course.name = RF.noteTrailName(r[2], cid, j.course.name); return j; };
+            if (parts) r[0] = r[0].map(function (j, i) { return fix(parts[i].base, j); }); else if (!isGpxId(id)) fix(id, r[0]);
             // 여러 구간 이어 걷기(#c=구간,구간~,… - 2026-10-12 홍TV님): 구간마다 걷는 방향으로 돌려 하나로
             // 갈림길에서 자른 구간(코스ID@비율-비율:처음>끝 - 탐방 안내도)은 그 부분만
             var one = function (p, j) {
@@ -721,13 +725,6 @@
                     RF.showName($("name"), c.course.name, true);
                     document.title = RF.nameText(c.course.name, true);
                 }
-                // 공단 자료 이름이 틀린 탐방로(설악산 knps-4014 → 양폭대피소 → 무너미고개) - 그 탐방로 하나만 걸을 때
-                Object.keys(n.trails || {}).forEach(function (k) {
-                    if (String(id).indexOf(k + "-") !== 0 || String(id).indexOf(",") >= 0) return;
-                    c.course.name = RF.nameParts(c.course.name).group + " · " + (c.rev ? n.trails[k].split(" → ").reverse().join(" → ") : n.trails[k]);
-                    RF.showName($("name"), c.course.name, true);
-                    document.title = RF.nameText(c.course.name, true);
-                });
                 if (n.ele) (c.pois || []).forEach(function (q) { if (n.ele[q.name] != null) q.ele_m = n.ele[q.name]; });   // 바로잡은 높이(천왕봉 1,915m)
                 if (!n.short) return;
                 rules = RF.parkRules(n, rawNames.concat([c.course.name]), new Date());

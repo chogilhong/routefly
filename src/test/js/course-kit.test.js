@@ -508,6 +508,11 @@ RF.spotsByZoom(zmap);
 var zFar = zcls.far;
 zz = 15; zfn();
 eq("spotsByZoom 넓게는 far, 확대하면 풀림", [zFar, zcls.far], [true, false]);
+eq("noteTrailName 공단 이름을 park-notes trails 로", [RF.noteTrailName({ 설악산: { trails: { "knps-4016": "백담사 → 소청봉" } } }, "knps-4016-55eabbcc", "설악산 · 대청봉코스(백담)"),
+    RF.noteTrailName({ 설악산: { trails: { "knps-4016": "백담사 → 소청봉" } } }, "knps-40161-aa", "설악산 · 다른 길")], ["설악산 · 백담사 → 소청봉", "설악산 · 다른 길"]);
+var bd = RF.fromApi("bd", { course: { name: "설악산 · 백담사 → 소청봉" }, points: [[127.0, 35.0, 400, 0], [127.0, 35.01, 900, 1100]],
+    pois: [{ name: "백담사", lat: 35.001, lon: 127.0013, dist_m: 103, off_route_m: 117 }] });
+eq("fromApi 길에서 떨어진 같은 이름 이름표는 들머리 자리로", [bd.pois[0].name, bd.pois[0].dist_m, bd.pois[0].off_route_m, bd.pois[0].lat], ["백담사", 0, 0, 35.0]);
 var full = RF.fromApi("r", { course: { name: "산 · 가 → 라" }, points: [[127.0, 35.0, 100, 0], [127.011, 35.0, 200, 1000], [127.022, 35.0, 150, 2000], [127.033, 35.0, 300, 3000]], pois: [] });
 var sl = RF.sliceCourse(full, 1 / 3, 2 / 3, "산 · 나 → 다", "r@0.3333-0.6667:나>다");
 eq("sliceCourse 거리 · 이름표", [Math.round(sl.total), sl.pois.map(function (p) { return p.name; }).join(","), sl.course.ascent_m], [1000, "나,다", 0]);

@@ -270,9 +270,7 @@
             for (var k in t) if (Object.prototype.hasOwnProperty.call(t, k)) x[k] = t[k];
             x.name = RF.aliasName(t.name, noteNames);
             // 공단 자료 이름이 틀린 탐방로(park-notes trails - 설악산 knps-4014 "소공원 → 희운각대피소" 는 양폭대피소 → 무너미고개)
-            Object.keys(noteTrails || {}).forEach(function (k) {
-                if (String(t.id).indexOf(k + "-") === 0) x.name = RF.nameParts(t.name).group + " · " + noteTrails[k];
-            });
+            if (noteTrails) x.name = RF.noteTrailName({ p: { trails: noteTrails } }, t.id, x.name);
             return x;
         });
         // 들머리 이름(다른 자료 코스의 탐방지원센터 · 탐방안내소) - "중산리" 끝이 중산리탐방지원센터 500m 안이면 그 이름으로
