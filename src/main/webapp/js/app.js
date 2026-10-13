@@ -960,10 +960,10 @@
             loadCourses();
         });
     });
-    // 공유 - 이 3D 화면(index.html#c=코스ID)으로 바로 열리는 링크(2026-10-13 홍TV님: 목록 말고 바로 나는 곳)
+    // 공유 - 그 코스의 따라가기 화면 링크(2026-10-13 홍TV님: fly(3D) 에서 공유해도 따라가기로). s/…?to=hike 라 카카오톡 등에 코스 카드도 뜸
     $("shareBtn").addEventListener("click", function () {
         if (!cur) return;
-        var url = new URL("index.html#c=" + encodeURIComponent(cur.id), location.href).href;
+        var url = new URL("s/" + encodeURIComponent(cur.id) + "?to=hike", location.href).href;
         if (navigator.share) { navigator.share({ title: cur.course.name, url: url }).catch(function () {}); return; }
         (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(function () { show("링크를 복사했습니다: " + url); setTimeout(function () { show(null); }, 2500); })
             .catch(function () { prompt("링크를 복사하세요", url); });
