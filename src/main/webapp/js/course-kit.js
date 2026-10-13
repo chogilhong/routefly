@@ -385,7 +385,7 @@
         // 관리 번호가 붙은 공원 이름은 괄호 안 공원 이름으로(서해랑길 50코스 "문화공원11(부안공원)" → 부안공원, 배치 EndNames.firstName 과 같게)
         all.forEach(function (p) { p.name = numberedPark(p.name); });
         // 같은 번호가 뒤에 한 번 더 붙은 이름("551계단 551" - 화대종주, 2026-10-13 PC)
-        all.forEach(function (p) { p.name = String(p.name || "").replace(/^(\d+)(\S+)\s+\1$/, "$1$2"); });
+        all.forEach(function (p) { p.name = String(p.name || "").replace(/^(\d+)(\S+)\s+\1(\s+[A-Za-z][A-Za-z ]*)?$/, "$1$2"); });   // 실제 이름은 "551계단 551 Stairs"(PC 확인)
         if (j.course && j.course.name) j.course.name = numberedPark(j.course.name);
         var se = j.ends || {};
         // 코스 자기 자료("(거진항~통일안보 공원)")가 서버가 찾은 둘레 이름(고성군관광안내소)보다 먼저(2026-10-13 PC)

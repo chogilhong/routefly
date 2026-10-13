@@ -1980,7 +1980,7 @@
     // ‹ - 코스 목록(검색 결과 그대로)으로. 산행 중이면 먼저 끝내도록.
     $("back").addEventListener("click", function (e) {
         e.preventDefault();
-        if (hike.running) { toast("산행 중입니다. " + (fromSeries ? "도장 · 완주 화면" : "코스 목록") + "으로 가려면 먼저 아래 '" + K().act + " 끝내기' 를 눌러 주세요.", 4000); return; }
+        if (hike.running) { toast((hike.sim ? "시험 걷기" : K().act) + " 중입니다. " + (fromSeries ? "도장 · 완주 화면" : "코스 목록") + "으로 가려면 먼저 아래 '" + $("go").textContent + "' 를 눌러 주세요.", 4000); return; }   // 단추 글 그대로(시험 걷기 끝내기)
         if (fromSeries) { location.href = "series.html"; return; }
         if (fromList) { fromList = false; history.back(); }
         else location.hash = "";
