@@ -33,7 +33,7 @@
      * 탐방로 고르기 - 누르면 고르고 다시 누르면 뺌, 고른 것 앞 · 뒤로 이어지는 탐방로는 함께(2026-10-12 홍TV님: 등산도 노선 안내도처럼
      * 이어진 구간으로). 아래 칸에 처음 → 끝 두 방향 단추(따라가기), 하나만 골랐으면 미리보기도.
      */
-    var sel = [], lines = {}, flips = {}, byId = {}, segs = [], emptySheet = "", poiNames = {}, noteNames = null, notePass = null, noteEle = null, noteTrails = null, noteHeads = null;
+    var sel = [], lines = {}, flips = {}, byId = {}, segs = [], emptySheet = "", poiNames = {}, noteNames = null, notePass = null, noteEle = null, noteTrails = null, noteHeads = null, noteBest = null, noteAll = null;
     var chosen = [], startMk = null, endMk = null;
 
     /** 고른 탐방로가 이어진 묶음별로(끝 150m 안이면 이어짐) - 빼서 끊어지면 처음 고른 것이 든 묶음만 남김. */
@@ -223,7 +223,7 @@
             (data.places || []).forEach(function (q) { if (String(q.name).replace(/\s+/g, "") === n) block.push([+q.lon, +q.lat]); });
         });
         examples = RF.loopExamples(segs, hs, peaks, { planHeads: planHeads, block: block });
-        if (!examples.length) return;
+        if (!examples.length && !(noteBest || []).length) return;
         var box = document.createElement("div");
         box.className = "ex";
         var h = document.createElement("div");
@@ -232,6 +232,20 @@
         var row = document.createElement("div");
         row.className = "exr";
         box.appendChild(row);
+        // 대표 코스(park-notes best - 2026-10-13 홍TV님: 설악산 공룡능선) - 맨 앞, 누르면 그 코스 선을 지도에
+        (noteBest || []).forEach(function (b, k) {
+            var a = document.createElement("a");
+            a.href = "#";
+            a.setAttribute("data-best", String(k));
+            var l1 = document.createElement("span"), l2 = document.createElement("span");
+            l1.className = "l1";
+            l2.className = "l2";
+            l1.textContent = "★ " + b.label;
+            l2.textContent = "대표 코스";
+            a.appendChild(l1);
+            a.appendChild(l2);
+            row.appendChild(a);
+        });
         examples.forEach(function (x, k) {
             var a = document.createElement("a");
             a.href = "#";
@@ -247,11 +261,63 @@
             row.appendChild(a);
         });
         // 아래 칸 높이는 그대로(탐방로를 골랐을 때와 같게) - 안내 글은 예시 제목에 넣음
-        h.textContent = "원점회귀 예시(옆으로 넘김) · 탐방로를 눌러 직접 고를 수도 있습니다";
+        h.textContent = ((noteBest || []).length ? "대표 코스 · " : "") + "원점회귀 예시(옆으로 넘김) · 탐방로를 눌러 직접 고를 수도 있습니다";
         var tip = $("sheet").querySelector(".tip");
         if (tip) tip.parentNode.removeChild(tip);   // 목록에서 온 화면도(두 줄 단추로 높이가 165px 이 됐음)
         $("sheet").insertBefore(box, $("sheet").firstChild);
         emptySheet = $("sheet").innerHTML;
+    }
+
+    /** 대표 코스(park-notes best)를 지도에 - 그 코스 선 · 출발 깃발, 아래 칸에 이름 · 거리 · 오르막과 따라가기 · 미리보기. */
+    function showBest(b) {
+        getJson("api/course?id=" + encodeURIComponent(b.course)).then(function (j) {
+            var pts = (j.points || []).map(function (p) { return [+p[0], +p[1]]; });
+            if (pts.length < 2) return;
+            chosen = [];
+            exStart = exHead = exRound = exPeak = null;
+            map.getSource("sel").setData({ type: "FeatureCollection", features: [{ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: pts } }] });
+            if (startMk) { startMk.remove(); startMk = null; }
+            if (endMk) { endMk.remove(); endMk = null; }
+            var name = RF.noteTrailName(noteAll, b.course, j.course.name), e = RF.routeEnds(name);
+            var loop = e.from && e.from === e.to;
+            var mk = function (txt, at) {
+                var el = document.createElement("div");
+                el.className = "flag";
+                RF.nameNodes(el, txt);
+                return new maplibregl.Marker({ element: el, anchor: "bottom-left" }).setLngLat(at).addTo(map);
+            };
+            if (e.from) startMk = mk((loop ? "🚩 출발 · 도착 " : "🚩 출발 ") + e.from, pts[0]);
+            if (e.to && !loop) endMk = mk("🏁 도착 " + e.to, pts[pts.length - 1]);
+            var w = 180, so = 90, e2 = -180, n = -90;
+            pts.forEach(function (q) { w = Math.min(w, q[0]); e2 = Math.max(e2, q[0]); so = Math.min(so, q[1]); n = Math.max(n, q[1]); });
+            // 오른쪽은 깃발 글자 자리만큼 더 띄움(공룡능선 "출발 · 도착 비선대" 가 화면 끝에서 잘렸음)
+            map.fitBounds([[w, so], [e2, n]], { padding: { top: 40, bottom: 40, left: 40, right: 130 }, duration: 600, maxZoom: 15 });
+            $("sheet").innerHTML = "";
+            var nm = document.createElement("div");
+            nm.className = "nm";
+            RF.nameNodes(nm, "★ " + b.label + " · " + RF.nameText(name, true));
+            var st = document.createElement("div");
+            st.className = "st";
+            st.textContent = RF.km(+j.course.distance_m) + "km" + (j.course.ascent_m != null ? " · 오르막 " + RF.num(+j.course.ascent_m) + "m" : "") + " · 대표 코스";
+            var row = document.createElement("div");
+            row.className = "row";
+            [["따라가기", "hike.html#c=" + encodeURIComponent(b.course), true], ["예시로", "#", false]].forEach(function (d) {
+                var a = document.createElement("a");
+                a.textContent = d[0];
+                a.href = d[1];
+                if (d[2]) a.className = "main";
+                else a.addEventListener("click", function (ev) {
+                    ev.preventDefault();
+                    map.getSource("sel").setData({ type: "FeatureCollection", features: [] });
+                    if (startMk) { startMk.remove(); startMk = null; }
+                    $("sheet").innerHTML = emptySheet;
+                });
+                row.appendChild(a);
+            });
+            $("sheet").appendChild(nm);
+            $("sheet").appendChild(st);
+            $("sheet").appendChild(row);
+        }).catch(function () { /* 코스를 못 받음 - 그대로 */ });
     }
 
     // 원점회귀 예시를 눌렀을 때 그 들머리 자리 · 이름 · 고리인지 · 왕복의 봉우리(탐방로를 직접 누르면 지움) - 봉우리는 예시 이름으로
@@ -394,6 +460,7 @@
     /** 그 산의 입산 · 통제 · 예약 안내(data/park-notes.json, 2026-10-12 홍TV님: 한라산) - 한 줄, 누르면 다 보임. 없으면 안 보임. */
     function showNote(name) {
         return fetch("data/park-notes.json").then(function (r) { return r.json(); }).then(function (d) {
+            noteAll = d && d.parks;
             var n = d && d.parks && d.parks[name];
             if (!n) return;
             noteNames = n.names || null;   // 산마다 다른 이름(지리산 중산리 → 중산리탐방지원센터) - 그리기 전에 받음
@@ -401,6 +468,7 @@
             noteEle = n.ele || null;   // 바로잡은 높이(지리산 천왕봉 1,915m - OSM 은 1,918m)
             noteTrails = n.trails || null;   // 이름을 바로잡은 탐방로(설악산 knps-4014)
             noteHeads = n.heads || null;   // 이름표 가운데 들머리로 넣을 곳(북한산 도선사)
+            noteBest = n.best || null;   // 대표 코스(설악산 공룡능선)
             if (!n.short) return;
             var el = $("note"), today = RF.parkRules(n, [], new Date());
             // 오늘 계절(한라산 하절기 4~9월 · 동절기 10~3월)을 앞에 - 좁아 뒤는 말줄임, 누르면 코스마다 통제 시각
@@ -454,6 +522,13 @@
         // 고른 탐방로가 없을 때 아래 칸(모두 빼면 다시 이것으로). 따라가기는 아래 칸에 맡겨 받음(다시 그려도 됨)
         emptySheet = $("sheet").innerHTML;
         $("sheet").addEventListener("click", function (e) {
+            var bt = e.target && e.target.closest ? e.target.closest("[data-best]") : null;
+            if (bt) {
+                e.preventDefault();
+                var b = (noteBest || [])[+bt.getAttribute("data-best")];
+                if (b) showBest(b);
+                return;
+            }
             var ex = e.target && e.target.closest ? e.target.closest("[data-ex]") : null;
             if (ex) {
                 e.preventDefault();

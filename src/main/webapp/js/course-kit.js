@@ -2106,7 +2106,9 @@
         Object.keys(notes || {}).forEach(function (park) {
             var tr = notes[park] && notes[park].trails;
             Object.keys(tr || {}).forEach(function (k) {
-                if (String(id).indexOf(k + "-") === 0) out = (nameParts(name).group || park) + " · " + tr[k];
+                // 코스 ID 그대로("kmp-2322010639-1") 또는 앞부분("knps-4016" → knps-4016-55eabbcc), 값에 " · " 가 있으면 이름 전체
+                if (String(id) !== k && String(id).indexOf(k + "-") !== 0) return;
+                out = tr[k].indexOf(" · ") >= 0 ? tr[k] : (nameParts(name).group || park) + " · " + tr[k];
             });
         });
         return out;

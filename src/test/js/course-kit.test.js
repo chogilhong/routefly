@@ -534,6 +534,8 @@ var jz = RF.fromApi("jz", { course: { name: "지리산 · 중산리 → 천왕�
     pois: [{ name: "중산리주차장", lat: 35.0, lon: 127.0007, dist_m: 0, off_route_m: 60 }, { name: "대원사집단시설지구주차장", lat: 35.0, lon: 127.0008, dist_m: 0, off_route_m: 72 },
            { name: "중산리탐방안내소", lat: 35.0001, lon: 127.0002, dist_m: 12, off_route_m: 16 }, { name: "천왕봉", lat: 35.04, lon: 127.0, dist_m: 5083, off_route_m: 2 }] });
 eq("fromApi 짧은 끝 이름이면 둘레 들머리 이름표는 그 낱말이 든 것 하나", jz.pois.map(function (q) { return q.name; }), ["중산리탐방안내소", "천왕봉"]);
+eq("noteTrailName 코스 ID 그대로 · 이름 전체", RF.noteTrailName({ 설악산: { trails: { "kmp-2322010639-1": "설악산 · 비선대 → 마등령 → 공룡능선 → 천불동 → 비선대" } } }, "kmp-2322010639-1",
+    "설악산 큰새봉 1코스 · 설악산비선대와천불동계곡 순환"), "설악산 · 비선대 → 마등령 → 공룡능선 → 천불동 → 비선대");
 var full = RF.fromApi("r", { course: { name: "산 · 가 → 라" }, points: [[127.0, 35.0, 100, 0], [127.011, 35.0, 200, 1000], [127.022, 35.0, 150, 2000], [127.033, 35.0, 300, 3000]], pois: [] });
 var sl = RF.sliceCourse(full, 1 / 3, 2 / 3, "산 · 나 → 다", "r@0.3333-0.6667:나>다");
 eq("sliceCourse 거리 · 이름표", [Math.round(sl.total), sl.pois.map(function (p) { return p.name; }).join(","), sl.course.ascent_m], [1000, "나,다", 0]);
