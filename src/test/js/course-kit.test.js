@@ -473,7 +473,7 @@ var th2 = RF.trailHeads([
     [{ name: "산 써리봉 1코스 · 대원사석등 → 써리봉", coords: [[127.1, 35.01], [127.12, 35.03]] },
      { name: "산 장당봉 1코스 · 산청대원사부도 → 대웅전", coords: [[127.1005, 35.0102], [127.12, 35.03]] },
      { name: "산 1코스 · 선물의집&찻집휴게소 → 써리봉", coords: [[127.1, 35.015], [127.12, 35.03]] }],
-    [{ name: "도선사", lat: 35.0025, lon: 127.0 }, { name: "법계사", lat: 35.015, lon: 127.1 }]).map(function (h) { return h.name; }).sort();
+    [{ name: "도선사", lat: 35.0025, lon: 127.0 }, { name: "법계사", lat: 35.015, lon: 127.1 }, { name: "작은절사", lat: 35.0026, lon: 127.0005 }], ["도선사"]).map(function (h) { return h.name; }).sort();
 eq("trailHeads 절 · 다른 자료 출발 · 구 이름 빼기", th2, ["대원사", "도선사", "우이동", "유평마을"]);
 // 옅은 선 끝이 닿아도 함께 시작하는 곳(송추), 마을 · 리로 끝나는 막다른 끝(강선리)
 eq("trailHeads 옅은 선은 빼고 · 끝이 마을", RF.trailHeads([
@@ -487,6 +487,10 @@ eq("headLoopName", [RF.headLoopName("지리산 5구간 이어 걷기 · 새재 �
     ["지리산 5구간 이어 걷기 · 윗새재마을 원점회귀", "지리산 · 가 → 나"]);
 eq("headLoopName 이름에 출발 · 도착 없는 왕복", RF.headLoopName("설악산 2구간 이어 걷기", "남설악탐방지원센터", true), "설악산 2구간 이어 걷기 · 남설악탐방지원센터 원점회귀");
 eq("headLoopName 왕복(가 → 나 → 가)", RF.headLoopName("산 2구간 이어 걷기 · 성판악 → 정상 → 성판악", "성판악", true), "산 2구간 이어 걷기 · 성판악 원점회귀");
+var fz = RF.fromApi("z", { course: { name: "지리산 · 중산리탐방지원센터 → 칼바위" }, points: [[127.0, 35.0, 600, 0], [127.0, 35.01, 900, 1100]],
+    pois: [{ name: "중산리탐방안내소", lat: 35.0, lon: 127.0, dist_m: 0, off_route_m: 5 }, { name: "중산리주차장", lat: 35.001, lon: 127.002, dist_m: 100, off_route_m: 180 },
+           { name: "칼바위", lat: 35.01, lon: 127.0, dist_m: 1100, off_route_m: 3 }] });
+eq("fromApi 코스 처음이 탐방지원센터면 둘레 다른 들머리 이름표는 빼고", fz.pois.map(function (q) { return q.name; }), ["중산리탐방지원센터", "칼바위"]);
 var full = RF.fromApi("r", { course: { name: "산 · 가 → 라" }, points: [[127.0, 35.0, 100, 0], [127.011, 35.0, 200, 1000], [127.022, 35.0, 150, 2000], [127.033, 35.0, 300, 3000]], pois: [] });
 var sl = RF.sliceCourse(full, 1 / 3, 2 / 3, "산 · 나 → 다", "r@0.3333-0.6667:나>다");
 eq("sliceCourse 거리 · 이름표", [Math.round(sl.total), sl.pois.map(function (p) { return p.name; }).join(","), sl.course.ascent_m], [1000, "나,다", 0]);

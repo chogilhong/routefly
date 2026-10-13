@@ -379,6 +379,16 @@
     function endPois(c) {
         var n = c.lon.length - 1, e = routeEnds(c.course && c.course.name);
         if (n < 1) return;
+        // 코스 끝 이름이 탐방지원센터 같은 들머리면, 그 끝 500m 안 다른 들머리 이름표(배치가 지도용으로 받은 OSM 주차장 · 안내소)는 빼고
+        // (2026-10-13 PC: 중산리 출발 이름표가 "중산리탐방안내소" + "중산리주차장" 두 줄, 그래프 처음 "중산리주차장")
+        var HEADISH = /(탐방지원센터|탐방안내소|안내소|분소|매표소|주차장)$/;
+        c.pois = c.pois.filter(function (q) {
+            var nm = String(q.name || "").replace(/\s+/g, "");
+            if (!HEADISH.test(nm)) return true;
+            if (e.from && HEADISH.test(e.from) && +q.dist_m < 500 && nm !== e.from.replace(/\s+/g, "")) return false;
+            if (e.to && HEADISH.test(e.to) && +q.dist_m > c.total - 500 && nm !== e.to.replace(/\s+/g, "")) return false;
+            return true;
+        });
         var near = function (d) { return c.pois.some(function (q) { return Math.abs(+q.dist_m - d) < 60 && +q.off_route_m < 60; }); };
         // 같은 이름 이름표가 그 끝 300m 안에 있으면 더 붙이지 않음(2026-10-12 PC: 중산리 → 천왕봉 은 천왕봉 이름표가 끝 123m 앞 - 두 번 나왔음)
         var same = function (nm, d) { return c.pois.some(function (q) { return q.name === nm && Math.abs(+q.dist_m - d) < 300; }); };
@@ -1857,17 +1867,17 @@
      *   - 다른 자료 코스가 마을 · 휴게소 · 주차장에서 시작하는 자리(300m - 성삼재휴게소)
      * 다른 탐방로 가운데를 지나는 자리는 빼고, 봉우리 · 폭포 같은 산 위 이름도 뺌. 이름은 그 자리의 탐방지원센터 이름 → 500m 안 heads → 탐방로 끝 이름.
      * 서버 heads 가운데 가까운 들머리가 없는 것도 넣음. 같은 이름 · 300m 안, "백무동" · "백무동탐방지원센터" 처럼 앞이 같은 이름(2km 안)은 하나.
-     * 탐방로 옆 다른 자료 코스가 절 · 주차장에서 시작하는 곳(대원사석등 → 대원사), 들머리 400m 안 절 · 주차장 이름표(도선사)도.
-     * segs: [{id, name, coords}], flips: routeFlips, others: [{name, coords}](다른 자료 코스), places: [{name, lat, lon}]. → [{name, lat, lon}].
+     * 탐방로 옆 다른 자료 코스가 절 · 주차장에서 시작하는 곳(대원사석등 → 대원사), want(park-notes heads)에 적은 이름표(도선사)도.
+     * segs: [{id, name, coords}], flips: routeFlips, others: [{name, coords}](다른 자료 코스), places: [{name, lat, lon}], want: [이름]. → [{name, lat, lon}].
      */
-    function trailHeads(segs, heads, flips, others, places) {
+    function trailHeads(segs, heads, flips, others, places, want) {
         var near = 150, d = function (p, q) { return distM(p[1], p[0], q[1], q[0]); }, ends = [];
         var HEAD = /(탐방지원센터|탐방안내소|안내센터|분소|매표소|주차장|휴게소)$/, HEAD_PT = /(.사|탐방지원센터|탐방안내소|분소|주차장|휴게소)$/,
             SHOP = /[&]|찻집|식당|가게|펜션|민박|카페/;
         var ACCESS = /(마을|리|동|입구|재|령|고개|주차장|휴게소|매표소|분소|탐방지원센터|탐방안내소|교|IC|정류장|중|초|중학교|초등학교)$/;
         var HIGH = /(대피소|산장|봉|산|대|단|정상|오름|폭포|전망대|암|굴|바위|능선|고지|갈림길|탐방로 끝|쪽 끝|부근|분기점|코스\d*|탐방로\s*\d*|삼거리|사거리|경계|문)$/;
         var DEAD_HIGH = /(대피소|산장|봉|산|정상|오름|폭포|전망대|굴|바위|능선|고지|갈림길|끝|부근|분기점|삼거리|사거리|터|옛길|제방|소|담|탕|치|대|단|문|암|코스\d*|탐방로\s*\d*)$/;
-        var JUNK = /(대피소|산장|봉|산|정상|오름|폭포|능선|갈림길|쪽끝|탐방로끝|부근|분기점|삼거리|사거리|코스\d*|탐방로\d*|문|연결선|해안가|산행)$/;
+        var JUNK = /(소리길|둘레길|옛길|대피소|산장|봉|산|정상|오름|폭포|능선|갈림길|쪽끝|탐방로끝|부근|분기점|삼거리|사거리|코스\d*|탐방로\d*|문|연결선|해안가|산행)$/;
         // "우이분소 밑" → 우이분소, "강북구 우이동" → 우이동(2026-10-13 홍TV님)
         var clean = function (n) { return String(n || "").replace(/\s*(밑|아래|뒤)$/, "").replace(/^[가-힣]{1,4}[구군시]\s+(?=[가-힣])/, "").trim(); };
         (segs || []).forEach(function (s) {
@@ -1888,6 +1898,11 @@
         var otherStarts = (others || []).map(function (o) {
             var e = routeEnds(o.name);
             return o.coords && o.coords.length && e.from && ACCESS.test(e.from.replace(/\s+/g, "")) ? o.coords[0] : null;
+        }).filter(Boolean);
+        // 길이 닿는 곳(휴게소 · 주차장 · 마을 …)에서 시작하는 다른 자료 코스 - 고개가 들머리인지 볼 때(성삼재휴게소)
+        var roadStarts = (others || []).map(function (o) {
+            var e = routeEnds(o.name);
+            return o.coords && o.coords.length && e.from && /(휴게소|주차장|마을|리|동|입구|정류장|탐방지원센터|탐방안내소|분소|매표소)$/.test(e.from.replace(/\s+/g, "")) ? o.coords[0] : null;
         }).filter(Boolean);
         var out = [];
         groups.forEach(function (g) {
@@ -1940,6 +1955,8 @@
             if (!name || (!own && !server && !title && !deadTo && (HIGH.test(name) || name === "삼거리"))) return;
             // 길 이름 · 갈림길 · 산 위 이름은 어느 쪽이든 빼고(포대능선 · 대성문 · "배나무등 쪽 끝" · 금수산코스 · 제3폭포)
             if (!own && !server && JUNK.test(raw.replace(/\s+/g, ""))) return;
+            // 고개(재 · 령 · 고개 · 치)는 길이 닿는 곳만 - 다른 자료 코스가 거기서 시작할 때(성삼재 · 육십령), 능선 위 고개(덕유산 횡경재 · 주왕산 칼등고개)는 빼고
+            if (!own && !server && /(재|령|고개|치)$/.test(name.replace(/\s+/g, "")) && !roadStarts.some(function (q) { return d(p, q) < 300; })) return;
             out.push({ name: name, lat: p[1], lon: p[0] });
         });
         // 탐방로에서 먼 서버 heads 도(다른 자료 코스 끝 - 지리산남부탐방안내소)
@@ -1952,10 +1969,11 @@
             if (o.coords && o.coords.length && HEAD_PT.test(n) && !SHOP.test(n) && onNet(o.coords[0], 300)) extra.push({ name: n, lat: o.coords[0][1], lon: o.coords[0][0] });
         });
         // 들머리 400m 안 절 · 주차장 이름표(배치가 탐방로 처음 · 끝 둘레에서 받음 - 도선사)
-        var base = out.slice();
-        (places || []).forEach(function (q) {
-            var n = String(q.name || "").replace(/\s+/g, ""), p = [+q.lon, +q.lat];
-            if (HEAD_PT.test(n) && !SHOP.test(n) && base.some(function (h) { return d(p, [h.lon, h.lat]) < 400; })) extra.push({ name: String(q.name).trim(), lat: p[1], lon: p[0] });
+        // 이름표 가운데 들머리로 넣을 곳은 park-notes heads 에 적은 것만(2026-10-13 홍TV님: 도선사 - 모든 절 · 주차장을 넣으면 북한산이 54곳)
+        (want || []).forEach(function (w) {
+            (places || []).forEach(function (q) {
+                if (String(q.name || "").replace(/\s+/g, "") === w) extra.push({ name: String(q.name).trim(), lat: +q.lat, lon: +q.lon });
+            });
         });
         extra.sort(function (x, y) { return x.name.length - y.name.length; });   // "대원사" 가 "산청대원사" 보다 먼저
         out = out.concat(extra);
