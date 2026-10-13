@@ -784,7 +784,7 @@
             var gm = /[#&]guide=([^&]*)/.exec(location.hash), guide = gm ? RF.safeDecode(gm[1]) : "";
             if (/^(route|park)\.html\?[^#<>"']*$/.test(guide)) parkHref = guide;
             // 지도 위 🏞 는 안내도를 거치지 않고 바로 들어온 코스에만(안내도에서 왔으면 아래 "← 안내도" 가 있음 - 2026-10-13 홍TV님)
-            $("parkBtn").style.display = park && !parkHref ? "block" : "none";
+            $("parkBtn").style.display = park && !parkHref && !/[#&]via=map(&|$)/.test(location.hash) ? "block" : "none";
             if (park) $("parkBtn").href = "park.html?name=" + encodeURIComponent(park) + "&from=" + encodeURIComponent(id);
             $("parkGo").style.display = parkHref && !hike.running ? "" : "none";
             barFit();

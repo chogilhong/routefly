@@ -423,7 +423,8 @@
      * 따라가기 주소에 붙일 "탐방 안내도에서 왔음"(&via=park) - 따라가기의 🏞 로 연 탐방 안내도(&from=, 목록 카드 아님)에서 다시 따라가기로 가면
      * 붙이지 않음(2026-10-13 홍TV님: 코스가 산의 어디인지 보러 왔다 돌아간 것이라 "← 안내도" 가 필요 없음).
      */
-    function viaTag() { return from && backTo !== "list" ? "" : "&via=park"; }
+    // 🏞 로 연 곳에서 가면 "&via=map" - 따라가기는 "← 안내도" 도, 지도 위 🏞 도 안 보임(2026-10-13 홍TV님: 🏞 가 다시 생겼음)
+    function viaTag() { return from && backTo !== "list" ? "&via=map" : "&via=park"; }
 
     function showBest(b, keepView) {
         var parts = RF.parseJoinId(b.course) || [{ id: b.course, base: b.course, rev: false, r0: null, r1: null }];
