@@ -697,21 +697,15 @@
 
     function start() {
         $("title").textContent = park ? park + " 탐방 안내도" : "탐방 안내도";   // 2026-10-12 홍TV님: "전체 보기" → "탐방 안내도"
-        // ‹ 코스 - 코스 미리보기에서 왔으면(back=preview) 따라가기의 "🗺 코스 미리보기" 와 같은 첫 화면(검색 · 목록, 2026-10-11 홍TV님),
-        // 따라가기에서 왔으면 그 코스의 따라가기
-        if (backTo === "preview") $("back").href = "./";
+        // 위 단추 - 기본은 "← 목록"(따라가기 첫 화면), 코스 미리보기에서 왔으면(back=preview) "‹ 코스" 로 미리보기 첫 화면(2026-10-11 홍TV님)
+        if (backTo === "preview") { $("back").textContent = "‹ 코스"; $("back").href = "./"; }
         else if (listMode) {   // 목록 카드에서 왔으면: 위 "← 목록" 은 따라가기 화면(검색 목록 - 검색어는 rf-search 로 남아 있음), 아래 "따라가기" 는 고른 탐방로로
             $("back").textContent = "← 목록";   // 2026-10-13 홍TV님: "← 뒤로" → "← 목록"
             $("back").href = "hike.html";
             $("sheet").classList.add("listmode");
             $("sheet").innerHTML = '<div class="tip">탐방로를 누르면 그 코스를 따라갈 수 있습니다.</div><div class="row"><a class="main" id="followNone" href="hike.html">따라가기</a></div>';
         }
-        else if (from) {   // 따라가기의 🏞 로 왔으면 그 코스 따라가기로 - 이름도 "‹ 따라가기"(2026-10-13 PC: "‹ 코스" 였음)
-            $("back").textContent = "‹ 따라가기";
-            // 제목 · 들머리 이름(&title · &head)도 그대로 - 빠지면 ★ 위문이 "산성분소 원점회귀" 로 바뀌었음(2026-10-13 PC)
-            var tail = (q.get("tail") || "").match(/&(title|head|rev|via|guide)=[^&]*/g) || [];
-            $("back").href = "hike.html#c=" + encodeURIComponent(from) + tail.join("");
-        }
+        // 따라가기의 🏞 로 왔어도 위 단추는 park.html 의 기본 "← 목록"(따라가기 첫 화면 - 2026-10-13 홍TV님: "‹ 따라가기" → 목록)
         // 고른 탐방로가 없을 때 아래 칸(모두 빼면 다시 이것으로). 따라가기는 아래 칸에 맡겨 받음(다시 그려도 됨)
         emptySheet = $("sheet").innerHTML;
         $("sheet").addEventListener("click", function (e) {
