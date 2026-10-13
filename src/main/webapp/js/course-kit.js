@@ -2583,12 +2583,15 @@
                     // 비스듬한 이름이 그래프 위로 삐져나가면(정상이 끝에 있는 짧은 코스 - 위 줄 단추와 겹침) 점 아래에 눕혀 씀
                     // (2026-10-12 홍TV님: 공주향교뒷산 "공주향교뒷산 정상" 이 미리보기 단추 줄까지 올라감)
                     var px = xp / 100 * bw, py = y(q.a.ele) / PH * bh;
-                    var r = labelRect(px, py, lb.offsetWidth, lb.offsetHeight, end);
+                    // 출발 이름은 지금 자리 동그라미(.rf-me, 지름 15px)만큼 오른쪽에서 시작(2026-10-13 홍TV님: 한계령탐방지원센터의 "한" 이 가렸음)
+                    var first = q.d < 60 && !end;
+                    if (first) lb.classList.add("first");
+                    var r = labelRect(first ? px + 8 : px, py, lb.offsetWidth, lb.offsetHeight, end);
                     if (Math.min(r[0][1], r[1][1], r[2][1], r[3][1]) < -2) {
                         lb.classList.add("flat");
                         r = flatRect(px, py, lb.offsetWidth, lb.offsetHeight, end);
                         // 출발 이름은 지금 자리 동그라미(.rf-me)에 첫 글자가 가렸음 - 점 위로 눕혀 씀(2026-10-13 홍TV님: 한계령탐방지원센터의 "한")
-                        if (q.d < 60 && !end) {
+                        if (first) {
                             var ru = flatUpRect(px, py, lb.offsetWidth, lb.offsetHeight);
                             if (ru[0][1] >= -2) { lb.classList.add("up"); r = ru; }
                             else lb.classList.add("past");   // 위로도 넘치면 동그라미 오른쪽으로 비켜

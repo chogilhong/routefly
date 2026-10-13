@@ -15,7 +15,8 @@
 /* 비스듬히 쓰면 그래프 위로 넘칠 때(정상이 끝에 있는 짧은 코스) - 점 아래에 눕혀서 */
 .rf-plabel.flat { transform-origin:0 0; transform:translate(4px, 4px); }
 .rf-plabel.end.flat { transform-origin:100% 0; transform:translate(-4px, 4px); }
-/* 출발 이름이 지금 자리 동그라미(.rf-me)에 가리지 않게 - 점 위로(up), 위가 좁으면 동그라미 오른쪽으로(past) */
+/* 출발 이름이 지금 자리 동그라미(.rf-me)에 가리지 않게 - 비스듬히는 동그라미 오른쪽에서 시작(first), 눕히면 점 위로(up), 위가 좁으면 동그라미 오른쪽으로(past) */
+.rf-plabel.first { transform:translate(10px, -8px) rotate(-38deg); }
 .rf-plabel.flat.up { transform-origin:0 100%; transform:translate(9px, calc(-100% - 9px)); }
 .rf-plabel.flat.past { transform:translate(10px, 4px); }
 .rf-me { position:absolute; width:11px; height:11px; margin:-5.5px 0 0 -5.5px; border-radius:50%; background:#38d9ea;
