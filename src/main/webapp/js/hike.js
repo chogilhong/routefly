@@ -669,6 +669,10 @@
         });
     }, 30000);
 
+    // 목록 이름에도 산 안내(park-notes)의 바로잡은 탐방로 이름 - 한 번 받아 둠(못 받으면 그대로)
+    var listNotes = null;
+    fetch("data/park-notes.json").then(function (x) { return x.json(); }).then(function (d) { listNotes = d && d.parks; }).catch(function () { /* 그대로 */ });
+
     var loadSeq = 0;   // 2026-10-09 점검: A 를 누르고 바로 B 를 누르면 늦게 온 A 가 B 를 덮지 않게
     function loadCourse(id) {
         var my = ++loadSeq;
@@ -1993,7 +1997,7 @@
             var it = document.createElement("div");
             it.className = "it";
             var b = document.createElement("b");
-            RF.showName(b, r.name);
+            RF.showName(b, RF.noteTrailName(listNotes, r.course_id, r.name));   // 이름을 바로잡은 탐방로(park-notes trails - 설악산 "백담사" → 용대리 → 백담사)
             var s = document.createElement("span");
             s.textContent = km(+r.distance_m) + "km" + (r.ascent_m != null ? " · 오르막 " + num(+r.ascent_m) + "m" : "")
                 + (r.ele_max_m != null ? " · 최고 " + num(+r.ele_max_m) + "m" : "")

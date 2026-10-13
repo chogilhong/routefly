@@ -15,6 +15,7 @@ public class EndNamesTest {
         assertArrayEquals(new String[] {"선정암", null}, CourseQueries.nameEnds("무등산 · 선정암에서"));
         assertArrayEquals(new String[] {"가탄", "송정"}, CourseQueries.nameEnds("지리산둘레길 가탄-송정"));
         assertArrayEquals(new String[] {null, null}, CourseQueries.nameEnds("설악산 · 대청봉코스"));
+        assertArrayEquals(new String[] {"덕전리", "덕전리"}, CourseQueries.nameEnds("덕대산 1코스 · 덕전리 순환"));
     }
 
     @Test

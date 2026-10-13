@@ -515,6 +515,7 @@ var bd = RF.fromApi("bd", { course: { name: "설악산 · 백담사 → 소청�
 eq("fromApi 길에서 떨어진 같은 이름 이름표는 들머리 자리로", [bd.pois[0].name, bd.pois[0].dist_m, bd.pois[0].off_route_m, bd.pois[0].lat], ["백담사", 0, 0, 35.0]);
 var en = RF.fromApi("en", { course: { name: "설악산 · 대청봉코스" }, points: [[127.0, 35.0, 400, 0], [127.0, 35.01, 900, 1100]], pois: [], ends: { start: "오색약수터", end: "대청봉" } });
 eq("fromApi 이름에 출발 · 도착이 없으면 서버 ends 이름", en.pois.map(function (q) { return q.name + "@" + q.dist_m; }), ["오색약수터@0", "대청봉@1100"]);
+eq("routeEnds 순환", RF.routeEnds("덕대산 1코스 · 덕전리 순환"), { from: "덕전리", to: "덕전리" });
 var full = RF.fromApi("r", { course: { name: "산 · 가 → 라" }, points: [[127.0, 35.0, 100, 0], [127.011, 35.0, 200, 1000], [127.022, 35.0, 150, 2000], [127.033, 35.0, 300, 3000]], pois: [] });
 var sl = RF.sliceCourse(full, 1 / 3, 2 / 3, "산 · 나 → 다", "r@0.3333-0.6667:나>다");
 eq("sliceCourse 거리 · 이름표", [Math.round(sl.total), sl.pois.map(function (p) { return p.name; }).join(","), sl.course.ascent_m], [1000, "나,다", 0]);

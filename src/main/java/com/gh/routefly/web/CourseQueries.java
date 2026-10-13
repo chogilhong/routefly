@@ -338,6 +338,8 @@ final class CourseQueries {
         if (parts.length >= 2) return new String[] {parts[0].trim(), parts[parts.length - 1].trim()};
         java.util.regex.Matcher one = java.util.regex.Pattern.compile("^(.+?)(에서|까지)$").matcher(route);
         if (one.matches()) return "에서".equals(one.group(2)) ? new String[] {one.group(1), null} : new String[] {null, one.group(1)};
+        java.util.regex.Matcher loop = java.util.regex.Pattern.compile("^(.+?)\\s*순환$").matcher(route);
+        if (loop.matches()) return new String[] {loop.group(1), loop.group(1)};
         java.util.regex.Matcher ab = java.util.regex.Pattern.compile("([가-힣]+)-([가-힣]+)\\s*\\)?\\s*$").matcher(name);
         return ab.find() ? new String[] {ab.group(1), ab.group(2)} : new String[] {null, null};
     }

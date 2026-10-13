@@ -112,6 +112,9 @@
         if (parts.length >= 2) return { from: parts[0].trim(), to: parts[parts.length - 1].trim() };
         var one = /^(.+?)(에서|까지)$/.exec(parts[0].trim());
         if (one) return one[2] === "에서" ? { from: one[1], to: null } : { from: null, to: one[1] };
+        // "덕전리 순환" - 거기서 나가 거기로 돌아옴(산림청 · 등산트레킹 · 자전거 순환 코스, 2026-10-13 홍TV님: 들머리 · 날머리 이름)
+        var loop = /^(.+?)\s*순환$/.exec(parts[0].trim());
+        if (loop) return { from: loop[1], to: loop[1] };
         var ab = /([가-힣]+)-([가-힣]+)\s*\)?\s*$/.exec(String(name || ""));
         return ab ? { from: ab[1], to: ab[2] } : { from: null, to: null };
     }
