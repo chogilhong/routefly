@@ -1872,8 +1872,7 @@
      */
     function trailHeads(segs, heads, flips, others, places, want) {
         var near = 150, d = function (p, q) { return distM(p[1], p[0], q[1], q[0]); }, ends = [];
-        var HEAD = /(탐방지원센터|탐방안내소|안내센터|분소|매표소|주차장|휴게소)$/, HEAD_PT = /(.사|탐방지원센터|탐방안내소|분소|주차장|휴게소)$/,
-            SHOP = /[&]|찻집|식당|가게|펜션|민박|카페/;
+        var HEAD = /(탐방지원센터|탐방안내소|안내센터|분소|매표소|주차장|휴게소)$/;
         var ACCESS = /(마을|리|동|입구|재|령|고개|주차장|휴게소|매표소|분소|탐방지원센터|탐방안내소|교|IC|정류장|중|초|중학교|초등학교)$/;
         var HIGH = /(대피소|산장|봉|산|대|단|정상|오름|폭포|전망대|암|굴|바위|능선|고지|갈림길|탐방로 끝|쪽 끝|부근|분기점|코스\d*|탐방로\s*\d*|삼거리|사거리|경계|문)$/;
         var DEAD_HIGH = /(대피소|산장|봉|산|정상|오름|폭포|전망대|굴|바위|능선|고지|갈림길|끝|부근|분기점|삼거리|사거리|터|옛길|제방|소|담|탕|치|대|단|문|암|코스\d*|탐방로\s*\d*)$/;
@@ -1961,19 +1960,19 @@
         });
         // 탐방로에서 먼 서버 heads 도(다른 자료 코스 끝 - 지리산남부탐방안내소)
         (heads || []).forEach(function (h) { out.push({ name: String(h.name), lat: +h.lat, lon: +h.lon, server: true }); });
-        // 탐방로 옆(300m) 다른 자료 코스가 절 · 주차장에서 시작하면 그곳도(2026-10-13 홍TV님: 대원사 - "대원사석등 → 써리봉", 우이동 - "우이동공영주차장입구 → 백운대")
-        var onNet = function (p, lim) { return (segs || []).some(function (s) { return s.coords.some(function (q) { return d(p, q) < lim; }); }); };
+        // park-notes heads 에 적은 들머리(2026-10-13 홍TV님: 도선사 · 대원사 · 육십령 …) - 같은 이름 이름표, 다른 자료 코스 출발
+        // ("대원사석등 → 써리봉" · "진고개정상휴게소 → 두로봉"), 그 낱말이 든 이름표 차례로 자리를 찾음. 적지 않은 절 · 주차장은 넣지 않음(북한산 54곳이 됐었음)
         var extra = [];
-        (others || []).forEach(function (o) {
-            var e = routeEnds(o.name), n = String(e.from || "").replace(/\s+/g, "").replace(/(석등|부도|대웅전|일주문|입구|화장실)$/, "");
-            if (o.coords && o.coords.length && HEAD_PT.test(n) && !SHOP.test(n) && onNet(o.coords[0], 300)) extra.push({ name: n, lat: o.coords[0][1], lon: o.coords[0][0] });
-        });
-        // 들머리 400m 안 절 · 주차장 이름표(배치가 탐방로 처음 · 끝 둘레에서 받음 - 도선사)
-        // 이름표 가운데 들머리로 넣을 곳은 park-notes heads 에 적은 것만(2026-10-13 홍TV님: 도선사 - 모든 절 · 주차장을 넣으면 북한산이 54곳)
         (want || []).forEach(function (w) {
-            (places || []).forEach(function (q) {
-                if (String(q.name || "").replace(/\s+/g, "") === w) extra.push({ name: String(q.name).trim(), lat: +q.lat, lon: +q.lon });
+            var key0 = String(w).replace(/\s+/g, ""), hit = null;
+            (places || []).forEach(function (q) { if (!hit && String(q.name || "").replace(/\s+/g, "") === key0) hit = [+q.lon, +q.lat]; });
+            (others || []).forEach(function (o) {
+                var f = String(routeEnds(o.name).from || "").replace(/\s+/g, "");
+                if (!hit && o.coords && o.coords.length && f.indexOf(key0) >= 0) hit = o.coords[0];
             });
+            // 낱말이 든 이름표는 마지막(지리산 "대원사집단시설지구주차장" 이름표가 중산리 자리에 있었음)
+            (places || []).forEach(function (q) { if (!hit && String(q.name || "").replace(/\s+/g, "").indexOf(key0) >= 0) hit = [+q.lon, +q.lat]; });
+            if (hit) extra.push({ name: String(w), lat: hit[1], lon: hit[0], want: true });
         });
         extra.sort(function (x, y) { return x.name.length - y.name.length; });   // "대원사" 가 "산청대원사" 보다 먼저
         out = out.concat(extra);
