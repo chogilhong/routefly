@@ -239,15 +239,6 @@
         st.className = "st";
         st.textContent = RF.km(meters) + "km" + (one && one.ascent_m != null ? " · 오르막 " + RF.num(one.ascent_m) + "m" : " · 오르막은 따라가기 화면에서")
             + (full.some(function (s) { return byId[s.id].extra; }) ? " · 옅은 선은 산림청 · 등산트레킹 자료" : "");
-        // 탐방로 전체(id 그대로, 또는 이은 조각이라도 @0.0000-1.0000 - 계룡산 knps-2011)면 3D 도
-        var whole = one && !one.base && one.id.indexOf(",") < 0 && (one.id.indexOf("@") < 0 || /@0\.0000-1\.0000(:|$)/.test(one.id)) ? one.id.split("@")[0] : null;
-        if (whole && !listMode) {   // 하나만 골랐으면 코스 미리보기(3D)도 - 이은 코스는 미리보기가 받지 못함
-            var pv = document.createElement("a");
-            pv.href = "index.html#c=" + encodeURIComponent(whole);
-            pv.textContent = " · routefly(3D) ›";   // 2026-10-13 홍TV님: "미리보기" → routefly(3D)
-            pv.className = "pv";
-            st.appendChild(pv);
-        }
         var row = document.createElement("div");
         row.className = "row";
         var link = function (list) {
