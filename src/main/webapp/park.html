@@ -61,6 +61,9 @@ body { display:flex; flex-direction:column; height:100dvh; }
 .place .ic { font-size:13px; line-height:1; }
 /* 고른 코스의 출발(들머리) · 도착 깃발 */
 .flag { pointer-events:none; background:#fff; color:#111; font-size:12px; font-weight:bold; padding:2px 6px; border-radius:6px 6px 6px 0; box-shadow:0 1px 3px rgba(0,0,0,0.5); white-space:nowrap; }
+.flag.bottom-right { border-radius:6px 6px 0 6px; }
+.flag.top-left { border-radius:0 6px 6px 6px; }
+.flag.top-right { border-radius:6px 0 6px 6px; }
 .place.hid { opacity:0 !important; }
 .spot.hid { opacity:0 !important; pointer-events:none; }
 #credit { display:none; flex:0 0 auto; font-size:11.5px; color:var(--dim); text-align:center; padding:0 0 calc(env(safe-area-inset-bottom) + 6px); background:var(--panel); }

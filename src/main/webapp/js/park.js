@@ -79,6 +79,39 @@
         return "끝이 " + names.join(" · ") + " " + many + " 곳으로 갈라져 있습니다";
     }
 
+    /**
+     * 출발 · 도착 깃발 - 이름표를 노선이 뻗는 쪽의 반대로 펼침(2026-10-13 홍TV님: 북한산 위문 "출발 · 도착 북한산성입구" 가 동쪽으로 가는 노선을 가렸음).
+     * 깃발 둘레 700m 안 노선 점들의 방향을 더해, 노선이 동쪽이면 이름표는 서쪽(왼쪽), 북쪽이면 아래로.
+     */
+    function flagAnchor(p, coords) {
+        var sx = 0, sy = 0, k = Math.cos(p[1] * Math.PI / 180);
+        (coords || []).forEach(function (q) {
+            var d = RF.distM(p[1], p[0], q[1], q[0]);
+            if (d < 20 || d > 700) return;
+            sx += (q[0] - p[0]) * k * 111320 / d;
+            sy += (q[1] - p[1]) * 111320 / d;
+        });
+        return (sy > 0 ? "top" : "bottom") + "-" + (sx > 0 ? "right" : "left");
+    }
+
+    function flagMarker(txt, at, coords) {
+        var e = document.createElement("div"), a = flagAnchor(at, coords);
+        e.className = "flag " + a;   // 꼬리(뾰족한 모서리)는 깃발 자리 쪽
+        RF.nameNodes(e, txt);   // 탐방지원센터는 작은 글씨
+        return new maplibregl.Marker({ element: e, anchor: a }).setLngLat(at).addTo(map);
+    }
+
+    /** 지도 맞춤 여백 - 깃발 이름표가 펼쳐지는 쪽(왼쪽 · 오른쪽)은 깃발 너비만큼 더(적어도 130px). */
+    function flagPad() {
+        var pad = { top: 40, bottom: 40, left: 40, right: 40 };
+        [startMk, endMk].forEach(function (m) {
+            if (!m) return;
+            var e = m.getElement(), c = e.classList, wd = Math.max(130, (e.offsetWidth || 0) + 16);   // "출발 · 도착 북한산성입구" 는 160px 넘음
+            if (c.contains("bottom-left") || c.contains("top-left")) pad.right = Math.max(pad.right, wd); else pad.left = Math.max(pad.left, wd);
+        });
+        return pad;
+    }
+
     function pick(t) {
         if (t) {
             exStart = null;
@@ -115,12 +148,9 @@
         }
         if (!sel.length) { $("sheet").innerHTML = emptySheet; return; }
         // 출발(들머리) · 도착을 지도에(2026-10-12 홍TV님: 중산리탐방지원센터가 들머리인데 지도에 표시)
-        var flag = function (txt, at) {
-            var e = document.createElement("div");
-            e.className = "flag";
-            RF.nameNodes(e, txt);   // 탐방지원센터는 작은 글씨
-            return new maplibregl.Marker({ element: e, anchor: "bottom-left" }).setLngLat(at).addTo(map);
-        };
+        var walkLine = [];
+        chosen.forEach(function (id) { if (lines[id]) walkLine = walkLine.concat(lines[id]); });
+        var flag = function (txt, at) { return flagMarker(txt, at, walkLine); };
         var ends = function (s) {
             var e = RF.routeEnds(byId[s.id].name), a = flips[s.id] ? e.to : e.from, b = flips[s.id] ? e.from : e.to;
             return s.rev ? [b, a] : [a, b];
@@ -333,18 +363,13 @@
             if (endMk) { endMk.remove(); endMk = null; }
             var name = RF.aliasName(b.name ? park + " · " + b.name : RF.noteTrailName(noteAll, b.course, one ? one.course.name : park), noteNames), e = RF.routeEnds(name);
             var loop = !!(e.from && e.from === e.to);
-            var mk = function (txt, at) {
-                var el = document.createElement("div");
-                el.className = "flag";
-                RF.nameNodes(el, txt);
-                return new maplibregl.Marker({ element: el, anchor: "bottom-left" }).setLngLat(at).addTo(map);
-            };
+            var mk = function (txt, at) { return flagMarker(txt, at, pts); };
             if (e.from) startMk = mk((loop ? "🚩 출발 · 도착 " : "🚩 출발 ") + e.from, pts[0]);
             if (e.to && !loop) endMk = mk("🏁 도착 " + e.to, pts[pts.length - 1]);
             var w = 180, so = 90, e2 = -180, n = -90;
             pts.forEach(function (q) { w = Math.min(w, q[0]); e2 = Math.max(e2, q[0]); so = Math.min(so, q[1]); n = Math.max(n, q[1]); });
-            // 오른쪽은 깃발 글자 자리만큼 더 띄움(공룡능선 "출발 · 도착 비선대" 가 화면 끝에서 잘렸음)
-            map.fitBounds([[w, so], [e2, n]], { padding: { top: 40, bottom: 40, left: 40, right: 130 }, duration: 600, maxZoom: 15 });
+            // 깃발 글자가 펼쳐지는 쪽은 그만큼 더 띄움(공룡능선 "출발 · 도착 비선대" 가 화면 끝에서 잘렸음)
+            map.fitBounds([[w, so], [e2, n]], { padding: flagPad(), duration: 600, maxZoom: 15 });
             $("sheet").innerHTML = "";
             var nm = document.createElement("div");
             nm.className = "nm";
@@ -614,7 +639,7 @@
                     // 고른 예시가 보이게 확대
                     var w = 180, so = 90, e2 = -180, n = -90;
                     x.ids.forEach(function (id) { (lines[id] || []).forEach(function (q) { w = Math.min(w, q[0]); e2 = Math.max(e2, q[0]); so = Math.min(so, q[1]); n = Math.max(n, q[1]); }); });
-                    if (w < e2) map.fitBounds([[w, so], [e2, n]], { padding: 40, duration: 600, maxZoom: 15 });
+                    if (w < e2) map.fitBounds([[w, so], [e2, n]], { padding: flagPad(), duration: 600, maxZoom: 15 });
                 }
                 return;
             }
