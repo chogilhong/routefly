@@ -74,7 +74,7 @@ body.compact #statGrids { display:none; }
 #sign[hidden], #sosSignRow[hidden], #sosHelpRow[hidden] { display:none; }
 #access { font-size:12.5px; color:var(--tx); margin:-3px 0 6px; display:flex; gap:8px; align-items:baseline; opacity:.85; }
 #access[hidden] { display:none; }
-#accessCar { flex:1; min-width:0; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }   /* 좁은 폰은 두 줄(375px 에서 잘렸음) */
+#accessCar { flex:1; min-width:0; overflow:hidden; word-break:keep-all; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }   /* 좁은 폰은 두 줄(375px 에서 잘렸음) */
 #accessLink { flex:none; color:var(--sky); text-decoration:none; }
 #accessLink[hidden] { display:none; }
 .spot { font-size:15px; line-height:1; filter:drop-shadow(0 0 2px #000); cursor:pointer; }
