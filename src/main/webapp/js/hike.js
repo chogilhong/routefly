@@ -776,7 +776,7 @@
             var park = RF.parkOf(c.course.name) || RF.mountainOf(c.course.name, id);   // 국립공원, 아니면 도립 · 군립공원 · 산
             $("parkBtn").style.display = park ? "block" : "none";
             if (park) $("parkBtn").href = "park.html?name=" + encodeURIComponent(park) + "&from=" + encodeURIComponent(id);
-            parkHref = park ? $("parkBtn").href : null;
+            parkHref = park ? "park.html?name=" + encodeURIComponent(park) : null;   // from 없이 - 고른 코스 없는 첫 화면
             $("parkGo").style.display = park && !hike.running ? "" : "none";
             setKindWords();
             drawCourse();
@@ -2553,12 +2553,11 @@
 
     // ------------------------------------------------------------------ 공유 · 오프라인 저장
 
-    // 아래 줄 "탐방 안내도"(2026-10-13 홍TV님) - 탐방 안내도에서 들어왔으면 뒤로(고른 대표 코스 · 구간 그대로), 아니면 그 공원 안내도로
+    // 아래 줄 "탐방 안내도"(2026-10-13 홍TV님) - 늘 그 공원 탐방 안내도 첫 화면(전체 지도 · 대표 코스 칩)으로
     var parkHref = null;
     $("parkGo").addEventListener("click", function () {
-        if (hike.running) return;
-        if (/\/park\.html/.test(document.referrer) && history.length > 1) { history.back(); return; }
-        if (parkHref) location.href = parkHref;
+        if (hike.running || !parkHref) return;
+        location.href = parkHref;
     });
 
     $("share").addEventListener("click", function () {
