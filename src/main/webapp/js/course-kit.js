@@ -2615,7 +2615,9 @@
             });
             // 이름을 놓는 차례: 출발 · 도착 → 가장 높은 곳 → 나머지는 거리 순
             var top = list.reduce(function (m, q) { return m == null || q.a.ele > m.a.ele ? q : m; }, null);
-            var rank = function (q) { return q.d < 60 || q.d > c.total - 60 ? 0 : q === top ? 1 : 2; };
+            // 코스 이름에 든 지점(구기분소 → 대남문 → 구기분소 의 대남문)도 정상처럼 먼저 - 반환점에 옆 봉우리 "잠룡봉" 만 남았었음(2026-10-13 PC)
+            var titled = nameParts(c.course && c.course.name).route.split(" → ").map(function (x) { return x.trim(); });
+            var rank = function (q) { return q.d < 60 || q.d > c.total - 60 ? 0 : q === top || titled.indexOf(q.p.name) >= 0 ? 1 : 2; };
             // 같은 자리면 출발 · 도착 이름표(end) 먼저 - 순환 코스 끝이 옆 지명 "루암리" 로 남았었음(2026-10-13 PC)
             list.slice().sort(function (u, v) { return rank(u) - rank(v) || (v.p.end ? 1 : 0) - (u.p.end ? 1 : 0) || u.d - v.d; }).forEach(function (q) {
                 var xp = q.d / c.total * 100;
