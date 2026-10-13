@@ -237,7 +237,7 @@
     function nameParts(name) {
         var n = String(name || "");
         var i = n.indexOf(" · ");
-        var route = (i > 0 ? n.slice(i + 3) : n).split(" → ").map(function (x) { return summitName(x); }).join(" → ");   // "→ 공주향교뒷산 정상" → "→ 정상"
+        var route = (i > 0 ? n.slice(i + 3) : n).split(" → ").map(function (x) { return summitName(numberedPark(x)); }).join(" → ");   // "→ 공주향교뒷산 정상" → "→ 정상", 문화공원11(부안공원) → 부안공원
         return i > 0 ? { group: n.slice(0, i), route: route } : { group: null, route: route };
     }
 
@@ -363,6 +363,11 @@
     /** 코스 자료(api/course 응답) → 계산하기 쉬운 모양. 갈림길은 이름표와 따로 c.junctions(진행 거리 목록). */
     /** 두루누비 사진 지점 이름("49코스 (거진항~통일안보 공원)_12.3km-0") - 지점 이름표로 쓰지 않음(2026-10-13 PC: 해파랑길 처음 · 끝 이름표). */
     var PHOTO_POI = /_[\d.]+\s*km(-\d+)?$/;
+    /** 기계가 붙인 번호 이름("GPX-726" · "WPT012") - 이름표가 아님(2026-10-13 홍TV님: 서해랑길 20코스 지점 730개가 GPX-n. 배치 GpxReader.autoName 과 같게). */
+    var AUTO_POI = /^(gpx|wpt|wp|waypoint|point|pt)[-_ ]?\d+$/i;
+
+    var NUMBERED_PARK = /[^\s·→()\d]+\d+\s*\(([^()]+공원)\)/g;
+    function numberedPark(name) { return name == null ? name : String(name).replace(NUMBERED_PARK, "$1"); }
 
     function fromApi(id, j) {
         var raw = j.pois || [];
@@ -372,9 +377,12 @@
             var m = PHOTO_POI.test(String(p.name || "")) && /\(([^~()]+)~([^~()]+)\)/.exec(p.name);
             if (m && !photoEnds) photoEnds = { start: m[1].trim(), end: m[2].trim() };
         });
-        var all = raw.filter(function (p) { return !PHOTO_POI.test(String(p.name || "")); });
+        var all = raw.filter(function (p) { var n = String(p.name || ""); return !PHOTO_POI.test(n) && !AUTO_POI.test(n.trim()); });
         // OSM 의 띄어 쓴 "남벽분 기점" → 남벽분기점(배치 tidyEnd 와 같게 - 이름표는 배치를 다시 돌리기 전 것도 있음)
         all.forEach(function (p) { if (/\s+기점$/.test(String(p.name || ""))) p.name = String(p.name).replace(/\s+기점$/, "기점"); });
+        // 관리 번호가 붙은 공원 이름은 괄호 안 공원 이름으로(서해랑길 50코스 "문화공원11(부안공원)" → 부안공원, 배치 EndNames.firstName 과 같게)
+        all.forEach(function (p) { p.name = numberedPark(p.name); });
+        if (j.course && j.course.name) j.course.name = numberedPark(j.course.name);
         var se = j.ends || {};
         // 코스 자기 자료("(거진항~통일안보 공원)")가 서버가 찾은 둘레 이름(고성군관광안내소)보다 먼저(2026-10-13 PC)
         var ends = photoEnds || se.start || se.end ? { start: (photoEnds && photoEnds.start) || se.start, end: (photoEnds && photoEnds.end) || se.end } : null;

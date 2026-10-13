@@ -38,6 +38,22 @@ function line(n) {
 // distM - 위도 0.001° ≈ 111m
 near("distM", RF.distM(37, 127, 37.001, 127), 111, 1);
 
+// 기계가 붙인 번호 이름(GPX-726)은 이름표가 아님(서해랑길 20코스)
+(function () {
+    var j = line(3);
+    j.pois = [{ name: "GPX-726", lat: 37.001, lon: 127, dist_m: 100 }, { name: "WPT012", lat: 37.002, lon: 127, dist_m: 200 },
+              { name: "대청봉", lat: 37.002, lon: 127, dist_m: 200 }];
+    var c = RF.fromApi("drnb-1", j);
+    eq("번호 이름 뺌", c.pois.map(function (q) { return q.name; }).filter(function (n) { return /GPX|WPT/.test(n); }).length, 0);
+    eq("진짜 이름은 남음", c.pois.some(function (q) { return q.name === "대청봉"; }), true);
+    var k = line(3);
+    k.course = { name: "서해랑길 50코스 · 문화공원11(부안공원) → 동진대교" };
+    k.pois = [{ name: "문화공원11(부안공원)", lat: 37, lon: 127, dist_m: 0 }, { name: "월출산(천황봉)", lat: 37.001, lon: 127, dist_m: 100 }];
+    var c2 = RF.fromApi("drnb-50", k);
+    eq("번호 붙은 공원 이름", c2.course.name, "서해랑길 50코스 · 부안공원 → 동진대교");
+    eq("이름표도", c2.pois.map(function (q) { return q.name; }).join(","), "부안공원,월출산(천황봉),동진대교");
+})();
+
 // 국립공원 위치표지판 - 지금 자리에서 가장 가까운 것(500m 안)
 (function () {
     var j = line(3);
