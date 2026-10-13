@@ -324,12 +324,8 @@
         });
         // 이름표 - 높은 봉우리 먼저 보이게(겹치면 낮은 것을 숨김)
         // 들머리 · 날머리를 지도에(2026-10-13 홍TV님: 모든 산) - 탐방로망의 막다른 끝(봉우리 · 폭포 빼고, 탐방지원센터 이름 먼저) + 다른 자료의
-        // 탐방지원센터 · 탐방안내소. 같은 이름 이름표가 이미 있으면 빼고
-        var have = {};
-        data.places.forEach(function (p) {
-            have[String(p.name).replace(/\s+/g, "")] = true;
-            if (noteEle && noteEle[p.name] != null) p.ele_m = noteEle[p.name];
-        });
+        // 탐방지원센터 · 탐방안내소. 같은 이름 이름표가 그 자리에 있으면 그 이름표를 들머리로
+        data.places.forEach(function (p) { if (noteEle && noteEle[p.name] != null) p.ele_m = noteEle[p.name]; });
         // 서버 heads(탐방지원센터 · 탐방안내소)도 trailHeads 가 합침 - "백무동" · "백무동탐방지원센터" 처럼 같은 곳은 하나(2026-10-13 PC)
         var hs = RF.trailHeads(segs, data.heads, flips, data.others, data.places, noteHeads);
         // 출발 · 도착을 고르는 들머리 - 지도의 들머리 · 날머리 모두(한계령 · 송추처럼 탐방지원센터 자료에 없는 곳도)
@@ -338,8 +334,10 @@
         // 이미 지명 이름표가 있으면(성삼재 960m · 어승생악) 그 이름표를 들머리 표시로 - 예전에는 건너뛰어 🥾 가 없었음(2026-10-13 PC)
         hs.forEach(function (h) {
             var k = String(h.name).replace(/\s+/g, "");
-            if (!have[k]) { data.places.push({ name: h.name, lat: h.lat, lon: h.lon, ele_m: null, head: true }); return; }
-            data.places.forEach(function (p) { if (String(p.name).replace(/\s+/g, "") === k) p.head = true; });
+            // 같은 이름 이름표가 들머리 300m 안일 때만 그 이름표를 들머리로(북한산 청봉사 이름표는 탐방로 끝에서 370m - 따로 그림)
+            var same = data.places.filter(function (p) { return String(p.name).replace(/\s+/g, "") === k && RF.distM(+p.lat, +p.lon, h.lat, h.lon) < 300; });
+            if (!same.length) { data.places.push({ name: h.name, lat: h.lat, lon: h.lon, ele_m: null, head: true }); return; }
+            same.forEach(function (p) { p.head = true; });
         });
         data.places.forEach(function (p) {
             var e = document.createElement("div");

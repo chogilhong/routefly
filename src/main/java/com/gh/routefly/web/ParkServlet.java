@@ -138,7 +138,8 @@ public class ParkServlet extends HttpServlet {
             for (double v : box) bbox.add(CourseQueries.round5(v));
             out.add("bbox", bbox);
             out.add("places", places(c, ids));
-            out.add("heads", heads(c, box));
+            // 들머리는 공원 범위 밖 2km 까지(2026-10-13 PC: 덕유산 영각탐방지원센터가 범위 남쪽 1.1km 밖)
+            out.add("heads", heads(c, widen(box, HEAD_MARGIN_DEG)));
             // 국립공원: 공단 자료에 빠진 탐방로를 메울 다른 자료 등산 코스(2026-10-12 홍TV님: 설악산 소공원 → 비선대 → 천불동이 공단 자료에 없어
             // 원점회귀를 못 만듦 · 지도가 비어 보임) - 이름에 공원 이름이 든 등산 코스(둘레길 등 걷기는 뺌), 화면이 공단 탐방로와 겹치지 않는 부분만 씀
             JsonArray others = new JsonArray();
@@ -245,6 +246,14 @@ public class ParkServlet extends HttpServlet {
 
     /** 국립공원 화면의 다른 자료 등산 코스 수 한도(공단 탐방로 빈 곳 메우기). */
     static final int OTHER_LIMIT = 300;
+
+    /** 들머리를 찾는 범위를 공원 범위보다 넓히는 만큼(도, 약 2km). */
+    static final double HEAD_MARGIN_DEG = 0.02;
+
+    /** 순수 함수 - 범위 [서, 남, 동, 북] 을 사방으로 m 도 넓힘. */
+    static double[] widen(double[] box, double m) {
+        return new double[] {box[0] - m, box[1] - m, box[2] + m, box[3] + m};
+    }
 
     /** 들머리 이름(탐방지원센터 · 탐방안내소)을 찾는 코스 수 한도. */
     static final int HEAD_ROWS = 2000;

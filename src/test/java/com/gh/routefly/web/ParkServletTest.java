@@ -71,4 +71,16 @@ public class ParkServletTest {
         assertTrue(ParkServlet.placeOk("우이동 주차장", 200));
         assertFalse("400m 넘음", ParkServlet.placeOk("도선사", 450));
     }
+
+    @Test
+    public void headsLookWiderThanThePark() {
+        // 2026-10-13 PC: 덕유산 영각탐방지원센터(35.73899)가 공원 범위 남쪽(35.74906) 1.1km 밖이라 빠졌음
+        double[] box = {127.65294, 35.74906, 127.82745, 35.95431};
+        java.util.List<Object[]> h = ParkServlet.headsOf(java.util.List.<String[]>of(
+                new String[] {"남덕유산 1코스 · 양악리 → 영각탐방지원센터", "35.80", "127.70", "35.73899", "127.67899"}), ParkServlet.widen(box, ParkServlet.HEAD_MARGIN_DEG));
+        assertEquals(1, h.size());
+        assertEquals("영각탐방지원센터", h.get(0)[0]);
+        assertTrue("넓히지 않으면 없음", ParkServlet.headsOf(java.util.List.<String[]>of(
+                new String[] {"남덕유산 1코스 · 양악리 → 영각탐방지원센터", "35.80", "127.70", "35.73899", "127.67899"}), box).isEmpty());
+    }
 }

@@ -495,6 +495,12 @@ var fz = RF.fromApi("z", { course: { name: "지리산 · 중산리탐방지원�
     pois: [{ name: "중산리탐방안내소", lat: 35.0, lon: 127.0, dist_m: 0, off_route_m: 5 }, { name: "중산리주차장", lat: 35.001, lon: 127.002, dist_m: 100, off_route_m: 180 },
            { name: "칼바위", lat: 35.01, lon: 127.0, dist_m: 1100, off_route_m: 3 }] });
 eq("fromApi 코스 처음이 탐방지원센터면 둘레 다른 들머리 이름표는 빼고", fz.pois.map(function (q) { return q.name; }), ["중산리탐방지원센터", "칼바위"]);
+// 2026-10-13 PC: 이름 없는 탐방로 끝 229m 앞 절 이름표(청봉사)가 끝 이름이 됐음 - 끝 이름은 200m 안, 봉우리 · 정상만 700m
+var stA = [{ id: "nm", name: "북한산 · 비매칭코스", coords: [[127.0, 35.0], [127.0, 35.005], [127.0, 35.01]], distance_m: 1110 },
+    { id: "x1", name: "북한산 · 가 → 나", coords: [[127.0, 35.005], [127.01, 35.005]] }];
+var stN = { nm: { total: 1110, pois: [{ name: "청봉사", dist_m: 880 }, { name: "보현봉", dist_m: 5 }] } };
+eq("splitTrails 끝 이름은 200m 안(봉우리는 700m)", RF.splitTrails(stA, {}, null, stN).filter(function (x) { return x.base === "nm"; }).map(function (x) { return x.name; }),
+    ["북한산 · 보현봉 → 가", "북한산 · 가 → 비매칭코스"]);
 var full = RF.fromApi("r", { course: { name: "산 · 가 → 라" }, points: [[127.0, 35.0, 100, 0], [127.011, 35.0, 200, 1000], [127.022, 35.0, 150, 2000], [127.033, 35.0, 300, 3000]], pois: [] });
 var sl = RF.sliceCourse(full, 1 / 3, 2 / 3, "산 · 나 → 다", "r@0.3333-0.6667:나>다");
 eq("sliceCourse 거리 · 이름표", [Math.round(sl.total), sl.pois.map(function (p) { return p.name; }).join(","), sl.course.ascent_m], [1000, "나,다", 0]);
