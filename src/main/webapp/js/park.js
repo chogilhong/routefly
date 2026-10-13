@@ -562,7 +562,8 @@
 
     function draw() {
         // 자연관찰로는 등산 코스가 아님(2026-10-12 홍TV님: 중산리탐방지원센터 앞 고리) - 빼고, 산마다 다른 이름(중산리 → 중산리탐방지원센터)
-        data.trails = data.trails.filter(function (t) { return !/자연관찰로/.test(t.name); }).map(function (t) {
+        // 비법정탐방로("비매칭코스" - 출입 금지 구간)도 그리지 않음(2026-10-13 홍TV님)
+        data.trails = data.trails.filter(function (t) { return !/자연관찰로/.test(t.name) && !RF.isClosedTrail(t.name); }).map(function (t) {
             var x = {};
             for (var k in t) if (Object.prototype.hasOwnProperty.call(t, k)) x[k] = t[k];
             // 공단 자료 이름이 틀린 탐방로(park-notes trails - 설악산 knps-4014 "소공원 → 희운각대피소" 는 양폭대피소 → 무너미고개)

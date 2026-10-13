@@ -38,6 +38,10 @@ function line(n) {
 // distM - 위도 0.001° ≈ 111m
 near("distM", RF.distM(37, 127, 37.001, 127), 111, 1);
 
+// 비법정탐방로(공단 "비매칭코스")
+eq("비매칭코스는 비법정", RF.isClosedTrail("북한산 · 비매칭코스"), true);
+eq("보통 탐방로", RF.isClosedTrail("북한산 · 구기분소 → 대남문"), false);
+
 // 학교 아이콘 - 목포대는 대학, 비선대 · 문장대는 바위
 eq("목포대", RF.poiIcon("목포대"), "🏫");
 eq("목포대학교", RF.poiIcon("목포대학교"), "🏫");
