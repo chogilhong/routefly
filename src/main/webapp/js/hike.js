@@ -2012,7 +2012,7 @@
     }).catch(function () { /* 없이 */ });
 
     function listCourses(rows, from, note) {
-        rows = (rows || []).filter(function (r) { return !RF.isClosedTrail(r.name); });   // 비법정탐방로(비매칭코스)는 목록에서 뺌(2026-10-13 홍TV님)
+        rows = (rows || []).filter(function (r) { return !RF.isClosedTrail(r.name) && !RF.isHiddenCourse(listNotes, r.course_id); });   // 지금은 없는 탐방로(park-notes hide - 가야산3코스)도   // 비법정탐방로(비매칭코스)는 목록에서 뺌(2026-10-13 홍TV님)
         lastList = seriesFlat.length ? null : { args: [rows, from, note], seq: pickSeq };
         var box = $("pickList");
         box.textContent = "";
