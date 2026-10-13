@@ -30,17 +30,16 @@
         return e;
     }
 
-    /** 코스 한 줄 - 이름 · 거리 · (완주) · 미리보기 · 따라가기. */
+    /** 코스 한 줄 - 이름 · 거리 · (완주) · 따라가기. */
     function courseRow(c) {
         var row = el("div", "row"), t = el("div", "t");
         var d = done[c.course_id];
         t.appendChild(document.createTextNode((d ? "✅ " : "") + RF.nameText(c.name)));
         t.appendChild(el("span", null, RF.km(c.distance_m) + "km · 오르막 " + RF.num(c.ascent_m) + "m" + (d ? " · 완주 " + day(d.t) : "")));
         row.appendChild(t);
-        var id = encodeURIComponent(c.course_id), a = el("a", null, "미리보기"), b = el("a", "main", "따라가기");
-        a.href = "index.html#c=" + id;
-        b.href = "hike.html#c=" + id;
-        row.appendChild(a);
+        // 따라가기만(미리보기 단추는 뺌 - 2026-10-13 홍TV님)
+        var b = el("a", "main", "따라가기");
+        b.href = "hike.html#c=" + encodeURIComponent(c.course_id);
         row.appendChild(b);
         return row;
     }
@@ -84,7 +83,7 @@
                     s.notes && s.notes[k.id] ? s.notes[k.id] : ""].filter(Boolean).join(" · ");   // notes: 정상 대신 다른 곳에서 찍는 까닭(점봉산 - 2026-10-12)
                 if (info) t.appendChild(el("span", null, info));
                 row.appendChild(t);
-                // 코스 - 산 이름으로 찾아 정상 2km 안에서 끝나는(시작하는) 코스만, 누르면 펼침(미리보기 · 따라가기)
+                // 코스 - 산 이름으로 찾아 정상 2km 안에서 끝나는(시작하는) 코스만, 누르면 펼침(따라가기)
                 // state: 0 안 부름 · 1 부르는 중 · 2 받음 · 3 실패(다음 누름에 바로 다시 부름 - 2026-10-12 PC: 오류 뒤 첫 누름이 닫기만 했음)
                 var more = el("button", "more", "코스 ▾"), list = el("div", "sublist"), state = 0;
                 more.type = "button";
@@ -169,14 +168,12 @@
                 // 지리산둘레길: 주천-운봉부터 걷는 차례로. 자전거길: 구간 끝 → 다음 시작으로 땅 위 차례(끊긴 묶음의 뒷번호 구간도 제자리)
                 var list = s.chainFrom ? RF.chainOrder(j.courses, s.chainFrom) : s.centers ? RF.geoOrder(j.courses) : j.courses;
                 list.forEach(function (c) { body.appendChild(courseRow(c)); });
-                // 인증센터마다 그 센터를 지나는 구간의 미리보기 · 따라가기(2026-10-12 홍TV님)
+                // 인증센터마다 그 센터를 지나는 구간의 따라가기(2026-10-12 홍TV님)
                 if (centerRows.length) RF.centerCourses(list, s.centers, j.centers, s.aka).forEach(function (c, i) {
                     if (!c) return;
-                    var id = encodeURIComponent(c.course_id), a = el("a", null, "미리보기"), b = el("a", "main", "따라가기");
-                    a.href = "index.html#c=" + id;
-                    b.href = "hike.html#c=" + id;
-                    a.title = b.title = RF.nameText(c.name);
-                    centerRows[i].appendChild(a);
+                    var b = el("a", "main", "따라가기");
+                    b.href = "hike.html#c=" + encodeURIComponent(c.course_id);
+                    b.title = RF.nameText(c.name);
                     centerRows[i].appendChild(b);
                 });
             }).catch(function (e) { wait.textContent = e.message || "코스를 읽지 못했습니다."; });
