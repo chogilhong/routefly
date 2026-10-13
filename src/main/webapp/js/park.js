@@ -342,6 +342,7 @@
                     if (startMk) { startMk.remove(); startMk = null; }
                     if (endMk) { endMk.remove(); endMk = null; }
                     $("sheet").innerHTML = emptySheet;
+                    overview(600);
                 });
                 row.appendChild(a);
             });
@@ -473,13 +474,18 @@
             timer = setTimeout(function () { timer = 0; RF.declutter(places); placeSpots(); }, 150);
         });
 
-        var b = data.bbox;
-        // 2026-10-12 홍TV님 "조금 키워야": 여백 30 → 옆 20(이름표가 끝에 걸쳐 잘리지 않게) · 위아래 24, 한도 14 → 14.6(막대 200m 쯤).
-        // 작은 산은 둘레 마을 · 길까지 보이게 확대 한도 14(MapLibre 512px 줌 - 폭 375px 폰에서 축척 막대 300m, 15 는 100m 였음 2026-10-12 터널로 확인) - 2026-10-12 홍TV님: 공주향교뒷산(코스 0.3km)이 막대 50m 로 너무 크게 보였음
-        map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: { top: 24, bottom: 24, left: 20, right: 20 }, duration: 0, maxZoom: OVERVIEW_MAX_ZOOM });
+        overview(0);
         // 목록 카드에서 왔으면 from 은 그 산을 찾는 데만 쓰고 고르지 않음(아무 코스나 골라져 있어 헷갈렸음)
         if (from && !listMode) segs.forEach(function (t) { if (t.id === from) pick(t); });   // 잘린 탐방로면 고르지 않음
         $("msg").style.display = "none";
+    }
+
+    /** 처음 화면처럼 공원 전체가 보이게(대표 코스에서 [탐방 안내도] 로 돌아올 때도 - 2026-10-13 홍TV님). */
+    function overview(ms) {
+        // 2026-10-12 홍TV님 "조금 키워야": 여백 30 → 옆 20(이름표가 끝에 걸쳐 잘리지 않게) · 위아래 24, 한도 14 → 14.6(막대 200m 쯤).
+        // 작은 산은 둘레 마을 · 길까지 보이게 확대 한도 14(MapLibre 512px 줌 - 폭 375px 폰에서 축척 막대 300m, 15 는 100m 였음 2026-10-12 터널로 확인) - 2026-10-12 홍TV님: 공주향교뒷산(코스 0.3km)이 막대 50m 로 너무 크게 보였음
+        var b = data.bbox;
+        map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: { top: 24, bottom: 24, left: 20, right: 20 }, duration: ms, maxZoom: OVERVIEW_MAX_ZOOM });
     }
 
     /** 전체 보기 첫 화면의 최대 확대(손으로는 더 확대할 수 있음). */
