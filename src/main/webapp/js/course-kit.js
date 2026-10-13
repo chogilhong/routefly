@@ -689,7 +689,9 @@
     function guideMaps(rows, max, q) {
         var order = [];
         (rows || []).forEach(function (r) {
-            var park = parkOf(r.name), n = park || mountainOf(r.name, r.course_id);
+            // 국립공원 묶음은 공단 코스(knps-)만 이름으로 - 다른 자료의 "가야산 1코스"(광양)가 국립공원 가야산 카드에 섞여 카드 이름이 "광양 가야산"
+            // 이 됐음(2026-10-14 PC). 다른 자료 코스는 아래 거리(20km) 규칙으로 같은 산인지 봄
+            var park = /^knps-/.test(String(r.course_id || "")) ? parkOf(r.name) : null, n = park || parkOf(r.name) || mountainOf(r.name, r.course_id);
             if (!n) return;
             // 백두대간 · 정맥 무리("백두대간건의령고적대")는 산이 아님 - 노선 안내도(routeGuides)로(2026-10-12 PC)
             // 다만 "금남정맥안골산" 처럼 뒤에 산 이름이 붙으면 그 산(안골산 - 2026-10-12 PC)

@@ -693,3 +693,9 @@ eq("isHiddenCourse park-notes hide(앞부분)", [RF.isHiddenCourse({ 가야산: 
 var ACN = { 가야산: { access: { "knps-7013": { car: "치인대형주차장 → 토신골탐방지원센터(도보)", vcurs: "120700V002" }, "knps-7012": { vcurs: "bad" } } } };
 eq("courseAccess 공단 교통편", [RF.courseAccess(ACN, "knps-7013-3d5c7ede"), RF.courseAccess(ACN, "knps-7012-ccb26052"), RF.courseAccess(ACN, "knps-70131-x")],
     [{ car: "치인대형주차장 → 토신골탐방지원센터(도보)", url: "https://www.knps.or.kr/front/portal/visit/visitCourseSubMain.do?parkId=120700&vcursId=120700V002&parkNavGb=traffic&menuNo=7020084" }, null, null]);
+eq("guideMaps 국립공원 이름 코스가 다른 곳(광양 가야산 1코스)이면 국립공원 카드에 섞지 않음", RF.guideMaps([
+    { course_id: "kmp-1-1", name: "가야산 1코스", start_lat: 34.94, start_lon: 127.70 },
+    { course_id: "frst-462300101-aa", name: "광양 가야산 · 가야산 1코스", start_lat: 34.94, start_lon: 127.70 },
+    { course_id: "knps-7018-d7139b32", name: "가야산 · 가야산 소리길", start_lat: 35.75, start_lon: 128.15 },
+    { course_id: "knps-7013-3d5c7ede", name: "가야산 · 해인사 → 상왕봉(우두봉)", start_lat: 35.80, start_lon: 128.10 }], 3, "가야산").map(function (g) { return g.label + "|" + g.from; }),
+    ["광양 가야산|kmp-1-1", "가야산|knps-7018-d7139b32"]);
