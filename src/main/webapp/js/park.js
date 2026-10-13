@@ -34,7 +34,7 @@
      * 이어진 구간으로). 아래 칸에 처음 → 끝 두 방향 단추(따라가기), 하나만 골랐으면 미리보기도.
      */
     var BEST_KEY = "rf-park-best";   // 마지막으로 고른 대표 코스 {park, k} · 직접 고른 구간 {park, ids}
-    var sel = [], lines = {}, flips = {}, byId = {}, segs = [], emptySheet = "", poiNames = {}, noteNames = null, notePass = null, noteEle = null, noteTrails = null, noteHeads = null, noteBest = null, noteAll = null;
+    var sel = [], lines = {}, flips = {}, byId = {}, segs = [], emptySheet = "", poiNames = {}, noteNames = null, notePass = null, noteEle = null, noteTrails = null, noteHeads = null, noteBest = null, noteAll = null, noteSkip = false;
     var chosen = [], startMk = null, endMk = null, apartNote = false;   // apartNote - 이어지지 않는 탐방로를 눌러 새로 골랐음(한 번 알림)
 
     /** 고른 탐방로가 이어진 묶음별로(끝 150m 안이면 이어짐) - 빼서 끊어지면 처음 고른 것이 든 묶음만 남김. */
@@ -720,6 +720,7 @@
     /** 그 산의 입산 · 통제 · 예약 안내(data/park-notes.json, 2026-10-12 홍TV님: 한라산) - 한 줄, 누르면 다 보임. 없으면 안 보임. */
     function showNote(name) {
         return fetch("data/park-notes.json").then(function (r) { return r.json(); }).then(function (d) {
+            if (noteSkip) return;   // 같은 이름의 다른 산(나주 가야산)이면 국립공원 안내를 쓰지 않음
             noteAll = d && d.parks;
             var n = d && d.parks && d.parks[name];
             if (!n) return;
@@ -814,6 +815,13 @@
                     poiNames[t.id] = { total: pts.length ? +pts[pts.length - 1][3] : 0, pois: j.pois || [] };
                 }, function () { /* 이름표 없이 */ });
             }));
+            // 같은 이름의 다른 산(2026-10-14 홍TV님: 나주 가야산 안내도에 국립공원 가야산 대표 코스가 나옴) - 서버가 국립공원이 아니라고 하면
+            // park-notes(대표 코스 · 이름 · 숨김 · 안내)는 쓰지 않음. park-notes 는 국립공원 이름으로만 적혀 있음
+            if (data.national === false) {
+                noteSkip = true;
+                noteNames = notePass = noteEle = noteTrails = noteHeads = noteBest = noteAll = null;
+                $("note").style.display = "none";
+            }
             var poiWait = Promise.race([Promise.all([poiReady, notesReady]), new Promise(function (ok) { setTimeout(ok, 4000); })]);
             // 국립공원도 "지리산 탐방 안내도" - "국립공원" 을 붙이면 375px 에서 공식 지도 단추에 잘림(2026-10-12)
             if (data.map && /^https:\/\//.test(data.map)) {   // https 주소만(javascript: 등은 넣지 않음 - 2026-10-11 점검)
