@@ -146,6 +146,27 @@
         return pad;
     }
 
+    /**
+     * 지금 고른 노선(한 줄로 걷는 편도 · 같은 구간 두 번 없음)의 중간 갈림길에 t 가 붙으면 [처음 ~ 그 갈림길 구간들, t] - 아니면 null.
+     * 출발 · 도착에 붙거나 어디에도 안 붙으면 null(전처럼 더함).
+     */
+    function chainCut(t) {
+        if (!chosen.length || !lines[t.id]) return null;
+        var p = planOf(chosen);
+        if (!p.ok || p.loop || !p.walk || p.walk.length < 2) return null;
+        var w = p.walk, seen = {};
+        if (w.some(function (s) { var dup = seen[s.id]; seen[s.id] = true; return dup; })) return null;   // 올랐다 내려오는 갈래가 있는 묶음은 그대로
+        var endOf = function (s) { var l = lines[s.id]; return s.rev ? l[0] : l[l.length - 1]; };
+        var startOf = function (s) { var l = lines[s.id]; return s.rev ? l[l.length - 1] : l[0]; };
+        var L = lines[t.id], ends = [L[0], L[L.length - 1]];
+        var touches = function (q) { return ends.some(function (e) { return RF.distM(e[1], e[0], q[1], q[0]) < 150; }); };
+        if (touches(startOf(w[0])) || touches(endOf(w[w.length - 1]))) return null;
+        for (var k = 0; k < w.length - 1; k++) {
+            if (touches(endOf(w[k]))) return w.slice(0, k + 1).map(function (s) { return s.id; }).concat([t.id]);
+        }
+        return null;
+    }
+
     function pick(t) {
         if (t) {
             exStart = null;
@@ -157,7 +178,11 @@
                 if (chosen.length && !planOf(chosen).ok) chosen = groupOf(chosen, chosen[0]);
                 if (chosen.length && !planOf(chosen).ok) chosen = [];
             } else {
-                chosen.push(t.id);
+                // 노선은 출발 · 도착에서만 이어 감 - 중간 갈림길에 붙는 탐방로를 누르면 그 갈림길부터 원래 도착까지는 빼고
+                // 누른 탐방로가 새 도착(2026-10-13 홍TV님: 중간에서 갈래가 붙어 올랐다 내려오는 4구간이 됐음)
+                var cut = chainCut(t);
+                if (cut) chosen = cut;
+                else chosen.push(t.id);
                 // 아직 이어지지 않은 탐방로는 기다렸다 이어 주는 탐방로를 누르면 합침(2026-10-13 PC: 누르는 차례에 따라 새로 골라졌음),
                 // 걸을 수 없는 모양일 때만 그 탐방로로 새로
                 if (planOf(chosen).reason === "shape") chosen = [t.id];
