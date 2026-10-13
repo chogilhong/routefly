@@ -1749,6 +1749,9 @@
         // 들머리 자료가 없고 막다른 끝이 하나뿐인 그냥 길이면 거기가 도착
         if (end == null && others.length === 1 && E.length === nodes.length - 1) end = others[0];
         spurs = others.filter(function (n) { return n !== end; });
+        // 막다른 갈래(올랐다 같은 길로 돌아올 곳)는 하나만 - 둘 이상이면 사이 탐방로가 빠진 것(2026-10-13 홍TV님: 설악산 무너미고개 · 양폭대피소
+        // 사이가 빠졌는데 둘 다 되돌아오는 26km 원점회귀로 짰음). 아직 이어지지 않은 것으로 봄
+        if (spurs.length > 1) return { ok: false, reason: "apart" };
         var M = E.map(function (e) { return { id: e.id, a: e.a, b: e.b }; });   // 걷는 길(두 번 걷는 길은 두 벌)
         // 막다른 갈래는 막다른 끝에서 갈림길(세 갈래 이상)까지 전부 두 번(2026-10-13 PC: 천왕봉 370m 앞에서 잘려 "법계사 → 갈림길 → 천왕봉" 두 조각이면
         // 마지막 조각만 두 번이라 못 짰음)

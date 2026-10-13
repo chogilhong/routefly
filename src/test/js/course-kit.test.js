@@ -441,6 +441,10 @@ eq("planWalk 정상을 지나 조금 되돌아 끝나는 한 구간은 원점회
 var hd3 = [{ lat: 35.0, lon: 127.0 }, { lat: 35.001, lon: 127.02 }];   // 둘째 들머리는 111m 떨어짐(예전 규칙이면 첫째가 출발)
 eq("planWalk 먼저 누른 쪽이 출발", [RF.planWalk(["b", "a"], pw3, { heads: hd3, first: "b" }).start, RF.planWalk(["a", "b"], pw3, { heads: hd3, first: "a" }).start].map(JSON.stringify),
     [JSON.stringify([127.02, 35.0]), JSON.stringify([127.0, 35.0])]);
+// 2026-10-13 홍TV님: 막다른 끝이 둘(무너미고개 · 양폭대피소 - 사이 탐방로가 빠짐)이면 원점회귀로 짜지 않음
+var sp2 = { hj: [[127.0, 35.0], [127.0, 35.01]], ja: [[127.0, 35.01], [126.99, 35.03]], jb: [[127.0, 35.01], [127.01, 35.03]] };
+eq("planWalk 막다른 갈래 둘이면 apart", RF.planWalk(["hj", "ja", "jb"], sp2, { heads: [{ lat: 35.0, lon: 127.0 }], first: "hj" }).reason, "apart");
+eq("planWalk 막다른 갈래 하나는 왕복", RF.planWalk(["hj", "ja"], sp2, { heads: [{ lat: 35.0, lon: 127.0 }], first: "hj" }).ok, true);
 eq("planWalk 이어지지 않음은 apart", RF.planWalk(["s", "c2"], pw4, {}).reason, "apart");
 eq("trailHeads 막다른 끝 가운데 들머리만(봉우리 빼고, 탐방지원센터 이름 먼저)", RF.trailHeads([
     { id: "a", name: "지리산 · 중산리 → 칼바위", coords: [[127.0, 35.0], [127.0, 35.01]] }, { id: "b", name: "지리산 · 칼바위 → 천왕봉", coords: [[127.0, 35.01], [127.0, 35.02]] },
