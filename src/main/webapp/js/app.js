@@ -980,20 +980,16 @@
         // 다른 화면(탐방 안내도의 "routefly(3D) ›" 등)에서 왔으면 "← 뒤로" 는 바로 그 화면으로(2026-10-13 홍TV님)
         // 다른 화면(도장 · 완주의 "fly")에서 왔으면 목록이 펼쳐져 있어도 그 화면으로 - 이 화면의 코스 목록은 이제 안 씀(2026-10-13 홍TV님)
         if (fromPage && history.length > 1) { stop(); history.back(); return; }
-        if ($("side").classList.contains("closed")) {
-            stop();
-            setListOpen(true);
-            return;
-        }
+        // 공유 링크로 바로 열었으면 이 화면 목록 대신 그 코스의 따라가기로(2026-10-13 홍TV님: 뒤로 하니 미리보기 목록이 나왔음)
+        if (cur && !RF.isGpxId(cur.id)) { stop(); location.href = "hike.html#c=" + encodeURIComponent(cur.id); return; }
         var fromHike = document.referrer && document.referrer.indexOf(new URL("hike.html", location.href).href) === 0;
         if (fromHike && history.length > 1) history.back();   // 따라가기에서 왔으면 그 화면 그대로(검색 결과 포함)
         else location.href = "hike.html";
     });
-    /** 뒤로 단추 글: 목록이 보이면 '‹ 목록'(첫 화면으로), 핸드폰에서 목록을 접고 코스를 보는 중이면 '← 뒤로'(목록 펼치기). */
+    /** 뒤로 단추 글: 다른 화면에서 왔으면 '← 뒤로'(그 화면으로), 공유 링크로 바로 열었으면 '← 따라가기'(그 코스 따라가기로). */
     function setBackLabel() {
-        var closed = fromPage || $("side").classList.contains("closed");   // 다른 화면에서 왔으면 늘 "← 뒤로"(그 화면으로)
-        $("back").textContent = closed ? "← 뒤로" : "‹ 목록";
-        $("back").title = closed ? "코스 목록 펼치기" : "첫 화면(따라가기 코스 목록)으로";
+        $("back").textContent = fromPage ? "← 뒤로" : "← 따라가기";
+        $("back").title = fromPage ? "앞 화면으로" : "이 코스 따라가기로";
     }
     // 📍 내 주변 코스 · 📒 내 기록 · 📂 GPX 열기 - 따라가기 화면의 코스 고르기와 같은 세 가지
     var meDot = null;
