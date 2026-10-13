@@ -685,9 +685,9 @@
     function loadCourse(id) {
         var my = ++loadSeq;
         $("pick").style.display = "none";
-        // 이 기기에만 있는 GPX · 여러 구간을 이은 코스(노선 안내도)는 링크로 보낼 수 없습니다
+        // 이 기기에만 있는 GPX 는 링크로 보낼 수 없습니다(이은 코스는 따라가기 주소로 보냄)
         var parts = RF.parseJoinId(id);
-        $("share").style.display = isGpxId(id) || parts ? "none" : "";
+        $("share").style.display = isGpxId(id) ? "none" : "";
         var got = parts ? Promise.all(parts.map(function (p) { return getJson("api/course?id=" + encodeURIComponent(p.base)); }))
             : isGpxId(id) ? storedGpx(id) : getJson("api/course?id=" + encodeURIComponent(id));
         // 산 안내(park-notes)를 먼저 받아 이름을 바로잡은 탐방로는 그 이름으로(들머리 · 날머리 이름표 - 설악산 "대청봉코스(백담)" → 백담사 → 소청봉)
@@ -1465,7 +1465,7 @@
         $("go").classList.remove("stop");
         $("sim").style.display = "";
         $("save").style.display = "";
-        $("share").style.display = isGpxId(c.id) || RF.parseJoinId(c.id) ? "none" : "";
+        $("share").style.display = isGpxId(c.id) ? "none" : "";
         $("parkGo").style.display = parkHref ? "" : "none";
         $("turn").style.display = "none";
         $("noteBtn").style.display = "none";
@@ -2562,7 +2562,10 @@
 
     $("share").addEventListener("click", function () {
         if (!c) return;
-        var url = new URL("s/" + encodeURIComponent(c.id) + "?to=hike", location.href).href;
+        // 이은 코스(★ 대표 코스 · 지도에서 고른 여러 구간)는 따라가기 주소 그대로(제목 · 들머리 이름 포함) - 짧은 링크(s/)는 코스 하나만 앎(2026-10-13 홍TV님)
+        var url = RF.parseJoinId(c.id)
+            ? new URL("hike.html#c=" + encodeURIComponent(c.id) + (location.hash.match(/&(title|head|rev)=[^&]*/g) || []).join(""), location.href).href
+            : new URL("s/" + encodeURIComponent(c.id) + "?to=hike", location.href).href;
         var text = c.course.name + " · " + km(c.total) + "km";
         if (navigator.share) navigator.share({ title: c.course.name, text: text, url: url }).catch(function () {});
         else (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(function () { toast("링크를 복사했습니다: " + url, 5000); })
