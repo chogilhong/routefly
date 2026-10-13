@@ -72,6 +72,11 @@ body.compact #statGrids { display:none; }
 #next b { color:var(--sky); }
 #sign { font-size:12.5px; color:var(--tx); margin:-3px 0 6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; opacity:.85; }
 #sign[hidden], #sosSignRow[hidden], #sosHelpRow[hidden] { display:none; }
+#access { font-size:12.5px; color:var(--tx); margin:-3px 0 6px; display:flex; gap:8px; align-items:baseline; opacity:.85; }
+#access[hidden] { display:none; }
+#accessCar { flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#accessLink { flex:none; color:var(--sky); text-decoration:none; }
+#accessLink[hidden] { display:none; }
 .spot { font-size:15px; line-height:1; filter:drop-shadow(0 0 2px #000); cursor:pointer; }
 .far .spot { display:none; }   /* 넓게 볼 때는 숨김(RF.spotsByZoom) - 확대하면 보임 */
 .spot.aid, .spot.heli, .spot.ranger { font-size:13px; opacity:.9; }
@@ -273,6 +278,7 @@ html.picking #pick { display:flex; }
     <div id="grip" title="기록 칸 접기 · 펴기(아래로 밀면 접고, 위로 밀면 폅니다)"></div>
     <div id="next" title="코스를 따라 앞에 나오는 다음 이름표(봉우리 · 갈림 · 쉼터 등)와 거기까지 거리 · 높이 차이">다음 지점 -</div>
     <div id="sign" hidden title="가까운 국립공원 위치표지판 번호와 거리 - 다치거나 길을 잃으면 119 에 이 번호를 알려 주세요">📍 위치표지 -</div>
+    <div id="access" hidden title="공단 교통편 안내 - 차를 대는 곳에서 들머리까지(국립공원공단 누리집)"><span id="accessCar"></span><a id="accessLink" target="_blank" rel="noopener">공단 교통편 ›</a></div>
     <div id="statGrids">
     <div class="grid">
         <div class="st big"><div class="k">진행 거리</div><div class="v" id="sDone">0.00<small>km</small></div></div>

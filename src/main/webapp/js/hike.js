@@ -756,9 +756,18 @@
             var rawNames = (parts ? r[0] : [r[0]]).map(function (j) { return j && j.course && j.course.name; });
             var noteOf = RF.parkOf(c.course.name) || RF.mountainOf(c.course.name, id) || RF.parkOf(rawNames[0] || "") || RF.mountainOf(rawNames[0] || "", id);
             rules = null;
+            $("access").hidden = true;
             if (noteOf) fetch("data/park-notes.json").then(function (x) { return x.json(); }).then(function (d) {
                 var n = d && d.parks && d.parks[noteOf];
                 if (!n || my !== loadSeq) return;
+                // 공단 교통편(park-notes access - 2026-10-14 홍TV님: 가야산1코스 치인대형주차장 → 토신골탐방지원센터). 이은 코스는 첫 코스 것
+                var acc = RF.courseAccess(d.parks, String(id).split(",")[0].replace(/[~@].*$/, ""));
+                if (acc) {
+                    $("accessCar").textContent = acc.car ? "🚗 " + acc.car : "";
+                    $("accessLink").hidden = !acc.url;
+                    if (acc.url) $("accessLink").href = acc.url;
+                    $("access").hidden = false;
+                }
                 if (n.names) {   // 산마다 다른 이름(지리산 중산리 → 중산리탐방지원센터) - 제목 · 끝 이름표
                     c.course.name = RF.aliasName(c.course.name, n.names);
                     // 이름표도(끝 이름표 · 지명 - 설악산 신흥사 → 소공원)
