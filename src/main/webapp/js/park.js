@@ -255,7 +255,7 @@
             // 원점회귀 예시는 들머리 이름도(따라가기 제목 - 2026-10-13 홍TV님: "새재 원점회귀" 가 아니라 윗새재마을)
             return "hike.html#c=" + (list.length === 1 ? encodeURIComponent(list[0].id) + (list[0].rev ? "&rev=1" : "") : encodeURIComponent(RF.joinId(list)))
                 + (exHead || from ? "&head=" + encodeURIComponent(exHead || from) : "")   // 지도의 출발 이름을 따라가기 출발 이름표로(권금성 · 신흥사가 섞였음)
-                + "&via=park";   // 탐방 안내도에서 들어감 - 따라가기 아래 "탐방 안내도" 단추는 이때만(2026-10-13 홍TV님)
+                + viaTag();   // 탐방 안내도에서 들어감 - 따라가기 아래 "← 안내도" 단추는 이때만(2026-10-13 홍TV님)
         };
         // 원점회귀는 어느 쪽으로 먼저 도는지 - 두 방향이 처음 갈라지는 곳의 이름(들머리에서 같은 길로 오르는 부분은 건너뜀)
         var fwdN = full.map(function (s) { return ends(s)[1]; }), bwdN = RF.reverseSel(full).map(function (s) { return ends(s)[1]; }), dv = 0;
@@ -419,7 +419,13 @@
      * 대표 코스(park-notes best)를 지도에 - 그 코스 선 · 출발 깃발, 아래 칸에 이름 · 거리 · 오르막과 따라가기.
      * course 는 코스 ID 하나, 또는 이은 코스 ID("가,가~" 왕복 · "가,나@0.35-0.42:코재>무넹기보,다~" 종주 - 따라가기와 같은 꼴), name 은 보일 길 이름.
      */
-    function showBest(b) {
+    /**
+     * 따라가기 주소에 붙일 "탐방 안내도에서 왔음"(&via=park) - 따라가기의 🏞 로 연 탐방 안내도(&from=, 목록 카드 아님)에서 다시 따라가기로 가면
+     * 붙이지 않음(2026-10-13 홍TV님: 코스가 산의 어디인지 보러 왔다 돌아간 것이라 "← 안내도" 가 필요 없음).
+     */
+    function viaTag() { return from && backTo !== "list" ? "" : "&via=park"; }
+
+    function showBest(b, keepView) {
         var parts = RF.parseJoinId(b.course) || [{ id: b.course, base: b.course, rev: false, r0: null, r1: null }];
         var bases = parts.map(function (p) { return p.base; }).filter(function (x, k, arr) { return arr.indexOf(x) === k; });
         Promise.all(bases.map(function (id) { return getJson("api/course?id=" + encodeURIComponent(id)); })).then(function (rs) {
@@ -451,7 +457,8 @@
             var w = 180, so = 90, e2 = -180, n = -90;
             pts.forEach(function (q) { w = Math.min(w, q[0]); e2 = Math.max(e2, q[0]); so = Math.min(so, q[1]); n = Math.max(n, q[1]); });
             // 깃발 글자가 펼쳐지는 쪽은 그만큼 더 띄움(공룡능선 "출발 · 도착 비선대" 가 화면 끝에서 잘렸음)
-            map.fitBounds([[w, so], [e2, n]], { padding: flagPad(), duration: 600, maxZoom: 15 });
+            if (keepView) overview(0);   // 🏞 로 온 코스 - 산 전체에서 어디인지
+            else map.fitBounds([[w, so], [e2, n]], { padding: flagPad(), duration: 600, maxZoom: 15 });
             $("sheet").innerHTML = "";
             var nm = document.createElement("div");
             nm.className = "nm";
@@ -464,7 +471,7 @@
             // 길 이름을 따라가기 제목으로(&title= - 이은 코스는 "N구간 이어 걷기" 가 됨)
             var href = "hike.html#c=" + encodeURIComponent(b.course) + (b.rev && parts.length === 1 ? "&rev=1" : "") + (b.name ? "&title=" + encodeURIComponent(b.name) : "")
                 + (b.name && e.from ? "&head=" + encodeURIComponent(e.from) : "")   // 들머리 이름표(설악산 공룡능선 - 산림청 선 처음 이름 "권금성" 대신 소공원)
-                + "&via=park";
+                + viaTag();
             // 둘째 단추는 처음 탐방 안내도 아래 칸으로(2026-10-13 홍TV님: "예시로" → 탐방 안내도)
             [["따라가기", href, true], ["탐방 안내도", "#", false]].forEach(function (d) {
                 var a = document.createElement("a");
@@ -624,13 +631,14 @@
         overview(0);
         // 목록 카드에서 왔으면 from 은 그 산을 찾는 데만 쓰고 고르지 않음(아무 코스나 골라져 있어 헷갈렸음)
         if (from && !listMode) {
+            // 따라가기의 🏞 로 왔으면 지도는 산 전체(코스가 산의 어디인지 - 2026-10-13 홍TV님: 코스만 크게 보였음). 첫 화면 맞춤(overview)을 그대로 두고 고르기만
             // 이어 걷기(구간,구간~ - 지도에서 직접 고른 것)는 그 구간들을 다시 고름(2026-10-13 PC: 🏞 로 오면 첫 화면이었음)
             var fp = RF.parseJoinId(from);
             if (fp) {
                 var ids = fp.map(function (p) { return p.id; }).filter(function (id, i, a) { return lines[id] && a.indexOf(id) === i; });
                 var bestOf = (noteBest || []).filter(function (b) { return b.course === from; })[0];
-                if (bestOf) showBest(bestOf);   // ★ 대표 코스(북한산 위문 - 통째 탐방로는 갈림길에서 잘려 구간 id 와 다름)
-                else if (ids.length && fp.every(function (p) { return lines[p.id]; })) { fitIds(ids, 0); chosen = ids; pick(); }
+                if (bestOf) showBest(bestOf, true);   // ★ 대표 코스(북한산 위문 - 통째 탐방로는 갈림길에서 잘려 구간 id 와 다름)
+                else if (ids.length && fp.every(function (p) { return lines[p.id]; })) { chosen = ids; pick(); }
             // 이미 골라져 있으면(뒤로 와서 되살림) 다시 누르지 않음 - pick 은 누를 때마다 넣고 빼서, 3D 에서 돌아오면 풀렸었음(2026-10-13 PC)
             } else if (segs.some(function (t) { return t.id === from; })) segs.forEach(function (t) { if (t.id === from && chosen.indexOf(t.id) < 0) pick(t); });
             // 탐방로가 아닌 코스(🏞 로 온 "강북구 우이동 → 장흥면 교현리(우이령길)" 같은 산림청 · 두루누비 코스)는 그 선을 그대로 그림(2026-10-13 홍TV님: 안 그려졌음)
@@ -638,8 +646,8 @@
                 // 갈림길에서 잘린 탐방로(🏞 로 온 북한산 "강북구 우이동 → 장흥면 교현리(우이령길)" knps-150195)는 그 조각을 모두 고름(2026-10-13 홍TV님: 안 그려졌음),
                 // 탐방로가 아닌 코스(산림청 · 두루누비)는 그 선을 그대로 그림
                 var pieces = segs.filter(function (t) { return t.id.indexOf(from + "@") === 0; }).map(function (t) { return t.id; });
-                if (pieces.length) { fitIds(pieces, 0); chosen = pieces; pick(); }
-                else showBest({ course: from });
+                if (pieces.length) { chosen = pieces; pick(); }
+                else showBest({ course: from }, true);
             }
         }
         $("msg").style.display = "none";
