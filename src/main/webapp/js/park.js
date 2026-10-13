@@ -33,7 +33,7 @@
      * 탐방로 고르기 - 누르면 고르고 다시 누르면 뺌, 고른 것 앞 · 뒤로 이어지는 탐방로는 함께(2026-10-12 홍TV님: 등산도 노선 안내도처럼
      * 이어진 구간으로). 아래 칸에 처음 → 끝 두 방향 단추(따라가기), 하나만 골랐으면 미리보기도.
      */
-    var BEST_KEY = "rf-park-best";   // 마지막으로 고른 대표 코스 {park, k}
+    var BEST_KEY = "rf-park-best";   // 마지막으로 고른 대표 코스 {park, k} · 직접 고른 구간 {park, ids}
     var sel = [], lines = {}, flips = {}, byId = {}, segs = [], emptySheet = "", poiNames = {}, noteNames = null, notePass = null, noteEle = null, noteTrails = null, noteHeads = null, noteBest = null, noteAll = null;
     var chosen = [], startMk = null, endMk = null, apartNote = false;   // apartNote - 이어지지 않는 탐방로를 눌러 새로 골랐음(한 번 알림)
 
@@ -144,6 +144,11 @@
                 else if (chosen.length > 1 && !RF.canJoin(chosen, lines)) { chosen = [t.id]; apartNote = true; }
             }
         }
+        // 지도에서 직접 고른 구간도 따라가기에서 돌아오면 그대로(2026-10-13 PC) - 예시(exStart …)로 고른 것은 다시 짜지 않고 구간만
+        if (t) try {
+            if (chosen.length) sessionStorage.setItem(BEST_KEY, JSON.stringify({ park: park, ids: chosen }));
+            else sessionStorage.removeItem(BEST_KEY);
+        } catch (err) { }
         var plan = chosen.length ? planOf(chosen) : { ok: false };
         sel = plan.ok ? plan.walk : [];
         map.getSource("sel").setData({ type: "FeatureCollection", features: chosen.map(function (id) {
@@ -356,7 +361,9 @@
         if (!nav || nav.type !== "back_forward") return;
         var v = null;
         try { v = JSON.parse(sessionStorage.getItem(BEST_KEY) || "null"); } catch (err) { v = null; }
-        var b = v && v.park === park && (noteBest || [])[v.k];
+        if (!v || v.park !== park) return;
+        if (v.ids && v.ids.length && v.ids.every(function (id) { return lines[id]; })) { chosen = v.ids.slice(); pick(); return; }
+        var b = v.k != null && (noteBest || [])[v.k];
         if (b) showBest(b);
     }
 
