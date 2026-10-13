@@ -239,9 +239,11 @@
         st.className = "st";
         st.textContent = RF.km(meters) + "km" + (one && one.ascent_m != null ? " · 오르막 " + RF.num(one.ascent_m) + "m" : " · 오르막은 따라가기 화면에서")
             + (full.some(function (s) { return byId[s.id].extra; }) ? " · 옅은 선은 산림청 · 등산트레킹 자료" : "");
-        if (one && !listMode && !one.base && one.id.indexOf("@") < 0 && one.id.indexOf(",") < 0) {   // 하나만 골랐으면 코스 미리보기(3D)도 - 이은 코스는 미리보기가 받지 못함
+        // 탐방로 전체(id 그대로, 또는 이은 조각이라도 @0.0000-1.0000 - 계룡산 knps-2011)면 3D 도
+        var whole = one && !one.base && one.id.indexOf(",") < 0 && (one.id.indexOf("@") < 0 || /@0\.0000-1\.0000(:|$)/.test(one.id)) ? one.id.split("@")[0] : null;
+        if (whole && !listMode) {   // 하나만 골랐으면 코스 미리보기(3D)도 - 이은 코스는 미리보기가 받지 못함
             var pv = document.createElement("a");
-            pv.href = "index.html#c=" + encodeURIComponent(one.id);
+            pv.href = "index.html#c=" + encodeURIComponent(whole);
             pv.textContent = " · routefly(3D) ›";   // 2026-10-13 홍TV님: "미리보기" → routefly(3D)
             pv.className = "pv";
             st.appendChild(pv);
@@ -453,10 +455,10 @@
             $("sheet").innerHTML = "";
             var nm = document.createElement("div");
             nm.className = "nm";
-            RF.nameNodes(nm, "★ " + b.label + " · " + RF.nameText(name, true));
+            RF.nameNodes(nm, b.label ? "★ " + b.label + " · " + RF.nameText(name, true) : RF.nameText(name, true));   // 탐방로가 아닌 코스(🏞 로 온 우이령길)는 이름만
             var st = document.createElement("div");
             st.className = "st";
-            st.textContent = RF.km(meters) + "km" + (one && one.course.ascent_m != null ? " · 오르막 " + RF.num(+one.course.ascent_m) + "m" : "") + " · 대표 코스";
+            st.textContent = RF.km(meters) + "km" + (one && one.course.ascent_m != null ? " · 오르막 " + RF.num(+one.course.ascent_m) + "m" : "") + (b.label ? " · 대표 코스" : "");
             var row = document.createElement("div");
             row.className = "row";
             // 길 이름을 따라가기 제목으로(&title= - 이은 코스는 "N구간 이어 걷기" 가 됨)
@@ -630,7 +632,15 @@
                 if (bestOf) showBest(bestOf);   // ★ 대표 코스(북한산 위문 - 통째 탐방로는 갈림길에서 잘려 구간 id 와 다름)
                 else if (ids.length && fp.every(function (p) { return lines[p.id]; })) { fitIds(ids, 0); chosen = ids; pick(); }
             // 이미 골라져 있으면(뒤로 와서 되살림) 다시 누르지 않음 - pick 은 누를 때마다 넣고 빼서, 3D 에서 돌아오면 풀렸었음(2026-10-13 PC)
-            } else segs.forEach(function (t) { if (t.id === from && chosen.indexOf(t.id) < 0) pick(t); });   // 잘린 탐방로면 고르지 않음
+            } else if (segs.some(function (t) { return t.id === from; })) segs.forEach(function (t) { if (t.id === from && chosen.indexOf(t.id) < 0) pick(t); });
+            // 탐방로가 아닌 코스(🏞 로 온 "강북구 우이동 → 장흥면 교현리(우이령길)" 같은 산림청 · 두루누비 코스)는 그 선을 그대로 그림(2026-10-13 홍TV님: 안 그려졌음)
+            else {
+                // 갈림길에서 잘린 탐방로(🏞 로 온 북한산 "강북구 우이동 → 장흥면 교현리(우이령길)" knps-150195)는 그 조각을 모두 고름(2026-10-13 홍TV님: 안 그려졌음),
+                // 탐방로가 아닌 코스(산림청 · 두루누비)는 그 선을 그대로 그림
+                var pieces = segs.filter(function (t) { return t.id.indexOf(from + "@") === 0; }).map(function (t) { return t.id; });
+                if (pieces.length) { fitIds(pieces, 0); chosen = pieces; pick(); }
+                else showBest({ course: from });
+            }
         }
         $("msg").style.display = "none";
     }
