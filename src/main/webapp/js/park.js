@@ -236,13 +236,20 @@
             var a = document.createElement("a");
             a.href = "#";
             a.setAttribute("data-ex", String(k));
-            RF.nameNodes(a, (x.loop ? "↻ " : "⇄ ") + x.head + " ↔ " + x.peak + (x.loop ? "" : " 왕복") + " · " + RF.km(x.m) + "km");
+            // 두 줄 - 들머리 / 봉우리 · 거리(2026-10-13 홍TV님: "남설악탐방지원센터" 처럼 길면 한 줄에 다 안 보였음)
+            var l1 = document.createElement("span"), l2 = document.createElement("span");
+            l1.className = "l1";
+            l2.className = "l2";
+            RF.nameNodes(l1, (x.loop ? "↻ " : "⇄ ") + x.head);
+            l2.textContent = "↔ " + x.peak + (x.loop ? " 원점회귀" : " 왕복") + " · " + RF.km(x.m) + "km";
+            a.appendChild(l1);
+            a.appendChild(l2);
             row.appendChild(a);
         });
         // 아래 칸 높이는 그대로(탐방로를 골랐을 때와 같게) - 안내 글은 예시 제목에 넣음
         h.textContent = "원점회귀 예시(옆으로 넘김) · 탐방로를 눌러 직접 고를 수도 있습니다";
         var tip = $("sheet").querySelector(".tip");
-        if (tip && !listMode) tip.parentNode.removeChild(tip);
+        if (tip) tip.parentNode.removeChild(tip);   // 목록에서 온 화면도(두 줄 단추로 높이가 165px 이 됐음)
         $("sheet").insertBefore(box, $("sheet").firstChild);
         emptySheet = $("sheet").innerHTML;
     }
