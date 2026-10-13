@@ -1,6 +1,8 @@
 package com.gh.routefly.web;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
@@ -15,7 +17,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 /**
  * 공유 링크. {@code GET /s/<코스ID>} (산행 화면으로는 {@code /s/<코스ID>?to=hike})
@@ -44,7 +48,7 @@ public class ShareServlet extends HttpServlet {
             JsonArray rows = Json.rows(c, "SELECT name, kind, distance_m, ascent_m, ele_max_m FROM route_course WHERE course_id = ?", id);
             if (rows.size() > 0) {
                 JsonObject r = rows.get(0).getAsJsonObject();
-                title = r.get("name").getAsString();
+                title = noteName(notes(), id, r.get("name").getAsString());   // 앱과 같은 이름(park-notes 로 바로잡은 탐방로 · 산마다 다른 지명)
                 desc = describe(r.get("distance_m").getAsInt(), r.get("ascent_m").isJsonNull() ? null : r.get("ascent_m").getAsInt(),
                         r.get("ele_max_m").isJsonNull() ? null : r.get("ele_max_m").getAsDouble());
             }
@@ -100,6 +104,56 @@ public class ShareServlet extends HttpServlet {
         String h = host == null ? "localhost" : host.replaceAll("[^A-Za-z0-9.\\-]", "");
         boolean defaultPort = port == 80 || port == 443 || "https".equals(proto) && !"https".equalsIgnoreCase(scheme);
         return proto + "://" + h + (defaultPort ? "" : ":" + port) + contextPath;
+    }
+
+    /** data/park-notes.json(웹 앱과 같은 파일) - 한 번 읽어 둠. 못 읽으면 빈 것. */
+    private volatile JsonObject notes;
+
+    private JsonObject notes() {
+        JsonObject n = notes;
+        if (n != null) return n;
+        try (InputStream in = getServletContext().getResourceAsStream("/data/park-notes.json")) {
+            JsonElement e = in == null ? null : JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+            n = e != null && e.isJsonObject() && e.getAsJsonObject().has("parks") ? e.getAsJsonObject().getAsJsonObject("parks") : new JsonObject();
+        } catch (Exception e) {
+            log.warn("[SHARE] park-notes 못 읽음 - {}", e.toString());
+            n = new JsonObject();
+        }
+        notes = n;
+        return n;
+    }
+
+    /**
+     * 순수 함수 - 공유 카드 제목을 앱 화면과 같게(2026-10-13 PC: 미리보기는 "북한산 · 구기분소 → 대남문", 따라가기는 "헤원사삼거리 → 대남문").
+     * course-kit.js 의 noteTrailName(trails - 코스 ID 그대로나 앞부분, " · " 가 있으면 이름 전체) 뒤 aliasName(names - 그 산의 지명)과 같은 규칙.
+     */
+    static String noteName(JsonObject parks, String id, String name) {
+        String out = name;
+        if (parks == null) return out;
+        for (String park : parks.keySet()) {
+            JsonElement pe = parks.get(park);
+            JsonObject tr = pe.isJsonObject() && pe.getAsJsonObject().has("trails") && pe.getAsJsonObject().get("trails").isJsonObject()
+                    ? pe.getAsJsonObject().getAsJsonObject("trails") : null;
+            if (tr == null) continue;
+            for (String k : tr.keySet()) {
+                if (!id.equals(k) && !id.startsWith(k + "-")) continue;
+                String v = tr.get(k).getAsString();
+                int i = name.indexOf(" · ");
+                out = v.contains(" · ") ? v : (i > 0 ? name.substring(0, i) : park) + " · " + v;
+            }
+        }
+        int i = out.indexOf(" · ");
+        String group = i > 0 ? out.substring(0, i) : null;
+        JsonElement pe = group == null ? null : parks.get(group);
+        JsonObject names = pe != null && pe.isJsonObject() && pe.getAsJsonObject().has("names") && pe.getAsJsonObject().get("names").isJsonObject()
+                ? pe.getAsJsonObject().getAsJsonObject("names") : null;
+        if (names == null) return out;
+        String[] parts = out.substring(i + 3).split(" → ", -1);
+        for (int k = 0; k < parts.length; k++) {
+            String key = parts[k].trim();
+            if (names.has(key)) parts[k] = names.get(key).getAsString();
+        }
+        return group + " · " + String.join(" → ", parts);
     }
 
     static String esc(String s) {
