@@ -451,7 +451,8 @@
             if (endMk) { endMk.remove(); endMk = null; }
             var name = RF.aliasName(b.name ? park + " · " + b.name : RF.noteTrailName(noteAll, b.course, one ? one.course.name : park), noteNames), e = RF.routeEnds(name);
             var loop = !!(e.from && e.from === e.to);
-            var mk = function (txt, at) { return flagMarker(txt, at, pts); };
+            // 산 전체 지도(🏞 로 옴)는 코스에 맞추지 않으니 깃발이 화면 밖이면 안쪽으로(2026-10-13 PC: ★ 위문 깃발이 x -74 로 잘림)
+            var mk = function (txt, at) { return flagMarker(txt, at, pts, !!keepView); };
             if (e.from) startMk = mk((loop ? "🚩 출발 · 도착 " : "🚩 출발 ") + e.from, pts[0]);
             if (e.to && !loop) endMk = mk("🏁 도착 " + e.to, pts[pts.length - 1]);
             var w = 180, so = 90, e2 = -180, n = -90;
