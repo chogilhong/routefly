@@ -484,7 +484,13 @@
         var hasStart = c.pois.some(function (q) { return +q.dist_m < 60 && +q.off_route_m < 60; });
         var hasEnd = c.pois.some(function (q) { return +q.dist_m > c.total - 60 && +q.off_route_m < 60; });
         // 같은 자리(80m 안) 이름표는 하나로 - 대표 이름 + 아래에 다른 이름들
-        var groups = RF.groupPois(c.pois, 80);
+        // 순환 코스 끝 이름표는 그래프에만, 앞에 나온 같은 이름이 500m 안이면 지도에는 하나(탄금호 - 충주탄금대인증센터 이름표 둘이 354m · 화면 9px 차이)
+        var shown = [];
+        c.pois.forEach(function (q) {
+            if (q.again || shown.some(function (o) { return o.name === q.name && RF.distM(+o.lat, +o.lon, +q.lat, +q.lon) < 500; })) return;
+            shown.push(q);
+        });
+        var groups = RF.groupPois(shown, 80);
         var top = RF.summitIndex(groups.map(function (g) { return { name: g.lead.name, names: g.names, ele_m: g.lead.ele_m }; }), c.course.name);
         var list = groups.map(function (g, gi) {
             var more = g.names.slice(1, 3);

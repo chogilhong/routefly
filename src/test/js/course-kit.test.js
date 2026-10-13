@@ -525,6 +525,11 @@ eq("fromApi 사진 지점 (가~나) 가 서버 ends 보다 먼저", RF.fromApi("
 var lp = RF.fromApi("lp", { course: { name: "탄금호 순환자전거길 · 충주탄금대인증센터 순환" }, points: [[127.9, 36.99, 60, 0], [127.95, 37.0, 60, 9000], [127.9001, 36.9901, 60, 18000]],
     pois: [{ name: "루암리", lat: 36.9902, lon: 127.9002, dist_m: 17980, off_route_m: 10 }] });
 eq("fromApi 순환은 끝에도 들머리 이름", lp.pois.map(function (q) { return q.name; }), ["충주탄금대인증센터", "루암리", "충주탄금대인증센터"]);
+eq("fromApi 순환 끝 이름표는 again(지도에서 뺌)", lp.pois.map(function (q) { return !!q.again; }), [false, false, true]);
+var lp2 = RF.fromApi("lp2", { course: { name: "탄금호 순환자전거길 · 충주탄금대인증센터 순환" }, points: [[127.9, 36.99, 60, 0], [127.95, 37.0, 60, 9000], [127.9001, 36.9901, 60, 18000]],
+    pois: [{ name: "충주탄금대인증센터", lat: 36.99, lon: 127.9, dist_m: 3, off_route_m: 5 }, { name: "충주탄금대인증센터", lat: 36.9905, lon: 127.9005, dist_m: 17800, off_route_m: 5 },
+           { name: "루암리", lat: 36.9902, lon: 127.9002, dist_m: 17990, off_route_m: 10 }] });
+eq("fromApi 순환 끝 근처에 같은 이름이 끝 60m 밖이면 끝에 또", lp2.pois.filter(function (q) { return q.again; }).map(function (q) { return q.name + "@" + q.dist_m; }), ["충주탄금대인증센터@18000"]);
 var full = RF.fromApi("r", { course: { name: "산 · 가 → 라" }, points: [[127.0, 35.0, 100, 0], [127.011, 35.0, 200, 1000], [127.022, 35.0, 150, 2000], [127.033, 35.0, 300, 3000]], pois: [] });
 var sl = RF.sliceCourse(full, 1 / 3, 2 / 3, "산 · 나 → 다", "r@0.3333-0.6667:나>다");
 eq("sliceCourse 거리 · 이름표", [Math.round(sl.total), sl.pois.map(function (p) { return p.name; }).join(","), sl.course.ascent_m], [1000, "나,다", 0]);
