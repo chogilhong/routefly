@@ -428,6 +428,7 @@
         // 이름표 - 높은 봉우리 먼저 보이게(겹치면 낮은 것을 숨김)
         // 들머리 · 날머리를 지도에(2026-10-13 홍TV님: 모든 산) - 탐방로망의 막다른 끝(봉우리 · 폭포 빼고, 탐방지원센터 이름 먼저) + 다른 자료의
         // 탐방지원센터 · 탐방안내소. 같은 이름 이름표가 그 자리에 있으면 그 이름표를 들머리로
+        data.places = RF.dedupePlaceNames(data.places);   // "설악산 울산바위" · "울산바위" 같은 자리 둘
         data.places.forEach(function (p) { if (noteEle && noteEle[p.name] != null) p.ele_m = noteEle[p.name]; });
         // 서버 heads(탐방지원센터 · 탐방안내소)도 trailHeads 가 합침 - "백무동" · "백무동탐방지원센터" 처럼 같은 곳은 하나(2026-10-13 PC)
         var hs = RF.trailHeads(segs, data.heads, flips, data.others, data.places, noteHeads);

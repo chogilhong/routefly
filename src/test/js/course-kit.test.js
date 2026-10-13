@@ -538,6 +538,8 @@ eq("noteTrailName 코스 ID 그대로 · 이름 전체", RF.noteTrailName({ 설�
     "설악산 큰새봉 1코스 · 설악산비선대와천불동계곡 순환"), "설악산 · 비선대 → 마등령 → 공룡능선 → 천불동 → 비선대");
 eq("fromApi 남벽분 기점 → 남벽분기점", RF.fromApi("nb", { course: { name: "한라산 · 어리목 → 남벽분기점" }, points: [[126.5, 33.39, 970, 0], [126.53, 33.35, 1600, 6614]],
     pois: [{ name: "남벽분 기점", lat: 33.35, lon: 126.53, dist_m: 6614, off_route_m: 3 }] }).pois.map(function (q) { return q.name; }), ["어리목", "남벽분기점"]);
+eq("dedupePlaceNames 산 이름만 더 붙은 같은 자리 이름표", RF.dedupePlaceNames([{ name: "울산바위", lat: 38.2, lon: 128.48 }, { name: "설악산 울산바위", lat: 38.2001, lon: 128.4801 },
+    { name: "대청봉", lat: 38.12, lon: 128.46 }, { name: "중청대청봉", lat: 38.1201, lon: 128.46 }]).map(function (p) { return p.name; }), ["울산바위", "대청봉", "중청대청봉"]);
 var full = RF.fromApi("r", { course: { name: "산 · 가 → 라" }, points: [[127.0, 35.0, 100, 0], [127.011, 35.0, 200, 1000], [127.022, 35.0, 150, 2000], [127.033, 35.0, 300, 3000]], pois: [] });
 var sl = RF.sliceCourse(full, 1 / 3, 2 / 3, "산 · 나 → 다", "r@0.3333-0.6667:나>다");
 eq("sliceCourse 거리 · 이름표", [Math.round(sl.total), sl.pois.map(function (p) { return p.name; }).join(","), sl.course.ascent_m], [1000, "나,다", 0]);
