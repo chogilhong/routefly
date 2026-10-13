@@ -193,7 +193,8 @@
             var a = document.createElement("a");
             if (k === 0) a.className = "main";
             a.href = link(d[1]);
-            RF.nameNodes(a, d[0]);
+            // 단추는 좁아 "탐방지원센터" 를 "탐방" 으로(2026-10-13 홍TV님: "한계령탐" 처럼 잘렸음)
+            RF.nameNodes(a, d[0].replace(/탐방지원센터/g, "탐방"));
             row.appendChild(a);
         });
         var tip = document.createElement("div");
