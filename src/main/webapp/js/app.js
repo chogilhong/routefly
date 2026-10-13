@@ -433,12 +433,7 @@
             $("bottom").style.display = "block";
             $("hud").style.display = "block";
             $("mini").style.display = "block";
-            var park = RF.parkOf(j.course.name) || RF.mountainOf(j.course.name, id);   // 국립공원, 아니면 도립 · 군립공원 · 산
-            $("parkLink").style.display = park ? "" : "none";
-            if (park) {
-                $("parkLink").href = "park.html?name=" + encodeURIComponent(park) + "&from=" + encodeURIComponent(id) + "&back=preview";   // ‹ 코스 → 코스 미리보기 첫 화면으로
-                $("parkLink").textContent = "🏞 탐방 안내도";   // 산 이름 + "전체" 대신 늘 같은 말(2026-10-12 홍TV님)
-            }
+            // "🏞 탐방 안내도" 단추는 뺌(2026-10-13 홍TV님) - 탐방 안내도는 따라가기 화면에서
             $("shareBtn").style.display = RF.isGpxId(id) ? "none" : "";   // 이 기기에만 있는 GPX 는 링크로 보낼 수 없습니다
             renderProfile(c);
             placeHud();
@@ -870,7 +865,7 @@
     }
 
     function setPlayButton() {
-        $("play").textContent = anim.running ? "❚❚ 멈춤" : (cur && anim.d > 0 && anim.d < cur.total ? "▶ 이어서" : "▶ 미리보기");
+        $("play").textContent = anim.running ? "❚❚ 멈춤" : (cur && anim.d > 0 && anim.d < cur.total ? "▶ 이어서" : "▶ routefly");
     }
 
     // ------------------------------------------------------------------ 시작
@@ -974,7 +969,14 @@
     // 뒤로 - 핸드폰에서 코스를 보는 중(목록을 접음)이면 먼저 목록으로 한 단계만. 목록이 보이면 '목록' 단추로
     // 첫 화면(따라가기의 코스 목록)으로 - 공원 전체 → 미리보기로 와도 공원 화면이 아니라 첫 화면(2026-10-11 홍TV님)
     $("back").addEventListener("click", function () {
-        if (isNarrow() && $("side").classList.contains("closed")) { stop(); setListOpen(true); return; }
+        // 다른 화면(탐방 안내도의 "routefly(3D) ›" 등)에서 왔으면 "← 뒤로" 는 바로 그 화면으로(2026-10-13 홍TV님)
+        var fromPage = document.referrer && document.referrer.indexOf(location.origin) === 0 && document.referrer.split("#")[0] !== location.href.split("#")[0];
+        if (isNarrow() && $("side").classList.contains("closed")) {
+            stop();
+            if (fromPage && history.length > 1) { history.back(); return; }
+            setListOpen(true);
+            return;
+        }
         var fromHike = document.referrer && document.referrer.indexOf(new URL("hike.html", location.href).href) === 0;
         if (fromHike && history.length > 1) history.back();   // 따라가기에서 왔으면 그 화면 그대로(검색 결과 포함)
         else location.href = "hike.html";

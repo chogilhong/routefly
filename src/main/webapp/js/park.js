@@ -242,7 +242,7 @@
         if (one && !listMode && !one.base && one.id.indexOf("@") < 0 && one.id.indexOf(",") < 0) {   // 하나만 골랐으면 코스 미리보기(3D)도 - 이은 코스는 미리보기가 받지 못함
             var pv = document.createElement("a");
             pv.href = "index.html#c=" + encodeURIComponent(one.id);
-            pv.textContent = " · 미리보기 ›";
+            pv.textContent = " · routefly(3D) ›";   // 2026-10-13 홍TV님: "미리보기" → routefly(3D)
             pv.className = "pv";
             st.appendChild(pv);
         }
@@ -697,9 +697,8 @@
 
     function start() {
         $("title").textContent = park ? park + " 탐방 안내도" : "탐방 안내도";   // 2026-10-12 홍TV님: "전체 보기" → "탐방 안내도"
-        // 위 단추 - 기본은 "← 목록"(따라가기 첫 화면), 코스 미리보기에서 왔으면(back=preview) "‹ 코스" 로 미리보기 첫 화면(2026-10-11 홍TV님)
-        if (backTo === "preview") { $("back").textContent = "‹ 코스"; $("back").href = "./"; }
-        else if (listMode) {   // 목록 카드에서 왔으면: 위 "← 목록" 은 따라가기 화면(검색 목록 - 검색어는 rf-search 로 남아 있음), 아래 "따라가기" 는 고른 탐방로로
+        // 위 단추 - 기본은 "← 목록"(따라가기 첫 화면)
+        if (listMode) {   // 목록 카드에서 왔으면: 위 "← 목록" 은 따라가기 화면(검색 목록 - 검색어는 rf-search 로 남아 있음), 아래 "따라가기" 는 고른 탐방로로
             $("back").textContent = "← 목록";   // 2026-10-13 홍TV님: "← 뒤로" → "← 목록"
             $("back").href = "hike.html";
             $("sheet").classList.add("listmode");
