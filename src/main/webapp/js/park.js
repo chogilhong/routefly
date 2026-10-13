@@ -626,7 +626,8 @@
                 var bestOf = (noteBest || []).filter(function (b) { return b.course === from; })[0];
                 if (bestOf) showBest(bestOf);   // ★ 대표 코스(북한산 위문 - 통째 탐방로는 갈림길에서 잘려 구간 id 와 다름)
                 else if (ids.length && fp.every(function (p) { return lines[p.id]; })) { fitIds(ids, 0); chosen = ids; pick(); }
-            } else segs.forEach(function (t) { if (t.id === from) pick(t); });   // 잘린 탐방로면 고르지 않음
+            // 이미 골라져 있으면(뒤로 와서 되살림) 다시 누르지 않음 - pick 은 누를 때마다 넣고 빼서, 3D 에서 돌아오면 풀렸었음(2026-10-13 PC)
+            } else segs.forEach(function (t) { if (t.id === from && chosen.indexOf(t.id) < 0) pick(t); });   // 잘린 탐방로면 고르지 않음
         }
         $("msg").style.display = "none";
     }
