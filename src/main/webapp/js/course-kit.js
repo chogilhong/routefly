@@ -359,7 +359,7 @@
     /** 코스 자료(api/course 응답) → 계산하기 쉬운 모양. 갈림길은 이름표와 따로 c.junctions(진행 거리 목록). */
     function fromApi(id, j) {
         var all = j.pois || [];
-        var c = { id: id, course: j.course, info: j.info || null, signs: j.signs || [], spots: j.spots || [], lon: [], lat: [], ele: [], dist: [], markers: [],
+        var c = { id: id, course: j.course, info: j.info || null, ends: j.ends || null, signs: j.signs || [], spots: j.spots || [], lon: [], lat: [], ele: [], dist: [], markers: [],
                   pois: dedupePois(all.filter(function (p) { return p.name !== JUNCTION; })),
                   junctions: all.filter(function (p) { return p.name === JUNCTION; }).map(function (p) { return +p.dist_m; })
                       .sort(function (a, b) { return a - b; }) };
@@ -379,6 +379,8 @@
     function endPois(c) {
         var n = c.lon.length - 1, e = routeEnds(c.course && c.course.name);
         if (n < 1) return;
+        // 이름에 출발 · 도착이 없으면 서버가 찾은 둘레 다른 코스 끝 이름(api/course ends - 2026-10-13 홍TV님: 모든 산 · 걷기 · 자전거 "출발" 대신 들머리 이름)
+        e = { from: e.from || (c.ends && c.ends.start) || null, to: e.to || (c.ends && c.ends.end) || null };
         // 코스 끝 이름이 탐방지원센터 같은 들머리면, 그 끝 500m 안 다른 들머리 이름표(배치가 지도용으로 받은 OSM 주차장 · 안내소)는 빼고
         // (2026-10-13 PC: 중산리 출발 이름표가 "중산리탐방안내소" + "중산리주차장" 두 줄, 그래프 처음 "중산리주차장")
         var HEADISH = /(탐방지원센터|탐방안내소|안내소|분소|매표소|주차장)$/;

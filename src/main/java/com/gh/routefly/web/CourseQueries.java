@@ -269,6 +269,13 @@ final class CourseQueries {
         out.add("pois", Json.rows(c,
                 "SELECT seq, name, lat, lon, ele_m, dist_m, off_route_m FROM route_course_poi WHERE course_id = ? ORDER BY seq",
                 id));
+        // 2026-10-13 홍TV님: "출발" · "도착" 보다 들머리 · 날머리 이름 - 이름에 출발 · 도착이 없는 코스("대청봉코스")는 둘레 다른 코스 끝 이름(화면이 고름)
+        try {
+            JsonObject ends = endNames(c, id, course.get(0).getAsJsonObject());
+            if (ends.size() > 0) out.add("ends", ends);
+        } catch (java.sql.SQLException e) {
+            // 이름 없이 - 화면은 "출발" · "도착"
+        }
         // 2026-10-10 홍TV님: 국립공원 공식 코스(knps-)는 공단 기준 시간 · 난이도(route_course_info). 표가 아직 없으면(DDL 전) 빼고 보냅니다.
         if (id.startsWith(INFO_PREFIX)) {
             try {
@@ -293,6 +300,72 @@ final class CourseQueries {
             // 표 없음
         }
         return out;
+    }
+
+    /** 출발 · 도착 이름을 찾는 거리(m) - 다른 코스의 처음 · 끝이 이 안이면 같은 들머리 · 날머리. */
+    static final double END_NAME_M = 300;
+
+    /** 출발 · 도착 둘레 다른 코스의 끝 이름 {start, end}(찾은 것만). 다른 코스 끝 좌표로 고르고, 이름은 그 코스 이름의 처음 · 끝 낱말. */
+    static JsonObject endNames(Connection c, String id, JsonObject course) throws Exception {
+        JsonObject out = new JsonObject();
+        if (!course.has("start_lat") || course.get("start_lat").isJsonNull() || course.get("end_lat").isJsonNull()) return out;
+        double[][] at = {{course.get("start_lat").getAsDouble(), course.get("start_lon").getAsDouble()},
+                         {course.get("end_lat").getAsDouble(), course.get("end_lon").getAsDouble()}};
+        String[] keys = {"start", "end"};
+        for (int k = 0; k < 2; k++) {
+            double lat = at[k][0], lon = at[k][1], dl = END_NAME_M / 111_000.0, dn = dl / Math.max(0.2, Math.cos(Math.toRadians(lat)));
+            List<String[]> rows = new ArrayList<>();
+            try (PreparedStatement ps = c.prepareStatement("SELECT name, start_lat, start_lon, end_lat, end_lon FROM route_course WHERE course_id <> ?"
+                    + " AND ((start_lat BETWEEN ? AND ? AND start_lon BETWEEN ? AND ?) OR (end_lat BETWEEN ? AND ? AND end_lon BETWEEN ? AND ?)) LIMIT 300")) {
+                Object[] p = {id, lat - dl, lat + dl, lon - dn, lon + dn, lat - dl, lat + dl, lon - dn, lon + dn};
+                for (int i = 0; i < p.length; i++) ps.setObject(i + 1, p[i]);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) rows.add(new String[] {rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5)});
+                }
+            }
+            String n = endNameOf(rows, lat, lon, END_NAME_M);
+            if (n != null) out.addProperty(keys[k], n);
+        }
+        return out;
+    }
+
+    /** 순수 함수 - 코스 이름의 처음 · 끝 낱말("산 · 가 → 나 → 다" → 가 · 다, "가에서" · "나까지", 국가숲길 "가-나"). 모르면 null. */
+    static String[] nameEnds(String name) {
+        if (name == null) return new String[] {null, null};
+        int i = name.indexOf(" · ");
+        String route = (i >= 0 ? name.substring(i + 3) : name).trim();
+        String[] parts = route.split(" → ");
+        if (parts.length >= 2) return new String[] {parts[0].trim(), parts[parts.length - 1].trim()};
+        java.util.regex.Matcher one = java.util.regex.Pattern.compile("^(.+?)(에서|까지)$").matcher(route);
+        if (one.matches()) return "에서".equals(one.group(2)) ? new String[] {one.group(1), null} : new String[] {null, one.group(1)};
+        java.util.regex.Matcher ab = java.util.regex.Pattern.compile("([가-힣]+)-([가-힣]+)\\s*\\)?\\s*$").matcher(name);
+        return ab.find() ? new String[] {ab.group(1), ab.group(2)} : new String[] {null, null};
+    }
+
+    /** 막연한 이름(어디인지 모름) - 들머리 · 날머리 이름으로 쓰지 않음. */
+    private static final java.util.regex.Pattern VAGUE = java.util.regex.Pattern.compile("^(갈림길|삼거리|사거리|정상|탐방로 끝|출발|도착)$|(쪽 끝|부근|코스\\s*\\d*)$");
+    /** 들머리다운 이름(탐방지원센터 · 주차장 · 마을 · 역 …) - 먼저 고름. */
+    private static final java.util.regex.Pattern HEADISH = java.util.regex.Pattern.compile(".*(탐방지원센터|탐방안내소|분소|매표소|주차장|휴게소|입구|마을|리|동|역|정류장|인증센터|사)$");
+
+    /**
+     * 순수 함수 - (lat, lon) radiusM 안에서 처음 · 끝이 닿는 다른 코스 [이름, 처음 위도, 처음 경도, 끝 위도, 끝 경도] 들의 그 끝 이름.
+     * 들머리다운 이름 먼저, 같으면 가까운 것. 막연한 이름은 뺌. 없으면 null.
+     */
+    static String endNameOf(List<String[]> rows, double lat, double lon, double radiusM) {
+        String best = null;
+        double bestScore = Double.MAX_VALUE;
+        for (String[] r : rows) {
+            String[] e = nameEnds(r[0]);
+            for (int k = 0; k < 2; k++) {
+                String n = e[k], la = r[1 + k * 2], lo = r[2 + k * 2];
+                if (n == null || n.isBlank() || la == null || lo == null || VAGUE.matcher(n).find()) continue;
+                double d = distM(new double[] {Double.parseDouble(lo), Double.parseDouble(la)}, lat, lon);
+                if (d > radiusM) continue;
+                double score = (HEADISH.matcher(n.replaceAll("\\s+", "")).matches() ? 0 : 10_000) + d;
+                if (score < bestScore) { bestScore = score; best = n; }
+            }
+        }
+        return best;
     }
 
     /** 위험지역 · 조망점은 경로 이 거리(m) 안. */

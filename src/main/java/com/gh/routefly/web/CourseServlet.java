@@ -35,7 +35,8 @@ public class CourseServlet extends HttpServlet {
         try (Connection c = Db.open()) {
             // 2026-10-10 점검: 넣은 시각(배치가 코스를 다시 만들 때만 바뀜)으로 먼저 ETag 를 정해, 바뀌지 않았으면 점 수천 개를 읽기 전에 304
             JsonArray at = Json.rows(c, "SELECT imported_at FROM route_course WHERE course_id = ?", id);
-            String tag = at.size() == 0 ? null : versionTag(id, at.get(0).getAsJsonObject().get("imported_at").toString() + "\n" + sideVersion(c));
+            // SHAPE - 응답 모양이 바뀌면 올림(2026-10-13 ends 추가 - 받아 둔 304 를 쓰지 않게)
+            String tag = at.size() == 0 ? null : versionTag(id, at.get(0).getAsJsonObject().get("imported_at").toString() + "\n" + sideVersion(c) + "\n" + SHAPE);
             if (tag != null && Json.notModified(req, resp, tag)) return;
             JsonObject detail = CourseQueries.detail(c, id);
             if (detail == null) {
@@ -61,6 +62,9 @@ public class CourseServlet extends HttpServlet {
      * 코스와 따로 넣는 표(위치표지판 · 위험지역 · 조망점)의 넣은 회차 - ETag 에 넣어, 그 표만 다시 넣었을 때도 새 응답이 나가게.
      * 2026-10-10 PC: knpsSpot 을 다시 돌려 헬기장 종류가 바뀌었는데 ETag 가 같아 304 로 옛 응답을 썼음. 표가 없으면 "-".
      */
+    /** 응답 모양 판 - ETag 에 넣음. */
+    static final String SHAPE = "ends1";
+
     /** 2026-10-11 오픈 전 점검: 코스를 열 때마다(304 포함) 두 표를 훑었음 - 1분 동안은 받아 둔 값(배치는 몇 시간 · 며칠마다). */
     static final long SIDE_TTL_MS = 60_000;
     private static volatile String sideCached;
