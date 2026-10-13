@@ -530,6 +530,10 @@ var lp2 = RF.fromApi("lp2", { course: { name: "탄금호 순환자전거길 · �
     pois: [{ name: "충주탄금대인증센터", lat: 36.99, lon: 127.9, dist_m: 3, off_route_m: 5 }, { name: "충주탄금대인증센터", lat: 36.9905, lon: 127.9005, dist_m: 17800, off_route_m: 5 },
            { name: "루암리", lat: 36.9902, lon: 127.9002, dist_m: 17990, off_route_m: 10 }] });
 eq("fromApi 순환 끝 근처에 같은 이름이 끝 60m 밖이면 끝에 또", lp2.pois.filter(function (q) { return q.again; }).map(function (q) { return q.name + "@" + q.dist_m; }), ["충주탄금대인증센터@18000"]);
+var jz = RF.fromApi("jz", { course: { name: "지리산 · 중산리 → 천왕봉" }, points: [[127.0, 35.0, 600, 0], [127.0, 35.04, 1900, 5083]],
+    pois: [{ name: "중산리주차장", lat: 35.0, lon: 127.0007, dist_m: 0, off_route_m: 60 }, { name: "대원사집단시설지구주차장", lat: 35.0, lon: 127.0008, dist_m: 0, off_route_m: 72 },
+           { name: "중산리탐방안내소", lat: 35.0001, lon: 127.0002, dist_m: 12, off_route_m: 16 }, { name: "천왕봉", lat: 35.04, lon: 127.0, dist_m: 5083, off_route_m: 2 }] });
+eq("fromApi 짧은 끝 이름이면 둘레 들머리 이름표는 그 낱말이 든 것 하나", jz.pois.map(function (q) { return q.name; }), ["중산리탐방안내소", "천왕봉"]);
 var full = RF.fromApi("r", { course: { name: "산 · 가 → 라" }, points: [[127.0, 35.0, 100, 0], [127.011, 35.0, 200, 1000], [127.022, 35.0, 150, 2000], [127.033, 35.0, 300, 3000]], pois: [] });
 var sl = RF.sliceCourse(full, 1 / 3, 2 / 3, "산 · 나 → 다", "r@0.3333-0.6667:나>다");
 eq("sliceCourse 거리 · 이름표", [Math.round(sl.total), sl.pois.map(function (p) { return p.name; }).join(","), sl.course.ascent_m], [1000, "나,다", 0]);

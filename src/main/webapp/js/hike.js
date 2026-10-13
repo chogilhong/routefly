@@ -481,8 +481,10 @@
         }
         // 지점 - 아이콘 + 이름. 출발 · 도착 자리에 이름표가 없으면 "출발" · "도착".
         var n = c.lon.length - 1;
-        var hasStart = c.pois.some(function (q) { return +q.dist_m < 60 && +q.off_route_m < 60; });
-        var hasEnd = c.pois.some(function (q) { return +q.dist_m > c.total - 60 && +q.off_route_m < 60; });
+        // 코스 이름의 끝 이름이 끝 300m 안에 있으면 그것이 도착(중산리 → 천왕봉 은 천왕봉 이름표가 선 끝 123m 앞 - "도착" 이 하나 더 붙었음)
+        var ce = RF.routeEnds(c.course.name);
+        var hasStart = c.pois.some(function (q) { return (+q.dist_m < 60 && +q.off_route_m < 60) || (ce.from && q.name === ce.from && +q.dist_m < 300); });
+        var hasEnd = c.pois.some(function (q) { return (+q.dist_m > c.total - 60 && +q.off_route_m < 60) || (ce.to && q.name === ce.to && +q.dist_m > c.total - 300); });
         // 같은 자리(80m 안) 이름표는 하나로 - 대표 이름 + 아래에 다른 이름들
         // 순환 코스 끝 이름표는 그래프에만, 앞에 나온 같은 이름이 500m 안이면 지도에는 하나(탄금호 - 충주탄금대인증센터 이름표 둘이 354m · 화면 9px 차이)
         var shown = [];
