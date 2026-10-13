@@ -520,6 +520,11 @@ eq("nameText 순환은 그대로", RF.nameText("덕대산 1코스 · 덕전리 �
 var hp = RF.fromApi("hp", { course: { name: "해파랑길 49코스" }, points: [[128.4, 38.4, 5, 0], [128.4, 38.5, 9, 12300]],
     pois: [{ name: "49코스 (거진항~통일안보 공원)_12.3km-0", lat: 38.4, lon: 128.4, dist_m: 0, off_route_m: 3 }, { name: "49코스 (거진항~통일안보 공원)_12.3km-12", lat: 38.5, lon: 128.4, dist_m: 12300, off_route_m: 3 }] });
 eq("fromApi 두루누비 사진 지점 이름은 빼고 (가~나) 를 들머리 · 날머리로", hp.pois.map(function (q) { return q.name; }), ["거진항", "통일안보 공원"]);
+eq("fromApi 사진 지점 (가~나) 가 서버 ends 보다 먼저", RF.fromApi("hp2", { course: { name: "해파랑길 49코스" }, points: [[128.4, 38.4, 5, 0], [128.4, 38.5, 9, 12300]],
+    pois: [{ name: "49코스 (거진항~통일안보 공원)_12.3km-0", lat: 38.4, lon: 128.4, dist_m: 0, off_route_m: 3 }], ends: { end: "고성군관광안내소" } }).pois.map(function (q) { return q.name; }), ["거진항", "통일안보 공원"]);
+var lp = RF.fromApi("lp", { course: { name: "탄금호 순환자전거길 · 충주탄금대인증센터 순환" }, points: [[127.9, 36.99, 60, 0], [127.95, 37.0, 60, 9000], [127.9001, 36.9901, 60, 18000]],
+    pois: [{ name: "루암리", lat: 36.9902, lon: 127.9002, dist_m: 17980, off_route_m: 10 }] });
+eq("fromApi 순환은 끝에도 들머리 이름", lp.pois.map(function (q) { return q.name; }), ["충주탄금대인증센터", "루암리", "충주탄금대인증센터"]);
 var full = RF.fromApi("r", { course: { name: "산 · 가 → 라" }, points: [[127.0, 35.0, 100, 0], [127.011, 35.0, 200, 1000], [127.022, 35.0, 150, 2000], [127.033, 35.0, 300, 3000]], pois: [] });
 var sl = RF.sliceCourse(full, 1 / 3, 2 / 3, "산 · 나 → 다", "r@0.3333-0.6667:나>다");
 eq("sliceCourse 거리 · 이름표", [Math.round(sl.total), sl.pois.map(function (p) { return p.name; }).join(","), sl.course.ascent_m], [1000, "나,다", 0]);
