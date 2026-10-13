@@ -401,9 +401,16 @@
         // 코스 자료와 지도 준비를 같이 기다립니다(느린 기기에서 지도 타일이 늦어도 목록은 먼저 뜹니다).
         // 'gpx-' 코스는 이 기기에 둔 GPX(📂 GPX 열기 - 따라가기와 같이 씀)
         var data = RF.isGpxId(id) ? RF.storedGpx(id) : courseData(id);
-        return Promise.all([data, mapReady]).then(function (r) {
+        // 산 안내(park-notes) - 바로잡은 탐방로 이름 · 산마다 다른 지명을 따라가기와 같게(2026-10-13 PC: "구기분소 → 대남문" 이 "헤원사삼거리 → 대남문" 과 달랐음)
+        var notesP = fetch("data/park-notes.json").then(function (x) { return x.json(); }).then(function (d) { return d && d.parks; }).catch(function () { return null; });
+        return Promise.all([data, mapReady, notesP]).then(function (r) {
             if (my !== selectSeq) return;
             var j = r[0];
+            if (j && j.course && r[2]) {
+                j.course.name = RF.noteTrailName(r[2], id, j.course.name);
+                var pk = RF.parkOf(j.course.name), nm = pk && r[2][pk] && r[2][pk].names;
+                if (nm) j.course.name = RF.aliasName(j.course.name, nm);
+            }
             clearMarkers();
             var pts = j.points;
             if (!pts || pts.length < 2) throw new Error("경로 점이 없습니다.");

@@ -2072,13 +2072,25 @@
                 fly.textContent = "fly(3D)";
                 fly.href = "index.html#c=" + encodeURIComponent(r.course_id);
                 fly.title = "3D 지형 위로 날아 보기";
-                fly.onclick = function (e) { e.stopPropagation(); };
+                fly.onclick = function (e) {
+                    e.stopPropagation();
+                    try { sessionStorage.setItem("rf-pick-scroll", String(box.scrollTop)); } catch (err) { }   // 3D 에서 돌아오면 목록 그 자리로
+                };
                 it.classList.add("hasfly");
                 it.appendChild(fly);
             }
             it.onclick = function () { fromList = true; location.hash = "#c=" + encodeURIComponent(r.course_id); };
             box.appendChild(it);
         });
+        // fly(3D) 에서 "← 뒤로" 로 돌아왔으면 목록을 그 자리로(2026-10-13 PC: 맨 위로 갔음) - 한 번만
+        try {
+            var sc = sessionStorage.getItem("rf-pick-scroll");
+            if (sc != null && rows.length) {
+                box.scrollTop = +sc;
+                // 노선 이름(series.json)을 받은 뒤 목록을 한 번 더 그릴 수 있어 잠깐 남겨 둠
+                setTimeout(function () { try { sessionStorage.removeItem("rf-pick-scroll"); } catch (err) { } }, 3000);
+            }
+        } catch (err) { }
     }
 
     var searchTimer = 0, fromList = false;
