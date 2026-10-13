@@ -267,7 +267,8 @@
         var p = nameParts(name);
         if (p.route.indexOf(" → ") >= 0) return p.route;
         var e = routeEnds(name);
-        return e.from && e.to ? e.from + " → " + e.to : p.route;
+        // "덕전리 순환" 은 그대로("덕전리 → 덕전리" 가 됐음 - 2026-10-13 PC)
+        return e.from && e.to && e.from !== e.to ? e.from + " → " + e.to : p.route;
     }
 
     /** 글로만 쓸 곳(창 제목 등) - "[무리] 길", routeFirst 면 길만(따라가기 탭 제목 - 머리글과 같게). */
@@ -360,9 +361,21 @@
     var JUNCTION = "갈림길";   // routefly-batch 가 넣는 갈림길 이름표 - 지도 글자 대신 산행 화면 미리 알림에 씁니다
 
     /** 코스 자료(api/course 응답) → 계산하기 쉬운 모양. 갈림길은 이름표와 따로 c.junctions(진행 거리 목록). */
+    /** 두루누비 사진 지점 이름("49코스 (거진항~통일안보 공원)_12.3km-0") - 지점 이름표로 쓰지 않음(2026-10-13 PC: 해파랑길 처음 · 끝 이름표). */
+    var PHOTO_POI = /_[\d.]+\s*km(-\d+)?$/;
+
     function fromApi(id, j) {
-        var all = j.pois || [];
-        var c = { id: id, course: j.course, info: j.info || null, ends: j.ends || null, signs: j.signs || [], spots: j.spots || [], lon: [], lat: [], ele: [], dist: [], markers: [],
+        var raw = j.pois || [];
+        // 사진 지점 이름의 "(가~나)" 는 코스 이름에 출발 · 도착이 없을 때 들머리 · 날머리 이름으로
+        var photoEnds = null;
+        raw.forEach(function (p) {
+            var m = PHOTO_POI.test(String(p.name || "")) && /\(([^~()]+)~([^~()]+)\)/.exec(p.name);
+            if (m && !photoEnds) photoEnds = { start: m[1].trim(), end: m[2].trim() };
+        });
+        var all = raw.filter(function (p) { return !PHOTO_POI.test(String(p.name || "")); });
+        var se = j.ends || {};
+        var ends = photoEnds || se.start || se.end ? { start: se.start || (photoEnds && photoEnds.start), end: se.end || (photoEnds && photoEnds.end) } : null;
+        var c = { id: id, course: j.course, info: j.info || null, ends: ends, signs: j.signs || [], spots: j.spots || [], lon: [], lat: [], ele: [], dist: [], markers: [],
                   pois: dedupePois(all.filter(function (p) { return p.name !== JUNCTION; })),
                   junctions: all.filter(function (p) { return p.name === JUNCTION; }).map(function (p) { return +p.dist_m; })
                       .sort(function (a, b) { return a - b; }) };
