@@ -34,7 +34,7 @@
      * 이어진 구간으로). 아래 칸에 처음 → 끝 두 방향 단추(따라가기), 하나만 골랐으면 미리보기도.
      */
     var sel = [], lines = {}, flips = {}, byId = {}, segs = [], emptySheet = "", poiNames = {}, noteNames = null, notePass = null, noteEle = null, noteTrails = null, noteHeads = null, noteBest = null, noteAll = null;
-    var chosen = [], startMk = null, endMk = null;
+    var chosen = [], startMk = null, endMk = null, apartNote = false;   // apartNote - 이어지지 않는 탐방로를 눌러 새로 골랐음(한 번 알림)
 
     /** 고른 탐방로가 이어진 묶음별로(끝 150m 안이면 이어짐) - 빼서 끊어지면 처음 고른 것이 든 묶음만 남김. */
     function groupOf(ids, keep) {
@@ -73,6 +73,8 @@
                 // 아직 이어지지 않은 탐방로는 기다렸다 이어 주는 탐방로를 누르면 합침(2026-10-13 PC: 누르는 차례에 따라 새로 골라졌음),
                 // 걸을 수 없는 모양일 때만 그 탐방로로 새로
                 if (planOf(chosen).reason === "shape") chosen = [t.id];
+                // 사이에 이어 줄 탐방로가 아예 없으면(태안해안 - 서로 이을 수 없는 구간, 2026-10-13 홍TV님) 그 탐방로로 새로
+                else if (chosen.length > 1 && !RF.canJoin(chosen, lines)) { chosen = [t.id]; apartNote = true; }
             }
         }
         var plan = chosen.length ? planOf(chosen) : { ok: false };
@@ -86,28 +88,8 @@
             $("sheet").innerHTML = "";
             var w = document.createElement("div");
             w.className = "tip";
-            if (RF.canJoin(chosen, lines)) {
-                w.textContent = chosen.length + "구간을 골랐습니다. 아직 이어지지 않은 구간이 있습니다 - 사이 탐방로를 더 누르세요(다시 누르면 뺍니다).";
-                $("sheet").appendChild(w);
-                return;
-            }
-            // 사이에 이어 줄 탐방로가 없음(2026-10-13 홍TV님: 태안해안 - 기다려도 이을 수 없었음) - 떨어진 채로 이어 걷기 또는 마지막 구간만
-            var lc = RF.looseChain(chosen, lines);
-            w.textContent = chosen.length + "구간 사이에 이어 주는 탐방로가 없습니다(떨어진 거리 약 " + RF.km(lc.gapM) + "km - 길 · 해변으로 이동).";
+            w.textContent = chosen.length + "구간을 골랐습니다. 아직 이어지지 않은 구간이 있습니다 - 사이 탐방로를 더 누르세요(다시 누르면 뺍니다).";
             $("sheet").appendChild(w);
-            var row0 = document.createElement("div");
-            row0.className = "row";
-            var go = document.createElement("a");
-            go.className = "main";
-            go.textContent = "떨어진 채로 이어 걷기";
-            go.href = "hike.html#c=" + encodeURIComponent(RF.joinId(RF.flattenSel(lc.walk)));
-            var last = document.createElement("a");
-            last.textContent = "마지막 구간만";
-            last.href = "#";
-            last.addEventListener("click", function (ev) { ev.preventDefault(); chosen = chosen.slice(-1); pick(); });
-            row0.appendChild(go);
-            row0.appendChild(last);
-            $("sheet").appendChild(row0);
             return;
         }
         if (!sel.length) { $("sheet").innerHTML = emptySheet; return; }
@@ -219,8 +201,10 @@
         });
         var tip = document.createElement("div");
         tip.className = "tip";
-        tip.textContent = round ? "출발한 들머리로 돌아오는 코스입니다(정상 같은 갈래는 올랐다 같은 길로). 어느 쪽으로 먼저 돌지 고르세요."
+        tip.textContent = apartNote ? "앞서 고른 구간과 이어지는 탐방로가 없어 이 구간으로 새로 골랐습니다."
+            : round ? "출발한 들머리로 돌아오는 코스입니다(정상 같은 갈래는 올랐다 같은 길로). 어느 쪽으로 먼저 돌지 고르세요."
             : "이어진 탐방로를 더 누르면 함께 고르고, 다시 누르면 뺍니다. 따라갈 방향을 고르세요.";
+        apartNote = false;
         $("sheet").appendChild(nm);
         $("sheet").appendChild(st);
         $("sheet").appendChild(tip);
@@ -319,6 +303,7 @@
                 meters += d1 - d0;
             });
             if (pts.length < 2) return;
+            if (b.rev) pts.reverse();   // 선 방향과 반대로 걷는 대표 코스(태안해변길 4코스 몽산포 → 드르니항)
             var one = parts.length === 1 ? got[parts[0].base] : null;
             chosen = [];
             exStart = exHead = exRound = exPeak = null;
@@ -349,7 +334,7 @@
             var row = document.createElement("div");
             row.className = "row";
             // 길 이름을 따라가기 제목으로(&title= - 이은 코스는 "N구간 이어 걷기" 가 됨)
-            var href = "hike.html#c=" + encodeURIComponent(b.course) + (b.name ? "&title=" + encodeURIComponent(b.name) : "");
+            var href = "hike.html#c=" + encodeURIComponent(b.course) + (b.rev && parts.length === 1 ? "&rev=1" : "") + (b.name ? "&title=" + encodeURIComponent(b.name) : "");
             // 둘째 단추는 처음 탐방 안내도 아래 칸으로(2026-10-13 홍TV님: "예시로" → 탐방 안내도)
             [["따라가기", href, true], ["탐방 안내도", "#", false]].forEach(function (d) {
                 var a = document.createElement("a");
