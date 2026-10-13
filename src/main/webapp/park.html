@@ -48,7 +48,7 @@ body { display:flex; flex-direction:column; height:100dvh; }
 #sheet .tip { text-align:center; margin:2px 0 10px; }
 /* 원점회귀 예시(고른 탐방로가 없을 때) - 한 줄, 옆으로 넘김(아래 칸 높이가 탐방로를 골랐을 때와 같게 - 2026-10-13 PC: 217px 로 커졌음) */
 #sheet .ex { margin-bottom:8px; min-width:0; }
-#sheet .ex .exh { font-size:12px; color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:5px; }
+#sheet .ex .exh { font-size:12px; line-height:15px; color:var(--dim); margin-bottom:5px; }   /* 두 줄까지 다 보이게(2026-10-13 홍TV님 - 말줄임이었음) */
 #sheet .ex .exr { display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; }
 #sheet .ex .exr::-webkit-scrollbar { display:none; }
 #sheet .ex a { flex:0 0 auto; font-size:13px; line-height:17px; padding:4px 10px; border-radius:10px; text-decoration:none; color:var(--tx);
