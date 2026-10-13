@@ -704,4 +704,5 @@ for (var gi = 0; gi < 40; gi++) GMR.push({ course_id: "frst-448100301-" + gi, na
 for (gi = 0; gi < 18; gi++) GMR.push({ course_id: "frst-461700101-" + gi, name: "나주 가야산 · " + gi + "코스", start_lat: 35.02, start_lon: 126.72 });
 for (gi = 0; gi < 13; gi++) GMR.push({ course_id: "kmp-7366020018-" + gi, name: "가야산 " + gi + "코스", start_lat: 34.94, start_lon: 127.70 });
 GMR.push({ course_id: "knps-7018-d7139b32", name: "가야산 · 가야산 소리길", start_lat: 35.75, start_lon: 128.15 });
-eq("guideMaps 국립공원 카드는 코스가 적어도 3장 안에(맨 앞)", RF.guideMaps(GMR, 3, "가야산").map(function (g) { return g.from; })[0], "knps-7018-d7139b32");
+eq("guideMaps 국립공원 카드는 맨 앞 · 장 수에 세지 않음", RF.guideMaps(GMR, 3, "가야산").map(function (g) { return g.from; }),
+    ["knps-7018-d7139b32", "frst-448100301-0", "frst-461700101-0", "kmp-7366020018-0"]);
