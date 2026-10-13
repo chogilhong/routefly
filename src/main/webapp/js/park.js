@@ -511,6 +511,9 @@
             x.name = noteTrails ? RF.noteTrailName({ p: { trails: noteTrails } }, t.id, t.name) : t.name;
             // 산마다 다른 이름은 고친 이름에도(2026-10-13 PC: 설악산 knps-40111 "설악동탐방지원센터 → 비룡폭포쉼터" 로 들머리 🏠 가 설악동탐방지원센터로 남았음)
             x.name = RF.aliasName(x.name, noteNames);
+            // 번호뿐인 공단 이름("계룡산 · 계룡산 탐방로 1")은 이름 없는 조각처럼 - 갈림길 사이로 잇고 둘레 지명으로 이름(mergeBare, 2026-10-13 PC:
+            // 지도에서 고르면 출발이 "계룡산 탐방로 1")
+            if (/(^|\s)탐방로\s*\d+$/.test(RF.nameParts(x.name).route)) x.name = RF.nameParts(x.name).group || park;
             return x;
         });
         // 지명 이름표 · 서버 heads 도 산마다 다른 이름으로(설악산 신흥사 · 설악동탐방지원센터 → 소공원 - 2026-10-13 홍TV님: 메운 길 끝 · 지도 이름표 · 들머리 모두)
