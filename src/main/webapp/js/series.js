@@ -76,6 +76,7 @@
         head.addEventListener("click", function () {
             if (!box.classList.contains("open")) closeSiblings(box, "card");   // 노선 카드도 하나만 펼침
             box.classList.toggle("open");
+            if (box.classList.contains("open")) lastCard = box;
             saveView();
             if (loaded) return;
             loaded = true;
@@ -97,6 +98,7 @@
                     if (open) Array.prototype.forEach.call(body.querySelectorAll(".sublist.open"), function (o) { if (o !== list && o._close) o._close(); });
                     list.classList.toggle("open", open);
                     more.textContent = open ? "코스 ▴" : "코스 ▾";
+                    if (open) lastSub = list;
                     saveView();
                 };
                 list._close = function () { setOpen(false); };
@@ -152,6 +154,7 @@
         head.addEventListener("click", function () {
             if (!box.classList.contains("open")) closeSiblings(box, "card");   // 노선 카드도 하나만 펼침
             box.classList.toggle("open");
+            if (box.classList.contains("open")) lastCard = box;
             saveView();
             if (loaded) return;
             loaded = true;
@@ -261,11 +264,13 @@
 
     // 따라가기로 갔다가 "‹ 도장 · 완주" 로 돌아오면 그 상태 그대로 - 펼친 카드 · 산의 코스 목록 · 스크롤(2026-10-13 홍TV님).
     // 이 탭 동안만(sessionStorage). 단계 칸(등산 · 걷기 …)은 위 opened 가 기억
-    var VIEW_KEY = "rf-series-view", view = null, restoring = false;
+    var VIEW_KEY = "rf-series-view", view = null, restoring = false, lastCard = null, lastSub = null;
     try { view = JSON.parse(sessionStorage.getItem(VIEW_KEY) || "null"); } catch (e) { view = null; }
     function saveView() {
         if (restoring) return;
-        var cardEl = document.querySelector(".card.open"), subEl = document.querySelector(".sublist.open");
+        // 마지막으로 펼친 카드 · 목록(문서의 첫 번째가 아님 - 접힌 등산 칸 안에 열린 100대 명산 카드가 잡혔음, 2026-10-13 PC)
+        var cardEl = lastCard && lastCard.classList.contains("open") ? lastCard : null,
+            subEl = lastSub && lastSub.classList.contains("open") && cardEl && cardEl.contains(lastSub) ? lastSub : null;
         var v = { card: cardEl && cardEl.getAttribute("data-card"), y: window.scrollY || 0,
                   peak: subEl && subEl.getAttribute("data-of") };
         try { sessionStorage.setItem(VIEW_KEY, JSON.stringify(v)); } catch (e) { }
