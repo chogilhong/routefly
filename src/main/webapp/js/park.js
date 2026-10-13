@@ -100,18 +100,39 @@
         e.className = "flag " + a;   // 꼬리(뾰족한 모서리)는 깃발 자리 쪽
         RF.nameNodes(e, txt);   // 탐방지원센터는 작은 글씨
         var m = new maplibregl.Marker({ element: e, anchor: a }).setLngLat(at).addTo(map);
-        // 지도를 다시 맞추지 않는 때(지도에서 구간을 직접 고름)는 화면 밖으로 나가면 안쪽으로 뒤집음(2026-10-13 PC: 곰배령 "도착 강선리" 가 오른쪽 끝에서 잘림)
-        if (keepIn) {
-            var px = map.project(at), w = e.offsetWidth || 0, W = map.getContainer().clientWidth;
-            var right = /-left$/.test(a), out = right ? px.x + w > W - 8 : px.x - w < 8;
-            if (out) {
-                m.remove();
-                a = a.replace(/-(left|right)$/, right ? "-right" : "-left");
-                e.className = "flag " + a;
-                m = new maplibregl.Marker({ element: e, anchor: a }).setLngLat(at).addTo(map);
-            }
-        }
+        m._keepIn = !!keepIn;
+        if (keepIn) requestAnimationFrame(keepFlagsIn);
         return m;
+    }
+
+    /**
+     * 지도를 다시 맞추지 않는 깃발(지도에서 구간을 직접 고름 · 예시 · 되살리기)이 화면 밖으로 나가면 안쪽으로 뒤집음
+     * (2026-10-13 PC: 곰배령 "도착 강선리" 가 오른쪽 끝에서 잘림, 되살린 예시 깃발이 x 398 까지). 지도가 멈출 때마다 다시 잼.
+     */
+    function keepFlagsIn() {
+        var W = map.getContainer().clientWidth;
+        var fix = function (m) {
+            if (!m || !m._keepIn) return m;
+            var e = m.getElement(), a = (e.className.match(/(top|bottom)-(left|right)/) || [])[0], w = e.offsetWidth;
+            if (!a || !w) return m;
+            var px = map.project(m.getLngLat()), right = /-left$/.test(a);
+            var out = right ? px.x + w > W - 8 : px.x - w < 8, room = right ? px.x - w >= 8 : px.x + w <= W - 8;
+            if (!out || !room) return m;   // 반대쪽도 모자라면 그대로
+            var b = a.replace(/-(left|right)$/, right ? "-right" : "-left"), ll = m.getLngLat();
+            e.className = e.className.replace(a, b);
+            m.remove();   // maplibre Marker 는 anchor 를 바꾸는 함수가 없어 새로
+            var n = new maplibregl.Marker({ element: el2(e), anchor: b }).setLngLat(ll).addTo(map);
+            n._keepIn = true;
+            return n;
+        };
+        startMk = fix(startMk);
+        endMk = fix(endMk);
+    }
+    /** Marker 가 붙였던 maplibregl-marker 꼴을 떼고 flag 꼴만 남김(새 Marker 가 다시 붙임). */
+    function el2(e) {
+        e.className = e.className.split(" ").filter(function (c) { return c && !/^maplibregl-/.test(c); }).join(" ");
+        e.removeAttribute("style");
+        return e;
     }
 
     /** 지도 맞춤 여백 - 깃발 이름표가 펼쳐지는 쪽(왼쪽 · 오른쪽)은 깃발 너비만큼 더. */
@@ -352,6 +373,28 @@
         restoreBest();
     }
 
+    /** 고른 구간이 보이게 지도를 맞춤(ms 0 이면 바로 - 그 뒤 깃발이 화면 안인지 재려고). */
+    function fitIds(ids, ms) {
+        var w = 180, so = 90, e2 = -180, n = -90;
+        ids.forEach(function (id) { (lines[id] || []).forEach(function (q) { w = Math.min(w, q[0]); e2 = Math.max(e2, q[0]); so = Math.min(so, q[1]); n = Math.max(n, q[1]); }); });
+        if (w < e2) map.fitBounds([[w, so], [e2, n]], { padding: ms ? flagPad() : 60, duration: ms, maxZoom: 15 });
+    }
+
+    /** 원점회귀 예시 칩 k 를 고름 - 돌아오면 다시 고르게 남김(2026-10-13 PC: 칩으로 다녀오면 그 전에 직접 고른 구간이 나왔음). */
+    function useExample(k, ms) {
+        var x = examples[k];
+        if (!x) return;
+        chosen = x.ids.slice();
+        exStart = x.start;
+        exHead = x.head;
+        exRound = x.loop;
+        exPeak = x.loop ? null : x.peak;
+        try { sessionStorage.setItem(BEST_KEY, JSON.stringify({ park: park, ex: k })); } catch (err) { }
+        if (!ms) fitIds(x.ids, 0);
+        pick();
+        if (ms) fitIds(x.ids, ms);   // 고른 예시가 보이게 확대
+    }
+
     // 따라가기의 "탐방 안내도" 로 뒤로 돌아오면 고른 대표 코스를 다시 보임(2026-10-13 홍TV님) - 이 탭 동안만, 한 번
     var bestRestored = false;
     function restoreBest() {
@@ -362,7 +405,9 @@
         var v = null;
         try { v = JSON.parse(sessionStorage.getItem(BEST_KEY) || "null"); } catch (err) { v = null; }
         if (!v || v.park !== park) return;
-        if (v.ids && v.ids.length && v.ids.every(function (id) { return lines[id]; })) { chosen = v.ids.slice(); pick(); return; }
+        if (v.ex != null && examples[v.ex]) { useExample(v.ex, 0); return; }
+        // 지도를 그 구간에 먼저 맞춘 뒤 고름 - 깃발이 화면 안인지를 맞춘 화면으로 재야 처음과 같은 방향(2026-10-13 PC)
+        if (v.ids && v.ids.length && v.ids.every(function (id) { return lines[id]; })) { fitIds(v.ids, 0); chosen = v.ids.slice(); pick(); return; }
         var b = v.k != null && (noteBest || [])[v.k];
         if (b) showBest(b);
     }
@@ -499,6 +544,7 @@
             paint: { "line-color": RF.LINE_COLOR, "line-width": 6 } });
         // 손가락으로 누르기 쉽게 - 보이지 않는 굵은 선으로 고름
         map.addLayer({ id: "trails-hit", type: "line", source: "trails", paint: { "line-color": "#000", "line-opacity": 0, "line-width": 22 } });
+        map.on("moveend", keepFlagsIn);   // 지도를 맞추거나 옮긴 뒤 깃발이 화면 밖이면 안쪽으로
         map.on("click", "trails-hit", function (e) {
             var f = e.features && e.features[0];
             if (f) pick(segs[bestHit(e.features)]);
@@ -570,7 +616,14 @@
 
         overview(0);
         // 목록 카드에서 왔으면 from 은 그 산을 찾는 데만 쓰고 고르지 않음(아무 코스나 골라져 있어 헷갈렸음)
-        if (from && !listMode) segs.forEach(function (t) { if (t.id === from) pick(t); });   // 잘린 탐방로면 고르지 않음
+        if (from && !listMode) {
+            // 이어 걷기(구간,구간~ - 지도에서 직접 고른 것)는 그 구간들을 다시 고름(2026-10-13 PC: 🏞 로 오면 첫 화면이었음)
+            var fp = RF.parseJoinId(from);
+            if (fp) {
+                var ids = fp.map(function (p) { return p.id; }).filter(function (id, i, a) { return lines[id] && a.indexOf(id) === i; });
+                if (ids.length && fp.every(function (p) { return lines[p.id]; })) { fitIds(ids, 0); chosen = ids; pick(); }
+            } else segs.forEach(function (t) { if (t.id === from) pick(t); });   // 잘린 탐방로면 고르지 않음
+        }
         $("msg").style.display = "none";
     }
 
@@ -664,19 +717,7 @@
             var ex = e.target && e.target.closest ? e.target.closest("[data-ex]") : null;
             if (ex) {
                 e.preventDefault();
-                var x = examples[+ex.getAttribute("data-ex")];
-                if (x) {
-                    chosen = x.ids.slice();
-                    exStart = x.start;
-                    exHead = x.head;
-                    exRound = x.loop;
-                    exPeak = x.loop ? null : x.peak;
-                    pick();
-                    // 고른 예시가 보이게 확대
-                    var w = 180, so = 90, e2 = -180, n = -90;
-                    x.ids.forEach(function (id) { (lines[id] || []).forEach(function (q) { w = Math.min(w, q[0]); e2 = Math.max(e2, q[0]); so = Math.min(so, q[1]); n = Math.max(n, q[1]); }); });
-                    if (w < e2) map.fitBounds([[w, so], [e2, n]], { padding: flagPad(), duration: 600, maxZoom: 15 });
-                }
+                useExample(+ex.getAttribute("data-ex"), 600);
                 return;
             }
             if (!e.target || e.target.id !== "followNone") return;
