@@ -776,11 +776,14 @@
             var park = RF.parkOf(c.course.name) || RF.mountainOf(c.course.name, id);   // 국립공원, 아니면 도립 · 군립공원 · 산
             $("parkBtn").style.display = park ? "block" : "none";
             if (park) $("parkBtn").href = "park.html?name=" + encodeURIComponent(park) + "&from=" + encodeURIComponent(id)
-                + "&tail=" + encodeURIComponent((location.hash.match(/&(title|head|rev|via)=[^&]*/g) || []).join(""));   // ‹ 따라가기 로 돌아올 때 제목 · 들머리 이름
+                + "&tail=" + encodeURIComponent((location.hash.match(/&(title|head|rev|via|guide)=[^&]*/g) || []).join(""));   // ‹ 따라가기 로 돌아올 때 제목 · 들머리 이름
             // 목록 카드로 연 것과 같은 첫 화면(위 "← 목록" · 아래 "따라가기") - back=list 없이 열면 "‹ 코스" 가 코스 미리보기(3D)로 갔음(2026-10-13 홍TV님)
             parkHref = park ? "park.html?name=" + encodeURIComponent(park) + "&back=list" : null;
             // 탐방 안내도에서 들어온 코스(#…&via=park)만 - 검색 목록에서 바로 연 코스에는 안 보임(2026-10-13 홍TV님)
             if (!/[#&]via=park(&|$)/.test(location.hash)) parkHref = null;
+            // 노선 안내도(지리산둘레길 · 자전거길 …)에서 들어왔으면 그 안내도로(#…&guide=route.html?…) - 이 사이트의 안내도 화면만
+            var gm = /[#&]guide=([^&]*)/.exec(location.hash), guide = gm ? RF.safeDecode(gm[1]) : "";
+            if (/^(route|park)\.html\?[^#<>"']*$/.test(guide)) parkHref = guide;
             $("parkGo").style.display = parkHref && !hike.running ? "" : "none";
             barFit();
             setKindWords();

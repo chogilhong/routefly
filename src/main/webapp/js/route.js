@@ -124,7 +124,9 @@
         // 자전거길은 "인증센터" 를 떼어 짧게(375px 두 단추에 "달성보인증센터 → 칠곡보인증센터" 가 잘렸음)
         var short = function (x) { return String(x).replace(/인증센터/g, ""); };
         var link = function (list) {
-            return "hike.html#c=" + (list.length === 1 ? encodeURIComponent(list[0].id) + (list[0].rev ? "&rev=1" : "") : encodeURIComponent(RF.joinId(list)));
+            return "hike.html#c=" + (list.length === 1 ? encodeURIComponent(list[0].id) + (list[0].rev ? "&rev=1" : "") : encodeURIComponent(RF.joinId(list)))
+                // 따라가기 아래 "← 안내도" 로 이 노선 안내도 첫 화면에 돌아오게(2026-10-13 홍TV님)
+                + "&guide=" + encodeURIComponent("route.html" + location.search);
         };
         var both = from && to;
         [[both ? short(from) + " → " + short(to) : "따라가기", sel], [both ? short(to) + " → " + short(from) : "거꾸로 따라가기", RF.reverseSel(sel)]].forEach(function (d, k) {
@@ -221,6 +223,7 @@
     function start() {
         // ← 뒤로: 따라가기 목록 카드에서 왔으면 그 목록(검색어는 rf-search 로 남아 있음), 그 밖은 도장 · 완주
         $("back").href = backTo === "list" ? "hike.html" : "series.html";
+        $("back").textContent = backTo === "list" ? "← 목록" : "← 도장 · 완주";   // 2026-10-13 홍TV님: "← 뒤로" → 돌아갈 곳 이름
         // 고른 구간이 없을 때 아래 칸(모두 빼면 다시 이것으로) - 단추는 아래 칸에 맡겨 두고 받음(다시 그려도 됨)
         emptySheet = $("sheet").innerHTML;
         $("sheet").addEventListener("click", function (e) {

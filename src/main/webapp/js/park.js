@@ -709,7 +709,7 @@
         else if (from) {   // 따라가기의 🏞 로 왔으면 그 코스 따라가기로 - 이름도 "‹ 따라가기"(2026-10-13 PC: "‹ 코스" 였음)
             $("back").textContent = "‹ 따라가기";
             // 제목 · 들머리 이름(&title · &head)도 그대로 - 빠지면 ★ 위문이 "산성분소 원점회귀" 로 바뀌었음(2026-10-13 PC)
-            var tail = (q.get("tail") || "").match(/&(title|head|rev|via)=[^&]*/g) || [];
+            var tail = (q.get("tail") || "").match(/&(title|head|rev|via|guide)=[^&]*/g) || [];
             $("back").href = "hike.html#c=" + encodeURIComponent(from) + tail.join("");
         }
         // 고른 탐방로가 없을 때 아래 칸(모두 빼면 다시 이것으로). 따라가기는 아래 칸에 맡겨 받음(다시 그려도 됨)
