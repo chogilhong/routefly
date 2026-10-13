@@ -38,6 +38,12 @@ function line(n) {
 // distM - 위도 0.001° ≈ 111m
 near("distM", RF.distM(37, 127, 37.001, 127), 111, 1);
 
+// 학교 아이콘 - 목포대는 대학, 비선대 · 문장대는 바위
+eq("목포대", RF.poiIcon("목포대"), "🏫");
+eq("목포대학교", RF.poiIcon("목포대학교"), "🏫");
+eq("비선대", RF.poiIcon("비선대"), "🗻");
+eq("문장대", RF.poiIcon("문장대"), "🗻");
+
 // 기계가 붙인 번호 이름(GPX-726)은 이름표가 아님(서해랑길 20코스)
 (function () {
     var j = line(3);
