@@ -8,6 +8,9 @@
     var RF = window.RF;
     function $(id) { return document.getElementById(id); }
     var q = new URLSearchParams(location.search), park = q.get("name") || "", from = q.get("from"), backTo = q.get("back");
+    // 목록 카드의 지역 붙은 이름(광양 가야산 - 2026-10-14 PC) - 제목에만. 산 이름이 들어 있고 짧은 한글 · 괄호만
+    var label = q.get("label") || "";
+    if (!(label.length <= 24 && label.indexOf(park) >= 0 && /^[가-힣0-9 ()·]+$/.test(label))) label = "";
     var map, light = true, cfg = null, data = null, places = [];
 
     function getJson(url) {
@@ -769,7 +772,7 @@
     }
 
     function start() {
-        $("title").textContent = park ? park + " 탐방 안내도" : "탐방 안내도";   // 2026-10-12 홍TV님: "전체 보기" → "탐방 안내도"
+        $("title").textContent = park ? (label || park) + " 탐방 안내도" : "탐방 안내도";   // 2026-10-12 홍TV님: "전체 보기" → "탐방 안내도"
         // 위 단추 - 기본은 "← 목록"(따라가기 첫 화면)
         if (listMode) {   // 목록 카드에서 왔으면: 위 "← 목록" 은 따라가기 화면(검색 목록 - 검색어는 rf-search 로 남아 있음), 아래 "따라가기" 는 고른 탐방로로
             $("back").textContent = "← 목록";   // 2026-10-13 홍TV님: "← 뒤로" → "← 목록"

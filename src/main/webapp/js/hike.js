@@ -2056,7 +2056,8 @@
         RF.guideMaps(rows, 3 - routes.length, from ? "" : lastQ).forEach(function (g) {
             var a = document.createElement("a");
             a.className = "it guide";
-            a.href = "park.html?name=" + encodeURIComponent(g.name) + "&from=" + encodeURIComponent(g.from) + "&back=list";   // ‹ 코스 → 이 목록으로
+            a.href = "park.html?name=" + encodeURIComponent(g.name) + "&from=" + encodeURIComponent(g.from) + "&back=list"
+                + (g.label !== g.name ? "&label=" + encodeURIComponent(g.label) : "");   // 지역이 붙은 이름(광양 가야산)은 안내도 제목에도   // ‹ 코스 → 이 목록으로
             var gb = document.createElement("b");
             gb.textContent = "🏞 " + g.label + " 탐방 안내도";
             var gs = document.createElement("span");

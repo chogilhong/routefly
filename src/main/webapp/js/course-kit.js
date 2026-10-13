@@ -725,7 +725,8 @@
         var key = String(q || "").replace(/\s+/g, "");
         var hit = key ? order.filter(function (g) { return g.label.replace(/\s+/g, "").indexOf(key) >= 0; }) : [];
         var out = (hit.length ? hit : order).map(function (g, i) { return { g: g, i: i }; })
-            .sort(function (a, b) { return b.g.n - a.g.n || a.i - b.i; })
+            // 국립공원 카드는 코스 수와 상관없이 먼저(2026-10-14 PC: "가야산" 에서 서산 40 · 나주 18 · 광양 13 에 밀려 국립공원 카드가 빠졌음)
+            .sort(function (a, b) { return (b.g.park ? 1 : 0) - (a.g.park ? 1 : 0) || b.g.n - a.g.n || a.i - b.i; })
             .slice(0, max || 3).map(function (x) { return x.g; });
         // 그래도 같은 이름표가 둘 이상이면(지역 없는 백운산 둘) 첫 코스 들머리로 가름: "백운산(오두재)"
         var dup = out.map(function (g) { return out.filter(function (o) { return o.label === g.label; }).length > 1; });

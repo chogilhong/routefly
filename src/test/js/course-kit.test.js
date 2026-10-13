@@ -698,4 +698,10 @@ eq("guideMaps 국립공원 이름 코스가 다른 곳(광양 가야산 1코스)
     { course_id: "frst-462300101-aa", name: "광양 가야산 · 가야산 1코스", start_lat: 34.94, start_lon: 127.70 },
     { course_id: "knps-7018-d7139b32", name: "가야산 · 가야산 소리길", start_lat: 35.75, start_lon: 128.15 },
     { course_id: "knps-7013-3d5c7ede", name: "가야산 · 해인사 → 상왕봉(우두봉)", start_lat: 35.80, start_lon: 128.10 }], 3, "가야산").map(function (g) { return g.label + "|" + g.from; }),
-    ["광양 가야산|kmp-1-1", "가야산|knps-7018-d7139b32"]);
+    ["가야산|knps-7018-d7139b32", "광양 가야산|kmp-1-1"]);
+var GMR = [];
+for (var gi = 0; gi < 40; gi++) GMR.push({ course_id: "frst-448100301-" + gi, name: "서산 가야산 · " + gi + "코스", start_lat: 36.70, start_lon: 126.60 });
+for (gi = 0; gi < 18; gi++) GMR.push({ course_id: "frst-461700101-" + gi, name: "나주 가야산 · " + gi + "코스", start_lat: 35.02, start_lon: 126.72 });
+for (gi = 0; gi < 13; gi++) GMR.push({ course_id: "kmp-7366020018-" + gi, name: "가야산 " + gi + "코스", start_lat: 34.94, start_lon: 127.70 });
+GMR.push({ course_id: "knps-7018-d7139b32", name: "가야산 · 가야산 소리길", start_lat: 35.75, start_lon: 128.15 });
+eq("guideMaps 국립공원 카드는 코스가 적어도 3장 안에(맨 앞)", RF.guideMaps(GMR, 3, "가야산").map(function (g) { return g.from; })[0], "knps-7018-d7139b32");
