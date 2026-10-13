@@ -59,6 +59,7 @@
     function peakCard(g, s) {
         var p = RF.seriesProgress(s, stamps, done, peakStamps);
         var box = el("div", "card"), head = el("button"), nm = el("div", "nm", s.name), pg = el("div", "pg");
+        box.setAttribute("data-card", g.key + "|" + s.name);   // 따라가기에서 돌아올 때 다시 펼칠 카드(view)
         head.type = "button";
         // 정상 자료가 없는 산(천성산 · 대암산 - GPX 가 정상 쪽을 안 지남)은 빠져 있음
         nm.appendChild(el("small", null, s.peaks.length + "산" + (s.official > s.peaks.length ? "(" + s.official + "곳 중 정상 자료가 있는 곳)" : "") + " · 정상 150m 안에 가면 도장"));
@@ -75,6 +76,7 @@
         head.addEventListener("click", function () {
             if (!box.classList.contains("open")) closeSiblings(box, "card");   // 노선 카드도 하나만 펼침
             box.classList.toggle("open");
+            saveView();
             if (loaded) return;
             loaded = true;
             s.peaks.forEach(function (k) {
@@ -87,12 +89,15 @@
                 // 코스 - 산 이름으로 찾아 정상 2km 안에서 끝나는(시작하는) 코스만, 누르면 펼침(따라가기)
                 // state: 0 안 부름 · 1 부르는 중 · 2 받음 · 3 실패(다음 누름에 바로 다시 부름 - 2026-10-12 PC: 오류 뒤 첫 누름이 닫기만 했음)
                 var more = el("button", "more", "코스 ▾"), list = el("div", "sublist"), state = 0;
+                more.setAttribute("data-peak", k.id || k.name);
+                list.setAttribute("data-of", k.id || k.name);
                 more.type = "button";
                 var setOpen = function (open) {
                     // 산마다 코스 목록도 하나만 펼침
                     if (open) Array.prototype.forEach.call(body.querySelectorAll(".sublist.open"), function (o) { if (o !== list && o._close) o._close(); });
                     list.classList.toggle("open", open);
                     more.textContent = open ? "코스 ▴" : "코스 ▾";
+                    saveView();
                 };
                 list._close = function () { setOpen(false); };
                 more.addEventListener("click", function () {
@@ -110,6 +115,7 @@
                         var cs = RF.peakCourses(j.courses, k, 2000).slice(0, 8);
                         if (!cs.length) list.appendChild(el("div", "tip", "정상까지 가는 코스를 찾지 못했습니다."));
                         cs.forEach(function (c) { list.appendChild(courseRow(c)); });
+                        restoreScroll();   // 받은 코스 목록이 늘어난 뒤 돌아온 자리로
                     }).catch(function (e) {
                         state = 3;
                         wait.textContent = (e.message || "코스를 읽지 못했습니다.") + " (코스 ▴ 를 다시 누르면 다시 찾습니다)";
@@ -127,6 +133,7 @@
         if (s.peaks) return peakCard(g, s);
         var p = RF.seriesProgress(s, stamps, done);
         var box = el("div", "card"), head = el("button"), nm = el("div", "nm", s.name), pg = el("div", "pg");
+        box.setAttribute("data-card", g.key + "|" + s.name);   // 따라가기에서 돌아올 때 다시 펼칠 카드(view)
         head.type = "button";
         // 코리아둘레길: 두루누비 API 가 일부 코스만 줌 - 공식 코스 수(official)를 함께 보여 "다 걸었다" 로 오해하지 않게(2026-10-12 PC)
         nm.appendChild(el("small", null, s.ids ? s.ids.length + g.unit + " · " + Math.round(s.meters / 1000) + "km" + (s.official ? " (공식 " + s.official + "코스 중 앱에 있는 것)" : "")
@@ -145,6 +152,7 @@
         head.addEventListener("click", function () {
             if (!box.classList.contains("open")) closeSiblings(box, "card");   // 노선 카드도 하나만 펼침
             box.classList.toggle("open");
+            saveView();
             if (loaded) return;
             loaded = true;
             var centerRows = [];
@@ -173,6 +181,7 @@
                 // 지리산둘레길: 주천-운봉부터 걷는 차례로. 자전거길: 구간 끝 → 다음 시작으로 땅 위 차례(끊긴 묶음의 뒷번호 구간도 제자리)
                 var list = s.chainFrom ? RF.chainOrder(j.courses, s.chainFrom) : s.centers ? RF.geoOrder(j.courses) : j.courses;
                 list.forEach(function (c) { body.appendChild(courseRow(c)); });
+                restoreScroll();
                 // 인증센터마다 그 센터를 지나는 구간의 따라가기(2026-10-12 홍TV님)
                 if (centerRows.length) RF.centerCourses(list, s.centers, j.centers, s.aka).forEach(function (c, i) {
                     if (!c) return;
@@ -250,6 +259,39 @@
         return { box: box, body: body };
     }
 
+    // 따라가기로 갔다가 "‹ 도장 · 완주" 로 돌아오면 그 상태 그대로 - 펼친 카드 · 산의 코스 목록 · 스크롤(2026-10-13 홍TV님).
+    // 이 탭 동안만(sessionStorage). 단계 칸(등산 · 걷기 …)은 위 opened 가 기억
+    var VIEW_KEY = "rf-series-view", view = null, restoring = false;
+    try { view = JSON.parse(sessionStorage.getItem(VIEW_KEY) || "null"); } catch (e) { view = null; }
+    function saveView() {
+        if (restoring) return;
+        var cardEl = document.querySelector(".card.open"), subEl = document.querySelector(".sublist.open");
+        var v = { card: cardEl && cardEl.getAttribute("data-card"), y: window.scrollY || 0,
+                  peak: subEl && subEl.getAttribute("data-of") };
+        try { sessionStorage.setItem(VIEW_KEY, JSON.stringify(v)); } catch (e) { }
+    }
+    var scrollT = null;
+    window.addEventListener("scroll", function () { clearTimeout(scrollT); scrollT = setTimeout(saveView, 200); });
+    // 떠날 때(pagehide)는 스크롤이 이미 0 으로 읽혀 - 따라가기를 누르는 순간에 남김
+    document.addEventListener("click", function (e) { if (e.target.closest && e.target.closest("a")) saveView(); }, true);
+    function restoreScroll() {
+        if (view && view.y && !userScrolled) window.scrollTo(0, view.y);
+    }
+    var userScrolled = false;
+    ["touchstart", "wheel", "keydown"].forEach(function (ev) { window.addEventListener(ev, function () { userScrolled = true; }, { passive: true }); });
+    function restoreView() {
+        if (!view) return;
+        restoring = true;
+        var cardEl = view.card && Array.prototype.filter.call(document.querySelectorAll(".card"), function (e) { return e.getAttribute("data-card") === view.card; })[0];
+        if (cardEl && !cardEl.classList.contains("open")) cardEl.querySelector("button").click();
+        if (cardEl && view.peak) {
+            var b = Array.prototype.filter.call(cardEl.querySelectorAll("[data-peak]"), function (e) { return e.getAttribute("data-peak") === view.peak; })[0];
+            if (b) b.click();
+        }
+        restoring = false;
+        restoreScroll();
+    }
+
     getJson("data/series.json").catch(function () {
         return fetch("data/series.json").then(function (r) { return r.json(); });
     }).then(loadNamed).then(function (d) {
@@ -272,5 +314,6 @@
                 g.series.forEach(function (s) { gf.body.appendChild(card(g, s)); });
             });
         });
+        restoreView();
     }).catch(function () { $("list").textContent = "목록을 읽지 못했습니다."; });
 })();

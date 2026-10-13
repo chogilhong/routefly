@@ -94,19 +94,31 @@
         return (sy > 0 ? "top" : "bottom") + "-" + (sx > 0 ? "right" : "left");
     }
 
-    function flagMarker(txt, at, coords) {
+    function flagMarker(txt, at, coords, keepIn) {
         var e = document.createElement("div"), a = flagAnchor(at, coords);
         e.className = "flag " + a;   // 꼬리(뾰족한 모서리)는 깃발 자리 쪽
         RF.nameNodes(e, txt);   // 탐방지원센터는 작은 글씨
-        return new maplibregl.Marker({ element: e, anchor: a }).setLngLat(at).addTo(map);
+        var m = new maplibregl.Marker({ element: e, anchor: a }).setLngLat(at).addTo(map);
+        // 지도를 다시 맞추지 않는 때(지도에서 구간을 직접 고름)는 화면 밖으로 나가면 안쪽으로 뒤집음(2026-10-13 PC: 곰배령 "도착 강선리" 가 오른쪽 끝에서 잘림)
+        if (keepIn) {
+            var px = map.project(at), w = e.offsetWidth || 0, W = map.getContainer().clientWidth;
+            var right = /-left$/.test(a), out = right ? px.x + w > W - 8 : px.x - w < 8;
+            if (out) {
+                m.remove();
+                a = a.replace(/-(left|right)$/, right ? "-right" : "-left");
+                e.className = "flag " + a;
+                m = new maplibregl.Marker({ element: e, anchor: a }).setLngLat(at).addTo(map);
+            }
+        }
+        return m;
     }
 
-    /** 지도 맞춤 여백 - 깃발 이름표가 펼쳐지는 쪽(왼쪽 · 오른쪽)은 깃발 너비만큼 더(적어도 130px). */
+    /** 지도 맞춤 여백 - 깃발 이름표가 펼쳐지는 쪽(왼쪽 · 오른쪽)은 깃발 너비만큼 더. */
     function flagPad() {
         var pad = { top: 40, bottom: 40, left: 40, right: 40 };
         [startMk, endMk].forEach(function (m) {
             if (!m) return;
-            var e = m.getElement(), c = e.classList, wd = Math.max(130, (e.offsetWidth || 0) + 16);   // "출발 · 도착 북한산성입구" 는 160px 넘음
+            var e = m.getElement(), c = e.classList, wd = e.offsetWidth ? e.offsetWidth + 16 : 130;   // 깃발 너비만큼("출발 · 도착 북한산성입구" 160px · "출발 화엄사" 90px - 130 으로 묶으면 화대종주가 작게 그려졌음)
             if (c.contains("bottom-left") || c.contains("top-left")) pad.right = Math.max(pad.right, wd); else pad.left = Math.max(pad.left, wd);
         });
         return pad;
@@ -150,7 +162,7 @@
         // 출발(들머리) · 도착을 지도에(2026-10-12 홍TV님: 중산리탐방지원센터가 들머리인데 지도에 표시)
         var walkLine = [];
         chosen.forEach(function (id) { if (lines[id]) walkLine = walkLine.concat(lines[id]); });
-        var flag = function (txt, at) { return flagMarker(txt, at, walkLine); };
+        var flag = function (txt, at) { return flagMarker(txt, at, walkLine, true); };
         var ends = function (s) {
             var e = RF.routeEnds(byId[s.id].name), a = flips[s.id] ? e.to : e.from, b = flips[s.id] ? e.from : e.to;
             return s.rev ? [b, a] : [a, b];
