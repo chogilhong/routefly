@@ -692,4 +692,4 @@ eq("isHiddenCourse park-notes hide(앞부분)", [RF.isHiddenCourse({ 가야산: 
     RF.isHiddenCourse({ 가야산: { hide: ["knps-7014"] } }, "knps-70141-aa"), RF.isHiddenCourse(null, "knps-7014-1")], [true, false, false]);
 var ACN = { 가야산: { access: { "knps-7013": { car: "치인대형주차장 → 토신골탐방지원센터(도보)", vcurs: "120700V002" }, "knps-7012": { vcurs: "bad" } } } };
 eq("courseAccess 공단 교통편", [RF.courseAccess(ACN, "knps-7013-3d5c7ede"), RF.courseAccess(ACN, "knps-7012-ccb26052"), RF.courseAccess(ACN, "knps-70131-x")],
-    [{ car: "치인대형주차장 → 토신골탐방지원센터(도보)", url: "https://www.knps.or.kr/front/portal/visit/visitCourseSubMain.do?parkId=120700&vcursId=120700V002&parkNavGb=guide&menuNo=7020084" }, null, null]);
+    [{ car: "치인대형주차장 → 토신골탐방지원센터(도보)", url: "https://www.knps.or.kr/front/portal/visit/visitCourseSubMain.do?parkId=120700&vcursId=120700V002&parkNavGb=traffic&menuNo=7020084" }, null, null]);

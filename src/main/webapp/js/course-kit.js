@@ -2181,7 +2181,7 @@
                 if (s !== k && s.indexOf(k + "-") !== 0) return;
                 var a = ac[k] || {}, v = /^(\d{6})V\d+$/.exec(a.vcurs || "");
                 out = { car: a.car || "", url: v ? "https://www.knps.or.kr/front/portal/visit/visitCourseSubMain.do?parkId=" + v[1]
-                    + "&vcursId=" + a.vcurs + "&parkNavGb=guide&menuNo=7020084" : "" };
+                    + "&vcursId=" + a.vcurs + "&parkNavGb=traffic&menuNo=7020084" : "" };   // traffic = 교통편 탭(guide 는 코스별난이도 탭 - 2026-10-14 PC)
             });
         });
         return out && (out.car || out.url) ? out : null;
