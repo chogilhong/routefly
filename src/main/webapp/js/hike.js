@@ -1383,6 +1383,9 @@
         hike.walked = saved && saved.walked ? saved.walked : 0;
         hike.alerted = {};
         hike.sunWarned = false;
+        // 귀가 확인 - 표준 시간의 1.5배(적어도 1시간 더)가 지나도록 못 끝내면 알림, 그 뒤 한 시간마다(2026-10-14 홍TV님). 위치는 보내지 않음
+        hike.lateAt = sim ? 0 : RF.lateAt(hike.start, RF.standardMs(c.course.kind, c.total, RF.ascentLeft(c, 0)));
+        hike.lateNext = hike.lateAt;
         hike.spotDone = {};
         hike.passed = {};
         hike.wasOff = false;
@@ -1756,6 +1759,12 @@
                     say("주의하세요. 예상 도착이 해 지기 30분 전보다 늦습니다. 일찍 돌아서는 것도 생각하세요.", { urgent: true });
                     if (navigator.vibrate) navigator.vibrate([300, 150, 300]);
                 }
+            }
+            if (hike.running && hike.lateNext && nowMs > hike.lateNext) {
+                hike.lateNext += 3600000;
+                toast("⏰ 귀가 예정(" + clock(hike.lateAt) + ")보다 늦어지고 있습니다. 괜찮다면 가족에게 알려 주세요 - 위쪽 SOS 에서 위치 문자를 보낼 수 있습니다.", 12000);
+                say("귀가 예정 시각이 지났습니다. 괜찮다면 가족에게 알려 주세요.", { urgent: true });
+                if (navigator.vibrate) navigator.vibrate([300, 150, 300, 150, 300]);
             }
         }
         var nx = RF.nextPoi(c, d);
@@ -2422,6 +2431,9 @@
         $("sosPhoto").disabled = !f;
         $("sosBody").textContent = body;
         $("sosSms").href = "sms:119" + (/iPhone|iPad/.test(navigator.userAgent) ? "&" : "?") + "body=" + encodeURIComponent(body);
+        // 가족 · 지인에게 - 받는 사람은 문자 앱에서 고름(긴급 신고 머리말 대신 안부 머리말)
+        var fam = ["[routefly 위치 알림] " + K().act + " 중 지금 위치입니다."].concat(lines.slice(1)).join("\n");
+        $("sosFamily").href = "sms:" + (/iPhone|iPad/.test(navigator.userAgent) ? "&" : "?") + "body=" + encodeURIComponent(fam);
         $("sosCopy").onclick = function () {
             (navigator.clipboard ? navigator.clipboard.writeText(body) : Promise.reject()).then(function () { toast("위치를 복사했습니다."); })
                 .catch(function () { prompt("아래 글을 길게 눌러 복사하세요", body); });
