@@ -46,4 +46,20 @@ public class PetServletTest {
         assertEquals("A & B", OpenApi.plain("A &amp; B<br/>"));
         assertEquals("&lt;", OpenApi.plain("&amp;lt;"));
     }
+
+    /** 실제 응답(2026-10-14 PetTourProbe, 키 없음) - 섬향기 2558084 는 동반 조건이 오고, 3532743 은 빈 목록. */
+    @Test
+    public void realDetailResponses() throws Exception {
+        JsonArray pet = PetServlet.body(read("pet-probe-detail-2558084.json")).getAsJsonArray("pet");
+        assertTrue(pet.size() >= 4);
+        assertEquals("동반 구분", pet.get(0).getAsJsonObject().get("k").getAsString());
+        assertEquals("일부구역 동반가능", pet.get(0).getAsJsonObject().get("v").getAsString());
+        String all = pet.toString();
+        assertTrue(all, all.contains("레스토랑&까페") && !all.contains("&amp;"));
+        assertEquals(0, PetServlet.body(read("pet-probe-detail-3532743.json")).getAsJsonArray("pet").size());
+    }
+
+    static String read(String name) throws Exception {
+        return new String(PetServletTest.class.getResourceAsStream("/stays/" + name).readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+    }
 }

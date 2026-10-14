@@ -65,4 +65,16 @@ public class StaysServletTest {
     public void probeScrubsKey() {
         assertEquals("a *** b ***", PetTourProbe.scrub("a k+/= b k%2B%2F%3D", "k+/="));
     }
+
+    /** 실제 응답(2026-10-14 PetTourProbe) - 반려동물 동반여행 서비스는 문서(80 · 82)와 달리 32 · 39 에 답함. 제주 · 가야산 20km 는 0곳. */
+    @Test
+    public void realPetListResponses() throws Exception {
+        com.google.gson.JsonArray st = StaysServlet.body(PetServletTest.read("pet-probe-bukhansan-32.json")).getAsJsonArray("stays");
+        assertEquals("totalCount 12 중 첫 쪽 10건(확인 프로그램은 numOfRows=10)", 10, st.size());
+        assertEquals("사월 한옥", st.get(0).getAsJsonObject().get("name").getAsString());
+        assertTrue(st.get(0).getAsJsonObject().has("id"));
+        assertEquals(4, StaysServlet.body(PetServletTest.read("pet-probe-bukhansan-39.json")).getAsJsonArray("stays").size());
+        for (String f : new String[] {"bukhansan-80", "bukhansan-82", "jeju-32", "jeju-39", "gayasan-32", "gayasan-39"})
+            assertEquals(f, 0, StaysServlet.body(PetServletTest.read("pet-probe-" + f + ".json")).getAsJsonArray("stays").size());
+    }
 }

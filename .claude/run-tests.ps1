@@ -42,7 +42,8 @@ $classes = @(if ($Only.Count -gt 0) { $Only | ForEach-Object { "com.gh.routefly.
 $resDir = Join-Path $root 'src\main\resources'
 if ($Run) {
   Push-Location $root
-  & "$jdk\java.exe" "-Dfile.encoding=UTF-8" "-Dstdout.encoding=UTF-8" -cp "$testOut;$mainOut;$resDir;$cp" "com.gh.routefly.$Run" @RunArgs
+  # catalina.base -> target, so log4j can write its log file outside Tomcat (2026-10-14 PetTourProbe)
+  & "$jdk\java.exe" "-Dcatalina.base=$root\target" "-Dfile.encoding=UTF-8" "-Dstdout.encoding=UTF-8" -cp "$testOut;$mainOut;$resDir;$cp" "com.gh.routefly.$Run" @RunArgs
   $rc = $LASTEXITCODE
   Pop-Location
   exit $rc
