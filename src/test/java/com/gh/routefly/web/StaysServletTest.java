@@ -35,13 +35,14 @@ public class StaysServletTest {
     @Test
     public void bodyReadsArrayOneAndEmpty() {
         String two = "{\"response\":{\"header\":{\"resultCode\":\"0000\",\"resultMsg\":\"OK\"},\"body\":{\"items\":{\"item\":["
-                + "{\"title\":\"숙소A\",\"addr1\":\"경남 합천군 가야면\",\"tel\":\"055-000-0000\",\"mapx\":\"128.12\",\"mapy\":\"35.79\",\"dist\":\"512.3\"},"
+                + "{\"title\":\"숙소A\",\"contentid\":\"2879\",\"addr1\":\"경남 합천군 가야면\",\"tel\":\"055-000-0000\",\"mapx\":\"128.12\",\"mapy\":\"35.79\",\"dist\":\"512.3\"},"
                 + "{\"title\":\"숙소B\",\"addr1\":\"\",\"tel\":\"\",\"mapx\":\"128.13\",\"mapy\":\"35.80\",\"dist\":\"1200\"}]},\"totalCount\":2}}}";
         JsonObject o = StaysServlet.body(two);
         assertEquals(2, o.getAsJsonArray("stays").size());
         JsonObject a = o.getAsJsonArray("stays").get(0).getAsJsonObject();
         assertEquals("숙소A", a.get("name").getAsString());
         assertEquals(512, a.get("dist_m").getAsLong());
+        assertEquals("반려동물 정보용 contentid", "2879", a.get("id").getAsString());
         assertFalse("빈 전화는 넣지 않음", o.getAsJsonArray("stays").get(1).getAsJsonObject().has("tel"));
         assertEquals("한국관광공사", o.get("source").getAsString());
 

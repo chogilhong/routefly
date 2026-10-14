@@ -25,7 +25,7 @@ import com.google.gson.JsonParser;
  *       {@code {success:true, stays:[], unavailable:true}} - 오류 내용은 로그에만.</li>
  *   <li>주소 {@code tour.url} 은 바꿀 수 있습니다(기본 KorService2 locationBasedList2).</li>
  * </ul>
- * → {@code {success, stays:[{name, addr, tel, lat, lon, dist_m}], source:"한국관광공사"}}
+ * → {@code {success, stays:[{name, id, addr, tel, lat, lon, dist_m}], source:"한국관광공사"}} - id 는 TourAPI contentid
  */
 @WebServlet(urlPatterns = {"/api/stays"})
 public class StaysServlet extends HttpServlet {
@@ -124,6 +124,8 @@ public class StaysServlet extends HttpServlet {
             Double y = num(it, "mapy"), x = num(it, "mapx");
             if (name == null || y == null || x == null) continue;
             s.addProperty("name", name);
+            String cid = str(it, "contentid");
+            if (cid != null && cid.matches("\\d{1,12}")) s.addProperty("id", cid);   // 반려동물 동반 정보(api/pet)를 물을 때
             String addr = str(it, "addr1"), tel = str(it, "tel");
             if (addr != null) s.addProperty("addr", addr);
             if (tel != null) s.addProperty("tel", tel);

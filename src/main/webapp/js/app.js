@@ -515,6 +515,27 @@
         return a;
     }
 
+    /** 🐾 반려동물 - 누르면 그 곳의 반려동물 동반 정보(api/pet, TourAPI)를 줄 아래에 펼침(2026-10-14 홍TV님). */
+    function petButton(id, box) {
+        var b = el("a", null, "🐾 반려동물"), shown = null;
+        b.href = "#";
+        b.addEventListener("click", function (e) {
+            e.preventDefault();
+            if (shown) { shown.remove(); shown = null; return; }
+            shown = el("div", "gPet", "불러오는 중…");
+            box.appendChild(shown);
+            var me = shown;
+            getJson("api/pet?id=" + encodeURIComponent(id)).then(function (w) {
+                if (shown !== me) return;
+                me.textContent = "";
+                if (w.unavailable) { me.textContent = "반려동물 정보를 지금 받지 못했습니다."; return; }
+                if (!(w.pet || []).length) { me.textContent = "반려동물 동반 정보가 없습니다(동반 불가이거나 등록 안 됨 - 숙소에 확인하세요)."; return; }
+                w.pet.forEach(function (p) { me.appendChild(el("div", null, p.k + ": " + p.v)); });
+            }).catch(function () { if (shown === me) me.textContent = "반려동물 정보를 받지 못했습니다."; });
+        });
+        return b;
+    }
+
     /**
      * 그 자리로 날아가 비스듬히(안내 칸은 닫음). 카메라 중심 높이는 그 자리 높이(ele - 없으면 코스에서 가장 가까운 점의 높이)로 -
      * 아직 지형 타일을 안 받은 곳은 queryTerrainElevation 이 틀린 값을 줘 높은 곳(위험 지점 1,300m 대 · 상왕봉)에서 화면이 까맣게 됐음(2026-10-14 PC).
@@ -656,9 +677,11 @@
                     var links = el("div", "gLinks"), nm = String(x.name).replace(/[,/?#&]/g, " ").trim();
                     if (x.tel) { var t = el("a", null, "📞 전화"); t.href = "tel:" + String(x.tel).replace(/[^0-9+]/g, ""); links.appendChild(t); }
                     links.appendChild(gLink("길찾기", "https://map.kakao.com/link/to/" + encodeURIComponent(nm) + "," + (+x.lat).toFixed(6) + "," + (+x.lon).toFixed(6)));
+                    if (x.id) links.appendChild(petButton(x.id, r.querySelector(".gMain")));
                     r.querySelector(".gMain").appendChild(links);
                     body.appendChild(r);
                 });
+                if (RF.parkOf(c.course.name)) body.appendChild(el("div", "gNote gWarn", "🐾 국립공원 탐방로는 대부분 반려동물과 함께 들어갈 수 없습니다. 산행 전에 공원 안내를 확인하세요."));
                 body.appendChild(el("div", "gNote", "자료: 한국관광공사 TourAPI(관광공사에 등록된 곳) · 들머리 5km 안 · 가까운 순."
                     + (food ? " 영업시간 · 휴무는 가게에 확인하세요." : " 예약 · 요금은 숙소에 확인하세요.")));
             }).catch(function () { body.textContent = ""; body.appendChild(el("div", "gNote", what + " 정보를 받지 못했습니다.")); });

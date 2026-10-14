@@ -31,7 +31,8 @@ map.dem.url=https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.
 # 공공데이터포털 일반 인증키(Decoding). 서버에서만 쓰고 브라우저로 내려가지 않습니다. 비우면 숙박 · 날씨 칸에 "준비 중".
 #   tour.serviceKey    : 한국관광공사_국문 관광정보 서비스(TourAPI) - 들머리 3km 안 숙박
 #   weather.serviceKey : 기상청_단기예보 조회서비스 - 비우면 tour.serviceKey 를 씀(개인 키는 같고 서비스마다 활용 신청만 따로)
-#   tour.url · weather.url : 주소를 바꿀 때만(기본 KorService2 locationBasedList2 · VilageFcstInfoService_2.0 getVilageFcst)
+#   반려동물 동반 정보(detailPetTour2)도 tour.serviceKey 로(같은 국문 관광정보 서비스)
+#   tour.url · tour.petUrl · weather.url : 주소를 바꿀 때만(기본 KorService2 locationBasedList2 · VilageFcstInfoService_2.0 getVilageFcst)
 tour.serviceKey=
 weather.serviceKey=
 
