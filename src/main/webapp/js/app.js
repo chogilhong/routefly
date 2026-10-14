@@ -1084,18 +1084,31 @@
         // 비행 중에는 목록을 숨겨 지도를 꽉 차게(멈추면 다시)
         document.body.classList.add("flying");
         // 인트로 - 지금 자리에서 출발 지점으로 곧장 미끄러져 내려앉습니다. 처음부터일 때는 조금 길게, 이어서일 때는 짧게.
-        // flyTo(curve)는 한참 높이 물러났다가 내려와 어지러웠음(2026-10-14 홍TV님: "한참 뒤로 밀렸다가 감") - easeTo 는 물러나지 않고,
-        // 가는 동안 중심 높이도 그 자리 지형 높이로 맞춰 줌(MapLibre 5.24 _prepareElevation).
+        // flyTo(curve)는 한참 높이 물러났다가 내려와 어지러웠음(2026-10-14 홍TV님). easeTo · flyTo 는 중심 높이(elevation)를 0 으로 두어
+        // 끝에서 첫 jumpTo 가 크게 튀거나 높은 산에서는 카메라가 땅속으로 들어가 까맸음(2026-10-14 PC: 가야산 772m) -
+        // 매 프레임 jumpTo 로 center · zoom · pitch · bearing · 여백 · 중심 높이를 함께 옮깁니다(frameAt 과 같은 방식).
         anim.pitch = anim.pitchWant = anim.d === 0 ? FLY_PITCH : Math.min(anim.pitch, FLY_PITCH);
         anim.pitchAt = 0;
-        map.easeTo({ center: [p.lon, p.lat], zoom: cur.plan.zoom, pitch: anim.pitch, bearing: anim.bearing,
-                    duration: anim.d === 0 ? 2200 : 1000, essential: true, padding: flightPadding() });
-        map.once("moveend", function () {
+        var c0 = map.getCenter(), z0 = map.getZoom(), p0 = map.getPitch(), b0 = map.getBearing(), e0 = map.getCenterElevation() || 0;
+        var pad0 = map.getPadding(), pad1 = flightPadding();
+        var b1 = b0 + ((((anim.bearing - b0) % 360) + 540) % 360 - 180);   // 짧은 쪽으로 돌기
+        var dur = anim.d === 0 ? 2200 : 1000, t0 = performance.now();
+        var lerp = function (a, b, k) { return a + (b - a) * k; };
+        var introFrame = function (now) {
             if (!anim.running) return;
+            var t = Math.min(1, (now - t0) / dur), k = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;   // 천천히 - 빠르게 - 천천히
+            var e1 = withGround({}, p).elevation;   // 그 자리 지형 높이(타일을 받으면 바로 맞는 값으로)
+            map.jumpTo({ center: [lerp(c0.lng, p.lon, k), lerp(c0.lat, p.lat, k)], zoom: lerp(z0, cur.plan.zoom, k),
+                         pitch: lerp(p0, anim.pitch, k), bearing: lerp(b0, b1, k),
+                         elevation: lerp(e0, e1 != null ? e1 : e0, k),
+                         padding: { top: lerp(pad0.top || 0, pad1.top || 0, k), bottom: lerp(pad0.bottom || 0, pad1.bottom || 0, k),
+                                    left: lerp(pad0.left || 0, pad1.left || 0, k), right: lerp(pad0.right || 0, pad1.right || 0, k) } });
+            if (t < 1) { anim.raf = requestAnimationFrame(introFrame); return; }
             stepCaptions(anim.d);   // 출발 자막
             anim.last = performance.now();
             anim.raf = requestAnimationFrame(tick);
-        });
+        };
+        anim.raf = requestAnimationFrame(introFrame);
     }
 
     /** V-World 지명 겹침 - 비행 중에는 숨겨 우리 이름표(반듯한 아이콘 + 글씨)만 보이게. */
