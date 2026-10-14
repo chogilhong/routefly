@@ -17,7 +17,7 @@ import com.google.gson.JsonParser;
 
 /**
  * 들머리 근처 숙박 · 식당. {@code GET /api/stays?lat=35.79&lon=128.12[&kind=food][&pet=1]} (pet=1 - 반려동물 동반 가능한 곳만, KorPetTourService2) - 한국관광공사 TourAPI 위치기반 관광정보
- * (숙박 contentTypeId 32, kind=food 면 음식점 39), 반경 5km. 2026-10-14 홍TV님: 들머리 쪽 펜션 · 모텔 · 호텔(먼저 가야산), 그다음 근처 식당 · 5km.
+ * (숙박 contentTypeId 32, kind=food 면 음식점 39), 반경 5km. pet=1 이면 반려동물 동반여행 서비스 번호(숙박 80, 음식점 82). 2026-10-14 홍TV님: 들머리 쪽 펜션 · 모텔 · 호텔(먼저 가야산), 그다음 근처 식당 · 5km.
  *
  * <ul>
  *   <li>좌표는 코스 출발점(들머리)입니다 - 화면이 내 위치를 보내지 않습니다. 소수 셋째 자리(약 100m)로 묶어 하루 동안 담아 둡니다(호출 수 줄이기).</li>
@@ -47,8 +47,8 @@ public class StaysServlet extends HttpServlet {
             Json.fail(resp, HttpServletResponse.SC_BAD_REQUEST, "lat · lon 은 우리나라 안 좌표입니다.");
             return;
         }
-        String type = typeOf(req.getParameter("kind"));
         boolean pet = "1".equals(req.getParameter("pet"));
+        String type = typeOf(req.getParameter("kind"), pet);
         String key = (pet ? "pet" : "") + type + "@" + cacheKey(at[0], at[1]);
         long now = System.currentTimeMillis();
         JsonObject out = CACHE.get(key, now);
@@ -106,7 +106,13 @@ public class StaysServlet extends HttpServlet {
 
     /** 순수 함수 - kind → TourAPI 관광타입(food 면 음식점 39, 그 밖은 숙박 32). */
     static String typeOf(String kind) {
-        return "food".equals(kind) ? "39" : "32";
+        return typeOf(kind, false);
+    }
+
+    /** 순수 함수 - 반려동물 동반여행 서비스의 목록은 관광타입 번호가 다름(숙박 80, 음식점 82 - 활용매뉴얼 v4.1, 2026-10-14 PC). */
+    static String typeOf(String kind, boolean pet) {
+        boolean food = "food".equals(kind);
+        return pet ? (food ? "82" : "80") : food ? "39" : "32";
     }
 
     /** 순수 함수 - TourAPI 주소(거리순 arrange=E). */

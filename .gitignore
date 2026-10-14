@@ -19,3 +19,6 @@ config.properties
 
 # 안드로이드 앱(Capacitor) - npm 패키지 · 빌드 산출물(android/.gitignore 도 있음)
 /app/node_modules/
+
+# 공공데이터포털 참고문서(활용매뉴얼 등) - 커밋하지 않음
+docs/open/
