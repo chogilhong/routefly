@@ -35,7 +35,7 @@ public class StaysServlet extends HttpServlet {
     static final String DEFAULT_URL = "https://apis.data.go.kr/B551011/KorService2/locationBasedList2";
     /** pet=1 - 반려동물 동반여행 서비스의 위치 검색(나오는 곳이 모두 반려동물 동반 가능한 곳, 2026-10-14 홍TV님). */
     static final String PET_URL = "https://apis.data.go.kr/B551011/KorPetTourService2/locationBasedList2";
-    static final int RADIUS_M = 5000, ROWS = 20, CACHE_MAX = 500;
+    static final int RADIUS_M = 5000, PET_WIDE_M = 20000, ROWS = 20, CACHE_MAX = 500;
     static final long CACHE_MS = 24L * 60 * 60 * 1000;
 
     private static final OpenApi.Cache<JsonObject> CACHE = new OpenApi.Cache<>(CACHE_MAX, CACHE_MS);
@@ -63,10 +63,22 @@ public class StaysServlet extends HttpServlet {
         String serviceKey = RouteflyConfig.get("tour.serviceKey");
         if (serviceKey == null) return unavailable();
         String base = RouteflyConfig.get(pet ? "tour.petListUrl" : "tour.url");
-        String text = OpenApi.get(url(base != null ? base : pet ? PET_URL : DEFAULT_URL, serviceKey, lat, lon, type), pet ? "STAYS-PET" : "STAYS");
+        if (base == null) base = pet ? PET_URL : DEFAULT_URL;
+        JsonObject out = fetch(base, serviceKey, lat, lon, type, RADIUS_M, pet);
+        // 반려동물 동반 가능한 곳은 드묾 - 5km 안에 없으면 20km 까지 넓혀 한 번 더(2026-10-14 PC: 가야산 · 북한산 5km 안 0곳)
+        if (pet && out != null && out.getAsJsonArray("stays").size() == 0) {
+            JsonObject wide = fetch(base, serviceKey, lat, lon, type, PET_WIDE_M, pet);
+            if (wide != null) out = wide;
+        }
+        return out != null ? out : unavailable();
+    }
+
+    private static JsonObject fetch(String base, String serviceKey, double lat, double lon, String type, int radius, boolean pet) {
+        String text = OpenApi.get(url(base, serviceKey, lat, lon, type, radius), pet ? "STAYS-PET" : "STAYS");
         JsonObject out = text == null ? null : body(text);
         if (out == null && text != null) OpenApi.warn(pet ? "STAYS-PET" : "STAYS", text);
-        return out != null ? out : unavailable();
+        if (out != null) out.addProperty("radius_km", radius / 1000);
+        return out;
     }
 
     private static JsonObject unavailable() {
@@ -99,9 +111,13 @@ public class StaysServlet extends HttpServlet {
 
     /** 순수 함수 - TourAPI 주소(거리순 arrange=E). */
     static String url(String base, String serviceKey, double lat, double lon, String type) {
+        return url(base, serviceKey, lat, lon, type, RADIUS_M);
+    }
+
+    static String url(String base, String serviceKey, double lat, double lon, String type, int radius) {
         return base + "?serviceKey=" + URLEncoder.encode(serviceKey, StandardCharsets.UTF_8)
                 + "&MobileOS=ETC&MobileApp=routefly&_type=json&arrange=E&contentTypeId=" + type
-                + String.format(Locale.ROOT, "&mapX=%.6f&mapY=%.6f&radius=%d&numOfRows=%d&pageNo=1", lon, lat, RADIUS_M, ROWS);
+                + String.format(Locale.ROOT, "&mapX=%.6f&mapY=%.6f&radius=%d&numOfRows=%d&pageNo=1", lon, lat, radius, ROWS);
     }
 
     /** 순수 함수 - TourAPI JSON → 응답. 모양이 다르면(오류 XML 등) null. item 이 하나면 배열이 아니라 객체로 옴. 빈 결과는 items 가 "". */
@@ -123,14 +139,14 @@ public class StaysServlet extends HttpServlet {
         for (JsonElement e : arr) {
             if (!e.isJsonObject()) continue;
             JsonObject it = e.getAsJsonObject(), s = new JsonObject();
-            String name = str(it, "title");
+            String name = OpenApi.plain(str(it, "title"));
             Double y = num(it, "mapy"), x = num(it, "mapx");
-            if (name == null || y == null || x == null) continue;
+            if (name == null || name.isEmpty() || y == null || x == null) continue;
             s.addProperty("name", name);
             String cid = str(it, "contentid");
             if (cid != null && cid.matches("\\d{1,12}")) s.addProperty("id", cid);   // 반려동물 동반 정보(api/pet)를 물을 때
-            String addr = str(it, "addr1"), tel = str(it, "tel");
-            if (addr != null) s.addProperty("addr", addr);
+            String addr = OpenApi.plain(str(it, "addr1")), tel = str(it, "tel");
+            if (addr != null && !addr.isEmpty()) s.addProperty("addr", addr);
             if (tel != null) s.addProperty("tel", tel);
             s.addProperty("lat", y);
             s.addProperty("lon", x);

@@ -38,4 +38,12 @@ public class PetServletTest {
         String u = PetServlet.url(PetServlet.DEFAULT_URL, "k+/", "12345");
         assertTrue(u, u.contains("serviceKey=k%2B%2F") && u.contains("contentId=12345") && u.contains("detailPetTour2"));
     }
+
+    @Test
+    public void bodyUnescapesEntities() {
+        JsonArray pet = PetServlet.body("{\"response\":{\"header\":{\"resultCode\":\"0000\"},\"body\":{\"items\":{\"item\":{\"relaPosesFclty\":\"놀이터 &amp; 샤워장&lt;br&gt;\"}}}}}").getAsJsonArray("pet");
+        assertEquals("놀이터 & 샤워장<br>", pet.get(0).getAsJsonObject().get("v").getAsString());
+        assertEquals("A & B", OpenApi.plain("A &amp; B<br/>"));
+        assertEquals("&lt;", OpenApi.plain("&amp;lt;"));
+    }
 }

@@ -108,7 +108,7 @@ public class PetServlet extends HttpServlet {
             for (Map.Entry<String, String> e : LABELS.entrySet()) {
                 JsonElement v = low.get(e.getKey().toLowerCase(java.util.Locale.ROOT));
                 if (v == null || v.isJsonNull()) continue;
-                String t = v.getAsString().replaceAll("<br\\s*/?>", " ").replaceAll("<[^>]*>", "").trim();   // 글 속 줄바꿈 표시 · 꼬리표 뗌
+                String t = OpenApi.plain(v.getAsString());   // 글 속 줄바꿈 표시 · 꼬리표 뗌, &amp; 등 풂
                 if (t.isEmpty()) continue;
                 JsonObject row = new JsonObject();
                 row.addProperty("k", e.getValue());

@@ -676,7 +676,8 @@
                 tg.addEventListener("click", function (e) { e.preventDefault(); guide.petOnly = !petOnly; openGuide(kind, btn); });
                 body.appendChild(tg);
                 if (w.unavailable) { body.appendChild(el("div", "gNote", what + " 정보를 지금 받지 못했습니다. 잠시 뒤 다시 눌러 주세요.")); return; }
-                if (!(w.stays || []).length) body.appendChild(el("div", "gNote", "들머리 5km 안에 " + (petOnly ? "반려동물과 함께 갈 수 있는 " : "등록된 ") + what + "이 없습니다."));
+                var rk = w.radius_km || 5;
+                if (!(w.stays || []).length) body.appendChild(el("div", "gNote", "들머리 " + rk + "km 안에 " + (petOnly ? "반려동물과 함께 갈 수 있는 " : "등록된 ") + what + "이 없습니다."));
                 w.stays.forEach(function (x) {
                     var r = gRow(x.name, x.addr || null, x.dist_m != null ? RF.km(x.dist_m) + "km" : null);
                     var links = el("div", "gLinks"), nm = String(x.name).replace(/[,/?#&]/g, " ").trim();
@@ -693,7 +694,8 @@
                     if (pet && /^https:\/\//.test(pet.url || "")) { var pl = gLink("예약 안내 ›", pet.url); pn.appendChild(document.createTextNode(" ")); pn.appendChild(pl); }
                     body.appendChild(pn);
                 }
-                body.appendChild(el("div", "gNote", "자료: 한국관광공사 TourAPI(관광공사에 등록된 곳) · 들머리 5km 안 · 가까운 순."
+                body.appendChild(el("div", "gNote", "자료: 한국관광공사 " + (petOnly ? "반려동물 동반여행 서비스" : "TourAPI") + "(관광공사에 등록된 곳) · 들머리 " + rk + "km 안 · 가까운 순."
+                    + (petOnly && rk > 5 ? " 5km 안에 없어 " + rk + "km 까지 넓혀 찾았습니다." : "")
                     + (food ? " 영업시간 · 휴무는 가게에 확인하세요." : " 예약 · 요금은 숙소에 확인하세요.")));
             }).catch(function () { body.textContent = ""; body.appendChild(el("div", "gNote", what + " 정보를 받지 못했습니다.")); });
         }

@@ -48,6 +48,15 @@ final class OpenApi {
     }
 
     /** 크기가 정해진 담아 두기(오래 안 쓴 것부터 버림) - 값과 담은 시각. */
+    /** 순수 함수 - 관광공사 글의 꼬리표를 떼고 HTML 엔티티(&amp;amp; 등)를 풂(2026-10-14 PC: 시설 값에 "&amp;amp;" 가 그대로). */
+    static String plain(String s) {
+        if (s == null) return null;
+        String t = s.replaceAll("<br\\s*/?>", " ").replaceAll("<[^>]*>", "")
+                .replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"").replace("&#39;", "'").replace("&nbsp;", " ")
+                .replace("&amp;", "&");
+        return t.trim();
+    }
+
     static final class Cache<V> {
         private final int max;
         private final long ttlMs;
