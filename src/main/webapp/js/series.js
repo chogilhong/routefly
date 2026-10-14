@@ -8,6 +8,9 @@
     function $(id) { return document.getElementById(id); }
     function load(key) { try { return JSON.parse(localStorage.getItem(key) || "{}") || {}; } catch (e) { return {}; } }
     var stamps = load("rf-stamps"), done = load("rf-done"), peakStamps = load("rf-peaks");
+    // 산 안내(park-notes) - 따라가기 검색 목록과 같게: 바로잡은 탐방로 이름 · "공단 가야산1코스" · 지금은 없는 탐방로 빼기(2026-10-14 홍TV님)
+    var notes = null, notesP = fetch("data/park-notes.json").then(function (r) { return r.json(); })
+        .then(function (d) { notes = d && d.parks; }, function () { /* 안내 없이 */ });
 
     function getJson(url) {
         return fetch(url, { headers: { "Accept": "application/json" } }).then(function (r) {
@@ -42,8 +45,11 @@
     function courseRow(c, note) {
         var row = el("div", "row"), t = el("div", "t");
         var d = done[c.course_id];
-        t.appendChild(document.createTextNode((d ? "✅ " : "") + RF.nameText(c.name)));
-        t.appendChild(el("span", null, RF.km(c.distance_m) + "km · 오르막 " + RF.num(c.ascent_m) + "m" + (d ? " · 완주 " + day(d.t) : "") + (note ? " · " + note : "")));
+        var name = RF.noteTrailName(notes, c.course_id, c.name), ofn = RF.officialName(notes, c.course_id);
+        if (ofn && String(name).replace(/\s+/g, "").indexOf(ofn.replace(/\s+/g, "")) >= 0) ofn = "";   // 이름에 이미 든 공식 이름은 빼고(남산제일봉1코스)
+        t.appendChild(document.createTextNode((d ? "✅ " : "") + RF.nameText(name)));
+        t.appendChild(el("span", null, (ofn ? "공단 " + ofn + " · " : "") + RF.km(c.distance_m) + "km · 오르막 " + RF.num(c.ascent_m) + "m"
+            + (d ? " · 완주 " + day(d.t) : "") + (note ? " · " + note : "")));
         row.appendChild(t);
         flyBtn(row, c.course_id);
         var b = el("a", "main", "따라가기");
@@ -118,8 +124,10 @@
                     list.textContent = "";
                     var wait = el("div", "tip", "코스를 찾는 중…");
                     list.appendChild(wait);
-                    getJson("api/courses?q=" + encodeURIComponent(k.name)).then(function (j) {
+                    Promise.all([getJson("api/courses?q=" + encodeURIComponent(k.name)), notesP]).then(function (r) {
+                        var j = r[0];
                         if (!j || !Array.isArray(j.courses)) throw new Error("코스를 읽지 못했습니다. 잠시 뒤 다시 눌러 주세요.");
+                        j.courses = j.courses.filter(function (c) { return !RF.isHiddenCourse(notes, c.course_id); });   // 가야산3코스처럼 지금은 없는 탐방로
                         wait.remove();
                         state = 2;
                         var cs = RF.peakCourses(j.courses, k, 2000).slice(0, 8);
