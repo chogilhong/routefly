@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>routefly 안내 - 안전 · 개인정보 · 출처</title>
-<link rel="icon" type="image/svg+xml" href="favicon.svg?v=1">
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=2"><link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
 <meta name="theme-color" content="#11161d">
 <style>
 :root { --bg:#11161d; --panel:#1a212b; --tx:#e9eef4; --dim:#9aa6b4; --ln:rgba(255,255,255,0.12); --sky:#38d9ea; --warn:#ffb4b4; }
@@ -27,6 +27,7 @@ table { width:100%; border-collapse:collapse; font-size:13.5px; }
 td, th { border-top:1px solid var(--ln); padding:7px 4px; vertical-align:top; text-align:left; }
 th { color:var(--dim); font-weight:normal; width:34%; }
 .back { display:inline-block; margin-top:6px; }
+.logo { display:block; width:240px; max-width:62%; height:auto; margin:0 0 6px -6px; }   /* 로고(img/logo-dark.svg - 2026-10-14 홍TV님, 어두운 바탕용으로 route 글자만 밝게) */
 /* 오른쪽 위 닫기 - 아래 '‹ 돌아가기' 와 같음(앞 화면으로, 2026-10-13 홍TV님) */
 .close { position:fixed; top:calc(env(safe-area-inset-top) + 10px); right:12px; z-index:5; width:40px; height:40px; border-radius:50%;
          display:flex; align-items:center; justify-content:center; font-size:20px; text-decoration:none; color:var(--tx);
@@ -42,7 +43,8 @@ h1 { padding-right:110px; }
 <body>
 <a class="close" id="aboutClose" href="hike.html" aria-label="닫기" title="닫기(앞 화면으로)">✕</a>
 <main>
-    <h1>route<span>fly</span> 안내</h1>
+    <img class="logo" src="img/logo-dark.svg" alt="routefly - 등산 · 걷기 · 자전거 코스" width="240" height="75">
+    <h1>안내</h1>   <!-- 로고 바로 아래라 routefly 는 뺌 -->
     <p class="lead">코스를 3D 지형 위에서 미리 보고, 핸드폰으로 위치를 확인하며 걷는 서비스입니다.</p>
     <nav>
         <a href="#safety">안전 안내</a>

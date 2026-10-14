@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="500" viewBox="0 0 1600 500" role="img" aria-labelledby="title desc">
+  <title id="title">routefly logo</title>
+  <desc id="desc">Outdoor route logo for hiking, walking, and cycling, combining mountains, activity icons, a route line, and a location pin.</desc>
+  <defs>
+    <linearGradient id="mountainGreen" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#82D927"/><stop offset="1" stop-color="#16A34A"/>
+    </linearGradient>
+    <linearGradient id="mountainTeal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#34D399"/><stop offset="1" stop-color="#059669"/>
+    </linearGradient>
+    <linearGradient id="greenCard" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8EDC29"/><stop offset="1" stop-color="#0F9B58"/>
+    </linearGradient>
+    <linearGradient id="blueCard" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#16B8F3"/><stop offset="1" stop-color="#1769E8"/>
+    </linearGradient>
+    <linearGradient id="orangeCard" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFC331"/><stop offset="1" stop-color="#F97316"/>
+    </linearGradient>
+    <linearGradient id="routeStroke" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#159447"/><stop offset="0.55" stop-color="#37B86B"/><stop offset="1" stop-color="#0F8F51"/>
+    </linearGradient>
+    <linearGradient id="flyGradient" x1="0" y1="0" x2="0.9" y2="1">
+      <stop offset="0" stop-color="#65C926"/><stop offset="1" stop-color="#078B4A"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="145%">
+      <feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#17352C" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Outdoor landscape mark -->
+  <g id="icon" filter="url(#softShadow)">
+    <circle cx="422" cy="115" r="35" fill="#FDBA12"/>
+    <circle cx="422" cy="115" r="27" fill="#FFD34E" opacity="0.45"/>
+    <path d="M74 292 L221 105 Q231 91 244 105 L392 286 Z" fill="url(#mountainGreen)"/>
+    <path d="M193 291 L337 65 Q346 51 358 65 L510 293 Z" fill="url(#mountainTeal)"/>
+    <path d="M337 65 L358 65 L510 293 L402 293 Z" fill="#047857" opacity="0.20"/>
+
+    <!-- Activity tiles -->
+    <g transform="rotate(-12 290 290)">
+      <rect x="65" y="208" width="142" height="192" rx="31" fill="url(#greenCard)"/>
+      <rect x="216" y="190" width="142" height="211" rx="31" fill="url(#blueCard)" stroke="#E7F8FF" stroke-width="5"/>
+      <rect x="367" y="208" width="142" height="192" rx="31" fill="url(#orangeCard)"/>
+
+      <!-- Hiker pictogram -->
+      <g transform="translate(65 208)" fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round" stroke-width="10">
+        <circle cx="70" cy="37" r="11" fill="#FFFFFF" stroke="none"/>
+        <path d="M67 58 L55 92 L77 113 L65 145"/>
+        <path d="M58 78 L35 98 L23 126"/>
+        <path d="M61 75 L87 91 L104 86"/>
+        <path d="M77 113 L97 139 L115 145"/>
+        <path d="M29 113 L18 166" stroke-width="6"/>
+      </g>
+      <!-- Walker / runner pictogram -->
+      <g transform="translate(216 190)" fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round" stroke-width="10">
+        <circle cx="74" cy="39" r="11" fill="#FFFFFF" stroke="none"/>
+        <path d="M68 60 L59 93 L81 111 L68 145"/>
+        <path d="M62 76 L39 91 L24 113"/>
+        <path d="M63 75 L91 87 L108 76"/>
+        <path d="M81 111 L105 130 L125 130"/>
+      </g>
+      <!-- Cycling pictogram -->
+      <g transform="translate(367 208)" fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round" stroke-width="7">
+        <circle cx="36" cy="139" r="22"/>
+        <circle cx="104" cy="139" r="22"/>
+        <path d="M36 139 L59 96 L82 139 L36 139 L69 139 L104 139 L83 96 L68 96"/>
+        <circle cx="74" cy="57" r="10" fill="#FFFFFF" stroke="none"/>
+        <path d="M72 73 L60 96 L82 103 L94 86" stroke-width="9"/>
+      </g>
+    </g>
+
+    <!-- Route ribbon in foreground -->
+    <path d="M72 405 C153 438 231 436 303 413 C363 394 415 397 465 423" fill="none" stroke="#FFFFFF" stroke-width="37" stroke-linecap="round"/>
+    <path d="M72 405 C153 438 231 436 303 413 C363 394 415 397 465 423" fill="none" stroke="url(#routeStroke)" stroke-width="27" stroke-linecap="round"/>
+    <path d="M99 412 C165 433 222 427 273 415" fill="none" stroke="#A7F3D0" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+
+    <!-- Location pin -->
+    <path d="M493 381 C493 351 516 332 544 332 C572 332 594 353 594 381 C594 414 544 460 544 460 C544 460 493 414 493 381 Z" fill="#FFFFFF"/>
+    <path d="M500 380 C500 355 519 339 544 339 C567 339 587 356 587 380 C587 408 544 449 544 449 C544 449 500 407 500 380 Z" fill="url(#routeStroke)"/>
+    <circle cx="544" cy="380" r="12" fill="#E8FFF0"/>
+  </g>
+
+  <!-- Wordmark -->
+  <g id="wordmark">
+    <text x="625" y="335" font-family="Inter, Lato, Arial, sans-serif" font-size="190" font-weight="800" letter-spacing="-8" fill="#13232D">route</text>
+    <text x="1074" y="335" font-family="Inter, Lato, Arial, sans-serif" font-size="190" font-weight="800" letter-spacing="-8" fill="url(#flyGradient)">fly</text>
+  </g>
+</svg>
