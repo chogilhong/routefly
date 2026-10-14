@@ -722,3 +722,9 @@ eq("summitTemp 100m 에 0.65도", [RF.summitTemp(18, 600, 1400), RF.summitTemp(1
     eq("peaksDue 정상 둘(가야산 칠불봉 · 상왕봉) - 상왕봉에서도 도장", [RF.peaksDue([gaya], 35.8233, 128.1204, {}).length, RF.peaksDue([{ id: "x", lat: 35.822544, lon: 128.122849 }], 35.8233, 128.1204, {}).length], [1, 0]);
     eq("peakCourses 끝이 상왕봉인 코스가 맨 앞", RF.peakCourses([{ course_id: "a", name: "서성재", end_lat: 35.8300, end_lon: 128.1300 }, { course_id: "b", name: "상왕봉", end_lat: 35.823298, end_lon: 128.120373 }], gaya, 2000).map(function (c) { return c.course_id; }), ["b", "a"]);
 })();
+eq("regionNames 같은 산 지역 붙이기(광양 가야산 자락), 공단 · 먼 곳은 그대로", RF.regionNames([
+    { course_id: "kmp-7366020018-1", name: "광양 가야산 · 민방위대피소 → 가야산", start_lat: 34.94, start_lon: 127.70 },
+    { course_id: "kmp-1-1", name: "가야산 자락 1코스 · 적벽 → 금강블루빌", start_lat: 34.95, start_lon: 127.71 },
+    { course_id: "kmp-2-1", name: "가야산 1코스 · a → b", start_lat: 35.8, start_lon: 128.1 },
+    { course_id: "knps-7013-x", name: "가야산 · 해인사 → 상왕봉(우두봉)", start_lat: 34.94, start_lon: 127.70 }]),
+    { "kmp-1-1": "광양 가야산 자락 1코스 · 적벽 → 금강블루빌" });

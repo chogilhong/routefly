@@ -536,6 +536,34 @@
         return m ? m[1] : null;
     }
 
+    /**
+     * 순수 함수 - 지역이 없는 무리 이름에 지역 붙이기(2026-10-14 홍TV님: "가야산" 검색의 "[가야산 자락 1코스] 적벽 → 금강블루빌" 이
+     * 국립공원 가야산인지 광양 가야산인지 몰랐음). 같은 목록에 "광양 가야산 · …" 처럼 지역이 붙은 같은 산 코스가 출발점 20km 안에 있으면
+     * 그 지역을 앞에 붙임 → {course_id: "광양 가야산 자락 1코스 · 적벽 → 금강블루빌"}. 공단 코스(knps-)는 그대로(국립공원).
+     */
+    function regionNames(rows) {
+        var reg = [];
+        (rows || []).forEach(function (r) {
+            // "광양 가야산" - 마지막 낱말이 산 이름(앞은 지역). 산림청 코스가 아니면 mountainOf 가 지역 붙은 이름을 못 읽어 낱말로 봄
+            var g = nameParts(r.name).group, w = g ? g.split(/\s+/) : [], m = w[w.length - 1];
+            if (w.length >= 2 && MOUNTAIN_WORD.test(m) && r.start_lat != null) reg.push({ m: m, region: w.slice(0, -1).join(" "), lat: +r.start_lat, lon: +r.start_lon });
+        });
+        var out = {};
+        (rows || []).forEach(function (r) {
+            if (/^knps-/.test(String(r.course_id || "")) || r.start_lat == null) return;
+            var g = nameParts(r.name).group, m = mountainOf(r.name, r.course_id);
+            if (!g || !m || g.indexOf(m) !== 0) return;
+            var best = null, bd = 20000;
+            reg.forEach(function (x) {
+                if (x.m !== m) return;
+                var d = distM(+r.start_lat, +r.start_lon, x.lat, x.lon);
+                if (d < bd) { bd = d; best = x; }
+            });
+            if (best) out[r.course_id] = best.region + " " + String(r.name);
+        });
+        return out;
+    }
+
     /** 순수 함수 - 인증센터 도장 열쇠("섬진강댐인증센터" · "섬진강댐 인증센터" · "섬진강댐" → "섬진강댐"). */
     /**
      * 위치를 서버로 보내지 않기(2026-10-11 위치기반서비스 비신고 요건 ② - 위치는 단말기에서만 쓰고 사업자 시스템으로 보내지 않음):
@@ -2830,7 +2858,7 @@
     }
 
     global.RF = {
-        LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, stampKey: stampKey, summitName: summitName, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakGapM: peakGapM, peakCourses: peakCourses, isClosedTrail: isClosedTrail, isHiddenCourse: isHiddenCourse, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
+        LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, regionNames: regionNames, stampKey: stampKey, summitName: summitName, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakGapM: peakGapM, peakCourses: peakCourses, isClosedTrail: isClosedTrail, isHiddenCourse: isHiddenCourse, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
         sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, scheduleRows: scheduleRows, weatherWord: weatherWord, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
     };

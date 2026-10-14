@@ -2066,11 +2066,12 @@
             a.appendChild(gs);
             box.appendChild(a);
         });
+        var regional = RF.regionNames(rows);
         rows.forEach(function (r) {
             var it = document.createElement("div");
             it.className = "it";
             var b = document.createElement("b");
-            RF.showName(b, RF.noteTrailName(listNotes, r.course_id, r.name));   // 이름을 바로잡은 탐방로(park-notes trails - 설악산 "백담사" → 용대리 → 백담사)
+            RF.showName(b, RF.noteTrailName(listNotes, r.course_id, regional[r.course_id] || r.name));   // 지역 없는 무리에 지역(광양 가야산 자락 1코스)   // 이름을 바로잡은 탐방로(park-notes trails - 설악산 "백담사" → 용대리 → 백담사)
             var s = document.createElement("span");
             var ofn = RF.officialName(listNotes, r.course_id);   // 공단 공식 이름(가야산1코스) - 이름에 이미 들었으면 빼고(남산제일봉1코스)
             if (ofn && String(r.name).replace(/\s+/g, "").indexOf(ofn.replace(/\s+/g, "")) >= 0) ofn = "";
