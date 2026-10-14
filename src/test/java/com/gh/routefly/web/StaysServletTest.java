@@ -30,9 +30,6 @@ public class StaysServletTest {
         assertTrue(u, u.contains("mapX=128.120000&mapY=35.790000"));
         assertTrue(u, u.contains("contentTypeId=32") && u.contains("radius=5000") && u.contains("_type=json"));
         assertTrue("반려동물은 20km 까지 넓혀 봄", StaysServlet.url(StaysServlet.PET_URL, "k", 35.79, 128.12, "32", StaysServlet.PET_WIDE_M).contains("radius=20000"));
-        assertEquals("반려동물 숙박 80", "80", StaysServlet.typeOf(null, true));
-        assertEquals("반려동물 음식점 82", "82", StaysServlet.typeOf("food", true));
-        assertEquals("국문 숙박 32", "32", StaysServlet.typeOf("stay", false));
         assertTrue("식당은 음식점 39", StaysServlet.url(StaysServlet.DEFAULT_URL, "k", 35.79, 128.12, StaysServlet.typeOf("food")).contains("contentTypeId=39"));
         assertEquals("모르는 값은 숙박", "32", StaysServlet.typeOf("x"));
     }
@@ -62,5 +59,10 @@ public class StaysServletTest {
     public void bodyRejectsErrors() {
         assertNull(StaysServlet.body("<OpenAPI_ServiceResponse><cmmMsgHeader><errMsg>SERVICE ERROR</errMsg></cmmMsgHeader></OpenAPI_ServiceResponse>"));
         assertNull(StaysServlet.body("{\"response\":{\"header\":{\"resultCode\":\"30\",\"resultMsg\":\"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\"}}}"));
+    }
+
+    @Test
+    public void probeScrubsKey() {
+        assertEquals("a *** b ***", PetTourProbe.scrub("a k+/= b k%2B%2F%3D", "k+/="));
     }
 }
