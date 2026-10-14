@@ -2513,7 +2513,8 @@
 
     /** 순수 함수 - 그날 해 지는 시각(ms, 그 위치 기준). 극지방처럼 해가 안 지면 null. (Almanac for Computers 공식) */
     function sunset(dateMs, lat, lon) {
-        var r = Math.PI / 180, d = new Date(dateMs);
+        // 그 자리의 날짜로(경도로 어림한 현지 시각) - UTC 날짜를 쓰면 한국 아침 9시 전은 전날 일몰이 나왔음(2026-10-14 PC: 08:00 출발에 일몰 경고)
+        var r = Math.PI / 180, d = new Date(dateMs + lon / 15 * 3600000);
         var start = Date.UTC(d.getUTCFullYear(), 0, 0), N = Math.floor((Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - start) / 86400000);
         var lngHour = lon / 15, t = N + (18 - lngHour) / 24;
         var Mn = 0.9856 * t - 3.289;

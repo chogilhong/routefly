@@ -713,3 +713,7 @@ eq("summitTemp 100m 에 0.65도", [RF.summitTemp(18, 600, 1400), RF.summitTemp(1
     var r = RF.scheduleRows(c, 0, "hike");
     eq("scheduleRows 끝 이름표는 빼고 시각은 늘어남", [r.rows.length, r.rows[0].name, r.rows[0].at > 0, r.end > r.rows[0].at], [1, "a", true, true]);
 })();
+(function () {
+    var a = RF.sunset(Date.UTC(2026, 9, 13, 23, 0), 35.8, 128.1), b = RF.sunset(Date.UTC(2026, 9, 14, 1, 30), 35.8, 128.1);   // 한국 10-14 08:00 · 10:30
+    eq("sunset 한국 아침 9시 전도 그날 일몰", [a === b, a > Date.UTC(2026, 9, 14, 0, 0), new Date(a + 9 * 3600000).getUTCHours()], [true, true, 17]);
+})();

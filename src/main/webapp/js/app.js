@@ -513,10 +513,23 @@
         return a;
     }
 
-    /** 그 자리로 날아가 비스듬히(안내 칸은 닫음). */
-    function flyToSpot(lat, lon) {
+    /**
+     * 그 자리로 날아가 비스듬히(안내 칸은 닫음). 카메라 중심 높이는 그 자리 높이(ele - 없으면 코스에서 가장 가까운 점의 높이)로 -
+     * 아직 지형 타일을 안 받은 곳은 queryTerrainElevation 이 틀린 값을 줘 높은 곳(위험 지점 1,300m 대 · 상왕봉)에서 화면이 까맣게 됐음(2026-10-14 PC).
+     */
+    function flyToSpot(lat, lon, ele) {
         closeGuide();
-        map.flyTo(withGround({ center: [+lon, +lat], zoom: 15.6, pitch: 62, bearing: map.getBearing(), duration: 1600 }, { lon: +lon, lat: +lat }));
+        var c = guide.c;
+        if (ele == null && c) {
+            var best = Infinity;
+            for (var i = 0; i < c.lat.length; i++) {
+                var m = RF.distM(+lat, +lon, c.lat[i], c.lon[i]);
+                if (m < best && c.ele[i] != null) { best = m; ele = c.ele[i]; }
+            }
+        }
+        var t = map.getTerrain && map.getTerrain(), opts = { center: [+lon, +lat], zoom: 15.6, pitch: 62, bearing: map.getBearing(), duration: 1600 };
+        if (ele != null && isFinite(+ele)) opts.elevation = +ele * (t && t.exaggeration ? t.exaggeration : 1);
+        map.flyTo(opts);
     }
 
     function clockText(ms) {
@@ -552,7 +565,7 @@
         } else if (kind === "danger") {
             title.textContent = "⚠️ 위험 지점";
             (c.spots || []).filter(function (s) { return s.kind === "danger"; }).forEach(function (s) {
-                body.appendChild(gRow(RF.spotText(s), "누르면 그 자리로", null, function () { flyToSpot(s.lat, s.lon); }));
+                body.appendChild(gRow(RF.spotText(s), "누르면 그 자리로", null, function () { flyToSpot(s.lat, s.lon, s.ele_m); }));
             });
             body.appendChild(el("div", "gNote", "국립공원공단 위험지역 자료 - 낙석 · 추락 · 미끄럼 주의 구간입니다."));
         } else if (kind === "poi") {
@@ -560,7 +573,7 @@
             (c.pois || []).forEach(function (p) {
                 if (p.lat == null) return;
                 body.appendChild(gRow(RF.poiIcon(p.name) + " " + p.name, p.ele_m != null ? "해발 " + RF.num(+p.ele_m) + "m" : null,
-                    RF.km(+p.dist_m || 0) + "km", function () { flyToSpot(p.lat, p.lon); }));
+                    RF.km(+p.dist_m || 0) + "km", function () { flyToSpot(p.lat, p.lon, p.ele_m); }));
             });
         } else if (kind === "plan") {
             title.textContent = "🕐 일정";
