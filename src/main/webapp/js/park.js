@@ -233,7 +233,7 @@
         map.getSource("sel").setData({ type: "FeatureCollection", features: chosen.map(function (id) {
             return { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: lines[id] } };
         }).concat(RF.bridgeGaps(sel, lines).map(function (ab) {   // 갈림길에서 끊긴 선 끝을 이어 그림(이어 걷기가 한 줄로 보이게)
-            return { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: ab } };
+            return { type: "Feature", properties: { gap: true }, geometry: { type: "LineString", coordinates: ab } };
         })) });
         if (startMk) { startMk.remove(); startMk = null; }
         if (endMk) { endMk.remove(); endMk = null; }
@@ -610,7 +610,10 @@
             paint: { "line-color": ["case", ["get", "extra"], "#ffa94d", "#e8590c"], "line-width": ["case", ["get", "extra"], 2.5, 3] } });
         map.addSource("sel", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
         map.addLayer({ id: "sel", type: "line", source: "sel", layout: { "line-join": "round", "line-cap": "round" },
-            paint: { "line-color": RF.LINE_COLOR, "line-width": 6 } });
+            filter: ["!", ["to-boolean", ["get", "gap"]]], paint: { "line-color": RF.LINE_COLOR, "line-width": 6 } });
+        // 이은 빈틈은 점선 - 탐방로가 아니라 갈림길에서 끊긴 자료를 이은 것(곧은 선이라 100m 넘으면 길 밖을 가로질러 보임 - 2026-10-14 PC)
+        map.addLayer({ id: "selGap", type: "line", source: "sel", filter: ["to-boolean", ["get", "gap"]],
+            paint: { "line-color": RF.LINE_COLOR, "line-width": 4, "line-dasharray": [1, 1.2] } });
         // 손가락으로 누르기 쉽게 - 보이지 않는 굵은 선으로 고름
         map.addLayer({ id: "trails-hit", type: "line", source: "trails", paint: { "line-color": "#000", "line-opacity": 0, "line-width": 22 } });
         map.on("moveend", keepFlagsIn);   // 지도를 맞추거나 옮긴 뒤 깃발이 화면 밖이면 안쪽으로
