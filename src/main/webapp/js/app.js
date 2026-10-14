@@ -475,6 +475,7 @@
     function setupGuide(c, j, parks, id) {
         var pk = RF.parkOf(j.course.name), n = pk && parks && parks[pk];
         var on = !!(n && n.guide3d && /^knps-/.test(String(id)));
+        if (guide.mark) guide.mark.remove();   // 앞 코스에서 띄운 표시 고리
         guide = { c: c, parks: parks, id: String(id).split(",")[0].replace(/[~@].*$/, ""), kind: j.course.kind };
         closeGuide();
         $("guideBar").style.display = on ? "flex" : "none";
@@ -528,10 +529,15 @@
             }
         }
         // flyTo 는 elevation 을 무시함(MapLibre 5.24 - 2026-10-14 PC: 날아가는 동안 · 끝난 뒤 0) - 다 날아간 뒤 jumpTo 로 높이를 맞춤.
-        // 줌은 15 - 지형 타일이 15 까지라 그보다 크게 보면 지형 높이를 0 으로 읽음(PC: 15.5 넘게)
         var t = map.getTerrain && map.getTerrain(), h = ele != null && isFinite(+ele) ? +ele * (t && t.exaggeration ? t.exaggeration : 1) : null;
-        map.flyTo({ center: [+lon, +lat], zoom: 15, pitch: 62, bearing: map.getBearing(), duration: 1600 });
-        if (h != null) map.once("moveend", function () { map.jumpTo({ elevation: h }); });
+        // 그 자리를 크게(2026-10-14 홍TV님) - 16. 표시 고리를 잠깐 띄워 어디인지 보이게
+        map.flyTo({ center: [+lon, +lat], zoom: 16, pitch: 60, bearing: map.getBearing(), duration: 1600 });
+        if (guide.mark) guide.mark.remove();
+        var dot = el("div", "spotRing");
+        guide.mark = new maplibregl.Marker({ element: dot }).setLngLat([+lon, +lat]).addTo(map);
+        map.once("moveend", function () { if (h != null) map.jumpTo({ elevation: h }); });
+        clearTimeout(guide.markT);
+        guide.markT = setTimeout(function () { if (guide.mark) { guide.mark.remove(); guide.mark = null; } }, 8000);
     }
 
     function clockText(ms) {
@@ -632,14 +638,15 @@
                 });
                 body.appendChild(el("div", "gNote", "자료: 기상청 단기예보(" + w.base + " 발표) · 들머리 둘레 5km 격자. 정상 기온은 높이로 어림한 값입니다."));
             }).catch(function () { body.textContent = ""; body.appendChild(el("div", "gNote", "날씨를 받지 못했습니다.")); });
-        } else if (kind === "stay") {
-            title.textContent = "🛏 들머리 근처 숙박";
+        } else if (kind === "stay" || kind === "food") {
+            var food = kind === "food", what = food ? "식당" : "숙박";
+            title.textContent = food ? "🍚 들머리 근처 식당" : "🛏 들머리 근처 숙박";
             body.appendChild(el("div", "gNote", "불러오는 중…"));
-            getJson("api/stays?lat=" + start.lat.toFixed(4) + "&lon=" + start.lon.toFixed(4)).then(function (w) {
-                if (!$("guideSheet").classList.contains("open") || guide.c !== c) return;
+            getJson("api/stays?lat=" + start.lat.toFixed(4) + "&lon=" + start.lon.toFixed(4) + (food ? "&kind=food" : "")).then(function (w) {
+                if (!$("guideSheet").classList.contains("open") || guide.c !== c || title.textContent.indexOf(what) < 0) return;
                 body.textContent = "";
-                if (w.unavailable) { body.appendChild(el("div", "gNote", "숙박 정보를 지금 받지 못했습니다. 잠시 뒤 다시 눌러 주세요.")); return; }
-                if (!(w.stays || []).length) body.appendChild(el("div", "gNote", "들머리 3km 안에 등록된 숙박이 없습니다."));
+                if (w.unavailable) { body.appendChild(el("div", "gNote", what + " 정보를 지금 받지 못했습니다. 잠시 뒤 다시 눌러 주세요.")); return; }
+                if (!(w.stays || []).length) body.appendChild(el("div", "gNote", "들머리 5km 안에 등록된 " + what + "이 없습니다."));
                 w.stays.forEach(function (x) {
                     var r = gRow(x.name, x.addr || null, x.dist_m != null ? RF.km(x.dist_m) + "km" : null);
                     var links = el("div", "gLinks"), nm = String(x.name).replace(/[,/?#&]/g, " ").trim();
@@ -648,8 +655,9 @@
                     r.querySelector(".gMain").appendChild(links);
                     body.appendChild(r);
                 });
-                body.appendChild(el("div", "gNote", "자료: 한국관광공사 TourAPI · 들머리 3km 안 · 가까운 순. 예약 · 요금은 숙소에 확인하세요."));
-            }).catch(function () { body.textContent = ""; body.appendChild(el("div", "gNote", "숙박 정보를 받지 못했습니다.")); });
+                body.appendChild(el("div", "gNote", "자료: 한국관광공사 TourAPI(관광공사에 등록된 곳) · 들머리 5km 안 · 가까운 순."
+                    + (food ? " 영업시간 · 휴무는 가게에 확인하세요." : " 예약 · 요금은 숙소에 확인하세요.")));
+            }).catch(function () { body.textContent = ""; body.appendChild(el("div", "gNote", what + " 정보를 받지 못했습니다.")); });
         }
     }
 

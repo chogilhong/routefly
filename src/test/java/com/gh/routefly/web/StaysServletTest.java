@@ -24,10 +24,12 @@ public class StaysServletTest {
 
     @Test
     public void urlEncodesKeyAndUsesLonAsX() {
-        String u = StaysServlet.url(StaysServlet.DEFAULT_URL, "a+b/c==", 35.79, 128.12);
+        String u = StaysServlet.url(StaysServlet.DEFAULT_URL, "a+b/c==", 35.79, 128.12, StaysServlet.typeOf(null));
         assertTrue(u, u.contains("serviceKey=a%2Bb%2Fc%3D%3D"));
         assertTrue(u, u.contains("mapX=128.120000&mapY=35.790000"));
-        assertTrue(u, u.contains("contentTypeId=32") && u.contains("radius=3000") && u.contains("_type=json"));
+        assertTrue(u, u.contains("contentTypeId=32") && u.contains("radius=5000") && u.contains("_type=json"));
+        assertTrue("식당은 음식점 39", StaysServlet.url(StaysServlet.DEFAULT_URL, "k", 35.79, 128.12, StaysServlet.typeOf("food")).contains("contentTypeId=39"));
+        assertEquals("모르는 값은 숙박", "32", StaysServlet.typeOf("x"));
     }
 
     @Test

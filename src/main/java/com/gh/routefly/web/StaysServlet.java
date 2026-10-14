@@ -16,8 +16,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 /**
- * 들머리 근처 숙박. {@code GET /api/stays?lat=35.79&lon=128.12} - 한국관광공사 TourAPI 위치기반 관광정보(숙박, contentTypeId 32), 반경 3km.
- * 2026-10-14 홍TV님: 들머리 쪽 펜션 · 모텔 · 호텔(먼저 가야산).
+ * 들머리 근처 숙박 · 식당. {@code GET /api/stays?lat=35.79&lon=128.12[&kind=food]} - 한국관광공사 TourAPI 위치기반 관광정보
+ * (숙박 contentTypeId 32, kind=food 면 음식점 39), 반경 5km. 2026-10-14 홍TV님: 들머리 쪽 펜션 · 모텔 · 호텔(먼저 가야산), 그다음 근처 식당 · 5km.
  *
  * <ul>
  *   <li>좌표는 코스 출발점(들머리)입니다 - 화면이 내 위치를 보내지 않습니다. 소수 셋째 자리(약 100m)로 묶어 하루 동안 담아 둡니다(호출 수 줄이기).</li>
@@ -33,7 +33,7 @@ public class StaysServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
 
     static final String DEFAULT_URL = "https://apis.data.go.kr/B551011/KorService2/locationBasedList2";
-    static final int RADIUS_M = 3000, ROWS = 20, CACHE_MAX = 500;
+    static final int RADIUS_M = 5000, ROWS = 20, CACHE_MAX = 500;
     static final long CACHE_MS = 24L * 60 * 60 * 1000;
 
     private static final OpenApi.Cache<JsonObject> CACHE = new OpenApi.Cache<>(CACHE_MAX, CACHE_MS);
@@ -45,21 +45,22 @@ public class StaysServlet extends HttpServlet {
             Json.fail(resp, HttpServletResponse.SC_BAD_REQUEST, "lat · lon 은 우리나라 안 좌표입니다.");
             return;
         }
-        String key = cacheKey(at[0], at[1]);
+        String type = typeOf(req.getParameter("kind"));
+        String key = type + "@" + cacheKey(at[0], at[1]);
         long now = System.currentTimeMillis();
         JsonObject out = CACHE.get(key, now);
         if (out == null) {
-            out = fetch(at[0], at[1]);
+            out = fetch(at[0], at[1], type);
             if (!out.has("unavailable")) CACHE.put(key, out, now);
         }
         Json.ok(req, resp, out);
     }
 
-    private static JsonObject fetch(double lat, double lon) {
+    private static JsonObject fetch(double lat, double lon, String type) {
         String serviceKey = RouteflyConfig.get("tour.serviceKey");
         if (serviceKey == null) return unavailable();
         String base = RouteflyConfig.get("tour.url");
-        String text = OpenApi.get(url(base != null ? base : DEFAULT_URL, serviceKey, lat, lon), "STAYS");
+        String text = OpenApi.get(url(base != null ? base : DEFAULT_URL, serviceKey, lat, lon, type), "STAYS");
         JsonObject out = text == null ? null : body(text);
         if (out == null && text != null) OpenApi.warn("STAYS", text);
         return out != null ? out : unavailable();
@@ -88,10 +89,15 @@ public class StaysServlet extends HttpServlet {
         return String.format(Locale.ROOT, "%.3f,%.3f", lat, lon);
     }
 
+    /** 순수 함수 - kind → TourAPI 관광타입(food 면 음식점 39, 그 밖은 숙박 32). */
+    static String typeOf(String kind) {
+        return "food".equals(kind) ? "39" : "32";
+    }
+
     /** 순수 함수 - TourAPI 주소(거리순 arrange=E). */
-    static String url(String base, String serviceKey, double lat, double lon) {
+    static String url(String base, String serviceKey, double lat, double lon, String type) {
         return base + "?serviceKey=" + URLEncoder.encode(serviceKey, StandardCharsets.UTF_8)
-                + "&MobileOS=ETC&MobileApp=routefly&_type=json&arrange=E&contentTypeId=32"
+                + "&MobileOS=ETC&MobileApp=routefly&_type=json&arrange=E&contentTypeId=" + type
                 + String.format(Locale.ROOT, "&mapX=%.6f&mapY=%.6f&radius=%d&numOfRows=%d&pageNo=1", lon, lat, RADIUS_M, ROWS);
     }
 
