@@ -2089,7 +2089,7 @@
                 fly.title = "3D 지형 위로 날아 보기";
                 fly.onclick = function (e) {
                     e.stopPropagation();
-                    try { sessionStorage.setItem("rf-pick-scroll", String(box.scrollTop)); } catch (err) { }   // 3D 에서 돌아오면 목록 그 자리로
+                    try { sessionStorage.setItem("rf-pick-scroll", String(box.scrollTop)); sessionStorage.setItem("rf-fly-back", "1"); } catch (err) { }   // 3D 에서 돌아오면 목록 그 자리로, rf-fly-back: 3D 의 "← 뒤로" 가 이 화면으로 back
                 };
                 it.classList.add("hasfly");
                 it.appendChild(fly);

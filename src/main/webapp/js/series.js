@@ -38,6 +38,7 @@
         var a = el("a", null, "fly(3D)");
         a.href = "index.html#c=" + encodeURIComponent(id) + "&from=series";   // 그 화면 "← 뒤로" 가 새로 고쳐도 남게(2026-10-14)
         a.title = "3D 지형 위로 날아 보기";
+        a.addEventListener("click", function () { try { sessionStorage.setItem("rf-fly-back", "1"); } catch (e) { } });   // 3D 의 "← 뒤로" 가 이 화면으로 back
         row.appendChild(a);
     }
 
