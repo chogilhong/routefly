@@ -230,9 +230,11 @@
         } catch (err) { }
         var plan = chosen.length ? planOf(chosen) : { ok: false };
         sel = plan.ok ? plan.walk : [];
-        map.getSource("sel").setData({ type: "FeatureCollection", features: chosen.map(function (id) {
-            return { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: lines[id] } };
-        }).concat(RF.bridgeGaps(sel, lines).map(function (ab) {   // 갈림길에서 끊긴 선 끝을 이어 그림(이어 걷기가 한 줄로 보이게)
+        // 이어지면 걷는 차례로 다듬어 그림(갈림길을 지나쳐 그려진 끝은 자르고, 끊긴 곳은 점선 - RF.joinDraw), 아직이면 고른 선 그대로
+        var jd = sel.length ? RF.joinDraw(sel, lines) : { lines: chosen.map(function (id) { return lines[id]; }), gaps: [] };
+        map.getSource("sel").setData({ type: "FeatureCollection", features: jd.lines.map(function (c) {
+            return { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: c } };
+        }).concat(jd.gaps.map(function (ab) {
             return { type: "Feature", properties: { gap: true }, geometry: { type: "LineString", coordinates: ab } };
         })) });
         if (startMk) { startMk.remove(); startMk = null; }
