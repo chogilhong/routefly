@@ -1,10 +1,10 @@
 /*
- * 처음 안내(2026-10-11 오픈 전) - 따라가기(hike.html) 코스 목록을 처음 열 때 한 번, 네 장(무엇 · 코스 찾기 · 산행하기 · 안전 · 개인정보).
+ * 처음 안내(2026-10-11 오픈 전) - 따라가기(hike.html) 코스 목록을 처음 열 때 한 번, 다섯 장(무엇 · 코스 찾기 · fly(3D) · 산행하기 · 안전 · 개인정보).
  * 코스 목록 아래 '❓ 사용법' 으로 다시 봅니다. 산행 시작 때의 안전 안내(hike.js SAFETY_KEY)는 그대로 따로 나옵니다.
  * 내용을 크게 바꾸면 KEY 의 판 번호를 올려 한 번 더 보이게 합니다.
  */
 (function () {
-    var KEY = "rf-onboard-v1";
+    var KEY = "rf-onboard-v2";   // v2(2026-10-14): 도장 · 완주, fly(3D) 장 더함
     var box = document.getElementById("onboard");
     if (!box) return;
     var pages = box.querySelectorAll(".ob-page"), dots = box.querySelectorAll(".ob-dots span");

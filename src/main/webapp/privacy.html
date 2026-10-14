@@ -6,7 +6,7 @@
 <title>routefly 개인정보처리방침</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1">
 <meta name="theme-color" content="#11161d">
-<!-- 2026-10-11 오픈 전. 공개 전에 class="fill" 인 칸(운영자 · 연락처 · 시행일 · 서버 지역)을 채우세요. 내용은 코드와 맞춰 두었습니다:
+<!-- 2026-10-11 오픈 전. 공개 전에 class="fill" 인 칸(시행일 · 서버 지역)을 채우세요(책임자 · 연락처는 2026-10-14 홍TV님이 줌). 내용은 코드와 맞춰 두었습니다:
      내 주변 코스는 고정 격자 칸만 묻기(course-kit.js gridCells · snapOut, hike.js nearList, app.js loadCourses), 접속 기록 ?뒤 빼기 · 보관 기간(docs/deploy-lightsail.md),
      횟수 제한 2분(RateLimiter). 고치면 PrivacyPolicyTest 도 함께. -->
 <style>
@@ -30,9 +30,15 @@ td, th { border-top:1px solid var(--ln); padding:7px 4px; vertical-align:top; te
 th { color:var(--dim); font-weight:normal; width:30%; }
 .key { background:rgba(56,217,234,0.10); border:1px solid rgba(56,217,234,0.35); border-radius:10px; padding:10px 12px; font-size:14.5px; }
 .back { display:inline-block; margin-top:6px; }
+/* 오른쪽 위 닫기 - 아래 '‹ 돌아가기' 와 같음(앞 화면으로, about.html 과 같은 모양 - 2026-10-14 홍TV님) */
+.close { position:fixed; top:calc(env(safe-area-inset-top) + 10px); right:12px; z-index:5; width:40px; height:40px; border-radius:50%;
+         display:flex; align-items:center; justify-content:center; font-size:20px; text-decoration:none; color:var(--tx);
+         background:var(--panel); border:1px solid var(--ln); box-shadow:0 2px 6px rgba(0,0,0,0.4); }
+h1 { padding-right:46px; }   /* 제목이 닫기 단추 밑으로 들어가지 않게 */
 </style>
 </head>
 <body>
+<a class="close" id="aboutClose" href="about.html" aria-label="닫기" title="닫기(앞 화면으로)">✕</a>
 <main>
     <h1>route<span>fly</span> 개인정보처리방침</h1>
     <p class="lead">시행일: <span class="fill">[채워 넣기: 2026년 ○월 ○일]</span></p>
@@ -95,6 +101,8 @@ th { color:var(--dim); font-weight:normal; width:30%; }
                 이때 보고 있는 지도 범위와 내 IP 주소가 그 서버에 전달됩니다.</li>
             <li><b>내가 고를 때만:</b> 길찾기(카카오맵 · 네이버 지도 · 구글 지도)를 누르면 출발점 · 내 위치가 그 앱으로,
                 SOS 문자 · 위치 사진, 코스 링크 · 기록 공유는 내가 고른 앱(문자 · 메신저 등)으로 전달됩니다. 이후 처리는 그 서비스의 방침을 따릅니다.</li>
+            <li><b>날씨 · 숙박 · 식당 · 반려동물 정보:</b> 운영자의 서버가 코스 들머리 좌표로 기상청 · 한국관광공사에 묻습니다.
+                내 위치 · IP 주소는 넘기지 않습니다.</li>
         </ul>
     </section>
 
@@ -130,8 +138,8 @@ th { color:var(--dim); font-weight:normal; width:30%; }
     <section>
         <h2>9. 개인정보 보호책임자 · 문의</h2>
         <table>
-            <tr><th>책임자</th><td><span class="fill">[채워 넣기: 이름]</span></td></tr>
-            <tr><th>연락처</th><td><span class="fill">[채워 넣기: 이메일]</span></td></tr>
+            <tr><th>책임자</th><td>조길홍</td></tr>
+            <tr><th>연락처</th><td><a href="mailto:sportsnews.javanian@gmail.com">sportsnews.javanian@gmail.com</a></td></tr>
         </table>
         <p class="dim">개인정보 침해에 대한 신고 · 상담은 아래 기관에도 할 수 있습니다.</p>
         <ul class="dim">
@@ -147,7 +155,7 @@ th { color:var(--dim); font-weight:normal; width:30%; }
         <p>이 방침이 바뀌면 시행 7일 전부터 이 화면에 알립니다.</p>
     </section>
 
-    <a class="back" id="aboutBack" href="about.html">‹ 안내로 돌아가기</a>
+    <a class="back" id="aboutBack" href="about.html">‹ 돌아가기</a>
 </main>
 <script src="js/about.js"></script>
 </body>
