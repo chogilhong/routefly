@@ -80,7 +80,7 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다(route_course · 
 ### 커밋
 - 메시지 끝: `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 - 메시지는 BOM 없는 UTF-8 임시 파일에 써서 `git commit -F` (PowerShell `Set-Content -Encoding utf8` 은 BOM 이 붙어 깨진 적 있음).
-- 홍TV님 로컬 수정본은 커밋하지 않습니다(예: routefly `app/capacitor.config.json` · `capacitor.settings.gradle`, `app.old`, `app/android/.idea`). pull 은 `--autostash`.
+- 홍TV님 로컬 수정본은 커밋하지 않습니다(예: routefly `app/capacitor.config.json` · `capacitor.settings.gradle`, `app/android/.idea`). pull 은 `--autostash`.
 
 ### PC 경로 · 도구
 - JDK `C:\GH\java\jdk-21\bin`, Node `C:\Program Files\nodejs` (PATH 에 없으면 `$env:Path` 를 Machine + User 로 다시 읽음).
