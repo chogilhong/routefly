@@ -728,3 +728,6 @@ eq("regionNames 같은 산 지역 붙이기(광양 가야산 자락), 공단 · 
     { course_id: "kmp-2-1", name: "가야산 1코스 · a → b", start_lat: 35.8, start_lon: 128.1 },
     { course_id: "knps-7013-x", name: "가야산 · 해인사 → 상왕봉(우두봉)", start_lat: 34.94, start_lon: 127.70 }]),
     { "kmp-1-1": "광양 가야산 자락 1코스 · 적벽 → 금강블루빌" });
+eq("nameParts 무리의 산 이름이 끝 이름 앞에 붙은 봉우리는 뗌", [RF.nameParts("가야산 동성봉 자락 2코스 · 백운동탐방지원센터 → 가야산칠불봉").route,
+    RF.nameParts("가야산 · 해인사 → 가야산소리길").route, RF.nameParts("남산 · 삼릉 → 남산제일봉").route, RF.nameParts("설악산 · 오색 → 설악산대청봉").route],
+    ["백운동탐방지원센터 → 칠불봉", "해인사 → 가야산소리길", "삼릉 → 남산제일봉", "오색 → 대청봉"]);

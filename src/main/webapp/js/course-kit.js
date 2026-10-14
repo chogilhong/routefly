@@ -237,8 +237,21 @@
     function nameParts(name) {
         var n = String(name || "");
         var i = n.indexOf(" · ");
-        var route = (i > 0 ? n.slice(i + 3) : n).split(" → ").map(function (x) { return summitName(numberedPark(x)); }).join(" → ");   // "→ 공주향교뒷산 정상" → "→ 정상", 문화공원11(부안공원) → 부안공원
+        // 무리에 든 산 이름이 길 이름 앞에 또 붙은 봉우리는 떼어 냄("[가야산 동성봉 자락 2코스] … → 가야산칠불봉" → 칠불봉, 2026-10-14 홍TV님)
+        var mts = i > 0 ? n.slice(0, i).split(/\s+/).filter(function (w) { return /산$/.test(w); }) : [];
+        var route = (i > 0 ? n.slice(i + 3) : n).split(" → ").map(function (x) { return summitName(numberedPark(stripMountain(x, mts))); }).join(" → ");   // "→ 공주향교뒷산 정상" → "→ 정상", 문화공원11(부안공원) → 부안공원
         return i > 0 ? { group: n.slice(0, i), route: route } : { group: null, route: route };
+    }
+
+    /** 순수 함수 - "가야산칠불봉" 처럼 산 이름(mts 가운데 하나) 바로 뒤에 봉우리 · 고개 이름이 붙었으면 봉우리 이름만. 아니면 그대로("가야산소리길" · "남산제일봉"). */
+    function stripMountain(x, mts) {
+        var t = String(x || "").trim();
+        for (var k = 0; k < (mts || []).length; k++) {
+            var m = mts[k], rest = t.indexOf(m) === 0 ? t.slice(m.length) : "";
+            // "남산제일봉" 처럼 차례 이름(제일 · 제이 …)이 붙은 봉우리는 한 이름이라 그대로
+            if (rest && !/^제[일이삼사오]/.test(rest) && /^[가-힣]{1,8}(봉|대|령|재|고개|바위)(\(.*\))?$/.test(rest)) return rest;
+        }
+        return x;
     }
 
     /** el 에 코스 이름을 "[무리] 길" 로(무리는 흐리게). 글은 textContent 로만 넣습니다. */

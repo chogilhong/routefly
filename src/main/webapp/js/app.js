@@ -467,14 +467,15 @@
     // ------------------------------------------------------------------ 아래 안내(2026-10-14 홍TV님 - 먼저 가야산)
 
     /**
-     * fly(3D) 아래 안내 단추 - 가는 길 · 위험 · 지점 · 일정 · 날씨 · 숙박. park-notes 에 guide3d 가 있는 국립공원의 공단 코스만(먼저 가야산).
+     * fly(3D) 아래 안내 단추 - 가는 길 · 날씨 · 숙박 · 식당 · 일정 · 지점 · 위험. 국립공원 공단 코스(knps-)마다(처음엔 가야산만 - park-notes guide3d).
      * 위험 · 지점은 누르면 그 자리로 날아가 3D 로 보여 줍니다. 날씨 · 숙박은 서버(api/weather · api/stays)가 들머리 좌표로 묻습니다(내 위치는 보내지 않음).
      */
     var guide = { c: null, parks: null, id: null, kind: null };
 
     function setupGuide(c, j, parks, id) {
-        var pk = RF.parkOf(j.course.name), n = pk && parks && parks[pk];
-        var on = !!(n && n.guide3d && /^knps-/.test(String(id)));
+        // 국립공원 공단 코스 모두(2026-10-14 홍TV님: 가야산에서 보고 다른 국립공원으로 넓힘). 교통 한 줄은 park-notes access 가 있는 곳만
+        var pk = RF.parkOf(j.course.name);
+        var on = !!(pk && /^knps-/.test(String(id)));
         if (guide.mark) guide.mark.remove();   // 앞 코스에서 띄운 표시 고리
         guide = { c: c, parks: parks, id: String(id).split(",")[0].replace(/[~@].*$/, ""), kind: j.course.kind };
         closeGuide();
