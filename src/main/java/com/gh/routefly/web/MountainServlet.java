@@ -40,6 +40,8 @@ public class MountainServlet extends HttpServlet {
     private static final Logger log = LogManager.getLogger(MountainServlet.class);
     static final double NEAR_M = 2000;
     static final int MAX_COURSES = 30;
+    /** 화면 안 링크 · css · js 는 상대 주소(/m/산 · /m/ 모두 한 단계 아래). 절대 주소는 canonical · og 만(설정 site.baseUrl). */
+    static final String REL = "..";
 
     private volatile JsonArray peaks;
     private volatile JsonObject parks;
@@ -47,6 +49,10 @@ public class MountainServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         String path = req.getPathInfo();
+        if (path == null) {   // /m → /m/ (상대 주소 ".." 가 맞게)
+            resp.sendRedirect(req.getContextPath() + "/m/");
+            return;
+        }
         String name = path == null ? "" : URLDecoder.decode(path.replaceFirst("^/", ""), StandardCharsets.UTF_8).trim();
         String base = ShareServlet.baseUrl(RouteflyConfig.get("site.baseUrl"), req.getScheme(), req.getServerName(), req.getServerPort(),
                 req.getContextPath(), req.getHeader("X-Forwarded-Proto"));
@@ -152,9 +158,9 @@ public class MountainServlet extends HttpServlet {
     /** 순수 함수 - 같은 이름 산 고르기. */
     static String choosePage(String name, List<JsonObject> same, String base) {
         StringBuilder b = new StringBuilder(head(name + " 등산코스", "100대 명산 " + name + " " + same.size() + "곳 - 지역을 고르세요.", base + "/m/" + enc(name), base));
-        b.append("<main><p class=\"crumb\"><a href=\"").append(esc(base)).append("/m/\">100대 명산</a></p><h1>").append(esc(name))
+        b.append("<main><p class=\"crumb\"><a href=\"").append(REL).append("/m/\">100대 명산</a></p><h1>").append(esc(name))
                 .append(" 등산코스</h1><p class=\"lead\">100대 명산에 ").append(esc(name)).append("이 ").append(same.size()).append("곳 있습니다.</p><section><ul class=\"ms\">");
-        for (JsonObject o : same) b.append("<li><a href=\"").append(esc(base)).append("/m/").append(esc(enc(str(o, "id")))).append("\">").append(esc(str(o, "id"))).append("</a></li>");
+        for (JsonObject o : same) b.append("<li><a href=\"").append(REL).append("/m/").append(esc(enc(str(o, "id")))).append("\">").append(esc(str(o, "id"))).append("</a></li>");
         return b.append("</ul></section>").append(foot(base)).toString();
     }
 
@@ -223,14 +229,14 @@ public class MountainServlet extends HttpServlet {
         String desc = name + (summit != null && !summit.equals(name) ? "(" + summit + ")" : "") + " 등산코스 " + courses.size() + "개 - 거리 · 오르막 · 예상 시간, "
                 + "오늘 날씨와 일출 · 일몰. 3D 지형 위로 코스를 미리 날아 보고 핸드폰으로 따라 걷기.";
         StringBuilder b = new StringBuilder(head(title, desc, url, base));
-        b.append("<main><p class=\"crumb\"><a href=\"").append(esc(base)).append("/m/\">100대 명산</a></p>");
+        b.append("<main><p class=\"crumb\"><a href=\"").append(REL).append("/m/\">100대 명산</a></p>");
         b.append("<h1>").append(esc(name)).append(" 등산코스</h1>");
         b.append("<p class=\"lead\">산림청 100대 명산").append(summit != null ? " · 정상 " + esc(summit) : "")
                 .append(top != null ? String.format(Locale.KOREA, " · 코스 최고점 약 %,dm", top) : "").append("</p>");
         b.append("<section id=\"wx\" data-lat=\"").append(peak.get("lat").getAsDouble()).append("\" data-lon=\"").append(peak.get("lon").getAsDouble())
                 .append("\"><h2>오늘 날씨 · 일출 · 일몰</h2><p class=\"dim\" id=\"wxBody\">불러오는 중…</p></section>");
         b.append("<section><h2>코스 ").append(courses.size()).append("개</h2>");
-        if (courses.isEmpty()) b.append("<p class=\"dim\">정상까지 가는 코스를 찾지 못했습니다. <a href=\"").append(esc(base))
+        if (courses.isEmpty()) b.append("<p class=\"dim\">정상까지 가는 코스를 찾지 못했습니다. <a href=\"").append(REL)
                 .append("/hike.html\">따라가기에서 산 이름으로 찾아보세요</a>.</p>");
         else {
             b.append("<ul class=\"cs\">");
@@ -242,8 +248,8 @@ public class MountainServlet extends HttpServlet {
                         .append(String.format(Locale.ROOT, "%.2fkm", dist / 1000.0))
                         .append(asc != null ? String.format(Locale.KOREA, " · 오르막 %,dm", asc) : "")
                         .append(" · 약 ").append(hours(dist, asc)).append("</span><span class=\"go\">")
-                        .append("<a href=\"").append(esc(base)).append("/index.html#c=").append(esc(id)).append("\">fly(3D)</a>")
-                        .append("<a href=\"").append(esc(base)).append("/hike.html#c=").append(esc(id)).append("\">따라가기</a></span></li>");
+                        .append("<a href=\"").append(REL).append("/index.html#c=").append(esc(id)).append("\">fly(3D)</a>")
+                        .append("<a href=\"").append(REL).append("/hike.html#c=").append(esc(id)).append("\">따라가기</a></span></li>");
             }
             b.append("</ul>");
         }
@@ -260,15 +266,15 @@ public class MountainServlet extends HttpServlet {
         List<String> names = new ArrayList<>();
         for (JsonElement e : peaks) names.add(str(e.getAsJsonObject(), "id"));
         names.sort(Comparator.naturalOrder());
-        for (String n : names) b.append("<li><a href=\"").append(esc(base)).append("/m/").append(esc(enc(n))).append("\">").append(esc(n)).append("</a></li>");
+        for (String n : names) b.append("<li><a href=\"").append(REL).append("/m/").append(esc(enc(n))).append("\">").append(esc(n)).append("</a></li>");
         b.append("</ul></section>").append(foot(base));
         return b.toString();
     }
 
     static String notFoundPage(String name, String base) {
         return head("산을 찾지 못했습니다", "routefly 100대 명산 등산코스", base + "/m/", base)
-                + "<main><h1>" + esc(name) + "</h1><p>100대 명산 목록에 없는 산입니다. <a href=\"" + esc(base) + "/m/\">목록 보기</a> · <a href=\""
-                + esc(base) + "/hike.html\">따라가기에서 찾기</a></p>" + foot(base);
+                + "<main><h1>" + esc(name) + "</h1><p>100대 명산 목록에 없는 산입니다. <a href=\"" + REL + "/m/\">목록 보기</a> · <a href=\""
+                + REL + "/hike.html\">따라가기에서 찾기</a></p>" + foot(base);
     }
 
     private static String head(String title, String desc, String url, String base) {
@@ -280,12 +286,12 @@ public class MountainServlet extends HttpServlet {
                 + "<meta property=\"og:type\" content=\"website\"><meta property=\"og:site_name\" content=\"routefly\">"
                 + "<meta property=\"og:title\" content=\"" + t + "\"><meta property=\"og:description\" content=\"" + d + "\">"
                 + "<meta property=\"og:url\" content=\"" + esc(url) + "\"><meta property=\"og:image\" content=\"" + esc(base) + "/img/og.png\">"
-                + "<link rel=\"icon\" type=\"image/svg+xml\" href=\"" + esc(base) + "/favicon.svg?v=1\"><meta name=\"theme-color\" content=\"#11161d\">"
-                + "<link rel=\"stylesheet\" href=\"" + esc(base) + "/css/mountain.css\"></head><body>";
+                + "<link rel=\"icon\" type=\"image/svg+xml\" href=\"" + REL + "/favicon.svg?v=1\"><meta name=\"theme-color\" content=\"#11161d\">"
+                + "<link rel=\"stylesheet\" href=\"" + REL + "/css/mountain.css\"></head><body>";
     }
 
     private static String foot(String base) {
-        String b = esc(base);
+        String b = REL;   // 상대 주소 - 터널(https → http 톰캣)에서 http 절대 주소가 막혔음(2026-10-14)
         return "<p class=\"dim\">자료: 산림청 100대 명산 · 등산로정보, 국립공원공단 탐방로, 기상청 단기예보(공공데이터포털). "
                 + "<a href=\"" + b + "/about.html\">안전 · 출처 안내</a> · <a href=\"" + b + "/privacy.html\">개인정보처리방침</a></p>"
                 + "<p class=\"brand\"><a href=\"" + b + "/hike.html\">route<span>fly</span> 열기 ›</a></p></main>"
