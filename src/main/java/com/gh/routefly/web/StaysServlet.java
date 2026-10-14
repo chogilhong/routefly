@@ -48,7 +48,7 @@ public class StaysServlet extends HttpServlet {
             return;
         }
         boolean pet = "1".equals(req.getParameter("pet"));
-        String type = typeOf(req.getParameter("kind"));   // pet=1 도 32 · 39 - 활용매뉴얼 v4.1 은 80 · 82 라지만 실제로는 80 · 82 에 0곳, 32 · 39 에 북한산 12 · 4곳(2026-10-14 PC, PetTourProbe 로 확인 중)
+        String type = typeOf(req.getParameter("kind"));   // pet=1 도 32 · 39 - 활용매뉴얼 v4.1 은 80 · 82 라지만 실제로는 80 · 82 에 0곳, 32 · 39 에 북한산 12 · 4곳(2026-10-14 PetTourProbe 로 확인 - 응답의 contenttypeid 도 국문 번호)
         String key = (pet ? "pet" : "") + type + "@" + cacheKey(at[0], at[1]);
         long now = System.currentTimeMillis();
         JsonObject out = CACHE.get(key, now);
