@@ -19,12 +19,13 @@ public class ParkingServletTest {
             + "1,치인주차장,공영,노외,경상남도 합천군 가야면 치인리,,120,유료,30,\"1,000\",35.8010,128.1010\n"
             + "2,\"해인사 \"\"제2\"\" 주차장\",공영,노외,,경상남도 합천군 가야면 치인리 10,80,무료,,,35.7990,128.0950\n"
             + "3,먼 주차장,민영,노외,서울,,10,유료,,,37.5,127.0\n"
-            + "4,좌표없음,공영,노외,,,5,무료,,,,\n";
+            + "4,좌표없음,공영,노외,,,5,무료,,,,\n"
+            + "5,치인,공영,노외,,,100,유료,,,35.8011,128.1011\n";   // 치인주차장과 약 14m - 같은 곳
 
     @Test
     public void parsesByColumnNameAndQuotes() throws Exception {
         List<ParkingServlet.Lot> l = ParkingServlet.parse(new StringReader(CSV));
-        assertEquals(3, l.size());
+        assertEquals(4, l.size());
         assertEquals("해인사 \"제2\" 주차장", l.get(1).name);
         assertEquals("경상남도 합천군 가야면 치인리 10", l.get(1).addr);   // 도로명이 없으면 지번
         assertEquals("유료 · 기본 30분 1,000원", l.get(0).fee);

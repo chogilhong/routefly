@@ -39,7 +39,7 @@ public class ParkingServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
     private static final Logger log = LogManager.getLogger(ParkingServlet.class);
-    static final double RADIUS_M = 3000;
+    static final double RADIUS_M = 3000, WIDE_M = 6000, SAME_M = 60;
     static final int MAX = 10;
 
     private static volatile List<Lot> lots;
@@ -70,7 +70,11 @@ public class ParkingServlet extends HttpServlet {
             out.add("lots", new JsonArray());
             out.addProperty("unavailable", true);
         } else {
-            out.add("lots", near(all, at[0], at[1], RADIUS_M, MAX));
+            JsonArray l = near(all, at[0], at[1], RADIUS_M, MAX);
+            double r = RADIUS_M;
+            if (l.size() == 0) { l = near(all, at[0], at[1], WIDE_M, MAX); r = WIDE_M; }   // 3km 안에 없으면 6km 까지(2026-10-14 PC: 가야산 해인사 0곳)
+            out.add("lots", l);
+            out.addProperty("radius_km", (int) (r / 1000));
             out.addProperty("source", "전국주차장정보표준데이터");
         }
         Json.ok(req, resp, out);
@@ -137,7 +141,7 @@ public class ParkingServlet extends HttpServlet {
         return info;
     }
 
-    /** 순수 함수 - 가까운 차례로 반경 안 max 곳. */
+    /** 순수 함수 - 가까운 차례로 반경 안 max 곳. 이미 고른 곳과 60m 안이면 같은 주차장으로 보고 뺌(2026-10-14 PC: "도봉산 주차장" · "도봉산" 겹침). */
     static JsonArray near(List<Lot> all, double lat, double lon, double radiusM, int max) {
         List<Object[]> hit = new ArrayList<>();
         for (Lot l : all) {
@@ -147,8 +151,13 @@ public class ParkingServlet extends HttpServlet {
         }
         hit.sort((a, b) -> Double.compare((Double) a[1], (Double) b[1]));
         JsonArray arr = new JsonArray();
-        for (int i = 0; i < hit.size() && i < max; i++) {
+        List<Lot> kept = new ArrayList<>();
+        for (int i = 0; i < hit.size() && arr.size() < max; i++) {
             Lot l = (Lot) hit.get(i)[0];
+            boolean same = false;
+            for (Lot k : kept) if (MountainServlet.distM(k.lat, k.lon, l.lat, l.lon) < SAME_M) { same = true; break; }
+            if (same) continue;
+            kept.add(l);
             JsonObject o = new JsonObject();
             o.addProperty("name", l.name);
             if (l.kind != null) o.addProperty("kind", l.kind);

@@ -602,7 +602,8 @@
             getJson("api/parking?lat=" + start.lat.toFixed(4) + "&lon=" + start.lon.toFixed(4)).then(function (w) {
                 if (w.unavailable || !$("guideSheet").classList.contains("open") || guide.c !== c) return;
                 pk.appendChild(el("div", "gDay", "🅿 들머리 근처 주차장"));
-                if (!(w.lots || []).length) { pk.appendChild(el("div", "gNote", "들머리 3km 안에 등록된 주차장이 없습니다.")); return; }
+                var prk = w.radius_km || 3;
+                if (!(w.lots || []).length) { pk.appendChild(el("div", "gNote", "들머리 " + prk + "km 안에 등록된 주차장이 없습니다.")); return; }
                 w.lots.slice(0, 5).forEach(function (p) {
                     var r = gRow(p.name, [p.kind, p.fee, p.spaces != null ? p.spaces + "면" : null].filter(Boolean).join(" · ") || null, RF.km(p.dist_m) + "km");
                     var ln = el("div", "gLinks");
@@ -610,7 +611,8 @@
                     r.querySelector(".gMain").appendChild(ln);
                     pk.appendChild(r);
                 });
-                pk.appendChild(el("div", "gNote", "자료: 전국주차장정보표준데이터(공공데이터포털) · 요금 · 운영 시간은 현지에서 확인하세요."));
+                pk.appendChild(el("div", "gNote", "자료: 전국주차장정보표준데이터(공공데이터포털) · 들머리 " + prk + "km 안" + (prk > 3 ? "(3km 안에 없어 넓혀 찾음)" : "")
+                    + " · 요금 · 운영 시간은 현지에서 확인하세요."));
             }).catch(function () { /* 주차장 없이 */ });
             body.appendChild(el("div", "gNote", "산행할 때는 따라가기 화면의 길찾기가 지금 위치에서 들머리까지 안내합니다."));
         } else if (kind === "danger") {
