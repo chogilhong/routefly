@@ -232,7 +232,9 @@
         sel = plan.ok ? plan.walk : [];
         map.getSource("sel").setData({ type: "FeatureCollection", features: chosen.map(function (id) {
             return { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: lines[id] } };
-        }) });
+        }).concat(RF.bridgeGaps(sel, lines).map(function (ab) {   // 갈림길에서 끊긴 선 끝을 이어 그림(이어 걷기가 한 줄로 보이게)
+            return { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: ab } };
+        })) });
         if (startMk) { startMk.remove(); startMk = null; }
         if (endMk) { endMk.remove(); endMk = null; }
         if (!sel.length && chosen.length) {   // 고른 것이 아직 이어지지 않음

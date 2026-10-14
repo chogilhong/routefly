@@ -746,3 +746,10 @@ eq("lateAt 1.5배 · 적어도 1시간 더", [RF.lateAt(0, 4 * 3600000) / 360000
 })();
 eq("nextTextScale 100 → 120 → 140 → 100", [RF.nextTextScale(1), RF.nextTextScale(1.2), RF.nextTextScale(1.4), RF.nextTextScale(7)], [1.2, 1.4, 1, 1]);
 eq("textLabel 가 · 가+ · 가++", [RF.textLabel(1), RF.textLabel(1.2), RF.textLabel(1.4)], ["가", "가+", "가++"]);
+(function () {
+    var lines = { a: [[127.0, 37.0], [127.001, 37.0]], b: [[127.0013, 37.0], [127.003, 37.0]], c: [[127.003, 37.0], [127.004, 37.0]] };
+    var g = RF.bridgeGaps([{ id: "a" }, { id: "b" }, { id: "c" }], lines);
+    eq("bridgeGaps 갈림길 빈틈(약 27m)만 잇고 붙은 곳은 그대로", [g.length, g[0][0], g[0][1]], [1, [127.001, 37.0], [127.0013, 37.0]]);
+    eq("bridgeGaps 거꾸로 걷는 구간 · 너무 먼 곳", [RF.bridgeGaps([{ id: "b", rev: true }, { id: "a", rev: true }], lines).length,
+        RF.bridgeGaps([{ id: "a" }, { id: "c" }], lines, 100).length], [1, 0]);
+})();
