@@ -1223,7 +1223,9 @@
     });
     // 뒤로 - 핸드폰에서 코스를 보는 중(목록을 접음)이면 먼저 목록으로 한 단계만. 목록이 보이면 '목록' 단추로
     // 첫 화면(따라가기의 코스 목록)으로 - 공원 전체 → 미리보기로 와도 공원 화면이 아니라 첫 화면(2026-10-11 홍TV님)
-    var fromPage = !!document.referrer && document.referrer.indexOf(location.origin) === 0 && document.referrer.split("#")[0] !== location.href.split("#")[0];
+    // 공유 링크(s/…)는 location.replace 로 넘어와 history 에 없음 - 앞 화면이 아니라 바로 연 것으로(2026-10-14 PC: "← 뒤로" 로 나왔음)
+    var fromPage = !!document.referrer && document.referrer.indexOf(location.origin) === 0 && document.referrer.split("#")[0] !== location.href.split("#")[0]
+        && !/\/s\//.test(document.referrer.slice(location.origin.length).split(/[?#]/)[0]);
     // "새 버전" 띠로 새로 고치면 referrer 가 없거나 이 화면이 되어 '← 따라가기' 로 바뀌었음(2026-10-14 홍TV님) - 다른 화면에서 왔던 것을
     // 이 탭(sessionStorage)에 적어 두고, 새로 고침이면 그대로 씀. 앞 화면은 history 에 그대로 있으니 history.back() 도 같음.
     (function () {
