@@ -17,8 +17,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 /**
- * 숙박 · 식당 한 곳의 반려동물 동반 정보. {@code GET /api/pet?id=<TourAPI contentid>} - 한국관광공사 국문 관광정보 서비스 detailPetTour2.
- * 2026-10-14 홍TV님. 키는 tour.serviceKey(숙박 · 식당과 같은 서비스). 한 곳씩 누를 때만 묻고 이레 동안 담아 둡니다.
+ * 숙박 · 식당 한 곳의 반려동물 동반 정보. {@code GET /api/pet?id=<TourAPI contentid>} - 한국관광공사 반려동물 동반여행 서비스 detailPetTour2.
+ * 2026-10-14 홍TV님. 키는 tour.serviceKey(같은 공공데이터포털 개인 키, 서비스 활용 신청은 따로). 한 곳씩 누를 때만 묻고 이레 동안 담아 둡니다.
  * → {@code {success, pet:[{k:"동반 가능 동물", v:"소형견"}, …], source:"한국관광공사"}} - 자료가 없으면 pet 은 빈 목록, 실패하면 unavailable.
  */
 @WebServlet(urlPatterns = {"/api/pet"})
@@ -26,7 +26,8 @@ public class PetServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
 
-    static final String DEFAULT_URL = "https://apis.data.go.kr/B551011/KorService2/detailPetTour2";
+    /** 한국관광공사_반려동물 동반여행 서비스(KorPetTourService2) - 국문 관광정보(KorService2)의 detailPetTour2 는 빈 응답만 왔음(2026-10-14 PC). */
+    static final String DEFAULT_URL = "https://apis.data.go.kr/B551011/KorPetTourService2/detailPetTour2";
     private static final OpenApi.Cache<JsonObject> CACHE = new OpenApi.Cache<>(2000, 7L * 24 * 60 * 60 * 1000);
 
     /** TourAPI 칸 → 화면 이름(이 차례로). 모르는 칸은 보이지 않음. */
@@ -54,7 +55,7 @@ public class PetServlet extends HttpServlet {
         JsonObject out = CACHE.get(id, now);
         if (out == null) {
             out = fetch(id);
-            if (!out.has("unavailable")) CACHE.put(id, out, now);
+            if (!out.has("unavailable") && out.getAsJsonArray("pet").size() > 0) CACHE.put(id, out, now);   // 빈 결과는 담지 않음(주소를 바꿔도 이레 동안 빈 채로 남았음)
         }
         Json.ok(req, resp, out);
     }

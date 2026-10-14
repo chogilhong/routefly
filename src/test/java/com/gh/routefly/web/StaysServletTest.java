@@ -24,6 +24,7 @@ public class StaysServletTest {
 
     @Test
     public void urlEncodesKeyAndUsesLonAsX() {
+        assertTrue("반려동물 동반여행 서비스", StaysServlet.PET_URL.contains("KorPetTourService2/locationBasedList2") && PetServlet.DEFAULT_URL.contains("KorPetTourService2/detailPetTour2"));
         String u = StaysServlet.url(StaysServlet.DEFAULT_URL, "a+b/c==", 35.79, 128.12, StaysServlet.typeOf(null));
         assertTrue(u, u.contains("serviceKey=a%2Bb%2Fc%3D%3D"));
         assertTrue(u, u.contains("mapX=128.120000&mapY=35.790000"));

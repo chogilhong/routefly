@@ -664,14 +664,19 @@
                 body.appendChild(el("div", "gNote", "자료: 기상청 단기예보(" + w.base + " 발표) · 들머리 둘레 5km 격자" + (w.near ? "(들머리 격자에 자료가 없어 바로 옆 격자)" : "") + ". 정상 기온은 높이로 어림한 값입니다."));
             }).catch(function () { body.textContent = ""; body.appendChild(el("div", "gNote", "날씨를 받지 못했습니다.")); });
         } else if (kind === "stay" || kind === "food") {
-            var food = kind === "food", what = food ? "식당" : "숙박";
+            var food = kind === "food", what = food ? "식당" : "숙박", petOnly = !!guide.petOnly;
             title.textContent = food ? "🍚 들머리 근처 식당" : "🛏 들머리 근처 숙박";
             body.appendChild(el("div", "gNote", "불러오는 중…"));
-            getJson("api/stays?lat=" + start.lat.toFixed(4) + "&lon=" + start.lon.toFixed(4) + (food ? "&kind=food" : "")).then(function (w) {
+            getJson("api/stays?lat=" + start.lat.toFixed(4) + "&lon=" + start.lon.toFixed(4) + (food ? "&kind=food" : "") + (petOnly ? "&pet=1" : "")).then(function (w) {
                 if (!$("guideSheet").classList.contains("open") || guide.c !== c || title.textContent.indexOf(what) < 0) return;
                 body.textContent = "";
+                // 🐾 반려동물 동반 가능한 곳만(관광공사 반려동물 동반여행 서비스 - 2026-10-14 홍TV님) - 누르면 다시 받음
+                var tg = el("a", "gPetToggle", petOnly ? "🐾 반려동물 동반 가능한 곳만 보는 중 · 모두 보기" : "🐾 반려동물 동반 가능한 곳만 보기");
+                tg.href = "#";
+                tg.addEventListener("click", function (e) { e.preventDefault(); guide.petOnly = !petOnly; openGuide(kind, btn); });
+                body.appendChild(tg);
                 if (w.unavailable) { body.appendChild(el("div", "gNote", what + " 정보를 지금 받지 못했습니다. 잠시 뒤 다시 눌러 주세요.")); return; }
-                if (!(w.stays || []).length) body.appendChild(el("div", "gNote", "들머리 5km 안에 등록된 " + what + "이 없습니다."));
+                if (!(w.stays || []).length) body.appendChild(el("div", "gNote", "들머리 5km 안에 " + (petOnly ? "반려동물과 함께 갈 수 있는 " : "등록된 ") + what + "이 없습니다."));
                 w.stays.forEach(function (x) {
                     var r = gRow(x.name, x.addr || null, x.dist_m != null ? RF.km(x.dist_m) + "km" : null);
                     var links = el("div", "gLinks"), nm = String(x.name).replace(/[,/?#&]/g, " ").trim();

@@ -16,7 +16,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 /**
- * 들머리 근처 숙박 · 식당. {@code GET /api/stays?lat=35.79&lon=128.12[&kind=food]} - 한국관광공사 TourAPI 위치기반 관광정보
+ * 들머리 근처 숙박 · 식당. {@code GET /api/stays?lat=35.79&lon=128.12[&kind=food][&pet=1]} (pet=1 - 반려동물 동반 가능한 곳만, KorPetTourService2) - 한국관광공사 TourAPI 위치기반 관광정보
  * (숙박 contentTypeId 32, kind=food 면 음식점 39), 반경 5km. 2026-10-14 홍TV님: 들머리 쪽 펜션 · 모텔 · 호텔(먼저 가야산), 그다음 근처 식당 · 5km.
  *
  * <ul>
@@ -33,6 +33,8 @@ public class StaysServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
 
     static final String DEFAULT_URL = "https://apis.data.go.kr/B551011/KorService2/locationBasedList2";
+    /** pet=1 - 반려동물 동반여행 서비스의 위치 검색(나오는 곳이 모두 반려동물 동반 가능한 곳, 2026-10-14 홍TV님). */
+    static final String PET_URL = "https://apis.data.go.kr/B551011/KorPetTourService2/locationBasedList2";
     static final int RADIUS_M = 5000, ROWS = 20, CACHE_MAX = 500;
     static final long CACHE_MS = 24L * 60 * 60 * 1000;
 
@@ -46,23 +48,24 @@ public class StaysServlet extends HttpServlet {
             return;
         }
         String type = typeOf(req.getParameter("kind"));
-        String key = type + "@" + cacheKey(at[0], at[1]);
+        boolean pet = "1".equals(req.getParameter("pet"));
+        String key = (pet ? "pet" : "") + type + "@" + cacheKey(at[0], at[1]);
         long now = System.currentTimeMillis();
         JsonObject out = CACHE.get(key, now);
         if (out == null) {
-            out = fetch(at[0], at[1], type);
+            out = fetch(at[0], at[1], type, pet);
             if (!out.has("unavailable")) CACHE.put(key, out, now);
         }
         Json.ok(req, resp, out);
     }
 
-    private static JsonObject fetch(double lat, double lon, String type) {
+    private static JsonObject fetch(double lat, double lon, String type, boolean pet) {
         String serviceKey = RouteflyConfig.get("tour.serviceKey");
         if (serviceKey == null) return unavailable();
-        String base = RouteflyConfig.get("tour.url");
-        String text = OpenApi.get(url(base != null ? base : DEFAULT_URL, serviceKey, lat, lon, type), "STAYS");
+        String base = RouteflyConfig.get(pet ? "tour.petListUrl" : "tour.url");
+        String text = OpenApi.get(url(base != null ? base : pet ? PET_URL : DEFAULT_URL, serviceKey, lat, lon, type), pet ? "STAYS-PET" : "STAYS");
         JsonObject out = text == null ? null : body(text);
-        if (out == null && text != null) OpenApi.warn("STAYS", text);
+        if (out == null && text != null) OpenApi.warn(pet ? "STAYS-PET" : "STAYS", text);
         return out != null ? out : unavailable();
     }
 
