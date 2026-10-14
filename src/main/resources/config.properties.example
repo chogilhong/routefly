@@ -40,3 +40,7 @@ weather.serviceKey=
 # 공유 카드 · 넘어갈 주소에 쓰는 이 사이트 주소(예: https://routefly.example.kr/routefly). 비우면 요청의 Host 로 만듭니다
 # (X-Forwarded-Host 는 믿지 않음 - 꾸민 머리글로 만든 페이지가 캐시돼 다른 사람이 엉뚱한 곳으로 넘어가는 것을 막으려고).
 site.baseUrl=
+
+# 들머리 근처 주차장(fly(3D) 가는 길) - 공공데이터포털 「전국주차장정보표준데이터」 CSV 파일 경로(API 아님, 받아서 저장소 밖에 둠).
+# UTF-8 · MS949 모두 읽음. 없으면 주차장 줄이 안 보임. 2026-10-14
+#parking.csv=C:\\GH\\workspace\\routefly-data\\parking.csv
