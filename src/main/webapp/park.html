@@ -72,6 +72,9 @@ body { display:flex; flex-direction:column; height:100dvh; }
 #credit a { color:var(--dim); }
 .spot { font-size:12px; line-height:1; filter:drop-shadow(0 0 2px #000); cursor:pointer; opacity:.8; }
 .far .spot { display:none; }   /* 넓게 볼 때는 숨김(RF.spotsByZoom) - 확대하면 보임 */
+/* 글자 크기 단추는 이 화면 위 줄에서 작게 - "북한산 탐방 안내도" 가 공식 지도 · 가 단추 사이에서 잘렸음(2026-10-14 PC) */
+#top .rfTextBtn { min-width:0; height:32px; padding:0 7px; font-size:12px; }
+#top { gap:6px; }
 </style>
 </head>
 <body>
