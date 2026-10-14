@@ -745,3 +745,4 @@ eq("lateAt 1.5배 · 적어도 1시간 더", [RF.lateAt(0, 4 * 3600000) / 360000
     eq("sunrise 10월 대구 근처 아침 6시대", [h.getUTCDate(), h.getUTCHours()], [14, 6]);
 })();
 eq("nextTextScale 100 → 120 → 140 → 100", [RF.nextTextScale(1), RF.nextTextScale(1.2), RF.nextTextScale(1.4), RF.nextTextScale(7)], [1.2, 1.4, 1, 1]);
+eq("textLabel 가 · 가+ · 가++", [RF.textLabel(1), RF.textLabel(1.2), RF.textLabel(1.4)], ["가", "가+", "가++"]);

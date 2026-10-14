@@ -14,7 +14,8 @@
     function apply(v) {
         document.documentElement.style.setProperty("--rfz", String(v));
         document.documentElement.classList.toggle("rfz", v !== 1);
-        b.textContent = v === 1 ? "가+" : "가 " + Math.round(v * 100) + "%";
+        b.textContent = v >= 1.4 ? "가++" : v >= 1.2 ? "가+" : "가";   // course-kit.js textLabel 과 같음
+        b.title = "글자 크기 " + Math.round(v * 100) + "% - 누를 때마다 100 → 120 → 140%";
     }
     b.type = "button";
     b.className = "rfTextBtn";
