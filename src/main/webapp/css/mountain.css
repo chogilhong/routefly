@@ -23,3 +23,7 @@ ul { margin:0; padding:0; list-style:none; }
 .ms a { display:inline-block; text-decoration:none; color:var(--tx); font-size:14px; padding:6px 11px; border:1px solid var(--ln); border-radius:16px; }
 .brand { margin-top:18px; font-size:15px; font-weight:bold; }
 .brand span { color:#ffb703; }
+/* 글자 크기(RF.textButton) */
+.rfz main { zoom: var(--rfz); }
+.rfTextBtn { min-width:44px; height:32px; padding:0 8px; border-radius:16px; border:1px solid var(--ln); background:rgba(255,255,255,0.06); color:var(--tx);
+             font:bold 13px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }

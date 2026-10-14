@@ -1249,6 +1249,7 @@
         (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(function () { show("링크를 복사했습니다: " + url); setTimeout(function () { show(null); }, 2500); })
             .catch(function () { prompt("링크를 복사하세요", url); });
     });
+    $("guideClose").parentNode.insertBefore(RF.textButton(), $("guideClose"));   // 안내 칸 글자 크기 "가+"(2026-10-14)
     $("play").addEventListener("click", function () { if (anim.running) stop(); else play(); });
     $("speed").addEventListener("click", function () {
         anim.speedIdx = (anim.speedIdx + 1) % SPEEDS.length;

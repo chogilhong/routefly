@@ -28,3 +28,10 @@
 
 /* 탐방지원센터 · 탐방안내소는 작은 글씨(RF.nameNodes - 2026-10-12 홍TV님) */
 .rf-sfx { font-size:0.78em; font-weight:normal; opacity:0.85; }
+
+/* 글자 크기(RF.textButton - 2026-10-14) - 글 칸만 키움(지도 · 그래프는 그대로). zoom 은 칸 폭 안에서 줄을 다시 맞춥니다 */
+.rfz #guideBody, .rfz .sheet .sbox > *, .rfz #pickList, .rfz #pickFoot, .rfz main { zoom: var(--rfz); }
+.rfTextBtn { min-width:44px; height:34px; padding:0 8px; border-radius:17px; border:1px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06);
+             color:#e9eef4; font:bold 13px Arial,"Malgun Gothic",sans-serif; cursor:pointer; white-space:nowrap; }
+.sheet h2 .rfTextBtn { float:right; margin:-4px 0 0 8px; }
+#pick h1 .rfTextBtn { float:right; margin-top:-2px; }

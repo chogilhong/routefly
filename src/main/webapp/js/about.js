@@ -6,3 +6,24 @@
         if (document.referrer && document.referrer.indexOf(location.origin + "/") === 0 && history.length > 1) { e.preventDefault(); history.back(); }
     });
 });
+
+/* 글자 크기 "가+"(course-kit.js textButton 과 같은 저장 rf-text - 2026-10-14 홍TV님). 오른쪽 위 ✕ 왼쪽 */
+(function () {
+    var STEPS = [1, 1.2, 1.4], b = document.createElement("button");
+    function get() { try { var v = +localStorage.getItem("rf-text"); return STEPS.indexOf(v) >= 0 ? v : 1; } catch (e) { return 1; } }
+    function apply(v) {
+        document.documentElement.style.setProperty("--rfz", String(v));
+        document.documentElement.classList.toggle("rfz", v !== 1);
+        b.textContent = v === 1 ? "가+" : "가 " + Math.round(v * 100) + "%";
+    }
+    b.type = "button";
+    b.className = "rfTextBtn";
+    b.title = "글자 크기(누를 때마다 100 → 120 → 140%)";
+    b.addEventListener("click", function () {
+        var n = STEPS[(STEPS.indexOf(get()) + 1) % STEPS.length];
+        try { localStorage.setItem("rf-text", String(n)); } catch (e) { /* 이번 화면만 */ }
+        apply(n);
+    });
+    document.body.appendChild(b);
+    apply(get());
+})();

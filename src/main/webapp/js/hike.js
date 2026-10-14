@@ -2097,6 +2097,12 @@
         $(id).addEventListener("click", function () { $("navSheet").style.display = "none"; });
     });
 
+    // 글자 크기 "가+"(2026-10-14 홍TV님: 핸드폰에서 글씨가 작음) - 코스 고르기 머리 · 아래 창 제목마다. 새 단추 줄은 만들지 않음
+    (function () {
+        var h1 = document.querySelector("#pick h1");
+        if (h1) h1.appendChild(RF.textButton());
+        Array.prototype.forEach.call(document.querySelectorAll(".sheet .sbox > h2, #safety .sbox > h2"), function (h) { h.appendChild(RF.textButton()); });
+    })();
     // 도장 · 완주 화면의 따라가기로 들어왔으면(#c=…&from=series) "‹ 도장 · 완주" 로 그 화면에 돌아감(2026-10-13 홍TV님)
     var fromSeries = /[#&]from=series(&|$)/.test(location.hash);
     if (fromSeries) {

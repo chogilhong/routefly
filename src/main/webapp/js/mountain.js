@@ -8,6 +8,8 @@
         var a = e.target.closest && e.target.closest(".go a");
         if (a) try { sessionStorage.setItem("rf-fly-back", "1"); } catch (err) { /* 그때는 새로 엶 */ }
     });
+    var crumb = document.querySelector(".crumb") || document.querySelector("h1");
+    if (crumb && window.RF) { var tb = window.RF.textButton(); tb.style.float = "right"; crumb.appendChild(tb); }   // 글자 크기 "가+"
     var box = document.getElementById("wx"), out = document.getElementById("wxBody");
     if (!box || !out || !window.RF) return;
     var lat = +box.getAttribute("data-lat"), lon = +box.getAttribute("data-lon"), RF = window.RF;
