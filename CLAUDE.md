@@ -102,6 +102,9 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다(route_course · 
   - 8090 은 nginx 의 터널 전용 입구(127.0.0.1 에만 엶) → 톰캣. /routefly/ · /totonian/ 열림, /investing/ 은 Basic 로그인, 그 밖 404, / 는 /routefly/ 로.
     PC 를 켤 때 nginx · 톰캣 · cloudflared 셋 다 필요(nginx 가 꺼져 있으면 터널 502).
   - 진짜 주소는 CF-Connecting-IP(set_real_ip_from 127.0.0.1) - 요청 제한 · 막기도 그 주소로.
+  - 터널 요청은 https 로 들어오므로 8090 만 X-Forwarded-Proto https(2026-10-15): nginx.conf 의 `map $server_port $fwd_proto { 8090 https; default $scheme; }`
+    + proxy_common.conf 의 `proxy_set_header X-Forwarded-Proto $fwd_proto;` - 공유 링크 · og 그림 주소가 https 로(site.baseUrl 이 비었을 때). 고치기 전 `.bak-20261015`.
+    운영 서버는 nginx 가 TLS 를 끊어 $scheme 이 https 라 이 map 은 필요 없음.
   - 막기: `D:\nginx-1.30.5\conf\tunnel-deny.conf` 에 `deny <주소>;` → `nginx -t` → `nginx -s reload`(톰캣 · 터널은 그대로). 홍TV님이 "막아" 한 뒤에만.
   - 80 · 8090 이 같은 location 을 쓰도록 `conf/routefly-locations.conf` · `totonian-locations.conf` 를 함께 include. 고치기 전 설정 `conf/nginx.conf.bak-20261012`.
   - 웹(클라우드) Claude 도 이 주소로 화면 · API 를 봅니다(클라우드 환경 Allowed domains `*.trycloudflare.com`). 들어오는 주소는 Anthropic 160.79.104.0/21.
