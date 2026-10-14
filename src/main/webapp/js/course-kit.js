@@ -238,7 +238,7 @@
         var n = String(name || "");
         var i = n.indexOf(" · ");
         // 무리에 든 산 이름이 길 이름 앞에 또 붙은 봉우리는 떼어 냄("[가야산 동성봉 자락 2코스] … → 가야산칠불봉" → 칠불봉, 2026-10-14 홍TV님)
-        var mts = i > 0 ? n.slice(0, i).split(/\s+/).filter(function (w) { return /산$/.test(w); }) : [];
+        var mts = i > 0 ? n.slice(0, i).split(/\s+/).map(function (w) { return w.replace(/\(.*\)$/, ""); }).filter(function (w) { return /산$/.test(w); }) : [];
         var route = (i > 0 ? n.slice(i + 3) : n).split(" → ").map(function (x) { return summitName(numberedPark(stripMountain(x, mts))); }).join(" → ");   // "→ 공주향교뒷산 정상" → "→ 정상", 문화공원11(부안공원) → 부안공원
         return i > 0 ? { group: n.slice(0, i), route: route } : { group: null, route: route };
     }
@@ -249,7 +249,8 @@
         for (var k = 0; k < (mts || []).length; k++) {
             var m = mts[k], rest = t.indexOf(m) === 0 ? t.slice(m.length) : "";
             // "남산제일봉" 처럼 차례 이름(제일 · 제이 …)이 붙은 봉우리는 한 이름이라 그대로
-            if (rest && !/^제[일이삼사오]/.test(rest) && /^[가-힣]{1,8}(봉|대|령|재|고개|바위)(\(.*\))?$/.test(rest)) return rest;
+            // 봉우리(…봉 · …대)만 - 고개("어산이재") · 전망대("무등산전망대")는 그대로(2026-10-14 PC, 배치 MountainNames.liftMountain 과 같게)
+            if (rest && !/^제[일이삼사오]/.test(rest) && !/전망대$/.test(rest) && /^[가-힣]{1,8}(봉|대)(\(.*\))?$/.test(rest)) return rest;
         }
         return x;
     }
