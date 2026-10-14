@@ -527,9 +527,11 @@
                 if (m < best && c.ele[i] != null) { best = m; ele = c.ele[i]; }
             }
         }
-        var t = map.getTerrain && map.getTerrain(), opts = { center: [+lon, +lat], zoom: 15.6, pitch: 62, bearing: map.getBearing(), duration: 1600 };
-        if (ele != null && isFinite(+ele)) opts.elevation = +ele * (t && t.exaggeration ? t.exaggeration : 1);
-        map.flyTo(opts);
+        // flyTo 는 elevation 을 무시함(MapLibre 5.24 - 2026-10-14 PC: 날아가는 동안 · 끝난 뒤 0) - 다 날아간 뒤 jumpTo 로 높이를 맞춤.
+        // 줌은 15 - 지형 타일이 15 까지라 그보다 크게 보면 지형 높이를 0 으로 읽음(PC: 15.5 넘게)
+        var t = map.getTerrain && map.getTerrain(), h = ele != null && isFinite(+ele) ? +ele * (t && t.exaggeration ? t.exaggeration : 1) : null;
+        map.flyTo({ center: [+lon, +lat], zoom: 15, pitch: 62, bearing: map.getBearing(), duration: 1600 });
+        if (h != null) map.once("moveend", function () { map.jumpTo({ elevation: h }); });
     }
 
     function clockText(ms) {
