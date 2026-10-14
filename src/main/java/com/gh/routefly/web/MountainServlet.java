@@ -287,7 +287,7 @@ public class MountainServlet extends HttpServlet {
                 + "<link rel=\"canonical\" href=\"" + esc(url) + "\">"
                 + "<meta property=\"og:type\" content=\"website\"><meta property=\"og:site_name\" content=\"routefly\">"
                 + "<meta property=\"og:title\" content=\"" + t + "\"><meta property=\"og:description\" content=\"" + d + "\">"
-                + "<meta property=\"og:url\" content=\"" + esc(url) + "\"><meta property=\"og:image\" content=\"" + esc(base) + "/img/og.png\">"
+                + "<meta property=\"og:url\" content=\"" + esc(url) + "\"><meta property=\"og:image\" content=\"" + esc(base) + "/img/og.png?v=2\">"
                 + "<link rel=\"icon\" type=\"image/svg+xml\" href=\"" + REL + "/favicon.svg?v=2\"><link rel=\"apple-touch-icon\" href=\"" + REL + "/img/apple-icon-180.png\"><meta name=\"theme-color\" content=\"#11161d\">"
                 + "<link rel=\"stylesheet\" href=\"" + REL + "/css/mountain.css\"></head><body>";
     }
