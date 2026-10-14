@@ -27,3 +27,8 @@ ul { margin:0; padding:0; list-style:none; }
 .rfz main { zoom: var(--rfz); }
 .rfTextBtn { min-width:44px; height:32px; padding:0 8px; border-radius:16px; border:1px solid var(--ln); background:rgba(255,255,255,0.06); color:var(--tx);
              font:bold 13px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }
+/* 로고(img/logo-dark.svg) - 목록 맨 위 · 페이지 아래 "열기" */
+.logo { display:inline-block; margin:0 0 8px -6px; }
+.logo img { display:block; width:256px; max-width:66vw; height:auto; }
+.brand a { display:inline-flex; align-items:center; gap:6px; text-decoration:none; }
+.brand img { width:160px; height:auto; }

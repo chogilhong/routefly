@@ -262,7 +262,9 @@ public class MountainServlet extends HttpServlet {
     static String indexPage(JsonArray peaks, String base) {
         StringBuilder b = new StringBuilder(head("100대 명산 등산코스", "산림청 100대 명산 " + peaks.size()
                 + "곳의 등산코스 · 날씨 · 일출 일몰. 3D 지형 위로 미리 날아 보고 핸드폰으로 따라 걷기.", base + "/m/", base));
-        b.append("<main><h1>100대 명산 등산코스</h1><p class=\"lead\">산을 고르면 정상까지 가는 코스와 오늘 날씨 · 일출 · 일몰을 봅니다.</p><section><ul class=\"ms\">");
+        // 맨 위 로고(img/logo-dark.svg - 2026-10-14 홍TV님), 누르면 따라가기
+        b.append("<main><a class=\"logo\" href=\"").append(REL).append("/hike.html\"><img src=\"").append(REL)
+                .append("/img/logo-dark.svg\" alt=\"routefly\" width=\"256\" height=\"80\"></a><h1>100대 명산 등산코스</h1><p class=\"lead\">산을 고르면 정상까지 가는 코스와 오늘 날씨 · 일출 · 일몰을 봅니다.</p><section><ul class=\"ms\">");
         List<String> names = new ArrayList<>();
         for (JsonElement e : peaks) names.add(str(e.getAsJsonObject(), "id"));
         names.sort(Comparator.naturalOrder());
@@ -294,7 +296,7 @@ public class MountainServlet extends HttpServlet {
         String b = REL;   // 상대 주소 - 터널(https → http 톰캣)에서 http 절대 주소가 막혔음(2026-10-14)
         return "<p class=\"dim\">자료: 산림청 100대 명산 · 등산로정보, 국립공원공단 탐방로, 기상청 단기예보(공공데이터포털). "
                 + "<a href=\"" + b + "/about.html\">안전 · 출처 안내</a> · <a href=\"" + b + "/privacy.html\">개인정보처리방침</a></p>"
-                + "<p class=\"brand\"><a href=\"" + b + "/hike.html\">route<span>fly</span> 열기 ›</a></p></main>"
+                + "<p class=\"brand\"><a href=\"" + b + "/hike.html\"><img src=\"" + b + "/img/logo-dark.svg\" alt=\"routefly\" width=\"160\" height=\"50\"> 열기 ›</a></p></main>"
                 + "<script src=\"" + b + "/js/course-kit.js\"></script><script src=\"" + b + "/js/mountain.js\"></script></body></html>";
     }
 
