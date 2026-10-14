@@ -1027,6 +1027,8 @@
         if (anim.d >= cur.total) anim.d = 0;
         var p = at(cur, anim.d);
         anim.bearing = lookBearing(cur, anim.d);
+        closeGuide();   // 날아가는 동안은 안내 칸을 닫음(2026-10-14 홍TV님) - 지도를 가림
+        if (guide.mark) { guide.mark.remove(); guide.mark = null; }
         anim.running = true;
         setStartsVisible(false);   // 비행 중에는 다른 코스 출발점이 화면을 어지럽히지 않게
         setMapLabels(false);
