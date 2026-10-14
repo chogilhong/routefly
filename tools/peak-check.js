@@ -15,6 +15,7 @@ const sandbox = { window: {}, console, navigator: {}, document: {} };
 vm.createContext(sandbox);
 vm.runInContext(fs.readFileSync(path.join(web, "js", "course-kit.js"), "utf8"), sandbox);
 const RF = sandbox.window.RF;
+const GAP_MS = 700;   // 0.15초 간격은 98건 중 46건이 429 였음(2026-10-14 PC)
 const peaks = JSON.parse(fs.readFileSync(path.join(web, "data", "mountains100.json"), "utf8")).peaks;
 
 function endName(name) {
@@ -28,10 +29,14 @@ function endName(name) {
         let courses = [];
         try {
             const r = await fetch(base + "/api/courses?q=" + encodeURIComponent(k.name));
+            // 서버 속도 제한(api/courses 분당 20번 남짓 - RateLimiter(20, 2))에 걸린 429 나 courses 없는 응답은 "코스 없음" 이 아니라 오류로 셈(2026-10-14 PC)
+            if (!r.ok) throw new Error("HTTP " + r.status);
             const j = await r.json();
-            courses = j.courses || [];
+            if (!j || !Array.isArray(j.courses)) throw new Error("courses 없음");
+            courses = j.courses;
         } catch (e) {
-            rows.push({ k, err: String(e) });
+            rows.push({ k, err: String(e.message || e) });
+            await new Promise(ok => setTimeout(ok, GAP_MS));
             continue;
         }
         const cs = RF.peakCourses(courses, k, 2000).map(c => {
@@ -41,7 +46,7 @@ function endName(name) {
             return { c, gap: Math.min(gE, gS), lat: atEnd ? c.end_lat : c.start_lat, lon: atEnd ? c.end_lon : c.start_lon };
         });
         rows.push({ k, n: cs.length, in150: cs.filter(x => x.gap <= 150).length, in300: cs.filter(x => x.gap <= 300).length, best: cs[0] });
-        await new Promise(ok => setTimeout(ok, 150));   // 서버에 몰아서 묻지 않게
+        await new Promise(ok => setTimeout(ok, GAP_MS));   // 서버 속도 제한에 안 걸리게
     }
     const bad = rows.filter(r => !r.err && r.in150 === 0);
     const out = [];
