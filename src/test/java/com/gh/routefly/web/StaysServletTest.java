@@ -1,0 +1,58 @@
+package com.gh.routefly.web;
+
+import static org.junit.Assert.*;
+
+import com.google.gson.JsonObject;
+import org.junit.Test;
+
+/** 들머리 근처 숙박(TourAPI) - 2026-10-14. 응답 모양은 TourAPI 위치기반 목록 모양으로 만든 테스트 데이터(실제 숙소 아님). */
+public class StaysServletTest {
+
+    @Test
+    public void parseKeepsKoreaOnly() {
+        assertArrayEquals(new double[] {35.79, 128.12}, StaysServlet.parse("35.79", "128.12"), 1e-9);
+        assertNull(StaysServlet.parse("51.5", "0.1"));
+        assertNull(StaysServlet.parse("x", "128"));
+        assertNull(StaysServlet.parse(null, null));
+    }
+
+    @Test
+    public void cacheKeyRoundsTo100m() {
+        assertEquals(StaysServlet.cacheKey(35.79012, 128.12049), StaysServlet.cacheKey(35.79049, 128.12011));
+        assertEquals("35.790,128.120", StaysServlet.cacheKey(35.79012, 128.12049));
+    }
+
+    @Test
+    public void urlEncodesKeyAndUsesLonAsX() {
+        String u = StaysServlet.url(StaysServlet.DEFAULT_URL, "a+b/c==", 35.79, 128.12);
+        assertTrue(u, u.contains("serviceKey=a%2Bb%2Fc%3D%3D"));
+        assertTrue(u, u.contains("mapX=128.120000&mapY=35.790000"));
+        assertTrue(u, u.contains("contentTypeId=32") && u.contains("radius=3000") && u.contains("_type=json"));
+    }
+
+    @Test
+    public void bodyReadsArrayOneAndEmpty() {
+        String two = "{\"response\":{\"header\":{\"resultCode\":\"0000\",\"resultMsg\":\"OK\"},\"body\":{\"items\":{\"item\":["
+                + "{\"title\":\"숙소A\",\"addr1\":\"경남 합천군 가야면\",\"tel\":\"055-000-0000\",\"mapx\":\"128.12\",\"mapy\":\"35.79\",\"dist\":\"512.3\"},"
+                + "{\"title\":\"숙소B\",\"addr1\":\"\",\"tel\":\"\",\"mapx\":\"128.13\",\"mapy\":\"35.80\",\"dist\":\"1200\"}]},\"totalCount\":2}}}";
+        JsonObject o = StaysServlet.body(two);
+        assertEquals(2, o.getAsJsonArray("stays").size());
+        JsonObject a = o.getAsJsonArray("stays").get(0).getAsJsonObject();
+        assertEquals("숙소A", a.get("name").getAsString());
+        assertEquals(512, a.get("dist_m").getAsLong());
+        assertFalse("빈 전화는 넣지 않음", o.getAsJsonArray("stays").get(1).getAsJsonObject().has("tel"));
+        assertEquals("한국관광공사", o.get("source").getAsString());
+
+        String one = "{\"response\":{\"header\":{\"resultCode\":\"0000\"},\"body\":{\"items\":{\"item\":"
+                + "{\"title\":\"숙소C\",\"mapx\":\"128.1\",\"mapy\":\"35.7\"}},\"totalCount\":1}}}";
+        assertEquals(1, StaysServlet.body(one).getAsJsonArray("stays").size());
+        String none = "{\"response\":{\"header\":{\"resultCode\":\"0000\"},\"body\":{\"items\":\"\",\"totalCount\":0}}}";
+        assertEquals(0, StaysServlet.body(none).getAsJsonArray("stays").size());
+    }
+
+    @Test
+    public void bodyRejectsErrors() {
+        assertNull(StaysServlet.body("<OpenAPI_ServiceResponse><cmmMsgHeader><errMsg>SERVICE ERROR</errMsg></cmmMsgHeader></OpenAPI_ServiceResponse>"));
+        assertNull(StaysServlet.body("{\"response\":{\"header\":{\"resultCode\":\"30\",\"resultMsg\":\"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\"}}}"));
+    }
+}

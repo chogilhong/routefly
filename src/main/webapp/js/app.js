@@ -437,6 +437,7 @@
             var spots = RF.spotSummary(j.spots);   // 국립공원 위험지역 · 조망점
             $("courseStat").textContent = statLine(j.course)
                 + (j.course.ele_source === "none" ? " · 고도 자료 없음" : "") + (official ? " · " + official : "") + (spots ? " · " + spots : "");
+            setupGuide(c, j, r[2], id);
             $("bottom").style.display = "block";
             $("hud").style.display = "block";
             $("mini").style.display = "block";
@@ -462,6 +463,188 @@
             }
         });
     }
+
+    // ------------------------------------------------------------------ 아래 안내(2026-10-14 홍TV님 - 먼저 가야산)
+
+    /**
+     * fly(3D) 아래 안내 단추 - 가는 길 · 위험 · 지점 · 일정 · 날씨 · 숙박. park-notes 에 guide3d 가 있는 국립공원의 공단 코스만(먼저 가야산).
+     * 위험 · 지점은 누르면 그 자리로 날아가 3D 로 보여 줍니다. 날씨 · 숙박은 서버(api/weather · api/stays)가 들머리 좌표로 묻습니다(내 위치는 보내지 않음).
+     */
+    var guide = { c: null, parks: null, id: null, kind: null };
+
+    function setupGuide(c, j, parks, id) {
+        var pk = RF.parkOf(j.course.name), n = pk && parks && parks[pk];
+        var on = !!(n && n.guide3d && /^knps-/.test(String(id)));
+        guide = { c: c, parks: parks, id: String(id).split(",")[0].replace(/[~@].*$/, ""), kind: j.course.kind };
+        closeGuide();
+        $("guideBar").style.display = on ? "flex" : "none";
+        var dangers = (c.spots || []).filter(function (s) { return s.kind === "danger"; }).length;
+        $("gDanger").style.display = dangers ? "" : "none";
+        $("gDanger").textContent = "⚠️ 위험 " + dangers;
+    }
+
+    function closeGuide() {
+        $("guideSheet").classList.remove("open");
+        [].forEach.call($("guideBar").children, function (b) { b.classList.remove("on"); });
+    }
+
+    function el(tag, cls, text) {
+        var e = document.createElement(tag);
+        if (cls) e.className = cls;
+        if (text != null) e.textContent = text;
+        return e;
+    }
+
+    /** 한 줄 - 글(main) · 작은 글(sub) · 오른쪽(side). onTap 이 있으면 누를 수 있음. */
+    function gRow(main, sub, side, onTap) {
+        var r = el("div", "gRow" + (onTap ? " tap" : "")), m = el("div", "gMain", main);
+        if (sub) m.appendChild(el("small", null, sub));
+        r.appendChild(m);
+        if (side) r.appendChild(el("div", "gSide", side));
+        if (onTap) { r.addEventListener("click", onTap); r.tabIndex = 0; r.setAttribute("role", "button"); }
+        return r;
+    }
+
+    function gLink(text, href) {
+        var a = el("a", null, text);
+        a.href = href;
+        a.target = "_blank";
+        a.rel = "noopener";
+        return a;
+    }
+
+    /** 그 자리로 날아가 비스듬히(안내 칸은 닫음). */
+    function flyToSpot(lat, lon) {
+        closeGuide();
+        map.flyTo(withGround({ center: [+lon, +lat], zoom: 15.6, pitch: 62, bearing: map.getBearing(), duration: 1600 }, { lon: +lon, lat: +lat }));
+    }
+
+    function clockText(ms) {
+        var d = new Date(ms);
+        return d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0");
+    }
+
+    function openGuide(kind, btn) {
+        var c = guide.c;
+        if (!c) return;
+        if (anim.running) stop();
+        [].forEach.call($("guideBar").children, function (b) { b.classList.toggle("on", b === btn); });
+        var body = $("guideBody"), start = RF.at(c, 0);
+        body.textContent = "";
+        // 아래 판(버튼 줄) 위에 띄움 - 덮으면 다른 안내 단추를 못 누름
+        var bt = $("bottom"), gs = $("guideSheet");
+        gs.style.bottom = (window.innerHeight - bt.getBoundingClientRect().top + 8) + "px";
+        gs.style.maxHeight = Math.max(160, bt.getBoundingClientRect().top - 90) + "px";
+        gs.classList.add("open");
+        var title = $("guideTitle");
+        if (kind === "road") {
+            title.textContent = "🚗 가는 길";
+            var acc = RF.courseAccess(guide.parks, guide.id);
+            var head = (c.pois || []).filter(function (p) { return +p.dist_m < 300; })[0];
+            var hn = head ? head.name : "들머리";
+            if (acc && acc.car) body.appendChild(gRow(acc.car, "공단 교통편 안내의 자동차 마지막 구간"));
+            body.appendChild(gRow(hn, "코스 출발점 · 해발 " + (start.ele != null ? RF.num(start.ele) + "m" : "-")));
+            var links = el("div", "gLinks"), nm = String(hn).replace(/[,/?#&]/g, " ").trim();
+            links.appendChild(gLink("카카오맵 길찾기", "https://map.kakao.com/link/to/" + encodeURIComponent(nm) + "," + start.lat.toFixed(6) + "," + start.lon.toFixed(6)));
+            if (acc && acc.url) links.appendChild(gLink("공단 교통편 ›", acc.url));
+            body.appendChild(links);
+            body.appendChild(el("div", "gNote", "산행할 때는 따라가기 화면의 길찾기가 지금 위치에서 들머리까지 안내합니다."));
+        } else if (kind === "danger") {
+            title.textContent = "⚠️ 위험 지점";
+            (c.spots || []).filter(function (s) { return s.kind === "danger"; }).forEach(function (s) {
+                body.appendChild(gRow(RF.spotText(s), "누르면 그 자리로", null, function () { flyToSpot(s.lat, s.lon); }));
+            });
+            body.appendChild(el("div", "gNote", "국립공원공단 위험지역 자료 - 낙석 · 추락 · 미끄럼 주의 구간입니다."));
+        } else if (kind === "poi") {
+            title.textContent = "⛰ 지점";
+            (c.pois || []).forEach(function (p) {
+                if (p.lat == null) return;
+                body.appendChild(gRow(RF.poiIcon(p.name) + " " + p.name, p.ele_m != null ? "해발 " + RF.num(+p.ele_m) + "m" : null,
+                    RF.km(+p.dist_m || 0) + "km", function () { flyToSpot(p.lat, p.lon); }));
+            });
+        } else if (kind === "plan") {
+            title.textContent = "🕐 일정";
+            var pick = el("div", "gRow"), lab = el("div", "gMain", "출발 시각"), inp = document.createElement("input");
+            inp.type = "time";
+            inp.value = "08:00";
+            inp.setAttribute("aria-label", "출발 시각");
+            pick.appendChild(lab);
+            pick.appendChild(inp);
+            body.appendChild(pick);
+            var out = el("div");
+            body.appendChild(out);
+            var draw = function () {
+                out.textContent = "";
+                var hmv = String(inp.value || "08:00").split(":"), d0 = new Date();
+                d0.setHours(+hmv[0] || 0, +hmv[1] || 0, 0, 0);
+                var sc = RF.scheduleRows(c, d0.getTime(), guide.kind), sun = RF.sunset(d0.getTime(), start.lat, start.lon);
+                sc.rows.forEach(function (x) {
+                    out.appendChild(gRow(x.name, RF.km(x.d) + "km" + (x.ele != null ? " · 해발 " + RF.num(x.ele) + "m" : ""), clockText(x.at)));
+                });
+                var late = sun && sc.end > sun - 30 * 60000;
+                var endRow = gRow("도착", "걸리는 시간 " + RF.hm(sc.end - d0.getTime(), true), clockText(sc.end));
+                if (late) endRow.classList.add("gWarn");
+                out.appendChild(endRow);
+                if (sun) out.appendChild(el("div", "gNote" + (late ? " gWarn" : ""), "오늘 일몰 " + clockText(sun)
+                    + (late ? " - 해 지기 30분 전까지 못 내려올 수 있습니다. 더 일찍 떠나세요." : "")));
+                var official = RF.infoText(c.info);
+                out.appendChild(el("div", "gNote", "표준 소요 시간(거리 · 오른 높이)으로 어림했습니다." + (official ? " " + official + "." : "")));
+            };
+            inp.addEventListener("change", draw);
+            inp.addEventListener("input", draw);
+            draw();
+        } else if (kind === "weather") {
+            title.textContent = "☁️ 날씨 (들머리)";
+            body.appendChild(el("div", "gNote", "불러오는 중…"));
+            var top = Math.max.apply(null, c.ele.filter(function (e) { return e != null; }).concat([start.ele || 0]));
+            getJson("api/weather?lat=" + start.lat.toFixed(4) + "&lon=" + start.lon.toFixed(4)).then(function (w) {
+                if (!$("guideSheet").classList.contains("open") || guide.c !== c) return;
+                body.textContent = "";
+                if (w.unavailable || !(w.hours || []).length) { body.appendChild(el("div", "gNote", "날씨를 지금 받지 못했습니다. 잠시 뒤 다시 눌러 주세요.")); return; }
+                var day = "";
+                w.hours.slice(0, 30).forEach(function (h) {
+                    var dd = h.t.slice(0, 10);
+                    if (dd !== day) {
+                        day = dd;
+                        var mm = w.days && w.days[dd];
+                        body.appendChild(el("div", "gDay", dd.slice(5).replace("-", "월 ") + "일" + (mm && (mm.tmn != null || mm.tmx != null)
+                            ? " · 최저 " + (mm.tmn != null ? mm.tmn + "℃" : "-") + " / 최고 " + (mm.tmx != null ? mm.tmx + "℃" : "-") : "")));
+                    }
+                    var st = RF.summitTemp(h.tmp, start.ele, top);
+                    body.appendChild(gRow(h.t.slice(11, 13) + "시  " + RF.weatherWord(h.sky, h.pty) + "  " + (h.tmp != null ? h.tmp + "℃" : "-"),
+                        (st != null && top - (start.ele || 0) > 200 ? "정상 약 " + st + "℃ · " : "") + "바람 " + (h.wsd != null ? h.wsd + "m/s" : "-"),
+                        "비 " + (h.pop != null ? h.pop + "%" : "-")));
+                });
+                body.appendChild(el("div", "gNote", "자료: 기상청 단기예보(" + w.base + " 발표) · 들머리 둘레 5km 격자. 정상 기온은 높이로 어림한 값입니다."));
+            }).catch(function () { body.textContent = ""; body.appendChild(el("div", "gNote", "날씨를 받지 못했습니다.")); });
+        } else if (kind === "stay") {
+            title.textContent = "🛏 들머리 근처 숙박";
+            body.appendChild(el("div", "gNote", "불러오는 중…"));
+            getJson("api/stays?lat=" + start.lat.toFixed(4) + "&lon=" + start.lon.toFixed(4)).then(function (w) {
+                if (!$("guideSheet").classList.contains("open") || guide.c !== c) return;
+                body.textContent = "";
+                if (w.unavailable) { body.appendChild(el("div", "gNote", "숙박 정보를 지금 받지 못했습니다. 잠시 뒤 다시 눌러 주세요.")); return; }
+                if (!(w.stays || []).length) body.appendChild(el("div", "gNote", "들머리 3km 안에 등록된 숙박이 없습니다."));
+                w.stays.forEach(function (x) {
+                    var r = gRow(x.name, x.addr || null, x.dist_m != null ? RF.km(x.dist_m) + "km" : null);
+                    var links = el("div", "gLinks"), nm = String(x.name).replace(/[,/?#&]/g, " ").trim();
+                    if (x.tel) { var t = el("a", null, "📞 전화"); t.href = "tel:" + String(x.tel).replace(/[^0-9+]/g, ""); links.appendChild(t); }
+                    links.appendChild(gLink("길찾기", "https://map.kakao.com/link/to/" + encodeURIComponent(nm) + "," + (+x.lat).toFixed(6) + "," + (+x.lon).toFixed(6)));
+                    r.querySelector(".gMain").appendChild(links);
+                    body.appendChild(r);
+                });
+                body.appendChild(el("div", "gNote", "자료: 한국관광공사 TourAPI · 들머리 3km 안 · 가까운 순. 예약 · 요금은 숙소에 확인하세요."));
+            }).catch(function () { body.textContent = ""; body.appendChild(el("div", "gNote", "숙박 정보를 받지 못했습니다.")); });
+        }
+    }
+
+    $("guideBar").addEventListener("click", function (e) {
+        var b = e.target.closest ? e.target.closest("button[data-g]") : null;
+        if (!b) return;
+        if (b.classList.contains("on") && $("guideSheet").classList.contains("open")) { closeGuide(); return; }
+        openGuide(b.getAttribute("data-g"), b);
+    });
+    $("guideClose").addEventListener("click", closeGuide);
 
     function bounds(c) {
         var b = new maplibregl.LngLatBounds();

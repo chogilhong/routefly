@@ -706,3 +706,10 @@ for (gi = 0; gi < 13; gi++) GMR.push({ course_id: "kmp-7366020018-" + gi, name: 
 GMR.push({ course_id: "knps-7018-d7139b32", name: "가야산 · 가야산 소리길", start_lat: 35.75, start_lon: 128.15 });
 eq("guideMaps 국립공원 카드는 맨 앞 · 장 수에 세지 않음", RF.guideMaps(GMR, 3, "가야산").map(function (g) { return g.from; }),
     ["knps-7018-d7139b32", "frst-448100301-0", "frst-461700101-0", "kmp-7366020018-0"]);
+eq("weatherWord 하늘 · 비", [RF.weatherWord(1, 0), RF.weatherWord(4, 0), RF.weatherWord(1, 1), RF.weatherWord(null, null)], ["☀️ 맑음", "☁️ 흐림", "🌧 비", "-"]);
+eq("summitTemp 100m 에 0.65도", [RF.summitTemp(18, 600, 1400), RF.summitTemp(18, null, 1400)], [12.8, null]);
+(function () {
+    var c = { dist: [0, 1000, 2000], asc: [0, 300, 600], total: 2000, pois: [{ name: "a", dist_m: 1000, ele_m: 900 }, { name: "끝", dist_m: 2000 }] };
+    var r = RF.scheduleRows(c, 0, "hike");
+    eq("scheduleRows 끝 이름표는 빼고 시각은 늘어남", [r.rows.length, r.rows[0].name, r.rows[0].at > 0, r.end > r.rows[0].at], [1, "a", true, true]);
+})();
