@@ -66,6 +66,13 @@ public class WeatherServlet extends HttpServlet {
         String u = RouteflyConfig.get("weather.url");
         String text = OpenApi.get(url(u != null ? u : DEFAULT_URL, serviceKey, g, base), "WEATHER");
         JsonObject out = text == null ? null : body(text, base);
+        // 막 나온 발표는 격자에 따라 몇 분 늦게 채워짐 - NO_DATA(03)면 한 발표 앞(3시간 전)으로 한 번 더(2026-10-14 PC: 북한산 61,129)
+        if (out == null && text != null && noData(text)) {
+            String[] prev = previous(base);
+            String t2 = OpenApi.get(url(u != null ? u : DEFAULT_URL, serviceKey, g, prev), "WEATHER");
+            out = t2 == null ? null : body(t2, prev);
+            if (out == null && t2 != null) text = t2;
+        }
         if (out == null && text != null) OpenApi.warn("WEATHER", text);
         return out != null ? out : unavailable();
     }
@@ -105,6 +112,18 @@ public class WeatherServlet extends HttpServlet {
         LocalDateTime d = b < 0 ? t.minusDays(1).withHour(23) : t.withHour(b);
         return new String[] {String.format(Locale.ROOT, "%04d%02d%02d", d.getYear(), d.getMonthValue(), d.getDayOfMonth()),
                 String.format(Locale.ROOT, "%02d00", d.getHour())};
+    }
+
+    /** 순수 함수 - 기상청 "자료 없음"(resultCode 03) 응답인가. */
+    static boolean noData(String text) {
+        return text != null && text.replaceAll("\\s+", "").contains("\"resultCode\":\"03\"");
+    }
+
+    /** 순수 함수 - 한 발표 앞(3시간 전, 02시 앞은 전날 23시). */
+    static String[] previous(String[] bt) {
+        LocalDateTime t = LocalDateTime.of(Integer.parseInt(bt[0].substring(0, 4)), Integer.parseInt(bt[0].substring(4, 6)), Integer.parseInt(bt[0].substring(6, 8)),
+                Integer.parseInt(bt[1].substring(0, 2)), 0);
+        return baseTime(t.minusHours(3).plusMinutes(10));
     }
 
     /** 순수 함수 - 요청 주소(JSON, 한 번에 다 - 사흘치 약 900줄). */

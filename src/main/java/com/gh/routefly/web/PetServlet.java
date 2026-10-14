@@ -66,6 +66,7 @@ public class PetServlet extends HttpServlet {
         String text = OpenApi.get(url(base != null ? base : DEFAULT_URL, serviceKey, id), "PET");
         JsonObject out = text == null ? null : body(text);
         if (out == null && text != null) OpenApi.warn("PET", text);
+        if (out != null && out.has("fields")) OpenApi.warn("PET", "아는 칸 없음 - 칸 이름 " + out.remove("fields").getAsString());
         return out != null ? out : unavailable();
     }
 
@@ -100,8 +101,11 @@ public class PetServlet extends HttpServlet {
                 : list.isJsonObject() ? list.getAsJsonObject() : null;
         JsonArray pet = new JsonArray();
         if (it != null) {
+            // 칸 이름은 대소문자를 가리지 않고(KorService2 가 칸 이름을 바꿨을 수 있음 - 2026-10-14 PC: 모두 빈 목록)
+            Map<String, JsonElement> low = new java.util.HashMap<>();
+            for (Map.Entry<String, JsonElement> e : it.entrySet()) low.put(e.getKey().toLowerCase(java.util.Locale.ROOT), e.getValue());
             for (Map.Entry<String, String> e : LABELS.entrySet()) {
-                JsonElement v = it.get(e.getKey());
+                JsonElement v = low.get(e.getKey().toLowerCase(java.util.Locale.ROOT));
                 if (v == null || v.isJsonNull()) continue;
                 String t = v.getAsString().replaceAll("<br\\s*/?>", " ").replaceAll("<[^>]*>", "").trim();   // 글 속 줄바꿈 표시 · 꼬리표 뗌
                 if (t.isEmpty()) continue;
@@ -113,6 +117,7 @@ public class PetServlet extends HttpServlet {
         }
         JsonObject out = new JsonObject();
         out.addProperty("success", true);
+        if (it != null && pet.size() == 0) out.addProperty("fields", String.join(",", it.keySet()));   // 자료는 왔는데 아는 칸이 없음 - 서블릿이 로그에 칸 이름을 남김
         out.add("pet", pet);
         out.addProperty("source", "한국관광공사");
         return out;

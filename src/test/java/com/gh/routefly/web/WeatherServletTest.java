@@ -26,6 +26,14 @@ public class WeatherServletTest {
     }
 
     @Test
+    public void previousIssueAndNoData() {
+        assertArrayEquals(new String[] {"20261014", "1100"}, WeatherServlet.previous(new String[] {"20261014", "1400"}));
+        assertArrayEquals(new String[] {"20261013", "2300"}, WeatherServlet.previous(new String[] {"20261014", "0200"}));
+        assertTrue(WeatherServlet.noData("{\"response\":{\"header\":{\"resultCode\": \"03\",\"resultMsg\":\"NO_DATA\"}}}"));
+        assertFalse(WeatherServlet.noData("{\"response\":{\"header\":{\"resultCode\":\"00\"}}}"));
+    }
+
+    @Test
     public void urlHasGridAndEncodedKey() {
         String u = WeatherServlet.url(WeatherServlet.DEFAULT_URL, "k+/=", new int[] {81, 88}, new String[] {"20261014", "1400"});
         assertTrue(u, u.contains("serviceKey=k%2B%2F%3D") && u.contains("nx=81&ny=88") && u.contains("base_time=1400") && u.contains("dataType=JSON"));

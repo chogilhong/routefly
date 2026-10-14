@@ -20,6 +20,13 @@ public class PetServletTest {
     }
 
     @Test
+    public void bodyIgnoresCaseAndReportsUnknownFields() {
+        JsonArray pet = PetServlet.body("{\"response\":{\"header\":{\"resultCode\":\"0000\"},\"body\":{\"items\":{\"item\":{\"acmpypsblcpam\":\"전 견종\"}}}}}").getAsJsonArray("pet");
+        assertEquals("전 견종", pet.get(0).getAsJsonObject().get("v").getAsString());
+        assertEquals("contentid,newField", PetServlet.body("{\"response\":{\"header\":{\"resultCode\":\"0000\"},\"body\":{\"items\":{\"item\":{\"contentid\":\"1\",\"newField\":\"x\"}}}}}").get("fields").getAsString());
+    }
+
+    @Test
     public void bodyEmptyAndErrors() {
         assertEquals(0, PetServlet.body("{\"response\":{\"header\":{\"resultCode\":\"0000\"},\"body\":{\"items\":\"\",\"totalCount\":0}}}").getAsJsonArray("pet").size());
         assertNull(PetServlet.body("{\"response\":{\"header\":{\"resultCode\":\"30\"}}}"));

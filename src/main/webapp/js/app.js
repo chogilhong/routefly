@@ -516,7 +516,7 @@
     }
 
     /** 🐾 반려동물 - 누르면 그 곳의 반려동물 동반 정보(api/pet, TourAPI)를 줄 아래에 펼침(2026-10-14 홍TV님). */
-    function petButton(id, box) {
+    function petButton(id, box, food) {
         var b = el("a", null, "🐾 반려동물"), shown = null;
         b.href = "#";
         b.addEventListener("click", function (e) {
@@ -529,7 +529,7 @@
                 if (shown !== me) return;
                 me.textContent = "";
                 if (w.unavailable) { me.textContent = "반려동물 정보를 지금 받지 못했습니다."; return; }
-                if (!(w.pet || []).length) { me.textContent = "반려동물 동반 정보가 없습니다(동반 불가이거나 등록 안 됨 - 숙소에 확인하세요)."; return; }
+                if (!(w.pet || []).length) { me.textContent = "반려동물 동반 정보가 없습니다(동반 불가이거나 등록 안 됨 - " + (food ? "가게" : "숙소") + "에 확인하세요)."; return; }
                 w.pet.forEach(function (p) { me.appendChild(el("div", null, p.k + ": " + p.v)); });
             }).catch(function () { if (shown === me) me.textContent = "반려동물 정보를 받지 못했습니다."; });
         });
@@ -677,7 +677,7 @@
                     var links = el("div", "gLinks"), nm = String(x.name).replace(/[,/?#&]/g, " ").trim();
                     if (x.tel) { var t = el("a", null, "📞 전화"); t.href = "tel:" + String(x.tel).replace(/[^0-9+]/g, ""); links.appendChild(t); }
                     links.appendChild(gLink("길찾기", "https://map.kakao.com/link/to/" + encodeURIComponent(nm) + "," + (+x.lat).toFixed(6) + "," + (+x.lon).toFixed(6)));
-                    if (x.id) links.appendChild(petButton(x.id, r.querySelector(".gMain")));
+                    if (x.id) links.appendChild(petButton(x.id, r.querySelector(".gMain"), food));
                     r.querySelector(".gMain").appendChild(links);
                     body.appendChild(r);
                 });
