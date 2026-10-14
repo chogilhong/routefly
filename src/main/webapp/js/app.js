@@ -533,9 +533,12 @@
         // 그 자리를 크게(2026-10-14 홍TV님) - 16. 표시 고리를 잠깐 띄워 어디인지 보이게
         map.flyTo({ center: [+lon, +lat], zoom: 16, pitch: 60, bearing: map.getBearing(), duration: 1600 });
         if (guide.mark) guide.mark.remove();
-        var dot = el("div", "spotRing");
+        // 깜박임은 안쪽 요소에 - Marker 는 바깥 요소의 transform 으로 자리를 잡아, 거기에 애니메이션을 주면 지도 왼쪽 위로 갔음(2026-10-14 PC)
+        var dot = el("div", "spotMark");
+        dot.appendChild(el("div", "spotRing"));
         guide.mark = new maplibregl.Marker({ element: dot }).setLngLat([+lon, +lat]).addTo(map);
-        map.once("moveend", function () { if (h != null) map.jumpTo({ elevation: h }); });
+        // 높이를 바꾸면 카메라 자리를 두고 줌이 낮아짐(PC: 처음엔 15.5) - 줌 16 도 함께
+        map.once("moveend", function () { if (h != null) map.jumpTo({ elevation: h, zoom: 16 }); });
         clearTimeout(guide.markT);
         guide.markT = setTimeout(function () { if (guide.mark) { guide.mark.remove(); guide.mark = null; } }, 8000);
     }
