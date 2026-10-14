@@ -1372,7 +1372,6 @@
         setCompact(false);   // 시작할 때는 기록 칸을 펼쳐서(아래로 밀면 접힘)
         hike.sim = sim;
         hike.running = true;
-        document.body.classList.add("hiking");   // 걷는 동안은 교통편 줄(#access)을 숨김 - 가는 길은 시작 전에 봄(2026-10-14 홍TV님)
         hike.arrived = false;
         hike.hist = [];
         hike.speed = null;
@@ -1468,7 +1467,6 @@
     function stopHike() {
         if (!hike.running) return;
         hike.running = false;
-        document.body.classList.remove("hiking");
         stopTalking();
         if (hike.watch != null) navigator.geolocation.clearWatch(hike.watch);
         if (hike.bgWatch != null && BG) BG.removeWatcher({ id: hike.bgWatch }).catch(function () { /* 이미 멈춤 */ });
