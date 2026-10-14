@@ -43,7 +43,7 @@ public class SitemapServlet extends HttpServlet {
             if (e != null && e.isJsonObject() && e.getAsJsonObject().has("peaks")) {
                 for (JsonElement p : e.getAsJsonObject().getAsJsonArray("peaks")) {
                     JsonObject o = p.getAsJsonObject();
-                    if (o.has("name") && !o.get("name").isJsonNull()) names.add(o.get("name").getAsString());
+                    if (o.has("id") && !o.get("id").isJsonNull()) names.add(o.get("id").getAsString());   // 지역 붙은 id(백운산(광양))
                 }
             }
         } catch (Exception e) {

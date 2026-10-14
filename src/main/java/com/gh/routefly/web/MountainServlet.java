@@ -58,7 +58,13 @@ public class MountainServlet extends HttpServlet {
             resp.getWriter().print(indexPage(all, base));
             return;
         }
+        List<JsonObject> same = byName(all, name);
         JsonObject peak = find(all, name);
+        if (peak == null && same.size() > 1) {   // 같은 이름 산이 여럿(백운산 광양 · 정선 · 포천) - 고르게
+            resp.setHeader("Cache-Control", "public, max-age=3600");
+            resp.getWriter().print(choosePage(name, same, base));
+            return;
+        }
         if (peak == null) {
             resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
             resp.getWriter().print(notFoundPage(name, base));
@@ -127,13 +133,29 @@ public class MountainServlet extends HttpServlet {
         return false;
     }
 
-    /** 순수 함수 - 산 이름(id · name)으로 찾기. 없으면 null. */
+    /**
+     * 순수 함수 - 산 찾기. id(지역이 붙은 "백운산(광양)")가 같으면 그것, 아니면 이름이 같은 산이 하나뿐일 때만. 없으면 null.
+     * 2026-10-14 PC: 이름으로만 찾아 /m/백운산 이 광양만 · 지리산(통영)이 지리산과 겹쳤음.
+     */
     static JsonObject find(JsonArray peaks, String name) {
-        for (JsonElement e : peaks) {
-            JsonObject o = e.getAsJsonObject();
-            if (name.equals(str(o, "id")) || name.equals(str(o, "name"))) return o;
-        }
-        return null;
+        for (JsonElement e : peaks) if (name.equals(str(e.getAsJsonObject(), "id"))) return e.getAsJsonObject();
+        List<JsonObject> same = byName(peaks, name);
+        return same.size() == 1 ? same.get(0) : null;
+    }
+
+    static List<JsonObject> byName(JsonArray peaks, String name) {
+        List<JsonObject> out = new ArrayList<>();
+        for (JsonElement e : peaks) if (name.equals(str(e.getAsJsonObject(), "name"))) out.add(e.getAsJsonObject());
+        return out;
+    }
+
+    /** 순수 함수 - 같은 이름 산 고르기. */
+    static String choosePage(String name, List<JsonObject> same, String base) {
+        StringBuilder b = new StringBuilder(head(name + " 등산코스", "100대 명산 " + name + " " + same.size() + "곳 - 지역을 고르세요.", base + "/m/" + enc(name), base));
+        b.append("<main><p class=\"crumb\"><a href=\"").append(esc(base)).append("/m/\">100대 명산</a></p><h1>").append(esc(name))
+                .append(" 등산코스</h1><p class=\"lead\">100대 명산에 ").append(esc(name)).append("이 ").append(same.size()).append("곳 있습니다.</p><section><ul class=\"ms\">");
+        for (JsonObject o : same) b.append("<li><a href=\"").append(esc(base)).append("/m/").append(esc(enc(str(o, "id")))).append("\">").append(esc(str(o, "id"))).append("</a></li>");
+        return b.append("</ul></section>").append(foot(base)).toString();
     }
 
     /** 순수 함수 - 정상(또는 alt)에서 nearM 안에 끝(또는 시작)이 있는 코스, 가까운 차례. 비법정 · 비매칭 길은 뺌. */
@@ -188,7 +210,7 @@ public class MountainServlet extends HttpServlet {
 
     /** 순수 함수 - 산 페이지. */
     static String page(JsonObject peak, List<JsonObject> courses, String base) {
-        String name = str(peak, "name"), summit = str(peak, "summit");
+        String name = str(peak, "id") != null ? str(peak, "id") : str(peak, "name"), summit = str(peak, "summit");   // id = 지역 붙은 이름(백운산(광양))
         String url = base + "/m/" + enc(name);
         Integer top = null;
         for (JsonObject c : courses) {
@@ -236,7 +258,7 @@ public class MountainServlet extends HttpServlet {
                 + "곳의 등산코스 · 날씨 · 일출 일몰. 3D 지형 위로 미리 날아 보고 핸드폰으로 따라 걷기.", base + "/m/", base));
         b.append("<main><h1>100대 명산 등산코스</h1><p class=\"lead\">산을 고르면 정상까지 가는 코스와 오늘 날씨 · 일출 · 일몰을 봅니다.</p><section><ul class=\"ms\">");
         List<String> names = new ArrayList<>();
-        for (JsonElement e : peaks) names.add(str(e.getAsJsonObject(), "name"));
+        for (JsonElement e : peaks) names.add(str(e.getAsJsonObject(), "id"));
         names.sort(Comparator.naturalOrder());
         for (String n : names) b.append("<li><a href=\"").append(esc(base)).append("/m/").append(esc(enc(n))).append("\">").append(esc(n)).append("</a></li>");
         b.append("</ul></section>").append(foot(base));

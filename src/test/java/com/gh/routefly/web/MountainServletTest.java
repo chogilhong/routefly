@@ -77,4 +77,17 @@ public class MountainServletTest {
         assertEquals("knps-7013", cs.get(0).get("course_id").getAsString());
         assertFalse(MountainServlet.hidden(parks, "knps-70145"));
     }
+
+    @Test
+    public void sameNamesByRegion() {
+        JsonArray peaks = JsonParser.parseString("[{\"id\":\"백운산(광양)\",\"name\":\"백운산\",\"lat\":35.1,\"lon\":127.6},"
+                + "{\"id\":\"백운산(포천)\",\"name\":\"백운산\",\"lat\":38.07,\"lon\":127.44},{\"id\":\"가리산\",\"name\":\"가리산\",\"lat\":37.87,\"lon\":127.95}]").getAsJsonArray();
+        assertNull("이름이 여럿이면 고르게", MountainServlet.find(peaks, "백운산"));
+        assertEquals("백운산(포천)", MountainServlet.find(peaks, "백운산(포천)").get("id").getAsString());
+        assertEquals("가리산", MountainServlet.find(peaks, "가리산").get("id").getAsString());
+        String ch = MountainServlet.choosePage("백운산", MountainServlet.byName(peaks, "백운산"), "");
+        assertTrue(ch.contains(">백운산(광양)</a>") && ch.contains(">백운산(포천)</a>"));
+        assertTrue(MountainServlet.indexPage(peaks, "").contains(">백운산(광양)</a>"));
+        assertTrue(MountainServlet.page(peaks.get(1).getAsJsonObject(), List.of(), "").contains("<h1>백운산(포천) 등산코스</h1>"));
+    }
 }
