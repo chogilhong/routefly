@@ -40,6 +40,8 @@ $classes = @(if ($Only.Count -gt 0) { $Only | ForEach-Object { "com.gh.routefly.
     ForEach-Object { ($_.FullName.Substring($testOut.Length + 1) -replace '\.class$','') -replace '\\','.' }
 })
 $resDir = Join-Path $root 'src\main\resources'
+# src\test\resources (stays\pet-probe-*.json etc.) too - 2026-10-14 PetServletTest
+$resDir = "$resDir;$(Join-Path $root 'src\test\resources')"
 if ($Run) {
   Push-Location $root
   # catalina.base -> target, so log4j can write its log file outside Tomcat (2026-10-14 PetTourProbe)
