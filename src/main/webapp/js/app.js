@@ -419,7 +419,7 @@
             cur = c;
             // 고른 코스의 출발점은 "출발" 이름표와 겹치므로 점 자료에서 뺍니다(묶음 원에도 안 들어가게)
             map.getSource("starts").setData(startsData());
-            try { history.replaceState(null, "", "#c=" + encodeURIComponent(id)); } catch (e) { /* 주소를 못 바꿔도 됩니다 */ }
+            try { history.replaceState(null, "", "#c=" + encodeURIComponent(id) + (fromTag ? "&from=" + fromTag : "")); } catch (e) { /* 주소를 못 바꿔도 됩니다 */ }
 
             map.getSource("route").setData({ type: "Feature", properties: {},
                 geometry: { type: "LineString", coordinates: c.lon.map(function (lon, i) { return [lon, c.lat[i]]; }) } });
@@ -1223,24 +1223,19 @@
     });
     // 뒤로 - 핸드폰에서 코스를 보는 중(목록을 접음)이면 먼저 목록으로 한 단계만. 목록이 보이면 '목록' 단추로
     // 첫 화면(따라가기의 코스 목록)으로 - 공원 전체 → 미리보기로 와도 공원 화면이 아니라 첫 화면(2026-10-11 홍TV님)
+    // 어느 화면에서 왔는지 - fly 링크가 hash 에 붙인 표시(&from=hike · series)를 먼저 봄. 새로 고쳐도 hash 는 남음
+    // (2026-10-14 홍TV님 앱: "새 버전" 으로 새로 고치면 referrer · 새로 고침 판단이 통하지 않아 "← 따라가기" 가 됐음)
+    var FROM_PAGES = { hike: "hike.html", series: "series.html" };
+    var fromTag = (/[#&]from=([a-z]+)/.exec(location.hash) || [])[1];
+    if (!FROM_PAGES[fromTag]) fromTag = null;
     // 공유 링크(s/…)는 location.replace 로 넘어와 history 에 없음 - 앞 화면이 아니라 바로 연 것으로(2026-10-14 PC: "← 뒤로" 로 나왔음)
-    var fromPage = !!document.referrer && document.referrer.indexOf(location.origin) === 0 && document.referrer.split("#")[0] !== location.href.split("#")[0]
-        && !/\/s\//.test(document.referrer.slice(location.origin.length).split(/[?#]/)[0]);
-    // "새 버전" 띠로 새로 고치면 referrer 가 없거나 이 화면이 되어 '← 따라가기' 로 바뀌었음(2026-10-14 홍TV님) - 다른 화면에서 왔던 것을
-    // 이 탭(sessionStorage)에 적어 두고, 새로 고침이면 그대로 씀. 앞 화면은 history 에 그대로 있으니 history.back() 도 같음.
-    (function () {
-        try {
-            var nav = window.performance && performance.getEntriesByType && performance.getEntriesByType("navigation")[0];
-            var reload = nav ? nav.type === "reload" : (performance.navigation && performance.navigation.type === 1);
-            if (fromPage) sessionStorage.setItem("rf.flyFrom", "1");
-            else if (reload && sessionStorage.getItem("rf.flyFrom") === "1" && history.length > 1) fromPage = true;
-            else sessionStorage.removeItem("rf.flyFrom");
-        } catch (e) { /* 저장소를 못 쓰면 referrer 만 */ }
-    })();
+    var fromPage = !!fromTag || (!!document.referrer && document.referrer.indexOf(location.origin) === 0 && document.referrer.split("#")[0] !== location.href.split("#")[0]
+        && !/\/s\//.test(document.referrer.slice(location.origin.length).split(/[?#]/)[0]));
     $("back").addEventListener("click", function () {
         // 다른 화면(탐방 안내도의 "routefly(3D) ›" 등)에서 왔으면 "← 뒤로" 는 바로 그 화면으로(2026-10-13 홍TV님)
         // 다른 화면(도장 · 완주의 "fly")에서 왔으면 목록이 펼쳐져 있어도 그 화면으로 - 이 화면의 코스 목록은 이제 안 씀(2026-10-13 홍TV님)
         if (fromPage && history.length > 1) { stop(); history.back(); return; }
+        if (fromTag) { stop(); location.href = FROM_PAGES[fromTag]; return; }   // 앞 화면 기록이 없으면 온 화면을 새로 엶
         // 공유 링크로 바로 열었으면 이 화면 목록 대신 그 코스의 따라가기로(2026-10-13 홍TV님: 뒤로 하니 미리보기 목록이 나왔음)
         if (cur && !RF.isGpxId(cur.id)) { stop(); location.href = "hike.html#c=" + encodeURIComponent(cur.id); return; }
         var fromHike = document.referrer && document.referrer.indexOf(new URL("hike.html", location.href).href) === 0;

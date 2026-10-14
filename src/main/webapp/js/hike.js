@@ -2085,7 +2085,7 @@
                 var fly = document.createElement("a");
                 fly.className = "fly";
                 fly.textContent = "fly(3D)";
-                fly.href = "index.html#c=" + encodeURIComponent(r.course_id);
+                fly.href = "index.html#c=" + encodeURIComponent(r.course_id) + "&from=hike";   // 그 화면 "← 뒤로" 가 새로 고쳐도 남게(2026-10-14)
                 fly.title = "3D 지형 위로 날아 보기";
                 fly.onclick = function (e) {
                     e.stopPropagation();
