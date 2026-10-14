@@ -32,6 +32,9 @@ body { display:flex; flex-direction:column; height:100dvh; }
         font:inherit; font-size:12.5px; line-height:1.45; padding:7px 12px; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 #note.open { white-space:normal; max-height:38vh; overflow-y:auto; }   /* 펼쳐도 지도가 너무 좁아지지 않게(375px 에서 224px 이었음) */
 #note small { color:#c9a97a; }
+/* 반려견 동반 가능 구간(국립공원 시범사업, park-notes pet - 2026-10-14 홍TV님) */
+#petNote { display:none; flex:0 0 auto; font-size:12.5px; line-height:1.45; padding:6px 12px; background:#1d3324; color:#b8f0c8; text-decoration:none;
+           border-bottom:1px solid var(--ln); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 #msg { position:absolute; left:50%; top:40%; transform:translate(-50%,-50%); z-index:3; background:rgba(0,0,0,0.7); padding:10px 14px;
        border-radius:10px; font-size:14px; text-align:center; max-width:86%; }
 #sheet { flex:0 0 auto; background:var(--panel); border-top:1px solid var(--ln); padding:10px 12px calc(env(safe-area-inset-bottom) + 10px); }
@@ -78,6 +81,7 @@ body { display:flex; flex-direction:column; height:100dvh; }
     <a id="official" target="_blank" rel="noopener" title="국립공원공단 누리집의 탐방로 등급지도(새 창)">🗺 공식 지도</a>
 </div>
 <button type="button" id="note" aria-expanded="false"></button>
+<a id="petNote" target="_blank" rel="noopener"></a>
 <div id="mapWrap">
     <div id="map"></div>
     <button type="button" id="layerBtn" aria-label="밝은 지도 · 위성사진 바꾸기">🛰️</button>

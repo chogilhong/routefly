@@ -681,7 +681,13 @@
                     r.querySelector(".gMain").appendChild(links);
                     body.appendChild(r);
                 });
-                if (RF.parkOf(c.course.name)) body.appendChild(el("div", "gNote gWarn", "🐾 국립공원 탐방로는 대부분 반려동물과 함께 들어갈 수 없습니다. 산행 전에 공원 안내를 확인하세요."));
+                var pk = RF.parkOf(c.course.name), pet = pk && guide.parks && guide.parks[pk] && guide.parks[pk].pet;
+                if (pk) {
+                    var pn = el("div", "gNote gWarn", "🐾 국립공원 탐방로는 대부분 반려동물과 함께 들어갈 수 없습니다."
+                        + (pet ? " " + pk + "은 시범사업으로 반려견 동반 가능(예약): " + pet.text + "." : " 산행 전에 공원 안내를 확인하세요."));
+                    if (pet && /^https:\/\//.test(pet.url || "")) { var pl = gLink("예약 안내 ›", pet.url); pn.appendChild(document.createTextNode(" ")); pn.appendChild(pl); }
+                    body.appendChild(pn);
+                }
                 body.appendChild(el("div", "gNote", "자료: 한국관광공사 TourAPI(관광공사에 등록된 곳) · 들머리 5km 안 · 가까운 순."
                     + (food ? " 영업시간 · 휴무는 가게에 확인하세요." : " 예약 · 요금은 숙소에 확인하세요.")));
             }).catch(function () { body.textContent = ""; body.appendChild(el("div", "gNote", what + " 정보를 받지 못했습니다.")); });

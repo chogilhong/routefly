@@ -727,6 +727,11 @@
             noteAll = d && d.parks;
             var n = d && d.parks && d.parks[name];
             if (!n) return;
+            if (n.pet && n.pet.text) {   // 🐾 반려견 동반 가능(예약) - 누르면 국립공원 예약시스템 반려견 동행
+                $("petNote").textContent = "🐾 반려견 동반 가능(예약) · " + n.pet.text + " ›";
+                if (/^https:\/\//.test(n.pet.url || "")) $("petNote").href = n.pet.url;
+                $("petNote").style.display = "block";
+            }
             noteNames = n.names || null;   // 산마다 다른 이름(지리산 중산리 → 중산리탐방지원센터) - 그리기 전에 받음
             notePass = n.noPass || null;   // 지나갈 수 없는 곳(한라산 남벽분기점) - 원점회귀 예시에서 뺌
             noteEle = n.ele || null;   // 바로잡은 높이(지리산 천왕봉 1,915m - OSM 은 1,918m)
@@ -824,6 +829,7 @@
                 noteSkip = true;
                 noteNames = notePass = noteEle = noteTrails = noteHeads = noteBest = noteAll = null;
                 $("note").style.display = "none";
+                $("petNote").style.display = "none";
             }
             var poiWait = Promise.race([Promise.all([poiReady, notesReady]), new Promise(function (ok) { setTimeout(ok, 4000); })]);
             // 국립공원도 "지리산 탐방 안내도" - "국립공원" 을 붙이면 375px 에서 공식 지도 단추에 잘림(2026-10-12)
