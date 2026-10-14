@@ -31,7 +31,7 @@
     {"id": "두타산", "name": "두타산", "region": null, "summit": "두타산", "height": 1428, "lat": 37.434457, "lon": 128.973467},
     {"id": "마니산", "name": "마니산", "region": null, "summit": "마니산", "height": 488, "lat": 37.615639, "lon": 126.430664},
     {"id": "마이산", "name": "마이산", "region": null, "summit": "마이산", "height": 702, "lat": 35.760484, "lon": 127.411233},
-    {"id": "명성산", "name": "명성산", "region": null, "summit": "명성산", "height": 926, "lat": 38.090196, "lon": 127.337617},
+    {"id": "명성산", "name": "명성산", "region": null, "summit": "명성산", "height": 926, "lat": 38.090196, "lon": 127.337617, "alt": [{"name": "명성산", "lat": 38.104366, "lon": 127.337898}]},
     {"id": "명지산", "name": "명지산", "region": null, "summit": "명지산", "height": 1281, "lat": 37.941265, "lon": 127.432411},
     {"id": "모악산", "name": "모악산", "region": null, "summit": "모악산", "height": 813, "lat": 35.728580, "lon": 127.085114},
     {"id": "무등산", "name": "무등산", "region": null, "summit": "서석대", "height": 1120, "lat": 35.120960, "lon": 127.002785},
