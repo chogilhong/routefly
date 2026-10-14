@@ -1083,13 +1083,13 @@
         seekCaptions(anim.d);
         // 비행 중에는 목록을 숨겨 지도를 꽉 차게(멈추면 다시)
         document.body.classList.add("flying");
-        // 인트로 - 지금 자리에서 높이 떠올랐다가 출발 지점 뒤로 내려앉습니다(curve 가 클수록 높이 뜸).
-        // 처음부터일 때는 조금 길게, 이어서일 때는 짧게.
+        // 인트로 - 지금 자리에서 출발 지점으로 곧장 미끄러져 내려앉습니다. 처음부터일 때는 조금 길게, 이어서일 때는 짧게.
+        // flyTo(curve)는 한참 높이 물러났다가 내려와 어지러웠음(2026-10-14 홍TV님: "한참 뒤로 밀렸다가 감") - easeTo 는 물러나지 않고,
+        // 가는 동안 중심 높이도 그 자리 지형 높이로 맞춰 줌(MapLibre 5.24 _prepareElevation).
         anim.pitch = anim.pitchWant = anim.d === 0 ? FLY_PITCH : Math.min(anim.pitch, FLY_PITCH);
         anim.pitchAt = 0;
-        map.flyTo(withGround({ center: [p.lon, p.lat], zoom: cur.plan.zoom, pitch: anim.pitch, bearing: anim.bearing,
-                    duration: anim.d === 0 ? 3800 : 1600, curve: anim.d === 0 ? 1.7 : 1.2, essential: true,
-                    padding: flightPadding() }, p));
+        map.easeTo({ center: [p.lon, p.lat], zoom: cur.plan.zoom, pitch: anim.pitch, bearing: anim.bearing,
+                    duration: anim.d === 0 ? 2200 : 1000, essential: true, padding: flightPadding() });
         map.once("moveend", function () {
             if (!anim.running) return;
             stepCaptions(anim.d);   // 출발 자막
