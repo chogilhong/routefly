@@ -609,8 +609,18 @@
     function peaksDue(peaks, lat, lon, have, radiusM) {
         var r = radiusM || 150;
         return (peaks || []).filter(function (p) {
-            return p && isFinite(+p.lat) && isFinite(+p.lon) && !(have && have[peakKey(p)]) && distM(lat, lon, +p.lat, +p.lon) <= r;
+            return p && isFinite(+p.lat) && isFinite(+p.lon) && !(have && have[peakKey(p)]) && peakGapM(p, lat, lon) <= r;
         });
+    }
+
+    /**
+     * 순수 함수 - (lat, lon) 에서 그 산 정상까지 거리(m). 정상 둘(alt - 가야산은 산림청 자료의 칠불봉과 정상석이 있는 상왕봉이 약 240m 떨어짐,
+     * 2026-10-14 홍TV님 도장 · 완주 검토: 해인사 → 상왕봉 코스는 칠불봉 150m 밖이라 도장이 안 찍혔음)이면 가까운 쪽.
+     */
+    function peakGapM(p, lat, lon) {
+        return [p].concat(p.alt || []).reduce(function (m, q) {
+            return isFinite(+q.lat) && isFinite(+q.lon) ? Math.min(m, distM(lat, lon, +q.lat, +q.lon)) : m;
+        }, Infinity);
     }
 
     /**
@@ -637,8 +647,8 @@
     function peakCourses(courses, peak, nearM) {
         var r = nearM || 2000, out = [];
         (courses || []).filter(function (c) { return !isClosedTrail(c.name); }).forEach(function (c) {
-            var d = Math.min(c.end_lat != null ? distM(+c.end_lat, +c.end_lon, +peak.lat, +peak.lon) : Infinity,
-                             c.start_lat != null ? distM(+c.start_lat, +c.start_lon, +peak.lat, +peak.lon) : Infinity);
+            var d = Math.min(c.end_lat != null ? peakGapM(peak, +c.end_lat, +c.end_lon) : Infinity,
+                             c.start_lat != null ? peakGapM(peak, +c.start_lat, +c.start_lon) : Infinity);
             if (d <= r) out.push({ c: c, d: d });
         });
         return out.sort(function (a, b) { return a.d - b.d; }).map(function (x) { return x.c; });
@@ -2820,7 +2830,7 @@
     }
 
     global.RF = {
-        LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, stampKey: stampKey, summitName: summitName, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakCourses: peakCourses, isClosedTrail: isClosedTrail, isHiddenCourse: isHiddenCourse, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
+        LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, stampKey: stampKey, summitName: summitName, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakGapM: peakGapM, peakCourses: peakCourses, isClosedTrail: isClosedTrail, isHiddenCourse: isHiddenCourse, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
         sunset: sunset, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, scheduleRows: scheduleRows, weatherWord: weatherWord, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
     };

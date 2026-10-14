@@ -3,7 +3,7 @@
   "peaks": [
     {"id": "가리산", "name": "가리산", "region": null, "summit": "가리산", "height": 1037, "lat": 37.871387, "lon": 127.956276},
     {"id": "가리왕산", "name": "가리왕산", "region": null, "summit": "가리왕산", "height": 1597, "lat": 37.461403, "lon": 128.563385},
-    {"id": "가야산", "name": "가야산", "region": null, "summit": "칠불봉", "height": 1453, "lat": 35.822544, "lon": 128.122849},
+    {"id": "가야산", "name": "가야산", "region": null, "summit": "칠불봉", "height": 1453, "lat": 35.822544, "lon": 128.122849, "alt": [{"name": "상왕봉(우두봉)", "lat": 35.823298, "lon": 128.120373}], "altBy": "2026-10-14 홍TV님 도장 · 완주 검토 - 정상석이 있는 상왕봉(공단 탐방로 knps-7012 끝, PC DB 좌표). 칠불봉에서 약 240m라 둘 다 도장"},
     {"id": "가지산", "name": "가지산", "region": null, "summit": "가지산", "height": 1274, "lat": 35.620224, "lon": 129.002930},
     {"id": "감악산", "name": "감악산", "region": null, "summit": "감악산", "height": 699, "lat": 37.941067, "lon": 126.970116},
     {"id": "강천산", "name": "강천산", "region": null, "summit": "강천산 왕자봉", "height": 626, "lat": 35.401871, "lon": 127.048424},

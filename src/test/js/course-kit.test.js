@@ -717,3 +717,8 @@ eq("summitTemp 100m 에 0.65도", [RF.summitTemp(18, 600, 1400), RF.summitTemp(1
     var a = RF.sunset(Date.UTC(2026, 9, 13, 23, 0), 35.8, 128.1), b = RF.sunset(Date.UTC(2026, 9, 14, 1, 30), 35.8, 128.1);   // 한국 10-14 08:00 · 10:30
     eq("sunset 한국 아침 9시 전도 그날 일몰", [a === b, a > Date.UTC(2026, 9, 14, 0, 0), new Date(a + 9 * 3600000).getUTCHours()], [true, true, 17]);
 })();
+(function () {
+    var gaya = { id: "가야산", lat: 35.822544, lon: 128.122849, alt: [{ name: "상왕봉(우두봉)", lat: 35.823298, lon: 128.120373 }] };
+    eq("peaksDue 정상 둘(가야산 칠불봉 · 상왕봉) - 상왕봉에서도 도장", [RF.peaksDue([gaya], 35.8233, 128.1204, {}).length, RF.peaksDue([{ id: "x", lat: 35.822544, lon: 128.122849 }], 35.8233, 128.1204, {}).length], [1, 0]);
+    eq("peakCourses 끝이 상왕봉인 코스가 맨 앞", RF.peakCourses([{ course_id: "a", name: "서성재", end_lat: 35.8300, end_lon: 128.1300 }, { course_id: "b", name: "상왕봉", end_lat: 35.823298, end_lon: 128.120373 }], gaya, 2000).map(function (c) { return c.course_id; }), ["b", "a"]);
+})();

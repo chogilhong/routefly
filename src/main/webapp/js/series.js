@@ -39,11 +39,11 @@
     }
 
     /** 코스 한 줄 - 이름 · 거리 · (완주) · fly · 따라가기. */
-    function courseRow(c) {
+    function courseRow(c, note) {
         var row = el("div", "row"), t = el("div", "t");
         var d = done[c.course_id];
         t.appendChild(document.createTextNode((d ? "✅ " : "") + RF.nameText(c.name)));
-        t.appendChild(el("span", null, RF.km(c.distance_m) + "km · 오르막 " + RF.num(c.ascent_m) + "m" + (d ? " · 완주 " + day(d.t) : "")));
+        t.appendChild(el("span", null, RF.km(c.distance_m) + "km · 오르막 " + RF.num(c.ascent_m) + "m" + (d ? " · 완주 " + day(d.t) : "") + (note ? " · " + note : "")));
         row.appendChild(t);
         flyBtn(row, c.course_id);
         var b = el("a", "main", "따라가기");
@@ -124,7 +124,12 @@
                         state = 2;
                         var cs = RF.peakCourses(j.courses, k, 2000).slice(0, 8);
                         if (!cs.length) list.appendChild(el("div", "tip", "정상까지 가는 코스를 찾지 못했습니다."));
-                        cs.forEach(function (c) { list.appendChild(courseRow(c)); });
+                        // 정상에 닿지 않는 코스(끝이 정상 300m 밖 - 가야산 "백운동 → 서성재")는 얼마 더 가야 하는지 적음(2026-10-14 홍TV님 검토)
+                        cs.forEach(function (c) {
+                            var gap = Math.min(c.end_lat != null ? RF.peakGapM(k, +c.end_lat, +c.end_lon) : Infinity,
+                                               c.start_lat != null ? RF.peakGapM(k, +c.start_lat, +c.start_lon) : Infinity);
+                            list.appendChild(courseRow(c, gap > 300 && isFinite(gap) ? "정상까지 " + RF.km(gap) + "km 더(코스 밖)" : null));
+                        });
                         restoreScroll();   // 받은 코스 목록이 늘어난 뒤 돌아온 자리로
                     }).catch(function (e) {
                         state = 3;
