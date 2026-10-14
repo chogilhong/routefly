@@ -1733,7 +1733,7 @@
     /**
      * 순수 함수 - 이어 걷기 그림: 구간마다 걷는 방향 좌표 + 빈틈 점선. 다음 구간 시작이 갈림길을 지나쳐 그려진 자료면(지리산 벽소령 -
      * 연하천삼거리 선 끝이 대피소 남쪽 120m) 앞 구간 끝에서 가장 가까운 점까지 잘라 V 자로 내려갔다 오지 않게(2026-10-14 PC).
-     * 앞 구간 끝이 지나쳐 그려진 것도 같은 방법. 잘라도 더 가까워지지 않으면 그대로. → {lines: [[[lon,lat]…]…], gaps: [[a, b]…]}
+     * 앞 구간 끝이 지나쳐 그려진 것 · 둘 다 지나쳐 나란히 그려진 것도 같은 방법. 잘라도 더 가까워지지 않으면 그대로. → {lines: [[[lon,lat]…]…], gaps: [[a, b]…]}
      */
     function joinDraw(sel, lines, maxM) {
         var max = maxM == null ? 200 : maxM, segs = [];
@@ -1745,13 +1745,12 @@
         var d = function (a, b) { return distM(a[1], a[0], b[1], b[0]); };
         for (var i = 0; i + 1 < segs.length; i++) {
             var A = segs[i], B = segs[i + 1], aEnd = A[A.length - 1], gap0 = d(aEnd, B[0]);
-            // B 앞쪽 절반에서 A 끝과 가장 가까운 점, A 뒤쪽 절반에서 B 시작과 가장 가까운 점
-            var bj = 0, bd = gap0, ai = A.length - 1, ad = gap0, k;
-            for (k = 1; k < Math.ceil(B.length / 2); k++) { var x = d(aEnd, B[k]); if (x < bd) { bd = x; bj = k; } }
-            for (k = A.length - 2; k >= Math.floor(A.length / 2); k--) { var y = d(A[k], B[0]); if (y < ad) { ad = y; ai = k; } }
-            if (Math.min(bd, ad) < gap0 - 10) {
-                if (bd <= ad) segs[i + 1] = B = B.slice(bj); else segs[i] = A = A.slice(0, ai + 1);
+            // A 뒤쪽 절반 × B 앞쪽 절반에서 가장 가까운 두 점 - 둘 다 갈림길을 지나쳐 나란히 그려진 자료도(지리산 세석평전 - 2026-10-14 PC: 15m 간격으로 나란히)
+            var ai = A.length - 1, bj = 0, best = gap0, k, m;
+            for (k = Math.floor(A.length / 2); k < A.length; k++) {
+                for (m = 0; m < Math.ceil(B.length / 2); m++) { var x = d(A[k], B[m]); if (x < best) { best = x; ai = k; bj = m; } }
             }
+            if (best < gap0 - 10) { segs[i] = A = A.slice(0, ai + 1); segs[i + 1] = B = B.slice(bj); }
             var g = d(A[A.length - 1], B[0]);
             if (g > 3 && g <= max) gaps.push([A[A.length - 1], B[0]]);
         }
