@@ -2116,7 +2116,9 @@
         if (hike.running) { toast((hike.sim ? "시험 걷기" : K().act) + " 중입니다. " + (fromSeries ? "도장 · 완주 화면" : "코스 목록") + "으로 가려면 먼저 아래 '" + $("go").textContent + "' 를 눌러 주세요.", 4000); return; }   // 단추 글 그대로(시험 걷기 끝내기)
         if (fromSeries) { location.href = "series.html"; return; }
         if (fromMountain) {
-            if (history.length > 1 && /\/m\//.test(document.referrer || "")) history.back();   // 그 화면 그대로(스크롤 자리)
+            var mBack = /\/m\//.test(document.referrer || "");
+            try { mBack = mBack || sessionStorage.getItem("rf-fly-back") === "1"; } catch (err) { /* referrer 만 */ }   // 새로 고치면 referrer 가 없음 - 산 소개에서 누를 때 적어 둠
+            if (history.length > 1 && mBack) history.back();   // 그 화면 그대로(스크롤 자리)
             else location.href = "m/" + encodeURIComponent(fromMountain);
             return;
         }

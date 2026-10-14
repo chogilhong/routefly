@@ -3,6 +3,11 @@
  * 2026-10-14 홍TV님. 코스 목록은 서버가 HTML 로 그립니다.
  */
 (function () {
+    // fly(3D) · 따라가기로 갈 때 적어 둠 - 그 화면의 ‹ · ← 뒤로가 새로 고친 뒤에도 history.back() 으로 이 화면 · 스크롤 자리로(2026-10-14 PC)
+    document.addEventListener("click", function (e) {
+        var a = e.target.closest && e.target.closest(".go a");
+        if (a) try { sessionStorage.setItem("rf-fly-back", "1"); } catch (err) { /* 그때는 새로 엶 */ }
+    });
     var box = document.getElementById("wx"), out = document.getElementById("wxBody");
     if (!box || !out || !window.RF) return;
     var lat = +box.getAttribute("data-lat"), lon = +box.getAttribute("data-lon"), RF = window.RF;

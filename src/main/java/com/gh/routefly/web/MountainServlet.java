@@ -248,7 +248,7 @@ public class MountainServlet extends HttpServlet {
                         .append(String.format(Locale.ROOT, "%.2fkm", dist / 1000.0))
                         .append(asc != null ? String.format(Locale.KOREA, " · 오르막 %,dm", asc) : "")
                         .append(" · 약 ").append(hours(dist, asc)).append("</span><span class=\"go\">")
-                        .append("<a href=\"").append(REL).append("/index.html#c=").append(esc(id)).append("\">fly(3D)</a>")
+                        .append("<a href=\"").append(REL).append("/index.html#c=").append(esc(id)).append("&amp;m=").append(esc(enc(name))).append("\">fly(3D)</a>")
                         .append("<a href=\"").append(REL).append("/hike.html#c=").append(esc(id)).append("&amp;m=").append(esc(enc(name))).append("\">따라가기</a></span></li>");   // m= - 따라가기의 ‹ 가 이 화면으로
             }
             b.append("</ul>");

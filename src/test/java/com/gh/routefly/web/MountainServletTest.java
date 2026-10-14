@@ -42,7 +42,7 @@ public class MountainServletTest {
         String html = MountainServlet.page(gaya, out, "https://routefly.kr/routefly");
         assertTrue(html.contains("<title>가야산 등산코스 · 날씨 · 일출 일몰 - routefly</title>"));
         assertTrue(html.contains("rel=\"canonical\" href=\"https://routefly.kr/routefly/m/%EA%B0%80%EC%95%BC%EC%82%B0\""));
-        assertTrue(html.contains("\"../index.html#c=knps-7013\">fly(3D)") && html.contains("\"../hike.html#c=knps-7013&amp;m=%EA%B0%80%EC%95%BC%EC%82%B0\">따라가기"));
+        assertTrue(html.contains("\"../index.html#c=knps-7013&amp;m=%EA%B0%80%EC%95%BC%EC%82%B0\">fly(3D)") && html.contains("\"../hike.html#c=knps-7013&amp;m=%EA%B0%80%EC%95%BC%EC%82%B0\">따라가기"));
         assertTrue("css · js 는 상대 주소(터널 https 에서 http 절대 주소가 막혔음)", html.contains("href=\"../css/mountain.css\"") && html.contains("src=\"../js/mountain.js\""));
         assertFalse(html.contains("src=\"https://routefly.kr"));
         assertTrue("예상 시간(4km/h + 600m/h)", html.contains("약 2시간 18분"));
