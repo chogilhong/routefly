@@ -779,7 +779,8 @@
     }
 
     function start() {
-        $("title").textContent = park ? (label || park) + " 탐방 안내도" : "탐방 안내도";   // 2026-10-12 홍TV님: "전체 보기" → "탐방 안내도"
+        $("title").textContent = park ? (label || park) + " 탐방 안내도" : "탐방 안내도";
+        $("title").classList.toggle("long", String(label || park || "").length >= 5);   // 2026-10-12 홍TV님: "전체 보기" → "탐방 안내도"
         // 위 단추 - 기본은 "← 목록"(따라가기 첫 화면)
         if (listMode) {   // 목록 카드에서 왔으면: 위 "← 목록" 은 따라가기 화면(검색 목록 - 검색어는 rf-search 로 남아 있음), 아래 "따라가기" 는 고른 탐방로로
             $("back").textContent = "← 목록";   // 2026-10-13 홍TV님: "← 뒤로" → "← 목록"
