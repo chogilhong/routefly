@@ -1727,7 +1727,9 @@
         $("offroute").style.display = "none";
         RF.showName($("name"), c.course.name, true);
         document.title = RF.nameText(c.course.name, true);
-        try { history.replaceState(null, "", "#c=" + encodeURIComponent(c.id)); } catch (e) { /* 주소만 못 바꿈 */ }   // 새로 고침하면 이 코스로 이어서
+        // 새로 고침하면 이 코스로 이어서 - 들어온 화면 표시(&from=series · &m=산)는 남김(새로 고친 뒤에도 ‹ 가 그 화면으로)
+        var keepHash = (location.hash.match(/&(from|m)=[^&]*/g) || []).join("");
+        try { history.replaceState(null, "", "#c=" + encodeURIComponent(c.id) + keepHash); } catch (e) { /* 주소만 못 바꿈 */ }
         drawCourse(true);
         prof = RF.profile($("profile"), c, {});
         try {
@@ -2101,11 +2103,23 @@
         $("back").innerHTML = "<b>‹</b>도장 · 완주";
         $("back").title = "도장 · 완주 화면으로";
     }
+    // 산 소개 페이지(/m/산)의 따라가기로 들어왔으면(#c=…&m=산) "‹ 산 이름" 으로 그 페이지에 돌아감(2026-10-14 홍TV님 - 못 돌아갔음)
+    var fromMountain = RF.safeDecode((/[#&]m=([^&]+)/.exec(location.hash) || [])[1] || "");
+    if (fromMountain) {
+        $("back").innerHTML = "<b>‹</b>";
+        $("back").appendChild(document.createTextNode(fromMountain));
+        $("back").title = fromMountain + " 등산코스 화면으로";
+    }
     // ‹ - 코스 목록(검색 결과 그대로)으로. 산행 중이면 먼저 끝내도록.
     $("back").addEventListener("click", function (e) {
         e.preventDefault();
         if (hike.running) { toast((hike.sim ? "시험 걷기" : K().act) + " 중입니다. " + (fromSeries ? "도장 · 완주 화면" : "코스 목록") + "으로 가려면 먼저 아래 '" + $("go").textContent + "' 를 눌러 주세요.", 4000); return; }   // 단추 글 그대로(시험 걷기 끝내기)
         if (fromSeries) { location.href = "series.html"; return; }
+        if (fromMountain) {
+            if (history.length > 1 && /\/m\//.test(document.referrer || "")) history.back();   // 그 화면 그대로(스크롤 자리)
+            else location.href = "m/" + encodeURIComponent(fromMountain);
+            return;
+        }
         if (fromList) { fromList = false; history.back(); }
         else location.hash = "";
     });
