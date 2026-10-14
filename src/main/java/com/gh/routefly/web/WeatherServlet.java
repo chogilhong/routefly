@@ -28,7 +28,7 @@ import com.google.gson.JsonParser;
  *   <li>인증키 {@code weather.serviceKey}, 없으면 {@code tour.serviceKey}(공공데이터포털 개인 키는 같고, 서비스마다 활용 신청만 따로).
  *       없거나 실패하면 {@code {success:true, hours:[], unavailable:true}}.</li>
  * </ul>
- * → {@code {success, base:"2026-10-14 14:00", hours:[{t:"2026-10-14 15:00", tmp, sky, pty, pop, wsd, reh, pcp}], days:{"2026-10-15":{tmn, tmx}}, source:"기상청"}}
+ * → {@code {success, base:"2026-10-14 14:00", near(옆 격자 자료면 true), hours:[{t:"2026-10-14 15:00", tmp, sky, pty, pop, wsd, reh, pcp}], days:{"2026-10-15":{tmn, tmx}}, source:"기상청"}}
  *   sky 1 맑음 · 3 구름많음 · 4 흐림, pty 0 없음 · 1 비 · 2 비/눈 · 3 눈 · 4 소나기.
  */
 @WebServlet(urlPatterns = {"/api/weather"})
@@ -73,6 +73,14 @@ public class WeatherServlet extends HttpServlet {
             out = t2 == null ? null : body(t2, prev);
             if (out == null && t2 != null) text = t2;
         }
+        // 그래도 자료 없음이면 바로 옆 격자(5km)로 - 북한산 들머리 격자(61,129)는 두 발표 모두 NO_DATA 였고 옆(60,129)은 나왔음(2026-10-14 PC)
+        if (out == null && text != null && noData(text)) {
+            for (int[] n : neighbors(g)) {
+                String t3 = OpenApi.get(url(u != null ? u : DEFAULT_URL, serviceKey, n, base), "WEATHER");
+                out = t3 == null ? null : body(t3, base);
+                if (out != null) { out.addProperty("near", true); break; }
+            }
+        }
         if (out == null && text != null) OpenApi.warn("WEATHER", text);
         return out != null ? out : unavailable();
     }
@@ -112,6 +120,11 @@ public class WeatherServlet extends HttpServlet {
         LocalDateTime d = b < 0 ? t.minusDays(1).withHour(23) : t.withHour(b);
         return new String[] {String.format(Locale.ROOT, "%04d%02d%02d", d.getYear(), d.getMonthValue(), d.getDayOfMonth()),
                 String.format(Locale.ROOT, "%02d00", d.getHour())};
+    }
+
+    /** 순수 함수 - 바로 옆 격자 넷(서 · 동 · 남 · 북). */
+    static int[][] neighbors(int[] g) {
+        return new int[][] {{g[0] - 1, g[1]}, {g[0] + 1, g[1]}, {g[0], g[1] - 1}, {g[0], g[1] + 1}};
     }
 
     /** 순수 함수 - 기상청 "자료 없음"(resultCode 03) 응답인가. */

@@ -661,7 +661,7 @@
                         (st != null && top - (start.ele || 0) > 200 ? "정상 약 " + st + "℃ · " : "") + "바람 " + (h.wsd != null ? h.wsd + "m/s" : "-"),
                         "비 " + (h.pop != null ? h.pop + "%" : "-")));
                 });
-                body.appendChild(el("div", "gNote", "자료: 기상청 단기예보(" + w.base + " 발표) · 들머리 둘레 5km 격자. 정상 기온은 높이로 어림한 값입니다."));
+                body.appendChild(el("div", "gNote", "자료: 기상청 단기예보(" + w.base + " 발표) · 들머리 둘레 5km 격자" + (w.near ? "(들머리 격자에 자료가 없어 바로 옆 격자)" : "") + ". 정상 기온은 높이로 어림한 값입니다."));
             }).catch(function () { body.textContent = ""; body.appendChild(el("div", "gNote", "날씨를 받지 못했습니다.")); });
         } else if (kind === "stay" || kind === "food") {
             var food = kind === "food", what = food ? "식당" : "숙박";

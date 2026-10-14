@@ -34,6 +34,11 @@ public class WeatherServletTest {
     }
 
     @Test
+    public void neighborsAreFourSides() {
+        assertArrayEquals(new int[][] {{60, 129}, {62, 129}, {61, 128}, {61, 130}}, WeatherServlet.neighbors(new int[] {61, 129}));
+    }
+
+    @Test
     public void urlHasGridAndEncodedKey() {
         String u = WeatherServlet.url(WeatherServlet.DEFAULT_URL, "k+/=", new int[] {81, 88}, new String[] {"20261014", "1400"});
         assertTrue(u, u.contains("serviceKey=k%2B%2F%3D") && u.contains("nx=81&ny=88") && u.contains("base_time=1400") && u.contains("dataType=JSON"));
