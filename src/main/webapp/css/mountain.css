@@ -1,0 +1,25 @@
+/* 산 소개 페이지(/m/ - MountainServlet) - 안내(about.html)와 같은 색 */
+:root { --bg:#11161d; --panel:#1a212b; --tx:#e9eef4; --dim:#9aa6b4; --ln:rgba(255,255,255,0.12); --sky:#38d9ea; }
+* { box-sizing:border-box; }
+html, body { margin:0; background:var(--bg); color:var(--tx); font-family:Arial,"Malgun Gothic",sans-serif; line-height:1.6; }
+main { max-width:760px; margin:0 auto; padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 40px); }
+h1 { font-size:24px; margin:0 0 4px; }
+h2 { font-size:17px; margin:0 0 8px; }
+a { color:var(--sky); }
+.crumb { margin:0 0 6px; font-size:13.5px; }
+.lead { color:var(--dim); font-size:14px; margin:0 0 16px; }
+.dim { color:var(--dim); font-size:13px; }
+section { background:var(--panel); border:1px solid var(--ln); border-radius:12px; padding:14px 16px; margin-bottom:14px; }
+#wxBody b { display:block; margin-bottom:4px; }
+#wxBody div { font-size:14px; }
+ul { margin:0; padding:0; list-style:none; }
+.cs li { border-top:1px solid var(--ln); padding:10px 0; display:flex; flex-wrap:wrap; gap:4px 10px; align-items:baseline; }
+.cs li:first-child { border-top:0; }
+.cs b { flex:1 1 100%; font-size:15px; }
+.cs span { font-size:13.5px; color:var(--dim); }
+.cs .go { margin-left:auto; display:flex; gap:8px; }
+.cs .go a { text-decoration:none; font-size:13.5px; padding:4px 10px; border:1px solid var(--ln); border-radius:14px; }
+.ms { display:flex; flex-wrap:wrap; gap:8px; }
+.ms a { display:inline-block; text-decoration:none; color:var(--tx); font-size:14px; padding:6px 11px; border:1px solid var(--ln); border-radius:16px; }
+.brand { margin-top:18px; font-size:15px; font-weight:bold; }
+.brand span { color:#ffb703; }

@@ -1,0 +1,285 @@
+package com.gh.routefly.web;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
+/**
+ * 산마다 소개 페이지. {@code GET /m/} (100대 명산 목록) · {@code GET /m/가야산} (그 산 코스 · 날씨 · 일출 · 일몰).
+ *
+ * <p>2026-10-14 홍TV님 - "○○산 등산코스", "○○산 날씨" 같은 검색으로 들어오는 입구(앱 화면에는 단추를 더하지 않음).
+ * 코스 목록은 서버가 HTML 로 그려 검색 엔진이 읽고, 날씨 · 일출 · 일몰은 js/mountain.js 가 채웁니다(script-src 'self').
+ * 산 자료는 웹 앱의 data/mountains100.json, 코스는 정상(또는 두 번째 정상 alt)에서 2km 안에 끝나거나 시작하는 등산 코스
+ * (course-kit.js peakCourses 와 같은 규칙).
+ */
+@WebServlet(urlPatterns = {"/m/*"})
+public class MountainServlet extends HttpServlet {
+
+    private static final long serialVersionUID = 1L;
+    private static final Logger log = LogManager.getLogger(MountainServlet.class);
+    static final double NEAR_M = 2000;
+    static final int MAX_COURSES = 30;
+
+    private volatile JsonArray peaks;
+    private volatile JsonObject parks;
+
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        String path = req.getPathInfo();
+        String name = path == null ? "" : URLDecoder.decode(path.replaceFirst("^/", ""), StandardCharsets.UTF_8).trim();
+        String base = ShareServlet.baseUrl(RouteflyConfig.get("site.baseUrl"), req.getScheme(), req.getServerName(), req.getServerPort(),
+                req.getContextPath(), req.getHeader("X-Forwarded-Proto"));
+        resp.setContentType("text/html");
+        resp.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        JsonArray all = peaks();
+        if (name.isEmpty()) {
+            resp.setHeader("Cache-Control", "public, max-age=3600");
+            resp.getWriter().print(indexPage(all, base));
+            return;
+        }
+        JsonObject peak = find(all, name);
+        if (peak == null) {
+            resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            resp.getWriter().print(notFoundPage(name, base));
+            return;
+        }
+        List<JsonObject> courses = new ArrayList<>();
+        boolean failed = false;
+        try (Connection c = Db.open()) {
+            double lat = peak.get("lat").getAsDouble(), lon = peak.get("lon").getAsDouble();
+            double dLat = 0.05, dLon = 0.05 / Math.cos(Math.toRadians(lat));
+            JsonArray rows = CourseQueries.list(c, new double[] {lon - dLon, lat - dLat, lon + dLon, lat + dLat}, "hike", null);
+            courses = near(rows, peak, NEAR_M);
+            names(courses, parks());   // 앱과 같은 이름(공단 공식 이름 · 산마다 지명) · 지금은 없는 탐방로는 뺌
+        } catch (Exception e) {
+            failed = true;
+            log.warn("[MOUNTAIN] 코스 조회 실패 {} - {}", name, e.toString());
+        }
+        resp.setHeader("Cache-Control", failed ? "no-store" : "public, max-age=600");
+        resp.getWriter().print(page(peak, courses, base));
+    }
+
+    private JsonArray peaks() {
+        JsonArray p = peaks;
+        if (p != null) return p;
+        try (InputStream in = getServletContext().getResourceAsStream("/data/mountains100.json")) {
+            JsonElement e = in == null ? null : JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+            p = e != null && e.isJsonObject() && e.getAsJsonObject().has("peaks") ? e.getAsJsonObject().getAsJsonArray("peaks") : new JsonArray();
+        } catch (Exception e) {
+            log.warn("[MOUNTAIN] mountains100.json 못 읽음 - {}", e.toString());
+            p = new JsonArray();
+        }
+        peaks = p;
+        return p;
+    }
+
+    /** data/park-notes.json 의 parks - 못 읽으면 빈 것(이름은 DB 그대로). */
+    private JsonObject parks() {
+        JsonObject n = parks;
+        if (n != null) return n;
+        try (InputStream in = getServletContext().getResourceAsStream("/data/park-notes.json")) {
+            JsonElement e = in == null ? null : JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+            n = e != null && e.isJsonObject() && e.getAsJsonObject().has("parks") ? e.getAsJsonObject().getAsJsonObject("parks") : new JsonObject();
+        } catch (Exception e) {
+            n = new JsonObject();
+        }
+        parks = n;
+        return n;
+    }
+
+    /** 순수 함수 - park-notes 의 hide(코스 ID 그대로나 앞부분)인 코스는 빼고, 이름은 공유 카드와 같은 규칙(ShareServlet.noteName)으로. */
+    static void names(List<JsonObject> courses, JsonObject parks) {
+        courses.removeIf(c -> hidden(parks, str(c, "course_id")));
+        for (JsonObject c : courses) c.addProperty("name", ShareServlet.noteName(parks, str(c, "course_id"), str(c, "name")));
+    }
+
+    static boolean hidden(JsonObject parks, String id) {
+        if (parks == null || id == null) return false;
+        for (String park : parks.keySet()) {
+            JsonElement pe = parks.get(park);
+            if (!pe.isJsonObject() || !pe.getAsJsonObject().has("hide") || !pe.getAsJsonObject().get("hide").isJsonArray()) continue;
+            for (JsonElement k : pe.getAsJsonObject().getAsJsonArray("hide")) {
+                String h = k.getAsString();
+                if (id.equals(h) || id.startsWith(h + "-")) return true;
+            }
+        }
+        return false;
+    }
+
+    /** 순수 함수 - 산 이름(id · name)으로 찾기. 없으면 null. */
+    static JsonObject find(JsonArray peaks, String name) {
+        for (JsonElement e : peaks) {
+            JsonObject o = e.getAsJsonObject();
+            if (name.equals(str(o, "id")) || name.equals(str(o, "name"))) return o;
+        }
+        return null;
+    }
+
+    /** 순수 함수 - 정상(또는 alt)에서 nearM 안에 끝(또는 시작)이 있는 코스, 가까운 차례. 비법정 · 비매칭 길은 뺌. */
+    static List<JsonObject> near(JsonArray rows, JsonObject peak, double nearM) {
+        List<double[]> tops = new ArrayList<>();
+        tops.add(new double[] {peak.get("lat").getAsDouble(), peak.get("lon").getAsDouble()});
+        if (peak.has("alt") && peak.get("alt").isJsonArray()) {
+            for (JsonElement a : peak.getAsJsonArray("alt")) {
+                JsonObject q = a.getAsJsonObject();
+                if (q.has("lat") && q.has("lon")) tops.add(new double[] {q.get("lat").getAsDouble(), q.get("lon").getAsDouble()});
+            }
+        }
+        List<Object[]> hit = new ArrayList<>();
+        for (JsonElement e : rows) {
+            JsonObject c = e.getAsJsonObject();
+            String n = str(c, "name");
+            if (n == null || n.matches(".*(비매칭|비법정).*")) continue;
+            double d = Double.POSITIVE_INFINITY;
+            for (double[] t : tops) {
+                d = Math.min(d, gap(c, "end_lat", "end_lon", t));
+                d = Math.min(d, gap(c, "start_lat", "start_lon", t));
+            }
+            if (d <= nearM) hit.add(new Object[] {c, d});
+        }
+        hit.sort(Comparator.comparingDouble(o -> (Double) o[1]));
+        List<JsonObject> out = new ArrayList<>();
+        for (Object[] o : hit) {
+            if (out.size() >= MAX_COURSES) break;
+            out.add((JsonObject) o[0]);
+        }
+        return out;
+    }
+
+    private static double gap(JsonObject c, String la, String lo, double[] t) {
+        if (!c.has(la) || c.get(la).isJsonNull() || !c.has(lo) || c.get(lo).isJsonNull()) return Double.POSITIVE_INFINITY;
+        return distM(c.get(la).getAsDouble(), c.get(lo).getAsDouble(), t[0], t[1]);
+    }
+
+    /** 순수 함수 - 두 점 거리(m, 하버사인). */
+    static double distM(double lat1, double lon1, double lat2, double lon2) {
+        double r = Math.PI / 180, dLat = (lat2 - lat1) * r, dLon = (lon2 - lon1) * r;
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * r) * Math.cos(lat2 * r) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        return 6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    /** 순수 함수 - 예상 시간(등산 표준: 4km/h + 오르막 600m/h, course-kit.js standardMs 와 같음) "2시간 18분". */
+    static String hours(int distanceM, Integer ascentM) {
+        double h = distanceM / 1000.0 / 4 + (ascentM == null ? 0 : ascentM / 600.0);
+        long m = Math.round(h * 60);
+        return (m >= 60 ? m / 60 + "시간 " : "") + m % 60 + "분";
+    }
+
+    /** 순수 함수 - 산 페이지. */
+    static String page(JsonObject peak, List<JsonObject> courses, String base) {
+        String name = str(peak, "name"), summit = str(peak, "summit");
+        String url = base + "/m/" + enc(name);
+        Integer top = null;
+        for (JsonObject c : courses) {
+            if (c.has("ele_max_m") && !c.get("ele_max_m").isJsonNull()) {
+                int e = (int) Math.round(c.get("ele_max_m").getAsDouble());
+                top = top == null ? e : Math.max(top, e);
+            }
+        }
+        String title = name + " 등산코스 · 날씨 · 일출 일몰";
+        String desc = name + (summit != null && !summit.equals(name) ? "(" + summit + ")" : "") + " 등산코스 " + courses.size() + "개 - 거리 · 오르막 · 예상 시간, "
+                + "오늘 날씨와 일출 · 일몰. 3D 지형 위로 코스를 미리 날아 보고 핸드폰으로 따라 걷기.";
+        StringBuilder b = new StringBuilder(head(title, desc, url, base));
+        b.append("<main><p class=\"crumb\"><a href=\"").append(esc(base)).append("/m/\">100대 명산</a></p>");
+        b.append("<h1>").append(esc(name)).append(" 등산코스</h1>");
+        b.append("<p class=\"lead\">산림청 100대 명산").append(summit != null ? " · 정상 " + esc(summit) : "")
+                .append(top != null ? String.format(Locale.KOREA, " · 코스 최고점 약 %,dm", top) : "").append("</p>");
+        b.append("<section id=\"wx\" data-lat=\"").append(peak.get("lat").getAsDouble()).append("\" data-lon=\"").append(peak.get("lon").getAsDouble())
+                .append("\"><h2>오늘 날씨 · 일출 · 일몰</h2><p class=\"dim\" id=\"wxBody\">불러오는 중…</p></section>");
+        b.append("<section><h2>코스 ").append(courses.size()).append("개</h2>");
+        if (courses.isEmpty()) b.append("<p class=\"dim\">정상까지 가는 코스를 찾지 못했습니다. <a href=\"").append(esc(base))
+                .append("/hike.html\">따라가기에서 산 이름으로 찾아보세요</a>.</p>");
+        else {
+            b.append("<ul class=\"cs\">");
+            for (JsonObject c : courses) {
+                String id = str(c, "course_id");
+                int dist = c.get("distance_m").getAsInt();
+                Integer asc = c.has("ascent_m") && !c.get("ascent_m").isJsonNull() ? c.get("ascent_m").getAsInt() : null;
+                b.append("<li><b>").append(esc(str(c, "name"))).append("</b><span>")
+                        .append(String.format(Locale.ROOT, "%.2fkm", dist / 1000.0))
+                        .append(asc != null ? String.format(Locale.KOREA, " · 오르막 %,dm", asc) : "")
+                        .append(" · 약 ").append(hours(dist, asc)).append("</span><span class=\"go\">")
+                        .append("<a href=\"").append(esc(base)).append("/index.html#c=").append(esc(id)).append("\">fly(3D)</a>")
+                        .append("<a href=\"").append(esc(base)).append("/hike.html#c=").append(esc(id)).append("\">따라가기</a></span></li>");
+            }
+            b.append("</ul>");
+        }
+        b.append("<p class=\"dim\">예상 시간은 시속 4km · 오르막 600m 에 1시간으로 어림한 값입니다. 코스 자료는 참고용이니 현지 안내판 · 통제를 꼭 따르세요.</p></section>");
+        b.append(foot(base));
+        return b.toString();
+    }
+
+    /** 순수 함수 - 100대 명산 목록. */
+    static String indexPage(JsonArray peaks, String base) {
+        StringBuilder b = new StringBuilder(head("100대 명산 등산코스", "산림청 100대 명산 " + peaks.size()
+                + "곳의 등산코스 · 날씨 · 일출 일몰. 3D 지형 위로 미리 날아 보고 핸드폰으로 따라 걷기.", base + "/m/", base));
+        b.append("<main><h1>100대 명산 등산코스</h1><p class=\"lead\">산을 고르면 정상까지 가는 코스와 오늘 날씨 · 일출 · 일몰을 봅니다.</p><section><ul class=\"ms\">");
+        List<String> names = new ArrayList<>();
+        for (JsonElement e : peaks) names.add(str(e.getAsJsonObject(), "name"));
+        names.sort(Comparator.naturalOrder());
+        for (String n : names) b.append("<li><a href=\"").append(esc(base)).append("/m/").append(esc(enc(n))).append("\">").append(esc(n)).append("</a></li>");
+        b.append("</ul></section>").append(foot(base));
+        return b.toString();
+    }
+
+    static String notFoundPage(String name, String base) {
+        return head("산을 찾지 못했습니다", "routefly 100대 명산 등산코스", base + "/m/", base)
+                + "<main><h1>" + esc(name) + "</h1><p>100대 명산 목록에 없는 산입니다. <a href=\"" + esc(base) + "/m/\">목록 보기</a> · <a href=\""
+                + esc(base) + "/hike.html\">따라가기에서 찾기</a></p>" + foot(base);
+    }
+
+    private static String head(String title, String desc, String url, String base) {
+        String t = esc(title) + " - routefly", d = esc(desc);
+        return "<!DOCTYPE html><html lang=\"ko\"><head><meta charset=\"UTF-8\">"
+                + "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+                + "<title>" + t + "</title><meta name=\"description\" content=\"" + d + "\">"
+                + "<link rel=\"canonical\" href=\"" + esc(url) + "\">"
+                + "<meta property=\"og:type\" content=\"website\"><meta property=\"og:site_name\" content=\"routefly\">"
+                + "<meta property=\"og:title\" content=\"" + t + "\"><meta property=\"og:description\" content=\"" + d + "\">"
+                + "<meta property=\"og:url\" content=\"" + esc(url) + "\"><meta property=\"og:image\" content=\"" + esc(base) + "/img/og.png\">"
+                + "<link rel=\"icon\" type=\"image/svg+xml\" href=\"" + esc(base) + "/favicon.svg?v=1\"><meta name=\"theme-color\" content=\"#11161d\">"
+                + "<link rel=\"stylesheet\" href=\"" + esc(base) + "/css/mountain.css\"></head><body>";
+    }
+
+    private static String foot(String base) {
+        String b = esc(base);
+        return "<p class=\"dim\">자료: 산림청 100대 명산 · 등산로정보, 국립공원공단 탐방로, 기상청 단기예보(공공데이터포털). "
+                + "<a href=\"" + b + "/about.html\">안전 · 출처 안내</a> · <a href=\"" + b + "/privacy.html\">개인정보처리방침</a></p>"
+                + "<p class=\"brand\"><a href=\"" + b + "/hike.html\">route<span>fly</span> 열기 ›</a></p></main>"
+                + "<script src=\"" + b + "/js/course-kit.js\"></script><script src=\"" + b + "/js/mountain.js\"></script></body></html>";
+    }
+
+    private static String enc(String s) {
+        return URLEncoder.encode(s == null ? "" : s, StandardCharsets.UTF_8).replace("+", "%20");
+    }
+
+    private static String esc(String s) {
+        return ShareServlet.esc(s == null ? "" : s);
+    }
+
+    private static String str(JsonObject o, String k) {
+        JsonElement e = o.get(k);
+        return e == null || e.isJsonNull() ? null : e.getAsString();
+    }
+}

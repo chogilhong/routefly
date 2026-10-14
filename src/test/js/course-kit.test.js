@@ -740,3 +740,7 @@ eq("lateAt 1.5배 · 적어도 1시간 더", [RF.lateAt(0, 4 * 3600000) / 360000
         Math.round((p[2][0] - p[0][0]) / (p[0][1] - p[1][1]) * 100) / 100], [3, true, true, 0.8]);
     eq("fitPath 빈 것 · 한 점", [RF.fitPath([], [], 10, 10, 1).length, RF.fitPath([37], [127], 10, 10, 1)[0]], [0, [5, 5]]);
 })();
+(function () {
+    var r = RF.sunrise(Date.UTC(2026, 9, 14, 1, 0), 35.8, 128.1), h = new Date(r + 9 * 3600000);   // 한국 10-14 10:00
+    eq("sunrise 10월 대구 근처 아침 6시대", [h.getUTCDate(), h.getUTCHours()], [14, 6]);
+})();

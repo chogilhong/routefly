@@ -207,6 +207,9 @@ server {
     server_name routefly.kr;
 
     location = / { return 302 /routefly/; }
+    # 검색 엔진용(산 소개 페이지 /routefly/m/… - 2026-10-14 SitemapServlet). 사이트 뿌리에 있어야 해서 앱으로 넘김
+    location = /robots.txt  { proxy_pass http://127.0.0.1:8080/routefly/robots.txt;  proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto $scheme; }
+    location = /sitemap.xml { proxy_pass http://127.0.0.1:8080/routefly/sitemap.xml; proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto $scheme; }
 
     location / {
         proxy_pass http://127.0.0.1:8080;
@@ -237,6 +240,9 @@ server {
     server_name routefly.kr;
 
     location = / { return 302 /routefly/; }
+    # 검색 엔진용(산 소개 페이지 /routefly/m/… - 2026-10-14 SitemapServlet). 사이트 뿌리에 있어야 해서 앱으로 넘김
+    location = /robots.txt  { proxy_pass http://127.0.0.1:8080/routefly/robots.txt;  proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto $scheme; }
+    location = /sitemap.xml { proxy_pass http://127.0.0.1:8080/routefly/sitemap.xml; proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto $scheme; }
 
     location / {
         proxy_pass http://127.0.0.1:8080;
