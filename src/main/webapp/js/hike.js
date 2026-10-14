@@ -1004,6 +1004,92 @@
         saveFile(text, name);
     }
 
+    /**
+     * 기록 공유 카드(2026-10-14 홍TV님) - 지나온 선 · 거리 · 시간 · 오른 높이 · 고도 그래프를 그림 한 장(1080×1350)으로.
+     * 지도 그림은 넣지 않고(받아 오는 데 오래 걸리고 출처 표시가 필요) 선만 그립니다. 핸드폰 안에서 만들고 이용자가 고른 앱으로만 보냅니다.
+     */
+    function recordCard(rec) {
+        var rc = RF.recordCourse(rec), W = 1080, H = 1350, P = 72;
+        var cv = document.createElement("canvas");
+        cv.width = W; cv.height = H;
+        var g = cv.getContext("2d");
+        var bg = g.createLinearGradient(0, 0, 0, H);
+        bg.addColorStop(0, "#16202b"); bg.addColorStop(1, "#0b1016");
+        g.fillStyle = bg; g.fillRect(0, 0, W, H);
+        g.textBaseline = "alphabetic"; g.textAlign = "left";
+        g.font = "bold 44px sans-serif"; g.fillStyle = "#e9eef4"; g.fillText("route", P, P + 30);
+        var rw = g.measureText("route").width;
+        g.fillStyle = "#ffb703"; g.fillText("fly", P + rw, P + 30);
+        var d = new Date(rec.start);
+        g.font = "30px sans-serif"; g.fillStyle = "#9aa6b4"; g.textAlign = "right";
+        g.fillText(d.getFullYear() + "." + (d.getMonth() + 1) + "." + d.getDate(), W - P, P + 30);
+        g.textAlign = "left"; g.font = "bold 52px sans-serif"; g.fillStyle = "#ffffff";
+        g.fillText(String(rec.name || ""), P, P + 120, W - P * 2);   // 산 이름까지(가야산 · 해인사 → 상왕봉)
+        // 지나온 선
+        var top = P + 160, boxH = 640;
+        var pts = RF.fitPath(rc.lat, rc.lon, W - P * 2, boxH, 30);
+        g.fillStyle = "rgba(255,255,255,0.04)"; g.fillRect(P, top, W - P * 2, boxH);
+        if (pts.length > 1) {
+            g.save(); g.translate(P, top);
+            g.lineJoin = "round"; g.lineCap = "round";
+            g.beginPath(); pts.forEach(function (q, i) { if (i) g.lineTo(q[0], q[1]); else g.moveTo(q[0], q[1]); });
+            g.strokeStyle = "rgba(56,217,234,0.25)"; g.lineWidth = 22; g.stroke();
+            g.strokeStyle = "#38d9ea"; g.lineWidth = 9; g.stroke();
+            [[pts[0], "#2fb344"], [pts[pts.length - 1], "#ff5c5c"]].forEach(function (e) {
+                g.beginPath(); g.arc(e[0][0], e[0][1], 16, 0, Math.PI * 2); g.fillStyle = e[1]; g.fill();
+                g.lineWidth = 5; g.strokeStyle = "#fff"; g.stroke();
+            });
+            g.restore();
+        }
+        // 숫자
+        var eles = rc.ele.filter(function (e) { return e != null; });
+        var stats = [["거리", km(rec.walked) + " km"], ["시간", RF.hm(rec.end - rec.start, true)]]
+            .concat(rec.up != null ? [["오른 높이", num(rec.up) + " m"]] : [])
+            .concat(eles.length ? [["가장 높은 곳", num(Math.max.apply(null, eles)) + " m"]] : []);
+        var sy = top + boxH + 70, cw = (W - P * 2) / stats.length;
+        stats.forEach(function (s, i) {
+            var x = P + cw * i;
+            g.font = "28px sans-serif"; g.fillStyle = "#9aa6b4"; g.fillText(s[0], x, sy);
+            g.font = "bold 50px sans-serif"; g.fillStyle = "#ffffff"; g.fillText(s[1], x, sy + 62, cw - 16);
+        });
+        // 고도 그래프
+        var gy = sy + 110, gh = H - gy - P - 50;
+        if (eles.length > 1 && gh > 60 && rc.total > 0) {
+            var lo = Math.min.apply(null, eles), hi = Math.max.apply(null, eles), span = Math.max(hi - lo, 50), gw = W - P * 2;
+            g.beginPath(); g.moveTo(P, gy + gh);
+            rc.ele.forEach(function (e, i) { if (e != null) g.lineTo(P + rc.dist[i] / rc.total * gw, gy + gh - (e - lo) / span * gh); });
+            g.lineTo(P + gw, gy + gh); g.closePath();
+            g.fillStyle = "rgba(56,217,234,0.18)"; g.fill();
+        }
+        g.font = "26px sans-serif"; g.fillStyle = "#6f7c8a";
+        g.fillText("routefly - 등산 · 걷기 · 자전거 코스", P, H - P + 20);
+        return cv;
+    }
+
+    /** 카드를 공유 창으로(앱은 공유 창, 브라우저는 navigator.share - 안 되면 내려받기). */
+    function shareCard(rec) {
+        var cv = recordCard(rec), name = "routefly-" + stamp(rec.start) + ".png", text = rec.name + " - routefly";
+        cv.toBlob(function (blob) {
+            if (!blob) { toast("카드를 만들지 못했습니다.", 3000); return; }
+            if (FS && SHARE) {
+                blobToBase64(blob).then(function (b64) { return nativeShareFile(name, b64, text); })
+                    .catch(function (e) { if (!/cancel/i.test(String(e && e.message || e))) toast("카드를 보내지 못했습니다.", 4000); });
+                return;
+            }
+            var file = new File([blob], name, { type: "image/png" });
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                navigator.share({ files: [file], text: text }).catch(function (e) {
+                    if (e && e.name === "NotAllowedError") toast("카드가 준비됐습니다. 한 번 더 눌러 주세요.", 4000);
+                });
+                return;
+            }
+            var a = document.createElement("a");
+            a.href = URL.createObjectURL(blob); a.download = name;
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(function () { URL.revokeObjectURL(a.href); }, 10000);
+        }, "image/png");
+    }
+
     /** 내려받기(공유 창이 없는 컴퓨터 브라우저 등). */
     function saveFile(text, name) {
         var blob = new Blob([text], { type: "application/gpx+xml" });
@@ -1097,6 +1183,7 @@
             row.appendChild(a); row.appendChild(b); sum.appendChild(row);
         });
         $("doneGpx").onclick = function () { downloadGpx(rec); };
+        $("doneCard").onclick = function () { shareCard(rec); };
         $("doneGpx").textContent = canShareFiles() ? "📤 GPX 보내기" : "GPX 저장";
         $("doneSheet").style.display = "flex";
     }
@@ -1166,6 +1253,8 @@
         if (rc.lat.length > 1) RF.profile($("recViewProfile"), rc, {}).set(rc.total);   // 다 걸은 기록이라 끝까지 색칠
         else $("recViewProfile").textContent = "";
         $("recViewMap").disabled = rc.lat.length < 2;
+        $("recViewCard").disabled = rc.lat.length < 2;
+        $("recViewCard").onclick = function () { shareCard(rec); };
         $("recViewMap").onclick = function () {
             if (!mapReady) { toast("지도가 아직 준비되지 않았습니다.", 2500); return; }
             mapReady.then(function () {
