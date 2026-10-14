@@ -516,13 +516,15 @@
     }
 
     /** 🐾 반려동물 - 누르면 그 곳의 반려동물 동반 정보(api/pet, TourAPI)를 줄 아래에 펼침(2026-10-14 홍TV님). */
+    var petOpen = null;   // 펼친 반려동물 칸은 하나만 - 다른 곳을 펼치면 먼저 것은 닫음(2026-10-14 홍TV님)
     function petButton(id, box, food) {
         var b = el("a", null, "🐾 반려동물"), shown = null;
         b.href = "#";
         b.addEventListener("click", function (e) {
             e.preventDefault();
-            if (shown) { shown.remove(); shown = null; return; }
-            shown = el("div", "gPet", "불러오는 중…");
+            if (shown && shown.isConnected) { shown.remove(); shown = null; petOpen = null; return; }
+            if (petOpen && petOpen.isConnected) petOpen.remove();
+            shown = petOpen = el("div", "gPet", "불러오는 중…");
             box.appendChild(shown);
             var me = shown;
             getJson("api/pet?id=" + encodeURIComponent(id)).then(function (w) {
