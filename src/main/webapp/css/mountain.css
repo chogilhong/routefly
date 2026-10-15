@@ -71,3 +71,8 @@ ul { margin:0; padding:0; list-style:none; }
 #weekend .wday { margin:10px 0 4px; font-size:14px; }
 #weekend .wreg { margin:6px 0 10px; font-size:13.5px; color:var(--dim); }
 #weekend .wreg .ms { margin-top:6px; }
+/* 자주 묻는 질문 · 내 근처 산(2026-10-15) */
+.faq dt { font-weight:bold; font-size:14.5px; margin-top:10px; }
+.faq dd { margin:4px 0 0; color:var(--dim); font-size:13.5px; }
+#nearMe { padding:8px 14px; border-radius:16px; border:1px solid var(--sky); background:rgba(56,217,234,0.10); color:var(--tx); font:14px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }
+#nearList { margin-top:10px; }

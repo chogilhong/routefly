@@ -27,7 +27,7 @@ import com.google.gson.JsonParser;
  *   <li>날짜가 단기예보 안이면 구역 대표 지점(MidServlet.CITIES 의 첫 지점) 격자의 단기예보(WeatherServlet.forecast) - 낮에 비 · 눈이 있으면 그것,
  *       없으면 하늘(맑음 · 구름많음 · 흐림) 가운데 가장 잦은 것, 강수확률은 가장 높은 값.</li>
  *   <li>그 뒤면 중기예보(MidServlet.forLand) 오전 · 오후.</li>
- *   <li>산은 정상에서 가장 가까운 기온 지점의 구역으로 나눔(어림 - 구역 경계의 산은 옆 구역일 수 있음).</li>
+ *   <li>산은 정상에서 가장 가까운 대기 측정소 주소의 시도로 구역을 정함(landOfPeak).</li>
  *   <li>한 시간 담아 둠(예보 자체는 각 서블릿이 발표 시각마다 담아 둠).</li>
  * </ul>
  * → {@code {success, dates:["2026-10-17","2026-10-18"], regions:[{code, name, days:{날짜:{word, pop, good}}, peaks:[산 id …]}]}}
@@ -114,14 +114,24 @@ public class WeekendServlet extends HttpServlet {
             for (JsonElement e : peaks) {
                 JsonObject p = e.getAsJsonObject();
                 if (!p.has("lat") || !p.has("lon")) continue;
-                Object[] near = MidServlet.city(p.get("lat").getAsDouble(), p.get("lon").getAsDouble(), null);
-                if (near != null && l[0].equals(near[4])) ps.add(p.has("id") ? p.get("id").getAsString() : p.get("name").getAsString());
+                if (l[0].equals(landOfPeak(p.get("lat").getAsDouble(), p.get("lon").getAsDouble()))) ps.add(p.has("id") ? p.get("id").getAsString() : p.get("name").getAsString());
             }
             r.add("peaks", ps);
             regions.add(r);
         }
         out.add("regions", regions);
         return out;
+    }
+
+    /**
+     * 산의 중기 구역 - 가장 가까운 대기 측정소 주소의 시도(AirServlet.regionNear → MidServlet.landOf), 측정소 목록이 없으면 가장 가까운 기온 지점의 구역.
+     * 2026-10-15 PC: 가까운 기온 지점만으로는 성인봉(울릉 · 경북)이 강원 영동, 월악산 · 금수산(충북)이 강원 영서로 갔음.
+     */
+    static String landOfPeak(double lat, double lon) {
+        String land = MidServlet.landOf(AirServlet.regionNear(lat, lon));
+        if (land != null) return land;
+        Object[] near = MidServlet.city(lat, lon, null);
+        return near == null ? null : (String) near[4];
     }
 
     /** 순수 함수 - 단기예보(WeatherServlet 응답)의 그 날 06 ~ 18시 → {word, pop, good}. 그 날 낮 자료가 없으면 null. */

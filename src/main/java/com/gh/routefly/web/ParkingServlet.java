@@ -80,6 +80,12 @@ public class ParkingServlet extends HttpServlet {
         Json.ok(req, resp, out);
     }
 
+    /** 그 자리 radiusM 안 주차장 수(같은 곳은 하나로, 50곳까지) - 산 페이지 문답(MountainServlet). 파일이 없으면 -1. */
+    static int countNear(double lat, double lon, double radiusM) {
+        List<Lot> all = load();
+        return all == null ? -1 : near(all, lat, lon, radiusM, 50).size();
+    }
+
     /** 설정의 파일을 한 번 읽어 둠(경로가 바뀌면 다시). 없거나 못 읽으면 null. */
     private static List<Lot> load() {
         String path = RouteflyConfig.get("parking.csv");

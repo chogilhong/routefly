@@ -44,7 +44,7 @@ public class MountainServletTest {
         List<Object[]> nb = MountainServlet.nearby(peaks, gaya, 6, MountainServlet.NEARBY_M);
         assertEquals("자기 빼고 60km 안, 가까운 차례", Arrays.asList("덕유산", "비슬산"), nb.stream().map(o -> ((JsonObject) o[0]).get("id").getAsString()).toList());
         gaya.addProperty("height", 1433);
-        String html = MountainServlet.page(gaya, out, nb, "https://routefly.kr/routefly");
+        String html = MountainServlet.page(gaya, out, nb, 7, "https://routefly.kr/routefly");
         assertTrue("가까운 산 링크", html.contains("<a href=\"../m/%EB%8D%95%EC%9C%A0%EC%82%B0\">덕유산 <small>34km</small></a>"));
         assertTrue("정상 높이", html.contains("정상 칠불봉 1,433m"));
         assertTrue("찜 단추용 코스 정보", html.contains("<li data-id=\"knps-7013\" data-name=\"가야산 · 해인사 → 상왕봉(우두봉)\" data-dist=\"3980\" data-asc=\"779\">"));
@@ -58,6 +58,10 @@ public class MountainServletTest {
         assertTrue("예상 시간(4km/h + 600m/h)", html.contains("약 2시간 18분"));
         assertTrue("코스 최고점", html.contains("코스 최고점 약 1,430m"));
         assertTrue("☆ 찜 설명", html.contains("☆ 를 누르면 그 코스를 찜(즐겨찾기)합니다"));
+        assertTrue("문답 - 코스 수 · 짧은 코스", html.contains("<dt>가야산 등산코스는 몇 개인가요?</dt><dd>정상까지 가는 코스 2개를 소개합니다. 가장 짧은 코스는"));
+        assertTrue("문답 - 주차장", html.contains("들머리 3km 안에 주차장 7곳이 있습니다"));
+        assertTrue("문답 - 높이", html.contains("정상 칠불봉은 해발 약 1,433m 입니다"));
+        assertTrue("문답 구조 정보", html.contains("\"@type\":\"FAQPage\"") && html.contains("\"acceptedAnswer\""));
         assertTrue("위 줄은 코스 모음으로(100대 명산 펼침)", html.contains("<p class=\"crumb\"><a href=\"../m/?open=peaks\">‹ 코스 모음</a></p>"));
         assertTrue("날씨 칸 좌표", html.contains("data-lat=\"35.822544\""));
         assertFalse("스크립트는 파일로만(CSP)", html.matches("(?s).*<script>.*"));
@@ -117,6 +121,6 @@ public class MountainServletTest {
         assertTrue(ch.contains(">백운산(광양)</a>") && ch.contains(">백운산(포천)</a>"));
         assertTrue(MountainServlet.indexPage(peaks, JsonParser.parseString("[{\"kind\":\"hike\",\"title\":\"100대 명산\",\"icon\":\"⛰️\",\"series\":[{\"summits\":\"x\"}]}]").getAsJsonArray(), "", false)
                 .contains(">백운산(광양)</a>"));
-        assertTrue(MountainServlet.page(peaks.get(1).getAsJsonObject(), List.of(), List.of(), "").contains("<h1>백운산(포천) 등산코스</h1>"));
+        assertTrue(MountainServlet.page(peaks.get(1).getAsJsonObject(), List.of(), List.of(), null, "").contains("<h1>백운산(포천) 등산코스</h1>"));
     }
 }

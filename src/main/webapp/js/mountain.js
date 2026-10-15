@@ -56,6 +56,31 @@
             span.parentNode.insertBefore(s, span.nextSibling);
         });
     }
+    // 📍 내 근처 100대 명산(2026-10-15 홍TV님) - 위치는 이 핸드폰 안에서만 견줌(서버로 보내지 않음)
+    var nearBtn = document.getElementById("nearMe"), nearList = document.getElementById("nearList");
+    if (nearBtn && nearList && window.RF) nearBtn.addEventListener("click", function () {
+        if (!navigator.geolocation || !window.isSecureContext) { nearList.textContent = "위치는 https 주소에서만 쓸 수 있습니다."; return; }
+        nearList.textContent = "현재 위치를 찾는 중…";
+        navigator.geolocation.getCurrentPosition(function (pos) {
+            fetch("../data/mountains100.json").then(function (r) { return r.json(); }).then(function (j) {
+                var me = pos.coords, list = (j.peaks || []).map(function (k) { return { k: k, d: window.RF.distM(me.latitude, me.longitude, k.lat, k.lon) }; })
+                    .sort(function (a, b) { return a.d - b.d; }).slice(0, 8);
+                nearList.textContent = "";
+                var ul = document.createElement("ul");
+                ul.className = "ms";
+                list.forEach(function (x) {
+                    var li = document.createElement("li"), a = document.createElement("a"), sm = document.createElement("small");
+                    a.href = encodeURIComponent(x.k.id || x.k.name);
+                    a.textContent = (x.k.id || x.k.name) + " ";
+                    sm.textContent = Math.round(x.d / 1000) + "km";
+                    a.appendChild(sm);
+                    li.appendChild(a);
+                    ul.appendChild(li);
+                });
+                nearList.appendChild(ul);
+            }).catch(function () { nearList.textContent = "산 목록을 받지 못했습니다."; });
+        }, function () { nearList.textContent = "위치를 받지 못했습니다(핸드폰 위치 · 권한을 확인하세요)."; }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 });
+    });
     // ☀️ 이번 주말 날씨 좋은 산(코스 모음 /m/ - 2026-10-15 홍TV님): 권역마다 토 · 일 낮 날씨, 좋은 권역의 100대 명산
     var wk = document.getElementById("weekend");
     if (wk && window.RF) fetch("../api/weekend").then(function (r) { return r.json(); }).then(function (w) {

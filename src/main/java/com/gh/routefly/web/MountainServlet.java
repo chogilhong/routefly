@@ -95,7 +95,13 @@ public class MountainServlet extends HttpServlet {
             log.warn("[MOUNTAIN] 코스 조회 실패 {} - {}", name, e.toString());
         }
         resp.setHeader("Cache-Control", failed ? "no-store" : "public, max-age=600");
-        resp.getWriter().print(page(peak, courses, nearby(all, peak, NEARBY_MAX, NEARBY_M), base));
+        // 문답의 주차장 - 가장 가까운 코스 들머리 3km 안(전국주차장정보표준데이터, 파일이 없으면 뺌)
+        Integer parking = null;
+        if (!courses.isEmpty() && courses.get(0).has("start_lat") && !courses.get(0).get("start_lat").isJsonNull()) {
+            int n = ParkingServlet.countNear(courses.get(0).get("start_lat").getAsDouble(), courses.get(0).get("start_lon").getAsDouble(), ParkingServlet.RADIUS_M);
+            if (n >= 0) parking = n;
+        }
+        resp.getWriter().print(page(peak, courses, nearby(all, peak, NEARBY_MAX, NEARBY_M), parking, base));
     }
 
     private JsonArray peaks() {
@@ -257,6 +263,64 @@ public class MountainServlet extends HttpServlet {
         return "<script type=\"application/ld+json\">" + new Gson().toJson(o) + "</script>";
     }
 
+    /**
+     * 순수 함수 - 산 페이지 문답(있는 자료로만): 코스 수 · 가장 짧은 / 긴 코스, 정상 높이, 걸리는 시간, 주차장, 날씨 · 일출. 2026-10-15.
+     * parking: 들머리 3km 안 주차장 수(null 이면 그 문답은 뺌).
+     */
+    static List<String[]> faq(JsonObject peak, String name, List<JsonObject> courses, Integer parking) {
+        List<String[]> out = new ArrayList<>();
+        String summit = str(peak, "summit");
+        if (!courses.isEmpty()) {
+            JsonObject lo = null, hi = null;
+            double loH = Double.MAX_VALUE, hiH = -1;
+            for (JsonObject c : courses) {
+                int dist = c.get("distance_m").getAsInt();
+                Integer asc = c.has("ascent_m") && !c.get("ascent_m").isJsonNull() ? c.get("ascent_m").getAsInt() : null;
+                double h = dist / 1000.0 / 4 + (asc == null ? 0 : asc / 600.0);
+                if (h < loH) { loH = h; lo = c; }
+                if (h > hiH) { hiH = h; hi = c; }
+            }
+            out.add(new String[] {name + " 등산코스는 몇 개인가요?", "정상까지 가는 코스 " + courses.size() + "개를 소개합니다. 가장 짧은 코스는 " + courseText(lo)
+                    + (courses.size() > 1 ? ", 가장 긴 코스는 " + courseText(hi) : "") + "입니다."});
+            out.add(new String[] {name + " 등산은 몇 시간 걸리나요?", "정상까지 편도 약 " + hours(lo.get("distance_m").getAsInt(), asc(lo))
+                    + (courses.size() > 1 ? " ~ " + hours(hi.get("distance_m").getAsInt(), asc(hi)) : "") + "입니다(시속 4km · 오르막 600m 에 1시간으로 어림). 내려오는 시간은 따로 더하세요."});
+        }
+        if (peak.has("height") && !peak.get("height").isJsonNull())
+            out.add(new String[] {name + " 높이는 얼마인가요?", "정상" + (summit != null ? " " + summit : "") + "은 해발 약 " + String.format(Locale.KOREA, "%,d", peak.get("height").getAsInt()) + "m 입니다(산림청 100대 명산)."});
+        if (parking != null)
+            out.add(new String[] {name + " 주차장이 있나요?", parking > 0 ? "가장 가까운 코스 들머리 3km 안에 주차장 " + parking + "곳이 있습니다(전국주차장정보표준데이터). 요금 · 운영 시간은 현지에서 확인하세요."
+                    : "가장 가까운 코스 들머리 3km 안에 등록된 주차장이 없습니다. 대중교통이나 더 먼 주차장을 알아보세요."});
+        out.add(new String[] {name + " 날씨와 일출 시간은?", "이 페이지의 '날씨 · 미세먼지 · 일출 · 일몰' 칸에서 오늘부터 10일 뒤까지의 날씨와 그 날 일출 · 일몰 시각을 볼 수 있습니다(기상청 · 에어코리아)."});
+        return out;
+    }
+
+    private static Integer asc(JsonObject c) {
+        return c.has("ascent_m") && !c.get("ascent_m").isJsonNull() ? c.get("ascent_m").getAsInt() : null;
+    }
+
+    private static String courseText(JsonObject c) {
+        return str(c, "name") + "(" + String.format(Locale.ROOT, "%.1fkm", c.get("distance_m").getAsInt() / 1000.0) + " · 약 " + hours(c.get("distance_m").getAsInt(), asc(c)) + ")";
+    }
+
+    /** 순수 함수 - 문답 구조 정보(schema.org FAQPage, JSON-LD). */
+    static String faqLd(List<String[]> qa) {
+        JsonObject o = new JsonObject();
+        o.addProperty("@context", "https://schema.org");
+        o.addProperty("@type", "FAQPage");
+        JsonArray main = new JsonArray();
+        for (String[] x : qa) {
+            JsonObject q = new JsonObject(), a = new JsonObject();
+            q.addProperty("@type", "Question");
+            q.addProperty("name", x[0]);
+            a.addProperty("@type", "Answer");
+            a.addProperty("text", x[1]);
+            q.add("acceptedAnswer", a);
+            main.add(q);
+        }
+        o.add("mainEntity", main);
+        return "<script type=\"application/ld+json\">" + new Gson().toJson(o) + "</script>";
+    }
+
     /** 순수 함수 - 예상 시간(등산 표준: 4km/h + 오르막 600m/h, course-kit.js standardMs 와 같음) "2시간 18분". */
     static String hours(int distanceM, Integer ascentM) {
         double h = distanceM / 1000.0 / 4 + (ascentM == null ? 0 : ascentM / 600.0);
@@ -265,7 +329,7 @@ public class MountainServlet extends HttpServlet {
     }
 
     /** 순수 함수 - 산 페이지. */
-    static String page(JsonObject peak, List<JsonObject> courses, List<Object[]> nearby, String base) {
+    static String page(JsonObject peak, List<JsonObject> courses, List<Object[]> nearby, Integer parking, String base) {
         String name = str(peak, "id") != null ? str(peak, "id") : str(peak, "name"), summit = str(peak, "summit");   // id = 지역 붙은 이름(백운산(광양))
         String url = base + "/m/" + enc(name);
         Integer top = null;
@@ -310,6 +374,12 @@ public class MountainServlet extends HttpServlet {
         if (!courses.isEmpty()) b.append("<p class=\"dim\">☆ 를 누르면 그 코스를 찜(즐겨찾기)합니다(★). 찜한 코스는 따라가기 첫 화면 \"★ 찜한 코스\" 에 모여 바로 고를 수 있고, "
                 + "다시 누르면 풀립니다. 이 핸드폰에만 저장됩니다(따라가기 📒 내 기록 → 💾 백업 저장으로 옮길 수 있음).</p>");   // 2026-10-15 홍TV님
         b.append("<p class=\"dim\">예상 시간은 시속 4km · 오르막 600m 에 1시간으로 어림한 값입니다. 코스 자료는 참고용이니 현지 안내판 · 통제를 꼭 따르세요.</p></section>");
+        List<String[]> qa = faq(peak, name, courses, parking);   // 자주 묻는 질문(2026-10-15 홍TV님 - 검색 결과에 문답으로)
+        if (!qa.isEmpty()) {
+            b.append("<section class=\"faq\"><h2>").append(esc(name)).append(" 자주 묻는 질문</h2><dl>");
+            for (String[] x : qa) b.append("<dt>").append(esc(x[0])).append("</dt><dd>").append(esc(x[1])).append("</dd>");
+            b.append("</dl></section>").append(faqLd(qa));
+        }
         if (!nearby.isEmpty()) {   // 가까운 100대 명산(2026-10-15) - 다음 산행 고르기 · 산 페이지끼리 잇기
             b.append("<section><h2>가까운 100대 명산</h2><ul class=\"ms\">");
             for (Object[] n : nearby) {
@@ -338,6 +408,7 @@ public class MountainServlet extends HttpServlet {
         b.append("<main><a class=\"logo\" href=\"").append(REL).append("/hike.html\"><img src=\"").append(REL)
                 .append("/img/logo-dark.svg\" alt=\"routefly\" width=\"256\" height=\"80\"></a><h1>등산 · 걷기 · 자전거 코스</h1>")
                 .append("<p class=\"lead\">산을 고르면 정상까지 가는 코스와 오늘 날씨 · 미세먼지 · 일출 · 일몰을, 길을 고르면 노선 안내도를 봅니다.</p>"
+                + "<section id=\"near\"><button type=\"button\" id=\"nearMe\">📍 내 근처 100대 명산</button><div id=\"nearList\"></div></section>"
                 + "<section id=\"weekend\" hidden></section><div class=\"folds\">");   // 이번 주말 날씨 좋은 산(js/mountain.js · /api/weekend - 2026-10-15)
         boolean hasPeaks = false;
         for (JsonElement e : groups) {
