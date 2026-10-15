@@ -100,7 +100,7 @@ public class HeightCheckServlet extends HttpServlet {
         double lat = peak.get("lat").getAsDouble(), lon = peak.get("lon").getAsDouble(), dLat = 0.003, dLon = 0.003 / Math.cos(Math.toRadians(lat));
         JsonArray list = CourseQueries.list(c, new double[] {lon - dLon, lat - dLat, lon + dLon, lat + dLat}, null, null);
         List<String> ids = new ArrayList<>();
-        for (JsonElement e : list) if (ids.size() < 30) ids.add(e.getAsJsonObject().get("course_id").getAsString());
+        for (JsonElement e : list) if (ids.size() < 80) ids.add(e.getAsJsonObject().get("course_id").getAsString());
         r.courses = ids.size();
         if (ids.isEmpty()) return r;
         String in = String.join(",", Collections.nCopies(ids.size(), "?"));
