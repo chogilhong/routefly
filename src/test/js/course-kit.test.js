@@ -796,3 +796,5 @@ eq("airText", [RF.airText({ pm10: 42, pm10Word: "보통", pm25: 14, pm25Word: "�
 eq("gearList 겨울 등산 · 오르막 크면 스틱 · 아이젠", RF.gearList(1, 800, "hike").map(function (g) { return g.key; }), ["water", "rain", "headlamp", "battery", "stick", "crampon", "glove"]);
 eq("gearList 여름 걷기", RF.gearList(7, 100, "walk").map(function (g) { return g.key; }), ["water", "rain", "headlamp", "battery"]);
 eq("gearList 자전거는 헤드랜턴 빼고", RF.gearList(5, 0, "bike").map(function (g) { return g.key; }), ["water", "rain", "battery"]);
+eq("partnerLinks 하나 · 여럿 · 예전 글 · 빈 것", [RF.partnerLinks(["https://a"]).map(function (k) { return k.text; }), RF.partnerLinks(["https://a", "https://b"]).map(function (k) { return k.text; }),
+    RF.partnerLinks("https://c")[0].href, RF.partnerLinks(null).length, RF.partnerLinks(["javascript:x"]).length], [["쿠팡 ›"], ["쿠팡 1 ›", "쿠팡 2 ›"], "https://c", 0, 0]);

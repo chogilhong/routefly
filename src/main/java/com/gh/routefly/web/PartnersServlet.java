@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 /**
@@ -15,6 +16,7 @@ import com.google.gson.JsonObject;
  *
  * <ul>
  *   <li>{@code partner.coupang.<물건>} - 쿠팡 파트너스 링크(link.coupang.com · coupa.ng). 물건은 {@link #GEAR}.
+ *       한 물건에 여러 개면 쉼표로(앞의 COUPANG_MAX 개까지) → 응답은 물건마다 주소 배열.
  *       화면은 링크 아래에 공정위가 정한 "수수료를 받습니다" 문구를 붙입니다.</li>
  *   <li>{@code partner.agoda.url} - 아고다 제휴 링크(www.agoda.com). 안에 {lat} · {lon} 이 있으면 들머리 좌표로 바꿉니다.</li>
  *   <li>{@code donate.url} - 후원(toss.me · qr.kakaopay.com 등 https 주소).</li>
@@ -26,6 +28,8 @@ public class PartnersServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
 
+    /** 한 물건에 보일 쿠팡 링크 수. */
+    static final int COUPANG_MAX = 3;
     /** 쿠팡 링크를 붙일 수 있는 물건(설정 열쇠 partner.coupang.&lt;이것&gt;) - course-kit.js gearList 의 key 와 같음. */
     static final String[] GEAR = {"water", "rain", "headlamp", "battery", "stick", "crampon", "glove"};
 
@@ -39,8 +43,14 @@ public class PartnersServlet extends HttpServlet {
         JsonObject out = new JsonObject(), coupang = new JsonObject();
         out.addProperty("success", true);
         for (String g : GEAR) {
-            String u = conf.apply("partner.coupang." + g);
-            if (allowed(u, "https://link.coupang.com/", "https://coupa.ng/")) coupang.addProperty(g, u);
+            String v = conf.apply("partner.coupang." + g);
+            if (v == null) continue;
+            JsonArray urls = new JsonArray();
+            for (String u : v.split(",")) {
+                u = u.trim();
+                if (urls.size() < COUPANG_MAX && allowed(u, "https://link.coupang.com/", "https://coupa.ng/")) urls.add(u);
+            }
+            if (urls.size() > 0) coupang.add(g, urls);
         }
         out.add("coupang", coupang);
         String agoda = conf.apply("partner.agoda.url");

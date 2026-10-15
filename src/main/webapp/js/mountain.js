@@ -42,15 +42,15 @@
         fetch("../api/partners").then(function (r) { return r.json(); }).then(function (p) {
             var any = false;
             items.forEach(function (x) {
-                var u = p.coupang && p.coupang[x[0].key];
-                if (!u) return;
-                var a = document.createElement("a");
-                a.href = u;
-                a.target = "_blank";
-                a.rel = "noopener sponsored";
-                a.textContent = "쿠팡 ›";
-                x[1].appendChild(a);
-                any = true;
+                window.RF.partnerLinks(p.coupang && p.coupang[x[0].key]).forEach(function (k) {
+                    var a = document.createElement("a");
+                    a.href = k.href;
+                    a.target = "_blank";
+                    a.rel = "noopener sponsored";
+                    a.textContent = k.text;
+                    x[1].appendChild(a);
+                    any = true;
+                });
             });
             if (any) { var n = document.createElement("p"); n.className = "dim"; n.textContent = window.RF.COUPANG_NOTE; gs.appendChild(n); }
         }).catch(function () { /* 링크 없이 */ });

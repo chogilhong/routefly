@@ -54,6 +54,7 @@ site.baseUrl=
 # 쿠팡 파트너스: 파트너스 누리집에서 물건마다 만든 링크(https://link.coupang.com/... 또는 https://coupa.ng/...).
 #   물건: water(물 · 간식) · rain(우비) · headlamp(헤드랜턴) · battery(보조배터리) · stick(등산 스틱) · crampon(아이젠) · glove(장갑)
 #   화면은 "🎒 챙길 것" 에 링크와 "쿠팡 파트너스 활동 … 수수료" 문구를 함께 보입니다.
+#   한 물건에 여러 개면 쉼표로 이어 씀(3개까지, 화면에 "쿠팡 1 › 쿠팡 2 ›"). 예: partner.coupang.headlamp=https://link.coupang.com/a/AAA,https://link.coupang.com/a/BBB
 #partner.coupang.headlamp=
 #partner.coupang.stick=
 #partner.coupang.crampon=

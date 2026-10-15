@@ -596,12 +596,16 @@
         partners().then(function (p) {
             var any = false;
             rows.forEach(function (x) {
-                var u = p.coupang && p.coupang[x[0].key];
-                if (!u) return;
-                var a = gLink("쿠팡 ›", u);
-                a.className = "gSide";
-                a.rel = "noopener sponsored";
-                x[1].appendChild(a);
+                var links = RF.partnerLinks(p.coupang && p.coupang[x[0].key]);
+                if (!links.length) return;
+                var side = el("div", "gSide");
+                links.forEach(function (k, i) {
+                    var a = gLink(k.text, k.href);
+                    a.rel = "noopener sponsored";
+                    if (i) side.appendChild(document.createTextNode(" "));
+                    side.appendChild(a);
+                });
+                x[1].appendChild(side);
                 any = true;
             });
             if (any) box.appendChild(el("div", "gNote", RF.COUPANG_NOTE));

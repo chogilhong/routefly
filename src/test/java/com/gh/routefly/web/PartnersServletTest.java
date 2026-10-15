@@ -14,13 +14,16 @@ public class PartnersServletTest {
     @Test
     public void onlyAllowedLinks() {
         Map<String, String> c = Map.of(
-                "partner.coupang.headlamp", "https://link.coupang.com/a/test1",
+                "partner.coupang.headlamp", "https://link.coupang.com/a/test1, https://evil.example/x,https://coupa.ng/b,https://coupa.ng/c,https://coupa.ng/d",
+                "partner.coupang.glove", "https://link.coupang.com/a/g",
                 "partner.coupang.stick", "https://evil.example/a",
                 "partner.coupang.crampon", "https://coupa.ng/x\"><script>",
                 "partner.agoda.url", "https://www.agoda.com/partners/partnersearch.aspx?cid=1&lat={lat}",
                 "donate.url", "https://toss.me/test");
         JsonObject o = PartnersServlet.body(c::get);
-        assertEquals("https://link.coupang.com/a/test1", o.getAsJsonObject("coupang").get("headlamp").getAsString());
+        assertEquals("쉼표로 여러 개 - 다른 곳은 빼고 3개까지", "[\"https://link.coupang.com/a/test1\",\"https://coupa.ng/b\",\"https://coupa.ng/c\"]",
+                o.getAsJsonObject("coupang").get("headlamp").toString());
+        assertEquals("[\"https://link.coupang.com/a/g\"]", o.getAsJsonObject("coupang").get("glove").toString());
         assertFalse("다른 곳 주소는 뺌", o.getAsJsonObject("coupang").has("stick"));
         assertFalse("따옴표 · 꺾쇠가 든 주소는 뺌", o.getAsJsonObject("coupang").has("crampon"));
         assertTrue(o.get("agoda").getAsString().startsWith("https://www.agoda.com/"));
