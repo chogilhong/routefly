@@ -43,3 +43,16 @@ ul { margin:0; padding:0; list-style:none; }
 .gear .gl { flex:0 0 auto; margin-left:auto; display:flex; gap:10px; order:1; }
 .gear span { color:var(--dim); font-size:13px; flex:1 1 100%; min-width:0; order:2; }
 .gear a { text-decoration:none; font-size:13px; white-space:nowrap; }
+/* 목록(/m/) 등산 · 걷기 · 자전거 접는 칸 - 도장 · 완주(series.html)와 같은 모양, <details>(2026-10-15 홍TV님) */
+.folds { margin-bottom:14px; }
+.fold > summary { list-style:none; display:flex; align-items:center; gap:8px; padding:12px 4px; border-bottom:1px solid var(--ln); cursor:pointer; }
+.fold > summary::-webkit-details-marker { display:none; }
+.fold .ft { flex:0 0 auto; font-weight:bold; }
+.fold .fs { flex:1; min-width:0; font-size:12.5px; color:var(--dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.fold .fa { flex:0 0 auto; color:var(--dim); transition:transform .15s; }
+.fold[open] > summary .fa { transform:rotate(180deg); }
+.fold.kind > summary .ft { font-size:17px; }
+.fold.kind > .fb { margin-left:10px; padding-left:12px; border-left:2px solid rgba(56,217,234,0.35); }
+.fold.group > summary { padding:10px 4px; }
+.fold.group > summary .ft { font-size:14.5px; color:#d6dde6; }
+.fold.group > .ms { padding:10px 0 8px; }

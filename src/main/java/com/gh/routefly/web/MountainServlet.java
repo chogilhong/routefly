@@ -49,6 +49,7 @@ public class MountainServlet extends HttpServlet {
 
     private volatile JsonArray peaks;
     private volatile JsonObject parks;
+    private volatile JsonArray groups;
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -65,7 +66,7 @@ public class MountainServlet extends HttpServlet {
         JsonArray all = peaks();
         if (name.isEmpty()) {
             resp.setHeader("Cache-Control", "public, max-age=3600");
-            resp.getWriter().print(indexPage(all, base));
+            resp.getWriter().print(indexPage(all, seriesGroups(), base));
             return;
         }
         List<JsonObject> same = byName(all, name);
@@ -108,6 +109,21 @@ public class MountainServlet extends HttpServlet {
         }
         peaks = p;
         return p;
+    }
+
+    /** data/series.json 의 groups(걷기 · 자전거 노선 - 목록 /m/) - 못 읽으면 빈 것. */
+    private JsonArray seriesGroups() {
+        JsonArray g = groups;
+        if (g != null) return g;
+        try (InputStream in = getServletContext().getResourceAsStream("/data/series.json")) {
+            JsonElement e = in == null ? null : JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+            g = e != null && e.isJsonObject() && e.getAsJsonObject().has("groups") ? e.getAsJsonObject().getAsJsonArray("groups") : new JsonArray();
+        } catch (Exception e) {
+            log.warn("[MOUNTAIN] series.json 못 읽음 - {}", e.toString());
+            g = new JsonArray();
+        }
+        groups = g;
+        return g;
     }
 
     /** data/park-notes.json 의 parks - 못 읽으면 빈 것(이름은 DB 그대로). */
@@ -304,18 +320,67 @@ public class MountainServlet extends HttpServlet {
         return b.toString();
     }
 
-    /** 순수 함수 - 100대 명산 목록. */
-    static String indexPage(JsonArray peaks, String base) {
-        StringBuilder b = new StringBuilder(head("100대 명산 등산코스", "산림청 100대 명산 " + peaks.size()
-                + "곳의 등산코스 · 날씨 · 일출 일몰. 3D 지형 위로 미리 날아 보고 핸드폰으로 따라 걷기.", base + "/m/", base));
+    /** 첫 단계(등산 · 걷기 · 자전거) - series.js KINDS 와 같음. */
+    static final String[][] KINDS = {{"hike", "⛰️ 등산"}, {"walk", "🥾 걷기"}, {"bike", "🚴 자전거"}};
+
+    /**
+     * 순수 함수 - 목록(/m/). 2026-10-15 홍TV님: 도장 · 완주(series.html)처럼 등산 · 걷기 · 자전거 접는 칸, 걷기 · 자전거도.
+     * 등산 › 100대 명산은 산 페이지로, 그 밖(백두대간 · 정맥 · 국가숲길 · 코리아둘레길 · 국토종주 자전거길)은 노선 안내도(route.html)로.
+     * 접는 칸은 &lt;details&gt; - 스크립트 없이 열리고 검색 엔진도 안을 읽음. groups 는 data/series.json 의 groups(못 읽으면 빈 것).
+     */
+    static String indexPage(JsonArray peaks, JsonArray groups, String base) {
+        StringBuilder b = new StringBuilder(head("100대 명산 · 둘레길 · 자전거길 코스", "산림청 100대 명산 " + peaks.size()
+                + "곳의 등산코스 · 날씨 · 일출 일몰과 백두대간 · 국가숲길 · 코리아둘레길 · 국토종주 자전거길 노선. 3D 지형 위로 미리 날아 보고 핸드폰으로 따라 걷기.", base + "/m/", base));
         // 맨 위 로고(img/logo-dark.svg - 2026-10-14 홍TV님), 누르면 따라가기
         b.append("<main><a class=\"logo\" href=\"").append(REL).append("/hike.html\"><img src=\"").append(REL)
-                .append("/img/logo-dark.svg\" alt=\"routefly\" width=\"256\" height=\"80\"></a><h1>100대 명산 등산코스</h1><p class=\"lead\">산을 고르면 정상까지 가는 코스와 오늘 날씨 · 일출 · 일몰을 봅니다.</p><section><ul class=\"ms\">");
-        List<String> names = new ArrayList<>();
-        for (JsonElement e : peaks) names.add(str(e.getAsJsonObject(), "id"));
-        names.sort(Comparator.naturalOrder());
-        for (String n : names) b.append("<li><a href=\"").append(REL).append("/m/").append(esc(enc(n))).append("\">").append(esc(n)).append("</a></li>");
-        b.append("</ul></section>").append(foot(base));
+                .append("/img/logo-dark.svg\" alt=\"routefly\" width=\"256\" height=\"80\"></a><h1>등산 · 걷기 · 자전거 코스</h1>")
+                .append("<p class=\"lead\">산을 고르면 정상까지 가는 코스와 오늘 날씨 · 미세먼지 · 일출 · 일몰을, 길을 고르면 노선 안내도를 봅니다.</p><div class=\"folds\">");
+        boolean hasPeaks = false;
+        for (JsonElement e : groups) {
+            JsonArray sr = e.getAsJsonObject().getAsJsonArray("series");
+            if (sr != null && sr.size() > 0 && sr.get(0).getAsJsonObject().has("summits")) hasPeaks = true;
+        }
+        if (!hasPeaks) {   // series.json 을 못 읽어도 100대 명산은 보이게
+            JsonArray g2 = JsonParser.parseString("[{\"kind\":\"hike\",\"title\":\"100대 명산\",\"icon\":\"⛰️\",\"series\":[{\"summits\":\"\"}]}]").getAsJsonArray();
+            g2.addAll(groups);
+            groups = g2;
+        }
+        for (String[] k : KINDS) {
+            List<JsonObject> gs = new ArrayList<>();
+            for (JsonElement e : groups) {
+                JsonObject g = e.getAsJsonObject();
+                String kind = str(g, "kind") != null ? str(g, "kind") : "walk";
+                if (kind.equals(k[0]) && g.has("series") && g.getAsJsonArray("series").size() > 0) gs.add(g);
+            }
+            if (gs.isEmpty()) continue;
+            List<String> titles = new ArrayList<>();
+            for (JsonObject g : gs) titles.add(str(g, "title"));
+            b.append("<details class=\"fold kind\" name=\"kind\"><summary><span class=\"ft\">").append(esc(k[1])).append("</span><span class=\"fs\">")
+                    .append(esc(String.join(" · ", titles))).append("</span><span class=\"fa\">▾</span></summary><div class=\"fb\">");
+            for (JsonObject g : gs) {
+                boolean peaksGroup = g.getAsJsonArray("series").get(0).getAsJsonObject().has("summits");
+                int n = peaksGroup ? peaks.size() : g.getAsJsonArray("series").size();
+                b.append("<details class=\"fold group\" name=\"group\"><summary><span class=\"ft\">").append(esc(str(g, "icon") + " " + str(g, "title")))
+                        .append("</span><span class=\"fs\">").append(n).append(peaksGroup ? "곳" : "개").append("</span><span class=\"fa\">▾</span></summary><ul class=\"ms\">");
+                if (peaksGroup) {
+                    List<String> names = new ArrayList<>();
+                    for (JsonElement e : peaks) names.add(str(e.getAsJsonObject(), "id"));
+                    names.sort(Comparator.naturalOrder());
+                    for (String n2 : names) b.append("<li><a href=\"").append(REL).append("/m/").append(esc(enc(n2))).append("\">").append(esc(n2)).append("</a></li>");
+                } else {
+                    for (JsonElement e : g.getAsJsonArray("series")) {
+                        JsonObject sr = e.getAsJsonObject();
+                        String q = str(sr, "prefix") != null ? "prefix=" + enc(str(sr, "prefix")) : "trail=" + enc(str(sr, "match") != null ? str(sr, "match") : str(sr, "name"));
+                        b.append("<li><a href=\"").append(REL).append("/route.html?").append(esc(q)).append("&amp;name=").append(esc(enc(str(sr, "name"))))
+                                .append("&amp;back=m\">").append(esc(str(sr, "name")))
+                                .append(sr.has("km") ? " <small>" + sr.get("km").getAsInt() + "km</small>" : "").append("</a></li>");
+                    }
+                }
+                b.append("</ul></details>");
+            }
+            b.append("</div></details>");
+        }
+        b.append("</div>").append(foot(base));
         return b.toString();
     }
 
@@ -340,7 +405,7 @@ public class MountainServlet extends HttpServlet {
 
     private static String foot(String base) {
         String b = REL;   // 상대 주소 - 터널(https → http 톰캣)에서 http 절대 주소가 막혔음(2026-10-14)
-        return "<p class=\"dim\">자료: 산림청 100대 명산 · 등산로정보, 국립공원공단 탐방로, 기상청 단기예보 · 에어코리아 대기정보(공공데이터포털). "
+        return "<p class=\"dim\">자료: 산림청 100대 명산 · 등산로정보, 국립공원공단 탐방로, 기상청 단기예보 · 에어코리아 대기정보 · 두루누비(공공데이터포털), © OpenStreetMap contributors. "
                 + "<a href=\"" + b + "/about.html\">안전 · 출처 안내</a> · <a href=\"" + b + "/privacy.html\">개인정보처리방침</a></p>"
                 + "<p class=\"brand\"><a href=\"" + b + "/hike.html\"><img src=\"" + b + "/img/logo-dark.svg\" alt=\"routefly\" width=\"160\" height=\"50\"> 열기 ›</a></p></main>"
                 + "<script src=\"" + b + "/js/course-kit.js\"></script><script src=\"" + b + "/js/mountain.js\"></script></body></html>";

@@ -222,8 +222,9 @@
 
     function start() {
         // ← 뒤로: 따라가기 목록 카드에서 왔으면 그 목록(검색어는 rf-search 로 남아 있음), 그 밖은 도장 · 완주
-        $("back").href = backTo === "list" ? "hike.html" : "series.html";
-        $("back").textContent = backTo === "list" ? "← 목록" : "← 도장 · 완주";   // 2026-10-13 홍TV님: "← 뒤로" → 돌아갈 곳 이름
+        // back=m - 산 · 길 목록(/m/, 2026-10-15)
+        $("back").href = backTo === "list" ? "hike.html" : backTo === "m" ? "m/" : "series.html";
+        $("back").textContent = backTo === "list" ? "← 목록" : backTo === "m" ? "← 코스 모음" : "← 도장 · 완주";   // 2026-10-13 홍TV님: "← 뒤로" → 돌아갈 곳 이름
         // 고른 구간이 없을 때 아래 칸(모두 빼면 다시 이것으로) - 단추는 아래 칸에 맡겨 두고 받음(다시 그려도 됨)
         emptySheet = $("sheet").innerHTML;
         $("sheet").addEventListener("click", function (e) {
