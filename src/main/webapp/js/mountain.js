@@ -85,10 +85,23 @@
     var wk = document.getElementById("weekend");
     if (wk && window.RF) fetch("../api/weekend").then(function (r) { return r.json(); }).then(function (w) {
         if (w.unavailable || !(w.regions || []).length) return;
-        var h = document.createElement("h2");
-        h.textContent = "☀️ 이번 주말 날씨 좋은 곳";
-        wk.appendChild(h);
+        // 접고 펴는 칸(2026-10-15 홍TV님) - 코스 모음의 등산 · 걷기 · 자전거 칸과 같은 모양, 처음엔 접힘. 접힌 줄에 날마다 좋은 권역 수
         var today = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
+        var det = document.createElement("details"), sum = document.createElement("summary"), ft = document.createElement("span"), fs = document.createElement("span"), fa = document.createElement("span");
+        det.className = "fold kind";
+        ft.className = "ft"; ft.textContent = "☀️ 이번 주말 날씨 좋은 곳";
+        fs.className = "fs";
+        fs.textContent = w.dates.map(function (d) {
+            return "일월화수목금토".charAt(new Date(d + "T00:00:00Z").getUTCDay()) + " " + w.regions.filter(function (r) { return r.days[d] && r.days[d].good; }).length + "권역";
+        }).join(" · ");
+        fa.className = "fa"; fa.textContent = "▾";
+        sum.appendChild(ft); sum.appendChild(fs); sum.appendChild(fa);
+        det.appendChild(sum);
+        var body = document.createElement("div");
+        body.className = "fb";
+        det.appendChild(body);
+        wk.appendChild(det);
+        wk = body;
         w.dates.forEach(function (d) {
             var good = w.regions.filter(function (r) { return r.days[d] && r.days[d].good; });
             var p = document.createElement("p"), b = document.createElement("b");
@@ -119,7 +132,7 @@
         note.className = "dim";
         note.textContent = "기상청 단기 · 중기예보의 권역 날씨(낮 06 ~ 18시)입니다. 산 위 날씨는 다를 수 있으니 산 페이지의 날짜별 예보를 함께 보세요.";
         wk.appendChild(note);
-        wk.hidden = false;
+        document.getElementById("weekend").hidden = false;
     }).catch(function () { /* 없이 */ });
     var crumb = document.querySelector(".crumb") || document.querySelector("h1");
     if (crumb && window.RF) { var tb = window.RF.textButton(); tb.style.float = "right"; crumb.appendChild(tb); }   // 글자 크기 "가+"
