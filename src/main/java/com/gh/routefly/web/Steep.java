@@ -97,7 +97,7 @@ final class Steep {
                 try (ResultSet rs = ps.executeQuery()) {
                     String cur = null;
                     List<Double> ds = new ArrayList<>(), es = new ArrayList<>();
-                    double top = Double.NaN;
+                    double top = Double.NaN, pLat = Double.NaN, pLon = Double.NaN;
                     while (rs.next()) {
                         String id = rs.getString(1);
                         if (cur != null && !cur.equals(id)) {
@@ -105,13 +105,17 @@ final class Steep {
                             ds.clear();
                             es.clear();
                             top = Double.NaN;
+                            pLat = Double.NaN;
                         }
                         cur = id;
                         ds.add(rs.getDouble(2));
                         double ele = rs.getDouble(3);
                         es.add(rs.wasNull() ? null : ele);
-                        Integer h = Peaks.near(tops, rs.getDouble(4), rs.getDouble(5), Peaks.PASS_M);
+                        double lat = rs.getDouble(4), lon = rs.getDouble(5);
+                        Integer h = Double.isNaN(pLat) ? Peaks.near(tops, lat, lon, Peaks.PASS_M) : Peaks.passing(tops, pLat, pLon, lat, lon, Peaks.PASS_M);   // 점 사이 선분까지
                         if (h != null && (Double.isNaN(top) || h > top)) top = h;
+                        pLat = lat;
+                        pLon = lon;
                     }
                     if (cur != null) put(cur, ds, es, now, top);
                 }

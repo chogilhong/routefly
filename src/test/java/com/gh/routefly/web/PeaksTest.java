@@ -42,4 +42,15 @@ public class PeaksTest {
         Peaks.applyDetail(d, tops);
         assertEquals(1200, d.getAsJsonObject("course").get("ele_max_m").getAsInt());
     }
+
+    @Test
+    public void passesBetweenPoints() {   // 솎은 점 사이로 정상을 지나는 코스(점은 둘 다 정상에서 400m 넘게 떨어짐)
+        List<double[]> tops = Peaks.tops(PEAKS);
+        assertNull(Peaks.near(tops, 38.119, 128.4605, Peaks.PASS_M));
+        assertEquals(Integer.valueOf(1708), Peaks.passing(tops, 38.119, 128.4605, 38.1192, 128.4705, Peaks.PASS_M));
+        assertNull("비켜 가는 선분", Peaks.passing(tops, 38.125, 128.4605, 38.125, 128.4705, Peaks.PASS_M));
+        JsonObject d = JsonParser.parseString("{\"course\":{\"ele_max_m\":1690},\"points\":[[128.4605,38.119,1600,0],[128.4705,38.1192,1650,900]],\"pois\":[]}").getAsJsonObject();
+        Peaks.applyDetail(d, tops);
+        assertEquals(1708, d.getAsJsonObject("course").get("ele_max_m").getAsInt());
+    }
 }
