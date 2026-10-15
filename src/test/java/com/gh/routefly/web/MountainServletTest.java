@@ -57,6 +57,7 @@ public class MountainServletTest {
         assertFalse(html.contains("src=\"https://routefly.kr"));
         assertTrue("예상 시간(4km/h + 600m/h)", html.contains("약 2시간 18분"));
         assertTrue("코스 최고점", html.contains("코스 최고점 약 1,430m"));
+        assertTrue("위 줄은 코스 모음으로(100대 명산 펼침)", html.contains("<p class=\"crumb\"><a href=\"../m/?open=peaks\">‹ 코스 모음</a></p>"));
         assertTrue("날씨 칸 좌표", html.contains("data-lat=\"35.822544\""));
         assertFalse("스크립트는 파일로만(CSP)", html.matches("(?s).*<script>.*"));
     }
@@ -66,12 +67,16 @@ public class MountainServletTest {
         JsonArray peaks = JsonParser.parseString("[{\"id\":\"a<b\",\"name\":\"a<b\",\"lat\":37,\"lon\":127}]").getAsJsonArray();
         assertNotNull(MountainServlet.find(peaks, "a<b"));
         assertNull(MountainServlet.find(peaks, "없는산"));
-        assertTrue("series.json 을 못 읽어도 100대 명산", MountainServlet.indexPage(peaks, new JsonArray(), "").contains(">a&lt;b</a>"));
+        assertTrue("series.json 을 못 읽어도 100대 명산", MountainServlet.indexPage(peaks, new JsonArray(), "", false).contains(">a&lt;b</a>"));
         JsonArray gs = JsonParser.parseString("[{\"key\":\"peaks\",\"kind\":\"hike\",\"title\":\"100대 명산\",\"icon\":\"⛰️\",\"series\":[{\"summits\":\"x\"}]},"
                 + "{\"key\":\"forest\",\"kind\":\"walk\",\"title\":\"국가숲길\",\"icon\":\"🌲\",\"series\":[{\"name\":\"지리산둘레길\",\"prefix\":\"kmf-9900000006-\",\"km\":289}]},"
                 + "{\"key\":\"korea\",\"kind\":\"walk\",\"title\":\"코리아둘레길\",\"icon\":\"🥾\",\"series\":[{\"name\":\"DMZ 평화의 길\",\"match\":\"DMZ평화의길\"}]},"
                 + "{\"key\":\"bike\",\"kind\":\"bike\",\"title\":\"국토종주 자전거길\",\"icon\":\"🚴\",\"series\":[{\"name\":\"아라 자전거길\",\"prefix\":\"osmb-4145848-\",\"km\":21}]}]").getAsJsonArray();
-        String idx = MountainServlet.indexPage(peaks, gs, "");
+        String idx = MountainServlet.indexPage(peaks, gs, "", false);
+        assertFalse("처음엔 모두 접힘", idx.contains(" open>"));
+        String opened = MountainServlet.indexPage(peaks, gs, "", true);
+        assertTrue("산 페이지에서 돌아오면 등산 › 100대 명산 펼침", opened.contains("<details class=\"fold kind\" name=\"kind\" open><summary><span class=\"ft\">⛰️ 등산")
+                && opened.contains("<details class=\"fold group\" name=\"group\" open><summary><span class=\"ft\">⛰️ 100대 명산") && !opened.contains("name=\"kind\" open><summary><span class=\"ft\">🥾"));
         assertTrue("100대 명산은 산 페이지로", idx.contains(">a&lt;b</a>"));
         assertTrue("등산 · 걷기 · 자전거 접는 칸", idx.contains("<span class=\"ft\">⛰️ 등산</span><span class=\"fs\">100대 명산</span>")
                 && idx.contains("<span class=\"ft\">🥾 걷기</span><span class=\"fs\">국가숲길 · 코리아둘레길</span>") && idx.contains("<span class=\"ft\">🚴 자전거</span>"));
@@ -109,7 +114,7 @@ public class MountainServletTest {
         assertEquals("가리산", MountainServlet.find(peaks, "가리산").get("id").getAsString());
         String ch = MountainServlet.choosePage("백운산", MountainServlet.byName(peaks, "백운산"), "");
         assertTrue(ch.contains(">백운산(광양)</a>") && ch.contains(">백운산(포천)</a>"));
-        assertTrue(MountainServlet.indexPage(peaks, JsonParser.parseString("[{\"kind\":\"hike\",\"title\":\"100대 명산\",\"icon\":\"⛰️\",\"series\":[{\"summits\":\"x\"}]}]").getAsJsonArray(), "")
+        assertTrue(MountainServlet.indexPage(peaks, JsonParser.parseString("[{\"kind\":\"hike\",\"title\":\"100대 명산\",\"icon\":\"⛰️\",\"series\":[{\"summits\":\"x\"}]}]").getAsJsonArray(), "", false)
                 .contains(">백운산(광양)</a>"));
         assertTrue(MountainServlet.page(peaks.get(1).getAsJsonObject(), List.of(), List.of(), "").contains("<h1>백운산(포천) 등산코스</h1>"));
     }
