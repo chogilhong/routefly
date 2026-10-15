@@ -850,3 +850,5 @@ eq("fireNote 봄 · 가을 · 그 밖(한국 날짜)", [!!RF.fireNote(Date.UTC(2
     var yr = RF.periodStats(log, peaks, "year", 2026, t(2026, 10, 15));
     eq("연도별", yr.map(function (r) { return [r.label, r.n, r.peaks]; }), [["2025년", 1, 1], ["2026년", 3, 1]]);
 })();
+eq("wfEn 중기예보 날씨 영어", ["맑음", "구름많음", "흐림", "구름많고 비", "흐리고 비/눈", "흐리고 소나기", "", "이상한 말"].map(RF.wfEn),
+    ["☀️ Clear", "⛅ Mostly cloudy", "☁️ Overcast", "⛅ Mostly cloudy, rain", "☁️ Overcast, rain/snow", "☁️ Overcast, showers", "", "이상한 말"]);

@@ -71,11 +71,22 @@
         out.className = "";
     }
     show([sunLine(Date.now()), "Loading weather…"]);
-    var tabs = document.createElement("div"), airBox = document.createElement("p"), wx = null, air = null, today = null, picked = null;
+    var tabs = document.createElement("div"), airBox = document.createElement("p"), wx = null, mid = null, air = null, today = null, picked = null;
     tabs.className = "days";
     tabs.setAttribute("role", "group");
     tabs.setAttribute("aria-label", "Pick a day");
     out.parentNode.insertBefore(tabs, out);
+    // 오늘은 단추, 나머지 날(단기예보 ~ 10일 뒤 중기예보)은 고르는 칸 - 한국어 화면과 같은 모양
+    var todayBtn = document.createElement("button"), pick = document.createElement("select"), hint = document.createElement("option");
+    todayBtn.type = "button";
+    todayBtn.addEventListener("click", function () { picked = today; draw(); });
+    pick.setAttribute("aria-label", "Pick another day");
+    hint.value = "";
+    hint.textContent = "Other days";
+    pick.appendChild(hint);
+    pick.addEventListener("change", function () { if (pick.value) { picked = pick.value; draw(); } });
+    tabs.appendChild(todayBtn);
+    tabs.appendChild(pick);
     airBox.className = "dim";
     box.appendChild(airBox);
     function airText(a) {
@@ -85,21 +96,53 @@
         if (a.pm25 != null) p.push("PM2.5 " + (AIR[a.pm25Word] || "") + " (" + a.pm25 + " µg/m³)");
         return "😷 Air quality now: " + p.join(" · ") + (a.dist_km != null ? " - station " + a.dist_km + " km away" : "") + " · AirKorea";
     }
+    function range(n, x) { return [n != null ? "Low " + n + "°C" : "", x != null ? "High " + x + "°C" : ""].filter(Boolean).join(" / "); }
     function draw() {
         if (!wx) return;
         var day = picked || today, mm = wx.days && wx.days[day], lines = [sunLine(Date.parse(day + "T12:00:00+09:00"))];
-        if (mm && (mm.tmn != null || mm.tmx != null)) lines.push([mm.tmn != null ? "Low " + mm.tmn + "°C" : "", mm.tmx != null ? "High " + mm.tmx + "°C" : ""].filter(Boolean).join(" / "));
-        var hours = wx.hours.filter(function (h) { return h.t.slice(0, 10) === day; });
-        hours.filter(function (h, i) { return day === today ? i % 3 === 0 : +h.t.slice(11, 13) % 3 === 0; }).slice(0, 8).forEach(function (h) {
-            lines.push(h.t.slice(11, 13) + ":00  " + sky(h.sky, h.pty) + "  " + (h.tmp != null ? h.tmp + "°C" : "-") + "  · rain " + (h.pop != null ? h.pop + "%" : "-")
-                + "  · wind " + (h.wsd != null ? h.wsd + " m/s" : "-"));
-        });
-        lines.push("Korea Meteorological Administration short-term forecast (issued " + wx.base + " KST) for a 5 km grid around the summit. The summit can be colder and windier.");
+        var hours = wx.hours.filter(function (h) { return h.t.slice(0, 10) === day; }), md = mid && mid.days && mid.days[day];
+        if (!hours.length && md) {   // 단기예보 뒤(4~10일) - 기상청 중기예보, 날씨 말은 영어로(RF.wfEn)
+            if (range(md.tmn, md.tmx)) lines.push(range(md.tmn, md.tmx));
+            var half = function (n, w, p) { return (n ? n + " " : "") + (RF.wfEn(w) || "-") + (p != null ? " · rain " + p + "%" : ""); };
+            if (md.wfAm === md.wfPm && md.popAm === md.popPm) lines.push(half("", md.wfAm, md.popAm));
+            else { lines.push(half("Morning", md.wfAm, md.popAm)); lines.push(half("Afternoon", md.wfPm, md.popPm)); }
+            lines.push("Korea Meteorological Administration mid-term regional forecast (issued " + mid.tmFc + " KST). Temperatures are for the nearest city - "
+                + "much colder and windier on the summit. Hourly forecasts appear as the day gets closer.");
+        } else {
+            if (mm && range(mm.tmn, mm.tmx)) lines.push(range(mm.tmn, mm.tmx));
+            hours.filter(function (h, i) { return day === today ? i % 3 === 0 : +h.t.slice(11, 13) % 3 === 0; }).slice(0, 8).forEach(function (h) {
+                lines.push(h.t.slice(11, 13) + ":00  " + sky(h.sky, h.pty) + "  " + (h.tmp != null ? h.tmp + "°C" : "-") + "  · rain " + (h.pop != null ? h.pop + "%" : "-")
+                    + "  · wind " + (h.wsd != null ? h.wsd + " m/s" : "-"));
+            });
+            lines.push("Korea Meteorological Administration short-term forecast (issued " + wx.base + " KST) for a 5 km grid around the summit. The summit can be colder and windier.");
+        }
         show(lines);
         airBox.textContent = day === today ? airText(air) : "";
         airBox.hidden = !airBox.textContent;
-        Array.prototype.forEach.call(tabs.children, function (b) { var on = b.getAttribute("data-day") === day; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false"); });
+        var on = day === today;
+        todayBtn.classList.toggle("on", on);
+        todayBtn.setAttribute("aria-pressed", on ? "true" : "false");
+        pick.classList.toggle("on", !on);
+        pick.value = on ? "" : day;
     }
+    function addDay(d) {
+        if (d === today) { todayBtn.textContent = dayLabel(d, today); return; }
+        if (pick.querySelector('[value="' + d + '"]')) return;
+        var o = document.createElement("option");
+        o.value = d;
+        o.textContent = dayLabel(d, today);
+        pick.appendChild(o);
+    }
+    function addMid() {
+        if (!wx || !mid || !mid.days) return;
+        var last = pick.options.length > 1 ? pick.options[pick.options.length - 1].value : today;
+        Object.keys(mid.days).sort().forEach(function (d) { if (d > last) addDay(d); });
+    }
+    fetch("../../api/mid?lat=" + lat.toFixed(4) + "&lon=" + lon.toFixed(4)).then(function (r) { return r.json(); }).then(function (m) {
+        if (m.unavailable) return;
+        mid = m;
+        addMid();
+    }).catch(function () { /* 4일 뒤부터는 없이 */ });
     fetch("../../api/air?lat=" + lat.toFixed(4) + "&lon=" + lon.toFixed(4)).then(function (r) { return r.json(); }).then(function (a) { air = a; draw(); }).catch(function () { /* 없이 */ });
     fetch("../../api/weather?lat=" + lat.toFixed(4) + "&lon=" + lon.toFixed(4)).then(function (r) { return r.json(); }).then(function (w) {
         if (w.unavailable || !(w.hours || []).length) { show([sunLine(Date.now()), "Weather is not available right now."]); return; }
@@ -107,14 +150,8 @@
         today = w.hours[0].t.slice(0, 10);
         var days = [];
         w.hours.forEach(function (h) { var d = h.t.slice(0, 10); if (days.indexOf(d) < 0) days.push(d); });
-        days.forEach(function (d) {
-            var b = document.createElement("button");
-            b.type = "button";
-            b.setAttribute("data-day", d);
-            b.textContent = dayLabel(d, today);
-            b.addEventListener("click", function () { picked = d; draw(); });
-            tabs.appendChild(b);
-        });
+        days.forEach(addDay);
+        addMid();
         draw();
     }).catch(function () { show([sunLine(Date.now()), "Weather is not available right now."]); });
 })();
