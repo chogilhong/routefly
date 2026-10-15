@@ -17,6 +17,8 @@
     }
     RF.foldOne(document);   // 하나를 펴면 나머지는 접힘(/m/ 과 같음)
     RF.boardButtons("../..", true);   // 📈 Elevation(한국어 화면과 같음)
+    RF.compareButtons("../..", true);   // ⚖️ Compare
+    RF.recentFold({ key: "rf-recent-en", title: "🕘 Recently viewed", strip: / Hiking Trails$/, sub: function (l) { return l.slice(0, 3).map(function (x) { return x.name; }).join(" · ") + (l.length > 3 ? " +" + (l.length - 3) : ""); } });
     // 📥 Save for offline(한국어 화면과 같은 칸)
     RF.offlineBox({ title: "📥 Save for no signal", btn: "Save this mountain", again: "Save again (fresh weather)", saving: "Saving…",
         fail: "This browser cannot save pages (works in Chrome or Samsung Internet on an https address).", tip: "Tap before you go. This page, the weather and the trail lines are saved on this phone.",

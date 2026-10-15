@@ -222,8 +222,10 @@
         var nx = RF.nextPoi(c, atD), nd = nx ? Math.min(+nx.dist_m, c.total) : c.total;
         if (nd - atD < 100) return out;   // 바로 앞이면 거리는 빼고
         var up = RF.ascentLeft(c, atD) - RF.ascentLeft(c, nd);
+        // 구간 난이도(2026-10-16 홍TV님 - 📋 안내판과 같은 단계) - 등산 · 걷기, 쉬움 이상만(매우 쉬운 길까지 말하면 시끄러움)
+        var sl = K() !== RF.KINDS.bike ? RF.slopeBetween(c, atD, nd) : null, lvSay = sl && sl.lv >= 1 ? ", " + RF.LEVELS[sl.lv].ko + " " + (sl.up ? "오르막" : "내리막") + " 구간, 경사 " + Math.round(sl.pct) + "퍼센트" : "";
         return out + " " + (!nx ? "도착" : nd < c.total - 60 ? "다음 " + nx.name : nx.name) + "까지 " + distSpoken(Math.round((nd - atD) / 10) * 10)
-            + (up >= 30 && K() !== RF.KINDS.bike ? ", 오르막 " + num(up) + "미터입니다." : "입니다.");
+            + (up >= 30 && K() !== RF.KINDS.bike ? ", 오르막 " + num(up) + "미터" : "") + lvSay + "입니다.";
     }
 
     /** 1km(자전거 5km) 마다 · 지점을 지날 때 - onFix 에서 코스 위에 있을 때. */
@@ -2206,7 +2208,7 @@
         if (!board) {
             var pts = c.dist.map(function (d, i) { return [c.lon[i], c.lat[i], c.ele[i], d]; });
             var ends = RF.nameEnds(c.course.name) || ["출발", "도착"];
-            board = RF.boardSegments(pts, (c.pois || []).filter(function (q) { return !q.end; }), ends[0], ends[1]);
+            board = RF.boardSegments(pts, (c.pois || []).filter(function (q) { return !q.end; }), ends[0], ends[1], true);   // 걷는 쪽 그대로(내려가는 코스도 왼쪽 → 오른쪽)
         }
         RF.boardProfile($("boardBox"), board, false, hike.running || hike.d > 0 ? hike.d : null);
         boardDrawn = Date.now();

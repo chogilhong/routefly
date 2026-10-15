@@ -198,6 +198,9 @@
         }).catch(function () { /* 링크 없이 */ });
     }
     if (window.RF) window.RF.boardButtons("..", false);   // 📈 고도 - 공단 안내판처럼 구간별 경사(2026-10-15 홍TV님)
+    if (window.RF) window.RF.compareButtons("..", false);   // ⚖️ 견주기 - 두 코스 나란히(2026-10-16 홍TV님)
+    // 🕘 최근 본 산(2026-10-16 홍TV님) - 산 페이지면 넣고, 목록(/m/)이면 접는 칸. 이 핸드폰에만
+    if (window.RF) window.RF.recentFold({ key: "rf-recent-m", title: "🕘 최근 본 산", strip: / 등산코스$/, sub: function (l) { return l.slice(0, 3).map(function (x) { return x.name; }).join(" · ") + (l.length > 3 ? " 외 " + (l.length - 3) + "곳" : ""); } });
     // 📥 오프라인 저장(2026-10-15 홍TV님) - 이 페이지 · 날씨 · 코스 자료를 핸드폰에. 지도 사진은 따라가기의 "오프라인 저장"
     if (window.RF) window.RF.offlineBox({ title: "📥 신호 없을 때 보기", btn: "이 산 저장", again: "다시 저장(새 날씨로)", saving: "저장하는 중…",
         fail: "이 브라우저에서는 저장할 수 없습니다(https 주소의 크롬 · 삼성 인터넷에서 됩니다).", tip: "산에 가기 전에 눌러 두세요. 이 페이지 · 날씨 · 코스 선이 이 핸드폰에 저장됩니다.",

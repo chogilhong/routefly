@@ -893,3 +893,19 @@ eq("enName", [RF.enName("오색탐방지원센터 - 대청봉"), RF.enName("설�
     eq("boardHere 내려가는 코스", [hr.d, hr.next.name, hr.next.m], [2500, "약수터", 1500]);
     eq("boardHere 끝", RF.boardHere(b, 3000).next, null);
 })();
+(function () {
+    var k = RF.boardSegments([[0, 0, 650, 0], [0, 0, 300, 3000]], [{ name: "약수터", dist_m: 2000 }], "정상", "들머리", true);
+    var h = RF.boardHere(k, 500);
+    eq("boardSegments keepDir - 따라가기는 걷는 쪽 그대로", [k.flip, k.cuts[0].name, h.d, h.next.name, h.next.m], [false, "정상", 500, "약수터", 1500]);
+})();
+(function () {
+    var c = { dist: [0, 1000, 2000, 3000], ele: [300, 400, 600, 650] };
+    var a = RF.slopeBetween(c, 1000, 2000), b = RF.slopeBetween(c, 500, 1500), d = RF.slopeBetween({ dist: [0, 1000], ele: [700, 500] }, 0, 1000);
+    eq("slopeBetween", [a.pct, a.lv, a.up, b.pct, d.pct, d.up, RF.slopeBetween(c, 5, 5), RF.slopeBetween({ dist: [0, 10], ele: [null, null] }, 0, 10)],
+        [20, 3, true, 15, 20, false, null, null]);
+})();
+eq("recentAdd 같은 주소는 앞으로 · 8개까지", RF.recentAdd([{ href: "a" }, { href: "b" }], { href: "b", name: "B" }).map(function (x) { return x.href; }), ["b", "a"]);
+eq("recentAdd 넘치면 뒤를 버림", RF.recentAdd([1, 2, 3, 4, 5, 6, 7, 8].map(function (i) { return { href: "p" + i }; }), { href: "n" }).map(function (x) { return x.href; }).join(","), "n,p1,p2,p3,p4,p5,p6,p7");
+eq("compareRows", RF.compareRows({ dist: 12900, asc: 1300 }, { dist: 5000, asc: 1300 }), [["거리", "12.90 km", "5.00 km"], ["오르막", "1,300 m", "1,300 m"],
+    ["예상 시간(편도)", "5시간 24분", "3시간 25분"], ["난이도", "보통", "어려움"], ["평균 경사", "10.1%", "26%"]]);
+eq("compareRows 영어 시간", RF.compareRows({ dist: 3000, asc: 0 }, { dist: 5000, asc: 1300 }, true)[2], ["Time (one way)", "45 min", "3 h 25 min"]);

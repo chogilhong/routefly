@@ -115,3 +115,21 @@ ul { margin:0; padding:0; list-style:none; }
 .rf-board circle.here { fill:#e03131; stroke:#fff; stroke-width:2.5; }
 .rf-board line.here { stroke:#e03131; stroke-width:2; }
 .rf-board text.hereT { font-weight:bold; fill:#e03131; font-size:13px; stroke:#f4f1e6; stroke-width:4px; paint-order:stroke; }
+/* 🕘 최근 본 산 · ⚖️ 코스 견주기(2026-10-16) */
+#recent { padding:4px 16px; }
+#recent .fb { padding:4px 0 10px; }
+.cs .go button.cmpBtn { font-size:13.5px; padding:4px 10px; border:1px solid var(--ln); border-radius:14px; background:none; color:var(--tx); cursor:pointer; }
+.cs .go button.cmpBtn.on { border-color:#ffb703; background:rgba(255,183,3,0.15); }
+.cmp { margin:8px 0 12px; padding:10px; border:1px solid #ffb703; border-radius:12px; background:rgba(255,183,3,0.06); }
+.cmp .dim { margin:0; }
+.cmpHead { display:flex; justify-content:space-between; align-items:center; font-weight:bold; margin-bottom:6px; }
+.cmpClose { background:none; border:1px solid var(--ln); border-radius:12px; color:var(--tx); width:30px; height:28px; cursor:pointer; }
+.cmpT { width:100%; border-collapse:collapse; font-size:13.5px; table-layout:fixed; }
+.cmpT th, .cmpT td { padding:5px 4px; border-top:1px solid var(--ln); text-align:left; vertical-align:top; word-break:keep-all; }
+.cmpT tr:first-child th { border-top:0; }
+.cmpT th { color:var(--dim); font-weight:normal; width:28%; }
+.cmpT th.a, .cmpT th.b { color:var(--tx); font-weight:bold; width:auto; }
+.cmpCap { margin:10px 0 4px; font-weight:bold; font-size:13.5px; }
+.rfBoardBox { padding:8px; border-radius:10px; background:#f4f1e6; color:#13202b; }
+.rfBoardBox .dim, .cs li .board .dim { color:#5b6570; font-size:12px; margin:4px 0 0; }
+.rfBoardBox .hereNext { margin:6px 0 0; font-size:13.5px; font-weight:bold; }
