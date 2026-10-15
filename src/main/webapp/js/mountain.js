@@ -6,7 +6,7 @@
     // fly(3D) · 따라가기로 갈 때 적어 둠 - 그 화면의 ‹ · ← 뒤로가 새로 고친 뒤에도 history.back() 으로 이 화면 · 스크롤 자리로(2026-10-14 PC)
     document.addEventListener("click", function (e) {
         var a = e.target.closest && e.target.closest(".go a");
-        if (a) try { sessionStorage.setItem("rf-fly-back", "1"); } catch (err) { /* 그때는 새로 엶 */ }
+        if (a && !a.classList.contains("way")) try { sessionStorage.setItem("rf-fly-back", "1"); } catch (err) { /* 그때는 새로 엶 */ }
     });
     // 쉬운 코스 거르기(2026-10-15 홍TV님) - 코스가 넷 이상이면 "모두 · 2시간 이내 · 4시간 이내"
     var csList = document.querySelector(".cs");

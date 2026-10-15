@@ -260,6 +260,21 @@ public class MountainServlet extends HttpServlet {
         return distM(c.get(la).getAsDouble(), c.get(lo).getAsDouble(), t[0], t[1]);
     }
 
+    /** 순수 함수 - 들머리 좌표 [lat, lon]: 코스 시작 · 끝 가운데 정상에서 먼 쪽(정상에서 시작하게 적힌 코스도 있음). 좌표가 없으면 null. */
+    static double[] trailhead(JsonObject c, JsonObject peak) {
+        double[] t = {peak.get("lat").getAsDouble(), peak.get("lon").getAsDouble()};
+        double ds = gap(c, "start_lat", "start_lon", t), de = gap(c, "end_lat", "end_lon", t);
+        if (ds == Double.POSITIVE_INFINITY && de == Double.POSITIVE_INFINITY) return null;
+        boolean start = de == Double.POSITIVE_INFINITY || (ds != Double.POSITIVE_INFINITY && ds >= de);
+        return start ? new double[] {c.get("start_lat").getAsDouble(), c.get("start_lon").getAsDouble()}
+                : new double[] {c.get("end_lat").getAsDouble(), c.get("end_lon").getAsDouble()};
+    }
+
+    /** 순수 함수 - 카카오맵 길찾기(도착 = 들머리, 출발은 카카오맵이 내 위치로). 키 없이 쓰는 링크. 2026-10-15 홍TV님. */
+    static String kakaoTo(String name, double[] p) {
+        return "https://map.kakao.com/link/to/" + enc(name.replace(",", " ")) + String.format(Locale.ROOT, ",%.6f,%.6f", p[0], p[1]);
+    }
+
     /** 순수 함수 - 두 점 거리(m, 하버사인). */
     static double distM(double lat1, double lon1, double lat2, double lon2) {
         double r = Math.PI / 180, dLat = (lat2 - lat1) * r, dLon = (lon2 - lon1) * r;
@@ -401,12 +416,17 @@ public class MountainServlet extends HttpServlet {
                         .append(asc != null ? String.format(Locale.KOREA, " · 오르막 %,dm", asc) : "")
                         .append(" · 약 ").append(hours(dist, asc)).append("</span><span class=\"go\">")
                         .append("<a href=\"").append(REL).append("/index.html#c=").append(esc(id)).append("&amp;m=").append(esc(enc(name))).append("\">fly(3D)</a>")
-                        .append("<a href=\"").append(REL).append("/hike.html#c=").append(esc(id)).append("&amp;m=").append(esc(enc(name))).append("\">따라가기</a></span></li>");   // m= - 따라가기의 ‹ 가 이 화면으로
+                        .append("<a href=\"").append(REL).append("/hike.html#c=").append(esc(id)).append("&amp;m=").append(esc(enc(name))).append("\">따라가기</a>");   // m= - 따라가기의 ‹ 가 이 화면으로
+                double[] th = trailhead(c, peak);
+                if (th != null) b.append("<a class=\"way\" href=\"").append(esc(kakaoTo(str(peak, "name") + " 들머리", th)))
+                        .append("\" target=\"_blank\" rel=\"noopener\">🚌 가는 길</a>");   // 카카오맵 길찾기(대중교통 · 차)
+                b.append("</span></li>");
             }
             b.append("</ul>");
         }
         if (!courses.isEmpty()) b.append("<p class=\"dim\">☆ 를 누르면 그 코스를 찜(즐겨찾기)합니다(★). 찜한 코스는 따라가기 첫 화면 \"★ 찜한 코스\" 에 모여 바로 고를 수 있고, "
-                + "다시 누르면 풀립니다. 이 핸드폰에만 저장됩니다(따라가기 📒 내 기록 → 💾 백업 저장으로 옮길 수 있음).</p>");   // 2026-10-15 홍TV님
+                + "다시 누르면 풀립니다. 이 핸드폰에만 저장됩니다(따라가기 📒 내 기록 → 💾 백업 저장으로 옮길 수 있음). "
+                + "🚌 가는 길은 카카오맵에서 지금 자리부터 그 코스 들머리까지 대중교통 · 차 길찾기를 엽니다.</p>");   // 2026-10-15 홍TV님
         b.append("<p class=\"dim\">예상 시간은 시속 4km · 오르막 600m 에 1시간으로 어림한 값입니다. 코스 자료는 참고용이니 현지 안내판 · 통제를 꼭 따르세요.</p></section>");
         List<String[]> qa = faq(peak, name, courses, parking);   // 자주 묻는 질문(2026-10-15 홍TV님 - 검색 결과에 문답으로)
         if (!qa.isEmpty()) {

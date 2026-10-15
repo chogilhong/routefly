@@ -17,7 +17,7 @@ ul { margin:0; padding:0; list-style:none; }
 .cs li:first-child { border-top:0; }
 .cs b { flex:1 1 100%; font-size:15px; }
 .cs span { font-size:13.5px; color:var(--dim); }
-.cs .go { margin-left:auto; display:flex; gap:8px; }
+.cs .go { margin-left:auto; display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; }
 .cs .go a { text-decoration:none; font-size:13.5px; padding:4px 10px; border:1px solid var(--ln); border-radius:14px; }
 .ms { display:flex; flex-wrap:wrap; gap:8px; }
 .ms a { display:inline-block; text-decoration:none; color:var(--tx); font-size:14px; padding:6px 11px; border:1px solid var(--ln); border-radius:16px; }

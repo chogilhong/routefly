@@ -140,12 +140,15 @@ final class MountainEn {
                         .append(asc != null ? String.format(Locale.US, " · %,d m ascent", asc) : "")
                         .append(" · about ").append(hours(dist, asc)).append("</span><span class=\"go\">")
                         .append("<a href=\"").append(REL).append("/index.html#c=").append(esc(id)).append("\">3D fly-through</a>")
-                        .append("<a href=\"").append(REL).append("/hike.html#c=").append(esc(id)).append("\">Follow (GPS)</a></span></li>");
+                        .append("<a href=\"").append(REL).append("/hike.html#c=").append(esc(id)).append("\">Follow (GPS)</a>");
+                double[] th = MountainServlet.trailhead(c, peak);
+                if (th != null) b.append("<a class=\"way\" href=\"").append(esc(googleTo(th))).append("\" target=\"_blank\" rel=\"noopener\">🚌 Directions</a>");
+                b.append("</span></li>");
             }
             b.append("</ul>");
         }
         b.append("<p class=\"dim\">Times are estimates at 4 km/h plus 1 hour per 600 m of ascent. Trail data is for reference - always follow signs and closures on site. "
-                + "The 3D and GPS screens are in Korean; the map and route work the same.</p></section>");
+                + "The 3D and GPS screens are in Korean; the map and route work the same. 🚌 Directions opens Google Maps transit directions from where you are to the trailhead.</p></section>");
         List<String[]> qa = faq(peak, name, courses, parking);
         b.append("<section class=\"faq\"><h2>").append(esc(name)).append(" FAQ</h2><dl>");
         for (String[] x : qa) b.append("<dt>").append(esc(x[0])).append("</dt><dd>").append(esc(x[1])).append("</dd>");
@@ -161,6 +164,11 @@ final class MountainEn {
             b.append("</ul></section>");
         }
         return b.append(foot(REL + "/m/" + MountainServlet.enc(ko))).toString();
+    }
+
+    /** 순수 함수 - 구글 지도 대중교통 길찾기(도착 = 들머리, 출발은 내 위치). 외국인은 카카오맵보다 구글 지도에 익숙. */
+    static String googleTo(double[] p) {
+        return String.format(Locale.ROOT, "https://www.google.com/maps/dir/?api=1&destination=%.6f,%.6f&travelmode=transit", p[0], p[1]);
     }
 
     /** 안전 안내 - 외국인 등산객용(응급 119 · 관광 안내 1330 · 산불조심기간). */

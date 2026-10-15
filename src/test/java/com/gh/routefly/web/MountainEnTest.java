@@ -86,4 +86,24 @@ public class MountainEnTest {
         assertEquals("/en/m/", Stats.pageKey("/en/m/"));
         assertNull(Stats.pageKey("/en/m/<x>"));
     }
+
+    @Test
+    public void directions() {
+        JsonObject peak = JsonParser.parseString("{\"id\":\"가야산\",\"name\":\"가야산\",\"lat\":35.8225,\"lon\":128.1228}").getAsJsonObject();
+        JsonObject up = JsonParser.parseString("{\"start_lat\":35.80,\"start_lon\":128.09,\"end_lat\":35.8226,\"end_lon\":128.1229}").getAsJsonObject();
+        JsonObject down = JsonParser.parseString("{\"start_lat\":35.8226,\"start_lon\":128.1229,\"end_lat\":35.80,\"end_lon\":128.09}").getAsJsonObject();
+        assertArrayEquals("정상에서 먼 쪽이 들머리", new double[] {35.80, 128.09}, MountainServlet.trailhead(up, peak), 1e-9);
+        assertArrayEquals("거꾸로 적힌 코스도", new double[] {35.80, 128.09}, MountainServlet.trailhead(down, peak), 1e-9);
+        assertNull(MountainServlet.trailhead(new JsonObject(), peak));
+        assertEquals("https://map.kakao.com/link/to/%EA%B0%80%EC%95%BC%EC%82%B0%20%EB%93%A4%EB%A8%B8%EB%A6%AC,35.800000,128.090000",
+                MountainServlet.kakaoTo("가야산 들머리", new double[] {35.80, 128.09}));
+        assertEquals("https://www.google.com/maps/dir/?api=1&destination=35.800000,128.090000&travelmode=transit", MountainEn.googleTo(new double[] {35.80, 128.09}));
+        up.addProperty("course_id", "k1");
+        up.addProperty("name", "해인사 - 상왕봉");
+        up.addProperty("distance_m", 4000);
+        String ko = MountainServlet.page(peak, new ArrayList<>(List.of(up)), new ArrayList<>(), null, "https://r.kr");
+        assertTrue(ko.contains("<a class=\"way\" href=\"https://map.kakao.com/link/to/%EA%B0%80%EC%95%BC%EC%82%B0%20%EB%93%A4%EB%A8%B8%EB%A6%AC,35.800000,128.090000\" target=\"_blank\" rel=\"noopener\">🚌 가는 길</a>"));
+        String en = MountainEn.page(peak, new ArrayList<>(List.of(up)), new ArrayList<>(), null, "https://r.kr");
+        assertTrue(en.contains("href=\"https://www.google.com/maps/dir/?api=1&amp;destination=35.800000,128.090000&amp;travelmode=transit\" target=\"_blank\" rel=\"noopener\">🚌 Directions</a>"));
+    }
 }
