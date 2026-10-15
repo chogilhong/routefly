@@ -3446,7 +3446,7 @@
         Array.prototype.forEach.call(document.querySelectorAll(".cs li[data-id]"), function (li) {
             var go = li.querySelector(".go");
             if (!go) return;
-            var btn = el("button", "boardBtn", en ? "📈 Elevation" : "📈 고도"), box = el("div", "board"), loaded = false;
+            var btn = el("button", "boardBtn", en ? "📈 Elevation" : "📈 고도"), box = el("div", "board rfBoardBox"), loaded = false;
             btn.type = "button";
             box.hidden = true;
             btn.addEventListener("click", function () {
@@ -3631,7 +3631,7 @@
         p.textContent = saved ? T.done(when(saved)) : T.tip;
         b.addEventListener("click", function () {
             var q = "?lat=" + (+anchor.getAttribute("data-lat")).toFixed(4) + "&lon=" + (+anchor.getAttribute("data-lon")).toFixed(4);
-            var urls = [location.href, rel + "/css/mountain.css", rel + "/js/course-kit.js", rel + "/js/" + script, rel + "/img/logo-dark.svg",
+            var urls = [location.href, rel + "/css/course-kit.css", rel + "/css/mountain.css", rel + "/js/course-kit.js", rel + "/js/" + script, rel + "/img/logo-dark.svg",
                 rel + "/api/weather" + q, rel + "/api/air" + q, rel + "/api/mid" + q, rel + "/api/partners", rel + "/hike.html"];
             Array.prototype.forEach.call(document.querySelectorAll(".cs li[data-id]"), function (li) { urls.push(rel + "/api/course?id=" + encodeURIComponent(li.getAttribute("data-id"))); });
             b.disabled = true;

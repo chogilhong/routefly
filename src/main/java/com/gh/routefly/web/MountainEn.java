@@ -295,7 +295,7 @@ final class MountainEn {
                 + "<meta property=\"og:url\" content=\"" + esc(url) + "\"><meta property=\"og:image\" content=\"" + esc(og != null ? og : base + "/img/og.png?v=2") + "\">"
                 + "<meta property=\"og:image:width\" content=\"1200\"><meta property=\"og:image:height\" content=\"630\">"
                 + "<link rel=\"icon\" type=\"image/svg+xml\" href=\"" + REL + "/favicon.svg?v=2\"><link rel=\"apple-touch-icon\" href=\"" + REL + "/img/apple-icon-180.png\"><meta name=\"theme-color\" content=\"#11161d\">"
-                + "<link rel=\"stylesheet\" href=\"" + REL + "/css/mountain.css\"></head><body>";
+                + "<link rel=\"stylesheet\" href=\"" + REL + "/css/course-kit.css\"><link rel=\"stylesheet\" href=\"" + REL + "/css/mountain.css\"></head><body>";
     }
 
     /** koHref - 한국어 페이지 상대 주소(터널 https 에서 http 절대 주소가 막혔음 - 화면의 한/EN 단추도 이 링크를 씀). */

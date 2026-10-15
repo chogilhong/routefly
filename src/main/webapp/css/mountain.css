@@ -95,26 +95,9 @@ ul { margin:0; padding:0; list-style:none; }
 .offline button { height:36px; padding:0 14px; border-radius:18px; border:1px solid var(--sky); background:rgba(56,217,234,0.12); color:var(--tx); font:bold 14px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }
 .offline button:disabled { opacity:0.6; }
 /* 난이도 · 📈 고도(공단 탐방로 안내판처럼 - 2026-10-15) */
-.lv { display:inline-block; font-style:normal; font-size:11.5px; font-weight:bold; line-height:1; padding:3px 7px; border-radius:9px; color:#fff; vertical-align:2px; white-space:nowrap; }
-.lv0 { background:#a3c93a; color:#13202b; } .lv1 { background:#3fae5c; } .lv2 { background:#e8822a; } .lv3 { background:#a23a6b; } .lv4 { background:#3a3f46; box-shadow:inset 0 0 0 1px rgba(255,255,255,0.5); }
 .cs .go button.boardBtn { font-size:13.5px; padding:4px 10px; border:1px solid var(--ln); border-radius:14px; background:none; color:var(--sky); cursor:pointer; }
 .cs .go button.boardBtn.on { background:rgba(56,217,234,0.15); }
-.cs li .board { flex-basis:100%; width:100%; margin-top:8px; padding:8px; border-radius:10px; background:#f4f1e6; color:#13202b; }
-.cs li .board .dim { color:#5b6570; font-size:12px; margin:4px 0 0; }
-.rf-board { display:block; width:100%; height:auto; }
-.rf-board text { font:13px Arial,"Malgun Gothic",sans-serif; fill:#13202b; }
-.rf-board text.nm { font-weight:bold; font-size:13px; }
-.rf-board text.pct { font-size:11.5px; fill:#3c4a56; text-anchor:middle; }
-.rf-board text.km { font-size:11.5px; fill:#5b6570; }
-.rf-board .pt { fill:#fff; stroke:#13202b; stroke-width:2; }
-.rf-board .lead { stroke:#8a96a3; stroke-width:1; stroke-dasharray:2 3; }
-.rf-board .base { stroke:#8a96a3; stroke-width:1; }
-.rf-legend { display:flex; flex-wrap:wrap; gap:4px 10px; margin-top:4px; font-size:12px; }
-.rf-legend i { font-style:normal; display:inline-flex; align-items:center; gap:4px; }
-.rf-legend i::before { content:""; width:18px; height:5px; border-radius:3px; background:var(--c); }
-.rf-board circle.here { fill:#e03131; stroke:#fff; stroke-width:2.5; }
-.rf-board line.here { stroke:#e03131; stroke-width:2; }
-.rf-board text.hereT { font-weight:bold; fill:#e03131; font-size:13px; stroke:#f4f1e6; stroke-width:4px; paint-order:stroke; }
+.cs li .board { flex-basis:100%; width:100%; margin-top:8px; }   /* 모양은 course-kit.css .rfBoardBox · .rf-board · .lv(산 페이지도 읽음 - 2026-10-16 겹침 정리) */
 /* 🕘 최근 본 산 · ⚖️ 코스 견주기(2026-10-16) */
 #recent { padding:4px 16px; }
 #recent .fb { padding:4px 0 10px; }
@@ -130,6 +113,3 @@ ul { margin:0; padding:0; list-style:none; }
 .cmpT th { color:var(--dim); font-weight:normal; width:28%; }
 .cmpT th.a, .cmpT th.b { color:var(--tx); font-weight:bold; width:auto; }
 .cmpCap { margin:10px 0 4px; font-weight:bold; font-size:13.5px; }
-.rfBoardBox { padding:8px; border-radius:10px; background:#f4f1e6; color:#13202b; }
-.rfBoardBox .dim, .cs li .board .dim { color:#5b6570; font-size:12px; margin:4px 0 0; }
-.rfBoardBox .hereNext { margin:6px 0 0; font-size:13.5px; font-weight:bold; }

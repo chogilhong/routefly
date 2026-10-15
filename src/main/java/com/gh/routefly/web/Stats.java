@@ -97,11 +97,6 @@ final class Stats {
         return "그 밖";
     }
 
-    /** 한 번 셈(들어온 곳 없이 - 테스트). */
-    static void hit(String page, String ip, boolean bot) {
-        hit(page, ip, bot, null);
-    }
-
     /** 한 번 셈. ip 는 해시해 그 날 메모리에서만 견줌. src - 들어온 곳(source, null 이면 안 셈). */
     static synchronized void hit(String page, String ip, boolean bot, String src) {
         load();

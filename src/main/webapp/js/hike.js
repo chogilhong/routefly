@@ -238,7 +238,14 @@
             var qd = +q.dist_m;
             return !(qd < 60 || qd > c.total - 60 || +q.off_route_m > (RF.isTopName(q.name) ? 160 : 80) || hike.passed[q.name + "@" + Math.round(qd)]);
         };
-        var hit = c.pois.filter(function (q) { return spoken(q) && Math.abs(d - +q.dist_m) <= 30; })[0];
+        // 지난번과 지금 사이에 지나친 지점도(2026-10-16 PC: 시험 걷기 · 띄엄띄엄한 GPS 는 한 번에 수백 m 라 30m 안을 건너뛰어 지점 안내가 빠졌음).
+        // 한 번에 3km 넘게 뛰면(위치 튐) 그 사이는 말하지 않음. 여럿을 지나쳤으면 마지막 것만 말하고 앞의 것은 말한 셈 침
+        var prev = hike.voiceD != null && d - hike.voiceD < 3000 ? hike.voiceD : d;
+        hike.voiceD = d;
+        var hits = c.pois.filter(function (q) { var qd = +q.dist_m; return spoken(q) && (Math.abs(d - qd) <= 30 || (prev < qd && qd <= d)); })
+            .sort(function (a, b) { return +b.dist_m - +a.dist_m; });
+        var hit = hits[0];
+        hits.forEach(function (q) { if (+q.dist_m < +hit.dist_m - 80) hike.passed[q.name + "@" + Math.round(+q.dist_m)] = true; });
         if (hit) {
             var group = c.pois.filter(function (q) { return spoken(q) && Math.abs(+q.dist_m - +hit.dist_m) <= 80; });
             var names = [], ele = null, far = 0;
@@ -1668,6 +1675,7 @@
         hike.lateNext = hike.lateAt;
         hike.spotDone = {};
         hike.passed = {};
+        hike.voiceD = null;   // 지난번 음성 확인 때의 거리 - 그 사이 지나친 지점도 말함(2026-10-16 PC)
         hike.wasOff = false;
         hike.d0 = saved && saved.d0 != null ? saved.d0 : null;   // 첫 위치가 코스 위일 때 정합니다(코스 중간에서 시작하면 그 자리)
         hike.dMax = saved && saved.dMax != null ? saved.dMax : hike.d;
@@ -1907,6 +1915,7 @@
         hike.dMax = s.d;
         hike.segT0 = now();
         hike.passed = {};
+        hike.voiceD = null;
         hike.alerted = {};
         hike.arrived = false;
         hike.branch = null;

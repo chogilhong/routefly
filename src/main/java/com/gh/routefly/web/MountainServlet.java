@@ -319,10 +319,6 @@ public class MountainServlet extends HttpServlet {
     static final String[][] LEVELS = {{"매우 쉬움", "Easy"}, {"쉬움", "Moderate"}, {"보통", "Intermediate"}, {"어려움", "Advanced"}, {"매우 어려움", "Expert"}};
     static final double[] HOUR_STEPS = {1.5, 3, 5, 8}, ASC_STEPS = {300, 700, 1100, 1500}, STEEP_STEPS = {12, 18, 25, 32};
 
-    static int difficulty(int distM, Integer ascM) {
-        return difficulty(distM, ascM, null);
-    }
-
     /**
      * 순수 함수 - 등산 코스 난이도 0~4(routefly 기준) - 표준 시간 · 오르막 총량 · 가장 가파른 1km(Steep, 오르막 · 내리막) 가운데 높은 단계.
      * course-kit.js difficulty 와 같음. 거리가 없으면 -1. 셋 다 코스가 길어져도 줄지 않아 "길어지면 내려가지 않음"(2026-10-16 - 평균 경사는 내리막에 묽어졌음).
@@ -337,10 +333,6 @@ public class MountainServlet extends HttpServlet {
         int i = 0;
         while (i < steps.length && v >= steps[i]) i++;
         return i;
-    }
-
-    static String levelChip(int distM, Integer ascM, boolean en) {
-        return levelChip(distM, ascM, null, en);
     }
 
     /** 순수 함수 - 난이도 표(코스 이름 옆). steep - 가장 가파른 1km 경사(%, 없으면 null). en - 영어. */
@@ -628,7 +620,7 @@ public class MountainServlet extends HttpServlet {
                 + "<meta property=\"og:url\" content=\"" + esc(url) + "\"><meta property=\"og:image\" content=\"" + esc(og != null ? og : base + "/img/og.png?v=2") + "\">"
                 + "<meta property=\"og:image:width\" content=\"1200\"><meta property=\"og:image:height\" content=\"630\">"
                 + "<link rel=\"icon\" type=\"image/svg+xml\" href=\"" + REL + "/favicon.svg?v=2\"><link rel=\"apple-touch-icon\" href=\"" + REL + "/img/apple-icon-180.png\"><meta name=\"theme-color\" content=\"#11161d\">"
-                + "<link rel=\"stylesheet\" href=\"" + REL + "/css/mountain.css\"></head><body>";
+                + "<link rel=\"stylesheet\" href=\"" + REL + "/css/course-kit.css\"><link rel=\"stylesheet\" href=\"" + REL + "/css/mountain.css\"></head><body>";
     }
 
     private static String foot(String base) {
