@@ -32,7 +32,39 @@ final class Peaks {
     /** 지형 자료 최고점과 공식 높이가 이보다 많이 다르면 바꾸지 않음(그 산 아닌 다른 높은 곳을 지나는 코스 - m). */
     static final double MAX_DIFF_M = 80;
 
-    private static volatile List<double[]> tops;
+    private static volatile List<double[]> tops, shelters;
+    /** 대피소 지점이 공단 대피소 자리에서 이 안이면 그 높이(m). */
+    static final double SHELTER_M = 150;
+
+    /**
+     * 공단 대피소 [위도, 경도, 높이] - data/shelters.json {"shelters":[{name, lat, lon, ele}]}(국립공원공단_국립공원 대피소 자료를 PC 가 옮김).
+     * 없거나 비면 빈 것(대피소 높이는 지형 자료 그대로). 2026-10-16 홍TV님: 중청대피소 높이.
+     */
+    static List<double[]> shelters(ServletContext ctx) {
+        List<double[]> s = shelters;
+        if (s != null) return s;
+        List<double[]> out = new ArrayList<>();
+        try (InputStream in = ctx.getResourceAsStream("/data/shelters.json")) {
+            JsonElement e = in == null ? null : JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+            if (e != null && e.isJsonObject() && e.getAsJsonObject().has("shelters")) out = shelters(e.getAsJsonObject().getAsJsonArray("shelters"));
+        } catch (Exception e) {
+            // 대피소 없이
+        }
+        s = Collections.unmodifiableList(out);
+        shelters = s;
+        return s;
+    }
+
+    /** 순수 함수 - 대피소 목록 → [위도, 경도, 높이](높이 없는 것은 뺌). */
+    static List<double[]> shelters(JsonArray rows) {
+        List<double[]> out = new ArrayList<>();
+        for (JsonElement e : rows) {
+            JsonObject o = e.getAsJsonObject();
+            if (o.has("lat") && o.has("lon") && o.has("ele") && !o.get("ele").isJsonNull())
+                out.add(new double[] {o.get("lat").getAsDouble(), o.get("lon").getAsDouble(), Math.round(o.get("ele").getAsDouble())});
+        }
+        return out;
+    }
 
     /** 공식 높이가 있는 정상 [위도, 경도, 높이] - 웹 앱의 data 파일에서 한 번 읽음. 못 읽으면 빈 것. */
     static List<double[]> tops(ServletContext ctx) {
@@ -108,12 +140,19 @@ final class Peaks {
      * points 는 [경도, 위도, 고도, 누적 거리].
      */
     static void applyDetail(JsonObject detail, List<double[]> tops) {
-        if (detail == null || tops.isEmpty()) return;
+        applyDetail(detail, tops, List.of());
+    }
+
+    /** shelters - 공단 대피소(이름에 "대피소" 가 든 지점이 SHELTER_M 안이면 그 높이). */
+    static void applyDetail(JsonObject detail, List<double[]> tops, List<double[]> shelters) {
+        if (detail == null) return;
         if (detail.has("pois") && detail.get("pois").isJsonArray()) {
             for (JsonElement e : detail.getAsJsonArray("pois")) {
                 JsonObject q = e.getAsJsonObject();
                 if (!q.has("lat") || q.get("lat").isJsonNull() || !q.has("lon") || q.get("lon").isJsonNull()) continue;
                 Integer h = near(tops, q.get("lat").getAsDouble(), q.get("lon").getAsDouble(), POI_M);
+                if (h == null && q.has("name") && !q.get("name").isJsonNull() && q.get("name").getAsString().contains("대피소"))
+                    h = near(shelters, q.get("lat").getAsDouble(), q.get("lon").getAsDouble(), SHELTER_M);
                 if (h == null) continue;
                 Double dem = q.has("ele_m") && !q.get("ele_m").isJsonNull() ? q.get("ele_m").getAsDouble() : null;
                 if (dem != null && Math.abs(dem - h) > MAX_DIFF_M) continue;
@@ -133,5 +172,14 @@ final class Peaks {
         Double dem = course.has("ele_max_m") && !course.get("ele_max_m").isJsonNull() ? course.get("ele_max_m").getAsDouble() : null;
         Integer top = courseTop(dem, passed);
         if (top != null) course.addProperty("ele_max_m", top);
+        // 오르막이 적어도 오르는 높이(가장 높은 점 - 낮은 끝)보다 작으면 그 높이로 - 목록(Steep)과 같게(2026-10-16 PC: 오르막 6m 코스)
+        Double[] es = new Double[pts.size()];
+        for (int i = 0; i < es.length; i++) {
+            JsonElement el = pts.get(i).getAsJsonArray().get(2);
+            es[i] = el == null || el.isJsonNull() ? null : el.getAsDouble();
+        }
+        Integer db = course.has("ascent_m") && !course.get("ascent_m").isJsonNull() ? course.get("ascent_m").getAsInt() : null;
+        Integer asc = Steep.ascent(db, Steep.minClimb(es));
+        if (asc != null && !asc.equals(db)) course.addProperty("ascent_m", asc);
     }
 }

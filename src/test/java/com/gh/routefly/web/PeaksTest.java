@@ -53,4 +53,35 @@ public class PeaksTest {
         Peaks.applyDetail(d, tops);
         assertEquals(1708, d.getAsJsonObject("course").get("ele_max_m").getAsInt());
     }
+
+    @Test
+    public void shelters() {   // 공단 대피소 높이(data/shelters.json - 2026-10-16)
+        List<double[]> sh = Peaks.shelters(JsonParser.parseString("[{\"name\":\"중청대피소\",\"lat\":38.1205,\"lon\":128.4635,\"ele\":1640.4},{\"name\":\"높이 없음\",\"lat\":1,\"lon\":1}]").getAsJsonArray());
+        assertEquals("높이 없는 것은 뺌", 1, sh.size());
+        JsonObject d = JsonParser.parseString("{\"course\":{},\"points\":[],\"pois\":[{\"name\":\"중청대피소\",\"lat\":38.1206,\"lon\":128.4636,\"ele_m\":1651},"
+                + "{\"name\":\"중청\",\"lat\":38.1206,\"lon\":128.4636,\"ele_m\":1651}]}").getAsJsonObject();
+        Peaks.applyDetail(d, List.of(), sh);
+        assertEquals(1640, d.getAsJsonArray("pois").get(0).getAsJsonObject().get("ele_m").getAsInt());
+        assertEquals("이름에 대피소가 없으면 그대로", 1651, d.getAsJsonArray("pois").get(1).getAsJsonObject().get("ele_m").getAsInt());
+        // 웹 앱의 파일이 JSON 이고 높이가 숫자
+        try {
+            JsonObject f = JsonParser.parseString(java.nio.file.Files.readString(java.nio.file.Path.of("src/main/webapp/data/shelters.json"))).getAsJsonObject();
+            for (com.google.gson.JsonElement e : f.getAsJsonArray("shelters")) assertTrue(e.getAsJsonObject().get("ele").getAsDouble() > 0);
+        } catch (java.io.IOException e) {
+            fail(e.toString());
+        }
+    }
+
+    @Test
+    public void ascentFloor() {   // 오르막이 적어도 오르는 높이보다 작으면(2026-10-16 PC: 송추 → 사패능선 오르막 6m)
+        assertEquals(Double.valueOf(296), Steep.minClimb(new Double[] {150.0, null, 446.0, 300.0}));
+        assertEquals("낮은 끝 기준", Double.valueOf(650), Steep.minClimb(new Double[] {1000.0, 1650.0, 1600.0}));
+        assertNull(Steep.minClimb(new Double[] {null, null}));
+        assertEquals(Integer.valueOf(296), Steep.ascent(6, 296.0));
+        assertEquals("DB 가 더 크면 DB", Integer.valueOf(900), Steep.ascent(900, 650.0));
+        assertEquals(Integer.valueOf(650), Steep.ascent(null, 650.0));
+        JsonObject d = JsonParser.parseString("{\"course\":{\"ascent_m\":6,\"ele_max_m\":446},\"points\":[[127.0,37.7,150,0],[127.01,37.71,446,2000],[127.02,37.72,300,3250]],\"pois\":[]}").getAsJsonObject();
+        Peaks.applyDetail(d, Peaks.tops(PEAKS));
+        assertEquals(296, d.getAsJsonObject("course").get("ascent_m").getAsInt());
+    }
 }

@@ -60,6 +60,27 @@ final class Steep {
         return Math.round(best * 10) / 10.0;
     }
 
+    /**
+     * 순수 함수 - 적어도 오르는 높이(m): 가장 높은 점 - 두 끝 가운데 낮은 쪽. 오르막 합은 이보다 작을 수 없음.
+     * 2026-10-16 PC: 송추 → 사패능선 3.25km 오르막 6m(최고 446m) · 한계령 → 중청대피소 오르막 438m 처럼 DB 오르막이 이상한 코스. 고도가 없으면 null.
+     */
+    static Double minClimb(Double[] ele) {
+        Double first = null, last = null, max = null;
+        for (Double e : ele) {
+            if (e == null) continue;
+            if (first == null) first = e;
+            last = e;
+            if (max == null || e > max) max = e;
+        }
+        return first == null ? null : (double) Math.round(max - Math.min(first, last));
+    }
+
+    /** 순수 함수 - 보일 오르막: DB 값이 적어도 오르는 높이보다 작으면 그 높이(둘 다 없으면 null). */
+    static Integer ascent(Integer db, Double minClimb) {
+        if (minClimb == null) return db;
+        return db == null || db < minClimb ? (int) Math.round(minClimb) : db;
+    }
+
     /** 목록 줄(course_id · kind)마다 steep_pct 를 붙이고, 정상을 지나면 ele_max_m 을 공식 높이로 - 등산(hike · trek)만. 못 셈하면 그대로. */
     static void fill(Connection c, JsonArray rows, List<double[]> tops) {
         if (rows == null || rows.size() == 0) return;
@@ -78,6 +99,11 @@ final class Steep {
             double[] hit = str(o, "course_id") == null ? null : CACHE.get(str(o, "course_id"));
             if (hit == null) continue;
             if (!Double.isNaN(hit[0])) o.addProperty("steep_pct", hit[0]);
+            if (hit.length > 3 && !Double.isNaN(hit[3])) {   // 오르막이 적어도 오르는 높이보다 작으면 그 높이로(난이도 · 화면)
+                Integer db = o.has("ascent_m") && !o.get("ascent_m").isJsonNull() ? o.get("ascent_m").getAsInt() : null;
+                Integer a = ascent(db, hit[3]);
+                if (a != null && !a.equals(db)) o.addProperty("ascent_m", a);
+            }
             if (hit.length > 2 && !Double.isNaN(hit[2])) {
                 Double dem = o.has("ele_max_m") && !o.get("ele_max_m").isJsonNull() ? o.get("ele_max_m").getAsDouble() : null;
                 Integer top = Peaks.courseTop(dem, List.of((int) hit[2]));
@@ -119,7 +145,7 @@ final class Steep {
                     }
                     if (cur != null) put(cur, ds, es, now, top);
                 }
-                for (String id : part) CACHE.putIfAbsent(id, new double[] {Double.NaN, now, Double.NaN});   // 점이 없는 코스 - 다시 묻지 않게
+                for (String id : part) CACHE.putIfAbsent(id, new double[] {Double.NaN, now, Double.NaN, Double.NaN});   // 점이 없는 코스 - 다시 묻지 않게
             } catch (Exception e) {
                 return;   // 경사 없이 - 난이도는 시간 · 오르막으로
             }
@@ -130,7 +156,8 @@ final class Steep {
         double[] d = new double[ds.size()];
         for (int i = 0; i < d.length; i++) d[i] = ds.get(i);
         Double s = steepest(d, es.toArray(new Double[0]));
-        CACHE.put(id, new double[] {s == null ? Double.NaN : s, now, top});
+        Double mc = minClimb(es.toArray(new Double[0]));
+        CACHE.put(id, new double[] {s == null ? Double.NaN : s, now, top, mc == null ? Double.NaN : mc});
     }
 
     private static String str(JsonObject o, String k) {
