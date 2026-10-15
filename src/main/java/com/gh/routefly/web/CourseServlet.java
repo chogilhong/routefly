@@ -48,6 +48,7 @@ public class CourseServlet extends HttpServlet {
                 Json.write(resp, HttpServletResponse.SC_NOT_FOUND, out, false);
                 return;
             }
+            Peaks.applyDetail(detail, Peaks.tops(getServletContext()));   // 정상 높이는 공식 값으로(대청봉 1,700 → 1,708 - 2026-10-16 홍TV님)
             detail.addProperty("success", true);
             if (tag == null) Json.ok(req, resp, detail);
             else Json.send(resp, detail.toString());
@@ -63,7 +64,7 @@ public class CourseServlet extends HttpServlet {
      * 2026-10-10 PC: knpsSpot 을 다시 돌려 헬기장 종류가 바뀌었는데 ETag 가 같아 304 로 옛 응답을 썼음. 표가 없으면 "-".
      */
     /** 응답 모양 판 - ETag 에 넣음. */
-    static final String SHAPE = "ends1";
+    static final String SHAPE = "ends1-elev1";   // elev1 - 정상 높이 공식 값(2026-10-16)
 
     /** 2026-10-11 오픈 전 점검: 코스를 열 때마다(304 포함) 두 표를 훑었음 - 1분 동안은 받아 둔 값(배치는 몇 시간 · 며칠마다). */
     static final long SIDE_TTL_MS = 60_000;

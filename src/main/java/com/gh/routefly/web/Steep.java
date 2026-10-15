@@ -18,7 +18,8 @@ import com.google.gson.JsonObject;
  *
  * <p>난이도를 시간 · 오르막 총량으로만 정하자 오색(짧고 가파름) · 백담사(길고 완만함)가 같아졌고, 한계령 → 대청봉 → 남설악(급한 내리막)이 보통이었음.
  * 이 값으로 난이도를 한 단계 올릴 수 있게 목록 응답에 {@code steep_pct} 를 붙입니다. 코스가 길어져도 이 값은 줄지 않으므로 "길어지면 내려가지 않음" 은 그대로.
- * DB 는 읽기만 - 처음 볼 때 route_course_point 로 셈하고 메모리에 하루 둠(배치가 코스를 다시 넣어도 하루 안에 맞춰짐).</p>
+ * DB 는 읽기만 - 처음 볼 때 route_course_point 로 셈하고 메모리에 하루 둠(배치가 코스를 다시 넣어도 하루 안에 맞춰짐).
+ * 같은 점으로 100대 명산 정상을 지나는지도 보아, 목록의 ele_max_m 을 공식 높이로 바꿈(Peaks - 2026-10-16 "대청봉 1,700 → 1,708").</p>
  */
 final class Steep {
 
@@ -31,7 +32,7 @@ final class Steep {
     static final double MIN_M = 300;
     private static final long TTL_MS = 24L * 3600 * 1000;
     private static final int MAX_ENTRIES = 50_000;
-    /** 코스 ID → [경사 %(없으면 NaN), 셈한 시각]. */
+    /** 코스 ID → [경사 %(없으면 NaN), 셈한 시각, 지나는 정상의 공식 높이(없으면 NaN)]. */
     private static final Map<String, double[]> CACHE = new ConcurrentHashMap<>();
 
     /**
@@ -59,8 +60,8 @@ final class Steep {
         return Math.round(best * 10) / 10.0;
     }
 
-    /** 목록 줄(course_id · kind)마다 steep_pct 를 붙임 - 등산(hike · trek)만. 못 셈하면 칸 없이. */
-    static void fill(Connection c, JsonArray rows) {
+    /** 목록 줄(course_id · kind)마다 steep_pct 를 붙이고, 정상을 지나면 ele_max_m 을 공식 높이로 - 등산(hike · trek)만. 못 셈하면 그대로. */
+    static void fill(Connection c, JsonArray rows, List<double[]> tops) {
         if (rows == null || rows.size() == 0) return;
         long now = System.currentTimeMillis();
         List<String> need = new ArrayList<>();
@@ -71,51 +72,61 @@ final class Steep {
             double[] hit = CACHE.get(id);
             if (hit == null || now - (long) hit[1] > TTL_MS) need.add(id);
         }
-        if (!need.isEmpty()) load(c, need, now);
+        if (!need.isEmpty()) load(c, need, now, tops);
         for (JsonElement e : rows) {
             JsonObject o = e.getAsJsonObject();
             double[] hit = str(o, "course_id") == null ? null : CACHE.get(str(o, "course_id"));
-            if (hit != null && !Double.isNaN(hit[0])) o.addProperty("steep_pct", hit[0]);
+            if (hit == null) continue;
+            if (!Double.isNaN(hit[0])) o.addProperty("steep_pct", hit[0]);
+            if (hit.length > 2 && !Double.isNaN(hit[2])) {
+                Double dem = o.has("ele_max_m") && !o.get("ele_max_m").isJsonNull() ? o.get("ele_max_m").getAsDouble() : null;
+                Integer top = Peaks.courseTop(dem, List.of((int) hit[2]));
+                if (top != null) o.addProperty("ele_max_m", top);
+            }
         }
     }
 
-    private static void load(Connection c, List<String> ids, long now) {
+    private static void load(Connection c, List<String> ids, long now, List<double[]> tops) {
         if (CACHE.size() > MAX_ENTRIES) CACHE.clear();
         for (int from = 0; from < ids.size(); from += 100) {   // IN 이 너무 길지 않게 100개씩
             List<String> part = ids.subList(from, Math.min(ids.size(), from + 100));
-            String sql = "SELECT course_id, dist_m, ele_m FROM route_course_point WHERE course_id IN ("
+            String sql = "SELECT course_id, dist_m, ele_m, lat, lon FROM route_course_point WHERE course_id IN ("
                     + String.join(",", Collections.nCopies(part.size(), "?")) + ") ORDER BY course_id, seq";
             try (PreparedStatement ps = c.prepareStatement(sql)) {
                 for (int i = 0; i < part.size(); i++) ps.setString(i + 1, part.get(i));
                 try (ResultSet rs = ps.executeQuery()) {
                     String cur = null;
                     List<Double> ds = new ArrayList<>(), es = new ArrayList<>();
+                    double top = Double.NaN;
                     while (rs.next()) {
                         String id = rs.getString(1);
                         if (cur != null && !cur.equals(id)) {
-                            put(cur, ds, es, now);
+                            put(cur, ds, es, now, top);
                             ds.clear();
                             es.clear();
+                            top = Double.NaN;
                         }
                         cur = id;
                         ds.add(rs.getDouble(2));
                         double ele = rs.getDouble(3);
                         es.add(rs.wasNull() ? null : ele);
+                        Integer h = Peaks.near(tops, rs.getDouble(4), rs.getDouble(5), Peaks.PASS_M);
+                        if (h != null && (Double.isNaN(top) || h > top)) top = h;
                     }
-                    if (cur != null) put(cur, ds, es, now);
+                    if (cur != null) put(cur, ds, es, now, top);
                 }
-                for (String id : part) CACHE.putIfAbsent(id, new double[] {Double.NaN, now});   // 점이 없는 코스 - 다시 묻지 않게
+                for (String id : part) CACHE.putIfAbsent(id, new double[] {Double.NaN, now, Double.NaN});   // 점이 없는 코스 - 다시 묻지 않게
             } catch (Exception e) {
                 return;   // 경사 없이 - 난이도는 시간 · 오르막으로
             }
         }
     }
 
-    private static void put(String id, List<Double> ds, List<Double> es, long now) {
+    private static void put(String id, List<Double> ds, List<Double> es, long now, double top) {
         double[] d = new double[ds.size()];
         for (int i = 0; i < d.length; i++) d[i] = ds.get(i);
         Double s = steepest(d, es.toArray(new Double[0]));
-        CACHE.put(id, new double[] {s == null ? Double.NaN : s, now});
+        CACHE.put(id, new double[] {s == null ? Double.NaN : s, now, top});
     }
 
     private static String str(JsonObject o, String k) {

@@ -124,7 +124,7 @@ public class MountainServlet extends HttpServlet {
             courses = near(rows, peak, NEAR_M);
             JsonArray picked = new JsonArray();
             courses.forEach(picked::add);
-            Steep.fill(c, picked);   // 가장 가파른 1km(난이도 - 2026-10-16)
+            Steep.fill(c, picked, Peaks.tops(getServletContext()));   // 가장 가파른 1km(난이도) · 정상을 지나면 최고 높이는 공식 값(2026-10-16)
             names(courses, parks());   // 앱과 같은 이름(공단 공식 이름 · 산마다 지명) · 지금은 없는 탐방로는 뺌
         } catch (Exception e) {
             log.warn("[MOUNTAIN] 코스 조회 실패 {} - {}", str(peak, "id"), e.toString());
