@@ -805,3 +805,5 @@ eq("airForecastText 그 날 예보 · 없는 날", [RF.airForecastText({ region:
     RF.airForecastText({ region: "경남", forecast: {} }, "2026-10-16"), RF.airForecastText(null, "2026-10-16")], ["미세먼지 보통 · 초미세먼지 좋음(경남 예보)", "", ""]);
 eq("dayLabel 오늘 · 내일 · 글피 · 그 뒤", [RF.dayLabel("2026-10-15", "2026-10-15"), RF.dayLabel("2026-10-16", "2026-10-15"), RF.dayLabel("2026-10-18", "2026-10-15"), RF.dayLabel("2026-11-01", "2026-10-31")],
     ["오늘 10/15(목)", "내일 10/16(금)", "글피 10/18(일)", "내일 11/1(일)"]);
+eq("midLines 오전 · 오후 / 하루 한 값", [RF.midLines({ wfAm: "맑음", wfPm: "구름많음", popAm: 20, popPm: 30 }), RF.midLines({ wfAm: "흐리고 비", wfPm: "흐리고 비", popAm: 60, popPm: 60 }), RF.midLines(null)],
+    [["오전 맑음 · 비 20%", "오후 구름많음 · 비 30%"], ["흐리고 비 · 비 60%"], []]);

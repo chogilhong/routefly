@@ -97,7 +97,18 @@ public class AirServlet extends HttpServlet {
         if (t != null) t.interrupt();
     }
 
-    private static String key() {
+    /** 그 자리에서 가장 가까운 측정소 주소의 예보 지역(region) - 중기예보(MidServlet)도 씀. 측정소 목록이 없으면 null. */
+    static String regionNear(double lat, double lon) {
+        String key = key();
+        Object[] st = key == null ? null : stationList(key, System.currentTimeMillis());
+        if (st == null) return null;
+        @SuppressWarnings("unchecked") List<double[]> pos = (List<double[]>) st[1];
+        @SuppressWarnings("unchecked") List<String> addrs = (List<String>) st[3];
+        List<Integer> near = nearest(pos, lat, lon, AIR_NEAR_M, 1);
+        return near.isEmpty() ? null : region(addrs.get(near.get(0)));
+    }
+
+    static String key() {
         String key = RouteflyConfig.get("air.serviceKey");
         return key != null ? key : RouteflyConfig.get("tour.serviceKey");
     }

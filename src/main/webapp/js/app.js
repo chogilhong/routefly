@@ -707,6 +707,7 @@
             body.appendChild(el("div", "gNote", "불러오는 중…"));
             var top = Math.max.apply(null, c.ele.filter(function (e) { return e != null; }).concat([start.ele || 0]));
             var airP = getJson("api/air?lat=" + start.lat.toFixed(4) + "&lon=" + start.lon.toFixed(4)).catch(function () { return null; });   // 미세먼지(2026-10-15)
+            var midP = getJson("api/mid?lat=" + start.lat.toFixed(4) + "&lon=" + start.lon.toFixed(4)).catch(function () { return null; });   // 4~10일 뒤(중기예보, 2026-10-15)
             getJson("api/weather?lat=" + start.lat.toFixed(4) + "&lon=" + start.lon.toFixed(4)).then(function (w) {
                 if (!$("guideSheet").classList.contains("open") || guide.c !== c) return;
                 body.textContent = "";
@@ -737,6 +738,18 @@
                         "비 " + (h.pop != null ? h.pop + "%" : "-")));
                 });
                 body.appendChild(el("div", "gNote", "자료: 기상청 단기예보(" + w.base + " 발표) · 들머리 둘레 5km 격자" + (w.near ? "(들머리 격자에 자료가 없어 바로 옆 격자)" : "") + ". 정상 기온은 높이로 어림한 값입니다."));
+                var midBox = body.appendChild(el("div"));
+                midP.then(function (m) {
+                    if (!m || m.unavailable || !m.days) return;
+                    var last = day, today0 = w.hours[0].t.slice(0, 10), any = false;
+                    Object.keys(m.days).sort().forEach(function (dd) {
+                        if (dd <= last) return;
+                        var d = m.days[dd], ml = RF.midLines(d);
+                        midBox.appendChild(gRow(RF.dayLabel(dd, today0), ml.join(" / "), d.tmn != null || d.tmx != null ? (d.tmn != null ? d.tmn : "-") + " ~ " + (d.tmx != null ? d.tmx : "-") + "℃" : null));
+                        any = true;
+                    });
+                    if (any) midBox.appendChild(el("div", "gNote", "4일 뒤부터: 기상청 중기예보(" + m.tmFc + " 발표) · " + m.region + " 권역 · 기온은 " + m.city + " 기준."));
+                });
             }).catch(function () { body.textContent = ""; body.appendChild(el("div", "gNote", "날씨를 받지 못했습니다.")); });
         } else if (kind === "stay" || kind === "food") {
             var food = kind === "food", what = food ? "식당" : "숙박", petOnly = !!guide.petOnly;

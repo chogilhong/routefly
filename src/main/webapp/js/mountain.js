@@ -90,23 +90,56 @@
     var airBox = document.createElement("p");
     airBox.className = "dim";
     box.appendChild(airBox);
-    var air = null, wx = null, today = null, picked = null;
+    var air = null, wx = null, mid = null, today = null, picked = null;
     function draw() {
         if (!wx) return;
         var day = picked || today, dayMs = Date.parse(day + "T12:00:00+09:00"), mm = wx.days && wx.days[day], lines = [sunLine(dayMs)];
+        var md = mid && mid.days && mid.days[day];
+        if (md && !wx.hours.some(function (h) { return h.t.slice(0, 10) === day; })) {   // 단기예보 뒤(4~10일) - 기상청 중기예보
+            if (md.tmn != null || md.tmx != null) lines.push("최저 " + (md.tmn != null ? md.tmn + "℃" : "-") + " / 최고 " + (md.tmx != null ? md.tmx + "℃" : "-"));
+            RF.midLines(md).forEach(function (l) { lines.push(l); });
+            lines.push("기상청 중기예보(" + mid.tmFc + " 발표) · " + mid.region + " 권역 · 기온은 " + mid.city + " 기준 - 산 위는 이보다 춥고 바람이 셉니다. 날이 가까워지면 3시간마다 예보로 바뀝니다.");
+            show(lines);
+            airBox.textContent = "😷 이 날 미세먼지 예보는 아직 없습니다(에어코리아 예보는 모레까지).";
+            airBox.hidden = false;
+            markTabs(day);
+            return;
+        }
         if (mm && (mm.tmn != null || mm.tmx != null)) lines.push("최저 " + (mm.tmn != null ? mm.tmn + "℃" : "-") + " / 최고 " + (mm.tmx != null ? mm.tmx + "℃" : "-"));
         var hours = wx.hours.filter(function (h) { return h.t.slice(0, 10) === day; });
         hours.filter(function (h, i) { return day === today ? i % 3 === 0 : +h.t.slice(11, 13) % 3 === 0; }).slice(0, 8).forEach(function (h) {
             lines.push(h.t.slice(11, 13) + "시  " + RF.weatherWord(h.sky, h.pty) + "  " + (h.tmp != null ? h.tmp + "℃" : "-")
                 + "  · 비 " + (h.pop != null ? h.pop + "%" : "-") + "  · 바람 " + (h.wsd != null ? h.wsd + "m/s" : "-"));
         });
-        lines.push("기상청 단기예보(" + wx.base + " 발표) · 정상 둘레 5km 격자 - 정상은 이보다 춥고 바람이 셀 수 있습니다. 예보는 글피까지 나옵니다.");
+        lines.push("기상청 단기예보(" + wx.base + " 발표) · 정상 둘레 5km 격자 - 정상은 이보다 춥고 바람이 셀 수 있습니다. 3시간마다 예보는 글피까지입니다.");
         show(lines);
         var t = day === today ? RF.airText(air) : RF.airForecastText(air, day);
         airBox.textContent = t ? "😷 " + t + " · 에어코리아" : day === today ? "" : "😷 이 날 미세먼지 예보는 아직 없습니다(에어코리아 예보는 모레까지).";
         airBox.hidden = !airBox.textContent;
+        markTabs(day);
+    }
+    function markTabs(day) {
         Array.prototype.forEach.call(tabs.children, function (b) { var on = b.getAttribute("data-day") === day; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false"); });
     }
+    function addTab(d) {
+        if (tabs.querySelector('[data-day="' + d + '"]')) return;
+        var b = document.createElement("button");
+        b.type = "button";
+        b.setAttribute("data-day", d);
+        b.textContent = RF.dayLabel(d, today);
+        b.addEventListener("click", function () { picked = d; draw(); });
+        tabs.appendChild(b);
+    }
+    function addMidTabs() {   // 단기예보 다음 날부터 10일 뒤까지(2026-10-15 홍TV님)
+        if (!wx || !mid || !mid.days) return;
+        var last = tabs.lastChild && tabs.lastChild.getAttribute("data-day");
+        Object.keys(mid.days).sort().forEach(function (d) { if (!last || d > last) addTab(d); });
+    }
+    fetch("../api/mid?lat=" + lat.toFixed(4) + "&lon=" + lon.toFixed(4)).then(function (r) { return r.json(); }).then(function (m) {
+        if (m.unavailable) return;
+        mid = m;
+        addMidTabs();
+    }).catch(function () { /* 4일 뒤부터는 없이 */ });
     fetch("../api/air?lat=" + lat.toFixed(4) + "&lon=" + lon.toFixed(4)).then(function (r) { return r.json(); }).then(function (a) { air = a; draw(); })
         .catch(function () { /* 미세먼지 없이 */ });
     // 상대 주소 - 이 페이지는 /m/산 이라 한 단계 위가 앱 뿌리
@@ -116,14 +149,8 @@
         today = w.hours[0].t.slice(0, 10);
         var days = [];
         w.hours.forEach(function (h) { var d = h.t.slice(0, 10); if (days.indexOf(d) < 0) days.push(d); });
-        days.slice(0, 4).forEach(function (d) {
-            var b = document.createElement("button");
-            b.type = "button";
-            b.setAttribute("data-day", d);
-            b.textContent = RF.dayLabel(d, today);
-            b.addEventListener("click", function () { picked = d; draw(); });
-            tabs.appendChild(b);
-        });
+        days.slice(0, 4).forEach(addTab);
+        addMidTabs();
         draw();
     }).catch(function () { show([sunLine(Date.now()), "날씨를 지금 받지 못했습니다."]); });
 })();
