@@ -6,6 +6,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -30,7 +32,7 @@ import com.google.gson.JsonParser;
  * </ul>
  * → {@code {success, station, time:"2026-10-15 14:00", dist_km, pm10, pm25, pm10Word, pm25Word, source}}
  */
-@WebServlet(urlPatterns = {"/api/air"})
+@WebServlet(urlPatterns = {"/api/air"}, loadOnStartup = 1)   // 뜰 때 init 이 측정소 목록을 뒤에서 미리 받음
 public class AirServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
@@ -44,12 +46,71 @@ public class AirServlet extends HttpServlet {
      * 3곳(설악산 · 점봉산 · 황석산)은 가장 가까운 측정소 이름으로 물으면 0줄 - 다음 측정소로 넘어감.
      */
     static final int TRY_STATIONS = 3, ROWS = 6;
-    /** 측정소 목록(672곳 - 2026-10-15)은 8초를 넘긴 적이 있음(PC 13:16 · 14:48 HttpTimeoutException). */
+    /**
+     * 측정소 목록(672곳). 2026-10-15 PC: 포털이 처음 한 번은 25초도 넘기고(HttpTimeoutException) 바로 다시 물으면 0.5초 -
+     * 서블릿이 뜰 때 뒤에서 미리 받고(init), 실패하면 한 번 더 묻고, 새로 받기에 실패하면 받아 둔 목록을 그대로 씁니다.
+     * 측정소는 거의 바뀌지 않아 이레에 한 번 새로 받습니다.
+     */
     static final Duration STATIONS_TIMEOUT = Duration.ofSeconds(25);
-    private static final long DAY = 24L * 60 * 60 * 1000;
-    private static final OpenApi.Cache<List<double[]>> STATION_POS = new OpenApi.Cache<>(1, DAY);
-    private static final OpenApi.Cache<List<String>> STATION_NAMES = new OpenApi.Cache<>(1, DAY);
+    static final long STATIONS_TTL_MS = 7L * 24 * 60 * 60 * 1000;
+    /** {이름 목록, [위도, 경도] 목록, 받은 시각} - 아직 못 받았으면 null. */
+    private static volatile Object[] stationList;
+    private static final ReentrantLock LOADING = new ReentrantLock();
     private static final OpenApi.Cache<JsonObject> MEASURE = new OpenApi.Cache<>(800, 30L * 60 * 1000);
+
+    @Override
+    public void init() {
+        String key = key();
+        if (key == null) return;
+        Thread t = new Thread(() -> stationList(key, System.currentTimeMillis()), "air-stations");
+        t.setDaemon(true);
+        t.start();
+    }
+
+    private static String key() {
+        String key = RouteflyConfig.get("air.serviceKey");
+        return key != null ? key : RouteflyConfig.get("tour.serviceKey");
+    }
+
+    /**
+     * 측정소 목록 - 이레 안에 받은 것이 있으면 그것, 아니면 받아 봄(두 번까지). 다 실패하면 예전 목록(없으면 null).
+     * 다른 요청이 받는 중이면 예전 목록을 바로 쓰고, 예전 목록도 없으면 10초까지만 기다립니다(화면이 오래 멈추지 않게).
+     */
+    private static Object[] stationList(String key, long now) {
+        Object[] cur = stationList;
+        if (cur != null && now - (Long) cur[2] < STATIONS_TTL_MS) return cur;
+        try {
+            if (cur != null ? !LOADING.tryLock() : !LOADING.tryLock(10, TimeUnit.SECONDS)) return cur;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return cur;
+        }
+        try {
+            return loadStations(key, now);
+        } finally {
+            LOADING.unlock();
+        }
+    }
+
+    private static Object[] loadStations(String key, long now) {
+        Object[] cur = stationList;
+        if (cur != null && now - (Long) cur[2] < STATIONS_TTL_MS) return cur;   // 기다리는 사이 다른 쪽이 받았음
+        for (int attempt = 0; attempt < 2; attempt++) {
+            String text = OpenApi.get(STATIONS_URL + "?serviceKey=" + URLEncoder.encode(key, StandardCharsets.UTF_8)
+                    + "&returnType=json&numOfRows=1000&pageNo=1", "AIR", STATIONS_TIMEOUT);
+            List<String> names = new ArrayList<>();
+            List<double[]> pos = new ArrayList<>();
+            if (text != null && stations(text, names, pos)) {
+                stationList = new Object[] {names, pos, now};
+                return stationList;
+            }
+            if (text != null) {
+                OpenApi.warn("AIR", text);
+                break;   // 응답은 왔는데 목록이 아님(키 · 신청 문제) - 다시 물어도 같음
+            }
+        }
+        return cur;
+    }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -58,27 +119,16 @@ public class AirServlet extends HttpServlet {
             Json.fail(resp, HttpServletResponse.SC_BAD_REQUEST, "lat · lon 은 우리나라 안 좌표입니다.");
             return;
         }
-        String key = RouteflyConfig.get("air.serviceKey");
-        if (key == null) key = RouteflyConfig.get("tour.serviceKey");
+        String key = key();
         Json.ok(req, resp, key == null ? unavailable() : answer(key, at[0], at[1]));
     }
 
     private static JsonObject answer(String key, double lat, double lon) {
         long now = System.currentTimeMillis();
-        List<double[]> pos = STATION_POS.get("all", now);
-        List<String> names = STATION_NAMES.get("all", now);
-        if (pos == null || names == null) {
-            pos = new ArrayList<>();
-            names = new ArrayList<>();
-            String text = OpenApi.get(STATIONS_URL + "?serviceKey=" + URLEncoder.encode(key, StandardCharsets.UTF_8)
-                    + "&returnType=json&numOfRows=1000&pageNo=1", "AIR", STATIONS_TIMEOUT);
-            if (text == null || !stations(text, names, pos)) {
-                if (text != null) OpenApi.warn("AIR", text);
-                return unavailable();
-            }
-            STATION_POS.put("all", pos, now);
-            STATION_NAMES.put("all", names, now);
-        }
+        Object[] st = stationList(key, now);
+        if (st == null) return unavailable();
+        @SuppressWarnings("unchecked") List<String> names = (List<String>) st[0];
+        @SuppressWarnings("unchecked") List<double[]> pos = (List<double[]>) st[1];
         for (int i : nearest(pos, lat, lon, AIR_NEAR_M, TRY_STATIONS)) {
             String station = names.get(i);
             JsonObject m = MEASURE.get(station, now);
