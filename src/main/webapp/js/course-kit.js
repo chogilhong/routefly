@@ -2889,7 +2889,9 @@
                 lastX = xp;
             });
         }
-        var capMax = el("div", "rf-cap", "최고 " + num(max) + "m"); capMax.style.cssText = "left:3px;top:0"; box.appendChild(capMax);
+        // 최고 - 서버가 정상을 지나는 코스는 공식 높이로 바꿔 보냄(course.ele_max_m, 2026-10-16 PC: 그래프만 선 고도 1,700m 였음). 선보다 낮으면 선 값
+        var top = c.course && c.course.ele_max_m != null && +c.course.ele_max_m >= max ? +c.course.ele_max_m : max;
+        var capMax = el("div", "rf-cap", "최고 " + num(top) + "m"); capMax.style.cssText = "left:3px;top:0"; box.appendChild(capMax);
         var capTot = el("div", "rf-cap", km(c.total) + "km"); capTot.style.cssText = "right:3px;bottom:1px"; box.appendChild(capTot);
         var me = el("div", "rf-me");
         box.appendChild(me);
@@ -3250,7 +3252,7 @@
     var LEVELS = [{ ko: "매우 쉬움", en: "Easy", color: "#a3c93a" }, { ko: "쉬움", en: "Moderate", color: "#3fae5c" }, { ko: "보통", en: "Intermediate", color: "#e8822a" },
                   { ko: "어려움", en: "Advanced", color: "#a23a6b" }, { ko: "매우 어려움", en: "Expert", color: "#3a3f46" }];
     /** 구간 경사(%) 단계 경계 - 안내판 구간 색 · 음성. 코스 난이도는 시간 · 오르막 총량(HOUR_STEPS · ASC_STEPS). MountainServlet 과 같은 값. */
-    var SLOPE_STEPS = [5, 10, 18, 28], HOUR_STEPS = [1.5, 3, 5, 8], ASC_STEPS = [300, 700, 1100, 1500], STEEP_STEPS = [12, 18, 25, 32];
+    var SLOPE_STEPS = [5, 10, 18, 28], HOUR_STEPS = [1.5, 3, 5, 8], ASC_STEPS = [300, 700, 1100, 1500], STEEP_STEPS = [20, 28, 36, 46];
     function stepOf(v, steps) { var i = 0; while (i < steps.length && v >= steps[i]) i++; return i; }
 
     /**
@@ -3263,7 +3265,9 @@
         distM = +distM || 0;
         ascM = +ascM || 0;
         if (distM <= 0) return null;
-        return Math.max(stepOf(distM / 1000 / 4 + ascM / 600, HOUR_STEPS), stepOf(ascM, ASC_STEPS), steep != null && isFinite(+steep) ? stepOf(+steep, STEEP_STEPS) : 0);
+        var base = Math.max(stepOf(distM / 1000 / 4 + ascM / 600, HOUR_STEPS), stepOf(ascM, ASC_STEPS));
+        // 가파름은 한 단계까지만 올림(2026-10-16 PC: 문턱 12 · 18 · 25 · 32% 로는 설악산 57 중 47 이 매우 어려움 - 산길은 1km 30 ~ 40% 가 흔함)
+        return steep != null && isFinite(+steep) ? Math.max(base, Math.min(stepOf(+steep, STEEP_STEPS), base + 1)) : base;
     }
 
     /** 순수 함수 - 가장 가파른 1km 구간 경사(%, 오르막 · 내리막) - Steep.steepest 와 같음. 1km 보다 짧으면 처음 ~ 끝, 300m 보다 짧거나 고도가 없으면 null. */

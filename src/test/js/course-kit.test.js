@@ -924,6 +924,10 @@ eq("compareRows 영어 시간", RF.compareRows({ dist: 3000, asc: 0 }, { dist: 5
     eq("steepest", [RF.steepest(d, e), RF.steepest([0, 500], [100, 200]), RF.steepest([0, 200], [0, 50]), RF.steepest([0, 2000], [null, null])], [30, 20, null, null]);
     // 내리막도 셈 - 거꾸로 해도 같음
     eq("steepest 내리막", RF.steepest(d, e.slice().reverse()), 30);
-    eq("difficulty 가파름이 올림(오색 같은 짧고 가파른 길)", [RF.difficulty(5000, 600), RF.difficulty(5000, 600, 27), RF.difficulty(5000, 600, 10)], [1, 3, 1]);
-    eq("difficulty 한계령 → 대청봉 → 남설악(급한 내리막 - PC)", RF.difficulty(12330, 1068, 30), 3);
+    eq("difficulty 가파름은 한 단계까지만 올림", [RF.difficulty(5000, 600), RF.difficulty(5000, 600, 45), RF.difficulty(5000, 600, 27), RF.difficulty(5000, 1300, 44.4), RF.difficulty(2000, 100, 50)], [1, 2, 1, 3, 1]);
+    eq("difficulty 한계령 → 대청봉 → 남설악(급한 내리막 - PC)", RF.difficulty(12330, 1068, 40), 3);
+    var bad = [];
+    for (var d = 1000; d <= 20000; d += 1000) for (var a = 0; a <= 2000; a += 200) for (var s = 0; s <= 60; s += 5)
+        if (RF.difficulty(d + 1000, a, s) < RF.difficulty(d, a, s) || RF.difficulty(d, a + 200, s) < RF.difficulty(d, a, s) || RF.difficulty(d, a, s + 5) < RF.difficulty(d, a, s)) bad.push([d, a, s].join("/"));
+    eq("difficulty 가파름까지 - 늘면 같거나 높음", bad, []);
 })();

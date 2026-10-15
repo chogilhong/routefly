@@ -41,10 +41,10 @@ public class CheckupStage6Test {
     @Test
     public void difficultyStepsSameInJavaAndJs() throws Exception {
         String kit = read("main", "webapp", "js", "course-kit.js");
-        assertTrue(kit.contains("HOUR_STEPS = [1.5, 3, 5, 8], ASC_STEPS = [300, 700, 1100, 1500], STEEP_STEPS = [12, 18, 25, 32]"));
+        assertTrue(kit.contains("HOUR_STEPS = [1.5, 3, 5, 8], ASC_STEPS = [300, 700, 1100, 1500], STEEP_STEPS = [20, 28, 36, 46]"));
         assertArrayEquals(new double[] {1.5, 3, 5, 8}, MountainServlet.HOUR_STEPS, 0);
         assertArrayEquals(new double[] {300, 700, 1100, 1500}, MountainServlet.ASC_STEPS, 0);
-        assertArrayEquals(new double[] {12, 18, 25, 32}, MountainServlet.STEEP_STEPS, 0);
+        assertArrayEquals(new double[] {20, 28, 36, 46}, MountainServlet.STEEP_STEPS, 0);
         assertEquals("단계 이름 수", 5, MountainServlet.LEVELS.length);
         for (String[] lv : MountainServlet.LEVELS) assertTrue(lv[0], kit.contains("{ ko: \"" + lv[0] + "\", en: \"" + lv[1] + "\""));
     }

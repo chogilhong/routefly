@@ -331,7 +331,7 @@ public class MountainServlet extends HttpServlet {
 
     /** 난이도 5단계 [한국어, 영어] - course-kit.js LEVELS 와 같음(공단 탐방로 안내판 범례). 2026-10-15 홍TV님. */
     static final String[][] LEVELS = {{"매우 쉬움", "Easy"}, {"쉬움", "Moderate"}, {"보통", "Intermediate"}, {"어려움", "Advanced"}, {"매우 어려움", "Expert"}};
-    static final double[] HOUR_STEPS = {1.5, 3, 5, 8}, ASC_STEPS = {300, 700, 1100, 1500}, STEEP_STEPS = {12, 18, 25, 32};
+    static final double[] HOUR_STEPS = {1.5, 3, 5, 8}, ASC_STEPS = {300, 700, 1100, 1500}, STEEP_STEPS = {20, 28, 36, 46};
 
     /**
      * 순수 함수 - 등산 코스 난이도 0~4(routefly 기준) - 표준 시간 · 오르막 총량 · 가장 가파른 1km(Steep, 오르막 · 내리막) 가운데 높은 단계.
@@ -340,7 +340,9 @@ public class MountainServlet extends HttpServlet {
     static int difficulty(int distM, Integer ascM, Double steepPct) {
         if (distM <= 0) return -1;
         double a = ascM == null ? 0 : ascM, h = distM / 1000.0 / 4 + a / 600;
-        return Math.max(Math.max(step(h, HOUR_STEPS), step(a, ASC_STEPS)), steepPct == null ? 0 : step(steepPct, STEEP_STEPS));
+        int base = Math.max(step(h, HOUR_STEPS), step(a, ASC_STEPS));
+        // 가파름은 한 단계까지만 올림(2026-10-16 PC: 문턱이 낮아 설악산 57 중 47 이 매우 어려움이었음)
+        return steepPct == null ? base : Math.max(base, Math.min(step(steepPct, STEEP_STEPS), base + 1));
     }
 
     private static int step(double v, double[] steps) {
