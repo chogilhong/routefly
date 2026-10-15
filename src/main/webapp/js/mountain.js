@@ -22,8 +22,10 @@
     // 🎒 챙길 것(2026-10-15) - 날씨 칸 아래. 오르막은 이 산 코스 가운데 가장 큰 값. 쿠팡 파트너스 링크는 설정에 있을 때만(+ 수수료 문구)
     var wx0 = document.getElementById("wx");
     if (wx0 && window.RF) {
-        var asc = 0;
-        Array.prototype.forEach.call(document.querySelectorAll(".cs li[data-asc]"), function (li) { asc = Math.max(asc, +li.getAttribute("data-asc") || 0); });
+        // 오르막은 이 산 코스들의 가운데 값 - 가장 큰 값은 긴 종주 코스라 "오르막 2,672m" 처럼 보였음(2026-10-15 홍TV님)
+        var ascs = Array.prototype.map.call(document.querySelectorAll(".cs li[data-asc]"), function (li) { return +li.getAttribute("data-asc") || 0; })
+            .sort(function (a, b) { return a - b; });
+        var asc = ascs.length ? ascs[Math.floor(ascs.length / 2)] : 0;
         var gs = document.createElement("section"), gh = document.createElement("h2"), ul = document.createElement("ul");
         gh.textContent = "🎒 챙길 것";
         ul.className = "gear";
@@ -42,15 +44,20 @@
         fetch("../api/partners").then(function (r) { return r.json(); }).then(function (p) {
             var any = false;
             items.forEach(function (x) {
-                window.RF.partnerLinks(p.coupang && p.coupang[x[0].key]).forEach(function (k) {
+                var links = window.RF.partnerLinks(p.coupang && p.coupang[x[0].key]);
+                if (!links.length) return;
+                var box = document.createElement("div");   // 링크는 한 덩어리로(좁으면 함께 다음 줄로)
+                box.className = "gl";
+                links.forEach(function (k) {
                     var a = document.createElement("a");
                     a.href = k.href;
                     a.target = "_blank";
                     a.rel = "noopener sponsored";
                     a.textContent = k.text;
-                    x[1].appendChild(a);
-                    any = true;
+                    box.appendChild(a);
                 });
+                x[1].appendChild(box);
+                any = true;
             });
             if (any) { var n = document.createElement("p"); n.className = "dim"; n.textContent = window.RF.COUPANG_NOTE; gs.appendChild(n); }
         }).catch(function () { /* 링크 없이 */ });
