@@ -698,6 +698,23 @@
             };
             inp.addEventListener("change", draw);
             inp.addEventListener("input", draw);
+            // 🌄 일출 산행 - 가장 높은 점에서 일출을 보려면 출발 시각을 맞춤(2026-10-15 홍TV님). 오늘 일출이 지났으면 내일
+            var upMs = RF.msToTop(c), topI = c.ele.indexOf(Math.max.apply(null, c.ele.filter(function (e) { return e != null; })));
+            var tp = topI >= 0 ? RF.at(c, c.dist[topI]) : start, rise = RF.sunrise(Date.now(), tp.lat, tp.lon);
+            if (rise && rise < Date.now()) rise = RF.sunrise(Date.now() + 86400000, tp.lat, tp.lon);
+            if (rise) {
+                var sb = el("a", "gPetToggle", "🌄 일출(" + clockText(rise) + ")을 정상에서 보려면 " + clockText(RF.sunriseStart(rise, upMs)) + " 출발 - 누르면 출발 시각을 맞춤");
+                sb.href = "#";
+                sb.addEventListener("click", function (e) {
+                    e.preventDefault();
+                    var s0 = new Date(RF.sunriseStart(rise, upMs));
+                    inp.value = String(s0.getHours()).padStart(2, "0") + ":" + String(s0.getMinutes()).padStart(2, "0");
+                    draw();
+                });
+                body.insertBefore(sb, out);
+            }
+            var fire = RF.fireNote(Date.now());
+            if (fire) body.insertBefore(el("div", "gNote gWarn", fire), pick);
             draw();
             var gear = el("div");
             body.appendChild(gear);

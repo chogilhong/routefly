@@ -337,7 +337,8 @@ public class MountainServlet extends HttpServlet {
         // 맨 위 로고(img/logo-dark.svg - 2026-10-14 홍TV님), 누르면 따라가기
         b.append("<main><a class=\"logo\" href=\"").append(REL).append("/hike.html\"><img src=\"").append(REL)
                 .append("/img/logo-dark.svg\" alt=\"routefly\" width=\"256\" height=\"80\"></a><h1>등산 · 걷기 · 자전거 코스</h1>")
-                .append("<p class=\"lead\">산을 고르면 정상까지 가는 코스와 오늘 날씨 · 미세먼지 · 일출 · 일몰을, 길을 고르면 노선 안내도를 봅니다.</p><div class=\"folds\">");
+                .append("<p class=\"lead\">산을 고르면 정상까지 가는 코스와 오늘 날씨 · 미세먼지 · 일출 · 일몰을, 길을 고르면 노선 안내도를 봅니다.</p>"
+                + "<section id=\"weekend\" hidden></section><div class=\"folds\">");   // 이번 주말 날씨 좋은 산(js/mountain.js · /api/weekend - 2026-10-15)
         boolean hasPeaks = false;
         for (JsonElement e : groups) {
             JsonArray sr = e.getAsJsonObject().getAsJsonArray("series");

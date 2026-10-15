@@ -47,7 +47,12 @@ public class WeatherServlet extends HttpServlet {
             Json.fail(resp, HttpServletResponse.SC_BAD_REQUEST, "lat · lon 은 우리나라 안 좌표입니다.");
             return;
         }
-        int[] g = grid(at[0], at[1]);
+        Json.ok(req, resp, forecast(at[0], at[1]));
+    }
+
+    /** 그 자리 격자의 예보(담아 둔 것이 있으면 그것) - 주말 추천(WeekendServlet)도 씀. */
+    static JsonObject forecast(double lat, double lon) {
+        int[] g = grid(lat, lon);
         String[] base = baseTime(LocalDateTime.now(KST));
         String key = g[0] + "," + g[1] + "@" + base[0] + base[1];
         long now = System.currentTimeMillis();
@@ -56,7 +61,7 @@ public class WeatherServlet extends HttpServlet {
             out = fetch(g, base);
             if (!out.has("unavailable")) CACHE.put(key, out, now);
         }
-        Json.ok(req, resp, out);
+        return out;
     }
 
     private static JsonObject fetch(int[] g, String[] base) {

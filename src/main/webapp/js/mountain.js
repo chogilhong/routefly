@@ -38,6 +38,64 @@
         csList.parentNode.insertBefore(none, csList.nextSibling);
         apply("");
     }
+    // 산불조심기간(봄 2/1 ~ 5/15 · 가을 11/1 ~ 12/15) 안내 - 제목 아래(2026-10-15 홍TV님)
+    var lead = document.querySelector(".lead"), fire = window.RF && window.RF.fireNote(Date.now());
+    if (lead && fire) { var fp = document.createElement("p"); fp.className = "fire"; fp.textContent = fire; lead.parentNode.insertBefore(fp, lead.nextSibling); }
+    // 🌄 일출 산행 - 코스마다 "내일 일출(6:39)을 정상에서 보려면 들머리 출발 약 4:20"(표준 소요 시간, 15분 여유). 정상 좌표로 일출
+    var wxs = document.getElementById("wx");
+    if (wxs && window.RF && csList) {
+        var la = +wxs.getAttribute("data-lat"), lo = +wxs.getAttribute("data-lon"), tmr = Date.now() + 86400000, rise = window.RF.sunrise(tmr, la, lo);
+        var hhmm = function (ms) { var d = new Date(ms + 9 * 3600000); return d.getUTCHours() + ":" + String(d.getUTCMinutes()).padStart(2, "0"); };
+        if (rise) Array.prototype.forEach.call(csList.children, function (li) {
+            var span = li.querySelector("span");
+            if (!span) return;
+            var up = window.RF.standardMs("hike", +li.getAttribute("data-dist") || 0, +li.getAttribute("data-asc") || 0);
+            var s = document.createElement("small");
+            s.className = "sunrise";
+            s.textContent = "🌄 내일 일출(" + hhmm(rise) + ") 보려면 들머리 " + hhmm(window.RF.sunriseStart(rise, up)) + " 출발";
+            span.parentNode.insertBefore(s, span.nextSibling);
+        });
+    }
+    // ☀️ 이번 주말 날씨 좋은 산(코스 모음 /m/ - 2026-10-15 홍TV님): 권역마다 토 · 일 낮 날씨, 좋은 권역의 100대 명산
+    var wk = document.getElementById("weekend");
+    if (wk && window.RF) fetch("../api/weekend").then(function (r) { return r.json(); }).then(function (w) {
+        if (w.unavailable || !(w.regions || []).length) return;
+        var h = document.createElement("h2");
+        h.textContent = "☀️ 이번 주말 날씨 좋은 곳";
+        wk.appendChild(h);
+        var today = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
+        w.dates.forEach(function (d) {
+            var good = w.regions.filter(function (r) { return r.days[d] && r.days[d].good; });
+            var p = document.createElement("p"), b = document.createElement("b");
+            b.textContent = window.RF.dayLabel(d, today).replace(/^(오늘|내일|모레|글피) /, "$1 · ");
+            p.className = "wday";
+            p.appendChild(b);
+            p.appendChild(document.createTextNode(good.length ? " 맑거나 구름 조금 · 비 걱정 적은 곳 " + good.length + "권역" : " 날씨 좋은 권역이 없습니다 - 비 · 흐림 예보"));
+            wk.appendChild(p);
+            good.forEach(function (r) {
+                var row = document.createElement("div"), nm = document.createElement("div"), ul = document.createElement("ul");
+                row.className = "wreg";
+                nm.textContent = r.name + " · " + r.days[d].word + " · 비 " + r.days[d].pop + "%";
+                ul.className = "ms";
+                r.peaks.slice(0, 8).forEach(function (id) {
+                    var li = document.createElement("li"), a = document.createElement("a");
+                    a.href = encodeURIComponent(id);
+                    a.textContent = id;
+                    li.appendChild(a);
+                    ul.appendChild(li);
+                });
+                if (r.peaks.length > 8) { var more = document.createElement("li"); more.className = "dim"; more.textContent = "외 " + (r.peaks.length - 8) + "곳"; ul.appendChild(more); }
+                row.appendChild(nm);
+                row.appendChild(ul);
+                wk.appendChild(row);
+            });
+        });
+        var note = document.createElement("p");
+        note.className = "dim";
+        note.textContent = "기상청 단기 · 중기예보의 권역 날씨(낮 06 ~ 18시)입니다. 산 위 날씨는 다를 수 있으니 산 페이지의 날짜별 예보를 함께 보세요.";
+        wk.appendChild(note);
+        wk.hidden = false;
+    }).catch(function () { /* 없이 */ });
     var crumb = document.querySelector(".crumb") || document.querySelector("h1");
     if (crumb && window.RF) { var tb = window.RF.textButton(); tb.style.float = "right"; crumb.appendChild(tb); }   // 글자 크기 "가+"
     // ☆ 찜(2026-10-15) - 코스마다. 따라가기 첫 화면에 모아 보임(이 기기 rf-fav)

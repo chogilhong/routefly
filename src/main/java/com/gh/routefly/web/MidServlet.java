@@ -78,6 +78,11 @@ public class MidServlet extends HttpServlet {
         String land = landOf(AirServlet.regionNear(lat, lon));
         Object[] city = city(lat, lon, land);
         if (land == null) land = (String) city[4];
+        return forLand(key, land, city);
+    }
+
+    /** 그 구역 · 기온 지점의 중기예보(담아 둔 것이 있으면 그것) - 주말 추천(WeekendServlet)도 씀. 못 받으면 unavailable. */
+    static JsonObject forLand(String key, String land, Object[] city) {
         long now = System.currentTimeMillis();
         LocalDateTime t = LocalDateTime.now(WeatherServlet.KST);
         for (String tm : new String[] {tmFc(t), tmFc(t.minusHours(12))}) {   // 막 발표돼 비었으면 앞 발표

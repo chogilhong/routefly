@@ -826,3 +826,27 @@ eq("planText 일몰 뒤 하산이면 경고 한 줄", RF.planText("가", 4000, 0
 eq("centerPoints 공식 이름 · 다른 이름 · 품은 이름 · 자리 없는 것 뺌", RF.centerPoints(["영산강하구둑", "죽산보", "없는곳"], { "영산강하구둑": ["영산하구둑"] },
     [{ name: "영산하구둑인증센터", lat: 34.8, lon: 126.4 }, { name: "죽산보 인증센터(나주)", lat: 35, lon: 126.6 }, { name: "덤인증센터", lat: 1, lon: 1 }]),
     [{ name: "영산강하구둑", lat: 34.8, lon: 126.4 }, { name: "죽산보", lat: 35, lon: 126.6 }]);
+eq("fireNote 봄 · 가을 · 그 밖(한국 날짜)", [!!RF.fireNote(Date.UTC(2026, 1, 1, 0)), !!RF.fireNote(Date.UTC(2026, 4, 15, 14)), !!RF.fireNote(Date.UTC(2026, 4, 15, 15)),
+    RF.fireNote(Date.UTC(2026, 10, 1, 0)).indexOf("가을철") >= 0, !!RF.fireNote(Date.UTC(2026, 9, 31, 14)), !!RF.fireNote(Date.UTC(2026, 11, 15, 14, 59))], [true, true, false, true, false, true]);
+(function () {
+    var c = { course: { kind: "hike" }, lat: [0, 0, 0], lon: [0, 0, 0], ele: [100, 700, 300], dist: [0, 4000, 8000], asc: [0, 600, 600] };
+    eq("msToTop 가장 높은 점까지(4km · 600m = 2시간)", RF.msToTop(c), 2 * 3600000);
+    eq("sunriseStart 일출 - 오름 - 15분", RF.sunriseStart(10 * 3600000, 2 * 3600000), 10 * 3600000 - 2 * 3600000 - 15 * 60000);
+})();
+(function () {
+    var K = 9 * 3600000, t = function (y, m, d) { return Date.UTC(y, m - 1, d) - K + 10 * 3600000; };   // 한국 그 날 10시
+    var log = RF.mergeLog([], [RF.logEntry({ start: t(2026, 1, 3), end: t(2026, 1, 3) + 3600000, walked: 5000, up: 300, courseId: "a" }),
+        RF.logEntry({ start: t(2026, 3, 31), end: t(2026, 3, 31) + 7200000, walked: 7000, up: 500, courseId: "a" }),
+        RF.logEntry({ start: t(2026, 4, 1), end: t(2026, 4, 1) + 3600000, walked: 3000, courseId: "b" }),
+        RF.logEntry({ start: t(2025, 12, 31), end: t(2025, 12, 31) + 3600000, walked: 1000, courseId: "c" })]);
+    eq("mergeLog 같은 것 하나 · 시작 차례", [RF.mergeLog(log, [log[0]]).length, log[0].courseId], [4, "c"]);
+    var peaks = { p1: { t: t(2026, 2, 1) }, p2: { t: t(2025, 5, 5) } };
+    var mo = RF.periodStats(log, peaks, "month", 2026, t(2026, 10, 15));
+    eq("월별 12칸 · 1월 · 3월 · 4월", [mo.length, mo[0].n, mo[0].walked, mo[1].peaks, mo[2].n, mo[3].n, mo[11].label], [12, 1, 5000, 1, 1, 1, "2026년 12월"]);
+    var qu = RF.periodStats(log, peaks, "quarter", 2026, t(2026, 10, 15));
+    eq("분기별 1분기 2번 · 같은 코스 한 번", [qu.length, qu[0].n, qu[0].courses, qu[0].up, qu[1].n], [4, 2, 1, 800, 1]);
+    var ytd = RF.periodStats(log, peaks, "ytd", 2026, t(2026, 10, 15));
+    eq("올해 누적", [ytd.length, ytd[0].n, ytd[0].walked, ytd[0].peaks], [1, 3, 15000, 1]);
+    var yr = RF.periodStats(log, peaks, "year", 2026, t(2026, 10, 15));
+    eq("연도별", yr.map(function (r) { return [r.label, r.n, r.peaks]; }), [["2025년", 1, 1], ["2026년", 3, 1]]);
+})();

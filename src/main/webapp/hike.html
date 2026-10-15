@@ -184,6 +184,16 @@ body.compact #statGrids { display:none; }
 #recList .rec div { flex:1; min-width:0; }
 #recList .rec b { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 #recList .rec span { color:var(--dim); font-size:12px; }
+#sumRows .rec { display:flex; align-items:center; gap:8px; padding:9px 0; border-bottom:1px solid var(--ln); font-size:13.5px; }   /* 결산(2026-10-15) */
+#sumRows .rec div { flex:1; min-width:0; }
+#sumRows .rec b { display:block; }
+#sumRows .rec span { color:var(--dim); font-size:12px; }
+#sumRows .rec button { height:40px; padding:0 12px; border-radius:8px; border:1px solid var(--ln); background:rgba(255,255,255,0.06); color:var(--tx); }
+.sumBar { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-bottom:6px; }
+.sumBar .easy { display:flex; gap:6px; flex-wrap:wrap; }
+.sumBar .easy button { padding:5px 11px; border-radius:14px; border:1px solid var(--ln); background:rgba(255,255,255,0.05); color:var(--tx); font-size:13px; }
+.sumBar .easy button.on { background:var(--sky); border-color:var(--sky); color:#062b30; font-weight:bold; }
+.sumBar select { color-scheme:dark; padding:5px 8px; border-radius:14px; border:1px solid var(--ln); background:rgba(255,255,255,0.05); color:var(--tx); font-size:13px; }
 #recList .rec button { height:40px; padding:0 10px; border-radius:8px; border:1px solid var(--ln); background:rgba(255,255,255,0.06); color:var(--tx); }
 
 /* 나침반 · 갈림길 · 길 안내 화살표 */
@@ -433,6 +443,22 @@ html.picking #pick { display:flex; }
     </div>
 </div>
 
+<!-- 산행 결산(2026-10-15 홍TV님) - js/hike.js drawSummary -->
+<div id="sumSheet" class="sheet">
+    <div class="sbox">
+        <h2>📊 산행 결산</h2>
+        <div class="sumBar">
+            <div id="sumKinds" class="easy">
+                <button type="button" data-k="month">월별</button><button type="button" data-k="quarter">분기별</button><button type="button" data-k="ytd">올해 누적</button><button type="button" data-k="year">연도별</button>
+            </div>
+            <select id="sumYear" aria-label="해 고르기"></select>
+        </div>
+        <div id="sumRows"></div>
+        <p class="tip" id="sumNote"></p>
+        <div class="sbtn"><button type="button" id="sumClose" class="main">닫기</button></div>
+    </div>
+</div>
+
 <!-- 공유(2026-10-15 홍TV님) - 코스 링크 보내기 · 가족에게 산행 계획 알리기(문자 앱, 서버로 보내지 않음) -->
 <div id="shareSheet" class="sheet">
     <div class="sbox">
@@ -528,6 +554,7 @@ html.picking #pick { display:flex; }
     <div class="sbox">
         <h2>📒 내 기록 <small style="font-size:12px;color:#9aa6b4">(이 핸드폰에만 저장)</small></h2>
         <div id="recStats" class="where" hidden></div>
+        <button type="button" class="big sms" id="sumOpen" style="width:100%;font-family:inherit;cursor:pointer;font-size:15px;padding:10px">📊 산행 결산 - 월별 · 분기별 · 올해 누적 · 연도별</button>
         <div id="recList"></div>
         <!-- 2026-10-15 홍TV님: 기록 백업 - 핸드폰을 바꾸거나 앱을 지워도 옮길 수 있게 -->
         <div class="sbtn"><button type="button" id="backupSave">💾 백업 저장</button><button type="button" id="backupLoad">📂 백업 불러오기</button></div>

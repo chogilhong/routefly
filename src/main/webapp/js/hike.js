@@ -757,6 +757,9 @@
                 c.pois.unshift({ name: hn, lat: c.lat[0], lon: c.lon[0], ele_m: c.ele[0], dist_m: 0, off_route_m: 0, end: true });
             RF.showName($("name"), c.course.name, true);
             favBtn.refresh();
+            // 산불조심기간 안내(하루 한 번 - 2026-10-15 홍TV님)
+            var fire = RF.fireNote(Date.now()), today0 = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
+            try { if (fire && localStorage.getItem("rf-fire") !== today0) { localStorage.setItem("rf-fire", today0); setTimeout(function () { toast(fire, 9000); }, 7000); } } catch (e) { /* 이번만 */ }
             document.title = RF.nameText(c.course.name, true);   // 길만 - "- routefly" 를 붙이면 탭 · 최근 앱 목록에서 잘림(2026-10-12 홍TV님)
             if ((parts ? r[0] : [r[0]]).some(function (j) { return j && j.course && RF.isClosedTrail(j.course.name); })) toast("⚠ 비법정탐방로(통제구역)입니다. 국립공원 지정 탐방로가 아니라 출입이 금지된 길이니 따라가지 마세요.", 12000);   // 링크로 바로 연 경우(목록에는 안 나옴)
             else if (RF.infoText(c.info)) toast(RF.infoText(c.info), 6000);   // 국립공원 공식 코스 - 공단 기준 시간 · 난이도
@@ -1077,7 +1080,10 @@
 
     /** 카드를 공유 창으로(앱은 공유 창, 브라우저는 navigator.share - 안 되면 내려받기). */
     function shareCard(rec) {
-        var cv = recordCard(rec), name = "routefly-" + stamp(rec.start) + ".png", text = rec.name + " - routefly";
+        shareCanvas(recordCard(rec), "routefly-" + stamp(rec.start) + ".png", rec.name + " - routefly");
+    }
+    /** 그림을 공유 창으로(기록 카드 · 결산 카드). */
+    function shareCanvas(cv, name, text) {
         cv.toBlob(function (blob) {
             if (!blob) { toast("카드를 만들지 못했습니다.", 3000); return; }
             if (FS && SHARE) {
@@ -1177,7 +1183,8 @@
             var list = records();
             list.unshift(rec);
             return writeRecords(list);
-        }).then(gcPhotos);   // 30개 밖으로 밀려난 기록의 사진
+        }).then(gcPhotos);
+        addLog([RF.logEntry(rec)]);   // 30개 밖으로 밀려난 기록의 사진
         var sum = $("doneSum");
         sum.innerHTML = "";
         [["코스", rec.name], ["걸은 거리", km(rec.walked) + " km"], ["코스 진행", km(rec.done) + " / " + km(c.total) + " km"],
@@ -1202,6 +1209,95 @@
 
     function showRecords() {
         recordsReady.then(drawRecords);
+    }
+
+    // ------------------------------------------------------------------ 산행 결산(2026-10-15 홍TV님: 월별 · 분기별 · 올해 누적 · 연도별)
+    // 기록은 최근 30개만 남아 결산용 요약을 따로 쌓음(rf-log, 끝낸 산행마다 한 줄 - 백업에도 들어감). 처음엔 남아 있는 기록으로 채움
+    var LOG_KEY = "rf-log";
+    function readLog() { try { var l = JSON.parse(localStorage.getItem(LOG_KEY) || "[]"); return Array.isArray(l) ? l : []; } catch (e) { return []; } }
+    function addLog(entries) {
+        try { localStorage.setItem(LOG_KEY, JSON.stringify(RF.mergeLog(readLog(), entries))); } catch (e) { /* 저장 공간 */ }
+    }
+    recordsReady.then(function () { addLog(records().map(RF.logEntry)); });
+
+    var sumKind = "month", sumYear = new Date(Date.now() + 9 * 3600000).getUTCFullYear(), peakPts = null;
+    function drawSummary() {
+        var log = readLog(), peaks = loadMap(PEAKS), nowMs = Date.now(), thisYear = new Date(nowMs + 9 * 3600000).getUTCFullYear();
+        var years = {};
+        years[thisYear] = 1;
+        log.forEach(function (e) { years[new Date(e.start + 9 * 3600000).getUTCFullYear()] = 1; });
+        var ysel = $("sumYear");
+        ysel.textContent = "";
+        Object.keys(years).map(Number).sort(function (a, b) { return b - a; }).forEach(function (y) {
+            var o = document.createElement("option");
+            o.value = y; o.textContent = y + "년"; o.selected = y === sumYear;
+            ysel.appendChild(o);
+        });
+        ysel.hidden = sumKind === "year";
+        Array.prototype.forEach.call($("sumKinds").children, function (b) { b.classList.toggle("on", b.getAttribute("data-k") === sumKind); });
+        var rows = RF.periodStats(log, peaks, sumKind, sumYear, nowMs), box = $("sumRows");
+        box.textContent = "";
+        if (sumKind === "month") rows = rows.filter(function (r) { return r.from <= nowMs; });   // 아직 안 온 달은 뺌
+        rows.forEach(function (r) {
+            var row = document.createElement("div"), info = document.createElement("div"), b = document.createElement("b"), sp = document.createElement("span");
+            row.className = "rec";
+            b.textContent = r.label.replace(/^\d+년 (?=\d)/, "");
+            sp.textContent = r.n ? r.n + "번 · " + km(r.walked) + "km · 오른 높이 " + num(r.up) + "m · " + RF.hm(r.ms, true)
+                + " · 코스 " + r.courses + "곳" + (r.peaks ? " · 100대 명산 " + r.peaks + "곳" : "") : (r.peaks ? "100대 명산 " + r.peaks + "곳" : "산행 없음");
+            info.appendChild(b); info.appendChild(sp);
+            row.appendChild(info);
+            if (r.n || r.peaks) {
+                var cb = document.createElement("button");
+                cb.textContent = "🖼";
+                cb.title = r.label + " 결산 카드 공유";
+                cb.onclick = function () { summaryCardShare(r); };
+                row.appendChild(cb);
+            }
+            box.appendChild(row);
+        });
+        $("sumNote").textContent = "기록은 끝낸 산행마다 이 핸드폰에 쌓입니다(" + log.length + "번). 백업 파일에도 들어갑니다. 100대 명산은 그 기간에 처음 도장을 찍은 산 수입니다.";
+    }
+
+    /** 결산 카드 그림(1080 × 1350) - 숫자 + 100대 명산 점 지도(그 기간 끝까지 다녀온 곳 주황). */
+    function summaryCard(r, pts) {
+        var W = 1080, H = 1350, P = 72, cv = document.createElement("canvas");
+        cv.width = W; cv.height = H;
+        var g = cv.getContext("2d"), bg = g.createLinearGradient(0, 0, 0, H);
+        bg.addColorStop(0, "#16202b"); bg.addColorStop(1, "#0b1016");
+        g.fillStyle = bg; g.fillRect(0, 0, W, H);
+        g.textAlign = "left";
+        g.font = "bold 44px sans-serif"; g.fillStyle = "#e9eef4"; g.fillText("route", P, P + 30);
+        g.fillStyle = "#ffb703"; g.fillText("fly", P + g.measureText("route").width, P + 30);
+        g.font = "bold 64px sans-serif"; g.fillStyle = "#ffffff"; g.fillText(r.label + " 산행 결산", P, P + 140, W - P * 2);
+        var stats = [["산행", r.n + "번"], ["거리", km(r.walked) + " km"], ["오른 높이", num(r.up) + " m"], ["걸은 시간", RF.hm(r.ms, true)],
+                     ["코스", r.courses + "곳"], ["100대 명산", "+" + r.peaks + "곳"]];
+        stats.forEach(function (s, i) {
+            var x = P + (i % 3) * ((W - P * 2) / 3), y = P + 250 + Math.floor(i / 3) * 150;
+            g.font = "30px sans-serif"; g.fillStyle = "#9aa6b4"; g.fillText(s[0], x, y);
+            g.font = "bold 54px sans-serif"; g.fillStyle = "#ffffff"; g.fillText(s[1], x, y + 66, (W - P * 2) / 3 - 20);
+        });
+        if (pts && pts.length) {
+            var top = P + 560, bh = H - top - P - 60, bw = W - P * 2, xy = RF.dotMap(pts, bw, bh, 24), got = 0;
+            g.fillStyle = "rgba(255,255,255,0.04)"; g.fillRect(P, top, bw, bh);
+            pts.map(function (p, i) { return { p: xy[i], on: p.t && p.t < r.to }; }).sort(function (a, b) { return a.on - b.on; }).forEach(function (d) {
+                g.beginPath(); g.arc(P + d.p[0], top + d.p[1], d.on ? 12 : 7, 0, Math.PI * 2);
+                g.fillStyle = d.on ? "#ffb703" : "#4a5562"; g.fill();
+                if (d.on) { got++; g.lineWidth = 3; g.strokeStyle = "#fff"; g.stroke(); }
+            });
+            g.font = "28px sans-serif"; g.fillStyle = "#9aa6b4"; g.fillText("100대 명산 " + got + " / " + pts.length + "곳", P + 20, top + 44);
+        }
+        g.font = "26px sans-serif"; g.fillStyle = "#6f7c8a";
+        g.fillText("routefly - 등산 · 걷기 · 자전거 코스", P, H - P + 20);
+        return cv;
+    }
+    function summaryCardShare(r) {
+        var go = function (pts) { shareCanvas(summaryCard(r, pts), "routefly-" + r.label.replace(/[^0-9a-zA-Z가-힣]+/g, "") + ".png", r.label + " 산행 결산 - routefly"); };
+        if (peakPts) { go(peakPts); return; }
+        fetch("data/mountains100.json").then(function (x) { return x.json(); }).then(function (j) {
+            var have = loadMap(PEAKS);
+            peakPts = (j.peaks || []).map(function (k) { var st = have[RF.peakKey(k)]; return { lat: k.lat, lon: k.lon, t: st && st.t }; });
+            go(peakPts);
+        }).catch(function () { go(null); });
     }
 
     function drawRecords() {
@@ -1311,8 +1407,9 @@
                     if (ls[k] == null) return;
                     var cur = null;
                     try { cur = JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { /* 새로 */ }
-                    try { localStorage.setItem(k, JSON.stringify(RF.mergeStore(cur, ls[k]))); } catch (e) { /* 저장 공간 */ }
+                    try { localStorage.setItem(k, JSON.stringify(k === LOG_KEY ? RF.mergeLog(cur, ls[k]) : RF.mergeStore(cur, ls[k]))); } catch (e) { /* 저장 공간 */ }
                 });
+                addLog(records().map(RF.logEntry));   // 백업의 기록도 결산에
                 drawRecords();
                 toast("백업을 불러왔습니다.", 4000);
             }).catch(function (e) { toast("백업을 불러오지 못했습니다: " + (e && e.message || e), 6000); });
@@ -2481,6 +2578,11 @@
     $("myRecords").addEventListener("click", showRecords);
     $("recClose").addEventListener("click", function () { $("recSheet").style.display = "none"; });
     $("backupSave").addEventListener("click", backupSave);
+    // 결산은 내 기록 창 대신 띄우고, 닫으면 내 기록으로 돌아감(두 창이 겹쳐 결산이 뒤에 가려졌음)
+    $("sumOpen").addEventListener("click", function () { peakPts = null; drawSummary(); $("recSheet").style.display = "none"; $("sumSheet").style.display = "flex"; });
+    $("sumClose").addEventListener("click", function () { $("sumSheet").style.display = "none"; $("recSheet").style.display = "flex"; });
+    $("sumYear").addEventListener("change", function () { sumYear = +this.value; drawSummary(); });
+    Array.prototype.forEach.call($("sumKinds").children, function (b) { b.addEventListener("click", function () { sumKind = b.getAttribute("data-k"); drawSummary(); }); });
     $("backupLoad").addEventListener("click", function () { $("backupFile").value = ""; $("backupFile").click(); });
     $("backupFile").addEventListener("change", function () { if (this.files && this.files[0]) backupLoad(this.files[0]); });
     $("recClear").addEventListener("click", function () {

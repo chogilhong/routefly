@@ -3061,6 +3061,82 @@
         return points.map(function (p) { return [ox + (p.lon - lo0) * k * s, oy + (la1 - p.lat) * s]; });
     }
 
+    /**
+     * 순수 함수 - 산불조심기간(산림보호법 - 봄 2/1 ~ 5/15, 가을 11/1 ~ 12/15, 한국 날짜)이면 안내 글, 아니면 "". 2026-10-15 홍TV님.
+     * 통제 구간 자료가 아니라 기간 안내 - 현지 · 공원 누리집 확인을 권함.
+     */
+    function fireNote(ms) {
+        var d = new Date(ms + 9 * 3600000), md = (d.getUTCMonth() + 1) * 100 + d.getUTCDate();
+        var season = md >= 201 && md <= 515 ? "봄철" : md >= 1101 && md <= 1215 ? "가을철" : "";
+        return season ? "🔥 " + season + " 산불조심기간 - 일부 탐방로는 입산이 통제되고 산에서 불 · 담배는 금지입니다. 현지 안내판 · 공원 누리집을 확인하세요." : "";
+    }
+
+    /** 순수 함수 - 코스에서 가장 높은 점(정상)까지 표준 소요 시간(ms). 고도가 없으면 끝까지. */
+    function msToTop(c) {
+        var i = -1, top = -Infinity;
+        (c.ele || []).forEach(function (e, k) { if (e != null && e > top) { top = e; i = k; } });
+        if (i < 0) i = c.lat.length - 1;
+        return standardMs(c.course && c.course.kind, c.dist[i], c.asc ? c.asc[i] : 0);
+    }
+
+    /** 순수 함수 - 일출을 정상에서 보려면 들머리 출발 시각(ms): 일출 - 오름 시간 - 여유(분, 기본 15). */
+    function sunriseStart(sunriseMs, upMs, marginMin) {
+        return sunriseMs - upMs - (marginMin == null ? 15 : marginMin) * 60000;
+    }
+
+    /**
+     * 산행 결산(2026-10-15 홍TV님) - 기록(최근 30개, 걸은 길 포함)과 따로, 끝낸 산행마다 요약 한 줄을 오래 남김(localStorage "rf-log").
+     * 순수 함수 - 기록 → 요약 {start, end, walked, up, courseId, name, kind}.
+     */
+    function logEntry(r) {
+        return { start: r.start, end: r.end, walked: Math.round(+r.walked || 0), up: r.up != null ? Math.round(+r.up) : null,
+                 courseId: r.courseId || null, name: r.name || "", kind: r.kind || "hike" };
+    }
+    /** 순수 함수 - 요약 합치기(같은 시작 · 코스는 하나), 시작 차례. */
+    function mergeLog(log, add) {
+        var seen = {}, out = [];
+        (log || []).concat(add || []).forEach(function (e) {
+            if (!e || typeof e.start !== "number") return;
+            var k = e.start + "|" + (e.courseId || "");
+            if (seen[k]) return;
+            seen[k] = 1;
+            out.push(e);
+        });
+        return out.sort(function (a, b) { return a.start - b.start; });
+    }
+
+    /**
+     * 순수 함수 - 결산 표. kind: "month"(그 해 1~12월) · "quarter"(1~4분기) · "ytd"(1월 1일 ~ 지금 누적) · "year"(해마다).
+     * log: 요약들, peaks: rf-peaks {peakKey: {t}} - 그 기간에 처음 찍은 100대 명산 수. 한국 시각으로 나눔.
+     * → [{label, from, to, n, walked, up, ms, courses, peaks}] (기간 차례)
+     */
+    function periodStats(log, peaks, kind, year, nowMs) {
+        var K = 9 * 3600000, yOf = function (ms) { return new Date(ms + K).getUTCFullYear(); };
+        var at = function (y, m) { return Date.UTC(y, m, 1) - K; };   // 그 달 1일 0시(한국)
+        var ranges = [];
+        if (kind === "month") for (var m = 0; m < 12; m++) ranges.push([year + "년 " + (m + 1) + "월", at(year, m), at(year, m + 1)]);
+        else if (kind === "quarter") for (var q = 0; q < 4; q++) ranges.push([year + "년 " + (q + 1) + "분기", at(year, q * 3), at(year, q * 3 + 3)]);
+        else if (kind === "ytd") ranges.push([year + "년 1월 ~ 지금", at(year, 0), Math.min(at(year + 1, 0), nowMs + 1)]);
+        else {
+            var ys = {};
+            (log || []).forEach(function (e) { ys[yOf(e.start)] = 1; });
+            Object.keys(peaks || {}).forEach(function (k) { if (peaks[k] && peaks[k].t) ys[yOf(peaks[k].t)] = 1; });
+            Object.keys(ys).map(Number).sort().forEach(function (y) { ranges.push([y + "년", at(y, 0), at(y + 1, 0)]); });
+        }
+        return ranges.map(function (r) {
+            var o = { label: r[0], from: r[1], to: r[2], n: 0, walked: 0, up: 0, ms: 0, courses: 0, peaks: 0 }, seen = {};
+            (log || []).forEach(function (e) {
+                if (e.start < r[1] || e.start >= r[2]) return;
+                o.n++; o.walked += +e.walked || 0; o.up += +e.up || 0;
+                if (e.end > e.start) o.ms += e.end - e.start;
+                var k = e.courseId || e.name;
+                if (k && !seen[k]) { seen[k] = 1; o.courses++; }
+            });
+            Object.keys(peaks || {}).forEach(function (k) { var t = peaks[k] && peaks[k].t; if (t >= r[1] && t < r[2]) o.peaks++; });
+            return o;
+        });
+    }
+
     /** 순수 함수 - 날짜 이름표 "내일 10/16(금)". today 는 "2026-10-15". */
     function dayLabel(date, today) {
         var d = Date.UTC(+date.slice(0, 4), +date.slice(5, 7) - 1, +date.slice(8, 10)), t = Date.UTC(+today.slice(0, 4), +today.slice(5, 7) - 1, +today.slice(8, 10));
@@ -3153,7 +3229,7 @@
     }
 
     /** 백업에 함께 담는 이 기기 저장값(도장 · 완주 · 정상 · 찜 · 몸무게). 기록 · 사진은 IndexedDB 라 따로. */
-    var BACKUP_KEYS = ["rf-stamps", "rf-done", "rf-peaks", "rf-fav", "rf-body"];
+    var BACKUP_KEYS = ["rf-stamps", "rf-done", "rf-peaks", "rf-fav", "rf-body", "rf-log"];   // rf-log: 결산용 산행 요약(2026-10-15)
 
     /** 순수 함수 - 백업 파일 내용인지. 맞으면 "", 아니면 까닭. */
     function backupCheck(o) {
@@ -3208,6 +3284,6 @@
         LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, regionNames: regionNames, stampKey: stampKey, summitName: summitName, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakGapM: peakGapM, peakCourses: peakCourses, isClosedTrail: isClosedTrail, isHiddenCourse: isHiddenCourse, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
         sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap,
-        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, EASY: EASY, easyOk: easyOk, dotMap: dotMap
+        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap
     };
 })(window);

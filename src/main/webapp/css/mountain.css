@@ -64,3 +64,10 @@ ul { margin:0; padding:0; list-style:none; }
 .days select.on { background:var(--sky); border-color:var(--sky); color:#062b30; font-weight:bold; }
 .days select option { background:var(--panel); color:var(--tx); font-weight:normal; }
 .cs li[hidden] { display:none; }
+/* 산불조심기간 · 일출 산행(2026-10-15) */
+.fire { margin:-6px 0 14px; padding:8px 12px; border-radius:10px; background:rgba(255,120,60,0.12); border:1px solid rgba(255,120,60,0.35); color:#ffc9a8; font-size:13.5px; }
+.cs .sunrise { flex:1 1 100%; color:var(--dim); font-size:12.5px; }
+/* 이번 주말 날씨 좋은 곳(/m/ - 2026-10-15) */
+#weekend .wday { margin:10px 0 4px; font-size:14px; }
+#weekend .wreg { margin:6px 0 10px; font-size:13.5px; color:var(--dim); }
+#weekend .wreg .ms { margin-top:6px; }
