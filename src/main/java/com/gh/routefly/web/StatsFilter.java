@@ -38,6 +38,6 @@ public class StatsFilter extends HttpFilter {
         String page = Stats.pageKey(req.getServletPath() + (req.getPathInfo() == null ? "" : req.getPathInfo()));
         if (page == null) return;
         String ip = SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For"));
-        Stats.hit(page, ip, Stats.isBot(req.getHeader("User-Agent")));
+        Stats.hit(page, ip, Stats.isBot(req.getHeader("User-Agent")), Stats.source(req.getHeader("Referer"), req.getServerName()));
     }
 }

@@ -48,7 +48,7 @@ public class StatsServlet extends HttpServlet {
     static String page(Map<String, JsonObject> days, int n) {
         List<String> keys = new ArrayList<>(days.keySet());
         List<String> last = keys.subList(Math.max(0, keys.size() - n), keys.size());
-        Map<String, Integer> mountains = new HashMap<>(), pages = new HashMap<>();
+        Map<String, Integer> mountains = new HashMap<>(), pages = new HashMap<>(), refs = new HashMap<>();
         StringBuilder rows = new StringBuilder();
         int tu = 0, tp = 0, tb = 0;
         for (int i = last.size() - 1; i >= 0; i--) {
@@ -59,6 +59,7 @@ public class StatsServlet extends HttpServlet {
                 views += v;
                 (e.getKey().startsWith("/m/") && e.getKey().length() > 3 ? mountains : pages).merge(e.getKey().startsWith("/m/") && e.getKey().length() > 3 ? e.getKey().substring(3) : e.getKey(), v, Integer::sum);
             }
+            if (d.has("refs")) for (Map.Entry<String, com.google.gson.JsonElement> e : d.getAsJsonObject("refs").entrySet()) refs.merge(e.getKey(), e.getValue().getAsInt(), Integer::sum);
             int u = d.get("uniq").getAsInt(), b = d.get("bots").getAsInt();
             tu += u; tp += views; tb += b;
             rows.append("<tr><td>").append(last.get(i)).append("</td><td>").append(u).append("</td><td>").append(views).append("</td><td>").append(b).append("</td></tr>");
@@ -68,7 +69,8 @@ public class StatsServlet extends HttpServlet {
                 + "<p class=\"lead\">최근 " + last.size() + "일 · 방문자(하루마다 센 수의 합) " + String.format(Locale.KOREA, "%,d", tu) + " · 화면 " + String.format(Locale.KOREA, "%,d", tp)
                 + " · 검색 로봇 · 미리보기 " + String.format(Locale.KOREA, "%,d", tb) + "</p>");
         out.append("<section><h2>날마다</h2><table class=\"st\"><tr><th>날짜</th><th>방문자</th><th>화면</th><th>로봇</th></tr>").append(rows).append("</table></section>");
-        out.append(top("인기 산 페이지(" + last.size() + "일)", mountains, 20)).append(top("화면별(" + last.size() + "일)", pages, 20));
+        out.append(top("인기 산 페이지(" + last.size() + "일)", mountains, 20)).append(top("화면별(" + last.size() + "일)", pages, 20))
+                .append(top("들어온 곳(" + last.size() + "일 - 바깥에서 처음 들어온 화면 수)", refs, 20));
         out.append("<p class=\"dim\">숫자만 셉니다 - 방문자는 그 날만 쓰는 해시로 겹침만 걸러 내고 IP 는 남기지 않습니다.</p></main></body></html>");
         return out.toString();
     }

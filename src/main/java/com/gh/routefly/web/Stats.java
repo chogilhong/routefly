@@ -25,6 +25,7 @@ import com.google.gson.JsonParser;
  * <ul>
  *   <li>개인을 알아볼 수 있는 것은 남기지 않음: 방문자 수는 IP 를 그 날만 쓰는 무작위 소금과 함께 해시해 메모리에서만 견주고(날이 바뀌면 버림),
  *       파일에는 날짜별 숫자만 씀. 쿠키 · 외부 분석 도구 없음.</li>
+ *   <li>들어온 곳(2026-10-15 홍TV님): Referer 의 도메인만 보고 네이버 · 구글 · 다음 · 카카오 … 가운데 하나로 묶어 그 수만 셈(주소 · 검색어는 버림).</li>
  *   <li>파일: 설정 {@code stats.dir}(없으면 톰캣 폴더/routefly-stats)/stats.json - 10분마다와 내려갈 때 씀, 400일치.</li>
  * </ul>
  */
@@ -68,8 +69,41 @@ final class Stats {
         return ua == null || ua.isBlank() || ua.toLowerCase().matches(".*(bot|crawl|spider|slurp|facebookexternalhit|kakaotalk-scrap|daum|yeti|headless|python|curl|wget).*");
     }
 
-    /** 한 번 셈. ip 는 해시해 그 날 메모리에서만 견줌. */
-    static synchronized void hit(String page, String ip, boolean bot) {
+    /** 들어온 곳 묶음 - 도메인 끝이 이것이면 그 이름. */
+    private static final String[][] SOURCES = {
+        {"naver.com", "네이버"}, {"naver.me", "네이버"}, {"google.", "구글"}, {"daum.net", "다음"}, {"kakao.com", "카카오"}, {"kakaocdn.net", "카카오"},
+        {"bing.com", "빙"}, {"zum.com", "줌"}, {"instagram.com", "인스타그램"}, {"facebook.com", "페이스북"}, {"youtube.com", "유튜브"},
+        {"x.com", "X(트위터)"}, {"t.co", "X(트위터)"}, {"band.us", "밴드"}, {"duckduckgo.com", "덕덕고"}, {"chatgpt.com", "ChatGPT"}, {"claude.ai", "Claude"}};
+
+    /**
+     * 순수 함수 - 들어온 곳 이름. Referer 가 없으면 "직접 · 앱", 이 사이트 안에서 옮겨 다닌 것은 null(세지 않음), 모르는 곳은 "그 밖".
+     * host - 이 사이트 이름(요청의 Host).
+     */
+    static String source(String referer, String host) {
+        if (referer == null || referer.isBlank()) return "직접 · 앱";
+        String h;
+        try {
+            h = java.net.URI.create(referer.trim()).getHost();
+        } catch (Exception e) {
+            return "그 밖";
+        }
+        if (h == null) return "그 밖";
+        h = h.toLowerCase();
+        if (h.equals(host) || h.equals("localhost") || h.endsWith(".trycloudflare.com")) return null;
+        for (String[] s : SOURCES) {
+            String d = s[0];
+            if (d.endsWith(".") ? h.startsWith(d) || h.contains("." + d) : h.equals(d) || h.endsWith("." + d)) return s[1];
+        }
+        return "그 밖";
+    }
+
+    /** 한 번 셈(들어온 곳 없이 - 테스트). */
+    static void hit(String page, String ip, boolean bot) {
+        hit(page, ip, bot, null);
+    }
+
+    /** 한 번 셈. ip 는 해시해 그 날 메모리에서만 견줌. src - 들어온 곳(source, null 이면 안 셈). */
+    static synchronized void hit(String page, String ip, boolean bot, String src) {
         load();
         String d = LocalDate.now(WeatherServlet.KST).toString();
         if (!d.equals(today)) {   // 날이 바뀜 - 어제 방문자 집합 · 소금은 버림
@@ -90,6 +124,11 @@ final class Stats {
             JsonObject pages = day.getAsJsonObject("pages");
             pages.addProperty(page, (pages.has(page) ? pages.get(page).getAsInt() : 0) + 1);
             if (seen.add(hash(ip))) day.addProperty("uniq", day.get("uniq").getAsInt() + 1);
+            if (src != null) {
+                if (!day.has("refs")) day.add("refs", new JsonObject());
+                JsonObject refs = day.getAsJsonObject("refs");
+                refs.addProperty(src, (refs.has(src) ? refs.get(src).getAsInt() : 0) + 1);
+            }
         }
         while (DAYS.size() > KEEP_DAYS) DAYS.pollFirstEntry();
         dirty = true;

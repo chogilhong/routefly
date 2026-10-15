@@ -47,4 +47,22 @@ public class StatsTest {
         assertTrue("인기 산 합", h.contains("<td>가야산</td><td>5</td>"));
         assertTrue("이름은 이스케이프", h.contains("&lt;b&gt;") && !h.contains("<td><b></td>"));
     }
+
+    @Test
+    public void sources() {
+        assertEquals("네이버", Stats.source("https://m.search.naver.com/search.naver?query=%EA%B0%80%EC%95%BC%EC%82%B0", "routefly.kr"));
+        assertEquals("구글", Stats.source("https://www.google.co.kr/", "routefly.kr"));
+        assertEquals("카카오", Stats.source("https://talk.kakao.com/", "routefly.kr"));
+        assertEquals("다음", Stats.source("https://search.daum.net/search?q=x", "routefly.kr"));
+        assertEquals("직접 · 앱", Stats.source(null, "routefly.kr"));
+        assertNull("사이트 안", Stats.source("https://routefly.kr/routefly/m/", "routefly.kr"));
+        assertNull(Stats.source("https://abc-def.trycloudflare.com/routefly/", "abc-def.trycloudflare.com"));
+        assertEquals("그 밖", Stats.source("https://notgoogle.com/", "routefly.kr"));
+        assertEquals("그 밖", Stats.source("::bad", "routefly.kr"));
+        TreeMap<String, JsonObject> days = new TreeMap<>();
+        days.put("2026-10-14", JsonParser.parseString("{\"pages\":{},\"uniq\":1,\"bots\":0,\"refs\":{\"네이버\":3}}").getAsJsonObject());
+        days.put("2026-10-15", JsonParser.parseString("{\"pages\":{},\"uniq\":1,\"bots\":0,\"refs\":{\"네이버\":2,\"구글\":1}}").getAsJsonObject());
+        String h = StatsServlet.page(days, 30);
+        assertTrue(h.contains("<td>네이버</td><td>5</td>") && h.contains("<td>구글</td><td>1</td>"));
+    }
 }
