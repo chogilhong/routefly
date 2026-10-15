@@ -87,6 +87,18 @@
     tabs.setAttribute("role", "group");
     tabs.setAttribute("aria-label", "날짜 고르기");
     out.parentNode.insertBefore(tabs, out);
+    // 오늘은 단추, 나머지 날은 고르는 칸(2026-10-15 홍TV님: 단추 11개가 세 줄을 차지했음)
+    var todayBtn = document.createElement("button"), pick = document.createElement("select");
+    todayBtn.type = "button";
+    todayBtn.addEventListener("click", function () { picked = today; draw(); });
+    pick.setAttribute("aria-label", "다른 날 고르기");
+    var hint = document.createElement("option");
+    hint.value = "";
+    hint.textContent = "다른 날 ▾";
+    pick.appendChild(hint);
+    pick.addEventListener("change", function () { if (pick.value) { picked = pick.value; draw(); } });
+    tabs.appendChild(todayBtn);
+    tabs.appendChild(pick);
     var airBox = document.createElement("p");
     airBox.className = "dim";
     box.appendChild(airBox);
@@ -121,21 +133,24 @@
         markTabs(day);
     }
     function markTabs(day) {
-        Array.prototype.forEach.call(tabs.children, function (b) { var on = b.getAttribute("data-day") === day; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false"); });
+        var on = day === today;
+        todayBtn.classList.toggle("on", on);
+        todayBtn.setAttribute("aria-pressed", on ? "true" : "false");
+        pick.classList.toggle("on", !on);
+        pick.value = on ? "" : day;
     }
     function addTab(d) {
-        if (tabs.querySelector('[data-day="' + d + '"]')) return;
-        var b = document.createElement("button");
-        b.type = "button";
-        b.setAttribute("data-day", d);
-        b.textContent = RF.dayLabel(d, today);
-        b.addEventListener("click", function () { picked = d; draw(); });
-        tabs.appendChild(b);
+        if (d === today) { todayBtn.setAttribute("data-day", d); todayBtn.textContent = RF.dayLabel(d, today); return; }
+        if (pick.querySelector('[value="' + d + '"]')) return;
+        var o = document.createElement("option");
+        o.value = d;
+        o.textContent = RF.dayLabel(d, today);
+        pick.appendChild(o);
     }
     function addMidTabs() {   // 단기예보 다음 날부터 10일 뒤까지(2026-10-15 홍TV님)
         if (!wx || !mid || !mid.days) return;
-        var last = tabs.lastChild && tabs.lastChild.getAttribute("data-day");
-        Object.keys(mid.days).sort().forEach(function (d) { if (!last || d > last) addTab(d); });
+        var last = pick.options.length > 1 ? pick.options[pick.options.length - 1].value : today;
+        Object.keys(mid.days).sort().forEach(function (d) { if (d > last) addTab(d); });
     }
     fetch("../api/mid?lat=" + lat.toFixed(4) + "&lon=" + lon.toFixed(4)).then(function (r) { return r.json(); }).then(function (m) {
         if (m.unavailable) return;
