@@ -25,7 +25,7 @@ public class AirServletTest {
     public void stationsReadEitherAxisOrder() {
         List<String> names = new ArrayList<>();
         List<double[]> pos = new ArrayList<>();
-        assertTrue(AirServlet.stations(STATIONS, names, pos));
+        assertTrue(AirServlet.stations(STATIONS, names, pos, new ArrayList<>()));
         assertEquals(List.of("가야면", "거꾸로", "서울"), names);
         assertEquals(35.73, pos.get(1)[0], 1e-9);   // dmX 가 경도여도 위도로 맞춤
         assertEquals(128.3, pos.get(1)[1], 1e-9);
@@ -36,8 +36,8 @@ public class AirServletTest {
 
     @Test
     public void errorCodeIsNotData() {
-        assertFalse(AirServlet.stations("{\"response\":{\"header\":{\"resultCode\":\"30\"}}}", new ArrayList<>(), new ArrayList<>()));
-        assertFalse(AirServlet.stations("<OpenAPI_ServiceResponse>", new ArrayList<>(), new ArrayList<>()));
+        assertFalse(AirServlet.stations("{\"response\":{\"header\":{\"resultCode\":\"30\"}}}", new ArrayList<>(), new ArrayList<>(), new ArrayList<>()));
+        assertFalse(AirServlet.stations("<OpenAPI_ServiceResponse>", new ArrayList<>(), new ArrayList<>(), new ArrayList<>()));
         assertNull(AirServlet.measure("{\"response\":{\"header\":{\"resultCode\":\"22\"}}}"));
     }
 
@@ -62,6 +62,32 @@ public class AirServletTest {
         assertEquals(18, m.get("pm10").getAsInt());
         assertEquals(6, m.get("pm25").getAsInt());
         assertEquals("좋음", m.get("pm10Word").getAsString());
+    }
+
+    @Test
+    public void regionFromAddress() {
+        assertEquals("경남", AirServlet.region("경남 합천군 가야면"));
+        assertEquals("경남", AirServlet.region("경상남도 합천군"));
+        assertEquals("전북", AirServlet.region("전북특별자치도 군산시 외항1길 222"));
+        assertEquals("경기북부", AirServlet.region("경기 포천시 신북면"));
+        assertEquals("경기남부", AirServlet.region("경기도 수원시 장안구"));
+        assertEquals("영동", AirServlet.region("강원특별자치도 고성군 간성읍"));
+        assertEquals("영서", AirServlet.region("강원 춘천시"));
+        assertEquals("서울", AirServlet.region("서울 도봉구 방학로"));
+        assertNull(AirServlet.region(""));
+    }
+
+    /** 예보 응답 모양은 공공데이터포털 안내(informCode · informData · informGrade · dataTime), 값은 테스트 데이터. 실제 응답은 AirProbe → air/forecast.json. */
+    @Test
+    public void forecastLatestPerDay() {
+        String t = "{\"response\":{\"header\":{\"resultCode\":\"00\"},\"body\":{\"items\":["
+                + "{\"informCode\":\"PM10\",\"informData\":\"2026-10-16\",\"dataTime\":\"2026-10-15 11시 발표\",\"informGrade\":\"서울 : 보통,경남 : 나쁨\"},"
+                + "{\"informCode\":\"PM10\",\"informData\":\"2026-10-16\",\"dataTime\":\"2026-10-15 17시 발표\",\"informGrade\":\"서울 : 좋음,경남 : 보통\"},"
+                + "{\"informCode\":\"PM25\",\"informData\":\"2026-10-16\",\"dataTime\":\"2026-10-15 17시 발표\",\"informGrade\":\"서울 : 좋음,경남 : 좋음\"},"
+                + "{\"informCode\":\"O3\",\"informData\":\"2026-10-16\",\"dataTime\":\"2026-10-15 17시 발표\",\"informGrade\":\"경남 : 보통\"},"
+                + "{\"informCode\":\"PM10\",\"informData\":\"2026-10-17\",\"dataTime\":\"2026-10-15 17시 발표\",\"informGrade\":\"경남 : 예보없음\"}]}}}";
+        assertEquals("{\"2026-10-16\":{\"pm10\":\"보통\",\"pm25\":\"좋음\"}}", AirServlet.forecastFor(t, "경남").toString());
+        assertEquals(0, AirServlet.forecastFor(t, "제주").size());
     }
 
     @Test

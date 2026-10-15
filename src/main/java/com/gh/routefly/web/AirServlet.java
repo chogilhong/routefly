@@ -57,7 +57,7 @@ public class AirServlet extends HttpServlet {
      */
     static final Duration STATIONS_TIMEOUT = Duration.ofSeconds(25);
     static final long STATIONS_TTL_MS = 7L * 24 * 60 * 60 * 1000;
-    /** {이름 목록, [위도, 경도] 목록, 받은 시각} - 아직 못 받았으면 null. */
+    /** {이름 목록, [위도, 경도] 목록, 받은 시각, 주소 목록} - 아직 못 받았으면 null. */
     private static volatile Object[] stationList;
     private static final ReentrantLock LOADING = new ReentrantLock();
     private static final OpenApi.Cache<JsonObject> MEASURE = new OpenApi.Cache<>(800, 30L * 60 * 1000);
@@ -127,10 +127,10 @@ public class AirServlet extends HttpServlet {
         if (cur != null && now - (Long) cur[2] < STATIONS_TTL_MS) return cur;   // 기다리는 사이 다른 쪽이 받았음
         String text = OpenApi.get(STATIONS_URL + "?serviceKey=" + URLEncoder.encode(key, StandardCharsets.UTF_8)
                 + "&returnType=json&numOfRows=1000&pageNo=1", "AIR", STATIONS_TIMEOUT);
-        List<String> names = new ArrayList<>();
+        List<String> names = new ArrayList<>(), addrs = new ArrayList<>();
         List<double[]> pos = new ArrayList<>();
-        if (text != null && stations(text, names, pos)) {
-            stationList = new Object[] {names, pos, now};
+        if (text != null && stations(text, names, pos, addrs)) {
+            stationList = new Object[] {names, pos, now, addrs};
             log.info("[AIR] 측정소 목록 {}곳 받음({})", names.size(), Thread.currentThread().getName());
             return stationList;
         }
@@ -158,7 +158,12 @@ public class AirServlet extends HttpServlet {
         if (st == null) return unavailable();
         @SuppressWarnings("unchecked") List<String> names = (List<String>) st[0];
         @SuppressWarnings("unchecked") List<double[]> pos = (List<double[]>) st[1];
-        for (int i : nearest(pos, lat, lon, AIR_NEAR_M, TRY_STATIONS)) {
+        @SuppressWarnings("unchecked") List<String> addrs = (List<String>) st[3];
+        List<Integer> near = nearest(pos, lat, lon, AIR_NEAR_M, TRY_STATIONS);
+        // 미세먼지 예보(오늘 · 내일 · 모레 - 시도 · 권역 등급, 2026-10-15 홍TV님: 며칠 뒤 산행 날의 미세먼지). 지역은 가장 가까운 측정소 주소로
+        String region = near.isEmpty() ? null : region(addrs.get(near.get(0)));
+        JsonObject fc = region == null ? null : forecast(key, region, now);
+        for (int i : near) {
             String station = names.get(i);
             JsonObject m = MEASURE.get(station, now);
             if (m == null) {
@@ -175,9 +180,93 @@ public class AirServlet extends HttpServlet {
             out.addProperty("station", station);
             out.addProperty("dist_km", Math.round(MountainServlet.distM(lat, lon, pos.get(i)[0], pos.get(i)[1]) / 100) / 10.0);
             out.addProperty("source", "에어코리아(한국환경공단)");
+            withForecast(out, region, fc);
             return out;
         }
-        return unavailable();
+        return withForecast(unavailable(), region, fc);
+    }
+
+    private static JsonObject withForecast(JsonObject out, String region, JsonObject fc) {
+        if (fc != null && fc.size() > 0) {
+            out.addProperty("region", region);
+            out.add("forecast", fc);
+        }
+        return out;
+    }
+
+    static final String FORECAST_URL = "https://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getMinuDustFrcstDspth";
+    /** 발표일(KST) → 응답 글. 하루 네 번(5 · 11 · 17 · 23시) 발표 - 1시간 담아 둠. */
+    private static final OpenApi.Cache<String> FORECAST = new OpenApi.Cache<>(4, 60L * 60 * 1000);
+
+    /** 그 지역의 날짜별 예보 {"2026-10-16":{"pm10":"보통","pm25":"좋음"}} - 못 받으면 null. */
+    private static JsonObject forecast(String key, String region, long now) {
+        String day = java.time.LocalDate.now(WeatherServlet.KST).toString();
+        String text = FORECAST.get(day, now);
+        if (text == null) {
+            text = OpenApi.get(FORECAST_URL + "?serviceKey=" + URLEncoder.encode(key, StandardCharsets.UTF_8)
+                    + "&returnType=json&numOfRows=100&pageNo=1&ver=1.1&searchDate=" + day, "AIR");
+            if (text == null || items(text) == null) {
+                if (text != null) OpenApi.warn("AIR", text);
+                return null;
+            }
+            FORECAST.put(day, text, now);
+        }
+        return forecastFor(text, region);
+    }
+
+    /**
+     * 순수 함수 - 예보 응답 → 그 지역의 날짜별 등급. 같은 날짜 · 항목(PM10 · PM25)이 여러 번 발표됐으면 가장 늦은 발표(dataTime).
+     * informGrade 는 "서울 : 보통,제주 : 좋음,…".
+     */
+    static JsonObject forecastFor(String text, String region) {
+        JsonArray list = items(text);
+        JsonObject out = new JsonObject();
+        if (list == null || region == null) return out;
+        java.util.Map<String, String> seen = new java.util.HashMap<>();
+        for (JsonElement e : list) {
+            if (!e.isJsonObject()) continue;
+            JsonObject o = e.getAsJsonObject();
+            String code = str(o, "informCode"), date = str(o, "informData"), at = str(o, "dataTime"), grades = str(o, "informGrade");
+            if (code == null || date == null || grades == null || !(code.equals("PM10") || code.equals("PM25"))) continue;
+            String k = date + "|" + code;
+            if (seen.containsKey(k) && at != null && seen.get(k).compareTo(at) >= 0) continue;
+            for (String part : grades.split(",")) {
+                String[] kv = part.split(":");
+                if (kv.length == 2 && kv[0].trim().equals(region)) {
+                    String g = kv[1].trim();
+                    if (!g.matches("좋음|보통|나쁨|매우나쁨")) break;
+                    seen.put(k, at == null ? "" : at);
+                    if (!out.has(date)) out.add(date, new JsonObject());
+                    out.getAsJsonObject(date).addProperty(code.equals("PM10") ? "pm10" : "pm25", g);
+                    break;
+                }
+            }
+        }
+        return out;
+    }
+
+    /** 경기 북부 · 강원 영동 시군(에어코리아 예보 권역). */
+    private static final String[] GG_NORTH = {"고양", "파주", "의정부", "양주", "동두천", "포천", "연천", "가평", "남양주", "구리"};
+    private static final String[] GW_EAST = {"강릉", "동해", "삼척", "속초", "고성", "양양", "태백"};
+
+    /** 순수 함수 - 측정소 주소 → 에어코리아 예보 지역(서울 · 경기북부 · 경기남부 · 영동 · 영서 · 경남 …). 모르면 null. */
+    static String region(String addr) {
+        if (addr == null || addr.isBlank()) return null;
+        String[] w = addr.trim().split("\\s+");
+        String sido = w[0], city = w.length > 1 ? w[1] : "";
+        String[][] map = {{"서울", "서울"}, {"부산", "부산"}, {"대구", "대구"}, {"인천", "인천"}, {"광주", "광주"}, {"대전", "대전"}, {"울산", "울산"},
+                {"세종", "세종"}, {"제주", "제주"}, {"충청북", "충북"}, {"충북", "충북"}, {"충청남", "충남"}, {"충남", "충남"}, {"전라북", "전북"}, {"전북", "전북"},
+                {"전라남", "전남"}, {"전남", "전남"}, {"경상북", "경북"}, {"경북", "경북"}, {"경상남", "경남"}, {"경남", "경남"}};
+        if (sido.startsWith("경기")) {
+            for (String c : GG_NORTH) if (city.startsWith(c)) return "경기북부";
+            return "경기남부";
+        }
+        if (sido.startsWith("강원")) {
+            for (String c : GW_EAST) if (city.startsWith(c)) return "영동";
+            return "영서";
+        }
+        for (String[] m : map) if (sido.startsWith(m[0])) return m[1];
+        return null;
     }
 
     private static JsonObject unavailable() {
@@ -206,10 +295,10 @@ public class AirServlet extends HttpServlet {
     }
 
     /**
-     * 순수 함수 - 측정소 목록 → 이름 · [위도, 경도]. dmX · dmY 중 어느 쪽이 위도인지는 값의 범위로 봅니다(위도 33~39 · 경도 124~132).
+     * 순수 함수 - 측정소 목록 → 이름 · [위도, 경도] · 주소(예보 지역을 정하는 데). dmX · dmY 중 어느 쪽이 위도인지는 값의 범위로 봅니다(위도 33~39 · 경도 124~132).
      * 읽은 측정소가 하나도 없으면 false.
      */
-    static boolean stations(String text, List<String> names, List<double[]> pos) {
+    static boolean stations(String text, List<String> names, List<double[]> pos, List<String> addrs) {
         JsonArray list = items(text);
         if (list == null) return false;
         for (JsonElement e : list) {
@@ -222,6 +311,7 @@ public class AirServlet extends HttpServlet {
             if (la < 32 || la > 40 || lo < 123 || lo > 133) continue;
             names.add(n);
             pos.add(new double[] {la, lo});
+            addrs.add(str(o, "addr") != null ? str(o, "addr") : "");
         }
         return !names.isEmpty();
     }

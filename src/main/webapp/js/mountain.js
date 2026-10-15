@@ -66,8 +66,12 @@
     if (!box || !out || !window.RF) return;
     var lat = +box.getAttribute("data-lat"), lon = +box.getAttribute("data-lon"), RF = window.RF;
     function clock(ms) { var d = new Date(ms + 9 * 3600000); return d.getUTCHours() + ":" + String(d.getUTCMinutes()).padStart(2, "0"); }
-    var now = Date.now(), rise = RF.sunrise(now, lat, lon), set = RF.sunset(now, lat, lon);
-    var sunLine = "🌅 일출 " + (rise ? clock(rise) : "-") + " · 🌇 일몰 " + (set ? clock(set) : "-");
+    // 날짜 고르기(2026-10-15 홍TV님: 며칠 뒤 산행 날의 날씨 · 미세먼지) - 기상청 단기예보가 주는 날(오늘 ~ 글피)만큼 칸.
+    // 그 날을 누르면 일출 · 일몰 · 최저 · 최고 · 3시간마다 날씨, 미세먼지는 오늘은 지금 값 · 내일 · 모레는 에어코리아 예보
+    function sunLine(dayMs) {
+        var rise = RF.sunrise(dayMs, lat, lon), set = RF.sunset(dayMs, lat, lon);
+        return "🌅 일출 " + (rise ? clock(rise) : "-") + " · 🌇 일몰 " + (set ? clock(set) : "-");
+    }
     function show(lines) {
         out.textContent = "";
         lines.forEach(function (t, i) {
@@ -77,25 +81,49 @@
         });
         out.className = "";
     }
-    show([sunLine, "날씨 불러오는 중…"]);
-    // 미세먼지(2026-10-15) - 가까운 측정소, 날씨 줄 아래에 따로 붙임
+    show([sunLine(Date.now()), "날씨 불러오는 중…"]);
+    var tabs = document.createElement("div");
+    tabs.className = "days";
+    tabs.setAttribute("role", "group");
+    tabs.setAttribute("aria-label", "날짜 고르기");
+    out.parentNode.insertBefore(tabs, out);
     var airBox = document.createElement("p");
     airBox.className = "dim";
     box.appendChild(airBox);
-    fetch("../api/air?lat=" + lat.toFixed(4) + "&lon=" + lon.toFixed(4)).then(function (r) { return r.json(); }).then(function (a) {
-        var t = RF.airText(a);
-        if (t) airBox.textContent = "😷 " + t + " · 에어코리아"; else airBox.remove();
-    }).catch(function () { airBox.remove(); });
-    // 상대 주소 - 이 페이지는 /m/산 이라 한 단계 위가 앱 뿌리
-    fetch("../api/weather?lat=" + lat.toFixed(4) + "&lon=" + lon.toFixed(4)).then(function (r) { return r.json(); }).then(function (w) {
-        if (w.unavailable || !(w.hours || []).length) { show([sunLine, "날씨를 지금 받지 못했습니다."]); return; }
-        var today = w.hours[0].t.slice(0, 10), mm = w.days && w.days[today], lines = [sunLine];
-        if (mm && (mm.tmn != null || mm.tmx != null)) lines.push("오늘 최저 " + (mm.tmn != null ? mm.tmn + "℃" : "-") + " / 최고 " + (mm.tmx != null ? mm.tmx + "℃" : "-"));
-        w.hours.filter(function (h, i) { return i % 3 === 0; }).slice(0, 6).forEach(function (h) {
+    var air = null, wx = null, today = null, picked = null;
+    function draw() {
+        if (!wx) return;
+        var day = picked || today, dayMs = Date.parse(day + "T12:00:00+09:00"), mm = wx.days && wx.days[day], lines = [sunLine(dayMs)];
+        if (mm && (mm.tmn != null || mm.tmx != null)) lines.push("최저 " + (mm.tmn != null ? mm.tmn + "℃" : "-") + " / 최고 " + (mm.tmx != null ? mm.tmx + "℃" : "-"));
+        var hours = wx.hours.filter(function (h) { return h.t.slice(0, 10) === day; });
+        hours.filter(function (h, i) { return day === today ? i % 3 === 0 : +h.t.slice(11, 13) % 3 === 0; }).slice(0, 8).forEach(function (h) {
             lines.push(h.t.slice(11, 13) + "시  " + RF.weatherWord(h.sky, h.pty) + "  " + (h.tmp != null ? h.tmp + "℃" : "-")
                 + "  · 비 " + (h.pop != null ? h.pop + "%" : "-") + "  · 바람 " + (h.wsd != null ? h.wsd + "m/s" : "-"));
         });
-        lines.push("기상청 단기예보(" + w.base + " 발표) · 정상 둘레 5km 격자 - 정상은 이보다 춥고 바람이 셀 수 있습니다.");
+        lines.push("기상청 단기예보(" + wx.base + " 발표) · 정상 둘레 5km 격자 - 정상은 이보다 춥고 바람이 셀 수 있습니다. 예보는 글피까지 나옵니다.");
         show(lines);
-    }).catch(function () { show([sunLine, "날씨를 지금 받지 못했습니다."]); });
+        var t = day === today ? RF.airText(air) : RF.airForecastText(air, day);
+        airBox.textContent = t ? "😷 " + t + " · 에어코리아" : day === today ? "" : "😷 이 날 미세먼지 예보는 아직 없습니다(에어코리아 예보는 모레까지).";
+        airBox.hidden = !airBox.textContent;
+        Array.prototype.forEach.call(tabs.children, function (b) { var on = b.getAttribute("data-day") === day; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false"); });
+    }
+    fetch("../api/air?lat=" + lat.toFixed(4) + "&lon=" + lon.toFixed(4)).then(function (r) { return r.json(); }).then(function (a) { air = a; draw(); })
+        .catch(function () { /* 미세먼지 없이 */ });
+    // 상대 주소 - 이 페이지는 /m/산 이라 한 단계 위가 앱 뿌리
+    fetch("../api/weather?lat=" + lat.toFixed(4) + "&lon=" + lon.toFixed(4)).then(function (r) { return r.json(); }).then(function (w) {
+        if (w.unavailable || !(w.hours || []).length) { show([sunLine(Date.now()), "날씨를 지금 받지 못했습니다."]); return; }
+        wx = w;
+        today = w.hours[0].t.slice(0, 10);
+        var days = [];
+        w.hours.forEach(function (h) { var d = h.t.slice(0, 10); if (days.indexOf(d) < 0) days.push(d); });
+        days.slice(0, 4).forEach(function (d) {
+            var b = document.createElement("button");
+            b.type = "button";
+            b.setAttribute("data-day", d);
+            b.textContent = RF.dayLabel(d, today);
+            b.addEventListener("click", function () { picked = d; draw(); });
+            tabs.appendChild(b);
+        });
+        draw();
+    }).catch(function () { show([sunLine(Date.now()), "날씨를 지금 받지 못했습니다."]); });
 })();

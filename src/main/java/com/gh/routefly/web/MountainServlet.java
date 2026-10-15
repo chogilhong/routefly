@@ -287,7 +287,7 @@ public class MountainServlet extends HttpServlet {
                 .append(height != null ? String.format(Locale.KOREA, " %,dm", height) : "")
                 .append(top != null ? String.format(Locale.KOREA, " · 코스 최고점 약 %,dm", top) : "").append("</p>");
         b.append("<section id=\"wx\" data-lat=\"").append(peak.get("lat").getAsDouble()).append("\" data-lon=\"").append(peak.get("lon").getAsDouble())
-                .append("\"><h2>오늘 날씨 · 일출 · 일몰</h2><p class=\"dim\" id=\"wxBody\">불러오는 중…</p></section>");
+                .append("\"><h2>날씨 · 미세먼지 · 일출 · 일몰</h2><p class=\"dim\" id=\"wxBody\">불러오는 중…</p></section>");
         b.append("<section><h2>코스 ").append(courses.size()).append("개</h2>");
         if (courses.isEmpty()) b.append("<p class=\"dim\">정상까지 가는 코스를 찾지 못했습니다. <a href=\"").append(REL)
                 .append("/hike.html\">따라가기에서 산 이름으로 찾아보세요</a>.</p>");

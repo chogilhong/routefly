@@ -40,9 +40,9 @@ public final class AirProbe {
         }
         st = PetTourProbe.scrub(st, key);
         Files.writeString(dir.resolve("stations-head.txt"), st.substring(0, Math.min(2000, st.length())), StandardCharsets.UTF_8);
-        List<String> names = new ArrayList<>();
+        List<String> names = new ArrayList<>(), addrs = new ArrayList<>();
         List<double[]> pos = new ArrayList<>();
-        boolean ok = AirServlet.stations(st, names, pos);
+        boolean ok = AirServlet.stations(st, names, pos, addrs);
         System.out.println("측정소 목록: " + (ok ? names.size() + "곳" : "읽지 못함 - stations-head.txt 를 보세요"));
         if (!ok) return;
         double[][] at = {{35.7998, 128.0961}, {37.6879, 127.0350}, {33.3617, 126.5292}};   // 가야산 · 북한산 · 한라산
@@ -57,6 +57,21 @@ public final class AirProbe {
             m = PetTourProbe.scrub(m, key);
             Files.writeString(dir.resolve("measure-" + names.get(i).replaceAll("[^\\p{L}\\p{N}]", "_") + ".json"), m, StandardCharsets.UTF_8);
             System.out.println(names.get(i) + " : " + AirServlet.measure(m));
+        }
+        // 미세먼지 예보(2026-10-15) - 오늘 발표분
+        String day = java.time.LocalDate.now(WeatherServlet.KST).toString();
+        Thread.sleep(700);
+        String fc = OpenApi.get(AirServlet.FORECAST_URL + "?serviceKey=" + enc + "&returnType=json&numOfRows=100&pageNo=1&ver=1.1&searchDate=" + day, "AIR-PROBE");
+        if (fc == null) System.out.println("예보: 받지 못함");
+        else {
+            fc = PetTourProbe.scrub(fc, key);
+            Files.writeString(dir.resolve("forecast.json"), fc, StandardCharsets.UTF_8);
+            for (double[] p : at) {
+                List<Integer> near = AirServlet.nearest(pos, p[0], p[1], AirServlet.AIR_NEAR_M, 1);
+                if (near.isEmpty()) continue;
+                String r = AirServlet.region(addrs.get(near.get(0)));
+                System.out.println("예보 " + r + " (" + names.get(near.get(0)) + ") : " + AirServlet.forecastFor(fc, r));
+            }
         }
         System.out.println("저장: " + dir.toAbsolutePath());
     }

@@ -712,15 +712,23 @@
                 body.textContent = "";
                 var ab = el("div", "gNote", "");
                 body.appendChild(ab);
-                airP.then(function (a) { var t = RF.airText(a); if (t) ab.textContent = "😷 " + t + " · 에어코리아"; else ab.remove(); });
+                airP.then(function (a) {
+                    var t = RF.airText(a);
+                    if (t) ab.textContent = "😷 " + t + " · 에어코리아"; else ab.remove();
+                    Object.keys(dayEls).forEach(function (dd, i) {   // 내일 · 모레는 날 이름 아래에 미세먼지 예보(에어코리아)
+                        var f = i ? RF.airForecastText(a, dd) : "";
+                        if (f) dayEls[dd].appendChild(el("small", null, "😷 " + f));
+                    });
+                });
                 if (w.unavailable || !(w.hours || []).length) { body.appendChild(el("div", "gNote", "날씨를 지금 받지 못했습니다. 잠시 뒤 다시 눌러 주세요.")); return; }
-                var day = "";
-                w.hours.slice(0, 30).forEach(function (h) {
+                var day = "", dayEls = {};
+                // 2026-10-15 홍TV님: 며칠 뒤 산행 - 단기예보가 주는 날(글피까지) 모두, 날마다 3시간 간격
+                w.hours.filter(function (h, i) { return i < 24 || +h.t.slice(11, 13) % 3 === 0; }).forEach(function (h) {
                     var dd = h.t.slice(0, 10);
                     if (dd !== day) {
                         day = dd;
                         var mm = w.days && w.days[dd];
-                        body.appendChild(el("div", "gDay", dd.slice(5).replace("-", "월 ") + "일" + (mm && (mm.tmn != null || mm.tmx != null)
+                        dayEls[dd] = body.appendChild(el("div", "gDay", RF.dayLabel(dd, w.hours[0].t.slice(0, 10)) + (mm && (mm.tmn != null || mm.tmx != null)
                             ? " · 최저 " + (mm.tmn != null ? mm.tmn + "℃" : "-") + " / 최고 " + (mm.tmx != null ? mm.tmx + "℃" : "-") : "")));
                     }
                     var st = RF.summitTemp(h.tmp, start.ele, top);

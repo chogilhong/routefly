@@ -801,3 +801,7 @@ eq("gearList 오르막 600m 는 스틱만(무릎 보호대는 800m 부터)", RF.
 eq("gearList 자전거는 헤드랜턴 빼고", RF.gearList(5, 0, "bike").map(function (g) { return g.key; }), ["water", "rain", "battery", "firstaid", "pack", "sun"]);
 eq("partnerLinks 하나 · 여럿 · 예전 글 · 빈 것", [RF.partnerLinks(["https://a"]).map(function (k) { return k.text; }), RF.partnerLinks(["https://a", "https://b"]).map(function (k) { return k.text; }),
     RF.partnerLinks("https://c")[0].href, RF.partnerLinks(null).length, RF.partnerLinks(["javascript:x"]).length], [["쿠팡 ›"], ["쿠팡 1 ›", "쿠팡 2 ›"], "https://c", 0, 0]);
+eq("airForecastText 그 날 예보 · 없는 날", [RF.airForecastText({ region: "경남", forecast: { "2026-10-16": { pm10: "보통", pm25: "좋음" } } }, "2026-10-16"),
+    RF.airForecastText({ region: "경남", forecast: {} }, "2026-10-16"), RF.airForecastText(null, "2026-10-16")], ["미세먼지 보통 · 초미세먼지 좋음(경남 예보)", "", ""]);
+eq("dayLabel 오늘 · 내일 · 글피 · 그 뒤", [RF.dayLabel("2026-10-15", "2026-10-15"), RF.dayLabel("2026-10-16", "2026-10-15"), RF.dayLabel("2026-10-18", "2026-10-15"), RF.dayLabel("2026-11-01", "2026-10-31")],
+    ["오늘 10/15(목)", "내일 10/16(금)", "글피 10/18(일)", "내일 11/1(일)"]);
