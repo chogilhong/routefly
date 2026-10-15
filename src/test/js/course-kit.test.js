@@ -761,3 +761,38 @@ eq("textLabel 가 · 가+ · 가++", [RF.textLabel(1), RF.textLabel(1.2), RF.tex
     var j = RF.joinDraw([{ id: "a" }, { id: "b" }], lines);
     eq("joinDraw 둘 다 지나쳐 나란히 - 둘 다 잘라 이음", [j.lines[0].length < 6, j.lines[1].length < 5, j.gaps.length], [true, true, 1]);
 })();
+
+// 찜 · 통계 · 백업(2026-10-15)
+(function () {
+    var l = RF.favToggle([], { id: "a", name: "가" });
+    l = RF.favToggle(l, { id: "b", name: "나" });
+    eq("favToggle 새로 찜하면 앞에", l.map(function (f) { return f.id; }), ["b", "a"]);
+    eq("favToggle 다시 누르면 빠짐 · isFav", [RF.favToggle(l, { id: "a" }).map(function (f) { return f.id; }), RF.isFav(l, "a"), RF.isFav(l, "z"), RF.isFav(null, "a")], [["b"], true, false, false]);
+    var many = [];
+    for (var i = 0; i < 60; i++) many = RF.favToggle(many, { id: "c" + i });
+    eq("favToggle 50개까지", [many.length, many[0].id], [50, "c59"]);
+})();
+(function () {
+    var t25 = Date.UTC(2025, 11, 31, 16, 0), t26 = Date.UTC(2026, 4, 1, 0, 0);   // 2025-12-31 16:00 UTC = 한국 2026-01-01 01:00
+    var recs = [{ courseId: "x", start: t25, end: t25 + 3600000, walked: 5000, up: 300 }, { courseId: "x", start: t26, end: t26 + 7200000, walked: 7000, up: 500 },
+                { courseId: "y", start: Date.UTC(2025, 5, 1), end: Date.UTC(2025, 5, 1) + 1000, walked: 1000 }];
+    eq("recordStats 그 해(한국 시각) · 같은 코스는 한 번", RF.recordStats(recs, 2026), { n: 2, walked: 12000, up: 800, ms: 3 * 3600000, courses: 1 });
+    eq("recordStats 전체", [RF.recordStats(recs).n, RF.recordStats(recs).courses, RF.recordStats(null).n], [3, 2, 0]);
+})();
+eq("backupCheck", [RF.backupCheck({ app: "routefly", v: 1, records: [] }), !!RF.backupCheck({ app: "x" }), !!RF.backupCheck({ app: "routefly", v: 2, records: [] }),
+    !!RF.backupCheck({ app: "routefly", v: 1 }), !!RF.backupCheck(null)], ["", true, true, true, true]);
+(function () {
+    var a = { start: 3, courseId: "k", track: [], name: "지금" }, b = { start: 3, courseId: "k", track: [], name: "백업" }, c = { start: 5, courseId: "k", track: [] }, d = { start: 1, track: [] };
+    var m = RF.mergeRecords([a], [b, c, d, { start: 9 }], 2);
+    eq("mergeRecords 같은 기록은 지금 것 · 최근부터 · 개수 · 길 없는 것 뺌", m.map(function (r) { return r.start + (r.name || ""); }), ["5", "3지금"]);
+})();
+eq("mergeStore 도장은 열쇠 합침(지금 것 남김)", RF.mergeStore({ a: { t: 1 } }, { a: { t: 9 }, b: { t: 2 } }), { a: { t: 1 }, b: { t: 2 } });
+eq("mergeStore 찜은 없는 것만 뒤에", RF.mergeStore([{ id: "a" }], [{ id: "a" }, { id: "b" }]).map(function (f) { return f.id; }), ["a", "b"]);
+eq("mergeStore 몸무게는 지금 것 · 없으면 백업", [RF.mergeStore({ kg: 60 }, { kg: 70 }).kg, RF.mergeStore(null, { kg: 70 }).kg, RF.mergeStore({ x: 1 }, null)], [60, 70, { x: 1 }]);
+eq("photoIds 기록들에 든 사진(겹침 없이)", RF.photoIds([{ notes: [{ photo: "p1" }, { text: "t" }] }, { notes: [{ photo: "p1" }, { photo: "p2" }] }, {}]), ["p1", "p2"]);
+eq("airText", [RF.airText({ pm10: 42, pm10Word: "보통", pm25: 14, pm25Word: "좋음", station: "가야면", time: "2026-10-15 09:00", dist_km: 1.4 }),
+    RF.airText({ unavailable: true }), RF.airText(null), RF.airText({ pm25: 80, pm25Word: "매우나쁨", station: "가" })],
+    ["미세먼지 보통(42) · 초미세먼지 좋음(14) - 가야면 측정소 9시(1.4km)", "", "", "초미세먼지 매우나쁨(80) - 가 측정소"]);
+eq("gearList 겨울 등산 · 오르막 크면 스틱 · 아이젠", RF.gearList(1, 800, "hike").map(function (g) { return g.key; }), ["water", "rain", "headlamp", "battery", "stick", "crampon", "glove"]);
+eq("gearList 여름 걷기", RF.gearList(7, 100, "walk").map(function (g) { return g.key; }), ["water", "rain", "headlamp", "battery"]);
+eq("gearList 자전거는 헤드랜턴 빼고", RF.gearList(5, 0, "bike").map(function (g) { return g.key; }), ["water", "rain", "battery"]);

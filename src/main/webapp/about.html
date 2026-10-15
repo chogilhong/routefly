@@ -16,6 +16,7 @@ h1 span { color:#ffb703; }
 .lead { color:var(--dim); font-size:14px; margin:0 0 18px; }
 nav { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px; }
 nav a { color:var(--tx); text-decoration:none; font-size:13.5px; padding:6px 11px; border:1px solid var(--ln); border-radius:16px; }
+.donate { display:inline-block; padding:10px 16px; border-radius:10px; background:#2f9e44; color:#fff; text-decoration:none; font-weight:bold; }
 section { background:var(--panel); border:1px solid var(--ln); border-radius:12px; padding:14px 16px; margin-bottom:14px; }
 h2 { font-size:17px; margin:0 0 8px; }
 ul { margin:0; padding-left:20px; }
@@ -87,6 +88,8 @@ h1 { padding-right:110px; }
             <li>회원 가입 · 로그인이 없고, 이름 · 연락처 같은 개인정보를 받지 않습니다. 광고 · 방문 분석 도구를 쓰지 않습니다.</li>
             <li>지도 그림(위성사진 · 지형)은 국토교통부 V-World 와 AWS 에서 받아 옵니다. 이때 보고 있는 지도 범위가 그 기관 서버에 요청으로 전달됩니다.</li>
             <li>이 서비스의 웹 서버는 보안 · 장애 대응을 위해 접속 기록(IP 주소 · 시각 · 요청 경로 - 검색어 · 지도 범위는 빼고)을 남기며, 14~30일 뒤 지웁니다. 그 밖의 용도로 쓰지 않습니다.</li>
+            <li>핸드폰을 바꾸기 전에는 따라가기 <b>📒 내 기록 → 💾 백업 저장</b>으로 기록 · 사진 · 도장 · 찜을 파일 하나로 받아 두고, 새 핸드폰에서 <b>📂 백업 불러오기</b>로 옮기세요.
+                백업 파일은 핸드폰 안에서 만들어 내가 고른 곳으로만 보내집니다.</li>
             <li>위치 권한은 핸드폰 설정(또는 브라우저 주소창의 사이트 설정)에서 언제든 끌 수 있습니다. 끄면 "시험 걷기" 와 코스 보기만 됩니다.</li>
         </ul>
         <p class="dim">자세한 내용은 <a href="privacy.html">개인정보처리방침</a>을 보세요.</p>
@@ -111,6 +114,8 @@ h1 { padding-right:110px; }
                 이 서비스가 탐방로를 이어 들머리 → 정상 코스로 만들었습니다.</td></tr>
             <tr><th>날씨 · 숙박 · 식당</th><td>기상청 단기예보 조회서비스, 한국관광공사 국문 관광정보 서비스(TourAPI) - 공공데이터포털.
                 코스 들머리 좌표로만 묻습니다(내 위치는 보내지 않음). 정상 기온은 높이로 어림한 값입니다.</td></tr>
+            <tr><th>미세먼지</th><td>한국환경공단 에어코리아 「대기오염정보」 · 「측정소정보」(공공데이터포털) - 가장 가까운 측정소의 실시간 값(확정 전 자료).
+                좋음 · 보통 · 나쁨은 환경부 예보 기준(미세먼지 30 · 80 · 150, 초미세먼지 15 · 35 · 75㎍/㎥)으로 나눴습니다. 산 위는 측정소와 다를 수 있습니다.</td></tr>
             <tr><th>주차장</th><td>전국주차장정보표준데이터(공공데이터포털) - 들머리 3km 안 주차장. 요금 · 운영 시간은 바뀔 수 있습니다.</td></tr>
             <tr><th>반려동물 동반 정보</th><td>한국관광공사 반려동물 동반여행 서비스(공공데이터포털) - 동반 가능한 숙박 · 식당과 동반 조건.
                 관광공사에 등록된 곳만 나옵니다. 국립공원 반려견 동반 구간은 국립공원공단 예약 누리집 안내를 링크로 엽니다.</td></tr>
@@ -123,6 +128,14 @@ h1 { padding-right:110px; }
             <tr><th>지도 프로그램</th><td>MapLibre GL JS (BSD-3-Clause)</td></tr>
         </table>
         <p class="dim">자료에 틀린 곳이 있으면 문의처로 알려 주세요.</p>
+    </section>
+
+    <!-- 2026-10-15 홍TV님: 제휴 · 후원 - 설정(api/partners)에 링크가 있을 때만 about.js 가 보임 -->
+    <section id="support" hidden>
+        <h2>💚 routefly 응원하기</h2>
+        <p id="supportAff" hidden>routefly 는 무료입니다. 안내 화면의 일부 링크(🎒 챙길 것의 쿠팡 · 숙박의 아고다)는 제휴 링크라, 그 링크로 사거나 예약하면 운영자가 수수료를 받습니다(값은 같습니다).
+            받은 돈은 서버 · 지도 비용에 씁니다.</p>
+        <p id="supportDonate" hidden><a id="donateLink" class="donate" target="_blank" rel="noopener">☕ 운영자에게 커피 한 잔 보내기</a></p>
     </section>
 
     <a class="back" id="aboutBack" href="hike.html">‹ 돌아가기</a>

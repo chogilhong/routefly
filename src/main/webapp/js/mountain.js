@@ -10,6 +10,51 @@
     });
     var crumb = document.querySelector(".crumb") || document.querySelector("h1");
     if (crumb && window.RF) { var tb = window.RF.textButton(); tb.style.float = "right"; crumb.appendChild(tb); }   // 글자 크기 "가+"
+    // ☆ 찜(2026-10-15) - 코스마다. 따라가기 첫 화면에 모아 보임(이 기기 rf-fav)
+    if (window.RF) Array.prototype.forEach.call(document.querySelectorAll(".cs li[data-id]"), function (li) {
+        var go = li.querySelector(".go");
+        if (!go) return;
+        go.insertBefore(window.RF.favButton(function () {
+            var asc = li.getAttribute("data-asc");
+            return { id: li.getAttribute("data-id"), name: li.getAttribute("data-name"), kind: "hike", dist: +li.getAttribute("data-dist"), asc: asc != null ? +asc : null };
+        }), go.firstChild);
+    });
+    // 🎒 챙길 것(2026-10-15) - 날씨 칸 아래. 오르막은 이 산 코스 가운데 가장 큰 값. 쿠팡 파트너스 링크는 설정에 있을 때만(+ 수수료 문구)
+    var wx0 = document.getElementById("wx");
+    if (wx0 && window.RF) {
+        var asc = 0;
+        Array.prototype.forEach.call(document.querySelectorAll(".cs li[data-asc]"), function (li) { asc = Math.max(asc, +li.getAttribute("data-asc") || 0); });
+        var gs = document.createElement("section"), gh = document.createElement("h2"), ul = document.createElement("ul");
+        gh.textContent = "🎒 챙길 것";
+        ul.className = "gear";
+        gs.appendChild(gh);
+        gs.appendChild(ul);
+        var items = window.RF.gearList(new Date().getMonth() + 1, asc, "hike").map(function (g) {
+            var li = document.createElement("li"), b = document.createElement("b"), sp = document.createElement("span");
+            b.textContent = g.label;
+            sp.textContent = g.why;
+            li.appendChild(b);
+            li.appendChild(sp);
+            ul.appendChild(li);
+            return [g, li];
+        });
+        wx0.parentNode.insertBefore(gs, wx0.nextSibling);
+        fetch("../api/partners").then(function (r) { return r.json(); }).then(function (p) {
+            var any = false;
+            items.forEach(function (x) {
+                var u = p.coupang && p.coupang[x[0].key];
+                if (!u) return;
+                var a = document.createElement("a");
+                a.href = u;
+                a.target = "_blank";
+                a.rel = "noopener sponsored";
+                a.textContent = "쿠팡 ›";
+                x[1].appendChild(a);
+                any = true;
+            });
+            if (any) { var n = document.createElement("p"); n.className = "dim"; n.textContent = window.RF.COUPANG_NOTE; gs.appendChild(n); }
+        }).catch(function () { /* 링크 없이 */ });
+    }
     var box = document.getElementById("wx"), out = document.getElementById("wxBody");
     if (!box || !out || !window.RF) return;
     var lat = +box.getAttribute("data-lat"), lon = +box.getAttribute("data-lon"), RF = window.RF;
@@ -26,6 +71,14 @@
         out.className = "";
     }
     show([sunLine, "날씨 불러오는 중…"]);
+    // 미세먼지(2026-10-15) - 가까운 측정소, 날씨 줄 아래에 따로 붙임
+    var airBox = document.createElement("p");
+    airBox.className = "dim";
+    box.appendChild(airBox);
+    fetch("../api/air?lat=" + lat.toFixed(4) + "&lon=" + lon.toFixed(4)).then(function (r) { return r.json(); }).then(function (a) {
+        var t = RF.airText(a);
+        if (t) airBox.textContent = "😷 " + t + " · 에어코리아"; else airBox.remove();
+    }).catch(function () { airBox.remove(); });
     // 상대 주소 - 이 페이지는 /m/산 이라 한 단계 위가 앱 뿌리
     fetch("../api/weather?lat=" + lat.toFixed(4) + "&lon=" + lon.toFixed(4)).then(function (r) { return r.json(); }).then(function (w) {
         if (w.unavailable || !(w.hours || []).length) { show([sunLine, "날씨를 지금 받지 못했습니다."]); return; }

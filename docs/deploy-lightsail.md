@@ -430,3 +430,39 @@ sudo systemctl status routefly-batch
 - 자동 스냅샷: 인스턴스 → Snapshots → Enable automatic snapshots(하루 한 번)
 - 보안 업데이트: `sudo apt -y install unattended-upgrades` (기본으로 켜져 있으면 그대로)
 - 지도 출처 표시(© OpenStreetMap contributors)는 서버를 옮겨도 그대로 보여야 합니다.
+- routefly.kr 이 열리면 설정의 `site.baseUrl=https://routefly.kr/routefly` 주석을 풀고(공유 링크 · og 그림 · 산 페이지 canonical), HSTS(6-1 의 `Strict-Transport-Security`)가 붙는지
+  `curl -sI https://routefly.kr/routefly/ | grep -i strict` 로 봅니다. 몇 주 문제없으면 그때 hstspreload.org 등록을 생각합니다(되돌리기 어려우니 서두르지 않음).
+
+### 10-1. 막기 · 백업 (2026-10-15)
+
+```bash
+# 비밀번호로 SSH 들어오기 막기(Lightsail 은 기본이 키 로그인) - PasswordAuthentication no 인지 확인
+sudo grep -i '^PasswordAuthentication' /etc/ssh/sshd_config /etc/ssh/sshd_config.d/*.conf
+
+# fail2ban - SSH 를 여러 번 틀리는 곳을 한동안 막음(기본 설정 sshd 감시만 켬)
+sudo apt -y install fail2ban
+sudo tee /etc/fail2ban/jail.d/routefly.local >/dev/null <<'CONF'
+[sshd]
+enabled = true
+maxretry = 5
+bantime = 1h
+CONF
+sudo systemctl enable --now fail2ban
+sudo fail2ban-client status sshd
+
+# DB 백업 - 매일 새벽 4시, 14일치. 비밀번호는 root 만 읽는 파일에(명령 줄 · 이 문서에 쓰지 않음)
+sudo install -d -m 700 /var/backups/routefly
+sudo tee /root/.my.cnf >/dev/null <<'CONF'
+[client]
+user=root
+password=(서버 DB root 비밀번호 - 홍TV님이 직접)
+CONF
+sudo chmod 600 /root/.my.cnf
+echo '0 4 * * * root mariadb-dump --single-transaction routefly | gzip > /var/backups/routefly/routefly-$(date +\%Y\%m\%d).sql.gz && find /var/backups/routefly -name "*.sql.gz" -mtime +14 -delete' \
+  | sudo tee /etc/cron.d/routefly-db-backup
+```
+
+- 서버 안 백업은 서버가 통째로 사라지면 같이 사라집니다. 자동 스냅샷(위)과 함께, 달에 한 번쯤 `scp` 로 PC 에 한 벌 받아 둡니다.
+- 되살리기: `gunzip -c routefly-YYYYMMDD.sql.gz | mariadb routefly`
+- 이용자 기록 · 사진은 서버에 없습니다(핸드폰 안 - 따라가기 "📒 내 기록 → 💾 백업 저장").
+

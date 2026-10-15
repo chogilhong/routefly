@@ -44,3 +44,20 @@ site.baseUrl=
 # 들머리 근처 주차장(fly(3D) 가는 길) - 공공데이터포털 「전국주차장정보표준데이터」 CSV 파일 경로(API 아님, 받아서 저장소 밖에 둠).
 # UTF-8 · MS949 모두 읽음. 없으면 주차장 줄이 안 보임. 2026-10-14
 #parking.csv=C:\\GH\\workspace\\routefly-data\\parking.csv
+
+# ---------------------------------------------------------------- 미세먼지(2026-10-15, 산 소개 페이지 · fly(3D) 날씨)
+# 한국환경공단 에어코리아 - 공공데이터포털에서 「대기오염정보」 · 「측정소정보」 두 서비스를 활용 신청.
+# 비우면 tour.serviceKey 를 씀(개인 키는 같음). 둘 다 없거나 신청 전이면 미세먼지 줄이 안 보임.
+#air.serviceKey=
+
+# ---------------------------------------------------------------- 제휴 · 후원(2026-10-15) - 비우면 화면에 안 보임
+# 쿠팡 파트너스: 파트너스 누리집에서 물건마다 만든 링크(https://link.coupang.com/... 또는 https://coupa.ng/...).
+#   물건: water(물 · 간식) · rain(우비) · headlamp(헤드랜턴) · battery(보조배터리) · stick(등산 스틱) · crampon(아이젠) · glove(장갑)
+#   화면은 "🎒 챙길 것" 에 링크와 "쿠팡 파트너스 활동 … 수수료" 문구를 함께 보입니다.
+#partner.coupang.headlamp=
+#partner.coupang.stick=
+#partner.coupang.crampon=
+# 아고다 제휴(승인 뒤): 아고다 파트너 누리집에서 만든 링크(https://www.agoda.com/...). 안의 {lat} · {lon} 은 들머리 좌표로 바뀜.
+#partner.agoda.url=
+# 후원: 토스 아이디(https://toss.me/...) · 카카오페이 송금 코드(https://qr.kakaopay.com/...) 등 https 주소. 안내(about.html) 아래에 단추.
+#donate.url=

@@ -28,3 +28,12 @@
     document.body.appendChild(b);
     apply(get());
 })();
+
+/* 제휴 · 후원(2026-10-15 홍TV님) - 설정(api/partners)에 링크가 있을 때만 '💚 routefly 응원하기' 를 보임 */
+fetch("api/partners").then(function (r) { return r.json(); }).then(function (p) {
+    var aff = p.agoda || (p.coupang && Object.keys(p.coupang).length), sec = document.getElementById("support");
+    if (!sec || !(aff || p.donate)) return;
+    if (aff) document.getElementById("supportAff").hidden = false;
+    if (p.donate) { document.getElementById("donateLink").href = p.donate; document.getElementById("supportDonate").hidden = false; }
+    sec.hidden = false;
+}).catch(function () { /* 없이 */ });

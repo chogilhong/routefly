@@ -2966,9 +2966,156 @@
         };
     }
 
+    /**
+     * 순수 함수 - 챙길 것(2026-10-15 홍TV님). month 1~12, ascentM 오르막(m), kind hike · walk · bike.
+     * key 는 PartnersServlet.GEAR 와 같음(쿠팡 파트너스 링크를 설정에 넣으면 그 물건 옆에 링크).
+     */
+    function gearList(month, ascentM, kind) {
+        var winter = month >= 11 || month <= 3, cold = month >= 10 || month <= 4, out = [];
+        out.push({ key: "water", label: "물 · 간식", why: "1시간에 물 500ml 남짓" });
+        out.push({ key: "rain", label: "우비 · 바람막이", why: "산 위는 날씨가 빨리 바뀝니다" });
+        if (kind !== "bike") out.push({ key: "headlamp", label: "헤드랜턴", why: "늦어지면 산은 해 지기 전에 어두워집니다" });
+        out.push({ key: "battery", label: "보조배터리", why: "GPS · 119 신고용" });
+        if (kind === "hike" && ascentM >= 500) out.push({ key: "stick", label: "등산 스틱", why: "오르막 " + num(ascentM) + "m - 무릎 부담을 덜어 줌" });
+        if (kind === "hike" && winter) out.push({ key: "crampon", label: "아이젠", why: "겨울 · 이른 봄 응달은 얼어 있습니다" });
+        if (cold) out.push({ key: "glove", label: "장갑", why: "아침 · 정상은 쌀쌀합니다" });
+        return out;
+    }
+
+    /** 쿠팡 파트너스 링크를 보일 때 함께 붙이는 문구(공정거래위원회 추천 · 보증 심사지침 - 경제적 이해관계 표시). */
+    var COUPANG_NOTE = "이 안내는 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.";
+
+    /** 순수 함수 - api/air 응답 → "미세먼지 보통(42) · 초미세먼지 좋음(14) - 가야면 측정소 14시". 못 받았으면 "". 2026-10-15 */
+    function airText(a) {
+        if (!a || a.unavailable || (a.pm10 == null && a.pm25 == null)) return "";
+        var parts = [];
+        if (a.pm10 != null) parts.push("미세먼지 " + a.pm10Word + "(" + a.pm10 + ")");
+        if (a.pm25 != null) parts.push("초미세먼지 " + a.pm25Word + "(" + a.pm25 + ")");
+        var hh = /\d{4}-\d\d-\d\d (\d\d):/.exec(a.time || "");
+        return parts.join(" · ") + " - " + a.station + " 측정소" + (hh ? " " + (+hh[1]) + "시" : "") + (a.dist_km != null ? "(" + a.dist_km + "km)" : "");
+    }
+
+    // ------------------------------------------------------------------ 찜 · 통계 · 백업(2026-10-15 홍TV님)
+
+    /** 찜한 코스 - 이 기기 localStorage "rf-fav" [{id, name, kind, dist, asc, t}], 새로 찜한 것이 앞. */
+    var FAV_KEY = "rf-fav", FAV_MAX = 50;
+    function favList() {
+        try { var l = JSON.parse(localStorage.getItem(FAV_KEY) || "[]"); return Array.isArray(l) ? l : []; } catch (e) { return []; }
+    }
+    /** 순수 함수 - 찜했는가. */
+    function isFav(list, id) { return (list || []).some(function (f) { return f && f.id === id; }); }
+    /** 순수 함수 - 찜했으면 빼고, 아니면 맨 앞에 넣음(FAV_MAX 개까지). */
+    function favToggle(list, item) {
+        list = (list || []).filter(function (f) { return f && f.id; });
+        if (isFav(list, item.id)) return list.filter(function (f) { return f.id !== item.id; });
+        return [item].concat(list).slice(0, FAV_MAX);
+    }
+    /**
+     * ☆ 찜 단추 - getItem() 이 {id, name, kind, dist, asc} 를 돌려주면(없으면 null - 단추가 안 보임) 누를 때마다 넣고 뺍니다.
+     * 돌려준 단추의 refresh() 로 코스가 바뀐 뒤 모양을 다시 맞춥니다.
+     */
+    function favButton(getItem) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "rfFavBtn";
+        function paint() {
+            var it = getItem(), on = !!it && isFav(favList(), it.id);
+            b.hidden = !it;
+            b.textContent = on ? "★" : "☆";
+            b.classList.toggle("on", on);
+            b.title = on ? "찜 풀기" : "찜하기 - 따라가기 첫 화면 '☆ 찜' 에 모아 둡니다(이 기기에만)";
+            b.setAttribute("aria-label", on ? "찜 풀기" : "찜하기");
+            b.setAttribute("aria-pressed", on ? "true" : "false");
+        }
+        b.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var it = getItem();
+            if (!it) return;
+            it.t = Date.now();
+            try { localStorage.setItem(FAV_KEY, JSON.stringify(favToggle(favList(), it))); } catch (err) { /* 저장 공간 */ }
+            paint();
+        });
+        b.refresh = paint;
+        paint();
+        return b;
+    }
+
+    /**
+     * 순수 함수 - 내 기록 통계. year 가 있으면 그 해(한국 시각)만. 코스 수는 같은 코스를 한 번으로.
+     * → {n, walked(m), up(m), ms, courses}
+     */
+    function recordStats(list, year) {
+        var out = { n: 0, walked: 0, up: 0, ms: 0, courses: 0 }, seen = {};
+        (list || []).forEach(function (r) {
+            if (!r || !r.start) return;
+            if (year != null && new Date(r.start + 9 * 3600000).getUTCFullYear() !== year) return;
+            out.n++;
+            out.walked += +r.walked || 0;
+            out.up += +r.up || 0;
+            if (r.end > r.start) out.ms += r.end - r.start;
+            var k = r.courseId || r.name;
+            if (k && !seen[k]) { seen[k] = 1; out.courses++; }
+        });
+        return out;
+    }
+
+    /** 백업에 함께 담는 이 기기 저장값(도장 · 완주 · 정상 · 찜 · 몸무게). 기록 · 사진은 IndexedDB 라 따로. */
+    var BACKUP_KEYS = ["rf-stamps", "rf-done", "rf-peaks", "rf-fav", "rf-body"];
+
+    /** 순수 함수 - 백업 파일 내용인지. 맞으면 "", 아니면 까닭. */
+    function backupCheck(o) {
+        if (!o || typeof o !== "object" || o.app !== "routefly") return "routefly 백업 파일이 아닙니다.";
+        if (o.v !== 1) return "이 앱보다 새 백업 파일입니다. 앱을 새로 고친 뒤 다시 여세요.";
+        if (!Array.isArray(o.records)) return "백업 파일이 깨졌습니다.";
+        return "";
+    }
+
+    /** 순수 함수 - 기록 합치기: 같은 시작 시각 · 코스는 하나로(지금 것을 남김), 최근 것부터 max 개. */
+    function mergeRecords(cur, add, max) {
+        var seen = {}, out = [];
+        (cur || []).concat(add || []).forEach(function (r) {
+            if (!r || typeof r.start !== "number" || !Array.isArray(r.track)) return;
+            var k = r.start + "|" + (r.courseId || "");
+            if (seen[k]) return;
+            seen[k] = 1;
+            out.push(r);
+        });
+        out.sort(function (a, b) { return b.start - a.start; });
+        return out.slice(0, max);
+    }
+
+    /** 순수 함수 - 도장 · 완주 같은 {열쇠: 값} 합치기(지금 있는 것은 그대로, 없는 열쇠만 더함). 찜 · 몸무게 같은 배열 · 값은 지금 것이 없을 때만. */
+    function mergeStore(cur, add) {
+        if (add == null) return cur;
+        if (cur == null) return add;
+        if (Array.isArray(cur) && Array.isArray(add)) {
+            var ids = {};
+            cur.forEach(function (f) { if (f && f.id) ids[f.id] = 1; });
+            return cur.concat(add.filter(function (f) { return f && f.id && !ids[f.id]; }));
+        }
+        if (typeof cur === "object" && typeof add === "object" && !Array.isArray(cur) && !Array.isArray(add) && !("kg" in cur)) {
+            var m = {};
+            Object.keys(add).forEach(function (k) { m[k] = add[k]; });
+            Object.keys(cur).forEach(function (k) { m[k] = cur[k]; });
+            return m;
+        }
+        return cur;
+    }
+
+    /** 순수 함수 - 기록들에 든 사진 열쇠. */
+    function photoIds(records) {
+        var ids = [];
+        (records || []).forEach(function (r) {
+            (r && r.notes || []).forEach(function (n) { if (n && n.photo && ids.indexOf(n.photo) < 0) ids.push(n.photo); });
+        });
+        return ids;
+    }
+
     global.RF = {
         LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, regionNames: regionNames, stampKey: stampKey, summitName: summitName, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakGapM: peakGapM, peakCourses: peakCourses, isClosedTrail: isClosedTrail, isHiddenCourse: isHiddenCourse, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
-        sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap
+        sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap,
+        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE
     };
 })(window);

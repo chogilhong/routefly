@@ -20,6 +20,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -40,6 +41,9 @@ public class MountainServlet extends HttpServlet {
     private static final Logger log = LogManager.getLogger(MountainServlet.class);
     static final double NEAR_M = 2000;
     static final int MAX_COURSES = 30;
+    /** 가까운 100대 명산(2026-10-15) - 이 거리 안 몇 곳. */
+    static final double NEARBY_M = 60000;
+    static final int NEARBY_MAX = 6;
     /** 화면 안 링크 · css · js 는 상대 주소(/m/산 · /m/ 모두 한 단계 아래). 절대 주소는 canonical · og 만(설정 site.baseUrl). */
     static final String REL = "..";
 
@@ -89,7 +93,7 @@ public class MountainServlet extends HttpServlet {
             log.warn("[MOUNTAIN] 코스 조회 실패 {} - {}", name, e.toString());
         }
         resp.setHeader("Cache-Control", failed ? "no-store" : "public, max-age=600");
-        resp.getWriter().print(page(peak, courses, base));
+        resp.getWriter().print(page(peak, courses, nearby(all, peak, NEARBY_MAX, NEARBY_M), base));
     }
 
     private JsonArray peaks() {
@@ -207,6 +211,35 @@ public class MountainServlet extends HttpServlet {
         return 6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
+    /** 순수 함수 - 이 산에서 maxM 안의 다른 100대 명산, 가까운 차례로 max 곳. 각 [산, 거리 m]. */
+    static List<Object[]> nearby(JsonArray peaks, JsonObject peak, int max, double maxM) {
+        double lat = peak.get("lat").getAsDouble(), lon = peak.get("lon").getAsDouble();
+        List<Object[]> hit = new ArrayList<>();
+        for (JsonElement e : peaks) {
+            JsonObject o = e.getAsJsonObject();
+            if (o == peak || (str(o, "id") != null && str(o, "id").equals(str(peak, "id"))) || !o.has("lat") || !o.has("lon")) continue;
+            double d = distM(lat, lon, o.get("lat").getAsDouble(), o.get("lon").getAsDouble());
+            if (d <= maxM) hit.add(new Object[] {o, d});
+        }
+        hit.sort(Comparator.comparingDouble(o -> (Double) o[1]));
+        return hit.size() > max ? hit.subList(0, max) : hit;
+    }
+
+    /** 순수 함수 - 검색 엔진용 구조 정보(schema.org Mountain, JSON-LD). Gson 이 &lt; · &gt; 를 \u003c 로 바꿔 &lt;/script&gt; 로 끊기지 않음. */
+    static String jsonLd(JsonObject peak, String name, String url) {
+        JsonObject o = new JsonObject(), geo = new JsonObject();
+        o.addProperty("@context", "https://schema.org");
+        o.addProperty("@type", "Mountain");
+        o.addProperty("name", name);
+        o.addProperty("url", url);
+        geo.addProperty("@type", "GeoCoordinates");
+        geo.addProperty("latitude", peak.get("lat").getAsDouble());
+        geo.addProperty("longitude", peak.get("lon").getAsDouble());
+        if (peak.has("height") && !peak.get("height").isJsonNull()) geo.addProperty("elevation", peak.get("height").getAsInt());
+        o.add("geo", geo);
+        return "<script type=\"application/ld+json\">" + new Gson().toJson(o) + "</script>";
+    }
+
     /** 순수 함수 - 예상 시간(등산 표준: 4km/h + 오르막 600m/h, course-kit.js standardMs 와 같음) "2시간 18분". */
     static String hours(int distanceM, Integer ascentM) {
         double h = distanceM / 1000.0 / 4 + (ascentM == null ? 0 : ascentM / 600.0);
@@ -215,7 +248,7 @@ public class MountainServlet extends HttpServlet {
     }
 
     /** 순수 함수 - 산 페이지. */
-    static String page(JsonObject peak, List<JsonObject> courses, String base) {
+    static String page(JsonObject peak, List<JsonObject> courses, List<Object[]> nearby, String base) {
         String name = str(peak, "id") != null ? str(peak, "id") : str(peak, "name"), summit = str(peak, "summit");   // id = 지역 붙은 이름(백운산(광양))
         String url = base + "/m/" + enc(name);
         Integer top = null;
@@ -231,7 +264,10 @@ public class MountainServlet extends HttpServlet {
         StringBuilder b = new StringBuilder(head(title, desc, url, base));
         b.append("<main><p class=\"crumb\"><a href=\"").append(REL).append("/m/\">100대 명산</a></p>");
         b.append("<h1>").append(esc(name)).append(" 등산코스</h1>");
+        Integer height = peak.has("height") && !peak.get("height").isJsonNull() ? peak.get("height").getAsInt() : null;
+        b.append(jsonLd(peak, name, url));
         b.append("<p class=\"lead\">산림청 100대 명산").append(summit != null ? " · 정상 " + esc(summit) : "")
+                .append(height != null ? String.format(Locale.KOREA, " %,dm", height) : "")
                 .append(top != null ? String.format(Locale.KOREA, " · 코스 최고점 약 %,dm", top) : "").append("</p>");
         b.append("<section id=\"wx\" data-lat=\"").append(peak.get("lat").getAsDouble()).append("\" data-lon=\"").append(peak.get("lon").getAsDouble())
                 .append("\"><h2>오늘 날씨 · 일출 · 일몰</h2><p class=\"dim\" id=\"wxBody\">불러오는 중…</p></section>");
@@ -244,7 +280,8 @@ public class MountainServlet extends HttpServlet {
                 String id = str(c, "course_id");
                 int dist = c.get("distance_m").getAsInt();
                 Integer asc = c.has("ascent_m") && !c.get("ascent_m").isJsonNull() ? c.get("ascent_m").getAsInt() : null;
-                b.append("<li><b>").append(esc(str(c, "name"))).append("</b><span>")
+                b.append("<li data-id=\"").append(esc(id)).append("\" data-name=\"").append(esc(str(c, "name"))).append("\" data-dist=\"").append(dist)
+                        .append(asc != null ? "\" data-asc=\"" + asc : "").append("\"><b>").append(esc(str(c, "name"))).append("</b><span>")
                         .append(String.format(Locale.ROOT, "%.2fkm", dist / 1000.0))
                         .append(asc != null ? String.format(Locale.KOREA, " · 오르막 %,dm", asc) : "")
                         .append(" · 약 ").append(hours(dist, asc)).append("</span><span class=\"go\">")
@@ -254,6 +291,15 @@ public class MountainServlet extends HttpServlet {
             b.append("</ul>");
         }
         b.append("<p class=\"dim\">예상 시간은 시속 4km · 오르막 600m 에 1시간으로 어림한 값입니다. 코스 자료는 참고용이니 현지 안내판 · 통제를 꼭 따르세요.</p></section>");
+        if (!nearby.isEmpty()) {   // 가까운 100대 명산(2026-10-15) - 다음 산행 고르기 · 산 페이지끼리 잇기
+            b.append("<section><h2>가까운 100대 명산</h2><ul class=\"ms\">");
+            for (Object[] n : nearby) {
+                JsonObject o = (JsonObject) n[0];
+                b.append("<li><a href=\"").append(REL).append("/m/").append(esc(enc(str(o, "id")))).append("\">").append(esc(str(o, "id")))
+                        .append(" <small>").append(Math.round((Double) n[1] / 1000)).append("km</small></a></li>");
+            }
+            b.append("</ul></section>");
+        }
         b.append(foot(base));
         return b.toString();
     }
@@ -294,7 +340,7 @@ public class MountainServlet extends HttpServlet {
 
     private static String foot(String base) {
         String b = REL;   // 상대 주소 - 터널(https → http 톰캣)에서 http 절대 주소가 막혔음(2026-10-14)
-        return "<p class=\"dim\">자료: 산림청 100대 명산 · 등산로정보, 국립공원공단 탐방로, 기상청 단기예보(공공데이터포털). "
+        return "<p class=\"dim\">자료: 산림청 100대 명산 · 등산로정보, 국립공원공단 탐방로, 기상청 단기예보 · 에어코리아 대기정보(공공데이터포털). "
                 + "<a href=\"" + b + "/about.html\">안전 · 출처 안내</a> · <a href=\"" + b + "/privacy.html\">개인정보처리방침</a></p>"
                 + "<p class=\"brand\"><a href=\"" + b + "/hike.html\"><img src=\"" + b + "/img/logo-dark.svg\" alt=\"routefly\" width=\"160\" height=\"50\"> 열기 ›</a></p></main>"
                 + "<script src=\"" + b + "/js/course-kit.js\"></script><script src=\"" + b + "/js/mountain.js\"></script></body></html>";

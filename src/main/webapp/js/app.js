@@ -29,6 +29,9 @@
     // ------------------------------------------------------------------ 작은 도구
 
     function $(id) { return document.getElementById(id); }
+    // ☆ 찜(2026-10-15 홍TV님) - 코스 이름 옆. 따라가기 첫 화면에 모아 보임(이 기기 rf-fav, hike.js 와 같음)
+    var favCur = null, favBtn = RF.favButton(function () { return favCur; });
+    $("courseName").parentNode.insertBefore(favBtn, $("courseName").nextSibling);
     function num(n, digits) {
         if (n == null || !isFinite(n)) return "-";
         return Number(n).toLocaleString("ko-KR", { minimumFractionDigits: digits || 0, maximumFractionDigits: digits || 0 });
@@ -433,6 +436,9 @@
             hideCaption();
 
             RF.showName($("courseName"), j.course.name);
+            favCur = RF.isGpxId(id) ? null : { id: id, name: j.course.name, kind: j.course.kind, dist: Math.round(+j.course.distance_m || c.total),
+                                                  asc: j.course.ascent_m != null ? Math.round(+j.course.ascent_m) : null };
+            favBtn.refresh();
             var official = RF.infoText(j.info);   // 국립공원 공식 코스 - 공단 기준 시간 · 난이도
             var spots = RF.spotSummary(j.spots);   // 국립공원 위험지역 · 조망점
             $("courseStat").textContent = statLine(j.course)
@@ -572,6 +578,36 @@
         return d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0");
     }
 
+    /** 제휴 · 후원 링크(api/partners - 설정에 넣은 것만, 2026-10-15). 한 번만 받음. */
+    var partnersP = null;
+    function partners() {
+        return partnersP || (partnersP = getJson("api/partners").catch(function () { return { coupang: {} }; }));
+    }
+
+    /** 🎒 챙길 것(2026-10-15 홍TV님) - 계절 · 오르막으로. 쿠팡 파트너스 링크가 설정돼 있으면 물건 옆에(+ 수수료 문구). */
+    function drawGear(box, c, kind) {
+        var asc = c.asc && c.asc.length ? c.asc[c.asc.length - 1] : 0, rows = [];
+        box.appendChild(el("div", "gDay", "🎒 챙길 것"));
+        RF.gearList(new Date().getMonth() + 1, asc, kind || "hike").forEach(function (g) {
+            var r = gRow(g.label, g.why);
+            box.appendChild(r);
+            rows.push([g, r]);
+        });
+        partners().then(function (p) {
+            var any = false;
+            rows.forEach(function (x) {
+                var u = p.coupang && p.coupang[x[0].key];
+                if (!u) return;
+                var a = gLink("쿠팡 ›", u);
+                a.className = "gSide";
+                a.rel = "noopener sponsored";
+                x[1].appendChild(a);
+                any = true;
+            });
+            if (any) box.appendChild(el("div", "gNote", RF.COUPANG_NOTE));
+        });
+    }
+
     function openGuide(kind, btn) {
         var c = guide.c;
         if (!c) return;
@@ -659,13 +695,20 @@
             inp.addEventListener("change", draw);
             inp.addEventListener("input", draw);
             draw();
+            var gear = el("div");
+            body.appendChild(gear);
+            drawGear(gear, c, guide.kind);
         } else if (kind === "weather") {
             title.textContent = "☁️ 날씨 (들머리)";
             body.appendChild(el("div", "gNote", "불러오는 중…"));
             var top = Math.max.apply(null, c.ele.filter(function (e) { return e != null; }).concat([start.ele || 0]));
+            var airP = getJson("api/air?lat=" + start.lat.toFixed(4) + "&lon=" + start.lon.toFixed(4)).catch(function () { return null; });   // 미세먼지(2026-10-15)
             getJson("api/weather?lat=" + start.lat.toFixed(4) + "&lon=" + start.lon.toFixed(4)).then(function (w) {
                 if (!$("guideSheet").classList.contains("open") || guide.c !== c) return;
                 body.textContent = "";
+                var ab = el("div", "gNote", "");
+                body.appendChild(ab);
+                airP.then(function (a) { var t = RF.airText(a); if (t) ab.textContent = "😷 " + t; else ab.remove(); });
                 if (w.unavailable || !(w.hours || []).length) { body.appendChild(el("div", "gNote", "날씨를 지금 받지 못했습니다. 잠시 뒤 다시 눌러 주세요.")); return; }
                 var day = "";
                 w.hours.slice(0, 30).forEach(function (h) {
@@ -713,6 +756,17 @@
                         + (pet ? " " + pk + "은 시범사업으로 반려견 동반 가능(예약): " + pet.text + "." : " 산행 전에 공원 안내를 확인하세요."));
                     if (pet && /^https:\/\//.test(pet.url || "")) { var pl = gLink("예약 안내 ›", pet.url); pn.appendChild(document.createTextNode(" ")); pn.appendChild(pl); }
                     body.appendChild(pn);
+                }
+                if (!food) {   // 아고다 제휴 링크(설정 partner.agoda.url - 2026-10-15). {lat} · {lon} 은 들머리 좌표로
+                    var ag = el("div", "gNote");
+                    body.appendChild(ag);
+                    partners().then(function (p) {
+                        if (!p.agoda) { ag.remove(); return; }
+                        var al = gLink("🏨 아고다에서 들머리 근처 숙소 더 보기 ›", p.agoda.replace(/\{lat\}/g, start.lat.toFixed(5)).replace(/\{lon\}/g, start.lon.toFixed(5)));
+                        al.rel = "noopener sponsored";
+                        ag.appendChild(al);
+                        ag.appendChild(document.createTextNode(" (제휴 링크 - 예약하면 routefly 가 수수료를 받습니다)"));
+                    });
                 }
                 body.appendChild(el("div", "gNote", "자료: 한국관광공사 " + (petOnly ? "반려동물 동반여행 서비스" : "TourAPI") + "(관광공사에 등록된 곳) · 들머리 " + rk + "km 안 · 가까운 순."
                     + (petOnly && rk > 5 ? " 5km 안에 없어 " + rk + "km 까지 넓혀 찾았습니다." : "")

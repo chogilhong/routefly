@@ -39,7 +39,17 @@ public class MountainServletTest {
         rows.add(course("near", "가야산 · 백운동 → 서성재", 35.83, 128.13, 35.8300, 128.1300));
         List<JsonObject> out = MountainServlet.near(rows, gaya, MountainServlet.NEAR_M);
         assertEquals(Arrays.asList("knps-7013", "near"), out.stream().map(c -> c.get("course_id").getAsString()).toList());
-        String html = MountainServlet.page(gaya, out, "https://routefly.kr/routefly");
+        JsonArray peaks = JsonParser.parseString("[{\"id\":\"가야산\",\"lat\":35.822544,\"lon\":128.122849},{\"id\":\"비슬산\",\"lat\":35.69,\"lon\":128.52},"
+                + "{\"id\":\"덕유산\",\"lat\":35.86,\"lon\":127.75},{\"id\":\"한라산\",\"lat\":33.36,\"lon\":126.53}]").getAsJsonArray();
+        List<Object[]> nb = MountainServlet.nearby(peaks, gaya, 6, MountainServlet.NEARBY_M);
+        assertEquals("자기 빼고 60km 안, 가까운 차례", Arrays.asList("덕유산", "비슬산"), nb.stream().map(o -> ((JsonObject) o[0]).get("id").getAsString()).toList());
+        gaya.addProperty("height", 1433);
+        String html = MountainServlet.page(gaya, out, nb, "https://routefly.kr/routefly");
+        assertTrue("가까운 산 링크", html.contains("<a href=\"../m/%EB%8D%95%EC%9C%A0%EC%82%B0\">덕유산 <small>34km</small></a>"));
+        assertTrue("정상 높이", html.contains("정상 칠불봉 1,433m"));
+        assertTrue("찜 단추용 코스 정보", html.contains("<li data-id=\"knps-7013\" data-name=\"가야산 · 해인사 → 상왕봉(우두봉)\" data-dist=\"3980\" data-asc=\"779\">"));
+        assertTrue("구조 정보(JSON-LD)", html.contains("<script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"Mountain\",\"name\":\"가야산\""));
+        assertTrue(MountainServlet.jsonLd(JsonParser.parseString("{\"lat\":1,\"lon\":2}").getAsJsonObject(), "</script><x>", "u").contains("\\u003c/script\\u003e"));
         assertTrue(html.contains("<title>가야산 등산코스 · 날씨 · 일출 일몰 - routefly</title>"));
         assertTrue(html.contains("rel=\"canonical\" href=\"https://routefly.kr/routefly/m/%EA%B0%80%EC%95%BC%EC%82%B0\""));
         assertTrue(html.contains("\"../index.html#c=knps-7013&amp;m=%EA%B0%80%EC%95%BC%EC%82%B0\">fly(3D)") && html.contains("\"../hike.html#c=knps-7013&amp;m=%EA%B0%80%EC%95%BC%EC%82%B0\">따라가기"));
@@ -90,6 +100,6 @@ public class MountainServletTest {
         String ch = MountainServlet.choosePage("백운산", MountainServlet.byName(peaks, "백운산"), "");
         assertTrue(ch.contains(">백운산(광양)</a>") && ch.contains(">백운산(포천)</a>"));
         assertTrue(MountainServlet.indexPage(peaks, "").contains(">백운산(광양)</a>"));
-        assertTrue(MountainServlet.page(peaks.get(1).getAsJsonObject(), List.of(), "").contains("<h1>백운산(포천) 등산코스</h1>"));
+        assertTrue(MountainServlet.page(peaks.get(1).getAsJsonObject(), List.of(), List.of(), "").contains("<h1>백운산(포천) 등산코스</h1>"));
     }
 }

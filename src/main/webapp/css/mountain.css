@@ -32,3 +32,11 @@ ul { margin:0; padding:0; list-style:none; }
 .logo img { display:block; width:256px; max-width:66vw; height:auto; }
 .brand a { display:inline-flex; align-items:center; gap:6px; text-decoration:none; }
 .brand img { width:160px; height:auto; }
+/* ☆ 찜 · 가까운 산 거리(2026-10-15) */
+.rfFavBtn { background:none; border:1px solid var(--ln); border-radius:14px; color:var(--dim); font-size:15px; line-height:1; padding:3px 9px; cursor:pointer; }
+.rfFavBtn.on { color:#ffd43b; border-color:#ffd43b; }
+.ms small { color:var(--dim); font-size:12px; }
+.gear li { border-top:1px solid var(--ln); padding:8px 0; display:flex; flex-wrap:wrap; gap:2px 10px; align-items:baseline; font-size:14px; }
+.gear li:first-child { border-top:0; }
+.gear span { color:var(--dim); font-size:13px; flex:1; }
+.gear a { text-decoration:none; font-size:13px; }

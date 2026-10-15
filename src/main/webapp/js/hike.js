@@ -682,6 +682,14 @@
     fetch("data/park-notes.json").then(function (x) { return x.json(); }).then(function (d) { listNotes = d && d.parks; }).catch(function () { /* 그대로 */ });
 
     var loadSeq = 0;   // 2026-10-09 점검: A 를 누르고 바로 B 를 누르면 늦게 온 A 가 B 를 덮지 않게
+    // ☆ 찜(2026-10-15 홍TV님) - 위 줄 코스 이름 옆. 찜한 코스는 따라가기 첫 화면(검색 전)에 모아 보임. 이 기기에만(rf-fav)
+    var favBtn = RF.favButton(function () {
+        if (!c || isGpxId(c.id)) return null;
+        return { id: c.id, name: c.course.name, kind: c.course.kind, dist: Math.round(c.total),
+                 asc: c.asc && c.asc.length ? Math.round(c.asc[c.asc.length - 1]) : null };
+    });
+    $("name").parentNode.insertBefore(favBtn, $("name").nextSibling);
+
     function loadCourse(id) {
         var my = ++loadSeq;
         $("pick").style.display = "none";
@@ -748,6 +756,7 @@
             if (hn && hn.length <= 30 && !c.pois.some(function (q) { return q.name === hn && +q.dist_m < 300; }))
                 c.pois.unshift({ name: hn, lat: c.lat[0], lon: c.lon[0], ele_m: c.ele[0], dist_m: 0, off_route_m: 0, end: true });
             RF.showName($("name"), c.course.name, true);
+            favBtn.refresh();
             document.title = RF.nameText(c.course.name, true);   // 길만 - "- routefly" 를 붙이면 탭 · 최근 앱 목록에서 잘림(2026-10-12 홍TV님)
             if ((parts ? r[0] : [r[0]]).some(function (j) { return j && j.course && RF.isClosedTrail(j.course.name); })) toast("⚠ 비법정탐방로(통제구역)입니다. 국립공원 지정 탐방로가 아니라 출입이 금지된 길이니 따라가지 마세요.", 12000);   // 링크로 바로 연 경우(목록에는 안 나옴)
             else if (RF.infoText(c.info)) toast(RF.infoText(c.info), 6000);   // 국립공원 공식 코스 - 공단 기준 시간 · 난이도
@@ -1091,8 +1100,8 @@
     }
 
     /** 내려받기(공유 창이 없는 컴퓨터 브라우저 등). */
-    function saveFile(text, name) {
-        var blob = new Blob([text], { type: "application/gpx+xml" });
+    function saveFile(text, name, type) {
+        var blob = new Blob([text], { type: type || "application/gpx+xml" });
         var a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
         a.download = name;
@@ -1195,6 +1204,7 @@
     function drawRecords() {
         var box = $("recList"), list = records();
         box.innerHTML = "";
+        drawRecStats(list);
         if (!list.length) {
             box.innerHTML = '<p class="tip">아직 기록이 없습니다. 시작했다가 "끝내기" 를 누르면 남습니다.</p>';
         }
@@ -1227,6 +1237,84 @@
             box.appendChild(row);
         });
         $("recSheet").style.display = "flex";
+    }
+
+    /** 내 기록 통계(2026-10-15 홍TV님) - 올해 · 남아 있는 기록 전체(최근 30개). */
+    function drawRecStats(list) {
+        var box = $("recStats"), y = new Date(now() + 9 * 3600000).getUTCFullYear(), sy = RF.recordStats(list, y), sa = RF.recordStats(list);
+        box.innerHTML = "";
+        box.hidden = !list.length;
+        var hrs = function (ms) { var m = Math.round(ms / 60000); return (m >= 60 ? Math.floor(m / 60) + "시간 " : "") + m % 60 + "분"; };
+        [["올해(" + y + ")", sy.n + "번 · " + km(sy.walked) + " km · 오른 높이 " + num(sy.up) + " m"],
+         ["올해 걸은 시간", hrs(sy.ms) + " · 코스 " + sy.courses + "곳"],
+         ["남은 기록 전체", sa.n + "번 · " + km(sa.walked) + " km · 코스 " + sa.courses + "곳"]].forEach(function (r) {
+            var row = document.createElement("div"), a = document.createElement("span"), b = document.createElement("b");
+            a.textContent = r[0]; b.textContent = r[1];
+            row.appendChild(a); row.appendChild(b); box.appendChild(row);
+        });
+    }
+
+    /**
+     * 기록 백업(2026-10-15 홍TV님: 핸드폰을 바꾸거나 앱을 지우면 기록이 사라짐) - 기록 · 사진 · 도장 · 완주 · 정상 · 찜 · 몸무게를
+     * JSON 파일 하나로(사진은 base64). 핸드폰 안에서 만들고 이용자가 고른 곳(드라이브 · 메일 · 내 파일)으로만 보냅니다.
+     * 불러오기는 지금 기록에 합칩니다(같은 기록은 하나로, 최근 REC_MAX 개).
+     */
+    function backupSave() {
+        recordsReady.then(function () {
+            var recs = records(), photos = {};
+            return Promise.all(RF.photoIds(recs).map(function (id) {
+                return photoGet(id).then(function (b) { return b ? blobToBase64(b).then(function (s) { photos[id] = s; }) : null; }, function () { /* 없는 사진 */ });
+            })).then(function () {
+                var ls = {};
+                RF.BACKUP_KEYS.forEach(function (k) { try { var v = localStorage.getItem(k); if (v) ls[k] = JSON.parse(v); } catch (e) { /* 깨진 값은 뺌 */ } });
+                return { app: "routefly", v: 1, at: now(), records: recs, photos: photos, ls: ls };
+            });
+        }).then(function (o) {
+            var d = new Date(), text = JSON.stringify(o);
+            var name = "routefly-backup-" + d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0") + ".json";
+            toast("백업 파일: 기록 " + o.records.length + "개 · 사진 " + Object.keys(o.photos).length + "장 - 드라이브 · 메일 등 이 핸드폰 밖에 두세요.", 6000);
+            if (FS && SHARE) return nativeShareFile(name, btoa(unescape(encodeURIComponent(text))), "routefly 백업");
+            var f = null;
+            try { f = new File([text], name, { type: "application/json" }); if (!(navigator.canShare && navigator.canShare({ files: [f] }))) f = null; } catch (e) { f = null; }
+            if (f) return navigator.share({ files: [f], title: "routefly 백업" }).catch(function (e) {
+                if (!(e && e.name === "AbortError")) saveFile(text, name, "application/json");
+            });
+            saveFile(text, name, "application/json");
+        }).catch(function (e) { toast("백업을 만들지 못했습니다: " + (e && e.message || e), 6000); });
+    }
+    function b64Blob(s, type) {
+        var bin = atob(s), u = new Uint8Array(bin.length);
+        for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+        return new Blob([u], { type: type });
+    }
+    function backupLoad(file) {
+        var rd = new FileReader();
+        rd.onerror = function () { toast("파일을 읽지 못했습니다.", 5000); };
+        rd.onload = function () {
+            var o = null;
+            try { o = JSON.parse(String(rd.result)); } catch (e) { /* 아래 */ }
+            var bad = RF.backupCheck(o);
+            if (bad) { toast(bad, 6000); return; }
+            var photos = o.photos && typeof o.photos === "object" ? o.photos : {};
+            if (!confirm("백업(기록 " + o.records.length + "개 · 사진 " + Object.keys(photos).length + "장)을 이 핸드폰에 합칠까요?\n지금 기록은 지우지 않습니다(기록은 최근 " + REC_MAX + "개까지).")) return;
+            recordsReady.then(function () {
+                var merged = RF.mergeRecords(records(), o.records, REC_MAX);
+                return Promise.all(RF.photoIds(merged).filter(function (id) { return typeof photos[id] === "string"; }).map(function (id) {
+                    try { return photoPut(id, b64Blob(photos[id], "image/jpeg")).catch(function () { /* 그 사진만 */ }); } catch (e) { return null; }
+                })).then(function () { return writeRecords(merged); });
+            }).then(function () {
+                var ls = o.ls && typeof o.ls === "object" ? o.ls : {};
+                RF.BACKUP_KEYS.forEach(function (k) {
+                    if (ls[k] == null) return;
+                    var cur = null;
+                    try { cur = JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { /* 새로 */ }
+                    try { localStorage.setItem(k, JSON.stringify(RF.mergeStore(cur, ls[k]))); } catch (e) { /* 저장 공간 */ }
+                });
+                drawRecords();
+                toast("백업을 불러왔습니다.", 4000);
+            }).catch(function (e) { toast("백업을 불러오지 못했습니다: " + (e && e.message || e), 6000); });
+        };
+        rd.readAsText(file);
     }
 
     /**
@@ -2021,6 +2109,7 @@
                 var kt = document.querySelector('#kindTabs button[data-kind="' + lastKind + '"]');
                 if (kt) kt.click();
             }
+            if (!$("q").value.trim() && !nearAt) pickHome();   // 코스 화면에서 찜을 넣고 빼고 왔을 때
         }
     }
 
@@ -2236,6 +2325,27 @@
     // 처음 안내 글 - 검색어를 지워 비우면 다시(2026-10-11 홍TV님: 지운 뒤에도 지리산 목록이 남았음).
     // 빈 채로 종류 탭만 누를 때(내 주변 코스 목록)는 그대로 둡니다
     var PICK_HINT = $("pickList").innerHTML, lastQ = "";
+    /** 검색 전 첫 화면 - 안내 글 + 찜한 코스(2026-10-15 홍TV님). */
+    function pickHome() {
+        var box = $("pickList"), favs = RF.favList();
+        box.innerHTML = PICK_HINT;
+        if (!favs.length) return;
+        var h = document.createElement("div");
+        h.className = "msg";
+        h.textContent = "★ 찜한 코스 " + favs.length + "개 - 코스 화면 이름 옆 ☆ 로 넣고 뺍니다.";
+        box.appendChild(h);
+        favs.forEach(function (f) {
+            var it = document.createElement("div"), b = document.createElement("b"), sp = document.createElement("span");
+            it.className = "it fav";
+            RF.showName(b, String(f.name || ""));
+            sp.textContent = (f.dist ? km(f.dist) + "km" : "") + (f.asc != null ? " · 오르막 " + num(f.asc) + "m" : "");
+            it.appendChild(b);
+            it.appendChild(sp);
+            it.onclick = function () { fromList = true; location.hash = "#c=" + encodeURIComponent(f.id); };
+            box.appendChild(it);
+        });
+    }
+    pickHome();
     // 내 주변 코스를 보인 자리 - 검색창이 빈 채로 종류 탭을 바꾸면 그 자리에서 그 종류로 다시(2026-10-11 홍TV님: 등산 탭을 눌러도 그대로였음)
     var nearAt = null;
     $("q").addEventListener("input", function () {
@@ -2247,7 +2357,7 @@
         lastQ = q;
         if (!q) {
             pickSeq++;
-            if (wasQ) { nearAt = null; $("pickList").innerHTML = PICK_HINT; }
+            if (wasQ) { nearAt = null; pickHome(); }
             else if (nearAt) nearList(nearAt.lat, nearAt.lon);
             return;
         }
@@ -2345,6 +2455,9 @@
     });
     $("myRecords").addEventListener("click", showRecords);
     $("recClose").addEventListener("click", function () { $("recSheet").style.display = "none"; });
+    $("backupSave").addEventListener("click", backupSave);
+    $("backupLoad").addEventListener("click", function () { $("backupFile").value = ""; $("backupFile").click(); });
+    $("backupFile").addEventListener("change", function () { if (this.files && this.files[0]) backupLoad(this.files[0]); });
     $("recClear").addEventListener("click", function () {
         if (mapReady) mapReady.then(function () { map.getSource("recTrack").setData({ type: "FeatureCollection", features: [] }); });
         $("recClear").style.display = "none";
