@@ -813,6 +813,7 @@
             setKindWords();
             drawCourse();
             prof = RF.profile($("profile"), c, {});
+            boardBtn();
             $("save").textContent = offlineIds().indexOf(id) >= 0 ? "✅ 저장됨" : "📥 저장";
             // 이 기기에 남은 산행 기록(새로 고침 · 화면 꺼짐 뒤에도 이어서)
             var saved = loadSaved();
@@ -1920,6 +1921,7 @@
         try { history.replaceState(null, "", "#c=" + encodeURIComponent(c.id) + keepHash); } catch (e) { /* 주소만 못 바꿈 */ }
         drawCourse(true);
         prof = RF.profile($("profile"), c, {});
+        boardBtn();
         try {
             localStorage.setItem(saveKey() + "-track", JSON.stringify(track));
             // 2026-10-09 점검: 사진 · 메모도 새 이름으로 다시 남깁니다(clearSaved 가 지워 다시 열면 메모가 사라졌음)
@@ -2181,8 +2183,40 @@
             }
         }
         if (prof) prof.set(d);
+        if (boardOpenNow && Date.now() - boardDrawn > 5000) drawBoard();   // 열려 있으면 5초마다 현위치를 다시
         if (map.getLayer("route-done")) map.setPaintProperty("route-done", "line-gradient", progressGradient(d / c.total));
     }
+
+    // ------------------------------------------------------------------ 📋 안내판(2026-10-16 홍TV님) - 공단 탐방로 안내판처럼 구간 경사 + 🔴 현위치
+
+    var board = null, boardOpenNow = false, boardDrawn = 0;
+    /** 고도 그래프 왼쪽 위 "📋 안내판" 단추 - 등산 · 걷기 코스만(자전거는 경사 단계가 맞지 않음). */
+    function boardBtn() {
+        board = null;
+        if (!c || K() === RF.KINDS.bike || !c.ele || c.ele.filter(function (e) { return e != null; }).length < 2) return;
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "boardOpen";
+        b.textContent = "📋 안내판";
+        b.title = "공단 안내판처럼 구간별 경사 · 현위치";
+        b.addEventListener("click", function (e) { e.stopPropagation(); openBoard(); });
+        $("profile").appendChild(b);
+    }
+    function drawBoard() {
+        if (!board) {
+            var pts = c.dist.map(function (d, i) { return [c.lon[i], c.lat[i], c.ele[i], d]; });
+            var ends = RF.nameEnds(c.course.name) || ["출발", "도착"];
+            board = RF.boardSegments(pts, (c.pois || []).filter(function (q) { return !q.end; }), ends[0], ends[1]);
+        }
+        RF.boardProfile($("boardBox"), board, false, hike.running || hike.d > 0 ? hike.d : null);
+        boardDrawn = Date.now();
+    }
+    function openBoard() {
+        $("boardSheet").style.display = "flex";
+        boardOpenNow = true;
+        drawBoard();   // 칸이 보인 뒤 그려야 폭을 앎
+    }
+    $("boardClose").addEventListener("click", function () { $("boardSheet").style.display = "none"; boardOpenNow = false; });
 
     // ------------------------------------------------------------------ 코스 고르기
 

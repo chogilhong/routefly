@@ -3310,8 +3310,26 @@
         return { total: total, up: Math.round(up), flip: flip, cuts: cuts, segs: segs, line: line };
     }
 
-    /** 안내판 고도 그래프 - box 에 그림. b = boardSegments(…), en - 영어 글. */
-    function boardProfile(box, b, en) {
+    /**
+     * 순수 함수 - 현위치(따라가기 - 2026-10-16 홍TV님): 코스 처음부터 걸은 거리 d(m) → 안내판 위 자리와 다음 지점.
+     * 안내판이 뒤집혀 있으면(내려가는 코스) 걷는 쪽이 왼쪽. → {d(안내판 거리), e(고도), pct(지금 구간 경사), next:{name, m(남은 거리)} 또는 null}
+     */
+    function boardHere(b, d) {
+        if (!b) return null;
+        var hd = Math.max(0, Math.min(b.total, b.flip ? b.total - d : d)), e = b.line[0][1];
+        for (var i = 1; i < b.line.length; i++) if (b.line[i][0] >= hd) {
+            var a = b.line[i - 1], c = b.line[i], f = c[0] > a[0] ? (hd - a[0]) / (c[0] - a[0]) : 0;
+            e = a[1] + (c[1] - a[1]) * f;
+            break;
+        }
+        var seg = b.segs.filter(function (s) { return hd >= s.d0 && hd <= s.d1; })[0] || b.segs[b.segs.length - 1];
+        var named = b.cuts.filter(function (c) { return c.name && (b.flip ? c.d < hd - 10 : c.d > hd + 10); });
+        var nx = b.flip ? named[named.length - 1] : named[0];
+        return { d: hd, e: e, pct: seg.pct, lv: seg.lv, next: nx ? { name: nx.name, m: Math.round(Math.abs(nx.d - hd)) } : null };
+    }
+
+    /** 안내판 고도 그래프 - box 에 그림. b = boardSegments(…), en - 영어 글, here - 걸은 거리(m, 따라가기 현위치 - 없으면 안 그림). */
+    function boardProfile(box, b, en, here) {
         box.textContent = "";
         if (!b) { box.appendChild(el("p", "dim", en ? "No elevation data for this trail." : "고도 자료가 없는 코스입니다.")); return; }
         // 그림 폭 = 실제 칸 폭(글자가 줄지 않게 - 640 으로 그려 줄였더니 핸드폰에서 7px 로 작았음)
@@ -3359,11 +3377,20 @@
             }
         });
         html += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + B + '" y2="' + B + '" class="base"/>';
+        var hp = here != null ? boardHere(b, here) : null;
+        if (hp) {   // 🔴 현위치 - 안내판의 "현위치(You are here)" 처럼
+            var hx = x(hp.d), hy = y(hp.e), ha = hx < 50 ? "start" : hx > W - 50 ? "end" : "middle";
+            html += '<line x1="' + hx.toFixed(1) + '" x2="' + hx.toFixed(1) + '" y1="' + (hy + 8).toFixed(1) + '" y2="' + B + '" class="here"/>'
+                + '<circle cx="' + hx.toFixed(1) + '" cy="' + hy.toFixed(1) + '" r="7" class="here"/>'
+                + '<text x="' + hx.toFixed(1) + '" y="' + (hy - 13).toFixed(1) + '" text-anchor="' + ha + '" class="hereT">' + (en ? "You are here" : "현위치") + "</text>";
+        }
         svg.innerHTML = html;
         box.appendChild(svg);
         var legend = el("div", "rf-legend");
         LEVELS.forEach(function (lv) { var i = el("i", null, en ? lv.en : lv.ko); i.style.setProperty("--c", lv.color); legend.appendChild(i); });
         box.appendChild(legend);
+        if (hp && hp.next) box.appendChild(el("p", "hereNext", (en ? "Next: " + enName(hp.next.name) + " in " : "다음 " + hp.next.name + "까지 ")
+            + (hp.next.m >= 1000 ? (Math.round(hp.next.m / 100) / 10) + "km" : hp.next.m + "m") + (en ? " · slope " : " · 지금 구간 경사 ") + hp.pct + "% (" + (en ? LEVELS[hp.lv].en : LEVELS[hp.lv].ko) + ")"));
         box.appendChild(el("p", "dim", en ? "Colors show the slope of each section (between named points); % is the average slope. Elevation from GPS/terrain data - for reference."
             : "색은 구간(이름 있는 지점 사이) 경사, % 는 그 구간 평균 경사입니다. 고도는 GPS · 지형 자료라 참고용입니다."));
     }
@@ -3622,6 +3649,6 @@
         LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, regionNames: regionNames, stampKey: stampKey, summitName: summitName, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakGapM: peakGapM, peakCourses: peakCourses, isClosedTrail: isClosedTrail, isHiddenCourse: isHiddenCourse, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
         sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap,
-        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox, LEVELS: LEVELS, difficulty: difficulty, boardSegments: boardSegments, boardProfile: boardProfile, nameEnds: nameEnds, boardButtons: boardButtons, levelChip: levelChip, roman: roman, enName: enName, weekendText: weekendText
+        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox, LEVELS: LEVELS, difficulty: difficulty, boardSegments: boardSegments, boardProfile: boardProfile, nameEnds: nameEnds, boardButtons: boardButtons, levelChip: levelChip, roman: roman, enName: enName, weekendText: weekendText, boardHere: boardHere
     };
 })(window);

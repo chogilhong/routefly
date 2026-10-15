@@ -94,6 +94,8 @@ body.compact #statGrids { display:none; }
 
 /* ① 고도 그래프 */
 #profile { flex:0 0 auto; height:92px; margin:6px 10px 4px; }
+#profile .boardOpen { position:absolute; left:4px; top:2px; z-index:2; height:26px; padding:0 8px; border-radius:13px; border:1px solid var(--ln); background:rgba(17,22,29,0.75);
+                      color:var(--tx); font:bold 12px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }   /* 📋 안내판 열기(2026-10-16) */
 
 /* 아래 단추 */
 #bar { flex:0 0 auto; display:flex; gap:8px; padding:6px 10px calc(env(safe-area-inset-bottom) + 8px); background:var(--panel); }
@@ -441,6 +443,15 @@ html.picking #pick { display:flex; }
         </div>
         <!-- 2026-10-15 홍TV님: 후원 단추가 안내 맨 아래에만 있어 찾기 어려웠음 - 설정(donate.url)에 있을 때만 -->
         <a class="fam" id="doneDonate" target="_blank" rel="noopener" hidden>☕ routefly 후원하기</a>
+    </div>
+</div>
+
+<!-- 📋 안내판(2026-10-16 홍TV님 - 국립공원 탐방로 안내판처럼 구간 경사 · 현위치) - js/hike.js openBoard -->
+<div id="boardSheet" class="sheet">
+    <div class="sbox">
+        <h2>📋 안내판</h2>
+        <div id="boardBox" class="rfBoardBox"></div>
+        <div class="sbtn"><button type="button" id="boardClose" class="main">닫기</button></div>
     </div>
 </div>
 

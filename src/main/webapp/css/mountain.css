@@ -111,3 +111,6 @@ ul { margin:0; padding:0; list-style:none; }
 .rf-legend { display:flex; flex-wrap:wrap; gap:4px 10px; margin-top:4px; font-size:12px; }
 .rf-legend i { font-style:normal; display:inline-flex; align-items:center; gap:4px; }
 .rf-legend i::before { content:""; width:18px; height:5px; border-radius:3px; background:var(--c); }
+.rf-board circle.here { fill:#e03131; stroke:#fff; stroke-width:2.5; }
+.rf-board line.here { stroke:#e03131; stroke-width:2; }
+.rf-board text.hereT { font-weight:bold; fill:#e03131; font-size:13px; stroke:#f4f1e6; stroke-width:4px; paint-order:stroke; }

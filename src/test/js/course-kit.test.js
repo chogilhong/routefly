@@ -883,3 +883,13 @@ eq("enName", [RF.enName("오색탐방지원센터 - 대청봉"), RF.enName("설�
     eq("weekendText", [RF.weekendText(w, "11B00000"), RF.weekendText(w, "11F20000"), RF.weekendText(w, "x"), RF.weekendText(w, null)],
         ["☀️ 주말 토 맑음 · 일 흐리고 비 60%", "🌧 주말 토 비 70%", "", ""]);
 })();
+(function () {
+    var pts = [[0, 0, 300, 0], [0, 0, 400, 1000], [0, 0, 600, 2000], [0, 0, 650, 3000]];
+    var b = RF.boardSegments(pts, [{ name: "약수터", dist_m: 1000 }, { name: "삼거리", dist_m: 2000 }], "들머리", "정상");
+    var h = RF.boardHere(b, 1500);
+    eq("boardHere 오르는 코스", [h.d, Math.round(h.e), h.pct, h.next.name, h.next.m], [1500, 500, 20, "삼거리", 500]);
+    var r = RF.boardSegments([[0, 0, 650, 0], [0, 0, 300, 3000]], [{ name: "약수터", dist_m: 2000 }], "정상", "들머리");
+    var hr = RF.boardHere(r, 500);   // 정상에서 500m 내려옴 → 안내판 2500m, 다음은 약수터(안내판 1000m)
+    eq("boardHere 내려가는 코스", [hr.d, hr.next.name, hr.next.m], [2500, "약수터", 1500]);
+    eq("boardHere 끝", RF.boardHere(b, 3000).next, null);
+})();
