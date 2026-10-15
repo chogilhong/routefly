@@ -33,7 +33,13 @@
 fetch("api/partners").then(function (r) { return r.json(); }).then(function (p) {
     var aff = p.agoda || (p.coupang && Object.keys(p.coupang).length), sec = document.getElementById("support");
     if (!sec || !(aff || p.donate)) return;
-    if (aff) document.getElementById("supportAff").hidden = false;
+    if (aff) {   // 설정에 있는 제휴만 적음(2026-10-15 PC: 아고다 링크가 없는데 "숙박의 아고다" 가 보였음)
+        var where = [];
+        if (p.coupang && Object.keys(p.coupang).length) where.push("🎒 챙길 것의 쿠팡");
+        if (p.agoda) where.push("숙박의 아고다");
+        document.getElementById("supportWhere").textContent = where.join(" · ");
+        document.getElementById("supportAff").hidden = false;
+    }
     if (p.donate) { document.getElementById("donateLink").href = p.donate; document.getElementById("supportDonate").hidden = false; }
     sec.hidden = false;
 }).catch(function () { /* 없이 */ });
