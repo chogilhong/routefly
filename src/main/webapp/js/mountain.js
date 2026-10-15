@@ -135,7 +135,14 @@
         document.getElementById("weekend").hidden = false;
     }).catch(function () { /* 없이 */ });
     var crumb = document.querySelector(".crumb") || document.querySelector("h1");
-    if (crumb && window.RF) { var tb = window.RF.textButton(); tb.style.float = "right"; crumb.appendChild(tb); }   // 글자 크기 "가+"
+    if (crumb && window.RF) {   // 오른쪽 위: 한/EN(영어 페이지가 있을 때) · 글자 크기 "가+"
+        var tools = document.createElement("span"), lt = window.RF.langToggle("ko"), tb = window.RF.textButton();
+        tools.className = "rfTools";
+        if (lt) tools.appendChild(lt);
+        tools.appendChild(tb);
+        crumb.insertBefore(tools, crumb.firstChild);   // 앞에 두어야 h1 글과 같은 줄 오른쪽(뒤에 두면 다음 줄로 밀림)
+    }
+    if (window.RF) window.RF.foldOne(document);   // 하나를 펴면 나머지는 접힘(주말 칸 · 등산 · 걷기 · 자전거)
     // ☆ 찜(2026-10-15) - 코스마다. 따라가기 첫 화면에 모아 보임(이 기기 rf-fav)
     if (window.RF) Array.prototype.forEach.call(document.querySelectorAll(".cs li[data-id]"), function (li) {
         var go = li.querySelector(".go");

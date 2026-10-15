@@ -84,3 +84,9 @@ ul { margin:0; padding:0; list-style:none; }
 /* 영어 산 페이지 안전 안내(2026-10-15) */
 .tips { margin: 0; padding-left: 1.2em; font-size: 0.92rem; line-height: 1.55; }
 .tips li { margin: 0.35em 0; list-style: disc; }
+/* 오른쪽 위 한/EN · 글자 크기(2026-10-15 홍TV님) */
+.rfTools { float:right; display:inline-flex; gap:6px; align-items:center; margin-left:8px; }
+.rfLang { display:inline-flex; height:32px; border:1px solid var(--ln); border-radius:16px; overflow:hidden; text-decoration:none;
+          font:bold 13px Arial,"Malgun Gothic",sans-serif; }
+.rfLang span { display:inline-flex; align-items:center; padding:0 9px; color:var(--dim); background:rgba(255,255,255,0.06); }
+.rfLang span.on { color:#0b1118; background:var(--sky); }

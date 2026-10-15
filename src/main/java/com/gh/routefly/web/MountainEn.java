@@ -160,7 +160,7 @@ final class MountainEn {
             }
             b.append("</ul></section>");
         }
-        return b.append(foot(koUrl)).toString();
+        return b.append(foot(REL + "/m/" + MountainServlet.enc(ko))).toString();
     }
 
     /** 안전 안내 - 외국인 등산객용(응급 119 · 관광 안내 1330 · 산불조심기간). */
@@ -190,13 +190,13 @@ final class MountainEn {
                     .append(o.get("lon").getAsDouble()).append("\">").append(esc(name(o))).append(" <small lang=\"ko\">").append(esc(id(o))).append("</small></a></li>");
         }
         b.append("</ul></section>").append(tips());
-        return b.append(foot(base + "/m/")).toString();
+        return b.append(foot(REL + "/m/")).toString();
     }
 
     static String notFoundPage(String key, String base) {
         return head("Mountain not found", "Korea's 100 Famous Mountains - hiking trails", base + "/en/m/", base + "/m/", base)
                 + "<main><h1>Mountain not found</h1><p>“" + esc(key) + "” is not in the list of Korea's 100 Famous Mountains. <a href=\"" + REL
-                + "/en/m/\">See all mountains</a></p>" + foot(base + "/m/");
+                + "/en/m/\">See all mountains</a></p>" + foot(REL + "/m/");
     }
 
     private static String head(String title, String desc, String url, String koUrl, String base) {
@@ -214,10 +214,11 @@ final class MountainEn {
                 + "<link rel=\"stylesheet\" href=\"" + REL + "/css/mountain.css\"></head><body>";
     }
 
-    private static String foot(String koUrl) {
+    /** koHref - 한국어 페이지 상대 주소(터널 https 에서 http 절대 주소가 막혔음 - 화면의 한/EN 단추도 이 링크를 씀). */
+    private static String foot(String koHref) {
         return "<p class=\"dim\">Data: Korea Forest Service (100 Famous Mountains, hiking trails), Korea National Park Service, Korea Meteorological Administration, "
                 + "AirKorea, Durunubi (data.go.kr), © OpenStreetMap contributors. Names follow the Revised Romanization of Korean. "
-                + "<a href=\"" + esc(koUrl) + "\" hreflang=\"ko\" lang=\"ko\">한국어</a> · <a href=\"" + REL + "/privacy.html\">Privacy (Korean)</a></p>"
+                + "<a href=\"" + esc(koHref) + "\" hreflang=\"ko\" lang=\"ko\">한국어</a> · <a href=\"" + REL + "/privacy.html\">Privacy (Korean)</a></p>"
                 + "<p class=\"brand\"><a href=\"" + REL + "/hike.html\"><img src=\"" + REL + "/img/logo-dark.svg\" alt=\"routefly\" width=\"160\" height=\"50\"> Open app ›</a></p></main>"
                 + "<script src=\"" + REL + "/js/course-kit.js\"></script><script src=\"" + REL + "/js/mountain-en.js\"></script></body></html>";
     }
