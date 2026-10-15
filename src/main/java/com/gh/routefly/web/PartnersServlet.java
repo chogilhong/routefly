@@ -31,7 +31,7 @@ public class PartnersServlet extends HttpServlet {
     /** 한 물건에 보일 쿠팡 링크 수. */
     static final int COUPANG_MAX = 3;
     /** 쿠팡 링크를 붙일 수 있는 물건(설정 열쇠 partner.coupang.&lt;이것&gt;) - course-kit.js gearList 의 key 와 같음. */
-    static final String[] GEAR = {"water", "rain", "headlamp", "battery", "stick", "crampon", "glove"};
+    static final String[] GEAR = {"water", "rain", "headlamp", "battery", "firstaid", "shoes", "pack", "stick", "knee", "sun", "warm", "crampon", "glove"};
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {

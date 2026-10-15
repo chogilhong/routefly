@@ -2971,13 +2971,20 @@
      * key 는 PartnersServlet.GEAR 와 같음(쿠팡 파트너스 링크를 설정에 넣으면 그 물건 옆에 링크).
      */
     function gearList(month, ascentM, kind) {
-        var winter = month >= 11 || month <= 3, cold = month >= 10 || month <= 4, out = [];
+        var winter = month >= 11 || month <= 3, cold = month >= 10 || month <= 4, sunny = month >= 4 && month <= 9, hike = kind === "hike", out = [];
         out.push({ key: "water", label: "물 · 간식", why: "1시간에 물 500ml 남짓" });
         out.push({ key: "rain", label: "우비 · 바람막이", why: "산 위는 날씨가 빨리 바뀝니다" });
         if (kind !== "bike") out.push({ key: "headlamp", label: "헤드랜턴", why: "늦어지면 산은 해 지기 전에 어두워집니다" });
         out.push({ key: "battery", label: "보조배터리", why: "GPS · 119 신고용" });
-        if (kind === "hike" && ascentM >= 500) out.push({ key: "stick", label: "등산 스틱", why: "오르막 " + num(ascentM) + "m - 무릎 부담을 덜어 줌" });
-        if (kind === "hike" && winter) out.push({ key: "crampon", label: "아이젠", why: "겨울 · 이른 봄 응달은 얼어 있습니다" });
+        // 2026-10-15 홍TV님: 등산화 · 가방 · 구급약(늘), 모자 · 선크림(4~9월), 보온병 · 핫팩(11~3월), 무릎 보호대(오르막이 클 때)
+        out.push({ key: "firstaid", label: "구급약 · 밴드", why: "물집 · 까진 곳 · 벌레 물림" });
+        if (kind !== "bike") out.push({ key: "shoes", label: hike ? "등산화" : "걷기 편한 신발", why: hike ? "미끄럼을 막고 발목을 받쳐 줌" : "오래 걸어도 발이 편하게" });
+        out.push({ key: "pack", label: hike ? "등산 가방" : "가벼운 배낭", why: "두 손을 비워 두면 넘어질 때 안전합니다" });
+        if (hike && ascentM >= 500) out.push({ key: "stick", label: "등산 스틱", why: "오르막 " + num(ascentM) + "m - 무릎 부담을 덜어 줌" });
+        if (hike && ascentM >= 800) out.push({ key: "knee", label: "무릎 보호대", why: "긴 내리막에서 무릎을 받쳐 줌" });
+        if (sunny) out.push({ key: "sun", label: "모자 · 선크림", why: "능선 · 정상은 햇볕을 가릴 곳이 없습니다" });
+        if (winter) out.push({ key: "warm", label: "보온병 · 핫팩", why: "쉴 때 몸이 빨리 식습니다" });
+        if (hike && winter) out.push({ key: "crampon", label: "아이젠", why: "겨울 · 이른 봄 응달은 얼어 있습니다" });
         if (cold) out.push({ key: "glove", label: "장갑", why: "아침 · 정상은 쌀쌀합니다" });
         return out;
     }

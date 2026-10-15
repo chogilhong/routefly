@@ -793,8 +793,11 @@ eq("photoIds 기록들에 든 사진(겹침 없이)", RF.photoIds([{ notes: [{ p
 eq("airText", [RF.airText({ pm10: 42, pm10Word: "보통", pm25: 14, pm25Word: "좋음", station: "가야면", time: "2026-10-15 09:00", dist_km: 1.4 }),
     RF.airText({ unavailable: true }), RF.airText(null), RF.airText({ pm25: 80, pm25Word: "매우나쁨", station: "가" })],
     ["미세먼지 보통(42) · 초미세먼지 좋음(14) - 가야면 측정소 9시(1.4km)", "", "", "초미세먼지 매우나쁨(80) - 가 측정소"]);
-eq("gearList 겨울 등산 · 오르막 크면 스틱 · 아이젠", RF.gearList(1, 800, "hike").map(function (g) { return g.key; }), ["water", "rain", "headlamp", "battery", "stick", "crampon", "glove"]);
-eq("gearList 여름 걷기", RF.gearList(7, 100, "walk").map(function (g) { return g.key; }), ["water", "rain", "headlamp", "battery"]);
-eq("gearList 자전거는 헤드랜턴 빼고", RF.gearList(5, 0, "bike").map(function (g) { return g.key; }), ["water", "rain", "battery"]);
+eq("gearList 겨울 등산 · 오르막 크면 스틱 · 아이젠", RF.gearList(1, 800, "hike").map(function (g) { return g.key; }),
+    ["water", "rain", "headlamp", "battery", "firstaid", "shoes", "pack", "stick", "knee", "warm", "crampon", "glove"]);
+eq("gearList 여름 걷기", RF.gearList(7, 100, "walk").map(function (g) { return g.key; }), ["water", "rain", "headlamp", "battery", "firstaid", "shoes", "pack", "sun"]);
+eq("gearList 걷기는 신발 · 배낭 이름이 다름", RF.gearList(7, 100, "walk").filter(function (g) { return g.key === "shoes" || g.key === "pack"; }).map(function (g) { return g.label; }), ["걷기 편한 신발", "가벼운 배낭"]);
+eq("gearList 오르막 600m 는 스틱만(무릎 보호대는 800m 부터)", RF.gearList(10, 600, "hike").map(function (g) { return g.key; }).filter(function (k) { return k === "stick" || k === "knee"; }), ["stick"]);
+eq("gearList 자전거는 헤드랜턴 빼고", RF.gearList(5, 0, "bike").map(function (g) { return g.key; }), ["water", "rain", "battery", "firstaid", "pack", "sun"]);
 eq("partnerLinks 하나 · 여럿 · 예전 글 · 빈 것", [RF.partnerLinks(["https://a"]).map(function (k) { return k.text; }), RF.partnerLinks(["https://a", "https://b"]).map(function (k) { return k.text; }),
     RF.partnerLinks("https://c")[0].href, RF.partnerLinks(null).length, RF.partnerLinks(["javascript:x"]).length], [["쿠팡 ›"], ["쿠팡 1 ›", "쿠팡 2 ›"], "https://c", 0, 0]);

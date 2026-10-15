@@ -52,7 +52,7 @@ public class AirServlet extends HttpServlet {
     static final int TRY_STATIONS = 3, ROWS = 6;
     /**
      * 측정소 목록(672곳). 2026-10-15 PC: 포털이 처음 한 번은 25초도 넘기고(HttpTimeoutException) 바로 다시 물으면 0.5초 -
-     * 서블릿이 뜰 때 뒤에서 미리 받고(init), 실패하면 한 번 더 묻고, 새로 받기에 실패하면 받아 둔 목록을 그대로 씁니다.
+     * 서블릿이 뜰 때 뒤에서 미리 받고(init - 실패하면 30 · 60 · 120 · 240초 쉬었다 다시), 새로 받기에 실패하면 받아 둔 목록을 그대로 씁니다.
      * 측정소는 거의 바뀌지 않아 이레에 한 번 새로 받습니다.
      */
     static final Duration STATIONS_TIMEOUT = Duration.ofSeconds(25);
@@ -62,13 +62,39 @@ public class AirServlet extends HttpServlet {
     private static final ReentrantLock LOADING = new ReentrantLock();
     private static final OpenApi.Cache<JsonObject> MEASURE = new OpenApi.Cache<>(800, 30L * 60 * 1000);
 
+    /**
+     * 뜰 때 미리 받기 - 받을 때까지 쉬었다 다시(초). 2026-10-15 PC: 포털의 느린 첫 응답은 바로 이어 다시 물어도 같고(25초 초과 두 번),
+     * 1분 남짓 뒤에는 바로 됨.
+     */
+    static final int[] WARM_WAIT_S = {0, 30, 60, 120, 240};
+    private transient volatile Thread warm;
+
     @Override
     public void init() {
         String key = key();
         if (key == null) return;
-        Thread t = new Thread(() -> stationList(key, System.currentTimeMillis()), "air-stations");
+        Thread t = new Thread(() -> {
+            for (int w : WARM_WAIT_S) {
+                try {
+                    Thread.sleep(w * 1000L);
+                } catch (InterruptedException e) {
+                    return;   // 웹앱이 내려감(destroy)
+                }
+                if (Thread.currentThread().isInterrupted()) return;
+                Object[] st = stationList(key, System.currentTimeMillis());
+                if (st != null || Thread.currentThread().isInterrupted()) return;
+            }
+        }, "air-stations");
         t.setDaemon(true);
+        warm = t;
         t.start();
+    }
+
+    /** 웹앱이 내려갈 때 미리 받기를 멈춤(2026-10-15 PC: 앞 웹앱이 내려간 뒤에도 그 스레드가 돌았음). 받는 중인 요청도 끊김(HttpClient.send 는 interrupt 를 받음). */
+    @Override
+    public void destroy() {
+        Thread t = warm;
+        if (t != null) t.interrupt();
     }
 
     private static String key() {
@@ -77,7 +103,7 @@ public class AirServlet extends HttpServlet {
     }
 
     /**
-     * 측정소 목록 - 이레 안에 받은 것이 있으면 그것, 아니면 받아 봄(두 번까지). 다 실패하면 예전 목록(없으면 null).
+     * 측정소 목록 - 이레 안에 받은 것이 있으면 그것, 아니면 한 번 받아 봄. 실패하면 예전 목록(없으면 null).
      * 다른 요청이 받는 중이면 예전 목록을 바로 쓰고, 예전 목록도 없으면 10초까지만 기다립니다(화면이 오래 멈추지 않게).
      */
     private static Object[] stationList(String key, long now) {
@@ -99,21 +125,16 @@ public class AirServlet extends HttpServlet {
     private static Object[] loadStations(String key, long now) {
         Object[] cur = stationList;
         if (cur != null && now - (Long) cur[2] < STATIONS_TTL_MS) return cur;   // 기다리는 사이 다른 쪽이 받았음
-        for (int attempt = 0; attempt < 2; attempt++) {
-            String text = OpenApi.get(STATIONS_URL + "?serviceKey=" + URLEncoder.encode(key, StandardCharsets.UTF_8)
-                    + "&returnType=json&numOfRows=1000&pageNo=1", "AIR", STATIONS_TIMEOUT);
-            List<String> names = new ArrayList<>();
-            List<double[]> pos = new ArrayList<>();
-            if (text != null && stations(text, names, pos)) {
-                stationList = new Object[] {names, pos, now};
-                log.info("[AIR] 측정소 목록 {}곳 받음{}", names.size(), attempt > 0 ? "(다시 받아서)" : "");
-                return stationList;
-            }
-            if (text != null) {
-                OpenApi.warn("AIR", text);
-                break;   // 응답은 왔는데 목록이 아님(키 · 신청 문제) - 다시 물어도 같음
-            }
+        String text = OpenApi.get(STATIONS_URL + "?serviceKey=" + URLEncoder.encode(key, StandardCharsets.UTF_8)
+                + "&returnType=json&numOfRows=1000&pageNo=1", "AIR", STATIONS_TIMEOUT);
+        List<String> names = new ArrayList<>();
+        List<double[]> pos = new ArrayList<>();
+        if (text != null && stations(text, names, pos)) {
+            stationList = new Object[] {names, pos, now};
+            log.info("[AIR] 측정소 목록 {}곳 받음({})", names.size(), Thread.currentThread().getName());
+            return stationList;
         }
+        if (text != null) OpenApi.warn("AIR", text);   // 응답은 왔는데 목록이 아님(키 · 신청 문제)
         return cur;
     }
 

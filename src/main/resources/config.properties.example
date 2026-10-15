@@ -52,7 +52,10 @@ site.baseUrl=
 
 # ---------------------------------------------------------------- 제휴 · 후원(2026-10-15) - 비우면 화면에 안 보임
 # 쿠팡 파트너스: 파트너스 누리집에서 물건마다 만든 링크(https://link.coupang.com/... 또는 https://coupa.ng/...).
-#   물건: water(물 · 간식) · rain(우비) · headlamp(헤드랜턴) · battery(보조배터리) · stick(등산 스틱) · crampon(아이젠) · glove(장갑)
+#   물건: water(물 · 간식) · rain(우비) · headlamp(헤드랜턴) · battery(보조배터리) · firstaid(구급약 · 밴드) · shoes(등산화)
+#        · pack(등산 가방) · stick(등산 스틱) · knee(무릎 보호대) · sun(모자 · 선크림) · warm(보온병 · 핫팩) · crampon(아이젠) · glove(장갑)
+#   화면에 보이는 때: 늘 - 물 · 우비 · 헤드랜턴 · 배터리 · 구급약 · 등산화 · 가방 / 오르막 500m~ 스틱, 800m~ 무릎 보호대 /
+#                    4~9월 모자 · 선크림, 11~3월 보온병 · 핫팩 · 아이젠, 10~4월 장갑
 #   화면은 "🎒 챙길 것" 에 링크와 "쿠팡 파트너스 활동 … 수수료" 문구를 함께 보입니다.
 #   한 물건에 여러 개면 쉼표로 이어 씀(3개까지, 화면에 "쿠팡 1 › 쿠팡 2 ›"). 예: partner.coupang.headlamp=https://link.coupang.com/a/AAA,https://link.coupang.com/a/BBB
 #partner.coupang.headlamp=
