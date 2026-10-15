@@ -57,6 +57,7 @@ public class MountainServletTest {
         assertFalse(html.contains("src=\"https://routefly.kr"));
         assertTrue("예상 시간(4km/h + 600m/h)", html.contains("약 2시간 18분"));
         assertTrue("코스 최고점", html.contains("코스 최고점 약 1,430m"));
+        assertTrue("☆ 찜 설명", html.contains("☆ 를 누르면 그 코스를 찜(즐겨찾기)합니다"));
         assertTrue("위 줄은 코스 모음으로(100대 명산 펼침)", html.contains("<p class=\"crumb\"><a href=\"../m/?open=peaks\">‹ 코스 모음</a></p>"));
         assertTrue("날씨 칸 좌표", html.contains("data-lat=\"35.822544\""));
         assertFalse("스크립트는 파일로만(CSP)", html.matches("(?s).*<script>.*"));
