@@ -98,7 +98,7 @@ public class MountainServlet extends HttpServlet {
     private void english(String key, JsonArray all, String base, HttpServletResponse resp) throws IOException {
         if (key.isEmpty()) {
             resp.setHeader("Cache-Control", "public, max-age=3600");
-            resp.getWriter().print(MountainEn.indexPage(all, base));
+            resp.getWriter().print(MountainEn.indexPage(all, seriesGroups(), base));
             return;
         }
         JsonObject peak = MountainEn.find(all, key);

@@ -69,7 +69,13 @@ public class MountainEnTest {
         assertTrue("영어 문답 + JSON-LD", html.contains("<dt>How high is Seoraksan?</dt>") && html.contains("\"@type\":\"FAQPage\""));
         assertTrue(html.contains("There are 2 parking lots within 3 km"));
         assertTrue(html.contains("call <b>119</b>") && html.contains("src=\"../../js/mountain-en.js\""));
-        String idx = MountainEn.indexPage(peaks, "https://routefly.kr/routefly");
+        JsonArray groups = JsonParser.parseString("[{\"kind\":\"walk\",\"title\":\"코리아둘레길\",\"series\":[{\"name\":\"해파랑길\"},{\"name\":\"지리산둘레길\",\"match\":\"지리산\",\"km\":289}]},"
+                + "{\"kind\":\"bike\",\"series\":[{\"name\":\"한강 자전거길(서울)\",\"prefix\":\"osmb-1-\",\"km\":56}]},{\"kind\":\"hike\",\"series\":[{\"summits\":\"\"}]}]").getAsJsonArray();
+        String idx = MountainEn.indexPage(peaks, groups, "https://routefly.kr/routefly");
+        assertTrue(idx.contains("<a href=\"../../route.html?trail=%ED%95%B4%ED%8C%8C%EB%9E%91%EA%B8%B8&amp;name=Haeparang%20Trail&amp;back=en\">Haeparang Trail <small lang=\"ko\">해파랑길</small></a>"));
+        assertTrue(idx.contains(">Jirisan Dulle-gil <small>289 km</small>"));
+        assertTrue(idx.contains("route.html?prefix=osmb-1-&amp;name=Hangang%20Bike%20Path%20%28Seoul%29&amp;back=en\">Hangang Bike Path (Seoul)"));
+        assertFalse("100대 명산 칸은 길 목록에서 뺌", idx.contains("Baekdudaegan ridge"));
         assertTrue("로마자 차례", idx.indexOf(">Baegunsan (Gwangyang)") < idx.indexOf(">Jeombongsan") && idx.indexOf(">Jeombongsan") < idx.indexOf(">Seoraksan"));
         assertTrue("내 근처용 좌표", idx.contains("<a href=\"seoraksan\" data-lat=\"38.119\" data-lon=\"128.465\">Seoraksan <small lang=\"ko\">설악산</small></a>"));
         assertTrue(MountainEn.notFoundPage("<x>", "b").contains("&lt;x&gt;"));
@@ -85,6 +91,17 @@ public class MountainEnTest {
         assertEquals("/en/m/seoraksan", Stats.pageKey("/en/m/Seoraksan"));
         assertEquals("/en/m/", Stats.pageKey("/en/m/"));
         assertNull(Stats.pageKey("/en/m/<x>"));
+    }
+
+    @Test
+    public void routeNames() {
+        assertEquals("DMZ Peace Trail", MountainEn.routeName("DMZ 평화의 길"));
+        assertEquals("Namparang Trail", MountainEn.routeName("남파랑길"));
+        assertEquals("Daegwallyeong Forest Trail", MountainEn.routeName("대관령숲길"));
+        assertEquals("Baekdudaegan Trail", MountainEn.routeName("백두대간트레일"));
+        assertEquals("Hanbuk Jeongmaek", MountainEn.routeName("한북정맥"));
+        assertEquals("DMZ Peonchibol Dulle-gil", MountainEn.routeName("DMZ펀치볼둘레길"));
+        assertEquals("Donghaean Bike Path (Gangwon)", MountainEn.routeName("동해안 자전거길(강원)"));
     }
 
     @Test

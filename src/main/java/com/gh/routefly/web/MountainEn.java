@@ -180,8 +180,21 @@ final class MountainEn {
                 + "<li>Start early and plan to be off the mountain before sunset. Carry water, a rain jacket and a headlamp.</li></ul></section>";
     }
 
-    /** 순수 함수 - 영어 목록(/en/m/): 로마자 차례, 한글 이름 · 좌표(내 근처 찾기 - js/mountain-en.js). */
-    static String indexPage(JsonArray peaks, String base) {
+    /** 길 이름에서 영어로 옮길 낱말(긴 것 먼저) - 나머지는 로마자. */
+    private static final String[][] ROUTE_WORDS = {
+        {"평화의 길", "Peace Trail"}, {"자전거길", "Bike Path"}, {"둘레길", "Dulle-gil"}, {"숲길", "Forest Trail"}, {"트레일", "Trail"}, {"정맥", "Jeongmaek"}};
+
+    /** 순수 함수 - 걷기 · 자전거 길 영어 이름("지리산둘레길" → "Jirisan Dulle-gil", "해파랑길" → "Haeparang Trail", "한강 자전거길(서울)" → "Hangang Bike Path (Seoul)"). */
+    static String routeName(String ko) {
+        if (ko == null) return "";
+        String s = ko;
+        for (String[] w : ROUTE_WORDS) s = s.replace(w[0], " " + w[1] + " ");
+        s = s.replaceAll("길(?=$|[\\s(])", " Trail ");   // 끝의 "길"(해파랑길 · 남파랑길)
+        return Roman.of(s).replace("(", " (").replaceAll("\\s+", " ").replaceAll("\\( ", "(").replaceAll(" \\)", ")").trim();
+    }
+
+    /** 순수 함수 - 영어 목록(/en/m/): 로마자 차례, 한글 이름 · 좌표(내 근처 찾기 - js/mountain-en.js), 아래에 걷기 · 자전거 길(groups - data/series.json). */
+    static String indexPage(JsonArray peaks, JsonArray groups, String base) {
         String desc = "Hiking trails, weather and sunrise for all " + peaks.size() + " of Korea's 100 Famous Mountains (Korea Forest Service) - "
                 + "Seoraksan, Jirisan, Hallasan, Bukhansan and more. Preview trails in 3D and follow them on your phone.";
         StringBuilder b = new StringBuilder(head("Korea's 100 Famous Mountains - Hiking Trails", desc, base + "/en/m/", base + "/m/", base));
@@ -197,7 +210,30 @@ final class MountainEn {
             b.append("<li><a href=\"").append(esc(Roman.slug(id(o)))).append("\" data-lat=\"").append(o.get("lat").getAsDouble()).append("\" data-lon=\"")
                     .append(o.get("lon").getAsDouble()).append("\">").append(esc(name(o))).append(" <small lang=\"ko\">").append(esc(id(o))).append("</small></a></li>");
         }
-        b.append("</ul></section>").append(tips());
+        b.append("</ul></section>");
+        // 걷기 · 자전거 길(2026-10-15 홍TV님) - 노선 안내도(route.html, 지도 · 지명은 한국어)로
+        String[][] kinds = {{"walk", "🥾 Long-distance walking trails"}, {"bike", "🚴 Cross-country bike paths"}, {"hike", "⛰️ Baekdudaegan ridge trails"}};
+        for (String[] k : kinds) {
+            StringBuilder ul = new StringBuilder();
+            for (JsonElement e : groups) {
+                JsonObject g = e.getAsJsonObject();
+                String kind = str(g, "kind") != null ? str(g, "kind") : "walk";
+                if (!kind.equals(k[0]) || !g.has("series")) continue;
+                for (JsonElement se : g.getAsJsonArray("series")) {
+                    JsonObject sr = se.getAsJsonObject();
+                    if (sr.has("summits") || str(sr, "name") == null) continue;   // 100대 명산은 위 목록
+                    String q = str(sr, "prefix") != null ? "prefix=" + MountainServlet.enc(str(sr, "prefix"))
+                            : "trail=" + MountainServlet.enc(str(sr, "match") != null ? str(sr, "match") : str(sr, "name"));
+                    String en = routeName(str(sr, "name"));
+                    ul.append("<li><a href=\"").append(REL).append("/route.html?").append(esc(q)).append("&amp;name=").append(esc(MountainServlet.enc(en)))
+                            .append("&amp;back=en\">").append(esc(en)).append(sr.has("km") ? " <small>" + sr.get("km").getAsInt() + " km</small>" : "")
+                            .append(" <small lang=\"ko\">").append(esc(str(sr, "name"))).append("</small></a></li>");
+                }
+            }
+            if (ul.length() > 0) b.append("<section><h2>").append(esc(k[1])).append("</h2><ul class=\"ms\">").append(ul).append("</ul></section>");
+        }
+        b.append("<p class=\"dim\">Trail and bike path maps show every section with checkpoints; place names on the map are in Korean.</p>");
+        b.append(tips());
         return b.append(foot(REL + "/m/")).toString();
     }
 

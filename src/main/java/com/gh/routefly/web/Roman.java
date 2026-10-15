@@ -34,6 +34,7 @@ final class Roman {
             while (j < n && hangul(s.charAt(j))) j++;
             String w = word(s.substring(i, j));
             boolean afterDigit = i > 0 && Character.isDigit(s.charAt(i - 1));   // "6봉" → 6bong
+            if (i > 0 && s.charAt(i - 1) < 128 && Character.isLetter(s.charAt(i - 1))) out.append(' ');   // "DMZ펀치볼" → DMZ Peonchibol
             out.append(afterDigit ? w.charAt(0) : Character.toUpperCase(w.charAt(0))).append(w.substring(1));
             i = j;
         }
