@@ -71,34 +71,60 @@
     }
 
     /**
-     * 다녀온 산 지도(2026-10-15 홍TV님) - 100대 명산 정상을 점으로(다녀온 곳 주황 · 아직 회색). 지도 그림 없이 위치만이라 핸드폰 안에서 바로 그림.
-     * 점을 누르면 그 산 이름.
+     * 점 지도(2026-10-15 홍TV님) - 100대 명산 정상 · 국토종주 인증센터를 점으로(다녀온 곳 주황 · 아직 회색). 지도 그림 없이 위치만이라 핸드폰 안에서 바로 그림.
+     * items: [{lat, lon, on, label}], what: "다녀온 산" · "도장 찍은 인증센터". 점을 누르면 이름.
      */
-    function peakMap(peaks) {
-        var W = 300, H = 380, NS = "http://www.w3.org/2000/svg", pts = RF.dotMap(peaks, W, H, 12);
+    function dotsMap(items, what) {
+        var W = 300, H = 380, NS = "http://www.w3.org/2000/svg", pts = RF.dotMap(items, W, H, 12);
         var wrap = el("div", "pmap"), svg = document.createElementNS(NS, "svg"), got = 0, cap = el("div", "tip");
         svg.setAttribute("viewBox", "0 0 " + W + " " + H);
         svg.setAttribute("role", "img");
         // 회색 먼저, 주황은 위에
-        peaks.map(function (k, i) { return { k: k, p: pts[i], on: !!peakStamps[RF.peakKey(k)] }; })
-            .sort(function (a, b) { return a.on - b.on; })
-            .forEach(function (d) {
-                var c = document.createElementNS(NS, "circle"), t = document.createElementNS(NS, "title");
-                c.setAttribute("cx", d.p[0].toFixed(1));
-                c.setAttribute("cy", d.p[1].toFixed(1));
-                c.setAttribute("r", d.on ? 5 : 3.2);
-                c.setAttribute("class", d.on ? "on" : "");
-                t.textContent = (d.k.id || d.k.name) + (d.on ? " - 다녀옴" : "");
-                c.appendChild(t);
-                c.addEventListener("click", function () { cap.textContent = "⛰️ " + t.textContent; });
-                svg.appendChild(c);
-                if (d.on) got++;
-            });
-        svg.setAttribute("aria-label", "100대 명산 지도 - 다녀온 산 " + got + "곳");
-        cap.textContent = "다녀온 산 " + got + "곳(주황) · 점을 누르면 산 이름";
+        items.map(function (d, i) { return { d: d, p: pts[i] }; }).sort(function (a, b) { return a.d.on - b.d.on; }).forEach(function (x) {
+            var c = document.createElementNS(NS, "circle"), t = document.createElementNS(NS, "title");
+            c.setAttribute("cx", x.p[0].toFixed(1));
+            c.setAttribute("cy", x.p[1].toFixed(1));
+            c.setAttribute("r", x.d.on ? 5 : 3.2);
+            c.setAttribute("class", x.d.on ? "on" : "");
+            t.textContent = x.d.label + (x.d.on ? " - 도장" : "");
+            c.appendChild(t);
+            c.addEventListener("click", function () { cap.textContent = t.textContent; });
+            svg.appendChild(c);
+            if (x.d.on) got++;
+        });
+        svg.setAttribute("aria-label", what + " " + got + "곳 지도");
+        cap.textContent = what + " " + got + " / " + items.length + "곳(주황) · 점을 누르면 이름";
         wrap.appendChild(svg);
         wrap.appendChild(cap);
         return wrap;
+    }
+
+    function peakMap(peaks) {
+        return dotsMap(peaks.map(function (k) { return { lat: k.lat, lon: k.lon, on: !!peakStamps[RF.peakKey(k)], label: "⛰️ " + (k.id || k.name) }; }), "다녀온 산");
+    }
+
+    /**
+     * 국토종주 인증센터 지도(2026-10-15 홍TV님) - 노선마다 api/group 의 centers(이름 · 자리)를 모아 한 지도에. 묶음을 처음 펼칠 때 받음.
+     * 같은 센터가 두 구간 끝에 있으면 하나로(이름).
+     */
+    function centerMap(g, box) {
+        var wait = el("div", "tip", "인증센터 지도를 불러오는 중…");
+        box.insertBefore(wait, box.firstChild);
+        Promise.all(g.series.filter(function (s) { return s.prefix && s.centers; }).map(function (s) {
+            return getJson("api/group?prefix=" + encodeURIComponent(s.prefix)).then(function (j) { return { s: s, cs: j.centers || [] }; }, function () { return { s: s, cs: [] }; });
+        })).then(function (all) {
+            var seen = {}, items = [];
+            all.forEach(function (r) {
+                r.cs.forEach(function (c) {
+                    var n = String(c.name || "").replace(/\s*인증센터$/, "");
+                    if (!n || seen[n] || !isFinite(+c.lat) || !isFinite(+c.lon)) return;
+                    seen[n] = 1;
+                    items.push({ lat: +c.lat, lon: +c.lon, on: !!RF.stampOf(stamps, n, r.s.aka && r.s.aka[n]), label: "📮 " + n + " 인증센터 · " + r.s.name });
+                });
+            });
+            if (!items.length) { wait.textContent = "인증센터 자리를 받지 못했습니다."; return; }
+            box.replaceChild(dotsMap(items, "도장 찍은 인증센터"), wait);
+        });
     }
 
     /** 100대 명산 - 산 목록(정상 도장)만, 코스 목록은 없음. */
@@ -372,6 +398,11 @@
                 kf.body.appendChild(gf.box);
                 if (g.cert) gf.body.appendChild(certLine(g.cert));
                 g.series.forEach(function (s) { gf.body.appendChild(card(g, s)); });
+                if (g.series.some(function (s) { return s.centers; })) {   // 국토종주 - 묶음을 처음 펼칠 때 인증센터 지도
+                    var drawn = false, go = function () { if (!drawn && gf.box.classList.contains("open")) { drawn = true; centerMap(g, gf.body); } };
+                    gf.box.querySelector(".fh").addEventListener("click", function () { setTimeout(go, 0); });
+                    go();
+                }
             });
         });
         restoreView();
