@@ -43,7 +43,7 @@ public class MountainEnTest {
 
     @Test
     public void pages() {
-        JsonArray peaks = JsonParser.parseString("[{\"id\":\"설악산\",\"name\":\"설악산\",\"summit\":\"대청봉\",\"height\":1708,\"lat\":38.119,\"lon\":128.465},"
+        JsonArray peaks = JsonParser.parseString("[{\"id\":\"설악산\",\"name\":\"설악산\",\"summit\":\"대청봉\",\"elev\":1708,\"height\":1734,\"lat\":38.119,\"lon\":128.465},"
                 + "{\"id\":\"점봉산\",\"name\":\"점봉산\",\"lat\":38.05,\"lon\":128.43},{\"id\":\"백운산(광양)\",\"name\":\"백운산\",\"lat\":35.1,\"lon\":127.6}]").getAsJsonArray();
         assertEquals("설악산", MountainEn.find(peaks, "Seoraksan").get("id").getAsString());
         assertEquals("백운산(광양)", MountainEn.find(peaks, "baegunsan-gwangyang").get("id").getAsString());
@@ -62,7 +62,7 @@ public class MountainEnTest {
         assertTrue("hreflang 한국어", html.contains("hreflang=\"ko\" href=\"https://routefly.kr/routefly/m/%EC%84%A4%EC%95%85%EC%82%B0\""));
         assertTrue(html.contains("<h1>Seoraksan Hiking Trails <small lang=\"ko\">설악산</small></h1>"));
         assertTrue(html.contains("Summit Daecheongbong <span lang=\"ko\">(대청봉)</span> 1,708 m"));
-        assertTrue(html.contains("<b>Osaek visitor center - Daecheongbong <small lang=\"ko\">오색탐방지원센터 - 대청봉</small></b>"));
+        assertTrue(html.contains("<b>Osaek visitor center - Daecheongbong <i class=\"lv lv3\">Advanced</i> <small lang=\"ko\">오색탐방지원센터 - 대청봉</small></b>"));
         assertTrue(html.contains("5.00 km · 1,300 m ascent · about 3 h 25 min"));
         assertTrue("앱으로(두 단계 위)", html.contains("href=\"../../index.html#c=knps-1\">3D fly-through") && html.contains("href=\"../../hike.html#c=knps-1\">Follow (GPS)"));
         assertTrue("가까운 산은 slug", html.contains("<a href=\"jeombongsan\">Jeombongsan <small>"));
@@ -76,6 +76,8 @@ public class MountainEnTest {
         assertTrue(idx.contains(">Jirisan Dulle-gil <small>289 km</small>"));
         assertTrue(idx.contains("route.html?prefix=osmb-1-&amp;name=Hangang%20Bike%20Path%20%28Seoul%29&amp;back=en\">Hangang Bike Path (Seoul)"));
         assertFalse("100대 명산 칸은 길 목록에서 뺌", idx.contains("Baekdudaegan ridge"));
+        assertTrue("/m/ 처럼 접는 칸", idx.contains("<details class=\"fold kind\" name=\"kind\"><summary><span class=\"ft\">⛰️ Hiking</span><span class=\"fs\">100 Famous Mountains</span>"));
+        assertTrue(idx.contains("<span class=\"ft\">🥾 Walking</span><span class=\"fs\">Korea Dulle-gil</span>") && idx.contains("<span class=\"ft\">Korea Dulle-gil</span><span class=\"fs\">2</span>"));
         assertTrue("로마자 차례", idx.indexOf(">Baegunsan (Gwangyang)") < idx.indexOf(">Jeombongsan") && idx.indexOf(">Jeombongsan") < idx.indexOf(">Seoraksan"));
         assertTrue("내 근처용 좌표", idx.contains("<a href=\"seoraksan\" data-lat=\"38.119\" data-lon=\"128.465\">Seoraksan <small lang=\"ko\">설악산</small></a>"));
         assertTrue(MountainEn.notFoundPage("<x>", "b").contains("&lt;x&gt;"));
@@ -122,5 +124,17 @@ public class MountainEnTest {
         assertTrue(ko.contains("<a class=\"way\" href=\"https://map.kakao.com/link/to/%EA%B0%80%EC%95%BC%EC%82%B0%20%EB%93%A4%EB%A8%B8%EB%A6%AC,35.800000,128.090000\" target=\"_blank\" rel=\"noopener\">🚌 가는 길</a>"));
         String en = MountainEn.page(peak, new ArrayList<>(List.of(up)), new ArrayList<>(), null, "https://r.kr");
         assertTrue(en.contains("href=\"https://www.google.com/maps/dir/?api=1&amp;destination=35.800000,128.090000&amp;travelmode=transit\" target=\"_blank\" rel=\"noopener\">🚌 Directions</a>"));
+    }
+
+    @Test
+    public void levels() {   // course-kit.test.js "difficulty 단계" 와 같은 값
+        assertEquals(2, MountainServlet.difficulty(12900, 1300));
+        assertEquals(3, MountainServlet.difficulty(5000, 1300));
+        assertEquals(1, MountainServlet.difficulty(3000, 200));
+        assertEquals(0, MountainServlet.difficulty(2000, 20));
+        assertEquals(4, MountainServlet.difficulty(20000, 2500));
+        assertEquals(-1, MountainServlet.difficulty(0, null));
+        assertEquals("<i class=\"lv lv2\">보통</i>", MountainServlet.levelChip(12900, 1300, false));
+        assertEquals("", MountainServlet.levelChip(0, null, true));
     }
 }

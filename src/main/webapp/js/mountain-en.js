@@ -15,6 +15,8 @@
         tools.appendChild(tb);
         crumb.insertBefore(tools, crumb.firstChild);   // 앞에 두어야 h1 글과 같은 줄 오른쪽(뒤에 두면 다음 줄로 밀림)
     }
+    RF.foldOne(document);   // 하나를 펴면 나머지는 접힘(/m/ 과 같음)
+    RF.boardButtons("../..", true);   // 📈 Elevation(한국어 화면과 같음)
     // 📥 Save for offline(한국어 화면과 같은 칸)
     RF.offlineBox({ title: "📥 Save for no signal", btn: "Save this mountain", again: "Save again (fresh weather)", saving: "Saving…",
         fail: "This browser cannot save pages (works in Chrome or Samsung Internet on an https address).", tip: "Tap before you go. This page, the weather and the trail lines are saved on this phone.",

@@ -95,7 +95,7 @@ public class OgServlet extends HttpServlet {
     /** 순수 함수 - 한국어 그림의 글 [제목, 둘째 줄, 셋째 줄]. 한글 글꼴이 없으면 png 가 영어 글(english)로 바꿈. */
     static String[] korean(JsonObject peak) {
         String id = MountainEn.id(peak), summit = str(peak, "summit");
-        Integer h = peak.has("height") && !peak.get("height").isJsonNull() ? peak.get("height").getAsInt() : null;
+        Integer h = MountainServlet.elev(peak);
         String second = "산림청 100대 명산" + (summit != null && !summit.equals(str(peak, "name")) ? " · 정상 " + summit : "")
                 + (h != null ? String.format(Locale.KOREA, " · %,dm", h) : "");
         return new String[] {id, second, "등산코스 · 날씨 · 일출 일몰 · 3D 미리보기"};
@@ -103,7 +103,7 @@ public class OgServlet extends HttpServlet {
 
     static String[] english(JsonObject peak) {
         String summit = str(peak, "summit");
-        Integer h = peak.has("height") && !peak.get("height").isJsonNull() ? peak.get("height").getAsInt() : null;
+        Integer h = MountainServlet.elev(peak);
         String second = "Korea's 100 Famous Mountains" + (summit != null && !summit.equals(str(peak, "name")) ? " · " + MountainEn.summitName(summit, str(peak, "name")) : "")
                 + (h != null ? String.format(Locale.US, " · %,d m", h) : "");
         return new String[] {MountainEn.name(peak), second, "Hiking trails · Weather · Sunrise · 3D preview"};
@@ -202,6 +202,7 @@ public class OgServlet extends HttpServlet {
         } catch (Exception e) {
             p = new JsonArray();
         }
+        MountainServlet.withElev(p, MountainServlet.readElev(getServletContext()));   // 공식 높이(data/peak-elev.json)
         peaks = p;
         return p;
     }

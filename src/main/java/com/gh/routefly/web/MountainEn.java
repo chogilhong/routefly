@@ -88,9 +88,9 @@ final class MountainEn {
                     + (courses.size() > 1 ? " to " + hours(hi.get("distance_m").getAsInt(), asc(hi)) : "")
                     + " one way to the summit (estimated at 4 km/h plus 1 hour per 600 m of ascent). Add time for the descent."});
         }
-        if (peak.has("height") && !peak.get("height").isJsonNull())
+        if (MountainServlet.elev(peak) != null)
             out.add(new String[] {"How high is " + name + "?", "The summit" + (str(peak, "summit") != null ? ", " + summitName(str(peak, "summit"), str(peak, "name")) + "," : "")
-                    + " is about " + String.format(Locale.US, "%,d", peak.get("height").getAsInt()) + " m above sea level (Korea Forest Service, 100 Famous Mountains)."});
+                    + " is about " + String.format(Locale.US, "%,d", MountainServlet.elev(peak)) + " m above sea level (Korea Forest Service, 100 Famous Mountains)."});
         if (parking != null)
             out.add(new String[] {"Is there parking at " + name + "?", parking > 0 ? "There " + (parking == 1 ? "is 1 parking lot" : "are " + parking + " parking lots")
                     + " within 3 km of the nearest trailhead (Korea national parking data). Check fees and hours on site."
@@ -113,7 +113,7 @@ final class MountainEn {
     static String page(JsonObject peak, List<JsonObject> courses, List<Object[]> nearby, Integer parking, String base) {
         String ko = id(peak), name = name(peak), slug = Roman.slug(ko), summit = str(peak, "summit");
         String url = base + "/en/m/" + slug, koUrl = base + "/m/" + MountainServlet.enc(ko);
-        Integer height = peak.has("height") && !peak.get("height").isJsonNull() ? peak.get("height").getAsInt() : null;
+        Integer height = MountainServlet.elev(peak);
         String desc = name + " (" + ko + ") hiking trails in Korea: " + courses.size() + " routes with distance, ascent and estimated time, "
                 + "weather forecast, air quality, sunrise and sunset. Preview each trail in 3D and follow it on your phone.";
         StringBuilder b = new StringBuilder(head(name + " Hiking Trails, Weather & Sunrise", desc, url, koUrl, base, base + "/og/en/" + slug + ".png"));
@@ -134,8 +134,8 @@ final class MountainEn {
                 String id = str(c, "course_id");
                 int dist = c.get("distance_m").getAsInt();
                 Integer asc = asc(c);
-                b.append("<li data-id=\"").append(esc(id)).append("\" data-dist=\"").append(dist).append(asc != null ? "\" data-asc=\"" + asc : "").append("\"><b>")
-                        .append(esc(courseName(str(c, "name")))).append(" <small lang=\"ko\">").append(esc(str(c, "name"))).append("</small></b><span>")
+                b.append("<li data-id=\"").append(esc(id)).append("\" data-name=\"").append(esc(str(c, "name"))).append("\" data-dist=\"").append(dist).append(asc != null ? "\" data-asc=\"" + asc : "").append("\"><b>")
+                        .append(esc(courseName(str(c, "name")))).append(" ").append(MountainServlet.levelChip(dist, asc, true)).append(" <small lang=\"ko\">").append(esc(str(c, "name"))).append("</small></b><span>")
                         .append(String.format(Locale.ROOT, "%.2f km", dist / 1000.0))
                         .append(asc != null ? String.format(Locale.US, " · %,d m ascent", asc) : "")
                         .append(" · about ").append(hours(dist, asc)).append("</span><span class=\"go\">")
@@ -148,7 +148,8 @@ final class MountainEn {
             b.append("</ul>");
         }
         b.append("<p class=\"dim\">Times are estimates at 4 km/h plus 1 hour per 600 m of ascent. Trail data is for reference - always follow signs and closures on site. "
-                + "The 3D and GPS screens are in Korean; the map and route work the same. 🚌 Directions opens Google Maps transit directions from where you are to the trailhead.</p></section>");
+                + "The 3D and GPS screens are in Korean; the map and route work the same. 🚌 Directions opens Google Maps transit directions from where you are to the trailhead. "
+                + "Difficulty (Easy to Expert) is routefly's estimate from distance and ascent, not an official grade; 📈 Elevation shows the slope of each section like the park trail boards.</p></section>");
         List<String[]> qa = faq(peak, name, courses, parking);
         b.append("<section class=\"faq\"><h2>").append(esc(name)).append(" FAQ</h2><dl>");
         for (String[] x : qa) b.append("<dt>").append(esc(x[0])).append("</dt><dd>").append(esc(x[1])).append("</dd>");
@@ -193,6 +194,19 @@ final class MountainEn {
         return Roman.of(s).replace("(", " (").replaceAll("\\s+", " ").replaceAll("\\( ", "(").replaceAll(" \\)", ")").trim();
     }
 
+    /** 순수 함수 - 묶음 제목 영어(series.json groups 의 title). 모르는 것은 로마자. */
+    static String groupName(String ko) {
+        if (ko == null) return "";
+        switch (ko) {
+            case "국토종주 자전거길": return "Cross-country bike paths";
+            case "국가숲길": return "National forest trails";
+            case "코리아둘레길": return "Korea Dulle-gil";
+            case "백두대간 · 정맥": return "Baekdudaegan & Jeongmaek ridges";
+            case "100대 명산": return "100 Famous Mountains";
+            default: return routeName(ko);
+        }
+    }
+
     /** 순수 함수 - 영어 목록(/en/m/): 로마자 차례, 한글 이름 · 좌표(내 근처 찾기 - js/mountain-en.js), 아래에 걷기 · 자전거 길(groups - data/series.json). */
     static String indexPage(JsonArray peaks, JsonArray groups, String base) {
         String desc = "Hiking trails, weather and sunrise for all " + peaks.size() + " of Korea's 100 Famous Mountains (Korea Forest Service) - "
@@ -202,23 +216,27 @@ final class MountainEn {
                 .append("/img/logo-dark.svg\" alt=\"routefly\" width=\"256\" height=\"80\"></a><h1>Korea's 100 Famous Mountains</h1>")
                 .append("<p class=\"lead\">Pick a mountain to see its trails to the summit, the weather forecast, air quality and sunrise time.</p>")
                 .append("<section id=\"near\"><button type=\"button\" id=\"nearMe\">📍 Famous mountains near me</button><div id=\"nearList\"></div></section>")
-                .append("<section><h2>").append(peaks.size()).append(" mountains A-Z</h2><ul class=\"ms\" id=\"peakList\">");
+                .append("<div class=\"folds\">");
+        // 접고 펴는 칸(2026-10-15 홍TV님 - /m/ 과 같게): ⛰️ Hiking(100 Famous Mountains · 백두대간) · 🥾 Walking · 🚴 Cycling
         List<JsonObject> list = new ArrayList<>();
         for (JsonElement e : peaks) list.add(e.getAsJsonObject());
         list.sort(Comparator.comparing(MountainEn::name));
+        StringBuilder pl = new StringBuilder("<ul class=\"ms\" id=\"peakList\">");
         for (JsonObject o : list) {
-            b.append("<li><a href=\"").append(esc(Roman.slug(id(o)))).append("\" data-lat=\"").append(o.get("lat").getAsDouble()).append("\" data-lon=\"")
+            pl.append("<li><a href=\"").append(esc(Roman.slug(id(o)))).append("\" data-lat=\"").append(o.get("lat").getAsDouble()).append("\" data-lon=\"")
                     .append(o.get("lon").getAsDouble()).append("\">").append(esc(name(o))).append(" <small lang=\"ko\">").append(esc(id(o))).append("</small></a></li>");
         }
-        b.append("</ul></section>");
-        // 걷기 · 자전거 길(2026-10-15 홍TV님) - 노선 안내도(route.html, 지도 · 지명은 한국어)로
-        String[][] kinds = {{"walk", "🥾 Long-distance walking trails"}, {"bike", "🚴 Cross-country bike paths"}, {"hike", "⛰️ Baekdudaegan ridge trails"}};
+        pl.append("</ul>");
+        String[][] kinds = {{"hike", "⛰️ Hiking"}, {"walk", "🥾 Walking"}, {"bike", "🚴 Cycling"}};
         for (String[] k : kinds) {
-            StringBuilder ul = new StringBuilder();
+            List<String[]> gs = new ArrayList<>();   // [제목(그림 붙음), 수, 목록 html, 제목]
+            if (k[0].equals("hike") && !list.isEmpty()) gs.add(new String[] {"⛰️ 100 Famous Mountains", list.size() + "", pl.toString(), "100 Famous Mountains"});
             for (JsonElement e : groups) {
                 JsonObject g = e.getAsJsonObject();
                 String kind = str(g, "kind") != null ? str(g, "kind") : "walk";
                 if (!kind.equals(k[0]) || !g.has("series")) continue;
+                StringBuilder ul = new StringBuilder("<ul class=\"ms\">");
+                int n = 0;
                 for (JsonElement se : g.getAsJsonArray("series")) {
                     JsonObject sr = se.getAsJsonObject();
                     if (sr.has("summits") || str(sr, "name") == null) continue;   // 100대 명산은 위 목록
@@ -228,10 +246,22 @@ final class MountainEn {
                     ul.append("<li><a href=\"").append(REL).append("/route.html?").append(esc(q)).append("&amp;name=").append(esc(MountainServlet.enc(en)))
                             .append("&amp;back=en\">").append(esc(en)).append(sr.has("km") ? " <small>" + sr.get("km").getAsInt() + " km</small>" : "")
                             .append(" <small lang=\"ko\">").append(esc(str(sr, "name"))).append("</small></a></li>");
+                    n++;
                 }
+                if (n > 0) gs.add(new String[] {(str(g, "icon") != null ? str(g, "icon") + " " : "") + groupName(str(g, "title")), n + "", ul.append("</ul>").toString(), groupName(str(g, "title"))});
             }
-            if (ul.length() > 0) b.append("<section><h2>").append(esc(k[1])).append("</h2><ul class=\"ms\">").append(ul).append("</ul></section>");
+            if (gs.isEmpty()) continue;
+            List<String> titles = new ArrayList<>();
+            for (String[] g : gs) titles.add(g[3]);
+            b.append("<details class=\"fold kind\" name=\"kind\"><summary><span class=\"ft\">").append(esc(k[1])).append("</span><span class=\"fs\">")
+                    .append(esc(String.join(" · ", titles))).append("</span><span class=\"fa\">▾</span></summary><div class=\"fb\">");
+            for (String[] g : gs) {
+                b.append("<details class=\"fold group\" name=\"group\"><summary><span class=\"ft\">").append(esc(g[0])).append("</span><span class=\"fs\">").append(g[1])
+                        .append("</span><span class=\"fa\">▾</span></summary>").append(g[2]).append("</details>");
+            }
+            b.append("</div></details>");
         }
+        b.append("</div>");
         b.append("<p class=\"dim\">Trail and bike path maps show every section with checkpoints; place names on the map are in Korean.</p>");
         b.append(tips());
         return b.append(foot(REL + "/m/")).toString();

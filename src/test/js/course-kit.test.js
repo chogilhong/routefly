@@ -859,3 +859,16 @@ eq("wfEn 중기예보 날씨 영어", ["맑음", "구름많음", "흐림", "구�
     eq("peakMilestones 10 · 30 · 50 · 70 · 완등", m.map(function (x) { return [x.label, x.t]; }), [["10곳", 1009], ["30곳", 1029], ["50곳", null], ["70곳", null], ["완등", null]]);
     eq("peakMilestones 완등 날", RF.peakMilestones([{ id: "a" }, { id: "b" }], { a: { t: 5 }, b: { t: 3 } }).map(function (x) { return [x.label, x.t]; }), [["완등", 5]]);
 })();
+eq("difficulty 단계", [RF.difficulty(12900, 1300), RF.difficulty(5000, 1300), RF.difficulty(3000, 200), RF.difficulty(2000, 20), RF.difficulty(20000, 2500), RF.difficulty(0, 0)], [2, 3, 1, 0, 4, null]);
+(function () {
+    // 1km 마다 100 · 200 · 50m 오르는 길, 지점 둘
+    var pts = [[0, 0, 300, 0], [0, 0, 400, 1000], [0, 0, 600, 2000], [0, 0, 650, 3000]];
+    var b = RF.boardSegments(pts, [{ name: "약수터", dist_m: 1000 }, { name: "삼거리", dist_m: 2000 }], "들머리", "정상");
+    eq("boardSegments 구간 경사 · 단계", b.segs.map(function (s) { return [s.pct, s.lv]; }), [[10, 2], [20, 3], [5, 1]]);
+    eq("boardSegments 지점", b.cuts.map(function (c) { return c.name; }), ["들머리", "약수터", "삼거리", "정상"]);
+    var r = RF.boardSegments([[0, 0, 650, 0], [0, 0, 300, 3000]], [{ name: "약수터", dist_m: 2000 }], "정상", "들머리");
+    var named = r.cuts.filter(function (c) { return c.name; });
+    eq("boardSegments 내려가는 코스는 뒤집음(지점이 적으면 다섯 토막 더함)", [r.flip, named.map(function (c) { return c.name; }).join(","), Math.round(named[1].d), r.cuts.length], [true, "들머리,약수터,정상", 1000, 7]);
+    eq("boardSegments 고도 없음", RF.boardSegments([[0, 0, null, 0]], [], "a", "b"), null);
+})();
+eq("nameEnds", [RF.nameEnds("설악산 · 백담사 → 대청봉"), RF.nameEnds("오색탐방지원센터 - 대청봉"), RF.nameEnds("대청봉코스")], [["백담사", "대청봉"], ["오색탐방지원센터", "대청봉"], null]);

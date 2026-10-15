@@ -147,6 +147,7 @@ public class MountainServlet extends HttpServlet {
             log.warn("[MOUNTAIN] mountains100.json 못 읽음 - {}", e.toString());
             p = new JsonArray();
         }
+        withElev(p, readElev(getServletContext()));
         peaks = p;
         return p;
     }
@@ -275,6 +276,65 @@ public class MountainServlet extends HttpServlet {
         return "https://map.kakao.com/link/to/" + enc(name.replace(",", " ")) + String.format(Locale.ROOT, ",%.6f,%.6f", p[0], p[1]);
     }
 
+    /**
+     * data/peak-elev.json 의 elev {산 id: 공식 높이 m} - 없거나 못 읽으면 빈 것. mountains100.json 은 배치(routefly-batch mountains100)가 다시 만들므로
+     * 공식 높이는 이 파일에 따로 둡니다(배치를 다시 돌려도 안 지워짐).
+     */
+    static JsonObject readElev(jakarta.servlet.ServletContext ctx) {
+        try (InputStream in = ctx.getResourceAsStream("/data/peak-elev.json")) {
+            JsonElement e = in == null ? null : JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+            return e != null && e.isJsonObject() && e.getAsJsonObject().has("elev") ? e.getAsJsonObject().getAsJsonObject("elev") : new JsonObject();
+        } catch (Exception e) {
+            return new JsonObject();
+        }
+    }
+
+    /** 순수 함수 - 산마다 공식 높이(elev)를 붙임(id 로 맞춤). */
+    static void withElev(JsonArray peaks, JsonObject elev) {
+        for (JsonElement e : peaks) {
+            JsonObject o = e.getAsJsonObject();
+            String id = str(o, "id") != null ? str(o, "id") : str(o, "name");
+            if (id != null && elev.has(id) && elev.get(id).isJsonPrimitive()) o.add("elev", elev.get(id));
+        }
+    }
+
+    /**
+     * 순수 함수 - 화면에 보일 정상 높이(m): mountains100.json 의 elev(공식 높이 - 산림청 100대 명산 · 국토지리정보원, 홍TV님 PC 가 자료에서 넣음)만.
+     * height 는 GPX 의 GPS 높이라 20~35m 높게 나와(설악산 1,734 ↔ 1,708 - 2026-10-15 PC) 도장 자리 맞추기에만 씀. 없으면 null(높이를 안 보임).
+     */
+    static Integer elev(JsonObject peak) {
+        JsonElement e = peak == null ? null : peak.get("elev");
+        if (e == null || e.isJsonNull()) return null;
+        try {
+            return (int) Math.round(e.getAsDouble());
+        } catch (RuntimeException x) {
+            return null;
+        }
+    }
+
+    /** 난이도 5단계 [한국어, 영어] - course-kit.js LEVELS 와 같음(공단 탐방로 안내판 범례). 2026-10-15 홍TV님. */
+    static final String[][] LEVELS = {{"매우 쉬움", "Easy"}, {"쉬움", "Moderate"}, {"보통", "Intermediate"}, {"어려움", "Advanced"}, {"매우 어려움", "Expert"}};
+    static final double[] SLOPE_STEPS = {5, 10, 18, 28}, HOUR_STEPS = {1.5, 3, 6, 9};
+
+    /** 순수 함수 - 등산 코스 난이도 0~4(routefly 기준) - 표준 시간 · 평균 경사 가운데 높은 단계. course-kit.js difficulty 와 같음. 거리가 없으면 -1. */
+    static int difficulty(int distM, Integer ascM) {
+        if (distM <= 0) return -1;
+        double a = ascM == null ? 0 : ascM, h = distM / 1000.0 / 4 + a / 600, slope = a / distM * 100;
+        return Math.max(step(h, HOUR_STEPS), step(slope, SLOPE_STEPS));
+    }
+
+    private static int step(double v, double[] steps) {
+        int i = 0;
+        while (i < steps.length && v >= steps[i]) i++;
+        return i;
+    }
+
+    /** 순수 함수 - 난이도 표(코스 이름 옆). en - 영어. */
+    static String levelChip(int distM, Integer ascM, boolean en) {
+        int lv = difficulty(distM, ascM);
+        return lv < 0 ? "" : "<i class=\"lv lv" + lv + "\">" + LEVELS[lv][en ? 1 : 0] + "</i>";
+    }
+
     /** 순수 함수 - 두 점 거리(m, 하버사인). */
     static double distM(double lat1, double lon1, double lat2, double lon2) {
         double r = Math.PI / 180, dLat = (lat2 - lat1) * r, dLon = (lon2 - lon1) * r;
@@ -306,7 +366,7 @@ public class MountainServlet extends HttpServlet {
         geo.addProperty("@type", "GeoCoordinates");
         geo.addProperty("latitude", peak.get("lat").getAsDouble());
         geo.addProperty("longitude", peak.get("lon").getAsDouble());
-        if (peak.has("height") && !peak.get("height").isJsonNull()) geo.addProperty("elevation", peak.get("height").getAsInt());
+        if (elev(peak) != null) geo.addProperty("elevation", elev(peak));   // 공식 높이만(GPS height 는 안 씀)
         o.add("geo", geo);
         return "<script type=\"application/ld+json\">" + new Gson().toJson(o) + "</script>";
     }
@@ -333,8 +393,8 @@ public class MountainServlet extends HttpServlet {
             out.add(new String[] {name + " 등산은 몇 시간 걸리나요?", "정상까지 편도 약 " + hours(lo.get("distance_m").getAsInt(), asc(lo))
                     + (courses.size() > 1 ? " ~ " + hours(hi.get("distance_m").getAsInt(), asc(hi)) : "") + "입니다(시속 4km · 오르막 600m 에 1시간으로 어림). 내려오는 시간은 따로 더하세요."});
         }
-        if (peak.has("height") && !peak.get("height").isJsonNull())
-            out.add(new String[] {name + " 높이는 얼마인가요?", "정상" + (summit != null ? " " + summit : "") + "은 해발 약 " + String.format(Locale.KOREA, "%,d", peak.get("height").getAsInt()) + "m 입니다(산림청 100대 명산)."});
+        if (MountainServlet.elev(peak) != null)
+            out.add(new String[] {name + " 높이는 얼마인가요?", "정상" + (summit != null ? " " + summit : "") + "은 해발 약 " + String.format(Locale.KOREA, "%,d", MountainServlet.elev(peak)) + "m 입니다(산림청 100대 명산)."});
         if (parking != null)
             out.add(new String[] {name + " 주차장이 있나요?", parking > 0 ? "가장 가까운 코스 들머리 3km 안에 주차장 " + parking + "곳이 있습니다(전국주차장정보표준데이터). 요금 · 운영 시간은 현지에서 확인하세요."
                     : "가장 가까운 코스 들머리 3km 안에 등록된 주차장이 없습니다. 대중교통이나 더 먼 주차장을 알아보세요."});
@@ -394,7 +454,7 @@ public class MountainServlet extends HttpServlet {
         StringBuilder b = new StringBuilder(head(title, desc, url, base, base + enPath, base + "/og/m/" + enc(name) + ".png"));   // 산마다 공유 그림(2026-10-15)
         b.append("<main><p class=\"crumb\"><a href=\"").append(REL).append("/m/?open=peaks\">‹ 코스 모음</a></p>");
         b.append("<h1>").append(esc(name)).append(" 등산코스</h1>");
-        Integer height = peak.has("height") && !peak.get("height").isJsonNull() ? peak.get("height").getAsInt() : null;
+        Integer height = MountainServlet.elev(peak);
         b.append(jsonLd(peak, name, url));
         b.append("<p class=\"lead\">산림청 100대 명산").append(summit != null ? " · 정상 " + esc(summit) : "")
                 .append(height != null ? String.format(Locale.KOREA, " %,dm", height) : "")
@@ -411,7 +471,7 @@ public class MountainServlet extends HttpServlet {
                 int dist = c.get("distance_m").getAsInt();
                 Integer asc = c.has("ascent_m") && !c.get("ascent_m").isJsonNull() ? c.get("ascent_m").getAsInt() : null;
                 b.append("<li data-id=\"").append(esc(id)).append("\" data-name=\"").append(esc(str(c, "name"))).append("\" data-dist=\"").append(dist)
-                        .append(asc != null ? "\" data-asc=\"" + asc : "").append("\"><b>").append(esc(str(c, "name"))).append("</b><span>")
+                        .append(asc != null ? "\" data-asc=\"" + asc : "").append("\"><b>").append(esc(str(c, "name"))).append(" ").append(levelChip(dist, asc, false)).append("</b><span>")
                         .append(String.format(Locale.ROOT, "%.2fkm", dist / 1000.0))
                         .append(asc != null ? String.format(Locale.KOREA, " · 오르막 %,dm", asc) : "")
                         .append(" · 약 ").append(hours(dist, asc)).append("</span><span class=\"go\">")
@@ -426,7 +486,8 @@ public class MountainServlet extends HttpServlet {
         }
         if (!courses.isEmpty()) b.append("<p class=\"dim\">☆ 를 누르면 그 코스를 찜(즐겨찾기)합니다(★). 찜한 코스는 따라가기 첫 화면 \"★ 찜한 코스\" 에 모여 바로 고를 수 있고, "
                 + "다시 누르면 풀립니다. 이 핸드폰에만 저장됩니다(따라가기 📒 내 기록 → 💾 백업 저장으로 옮길 수 있음). "
-                + "🚌 가는 길은 카카오맵에서 지금 자리부터 그 코스 들머리까지 대중교통 · 차 길찾기를 엽니다.</p>");   // 2026-10-15 홍TV님
+                + "🚌 가는 길은 카카오맵에서 지금 자리부터 그 코스 들머리까지 대중교통 · 차 길찾기를 엽니다. "
+                + "난이도(매우 쉬움 ~ 매우 어려움)는 거리 · 오르막으로 routefly 가 어림한 것이고(공단 공식 등급이 아님), 📈 고도를 누르면 공단 안내판처럼 구간별 경사를 봅니다.</p>");   // 2026-10-15 홍TV님
         b.append("<p class=\"dim\">예상 시간은 시속 4km · 오르막 600m 에 1시간으로 어림한 값입니다. 코스 자료는 참고용이니 현지 안내판 · 통제를 꼭 따르세요.</p></section>");
         List<String[]> qa = faq(peak, name, courses, parking);   // 자주 묻는 질문(2026-10-15 홍TV님 - 검색 결과에 문답으로)
         if (!qa.isEmpty()) {

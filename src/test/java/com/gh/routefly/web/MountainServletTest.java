@@ -43,7 +43,7 @@ public class MountainServletTest {
                 + "{\"id\":\"덕유산\",\"lat\":35.86,\"lon\":127.75},{\"id\":\"한라산\",\"lat\":33.36,\"lon\":126.53}]").getAsJsonArray();
         List<Object[]> nb = MountainServlet.nearby(peaks, gaya, 6, MountainServlet.NEARBY_M);
         assertEquals("자기 빼고 60km 안, 가까운 차례", Arrays.asList("덕유산", "비슬산"), nb.stream().map(o -> ((JsonObject) o[0]).get("id").getAsString()).toList());
-        gaya.addProperty("height", 1433);
+        gaya.addProperty("elev", 1433);   // 공식 높이(height 는 GPS 라 화면에 안 씀 - 2026-10-15)
         String html = MountainServlet.page(gaya, out, nb, 7, "https://routefly.kr/routefly");
         assertTrue("가까운 산 링크", html.contains("<a href=\"../m/%EB%8D%95%EC%9C%A0%EC%82%B0\">덕유산 <small>34km</small></a>"));
         assertTrue("정상 높이", html.contains("정상 칠불봉 1,433m"));

@@ -2409,6 +2409,8 @@
             s.textContent = (ofn ? "공단 " + ofn + " · " : "") + km(+r.distance_m) + "km" + (r.ascent_m != null ? " · 오르막 " + num(+r.ascent_m) + "m" : "")
                 + (r.ele_max_m != null ? " · 최고 " + num(+r.ele_max_m) + "m" : "")
                 + (r.away != null ? " · 출발점까지 " + km(r.away) + "km" : "");
+            var chip = r.kind === "hike" && RF.levelChip(+r.distance_m, r.ascent_m != null ? +r.ascent_m : null);   // 난이도(2026-10-15 홍TV님 - 공단 안내판 5단계)
+            if (chip) { b.appendChild(document.createTextNode(" ")); b.appendChild(chip); }
             it.appendChild(b);
             it.appendChild(s);
             // fly(3D) - 3D 지형 위로 날아 보기(2026-10-13 홍TV님: 실제 코스만, 탐방 안내도 카드는 뺌). 그 화면 ← 는 이 목록으로
@@ -2460,6 +2462,8 @@
             var it = document.createElement("div"), b = document.createElement("b"), sp = document.createElement("span");
             it.className = "it fav";
             RF.showName(b, String(f.name || ""));
+            var fchip = (f.kind || "hike") === "hike" && f.dist && RF.levelChip(f.dist, f.asc);
+            if (fchip) { b.appendChild(document.createTextNode(" ")); b.appendChild(fchip); }
             sp.textContent = (f.dist ? km(f.dist) + "km" : "") + (f.asc != null ? " · 오르막 " + num(f.asc) + "m" : "");
             it.appendChild(b);
             it.appendChild(sp);
