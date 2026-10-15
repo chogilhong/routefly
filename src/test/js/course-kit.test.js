@@ -821,3 +821,8 @@ eq("easyOk 2시간 · 4시간 · 모두", [RF.easyOk("2h", "hike", 3980, 779), R
     var p = RF.dotMap([{ lat: 38, lon: 127 }, { lat: 34, lon: 127 }, { lat: 36, lon: 129 }], 100, 200, 10);
     eq("dotMap 북쪽이 위 · 칸 안", [p[0][1] < p[1][1], p[2][0] > p[0][0], p.every(function (q) { return q[0] >= 9.9 && q[0] <= 90.1 && q[1] >= 9.9 && q[1] <= 190.1; }), RF.dotMap([], 1, 1, 0).length], [true, true, true, 0]);
 })();
+eq("planText 일몰 뒤 하산이면 경고 한 줄", RF.planText("가", 4000, 0, 0, 10 * 3600000, "", function (ms) { return String(ms / 3600000); }, 9 * 3600000).split("\n")[3],
+    "⚠ 하산 예정이 일몰(9) 뒤 - 헤드랜턴을 챙기고 일찍 내려오세요.");
+eq("centerPoints 공식 이름 · 다른 이름 · 품은 이름 · 자리 없는 것 뺌", RF.centerPoints(["영산강하구둑", "죽산보", "없는곳"], { "영산강하구둑": ["영산하구둑"] },
+    [{ name: "영산하구둑인증센터", lat: 34.8, lon: 126.4 }, { name: "죽산보 인증센터(나주)", lat: 35, lon: 126.6 }, { name: "덤인증센터", lat: 1, lon: 1 }]),
+    [{ name: "영산강하구둑", lat: 34.8, lon: 126.4 }, { name: "죽산보", lat: 35, lon: 126.6 }]);

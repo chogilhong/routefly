@@ -3012,13 +3012,33 @@
     /**
      * 순수 함수 - 산행 계획 문자(2026-10-15 홍TV님: 출발 전 가족에게). startMs · endMs 는 출발 · 하산 예정(ms), clock 은 시각 글로 바꾸는 함수.
      */
-    function planText(name, distM, ascM, startMs, endMs, url, clock) {
+    function planText(name, distM, ascM, startMs, endMs, url, clock, sunsetMs) {
         var lines = ["[routefly 산행 계획] " + name,
             "거리 " + num(distM / 1000, 1) + "km" + (ascM ? " · 오르막 " + num(ascM) + "m" : ""),
-            "출발 " + clock(startMs) + " → 하산 예정 " + clock(endMs) + "(표준 시간으로 어림)",
-            "예정보다 많이 늦고 연락이 안 되면 119 에 이 코스를 알려 주세요."];
+            "출발 " + clock(startMs) + " → 하산 예정 " + clock(endMs) + "(표준 시간으로 어림)"];
+        // 하산 예정이 일몰 뒤면 한 줄(2026-10-15 PC: 저녁에 누르면 22:10 하산 예정)
+        if (sunsetMs && endMs > sunsetMs) lines.push("⚠ 하산 예정이 일몰(" + clock(sunsetMs) + ") 뒤 - 헤드랜턴을 챙기고 일찍 내려오세요.");
+        lines = lines.concat([
+            "예정보다 많이 늦고 연락이 안 되면 119 에 이 코스를 알려 주세요."]);
         if (url) lines.push(url);
         return lines.join("\n");
+    }
+
+    /**
+     * 순수 함수 - 인증센터 지도 점(2026-10-15 PC: 지도 88곳 · 카드 85곳 어긋남) - series.json 의 센터(공식 이름 · 다른 이름 aka)마다
+     * api/group centers 에서 같은 이름(stampKey 같거나 서로 품음)의 자리를 찾음. 자리를 못 찾은 센터는 뺌. → [{name, lat, lon}]
+     */
+    function centerPoints(names, aka, apiCenters) {
+        var api = (apiCenters || []).filter(function (c) { return isFinite(+c.lat) && isFinite(+c.lon); })
+            .map(function (c) { return { k: stampKey(c.name), lat: +c.lat, lon: +c.lon }; });
+        var out = [];
+        (names || []).forEach(function (n) {
+            var ks = [n].concat((aka && aka[n]) || []).map(stampKey).filter(Boolean), hit = null;
+            ks.some(function (k) { hit = api.filter(function (a) { return a.k === k; })[0] || null; return hit; });
+            if (!hit) ks.some(function (k) { hit = api.filter(function (a) { return a.k.indexOf(k) >= 0 || k.indexOf(a.k) >= 0; })[0] || null; return hit; });
+            if (hit) out.push({ name: n, lat: hit.lat, lon: hit.lon });
+        });
+        return out;
     }
 
     /** 쉬운 코스 거르기(2026-10-15 홍TV님) - {key, label, ms}, ms 0 은 모두. */
@@ -3188,6 +3208,6 @@
         LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, regionNames: regionNames, stampKey: stampKey, summitName: summitName, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakGapM: peakGapM, peakCourses: peakCourses, isClosedTrail: isClosedTrail, isHiddenCourse: isHiddenCourse, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
         sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap,
-        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, EASY: EASY, easyOk: easyOk, dotMap: dotMap
+        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, EASY: EASY, easyOk: easyOk, dotMap: dotMap
     };
 })(window);

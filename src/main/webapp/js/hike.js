@@ -2894,7 +2894,8 @@
         if (!c) return;
         var t0 = now(), ms = RF.standardMs(c.course.kind, c.total, RF.ascentLeft(c, 0));
         var link = RF.parseJoinId(c.id) ? "" : new URL("s/" + encodeURIComponent(c.id) + "?to=hike", location.href).href;
-        var text = RF.planText(c.course.name, c.total, Math.round(c.asc && c.asc.length ? c.asc[c.asc.length - 1] : 0), t0, t0 + ms, link, clock);
+        var text = RF.planText(c.course.name, c.total, Math.round(c.asc && c.asc.length ? c.asc[c.asc.length - 1] : 0), t0, t0 + ms, link, clock,
+            RF.sunset(t0, c.lat[0], c.lon[0]));
         $("sharePlanText").textContent = text;
         $("sharePlan").href = "sms:" + (/iPhone|iPad/.test(navigator.userAgent) ? "&" : "?") + "body=" + encodeURIComponent(text);
         $("shareSheet").style.display = "flex";

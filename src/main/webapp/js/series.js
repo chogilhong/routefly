@@ -113,17 +113,18 @@
         Promise.all(g.series.filter(function (s) { return s.prefix && s.centers; }).map(function (s) {
             return getJson("api/group?prefix=" + encodeURIComponent(s.prefix)).then(function (j) { return { s: s, cs: j.centers || [] }; }, function () { return { s: s, cs: [] }; });
         })).then(function (all) {
-            var seen = {}, items = [];
+            // series.json 의 공식 센터(카드의 수와 같게)만, 자리는 api/group 이름표에서
+            var items = [], total = 0;
             all.forEach(function (r) {
-                r.cs.forEach(function (c) {
-                    var n = String(c.name || "").replace(/\s*인증센터$/, "");
-                    if (!n || seen[n] || !isFinite(+c.lat) || !isFinite(+c.lon)) return;
-                    seen[n] = 1;
-                    items.push({ lat: +c.lat, lon: +c.lon, on: !!RF.stampOf(stamps, n, r.s.aka && r.s.aka[n]), label: "📮 " + n + " 인증센터 · " + r.s.name });
+                total += r.s.centers.length;
+                RF.centerPoints(r.s.centers, r.s.aka, r.cs).forEach(function (p) {
+                    items.push({ lat: p.lat, lon: p.lon, on: !!RF.stampOf(stamps, p.name, r.s.aka && r.s.aka[p.name]), label: "📮 " + p.name + " 인증센터 · " + r.s.name });
                 });
             });
             if (!items.length) { wait.textContent = "인증센터 자리를 받지 못했습니다."; return; }
-            box.replaceChild(dotsMap(items, "도장 찍은 인증센터"), wait);
+            var m = dotsMap(items, "도장 찍은 인증센터");
+            if (items.length < total) m.lastChild.textContent += " · 자리를 못 찾은 " + (total - items.length) + "곳은 지도에서 뺌";
+            box.replaceChild(m, wait);
         });
     }
 
