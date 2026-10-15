@@ -90,3 +90,6 @@ ul { margin:0; padding:0; list-style:none; }
           font:bold 13px Arial,"Malgun Gothic",sans-serif; }
 .rfLang span { display:inline-flex; align-items:center; padding:0 9px; color:var(--dim); background:rgba(255,255,255,0.06); }
 .rfLang span.on { color:#0b1118; background:var(--sky); }
+/* 📥 신호 없을 때 보기(오프라인 저장 - 2026-10-15) */
+.offline button { height:36px; padding:0 14px; border-radius:18px; border:1px solid var(--sky); background:rgba(56,217,234,0.12); color:var(--tx); font:bold 14px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }
+.offline button:disabled { opacity:0.6; }

@@ -195,6 +195,11 @@
             if (any) { var n = document.createElement("p"); n.className = "dim"; n.textContent = window.RF.COUPANG_NOTE; gs.appendChild(n); }
         }).catch(function () { /* 링크 없이 */ });
     }
+    // 📥 오프라인 저장(2026-10-15 홍TV님) - 이 페이지 · 날씨 · 코스 자료를 핸드폰에. 지도 사진은 따라가기의 "오프라인 저장"
+    if (window.RF) window.RF.offlineBox({ title: "📥 신호 없을 때 보기", btn: "이 산 저장", again: "다시 저장(새 날씨로)", saving: "저장하는 중…",
+        fail: "이 브라우저에서는 저장할 수 없습니다(https 주소의 크롬 · 삼성 인터넷에서 됩니다).", tip: "산에 가기 전에 눌러 두세요. 이 페이지 · 날씨 · 코스 선이 이 핸드폰에 저장됩니다.",
+        done: function (t) { return "✓ " + t + " 저장됨 - 신호가 없어도 이 페이지와 저장할 때의 날씨, 코스 따라가기(선 · GPS)가 열립니다. 지도 사진까지는 따라가기에서 코스를 연 뒤 오프라인 저장을 누르세요."; } },
+        "..", "mountain.js");
     var box = document.getElementById("wx"), out = document.getElementById("wxBody");
     if (!box || !out || !window.RF) return;
     var lat = +box.getAttribute("data-lat"), lon = +box.getAttribute("data-lon"), RF = window.RF;

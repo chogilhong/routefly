@@ -3177,6 +3177,68 @@
     }
 
     /**
+     * 산 페이지 오프라인 저장(2026-10-15 홍TV님 - 산에서는 신호가 약함). 페이지 · css · js · 날씨 응답 · 코스 자료(따라가기가 쓰는 api/course)를
+     * 서비스 워커의 지우지 않는 캐시(rf-offline-v1 - sw.js OFFLINE)에 담습니다. 서비스 워커가 없으면 등록부터(../sw.js - 앱 뿌리 범위).
+     * urls - 담을 주소(상대 주소 가능). → Promise(담은 수). 캐시를 못 쓰는 브라우저면 거부.
+     */
+    function saveOffline(urls, swUrl) {
+        if (!window.caches || !navigator.serviceWorker || !window.isSecureContext) return Promise.reject(new Error("no-cache"));
+        var reg = navigator.serviceWorker.controller ? Promise.resolve() : navigator.serviceWorker.register(swUrl).then(function () { return null; }, function () { return null; });
+        return reg.then(function () { return caches.open("rf-offline-v1"); }).then(function (c) {
+            return Promise.all(urls.map(function (u) {
+                var abs = new URL(u, location.href).href.split("#")[0];
+                return fetch(abs, { cache: "no-cache" }).then(function (r) { return r.ok ? c.put(abs, r).then(function () { return 1; }) : 0; }, function () { return 0; });
+            }));
+        }).then(function (n) { return n.reduce(function (a, b) { return a + b; }, 0); });
+    }
+
+    /**
+     * 산 페이지의 "📥 신호 없을 때 보기" 칸(한국어 · 영어 산 페이지). T - 글(title · btn · again · saving · fail · tip · done(시각)),
+     * rel - 앱 뿌리 상대 주소(".." · "../.."), script - 이 페이지 스크립트 이름(mountain.js · mountain-en.js). 코스 목록 · 날씨 칸이 없으면 안 그림.
+     */
+    function offlineBox(T, rel, script) {
+        var anchor = document.getElementById("wx");
+        if (!anchor || !window.caches) return;
+        var sec = document.createElement("section"), h = document.createElement("h2"), b = document.createElement("button"), p = document.createElement("p"), key = location.pathname;
+        var when = function (t) { var d = new Date(t); return (d.getMonth() + 1) + "/" + d.getDate() + " " + d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0"); };
+        var saved = savedPages()[key];
+        sec.className = "offline";
+        h.textContent = T.title;
+        b.type = "button";
+        b.textContent = saved ? T.again : T.btn;
+        p.className = "dim";
+        p.textContent = saved ? T.done(when(saved)) : T.tip;
+        b.addEventListener("click", function () {
+            var q = "?lat=" + (+anchor.getAttribute("data-lat")).toFixed(4) + "&lon=" + (+anchor.getAttribute("data-lon")).toFixed(4);
+            var urls = [location.href, rel + "/css/mountain.css", rel + "/js/course-kit.js", rel + "/js/" + script, rel + "/img/logo-dark.svg",
+                rel + "/api/weather" + q, rel + "/api/air" + q, rel + "/api/mid" + q, rel + "/api/partners", rel + "/hike.html"];
+            Array.prototype.forEach.call(document.querySelectorAll(".cs li[data-id]"), function (li) { urls.push(rel + "/api/course?id=" + encodeURIComponent(li.getAttribute("data-id"))); });
+            b.disabled = true;
+            p.textContent = T.saving;
+            saveOffline(urls, rel + "/sw.js").then(function (n) {
+                if (!n) throw new Error("none");
+                savedPages(key);
+                b.textContent = T.again;
+                p.textContent = T.done(when(Date.now()));
+            }).catch(function () { p.textContent = T.fail; }).then(function () { b.disabled = false; });
+        });
+        sec.appendChild(h);
+        sec.appendChild(b);
+        sec.appendChild(p);
+        var before = document.querySelector(".faq");
+        if (before) before.parentNode.insertBefore(sec, before);
+        else anchor.parentNode.appendChild(sec);
+    }
+
+    /** 오프라인 저장한 산 페이지 {주소: 저장 시각} - 이 기기 localStorage "rf-offline-m". */
+    function savedPages(set) {
+        var all = {};
+        try { all = JSON.parse(localStorage.getItem("rf-offline-m") || "{}") || {}; } catch (e) { /* 빈 것 */ }
+        if (set) { all[set] = Date.now(); try { localStorage.setItem("rf-offline-m", JSON.stringify(all)); } catch (e) { /* 이번만 */ } }
+        return all;
+    }
+
+    /**
      * 순수 함수 - 100대 명산 배지(2026-10-15 홍TV님): 10 · 30 · 50 · 70곳과 완등(정상 자료가 있는 산 모두).
      * peaks - mountains100.json 의 peaks, peakStamps - rf-peaks {peakKey: {t}}. → [{n, label, t(그 수에 닿은 날, 아직이면 null)}]
      */
@@ -3338,6 +3400,6 @@
         LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, regionNames: regionNames, stampKey: stampKey, summitName: summitName, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakGapM: peakGapM, peakCourses: peakCourses, isClosedTrail: isClosedTrail, isHiddenCourse: isHiddenCourse, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
         sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap,
-        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, peakMilestones: peakMilestones
+        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox
     };
 })(window);

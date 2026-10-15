@@ -15,6 +15,11 @@
         tools.appendChild(tb);
         crumb.insertBefore(tools, crumb.firstChild);   // 앞에 두어야 h1 글과 같은 줄 오른쪽(뒤에 두면 다음 줄로 밀림)
     }
+    // 📥 Save for offline(한국어 화면과 같은 칸)
+    RF.offlineBox({ title: "📥 Save for no signal", btn: "Save this mountain", again: "Save again (fresh weather)", saving: "Saving…",
+        fail: "This browser cannot save pages (works in Chrome or Samsung Internet on an https address).", tip: "Tap before you go. This page, the weather and the trail lines are saved on this phone.",
+        done: function (t) { return "✓ Saved " + t + " - this page, the weather at that time and trail following (line + GPS) open without signal. For map imagery, open a trail in Follow and save it offline there."; } },
+        "../..", "mountain-en.js");
     var DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     var AIR = { "좋음": "Good", "보통": "Moderate", "나쁨": "Unhealthy", "매우나쁨": "Very unhealthy" };
     function clock(ms) { var d = new Date(ms + 9 * 3600000); return d.getUTCHours() + ":" + String(d.getUTCMinutes()).padStart(2, "0"); }
