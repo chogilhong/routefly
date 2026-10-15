@@ -38,6 +38,7 @@ fetch("api/partners").then(function (r) { return r.json(); }).then(function (p) 
         if (p.coupang && Object.keys(p.coupang).length) where.push("🎒 챙길 것의 쿠팡");
         if (p.agoda) where.push("숙박의 아고다");
         document.getElementById("supportWhere").textContent = where.join(" · ");
+        document.getElementById("supportVerb").textContent = where.length > 1 ? "사거나 예약하면" : p.agoda ? "예약하면" : "사면";
         document.getElementById("supportAff").hidden = false;
     }
     if (p.donate) { document.getElementById("donateLink").href = p.donate; document.getElementById("supportDonate").hidden = false; }
