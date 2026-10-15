@@ -14,6 +14,9 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -36,6 +39,7 @@ import com.google.gson.JsonParser;
 public class AirServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
+    private static final Logger log = LogManager.getLogger(AirServlet.class);
 
     static final String STATIONS_URL = "https://apis.data.go.kr/B552584/MsrstnInfoInqireSvc/getMsrstnList";
     static final String MEASURE_URL = "https://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getMsrstnAcctoRltmMesureDnsty";
@@ -102,6 +106,7 @@ public class AirServlet extends HttpServlet {
             List<double[]> pos = new ArrayList<>();
             if (text != null && stations(text, names, pos)) {
                 stationList = new Object[] {names, pos, now};
+                log.info("[AIR] 측정소 목록 {}곳 받음{}", names.size(), attempt > 0 ? "(다시 받아서)" : "");
                 return stationList;
             }
             if (text != null) {
@@ -120,7 +125,10 @@ public class AirServlet extends HttpServlet {
             return;
         }
         String key = key();
-        Json.ok(req, resp, key == null ? unavailable() : answer(key, at[0], at[1]));
+        JsonObject out = key == null ? unavailable() : answer(key, at[0], at[1]);
+        // 못 받았을 때는 브라우저 · 서비스워커가 담아 두지 않게(2026-10-15 PC: 뜰 때 목록을 받는 사이 10초에 unavailable) - 다음에 다시 물음
+        if (out.has("unavailable")) Json.write(resp, HttpServletResponse.SC_OK, out, false);
+        else Json.ok(req, resp, out);
     }
 
     private static JsonObject answer(String key, double lat, double lon) {
