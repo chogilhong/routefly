@@ -47,6 +47,7 @@ public class CoursesServlet extends HttpServlet {
         if (ResultCache.LISTS.send(req, resp, key, ver)) return;
         try (Connection c = Db.open()) {
             JsonArray courses = CourseQueries.list(c, bbox, kind, q);
+            Steep.fill(c, courses);   // 등산 코스마다 가장 가파른 1km 경사(steep_pct) - 난이도(2026-10-16)
             boolean truncated = courses.size() > CourseQueries.LIST_LIMIT;
             if (truncated) courses.remove(courses.size() - 1);
             JsonObject out = new JsonObject();

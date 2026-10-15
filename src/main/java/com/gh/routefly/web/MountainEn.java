@@ -134,10 +134,13 @@ final class MountainEn {
                 String id = str(c, "course_id");
                 int dist = c.get("distance_m").getAsInt();
                 Integer asc = asc(c);
-                b.append("<li data-id=\"").append(esc(id)).append("\" data-name=\"").append(esc(str(c, "name"))).append("\" data-dist=\"").append(dist).append(asc != null ? "\" data-asc=\"" + asc : "").append("\"><b>")
-                        .append(esc(courseName(str(c, "name")))).append(" ").append(MountainServlet.levelChip(dist, asc, true)).append(" <small lang=\"ko\">").append(esc(str(c, "name"))).append("</small></b><span>")
+                Double steep = MountainServlet.steep(c);
+                b.append("<li data-id=\"").append(esc(id)).append("\" data-name=\"").append(esc(str(c, "name"))).append("\" data-dist=\"").append(dist).append(asc != null ? "\" data-asc=\"" + asc : "")
+                        .append(steep != null ? "\" data-steep=\"" + steep : "").append("\"><b>")
+                        .append(esc(courseName(str(c, "name")))).append(" ").append(MountainServlet.levelChip(dist, asc, steep, true)).append(" <small lang=\"ko\">").append(esc(str(c, "name"))).append("</small></b><span>")
                         .append(String.format(Locale.ROOT, "%.2f km", dist / 1000.0))
                         .append(asc != null ? String.format(Locale.US, " · %,d m ascent", asc) : "")
+                        .append(steep != null && steep >= MountainServlet.STEEP_STEPS[1] ? String.format(Locale.ROOT, " · steepest 1 km %.0f%%", steep) : "")
                         .append(" · about ").append(hours(dist, asc)).append("</span><span class=\"go\">")
                         .append("<a href=\"").append(REL).append("/index.html#c=").append(esc(id)).append("\">3D fly-through</a>")
                         .append("<a href=\"").append(REL).append("/hike.html#c=").append(esc(id)).append("\">Follow (GPS)</a>");

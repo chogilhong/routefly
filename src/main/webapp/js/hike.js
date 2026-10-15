@@ -688,7 +688,7 @@
     var favBtn = RF.favButton(function () {
         if (!c || isGpxId(c.id)) return null;
         return { id: c.id, name: c.course.name, kind: c.course.kind, dist: Math.round(c.total),
-                 asc: c.asc && c.asc.length ? Math.round(c.asc[c.asc.length - 1]) : null };
+                 asc: c.asc && c.asc.length ? Math.round(c.asc[c.asc.length - 1]) : null, steep: RF.steepest(c.dist, c.ele) };
     });
     $("name").parentNode.insertBefore(favBtn, $("name").nextSibling);
 
@@ -2444,9 +2444,10 @@
             var ofn = RF.officialName(listNotes, r.course_id);   // 공단 공식 이름(가야산1코스) - 이름에 이미 들었으면 빼고(남산제일봉1코스)
             if (ofn && String(r.name).replace(/\s+/g, "").indexOf(ofn.replace(/\s+/g, "")) >= 0) ofn = "";
             s.textContent = (ofn ? "공단 " + ofn + " · " : "") + km(+r.distance_m) + "km" + (r.ascent_m != null ? " · 오르막 " + num(+r.ascent_m) + "m" : "")
+                + (r.steep_pct >= 18 ? " · 가장 가파른 1km " + Math.round(r.steep_pct) + "%" : "")
                 + (r.ele_max_m != null ? " · 최고 " + num(+r.ele_max_m) + "m" : "")
                 + (r.away != null ? " · 출발점까지 " + km(r.away) + "km" : "");
-            var chip = r.kind === "hike" && RF.levelChip(+r.distance_m, r.ascent_m != null ? +r.ascent_m : null);   // 난이도(2026-10-15 홍TV님 - 공단 안내판 5단계)
+            var chip = (r.kind === "hike" || r.kind === "trek") && RF.levelChip(+r.distance_m, r.ascent_m != null ? +r.ascent_m : null, false, r.steep_pct);   // 난이도(2026-10-15 홍TV님 - 공단 안내판 5단계)
             if (chip) { b.appendChild(document.createTextNode(" ")); b.appendChild(chip); }
             it.appendChild(b);
             it.appendChild(s);
@@ -2500,7 +2501,7 @@
             var it = document.createElement("div"), b = document.createElement("b"), sp = document.createElement("span");
             it.className = "it fav";
             RF.showName(b, String(f.name || ""));
-            var fchip = (f.kind || "hike") === "hike" && f.dist && RF.levelChip(f.dist, f.asc);
+            var fchip = (f.kind || "hike") === "hike" && f.dist && RF.levelChip(f.dist, f.asc, false, f.steep);
             if (fchip) { b.appendChild(document.createTextNode(" ")); b.appendChild(fchip); }
             sp.textContent = (f.dist ? km(f.dist) + "km" : "") + (f.asc != null ? " · 오르막 " + num(f.asc) + "m" : "");
             it.appendChild(b);

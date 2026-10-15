@@ -122,6 +122,9 @@ public class MountainServlet extends HttpServlet {
             double dLat = 0.05, dLon = 0.05 / Math.cos(Math.toRadians(lat));
             JsonArray rows = CourseQueries.list(c, new double[] {lon - dLon, lat - dLat, lon + dLon, lat + dLat}, "hike", null);
             courses = near(rows, peak, NEAR_M);
+            JsonArray picked = new JsonArray();
+            courses.forEach(picked::add);
+            Steep.fill(c, picked);   // 가장 가파른 1km(난이도 - 2026-10-16)
             names(courses, parks());   // 앱과 같은 이름(공단 공식 이름 · 산마다 지명) · 지금은 없는 탐방로는 뺌
         } catch (Exception e) {
             log.warn("[MOUNTAIN] 코스 조회 실패 {} - {}", str(peak, "id"), e.toString());
@@ -314,13 +317,20 @@ public class MountainServlet extends HttpServlet {
 
     /** 난이도 5단계 [한국어, 영어] - course-kit.js LEVELS 와 같음(공단 탐방로 안내판 범례). 2026-10-15 홍TV님. */
     static final String[][] LEVELS = {{"매우 쉬움", "Easy"}, {"쉬움", "Moderate"}, {"보통", "Intermediate"}, {"어려움", "Advanced"}, {"매우 어려움", "Expert"}};
-    static final double[] HOUR_STEPS = {1.5, 3, 5, 8}, ASC_STEPS = {300, 700, 1100, 1500};
+    static final double[] HOUR_STEPS = {1.5, 3, 5, 8}, ASC_STEPS = {300, 700, 1100, 1500}, STEEP_STEPS = {12, 18, 25, 32};
 
-    /** 순수 함수 - 등산 코스 난이도 0~4(routefly 기준) - 표준 시간 · 오르막 총량 가운데 높은 단계. course-kit.js difficulty 와 같음. 거리가 없으면 -1. */
     static int difficulty(int distM, Integer ascM) {
+        return difficulty(distM, ascM, null);
+    }
+
+    /**
+     * 순수 함수 - 등산 코스 난이도 0~4(routefly 기준) - 표준 시간 · 오르막 총량 · 가장 가파른 1km(Steep, 오르막 · 내리막) 가운데 높은 단계.
+     * course-kit.js difficulty 와 같음. 거리가 없으면 -1. 셋 다 코스가 길어져도 줄지 않아 "길어지면 내려가지 않음"(2026-10-16 - 평균 경사는 내리막에 묽어졌음).
+     */
+    static int difficulty(int distM, Integer ascM, Double steepPct) {
         if (distM <= 0) return -1;
         double a = ascM == null ? 0 : ascM, h = distM / 1000.0 / 4 + a / 600;
-        return Math.max(step(h, HOUR_STEPS), step(a, ASC_STEPS));   // 길어지거나 오르막이 늘면 내려가지 않게(2026-10-16 - 평균 경사는 내리막에 묽어졌음)
+        return Math.max(Math.max(step(h, HOUR_STEPS), step(a, ASC_STEPS)), steepPct == null ? 0 : step(steepPct, STEEP_STEPS));
     }
 
     private static int step(double v, double[] steps) {
@@ -329,10 +339,19 @@ public class MountainServlet extends HttpServlet {
         return i;
     }
 
-    /** 순수 함수 - 난이도 표(코스 이름 옆). en - 영어. */
     static String levelChip(int distM, Integer ascM, boolean en) {
-        int lv = difficulty(distM, ascM);
+        return levelChip(distM, ascM, null, en);
+    }
+
+    /** 순수 함수 - 난이도 표(코스 이름 옆). steep - 가장 가파른 1km 경사(%, 없으면 null). en - 영어. */
+    static String levelChip(int distM, Integer ascM, Double steep, boolean en) {
+        int lv = difficulty(distM, ascM, steep);
         return lv < 0 ? "" : "<i class=\"lv lv" + lv + "\">" + LEVELS[lv][en ? 1 : 0] + "</i>";
+    }
+
+    /** 목록 줄의 steep_pct(Steep.fill) - 없으면 null. */
+    static Double steep(JsonObject c) {
+        return c.has("steep_pct") && !c.get("steep_pct").isJsonNull() ? c.get("steep_pct").getAsDouble() : null;
     }
 
     /** 순수 함수 - 두 점 거리(m, 하버사인). */
@@ -470,10 +489,13 @@ public class MountainServlet extends HttpServlet {
                 String id = str(c, "course_id");
                 int dist = c.get("distance_m").getAsInt();
                 Integer asc = c.has("ascent_m") && !c.get("ascent_m").isJsonNull() ? c.get("ascent_m").getAsInt() : null;
+                Double steep = steep(c);
                 b.append("<li data-id=\"").append(esc(id)).append("\" data-name=\"").append(esc(str(c, "name"))).append("\" data-dist=\"").append(dist)
-                        .append(asc != null ? "\" data-asc=\"" + asc : "").append("\"><b>").append(esc(str(c, "name"))).append(" ").append(levelChip(dist, asc, false)).append("</b><span>")
+                        .append(asc != null ? "\" data-asc=\"" + asc : "").append(steep != null ? "\" data-steep=\"" + steep : "")
+                        .append("\"><b>").append(esc(str(c, "name"))).append(" ").append(levelChip(dist, asc, steep, false)).append("</b><span>")
                         .append(String.format(Locale.ROOT, "%.2fkm", dist / 1000.0))
                         .append(asc != null ? String.format(Locale.KOREA, " · 오르막 %,dm", asc) : "")
+                        .append(steep != null && steep >= STEEP_STEPS[1] ? String.format(Locale.ROOT, " · 가장 가파른 1km %.0f%%", steep) : "")
                         .append(" · 약 ").append(hours(dist, asc)).append("</span><span class=\"go\">")
                         .append("<a href=\"").append(REL).append("/index.html#c=").append(esc(id)).append("&amp;m=").append(esc(enc(name))).append("\">fly(3D)</a>")
                         .append("<a href=\"").append(REL).append("/hike.html#c=").append(esc(id)).append("&amp;m=").append(esc(enc(name))).append("\">따라가기</a>");   // m= - 따라가기의 ‹ 가 이 화면으로

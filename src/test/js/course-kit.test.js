@@ -915,5 +915,15 @@ eq("enName", [RF.enName("오색탐방지원센터 - 대청봉"), RF.enName("설�
 eq("recentAdd 같은 주소는 앞으로 · 8개까지", RF.recentAdd([{ href: "a" }, { href: "b" }], { href: "b", name: "B" }).map(function (x) { return x.href; }), ["b", "a"]);
 eq("recentAdd 넘치면 뒤를 버림", RF.recentAdd([1, 2, 3, 4, 5, 6, 7, 8].map(function (i) { return { href: "p" + i }; }), { href: "n" }).map(function (x) { return x.href; }).join(","), "n,p1,p2,p3,p4,p5,p6,p7");
 eq("compareRows", RF.compareRows({ dist: 12900, asc: 1300 }, { dist: 5000, asc: 1300 }), [["거리", "12.90 km", "5.00 km"], ["오르막", "1,300 m", "1,300 m"],
-    ["예상 시간(편도)", "5시간 24분", "3시간 25분"], ["난이도", "어려움", "어려움"], ["평균 경사", "10.1%", "26%"]]);
+    ["예상 시간(편도)", "5시간 24분", "3시간 25분"], ["난이도", "어려움", "어려움"], ["평균 경사", "10.1%", "26%"], ["가장 가파른 1km", "-", "-"]]);
 eq("compareRows 영어 시간", RF.compareRows({ dist: 3000, asc: 0 }, { dist: 5000, asc: 1300 }, true)[2], ["Time (one way)", "45 min", "3 h 25 min"]);
+// 가장 가파른 1km(2026-10-16) - Steep.steepest 와 같은 값(SteepTest)
+(function () {
+    var d = [], e = [];
+    for (var i = 0; i <= 50; i++) { d.push(i * 100); e.push(i < 30 ? 300 + i * 5 : 445 + (i - 30) * 30); }   // 3km 완만(5%) 뒤 2km 가파름(30%)
+    eq("steepest", [RF.steepest(d, e), RF.steepest([0, 500], [100, 200]), RF.steepest([0, 200], [0, 50]), RF.steepest([0, 2000], [null, null])], [30, 20, null, null]);
+    // 내리막도 셈 - 거꾸로 해도 같음
+    eq("steepest 내리막", RF.steepest(d, e.slice().reverse()), 30);
+    eq("difficulty 가파름이 올림(오색 같은 짧고 가파른 길)", [RF.difficulty(5000, 600), RF.difficulty(5000, 600, 27), RF.difficulty(5000, 600, 10)], [1, 3, 1]);
+    eq("difficulty 한계령 → 대청봉 → 남설악(급한 내리막 - PC)", RF.difficulty(12330, 1068, 30), 3);
+})();

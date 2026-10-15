@@ -3250,24 +3250,42 @@
     var LEVELS = [{ ko: "매우 쉬움", en: "Easy", color: "#a3c93a" }, { ko: "쉬움", en: "Moderate", color: "#3fae5c" }, { ko: "보통", en: "Intermediate", color: "#e8822a" },
                   { ko: "어려움", en: "Advanced", color: "#a23a6b" }, { ko: "매우 어려움", en: "Expert", color: "#3a3f46" }];
     /** 구간 경사(%) 단계 경계 - 안내판 구간 색 · 음성. 코스 난이도는 시간 · 오르막 총량(HOUR_STEPS · ASC_STEPS). MountainServlet 과 같은 값. */
-    var SLOPE_STEPS = [5, 10, 18, 28], HOUR_STEPS = [1.5, 3, 5, 8], ASC_STEPS = [300, 700, 1100, 1500];
+    var SLOPE_STEPS = [5, 10, 18, 28], HOUR_STEPS = [1.5, 3, 5, 8], ASC_STEPS = [300, 700, 1100, 1500], STEEP_STEPS = [12, 18, 25, 32];
     function stepOf(v, steps) { var i = 0; while (i < steps.length && v >= steps[i]) i++; return i; }
 
     /**
-     * 순수 함수 - 등산 코스 난이도 0~4(routefly 기준 - 공단 공식 등급이 아님). 표준 시간(4km/h + 오르막 600m/h)과 오르막 총량 가운데 높은 단계.
+     * 순수 함수 - 등산 코스 난이도 0~4(routefly 기준 - 공단 공식 등급이 아님). 표준 시간(4km/h + 오르막 600m/h) · 오르막 총량 ·
+     * 가장 가파른 1km 경사(steep %, 오르막 · 내리막 - 서버 Steep 이 목록에 steep_pct 로 줌, 없으면 뺌) 가운데 높은 단계.
      * 코스가 길어지거나 오르막이 늘면 절대 내려가지 않음 - 2026-10-16 홍TV님: 예전 기준(전체 평균 경사)은 남설악 → 대청봉(4.7km · 1,273m)이 어려움인데
      * 대청봉 → 가라피로 이어 내려가는 10.5km · 1,480m 코스가 평균 경사가 묽어져 보통이었음. 가파른 구간은 📈 고도 · 📋 안내판의 구간 경사로 봄.
      */
-    function difficulty(distM, ascM) {
+    function difficulty(distM, ascM, steep) {
         distM = +distM || 0;
         ascM = +ascM || 0;
         if (distM <= 0) return null;
-        return Math.max(stepOf(distM / 1000 / 4 + ascM / 600, HOUR_STEPS), stepOf(ascM, ASC_STEPS));
+        return Math.max(stepOf(distM / 1000 / 4 + ascM / 600, HOUR_STEPS), stepOf(ascM, ASC_STEPS), steep != null && isFinite(+steep) ? stepOf(+steep, STEEP_STEPS) : 0);
+    }
+
+    /** 순수 함수 - 가장 가파른 1km 구간 경사(%, 오르막 · 내리막) - Steep.steepest 와 같음. 1km 보다 짧으면 처음 ~ 끝, 300m 보다 짧거나 고도가 없으면 null. */
+    function steepest(dist, ele) {
+        var p = [];
+        for (var i = 0; i < (dist || []).length; i++) if (ele[i] != null) p.push([+dist[i], +ele[i]]);
+        if (p.length < 2) return null;
+        var total = p[p.length - 1][0] - p[0][0], best = 0;
+        if (total < 300) return null;
+        if (total < 1000) best = Math.abs(p[p.length - 1][1] - p[0][1]) / total * 100;
+        else for (var a = 0, b = 0; a < p.length; a++) {
+            if (b < a) b = a;
+            while (b < p.length && p[b][0] - p[a][0] < 1000) b++;
+            if (b >= p.length) break;
+            best = Math.max(best, Math.abs(p[b][1] - p[a][1]) / (p[b][0] - p[a][0]) * 100);
+        }
+        return Math.round(best * 10) / 10;
     }
 
     /** 난이도 표(i.lv) - 거리가 없으면 null. MountainServlet.levelChip 과 같은 모양. */
-    function levelChip(distM, ascM, en) {
-        var lv = difficulty(distM, ascM);
+    function levelChip(distM, ascM, en, steep) {
+        var lv = difficulty(distM, ascM, steep);
         if (lv == null) return null;
         var i = el("i", "lv lv" + lv, en ? LEVELS[lv].en : LEVELS[lv].ko);
         i.title = en ? "Difficulty (routefly estimate from time and total ascent)" : "난이도(걸리는 시간 · 오르막 총량으로 어림 - 공단 공식 등급 아님)";
@@ -3502,11 +3520,12 @@
     /** 순수 함수 - 견주기 표의 줄들. a · b = {name, dist, asc}. → [[항목, a 값, b 값], …] (en - 영어). */
     function compareRows(a, b, en) {
         var row = function (o) {
-            var lv = difficulty(o.dist, o.asc), ms = standardMs("hike", o.dist, o.asc || 0);
+            var lv = difficulty(o.dist, o.asc, o.steep), ms = standardMs("hike", o.dist, o.asc || 0);
             return [(o.dist / 1000).toFixed(2) + " km", o.asc != null ? Math.round(o.asc).toLocaleString("en-US") + " m" : "-",
-                    en ? (function (m) { return (m >= 60 ? Math.floor(m / 60) + " h " : "") + m % 60 + " min"; })(Math.round(ms / 60000)) : hm(ms), lv == null ? "-" : en ? LEVELS[lv].en : LEVELS[lv].ko, o.asc != null && o.dist ? (Math.round(o.asc / o.dist * 1000) / 10) + "%" : "-"];
+                    en ? (function (m) { return (m >= 60 ? Math.floor(m / 60) + " h " : "") + m % 60 + " min"; })(Math.round(ms / 60000)) : hm(ms), lv == null ? "-" : en ? LEVELS[lv].en : LEVELS[lv].ko, o.asc != null && o.dist ? (Math.round(o.asc / o.dist * 1000) / 10) + "%" : "-",
+                    o.steep != null ? Math.round(o.steep) + "%" : "-"];
         };
-        var ra = row(a), rb = row(b), names = en ? ["Distance", "Ascent", "Time (one way)", "Difficulty", "Avg slope"] : ["거리", "오르막", "예상 시간(편도)", "난이도", "평균 경사"];
+        var ra = row(a), rb = row(b), names = en ? ["Distance", "Ascent", "Time (one way)", "Difficulty", "Avg slope", "Steepest 1 km"] : ["거리", "오르막", "예상 시간(편도)", "난이도", "평균 경사", "가장 가파른 1km"];
         return names.map(function (n, i) { return [n, ra[i], rb[i]]; });
     }
 
@@ -3517,7 +3536,10 @@
         var picked = [], panel = el("div", "cmp");
         panel.hidden = true;
         list.parentNode.insertBefore(panel, list);
-        function info(li) { var asc = li.getAttribute("data-asc"); return { id: li.getAttribute("data-id"), name: li.getAttribute("data-name"), dist: +li.getAttribute("data-dist"), asc: asc != null ? +asc : null, li: li }; }
+        function info(li) {
+            var asc = li.getAttribute("data-asc"), st = li.getAttribute("data-steep");
+            return { id: li.getAttribute("data-id"), name: li.getAttribute("data-name"), dist: +li.getAttribute("data-dist"), asc: asc != null ? +asc : null, steep: st != null ? +st : null, li: li };
+        }
         function draw() {
             Array.prototype.forEach.call(list.querySelectorAll(".cmpBtn"), function (b) { var on = picked.indexOf(b._li) >= 0; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false"); });
             panel.textContent = "";
@@ -3799,6 +3821,6 @@
         LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, regionNames: regionNames, stampKey: stampKey, summitName: summitName, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakGapM: peakGapM, peakCourses: peakCourses, isClosedTrail: isClosedTrail, isHiddenCourse: isHiddenCourse, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
         sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap,
-        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox, LEVELS: LEVELS, difficulty: difficulty, boardSegments: boardSegments, boardProfile: boardProfile, nameEnds: nameEnds, boardButtons: boardButtons, levelChip: levelChip, roman: roman, enName: enName, weekendText: weekendText, boardHere: boardHere, slopeBetween: slopeBetween, recentAdd: recentAdd, recentPages: recentPages, recentFold: recentFold, compareRows: compareRows, compareButtons: compareButtons
+        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox, LEVELS: LEVELS, difficulty: difficulty, boardSegments: boardSegments, boardProfile: boardProfile, nameEnds: nameEnds, boardButtons: boardButtons, levelChip: levelChip, roman: roman, enName: enName, weekendText: weekendText, boardHere: boardHere, slopeBetween: slopeBetween, recentAdd: recentAdd, recentPages: recentPages, recentFold: recentFold, compareRows: compareRows, compareButtons: compareButtons, steepest: steepest
     };
 })(window);
