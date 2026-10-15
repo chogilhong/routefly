@@ -129,6 +129,9 @@ body.compact #statGrids { display:none; }
 #pickList .it .fly { position:absolute; right:10px; top:50%; transform:translateY(-50%); height:34px; line-height:34px; padding:0 10px; border-radius:8px;
                      border:1px solid var(--ln); background:rgba(255,255,255,0.06); color:var(--tx); text-decoration:none; font-size:13px; white-space:nowrap; }
 #pickList .it.guide { display:block; text-decoration:none; color:var(--tx); background:rgba(56,217,234,0.10); border-left:3px solid var(--sky, #38d9ea); }   /* 탐방 안내도 카드 */
+#pickList .easy { display:flex; gap:6px; padding:8px 14px 4px; }   /* 쉬운 코스 거르기(2026-10-15) */
+#pickList .easy button { padding:5px 11px; border-radius:14px; border:1px solid var(--ln); background:rgba(255,255,255,0.05); color:var(--tx); font-size:13px; }
+#pickList .easy button.on { background:var(--sky); border-color:var(--sky); color:#062b30; font-weight:bold; }
 #pickList .msg { padding:16px 14px; color:var(--dim); font-size:14px; line-height:1.5; }
 
 #toast { position:fixed; left:50%; bottom:120px; transform:translateX(-50%); z-index:20; display:none; max-width:calc(100% - 32px);
@@ -425,6 +428,20 @@ html.picking #pick { display:flex; }
             <button type="button" id="doneGpx">GPX 저장</button>
             <button type="button" id="doneClose" class="main">닫기</button>
         </div>
+        <!-- 2026-10-15 홍TV님: 후원 단추가 안내 맨 아래에만 있어 찾기 어려웠음 - 설정(donate.url)에 있을 때만 -->
+        <a class="fam" id="doneDonate" target="_blank" rel="noopener" hidden>☕ routefly 후원하기</a>
+    </div>
+</div>
+
+<!-- 공유(2026-10-15 홍TV님) - 코스 링크 보내기 · 가족에게 산행 계획 알리기(문자 앱, 서버로 보내지 않음) -->
+<div id="shareSheet" class="sheet">
+    <div class="sbox">
+        <h2>공유</h2>
+        <button type="button" class="big sms" id="shareLink" style="width:100%;font-family:inherit;cursor:pointer">🔗 코스 링크 보내기</button>
+        <a class="big sms" id="sharePlan">📨 가족에게 산행 계획 알리기</a>
+        <p class="tip" id="sharePlanText" style="white-space:pre-line"></p>
+        <p class="tip">계획 문자는 내 문자 앱으로 열리고, 받는 사람은 문자 앱에서 고릅니다(출발 시각이 다르면 문자 앱에서 고쳐 보내세요). routefly 서버로는 보내지 않습니다.</p>
+        <div class="sbtn"><button type="button" id="shareClose" class="main">닫기</button></div>
     </div>
 </div>
 

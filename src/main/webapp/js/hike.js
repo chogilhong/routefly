@@ -1195,6 +1195,9 @@
         $("doneCard").onclick = function () { shareCard(rec); };
         $("doneGpx").textContent = canShareFiles() ? "📤 GPX 보내기" : "GPX 저장";
         $("doneSheet").style.display = "flex";
+        getJson("api/partners").then(function (p) {   // 후원 링크(설정에 있을 때만 - 2026-10-15)
+            if (p && /^https:\/\//.test(p.donate || "")) { $("doneDonate").href = p.donate; $("doneDonate").hidden = false; }
+        }).catch(function () { /* 없이 */ });
     }
 
     function showRecords() {
@@ -2276,7 +2279,29 @@
             box.appendChild(a);
         });
         var regional = RF.regionNames(rows);
-        rows.forEach(function (r) {
+        // 쉬운 코스 거르기(2026-10-15 홍TV님) - 표준 소요 시간 2 · 4시간 이내. 코스가 넷 이상일 때만
+        if (rows.length >= 4) {
+            var chips = document.createElement("div");
+            chips.className = "easy";
+            RF.EASY.forEach(function (e) {
+                var b = document.createElement("button");
+                b.type = "button";
+                b.textContent = e.label;
+                b.className = e.key === easyKey ? "on" : "";
+                b.setAttribute("aria-pressed", e.key === easyKey ? "true" : "false");
+                b.onclick = function () { easyKey = e.key; listCourses(rows, from, note); };
+                chips.appendChild(b);
+            });
+            box.appendChild(chips);
+        }
+        var shown = rows.filter(function (r) { return RF.easyOk(easyKey, r.kind, r.distance_m, r.ascent_m); });
+        if (!shown.length) {
+            var em = document.createElement("div");
+            em.className = "msg";
+            em.textContent = "이 시간 안에 걸을 수 있는 코스가 없습니다. \"모두\" 를 눌러 보세요.";
+            box.appendChild(em);
+        }
+        shown.forEach(function (r) {
             var it = document.createElement("div");
             it.className = "it";
             var b = document.createElement("b");
@@ -2317,7 +2342,7 @@
         } catch (err) { }
     }
 
-    var searchTimer = 0, fromList = false;
+    var searchTimer = 0, fromList = false, easyKey = "";
     var pickSeq = 0;   // 목록을 새로 그릴 때마다 +1 - 늦게 온 예전 검색 응답이 새 목록을 덮지 않게
     // 마지막 검색어 · 종류 - 코스에 들어갔다 돌아와도(새로 고침 · 앱 다시 열기 포함) 그대로.
     // 2026-10-09 홍TV님: 코스 미리보기(index.html · app.js)와 같은 열쇠 - 한쪽에서 '지리산' 을 넣고 넘어가면 다른 쪽에도.
@@ -2864,7 +2889,19 @@
         location.href = parkHref;
     });
 
+    // 공유 단추 → 고르기(코스 링크 · 가족에게 산행 계획 - 2026-10-15 홍TV님)
     $("share").addEventListener("click", function () {
+        if (!c) return;
+        var t0 = now(), ms = RF.standardMs(c.course.kind, c.total, RF.ascentLeft(c, 0));
+        var link = RF.parseJoinId(c.id) ? "" : new URL("s/" + encodeURIComponent(c.id) + "?to=hike", location.href).href;
+        var text = RF.planText(c.course.name, c.total, Math.round(c.asc && c.asc.length ? c.asc[c.asc.length - 1] : 0), t0, t0 + ms, link, clock);
+        $("sharePlanText").textContent = text;
+        $("sharePlan").href = "sms:" + (/iPhone|iPad/.test(navigator.userAgent) ? "&" : "?") + "body=" + encodeURIComponent(text);
+        $("shareSheet").style.display = "flex";
+    });
+    $("shareClose").addEventListener("click", function () { $("shareSheet").style.display = "none"; });
+    $("shareLink").addEventListener("click", function () {
+        $("shareSheet").style.display = "none";
         if (!c) return;
         // 이은 코스(★ 대표 코스 · 지도에서 고른 여러 구간)는 따라가기 주소 그대로(제목 · 들머리 이름 포함) - 짧은 링크(s/)는 코스 하나만 앎(2026-10-13 홍TV님)
         var url = RF.parseJoinId(c.id)

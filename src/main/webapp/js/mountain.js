@@ -8,6 +8,36 @@
         var a = e.target.closest && e.target.closest(".go a");
         if (a) try { sessionStorage.setItem("rf-fly-back", "1"); } catch (err) { /* 그때는 새로 엶 */ }
     });
+    // 쉬운 코스 거르기(2026-10-15 홍TV님) - 코스가 넷 이상이면 "모두 · 2시간 이내 · 4시간 이내"
+    var csList = document.querySelector(".cs");
+    if (csList && window.RF && csList.children.length >= 4) {
+        var chips = document.createElement("div");
+        chips.className = "days easy";
+        var apply = function (key) {
+            var n = 0;
+            Array.prototype.forEach.call(csList.children, function (li) {
+                var ok = window.RF.easyOk(key, "hike", li.getAttribute("data-dist"), li.getAttribute("data-asc"));
+                li.hidden = !ok;
+                if (ok) n++;
+            });
+            Array.prototype.forEach.call(chips.children, function (b) { var on = b.getAttribute("data-k") === key; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false"); });
+            none.hidden = n > 0;
+        };
+        window.RF.EASY.forEach(function (e) {
+            var b = document.createElement("button");
+            b.type = "button";
+            b.textContent = e.label;
+            b.setAttribute("data-k", e.key);
+            b.addEventListener("click", function () { apply(e.key); });
+            chips.appendChild(b);
+        });
+        var none = document.createElement("p");
+        none.className = "dim";
+        none.textContent = "이 시간 안에 걸을 수 있는 코스가 없습니다. \"모두\" 를 눌러 보세요.";
+        csList.parentNode.insertBefore(chips, csList);
+        csList.parentNode.insertBefore(none, csList.nextSibling);
+        apply("");
+    }
     var crumb = document.querySelector(".crumb") || document.querySelector("h1");
     if (crumb && window.RF) { var tb = window.RF.textButton(); tb.style.float = "right"; crumb.appendChild(tb); }   // 글자 크기 "가+"
     // ☆ 찜(2026-10-15) - 코스마다. 따라가기 첫 화면에 모아 보임(이 기기 rf-fav)

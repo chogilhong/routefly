@@ -70,6 +70,37 @@
         return line;
     }
 
+    /**
+     * 다녀온 산 지도(2026-10-15 홍TV님) - 100대 명산 정상을 점으로(다녀온 곳 주황 · 아직 회색). 지도 그림 없이 위치만이라 핸드폰 안에서 바로 그림.
+     * 점을 누르면 그 산 이름.
+     */
+    function peakMap(peaks) {
+        var W = 300, H = 380, NS = "http://www.w3.org/2000/svg", pts = RF.dotMap(peaks, W, H, 12);
+        var wrap = el("div", "pmap"), svg = document.createElementNS(NS, "svg"), got = 0, cap = el("div", "tip");
+        svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+        svg.setAttribute("role", "img");
+        // 회색 먼저, 주황은 위에
+        peaks.map(function (k, i) { return { k: k, p: pts[i], on: !!peakStamps[RF.peakKey(k)] }; })
+            .sort(function (a, b) { return a.on - b.on; })
+            .forEach(function (d) {
+                var c = document.createElementNS(NS, "circle"), t = document.createElementNS(NS, "title");
+                c.setAttribute("cx", d.p[0].toFixed(1));
+                c.setAttribute("cy", d.p[1].toFixed(1));
+                c.setAttribute("r", d.on ? 5 : 3.2);
+                c.setAttribute("class", d.on ? "on" : "");
+                t.textContent = (d.k.id || d.k.name) + (d.on ? " - 다녀옴" : "");
+                c.appendChild(t);
+                c.addEventListener("click", function () { cap.textContent = "⛰️ " + t.textContent; });
+                svg.appendChild(c);
+                if (d.on) got++;
+            });
+        svg.setAttribute("aria-label", "100대 명산 지도 - 다녀온 산 " + got + "곳");
+        cap.textContent = "다녀온 산 " + got + "곳(주황) · 점을 누르면 산 이름";
+        wrap.appendChild(svg);
+        wrap.appendChild(cap);
+        return wrap;
+    }
+
     /** 100대 명산 - 산 목록(정상 도장)만, 코스 목록은 없음. */
     function peakCard(g, s) {
         var p = RF.seriesProgress(s, stamps, done, peakStamps);
@@ -95,6 +126,7 @@
             saveView();
             if (loaded) return;
             loaded = true;
+            body.appendChild(peakMap(s.peaks));
             s.peaks.forEach(function (k) {
                 var st = peakStamps[RF.peakKey(k)], row = el("div", "row"), t = el("div", "t", (st ? "⛰️ " : "⬜ ") + (k.id || k.name));
                 // 높이는 안 보임 - GPX 의 GPS 높이라 알려진 높이보다 20~35m 높음(2026-10-12 PC 견줌)

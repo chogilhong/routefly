@@ -3009,6 +3009,38 @@
         return [half("오전", d.wfAm, d.popAm), half("오후", d.wfPm, d.popPm)];
     }
 
+    /**
+     * 순수 함수 - 산행 계획 문자(2026-10-15 홍TV님: 출발 전 가족에게). startMs · endMs 는 출발 · 하산 예정(ms), clock 은 시각 글로 바꾸는 함수.
+     */
+    function planText(name, distM, ascM, startMs, endMs, url, clock) {
+        var lines = ["[routefly 산행 계획] " + name,
+            "거리 " + num(distM / 1000, 1) + "km" + (ascM ? " · 오르막 " + num(ascM) + "m" : ""),
+            "출발 " + clock(startMs) + " → 하산 예정 " + clock(endMs) + "(표준 시간으로 어림)",
+            "예정보다 많이 늦고 연락이 안 되면 119 에 이 코스를 알려 주세요."];
+        if (url) lines.push(url);
+        return lines.join("\n");
+    }
+
+    /** 쉬운 코스 거르기(2026-10-15 홍TV님) - {key, label, ms}, ms 0 은 모두. */
+    var EASY = [{ key: "", label: "모두", ms: 0 }, { key: "2h", label: "2시간 이내", ms: 2 * 3600000 }, { key: "4h", label: "4시간 이내", ms: 4 * 3600000 }];
+    /** 순수 함수 - 그 거르기에 드는 코스인가(표준 소요 시간). key 가 없거나 모르면 모두 듦. */
+    function easyOk(key, kind, distM, ascM) {
+        var e = EASY.filter(function (x) { return x.key === key; })[0];
+        return !e || !e.ms || standardMs(kind || "hike", +distM || 0, +ascM || 0) <= e.ms;
+    }
+
+    /**
+     * 순수 함수 - 점 지도(다녀온 산 - 2026-10-15 홍TV님): [{lat, lon, …}] → 같은 차례 [x, y](w × h 안, pad 여백). 경도는 cos(위도)로 줄여 모양을 맞춤.
+     */
+    function dotMap(points, w, h, pad) {
+        if (!points.length) return [];
+        var la0 = Infinity, la1 = -Infinity, lo0 = Infinity, lo1 = -Infinity;
+        points.forEach(function (p) { la0 = Math.min(la0, p.lat); la1 = Math.max(la1, p.lat); lo0 = Math.min(lo0, p.lon); lo1 = Math.max(lo1, p.lon); });
+        var k = Math.cos((la0 + la1) / 2 * Math.PI / 180), sx = (lo1 - lo0) * k || 1e-6, sy = (la1 - la0) || 1e-6;
+        var s = Math.min((w - 2 * pad) / sx, (h - 2 * pad) / sy), ox = (w - sx * s) / 2, oy = (h - sy * s) / 2;
+        return points.map(function (p) { return [ox + (p.lon - lo0) * k * s, oy + (la1 - p.lat) * s]; });
+    }
+
     /** 순수 함수 - 날짜 이름표 "내일 10/16(금)". today 는 "2026-10-15". */
     function dayLabel(date, today) {
         var d = Date.UTC(+date.slice(0, 4), +date.slice(5, 7) - 1, +date.slice(8, 10)), t = Date.UTC(+today.slice(0, 4), +today.slice(5, 7) - 1, +today.slice(8, 10));
@@ -3156,6 +3188,6 @@
         LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, regionNames: regionNames, stampKey: stampKey, summitName: summitName, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakGapM: peakGapM, peakCourses: peakCourses, isClosedTrail: isClosedTrail, isHiddenCourse: isHiddenCourse, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
         sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap,
-        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange
+        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, EASY: EASY, easyOk: easyOk, dotMap: dotMap
     };
 })(window);

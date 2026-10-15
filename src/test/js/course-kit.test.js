@@ -808,3 +808,16 @@ eq("dayLabel 오늘 · 내일 · 글피 · 그 뒤", [RF.dayLabel("2026-10-15", 
 eq("midLines 오전 · 오후 / 하루 한 값", [RF.midLines({ wfAm: "맑음", wfPm: "구름많음", popAm: 20, popPm: 30 }), RF.midLines({ wfAm: "흐리고 비", wfPm: "흐리고 비", popAm: 60, popPm: 60 }), RF.midLines(null)],
     [["오전 맑음 · 비 20%", "오후 구름많음 · 비 30%"], ["흐리고 비 · 비 60%"], []]);
 eq("tempRange 둘 · 한쪽 · 없음", [RF.tempRange(7, 19), RF.tempRange(11, null), RF.tempRange(null, undefined)], ["최저 7℃ / 최고 19℃", "최저 11℃", ""]);
+(function () {
+    var clk = function (ms) { var d = new Date(ms + 9 * 3600000); return d.getUTCHours() + ":" + String(d.getUTCMinutes()).padStart(2, "0"); };
+    var t0 = Date.UTC(2026, 9, 16, 0, 0);   // 한국 09:00
+    eq("planText", RF.planText("가야산 · 해인사 → 상왕봉", 3980, 779, t0, t0 + 3 * 3600000, "https://x/s/1", clk).split("\n"),
+        ["[routefly 산행 계획] 가야산 · 해인사 → 상왕봉", "거리 4.0km · 오르막 779m", "출발 9:00 → 하산 예정 12:00(표준 시간으로 어림)",
+         "예정보다 많이 늦고 연락이 안 되면 119 에 이 코스를 알려 주세요.", "https://x/s/1"]);
+})();
+eq("easyOk 2시간 · 4시간 · 모두", [RF.easyOk("2h", "hike", 3980, 779), RF.easyOk("4h", "hike", 3980, 779), RF.easyOk("2h", "hike", 3000, 100), RF.easyOk("", "hike", 99999, 9999), RF.easyOk("x", "hike", 99999, 0)],
+    [false, true, true, true, true]);
+(function () {
+    var p = RF.dotMap([{ lat: 38, lon: 127 }, { lat: 34, lon: 127 }, { lat: 36, lon: 129 }], 100, 200, 10);
+    eq("dotMap 북쪽이 위 · 칸 안", [p[0][1] < p[1][1], p[2][0] > p[0][0], p.every(function (q) { return q[0] >= 9.9 && q[0] <= 90.1 && q[1] >= 9.9 && q[1] <= 190.1; }), RF.dotMap([], 1, 1, 0).length], [true, true, true, 0]);
+})();
