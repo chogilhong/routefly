@@ -3249,20 +3249,20 @@
     /** 5단계 - 색은 공단 탐방로 안내판 범례(매우쉬움 연두 · 쉬움 초록 · 보통 주황 · 어려움 자주 · 매우어려움 검정)에 맞춤. MountainServlet.LEVELS 와 같음. */
     var LEVELS = [{ ko: "매우 쉬움", en: "Easy", color: "#a3c93a" }, { ko: "쉬움", en: "Moderate", color: "#3fae5c" }, { ko: "보통", en: "Intermediate", color: "#e8822a" },
                   { ko: "어려움", en: "Advanced", color: "#a23a6b" }, { ko: "매우 어려움", en: "Expert", color: "#3a3f46" }];
-    /** 경사(%) 단계 경계 - 구간 색 · 코스 난이도. 표준 시간(시간) 단계 경계. MountainServlet 과 같은 값. */
-    var SLOPE_STEPS = [5, 10, 18, 28], HOUR_STEPS = [1.5, 3, 6, 9];
+    /** 구간 경사(%) 단계 경계 - 안내판 구간 색 · 음성. 코스 난이도는 시간 · 오르막 총량(HOUR_STEPS · ASC_STEPS). MountainServlet 과 같은 값. */
+    var SLOPE_STEPS = [5, 10, 18, 28], HOUR_STEPS = [1.5, 3, 5, 8], ASC_STEPS = [300, 700, 1100, 1500];
     function stepOf(v, steps) { var i = 0; while (i < steps.length && v >= steps[i]) i++; return i; }
 
     /**
-     * 순수 함수 - 등산 코스 난이도 0~4(routefly 기준 - 공단 공식 등급이 아님). 표준 시간(4km/h + 오르막 600m/h)과 평균 경사(오르막 ÷ 거리) 가운데 높은 단계.
-     * 예: 백담사 → 대청봉 12.9km · 1,300m → 보통, 오색 → 대청봉 5km · 1,300m → 어려움.
+     * 순수 함수 - 등산 코스 난이도 0~4(routefly 기준 - 공단 공식 등급이 아님). 표준 시간(4km/h + 오르막 600m/h)과 오르막 총량 가운데 높은 단계.
+     * 코스가 길어지거나 오르막이 늘면 절대 내려가지 않음 - 2026-10-16 홍TV님: 예전 기준(전체 평균 경사)은 남설악 → 대청봉(4.7km · 1,273m)이 어려움인데
+     * 대청봉 → 가라피로 이어 내려가는 10.5km · 1,480m 코스가 평균 경사가 묽어져 보통이었음. 가파른 구간은 📈 고도 · 📋 안내판의 구간 경사로 봄.
      */
     function difficulty(distM, ascM) {
         distM = +distM || 0;
         ascM = +ascM || 0;
         if (distM <= 0) return null;
-        var h = distM / 1000 / 4 + ascM / 600, slope = ascM / distM * 100;
-        return Math.max(stepOf(h, HOUR_STEPS), stepOf(slope, SLOPE_STEPS));
+        return Math.max(stepOf(distM / 1000 / 4 + ascM / 600, HOUR_STEPS), stepOf(ascM, ASC_STEPS));
     }
 
     /** 난이도 표(i.lv) - 거리가 없으면 null. MountainServlet.levelChip 과 같은 모양. */
@@ -3270,7 +3270,7 @@
         var lv = difficulty(distM, ascM);
         if (lv == null) return null;
         var i = el("i", "lv lv" + lv, en ? LEVELS[lv].en : LEVELS[lv].ko);
-        i.title = en ? "Difficulty (routefly estimate)" : "난이도(거리 · 오르막으로 어림 - 공단 공식 등급 아님)";
+        i.title = en ? "Difficulty (routefly estimate from time and total ascent)" : "난이도(걸리는 시간 · 오르막 총량으로 어림 - 공단 공식 등급 아님)";
         return i;
     }
 

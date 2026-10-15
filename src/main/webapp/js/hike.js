@@ -2208,7 +2208,8 @@
         if (!board) {
             var pts = c.dist.map(function (d, i) { return [c.lon[i], c.lat[i], c.ele[i], d]; });
             var ends = RF.nameEnds(c.course.name) || ["출발", "도착"];
-            board = RF.boardSegments(pts, (c.pois || []).filter(function (q) { return !q.end; }), ends[0], ends[1], true);   // 걷는 쪽 그대로(내려가는 코스도 왼쪽 → 오른쪽)
+            // 지점은 음성이 말하는 것과 같게(길에서 80m - 정상 160m 안) - 2026-10-16 PC: 안내판의 설악루(길에서 먼 지점)를 지나도 음성이 없었음
+            board = RF.boardSegments(pts, (c.pois || []).filter(function (q) { return !q.end && !(+q.off_route_m > (RF.isTopName(q.name) ? 160 : 80)); }), ends[0], ends[1], true);   // 걷는 쪽 그대로(내려가는 코스도 왼쪽 → 오른쪽)
         }
         RF.boardProfile($("boardBox"), board, false, hike.running || hike.d > 0 ? hike.d : null);
         boardDrawn = Date.now();

@@ -314,13 +314,13 @@ public class MountainServlet extends HttpServlet {
 
     /** 난이도 5단계 [한국어, 영어] - course-kit.js LEVELS 와 같음(공단 탐방로 안내판 범례). 2026-10-15 홍TV님. */
     static final String[][] LEVELS = {{"매우 쉬움", "Easy"}, {"쉬움", "Moderate"}, {"보통", "Intermediate"}, {"어려움", "Advanced"}, {"매우 어려움", "Expert"}};
-    static final double[] SLOPE_STEPS = {5, 10, 18, 28}, HOUR_STEPS = {1.5, 3, 6, 9};
+    static final double[] HOUR_STEPS = {1.5, 3, 5, 8}, ASC_STEPS = {300, 700, 1100, 1500};
 
-    /** 순수 함수 - 등산 코스 난이도 0~4(routefly 기준) - 표준 시간 · 평균 경사 가운데 높은 단계. course-kit.js difficulty 와 같음. 거리가 없으면 -1. */
+    /** 순수 함수 - 등산 코스 난이도 0~4(routefly 기준) - 표준 시간 · 오르막 총량 가운데 높은 단계. course-kit.js difficulty 와 같음. 거리가 없으면 -1. */
     static int difficulty(int distM, Integer ascM) {
         if (distM <= 0) return -1;
-        double a = ascM == null ? 0 : ascM, h = distM / 1000.0 / 4 + a / 600, slope = a / distM * 100;
-        return Math.max(step(h, HOUR_STEPS), step(slope, SLOPE_STEPS));
+        double a = ascM == null ? 0 : ascM, h = distM / 1000.0 / 4 + a / 600;
+        return Math.max(step(h, HOUR_STEPS), step(a, ASC_STEPS));   // 길어지거나 오르막이 늘면 내려가지 않게(2026-10-16 - 평균 경사는 내리막에 묽어졌음)
     }
 
     private static int step(double v, double[] steps) {
@@ -487,7 +487,7 @@ public class MountainServlet extends HttpServlet {
         if (!courses.isEmpty()) b.append("<p class=\"dim\">☆ 를 누르면 그 코스를 찜(즐겨찾기)합니다(★). 찜한 코스는 따라가기 첫 화면 \"★ 찜한 코스\" 에 모여 바로 고를 수 있고, "
                 + "다시 누르면 풀립니다. 이 핸드폰에만 저장됩니다(따라가기 📒 내 기록 → 💾 백업 저장으로 옮길 수 있음). "
                 + "🚌 가는 길은 카카오맵에서 지금 자리부터 그 코스 들머리까지 대중교통 · 차 길찾기를 엽니다. "
-                + "난이도(매우 쉬움 ~ 매우 어려움)는 거리 · 오르막으로 routefly 가 어림한 것이고(공단 공식 등급이 아님), 📈 고도를 누르면 공단 안내판처럼 구간별 경사를 봅니다.</p>");   // 2026-10-15 홍TV님
+                + "난이도(매우 쉬움 ~ 매우 어려움)는 걸리는 시간 · 오르막 총량으로 routefly 가 어림한 것이고(공단 공식 등급이 아님), 📈 고도를 누르면 공단 안내판처럼 구간별 경사를 봅니다.</p>");   // 2026-10-15 홍TV님
         b.append("<p class=\"dim\">예상 시간은 시속 4km · 오르막 600m 에 1시간으로 어림한 값입니다. 코스 자료는 참고용이니 현지 안내판 · 통제를 꼭 따르세요.</p></section>");
         List<String[]> qa = faq(peak, name, courses, parking);   // 자주 묻는 질문(2026-10-15 홍TV님 - 검색 결과에 문답으로)
         if (!qa.isEmpty()) {

@@ -859,7 +859,15 @@ eq("wfEn 중기예보 날씨 영어", ["맑음", "구름많음", "흐림", "구�
     eq("peakMilestones 10 · 30 · 50 · 70 · 완등", m.map(function (x) { return [x.label, x.t]; }), [["10곳", 1009], ["30곳", 1029], ["50곳", null], ["70곳", null], ["완등", null]]);
     eq("peakMilestones 완등 날", RF.peakMilestones([{ id: "a" }, { id: "b" }], { a: { t: 5 }, b: { t: 3 } }).map(function (x) { return [x.label, x.t]; }), [["완등", 5]]);
 })();
-eq("difficulty 단계", [RF.difficulty(12900, 1300), RF.difficulty(5000, 1300), RF.difficulty(3000, 200), RF.difficulty(2000, 20), RF.difficulty(20000, 2500), RF.difficulty(0, 0)], [2, 3, 1, 0, 4, null]);
+eq("difficulty 단계", [RF.difficulty(12900, 1300), RF.difficulty(5000, 1300), RF.difficulty(4000, 350), RF.difficulty(2000, 20), RF.difficulty(20000, 2500), RF.difficulty(0, 0)], [3, 3, 1, 0, 4, null]);
+// 2026-10-16 홍TV님: 남설악 → 대청봉(4.71km · 1,273m) 어려움인데 → 가라피(10.45km · 1,480m) 가 보통이었음 - 길어지면 내려가지 않게
+eq("difficulty 길어지면 내려가지 않음", [RF.difficulty(4710, 1273), RF.difficulty(10450, 1480)], [3, 3]);
+(function () {
+    var bad = [];
+    for (var d = 1000; d <= 30000; d += 1000) for (var a = 0; a <= 2500; a += 100)
+        if (RF.difficulty(d + 1000, a) < RF.difficulty(d, a) || RF.difficulty(d, a + 100) < RF.difficulty(d, a)) bad.push(d + "/" + a);
+    eq("difficulty 거리 · 오르막이 늘면 같거나 높음(모든 칸)", bad, []);
+})();
 (function () {
     // 1km 마다 100 · 200 · 50m 오르는 길, 지점 둘
     var pts = [[0, 0, 300, 0], [0, 0, 400, 1000], [0, 0, 600, 2000], [0, 0, 650, 3000]];
@@ -907,5 +915,5 @@ eq("enName", [RF.enName("오색탐방지원센터 - 대청봉"), RF.enName("설�
 eq("recentAdd 같은 주소는 앞으로 · 8개까지", RF.recentAdd([{ href: "a" }, { href: "b" }], { href: "b", name: "B" }).map(function (x) { return x.href; }), ["b", "a"]);
 eq("recentAdd 넘치면 뒤를 버림", RF.recentAdd([1, 2, 3, 4, 5, 6, 7, 8].map(function (i) { return { href: "p" + i }; }), { href: "n" }).map(function (x) { return x.href; }).join(","), "n,p1,p2,p3,p4,p5,p6,p7");
 eq("compareRows", RF.compareRows({ dist: 12900, asc: 1300 }, { dist: 5000, asc: 1300 }), [["거리", "12.90 km", "5.00 km"], ["오르막", "1,300 m", "1,300 m"],
-    ["예상 시간(편도)", "5시간 24분", "3시간 25분"], ["난이도", "보통", "어려움"], ["평균 경사", "10.1%", "26%"]]);
+    ["예상 시간(편도)", "5시간 24분", "3시간 25분"], ["난이도", "어려움", "어려움"], ["평균 경사", "10.1%", "26%"]]);
 eq("compareRows 영어 시간", RF.compareRows({ dist: 3000, asc: 0 }, { dist: 5000, asc: 1300 }, true)[2], ["Time (one way)", "45 min", "3 h 25 min"]);

@@ -128,13 +128,15 @@ public class MountainEnTest {
 
     @Test
     public void levels() {   // course-kit.test.js "difficulty 단계" 와 같은 값
-        assertEquals(2, MountainServlet.difficulty(12900, 1300));
+        assertEquals(3, MountainServlet.difficulty(12900, 1300));
         assertEquals(3, MountainServlet.difficulty(5000, 1300));
-        assertEquals(1, MountainServlet.difficulty(3000, 200));
+        assertEquals(1, MountainServlet.difficulty(4000, 350));
+        assertEquals("남설악 → 대청봉", 3, MountainServlet.difficulty(4710, 1273));
+        assertEquals("→ 가라피(길어져도 내려가지 않음)", 3, MountainServlet.difficulty(10450, 1480));
         assertEquals(0, MountainServlet.difficulty(2000, 20));
         assertEquals(4, MountainServlet.difficulty(20000, 2500));
         assertEquals(-1, MountainServlet.difficulty(0, null));
-        assertEquals("<i class=\"lv lv2\">보통</i>", MountainServlet.levelChip(12900, 1300, false));
+        assertEquals("<i class=\"lv lv2\">보통</i>", MountainServlet.levelChip(9000, 900, false));
         assertEquals("", MountainServlet.levelChip(0, null, true));
     }
 }
