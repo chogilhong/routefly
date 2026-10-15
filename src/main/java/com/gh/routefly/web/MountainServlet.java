@@ -34,7 +34,7 @@ import com.google.gson.JsonParser;
  * 산 자료는 웹 앱의 data/mountains100.json, 코스는 정상(또는 두 번째 정상 alt)에서 2km 안에 끝나거나 시작하는 등산 코스
  * (course-kit.js peakCourses 와 같은 규칙).
  */
-@WebServlet(urlPatterns = {"/m/*"})
+@WebServlet(urlPatterns = {"/m/*", "/en/m/*"})   // /en/m/ - 영어(MountainEn, 2026-10-15)
 public class MountainServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
@@ -54,8 +54,9 @@ public class MountainServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         String path = req.getPathInfo();
+        boolean en = "/en/m".equals(req.getServletPath());
         if (path == null) {   // /m → /m/ (상대 주소 ".." 가 맞게)
-            resp.sendRedirect(req.getContextPath() + "/m/");
+            resp.sendRedirect(req.getContextPath() + (en ? "/en/m/" : "/m/"));
             return;
         }
         String name = path == null ? "" : URLDecoder.decode(path.replaceFirst("^/", ""), StandardCharsets.UTF_8).trim();
@@ -64,6 +65,10 @@ public class MountainServlet extends HttpServlet {
         resp.setContentType("text/html");
         resp.setCharacterEncoding(StandardCharsets.UTF_8.name());
         JsonArray all = peaks();
+        if (en) {
+            english(name, all, base, resp);
+            return;
+        }
         if (name.isEmpty()) {
             resp.setHeader("Cache-Control", "public, max-age=3600");
             // ?open=peaks - 산 페이지의 "‹ 코스 모음" 으로 오면 등산 › 100대 명산을 펼친 채(2026-10-15 홍TV님)
@@ -82,8 +87,36 @@ public class MountainServlet extends HttpServlet {
             resp.getWriter().print(notFoundPage(name, base));
             return;
         }
-        List<JsonObject> courses = new ArrayList<>();
-        boolean failed = false;
+        List<JsonObject> courses = courses(peak);
+        boolean failed = courses == null;
+        if (failed) courses = new ArrayList<>();
+        resp.setHeader("Cache-Control", failed ? "no-store" : "public, max-age=600");
+        resp.getWriter().print(page(peak, courses, nearby(all, peak, NEARBY_MAX, NEARBY_M), parking(courses), base));
+    }
+
+    /** 영어 페이지(/en/m/ · /en/m/seoraksan). */
+    private void english(String key, JsonArray all, String base, HttpServletResponse resp) throws IOException {
+        if (key.isEmpty()) {
+            resp.setHeader("Cache-Control", "public, max-age=3600");
+            resp.getWriter().print(MountainEn.indexPage(all, base));
+            return;
+        }
+        JsonObject peak = MountainEn.find(all, key);
+        if (peak == null) {
+            resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            resp.getWriter().print(MountainEn.notFoundPage(key, base));
+            return;
+        }
+        List<JsonObject> courses = courses(peak);
+        boolean failed = courses == null;
+        if (failed) courses = new ArrayList<>();
+        resp.setHeader("Cache-Control", failed ? "no-store" : "public, max-age=600");
+        resp.getWriter().print(MountainEn.page(peak, courses, nearby(all, peak, NEARBY_MAX, NEARBY_M), parking(courses), base));
+    }
+
+    /** 정상까지 가는 코스(앱과 같은 이름) - DB 가 안 되면 null. */
+    private List<JsonObject> courses(JsonObject peak) {
+        List<JsonObject> courses;
         try (Connection c = Db.open()) {
             double lat = peak.get("lat").getAsDouble(), lon = peak.get("lon").getAsDouble();
             double dLat = 0.05, dLon = 0.05 / Math.cos(Math.toRadians(lat));
@@ -91,17 +124,17 @@ public class MountainServlet extends HttpServlet {
             courses = near(rows, peak, NEAR_M);
             names(courses, parks());   // 앱과 같은 이름(공단 공식 이름 · 산마다 지명) · 지금은 없는 탐방로는 뺌
         } catch (Exception e) {
-            failed = true;
-            log.warn("[MOUNTAIN] 코스 조회 실패 {} - {}", name, e.toString());
+            log.warn("[MOUNTAIN] 코스 조회 실패 {} - {}", str(peak, "id"), e.toString());
+            return null;
         }
-        resp.setHeader("Cache-Control", failed ? "no-store" : "public, max-age=600");
-        // 문답의 주차장 - 가장 가까운 코스 들머리 3km 안(전국주차장정보표준데이터, 파일이 없으면 뺌)
-        Integer parking = null;
-        if (!courses.isEmpty() && courses.get(0).has("start_lat") && !courses.get(0).get("start_lat").isJsonNull()) {
-            int n = ParkingServlet.countNear(courses.get(0).get("start_lat").getAsDouble(), courses.get(0).get("start_lon").getAsDouble(), ParkingServlet.RADIUS_M);
-            if (n >= 0) parking = n;
-        }
-        resp.getWriter().print(page(peak, courses, nearby(all, peak, NEARBY_MAX, NEARBY_M), parking, base));
+        return courses;
+    }
+
+    /** 문답의 주차장 - 가장 가까운 코스 들머리 3km 안(전국주차장정보표준데이터, 파일이 없으면 null). */
+    private static Integer parking(List<JsonObject> courses) {
+        if (courses.isEmpty() || !courses.get(0).has("start_lat") || courses.get(0).get("start_lat").isJsonNull()) return null;
+        int n = ParkingServlet.countNear(courses.get(0).get("start_lat").getAsDouble(), courses.get(0).get("start_lon").getAsDouble(), ParkingServlet.RADIUS_M);
+        return n >= 0 ? n : null;
     }
 
     private JsonArray peaks() {
@@ -342,7 +375,8 @@ public class MountainServlet extends HttpServlet {
         String title = name + " 등산코스 · 날씨 · 일출 일몰";
         String desc = name + (summit != null && !summit.equals(name) ? "(" + summit + ")" : "") + " 등산코스 " + courses.size() + "개 - 거리 · 오르막 · 예상 시간, "
                 + "오늘 날씨와 일출 · 일몰. 3D 지형 위로 코스를 미리 날아 보고 핸드폰으로 따라 걷기.";
-        StringBuilder b = new StringBuilder(head(title, desc, url, base));
+        String enPath = "/en/m/" + Roman.slug(name);
+        StringBuilder b = new StringBuilder(head(title, desc, url, base, base + enPath));
         b.append("<main><p class=\"crumb\"><a href=\"").append(REL).append("/m/?open=peaks\">‹ 코스 모음</a></p>");
         b.append("<h1>").append(esc(name)).append(" 등산코스</h1>");
         Integer height = peak.has("height") && !peak.get("height").isJsonNull() ? peak.get("height").getAsInt() : null;
@@ -389,7 +423,7 @@ public class MountainServlet extends HttpServlet {
             }
             b.append("</ul></section>");
         }
-        b.append(foot(base));
+        b.append(foot(base, REL + enPath));
         return b.toString();
     }
 
@@ -403,7 +437,7 @@ public class MountainServlet extends HttpServlet {
      */
     static String indexPage(JsonArray peaks, JsonArray groups, String base, boolean openPeaks) {
         StringBuilder b = new StringBuilder(head("100대 명산 · 둘레길 · 자전거길 코스", "산림청 100대 명산 " + peaks.size()
-                + "곳의 등산코스 · 날씨 · 일출 일몰과 백두대간 · 국가숲길 · 코리아둘레길 · 국토종주 자전거길 노선. 3D 지형 위로 미리 날아 보고 핸드폰으로 따라 걷기.", base + "/m/", base));
+                + "곳의 등산코스 · 날씨 · 일출 일몰과 백두대간 · 국가숲길 · 코리아둘레길 · 국토종주 자전거길 노선. 3D 지형 위로 미리 날아 보고 핸드폰으로 따라 걷기.", base + "/m/", base, base + "/en/m/"));
         // 맨 위 로고(img/logo-dark.svg - 2026-10-14 홍TV님), 누르면 따라가기
         b.append("<main><a class=\"logo\" href=\"").append(REL).append("/hike.html\"><img src=\"").append(REL)
                 .append("/img/logo-dark.svg\" alt=\"routefly\" width=\"256\" height=\"80\"></a><h1>등산 · 걷기 · 자전거 코스</h1>")
@@ -456,7 +490,7 @@ public class MountainServlet extends HttpServlet {
             }
             b.append("</div></details>");
         }
-        b.append("</div>").append(foot(base));
+        b.append("</div>").append(foot(base, REL + "/en/m/"));
         return b.toString();
     }
 
@@ -467,11 +501,18 @@ public class MountainServlet extends HttpServlet {
     }
 
     private static String head(String title, String desc, String url, String base) {
+        return head(title, desc, url, base, null);
+    }
+
+    /** enUrl - 영어 페이지가 있으면 hreflang 으로 서로 잇기(2026-10-15). */
+    private static String head(String title, String desc, String url, String base, String enUrl) {
         String t = esc(title) + " - routefly", d = esc(desc);
         return "<!DOCTYPE html><html lang=\"ko\"><head><meta charset=\"UTF-8\">"
                 + "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
                 + "<title>" + t + "</title><meta name=\"description\" content=\"" + d + "\">"
                 + "<link rel=\"canonical\" href=\"" + esc(url) + "\">"
+                + (enUrl == null ? "" : "<link rel=\"alternate\" hreflang=\"ko\" href=\"" + esc(url) + "\"><link rel=\"alternate\" hreflang=\"en\" href=\""
+                        + esc(enUrl) + "\"><link rel=\"alternate\" hreflang=\"x-default\" href=\"" + esc(url) + "\">")
                 + "<meta property=\"og:type\" content=\"website\"><meta property=\"og:site_name\" content=\"routefly\">"
                 + "<meta property=\"og:title\" content=\"" + t + "\"><meta property=\"og:description\" content=\"" + d + "\">"
                 + "<meta property=\"og:url\" content=\"" + esc(url) + "\"><meta property=\"og:image\" content=\"" + esc(base) + "/img/og.png?v=2\">"
@@ -480,14 +521,20 @@ public class MountainServlet extends HttpServlet {
     }
 
     private static String foot(String base) {
+        return foot(base, null);
+    }
+
+    /** en - 영어 페이지 상대 주소(있으면 "English" 링크). */
+    private static String foot(String base, String en) {
         String b = REL;   // 상대 주소 - 터널(https → http 톰캣)에서 http 절대 주소가 막혔음(2026-10-14)
         return "<p class=\"dim\">자료: 산림청 100대 명산 · 등산로정보, 국립공원공단 탐방로, 기상청 단기예보 · 에어코리아 대기정보 · 두루누비(공공데이터포털), © OpenStreetMap contributors. "
-                + "<a href=\"" + b + "/about.html\">안전 · 출처 안내</a> · <a href=\"" + b + "/privacy.html\">개인정보처리방침</a></p>"
+                + "<a href=\"" + b + "/about.html\">안전 · 출처 안내</a> · <a href=\"" + b + "/privacy.html\">개인정보처리방침</a>"
+                + (en == null ? "" : " · <a href=\"" + esc(en) + "\" hreflang=\"en\" lang=\"en\">English</a>") + "</p>"
                 + "<p class=\"brand\"><a href=\"" + b + "/hike.html\"><img src=\"" + b + "/img/logo-dark.svg\" alt=\"routefly\" width=\"160\" height=\"50\"> 열기 ›</a></p></main>"
                 + "<script src=\"" + b + "/js/course-kit.js\"></script><script src=\"" + b + "/js/mountain.js\"></script></body></html>";
     }
 
-    private static String enc(String s) {
+    static String enc(String s) {
         return URLEncoder.encode(s == null ? "" : s, StandardCharsets.UTF_8).replace("+", "%20");
     }
 

@@ -1,0 +1,110 @@
+/*
+ * 영어 산 페이지(/en/m/seoraksan - MountainEn, 2026-10-15 홍TV님) - 날씨(api/weather) · 미세먼지(api/air) · 일출 · 일몰(course-kit.js), 내 근처 산.
+ * 한국어 화면(js/mountain.js)과 같은 자료를 영어로. 이 페이지는 /en/m/ 아래라 앱 뿌리는 두 단계 위(../../).
+ */
+(function () {
+    var RF = window.RF;
+    if (!RF) return;
+    var DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    var AIR = { "좋음": "Good", "보통": "Moderate", "나쁨": "Unhealthy", "매우나쁨": "Very unhealthy" };
+    function clock(ms) { var d = new Date(ms + 9 * 3600000); return d.getUTCHours() + ":" + String(d.getUTCMinutes()).padStart(2, "0"); }
+    function sky(s, p) {
+        return { 1: "🌧 Rain", 2: "🌨 Rain/snow", 3: "❄️ Snow", 4: "🌦 Showers" }[+p] || { 1: "☀️ Clear", 3: "⛅ Mostly cloudy", 4: "☁️ Overcast" }[+s] || "-";
+    }
+    function dayLabel(d, today) {
+        var t = Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10)), n = Math.round((t - Date.parse(today + "T00:00:00Z")) / 86400000);
+        return (["Today ", "Tomorrow "][n] || "") + DAYS[new Date(t).getUTCDay()] + " " + (+d.slice(5, 7)) + "/" + (+d.slice(8, 10));
+    }
+
+    // 📍 near me (목록 /en/m/) - 위치는 이 기기 안에서만 견줌, 페이지의 좌표(data-lat · data-lon)로
+    var nearBtn = document.getElementById("nearMe"), nearList = document.getElementById("nearList");
+    if (nearBtn && nearList) nearBtn.addEventListener("click", function () {
+        if (!navigator.geolocation || !window.isSecureContext) { nearList.textContent = "Location works only on an https address."; return; }
+        nearList.textContent = "Finding your location…";
+        navigator.geolocation.getCurrentPosition(function (pos) {
+            var me = pos.coords, list = Array.prototype.map.call(document.querySelectorAll("#peakList a[data-lat]"), function (a) {
+                return { a: a, d: RF.distM(me.latitude, me.longitude, +a.getAttribute("data-lat"), +a.getAttribute("data-lon")) };
+            }).sort(function (x, y) { return x.d - y.d; }).slice(0, 8);
+            nearList.textContent = "";
+            var ul = document.createElement("ul");
+            ul.className = "ms";
+            list.forEach(function (x) {
+                var li = document.createElement("li"), a = x.a.cloneNode(true), sm = a.querySelector("small");
+                if (sm) sm.textContent = Math.round(x.d / 1000) + " km";
+                li.appendChild(a);
+                ul.appendChild(li);
+            });
+            nearList.appendChild(ul);
+        }, function () { nearList.textContent = "Could not get your location (check location permission)."; }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 });
+    });
+
+    // 🌄 sunrise start - 코스마다 내일 일출을 정상에서 보려면 들머리 출발 시각
+    var box = document.getElementById("wx"), out = document.getElementById("wxBody"), cs = document.querySelector(".cs");
+    if (!box || !out) return;
+    var lat = +box.getAttribute("data-lat"), lon = +box.getAttribute("data-lon");
+    var rise = RF.sunrise(Date.now() + 86400000, lat, lon);
+    if (cs && rise) Array.prototype.forEach.call(cs.children, function (li) {
+        var span = li.querySelector("span");
+        if (!span) return;
+        var s = document.createElement("small");
+        s.className = "sunrise";
+        s.textContent = "🌄 For tomorrow's sunrise (" + clock(rise) + ") at the top, start by " + clock(RF.sunriseStart(rise, RF.standardMs("hike", +li.getAttribute("data-dist") || 0, +li.getAttribute("data-asc") || 0)));
+        span.parentNode.insertBefore(s, span.nextSibling);
+    });
+    function sunLine(dayMs) {
+        var r = RF.sunrise(dayMs, lat, lon), s = RF.sunset(dayMs, lat, lon);
+        return "🌅 Sunrise " + (r ? clock(r) : "-") + " · 🌇 Sunset " + (s ? clock(s) : "-") + " (KST)";
+    }
+    function show(lines) {
+        out.textContent = "";
+        lines.forEach(function (t, i) { var p = document.createElement(i ? "div" : "b"); p.textContent = t; out.appendChild(p); });
+        out.className = "";
+    }
+    show([sunLine(Date.now()), "Loading weather…"]);
+    var tabs = document.createElement("div"), airBox = document.createElement("p"), wx = null, air = null, today = null, picked = null;
+    tabs.className = "days";
+    tabs.setAttribute("role", "group");
+    tabs.setAttribute("aria-label", "Pick a day");
+    out.parentNode.insertBefore(tabs, out);
+    airBox.className = "dim";
+    box.appendChild(airBox);
+    function airText(a) {
+        if (!a || a.unavailable || (a.pm10 == null && a.pm25 == null)) return "";
+        var p = [];
+        if (a.pm10 != null) p.push("PM10 " + (AIR[a.pm10Word] || "") + " (" + a.pm10 + " µg/m³)");
+        if (a.pm25 != null) p.push("PM2.5 " + (AIR[a.pm25Word] || "") + " (" + a.pm25 + " µg/m³)");
+        return "😷 Air quality now: " + p.join(" · ") + (a.dist_km != null ? " - station " + a.dist_km + " km away" : "") + " · AirKorea";
+    }
+    function draw() {
+        if (!wx) return;
+        var day = picked || today, mm = wx.days && wx.days[day], lines = [sunLine(Date.parse(day + "T12:00:00+09:00"))];
+        if (mm && (mm.tmn != null || mm.tmx != null)) lines.push([mm.tmn != null ? "Low " + mm.tmn + "°C" : "", mm.tmx != null ? "High " + mm.tmx + "°C" : ""].filter(Boolean).join(" / "));
+        var hours = wx.hours.filter(function (h) { return h.t.slice(0, 10) === day; });
+        hours.filter(function (h, i) { return day === today ? i % 3 === 0 : +h.t.slice(11, 13) % 3 === 0; }).slice(0, 8).forEach(function (h) {
+            lines.push(h.t.slice(11, 13) + ":00  " + sky(h.sky, h.pty) + "  " + (h.tmp != null ? h.tmp + "°C" : "-") + "  · rain " + (h.pop != null ? h.pop + "%" : "-")
+                + "  · wind " + (h.wsd != null ? h.wsd + " m/s" : "-"));
+        });
+        lines.push("Korea Meteorological Administration short-term forecast (issued " + wx.base + " KST) for a 5 km grid around the summit. The summit can be colder and windier.");
+        show(lines);
+        airBox.textContent = day === today ? airText(air) : "";
+        airBox.hidden = !airBox.textContent;
+        Array.prototype.forEach.call(tabs.children, function (b) { var on = b.getAttribute("data-day") === day; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false"); });
+    }
+    fetch("../../api/air?lat=" + lat.toFixed(4) + "&lon=" + lon.toFixed(4)).then(function (r) { return r.json(); }).then(function (a) { air = a; draw(); }).catch(function () { /* 없이 */ });
+    fetch("../../api/weather?lat=" + lat.toFixed(4) + "&lon=" + lon.toFixed(4)).then(function (r) { return r.json(); }).then(function (w) {
+        if (w.unavailable || !(w.hours || []).length) { show([sunLine(Date.now()), "Weather is not available right now."]); return; }
+        wx = w;
+        today = w.hours[0].t.slice(0, 10);
+        var days = [];
+        w.hours.forEach(function (h) { var d = h.t.slice(0, 10); if (days.indexOf(d) < 0) days.push(d); });
+        days.forEach(function (d) {
+            var b = document.createElement("button");
+            b.type = "button";
+            b.setAttribute("data-day", d);
+            b.textContent = dayLabel(d, today);
+            b.addEventListener("click", function () { picked = d; draw(); });
+            tabs.appendChild(b);
+        });
+        draw();
+    }).catch(function () { show([sunLine(Date.now()), "Weather is not available right now."]); });
+})();

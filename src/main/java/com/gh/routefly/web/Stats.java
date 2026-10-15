@@ -54,6 +54,10 @@ final class Stats {
             String n = URLDecoder.decode(path.substring(3), StandardCharsets.UTF_8).trim();
             return n.isEmpty() ? "/m/" : n.length() > 40 ? null : "/m/" + n;
         }
+        if (path.startsWith("/en/m/")) {   // 영어 산 페이지 - slug(영문 · 숫자 · -)만
+            String n = path.substring(6);
+            return n.isEmpty() ? "/en/m/" : n.matches("[A-Za-z0-9-]{1,40}") ? "/en/m/" + n.toLowerCase() : null;
+        }
         if (path.startsWith("/s/")) return "/s/";
         if (path.matches("/[a-z]+\\.html")) return path;
         return null;
