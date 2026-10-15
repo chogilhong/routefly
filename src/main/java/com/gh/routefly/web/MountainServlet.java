@@ -391,7 +391,7 @@ public class MountainServlet extends HttpServlet {
         String desc = name + (summit != null && !summit.equals(name) ? "(" + summit + ")" : "") + " 등산코스 " + courses.size() + "개 - 거리 · 오르막 · 예상 시간, "
                 + "오늘 날씨와 일출 · 일몰. 3D 지형 위로 코스를 미리 날아 보고 핸드폰으로 따라 걷기.";
         String enPath = "/en/m/" + Roman.slug(name);
-        StringBuilder b = new StringBuilder(head(title, desc, url, base, base + enPath));
+        StringBuilder b = new StringBuilder(head(title, desc, url, base, base + enPath, base + "/og/m/" + enc(name) + ".png"));   // 산마다 공유 그림(2026-10-15)
         b.append("<main><p class=\"crumb\"><a href=\"").append(REL).append("/m/?open=peaks\">‹ 코스 모음</a></p>");
         b.append("<h1>").append(esc(name)).append(" 등산코스</h1>");
         Integer height = peak.has("height") && !peak.get("height").isJsonNull() ? peak.get("height").getAsInt() : null;
@@ -526,6 +526,11 @@ public class MountainServlet extends HttpServlet {
 
     /** enUrl - 영어 페이지가 있으면 hreflang 으로 서로 잇기(2026-10-15). */
     private static String head(String title, String desc, String url, String base, String enUrl) {
+        return head(title, desc, url, base, enUrl, null);
+    }
+
+    /** og - 공유 그림 주소(산마다 OgServlet, null 이면 기본 img/og.png). */
+    private static String head(String title, String desc, String url, String base, String enUrl, String og) {
         String t = esc(title) + " - routefly", d = esc(desc);
         return "<!DOCTYPE html><html lang=\"ko\"><head><meta charset=\"UTF-8\">"
                 + "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
@@ -535,7 +540,8 @@ public class MountainServlet extends HttpServlet {
                         + esc(enUrl) + "\"><link rel=\"alternate\" hreflang=\"x-default\" href=\"" + esc(url) + "\">")
                 + "<meta property=\"og:type\" content=\"website\"><meta property=\"og:site_name\" content=\"routefly\">"
                 + "<meta property=\"og:title\" content=\"" + t + "\"><meta property=\"og:description\" content=\"" + d + "\">"
-                + "<meta property=\"og:url\" content=\"" + esc(url) + "\"><meta property=\"og:image\" content=\"" + esc(base) + "/img/og.png?v=2\">"
+                + "<meta property=\"og:url\" content=\"" + esc(url) + "\"><meta property=\"og:image\" content=\"" + esc(og != null ? og : base + "/img/og.png?v=2") + "\">"
+                + "<meta property=\"og:image:width\" content=\"1200\"><meta property=\"og:image:height\" content=\"630\">"
                 + "<link rel=\"icon\" type=\"image/svg+xml\" href=\"" + REL + "/favicon.svg?v=2\"><link rel=\"apple-touch-icon\" href=\"" + REL + "/img/apple-icon-180.png\"><meta name=\"theme-color\" content=\"#11161d\">"
                 + "<link rel=\"stylesheet\" href=\"" + REL + "/css/mountain.css\"></head><body>";
     }

@@ -116,7 +116,7 @@ final class MountainEn {
         Integer height = peak.has("height") && !peak.get("height").isJsonNull() ? peak.get("height").getAsInt() : null;
         String desc = name + " (" + ko + ") hiking trails in Korea: " + courses.size() + " routes with distance, ascent and estimated time, "
                 + "weather forecast, air quality, sunrise and sunset. Preview each trail in 3D and follow it on your phone.";
-        StringBuilder b = new StringBuilder(head(name + " Hiking Trails, Weather & Sunrise", desc, url, koUrl, base));
+        StringBuilder b = new StringBuilder(head(name + " Hiking Trails, Weather & Sunrise", desc, url, koUrl, base, base + "/og/en/" + slug + ".png"));
         b.append("<main><p class=\"crumb\"><a href=\"").append(REL).append("/en/m/\">‹ 100 Famous Mountains</a></p>");
         b.append("<h1>").append(esc(name)).append(" Hiking Trails <small lang=\"ko\">").append(esc(ko)).append("</small></h1>");
         b.append(MountainServlet.jsonLd(peak, name, url));
@@ -244,6 +244,11 @@ final class MountainEn {
     }
 
     private static String head(String title, String desc, String url, String koUrl, String base) {
+        return head(title, desc, url, koUrl, base, null);
+    }
+
+    /** og - 공유 그림 주소(산마다 OgServlet, null 이면 기본 img/og.png). */
+    private static String head(String title, String desc, String url, String koUrl, String base, String og) {
         String t = esc(title) + " - routefly", d = esc(desc);
         return "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\">"
                 + "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
@@ -253,7 +258,8 @@ final class MountainEn {
                 + "<link rel=\"alternate\" hreflang=\"x-default\" href=\"" + esc(koUrl) + "\">"
                 + "<meta property=\"og:type\" content=\"website\"><meta property=\"og:site_name\" content=\"routefly\"><meta property=\"og:locale\" content=\"en_US\">"
                 + "<meta property=\"og:title\" content=\"" + t + "\"><meta property=\"og:description\" content=\"" + d + "\">"
-                + "<meta property=\"og:url\" content=\"" + esc(url) + "\"><meta property=\"og:image\" content=\"" + esc(base) + "/img/og.png?v=2\">"
+                + "<meta property=\"og:url\" content=\"" + esc(url) + "\"><meta property=\"og:image\" content=\"" + esc(og != null ? og : base + "/img/og.png?v=2") + "\">"
+                + "<meta property=\"og:image:width\" content=\"1200\"><meta property=\"og:image:height\" content=\"630\">"
                 + "<link rel=\"icon\" type=\"image/svg+xml\" href=\"" + REL + "/favicon.svg?v=2\"><link rel=\"apple-touch-icon\" href=\"" + REL + "/img/apple-icon-180.png\"><meta name=\"theme-color\" content=\"#11161d\">"
                 + "<link rel=\"stylesheet\" href=\"" + REL + "/css/mountain.css\"></head><body>";
     }
