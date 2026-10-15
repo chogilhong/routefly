@@ -90,6 +90,18 @@ public class AirServletTest {
         assertEquals(0, AirServlet.forecastFor(t, "제주").size());
     }
 
+    /** 실제 예보 응답(AirProbe 2026-10-15 17시 무렵) - 경북 · 서울 · 제주 모두 날짜별 등급이 나옴. */
+    @Test
+    public void realForecast() throws Exception {
+        String t = new String(AirServletTest.class.getResourceAsStream("/air/forecast.json").readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        for (String r : new String[] {"경북", "서울", "제주", "영동", "경기북부"}) {
+            JsonObject f = AirServlet.forecastFor(t, r);
+            assertTrue(r + " 예보", f.size() > 0);
+            String d = f.keySet().iterator().next();
+            assertTrue(r + " " + d, f.getAsJsonObject(d).has("pm10") || f.getAsJsonObject(d).has("pm25"));
+        }
+    }
+
     @Test
     public void gradeBoundaries() {
         assertEquals("좋음", AirServlet.word(30, 30, 80, 150));

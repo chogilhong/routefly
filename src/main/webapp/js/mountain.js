@@ -149,7 +149,7 @@
         today = w.hours[0].t.slice(0, 10);
         var days = [];
         w.hours.forEach(function (h) { var d = h.t.slice(0, 10); if (days.indexOf(d) < 0) days.push(d); });
-        days.slice(0, 4).forEach(addTab);
+        days.forEach(addTab);   // 단기예보가 주는 날 모두(17시 발표면 나흘 뒤 일부까지 - 2026-10-15 PC: 10/19 단추가 빠졌음)
         addMidTabs();
         draw();
     }).catch(function () { show([sunLine(Date.now()), "날씨를 지금 받지 못했습니다."]); });

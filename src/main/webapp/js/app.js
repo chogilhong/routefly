@@ -748,7 +748,7 @@
                         midBox.appendChild(gRow(RF.dayLabel(dd, today0), ml.join(" / "), d.tmn != null || d.tmx != null ? (d.tmn != null ? d.tmn : "-") + " ~ " + (d.tmx != null ? d.tmx : "-") + "℃" : null));
                         any = true;
                     });
-                    if (any) midBox.appendChild(el("div", "gNote", "4일 뒤부터: 기상청 중기예보(" + m.tmFc + " 발표) · " + m.region + " 권역 · 기온은 " + m.city + " 기준."));
+                    if (any) midBox.appendChild(el("div", "gNote", "그 뒤: 기상청 중기예보(" + m.tmFc + " 발표) · " + m.region + " 권역 · 기온은 " + m.city + " 기준."));
                 });
             }).catch(function () { body.textContent = ""; body.appendChild(el("div", "gNote", "날씨를 받지 못했습니다.")); });
         } else if (kind === "stay" || kind === "food") {

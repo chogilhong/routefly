@@ -41,4 +41,18 @@ public class MidServletTest {
         assertEquals(40, d.getAsJsonObject("2026-10-23").get("popAm").getAsInt());
         assertNull(MidServlet.days("{\"response\":{\"header\":{\"resultCode\":\"03\"}}}", ta, "202610151800"));
     }
+
+    /** 실제 응답(MidFcstProbe 2026-10-15 18시 발표 - 부산 · 울산 · 경남 · 진주): 5일 뒤부터, 기온은 taMin5Low · High 같은 칸도 있음. */
+    @Test
+    public void realResponse() throws Exception {
+        JsonObject d = MidServlet.days(res("/mid/land-11H20000.json"), res("/mid/ta-11H20701.json"), "202610151800");
+        assertFalse("5일 뒤(10-20)부터", d.has("2026-10-19"));
+        assertTrue(d.has("2026-10-20") && d.has("2026-10-25"));
+        JsonObject first = d.getAsJsonObject("2026-10-20");
+        assertTrue(first.has("wfAm") && first.has("wfPm") && first.has("popAm") && first.has("tmn") && first.has("tmx"));
+    }
+
+    private static String res(String name) throws Exception {
+        return new String(MidServletTest.class.getResourceAsStream(name).readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+    }
 }
