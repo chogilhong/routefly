@@ -3176,6 +3176,74 @@
         }, true);
     }
 
+    /**
+     * 순수 함수 - 주말 날씨 한 줄(api/weekend 의 구역 하나) "☀️ 주말 토 맑음 · 일 흐리고 비 60%". 비 확률은 30% 넘을 때만. 구역이 없으면 "".
+     * 좋은 날(good)이 하루라도 있으면 ☀️, 아니면 🌧.
+     */
+    function weekendText(w, code) {
+        var r = w && code && (w.regions || []).filter(function (x) { return x.code === code; })[0];
+        if (!r) return "";
+        var good = false, parts = (w.dates || []).map(function (d) {
+            var x = r.days && r.days[d];
+            if (!x) return "";
+            if (x.good) good = true;
+            return "일월화수목금토".charAt(new Date(d + "T00:00:00Z").getUTCDay()) + " " + x.word + (x.pop > 30 ? " " + x.pop + "%" : "");
+        }).filter(Boolean);
+        return parts.length ? (good ? "☀️" : "🌧") + " 주말 " + parts.join(" · ") : "";
+    }
+
+    // ------------------------------------------------------------------ 로마자(Roman.java 를 옮김 - 영어 화면의 지점 이름, 2026-10-16)
+    var RO_INI = ["g", "kk", "n", "d", "tt", "r", "m", "b", "pp", "s", "ss", "", "j", "jj", "ch", "k", "t", "p", "h"];
+    var RO_VOW = ["a", "ae", "ya", "yae", "eo", "e", "yeo", "ye", "o", "wa", "wae", "oe", "yo", "u", "wo", "we", "wi", "yu", "eu", "ui", "i"];
+    var RO_FS = [0, 1, 1, 1, 2, 2, 2, 3, 4, 1, 5, 4, 4, 4, 6, 4, 5, 6, 6, 3, 3, 7, 3, 3, 1, 3, 6, 3];
+    var RO_LINK = ["", "g", "kk", "ks", "n", "nj", "n", "d", "r", "lg", "lm", "lb", "ls", "lt", "lp", "r", "m", "b", "ps", "s", "ss", "ng", "j", "ch", "k", "t", "p", ""];
+    var RO_SND = ["", "k", "n", "t", "l", "m", "p", "ng"];
+    function roNasal(s) { return s === 1 ? 7 : s === 3 ? 2 : s === 6 ? 5 : s; }
+    function roFirst(link) { return { k: 1, n: 4, l: 8 }[link.charAt(0)] || 17; }
+    function roWord(w) {
+        var ini = [], vow = [], fin = [], b = "", carry = null, len = w.length;
+        for (var k = 0; k < len; k++) { var code = w.charCodeAt(k) - 0xAC00; ini.push(Math.floor(code / 588)); vow.push(Math.floor(code % 588 / 28)); fin.push(code % 28); }
+        for (k = 0; k < len; k++) {
+            b += (carry != null ? carry : RO_INI[ini[k]]) + RO_VOW[vow[k]];
+            carry = null;
+            if (!fin[k]) continue;
+            if (k === len - 1) { b += RO_SND[RO_FS[fin[k]]]; continue; }
+            var next = ini[k + 1], snd = RO_FS[fin[k]];
+            if (k === len - 2 && w.charAt(k + 1) === "리") { b += RO_SND[snd] + "-"; continue; }
+            if (next === 11) {
+                var link = RO_LINK[fin[k]];
+                if (fin[k] === 21) b += "ng";
+                else if (link.length === 2 && ["kk", "ss", "ng", "ch"].indexOf(link) < 0) { b += RO_SND[RO_FS[roFirst(link)]]; carry = link.slice(1); }
+                else carry = link;
+                continue;
+            }
+            if (snd === 4 && (next === 5 || next === 2)) { b += "l"; carry = "l"; }
+            else if (snd === 2 && next === 5) { b += "l"; carry = "l"; }
+            else if (next === 5) { b += RO_SND[roNasal(snd)]; carry = "n"; }
+            else if (next === 2 || next === 6) b += RO_SND[roNasal(snd)];
+            else b += RO_SND[snd];
+        }
+        return b;
+    }
+    /** 순수 함수 - 한글 로마자(국어의 로마자 표기법 - Roman.of 와 같은 결과). "설악산" → "Seoraksan". */
+    function roman(s) {
+        s = String(s == null ? "" : s);
+        return s.replace(/[가-힣]+/g, function (w, i) {
+            var r = roWord(w), prev = i > 0 ? s.charAt(i - 1) : "";
+            return (/[A-Za-z]/.test(prev) ? " " : "") + (/\d/.test(prev) ? r : r.charAt(0).toUpperCase() + r.slice(1));
+        });
+    }
+    /** 영어로 옮길 낱말(MountainEn.WORDS 와 같음) - 나머지는 로마자. */
+    var EN_WORDS = [["탐방지원센터", "visitor center"], ["탐방안내소", "visitor center"], ["공원지킴터", "ranger post"], ["매표소", "ticket booth"], ["주차장", "parking"],
+        ["대피소", "shelter"], ["휴게소", "rest area"], ["삼거리", "junction"], ["사거리", "crossroads"], ["갈림길", "junction"], ["탐방로", "trail"], ["등산로", "trail"],
+        ["입구", "entrance"], ["정상", "summit"], ["코스", "course"], ["구간", "section"], ["순환", "loop"], ["왕복", "round trip"], ["분소", "office"]];
+    /** 순수 함수 - 지점 · 코스 이름 영어로(MountainEn.courseName 과 같음). "수렴동대피소" → "Suryeomdong shelter". */
+    function enName(ko) {
+        var s = String(ko == null ? "" : ko);
+        EN_WORDS.forEach(function (w) { s = s.split(w[0]).join(" " + w[1] + " "); });
+        return roman(s).replace(/\s+/g, " ").replace(/ ([)\],])/g, "$1").replace(/([(\[]) /g, "$1").trim();
+    }
+
     // ------------------------------------------------------------------ 난이도 · 안내판 고도 그래프(2026-10-15 홍TV님 - 국립공원 탐방로 안내판처럼)
 
     /** 5단계 - 색은 공단 탐방로 안내판 범례(매우쉬움 연두 · 쉬움 초록 · 보통 주황 · 어려움 자주 · 매우어려움 검정)에 맞춤. MountainServlet.LEVELS 와 같음. */
@@ -3267,18 +3335,20 @@
             if (x(sg.d1) - x(sg.d0) > 38) html += '<text x="' + mx.toFixed(1) + '" y="' + (B - 8) + '" class="pct">' + sg.pct + "%</text>";
         });
         var rowEnd = [-1e9, -1e9], lastKm = -1e9;   // 이름 두 줄 - 줄마다 마지막 이름의 오른쪽 끝(겹치면 다른 줄, 둘 다 겹치면 뺌)
-        var endName = b.cuts[b.cuts.length - 1].name, endLeft = x(b.total) - (endName ? String(endName).length * 14 + 6 : 0);   // 끝(정상) 이름은 첫 줄 맨 오른쪽에 늘 둠
+        var label = function (n) { return en ? enName(n) : String(n); };   // 영어 화면은 지점 이름도 영어 · 로마자(2026-10-16 PC)
+        var textW = function (t) { var w = 6; for (var q = 0; q < t.length; q++) w += t.charCodeAt(q) >= 0x1100 ? 14 : 7.5; return w; };
+        var endName = b.cuts[b.cuts.length - 1].name, endLeft = x(b.total) - (endName ? textW(label(endName)) : 0);   // 끝(정상) 이름은 첫 줄 맨 오른쪽에 늘 둠
         b.cuts.forEach(function (c, i) {
             var cx = x(c.d), cy = y(i === 0 ? b.segs[0].e0 : b.segs[i - 1].e1);
             html += '<circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="4.5" class="pt"/>';
             if (c.name) {
-                var last = i === b.cuts.length - 1, tw = String(c.name).length * 14 + 6, anchor = i === 0 ? "start" : last ? "end" : "middle";
+                var nm = label(c.name), last = i === b.cuts.length - 1, tw = textW(nm), anchor = i === 0 ? "start" : last ? "end" : "middle";
                 var left = anchor === "start" ? cx : anchor === "end" ? cx - tw : cx - tw / 2;
                 var row = last ? 0 : left > rowEnd[0] && left + tw < endLeft ? 0 : left > rowEnd[1] ? 1 : -1;
                 if (row >= 0) {
                     var ty = row ? 44 : 22;
                     html += '<line x1="' + cx.toFixed(1) + '" x2="' + cx.toFixed(1) + '" y1="' + (ty + 5) + '" y2="' + (cy - 6).toFixed(1) + '" class="lead"/>'
-                        + '<text x="' + cx.toFixed(1) + '" y="' + ty + '" text-anchor="' + anchor + '" class="nm">' + String(c.name).replace(/[&<>"]/g, function (ch) { return "&#" + ch.charCodeAt(0) + ";"; }) + "</text>";
+                        + '<text x="' + cx.toFixed(1) + '" y="' + ty + '" text-anchor="' + anchor + '" class="nm">' + String(nm).replace(/[&<>"]/g, function (ch) { return "&#" + ch.charCodeAt(0) + ";"; }) + "</text>";
                     rowEnd[row] = left + tw;
                 }
             }
@@ -3552,6 +3622,6 @@
         LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, regionNames: regionNames, stampKey: stampKey, summitName: summitName, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakGapM: peakGapM, peakCourses: peakCourses, isClosedTrail: isClosedTrail, isHiddenCourse: isHiddenCourse, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
         sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap,
-        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox, LEVELS: LEVELS, difficulty: difficulty, boardSegments: boardSegments, boardProfile: boardProfile, nameEnds: nameEnds, boardButtons: boardButtons, levelChip: levelChip
+        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox, LEVELS: LEVELS, difficulty: difficulty, boardSegments: boardSegments, boardProfile: boardProfile, nameEnds: nameEnds, boardButtons: boardButtons, levelChip: levelChip, roman: roman, enName: enName, weekendText: weekendText
     };
 })(window);

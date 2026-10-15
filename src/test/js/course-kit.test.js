@@ -872,3 +872,14 @@ eq("difficulty 단계", [RF.difficulty(12900, 1300), RF.difficulty(5000, 1300), 
     eq("boardSegments 고도 없음", RF.boardSegments([[0, 0, null, 0]], [], "a", "b"), null);
 })();
 eq("nameEnds", [RF.nameEnds("설악산 · 백담사 → 대청봉"), RF.nameEnds("오색탐방지원센터 - 대청봉"), RF.nameEnds("대청봉코스")], [["백담사", "대청봉"], ["오색탐방지원센터", "대청봉"], null]);
+// 로마자 - MountainEnTest.romanization 과 같은 값(Roman.java 와 맞춤)
+eq("roman", ["설악산", "한라산", "속리산", "북한산", "덕유산", "백록담", "강원", "중산리", "오색 - 대청봉", "두류봉 6봉", "DMZ펀치볼", ""].map(RF.roman),
+    ["Seoraksan", "Hallasan", "Songnisan", "Bukhansan", "Deogyusan", "Baengnokdam", "Gangwon", "Jungsan-ri", "Osaek - Daecheongbong", "Duryubong 6bong", "DMZ Peonchibol", ""]);
+eq("enName", [RF.enName("오색탐방지원센터 - 대청봉"), RF.enName("설악산 · 백담사코스(왕복)"), RF.enName("수렴동대피소")],
+    ["Osaek visitor center - Daecheongbong", "Seoraksan · Baekdamsa course (round trip)", "Suryeomdong shelter"]);
+(function () {
+    var w = { dates: ["2026-10-17", "2026-10-18"], regions: [{ code: "11B00000", days: { "2026-10-17": { word: "맑음", pop: 10, good: true }, "2026-10-18": { word: "흐리고 비", pop: 60, good: false } } },
+        { code: "11F20000", days: { "2026-10-17": { word: "비", pop: 70, good: false } } }] };
+    eq("weekendText", [RF.weekendText(w, "11B00000"), RF.weekendText(w, "11F20000"), RF.weekendText(w, "x"), RF.weekendText(w, null)],
+        ["☀️ 주말 토 맑음 · 일 흐리고 비 60%", "🌧 주말 토 비 70%", "", ""]);
+})();

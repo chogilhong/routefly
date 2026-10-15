@@ -35,6 +35,8 @@ import com.google.gson.JsonParser;
  *   <li>미리 채움(2026-10-15 PC: 재시작 뒤 첫 요청이 12초): 톰캣이 뜨고 1분 뒤, 그 뒤 50분마다 뒤에서 새로 만들어 둠 - 손님은 늘 담아 둔 것을 받음.</li>
  * </ul>
  * → {@code {success, dates:["2026-10-17","2026-10-18"], regions:[{code, name, days:{날짜:{word, pop, good}}, peaks:[산 id …]}]}}
+ * <p>{@code ?ids=knps-1,frst-2} (찜한 코스 번호, 20개까지 - 2026-10-16 홍TV님) 를 주면 코스 시작점(DB)의 구역 {@code at:[구역 code 또는 null …]} 을 더해 줌.
+ * 화면은 코스 번호만 보냄 - 이 기기의 위치는 받지 않음(개인정보처리방침).</p>
  */
 @WebServlet(urlPatterns = {"/api/weekend"}, loadOnStartup = 2)
 public class WeekendServlet extends HttpServlet {
@@ -90,7 +92,48 @@ public class WeekendServlet extends HttpServlet {
             Json.write(resp, HttpServletResponse.SC_OK, u, false);
             return;
         }
+        String ids = req.getParameter("ids");
+        if (ids != null && !ids.isBlank()) {   // 찜한 코스마다 구역 - 응답을 고치지 않게 사본에
+            out = out.deepCopy();
+            out.add("at", regionsOf(parseIds(ids)));
+        }
         Json.ok(req, resp, out);
+    }
+
+    /** 순수 함수 - "knps-1,frst-2" → 코스 번호들(20개까지, 영숫자 · - _ . 만 - 아니면 null 자리). */
+    static List<String> parseIds(String s) {
+        List<String> out = new ArrayList<>();
+        for (String part : s.split(",")) {
+            if (out.size() >= 20) break;
+            String id = part.trim();
+            out.add(id.matches("[A-Za-z0-9_.-]{1,80}") ? id : null);
+        }
+        return out;
+    }
+
+    /** 코스마다 시작점의 구역 code(코스가 없거나 DB 가 안 되면 null). */
+    private static JsonArray regionsOf(List<String> ids) {
+        java.util.Map<String, double[]> at = new java.util.HashMap<>();
+        List<String> ok = new ArrayList<>();
+        for (String id : ids) if (id != null) ok.add(id);
+        if (!ok.isEmpty()) {
+            try (java.sql.Connection c = Db.open();
+                 java.sql.PreparedStatement ps = c.prepareStatement("SELECT course_id, start_lat, start_lon FROM route_course WHERE course_id IN ("
+                         + String.join(",", java.util.Collections.nCopies(ok.size(), "?")) + ") AND start_lat IS NOT NULL")) {
+                for (int i = 0; i < ok.size(); i++) ps.setString(i + 1, ok.get(i));
+                try (java.sql.ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) at.put(rs.getString(1), new double[] {rs.getDouble(2), rs.getDouble(3)});
+                }
+            } catch (Exception e) {
+                // 구역 없이 - 화면은 날씨를 안 붙임
+            }
+        }
+        JsonArray out = new JsonArray();
+        for (String id : ids) {
+            double[] p = id == null ? null : at.get(id);
+            out.add(p == null ? null : landOfPeak(p[0], p[1]));
+        }
+        return out;
     }
 
     /** 순수 함수 - 다가오는 토 · 일(오늘이 토요일이면 오늘 · 내일, 일요일이면 오늘만). */

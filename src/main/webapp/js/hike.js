@@ -2458,6 +2458,7 @@
         h.className = "msg";
         h.textContent = "★ 찜한 코스 " + favs.length + "개 - 코스 화면 이름 옆 ☆ 로 넣고 뺍니다.";
         box.appendChild(h);
+        var withPt = [];
         favs.forEach(function (f) {
             var it = document.createElement("div"), b = document.createElement("b"), sp = document.createElement("span");
             it.className = "it fav";
@@ -2468,8 +2469,18 @@
             it.appendChild(b);
             it.appendChild(sp);
             it.onclick = function () { fromList = true; location.hash = "#c=" + encodeURIComponent(f.id); };
+            if (!isGpxId(f.id)) withPt.push([f, sp]);
             box.appendChild(it);
         });
+        // ☀️ 찜한 코스 주말 날씨(2026-10-16 홍TV님) - 그 코스 들머리의 중기 구역 날씨(api/weekend, 주말 추천과 같은 자료).
+        // 코스 번호만 보냄(서버가 DB 에서 들머리를 찾음) - 이 기기의 위치는 보내지 않음(개인정보처리방침)
+        if (withPt.length) getJson("api/weekend?ids=" + withPt.slice(0, 20).map(function (x) { return encodeURIComponent(x[0].id); }).join(",")).then(function (w) {
+            if (w.unavailable || !w.at) return;
+            withPt.slice(0, 20).forEach(function (x, i) {
+                var t = RF.weekendText(w, w.at[i]);
+                if (t) { var wk = document.createElement("small"); wk.className = "wk"; wk.textContent = t; x[1].parentNode.appendChild(wk); }
+            });
+        }).catch(function () { /* 날씨 없이 */ });
     }
     pickHome();
     // 내 주변 코스를 보인 자리 - 검색창이 빈 채로 종류 탭을 바꾸면 그 자리에서 그 종류로 다시(2026-10-11 홍TV님: 등산 탭을 눌러도 그대로였음)

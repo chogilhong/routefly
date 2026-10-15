@@ -43,4 +43,11 @@ public class WeekendServletTest {
         assertTrue(d.has("word") && d.has("pop") && d.has("good"));
         assertNull(WeekendServlet.midDay(mid, "2026-10-17"));
     }
+
+    @Test
+    public void favoriteIds() {   // ?ids= 찜한 코스 번호(2026-10-16) - 위치가 아니라 코스 번호만
+        java.util.List<String> p = WeekendServlet.parseIds("knps-1, frst-2 ,a b,<x>");
+        assertEquals(java.util.Arrays.asList("knps-1", "frst-2", null, null), p);
+        assertEquals("20개까지", 20, WeekendServlet.parseIds("k-1,".repeat(30)).size());
+    }
 }
