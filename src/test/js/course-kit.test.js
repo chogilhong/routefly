@@ -931,3 +931,5 @@ eq("compareRows 영어 시간", RF.compareRows({ dist: 3000, asc: 0 }, { dist: 5
         if (RF.difficulty(d + 1000, a, s) < RF.difficulty(d, a, s) || RF.difficulty(d, a + 200, s) < RF.difficulty(d, a, s) || RF.difficulty(d, a, s + 5) < RF.difficulty(d, a, s)) bad.push([d, a, s].join("/"));
     eq("difficulty 가파름까지 - 늘면 같거나 높음", bad, []);
 })();
+eq("officialEleAt 정상 50m 안만", [RF.officialEleAt({ pois: [{ name: "대청봉", dist_m: 4780, ele_m: 1708, ele_official: true }, { name: "중청", dist_m: 4000, ele_m: 1650 }] }, 4770),
+    RF.officialEleAt({ pois: [{ name: "대청봉", dist_m: 4780, ele_m: 1708, ele_official: true }] }, 4600), RF.officialEleAt({ pois: [{ name: "중청", dist_m: 4000, ele_m: 1650 }] }, 4000)], [1708, null, null]);

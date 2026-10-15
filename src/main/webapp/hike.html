@@ -71,7 +71,8 @@ button { font-family:inherit; }
 #grip { width:44px; height:5px; border-radius:3px; background:rgba(255,255,255,0.28); margin:-2px auto 6px; cursor:pointer; }
 #stats { touch-action:pan-x; }   /* 위 · 아래로 미는 손짓은 접기 · 펴기에 씁니다 */
 body.compact #statGrids { display:none; }
-#next { font-size:13.5px; color:var(--tx); margin-bottom:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#nextRow { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+#next { flex:1; min-width:0; font-size:13.5px; color:var(--tx); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 #next b { color:var(--sky); }
 #sign { font-size:12.5px; color:var(--tx); margin:-3px 0 6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; opacity:.85; }
 #sign[hidden], #sosSignRow[hidden], #sosHelpRow[hidden] { display:none; }
@@ -94,8 +95,8 @@ body.compact #statGrids { display:none; }
 
 /* ① 고도 그래프 */
 #profile { flex:0 0 auto; height:92px; margin:6px 10px 4px; }
-#profile .boardOpen { position:absolute; left:4px; top:2px; z-index:2; height:26px; padding:0 8px; border-radius:13px; border:1px solid var(--ln); background:rgba(17,22,29,0.75);
-                      color:var(--tx); font:bold 12px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }   /* 📋 안내판 열기(2026-10-16) */
+#boardOpen { flex:0 0 auto; height:26px; padding:0 9px; border-radius:13px; border:1px solid var(--ln); background:rgba(255,255,255,0.06);
+             color:var(--tx); font:bold 12px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }   /* 📋 안내판 열기(2026-10-16) */
 
 /* 아래 단추 */
 #bar { flex:0 0 auto; display:flex; gap:8px; padding:6px 10px calc(env(safe-area-inset-bottom) + 8px); background:var(--panel); }
@@ -296,7 +297,7 @@ html.picking #pick { display:flex; }
 
 <div id="stats">
     <div id="grip" title="기록 칸 접기 · 펴기(아래로 밀면 접고, 위로 밀면 폅니다)"></div>
-    <div id="next" title="코스를 따라 앞에 나오는 다음 이름표(봉우리 · 갈림 · 쉼터 등)와 거기까지 거리 · 높이 차이">다음 지점 -</div>
+    <div id="nextRow"><div id="next" title="코스를 따라 앞에 나오는 다음 이름표(봉우리 · 갈림 · 쉼터 등)와 거기까지 거리 · 높이 차이">다음 지점 -</div><button type="button" id="boardOpen" class="boardOpen" hidden title="공단 안내판처럼 구간별 경사 · 현위치">📋 안내판</button></div>   <!-- 📋 안내판 - 그래프 안에 두니 "최고" 높이를 가렸음(2026-10-16) -->
     <div id="sign" hidden title="가까운 국립공원 위치표지판 번호와 거리 - 다치거나 길을 잃으면 119 에 이 번호를 알려 주세요">📍 위치표지 -</div>
     <div id="access" hidden title="공단 교통편 안내 - 차를 대는 곳에서 들머리까지(국립공원공단 누리집)"><span id="accessCar"></span><a id="accessLink" target="_blank" rel="noopener" title="국립공원공단 누리집 교통편 안내(새 창)">공단 교통편 ›</a></div>
     <div id="statGrids">

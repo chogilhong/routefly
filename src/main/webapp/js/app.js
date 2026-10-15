@@ -1060,7 +1060,8 @@
     function updateHud(d) {
         $("hudKm").textContent = km(d);
         var p = cur ? at(cur, d) : null;
-        $("hudEle").textContent = p && p.ele != null ? "고도 " + num(p.ele) + "m" : "고도 -";
+        var oe = cur ? RF.officialEleAt(cur, d) : null;   // 정상 가까이면 공식 높이(2026-10-16)
+        $("hudEle").textContent = oe != null ? "고도 " + num(oe) + "m" : p && p.ele != null ? "고도 " + num(p.ele) + "m" : "고도 -";
         var g = cur ? RF.grade(cur, d) : null;
         $("hudGrade").textContent = g == null ? "" : "경사 " + (g > 0 ? "+" : "") + num(g) + "%";
         if (cur && cur.profile) cur.profile.set(d);

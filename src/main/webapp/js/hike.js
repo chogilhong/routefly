@@ -2021,7 +2021,8 @@
         var d = hike.d, p = RF.at(c, d), g = RF.grade(c, d);
         setV("sDone", km(d), "km");
         setV("sLeft", km(Math.max(0, c.total - d)), "km");
-        setV("sEle", p.ele == null ? "-" : num(p.ele), "m");
+        var oe = RF.officialEleAt(c, d);   // 정상 가까이(50m)면 공식 높이(2026-10-16 홍TV님: 대청봉 도착인데 해발 1,700m)
+        setV("sEle", oe != null ? num(oe) : p.ele == null ? "-" : num(p.ele), "m");
         setV("sGrade", g == null ? "-" : (g > 0 ? "↗ " : g < 0 ? "↘ " : "") + num(Math.abs(g)), "%");
         setV("sSpeed", hike.speed == null || !hike.running ? "-" : num(hike.speed * 3.6, 1), "km/h");
         var elapsed = hike.running ? now() - hike.start : 0;
@@ -2201,18 +2202,12 @@
     // ------------------------------------------------------------------ 📋 안내판(2026-10-16 홍TV님) - 공단 탐방로 안내판처럼 구간 경사 + 🔴 현위치
 
     var board = null, boardOpenNow = false, boardDrawn = 0;
-    /** 고도 그래프 왼쪽 위 "📋 안내판" 단추 - 등산 · 걷기 코스만(자전거는 경사 단계가 맞지 않음). */
+    /** "다음 지점" 줄 오른쪽 "📋 안내판" 단추 - 등산 · 걷기 코스만(자전거는 경사 단계가 맞지 않음). 그래프 안에 두니 "최고" 높이를 가렸음(2026-10-16). */
     function boardBtn() {
         board = null;
-        if (!c || K() === RF.KINDS.bike || !c.ele || c.ele.filter(function (e) { return e != null; }).length < 2) return;
-        var b = document.createElement("button");
-        b.type = "button";
-        b.className = "boardOpen";
-        b.textContent = "📋 안내판";
-        b.title = "공단 안내판처럼 구간별 경사 · 현위치";
-        b.addEventListener("click", function (e) { e.stopPropagation(); openBoard(); });
-        $("profile").appendChild(b);
+        $("boardOpen").hidden = !c || K() === RF.KINDS.bike || !c.ele || c.ele.filter(function (e) { return e != null; }).length < 2;
     }
+    $("boardOpen").addEventListener("click", function (e) { e.stopPropagation(); openBoard(); });
     function drawBoard() {
         if (!board) {
             var pts = c.dist.map(function (d, i) { return [c.lon[i], c.lat[i], c.ele[i], d]; });
