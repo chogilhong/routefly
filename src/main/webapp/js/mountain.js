@@ -94,7 +94,7 @@
     pick.setAttribute("aria-label", "다른 날 고르기");
     var hint = document.createElement("option");
     hint.value = "";
-    hint.textContent = "다른 날 ▾";
+    hint.textContent = "다른 날";   // 고르는 칸 제 화살표가 있어 ▾ 는 뺌(2026-10-15 PC: 두 개로 보일 수 있음)
     pick.appendChild(hint);
     pick.addEventListener("change", function () { if (pick.value) { picked = pick.value; draw(); } });
     tabs.appendChild(todayBtn);
