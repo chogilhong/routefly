@@ -96,7 +96,7 @@
         var day = picked || today, dayMs = Date.parse(day + "T12:00:00+09:00"), mm = wx.days && wx.days[day], lines = [sunLine(dayMs)];
         var md = mid && mid.days && mid.days[day];
         if (md && !wx.hours.some(function (h) { return h.t.slice(0, 10) === day; })) {   // 단기예보 뒤(4~10일) - 기상청 중기예보
-            if (md.tmn != null || md.tmx != null) lines.push("최저 " + (md.tmn != null ? md.tmn + "℃" : "-") + " / 최고 " + (md.tmx != null ? md.tmx + "℃" : "-"));
+            if (RF.tempRange(md.tmn, md.tmx)) lines.push(RF.tempRange(md.tmn, md.tmx));
             RF.midLines(md).forEach(function (l) { lines.push(l); });
             lines.push("기상청 중기예보(" + mid.tmFc + " 발표) · " + mid.region + " 권역 · 기온은 " + mid.city + " 기준 - 산 위는 이보다 춥고 바람이 셉니다. 날이 가까워지면 3시간마다 예보로 바뀝니다.");
             show(lines);
@@ -105,13 +105,15 @@
             markTabs(day);
             return;
         }
-        if (mm && (mm.tmn != null || mm.tmx != null)) lines.push("최저 " + (mm.tmn != null ? mm.tmn + "℃" : "-") + " / 최고 " + (mm.tmx != null ? mm.tmx + "℃" : "-"));
+        if (mm && RF.tempRange(mm.tmn, mm.tmx)) lines.push(RF.tempRange(mm.tmn, mm.tmx));
         var hours = wx.hours.filter(function (h) { return h.t.slice(0, 10) === day; });
         hours.filter(function (h, i) { return day === today ? i % 3 === 0 : +h.t.slice(11, 13) % 3 === 0; }).slice(0, 8).forEach(function (h) {
             lines.push(h.t.slice(11, 13) + "시  " + RF.weatherWord(h.sky, h.pty) + "  " + (h.tmp != null ? h.tmp + "℃" : "-")
                 + "  · 비 " + (h.pop != null ? h.pop + "%" : "-") + "  · 바람 " + (h.wsd != null ? h.wsd + "m/s" : "-"));
         });
-        lines.push("기상청 단기예보(" + wx.base + " 발표) · 정상 둘레 5km 격자 - 정상은 이보다 춥고 바람이 셀 수 있습니다. 3시간마다 예보는 글피까지입니다.");
+        var lastH = hours.length ? +hours[hours.length - 1].t.slice(11, 13) : 23;
+        lines.push("기상청 단기예보(" + wx.base + " 발표) · 정상 둘레 5km 격자 - 정상은 이보다 춥고 바람이 셀 수 있습니다."
+            + (lastH < 21 ? " 이 날은 " + lastH + "시까지만 나왔습니다(다음 발표에 이어짐)." : ""));
         show(lines);
         var t = day === today ? RF.airText(air) : RF.airForecastText(air, day);
         airBox.textContent = t ? "😷 " + t + " · 에어코리아" : day === today ? "" : "😷 이 날 미세먼지 예보는 아직 없습니다(에어코리아 예보는 모레까지).";

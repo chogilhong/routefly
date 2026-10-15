@@ -807,3 +807,4 @@ eq("dayLabel 오늘 · 내일 · 글피 · 그 뒤", [RF.dayLabel("2026-10-15", 
     ["오늘 10/15(목)", "내일 10/16(금)", "글피 10/18(일)", "내일 11/1(일)"]);
 eq("midLines 오전 · 오후 / 하루 한 값", [RF.midLines({ wfAm: "맑음", wfPm: "구름많음", popAm: 20, popPm: 30 }), RF.midLines({ wfAm: "흐리고 비", wfPm: "흐리고 비", popAm: 60, popPm: 60 }), RF.midLines(null)],
     [["오전 맑음 · 비 20%", "오후 구름많음 · 비 30%"], ["흐리고 비 · 비 60%"], []]);
+eq("tempRange 둘 · 한쪽 · 없음", [RF.tempRange(7, 19), RF.tempRange(11, null), RF.tempRange(null, undefined)], ["최저 7℃ / 최고 19℃", "최저 11℃", ""]);

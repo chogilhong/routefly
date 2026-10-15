@@ -729,8 +729,7 @@
                     if (dd !== day) {
                         day = dd;
                         var mm = w.days && w.days[dd];
-                        dayEls[dd] = body.appendChild(el("div", "gDay", RF.dayLabel(dd, w.hours[0].t.slice(0, 10)) + (mm && (mm.tmn != null || mm.tmx != null)
-                            ? " · 최저 " + (mm.tmn != null ? mm.tmn + "℃" : "-") + " / 최고 " + (mm.tmx != null ? mm.tmx + "℃" : "-") : "")));
+                        dayEls[dd] = body.appendChild(el("div", "gDay", RF.dayLabel(dd, w.hours[0].t.slice(0, 10)) + (mm && RF.tempRange(mm.tmn, mm.tmx) ? " · " + RF.tempRange(mm.tmn, mm.tmx) : "")));
                     }
                     var st = RF.summitTemp(h.tmp, start.ele, top);
                     body.appendChild(gRow(h.t.slice(11, 13) + "시  " + RF.weatherWord(h.sky, h.pty) + "  " + (h.tmp != null ? h.tmp + "℃" : "-"),
