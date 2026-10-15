@@ -215,7 +215,8 @@ final class MountainEn {
         b.append("<main><a class=\"logo\" href=\"").append(REL).append("/hike.html\"><img src=\"").append(REL)
                 .append("/img/logo-dark.svg\" alt=\"routefly\" width=\"256\" height=\"80\"></a><h1>Korea's 100 Famous Mountains</h1>")
                 .append("<p class=\"lead\">Pick a mountain to see its trails to the summit, the weather forecast, air quality and sunrise time.</p>")
-                .append("<section id=\"near\"><button type=\"button\" id=\"nearMe\">📍 Famous mountains near me</button><div id=\"nearList\"></div></section>")
+                .append("<section id=\"near\"><details class=\"fold kind\" name=\"kind\" id=\"nearFold\"><summary><span class=\"ft\">📍 Near me</span>")
+                .append("<span class=\"fs\">8 closest famous mountains</span><span class=\"fa\">▾</span></summary><div class=\"fb\"><div id=\"nearList\"></div></div></details></section>")
                 .append("<div class=\"folds\">");
         // 접고 펴는 칸(2026-10-15 홍TV님 - /m/ 과 같게): ⛰️ Hiking(100 Famous Mountains · 백두대간) · 🥾 Walking · 🚴 Cycling
         List<JsonObject> list = new ArrayList<>();

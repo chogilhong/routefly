@@ -34,9 +34,11 @@
     }
 
     // 📍 near me (목록 /en/m/) - 위치는 이 기기 안에서만 견줌, 페이지의 좌표(data-lat · data-lon)로
-    var nearBtn = document.getElementById("nearMe"), nearList = document.getElementById("nearList");
-    if (nearBtn && nearList) nearBtn.addEventListener("click", function () {
-        if (!navigator.geolocation || !window.isSecureContext) { nearList.textContent = "Location works only on an https address."; return; }
+    var nearFold = document.getElementById("nearFold"), nearList = document.getElementById("nearList"), nearDone = false;   // 펴면 찾음(2026-10-16 - 접는 칸)
+    if (nearFold && nearList) nearFold.addEventListener("toggle", function () {
+        if (!nearFold.open || nearDone) return;
+        nearDone = true;
+        if (!navigator.geolocation || !window.isSecureContext) { nearList.textContent = "Location works only on an https address."; nearDone = false; return; }
         nearList.textContent = "Finding your location…";
         navigator.geolocation.getCurrentPosition(function (pos) {
             var me = pos.coords, list = Array.prototype.map.call(document.querySelectorAll("#peakList a[data-lat]"), function (a) {
@@ -52,7 +54,7 @@
                 ul.appendChild(li);
             });
             nearList.appendChild(ul);
-        }, function () { nearList.textContent = "Could not get your location (check location permission)."; }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 });
+        }, function () { nearDone = false; nearList.textContent = "Could not get your location (check location permission)."; }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 });
     });
 
     // 🌄 sunrise start - 코스마다 내일 일출을 정상에서 보려면 들머리 출발 시각
