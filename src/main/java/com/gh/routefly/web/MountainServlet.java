@@ -114,8 +114,22 @@ public class MountainServlet extends HttpServlet {
         resp.getWriter().print(MountainEn.page(peak, courses, nearby(all, peak, NEARBY_MAX, NEARBY_M), parking(courses), base));
     }
 
-    /** 정상까지 가는 코스(앱과 같은 이름) - DB 가 안 되면 null. */
+    /** 산마다 코스 목록 10분 담아 둠(2026-10-16 속도 점검 - 검색 로봇이 산 페이지 196쪽을 훑을 때 DB · 경사 계산을 줄임). 산 id → [시각, 목록]. */
+    private static final long COURSES_TTL_MS = 10 * 60 * 1000;
+    private final java.util.Map<String, Object[]> coursesCache = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** 정상까지 가는 코스(앱과 같은 이름) - DB 가 안 되면 null. 10분 담아 둔 것이 있으면 그것(한국어 · 영어 페이지가 함께 씀). */
+    @SuppressWarnings("unchecked")
     private List<JsonObject> courses(JsonObject peak) {
+        String key = str(peak, "id") != null ? str(peak, "id") : str(peak, "name");
+        Object[] hit = coursesCache.get(key);
+        if (hit != null && System.currentTimeMillis() - (Long) hit[0] < COURSES_TTL_MS) return (List<JsonObject>) hit[1];
+        List<JsonObject> courses = load(peak);
+        if (courses != null) coursesCache.put(key, new Object[] {System.currentTimeMillis(), courses});
+        return courses;
+    }
+
+    private List<JsonObject> load(JsonObject peak) {
         List<JsonObject> courses;
         try (Connection c = Db.open()) {
             double lat = peak.get("lat").getAsDouble(), lon = peak.get("lon").getAsDouble();
