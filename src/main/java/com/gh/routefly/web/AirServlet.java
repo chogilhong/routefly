@@ -3,6 +3,7 @@ package com.gh.routefly.web;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,6 +38,14 @@ public class AirServlet extends HttpServlet {
     static final String STATIONS_URL = "https://apis.data.go.kr/B552584/MsrstnInfoInqireSvc/getMsrstnList";
     static final String MEASURE_URL = "https://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getMsrstnAcctoRltmMesureDnsty";
     static final double AIR_NEAR_M = 40000;
+    /**
+     * 가까운 측정소부터 몇 곳까지 물어보는가 / 측정소마다 최근 몇 줄(시간)까지 보는가.
+     * 2026-10-15 PC: 98개 산 가운데 7곳은 가장 가까운 측정소의 최근 3시간이 모두 "통신장애"(값 "-"),
+     * 3곳(설악산 · 점봉산 · 황석산)은 가장 가까운 측정소 이름으로 물으면 0줄 - 다음 측정소로 넘어감.
+     */
+    static final int TRY_STATIONS = 3, ROWS = 6;
+    /** 측정소 목록(672곳 - 2026-10-15)은 8초를 넘긴 적이 있음(PC 13:16 · 14:48 HttpTimeoutException). */
+    static final Duration STATIONS_TIMEOUT = Duration.ofSeconds(25);
     private static final long DAY = 24L * 60 * 60 * 1000;
     private static final OpenApi.Cache<List<double[]>> STATION_POS = new OpenApi.Cache<>(1, DAY);
     private static final OpenApi.Cache<List<String>> STATION_NAMES = new OpenApi.Cache<>(1, DAY);
@@ -62,7 +71,7 @@ public class AirServlet extends HttpServlet {
             pos = new ArrayList<>();
             names = new ArrayList<>();
             String text = OpenApi.get(STATIONS_URL + "?serviceKey=" + URLEncoder.encode(key, StandardCharsets.UTF_8)
-                    + "&returnType=json&numOfRows=1000&pageNo=1", "AIR");
+                    + "&returnType=json&numOfRows=1000&pageNo=1", "AIR", STATIONS_TIMEOUT);
             if (text == null || !stations(text, names, pos)) {
                 if (text != null) OpenApi.warn("AIR", text);
                 return unavailable();
@@ -70,26 +79,26 @@ public class AirServlet extends HttpServlet {
             STATION_POS.put("all", pos, now);
             STATION_NAMES.put("all", names, now);
         }
-        int i = nearest(pos, lat, lon, AIR_NEAR_M);
-        if (i < 0) return unavailable();
-        String station = names.get(i);
-        JsonObject m = MEASURE.get(station, now);
-        if (m == null) {
-            String text = OpenApi.get(MEASURE_URL + "?serviceKey=" + URLEncoder.encode(key, StandardCharsets.UTF_8)
-                    + "&returnType=json&numOfRows=3&pageNo=1&dataTerm=DAILY&ver=1.0&stationName=" + URLEncoder.encode(station, StandardCharsets.UTF_8), "AIR");
-            m = text == null ? null : measure(text);
+        for (int i : nearest(pos, lat, lon, AIR_NEAR_M, TRY_STATIONS)) {
+            String station = names.get(i);
+            JsonObject m = MEASURE.get(station, now);
             if (m == null) {
-                if (text != null) OpenApi.warn("AIR", text);
-                return unavailable();
+                String text = OpenApi.get(MEASURE_URL + "?serviceKey=" + URLEncoder.encode(key, StandardCharsets.UTF_8)
+                        + "&returnType=json&numOfRows=" + ROWS + "&pageNo=1&dataTerm=DAILY&ver=1.0&stationName=" + URLEncoder.encode(station, StandardCharsets.UTF_8), "AIR");
+                if (text == null) continue;   // 시간 초과 · 실패 - 담아 두지 않고 다음 측정소
+                m = measure(text);
+                if (m == null) m = new JsonObject();   // 값 없음(통신장애 · 0줄)도 30분 담아 둠 - 매번 묻지 않게
+                MEASURE.put(station, m, now);
             }
-            MEASURE.put(station, m, now);
+            if (m.size() == 0) continue;
+            JsonObject out = m.deepCopy();
+            out.addProperty("success", true);
+            out.addProperty("station", station);
+            out.addProperty("dist_km", Math.round(MountainServlet.distM(lat, lon, pos.get(i)[0], pos.get(i)[1]) / 100) / 10.0);
+            out.addProperty("source", "에어코리아(한국환경공단)");
+            return out;
         }
-        JsonObject out = m.deepCopy();
-        out.addProperty("success", true);
-        out.addProperty("station", station);
-        out.addProperty("dist_km", Math.round(MountainServlet.distM(lat, lon, pos.get(i)[0], pos.get(i)[1]) / 100) / 10.0);
-        out.addProperty("source", "에어코리아(한국환경공단)");
-        return out;
+        return unavailable();
     }
 
     private static JsonObject unavailable() {
@@ -138,18 +147,17 @@ public class AirServlet extends HttpServlet {
         return !names.isEmpty();
     }
 
-    /** 순수 함수 - 가장 가까운 측정소의 차례(maxM 안), 없으면 -1. */
-    static int nearest(List<double[]> pos, double lat, double lon, double maxM) {
-        int best = -1;
-        double bd = maxM;
+    /** 순수 함수 - maxM 안 측정소의 차례, 가까운 것부터 n 곳. */
+    static List<Integer> nearest(List<double[]> pos, double lat, double lon, double maxM, int n) {
+        List<double[]> hit = new ArrayList<>();
         for (int i = 0; i < pos.size(); i++) {
             double d = MountainServlet.distM(lat, lon, pos.get(i)[0], pos.get(i)[1]);
-            if (d <= bd) {
-                bd = d;
-                best = i;
-            }
+            if (d <= maxM) hit.add(new double[] {i, d});
         }
-        return best;
+        hit.sort((a, b) -> Double.compare(a[1], b[1]));
+        List<Integer> out = new ArrayList<>();
+        for (int k = 0; k < hit.size() && k < n; k++) out.add((int) hit.get(k)[0]);
+        return out;
     }
 
     /** 순수 함수 - 실시간 값(최근 줄부터, 미세먼지 · 초미세먼지 중 하나라도 있는 첫 줄). 없으면 null. */

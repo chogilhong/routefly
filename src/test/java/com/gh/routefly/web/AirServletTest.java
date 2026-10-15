@@ -29,8 +29,9 @@ public class AirServletTest {
         assertEquals(List.of("가야면", "거꾸로", "서울"), names);
         assertEquals(35.73, pos.get(1)[0], 1e-9);   // dmX 가 경도여도 위도로 맞춤
         assertEquals(128.3, pos.get(1)[1], 1e-9);
-        assertEquals(0, AirServlet.nearest(pos, 35.80, 128.10, AirServlet.AIR_NEAR_M));
-        assertEquals(-1, AirServlet.nearest(pos, 33.5, 126.5, AirServlet.AIR_NEAR_M));   // 40km 안에 없음
+        assertEquals("가까운 차례 · 40km 안만", List.of(0, 1), AirServlet.nearest(pos, 35.80, 128.10, AirServlet.AIR_NEAR_M, 3));
+        assertEquals(List.of(0), AirServlet.nearest(pos, 35.80, 128.10, AirServlet.AIR_NEAR_M, 1));
+        assertTrue("40km 안에 없음", AirServlet.nearest(pos, 33.5, 126.5, AirServlet.AIR_NEAR_M, 3).isEmpty());
     }
 
     @Test
@@ -50,6 +51,17 @@ public class AirServletTest {
         assertEquals(42, m.get("pm10").getAsInt());
         assertEquals("보통", m.get("pm10Word").getAsString());
         assertEquals("좋음", m.get("pm25Word").getAsString());
+    }
+
+    /** 실제 응답(AirProbe 2026-10-15 14시, 대가야읍 - 가야산) - items 가 배열인 모양. */
+    @Test
+    public void realResponse() throws Exception {
+        String t = new String(AirServletTest.class.getResourceAsStream("/air/measure-대가야읍.json").readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        JsonObject m = AirServlet.measure(t);
+        assertEquals("2026-10-15 14:00", m.get("time").getAsString());
+        assertEquals(18, m.get("pm10").getAsInt());
+        assertEquals(6, m.get("pm25").getAsInt());
+        assertEquals("좋음", m.get("pm10Word").getAsString());
     }
 
     @Test

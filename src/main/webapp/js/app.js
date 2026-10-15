@@ -712,7 +712,7 @@
                 body.textContent = "";
                 var ab = el("div", "gNote", "");
                 body.appendChild(ab);
-                airP.then(function (a) { var t = RF.airText(a); if (t) ab.textContent = "😷 " + t; else ab.remove(); });
+                airP.then(function (a) { var t = RF.airText(a); if (t) ab.textContent = "😷 " + t + " · 에어코리아"; else ab.remove(); });
                 if (w.unavailable || !(w.hours || []).length) { body.appendChild(el("div", "gNote", "날씨를 지금 받지 못했습니다. 잠시 뒤 다시 눌러 주세요.")); return; }
                 var day = "";
                 w.hours.slice(0, 30).forEach(function (h) {

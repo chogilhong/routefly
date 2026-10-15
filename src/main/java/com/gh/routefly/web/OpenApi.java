@@ -24,10 +24,15 @@ final class OpenApi {
     private OpenApi() {
     }
 
-    /** GET 한 번. 200 이 아니거나 실패하면 null(로그에 tag 와 까닭). */
+    /** GET 한 번(8초 안). 200 이 아니거나 실패하면 null(로그에 tag 와 까닭). */
     static String get(String url, String tag) {
+        return get(url, tag, Duration.ofSeconds(8));
+    }
+
+    /** GET 한 번 - 큰 응답(에어코리아 측정소 목록 등)은 시간 한도를 늘려서. */
+    static String get(String url, String tag, Duration timeout) {
         try {
-            HttpRequest r = HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(8)).GET().build();
+            HttpRequest r = HttpRequest.newBuilder(URI.create(url)).timeout(timeout).GET().build();
             HttpResponse<String> res = HTTP.send(r, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
             if (res.statusCode() == 200) return res.body();
             log.warn("[{}] HTTP {} {}", tag, res.statusCode(), head(res.body()));

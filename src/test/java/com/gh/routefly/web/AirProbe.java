@@ -33,7 +33,7 @@ public final class AirProbe {
         Path dir = Path.of("src", "test", "resources", "air");
         Files.createDirectories(dir);
         String enc = URLEncoder.encode(key, StandardCharsets.UTF_8);
-        String st = OpenApi.get(AirServlet.STATIONS_URL + "?serviceKey=" + enc + "&returnType=json&numOfRows=1000&pageNo=1", "AIR-PROBE");
+        String st = OpenApi.get(AirServlet.STATIONS_URL + "?serviceKey=" + enc + "&returnType=json&numOfRows=1000&pageNo=1", "AIR-PROBE", AirServlet.STATIONS_TIMEOUT);
         if (st == null) {
             System.out.println("측정소 목록: 받지 못함(로그 [AIR-PROBE] - 활용 신청 · 키 확인)");
             return;
@@ -47,10 +47,11 @@ public final class AirProbe {
         if (!ok) return;
         double[][] at = {{35.7998, 128.0961}, {37.6879, 127.0350}, {33.3617, 126.5292}};   // 가야산 · 북한산 · 한라산
         for (double[] p : at) {
-            int i = AirServlet.nearest(pos, p[0], p[1], AirServlet.AIR_NEAR_M);
-            if (i < 0) { System.out.println(p[0] + "," + p[1] + " : 40km 안 측정소 없음"); continue; }
+            List<Integer> near = AirServlet.nearest(pos, p[0], p[1], AirServlet.AIR_NEAR_M, 1);
+            if (near.isEmpty()) { System.out.println(p[0] + "," + p[1] + " : 40km 안 측정소 없음"); continue; }
+            int i = near.get(0);
             Thread.sleep(700);
-            String m = OpenApi.get(AirServlet.MEASURE_URL + "?serviceKey=" + enc + "&returnType=json&numOfRows=3&pageNo=1&dataTerm=DAILY&ver=1.0&stationName="
+            String m = OpenApi.get(AirServlet.MEASURE_URL + "?serviceKey=" + enc + "&returnType=json&numOfRows=" + AirServlet.ROWS + "&pageNo=1&dataTerm=DAILY&ver=1.0&stationName="
                     + URLEncoder.encode(names.get(i), StandardCharsets.UTF_8), "AIR-PROBE");
             if (m == null) { System.out.println(names.get(i) + " : 받지 못함"); continue; }
             m = PetTourProbe.scrub(m, key);
