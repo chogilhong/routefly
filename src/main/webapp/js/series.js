@@ -128,6 +128,97 @@
         });
     }
 
+    // ------------------------------------------------------------------ 🏅 100대 명산 배지 · 증서(2026-10-15 홍TV님)
+    var CAP = window.Capacitor, NATIVE = !!(CAP && CAP.isNativePlatform && CAP.isNativePlatform());
+    function plugin(name) { return NATIVE && CAP.registerPlugin ? CAP.registerPlugin(name) : null; }
+    var FS = plugin("Filesystem"), SHARE = plugin("Share"), CERT_NAME = "rf-cert-name";
+
+    /** 배지 줄(10 · 30 · 50 · 70곳 · 완등) + 닿은 것 가운데 가장 높은 단계의 증서 단추. */
+    function badgeBox(s) {
+        var ms = RF.peakMilestones(s.peaks, peakStamps), box = el("div", "badges"), row = el("div", "brow"), got = ms.filter(function (m) { return m.t; });
+        ms.forEach(function (m) {
+            var b = el("div", "badge" + (m.t ? " on" : ""));
+            b.appendChild(el("b", null, m.t ? "🏅" : "⚪"));
+            b.appendChild(el("span", null, m.label));
+            if (m.t) b.appendChild(el("small", null, day(m.t)));
+            row.appendChild(b);
+        });
+        box.appendChild(row);
+        if (!got.length) {
+            box.appendChild(el("p", "dim", "정상 10곳에 도장을 찍으면 첫 배지와 증서를 받습니다."));
+            return box;
+        }
+        var top = got[got.length - 1], form = el("div", "certForm"), name = el("input"), btn = el("button", null, "🏅 " + (top.label === "완등" ? "완등 증서" : top.label + " 달성 증서") + " 만들기");
+        name.type = "text";
+        name.maxLength = 20;
+        name.placeholder = "증서에 넣을 이름(빈칸이면 빼고)";
+        try { name.value = localStorage.getItem(CERT_NAME) || ""; } catch (e) { /* 빈칸 */ }
+        btn.type = "button";
+        btn.addEventListener("click", function () {
+            var who = name.value.trim();
+            try { localStorage.setItem(CERT_NAME, who); } catch (e) { /* 이번만 */ }
+            var n = Object.keys(peakStamps).filter(function (k) { return s.peaks.some(function (p) { return RF.peakKey(p) === k; }); }).length;
+            share(certificate(top, who, n, s.peaks.length), "routefly-100대명산-" + (top.label === "완등" ? "완등" : top.n + "곳") + ".png",
+                "100대 명산 " + (top.label === "완등" ? "완등" : top.n + "곳 달성") + " - routefly");
+        });
+        form.appendChild(name);
+        form.appendChild(btn);
+        box.appendChild(form);
+        return box;
+    }
+
+    /** 증서 그림(1080×1350). m - 배지 단계, who - 이름(빈칸 가능), n - 지금 도장 수, of - 정상 자료가 있는 산 수. */
+    function certificate(m, who, n, of) {
+        var W = 1080, H = 1350, cv = document.createElement("canvas");
+        cv.width = W; cv.height = H;
+        var g = cv.getContext("2d"), bg = g.createLinearGradient(0, 0, 0, H);
+        bg.addColorStop(0, "#fbf7ec"); bg.addColorStop(1, "#efe6cf");
+        g.fillStyle = bg; g.fillRect(0, 0, W, H);
+        g.strokeStyle = "#b08a3c"; g.lineWidth = 10; g.strokeRect(40, 40, W - 80, H - 80);
+        g.lineWidth = 2; g.strokeRect(62, 62, W - 124, H - 124);
+        g.fillStyle = "#3d8f4f";   // 산줄기
+        g.beginPath(); g.moveTo(64, 1120);
+        [[200, 1020], [330, 1080], [470, 960], [610, 1060], [760, 990], [900, 1070], [1016, 1010], [1016, 1286], [64, 1286]].forEach(function (p) { g.lineTo(p[0], p[1]); });
+        g.closePath(); g.fill();
+        g.textAlign = "center";
+        g.font = "120px sans-serif"; g.fillText("🏅", W / 2, 250);
+        g.fillStyle = "#5b4a1f"; g.font = "bold 50px sans-serif"; g.fillText("산림청 100대 명산", W / 2, 360);
+        g.fillStyle = "#2b2416"; g.font = "bold 96px sans-serif"; g.fillText(m.label === "완등" ? "완등 증서" : m.n + "곳 달성", W / 2, 490);
+        g.font = "38px sans-serif"; g.fillStyle = "#4a3f28";
+        var lines = [(who ? who + " 님은" : "이 산행인은"), m.label === "완등" ? "routefly 가 정상 자리를 아는 " + of + "곳의 정상을 모두 밟았기에" : "100대 명산 정상 " + m.n + "곳을 밟았기에",
+            "이 증서를 드립니다."];
+        lines.forEach(function (t, i) { g.fillText(t, W / 2, 620 + i * 64, W - 200); });
+        g.font = "bold 44px sans-serif"; g.fillStyle = "#2b2416";
+        g.fillText(day(m.t) + (m.label === "완등" ? " 완등" : " 달성") + " · 지금 " + n + " / " + of + "곳", W / 2, 860, W - 200);
+        g.font = "28px sans-serif"; g.fillStyle = "#7a6a45";
+        g.fillText("정상 150m 안에서 찍힌 도장 기준(이 핸드폰 기록)", W / 2, 920);
+        g.font = "bold 44px sans-serif"; g.fillStyle = "#ffffff";
+        g.fillText("routefly", W / 2, 1220);
+        return cv;
+    }
+
+    /** 그림 보내기 - 앱은 공유 창, 브라우저는 공유(되면) 아니면 내려받기. */
+    function share(cv, name, text) {
+        cv.toBlob(function (blob) {
+            if (!blob) return;
+            if (FS && SHARE) {
+                var fr = new FileReader();
+                fr.onload = function () {
+                    FS.writeFile({ path: name, data: String(fr.result).split(",")[1], directory: "CACHE" })
+                        .then(function (r) { return SHARE.share({ title: name, text: text, files: [r.uri], dialogTitle: "보내기" }); }).catch(function () { /* 닫음 */ });
+                };
+                fr.readAsDataURL(blob);
+                return;
+            }
+            var file = new File([blob], name, { type: "image/png" });
+            if (navigator.canShare && navigator.canShare({ files: [file] })) { navigator.share({ files: [file], text: text }).catch(function () { /* 닫음 */ }); return; }
+            var a = document.createElement("a");
+            a.href = URL.createObjectURL(blob); a.download = name;
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(function () { URL.revokeObjectURL(a.href); }, 10000);
+        }, "image/png");
+    }
+
     /** 100대 명산 - 산 목록(정상 도장)만, 코스 목록은 없음. */
     function peakCard(g, s) {
         var p = RF.seriesProgress(s, stamps, done, peakStamps);
@@ -153,6 +244,7 @@
             saveView();
             if (loaded) return;
             loaded = true;
+            body.appendChild(badgeBox(s));   // 🏅 배지 · 증서(2026-10-15 홍TV님)
             body.appendChild(peakMap(s.peaks));
             s.peaks.forEach(function (k) {
                 var st = peakStamps[RF.peakKey(k)], row = el("div", "row"), t = el("div", "t", (st ? "⛰️ " : "⬜ ") + (k.id || k.name));

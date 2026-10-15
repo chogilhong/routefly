@@ -8,6 +8,9 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -29,28 +32,57 @@ import com.google.gson.JsonParser;
  *   <li>그 뒤면 중기예보(MidServlet.forLand) 오전 · 오후.</li>
  *   <li>산은 정상에서 가장 가까운 대기 측정소 주소의 시도로 구역을 정함(landOfPeak).</li>
  *   <li>한 시간 담아 둠(예보 자체는 각 서블릿이 발표 시각마다 담아 둠).</li>
+ *   <li>미리 채움(2026-10-15 PC: 재시작 뒤 첫 요청이 12초): 톰캣이 뜨고 1분 뒤, 그 뒤 50분마다 뒤에서 새로 만들어 둠 - 손님은 늘 담아 둔 것을 받음.</li>
  * </ul>
  * → {@code {success, dates:["2026-10-17","2026-10-18"], regions:[{code, name, days:{날짜:{word, pop, good}}, peaks:[산 id …]}]}}
  */
-@WebServlet(urlPatterns = {"/api/weekend"})
+@WebServlet(urlPatterns = {"/api/weekend"}, loadOnStartup = 2)
 public class WeekendServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
     private static final OpenApi.Cache<JsonObject> CACHE = new OpenApi.Cache<>(4, 60L * 60 * 1000);
+    private transient ScheduledExecutorService warm;
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    public void init() {
+        warm = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "routefly-weekend-warm");
+            t.setDaemon(true);
+            return t;
+        });
+        warm.scheduleWithFixedDelay(() -> {
+            try {
+                current(true);
+            } catch (Exception e) {
+                // 다음 차례에 다시
+            }
+        }, 60, 50 * 60, TimeUnit.SECONDS);
+    }
+
+    @Override
+    public void destroy() {
+        if (warm != null) warm.shutdownNow();
+    }
+
+    /** 지금 주말 추천 - 담아 둔 것, 없으면(또는 refresh) 새로 만듦. 키가 없거나 못 만들면 null. */
+    private JsonObject current(boolean refresh) {
         String key = RouteflyConfig.get("weather.serviceKey");
         if (key == null) key = RouteflyConfig.get("tour.serviceKey");
-        LocalDate today = LocalDate.now(WeatherServlet.KST);
-        List<LocalDate> dates = weekend(today);
+        List<LocalDate> dates = weekend(LocalDate.now(WeatherServlet.KST));
         String ck = dates.toString();
         long now = System.currentTimeMillis();
-        JsonObject out = CACHE.get(ck, now);
+        JsonObject out = refresh ? null : CACHE.get(ck, now);
         if (out == null && key != null) {
             out = build(key, dates, peaks());
             if (out.getAsJsonArray("regions").size() > 0) CACHE.put(ck, out, now);
+            else if (refresh) out = CACHE.get(ck, now);   // 새로 못 만들면 담아 둔 것 그대로
         }
+        return out;
+    }
+
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        JsonObject out = current(false);
         if (out == null || out.getAsJsonArray("regions").size() == 0) {
             JsonObject u = new JsonObject();
             u.addProperty("success", true);

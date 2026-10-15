@@ -852,3 +852,10 @@ eq("fireNote 봄 · 가을 · 그 밖(한국 날짜)", [!!RF.fireNote(Date.UTC(2
 })();
 eq("wfEn 중기예보 날씨 영어", ["맑음", "구름많음", "흐림", "구름많고 비", "흐리고 비/눈", "흐리고 소나기", "", "이상한 말"].map(RF.wfEn),
     ["☀️ Clear", "⛅ Mostly cloudy", "☁️ Overcast", "⛅ Mostly cloudy, rain", "☁️ Overcast, rain/snow", "☁️ Overcast, showers", "", "이상한 말"]);
+(function () {
+    var peaks = [], st = {};
+    for (var i = 0; i < 98; i++) { peaks.push({ id: "산" + i }); if (i < 31) st["산" + i] = { t: 1000 + (30 - i) }; }
+    var m = RF.peakMilestones(peaks, st);
+    eq("peakMilestones 10 · 30 · 50 · 70 · 완등", m.map(function (x) { return [x.label, x.t]; }), [["10곳", 1009], ["30곳", 1029], ["50곳", null], ["70곳", null], ["완등", null]]);
+    eq("peakMilestones 완등 날", RF.peakMilestones([{ id: "a" }, { id: "b" }], { a: { t: 5 }, b: { t: 3 } }).map(function (x) { return [x.label, x.t]; }), [["완등", 5]]);
+})();
