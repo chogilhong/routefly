@@ -3382,16 +3382,22 @@
         return { d: hd, e: e, pct: seg.pct, lv: seg.lv, next: nx ? { name: nx.name, m: Math.round(Math.abs(nx.d - hd)) } : null };
     }
 
+    /** 안내판 세로 과장 - 가로 1m 에 세로 3m(실제 비율이면 산이 납작해 보임). 모든 코스 같게. */
+    var BOARD_EXAG = 3, BOARD_MAX_H = 260;   // 그 비율로 이 높이(px)를 넘는 코스만 이 높이에 맞춤
+
     /** 안내판 고도 그래프 - box 에 그림. b = boardSegments(…), en - 영어 글, here - 걸은 거리(m, 따라가기 현위치 - 없으면 안 그림). */
     function boardProfile(box, b, en, here) {
         box.textContent = "";
         if (!b) { box.appendChild(el("p", "dim", en ? "No elevation data for this trail." : "고도 자료가 없는 코스입니다.")); return; }
         // 그림 폭 = 실제 칸 폭(글자가 줄지 않게 - 640 으로 그려 줄였더니 핸드폰에서 7px 로 작았음)
-        var W = Math.max(300, Math.round((box.clientWidth || 360) - 4)), H = 250, L = 8, R = 8, T = 62, B = 206;
+        var W = Math.max(300, Math.round((box.clientWidth || 360) - 4)), L = 8, R = 8, T = 62;
         var es = b.line.map(function (p) { return p[1]; }), lo = Math.min.apply(null, es), hi = Math.max.apply(null, es), pad = Math.max((hi - lo) * 0.08, 10);
         lo -= pad; hi += pad;
         function x(d) { return L + d / b.total * (W - L - R); }
-        function y(e) { return T + (1 - (e - lo) / (hi - lo)) * (B - T); }
+        // 세로는 모든 코스 같은 비율(가로 1m 당 세로 BOARD_EXAG m) - 칸에 꽉 차게 늘리면 오르내림이 작은 곰배령이 가파르게, 1,300m 를 오르는
+        // 남설악 → 대청봉이 완만하게 보였음(2026-10-16 홍TV님). 가파른 코스는 칸도 높게(BOARD_MAX_H 까지)
+        var plotH = Math.min(BOARD_MAX_H, Math.max(24, (hi - lo) * (W - L - R) / b.total * BOARD_EXAG)), B = T + plotH, H = B + 44;   // 가파르면 칸도 높게
+        function y(e) { return B - (e - lo) / (hi - lo) * plotH; }
         var svg = document.createElementNS(NS, "svg"), html = "";
         svg.setAttribute("viewBox", "0 0 " + W + " " + H);
         svg.setAttribute("class", "rf-board");
