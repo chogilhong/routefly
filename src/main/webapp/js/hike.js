@@ -1754,6 +1754,7 @@
     function askStop() {
         if (!hike.running) return;
         if (hike.sim) { stopHike(); return; }
+        if (hike.stillAsk) stillReset();   // 끝내기를 누른 것도 답 - 묻는 창 · 초 세기를 멈춤(2026-10-16 PC: endSheet 에서 망설이다 SOS 가 열릴 수 있었음)
         $("endTitle").textContent = K().act + "을 여기서 끝낼까요?";
         $("endSheet").style.display = "flex";
     }
