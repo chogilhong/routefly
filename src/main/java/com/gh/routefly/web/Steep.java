@@ -82,7 +82,7 @@ final class Steep {
     }
 
     /** 목록 줄(course_id · kind)마다 steep_pct 를 붙이고, 정상을 지나면 ele_max_m 을 공식 높이로 - 등산(hike · trek)만. 못 셈하면 그대로. */
-    static void fill(Connection c, JsonArray rows, List<double[]> tops) {
+    static void fill(Connection c, JsonArray rows, List<Peaks.Top> tops) {
         if (rows == null || rows.size() == 0) return;
         long now = System.currentTimeMillis();
         List<String> need = new ArrayList<>();
@@ -112,7 +112,7 @@ final class Steep {
         }
     }
 
-    private static void load(Connection c, List<String> ids, long now, List<double[]> tops) {
+    private static void load(Connection c, List<String> ids, long now, List<Peaks.Top> tops) {
         if (CACHE.size() > MAX_ENTRIES) CACHE.clear();
         for (int from = 0; from < ids.size(); from += 100) {   // IN 이 너무 길지 않게 100개씩
             List<String> part = ids.subList(from, Math.min(ids.size(), from + 100));
