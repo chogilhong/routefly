@@ -2043,6 +2043,7 @@
         hike.still = st.anchor;
         if (!st.due) return;
         hike.stillAsk = t;
+        $("endSheet").style.display = "none";   // 끝내기 창을 열어 둔 채 20분 - 겹치지 않게 묻는 창만(2026-10-16 PC)
         $("stillText").textContent = Math.round((t - hike.still.t) / 60000) + "분째 움직임이 없습니다. 괜찮으면 아래를 눌러 주세요.";
         $("stillSheet").style.display = "flex";
         if (navigator.vibrate) navigator.vibrate([400, 150, 400, 150, 400]);
@@ -3282,7 +3283,7 @@
     }
 
     $("go").addEventListener("click", function () { if (hike.running) askStop(); else start(false); });
-    $("endNo").addEventListener("click", function () { $("endSheet").style.display = "none"; });
+    $("endNo").addEventListener("click", function () { $("endSheet").style.display = "none"; stillReset(); });   // 계속하기도 답 - 여기서부터 다시 20분
     $("endYes").addEventListener("click", function () { $("endSheet").style.display = "none"; stopHike(); });
     $("sim").addEventListener("click", function () { start(true); });
     $("follow").addEventListener("click", function () {

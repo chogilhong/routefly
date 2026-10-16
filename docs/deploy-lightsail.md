@@ -77,10 +77,10 @@ ALTER USER 'routefly_web'@'localhost' WITH MAX_STATEMENT_TIME 5;
 EXIT;
 ```
 
-PC 의 DB 를 옮깁니다:
+PC 의 DB 를 옮깁니다(PC 의 덤프 프로그램은 PATH 에 없음 - `C:\Program Files\MariaDB 12.3\bin\`, MariaDB 판이 바뀌면 폴더 이름도 바뀜):
 
 ```
-(PC)     mysqldump -u root -p --result-file=routefly.sql routefly      # PowerShell 의 > 는 UTF-16 으로 써서 서버가 못 읽음
+(PC)     & "C:\Program Files\MariaDB 12.3\bin\mariadb-dump.exe" -u root -p --result-file=routefly.sql routefly   # PowerShell 의 > 는 UTF-16 으로 써서 서버가 못 읽음
 (PC)     scp -i <키.pem> routefly.sql ubuntu@<고정 IP>:~
 (서버)   sudo mariadb routefly < ~/routefly.sql && rm ~/routefly.sql
 ```
@@ -445,7 +445,7 @@ sudo systemctl status routefly-batch
 웹이 쓰는 표가 나중에 생겨도(산악회 위치 등) 이 방법은 그 표를 건드리지 않습니다.
 
 ```
-(PC, 홍TV님)  mysqldump -u root -p --single-transaction --result-file=route.sql routefly route_course route_course_point route_course_poi route_course_info route_signpost route_park_spot
+(PC, 홍TV님)  & "C:\Program Files\MariaDB 12.3\bin\mariadb-dump.exe" -u root -p --single-transaction --result-file=route.sql routefly route_course route_course_point route_course_poi route_course_info route_signpost route_park_spot
 (PC)          tar -czf route.tgz route.sql
 (PC)          scp -i <키.pem> route.tgz ubuntu@<고정 IP>:~
 ```
