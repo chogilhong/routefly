@@ -2052,11 +2052,13 @@
 
     /** 경과 시간 옆 글 · 지도의 흐린 점(지난번 같은 시각의 자리). */
     function paceTick() {
-        var diff = paceDiff(), el = $("paceTxt");
-        var t = RF.paceText(diff).replace("지난번보다 ", "");
+        // 도착 뒤에는 늘 도착 결과(지난번 도착과 견줌)만 남기고 흐린 점은 치움 - 2026-10-16 PC: 도착 뒤 남기도 · 지워지기도 했음
+        var done = hike.running && hike.arrived;
+        var diff = done ? null : paceDiff(), el = $("paceTxt");
+        var t = (done ? paceFinal() : RF.paceText(diff)).replace("지난번보다 ", "");
         if (el.textContent !== (t ? "· " + t : "")) {
             el.textContent = t ? "· " + t : "";
-            el.className = diff == null || Math.abs(diff) < 60000 ? "" : diff < 0 ? "fast" : "slow";
+            el.className = /빠름/.test(t) ? "fast" : /늦음/.test(t) ? "slow" : "";
         }
         var gd = diff == null ? null : RF.paceDistAt(hike.pace.prof, now() - hike.start);
         if (gd == null) { if (hike.ghost) { hike.ghost.remove(); hike.ghost = null; } return; }
