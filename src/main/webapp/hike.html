@@ -245,6 +245,9 @@ body.compact #statGrids { display:none; }
 #offroute .arrow { display:inline-block; font-size:26px; line-height:1; transition:transform .3s; }
 #etaBox.late { background:rgba(220,38,38,0.25); }
 #sunTxt { color:var(--dim); }
+#paceTxt { color:var(--dim); }
+#paceTxt.fast { color:#69db7c; } #paceTxt.slow { color:#ffa94d; }
+.ghost { width:14px; height:14px; border-radius:50%; background:rgba(26,115,232,0.35); border:2px dashed #fff; pointer-events:none; }   /* 지난번의 나(2026-10-16) */
 .tabs { display:flex; gap:6px; margin-top:8px; overflow-x:auto; }
 .tabs button { flex:0 0 auto; height:40px; padding:0 12px; border-radius:20px;   /* 2026-10-10 점검: 손가락 자리 34 → 40px */
                border:1px solid var(--ln); background:rgba(255,255,255,0.06);
@@ -307,7 +310,7 @@ html.picking #pick { display:flex; }
         <div class="st"><div class="k">해발</div><div class="v" id="sEle">-<small>m</small></div></div>
         <div class="st"><div class="k">경사</div><div class="v" id="sGrade">-<small>%</small></div></div>
         <div class="st"><div class="k">속도</div><div class="v" id="sSpeed">-<small>km/h</small></div></div>
-        <div class="st"><div class="k">경과 시간</div><div class="v" id="sTime">0:00:00</div></div>
+        <div class="st"><div class="k">경과 시간 <span id="paceTxt" title="같은 코스 지난 기록과 같은 자리에서 견줌(지도의 흐린 점이 지난번의 나)"></span></div><div class="v" id="sTime">0:00:00</div></div>
     </div>
     <div class="grid" style="grid-template-columns:1fr 1fr; margin-top:4px">
         <div class="st"><div class="k">남은 오르막</div><div class="v" id="sAsc">-<small>m</small></div></div>

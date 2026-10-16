@@ -267,7 +267,8 @@
             hike.kmSpoken = k;
             var asc = RF.ascentLeft(c, d);
             say(num(k * step / 1000) + "킬로미터 지났습니다. " + (voice.level === "short" ? "" : "출발한 지 " + spokenTime(now() - hike.start) + ". ") + "남은 거리 " + skm(c.total - d) + "킬로미터"
-                + (asc >= 50 && K() !== RF.KINDS.bike ? ", 남은 오르막 " + num(asc) + "미터." : "."));
+                + (asc >= 50 && K() !== RF.KINDS.bike ? ", 남은 오르막 " + num(asc) + "미터." : ".")
+                + (paceDiff() != null ? " " + RF.paceText(paceDiff()).replace("빠름", "빠릅니다.").replace("늦음", "늦습니다.").replace("비슷", "비슷합니다.") : ""));
         }
     }
 
@@ -1686,6 +1687,7 @@
         hike.segT0 = saved && saved.segT0 ? saved.segT0 : hike.start;
         hike.branch = null;
         hike.kmSpoken = Math.floor(hike.d / (K() === RF.KINDS.bike ? 5000 : 1000));
+        hike.pace = sim ? null : paceFor(c);   // 같은 코스 지난 기록(2026-10-16 홍TV님 추가 기능 2번)
         voice.last = {};
         // 시작 버튼을 누른 그 순간에 말해야 아이폰도 소리를 냅니다(사용자 동작 안에서 처음 말하기)
         say(saved ? "이어서 안내합니다. 남은 거리 " + skm(Math.max(0, c.total - hike.d)) + "킬로미터."
@@ -1794,6 +1796,8 @@
         $("gps").className = "";
         $("offroute").style.display = "none";
         stillReset();
+        hike.pace = null;
+        paceTick();   // 글 · 흐린 점 치움
     }
 
     /** 화면이 꺼지지 않게(지원하는 브라우저에서). 다른 앱에 갔다 오면 다시 겁니다. */
@@ -1913,6 +1917,7 @@
         var track = hike.track;
         clearSaved();   // 예전 코스 이름으로 남긴 것
         c = nc;
+        hike.pace = null;   // 뒤집거나 다른 길로 바뀐 코스 - 지난 기록과 자리가 안 맞음
         var f = hike.fix, s = f ? RF.snap(c, f.lat, f.lon, null) : { d: 0, off: 0 };
         hike.d = s.d;
         hike.off = s.off;
@@ -2021,6 +2026,40 @@
         return left * factor;
     }
 
+    /** 같은 코스의 가장 최근 기록(500m 넘게 진행)으로 비교 자료 {prof, start(그날)}. 없으면 null. */
+    function paceFor(cc) {
+        var r = records().filter(function (x) { return x.courseId === cc.id && x.track && x.track.length >= 10 && x.done >= 500; })[0];
+        var prof = r ? RF.paceProfile(cc, r.track, r.start) : null;
+        return prof ? { prof: prof, start: r.start } : null;
+    }
+
+    /** 지난번과 견준 차이(ms, 음수면 빠름) - 둘 다 비슷한 자리(300m 안)에서 출발했고 지난번이 지금 자리까지 갔을 때만. */
+    function paceDiff() {
+        var p = hike.pace;
+        if (!p || !hike.running || hike.sim || hike.d0 == null || Math.abs(p.prof[0][0] - hike.d0) > 300) return null;
+        var then = RF.paceAt(p.prof, hike.d);
+        return then == null ? null : (now() - hike.start) - then;
+    }
+
+    /** 경과 시간 옆 글 · 지도의 흐린 점(지난번 같은 시각의 자리). */
+    function paceTick() {
+        var diff = paceDiff(), el = $("paceTxt");
+        var t = RF.paceText(diff).replace("지난번보다 ", "");
+        if (el.textContent !== (t ? "· " + t : "")) {
+            el.textContent = t ? "· " + t : "";
+            el.className = diff == null || Math.abs(diff) < 60000 ? "" : diff < 0 ? "fast" : "slow";
+        }
+        var gd = diff == null ? null : RF.paceDistAt(hike.pace.prof, now() - hike.start);
+        if (gd == null) { if (hike.ghost) { hike.ghost.remove(); hike.ghost = null; } return; }
+        var g = RF.at(c, gd);
+        if (!hike.ghost) {
+            var e = document.createElement("div");
+            e.className = "ghost";
+            e.title = "지난번의 나(같은 경과 시간)";
+            hike.ghost = marker(e, [g.lon, g.lat]);
+        } else hike.ghost.setLngLat([g.lon, g.lat]);
+    }
+
     /**
      * 움직임 없음 알림(2026-10-16 홍TV님) - 걷는 중 STILL_MS 동안 STILL_M 안에 있으면 묻고, STILL_ANSWER_MS 안에 답이 없으면 SOS 화면을 엶.
      * 문자 · 전화는 저절로 보내지 않습니다(사람이 눌러야). 정상에서 쉬다가 "괜찮아요" 를 누르면 다시 20분.
@@ -2068,6 +2107,7 @@
         var elapsed = hike.running ? now() - hike.start : 0;
         setV("sTime", hhmmss(elapsed));
         stillTick();
+        paceTick();
         setV("sAsc", num(RF.ascentLeft(c, d)), "m");
         var ef = effort(), bike = K() === RF.KINDS.bike;
         setV("sKcal", num(ef.kcal), "kcal");

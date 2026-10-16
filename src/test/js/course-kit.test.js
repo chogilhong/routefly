@@ -949,3 +949,18 @@ eq("stampRadius GPS 오차 + 20, 40 ~ max", [RF.stampRadius(5, 150), RF.stampRad
     var e = RF.stillCheck(a.anchor, { lat: 37.5007, lon: 127, acc: 50, t: t0 + M }, t0 + M, 40, M);   // 78m 지만 오차 50m - 그 자리로 봄
     eq("stillCheck", [a.due, b.due, b.anchor.t, c2.due, c2.anchor.t, d.due, e.due], [false, true, t0, false, t0 + M, false, true]);
 })();
+(function () {   // 지난 기록과 비교 - 동쪽으로 곧은 2km 코스, 지난번은 1km 를 10분, 되돌아간 점 · 코스 밖 점은 뺌
+    var n = 21, lat = 37.5, c = { lat: [], lon: [], dist: [], ele: [], total: 0 };
+    for (var i = 0; i < n; i++) { c.lat.push(lat); c.lon.push(127 + i * 0.00113); c.ele.push(100); }
+    for (var j = 0; j < n; j++) c.dist.push(j === 0 ? 0 : c.dist[j - 1] + RF.distM(lat, c.lon[j - 1], lat, c.lon[j]));
+    c.total = c.dist[n - 1];
+    var t0 = 1000000, tr = [];
+    for (var k = 0; k <= 10; k++) tr.push([lat, 127 + k * 0.00113, t0 + k * 60000]);   // 100m 마다 1분
+    tr.splice(5, 0, [lat, 127 + 2 * 0.00113, t0 + 4.5 * 60000]);   // 되돌아간 점
+    tr.push([lat + 0.01, 127 + 11 * 0.00113, t0 + 11 * 60000]);   // 코스 밖 1km
+    var prof = RF.paceProfile(c, tr, t0);
+    eq("paceProfile 앞으로 간 점만", [prof.length, Math.round(prof[prof.length - 1][0] / 10) * 10, prof[prof.length - 1][1]], [11, 1000, 600000]);
+    eq("paceAt · paceDistAt", [Math.round(RF.paceAt(prof, prof[5][0]) / 1000), RF.paceAt(prof, 1500), Math.round(RF.paceDistAt(prof, 150000) / 10) * 10, Math.round(RF.paceDistAt(prof, 9e9))],
+        [300, null, 250, Math.round(prof[10][0])]);
+    eq("paceText", [RF.paceText(-185000), RF.paceText(30000), RF.paceText(4000000), RF.paceText(null)], ["지난번보다 3분 빠름", "지난번과 비슷", "지난번보다 1시간 7분 늦음", ""]);
+})();

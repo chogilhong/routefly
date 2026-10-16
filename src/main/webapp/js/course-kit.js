@@ -646,6 +646,55 @@
      * 2026-10-16 홍TV님: 다른 도장 앱은 보통 30 ~ 40m(오차를 생각해 50 ~ 200m 까지 넓히기도) - 신호가 좋으면 정상에 가까이 가야 찍히게.
      */
     /**
+     * 순수 함수 - 지난 기록과 비교(2026-10-16 홍TV님 추가 기능 2번): 기록의 점(track [위도, 경도, 시각, 높이])을 코스에 붙여
+     * [코스 거리 m, 출발 뒤 ms] - 앞으로 나아간 점만(되돌아간 · 코스 밖 60m 넘는 점은 뺌). 2점이 안 되면 null.
+     */
+    function paceProfile(c, track, startMs) {
+        var out = [], prevD = null;
+        (track || []).forEach(function (p) {
+            var s = snap(c, p[0], p[1], prevD);
+            if (s.off > 60) return;
+            prevD = s.d;
+            if (!out.length || s.d > out[out.length - 1][0] + 10) out.push([s.d, p[2] - startMs]);
+        });
+        return out.length >= 2 ? out : null;
+    }
+
+    /** 순수 함수 - 지난번에 코스 거리 d 에 닿은 때(출발 뒤 ms, 사이는 고르게). 그 기록이 닿지 않은 곳이면 null. */
+    function paceAt(prof, d) {
+        if (!prof || d < prof[0][0] || d > prof[prof.length - 1][0]) return null;
+        for (var i = 1; i < prof.length; i++) {
+            if (d <= prof[i][0]) {
+                var a = prof[i - 1], b = prof[i], f = (d - a[0]) / (b[0] - a[0]);
+                return Math.round(a[1] + (b[1] - a[1]) * f);
+            }
+        }
+        return prof[prof.length - 1][1];
+    }
+
+    /** 순수 함수 - 지난번 같은 시각(출발 뒤 ms)에 있던 코스 거리 - 지도 위 "지난번의 나". 기록 끝을 지나면 끝 자리. */
+    function paceDistAt(prof, ms) {
+        if (!prof) return null;
+        if (ms <= prof[0][1]) return prof[0][0];
+        for (var i = 1; i < prof.length; i++) {
+            if (ms <= prof[i][1]) {
+                var a = prof[i - 1], b = prof[i], f = b[1] > a[1] ? (ms - a[1]) / (b[1] - a[1]) : 1;
+                return a[0] + (b[0] - a[0]) * f;
+            }
+        }
+        return prof[prof.length - 1][0];
+    }
+
+    /** 순수 함수 - 차이(ms, 지금 - 지난번: 음수면 빠름) → "지난번보다 3분 빠름" · "지난번과 비슷". 1분 안쪽이면 비슷. */
+    function paceText(diffMs) {
+        if (diffMs == null || !isFinite(diffMs)) return "";
+        if (Math.abs(diffMs) < 60000) return "지난번과 비슷";
+        var m = Math.round(Math.abs(diffMs) / 60000);
+        var t = m >= 60 ? Math.floor(m / 60) + "시간" + (m % 60 ? " " + (m % 60) + "분" : "") : m + "분";
+        return "지난번보다 " + t + (diffMs < 0 ? " 빠름" : " 늦음");
+    }
+
+    /**
      * 순수 함수 - 움직임 없음 알림(2026-10-16 홍TV님 - 혼자 산행 안전). anchor 는 멈추기 시작한 자리 {lat, lon, t}, fix 는 마지막 위치(없으면 null).
      * moveM(+ GPS 오차, 60m 까지)보다 멀리 움직이면 그 자리 · 시각으로 다시 잼. waitMs 동안 그 안에 있으면 due.
      */
@@ -3891,6 +3940,6 @@
         LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, regionNames: regionNames, stampKey: stampKey, summitName: summitName, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakGapM: peakGapM, peakCourses: peakCourses, isClosedTrail: isClosedTrail, isHiddenCourse: isHiddenCourse, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
         sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap,
-        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox, LEVELS: LEVELS, difficulty: difficulty, boardSegments: boardSegments, boardProfile: boardProfile, nameEnds: nameEnds, boardButtons: boardButtons, levelChip: levelChip, roman: roman, enName: enName, weekendText: weekendText, boardHere: boardHere, slopeBetween: slopeBetween, recentAdd: recentAdd, recentPages: recentPages, recentFold: recentFold, compareRows: compareRows, compareButtons: compareButtons, steepest: steepest, officialEleAt: officialEleAt, stampRadius: stampRadius, stillCheck: stillCheck, windChill: windChill, windNote: windNote
+        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox, LEVELS: LEVELS, difficulty: difficulty, boardSegments: boardSegments, boardProfile: boardProfile, nameEnds: nameEnds, boardButtons: boardButtons, levelChip: levelChip, roman: roman, enName: enName, weekendText: weekendText, boardHere: boardHere, slopeBetween: slopeBetween, recentAdd: recentAdd, recentPages: recentPages, recentFold: recentFold, compareRows: compareRows, compareButtons: compareButtons, steepest: steepest, officialEleAt: officialEleAt, stampRadius: stampRadius, stillCheck: stillCheck, windChill: windChill, windNote: windNote, paceProfile: paceProfile, paceAt: paceAt, paceDistAt: paceDistAt, paceText: paceText
     };
 })(window);
