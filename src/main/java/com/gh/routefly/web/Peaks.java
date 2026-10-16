@@ -39,7 +39,42 @@ final class Peaks {
     /** 공식 높이보다 지형 높이가 이만큼 넘게 높으면 그 정상이 아님(이웃의 더 높은 봉우리 - 2026-10-16 두타산 자리 = 청옥산 1,404). */
     static final double ABOVE_M = 15;
 
-    private static volatile List<Top> tops, shelters;
+    private static volatile List<Top> tops, shelters, subs;
+    /** 정상이 아닌 봉우리(peak-elev.json sub)는 그 산 정상에서 이 안의 같은 이름 이름표에(m). */
+    static final double SUB_M = 6000;
+
+    /** 정상이 아닌 봉우리 높이(peak-elev.json sub - 북한산 인수봉 등) - 자리는 그 산 정상(이름 + SUB_M 로 맞춤). 없으면 빈 것. */
+    static List<Top> subs(ServletContext ctx) {
+        List<Top> s = subs;
+        if (s != null) return s;
+        JsonArray peaks = new JsonArray();
+        try (InputStream in = ctx.getResourceAsStream("/data/mountains100.json")) {
+            JsonElement e = in == null ? null : JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+            if (e != null && e.isJsonObject() && e.getAsJsonObject().has("peaks")) peaks = e.getAsJsonObject().getAsJsonArray("peaks");
+        } catch (Exception e) {
+            // 없이
+        }
+        JsonObject file = MountainServlet.readElev(ctx);
+        s = Collections.unmodifiableList(subs(peaks, file.has("sub") && file.get("sub").isJsonObject() ? file.getAsJsonObject("sub") : new JsonObject()));
+        subs = s;
+        return s;
+    }
+
+    /** 순수 함수 - sub {산 id: {봉우리: 높이}} → [자리 = 그 산 정상, 높이, 이름 = 봉우리]. */
+    static List<Top> subs(JsonArray peaks, JsonObject sub) {
+        List<Top> out = new ArrayList<>();
+        for (JsonElement e : peaks) {
+            JsonObject o = e.getAsJsonObject();
+            String id = MountainEn.id(o);
+            if (id == null || !sub.has(id) || !sub.get(id).isJsonObject() || !o.has("lat") || !o.has("lon")) continue;
+            for (String k : sub.getAsJsonObject(id).keySet()) {
+                JsonElement v = sub.getAsJsonObject(id).get(k);
+                if (v.isJsonPrimitive() && v.getAsJsonPrimitive().isNumber())
+                    out.add(new Top(o.get("lat").getAsDouble(), o.get("lon").getAsDouble(), (int) Math.round(v.getAsDouble()), k, null));
+            }
+        }
+        return out;
+    }
     /** 대피소 지점이 공단 대피소 자리에서 이 안이면 그 높이(m). */
     static final double SHELTER_M = 150;
 
@@ -176,8 +211,12 @@ final class Peaks {
         applyDetail(detail, tops, List.of());
     }
 
-    /** shelters - 공단 대피소(이름에 "대피소" 가 든 지점이 SHELTER_M 안이면 그 높이). */
     static void applyDetail(JsonObject detail, List<Top> tops, List<Top> shelters) {
+        applyDetail(detail, tops, shelters, List.of());
+    }
+
+    /** shelters - 공단 대피소(이름에 "대피소" 가 든 지점이 SHELTER_M 안이면 그 높이), subs - 정상이 아닌 봉우리(이름이 들고 SUB_M 안). */
+    static void applyDetail(JsonObject detail, List<Top> tops, List<Top> shelters, List<Top> subs) {
         if (detail == null) return;
         if (detail.has("pois") && detail.get("pois").isJsonArray()) {
             for (JsonElement e : detail.getAsJsonArray("pois")) {
@@ -187,6 +226,11 @@ final class Peaks {
                 Top t = nearTop(tops, q.get("lat").getAsDouble(), q.get("lon").getAsDouble(), POI_M);
                 if (t != null && !sameTop(name, t)) t = null;   // 이름이 그 산 · 정상이 아니면(청옥산 · 탐방지원센터) 붙이지 않음
                 if (t == null && name.contains("대피소")) t = nearTop(shelters, q.get("lat").getAsDouble(), q.get("lon").getAsDouble(), SHELTER_M);
+                if (t == null) {   // 인수봉 · 노적봉 · 만경대(북한산) - 이름 + 그 산 둘레
+                    String n = name.replaceAll("\\s+", "");
+                    for (Top s : subs)
+                        if (n.contains(s.name()) && MountainServlet.distM(q.get("lat").getAsDouble(), q.get("lon").getAsDouble(), s.lat(), s.lon()) <= SUB_M) t = s;
+                }
                 if (t == null) continue;
                 int h = t.h();
                 Double dem = q.has("ele_m") && !q.get("ele_m").isJsonNull() ? q.get("ele_m").getAsDouble() : null;

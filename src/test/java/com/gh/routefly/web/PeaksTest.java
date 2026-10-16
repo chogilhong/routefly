@@ -123,4 +123,16 @@ public class PeaksTest {
         assertFalse(Peaks.sameTop("청옥산", t) || Peaks.sameTop("어의곡탐방지원센터", t) || Peaks.sameTop("", t));
         assertTrue("지역 붙은 id", Peaks.sameTop("백운산 정상", new Peaks.Top(0, 0, 1222, "백운산(광양)", "상봉")));
     }
+
+    @Test
+    public void subPeaks() {   // 북한산 인수봉 · 노적봉 · 만경대(홍TV님 2026-10-16) - 이름 + 북한산 정상 6km 안
+        JsonArray peaks = JsonParser.parseString("[{\"id\":\"북한산\",\"name\":\"북한산\",\"lat\":37.658722,\"lon\":126.978088},{\"id\":\"설악산\",\"name\":\"설악산\",\"lat\":38.119,\"lon\":128.4655}]").getAsJsonArray();
+        List<Peaks.Top> subs = Peaks.subs(peaks, JsonParser.parseString("{\"_note\":\"x\",\"북한산\":{\"인수봉\":810.5,\"만경대\":787}}").getAsJsonObject());
+        assertEquals(2, subs.size());
+        JsonObject d = JsonParser.parseString("{\"course\":{},\"points\":[],\"pois\":[{\"name\":\"인수봉\",\"lat\":37.6614,\"lon\":126.9822,\"ele_m\":790},"
+                + "{\"name\":\"만경대\",\"lat\":38.15,\"lon\":128.48,\"ele_m\":560}]}").getAsJsonObject();
+        Peaks.applyDetail(d, List.of(), List.of(), subs);
+        assertEquals(811, d.getAsJsonArray("pois").get(0).getAsJsonObject().get("ele_m").getAsInt());
+        assertEquals("설악산 만경대는 그대로(북한산에서 6km 밖)", 560, d.getAsJsonArray("pois").get(1).getAsJsonObject().get("ele_m").getAsInt());
+    }
 }

@@ -68,7 +68,7 @@ public class CheckupStage6Test {
             if (i >= 0) src = src.substring(0, i) + src.substring(src.indexOf("\n    }\n", i));
             assertFalse(f + " 는 GPS height 를 화면에 쓰지 않음", src.contains("get(\"height\")"));
         }
-        assertTrue("코스 응답도 공식 높이", read("main", "java", "com", "gh", "routefly", "web", "CourseServlet.java").contains("Peaks.applyDetail(detail, Peaks.tops(getServletContext()), Peaks.shelters(getServletContext()));"));
+        assertTrue("코스 응답도 공식 높이", read("main", "java", "com", "gh", "routefly", "web", "CourseServlet.java").contains("Peaks.applyDetail(detail, Peaks.tops(getServletContext()), Peaks.shelters(getServletContext()), Peaks.subs(getServletContext()));"));
     }
 
     @Test

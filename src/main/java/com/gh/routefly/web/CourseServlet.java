@@ -48,7 +48,7 @@ public class CourseServlet extends HttpServlet {
                 Json.write(resp, HttpServletResponse.SC_NOT_FOUND, out, false);
                 return;
             }
-            Peaks.applyDetail(detail, Peaks.tops(getServletContext()), Peaks.shelters(getServletContext()));   // 정상 높이는 공식 값으로(대청봉 1,700 → 1,708 - 2026-10-16 홍TV님)
+            Peaks.applyDetail(detail, Peaks.tops(getServletContext()), Peaks.shelters(getServletContext()), Peaks.subs(getServletContext()));   // 정상 높이는 공식 값으로(대청봉 1,700 → 1,708 - 2026-10-16 홍TV님)
             detail.addProperty("success", true);
             if (tag == null) Json.ok(req, resp, detail);
             else Json.send(resp, detail.toString());
