@@ -192,6 +192,9 @@ final class Peaks {
             String b = k.replaceAll("\\(.*\\)|\\s+", "");   // 백운산(광양) → 백운산
             if (!b.isEmpty() && n.contains(b)) return true;
         }
+        if (t.summit() != null)   // "한라산 백록담" 의 "백록담" 만 적힌 지점(2026-10-16 PC: 조망점 백록담 1950 그대로)
+            for (String w : t.summit().replaceAll("\\(.*?\\)", " ").trim().split("\\s+"))
+                if (w.length() >= 2 && n.contains(w)) return true;
         return false;
     }
 
@@ -204,7 +207,7 @@ final class Peaks {
     }
 
     /**
-     * 순수 함수 - /api/course 응답 고치기: 정상 근처 지점의 ele_m 을 공식 높이로(+ ele_official), 정상을 지나면 course.ele_max_m 도.
+     * 순수 함수 - /api/course 응답 고치기: 정상 근처 지점의 ele_m 을 공식 높이로(+ ele_official, 지점 pois · 조망점 spots), 정상을 지나면 course.ele_max_m 도.
      * points 는 [경도, 위도, 고도, 누적 거리].
      */
     static void applyDetail(JsonObject detail, List<Top> tops) {
@@ -218,8 +221,9 @@ final class Peaks {
     /** shelters - 공단 대피소(이름에 "대피소" 가 든 지점이 SHELTER_M 안이면 그 높이), subs - 정상이 아닌 봉우리(이름이 들고 SUB_M 안). */
     static void applyDetail(JsonObject detail, List<Top> tops, List<Top> shelters, List<Top> subs) {
         if (detail == null) return;
-        if (detail.has("pois") && detail.get("pois").isJsonArray()) {
-            for (JsonElement e : detail.getAsJsonArray("pois")) {
+        for (String key : new String[] {"pois", "spots"}) {   // spots - 국립공원 조망점(2026-10-16 PC: 백록담 1950 그대로)
+            if (!detail.has(key) || !detail.get(key).isJsonArray()) continue;
+            for (JsonElement e : detail.getAsJsonArray(key)) {
                 JsonObject q = e.getAsJsonObject();
                 if (!q.has("lat") || q.get("lat").isJsonNull() || !q.has("lon") || q.get("lon").isJsonNull()) continue;
                 String name = q.has("name") && !q.get("name").isJsonNull() ? q.get("name").getAsString() : "";

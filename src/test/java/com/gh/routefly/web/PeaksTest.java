@@ -135,4 +135,16 @@ public class PeaksTest {
         assertEquals(811, d.getAsJsonArray("pois").get(0).getAsJsonObject().get("ele_m").getAsInt());
         assertEquals("설악산 만경대는 그대로(북한산에서 6km 밖)", 560, d.getAsJsonArray("pois").get(1).getAsJsonObject().get("ele_m").getAsInt());
     }
+
+    @Test
+    public void viewSpot() {   // 2026-10-16 PC: 국립공원 조망점 "백록담" 이 1950 그대로 - spots 도, 정상 이름의 뒤쪽 낱말(백록담)도
+        Peaks.Top halla = new Peaks.Top(33.361015, 126.535667, 1947, "한라산", "한라산 백록담");
+        assertTrue(Peaks.sameTop("백록담", halla));
+        assertFalse("다른 이름", Peaks.sameTop("사라오름", halla));
+        JsonObject d = JsonParser.parseString("{\"spots\":[{\"kind\":\"view\",\"name\":\"백록담\",\"lat\":33.3612,\"lon\":126.5352,\"ele_m\":1950},"
+                + "{\"kind\":\"view\",\"name\":\"사라오름\",\"lat\":33.3613,\"lon\":126.5357,\"ele_m\":1324}]}").getAsJsonObject();
+        Peaks.applyDetail(d, List.of(halla));
+        assertEquals(1947, d.getAsJsonArray("spots").get(0).getAsJsonObject().get("ele_m").getAsInt());
+        assertEquals("이름이 다르면 그대로", 1324, d.getAsJsonArray("spots").get(1).getAsJsonObject().get("ele_m").getAsInt());
+    }
 }
