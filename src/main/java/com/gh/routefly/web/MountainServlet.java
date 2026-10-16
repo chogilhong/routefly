@@ -300,19 +300,34 @@ public class MountainServlet extends HttpServlet {
     static JsonObject readElev(jakarta.servlet.ServletContext ctx) {
         try (InputStream in = ctx.getResourceAsStream("/data/peak-elev.json")) {
             JsonElement e = in == null ? null : JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8));
-            return e != null && e.isJsonObject() && e.getAsJsonObject().has("elev") ? e.getAsJsonObject().getAsJsonObject("elev") : new JsonObject();
+            return e != null && e.isJsonObject() && e.getAsJsonObject().has("elev") ? e.getAsJsonObject() : new JsonObject();   // {elev, src} 통째로(withElev)
         } catch (Exception e) {
             return new JsonObject();
         }
     }
 
-    /** 순수 함수 - 산마다 공식 높이(elev)를 붙임(id 로 맞춤). */
-    static void withElev(JsonArray peaks, JsonObject elev) {
+    /**
+     * 순수 함수 - 산마다 공식 높이(elev)와 그 출처(elev_src)를 붙임(id 로 맞춤). file 은 peak-elev.json 통째({elev, src}) 또는 elev 만.
+     * 출처 기준(2026-10-16 홍TV님): 정상석(stone) → 국토지리정보원(ngii) → 산림청 e-book(ebook, src 에 없으면 이것).
+     */
+    static void withElev(JsonArray peaks, JsonObject file) {
+        JsonObject elev = file.has("elev") && file.get("elev").isJsonObject() ? file.getAsJsonObject("elev") : file;
+        JsonObject src = file.has("src") && file.get("src").isJsonObject() ? file.getAsJsonObject("src") : new JsonObject();
         for (JsonElement e : peaks) {
             JsonObject o = e.getAsJsonObject();
             String id = str(o, "id") != null ? str(o, "id") : str(o, "name");
-            if (id != null && elev.has(id) && elev.get(id).isJsonPrimitive()) o.add("elev", elev.get(id));
+            if (id == null || !elev.has(id) || !elev.get(id).isJsonPrimitive()) continue;
+            o.add("elev", elev.get(id));
+            o.addProperty("elev_src", src.has(id) && src.get(id).isJsonPrimitive() ? src.get(id).getAsString() : "ebook");
         }
+    }
+
+    /** 순수 함수 - 높이 출처 이름(문답 · 점검 화면). en - 영어. */
+    static String elevSource(JsonObject peak, boolean en) {
+        String s = str(peak, "elev_src");
+        if ("stone".equals(s)) return en ? "summit stone" : "정상석";
+        if ("ngii".equals(s)) return en ? "National Geographic Information Institute" : "국토지리정보원";
+        return en ? "Korea Forest Service, 100 Famous Mountains" : "산림청 100대 명산";
     }
 
     /**
@@ -442,7 +457,7 @@ public class MountainServlet extends HttpServlet {
                     + (courses.size() > 1 ? " ~ " + hours(hi.get("distance_m").getAsInt(), asc(hi)) : "") + "입니다(시속 4km · 오르막 600m 에 1시간으로 어림). 내려오는 시간은 따로 더하세요."});
         }
         if (MountainServlet.elev(peak) != null)
-            out.add(new String[] {name + " 높이는 얼마인가요?", (topName(peak) != null ? "정상 " + topName(peak) + "은" : name + "은") + " 해발 약 " + String.format(Locale.KOREA, "%,d", MountainServlet.elev(peak)) + "m 입니다(산림청 100대 명산)."});
+            out.add(new String[] {name + " 높이는 얼마인가요?", (topName(peak) != null ? "정상 " + topName(peak) + "은" : name + "은") + " 해발 약 " + String.format(Locale.KOREA, "%,d", MountainServlet.elev(peak)) + "m 입니다(" + elevSource(peak, false) + ")."});
         if (parking != null)
             out.add(new String[] {name + " 주차장이 있나요?", parking > 0 ? "가장 가까운 코스 들머리 3km 안에 주차장 " + parking + "곳이 있습니다(전국주차장정보표준데이터). 요금 · 운영 시간은 현지에서 확인하세요."
                     : "가장 가까운 코스 들머리 3km 안에 등록된 주차장이 없습니다. 대중교통이나 더 먼 주차장을 알아보세요."});

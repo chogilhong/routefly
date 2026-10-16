@@ -90,7 +90,7 @@ final class MountainEn {
         }
         if (MountainServlet.elev(peak) != null)
             out.add(new String[] {"How high is " + name + "?", (MountainServlet.topName(peak) != null ? "The summit, " + summitName(MountainServlet.topName(peak), str(peak, "name")) + "," : name)
-                    + " is about " + String.format(Locale.US, "%,d", MountainServlet.elev(peak)) + " m above sea level (Korea Forest Service, 100 Famous Mountains)."});
+                    + " is about " + String.format(Locale.US, "%,d", MountainServlet.elev(peak)) + " m above sea level (" + MountainServlet.elevSource(peak, true) + ")."});
         if (parking != null)
             out.add(new String[] {"Is there parking at " + name + "?", parking > 0 ? "There " + (parking == 1 ? "is 1 parking lot" : "are " + parking + " parking lots")
                     + " within 3 km of the nearest trailhead (Korea national parking data). Check fees and hours on site."

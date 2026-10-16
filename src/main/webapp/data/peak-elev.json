@@ -1,5 +1,9 @@
 {
   "_note": "100대 명산 공식 높이(m) - 산 id(mountains100.json 의 id)마다. 화면(산 페이지 · 문답 · 공유 그림 · 영어 페이지 · JSON-LD)은 이 값만 보입니다(mountains100.json 의 height 는 GPX 의 GPS 높이라 20~35m 높아 도장 자리에만 씀 - 2026-10-15 PC). 출처: 산림청 「꼭 한번 가 볼 우리 100대 명산」 e-book(발간등록번호 11-1400000-000886-01, forest.go.kr/images/data/fonDown/100_mountain_ebook.pdf, 2026-10-16 홍TV님 PC 가 내려받아 pdftotext 로 산마다 첫 쪽 정보 칸의 높이를 읽음 - 자료의 소수 그대로). 덕숭산은 자료의 '덕숭산(수덕산)'. 모르는 산은 넣지 않습니다(빠진 산은 높이를 안 보임).",
+  "_rule": "높이 기준(2026-10-16 홍TV님): ① 정상석에 새겨진 값(stone) ② 국토지리정보원 고시값(ngii) ③ 산림청 e-book(ebook - src 에 없으면 이것). 고칠 때는 elev 값과 src(출처) · _fixed(전 → 후 · 근거)를 함께.",
+  "src": {
+    "두타산": "stone"
+  },
   "_fixed": {
     "두타산": "1357(e-book) → 1352.7 - 정상석 1,353m(홍TV님 현장) · 숲스탬프 https://www.foreststamp.kr/mountains/4762 (2026-10-16). e-book 값만 소수점 없이 1357 이었음"
   },

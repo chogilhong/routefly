@@ -56,4 +56,28 @@ public class OgServletTest {
         JsonObject f = JsonParser.parseString(java.nio.file.Files.readString(java.nio.file.Path.of("src/main/webapp/data/peak-elev.json"))).getAsJsonObject();
         for (String k : f.getAsJsonObject("elev").keySet()) assertTrue(k, f.getAsJsonObject("elev").get(k).getAsDouble() > 0);
     }
+
+    @Test
+    public void elevSource() {   // 높이 출처 기준(2026-10-16 홍TV님): 정상석 → 국토지리정보원 → 산림청 e-book
+        com.google.gson.JsonArray peaks = JsonParser.parseString("[{\"id\":\"두타산\",\"name\":\"두타산\"},{\"id\":\"설악산\",\"name\":\"설악산\"}]").getAsJsonArray();
+        MountainServlet.withElev(peaks, JsonParser.parseString("{\"elev\":{\"두타산\":1352.7,\"설악산\":1708.1},\"src\":{\"두타산\":\"stone\"}}").getAsJsonObject());
+        JsonObject duta = peaks.get(0).getAsJsonObject(), seorak = peaks.get(1).getAsJsonObject();
+        assertEquals(Integer.valueOf(1353), MountainServlet.elev(duta));
+        assertEquals("정상석", MountainServlet.elevSource(duta, false));
+        assertEquals("src 에 없으면 e-book", "산림청 100대 명산", MountainServlet.elevSource(seorak, false));
+        assertEquals("summit stone", MountainServlet.elevSource(duta, true));
+        duta.addProperty("lat", 37.42664);
+        duta.addProperty("lon", 129.00442);
+        assertTrue(MountainServlet.faq(duta, "두타산", new java.util.ArrayList<>(), null).stream().anyMatch(q -> q[1].contains("1,353m 입니다(정상석)")));
+        // 웹 앱의 파일: src 값은 stone · ngii · ebook 만, src 에 있는 산은 elev 에도
+        try {
+            JsonObject f = JsonParser.parseString(java.nio.file.Files.readString(java.nio.file.Path.of("src/main/webapp/data/peak-elev.json"))).getAsJsonObject();
+            for (String k : f.getAsJsonObject("src").keySet()) {
+                assertTrue(k, java.util.Set.of("stone", "ngii", "ebook").contains(f.getAsJsonObject("src").get(k).getAsString()));
+                assertTrue(k, f.getAsJsonObject("elev").has(k));
+            }
+        } catch (java.io.IOException e) {
+            fail(e.toString());
+        }
+    }
 }

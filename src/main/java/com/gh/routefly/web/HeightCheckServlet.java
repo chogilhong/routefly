@@ -70,7 +70,7 @@ public class HeightCheckServlet extends HttpServlet {
 
     /** 산 한 줄. */
     static final class Row {
-        String id, summit;
+        String id, summit, src;
         Integer official, gps;
         Double courseEle, courseGap;
         String courseId, courseSrc;
@@ -96,6 +96,7 @@ public class HeightCheckServlet extends HttpServlet {
         r.id = MountainEn.id(peak);
         r.summit = peak.has("summit") && !peak.get("summit").isJsonNull() ? peak.get("summit").getAsString() : null;
         r.official = MountainServlet.elev(peak);
+        if (r.official != null) r.src = MountainServlet.elevSource(peak, false);
         r.gps = peak.has("height") && !peak.get("height").isJsonNull() ? peak.get("height").getAsInt() : null;
         double lat = peak.get("lat").getAsDouble(), lon = peak.get("lon").getAsDouble(), dLat = 0.003, dLon = 0.003 / Math.cos(Math.toRadians(lat));
         JsonArray list = CourseQueries.list(c, new double[] {lon - dLon, lat - dLat, lon + dLon, lat + dLat}, null, null);
@@ -164,7 +165,7 @@ public class HeightCheckServlet extends HttpServlet {
             boolean notTop = r.official != null && r.gps != null && Math.abs(r.gps - MountainServlet.GPS_BIAS_M - r.official) > MountainServlet.SUMMIT_TOL_M;   // MountainServlet.summitOk 와 같음
             t.append("<tr><td>").append(ShareServlet.esc(r.id)).append(r.summit != null ? "<br><small>" + ShareServlet.esc(r.summit) + "</small>" : "")
                     .append(notTop ? "<br><b class=\"bad\">⚠ 정상 자리가 꼭대기 아님</b>" : "").append("</td><td>")
-                    .append(r.official != null ? String.format(Locale.KOREA, "%,d", r.official) : "<b class=\"bad\">없음</b>").append("</td><td").append(gw ? " class=\"bad\"" : "").append(">")
+                    .append(r.official != null ? String.format(Locale.KOREA, "%,d", r.official) + (r.src != null ? "<br><small>" + ShareServlet.esc(r.src) + "</small>" : "") : "<b class=\"bad\">없음</b>").append("</td><td").append(gw ? " class=\"bad\"" : "").append(">")
                     .append(r.gps != null ? r.gps + diff(r.gps, r.official) : "-").append("</td><td").append(cw ? " class=\"bad\"" : "").append(">")
                     .append(r.courseEle != null ? Math.round(r.courseEle) + diff(r.courseEle, r.official) + "<br><small>" + ShareServlet.esc(r.courseSrc) + " · " + Math.round(r.courseGap) + "m · "
                             + ShareServlet.esc(r.courseId) + "</small>" : "코스 없음").append("</td><td>").append(r.courses).append("</td><td><small>")

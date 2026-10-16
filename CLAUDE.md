@@ -19,6 +19,9 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다(route_course · 
 - 안전 문구(hike.js 의 `SAFETY_KEY`)를 바꾸면 키의 버전도 올립니다(README).
 - 보안 · 속도 필터: `SecurityFilter`(모든 응답에 보안 헤더, /api · /s 는 IP 마다 분당 120번 남짓 제한), `GzipFilter`(/api 응답 1KB 넘으면 gzip).
   공유 링크 주소는 `site.baseUrl` 설정이 있으면 그것을, 없으면 요청의 Host 를 씁니다(X-Forwarded-Host 는 믿지 않음). 오류 응답에 내부 사정(SQL · 예외 글)을 넣지 않습니다.
+- 산 높이(2026-10-16 홍TV님 - 정상 높이는 정확해야 신뢰): 화면의 100대 명산 높이는 `data/peak-elev.json` 의 elev 만 씁니다.
+  기준은 ① 정상석에 새겨진 값(src "stone") ② 국토지리정보원 고시값("ngii") ③ 산림청 e-book("ebook" - src 에 없으면 이것). 고칠 때는 elev · src · _fixed(전 → 후 · 근거)를 함께.
+  mountains100.json 의 height 는 GPS 높이(약 25m 높음)라 도장 자리 · 정상 자리 점검(`MountainServlet.summitOk`)에만 씁니다. 지점 · 코스 높이는 `Peaks` 가 정상 자리 + 이름이 맞을 때만 공식 값으로 바꿉니다.
 - 화면 캐시: html · js · css 는 `NoStaleFilter` 가 no-cache 로 보냅니다. 서비스워커(`src/main/webapp/sw.js`)가 캐시하는 모양이 바뀌면 그 캐시 이름(rf-shell-v2 등)의 번호를 올립니다.
 
 ## 3. 테스트
