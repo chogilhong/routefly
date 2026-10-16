@@ -431,6 +431,17 @@ html.picking #pick { display:flex; }
     </div>
 </div>
 
+<!-- 움직임 없음 - 20분째 그 자리면 묻고, 1분 안에 답이 없으면 SOS 화면(2026-10-16 홍TV님 - 혼자 산행 안전). 위치는 폰 밖으로 안 나감 -->
+<div id="stillSheet" class="sheet">
+    <div class="sbox">
+        <h2 style="color:#ffb84d">괜찮으세요?</h2>
+        <p class="tip" id="stillText">20분째 움직임이 없습니다.</p>
+        <button type="button" class="big photo" id="stillOk">👍 괜찮아요(계속 걷기)</button>
+        <button type="button" class="big call" id="stillSos" style="width:100%;border:0;font-family:inherit;cursor:pointer">🚨 도움이 필요해요(SOS)</button>
+        <p class="tip" id="stillLeft"></p>
+    </div>
+</div>
+
 <!-- 산행을 끝냈을 때 - 기록 요약 · GPX 저장 -->
 <div id="doneSheet" class="sheet">
     <div class="sbox">

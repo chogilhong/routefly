@@ -19,6 +19,9 @@
     var SIM_SPEED = 1;   // 고른 빠르기
     var SIM_X = 1;       // 걷는 거리에 곱하는 배수 = (평지로 걷는 시간 ÷ 미리보기 1× 시간) × 고른 빠르기
     var SIM_CLOCK = 1;   // 시계에 곱하는 배수 - 도착 때 경과 시간이 미리보기의 예상 시간(오르막 포함, RF.standardMs)과 같게
+    var STILL_M = 40;          // 움직임 없음 - 이 안(+ GPS 오차)에서
+    var STILL_MS = (+(location.search.match(/[?&]stillmin=(\d+)/) || [])[1] || 20) * 60000;   //   이만큼 있으면 "괜찮으세요?"(?stillmin=1 - 점검용)
+    var STILL_ANSWER_MS = 60000;   // 답이 없으면 이 뒤 SOS 화면
     var TURN_BACK_M = 150;     // 코스를 따라 이만큼 되돌아가면 거꾸로 된 코스(내려가는 길)로 안내를 바꿉니다
     var BRANCH_ON_M = 20;      // 다른 길에서 이 안이면 "그 길 위" (코스에서는 40m 넘게 떨어졌을 때)
     var BRANCH_SWITCH_M = 120; // 다른 길로 이만큼 더 가면 그 길로 코스를 바꿉니다(들어설 때 한 번 알린 뒤)
@@ -1789,6 +1792,7 @@
         $("gps").textContent = "GPS 꺼짐";
         $("gps").className = "";
         $("offroute").style.display = "none";
+        stillReset();
     }
 
     /** 화면이 꺼지지 않게(지원하는 브라우저에서). 다른 앱에 갔다 오면 다시 겁니다. */
@@ -2016,6 +2020,40 @@
         return left * factor;
     }
 
+    /**
+     * 움직임 없음 알림(2026-10-16 홍TV님) - 걷는 중 STILL_MS 동안 STILL_M 안에 있으면 묻고, STILL_ANSWER_MS 안에 답이 없으면 SOS 화면을 엶.
+     * 문자 · 전화는 저절로 보내지 않습니다(사람이 눌러야). 정상에서 쉬다가 "괜찮아요" 를 누르면 다시 20분.
+     */
+    function stillTick() {
+        if (!hike.running || hike.sim || hike.arrived) return;
+        var t = now(), f = hike.fix;
+        if (hike.stillAsk) {
+            var left = Math.ceil((hike.stillAsk + STILL_ANSWER_MS - t) / 1000);
+            if (left > 0) { $("stillLeft").textContent = left + "초 안에 답이 없으면 긴급 신고 화면을 엽니다."; return; }
+            hike.stillAsk = 0;
+            hike.still = null;
+            $("stillSheet").style.display = "none";
+            $("sos").click();
+            if (navigator.vibrate) navigator.vibrate([600, 200, 600, 200, 600]);
+            say("답이 없어 긴급 신고 화면을 열었습니다. 도움이 필요하면 119 전화나 문자 신고를 누르세요.", { urgent: true });
+            return;
+        }
+        var st = RF.stillCheck(hike.still, f ? { lat: f.lat, lon: f.lon, acc: f.acc, t: f.t } : null, t, STILL_M, STILL_MS);
+        hike.still = st.anchor;
+        if (!st.due) return;
+        hike.stillAsk = t;
+        $("stillText").textContent = Math.round((t - hike.still.t) / 60000) + "분째 움직임이 없습니다. 괜찮으면 아래를 눌러 주세요.";
+        $("stillSheet").style.display = "flex";
+        if (navigator.vibrate) navigator.vibrate([400, 150, 400, 150, 400]);
+        say("괜찮으세요? 오랫동안 움직임이 없습니다. 괜찮으면 화면의 괜찮아요를 눌러 주세요.", { urgent: true });
+    }
+
+    function stillReset() {
+        hike.stillAsk = 0;
+        hike.still = null;   // 다음 위치부터 다시 20분
+        $("stillSheet").style.display = "none";
+    }
+
     function render() {
         if (!c) return;
         var d = hike.d, p = RF.at(c, d), g = RF.grade(c, d);
@@ -2027,6 +2065,7 @@
         setV("sSpeed", hike.speed == null || !hike.running ? "-" : num(hike.speed * 3.6, 1), "km/h");
         var elapsed = hike.running ? now() - hike.start : 0;
         setV("sTime", hhmmss(elapsed));
+        stillTick();
         setV("sAsc", num(RF.ascentLeft(c, d)), "m");
         var ef = effort(), bike = K() === RF.KINDS.bike;
         setV("sKcal", num(ef.kcal), "kcal");
@@ -3033,6 +3072,8 @@
         }
     });
     $("sosClose").addEventListener("click", function () { $("sosSheet").style.display = "none"; });
+    $("stillOk").addEventListener("click", function () { stillReset(); toast("👍 계속 지켜볼게요. " + STILL_MS / 60000 + "분 넘게 멈추면 다시 묻습니다.", 4000); });
+    $("stillSos").addEventListener("click", function () { stillReset(); $("sos").click(); });
 
     // ------------------------------------------------------------------ 공유 · 오프라인 저장
 

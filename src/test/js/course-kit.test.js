@@ -934,3 +934,12 @@ eq("compareRows 영어 시간", RF.compareRows({ dist: 3000, asc: 0 }, { dist: 5
 eq("officialEleAt 정상 50m 안만", [RF.officialEleAt({ pois: [{ name: "대청봉", dist_m: 4780, ele_m: 1708, ele_official: true }, { name: "중청", dist_m: 4000, ele_m: 1650 }] }, 4770),
     RF.officialEleAt({ pois: [{ name: "대청봉", dist_m: 4780, ele_m: 1708, ele_official: true }] }, 4600), RF.officialEleAt({ pois: [{ name: "중청", dist_m: 4000, ele_m: 1650 }] }, 4000)], [1708, null, null]);
 eq("stampRadius GPS 오차 + 20, 40 ~ max", [RF.stampRadius(5, 150), RF.stampRadius(20, 150), RF.stampRadius(60, 150), RF.stampRadius(300, 150), RF.stampRadius(null, 150), RF.stampRadius(90, 100)], [40, 40, 80, 150, 150, 100]);
+(function () {   // 움직임 없음 - 40m(+ 오차) 안에 20분이면 due, 움직이면 다시 잼
+    var M = 20 * 60000, t0 = 1000000;
+    var a = RF.stillCheck(null, { lat: 37.5, lon: 127, acc: 10, t: t0 }, t0, 40, M);
+    var b = RF.stillCheck(a.anchor, { lat: 37.5002, lon: 127, acc: 10, t: t0 + M }, t0 + M, 40, M);   // 22m - 그 자리
+    var c2 = RF.stillCheck(b.anchor, { lat: 37.501, lon: 127, acc: 10, t: t0 + M }, t0 + M, 40, M);   // 111m 움직임
+    var d = RF.stillCheck(a.anchor, null, t0 + M - 1, 40, M);   // 위치가 안 와도 시간은 감
+    var e = RF.stillCheck(a.anchor, { lat: 37.5007, lon: 127, acc: 50, t: t0 + M }, t0 + M, 40, M);   // 78m 지만 오차 50m - 그 자리로 봄
+    eq("stillCheck", [a.due, b.due, b.anchor.t, c2.due, c2.anchor.t, d.due, e.due], [false, true, t0, false, t0 + M, false, true]);
+})();
