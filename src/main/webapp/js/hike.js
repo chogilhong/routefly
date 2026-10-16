@@ -1687,6 +1687,7 @@
         hike.segT0 = saved && saved.segT0 ? saved.segT0 : hike.start;
         hike.branch = null;
         hike.kmSpoken = Math.floor(hike.d / (K() === RF.KINDS.bike ? 5000 : 1000));
+        hike.paceFin = "";
         hike.pace = sim ? null : paceFor(c);   // 같은 코스 지난 기록(2026-10-16 홍TV님 추가 기능 2번)
         voice.last = {};
         // 시작 버튼을 누른 그 순간에 말해야 아이폰도 소리를 냅니다(사용자 동작 안에서 처음 말하기)
@@ -1862,7 +1863,7 @@
         if (!hike.arrived && c.total - hike.d <= ARRIVE_M && s.off <= OFF_ROUTE_M) {
             hike.arrived = true;
             var endPoi = c.pois.filter(function (q) { return +q.dist_m > c.total - 60 && +q.off_route_m < 60; }).pop();
-            var fin = paceFinal();   // 지난번과 견준 도착 시간(2026-10-16 PC: 도착하면 옆 글이 사라져 결과를 못 봄)
+            var fin = hike.paceFin = paceFinal();   // 지난번과 견준 도착 시간(2026-10-16 PC: 도착하면 옆 글이 사라져 결과를 못 봄)
             $("arrived").textContent = "🎉 " + (endPoi ? endPoi.name + " " : "") + "도착! " + km(c.total) + "km · " + hhmmss(now() - hike.start) + (fin ? " · " + fin : "");
             $("arrived").style.display = "block";
             if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
@@ -1918,6 +1919,7 @@
         var track = hike.track;
         clearSaved();   // 예전 코스 이름으로 남긴 것
         c = nc;
+        hike.paceFin = "";
         hike.pace = null;   // 뒤집거나 다른 길로 바뀐 코스 - 지난 기록과 자리가 안 맞음
         var f = hike.fix, s = f ? RF.snap(c, f.lat, f.lon, null) : { d: 0, off: 0 };
         hike.d = s.d;
@@ -2055,7 +2057,7 @@
         // 도착 뒤에는 늘 도착 결과(지난번 도착과 견줌)만 남기고 흐린 점은 치움 - 2026-10-16 PC: 도착 뒤 남기도 · 지워지기도 했음
         var done = hike.running && hike.arrived;
         var diff = done ? null : paceDiff(), el = $("paceTxt");
-        var t = (done ? paceFinal() : RF.paceText(diff)).replace("지난번보다 ", "");
+        var t = (done ? hike.paceFin || "" : RF.paceText(diff)).replace("지난번보다 ", "");   // 도착 순간 값(그 뒤 시계가 가도 그대로)
         if (el.textContent !== (t ? "· " + t : "")) {
             el.textContent = t ? "· " + t : "";
             el.className = /빠름/.test(t) ? "fast" : /늦음/.test(t) ? "slow" : "";
