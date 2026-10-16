@@ -1862,11 +1862,12 @@
         if (!hike.arrived && c.total - hike.d <= ARRIVE_M && s.off <= OFF_ROUTE_M) {
             hike.arrived = true;
             var endPoi = c.pois.filter(function (q) { return +q.dist_m > c.total - 60 && +q.off_route_m < 60; }).pop();
-            $("arrived").textContent = "🎉 " + (endPoi ? endPoi.name + " " : "") + "도착! " + km(c.total) + "km · " + hhmmss(now() - hike.start);
+            var fin = paceFinal();   // 지난번과 견준 도착 시간(2026-10-16 PC: 도착하면 옆 글이 사라져 결과를 못 봄)
+            $("arrived").textContent = "🎉 " + (endPoi ? endPoi.name + " " : "") + "도착! " + km(c.total) + "km · " + hhmmss(now() - hike.start) + (fin ? " · " + fin : "");
             $("arrived").style.display = "block";
             if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
             say((endPoi ? endPoi.name + " " : "") + "도착입니다. " + skm(c.total) + "킬로미터, " + spokenTime(now() - hike.start)
-                + ", 약 " + num(effort().kcal) + "킬로칼로리. 수고하셨습니다.",
+                + ", 약 " + num(effort().kcal) + "킬로칼로리. " + (fin ? fin.replace("빠름", "빨랐습니다. ").replace("늦음", "늦었습니다. ").replace("비슷", "비슷했습니다. ") : "") + "수고하셨습니다.",
                 { urgent: true });
         }
         checkJunction();
@@ -2039,6 +2040,14 @@
         if (!p || !hike.running || hike.sim || hike.d0 == null || Math.abs(p.prof[0][0] - hike.d0) > 300) return null;
         var then = RF.paceAt(p.prof, hike.d);
         return then == null ? null : (now() - hike.start) - then;
+    }
+
+    /** 도착 때 지난번 도착과 견준 글("지난번보다 3분 빠름") - 지난번도 끝(100m 안)까지 갔을 때만, 아니면 "". */
+    function paceFinal() {
+        var p = hike.pace;
+        if (!p || hike.sim || hike.d0 == null || Math.abs(p.prof[0][0] - hike.d0) > 300) return "";
+        var last = p.prof[p.prof.length - 1];
+        return c.total - last[0] > 100 ? "" : RF.paceText((now() - hike.start) - last[1]);
     }
 
     /** 경과 시간 옆 글 · 지도의 흐린 점(지난번 같은 시각의 자리). */
