@@ -957,7 +957,7 @@ eq("stampRadius GPS 오차 + 20, 40 ~ max", [RF.stampRadius(5, 150), RF.stampRad
     var t0 = 1000000, tr = [];
     for (var k = 0; k <= 10; k++) tr.push([lat, 127 + k * 0.00113, t0 + k * 60000]);   // 100m 마다 1분
     tr.splice(5, 0, [lat, 127 + 2 * 0.00113, t0 + 4.5 * 60000]);   // 되돌아간 점
-    tr.push([lat + 0.01, 127 + 11 * 0.00113, t0 + 11 * 60000]);   // 코스 밖 1km
+    tr.push([lat + 0.001, 127 + 12 * 0.00113, t0 + 11 * 60000]);   // 코스 밖 110m(앞쪽이지만 뺌)
     var prof = RF.paceProfile(c, tr, t0);
     eq("paceProfile 앞으로 간 점만", [prof.length, Math.round(prof[prof.length - 1][0] / 10) * 10, prof[prof.length - 1][1]], [11, 1000, 600000]);
     eq("paceAt · paceDistAt", [Math.round(RF.paceAt(prof, prof[5][0]) / 1000), RF.paceAt(prof, 1500), Math.round(RF.paceDistAt(prof, 150000) / 10) * 10, Math.round(RF.paceDistAt(prof, 9e9))],
