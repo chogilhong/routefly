@@ -80,10 +80,12 @@ EXIT;
 PC 의 DB 를 옮깁니다:
 
 ```
-(PC)     mysqldump -u root -p routefly > routefly.sql
+(PC)     mysqldump -u root -p --result-file=routefly.sql routefly      # PowerShell 의 > 는 UTF-16 으로 써서 서버가 못 읽음
 (PC)     scp -i <키.pem> routefly.sql ubuntu@<고정 IP>:~
 (서버)   sudo mariadb routefly < ~/routefly.sql && rm ~/routefly.sql
 ```
+
+MariaDB 메모리 상한(innodb_buffer_pool_size)도 이때 정합니다 - 11-2.
 
 ## 5. 톰캣 11
 
@@ -425,6 +427,55 @@ sudo systemctl status routefly-batch
 쿼리 XML(`deploy/conf/sql`)이나 표(`sql/route_ddl.sql`)가 바뀐 경우에는 그것도 함께 올리고, 표는 서버 DB 에서 실행합니다.
 새로 받은 원본 자료(`data/` 아래 ZIP · CSV · GPX)도 서버의 같은 자리에 올립니다.
 
+### 9-5. 다른 길 - 배치는 PC 에서, 서버에는 표만 옮기기 (2026-10-16)
+
+9장의 기본은 "배치도 서버에서" 입니다. 서버 메모리 · CPU 가 빠듯하면(11장) 배치는 PC 에서 돌리고, 다 만든 코스 표만 서버로 옮길 수 있습니다.
+
+| | 서버에서 돌리기(9-1 ~ 9-4, 기본) | PC 에서 돌리고 표 옮기기(9-5) |
+|---|---|---|
+| PC | 꺼도 됨 | 갱신할 때 켜 있어야 함 |
+| 서버 메모리 | 배치 1GB 더 씀 | 웹 · DB 만 |
+| 갱신 | 주기마다 저절로(courseImport 1시간 등) | 홍TV님이 옮길 때만(주 1번 등) |
+| 좋은 점 | 손이 안 감 | PC 화면에서 먼저 보고 괜찮을 때만 올림 |
+
+둘을 섞지 않습니다. 서버 배치가 넣은 코스를 PC 표가 덮어써 사라지므로, 9-5 로 가면 서버의 routefly-batch 를 끕니다
+(`sudo systemctl disable --now routefly-batch`).
+
+옮기는 표는 배치가 채우는 6개뿐입니다(route_course · route_course_point · route_course_poi · route_course_info · route_signpost · route_park_spot).
+웹이 쓰는 표가 나중에 생겨도(산악회 위치 등) 이 방법은 그 표를 건드리지 않습니다.
+
+```
+(PC, 홍TV님)  mysqldump -u root -p --single-transaction --result-file=route.sql routefly route_course route_course_point route_course_poi route_course_info route_signpost route_park_spot
+(PC)          tar -czf route.tgz route.sql
+(PC)          scp -i <키.pem> route.tgz ubuntu@<고정 IP>:~
+```
+
+서버에서는 새 표를 옆 DB(routefly_new)에 먼저 넣고, 한 번에 바꿔 끼웁니다. 넣는 동안에도 웹은 예전 코스를 그대로 보여 줍니다.
+
+```bash
+cd ~ && tar -xzf route.tgz
+sudo mariadb -e "CREATE DATABASE IF NOT EXISTS routefly_new CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+                 CREATE DATABASE IF NOT EXISTS routefly_old CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+sudo mariadb routefly_new < route.sql
+sudo mariadb -e "SELECT COUNT(*) FROM routefly_new.route_course; SELECT COUNT(*) FROM routefly.route_course;"   # 수가 크게 줄었으면 멈추고 PC 확인
+
+# 지난번 예전 표를 지우고, 지금 표 → routefly_old, 새 표 → routefly (RENAME 한 줄은 한꺼번에 바뀜)
+sudo mariadb -e "DROP TABLE IF EXISTS routefly_old.route_course, routefly_old.route_course_point, routefly_old.route_course_poi,
+                   routefly_old.route_course_info, routefly_old.route_signpost, routefly_old.route_park_spot;
+  RENAME TABLE routefly.route_course TO routefly_old.route_course,             routefly_new.route_course TO routefly.route_course,
+               routefly.route_course_point TO routefly_old.route_course_point, routefly_new.route_course_point TO routefly.route_course_point,
+               routefly.route_course_poi TO routefly_old.route_course_poi,     routefly_new.route_course_poi TO routefly.route_course_poi,
+               routefly.route_course_info TO routefly_old.route_course_info,   routefly_new.route_course_info TO routefly.route_course_info,
+               routefly.route_signpost TO routefly_old.route_signpost,         routefly_new.route_signpost TO routefly.route_signpost,
+               routefly.route_park_spot TO routefly_old.route_park_spot,       routefly_new.route_park_spot TO routefly.route_park_spot;"
+rm ~/route.sql ~/route.tgz
+```
+
+- 웹 계정 권한은 DB 단위(`routefly.*`)라 바꿔 끼운 표에도 그대로 붙습니다.
+- 서버 화면의 코스 목록은 10분 · 경사는 하루 메모리에 남으므로, 바로 보려면 `sudo systemctl restart tomcat`.
+- 되돌리기: 위 RENAME 을 routefly ↔ routefly_old 로 바꿔 한 번 더(routefly_new 는 그때 비어 있음). routefly_old 는 다음 옮길 때까지 남겨 둡니다.
+- 처음 한 번은 바꿔 끼울 표가 없으므로 4장처럼 `routefly` 에 바로 넣습니다.
+
 ## 10. 꼭 해 둘 것
 
 - 자동 스냅샷: 인스턴스 → Snapshots → Enable automatic snapshots(하루 한 번)
@@ -466,3 +517,50 @@ echo '0 4 * * * root mariadb-dump --single-transaction routefly | gzip > /var/ba
 - 되살리기: `gunzip -c routefly-YYYYMMDD.sql.gz | mariadb routefly`
 - 이용자 기록 · 사진은 서버에 없습니다(핸드폰 안 - 따라가기 "📒 내 기록 → 💾 백업 저장").
 
+## 11. 메모리 · CPU (4GB 요금제) - 2026-10-16
+
+### 11-1. 나눠 쓰는 모양
+
+| 쓰는 것 | 메모리 | 정하는 곳 |
+|---|---|---|
+| 배치(9장) | 1GB 까지 | `-Xmx1g` (bin/.setenv.sh) |
+| 톰캣 | 768MB 까지 + 자바 자체 약 200MB | 5장 `CATALINA_OPTS` |
+| MariaDB | 512MB + 연결 · 정렬 몇백 MB | 11-2 |
+| 리눅스 · nginx · fail2ban | 약 0.5GB | |
+| 합계 | 약 3 ~ 3.5GB | 넘치면 스왑 2GB(3장)가 받음 |
+
+배치를 9-5 처럼 PC 에서 돌리면 1GB 가 빠져 넉넉해집니다.
+
+### 11-2. MariaDB 메모리 상한
+
+설정하지 않으면 MariaDB 기본값을 따릅니다. 4GB 서버에서는 512MB 로 묶어 둡니다.
+
+```bash
+sudo tee /etc/mysql/mariadb.conf.d/60-routefly.cnf >/dev/null <<'CONF'
+[mysqld]
+innodb_buffer_pool_size = 512M
+max_connections = 60
+CONF
+sudo systemctl restart mariadb
+sudo mariadb -e "SELECT @@innodb_buffer_pool_size/1024/1024 AS MB, @@max_connections;"
+```
+
+### 11-3. 처음 몇 주 볼 것
+
+- `free -h` - available 이 300MB 아래로 자주 내려가거나 스왑 사용이 1GB 를 넘으면 빠듯한 것
+- Lightsail 콘솔 → 인스턴스 → Metrics → CPU: Lightsail 은 평소 조금 쓰다 잠깐 몰아 쓰는 방식이라, "burst capacity" 가 바닥(0%)에 붙어 있으면 느려집니다.
+  배치(osmBike · forestTrail 처럼 오래 도는 것)를 처음 손으로 돌릴 때는 사람이 적은 새벽에.
+- `journalctl -k | grep -i "out of memory"` - 메모리가 모자라 프로그램이 죽은 적이 있는지
+
+### 11-4. 산악회 위치 보기를 더하면 (어림셈)
+
+- 한 사람이 30초마다 위치 하나(100바이트 남짓) - 동시에 1,000명이 걸어도 초당 약 33번이라 톰캣에는 가벼움.
+- 지금 위치는 사람마다 마지막 하나만 메모리에 둠 - 1,000명이어도 1MB 아래.
+- 법이 정한 이용 · 제공 기록은 산행 한 번에 한 줄 - DB 도 거의 늘지 않음.
+- 위치기반서비스사업 신고를 한 뒤에 엽니다(웹 계정에 그 표 쓰기 권한도 그때 더함).
+
+### 11-5. 언제 키우나
+
+- 주말 동시 이용이 수천 명이 되거나, 11-3 에서 메모리 · CPU 가 자주 바닥이면 8GB 요금제로.
+  스냅샷 → 그 스냅샷으로 더 큰 요금제 새 인스턴스 → 고정 IP 를 새 인스턴스로 옮김(10분 남짓, 주소는 그대로).
+- 그 전에 먼저 해 볼 것: 배치를 9-5 로 PC 에 두기.
