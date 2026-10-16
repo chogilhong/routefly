@@ -739,7 +739,7 @@
                     });
                 });
                 if (w.unavailable || !(w.hours || []).length) { body.appendChild(el("div", "gNote", "날씨를 지금 받지 못했습니다. 잠시 뒤 다시 눌러 주세요.")); return; }
-                RF.windNote(w.hours, w.hours[0].t.slice(0, 10)).forEach(function (n) { body.appendChild(el("div", "gNote gWarn", n.text)); });   // 강풍(2026-10-16 홍TV님)
+                RF.windNote(w.hours, w.hours[0].t.slice(0, 10), "들머리").forEach(function (n) { body.appendChild(el("div", "gNote gWarn", n.text)); });   // 강풍(2026-10-16 홍TV님)
                 var day = "", dayEls = {};
                 // 2026-10-15 홍TV님: 며칠 뒤 산행 - 단기예보가 주는 날(글피까지) 모두, 날마다 3시간 간격
                 w.hours.filter(function (h, i) { return i < 24 || +h.t.slice(11, 13) % 3 === 0; }).forEach(function (h) {

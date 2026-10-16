@@ -2765,20 +2765,21 @@
     }
 
     /**
-     * 순수 함수 - 날마다 가장 센 바람(들머리 격자, 단기예보 wsd)으로 경고 줄. 7m/s 넘으면 "바람 강함", 10m/s 넘으면 "강풍".
-     * 능선 · 정상은 들머리보다 바람이 셈(격자 바람은 땅 위 10m). [{day, wsd, text}] - 없으면 빈 배열.
+     * 순수 함수 - 날마다 가장 센 바람(단기예보 wsd, 매시간)으로 경고 줄. 7m/s 넘으면 "바람 강함", 10m/s 넘으면 "강풍".
+     * 능선 · 정상은 격자 바람(땅 위 10m)보다 셈. where - 격자 자리 말("들머리" · "정상 둘레"). 몇 시인지도 적음 -
+     * 2026-10-16 PC: 산 페이지는 3시간 줄만 보여 줄의 최댓값(7.2)과 경고(20시 8.3)가 안 맞아 보였음. [{day, wsd, hour, text}] - 없으면 빈 배열.
      */
-    function windNote(hours, today) {
+    function windNote(hours, today, where) {
         var max = {};
         (hours || []).forEach(function (h) {
             var d = String(h.t || "").slice(0, 10), w = h.wsd == null ? null : +h.wsd;
-            if (d && w != null && isFinite(w) && (max[d] == null || w > max[d])) max[d] = w;
+            if (d && w != null && isFinite(w) && (max[d] == null || w > max[d].w)) max[d] = { w: w, hour: +String(h.t).slice(11, 13) };
         });
-        return Object.keys(max).sort().filter(function (d) { return max[d] >= 7; }).map(function (d) {
-            var w = max[d], when = dayLabel(d, today);
-            return { day: d, wsd: w, text: w >= 10
-                ? "⚠ 강풍 - " + when + " 들머리 바람이 " + w + "m/s 까지 붑니다. 능선 · 정상은 더 세서 몸을 가누기 어렵습니다. 암릉 · 능선 산행은 미루는 것을 생각하세요."
-                : "⚠ 바람 강함 - " + when + " 들머리 " + w + "m/s, 능선은 더 셉니다. 바람막이 · 모자 끈을 챙기고 암릉에서는 조심하세요." };
+        return Object.keys(max).sort().filter(function (d) { return max[d].w >= 7; }).map(function (d) {
+            var w = max[d].w, at = dayLabel(d, today) + " " + max[d].hour + "시 무렵 " + (where || "들머리") + " " + w + "m/s";
+            return { day: d, wsd: w, hour: max[d].hour, text: w >= 10
+                ? "⚠ 강풍 - " + at + ". 능선 · 정상은 더 세서 몸을 가누기 어렵습니다. 암릉 · 능선 산행은 미루는 것을 생각하세요."
+                : "⚠ 바람 강함 - " + at + ", 능선은 더 셉니다. 바람막이 · 모자 끈을 챙기고 암릉에서는 조심하세요." };
         });
     }
 
