@@ -933,3 +933,4 @@ eq("compareRows 영어 시간", RF.compareRows({ dist: 3000, asc: 0 }, { dist: 5
 })();
 eq("officialEleAt 정상 50m 안만", [RF.officialEleAt({ pois: [{ name: "대청봉", dist_m: 4780, ele_m: 1708, ele_official: true }, { name: "중청", dist_m: 4000, ele_m: 1650 }] }, 4770),
     RF.officialEleAt({ pois: [{ name: "대청봉", dist_m: 4780, ele_m: 1708, ele_official: true }] }, 4600), RF.officialEleAt({ pois: [{ name: "중청", dist_m: 4000, ele_m: 1650 }] }, 4000)], [1708, null, null]);
+eq("stampRadius GPS 오차 + 20, 40 ~ max", [RF.stampRadius(5, 150), RF.stampRadius(20, 150), RF.stampRadius(60, 150), RF.stampRadius(300, 150), RF.stampRadius(null, 150), RF.stampRadius(90, 100)], [40, 40, 80, 150, 150, 100]);

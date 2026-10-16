@@ -1134,7 +1134,7 @@
 
     // 100대 명산 정상 도장(2026-10-11 홍TV님) - 코스와 상관없이 정상 150m 안. 자료(data/mountains100.json)는 처음 한 번만 받아 둠, 비면 아무것도 안 함
     var PEAKS = "rf-peaks", peakList = null;
-    function peakCheck(lat, lon) {
+    function peakCheck(lat, lon, acc) {
         if (peakList === null) {
             peakList = [];
             fetch("data/mountains100.json").then(function (r) { return r.json(); })
@@ -1142,7 +1142,7 @@
             return;
         }
         if (!peakList.length) return;
-        var have = loadMap(PEAKS), due = RF.peaksDue(peakList, lat, lon, have, 150);
+        var have = loadMap(PEAKS), due = RF.peaksDue(peakList, lat, lon, have, RF.stampRadius(acc, 150));   // GPS 가 좋으면 40m 까지 좁힘(2026-10-16)
         if (!due.length) return;
         due.forEach(function (p) { have[RF.peakKey(p)] = { name: p.id || p.name, t: Date.now(), course: c ? c.id : null }; });
         saveMap(PEAKS, have);
@@ -1152,10 +1152,10 @@
         if (navigator.vibrate) navigator.vibrate([100, 60, 100, 60, 200]);
     }
 
-    function stampCheck(lat, lon) {
-        peakCheck(lat, lon);
+    function stampCheck(lat, lon, acc) {
+        peakCheck(lat, lon, acc);
         if (!c) return;
-        var have = loadMap(STAMPS), due = RF.stampsDue(c, lat, lon, have, 100);
+        var have = loadMap(STAMPS), due = RF.stampsDue(c, lat, lon, have, RF.stampRadius(acc, 100));
         if (!due.length) return;
         due.forEach(function (p) { have[RF.stampKey(p.name)] = { name: p.name, t: Date.now(), course: c.id }; });
         saveMap(STAMPS, have);
@@ -1823,7 +1823,7 @@
         }
         hike.fix = { lat: co.latitude, lon: co.longitude, acc: acc, alt: co.altitude, t: t };
         addTrack(co.latitude, co.longitude, t, co.altitude);
-        if (!hike.sim) stampCheck(co.latitude, co.longitude);   // 국토종주 인증센터 · 100대 명산 정상 도장(실제 GPS 만)
+        if (!hike.sim) stampCheck(co.latitude, co.longitude, acc);   // 국토종주 인증센터 · 100대 명산 정상 도장(실제 GPS 만)
         var s = RF.snap(c, co.latitude, co.longitude, hike.lastFix ? hike.d : null);
         hike.lastFix = t;
         hike.off = s.off;

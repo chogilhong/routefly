@@ -191,7 +191,7 @@
         g.font = "bold 44px sans-serif"; g.fillStyle = "#2b2416";
         g.fillText(day(m.t) + (m.label === "완등" ? " 완등" : " 달성") + " · 지금 " + n + " / " + of + "곳", W / 2, 860, W - 200);
         g.font = "28px sans-serif"; g.fillStyle = "#7a6a45";
-        g.fillText("정상 150m 안에서 찍힌 도장 기준(이 핸드폰 기록)", W / 2, 920);
+        g.fillText("정상 가까이(GPS 오차에 따라 40 ~ 150m)에서 찍힌 도장(이 핸드폰 기록)", W / 2, 920);
         g.font = "bold 44px sans-serif"; g.fillStyle = "#ffffff";
         g.fillText("routefly", W / 2, 1220);
         return cv;
@@ -226,7 +226,7 @@
         box.setAttribute("data-card", g.key + "|" + s.name);   // 따라가기에서 돌아올 때 다시 펼칠 카드(view)
         head.type = "button";
         // 정상 자료가 없는 산(천성산 · 대암산 - GPX 가 정상 쪽을 안 지남)은 빠져 있음
-        nm.appendChild(el("small", null, s.peaks.length + "산" + (s.official > s.peaks.length ? "(" + s.official + "곳 중 정상 자료가 있는 곳)" : "") + " · 정상 150m 안에 가면 도장"));
+        nm.appendChild(el("small", null, s.peaks.length + "산" + (s.official > s.peaks.length ? "(" + s.official + "곳 중 정상 자료가 있는 곳)" : "") + " · 정상 가까이 가면 도장"));
         pg.innerHTML = "<b>" + p.got + "</b> / " + p.of + " " + g.unit;
         head.appendChild(nm);
         head.appendChild(pg);
