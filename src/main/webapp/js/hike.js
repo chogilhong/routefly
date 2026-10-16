@@ -1197,7 +1197,7 @@
             var list = records();
             list.unshift(rec);
             return writeRecords(list);
-        }).then(gcPhotos);
+        }).then(gcPhotos).then(keepStorage);
         addLog([RF.logEntry(rec)]);   // 30개 밖으로 밀려난 기록의 사진
         var sum = $("doneSum");
         sum.innerHTML = "";
@@ -1219,6 +1219,16 @@
         getJson("api/partners").then(function (p) {   // 후원 링크(설정에 있을 때만 - 2026-10-15)
             if (p && /^https:\/\//.test(p.donate || "")) { $("doneDonate").href = p.donate; $("doneDonate").hidden = false; }
         }).catch(function () { /* 없이 */ });
+    }
+
+    /**
+     * 기록 · 사진 · 도장은 이 핸드폰에만 있어, 저장 공간이 모자랄 때 브라우저가 지우지 않게 "오래 둠" 을 부탁합니다(2026-10-16 홍TV님 - 기록 보관).
+     * 크롬은 묻지 않고 정하고(홈 화면 앱 · 자주 쓰는 곳이면 대개 허락), 파이어폭스는 한 번 묻습니다 - 그래서 첫 기록을 남길 때에만.
+     */
+    function keepStorage() {
+        var st = navigator.storage;
+        if (!st || !st.persist || !st.persisted) return;
+        st.persisted().then(function (p) { return p || st.persist(); }).catch(function () { /* 그대로 */ });
     }
 
     function showRecords() {
