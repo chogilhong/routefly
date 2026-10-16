@@ -89,7 +89,7 @@ final class MountainEn {
                     + " one way to the summit (estimated at 4 km/h plus 1 hour per 600 m of ascent). Add time for the descent."});
         }
         if (MountainServlet.elev(peak) != null)
-            out.add(new String[] {"How high is " + name + "?", "The summit" + (str(peak, "summit") != null ? ", " + summitName(str(peak, "summit"), str(peak, "name")) + "," : "")
+            out.add(new String[] {"How high is " + name + "?", (MountainServlet.topName(peak) != null ? "The summit, " + summitName(MountainServlet.topName(peak), str(peak, "name")) + "," : name)
                     + " is about " + String.format(Locale.US, "%,d", MountainServlet.elev(peak)) + " m above sea level (Korea Forest Service, 100 Famous Mountains)."});
         if (parking != null)
             out.add(new String[] {"Is there parking at " + name + "?", parking > 0 ? "There " + (parking == 1 ? "is 1 parking lot" : "are " + parking + " parking lots")
@@ -121,7 +121,9 @@ final class MountainEn {
         b.append("<h1>").append(esc(name)).append(" Hiking Trails <small lang=\"ko\">").append(esc(ko)).append("</small></h1>");
         b.append(MountainServlet.jsonLd(peak, name, url));
         b.append("<p class=\"lead\">One of Korea's 100 Famous Mountains (Korea Forest Service)");
-        if (summit != null) b.append(" · Summit ").append(esc(summitName(summit, str(peak, "name")))).append(" <span lang=\"ko\">(").append(esc(summit)).append(")</span>");
+        String topNm = MountainServlet.topName(peak);   // 정상 자리가 꼭대기가 아니면(점봉산 곰배령 등) 높이와 이름을 붙이지 않음
+        if (topNm != null) b.append(" · Summit ").append(esc(summitName(topNm, str(peak, "name")))).append(" <span lang=\"ko\">(").append(esc(topNm)).append(")</span>");
+        else if (height != null) b.append(" · Elevation");
         if (height != null) b.append(String.format(Locale.US, " %,d m", height));
         b.append("</p>");
         b.append("<section id=\"wx\" data-lat=\"").append(peak.get("lat").getAsDouble()).append("\" data-lon=\"").append(peak.get("lon").getAsDouble())

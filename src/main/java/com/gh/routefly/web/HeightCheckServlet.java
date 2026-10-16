@@ -161,7 +161,9 @@ public class HeightCheckServlet extends HttpServlet {
             boolean gw = r.official != null && r.gps != null && Math.abs(r.gps - r.official) > WARN_M;
             if (cw) courseWarn++;
             if (gw) gpsWarn++;
-            t.append("<tr><td>").append(ShareServlet.esc(r.id)).append(r.summit != null ? "<br><small>" + ShareServlet.esc(r.summit) + "</small>" : "").append("</td><td>")
+            boolean notTop = r.official != null && r.gps != null && Math.abs(r.gps - MountainServlet.GPS_BIAS_M - r.official) > MountainServlet.SUMMIT_TOL_M;   // MountainServlet.summitOk 와 같음
+            t.append("<tr><td>").append(ShareServlet.esc(r.id)).append(r.summit != null ? "<br><small>" + ShareServlet.esc(r.summit) + "</small>" : "")
+                    .append(notTop ? "<br><b class=\"bad\">⚠ 정상 자리가 꼭대기 아님</b>" : "").append("</td><td>")
                     .append(r.official != null ? String.format(Locale.KOREA, "%,d", r.official) : "<b class=\"bad\">없음</b>").append("</td><td").append(gw ? " class=\"bad\"" : "").append(">")
                     .append(r.gps != null ? r.gps + diff(r.gps, r.official) : "-").append("</td><td").append(cw ? " class=\"bad\"" : "").append(">")
                     .append(r.courseEle != null ? Math.round(r.courseEle) + diff(r.courseEle, r.official) + "<br><small>" + ShareServlet.esc(r.courseSrc) + " · " + Math.round(r.courseGap) + "m · "

@@ -94,7 +94,7 @@ public class OgServlet extends HttpServlet {
 
     /** 순수 함수 - 한국어 그림의 글 [제목, 둘째 줄, 셋째 줄]. 한글 글꼴이 없으면 png 가 영어 글(english)로 바꿈. */
     static String[] korean(JsonObject peak) {
-        String id = MountainEn.id(peak), summit = str(peak, "summit");
+        String id = MountainEn.id(peak), summit = MountainServlet.topName(peak);   // 정상 자리가 꼭대기일 때만 이름(2026-10-16)
         Integer h = MountainServlet.elev(peak);
         String second = "산림청 100대 명산" + (summit != null && !summit.equals(str(peak, "name")) ? " · 정상 " + summit : "")
                 + (h != null ? String.format(Locale.KOREA, " · %,dm", h) : "");
@@ -102,7 +102,7 @@ public class OgServlet extends HttpServlet {
     }
 
     static String[] english(JsonObject peak) {
-        String summit = str(peak, "summit");
+        String summit = MountainServlet.topName(peak);
         Integer h = MountainServlet.elev(peak);
         String second = "Korea's 100 Famous Mountains" + (summit != null && !summit.equals(str(peak, "name")) ? " · " + MountainEn.summitName(summit, str(peak, "name")) : "")
                 + (h != null ? String.format(Locale.US, " · %,d m", h) : "");

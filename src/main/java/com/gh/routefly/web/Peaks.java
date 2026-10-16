@@ -89,7 +89,8 @@ final class Peaks {
         for (JsonElement e : peaks) {
             JsonObject o = e.getAsJsonObject();
             Integer h = MountainServlet.elev(o);
-            if (h != null && o.has("lat") && o.has("lon")) out.add(new double[] {o.get("lat").getAsDouble(), o.get("lon").getAsDouble(), h});
+            // 정상 자리가 꼭대기가 아닌 산(점봉산 곰배령 · 두타산 청옥산 쪽 …)은 빼야 그 자리 지점에 산 높이가 붙지 않음(2026-10-16)
+            if (h != null && o.has("lat") && o.has("lon") && MountainServlet.summitOk(o)) out.add(new double[] {o.get("lat").getAsDouble(), o.get("lon").getAsDouble(), h});
         }
         return out;
     }

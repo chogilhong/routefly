@@ -62,8 +62,12 @@ public class CheckupStage6Test {
 
     @Test
     public void heightsAreOfficialOnly() throws Exception {
-        for (String f : new String[] {"MountainServlet.java", "MountainEn.java", "OgServlet.java"})
-            assertFalse(f + " 는 GPS height 를 화면에 쓰지 않음", read("main", "java", "com", "gh", "routefly", "web", f).contains("get(\"height\")"));
+        for (String f : new String[] {"MountainServlet.java", "MountainEn.java", "OgServlet.java"}) {
+            String src = read("main", "java", "com", "gh", "routefly", "web", f);
+            int i = src.indexOf("static boolean summitOk(");   // 정상 자리 견주기에만 씀(2026-10-16)
+            if (i >= 0) src = src.substring(0, i) + src.substring(src.indexOf("\n    }\n", i));
+            assertFalse(f + " 는 GPS height 를 화면에 쓰지 않음", src.contains("get(\"height\")"));
+        }
         assertTrue("코스 응답도 공식 높이", read("main", "java", "com", "gh", "routefly", "web", "CourseServlet.java").contains("Peaks.applyDetail(detail, Peaks.tops(getServletContext()), Peaks.shelters(getServletContext()));"));
     }
 

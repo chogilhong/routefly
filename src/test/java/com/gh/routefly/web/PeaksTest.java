@@ -84,4 +84,26 @@ public class PeaksTest {
         Peaks.applyDetail(d, Peaks.tops(PEAKS));
         assertEquals(296, d.getAsJsonObject("course").get("ascent_m").getAsInt());
     }
+
+    @Test
+    public void summitNotTop() {   // 정상 자리가 꼭대기가 아닌 산(2026-10-16 PC: 점봉산 곰배령 · 두타산 청옥산 쪽)
+        JsonObject jeombong = JsonParser.parseString("{\"id\":\"점봉산\",\"name\":\"점봉산\",\"summit\":\"곰배령\",\"height\":1131,\"elev\":1426,\"lat\":38.0279,\"lon\":128.4323}").getAsJsonObject();
+        JsonObject seorak = PEAKS.get(0).getAsJsonObject();
+        seorak.addProperty("summit", "대청봉");
+        assertFalse(MountainServlet.summitOk(jeombong));
+        assertTrue(MountainServlet.summitOk(seorak));
+        assertTrue("견줄 값이 없으면 그대로", MountainServlet.summitOk(JsonParser.parseString("{\"elev\":100}").getAsJsonObject()));
+        assertNull(MountainServlet.topName(jeombong));
+        JsonArray both = new JsonArray();
+        both.add(seorak);
+        both.add(jeombong);
+        assertEquals("꼭대기가 아닌 자리는 공식 높이를 붙이지 않음", 1, Peaks.tops(both).size());
+        String html = MountainServlet.page(jeombong, new java.util.ArrayList<>(), new java.util.ArrayList<>(), null, "https://r.kr");
+        assertTrue(html.contains("산림청 100대 명산 · 해발 1,426m · 도장 자리 곰배령"));
+        assertFalse("곰배령에 산 높이를 붙이지 않음", html.contains("정상 곰배령"));
+        assertTrue(html.contains("점봉산은 해발 약 1,426m"));
+        assertEquals("산림청 100대 명산 · 1,426m", OgServlet.korean(jeombong)[1]);
+        String en = MountainEn.page(jeombong, new java.util.ArrayList<>(), new java.util.ArrayList<>(), null, "https://r.kr");
+        assertTrue(en.contains("(Korea Forest Service) · Elevation 1,426 m") && en.contains("Jeombongsan is about 1,426 m"));
+    }
 }

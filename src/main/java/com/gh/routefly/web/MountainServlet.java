@@ -362,6 +362,27 @@ public class MountainServlet extends HttpServlet {
         return c.has("steep_pct") && !c.get("steep_pct").isJsonNull() ? c.get("steep_pct").getAsDouble() : null;
     }
 
+    /** GPS 높이(height)는 공식 높이보다 보통 이만큼 높음(98곳 중앙값 +24.6m - 2026-10-16). */
+    static final double GPS_BIAS_M = 25;
+    /** GPS 높이 - 25 가 공식 높이와 이보다 많이 다르면 정상 자리가 실제 꼭대기가 아님. */
+    static final double SUMMIT_TOL_M = 50;
+
+    /**
+     * 순수 함수 - 정상 자리(lat · lon · summit)가 공식 높이의 꼭대기와 같은 곳인가. GPS 높이 - 25 가 공식과 50m 넘게 다르면 아님.
+     * 2026-10-16: 점봉산(곰배령 - 정상 입산통제) · 무등산(서석대) · 계룡산(관음봉)은 일부러 다른 곳, 두타산(청옥산 쪽) · 내연산(향로봉 ↔ 공식 높이 삼지봉) ·
+     * 소요산 · 적상산은 확인할 곳. 아니면 그 자리에 공식 높이를 붙이지 않고(Peaks) 화면에 "정상 곰배령 1,426m" 처럼 쓰지 않음. 비교할 값이 없으면 true.
+     */
+    static boolean summitOk(JsonObject peak) {
+        Integer official = elev(peak);
+        if (official == null || !peak.has("height") || peak.get("height").isJsonNull()) return true;
+        return Math.abs(peak.get("height").getAsDouble() - GPS_BIAS_M - official) <= SUMMIT_TOL_M;
+    }
+
+    /** 순수 함수 - 높이와 함께 쓸 정상 이름(정상 자리가 꼭대기일 때만, 아니면 null). */
+    static String topName(JsonObject peak) {
+        return summitOk(peak) ? str(peak, "summit") : null;
+    }
+
     /** 순수 함수 - 두 점 거리(m, 하버사인). */
     static double distM(double lat1, double lon1, double lat2, double lon2) {
         double r = Math.PI / 180, dLat = (lat2 - lat1) * r, dLon = (lon2 - lon1) * r;
@@ -421,7 +442,7 @@ public class MountainServlet extends HttpServlet {
                     + (courses.size() > 1 ? " ~ " + hours(hi.get("distance_m").getAsInt(), asc(hi)) : "") + "입니다(시속 4km · 오르막 600m 에 1시간으로 어림). 내려오는 시간은 따로 더하세요."});
         }
         if (MountainServlet.elev(peak) != null)
-            out.add(new String[] {name + " 높이는 얼마인가요?", "정상" + (summit != null ? " " + summit : "") + "은 해발 약 " + String.format(Locale.KOREA, "%,d", MountainServlet.elev(peak)) + "m 입니다(산림청 100대 명산)."});
+            out.add(new String[] {name + " 높이는 얼마인가요?", (topName(peak) != null ? "정상 " + topName(peak) + "은" : name + "은") + " 해발 약 " + String.format(Locale.KOREA, "%,d", MountainServlet.elev(peak)) + "m 입니다(산림청 100대 명산)."});
         if (parking != null)
             out.add(new String[] {name + " 주차장이 있나요?", parking > 0 ? "가장 가까운 코스 들머리 3km 안에 주차장 " + parking + "곳이 있습니다(전국주차장정보표준데이터). 요금 · 운영 시간은 현지에서 확인하세요."
                     : "가장 가까운 코스 들머리 3km 안에 등록된 주차장이 없습니다. 대중교통이나 더 먼 주차장을 알아보세요."});
@@ -483,8 +504,10 @@ public class MountainServlet extends HttpServlet {
         b.append("<h1>").append(esc(name)).append(" 등산코스</h1>");
         Integer height = MountainServlet.elev(peak);
         b.append(jsonLd(peak, name, url));
-        b.append("<p class=\"lead\">산림청 100대 명산").append(summit != null ? " · 정상 " + esc(summit) : "")
+        String topNm = topName(peak);   // 정상 자리가 꼭대기가 아니면(점봉산 곰배령 등) 높이와 이름을 붙이지 않음(2026-10-16)
+        b.append("<p class=\"lead\">산림청 100대 명산").append(topNm != null ? " · 정상 " + esc(topNm) : height != null ? " · 해발" : "")
                 .append(height != null ? String.format(Locale.KOREA, " %,dm", height) : "")
+                .append(topNm == null && summit != null && !summit.equals(str(peak, "name")) ? " · 도장 자리 " + esc(summit) : "")
                 .append(top != null ? String.format(Locale.KOREA, " · 코스 최고점 약 %,dm", top) : "").append("</p>");
         b.append("<section id=\"wx\" data-lat=\"").append(peak.get("lat").getAsDouble()).append("\" data-lon=\"").append(peak.get("lon").getAsDouble())
                 .append("\"><h2>날씨 · 미세먼지 · 일출 · 일몰</h2><p class=\"dim\" id=\"wxBody\">불러오는 중…</p></section>");
