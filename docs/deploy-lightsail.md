@@ -80,7 +80,7 @@ EXIT;
 PC 의 DB 를 옮깁니다(PC 의 덤프 프로그램은 PATH 에 없음 - `C:\Program Files\MariaDB 12.3\bin\`, MariaDB 판이 바뀌면 폴더 이름도 바뀜):
 
 ```
-(PC)     & "C:\Program Files\MariaDB 12.3\bin\mariadb-dump.exe" -u root -p --result-file=routefly.sql routefly   # PowerShell 의 > 는 UTF-16 으로 써서 서버가 못 읽음
+(PC)     & "C:\Program Files\MariaDB 12.3\bin\mariadb-dump.exe" -u root -p --single-transaction --result-file=routefly.sql routefly   # PowerShell 의 > 는 UTF-16 으로 써서 서버가 못 읽음
 (PC)     scp -i <키.pem> routefly.sql ubuntu@<고정 IP>:~
 (서버)   sudo mariadb routefly < ~/routefly.sql && rm ~/routefly.sql
 ```
