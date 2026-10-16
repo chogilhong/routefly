@@ -269,6 +269,7 @@
                 + "  · 비 " + (h.pop != null ? h.pop + "%" : "-") + "  · 바람 " + (h.wsd != null ? h.wsd + "m/s" : "-"));
         });
         var lastH = hours.length ? +hours[hours.length - 1].t.slice(11, 13) : 23;
+        RF.windNote(hours, today).forEach(function (n) { lines.push(n.text); });   // 강풍(2026-10-16 홍TV님) - 정상 둘레 격자라 정상 바람에 가까움
         lines.push("기상청 단기예보(" + wx.base + " 발표) · 정상 둘레 5km 격자 - 정상은 이보다 춥고 바람이 셀 수 있습니다."
             + (lastH < 21 ? " 이 날은 " + lastH + "시까지만 나왔습니다(다음 발표에 이어짐)." : ""));
         show(lines);

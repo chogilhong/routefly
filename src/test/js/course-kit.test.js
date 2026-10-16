@@ -708,6 +708,10 @@ eq("guideMaps 국립공원 카드는 맨 앞 · 장 수에 세지 않음", RF.gu
     ["knps-7018-d7139b32", "frst-448100301-0", "frst-461700101-0", "kmp-7366020018-0"]);
 eq("weatherWord 하늘 · 비", [RF.weatherWord(1, 0), RF.weatherWord(4, 0), RF.weatherWord(1, 1), RF.weatherWord(null, null)], ["☀️ 맑음", "☁️ 흐림", "🌧 비", "-"]);
 eq("summitTemp 100m 에 0.65도", [RF.summitTemp(18, 600, 1400), RF.summitTemp(18, null, 1400)], [12.8, null]);
+eq("windChill 10도 이하 · 1.3m/s 이상만", [RF.windChill(0, 10), RF.windChill(-10, 5), RF.windChill(12, 10), RF.windChill(0, 1), RF.windChill(null, 5)], [-7, -17, null, null, null]);
+eq("windNote 날마다 최대 - 7 이상 바람 강함, 10 이상 강풍", RF.windNote([{ t: "2026-10-16 09:00", wsd: 3 }, { t: "2026-10-16 15:00", wsd: 6.9 },
+    { t: "2026-10-17 06:00", wsd: 8.2 }, { t: "2026-10-17 12:00", wsd: 7.5 }, { t: "2026-10-18 12:00", wsd: 11 }, { t: "2026-10-18 13:00", wsd: null }], "2026-10-16")
+    .map(function (n) { return n.day + " " + n.wsd + " " + n.text.slice(0, 8); }), ["2026-10-17 8.2 ⚠ 바람 강함 ", "2026-10-18 11 ⚠ 강풍 - 모"]);
 (function () {
     var c = { dist: [0, 1000, 2000], asc: [0, 300, 600], total: 2000, pois: [{ name: "a", dist_m: 1000, ele_m: 900 }, { name: "끝", dist_m: 2000 }] };
     var r = RF.scheduleRows(c, 0, "hike");

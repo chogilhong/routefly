@@ -739,6 +739,7 @@
                     });
                 });
                 if (w.unavailable || !(w.hours || []).length) { body.appendChild(el("div", "gNote", "날씨를 지금 받지 못했습니다. 잠시 뒤 다시 눌러 주세요.")); return; }
+                RF.windNote(w.hours, w.hours[0].t.slice(0, 10)).forEach(function (n) { body.appendChild(el("div", "gNote gWarn", n.text)); });   // 강풍(2026-10-16 홍TV님)
                 var day = "", dayEls = {};
                 // 2026-10-15 홍TV님: 며칠 뒤 산행 - 단기예보가 주는 날(글피까지) 모두, 날마다 3시간 간격
                 w.hours.filter(function (h, i) { return i < 24 || +h.t.slice(11, 13) % 3 === 0; }).forEach(function (h) {
@@ -748,9 +749,9 @@
                         var mm = w.days && w.days[dd];
                         dayEls[dd] = body.appendChild(el("div", "gDay", RF.dayLabel(dd, w.hours[0].t.slice(0, 10)) + (mm && RF.tempRange(mm.tmn, mm.tmx) ? " · " + RF.tempRange(mm.tmn, mm.tmx) : "")));
                     }
-                    var st = RF.summitTemp(h.tmp, start.ele, top);
+                    var st = RF.summitTemp(h.tmp, start.ele, top), ch = RF.windChill(st, h.wsd);   // 체감 - 정상 기온 + 들머리 바람(능선은 더 셈)
                     body.appendChild(gRow(h.t.slice(11, 13) + "시  " + RF.weatherWord(h.sky, h.pty) + "  " + (h.tmp != null ? h.tmp + "℃" : "-"),
-                        (st != null && top - (start.ele || 0) > 200 ? "정상 약 " + st + "℃ · " : "") + "바람 " + (h.wsd != null ? h.wsd + "m/s" : "-"),
+                        (st != null && top - (start.ele || 0) > 200 ? "정상 약 " + st + "℃" + (ch != null && ch < st - 1 ? "(체감 " + ch + "℃)" : "") + " · " : "") + "바람 " + (h.wsd != null ? h.wsd + "m/s" : "-"),
                         "비 " + (h.pop != null ? h.pop + "%" : "-")));
                 });
                 body.appendChild(el("div", "gNote", "자료: 기상청 단기예보(" + w.base + " 발표) · 들머리 둘레 5km 격자" + (w.near ? "(들머리 격자에 자료가 없어 바로 옆 격자)" : "") + ". 정상 기온은 높이로 어림한 값입니다."));
