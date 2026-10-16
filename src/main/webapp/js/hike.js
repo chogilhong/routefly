@@ -1734,7 +1734,7 @@
             var bgGen = hike.bgGen = (hike.bgGen || 0) + 1;
             BG.addWatcher({ backgroundTitle: "routefly - " + K().act + " 중",
                             backgroundMessage: "화면을 꺼도 위치를 기록하고 갈림길 · 코스 이탈을 알려 줍니다.",
-                            requestPermissions: true, stale: false, distanceFilter: batterySave ? 10 : 3 },
+                            requestPermissions: true, stale: false, distanceFilter: 0 },   // 0: 멈춰 있어도 위치가 와야 움직임 없음 알림이 화면이 꺼진 채로도 돎(2026-10-16 홍TV님 폰: 20분인데 30분째에 뜸) - 작은 움직임은 onFix 가 일찍 끝냄
                 function (loc, err) {
                     if (err) {
                         if (err.code === "NOT_AUTHORIZED" && confirm("위치 권한이 꺼져 있습니다. 설정을 열어 routefly 의 위치를 '앱 사용 중에만 허용' 으로 바꿀까요?")) {
@@ -1836,6 +1836,9 @@
         if (!c || !hike.running) return;
         var co = pos.coords, t = pos.timestamp || now();
         var acc = co.accuracy;
+        if (!hike.sim) stillTick();   // 화면이 꺼지면 render 타이머가 멈춰도 위치가 올 때마다 움직임 없음을 셈(앱 - 백그라운드 위치)
+        // 앞 위치에서 3m(배터리 절약 10m)도 안 움직였고 10초 안이면 나머지는 건너뜀(distanceFilter 0 이라 멈춰 있을 때도 1초마다 옴 - 배터리 · 계산)
+        if (!hike.sim && hike.fix && t - hike.fix.t < 10000 && RF.distM(hike.fix.lat, hike.fix.lon, co.latitude, co.longitude) < (batterySave ? 10 : 3)) return;   // 배터리 절약은 10m
         if (!hike.sim) {
             $("gps").className = acc != null && acc <= 30 ? "ok" : "";
             $("gps").textContent = "GPS ±" + (acc == null ? "?" : Math.round(acc)) + "m";
