@@ -30,6 +30,12 @@
 
     var $ = function (id) { return document.getElementById(id); };
     var num = RF.num, km = RF.km;
+    // 화면 말(2026-10-17 홍TV님 - 따라가기 영어): ?lang=en(영어 산 페이지에서 올 때) · 한/EN 단추로 바꾸면 이 기기에 기억(rf-lang)
+    var LANG = RF.pageLang(location.search, lsGet("rf-lang"));
+    if (/[?&]lang=(en|ko)\b/.test(location.search)) { try { localStorage.setItem("rf-lang", LANG); } catch (e) { /* 이번만 */ } }
+    var EN = LANG === "en", T = RF.tr, NM = RF.nameIn;   // T("한국어", "English"), NM(한글 이름) → 영어면 로마자
+    RF.setLang(LANG);
+    if (EN) { document.documentElement.lang = "en"; document.title = "routefly - Follow a trail"; RF.applyEn(document); }
 
     var map, mapReady, cfg;
     var c = null;              // 지금 코스
@@ -64,9 +70,9 @@
     /** 시작 버튼 · 기록 제목을 코스 종류에 맞춥니다. */
     function setKindWords() {
         var k = K();
-        if (!hike.running) $("go").textContent = k.act + " 시작";
-        $("doneTitle").textContent = k.act + " 기록";
-        $("sim").title = "코스를 따라 " + (k === RF.KINDS.bike ? "달리는" : "걷는") + " 흉내(GPS 없이 시험)";
+        if (!hike.running) $("go").textContent = T(k.act + " 시작", "Start " + k.act.toLowerCase());
+        $("doneTitle").textContent = T(k.act + " 기록", k.act + " record");
+        $("sim").title = T("코스를 따라 " + (k === RF.KINDS.bike ? "달리는" : "걷는") + " 흉내(GPS 없이 시험)", "Simulate " + (k === RF.KINDS.bike ? "riding" : "walking") + " the trail (test without GPS)");
     }
 
     function toast(text, ms) {
@@ -103,7 +109,7 @@
     /** 앱 - 파일을 앱 임시 폴더에 쓰고 공유 창으로(문자 · 카카오톡 · 파일 저장 …). */
     function nativeShareFile(name, base64, text) {
         return FS.writeFile({ path: name, data: base64, directory: "CACHE" }).then(function (r) {
-            return SHARE.share({ title: name, text: text || "", files: [r.uri], dialogTitle: "보내기" });
+            return SHARE.share({ title: name, text: text || "", files: [r.uri], dialogTitle: T("보내기", "Send") });
         });
     }
 
@@ -133,7 +139,7 @@
     function pickVoice() {
         if (!("speechSynthesis" in window)) return;
         var vs = speechSynthesis.getVoices();
-        voice.ko = vs.filter(function (v) { return /^ko/i.test(v.lang); })[0] || null;
+        voice.ko = vs.filter(function (v) { return (EN ? /^en/i : /^ko/i).test(v.lang); })[0] || null;   // 영어 화면은 영어 목소리
     }
     if ("speechSynthesis" in window) {
         pickVoice();
@@ -157,7 +163,7 @@
             else if (voice.busy) return;
             var my = voice.busy = (voice.busy || 0) + 1;
             if (DEBUG) console.info("[rf] say " + new Date().toTimeString().slice(0, 8) + " " + String(text).slice(0, 30));   // 실제로 말할 때만(gap · busy 로 건너뛴 것은 안 남김)
-            TTS.speak({ text: text, lang: "ko-KR", rate: 1.0, category: "playback" })
+            TTS.speak({ text: text, lang: EN ? "en-US" : "ko-KR", rate: 1.0, category: "playback" })
                 .catch(function () { /* 끊긴 말 */ })
                 .then(function () { if (voice.busy === my) voice.busy = 0; });
             return;
@@ -165,7 +171,7 @@
         if (opt.urgent) speechSynthesis.cancel();
         else if (speechSynthesis.speaking || speechSynthesis.pending) return;
         var u = new SpeechSynthesisUtterance(text);
-        u.lang = "ko-KR";
+        u.lang = EN ? "en-US" : "ko-KR";
         u.rate = 1.05;
         if (voice.ko) u.voice = voice.ko;
         speechSynthesis.speak(u);
@@ -176,7 +182,8 @@
         voice.on = level !== "off";
         try { localStorage.setItem(VOICE_KEY, level); } catch (e) { /* 저장 못 해도 이번에는 */ }
         $("voice").textContent = level === "on" ? "🔊" : level === "short" ? "🔉" : "🔇";
-        $("voice").setAttribute("aria-label", "음성 안내 " + (level === "on" ? "자세히" : level === "short" ? "짧게" : "꺼짐") + " - 누르면 바꿈");
+        $("voice").setAttribute("aria-label", EN ? "Voice guide " + (level === "on" ? "detailed" : level === "short" ? "short" : "off") + " - tap to change"
+            : "음성 안내 " + (level === "on" ? "자세히" : level === "short" ? "짧게" : "꺼짐") + " - 누르면 바꿈");
         $("voice").classList.toggle("on", voice.on);
         if (!voice.on) stopTalking();
     }
@@ -198,6 +205,7 @@
      *   → "지리산 천왕봉, 산오름에서 천왕봉을 거쳐 탐방지원센터까지". 둘이면 "A에서 B까지".
      */
     function spokenName(name) {
+        if (EN) return String(RF.nameIn(name) || "").replace(/\s*→\s*/g, " to ").replace(/ · /g, ", ");   // "Osaek to Daecheongbong"
         var parts = String(name || "").split(" · ");
         return parts.map(function (p) {
             var seg = p.split(/\s*→\s*/).map(function (x) { return x.trim(); }).filter(function (x) { return x; });
@@ -209,7 +217,7 @@
 
     /** 화면 거리 - 1km 미만은 m, 넘으면 km 한 자리(179.5km) */
     function distText(m) { return m < 1000 ? num(m) + "m" : skm(m) + "km"; }
-    function distSpoken(m) { return m < 1000 ? num(m) + "미터" : skm(m) + "킬로미터"; }
+    function distSpoken(m) { return EN ? (m < 1000 ? num(m) + " meters" : skm(m) + " kilometers") : m < 1000 ? num(m) + "미터" : skm(m) + "킬로미터"; }
 
     /** 출발점 이름표(없으면 null) */
     function startName() {
@@ -223,6 +231,7 @@
     /** "1시간 5분" · "40분" */
     function spokenTime(ms) {
         var m = Math.max(1, Math.round(ms / 60000)), h = Math.floor(m / 60);
+        if (EN) return ((h ? h + (h > 1 ? " hours " : " hour ") : "") + (m % 60 ? (m % 60) + (m % 60 > 1 ? " minutes" : " minute") : "")).trim();
         return (h ? h + "시간 " : "") + (m % 60 ? (m % 60) + "분" : "").trim();
     }
 
@@ -232,12 +241,15 @@
      */
     function passInfo(atD) {
         if (voice.level === "short") return "";
-        var out = "출발한 지 " + spokenTime(now() - hike.start) + ".";
+        var out = EN ? spokenTime(now() - hike.start) + " since start." : "출발한 지 " + spokenTime(now() - hike.start) + ".";
         var nx = RF.nextPoi(c, atD), nd = nx ? Math.min(+nx.dist_m, c.total) : c.total;
         if (nd - atD < 100) return out;   // 바로 앞이면 거리는 빼고
         var up = RF.ascentLeft(c, atD) - RF.ascentLeft(c, nd);
         // 구간 난이도(2026-10-16 홍TV님 - 📋 안내판과 같은 단계) - 등산 · 걷기, 쉬움 이상만(매우 쉬운 길까지 말하면 시끄러움)
         var sl = K() !== RF.KINDS.bike ? RF.slopeBetween(c, atD, nd) : null, lvSay = sl && sl.lv >= 1 ? ", " + RF.LEVELS[sl.lv].ko + " " + (sl.up ? "오르막" : "내리막") + " 구간, 경사 " + Math.round(sl.pct) + "퍼센트" : "";
+        if (EN) return out + " " + distSpoken(Math.round((nd - atD) / 10) * 10) + " to " + (!nx ? "the finish" : (nd < c.total - 60 ? "the next point, " : "") + NM(nx.name))
+            + (up >= 30 && K() !== RF.KINDS.bike ? ", climbing " + num(up) + " meters" : "")
+            + (sl && sl.lv >= 1 ? ", " + RF.LEVELS[sl.lv].en.toLowerCase() + " " + (sl.up ? "uphill" : "downhill") + ", " + Math.round(sl.pct) + " percent grade" : "") + ".";
         return out + " " + (!nx ? "도착" : nd < c.total - 60 ? "다음 " + nx.name : nx.name) + "까지 " + distSpoken(Math.round((nd - atD) / 10) * 10)
             + (up >= 30 && K() !== RF.KINDS.bike ? ", 오르막 " + num(up) + "미터" : "") + lvSay + "입니다.";
     }
@@ -269,7 +281,8 @@
                 if (ele == null && q.ele_m != null) ele = +q.ele_m;
                 far = Math.max(far, +q.dist_m);
             });
-            say((names.join(", ") + "입니다." + (ele != null ? " 해발 " + num(ele) + "미터." : "") + " " + passInfo(far)).trim());
+            say(EN ? (names.map(NM).join(", ") + "." + (ele != null ? " Elevation " + num(ele) + " meters." : "") + " " + passInfo(far)).trim()
+                : (names.join(", ") + "입니다." + (ele != null ? " 해발 " + num(ele) + "미터." : "") + " " + passInfo(far)).trim());
         }
         // 거리 이정
         var step = K() === RF.KINDS.bike ? 5000 : 1000;
@@ -277,7 +290,9 @@
         if (c.total > step * 1.5 && k > hike.kmSpoken && c.total - d > 300) {
             hike.kmSpoken = k;
             var asc = RF.ascentLeft(c, d);
-            say(num(k * step / 1000) + "킬로미터 지났습니다. " + (voice.level === "short" ? "" : "출발한 지 " + spokenTime(now() - hike.start) + ". ") + "남은 거리 " + skm(c.total - d) + "킬로미터"
+            if (EN) say(num(k * step / 1000) + " kilometers done. " + (voice.level === "short" ? "" : spokenTime(now() - hike.start) + " since start. ") + skm(c.total - d) + " kilometers to go"
+                + (asc >= 50 && K() !== RF.KINDS.bike ? ", " + num(asc) + " meters of climbing left." : ".") + (paceDiff() != null ? " " + RF.paceText(paceDiff()) + "." : ""));
+            else say(num(k * step / 1000) + "킬로미터 지났습니다. " + (voice.level === "short" ? "" : "출발한 지 " + spokenTime(now() - hike.start) + ". ") + "남은 거리 " + skm(c.total - d) + "킬로미터"
                 + (asc >= 50 && K() !== RF.KINDS.bike ? ", 남은 오르막 " + num(asc) + "미터." : ".")
                 + (paceDiff() != null ? " " + RF.paceText(paceDiff()).replace("빠름", "빠릅니다.").replace("늦음", "늦습니다.").replace("비슷", "비슷합니다.") : ""));
         }
@@ -299,7 +314,7 @@
         var v = prompt(msg, String(cur));
         if (v == null) return null;
         var n = parseFloat(String(v).replace(/[^0-9.]/g, ""));
-        if (!isFinite(n) || n < min || n > max) { toast(min + " ~ " + max + " 사이로 넣어 주세요."); return null; }
+        if (!isFinite(n) || n < min || n > max) { toast(T(min + " ~ " + max + " 사이로 넣어 주세요.", "Enter a number from " + min + " to " + max + ".")); return null; }
         return Math.round(n);
     }
 
@@ -353,6 +368,7 @@
     }
 
     function dirWord(b) {
+        if (EN) return ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"][Math.round(b / 45) % 8];
         return ["북", "북동", "동", "남동", "남", "남서", "서", "북서"][Math.round(b / 45) % 8] + "쪽";
     }
 
@@ -408,10 +424,10 @@
             map.setPaintProperty("trails", "line-color", light ? "#8a6d00" : "#ffe8a3");
         }
         $("layerBtn").textContent = light ? "🛰️" : "🗺️";
-        $("layerBtn").setAttribute("aria-label", light ? "위성사진으로" : "밝은 지도로");
-        $("layerBtn").title = light ? "위성사진으로" : "밝은 지도로(햇빛 아래에서 잘 보임)";
+        $("layerBtn").setAttribute("aria-label", light ? T("위성사진으로", "Satellite view") : T("밝은 지도로", "Light map"));
+        $("layerBtn").title = light ? T("위성사진으로", "Satellite view") : T("밝은 지도로(햇빛 아래에서 잘 보임)", "Light map (easier to see in sunlight)");
         document.body.classList.toggle("lightmap", light);
-        if (!quiet) toast(light ? "밝은 지도" : "위성사진", 1500);
+        if (!quiet) toast(light ? T("밝은 지도", "Light map") : T("위성사진", "Satellite"), 1500);
     }
 
     function progressGradient(p) {
@@ -520,11 +536,11 @@
         var top = RF.summitIndex(groups.map(function (g) { return { name: g.lead.name, names: g.names, ele_m: g.lead.ele_m }; }), c.course.name);
         var list = groups.map(function (g, gi) {
             var more = g.names.slice(1, 3);
-            if (g.names.length > 3) more[1] += " 외 " + (g.names.length - 3);
+            if (g.names.length > 3) more[1] += T(" 외 ", " +") + (g.names.length - 3);
             return { name: g.lead.name, lon: +g.lead.lon, lat: +g.lead.lat, d: +g.lead.dist_m, more: more, top: gi === top };
         });
-        if (!hasStart) list.unshift({ name: "출발", lon: c.lon[0], lat: c.lat[0], d: 0, more: [] });
-        if (!hasEnd) list.push({ name: "도착", lon: c.lon[n], lat: c.lat[n], d: c.total, more: [] });
+        if (!hasStart) list.unshift({ name: T("출발", "Start"), lon: c.lon[0], lat: c.lat[0], d: 0, more: [] });
+        if (!hasEnd) list.push({ name: T("도착", "Finish"), lon: c.lon[n], lat: c.lat[n], d: c.total, more: [] });
         drawCourse.pois = [];
         list.forEach(function (q) {
             var e = document.createElement("div");
@@ -532,7 +548,7 @@
             e.innerHTML = '<div class="lb"></div><div class="ic"></div>';
             var lb = e.querySelector(".lb");
             RF.nameNodes(lb, q.name);   // 탐방지원센터는 작은 글씨
-            q.more.forEach(function (nm) { var m = document.createElement("span"); m.className = "more"; m.textContent = nm; lb.appendChild(m); });
+            q.more.forEach(function (nm) { var m = document.createElement("span"); m.className = "more"; m.textContent = NM(nm); lb.appendChild(m); });
             e.querySelector(".ic").textContent = RF.poiIcon(q.name);
             drawCourse.pois.push({ el: e, d: q.d, end: q.d < 60 || q.d > c.total - 60, top: !!q.top });
             ms.push(new maplibregl.Marker({ element: e, anchor: "bottom", offset: [0, 11] }).setLngLat([q.lon, q.lat]).addTo(map));
@@ -678,15 +694,15 @@
     $("gpxFile").addEventListener("change", function () {
         var f = this.files && this.files[0];
         if (!f) return;
-        if (f.size > 5 * 1024 * 1024) { toast("GPX 가 너무 큽니다(5MB 까지).", 5000); return; }
+        if (f.size > 5 * 1024 * 1024) { toast(T("GPX 가 너무 큽니다(5MB 까지).", "The GPX file is too big (5 MB max)."), 5000); return; }
         f.text().then(function (text) {
             var api = RF.gpxToApi(text, f.name), id = gpxId(text);
             storeGpx(id, api);
-            toast("GPX 를 열었습니다 - " + api.course.name + " · " + km(api.points[api.points.length - 1][3]) + "km"
-                + (api.pois.length ? " · 지점 " + api.pois.length + "개" : ""), 5000);
+            toast(T("GPX 를 열었습니다 - ", "Opened GPX - ") + NM(api.course.name) + " · " + km(api.points[api.points.length - 1][3]) + "km"
+                + (api.pois.length ? T(" · 지점 " + api.pois.length + "개", " · " + api.pois.length + " points") : ""), 5000);
             location.hash = "c=" + encodeURIComponent(id);
         }).catch(function (e) {
-            toast("GPX 를 열지 못했습니다: " + (e && e.message || e), 6000);
+            toast(T("GPX 를 열지 못했습니다: ", "Could not open the GPX: ") + (e && e.message || e), 6000);
         });
     });
 
@@ -785,7 +801,7 @@
             var fire = RF.fireNote(Date.now()), today0 = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
             try { if (fire && localStorage.getItem("rf-fire") !== today0) { localStorage.setItem("rf-fire", today0); setTimeout(function () { toast(fire, 9000); }, 7000); } } catch (e) { /* 이번만 */ }
             document.title = RF.nameText(c.course.name, true);   // 길만 - "- routefly" 를 붙이면 탭 · 최근 앱 목록에서 잘림(2026-10-12 홍TV님)
-            if ((parts ? r[0] : [r[0]]).some(function (j) { return j && j.course && RF.isClosedTrail(j.course.name); })) toast("⚠ 비법정탐방로(통제구역)입니다. 국립공원 지정 탐방로가 아니라 출입이 금지된 길이니 따라가지 마세요.", 12000);   // 링크로 바로 연 경우(목록에는 안 나옴)
+            if ((parts ? r[0] : [r[0]]).some(function (j) { return j && j.course && RF.isClosedTrail(j.course.name); })) toast(T("⚠ 비법정탐방로(통제구역)입니다. 국립공원 지정 탐방로가 아니라 출입이 금지된 길이니 따라가지 마세요.", "⚠ Closed trail (restricted area). This is not an official national park trail and entry is banned - do not follow it."), 12000);   // 링크로 바로 연 경우(목록에는 안 나옴)
             else if (RF.infoText(c.info)) toast(RF.infoText(c.info), 6000);   // 국립공원 공식 코스 - 공단 기준 시간 · 난이도
             // 그 산의 입산 · 통제 · 예약(data/park-notes.json - 2026-10-12 한라산: 오늘 계절 · 이 코스의 통제 지점 시각)
             // 코스 이름은 받은 그대로(자르거나 이은 코스도 원래 이름 - "성판악 탐방로")
@@ -799,7 +815,7 @@
                 // 공단 교통편(park-notes access - 2026-10-14 홍TV님: 가야산1코스 치인대형주차장 → 토신골탐방지원센터). 이은 코스는 첫 코스 것
                 var acc = RF.courseAccess(d.parks, String(id).split(",")[0].replace(/[~@].*$/, ""));
                 if (acc) {
-                    $("accessCar").textContent = acc.car ? "🚗 " + acc.car : "";
+                    $("accessCar").textContent = acc.car ? "🚗 " + NM(acc.car) : "";
                     $("accessLink").hidden = !acc.url;
                     if (acc.url) $("accessLink").href = acc.url;
                     $("access").hidden = false;
@@ -816,7 +832,7 @@
                 if (n.ele) (c.pois || []).forEach(function (q) { if (n.ele[q.name] != null) q.ele_m = n.ele[q.name]; });   // 바로잡은 높이(천왕봉 1,915m)
                 if (!n.short) return;
                 rules = RF.parkRules(n, rawNames.concat([c.course.name]), new Date());
-                toast("⚠ " + noteOf + " " + (RF.rulesText(rules) || n.short), 12000);
+                toast("⚠ " + NM(noteOf) + " " + (RF.rulesText(rules) || (EN ? "Check entry rules and closures on the park website." : n.short)), 12000);
             }).catch(function () { /* 안내 없이 */ });
             // 국립공원 코스면 공원 전체 보기(🏞) - 그 공원 공식 탐방로 전체 · 공식 안내도 바로가기
             var park = RF.parkOf(c.course.name) || RF.mountainOf(c.course.name, id)   // 국립공원, 아니면 도립 · 군립공원 · 산
@@ -838,7 +854,7 @@
             drawCourse();
             prof = RF.profile($("profile"), c, {});
             boardBtn();
-            $("save").textContent = offlineIds().indexOf(id) >= 0 ? "✅ 저장됨" : "📥 저장";
+            $("save").textContent = offlineIds().indexOf(id) >= 0 ? T("✅ 저장됨", "✅ Saved") : T("📥 저장", "📥 Save");
             // 이름 없이 저장된 예전 코스 - 열 때 이름을 채움(첫 화면 저장 목록)
             if (offlineIds().indexOf(id) >= 0 && !offlineNames()[id]) setOfflineName(id, { name: String(c.course.name || ""), dist: Math.round(c.total || 0) });
             // 이 기기에 남은 산행 기록(새로 고침 · 화면 꺼짐 뒤에도 이어서)
@@ -848,18 +864,18 @@
             if (saved && saved.t && Date.now() - saved.t < RESUME_MS && safetyOk()) {
                 // 길찾기 · 전화 등으로 나갔다가 화면이 다시 열림 - 기다리지 않고 바로 이어서 안내
                 start(false);
-                toast("진행 중이던 " + K().act + "을 이어서 안내합니다(" + km(saved.d) + "km).", 5000);
+                toast(T("진행 중이던 " + K().act + "을 이어서 안내합니다(" + km(saved.d) + "km).", "Resuming your " + K().act.toLowerCase() + " (" + km(saved.d) + " km)."), 5000);
             } else if (saved) {
-                $("go").textContent = "이어서 " + K().act;
-                toast("진행 중이던 기록이 있습니다(" + km(saved.d) + "km). \"이어서 " + K().act + "\" 버튼을 누르세요.", 5000);
+                $("go").textContent = T("이어서 " + K().act, "Resume " + K().act.toLowerCase());
+                toast(T("진행 중이던 기록이 있습니다(" + km(saved.d) + "km). \"이어서 " + K().act + "\" 버튼을 누르세요.", "You have an unfinished " + K().act.toLowerCase() + " (" + km(saved.d) + " km). Tap \"Resume\"."), 5000);
             }
         }).catch(function (e) {
             if (my !== loadSeq) return;
             // 배치를 다시 돌려 코스 번호가 바뀐 예전 링크 · 기록 - 같은 산 코스를 골라 보여 줍니다
             var similar = e.data && e.data.similar || [];
             showPick(similar.length > 0);   // 같은 산 목록을 보여 줄 때는 마지막 검색을 다시 하지 않습니다(늦게 온 검색이 덮어씀)
-            if (similar.length) { pickSeq++; listCourses(similar, null, "이 코스는 자료가 새로 바뀌어 번호가 달라졌습니다. 같은 산의 코스에서 골라 주세요."); }
-            else toast("코스를 불러오지 못했습니다: " + e.message, 6000);
+            if (similar.length) { pickSeq++; listCourses(similar, null, T("이 코스는 자료가 새로 바뀌어 번호가 달라졌습니다. 같은 산의 코스에서 골라 주세요.", "This trail's data was updated and its number changed. Pick it again from this mountain's trails.")); }
+            else toast(T("코스를 불러오지 못했습니다: ", "Could not load the trail: ") + e.message, 6000);
         });
     }
 
@@ -938,7 +954,7 @@
         try {
             localStorage.setItem(saveKey() + "-track", JSON.stringify(hike.track));
         } catch (e) {   // 공간이 모자라도 산행은 계속 - 한 번만 알립니다
-            if (!hike.trackFull) { hike.trackFull = true; toast("핸드폰 저장 공간이 모자라 걸은 길을 저장하지 못했습니다. 내 기록에서 지난 기록을 지워 주세요.", 7000); }
+            if (!hike.trackFull) { hike.trackFull = true; toast(T("핸드폰 저장 공간이 모자라 걸은 길을 저장하지 못했습니다. 내 기록에서 지난 기록을 지워 주세요.", "Phone storage is full, so your track could not be saved. Delete old records in My records."), 7000); }
         }
     }
 
@@ -984,7 +1000,7 @@
             try {
                 localStorage.setItem(REC_LS, JSON.stringify(recCache));
             } catch (e) {
-                toast("핸드폰 저장 공간이 모자라 기록을 저장하지 못했습니다. 지난 기록을 GPX 로 보내 두고 지워 주세요.", 8000);
+                toast(T("핸드폰 저장 공간이 모자라 기록을 저장하지 못했습니다. 지난 기록을 GPX 로 보내 두고 지워 주세요.", "Phone storage is full, so the record could not be saved. Export old records as GPX and delete them."), 8000);
             }
         });
     }
@@ -1021,7 +1037,7 @@
             + "-" + String(rec.courseId || "track").replace(/[^\w.-]/g, "_") + ".gpx";   // 파일 이름에 / · .. 이 들어가지 않게(앱 저장 경로)
         if (FS && SHARE) {   // 앱 - 공유 창으로(파일 저장 · 다른 앱으로 보내기)
             nativeShareFile(name, btoa(unescape(encodeURIComponent(toGpx(rec)))), rec.name)
-                .catch(function (e) { toast("GPX 를 보내지 못했습니다: " + (e && e.message || e), 5000); });
+                .catch(function (e) { toast(T("GPX 를 보내지 못했습니다: ", "Could not send the GPX: ") + (e && e.message || e), 5000); });
             return;
         }
         // 핸드폰 브라우저 - 공유 창(카카오톡 · 메일 · 드라이브 · 다른 등산 앱 …). 브라우저마다 받는 파일 종류가 달라 되는 것으로
@@ -1034,7 +1050,7 @@
             });
         }
         if (file) {
-            navigator.share({ files: [file], title: rec.name, text: rec.name + " - routefly 기록" }).catch(function (e) {
+            navigator.share({ files: [file], title: NM(rec.name), text: NM(rec.name) + T(" - routefly 기록", " - routefly record") }).catch(function (e) {
                 if (e && e.name === "AbortError") return;   // 사용자가 닫음
                 saveFile(text, name);   // 공유가 막히면 내려받기로
             });
@@ -1063,7 +1079,7 @@
         g.font = "30px sans-serif"; g.fillStyle = "#9aa6b4"; g.textAlign = "right";
         g.fillText(d.getFullYear() + "." + (d.getMonth() + 1) + "." + d.getDate(), W - P, P + 30);
         g.textAlign = "left"; g.font = "bold 52px sans-serif"; g.fillStyle = "#ffffff";
-        g.fillText(String(rec.name || ""), P, P + 120, W - P * 2);   // 산 이름까지(가야산 · 해인사 → 상왕봉)
+        g.fillText(String(NM(rec.name) || ""), P, P + 120, W - P * 2);   // 산 이름까지(가야산 · 해인사 → 상왕봉)
         // 지나온 선
         var top = P + 160, boxH = 640;
         var pts = RF.fitPath(rc.lat, rc.lon, W - P * 2, boxH, 30);
@@ -1082,9 +1098,9 @@
         }
         // 숫자
         var eles = rc.ele.filter(function (e) { return e != null; });
-        var stats = [["거리", km(rec.walked) + " km"], ["시간", RF.hm(rec.end - rec.start, true)]]
-            .concat(rec.up != null ? [["오른 높이", num(rec.up) + " m"]] : [])
-            .concat(eles.length ? [["가장 높은 곳", num(Math.max.apply(null, eles)) + " m"]] : []);
+        var stats = [[T("거리", "Distance"), km(rec.walked) + " km"], [T("시간", "Time"), RF.hm(rec.end - rec.start, true)]]
+            .concat(rec.up != null ? [[T("오른 높이", "Climb"), num(rec.up) + " m"]] : [])
+            .concat(eles.length ? [[T("가장 높은 곳", "Highest"), num(Math.max.apply(null, eles)) + " m"]] : []);
         var sy = top + boxH + 70, cw = (W - P * 2) / stats.length;
         stats.forEach(function (s, i) {
             var x = P + cw * i;
@@ -1101,27 +1117,27 @@
             g.fillStyle = "rgba(56,217,234,0.18)"; g.fill();
         }
         g.font = "26px sans-serif"; g.fillStyle = "#6f7c8a";
-        g.fillText("routefly - 등산 · 걷기 · 자전거 코스", P, H - P + 20);
+        g.fillText(T("routefly - 등산 · 걷기 · 자전거 코스", "routefly - hiking · walking · cycling trails in Korea"), P, H - P + 20);
         return cv;
     }
 
     /** 카드를 공유 창으로(앱은 공유 창, 브라우저는 navigator.share - 안 되면 내려받기). */
     function shareCard(rec) {
-        shareCanvas(recordCard(rec), "routefly-" + stamp(rec.start) + ".png", rec.name + " - routefly");
+        shareCanvas(recordCard(rec), "routefly-" + stamp(rec.start) + ".png", NM(rec.name) + " - routefly");
     }
     /** 그림을 공유 창으로(기록 카드 · 결산 카드). */
     function shareCanvas(cv, name, text) {
         cv.toBlob(function (blob) {
-            if (!blob) { toast("카드를 만들지 못했습니다.", 3000); return; }
+            if (!blob) { toast(T("카드를 만들지 못했습니다.", "Could not make the card."), 3000); return; }
             if (FS && SHARE) {
                 blobToBase64(blob).then(function (b64) { return nativeShareFile(name, b64, text); })
-                    .catch(function (e) { if (!/cancel/i.test(String(e && e.message || e))) toast("카드를 보내지 못했습니다.", 4000); });
+                    .catch(function (e) { if (!/cancel/i.test(String(e && e.message || e))) toast(T("카드를 보내지 못했습니다.", "Could not send the card."), 4000); });
                 return;
             }
             var file = new File([blob], name, { type: "image/png" });
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
                 navigator.share({ files: [file], text: text }).catch(function (e) {
-                    if (e && e.name === "NotAllowedError") toast("카드가 준비됐습니다. 한 번 더 눌러 주세요.", 4000);
+                    if (e && e.name === "NotAllowedError") toast(T("카드가 준비됐습니다. 한 번 더 눌러 주세요.", "The card is ready. Tap once more."), 4000);
                 });
                 return;
             }
@@ -1163,9 +1179,9 @@
         if (!due.length) return;
         due.forEach(function (p) { have[RF.peakKey(p)] = { name: p.id || p.name, t: Date.now(), course: c ? c.id : null }; });
         saveMap(PEAKS, have);
-        var names = due.map(function (p) { return (p.id || p.name) + (p.summit && p.summit !== p.name ? " " + p.summit : ""); }).join(" · ");
-        toast("⛰️ " + names + " 정상 도장을 찍었습니다 (100대 명산 " + Object.keys(have).length + "곳)", 7000);
-        say(names + " 정상 도장을 찍었습니다.");
+        var names = due.map(function (p) { return NM((p.id || p.name) + (p.summit && p.summit !== p.name ? " " + p.summit : "")); }).join(" · ");
+        toast(EN ? "⛰️ Summit stamp: " + names + " (100 Famous Mountains: " + Object.keys(have).length + ")" : "⛰️ " + names + " 정상 도장을 찍었습니다 (100대 명산 " + Object.keys(have).length + "곳)", 7000);
+        say(EN ? "Summit stamp collected, " + names + "." : names + " 정상 도장을 찍었습니다.");
         if (navigator.vibrate) navigator.vibrate([100, 60, 100, 60, 200]);
         showSummitCard(due[0]);
     }
@@ -1188,9 +1204,9 @@
         if (!due.length) return;
         due.forEach(function (p) { have[RF.stampKey(p.name)] = { name: p.name, t: Date.now(), course: c.id }; });
         saveMap(STAMPS, have);
-        var names = due.map(function (p) { return p.name; }).join(" · ");
-        toast("📮 " + names + " 도장을 찍었습니다 (모두 " + Object.keys(have).length + "곳)", 7000);
-        say(names + " 도장을 찍었습니다.");
+        var names = due.map(function (p) { return NM(p.name); }).join(" · ");
+        toast(EN ? "📮 Stamp collected: " + names + " (" + Object.keys(have).length + " in total)" : "📮 " + names + " 도장을 찍었습니다 (모두 " + Object.keys(have).length + "곳)", 7000);
+        say(EN ? "Stamp collected, " + names + "." : names + " 도장을 찍었습니다.");
         if (navigator.vibrate) navigator.vibrate([100, 60, 100, 60, 200]);
     }
 
@@ -1226,12 +1242,12 @@
         addLog([RF.logEntry(rec)]);   // 30개 밖으로 밀려난 기록의 사진
         var sum = $("doneSum");
         sum.innerHTML = "";
-        [["코스", rec.name], ["걸은 거리", km(rec.walked) + " km"], ["코스 진행", km(rec.done) + " / " + km(c.total) + " km"],
-         ["걸린 시간", hhmmss(rec.end - rec.start)], ["오른 높이", num(rec.up) + " m"],
-         ["칼로리(추정)", num(rec.kcal) + " kcal · " + body.kg + "kg 기준"]]
-            .concat(rec.steps != null ? [["걸음(추정)", num(rec.steps) + " 보"]] : [])
-            .concat([["기록 점", rec.track.length + "개"]])
-            .concat(rec.notes ? [["사진 · 메모", rec.notes.filter(function (n) { return n.photo; }).length + "장 · " + rec.notes.filter(function (n) { return n.text; }).length + "개"]] : [])
+        [[T("코스", "Trail"), NM(rec.name)], [T("걸은 거리", "Walked"), km(rec.walked) + " km"], [T("코스 진행", "Trail progress"), km(rec.done) + " / " + km(c.total) + " km"],
+         [T("걸린 시간", "Time"), hhmmss(rec.end - rec.start)], [T("오른 높이", "Climb"), num(rec.up) + " m"],
+         [T("칼로리(추정)", "Calories (est.)"), num(rec.kcal) + " kcal · " + body.kg + T("kg 기준", " kg body weight")]]
+            .concat(rec.steps != null ? [[T("걸음(추정)", "Steps (est.)"), num(rec.steps) + T(" 보", "")]] : [])
+            .concat([[T("기록 점", "Track points"), rec.track.length + T("개", "")]])
+            .concat(rec.notes ? [[T("사진 · 메모", "Photos · notes"), rec.notes.filter(function (n) { return n.photo; }).length + T("장 · ", " · ") + rec.notes.filter(function (n) { return n.text; }).length + T("개", "")]] : [])
             .forEach(function (r) {
             var row = document.createElement("div"), a = document.createElement("span"), b = document.createElement("b");
             a.textContent = r[0]; b.textContent = r[1];
@@ -1239,10 +1255,11 @@
         });
         $("doneGpx").onclick = function () { downloadGpx(rec); };
         $("doneCard").onclick = function () { shareCard(rec); };
-        $("doneGpx").textContent = canShareFiles() ? "📤 GPX 보내기" : "GPX 저장";
+        $("doneGpx").textContent = canShareFiles() ? T("📤 GPX 보내기", "📤 Send GPX") : T("GPX 저장", "Save GPX");
         $("doneSheet").style.display = "flex";
         getJson("api/partners").then(function (p) {   // 후원 링크(설정에 있을 때만 - 2026-10-15)
-            if (p && /^https:\/\//.test(p.donate || "")) { $("doneDonate").href = p.donate; $("doneDonate").hidden = false; }
+            var dn = EN ? p && p.donateEn : p && p.donate;   // 영어 화면은 PayPal(donate.en.url)
+            if (/^https:\/\//.test(dn || "")) { $("doneDonate").href = dn; $("doneDonate").hidden = false; }
         }).catch(function () { /* 없이 */ });
     }
 
@@ -1279,7 +1296,7 @@
         ysel.textContent = "";
         Object.keys(years).map(Number).sort(function (a, b) { return b - a; }).forEach(function (y) {
             var o = document.createElement("option");
-            o.value = y; o.textContent = y + "년"; o.selected = y === sumYear;
+            o.value = y; o.textContent = y + T("년", ""); o.selected = y === sumYear;
             ysel.appendChild(o);
         });
         ysel.hidden = sumKind === "year";
@@ -1291,20 +1308,23 @@
             var row = document.createElement("div"), info = document.createElement("div"), b = document.createElement("b"), sp = document.createElement("span");
             row.className = "rec";
             b.textContent = r.label.replace(/^\d+년 (?=\d)/, "");
-            sp.textContent = r.n ? r.n + "번 · " + km(r.walked) + "km · 오른 높이 " + num(r.up) + "m · " + RF.hm(r.ms, true)
+            sp.textContent = EN ? (r.n ? r.n + (r.n > 1 ? " hikes · " : " hike · ") + km(r.walked) + " km · climb " + num(r.up) + " m · " + RF.hm(r.ms, true)
+                + " · " + r.courses + " trails" + (r.peaks ? " · 100 Famous Mountains " + r.peaks : "") : (r.peaks ? "100 Famous Mountains " + r.peaks : "No hikes"))
+                : r.n ? r.n + "번 · " + km(r.walked) + "km · 오른 높이 " + num(r.up) + "m · " + RF.hm(r.ms, true)
                 + " · 코스 " + r.courses + "곳" + (r.peaks ? " · 100대 명산 " + r.peaks + "곳" : "") : (r.peaks ? "100대 명산 " + r.peaks + "곳" : "산행 없음");
             info.appendChild(b); info.appendChild(sp);
             row.appendChild(info);
             if (r.n || r.peaks) {
                 var cb = document.createElement("button");
                 cb.textContent = "🖼";
-                cb.title = r.label + " 결산 카드 공유";
+                cb.title = r.label + T(" 결산 카드 공유", " summary card - share");
                 cb.onclick = function () { summaryCardShare(r); };
                 row.appendChild(cb);
             }
             box.appendChild(row);
         });
-        $("sumNote").textContent = "기록은 끝낸 산행마다 이 핸드폰에 쌓입니다(" + log.length + "번). 백업 파일에도 들어갑니다. 100대 명산은 그 기간에 처음 도장을 찍은 산 수입니다.";
+        $("sumNote").textContent = T("기록은 끝낸 산행마다 이 핸드폰에 쌓입니다(" + log.length + "번). 백업 파일에도 들어갑니다. 100대 명산은 그 기간에 처음 도장을 찍은 산 수입니다.",
+            "Every finished hike is kept on this phone (" + log.length + " so far) and included in backups. 100 Famous Mountains counts mountains first stamped in that period.");
     }
 
     /** 결산 카드 그림(1080 × 1350) - 숫자 + 100대 명산 점 지도(그 기간 끝까지 다녀온 곳 주황). */
@@ -1317,9 +1337,9 @@
         g.textAlign = "left";
         g.font = "bold 44px sans-serif"; g.fillStyle = "#e9eef4"; g.fillText("route", P, P + 30);
         g.fillStyle = "#ffb703"; g.fillText("fly", P + g.measureText("route").width, P + 30);
-        g.font = "bold 64px sans-serif"; g.fillStyle = "#ffffff"; g.fillText(r.label + " 산행 결산", P, P + 140, W - P * 2);
-        var stats = [["산행", r.n + "번"], ["거리", km(r.walked) + " km"], ["오른 높이", num(r.up) + " m"], ["걸은 시간", RF.hm(r.ms, true)],
-                     ["코스", r.courses + "곳"], ["100대 명산", "+" + r.peaks + "곳"]];
+        g.font = "bold 64px sans-serif"; g.fillStyle = "#ffffff"; g.fillText(r.label + T(" 산행 결산", " hiking summary"), P, P + 140, W - P * 2);
+        var stats = [[T("산행", "Hikes"), r.n + T("번", "")], [T("거리", "Distance"), km(r.walked) + " km"], [T("오른 높이", "Climb"), num(r.up) + " m"], [T("걸은 시간", "Time"), RF.hm(r.ms, true)],
+                     [T("코스", "Trails"), r.courses + T("곳", "")], [T("100대 명산", "100 Famous Mts"), "+" + r.peaks + T("곳", "")]];
         stats.forEach(function (s, i) {
             var x = P + (i % 3) * ((W - P * 2) / 3), y = P + 250 + Math.floor(i / 3) * 150;
             g.font = "30px sans-serif"; g.fillStyle = "#9aa6b4"; g.fillText(s[0], x, y);
@@ -1333,14 +1353,14 @@
                 g.fillStyle = d.on ? "#ffb703" : "#4a5562"; g.fill();
                 if (d.on) { got++; g.lineWidth = 3; g.strokeStyle = "#fff"; g.stroke(); }
             });
-            g.font = "28px sans-serif"; g.fillStyle = "#9aa6b4"; g.fillText("100대 명산 " + got + " / " + pts.length + "곳", P + 20, top + 44);
+            g.font = "28px sans-serif"; g.fillStyle = "#9aa6b4"; g.fillText(T("100대 명산 ", "100 Famous Mountains ") + got + " / " + pts.length + T("곳", ""), P + 20, top + 44);
         }
         g.font = "26px sans-serif"; g.fillStyle = "#6f7c8a";
-        g.fillText("routefly - 등산 · 걷기 · 자전거 코스", P, H - P + 20);
+        g.fillText(T("routefly - 등산 · 걷기 · 자전거 코스", "routefly - hiking · walking · cycling trails in Korea"), P, H - P + 20);
         return cv;
     }
     function summaryCardShare(r) {
-        var go = function (pts) { shareCanvas(summaryCard(r, pts), "routefly-" + r.label.replace(/[^0-9a-zA-Z가-힣]+/g, "") + ".png", r.label + " 산행 결산 - routefly"); };
+        var go = function (pts) { shareCanvas(summaryCard(r, pts), "routefly-" + r.label.replace(/[^0-9a-zA-Z가-힣]+/g, "") + ".png", r.label + T(" 산행 결산 - routefly", " hiking summary - routefly")); };
         if (peakPts) { go(peakPts); return; }
         fetch("data/mountains100.json").then(function (x) { return x.json(); }).then(function (j) {
             var have = loadMap(PEAKS);
@@ -1354,28 +1374,28 @@
         box.innerHTML = "";
         drawRecStats(list);
         if (!list.length) {
-            box.innerHTML = '<p class="tip">아직 기록이 없습니다. 시작했다가 "끝내기" 를 누르면 남습니다.</p>';
+            box.innerHTML = T('<p class="tip">아직 기록이 없습니다. 시작했다가 "끝내기" 를 누르면 남습니다.</p>', '<p class="tip">No records yet. Start a hike and tap "Finish" to save one.</p>');
         }
         list.forEach(function (r, i) {
             var row = document.createElement("div");
             row.className = "rec";
             var info = document.createElement("div"), b = document.createElement("b"), sp = document.createElement("span");
-            b.textContent = r.name;
+            b.textContent = NM(r.name);
             var d = new Date(r.start);
             sp.textContent = d.getFullYear() + "." + (d.getMonth() + 1) + "." + d.getDate() + " · " + km(r.walked) + "km · " + hhmmss(r.end - r.start)
-                + (r.kcal != null ? " · " + num(r.kcal) + "kcal" : "") + (r.steps != null ? " · " + num(r.steps) + "보" : "");
+                + (r.kcal != null ? " · " + num(r.kcal) + "kcal" : "") + (r.steps != null ? " · " + num(r.steps) + T("보", " steps") : "");
             info.appendChild(b); info.appendChild(sp);
-            var g = document.createElement("button"); g.textContent = canShareFiles() ? "📤 GPX" : "GPX"; g.title = "GPX 파일 보내기 · 저장"; g.onclick = function () { downloadGpx(r); };
+            var g = document.createElement("button"); g.textContent = canShareFiles() ? "📤 GPX" : "GPX"; g.title = T("GPX 파일 보내기 · 저장", "Send or save GPX file"); g.onclick = function () { downloadGpx(r); };
             if (r.notes && r.notes.length) {
-                var nb = document.createElement("button"); nb.textContent = "📝 " + r.notes.length; nb.title = "사진 · 메모 보기";
+                var nb = document.createElement("button"); nb.textContent = "📝 " + r.notes.length; nb.title = T("사진 · 메모 보기", "View photos · notes");
                 nb.onclick = function () { showNotes(r); };
                 row.appendChild(info); info = null; row.appendChild(nb);
             }
-            var v = document.createElement("button"); v.textContent = "📈"; v.title = "고도 그래프 · 지도에 보기";
+            var v = document.createElement("button"); v.textContent = "📈"; v.title = T("고도 그래프 · 지도에 보기", "Elevation chart · show on map");
             v.onclick = function () { showRecord(r); };
-            var x = document.createElement("button"); x.textContent = "지우기";
+            var x = document.createElement("button"); x.textContent = T("지우기", "Delete");
             x.onclick = function () {
-                if (!confirm("이 기록을 지울까요?")) return;
+                if (!confirm(T("이 기록을 지울까요?", "Delete this record?"))) return;
                 var l = records(); l.splice(i, 1);
                 writeRecords(l).then(gcPhotos);
                 drawRecords();
@@ -1392,10 +1412,13 @@
         var box = $("recStats"), y = new Date(now() + 9 * 3600000).getUTCFullYear(), sy = RF.recordStats(list, y), sa = RF.recordStats(list);
         box.innerHTML = "";
         box.hidden = !list.length;
-        var hrs = function (ms) { var m = Math.round(ms / 60000); return (m >= 60 ? Math.floor(m / 60) + "시간 " : "") + m % 60 + "분"; };
-        [["올해(" + y + ")", sy.n + "번 · " + km(sy.walked) + " km · 오른 높이 " + num(sy.up) + " m"],
+        var hrs = function (ms) { return RF.hm(ms); };
+        (EN ? [["This year (" + y + ")", sy.n + " hikes · " + km(sy.walked) + " km · climb " + num(sy.up) + " m"],
+         ["Time this year", hrs(sy.ms) + " · " + sy.courses + " trails"],
+         ["All saved records", sa.n + " hikes · " + km(sa.walked) + " km · " + sa.courses + " trails"]]
+        : [["올해(" + y + ")", sy.n + "번 · " + km(sy.walked) + " km · 오른 높이 " + num(sy.up) + " m"],
          ["올해 걸은 시간", hrs(sy.ms) + " · 코스 " + sy.courses + "곳"],
-         ["남은 기록 전체", sa.n + "번 · " + km(sa.walked) + " km · 코스 " + sa.courses + "곳"]].forEach(function (r) {
+         ["남은 기록 전체", sa.n + "번 · " + km(sa.walked) + " km · 코스 " + sa.courses + "곳"]]).forEach(function (r) {
             var row = document.createElement("div"), a = document.createElement("span"), b = document.createElement("b");
             a.textContent = r[0]; b.textContent = r[1];
             row.appendChild(a); row.appendChild(b); box.appendChild(row);
@@ -1420,15 +1443,16 @@
         }).then(function (o) {
             var d = new Date(), text = JSON.stringify(o);
             var name = "routefly-backup-" + d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0") + ".json";
-            toast("백업 파일: 기록 " + o.records.length + "개 · 사진 " + Object.keys(o.photos).length + "장 - 열리는 공유 창에서 드라이브 · 카톡 '나와의 채팅' · 메일 · 내 파일 중 둘 곳을 고르세요.", 8000);   // 2026-10-17 홍TV님: 백업 저장을 누르니 카톡이 열려 당황 - 공유 창으로 둘 곳을 고르는 것
-            if (FS && SHARE) return nativeShareFile(name, btoa(unescape(encodeURIComponent(text))), "routefly 백업");
+            toast(EN ? "Backup file: " + o.records.length + " records · " + Object.keys(o.photos).length + " photos - in the share window pick where to keep it (Drive, email, your files, a chat to yourself)."
+                : "백업 파일: 기록 " + o.records.length + "개 · 사진 " + Object.keys(o.photos).length + "장 - 열리는 공유 창에서 드라이브 · 카톡 '나와의 채팅' · 메일 · 내 파일 중 둘 곳을 고르세요.", 8000);   // 2026-10-17 홍TV님: 백업 저장을 누르니 카톡이 열려 당황 - 공유 창으로 둘 곳을 고르는 것
+            if (FS && SHARE) return nativeShareFile(name, btoa(unescape(encodeURIComponent(text))), T("routefly 백업", "routefly backup"));
             var f = null;
             try { f = new File([text], name, { type: "application/json" }); if (!(navigator.canShare && navigator.canShare({ files: [f] }))) f = null; } catch (e) { f = null; }
-            if (f) return navigator.share({ files: [f], title: "routefly 백업" }).catch(function (e) {
+            if (f) return navigator.share({ files: [f], title: T("routefly 백업", "routefly backup") }).catch(function (e) {
                 if (!(e && e.name === "AbortError")) saveFile(text, name, "application/json");
             });
             saveFile(text, name, "application/json");
-        }).catch(function (e) { toast("백업을 만들지 못했습니다: " + (e && e.message || e), 6000); });
+        }).catch(function (e) { toast(T("백업을 만들지 못했습니다: ", "Could not make the backup: ") + (e && e.message || e), 6000); });
     }
     function b64Blob(s, type) {
         var bin = atob(s), u = new Uint8Array(bin.length);
@@ -1437,14 +1461,15 @@
     }
     function backupLoad(file) {
         var rd = new FileReader();
-        rd.onerror = function () { toast("파일을 읽지 못했습니다.", 5000); };
+        rd.onerror = function () { toast(T("파일을 읽지 못했습니다.", "Could not read the file."), 5000); };
         rd.onload = function () {
             var o = null;
             try { o = JSON.parse(String(rd.result)); } catch (e) { /* 아래 */ }
             var bad = RF.backupCheck(o);
             if (bad) { toast(bad, 6000); return; }
             var photos = o.photos && typeof o.photos === "object" ? o.photos : {};
-            if (!confirm("백업(기록 " + o.records.length + "개 · 사진 " + Object.keys(photos).length + "장)을 이 핸드폰에 합칠까요?\n지금 기록은 지우지 않습니다(기록은 최근 " + REC_MAX + "개까지).")) return;
+            if (!confirm(EN ? "Merge this backup (" + o.records.length + " records · " + Object.keys(photos).length + " photos) into this phone?\nYour current records are kept (up to the latest " + REC_MAX + ")."
+                : "백업(기록 " + o.records.length + "개 · 사진 " + Object.keys(photos).length + "장)을 이 핸드폰에 합칠까요?\n지금 기록은 지우지 않습니다(기록은 최근 " + REC_MAX + "개까지).")) return;
             recordsReady.then(function () {
                 var merged = RF.mergeRecords(records(), o.records, REC_MAX);
                 return Promise.all(RF.photoIds(merged).filter(function (id) { return typeof photos[id] === "string"; }).map(function (id) {
@@ -1460,8 +1485,8 @@
                 });
                 addLog(records().map(RF.logEntry));   // 백업의 기록도 결산에
                 drawRecords();
-                toast("백업을 불러왔습니다.", 4000);
-            }).catch(function (e) { toast("백업을 불러오지 못했습니다: " + (e && e.message || e), 6000); });
+                toast(T("백업을 불러왔습니다.", "Backup restored."), 4000);
+            }).catch(function (e) { toast(T("백업을 불러오지 못했습니다: ", "Could not restore the backup: ") + (e && e.message || e), 6000); });
         };
         rd.readAsText(file);
     }
@@ -1472,15 +1497,15 @@
      */
     function showRecord(rec) {
         var rc = RF.recordCourse(rec), sum = $("recViewSum");
-        $("recViewTitle").textContent = "📈 " + rec.name;
+        $("recViewTitle").textContent = "📈 " + NM(rec.name);
         sum.innerHTML = "";
         var d = new Date(rec.start);
         var eles = rc.ele.filter(function (e) { return e != null; });
-        [["날짜", d.getFullYear() + "." + (d.getMonth() + 1) + "." + d.getDate() + " " + clock(rec.start)],
-         ["걸은 거리", km(rec.walked) + " km"], ["걸린 시간", hhmmss(rec.end - rec.start)]]
-            .concat(rec.up != null ? [["오른 높이", num(rec.up) + " m"]] : [])
-            .concat(eles.length ? [["가장 높은 곳", num(Math.max.apply(null, eles)) + " m"]] : [])
-            .concat(rec.kcal != null ? [["칼로리(추정)", num(rec.kcal) + " kcal"]] : [])
+        [[T("날짜", "Date"), d.getFullYear() + "." + (d.getMonth() + 1) + "." + d.getDate() + " " + clock(rec.start)],
+         [T("걸은 거리", "Walked"), km(rec.walked) + " km"], [T("걸린 시간", "Time"), hhmmss(rec.end - rec.start)]]
+            .concat(rec.up != null ? [[T("오른 높이", "Climb"), num(rec.up) + " m"]] : [])
+            .concat(eles.length ? [[T("가장 높은 곳", "Highest"), num(Math.max.apply(null, eles)) + " m"]] : [])
+            .concat(rec.kcal != null ? [[T("칼로리(추정)", "Calories (est.)"), num(rec.kcal) + " kcal"]] : [])
             .forEach(function (r) {
                 var row = document.createElement("div"), a = document.createElement("span"), b = document.createElement("b");
                 a.textContent = r[0]; b.textContent = r[1];
@@ -1493,7 +1518,7 @@
         $("recViewCard").disabled = rc.lat.length < 2;
         $("recViewCard").onclick = function () { shareCard(rec); };
         $("recViewMap").onclick = function () {
-            if (!mapReady) { toast("지도가 아직 준비되지 않았습니다.", 2500); return; }
+            if (!mapReady) { toast(T("지도가 아직 준비되지 않았습니다.", "The map is not ready yet."), 2500); return; }
             mapReady.then(function () {
                 map.getSource("recTrack").setData({ type: "FeatureCollection", features: [{ type: "Feature", properties: {},
                     geometry: { type: "LineString", coordinates: rc.lon.map(function (lon, i) { return [lon, rc.lat[i]]; }) } }] });
@@ -1515,7 +1540,7 @@
     /** 사진 저장소 - IndexedDB "rf-photos"(localStorage 는 5MB 남짓이라 사진이 안 들어감). 열쇠 → JPEG Blob. */
     function photoDb() {
         return new Promise(function (resolve, reject) {
-            if (!window.indexedDB) { reject(new Error("이 브라우저는 사진을 저장할 수 없습니다.")); return; }
+            if (!window.indexedDB) { reject(new Error(T("이 브라우저는 사진을 저장할 수 없습니다.", "This browser cannot store photos."))); return; }
             var r = indexedDB.open("rf-photos", 1);
             r.onupgradeneeded = function () { r.result.createObjectStore("p"); };
             r.onsuccess = function () { resolve(r.result); };
@@ -1579,7 +1604,7 @@
             var el = document.createElement("div");
             el.className = "noteMark";
             el.textContent = n.photo ? "📷" : "📝";
-            el.title = n.text || "사진";
+            el.title = n.text || T("사진", "Photo");
             return marker(el, [n.lon, n.lat], "bottom");
         });
     }
@@ -1587,11 +1612,11 @@
     var noteFile = null;
     $("noteBtn").addEventListener("click", function () {
         var f = hike.fix;
-        if (!f) { toast("아직 위치를 받지 못했습니다. GPS 를 잡은 뒤 다시 누르세요.", 4000); return; }
+        if (!f) { toast(T("아직 위치를 받지 못했습니다. GPS 를 잡은 뒤 다시 누르세요.", "No location yet. Try again once GPS has a fix."), 4000); return; }
         noteFile = null;
         $("noteText").value = "";
         $("notePreview").style.display = "none";
-        $("noteWhere").textContent = "지금 자리 · " + clock(now()) + (c ? " · " + km(hike.d) + "km 지점" : "") + (f.acc != null ? " · 오차 ±" + Math.round(f.acc) + "m" : "");
+        $("noteWhere").textContent = T("지금 자리 · ", "Here · ") + clock(now()) + (c ? " · " + km(hike.d) + T("km 지점", " km along") : "") + (f.acc != null ? T(" · 오차 ±", " · ±") + Math.round(f.acc) + "m" : "");
         $("noteSheet").style.display = "flex";
     });
     $("notePhotoBtn").addEventListener("click", function () { $("notePhoto").value = ""; $("notePhoto").click(); });
@@ -1608,7 +1633,7 @@
     $("noteSave").addEventListener("click", function () {
         var f = hike.fix, text = $("noteText").value.trim();
         if (!f) return;
-        if (!text && !noteFile) { toast("메모를 쓰거나 사진을 고르세요.", 3000); return; }
+        if (!text && !noteFile) { toast(T("메모를 쓰거나 사진을 고르세요.", "Write a note or pick a photo."), 3000); return; }
         // 해발: 코스 위면 코스 고도(GPS 고도는 흔들림 - README), 벗어나 있으면 GPS 고도
         var at = c && hike.off <= OFF_ROUTE_M ? RF.at(c, hike.d) : null;
         var ele = at && at.ele != null ? at.ele : f.alt;
@@ -1624,9 +1649,9 @@
             if (!hike.sim) try { localStorage.setItem(saveKey() + "-notes", JSON.stringify(hike.notes)); } catch (e) { /* 공간 부족 - 이번 산행 동안은 화면에 남음 */ }
             drawNoteMarkers();
             $("noteSheet").style.display = "none";
-            toast((note.photo ? "📷 사진" : "📝 메모") + "을 남겼습니다(" + hike.notes.length + "개).", 2500);
+            toast(EN ? (note.photo ? "📷 Photo" : "📝 Note") + " saved (" + hike.notes.length + ")." : (note.photo ? "📷 사진" : "📝 메모") + "을 남겼습니다(" + hike.notes.length + "개).", 2500);
         }).catch(function (e) {
-            toast("남기지 못했습니다: " + (e && e.message || e), 5000);
+            toast(T("남기지 못했습니다: ", "Could not save: ") + (e && e.message || e), 5000);
         }).then(function () { btn.disabled = false; });
     });
 
@@ -1634,25 +1659,25 @@
     function showNotes(rec) {
         var box = $("notesList"), urls = [];
         box.innerHTML = "";
-        $("notesTitle").textContent = "📝 " + rec.name;
+        $("notesTitle").textContent = "📝 " + NM(rec.name);
         rec.notes.forEach(function (n) {
             var row = document.createElement("div"), t = document.createElement("div"), sm = document.createElement("small");
             row.className = "noteRow";
             t.className = "nt";
-            sm.textContent = clock(n.t) + (n.ele != null ? " · 해발 " + num(n.ele) + "m" : "");
+            sm.textContent = clock(n.t) + (n.ele != null ? T(" · 해발 ", " · elev. ") + num(n.ele) + "m" : "");
             t.appendChild(sm);
             t.appendChild(document.createTextNode(n.text || ""));
             if (n.photo) {
                 var img = document.createElement("img");
-                img.alt = "사진";
+                img.alt = T("사진", "Photo");
                 row.appendChild(img);
                 photoGet(n.photo).then(function (blob) {
-                    if (!blob) { img.alt = "(사진 없음)"; return; }
+                    if (!blob) { img.alt = T("(사진 없음)", "(no photo)"); return; }
                     var u = URL.createObjectURL(blob);
                     urls.push(u);
                     img.src = u;
                     img.onclick = function () { window.open(u, "_blank"); };
-                }).catch(function () { img.alt = "(사진을 읽지 못함)"; });
+                }).catch(function () { img.alt = T("(사진을 읽지 못함)", "(could not read photo)"); });
             }
             row.appendChild(t);
             box.appendChild(row);
@@ -1689,9 +1714,9 @@
     function start(sim) {
         if (!c) return;
         if (!sim && !safetyOk()) { askSafety(function () { start(false); }); return; }
-        if (!sim && !BG && !navigator.geolocation) { toast("이 기기는 위치(GPS)를 쓸 수 없습니다."); return; }
+        if (!sim && !BG && !navigator.geolocation) { toast(T("이 기기는 위치(GPS)를 쓸 수 없습니다.", "This device cannot use location (GPS).")); return; }
         if (!sim && !BG && !window.isSecureContext) {
-            toast("GPS 는 https 주소에서만 켜집니다. 지금은 \"시험 걷기\" 로 화면을 시험해 보세요.", 6000);
+            toast(T("GPS 는 https 주소에서만 켜집니다. 지금은 \"시험 걷기\" 로 화면을 시험해 보세요.", "GPS only works on an https address. Try \"Simulate\" for now."), 6000);
             return;
         }
         var saved = sim ? null : loadSaved();
@@ -1727,12 +1752,15 @@
         hike.pace = sim ? null : paceFor(c);   // 같은 코스 지난 기록(2026-10-16 홍TV님 추가 기능 2번)
         voice.last = {};
         // 시작 버튼을 누른 그 순간에 말해야 아이폰도 소리를 냅니다(사용자 동작 안에서 처음 말하기)
-        say(saved ? "이어서 안내합니다. 남은 거리 " + skm(Math.max(0, c.total - hike.d)) + "킬로미터."
+        if (EN) say(saved ? "Resuming guidance. " + skm(Math.max(0, c.total - hike.d)) + " kilometers to go."
+            : "Starting guidance for " + spokenName(c.course.name) + ". " + skm(c.total) + " kilometers, about "
+                + spokenTime(RF.standardMs(c.course.kind, c.total, RF.ascentLeft(c, 0))) + ".", { urgent: true });
+        else say(saved ? "이어서 안내합니다. 남은 거리 " + skm(Math.max(0, c.total - hike.d)) + "킬로미터."
             : spokenName(c.course.name) + " 안내를 시작합니다. 전체 " + skm(c.total) + "킬로미터, 예상 "
                 + spokenTime(RF.standardMs(c.course.kind, c.total, RF.ascentLeft(c, 0))) + ".", { urgent: true });
         $("save").style.display = "none";
         setFollow(true);
-        $("go").textContent = sim ? "시험 걷기 끝내기" : K().act + " 끝내기";
+        $("go").textContent = sim ? T("시험 걷기 끝내기", "End simulation") : T(K().act + " 끝내기", "Finish " + K().act.toLowerCase());
         $("go").classList.add("stop");
         $("sim").style.display = "none";
         $("share").style.display = "none";
@@ -1746,26 +1774,26 @@
             hike.simLast = performance.now();
             SIM_SPEED = SIM_SPEEDS[0];
             simMul(SIM_SPEED);
-            $("gps").textContent = "시험 " + SIM_SPEED + "×";
-            $("gps").title = "누르면 시험 걷기 빠르기 바꾸기";
+            $("gps").textContent = T("시험 ", "Sim ") + SIM_SPEED + "×";
+            $("gps").title = T("누르면 시험 걷기 빠르기 바꾸기", "Tap to change simulation speed");
             $("gps").style.cursor = "pointer";
             $("gps").className = "";
             hike.simTimer = setInterval(simStep, 200);   // 빨리 걸어도 지도가 덜 튀게
             simStep();
         } else if (BG) {
             // 앱 - 화면을 끄거나 다른 앱으로 가도 위치를 받습니다(알림창에 "따라가는 중"이 떠 있는 동안)
-            $("gps").textContent = "GPS 찾는 중…";
+            $("gps").textContent = T("GPS 찾는 중…", "Finding GPS…");
             $("gps").className = "";
             // 2026-10-11 점검: 시작 → 끝 → 다시 시작이 첫 addWatcher 답보다 빠르면 첫 감시가 남아 위치가 두 번씩 · 알림이 안 사라졌음 - 이번 시작 번호로만
             var bgGen = hike.bgGen = (hike.bgGen || 0) + 1;
             // 2026-10-17 PC: Capacitor.Plugins 로 받은 BG 의 addWatcher(콜백 방식)는 Promise 가 아니라 감시 번호를 바로 돌려줌 -
             // .then 에서 TypeError 로 bgWatch 가 저장되지 않아 끝내도 "산행 중" 알림 · 감시가 남았음. 둘 다 받게 Promise.resolve 로 감쌈
-            Promise.resolve(BG.addWatcher({ backgroundTitle: "routefly - " + K().act + " 중",
-                            backgroundMessage: "화면을 꺼도 위치를 기록하고 갈림길 · 코스 이탈을 알려 줍니다.",
+            Promise.resolve(BG.addWatcher({ backgroundTitle: T("routefly - " + K().act + " 중", "routefly - " + K().act.toLowerCase() + " in progress"),
+                            backgroundMessage: T("화면을 꺼도 위치를 기록하고 갈림길 · 코스 이탈을 알려 줍니다.", "Keeps recording and warns at junctions or off-trail even with the screen off."),
                             requestPermissions: true, stale: false, distanceFilter: 0 },   // 0: 멈춰 있어도 위치가 와야 움직임 없음 알림이 화면이 꺼진 채로도 돎(2026-10-16 홍TV님 폰: 20분인데 30분째에 뜸) - 작은 움직임은 onFix 가 일찍 끝냄
                 function (loc, err) {
                     if (err) {
-                        if (err.code === "NOT_AUTHORIZED" && confirm("위치 권한이 꺼져 있습니다. 설정을 열어 routefly 의 위치를 '앱 사용 중에만 허용' 으로 바꿀까요?")) {
+                        if (err.code === "NOT_AUTHORIZED" && confirm(T("위치 권한이 꺼져 있습니다. 설정을 열어 routefly 의 위치를 '앱 사용 중에만 허용' 으로 바꿀까요?", "Location permission is off. Open settings and allow location for routefly (\"While using the app\")?"))) {
                             BG.openSettings();
                         }
                         onGpsError({ code: err.code === "NOT_AUTHORIZED" ? 1 : 2 });
@@ -1780,10 +1808,12 @@
             // 2026-10-08 (홍TV님 - 배터리): 앱은 화면을 꺼도 위치 · 음성 안내가 이어지므로 화면을 켜 두지 않습니다(Wake Lock 안 함).
             // 화면이 가장 큰 배터리 소비라, 주머니에 넣고 다니라고 한 번 알립니다. 브라우저는 화면이 꺼지면 멈추므로 아래처럼 켜 둡니다.
             batteryGuide();
-            toast("화면을 꺼도 기록 · 갈림길 · 코스 이탈 음성 안내가 이어집니다. 배터리를 아끼려면 화면을 꺼 두세요."
+            toast(EN ? "Recording and voice alerts (junctions, off-trail) keep going with the screen off - turn it off to save battery."
+                + (batterySave ? " (Battery saver on)" : " Tap the GPS label at the top for battery saver.")
+                : "화면을 꺼도 기록 · 갈림길 · 코스 이탈 음성 안내가 이어집니다. 배터리를 아끼려면 화면을 꺼 두세요."
                 + (batterySave ? " (배터리 절약 켬)" : " 위쪽 GPS 글자를 누르면 배터리 절약 모드."), 7000);
         } else {
-            $("gps").textContent = "GPS 찾는 중…";
+            $("gps").textContent = T("GPS 찾는 중…", "Finding GPS…");
             $("gps").className = "";
             hike.watch = navigator.geolocation.watchPosition(onFix, onGpsError, { enableHighAccuracy: true, maximumAge: 3000, timeout: 30000 });
             keepAwake();
@@ -1799,7 +1829,8 @@
     function batteryGuide() {
         if (lsGet("rf-batt-asked") === "1") return;
         try { localStorage.setItem("rf-batt-asked", "1"); } catch (e) { /* 이번만 */ }
-        if (confirm("화면을 끄고 주머니에 넣어도 위치 기록이 끊기지 않게, routefly 배터리 사용을 '제한 없음' 으로 바꿔 주세요.\n\n"
+        if (confirm(EN ? "So recording does not stop with the phone in your pocket, set routefly's battery use to \"Unrestricted\".\n\nOpen settings? (App info → Battery → Unrestricted)"
+                : "화면을 끄고 주머니에 넣어도 위치 기록이 끊기지 않게, routefly 배터리 사용을 '제한 없음' 으로 바꿔 주세요.\n\n"
                 + "설정을 열까요? (애플리케이션 정보 → 배터리 → 제한 없음)")) {
             Promise.resolve(BG.openSettings()).catch(function () { /* 설정 못 엶 */ });
         }
@@ -1810,7 +1841,7 @@
         if (!hike.running) return;
         if (hike.sim) { stopHike(); return; }
         if (hike.stillAsk) stillReset();   // 끝내기를 누른 것도 답 - 묻는 창 · 초 세기를 멈춤(2026-10-16 PC: endSheet 에서 망설이다 SOS 가 열릴 수 있었음)
-        $("endTitle").textContent = K().act + "을 여기서 끝낼까요?";
+        $("endTitle").textContent = T(K().act + "을 여기서 끝낼까요?", "Finish your " + K().act.toLowerCase() + " here?");
         $("endSheet").style.display = "flex";
     }
 
@@ -1832,7 +1863,7 @@
         }
         hike.sim = false;
         compassOff();   // 2026-10-10 점검: 다 걸은 뒤에도 센서를 계속 받던 것
-        $("go").textContent = K().act + " 시작";
+        $("go").textContent = T(K().act + " 시작", "Start " + K().act.toLowerCase());
         $("go").classList.remove("stop");
         $("sim").style.display = "";
         $("save").style.display = "";
@@ -1845,7 +1876,7 @@
         drawNoteMarkers();
         map.getSource("guide").setData({ type: "FeatureCollection", features: [] });
         hike.guideShown = false;
-        $("gps").textContent = "GPS 꺼짐";
+        $("gps").textContent = T("GPS 꺼짐", "GPS off");
         $("gps").className = "";
         $("offroute").style.display = "none";
         stillReset();
@@ -1869,8 +1900,8 @@
 
     function onGpsError(e) {
         $("gps").className = "bad";
-        $("gps").textContent = e.code === 1 ? "위치 권한 없음" : "GPS 신호 없음";
-        if (e.code === 1) toast("위치 권한이 꺼져 있습니다. 브라우저 설정에서 이 사이트의 위치 권한을 허용해 주세요.", 7000);
+        $("gps").textContent = e.code === 1 ? T("위치 권한 없음", "No location permission") : T("GPS 신호 없음", "No GPS signal");
+        if (e.code === 1) toast(T("위치 권한이 꺼져 있습니다. 브라우저 설정에서 이 사이트의 위치 권한을 허용해 주세요.", "Location permission is off. Allow location for this site in your browser settings."), 7000);
     }
 
     /** 위치 한 번 - 코스에 맞추고 화면을 고칩니다. */
@@ -1915,7 +1946,7 @@
         if (hike.follow) map.easeTo({ center: [co.longitude, co.latitude], zoom: Math.max(map.getZoom(), 15), duration: 600 });
         // 코스를 따라 되돌아가면(올라가다 내려옴) 거꾸로 된 코스로 - "벗어났다" 대신 내려가는 길 안내
         if (!hike.sim && s.off <= OFF_ROUTE_M && hike.dMax - hike.d >= TURN_BACK_M) {
-            adoptCourse(RF.reverseCourse(c), "되돌아가는 길로 안내를 바꿨습니다.");
+            adoptCourse(RF.reverseCourse(c), T("되돌아가는 길로 안내를 바꿨습니다.", "Switched guidance to the way back."));
             s = { d: hike.d, off: hike.off };
         }
         checkBranch(co.latitude, co.longitude, s);
@@ -1923,10 +1954,12 @@
             hike.arrived = true;
             var endPoi = c.pois.filter(function (q) { return +q.dist_m > c.total - 60 && +q.off_route_m < 60; }).pop();
             var fin = hike.paceFin = paceFinal();   // 지난번과 견준 도착 시간(2026-10-16 PC: 도착하면 옆 글이 사라져 결과를 못 봄)
-            $("arrived").textContent = "🎉 " + (endPoi ? endPoi.name + " " : "") + "도착! " + km(c.total) + "km · " + hhmmss(now() - hike.start) + (fin ? " · " + fin : "");
+            $("arrived").textContent = "🎉 " + (endPoi ? NM(endPoi.name) + " " : "") + T("도착! ", "- you made it! ") + km(c.total) + "km · " + hhmmss(now() - hike.start) + (fin ? " · " + fin : "");
             $("arrived").style.display = "block";
             if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-            say((endPoi ? endPoi.name + " " : "") + "도착입니다. " + skm(c.total) + "킬로미터, " + spokenTime(now() - hike.start)
+            if (EN) say("You have arrived" + (endPoi ? " at " + NM(endPoi.name) : "") + ". " + skm(c.total) + " kilometers, " + spokenTime(now() - hike.start)
+                + ", about " + num(effort().kcal) + " kilocalories. " + (fin ? fin + ". " : "") + "Well done!", { urgent: true });
+            else say((endPoi ? endPoi.name + " " : "") + "도착입니다. " + skm(c.total) + "킬로미터, " + spokenTime(now() - hike.start)
                 + ", 약 " + num(effort().kcal) + "킬로칼로리. " + (fin ? fin.replace("빠름", "빨랐습니다. ").replace("늦음", "늦었습니다. ").replace("비슷", "비슷했습니다. ") : "") + "수고하셨습니다.",
                 { urgent: true });
         }
@@ -1966,7 +1999,7 @@
                 if (!hike.running || hike.branch !== cur) return;
                 var nc = RF.fromApi(cur.id, j);
                 if (nc.lon.length < 2) throw new Error("경로 점 없음");
-                adoptCourse(back ? RF.reverseCourse(nc) : nc, "가시는 길로 코스를 바꿨습니다.");
+                adoptCourse(back ? RF.reverseCourse(nc) : nc, T("가시는 길로 코스를 바꿨습니다.", "Switched the trail to the path you are on."));
             }).catch(function () { cur.loading = false; });
         }
     }
@@ -2012,9 +2045,9 @@
         } catch (e) { /* 공간 부족 */ }
         save();
         var end = c.course.name.split(" → ").pop();
-        toast("🔀 " + msg + "\n" + c.course.name, 6000);
+        toast("🔀 " + msg + "\n" + NM(c.course.name), 6000);
         if (navigator.vibrate) navigator.vibrate([150, 80, 150]);
-        say(msg + " " + spokenName(end) + "까지 " + skm(Math.max(0, c.total - hike.d)) + "킬로미터입니다.", { urgent: true });
+        say(EN ? msg + " " + skm(Math.max(0, c.total - hike.d)) + " kilometers to " + spokenName(end) + "." : msg + " " + spokenName(end) + "까지 " + skm(Math.max(0, c.total - hike.d)) + "킬로미터입니다.", { urgent: true });
         render();
     }
 
@@ -2026,13 +2059,13 @@
         (c.junctions || []).forEach(function (jd) { if (jd > hike.d - 15 && (next == null || jd < next)) next = jd; });
         if (next == null || next - hike.d > 80) { box.style.display = "none"; return; }
         var ahead = Math.max(0, Math.round(next - hike.d));
-        box.textContent = "🔀 " + (ahead < 15 ? "갈림길" : ahead + "m 앞 갈림길") + " · " + RF.turnWord(c, next);
+        box.textContent = "🔀 " + (ahead < 15 ? T("갈림길", "Junction") : EN ? "Junction in " + ahead + " m" : ahead + "m 앞 갈림길") + " · " + RF.turnWord(c, next);
         box.style.display = "block";
         if (!hike.alerted[next]) {
             hike.alerted[next] = true;
             if (navigator.vibrate) navigator.vibrate([120, 80, 120]);
             var w = RF.turnWord(c, next);
-            say((ahead < 15 ? "갈림길입니다. " : ahead + "미터 앞 갈림길, ") + w + (/길$/.test(w) ? "입니다." : "하세요."), { urgent: true });
+            say(EN ? (ahead < 15 ? "Junction. " : "Junction in " + ahead + " meters, ") + w + "." : (ahead < 15 ? "갈림길입니다. " : ahead + "미터 앞 갈림길, ") + w + (/길$/.test(w) ? "입니다." : "하세요."), { urgent: true });
         }
     }
 
@@ -2116,10 +2149,10 @@
         // 도착 뒤에는 늘 도착 결과(지난번 도착과 견줌)만 남기고 흐린 점은 치움 - 2026-10-16 PC: 도착 뒤 남기도 · 지워지기도 했음
         var done = hike.running && hike.arrived;
         var diff = done ? null : paceDiff(), el = $("paceTxt");
-        var t = (done ? hike.paceFin || "" : RF.paceText(diff)).replace("지난번보다 ", "");   // 도착 순간 값(그 뒤 시계가 가도 그대로)
+        var t = (done ? hike.paceFin || "" : RF.paceText(diff)).replace("지난번보다 ", "").replace(" than last time", "");   // 도착 순간 값(그 뒤 시계가 가도 그대로)
         if (el.textContent !== (t ? "· " + t : "")) {
             el.textContent = t ? "· " + t : "";
-            el.className = /빠름/.test(t) ? "fast" : /늦음/.test(t) ? "slow" : "";
+            el.className = /빠름|faster/.test(t) ? "fast" : /늦음|slower/.test(t) ? "slow" : "";
         }
         var gd = diff == null ? null : RF.paceDistAt(hike.pace.prof, now() - hike.start);
         if (gd == null) { if (hike.ghost) { hike.ghost.remove(); hike.ghost = null; } return; }
@@ -2127,7 +2160,7 @@
         if (!hike.ghost) {
             var e = document.createElement("div");
             e.className = "ghost";
-            e.title = "지난번의 나(같은 경과 시간)";
+            e.title = T("지난번의 나(같은 경과 시간)", "You last time (same elapsed time)");
             hike.ghost = marker(e, [g.lon, g.lat]);
         } else hike.ghost.setLngLat([g.lon, g.lat]);
     }
@@ -2141,15 +2174,15 @@
         var t = now(), f = hike.fix;
         if (hike.stillAsk) {
             var left = Math.ceil((hike.stillAsk + STILL_ANSWER_MS - t) / 1000);
-            if (left > 0) { $("stillLeft").textContent = left + "초 안에 답이 없으면 긴급 신고 화면을 엽니다."; return; }
+            if (left > 0) { $("stillLeft").textContent = EN ? "If there is no answer in " + left + " s, the emergency screen opens." : left + "초 안에 답이 없으면 긴급 신고 화면을 엽니다."; return; }
             hike.stillAsk = 0;
             hike.still = null;
             $("stillSheet").style.display = "none";
             $("sos").click();
             hike.sosAuto = true;   // 저절로 연 SOS 화면 - "괜찮아요" 를 누르면 함께 닫음(2026-10-17 PC: SOS 위에 다시 물으면 괜찮아요 뒤에도 SOS 가 남았음)
             if (navigator.vibrate) navigator.vibrate([600, 200, 600, 200, 600]);
-            say("답이 없어 긴급 신고 화면을 열었습니다. 도움이 필요하면 119 전화나 문자 신고를 누르세요.", { urgent: true, force: true });
-            safetyNotify("🚨 긴급 신고 화면을 열었습니다", "도움이 필요하면 routefly 를 열어 119 전화 · 문자 신고를 누르세요.");
+            say(T("답이 없어 긴급 신고 화면을 열었습니다. 도움이 필요하면 119 전화나 문자 신고를 누르세요.", "No answer, so the emergency screen is open. If you need help, tap call 119 or text 119."), { urgent: true, force: true });
+            safetyNotify(T("🚨 긴급 신고 화면을 열었습니다", "🚨 Emergency screen opened"), T("도움이 필요하면 routefly 를 열어 119 전화 · 문자 신고를 누르세요.", "If you need help, open routefly and call or text 119."));
             return;
         }
         // 쓸 만한 위치(오차 100m 안)가 3분 넘게 없으면 묻지 않음 - 걷는 중인데 위치가 안 들어와(숲 · 주머니 · 폰 절전) "움직임 없음" 으로
@@ -2160,11 +2193,12 @@
         if (!st.due) return;
         hike.stillAsk = t;
         $("endSheet").style.display = "none";   // 끝내기 창을 열어 둔 채 20분 - 겹치지 않게 묻는 창만(2026-10-16 PC)
-        $("stillText").textContent = Math.round((t - hike.still.t) / 60000) + "분째 움직임이 없습니다. 괜찮으면 아래를 눌러 주세요.";
+        $("stillText").textContent = EN ? "No movement for " + Math.round((t - hike.still.t) / 60000) + " minutes. If you are OK, tap below." : Math.round((t - hike.still.t) / 60000) + "분째 움직임이 없습니다. 괜찮으면 아래를 눌러 주세요.";
         $("stillSheet").style.display = "flex";
         if (navigator.vibrate) navigator.vibrate([400, 150, 400, 150, 400]);
-        say("괜찮으세요? 오랫동안 움직임이 없습니다. 괜찮으면 화면의 괜찮아요를 눌러 주세요.", { urgent: true, force: true });   // 음성을 꺼 두었어도 안전 알림은 말함
-        safetyNotify("괜찮으세요? " + Math.round((t - hike.still.t) / 60000) + "분째 움직임이 없습니다", "routefly 를 열어 '괜찮아요' 를 눌러 주세요. 1분 안에 답이 없으면 긴급 신고 화면을 엽니다.");
+        say(T("괜찮으세요? 오랫동안 움직임이 없습니다. 괜찮으면 화면의 괜찮아요를 눌러 주세요.", "Are you OK? You have not moved for a long time. If you are fine, tap I'm OK on the screen."), { urgent: true, force: true });   // 음성을 꺼 두었어도 안전 알림은 말함
+        safetyNotify(EN ? "Are you OK? No movement for " + Math.round((t - hike.still.t) / 60000) + " min" : "괜찮으세요? " + Math.round((t - hike.still.t) / 60000) + "분째 움직임이 없습니다",
+            T("routefly 를 열어 '괜찮아요' 를 눌러 주세요. 1분 안에 답이 없으면 긴급 신고 화면을 엽니다.", "Open routefly and tap \"I'm OK\". With no answer in 1 minute the emergency screen opens."));
     }
 
     function stillReset() {
@@ -2188,7 +2222,7 @@
         if (!LN) return;
         var g = ++safetyGen;   // 2026-10-17 PC: 띄우는 중(채널 만들기 기다림)에 "괜찮아요" 로 치우면 늦게 뜬 알림이 남았음 - 그 뒤 다시 치움
         if (!title) { safetyCancel(); return; }
-        if (!safetyChannel) safetyChannel = LN.createChannel({ id: "rf-safety", name: "routefly 안전 알림", description: "움직임 없음 · 긴급 신고 알림",
+        if (!safetyChannel) safetyChannel = LN.createChannel({ id: "rf-safety", name: T("routefly 안전 알림", "routefly safety alerts"), description: T("움직임 없음 · 긴급 신고 알림", "No-movement and emergency alerts"),
             importance: 5, visibility: 1, vibration: true }).catch(function () { /* 안드로이드 8 아래 · 이미 있음 */ });
         safetyChannel.then(function () {
             return LN.schedule({ notifications: [{ id: SAFETY_NOTE_ID, title: title, body: body || "", channelId: "rf-safety" }] });
@@ -2213,14 +2247,14 @@
         setV("sKcal", num(ef.kcal), "kcal");
         setV("sUp", num(ef.up), "m");
         $("stepsBox").style.display = bike ? "none" : "";
-        if (!bike) setV("sSteps", num(ef.steps), "보");
-        setLabel("kcalK", "칼로리 ", body.kg + "kg ✎");
-        setLabel("stepsK", "걸음 ", body.cm + "cm ✎");
+        if (!bike) setV("sSteps", num(ef.steps), T("보", ""));
+        setLabel("kcalK", T("칼로리 ", "Calories "), body.kg + "kg ✎");
+        setLabel("stepsK", T("걸음 ", "Steps "), body.cm + "cm ✎");
         var nowMs = hike.running ? now() : Date.now();
         var sun = RF.sunset(nowMs, c.lat[0], c.lon[0]);
-        $("sunTxt").textContent = sun ? "· 일몰 " + clock(sun) : "";
+        $("sunTxt").textContent = sun ? T("· 일몰 ", "· sunset ") + clock(sun) : "";
         $("etaBox").classList.remove("late");
-        if (d >= c.total - ARRIVE_M) setV("sEta", "도착");
+        if (d >= c.total - ARRIVE_M) setV("sEta", T("도착", "Arrived"));
         else {
             var rem = remainingMs(elapsed), eta = nowMs + rem;
             setV("sEta", clock(eta), " (" + RF.hm(rem, true) + ")");
@@ -2229,15 +2263,17 @@
                 $("etaBox").classList.add("late");
                 if (hike.running && !hike.sunWarned) {
                     hike.sunWarned = true;
-                    toast("⚠ 예상 도착이 해 지기 30분 전(" + clock(sun - 1800000) + ")보다 늦습니다. 일찍 돌아서는 것도 생각하세요.", 8000);
-                    say("주의하세요. 예상 도착이 해 지기 30분 전보다 늦습니다. 일찍 돌아서는 것도 생각하세요.", { urgent: true });
+                    toast(EN ? "⚠ Your expected finish is later than 30 minutes before sunset (" + clock(sun - 1800000) + "). Consider turning back early."
+                        : "⚠ 예상 도착이 해 지기 30분 전(" + clock(sun - 1800000) + ")보다 늦습니다. 일찍 돌아서는 것도 생각하세요.", 8000);
+                    say(T("주의하세요. 예상 도착이 해 지기 30분 전보다 늦습니다. 일찍 돌아서는 것도 생각하세요.", "Caution. You are expected to finish less than 30 minutes before sunset. Consider turning back early."), { urgent: true });
                     if (navigator.vibrate) navigator.vibrate([300, 150, 300]);
                 }
             }
             if (hike.running && hike.lateNext && nowMs > hike.lateNext) {
                 hike.lateNext += 3600000;
-                toast("⏰ 귀가 예정(" + clock(hike.lateAt) + ")보다 늦어지고 있습니다. 괜찮다면 가족에게 알려 주세요 - 위쪽 SOS 에서 위치 문자를 보낼 수 있습니다.", 12000);
-                say("귀가 예정 시각이 지났습니다. 괜찮다면 가족에게 알려 주세요.", { urgent: true });
+                toast(EN ? "⏰ You are past your planned return time (" + clock(hike.lateAt) + "). If you are fine, let your family know - SOS at the top can text your location."
+                    : "⏰ 귀가 예정(" + clock(hike.lateAt) + ")보다 늦어지고 있습니다. 괜찮다면 가족에게 알려 주세요 - 위쪽 SOS 에서 위치 문자를 보낼 수 있습니다.", 12000);
+                say(T("귀가 예정 시각이 지났습니다. 괜찮다면 가족에게 알려 주세요.", "You are past your planned return time. If you are fine, let your family know."), { urgent: true });
                 if (navigator.vibrate) navigator.vibrate([300, 150, 300, 150, 300]);
             }
         }
@@ -2246,14 +2282,14 @@
             var np = RF.at(c, +nx.dist_m);
             var dEle = np.ele != null && p.ele != null ? np.ele - p.ele : null;
             $("next").innerHTML = "";
-            $("next").appendChild(document.createTextNode("다음 지점 "));
+            $("next").appendChild(document.createTextNode(T("다음 지점 ", "Next ")));
             var b = document.createElement("b");
-            b.textContent = nx.name;
+            b.textContent = NM(nx.name);
             $("next").appendChild(b);
-            $("next").appendChild(document.createTextNode(" · " + km(+nx.dist_m - d) + "km 앞"
-                + (dEle == null ? "" : " · " + (dEle >= 0 ? "오르막 +" : "내리막 ") + num(dEle) + "m")));
+            $("next").appendChild(document.createTextNode(" · " + km(+nx.dist_m - d) + T("km 앞", " km")
+                + (dEle == null ? "" : " · " + (dEle >= 0 ? T("오르막 +", "up +") : T("내리막 ", "down ")) + num(dEle) + "m")));
         } else {
-            $("next").textContent = "다음 지점 없음 - 도착까지 " + km(Math.max(0, c.total - d)) + "km";
+            $("next").textContent = T("다음 지점 없음 - 도착까지 ", "No more points - finish in ") + km(Math.max(0, c.total - d)) + "km";
         }
         // 국립공원 위험지역 - 앞 120m 에서 한 번(소리 · 진동), 조망점은 지날 때 한 번
         if (hike.running) {
@@ -2273,8 +2309,8 @@
                 var ahead = Math.max(0, Math.round((+due[0].dist_m - d) / 10) * 10);
                 var what = due.map(function (z) { return RF.spotText(z); }).filter(function (t, k, a) { return a.indexOf(t) === k; });
                 var words = due.map(function (z) { return z.info && z.info !== "기타" ? z.info : z.name; }).filter(function (t, k, a) { return a.indexOf(t) === k; });
-                toast("⚠️ " + (ahead > 20 ? ahead + "m 앞 " : "") + what.join(" · ") + " - 조심하세요", 7000);
-                say((ahead > 20 ? ahead + "미터 앞 " : "여기는 ") + words.join(", ") + " 구간입니다. 조심하세요.", { urgent: true });
+                toast("⚠️ " + (ahead > 20 ? ahead + T("m 앞 ", " m ahead: ") : "") + what.join(" · ") + T(" - 조심하세요", " - take care"), 7000);
+                say(EN ? (ahead > 20 ? "In " + ahead + " meters, " : "Here, ") + words.map(NM).join(", ") + ". Take care." : (ahead > 20 ? ahead + "미터 앞 " : "여기는 ") + words.join(", ") + " 구간입니다. 조심하세요.", { urgent: true });
                 if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
             }
             var vw;
@@ -2282,13 +2318,13 @@
             if (vw && !due.length) {   // 위험 알림과 겹치면 다음 번에
                 hike.spotDone[RF.spotKey(vw)] = true;
                 toast("🔭 " + RF.spotText(vw), 6000);
-                say(vw.name + (vw.view_az != null ? ", " + RF.azWord(vw.view_az) + "쪽 경치가 좋습니다." : "입니다."));
+                say(EN ? NM(vw.name) + (vw.view_az != null ? ", a good view to the " + RF.azWord(vw.view_az) + "." : ".") : vw.name + (vw.view_az != null ? ", " + RF.azWord(vw.view_az) + "쪽 경치가 좋습니다." : "입니다."));
             }
         }
         // 국립공원 위치표지판(지리10-05) - 지금 자리(산행 중 GPS, 아니면 코스 위 자리)에서 500m 안의 가장 가까운 것. 119 신고 때 말할 번호
         var here = hike.running && !hike.sim && hike.fix ? hike.fix : p, ns = RF.nearSign(c, here.lat, here.lon);
         $("sign").hidden = !ns;
-        if (ns) $("sign").textContent = "📍 위치표지 " + RF.signText(ns);
+        if (ns) $("sign").textContent = T("📍 위치표지 ", "📍 Location sign ") + RF.signText(ns);
         // 코스에서 벗어남 - 가장 가까운 등산로(지금 코스 · 주변 길)까지 거리 · 방향, 지도에 점선
         if (hike.running && hike.off > OFF_ROUTE_M && hike.fix) {
             var me = hike.fix, nt, br, far = hike.off > FAR_M;
@@ -2300,24 +2336,33 @@
             // 아직 코스에 닿기 전이고 멀면(먼 산 · 차로 가야 할 때) 출발점 길찾기 단추
             var notYet = hike.d0 == null || hike.d <= 60;
             hike.navTo = far || (notYet && hike.off > 100)   // 주차장 · 정류장(들머리 100m 밖)부터
-                ? (notYet ? { lat: c.lat[0], lon: c.lon[0], name: startName() || "코스 출발점", head: true }
-                          : { lat: RF.at(c, hike.d).lat, lon: RF.at(c, hike.d).lon, name: "코스 마지막 자리" })
+                ? (notYet ? { lat: c.lat[0], lon: c.lon[0], name: startName() || T("코스 출발점", "trail start"), head: true }
+                          : { lat: RF.at(c, hike.d).lat, lon: RF.at(c, hike.d).lon, name: T("코스 마지막 자리", "your last spot on the trail") })
                 : null;
             $("navBtn").style.display = hike.navTo ? "inline-block" : "none";
             // 3km 안이면 걷기 길찾기(네이버 지도 앱은 실제 길을 따라 걷기 경로) - 주차장 · 정류장에서 들머리까지
             var nearNav = hike.navTo && !far && hike.fix && distM(hike.fix.lat, hike.fix.lon, hike.navTo.lat, hike.navTo.lon) <= 3000;
-            $("navBtn").textContent = hike.navTo && !notYet ? (nearNav ? "🚶 코스로 돌아가는 걷기 길찾기" : "🚗 코스로 돌아가는 길찾기")
+            $("navBtn").textContent = EN ? (hike.navTo && !notYet ? (nearNav ? "🚶 Walk back to the trail" : "🚗 Directions back to the trail")
+                : nearNav ? "🚶 Walk to the trailhead" : "🚗 Directions to the start")
+                : hike.navTo && !notYet ? (nearNav ? "🚶 코스로 돌아가는 걷기 길찾기" : "🚗 코스로 돌아가는 길찾기")
                 : nearNav ? "🚶 들머리 걷기 길찾기" : "🚗 출발점 길찾기";
             if (far) {
                 // 아주 멀리(집 · 차로 이동 중 등) - 주변 길 말고, 아직 출발 전이면 출발점, 가던 중이면 마지막으로 있던 코스 자리로
                 var tp = RF.at(c, hike.d <= 60 ? 0 : hike.d), sp = hike.d <= 60 ? startName() : null;
                 nt = { lat: tp.lat, lon: tp.lon, off: distM(me.lat, me.lon, tp.lat, tp.lon) };
                 br = bearing(me.lat, me.lon, nt.lat, nt.lon);
+                if (EN) {
+                    $("offText").textContent = hike.d <= 60
+                        ? distText(nt.off) + " " + dirWord(br) + " to the trail start" + (sp ? " (" + NM(sp) + ")" : "") + ". Guidance starts when you get there."
+                        : distText(hike.off) + " from the trail · " + distText(nt.off) + " " + dirWord(br) + " to your last spot";
+                    say(hike.d <= 60 ? distSpoken(nt.off) + " to the trail start. Guidance starts when you get there." : "You are " + distSpoken(hike.off) + " from the trail.", { key: "off", gap: 600000 });
+                } else {
                 $("offText").textContent = hike.d <= 60
                     ? "코스 출발점" + (sp ? "(" + sp + ")" : "") + "까지 " + distText(nt.off) + " · " + dirWord(br) + ". 출발점에 가면 안내가 시작됩니다."
                     : "코스에서 " + distText(hike.off) + " 떨어져 있습니다 · 마지막 자리까지 " + distText(nt.off) + " · " + dirWord(br);
                 say(hike.d <= 60 ? "코스 출발점까지 " + distSpoken(nt.off) + " 남았습니다. 출발점에 가면 안내를 시작합니다."
                                  : "코스에서 " + distSpoken(hike.off) + " 떨어져 있습니다.", { key: "off", gap: 600000 });
+                }
             } else {
                 nt = nearestTrail(me.lat, me.lon);
                 if (hike.branch) {   // 다른 길 위 - 코스 쪽을 가리키고, 계속 가면 바꾼다고 한 번 알림
@@ -2333,28 +2378,32 @@
                 br = bearing(me.lat, me.lon, nt.lat, nt.lon);
                 if (toHead) {
                     var hn = startName();
-                    $("offText").textContent = (hn ? "들머리(" + hn + ")" : "코스 출발점") + "까지 " + distText(nt.off) + " · " + dirWord(br)
-                        + ". 도착하면 안내가 시작됩니다.";
+                    $("offText").textContent = EN ? distText(nt.off) + " " + dirWord(br) + " to " + (hn ? "the trailhead (" + NM(hn) + ")" : "the trail start") + ". Guidance starts when you arrive."
+                        : (hn ? "들머리(" + hn + ")" : "코스 출발점") + "까지 " + distText(nt.off) + " · " + dirWord(br) + ". 도착하면 안내가 시작됩니다.";
                     // 5분에 한 번(2026-10-17 홍TV님 폰: 8~15초마다 되풀이 - voice.last 가 지워져도 따로 셈), 300m 넘게 다가가면 그때도
                     var hs = hike.headSaid;
                     if (!hs || Date.now() - hs.t >= 300000 || hs.off - nt.off >= 300) {
                         hike.headSaid = { t: Date.now(), off: nt.off };
-                        say((hn ? spokenName(hn) : "코스 출발점") + "까지 " + dirWord(br) + " " + distSpoken(nt.off) + "입니다.");   // urgent 아님 - 안전 알림을 끊지 않게
+                        say(EN ? distSpoken(nt.off) + " " + dirWord(br) + " to " + (hn ? spokenName(hn) : "the trail start") + "." : (hn ? spokenName(hn) : "코스 출발점") + "까지 " + dirWord(br) + " " + distSpoken(nt.off) + "입니다.");   // urgent 아님 - 안전 알림을 끊지 않게
                     }
                 } else if (hike.branch) {
-                    $("offText").textContent = "코스가 아닌 다른 길로 들어섰습니다 · 코스는 " + dirWord(br) + " " + distText(nt.off)
-                        + ". 이 길로 계속 가면 이 길로 코스를 바꿉니다.";
-                    say("코스가 아닌 다른 길로 들어섰습니다. 코스는 " + dirWord(br) + " " + distSpoken(nt.off) + "입니다. 이 길로 계속 가시면 코스를 바꿉니다.",
+                    $("offText").textContent = EN ? "You are on a different path · the trail is " + distText(nt.off) + " " + dirWord(br) + ". Keep going and the trail switches to this path."
+                        : "코스가 아닌 다른 길로 들어섰습니다 · 코스는 " + dirWord(br) + " " + distText(nt.off) + ". 이 길로 계속 가면 이 길로 코스를 바꿉니다.";
+                    say(EN ? "You are on a different path. The trail is " + distSpoken(nt.off) + " " + dirWord(br) + ". If you keep going, the trail switches to this path."
+                        : "코스가 아닌 다른 길로 들어섰습니다. 코스는 " + dirWord(br) + " " + distSpoken(nt.off) + "입니다. 이 길로 계속 가시면 코스를 바꿉니다.",
                         { key: "branch", gap: 600000, urgent: true });
                 } else if (notYet && nt.course) {   // 아직 코스에 닿기 전(벗어난 것이 아님)
-                    $("offText").textContent = "아직 코스 밖입니다 · 코스까지 " + distText(nt.off) + " · " + dirWord(br);
-                    say("코스까지 " + dirWord(br) + " " + distSpoken(nt.off) + "입니다.", { key: "off", gap: 300000 });
+                    $("offText").textContent = EN ? "Not on the trail yet · " + distText(nt.off) + " " + dirWord(br) : "아직 코스 밖입니다 · 코스까지 " + distText(nt.off) + " · " + dirWord(br);
+                    say(EN ? "The trail is " + distSpoken(nt.off) + " " + dirWord(br) + "." : "코스까지 " + dirWord(br) + " " + distSpoken(nt.off) + "입니다.", { key: "off", gap: 300000 });
                 } else {
-                    $("offText").textContent = "코스에서 " + distText(hike.off) + " 벗어남 · "
+                    $("offText").textContent = EN ? "Off trail by " + distText(hike.off) + " · " + (nt.course ? "back to the trail " : (nt.name ? "nearest path (" + NM(nt.name) + ") " : "nearest trail "))
+                        + distText(nt.off) + " " + dirWord(br)
+                        : "코스에서 " + distText(hike.off) + " 벗어남 · "
                         + (nt.course ? "코스로 돌아가는 길 " : (nt.name ? "가장 가까운 길(" + nt.name + ")" : "가장 가까운 등산로") + "까지 ")
                         + distText(nt.off) + " · " + dirWord(br);
                     // 벗어난 순간 한 번, 계속 벗어나 있으면 2분마다
-                    say("코스에서 벗어났습니다. " + (nt.course ? "코스는 " : "가장 가까운 길은 ") + dirWord(br) + " " + distSpoken(nt.off) + "입니다.",
+                    say(EN ? "You are off the trail. " + (nt.course ? "The trail is " : "The nearest path is ") + distSpoken(nt.off) + " " + dirWord(br) + "."
+                        : "코스에서 벗어났습니다. " + (nt.course ? "코스는 " : "가장 가까운 길은 ") + dirWord(br) + " " + distSpoken(nt.off) + "입니다.",
                         { key: "off", gap: hike.wasOff ? 120000 : 0, urgent: !hike.wasOff });
                 }
             }
@@ -2370,7 +2419,7 @@
             if (hike.running && hike.wasOff && hike.off <= OFF_ROUTE_M) {
                 hike.wasOff = false;
                 voice.last.off = 0;
-                say("코스로 돌아왔습니다.", { urgent: true });
+                say(T("코스로 돌아왔습니다.", "Back on the trail."), { urgent: true });
             }
             $("offroute").style.display = "none";
             hike.guideBr = null;
@@ -2397,11 +2446,11 @@
     function drawBoard() {
         if (!board) {
             var pts = c.dist.map(function (d, i) { return [c.lon[i], c.lat[i], c.ele[i], d]; });
-            var ends = RF.nameEnds(c.course.name) || ["출발", "도착"];
+            var ends = (RF.nameEnds(c.course.name) || [T("출발", "Start"), T("도착", "Finish")]).map(NM);
             // 지점은 음성이 말하는 것과 같게(길에서 80m - 정상 160m 안) - 2026-10-16 PC: 안내판의 설악루(길에서 먼 지점)를 지나도 음성이 없었음
             board = RF.boardSegments(pts, (c.pois || []).filter(function (q) { return !q.end && !(+q.off_route_m > (RF.isTopName(q.name) ? 160 : 80)); }), ends[0], ends[1], true);   // 걷는 쪽 그대로(내려가는 코스도 왼쪽 → 오른쪽)
         }
-        RF.boardProfile($("boardBox"), board, false, hike.running || hike.d > 0 ? hike.d : null);
+        RF.boardProfile($("boardBox"), board, EN, hike.running || hike.d > 0 ? hike.d : null);
         boardDrawn = Date.now();
     }
     function openBoard() {
@@ -2420,7 +2469,7 @@
 
     function showPick(noRestore) {
         $("pick").style.display = "flex";
-        document.title = "routefly 따라가기";   // 코스에서 목록으로 와도 탭 제목이 코스 이름으로 남았음(2026-10-17 PC)
+        document.title = T("routefly 따라가기", "routefly - Follow a trail");   // 코스에서 목록으로 와도 탭 제목이 코스 이름으로 남았음(2026-10-17 PC)
         // 목록이 비었거나(이 화면을 새로 열었을 때) 미리보기 화면에서 다른 말로 찾고 왔으면 마지막 검색을 다시
         if (!noRestore) {
             var last = null;
@@ -2471,7 +2520,7 @@
         targets.forEach(function (t, i) {
             var b = document.createElement("button");
             b.type = "button";
-            b.textContent = (t.parking ? "🅿️ " : "⛰️ ") + t.name;
+            b.textContent = (t.parking ? "🅿️ " : "⛰️ ") + NM(t.name);
             b.onclick = function () { navTo(t, acc, b); };
             box.appendChild(b);
             if (i === 0) navTo(t, acc, b);
@@ -2486,7 +2535,7 @@
         [].forEach.call($("navTargets").children, function (x) { x.classList.toggle("on", x === btn); });
         var me = hike.fix, far = me ? distM(me.lat, me.lon, to.lat, to.lon) > 3000 : true;
         var nm = String(to.name).replace(/[,/?#&]/g, " ").trim(), lat = to.lat.toFixed(6), lon = to.lon.toFixed(6);
-        $("navTitle").textContent = nm + " 길찾기";
+        $("navTitle").textContent = EN ? "Directions to " + NM(nm) : nm + " 길찾기";
         $("navKakao").href = "https://map.kakao.com/link/to/" + encodeURIComponent(nm) + "," + lat + "," + lon;
         // 네이버 지도 앱은 출발지를 비워 두면 '출발지 입력' 으로 남습니다 - 지금 위치를 출발지로 넣습니다
         var from = me ? { lat: me.lat.toFixed(6), lon: me.lon.toFixed(6) } : null;
@@ -2498,6 +2547,13 @@
             + "&destination=" + lat + "," + lon + "&travelmode=transit";
         // 카카오톡 안 브라우저는 지도 앱으로 넘어가면 이 화면을 닫기도 합니다 - 다시 열면 이어진다고 알려 둡니다
         var h0 = RF.at(c, 0), walk = to.parking ? distM(to.lat, to.lon, h0.lat, h0.lon) : 0;
+        if (EN) {
+            $("navTip").textContent = "Opens directions from here to " + NM(nm) + " in a map app."
+                + (to.parking ? " From the parking lot it is about " + distText(walk) + " on foot to the trailhead - this screen guides you there." : "")
+                + (acc.buses.length ? " Nearby bus stops: " + acc.buses.map(function (b) { return NM(b.name) + " (" + distText(distM(+b.lat, +b.lon, h0.lat, h0.lon)) + " from the trailhead)"; }).join(", ") + "." : "")
+                + " Your hike is saved on this phone, so it continues when you come back or reopen this screen.";
+            return;
+        }
         $("navTip").textContent = "지금 위치에서 " + nm + "까지 길을 지도 앱으로 엽니다."
             + (to.parking ? " 주차장에서 들머리까지는 약 " + distText(walk) + " 걸어서 - 이 화면이 들머리까지 안내합니다." : "")
             + (acc.buses.length ? " 가까운 버스 정류장: " + acc.buses.map(function (b) {
@@ -2520,23 +2576,41 @@
         if (h1) h1.appendChild(RF.textButton());
         Array.prototype.forEach.call(document.querySelectorAll(".sheet .sbox > h2, #safety .sbox > h2"), function (h) { h.appendChild(RF.textButton()); });
     })();
+    // 🌐 한국어 · English(2026-10-17 홍TV님 - 따라가기 영어) - 첫 화면 아랫줄. 고른 말은 이 기기에 기억
+    (function () {
+        var foot = $("pickFoot"), a = document.createElement("a");
+        a.href = "#";
+        a.textContent = EN ? "🌐 한국어" : "🌐 English";
+        a.addEventListener("click", function (e) {
+            e.preventDefault();
+            var to = EN ? "ko" : "en";
+            try { localStorage.setItem("rf-lang", to); } catch (err) { /* 주소로 */ }
+            location.href = location.pathname + "?lang=" + to + location.hash;
+        });
+        foot.appendChild(document.createTextNode(" · "));
+        foot.appendChild(a);
+        if (EN) document.querySelector("#pick .pickNav").setAttribute("href", "en/m/");   // 영어 코스 모음
+        // 한국어가 아닌 폰에서 처음 열면 한 번 알려 줌
+        if (!EN && !lsGet("rf-lang") && !/^ko/i.test(navigator.language || "ko")) setTimeout(function () { toast("View in English? Tap 🌐 English at the bottom.", 7000); }, 1500);
+    })();
     // 도장 · 완주 화면의 따라가기로 들어왔으면(#c=…&from=series) "‹ 도장 · 완주" 로 그 화면에 돌아감(2026-10-13 홍TV님)
     var fromSeries = /[#&]from=series(&|$)/.test(location.hash);
     if (fromSeries) {
-        $("back").innerHTML = "<b>‹</b>도장 · 완주";
-        $("back").title = "도장 · 완주 화면으로";
+        $("back").innerHTML = T("<b>‹</b>도장 · 완주", "<b>‹</b>Stamps");
+        $("back").title = T("도장 · 완주 화면으로", "Back to stamps");
     }
     // 산 소개 페이지(/m/산)의 따라가기로 들어왔으면(#c=…&m=산) "‹ 산 이름" 으로 그 페이지에 돌아감(2026-10-14 홍TV님 - 못 돌아갔음)
     var fromMountain = RF.safeDecode((/[#&]m=([^&]+)/.exec(location.hash) || [])[1] || "");
     if (fromMountain) {
         $("back").innerHTML = "<b>‹</b>";
-        $("back").appendChild(document.createTextNode(fromMountain));
-        $("back").title = fromMountain + " 등산코스 화면으로";
+        $("back").appendChild(document.createTextNode(NM(fromMountain)));
+        $("back").title = EN ? "Back to " + NM(fromMountain) + " trails" : fromMountain + " 등산코스 화면으로";
     }
     // ‹ - 코스 목록(검색 결과 그대로)으로. 산행 중이면 먼저 끝내도록.
     $("back").addEventListener("click", function (e) {
         e.preventDefault();
-        if (hike.running) { toast((hike.sim ? "시험 걷기" : K().act) + " 중입니다. " + (fromSeries ? "도장 · 완주 화면" : "코스 목록") + "으로 가려면 먼저 아래 '" + $("go").textContent + "' 를 눌러 주세요.", 4000); return; }   // 단추 글 그대로(시험 걷기 끝내기)
+        if (hike.running) { toast(EN ? "You are on a " + (hike.sim ? "simulation" : K().act.toLowerCase()) + ". To go back, first tap \"" + $("go").textContent + "\" below."
+            : (hike.sim ? "시험 걷기" : K().act) + " 중입니다. " + (fromSeries ? "도장 · 완주 화면" : "코스 목록") + "으로 가려면 먼저 아래 '" + $("go").textContent + "' 를 눌러 주세요.", 4000); return; }   // 단추 글 그대로(시험 걷기 끝내기)
         // 2026-10-17 홍TV님 폰: 목록에서 내 기록 → 기록 선 보기로 왔으면 주소에 코스가 없어(location.hash 이미 빔) ‹ 가 아무것도 안 했음 -
         // "기록 선 지우기" 를 눌러야 됐음. 기록 선을 치우고 목록으로
         if ($("recClear").style.display === "block") clearRecLine();
@@ -2546,7 +2620,7 @@
             var mBack = /\/m\//.test(document.referrer || "");
             try { mBack = mBack || sessionStorage.getItem("rf-fly-back") === "1"; } catch (err) { /* referrer 만 */ }   // 새로 고치면 referrer 가 없음 - 산 소개에서 누를 때 적어 둠
             if (history.length > 1 && mBack) history.back();   // 그 화면 그대로(스크롤 자리)
-            else location.href = "m/" + encodeURIComponent(fromMountain);
+            else location.href = EN ? "en/m/" + RF.roman(fromMountain).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") : "m/" + encodeURIComponent(fromMountain);
             return;
         }
         if (fromList) {
@@ -2581,7 +2655,7 @@
         if (!rows.length) {
             var m = document.createElement("div");
             m.className = "msg";
-            m.textContent = from ? "주변 5km 안에 코스가 없습니다. 산 이름으로 찾아보세요." : "찾은 코스가 없습니다.";
+            m.textContent = from ? T("주변 5km 안에 코스가 없습니다. 산 이름으로 찾아보세요.", "No trails within 5 km. Search by mountain name.") : T("찾은 코스가 없습니다.", "No trails found.");
             box.appendChild(m);
             return;
         }
@@ -2593,9 +2667,10 @@
             a.className = "it guide";
             a.href = "route.html?" + (g.trail ? "trail=" + encodeURIComponent(g.trail) : "prefix=" + encodeURIComponent(g.prefix)) + "&name=" + encodeURIComponent(g.name) + "&back=list";
             var gb = document.createElement("b");
-            gb.textContent = (g.kind === "bike" ? "🚴 " : g.kind === "ridge" ? "⛰ " : g.trail ? "🥾 " : "🌲 ") + g.name + " 노선 안내도";
+            gb.textContent = (g.kind === "bike" ? "🚴 " : g.kind === "ridge" ? "⛰ " : g.trail ? "🥾 " : "🌲 ") + NM(g.name) + T(" 노선 안내도", " route map");
             var gs = document.createElement("span");
-            gs.textContent = (g.kind === "bike" ? "인증센터 · " : "") + (g.trail ? "코스" : "구간") + " 전체를 지도로 보고 고르기 · 이 목록 " + g.n + (g.trail ? "코스" : "구간");
+            gs.textContent = EN ? "See every " + (g.trail ? "trail" : "section") + (g.kind === "bike" ? " and checkpoint" : "") + " on the map · " + g.n + " in this list"
+                : (g.kind === "bike" ? "인증센터 · " : "") + (g.trail ? "코스" : "구간") + " 전체를 지도로 보고 고르기 · 이 목록 " + g.n + (g.trail ? "코스" : "구간");
             a.appendChild(gb);
             a.appendChild(gs);
             box.appendChild(a);
@@ -2606,9 +2681,9 @@
             a.href = "park.html?name=" + encodeURIComponent(g.name) + "&from=" + encodeURIComponent(g.from) + "&back=list"
                 + (g.label !== g.name ? "&label=" + encodeURIComponent(g.label) : "");   // 지역이 붙은 이름(광양 가야산)은 안내도 제목에도   // ‹ 코스 → 이 목록으로
             var gb = document.createElement("b");
-            gb.textContent = "🏞 " + g.label + " 탐방 안내도";
+            gb.textContent = "🏞 " + NM(g.label) + T(" 탐방 안내도", " trail map");
             var gs = document.createElement("span");
-            gs.textContent = "탐방로 전체를 지도로 보고 코스 고르기 · 이 목록 " + g.n + "코스";
+            gs.textContent = EN ? "See all trails on the map and pick one · " + g.n + " in this list" : "탐방로 전체를 지도로 보고 코스 고르기 · 이 목록 " + g.n + "코스";
             a.appendChild(gb);
             a.appendChild(gs);
             box.appendChild(a);
@@ -2621,7 +2696,7 @@
             RF.EASY.forEach(function (e) {
                 var b = document.createElement("button");
                 b.type = "button";
-                b.textContent = e.label;
+                b.textContent = EN ? ({ "": "All", "2h": "Under 2 h", "4h": "Under 4 h" }[e.key] || e.label) : e.label;
                 b.className = e.key === easyKey ? "on" : "";
                 b.setAttribute("aria-pressed", e.key === easyKey ? "true" : "false");
                 b.onclick = function () { easyKey = e.key; listCourses(rows, from, note); };
@@ -2633,7 +2708,7 @@
         if (!shown.length) {
             var em = document.createElement("div");
             em.className = "msg";
-            em.textContent = "이 시간 안에 걸을 수 있는 코스가 없습니다. \"모두\" 를 눌러 보세요.";
+            em.textContent = T("이 시간 안에 걸을 수 있는 코스가 없습니다. \"모두\" 를 눌러 보세요.", "No trails fit in this time. Tap \"All\".");
             box.appendChild(em);
         }
         var offSet = offlineIds();   // 저장한 코스는 검색 결과에도 ✅ 표시(2026-10-17 PC: 검색어가 남으면 첫 화면 저장 목록이 안 보임)
@@ -2645,12 +2720,17 @@
             var s = document.createElement("span");
             var ofn = RF.officialName(listNotes, r.course_id);   // 공단 공식 이름(가야산1코스) - 이름에 이미 들었으면 빼고(남산제일봉1코스)
             if (ofn && String(r.name).replace(/\s+/g, "").indexOf(ofn.replace(/\s+/g, "")) >= 0) ofn = "";
-            s.textContent = (ofn ? "공단 " + ofn + " · " : "") + km(+r.distance_m) + "km" + (r.ascent_m != null ? " · 오르막 " + num(+r.ascent_m) + "m" : "")
+            s.textContent = EN ? (ofn ? "Park: " + NM(ofn) + " · " : "") + km(+r.distance_m) + " km" + (r.ascent_m != null ? " · climb " + num(+r.ascent_m) + " m" : "")
+                + (r.steep_pct >= 28 ? " · steepest km " + Math.round(r.steep_pct) + "%" : "")
+                + (r.ele_max_m != null ? " · top " + num(+r.ele_max_m) + " m" : "")
+                + (r.away != null ? " · " + km(r.away) + " km to start" : "")
+                + (offSet.indexOf(String(r.course_id)) >= 0 ? " · ✅ Saved" : "")
+                : (ofn ? "공단 " + ofn + " · " : "") + km(+r.distance_m) + "km" + (r.ascent_m != null ? " · 오르막 " + num(+r.ascent_m) + "m" : "")
                 + (r.steep_pct >= 28 ? " · 가장 가파른 1km " + Math.round(r.steep_pct) + "%" : "")
                 + (r.ele_max_m != null ? " · 최고 " + num(+r.ele_max_m) + "m" : "")
                 + (r.away != null ? " · 출발점까지 " + km(r.away) + "km" : "")
                 + (offSet.indexOf(String(r.course_id)) >= 0 ? " · ✅ 저장됨" : "");
-            var chip = (r.kind === "hike" || r.kind === "trek") && RF.levelChip(+r.distance_m, r.ascent_m != null ? +r.ascent_m : null, false, r.steep_pct);   // 난이도(2026-10-15 홍TV님 - 공단 안내판 5단계)
+            var chip = (r.kind === "hike" || r.kind === "trek") && RF.levelChip(+r.distance_m, r.ascent_m != null ? +r.ascent_m : null, EN, r.steep_pct);   // 난이도(2026-10-15 홍TV님 - 공단 안내판 5단계)
             if (chip) { b.appendChild(document.createTextNode(" ")); b.appendChild(chip); }
             it.appendChild(b);
             it.appendChild(s);
@@ -2660,7 +2740,7 @@
                 fly.className = "fly";
                 fly.textContent = "fly(3D)";
                 fly.href = "index.html#c=" + encodeURIComponent(r.course_id) + "&from=hike";   // 그 화면 "← 뒤로" 가 새로 고쳐도 남게(2026-10-14)
-                fly.title = "3D 지형 위로 날아 보기";
+                fly.title = T("3D 지형 위로 날아 보기", "Fly over the 3D terrain");
                 fly.onclick = function (e) {
                     e.stopPropagation();
                     try { sessionStorage.setItem("rf-pick-scroll", String(box.scrollTop)); sessionStorage.setItem("rf-fly-back", "1"); } catch (err) { }   // 3D 에서 돌아오면 목록 그 자리로, rf-fly-back: 3D 의 "← 뒤로" 가 이 화면으로 back
@@ -2699,13 +2779,14 @@
         if (offIds.length) {
             var oh = document.createElement("div");
             oh.className = "msg";
-            oh.textContent = "📥 저장한 코스 " + offIds.length + "개 - 통신이 끊겨도 열립니다. 지우기는 코스 화면 📥 버튼에서.";
+            oh.textContent = EN ? "📥 Saved trails: " + offIds.length + " - they open without signal. Remove one with the 📥 button on its screen."
+                : "📥 저장한 코스 " + offIds.length + "개 - 통신이 끊겨도 열립니다. 지우기는 코스 화면 📥 버튼에서.";
             box.appendChild(oh);
             offIds.forEach(function (oid) {
                 var m = names[oid] || {}, it = document.createElement("div"), b = document.createElement("b"), sp = document.createElement("span");
                 it.className = "it fav";
-                RF.showName(b, String(m.name || (isGpxId(oid) ? "내 GPX 코스" : "코스 " + oid)));
-                sp.textContent = m.dist ? km(m.dist) + "km · ✅ 저장됨" : "✅ 저장됨";
+                RF.showName(b, String(m.name || (isGpxId(oid) ? T("내 GPX 코스", "My GPX trail") : T("코스 ", "Trail ") + oid)));
+                sp.textContent = m.dist ? km(m.dist) + T("km · ✅ 저장됨", " km · ✅ Saved") : T("✅ 저장됨", "✅ Saved");
                 it.appendChild(b);
                 it.appendChild(sp);
                 it.onclick = function () { fromList = true; location.hash = "#c=" + encodeURIComponent(oid); };
@@ -2715,16 +2796,16 @@
         if (!favs.length) return;
         var h = document.createElement("div");
         h.className = "msg";
-        h.textContent = "★ 찜한 코스 " + favs.length + "개 - 코스 화면 이름 옆 ☆ 로 넣고 뺍니다.";
+        h.textContent = EN ? "★ Favorites: " + favs.length + " - add or remove with ☆ next to the trail name." : "★ 찜한 코스 " + favs.length + "개 - 코스 화면 이름 옆 ☆ 로 넣고 뺍니다.";
         box.appendChild(h);
         var withPt = [];
         favs.forEach(function (f) {
             var it = document.createElement("div"), b = document.createElement("b"), sp = document.createElement("span");
             it.className = "it fav";
             RF.showName(b, String(f.name || ""));
-            var fchip = (f.kind || "hike") === "hike" && f.dist && RF.levelChip(f.dist, f.asc, false, f.steep);
+            var fchip = (f.kind || "hike") === "hike" && f.dist && RF.levelChip(f.dist, f.asc, EN, f.steep);
             if (fchip) { b.appendChild(document.createTextNode(" ")); b.appendChild(fchip); }
-            sp.textContent = (f.dist ? km(f.dist) + "km" : "") + (f.asc != null ? " · 오르막 " + num(f.asc) + "m" : "");
+            sp.textContent = (f.dist ? km(f.dist) + "km" : "") + (f.asc != null ? T(" · 오르막 ", " · climb ") + num(f.asc) + "m" : "");
             it.appendChild(b);
             it.appendChild(sp);
             it.onclick = function () { fromList = true; location.hash = "#c=" + encodeURIComponent(f.id); };
@@ -2744,6 +2825,17 @@
     pickHome();
     // 내 주변 코스를 보인 자리 - 검색창이 빈 채로 종류 탭을 바꾸면 그 자리에서 그 종류로 다시(2026-10-11 홍TV님: 등산 탭을 눌러도 그대로였음)
     var nearAt = null;
+    // 영어 화면 - 로마자로 산 이름을 찾으면 한글 이름으로 찾음("seoraksan" · "Bukhan" → 설악산 · 북한산). 100대 명산 목록에서(2026-10-17)
+    var enPeaks = [];
+    if (EN) getJson("data/mountains100.json").then(function (d) {
+        enPeaks = ((d && d.peaks) || []).map(function (p) { var ko = String(p.id || p.name); return { ko: ko.replace(/\(.*\)$/, ""), key: RF.roman(ko).toLowerCase().replace(/[^a-z]/g, "") }; });
+    }).catch(function () { /* 한글로만 */ });
+    function enSearch(q) {
+        if (!EN || !/^[a-z][a-z\s'-]*$/i.test(q)) return q;
+        var k = q.toLowerCase().replace(/[^a-z]/g, "");
+        var hit = enPeaks.filter(function (p) { return p.key === k || p.key === k + "san"; })[0] || (k.length >= 4 && enPeaks.filter(function (p) { return p.key.indexOf(k) === 0; })[0]);
+        return hit ? hit.ko : q;
+    }
     $("q").addEventListener("input", function () {
         clearTimeout(searchTimer);
         var q = this.value.trim();
@@ -2760,6 +2852,7 @@
         nearAt = null;
         searchTimer = setTimeout(function () {
             var my = ++pickSeq;
+            q = enSearch(q);
             // 산 안내(park-notes)에서 이름을 바꾼 코스는 새 이름으로도 찾음(2026-10-13 PC: "공룡능선" 이 0개 - DB 이름은 "큰새봉 1코스")
             var renamed = [];
             Object.keys(listNotes || {}).forEach(function (pk) {
@@ -2790,13 +2883,13 @@
                     });
                     listCourses(rows, null);
                 })
-                .catch(function (e) { if (my === pickSeq) toast("검색 실패: " + e.message); });
+                .catch(function (e) { if (my === pickSeq) toast(T("검색 실패: ", "Search failed: ") + e.message); });
         }, 300);
     });
 
     $("nearMe").addEventListener("click", function () {
-        if (!navigator.geolocation || !window.isSecureContext) { toast("위치는 https 주소에서만 쓸 수 있습니다. 산 이름으로 찾아보세요.", 5000); return; }
-        toast("현재 위치를 찾는 중…");
+        if (!navigator.geolocation || !window.isSecureContext) { toast(T("위치는 https 주소에서만 쓸 수 있습니다. 산 이름으로 찾아보세요.", "Location only works on an https address. Search by mountain name."), 5000); return; }
+        toast(T("현재 위치를 찾는 중…", "Finding your location…"));
         navigator.geolocation.getCurrentPosition(function (pos) {
             nearList(pos.coords.latitude, pos.coords.longitude);
         }, function (e) { onGpsError(e); }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 60000 });
@@ -2831,7 +2924,7 @@
             });
             rows.sort(function (a, b) { return a.away - b.away; });
             if (my === pickSeq) listCourses(rows, true);
-        }).catch(function (e) { if (my === pickSeq) toast("코스를 찾지 못했습니다: " + e.message); });
+        }).catch(function (e) { if (my === pickSeq) toast(T("코스를 찾지 못했습니다: ", "Could not find trails: ") + e.message); });
     }
 
     // ------------------------------------------------------------------ 시작
@@ -2931,12 +3024,12 @@
             compass.on = true;
             compassListen(true);
             $("compass").classList.add("on");
-            setTimeout(function () { if (compass.heading == null) toast("이 기기에서는 나침반 방향을 읽지 못했습니다(센서 없음 · 권한 거부).", 5000); }, 2500);
+            setTimeout(function () { if (compass.heading == null) toast(T("이 기기에서는 나침반 방향을 읽지 못했습니다(센서 없음 · 권한 거부).", "Could not read the compass on this device (no sensor or permission denied)."), 5000); }, 2500);
         };
         // 아이폰은 사용자가 누른 순간에 권한을 물어야 합니다
         if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === "function") {
-            DeviceOrientationEvent.requestPermission().then(function (r) { if (r === "granted") go(); else toast("나침반 권한이 거부되었습니다."); })
-                .catch(function () { toast("나침반 권한을 받지 못했습니다."); });
+            DeviceOrientationEvent.requestPermission().then(function (r) { if (r === "granted") go(); else toast(T("나침반 권한이 거부되었습니다.", "Compass permission was denied.")); })
+                .catch(function () { toast(T("나침반 권한을 받지 못했습니다.", "Could not get compass permission.")); });
         } else {
             go();
         }
@@ -2946,12 +3039,13 @@
     // 기록 선이 조금 거칠어집니다. 위쪽 GPS 글자를 눌러 바꾸고, 다음 "산행 시작" 부터 적용합니다. 브라우저는 바꿀 것이 없어 보이지 않습니다.
     if (BG) {
         $("gps").style.cursor = "pointer";   // className 은 GPS 상태가 바꿉니다
-        $("gps").title = "누르면 배터리 절약 모드 켜기 · 끄기";
+        $("gps").title = T("누르면 배터리 절약 모드 켜기 · 끄기", "Tap to turn battery saver on or off");
         $("gps").addEventListener("click", function () {
             if (hike.sim) return;   // 시험 걷기 중에는 빠르기 단추(아래)
             batterySave = !batterySave;
             try { localStorage.setItem(BATTERY_KEY, batterySave ? "1" : "0"); } catch (e) { /* 이번만 */ }
-            toast((batterySave ? "배터리 절약 켬 - 위치를 10m 마다 받습니다." : "배터리 절약 끔 - 위치를 3m 마다 받습니다.")
+            toast(EN ? (batterySave ? "Battery saver on - location every 10 m." : "Battery saver off - location every 3 m.") + (hike.running && !hike.sim ? " Applies from your next start." : "")
+                : (batterySave ? "배터리 절약 켬 - 위치를 10m 마다 받습니다." : "배터리 절약 끔 - 위치를 3m 마다 받습니다.")
                 + (hike.running && !hike.sim ? " 다음 산행 시작부터 적용됩니다." : ""), 4000);
         });
     }
@@ -2961,18 +3055,18 @@
         if (!hike.running || !hike.sim) return;
         SIM_SPEED = SIM_SPEEDS[(SIM_SPEEDS.indexOf(SIM_SPEED) + 1) % SIM_SPEEDS.length];
         simMul(SIM_SPEED);
-        this.textContent = "시험 " + SIM_SPEED + "×";
+        this.textContent = T("시험 ", "Sim ") + SIM_SPEED + "×";
     });
 
     $("kcalBox").addEventListener("click", function () {
-        var kg = askNumber("몸무게(kg)를 넣어 주세요. 칼로리 추정에만 쓰고 이 핸드폰에만 저장합니다.", body.kg, 20, 200);
+        var kg = askNumber(T("몸무게(kg)를 넣어 주세요. 칼로리 추정에만 쓰고 이 핸드폰에만 저장합니다.", "Your weight (kg). Used only to estimate calories and kept on this phone."), body.kg, 20, 200);
         if (kg == null) return;
         body.kg = kg;
         saveBody();
         if (c) render();
     });
     $("stepsBox").addEventListener("click", function () {
-        var cm = askNumber("키(cm)를 넣어 주세요. 걸음 수(보폭) 추정에만 쓰고 이 핸드폰에만 저장합니다.", body.cm, 100, 230);
+        var cm = askNumber(T("키(cm)를 넣어 주세요. 걸음 수(보폭) 추정에만 쓰고 이 핸드폰에만 저장합니다.", "Your height (cm). Used only to estimate steps and kept on this phone."), body.cm, 100, 230);
         if (cm == null) return;
         body.cm = cm;
         saveBody();
@@ -2999,9 +3093,9 @@
 
     $("voice").addEventListener("click", function () {
         setVoice(VOICE_LEVELS[(VOICE_LEVELS.indexOf(voice.level) + 1) % VOICE_LEVELS.length]);
-        if (voice.level === "on") say("음성 안내를 자세히 합니다.", { urgent: true });
-        else if (voice.level === "short") say("음성 안내를 짧게 합니다.", { urgent: true });
-        else toast("음성 안내를 껐습니다.", 2000);
+        if (voice.level === "on") say(T("음성 안내를 자세히 합니다.", "Detailed voice guide."), { urgent: true });
+        else if (voice.level === "short") say(T("음성 안내를 짧게 합니다.", "Short voice guide."), { urgent: true });
+        else toast(T("음성 안내를 껐습니다.", "Voice guide off."), 2000);
     });
     setVoice(voice.level);
     if (!TTS && !("speechSynthesis" in window)) $("voice").style.display = "none";   // 읽어 주기가 없는 브라우저
@@ -3011,21 +3105,22 @@
         compass.up = !compass.up;   // 켜진 뒤 누르면: 내 방향으로 지도 돌리기 ↔ 북쪽 위로
         $("compass").classList.toggle("up", compass.up);
         if (!compass.up) map.rotateTo(0, { duration: 300 });
-        toast(compass.up ? "내가 보는 방향이 위로 오게 지도를 돌립니다." : "북쪽이 위로 오게 되돌렸습니다.", 2500);
+        toast(compass.up ? T("내가 보는 방향이 위로 오게 지도를 돌립니다.", "Map now turns with the way you face.") : T("북쪽이 위로 오게 되돌렸습니다.", "North is up again."), 2500);
     });
 
     // ------------------------------------------------------------------ SOS
 
     function fillSos(f) {
-        $("sosGrid").textContent = f ? (RF.nationalPoint(f.lat, f.lon) || "범위 밖") : "위치를 찾는 중…";
+        $("sosGrid").textContent = f ? (RF.nationalPoint(f.lat, f.lon) || T("범위 밖", "out of range")) : T("위치를 찾는 중…", "Finding location…");
         $("sosLatLon").textContent = f ? f.lat.toFixed(5) + ", " + f.lon.toFixed(5) + (f.acc ? " (±" + Math.round(f.acc) + "m)" : "") : "-";
         // 해발: GPS 고도가 있으면 그것, 없으면 산행 중 코스 위에 있을 때만 코스 고도(아니면 엉뚱한 값이라 비움)
         var ele = null, eleNote = "";
         if (f && f.alt != null) ele = Math.round(f.alt);
         else if (c && hike.running && hike.off <= OFF_ROUTE_M) { ele = RF.at(c, hike.d).ele; eleNote = " (코스 기준)"; }
-        $("sosEle").textContent = ele == null ? "-" : num(ele) + "m" + eleNote;
+        $("sosEle").textContent = ele == null ? "-" : num(ele) + "m" + (eleNote && EN ? " (trail data)" : eleNote);
         var where = c && hike.running ? km(hike.d) + "km 지점" + (hike.off > OFF_ROUTE_M ? " · 코스에서 " + num(hike.off) + "m 벗어남" : "") : "";
-        $("sosCourse").textContent = c ? c.course.name + (where ? " · " + where : "") : "-";
+        var whereEn = c && hike.running ? km(hike.d) + " km along" + (hike.off > OFF_ROUTE_M ? " · " + num(hike.off) + " m off the trail" : "") : "";
+        $("sosCourse").textContent = c ? (EN ? NM(c.course.name) + (whereEn ? " · " + whereEn : "") : c.course.name + (where ? " · " + where : "")) : "-";
         // 가까운 국립공원 위치표지판 - GPS 가 없으면 산행 중 코스 위 자리로
         var here = f || (c && hike.running && hike.off <= OFF_ROUTE_M ? RF.at(c, hike.d) : null);
         var ns = c && here ? RF.nearSign(c, here.lat, here.lon) : null;
@@ -3033,12 +3128,13 @@
         $("sosSign").textContent = ns ? RF.signText(ns) : "-";
         // 가까운 구급함 · 헬기장(국립공원 위험지역 자료, 2km 안)
         var kit = c && here ? RF.nearSpot(c, "aid", here.lat, here.lon) : null, heli = c && here ? RF.nearSpot(c, "heli", here.lat, here.lon) : null;
-        var helpTxt = [kit ? "구급함 " + Math.round(kit.m) + "m" : "", heli ? "헬기장 " + Math.round(heli.m) + "m" : ""].filter(Boolean).join(" · ");
+        var helpTxt = [kit ? T("구급함 ", "First-aid box ") + Math.round(kit.m) + "m" : "", heli ? T("헬기장 ", "Helipad ") + Math.round(heli.m) + "m" : ""].filter(Boolean).join(" · ");
         $("sosHelpRow").hidden = !helpTxt;
         $("sosHelp").textContent = helpTxt || "-";
 
         // 보낼 글 - 화면에 보이는 내용 그대로(구조대가 읽기 쉽게 줄바꿈)
-        var lines = ["[" + K().sos + " 긴급 신고]"];
+        // 119 문자는 영어 화면이어도 한국어 먼저(구조대가 읽음) + 아래에 영어(2026-10-17 - 외국인 산행객)
+        var lines = ["[" + (EN ? "외국인(영어) " : "") + (K().ko || K()).sos + " 긴급 신고]"];
         if (f) {
             lines.push("국가지점번호: " + (RF.nationalPoint(f.lat, f.lon) || "-"));
             lines.push("위치: " + f.lat.toFixed(5) + ", " + f.lon.toFixed(5) + (f.acc ? " (오차 약 " + Math.round(f.acc) + "m)" : ""));
@@ -3054,17 +3150,30 @@
         var nx = c && hike.running ? RF.nextPoi(c, hike.d) : null;
         if (nx) lines.push("다음 지점: " + nx.name + "까지 " + km(+nx.dist_m - hike.d) + "km");
         lines.push("시각: " + clock(Date.now()));
-        var body = lines.join("\n");
+        var en = [];
+        if (EN) {
+            en.push("[Emergency - foreign " + K().sos + ", English speaker]");
+            if (f) {
+                en.push("Korea grid no.: " + (RF.nationalPoint(f.lat, f.lon) || "-"));
+                en.push("Location: " + f.lat.toFixed(5) + ", " + f.lon.toFixed(5) + (f.acc ? " (±" + Math.round(f.acc) + " m)" : ""));
+            } else en.push("Location: unknown - please use the location sign number");
+            if (ns) en.push("Nearest location sign: " + ns.sign.loc_no + " (" + Math.round(ns.m) + " m)");
+            if (ele != null) en.push("Elevation: " + Math.round(ele) + " m");
+            if (c) en.push("Trail: " + NM(c.course.name) + (whereEn ? " (" + whereEn + ")" : ""));
+            en.push("Time: " + clock(Date.now()));
+        }
+        var body = lines.join("\n") + (en.length ? "\n\n" + en.join("\n") : "");
         sosNow = { f: f, lines: lines, body: body };
         $("sosPhoto").disabled = !f;
         $("sosBody").textContent = body;
         $("sosSms").href = "sms:119" + (/iPhone|iPad/.test(navigator.userAgent) ? "&" : "?") + "body=" + encodeURIComponent(body);
         // 가족 · 지인에게 - 받는 사람은 문자 앱에서 고름(긴급 신고 머리말 대신 안부 머리말)
-        var fam = ["[routefly 위치 알림] " + K().act + " 중 지금 위치입니다."].concat(lines.slice(1)).join("\n");
+        var fam = EN ? ["[routefly location] My location while on a " + K().act.toLowerCase() + "."].concat(en.slice(1)).join("\n")
+            : ["[routefly 위치 알림] " + K().act + " 중 지금 위치입니다."].concat(lines.slice(1)).join("\n");
         $("sosFamily").href = "sms:" + (/iPhone|iPad/.test(navigator.userAgent) ? "&" : "?") + "body=" + encodeURIComponent(fam);
         $("sosCopy").onclick = function () {
-            (navigator.clipboard ? navigator.clipboard.writeText(body) : Promise.reject()).then(function () { toast("위치를 복사했습니다."); })
-                .catch(function () { prompt("아래 글을 길게 눌러 복사하세요", body); });
+            (navigator.clipboard ? navigator.clipboard.writeText(body) : Promise.reject()).then(function () { toast(T("위치를 복사했습니다.", "Location copied.")); })
+                .catch(function () { prompt(T("아래 글을 길게 눌러 복사하세요", "Long-press to copy"), body); });
         };
     }
 
@@ -3178,12 +3287,14 @@
         return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + "-" + p(d.getHours()) + p(d.getMinutes());
     }
 
-    var PHOTO_LABEL = "📷 위치 사진 보내기(지도 + 위치 글)";
+    var SOS_TIP = T("공유 창에서 <b>메시지</b> → 받는 사람 <b>119</b> → 보내기. 공유 창이 닫혔으면 버튼을 다시 누르세요.",
+        "In the share window pick <b>Messages</b> → recipient <b>119</b> → send. If it closed, tap the button again.");
+    var PHOTO_LABEL = T("📷 위치 사진 보내기(지도 + 위치 글)", "📷 Send location photo (map + location text)");
     var photoReady = null;   // 만든 사진 {file, url, body} - 공유가 막히면(누른 지 오래됨) 한 번 더 누를 때 보냅니다
 
     function sharePhoto(p) {
         if (FS && SHARE) {   // 앱 - 공유 창(메시지 → 받는 사람 119)
-            $("sosPhotoTip").innerHTML = "공유 창에서 <b>메시지</b> → 받는 사람 <b>119</b> → 보내기. 공유 창이 닫혔으면 버튼을 다시 누르세요.";
+            $("sosPhotoTip").innerHTML = SOS_TIP;
             return blobToBase64(p.file).then(function (b64) { return nativeShareFile(p.file.name, b64, p.body); })
                 .catch(function (e) { if (!/cancel/i.test(String(e && e.message || e))) throw e; });
         }
@@ -3192,15 +3303,15 @@
             var a = document.createElement("a");
             a.href = p.url; a.download = p.file.name;
             document.body.appendChild(a); a.click(); a.remove();
-            $("sosPhotoTip").innerHTML = "이 브라우저는 바로 보내기를 못 합니다. 사진을 저장했습니다(안 되면 사진을 <b>길게 눌러 저장</b>).<br>" +
-                "문자 앱에서 119 에게 사진을 붙여 보내세요.";
+            $("sosPhotoTip").innerHTML = T("이 브라우저는 바로 보내기를 못 합니다. 사진을 저장했습니다(안 되면 사진을 <b>길게 눌러 저장</b>).<br>" +
+                "문자 앱에서 119 에게 사진을 붙여 보내세요.", "This browser cannot send it directly. The photo was saved (if not, <b>long-press the photo to save</b>).<br>Attach it in your messages app and send to 119.");
             return Promise.resolve();
         }
-        $("sosPhotoTip").innerHTML = "공유 창에서 <b>메시지</b> → 받는 사람 <b>119</b> → 보내기. 공유 창이 닫혔으면 버튼을 다시 누르세요.";
+        $("sosPhotoTip").innerHTML = SOS_TIP;
         return navigator.share({ files: [p.file], text: p.body }).catch(function (e) {
             if (e && e.name === "NotAllowedError") {   // 사진 만드는 사이 '누름'이 만료됨 - 한 번 더 누르게
-                $("sosPhoto").textContent = "📤 사진 보내기(한 번 더 누르세요)";
-                toast("사진이 준비됐습니다. 📤 버튼을 한 번 더 누르세요.", 5000);
+                $("sosPhoto").textContent = T("📤 사진 보내기(한 번 더 누르세요)", "📤 Send photo (tap once more)");
+                toast(T("사진이 준비됐습니다. 📤 버튼을 한 번 더 누르세요.", "The photo is ready. Tap 📤 once more."), 5000);
                 return "again";
             }
             if (e && e.name !== "AbortError") throw e;
@@ -3209,14 +3320,14 @@
 
     $("sosPhoto").addEventListener("click", function () {
         var now0 = sosNow, btn = $("sosPhoto");
-        if (!now0.f) { toast("위치를 찾은 뒤에 만들 수 있습니다."); return; }
+        if (!now0.f) { toast(T("위치를 찾은 뒤에 만들 수 있습니다.", "Available once your location is found.")); return; }
         if (photoReady && photoReady.f === now0.f && photoReady.body === now0.body) {   // 이미 만든 사진 - 바로 보냅니다
             sharePhoto(photoReady).then(function (r) { if (r !== "again") btn.textContent = PHOTO_LABEL; })
-                .catch(function (e) { toast("보내기 실패: " + (e && e.message || e), 5000); });
+                .catch(function (e) { toast(T("보내기 실패: ", "Send failed: ") + (e && e.message || e), 5000); });
             return;
         }
         btn.disabled = true;
-        btn.textContent = "📷 사진 만드는 중…";
+        btn.textContent = T("📷 사진 만드는 중…", "📷 Making photo…");
         var label = PHOTO_LABEL;
         sosImage(now0.f, now0.lines).then(function (cv) {
             return new Promise(function (resolve, reject) {
@@ -3231,9 +3342,9 @@
             $("sosPhotoBox").style.display = "block";
             return sharePhoto(photoReady);
         }).then(function (r) {
-            if (r === "again") label = "📤 사진 보내기(한 번 더 누르세요)";
+            if (r === "again") label = T("📤 사진 보내기(한 번 더 누르세요)", "📤 Send photo (tap once more)");
         }).catch(function (e) {
-            toast("사진을 못 만들었습니다: " + (e && e.message || e) + " - 문자 신고를 쓰세요.", 5000);
+            toast(T("사진을 못 만들었습니다: ", "Could not make the photo: ") + (e && e.message || e) + T(" - 문자 신고를 쓰세요.", " - use the text message instead."), 5000);
         }).finally(function () { btn.disabled = false; btn.textContent = label; });
     });
 
@@ -3246,23 +3357,23 @@
         if (!fresh && navigator.geolocation && window.isSecureContext) {
             navigator.geolocation.getCurrentPosition(function (pos) {
                 fillSos({ lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy, alt: pos.coords.altitude, t: Date.now() });
-            }, function () { $("sosGrid").textContent = "위치를 못 찾음 - 표지판 번호를 불러 주세요"; },
+            }, function () { $("sosGrid").textContent = T("위치를 못 찾음 - 표지판 번호를 불러 주세요", "No location - read out a location sign number"); },
             { enableHighAccuracy: true, timeout: 20000, maximumAge: 30000 });
         } else if (!fresh) {
-            $("sosGrid").textContent = "위치를 못 씀(https 필요) - 표지판 번호를 불러 주세요";
+            $("sosGrid").textContent = T("위치를 못 씀(https 필요) - 표지판 번호를 불러 주세요", "Location unavailable (needs https) - read out a location sign number");
         }
     });
     $("summitClose").addEventListener("click", function () { $("summitSheet").style.display = "none"; });
     $("summitShare").addEventListener("click", function () {
         var text = summitShareText;
-        if (SHARE) { Promise.resolve(SHARE.share({ text: text, dialogTitle: "자랑하기" })).catch(function () { /* 닫음 */ }); return; }
+        if (SHARE) { Promise.resolve(SHARE.share({ text: text, dialogTitle: T("자랑하기", "Share") })).catch(function () { /* 닫음 */ }); return; }
         if (navigator.share) { navigator.share({ text: text }).catch(function () { /* 닫음 */ }); return; }
-        if (navigator.clipboard) navigator.clipboard.writeText(text).then(function () { toast("글을 복사했습니다. 카톡 등에 붙여 넣으세요.", 4000); });
+        if (navigator.clipboard) navigator.clipboard.writeText(text).then(function () { toast(T("글을 복사했습니다. 카톡 등에 붙여 넣으세요.", "Text copied. Paste it into a chat."), 4000); });
     });
     $("sosClose").addEventListener("click", function () { $("sosSheet").style.display = "none"; hike.sosAuto = false; });
     $("stillOk").addEventListener("click", function () {
         if (hike.sosAuto) { $("sosSheet").style.display = "none"; hike.sosAuto = false; }   // 저절로 열린 SOS 도 닫음 - 괜찮다고 했으니
-        stillReset(); toast("👍 계속 지켜볼게요. " + STILL_MS / 60000 + "분 넘게 멈추면 다시 묻습니다.", 4000); });
+        stillReset(); toast(EN ? "👍 OK, still watching. If you stop for over " + STILL_MS / 60000 + " minutes I will ask again." : "👍 계속 지켜볼게요. " + STILL_MS / 60000 + "분 넘게 멈추면 다시 묻습니다.", 4000); });
     $("stillSos").addEventListener("click", function () { stillReset(); $("sos").click(); });
 
     // ------------------------------------------------------------------ 공유 · 오프라인 저장
@@ -3283,7 +3394,7 @@
     $("share").addEventListener("click", function () {
         if (!c) return;
         var t0 = now(), ms = RF.standardMs(c.course.kind, c.total, RF.ascentLeft(c, 0));
-        var link = RF.parseJoinId(c.id) ? "" : new URL("s/" + encodeURIComponent(c.id) + "?to=hike", location.href).href;
+        var link = RF.parseJoinId(c.id) ? "" : new URL(EN ? "hike.html?lang=en#c=" + encodeURIComponent(c.id) : "s/" + encodeURIComponent(c.id) + "?to=hike", location.href).href;
         var text = RF.planText(c.course.name, c.total, Math.round(c.asc && c.asc.length ? c.asc[c.asc.length - 1] : 0), t0, t0 + ms, link, clock,
             RF.sunset(t0, c.lat[0], c.lon[0]));
         $("sharePlanText").textContent = text;
@@ -3295,13 +3406,13 @@
         $("shareSheet").style.display = "none";
         if (!c) return;
         // 이은 코스(★ 대표 코스 · 지도에서 고른 여러 구간)는 따라가기 주소 그대로(제목 · 들머리 이름 포함) - 짧은 링크(s/)는 코스 하나만 앎(2026-10-13 홍TV님)
-        var url = RF.parseJoinId(c.id)
-            ? new URL("hike.html#c=" + encodeURIComponent(c.id) + (location.hash.match(/&(title|head|rev)=[^&]*/g) || []).join(""), location.href).href
+        var url = RF.parseJoinId(c.id) || EN
+            ? new URL("hike.html" + (EN ? "?lang=en" : "") + "#c=" + encodeURIComponent(c.id) + (location.hash.match(/&(title|head|rev)=[^&]*/g) || []).join(""), location.href).href
             : new URL("s/" + encodeURIComponent(c.id) + "?to=hike", location.href).href;
-        var text = c.course.name + " · " + km(c.total) + "km";
-        if (navigator.share) navigator.share({ title: c.course.name, text: text, url: url }).catch(function () {});
-        else (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(function () { toast("링크를 복사했습니다: " + url, 5000); })
-            .catch(function () { prompt("링크를 복사하세요", url); });
+        var text = NM(c.course.name) + " · " + km(c.total) + "km";
+        if (navigator.share) navigator.share({ title: NM(c.course.name), text: text, url: url }).catch(function () {});
+        else (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(function () { toast(T("링크를 복사했습니다: ", "Link copied: ") + url, 5000); })
+            .catch(function () { prompt(T("링크를 복사하세요", "Copy the link"), url); });
     });
 
     /** 지도 타일 주소들 - 코스 범위의 z(lo~hi). */
@@ -3325,7 +3436,7 @@
      * 타일은 OFFLINE_MAX 장 안으로 - 넘으면 가장 자세한 단계를 줄이고(최소 z12), z12 로도 넘으면 받지 않습니다.
      */
     var OFFLINE_MAX = 3000, OFFLINE_ZMIN = 10, OFFLINE_ZMAX = 16;
-    var SAVE_RANGES = { near: { pad: 0.005, label: "코스 둘레 약 500m" }, wide: { pad: 0.03, label: "넓게 - 코스 둘레 약 3km" } };
+    var SAVE_RANGES = { near: { pad: 0.005, label: T("코스 둘레 약 500m", "About 500 m around the trail") }, wide: { pad: 0.03, label: T("넓게 - 코스 둘레 약 3km", "Wide - about 3 km around the trail") } };
 
     /** 그 범위([서경, 남위, 동경, 북위])에서 받을 타일 주소 - OFFLINE_MAX 안으로 가장 자세한 단계를 정합니다. 넘치면 null. */
     function offlinePlan(b) {
@@ -3352,11 +3463,11 @@
 
     $("save").addEventListener("click", function () {
         if (!c) return;
-        if (!("caches" in window) || !window.isSecureContext) { toast("오프라인 저장은 https 주소에서만 됩니다.", 5000); return; }
-        [["saveNear", "near", "📍 " + SAVE_RANGES.near.label], ["saveWide", "wide", "🏔 " + SAVE_RANGES.wide.label], ["saveView", "view", "🗺 지금 보이는 지도 범위"]].forEach(function (x) {
+        if (!("caches" in window) || !window.isSecureContext) { toast(T("오프라인 저장은 https 주소에서만 됩니다.", "Offline save only works on an https address."), 5000); return; }
+        [["saveNear", "near", "📍 " + SAVE_RANGES.near.label], ["saveWide", "wide", "🏔 " + SAVE_RANGES.wide.label], ["saveView", "view", T("🗺 지금 보이는 지도 범위", "🗺 The map area on screen")]].forEach(function (x) {
             var plan = offlinePlan(rangeBbox(x[1])), btn = $(x[0]);
             btn.disabled = !plan;
-            btn.textContent = x[2] + (plan ? " · " + num(plan.urls.length) + "장(가장 자세히 z" + plan.zMax + ")" : " · 너무 넓습니다(지도를 확대하세요)");
+            btn.textContent = x[2] + (plan ? " · " + num(plan.urls.length) + T("장(가장 자세히 z", " tiles (detail up to z") + plan.zMax + ")" : T(" · 너무 넓습니다(지도를 확대하세요)", " · too wide (zoom in)"));
             btn.onclick = function () { $("saveSheet").style.display = "none"; saveOffline(plan); };
         });
         $("saveDelete").style.display = offlineIds().indexOf(c.id) >= 0 ? "" : "none";   // 저장해 둔 코스면 지우기
@@ -3429,12 +3540,12 @@
     $("saveDelete").addEventListener("click", function () {
         if (!c || !("caches" in window)) return;
         var id = c.id;
-        if (!confirm("이 코스의 오프라인 저장(지도 그림)을 지울까요? 다른 저장 코스와 겹치는 지도는 남깁니다.")) return;
+        if (!confirm(T("이 코스의 오프라인 저장(지도 그림)을 지울까요? 다른 저장 코스와 겹치는 지도는 남깁니다.", "Delete this trail's offline map? Map areas shared with other saved trails are kept."))) return;
         $("saveSheet").style.display = "none";
         deleteOffline(id).then(function () {
-            if (c && c.id === id) $("save").textContent = "📥 저장";
-            toast("오프라인 저장을 지웠습니다.", 3000);
-        }).catch(function (e) { toast("지우지 못했습니다: " + (e && e.message || e), 5000); });
+            if (c && c.id === id) $("save").textContent = T("📥 저장", "📥 Save");
+            toast(T("오프라인 저장을 지웠습니다.", "Offline save deleted."), 3000);
+        }).catch(function (e) { toast(T("지우지 못했습니다: ", "Could not delete: ") + (e && e.message || e), 5000); });
     });
 
     function saveOffline(plan) {
@@ -3467,15 +3578,16 @@
             });
         }).then(function () {
             btn.disabled = false;
-            btn.textContent = "✅ 저장됨";
+            btn.textContent = T("✅ 저장됨", "✅ Saved");
             var saved = offlineIds();
             if (saved.indexOf(id) < 0) { saved.push(id); setOfflineIds(saved); }
             setOfflineName(id, meta);
-            toast("오프라인 저장 끝 - 지도 " + num(plan.urls.length) + "장" + (failed ? " (못 받은 " + failed + "장)" : "") + ". 통신이 끊겨도 이 범위는 보입니다.", 6000);
+            toast(EN ? "Offline save done - " + num(plan.urls.length) + " map tiles" + (failed ? " (" + failed + " failed)" : "") + ". This area shows even without signal."
+                : "오프라인 저장 끝 - 지도 " + num(plan.urls.length) + "장" + (failed ? " (못 받은 " + failed + "장)" : "") + ". 통신이 끊겨도 이 범위는 보입니다.", 6000);
         }).catch(function (e) {
             btn.disabled = false;
-            btn.textContent = "📥 저장";
-            toast("저장하지 못했습니다: " + e.message, 5000);
+            btn.textContent = T("📥 저장", "📥 Save");
+            toast(T("저장하지 못했습니다: ", "Could not save: ") + e.message, 5000);
         });
     }
 

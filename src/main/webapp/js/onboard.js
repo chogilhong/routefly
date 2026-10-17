@@ -21,7 +21,8 @@
             dots[k].className = k === i ? "on" : "";
         }
         var last = i === pages.length - 1;
-        next.textContent = last ? "시작하기" : "다음";
+        var en = document.documentElement.lang === "en";   // 따라가기 영어(hike.js 가 먼저 정함)
+        next.textContent = last ? (en ? "Get started" : "시작하기") : (en ? "Next" : "다음");
         skip.style.visibility = last ? "hidden" : "";
     }
     function open() {

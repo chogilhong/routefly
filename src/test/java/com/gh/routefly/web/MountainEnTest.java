@@ -69,7 +69,7 @@ public class MountainEnTest {
         assertTrue(html.contains("Summit Daecheongbong <span lang=\"ko\">(대청봉)</span> 1,708 m"));
         assertTrue(html.contains("<b>Osaek visitor center - Daecheongbong <i class=\"lv lv3\">Advanced</i> <small lang=\"ko\">오색탐방지원센터 - 대청봉</small></b>"));
         assertTrue(html.contains("5.00 km · 1,300 m ascent · about 3 h 25 min"));
-        assertTrue("앱으로(두 단계 위)", html.contains("href=\"../../index.html#c=knps-1\">3D fly-through") && html.contains("href=\"../../hike.html#c=knps-1\">Follow (GPS)"));
+        assertTrue("앱으로(두 단계 위)", html.contains("href=\"../../index.html#c=knps-1\">3D fly-through") && html.contains("href=\"../../hike.html?lang=en#c=knps-1&amp;m="));
         assertTrue("가까운 산은 slug", html.contains("<a href=\"jeombongsan\">Jeombongsan <small>"));
         assertTrue("영어 문답 + JSON-LD", html.contains("<dt>How high is Seoraksan?</dt>") && html.contains("\"@type\":\"FAQPage\""));
         assertTrue(html.contains("There are 2 parking lots within 3 km"));

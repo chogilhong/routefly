@@ -42,7 +42,7 @@ public class CheckupStage5Test {
         assertTrue("검색어를 지우면 처음 안내 글(+ 찜한 코스 - 2026-10-15)", h.contains("if (wasQ) { nearAt = null; pickHome(); }")
                 && h.contains("box.innerHTML = PICK_HINT;"));
         assertTrue("빈 채로 종류 탭 - 내 주변 코스를 그 종류로 다시", h.contains("else if (nearAt) nearList(nearAt.lat, nearAt.lon);"));
-        assertTrue("예전 실패는 알리지 않음", h.contains(".catch(function (e) { if (my === pickSeq) toast(\"검색 실패: \" + e.message); });"));
+        assertTrue("예전 실패는 알리지 않음", h.contains(".catch(function (e) { if (my === pickSeq) toast(T(\"검색 실패: \", \"Search failed: \") + e.message); });"));
         assertTrue("나침반 - 그리기는 화면 한 장에 한 번", h.contains("compass.raf = requestAnimationFrame(drawOrientation);"));
         assertTrue("두 번 붙지 않게", h.contains("if (on === !!compass.listening) return;"));
         assertTrue("산행을 끝내면 나침반 끔", h.contains("compassOff();   // 2026-10-10"));

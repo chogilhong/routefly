@@ -281,49 +281,49 @@ html.picking #pick { display:flex; }
 </head>
 <body>
 <div id="top">
-    <a href="#" id="back" title="코스 목록(검색)으로"><b>‹</b>목록</a>
-    <div class="nm" id="name">코스를 고르세요</div>
-    <span id="gps">GPS 꺼짐</span>
-    <a href="about.html" title="안전 · 개인정보 · 출처 안내" aria-label="안전 · 개인정보 · 출처 안내" style="font-size:17px;min-width:32px;min-height:40px;display:inline-flex;align-items:center;justify-content:center">ⓘ</a>
-    <button type="button" id="sos" title="119 긴급 신고 · 내 위치">SOS</button>
+    <a href="#" id="back" data-en="&lt;b&gt;‹&lt;/b&gt;List" data-en-title="Back to the trail list (search)" title="코스 목록(검색)으로"><b>‹</b>목록</a>
+    <div class="nm" id="name" data-en="Pick a trail">코스를 고르세요</div>
+    <span id="gps" data-en="GPS off">GPS 꺼짐</span>
+    <a href="about.html" title="안전 · 개인정보 · 출처 안내" data-en-title="Safety · privacy · data sources" data-en-aria-label="Safety · privacy · data sources" aria-label="안전 · 개인정보 · 출처 안내" style="font-size:17px;min-width:32px;min-height:40px;display:inline-flex;align-items:center;justify-content:center">ⓘ</a>
+    <button type="button" id="sos" data-en-title="Call 119 emergency · my location" title="119 긴급 신고 · 내 위치">SOS</button>
 </div>
 
 <div id="mapWrap">
     <div id="map"></div>
-    <div id="offroute"><span class="arrow" id="guideArrow"><svg viewBox="0 0 24 24" width="30" height="30"><path d="M12 2 L20 20 L12 15.5 L4 20 Z" fill="#fff" stroke="#7a0000" stroke-width="1.2" stroke-linejoin="round"/></svg></span><span class="otxt"><span id="offText"></span><button type="button" id="navBtn">🚗 출발점 길찾기</button></span></div>
+    <div id="offroute"><span class="arrow" id="guideArrow"><svg viewBox="0 0 24 24" width="30" height="30"><path d="M12 2 L20 20 L12 15.5 L4 20 Z" fill="#fff" stroke="#7a0000" stroke-width="1.2" stroke-linejoin="round"/></svg></span><span class="otxt"><span id="offText"></span><button type="button" id="navBtn" data-en="🚗 Directions to the start">🚗 출발점 길찾기</button></span></div>
     <div id="turn"></div>
-    <button type="button" id="compass" aria-label="나침반" title="나침반 - 누를 때마다: 켜기 → 내 방향으로 지도 돌리기 → 북쪽 위로"><span class="needle"><svg viewBox="0 0 16 30" width="13" height="25"><path d="M8 1 L13 15 L3 15 Z" fill="#e03131"/><path d="M3 15 L13 15 L8 29 Z" fill="#9aa3ad"/></svg></span><span class="hd" id="compassText">N</span></button>
+    <button type="button" id="compass" data-en-title="Compass - each tap: on → turn map with you → north up" data-en-aria-label="Compass" aria-label="나침반" title="나침반 - 누를 때마다: 켜기 → 내 방향으로 지도 돌리기 → 북쪽 위로"><span class="needle"><svg viewBox="0 0 16 30" width="13" height="25"><path d="M8 1 L13 15 L3 15 Z" fill="#e03131"/><path d="M3 15 L13 15 L8 29 Z" fill="#9aa3ad"/></svg></span><span class="hd" id="compassText">N</span></button>
     <div id="arrived"></div>
-    <button type="button" id="recClear" title="지도에서 기록 선 지우기">기록 선 지우기 ✕</button>
-    <button type="button" id="voice" class="on" aria-label="음성 안내 바꾸기" title="음성 안내 자세히 · 짧게 · 끄기(갈림길 · 지점 · 1km 마다 · 코스 이탈 · 도착)">🔊</button>
-    <button type="button" id="layerBtn" aria-label="밝은 지도 · 위성사진 바꾸기" title="밝은 지도로(햇빛 아래에서 잘 보임)">🗺️</button>
-    <button type="button" id="follow" class="on" aria-label="내 위치 따라가기" title="내 위치 따라가기">⌖</button>
-    <a id="parkBtn" href="park.html" aria-label="탐방 안내도" title="이 공원 · 산의 탐방 안내도(탐방로 전체 · 국립공원은 공식 지도 바로가기도)">🏞</a>
-    <button type="button" id="noteBtn" aria-label="사진 · 메모 남기기" title="지금 자리에 사진 · 메모 남기기(내 기록 · GPX 에 함께)">📝</button>
+    <button type="button" id="recClear" data-en="Clear record line ✕" data-en-title="Remove the record line from the map" title="지도에서 기록 선 지우기">기록 선 지우기 ✕</button>
+    <button type="button" id="voice" data-en-title="Voice guide detailed · short · off (junctions, points, every 1 km, off-trail, arrival)" data-en-aria-label="Change voice guide" class="on" aria-label="음성 안내 바꾸기" title="음성 안내 자세히 · 짧게 · 끄기(갈림길 · 지점 · 1km 마다 · 코스 이탈 · 도착)">🔊</button>
+    <button type="button" id="layerBtn" data-en-title="Light map (easier to see in sunlight)" data-en-aria-label="Switch light map · satellite" aria-label="밝은 지도 · 위성사진 바꾸기" title="밝은 지도로(햇빛 아래에서 잘 보임)">🗺️</button>
+    <button type="button" id="follow" data-en-title="Follow my location" data-en-aria-label="Follow my location" class="on" aria-label="내 위치 따라가기" title="내 위치 따라가기">⌖</button>
+    <a id="parkBtn" data-en-title="This park&#x27;s or mountain&#x27;s trail map" data-en-aria-label="Trail map" href="park.html" aria-label="탐방 안내도" title="이 공원 · 산의 탐방 안내도(탐방로 전체 · 국립공원은 공식 지도 바로가기도)">🏞</a>
+    <button type="button" id="noteBtn" data-en-title="Add a photo or note here (in My records and GPX)" data-en-aria-label="Add photo · note" aria-label="사진 · 메모 남기기" title="지금 자리에 사진 · 메모 남기기(내 기록 · GPX 에 함께)">📝</button>
 </div>
 
 <div id="stats">
-    <div id="grip" title="기록 칸 접기 · 펴기(아래로 밀면 접고, 위로 밀면 폅니다)"></div>
-    <div id="nextRow"><div id="next" title="코스를 따라 앞에 나오는 다음 이름표(봉우리 · 갈림 · 쉼터 등)와 거기까지 거리 · 높이 차이">다음 지점 -</div><button type="button" id="boardOpen" class="boardOpen" hidden title="📋 안내판 - 공단 안내판처럼 구간별 경사 · 현위치" aria-label="안내판">📋</button></div>   <!-- 📋 안내판 - 그래프 안에 두니 "최고" 높이를 가렸음, 글을 넣으니 "다음 지점" 이 잘려 그림만(2026-10-16) -->
-    <div id="sign" hidden title="가까운 국립공원 위치표지판 번호와 거리 - 다치거나 길을 잃으면 119 에 이 번호를 알려 주세요">📍 위치표지 -</div>
-    <div id="access" hidden title="공단 교통편 안내 - 차를 대는 곳에서 들머리까지(국립공원공단 누리집)"><span id="accessCar"></span><a id="accessLink" target="_blank" rel="noopener" title="국립공원공단 누리집 교통편 안내(새 창)">공단 교통편 ›</a></div>
+    <div id="grip" data-en-title="Fold or unfold the stats (swipe down to fold, up to unfold)" title="기록 칸 접기 · 펴기(아래로 밀면 접고, 위로 밀면 폅니다)"></div>
+    <div id="nextRow"><div id="next" data-en="Next point -" data-en-title="The next named point along the trail, with distance and height difference" title="코스를 따라 앞에 나오는 다음 이름표(봉우리 · 갈림 · 쉼터 등)와 거기까지 거리 · 높이 차이">다음 지점 -</div><button type="button" id="boardOpen" data-en-title="📋 Trail board - slope per section and where you are" data-en-aria-label="Trail board" class="boardOpen" hidden title="📋 안내판 - 공단 안내판처럼 구간별 경사 · 현위치" aria-label="안내판">📋</button></div>   <!-- 📋 안내판 - 그래프 안에 두니 "최고" 높이를 가렸음, 글을 넣으니 "다음 지점" 이 잘려 그림만(2026-10-16) -->
+    <div id="sign" hidden data-en="📍 Location sign -" data-en-title="Nearest national park location sign and distance - if hurt or lost, give this number to 119" title="가까운 국립공원 위치표지판 번호와 거리 - 다치거나 길을 잃으면 119 에 이 번호를 알려 주세요">📍 위치표지 -</div>
+    <div id="access" hidden data-en-title="Park service transport info - from parking to the trailhead" title="공단 교통편 안내 - 차를 대는 곳에서 들머리까지(국립공원공단 누리집)"><span id="accessCar"></span><a id="accessLink" data-en="Transport ›" data-en-title="Korea National Park Service transport info (new window)" target="_blank" rel="noopener" title="국립공원공단 누리집 교통편 안내(새 창)">공단 교통편 ›</a></div>
     <div id="statGrids">
     <div class="grid">
-        <div class="st big"><div class="k">진행 거리</div><div class="v" id="sDone">0.00<small>km</small></div></div>
-        <div class="st"><div class="k">남은 거리</div><div class="v" id="sLeft">-<small>km</small></div></div>
-        <div class="st"><div class="k">해발</div><div class="v" id="sEle">-<small>m</small></div></div>
-        <div class="st"><div class="k">경사</div><div class="v" id="sGrade">-<small>%</small></div></div>
-        <div class="st"><div class="k">속도</div><div class="v" id="sSpeed">-<small>km/h</small></div></div>
-        <div class="st"><div class="k">경과 시간 <span id="paceTxt" title="같은 코스 지난 기록과 같은 자리에서 견줌(지도의 흐린 점이 지난번의 나)"></span></div><div class="v" id="sTime">0:00:00</div></div>
+        <div class="st big"><div class="k" data-en="Done">진행 거리</div><div class="v" id="sDone">0.00<small>km</small></div></div>
+        <div class="st"><div class="k" data-en="Left">남은 거리</div><div class="v" id="sLeft">-<small>km</small></div></div>
+        <div class="st"><div class="k" data-en="Elevation">해발</div><div class="v" id="sEle">-<small>m</small></div></div>
+        <div class="st"><div class="k" data-en="Grade">경사</div><div class="v" id="sGrade">-<small>%</small></div></div>
+        <div class="st"><div class="k" data-en="Speed">속도</div><div class="v" id="sSpeed">-<small>km/h</small></div></div>
+        <div class="st"><div class="k" data-en="Elapsed &lt;span id=&quot;paceTxt&quot; title=&quot;Compared with your last record on this trail at the same point (the faint dot is you last time)&quot;&gt;&lt;/span&gt;">경과 시간 <span id="paceTxt" title="같은 코스 지난 기록과 같은 자리에서 견줌(지도의 흐린 점이 지난번의 나)"></span></div><div class="v" id="sTime">0:00:00</div></div>
     </div>
     <div class="grid" style="grid-template-columns:1fr 1fr; margin-top:4px">
-        <div class="st"><div class="k">남은 오르막</div><div class="v" id="sAsc">-<small>m</small></div></div>
-        <div class="st" id="etaBox"><div class="k">예상 도착 <span id="sunTxt"></span></div><div class="v" id="sEta">-</div></div>
+        <div class="st"><div class="k" data-en="Climb left">남은 오르막</div><div class="v" id="sAsc">-<small>m</small></div></div>
+        <div class="st" id="etaBox"><div class="k" data-en="ETA &lt;span id=&quot;sunTxt&quot;&gt;&lt;/span&gt;">예상 도착 <span id="sunTxt"></span></div><div class="v" id="sEta">-</div></div>
     </div>
     <div class="grid" id="bodyGrid" style="margin-top:4px">
-        <div class="st tap" id="kcalBox" title="누르면 몸무게를 넣습니다"><div class="k" id="kcalK">칼로리</div><div class="v" id="sKcal">0<small>kcal</small></div></div>
-        <div class="st tap" id="stepsBox" title="누르면 키를 넣습니다"><div class="k" id="stepsK">걸음</div><div class="v" id="sSteps">0<small>보</small></div></div>
-        <div class="st"><div class="k">오른 높이</div><div class="v" id="sUp">0<small>m</small></div></div>
+        <div class="st tap" id="kcalBox" data-en-title="Tap to enter your weight" title="누르면 몸무게를 넣습니다"><div class="k" id="kcalK" data-en="Calories">칼로리</div><div class="v" id="sKcal">0<small>kcal</small></div></div>
+        <div class="st tap" id="stepsBox" data-en-title="Tap to enter your height" title="누르면 키를 넣습니다"><div class="k" id="stepsK" data-en="Steps">걸음</div><div class="v" id="sSteps" data-en="0">0<small>보</small></div></div>
+        <div class="st"><div class="k" data-en="Climbed">오른 높이</div><div class="v" id="sUp">0<small>m</small></div></div>
     </div>
     </div>
 </div>
@@ -331,36 +331,36 @@ html.picking #pick { display:flex; }
 <div id="profile"></div>
 
 <div id="bar">
-    <button type="button" id="sim" title="코스를 따라 가는 흉내(GPS 없이 시험)">시험 걷기</button>
-    <button type="button" id="save" title="산속 통신이 끊겨도 보이게 이 코스와 지도를 핸드폰에 저장">📥 저장</button>
-    <button type="button" id="share" title="이 코스 링크 보내기">공유</button>
-    <button type="button" id="parkGo" title="들어온 안내도(탐방 안내도 · 노선 안내도) 첫 화면으로" style="display:none">← 안내도</button>
-    <button type="button" id="go" class="main">산행 시작</button>
+    <button type="button" id="sim" data-en="Simulate" data-en-title="Simulate walking the trail (test without GPS)" title="코스를 따라 가는 흉내(GPS 없이 시험)">시험 걷기</button>
+    <button type="button" id="save" data-en="📥 Save" data-en-title="Save this trail and map on the phone so it shows without signal" title="산속 통신이 끊겨도 보이게 이 코스와 지도를 핸드폰에 저장">📥 저장</button>
+    <button type="button" id="share" data-en="Share" data-en-title="Send a link to this trail" title="이 코스 링크 보내기">공유</button>
+    <button type="button" id="parkGo" data-en="← Map" data-en-title="Back to the trail map you came from" title="들어온 안내도(탐방 안내도 · 노선 안내도) 첫 화면으로" style="display:none">← 안내도</button>
+    <button type="button" id="go" data-en="Start hike" class="main">산행 시작</button>
 </div>
 
 <div id="pick">
     <header>
-        <h1><b class="ttl">route<span>fly</span> 따라가기</b><a class="pickNav" href="m/" title="등산 · 걷기 · 자전거 코스 모음 - 산마다 코스 · 날씨(10일) · 미세먼지 · 챙길 것">⛰️ 코스 모음 ›</a></h1>
-        <input type="search" id="q" aria-label="코스 · 산 이름으로 찾기" placeholder="코스 · 산 이름 (예: 설악산, 둘레길, 국토종주)" autocomplete="off" maxlength="50">
-        <div class="tabs" id="kindTabs" role="group" aria-label="코스 종류">
-            <button type="button" data-kind="" class="on" aria-pressed="true">전체</button>
-            <button type="button" data-kind="hike" aria-pressed="false">⛰️ 등산</button>
-            <button type="button" data-kind="walk" aria-pressed="false">🚶 걷기</button>
-            <button type="button" data-kind="bike" aria-pressed="false">🚴 자전거</button>
+        <h1><b class="ttl" data-en="route&lt;span&gt;fly&lt;/span&gt; Follow">route<span>fly</span> 따라가기</b><a class="pickNav" href="m/" data-en="⛰️ Trails ›" data-en-title="Hiking · walking · cycling trails - each mountain with trails, weather, air quality" title="등산 · 걷기 · 자전거 코스 모음 - 산마다 코스 · 날씨(10일) · 미세먼지 · 챙길 것">⛰️ 코스 모음 ›</a></h1>
+        <input type="search" id="q" aria-label="코스 · 산 이름으로 찾기" placeholder="코스 · 산 이름 (예: 설악산, 둘레길, 국토종주)" autocomplete="off" maxlength="50" data-en-aria-label="Search by trail or mountain name" data-en-placeholder="Mountain or trail (e.g. Seoraksan, Jirisan)">
+        <div class="tabs" id="kindTabs" data-en-aria-label="Trail type" role="group" aria-label="코스 종류">
+            <button type="button" data-kind="" class="on" aria-pressed="true" data-en="All">전체</button>
+            <button type="button" data-kind="hike" data-en="⛰️ Hiking" aria-pressed="false">⛰️ 등산</button>
+            <button type="button" data-kind="walk" data-en="🚶 Walking" aria-pressed="false">🚶 걷기</button>
+            <button type="button" data-kind="bike" data-en="🚴 Cycling" aria-pressed="false">🚴 자전거</button>
         </div>
         <div class="row">
-            <button type="button" id="nearMe">📍 내 주변 코스</button>
-            <button type="button" id="myRecords">📒 내 기록</button>
-            <a href="series.html" title="도장 · 완주 - 국토종주 인증센터 도장, 숲길 · 둘레길 코스 완주 모아 보기">🏅 도장</a>
-            <button type="button" id="gpxOpen" title="다른 앱 · 친구가 보내 준 GPX 파일을 열어 그 길을 따라갑니다">📂 GPX 열기</button>
+            <button type="button" id="nearMe" data-en="📍 Near me">📍 내 주변 코스</button>
+            <button type="button" id="myRecords" data-en="📒 My records">📒 내 기록</button>
+            <a href="series.html" data-en="🏅 Stamps" data-en-title="Stamps · completions - bike path checkpoints, forest and dulle trail completions" title="도장 · 완주 - 국토종주 인증센터 도장, 숲길 · 둘레길 코스 완주 모아 보기">🏅 도장</a>
+            <button type="button" id="gpxOpen" data-en="📂 Open GPX" data-en-title="Open a GPX file from another app or a friend and follow it" title="다른 앱 · 친구가 보내 준 GPX 파일을 열어 그 길을 따라갑니다">📂 GPX 열기</button>
             <!-- GPX 만(2026-10-09 홍TV님 - xml 종류까지 받아 다른 파일이 보이던 것). 핸드폰이 .gpx 의 종류를 모르면 모든 파일을 보여 줄 수 있습니다 -->
             <input type="file" id="gpxFile" accept=".gpx,application/gpx+xml" hidden>
         </div>
     </header>
-    <div id="pickList"><div class="msg">산 이름으로 찾거나, 산 입구에서 "내 주변 코스" 를 누르세요.</div></div>
+    <div id="pickList"><div class="msg" data-en="Search by mountain name, or tap &quot;Near me&quot; at a trailhead.">산 이름으로 찾거나, 산 입구에서 "내 주변 코스" 를 누르세요.</div></div>
     <!-- ⛰️ 코스 모음(/m/ - 2026-10-15 홍TV님) -->
     <!-- 늘 보이는 아랫줄(2026-10-11 PC: 사용법 링크가 안내 글 안에만 있어 지난 검색 목록이 떠 있으면 안 보였음) -->
-    <div id="pickFoot"><a href="#" data-onboard>❓ 사용법</a> · <a href="about.html" title="안전 · 출처 안내">⚠ 안전 · 출처</a> · <a href="privacy.html">개인정보처리방침</a></div>
+    <div id="pickFoot" data-en="&lt;a href=&quot;#&quot; data-onboard&gt;❓ How to use&lt;/a&gt; · &lt;a href=&quot;about.html&quot; title=&quot;Safety and data sources (Korean)&quot;&gt;⚠ Safety · sources&lt;/a&gt; · &lt;a href=&quot;privacy.html&quot;&gt;Privacy (Korean)&lt;/a&gt;"><a href="#" data-onboard>❓ 사용법</a> · <a href="about.html" title="안전 · 출처 안내">⚠ 안전 · 출처</a> · <a href="privacy.html">개인정보처리방침</a></div>
 </div>
 
 <!-- 처음 안내(2026-10-11 오픈 전) - 처음 한 번, 코스 목록 아래 '❓ 사용법' 으로 다시(js/onboard.js) -->
@@ -368,38 +368,38 @@ html.picking #pick { display:flex; }
     <div class="ob-card">
         <div class="ob-page">
             <div class="ob-icon">🏔</div>
-            <h2 id="obTitle">routefly 에 오신 것을 환영합니다</h2>
-            <p>등산 · 걷기 · 자전거 코스를 찾아 <b>3D 지형 위에서 미리 보고</b>, 핸드폰으로 <b>내 위치를 보며 따라 걷는</b> 앱입니다.</p>
-            <p class="ob-dim">회원 가입 없이 바로 씁니다.</p>
+            <h2 id="obTitle" data-en="Welcome to routefly">routefly 에 오신 것을 환영합니다</h2>
+            <p data-en="Find hiking, walking and cycling trails in Korea, &lt;b&gt;preview them over 3D terrain&lt;/b&gt;, and &lt;b&gt;follow them on your phone with GPS&lt;/b&gt;.">등산 · 걷기 · 자전거 코스를 찾아 <b>3D 지형 위에서 미리 보고</b>, 핸드폰으로 <b>내 위치를 보며 따라 걷는</b> 앱입니다.</p>
+            <p class="ob-dim" data-en="No sign-up needed.">회원 가입 없이 바로 씁니다.</p>
         </div>
         <div class="ob-page" hidden>
             <div class="ob-icon">🔍</div>
-            <h2>코스 찾기</h2>
-            <p>산 이름으로 찾거나 산 입구에서 <b>📍 내 주변 코스</b>를 누르세요. 위의 <b>등산 · 걷기 · 자전거</b> 탭으로 종류를 고릅니다.</p>
-            <p><b>🏅 도장</b>에서는 100대 명산 정상 · 국토종주 인증센터 도장을 모으고, 숲길 · 둘레길 완주를 표시합니다.</p>
+            <h2 data-en="Find a trail">코스 찾기</h2>
+            <p data-en="Search by mountain name (e.g. Seoraksan) or tap &lt;b&gt;📍 Near me&lt;/b&gt; at a trailhead. Pick a type with the &lt;b&gt;Hiking · Walking · Cycling&lt;/b&gt; tabs.">산 이름으로 찾거나 산 입구에서 <b>📍 내 주변 코스</b>를 누르세요. 위의 <b>등산 · 걷기 · 자전거</b> 탭으로 종류를 고릅니다.</p>
+            <p data-en="&lt;b&gt;🏅 Stamps&lt;/b&gt; collects summit stamps for the 100 Famous Mountains and bike path checkpoints, and marks completed trails."><b>🏅 도장</b>에서는 100대 명산 정상 · 국토종주 인증센터 도장을 모으고, 숲길 · 둘레길 완주를 표시합니다.</p>
         </div>
         <div class="ob-page" hidden>
             <div class="ob-icon">🛫</div>
-            <h2>fly(3D) 로 미리 보기</h2>
-            <p>코스 옆 <b>fly(3D)</b> 를 누르면 3D 지형 위로 코스를 날아 봅니다.</p>
-            <p>아래 단추로 <b>가는 길 · 날씨 · 숙박 · 식당 · 일정 · 지점 · 위험</b>을 미리 확인하세요. 숙박 · 식당은 반려동물 동반 가능한 곳만 골라 볼 수도 있습니다.</p>
+            <h2 data-en="Preview with fly(3D)">fly(3D) 로 미리 보기</h2>
+            <p data-en="Tap &lt;b&gt;fly(3D)&lt;/b&gt; next to a trail to fly along it over 3D terrain.">코스 옆 <b>fly(3D)</b> 를 누르면 3D 지형 위로 코스를 날아 봅니다.</p>
+            <p data-en="The buttons below show &lt;b&gt;directions, weather, stays, food, schedule, points and hazards&lt;/b&gt; (that screen is in Korean).">아래 단추로 <b>가는 길 · 날씨 · 숙박 · 식당 · 일정 · 지점 · 위험</b>을 미리 확인하세요. 숙박 · 식당은 반려동물 동반 가능한 곳만 골라 볼 수도 있습니다.</p>
         </div>
         <div class="ob-page" hidden>
             <div class="ob-icon">🥾</div>
-            <h2>산행하기</h2>
-            <p>코스를 열고 <b>산행 시작</b>을 누르면 GPS 로 지금 위치 · 남은 거리를 보여 주고, 갈림길 · 코스에서 벗어남을 알려 줍니다.</p>
-            <p>산속은 통신이 끊길 수 있으니 출발 전에 <b>📥 오프라인 저장</b>을 해 두세요. 먼저 <b>시험 걷기</b>로 연습해 볼 수도 있습니다.</p>
+            <h2 data-en="On the trail">산행하기</h2>
+            <p data-en="Open a trail and tap &lt;b&gt;Start hike&lt;/b&gt;. GPS shows where you are and the distance left, and warns at junctions or when you leave the trail.">코스를 열고 <b>산행 시작</b>을 누르면 GPS 로 지금 위치 · 남은 거리를 보여 주고, 갈림길 · 코스에서 벗어남을 알려 줍니다.</p>
+            <p data-en="Mountains can lose signal - tap &lt;b&gt;📥 Save&lt;/b&gt; before you go. You can practice with &lt;b&gt;Simulate&lt;/b&gt; first.">산속은 통신이 끊길 수 있으니 출발 전에 <b>📥 오프라인 저장</b>을 해 두세요. 먼저 <b>시험 걷기</b>로 연습해 볼 수도 있습니다.</p>
         </div>
         <div class="ob-page" hidden>
             <div class="ob-icon">🆘</div>
-            <h2>안전과 개인정보</h2>
-            <p>위급할 때 <b>SOS</b> 를 누르면 119 문자와 위치 사진을 보낼 수 있습니다. 코스 정보는 참고용이니 현지 안내판 · 통제를 꼭 따르세요.</p>
-            <p>위치 · 산행 기록 · 사진은 <b>이 핸드폰에만</b> 저장됩니다. <a href="privacy.html">개인정보처리방침</a></p>
+            <h2 data-en="Safety and privacy">안전과 개인정보</h2>
+            <p data-en="In an emergency tap &lt;b&gt;SOS&lt;/b&gt; to call or text &lt;b&gt;119&lt;/b&gt; (Korea emergency) with your location. Trail data is for reference - always follow local signs and closures.">위급할 때 <b>SOS</b> 를 누르면 119 문자와 위치 사진을 보낼 수 있습니다. 코스 정보는 참고용이니 현지 안내판 · 통제를 꼭 따르세요.</p>
+            <p data-en="Your location, records and photos stay &lt;b&gt;on this phone only&lt;/b&gt;. &lt;a href=&quot;privacy.html&quot;&gt;Privacy policy (Korean)&lt;/a&gt;">위치 · 산행 기록 · 사진은 <b>이 핸드폰에만</b> 저장됩니다. <a href="privacy.html">개인정보처리방침</a></p>
         </div>
         <div class="ob-dots" aria-hidden="true"><span class="on"></span><span></span><span></span><span></span><span></span></div>
         <div class="ob-row">
-            <button type="button" id="obSkip">건너뛰기</button>
-            <button type="button" id="obNext" class="main">다음</button>
+            <button type="button" id="obSkip" data-en="Skip">건너뛰기</button>
+            <button type="button" id="obNext" data-en="Next" class="main">다음</button>
         </div>
     </div>
 </div>
@@ -409,31 +409,31 @@ html.picking #pick { display:flex; }
 <!-- SOS - 119 전화 · 문자, 내 위치(국가지점번호) -->
 <div id="sosSheet" class="sheet">
     <div class="sbox">
-        <h2 style="color:#ff6b6b">🚨 긴급 신고</h2>
-        <a class="big call" href="tel:119">📞 119 전화</a>
-        <a class="big sms" id="sosSms" href="sms:119">✉️ 119 문자 신고(위치 넣어 보냄)</a>
-        <button type="button" class="big photo" id="sosPhoto">📷 위치 사진 보내기(지도 + 위치 글)</button>
+        <h2 style="color:#ff6b6b" data-en="🚨 Emergency">🚨 긴급 신고</h2>
+        <a class="big call" href="tel:119" data-en="📞 Call 119">📞 119 전화</a>
+        <a class="big sms" id="sosSms" data-en="✉️ Text 119 (with location)" href="sms:119">✉️ 119 문자 신고(위치 넣어 보냄)</a>
+        <button type="button" class="big photo" id="sosPhoto" data-en="📷 Send location photo (map + location text)">📷 위치 사진 보내기(지도 + 위치 글)</button>
         <div id="sosPhotoBox">
-            <img id="sosPhotoImg" alt="내 위치 지도 사진">
+            <img id="sosPhotoImg" data-en-alt="My location map photo" alt="내 위치 지도 사진">
             <p class="tip" id="sosPhotoTip"></p>
         </div>
         <div class="where">
-            <div><span>국가지점번호</span><b id="sosGrid">-</b></div>
-            <div><span>위도 · 경도</span><b id="sosLatLon">-</b></div>
-            <div><span>해발</span><b id="sosEle">-</b></div>
-            <div><span>코스</span><b id="sosCourse">-</b></div>
-            <div id="sosSignRow" hidden><span>위치표지판</span><b id="sosSign">-</b></div>
-            <div id="sosHelpRow" hidden><span>가까운 구급함 · 헬기장</span><b id="sosHelp">-</b></div>
+            <div><span data-en="Korea grid no.">국가지점번호</span><b id="sosGrid">-</b></div>
+            <div><span data-en="Lat · lon">위도 · 경도</span><b id="sosLatLon">-</b></div>
+            <div><span data-en="Elevation">해발</span><b id="sosEle">-</b></div>
+            <div><span data-en="Trail">코스</span><b id="sosCourse">-</b></div>
+            <div id="sosSignRow" hidden><span data-en="Location sign">위치표지판</span><b id="sosSign">-</b></div>
+            <div id="sosHelpRow" hidden><span data-en="First aid · helipad">가까운 구급함 · 헬기장</span><b id="sosHelp">-</b></div>
         </div>
-        <div class="tip" style="margin-top:4px">문자에 들어갈 글(문자 앱이 열리면 <b>보내기</b>를 눌러야 갑니다)</div>
+        <div class="tip" style="margin-top:4px" data-en="Text to send (Korean first for responders, English below). In your messages app tap &lt;b&gt;Send&lt;/b&gt;.">문자에 들어갈 글(문자 앱이 열리면 <b>보내기</b>를 눌러야 갑니다)</div>
         <pre id="sosBody" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;background:rgba(255,255,255,0.05);border-radius:8px;padding:8px 10px;margin:4px 0 8px;color:#dfe6ee"></pre>
-        <p class="tip">구조대에 <b>국가지점번호</b>를 불러 주세요. 길가의 <b>위치표지판 번호</b>가 보이면 그것도 함께.<br>
+        <p class="tip" data-en="Give rescuers the &lt;b&gt;Korea grid number&lt;/b&gt;, and the &lt;b&gt;location sign number&lt;/b&gt; if you see one by the path.&lt;br&gt;If you cannot call, send the text. For the &lt;b&gt;location photo&lt;/b&gt;, pick &lt;b&gt;Messages&lt;/b&gt; in the share window and send to &lt;b&gt;119&lt;/b&gt;.&lt;br&gt;Dim the screen to save battery.">구조대에 <b>국가지점번호</b>를 불러 주세요. 길가의 <b>위치표지판 번호</b>가 보이면 그것도 함께.<br>
             통화가 안 되면 문자 신고를 쓰세요. <b>위치 사진</b>은 공유 창에서 <b>메시지</b>를 골라 받는 사람에 <b>119</b>를 넣어 보내세요.<br>
             배터리를 아끼려면 화면 밝기를 낮추세요.</p>
-        <a class="fam" id="sosFamily" href="sms:">💬 가족 · 지인에게 위치 문자(받는 사람은 문자 앱에서)</a>
+        <a class="fam" id="sosFamily" data-en="💬 Text my location to family or friends (pick in messages app)" href="sms:">💬 가족 · 지인에게 위치 문자(받는 사람은 문자 앱에서)</a>
         <div class="sbtn">
-            <button type="button" id="sosCopy">위치 복사</button>
-            <button type="button" id="sosClose" class="main">닫기</button>
+            <button type="button" id="sosCopy" data-en="Copy location">위치 복사</button>
+            <button type="button" id="sosClose" class="main" data-en="Close">닫기</button>
         </div>
     </div>
 </div>
@@ -441,10 +441,10 @@ html.picking #pick { display:flex; }
 <!-- 움직임 없음 - 20분째 그 자리면 묻고, 1분 안에 답이 없으면 SOS 화면(2026-10-16 홍TV님 - 혼자 산행 안전). 위치는 폰 밖으로 안 나감 -->
 <div id="stillSheet" class="sheet">
     <div class="sbox">
-        <h2 style="color:#ffb84d">괜찮으세요?</h2>
-        <p class="tip" id="stillText">20분째 움직임이 없습니다.</p>
-        <button type="button" class="big photo" id="stillOk">👍 괜찮아요(계속 걷기)</button>
-        <button type="button" class="big call" id="stillSos" style="width:100%;border:0;font-family:inherit;cursor:pointer">🚨 도움이 필요해요(SOS)</button>
+        <h2 style="color:#ffb84d" data-en="Are you OK?">괜찮으세요?</h2>
+        <p class="tip" id="stillText" data-en="No movement for 20 minutes.">20분째 움직임이 없습니다.</p>
+        <button type="button" class="big photo" id="stillOk" data-en="👍 I&#x27;m OK (keep going)">👍 괜찮아요(계속 걷기)</button>
+        <button type="button" class="big call" id="stillSos" style="width:100%;border:0;font-family:inherit;cursor:pointer" data-en="🚨 I need help (SOS)">🚨 도움이 필요해요(SOS)</button>
         <p class="tip" id="stillLeft"></p>
     </div>
 </div>
@@ -454,10 +454,10 @@ html.picking #pick { display:flex; }
     <div class="sbox" style="text-align:center">
         <h2 id="summitTitle" style="color:#ffb703">⛰️</h2>
         <p style="font-size:18px; line-height:1.5; margin:6px 0 4px">🔮 <span id="summitLine"></span></p>
-        <p class="tip">재미로 보는 오늘의 정상 한마디입니다.</p>
+        <p class="tip" data-en="Today&#x27;s summit fortune - just for fun.">재미로 보는 오늘의 정상 한마디입니다.</p>
         <div class="sbtn">
-            <button type="button" id="summitShare">📤 자랑하기</button>
-            <button type="button" id="summitClose" class="main">닫기</button>
+            <button type="button" id="summitShare" data-en="📤 Share">📤 자랑하기</button>
+            <button type="button" id="summitClose" class="main" data-en="Close">닫기</button>
         </div>
     </div>
 </div>
@@ -465,64 +465,64 @@ html.picking #pick { display:flex; }
 <!-- 산행을 끝냈을 때 - 기록 요약 · GPX 저장 -->
 <div id="doneSheet" class="sheet">
     <div class="sbox">
-        <h2 id="doneTitle">산행 기록</h2>
+        <h2 id="doneTitle" data-en="Hike record">산행 기록</h2>
         <div class="where" id="doneSum"></div>
-        <p class="tip">기록은 이 핸드폰에만 남습니다("내 기록"). GPX 를 보내거나(📤 - 카카오톡 · 메일 · 드라이브 등 공유 창) 저장하면 다른 등산 · 운동 앱 · 지도에서도 열 수 있습니다.</p>
+        <p class="tip" data-en="Records stay on this phone (&quot;My records&quot;). Send (📤) or save the GPX to open it in other hiking or fitness apps.">기록은 이 핸드폰에만 남습니다("내 기록"). GPX 를 보내거나(📤 - 카카오톡 · 메일 · 드라이브 등 공유 창) 저장하면 다른 등산 · 운동 앱 · 지도에서도 열 수 있습니다.</p>
         <div class="sbtn">
-            <button type="button" id="doneCard" title="기록 카드 그림 공유(카카오톡 · 인스타그램 등)">🖼 카드</button>
-            <button type="button" id="doneGpx">GPX 저장</button>
-            <button type="button" id="doneClose" class="main">닫기</button>
+            <button type="button" id="doneCard" data-en-title="Share record card image" title="기록 카드 그림 공유(카카오톡 · 인스타그램 등)" data-en="🖼 Card">🖼 카드</button>
+            <button type="button" id="doneGpx" data-en="Save GPX">GPX 저장</button>
+            <button type="button" id="doneClose" class="main" data-en="Close">닫기</button>
         </div>
         <!-- 2026-10-15 홍TV님: 후원 단추가 안내 맨 아래에만 있어 찾기 어려웠음 - 설정(donate.url)에 있을 때만 -->
-        <a class="fam" id="doneDonate" target="_blank" rel="noopener" hidden>☕ routefly 후원하기</a>
+        <a class="fam" id="doneDonate" target="_blank" rel="noopener" hidden data-en="☕ Support routefly">☕ routefly 후원하기</a>
     </div>
 </div>
 
 <!-- 📋 안내판(2026-10-16 홍TV님 - 국립공원 탐방로 안내판처럼 구간 경사 · 현위치) - js/hike.js openBoard -->
 <div id="boardSheet" class="sheet">
     <div class="sbox">
-        <h2>📋 안내판</h2>
+        <h2 data-en="📋 Trail board">📋 안내판</h2>
         <div id="boardBox" class="rfBoardBox"></div>
-        <div class="sbtn"><button type="button" id="boardClose" class="main">닫기</button></div>
+        <div class="sbtn"><button type="button" id="boardClose" class="main" data-en="Close">닫기</button></div>
     </div>
 </div>
 
 <!-- 산행 결산(2026-10-15 홍TV님) - js/hike.js drawSummary -->
 <div id="sumSheet" class="sheet">
     <div class="sbox">
-        <h2>📊 산행 결산</h2>
+        <h2 data-en="📊 Hiking summary">📊 산행 결산</h2>
         <div class="sumBar">
             <div id="sumKinds" class="easy">
-                <button type="button" data-k="month">월별</button><button type="button" data-k="quarter">분기별</button><button type="button" data-k="ytd">올해 누적</button><button type="button" data-k="year">연도별</button>
+                <button type="button" data-k="month" data-en="Monthly">월별</button><button type="button" data-k="quarter" data-en="Quarterly">분기별</button><button type="button" data-k="ytd" data-en="This year">올해 누적</button><button type="button" data-k="year" data-en="Yearly">연도별</button>
             </div>
-            <select id="sumYear" aria-label="해 고르기"></select>
+            <select id="sumYear" data-en-aria-label="Pick year" aria-label="해 고르기"></select>
         </div>
         <div id="sumRows"></div>
         <p class="tip" id="sumNote"></p>
-        <div class="sbtn"><button type="button" id="sumClose" class="main">닫기</button></div>
+        <div class="sbtn"><button type="button" id="sumClose" class="main" data-en="Close">닫기</button></div>
     </div>
 </div>
 
 <!-- 공유(2026-10-15 홍TV님) - 코스 링크 보내기 · 가족에게 산행 계획 알리기(문자 앱, 서버로 보내지 않음) -->
 <div id="shareSheet" class="sheet">
     <div class="sbox">
-        <h2>공유</h2>
-        <button type="button" class="big sms" id="shareLink" style="width:100%;font-family:inherit;cursor:pointer">🔗 코스 링크 보내기</button>
-        <a class="big sms" id="sharePlan">📨 가족에게 산행 계획 알리기</a>
+        <h2 data-en="Share">공유</h2>
+        <button type="button" class="big sms" id="shareLink" style="width:100%;font-family:inherit;cursor:pointer" data-en="🔗 Send trail link">🔗 코스 링크 보내기</button>
+        <a class="big sms" id="sharePlan" data-en="📨 Text my hike plan to family">📨 가족에게 산행 계획 알리기</a>
         <p class="tip" id="sharePlanText" style="white-space:pre-line"></p>
-        <p class="tip">계획 문자는 내 문자 앱으로 열리고, 받는 사람은 문자 앱에서 고릅니다(출발 시각이 다르면 문자 앱에서 고쳐 보내세요). routefly 서버로는 보내지 않습니다.</p>
-        <div class="sbtn"><button type="button" id="shareClose" class="main">닫기</button></div>
+        <p class="tip" data-en="The plan opens in your messages app - pick the recipient there (edit the start time if needed). Nothing is sent to the routefly server.">계획 문자는 내 문자 앱으로 열리고, 받는 사람은 문자 앱에서 고릅니다(출발 시각이 다르면 문자 앱에서 고쳐 보내세요). routefly 서버로는 보내지 않습니다.</p>
+        <div class="sbtn"><button type="button" id="shareClose" class="main" data-en="Close">닫기</button></div>
     </div>
 </div>
 
 <!-- 산행 끝내기 확인(앱 안 기본 확인 창은 CANCEL · OK 영어로 나옵니다) -->
 <div id="endSheet" class="sheet">
     <div class="sbox">
-        <h2 id="endTitle">여기서 끝낼까요?</h2>
-        <p class="tip" id="endTip">지금까지 걸은 길 · 시간 · 칼로리는 "내 기록" 에 저장됩니다.</p>
+        <h2 id="endTitle" data-en="Finish here?">여기서 끝낼까요?</h2>
+        <p class="tip" id="endTip" data-en="Your track, time and calories so far are saved to &quot;My records&quot;.">지금까지 걸은 길 · 시간 · 칼로리는 "내 기록" 에 저장됩니다.</p>
         <div class="sbtn">
-            <button type="button" id="endNo">계속하기</button>
-            <button type="button" id="endYes" class="main">끝내기</button>
+            <button type="button" id="endNo" data-en="Keep going">계속하기</button>
+            <button type="button" id="endYes" class="main" data-en="Finish">끝내기</button>
         </div>
     </div>
 </div>
@@ -530,42 +530,42 @@ html.picking #pick { display:flex; }
 <!-- 산행 출발점까지 길찾기(다른 지도 앱으로) -->
 <div id="navSheet" class="sheet">
     <div class="sbox">
-        <h2 id="navTitle">출발점 길찾기</h2>
+        <h2 id="navTitle" data-en="Directions to the start">출발점 길찾기</h2>
         <div id="navTargets"></div>
-        <p class="tip" id="navTip">지금 위치에서 산행 출발점까지 길을 지도 앱으로 엽니다. 길찾기를 마치고 이 화면으로 돌아오면 안내가 이어집니다.</p>
-        <a class="big" id="navKakao" target="_blank" rel="noopener">카카오맵</a>
-        <a class="big" id="navNaver" target="_blank" rel="noopener">네이버 지도 (앱)</a>
-        <a class="big" id="navGoogle" target="_blank" rel="noopener">구글 지도 (대중교통)</a>
-        <div class="sbtn"><button type="button" id="navClose" class="main">닫기</button></div>
+        <p class="tip" id="navTip" data-en="Opens directions from here to the trail start in a map app. Come back to this screen afterwards and guidance continues.">지금 위치에서 산행 출발점까지 길을 지도 앱으로 엽니다. 길찾기를 마치고 이 화면으로 돌아오면 안내가 이어집니다.</p>
+        <a class="big" id="navKakao" target="_blank" rel="noopener" data-en="Kakao Map">카카오맵</a>
+        <a class="big" id="navNaver" target="_blank" rel="noopener" data-en="Naver Map (app)">네이버 지도 (앱)</a>
+        <a class="big" id="navGoogle" target="_blank" rel="noopener" data-en="Google Maps (public transport)">구글 지도 (대중교통)</a>
+        <div class="sbtn"><button type="button" id="navClose" class="main" data-en="Close">닫기</button></div>
     </div>
 </div>
 
 <!-- 2026-10-08: 오프라인 저장 범위 고르기 -->
 <div id="saveSheet" class="sheet">
     <div class="sbox">
-        <h2>📥 오프라인 저장</h2>
-        <p class="tip">산속에서 통신이 끊겨도 보이게 지도 그림을 이 핸드폰에 받아 둡니다. 넓을수록 오래 걸리고 저장 공간을 씁니다(한 번에 3,000장까지 - 넘으면 가장 자세한 단계를 줄입니다).</p>
+        <h2 data-en="📥 Offline save">📥 오프라인 저장</h2>
+        <p class="tip" data-en="Download the map to this phone so it shows without signal. Wider areas take longer and use more storage (up to 3,000 tiles at once).">산속에서 통신이 끊겨도 보이게 지도 그림을 이 핸드폰에 받아 둡니다. 넓을수록 오래 걸리고 저장 공간을 씁니다(한 번에 3,000장까지 - 넘으면 가장 자세한 단계를 줄입니다).</p>
         <button type="button" class="big sms" id="saveNear" style="width:100%"></button>
         <button type="button" class="big sms" id="saveWide" style="width:100%"></button>
         <button type="button" class="big sms" id="saveView" style="width:100%"></button>
-        <button type="button" class="big" id="saveDelete" style="width:100%;display:none">🗑 저장 지우기 (이 코스)</button>
-        <div class="sbtn"><button type="button" id="saveClose" class="main">닫기</button></div>
+        <button type="button" class="big" id="saveDelete" style="width:100%;display:none" data-en="🗑 Delete saved map (this trail)">🗑 저장 지우기 (이 코스)</button>
+        <div class="sbtn"><button type="button" id="saveClose" class="main" data-en="Close">닫기</button></div>
     </div>
 </div>
 
 <!-- 2026-10-08: 산행 중 사진 · 메모 남기기 -->
 <div id="noteSheet" class="sheet">
     <div class="sbox">
-        <h2>📝 사진 · 메모 남기기</h2>
-        <p class="tip" id="noteWhere">지금 자리</p>
-        <textarea id="noteText" maxlength="500" placeholder="메모(선택) - 예: 여기서 쉼, 물 보충, 갈림길 왼쪽"></textarea>
-        <button type="button" class="big photo" id="notePhotoBtn" style="margin-top:8px">📷 사진 찍기 · 고르기</button>
+        <h2 data-en="📝 Add photo · note">📝 사진 · 메모 남기기</h2>
+        <p class="tip" id="noteWhere" data-en="Here">지금 자리</p>
+        <textarea id="noteText" data-en-placeholder="Note (optional) - e.g. rested here, refilled water, junction: left" maxlength="500" placeholder="메모(선택) - 예: 여기서 쉼, 물 보충, 갈림길 왼쪽"></textarea>
+        <button type="button" class="big photo" id="notePhotoBtn" style="margin-top:8px" data-en="📷 Take or pick a photo">📷 사진 찍기 · 고르기</button>
         <input type="file" id="notePhoto" accept="image/*" capture="environment" hidden>
-        <img id="notePreview" alt="고른 사진">
-        <p class="tip">사진 · 메모는 이 핸드폰에만 남습니다(내 기록). GPX 로 저장하면 메모가 지점으로 들어갑니다.</p>
+        <img id="notePreview" data-en-alt="Selected photo" alt="고른 사진">
+        <p class="tip" data-en="Photos and notes stay on this phone (My records). Notes become waypoints when you save GPX.">사진 · 메모는 이 핸드폰에만 남습니다(내 기록). GPX 로 저장하면 메모가 지점으로 들어갑니다.</p>
         <div class="sbtn">
-            <button type="button" id="noteCancel">취소</button>
-            <button type="button" id="noteSave" class="main">남기기</button>
+            <button type="button" id="noteCancel" data-en="Cancel">취소</button>
+            <button type="button" id="noteSave" class="main" data-en="Save">남기기</button>
         </div>
     </div>
 </div>
@@ -573,22 +573,22 @@ html.picking #pick { display:flex; }
 <!-- 2026-10-08: 기록의 사진 · 메모 보기 -->
 <div id="notesSheet" class="sheet">
     <div class="sbox">
-        <h2 id="notesTitle">사진 · 메모</h2>
+        <h2 id="notesTitle" data-en="Photos · notes">사진 · 메모</h2>
         <div id="notesList"></div>
-        <div class="sbtn"><button type="button" id="notesClose" class="main">닫기</button></div>
+        <div class="sbtn"><button type="button" id="notesClose" class="main" data-en="Close">닫기</button></div>
     </div>
 </div>
 
 <!-- 2026-10-09: 기록 하나 보기 - 요약 · 고도 그래프 · 지도에 선 -->
 <div id="recView" class="sheet">
     <div class="sbox">
-        <h2 id="recViewTitle">기록</h2>
+        <h2 id="recViewTitle" data-en="Record">기록</h2>
         <div class="where" id="recViewSum"></div>
         <div id="recViewProfile"></div>
         <div class="sbtn">
-            <button type="button" id="recViewMap">🗺 지도</button>
-            <button type="button" id="recViewCard" title="기록 카드 그림 공유">🖼 카드</button>
-            <button type="button" id="recViewClose" class="main">닫기</button>
+            <button type="button" id="recViewMap" data-en="🗺 Map">🗺 지도</button>
+            <button type="button" id="recViewCard" data-en-title="Share record card image" title="기록 카드 그림 공유" data-en="🖼 Card">🖼 카드</button>
+            <button type="button" id="recViewClose" class="main" data-en="Close">닫기</button>
         </div>
     </div>
 </div>
@@ -596,34 +596,34 @@ html.picking #pick { display:flex; }
 <!-- 내 기록 -->
 <div id="recSheet" class="sheet">
     <div class="sbox">
-        <h2>📒 내 기록 <small style="font-size:12px;color:#9aa6b4">(이 핸드폰에만 저장)</small></h2>
+        <h2 data-en="📒 My records &lt;small style=&quot;font-size:12px;color:#9aa6b4&quot;&gt;(this phone only)&lt;/small&gt;">📒 내 기록 <small style="font-size:12px;color:#9aa6b4">(이 핸드폰에만 저장)</small></h2>
         <div id="recStats" class="where" hidden></div>
-        <button type="button" class="big sms" id="sumOpen" style="width:100%;font-family:inherit;cursor:pointer;font-size:15px;padding:10px">📊 산행 결산 - 월별 · 분기별 · 올해 누적 · 연도별</button>
+        <button type="button" class="big sms" id="sumOpen" style="width:100%;font-family:inherit;cursor:pointer;font-size:15px;padding:10px" data-en="📊 Hiking summary - monthly · quarterly · this year · yearly">📊 산행 결산 - 월별 · 분기별 · 올해 누적 · 연도별</button>
         <div id="recList"></div>
         <!-- 2026-10-15 홍TV님: 기록 백업 - 핸드폰을 바꾸거나 앱을 지워도 옮길 수 있게 -->
-        <div class="sbtn"><button type="button" id="backupSave">💾 백업 저장</button><button type="button" id="backupLoad">📂 백업 불러오기</button></div>
+        <div class="sbtn"><button type="button" id="backupSave" data-en="💾 Back up">💾 백업 저장</button><button type="button" id="backupLoad" data-en="📂 Restore backup">📂 백업 불러오기</button></div>
         <input type="file" id="backupFile" accept=".json,application/json" hidden>
-        <p class="tip">백업 파일 하나에 기록 · 사진 · 도장 · 찜이 모두 들어갑니다. "백업 저장" 을 누르면 공유 창이 열립니다 - 드라이브 · 카톡 '나와의 채팅' · 메일 · 내 파일 중 둘 곳을 고르세요. 새 핸드폰에서는 그 파일을 "백업 불러오기" 로(서버로는 가지 않습니다).</p>
-        <div class="sbtn"><button type="button" id="recClose" class="main">닫기</button></div>
+        <p class="tip" data-en="One backup file holds your records, photos, stamps and favorites. &quot;Back up&quot; opens the share window - pick Drive, email, your files or a chat to yourself. On a new phone use &quot;Restore backup&quot; (nothing goes to our server).">백업 파일 하나에 기록 · 사진 · 도장 · 찜이 모두 들어갑니다. "백업 저장" 을 누르면 공유 창이 열립니다 - 드라이브 · 카톡 '나와의 채팅' · 메일 · 내 파일 중 둘 곳을 고르세요. 새 핸드폰에서는 그 파일을 "백업 불러오기" 로(서버로는 가지 않습니다).</p>
+        <div class="sbtn"><button type="button" id="recClose" class="main" data-en="Close">닫기</button></div>
     </div>
 </div>
 
 <!-- 처음 "산행 시작" 할 때 한 번 - 안전 · 위치 안내 -->
 <div id="safety">
     <div class="sbox">
-        <h2>출발 전에 꼭 읽어 주세요</h2>
+        <h2 data-en="Please read before you start">출발 전에 꼭 읽어 주세요</h2>
         <ul>
-            <li><b>참고용 정보입니다.</b> 코스 자료(등산로 산림청 2016년 기준 · 걷기길 두루누비 · 자전거길 OpenStreetMap)는 실제 길과 다를 수 있습니다.</li>
-            <li><b>통제 구간</b>(자연휴식년제 · 산불조심기간 · 기상 특보)은 들어 있지 않습니다. <b>현지 안내판 · 관리자 지시를 따르세요.</b></li>
-            <li>GPS 는 숲 · 계곡에서 수십 m 틀릴 수 있고, 통신이 끊기면 지도가 안 보일 수 있습니다. 보조 배터리를 챙기세요.</li>
-            <li><b>긴급 상황은 119</b> - 길가의 위치표지판 · 국가지점번호를 알려 주세요.</li>
-            <li>📍 <b>위치는 이 핸드폰 안에서만</b> 진행 거리 계산에 쓰고, 서버로 보내거나 저장하지 않습니다.</li>
+            <li data-en="&lt;b&gt;For reference only.&lt;/b&gt; Trail data (Korea Forest Service 2016, Durunubi walking trails, OpenStreetMap bike paths) may differ from the real path."><b>참고용 정보입니다.</b> 코스 자료(등산로 산림청 2016년 기준 · 걷기길 두루누비 · 자전거길 OpenStreetMap)는 실제 길과 다를 수 있습니다.</li>
+            <li data-en="&lt;b&gt;Closures&lt;/b&gt; (rest periods, wildfire season, weather warnings) are not included. &lt;b&gt;Follow local signs and rangers.&lt;/b&gt;"><b>통제 구간</b>(자연휴식년제 · 산불조심기간 · 기상 특보)은 들어 있지 않습니다. <b>현지 안내판 · 관리자 지시를 따르세요.</b></li>
+            <li data-en="GPS can be off by tens of meters in forests and valleys, and the map may not load without signal. Bring a power bank.">GPS 는 숲 · 계곡에서 수십 m 틀릴 수 있고, 통신이 끊기면 지도가 안 보일 수 있습니다. 보조 배터리를 챙기세요.</li>
+            <li data-en="&lt;b&gt;In an emergency call 119&lt;/b&gt; (Korea) - give the location sign or Korea grid number."><b>긴급 상황은 119</b> - 길가의 위치표지판 · 국가지점번호를 알려 주세요.</li>
+            <li data-en="📍 &lt;b&gt;Your location stays on this phone&lt;/b&gt; - used only to measure progress, never sent to a server or stored.">📍 <b>위치는 이 핸드폰 안에서만</b> 진행 거리 계산에 쓰고, 서버로 보내거나 저장하지 않습니다.</li>
         </ul>
-        <label class="chk"><input type="checkbox" id="safetyChk"> 위 내용을 읽고 확인했습니다</label>
-        <a href="about.html" class="more">자세한 안내 보기 ›</a>
+        <label class="chk" data-en="&lt;input type=&quot;checkbox&quot; id=&quot;safetyChk&quot;&gt; I have read the above"><input type="checkbox" id="safetyChk"> 위 내용을 읽고 확인했습니다</label>
+        <a href="about.html" class="more" data-en="More details (Korean) ›">자세한 안내 보기 ›</a>
         <div class="sbtn">
-            <button type="button" id="safetyNo">취소</button>
-            <button type="button" id="safetyGo" class="main" disabled>확인하고 시작</button>
+            <button type="button" id="safetyNo" data-en="Cancel">취소</button>
+            <button type="button" id="safetyGo" class="main" disabled data-en="Confirm and start">확인하고 시작</button>
         </div>
     </div>
 </div>

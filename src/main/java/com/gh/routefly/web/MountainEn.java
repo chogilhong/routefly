@@ -147,7 +147,7 @@ final class MountainEn {
                         .append(steep != null && steep >= MountainServlet.STEEP_STEPS[1] ? String.format(Locale.ROOT, " · steepest 1 km %.0f%%", steep) : "")
                         .append(" · about ").append(hours(dist, asc)).append("</span><span class=\"go\">")
                         .append("<a href=\"").append(REL).append("/index.html#c=").append(esc(id)).append("\">3D fly-through</a>")
-                        .append("<a href=\"").append(REL).append("/hike.html#c=").append(esc(id)).append("\">Follow (GPS)</a>");
+                        .append("<a href=\"").append(REL).append("/hike.html?lang=en#c=").append(esc(id)).append("&amp;m=").append(esc(MountainServlet.enc(id(peak)))).append("\">Follow (GPS)</a>");   // 따라가기 영어 · ‹ 는 이 페이지로
                 double[] th = MountainServlet.trailhead(c, peak);
                 if (th != null) b.append("<a class=\"way\" href=\"").append(esc(googleTo(th))).append("\" target=\"_blank\" rel=\"noopener\">🚌 Directions</a>");
                 b.append("</span></li>");
@@ -220,9 +220,9 @@ final class MountainEn {
                 + "Seoraksan, Jirisan, Hallasan, Bukhansan and more. Preview trails in 3D and follow them on your phone.";
         StringBuilder b = new StringBuilder(head("Korea's 100 Famous Mountains - Hiking Trails", desc, base + "/en/m/", base + "/m/", base));
         // 로고 옆 "Follow a trail ›" - 한국어 코스 모음의 "🥾 따라가기 ›" 와 같게(2026-10-17 홍TV님)
-        b.append("<main><div class=\"logoRow\"><a class=\"logo\" href=\"").append(REL).append("/hike.html\"><img src=\"").append(REL)
+        b.append("<main><div class=\"logoRow\"><a class=\"logo\" href=\"").append(REL).append("/hike.html?lang=en\"><img src=\"").append(REL)
                 .append("/img/logo-dark.svg\" alt=\"routefly\" width=\"256\" height=\"80\"></a>")
-                .append("<a class=\"goHike\" href=\"").append(REL).append("/hike.html\" title=\"Pick a trail and follow it on your phone - GPS, voice guide, SOS\">🥾 Follow a trail ›</a></div>")
+                .append("<a class=\"goHike\" href=\"").append(REL).append("/hike.html?lang=en\" title=\"Pick a trail and follow it on your phone - GPS, voice guide, SOS\">🥾 Follow a trail ›</a></div>")
                 .append("<h1 class=\"idx\">Hiking · Walking · Cycling</h1>")   // 한국어 제목과 같게(2026-10-17 홍TV님)
                 .append("<p class=\"lead\">Pick a mountain to see its trails to the summit, the weather, air quality and sunrise time - or pick a walking trail or bike path to see its route map.</p>")
                 .append("<section id=\"near\"><details class=\"fold kind\" name=\"kind\" id=\"nearFold\"><summary><span class=\"ft\">📍 Near me</span>")
@@ -313,7 +313,7 @@ final class MountainEn {
                 + "AirKorea, Durunubi (data.go.kr), © OpenStreetMap contributors. Names follow the Revised Romanization of Korean. "
                 + "<a href=\"" + esc(koHref) + "\" hreflang=\"ko\" lang=\"ko\">한국어</a> · <a href=\"" + REL + "/privacy.html\">Privacy (Korean)</a></p>"
                 + "<p class=\"support\" id=\"support\" hidden></p>"   // ☕ Support(설정 donate.en.url 이 있을 때만 mountain-en.js 가 보임)
-                + "<p class=\"brand\"><a href=\"" + REL + "/hike.html\"><img src=\"" + REL + "/img/logo-dark.svg\" alt=\"routefly\" width=\"160\" height=\"50\"> Open app ›</a></p></main>"
+                + "<p class=\"brand\"><a href=\"" + REL + "/hike.html?lang=en\"><img src=\"" + REL + "/img/logo-dark.svg\" alt=\"routefly\" width=\"160\" height=\"50\"> Open app ›</a></p></main>"
                 + "<script src=\"" + REL + "/js/course-kit.js\"></script><script src=\"" + REL + "/js/mountain-en.js\"></script></body></html>";
     }
 

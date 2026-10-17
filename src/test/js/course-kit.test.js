@@ -990,6 +990,14 @@ eq("stampRadius GPS 오차 + 20, 40 ~ max", [RF.stampRadius(5, 150), RF.stampRad
 eq("regionEn · weekendWordEn", [RF.regionEn("강원 영동"), RF.regionEn("제주"), RF.regionEn("새권역"), RF.weekendWordEn("맑음"), RF.weekendWordEn("구름많고 비"),
     RF.weekendWordEn("맑음 → 흐림"), RF.weekendWordEn("비")],
     ["Gangwon (east coast)", "Jeju", "Saegwonyeok", "☀️ Clear", "⛅ Mostly cloudy, rain", "☀️ Clear → ☁️ Overcast", "🌧 Rain"]);
+(function () {   // 따라가기 영어(2026-10-17) - setLang("en") 일 때만, 끝나면 ko 로 되돌림
+    RF.setLang("en");
+    var r = [RF.hm(3900000), RF.paceText(-185000), RF.paceText(30000), RF.KINDS.bike.act, RF.tr("출발", "Start"), RF.nameIn("설악산대청봉"), RF.isEn()];
+    RF.setLang("ko");
+    eq("setLang en", r.concat([RF.hm(3900000), RF.KINDS.bike.act, RF.nameIn("설악산")]),
+        ["1 h 5 min", "3 min faster than last time", "same pace as last time", "Ride", "Start", "Seoraksan Daecheongbong", true, "1시간 5분", "라이딩", "설악산"]);
+    eq("pageLang", [RF.pageLang("?lang=en", null), RF.pageLang("?x=1&lang=ko", "en"), RF.pageLang("", "en"), RF.pageLang("", null), RF.pageLang("?language=en", null)], ["en", "ko", "en", "ko", "ko"]);
+})();
 eq("trackClimb 10m 넘게 바뀐 것만", [RF.trackClimb([[0, 0, 0, 5], [0, 0, 1, 9], [0, 0, 2, 3], [0, 0, 3, 20], [0, 0, 4, 18], [0, 0, 5, 40], [0, 0, 6, null], [0, 0, 7, 25], [0, 0, 8, 37]]),
     RF.trackClimb([]), RF.trackClimb([[0, 0, 0, null]])], [15 + 20 + 12, 0, 0]);
 
