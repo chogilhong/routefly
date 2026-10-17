@@ -32,7 +32,11 @@ main { padding:12px 14px calc(env(safe-area-inset-bottom) + 24px); max-width:560
 .row2 { display:flex; gap:10px; margin-top:12px; }
 .row2 a, .row2 button { flex:1; display:flex; align-items:center; justify-content:center; min-height:58px; border-radius:14px; text-decoration:none;
                         font:bold 17px Arial,"Malgun Gothic",sans-serif; border:1px solid var(--ln); background:rgba(255,255,255,0.06); color:var(--tx); cursor:pointer; text-align:center; padding:0 8px; word-break:keep-all; }
-.row2.top { margin:0 0 4px; }
+.row2.top { margin:0 0 14px; padding-bottom:16px; border-bottom:2px solid var(--ln); }   /* 급할 때 단추 - 아래 안부와 구분(2026-10-18 홍TV님) */
+#lateBox h2 { font-size:19px; }   /* 늦은 귀가 안심 - 글자 크게(2026-10-18 홍TV님) */
+#lateBox .tip { font-size:15px; }
+#lateBox label { font-size:16px; }
+#lateBox .log { font-size:15px; color:var(--tx); }
 .row2 .sos { background:var(--warn); border-color:var(--warn); color:#fff; }
 section { background:var(--panel); border:1px solid var(--ln); border-radius:14px; padding:12px 14px; margin-top:16px; }
 section h2 { margin:0 0 8px; font-size:16px; }
