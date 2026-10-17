@@ -8,12 +8,15 @@
 | 백그라운드 위치 | @capacitor-community/background-geolocation | 화면을 끄거나 주머니에 넣어도 위치 기록 · 갈림길 · 코스 이탈 안내. 알림창에 "routefly - 산행 중" 이 떠 있는 동안 |
 | 음성 안내 | @capacitor-community/text-to-speech | 화면이 꺼져도 말합니다 |
 | 공유 | @capacitor/share · @capacitor/filesystem | SOS 위치 사진 · GPX 를 공유 창으로(앱 안 웹뷰는 내려받기 · navigator.share 가 안 됨) |
+| 안전 알림 | @capacitor/local-notifications | 움직임 없음("괜찮으세요?") · 긴급 신고 화면을 연 때 알림창 + 진동 · 소리(화면이 꺼지면 웹뷰 navigator.vibrate 가 막힘, 2026-10-17) |
 
 - 앱 이름 routefly, 앱 ID `kr.routefly.app`(스토어에 올린 뒤에는 바꿀 수 없습니다 - 바꾸려면 올리기 전에)
 - 배터리(2026-10-08): 앱은 산행 중 화면을 켜 두지 않습니다(브라우저와 달리 화면이 꺼져도 위치 · 음성이 이어짐). 시작할 때 "화면을 꺼 두세요" 를 알립니다.
 - 사진 · 메모(📝)의 사진은 `<input type=file capture>` 로 찍습니다 - 앱 안 웹뷰에서 카메라 · 사진 고르기 창이 뜨는지 시험할 것.
 - 위치 권한은 "앱 사용 중에만 허용" 이면 됩니다(앞쪽 서비스 + 알림 방식이라 "항상 허용" 이 필요 없음 - 구글 심사가 쉬움)
-- 안드로이드 13+ 은 처음 열 때 알림 권한을 묻습니다("따라가는 중" 알림에 필요)
+- 안드로이드 13+ 은 처음 열 때 알림 권한을 묻습니다("따라가는 중" 알림 · 안전 알림에 필요)
+- 서버 주소(server.url)로 띄우는 앱이라 화면에는 네이티브 다리만 들어오고 `Capacitor.registerPlugin` 이 없습니다 - hike.js 는 `Capacitor.Plugins.<이름>` 으로 받습니다(2026-10-17)
+- 플러그인을 더하면 `npm install` → `npx cap sync android` → 다시 설치해야 폰에 들어갑니다(서버 화면만 바꾼 것은 다시 설치 필요 없음)
 
 ## 처음 한 번 (홍TV님 PC)
 

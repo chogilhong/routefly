@@ -98,6 +98,7 @@
     var BATTERY_KEY = "rf-battery", batterySave = false;
     try { batterySave = localStorage.getItem(BATTERY_KEY) === "1"; } catch (e) { /* 기본은 끔 */ }
     var BG = plugin("BackgroundGeolocation"), TTS = plugin("TextToSpeech"), FS = plugin("Filesystem"), SHARE = plugin("Share");
+    var LN = plugin("LocalNotifications");   // 안전 알림 진동 · 소리(2026-10-17 홍TV님 폰: 화면이 꺼지면 웹뷰 navigator.vibrate 가 막힘) - 없는 옛 설치본이면 null
 
     /** 앱 - 파일을 앱 임시 폴더에 쓰고 공유 창으로(문자 · 카카오톡 · 파일 저장 …). */
     function nativeShareFile(name, base64, text) {
@@ -2117,6 +2118,7 @@
             $("sos").click();
             if (navigator.vibrate) navigator.vibrate([600, 200, 600, 200, 600]);
             say("답이 없어 긴급 신고 화면을 열었습니다. 도움이 필요하면 119 전화나 문자 신고를 누르세요.", { urgent: true, force: true });
+            safetyNotify("🚨 긴급 신고 화면을 열었습니다", "도움이 필요하면 routefly 를 열어 119 전화 · 문자 신고를 누르세요.");
             return;
         }
         var st = RF.stillCheck(hike.still, f ? { lat: f.lat, lon: f.lon, acc: f.acc, t: f.t } : null, t, STILL_M, STILL_MS);
@@ -2128,12 +2130,29 @@
         $("stillSheet").style.display = "flex";
         if (navigator.vibrate) navigator.vibrate([400, 150, 400, 150, 400]);
         say("괜찮으세요? 오랫동안 움직임이 없습니다. 괜찮으면 화면의 괜찮아요를 눌러 주세요.", { urgent: true, force: true });   // 음성을 꺼 두었어도 안전 알림은 말함
+        safetyNotify("괜찮으세요? " + Math.round((t - hike.still.t) / 60000) + "분째 움직임이 없습니다", "routefly 를 열어 '괜찮아요' 를 눌러 주세요. 1분 안에 답이 없으면 긴급 신고 화면을 엽니다.");
     }
 
     function stillReset() {
         hike.stillAsk = 0;
         hike.still = null;   // 다음 위치부터 다시 20분
         $("stillSheet").style.display = "none";
+        safetyNotify(null);
+    }
+
+    /**
+     * 앱 - 폰 알림(알림창 + 진동 + 소리)으로도 알림. 화면이 꺼지면 웹뷰의 navigator.vibrate 가 막혀 진동이 없었음(2026-10-17).
+     * text 가 null 이면 떠 있는 알림을 치움. 알림 권한은 백그라운드 위치("산행 중" 알림)와 같은 것.
+     */
+    var SAFETY_NOTE_ID = 7001, safetyChannel = null;
+    function safetyNotify(title, body) {
+        if (!LN) return;
+        if (!title) { LN.cancel({ notifications: [{ id: SAFETY_NOTE_ID }] }).catch(function () { /* 없음 */ }); return; }
+        if (!safetyChannel) safetyChannel = LN.createChannel({ id: "rf-safety", name: "routefly 안전 알림", description: "움직임 없음 · 긴급 신고 알림",
+            importance: 5, visibility: 1, vibration: true }).catch(function () { /* 안드로이드 8 아래 · 이미 있음 */ });
+        safetyChannel.then(function () {
+            return LN.schedule({ notifications: [{ id: SAFETY_NOTE_ID, title: title, body: body || "", channelId: "rf-safety" }] });
+        }).catch(function () { /* 알림 권한 없음 - 음성 · 화면으로만 */ });
     }
 
     function render() {
