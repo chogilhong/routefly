@@ -73,6 +73,9 @@ ul { margin:0; padding:0; list-style:none; }
 .cs .sunrise { flex:1 1 100%; color:var(--dim); font-size:12.5px; }
 /* 이번 주말 날씨 좋은 곳(/m/ - 2026-10-15) */
 #weekend { padding:4px 16px; }
+.fun { margin:14px 0 4px; padding:12px 14px; border:1px dashed var(--ln); border-radius:12px; }   /* 🔮 재미로 보는 한마디(2026-10-17) */
+.fun .fl { font-size:16px; margin:4px 0; }
+.fun small { color:var(--dim); }
 #weekend .fb { padding:4px 0 10px; }
 #weekend .wday { margin:10px 0 4px; font-size:14px; }
 #weekend .wreg { margin:6px 0 10px; font-size:13.5px; color:var(--dim); }

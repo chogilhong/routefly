@@ -1165,6 +1165,18 @@
         toast("⛰️ " + names + " 정상 도장을 찍었습니다 (100대 명산 " + Object.keys(have).length + "곳)", 7000);
         say(names + " 정상 도장을 찍었습니다.");
         if (navigator.vibrate) navigator.vibrate([100, 60, 100, 60, 200]);
+        showSummitCard(due[0]);
+    }
+
+    /** 정상 도장 카드(재미로 보는 한마디 - RF.summitCard). 같은 날 같은 산은 같은 한마디. */
+    var summitShareText = "";
+    function showSummitCard(p) {
+        var d = new Date(), day = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+        var card = RF.summitCard(p.id || p.name, p.summit, day);
+        $("summitTitle").textContent = card.title;
+        $("summitLine").textContent = card.line;
+        summitShareText = card.share;
+        $("summitSheet").style.display = "flex";
     }
 
     function stampCheck(lat, lon, acc) {
@@ -3186,6 +3198,13 @@
         } else if (!fresh) {
             $("sosGrid").textContent = "위치를 못 씀(https 필요) - 표지판 번호를 불러 주세요";
         }
+    });
+    $("summitClose").addEventListener("click", function () { $("summitSheet").style.display = "none"; });
+    $("summitShare").addEventListener("click", function () {
+        var text = summitShareText;
+        if (SHARE) { Promise.resolve(SHARE.share({ text: text, dialogTitle: "자랑하기" })).catch(function () { /* 닫음 */ }); return; }
+        if (navigator.share) { navigator.share({ text: text }).catch(function () { /* 닫음 */ }); return; }
+        if (navigator.clipboard) navigator.clipboard.writeText(text).then(function () { toast("글을 복사했습니다. 카톡 등에 붙여 넣으세요.", 4000); });
     });
     $("sosClose").addEventListener("click", function () { $("sosSheet").style.display = "none"; hike.sosAuto = false; });
     $("stillOk").addEventListener("click", function () {

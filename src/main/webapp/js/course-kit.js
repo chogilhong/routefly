@@ -646,6 +646,38 @@
      * 2026-10-16 홍TV님: 다른 도장 앱은 보통 30 ~ 40m(오차를 생각해 50 ~ 200m 까지 넓히기도) - 신호가 좋으면 정상에 가까이 가야 찍히게.
      */
     /**
+     * 재미로 보는 산행 한마디(2026-10-17 홍TV님) - 정상 도장 카드 · 코스 모음 첫 화면. 안전 · 날씨에 관한 말은 넣지 않음
+     * (실제 예보 · 강풍 경고와 어긋나면 위험 - "오늘은 산에 가기 좋은 날" 같은 말 금지).
+     */
+    var FORTUNE = {
+        ko: ["끝까지 오른 사람에게 바람이 시원하게 분다.", "오늘 만난 풍경이 한 주의 힘이 된다.", "천천히 걸은 길이 가장 오래 남는다.",
+             "정상에서 마신 물 한 모금이 오늘의 행운.", "함께 오른 사람과의 이야기가 복을 부른다.", "작은 오르막을 넘으면 큰 일도 풀린다.",
+             "발밑의 들꽃을 본 사람에게 좋은 소식이 온다.", "쉬어 간 자리에서 좋은 생각이 떠오른다.", "오늘 찍은 사진 한 장이 오래 웃음을 준다.",
+             "다음 산을 정한 사람에게 새 길이 열린다.", "땀 흘린 만큼 마음이 가벼워진다.", "내려가는 길에서 반가운 얼굴을 만난다.",
+             "정상의 하늘처럼 머릿속이 맑아진다.", "한 걸음씩 쌓은 것이 큰 열매가 된다.", "오늘의 인사 한마디가 좋은 인연이 된다.",
+             "아껴 둔 간식이 가장 맛있는 날.", "느긋한 마음이 가장 좋은 지도.", "돌아보면 꽤 높이 와 있다.",
+             "산이 준 기운으로 미뤄 둔 일을 시작하기 좋다.", "고마운 사람에게 사진 한 장 보내면 복이 두 배."],
+        en: ["The wind is kindest to those who reach the top.", "Today's view will carry you through the week.", "The slowest trail stays longest in memory.",
+             "A sip of water at the summit is today's luck.", "Good talk on the trail brings good fortune.", "Small climbs today, big wins tomorrow.",
+             "Notice the wildflowers - good news is on its way.", "A great idea waits at your next rest stop.", "One photo from today will make you smile for years.",
+             "Pick your next mountain and a new path opens.", "Every drop of sweat lightens the mind.", "Look back - you have come further than you think."]
+    };
+
+    /** 순수 함수 - 같은 씨앗(날짜 + 산 이름)이면 같은 한마디. lang "ko" · "en". */
+    function fortune(seed, lang) {
+        var list = FORTUNE[lang === "en" ? "en" : "ko"], h = 0, str = String(seed || "");
+        for (var i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0;
+        return list[Math.abs(h) % list.length];
+    }
+
+    /** 순수 함수 - 정상 도장 카드: 제목(⛰️ 산 이름 · 정상 이름)과 그날의 한마디, 공유 글. day 는 "2026-10-17". */
+    function summitCard(name, summit, day) {
+        var title = "⛰️ " + name + (summit && summit !== name ? " " + summit : "");
+        var line = fortune(day + "|" + name, "ko");
+        return { title: title, line: line, share: title + " 도착!\n오늘의 정상 한마디: " + line + "\n(재미로 보는 글 · routefly)" };
+    }
+
+    /**
      * 순수 함수 - 지난 기록과 비교(2026-10-16 홍TV님 추가 기능 2번): 기록의 점(track [위도, 경도, 시각, 높이])을 코스에 붙여
      * [코스 거리 m, 출발 뒤 ms] - 앞으로 나아간 점만(되돌아간 · 코스 밖 60m 넘는 점은 뺌). 2점이 안 되면 null.
      */
@@ -3940,6 +3972,6 @@
         LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, regionNames: regionNames, stampKey: stampKey, summitName: summitName, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakGapM: peakGapM, peakCourses: peakCourses, isClosedTrail: isClosedTrail, isHiddenCourse: isHiddenCourse, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
         sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap,
-        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox, LEVELS: LEVELS, difficulty: difficulty, boardSegments: boardSegments, boardProfile: boardProfile, nameEnds: nameEnds, boardButtons: boardButtons, levelChip: levelChip, roman: roman, enName: enName, weekendText: weekendText, boardHere: boardHere, slopeBetween: slopeBetween, recentAdd: recentAdd, recentPages: recentPages, recentFold: recentFold, compareRows: compareRows, compareButtons: compareButtons, steepest: steepest, officialEleAt: officialEleAt, stampRadius: stampRadius, stillCheck: stillCheck, windChill: windChill, windNote: windNote, paceProfile: paceProfile, paceAt: paceAt, paceDistAt: paceDistAt, paceText: paceText
+        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox, LEVELS: LEVELS, difficulty: difficulty, boardSegments: boardSegments, boardProfile: boardProfile, nameEnds: nameEnds, boardButtons: boardButtons, levelChip: levelChip, roman: roman, enName: enName, weekendText: weekendText, boardHere: boardHere, slopeBetween: slopeBetween, recentAdd: recentAdd, recentPages: recentPages, recentFold: recentFold, compareRows: compareRows, compareButtons: compareButtons, steepest: steepest, officialEleAt: officialEleAt, stampRadius: stampRadius, stillCheck: stillCheck, windChill: windChill, windNote: windNote, paceProfile: paceProfile, paceAt: paceAt, paceDistAt: paceDistAt, paceText: paceText, fortune: fortune, summitCard: summitCard
     };
 })(window);

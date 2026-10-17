@@ -273,7 +273,8 @@ final class MountainEn {
         b.append("</div>");
         b.append("<p class=\"dim\">Trail and bike path maps show every section with checkpoints; place names on the map are in Korean.</p>");
         b.append(tips());
-        return b.append(foot(REL + "/m/")).toString();
+        return b.append("<section id=\"fun\" class=\"fun\" hidden></section>")   // 🔮 just for fun(js/mountain-en.js - 2026-10-17)
+                .append(foot(REL + "/m/")).toString();
     }
 
     static String notFoundPage(String key, String base) {

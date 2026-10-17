@@ -964,3 +964,13 @@ eq("stampRadius GPS 오차 + 20, 40 ~ max", [RF.stampRadius(5, 150), RF.stampRad
         [300, null, 250, Math.round(prof[10][0])]);
     eq("paceText", [RF.paceText(-185000), RF.paceText(30000), RF.paceText(4000000), RF.paceText(null)], ["지난번보다 3분 빠름", "지난번과 비슷", "지난번보다 1시간 7분 늦음", ""]);
 })();
+(function () {   // 재미로 보는 한마디 - 같은 씨앗이면 같고, 안전 · 날씨 말은 없음
+    var a = RF.fortune("2026-10-17|설악산"), b = RF.fortune("2026-10-17|설악산"), en = RF.fortune("x", "en");
+    var c = RF.summitCard("설악산", "대청봉", "2026-10-17"), d = RF.summitCard("가리산", "가리산", "2026-10-17");
+    var all = [], i;
+    for (i = 0; i < 400; i++) all.push(RF.fortune("s" + i), RF.fortune("s" + i, "en"));
+    eq("fortune", [a === b, typeof en, /[a-z]/.test(en), c.title, d.title, c.line === RF.fortune("2026-10-17|설악산"), /재미로/.test(c.share),
+        all.some(function (x) { return /날씨|비|바람이 세|안전|위험|가도 좋|weather|safe|rain/.test(x) && !/바람이 시원/.test(x); })],
+        [true, "string", true, "⛰️ 설악산 대청봉", "⛰️ 가리산", true, true, false]);
+})();
+

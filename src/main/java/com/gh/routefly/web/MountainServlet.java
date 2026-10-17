@@ -644,7 +644,8 @@ public class MountainServlet extends HttpServlet {
             }
             b.append("</div></details>");
         }
-        b.append("</div>").append(foot(base, REL + "/en/m/"));
+        b.append("</div><section id=\"fun\" class=\"fun\" hidden></section>")   // 🔮 재미로 보는 오늘의 산행 한마디(js/mountain.js - 2026-10-17 홍TV님)
+                .append(foot(base, REL + "/en/m/"));
         return b.toString();
     }
 

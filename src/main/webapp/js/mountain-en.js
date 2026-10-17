@@ -15,6 +15,16 @@
         tools.appendChild(tb);
         crumb.insertBefore(tools, crumb.firstChild);   // 앞에 두어야 h1 글과 같은 줄 오른쪽(뒤에 두면 다음 줄로 밀림)
     }
+    // 🔮 Just for fun(/en/m/ - 2026-10-17): a daily trail fortune, nothing about weather or safety(RF.fortune)
+    var fun = document.getElementById("fun");
+    if (fun && RF.fortune) {
+        var td = new Date(), day = td.getFullYear() + "-" + (td.getMonth() + 1) + "-" + td.getDate();
+        var h = document.createElement("div"); h.textContent = "🔮 Today's trail fortune"; h.style.fontWeight = "bold";
+        var l = document.createElement("div"); l.className = "fl"; l.textContent = RF.fortune(day + "|m", "en");
+        var sm = document.createElement("small"); sm.textContent = "Just for fun. For your hike, follow the weather and safety notes.";
+        fun.appendChild(h); fun.appendChild(l); fun.appendChild(sm);
+        fun.hidden = false;
+    }
     RF.foldOne(document);   // 하나를 펴면 나머지는 접힘(/m/ 과 같음)
     RF.boardButtons("../..", true);   // 📈 Elevation(한국어 화면과 같음)
     RF.compareButtons("../..", true);   // ⚖️ Compare
