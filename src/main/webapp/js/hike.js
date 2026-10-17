@@ -1418,7 +1418,7 @@
         }).then(function (o) {
             var d = new Date(), text = JSON.stringify(o);
             var name = "routefly-backup-" + d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0") + ".json";
-            toast("백업 파일: 기록 " + o.records.length + "개 · 사진 " + Object.keys(o.photos).length + "장 - 드라이브 · 메일 등 이 핸드폰 밖에 두세요.", 6000);
+            toast("백업 파일: 기록 " + o.records.length + "개 · 사진 " + Object.keys(o.photos).length + "장 - 열리는 공유 창에서 드라이브 · 카톡 '나와의 채팅' · 메일 · 내 파일 중 둘 곳을 고르세요.", 8000);   // 2026-10-17 홍TV님: 백업 저장을 누르니 카톡이 열려 당황 - 공유 창으로 둘 곳을 고르는 것
             if (FS && SHARE) return nativeShareFile(name, btoa(unescape(encodeURIComponent(text))), "routefly 백업");
             var f = null;
             try { f = new File([text], name, { type: "application/json" }); if (!(navigator.canShare && navigator.canShare({ files: [f] }))) f = null; } catch (e) { f = null; }
