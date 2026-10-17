@@ -34,7 +34,7 @@
 .rfTextBtn { min-width:44px; height:34px; padding:0 8px; border-radius:17px; border:1px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06);
              color:#e9eef4; font:bold 13px Arial,"Malgun Gothic",sans-serif; cursor:pointer; white-space:nowrap; }
 .sheet h2 .rfTextBtn { float:right; margin:-4px 0 0 8px; }
-#pick h1 .rfTextBtn { float:right; margin-top:-2px; }
+#pick h1 .rfTextBtn { flex:0 0 auto; }   /* 제목 줄이 flex(2026-10-17 - 코스 모음 옆) */
 /* 난이도(공단 탐방로 안내판 5단계 색 - 2026-10-15) */
 .lv { display:inline-block; font-style:normal; font-size:11px; font-weight:bold; line-height:1; padding:3px 6px; border-radius:9px; color:#fff; vertical-align:2px; white-space:nowrap; }
 .lv0 { background:#a3c93a; color:#13202b; } .lv1 { background:#3fae5c; } .lv2 { background:#e8822a; } .lv3 { background:#a23a6b; } .lv4 { background:#3a3f46; box-shadow:inset 0 0 0 1px rgba(255,255,255,0.5); }

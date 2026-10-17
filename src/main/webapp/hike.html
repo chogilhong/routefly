@@ -248,13 +248,15 @@ body.compact #statGrids { display:none; }
 #paceTxt { color:var(--dim); }
 #paceTxt.fast { color:#69db7c; } #paceTxt.slow { color:#ffa94d; }
 .ghost { width:14px; height:14px; border-radius:50%; background:rgba(26,115,232,0.35); border:2px dashed #fff; pointer-events:none; }   /* 지난번의 나(2026-10-16) */
-.tabs { display:flex; gap:4px; margin-top:8px; overflow-x:auto; }
-.tabs button { flex:0 0 auto; height:40px; padding:0 8px; border-radius:20px;   /* 2026-10-10 점검: 손가락 자리 34 → 40px */
+.tabs { display:flex; gap:6px; margin-top:8px; overflow-x:auto; }
+.tabs button { flex:0 0 auto; height:40px; padding:0 12px; border-radius:20px;   /* 2026-10-10 점검: 손가락 자리 34 → 40px */
                border:1px solid var(--ln); background:rgba(255,255,255,0.06);
-               color:var(--tx); font-size:13px; }
+               color:var(--tx); font-size:13.5px; }
 .tabs button.on { background:var(--sky); border-color:var(--sky); color:#062b30; font-weight:bold; }
-.tabs a.tabLink { flex:0 0 auto; display:flex; align-items:center; height:40px; padding:0 8px; border-radius:20px; box-sizing:border-box;
-                  border:1px solid var(--ln); background:rgba(255,255,255,0.06); color:var(--sky); font-size:13px; text-decoration:none; white-space:nowrap; }   /* ⛰️ 코스 모음 - 아래 줄에서 옮김(2026-10-17 홍TV님) */
+#pick h1 { display:flex; align-items:center; gap:8px; }
+#pick h1 .ttl { flex:1 1 auto; min-width:0; font-weight:inherit; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#pick h1 .pickNav { flex:0 0 auto; display:flex; align-items:center; height:36px; padding:0 12px; border-radius:18px; box-sizing:border-box;
+                    border:1px dashed rgba(255,255,255,0.35); color:var(--tx); font-size:13px; font-weight:normal; text-decoration:none; white-space:nowrap; }   /* ⛰️ 코스 모음 - 제목 옆(2026-10-17 홍TV님), 다른 화면으로 가는 링크라 점선 · › */
 /* 코스 없이 열면 첫 그림부터 코스 고르기 - 지도 · 스크립트를 받는 동안 뒤의 코스 화면이 잔상처럼 보였음(2026-10-11 홍TV님, 핸드폰) */
 html.picking #pick { display:flex; }
 /* 처음 안내(js/onboard.js) */
@@ -338,14 +340,13 @@ html.picking #pick { display:flex; }
 
 <div id="pick">
     <header>
-        <h1>route<span>fly</span> 따라가기</h1>
+        <h1><b class="ttl">route<span>fly</span> 따라가기</b><a class="pickNav" href="m/" title="등산 · 걷기 · 자전거 코스 모음 - 산마다 코스 · 날씨(10일) · 미세먼지 · 챙길 것">⛰️ 코스 모음 ›</a></h1>
         <input type="search" id="q" aria-label="코스 · 산 이름으로 찾기" placeholder="코스 · 산 이름 (예: 설악산, 둘레길, 국토종주)" autocomplete="off" maxlength="50">
         <div class="tabs" id="kindTabs" role="group" aria-label="코스 종류">
             <button type="button" data-kind="" class="on" aria-pressed="true">전체</button>
             <button type="button" data-kind="hike" aria-pressed="false">⛰️ 등산</button>
             <button type="button" data-kind="walk" aria-pressed="false">🚶 걷기</button>
             <button type="button" data-kind="bike" aria-pressed="false">🚴 자전거</button>
-            <a class="tabLink" href="m/" title="등산 · 걷기 · 자전거 코스 모음 - 산마다 코스 · 날씨(10일) · 미세먼지 · 챙길 것">⛰️ 코스 모음</a>
         </div>
         <div class="row">
             <button type="button" id="nearMe">📍 내 주변 코스</button>
