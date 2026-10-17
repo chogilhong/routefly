@@ -32,9 +32,10 @@ final class MountainEn {
     /** 순수 함수 - 코스 이름 영어로: 정해진 낱말은 영어, 나머지는 로마자("오색탐방지원센터 - 대청봉" → "Osaek visitor center - Daecheongbong"). */
     static String courseName(String ko) {
         if (ko == null) return "";
-        String s = ko;
+        // 붙어 쓴 산 이름 + 봉우리 · 절 · 고개는 띄움("설악산대청봉" → "Seoraksan Daecheongbong" - 2026-10-17 PC: 긴 로마자 한 낱말). "남한산성" 은 그대로
+        String s = ko.replaceAll("([가-힣]+산)([가-힣]{1,4}(?:봉|대|령|재|사|암|폭포|계곡))(?![가-힣])", "$1 $2");
         for (String[] w : WORDS) s = s.replace(w[0], " " + w[1] + " ");
-        return Roman.of(s).replaceAll("\\s+", " ").replaceAll(" ([)\\],])", "$1").replaceAll("([(\\[]) ", "$1").trim();
+        return Roman.of(s).replaceAll("([a-z])(\\d)", "$1 $2").replaceAll("\\s+", " ").replaceAll(" ([)\\],])", "$1").replaceAll("([(\\[]) ", "$1").trim();
     }
 
     /** 순수 함수 - 정상 이름: 산 이름이 앞에 붙어 있으면 띄움("북한산백운대" → "Bukhansan Baegundae"). */

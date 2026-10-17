@@ -33,6 +33,9 @@ public class MountainEnTest {
     @Test
     public void names() {
         assertEquals("Osaek visitor center - Daecheongbong", MountainEn.courseName("오색탐방지원센터 - 대청봉"));
+        assertEquals("붙어 쓴 산 + 봉우리는 띄움", "Seoraksan Daecheongbong 1 course", MountainEn.courseName("설악산대청봉1코스"));
+        assertEquals("Bukhansan Baegundae", MountainEn.courseName("북한산백운대"));
+        assertEquals("산성은 그대로", "Namhansanseong", MountainEn.courseName("남한산성"));
         assertEquals("Seoraksan · Baekdamsa course (round trip)", MountainEn.courseName("설악산 · 백담사코스(왕복)"));
         assertEquals("Bukhansan Baegundae", MountainEn.summitName("북한산백운대", "북한산"));
         assertEquals("Daecheongbong", MountainEn.summitName("대청봉", "설악산"));
