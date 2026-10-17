@@ -24,6 +24,7 @@ ul { margin:0; padding:0; list-style:none; }
 .ms { display:flex; flex-wrap:wrap; gap:8px; }
 .ms a { display:inline-block; text-decoration:none; color:var(--tx); font-size:14px; padding:6px 11px; border:1px solid var(--ln); border-radius:16px; }
 .brand { margin-top:18px; font-size:15px; font-weight:bold; }
+.copy { margin:10px 0 0; font-size:11.5px; color:var(--dim); }   /* © 2026 홍TV · routefly */
 .support { margin:14px 0 0; }
 .support a { display:inline-block; padding:8px 14px; border-radius:10px; background:#2f9e44; color:#fff; text-decoration:none; font-weight:bold; }
 .brand span { color:#ffb703; }

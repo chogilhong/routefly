@@ -313,7 +313,8 @@ final class MountainEn {
                 + "AirKorea, Durunubi (data.go.kr), © OpenStreetMap contributors. Names follow the Revised Romanization of Korean. "
                 + "<a href=\"" + esc(koHref) + "\" hreflang=\"ko\" lang=\"ko\">한국어</a> · <a href=\"" + REL + "/privacy.html\">Privacy (Korean)</a></p>"
                 + "<p class=\"support\" id=\"support\" hidden></p>"   // ☕ Support(설정 donate.en.url 이 있을 때만 mountain-en.js 가 보임)
-                + "<p class=\"brand\"><a href=\"" + REL + "/hike.html?lang=en\"><img src=\"" + REL + "/img/logo-dark.svg\" alt=\"routefly\" width=\"160\" height=\"50\"> Open app ›</a></p></main>"
+                + "<p class=\"brand\"><a href=\"" + REL + "/hike.html?lang=en\"><img src=\"" + REL + "/img/logo-dark.svg\" alt=\"routefly\" width=\"160\" height=\"50\"> Open app ›</a></p>"
+                + "<p class=\"copy\">© 2026 홍TV (HongTV) · routefly. Trail and map data belong to the sources above.</p></main>"
                 + "<script src=\"" + REL + "/js/course-kit.js\"></script><script src=\"" + REL + "/js/mountain-en.js\"></script></body></html>";
     }
 
