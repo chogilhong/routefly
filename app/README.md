@@ -46,6 +46,8 @@ npm run url -- https://abc-def.trycloudflare.com      (나온 주소 - 뒤에 /r
 4. 위쪽 기기 목록에서 핸드폰을 고르고 ▶(Run) → 핸드폰에 routefly 앱이 깔리고 열립니다
 
 Android Studio 가 "Project update recommended(AGP 업그레이드)" · "Migrate to Gradle Daemon toolchain" 을 띄워도 누르지 않습니다(닫거나 Ignore).
+명령 줄 빌드(`gradlew installDebug`)는 JAVA_HOME 을 JDK 21(`C:\GH\java\jdk-21`)로 둡니다. Android Studio 에 든 jbr 는 2026-10 기준 JDK 25 라
+Gradle 8.14 가 "Unsupported class file major version 69" 로 멈춥니다(2026-10-17). Android Studio 안에서 빌드할 때도 Settings → Build Tools → Gradle → Gradle JDK 를 JDK 21 로.
 AGP 8.13.0 · Gradle 8.14.3 은 Capacitor 8.5 가 맞춰 둔 판이라, 혼자 올리면 Capacitor · 플러그인과 어긋나 빌드가 깨질 수 있습니다.
 올릴 때는 Capacitor 를 올리면서(`npx cap migrate`) 함께 올립니다.
 

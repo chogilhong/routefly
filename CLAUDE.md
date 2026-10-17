@@ -118,5 +118,5 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다(route_course · 
   1. `127.0.0.1:20241/quicktunnel` 에서 새 주소 읽기
   2. `app/capacitor.config.json` 의 server.url 고치기(로컬 수정본, 커밋하지 않음)
   3. `npx cap sync android`
-  4. `app\android` 에서 JAVA_HOME 을 Android Studio jbr 로 두고 `gradlew installDebug` (핸드폰 USB 연결 필요)
+  4. `app\android` 에서 JAVA_HOME 을 `C:\GH\java\jdk-21` 로 두고 `gradlew installDebug` (핸드폰 USB 연결 필요). Android Studio jbr 는 2026-10 기준 JDK 25 라 Gradle 8.14 가 "Unsupported class file major version 69" 로 실패(2026-10-17 PC)
 - 서버로 옮기는 순서는 `docs/deploy-lightsail.md`.
