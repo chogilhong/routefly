@@ -191,30 +191,30 @@ body.flying #side { opacity:0; pointer-events:none; }
 
 <div id="side" class="panel">
     <header>
-        <h1>route<span>fly</span><small>코스 미리보기</small></h1>
-        <button type="button" id="back" title="첫 화면(따라가기 코스 목록)으로">‹ 목록</button>
+        <h1 data-en="route&lt;span&gt;fly&lt;/span&gt;&lt;small&gt;3D trail preview&lt;/small&gt;">route<span>fly</span><small>코스 미리보기</small></h1>
+        <button type="button" id="back" title="첫 화면(따라가기 코스 목록)으로" data-en="‹ List" data-en-title="Back to the first screen (Follow trail list)">‹ 목록</button>
     </header>
-    <div class="search"><input type="search" id="q" aria-label="코스 · 산 이름으로 찾기" placeholder="코스 · 산 이름 (예: 설악산, 둘레길, 국토종주)" autocomplete="off" maxlength="50">
-        <div class="kinds" id="kindTabs" role="group" aria-label="코스 종류">
-            <button type="button" data-kind="" class="on" aria-pressed="true">전체</button>
-            <button type="button" data-kind="hike" aria-pressed="false">⛰️ 등산</button>
-            <button type="button" data-kind="walk" aria-pressed="false">🚶 걷기</button>
-            <button type="button" data-kind="bike" aria-pressed="false">🚴 자전거</button>
+    <div class="search"><input type="search" id="q" aria-label="코스 · 산 이름으로 찾기" placeholder="코스 · 산 이름 (예: 설악산, 둘레길, 국토종주)" autocomplete="off" maxlength="50" data-en-aria-label="Search by trail or mountain name" data-en-placeholder="Mountain or trail (e.g. Seoraksan, Jirisan)">
+        <div class="kinds" id="kindTabs" role="group" aria-label="코스 종류" data-en-aria-label="Trail type">
+            <button type="button" data-kind="" class="on" aria-pressed="true" data-en="All">전체</button>
+            <button type="button" data-kind="hike" aria-pressed="false" data-en="⛰️ Hiking">⛰️ 등산</button>
+            <button type="button" data-kind="walk" aria-pressed="false" data-en="🚶 Walking">🚶 걷기</button>
+            <button type="button" data-kind="bike" aria-pressed="false" data-en="🚴 Cycling">🚴 자전거</button>
         </div>
         <div class="tools">
-            <button type="button" id="nearMe" title="내 위치 둘레 코스(지도를 내 위치로)">📍 내 주변 코스</button>
-            <button type="button" id="myRecords" title="따라가기 화면의 내 기록">📒 내 기록</button>
-            <a href="series.html" title="도장 · 완주 - 국토종주 인증센터 도장, 숲길 · 둘레길 코스 완주 모아 보기">🏅 도장</a>
-            <button type="button" id="gpxOpen" title="다른 앱 · 친구가 보내 준 GPX 파일을 미리 날아 봅니다">📂 GPX 열기</button>
+            <button type="button" id="nearMe" title="내 위치 둘레 코스(지도를 내 위치로)" data-en="📍 Near me" data-en-title="Trails around you (moves the map to your location)">📍 내 주변 코스</button>
+            <button type="button" id="myRecords" title="따라가기 화면의 내 기록" data-en="📒 My records" data-en-title="My records on the Follow screen">📒 내 기록</button>
+            <a href="series.html" title="도장 · 완주 - 국토종주 인증센터 도장, 숲길 · 둘레길 코스 완주 모아 보기" data-en="🏅 Stamps" data-en-title="Stamps · completions - bike path checkpoints, forest and dulle trail completions">🏅 도장</a>
+            <button type="button" id="gpxOpen" title="다른 앱 · 친구가 보내 준 GPX 파일을 미리 날아 봅니다" data-en="📂 Open GPX" data-en-title="Open a GPX file from another app or a friend and fly it">📂 GPX 열기</button>
             <input type="file" id="gpxFile" accept=".gpx,application/gpx+xml" hidden>
         </div></div>
-    <div id="list"><div class="empty">코스를 불러오는 중…</div></div>
-    <div class="foot"><a href="about.html">안내 · 출처</a> · <a href="privacy.html">개인정보처리방침</a></div>
+    <div id="list"><div class="empty" data-en="Loading trails…">코스를 불러오는 중…</div></div>
+    <div class="foot" data-en="&lt;a href=&quot;about.html&quot;&gt;About · sources (Korean)&lt;/a&gt; · &lt;a href=&quot;privacy.html&quot;&gt;Privacy (Korean)&lt;/a&gt;"><a href="about.html">안내 · 출처</a> · <a href="privacy.html">개인정보처리방침</a></div>
 </div>
 
 <div id="hud" class="panel">
     <div class="km"><span id="hudKm">0.00</span><small>km</small></div>
-    <div class="ele" id="hudEle">고도 -</div>
+    <div class="ele" id="hudEle" data-en="elev. -">고도 -</div>
     <div class="ele" id="hudGrade"></div>
 </div>
 
@@ -224,29 +224,29 @@ body.flying #side { opacity:0; pointer-events:none; }
         <span id="courseStat"></span>
         <div id="controls">
             <button type="button" id="play" class="main">▶ routefly</button>
-            <button type="button" id="speed" title="빠르기" aria-label="빠르기 바꾸기">1×</button>
-            <button type="button" id="shareBtn" title="이 코스 링크 보내기" style="display:none">공유</button>
+            <button type="button" id="speed" title="빠르기" aria-label="빠르기 바꾸기" data-en-title="Speed" data-en-aria-label="Change speed">1×</button>
+            <button type="button" id="shareBtn" title="이 코스 링크 보내기" style="display:none" data-en="Share" data-en-title="Send a link to this trail">공유</button>
         </div>
     </div>
-    <div id="guideBar" role="group" aria-label="코스 안내">
-        <button type="button" data-g="road">🚗 가는 길</button>
-        <button type="button" data-g="weather">☁️ 날씨</button>
-        <button type="button" data-g="stay">🛏 숙박</button>
-        <button type="button" data-g="food">🍚 식당</button>
-        <button type="button" data-g="plan">🕐 일정</button>
-        <button type="button" data-g="poi">⛰ 지점</button>
-        <button type="button" data-g="danger" id="gDanger">⚠️ 위험</button>
+    <div id="guideBar" role="group" aria-label="코스 안내" data-en-aria-label="Trail guide">
+        <button type="button" data-g="road" data-en="🚗 Getting there">🚗 가는 길</button>
+        <button type="button" data-g="weather" data-en="☁️ Weather">☁️ 날씨</button>
+        <button type="button" data-g="stay" data-en="🛏 Lodging">🛏 숙박</button>
+        <button type="button" data-g="food" data-en="🍚 Food">🍚 식당</button>
+        <button type="button" data-g="plan" data-en="🕐 Schedule">🕐 일정</button>
+        <button type="button" data-g="poi" data-en="⛰ Points">⛰ 지점</button>
+        <button type="button" data-g="danger" id="gDanger" data-en="⚠️ Hazards">⚠️ 위험</button>
     </div>
     <div id="profile"></div>
 </div>
 
 <!-- 2026-10-14 홍TV님: fly(3D) 아래 안내 - 가는 길 · 날씨 · 숙박 · 식당 · 일정 · 지점 · 위험(이 순서, 국립공원 공단 코스) -->
 <div id="guideSheet" class="panel" role="dialog" aria-labelledby="guideTitle">
-    <header><h2 id="guideTitle">안내</h2><button type="button" id="guideClose" aria-label="닫기">✕</button></header>
+    <header><h2 id="guideTitle" data-en="Guide">안내</h2><button type="button" id="guideClose" aria-label="닫기" data-en-aria-label="Close">✕</button></header>
     <div id="guideBody"></div>
 </div>
 
-<div id="mini" class="panel" title="코스 평면도(북쪽이 위)"></div>
+<div id="mini" class="panel" title="코스 평면도(북쪽이 위)" data-en-title="Trail outline (north up)"></div>
 
 <div id="caption" aria-live="polite"></div>
 
