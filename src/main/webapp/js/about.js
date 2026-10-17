@@ -41,6 +41,20 @@ fetch("api/partners").then(function (r) { return r.json(); }).then(function (p) 
         document.getElementById("supportVerb").textContent = where.length > 1 ? "사거나 예약하면" : p.agoda ? "예약하면" : "사면";
         document.getElementById("supportAff").hidden = false;
     }
-    if (p.donate) { document.getElementById("donateLink").href = p.donate; document.getElementById("supportDonate").hidden = false; }
+    if (p.donate) {
+        var dl = document.getElementById("donateLink");
+        dl.href = p.donate;
+        document.getElementById("supportDonate").hidden = false;
+        // 카카오페이 송금 코드는 핸드폰에서만 열림(PC 는 404) - PC 에서 누르면 안내만(2026-10-17 홍TV님)
+        if (/^https:\/\/qr\.kakaopay\.com\//i.test(p.donate) && !/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || "")) dl.addEventListener("click", function (e) {
+            e.preventDefault();
+            var box = document.getElementById("supportDonate");
+            if (box.querySelector("small")) return;
+            var s = document.createElement("small");
+            s.style.cssText = "display:block;margin-top:6px";
+            s.textContent = "카카오페이 송금은 핸드폰에서만 열립니다. 핸드폰으로 이 페이지를 열어 눌러 주세요.";
+            box.appendChild(s);
+        });
+    }
     sec.hidden = false;
 }).catch(function () { /* 없이 */ });
