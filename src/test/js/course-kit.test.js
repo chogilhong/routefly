@@ -1002,8 +1002,8 @@ eq("regionEn · weekendWordEn", [RF.regionEn("강원 영동"), RF.regionEn("제�
     RF.setLang("en");
     var sg = RF.signText({ sign: { loc_no: "설악 06-01", place_name: "구대청대피소아래" }, m: 420 }), cp = RF.partnerLinks(["https://link.coupang.com/a/x"])[0].text;
     RF.setLang("ko");
-    eq("영어 낱말 · 표지", [RF.enName("한강자전거길(서울)"), RF.enName("해파랑길관광안내소"), RF.enName("고래불해수욕장"), sg, cp, RF.partnerLinks(["https://link.coupang.com/a/x"])[0].text],
-        ["Hangang bike path (Seoul)", "Haeparanggil tourist info center", "Goraebul beach", "Seorak 06-01 · 420 m (Gudaecheong shelter below)", "Coupang ›", "쿠팡 ›"]);
+    eq("영어 낱말 · 표지", [RF.enName("한강자전거길(서울)"), RF.enName("해파랑길관광안내소"), RF.enName("고래불해수욕장"), RF.enName("(1)독주골 갈림길 위 250m"), RF.enName("위봉산"), sg, cp, RF.partnerLinks(["https://link.coupang.com/a/x"])[0].text],
+        ["Hangang bike path (Seoul)", "Haeparanggil tourist info center", "Goraebul beach", "(1)Dokjugol junction above 250m", "Wibongsan", "Seorak 06-01 · 420 m (Gudaecheong shelter below)", "Coupang ›", "쿠팡 ›"]);
 })();
 eq("trackClimb 10m 넘게 바뀐 것만", [RF.trackClimb([[0, 0, 0, 5], [0, 0, 1, 9], [0, 0, 2, 3], [0, 0, 3, 20], [0, 0, 4, 18], [0, 0, 5, 40], [0, 0, 6, null], [0, 0, 7, 25], [0, 0, 8, 37]]),
     RF.trackClimb([]), RF.trackClimb([[0, 0, 0, null]])], [15 + 20 + 12, 0, 0]);
