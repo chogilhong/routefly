@@ -17,6 +17,7 @@ ul { margin:0; padding:0; list-style:none; }
 .cs li { border-top:1px solid var(--ln); padding:10px 0; display:flex; flex-wrap:wrap; gap:4px 10px; align-items:baseline; }
 .cs li:first-child { border-top:0; }
 .cs b { flex:1 1 100%; font-size:15px; }
+.cs b, .cs span, .cs small { min-width:0; overflow-wrap:anywhere; }   /* 띄어쓰기 없는 긴 이름(Seoraksandaecheongbong…)도 줄바꿈 - 글자 140% 가로 넘침(2026-10-17 PC) */
 .cs span { font-size:13.5px; color:var(--dim); }
 .cs .go { margin-left:auto; display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; }
 .cs .go a { text-decoration:none; font-size:13.5px; padding:4px 10px; border:1px solid var(--ln); border-radius:14px; }
