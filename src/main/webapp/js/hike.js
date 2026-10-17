@@ -2401,6 +2401,7 @@
 
     function showPick(noRestore) {
         $("pick").style.display = "flex";
+        document.title = "routefly 따라가기";   // 코스에서 목록으로 와도 탭 제목이 코스 이름으로 남았음(2026-10-17 PC)
         // 목록이 비었거나(이 화면을 새로 열었을 때) 미리보기 화면에서 다른 말로 찾고 왔으면 마지막 검색을 다시
         if (!noRestore) {
             var last = null;
