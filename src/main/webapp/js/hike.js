@@ -1777,6 +1777,7 @@
                 }).catch(function () { onGpsError({ code: 2 }); });
             // 2026-10-08 (홍TV님 - 배터리): 앱은 화면을 꺼도 위치 · 음성 안내가 이어지므로 화면을 켜 두지 않습니다(Wake Lock 안 함).
             // 화면이 가장 큰 배터리 소비라, 주머니에 넣고 다니라고 한 번 알립니다. 브라우저는 화면이 꺼지면 멈추므로 아래처럼 켜 둡니다.
+            batteryGuide();
             toast("화면을 꺼도 기록 · 갈림길 · 코스 이탈 음성 안내가 이어집니다. 배터리를 아끼려면 화면을 꺼 두세요."
                 + (batterySave ? " (배터리 절약 켬)" : " 위쪽 GPS 글자를 누르면 배터리 절약 모드."), 7000);
         } else {
@@ -1787,6 +1788,19 @@
         }
         hike.timer = setInterval(render, 1000);
         render();
+    }
+
+    /**
+     * 앱 - 처음 한 번, 폰 절전이 화면 꺼진 동안 위치를 끊지 않게 배터리 "제한 없음" 을 안내(2026-10-17 PC: 배터리 최적화 대상이었음,
+     * 홍TV님 송산에서 오르는 동안 기록이 끊긴 것으로 보임). 앱 설정 화면을 열어 줌(BG.openSettings).
+     */
+    function batteryGuide() {
+        if (lsGet("rf-batt-asked") === "1") return;
+        try { localStorage.setItem("rf-batt-asked", "1"); } catch (e) { /* 이번만 */ }
+        if (confirm("화면을 끄고 주머니에 넣어도 위치 기록이 끊기지 않게, routefly 배터리 사용을 '제한 없음' 으로 바꿔 주세요.\n\n"
+                + "설정을 열까요? (애플리케이션 정보 → 배터리 → 제한 없음)")) {
+            Promise.resolve(BG.openSettings()).catch(function () { /* 설정 못 엶 */ });
+        }
     }
 
     /** 끝내기 확인 - 기록은 지우지 않고 "내 기록" 에 남깁니다(finishRecord). */
@@ -2136,7 +2150,10 @@
             safetyNotify("🚨 긴급 신고 화면을 열었습니다", "도움이 필요하면 routefly 를 열어 119 전화 · 문자 신고를 누르세요.");
             return;
         }
-        var st = RF.stillCheck(hike.still, f ? { lat: f.lat, lon: f.lon, acc: f.acc, t: f.t } : null, t, STILL_M, STILL_MS);
+        // 쓸 만한 위치(오차 100m 안)가 3분 넘게 없으면 묻지 않음 - 걷는 중인데 위치가 안 들어와(숲 · 주머니 · 폰 절전) "움직임 없음" 으로
+        // 잘못 물었음(2026-10-17 홍TV님 송산: 큰길 → 덕기봉이 직선 하나, 오르는 내내 "괜찮으세요?"). 위치가 다시 오면 그 자리부터 셈
+        if (!f || t - f.t > 180000) return;
+        var st = RF.stillCheck(hike.still, { lat: f.lat, lon: f.lon, acc: f.acc, t: f.t }, t, STILL_M, STILL_MS);
         hike.still = st.anchor;
         if (!st.due) return;
         hike.stillAsk = t;
