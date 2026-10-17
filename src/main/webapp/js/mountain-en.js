@@ -18,9 +18,9 @@
     // 🔮 Just for fun(/en/m/ - 2026-10-17): a daily trail fortune, nothing about weather or safety(RF.fortune)
     var fun = document.getElementById("fun");
     if (fun && RF.fortune) {
-        var td = new Date(), day = td.getFullYear() + "-" + (td.getMonth() + 1) + "-" + td.getDate();
+        var td = new Date();
         var h = document.createElement("div"); h.textContent = "🔮 Today's trail fortune"; h.style.fontWeight = "bold";
-        var l = document.createElement("div"); l.className = "fl"; l.textContent = RF.fortune(day + "|m", "en");
+        var l = document.createElement("div"); l.className = "fl"; l.textContent = RF.fortuneDay(td.getFullYear(), td.getMonth() + 1, td.getDate(), "en");
         var sm = document.createElement("small"); sm.textContent = "Just for fun. For your hike, follow the weather and safety notes.";
         fun.appendChild(h); fun.appendChild(l); fun.appendChild(sm);
         fun.hidden = false;

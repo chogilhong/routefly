@@ -86,10 +86,10 @@
     // 🔮 재미로 보는 오늘의 산행 한마디(코스 모음 /m/ - 2026-10-17 홍TV님). 날마다 바뀜, 안전 · 날씨 말은 없음(RF.fortune)
     var fun = document.getElementById("fun");
     if (fun && window.RF && window.RF.fortune) {
-        var td = new Date(), day = td.getFullYear() + "-" + (td.getMonth() + 1) + "-" + td.getDate();
+        var td = new Date();
         fun.innerHTML = "";
         var h = document.createElement("div"); h.textContent = "🔮 오늘의 산행 한마디"; h.style.fontWeight = "bold";
-        var l = document.createElement("div"); l.className = "fl"; l.textContent = window.RF.fortune(day + "|m", "ko");
+        var l = document.createElement("div"); l.className = "fl"; l.textContent = window.RF.fortuneDay(td.getFullYear(), td.getMonth() + 1, td.getDate(), "ko");
         var sm = document.createElement("small"); sm.textContent = "재미로 보는 글입니다. 산행 판단은 날씨 · 안전 안내를 따르세요.";
         fun.appendChild(h); fun.appendChild(l); fun.appendChild(sm);
         fun.hidden = false;

@@ -973,6 +973,20 @@ eq("stampRadius GPS 오차 + 20, 40 ~ max", [RF.stampRadius(5, 150), RF.stampRad
         all.some(function (x) { return /날씨|비|바람이 세|안전|위험|가도 좋|weather|safe|rain/.test(x) && !/바람이 시원/.test(x); })],
         [true, "string", true, "⛰️ 설악산 대청봉", "⛰️ 가리산", true, true, false]);
 })();
+(function () {   // 오늘의 한마디 - 섞은 순서로 돌아 한 바퀴 안에서는 겹치지 않음(한국어 60 · 영어 30)
+    function run(lang, days, len) {   // 바퀴 처음 날(1970-01-01 부터 센 날이 len 의 배수)부터
+        var seen = {}, n0 = Math.ceil(Date.UTC(2026, 9, 17) / 86400000 / len) * len, i, dt;
+        for (i = 0; i < days; i++) { dt = new Date((n0 + i) * 86400000); seen[RF.fortuneDay(dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate(), lang)] = 1; }
+        return Object.keys(seen).length;
+    }
+    function inOrder() {   // 섞였는지 - 바퀴 처음부터 목록 순서 그대로면 안 됨
+        var n0 = Math.ceil(Date.UTC(2026, 9, 17) / 86400000 / 60) * 60, a = new Date(n0 * 86400000), b = new Date((n0 + 1) * 86400000);
+        return RF.fortuneDay(a.getUTCFullYear(), a.getUTCMonth() + 1, a.getUTCDate(), "ko") === "끝까지 오른 사람에게 바람이 시원하게 분다."
+            && RF.fortuneDay(b.getUTCFullYear(), b.getUTCMonth() + 1, b.getUTCDate(), "ko") === "오늘 만난 풍경이 한 주의 힘이 된다.";
+    }
+    eq("fortuneDay 한 바퀴 · 섞임", [run("ko", 60, 60), run("ko", 61, 60), run("en", 30, 30), inOrder(), RF.fortuneDay(2026, 12, 31, "ko") !== RF.fortuneDay(2027, 1, 1, "ko"),
+        RF.fortuneDay(2026, 10, 17, "ko") === RF.fortuneDay(2026, 10, 17, "ko")], [60, 60, 30, false, true, true]);
+})();
 eq("trackClimb 10m 넘게 바뀐 것만", [RF.trackClimb([[0, 0, 0, 5], [0, 0, 1, 9], [0, 0, 2, 3], [0, 0, 3, 20], [0, 0, 4, 18], [0, 0, 5, 40], [0, 0, 6, null], [0, 0, 7, 25], [0, 0, 8, 37]]),
     RF.trackClimb([]), RF.trackClimb([[0, 0, 0, null]])], [15 + 20 + 12, 0, 0]);
 
