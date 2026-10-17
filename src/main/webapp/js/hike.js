@@ -2525,7 +2525,13 @@
             else location.href = "m/" + encodeURIComponent(fromMountain);
             return;
         }
-        if (fromList) { fromList = false; history.back(); }
+        if (fromList) {
+            fromList = false;
+            history.back();
+            // 2026-10-17 홍TV님 폰: ‹ 목록이 안 눌림 - 기록 보기 등으로 같은 코스 주소가 한 번 더 쌓였거나(뒤로 가도 또 코스),
+            // 앱을 새로 열어 뒤로 갈 곳이 없으면 그대로였음. 조금 뒤에도 코스 화면이면 목록으로
+            setTimeout(function () { if (/[#&]c=/.test(location.hash)) location.hash = ""; }, 400);
+        }
         else location.hash = "";
     });
 
