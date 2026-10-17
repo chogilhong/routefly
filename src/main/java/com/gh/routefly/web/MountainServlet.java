@@ -690,7 +690,7 @@ public class MountainServlet extends HttpServlet {
         return "<p class=\"dim\">자료: 산림청 100대 명산 · 등산로정보, 국립공원공단 탐방로, 기상청 단기예보 · 에어코리아 대기정보 · 두루누비(공공데이터포털), © OpenStreetMap contributors. "
                 + "<a href=\"" + b + "/about.html\">안전 · 출처 안내</a> · <a href=\"" + b + "/privacy.html\">개인정보처리방침</a>"
                 + (en == null ? "" : " · <a href=\"" + esc(en) + "\" hreflang=\"en\" lang=\"en\">English</a>") + "</p>"
-                + "<p class=\"brand\"><a href=\"" + b + "/hike.html\"><img src=\"" + b + "/img/logo-dark.svg\" alt=\"routefly\" width=\"160\" height=\"50\"> 따라가기 ›</a></p></main>"
+                + "<p class=\"brand\"><a href=\"" + b + "/hike.html\"><img src=\"" + b + "/img/logo-dark.svg\" alt=\"routefly\" width=\"160\" height=\"50\"> 앱 열기 ›</a></p></main>"
                 + "<script src=\"" + b + "/js/course-kit.js\"></script><script src=\"" + b + "/js/mountain.js\"></script></body></html>";
     }
 
