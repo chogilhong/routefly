@@ -14,6 +14,8 @@
     var EN = LANG === "en", T = RF.tr;
     RF.setLang(LANG);
     if (EN) { document.documentElement.lang = "en"; document.title = "routefly - Daily check-in"; RF.applyEn(document); }
+    // 가 · A 글자 크기(2026-10-18 홍TV님 - 어르신은 글자가 작아 못 봄). 누를 때마다 100 → 120 → 140%, 모든 화면이 같은 설정
+    document.getElementById("top").appendChild(RF.textButton());
 
     var KEY = "rf-anbu";
     var st = { on: false, time: "10:00", gName: "", gTel: "", sms: true, log: [], late: null };   // on - 설정을 저장한 뒤부터 매일 알림
