@@ -70,7 +70,7 @@ public class MountainServlet extends HttpServlet {
             return;
         }
         if (name.isEmpty()) {
-            resp.setHeader("Cache-Control", "public, max-age=3600");
+            resp.setHeader("Cache-Control", "public, max-age=600");   // 10분 - 1시간이면 배포한 문구가 늦게 보였음(2026-10-17 PC)
             // ?open=peaks - 산 페이지의 "‹ 코스 모음" 으로 오면 등산 › 100대 명산을 펼친 채(2026-10-15 홍TV님)
             resp.getWriter().print(indexPage(all, seriesGroups(), base, "peaks".equals(req.getParameter("open"))));
             return;
@@ -78,7 +78,7 @@ public class MountainServlet extends HttpServlet {
         List<JsonObject> same = byName(all, name);
         JsonObject peak = find(all, name);
         if (peak == null && same.size() > 1) {   // 같은 이름 산이 여럿(백운산 광양 · 정선 · 포천) - 고르게
-            resp.setHeader("Cache-Control", "public, max-age=3600");
+            resp.setHeader("Cache-Control", "public, max-age=600");   // 10분 - 1시간이면 배포한 문구가 늦게 보였음(2026-10-17 PC)
             resp.getWriter().print(choosePage(name, same, base));
             return;
         }
@@ -97,7 +97,7 @@ public class MountainServlet extends HttpServlet {
     /** 영어 페이지(/en/m/ · /en/m/seoraksan). */
     private void english(String key, JsonArray all, String base, HttpServletResponse resp) throws IOException {
         if (key.isEmpty()) {
-            resp.setHeader("Cache-Control", "public, max-age=3600");
+            resp.setHeader("Cache-Control", "public, max-age=600");   // 10분 - 1시간이면 배포한 문구가 늦게 보였음(2026-10-17 PC)
             resp.getWriter().print(MountainEn.indexPage(all, seriesGroups(), base));
             return;
         }
