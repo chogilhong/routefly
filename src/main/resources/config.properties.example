@@ -65,6 +65,9 @@ site.baseUrl=
 #partner.agoda.url=
 # 후원: 토스 아이디(https://toss.me/...) · 카카오페이 송금 코드(https://qr.kakaopay.com/...) 등 https 주소. 안내(about.html) 아래에 단추.
 #donate.url=
+# 외국 사람용 후원(2026-10-17): PayPal 결제 링크(https://www.paypal.com/ncp/payment/...) · https://paypal.me/... · https://ko-fi.com/...
+#   영어 산 페이지(/en/m/) 아래에 "☕ Support routefly" 로 보임. 한국어 페이지는 donate.url 을 씀.
+#donate.en.url=
 
 # ---------------------------------------------------------------- 운영 통계(2026-10-15) - /routefly/stats?key=<stats.key>
 # 화면 · 산 페이지마다 하루 방문 수 · 방문자 수 · 검색 로봇 수(숫자만, IP 는 남기지 않음). 열쇠는 12자 이상, 비우면 보기 화면이 닫힘(404).

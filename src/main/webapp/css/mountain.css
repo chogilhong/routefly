@@ -22,6 +22,8 @@ ul { margin:0; padding:0; list-style:none; }
 .ms { display:flex; flex-wrap:wrap; gap:8px; }
 .ms a { display:inline-block; text-decoration:none; color:var(--tx); font-size:14px; padding:6px 11px; border:1px solid var(--ln); border-radius:16px; }
 .brand { margin-top:18px; font-size:15px; font-weight:bold; }
+.support { margin:14px 0 0; }
+.support a { display:inline-block; padding:8px 14px; border-radius:10px; background:#2f9e44; color:#fff; text-decoration:none; font-weight:bold; }
 .brand span { color:#ffb703; }
 /* 글자 크기(RF.textButton) */
 .rfz main { zoom: var(--rfz); }

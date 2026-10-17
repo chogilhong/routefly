@@ -20,6 +20,7 @@ import com.google.gson.JsonObject;
  *       화면은 링크 아래에 공정위가 정한 "수수료를 받습니다" 문구를 붙입니다.</li>
  *   <li>{@code partner.agoda.url} - 아고다 제휴 링크(www.agoda.com). 안에 {lat} · {lon} 이 있으면 들머리 좌표로 바꿉니다.</li>
  *   <li>{@code donate.url} - 후원(toss.me · qr.kakaopay.com 등 https 주소).</li>
+ *   <li>{@code donate.en.url} - 외국 사람용 후원(PayPal 결제 링크 · paypal.me · ko-fi.com) - 영어 페이지(/en/m/)에만. 2026-10-17 홍TV님.</li>
  * </ul>
  * 가입 · 링크 만들기는 홍TV님이 하고, 링크는 설정에만 둡니다. 주소는 정해진 곳(https)만 받습니다 - 설정이 잘못돼도 엉뚱한 곳으로 보내지 않게.
  */
@@ -57,6 +58,8 @@ public class PartnersServlet extends HttpServlet {
         if (allowed(agoda, "https://www.agoda.com/")) out.addProperty("agoda", agoda);
         String donate = conf.apply("donate.url");
         if (allowed(donate, "https://")) out.addProperty("donate", donate);
+        String donateEn = conf.apply("donate.en.url");
+        if (allowed(donateEn, "https://www.paypal.com/", "https://paypal.me/", "https://www.paypal.me/", "https://ko-fi.com/")) out.addProperty("donateEn", donateEn);
         return out;
     }
 
