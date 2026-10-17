@@ -24,6 +24,7 @@ final class MountainEn {
 
     /** 코스 이름에서 영어로 옮길 낱말(긴 것 먼저) - 나머지 한글은 로마자. 땅이름(계곡 · 봉 · 재 …)은 로마자 그대로. */
     private static final String[][] WORDS = {
+        {"국립공원", "National Park"}, {"국림공원", "National Park"}, {"화장실", "restroom"},   // 국림 - 산림청 원자료 오타(설악산국림공원백담분소입구)
         {"탐방지원센터", "visitor center"}, {"탐방안내소", "visitor center"}, {"공원지킴터", "ranger post"}, {"매표소", "ticket booth"},
         {"주차장", "parking"}, {"대피소", "shelter"}, {"휴게소", "rest area"}, {"삼거리", "junction"}, {"사거리", "crossroads"},
         {"갈림길", "junction"}, {"탐방로", "trail"}, {"등산로", "trail"}, {"입구", "entrance"}, {"정상", "summit"}, {"코스", "course"},
