@@ -2775,6 +2775,14 @@
     // 빈 채로 종류 탭만 누를 때(내 주변 코스 목록)는 그대로 둡니다
     var PICK_HINT = $("pickList").innerHTML, lastQ = "";
     /** 검색 전 첫 화면 - 안내 글 + 찜한 코스(2026-10-15 홍TV님). */
+    /** 첫 화면 칸 제목(크게) + 설명(작게) - 2026-10-18 홍TV님: "저장한 코스 1개" 글자가 작았음. */
+    function secHead(el, title, note) {
+        var b = document.createElement("b"), sm = document.createElement("small");
+        b.textContent = title;
+        sm.textContent = note;
+        el.appendChild(b);
+        el.appendChild(sm);
+    }
     function pickHome() {
         var box = $("pickList"), favs = RF.favList();
         box.innerHTML = PICK_HINT;
@@ -2790,9 +2798,9 @@
         var offIds = offlineIds(), names = offlineNames();
         if (offIds.length) {
             var oh = document.createElement("div");
-            oh.className = "msg";
-            oh.textContent = EN ? "📥 Saved trails: " + offIds.length + " - they open without signal. Remove one with the 📥 button on its screen."
-                : "📥 저장한 코스 " + offIds.length + "개 - 통신이 끊겨도 열립니다. 지우기는 코스 화면 📥 버튼에서.";
+            oh.className = "msg sec";
+            secHead(oh, EN ? "📥 Saved trails " + offIds.length : "📥 저장한 코스 " + offIds.length + "개",
+                EN ? "They open without signal. Remove one with the 📥 button on its screen." : "통신이 끊겨도 열립니다. 지우기는 코스 화면 📥 버튼에서.");
             box.appendChild(oh);
             offIds.forEach(function (oid) {
                 var m = names[oid] || {}, it = document.createElement("div"), b = document.createElement("b"), sp = document.createElement("span");
@@ -2807,8 +2815,8 @@
         }
         if (!favs.length) return;
         var h = document.createElement("div");
-        h.className = "msg";
-        h.textContent = EN ? "★ Favorites: " + favs.length + " - add or remove with ☆ next to the trail name." : "★ 찜한 코스 " + favs.length + "개 - 코스 화면 이름 옆 ☆ 로 넣고 뺍니다.";
+        h.className = "msg sec";
+        secHead(h, EN ? "★ Favorites " + favs.length : "★ 찜한 코스 " + favs.length + "개", EN ? "Add or remove with ☆ next to the trail name." : "코스 화면 이름 옆 ☆ 로 넣고 뺍니다.");
         box.appendChild(h);
         var withPt = [];
         favs.forEach(function (f) {
