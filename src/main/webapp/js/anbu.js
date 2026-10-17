@@ -111,20 +111,24 @@
         var d = new Date(), p = v.split(":");
         d.setHours(+p[0], +p[1], 0, 0);
         if (d.getTime() < Date.now() - 600000) d.setDate(d.getDate() + 1);   // 지난 시각이면 내일(밤 12시를 넘는 귀가)
-        st.late = { at: d.getTime(), home: null };
+        st.late = { at: d.getTime(), home: null, told: true };
         save();
         draw();
         reschedule();
         toast(T("🌙 " + clock(st.late.at) + " 까지 '집에 왔어요' 를 기다릴게요.", "🌙 Waiting for \"I'm home\" by " + clock(st.late.at) + "."));
+        // 출발 문자(2026-10-17 홍TV님) - 받은 사람은 "도착" 문자가 안 오면 전화. 보호자 번호가 없으면 문자 앱에서 받는 사람을 고름
+        location.href = smsHref(st.gTel, RF.anbuSms("leave", clock(st.late.at), EN, clock(st.late.at + 1800000)));
     });
     $("lateHome").addEventListener("click", function () {
         if (!st.late) st.late = { at: Date.now(), home: null };
+        var told = !!st.late.told && !st.late.home;
         st.late.home = Date.now();
         save();
         draw();
         reschedule();
         toast(T("🏠 잘 도착하셨어요.", "🏠 Glad you're home."));
-        if (st.sms && st.gTel && confirm(T("보호자에게 '집에 잘 도착했어요' 문자를 보낼까요?", "Text your guardian that you're home?"))) location.href = smsHref(st.gTel, RF.anbuSms("home", clock(Date.now()), EN));
+        // 출발 문자를 보냈으면 도착 문자는 바로(받은 사람이 기다림), 아니면 물어봄
+        if (told || (st.sms && st.gTel && confirm(T("보호자에게 '집에 잘 도착했어요' 문자를 보낼까요?", "Text your guardian that you're home?")))) location.href = smsHref(st.gTel, RF.anbuSms("home", clock(Date.now()), EN));
     });
 
     draw();

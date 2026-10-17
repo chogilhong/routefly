@@ -797,8 +797,13 @@
                ["안부 확인이 4시간째 없어요", "눌러서 확인해 주세요. 도움이 필요하면 보호자에게 연락하세요."]][k];
     }
 
-    /** 순수 함수 - 보호자에게 보낼 문자. kind "ok"(잘 지내요) · "help"(도움이 필요해요) · "home"(집에 도착). */
-    function anbuSms(kind, clock, en) {
+    /**
+     * 순수 함수 - 보호자에게 보낼 문자. kind "ok"(잘 지내요) · "help"(도움이 필요해요) · "home"(집에 도착) ·
+     * "leave"(늦은 귀가 출발 - clock 은 도착 예정, call 은 그때까지 문자가 없으면 전화해 달라는 시각).
+     */
+    function anbuSms(kind, clock, en, call) {
+        if (kind === "leave") return en ? "[routefly] Heading home now - I should be home by " + clock + ". I'll text you when I arrive. If you haven't heard from me by " + call + ", please call me."
+            : "[routefly] 지금 집으로 가요. " + clock + " 쯤 도착할 예정이에요. 도착하면 문자할게요. " + call + " 까지 문자가 없으면 전화해 주세요.";
         if (en) return kind === "help" ? "[routefly check-in] I need help. Please contact me." : kind === "home" ? "[routefly] I'm home safe (" + clock + ")." : "[routefly check-in] I'm fine today 😊 (" + clock + ")";
         return kind === "help" ? "[routefly 안부] 도움이 필요해요. 연락 주세요." : kind === "home" ? "[routefly] 집에 잘 도착했어요(" + clock + ")." : "[routefly 안부] 오늘도 잘 지내요 😊(" + clock + ")";
     }
