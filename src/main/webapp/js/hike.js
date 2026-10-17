@@ -20,7 +20,9 @@
     var SIM_X = 1;       // 걷는 거리에 곱하는 배수 = (평지로 걷는 시간 ÷ 미리보기 1× 시간) × 고른 빠르기
     var SIM_CLOCK = 1;   // 시계에 곱하는 배수 - 도착 때 경과 시간이 미리보기의 예상 시간(오르막 포함, RF.standardMs)과 같게
     var STILL_M = 40;          // 움직임 없음 - 이 안(+ GPS 오차)에서
-    var STILL_MS = (+(location.search.match(/[?&]stillmin=(\d+)/) || [])[1] || 20) * 60000;   //   이만큼 있으면 "괜찮으세요?"(?stillmin=1 - 점검용)
+    var STILL_MS = (+(location.search.match(/[?&]stillmin=(\d+)/) || [])[1] || +lsGet("rf-stillmin") || 20) * 60000;   //   이만큼 있으면 "괜찮으세요?"(?stillmin=1 · 앱은 localStorage rf-stillmin - 점검용)
+    var DEBUG = lsGet("rf-debug") === "1";   // 점검용(2026-10-17): 화면이 꺼진 동안 스크립트가 도는지 - 1분마다 콘솔(안드로이드는 logcat Capacitor/Console)
+    function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
     var STILL_ANSWER_MS = 60000;   // 답이 없으면 이 뒤 SOS 화면
     var TURN_BACK_M = 150;     // 코스를 따라 이만큼 되돌아가면 거꾸로 된 코스(내려가는 길)로 안내를 바꿉니다
     var BRANCH_ON_M = 20;      // 다른 길에서 이 안이면 "그 길 위" (코스에서는 40m 넘게 떨어졌을 때)
@@ -136,7 +138,8 @@
      */
     function say(text, opt) {
         opt = opt || {};
-        if (!voice.on || !text || !TTS && !("speechSynthesis" in window)) return;
+        if (DEBUG) console.info("[rf] say " + new Date().toTimeString().slice(0, 8) + " " + String(text).slice(0, 30));
+        if ((!voice.on && !opt.force) || !text || !TTS && !("speechSynthesis" in window)) return;
         var t = Date.now();
         if (opt.key) {
             if (voice.last[opt.key] && t - voice.last[opt.key] < (opt.gap || 60000)) return;
@@ -1836,6 +1839,10 @@
         if (!c || !hike.running) return;
         var co = pos.coords, t = pos.timestamp || now();
         var acc = co.accuracy;
+        if (DEBUG && (!hike.dbgT || Date.now() - hike.dbgT > 60000)) {
+            hike.dbgT = Date.now();
+            console.info("[rf] fix " + new Date().toTimeString().slice(0, 8) + " acc " + Math.round(acc || 0) + " still " + (hike.still ? Math.round((now() - hike.still.t) / 1000) + "s" : "-") + " ask " + !!hike.stillAsk);
+        }
         if (!hike.sim) stillTick();   // 화면이 꺼지면 render 타이머가 멈춰도 위치가 올 때마다 움직임 없음을 셈(앱 - 백그라운드 위치)
         // 앞 위치에서 3m(배터리 절약 10m)도 안 움직였고 10초 안이면 나머지는 건너뜀(distanceFilter 0 이라 멈춰 있을 때도 1초마다 옴 - 배터리 · 계산)
         if (!hike.sim && hike.fix && t - hike.fix.t < 10000 && RF.distM(hike.fix.lat, hike.fix.lon, co.latitude, co.longitude) < (batterySave ? 10 : 3)) return;   // 배터리 절약은 10m
@@ -2101,7 +2108,7 @@
             $("stillSheet").style.display = "none";
             $("sos").click();
             if (navigator.vibrate) navigator.vibrate([600, 200, 600, 200, 600]);
-            say("답이 없어 긴급 신고 화면을 열었습니다. 도움이 필요하면 119 전화나 문자 신고를 누르세요.", { urgent: true });
+            say("답이 없어 긴급 신고 화면을 열었습니다. 도움이 필요하면 119 전화나 문자 신고를 누르세요.", { urgent: true, force: true });
             return;
         }
         var st = RF.stillCheck(hike.still, f ? { lat: f.lat, lon: f.lon, acc: f.acc, t: f.t } : null, t, STILL_M, STILL_MS);
@@ -2112,7 +2119,7 @@
         $("stillText").textContent = Math.round((t - hike.still.t) / 60000) + "분째 움직임이 없습니다. 괜찮으면 아래를 눌러 주세요.";
         $("stillSheet").style.display = "flex";
         if (navigator.vibrate) navigator.vibrate([400, 150, 400, 150, 400]);
-        say("괜찮으세요? 오랫동안 움직임이 없습니다. 괜찮으면 화면의 괜찮아요를 눌러 주세요.", { urgent: true });
+        say("괜찮으세요? 오랫동안 움직임이 없습니다. 괜찮으면 화면의 괜찮아요를 눌러 주세요.", { urgent: true, force: true });   // 음성을 꺼 두었어도 안전 알림은 말함
     }
 
     function stillReset() {
