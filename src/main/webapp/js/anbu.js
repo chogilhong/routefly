@@ -177,6 +177,16 @@
     timeSel("lateAt");
     // 늦은 귀가 처음 값 - 지금부터 1시간 뒤(5분 단위)
     (function () { var d = new Date(Math.ceil((Date.now() + 3600000) / 300000) * 300000); timeSel.set.lateAt(d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0")); })();
+    // 설정 초기화(2026-10-18 홍TV님) - 시각 · 보호자 · 안부 기록 · 늦은 귀가를 지우고 앱 알림도 끔
+    $("resetBtn").addEventListener("click", function () {
+        if (!confirm(T("안부 설정을 처음으로 되돌릴까요?\n보호자 이름 · 번호, 안부 기록, 늦은 귀가, 매일 알림이 모두 지워집니다.",
+            "Reset check-in settings?\nGuardian name and number, check-in history, getting-home timer and daily reminders will be cleared."))) return;
+        st = { on: false, time: "10:00", gName: "", gTel: "", sms: true, log: [], late: null };
+        try { localStorage.removeItem(KEY); } catch (e) { /* 이번만 */ }
+        reschedule();   // on 이 꺼져 매일 알림은 지우기만 함
+        draw();
+        toast(T("처음 상태로 되돌렸습니다.", "Settings reset."));
+    });
     $("helpCall").addEventListener("click", function () {
         if (!st.gTel) toast(T("먼저 아래 설정에서 보호자 전화번호를 저장해 주세요.", "Save your guardian's number in Settings below first."), 4000);
     });
