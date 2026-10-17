@@ -839,6 +839,8 @@
             prof = RF.profile($("profile"), c, {});
             boardBtn();
             $("save").textContent = offlineIds().indexOf(id) >= 0 ? "✅ 저장됨" : "📥 저장";
+            // 이름 없이 저장된 예전 코스 - 열 때 이름을 채움(첫 화면 저장 목록)
+            if (offlineIds().indexOf(id) >= 0 && !offlineNames()[id]) setOfflineName(id, { name: String(c.course.name || ""), dist: Math.round(c.total || 0) });
             // 이 기기에 남은 산행 기록(새로 고침 · 화면 꺼짐 뒤에도 이어서)
             var saved = loadSaved();
             hike.d = saved ? saved.d : 0;
@@ -2690,6 +2692,24 @@
     function pickHome() {
         var box = $("pickList"), favs = RF.favList();
         box.innerHTML = PICK_HINT;
+        // 📥 오프라인 저장한 코스 - 통신이 없어도 열면 저장한 범위의 지도가 보입니다
+        var offIds = offlineIds(), names = offlineNames();
+        if (offIds.length) {
+            var oh = document.createElement("div");
+            oh.className = "msg";
+            oh.textContent = "📥 저장한 코스 " + offIds.length + "개 - 통신이 끊겨도 열립니다. 지우기는 코스 화면 📥 버튼에서.";
+            box.appendChild(oh);
+            offIds.forEach(function (oid) {
+                var m = names[oid] || {}, it = document.createElement("div"), b = document.createElement("b"), sp = document.createElement("span");
+                it.className = "it fav";
+                RF.showName(b, String(m.name || (isGpxId(oid) ? "내 GPX 코스" : "코스 " + oid)));
+                sp.textContent = m.dist ? km(m.dist) + "km · ✅ 저장됨" : "✅ 저장됨";
+                it.appendChild(b);
+                it.appendChild(sp);
+                it.onclick = function () { fromList = true; location.hash = "#c=" + encodeURIComponent(oid); };
+                box.appendChild(it);
+            });
+        }
         if (!favs.length) return;
         var h = document.createElement("div");
         h.className = "msg";
@@ -3351,6 +3371,13 @@
     /** 오프라인 저장한 코스 번호들(localStorage "rf-offline") - 코스를 열 때(loadCourse)도 부릅니다. */
     function offlineIds() { try { return JSON.parse(localStorage.getItem("rf-offline") || "[]"); } catch (e) { return []; } }
     function setOfflineIds(ids) { try { localStorage.setItem("rf-offline", JSON.stringify(ids)); } catch (e) { /* 무시 */ } }
+    // 저장한 코스 이름 {번호: {name, dist}} - 첫 화면 '📥 저장한 코스' 목록에 씀(2026-10-17 홍TV님: 저장한 코스를 어디서 보나)
+    function offlineNames() { try { return JSON.parse(localStorage.getItem("rf-offline-names") || "{}") || {}; } catch (e) { return {}; } }
+    function setOfflineName(id, v) {
+        var m = offlineNames();
+        if (v) m[id] = v; else delete m[id];
+        try { localStorage.setItem("rf-offline-names", JSON.stringify(m)); } catch (e) { /* 무시 */ }
+    }
     function offlineIndexKey(id) { return new URL("offline-index?c=" + encodeURIComponent(id), location.href).href; }
     /** 그 코스가 받은 주소 목록(절대 주소). 예전에 저장해 목록이 없으면 null. */
     function offlineIndex(cache, id) {
@@ -3394,6 +3421,7 @@
             });
         }).then(function () {
             setOfflineIds(others);
+            setOfflineName(id, null);
         });
     }
     $("saveDelete").addEventListener("click", function () {
@@ -3410,7 +3438,7 @@
     function saveOffline(plan) {
         // 주변 길은 화면이 부르는 그 주소(loadTrails 의 courseBbox(0.01))로 받아야 오프라인에서 서비스 워커가 내줍니다.
         var head = courseUrls(c.id).concat(["api/trails?bbox=" + courseBbox(0.01), "api/map-config"]);
-        var urls = head.concat(plan.urls), id = c.id;
+        var urls = head.concat(plan.urls), id = c.id, meta = { name: String(c.course.name || ""), dist: Math.round(c.total || 0) };
         var btn = $("save"), done = 0, failed = 0, i = 0;
         btn.disabled = true;
         caches.open(OFFLINE_CACHE).then(function (cache) {
@@ -3440,6 +3468,7 @@
             btn.textContent = "✅ 저장됨";
             var saved = offlineIds();
             if (saved.indexOf(id) < 0) { saved.push(id); setOfflineIds(saved); }
+            setOfflineName(id, meta);
             toast("오프라인 저장 끝 - 지도 " + num(plan.urls.length) + "장" + (failed ? " (못 받은 " + failed + "장)" : "") + ". 통신이 끊겨도 이 범위는 보입니다.", 6000);
         }).catch(function (e) {
             btn.disabled = false;
