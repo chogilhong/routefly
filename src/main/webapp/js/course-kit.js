@@ -776,8 +776,9 @@
             if (/^https:\/\//.test(pcUrl || "")) {
                 var pp = document.createElement("a");
                 pp.href = pcUrl; pp.target = "_blank"; pp.rel = "noopener";
-                pp.textContent = " PC 에서는 PayPal(카드)로 후원 ›";
+                pp.textContent = "PC 에서는 PayPal(카드)로 후원 ›";
                 pp.style.color = "#38d9ea";
+                p.appendChild(document.createTextNode(" "));   // 문장과 링크 사이(링크 글 앞 빈칸은 붙어 보였음 - 2026-10-17 PC)
                 p.appendChild(pp);
             }
             box.appendChild(p);
