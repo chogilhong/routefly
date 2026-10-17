@@ -35,7 +35,7 @@
     RF.recentFold({ key: "rf-recent-en", title: "🕘 Recently viewed", strip: / Hiking Trails$/, sub: function (l) { return l.slice(0, 3).map(function (x) { return x.name; }).join(" · ") + (l.length > 3 ? " +" + (l.length - 3) : ""); } });
     // 📥 Save for offline(한국어 화면과 같은 칸)
     RF.offlineBox({ title: "📥 Save for no signal", btn: "Save this mountain", again: "Save again (fresh weather)", saving: "Saving…",
-        fail: "This browser cannot save pages (works in Chrome or Samsung Internet on an https address).", tip: "Tap before you go. This page, the weather and the trail lines are saved on this phone.",
+        fail: "This browser cannot save pages (works in Chrome or Samsung Internet on an https address).", tip: "Tap before you go. This page, the weather and all " + document.querySelectorAll(".cs li[data-id]").length + " trails (lines) here are saved on this phone. For map imagery, save each trail in Follow.",
         done: function (t) { return "✓ Saved " + t + " - this page, the weather at that time and trail following (line + GPS) open without signal. For map imagery, open a trail in Follow and save it offline there."; } },
         "../..", "mountain-en.js");
     var DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
