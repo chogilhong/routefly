@@ -93,8 +93,15 @@
         if (!c) { st.log.push({ day: today(), t: now }); st.log = st.log.slice(-60); save(); }
         draw();
         reschedule();
+        // 설정 전(보호자 번호 · 매일 알림 없음)이면 이 핸드폰에만 남는다는 것을 알리고 설정으로(2026-10-18 홍TV님: 설정 없이 눌러도 그냥 됐음)
+        if (!st.on || !st.gTel) {
+            toast(T("오늘 안부를 이 핸드폰에 남겼어요. 보호자에게 알리고 매일 알림을 받으려면 아래 설정을 저장해 주세요.",
+                "Checked in on this phone. To let your guardian know and get daily reminders, save the settings below."), 6000);
+            $("settings").scrollIntoView({ behavior: "smooth", block: "start" });
+            return;
+        }
         toast(T("😊 고맙습니다. 오늘 안부를 남겼어요.", "😊 Thanks! Checked in for today."));
-        if (st.sms && st.gTel) location.href = smsHref(st.gTel, RF.anbuSms("ok", clock(now), EN));
+        if (st.sms) location.href = smsHref(st.gTel, RF.anbuSms("ok", clock(now), EN));
     });
     $("saveBtn").addEventListener("click", function () {
         var tel = $("gTel").value.trim();
