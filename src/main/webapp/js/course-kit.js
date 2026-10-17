@@ -760,6 +760,55 @@
         return list[order[pos]];
     }
 
+    // ------------------------------------------------------------------ 🏠 오늘의 안부(2026-10-17 홍TV님 - 혼자 사는 분 · 늦은 귀가, 서버 없이 가볍게)
+
+    /** 순수 함수 - 이 기기 시각의 날짜 "2026-10-17". */
+    function dayKey(ms) {
+        var d = new Date(ms);
+        return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    }
+
+    /**
+     * 순수 함수 - 안부 알림 일정(앱 알림): 오늘부터 days 일, 날마다 정한 시각(hhmm "10:00") · 2시간 뒤 · 4시간 뒤 세 번.
+     * 오늘 이미 확인했으면(checkedDay === 오늘) 오늘 것은 빼고, 지난 시각도 뺌. → [{id, at, k(0 · 1 · 2), day}] - id 7100 + 날 × 3 + k.
+     */
+    function anbuPlan(nowMs, hhmm, checkedDay, days) {
+        var m = /^(\d{1,2}):(\d{2})$/.exec(hhmm || ""), out = [];
+        if (!m) return out;
+        for (var i = 0; i < (days || 7); i++) {
+            var d = new Date(nowMs);
+            d.setDate(d.getDate() + i);
+            d.setHours(+m[1], +m[2], 0, 0);
+            var day = dayKey(d.getTime());
+            if (day === checkedDay) continue;
+            [0, 2, 4].forEach(function (h, k) {
+                var at = d.getTime() + h * 3600000;
+                if (at > nowMs) out.push({ id: 7100 + i * 3 + k, at: at, k: k, day: day });
+            });
+        }
+        return out;
+    }
+
+    /** 순수 함수 - 안부 알림 글(k: 0 정한 시각 · 1 두 시간 뒤 · 2 네 시간 뒤). */
+    function anbuText(k, en) {
+        return en ? [["😊 How are you today?", "Tap and press \"I'm fine today\"."], ["Still no check-in today", "Tap to let us know you're OK."],
+                     ["No check-in for 4 hours", "Tap to check in - or contact your guardian if you need help."]][k]
+            : [["😊 오늘도 잘 지내세요?", "눌러서 '오늘도 잘 지내요' 를 알려 주세요."], ["아직 오늘 안부 확인이 없어요", "괜찮으시면 눌러 주세요."],
+               ["안부 확인이 4시간째 없어요", "눌러서 확인해 주세요. 도움이 필요하면 보호자에게 연락하세요."]][k];
+    }
+
+    /** 순수 함수 - 보호자에게 보낼 문자. kind "ok"(잘 지내요) · "help"(도움이 필요해요) · "home"(집에 도착). */
+    function anbuSms(kind, clock, en) {
+        if (en) return kind === "help" ? "[routefly check-in] I need help. Please contact me." : kind === "home" ? "[routefly] I'm home safe (" + clock + ")." : "[routefly check-in] I'm fine today 😊 (" + clock + ")";
+        return kind === "help" ? "[routefly 안부] 도움이 필요해요. 연락 주세요." : kind === "home" ? "[routefly] 집에 잘 도착했어요(" + clock + ")." : "[routefly 안부] 오늘도 잘 지내요 😊(" + clock + ")";
+    }
+
+    /** 순수 함수 - 전화번호 정리(숫자 · + 만, 8 ~ 15자리). 아니면 "". */
+    function telClean(s) {
+        var t = String(s || "").replace(/[^0-9+]/g, "");
+        return /^\+?\d{8,15}$/.test(t) ? t : "";
+    }
+
     /** 순수 함수 - 핸드폰에서만 열리는 송금 링크(카카오페이 송금 코드 qr.kakaopay.com - PC 브라우저는 404). */
     function mobileOnlyUrl(url) { return /^https:\/\/qr\.kakaopay\.com\//i.test(url || ""); }
     /** PC 에서 그런 링크를 누르면 열지 않고 안내(2026-10-17 홍TV님: 핸드폰은 되는데 PC 는 404). */
@@ -4161,6 +4210,6 @@
         sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap,
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },
         setLang: setLang, isEn: isEn, tr: tr, pageLang: pageLang, applyEn: applyEn,
-        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, regionEn: regionEn, weekendWordEn: weekendWordEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox, LEVELS: LEVELS, difficulty: difficulty, boardSegments: boardSegments, boardProfile: boardProfile, nameEnds: nameEnds, boardButtons: boardButtons, levelChip: levelChip, roman: roman, enName: enName, weekendText: weekendText, boardHere: boardHere, slopeBetween: slopeBetween, recentAdd: recentAdd, recentPages: recentPages, recentFold: recentFold, compareRows: compareRows, compareButtons: compareButtons, steepest: steepest, officialEleAt: officialEleAt, stampRadius: stampRadius, stillCheck: stillCheck, windChill: windChill, windNote: windNote, paceProfile: paceProfile, paceAt: paceAt, paceDistAt: paceDistAt, paceText: paceText, fortune: fortune, fortuneDay: fortuneDay, supportLine: supportLine, mobileOnlyUrl: mobileOnlyUrl, summitCard: summitCard, trackClimb: trackClimb
+        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, regionEn: regionEn, weekendWordEn: weekendWordEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox, LEVELS: LEVELS, difficulty: difficulty, boardSegments: boardSegments, boardProfile: boardProfile, nameEnds: nameEnds, boardButtons: boardButtons, levelChip: levelChip, roman: roman, enName: enName, weekendText: weekendText, boardHere: boardHere, slopeBetween: slopeBetween, recentAdd: recentAdd, recentPages: recentPages, recentFold: recentFold, compareRows: compareRows, compareButtons: compareButtons, steepest: steepest, officialEleAt: officialEleAt, stampRadius: stampRadius, stillCheck: stillCheck, windChill: windChill, windNote: windNote, paceProfile: paceProfile, paceAt: paceAt, paceDistAt: paceDistAt, paceText: paceText, fortune: fortune, fortuneDay: fortuneDay, supportLine: supportLine, dayKey: dayKey, anbuPlan: anbuPlan, anbuText: anbuText, anbuSms: anbuSms, telClean: telClean, mobileOnlyUrl: mobileOnlyUrl, summitCard: summitCard, trackClimb: trackClimb
     };
 })(window);

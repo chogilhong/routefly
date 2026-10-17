@@ -1006,6 +1006,13 @@ eq("regionEn · weekendWordEn", [RF.regionEn("강원 영동"), RF.regionEn("제�
         ["Hangang bike path (Seoul)", "Haeparanggil tourist info center", "Goraebul beach", "(1)Dokjugol junction above 250m", "Wibongsan", "Baegun valley", "Seorak 06-01 · 420 m (Gudaecheong shelter below)", "Coupang ›", "쿠팡 ›"]);
 })();
 eq("핸드폰에서만 열리는 송금 링크", [RF.mobileOnlyUrl("https://qr.kakaopay.com/abc"), RF.mobileOnlyUrl("https://toss.me/abc"), RF.mobileOnlyUrl(null)], [true, false, false]);
+(function () {   // 🏠 오늘의 안부 - 알림 일정(2026-10-17)
+    var now = new Date(2026, 9, 17, 9, 0).getTime(), today = RF.dayKey(now);
+    var p = RF.anbuPlan(now, "10:00", null, 2), p2 = RF.anbuPlan(now, "10:00", today, 2), late = RF.anbuPlan(new Date(2026, 9, 17, 13, 0).getTime(), "10:00", null, 1);
+    eq("anbuPlan", [today, p.length, p[0].id, new Date(p[0].at).getHours(), new Date(p[2].at).getHours(), p2.length, p2[0].day !== today, late.length, late[0].k,
+        RF.anbuPlan(now, "10시", null, 2).length, RF.telClean("010-1234-5678"), RF.telClean("119"), RF.anbuSms("ok", "10:05"), RF.anbuText(1)[0]],
+        ["2026-10-17", 6, 7100, 10, 14, 3, true, 1, 2, 0, "01012345678", "", "[routefly 안부] 오늘도 잘 지내요 😊(10:05)", "아직 오늘 안부 확인이 없어요"]);
+})();
 eq("trackClimb 10m 넘게 바뀐 것만", [RF.trackClimb([[0, 0, 0, 5], [0, 0, 1, 9], [0, 0, 2, 3], [0, 0, 3, 20], [0, 0, 4, 18], [0, 0, 5, 40], [0, 0, 6, null], [0, 0, 7, 25], [0, 0, 8, 37]]),
     RF.trackClimb([]), RF.trackClimb([[0, 0, 0, null]])], [15 + 20 + 12, 0, 0]);
 

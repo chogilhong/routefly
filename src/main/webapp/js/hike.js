@@ -104,7 +104,11 @@
     var BATTERY_KEY = "rf-battery", batterySave = false;
     try { batterySave = localStorage.getItem(BATTERY_KEY) === "1"; } catch (e) { /* 기본은 끔 */ }
     var BG = plugin("BackgroundGeolocation"), TTS = plugin("TextToSpeech"), FS = plugin("Filesystem"), SHARE = plugin("Share");
-    var LN = plugin("LocalNotifications");   // 안전 알림 진동 · 소리(2026-10-17 홍TV님 폰: 화면이 꺼지면 웹뷰 navigator.vibrate 가 막힘) - 없는 옛 설치본이면 null
+    var LN = plugin("LocalNotifications");
+    // 🏠 안부 · 늦은 귀가 알림을 누르면 안부 화면으로(앱은 늘 따라가기로 열림 - 2026-10-17)
+    if (LN && LN.addListener) Promise.resolve(LN.addListener("localNotificationActionPerformed", function (ev) {
+        if (ev && ev.notification && ev.notification.extra && ev.notification.extra.page === "anbu" && !hike.running) location.href = "anbu.html";
+    })).catch(function () { /* 옛 설치본 */ });   // 안전 알림 진동 · 소리(2026-10-17 홍TV님 폰: 화면이 꺼지면 웹뷰 navigator.vibrate 가 막힘) - 없는 옛 설치본이면 null
 
     /** 앱 - 파일을 앱 임시 폴더에 쓰고 공유 창으로(문자 · 카카오톡 · 파일 저장 …). */
     function nativeShareFile(name, base64, text) {
@@ -2774,6 +2778,14 @@
     function pickHome() {
         var box = $("pickList"), favs = RF.favList();
         box.innerHTML = PICK_HINT;
+        // 🏠 오늘의 안부(2026-10-17 홍TV님 - 혼자 사는 분 · 늦은 귀가) - 첫 화면에서 바로
+        var ab = document.createElement("a");
+        ab.className = "it guide";
+        ab.href = "anbu.html";
+        ab.innerHTML = "<b></b><span></span>";
+        ab.firstChild.textContent = T("🏠 오늘의 안부", "🏠 Daily check-in");
+        ab.lastChild.textContent = T("하루 한 번 '잘 지내요' · 늦은 귀가 안심 - 보호자에게 문자", "Tap \"I'm fine\" once a day · getting home safe - text your guardian");
+        box.appendChild(ab);
         // 📥 오프라인 저장한 코스 - 통신이 없어도 열면 저장한 범위의 지도가 보입니다
         var offIds = offlineIds(), names = offlineNames();
         if (offIds.length) {

@@ -6,13 +6,13 @@
  *   - 지도 타일(V-World 위성사진 · 지형): 받아 둔 것이 있으면 그것(오프라인 저장 · 본 적 있는 곳), 없으면 받아서 조금 남겨 둠
  *   - MapLibre(vendor): 바뀌지 않으므로 받아 둔 것 먼저
  */
-var SHELL = "rf-shell-v11", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
+var SHELL = "rf-shell-v12", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
 var TILE_KEEP = 1500;   // 지나가며 본 타일은 이만큼만 남깁니다(저장 공간)
 // 2026-10-09 점검: API 캐시도 한도 - 지도를 움직일 때마다 목록 주소(bbox)가 하나씩 늘어 끝없이 커졌습니다.
 // 오프라인 저장한 코스는 OFFLINE 캐시에 따로 있어 지워지지 않습니다.
 var API_KEEP = 300;
 
-var SHELL_FILES = ["hike.html", "about.html", "park.html", "js/park.js", "route.html", "js/route.js", "series.html", "js/series.js", "data/series.json", "data/mountains100.json", "./", "css/course-kit.css", "js/course-kit.js", "js/hike.js", "js/app.js", "js/early.js", "js/sw-reg.js", "js/about.js", "js/onboard.js", "js/root-go.js", "privacy.html",
+var SHELL_FILES = ["hike.html", "about.html", "park.html", "js/park.js", "route.html", "js/route.js", "series.html", "js/series.js", "data/series.json", "data/mountains100.json", "./", "css/course-kit.css", "js/course-kit.js", "js/hike.js", "js/app.js", "js/early.js", "js/sw-reg.js", "js/about.js", "js/onboard.js", "js/root-go.js", "privacy.html", "anbu.html", "js/anbu.js",
     "vendor/maplibre-gl-5.24.0/maplibre-gl.js", "vendor/maplibre-gl-5.24.0/maplibre-gl.css", "favicon.svg", "manifest.json",
     "img/icon-192.png", "img/icon-512.png"];
 
