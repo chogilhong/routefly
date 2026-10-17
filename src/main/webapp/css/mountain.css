@@ -34,7 +34,8 @@ ul { margin:0; padding:0; list-style:none; }
 .logo { display:inline-block; margin:0 0 8px -6px; }
 .logo img { display:block; width:256px; max-width:66vw; height:auto; }
 .logoRow { display:flex; align-items:center; justify-content:space-between; gap:8px; }   /* 로고 + 따라가기 ›(2026-10-17) */
-.logoRow .logo img { max-width:calc(100vw - 200px); }   /* 따라가기 › 자리(영어 "Follow a trail ›" 가 더 김) */
+.logoRow .logo { flex:0 1 auto; min-width:0; }   /* 따라가기 › 자리를 먼저 - 로고가 줄어듦(글자 140% 에서 넘쳤음, 2026-10-17 PC) */
+.logoRow .logo img { display:block; max-width:100%; height:auto; }
 .goHike { flex:0 0 auto; display:inline-flex; align-items:center; height:38px; padding:0 14px; border-radius:19px; box-sizing:border-box;
           border:1px dashed rgba(255,255,255,0.35); color:var(--tx); font-size:14px; text-decoration:none; white-space:nowrap; }
 .brand a { display:inline-flex; align-items:center; gap:6px; text-decoration:none; }
