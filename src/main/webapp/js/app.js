@@ -861,7 +861,7 @@
                 if (!(w.stays || []).length) body.appendChild(el("div", "gNote", EN ? "No " + (petOnly ? "pet-friendly " : "registered ") + what.toLowerCase() + " within " + rk + " km of the trailhead."
                     : "들머리 " + rk + "km 안에 " + (petOnly ? "반려동물과 함께 갈 수 있는 " : "등록된 ") + what + "이 없습니다."));
                 w.stays.forEach(function (x) {
-                    var r = gRow(EN ? NM(x.name) + " (" + x.name + ")" : x.name, x.addr ? (EN ? NM(x.addr) : x.addr) : null, x.dist_m != null ? RF.km(x.dist_m) + "km" : null);
+                    var r = gRow(EN ? NM(x.name) + " (" + x.name + ")" : x.name, x.addr ? (EN ? "Address (Korean): " + x.addr : x.addr) : null, x.dist_m != null ? RF.km(x.dist_m) + "km" : null);
                     var links = el("div", "gLinks"), nm = String(x.name).replace(/[,/?#&]/g, " ").trim();
                     if (x.tel) { var t = el("a", null, T("📞 전화", "📞 Call")); t.href = "tel:" + String(x.tel).replace(/[^0-9+]/g, ""); links.appendChild(t); }
                     links.appendChild(gLink(T("길찾기", "Directions"), "https://map.kakao.com/link/to/" + encodeURIComponent(nm) + "," + (+x.lat).toFixed(6) + "," + (+x.lon).toFixed(6)));
@@ -1383,11 +1383,22 @@
     // 2026-10-10 점검: 검색은 따로 시계(qTimer) - 지도 moveend 와 같은 list.timer 를 써서, 입력 직후 지도가 멈추면 검색이 사라졌습니다
     // 영어 화면 - 로마자 산 이름(seoraksan · bukhan)은 100대 명산 목록에서 한글 이름으로 찾음(따라가기와 같음, 2026-10-17)
     var enPeaks = [];
-    if (EN) getJson("data/mountains100.json").catch(function () { return fetch("data/mountains100.json").then(function (r) { return r.json(); }); }).then(function (d) {
-        enPeaks = ((d && d.peaks) || []).map(function (p) { var ko = String(p.id || p.name); return { ko: ko.replace(/\(.*\)$/, ""), key: RF.roman(ko).toLowerCase().replace(/[^a-z]/g, "") }; });
-    }).catch(function () { /* 한글로만 */ });
+    // 못 받으면(요청 제한 429 등) 다음 검색 때 다시 받고, 받으면 그 검색을 한 번 더(2026-10-17 PC: 처음 seoraksan 0개)
+    var enPeaksLoading = null;
+    function loadEnPeaks() {
+        if (enPeaks.length) return Promise.resolve();
+        if (!enPeaksLoading) enPeaksLoading = fetch("data/mountains100.json").then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (d) {
+            enPeaks = ((d && d.peaks) || []).map(function (p) { var ko = String(p.id || p.name); return { ko: ko.replace(/\(.*\)$/, ""), key: RF.roman(ko).toLowerCase().replace(/[^a-z]/g, "") }; });
+        }).catch(function () { /* 다음에 다시 */ }).then(function () { enPeaksLoading = null; });
+        return enPeaksLoading;
+    }
+    if (EN) loadEnPeaks();
     function enSearch(q) {
         if (!EN || !/^[a-z][a-z\s'-]*$/i.test(q || "")) return q;
+        if (!enPeaks.length) {   // 아직 못 받음 - 받은 뒤 같은 검색어면 다시
+            loadEnPeaks().then(function () { if (enPeaks.length && $("q").value.trim() === q) $("q").dispatchEvent(new Event("input")); });
+            return q;
+        }
         var k = q.toLowerCase().replace(/[^a-z]/g, "");
         var hit = enPeaks.filter(function (p) { return p.key === k || p.key === k + "san"; })[0] || (k.length >= 4 && enPeaks.filter(function (p) { return p.key.indexOf(k) === 0; })[0]);
         return hit ? hit.ko : q;

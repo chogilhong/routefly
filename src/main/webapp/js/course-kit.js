@@ -543,7 +543,7 @@
     function signText(ns) {
         if (!ns) return "";
         var s = ns.sign, place = s.place_name ? " (" + (LANG === "en" ? enName(s.place_name) : s.place_name) + ")" : "";
-        if (LANG === "en") return s.loc_no + " · " + (ns.m < 10 ? "right here" : (ns.m < 100 ? Math.round(ns.m) : Math.round(ns.m / 10) * 10) + " m") + place;
+        if (LANG === "en") return enName(s.loc_no) + " · " + (ns.m < 10 ? "right here" : (ns.m < 100 ? Math.round(ns.m) : Math.round(ns.m / 10) * 10) + " m") + place;
         // 100m 넘으면 10m 단위(걸을 때마다 숫자가 1m 씩 바뀌어 어지럽지 않게 - 2026-10-10 PC)
         return s.loc_no + " · " + (ns.m < 10 ? "바로 옆" : (ns.m < 100 ? Math.round(ns.m) : Math.round(ns.m / 10) * 10) + "m") + place;
     }
@@ -3523,7 +3523,8 @@
         // 따라가기 영어(2026-10-17) - 위험지역 · 시설 이름
         ["급경사", "steep slope"], ["낙석", "falling rocks"], ["추락", "fall"], ["미끄럼", "slippery"], ["실족", "slip"], ["주의", "caution"], ["위험", "danger"],
         ["조망점", "viewpoint"], ["전망대", "observatory"], ["약수터", "spring"], ["샘터", "spring"], ["쉼터", "rest spot"], ["헬기장", "helipad"],
-        ["구급함", "first-aid box"], ["정류장", "bus stop"]];
+        ["구급함", "first-aid box"], ["정류장", "bus stop"],
+        ["자전거길", " bike path"], ["관광안내소", " tourist info center"], ["해수욕장", " beach"], ["아래", " below"]];
     /** 순수 함수 - 지점 · 코스 이름 영어로(MountainEn.courseName 과 같음). "수렴동대피소" → "Suryeomdong shelter". */
     function enName(ko) {
         // 붙어 쓴 산 이름 + 봉우리 · 고개 · 절은 띄움("설악산대청봉" → "Seoraksan Daecheongbong", MountainEn.courseName 과 같음)
@@ -3997,7 +3998,7 @@
     /** 순수 함수 - 쿠팡 링크 주소들(api/partners 의 물건 하나, 예전 글 하나도) → [{text:"쿠팡 ›" 또는 "쿠팡 1 ›" …, href}]. */
     function partnerLinks(urls) {
         var l = (Array.isArray(urls) ? urls : urls ? [urls] : []).filter(function (u) { return /^https:\/\//.test(u); });
-        return l.map(function (u, i) { return { text: "쿠팡" + (l.length > 1 ? " " + (i + 1) : "") + " ›", href: u }; });
+        return l.map(function (u, i) { return { text: (LANG === "en" ? "Coupang" : "쿠팡") + (l.length > 1 ? " " + (i + 1) : "") + " ›", href: u }; });
     }
 
     /** 순수 함수 - api/air 응답 → "미세먼지 보통(42) · 초미세먼지 좋음(14) - 가야면 측정소 14시". 못 받았으면 "". 2026-10-15 */

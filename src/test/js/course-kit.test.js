@@ -998,6 +998,13 @@ eq("regionEn · weekendWordEn", [RF.regionEn("강원 영동"), RF.regionEn("제�
         ["1 h 5 min", "3 min faster than last time", "same pace as last time", "Ride", "Start", "Seoraksan Daecheongbong", true, "1시간 5분", "라이딩", "설악산"]);
     eq("pageLang", [RF.pageLang("?lang=en", null), RF.pageLang("?x=1&lang=ko", "en"), RF.pageLang("", "en"), RF.pageLang("", null), RF.pageLang("?language=en", null)], ["en", "ko", "en", "ko", "ko"]);
 })();
+(function () {   // 영어 이름 낱말 · 위치표지(2026-10-17 PC 확인 - 자전거길 · 관광안내소 · 해수욕장 · 아래 · "설악 06-01")
+    RF.setLang("en");
+    var sg = RF.signText({ sign: { loc_no: "설악 06-01", place_name: "구대청대피소아래" }, m: 420 }), cp = RF.partnerLinks(["https://link.coupang.com/a/x"])[0].text;
+    RF.setLang("ko");
+    eq("영어 낱말 · 표지", [RF.enName("한강자전거길(서울)"), RF.enName("해파랑길관광안내소"), RF.enName("고래불해수욕장"), sg, cp, RF.partnerLinks(["https://link.coupang.com/a/x"])[0].text],
+        ["Hangang bike path (Seoul)", "Haeparanggil tourist info center", "Goraebul beach", "Seorak 06-01 · 420 m (Gudaecheong shelter below)", "Coupang ›", "쿠팡 ›"]);
+})();
 eq("trackClimb 10m 넘게 바뀐 것만", [RF.trackClimb([[0, 0, 0, 5], [0, 0, 1, 9], [0, 0, 2, 3], [0, 0, 3, 20], [0, 0, 4, 18], [0, 0, 5, 40], [0, 0, 6, null], [0, 0, 7, 25], [0, 0, 8, 37]]),
     RF.trackClimb([]), RF.trackClimb([[0, 0, 0, null]])], [15 + 20 + 12, 0, 0]);
 

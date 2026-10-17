@@ -2827,11 +2827,22 @@
     var nearAt = null;
     // 영어 화면 - 로마자로 산 이름을 찾으면 한글 이름으로 찾음("seoraksan" · "Bukhan" → 설악산 · 북한산). 100대 명산 목록에서(2026-10-17)
     var enPeaks = [];
-    if (EN) getJson("data/mountains100.json").then(function (d) {
-        enPeaks = ((d && d.peaks) || []).map(function (p) { var ko = String(p.id || p.name); return { ko: ko.replace(/\(.*\)$/, ""), key: RF.roman(ko).toLowerCase().replace(/[^a-z]/g, "") }; });
-    }).catch(function () { /* 한글로만 */ });
+    // 못 받으면(요청 제한 429 등) 다음 검색 때 다시 받고, 받으면 그 검색을 한 번 더(2026-10-17 PC: 처음 seoraksan 0개)
+    var enPeaksLoading = null;
+    function loadEnPeaks() {
+        if (enPeaks.length) return Promise.resolve();
+        if (!enPeaksLoading) enPeaksLoading = fetch("data/mountains100.json").then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (d) {
+            enPeaks = ((d && d.peaks) || []).map(function (p) { var ko = String(p.id || p.name); return { ko: ko.replace(/\(.*\)$/, ""), key: RF.roman(ko).toLowerCase().replace(/[^a-z]/g, "") }; });
+        }).catch(function () { /* 다음에 다시 */ }).then(function () { enPeaksLoading = null; });
+        return enPeaksLoading;
+    }
+    if (EN) loadEnPeaks();
     function enSearch(q) {
         if (!EN || !/^[a-z][a-z\s'-]*$/i.test(q)) return q;
+        if (!enPeaks.length) {   // 아직 못 받음 - 받은 뒤 같은 검색어면 다시
+            loadEnPeaks().then(function () { if (enPeaks.length && $("q").value.trim() === q) $("q").dispatchEvent(new Event("input")); });
+            return q;
+        }
         var k = q.toLowerCase().replace(/[^a-z]/g, "");
         var hit = enPeaks.filter(function (p) { return p.key === k || p.key === k + "san"; })[0] || (k.length >= 4 && enPeaks.filter(function (p) { return p.key.indexOf(k) === 0; })[0]);
         return hit ? hit.ko : q;
