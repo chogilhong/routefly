@@ -38,6 +38,7 @@ public class MountainEnTest {
         assertEquals("산성은 그대로", "Namhansanseong", MountainEn.courseName("남한산성"));
         assertEquals("Seoraksan National Park Baekdam office entrance", MountainEn.courseName("설악산국림공원백담분소입구"));
         assertEquals("Bukhandong(Gu office) restroom", MountainEn.courseName("북한동(구분소)화장실"));
+        assertEquals("방위 + 들머리(2026-10-18)", "southeast trailhead → summit", MountainEn.courseName("남동쪽 들머리 → 정상"));
         assertEquals("Seoraksan · Baekdamsa course (round trip)", MountainEn.courseName("설악산 · 백담사코스(왕복)"));
         assertEquals("Bukhansan Baegundae", MountainEn.summitName("북한산백운대", "북한산"));
         assertEquals("Daecheongbong", MountainEn.summitName("대청봉", "설악산"));
