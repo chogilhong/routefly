@@ -221,8 +221,8 @@ final class MountainEn {
         b.append("<main><div class=\"logoRow\"><a class=\"logo\" href=\"").append(REL).append("/hike.html\"><img src=\"").append(REL)
                 .append("/img/logo-dark.svg\" alt=\"routefly\" width=\"256\" height=\"80\"></a>")
                 .append("<a class=\"goHike\" href=\"").append(REL).append("/hike.html\" title=\"Pick a trail and follow it on your phone - GPS, voice guide, SOS\">🥾 Follow a trail ›</a></div>")
-                .append("<h1>Korea's 100 Famous Mountains</h1>")
-                .append("<p class=\"lead\">Pick a mountain to see its trails to the summit, the weather forecast, air quality and sunrise time.</p>")
+                .append("<h1>Hiking · Walking · Cycling</h1>")   // 한국어 제목과 같게(2026-10-17 홍TV님)
+                .append("<p class=\"lead\">Pick a mountain to see its trails to the summit, the weather, air quality and sunrise time - or pick a walking trail or bike path to see its route map.</p>")
                 .append("<section id=\"near\"><details class=\"fold kind\" name=\"kind\" id=\"nearFold\"><summary><span class=\"ft\">📍 Near me</span>")
                 .append("<span class=\"fs\">8 closest famous mountains</span><span class=\"fa\">▾</span></summary><div class=\"fb\"><div id=\"nearList\"></div></div></details></section>")
                 .append("<div class=\"folds\">");
