@@ -53,6 +53,12 @@ fetch("api/partners").then(function (r) { return r.json(); }).then(function (p) 
             var s = document.createElement("small");
             s.style.cssText = "display:block;margin-top:6px";
             s.textContent = "카카오페이 송금은 핸드폰에서만 열립니다. 핸드폰으로 이 페이지를 열어 눌러 주세요.";
+            if (/^https:\/\//.test(p.donateEn || "")) {   // PC 에서는 PayPal(카드)로도
+                var pp = document.createElement("a");
+                pp.href = p.donateEn; pp.target = "_blank"; pp.rel = "noopener";
+                pp.textContent = " PC 에서는 PayPal(카드)로 후원 ›";
+                s.appendChild(pp);
+            }
             box.appendChild(s);
         });
     }

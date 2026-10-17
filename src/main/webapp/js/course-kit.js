@@ -763,7 +763,7 @@
     /** 순수 함수 - 핸드폰에서만 열리는 송금 링크(카카오페이 송금 코드 qr.kakaopay.com - PC 브라우저는 404). */
     function mobileOnlyUrl(url) { return /^https:\/\/qr\.kakaopay\.com\//i.test(url || ""); }
     /** PC 에서 그런 링크를 누르면 열지 않고 안내(2026-10-17 홍TV님: 핸드폰은 되는데 PC 는 404). */
-    function mobileOnlyGuard(a, url, box) {
+    function mobileOnlyGuard(a, url, box, pcUrl) {
         if (!mobileOnlyUrl(url) || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || "")) return;
         a.addEventListener("click", function (e) {
             e.preventDefault();
@@ -772,12 +772,20 @@
             p.className = "rfMobileOnly";
             p.style.cssText = "display:block;margin-top:6px;color:#9aa6b4";
             p.textContent = "카카오페이 송금은 핸드폰에서만 열립니다. 핸드폰으로 이 페이지를 열어 눌러 주세요.";
+            // PC 에서는 PayPal(카드 결제 - donate.en.url)로도(2026-10-17 홍TV님: 토스 아이디는 서비스 종료)
+            if (/^https:\/\//.test(pcUrl || "")) {
+                var pp = document.createElement("a");
+                pp.href = pcUrl; pp.target = "_blank"; pp.rel = "noopener";
+                pp.textContent = " PC 에서는 PayPal(카드)로 후원 ›";
+                pp.style.color = "#38d9ea";
+                p.appendChild(pp);
+            }
             box.appendChild(p);
         });
     }
 
     /** 산 페이지 맨 아래 ☕ 후원 줄(2026-10-17 홍TV님) - https 주소일 때만 보임. 한국어 donate.url · 영어 donate.en.url(PayPal). */
-    function supportLine(box, url, text) {
+    function supportLine(box, url, text, pcUrl) {
         if (!box || !/^https:\/\//.test(url || "")) return false;
         var a = document.createElement("a");
         a.href = url;
@@ -787,7 +795,7 @@
         box.textContent = "";
         box.appendChild(a);
         box.hidden = false;
-        mobileOnlyGuard(a, url, box);
+        mobileOnlyGuard(a, url, box, pcUrl);
         return true;
     }
 
