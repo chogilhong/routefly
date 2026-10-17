@@ -130,7 +130,12 @@
 
     // ------------------------------------------------------------------ 🏅 100대 명산 배지 · 증서(2026-10-15 홍TV님)
     var CAP = window.Capacitor, NATIVE = !!(CAP && CAP.isNativePlatform && CAP.isNativePlatform());
-    function plugin(name) { return NATIVE && CAP.registerPlugin ? CAP.registerPlugin(name) : null; }
+    function plugin(name) {   // 원격 주소로 띄운 앱은 registerPlugin 이 없고 Capacitor.Plugins 에 있음(2026-10-17, hike.js 와 같음)
+        if (!NATIVE) return null;
+        if (CAP.registerPlugin) return CAP.registerPlugin(name);
+        if (CAP.isPluginAvailable && !CAP.isPluginAvailable(name)) return null;
+        return CAP.Plugins && CAP.Plugins[name] || null;
+    }
     var FS = plugin("Filesystem"), SHARE = plugin("Share"), CERT_NAME = "rf-cert-name";
 
     /** 배지 줄(10 · 30 · 50 · 70곳 · 완등) + 닿은 것 가운데 가장 높은 단계의 증서 단추. */

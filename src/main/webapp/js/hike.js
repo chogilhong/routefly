@@ -87,7 +87,14 @@
      */
     var CAP = window.Capacitor;
     var NATIVE = !!(CAP && CAP.isNativePlatform && CAP.isNativePlatform());
-    function plugin(name) { return NATIVE && CAP.registerPlugin ? CAP.registerPlugin(name) : null; }
+    // 2026-10-17 PC: 원격 주소(server.url)로 띄우면 네이티브 다리만 들어오고 @capacitor/core 의 registerPlugin 은 없음 -
+    // 그래서 BG · TTS 가 모두 null 이라 🔊 가 숨고 화면을 끄면 위치가 멈췄음. 플러그인은 Capacitor.Plugins.<이름> 에 바로 있음
+    function plugin(name) {
+        if (!NATIVE) return null;
+        if (CAP.registerPlugin) return CAP.registerPlugin(name);
+        if (CAP.isPluginAvailable && !CAP.isPluginAvailable(name)) return null;
+        return CAP.Plugins && CAP.Plugins[name] || null;
+    }
     var BATTERY_KEY = "rf-battery", batterySave = false;
     try { batterySave = localStorage.getItem(BATTERY_KEY) === "1"; } catch (e) { /* 기본은 끔 */ }
     var BG = plugin("BackgroundGeolocation"), TTS = plugin("TextToSpeech"), FS = plugin("Filesystem"), SHARE = plugin("Share");
