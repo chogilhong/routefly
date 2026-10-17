@@ -100,6 +100,12 @@
             $("settings").scrollIntoView({ behavior: "smooth", block: "start" });
             return;
         }
+        // 오늘 이미 확인했으면 문자는 물어보고(2026-10-18 PC: 다시 누를 때마다 문자가 또 열렸음 - 여러 번 누르는 어르신)
+        if (c) {
+            if (st.sms && confirm(T("오늘은 이미 안부를 남겼어요(" + clock(c.t) + "). 보호자에게 문자를 다시 보낼까요?", "Already checked in today (" + clock(c.t) + "). Text your guardian again?")))
+                location.href = smsHref(st.gTel, RF.anbuSms("ok", clock(now), EN));
+            return;
+        }
         toast(T("😊 고맙습니다. 오늘 안부를 남겼어요.", "😊 Thanks! Checked in for today."));
         if (st.sms) location.href = smsHref(st.gTel, RF.anbuSms("ok", clock(now), EN));
     });
