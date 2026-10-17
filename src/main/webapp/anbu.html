@@ -43,6 +43,10 @@ section h2 { margin:0 0 8px; font-size:16px; }
 label { display:block; font-size:14px; margin:10px 0 4px; color:var(--dim); }
 input[type=time], input[type=tel], input[type=text] { width:100%; height:46px; border-radius:10px; border:1px solid var(--ln); background:rgba(255,255,255,0.07);
        color:var(--tx); font-size:17px; padding:0 12px; }
+/* 시 · 분 고르기(2026-10-18 홍TV님: 앱에서 input type=time 이 안 열림 - 선택 상자는 앱에서도 열림) */
+.tsel { display:flex; align-items:center; gap:8px; }
+.tsel select { flex:1; height:50px; border-radius:10px; border:1px solid var(--ln); background:#232b36; color:var(--tx); font-size:18px; padding:0 10px; }
+.tsel b { font-size:18px; }
 .chk { display:flex; gap:8px; align-items:center; color:var(--tx); font-size:15px; margin-top:12px; }
 .chk input { width:22px; height:22px; }
 .save { margin-top:12px; width:100%; height:50px; border-radius:12px; border:0; background:var(--sky); color:#062b30; font:bold 16px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }
@@ -71,7 +75,7 @@ input[type=time], input[type=tel], input[type=text] { width:100%; height:46px; b
     <section>
         <h2 data-en="⚙️ Settings">⚙️ 설정</h2>
         <label for="time" data-en="Daily check-in time">매일 안부 확인 시각</label>
-        <input type="time" id="time" value="10:00">
+        <input type="hidden" id="time" value="10:00"><div class="tsel" data-for="time"></div>
         <label for="gName" data-en="Guardian name (family, neighbor)">보호자 이름(가족 · 이웃)</label>
         <input type="text" id="gName" maxlength="20" placeholder="예: 큰딸" data-en-placeholder="e.g. My daughter">
         <label for="gTel" data-en="Guardian phone number">보호자 전화번호</label>
@@ -85,7 +89,7 @@ input[type=time], input[type=tel], input[type=text] { width:100%; height:46px; b
         <h2 data-en="🌙 Getting home safe">🌙 늦은 귀가 안심</h2>
         <p class="tip" style="margin-top:0" data-en="Set when you expect to be home and tap Start - your messages app opens with &quot;I'll be home by 23:00. If you haven't heard from me by 23:30, please call me.&quot; Send it to a friend or family. When you arrive, tap &quot;I'm home&quot; to text that you made it. In the app, a reminder also rings at that time and 30 minutes later.">집에 도착할 시각을 정하고 "시작"을 누르면 "23:00 쯤 도착 예정, 23:30 까지 문자가 없으면 전화해 주세요" 문자가 열립니다 - 친구나 가족에게 보내세요. 도착하면 "집에 왔어요"를 눌러 도착 문자를 보냅니다. 앱에서는 그 시각과 30분 뒤에 알림도 울립니다.</p>
         <label for="lateAt" data-en="Expected home time">집 도착 예정 시각</label>
-        <input type="time" id="lateAt">
+        <input type="hidden" id="lateAt"><div class="tsel" data-for="lateAt"></div>
         <div class="row2">
             <button type="button" id="lateSet" data-en="Start · text a friend">시작 · 친구에게 문자</button>
             <button type="button" id="lateHome" data-en="🏠 I'm home">🏠 집에 왔어요</button>

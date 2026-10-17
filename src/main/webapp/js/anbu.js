@@ -81,7 +81,7 @@
         var L = st.late;
         $("lateState").textContent = !L ? "" : L.home ? T("🏠 " + clock(L.home) + " 집 도착 확인", "🏠 Home at " + clock(L.home))
             : T("도착 예정 " + clock(L.at) + " - 도착하면 '집에 왔어요' 를 눌러 주세요", "Expected home " + clock(L.at) + " - tap \"I'm home\" when you arrive");
-        $("time").value = st.time;
+        timeSel.set.time(st.time);
         $("gName").value = st.gName;
         $("gTel").value = RF.telFormat(st.gTel);
         $("smsOn").checked = !!st.sms;
@@ -133,6 +133,36 @@
         if (told || (st.sms && st.gTel && confirm(T("보호자에게 '집에 잘 도착했어요' 문자를 보낼까요?", "Text your guardian that you're home?")))) location.href = smsHref(st.gTel, RF.anbuSms("home", clock(Date.now()), EN));
     });
 
+    /** 시 · 분 선택 상자 - 숨긴 입력(id)에 "HH:MM" 을 맞춤. 분은 5분 단위(지금 값이 5분 단위가 아니면 그 값도). */
+    function hourLabel(h) { return EN ? (h % 12 || 12) + (h < 12 ? " AM" : " PM") : (h < 12 ? "오전 " : "오후 ") + (h % 12 || 12) + "시"; }
+    function timeSel(id) {
+        var box = document.querySelector('.tsel[data-for="' + id + '"]'), inp = $(id), hs = document.createElement("select"), ms = document.createElement("select"), sep = document.createElement("b");
+        hs.setAttribute("aria-label", T("시", "Hour"));
+        ms.setAttribute("aria-label", T("분", "Minute"));
+        sep.textContent = ":";
+        for (var h = 0; h < 24; h++) hs.add(new Option(hourLabel(h), String(h)));
+        box.appendChild(hs); box.appendChild(sep); box.appendChild(ms);
+        function minutes(cur) {
+            ms.textContent = "";
+            for (var m = 0; m < 60; m += 5) ms.add(new Option(String(m).padStart(2, "0") + T("분", ""), String(m)));
+            if (cur % 5) { var o = new Option(String(cur).padStart(2, "0") + T("분", ""), String(cur)); ms.add(o, ms.options[Math.ceil(cur / 5)] || null); }
+        }
+        function sync() { inp.value = String(hs.value).padStart(2, "0") + ":" + String(ms.value).padStart(2, "0"); }
+        hs.addEventListener("change", sync);
+        ms.addEventListener("change", sync);
+        timeSel.set[id] = function (v) {
+            var p = /^(\d{1,2}):(\d{2})$/.exec(v || "") || [0, "10", "00"];
+            minutes(+p[2]);
+            hs.value = String(+p[1]);
+            ms.value = String(+p[2]);
+            sync();
+        };
+    }
+    timeSel.set = {};
+    timeSel("time");
+    timeSel("lateAt");
+    // 늦은 귀가 처음 값 - 지금부터 1시간 뒤(5분 단위)
+    (function () { var d = new Date(Math.ceil((Date.now() + 3600000) / 300000) * 300000); timeSel.set.lateAt(d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0")); })();
     // 전화번호는 숫자만 쳐도 010-1234-5678 로, - 를 쳐도 무시(2026-10-18 홍TV님)
     $("gTel").addEventListener("input", function () { var v = RF.telFormat(this.value); if (v !== this.value) this.value = v; });
     draw();
