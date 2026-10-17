@@ -145,7 +145,6 @@
      */
     function say(text, opt) {
         opt = opt || {};
-        if (DEBUG) console.info("[rf] say " + new Date().toTimeString().slice(0, 8) + " " + String(text).slice(0, 30));
         if ((!voice.on && !opt.force) || !text || !TTS && !("speechSynthesis" in window)) return;
         var t = Date.now();
         if (opt.key) {
@@ -156,6 +155,7 @@
             if (opt.urgent) TTS.stop().catch(function () { /* 말하는 중이 아니면 */ });
             else if (voice.busy) return;
             var my = voice.busy = (voice.busy || 0) + 1;
+            if (DEBUG) console.info("[rf] say " + new Date().toTimeString().slice(0, 8) + " " + String(text).slice(0, 30));   // 실제로 말할 때만(gap · busy 로 건너뛴 것은 안 남김)
             TTS.speak({ text: text, lang: "ko-KR", rate: 1.0, category: "playback" })
                 .catch(function () { /* 끊긴 말 */ })
                 .then(function () { if (voice.busy === my) voice.busy = 0; });
