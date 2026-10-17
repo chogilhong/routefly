@@ -987,6 +987,9 @@ eq("stampRadius GPS 오차 + 20, 40 ~ max", [RF.stampRadius(5, 150), RF.stampRad
     eq("fortuneDay 한 바퀴 · 섞임", [run("ko", 60, 60), run("ko", 61, 60), run("en", 30, 30), inOrder(), RF.fortuneDay(2026, 12, 31, "ko") !== RF.fortuneDay(2027, 1, 1, "ko"),
         RF.fortuneDay(2026, 10, 17, "ko") === RF.fortuneDay(2026, 10, 17, "ko")], [60, 60, 30, false, true, true]);
 })();
+eq("regionEn · weekendWordEn", [RF.regionEn("강원 영동"), RF.regionEn("제주"), RF.regionEn("새권역"), RF.weekendWordEn("맑음"), RF.weekendWordEn("구름많고 비"),
+    RF.weekendWordEn("맑음 → 흐림"), RF.weekendWordEn("비")],
+    ["Gangwon (east coast)", "Jeju", "Saegwonyeok", "☀️ Clear", "⛅ Mostly cloudy, rain", "☀️ Clear → ☁️ Overcast", "🌧 Rain"]);
 eq("trackClimb 10m 넘게 바뀐 것만", [RF.trackClimb([[0, 0, 0, 5], [0, 0, 1, 9], [0, 0, 2, 3], [0, 0, 3, 20], [0, 0, 4, 18], [0, 0, 5, 40], [0, 0, 6, null], [0, 0, 7, 25], [0, 0, 8, 37]]),
     RF.trackClimb([]), RF.trackClimb([[0, 0, 0, null]])], [15 + 20 + 12, 0, 0]);
 

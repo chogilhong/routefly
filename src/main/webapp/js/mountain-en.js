@@ -49,6 +49,60 @@
         return (["Today ", "Tomorrow "][n] || "") + DAYS[new Date(t).getUTCDay()] + " " + (+d.slice(5, 7)) + "/" + (+d.slice(8, 10));
     }
 
+    // ☀️ Good weather this weekend(/en/m/ - 한국어 코스 모음과 같은 api/weekend, 2026-10-17 홍TV님). 산 이름 · 주소는 #peakList 에서(한글 id → 영어)
+    var wk = document.getElementById("weekend");
+    if (wk) fetch("../../api/weekend").then(function (r) { return r.json(); }).then(function (w) {
+        if (w.unavailable || !(w.regions || []).length) return;
+        var en = {};
+        Array.prototype.forEach.call(document.querySelectorAll("#peakList a"), function (a) {
+            var sm = a.querySelector("small");
+            if (sm) en[sm.textContent] = { href: a.getAttribute("href"), name: a.firstChild && a.firstChild.nodeType === 3 ? a.firstChild.nodeValue.trim() : a.textContent };
+        });
+        var today = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
+        var goodOf = function (d) { return w.regions.filter(function (r) { return r.days[d] && r.days[d].good; }); };
+        var det = document.createElement("details"), sum = document.createElement("summary"), ft = document.createElement("span"), fs = document.createElement("span"), fa = document.createElement("span"), body = document.createElement("div");
+        det.className = "fold kind";
+        ft.className = "ft"; ft.textContent = "☀️ Good weather this weekend";
+        fs.className = "fs";
+        fs.textContent = w.dates.map(function (d) { var n = goodOf(d).length; return DAYS[new Date(d + "T00:00:00Z").getUTCDay()] + " " + n + (n === 1 ? " region" : " regions"); }).join(" · ");
+        fa.className = "fa"; fa.textContent = "▾";
+        sum.appendChild(ft); sum.appendChild(fs); sum.appendChild(fa);
+        body.className = "fb";
+        det.appendChild(sum);
+        det.appendChild(body);
+        w.dates.forEach(function (d) {
+            var good = goodOf(d), p = document.createElement("p"), b = document.createElement("b");
+            b.textContent = dayLabel(d, today);
+            p.className = "wday";
+            p.appendChild(b);
+            p.appendChild(document.createTextNode(good.length ? " - clear or partly cloudy, low chance of rain: " + good.length + (good.length === 1 ? " region" : " regions") : " - no region with good weather (rain or overcast)"));
+            body.appendChild(p);
+            good.forEach(function (r) {
+                var row = document.createElement("div"), nm = document.createElement("div"), ul = document.createElement("ul");
+                row.className = "wreg";
+                nm.textContent = RF.regionEn(r.name) + " · " + RF.weekendWordEn(r.days[d].word) + " · rain " + r.days[d].pop + "%";
+                ul.className = "ms";
+                r.peaks.slice(0, 8).forEach(function (id) {
+                    var li = document.createElement("li"), a = document.createElement("a"), e = en[id];
+                    a.href = e ? e.href : "../../m/" + encodeURIComponent(id);
+                    a.textContent = e ? e.name : RF.enName(id);
+                    li.appendChild(a);
+                    ul.appendChild(li);
+                });
+                if (r.peaks.length > 8) { var more = document.createElement("li"); more.className = "dim"; more.textContent = "+" + (r.peaks.length - 8) + " more"; ul.appendChild(more); }
+                row.appendChild(nm);
+                row.appendChild(ul);
+                body.appendChild(row);
+            });
+        });
+        var note = document.createElement("p");
+        note.className = "dim";
+        note.textContent = "Regional daytime forecast (6 am - 6 pm) from the Korea Meteorological Administration. Weather on the summit can differ - check each mountain's daily forecast too.";
+        body.appendChild(note);
+        wk.appendChild(det);
+        wk.hidden = false;
+    }).catch(function () { /* 날씨 없이 */ });
+
     // 📍 near me (목록 /en/m/) - 위치는 이 기기 안에서만 견줌, 페이지의 좌표(data-lat · data-lon)로
     var nearFold = document.getElementById("nearFold"), nearList = document.getElementById("nearList"), nearDone = false;   // 펴면 찾음(2026-10-16 - 접는 칸)
     if (nearFold && nearList) nearFold.addEventListener("toggle", function () {
