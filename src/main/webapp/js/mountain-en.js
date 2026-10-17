@@ -5,7 +5,7 @@
 (function () {
     var RF = window.RF;
     if (!RF) return;
-    var crumb = document.querySelector(".crumb") || document.querySelector("h1");
+    var crumb = document.querySelector(".crumb") || document.querySelector("h1.idx + .lead") || document.querySelector("h1");   // 코스 모음은 설명 줄 오른쪽 - 제목이 한 줄에 들게(2026-10-17)
     if (crumb) {   // 오른쪽 위: 한/EN · 글자 크기(한국어 페이지와 같은 자리)
         var tools = document.createElement("span"), lt = RF.langToggle("en"), tb = RF.textButton();
         tools.className = "rfTools";

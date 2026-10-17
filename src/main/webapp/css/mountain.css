@@ -4,6 +4,7 @@
 html, body { margin:0; background:var(--bg); color:var(--tx); font-family:Arial,"Malgun Gothic",sans-serif; line-height:1.6; }
 main { max-width:760px; margin:0 auto; padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 40px); }
 h1 { font-size:24px; margin:0 0 4px; }
+h1.idx { font-size:min(24px, 5.6vw); word-break:keep-all; }   /* 코스 모음 제목 - 360px 에서도 한 줄(한/EN · 가 는 설명 줄로) */
 h2 { font-size:17px; margin:0 0 8px; }
 a { color:var(--sky); }
 .crumb { margin:0 0 6px; font-size:13.5px; }

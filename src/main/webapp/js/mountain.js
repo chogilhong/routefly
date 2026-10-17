@@ -150,7 +150,7 @@
         wk.appendChild(note);
         document.getElementById("weekend").hidden = false;
     }).catch(function () { /* 없이 */ });
-    var crumb = document.querySelector(".crumb") || document.querySelector("h1");
+    var crumb = document.querySelector(".crumb") || document.querySelector("h1.idx + .lead") || document.querySelector("h1");   // 코스 모음은 설명 줄 오른쪽 - 제목이 한 줄에 들게(2026-10-17)
     if (crumb && window.RF) {   // 오른쪽 위: 한/EN(영어 페이지가 있을 때) · 글자 크기 "가+"
         var tools = document.createElement("span"), lt = window.RF.langToggle("ko"), tb = window.RF.textButton();
         tools.className = "rfTools";
