@@ -83,7 +83,7 @@
             : T("도착 예정 " + clock(L.at) + " - 도착하면 '집에 왔어요' 를 눌러 주세요", "Expected home " + clock(L.at) + " - tap \"I'm home\" when you arrive");
         $("time").value = st.time;
         $("gName").value = st.gName;
-        $("gTel").value = st.gTel;
+        $("gTel").value = RF.telFormat(st.gTel);
         $("smsOn").checked = !!st.sms;
     }
 
@@ -133,6 +133,8 @@
         if (told || (st.sms && st.gTel && confirm(T("보호자에게 '집에 잘 도착했어요' 문자를 보낼까요?", "Text your guardian that you're home?")))) location.href = smsHref(st.gTel, RF.anbuSms("home", clock(Date.now()), EN));
     });
 
+    // 전화번호는 숫자만 쳐도 010-1234-5678 로, - 를 쳐도 무시(2026-10-18 홍TV님)
+    $("gTel").addEventListener("input", function () { var v = RF.telFormat(this.value); if (v !== this.value) this.value = v; });
     draw();
     reschedule();
     document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") draw(); });   // 날이 바뀐 뒤 다시 열 때

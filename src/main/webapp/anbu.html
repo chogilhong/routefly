@@ -71,7 +71,7 @@ input[type=time], input[type=tel], input[type=text] { width:100%; height:46px; b
         <label for="gName" data-en="Guardian name (family, neighbor)">보호자 이름(가족 · 이웃)</label>
         <input type="text" id="gName" maxlength="20" placeholder="예: 큰딸" data-en-placeholder="e.g. My daughter">
         <label for="gTel" data-en="Guardian phone number">보호자 전화번호</label>
-        <input type="tel" id="gTel" maxlength="20" placeholder="010-0000-0000">
+        <input type="tel" id="gTel" maxlength="13" inputmode="numeric" autocomplete="tel" placeholder="숫자만 (예: 01012345678)" data-en-placeholder="Digits only (e.g. 01012345678)">
         <label class="chk"><input type="checkbox" id="smsOn" checked> <span data-en="When I tap &quot;I'm fine&quot;, open a text to my guardian">"잘 지내요" 를 누르면 보호자에게 보낼 문자도 열기</span></label>
         <button type="button" class="save" id="saveBtn" data-en="Save">저장</button>
         <p class="tip" data-en="How it works: tap &quot;I'm fine today&quot; once a day. If the text to your guardian is on, your messages app opens with it - press Send. &lt;b&gt;If your guardian does not get the daily text, they should call you.&lt;/b&gt; In the app, a reminder rings at your check-in time, and again 2 and 4 hours later if you have not checked in.&lt;br&gt;routefly never calls or texts 119 by itself. Names and numbers stay on this phone only and are not sent to any server.">이렇게 씁니다: 하루 한 번 "오늘도 잘 지내요" 를 누르세요. 보호자 문자를 켜 두면 내 문자 앱이 열리고 <b>보내기</b>를 누르면 갑니다. <b>보호자는 매일 오던 문자가 안 오면 전화해 주세요.</b> 앱에서는 정한 시각에 알림이 울리고, 확인이 없으면 2시간 · 4시간 뒤에 한 번씩 더 울립니다.<br>routefly 는 119 에 저절로 전화 · 문자하지 않습니다. 이름 · 번호는 이 핸드폰에만 저장되고 서버로 가지 않습니다.</p>
