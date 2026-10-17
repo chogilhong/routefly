@@ -1744,7 +1744,9 @@
             $("gps").className = "";
             // 2026-10-11 점검: 시작 → 끝 → 다시 시작이 첫 addWatcher 답보다 빠르면 첫 감시가 남아 위치가 두 번씩 · 알림이 안 사라졌음 - 이번 시작 번호로만
             var bgGen = hike.bgGen = (hike.bgGen || 0) + 1;
-            BG.addWatcher({ backgroundTitle: "routefly - " + K().act + " 중",
+            // 2026-10-17 PC: Capacitor.Plugins 로 받은 BG 의 addWatcher(콜백 방식)는 Promise 가 아니라 감시 번호를 바로 돌려줌 -
+            // .then 에서 TypeError 로 bgWatch 가 저장되지 않아 끝내도 "산행 중" 알림 · 감시가 남았음. 둘 다 받게 Promise.resolve 로 감쌈
+            Promise.resolve(BG.addWatcher({ backgroundTitle: "routefly - " + K().act + " 중",
                             backgroundMessage: "화면을 꺼도 위치를 기록하고 갈림길 · 코스 이탈을 알려 줍니다.",
                             requestPermissions: true, stale: false, distanceFilter: 0 },   // 0: 멈춰 있어도 위치가 와야 움직임 없음 알림이 화면이 꺼진 채로도 돎(2026-10-16 홍TV님 폰: 20분인데 30분째에 뜸) - 작은 움직임은 onFix 가 일찍 끝냄
                 function (loc, err) {
@@ -1757,9 +1759,9 @@
                     }
                     if (loc) onFix({ timestamp: loc.time, coords: { latitude: loc.latitude, longitude: loc.longitude, accuracy: loc.accuracy,
                                                                 altitude: loc.altitude, speed: loc.speed, heading: loc.bearing } });
-                }).then(function (id) {
+                })).then(function (id) {
                     if (hike.running && !hike.sim && bgGen === hike.bgGen) hike.bgWatch = id;
-                    else BG.removeWatcher({ id: id });   // 그 사이 끝냈거나 다시 시작했으면
+                    else Promise.resolve(BG.removeWatcher({ id: id })).catch(function () { /* 이미 멈춤 */ });   // 그 사이 끝냈거나 다시 시작했으면
                 }).catch(function () { onGpsError({ code: 2 }); });
             // 2026-10-08 (홍TV님 - 배터리): 앱은 화면을 꺼도 위치 · 음성 안내가 이어지므로 화면을 켜 두지 않습니다(Wake Lock 안 함).
             // 화면이 가장 큰 배터리 소비라, 주머니에 넣고 다니라고 한 번 알립니다. 브라우저는 화면이 꺼지면 멈추므로 아래처럼 켜 둡니다.
@@ -1789,7 +1791,7 @@
         hike.running = false;
         stopTalking();
         if (hike.watch != null) navigator.geolocation.clearWatch(hike.watch);
-        if (hike.bgWatch != null && BG) BG.removeWatcher({ id: hike.bgWatch }).catch(function () { /* 이미 멈춤 */ });
+        if (hike.bgWatch != null && BG) Promise.resolve(BG.removeWatcher({ id: hike.bgWatch })).catch(function () { /* 이미 멈춤 */ });
         hike.bgWatch = null;
         hike.watch = null;
         clearInterval(hike.timer);
@@ -2116,6 +2118,7 @@
             hike.still = null;
             $("stillSheet").style.display = "none";
             $("sos").click();
+            hike.sosAuto = true;   // 저절로 연 SOS 화면 - "괜찮아요" 를 누르면 함께 닫음(2026-10-17 PC: SOS 위에 다시 물으면 괜찮아요 뒤에도 SOS 가 남았음)
             if (navigator.vibrate) navigator.vibrate([600, 200, 600, 200, 600]);
             say("답이 없어 긴급 신고 화면을 열었습니다. 도움이 필요하면 119 전화나 문자 신고를 누르세요.", { urgent: true, force: true });
             safetyNotify("🚨 긴급 신고 화면을 열었습니다", "도움이 필요하면 routefly 를 열어 119 전화 · 문자 신고를 누르세요.");
@@ -3178,8 +3181,10 @@
             $("sosGrid").textContent = "위치를 못 씀(https 필요) - 표지판 번호를 불러 주세요";
         }
     });
-    $("sosClose").addEventListener("click", function () { $("sosSheet").style.display = "none"; });
-    $("stillOk").addEventListener("click", function () { stillReset(); toast("👍 계속 지켜볼게요. " + STILL_MS / 60000 + "분 넘게 멈추면 다시 묻습니다.", 4000); });
+    $("sosClose").addEventListener("click", function () { $("sosSheet").style.display = "none"; hike.sosAuto = false; });
+    $("stillOk").addEventListener("click", function () {
+        if (hike.sosAuto) { $("sosSheet").style.display = "none"; hike.sosAuto = false; }   // 저절로 열린 SOS 도 닫음 - 괜찮다고 했으니
+        stillReset(); toast("👍 계속 지켜볼게요. " + STILL_MS / 60000 + "분 넘게 멈추면 다시 묻습니다.", 4000); });
     $("stillSos").addEventListener("click", function () { stillReset(); $("sos").click(); });
 
     // ------------------------------------------------------------------ 공유 · 오프라인 저장
