@@ -2636,6 +2636,7 @@
             em.textContent = "이 시간 안에 걸을 수 있는 코스가 없습니다. \"모두\" 를 눌러 보세요.";
             box.appendChild(em);
         }
+        var offSet = offlineIds();   // 저장한 코스는 검색 결과에도 ✅ 표시(2026-10-17 PC: 검색어가 남으면 첫 화면 저장 목록이 안 보임)
         shown.forEach(function (r) {
             var it = document.createElement("div");
             it.className = "it";
@@ -2647,7 +2648,8 @@
             s.textContent = (ofn ? "공단 " + ofn + " · " : "") + km(+r.distance_m) + "km" + (r.ascent_m != null ? " · 오르막 " + num(+r.ascent_m) + "m" : "")
                 + (r.steep_pct >= 28 ? " · 가장 가파른 1km " + Math.round(r.steep_pct) + "%" : "")
                 + (r.ele_max_m != null ? " · 최고 " + num(+r.ele_max_m) + "m" : "")
-                + (r.away != null ? " · 출발점까지 " + km(r.away) + "km" : "");
+                + (r.away != null ? " · 출발점까지 " + km(r.away) + "km" : "")
+                + (offSet.indexOf(String(r.course_id)) >= 0 ? " · ✅ 저장됨" : "");
             var chip = (r.kind === "hike" || r.kind === "trek") && RF.levelChip(+r.distance_m, r.ascent_m != null ? +r.ascent_m : null, false, r.steep_pct);   // 난이도(2026-10-15 홍TV님 - 공단 안내판 5단계)
             if (chip) { b.appendChild(document.createTextNode(" ")); b.appendChild(chip); }
             it.appendChild(b);
