@@ -56,14 +56,14 @@ body { display:flex; flex-direction:column; height:100dvh; }
 </head>
 <body>
 <div id="top">
-    <a id="back" href="series.html">← 뒤로</a>
-    <div id="title">노선 안내도</div>
+    <a id="back" href="series.html" data-en="← Back">← 뒤로</a>
+    <div id="title" data-en="Route map">노선 안내도</div>
 </div>
 <div id="mapWrap">
     <div id="map"></div>
-    <div id="msg">노선을 불러오는 중…</div>
+    <div id="msg" data-en="Loading the route…">노선을 불러오는 중…</div>
 </div>
-<div id="sheet"><div class="tip">구간을 누르면 그 구간을 따라갈 수 있습니다.</div><div class="row"><a class="main" id="followNone" href="hike.html">따라가기</a></div></div>
+<div id="sheet"><div class="tip" data-en="Tap a section to follow it.">구간을 누르면 그 구간을 따라갈 수 있습니다.</div><div class="row"><a class="main" id="followNone" href="hike.html" data-en="Follow">따라가기</a></div></div>
 <script src="vendor/maplibre-gl-5.24.0/maplibre-gl.js"></script>
 <script src="js/course-kit.js"></script>
 <script src="js/route.js"></script>

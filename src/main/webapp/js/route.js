@@ -9,6 +9,12 @@
     "use strict";
     var RF = window.RF;
     function $(id) { return document.getElementById(id); }
+    // 화면 말(2026-10-17 홍TV님 - 영어): ?lang=en · 따라가기에서 고른 말(rf-lang)
+    var LANG = RF.pageLang(location.search, (function () { try { return localStorage.getItem("rf-lang"); } catch (e) { return null; } })());
+    if (/[?&]lang=(en|ko)\b/.test(location.search)) { try { localStorage.setItem("rf-lang", LANG); } catch (e) { /* 이번만 */ } }
+    var EN = LANG === "en", T = RF.tr, NM = RF.nameIn;
+    RF.setLang(LANG);
+    if (EN) { document.documentElement.lang = "en"; document.title = "routefly - Route map"; RF.applyEn(document); }
     var q = new URLSearchParams(location.search), prefix = q.get("prefix") || "", trail = q.get("trail") || "", backTo = q.get("back");
     var map, data = null, series = null, nums = [], labels = [], flips = {}, sel = [], emptySheet = "";
     // 코스 · 구간 번호를 지도에 붙이는 노선(인증센터가 없는 것): 코리아둘레길 · 백두대간 · 정맥
@@ -55,7 +61,7 @@
             if (pl && pl.name) {
                 var lb = document.createElement("div");
                 lb.className = "lb";
-                lb.textContent = pl.name;
+                lb.textContent = NM(pl.name);
                 e.appendChild(lb);
                 labels.push({ el: lb, no: e.querySelector(".no"), prio: 1000 + labels.length });
                 pl.drawn = true;
@@ -69,7 +75,7 @@
             var e = document.createElement("div");
             e.className = "ctr end";
             e.innerHTML = '<div class="dot"></div><div class="lb"></div>';
-            e.querySelector(".lb").textContent = p.name;
+            e.querySelector(".lb").textContent = NM(p.name);
             new maplibregl.Marker({ element: e, anchor: "top", offset: [0, -5] }).setLngLat([p.lon, p.lat]).addTo(map);
             // 노선 맨 끝(천왕봉 · 무룡고개)은 다른 지명보다 먼저 남김
             if (p.name) labels.push({ el: e.querySelector(".lb"), no: null, prio: p.last ? 999 : 1000 + labels.length });
@@ -112,13 +118,14 @@
         nm.className = "nm";
         // 여러 구간: 번호가 있으면 "2~4구간", 없으면 "3구간 이어 걷기"(따라가기 제목과 같게)
         var nos = sel.map(function (s) { return RF.courseNo(byId[s.id].name); }), nums = nos.every(Boolean) ? nos.map(function (x) { return +String(x).split("-")[0]; }) : null;
-        var span = nums ? Math.min.apply(null, nums) + "~" + Math.max.apply(null, nums) + (/코스/.test(byId[sel[0].id].name) ? "코스" : "구간") : sel.length + "구간 이어 걷기";
+        var span = nums ? Math.min.apply(null, nums) + "~" + Math.max.apply(null, nums) + (EN ? "" : /코스/.test(byId[sel[0].id].name) ? "코스" : "구간") : sel.length + T("구간 이어 걷기", " sections joined");
+        if (EN && nums) span = (/코스/.test(byId[sel[0].id].name) ? "Courses " : "Sections ") + span;
         var short0 = function (x) { return x ? String(x).replace(/인증센터/g, "") : x; };
         RF.nameNodes(nm, one ? RF.nameText(one.name) : span + (from || to ? " · " + RF.endsText(short0(from), short0(to)) : ""));
         var st = document.createElement("div");
         st.className = "st";
         // 여러 구간은 오르막을 방향마다 따로 셈(목록 자료에 내리막이 없음) - 따라가기 화면에서 보임
-        st.textContent = RF.km(meters) + "km" + (one ? " · 오르막 " + RF.num(one.ascent_m) + "m" : " · 오르막은 따라가기 화면에서");
+        st.textContent = RF.km(meters) + "km" + (one ? T(" · 오르막 ", " · climb ") + RF.num(one.ascent_m) + "m" : T(" · 오르막은 따라가기 화면에서", " · climb shown in Follow"));
         var row = document.createElement("div");
         row.className = "row";
         // 자전거길은 "인증센터" 를 떼어 짧게(375px 두 단추에 "달성보인증센터 → 칠곡보인증센터" 가 잘렸음)
@@ -129,7 +136,7 @@
                 + "&guide=" + encodeURIComponent("route.html" + location.search);
         };
         var both = from && to;
-        [[both ? short(from) + " → " + short(to) : "따라가기", sel], [both ? short(to) + " → " + short(from) : "거꾸로 따라가기", RF.reverseSel(sel)]].forEach(function (d, k) {
+        [[both ? short(from) + " → " + short(to) : T("따라가기", "Follow"), sel], [both ? short(to) + " → " + short(from) : T("거꾸로 따라가기", "Follow reversed"), RF.reverseSel(sel)]].forEach(function (d, k) {
             var a = document.createElement("a");
             if (k === 0) a.className = "main";
             a.href = link(d[1]);
@@ -138,7 +145,7 @@
         });
         var tip = document.createElement("div");
         tip.className = "tip";
-        tip.textContent = "이어진 구간을 더 누르면 함께 고르고, 다시 누르면 뺍니다. 따라갈 방향을 고르세요.";
+        tip.textContent = T("이어진 구간을 더 누르면 함께 고르고, 다시 누르면 뺍니다. 따라갈 방향을 고르세요.", "Tap connected sections to add them, tap again to remove. Pick the direction to follow.");
         $("sheet").appendChild(nm);
         $("sheet").appendChild(st);
         $("sheet").appendChild(tip);
@@ -163,8 +170,8 @@
             e.className = "ctr" + (RF.stampOf(stamps, n, aka[n]) ? " got" : "");
             e.innerHTML = '<div class="no"></div><div class="lb"></div>';
             e.querySelector(".no").textContent = String(i + 1);
-            e.querySelector(".lb").textContent = n;
-            e.title = n + " 인증센터";
+            e.querySelector(".lb").textContent = NM(n);
+            e.title = EN ? NM(n) + " checkpoint" : n + " 인증센터";
             new maplibregl.Marker({ element: e, anchor: "top" }).setLngLat([+at.lon, +at.lat]).addTo(map);
             nums.push({ el: e.querySelector(".no"), prio: i });
             labels.push({ el: e.querySelector(".lb"), no: e.querySelector(".no"), prio: 1000 + i });
@@ -224,15 +231,15 @@
         // ← 뒤로: 따라가기 목록 카드에서 왔으면 그 목록(검색어는 rf-search 로 남아 있음), 그 밖은 도장 · 완주
         // back=m - 산 · 길 목록(/m/, 2026-10-15)
         $("back").href = backTo === "list" ? "hike.html" : backTo === "m" ? "m/" : backTo === "en" ? "en/m/" : "series.html";   // en - 영어 목록(/en/m/)
-        $("back").textContent = backTo === "list" ? "← 목록" : backTo === "m" ? "← 코스 모음" : backTo === "en" ? "← Back" : "← 도장 · 완주";   // 2026-10-13 홍TV님: "← 뒤로" → 돌아갈 곳 이름
+        $("back").textContent = backTo === "list" ? T("← 목록", "← List") : backTo === "m" ? T("← 코스 모음", "← Trails") : backTo === "en" ? "← Back" : T("← 도장 · 완주", "← Stamps");   // 2026-10-13 홍TV님: "← 뒤로" → 돌아갈 곳 이름
         // 고른 구간이 없을 때 아래 칸(모두 빼면 다시 이것으로) - 단추는 아래 칸에 맡겨 두고 받음(다시 그려도 됨)
         emptySheet = $("sheet").innerHTML;
         $("sheet").addEventListener("click", function (e) {
             if (!e.target || e.target.id !== "followNone") return;
             e.preventDefault();
-            alert("구간을 선택하세요.");
+            alert(T("구간을 선택하세요.", "Pick a section first."));
         });
-        if (!/^(osmb|kmf|osmh)-[0-9]+-$/.test(prefix) && !trail) { $("msg").textContent = "노선을 찾지 못했습니다."; return; }
+        if (!/^(osmb|kmf|osmh)-[0-9]+-$/.test(prefix) && !trail) { $("msg").textContent = T("노선을 찾지 못했습니다.", "Route not found."); return; }
         Promise.all([
             getJson("api/map-config").catch(function () { return {}; }),
             getJson(trail ? "api/group?trail=" + encodeURIComponent(trail) : "api/group?prefix=" + encodeURIComponent(prefix) + "&lines=1"),
@@ -247,15 +254,17 @@
             var name = (series && series.name) || q.get("name")
                 || (data.courses[0] && String(data.courses[0].name || "").replace(/\s*\d+(?:-\d+)?\s*(?:구간|코스).*$/, "").trim()) || "노선";
             var km = series && series.km ? series.km : Math.round(data.courses.reduce(function (m, c) { return m + (+c.distance_m || 0); }, 0) / 1000);
-            $("title").textContent = name + " " + km + "km" + (numbered ? " · " + data.courses.length + (trail ? "코스" : "구간") + (series && series.official ? "(공식 " + series.official + ")" : "") : "");
-            document.title = name + " 노선 안내도 - routefly";
-            if (!data.courses.length) { $("msg").textContent = "아직 코스가 없습니다."; return; }
+            $("title").textContent = EN ? NM(name) + " " + km + "km" + (numbered ? " · " + data.courses.length + (trail ? " courses" : " sections") + (series && series.official ? " (official " + series.official + ")" : "") : "")
+                : name + " " + km + "km" + (numbered ? " · " + data.courses.length + (trail ? "코스" : "구간") + (series && series.official ? "(공식 " + series.official + ")" : "") : "");
+            document.title = EN ? NM(name) + " route map - routefly" : name + " 노선 안내도 - routefly";
+            if (!data.courses.length) { $("msg").textContent = T("아직 코스가 없습니다.", "No trails yet."); return; }
             flips = RF.routeFlips(data.courses, data.lines || {});
             map = new maplibregl.Map({ container: "map", style: RF.baseStyle(cfg), center: [127.8, 36.3], zoom: 7,
                 attributionControl: false, dragRotate: false, pitchWithRotate: false, touchPitch: false });
             map.touchZoomRotate.disableRotation();
             map.addControl(new maplibregl.AttributionControl({ compact: true,
-                customAttribution: "노선: © OpenStreetMap contributors · 산림청 · 한국등산트레킹지원센터 | <a href=\"about.html\">안내</a>" }), "top-right");
+                customAttribution: T("노선: © OpenStreetMap contributors · 산림청 · 한국등산트레킹지원센터 | <a href=\"about.html\">안내</a>",
+                    "Routes: © OpenStreetMap contributors · Korea Forest Service | <a href=\"about.html\">About</a>") }), "top-right");
             // 출처는 ⓘ 로 접어 둠(탐방 안내도와 같게 - 지도를 가리지 않게)
             var fold = function () { var at = document.querySelector(".maplibregl-ctrl-attrib"); if (at) at.classList.remove("maplibregl-compact-show"); };
             fold();
@@ -264,7 +273,7 @@
             map.addControl(new maplibregl.GeolocateControl({ positionOptions: { enableHighAccuracy: true }, trackUserLocation: true }), "bottom-right");
             map.once("load", draw);
         }).catch(function (e) {
-            $("msg").textContent = e.message || "노선을 읽지 못했습니다.";
+            $("msg").textContent = EN ? "Could not load the route." : e.message || "노선을 읽지 못했습니다.";
         });
     }
 

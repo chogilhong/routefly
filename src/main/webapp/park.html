@@ -81,20 +81,20 @@ body { display:flex; flex-direction:column; height:100dvh; }
 </head>
 <body>
 <div id="top">
-    <a id="back" href="hike.html">← 목록</a>
-    <div id="title">탐방 안내도</div>
-    <a id="official" target="_blank" rel="noopener" title="국립공원공단 누리집의 탐방로 등급지도(새 창)">🗺 공식 지도</a>
+    <a id="back" href="hike.html" data-en="← List">← 목록</a>
+    <div id="title" data-en="Trail map">탐방 안내도</div>
+    <a id="official" target="_blank" rel="noopener" title="국립공원공단 누리집의 탐방로 등급지도(새 창)" data-en="🗺 Official map" data-en-title="Official trail grade map on the Korea National Park Service website (new window)">🗺 공식 지도</a>
 </div>
 <button type="button" id="note" aria-expanded="false"></button>
 <a id="petNote" target="_blank" rel="noopener"></a>
 <div id="mapWrap">
     <div id="map"></div>
-    <button type="button" id="layerBtn" aria-label="밝은 지도 · 위성사진 바꾸기">🛰️</button>
-    <div id="msg">공원 탐방로를 불러오는 중…</div>
+    <button type="button" id="layerBtn" aria-label="밝은 지도 · 위성사진 바꾸기" data-en-aria-label="Switch light map · satellite">🛰️</button>
+    <div id="msg" data-en="Loading park trails…">공원 탐방로를 불러오는 중…</div>
 </div>
-<div id="sheet"><div class="tip">탐방로를 누르면 그 코스를 미리 보거나 따라갈 수 있습니다.</div></div>
+<div id="sheet"><div class="tip" data-en="Tap a trail to preview it or follow it.">탐방로를 누르면 그 코스를 미리 보거나 따라갈 수 있습니다.</div></div>
 <!-- 공단 저작권정책: 공단 파일에 직접 링크하면 저작권정책 페이지도 함께 링크해 달라고 함(docs/knps-maps.md) -->
-<div id="credit">공식 지도: 국립공원공단 · <a href="https://www.knps.or.kr/portal/main/contents.do?menuNo=8000186" target="_blank" rel="noopener">저작권정책</a></div>
+<div id="credit" data-en="Official map: Korea National Park Service · &lt;a href=&quot;https://www.knps.or.kr/portal/main/contents.do?menuNo=8000186&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Copyright policy&lt;/a&gt;">공식 지도: 국립공원공단 · <a href="https://www.knps.or.kr/portal/main/contents.do?menuNo=8000186" target="_blank" rel="noopener">저작권정책</a></div>
 <script src="vendor/maplibre-gl-5.24.0/maplibre-gl.js"></script>
 <script src="js/course-kit.js"></script>
 <script src="js/park.js"></script>

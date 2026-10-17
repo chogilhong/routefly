@@ -7,6 +7,12 @@
     "use strict";
     var RF = window.RF;
     function $(id) { return document.getElementById(id); }
+    // 화면 말(2026-10-17 홍TV님 - 영어): ?lang=en · 따라가기에서 고른 말(rf-lang)
+    var LANG = RF.pageLang(location.search, (function () { try { return localStorage.getItem("rf-lang"); } catch (e) { return null; } })());
+    if (/[?&]lang=(en|ko)\b/.test(location.search)) { try { localStorage.setItem("rf-lang", LANG); } catch (e) { /* 이번만 */ } }
+    var EN = LANG === "en", T = RF.tr, NM = RF.nameIn;
+    RF.setLang(LANG);
+    if (EN) { document.documentElement.lang = "en"; document.title = "routefly - Trail map"; RF.applyEn(document); }
     var q = new URLSearchParams(location.search), park = q.get("name") || "", from = q.get("from"), backTo = q.get("back");
     // 목록 카드의 지역 붙은 이름(광양 가야산 - 2026-10-14 PC) - 제목에만. 산 이름이 들어 있고 짧은 한글 · 괄호만
     var label = q.get("label") || "";
@@ -78,7 +84,8 @@
             if (nm && noteNames && Object.prototype.hasOwnProperty.call(noteNames, nm.replace(/\s+/g, ""))) nm = noteNames[nm.replace(/\s+/g, "")];
             if (nm && names.indexOf(nm) < 0) names.push(nm);
         });
-        if (names.length < 3) return "아직 이어지지 않은 구간이 있습니다";
+        if (names.length < 3) return T("아직 이어지지 않은 구간이 있습니다", "Some sections are not connected yet");
+        if (EN) return "the ends split into " + names.length + " places: " + names.map(NM).join(" · ");
         var many = ["", "", "", "세", "네", "다섯", "여섯"][names.length] || String(names.length);
         return "끝이 " + names.join(" · ") + " " + many + " 곳으로 갈라져 있습니다";
     }
@@ -243,7 +250,9 @@
             $("sheet").innerHTML = "";
             var w = document.createElement("div");
             w.className = "tip";
-            w.textContent = pendingId ? "앞 노선의 출발 · 도착과 한 구간 떨어져 있습니다 - 사이 탐방로를 누르면 이어집니다(다시 누르면 뺍니다)."
+            w.textContent = EN ? (pendingId ? "This is one section away from the current route - tap the trail in between to connect (tap again to remove)."
+                : chosen.length + " sections picked. " + looseText(plan.loose) + " - tap the trails in between (tap again to remove).")
+                : pendingId ? "앞 노선의 출발 · 도착과 한 구간 떨어져 있습니다 - 사이 탐방로를 누르면 이어집니다(다시 누르면 뺍니다)."
                 : chosen.length + "구간을 골랐습니다. " + looseText(plan.loose) + " - 사이 탐방로를 더 누르세요(다시 누르면 뺍니다).";
             $("sheet").appendChild(w);
             return;
@@ -288,20 +297,20 @@
             });
             return best;
         };
-        startMk = flag((round ? "🚩 출발 · 도착 " : "🚩 출발 ") + (from || ""), at(from, plan.start));
-        if (!round) endMk = flag("🏁 도착 " + (to || ""), at(to, plan.end));
+        startMk = flag((round ? T("🚩 출발 · 도착 ", "🚩 Start · finish ") : T("🚩 출발 ", "🚩 Start ")) + (from || ""), at(from, plan.start));
+        if (!round) endMk = flag(T("🏁 도착 ", "🏁 Finish ") + (to || ""), at(to, plan.end));
         var meters = full.reduce(function (m, s) { return m + (+byId[s.id].distance_m || 0); }, 0);
         $("sheet").innerHTML = "";
         var nm = document.createElement("div");
         nm.className = "nm";
         // 예시로 고른 탐방로 하나는 걷는 방향 이름(한려해상 "가라산정상 → 다대저수지상부" 는 거꾸로 그린 선 - 대성사 → 가라산)
         RF.nameNodes(nm, one && exStart && !round && from && to ? RF.nameParts(one.name).group + " · " + RF.endsText(from, to)
-            : one ? one.name : round ? (from || "") + " 원점회귀 · " + chosen.length + "구간"
-            : chosen.length + "구간 이어 걷기" + (from || to ? " · " + RF.endsText(from, to) : ""));
+            : one ? one.name : round ? (from || "") + T(" 원점회귀 · ", " loop · ") + chosen.length + T("구간", " sections")
+            : chosen.length + T("구간 이어 걷기", " sections joined") + (from || to ? " · " + RF.endsText(from, to) : ""));
         var st = document.createElement("div");
         st.className = "st";
-        st.textContent = RF.km(meters) + "km" + (one && one.ascent_m != null ? " · 오르막 " + RF.num(one.ascent_m) + "m" : " · 오르막은 따라가기 화면에서")
-            + (full.some(function (s) { return byId[s.id].extra; }) ? " · 옅은 선은 산림청 · 등산트레킹 자료" : "");
+        st.textContent = RF.km(meters) + "km" + (one && one.ascent_m != null ? T(" · 오르막 ", " · climb ") + RF.num(one.ascent_m) + "m" : T(" · 오르막은 따라가기 화면에서", " · climb shown in Follow"))
+            + (full.some(function (s) { return byId[s.id].extra; }) ? T(" · 옅은 선은 산림청 · 등산트레킹 자료", " · faint lines: Korea Forest Service data") : "");
         var row = document.createElement("div");
         row.className = "row";
         var link = function (list) {
@@ -327,7 +336,9 @@
         };
         var k1 = known(fwdN), k2 = known2(bwdN, k1);
         // 반대쪽에 다른 이름이 없으면 "삼불봉 나중에"(2026-10-13 PC: 계룡산 갑사 - "반대 방향 쪽으로 먼저")
-        var labels = round ? [(k1 || "이 방향") + " 쪽으로 먼저", k2 ? k2 + " 쪽으로 먼저" : k1 ? k1 + " 나중에" : "반대 방향으로"]
+        var labels = EN ? (round ? [(k1 ? "Via " + NM(k1) : "This way") + " first", k2 ? "Via " + NM(k2) + " first" : k1 ? NM(k1) + " last" : "Other way"]
+            : from && to ? [from + " → " + to, to + " → " + from] : ["Follow", "Follow reversed"])
+            : round ? [(k1 || "이 방향") + " 쪽으로 먼저", k2 ? k2 + " 쪽으로 먼저" : k1 ? k1 + " 나중에" : "반대 방향으로"]
             : from && to ? [from + " → " + to, to + " → " + from] : ["따라가기", "거꾸로 따라가기"];
         var second = RF.reverseSel(full);
         // 들머리에서 정상 같은 막다른 곳까지면 "왕복"(올랐다 같은 길로 들머리) - 한라산 성판악 ↔ 백록담처럼 고리가 없는 산의 원점회귀(2026-10-13 홍TV님)
@@ -335,7 +346,7 @@
         // 들머리 자료가 적은 산(한라산은 어리목탐방안내소 하나)은 끝 이름이 정상 · 봉 · 오름 · 대피소 · 분기점이면
         // 왕복 예시를 눌렀으면 늘(2026-10-13 PC: 범왕교 ↔ 반야봉 왕복이 편도 단추만)
         if (!round && (exRound === false || (!headNear(plan.end) && (headNear(plan.start) || /(정상|봉|산|대|오름|분기점|대피소)$/.test(to || ""))))) {
-            labels = [(from || "") + " → " + (to || "") + " 편도", (to || "정상") + " 왕복"];
+            labels = EN ? [NM(from || "") + " → " + NM(to || "") + " one way", (to ? NM(to) : "Summit") + " out and back"] : [(from || "") + " → " + (to || "") + " 편도", (to || "정상") + " 왕복"];
             second = full.concat(RF.reverseSel(full));
         }
         [[labels[0], full], [labels[1], second]].forEach(function (d, k) {
@@ -348,7 +359,10 @@
         });
         var tip = document.createElement("div");
         tip.className = "tip";
-        tip.textContent = apartNote ? "앞 노선의 출발 · 도착과 두 구간 넘게 떨어져 있어 앞 노선을 지우고 이 구간으로 새로 골랐습니다."
+        tip.textContent = EN ? (apartNote ? "That was more than two sections from the current route, so a new route was started from it."
+            : round ? "A loop back to the trailhead (dead ends like a summit are walked out and back). Pick which way to go first."
+            : "Tap connected trails to add them, tap again to remove. Pick the direction to follow.")
+            : apartNote ? "앞 노선의 출발 · 도착과 두 구간 넘게 떨어져 있어 앞 노선을 지우고 이 구간으로 새로 골랐습니다."
             : round ? "출발한 들머리로 돌아오는 코스입니다(정상 같은 갈래는 올랐다 같은 길로). 어느 쪽으로 먼저 돌지 고르세요."
             : "이어진 탐방로를 더 누르면 함께 고르고, 다시 누르면 뺍니다. 따라갈 방향을 고르세요.";
         apartNote = false;
@@ -401,8 +415,8 @@
             var l1 = document.createElement("span"), l2 = document.createElement("span");
             l1.className = "l1";
             l2.className = "l2";
-            l1.textContent = "★ " + b.label;
-            l2.textContent = "대표 코스";
+            l1.textContent = "★ " + NM(b.label);
+            l2.textContent = T("대표 코스", "Featured trail");
             a.appendChild(l1);
             a.appendChild(l2);
             row.appendChild(a);
@@ -416,13 +430,14 @@
             l1.className = "l1";
             l2.className = "l2";
             RF.nameNodes(l1, (x.loop ? "↻ " : "⇄ ") + x.head);
-            l2.textContent = "↔ " + x.peak + (x.loop ? " 원점회귀" : " 왕복") + " · " + RF.km(x.m) + "km";
+            l2.textContent = "↔ " + NM(x.peak) + (x.loop ? T(" 원점회귀", " loop") : T(" 왕복", " out and back")) + " · " + RF.km(x.m) + "km";
             a.appendChild(l1);
             a.appendChild(l2);
             row.appendChild(a);
         });
         // 아래 칸 높이는 그대로(탐방로를 골랐을 때와 같게) - 안내 글은 예시 제목에 넣음
-        h.textContent = ((noteBest || []).length ? "대표 코스" + (examples.length ? " · 원점회귀 예시" : "") : "원점회귀 예시") + "(옆으로 넘김) · 탐방로를 눌러 직접 고를 수도 있습니다";
+        h.textContent = EN ? ((noteBest || []).length ? "Featured trails" + (examples.length ? " · loop examples" : "") : "Loop examples") + " (swipe) · or tap trails on the map to build your own"
+            : ((noteBest || []).length ? "대표 코스" + (examples.length ? " · 원점회귀 예시" : "") : "원점회귀 예시") + "(옆으로 넘김) · 탐방로를 눌러 직접 고를 수도 있습니다";
         var tip = $("sheet").querySelector(".tip");
         if (tip) tip.parentNode.removeChild(tip);   // 목록에서 온 화면도(두 줄 단추로 높이가 165px 이 됐음)
         $("sheet").insertBefore(box, $("sheet").firstChild);
@@ -508,8 +523,8 @@
             var loop = !!(e.from && e.from === e.to);
             // 산 전체 지도(🏞 로 옴)는 코스에 맞추지 않으니 깃발이 화면 밖이면 안쪽으로(2026-10-13 PC: ★ 위문 깃발이 x -74 로 잘림)
             var mk = function (txt, at) { return flagMarker(txt, at, pts, !!keepView); };
-            if (e.from) startMk = mk((loop ? "🚩 출발 · 도착 " : "🚩 출발 ") + e.from, pts[0]);
-            if (e.to && !loop) endMk = mk("🏁 도착 " + e.to, pts[pts.length - 1]);
+            if (e.from) startMk = mk((loop ? T("🚩 출발 · 도착 ", "🚩 Start · finish ") : T("🚩 출발 ", "🚩 Start ")) + e.from, pts[0]);
+            if (e.to && !loop) endMk = mk(T("🏁 도착 ", "🏁 Finish ") + e.to, pts[pts.length - 1]);
             var w = 180, so = 90, e2 = -180, n = -90;
             pts.forEach(function (q) { w = Math.min(w, q[0]); e2 = Math.max(e2, q[0]); so = Math.min(so, q[1]); n = Math.max(n, q[1]); });
             // 깃발 글자가 펼쳐지는 쪽은 그만큼 더 띄움(공룡능선 "출발 · 도착 비선대" 가 화면 끝에서 잘렸음)
@@ -521,7 +536,7 @@
             RF.nameNodes(nm, b.label ? "★ " + b.label + " · " + RF.nameText(name, true) : RF.nameText(name, true));   // 탐방로가 아닌 코스(🏞 로 온 우이령길)는 이름만
             var st = document.createElement("div");
             st.className = "st";
-            st.textContent = RF.km(meters) + "km" + (one && one.course.ascent_m != null ? " · 오르막 " + RF.num(+one.course.ascent_m) + "m" : "") + (b.label ? " · 대표 코스" : "");
+            st.textContent = RF.km(meters) + "km" + (one && one.course.ascent_m != null ? T(" · 오르막 ", " · climb ") + RF.num(+one.course.ascent_m) + "m" : "") + (b.label ? T(" · 대표 코스", " · featured") : "");
             var row = document.createElement("div");
             row.className = "row";
             // 길 이름을 따라가기 제목으로(&title= - 이은 코스는 "N구간 이어 걷기" 가 됨)
@@ -529,7 +544,7 @@
                 + (b.name && e.from ? "&head=" + encodeURIComponent(e.from) : "")   // 들머리 이름표(설악산 공룡능선 - 산림청 선 처음 이름 "권금성" 대신 소공원)
                 + viaTag();
             // 둘째 단추는 처음 탐방 안내도 아래 칸으로(2026-10-13 홍TV님: "예시로" → 탐방 안내도)
-            [["따라가기", href, true], ["탐방 안내도", "#", false]].forEach(function (d) {
+            [[T("따라가기", "Follow"), href, true], [T("탐방 안내도", "Trail map"), "#", false]].forEach(function (d) {
                 var a = document.createElement("a");
                 a.textContent = d[0];
                 a.href = d[1];
@@ -735,7 +750,7 @@
             var n = d && d.parks && d.parks[name];
             if (!n) return;
             if (n.pet && n.pet.text) {   // 🐾 반려견 동반 가능(예약) - 누르면 국립공원 예약시스템 반려견 동행
-                $("petNote").textContent = "🐾 반려견 동반 가능(예약) · " + n.pet.text + " ›";
+                $("petNote").textContent = EN ? "🐾 Dogs allowed with reservation (details in Korean) ›" : "🐾 반려견 동반 가능(예약) · " + n.pet.text + " ›";
                 if (/^https:\/\//.test(n.pet.url || "")) $("petNote").href = n.pet.url;
                 $("petNote").style.display = "block";
             }
@@ -748,7 +763,7 @@
             if (!n.short) return;
             var el = $("note"), today = RF.parkRules(n, [], new Date());
             // 오늘 계절(한라산 하절기 4~9월 · 동절기 10~3월)을 앞에 - 좁아 뒤는 말줄임, 누르면 코스마다 통제 시각
-            var shortLine = function () { el.textContent = "⚠ " + (today && today.season ? "오늘 " + today.season + " · " : "") + n.short + " ›"; };
+            var shortLine = function () { el.textContent = EN ? "⚠ Entry rules and closure times for this park ›" : "⚠ " + (today && today.season ? "오늘 " + today.season + " · " : "") + n.short + " ›"; };
             shortLine();
             el.style.display = "block";
             el.addEventListener("click", function () {
@@ -759,21 +774,21 @@
                 if (!open) { shortLine(); return; }
                 el.textContent = "";
                 var line = function (t) { el.appendChild(document.createTextNode("· " + t)); el.appendChild(document.createElement("br")); };
-                n.lines.forEach(line);
+                if (!EN) n.lines.forEach(line);   // 안내 글은 한국어 원문 - 영어는 코스마다 시각만
                 // 코스마다 오늘 계절의 입산 통제 · 하산 시각
                 (n.courses || []).forEach(function (cc) {
                     var r = RF.parkRules(n, [cc.label.split(" · ")[0]], new Date());
                     if (r && r.course) line(RF.rulesText({ season: r.season, course: r.course }));
                 });
                 var by = document.createElement("small");
-                by.textContent = "출처: " + n.by + " - 바뀔 수 있으니 가기 전에 확인하세요 ";
+                by.textContent = EN ? "Source: " + NM(n.by) + " - rules may change, check before you go " : "출처: " + n.by + " - 바뀔 수 있으니 가기 전에 확인하세요 ";
                 el.appendChild(by);
                 if (n.url && /^https:\/\//.test(n.url)) {   // 공고 원문(https 만)
                     var a = document.createElement("a");
                     a.href = n.url;
                     a.target = "_blank";
                     a.rel = "noopener";
-                    a.textContent = "공고 보기 ›";
+                    a.textContent = T("공고 보기 ›", "Official notice (Korean) ›");
                     a.style.color = "#ffd8a8";
                     a.addEventListener("click", function (e) { e.stopPropagation(); });
                     by.appendChild(a);
@@ -784,14 +799,15 @@
     }
 
     function start() {
-        $("title").textContent = park ? (label || park) + " 탐방 안내도" : "탐방 안내도";
+        $("title").textContent = EN ? (park ? NM(label || park) + " trail map" : "Trail map") : park ? (label || park) + " 탐방 안내도" : "탐방 안내도";
         $("title").classList.toggle("long", String(label || park || "").length >= 5);   // 2026-10-12 홍TV님: "전체 보기" → "탐방 안내도"
         // 위 단추 - 기본은 "← 목록"(따라가기 첫 화면)
         if (listMode) {   // 목록 카드에서 왔으면: 위 "← 목록" 은 따라가기 화면(검색 목록 - 검색어는 rf-search 로 남아 있음), 아래 "따라가기" 는 고른 탐방로로
-            $("back").textContent = "← 목록";   // 2026-10-13 홍TV님: "← 뒤로" → "← 목록"
+            $("back").textContent = T("← 목록", "← List");   // 2026-10-13 홍TV님: "← 뒤로" → "← 목록"
             $("back").href = "hike.html";
             $("sheet").classList.add("listmode");
-            $("sheet").innerHTML = '<div class="tip">탐방로를 누르면 그 코스를 따라갈 수 있습니다.</div><div class="row"><a class="main" id="followNone" href="hike.html">따라가기</a></div>';
+            $("sheet").innerHTML = T('<div class="tip">탐방로를 누르면 그 코스를 따라갈 수 있습니다.</div><div class="row"><a class="main" id="followNone" href="hike.html">따라가기</a></div>',
+                '<div class="tip">Tap a trail to follow it.</div><div class="row"><a class="main" id="followNone" href="hike.html">Follow</a></div>');
         }
         // 따라가기의 🏞 로 왔어도 위 단추는 park.html 의 기본 "← 목록"(따라가기 첫 화면 - 2026-10-13 홍TV님: "‹ 따라가기" → 목록)
         // 고른 탐방로가 없을 때 아래 칸(모두 빼면 다시 이것으로). 따라가기는 아래 칸에 맡겨 받음(다시 그려도 됨)
@@ -813,7 +829,7 @@
             }
             if (!e.target || e.target.id !== "followNone") return;
             e.preventDefault();
-            alert("탐방로를 선택하세요.");   // 탐방로를 고르기 전(2026-10-12 홍TV님)
+            alert(T("탐방로를 선택하세요.", "Pick a trail first."));   // 탐방로를 고르기 전(2026-10-12 홍TV님)
         });
         var notesReady = showNote(park);
         Promise.all([
@@ -851,8 +867,8 @@
             map.touchZoomRotate.disableRotation();
             RF.spotsByZoom(map);   // 위험 · 조망 아이콘은 확대했을 때만
             map.addControl(new maplibregl.AttributionControl({ compact: true,
-                customAttribution: (data.national ? "탐방로: 국립공원공단 탐방로 공간데이터" : "등산로: 산림청 · 한국등산트레킹지원센터 · OpenStreetMap")
-                    + " | 지명: © OpenStreetMap contributors | <a href=\"about.html\">안내</a>" }), "top-right");
+                customAttribution: (data.national ? T("탐방로: 국립공원공단 탐방로 공간데이터", "Trails: Korea National Park Service") : T("등산로: 산림청 · 한국등산트레킹지원센터 · OpenStreetMap", "Trails: Korea Forest Service · OpenStreetMap"))
+                    + T(" | 지명: © OpenStreetMap contributors | <a href=\"about.html\">안내</a>", " | Places: © OpenStreetMap contributors | <a href=\"about.html\">About</a>") }), "top-right");
             // 출처는 ⓘ 로 접어 둠(따라가기 화면과 같게 - 지도를 가리지 않게)
             var fold = function () { var a = document.querySelector(".maplibregl-ctrl-attrib"); if (a) a.classList.remove("maplibregl-compact-show"); };
             fold();
@@ -869,7 +885,7 @@
                 });
             });
         }).catch(function (e) {
-            $("msg").textContent = e.message || "공원 탐방로를 읽지 못했습니다.";
+            $("msg").textContent = EN ? "Could not load the park trails." : e.message || "공원 탐방로를 읽지 못했습니다.";
         });
     }
 
