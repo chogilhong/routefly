@@ -2147,15 +2147,21 @@
      * 앱 - 폰 알림(알림창 + 진동 + 소리)으로도 알림. 화면이 꺼지면 웹뷰의 navigator.vibrate 가 막혀 진동이 없었음(2026-10-17).
      * text 가 null 이면 떠 있는 알림을 치움. 알림 권한은 백그라운드 위치("산행 중" 알림)와 같은 것.
      */
-    var SAFETY_NOTE_ID = 7001, safetyChannel = null;
+    var SAFETY_NOTE_ID = 7001, safetyChannel = null, safetyGen = 0;
+    function safetyCancel() {
+        var one = { notifications: [{ id: SAFETY_NOTE_ID }] };
+        Promise.resolve(LN.cancel(one)).catch(function () { /* 없음 */ });
+        if (LN.removeDeliveredNotifications) Promise.resolve(LN.removeDeliveredNotifications(one)).catch(function () { /* 없음 */ });   // 알림창에 떠 있는 것까지
+    }
     function safetyNotify(title, body) {
         if (!LN) return;
-        if (!title) { LN.cancel({ notifications: [{ id: SAFETY_NOTE_ID }] }).catch(function () { /* 없음 */ }); return; }
+        var g = ++safetyGen;   // 2026-10-17 PC: 띄우는 중(채널 만들기 기다림)에 "괜찮아요" 로 치우면 늦게 뜬 알림이 남았음 - 그 뒤 다시 치움
+        if (!title) { safetyCancel(); return; }
         if (!safetyChannel) safetyChannel = LN.createChannel({ id: "rf-safety", name: "routefly 안전 알림", description: "움직임 없음 · 긴급 신고 알림",
             importance: 5, visibility: 1, vibration: true }).catch(function () { /* 안드로이드 8 아래 · 이미 있음 */ });
         safetyChannel.then(function () {
             return LN.schedule({ notifications: [{ id: SAFETY_NOTE_ID, title: title, body: body || "", channelId: "rf-safety" }] });
-        }).catch(function () { /* 알림 권한 없음 - 음성 · 화면으로만 */ });
+        }).then(function () { if (g !== safetyGen) safetyCancel(); }).catch(function () { /* 알림 권한 없음 - 음성 · 화면으로만 */ });
     }
 
     function render() {
