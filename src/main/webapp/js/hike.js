@@ -1215,7 +1215,7 @@
         var ef = effort();
         rec.kcal = ef.kcal;
         rec.steps = ef.steps;
-        rec.up = ef.up;
+        rec.up = Math.max(ef.up, RF.trackClimb(hike.track));   // 코스 밖(새 길 · 들머리 가는 길)도 GPS 높이로(2026-10-17 송산 0m)
         recordsReady.then(function () {
             var list = records();
             list.unshift(rec);

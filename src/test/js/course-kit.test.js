@@ -973,4 +973,6 @@ eq("stampRadius GPS 오차 + 20, 40 ~ max", [RF.stampRadius(5, 150), RF.stampRad
         all.some(function (x) { return /날씨|비|바람이 세|안전|위험|가도 좋|weather|safe|rain/.test(x) && !/바람이 시원/.test(x); })],
         [true, "string", true, "⛰️ 설악산 대청봉", "⛰️ 가리산", true, true, false]);
 })();
+eq("trackClimb 10m 넘게 바뀐 것만", [RF.trackClimb([[0, 0, 0, 5], [0, 0, 1, 9], [0, 0, 2, 3], [0, 0, 3, 20], [0, 0, 4, 18], [0, 0, 5, 40], [0, 0, 6, null], [0, 0, 7, 25], [0, 0, 8, 37]]),
+    RF.trackClimb([]), RF.trackClimb([[0, 0, 0, null]])], [15 + 20 + 12, 0, 0]);
 
