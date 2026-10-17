@@ -65,7 +65,7 @@ input[type=time], input[type=tel], input[type=text] { width:100%; height:46px; b
 <main>
     <!-- 급할 때 단추를 맨 위에(2026-10-18 홍TV님) -->
     <div class="row2 top">
-        <a id="helpSms" href="sms:" data-en="🙋 Ask guardian for help">🙋 보호자에게 도움 요청</a>
+        <a id="helpCall" href="#settings" data-en="📞 Call guardian">📞 보호자에게 전화</a>
         <a class="sos" href="tel:119" data-en="📞 Call 119">📞 119 전화</a>
     </div>
     <p class="status" id="status">오늘 안부를 불러오는 중…</p>
@@ -73,7 +73,7 @@ input[type=time], input[type=tel], input[type=text] { width:100%; height:46px; b
     <p class="log" id="log"></p>
 
     <section>
-        <h2 data-en="⚙️ Settings">⚙️ 설정</h2>
+        <h2 id="settings" data-en="⚙️ Settings">⚙️ 설정</h2>
         <label for="time" data-en="Daily check-in time">매일 안부 확인 시각</label>
         <input type="hidden" id="time" value="10:00"><div class="tsel" data-for="time"></div>
         <label for="gName" data-en="Guardian name (family, neighbor)">보호자 이름(가족 · 이웃)</label>

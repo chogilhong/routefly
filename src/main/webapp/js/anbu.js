@@ -77,7 +77,8 @@
         $("okBtn").textContent = c ? T("✅ 오늘 확인 완료", "✅ Done for today") : T("😊 오늘도 잘 지내요", "😊 I'm fine today");
         var last = st.log.slice(-7).reverse().map(function (l) { return l.day.slice(5).replace("-", "/") + " " + clock(l.t); });
         $("log").textContent = last.length ? T("최근 확인: ", "Recent: ") + last.join(" · ") : "";
-        $("helpSms").href = smsHref(st.gTel, RF.anbuSms("help", clock(Date.now()), EN));
+        // 📞 보호자에게 전화(2026-10-18 홍TV님 - 119 처럼 누르면 전화 걸기 화면). 번호가 없으면 설정으로
+        $("helpCall").href = st.gTel ? "tel:" + st.gTel : "#settings";
         var L = st.late;
         $("lateState").textContent = !L ? "" : L.home ? T("🏠 " + clock(L.home) + " 집 도착 확인", "🏠 Home at " + clock(L.home))
             : T("도착 예정 " + clock(L.at) + " - 도착하면 '집에 왔어요' 를 눌러 주세요", "Expected home " + clock(L.at) + " - tap \"I'm home\" when you arrive");
@@ -163,6 +164,9 @@
     timeSel("lateAt");
     // 늦은 귀가 처음 값 - 지금부터 1시간 뒤(5분 단위)
     (function () { var d = new Date(Math.ceil((Date.now() + 3600000) / 300000) * 300000); timeSel.set.lateAt(d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0")); })();
+    $("helpCall").addEventListener("click", function () {
+        if (!st.gTel) toast(T("먼저 아래 설정에서 보호자 전화번호를 저장해 주세요.", "Save your guardian's number in Settings below first."), 4000);
+    });
     // 전화번호는 숫자만 쳐도 010-1234-5678 로, - 를 쳐도 무시(2026-10-18 홍TV님)
     $("gTel").addEventListener("input", function () { var v = RF.telFormat(this.value); if (v !== this.value) this.value = v; });
     draw();
