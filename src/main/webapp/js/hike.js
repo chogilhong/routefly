@@ -2518,6 +2518,10 @@
     $("back").addEventListener("click", function (e) {
         e.preventDefault();
         if (hike.running) { toast((hike.sim ? "시험 걷기" : K().act) + " 중입니다. " + (fromSeries ? "도장 · 완주 화면" : "코스 목록") + "으로 가려면 먼저 아래 '" + $("go").textContent + "' 를 눌러 주세요.", 4000); return; }   // 단추 글 그대로(시험 걷기 끝내기)
+        // 2026-10-17 홍TV님 폰: 목록에서 내 기록 → 기록 선 보기로 왔으면 주소에 코스가 없어(location.hash 이미 빔) ‹ 가 아무것도 안 했음 -
+        // "기록 선 지우기" 를 눌러야 됐음. 기록 선을 치우고 목록으로
+        if ($("recClear").style.display === "block") clearRecLine();
+        if (!/[#&]c=/.test(location.hash)) { showPick(); return; }
         if (fromSeries) { location.href = "series.html"; return; }
         if (fromMountain) {
             var mBack = /\/m\//.test(document.referrer || "");
@@ -2816,9 +2820,12 @@
     Array.prototype.forEach.call($("sumKinds").children, function (b) { b.addEventListener("click", function () { sumKind = b.getAttribute("data-k"); drawSummary(); }); });
     $("backupLoad").addEventListener("click", function () { $("backupFile").value = ""; $("backupFile").click(); });
     $("backupFile").addEventListener("change", function () { if (this.files && this.files[0]) backupLoad(this.files[0]); });
-    $("recClear").addEventListener("click", function () {
+    function clearRecLine() {
         if (mapReady) mapReady.then(function () { map.getSource("recTrack").setData({ type: "FeatureCollection", features: [] }); });
         $("recClear").style.display = "none";
+    }
+    $("recClear").addEventListener("click", function () {
+        clearRecLine();
         if (!c) showPick();   // 코스 없이 기록만 보던 때 - 코스 고르기로 돌아감
     });
     $("doneClose").addEventListener("click", function () { $("doneSheet").style.display = "none"; });
