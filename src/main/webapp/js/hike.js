@@ -1708,6 +1708,7 @@
         hike.branch = null;
         hike.kmSpoken = Math.floor(hike.d / (K() === RF.KINDS.bike ? 5000 : 1000));
         hike.paceFin = "";
+        hike.headSaid = null;
         hike.pace = sim ? null : paceFor(c);   // 같은 코스 지난 기록(2026-10-16 홍TV님 추가 기능 2번)
         voice.last = {};
         // 시작 버튼을 누른 그 순간에 말해야 아이폰도 소리를 냅니다(사용자 동작 안에서 처음 말하기)
@@ -2275,7 +2276,12 @@
                     var hn = startName();
                     $("offText").textContent = (hn ? "들머리(" + hn + ")" : "코스 출발점") + "까지 " + distText(nt.off) + " · " + dirWord(br)
                         + ". 도착하면 안내가 시작됩니다.";
-                    say((hn ? spokenName(hn) : "코스 출발점") + "까지 " + dirWord(br) + " " + distSpoken(nt.off) + "입니다.", { key: "off", gap: 300000 });
+                    // 5분에 한 번(2026-10-17 홍TV님 폰: 8~15초마다 되풀이 - voice.last 가 지워져도 따로 셈), 300m 넘게 다가가면 그때도
+                    var hs = hike.headSaid;
+                    if (!hs || Date.now() - hs.t >= 300000 || hs.off - nt.off >= 300) {
+                        hike.headSaid = { t: Date.now(), off: nt.off };
+                        say((hn ? spokenName(hn) : "코스 출발점") + "까지 " + dirWord(br) + " " + distSpoken(nt.off) + "입니다.");   // urgent 아님 - 안전 알림을 끊지 않게
+                    }
                 } else if (hike.branch) {
                     $("offText").textContent = "코스가 아닌 다른 길로 들어섰습니다 · 코스는 " + dirWord(br) + " " + distText(nt.off)
                         + ". 이 길로 계속 가면 이 길로 코스를 바꿉니다.";

@@ -38,4 +38,6 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 2026-10-17: 웹뷰 navigator.vibrate(움직임 없음 · 일몰 · 갈림길 알림)는 이 권한이 없으면 말없이 무시됨 -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 </manifest>
