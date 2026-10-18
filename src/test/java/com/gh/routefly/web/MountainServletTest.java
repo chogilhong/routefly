@@ -67,6 +67,7 @@ public class MountainServletTest {
         assertFalse("스크립트는 파일로만(CSP)", html.matches("(?s).*<script>.*"));
         assertTrue("산행 안전 팁(영어판과 짝 - 2026-10-18)", html.contains("<h2>⚠ 산행 안전 팁</h2>") && html.contains("다목적위치표지판(국가지점번호)") && html.contains("📨 가족에게 산행 계획 알리기"));
         assertTrue("목록에도 안전 팁", MountainServlet.indexPage(peaks, new JsonArray(), "", false).contains("<h2>⚠ 산행 안전 팁</h2>"));
+        assertTrue("안부 링크는 한국어로(영어를 쓴 적 있어도 - 2026-10-18)", MountainServlet.indexPage(peaks, new JsonArray(), "", false).contains("/anbu.html?lang=ko\">🏠 오늘의 안부"));
     }
 
     @Test
