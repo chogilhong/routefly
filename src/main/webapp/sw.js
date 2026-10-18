@@ -6,7 +6,7 @@
  *   - 지도 타일(V-World 위성사진 · 지형): 받아 둔 것이 있으면 그것(오프라인 저장 · 본 적 있는 곳), 없으면 받아서 조금 남겨 둠
  *   - MapLibre(vendor): 바뀌지 않으므로 받아 둔 것 먼저
  */
-var SHELL = "rf-shell-v13", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
+var SHELL = "rf-shell-v14", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
 var TILE_KEEP = 1500;   // 지나가며 본 타일은 이만큼만 남깁니다(저장 공간)
 // 2026-10-09 점검: API 캐시도 한도 - 지도를 움직일 때마다 목록 주소(bbox)가 하나씩 늘어 끝없이 커졌습니다.
 // 오프라인 저장한 코스는 OFFLINE 캐시에 따로 있어 지워지지 않습니다.
@@ -55,6 +55,14 @@ function trim(name, keep) {
  * 먼저 내주고(없으면 계속 기다림), 늦게 온 답은 뒤에서 캐시만 고칩니다(waitUntil).
  */
 var NET_WAIT = 4000;
+/**
+ * 받아 둔 것 찾기 - 이 종류의 캐시(cacheName)를 먼저, 없으면 다른 캐시. 2026-10-18 홍TV님: 그냥 caches.match 는 먼저 만든 캐시부터 보므로
+ * 산 페이지 "신호 없을 때 보기"(rf-offline-v1)에 예전에 담은 화면 파일이 새 화면 파일(rf-shell)보다 먼저 나와, 지운 문구가 계속 보였을 수 있음.
+ */
+function cached(key, cacheName) {
+    return caches.open(cacheName).then(function (c) { return c.match(key, { ignoreVary: true }); })
+        .then(function (hit) { return hit || caches.match(key, { ignoreVary: true }); });
+}
 function networkFirst(e, cacheName) {
     var req = e.request;
     // 화면 파일은 ?뒤를 뺀 주소 하나로 - park.html?name=… · ?debug 마다 한 벌씩 쌓여 끝없이 커졌음(2026-10-11 오픈 전 점검).
@@ -75,7 +83,7 @@ function networkFirst(e, cacheName) {
         return res;
     });
     var netOrOffline = net.catch(function () {
-        return caches.match(key, { ignoreVary: true }).then(function (hit) {
+        return cached(key, cacheName).then(function (hit) {
             if (hit) return hit;
             if (req.mode === "navigate") {   // 화면 주소면 JSON 글자 대신 안내 화면
                 return new Response('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
@@ -90,7 +98,7 @@ function networkFirst(e, cacheName) {
     });
     e.waitUntil(net.catch(function () { /* 위에서 처리 */ }));   // 먼저 캐시를 내준 뒤에도 늦은 답으로 캐시를 고칠 때까지
     var slow = new Promise(function (resolve) { setTimeout(resolve, NET_WAIT); }).then(function () {
-        return caches.match(key, { ignoreVary: true }).then(function (hit) { return hit || netOrOffline; });
+        return cached(key, cacheName).then(function (hit) { return hit || netOrOffline; });
     });
     return Promise.race([netOrOffline, slow]);
 }
