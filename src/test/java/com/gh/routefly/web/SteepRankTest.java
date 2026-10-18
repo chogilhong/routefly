@@ -84,13 +84,17 @@ public class SteepRankTest {
             m.put(id, cs);
         }
         SteepRank.Result r = SteepRank.rank(peaks, m);
-        assertEquals(10, r.avg.size());
-        assertEquals(10, r.steepest.size());
+        assertEquals("전체(2026-10-18 홍TV님)", 12, r.avg.size());
+        assertEquals(12, r.steepest.size());
+        String h = SteepRank.html(r, false);
+        assertTrue("10위 뒤에 접은 줄", h.contains("<details class=\"stMore\"><summary>11위 ~ 12위 보기</summary></details></td></tr></tbody><tbody class=\"stRest\"><tr><td class=\"rk\">11</td>"));
+        assertTrue(h.contains("<span class=\"fs\">전체 12곳</span>"));
+        assertTrue(SteepRank.html(r, true).contains("Show #11–12"));
         assertEquals("산3", r.avg.get(0).id);
         assertEquals("산12", r.avg.get(1).id);
         assertEquals("산3", r.steepest.get(0).id);
         assertEquals("절벽", r.steepest.get(0).course);
-        for (int i = 1; i < 10; i++) {
+        for (int i = 1; i < 12; i++) {
             assertTrue(r.avg.get(i - 1).avgDeg >= r.avg.get(i).avgDeg);
             assertTrue(r.steepest.get(i - 1).deg >= r.steepest.get(i).deg);
         }
@@ -117,15 +121,31 @@ public class SteepRankTest {
         assertEquals(0, SteepRank.openOf(null));
         assertTrue("높이 · 코스 수", ko.contains("884m · 코스 1"));
         assertTrue("가장 가파른 코스는 이름 아래", ko.contains("가장 가파른 문희마을 → 정상 &lt;a&gt; 16.7°</small>"));
-        assertTrue("각도 · 경사 · 가파른 1km", ko.contains("<b>16.7°</b><small>경사 30.0%</small><small class=\"s1\">1km 45.0%</small>"));
+        assertTrue("각도 · 경사 · 가파른 1km", ko.contains("<b>16.7°</b><small>경사 30.0%</small><small class=\"s1\">가파른 1km 45.0%</small>"));
         assertTrue("이름은 이스케이프", ko.contains("&lt;a&gt;") && !ko.contains("<a>"));
         String en = SteepRank.html(SteepRank.rank(peaks, m), true);
-        assertTrue(en.contains("🧗 Steepest mountains") && en.contains("<small>grade 30.0%</small><small class=\"s1\">1 km 45.0%</small>"));
+        assertTrue(en.contains("🧗 Steepest mountains") && en.contains("<small>grade 30.0%</small><small class=\"s1\">steepest 1 km 45.0%</small>"));
         assertFalse("3칸 - 수치는 한 칸에(360px · 가++ · 영어에서 잘렸음)", ko.contains("<th class=\"n\">경사") || en.contains("<th class=\"n\">Grade"));
         assertTrue("영어 이름 · slug 링크", en.contains("href=\"" + Roman.slug("백운산(정선)") + "?from=steep1\">" + MountainEn.name(peaks.get(0).getAsJsonObject()) + "</a>"));
         assertTrue(en.contains("884m · 1 trail"));
         assertFalse("영어판에 한국어 설명 없음", en.contains("정상 해발"));
         assertTrue("목록에 끼움", MountainServlet.indexPage(peaks, new JsonArray(), "", false, ko).contains(ko + "<section><h2>⚠ 산행 안전 팁"));
         assertTrue(MountainEn.indexPage(peaks, new JsonArray(), "", en).contains(en));
+    }
+
+    @Test
+    public void 코스_줄도_같은_기준() {   // 2026-10-18 홍TV님 "통일" - 산 페이지 코스 줄 · 순위가 같은 글
+        assertEquals(" · 각도 16.7° · 경사 30.0% · 가파른 1km 45.0%", SteepRank.slopeText(1000, 300, 45.04, false));
+        assertEquals(" · angle 16.7° · grade 30.0% · steepest 1 km 45.0%", SteepRank.slopeText(1000, 300, 45.04, true));
+        assertEquals("1km 아래 · 오르막 없음은 각도 없이", " · 가파른 1km 40.0%", SteepRank.slopeText(999, 300, 40.0, false));
+        assertEquals("", SteepRank.slopeText(3000, null, null, false));
+        assertEquals("", SteepRank.slopeText(3000, 0, null, false));
+        JsonObject p = peak("가산", 900);
+        JsonObject c = course("A코스", 2180, 485, 41.0);
+        c.addProperty("course_id", "x-1");
+        String ko = MountainServlet.page(p, List.of(c), new ArrayList<>(), null, ""), en = MountainEn.page(p, List.of(c), new ArrayList<>(), null, "");
+        assertTrue("산 페이지 코스 줄", ko.contains("2.18km · 오르막 485m · 각도 12.5° · 경사 22.2% · 가파른 1km 41.0% · 약 "));
+        assertTrue(en.contains("2.18 km · 485 m ascent · angle 12.5° · grade 22.2% · steepest 1 km 41.0% · about "));
+        assertTrue("난이도도 어려움", ko.contains("<i class=\"lv lv3\">어려움</i>"));
     }
 }

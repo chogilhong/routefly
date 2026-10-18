@@ -922,7 +922,9 @@ eq("enName", [RF.enName("오색탐방지원센터 - 대청봉"), RF.enName("설�
 eq("recentAdd 같은 주소는 앞으로 · 8개까지", RF.recentAdd([{ href: "a" }, { href: "b" }], { href: "b", name: "B" }).map(function (x) { return x.href; }), ["b", "a"]);
 eq("recentAdd 넘치면 뒤를 버림", RF.recentAdd([1, 2, 3, 4, 5, 6, 7, 8].map(function (i) { return { href: "p" + i }; }), { href: "n" }).map(function (x) { return x.href; }).join(","), "n,p1,p2,p3,p4,p5,p6,p7");
 eq("compareRows", RF.compareRows({ dist: 12900, asc: 1300 }, { dist: 5000, asc: 1300 }), [["거리", "12.90 km", "5.00 km"], ["오르막", "1,300 m", "1,300 m"],
-    ["예상 시간(편도)", "5시간 24분", "3시간 25분"], ["난이도", "어려움", "어려움"], ["평균 경사", "10.1%", "26%"], ["가장 가파른 1km", "-", "-"]]);
+    ["예상 시간(편도)", "5시간 24분", "3시간 25분"], ["난이도", "어려움", "어려움"], ["각도", "5.8°", "14.6°"], ["경사", "10.1%", "26.0%"], ["가파른 1km", "-", "-"]]);
+eq("compareRows 각도 · 경사 · 가파른 1km - 순위 · 코스 줄과 같은 기준(1km 미만 · 오르막 없음은 -)", RF.compareRows({ dist: 1000, asc: 300, steep: 45.04 }, { dist: 999, asc: 300, steep: 40 }).slice(4),
+    [["각도", "16.7°", "-"], ["경사", "30.0%", "-"], ["가파른 1km", "45.0%", "40.0%"]]);
 eq("compareRows 영어 시간", RF.compareRows({ dist: 3000, asc: 0 }, { dist: 5000, asc: 1300 }, true)[2], ["Time (one way)", "45 min", "3 h 25 min"]);
 // 가장 가파른 1km(2026-10-16) - Steep.steepest 와 같은 값(SteepTest)
 (function () {

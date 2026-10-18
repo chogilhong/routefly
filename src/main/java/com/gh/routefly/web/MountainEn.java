@@ -149,7 +149,7 @@ final class MountainEn {
                         .append(esc(courseName(str(c, "name")))).append(" ").append(MountainServlet.levelChip(dist, asc, steep, true)).append(" <small lang=\"ko\">").append(esc(str(c, "name"))).append("</small></b><span>")
                         .append(String.format(Locale.ROOT, "%.2f km", dist / 1000.0))
                         .append(asc != null ? String.format(Locale.US, " · %,d m ascent", asc) : "")
-                        .append(steep != null && steep >= MountainServlet.STEEP_STEPS[1] ? String.format(Locale.ROOT, " · steepest 1 km %.0f%%", steep) : "")
+                        .append(SteepRank.slopeText(dist, asc, steep, true))   // 순위와 같은 기준(2026-10-18)
                         .append(" · about ").append(hours(dist, asc)).append("</span><span class=\"go\">")
                         .append("<a href=\"").append(REL).append("/index.html#c=").append(esc(id)).append("\">3D fly-through</a>")
                         .append("<a href=\"").append(REL).append("/hike.html?lang=en#c=").append(esc(id)).append("&amp;m=").append(esc(MountainServlet.enc(id(peak)))).append("\">Follow (GPS)</a>");   // 따라가기 영어 · ‹ 는 이 페이지로

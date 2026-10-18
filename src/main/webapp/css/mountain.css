@@ -158,3 +158,10 @@ ul { margin:0; padding:0; list-style:none; }
 #safe .sfl li.bad span { color:#ff8787; font-weight:bold; }
 #safe .sfl li.mid span { color:#ffd43b; }
 #safe h3 { font-size:15px; margin:14px 0 0; }
+/* 11위부터는 접어 둠(SteepRank.more - 표 안 단추 줄, 2026-10-18 홍TV님 "전체") */
+.stT:has(.stMore:not([open])) .stRest { display:none; }
+.stT tr.stMoreRow td { border-top:1px solid var(--ln); padding:8px 4px; text-align:center; }
+.stMore > summary { list-style:none; cursor:pointer; color:var(--sky); font-weight:bold; font-size:14px; }
+.stMore > summary::-webkit-details-marker { display:none; }
+.stMore > summary::after { content:" ▾"; }
+.stMore[open] > summary::after { content:" ▴"; }

@@ -580,7 +580,7 @@ public class MountainServlet extends HttpServlet {
                         .append("\"><b>").append(esc(str(c, "name"))).append(" ").append(levelChip(dist, asc, steep, false)).append("</b><span>")
                         .append(String.format(Locale.ROOT, "%.2fkm", dist / 1000.0))
                         .append(asc != null ? String.format(Locale.KOREA, " · 오르막 %,dm", asc) : "")
-                        .append(steep != null && steep >= STEEP_STEPS[1] ? String.format(Locale.ROOT, " · 가장 가파른 1km %.0f%%", steep) : "")
+                        .append(SteepRank.slopeText(dist, asc, steep, false))   // 각도 · 경사 · 가파른 1km - 가파른 산 순위와 같은 기준(2026-10-18 홍TV님 "통일")
                         .append(" · 약 ").append(hours(dist, asc)).append("</span><span class=\"go\">")
                         .append("<a href=\"").append(REL).append("/index.html?lang=ko#c=").append(esc(id)).append("&amp;m=").append(esc(enc(name))).append("\">fly(3D)</a>")
                         .append("<a href=\"").append(REL).append("/hike.html?lang=ko#c=").append(esc(id)).append("&amp;m=").append(esc(enc(name))).append("\">따라가기</a>");   // m= - 따라가기의 ‹ 가 이 화면으로

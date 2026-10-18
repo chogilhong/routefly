@@ -4412,10 +4412,13 @@
         var row = function (o) {
             var lv = difficulty(o.dist, o.asc, o.steep), ms = standardMs("hike", o.dist, o.asc || 0);
             return [(o.dist / 1000).toFixed(2) + " km", o.asc != null ? Math.round(o.asc).toLocaleString("en-US") + " m" : "-",
-                    en ? (function (m) { return (m >= 60 ? Math.floor(m / 60) + " h " : "") + m % 60 + " min"; })(Math.round(ms / 60000)) : hm(ms), lv == null ? "-" : en ? LEVELS[lv].en : LEVELS[lv].ko, o.asc != null && o.dist ? (Math.round(o.asc / o.dist * 1000) / 10) + "%" : "-",
-                    o.steep != null ? Math.round(o.steep) + "%" : "-"];
+                    en ? (function (m) { return (m >= 60 ? Math.floor(m / 60) + " h " : "") + m % 60 + " min"; })(Math.round(ms / 60000)) : hm(ms), lv == null ? "-" : en ? LEVELS[lv].en : LEVELS[lv].ko,
+                    // 각도 · 경사 · 가파른 1km - 가파른 산 순위 · 산 페이지 코스 줄과 같은 기준(SteepRank.slopeText, 2026-10-18 홍TV님 "통일"): 1km 이상 · 오르막 있는 코스만
+                    o.dist >= 1000 && o.asc > 0 ? (Math.atan(o.asc / o.dist) * 180 / Math.PI).toFixed(1) + "°" : "-",
+                    o.dist >= 1000 && o.asc > 0 ? (o.asc / o.dist * 100).toFixed(1) + "%" : "-",
+                    o.steep != null ? (+o.steep).toFixed(1) + "%" : "-"];
         };
-        var ra = row(a), rb = row(b), names = en ? ["Distance", "Ascent", "Time (one way)", "Difficulty", "Avg slope", "Steepest 1 km"] : ["거리", "오르막", "예상 시간(편도)", "난이도", "평균 경사", "가장 가파른 1km"];
+        var ra = row(a), rb = row(b), names = en ? ["Distance", "Ascent", "Time (one way)", "Difficulty", "Angle", "Grade", "Steepest 1 km"] : ["거리", "오르막", "예상 시간(편도)", "난이도", "각도", "경사", "가파른 1km"];
         return names.map(function (n, i) { return [n, ra[i], rb[i]]; });
     }
 
