@@ -173,17 +173,11 @@
         }), go.firstChild);
     });
     // 🎒 챙길 것(2026-10-15) - 날씨 칸 아래. 오르막은 이 산 코스 가운데 가장 큰 값. 쿠팡 파트너스 링크는 설정에 있을 때만(+ 수수료 문구)
-    var wx0 = document.getElementById("wx");
-    if (wx0 && window.RF) {
-        // 오르막은 이 산 코스들의 가운데 값 - 가장 큰 값은 긴 종주 코스라 "오르막 2,672m" 처럼 보였음(2026-10-15 홍TV님)
-        var ascs = Array.prototype.map.call(document.querySelectorAll(".cs li[data-asc]"), function (li) { return +li.getAttribute("data-asc") || 0; })
-            .sort(function (a, b) { return a - b; });
-        var asc = ascs.length ? ascs[Math.floor(ascs.length / 2)] : 0;
-        var gs = document.createElement("section"), gh = document.createElement("h2"), ul = document.createElement("ul");
-        gh.textContent = "🎒 챙길 것";
+    // 🎒 챙길 것 - 산 페이지(그 산 코스 오르막까지)와 목록(/m/ - 이번 달 계절 기준, 접는 칸, 2026-10-18 홍TV님)이 함께 씀
+    function gearBox(box, asc) {
+        var ul = document.createElement("ul");
         ul.className = "gear";
-        gs.appendChild(gh);
-        gs.appendChild(ul);
+        box.appendChild(ul);
         var items = window.RF.gearList(new Date().getMonth() + 1, asc, "hike").map(function (g) {
             var li = document.createElement("li"), b = document.createElement("b"), sp = document.createElement("span");
             b.textContent = g.label;
@@ -193,27 +187,62 @@
             ul.appendChild(li);
             return [g, li];
         });
-        wx0.parentNode.insertBefore(gs, wx0.nextSibling);
         partnersP.then(function (p) {
             var any = false;
             items.forEach(function (x) {
                 var links = window.RF.partnerLinks(p.coupang && p.coupang[x[0].key]);
                 if (!links.length) return;
-                var box = document.createElement("div");   // 링크는 한 덩어리로(좁으면 함께 다음 줄로)
-                box.className = "gl";
+                var lb = document.createElement("div");   // 링크는 한 덩어리로(좁으면 함께 다음 줄로)
+                lb.className = "gl";
                 links.forEach(function (k) {
                     var a = document.createElement("a");
                     a.href = k.href;
                     a.target = "_blank";
                     a.rel = "noopener sponsored";
                     a.textContent = k.text;
-                    box.appendChild(a);
+                    lb.appendChild(a);
                 });
-                x[1].appendChild(box);
+                x[1].appendChild(lb);
                 any = true;
             });
-            if (any) { var n = document.createElement("p"); n.className = "dim"; n.textContent = window.RF.COUPANG_NOTE; gs.appendChild(n); }
+            if (any) { var n = document.createElement("p"); n.className = "dim"; n.textContent = window.RF.COUPANG_NOTE; box.appendChild(n); }
         }).catch(function () { /* 링크 없이 */ });
+        return items.length;
+    }
+    var wx0 = document.getElementById("wx");
+    if (wx0 && window.RF) {
+        // 오르막은 이 산 코스들의 가운데 값 - 가장 큰 값은 긴 종주 코스라 "오르막 2,672m" 처럼 보였음(2026-10-15 홍TV님)
+        var ascs = Array.prototype.map.call(document.querySelectorAll(".cs li[data-asc]"), function (li) { return +li.getAttribute("data-asc") || 0; })
+            .sort(function (a, b) { return a - b; });
+        var gs = document.createElement("section"), gh = document.createElement("h2");
+        gh.textContent = "🎒 챙길 것";
+        gs.appendChild(gh);
+        gearBox(gs, ascs.length ? ascs[Math.floor(ascs.length / 2)] : 0);
+        wx0.parentNode.insertBefore(gs, wx0.nextSibling);
+    }
+    // 목록(/m/): 접는 칸 "🎒 이번 달 산행 챙길 것" - 산을 정하기 전에도. 산마다 다른 것(스틱 · 무릎 보호대)은 산 페이지에서
+    var gi = document.getElementById("gearIdx");
+    if (gi && window.RF) {
+        var mon = new Date().getMonth() + 1;
+        var det = document.createElement("details"), sum = document.createElement("summary"), fb = document.createElement("div");
+        det.className = "fold kind";
+        det.setAttribute("name", "kind");
+        var ft = document.createElement("span"), fs = document.createElement("span"), fa = document.createElement("span");
+        ft.className = "ft"; ft.textContent = "🎒 이번 달 산행 챙길 것";
+        fs.className = "fs";
+        fs.textContent = mon + "월 · " + window.RF.gearList(mon, 0, "hike").map(function (g) { return g.label.split(" · ")[0]; }).slice(0, 4).join(" · ") + " …";
+        fa.className = "fa"; fa.textContent = "▾";
+        sum.appendChild(ft); sum.appendChild(fs); sum.appendChild(fa);
+        fb.className = "fb";
+        var tip = document.createElement("p");
+        tip.className = "dim";
+        tip.textContent = "산을 고르면 그 산 코스 오르막에 맞춰 등산 스틱 · 무릎 보호대까지 알려 줍니다.";
+        gearBox(fb, 0);
+        fb.insertBefore(tip, fb.firstChild);
+        det.appendChild(sum);
+        det.appendChild(fb);
+        gi.appendChild(det);
+        gi.hidden = false;
     }
     if (window.RF) window.RF.boardButtons("..", false);   // 📈 고도 - 공단 안내판처럼 구간별 경사(2026-10-15 홍TV님)
     if (window.RF) window.RF.compareButtons("..", false);   // ⚖️ 견주기 - 두 코스 나란히(2026-10-16 홍TV님)

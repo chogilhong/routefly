@@ -167,3 +167,4 @@ ul { margin:0; padding:0; list-style:none; }
 .stMore[open] > summary::after { content:" ▴"; }
 /* ⛔ 정상 통제(대암산 - mountains100.json closed, 2026-10-18) */
 .closedNote { margin:8px 0 12px; padding:10px 12px; border-radius:10px; background:rgba(255,135,135,0.10); border:1px solid rgba(255,135,135,0.45); font-size:14.5px; }
+#gearIdx .fb { padding:4px 0 10px; }   /* 🎒 이번 달 산행 챙길 것(/m/ - 2026-10-18) */

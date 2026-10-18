@@ -129,7 +129,7 @@ public class SteepRankTest {
         assertTrue("영어 이름 · slug 링크", en.contains("href=\"" + Roman.slug("백운산(정선)") + "?from=steep1\">" + MountainEn.name(peaks.get(0).getAsJsonObject()) + "</a>"));
         assertTrue(en.contains("884m · 1 trail"));
         assertFalse("영어판에 한국어 설명 없음", en.contains("정상 해발"));
-        assertTrue("목록에 끼움", MountainServlet.indexPage(peaks, new JsonArray(), "", false, ko).contains(ko + "<section><h2>⚠ 산행 안전 팁"));
+        assertTrue("목록에 끼움", MountainServlet.indexPage(peaks, new JsonArray(), "", false, ko).contains(ko + "<section id=\"gearIdx\" hidden></section><section><h2>⚠ 산행 안전 팁"));
         assertTrue(MountainEn.indexPage(peaks, new JsonArray(), "", en).contains(en));
     }
 

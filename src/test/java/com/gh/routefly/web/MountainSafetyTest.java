@@ -28,4 +28,11 @@ public class MountainSafetyTest {
         assertTrue(h.indexOf("<section id=\"safe\">") > h.indexOf("id=\"wx\""));
         assertTrue(h.contains("<h2>⛑️ Today's hiking safety</h2>") && h.contains("Nearest emergency rooms") && !h.contains("오늘의 산행 안전"));
     }
+
+    @Test
+    public void 목록의_챙길_것() {   // 2026-10-18 홍TV님 - /m/ 에 "🎒 이번 달 산행 챙길 것"(js/mountain.js 가 채움), 산 페이지 것은 그대로
+        String idx = MountainServlet.indexPage(new com.google.gson.JsonArray(), new com.google.gson.JsonArray(), "", false, "<section id=\"steep\"></section>");
+        int st = idx.indexOf("<section id=\"steep\">"), g = idx.indexOf("<section id=\"gearIdx\" hidden></section>"), tips = idx.indexOf("<h2>⚠ 산행 안전 팁</h2>");
+        assertTrue("가파른 산 순위 아래 · 안전 팁 위", st > 0 && g > st && tips > g);
+    }
 }

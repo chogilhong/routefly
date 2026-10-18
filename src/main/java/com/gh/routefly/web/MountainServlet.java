@@ -696,7 +696,9 @@ public class MountainServlet extends HttpServlet {
             }
             b.append("</div></details>");
         }
-        b.append("</div>").append(steep).append(tips()).append("<section id=\"fun\" class=\"fun\" hidden></section>")
+        b.append("</div>").append(steep)
+                .append("<section id=\"gearIdx\" hidden></section>")   // 🎒 이번 달 산행 챙길 것(js/mountain.js - 계절 기준, 산 페이지는 그 산 오르막까지 - 2026-10-18 홍TV님)
+                .append(tips()).append("<section id=\"fun\" class=\"fun\" hidden></section>")
                 .append("<a class=\"anbuLink\" href=\"").append(REL).append("/anbu.html?lang=ko\">🏠 오늘의 안부 <small>하루 한 번 '잘 지내요' · 보호자에게 문자 · 매일 알림</small> ›</a>")
                 .append("<a class=\"anbuLink toolLink\" href=\"").append(REL).append("/tools.html?lang=ko\">🧰 별거 별거 <small>우편번호 · 환율 · 음력 · 날씨 · 이자 · 타이머 · 지하철 노선도 · 공휴일 · 기름값 · 물때 · 돋보기 · 약 알림 · 산행 안전 등 32가지</small> ›</a>")   // 2026-10-18 홍TV님   // 2026-10-18 홍TV님 - 따라가기 첫 화면에서 옮김   // 🔮 재미로 보는 오늘의 산행 한마디(js/mountain.js - 2026-10-17 홍TV님)
                 .append(foot(base, REL + "/en/m/"));
