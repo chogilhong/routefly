@@ -143,6 +143,12 @@ public class MountainEnTest {
         assertEquals(0, MountainServlet.difficulty(2000, 20, null));
         assertEquals(4, MountainServlet.difficulty(20000, 2500, null));
         assertEquals(-1, MountainServlet.difficulty(0, null, null));
+        // 가장 가파른 1km 36% 이상은 적어도 어려움(2026-10-18 홍TV님 - 내장산), 그 아래는 한 단계까지(course-kit.test.js 와 같은 값)
+        assertEquals("내장사 → 신선봉 41%", 3, MountainServlet.difficulty(2180, 485, 41.0));
+        assertEquals("35% 는 한 단계", 2, MountainServlet.difficulty(3420, 739, 35.0));
+        assertEquals(1, MountainServlet.difficulty(2000, 20, 35.9));
+        assertEquals(3, MountainServlet.difficulty(2000, 100, 50.0));
+        assertEquals("매우 어려움은 어려움에서 한 단계", 4, MountainServlet.difficulty(5000, 1300, 50.0));
         assertEquals("<i class=\"lv lv2\">보통</i>", MountainServlet.levelChip(9000, 900, null, false));
         assertEquals("", MountainServlet.levelChip(0, null, null, true));
     }

@@ -132,7 +132,7 @@ ul { margin:0; padding:0; list-style:none; }
 .cmpCap { margin:10px 0 4px; font-weight:bold; font-size:13.5px; }
 /* 🧗 가파른 산 순위(SteepRank - 2026-10-18 홍TV님): 3칸(# · 산 · 수치) - 360px · 가++ · 영어에서도 안 잘리게, 높이 · 코스는 이름 아래 · 경사 · 1km 는 각도 아래 */
 #steep .fb { padding:4px 0 10px; margin-left:0; padding-left:0; border-left:0; }   /* 표가 넓게 - 접는 칸 들여쓰기 없이 */
-.stCap { margin:12px 0 4px; font-size:14.5px; }
+.stF > .stWrap { padding:4px 0 10px; }   /* 표마다 접는 칸(2026-10-18 홍TV님) */
 .stWrap { overflow-x:auto; }
 .stT { width:100%; border-collapse:collapse; font-size:13.5px; }
 .stT th, .stT td { padding:6px 4px; border-top:1px solid var(--ln); text-align:left; vertical-align:top; word-break:keep-all; }

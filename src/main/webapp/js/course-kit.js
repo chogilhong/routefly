@@ -4141,8 +4141,11 @@
         ascM = +ascM || 0;
         if (distM <= 0) return null;
         var base = Math.max(stepOf(distM / 1000 / 4 + ascM / 600, HOUR_STEPS), stepOf(ascM, ASC_STEPS));
-        // 가파름은 한 단계까지만 올림(2026-10-16 PC: 문턱 12 · 18 · 25 · 32% 로는 설악산 57 중 47 이 매우 어려움 - 산길은 1km 30 ~ 40% 가 흔함)
-        return steep != null && isFinite(+steep) ? Math.max(base, Math.min(stepOf(+steep, STEEP_STEPS), base + 1)) : base;
+        // 가파름은 한 단계까지 올림(2026-10-16 PC: 문턱 12 · 18 · 25 · 32% 로는 설악산 57 중 47 이 매우 어려움 - 산길은 1km 30 ~ 40% 가 흔함).
+        // 다만 가장 가파른 1km 가 36% 이상이면 짧아도 적어도 어려움(2026-10-18 홍TV님: 내장사 → 신선봉 2.2km · 41% 가 보통) - MountainServlet.difficulty 와 같음
+        if (steep == null || !isFinite(+steep)) return base;
+        var s = stepOf(+steep, STEEP_STEPS);
+        return Math.max(base, Math.min(s, s >= 3 ? Math.max(base + 1, 3) : base + 1));
     }
 
     /** 순수 함수 - 가장 가파른 1km 구간 경사(%, 오르막 · 내리막) - Steep.steepest 와 같음. 1km 보다 짧으면 처음 ~ 끝, 300m 보다 짧거나 고도가 없으면 null. */

@@ -24,12 +24,13 @@ public class SteepTest {
     }
 
     @Test
-    public void raisesDifficulty() {   // course-kit.test.js "difficulty 가파름이 올림" 과 같은 값
+    public void raisesDifficulty() {   // course-kit.test.js "difficulty 가파름은 한 단계, 36% 이상은 적어도 어려움" 과 같은 값
         assertEquals(1, MountainServlet.difficulty(5000, 600, null));
-        assertEquals("가파름은 한 단계까지만", 2, MountainServlet.difficulty(5000, 600, 45.0));
+        assertEquals("가파름은 한 단계(36% 아래)", 2, MountainServlet.difficulty(5000, 600, 30.0));
+        assertEquals("36% 이상은 적어도 어려움(2026-10-18 홍TV님 - 내장산)", 3, MountainServlet.difficulty(5000, 600, 45.0));
         assertEquals(1, MountainServlet.difficulty(5000, 600, 27.0));
         assertEquals("오색 → 대청봉", 3, MountainServlet.difficulty(5000, 1300, 44.4));
-        assertEquals("짧은 길은 매우 가팔라도 한 단계만", 1, MountainServlet.difficulty(2000, 100, 50.0));
+        assertEquals("짧은 길도 1km 50% 면 어려움(전에는 쉬움)", 3, MountainServlet.difficulty(2000, 100, 50.0));
         assertEquals("한계령 → 대청봉 → 남설악(급한 내리막) - PC", "<i class=\"lv lv3\">어려움</i>", MountainServlet.levelChip(12330, 1068, 40.0, false));
     }
 }

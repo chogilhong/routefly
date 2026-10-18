@@ -3,6 +3,9 @@
  * 2026-10-14 홍TV님. 코스 목록은 서버가 HTML 로 그립니다.
  */
 (function () {
+    // 🧗 가파른 산 순위에서 왔으면(?from=steep1 · steep2) "‹ 코스 모음" 이 그 표를 펼친 순위로(2026-10-18 홍TV님: 100대 명산 목록으로 갔음)
+    var fromSteep = /[?&]from=(steep[12])(?:&|$)/.exec(location.search), crumbA = document.querySelector(".crumb > a");
+    if (fromSteep && crumbA) crumbA.href = "../m/?open=" + fromSteep[1] + "#steep";
     // fly(3D) · 따라가기로 갈 때 적어 둠 - 그 화면의 ‹ · ← 뒤로가 새로 고친 뒤에도 history.back() 으로 이 화면 · 스크롤 자리로(2026-10-14 PC)
     document.addEventListener("click", function (e) {
         var a = e.target.closest && e.target.closest(".go a");

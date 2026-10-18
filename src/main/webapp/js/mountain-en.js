@@ -3,6 +3,9 @@
  * 한국어 화면(js/mountain.js)과 같은 자료를 영어로. 이 페이지는 /en/m/ 아래라 앱 뿌리는 두 단계 위(../../).
  */
 (function () {
+    // 🧗 가파른 산 순위에서 왔으면(?from=steep1 · steep2) "‹ 코스 모음" 이 그 표를 펼친 순위로(2026-10-18 홍TV님: 100대 명산 목록으로 갔음)
+    var fromSteep = /[?&]from=(steep[12])(?:&|$)/.exec(location.search), crumbA = document.querySelector(".crumb > a");
+    if (fromSteep && crumbA) crumbA.href = "./?open=" + fromSteep[1] + "#steep";
     var RF = window.RF;
     if (!RF) return;
     var crumb = document.querySelector(".crumb") || document.querySelector("h1.idx + .lead") || document.querySelector("h1");   // 코스 모음은 설명 줄 오른쪽 - 제목이 한 줄에 들게(2026-10-17)

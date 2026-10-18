@@ -106,7 +106,15 @@ public class SteepRankTest {
         String ko = SteepRank.html(SteepRank.rank(peaks, m), false);
         assertTrue(ko.contains("🧗 가파른 산 순위"));
         assertTrue(ko.contains("평균이 가장 가파른 산") && ko.contains("가장 가파른 코스를 가진 산"));
-        assertTrue("산 페이지 링크", ko.contains("href=\"../m/" + MountainServlet.enc("백운산(정선)") + "\">백운산(정선)</a>"));
+        assertTrue("산 페이지 링크(어느 표에서 왔는지)", ko.contains("href=\"../m/" + MountainServlet.enc("백운산(정선)") + "?from=steep1\">백운산(정선)</a>")
+                && ko.contains("?from=steep2\">백운산(정선)</a>"));
+        assertTrue("처음엔 모두 접힘 · 표마다 접는 칸(하나를 펴면 다른 하나는 접힘)", ko.contains("<details class=\"fold kind\" name=\"kind\"><summary>")
+                && ko.split("<details class=\"fold group stF\" name=\"steepT\"><summary>", -1).length == 3 && !ko.contains(" open>"));
+        String back = SteepRank.html(SteepRank.rank(peaks, m), false, SteepRank.openOf("steep2"));
+        assertTrue("‹ 코스 모음으로 돌아오면 그 표만 펼침", back.contains("name=\"kind\" open>") && back.contains("name=\"steepT\" open><summary><span class=\"ft\">가장 가파른 코스를 가진 산")
+                && back.contains("name=\"steepT\"><summary><span class=\"ft\">평균이"));
+        assertEquals(0, SteepRank.openOf("peaks"));
+        assertEquals(0, SteepRank.openOf(null));
         assertTrue("높이 · 코스 수", ko.contains("884m · 코스 1"));
         assertTrue("가장 가파른 코스는 이름 아래", ko.contains("가장 가파른 문희마을 → 정상 &lt;a&gt; 16.7°</small>"));
         assertTrue("각도 · 경사 · 가파른 1km", ko.contains("<b>16.7°</b><small>경사 30.0%</small><small class=\"s1\">1km 45.0%</small>"));
@@ -114,7 +122,7 @@ public class SteepRankTest {
         String en = SteepRank.html(SteepRank.rank(peaks, m), true);
         assertTrue(en.contains("🧗 Steepest mountains") && en.contains("<small>grade 30.0%</small><small class=\"s1\">1 km 45.0%</small>"));
         assertFalse("3칸 - 수치는 한 칸에(360px · 가++ · 영어에서 잘렸음)", ko.contains("<th class=\"n\">경사") || en.contains("<th class=\"n\">Grade"));
-        assertTrue("영어 이름 · slug 링크", en.contains("href=\"" + Roman.slug("백운산(정선)") + "\">" + MountainEn.name(peaks.get(0).getAsJsonObject()) + "</a>"));
+        assertTrue("영어 이름 · slug 링크", en.contains("href=\"" + Roman.slug("백운산(정선)") + "?from=steep1\">" + MountainEn.name(peaks.get(0).getAsJsonObject()) + "</a>"));
         assertTrue(en.contains("884m · 1 trail"));
         assertFalse("영어판에 한국어 설명 없음", en.contains("정상 해발"));
         assertTrue("목록에 끼움", MountainServlet.indexPage(peaks, new JsonArray(), "", false, ko).contains(ko + "<section><h2>⚠ 산행 안전 팁"));

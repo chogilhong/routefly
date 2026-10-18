@@ -931,7 +931,9 @@ eq("compareRows 영어 시간", RF.compareRows({ dist: 3000, asc: 0 }, { dist: 5
     eq("steepest", [RF.steepest(d, e), RF.steepest([0, 500], [100, 200]), RF.steepest([0, 200], [0, 50]), RF.steepest([0, 2000], [null, null])], [30, 20, null, null]);
     // 내리막도 셈 - 거꾸로 해도 같음
     eq("steepest 내리막", RF.steepest(d, e.slice().reverse()), 30);
-    eq("difficulty 가파름은 한 단계까지만 올림", [RF.difficulty(5000, 600), RF.difficulty(5000, 600, 45), RF.difficulty(5000, 600, 27), RF.difficulty(5000, 1300, 44.4), RF.difficulty(2000, 100, 50)], [1, 2, 1, 3, 1]);
+    eq("difficulty 가파름은 한 단계, 36% 이상은 적어도 어려움", [RF.difficulty(5000, 600), RF.difficulty(5000, 600, 30), RF.difficulty(5000, 600, 27), RF.difficulty(5000, 1300, 44.4), RF.difficulty(2000, 100, 50),
+        RF.difficulty(5000, 600, 45), RF.difficulty(2000, 20, 35.9), RF.difficulty(5000, 1300, 50), RF.difficulty(12000, 1300, 50)], [1, 2, 1, 3, 3, 3, 1, 4, 4]);
+    eq("difficulty 내장산(2026-10-18 홍TV님 화면)", [RF.difficulty(2180, 485, 41), RF.difficulty(4770, 618, 39), RF.difficulty(3420, 739, 35), RF.difficulty(1410, 442, 33), RF.difficulty(5510, 631)], [3, 3, 2, 2, 1]);
     eq("difficulty 한계령 → 대청봉 → 남설악(급한 내리막 - PC)", RF.difficulty(12330, 1068, 40), 3);
     var bad = [];
     for (var d = 1000; d <= 20000; d += 1000) for (var a = 0; a <= 2000; a += 200) for (var s = 0; s <= 60; s += 5)

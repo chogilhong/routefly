@@ -66,13 +66,13 @@ public class MountainServlet extends HttpServlet {
         resp.setCharacterEncoding(StandardCharsets.UTF_8.name());
         JsonArray all = peaks();
         if (en) {
-            english(name, all, base, resp);
+            english(name, all, base, resp, req.getParameter("open"));
             return;
         }
         if (name.isEmpty()) {
             resp.setHeader("Cache-Control", "public, max-age=600");   // 10분 - 1시간이면 배포한 문구가 늦게 보였음(2026-10-17 PC)
             // ?open=peaks - 산 페이지의 "‹ 코스 모음" 으로 오면 등산 › 100대 명산을 펼친 채(2026-10-15 홍TV님)
-            resp.getWriter().print(indexPage(all, seriesGroups(), base, "peaks".equals(req.getParameter("open")), SteepRank.html(steepRank(all), false)));
+            resp.getWriter().print(indexPage(all, seriesGroups(), base, "peaks".equals(req.getParameter("open")), SteepRank.html(steepRank(all), false, SteepRank.openOf(req.getParameter("open")))));
             return;
         }
         List<JsonObject> same = byName(all, name);
@@ -95,10 +95,10 @@ public class MountainServlet extends HttpServlet {
     }
 
     /** 영어 페이지(/en/m/ · /en/m/seoraksan). */
-    private void english(String key, JsonArray all, String base, HttpServletResponse resp) throws IOException {
+    private void english(String key, JsonArray all, String base, HttpServletResponse resp, String open) throws IOException {
         if (key.isEmpty()) {
             resp.setHeader("Cache-Control", "public, max-age=600");   // 10분 - 1시간이면 배포한 문구가 늦게 보였음(2026-10-17 PC)
-            resp.getWriter().print(MountainEn.indexPage(all, seriesGroups(), base, SteepRank.html(steepRank(all), true)));
+            resp.getWriter().print(MountainEn.indexPage(all, seriesGroups(), base, SteepRank.html(steepRank(all), true, SteepRank.openOf(open))));
             return;
         }
         JsonObject peak = MountainEn.find(all, key);
@@ -389,8 +389,11 @@ public class MountainServlet extends HttpServlet {
         if (distM <= 0) return -1;
         double a = ascM == null ? 0 : ascM, h = distM / 1000.0 / 4 + a / 600;
         int base = Math.max(step(h, HOUR_STEPS), step(a, ASC_STEPS));
-        // 가파름은 한 단계까지만 올림(2026-10-16 PC: 문턱이 낮아 설악산 57 중 47 이 매우 어려움이었음)
-        return steepPct == null ? base : Math.max(base, Math.min(step(steepPct, STEEP_STEPS), base + 1));
+        // 가파름은 한 단계까지 올림(2026-10-16 PC: 문턱이 낮아 설악산 57 중 47 이 매우 어려움이었음). 다만 가장 가파른 1km 가 36% 이상이면
+        // 짧아도 적어도 어려움(2026-10-18 홍TV님: 내장사 → 신선봉 2.2km · 1km 41% 가 보통). 매우 어려움은 시간 · 오르막(또는 어려움에서 한 단계)으로만
+        if (steepPct == null) return base;
+        int s = step(steepPct, STEEP_STEPS);
+        return Math.max(base, Math.min(s, s >= 3 ? Math.max(base + 1, 3) : base + 1));
     }
 
     private static int step(double v, double[] steps) {
