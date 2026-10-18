@@ -96,6 +96,7 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다(route_course · 
 - `target\claude-test\main` 의 class · webapp 파일을 `wtpwebapps\<앱>` 으로 복사(robocopy /XO), 리소스(src/main/resources)도 `WEB-INF\classes` 로.
 - 새 클래스만 복사하면 재로드가 안 걸립니다. 이미 로드된 설정 클래스(AppVersion · InvestingConfig · RouteflyConfig)의 시각을 바꿔 재시작을 유도합니다.
 - static final 상수가 바뀌면 그 값을 쓰는 클래스도 같이 복사합니다(예: AppVersion.VERSION → AppLifecycleListener).
+- `data/mountains100.json` · `peak-elev.json` · `series.json` · `park-notes.json` 은 MountainServlet 이 처음 읽은 뒤 기억해 둡니다. 이 파일만 바뀌어도 MountainServlet.class 를 다시 복사해 재로드합니다(2026-10-18 PC: 대암산 문구가 옛것으로 보였음).
 - 배포 뒤 기동 로그(버전 줄 · 설정 줄)로 확인합니다. 이클립스가 동시에 반영 중이면 복사가 막힐 수 있으니 홍TV님께 Tomcat Restart 를 부탁합니다.
 - 되돌려 확인을 자바 파일 `git checkout` 으로 하면 이클립스 자동 배포로 웹앱이 내려갑니다. target 아래 복사본으로 하거나 컴파일 실패로 갈음합니다.
   JS 문법은 `wtpwebapps\ROOT` 임시 폴더 + `new Function` 으로 보고 지웁니다.
