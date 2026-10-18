@@ -40,7 +40,7 @@ section h2 { margin:0 0 8px; font-size:17px; }
 .uv input, .uv select { height:50px; border-radius:10px; border:1px solid var(--ln); background:#232b36; color:var(--tx); font-size:18px; padding:0 10px; min-width:0; }
 .uv input { flex:1 1 50%; }
 .uv select { flex:1 1 50%; }
-#uSwap { flex:0 0 auto; width:50px; height:50px; border-radius:25px; border:1px solid var(--sky); background:rgba(56,217,234,0.12); color:var(--sky); font-size:20px; cursor:pointer; }
+#uSwap, .swap { flex:0 0 auto; width:50px; height:50px; border-radius:25px; border:1px solid var(--sky); background:rgba(56,217,234,0.12); color:var(--sky); font-size:20px; cursor:pointer; }
 #uRes { margin-top:12px; font-size:24px; font-weight:bold; overflow-wrap:anywhere; }
 #uRes small { font-size:15px; color:var(--dim); font-weight:normal; }
 #uOne { font-size:13px; color:var(--dim); margin-top:4px; }
@@ -48,6 +48,37 @@ section h2 { margin:0 0 8px; font-size:17px; }
 #uAll li { display:flex; justify-content:space-between; gap:10px; padding:7px 0; border-top:1px solid var(--ln); }
 #uAll li b { overflow-wrap:anywhere; text-align:right; }
 #uAll li span { color:var(--dim); flex:0 0 auto; }
+details.tool { background:var(--panel); border:1px solid var(--ln); border-radius:14px; margin-top:10px; }
+details.tool > summary { list-style:none; cursor:pointer; padding:14px; font-size:17px; font-weight:bold; display:flex; align-items:center; gap:8px; }
+details.tool > summary::-webkit-details-marker { display:none; }
+details.tool > summary::after { content:"▾"; margin-left:auto; color:var(--dim); transition:transform .15s; }
+details.tool[open] > summary::after { transform:rotate(180deg); }
+details.tool > summary small { font-size:12.5px; font-weight:normal; color:var(--dim); }
+details.tool > .tb { padding:0 14px 14px; }
+.row { display:flex; gap:8px; align-items:center; margin-top:10px; flex-wrap:wrap; }
+.row > * { min-width:0; }
+.row label { font-size:14px; color:var(--dim); flex:0 0 100%; margin-bottom:-4px; }
+.f { height:48px; border-radius:10px; border:1px solid var(--ln); background:#232b36; color:var(--tx); font-size:17px; padding:0 10px; flex:1 1 0; }
+select.f { padding:0 6px; }
+textarea.f { height:140px; padding:10px; flex-basis:100%; font-family:inherit; resize:vertical; }
+.out { margin-top:12px; font-size:20px; font-weight:bold; line-height:1.45; overflow-wrap:anywhere; word-break:keep-all; }
+.out small { display:block; font-size:14px; font-weight:normal; color:var(--dim); margin-top:2px; }
+.chk2 { display:flex; gap:8px; align-items:center; font-size:14.5px; margin-top:10px; }
+.chk2 input { width:20px; height:20px; }
+.btn2 { height:50px; border-radius:12px; border:1px solid var(--sky); background:rgba(56,217,234,0.12); color:var(--sky); font:bold 16px Arial,"Malgun Gothic",sans-serif; cursor:pointer; flex:1 1 0; }
+.btn2.on { background:#ff6b6b; border-color:#ff6b6b; color:#fff; }
+#dial { width:200px; height:200px; margin:0; border-radius:50%; border:2px solid var(--ln); position:relative; transition:transform .2s; }
+#dial b { position:absolute; font-size:18px; }
+#dial .n { top:6px; left:50%; transform:translateX(-50%); color:#ff6b6b; }
+#dial .e { right:10px; top:50%; transform:translateY(-50%); }
+#dial .s { bottom:6px; left:50%; transform:translateX(-50%); }
+#dial .w { left:10px; top:50%; transform:translateY(-50%); }
+.cmpw { position:relative; width:200px; margin:24px auto 0; }
+.cmpw .mark { position:absolute; top:-18px; left:50%; transform:translateX(-50%); width:0; height:0; border-left:10px solid transparent; border-right:10px solid transparent; border-top:16px solid var(--sky); }
+#cmpOut { text-align:center; }
+#light { position:fixed; inset:0; z-index:20; background:#fff; display:none; align-items:flex-end; justify-content:center; padding-bottom:calc(env(safe-area-inset-bottom) + 30px); }
+#light.dark { background:#000; }
+#light button { height:56px; padding:0 22px; border-radius:28px; border:0; background:rgba(0,0,0,0.75); color:#fff; font:bold 17px Arial,"Malgun Gothic",sans-serif; margin:0 6px; }
 #toast { position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom) + 24px); transform:translateX(-50%); max-width:90%; background:rgba(0,0,0,0.85);
          color:#fff; padding:10px 16px; border-radius:12px; font-size:15px; display:none; z-index:9; text-align:center; }
 </style>
@@ -58,16 +89,14 @@ section h2 { margin:0 0 8px; font-size:17px; }
     <h1 data-en="🧰 Handy tools">🧰 별거 별거</h1>
 </div>
 <main>
-    <section>
-        <h2 data-en="📮 Postcode · English address">📮 우편번호 · 영문 주소</h2>
+    <details class="tool" id="t-post"><summary data-en="📮 Postcode · English address">📮 우편번호 · 영문 주소</summary><div class="tb">
         <button type="button" class="btn" id="pcBtn" data-en="🔍 Find an address">🔍 주소 찾기</button>
         <div id="pcBox"></div>
         <div id="pcOut"></div>
         <p class="tip" data-en="Type a road name and building number (e.g. 잠실로 51-33) or a neighborhood and lot number (e.g. 역삼동 737) - the search box is in Korean. You get the postcode, road and lot addresses, and the English address. Search uses the Kakao postcode service; routefly does not save the address or send it to its server.">도로명 + 건물번호(예: 잠실로 51-33)나 동 · 읍 · 면 + 번지(예: 역삼동 737)로 찾으면 우편번호 · 도로명 · 지번 · 영문 주소가 나옵니다. 찾기는 카카오 우편번호 서비스로 하고, routefly 는 주소를 저장하거나 서버로 보내지 않습니다.</p>
-    </section>
+    </div></details>
 
-    <section>
-        <h2 data-en="📏 Unit converter">📏 단위 변환</h2>
+    <details class="tool" id="t-unit"><summary data-en="📏 Unit converter">📏 단위 변환</summary><div class="tb">
         <div class="cats" id="uCats"></div>
         <div class="uv">
             <input type="text" id="uVal" inputmode="decimal" value="1" aria-label="값" data-en-aria-label="Value">
@@ -81,9 +110,80 @@ section h2 { margin:0 0 8px; font-size:17px; }
         <div id="uOne"></div>
         <ul id="uAll"></ul>
         <p class="tip" data-en="1 pyeong = 3.3058 ㎡ · 1 geun = 600 g (meat; vegetables 375 g) · 1 cup = 200 mL (Korean cooking) · 1 KB = 1,024 B.">1평 = 3.3058㎡ · 1근 = 600g(고기 - 채소는 375g) · 1컵 = 200mL(한국 요리 계량) · 1KB = 1,024B 로 셉니다.</p>
-    </section>
+    </div></details>
+
+    <details class="tool" id="t-fx"><summary data-en="💱 Exchange rates">💱 환율</summary><div class="tb">
+        <div class="uv">
+            <input type="text" id="fxVal" class="f" inputmode="decimal" value="1" aria-label="금액" data-en-aria-label="Amount">
+            <select id="fxFrom" class="f" aria-label="바꿀 돈" data-en-aria-label="From currency"></select>
+        </div>
+        <div class="uv">
+            <button type="button" id="fxSwap" class="swap" title="맞바꾸기" data-en-title="Swap" aria-label="맞바꾸기" data-en-aria-label="Swap">⇅</button>
+            <select id="fxTo" class="f" aria-label="결과 돈" data-en-aria-label="To currency"></select>
+        </div>
+        <div class="out" id="fxOut"></div>
+        <p class="tip" data-en="Reference rates published by the European Central Bank once a working day (via Frankfurter). Bank buy/sell and card rates are different.">유럽중앙은행이 영업일마다 한 번 내는 기준 환율입니다(Frankfurter). 은행에서 살 때 · 팔 때 값, 카드 결제 값과는 다릅니다.</p>
+    </div></details>
+
+    <details class="tool" id="t-age"><summary data-en="🎂 Korean age · zodiac">🎂 만 나이 · 띠</summary><div class="tb">
+        <div class="row"><label data-en="Birthday">생일</label><span class="ymd" id="ageBirth" style="display:contents"></span></div>
+        <div class="out" id="ageOut"></div>
+        <p class="tip" data-en="Since June 28, 2023, Korean law uses international age (man nai). The zodiac is by birth year - if you were born in January or February before the lunar new year, it may be the year before.">2023년 6월 28일부터 법 · 행정은 만 나이를 씁니다. 띠는 태어난 해로 셉니다 - 1 · 2월생은 음력 설 전이면 앞 해 띠일 수 있습니다.</p>
+    </div></details>
+
+    <details class="tool" id="t-date"><summary data-en="📅 Date calculator">📅 날짜 계산</summary><div class="tb">
+        <div class="row"><label data-en="D-day: count to this date">D-day - 이 날까지</label><span id="ddTarget" style="display:contents"></span></div>
+        <div class="out" id="ddOut"></div>
+        <div class="row" style="margin-top:18px"><label data-en="From this date">이 날부터</label><span id="daStart" style="display:contents"></span></div>
+        <div class="row"><input type="text" id="daN" class="f" inputmode="numeric" value="100" aria-label="날 수" data-en-aria-label="Days"><span data-en="days later">일 뒤</span></div>
+        <label class="chk2"><input type="checkbox" id="daFirst" checked> <span data-en="Count the first day as day 1 (anniversaries)">첫날을 1일로 셈(100일 · 기념일)</span></label>
+        <div class="out" id="daOut"></div>
+    </div></details>
+
+    <details class="tool" id="t-pct"><summary data-en="💰 Percent · discount · split the bill">💰 퍼센트 · 할인 · 더치페이</summary><div class="tb">
+        <div class="row">
+            <select id="pKind" class="f" style="flex-basis:100%">
+                <option value="sale" data-en="Price after discount">할인하면 얼마?</option>
+                <option value="of" data-en="X% of a number">어떤 수의 몇 %는?</option>
+                <option value="is" data-en="A is what % of B">A 는 B 의 몇 %?</option>
+                <option value="change" data-en="% change from A to B">A → B 몇 % 올랐나(내렸나)?</option>
+            </select>
+        </div>
+        <div class="row"><label id="pLa"></label><input type="text" id="pA" class="f" inputmode="decimal"></div>
+        <div class="row"><label id="pLb"></label><input type="text" id="pB" class="f" inputmode="decimal"></div>
+        <div class="out" id="pOut"></div>
+        <h3 style="font-size:16px;margin:20px 0 0" data-en="🍽 Split the bill">🍽 더치페이</h3>
+        <div class="row"><label data-en="Total (won)">모두(원)</label><input type="text" id="dTotal" class="f" inputmode="numeric" placeholder="50000"></div>
+        <div class="row"><label data-en="People · round up to">사람 수 · 올림 단위</label>
+            <input type="text" id="dN" class="f" inputmode="numeric" value="2" aria-label="사람 수" data-en-aria-label="People">
+            <select id="dUnit" class="f" aria-label="올림 단위" data-en-aria-label="Round up to"><option value="1" data-en="1 won">1원</option><option value="10" data-en="10 won">10원</option><option value="100" selected data-en="100 won">100원</option><option value="1000" data-en="1,000 won">1,000원</option></select>
+        </div>
+        <div class="out" id="dOut"></div>
+    </div></details>
+
+    <details class="tool" id="t-text"><summary data-en="🔢 Character count">🔢 글자 수 세기</summary><div class="tb">
+        <div class="row"><textarea id="tcIn" class="f" placeholder="여기에 글을 붙여 넣으세요" data-en-placeholder="Paste your text here"></textarea></div>
+        <div class="out" id="tcOut"></div>
+        <p class="tip" data-en="Bytes count Korean and other non-English letters as 2 and English letters, digits and spaces as 1 - a Korean SMS is up to 90 bytes, an LMS up to 2,000.">바이트는 한글 · 그 밖 글자 2, 영문 · 숫자 · 띄어쓰기 1 로 셉니다. 문자는 90바이트까지 단문(SMS), 2,000바이트까지 장문(LMS) 입니다.</p>
+    </div></details>
+
+    <details class="tool" id="t-cmp"><summary data-en="🧭 Compass">🧭 나침반</summary><div class="tb">
+        <button type="button" class="btn" id="cmpBtn" data-en="Turn on compass">나침반 켜기</button>
+        <div class="cmpw"><span class="mark"></span><div id="dial"><b class="n" data-en="N">북</b><b class="e" data-en="E">동</b><b class="s" data-en="S">남</b><b class="w" data-en="W">서</b></div></div>
+        <div class="out" id="cmpOut"></div>
+        <p class="tip" data-en="Hold the phone flat. Near metal, magnets or cars it can be wrong - wave the phone in a figure 8 to recalibrate. Use it as a guide, together with trail signs.">폰을 평평하게 드세요. 쇠붙이 · 자석 · 자동차 옆에서는 틀릴 수 있으니 폰을 8자로 몇 번 흔들어 맞추세요. 길 안내판과 함께 참고로 쓰세요.</p>
+    </div></details>
+
+    <details class="tool" id="t-sos"><summary data-en="📯 Whistle · 🔦 Light">📯 호루라기 · 🔦 손전등</summary><div class="tb">
+        <div class="row">
+            <button type="button" class="btn2" id="whBtn" data-en="📯 Whistle (SOS)">📯 호루라기(SOS)</button>
+            <button type="button" class="btn2" id="ltBtn" data-en="🔦 Screen light">🔦 화면 손전등</button>
+        </div>
+        <p class="tip" data-en="The whistle plays a loud high tone in the SOS rhythm (3 short, 3 long, 3 short) until you tap it again - turn your volume up. The light makes the whole screen bright white; tap SOS to blink. The camera flash needs app permissions, so the screen is used instead. If you need help, call 119 first.">호루라기는 다시 누를 때까지 높은 소리를 SOS 박자(짧게 3 · 길게 3 · 짧게 3)로 냅니다 - 소리를 크게 올리세요. 손전등은 화면 전체를 하얗게 밝히고, SOS 를 누르면 깜박입니다(카메라 플래시는 앱 권한이 필요해 화면 빛으로 대신). 위급하면 119 에 먼저 전화하세요.</p>
+    </div></details>
 </main>
 <div id="toast"></div>
+<div id="light"><button type="button" id="ltSos">SOS</button><button type="button" id="ltOff" data-en="Close">끄기</button></div>
 <script src="js/course-kit.js"></script>
 <script src="js/tools.js"></script>
 <script src="js/sw-reg.js"></script>

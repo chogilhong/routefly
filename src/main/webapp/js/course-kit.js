@@ -871,6 +871,108 @@
         return p[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",") + (p[1] ? "." + p[1] : "");
     }
 
+    // ── 🧰 별거 별거 계산(2026-10-18 홍TV님 - 서버 없이) ──
+    /** 순수 함수 - 날짜 [년, 월, 일] 을 날 번호로(시간대 · 서머타임 영향 없게 UTC 로). 잘못된 날짜(2월 30일 등)는 null. */
+    function dayNo(y, m, d) {
+        y = +y; m = +m; d = +d;
+        if (!y || !m || !d) return null;
+        var t = Date.UTC(y, m - 1, d), dt = new Date(t);
+        if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) return null;
+        return Math.round(t / 86400000);
+    }
+    /** 순수 함수 - 날 번호 → [년, 월, 일]. */
+    function dayYmd(n) { var dt = new Date(n * 86400000); return [dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate()]; }
+    var DDI = [["쥐", "Rat"], ["소", "Ox"], ["호랑이", "Tiger"], ["토끼", "Rabbit"], ["용", "Dragon"], ["뱀", "Snake"], ["말", "Horse"], ["양", "Goat"], ["원숭이", "Monkey"], ["닭", "Rooster"], ["개", "Dog"], ["돼지", "Pig"]];
+    /**
+     * 순수 함수 - 나이(2023-06-28 부터 법 · 행정은 만 나이). birth · today 는 [년, 월, 일].
+     * man 만 나이(생일이 지나야 한 살), year 연 나이(올해 - 태어난 해), ddi 띠(태어난 해 기준 - 음력 설 전 1 · 2월생은 앞 해 띠일 수 있음), nextDays 다음 생일까지 날 수.
+     */
+    function ageInfo(birth, today) {
+        var b = dayNo(birth[0], birth[1], birth[2]), t = dayNo(today[0], today[1], today[2]);
+        if (b == null || t == null || b > t) return null;
+        var man = today[0] - birth[0] - (today[1] < birth[1] || (today[1] === birth[1] && today[2] < birth[2]) ? 1 : 0);
+        function bd(y) { return dayNo(y, birth[1], birth[2]) != null ? dayNo(y, birth[1], birth[2]) : dayNo(y, 3, 1); }   // 2월 29일생은 평년에 3월 1일
+        var nx = bd(today[0]);
+        if (nx < t) nx = bd(today[0] + 1);
+        var z = DDI[((birth[0] - 4) % 12 + 12) % 12];
+        return { man: man, year: today[0] - birth[0], ddi: LANG === "en" ? z[1] : z[0], nextDays: nx - t };
+    }
+    /** 순수 함수 - D-day 글: 오늘 기준 target 이 남았으면 "D-12", 지났으면 "D+3", 오늘이면 "D-day". */
+    function dDay(today, target) {
+        var t = dayNo(today[0], today[1], today[2]), g = dayNo(target[0], target[1], target[2]);
+        if (t == null || g == null) return "";
+        return g === t ? "D-day" : g > t ? "D-" + (g - t) : "D+" + (t - g);
+    }
+    /** 순수 함수 - 날짜 더하기: [년, 월, 일] 에서 n 일 뒤(음수면 앞). firstIsOne 이면 첫날을 1일로 셈(100일 기념일 - 100일째는 99일 뒤). */
+    function dateAdd(ymd, n, firstIsOne) {
+        var s = dayNo(ymd[0], ymd[1], ymd[2]);
+        if (s == null || !isFinite(+n)) return null;
+        return dayYmd(s + Math.trunc(+n) - (firstIsOne && +n > 0 ? 1 : 0));
+    }
+    /** 순수 함수 - 두 날짜 사이 날 수(b - a). firstIsOne 이면 첫날을 1일로(사귄 지 며칠째). */
+    function dateDiff(a, b, firstIsOne) {
+        var x = dayNo(a[0], a[1], a[2]), y = dayNo(b[0], b[1], b[2]);
+        if (x == null || y == null) return null;
+        return y - x + (firstIsOne && y >= x ? 1 : 0);
+    }
+    /**
+     * 순수 함수 - 퍼센트 계산. kind: "of" b 의 a%, "is" a 는 b 의 몇 %, "change" a → b 몇 % 올랐나(내렸나), "sale" 값 a 를 b% 깎으면.
+     */
+    function pctCalc(kind, a, b) {
+        a = Number(a); b = Number(b);
+        if (!isFinite(a) || !isFinite(b)) return null;
+        if (kind === "of") return b * a / 100;
+        if (kind === "is") return b === 0 ? null : a / b * 100;
+        if (kind === "change") return a === 0 ? null : (b - a) / Math.abs(a) * 100;
+        if (kind === "sale") return a * (100 - b) / 100;
+        return null;
+    }
+    /**
+     * 순수 함수 - 더치페이: total 을 n 명이 unit 원 단위로 올려 나눔. per 한 사람, rest 마지막 한 사람(총무)이 덜 내는 몫을 뺀 값.
+     * 예) 50,000원 3명 100원 단위 → 16,700원씩 2명 + 16,600원 1명.
+     */
+    function dutchPay(total, n, unit) {
+        total = Math.round(Number(total)); n = Math.floor(Number(n)); unit = Math.max(1, Math.round(Number(unit) || 1));
+        if (!isFinite(total) || total <= 0 || !(n >= 1)) return null;
+        var per = Math.ceil(total / n / unit) * unit, last = total - per * (n - 1);
+        if (last <= 0) { per = Math.floor(total / n); last = total - per * (n - 1); }
+        return { per: per, last: last, n: n };
+    }
+    /**
+     * 순수 함수 - 글자 수: chars 공백 포함, noSpace 공백 · 줄바꿈 빼고, bytes 문자 기준(한글 · 그 밖 2바이트, 영문 · 숫자 1바이트 - 단문 90 · 장문 2,000바이트),
+     * words 낱말, lines 줄. 이모지 같은 두 칸 글자도 한 글자로.
+     */
+    function textCount(t) {
+        var a = Array.from(String(t || "")), bytes = 0, ns = 0;
+        a.forEach(function (c) { bytes += c.charCodeAt(0) <= 0x7f ? 1 : 2; if (!/\s/.test(c)) ns++; });
+        var w = String(t || "").trim();
+        return { chars: a.length, noSpace: ns, bytes: bytes, words: w ? w.split(/\s+/).length : 0, lines: a.length ? String(t).split("\n").length : 0 };
+    }
+    /** 순수 함수 - 문자 종류: 90바이트까지 단문(SMS), 2,000바이트까지 장문(LMS), 넘으면 null. */
+    function smsKind(bytes) { return bytes <= 90 ? "SMS" : bytes <= 2000 ? "LMS" : null; }
+    /**
+     * 순수 함수 - 나침반 방향(0 = 북, 시계 방향 도). iOS 는 webkitCompassHeading(이미 북 기준), 안드로이드는 절대 방향 alpha(반시계)라 360 - alpha.
+     * 화면을 가로로 돌렸으면 screenAngle 만큼 더함. 모르면 null.
+     */
+    function compassHeading(alpha, absolute, webkitHeading, screenAngle) {
+        var h;
+        if (webkitHeading != null && isFinite(webkitHeading)) h = +webkitHeading;
+        else if (absolute && alpha != null && isFinite(alpha)) h = 360 - alpha;
+        else return null;
+        return Math.round((((h + (+screenAngle || 0)) % 360) + 360) % 360);
+    }
+    /** SOS 깜박임 · 호루라기 박자(ms): 짧게 셋 · 길게 셋 · 짧게 셋, 그다음 쉼. [켜짐, 꺼짐] 쌍. */
+    var SOS_PATTERN = [[200, 200], [200, 200], [200, 600], [600, 200], [600, 200], [600, 600], [200, 200], [200, 200], [200, 1400]];
+    /** 순수 함수 - 환율 바꾸기: rates 는 base 1 에 대한 각 통화 값({KRW: 1380, JPY: 150 ...}, base 자신은 없어도 됨). */
+    function fxConv(v, from, to, base, rates) {
+        v = Number(v);
+        if (!isFinite(v) || !rates) return null;
+        function r(c) { return c === base ? 1 : rates[c]; }
+        var a = r(from), b = r(to);
+        if (!a || !b) return null;
+        return v / a * b;
+    }
+
     /** 순수 함수 - 핸드폰에서만 열리는 송금 링크(카카오페이 송금 코드 qr.kakaopay.com - PC 브라우저는 404). */
     function mobileOnlyUrl(url) { return /^https:\/\/qr\.kakaopay\.com\//i.test(url || ""); }
     /** PC 에서 그런 링크를 누르면 열지 않고 안내(2026-10-17 홍TV님: 핸드폰은 되는데 PC 는 404). */
@@ -4274,6 +4376,6 @@
         sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap,
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },
         setLang: setLang, isEn: isEn, tr: tr, pageLang: pageLang, applyEn: applyEn,
-        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, regionEn: regionEn, weekendWordEn: weekendWordEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox, LEVELS: LEVELS, difficulty: difficulty, boardSegments: boardSegments, boardProfile: boardProfile, nameEnds: nameEnds, boardButtons: boardButtons, levelChip: levelChip, roman: roman, enName: enName, weekendText: weekendText, boardHere: boardHere, slopeBetween: slopeBetween, recentAdd: recentAdd, recentPages: recentPages, recentFold: recentFold, compareRows: compareRows, compareButtons: compareButtons, steepest: steepest, officialEleAt: officialEleAt, stampRadius: stampRadius, stillCheck: stillCheck, windChill: windChill, windNote: windNote, paceProfile: paceProfile, paceAt: paceAt, paceDistAt: paceDistAt, paceText: paceText, fortune: fortune, fortuneDay: fortuneDay, supportLine: supportLine, dayKey: dayKey, anbuPlan: anbuPlan, anbuText: anbuText, anbuSms: anbuSms, telClean: telClean, telFormat: telFormat, UNITS: UNITS, unitConv: unitConv, unitFmt: unitFmt, mobileOnlyUrl: mobileOnlyUrl, summitCard: summitCard, trackClimb: trackClimb
+        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, regionEn: regionEn, weekendWordEn: weekendWordEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox, LEVELS: LEVELS, difficulty: difficulty, boardSegments: boardSegments, boardProfile: boardProfile, nameEnds: nameEnds, boardButtons: boardButtons, levelChip: levelChip, roman: roman, enName: enName, weekendText: weekendText, boardHere: boardHere, slopeBetween: slopeBetween, recentAdd: recentAdd, recentPages: recentPages, recentFold: recentFold, compareRows: compareRows, compareButtons: compareButtons, steepest: steepest, officialEleAt: officialEleAt, stampRadius: stampRadius, stillCheck: stillCheck, windChill: windChill, windNote: windNote, paceProfile: paceProfile, paceAt: paceAt, paceDistAt: paceDistAt, paceText: paceText, fortune: fortune, fortuneDay: fortuneDay, supportLine: supportLine, dayKey: dayKey, anbuPlan: anbuPlan, anbuText: anbuText, anbuSms: anbuSms, telClean: telClean, telFormat: telFormat, UNITS: UNITS, unitConv: unitConv, unitFmt: unitFmt, dayNo: dayNo, dayYmd: dayYmd, ageInfo: ageInfo, dDay: dDay, dateAdd: dateAdd, dateDiff: dateDiff, pctCalc: pctCalc, dutchPay: dutchPay, textCount: textCount, smsKind: smsKind, compassHeading: compassHeading, SOS_PATTERN: SOS_PATTERN, fxConv: fxConv, mobileOnlyUrl: mobileOnlyUrl, summitCard: summitCard, trackClimb: trackClimb
     };
 })(window);

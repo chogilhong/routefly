@@ -1028,3 +1028,25 @@ eq("unitConv 별거 별거", [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(function (i) {
 eq("unitConv 못 바꿈 · 아주 작음", [RF.unitConv("length", "", "m", "cm"), RF.unitConv("length", "abc", "m", "cm"), RF.unitConv("x", 1, "m", "cm"), RF.unitConv("length", 1, "m", "kg"),
     RF.unitFmt(RF.unitConv("freq", 1, "Hz", "GHz")), RF.unitFmt(0), RF.unitFmt(1234567.5), RF.unitFmt(RF.unitConv("temp", 0, "°C", "K"))],
     [null, null, null, null, "1e-9", "0", "1,234,567.5", "273.15"]);
+(function () {   // 🧰 별거 별거 계산(2026-10-18)
+    RF.setLang("ko");
+    var a = RF.ageInfo([1960, 10, 19], [2026, 10, 18]), b = RF.ageInfo([1960, 10, 18], [2026, 10, 18]), c = RF.ageInfo([2000, 2, 29], [2026, 2, 28]);
+    eq("ageInfo 만 나이 · 띠", [a.man, a.year, a.ddi, a.nextDays, b.man, b.nextDays, c.man, c.nextDays, c.ddi, RF.ageInfo([2030, 1, 1], [2026, 1, 1]), RF.ageInfo([2026, 2, 30], [2026, 3, 1])],
+        [65, 66, "쥐", 1, 66, 0, 25, 1, "용", null, null]);
+    RF.setLang("en"); var e = RF.ageInfo([1984, 5, 5], [2026, 10, 18]).ddi; RF.setLang("ko");
+    eq("dDay · dateAdd · dateDiff", [RF.dDay([2026, 10, 18], [2026, 10, 30]), RF.dDay([2026, 10, 18], [2026, 10, 15]), RF.dDay([2026, 10, 18], [2026, 10, 18]), e,
+        RF.dateAdd([2026, 10, 18], 100, true).join("-"), RF.dateAdd([2026, 10, 18], 100).join("-"), RF.dateAdd([2026, 3, 1], -1).join("-"), RF.dateAdd([2026, 2, 30], 1),
+        RF.dateDiff([2026, 1, 1], [2026, 12, 31]), RF.dateDiff([2026, 1, 1], [2026, 1, 1], true), RF.dateDiff([2026, 3, 29], [2026, 3, 30])],
+        ["D-12", "D+3", "D-day", "Rat", "2027-1-25", "2027-1-26", "2026-2-28", null, 364, 1, 1]);
+    eq("pctCalc", [RF.pctCalc("of", 15, 20000), RF.pctCalc("is", 30, 120), RF.pctCalc("change", 200, 150), RF.pctCalc("sale", 39000, 20), RF.pctCalc("is", 1, 0), RF.pctCalc("x", 1, 1), RF.pctCalc("of", "a", 1)],
+        [3000, 25, -25, 31200, null, null, null]);
+    var d = RF.dutchPay(50000, 3, 100), d2 = RF.dutchPay(10000, 4, 1000), d3 = RF.dutchPay(1000, 3, 1000);
+    eq("dutchPay", [d.per, d.last, d2.per, d2.last, d3.per, d3.last, RF.dutchPay(0, 3, 100), RF.dutchPay(1000, 0, 100)], [16700, 16600, 3000, 1000, 333, 334, null, null]);
+    var t = RF.textCount("안녕 routefly 😊\n두 줄");
+    eq("textCount · smsKind", [t.chars, t.noSpace, t.bytes, t.words, t.lines, RF.textCount("").lines, RF.smsKind(90), RF.smsKind(91), RF.smsKind(2001)], [17, 13, 22, 5, 2, 0, "SMS", "LMS", null]);
+    eq("compassHeading", [RF.compassHeading(90, true, null, 0), RF.compassHeading(null, false, 45, 0), RF.compassHeading(90, false, null, 0), RF.compassHeading(10, true, null, 90), RF.compassHeading(0, true, null, 0)],
+        [270, 45, null, 80, 0]);
+    eq("fxConv", [RF.fxConv(1, "USD", "KRW", "USD", { KRW: 1400 }), RF.fxConv(1400, "KRW", "USD", "USD", { KRW: 1400 }), Math.round(RF.fxConv(100, "JPY", "KRW", "USD", { KRW: 1400, JPY: 150 })),
+        RF.fxConv(1, "USD", "XXX", "USD", { KRW: 1 }), RF.fxConv("a", "USD", "KRW", "USD", { KRW: 1 })], [1400, 1, 933, null, null]);
+    eq("SOS 박자 9번", RF.SOS_PATTERN.length, 9);
+})();
