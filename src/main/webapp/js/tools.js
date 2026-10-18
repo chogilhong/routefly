@@ -127,6 +127,26 @@
         });
     });
 
+    // ── 🚇 지하철 노선도(2026-10-18 홍TV님 - 별거 별거 안으로). 노선도 그림은 저작권이 있어 지도 서비스로 연결만(API 키 없음).
+    //    PC 확인: 카카오맵 PC 웹 map.kakao.com/?target=subway&REGION=SES|PSS|DGS|KJS|DJS 는 그 지역 탭, 폰에서는 같은 주소가 지역을 잃어
+    //    m.search.daum.net "<지역> 지하철노선도"(지역 탭 그대로). 네이버는 "<지역> 지하철노선도" 검색. 광주는 "광주광역시"(경기 광주로 읽혀 수도권이 나왔음)
+    (function () {
+        var MOBILE = /Android|iPhone|iPad|iPod|Mobi/i.test(navigator.userAgent);
+        var REGIONS = [["SES", "수도권", "Seoul area", "서울 · 인천 · 경기"], ["PSS", "부산", "Busan", "부산 · 김해"], ["DGS", "대구", "Daegu", ""], ["KJS", "광주", "Gwangju", "", "광주광역시"], ["DJS", "대전", "Daejeon", ""]];
+        function link(href, text) { var a = document.createElement("a"); a.href = href; a.target = "_blank"; a.rel = "noopener"; a.textContent = text; return a; }
+        REGIONS.forEach(function (r) {
+            var sec = document.createElement("div"), h = document.createElement("h3"), links = document.createElement("div"), q = encodeURIComponent((r[4] || r[1]) + " 지하철노선도");
+            sec.className = "reg";
+            h.textContent = (EN ? r[2] : r[1]) + " ";
+            if (r[3] && !EN) { var sm = document.createElement("small"); sm.textContent = r[3]; h.appendChild(sm); }
+            links.className = "links";
+            links.appendChild(link(MOBILE ? "https://m.search.daum.net/search?w=tot&q=" + q : "https://map.kakao.com/?target=subway&REGION=" + r[0], T("카카오맵 노선도 ›", "Kakao Map ›")));
+            links.appendChild(link("https://" + (MOBILE ? "m." : "") + "search.naver.com/search.naver?query=" + q, T("네이버 노선도 ›", "Naver ›")));
+            sec.appendChild(h); sec.appendChild(links);
+            $("sbRegions").appendChild(sec);
+        });
+    })();
+
     // ── 📏 단위 변환 ──
     var st = { cat: "length", from: "cm", to: "in" };
     try { var s0 = JSON.parse(lsGet("rf-tools") || "null"); if (s0 && RF.UNITS[s0.cat]) st = s0; } catch (e) { /* 처음 */ }

@@ -647,8 +647,7 @@ public class MountainServlet extends HttpServlet {
         }
         b.append("</div>").append(tips()).append("<section id=\"fun\" class=\"fun\" hidden></section>")
                 .append("<a class=\"anbuLink\" href=\"").append(REL).append("/anbu.html?lang=ko\">🏠 오늘의 안부 <small>하루 한 번 '잘 지내요' · 보호자에게 문자 · 매일 알림</small> ›</a>")
-                .append("<a class=\"anbuLink toolLink\" href=\"").append(REL).append("/tools.html?lang=ko\">🧰 별거 별거 <small>우편번호 · 환율 · 음력 · 날씨 · 이자 · 타이머 · 사다리 · 공휴일 · 기름값 · 물때 · 호랑이 소리 · 곰 방울 · 요들 외침 등 26가지</small> ›</a>")   // 2026-10-18 홍TV님   // 2026-10-18 홍TV님 - 따라가기 첫 화면에서 옮김   // 🔮 재미로 보는 오늘의 산행 한마디(js/mountain.js - 2026-10-17 홍TV님)
-                .append("<a class=\"anbuLink subwayLink\" href=\"").append(REL).append("/subway.html?lang=ko\">🚇 지하철 노선도 <small>수도권 · 부산 · 대구 · 광주 · 대전</small> ›</a>")   // 2026-10-18 홍TV님 - 별거 별거 아래
+                .append("<a class=\"anbuLink toolLink\" href=\"").append(REL).append("/tools.html?lang=ko\">🧰 별거 별거 <small>우편번호 · 환율 · 음력 · 날씨 · 이자 · 타이머 · 사다리 · 지하철 노선도 · 공휴일 · 기름값 · 물때 · 호랑이 소리 등 27가지</small> ›</a>")   // 2026-10-18 홍TV님   // 2026-10-18 홍TV님 - 따라가기 첫 화면에서 옮김   // 🔮 재미로 보는 오늘의 산행 한마디(js/mountain.js - 2026-10-17 홍TV님)
                 .append(foot(base, REL + "/en/m/"));
         return b.toString();
     }

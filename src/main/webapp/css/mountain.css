@@ -85,7 +85,6 @@ ul { margin:0; padding:0; list-style:none; }
 .anbuLink { display:block; margin:10px 0 4px; padding:12px 14px; border-radius:12px; background:rgba(74,222,128,0.10); border:1px solid rgba(74,222,128,0.45);
             color:var(--tx); text-decoration:none; font-weight:bold; font-size:16px; }   /* 🏠 오늘의 안부(2026-10-18) - 한마디 아래 */
 .toolLink { background:rgba(56,217,234,0.10); border-color:rgba(56,217,234,0.45); }   /* 🧰 별거 별거(2026-10-18) - 안부 아래 */
-.subwayLink { background:rgba(255,212,59,0.08); border-color:rgba(255,212,59,0.45); }   /* 🚇 지하철 노선도(2026-10-18) - 별거 별거 아래 */
 .anbuLink small { display:block; font-weight:normal; font-size:13px; color:var(--dim); margin-top:2px; }
 #weekend .fb { padding:4px 0 10px; }
 #weekend .wday { margin:10px 0 4px; font-size:14px; }

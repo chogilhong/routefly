@@ -93,6 +93,12 @@ h2.grp { margin:22px 2px 0; font-size:14px; color:var(--dim); font-weight:bold; 
 #ldBox svg text { fill:var(--tx); font-size:13px; text-anchor:middle; pointer-events:none; }
 #ldBox svg rect.hit { fill:rgba(56,217,234,0.10); stroke:rgba(56,217,234,0.45); cursor:pointer; }
 #swLaps { margin:6px 0 0; padding-left:1.4em; }
+.reg { padding:10px 0; border-top:1px solid var(--ln); }
+.reg:first-child { border-top:0; padding-top:2px; }
+.reg h3 { margin:0 0 8px; font-size:16px; }
+.reg h3 small { font-size:13px; font-weight:normal; color:var(--dim); }
+.reg .links { display:flex; gap:8px; flex-wrap:wrap; }
+.reg .links a { flex:1 1 130px; display:flex; align-items:center; justify-content:center; min-height:46px; border-radius:12px; text-decoration:none; font:bold 15px Arial,"Malgun Gothic",sans-serif; border:1px solid var(--sky); background:rgba(56,217,234,0.12); color:var(--sky); }
 #toast { position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom) + 24px); transform:translateX(-50%); max-width:90%; background:rgba(0,0,0,0.85);
          color:#fff; padding:10px 16px; border-radius:12px; font-size:15px; display:none; z-index:9; text-align:center; }
 </style>
@@ -109,6 +115,10 @@ h2.grp { margin:22px 2px 0; font-size:14px; color:var(--dim); font-weight:bold; 
         <div id="pcBox"></div>
         <div id="pcOut"></div>
         <p class="tip" data-en="Type a road name and building number (e.g. 잠실로 51-33) or a neighborhood and lot number (e.g. 역삼동 737) - the search box is in Korean. Tap an address in the list to see the postcode, road and lot addresses and the English address below, with a Copy button on each line and Copy all. Search uses the Kakao postcode service; routefly does not save the address or send it to its server.">도로명 + 건물번호(예: 잠실로 51-33)나 동 · 읍 · 면 + 번지(예: 역삼동 737)로 찾은 뒤 목록에서 주소를 누르면 아래에 우편번호 · 도로명 · 지번 · 영문 주소가 나오고, 줄마다 "복사" 와 "📋 모두 복사" 로 복사할 수 있습니다. 찾기는 카카오 우편번호 서비스로 하고, routefly 는 주소를 저장하거나 서버로 보내지 않습니다.</p>
+    </div></details>
+    <details class="tool" id="t-subway"><summary data-en="🚇 Subway maps">🚇 지하철 노선도</summary><div class="tb">
+        <div id="sbRegions"></div>
+        <p class="tip" data-en="Opens the subway map of a map service (routes, transfers, timetables). The official map images are copyrighted, so routefly links to them instead of copying them.">지도 서비스의 지하철 노선도(길찾기 · 환승 · 시간표)를 엽니다. 공식 노선도 그림은 저작권이 있어 routefly 에 넣지 않고 연결만 합니다.</p>
     </div></details>
     <details class="tool" id="t-unit"><summary data-en="📏 Unit converter">📏 단위 변환</summary><div class="tb">
         <div class="cats" id="uCats"></div>
