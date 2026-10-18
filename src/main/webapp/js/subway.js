@@ -15,7 +15,7 @@
     document.getElementById("top").appendChild(RF.textButton());
 
     var MOBILE = /Android|iPhone|iPad|iPod|Mobi/i.test(navigator.userAgent);
-    var REGIONS = [["SES", "수도권", "Seoul area", "서울 · 인천 · 경기"], ["PSS", "부산", "Busan", "부산 · 김해"], ["DGS", "대구", "Daegu", ""], ["KJS", "광주", "Gwangju", ""], ["DJS", "대전", "Daejeon", ""]];
+    var REGIONS = [["SES", "수도권", "Seoul area", "서울 · 인천 · 경기"], ["PSS", "부산", "Busan", "부산 · 김해"], ["DGS", "대구", "Daegu", ""], ["KJS", "광주", "Gwangju", "", "광주광역시"], ["DJS", "대전", "Daejeon", ""]];
     function link(href, text) {
         var a = document.createElement("a");
         a.href = href; a.target = "_blank"; a.rel = "noopener"; a.textContent = text;
@@ -23,7 +23,7 @@
     }
     var box = document.getElementById("regions");
     REGIONS.forEach(function (r) {
-        var sec = document.createElement("section"), h = document.createElement("h2"), links = document.createElement("div"), q = encodeURIComponent(r[1] + " 지하철노선도");
+        var sec = document.createElement("section"), h = document.createElement("h2"), links = document.createElement("div"), q = encodeURIComponent((r[4] || r[1]) + " 지하철노선도");   // 광주는 "광주광역시" - "광주" 만이면 경기 광주(수도권)로 읽혀 수도권 노선도가 나왔음(2026-10-18 홍TV님)
         sec.className = "reg";
         h.textContent = "🚇 " + (EN ? r[2] : r[1]) + " ";
         if (r[3] && !EN) { var sm = document.createElement("small"); sm.textContent = r[3]; h.appendChild(sm); }
