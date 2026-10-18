@@ -835,15 +835,17 @@
         src.start(t0);
     }
     function tgStop() {
-        clearInterval(tgIv); tgIv = null;
+        clearTimeout(tgIv); tgIv = null;
         $("tgLoop").classList.remove("on");
-        $("tgLoop").textContent = T("🔁 계속(4초마다)", "🔁 Keep roaring");
+        $("tgLoop").textContent = T("🔁 계속", "🔁 Keep roaring");
     }
     $("tgOne").addEventListener("click", roar);
     $("tgLoop").addEventListener("click", function () {
         if (tgIv) return tgStop();
         roar();
-        tgIv = setInterval(roar, 4000);
+        (function again() {   // 녹음(0.9초)이면 2초마다, 합성(2.6초)이면 4초마다(2026-10-18 PC: 녹음은 짧아 3초쯤 조용했음)
+            tgIv = setTimeout(function () { roar(); again(); }, tgRec ? 2000 : 4000);
+        })();
         this.classList.add("on");
         this.textContent = T("⏹ 멈춤", "⏹ Stop");
     });
