@@ -31,8 +31,12 @@
 도메인 업체(가비아 등) DNS 에 A 레코드:
 
 ```
-routefly.kr      A    <고정 IP>
+routefly.kr      A    <고정 IP>     (가비아 화면의 호스트 이름은 비움 또는 @)
+www.routefly.kr  A    <고정 IP>     (호스트 이름 www)
 ```
+
+진짜 주소는 `routefly.kr` 하나로 정합니다. `www.routefly.kr` 로 들어와도 6-1 의 www 칸이 `https://routefly.kr` 로 넘깁니다
+(같은 화면이 두 주소로 보이면 검색 엔진이 둘로 나눠 셈 - 2026-10-18 홍TV님 도메인 구매 때).
 
 Cloudflare 를 쓸 거라면 8-2 의 순서대로 처음부터 Cloudflare DNS 에 넣어도 됩니다.
 
@@ -189,7 +193,7 @@ access_log /var/log/nginx/access.log routefly_noargs;
 ```bash
 sudo ln -s /etc/nginx/sites-available/routefly /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
-sudo certbot --nginx -d routefly.kr        # 이메일 입력, HTTP → HTTPS 넘기기. 갱신은 자동(certbot.timer)
+sudo certbot --nginx -d routefly.kr -d www.routefly.kr   # 이메일 입력, HTTP → HTTPS 넘기기. 인증서 하나에 두 이름. 갱신은 자동(certbot.timer)
 ```
 
 ### 왜 머리글을 이렇게 넘기나 (SecurityFilter)
@@ -204,6 +208,13 @@ sudo certbot --nginx -d routefly.kr        # 이메일 입력, HTTP → HTTPS �
 ### 6-1. Cloudflare 없이 (처음엔 이것)
 
 ```nginx
+# www 로 들어오면 routefly.kr 로(주소 하나로 - 2장). certbot 이 이 칸에도 443 을 붙임
+server {
+    listen 80;
+    server_name www.routefly.kr;
+    return 301 https://routefly.kr$request_uri;
+}
+
 server {
     listen 80;
     server_name routefly.kr;
@@ -313,6 +324,7 @@ npm run url -- https://routefly.kr/routefly/hike.html
 
 1. Cloudflare 에 `routefly.kr` 추가 → 도메인 업체에서 네임서버를 Cloudflare 것으로 바꿈
 2. DNS: `routefly.kr  A  <고정 IP>` 를 주황 구름(Proxied) 으로
+   `www.routefly.kr  A  <고정 IP>` 도 같게(Proxied) - Nginx 6-2 에도 6-1 의 www 칸(→ https://routefly.kr)을 함께 넣습니다.
 3. SSL/TLS → Full (strict) (서버의 certbot 인증서를 그대로 씀)
 4. 서버 Nginx 를 6-2 로 바꿈(Cloudflare 대역만 받기 + `CF-Connecting-IP` 지우는 줄 빼기). 4 를 빼먹으면 서버 IP 로 바로 와서 `CF-Connecting-IP` 를 꾸며 넣어 횟수 제한을 피할 수 있습니다.
 5. 캐시 규칙은 기본값 그대로(no-cache 인 html · js · css 와 확장자 없는 `/api` 는 담지 않음)
