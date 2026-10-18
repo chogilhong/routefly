@@ -79,6 +79,7 @@ public class MountainEnTest {
                 + "{\"kind\":\"bike\",\"series\":[{\"name\":\"한강 자전거길(서울)\",\"prefix\":\"osmb-1-\",\"km\":56}]},{\"kind\":\"hike\",\"series\":[{\"summits\":\"\"}]}]").getAsJsonArray();
         String idx = MountainEn.indexPage(peaks, groups, "https://routefly.kr/routefly");
         assertTrue("🧰 Handy tools 링크", idx.contains("/tools.html?lang=en\">🧰 Handy tools"));
+        assertTrue("🚇 Subway maps", idx.contains("/subway.html?lang=en\">🚇 Subway maps"));
         assertTrue(idx.contains("<a href=\"../../route.html?trail=%ED%95%B4%ED%8C%8C%EB%9E%91%EA%B8%B8&amp;name=Haeparang%20Trail&amp;back=en\">Haeparang Trail <small lang=\"ko\">해파랑길</small></a>"));
         assertTrue(idx.contains(">Jirisan Dulle-gil <small>289 km</small>"));
         assertTrue(idx.contains("route.html?prefix=osmb-1-&amp;name=Hangang%20Bike%20Path%20%28Seoul%29&amp;back=en\">Hangang Bike Path (Seoul)"));

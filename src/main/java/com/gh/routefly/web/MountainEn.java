@@ -282,6 +282,7 @@ final class MountainEn {
         return b.append("<section id=\"fun\" class=\"fun\" hidden></section>")
                 .append("<a class=\"anbuLink\" href=\"" + REL + "/anbu.html?lang=en\">🏠 Daily check-in <small>Tap \"I'm fine\" once a day · text your guardian · daily reminder</small> ›</a>")
                 .append("<a class=\"anbuLink toolLink\" href=\"" + REL + "/tools.html?lang=en\">🧰 Handy tools <small>Postcode · exchange rates · lunar calendar · weather · timer · ladder game · holidays · fuel prices · tides · tiger roar · bear bell · yodel and more (26)</small> ›</a>")   // 🔮 just for fun(js/mountain-en.js - 2026-10-17)
+                .append("<a class=\"anbuLink subwayLink\" href=\"" + REL + "/subway.html?lang=en\">🚇 Subway maps <small>Seoul area · Busan · Daegu · Gwangju · Daejeon</small> ›</a>")
                 .append(foot(REL + "/m/")).toString();
     }
 
