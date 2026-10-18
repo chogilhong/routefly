@@ -147,3 +147,14 @@ ul { margin:0; padding:0; list-style:none; }
 .stT .rk { color:var(--dim); width:1.6em; }
 .stT a { font-weight:bold; }
 .stT small { display:block; font-size:12px; color:var(--dim); margin-top:1px; }
+/* ⛑️ 오늘의 산행 안전(별거 별거 tools.html 의 .wl · .sfl 과 같게 - 2026-10-18) */
+#safe .wl { list-style:none; margin:6px 0 0; padding:0; font-size:15px; }
+#safe .wl li { display:flex; justify-content:space-between; gap:10px; padding:8px 0; border-top:1px solid var(--ln); }
+#safe .wl li b { font-variant-numeric:tabular-nums; white-space:nowrap; }
+#safe .wl li span { min-width:0; overflow-wrap:anywhere; }
+#safe .wl li small { color:var(--dim); }
+#safe .sfl li span { flex:0 1 auto; min-width:4.6em; word-break:keep-all; }   /* 이름은 낱말 단위로만 줄바꿈(가++ 에서 값이 세로로 깨졌음 - 2026-10-18) */
+#safe .sfl li b { flex:1 1 0; min-width:4.6em; white-space:normal; word-break:keep-all; overflow-wrap:anywhere; text-align:right; }
+#safe .sfl li.bad span { color:#ff8787; font-weight:bold; }
+#safe .sfl li.mid span { color:#ffd43b; }
+#safe h3 { font-size:15px; margin:14px 0 0; }

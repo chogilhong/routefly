@@ -132,6 +132,9 @@ final class MountainEn {
         b.append("</p>");
         b.append("<section id=\"wx\" data-lat=\"").append(peak.get("lat").getAsDouble()).append("\" data-lon=\"").append(peak.get("lon").getAsDouble())
                 .append("\"><h2>Weather · Air quality · Sunrise &amp; Sunset</h2><p class=\"dim\" id=\"wxBody\">Loading…</p></section>");
+        // ⛑️ Today's hiking safety(api/safety - 한국어 산 페이지와 같게, 2026-10-18) - js/mountain-en.js 가 채움
+        b.append("<section id=\"safe\"><h2>⛑️ Today's hiking safety</h2><ul class=\"wl sfl\" id=\"sfList\"><li><span>Loading…</span></li></ul>")
+                .append("<h3>🏥 Nearest emergency rooms</h3><ul class=\"wl\" id=\"sfEr\"></ul><p class=\"dim\">Weather warnings and UV: Korea Meteorological Administration. Wildfire risk: Korea Forest Service. Emergency rooms: National Medical Center (region from the nearest ER's address). In an emergency call <b>119</b>.</p></section>");
         b.append("<section><h2>").append(courses.size()).append(courses.size() == 1 ? " trail" : " trails").append("</h2>");
         if (courses.isEmpty()) b.append("<p class=\"dim\">No trail to the summit was found in our data.</p>");
         else {

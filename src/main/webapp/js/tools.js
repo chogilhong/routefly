@@ -888,7 +888,9 @@
         if (!navigator.geolocation) return toast(T("이 기기는 위치를 쓸 수 없습니다", "Location is not available"));
         toast(T("위치를 찾는 중…", "Finding your location…"));
         navigator.geolocation.getCurrentPosition(function (p) {
-            loc = { lat: p.coords.latitude, lon: p.coords.longitude, name: T("내 위치", "My location") };
+            // 서버에는 내 위치 대신 고정 5km 칸 가운데만(RF.cellCenter - 개인정보처리방침). 일출 · 일몰 · 물때 관측소도 이 자리로(차이 1분 안팎)
+            var cc = RF.cellCenter(p.coords.latitude, p.coords.longitude);
+            loc = { lat: cc[0], lon: cc[1], name: T("내 위치 둘레", "Near me") };
             cb();
         }, function () { toast(T("위치를 못 찾았습니다 - 위치 권한을 확인해 주세요", "Could not get your location - check location permission"), 4000); }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 });
     }
@@ -1055,68 +1057,14 @@
     });
 
     // ── 🛟 오늘의 산행 안전(api/safety - 특보 · 산불위험 · 자외선 · 가까운 응급실, 2026-10-18). 위치는 날씨와 같이(loc - 기본 서울) ──
-    var UV_WORD = [[2, "낮음", "Low"], [5, "보통", "Moderate"], [7, "높음", "High"], [10, "매우 높음", "Very high"], [99, "위험", "Extreme"]];
-    var WARN_EN = { "강풍": "Strong wind", "호우": "Heavy rain", "한파": "Cold wave", "건조": "Dry air", "폭풍해일": "Storm surge", "풍랑": "High seas", "태풍": "Typhoon", "대설": "Heavy snow", "황사": "Yellow dust", "폭염": "Heat wave" };
-    function warnName(t) {   // "강풍주의보" → "Strong wind advisory"(영어 화면)
-        if (!EN) return t;
-        var m = /^(.+?)(주의보|경보)$/.exec(t);
-        return m && WARN_EN[m[1]] ? WARN_EN[m[1]] + (m[2] === "경보" ? " warning" : " advisory") : t;
-    }
-    var FIRE_WORD = [["낮음", "Low"], ["다소 높음", "Moderate"], ["높음", "High"], ["매우 높음", "Very high"]];
-    function sfRow(icon, label, val, cls) {
-        var li = document.createElement("li"), sp = document.createElement("span"), b = document.createElement("b");
-        sp.textContent = icon + " " + label; b.textContent = val;
-        if (cls) li.className = cls;
-        li.appendChild(sp); li.appendChild(b);
-        $("sfList").appendChild(li);
-    }
+    // 줄 · 응급실 그리기는 course-kit.js(RF.safetyRender) - 산 페이지 · 따라가기와 함께 씀
     function sfLoad() {
         outSet("sfHead", T("안전 정보를 받는 중…", "Loading safety info…"));
         $("sfList").innerHTML = ""; $("sfEr").innerHTML = "";
         fetch("api/safety?lat=" + loc.lat.toFixed(4) + "&lon=" + loc.lon.toFixed(4)).then(function (r) { return r.json(); }).then(function (j) {
             if (!j || j.unavailable) return outSet("sfHead", T("지금은 안전 정보를 받을 수 없습니다", "Safety info is not available right now"));
             outSet("sfHead", loc.name + (j.sido ? " · " + j.sido : ""), T("지역은 가장 가까운 응급실 주소로 정했습니다", "Region from the nearest emergency room's address"));
-            // ⚠ 특보 - 내 시도가 들어간 것만 빨갛게, 전국 것은 줄여서
-            if (j.warn) {
-                var mine = j.warn.lines.filter(function (l) { return l.mine; }), all = j.warn.lines.map(function (l) { return warnName(l.type); });
-                if (mine.length) mine.forEach(function (l) { sfRow("⚠", warnName(l.type), T("내 지역 발효 중", "in effect here"), "bad"); });
-                else sfRow("✅", T("기상특보", "Weather warnings"), T("내 지역 없음", "None here"));
-                if (all.length) sfRow("🗺", T("전국 특보", "Nationwide"), all.join(" · "));
-            }
-            // 🔥 산불위험(시도)
-            if (j.fire) {
-                var lv = j.fire.level || 0;
-                sfRow("🔥", T("산불위험", "Wildfire risk"), (EN ? FIRE_WORD[lv][1] : FIRE_WORD[lv][0]) + (j.fire.meanavg != null ? " (" + Math.round(j.fire.meanavg) + ")" : ""), lv >= 2 ? "bad" : lv === 1 ? "mid" : "");
-            }
-            // ☀ 자외선 - 발표 시각 + h 시간. 지금 값 · 오늘 가장 높은 값
-            if (j.uv && j.uv.hours && j.uv.hours.length) {
-                var d = j.uv.date, base = Date.UTC(+d.slice(0, 4), +d.slice(4, 6) - 1, +d.slice(6, 8), +d.slice(8, 10)) - 9 * 3600000, now = Date.now(), cur = null, max = null;
-                var todayKST = new Date(now + 9 * 3600000).toISOString().slice(0, 10), tomKST = new Date(now + 33 * 3600000).toISOString().slice(0, 10), tmax = null, restToday = false;
-                j.uv.hours.forEach(function (p) {
-                    var at = base + p.h * 3600000, day = new Date(at + 9 * 3600000).toISOString().slice(0, 10);
-                    if (at <= now) cur = p.v;
-                    if (day === todayKST) { max = Math.max(max == null ? 0 : max, p.v); if (at > now && p.v > 0) restToday = true; }
-                    if (day === tomKST) tmax = Math.max(tmax == null ? 0 : tmax, p.v);
-                });
-                // 저녁(오늘 남은 시간에 자외선이 없음)이면 내일 값(2026-10-18 PC: 18시 발표 뒤 "0 낮음" 만 보였음)
-                var tomorrow = !restToday && (cur == null || cur === 0) && tmax != null && new Date(now + 9 * 3600000).getUTCHours() >= 15;
-                var word = function (v) { for (var i = 0; i < UV_WORD.length; i++) if (v <= UV_WORD[i][0]) return EN ? UV_WORD[i][2] : UV_WORD[i][1]; return ""; };
-                if (tomorrow) sfRow("☀", T("자외선(내일 가장 높을 때)", "UV (tomorrow's peak)"), tmax + " " + word(tmax), tmax >= 8 ? "bad" : tmax >= 6 ? "mid" : "");
-                else if (max != null) sfRow("☀", T("자외선(오늘 가장 높을 때)", "UV (today's peak)"), max + " " + word(max) + (cur != null ? T(" · 지금 ", " · now ") + cur : ""), max >= 8 ? "bad" : max >= 6 ? "mid" : "");
-            }
-            if (!$("sfList").children.length) sfRow("ℹ", T("안전 정보", "Safety info"), T("받지 못했습니다", "Not available"));
-            // 🏥 가까운 응급실
-            (j.er || []).forEach(function (h) {
-                var li = document.createElement("li"), sp = document.createElement("span"), b = document.createElement("b"), a = document.createElement("a");
-                a.href = "https://map.kakao.com/link/search/" + encodeURIComponent(h.addr || h.name); a.target = "_blank"; a.rel = "noopener";
-                a.textContent = h.name; a.style.color = "var(--sky)";
-                sp.appendChild(a);
-                var sm = document.createElement("small"); sm.style.display = "block"; sm.textContent = (h.km != null ? h.km + "km · " : "") + (h.kind || "");
-                sp.appendChild(sm);
-                if (h.tel) { var t = document.createElement("a"); t.href = "tel:" + h.tel.replace(/[^0-9]/g, ""); t.textContent = "📞 " + h.tel; t.style.color = "var(--tx)"; b.appendChild(t); }
-                li.appendChild(sp); li.appendChild(b);
-                $("sfEr").appendChild(li);
-            });
+            RF.safetyRender($("sfList"), $("sfEr"), j, EN);
         }).catch(function () { outSet("sfHead", T("안전 정보를 받지 못했습니다 - 인터넷을 확인해 주세요", "Could not load safety info - check your connection")); });
     }
     $("sfHere").addEventListener("click", function () { here(sfLoad); });

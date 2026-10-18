@@ -806,6 +806,13 @@
             // 산불조심기간 안내(하루 한 번 - 2026-10-15 홍TV님)
             var fire = RF.fireNote(Date.now()), today0 = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
             try { if (fire && localStorage.getItem("rf-fire") !== today0) { localStorage.setItem("rf-fire", today0); setTimeout(function () { toast(fire, 9000); }, 7000); } } catch (e) { /* 이번만 */ }
+            // ⛑️ 오늘의 산행 안전(api/safety - 2026-10-18 홍TV님): 들머리 자리의 내 지역 특보 · 산불위험 높음 이상 · 자외선 8 이상일 때만, 그 지역(시도) 하루 한 번
+            if (c.lat && c.lat.length) fetch("api/safety?lat=" + (+c.lat[0]).toFixed(4) + "&lon=" + (+c.lon[0]).toFixed(4)).then(function (x) { return x.json(); }).then(function (j) {
+                var msg = my === loadSeq && RF.safetyAlert(j, Date.now(), EN), k = "rf-safe-" + today0 + "-" + ((j && j.sido) || "");
+                if (!msg || lsGet("rf-safe") === k) return;
+                try { localStorage.setItem("rf-safe", k); } catch (e) { /* 이번만 */ }
+                setTimeout(function () { if (my === loadSeq) toast(msg + T(" - 별거 별거 › 산행 안전에서 자세히", " - details in Handy tools › Hiking safety"), 10000); }, 17000);
+            }).catch(function () { /* 안전 정보 없이 */ });
             document.title = RF.nameText(c.course.name, true);   // 길만 - "- routefly" 를 붙이면 탭 · 최근 앱 목록에서 잘림(2026-10-12 홍TV님)
             if ((parts ? r[0] : [r[0]]).some(function (j) { return j && j.course && RF.isClosedTrail(j.course.name); })) toast(T("⚠ 비법정탐방로(통제구역)입니다. 국립공원 지정 탐방로가 아니라 출입이 금지된 길이니 따라가지 마세요.", "⚠ Closed trail (restricted area). This is not an official national park trail and entry is banned - do not follow it."), 12000);   // 링크로 바로 연 경우(목록에는 안 나옴)
             else if (RF.infoText(c.info)) toast(RF.infoText(c.info), 6000);   // 국립공원 공식 코스 - 공단 기준 시간 · 난이도

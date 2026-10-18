@@ -559,6 +559,9 @@ public class MountainServlet extends HttpServlet {
                 .append(top != null ? String.format(Locale.KOREA, " · 코스 최고점 약 %,dm", top) : "").append("</p>");
         b.append("<section id=\"wx\" data-lat=\"").append(peak.get("lat").getAsDouble()).append("\" data-lon=\"").append(peak.get("lon").getAsDouble())
                 .append("\"><h2>날씨 · 미세먼지 · 일출 · 일몰</h2><p class=\"dim\" id=\"wxBody\">불러오는 중…</p></section>");
+        // ⛑️ 오늘의 산행 안전(api/safety - 2026-10-18 홍TV님: 별거 별거와 같은 것을 산 페이지에도) - 정상 자리로, 보이면 받음(js/mountain.js)
+        b.append("<section id=\"safe\"><h2>⛑️ 오늘의 산행 안전</h2><ul class=\"wl sfl\" id=\"sfList\"><li><span>불러오는 중…</span></li></ul>")
+                .append("<h3>🏥 가까운 응급실</h3><ul class=\"wl\" id=\"sfEr\"></ul><p class=\"dim\">기상특보 · 자외선은 기상청, 산불위험은 산림청, 응급실은 국립중앙의료원 자료(지역은 가장 가까운 응급실 주소로). 위급하면 <b>119</b>.</p></section>");
         b.append("<section><h2>코스 ").append(courses.size()).append("개</h2>");
         if (courses.isEmpty()) b.append("<p class=\"dim\">정상까지 가는 코스를 찾지 못했습니다. <a href=\"").append(REL)
                 .append("/hike.html?lang=ko\">따라가기에서 산 이름으로 찾아보세요</a>.</p>");

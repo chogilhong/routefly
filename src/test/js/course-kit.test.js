@@ -1084,3 +1084,24 @@ eq("nextLunarBirthday 음력 생일", [RF.nextLunarBirthday(8, 15, [2026, 9, 1])
 eq("leapMonth 윤달", [1969, 2020, 2023, 2025, 2026, 2028].map(RF.leapMonth), [0, 4, 2, 6, 0, 5]);
 eq("calcEval 계산기", ["12+3×4", "10−4−3", "-3÷2", "50%", "200×15%", "0.1+0.2", "7÷0", "1+", "×3", "1..2", "", "2×-3", "100-5"].map(RF.calcEval),
     [24, 3, -1.5, 0.5, 30, 0.3, null, 1, null, null, null, -6, 95]);
+// ⛑️ 오늘의 산행 안전(api/safety) - 별거 별거 · 산 페이지 · 따라가기가 함께 쓰는 줄(2026-10-18)
+(function () {
+    var noon = Date.UTC(2026, 9, 18, 3), eve = Date.UTC(2026, 9, 18, 10);   // KST 12시 · 19시
+    var j = { sido: "강원특별자치도", warn: { tm: "x", lines: [{ type: "강풍주의보", areas: "강원도", mine: true }, { type: "건조경보", areas: "경상북도", mine: false }] },
+        fire: { level: 2, meanavg: 61.4 }, uv: { date: "2026101806", hours: [{ h: 0, v: 0 }, { h: 3, v: 2 }, { h: 6, v: 5 }, { h: 9, v: 8 }, { h: 12, v: 0 }, { h: 15, v: 0 }, { h: 27, v: 6 }, { h: 30, v: 4 }] } };
+    var r = RF.safetyRows(j, noon, false);
+    eq("safetyRows 줄", r.map(function (x) { return x.icon + x.label + "=" + x.val + "/" + x.cls; }),
+        ["⚠강풍주의보=내 지역 발효 중/bad", "🗺전국 특보=강풍주의보 · 건조경보/", "🔥산불위험=높음 (61)/bad", "☀자외선(오늘 가장 높을 때)=8 매우 높음 · 지금 5/bad"]);
+    eq("safetyRows 저녁은 내일 자외선", RF.safetyRows(j, eve, false).pop().label + " " + RF.safetyRows(j, eve, false).pop().val, "자외선(내일 가장 높을 때) 6 높음");
+    eq("safetyRows 영어", RF.safetyRows(j, noon, true).slice(0, 3).map(function (x) { return x.label + "=" + x.val; }),
+        ["Strong wind advisory=in effect here", "Nationwide=Strong wind advisory · Dry air warning", "Wildfire risk=High (61)"]);
+    eq("safetyAlert 따라가기 알림", RF.safetyAlert(j, noon, false), "⛑️ 오늘의 산행 안전: 강풍주의보 · 산불위험 높음 (61) · 자외선(오늘 가장 높을 때) 8 매우 높음 · 지금 5");
+    eq("safetyAlert 저녁 자외선은 알리지 않음", RF.safetyAlert(j, eve, false), "⛑️ 오늘의 산행 안전: 강풍주의보 · 산불위험 높음 (61)");
+    var calm = { warn: { lines: [{ type: "건조경보", mine: false }] }, fire: { level: 1 }, uv: { date: "2026101806", hours: [{ h: 6, v: 4 }] } };
+    eq("safetyAlert 별일 없으면 빈 글", [RF.safetyAlert(calm, noon, false), RF.safetyAlert(null, noon, false), RF.safetyAlert({ unavailable: true }, noon, false)], ["", "", ""]);
+    eq("safetyRows 내 지역 특보 없음 · 산불 다소 높음", RF.safetyRows(calm, noon, false).slice(0, 3).map(function (x) { return x.label + "=" + x.val + "/" + x.cls; }),
+        ["기상특보=내 지역 없음/", "전국 특보=건조경보/", "산불위험=다소 높음/mid"]);
+    eq("warnName", [RF.warnName("호우경보", true), RF.warnName("호우경보", false), RF.warnName("이상한주의보", true)], ["Heavy rain warning", "호우경보", "이상한주의보"]);
+})();
+eq("cellCenter 고정 5km 칸 가운데(서버에 내 위치 대신)", [RF.cellCenter(37.5663, 126.9779), RF.cellCenter(37.5501, 126.9999), RF.cellCenter(35.0, 129.0), RF.cellCenter(33.4999, 126.53)],
+    [[37.575, 126.975], [37.575, 126.975], [35.025, 129.025], [33.475, 126.525]]);

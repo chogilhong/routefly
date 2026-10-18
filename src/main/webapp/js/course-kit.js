@@ -636,6 +636,14 @@
         return [down(bb[0]), down(bb[1]), up(bb[2]), up(bb[3])];
     }
 
+    /**
+     * 순수 함수 - 서버에 묻는 자리(날씨 · 안전): 내 위치 대신 0.05도(약 5km) 고정 칸의 가운데 [lat, lon] - 그 칸 안 모든 사람이 같음.
+     * 개인정보처리방침 "GPS 위치는 서버로 보내지 않음"(2026-10-18 점검: 별거 별거 "내 위치로" 가 GPS 그대로 보냈음).
+     */
+    function cellCenter(lat, lon) {
+        var c = 0.05, k = 1e6, f = function (v) { return Math.round((Math.floor(v / c + 1e-9) * c + c / 2) * k) / k; };
+        return [f(lat), f(lon)];
+    }
     /** 순수 함수 - 범위와 겹치는 고정 격자 칸들([서, 남, 동, 북] 목록, 칸마다 한 번 물으면 칸마다 목록 한도까지 받음). */
     function gridCells(bb, cell) {
         cell = cell || GRID_DEG;
@@ -3822,6 +3830,93 @@
         return points.map(function (p) { return [ox + (p.lon - lo0) * k * s, oy + (la1 - p.lat) * s]; });
     }
 
+    // ── ⛑️ 오늘의 산행 안전(api/safety - SafetyServlet) - 별거 별거 · 산 페이지 · 따라가기가 함께 씀(2026-10-18 홍TV님) ──
+    var UV_WORD = [[2, "낮음", "Low"], [5, "보통", "Moderate"], [7, "높음", "High"], [10, "매우 높음", "Very high"], [99, "위험", "Extreme"]];
+    var WARN_EN = { "강풍": "Strong wind", "호우": "Heavy rain", "한파": "Cold wave", "건조": "Dry air", "폭풍해일": "Storm surge", "풍랑": "High seas", "태풍": "Typhoon", "대설": "Heavy snow", "황사": "Yellow dust", "폭염": "Heat wave" };
+    var FIRE_WORD = [["낮음", "Low"], ["다소 높음", "Moderate"], ["높음", "High"], ["매우 높음", "Very high"]];
+    /** 순수 함수 - 특보 이름(영어 화면은 "강풍주의보" → "Strong wind advisory", 모르는 것은 그대로). */
+    function warnName(t, en) {
+        if (!en) return t;
+        var m = /^(.+?)(주의보|경보)$/.exec(t || "");
+        return m && WARN_EN[m[1]] ? WARN_EN[m[1]] + (m[2] === "경보" ? " warning" : " advisory") : t;
+    }
+    function uvWord(v, en) { for (var i = 0; i < UV_WORD.length; i++) if (v <= UV_WORD[i][0]) return en ? UV_WORD[i][2] : UV_WORD[i][1]; return ""; }
+    /**
+     * 순수 함수 - api/safety 응답 → 줄 [{icon, label, val, cls("bad" · "mid" · "")}]: 특보(내 시도 것은 빨강, 전국은 한 줄) · 산불위험 · 자외선.
+     * 자외선은 발표 시각(date "yyyyMMddHH" KST) + h 시간. 저녁(오늘 남은 자외선이 없음)이면 내일 가장 높을 때(2026-10-18 PC).
+     */
+    function safetyRows(j, now, en) {
+        var out = [], t = function (ko, e) { return en ? e : ko; };
+        if (!j || j.unavailable) return out;
+        if (j.warn && j.warn.lines) {
+            var mine = j.warn.lines.filter(function (l) { return l.mine; }), all = j.warn.lines.map(function (l) { return warnName(l.type, en); });
+            if (mine.length) mine.forEach(function (l) { out.push({ icon: "⚠", label: warnName(l.type, en), val: t("내 지역 발효 중", "in effect here"), cls: "bad", alert: true }); });
+            else out.push({ icon: "✅", label: t("기상특보", "Weather warnings"), val: t("내 지역 없음", "None here"), cls: "" });
+            if (all.length) out.push({ icon: "🗺", label: t("전국 특보", "Nationwide"), val: all.join(" · "), cls: "" });
+        }
+        if (j.fire) {
+            var lv = Math.max(0, Math.min(3, j.fire.level || 0));
+            out.push({ icon: "🔥", label: t("산불위험", "Wildfire risk"), val: FIRE_WORD[lv][en ? 1 : 0] + (j.fire.meanavg != null ? " (" + Math.round(j.fire.meanavg) + ")" : ""),
+                cls: lv >= 2 ? "bad" : lv === 1 ? "mid" : "", alert: lv >= 2 });
+        }
+        if (j.uv && j.uv.hours && j.uv.hours.length && /^\d{10}$/.test(j.uv.date || "")) {
+            var d = j.uv.date, base = Date.UTC(+d.slice(0, 4), +d.slice(4, 6) - 1, +d.slice(6, 8), +d.slice(8, 10)) - 9 * 3600000, cur = null, max = null;
+            var todayKST = new Date(now + 9 * 3600000).toISOString().slice(0, 10), tomKST = new Date(now + 33 * 3600000).toISOString().slice(0, 10), tmax = null, restToday = false;
+            j.uv.hours.forEach(function (p) {
+                var at = base + p.h * 3600000, day = new Date(at + 9 * 3600000).toISOString().slice(0, 10);
+                if (at <= now) cur = p.v;
+                if (day === todayKST) { max = Math.max(max == null ? 0 : max, p.v); if (at > now && p.v > 0) restToday = true; }
+                if (day === tomKST) tmax = Math.max(tmax == null ? 0 : tmax, p.v);
+            });
+            var tomorrow = !restToday && (cur == null || cur === 0) && tmax != null && new Date(now + 9 * 3600000).getUTCHours() >= 15;
+            if (tomorrow) out.push({ icon: "☀", label: t("자외선(내일 가장 높을 때)", "UV (tomorrow's peak)"), val: tmax + " " + uvWord(tmax, en), cls: tmax >= 8 ? "bad" : tmax >= 6 ? "mid" : "" });
+            else if (max != null) out.push({ icon: "☀", label: t("자외선(오늘 가장 높을 때)", "UV (today's peak)"), val: max + " " + uvWord(max, en) + (cur != null ? t(" · 지금 ", " · now ") + cur : ""),
+                cls: max >= 8 ? "bad" : max >= 6 ? "mid" : "", alert: max >= 8 && restToday });
+        }
+        return out;
+    }
+    /** 순수 함수 - 따라가기에서 알릴 것만 한 줄로(내 지역 특보 · 산불위험 높음 이상 · 오늘 남은 시간 자외선 8 이상). 없으면 "". */
+    function safetyAlert(j, now, en) {
+        var a = safetyRows(j, now, en).filter(function (r) { return r.alert; });
+        if (!a.length) return "";
+        return "⛑️ " + (en ? "Hiking safety today: " : "오늘의 산행 안전: ") + a.map(function (r) { return r.label + (r.icon === "⚠" ? "" : " " + r.val); }).join(" · ");
+    }
+    /**
+     * api/safety 응답을 목록으로(ul - 줄, er - 가까운 응급실 ul, 없으면 null). erMax - 응급실 몇 곳(없으면 모두). 받은 줄 수를 돌려줌.
+     * 응급실 이름은 카카오맵 검색, 전화는 tel: 링크.
+     */
+    function safetyRender(ul, er, j, en, erMax) {
+        ul.innerHTML = "";
+        var rows = safetyRows(j, Date.now(), en);
+        rows.forEach(function (r) {
+            var li = document.createElement("li"), sp = document.createElement("span"), b = document.createElement("b");
+            sp.textContent = r.icon + " " + r.label; b.textContent = r.val;
+            if (r.cls) li.className = r.cls;
+            li.appendChild(sp); li.appendChild(b);
+            ul.appendChild(li);
+        });
+        if (!rows.length) {
+            var li0 = document.createElement("li"), s0 = document.createElement("span"), b0 = document.createElement("b");
+            s0.textContent = "ℹ " + (en ? "Safety info" : "안전 정보"); b0.textContent = en ? "Not available" : "받지 못했습니다";
+            li0.appendChild(s0); li0.appendChild(b0); ul.appendChild(li0);
+        }
+        if (er) {
+            er.innerHTML = "";
+            ((j && j.er) || []).slice(0, erMax || 99).forEach(function (h) {
+                var li = document.createElement("li"), sp = document.createElement("span"), b = document.createElement("b"), a = document.createElement("a");
+                a.href = "https://map.kakao.com/link/search/" + encodeURIComponent(h.addr || h.name); a.target = "_blank"; a.rel = "noopener";
+                a.textContent = h.name; a.style.color = "var(--sky)";
+                sp.appendChild(a);
+                var sm = document.createElement("small"); sm.style.display = "block"; sm.textContent = (h.km != null ? h.km + "km · " : "") + (h.kind || "");
+                sp.appendChild(sm);
+                if (h.tel) { var t = document.createElement("a"); t.href = "tel:" + h.tel.replace(/[^0-9]/g, ""); t.textContent = "📞 " + h.tel; t.style.color = "var(--tx)"; b.appendChild(t); }
+                li.appendChild(sp); li.appendChild(b);
+                er.appendChild(li);
+            });
+        }
+        return rows.length;
+    }
+
     /**
      * 순수 함수 - 산불조심기간(산림보호법 - 봄 2/1 ~ 5/15, 가을 11/1 ~ 12/15, 한국 날짜)이면 안내 글, 아니면 "". 2026-10-15 홍TV님.
      * 통제 구간 자료가 아니라 기간 안내 - 현지 · 공원 누리집 확인을 권함.
@@ -4626,6 +4721,7 @@
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
         sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap,
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },
+        cellCenter: cellCenter, warnName: warnName, safetyRows: safetyRows, safetyAlert: safetyAlert, safetyRender: safetyRender,
         setLang: setLang, isEn: isEn, tr: tr, pageLang: pageLang, applyEn: applyEn,
         favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, regionEn: regionEn, weekendWordEn: weekendWordEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox, LEVELS: LEVELS, difficulty: difficulty, boardSegments: boardSegments, boardProfile: boardProfile, nameEnds: nameEnds, boardButtons: boardButtons, levelChip: levelChip, roman: roman, enName: enName, weekendText: weekendText, boardHere: boardHere, slopeBetween: slopeBetween, recentAdd: recentAdd, recentPages: recentPages, recentFold: recentFold, compareRows: compareRows, compareButtons: compareButtons, steepest: steepest, officialEleAt: officialEleAt, stampRadius: stampRadius, stillCheck: stillCheck, windChill: windChill, windNote: windNote, paceProfile: paceProfile, paceAt: paceAt, paceDistAt: paceDistAt, paceText: paceText, fortune: fortune, fortuneDay: fortuneDay, supportLine: supportLine, dayKey: dayKey, anbuPlan: anbuPlan, anbuText: anbuText, anbuSms: anbuSms, telClean: telClean, telFormat: telFormat, UNITS: UNITS, unitConv: unitConv, unitFmt: unitFmt, dayNo: dayNo, dayYmd: dayYmd, ageInfo: ageInfo, dDay: dDay, dateAdd: dateAdd, dateDiff: dateDiff, pctCalc: pctCalc, dutchPay: dutchPay, textCount: textCount, smsKind: smsKind, compassHeading: compassHeading, SOS_PATTERN: SOS_PATTERN, fxConv: fxConv, toLunar: toLunar, fromLunar: fromLunar, nextLunarBirthday: nextLunarBirthday, leapMonth: leapMonth, moonPhase: moonPhase, MOON_NAMES: MOON_NAMES, interestCalc: interestCalc, vatCalc: vatCalc, bmiInfo: bmiInfo, discomfort: discomfort, nameRoman: nameRoman, tzOffsetMin: tzOffsetMin, ladderMake: ladderMake, ladderTrace: ladderTrace, holidayRuns: holidayRuns, calcEval: calcEval, mobileOnlyUrl: mobileOnlyUrl, summitCard: summitCard, trackClimb: trackClimb
     };

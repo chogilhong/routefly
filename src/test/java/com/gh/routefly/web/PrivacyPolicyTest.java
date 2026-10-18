@@ -30,10 +30,17 @@ public class PrivacyPolicyTest {
         assertTrue(app.contains("askBb = bb && list.near ? RF.snapOut(bb) : bb;"));
         // 그 밖에 GPS 위치(pos.coords · co.latitude 등)를 서버 주소에 넣는 곳이 없어야 함 - api/ 주소를 만드는 줄에 위도 · 경도 변수가 없는지
         for (String line : hike.split("\n")) {
-            if (line.contains("\"api/") && line.matches(".*\\b(lat|lon|coords|latitude|longitude)\\b.*") && !line.contains("bb.map")) {
+            // 코스 들머리(c.lat[0] · c.lon[0] - 공개된 코스 자료)는 괜찮음: 방침 "날씨 · 안전 … 코스 들머리 좌표로"(2026-10-18 오늘의 산행 안전)
+            if (line.contains("\"api/") && line.matches(".*\\b(lat|lon|coords|latitude|longitude)\\b.*") && !line.contains("bb.map")
+                    && !line.contains("(+c.lat[0]).toFixed(4) + \"&lon=\" + (+c.lon[0]).toFixed(4)")) {
                 fail("hike.js 가 위치를 api 주소에 넣는 것 같음: " + line.trim());
             }
         }
+        // 별거 별거 "내 위치로"(날씨 · 산행 안전)는 GPS 대신 고정 5km 칸 가운데만 서버로(2026-10-18 점검 - 전에는 GPS 그대로였음)
+        String tools = read("src/main/webapp/js/tools.js");
+        assertTrue(tools.contains("var cc = RF.cellCenter(p.coords.latitude, p.coords.longitude);") && tools.contains("loc = { lat: cc[0], lon: cc[1],"));
+        assertFalse("tools.js 가 GPS 를 그대로 loc 에", tools.matches("(?s).*lat: p\\.coords\\.latitude.*"));
+        assertTrue(policy.contains("별거 별거") && policy.contains("약 5km"));
         // 접속 기록에 ?뒤를 남기지 않고 14 · 30일
         String deploy = read("docs/deploy-lightsail.md");
         assertTrue(deploy.contains("access_log /var/log/nginx/access.log routefly_noargs;"));

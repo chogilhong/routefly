@@ -131,6 +131,21 @@
     var box = document.getElementById("wx"), out = document.getElementById("wxBody"), cs = document.querySelector(".cs");
     if (!box || !out) return;
     var lat = +box.getAttribute("data-lat"), lon = +box.getAttribute("data-lon");
+    // ⛑️ 오늘의 산행 안전(api/safety - 2026-10-18 홍TV님) - 정상 자리로. 화면에 보일 때 한 번 받음(검색 로봇 · 위에서 나간 사람은 안 부름)
+    (function () {
+        var sec = document.getElementById("safe"), ul = document.getElementById("sfList"), er = document.getElementById("sfEr");
+        if (!sec || !ul || !window.RF.safetyRender) return;
+        var go = function () {
+            fetch("../../api/safety?lat=" + lat.toFixed(4) + "&lon=" + lon.toFixed(4)).then(function (r) { return r.json(); }).then(function (j) {
+                if (!j || j.unavailable) { sec.hidden = true; return; }
+                window.RF.safetyRender(ul, er, j, true, 3);
+                if (!er.children.length) er.previousElementSibling.hidden = true;
+            }).catch(function () { ul.innerHTML = ""; var li = document.createElement("li"); li.textContent = "Could not load safety info right now."; ul.appendChild(li); });
+        };
+        if (!("IntersectionObserver" in window)) return go();
+        var io = new IntersectionObserver(function (es) { if (es.some(function (e) { return e.isIntersecting; })) { io.disconnect(); go(); } }, { rootMargin: "300px" });
+        io.observe(sec);
+    })();
     var rise = RF.sunrise(Date.now() + 86400000, lat, lon);
     if (cs && rise) Array.prototype.forEach.call(cs.children, function (li) {
         var span = li.querySelector("span");

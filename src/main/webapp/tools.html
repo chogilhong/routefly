@@ -118,8 +118,8 @@ h2.grp { margin:22px 2px 0; font-size:14px; color:var(--dim); font-weight:bold; 
 .gcl small { display:block; color:var(--dim); font-size:13px; margin-top:2px; }
 .gcl li.done span { opacity:0.55; text-decoration:line-through; }
 /* 안전 줄: 이름은 한 줄 그대로, 값이 길면 값 쪽이 줄바꿈(2026-10-18 PC: "전국 특보" 가 세로로 깨지고 영어 값이 가로로 넘침) */
-.sfl li span { flex:0 0 auto; white-space:nowrap; }
-.sfl li b { min-width:0; white-space:normal; overflow-wrap:anywhere; text-align:right; }
+.sfl li span { flex:0 1 auto; min-width:4.6em; word-break:keep-all; }   /* 이름은 낱말 단위로만 줄바꿈(가++ 에서 값이 세로로 깨졌음 - 2026-10-18) */
+.sfl li b { flex:1 1 0; min-width:4.6em; white-space:normal; word-break:keep-all; overflow-wrap:anywhere; text-align:right; }
 .sfl li.bad span { color:#ff8787; font-weight:bold; }
 .sfl li.mid span { color:#ffd43b; }
 #toast { position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom) + 24px); transform:translateX(-50%); max-width:90%; background:rgba(0,0,0,0.85);
