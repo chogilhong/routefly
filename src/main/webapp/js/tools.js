@@ -261,16 +261,34 @@
 
     // ── 🎂 만 나이 · 띠 ──
     var ageGet = datePick($("ageBirth"), [1960, 1, 1], 1910, TODAY[0], ageDraw);
-    function ageDraw() {
-        var a = RF.ageInfo(ageGet(), TODAY), out = $("ageOut");
+    function ageDraw() {   // 음력 생일도(2026-10-18 홍TV님 "생일은 양력? 음력?")
+        var b = ageGet(), lunar = $("ageCal").value === "l", out = $("ageOut"), solarB = b, nb = null;
+        $("ageLeapRow").style.display = lunar ? "flex" : "none";
         out.innerHTML = "";
+        if (lunar) {
+            solarB = RF.fromLunar(b[0], b[1], b[2], $("ageLeap").checked);
+            if (!solarB) { out.textContent = T("그 해에 없는 음력 날짜입니다(윤달 · 30일 확인)", "No such lunar date that year (check leap month / day 30)"); return; }
+            nb = RF.nextLunarBirthday(b[1], b[2], TODAY);
+        }
+        var a = RF.ageInfo(solarB, TODAY);
         if (!a) { out.textContent = T("오늘 뒤의 날짜입니다", "That date is in the future"); return; }
+        if (lunar) {
+            a.ddi = RF.ageInfo([b[0], 1, 1], [b[0], 1, 1]).ddi;   // 음력 해 = 띠의 해
+            if (nb) a.nextDays = RF.dateDiff(TODAY, nb);
+        }
         out.appendChild(document.createTextNode(EN ? "Age " + a.man : "만 " + a.man + "세"));
         var sm = document.createElement("small");
         sm.textContent = EN ? "Korean year age " + a.year + " · Year of the " + a.ddi + " · " + (a.nextDays === 0 ? "Happy birthday today! 🎉" : a.nextDays + (a.nextDays === 1 ? " day" : " days") + " to your next birthday")
             : "연 나이 " + a.year + "세 · " + a.ddi + "띠 · " + (a.nextDays === 0 ? "오늘 생일이에요 🎉" : "다음 생일까지 " + a.nextDays + "일");
         out.appendChild(sm);
+        if (lunar) {
+            var sm2 = document.createElement("small");
+            sm2.textContent = T("양력으로 태어난 날 ", "Solar birth date ") + ymdText(solarB) + (nb ? T(" · 다음 생일(양력) ", " · next birthday (solar) ") + ymdText(nb) : "");
+            out.appendChild(sm2);
+        }
     }
+    $("ageCal").addEventListener("change", ageDraw);
+    $("ageLeap").addEventListener("change", ageDraw);
     ageDraw();
 
     // ── 📅 날짜 계산 ──

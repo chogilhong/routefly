@@ -1078,3 +1078,5 @@ eq("unitConv 못 바꿈 · 아주 작음", [RF.unitConv("length", "", "m", "cm")
 eq("holidayRuns 연휴", [JSON.stringify(RF.holidayRuns(["2026-10-03", "2026-10-05", "2026-10-09"])), JSON.stringify(RF.holidayRuns(["2026-10-21"])), JSON.stringify(RF.holidayRuns([])),
     JSON.stringify(RF.holidayRuns(["2026-09-24", "2026-09-25", "2026-09-26"]))],
     ['[{"from":"2026-10-03","to":"2026-10-05","days":3},{"from":"2026-10-09","to":"2026-10-11","days":3}]', "[]", "[]", '[{"from":"2026-09-24","to":"2026-09-27","days":4}]']);
+eq("nextLunarBirthday 음력 생일", [RF.nextLunarBirthday(8, 15, [2026, 9, 1]).join("-"), RF.nextLunarBirthday(8, 15, [2026, 9, 25]).join("-"), RF.nextLunarBirthday(1, 1, [2026, 10, 18]).join("-"),
+    RF.nextLunarBirthday(8, 15, [2026, 9, 26]).join("-")], ["2026-9-25", "2026-9-25", "2027-2-7", "2027-9-15"]);

@@ -200,9 +200,12 @@ h2.grp { margin:22px 2px 0; font-size:14px; color:var(--dim); font-weight:bold; 
     </div></details>
     <h2 class="grp" data-en="Dates · time">날짜 · 시간</h2>
     <details class="tool" id="t-age"><summary data-en="🎂 Korean age · zodiac">🎂 만 나이 · 띠</summary><div class="tb">
+        <div class="row"><select id="ageCal" class="f" style="flex-basis:100%" aria-label="양력 · 음력" data-en-aria-label="Solar or lunar">
+            <option value="s" data-en="Solar birthday">양력 생일</option><option value="l" data-en="Lunar birthday">음력 생일</option></select></div>
         <div class="row"><label data-en="Birthday">생일</label><span class="ymd" id="ageBirth" style="display:contents"></span></div>
+        <label class="chk2" id="ageLeapRow" style="display:none"><input type="checkbox" id="ageLeap"> <span data-en="Leap month">윤달</span></label>
         <div class="out" id="ageOut"></div>
-        <p class="tip" data-en="Since June 28, 2023, Korean law uses international age (man nai). The zodiac is by birth year - if you were born in January or February before the lunar new year, it may be the year before.">2023년 6월 28일부터 법 · 행정은 만 나이를 씁니다. 띠는 태어난 해로 셉니다 - 1 · 2월생은 음력 설 전이면 앞 해 띠일 수 있습니다.</p>
+        <p class="tip" data-en="Since June 28, 2023, Korean law uses international age (man nai). For a lunar birthday, age is counted from the matching solar date and the next birthday is this year's lunar date on the solar calendar. The zodiac follows the birth year - with a lunar birthday it is exact; with a solar birthday in January or February before the lunar new year it may be the year before.">2023년 6월 28일부터 법 · 행정은 만 나이를 씁니다. 음력 생일이면 그날을 양력으로 바꿔 나이를 세고, 다음 생일은 올해 음력 생일이 양력으로 며칠인지로 셉니다. 띠는 태어난 해로 셉니다 - 음력 생일이면 정확하고, 양력 1 · 2월생은 음력 설 전이면 앞 해 띠일 수 있습니다.</p>
     </div></details>
     <details class="tool" id="t-lunar"><summary data-en="🌙 Lunar ↔ solar calendar">🌙 음력 ↔ 양력</summary><div class="tb">
         <p class="tip" id="lnToday" style="margin-top:0"></p>
