@@ -563,6 +563,7 @@ public class MountainServlet extends HttpServlet {
             for (String[] x : qa) b.append("<dt>").append(esc(x[0])).append("</dt><dd>").append(esc(x[1])).append("</dd>");
             b.append("</dl></section>").append(faqLd(qa));
         }
+        b.append(tips());
         if (!nearby.isEmpty()) {   // 가까운 100대 명산(2026-10-15) - 다음 산행 고르기 · 산 페이지끼리 잇기
             b.append("<section><h2>가까운 100대 명산</h2><ul class=\"ms\">");
             for (Object[] n : nearby) {
@@ -644,10 +645,19 @@ public class MountainServlet extends HttpServlet {
             }
             b.append("</div></details>");
         }
-        b.append("</div><section id=\"fun\" class=\"fun\" hidden></section>")
+        b.append("</div>").append(tips()).append("<section id=\"fun\" class=\"fun\" hidden></section>")
                 .append("<a class=\"anbuLink\" href=\"").append(REL).append("/anbu.html\">🏠 오늘의 안부 <small>하루 한 번 '잘 지내요' · 보호자에게 문자 · 매일 알림</small> ›</a>")   // 2026-10-18 홍TV님 - 따라가기 첫 화면에서 옮김   // 🔮 재미로 보는 오늘의 산행 한마디(js/mountain.js - 2026-10-17 홍TV님)
                 .append(foot(base, REL + "/en/m/"));
         return b.toString();
+    }
+
+    /** 산행 안전 팁 - 영어판(MountainEn.tips)과 짝(2026-10-18 홍TV님). 1330(외국인 관광 통역)은 빼고 혼자 산행 알림을 넣음. */
+    static String tips() {
+        return "<section><h2>⚠ 산행 안전 팁</h2><ul class=\"tips\">"
+                + "<li>사고 · 조난은 <b>119</b>. 가까운 다목적위치표지판(국가지점번호)의 번호를 알려 주면 빨리 찾습니다. 따라가기 화면의 🆘 SOS 는 내 위치를 문자로 보냅니다.</li>"
+                + "<li>산불조심기간(대략 2월 1일 ~ 5월 15일 · 11월 1일 ~ 12월 15일)과 궂은 날씨에는 통제되는 탐방로가 있습니다.</li>"
+                + "<li>일찍 출발해 해 지기 전에 내려오세요. 물 · 비옷 · 헤드랜턴을 챙기세요.</li>"
+                + "<li>혼자 갈 때는 가족에게 코스와 돌아올 시각을 알려 두세요.</li></ul></section>";
     }
 
     static String notFoundPage(String name, String base) {
