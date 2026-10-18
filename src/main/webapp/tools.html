@@ -270,6 +270,8 @@ h2.grp { margin:22px 2px 0; font-size:14px; color:var(--dim); font-weight:bold; 
             <input type="text" id="feT" class="f" inputmode="decimal" placeholder="-5" aria-label="기온" data-en-aria-label="Temperature">
             <input type="text" id="feH" class="f" inputmode="numeric" placeholder="60" aria-label="습도" data-en-aria-label="Humidity">
             <input type="text" id="feW" class="f" inputmode="decimal" placeholder="5" aria-label="바람" data-en-aria-label="Wind"></div>
+        <div class="row"><button type="button" class="btn2" id="feHere" data-en="📍 My location now">📍 내 위치 지금 날씨</button><button type="button" class="btn2" id="feSeoul" data-en="Seoul now">서울 지금 날씨</button></div>
+        <p class="tip" id="feSrc"></p>
         <div class="out" id="feOut"></div>
         <p class="tip" data-en="Wind chill (KMA winter formula) applies at 10 °C or below with wind of 1.3 m/s or more. Discomfort index: 68+ some feel uncomfortable, 75+ half, 80+ almost everyone.">체감온도(기상청 겨울 식)는 기온 10℃ 이하 · 바람 1.3m/s 이상일 때만 셉니다. 불쾌지수는 68 넘으면 일부, 75 넘으면 절반, 80 넘으면 거의 모두가 불쾌하게 느낍니다.</p>
     </div></details>
@@ -296,8 +298,8 @@ h2.grp { margin:22px 2px 0; font-size:14px; color:var(--dim); font-weight:bold; 
         <div id="ldBox"></div>
         <div class="out" id="ldOut"></div>
     </div></details>
-    <details class="tool" id="t-yodel"><summary data-en="⛰ Yodel · jungle call · echo">⛰ 요들 · 정글 외침 · 메아리</summary><div class="tb">
-        <div class="row"><button type="button" class="btn2" id="ydOne" data-en="⛰ Yodel">⛰ 요들</button><button type="button" class="btn2" id="ydJungle" data-en="🌴 Jungle call">🌴 정글 외침</button></div>
+    <details class="tool" id="t-yodel"><summary data-en="⛰️ Yodel · jungle call · echo">⛰️ 요들 · 정글 외침 · 메아리</summary><div class="tb">
+        <div class="row"><button type="button" class="btn2" id="ydOne" data-en="⛰️ Yodel">⛰️ 요들</button><button type="button" class="btn2" id="ydJungle" data-en="🌴 Jungle call">🌴 정글 외침</button></div>
         <label class="chk2"><input type="checkbox" id="ydEcho" checked> <span data-en="Add a mountain echo after the call (only when you press a button above)">외친 뒤 메아리 붙이기(위 단추를 누를 때만)</span></label>
         <p class="tip" data-en="A made-up yodel (low and high notes back and forth) with a mountain echo - just for fun, made by the phone. Please don't play it loudly on the trail: loud sounds disturb wildlife and other hikers.">낮은 소리와 높은 소리를 빠르게 넘나드는 요들 외침에 산 메아리를 붙인 재미용 소리입니다(폰이 만드는 소리). 산길에서는 크게 틀지 마세요 - 큰 소리는 야생동물과 다른 탐방객에게 방해가 됩니다.</p>
     </div></details>

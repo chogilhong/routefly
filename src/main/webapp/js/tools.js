@@ -675,9 +675,32 @@
             var d = RF.discomfort(t, h);
             if (d) { var k = [T("낮음", "low"), T("보통", "moderate"), T("높음", "high"), T("매우 높음", "very high")][d.k]; if (big) lines.unshift(T("불쾌지수 ", "Discomfort ") + d.di + " (" + k + ")"); else big = T("불쾌지수 ", "Discomfort ") + d.di + " (" + k + ")"; }
         }
-        outSet("feOut", big || (+t >= 20 ? T("습도를 넣어 주세요", "Add humidity") : T("바람을 넣어 주세요(불쾌지수는 20℃ 넘을 때)", "Add wind (discomfort index is for 20 °C and above)")), lines.join(" · "));
+        if (!big) {   // 2026-10-18 홍TV님: 15℃ · 바람 5 에 "바람을 넣어 주세요" 가 나왔음 - 10 ~ 20℃ 는 둘 다 해당 없음
+            if (+t > 10 && +t < 20) big = T("느끼는 온도 ≈ 기온 " + t + "℃", "Feels about the same as " + t + " °C"), lines = [T("10℃ 넘고 20℃ 아래는 체감온도(10℃ 이하) · 불쾌지수(20℃ 이상) 모두 해당하지 않습니다", "Between 10 and 20 °C neither wind chill (10 °C or below) nor the discomfort index (20 °C and above) applies")];
+            else if (+t <= 10 && w === "") big = T("바람을 넣어 주세요", "Add wind");
+            else if (+t <= 10) big = T("바람이 약해(1.3m/s 아래) 체감온도는 기온과 비슷합니다", "Wind under 1.3 m/s - feels about the same as the air"), lines = [];
+            else if (h === "") big = T("습도를 넣어 주세요", "Add humidity");
+        }
+        outSet("feOut", big, lines.join(" · "));
     }
-    ["feT", "feH", "feW"].forEach(function (id) { $(id).addEventListener("input", feDraw); });
+    ["feT", "feH", "feW"].forEach(function (id) { $(id).addEventListener("input", function () { $("feSrc").textContent = ""; feDraw(); }); });
+    /** 지금 날씨로 채우기(api/weather - 기본 서울, "내 위치" 는 누를 때만 GPS). 2026-10-18 홍TV님: 직접 넣지 않게 */
+    function feFill() {
+        $("feSrc").textContent = T("지금 날씨를 받는 중…", "Loading current weather…");
+        fetch("api/weather?lat=" + loc.lat.toFixed(4) + "&lon=" + loc.lon.toFixed(4)).then(function (r) { return r.json(); }).then(function (w) {
+            var h = w && !w.unavailable && (w.hours || [])[0];
+            if (!h) { $("feSrc").textContent = T("지금은 날씨를 받을 수 없습니다 - 직접 넣어 주세요", "Weather is not available - enter the values yourself"); return; }
+            $("feT").value = h.tmp != null ? h.tmp : "";
+            $("feH").value = h.reh != null ? h.reh : "";
+            $("feW").value = h.wsd != null ? h.wsd : "";
+            feDraw();
+            $("feSrc").textContent = loc.name + T(" 지금 날씨를 넣었습니다(기상청 " + w.base + " 발표, " + String(h.t).slice(11, 16) + " 예보). 숫자를 고쳐 다른 날씨도 볼 수 있습니다.",
+                " - current weather filled in (KMA " + w.base + " KST, forecast for " + String(h.t).slice(11, 16) + "). Edit the numbers to try other weather.");
+        }).catch(function () { $("feSrc").textContent = T("날씨를 받지 못했습니다 - 직접 넣어 주세요", "Could not load the weather - enter the values yourself"); });
+    }
+    $("feHere").addEventListener("click", function () { here(feFill); });
+    $("feSeoul").addEventListener("click", function () { loc = SEOUL; feFill(); });
+    $("t-feel").addEventListener("toggle", function () { if (this.open && val("feT") === "") feFill(); });
 
     // ── ⚖ BMI ──
     function bmDraw() {
