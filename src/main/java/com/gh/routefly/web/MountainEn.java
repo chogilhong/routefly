@@ -187,7 +187,8 @@ final class MountainEn {
                 + "<li>Emergency (fire &amp; rescue): call <b>119</b> - interpretation is available. Tell them the number on the nearest trail post (국가지점번호 / 다목적위치표지판).</li>"
                 + "<li>Korea Travel Hotline (24 h, English): <b>1330</b>.</li>"
                 + "<li>Some trails close during the wildfire prevention seasons (about Feb 1 - May 15 and Nov 1 - Dec 15) and in bad weather.</li>"
-                + "<li>Start early and plan to be off the mountain before sunset. Carry water, a rain jacket and a headlamp.</li></ul></section>";
+                + "<li>Start early and plan to be off the mountain before sunset. Carry water, a rain jacket and a headlamp.</li>"
+                + "<li>Hiking alone? Tell someone your route and return time - on the GPS screen, Share → 📨 Text my hike plan to family opens a text with the trail, start and finish times.</li></ul></section>";
     }
 
     /** 길 이름에서 영어로 옮길 낱말(긴 것 먼저) - 나머지는 로마자. */
