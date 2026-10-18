@@ -1037,4 +1037,59 @@
         this.textContent = T("⏹ 멈춤", "⏹ Stop");
     });
     $("t-bell").addEventListener("toggle", function () { if (!this.open) blStop(); });
+
+    // ── 🏔 요들 외침 · 메아리(합성). 가슴 소리(낮음)와 가성(높음)을 빠르게 넘나듦 - 넘어갈 때 목소리가 살짝 꺾임. "아" 입 울림 ──
+    var ydEcho = true, ydBuf = null;
+    var YODEL = [[220, 0.42], [440, 0.16], [330, 0.16], [440, 0.16], [330, 0.16], [440, 0.16], [330, 0.16], [554, 0.75], [440, 0.2], [330, 0.55]];   // [높이 Hz, 길이 초]
+    function yodelBuffer(c) {
+        var sr = c.sampleRate, total = YODEL.reduce(function (a, b) { return a + b[1]; }, 0) + 0.15, n = Math.floor(sr * total), d = new Float32Array(n);
+        var ph = 0, seg = 0, segT = 0, prevF = YODEL[0][0], vib = 0;
+        for (var i = 0; i < n; i++) {
+            var t = i / sr;
+            while (seg < YODEL.length - 1 && t >= segT + YODEL[seg][1]) { prevF = YODEL[seg][0]; segT += YODEL[seg][1]; seg++; }
+            var into = t - segT, target = YODEL[seg][0];
+            var f = into < 0.035 ? prevF + (target - prevF) * (into / 0.035) : target;   // 35ms 안에 넘어감(꺾임)
+            vib += 2 * Math.PI * 5.5 / sr;
+            f *= 1 + (into > 0.2 ? 0.012 * Math.sin(vib) : 0);   // 긴 음에만 떨림(비브라토)
+            ph += f / sr;
+            if (ph >= 1) ph -= 1;
+            var high = target > 300;
+            var open = high ? 0.7 : 0.5;   // 가성은 성대가 오래 열려 부드럽고 숨이 섞임
+            var pulse = ph < open ? Math.cos(Math.PI * ph / open) : 0;
+            var breath = (Math.random() * 2 - 1) * (high ? 0.12 : 0.05);
+            var crack = into < 0.035 ? 0.55 : 1;   // 넘어가는 순간 소리가 살짝 빠짐
+            var env = Math.min(1, t / 0.05) * Math.min(1, (total - 0.15 - t) / 0.25 + 0.0001);
+            d[i] = (pulse * (high ? 0.7 : 1) + breath) * crack * Math.max(0, env);
+        }
+        var b = c.createBuffer(1, n, sr);
+        b.getChannelData(0).set(d);
+        return b;
+    }
+    $("ydOne").addEventListener("click", function () {
+        var c = audio();
+        if (!c) return toast(T("이 브라우저는 소리를 낼 수 없습니다", "This browser cannot play sound"));
+        ydBuf = ydBuf || yodelBuffer(c);
+        var t0 = c.currentTime + 0.03, src = c.createBufferSource(), mix = c.createGain(), out = c.createGain();
+        src.buffer = ydBuf;
+        [[800, 5, 1.0], [1200, 6, 0.6], [2600, 8, 0.3]].forEach(function (fm) {   // "아" 입 울림
+            var bp = c.createBiquadFilter(), g = c.createGain();
+            bp.type = "bandpass"; bp.frequency.value = fm[0]; bp.Q.value = fm[1];
+            g.gain.value = fm[2] * 2.5;
+            src.connect(bp); bp.connect(g); g.connect(mix);
+        });
+        var lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 600; var lg = c.createGain(); lg.gain.value = 0.5;
+        src.connect(lp); lp.connect(lg); lg.connect(mix);
+        mix.connect(out); out.gain.value = 0.8; out.connect(c.destination);
+        if (ydEcho) {   // 건너편 산에서 되돌아오는 메아리 - 0.45초 뒤, 점점 작게
+            var dl = c.createDelay(2), fb = c.createGain(), eg = c.createGain(), hp = c.createBiquadFilter();
+            dl.delayTime.value = 0.45; fb.gain.value = 0.42; eg.gain.value = 0.5;
+            hp.type = "lowpass"; hp.frequency.value = 1800;   // 멀리서 오면 높은 소리가 줄어듦
+            mix.connect(dl); dl.connect(hp); hp.connect(fb); fb.connect(dl); hp.connect(eg); eg.connect(c.destination);
+        }
+        src.start(t0);
+    });
+    $("ydEcho").addEventListener("click", function () {
+        ydEcho = !ydEcho;
+        this.textContent = ydEcho ? T("메아리 켬", "Echo: on") : T("메아리 끔", "Echo: off");
+    });
 })();
