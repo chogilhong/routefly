@@ -255,6 +255,16 @@ h2.grp { margin:22px 2px 0; font-size:14px; color:var(--dim); font-weight:bold; 
         <div class="out" id="moonOut"></div>
         <p class="tip" data-en="Calculated times (about a minute off). Mountains and buildings hide the sun a little later or earlier. The moon phase is approximate (within a day).">계산한 시각이라 1분 안팎 다를 수 있고, 산 · 건물에 가리면 해가 조금 늦게 보이고 일찍 집니다. 달 모양은 하루 안팎의 어림입니다.</p>
     </div></details>
+    <details class="tool" id="t-tide"><summary data-en="🌊 Tides (high · low)">🌊 물때(만조 · 간조)</summary><div class="tb">
+        <div class="row">
+            <select id="tdObs" class="f" style="flex:2 1 0" aria-label="지점" data-en-aria-label="Station"></select>
+            <button type="button" class="btn2" id="tdNear" style="flex:1 1 0" data-en="📍 Nearest">📍 가까운 곳</button>
+        </div>
+        <div class="row"><select id="tdDay" class="f" style="flex-basis:100%" aria-label="날짜" data-en-aria-label="Date"></select></div>
+        <div class="out" id="tdOut"></div>
+        <ul id="tdList" class="wl"></ul>
+        <p class="tip" data-en="Korea Hydrographic and Oceanographic Agency predictions of high and low tide (height in cm from the local datum). Actual sea level changes with wind and air pressure - check local notices before going onto mudflats.">국립해양조사원 조석예보(고조 · 저조, 높이는 그 지점 기준면에서 cm)입니다. 실제 물높이는 바람 · 기압에 따라 달라지니 갯벌에 들어갈 때는 현지 안내를 꼭 확인하세요.</p>
+    </div></details>
     <details class="tool" id="t-feel"><summary data-en="🌡 Wind chill · discomfort index">🌡 체감온도 · 불쾌지수</summary><div class="tb">
         <div class="row"><label data-en="Temperature (°C) · humidity (%) · wind (m/s)">기온(℃) · 습도(%) · 바람(m/s)</label>
             <input type="text" id="feT" class="f" inputmode="decimal" placeholder="-5" aria-label="기온" data-en-aria-label="Temperature">

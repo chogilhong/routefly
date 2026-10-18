@@ -803,9 +803,9 @@
     [TODAY[0], TODAY[0] + 1].forEach(function (y) { $("holYear").add(new Option(EN ? String(y) : y + "년", y)); });
     function md(d) { var p = d.split("-"); return ymdText([+p[0], +p[1], +p[2]]); }
     var HOL_EN = { "1월1일": "New Year's Day", "신정": "New Year's Day", "설날": "Seollal (Lunar New Year)", "삼일절": "Independence Movement Day", "어린이날": "Children's Day",
-        "부처님오신날": "Buddha's Birthday", "석가탄신일": "Buddha's Birthday", "현충일": "Memorial Day", "광복절": "Liberation Day", "추석": "Chuseok", "개천절": "National Foundation Day",
+        "부처님오신날": "Buddha's Birthday", "석가탄신일": "Buddha's Birthday", "현충일": "Memorial Day", "제헌절": "Constitution Day", "광복절": "Liberation Day", "추석": "Chuseok", "개천절": "National Foundation Day",
         "한글날": "Hangeul Day", "기독탄신일": "Christmas Day", "대체공휴일": "Substitute holiday", "임시공휴일": "Temporary holiday" };
-    function holName(n) { return !EN ? n : HOL_EN[n] || (/선거/.test(n) ? "Election day" : n); }
+    function holName(n) { return !EN ? n : HOL_EN[n] || (/^대체공휴일/.test(n) ? "Substitute holiday" : /선거/.test(n) ? "Election day" : n); }
     function holDraw(j) {
         $("holRuns").innerHTML = ""; $("holList").innerHTML = "";
         if (!j || j.unavailable || !(j.days || []).length) return outSet("holOut", T("지금은 공휴일을 받을 수 없습니다", "Holidays are not available right now"));
@@ -864,7 +864,7 @@
             outSet("fuOut", big, small);
             (j.low || []).forEach(function (x, i) {
                 var li = document.createElement("li"), sp = document.createElement("span"), b = document.createElement("b"), a = document.createElement("a");
-                a.href = "https://map.kakao.com/link/search/" + encodeURIComponent(x.name || "");
+                a.href = "https://map.kakao.com/link/search/" + encodeURIComponent(x.addr || x.name || "");   // 주소로(2026-10-18 PC: 이름에 다른 지역이 든 곳 - "창원금천지점" 이 서울 금천구)
                 a.target = "_blank"; a.rel = "noopener";
                 a.textContent = (i + 1) + ". " + (x.name || "-");
                 a.style.color = "var(--sky)";
@@ -885,6 +885,63 @@
     $("fuSido").addEventListener("change", function () { fuSt.sido = this.value; fuKeep(); fuLoad(); });
     $("t-fuel").addEventListener("toggle", function () { if (this.open) fuLoad(); });
     if ($("t-fuel").open) fuLoad();
+
+    // ── 🌊 물때(api/tide - 국립해양조사원 조석예보 고 · 저조). 지점 목록은 data/tide-stations.json(TideStationProbe 가 실제 응답으로 만듦) ──
+    var tdSt = { obs: "DT_0018" }, tdStations = null;
+    try { var td0 = JSON.parse(lsGet("rf-tide") || "null"); if (td0 && td0.obs) tdSt = td0; } catch (e) { /* 처음 */ }
+    for (var di = 0; di < 7; di++) {
+        var dd = RF.dateAdd(TODAY, di), iso = dd[0] + "-" + String(dd[1]).padStart(2, "0") + "-" + String(dd[2]).padStart(2, "0"), lu = RF.toLunar(dd);
+        $("tdDay").add(new Option((di === 0 ? T("오늘 ", "Today ") : di === 1 ? T("내일 ", "Tomorrow ") : "") + ymdText(dd) + (lu && !EN ? " · 음력 " + (lu.leap ? "윤" : "") + lu.m + "." + lu.d : ""), iso));
+    }
+    function tdKeep() { try { localStorage.setItem("rf-tide", JSON.stringify(tdSt)); } catch (e) { /* 이번만 */ } }
+    function tdLoad() {
+        if (!tdStations) return;
+        outSet("tdOut", T("물때를 받는 중…", "Loading tides…"));
+        $("tdList").innerHTML = "";
+        fetch("api/tide?obs=" + encodeURIComponent(tdSt.obs) + "&date=" + $("tdDay").value).then(function (r) { return r.json(); }).then(function (j) {
+            if (!j || j.unavailable) return outSet("tdOut", T("지금은 물때를 받을 수 없습니다", "Tides are not available right now"));
+            if (!(j.tides || []).length) return outSet("tdOut", T("이 날은 자료가 없습니다", "No data for this day"));
+            var now = Date.now(), nextShown = false;
+            j.tides.forEach(function (x) {
+                var li = document.createElement("li"), sp = document.createElement("span"), b = document.createElement("b");
+                var hhmm = String(x.t).slice(11, 16), at = Date.parse(String(x.t).replace(" ", "T") + ":00+09:00");
+                sp.textContent = (x.high ? T("🌊 만조(고조)", "🌊 High tide") : T("🏖 간조(저조)", "🏖 Low tide"));
+                b.textContent = hhmm + " · " + (x.cm != null ? Math.round(x.cm) + "cm" : "-");
+                if (!nextShown && at > now) { li.style.color = "var(--sky)"; nextShown = true; }
+                else if (at < now) li.style.opacity = "0.45";
+                li.appendChild(sp); li.appendChild(b);
+                $("tdList").appendChild(li);
+            });
+            var st = tdStations.filter(function (s) { return s.code === tdSt.obs; })[0];
+            outSet("tdOut", (j.name || (st && st.name) || tdSt.obs) + T(" 물때", " tides"), $("tdDay").options[$("tdDay").selectedIndex].text);
+        }).catch(function () { outSet("tdOut", T("물때를 받지 못했습니다 - 인터넷을 확인해 주세요", "Could not load tides - check your connection")); });
+    }
+    function tdInit(cb) {
+        if (tdStations) return cb && cb();
+        fetch("data/tide-stations.json").then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (l) {
+            tdStations = l.filter(function (s) { return s && s.code && s.name; });
+            if (!tdStations.length) throw new Error("empty");
+            tdStations.forEach(function (s) { $("tdObs").add(new Option(s.name, s.code)); });
+            if (!tdStations.some(function (s) { return s.code === tdSt.obs; })) tdSt.obs = tdStations[0].code;
+            $("tdObs").value = tdSt.obs;
+            if (cb) cb(); else tdLoad();
+        }).catch(function () { outSet("tdOut", T("물때 지점 목록을 준비 중입니다", "The station list is being prepared")); });
+    }
+    $("tdObs").addEventListener("change", function () { tdSt.obs = this.value; tdKeep(); tdLoad(); });
+    $("tdDay").addEventListener("change", tdLoad);
+    $("tdNear").addEventListener("click", function () {
+        tdInit(function () {
+            here(function () {
+                var best = null, bd = Infinity;
+                tdStations.forEach(function (s) { var d = RF.distM ? RF.distM(loc.lat, loc.lon, s.lat, s.lon) : Math.hypot(loc.lat - s.lat, (loc.lon - s.lon) * Math.cos(loc.lat * Math.PI / 180)); if (d < bd) { bd = d; best = s; } });
+                if (!best) return;
+                tdSt.obs = best.code; $("tdObs").value = best.code; tdKeep(); tdLoad();
+                if (RF.distM) toast(best.name + T(" · 약 ", " · about ") + Math.round(bd / 1000) + "km");
+            });
+        });
+    });
+    $("t-tide").addEventListener("toggle", function () { if (this.open) { if (tdStations) tdLoad(); else tdInit(); } });
+    if ($("t-tide").open) tdInit();
 
     $("t-tiger").addEventListener("toggle", function () { if (!this.open) tgStop(); });
 })();
