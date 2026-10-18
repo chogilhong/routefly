@@ -1041,9 +1041,11 @@
     $("t-bell").addEventListener("toggle", function () { if (!this.open) blStop(); });
 
     // ── 🏔 요들 외침 · 메아리(합성). 가슴 소리(낮음)와 가성(높음)을 빠르게 넘나듦 - 넘어갈 때 목소리가 살짝 꺾임. "아" 입 울림 ──
-    var ydEcho = true, ydBuf = null;
+    var ydEcho = true, ydBufs = {};
+    // 🌴 정글 외침(2026-10-18 홍TV님 "타잔 소리" - 영화 외침은 녹음 저작권 · 소리 상표라 그대로 흉내 내지 않고, 길게 "아~" 한 뒤 가슴 소리 · 가성을 빠르게 오가는 일반 요들 외침)
+    var JUNGLE = [[196, 0.55], [392, 0.11], [262, 0.11], [415, 0.11], [262, 0.11], [415, 0.11], [262, 0.11], [440, 0.5], [294, 0.11], [466, 0.11], [294, 0.11], [494, 0.85]];
     var YODEL = [[220, 0.42], [440, 0.16], [330, 0.16], [440, 0.16], [330, 0.16], [440, 0.16], [330, 0.16], [554, 0.75], [440, 0.2], [330, 0.55]];   // [높이 Hz, 길이 초]
-    function yodelBuffer(c) {
+    function yodelBuffer(c, YODEL) {
         var sr = c.sampleRate, total = YODEL.reduce(function (a, b) { return a + b[1]; }, 0) + 0.15, n = Math.floor(sr * total), d = new Float32Array(n);
         var ph = 0, seg = 0, segT = 0, prevF = YODEL[0][0], vib = 0;
         for (var i = 0; i < n; i++) {
@@ -1067,10 +1069,10 @@
         b.getChannelData(0).set(d);
         return b;
     }
-    $("ydOne").addEventListener("click", function () {
+    function yodelPlay(name) {
         var c = audio();
         if (!c) return toast(T("이 브라우저는 소리를 낼 수 없습니다", "This browser cannot play sound"));
-        ydBuf = ydBuf || yodelBuffer(c);
+        var ydBuf = ydBufs[name] = ydBufs[name] || yodelBuffer(c, name === "jungle" ? JUNGLE : YODEL);
         var t0 = c.currentTime + 0.03, src = c.createBufferSource(), mix = c.createGain(), out = c.createGain();
         src.buffer = ydBuf;
         [[800, 5, 1.0], [1200, 6, 0.6], [2600, 8, 0.3]].forEach(function (fm) {   // "아" 입 울림
@@ -1089,7 +1091,9 @@
             mix.connect(dl); dl.connect(hp); hp.connect(fb); fb.connect(dl); hp.connect(eg); eg.connect(c.destination);
         }
         src.start(t0);
-    });
+    }
+    $("ydOne").addEventListener("click", function () { yodelPlay("yodel"); });
+    $("ydJungle").addEventListener("click", function () { yodelPlay("jungle"); });
     $("ydEcho").addEventListener("click", function () {
         ydEcho = !ydEcho;
         this.textContent = ydEcho ? T("메아리 켬", "Echo: on") : T("메아리 끔", "Echo: off");
