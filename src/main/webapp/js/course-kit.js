@@ -1185,6 +1185,42 @@
         return out;
     }
 
+    /**
+     * 순수 함수 - 🧮 큰 글씨 계산기(2026-10-18 홍TV님). "12+3×4" · "50%" · "-3÷2" 처럼 + − × ÷ % 와 소수점. 곱셈 · 나눗셈 먼저.
+     * eval 을 쓰지 않음(CSP). 0 으로 나누기 · 잘못된 식은 null. 끝이 연산 기호면 그것만 빼고 계산.
+     */
+    function calcEval(expr) {
+        var s = String(expr || "").replace(/\s+/g, "").replace(/[x*]/g, "×").replace(/\//g, "÷").replace(/-/g, "−");
+        s = s.replace(/[+−×÷]+$/, "");
+        if (!s) return null;
+        var toks = [], i = 0;
+        while (i < s.length) {
+            var c = s.charAt(i);
+            if (/[0-9.]/.test(c) || (c === "−" && (i === 0 || /[+−×÷]/.test(s.charAt(i - 1))))) {
+                var j = i + 1;
+                while (j < s.length && /[0-9.]/.test(s.charAt(j))) j++;
+                var t = s.slice(i, j).replace("−", "-");
+                if (!/^-?(\d+\.?\d*|\.\d+)$/.test(t)) return null;
+                var n = parseFloat(t);
+                while (s.charAt(j) === "%") { n /= 100; j++; }
+                toks.push(n); i = j;
+            } else if (/[+−×÷]/.test(c)) { toks.push(c); i++; }
+            else return null;
+        }
+        if (typeof toks[0] !== "number") return null;
+        var terms = [toks[0]], ops = [];
+        for (var k = 1; k < toks.length; k += 2) {
+            var op = toks[k], v = toks[k + 1];
+            if (typeof op !== "string" || typeof v !== "number") return null;
+            if (op === "×") terms[terms.length - 1] *= v;
+            else if (op === "÷") { if (v === 0) return null; terms[terms.length - 1] /= v; }
+            else { ops.push(op); terms.push(v); }
+        }
+        var r = terms[0];
+        for (var m = 0; m < ops.length; m++) r = ops[m] === "+" ? r + terms[m + 1] : r - terms[m + 1];
+        return isFinite(r) ? Number(r.toPrecision(12)) : null;
+    }
+
     /** 순수 함수 - 핸드폰에서만 열리는 송금 링크(카카오페이 송금 코드 qr.kakaopay.com - PC 브라우저는 404). */
     function mobileOnlyUrl(url) { return /^https:\/\/qr\.kakaopay\.com\//i.test(url || ""); }
     /** PC 에서 그런 링크를 누르면 열지 않고 안내(2026-10-17 홍TV님: 핸드폰은 되는데 PC 는 404). */
@@ -4590,6 +4626,6 @@
         sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap,
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },
         setLang: setLang, isEn: isEn, tr: tr, pageLang: pageLang, applyEn: applyEn,
-        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, regionEn: regionEn, weekendWordEn: weekendWordEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox, LEVELS: LEVELS, difficulty: difficulty, boardSegments: boardSegments, boardProfile: boardProfile, nameEnds: nameEnds, boardButtons: boardButtons, levelChip: levelChip, roman: roman, enName: enName, weekendText: weekendText, boardHere: boardHere, slopeBetween: slopeBetween, recentAdd: recentAdd, recentPages: recentPages, recentFold: recentFold, compareRows: compareRows, compareButtons: compareButtons, steepest: steepest, officialEleAt: officialEleAt, stampRadius: stampRadius, stillCheck: stillCheck, windChill: windChill, windNote: windNote, paceProfile: paceProfile, paceAt: paceAt, paceDistAt: paceDistAt, paceText: paceText, fortune: fortune, fortuneDay: fortuneDay, supportLine: supportLine, dayKey: dayKey, anbuPlan: anbuPlan, anbuText: anbuText, anbuSms: anbuSms, telClean: telClean, telFormat: telFormat, UNITS: UNITS, unitConv: unitConv, unitFmt: unitFmt, dayNo: dayNo, dayYmd: dayYmd, ageInfo: ageInfo, dDay: dDay, dateAdd: dateAdd, dateDiff: dateDiff, pctCalc: pctCalc, dutchPay: dutchPay, textCount: textCount, smsKind: smsKind, compassHeading: compassHeading, SOS_PATTERN: SOS_PATTERN, fxConv: fxConv, toLunar: toLunar, fromLunar: fromLunar, nextLunarBirthday: nextLunarBirthday, leapMonth: leapMonth, moonPhase: moonPhase, MOON_NAMES: MOON_NAMES, interestCalc: interestCalc, vatCalc: vatCalc, bmiInfo: bmiInfo, discomfort: discomfort, nameRoman: nameRoman, tzOffsetMin: tzOffsetMin, ladderMake: ladderMake, ladderTrace: ladderTrace, holidayRuns: holidayRuns, mobileOnlyUrl: mobileOnlyUrl, summitCard: summitCard, trackClimb: trackClimb
+        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, regionEn: regionEn, weekendWordEn: weekendWordEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox, LEVELS: LEVELS, difficulty: difficulty, boardSegments: boardSegments, boardProfile: boardProfile, nameEnds: nameEnds, boardButtons: boardButtons, levelChip: levelChip, roman: roman, enName: enName, weekendText: weekendText, boardHere: boardHere, slopeBetween: slopeBetween, recentAdd: recentAdd, recentPages: recentPages, recentFold: recentFold, compareRows: compareRows, compareButtons: compareButtons, steepest: steepest, officialEleAt: officialEleAt, stampRadius: stampRadius, stillCheck: stillCheck, windChill: windChill, windNote: windNote, paceProfile: paceProfile, paceAt: paceAt, paceDistAt: paceDistAt, paceText: paceText, fortune: fortune, fortuneDay: fortuneDay, supportLine: supportLine, dayKey: dayKey, anbuPlan: anbuPlan, anbuText: anbuText, anbuSms: anbuSms, telClean: telClean, telFormat: telFormat, UNITS: UNITS, unitConv: unitConv, unitFmt: unitFmt, dayNo: dayNo, dayYmd: dayYmd, ageInfo: ageInfo, dDay: dDay, dateAdd: dateAdd, dateDiff: dateDiff, pctCalc: pctCalc, dutchPay: dutchPay, textCount: textCount, smsKind: smsKind, compassHeading: compassHeading, SOS_PATTERN: SOS_PATTERN, fxConv: fxConv, toLunar: toLunar, fromLunar: fromLunar, nextLunarBirthday: nextLunarBirthday, leapMonth: leapMonth, moonPhase: moonPhase, MOON_NAMES: MOON_NAMES, interestCalc: interestCalc, vatCalc: vatCalc, bmiInfo: bmiInfo, discomfort: discomfort, nameRoman: nameRoman, tzOffsetMin: tzOffsetMin, ladderMake: ladderMake, ladderTrace: ladderTrace, holidayRuns: holidayRuns, calcEval: calcEval, mobileOnlyUrl: mobileOnlyUrl, summitCard: summitCard, trackClimb: trackClimb
     };
 })(window);

@@ -1081,3 +1081,5 @@ eq("holidayRuns 연휴", [JSON.stringify(RF.holidayRuns(["2026-10-03", "2026-10-
 eq("nextLunarBirthday 음력 생일", [RF.nextLunarBirthday(8, 15, [2026, 9, 1]).join("-"), RF.nextLunarBirthday(8, 15, [2026, 9, 25]).join("-"), RF.nextLunarBirthday(1, 1, [2026, 10, 18]).join("-"),
     RF.nextLunarBirthday(8, 15, [2026, 9, 26]).join("-")], ["2026-9-25", "2026-9-25", "2027-2-7", "2027-9-15"]);
 eq("leapMonth 윤달", [1969, 2020, 2023, 2025, 2026, 2028].map(RF.leapMonth), [0, 4, 2, 6, 0, 5]);
+eq("calcEval 계산기", ["12+3×4", "10−4−3", "-3÷2", "50%", "200×15%", "0.1+0.2", "7÷0", "1+", "×3", "1..2", "", "2×-3", "100-5"].map(RF.calcEval),
+    [24, 3, -1.5, 0.5, 30, 0.3, null, 1, null, null, null, -6, 95]);

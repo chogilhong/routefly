@@ -147,6 +147,193 @@
         });
     })();
 
+    // ── 🧮 큰 글씨 계산기(RF.calcEval - eval 없음) ──
+    (function () {
+        var expr = "", last = null;
+        var KEYS = [["C", "c"], ["⌫", "c"], ["%", "op"], ["÷", "op"], ["7"], ["8"], ["9"], ["×", "op"], ["4"], ["5"], ["6"], ["−", "op"], ["1"], ["2"], ["3"], ["+", "op"], ["0"], ["00"], ["."], ["=", "eq"]];
+        function show() {
+            $("ccExpr").textContent = expr;
+            var r = RF.calcEval(expr);
+            $("ccVal").textContent = expr === "" ? (last != null ? RF.unitFmt(last) : "0") : r == null ? (/÷0(?![.\d])/.test(expr) ? T("0으로 나눌 수 없어요", "Can't divide by 0") : "…") : RF.unitFmt(r);
+        }
+        KEYS.forEach(function (k) {
+            var b = document.createElement("button");
+            b.type = "button"; b.textContent = k[0]; if (k[1]) b.className = k[1];
+            b.addEventListener("click", function () {
+                var key = k[0];
+                if (key === "C") { expr = ""; last = null; }
+                else if (key === "⌫") expr = expr.slice(0, -1);
+                else if (key === "=") { var r = RF.calcEval(expr); if (r != null) { last = r; expr = String(r).replace("-", "−"); } }
+                else if (/[+−×÷]/.test(key)) { if (expr === "" && last != null) expr = String(last).replace("-", "−"); expr = /[+−×÷]$/.test(expr) ? expr.slice(0, -1) + key : expr + key; }
+                else expr += key;
+                show();
+            });
+            $("ccGrid").appendChild(b);
+        });
+        show();
+    })();
+
+    // ── 🔍 돋보기(뒤 카메라 + 화면 확대, 지원하면 카메라 줌 · 불빛). 칸을 접으면 카메라를 끔 ──
+    var mgStream = null, mgTrack = null, mgTorch = false;
+    function mgStop() {
+        if (mgStream) mgStream.getTracks().forEach(function (t) { t.stop(); });
+        mgStream = null; mgTrack = null; mgTorch = false;
+        $("mgVid").srcObject = null;
+        $("mgWrap").style.display = "none"; $("mgCtl").style.display = "none";
+        $("mgOn").style.display = "";
+    }
+    function mgZoom() {
+        var z = +$("mgZoom").value, caps = mgTrack && mgTrack.getCapabilities ? mgTrack.getCapabilities() : {};
+        if (caps.zoom) {   // 카메라 줌이 되면 그것으로(더 선명), 남는 배율만 화면 확대
+            var cz = Math.min(caps.zoom.max, Math.max(caps.zoom.min, z));
+            mgTrack.applyConstraints({ advanced: [{ zoom: cz }] }).catch(function () { /* 안 됨 */ });
+            $("mgVid").style.transform = "scale(" + (z / cz) + ")";
+        } else $("mgVid").style.transform = "scale(" + z + ")";
+    }
+    $("mgOn").addEventListener("click", function () {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return toast(T("이 기기는 카메라를 쓸 수 없습니다", "Camera is not available"));
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false }).then(function (st) {
+            mgStream = st; mgTrack = st.getVideoTracks()[0];
+            $("mgVid").srcObject = st;
+            $("mgVid").play().catch(function () { /* 다시 누르면 */ });
+            $("mgWrap").style.display = ""; $("mgCtl").style.display = "";
+            $("mgOn").style.display = "none";
+            $("mgFreeze").textContent = T("⏸ 멈춤", "⏸ Hold");
+            var caps = mgTrack.getCapabilities ? mgTrack.getCapabilities() : {};
+            $("mgLight").style.display = caps.torch ? "" : "none";
+            mgZoom();
+        }).catch(function () { toast(T("카메라를 켜지 못했습니다 - 카메라 권한을 확인해 주세요", "Could not start the camera - check camera permission"), 4000); });
+    });
+    $("mgZoom").addEventListener("input", mgZoom);
+    $("mgFreeze").addEventListener("click", function () {
+        var v = $("mgVid");
+        if (v.paused) { v.play(); this.textContent = T("⏸ 멈춤", "⏸ Hold"); } else { v.pause(); this.textContent = T("▶ 다시", "▶ Live"); }
+    });
+    $("mgLight").addEventListener("click", function () {
+        if (!mgTrack) return;
+        mgTorch = !mgTorch;
+        mgTrack.applyConstraints({ advanced: [{ torch: mgTorch }] }).catch(function () { toast(T("이 폰은 불빛을 켤 수 없습니다", "This phone can't turn on the light")); });
+    });
+    $("t-mag").addEventListener("toggle", function () { if (!this.open) mgStop(); });
+    window.addEventListener("pagehide", mgStop);
+
+    // ── 💊 약 먹을 시간 알림(앱: Capacitor LocalNotifications 매일 반복, id 7300 ~ 7303 · 채널 rf-pill). 오늘 먹은 것은 이 핸드폰에(rf-pill) ──
+    (function () {
+        var CAP = window.Capacitor, NATIVE = !!(CAP && CAP.isNativePlatform && CAP.isNativePlatform());
+        var LN = NATIVE && (!CAP.isPluginAvailable || CAP.isPluginAvailable("LocalNotifications")) && CAP.Plugins && CAP.Plugins.LocalNotifications || null;
+        var pl = { name: "", times: ["08:00", "", "", ""], log: {} };
+        try { var p0 = JSON.parse(lsGet("rf-pill") || "null"); if (p0 && p0.times) pl = p0; } catch (e) { /* 처음 */ }
+        function keep() { try { localStorage.setItem("rf-pill", JSON.stringify(pl)); } catch (e) { /* 이번만 */ } }
+        function dk() { return RF.dayKey(Date.now()); }
+        var sels = [];
+        for (var i = 0; i < 4; i++) {
+            var sel = document.createElement("select");
+            sel.className = "f"; sel.style.flex = "1 1 40%";
+            sel.add(new Option(T("없음", "None"), ""));
+            for (var m = 5 * 60; m < 24 * 60; m += 30) {
+                var hh = Math.floor(m / 60), mm = m % 60, v = String(hh).padStart(2, "0") + ":" + String(mm).padStart(2, "0");
+                sel.add(new Option(EN ? v : (hh < 12 ? "오전 " : "오후 ") + (hh % 12 || 12) + "시" + (mm ? " 30분" : ""), v));
+            }
+            sel.value = pl.times[i] || "";
+            sels.push(sel);
+            $("plTimes").appendChild(sel);
+        }
+        $("plName").value = pl.name || "";
+        function draw() {
+            var ul = $("plToday"), log = pl.log[dk()] || {};
+            ul.innerHTML = "";
+            pl.times.forEach(function (t, i) {
+                if (!t) return;
+                var li = document.createElement("li"), sp = document.createElement("span"), b = document.createElement("button");
+                sp.textContent = "💊 " + t + " " + (pl.name || T("약", "Medicine"));
+                b.type = "button"; b.className = "btn2"; b.style.flex = "0 0 auto"; b.style.height = "40px";
+                if (log[i]) { b.textContent = T("✅ 먹었어요 ", "✅ Taken ") + log[i]; b.disabled = true; }
+                else b.textContent = T("먹었어요", "Taken");
+                b.addEventListener("click", function () {
+                    var d = new Date();
+                    pl.log = {}; pl.log[dk()] = Object.assign({}, log); pl.log[dk()][i] = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");   // 오늘 것만 남김
+                    keep(); draw();
+                });
+                li.appendChild(sp); li.appendChild(b);
+                ul.appendChild(li);
+            });
+        }
+        function schedule() {
+            if (!LN) return Promise.resolve();
+            var ids = [7300, 7301, 7302, 7303].map(function (id) { return { id: id }; });
+            return Promise.resolve(LN.createChannel({ id: "rf-pill", name: T("routefly 약 알림", "routefly medicine"), importance: 5, visibility: 1, vibration: true })).catch(function () { /* 이미 */ })
+                .then(function () { return Promise.resolve(LN.cancel({ notifications: ids })).catch(function () { /* 없음 */ }); })
+                .then(function () {
+                    var list = [];
+                    pl.times.forEach(function (t, i) {
+                        if (!t) return;
+                        list.push({ id: 7300 + i, title: T("💊 약 먹을 시간이에요", "💊 Time for your medicine"), body: (pl.name || T("약", "Medicine")) + " · " + t,
+                            schedule: { on: { hour: +t.slice(0, 2), minute: +t.slice(3, 5) }, allowWhileIdle: true }, channelId: "rf-pill", extra: { page: "pill" } });
+                    });
+                    if (!list.length) return null;
+                    return Promise.resolve(LN.requestPermissions()).catch(function () { return null; }).then(function () { return LN.schedule({ notifications: list }); });
+                });
+        }
+        $("plSave").addEventListener("click", function () {
+            pl.name = $("plName").value.trim();
+            pl.times = sels.map(function (s) { return s.value; });
+            keep(); draw();
+            schedule().then(function () {
+                toast(LN ? T("저장했어요 - 정한 시각마다 매일 알림이 울립니다", "Saved - a reminder rings every day at these times") : T("저장했어요 - 알림은 routefly 앱에서만 울립니다", "Saved - reminders ring only in the routefly app"), 4000);
+            }).catch(function () { toast(T("알림을 맞추지 못했습니다(알림 권한을 확인하세요)", "Could not set reminders (check notification permission)"), 5000); });
+        });
+        draw();
+    })();
+
+    // ── ✅ 산행 준비물 체크(RF.gearList + 늘 챙길 것). 계절은 이번 달로 고르고 바꿀 수 있음, 체크는 이 기기에(rf-gear) ──
+    (function () {
+        var mon = new Date().getMonth() + 1;
+        $("gcSeason").value = mon >= 3 && mon <= 5 ? "spring" : mon >= 6 && mon <= 8 ? "summer" : mon >= 9 && mon <= 11 ? "fall" : "winter";
+        var SEASON_MONTH = { spring: 4, summer: 7, fall: 10, winter: 1 };
+        var EXTRA = [{ key: "phone", label: "휴대폰 충전 · 오프라인 지도 저장", en: "Charged phone · offline map saved", why: "신호가 없어도 길 확인", whyEn: "Find your way without signal" },
+            { key: "id", label: "신분증 · 현금 조금", en: "ID · some cash", why: "산 아래 가게 · 버스", whyEn: "Shops and buses down below" },
+            { key: "whistle", label: "호루라기", en: "Whistle", why: "길을 잃으면 소리로 위치 알리기", whyEn: "Signal your position if lost" },
+            { key: "clothes", label: "여벌 옷(양말 포함)", en: "Spare clothes (socks too)", why: "땀 · 비에 젖으면 체온이 빨리 떨어짐", whyEn: "Wet clothes chill you fast" },
+            { key: "trash", label: "쓰레기 봉투", en: "Trash bag", why: "가져간 것은 가지고 내려오기", whyEn: "Pack it in, pack it out" }];
+        var EN_LABEL = { water: ["Water · snacks", "About 500 ml of water an hour"], rain: ["Rain jacket · windbreaker", "Mountain weather changes quickly"], headlamp: ["Headlamp", "It gets dark early in the mountains"],
+            battery: ["Power bank", "For GPS and emergency calls"], firstaid: ["First-aid kit · bandages", "Blisters, scrapes, bites"], shoes: ["Hiking boots", "Grip and ankle support"],
+            pack: ["Backpack", "Keep both hands free"], sun: ["Hat · sunscreen", "No shade on ridges and summits"], warm: ["Thermos · hand warmers", "You cool down fast when resting"],
+            crampon: ["Crampons", "Shaded trails are icy in winter and early spring"], glove: ["Gloves", "Mornings and summits are chilly"] };
+        var chk = {};
+        try { chk = JSON.parse(lsGet("rf-gear") || "{}") || {}; } catch (e) { chk = {}; }
+        function draw() {
+            var items = RF.gearList(SEASON_MONTH[$("gcSeason").value], 0, "hike").concat(EXTRA), ul = $("gcList"), done = 0;
+            ul.innerHTML = "";
+            items.forEach(function (it) {
+                var li = document.createElement("li"), lb = document.createElement("label"), cb = document.createElement("input"), sp = document.createElement("span"), sm = document.createElement("small");
+                cb.type = "checkbox"; cb.checked = !!chk[it.key];
+                if (cb.checked) { li.className = "done"; done++; }
+                sp.textContent = EN ? (it.en || (EN_LABEL[it.key] || [it.label])[0]) : it.label;
+                sm.textContent = EN ? (it.whyEn || (EN_LABEL[it.key] || [, it.why])[1]) : it.why;
+                sp.appendChild(sm);
+                cb.addEventListener("change", function () {
+                    chk[it.key] = cb.checked;
+                    try { localStorage.setItem("rf-gear", JSON.stringify(chk)); } catch (e) { /* 이번만 */ }
+                    draw();
+                });
+                lb.appendChild(cb); lb.appendChild(sp); li.appendChild(lb); ul.appendChild(li);
+            });
+            $("gcCount").textContent = done === items.length ? T("✅ 모두 챙겼어요! 즐거운 산행 되세요.", "✅ All packed! Have a great hike.") : T(items.length + "개 가운데 " + done + "개 챙김", done + " of " + items.length + " packed");
+        }
+        $("gcSeason").addEventListener("change", draw);
+        $("gcReset").addEventListener("click", function () { chk = {}; try { localStorage.removeItem("rf-gear"); } catch (e) { /* 이번만 */ } draw(); });
+        draw();
+    })();
+
+    // 앱 알림을 누르면 그 칸을 펴서 열기(tools.html?open=t-pill - hike.js 가 알림 누름을 받아 넘김)
+    (function () {
+        var m = /[?&]open=(t-[a-z]+)/.exec(location.search), d = m && $(m[1]);
+        if (d && d.tagName === "DETAILS") {   // 아래 접기 · 펼치기가 "마지막에 편 칸" 으로 열도록 - 직접 열면 그 칸과 둘이 열려 서로 접힘
+            try { localStorage.setItem("rf-tools-open1", d.id); } catch (e) { d.open = true; }
+            setTimeout(function () { d.scrollIntoView({ block: "start" }); }, 150);
+        }
+    })();
+
     // ── 📏 단위 변환 ──
     var st = { cat: "length", from: "cm", to: "in" };
     try { var s0 = JSON.parse(lsGet("rf-tools") || "null"); if (s0 && RF.UNITS[s0.cat]) st = s0; } catch (e) { /* 처음 */ }

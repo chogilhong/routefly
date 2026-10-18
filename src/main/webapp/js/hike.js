@@ -49,6 +49,7 @@
                  walked: 0,            // 걸은 거리(m)
                  alerted: {},          // 이미 알린 갈림길(진행 거리)
                  sunWarned: false,
+                 sun60: false,         // 🌇 해 지기 1시간 전 알림(한 번 - 2026-10-18 홍TV님)
                  spotDone: {},         // 알린 위험지역 · 조망점(RF.spotKey → true)
                  passed: {},           // 음성으로 알린 지점(이름)
                  kmSpoken: 0,          // 음성으로 알린 거리 이정(1km · 자전거 5km 단위)
@@ -108,6 +109,7 @@
     // 🏠 안부 알림을 누르면 안부 화면으로(앱은 늘 따라가기로 열림 - 2026-10-17)
     if (LN && LN.addListener) Promise.resolve(LN.addListener("localNotificationActionPerformed", function (ev) {
         if (ev && ev.notification && ev.notification.extra && ev.notification.extra.page === "anbu" && !hike.running) location.href = "anbu.html";
+        if (ev && ev.notification && ev.notification.extra && ev.notification.extra.page === "pill" && !hike.running) location.href = "tools.html?open=t-pill";   // 💊 약 알림(2026-10-18)
     })).catch(function () { /* 옛 설치본 */ });   // 안전 알림 진동 · 소리(2026-10-17 홍TV님 폰: 화면이 꺼지면 웹뷰 navigator.vibrate 가 막힘) - 없는 옛 설치본이면 null
 
     /** 앱 - 파일을 앱 임시 폴더에 쓰고 공유 창으로(문자 · 카카오톡 · 파일 저장 …). */
@@ -1738,6 +1740,7 @@
         hike.walked = saved && saved.walked ? saved.walked : 0;
         hike.alerted = {};
         hike.sunWarned = false;
+        hike.sun60 = false;
         // 귀가 확인 - 표준 시간의 1.5배(적어도 1시간 더)가 지나도록 못 끝내면 알림, 그 뒤 한 시간마다(2026-10-14 홍TV님). 위치는 보내지 않음
         hike.lateAt = sim ? 0 : RF.lateAt(hike.start, RF.standardMs(c.course.kind, c.total, RF.ascentLeft(c, 0)));
         hike.lateNext = hike.lateAt;
@@ -2261,6 +2264,14 @@
         if (d >= c.total - ARRIVE_M) setV("sEta", T("도착", "Arrived"));
         else {
             var rem = remainingMs(elapsed), eta = nowMs + rem;
+            // 🌇 해 지기 1시간 전이면 한 번 알림(도착 예상과 상관없이 - 산은 해가 지기 전부터 어두워짐. 2026-10-18 홍TV님)
+            if (sun && hike.running && !hike.sun60 && nowMs >= sun - 3600000 && nowMs < sun) {
+                hike.sun60 = true;
+                toast(EN ? "🌇 Sunset in about 1 hour (" + clock(sun) + "). It gets dark early in the mountains - get your headlamp ready and head down."
+                    : "🌇 해 지기 1시간 전입니다(일몰 " + clock(sun) + "). 산은 일찍 어두워지니 헤드랜턴을 준비하고 하산을 서두르세요.", 10000);
+                say(T("해 지기 한 시간 전입니다. 헤드랜턴을 준비하고 하산을 서두르세요.", "Sunset is in about one hour. Get your headlamp ready and head down."), { urgent: true });
+                if (navigator.vibrate) navigator.vibrate([300, 150, 300]);
+            }
             setV("sEta", clock(eta), " (" + RF.hm(rem, true) + ")");
             // 해 지기 30분 전까지 못 닿을 것 같으면 빨갛게 + 한 번 알림
             if (sun && eta > sun - 1800000) {
