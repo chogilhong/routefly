@@ -803,7 +803,7 @@
     [TODAY[0], TODAY[0] + 1].forEach(function (y) { $("holYear").add(new Option(EN ? String(y) : y + "년", y)); });
     function md(d) { var p = d.split("-"); return ymdText([+p[0], +p[1], +p[2]]); }
     var HOL_EN = { "1월1일": "New Year's Day", "신정": "New Year's Day", "설날": "Seollal (Lunar New Year)", "삼일절": "Independence Movement Day", "어린이날": "Children's Day",
-        "부처님오신날": "Buddha's Birthday", "석가탄신일": "Buddha's Birthday", "현충일": "Memorial Day", "제헌절": "Constitution Day", "광복절": "Liberation Day", "추석": "Chuseok", "개천절": "National Foundation Day",
+        "부처님오신날": "Buddha's Birthday", "석가탄신일": "Buddha's Birthday", "현충일": "Memorial Day", "제헌절": "Constitution Day", "노동절": "Labor Day", "근로자의날": "Labor Day", "광복절": "Liberation Day", "추석": "Chuseok", "개천절": "National Foundation Day",
         "한글날": "Hangeul Day", "기독탄신일": "Christmas Day", "대체공휴일": "Substitute holiday", "임시공휴일": "Temporary holiday" };
     function holName(n) { return !EN ? n : HOL_EN[n] || (/^대체공휴일/.test(n) ? "Substitute holiday" : /선거/.test(n) ? "Election day" : n); }
     function holDraw(j) {
@@ -901,7 +901,7 @@
         fetch("api/tide?obs=" + encodeURIComponent(tdSt.obs) + "&date=" + $("tdDay").value).then(function (r) { return r.json(); }).then(function (j) {
             if (!j || j.unavailable) return outSet("tdOut", T("지금은 물때를 받을 수 없습니다", "Tides are not available right now"));
             if (!(j.tides || []).length) return outSet("tdOut", T("이 날은 자료가 없습니다", "No data for this day"));
-            var now = Date.now(), nextShown = false;
+            var now = Date.now(), nextShown = $("tdDay").selectedIndex !== 0;   // 다음 물때(하늘색)는 오늘을 볼 때만(2026-10-18 PC)
             j.tides.forEach(function (x) {
                 var li = document.createElement("li"), sp = document.createElement("span"), b = document.createElement("b");
                 var hhmm = String(x.t).slice(11, 16), at = Date.parse(String(x.t).replace(" ", "T") + ":00+09:00");
