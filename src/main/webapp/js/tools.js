@@ -429,7 +429,7 @@
         else { ltSos(0); this.textContent = T("깜박임 멈춤", "Stop blinking"); }
     });
     $("ltOff").addEventListener("click", ltStop);
-    function stopAll() { whStop(); ltStop(); tgStop(); }
+    function stopAll() { whStop(); ltStop(); tgStop(); blStop(); }
     window.addEventListener("pagehide", stopAll);
 
     function val(id) { return String($(id).value).replace(/,/g, "").trim(); }
@@ -944,4 +944,48 @@
     if ($("t-tide").open) tdInit();
 
     $("t-tiger").addEventListener("toggle", function () { if (!this.open) tgStop(); });
+
+    // ── 🔔 곰 방울(합성 - 녹음 아님): 놋쇠 방울을 흔드는 소리 - 서로 어긋난 높은 배음이 짧게 울리고 사라짐. "걸으며" 는 걸음 박자로 흔들림 ──
+    var blTimer = null;
+    function bellHit(c, t0, vol) {
+        var f = 2050 * (0.96 + Math.random() * 0.08), out = c.createGain();
+        out.gain.value = vol;
+        out.connect(c.destination);
+        [[1, 1, 0.9], [2.32, 0.55, 0.55], [4.25, 0.32, 0.32], [6.63, 0.16, 0.2]].forEach(function (h) {   // [배음 비, 세기, 사라지는 시간(초)] - 종 · 방울은 배음이 정수배가 아님
+            var o = c.createOscillator(), g = c.createGain();
+            o.type = "sine";
+            o.frequency.value = f * h[0];
+            g.gain.setValueAtTime(0.0001, t0);
+            g.gain.exponentialRampToValueAtTime(h[1], t0 + 0.004);
+            g.gain.exponentialRampToValueAtTime(0.0001, t0 + h[2]);
+            o.connect(g); g.connect(out);
+            o.start(t0); o.stop(t0 + h[2] + 0.05);
+        });
+    }
+    function bellShake(c, t0) {   // 한 번 흔들면 방울 속 구슬이 두세 번 부딪힘
+        var n = 2 + rand(2), t = t0;
+        for (var i = 0; i < n; i++) { bellHit(c, t, (i ? 0.35 : 0.55) * (0.8 + Math.random() * 0.4)); t += 0.045 + Math.random() * 0.06; }
+    }
+    function blStop() {
+        clearTimeout(blTimer); blTimer = null;
+        $("blWalk").classList.remove("on");
+        $("blWalk").textContent = T("🚶 걸으며 계속", "🚶 Ring as I walk");
+    }
+    $("blOne").addEventListener("click", function () {
+        var c = audio();
+        if (!c) return toast(T("이 브라우저는 소리를 낼 수 없습니다", "This browser cannot play sound"));
+        bellShake(c, c.currentTime + 0.02);
+    });
+    $("blWalk").addEventListener("click", function () {
+        if (blTimer) return blStop();
+        var c = audio();
+        if (!c) return toast(T("이 브라우저는 소리를 낼 수 없습니다", "This browser cannot play sound"));
+        (function step() {   // 걸음마다(0.45 ~ 0.75초) 한 번씩 흔들림
+            bellShake(c, c.currentTime + 0.02);
+            blTimer = setTimeout(step, 450 + rand(300));
+        })();
+        this.classList.add("on");
+        this.textContent = T("⏹ 멈춤", "⏹ Stop");
+    });
+    $("t-bell").addEventListener("toggle", function () { if (!this.open) blStop(); });
 })();
