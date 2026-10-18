@@ -102,6 +102,7 @@ h2.grp { margin:22px 2px 0; font-size:14px; color:var(--dim); font-weight:bold; 
 .ccshow { background:#0b0f14; border:1px solid var(--ln); border-radius:12px; padding:10px 14px; text-align:right; margin-top:4px; }
 /* 높이 고정 - 문구가 길어져도 아래 단추가 밀리지 않게(2026-10-18 PC: 7÷0 안내가 두 줄이 되며 = 자리에 + 가 눌림) */
 .ccshow small { display:block; height:22px; line-height:22px; font-size:16px; color:var(--dim); white-space:nowrap; overflow:hidden; direction:rtl; text-align:right; }
+.ccshow small bdi { direction:ltr; unicode-bidi:isolate; }   /* 바깥은 rtl(긴 식은 왼쪽이 잘리게), 식 순서는 그대로(2026-10-18 PC: 12+3×4 가 4×12+3 으로 보였음) */
 .ccshow b { display:block; height:50px; line-height:50px; font-size:40px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-variant-numeric:tabular-nums; }
 .ccshow b.msg { font-size:20px; }
 .ccgrid { display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-top:10px; }
@@ -197,7 +198,7 @@ h2.grp { margin:22px 2px 0; font-size:14px; color:var(--dim); font-weight:bold; 
         <div class="out" id="dOut"></div>
     </div></details>
     <details class="tool" id="t-calc"><summary data-en="🧮 Big calculator">🧮 큰 글씨 계산기</summary><div class="tb">
-        <div id="ccShow" class="ccshow"><small id="ccExpr"></small><b id="ccVal">0</b></div>
+        <div id="ccShow" class="ccshow"><small><bdi id="ccExpr" dir="ltr"></bdi></small><b id="ccVal">0</b></div>
         <div class="ccgrid" id="ccGrid"></div>
     </div></details>
     <details class="tool" id="t-vat"><summary data-en="🧾 VAT (10%)">🧾 부가세(10%)</summary><div class="tb">

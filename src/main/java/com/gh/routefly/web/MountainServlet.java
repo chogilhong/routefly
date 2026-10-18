@@ -528,7 +528,7 @@ public class MountainServlet extends HttpServlet {
                 .append("\"><h2>날씨 · 미세먼지 · 일출 · 일몰</h2><p class=\"dim\" id=\"wxBody\">불러오는 중…</p></section>");
         b.append("<section><h2>코스 ").append(courses.size()).append("개</h2>");
         if (courses.isEmpty()) b.append("<p class=\"dim\">정상까지 가는 코스를 찾지 못했습니다. <a href=\"").append(REL)
-                .append("/hike.html\">따라가기에서 산 이름으로 찾아보세요</a>.</p>");
+                .append("/hike.html?lang=ko\">따라가기에서 산 이름으로 찾아보세요</a>.</p>");
         else {
             b.append("<ul class=\"cs\">");
             for (JsonObject c : courses) {
@@ -543,8 +543,8 @@ public class MountainServlet extends HttpServlet {
                         .append(asc != null ? String.format(Locale.KOREA, " · 오르막 %,dm", asc) : "")
                         .append(steep != null && steep >= STEEP_STEPS[1] ? String.format(Locale.ROOT, " · 가장 가파른 1km %.0f%%", steep) : "")
                         .append(" · 약 ").append(hours(dist, asc)).append("</span><span class=\"go\">")
-                        .append("<a href=\"").append(REL).append("/index.html#c=").append(esc(id)).append("&amp;m=").append(esc(enc(name))).append("\">fly(3D)</a>")
-                        .append("<a href=\"").append(REL).append("/hike.html#c=").append(esc(id)).append("&amp;m=").append(esc(enc(name))).append("\">따라가기</a>");   // m= - 따라가기의 ‹ 가 이 화면으로
+                        .append("<a href=\"").append(REL).append("/index.html?lang=ko#c=").append(esc(id)).append("&amp;m=").append(esc(enc(name))).append("\">fly(3D)</a>")
+                        .append("<a href=\"").append(REL).append("/hike.html?lang=ko#c=").append(esc(id)).append("&amp;m=").append(esc(enc(name))).append("\">따라가기</a>");   // m= - 따라가기의 ‹ 가 이 화면으로
                 double[] th = trailhead(c, peak);
                 if (th != null) b.append("<a class=\"way\" href=\"").append(esc(kakaoTo(str(peak, "name") + " 들머리", th)))
                         .append("\" target=\"_blank\" rel=\"noopener\">🚌 가는 길</a>");   // 카카오맵 길찾기(대중교통 · 차)
@@ -590,9 +590,9 @@ public class MountainServlet extends HttpServlet {
                 + "곳의 등산코스 · 날씨 · 일출 일몰과 백두대간 · 국가숲길 · 코리아둘레길 · 국토종주 자전거길 노선. 3D 지형 위로 미리 날아 보고 핸드폰으로 따라 걷기.", base + "/m/", base, base + "/en/m/"));
         // 맨 위 로고(img/logo-dark.svg - 2026-10-14 홍TV님), 누르면 따라가기
         // 오른쪽에 따라가기 › - 따라가기 화면 위의 "코스 모음 ›" 과 짝(2026-10-17 홍TV님)
-        b.append("<main><div class=\"logoRow\"><a class=\"logo\" href=\"").append(REL).append("/hike.html\"><img src=\"").append(REL)
+        b.append("<main><div class=\"logoRow\"><a class=\"logo\" href=\"").append(REL).append("/hike.html?lang=ko\"><img src=\"").append(REL)
                 .append("/img/logo-dark.svg\" alt=\"routefly\" width=\"256\" height=\"80\"></a>")
-                .append("<a class=\"goHike\" href=\"").append(REL).append("/hike.html\" title=\"코스를 골라 핸드폰으로 따라 걷기 - GPS · 음성 안내 · SOS\">🥾 따라가기 ›</a></div>")
+                .append("<a class=\"goHike\" href=\"").append(REL).append("/hike.html?lang=ko\" title=\"코스를 골라 핸드폰으로 따라 걷기 - GPS · 음성 안내 · SOS\">🥾 따라가기 ›</a></div>")
                 .append("<h1 class=\"idx\">등산 · 걷기 · 자전거</h1>")   // "코스" 는 뺌(2026-10-17 홍TV님 - 줄바꿈 없이 한 줄)
                 .append("<p class=\"lead\">산을 고르면 정상까지 가는 코스와 오늘 날씨 · 미세먼지 · 일출 · 일몰을, 길을 고르면 노선 안내도를 봅니다.</p>"
                 // 📍 내 근처 - 다른 칸처럼 접고 펴기(2026-10-16 홍TV님), 펴면 위치를 찾음(js/mountain.js)
@@ -664,7 +664,7 @@ public class MountainServlet extends HttpServlet {
     static String notFoundPage(String name, String base) {
         return head("산을 찾지 못했습니다", "routefly 100대 명산 등산코스", base + "/m/", base)
                 + "<main><h1>" + esc(name) + "</h1><p>100대 명산 목록에 없는 산입니다. <a href=\"" + REL + "/m/\">목록 보기</a> · <a href=\""
-                + REL + "/hike.html\">따라가기에서 찾기</a></p>" + foot(base);
+                + REL + "/hike.html?lang=ko\">따라가기에서 찾기</a></p>" + foot(base);
     }
 
     private static String head(String title, String desc, String url, String base) {
@@ -704,7 +704,7 @@ public class MountainServlet extends HttpServlet {
                 + "<a href=\"" + b + "/about.html\">안전 · 출처 안내</a> · <a href=\"" + b + "/privacy.html\">개인정보처리방침</a>"
                 + (en == null ? "" : " · <a href=\"" + esc(en) + "\" hreflang=\"en\" lang=\"en\">English</a>") + "</p>"
                 + "<p class=\"support\" id=\"support\" hidden></p>"   // ☕ 후원(설정 donate.url 이 있을 때만 mountain.js 가 보임)
-                + "<p class=\"brand\"><a href=\"" + b + "/hike.html\"><img src=\"" + b + "/img/logo-dark.svg\" alt=\"routefly\" width=\"160\" height=\"50\"> 앱 열기 ›</a></p>"
+                + "<p class=\"brand\"><a href=\"" + b + "/hike.html?lang=ko\"><img src=\"" + b + "/img/logo-dark.svg\" alt=\"routefly\" width=\"160\" height=\"50\"> 앱 열기 ›</a></p>"
                 + "<p class=\"copy\">© 2026 홍TV · routefly. 코스 · 지도 자료의 권리는 위 출처에 있습니다.</p></main>"   // 저작권 표시(2026-10-17 홍TV님)
                 + "<script src=\"" + b + "/js/course-kit.js\"></script><script src=\"" + b + "/js/mountain.js\"></script></body></html>";
     }

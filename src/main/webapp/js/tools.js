@@ -13,6 +13,7 @@
     RF.setLang(LANG);
     if (EN) { document.documentElement.lang = "en"; document.title = "routefly - Handy tools"; RF.applyEn(document); }
     $("top").appendChild(RF.textButton());
+    var openFromLink = null;   // ?open=t-… 로 연 칸(아래에서 씀 - 맨 위에 두어야 값이 지워지지 않음)
     if (EN) $("backLink").setAttribute("href", "en/m/");
 
     function toast(t, ms) {
@@ -223,8 +224,8 @@
     (function () {
         var CAP = window.Capacitor, NATIVE = !!(CAP && CAP.isNativePlatform && CAP.isNativePlatform());
         var LN = NATIVE && (!CAP.isPluginAvailable || CAP.isPluginAvailable("LocalNotifications")) && CAP.Plugins && CAP.Plugins.LocalNotifications || null;
-        var pl = { name: "", times: ["08:00", "", "", ""], log: {} };
-        try { var p0 = JSON.parse(lsGet("rf-pill") || "null"); if (p0 && p0.times) pl = p0; } catch (e) { /* 처음 */ }
+        var pl = { name: "", times: ["", "", "", ""], log: {} }, firstTime = true;
+        try { var p0 = JSON.parse(lsGet("rf-pill") || "null"); if (p0 && p0.times) { pl = p0; firstTime = false; } } catch (e) { /* 처음 */ }
         function keep() { try { localStorage.setItem("rf-pill", JSON.stringify(pl)); } catch (e) { /* 이번만 */ } }
         function dk() { return RF.dayKey(Date.now()); }
         var sels = [];
@@ -236,7 +237,7 @@
                 var hh = Math.floor(m / 60), mm = m % 60, v = String(hh).padStart(2, "0") + ":" + String(mm).padStart(2, "0");
                 sel.add(new Option(EN ? v : (hh < 12 ? "오전 " : "오후 ") + (hh % 12 || 12) + "시" + (mm ? " 30분" : ""), v));
             }
-            sel.value = pl.times[i] || "";
+            sel.value = pl.times[i] || (firstTime && i === 0 ? "08:00" : "");   // 처음엔 고르기 쉽게 08:00 만 - 목록은 저장한 뒤에(2026-10-18 PC)
             sels.push(sel);
             $("plTimes").appendChild(sel);
         }
@@ -332,13 +333,15 @@
         var m = /[?&]open=(t-[a-z]+)/.exec(location.search), d = m && $(m[1]);
         if (d && d.tagName === "DETAILS") {   // 아래 접기 · 펼치기가 "마지막에 편 칸" 으로 열도록 - 직접 열면 그 칸과 둘이 열려 서로 접힘
             try { localStorage.setItem("rf-tools-open1", d.id); } catch (e) { d.open = true; }
-            setTimeout(function () {   // 위쪽 띠(#top - 화면에 붙어 있음) 높이만큼 덜 내려 제목이 가리지 않게(2026-10-18 PC)
-                var top = d.getBoundingClientRect().top + scrollY - ($("top").offsetHeight || 0) - 8;
-                window.scrollTo(0, Math.max(0, top));
-            }, 150);
+            openFromLink = d;   // 스크롤은 아래 접기 · 펼치기(toolTop)가 - 따로 하면 서로 엇갈려 띠 밑에 가렸음(2026-10-18 PC)
         }
     })();
 
+    /** 편 칸 제목을 위쪽 띠(#top, 화면에 붙어 있음) 바로 아래로. */
+    function toolTop(d, smooth) {
+        var bar = ($("top").getBoundingClientRect().bottom || 0) + 8, r = d.getBoundingClientRect();
+        if (r.top < bar || r.top > innerHeight * 0.6) window.scrollTo({ top: Math.max(0, scrollY + r.top - bar), behavior: smooth ? "smooth" : "auto" });
+    }
     // ── 📏 단위 변환 ──
     var st = { cat: "length", from: "cm", to: "in" };
     try { var s0 = JSON.parse(lsGet("rf-tools") || "null"); if (s0 && RF.UNITS[s0.cat]) st = s0; } catch (e) { /* 처음 */ }
@@ -425,7 +428,8 @@
             if (d.open) {
                 TOOLS.forEach(function (o) { if (o !== d && o.open) o.open = false; });
                 try { localStorage.setItem("rf-tools-open1", d.id); } catch (e) { /* 이번만 */ }
-                setTimeout(function () { var r = d.getBoundingClientRect(); if (r.top < 60 || r.top > innerHeight * 0.6) window.scrollTo({ top: scrollY + r.top - 64, behavior: "smooth" }); }, 0);   // 위가 접혀 올라가도 편 칸 제목이 보이게
+                if (d === openFromLink) { openFromLink = null; setTimeout(function () { toolTop(d, false); }, 0); setTimeout(function () { toolTop(d, false); }, 400); }   // 알림 등 링크로 열 때(그림 · 글 그려진 뒤 한 번 더)
+                else setTimeout(function () { toolTop(d, true); }, 0);   // 위가 접혀 올라가도 편 칸 제목이 띠 아래로 보이게
             } else if (lsGet("rf-tools-open1") === d.id) { try { localStorage.removeItem("rf-tools-open1"); } catch (e) { /* 이번만 */ } }
             if (!d.open && d.id === "t-sos") stopAll();
         });
