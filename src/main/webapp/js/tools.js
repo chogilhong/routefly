@@ -165,14 +165,16 @@
     });
     drawCats(); setup();
 
-    // ── 접기 · 펼치기: 펼친 칸만 이 기기에 기억 ──
-    var opened = {};
-    try { opened = JSON.parse(lsGet("rf-tools-open") || "{}") || {}; } catch (e) { opened = {}; }
-    Array.prototype.forEach.call(document.querySelectorAll("details.tool"), function (d) {
-        if (opened[d.id]) d.open = true;
+    // ── 접기 · 펼치기: 한 칸을 펴면 다른 칸은 접음(2026-10-18 홍TV님). 펼친 칸 하나만 이 기기에 기억 ──
+    var TOOLS = Array.prototype.slice.call(document.querySelectorAll("details.tool")), lastOpen = lsGet("rf-tools-open1");
+    TOOLS.forEach(function (d) {
+        if (d.id === lastOpen) d.open = true;
         d.addEventListener("toggle", function () {
-            opened[d.id] = d.open;
-            try { localStorage.setItem("rf-tools-open", JSON.stringify(opened)); } catch (e) { /* 이번만 */ }
+            if (d.open) {
+                TOOLS.forEach(function (o) { if (o !== d && o.open) o.open = false; });
+                try { localStorage.setItem("rf-tools-open1", d.id); } catch (e) { /* 이번만 */ }
+                setTimeout(function () { var r = d.getBoundingClientRect(); if (r.top < 60 || r.top > innerHeight * 0.6) window.scrollTo({ top: scrollY + r.top - 64, behavior: "smooth" }); }, 0);   // 위가 접혀 올라가도 편 칸 제목이 보이게
+            } else if (lsGet("rf-tools-open1") === d.id) { try { localStorage.removeItem("rf-tools-open1"); } catch (e) { /* 이번만 */ } }
             if (!d.open && d.id === "t-sos") stopAll();
         });
     });
