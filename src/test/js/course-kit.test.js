@@ -1021,3 +1021,10 @@ eq("telFormat", ["01012345678", "010-1234-5678", "010-", "010", "0101", "0101234
 eq("trackClimb 10m 넘게 바뀐 것만", [RF.trackClimb([[0, 0, 0, 5], [0, 0, 1, 9], [0, 0, 2, 3], [0, 0, 3, 20], [0, 0, 4, 18], [0, 0, 5, 40], [0, 0, 6, null], [0, 0, 7, 25], [0, 0, 8, 37]]),
     RF.trackClimb([]), RF.trackClimb([[0, 0, 0, null]])], [15 + 20 + 12, 0, 0]);
 
+eq("unitConv 별거 별거", [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(function (i) {
+    return RF.unitFmt([null, RF.unitConv("length", "1", "in", "cm"), RF.unitConv("length", 100, "cm", "in"), RF.unitConv("area", 1, "평", "㎡"), RF.unitConv("area", 84, "㎡", "평"),
+        RF.unitConv("temp", 100, "°C", "°F"), RF.unitConv("temp", -40, "°F", "°C"), RF.unitConv("freq", 1, "Hz", "kHz"), RF.unitConv("weight", 1, "근", "kg"), RF.unitConv("length", 1, "mi", "m"), RF.unitConv("data", 1, "GB", "MB")][i]);
+}), ["2.54", "39.37007874", "3.305785124", "25.41", "212", "-40", "0.001", "0.6", "1,609.344", "1,024"]);
+eq("unitConv 못 바꿈 · 아주 작음", [RF.unitConv("length", "", "m", "cm"), RF.unitConv("length", "abc", "m", "cm"), RF.unitConv("x", 1, "m", "cm"), RF.unitConv("length", 1, "m", "kg"),
+    RF.unitFmt(RF.unitConv("freq", 1, "Hz", "GHz")), RF.unitFmt(0), RF.unitFmt(1234567.5), RF.unitFmt(RF.unitConv("temp", 0, "°C", "K"))],
+    [null, null, null, null, "1e-9", "0", "1,234,567.5", "273.15"]);

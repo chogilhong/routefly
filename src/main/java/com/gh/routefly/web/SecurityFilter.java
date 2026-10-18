@@ -40,17 +40,28 @@ public class SecurityFilter extends HttpFilter {
     static final String CSP = "default-src 'self' https: data: blob:; script-src 'self'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https:; "
             + "img-src 'self' https: http: data: blob:; connect-src 'self' https: http: data: blob:; frame-ancestors 'self'; base-uri 'self'; object-src 'none'; form-action 'self'";
 
+    /**
+     * 🧰 별거 별거(tools.html - 2026-10-18 홍TV님)만 카카오(다음) 우편번호 스크립트(*.daumcdn.net)를 더 허용. 다른 화면은 {@link #CSP} 그대로.
+     * 우편번호 화면 자체는 iframe(postcode.map.kakao.com 등)이라 default-src https: 로 열림.
+     */
+    static final String CSP_TOOLS = CSP.replace("script-src 'self';", "script-src 'self' https://*.daumcdn.net;");
+
+    /** 순수 함수 - 이 경로에 줄 CSP. */
+    static String cspFor(String path) {
+        return "/tools.html".equals(path) ? CSP_TOOLS : CSP;
+    }
+
     @Override
     protected void doFilter(HttpServletRequest req, HttpServletResponse res, FilterChain chain) throws IOException, ServletException {
         res.setHeader("X-Content-Type-Options", "nosniff");
         res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
         res.setHeader("X-Frame-Options", "SAMEORIGIN");
-        res.setHeader("Content-Security-Policy", CSP);
+        String path = req.getServletPath() + (req.getPathInfo() == null ? "" : req.getPathInfo());
+        res.setHeader("Content-Security-Policy", cspFor(path));
         res.setHeader("Permissions-Policy", "geolocation=(self), camera=(self), microphone=(), payment=()");
         // 2026-10-09 점검(totonian 과 같은 방식): HTTPS 로 받았을 때만 HSTS - 프록시가 TLS 를 푸는 구성에서는 붙지 않아 예전과 같음
         if (req.isSecure()) res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
-        // 2026-10-10 점검: 서블릿 경로(디코딩 · ;매개변수 제거 뒤) - getRequestURI 로는 /%61pi/ · /api;x/ 가 제한 · noindex 를 피했음
-        String path = req.getServletPath() + (req.getPathInfo() == null ? "" : req.getPathInfo());
+        // 2026-10-10 점검: 서블릿 경로(디코딩 · ;매개변수 제거 뒤) - getRequestURI 로는 /%61pi/ · /api;x/ 가 제한 · noindex 를 피했음(path 는 위 CSP 에서 구함)
         // JSON 은 검색 결과에 나와서 좋을 것이 없습니다(공유 링크 /s/ 와 화면은 그대로 색인)
         if (path.startsWith("/api/")) res.setHeader("X-Robots-Tag", "noindex");
         if (path.startsWith("/api/") || path.startsWith("/s/") || path.startsWith("/m/") || path.equals("/stats") || path.startsWith("/check/")) {   // /stats · /check/heights - 열쇠 맞히기 막기   // /m/ 산 소개 페이지도 DB 를 씀(2026-10-14)

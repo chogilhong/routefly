@@ -24,6 +24,11 @@ public class LaunchSecurityTest {
         assertTrue("지도 일꾼(blob)", SecurityFilter.CSP.contains("worker-src 'self' blob:"));
         assertTrue(SecurityFilter.CSP.contains("frame-ancestors 'self'"));
         assertTrue(SecurityFilter.CSP.contains("object-src 'none'"));
+        // 🧰 별거 별거만 카카오 우편번호 스크립트 더 허용(2026-10-18)
+        assertTrue(SecurityFilter.cspFor("/tools.html").contains("script-src 'self' https://*.daumcdn.net;"));
+        assertEquals("다른 화면은 그대로", SecurityFilter.CSP, SecurityFilter.cspFor("/hike.html"));
+        assertEquals(SecurityFilter.CSP, SecurityFilter.cspFor("/tools.html/x"));
+        assertFalse(SecurityFilter.CSP_TOOLS.matches(".*script-src[^;]*'unsafe-(inline|eval)'.*"));
     }
 
     @Test

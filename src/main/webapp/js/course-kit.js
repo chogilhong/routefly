@@ -825,6 +825,52 @@
         return d.slice(0, a) + "-" + rest.slice(0, mid) + "-" + rest.slice(mid);
     }
 
+    /**
+     * 🧰 별거 별거 - 단위 변환(tools.html - 2026-10-18 홍TV님). 칸마다 [영문 기호, 한국어 이름, 영어 이름, 기준 단위로 몇(곱)].
+     * 길이 m · 무게 g · 넓이 ㎡ · 부피 mL · 속도 m/s · 주파수 Hz · 데이터 B(1KB = 1024B). 온도는 곱이 아니라 따로(unitConv).
+     * 평 = 400/121 ㎡(1평 = 3.3058㎡), 자 = 10/33 m, 근 = 600g(고기 - 채소는 375g), 돈 = 3.75g, 컵 = 200mL(한국 요리 계량).
+     */
+    var UNITS = {
+        length: { ko: "길이", en: "Length", u: [["mm", "밀리미터", "millimeter", 0.001], ["cm", "센티미터", "centimeter", 0.01], ["m", "미터", "meter", 1], ["km", "킬로미터", "kilometer", 1000],
+            ["in", "인치", "inch", 0.0254], ["ft", "피트", "foot", 0.3048], ["yd", "야드", "yard", 0.9144], ["mi", "마일", "mile", 1609.344], ["자", "자(척)", "ja (Korean foot)", 10 / 33]] },
+        weight: { ko: "무게", en: "Weight", u: [["mg", "밀리그램", "milligram", 0.001], ["g", "그램", "gram", 1], ["kg", "킬로그램", "kilogram", 1000], ["t", "톤", "tonne", 1e6],
+            ["oz", "온스", "ounce", 28.349523125], ["lb", "파운드", "pound", 453.59237], ["근", "근(고기 600g)", "geun (600 g)", 600], ["돈", "돈(3.75g)", "don (3.75 g)", 3.75]] },
+        area: { ko: "넓이", en: "Area", u: [["㎡", "제곱미터", "square meter", 1], ["평", "평", "pyeong", 400 / 121], ["a", "아르", "are", 100], ["ha", "헥타르", "hectare", 10000],
+            ["㎢", "제곱킬로미터", "square kilometer", 1e6], ["ft²", "제곱피트", "square foot", 0.09290304], ["ac", "에이커", "acre", 4046.8564224]] },
+        volume: { ko: "부피", en: "Volume", u: [["mL", "밀리리터", "milliliter", 1], ["L", "리터", "liter", 1000], ["㎥", "세제곱미터", "cubic meter", 1e6], ["컵", "컵(200mL)", "cup (200 mL)", 200],
+            ["fl oz", "액량 온스(미국)", "fluid ounce (US)", 29.5735295625], ["gal", "갤런(미국)", "gallon (US)", 3785.411784]] },
+        temp: { ko: "온도", en: "Temperature", u: [["°C", "섭씨", "Celsius"], ["°F", "화씨", "Fahrenheit"], ["K", "켈빈", "Kelvin"]] },
+        speed: { ko: "속도", en: "Speed", u: [["m/s", "초속 미터", "meters per second", 1], ["km/h", "시속 킬로미터", "kilometers per hour", 1 / 3.6], ["mph", "시속 마일", "miles per hour", 0.44704],
+            ["kn", "노트", "knot", 1852 / 3600]] },
+        freq: { ko: "주파수", en: "Frequency", u: [["Hz", "헤르츠", "hertz", 1], ["kHz", "킬로헤르츠", "kilohertz", 1e3], ["MHz", "메가헤르츠", "megahertz", 1e6], ["GHz", "기가헤르츠", "gigahertz", 1e9]] },
+        data: { ko: "데이터", en: "Data", u: [["B", "바이트", "byte", 1], ["KB", "킬로바이트", "kilobyte", 1024], ["MB", "메가바이트", "megabyte", 1048576], ["GB", "기가바이트", "gigabyte", 1073741824],
+            ["TB", "테라바이트", "terabyte", 1099511627776]] }
+    };
+    /** 순수 함수 - 단위 변환. cat 은 UNITS 의 칸, from · to 는 기호. 모르는 단위 · 숫자가 아니면 null. */
+    function unitConv(cat, v, from, to) {
+        var c = UNITS[cat], x = Number(v);
+        if (!c || v === "" || v == null || !isFinite(x)) return null;
+        function find(sym) { for (var i = 0; i < c.u.length; i++) if (c.u[i][0] === sym) return c.u[i]; return null; }
+        var a = find(from), b = find(to);
+        if (!a || !b) return null;
+        if (cat === "temp") {
+            var k = from === "°C" ? x + 273.15 : from === "°F" ? (x - 32) * 5 / 9 + 273.15 : x;
+            return to === "°C" ? k - 273.15 : to === "°F" ? (k - 273.15) * 9 / 5 + 32 : k;
+        }
+        return x * a[3] / b[3];
+    }
+    /** 순수 함수 - 변환 결과 글: 유효숫자 10자리까지, 정수 부분에 쉼표, 아주 크거나 작으면 1.2345e-7 꼴. */
+    function unitFmt(x) {
+        if (x == null || !isFinite(x)) return "";
+        if (x === 0) return "0";
+        var ax = Math.abs(x);
+        if (ax >= 1e15 || ax < 1e-6) return x.toExponential(4).replace(/\.?0+e/, "e");
+        var s = String(Number(x.toPrecision(10)));
+        if (s.indexOf("e") >= 0) s = Number(s).toFixed(10).replace(/\.?0+$/, "");
+        var p = s.split(".");
+        return p[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",") + (p[1] ? "." + p[1] : "");
+    }
+
     /** 순수 함수 - 핸드폰에서만 열리는 송금 링크(카카오페이 송금 코드 qr.kakaopay.com - PC 브라우저는 404). */
     function mobileOnlyUrl(url) { return /^https:\/\/qr\.kakaopay\.com\//i.test(url || ""); }
     /** PC 에서 그런 링크를 누르면 열지 않고 안내(2026-10-17 홍TV님: 핸드폰은 되는데 PC 는 404). */
@@ -4228,6 +4274,6 @@
         sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap,
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },
         setLang: setLang, isEn: isEn, tr: tr, pageLang: pageLang, applyEn: applyEn,
-        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, regionEn: regionEn, weekendWordEn: weekendWordEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox, LEVELS: LEVELS, difficulty: difficulty, boardSegments: boardSegments, boardProfile: boardProfile, nameEnds: nameEnds, boardButtons: boardButtons, levelChip: levelChip, roman: roman, enName: enName, weekendText: weekendText, boardHere: boardHere, slopeBetween: slopeBetween, recentAdd: recentAdd, recentPages: recentPages, recentFold: recentFold, compareRows: compareRows, compareButtons: compareButtons, steepest: steepest, officialEleAt: officialEleAt, stampRadius: stampRadius, stillCheck: stillCheck, windChill: windChill, windNote: windNote, paceProfile: paceProfile, paceAt: paceAt, paceDistAt: paceDistAt, paceText: paceText, fortune: fortune, fortuneDay: fortuneDay, supportLine: supportLine, dayKey: dayKey, anbuPlan: anbuPlan, anbuText: anbuText, anbuSms: anbuSms, telClean: telClean, telFormat: telFormat, mobileOnlyUrl: mobileOnlyUrl, summitCard: summitCard, trackClimb: trackClimb
+        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, regionEn: regionEn, weekendWordEn: weekendWordEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox, LEVELS: LEVELS, difficulty: difficulty, boardSegments: boardSegments, boardProfile: boardProfile, nameEnds: nameEnds, boardButtons: boardButtons, levelChip: levelChip, roman: roman, enName: enName, weekendText: weekendText, boardHere: boardHere, slopeBetween: slopeBetween, recentAdd: recentAdd, recentPages: recentPages, recentFold: recentFold, compareRows: compareRows, compareButtons: compareButtons, steepest: steepest, officialEleAt: officialEleAt, stampRadius: stampRadius, stillCheck: stillCheck, windChill: windChill, windNote: windNote, paceProfile: paceProfile, paceAt: paceAt, paceDistAt: paceDistAt, paceText: paceText, fortune: fortune, fortuneDay: fortuneDay, supportLine: supportLine, dayKey: dayKey, anbuPlan: anbuPlan, anbuText: anbuText, anbuSms: anbuSms, telClean: telClean, telFormat: telFormat, UNITS: UNITS, unitConv: unitConv, unitFmt: unitFmt, mobileOnlyUrl: mobileOnlyUrl, summitCard: summitCard, trackClimb: trackClimb
     };
 })(window);

@@ -280,7 +280,8 @@ final class MountainEn {
         b.append("<p class=\"dim\">Trail and bike path maps show every section with checkpoints; place names on the map are in Korean.</p>");
         b.append(tips());
         return b.append("<section id=\"fun\" class=\"fun\" hidden></section>")
-                .append("<a class=\"anbuLink\" href=\"" + REL + "/anbu.html?lang=en\">🏠 Daily check-in <small>Tap \"I'm fine\" once a day · text your guardian · daily reminder</small> ›</a>")   // 🔮 just for fun(js/mountain-en.js - 2026-10-17)
+                .append("<a class=\"anbuLink\" href=\"" + REL + "/anbu.html?lang=en\">🏠 Daily check-in <small>Tap \"I'm fine\" once a day · text your guardian · daily reminder</small> ›</a>")
+                .append("<a class=\"anbuLink toolLink\" href=\"" + REL + "/tools.html?lang=en\">🧰 Handy tools <small>Korean postcode · English address · unit converter</small> ›</a>")   // 🔮 just for fun(js/mountain-en.js - 2026-10-17)
                 .append(foot(REL + "/m/")).toString();
     }
 
