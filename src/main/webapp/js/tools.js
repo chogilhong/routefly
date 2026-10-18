@@ -261,9 +261,17 @@
 
     // ── 🎂 만 나이 · 띠 ──
     var ageGet = datePick($("ageBirth"), [1960, 1, 1], 1910, TODAY[0], ageDraw);
+    /** 윤달 칸: 그해 윤달이 몇 월인지 옆에 쓰고, 고른 달이 윤달이 아니면 막음(2026-10-18 홍TV님 "윤달은?"). */
+    function leapNote(cb, note, y, m) {
+        var lm = RF.leapMonth(y);
+        note.textContent = lm == null ? "" : lm ? T("(" + y + "년은 윤" + lm + "월이 있음)", "(" + y + " had a leap month " + lm + ")") : T("(" + y + "년은 윤달 없음)", "(no leap month in " + y + ")");
+        cb.disabled = lm !== null && lm !== m;
+        if (cb.disabled) cb.checked = false;
+    }
     function ageDraw() {   // 음력 생일도(2026-10-18 홍TV님 "생일은 양력? 음력?")
         var b = ageGet(), lunar = $("ageCal").value === "l", out = $("ageOut"), solarB = b, nb = null;
         $("ageLeapRow").style.display = lunar ? "flex" : "none";
+        if (lunar) leapNote($("ageLeap"), $("ageLeapNote"), b[0], b[1]);
         out.innerHTML = "";
         if (lunar) {
             solarB = RF.fromLunar(b[0], b[1], b[2], $("ageLeap").checked);
@@ -514,6 +522,7 @@
     function lnDraw() {
         var mode = $("lnMode").value, d = lnGet();
         $("lnLeapRow").style.display = mode === "l2s" ? "flex" : "none";
+        if (mode === "l2s") leapNote($("lnLeap"), $("lnLeapNote"), d[0], d[1]);
         if (mode === "s2l") {
             var l = RF.toLunar(d);
             return outSet("lnOut", l ? lunarText(l) : T("바꿀 수 없습니다", "Cannot convert"), ymdText(d) + (l && l.cal !== "dangi" ? T(" · 중국 음력 기준(하루 다를 수 있음)", " · Chinese calendar (may be off by a day)") : ""));
