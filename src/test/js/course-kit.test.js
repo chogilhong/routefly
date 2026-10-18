@@ -1050,3 +1050,28 @@ eq("unitConv 못 바꿈 · 아주 작음", [RF.unitConv("length", "", "m", "cm")
         RF.fxConv(1, "USD", "XXX", "USD", { KRW: 1 }), RF.fxConv("a", "USD", "KRW", "USD", { KRW: 1 })], [1400, 1, 933, null, null]);
     eq("SOS 박자 9번", RF.SOS_PATTERN.length, 9);
 })();
+(function () {   // 🧰 별거 별거 2차(2026-10-18)
+    RF.setLang("ko");
+    var l = RF.toLunar([2026, 2, 17]), l2 = RF.toLunar([2023, 3, 22]);
+    eq("음력 ↔ 양력(설 · 추석 · 윤달)", [l.y, l.m, l.d, l.leap, l.cal, l2.m, l2.leap, RF.fromLunar(2026, 8, 15).join("-"), RF.fromLunar(2023, 2, 1, true).join("-"), RF.fromLunar(2026, 2, 1, true), RF.fromLunar(2025, 1, 1).join("-"), RF.toLunar([2026, 2, 30])],
+        [2026, 1, 1, false, "dangi", 2, true, "2026-9-25", "2023-3-22", null, "2025-1-29", null]);
+    var m = RF.moonPhase(Date.UTC(2026, 9, 26, 0, 0)), nw = RF.moonPhase(Date.UTC(2000, 0, 6, 18, 14));
+    eq("moonPhase", [m.i, m.illum > 0.99, new Date(m.nextFull).toISOString().slice(0, 10), nw.i, nw.illum < 0.001, RF.MOON_NAMES[4][1]], [4, true, "2026-10-26", 0, true, "보름달"]);
+    var ic = [RF.interestCalc("deposit", 10000000, 3.5, 12), RF.interestCalc("saving", 100000, 4, 12), RF.interestCalc("loanEq", 100000000, 4, 360), RF.interestCalc("loanPr", 12000000, 6, 12),
+        RF.interestCalc("loanBullet", 10000000, 6, 12), RF.interestCalc("deposit", 10000000, 3.5, 12, true)];
+    eq("interestCalc", [ic[0].interest, ic[0].tax, ic[0].net, ic[1].interest, ic[1].tax, ic[2].first, ic[2].interest, ic[3].first, ic[3].last, ic[3].interest, ic[4].first, ic[4].interest, ic[5].interest,
+        RF.interestCalc("deposit", 0, 3, 12), RF.interestCalc("loanEq", 1200, 0, 12).first],
+        [350000, 53900, 10296100, 26000, 4000, 477415, 71869506, 1060000, 1005000, 390000, 50000, 600000, 355669, null, 100]);
+    eq("vatCalc · bmiInfo · discomfort", [RF.vatCalc(10000, "supply").total, RF.vatCalc(11000, "total").supply, RF.vatCalc(10001, "total").vat, RF.bmiInfo(170, 65).bmi, RF.bmiInfo(170, 65).word, RF.bmiInfo(170, 65).lo,
+        RF.bmiInfo(170, 65).hi, RF.bmiInfo(160, 70).k, RF.bmiInfo(10, 65), RF.discomfort(30, 70).di, RF.discomfort(30, 70).k, RF.discomfort(20, 50).k, RF.discomfort(20, 120)],
+        [11000, 10000, 909, 22.5, "정상", 53.5, 66.2, 3, null, 81.4, 3, 0, null]);
+    var h = RF.nameRoman("홍길동"), i = RF.nameRoman("이복남"), n = RF.nameRoman("남궁민수"), g = RF.nameRoman("남궁");
+    eq("nameRoman", [h.sur + " " + h.given, i.sur, i.surStd, i.given, i.alt, n.sur, n.given, g.sur, RF.nameRoman("abc"), RF.nameRoman("김")], ["HONG GILDONG", "LEE", "I", "BOKNAM", "BOK-NAM", "NAMGOONG", "MINSU", "NAM", null, null]);
+    eq("tzOffsetMin", [RF.tzOffsetMin("Asia/Seoul", Date.UTC(2026, 0, 1)), RF.tzOffsetMin("America/New_York", Date.UTC(2026, 6, 1)), RF.tzOffsetMin("America/New_York", Date.UTC(2026, 0, 1)),
+        RF.tzOffsetMin("Asia/Kolkata", 0), RF.tzOffsetMin("X/Y", 0)], [540, -240, -300, 330, null]);
+    var seed = 1, rnd = function () { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+    var L = RF.ladderMake(4, 8, rnd), ends = [0, 1, 2, 3].map(function (k) { return RF.ladderTrace(L, k).end; });
+    var adj = L.some(function (r) { return r.some(function (b, k) { return b && r[k + 1]; }); });
+    eq("사다리 - 모두 다른 곳 · 붙은 가로줄 없음", [ends.slice().sort().join(""), adj, L.length, RF.ladderTrace([[true], [false]], 0).end, RF.ladderMake(3, 2, function () { return 0.99; }).map(function (r) { return r.join(); }).join("|")],
+        ["0123", false, 8, 1, "true,false|false,true"]);
+})();

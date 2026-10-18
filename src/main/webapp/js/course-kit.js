@@ -973,6 +973,171 @@
         return v / a * b;
     }
 
+    // ── 🧰 별거 별거 2차(2026-10-18 홍TV님 "전부 해줘") ──
+    /**
+     * 음력(한국 - Intl 의 dangi 달력, 없으면 chinese). 양력 [년, 월, 일] → {y, m, d, leap}. 브라우저가 음력을 모르면 null.
+     * dangi 는 서울 기준이라 중국 음력(chinese)과 가끔 하루 다름(1950 ~ 2050 사이 1,377일).
+     */
+    var LUNAR_FMT;
+    function lunarFmt() {
+        if (LUNAR_FMT !== undefined) return LUNAR_FMT;
+        LUNAR_FMT = null;
+        ["dangi", "chinese"].some(function (c) {
+            try {
+                var f = new Intl.DateTimeFormat("en-u-ca-" + c, { timeZone: "UTC", year: "numeric", month: "numeric", day: "numeric" });
+                if (f.resolvedOptions().calendar !== c) return false;
+                LUNAR_FMT = { f: f, cal: c };
+                return true;
+            } catch (e) { return false; }
+        });
+        return LUNAR_FMT;
+    }
+    function toLunar(ymd) {
+        var n = dayNo(ymd[0], ymd[1], ymd[2]), L = lunarFmt();
+        if (n == null || !L) return null;
+        var o = {};
+        L.f.formatToParts(new Date(n * 86400000)).forEach(function (p) { o[p.type] = p.value; });
+        var m = /^(\d+)(bis)?$/.exec(o.month || "");
+        if (!m || !o.day || !(o.relatedYear || o.year)) return null;
+        return { y: +(o.relatedYear || o.year), m: +m[1], d: +o.day, leap: !!m[2], cal: L.cal };
+    }
+    /** 순수 함수(브라우저 달력 씀) - 음력 → 양력 [년, 월, 일]. 그 해에 없는 날(윤달이 없는 해의 윤달, 30일이 없는 달)은 null. */
+    function fromLunar(y, m, d, leap) {
+        var s = dayNo(y, 1, 1);
+        if (s == null || !lunarFmt()) return null;
+        for (var n = s; n < s + 420; n++) {   // 음력 y년 m월은 양력 y년 1월 ~ y+1년 2월 사이
+            var l = toLunar(dayYmd(n));
+            if (l && l.y === +y && l.m === +m && l.d === +d && l.leap === !!leap) return dayYmd(n);
+        }
+        return null;
+    }
+    /**
+     * 순수 함수 - 달 모양(ms 때). 기준 삭 2000-01-06 18:14 UTC, 삭망월 29.530588853일로 어림(하루 안팎 차이).
+     * age 월령(일), illum 밝은 부분(0 ~ 1), i 모양 번호(0 삭 · 1 초승 · 2 상현 · 3 차오름 · 4 보름 · 5 기욺 · 6 하현 · 7 그믐), nextFull · nextNew 다음 보름 · 삭(ms).
+     */
+    var SYNODIC = 29.530588853;
+    function moonPhase(ms) {
+        var days = (ms - Date.UTC(2000, 0, 6, 18, 14)) / 86400000, age = ((days % SYNODIC) + SYNODIC) % SYNODIC;
+        var illum = (1 - Math.cos(2 * Math.PI * age / SYNODIC)) / 2;
+        var i = Math.floor((age / SYNODIC * 8) + 0.5) % 8;
+        var full = SYNODIC / 2, toFull = age <= full ? full - age : SYNODIC - age + full;
+        return { age: age, illum: illum, i: i, nextFull: ms + toFull * 86400000, nextNew: ms + (SYNODIC - age) * 86400000 };
+    }
+    var MOON_NAMES = [["🌑", "삭(달이 안 보임)", "New moon"], ["🌒", "초승달", "Waxing crescent"], ["🌓", "상현달", "First quarter"], ["🌔", "보름 앞 달", "Waxing gibbous"],
+        ["🌕", "보름달", "Full moon"], ["🌖", "보름 지난 달", "Waning gibbous"], ["🌗", "하현달", "Last quarter"], ["🌘", "그믐달", "Waning crescent"]];
+    /**
+     * 순수 함수 - 이자. kind: "deposit" 예금(a 원금, months 개월, compound 면 월복리), "saving" 적금(a 매달 넣는 돈, 단리),
+     * "loanEq" 대출 원리금균등 · "loanPr" 원금균등 · "loanBullet" 만기일시(a 빌린 돈). rate 연 %. 세금은 이자소득세 15.4%(일반과세).
+     * → 예금 · 적금 {paid 넣은 돈, interest 세전 이자, tax, net 세후 받는 돈}, 대출 {first 첫 달 갚을 돈, last 마지막 달, interest 총이자, total 총 갚을 돈}.
+     */
+    var INTEREST_TAX = 0.154;
+    function interestCalc(kind, a, rate, months, compound) {
+        a = Number(a); rate = Number(rate) / 100; months = Math.round(Number(months));
+        if (!(a > 0) || !(rate >= 0) || !(months >= 1)) return null;
+        var i = rate / 12, interest;
+        if (kind === "deposit" || kind === "saving") {
+            var paid = kind === "deposit" ? a : a * months;
+            if (kind === "deposit") interest = compound ? a * (Math.pow(1 + i, months) - 1) : a * i * months;
+            else interest = a * i * months * (months + 1) / 2;
+            interest = Math.floor(interest);
+            var tax = Math.floor(interest * INTEREST_TAX / 10) * 10;   // 원 단위 버림(10원 미만)
+            return { paid: paid, interest: interest, tax: tax, net: paid + interest - tax };
+        }
+        if (kind === "loanEq") {
+            var pay = i === 0 ? a / months : a * i / (1 - Math.pow(1 + i, -months));
+            return { first: Math.round(pay), last: Math.round(pay), interest: Math.round(pay * months - a), total: Math.round(pay * months) };
+        }
+        if (kind === "loanPr") {
+            interest = a * i * (months + 1) / 2;
+            return { first: Math.round(a / months + a * i), last: Math.round(a / months * (1 + i)), interest: Math.round(interest), total: Math.round(a + interest) };
+        }
+        if (kind === "loanBullet") return { first: Math.round(a * i), last: Math.round(a * i + a), interest: Math.round(a * i * months), total: Math.round(a + a * i * months) };
+        return null;
+    }
+    /** 순수 함수 - 부가세 10%. mode "supply" 면 a 가 공급가, "total" 이면 a 가 합계(부가세 포함). 원 단위(합계에서 나눌 때는 공급가 반올림). */
+    function vatCalc(a, mode) {
+        a = Math.round(Number(a));
+        if (!isFinite(a) || a < 0) return null;
+        if (mode === "total") { var sp = Math.round(a / 1.1); return { supply: sp, vat: a - sp, total: a }; }
+        var v = Math.floor(a * 0.1);
+        return { supply: a, vat: v, total: a + v };
+    }
+    /**
+     * 순수 함수 - BMI(대한비만학회 2022 기준: 18.5 미만 저체중 · 23 미만 정상 · 25 미만 비만 전단계 · 30 미만 1단계 비만 · 35 미만 2단계 · 그 위 3단계).
+     * → {bmi(소수 한 자리), k 단계 번호(0 ~ 5), lo · hi 정상 체중 범위(kg)}.
+     */
+    var BMI_WORDS = [["저체중", "Underweight"], ["정상", "Normal"], ["비만 전단계", "Pre-obese"], ["1단계 비만", "Obese class 1"], ["2단계 비만", "Obese class 2"], ["3단계 비만(고도 비만)", "Obese class 3"]];
+    function bmiInfo(cm, kg) {
+        cm = Number(cm); kg = Number(kg);
+        if (!(cm >= 50 && cm <= 250) || !(kg >= 10 && kg <= 400)) return null;
+        var m2 = cm * cm / 10000, b = kg / m2, r = Math.round(b * 10) / 10;
+        var k = r < 18.5 ? 0 : r < 23 ? 1 : r < 25 ? 2 : r < 30 ? 3 : r < 35 ? 4 : 5;
+        return { bmi: r, k: k, word: BMI_WORDS[k][LANG === "en" ? 1 : 0], lo: Math.round(18.5 * m2 * 10) / 10, hi: Math.round(22.9 * m2 * 10) / 10 };
+    }
+    /** 순수 함수 - 불쾌지수(기상청 식, 기온 ℃ · 습도 %) → {di, k(0 낮음 · 1 보통 · 2 높음 · 3 매우 높음)}. */
+    function discomfort(t, rh) {
+        t = Number(t); rh = Number(rh);
+        if (!isFinite(t) || !(rh >= 0 && rh <= 100)) return null;
+        var di = Math.round((0.81 * t + 0.01 * rh * (0.99 * t - 14.3) + 46.3) * 10) / 10;
+        return { di: di, k: di >= 80 ? 3 : di >= 75 ? 2 : di >= 68 ? 1 : 0 };
+    }
+    /**
+     * 순수 함수 - 여권 영문 이름. 성은 흔히 쓰는 표기(김 KIM · 이 LEE · 박 PARK …)와 표준 로마자를 함께, 이름은 글자마다 따로 로마자(여권은 소리 바뀜을 적지 않음 - 한복남 BOKNAM).
+     * 두 글자 성(남궁 · 황보 · 제갈 · 선우 · 독고 · 사공 · 서문)은 네 글자 이름이거나 twoSur 일 때. → {sur, surStd, given, alt}. 한글 아닌 글자가 있으면 null.
+     */
+    var SUR_COMMON = { "김": "KIM", "이": "LEE", "박": "PARK", "최": "CHOI", "정": "JUNG", "강": "KANG", "조": "CHO", "윤": "YOON", "장": "JANG", "임": "LIM", "한": "HAN", "오": "OH",
+        "서": "SEO", "신": "SHIN", "권": "KWON", "황": "HWANG", "안": "AHN", "송": "SONG", "류": "RYU", "유": "YOO", "전": "JEON", "홍": "HONG", "고": "KO", "문": "MOON", "양": "YANG",
+        "손": "SON", "배": "BAE", "백": "BAEK", "허": "HEO", "남": "NAM", "심": "SHIM", "노": "NOH", "하": "HA", "곽": "KWAK", "성": "SUNG", "차": "CHA", "주": "JOO", "우": "WOO",
+        "구": "KOO", "민": "MIN", "진": "JIN", "나": "NA", "지": "JI", "엄": "UM", "변": "BYUN", "채": "CHAE", "원": "WON", "천": "CHUN", "방": "BANG", "공": "KONG", "현": "HYUN",
+        "함": "HAM", "여": "YEO", "추": "CHOO", "도": "DO", "석": "SEOK", "선": "SUN", "설": "SEOL", "길": "KIL", "연": "YEON", "표": "PYO", "명": "MYUNG", "기": "KI", "반": "BAN",
+        "왕": "WANG", "금": "KEUM", "옥": "OK", "육": "YOOK", "인": "IN", "맹": "MAENG", "탁": "TAK", "국": "KOOK", "은": "EUN", "편": "PYUN", "용": "YONG", "경": "KYUNG",
+        "남궁": "NAMGOONG", "황보": "HWANGBO", "제갈": "JEGAL", "선우": "SUNWOO", "독고": "DOKGO", "사공": "SAGONG", "서문": "SEOMUN" };
+    var SUR_TWO = ["남궁", "황보", "제갈", "선우", "독고", "사공", "서문"];
+    function nameRoman(name, twoSur) {
+        var n = String(name || "").replace(/\s+/g, "");
+        if (!n || !/^[가-힣]+$/.test(n) || n.length < 2) return null;
+        var two = SUR_TWO.indexOf(n.slice(0, 2)) >= 0 && (n.length >= 4 || twoSur), sur = n.slice(0, two ? 2 : 1), giv = n.slice(sur.length);
+        function syl(t) { return Array.from(t).map(function (c) { return roman(c).toUpperCase(); }).join(""); }
+        var std = syl(sur), g = syl(giv);
+        return { sur: SUR_COMMON[sur] || std, surStd: std, given: g, alt: g.length > 0 && giv.length > 1 ? syl(giv.charAt(0)) + "-" + syl(giv.slice(1)) : g };
+    }
+    /** 순수 함수 - 그 시간대가 UTC 보다 몇 분 빠른가(서머타임 포함, Intl). 모르는 시간대면 null. */
+    function tzOffsetMin(tz, ms) {
+        try {
+            var o = {};
+            new Intl.DateTimeFormat("en-US", { timeZone: tz, hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric" })
+                .formatToParts(new Date(ms)).forEach(function (p) { o[p.type] = p.value; });
+            return Math.round((Date.UTC(+o.year, +o.month - 1, +o.day, +o.hour % 24, +o.minute) - Math.floor(ms / 60000) * 60000) / 60000);
+        } catch (e) { return null; }
+    }
+    /**
+     * 순수 함수 - 사다리: n 줄, rows 칸. rnd() 는 0 ~ 1(테스트는 고정 값). 가로줄은 옆 가로줄과 붙지 않게. → rungs[row][col](col 과 col+1 사이 가로줄이면 true).
+     */
+    function ladderMake(n, rows, rnd) {
+        var r = [];
+        for (var y = 0; y < rows; y++) {
+            var line = [];
+            for (var x = 0; x < n - 1; x++) line.push(!(x > 0 && line[x - 1]) && rnd() < 0.45);
+            r.push(line);
+        }
+        for (var c = 0; c < n - 1; c++) {   // 이웃 두 줄 사이에 가로줄이 하나도 없으면 하나 넣음(섞이게)
+            if (!r.some(function (l) { return l[c]; })) {
+                for (var t = 0; t < rows; t++) if (!(c > 0 && r[t][c - 1]) && !(c < n - 2 && r[t][c + 1])) { r[t][c] = true; break; }
+            }
+        }
+        return r;
+    }
+    /** 순수 함수 - 사다리 타기: start 줄에서 내려가 닿는 줄과 지나간 [줄, 칸] 길. */
+    function ladderTrace(rungs, start) {
+        var x = start, path = [[x, 0]];
+        rungs.forEach(function (l, y) {
+            if (l[x]) { path.push([x, y + 0.5]); x++; path.push([x, y + 0.5]); }
+            else if (x > 0 && l[x - 1]) { path.push([x, y + 0.5]); x--; path.push([x, y + 0.5]); }
+        });
+        path.push([x, rungs.length]);
+        return { end: x, path: path };
+    }
+
     /** 순수 함수 - 핸드폰에서만 열리는 송금 링크(카카오페이 송금 코드 qr.kakaopay.com - PC 브라우저는 404). */
     function mobileOnlyUrl(url) { return /^https:\/\/qr\.kakaopay\.com\//i.test(url || ""); }
     /** PC 에서 그런 링크를 누르면 열지 않고 안내(2026-10-17 홍TV님: 핸드폰은 되는데 PC 는 404). */
@@ -4376,6 +4541,6 @@
         sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap,
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },
         setLang: setLang, isEn: isEn, tr: tr, pageLang: pageLang, applyEn: applyEn,
-        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, regionEn: regionEn, weekendWordEn: weekendWordEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox, LEVELS: LEVELS, difficulty: difficulty, boardSegments: boardSegments, boardProfile: boardProfile, nameEnds: nameEnds, boardButtons: boardButtons, levelChip: levelChip, roman: roman, enName: enName, weekendText: weekendText, boardHere: boardHere, slopeBetween: slopeBetween, recentAdd: recentAdd, recentPages: recentPages, recentFold: recentFold, compareRows: compareRows, compareButtons: compareButtons, steepest: steepest, officialEleAt: officialEleAt, stampRadius: stampRadius, stillCheck: stillCheck, windChill: windChill, windNote: windNote, paceProfile: paceProfile, paceAt: paceAt, paceDistAt: paceDistAt, paceText: paceText, fortune: fortune, fortuneDay: fortuneDay, supportLine: supportLine, dayKey: dayKey, anbuPlan: anbuPlan, anbuText: anbuText, anbuSms: anbuSms, telClean: telClean, telFormat: telFormat, UNITS: UNITS, unitConv: unitConv, unitFmt: unitFmt, dayNo: dayNo, dayYmd: dayYmd, ageInfo: ageInfo, dDay: dDay, dateAdd: dateAdd, dateDiff: dateDiff, pctCalc: pctCalc, dutchPay: dutchPay, textCount: textCount, smsKind: smsKind, compassHeading: compassHeading, SOS_PATTERN: SOS_PATTERN, fxConv: fxConv, mobileOnlyUrl: mobileOnlyUrl, summitCard: summitCard, trackClimb: trackClimb
+        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, regionEn: regionEn, weekendWordEn: weekendWordEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox, LEVELS: LEVELS, difficulty: difficulty, boardSegments: boardSegments, boardProfile: boardProfile, nameEnds: nameEnds, boardButtons: boardButtons, levelChip: levelChip, roman: roman, enName: enName, weekendText: weekendText, boardHere: boardHere, slopeBetween: slopeBetween, recentAdd: recentAdd, recentPages: recentPages, recentFold: recentFold, compareRows: compareRows, compareButtons: compareButtons, steepest: steepest, officialEleAt: officialEleAt, stampRadius: stampRadius, stillCheck: stillCheck, windChill: windChill, windNote: windNote, paceProfile: paceProfile, paceAt: paceAt, paceDistAt: paceDistAt, paceText: paceText, fortune: fortune, fortuneDay: fortuneDay, supportLine: supportLine, dayKey: dayKey, anbuPlan: anbuPlan, anbuText: anbuText, anbuSms: anbuSms, telClean: telClean, telFormat: telFormat, UNITS: UNITS, unitConv: unitConv, unitFmt: unitFmt, dayNo: dayNo, dayYmd: dayYmd, ageInfo: ageInfo, dDay: dDay, dateAdd: dateAdd, dateDiff: dateDiff, pctCalc: pctCalc, dutchPay: dutchPay, textCount: textCount, smsKind: smsKind, compassHeading: compassHeading, SOS_PATTERN: SOS_PATTERN, fxConv: fxConv, toLunar: toLunar, fromLunar: fromLunar, moonPhase: moonPhase, MOON_NAMES: MOON_NAMES, interestCalc: interestCalc, vatCalc: vatCalc, bmiInfo: bmiInfo, discomfort: discomfort, nameRoman: nameRoman, tzOffsetMin: tzOffsetMin, ladderMake: ladderMake, ladderTrace: ladderTrace, mobileOnlyUrl: mobileOnlyUrl, summitCard: summitCard, trackClimb: trackClimb
     };
 })(window);

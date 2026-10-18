@@ -79,6 +79,16 @@ textarea.f { height:140px; padding:10px; flex-basis:100%; font-family:inherit; r
 #light { position:fixed; inset:0; z-index:20; background:#fff; display:none; align-items:flex-end; justify-content:center; padding-bottom:calc(env(safe-area-inset-bottom) + 30px); }
 #light.dark { background:#000; }
 #light button { height:56px; padding:0 22px; border-radius:28px; border:0; background:rgba(0,0,0,0.75); color:#fff; font:bold 17px Arial,"Malgun Gothic",sans-serif; margin:0 6px; }
+h2.grp { margin:22px 2px 0; font-size:14px; color:var(--dim); font-weight:bold; letter-spacing:.02em; }
+.big2 { font:bold 44px Arial,"Malgun Gothic",sans-serif; text-align:center; margin:8px 0 4px; font-variant-numeric:tabular-nums; }
+.wl { list-style:none; margin:10px 0 0; padding:0; font-size:15px; }
+.wl li { display:flex; justify-content:space-between; gap:10px; padding:8px 0; border-top:1px solid var(--ln); }
+.wl li b { font-variant-numeric:tabular-nums; white-space:nowrap; }
+.wl li span { min-width:0; overflow-wrap:anywhere; }
+.wl li small { color:var(--dim); }
+#ldBox svg { display:block; width:100%; height:auto; margin-top:12px; }
+#ldBox svg text { fill:var(--tx); font-size:13px; text-anchor:middle; cursor:pointer; }
+#swLaps { margin:6px 0 0; padding-left:1.4em; }
 #toast { position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom) + 24px); transform:translateX(-50%); max-width:90%; background:rgba(0,0,0,0.85);
          color:#fff; padding:10px 16px; border-radius:12px; font-size:15px; display:none; z-index:9; text-align:center; }
 </style>
@@ -89,13 +99,13 @@ textarea.f { height:140px; padding:10px; flex-basis:100%; font-family:inherit; r
     <h1 data-en="🧰 Handy tools">🧰 별거 별거</h1>
 </div>
 <main>
+    <h2 class="grp" data-en="Everyday">생활</h2>
     <details class="tool" id="t-post"><summary data-en="📮 Postcode · English address">📮 우편번호 · 영문 주소</summary><div class="tb">
         <button type="button" class="btn" id="pcBtn" data-en="🔍 Find an address">🔍 주소 찾기</button>
         <div id="pcBox"></div>
         <div id="pcOut"></div>
         <p class="tip" data-en="Type a road name and building number (e.g. 잠실로 51-33) or a neighborhood and lot number (e.g. 역삼동 737) - the search box is in Korean. You get the postcode, road and lot addresses, and the English address. Search uses the Kakao postcode service; routefly does not save the address or send it to its server.">도로명 + 건물번호(예: 잠실로 51-33)나 동 · 읍 · 면 + 번지(예: 역삼동 737)로 찾으면 우편번호 · 도로명 · 지번 · 영문 주소가 나옵니다. 찾기는 카카오 우편번호 서비스로 하고, routefly 는 주소를 저장하거나 서버로 보내지 않습니다.</p>
     </div></details>
-
     <details class="tool" id="t-unit"><summary data-en="📏 Unit converter">📏 단위 변환</summary><div class="tb">
         <div class="cats" id="uCats"></div>
         <div class="uv">
@@ -111,7 +121,6 @@ textarea.f { height:140px; padding:10px; flex-basis:100%; font-family:inherit; r
         <ul id="uAll"></ul>
         <p class="tip" data-en="1 pyeong = 3.3058 ㎡ · 1 geun = 600 g (meat; vegetables 375 g) · 1 cup = 200 mL (Korean cooking) · 1 KB = 1,024 B.">1평 = 3.3058㎡ · 1근 = 600g(고기 - 채소는 375g) · 1컵 = 200mL(한국 요리 계량) · 1KB = 1,024B 로 셉니다.</p>
     </div></details>
-
     <details class="tool" id="t-fx"><summary data-en="💱 Exchange rates">💱 환율</summary><div class="tb">
         <div class="uv">
             <input type="text" id="fxVal" class="f" inputmode="decimal" value="1" aria-label="금액" data-en-aria-label="Amount">
@@ -124,22 +133,6 @@ textarea.f { height:140px; padding:10px; flex-basis:100%; font-family:inherit; r
         <div class="out" id="fxOut"></div>
         <p class="tip" data-en="Reference rates published by the European Central Bank once a working day (via Frankfurter). Bank buy/sell and card rates are different.">유럽중앙은행이 영업일마다 한 번 내는 기준 환율입니다(Frankfurter). 은행에서 살 때 · 팔 때 값, 카드 결제 값과는 다릅니다.</p>
     </div></details>
-
-    <details class="tool" id="t-age"><summary data-en="🎂 Korean age · zodiac">🎂 만 나이 · 띠</summary><div class="tb">
-        <div class="row"><label data-en="Birthday">생일</label><span class="ymd" id="ageBirth" style="display:contents"></span></div>
-        <div class="out" id="ageOut"></div>
-        <p class="tip" data-en="Since June 28, 2023, Korean law uses international age (man nai). The zodiac is by birth year - if you were born in January or February before the lunar new year, it may be the year before.">2023년 6월 28일부터 법 · 행정은 만 나이를 씁니다. 띠는 태어난 해로 셉니다 - 1 · 2월생은 음력 설 전이면 앞 해 띠일 수 있습니다.</p>
-    </div></details>
-
-    <details class="tool" id="t-date"><summary data-en="📅 Date calculator">📅 날짜 계산</summary><div class="tb">
-        <div class="row"><label data-en="D-day: count to this date">D-day - 이 날까지</label><span id="ddTarget" style="display:contents"></span></div>
-        <div class="out" id="ddOut"></div>
-        <div class="row" style="margin-top:18px"><label data-en="From this date">이 날부터</label><span id="daStart" style="display:contents"></span></div>
-        <div class="row"><input type="text" id="daN" class="f" inputmode="numeric" value="100" aria-label="날 수" data-en-aria-label="Days"><span data-en="days later">일 뒤</span></div>
-        <label class="chk2"><input type="checkbox" id="daFirst" checked> <span data-en="Count the first day as day 1 (anniversaries)">첫날을 1일로 셈(100일 · 기념일)</span></label>
-        <div class="out" id="daOut"></div>
-    </div></details>
-
     <details class="tool" id="t-pct"><summary data-en="💰 Percent · discount · split the bill">💰 퍼센트 · 할인 · 더치페이</summary><div class="tb">
         <div class="row">
             <select id="pKind" class="f" style="flex-basis:100%">
@@ -160,20 +153,130 @@ textarea.f { height:140px; padding:10px; flex-basis:100%; font-family:inherit; r
         </div>
         <div class="out" id="dOut"></div>
     </div></details>
-
+    <details class="tool" id="t-vat"><summary data-en="🧾 VAT (10%)">🧾 부가세(10%)</summary><div class="tb">
+        <div class="row"><select id="vMode" class="f" style="flex-basis:100%"><option value="supply" data-en="Price before tax → total">공급가 → 합계(부가세 더하기)</option><option value="total" data-en="Total → price before tax">합계 → 공급가(부가세 빼기)</option></select></div>
+        <div class="row"><label data-en="Amount (won)">금액(원)</label><input type="text" id="vA" class="f" inputmode="numeric" placeholder="10000"></div>
+        <div class="out" id="vOut"></div>
+    </div></details>
+    <details class="tool" id="t-int"><summary data-en="💵 Savings · loan interest">💵 예금 · 적금 · 대출 이자</summary><div class="tb">
+        <div class="row"><select id="iKind" class="f" style="flex-basis:100%">
+            <option value="deposit" data-en="Deposit (simple interest)">예금(단리)</option>
+            <option value="depositC" data-en="Deposit (monthly compound)">예금(월복리)</option>
+            <option value="saving" data-en="Monthly savings">적금(매달 넣기)</option>
+            <option value="loanEq" data-en="Loan - equal payments">대출 - 원리금균등</option>
+            <option value="loanPr" data-en="Loan - equal principal">대출 - 원금균등</option>
+            <option value="loanBullet" data-en="Loan - interest only, repay at end">대출 - 만기일시</option>
+        </select></div>
+        <div class="row"><label id="iLa"></label><input type="text" id="iA" class="f" inputmode="numeric"></div>
+        <div class="row"><label data-en="Annual rate (%) · months">연 이자(%) · 기간(개월)</label>
+            <input type="text" id="iR" class="f" inputmode="decimal" placeholder="3.5" aria-label="연 이자" data-en-aria-label="Annual rate">
+            <input type="text" id="iM" class="f" inputmode="numeric" value="12" aria-label="개월" data-en-aria-label="Months"></div>
+        <div class="out" id="iOut"></div>
+        <p class="tip" data-en="Estimates. Savings interest is taxed 15.4% (standard). Banks may count days and round differently.">어림값입니다. 예금 · 적금 이자에는 이자소득세 15.4%(일반과세)를 뺐습니다. 은행마다 날짜 셈 · 끝자리 처리가 조금 다를 수 있습니다.</p>
+    </div></details>
     <details class="tool" id="t-text"><summary data-en="🔢 Character count">🔢 글자 수 세기</summary><div class="tb">
         <div class="row"><textarea id="tcIn" class="f" placeholder="여기에 글을 붙여 넣으세요" data-en-placeholder="Paste your text here"></textarea></div>
         <div class="out" id="tcOut"></div>
         <p class="tip" data-en="Bytes count Korean and other non-English letters as 2 and English letters, digits and spaces as 1 - a Korean SMS is up to 90 bytes, an LMS up to 2,000.">바이트는 한글 · 그 밖 글자 2, 영문 · 숫자 · 띄어쓰기 1 로 셉니다. 문자는 90바이트까지 단문(SMS), 2,000바이트까지 장문(LMS) 입니다.</p>
     </div></details>
-
+    <details class="tool" id="t-name"><summary data-en="🔤 Name in English (passport)">🔤 영문 이름(여권)</summary><div class="tb">
+        <div class="row"><input type="text" id="nmIn" class="f" maxlength="10" placeholder="예: 홍길동" data-en-placeholder="e.g. 홍길동" aria-label="한글 이름" data-en-aria-label="Korean name"></div>
+        <label class="chk2"><input type="checkbox" id="nmTwo"> <span data-en="Two-syllable surname (e.g. 남궁, 황보, 제갈, 선우)">두 글자 성(남궁 · 황보 · 제갈 · 선우 등)</span></label>
+        <div class="out" id="nmOut"></div>
+        <p class="tip" data-en="Given names are romanized syllable by syllable (passports do not follow sound changes). If you or your family already have an English name in a passport, keep using that spelling.">이름은 글자마다 로마자로 적습니다(여권은 소리 바뀜을 적지 않음). 이미 여권에 쓴 영문 이름이 있거나 가족이 쓰는 성 표기가 있으면 그것을 그대로 쓰세요.</p>
+    </div></details>
+    <h2 class="grp" data-en="Dates · time">날짜 · 시간</h2>
+    <details class="tool" id="t-age"><summary data-en="🎂 Korean age · zodiac">🎂 만 나이 · 띠</summary><div class="tb">
+        <div class="row"><label data-en="Birthday">생일</label><span class="ymd" id="ageBirth" style="display:contents"></span></div>
+        <div class="out" id="ageOut"></div>
+        <p class="tip" data-en="Since June 28, 2023, Korean law uses international age (man nai). The zodiac is by birth year - if you were born in January or February before the lunar new year, it may be the year before.">2023년 6월 28일부터 법 · 행정은 만 나이를 씁니다. 띠는 태어난 해로 셉니다 - 1 · 2월생은 음력 설 전이면 앞 해 띠일 수 있습니다.</p>
+    </div></details>
+    <details class="tool" id="t-lunar"><summary data-en="🌙 Lunar ↔ solar calendar">🌙 음력 ↔ 양력</summary><div class="tb">
+        <p class="tip" id="lnToday" style="margin-top:0"></p>
+        <div class="row"><select id="lnMode" class="f" style="flex-basis:100%"><option value="s2l" data-en="Solar → lunar">양력 → 음력</option><option value="l2s" data-en="Lunar → solar (birthdays, memorial days)">음력 → 양력(생신 · 제사)</option></select></div>
+        <div class="row"><span id="lnPick" style="display:contents"></span></div>
+        <label class="chk2" id="lnLeapRow"><input type="checkbox" id="lnLeap"> <span data-en="Leap month">윤달</span></label>
+        <div class="out" id="lnOut"></div>
+        <p class="tip" data-en="Uses the Korean lunar calendar built into your browser. Check important dates against a printed calendar.">브라우저에 들어 있는 한국 음력 달력으로 셉니다. 중요한 날은 달력으로 한 번 더 확인하세요.</p>
+    </div></details>
+    <details class="tool" id="t-date"><summary data-en="📅 Date calculator">📅 날짜 계산</summary><div class="tb">
+        <div class="row"><label data-en="D-day: count to this date">D-day - 이 날까지</label><span id="ddTarget" style="display:contents"></span></div>
+        <div class="out" id="ddOut"></div>
+        <div class="row" style="margin-top:18px"><label data-en="From this date">이 날부터</label><span id="daStart" style="display:contents"></span></div>
+        <div class="row"><input type="text" id="daN" class="f" inputmode="numeric" value="100" aria-label="날 수" data-en-aria-label="Days"><span data-en="days later">일 뒤</span></div>
+        <label class="chk2"><input type="checkbox" id="daFirst" checked> <span data-en="Count the first day as day 1 (anniversaries)">첫날을 1일로 셈(100일 · 기념일)</span></label>
+        <div class="out" id="daOut"></div>
+    </div></details>
+    <details class="tool" id="t-timer"><summary data-en="⏱ Timer · stopwatch">⏱ 타이머 · 스톱워치</summary><div class="tb">
+        <div class="big2" id="tmShow">3:00</div>
+        <div class="cats" id="tmPre"></div>
+        <div class="row"><button type="button" class="btn2" id="tmGo" data-en="▶ Start">▶ 시작</button><button type="button" class="btn2" id="tmReset" data-en="↺ Reset">↺ 처음으로</button></div>
+        <h3 style="font-size:16px;margin:20px 0 0" data-en="Stopwatch">스톱워치</h3>
+        <div class="big2" id="swShow">0:00.0</div>
+        <div class="row"><button type="button" class="btn2" id="swGo" data-en="▶ Start">▶ 시작</button><button type="button" class="btn2" id="swLap" data-en="Lap">구간</button><button type="button" class="btn2" id="swReset" data-en="↺ Reset">↺ 처음으로</button></div>
+        <ol id="swLaps" class="tip"></ol>
+        <p class="tip" data-en="Keep this screen open - the screen stays on while the timer runs. When time is up it beeps and vibrates.">이 화면을 켜 두세요(타이머가 도는 동안 화면이 꺼지지 않게 함). 시간이 되면 소리 · 진동으로 알립니다.</p>
+    </div></details>
+    <details class="tool" id="t-world"><summary data-en="🕐 World clock">🕐 세계 시각</summary><div class="tb">
+        <ul id="wcList" class="wl"></ul>
+        <p class="tip" data-en="Daylight saving time is applied automatically. The difference is from Korea time.">서머타임은 저절로 맞춥니다. 시차는 한국 시각과 비교한 것입니다.</p>
+    </div></details>
+    <h2 class="grp" data-en="Weather · health">날씨 · 건강</h2>
+    <details class="tool" id="t-wx"><summary data-en="🌫 Local weather · fine dust">🌫 우리 동네 날씨 · 미세먼지</summary><div class="tb">
+        <div class="row"><button type="button" class="btn2" id="wxHere" data-en="📍 My location">📍 내 위치로</button><button type="button" class="btn2" id="wxSeoul" data-en="Seoul">서울로</button></div>
+        <div class="out" id="wxNow"></div>
+        <ul id="wxHours" class="wl"></ul>
+        <p class="tip" id="wxAir"></p>
+        <p class="tip" data-en="Korea Meteorological Administration short-term forecast (5 km grid) and AirKorea. Your location is used only to ask for the weather and is not saved.">기상청 단기예보(5km 격자) · 에어코리아 자료입니다. 내 위치는 날씨를 묻는 데만 쓰고 저장하지 않습니다.</p>
+    </div></details>
+    <details class="tool" id="t-sun"><summary data-en="🌅 Sunrise · sunset · moon">🌅 일출 · 일몰 · 달</summary><div class="tb">
+        <div class="row"><button type="button" class="btn2" id="sunHere" data-en="📍 My location">📍 내 위치로</button><button type="button" class="btn2" id="sunSeoul" data-en="Seoul">서울로</button></div>
+        <div class="out" id="sunOut"></div>
+        <div class="out" id="moonOut"></div>
+        <p class="tip" data-en="Calculated times (about a minute off). Mountains and buildings hide the sun a little later or earlier. The moon phase is approximate (within a day).">계산한 시각이라 1분 안팎 다를 수 있고, 산 · 건물에 가리면 해가 조금 늦게 보이고 일찍 집니다. 달 모양은 하루 안팎의 어림입니다.</p>
+    </div></details>
+    <details class="tool" id="t-feel"><summary data-en="🌡 Wind chill · discomfort index">🌡 체감온도 · 불쾌지수</summary><div class="tb">
+        <div class="row"><label data-en="Temperature (°C) · humidity (%) · wind (m/s)">기온(℃) · 습도(%) · 바람(m/s)</label>
+            <input type="text" id="feT" class="f" inputmode="decimal" placeholder="-5" aria-label="기온" data-en-aria-label="Temperature">
+            <input type="text" id="feH" class="f" inputmode="numeric" placeholder="60" aria-label="습도" data-en-aria-label="Humidity">
+            <input type="text" id="feW" class="f" inputmode="decimal" placeholder="5" aria-label="바람" data-en-aria-label="Wind"></div>
+        <div class="out" id="feOut"></div>
+        <p class="tip" data-en="Wind chill (KMA winter formula) applies at 10 °C or below with wind of 1.3 m/s or more. Discomfort index: 68+ some feel uncomfortable, 75+ half, 80+ almost everyone.">체감온도(기상청 겨울 식)는 기온 10℃ 이하 · 바람 1.3m/s 이상일 때만 셉니다. 불쾌지수는 68 넘으면 일부, 75 넘으면 절반, 80 넘으면 거의 모두가 불쾌하게 느낍니다.</p>
+    </div></details>
+    <details class="tool" id="t-bmi"><summary data-en="⚖ BMI · healthy weight">⚖ BMI · 적정 체중</summary><div class="tb">
+        <div class="row"><label data-en="Height (cm) · weight (kg)">키(cm) · 몸무게(kg)</label>
+            <input type="text" id="bmH" class="f" inputmode="decimal" placeholder="165" aria-label="키" data-en-aria-label="Height">
+            <input type="text" id="bmW" class="f" inputmode="decimal" placeholder="60" aria-label="몸무게" data-en-aria-label="Weight"></div>
+        <div class="out" id="bmOut"></div>
+        <p class="tip" data-en="Korean Society for the Study of Obesity (2022) cut-offs for adults: under 18.5 underweight, 18.5-22.9 normal, 23-24.9 pre-obese, 25 and over obese. Ask a doctor about your health.">대한비만학회(2022) 성인 기준: 18.5 미만 저체중 · 18.5 ~ 22.9 정상 · 23 ~ 24.9 비만 전단계 · 25 이상 비만. 건강은 의사와 상의하세요.</p>
+    </div></details>
+    <h2 class="grp" data-en="Fun">재미</h2>
+    <details class="tool" id="t-fun"><summary data-en="🎲 Draw lots · ladder · coin · dice">🎲 제비뽑기 · 사다리 · 동전 · 주사위</summary><div class="tb">
+        <div class="row"><button type="button" class="btn2" id="coinBtn" data-en="🪙 Coin">🪙 동전</button><button type="button" class="btn2" id="diceBtn" data-en="🎲 Roll dice">🎲 주사위</button>
+            <select id="diceN" class="f" style="flex:0 0 76px" aria-label="주사위 개수" data-en-aria-label="Number of dice"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></div>
+        <div class="out" id="cdOut" style="text-align:center;font-size:30px"></div>
+        <h3 style="font-size:16px;margin:20px 0 0" data-en="🎟 Draw lots">🎟 제비뽑기</h3>
+        <div class="row"><textarea id="lotIn" class="f" style="height:90px" placeholder="이름을 쉼표나 줄바꿈으로 (예: 철수, 영희, 민수)" data-en-placeholder="Names separated by commas or lines (e.g. Amy, Ben, Chris)"></textarea></div>
+        <div class="row"><button type="button" class="btn2" id="lotOne" data-en="Pick one">한 명 뽑기</button><button type="button" class="btn2" id="lotAll" data-en="Shuffle order">순서 정하기</button></div>
+        <div class="out" id="lotOut"></div>
+        <h3 style="font-size:16px;margin:20px 0 0" data-en="🪜 Ladder game">🪜 사다리 타기</h3>
+        <div class="row"><label data-en="People (2-8, commas)">사람(2 ~ 8명, 쉼표로)</label><input type="text" id="ldNames" class="f" placeholder="철수, 영희, 민수" data-en-placeholder="Amy, Ben, Chris"></div>
+        <div class="row"><label data-en="Results (commas - empty: 1 win, rest blank)">결과(쉼표로 - 비우면 당첨 1 · 나머지 꽝)</label><input type="text" id="ldRes" class="f" placeholder="당첨, 꽝, 꽝" data-en-placeholder="Win, -, -"></div>
+        <div class="row"><button type="button" class="btn2" id="ldMake" data-en="Make a ladder">사다리 만들기</button><button type="button" class="btn2" id="ldAll" data-en="Show all">모두 보기</button></div>
+        <div id="ldBox"></div>
+        <div class="out" id="ldOut"></div>
+    </div></details>
+    <h2 class="grp" data-en="Outdoors · safety">산 · 안전</h2>
     <details class="tool" id="t-cmp"><summary data-en="🧭 Compass">🧭 나침반</summary><div class="tb">
         <button type="button" class="btn" id="cmpBtn" data-en="Turn on compass">나침반 켜기</button>
         <div class="cmpw"><span class="mark"></span><div id="dial"><b class="n" data-en="N">북</b><b class="e" data-en="E">동</b><b class="s" data-en="S">남</b><b class="w" data-en="W">서</b></div></div>
         <div class="out" id="cmpOut"></div>
         <p class="tip" data-en="Hold the phone flat. Near metal, magnets or cars it can be wrong - wave the phone in a figure 8 to recalibrate. Use it as a guide, together with trail signs.">폰을 평평하게 드세요. 쇠붙이 · 자석 · 자동차 옆에서는 틀릴 수 있으니 폰을 8자로 몇 번 흔들어 맞추세요. 길 안내판과 함께 참고로 쓰세요.</p>
     </div></details>
-
+    <details class="tool" id="t-tiger"><summary data-en="🐯 Tiger roar">🐯 호랑이 소리</summary><div class="tb">
+        <div class="row"><button type="button" class="btn2" id="tgOne" data-en="🐯 Roar once">🐯 한 번</button><button type="button" class="btn2" id="tgLoop" data-en="🔁 Keep roaring">🔁 계속(4초마다)</button></div>
+        <p class="tip" data-en="A made-up roar played by the phone (not a recording) - turn your volume up. Use it to let animals know you are there while they are still far away. It is not proven to drive animals off. If a wild boar is close, do not provoke it with noise - do not run or turn your back; move away slowly and get behind a tree or rock.">폰이 만들어 내는 호랑이 울음소리입니다(녹음 아님) - 소리를 크게 올리세요. 멀리 있는 짐승에게 사람이 있다고 미리 알리는 용도이고, 짐승을 쫓는 효과가 확인된 것은 아닙니다. 멧돼지가 가까이 있으면 소리로 자극하지 말고, 뛰거나 등을 보이지 말고 천천히 물러나 나무 · 바위 뒤로 피하세요.</p>
+    </div></details>
     <details class="tool" id="t-sos"><summary data-en="📯 Whistle · 🔦 Light">📯 호루라기 · 🔦 손전등</summary><div class="tb">
         <div class="row">
             <button type="button" class="btn2" id="whBtn" data-en="📯 Whistle (SOS)">📯 호루라기(SOS)</button>

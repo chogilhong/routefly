@@ -368,7 +368,8 @@
         }
         var D = window.DeviceOrientationEvent;
         if (D && typeof D.requestPermission === "function") {   // iOS 13+ - 누를 때 허락받기
-            D.requestPermission().then(function (p) { if (p === "granted") start(); else toast(T("방향 센서 허락이 필요합니다", "Allow motion & orientation access")); }).catch(function () { toast(T("방향 센서를 켜지 못했습니다", "Could not start the compass")); });
+            // 2026-10-18 PC: 크롬 152(PC)에도 requestPermission 이 있고 "denied" - 거절이어도 센서를 들어 보고, 못 읽으면 2.5초 뒤 안내
+            D.requestPermission().then(function (p) { if (p !== "granted") toast(T("방향 센서 허락이 필요합니다", "Allow motion & orientation access")); start(); }).catch(start);
         } else if (D) start();
         else $("cmpOut").textContent = T("이 기기는 방향 센서를 쓸 수 없습니다", "This device has no compass sensor");
     });
@@ -426,6 +427,372 @@
         else { ltSos(0); this.textContent = T("깜박임 멈춤", "Stop blinking"); }
     });
     $("ltOff").addEventListener("click", ltStop);
-    function stopAll() { whStop(); ltStop(); }
+    function stopAll() { whStop(); ltStop(); tgStop(); }
     window.addEventListener("pagehide", stopAll);
+
+    function val(id) { return String($(id).value).replace(/,/g, "").trim(); }
+    function outSet(id, big, small) {
+        var o = $(id);
+        o.innerHTML = "";
+        if (big == null) return;
+        o.appendChild(document.createTextNode(big));
+        if (small) { var sm = document.createElement("small"); sm.textContent = small; o.appendChild(sm); }
+    }
+    function won(x) { return T(fmtNum(x) + "원", fmtNum(x) + " won"); }
+    function rand(n) {   // 0 ~ n-1 고르게(제비뽑기 · 주사위 - crypto 가 있으면 그것)
+        if (window.crypto && crypto.getRandomValues) { var a = new Uint32Array(1), lim = Math.floor(4294967296 / n) * n; do crypto.getRandomValues(a); while (a[0] >= lim); return a[0] % n; }
+        return Math.floor(Math.random() * n);
+    }
+    function shuffle(l) { l = l.slice(); for (var i = l.length - 1; i > 0; i--) { var j = rand(i + 1), t = l[i]; l[i] = l[j]; l[j] = t; } return l; }
+    function audio() { var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null; ac = ac || new AC(); if (ac.resume) ac.resume(); return ac; }
+
+    // ── 🧾 부가세 ──
+    function vDraw() {
+        var a = val("vA");
+        if (a === "") return outSet("vOut");
+        var r = RF.vatCalc(a, $("vMode").value);
+        if (!r) return outSet("vOut", T("숫자를 넣어 주세요", "Enter a number"));
+        outSet("vOut", $("vMode").value === "total" ? T("공급가 ", "Before tax ") + won(r.supply) : T("합계 ", "Total ") + won(r.total),
+            T("공급가 ", "Before tax ") + won(r.supply) + " · " + T("부가세 ", "VAT ") + won(r.vat) + " · " + T("합계 ", "Total ") + won(r.total));
+    }
+    $("vA").addEventListener("input", vDraw);
+    $("vMode").addEventListener("change", vDraw);
+
+    // ── 💵 이자 ──
+    function iLabel() { var k = $("iKind").value; $("iLa").textContent = k === "saving" ? T("매달 넣는 돈(원)", "Monthly deposit (won)") : /^loan/.test(k) ? T("빌린 돈(원)", "Loan amount (won)") : T("맡기는 돈(원)", "Amount (won)"); }
+    function iDraw() {
+        var k = $("iKind").value, a = val("iA"), r0 = val("iR"), m = val("iM");
+        if (a === "" || r0 === "" || m === "") return outSet("iOut");
+        var r = RF.interestCalc(k === "depositC" ? "deposit" : k, a, r0, m, k === "depositC");
+        if (!r) return outSet("iOut", T("금액 · 이자 · 기간을 넣어 주세요", "Enter amount, rate and months"));
+        if (/^loan/.test(k)) {
+            var pay = k === "loanBullet" ? T("매달 이자 ", "Monthly interest ") + won(r.first) : r.first === r.last ? T("매달 ", "Monthly ") + won(r.first) : T("첫 달 ", "First month ") + won(r.first);
+            outSet("iOut", pay, (k === "loanPr" ? T("마지막 달 ", "last month ") + won(r.last) + " · " : k === "loanBullet" ? T("마지막 달 원금 포함 ", "last month with principal ") + won(r.last) + " · " : "")
+                + T("총이자 ", "total interest ") + won(r.interest) + " · " + T("모두 갚을 돈 ", "total repaid ") + won(r.total));
+        } else outSet("iOut", T("받을 돈 ", "You get ") + won(r.net), T("넣은 돈 ", "Paid in ") + won(r.paid) + " · " + T("이자 ", "interest ") + won(r.interest) + " · " + T("세금(15.4%) ", "tax (15.4%) ") + won(r.tax));
+    }
+    $("iKind").addEventListener("change", function () { iLabel(); iDraw(); });
+    ["iA", "iR", "iM"].forEach(function (id) { $(id).addEventListener("input", iDraw); });
+    iLabel();
+
+    // ── 🔤 영문 이름 ──
+    function nmDraw() {
+        var v = $("nmIn").value.trim();
+        if (!v) return outSet("nmOut");
+        var r = RF.nameRoman(v, $("nmTwo").checked);
+        if (!r) return outSet("nmOut", T("한글 이름을 두 글자 이상 넣어 주세요", "Enter a Korean name (2+ syllables)"));
+        outSet("nmOut", r.sur + " " + r.given, T("이름을 나눠 쓰면 ", "With a hyphen: ") + r.sur + " " + r.alt + (r.sur !== r.surStd ? T(" · 성의 표준 로마자 ", " · standard romanization of the surname: ") + r.surStd : ""));
+    }
+    $("nmIn").addEventListener("input", nmDraw);
+    $("nmTwo").addEventListener("change", nmDraw);
+
+    // ── 🌙 음력 ↔ 양력 ──
+    function lunarText(l) { return l ? T("음력 " + l.y + "년 " + (l.leap ? "윤" : "") + l.m + "월 " + l.d + "일", "Lunar " + l.y + "-" + (l.leap ? "leap " : "") + l.m + "-" + l.d) : ""; }
+    var lt = RF.toLunar(TODAY);
+    $("lnToday").textContent = lt ? T("오늘은 ", "Today is ") + lunarText(lt) + T(" 입니다", "") : T("이 브라우저는 음력 달력이 없습니다", "This browser has no lunar calendar");
+    var lnGet = datePick($("lnPick"), TODAY, 1900, TODAY[0] + 50, lnDraw);
+    function lnDraw() {
+        var mode = $("lnMode").value, d = lnGet();
+        $("lnLeapRow").style.display = mode === "l2s" ? "flex" : "none";
+        if (mode === "s2l") {
+            var l = RF.toLunar(d);
+            return outSet("lnOut", l ? lunarText(l) : T("바꿀 수 없습니다", "Cannot convert"), ymdText(d) + (l && l.cal !== "dangi" ? T(" · 중국 음력 기준(하루 다를 수 있음)", " · Chinese calendar (may be off by a day)") : ""));
+        }
+        var r = RF.fromLunar(d[0], d[1], d[2], $("lnLeap").checked);
+        outSet("lnOut", r ? ymdText(r) : T("그 해에 없는 날입니다(윤달 · 30일 확인)", "No such lunar date that year (check leap month / day 30)"),
+            r ? T("양력 · ", "Solar · ") + RF.dDay(TODAY, r) : "");
+    }
+    $("lnMode").addEventListener("change", lnDraw);
+    $("lnLeap").addEventListener("change", lnDraw);
+    lnDraw();
+
+    // ── ⏱ 타이머 · 스톱워치(시각을 기준으로 - 화면이 잠깐 멈춰도 맞게) ──
+    function mmss(ms, tenth) {
+        var t = Math.max(0, ms), h = Math.floor(t / 3600000), m = Math.floor(t / 60000) % 60, sec = Math.floor(t / 1000) % 60;
+        return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(sec).padStart(2, "0") + (tenth ? "." + Math.floor(t / 100) % 10 : "");
+    }
+    var tm = { len: 180000, left: 180000, end: 0, run: false, iv: null }, tmWake = null;
+    [[1, T("1분", "1 min")], [3, T("3분 라면", "3 min ramen")], [4, T("4분 컵라면", "4 min cup noodles")], [5, T("5분", "5 min")], [10, T("10분", "10 min")], [30, T("30분", "30 min")]].forEach(function (p) {
+        var b = document.createElement("button");
+        b.type = "button"; b.textContent = p[1];
+        b.addEventListener("click", function () { tmStop(); tm.len = tm.left = p[0] * 60000; tmShow(); });
+        $("tmPre").appendChild(b);
+    });
+    function tmShow() { $("tmShow").textContent = mmss(tm.run ? tm.end - Date.now() + 999 : tm.left); }
+    function tmStop() {
+        if (tm.run) tm.left = Math.max(0, tm.end - Date.now());
+        tm.run = false; clearInterval(tm.iv);
+        $("tmGo").textContent = T("▶ 시작", "▶ Start");
+        if (tmWake) { try { tmWake.release(); } catch (e) { /* 이미 */ } tmWake = null; }
+    }
+    function ring() {
+        var c = audio();
+        if (c) [0, 0.5, 1, 1.5, 2, 2.5].forEach(function (t) {
+            var o = c.createOscillator(), g = c.createGain();
+            o.frequency.value = 880; g.gain.setValueAtTime(0, c.currentTime + t); g.gain.linearRampToValueAtTime(0.6, c.currentTime + t + 0.02); g.gain.linearRampToValueAtTime(0, c.currentTime + t + 0.3);
+            o.connect(g); g.connect(c.destination); o.start(c.currentTime + t); o.stop(c.currentTime + t + 0.35);
+        });
+        if (navigator.vibrate) navigator.vibrate([400, 200, 400, 200, 400]);
+    }
+    $("tmGo").addEventListener("click", function () {
+        if (tm.run) { tmStop(); tmShow(); return; }
+        if (tm.left <= 0) tm.left = tm.len;
+        audio();   // 누를 때 소리를 깨워 둠(폰은 누른 뒤에만 소리 허락)
+        tm.end = Date.now() + tm.left; tm.run = true;
+        this.textContent = T("⏸ 멈춤", "⏸ Pause");
+        if (navigator.wakeLock && navigator.wakeLock.request) navigator.wakeLock.request("screen").then(function (w) { tmWake = w; }).catch(function () { /* 꺼질 수 있음 */ });
+        tm.iv = setInterval(function () {
+            if (Date.now() >= tm.end) { tmStop(); tm.left = 0; tmShow(); ring(); toast(T("⏰ 시간이 됐습니다", "⏰ Time's up"), 5000); return; }
+            tmShow();
+        }, 250);
+        tmShow();
+    });
+    $("tmReset").addEventListener("click", function () { tmStop(); tm.left = tm.len; tmShow(); });
+    tmShow();
+    var sw = { acc: 0, start: 0, run: false, iv: null, laps: [] };
+    function swNow() { return sw.acc + (sw.run ? Date.now() - sw.start : 0); }
+    function swShow() { $("swShow").textContent = mmss(swNow(), true); }
+    $("swGo").addEventListener("click", function () {
+        if (sw.run) { sw.acc = swNow(); sw.run = false; clearInterval(sw.iv); this.textContent = T("▶ 시작", "▶ Start"); swShow(); return; }
+        sw.start = Date.now(); sw.run = true; this.textContent = T("⏸ 멈춤", "⏸ Pause");
+        sw.iv = setInterval(swShow, 100);
+    });
+    $("swLap").addEventListener("click", function () {
+        if (!sw.run && !swNow()) return;
+        var t = swNow(), prev = sw.laps.length ? sw.laps[sw.laps.length - 1] : 0, li = document.createElement("li");
+        sw.laps.push(t);
+        li.textContent = mmss(t, true) + " (+" + mmss(t - prev, true) + ")";
+        $("swLaps").appendChild(li);
+    });
+    $("swReset").addEventListener("click", function () {
+        sw.run = false; clearInterval(sw.iv); sw.acc = 0; sw.laps = []; $("swLaps").innerHTML = ""; $("swGo").textContent = T("▶ 시작", "▶ Start"); swShow();
+    });
+    swShow();
+
+    // ── 🕐 세계 시각(펼쳤을 때만 1초마다) ──
+    var CITIES = [["서울", "Seoul", "Asia/Seoul"], ["도쿄", "Tokyo", "Asia/Tokyo"], ["베이징 · 상하이", "Beijing · Shanghai", "Asia/Shanghai"], ["타이베이", "Taipei", "Asia/Taipei"],
+        ["하노이 · 호찌민", "Hanoi · Ho Chi Minh City", "Asia/Ho_Chi_Minh"], ["방콕", "Bangkok", "Asia/Bangkok"], ["마닐라", "Manila", "Asia/Manila"], ["싱가포르", "Singapore", "Asia/Singapore"],
+        ["자카르타", "Jakarta", "Asia/Jakarta"], ["뉴델리", "New Delhi", "Asia/Kolkata"], ["두바이", "Dubai", "Asia/Dubai"], ["시드니", "Sydney", "Australia/Sydney"], ["오클랜드", "Auckland", "Pacific/Auckland"],
+        ["모스크바", "Moscow", "Europe/Moscow"], ["런던", "London", "Europe/London"], ["파리 · 베를린", "Paris · Berlin", "Europe/Paris"], ["뉴욕 · 워싱턴", "New York · Washington", "America/New_York"],
+        ["시카고", "Chicago", "America/Chicago"], ["로스앤젤레스 · 밴쿠버", "Los Angeles · Vancouver", "America/Los_Angeles"], ["토론토", "Toronto", "America/Toronto"], ["호놀룰루", "Honolulu", "Pacific/Honolulu"],
+        ["상파울루", "São Paulo", "America/Sao_Paulo"]];
+    var wcIv = null;
+    function wcDraw() {
+        var now = Date.now(), ko = RF.tzOffsetMin("Asia/Seoul", now), ul = $("wcList");
+        ul.innerHTML = "";
+        CITIES.forEach(function (c) {
+            var off = RF.tzOffsetMin(c[2], now);
+            if (off == null) return;
+            var d = new Date(now + off * 60000), li = document.createElement("li"), sp = document.createElement("span"), b = document.createElement("b"), sm = document.createElement("small");
+            var diff = (off - ko) / 60, wd = WD[d.getUTCDay()];
+            sp.textContent = EN ? c[1] : c[0];
+            sm.textContent = " " + (diff === 0 ? T("같음", "same") : (diff > 0 ? "+" : "") + diff + T("시간", "h"));
+            sp.appendChild(sm);
+            b.textContent = String(d.getUTCHours()).padStart(2, "0") + ":" + String(d.getUTCMinutes()).padStart(2, "0") + " (" + wd + ")";
+            li.appendChild(sp); li.appendChild(b);
+            ul.appendChild(li);
+        });
+    }
+    function wcToggle() { clearInterval(wcIv); if ($("t-world").open) { wcDraw(); wcIv = setInterval(wcDraw, 1000); } }
+    $("t-world").addEventListener("toggle", wcToggle);
+    wcToggle();
+
+    // ── 위치(날씨 · 일출): 기본 서울 시청, "내 위치로" 를 누를 때만 GPS. 저장하지 않음 ──
+    var SEOUL = { lat: 37.5663, lon: 126.9779, name: T("서울", "Seoul") }, loc = SEOUL;
+    function here(cb) {
+        if (!navigator.geolocation) return toast(T("이 기기는 위치를 쓸 수 없습니다", "Location is not available"));
+        toast(T("위치를 찾는 중…", "Finding your location…"));
+        navigator.geolocation.getCurrentPosition(function (p) {
+            loc = { lat: p.coords.latitude, lon: p.coords.longitude, name: T("내 위치", "My location") };
+            cb();
+        }, function () { toast(T("위치를 못 찾았습니다 - 위치 권한을 확인해 주세요", "Could not get your location - check location permission"), 4000); }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 });
+    }
+
+    // ── 🌫 우리 동네 날씨 · 미세먼지(routefly api/weather · api/air - 산 페이지와 같은 것) ──
+    var SKY_EN = { 1: "☀️ Sunny", 3: "⛅ Mostly cloudy", 4: "☁️ Cloudy" }, PTY_EN = { 1: "🌧 Rain", 2: "🌨 Rain/snow", 3: "❄️ Snow", 4: "🌦 Showers" };
+    var AIR_EN = { "좋음": "Good", "보통": "Moderate", "나쁨": "Unhealthy", "매우나쁨": "Very unhealthy" };
+    function sky(h) { return EN ? PTY_EN[+h.pty] || SKY_EN[+h.sky] || "-" : RF.weatherWord(h.sky, h.pty); }
+    function wxLoad() {
+        var q = "?lat=" + loc.lat.toFixed(4) + "&lon=" + loc.lon.toFixed(4);
+        outSet("wxNow", T("날씨를 받는 중…", "Loading weather…"));
+        $("wxHours").innerHTML = ""; $("wxAir").textContent = "";
+        fetch("api/weather" + q).then(function (r) { return r.json(); }).then(function (w) {
+            if (w.unavailable || !(w.hours || []).length) return outSet("wxNow", T("지금은 날씨를 받을 수 없습니다", "Weather is not available right now"));
+            var h = w.hours[0], d = w.days && w.days[h.t.slice(0, 10)], feel = RF.windChill(h.tmp, h.wsd), di = h.tmp != null && h.reh != null && h.tmp >= 20 ? RF.discomfort(h.tmp, h.reh) : null;
+            var extra = [];
+            if (d && (d.tmn != null || d.tmx != null)) extra.push(T("최저 ", "low ") + (d.tmn != null ? d.tmn + "°" : "-") + T(" · 최고 ", " · high ") + (d.tmx != null ? d.tmx + "°" : "-"));
+            if (h.reh != null) extra.push(T("습도 ", "humidity ") + h.reh + "%");
+            if (h.wsd != null) extra.push(T("바람 ", "wind ") + h.wsd + "m/s");
+            if (h.pop != null) extra.push(T("비 올 확률 ", "rain ") + h.pop + "%");
+            if (feel != null) extra.push(T("체감 ", "feels like ") + feel + "°");
+            if (di) extra.push(T("불쾌지수 ", "discomfort ") + di.di);
+            outSet("wxNow", loc.name + " " + sky(h) + " " + (h.tmp != null ? h.tmp + "°C" : ""), extra.join(" · ") + T(" · 기상청 ", " · KMA ") + w.base + T(" 발표", " KST"));
+            w.hours.slice(1).filter(function (x) { return +x.t.slice(11, 13) % 3 === 0; }).slice(0, 8).forEach(function (x) {
+                var li = document.createElement("li"), sp = document.createElement("span"), b = document.createElement("b");
+                sp.textContent = (x.t.slice(0, 10) === h.t.slice(0, 10) ? "" : T("내일 ", "Tmrw ")) + (+x.t.slice(11, 13)) + T("시 ", ":00 ") + sky(x);
+                b.textContent = (x.tmp != null ? x.tmp + "°" : "-") + (x.pop != null ? " · ☂" + x.pop + "%" : "");
+                li.appendChild(sp); li.appendChild(b);
+                $("wxHours").appendChild(li);
+            });
+        }).catch(function () { outSet("wxNow", T("날씨를 받지 못했습니다 - 인터넷을 확인해 주세요", "Could not load the weather - check your connection")); });
+        fetch("api/air" + q).then(function (r) { return r.json(); }).then(function (a) {
+            if (!a || a.unavailable || (a.pm10 == null && a.pm25 == null)) return;
+            $("wxAir").textContent = EN ? [a.pm10 != null ? "PM10 " + (AIR_EN[a.pm10Word] || a.pm10Word) + " (" + a.pm10 + ")" : "", a.pm25 != null ? "PM2.5 " + (AIR_EN[a.pm25Word] || a.pm25Word) + " (" + a.pm25 + ")" : ""]
+                .filter(Boolean).join(" · ") + " - AirKorea station" + (a.dist_km != null ? " " + a.dist_km + " km away" : "") : "😷 " + RF.airText(a);
+        }).catch(function () { /* 없이 */ });
+    }
+    $("wxHere").addEventListener("click", function () { here(function () { wxLoad(); sunDraw(); }); });
+    $("wxSeoul").addEventListener("click", function () { loc = SEOUL; wxLoad(); sunDraw(); });
+    $("t-wx").addEventListener("toggle", function () { if (this.open && !$("wxNow").textContent) wxLoad(); });
+    if ($("t-wx").open) wxLoad();
+
+    // ── 🌅 일출 · 일몰 · 달 ──
+    function hm(ms) {   // 한국 시각으로(폰 시간대가 달라도 - 해외에서 보는 영어 화면)
+        if (ms == null) return "-";
+        var d = new Date(ms + (RF.tzOffsetMin("Asia/Seoul", ms) || 540) * 60000);
+        return String(d.getUTCHours()).padStart(2, "0") + ":" + String(d.getUTCMinutes()).padStart(2, "0");
+    }
+    function sunDraw() {
+        var now = Date.now(), tom = now + 86400000;
+        outSet("sunOut", "🌅 " + hm(RF.sunrise(now, loc.lat, loc.lon)) + "  🌇 " + hm(RF.sunset(now, loc.lat, loc.lon)),
+            loc.name + T(" 오늘 · 내일 ", " today · tomorrow ") + hm(RF.sunrise(tom, loc.lat, loc.lon)) + " / " + hm(RF.sunset(tom, loc.lat, loc.lon)));
+        var m = RF.moonPhase(now), nm = RF.MOON_NAMES[m.i], f = new Date(m.nextFull), nf = [f.getFullYear(), f.getMonth() + 1, f.getDate()];
+        outSet("moonOut", nm[0] + " " + (EN ? nm[2] : nm[1]), T("밝은 부분 ", "lit ") + Math.round(m.illum * 100) + "% · " + T("다음 보름 ", "next full moon ") + ymdText(nf) + " " + RF.dDay(TODAY, nf));
+    }
+    $("sunHere").addEventListener("click", function () { here(function () { sunDraw(); if ($("wxNow").textContent) wxLoad(); }); });
+    $("sunSeoul").addEventListener("click", function () { loc = SEOUL; sunDraw(); });
+    sunDraw();
+
+    // ── 🌡 체감온도 · 불쾌지수 ──
+    function feDraw() {
+        var t = val("feT"), h = val("feH"), w = val("feW");
+        if (t === "") return outSet("feOut");
+        var lines = [], big = null;
+        if (w !== "") { var c = RF.windChill(+t, +w); big = c != null ? T("체감 ", "Feels like ") + c + "°C" : null; if (c == null) lines.push(T("체감온도는 10℃ 이하 · 바람 1.3m/s 이상일 때만", "Wind chill only at 10 °C or below with wind 1.3 m/s+")); }
+        if (h !== "" && +t >= 20) {   // 불쾌지수는 더울 때 말(20℃ 아래는 늘 낮음)
+            var d = RF.discomfort(t, h);
+            if (d) { var k = [T("낮음", "low"), T("보통", "moderate"), T("높음", "high"), T("매우 높음", "very high")][d.k]; if (big) lines.unshift(T("불쾌지수 ", "Discomfort ") + d.di + " (" + k + ")"); else big = T("불쾌지수 ", "Discomfort ") + d.di + " (" + k + ")"; }
+        }
+        outSet("feOut", big || (+t >= 20 ? T("습도를 넣어 주세요", "Add humidity") : T("바람을 넣어 주세요(불쾌지수는 20℃ 넘을 때)", "Add wind (discomfort index is for 20 °C and above)")), lines.join(" · "));
+    }
+    ["feT", "feH", "feW"].forEach(function (id) { $(id).addEventListener("input", feDraw); });
+
+    // ── ⚖ BMI ──
+    function bmDraw() {
+        var h = val("bmH"), w = val("bmW");
+        if (h === "" || w === "") return outSet("bmOut");
+        var r = RF.bmiInfo(h, w);
+        if (!r) return outSet("bmOut", T("키(cm) · 몸무게(kg)를 확인해 주세요", "Check height (cm) and weight (kg)"));
+        outSet("bmOut", "BMI " + r.bmi + " · " + r.word, T("이 키의 정상 체중 " + r.lo + " ~ " + r.hi + "kg", "Normal weight for this height: " + r.lo + "-" + r.hi + " kg"));
+    }
+    ["bmH", "bmW"].forEach(function (id) { $(id).addEventListener("input", bmDraw); });
+
+    // ── 🎲 동전 · 주사위 · 제비뽑기 · 사다리 ──
+    var DIE = ["⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
+    $("coinBtn").addEventListener("click", function () { var h = rand(2) === 0; outSet("cdOut", h ? T("🪙 앞면", "🪙 Heads") : T("🪙 뒷면", "🪙 Tails")); });
+    $("diceBtn").addEventListener("click", function () {
+        var n = +$("diceN").value, r = [];
+        for (var i = 0; i < n; i++) r.push(rand(6) + 1);
+        outSet("cdOut", r.map(function (x) { return DIE[x - 1]; }).join(" "), r.join(" + ") + (n > 1 ? " = " + r.reduce(function (a, b) { return a + b; }, 0) : ""));
+    });
+    function names(id) { return $(id).value.split(/[,\n、·]+/).map(function (x) { return x.trim(); }).filter(Boolean); }
+    $("lotOne").addEventListener("click", function () {
+        var l = names("lotIn");
+        if (l.length < 2) return outSet("lotOut", T("이름을 두 개 이상 넣어 주세요", "Enter at least two names"));
+        outSet("lotOut", "🎉 " + l[rand(l.length)]);
+    });
+    $("lotAll").addEventListener("click", function () {
+        var l = names("lotIn");
+        if (l.length < 2) return outSet("lotOut", T("이름을 두 개 이상 넣어 주세요", "Enter at least two names"));
+        outSet("lotOut", shuffle(l).map(function (x, i) { return (i + 1) + ". " + x; }).join("  "));
+    });
+    var ld = null, SVGNS = "http://www.w3.org/2000/svg";
+    function svgEl(tag, at) { var e = document.createElementNS(SVGNS, tag); for (var k in at) e.setAttribute(k, at[k]); return e; }
+    function ldDraw(sel) {
+        var box = $("ldBox"), n = ld.names.length, R = ld.rungs.length, W = 320, top = 26, bot = 26, H = top + R * 24 + 16 + bot, gap = W / n, X = function (i) { return gap * (i + 0.5); }, Y = function (y) { return top + 8 + y * 24; };
+        var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + H, role: "img", "aria-label": T("사다리", "Ladder") });
+        for (var i = 0; i < n; i++) svg.appendChild(svgEl("line", { x1: X(i), y1: Y(0), x2: X(i), y2: Y(R), stroke: "rgba(255,255,255,0.35)", "stroke-width": 3 }));
+        ld.rungs.forEach(function (l, y) { l.forEach(function (b, c) { if (b) svg.appendChild(svgEl("line", { x1: X(c), y1: Y(y + 0.5), x2: X(c + 1), y2: Y(y + 0.5), stroke: "rgba(255,255,255,0.35)", "stroke-width": 3 })); }); });
+        if (sel != null) {
+            var tr = RF.ladderTrace(ld.rungs, sel);
+            svg.appendChild(svgEl("polyline", { points: tr.path.map(function (p) { return X(p[0]) + "," + Y(p[1]); }).join(" "), fill: "none", stroke: "#38d9ea", "stroke-width": 5, "stroke-linejoin": "round" }));
+            outSet("ldOut", ld.names[sel] + " → " + ld.res[tr.end]);
+        }
+        ld.names.forEach(function (nm, i) {
+            var t = svgEl("text", { x: X(i), y: 16 });
+            t.textContent = nm.length > 6 ? nm.slice(0, 6) + "…" : nm;
+            t.addEventListener("click", function () { ldDraw(i); });
+            svg.appendChild(t);
+        });
+        ld.res.forEach(function (r, i) { var t = svgEl("text", { x: X(i), y: H - 8 }); t.textContent = sel != null || ld.all ? (r.length > 6 ? r.slice(0, 6) + "…" : r) : "?"; svg.appendChild(t); });
+        box.innerHTML = "";
+        box.appendChild(svg);
+    }
+    $("ldMake").addEventListener("click", function () {
+        var nm = names("ldNames").slice(0, 8), res = names("ldRes");
+        if (nm.length < 2) return outSet("ldOut", T("사람을 두 명 이상 넣어 주세요", "Enter at least two people"));
+        if (!res.length) res = [T("당첨", "Win")];
+        while (res.length < nm.length) res.push(T("꽝", "-"));
+        res = shuffle(res.slice(0, nm.length));
+        ld = { names: nm, res: res, all: false, rungs: RF.ladderMake(nm.length, 8, function () { return rand(1000) / 1000; }) };
+        ldDraw(null);
+        outSet("ldOut", T("위의 이름을 누르면 사다리를 탑니다", "Tap a name to follow the ladder"));
+    });
+    $("ldAll").addEventListener("click", function () {
+        if (!ld) return;
+        ld.all = true; ldDraw(null);
+        outSet("ldOut", ld.names.map(function (nm, i) { return nm + " → " + ld.res[RF.ladderTrace(ld.rungs, i).end]; }).join("  ·  "));
+    });
+
+    // ── 🐯 호랑이 소리(합성 - 녹음 아님): 낮은 톱니파가 오르내리며 떨리고(으르렁), 거친 소음을 섞음 ──
+    var tgIv = null;
+    function roar() {
+        var c = audio();
+        if (!c) return toast(T("이 브라우저는 소리를 낼 수 없습니다", "This browser cannot play sound"));
+        var t0 = c.currentTime + 0.05, dur = 2.6;
+        var out = c.createGain(), comp = c.createDynamicsCompressor();
+        out.gain.setValueAtTime(0.0001, t0);
+        out.gain.exponentialRampToValueAtTime(1, t0 + 0.35);
+        out.gain.setValueAtTime(1, t0 + 1.4);
+        out.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+        out.connect(comp); comp.connect(c.destination);
+        var shaper = c.createWaveShaper(), curve = new Float32Array(1024);
+        for (var i = 0; i < 1024; i++) { var x = i / 512 - 1; curve[i] = Math.tanh(3 * x); }
+        shaper.curve = curve;
+        var lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.setValueAtTime(500, t0); lp.frequency.linearRampToValueAtTime(1100, t0 + 0.6); lp.frequency.linearRampToValueAtTime(350, t0 + dur); lp.Q.value = 4;
+        shaper.connect(lp); lp.connect(out);
+        [[1, 0.6], [1.5, 0.3], [2.02, 0.25]].forEach(function (h) {   // 낮은 소리 + 배음
+            var o = c.createOscillator(), g = c.createGain();
+            o.type = "sawtooth";
+            o.frequency.setValueAtTime(70 * h[0], t0); o.frequency.linearRampToValueAtTime(125 * h[0], t0 + 0.7); o.frequency.linearRampToValueAtTime(60 * h[0], t0 + dur);
+            g.gain.value = h[1];
+            o.connect(g); g.connect(shaper);
+            o.start(t0); o.stop(t0 + dur + 0.1);
+        });
+        var trem = c.createOscillator(), tg = c.createGain();   // 으르렁 떨림(초당 약 28번)
+        trem.frequency.setValueAtTime(22, t0); trem.frequency.linearRampToValueAtTime(32, t0 + dur);
+        tg.gain.value = 0.45;
+        trem.connect(tg); tg.connect(out.gain);
+        trem.start(t0); trem.stop(t0 + dur + 0.1);
+        var nb = c.createBuffer(1, Math.floor(c.sampleRate * (dur + 0.1)), c.sampleRate), nd = nb.getChannelData(0), last = 0;
+        for (var k = 0; k < nd.length; k++) { last = (last + 0.04 * (Math.random() * 2 - 1)) / 1.04; nd[k] = last * 3.5; }   // 거친(갈색) 소음 - 숨소리
+        var ns = c.createBufferSource(), ng = c.createGain();
+        ns.buffer = nb; ng.gain.value = 0.9;
+        ns.connect(ng); ng.connect(shaper);
+        ns.start(t0);
+    }
+    function tgStop() {
+        clearInterval(tgIv); tgIv = null;
+        $("tgLoop").classList.remove("on");
+        $("tgLoop").textContent = T("🔁 계속(4초마다)", "🔁 Keep roaring");
+    }
+    $("tgOne").addEventListener("click", roar);
+    $("tgLoop").addEventListener("click", function () {
+        if (tgIv) return tgStop();
+        roar();
+        tgIv = setInterval(roar, 4000);
+        this.classList.add("on");
+        this.textContent = T("⏹ 멈춤", "⏹ Stop");
+    });
+    $("t-tiger").addEventListener("toggle", function () { if (!this.open) tgStop(); });
 })();
