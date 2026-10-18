@@ -1091,14 +1091,18 @@
             // ☀ 자외선 - 발표 시각 + h 시간. 지금 값 · 오늘 가장 높은 값
             if (j.uv && j.uv.hours && j.uv.hours.length) {
                 var d = j.uv.date, base = Date.UTC(+d.slice(0, 4), +d.slice(4, 6) - 1, +d.slice(6, 8), +d.slice(8, 10)) - 9 * 3600000, now = Date.now(), cur = null, max = null;
-                var todayKST = new Date(now + 9 * 3600000).toISOString().slice(0, 10);
+                var todayKST = new Date(now + 9 * 3600000).toISOString().slice(0, 10), tomKST = new Date(now + 33 * 3600000).toISOString().slice(0, 10), tmax = null, restToday = false;
                 j.uv.hours.forEach(function (p) {
-                    var at = base + p.h * 3600000;
+                    var at = base + p.h * 3600000, day = new Date(at + 9 * 3600000).toISOString().slice(0, 10);
                     if (at <= now) cur = p.v;
-                    if (new Date(at + 9 * 3600000).toISOString().slice(0, 10) === todayKST) max = Math.max(max == null ? 0 : max, p.v);
+                    if (day === todayKST) { max = Math.max(max == null ? 0 : max, p.v); if (at > now && p.v > 0) restToday = true; }
+                    if (day === tomKST) tmax = Math.max(tmax == null ? 0 : tmax, p.v);
                 });
+                // 저녁(오늘 남은 시간에 자외선이 없음)이면 내일 값(2026-10-18 PC: 18시 발표 뒤 "0 낮음" 만 보였음)
+                var tomorrow = !restToday && (cur == null || cur === 0) && tmax != null && new Date(now + 9 * 3600000).getUTCHours() >= 15;
                 var word = function (v) { for (var i = 0; i < UV_WORD.length; i++) if (v <= UV_WORD[i][0]) return EN ? UV_WORD[i][2] : UV_WORD[i][1]; return ""; };
-                if (max != null) sfRow("☀", T("자외선(오늘 가장 높을 때)", "UV (today's peak)"), max + " " + word(max) + (cur != null ? T(" · 지금 ", " · now ") + cur : ""), max >= 8 ? "bad" : max >= 6 ? "mid" : "");
+                if (tomorrow) sfRow("☀", T("자외선(내일 가장 높을 때)", "UV (tomorrow's peak)"), tmax + " " + word(tmax), tmax >= 8 ? "bad" : tmax >= 6 ? "mid" : "");
+                else if (max != null) sfRow("☀", T("자외선(오늘 가장 높을 때)", "UV (today's peak)"), max + " " + word(max) + (cur != null ? T(" · 지금 ", " · now ") + cur : ""), max >= 8 ? "bad" : max >= 6 ? "mid" : "");
             }
             if (!$("sfList").children.length) sfRow("ℹ", T("안전 정보", "Safety info"), T("받지 못했습니다", "Not available"));
             // 🏥 가까운 응급실

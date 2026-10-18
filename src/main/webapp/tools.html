@@ -117,6 +117,9 @@ h2.grp { margin:22px 2px 0; font-size:14px; color:var(--dim); font-weight:bold; 
 .gcl input { width:22px; height:22px; flex:0 0 auto; margin-top:1px; }
 .gcl small { display:block; color:var(--dim); font-size:13px; margin-top:2px; }
 .gcl li.done span { opacity:0.55; text-decoration:line-through; }
+/* 안전 줄: 이름은 한 줄 그대로, 값이 길면 값 쪽이 줄바꿈(2026-10-18 PC: "전국 특보" 가 세로로 깨지고 영어 값이 가로로 넘침) */
+.sfl li span { flex:0 0 auto; white-space:nowrap; }
+.sfl li b { min-width:0; white-space:normal; overflow-wrap:anywhere; text-align:right; }
 .sfl li.bad span { color:#ff8787; font-weight:bold; }
 .sfl li.mid span { color:#ffd43b; }
 #toast { position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom) + 24px); transform:translateX(-50%); max-width:90%; background:rgba(0,0,0,0.85);
@@ -370,7 +373,7 @@ h2.grp { margin:22px 2px 0; font-size:14px; color:var(--dim); font-weight:bold; 
         <div class="row"><button type="button" class="btn2" id="gcReset" data-en="Uncheck all">모두 풀기</button></div>
         <p class="tip" id="gcCount"></p>
     </div></details>
-    <details class="tool" id="t-safe"><summary data-en="🛟 Today's hiking safety">🛟 오늘의 산행 안전</summary><div class="tb">
+    <details class="tool" id="t-safe"><summary data-en="⛑️ Today's hiking safety">⛑️ 오늘의 산행 안전</summary><div class="tb">
         <div class="row"><button type="button" class="btn2" id="sfHere" data-en="📍 My location">📍 내 위치로</button><button type="button" class="btn2" id="sfSeoul" data-en="Seoul">서울로</button></div>
         <div class="out" id="sfHead"></div>
         <ul id="sfList" class="wl sfl"></ul>
