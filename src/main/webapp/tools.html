@@ -29,7 +29,7 @@ section h2 { margin:0 0 8px; font-size:17px; }
 #pcBox { display:none; height:540px; margin-top:10px; border:1px solid var(--ln); border-radius:10px; overflow:hidden; background:#fff; }
 /* 카카오 창 글자를 1.2배로(창 안 글자 크기는 바꿀 수 없어 창을 통째로 키움 - 2026-10-18 홍TV님 "잘 안 보여") */
 #pcBox .zoom { height:450px; transform-origin:0 0; }   /* 배율은 js(fitZoom) - 카카오 창은 폭이 300px 아래로 줄지 않음 */
-#pcBox.wide { width:100vw; margin-left:calc(50% - 50vw); border-radius:0; border-left:0; border-right:0; }   /* 좁은 폰: 화면 폭 가득 */
+#pcBox.wide { border-radius:0; border-left:0; border-right:0; }   /* 좁은 폰: 폭 · 왼쪽 여백은 js(fitZoom) - 글자 크기 zoom 을 빼고 화면 폭 가득 */   /* 좁은 폰: 화면 폭 가득 */
 #pcOut { display:none; margin-top:12px; }
 .ar { display:flex; gap:8px; align-items:flex-start; padding:9px 0; border-top:1px solid var(--ln); }
 .ar:first-child { border-top:0; }

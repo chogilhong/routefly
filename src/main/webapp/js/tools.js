@@ -92,13 +92,24 @@
     function fitZoom() {
         var box = $("pcBox"), z = box.querySelector(".zoom");
         if (!z || box.style.display === "none") return;
-        box.classList.toggle("wide", innerWidth < 480);
-        var sc = Math.max(1, Math.min(1.2, box.clientWidth / 300));
+        // 가+ · 가++(글자 120 · 140%)는 main 전체를 CSS zoom 으로 키움 - 그만큼 빼고 계산(2026-10-18 홍TV님: 가++ 에서 카카오 창이 화면 밖으로 잘림)
+        var pz = document.documentElement.classList.contains("rfz") ? (parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--rfz")) || 1) : 1;
+        var wide = innerWidth < 480, parent = box.parentNode;
+        if (wide) {   // 좁은 폰: 화면 폭 가득(zoom 안이라 화면 px ÷ pz)
+            var w = innerWidth / pz;
+            box.style.width = w + "px";
+            var ps = getComputedStyle(parent), inner = parent.clientWidth - parseFloat(ps.paddingLeft) - parseFloat(ps.paddingRight);   // 감싸는 칸의 안쪽 폭
+            box.style.marginLeft = ((inner - w) / 2) + "px";
+        } else { box.style.width = ""; box.style.marginLeft = ""; }
+        box.classList.toggle("wide", wide);
+        // 보이는 배율 = pz × sc 가 1.2 를 넘지 않게, 카카오 창(최소 300px)이 상자 폭을 넘지 않게
+        var sc = Math.min(1.2 / pz, box.clientWidth / 300);
         z.style.width = (100 / sc) + "%";
-        z.style.transform = sc > 1 ? "scale(" + sc + ")" : "";
+        z.style.transform = sc !== 1 ? "scale(" + sc + ")" : "";
         box.style.height = Math.round(450 * sc) + "px";
     }
     window.addEventListener("resize", fitZoom);
+    document.addEventListener("click", function (e) { if (e.target.closest && e.target.closest(".rfTextBtn")) setTimeout(fitZoom, 0); });   // 가 · 가+ · 가++ 바꿀 때도
     $("pcBtn").addEventListener("click", function () {
         loadPostcode(function () {
             var box = $("pcBox");
