@@ -1075,3 +1075,6 @@ eq("unitConv 못 바꿈 · 아주 작음", [RF.unitConv("length", "", "m", "cm")
     eq("사다리 - 모두 다른 곳 · 붙은 가로줄 없음", [ends.slice().sort().join(""), adj, L.length, RF.ladderTrace([[true], [false]], 0).end, RF.ladderMake(3, 2, function () { return 0.99; }).map(function (r) { return r.join(); }).join("|")],
         ["0123", false, 8, 1, "true,false|false,true"]);
 })();
+eq("holidayRuns 연휴", [JSON.stringify(RF.holidayRuns(["2026-10-03", "2026-10-05", "2026-10-09"])), JSON.stringify(RF.holidayRuns(["2026-10-21"])), JSON.stringify(RF.holidayRuns([])),
+    JSON.stringify(RF.holidayRuns(["2026-09-24", "2026-09-25", "2026-09-26"]))],
+    ['[{"from":"2026-10-03","to":"2026-10-05","days":3},{"from":"2026-10-09","to":"2026-10-11","days":3}]', "[]", "[]", '[{"from":"2026-09-24","to":"2026-09-27","days":4}]']);

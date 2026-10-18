@@ -87,7 +87,8 @@ h2.grp { margin:22px 2px 0; font-size:14px; color:var(--dim); font-weight:bold; 
 .wl li span { min-width:0; overflow-wrap:anywhere; }
 .wl li small { color:var(--dim); }
 #ldBox svg { display:block; width:100%; height:auto; margin-top:12px; }
-#ldBox svg text { fill:var(--tx); font-size:13px; text-anchor:middle; cursor:pointer; }
+#ldBox svg text { fill:var(--tx); font-size:13px; text-anchor:middle; pointer-events:none; }
+#ldBox svg rect.hit { fill:rgba(56,217,234,0.10); stroke:rgba(56,217,234,0.45); cursor:pointer; }
 #swLaps { margin:6px 0 0; padding-left:1.4em; }
 #toast { position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom) + 24px); transform:translateX(-50%); max-width:90%; background:rgba(0,0,0,0.85);
          color:#fff; padding:10px 16px; border-radius:12px; font-size:15px; display:none; z-index:9; text-align:center; }
@@ -132,6 +133,18 @@ h2.grp { margin:22px 2px 0; font-size:14px; color:var(--dim); font-weight:bold; 
         </div>
         <div class="out" id="fxOut"></div>
         <p class="tip" data-en="Reference rates published by the European Central Bank once a working day (via Frankfurter). Bank buy/sell and card rates are different.">유럽중앙은행이 영업일마다 한 번 내는 기준 환율입니다(Frankfurter). 은행에서 살 때 · 팔 때 값, 카드 결제 값과는 다릅니다.</p>
+    </div></details>
+    <details class="tool" id="t-fuel"><summary data-en="⛽ Fuel prices">⛽ 기름값</summary><div class="tb">
+        <div class="row">
+            <select id="fuProd" class="f" aria-label="기름 종류" data-en-aria-label="Fuel">
+                <option value="B027" data-en="Gasoline">휘발유</option><option value="D047" data-en="Diesel">경유</option><option value="K015" data-en="LPG">LPG(부탄)</option>
+                <option value="B034" data-en="Premium gasoline">고급휘발유</option><option value="C004" data-en="Kerosene">실내등유</option>
+            </select>
+            <select id="fuSido" class="f" aria-label="시도" data-en-aria-label="Region"><option value="" data-en="Whole country">전국</option></select>
+        </div>
+        <div class="out" id="fuOut"></div>
+        <ul id="fuLow" class="wl"></ul>
+        <p class="tip" data-en="Korea National Oil Corporation Opinet (average price per liter). Station prices can change during the day.">한국석유공사 오피넷 자료(리터당 평균)입니다. 주유소 값은 하루 사이에도 바뀔 수 있습니다.</p>
     </div></details>
     <details class="tool" id="t-pct"><summary data-en="💰 Percent · discount · split the bill">💰 퍼센트 · 할인 · 더치페이</summary><div class="tb">
         <div class="row">
@@ -207,6 +220,13 @@ h2.grp { margin:22px 2px 0; font-size:14px; color:var(--dim); font-weight:bold; 
         <label class="chk2"><input type="checkbox" id="daFirst" checked> <span data-en="Count the first day as day 1 (anniversaries)">첫날을 1일로 셈(100일 · 기념일)</span></label>
         <div class="out" id="daOut"></div>
     </div></details>
+    <details class="tool" id="t-hol"><summary data-en="🗓 Public holidays · long weekends">🗓 공휴일 · 다음 연휴</summary><div class="tb">
+        <div class="row"><select id="holYear" class="f" style="flex-basis:100%" aria-label="년" data-en-aria-label="Year"></select></div>
+        <div class="out" id="holOut"></div>
+        <ul id="holRuns" class="wl"></ul>
+        <ul id="holList" class="wl"></ul>
+        <p class="tip" data-en="Korea Astronomy and Space Science Institute data, including substitute and temporary holidays.">한국천문연구원 자료(대체공휴일 · 임시공휴일 포함)입니다.</p>
+    </div></details>
     <details class="tool" id="t-timer"><summary data-en="⏱ Timer · stopwatch">⏱ 타이머 · 스톱워치</summary><div class="tb">
         <div class="big2" id="tmShow">3:00</div>
         <div class="cats" id="tmPre"></div>
@@ -259,7 +279,7 @@ h2.grp { margin:22px 2px 0; font-size:14px; color:var(--dim); font-weight:bold; 
         <div class="row"><textarea id="lotIn" class="f" style="height:90px" placeholder="이름을 쉼표나 줄바꿈으로 (예: 철수, 영희, 민수)" data-en-placeholder="Names separated by commas or lines (e.g. Amy, Ben, Chris)"></textarea></div>
         <div class="row"><button type="button" class="btn2" id="lotOne" data-en="Pick one">한 명 뽑기</button><button type="button" class="btn2" id="lotAll" data-en="Shuffle order">순서 정하기</button></div>
         <div class="out" id="lotOut"></div>
-        <h3 style="font-size:16px;margin:20px 0 0" data-en="🪜 Ladder game">🪜 사다리 타기</h3>
+        <h3 style="font-size:16px;margin:20px 0 0" data-en="🎯 Ladder game">🎯 사다리 타기</h3>
         <div class="row"><label data-en="People (2-8, commas)">사람(2 ~ 8명, 쉼표로)</label><input type="text" id="ldNames" class="f" placeholder="철수, 영희, 민수" data-en-placeholder="Amy, Ben, Chris"></div>
         <div class="row"><label data-en="Results (commas - empty: 1 win, rest blank)">결과(쉼표로 - 비우면 당첨 1 · 나머지 꽝)</label><input type="text" id="ldRes" class="f" placeholder="당첨, 꽝, 꽝" data-en-placeholder="Win, -, -"></div>
         <div class="row"><button type="button" class="btn2" id="ldMake" data-en="Make a ladder">사다리 만들기</button><button type="button" class="btn2" id="ldAll" data-en="Show all">모두 보기</button></div>

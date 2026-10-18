@@ -720,10 +720,12 @@
             svg.appendChild(svgEl("polyline", { points: tr.path.map(function (p) { return X(p[0]) + "," + Y(p[1]); }).join(" "), fill: "none", stroke: "#38d9ea", "stroke-width": 5, "stroke-linejoin": "round" }));
             outSet("ldOut", ld.names[sel] + " → " + ld.res[tr.end]);
         }
-        ld.names.forEach(function (nm, i) {
+        ld.names.forEach(function (nm, i) {   // 이름 칸 전체를 누를 수 있게(2026-10-18 PC: 글자만으로는 폰에서 빗나감)
+            var hit = svgEl("rect", { x: X(i) - gap / 2 + 3, y: 0, width: gap - 6, height: 24, rx: 6, "class": "hit" });
+            hit.addEventListener("click", function () { ldDraw(i); });
+            svg.appendChild(hit);
             var t = svgEl("text", { x: X(i), y: 16 });
             t.textContent = nm.length > 6 ? nm.slice(0, 6) + "…" : nm;
-            t.addEventListener("click", function () { ldDraw(i); });
             svg.appendChild(t);
         });
         ld.res.forEach(function (r, i) { var t = svgEl("text", { x: X(i), y: H - 8 }); t.textContent = sel != null || ld.all ? (r.length > 6 ? r.slice(0, 6) + "…" : r) : "?"; svg.appendChild(t); });
@@ -738,7 +740,7 @@
         res = shuffle(res.slice(0, nm.length));
         ld = { names: nm, res: res, all: false, rungs: RF.ladderMake(nm.length, 8, function () { return rand(1000) / 1000; }) };
         ldDraw(null);
-        outSet("ldOut", T("위의 이름을 누르면 사다리를 탑니다", "Tap a name to follow the ladder"));
+        outSet("ldOut", T("위의 이름 칸을 누르면 사다리를 탑니다", "Tap a name box to follow the ladder"));
     });
     $("ldAll").addEventListener("click", function () {
         if (!ld) return;
@@ -796,5 +798,93 @@
         this.classList.add("on");
         this.textContent = T("⏹ 멈춤", "⏹ Stop");
     });
+    // ── 🗓 공휴일 · 다음 연휴(api/holiday - 한국천문연구원) ──
+    var holCache = {};
+    [TODAY[0], TODAY[0] + 1].forEach(function (y) { $("holYear").add(new Option(EN ? String(y) : y + "년", y)); });
+    function md(d) { var p = d.split("-"); return ymdText([+p[0], +p[1], +p[2]]); }
+    var HOL_EN = { "1월1일": "New Year's Day", "신정": "New Year's Day", "설날": "Seollal (Lunar New Year)", "삼일절": "Independence Movement Day", "어린이날": "Children's Day",
+        "부처님오신날": "Buddha's Birthday", "석가탄신일": "Buddha's Birthday", "현충일": "Memorial Day", "광복절": "Liberation Day", "추석": "Chuseok", "개천절": "National Foundation Day",
+        "한글날": "Hangeul Day", "기독탄신일": "Christmas Day", "대체공휴일": "Substitute holiday", "임시공휴일": "Temporary holiday" };
+    function holName(n) { return !EN ? n : HOL_EN[n] || (/선거/.test(n) ? "Election day" : n); }
+    function holDraw(j) {
+        $("holRuns").innerHTML = ""; $("holList").innerHTML = "";
+        if (!j || j.unavailable || !(j.days || []).length) return outSet("holOut", T("지금은 공휴일을 받을 수 없습니다", "Holidays are not available right now"));
+        var t = RF.dayNo(TODAY[0], TODAY[1], TODAY[2]), next = null;
+        j.days.forEach(function (h) {
+            var p = h.date.split("-"), n = RF.dayNo(+p[0], +p[1], +p[2]);
+            if (!next && n >= t) next = h;
+            var li = document.createElement("li"), sp = document.createElement("span"), b = document.createElement("b");
+            sp.textContent = holName(h.name);
+            b.textContent = md(h.date);
+            if (n < t) li.style.opacity = "0.45";
+            li.appendChild(sp); li.appendChild(b);
+            $("holList").appendChild(li);
+        });
+        if (next) { var q = next.date.split("-"); outSet("holOut", T("다음 공휴일 ", "Next holiday: ") + holName(next.name) + " " + RF.dDay(TODAY, [+q[0], +q[1], +q[2]]), md(next.date)); }
+        else outSet("holOut", T("올해 남은 공휴일이 없습니다", "No more holidays this year"));
+        RF.holidayRuns(j.days.map(function (h) { return h.date; })).forEach(function (r) {
+            if (r.to < TODAY.map(function (x, i) { return i ? String(x).padStart(2, "0") : x; }).join("-")) return;
+            var li = document.createElement("li"), sp = document.createElement("span"), b = document.createElement("b");
+            sp.textContent = "🏖 " + T(r.days + "일 연휴", r.days + "-day break");
+            b.textContent = md(r.from) + " ~ " + md(r.to).replace(/^\d{4}년 |^\d{4}-/, "");
+            li.appendChild(sp); li.appendChild(b);
+            $("holRuns").appendChild(li);
+        });
+    }
+    function holLoad() {
+        var y = $("holYear").value;
+        if (holCache[y]) return holDraw(holCache[y]);
+        outSet("holOut", T("공휴일을 받는 중…", "Loading holidays…"));
+        fetch("api/holiday?year=" + y).then(function (r) { return r.json(); }).then(function (j) { if (!j.unavailable) holCache[y] = j; holDraw(j); })
+            .catch(function () { outSet("holOut", T("공휴일을 받지 못했습니다 - 인터넷을 확인해 주세요", "Could not load holidays - check your connection")); });
+    }
+    $("holYear").addEventListener("change", holLoad);
+    $("t-hol").addEventListener("toggle", function () { if (this.open) holLoad(); });
+    if ($("t-hol").open) holLoad();
+
+    // ── ⛽ 기름값(api/fuel - 오피넷). 고른 종류 · 시도만 이 기기에 기억 ──
+    var fuSt = { prod: "B027", sido: "" };
+    try { var fu0 = JSON.parse(lsGet("rf-fuel") || "null"); if (fu0 && fu0.prod) fuSt = fu0; } catch (e) { /* 처음 */ }
+    $("fuProd").value = fuSt.prod;
+    function won1(x) { return x == null ? "-" : T(fmtNum(Math.round(x)) + "원", fmtNum(Math.round(x)) + " won"); }
+    function fuLoad() {
+        outSet("fuOut", T("기름값을 받는 중…", "Loading prices…"));
+        $("fuLow").innerHTML = "";
+        fetch("api/fuel?prod=" + fuSt.prod + (fuSt.sido ? "&sido=" + fuSt.sido : "")).then(function (r) { return r.json(); }).then(function (j) {
+            if (!j || j.unavailable) return outSet("fuOut", T("지금은 기름값을 받을 수 없습니다", "Fuel prices are not available right now"));
+            var sel = $("fuSido");
+            if (sel.options.length < 2 && (j.sido || []).length) {
+                j.sido.forEach(function (x) { if (x.code && x.code !== "00") sel.add(new Option(x.name, x.code)); });
+                sel.value = fuSt.sido;
+            }
+            var nat = (j.national || []).filter(function (x) { return x.prod === fuSt.prod; })[0], sd = (j.sido || []).filter(function (x) { return x.code === fuSt.sido; })[0];
+            var big = sd ? sd.name + " " + won1(sd.price) : T("전국 ", "Korea ") + won1(nat && nat.price);
+            var small = (sd && nat ? T("전국 ", "Korea ") + won1(nat.price) + " · " : "") + (nat && nat.diff != null ? T("전날보다 ", "vs yesterday ") + (nat.diff > 0 ? "+" : "") + fmtNum(nat.diff, 2) + " · " : "")
+                + T("리터당 · 오피넷 ", "per liter · Opinet ") + (j.date || "");
+            outSet("fuOut", big, small);
+            (j.low || []).forEach(function (x, i) {
+                var li = document.createElement("li"), sp = document.createElement("span"), b = document.createElement("b"), a = document.createElement("a");
+                a.href = "https://map.kakao.com/link/search/" + encodeURIComponent(x.name || "");
+                a.target = "_blank"; a.rel = "noopener";
+                a.textContent = (i + 1) + ". " + (x.name || "-");
+                a.style.color = "var(--sky)";
+                sp.appendChild(a);
+                var sm = document.createElement("small");
+                sm.textContent = " " + [x.brand, x.addr].filter(Boolean).join(" · ");
+                sm.style.display = "block";
+                sp.appendChild(sm);
+                b.textContent = won1(x.price);
+                li.appendChild(sp); li.appendChild(b);
+                $("fuLow").appendChild(li);
+            });
+            if (fuSt.sido && !(j.low || []).length) $("fuLow").innerHTML = "";
+        }).catch(function () { outSet("fuOut", T("기름값을 받지 못했습니다 - 인터넷을 확인해 주세요", "Could not load prices - check your connection")); });
+    }
+    function fuKeep() { try { localStorage.setItem("rf-fuel", JSON.stringify(fuSt)); } catch (e) { /* 이번만 */ } }
+    $("fuProd").addEventListener("change", function () { fuSt.prod = this.value; fuKeep(); fuLoad(); });
+    $("fuSido").addEventListener("change", function () { fuSt.sido = this.value; fuKeep(); fuLoad(); });
+    $("t-fuel").addEventListener("toggle", function () { if (this.open) fuLoad(); });
+    if ($("t-fuel").open) fuLoad();
+
     $("t-tiger").addEventListener("toggle", function () { if (!this.open) tgStop(); });
 })();
