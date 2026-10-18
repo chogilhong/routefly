@@ -3357,6 +3357,8 @@
         var t = textLabel(v), tip = document.documentElement.lang === "en" ? "Text size " + Math.round(v * 100) + "% - tap for 100 → 120 → 140%"   // 영어 산 페이지(2026-10-15 PC)
             : "글자 크기 " + Math.round(v * 100) + "% - 누를 때마다 100 → 120 → 140%";
         Array.prototype.forEach.call(document.querySelectorAll(".rfTextBtn"), function (b) { b.textContent = t; b.title = tip; });
+        // 화면마다 크기를 다시 맞출 수 있게 알림(2026-10-18 PC: 별거 별거 카카오 창 - 단추 클릭은 stopPropagation 이라 document click 으로는 못 받음)
+        try { if (global.dispatchEvent && typeof Event === "function") global.dispatchEvent(new Event("rf-textscale")); } catch (e) { /* 옛 브라우저 */ }
     }
     /** 순수 함수 - 단추 글(100% 가 · 120% 가+ · 140% 가++). */
     function textLabel(v) { var a = LANG === "en" ? "A" : "가"; return v >= 1.4 ? a + "++" : v >= 1.2 ? a + "+" : a; }
