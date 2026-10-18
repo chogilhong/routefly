@@ -628,7 +628,7 @@
             if (h.pop != null) extra.push(T("비 올 확률 ", "rain ") + h.pop + "%");
             if (feel != null) extra.push(T("체감 ", "feels like ") + feel + "°");
             if (di) extra.push(T("불쾌지수 ", "discomfort ") + di.di);
-            outSet("wxNow", loc.name + " " + sky(h) + " " + (h.tmp != null ? h.tmp + "°C" : ""), extra.join(" · ") + T(" · 기상청 ", " · KMA ") + w.base + T(" 발표", " KST"));
+            outSet("wxNow", loc.name + " " + sky(h) + " " + (h.tmp != null ? h.tmp + T("℃", " °C") : ""), extra.join(" · ") + T(" · 기상청 ", " · KMA ") + w.base + T(" 발표", " KST"));
             w.hours.slice(1).filter(function (x) { return +x.t.slice(11, 13) % 3 === 0; }).slice(0, 8).forEach(function (x) {
                 var li = document.createElement("li"), sp = document.createElement("span"), b = document.createElement("b");
                 sp.textContent = (x.t.slice(0, 10) === h.t.slice(0, 10) ? "" : T("내일 ", "Tmrw ")) + (+x.t.slice(11, 13)) + T("시 ", ":00 ") + sky(x);
@@ -670,7 +670,7 @@
         var t = val("feT"), h = val("feH"), w = val("feW");
         if (t === "") return outSet("feOut");
         var lines = [], big = null;
-        if (w !== "") { var c = RF.windChill(+t, +w); big = c != null ? T("체감 ", "Feels like ") + c + "°C" : null; if (c == null) lines.push(T("체감온도는 10℃ 이하 · 바람 1.3m/s 이상일 때만", "Wind chill only at 10 °C or below with wind 1.3 m/s+")); }
+        if (w !== "") { var c = RF.windChill(+t, +w); big = c != null ? T("체감 " + c + "℃", "Feels like " + c + " °C") : null; if (c == null) lines.push(T("체감온도는 10℃ 이하 · 바람 1.3m/s 이상일 때만", "Wind chill only at 10 °C or below with wind 1.3 m/s+")); }
         if (h !== "" && +t >= 20) {   // 불쾌지수는 더울 때 말(20℃ 아래는 늘 낮음)
             var d = RF.discomfort(t, h);
             if (d) { var k = [T("낮음", "low"), T("보통", "moderate"), T("높음", "high"), T("매우 높음", "very high")][d.k]; if (big) lines.unshift(T("불쾌지수 ", "Discomfort ") + d.di + " (" + k + ")"); else big = T("불쾌지수 ", "Discomfort ") + d.di + " (" + k + ")"; }
