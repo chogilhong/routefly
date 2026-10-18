@@ -105,7 +105,7 @@
     try { batterySave = localStorage.getItem(BATTERY_KEY) === "1"; } catch (e) { /* 기본은 끔 */ }
     var BG = plugin("BackgroundGeolocation"), TTS = plugin("TextToSpeech"), FS = plugin("Filesystem"), SHARE = plugin("Share");
     var LN = plugin("LocalNotifications");
-    // 🏠 안부 · 늦은 귀가 알림을 누르면 안부 화면으로(앱은 늘 따라가기로 열림 - 2026-10-17)
+    // 🏠 안부 알림을 누르면 안부 화면으로(앱은 늘 따라가기로 열림 - 2026-10-17)
     if (LN && LN.addListener) Promise.resolve(LN.addListener("localNotificationActionPerformed", function (ev) {
         if (ev && ev.notification && ev.notification.extra && ev.notification.extra.page === "anbu" && !hike.running) location.href = "anbu.html";
     })).catch(function () { /* 옛 설치본 */ });   // 안전 알림 진동 · 소리(2026-10-17 홍TV님 폰: 화면이 꺼지면 웹뷰 navigator.vibrate 가 막힘) - 없는 옛 설치본이면 null
