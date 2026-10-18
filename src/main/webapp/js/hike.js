@@ -737,15 +737,17 @@
     $("name").parentNode.insertBefore(favBtn, $("name").nextSibling);
 
     /**
-     * 제목 앞 난이도(목록 · 산 페이지와 같은 기준 - 가장 가파른 1km 포함, 2026-10-18 PC: 코스 화면에는 안 나왔음). 좁은 머리글이라 앞에 둠(뒤는 잘릴 수 있음).
-     * 등산(hike · trek)만.
+     * 난이도(목록 · 산 페이지와 같은 기준 - 가장 가파른 1km 포함, 2026-10-18 PC: 코스 화면에는 안 나왔음) - 아래 기록 칸 "다음 지점" 줄 오른쪽(📋 옆).
+     * 위 제목 칸은 360px 폰에서 54px 뿐이라 칩을 넣으면 코스 이름이 통째로 가려졌음(2026-10-18 PC). 등산(hike · trek)만.
      */
     function nameLevel() {
+        var old = $("nextRow").querySelector(".nmLv");
+        if (old) old.remove();
         if (!c || !c.course || (c.course.kind !== "hike" && c.course.kind !== "trek")) return;
         var chip = RF.levelChip(c.total, c.asc && c.asc.length ? Math.round(c.asc[c.asc.length - 1]) : null, EN, RF.steepest(c.dist, c.ele));
         if (!chip) return;
         chip.classList.add("nmLv");
-        $("name").insertBefore(chip, $("name").firstChild);
+        $("nextRow").insertBefore(chip, $("boardOpen"));
     }
 
     function loadCourse(id) {

@@ -52,7 +52,7 @@ public class MissingPeaksTest {
         for (Peaks.Top t : Peaks.tops(p)) assertFalse("공식 높이로 바꾸는 정상에서 대암산은 뺌", "대암산".equals(t.name()));
         assertTrue(Peaks.tops(p).stream().anyMatch(t -> "천성산".equals(t.name())));
         String ko = MountainServlet.page(da, new ArrayList<>(), new ArrayList<>(), null, ""), en = MountainEn.page(da, new ArrayList<>(), new ArrayList<>(), null, "");
-        assertTrue(ko.contains("<p class=\"closedNote\">⛔ 정상 일대는 통제구역입니다.") && ko.contains("도장 자리 대암산 정상") && !ko.contains("정상 대암산 정상"));
+        assertTrue(ko.contains("<p class=\"closedNote\">⛔ 정상 일대는 통제구역이라 정상까지는 오를 수 없습니다.") && ko.contains("도장 자리 대암산 정상") && !ko.contains("정상 대암산 정상"));
         assertTrue(en.contains("<p class=\"closedNote\">⛔ The summit area is a restricted zone."));
         assertFalse(MountainServlet.page(cs, new ArrayList<>(), new ArrayList<>(), null, "").contains("closedNote"));
     }

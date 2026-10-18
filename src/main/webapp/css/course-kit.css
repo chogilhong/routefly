@@ -56,4 +56,4 @@
 .rf-legend { display:flex; flex-wrap:wrap; gap:4px 10px; margin-top:4px; font-size:12px; }
 .rf-legend i { font-style:normal; display:inline-flex; align-items:center; gap:4px; }
 .rf-legend i::before { content:""; width:18px; height:5px; border-radius:3px; background:var(--c); }
-.lv.nmLv { margin-right:5px; vertical-align:1px; }   /* 따라가기 제목 앞 난이도(2026-10-18) */
+.lv.nmLv { flex:0 0 auto; }   /* 따라가기 "다음 지점" 줄 오른쪽 난이도(2026-10-18 - 제목 칸은 좁아 옮김) */
