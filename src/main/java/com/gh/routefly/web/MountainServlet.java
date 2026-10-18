@@ -637,7 +637,7 @@ public class MountainServlet extends HttpServlet {
                         JsonObject sr = e.getAsJsonObject();
                         String q = str(sr, "prefix") != null ? "prefix=" + enc(str(sr, "prefix")) : "trail=" + enc(str(sr, "match") != null ? str(sr, "match") : str(sr, "name"));
                         b.append("<li><a href=\"").append(REL).append("/route.html?").append(esc(q)).append("&amp;name=").append(esc(enc(str(sr, "name"))))
-                                .append("&amp;back=m\">").append(esc(str(sr, "name")))
+                                .append("&amp;back=m&amp;lang=ko\">").append(esc(str(sr, "name")))
                                 .append(sr.has("km") ? " <small>" + sr.get("km").getAsInt() + "km</small>" : "").append("</a></li>");
                     }
                 }

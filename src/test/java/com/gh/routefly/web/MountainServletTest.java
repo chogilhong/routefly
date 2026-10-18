@@ -89,7 +89,7 @@ public class MountainServletTest {
         assertTrue("100대 명산은 산 페이지로", idx.contains(">a&lt;b</a>"));
         assertTrue("등산 · 걷기 · 자전거 접는 칸", idx.contains("<span class=\"ft\">⛰️ 등산</span><span class=\"fs\">100대 명산</span>")
                 && idx.contains("<span class=\"ft\">🥾 걷기</span><span class=\"fs\">국가숲길 · 코리아둘레길</span>") && idx.contains("<span class=\"ft\">🚴 자전거</span>"));
-        assertTrue("길은 노선 안내도로(돌아오기 back=m)", idx.contains("href=\"../route.html?prefix=kmf-9900000006-&amp;name=%EC%A7%80%EB%A6%AC%EC%82%B0%EB%91%98%EB%A0%88%EA%B8%B8&amp;back=m\">지리산둘레길 <small>289km</small>"));
+        assertTrue("길은 노선 안내도로(돌아오기 back=m)", idx.contains("href=\"../route.html?prefix=kmf-9900000006-&amp;name=%EC%A7%80%EB%A6%AC%EC%82%B0%EB%91%98%EB%A0%88%EA%B8%B8&amp;back=m&amp;lang=ko\">지리산둘레길 <small>289km</small>"));
         assertTrue("코리아둘레길은 trail=(match)", idx.contains("route.html?trail=DMZ%ED%8F%89%ED%99%94%EC%9D%98%EA%B8%B8&amp;"));
         assertTrue(MountainServlet.notFoundPage("<x>", "").contains("&lt;x&gt;"));
         assertEquals("45분", MountainServlet.hours(3000, null));
