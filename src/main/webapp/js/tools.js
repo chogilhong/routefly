@@ -72,6 +72,14 @@
             row.appendChild(sp); row.appendChild(b); row.appendChild(bt);
             out.appendChild(row);
         });
+        // 📋 모두 복사 - "우편번호 23310 / 도로명 … / 영문 …" 여러 줄을 한 번에(2026-10-18 홍TV님 "주소 카피할 수 있어?")
+        var all = document.createElement("button"), text = rows.filter(function (r) { return r[1]; }).map(function (r) { return r[0] + " " + r[1]; }).join("\n");
+        all.type = "button";
+        all.className = "btn";
+        all.style.marginTop = "10px";
+        all.textContent = T("📋 모두 복사", "📋 Copy all");
+        all.addEventListener("click", function () { copy(text); });
+        out.appendChild(all);
         out.style.display = "block";
         $("pcBox").style.display = "none";
         $("pcBtn").textContent = T("🔍 다른 주소 찾기", "🔍 Find another address");
