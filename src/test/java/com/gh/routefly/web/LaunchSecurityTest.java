@@ -26,6 +26,8 @@ public class LaunchSecurityTest {
         assertTrue(SecurityFilter.CSP.contains("object-src 'none'"));
         // 🧰 별거 별거만 카카오 우편번호 스크립트 더 허용(2026-10-18)
         assertTrue(SecurityFilter.cspFor("/tools.html").contains("script-src 'self' https://*.daumcdn.net;"));
+        assertTrue("PC http 에서도 우편번호 창", SecurityFilter.cspFor("/tools.html").contains("frame-src 'self' https: http://postcode.map.kakao.com http://postcode.map.daum.net;"));
+        assertFalse(SecurityFilter.CSP.contains("frame-src"));
         assertEquals("다른 화면은 그대로", SecurityFilter.CSP, SecurityFilter.cspFor("/hike.html"));
         assertEquals(SecurityFilter.CSP, SecurityFilter.cspFor("/tools.html/x"));
         assertFalse(SecurityFilter.CSP_TOOLS.matches(".*script-src[^;]*'unsafe-(inline|eval)'.*"));

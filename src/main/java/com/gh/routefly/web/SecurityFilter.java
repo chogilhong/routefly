@@ -42,9 +42,11 @@ public class SecurityFilter extends HttpFilter {
 
     /**
      * 🧰 별거 별거(tools.html - 2026-10-18 홍TV님)만 카카오(다음) 우편번호 스크립트(*.daumcdn.net)를 더 허용. 다른 화면은 {@link #CSP} 그대로.
-     * 우편번호 화면 자체는 iframe(postcode.map.kakao.com 등)이라 default-src https: 로 열림.
+     * 우편번호 화면 자체는 iframe(postcode.map.kakao.com 등) - frame-src.
      */
-    static final String CSP_TOOLS = CSP.replace("script-src 'self';", "script-src 'self' https://*.daumcdn.net;");
+    static final String CSP_TOOLS = CSP.replace("script-src 'self';", "script-src 'self' https://*.daumcdn.net; "
+            // postcode.v2.js 가 창 주소를 "//postcode.map.kakao.com" 처럼 써서 http(PC localhost)에서는 창도 http - 그 두 곳만 더(2026-10-18 PC). https 서버 · 앱은 https
+            + "frame-src 'self' https: http://postcode.map.kakao.com http://postcode.map.daum.net;");
 
     /** 순수 함수 - 이 경로에 줄 CSP. */
     static String cspFor(String path) {
