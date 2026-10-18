@@ -109,10 +109,11 @@ public class SteepRankTest {
         assertTrue("산 페이지 링크", ko.contains("href=\"../m/" + MountainServlet.enc("백운산(정선)") + "\">백운산(정선)</a>"));
         assertTrue("높이 · 코스 수", ko.contains("884m · 코스 1"));
         assertTrue("가장 가파른 코스는 이름 아래", ko.contains("가장 가파른 문희마을 → 정상 &lt;a&gt; 16.7°</small>"));
-        assertTrue("각도 · 경사 · 가파른 1km", ko.contains(">16.7°<") && ko.contains(">30.0%<") && ko.contains(">45.0%<"));
+        assertTrue("각도 · 경사 · 가파른 1km", ko.contains("<b>16.7°</b><small>경사 30.0%</small><small class=\"s1\">1km 45.0%</small>"));
         assertTrue("이름은 이스케이프", ko.contains("&lt;a&gt;") && !ko.contains("<a>"));
         String en = SteepRank.html(SteepRank.rank(peaks, m), true);
-        assertTrue(en.contains("🧗 Steepest mountains") && en.contains("Steepest 1 km"));
+        assertTrue(en.contains("🧗 Steepest mountains") && en.contains("<small>grade 30.0%</small><small class=\"s1\">1 km 45.0%</small>"));
+        assertFalse("3칸 - 수치는 한 칸에(360px · 가++ · 영어에서 잘렸음)", ko.contains("<th class=\"n\">경사") || en.contains("<th class=\"n\">Grade"));
         assertTrue("영어 이름 · slug 링크", en.contains("href=\"" + Roman.slug("백운산(정선)") + "\">" + MountainEn.name(peaks.get(0).getAsJsonObject()) + "</a>"));
         assertTrue(en.contains("884m · 1 trail"));
         assertFalse("영어판에 한국어 설명 없음", en.contains("정상 해발"));

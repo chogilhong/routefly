@@ -752,6 +752,7 @@ eq("lateAt 1.5배 · 적어도 1시간 더", [RF.lateAt(0, 4 * 3600000) / 360000
 })();
 eq("nextTextScale 100 → 120 → 140 → 100", [RF.nextTextScale(1), RF.nextTextScale(1.2), RF.nextTextScale(1.4), RF.nextTextScale(7)], [1.2, 1.4, 1, 1]);
 eq("textLabel 가 · 가+ · 가++", [RF.textLabel(1), RF.textLabel(1.2), RF.textLabel(1.4)], ["가", "가+", "가++"]);
+eq("textLabel 영어 화면(/en/m/ - html lang=en)은 A", [RF.textLabel(1, true), RF.textLabel(1.4, true), RF.textLabel(1.4, false)], ["A", "A++", "가++"]);
 (function () {
     // 지리산 벽소령 V 자: A 는 벽소령에서 끝, B 는 벽소령 남쪽 120m 에서 시작해 벽소령을 지나 북쪽으로
     var lines = { a: [[127.640, 35.326], [127.6422, 35.3260]], b: [[127.6429, 35.3250], [127.6425, 35.3256], [127.6423, 35.3261], [127.6420, 35.3280], [127.6418, 35.3300]] };

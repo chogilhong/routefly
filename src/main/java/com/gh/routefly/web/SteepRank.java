@@ -107,32 +107,32 @@ final class SteepRank {
         StringBuilder b = new StringBuilder("<section id=\"steep\"><details class=\"fold kind\" name=\"kind\"><summary><span class=\"ft\">")
                 .append(en ? "🧗 Steepest mountains" : "🧗 가파른 산 순위").append("</span><span class=\"fs\">")
                 .append(en ? "Top 10 · angle · grade · steepest 1 km" : "TOP10 · 각도 · 경사 · 가파른 1km").append("</span><span class=\"fa\">▾</span></summary><div class=\"fb\">");
+        // 3칸(# · 산 · 수치) - 수치는 한 칸에 세로로. 5칸이면 360px · 가++ · 영어에서 오른쪽이 잘렸음(2026-10-18 PC)
+        String grade = en ? "grade " : "경사 ";
         b.append("<h3 class=\"stCap\">").append(en ? "Steepest on average" : "평균이 가장 가파른 산").append("</h3><div class=\"stWrap\"><table class=\"stT\"><thead><tr><th>#</th><th>")
-                .append(en ? "Mountain · steepest trail" : "산 · 가장 가파른 코스").append("</th><th class=\"n\">").append(en ? "Avg angle" : "평균 각도").append("</th><th class=\"n\">")
-                .append(en ? "Grade" : "경사").append("</th></tr></thead><tbody>");
+                .append(en ? "Mountain · steepest trail" : "산 · 가장 가파른 코스").append("</th><th class=\"n\">").append(en ? "Avg angle" : "평균 각도").append("</th></tr></thead><tbody>");
         int i = 0;
         for (Row x : r.avg) {
             b.append("<tr><td class=\"rk\">").append(++i).append("</td><td>").append(peak(x, en, rel)).append("<small>").append(String.format(Locale.ROOT, "%,dm", x.elev))
-                    .append(en ? " · " + x.count + (x.count == 1 ? " trail" : " trails") : " · 코스 " + x.count).append("</small><small class=\"cr\">")   // 360px - 5칸이면 코스 칸이 너무 좁아 이름 아래로
-                    .append(en ? "Steepest: " : "가장 가파른 ").append(course(x, en)).append(String.format(Locale.ROOT, " %.1f°", x.deg)).append("</small></td><td class=\"n\">")
-                    .append(String.format(Locale.ROOT, "%.1f°", x.avgDeg)).append("</td><td class=\"n\">").append(String.format(Locale.ROOT, "%.1f%%", pct(x.avgDeg))).append("</td></tr>");
+                    .append(en ? " · " + x.count + (x.count == 1 ? " trail" : " trails") : " · 코스 " + x.count).append("</small><small class=\"cr\">")
+                    .append(en ? "Steepest: " : "가장 가파른 ").append(course(x, en)).append(String.format(Locale.ROOT, " %.1f°", x.deg)).append("</small></td><td class=\"n\"><b>")
+                    .append(String.format(Locale.ROOT, "%.1f°", x.avgDeg)).append("</b><small>").append(grade).append(String.format(Locale.ROOT, "%.1f%%", pct(x.avgDeg))).append("</small></td></tr>");
         }
         b.append("</tbody></table></div>");
         b.append("<h3 class=\"stCap\">").append(en ? "Steepest single trail" : "가장 가파른 코스를 가진 산").append("</h3><div class=\"stWrap\"><table class=\"stT\"><thead><tr><th>#</th><th>")
-                .append(en ? "Mountain · trail" : "산 · 코스").append("</th><th class=\"n\">").append(en ? "Angle" : "각도").append("</th><th class=\"n\">")
-                .append(en ? "Grade" : "경사").append("</th><th class=\"n\">").append(en ? "Steepest 1 km" : "가파른 1km").append("</th></tr></thead><tbody>");
+                .append(en ? "Mountain · trail" : "산 · 코스").append("</th><th class=\"n\">").append(en ? "Angle" : "각도").append("</th></tr></thead><tbody>");
         i = 0;
         for (Row x : r.steepest) {
             b.append("<tr><td class=\"rk\">").append(++i).append("</td><td>").append(peak(x, en, rel)).append("<small>").append(String.format(Locale.ROOT, "%,dm", x.elev))
-                    .append(" · ").append(course(x, en)).append("</small></td><td class=\"n\">").append(String.format(Locale.ROOT, "%.1f°", x.deg)).append("</td><td class=\"n\">")
-                    .append(String.format(Locale.ROOT, "%.1f%%", pct(x.deg))).append("</td><td class=\"n\">")
-                    .append(x.steep1km != null ? String.format(Locale.ROOT, "%.1f%%", x.steep1km) : "-").append("</td></tr>");
+                    .append(" · ").append(course(x, en)).append("</small></td><td class=\"n\"><b>").append(String.format(Locale.ROOT, "%.1f°", x.deg)).append("</b><small>")
+                    .append(grade).append(String.format(Locale.ROOT, "%.1f%%", pct(x.deg))).append("</small>")
+                    .append(x.steep1km != null ? "<small class=\"s1\">" + (en ? "1 km " : "1km ") + String.format(Locale.ROOT, "%.1f%%", x.steep1km) + "</small>" : "").append("</td></tr>");
         }
         b.append("</tbody></table></div><p class=\"dim\">").append(en
                 ? "Peaks 500 m and higher. Trails of 1 km or more that reach the summit; angle = total ascent ÷ distance (whole trail), grade = rise per 100 m. "
-                        + "The steepest 1 km is the steepest stretch of that trail. Short sections are much steeper than the average."
+                        + "1 km is the grade of the steepest 1 km stretch of that trail. Short sections are much steeper than the average."
                 : "정상 해발 500m 이상 산, 정상까지 가는 1km 이상 코스. 각도는 오르막 총량 ÷ 코스 거리(코스 전체 평균), 경사는 100m 가는 동안 오르는 높이. "
-                        + "가파른 1km 는 그 코스에서 가장 가파른 1km 구간 - 짧은 구간은 평균보다 훨씬 가파릅니다.")
+                        + "1km 는 그 코스에서 가장 가파른 1km 구간의 경사 - 짧은 구간은 평균보다 훨씬 가파릅니다.")
                 .append("</p></div></details></section>");
         return b.toString();
     }
