@@ -748,42 +748,91 @@
         outSet("ldOut", ld.names.map(function (nm, i) { return nm + " → " + ld.res[RF.ladderTrace(ld.rungs, i).end]; }).join("  ·  "));
     });
 
-    // ── 🐯 호랑이 소리(합성 - 녹음 아님): 낮은 톱니파가 오르내리며 떨리고(으르렁), 거친 소음을 섞음 ──
-    var tgIv = null;
+    // ── 🐯 호랑이 소리(합성 - 녹음 아님). 2026-10-18 홍TV님 "전혀 호랑이 같지 않아" → 다시: 목청 떨림(불규칙한 성대 박동 · 반 박자 어긋남 = 거친 소리),
+    //    낮게 시작해 올랐다가 길게 내려앉는 높이, 입이 "아 → 우" 로 바뀌는 울림(포먼트), 거친 숨소리, 숲 울림(메아리) ──
+    var tgIv = null, tgBuf = null;
+    function roarBuffer(c) {
+        var sr = c.sampleRate, dur = 2.6, n = Math.floor(sr * dur), d = new Float32Array(n);
+        function f0(t) {   // 높이(Hz): 95 → 0.35초 160 → 0.9초 175 → 끝 62
+            return t < 0.35 ? 95 + (160 - 95) * t / 0.35 : t < 0.9 ? 160 + 15 * (t - 0.35) / 0.55 : 175 - (175 - 62) * Math.pow((t - 0.9) / (dur - 0.9), 0.8);
+        }
+        function env(t) {   // 세기: 빠르게 치솟고 0.7초에 한 번 더 부풀었다가 길게 잦아듦
+            var a = t < 0.12 ? t / 0.12 : 1;
+            var swell = 1 + 0.35 * Math.exp(-Math.pow((t - 0.7) / 0.25, 2));
+            var rel = t > 1.3 ? Math.exp(-(t - 1.3) * 2.2) : 1;
+            return a * swell * rel;
+        }
+        var ph = 0, k = 0, jit = 0, amp = 1, t = 0;
+        for (var i2 = 0; i2 < n; i2++) {
+            t = i2 / sr;
+            var f = f0(t) * (1 + jit);
+            ph += f / sr;
+            if (ph >= 1) {   // 성대 한 번 닫힘 - 다음 박동은 높이 · 세기가 조금씩 어긋남(지터 · 쉬머), 하나 걸러 약하게(아래 배음 - 으르렁)
+                ph -= 1; k++;
+                jit = Math.max(-0.12, Math.min(0.12, jit * 0.7 + (Math.random() - 0.5) * 0.09));
+                var rough = 0.25 + 0.35 * Math.exp(-Math.pow((t - 0.8) / 0.5, 2));
+                amp = (0.75 + Math.random() * 0.5) * (k % 2 ? 1 - rough : 1);
+            }
+            var g = ph < 0.55 ? Math.sin(Math.PI * ph / 0.55) : 0;   // 성대가 열린 동안만 소리(펄스)
+            var pulse = (ph < 0.55 ? Math.cos(Math.PI * ph / 0.55) : 0) * amp;   // 흐름의 변화(밝은 버즈)
+            var breath = (Math.random() * 2 - 1) * (0.35 + 0.5 * g);
+            d[i2] = (pulse * 0.9 + breath * 0.45) * env(t);
+        }
+        var b = c.createBuffer(1, n, sr);
+        b.copyToChannel ? b.copyToChannel(d, 0) : b.getChannelData(0).set(d);
+        return b;
+    }
+    function forestVerb(c) {   // 숲 울림 - 잦아드는 잡음(1.2초)
+        var n = Math.floor(c.sampleRate * 1.2), b = c.createBuffer(2, n, c.sampleRate);
+        for (var ch = 0; ch < 2; ch++) { var x = b.getChannelData(ch); for (var i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3); }
+        var v = c.createConvolver(); v.buffer = b; return v;
+    }
+    // 실제 녹음(백두산 호랑이 - 아무르호랑이, 자유 이용 허락된 것만 sounds/tiger-roar.mp3)이 있으면 그것을 먼저. 없으면 합성(2026-10-18)
+    var tgRec = null, tgRecTried = false;
+    function loadRec(c, cb) {
+        if (tgRecTried) return cb();
+        tgRecTried = true;
+        fetch("sounds/tiger-roar.mp3").then(function (r) { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+            .then(function (ab) { return new Promise(function (ok, no) { c.decodeAudioData(ab, ok, no); }); })
+            .then(function (b) { tgRec = b; cb(); }, function () { cb(); });
+    }
     function roar() {
         var c = audio();
         if (!c) return toast(T("이 브라우저는 소리를 낼 수 없습니다", "This browser cannot play sound"));
-        var t0 = c.currentTime + 0.05, dur = 2.6;
-        var out = c.createGain(), comp = c.createDynamicsCompressor();
-        out.gain.setValueAtTime(0.0001, t0);
-        out.gain.exponentialRampToValueAtTime(1, t0 + 0.35);
-        out.gain.setValueAtTime(1, t0 + 1.4);
-        out.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-        out.connect(comp); comp.connect(c.destination);
-        var shaper = c.createWaveShaper(), curve = new Float32Array(1024);
-        for (var i = 0; i < 1024; i++) { var x = i / 512 - 1; curve[i] = Math.tanh(3 * x); }
-        shaper.curve = curve;
-        var lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.setValueAtTime(500, t0); lp.frequency.linearRampToValueAtTime(1100, t0 + 0.6); lp.frequency.linearRampToValueAtTime(350, t0 + dur); lp.Q.value = 4;
-        shaper.connect(lp); lp.connect(out);
-        [[1, 0.6], [1.5, 0.3], [2.02, 0.25]].forEach(function (h) {   // 낮은 소리 + 배음
-            var o = c.createOscillator(), g = c.createGain();
-            o.type = "sawtooth";
-            o.frequency.setValueAtTime(70 * h[0], t0); o.frequency.linearRampToValueAtTime(125 * h[0], t0 + 0.7); o.frequency.linearRampToValueAtTime(60 * h[0], t0 + dur);
-            g.gain.value = h[1];
-            o.connect(g); g.connect(shaper);
-            o.start(t0); o.stop(t0 + dur + 0.1);
+        if (!tgRecTried) return loadRec(c, roar);
+        if (tgRec) {
+            var rs = c.createBufferSource(), rg = c.createGain();
+            rs.buffer = tgRec; rg.gain.value = 1;
+            rs.connect(rg); rg.connect(c.destination);
+            rs.start(c.currentTime + 0.02);
+            return;
+        }
+        tgBuf = tgBuf || roarBuffer(c);
+        var t0 = c.currentTime + 0.05, src = c.createBufferSource(), mix = c.createGain(), comp = c.createDynamicsCompressor(), dry = c.createGain(), wet = c.createGain(), verb = forestVerb(c);
+        src.buffer = tgBuf;
+        src.playbackRate.value = 0.94 + Math.random() * 0.12;   // 울 때마다 조금 다르게
+        // 입 울림(포먼트) 셋 - 입을 크게 벌렸다(아) 오므림(우): F1 350 → 700 → 380, F2 1100 → 1300 → 800
+        [[350, 700, 380, 6, 1.0], [1100, 1300, 800, 7, 0.55], [2500, 2600, 2300, 9, 0.22]].forEach(function (fm) {
+            var bp = c.createBiquadFilter(), g = c.createGain();
+            bp.type = "bandpass"; bp.Q.value = fm[3];
+            bp.frequency.setValueAtTime(fm[0], t0);
+            bp.frequency.linearRampToValueAtTime(fm[1], t0 + 0.45);
+            bp.frequency.linearRampToValueAtTime(fm[2], t0 + 2.4);
+            g.gain.value = fm[4] * 3;
+            src.connect(bp); bp.connect(g); g.connect(mix);
         });
-        var trem = c.createOscillator(), tg = c.createGain();   // 으르렁 떨림(초당 약 28번)
-        trem.frequency.setValueAtTime(22, t0); trem.frequency.linearRampToValueAtTime(32, t0 + dur);
-        tg.gain.value = 0.45;
-        trem.connect(tg); tg.connect(out.gain);
-        trem.start(t0); trem.stop(t0 + dur + 0.1);
-        var nb = c.createBuffer(1, Math.floor(c.sampleRate * (dur + 0.1)), c.sampleRate), nd = nb.getChannelData(0), last = 0;
-        for (var k = 0; k < nd.length; k++) { last = (last + 0.04 * (Math.random() * 2 - 1)) / 1.04; nd[k] = last * 3.5; }   // 거친(갈색) 소음 - 숨소리
-        var ns = c.createBufferSource(), ng = c.createGain();
-        ns.buffer = nb; ng.gain.value = 0.9;
-        ns.connect(ng); ng.connect(shaper);
-        ns.start(t0);
+        var body = c.createBiquadFilter(); body.type = "lowpass"; body.frequency.value = 260; body.Q.value = 1.2;   // 가슴 울림(낮은 소리)
+        var bg = c.createGain(); bg.gain.value = 1.3;
+        src.connect(body); body.connect(bg); bg.connect(mix);
+        var shaper = c.createWaveShaper(), curve = new Float32Array(2048);
+        for (var i = 0; i < 2048; i++) { var x = i / 1024 - 1; curve[i] = Math.tanh(2.2 * x); }
+        shaper.curve = curve;
+        mix.gain.value = 0.6;
+        mix.connect(shaper);
+        dry.gain.value = 1; wet.gain.value = 0.35;
+        shaper.connect(dry); shaper.connect(verb); verb.connect(wet);
+        dry.connect(comp); wet.connect(comp); comp.connect(c.destination);
+        src.start(t0);
     }
     function tgStop() {
         clearInterval(tgIv); tgIv = null;
