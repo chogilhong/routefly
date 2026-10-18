@@ -2786,14 +2786,11 @@
     function pickHome() {
         var box = $("pickList"), favs = RF.favList();
         box.innerHTML = PICK_HINT;
-        // 🏠 오늘의 안부(2026-10-17 홍TV님 - 혼자 사는 분 · 늦은 귀가) - 첫 화면에서 바로
-        var ab = document.createElement("a");
-        ab.className = "it guide";
-        ab.href = "anbu.html";
-        ab.innerHTML = "<b></b><span></span>";
-        ab.firstChild.textContent = T("🏠 오늘의 안부", "🏠 Daily check-in");
-        ab.lastChild.textContent = T("하루 한 번 '잘 지내요' · 늦은 귀가 안심 - 보호자에게 문자", "Tap \"I'm fine\" once a day · getting home safe - text your guardian");
-        box.appendChild(ab);
+        // 🔮 오늘의 산행 한마디(코스 모음 /m/ 과 같은 글 - 2026-10-18 홍TV님: 🏠 오늘의 안부는 코스 모음으로 옮기고 이 자리에)
+        var td = new Date(), fn = document.createElement("div");
+        fn.className = "msg sec fortune";
+        secHead(fn, T("🔮 오늘의 산행 한마디", "🔮 Today's trail fortune"), RF.fortuneDay(td.getFullYear(), td.getMonth() + 1, td.getDate(), EN ? "en" : "ko"));
+        box.appendChild(fn);
         // 📥 오프라인 저장한 코스 - 통신이 없어도 열면 저장한 범위의 지도가 보입니다
         var offIds = offlineIds(), names = offlineNames();
         if (offIds.length) {

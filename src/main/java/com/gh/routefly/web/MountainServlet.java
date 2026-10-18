@@ -644,7 +644,8 @@ public class MountainServlet extends HttpServlet {
             }
             b.append("</div></details>");
         }
-        b.append("</div><section id=\"fun\" class=\"fun\" hidden></section>")   // 🔮 재미로 보는 오늘의 산행 한마디(js/mountain.js - 2026-10-17 홍TV님)
+        b.append("</div><section id=\"fun\" class=\"fun\" hidden></section>")
+                .append("<a class=\"anbuLink\" href=\"").append(REL).append("/anbu.html\">🏠 오늘의 안부 <small>하루 한 번 '잘 지내요' · 보호자에게 문자 · 매일 알림</small> ›</a>")   // 2026-10-18 홍TV님 - 따라가기 첫 화면에서 옮김   // 🔮 재미로 보는 오늘의 산행 한마디(js/mountain.js - 2026-10-17 홍TV님)
                 .append(foot(base, REL + "/en/m/"));
         return b.toString();
     }

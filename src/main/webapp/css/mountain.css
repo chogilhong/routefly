@@ -82,6 +82,9 @@ ul { margin:0; padding:0; list-style:none; }
 .fun { margin:14px 0 4px; padding:12px 14px; border:1px dashed var(--ln); border-radius:12px; }   /* 🔮 재미로 보는 한마디(2026-10-17) */
 .fun .fl { font-size:16px; margin:4px 0; }
 .fun small { color:var(--dim); }
+.anbuLink { display:block; margin:10px 0 4px; padding:12px 14px; border-radius:12px; background:rgba(74,222,128,0.10); border:1px solid rgba(74,222,128,0.45);
+            color:var(--tx); text-decoration:none; font-weight:bold; font-size:16px; }   /* 🏠 오늘의 안부(2026-10-18) - 한마디 아래 */
+.anbuLink small { display:block; font-weight:normal; font-size:13px; color:var(--dim); margin-top:2px; }
 #weekend .fb { padding:4px 0 10px; }
 #weekend .wday { margin:10px 0 4px; font-size:14px; }
 #weekend .wreg { margin:6px 0 10px; font-size:13.5px; color:var(--dim); }

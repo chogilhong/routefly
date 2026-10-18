@@ -769,21 +769,23 @@
     }
 
     /**
-     * 순수 함수 - 안부 알림 일정(앱 알림): 오늘부터 days 일, 날마다 정한 시각(hhmm "10:00") · 2시간 뒤 · 4시간 뒤 세 번.
-     * 오늘 이미 확인했으면(checkedDay === 오늘) 오늘 것은 빼고, 지난 시각도 뺌. → [{id, at, k(0 · 1 · 2), day}] - id 7100 + 날 × 3 + k.
+     * 순수 함수 - 안부 알림 일정(앱 알림): 오늘부터 days 일, 날마다 정한 시각(hhmm "10:00")과 2시간 · 4시간 뒤.
+     * repeat5 면 정한 시각부터 1시간 동안 5분마다 더(2026-10-18 홍TV님 - '5분마다 다시 울림'). 오늘 이미 확인했으면(checkedDay === 오늘) 오늘 것은 빼고,
+     * 지난 시각도 뺌. → [{id, at, k(0 처음 · 1 다시 · 2 네 시간 뒤), day}] - id 7100 + 날 × 16 + 차례(앱 알림 번호).
      */
-    function anbuPlan(nowMs, hhmm, checkedDay, days) {
+    function anbuPlan(nowMs, hhmm, checkedDay, days, repeat5) {
         var m = /^(\d{1,2}):(\d{2})$/.exec(hhmm || ""), out = [];
         if (!m) return out;
+        var mins = repeat5 ? [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 120, 240] : [0, 120, 240];
         for (var i = 0; i < (days || 7); i++) {
             var d = new Date(nowMs);
             d.setDate(d.getDate() + i);
             d.setHours(+m[1], +m[2], 0, 0);
             var day = dayKey(d.getTime());
             if (day === checkedDay) continue;
-            [0, 2, 4].forEach(function (h, k) {
-                var at = d.getTime() + h * 3600000;
-                if (at > nowMs) out.push({ id: 7100 + i * 3 + k, at: at, k: k, day: day });
+            mins.forEach(function (mn, n) {
+                var at = d.getTime() + mn * 60000;
+                if (at > nowMs) out.push({ id: 7100 + i * 16 + n, at: at, k: mn === 0 ? 0 : mn === 240 ? 2 : 1, day: day });
             });
         }
         return out;
@@ -797,15 +799,9 @@
                ["안부 확인이 4시간째 없어요", "눌러서 확인해 주세요. 도움이 필요하면 보호자에게 연락하세요."]][k];
     }
 
-    /**
-     * 순수 함수 - 보호자에게 보낼 문자. kind "ok"(잘 지내요) · "help"(도움이 필요해요) · "home"(집에 도착) ·
-     * "leave"(늦은 귀가 출발 - clock 은 도착 예정, call 은 그때까지 문자가 없으면 전화해 달라는 시각).
-     */
-    function anbuSms(kind, clock, en, call) {
-        if (kind === "leave") return en ? "[routefly] Heading home now - I should be home by " + clock + ". I'll text you when I arrive. If you haven't heard from me by " + call + ", please call me."
-            : "[routefly] 지금 집으로 가요. " + clock + " 쯤 도착할 예정이에요. 도착하면 문자할게요. " + call + " 까지 문자가 없으면 전화해 주세요.";
-        if (en) return kind === "help" ? "[routefly check-in] I need help. Please contact me." : kind === "home" ? "[routefly] I'm home safe (" + clock + ")." : "[routefly check-in] I'm fine today 😊 (" + clock + ")";
-        return kind === "help" ? "[routefly 안부] 도움이 필요해요. 연락 주세요." : kind === "home" ? "[routefly] 집에 잘 도착했어요(" + clock + ")." : "[routefly 안부] 오늘도 잘 지내요 😊(" + clock + ")";
+    /** 순수 함수 - 보호자에게 보낼 "잘 지내요" 문자. */
+    function anbuSms(clock, en) {
+        return en ? "[routefly check-in] I'm fine today 😊 (" + clock + ")" : "[routefly 안부] 오늘도 잘 지내요 😊(" + clock + ")";
     }
 
     /** 순수 함수 - 전화번호 정리(숫자 · + 만, 8 ~ 15자리). 아니면 "". */

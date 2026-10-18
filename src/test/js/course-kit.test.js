@@ -1010,9 +1010,11 @@ eq("핸드폰에서만 열리는 송금 링크", [RF.mobileOnlyUrl("https://qr.k
     var now = new Date(2026, 9, 17, 9, 0).getTime(), today = RF.dayKey(now);
     var p = RF.anbuPlan(now, "10:00", null, 2), p2 = RF.anbuPlan(now, "10:00", today, 2), late = RF.anbuPlan(new Date(2026, 9, 17, 13, 0).getTime(), "10:00", null, 1);
     eq("anbuPlan", [today, p.length, p[0].id, new Date(p[0].at).getHours(), new Date(p[2].at).getHours(), p2.length, p2[0].day !== today, late.length, late[0].k,
-        RF.anbuPlan(now, "10시", null, 2).length, RF.telClean("010-1234-5678"), RF.telClean("119"), RF.anbuSms("ok", "10:05"), RF.anbuText(1)[0], RF.anbuSms("leave", "23:00", false, "23:30")],
-        ["2026-10-17", 6, 7100, 10, 14, 3, true, 1, 2, 0, "01012345678", "", "[routefly 안부] 오늘도 잘 지내요 😊(10:05)", "아직 오늘 안부 확인이 없어요",
-        "[routefly] 지금 집으로 가요. 23:00 쯤 도착할 예정이에요. 도착하면 문자할게요. 23:30 까지 문자가 없으면 전화해 주세요."]);
+        RF.anbuPlan(now, "10시", null, 2).length, RF.telClean("010-1234-5678"), RF.telClean("119"), RF.anbuSms("10:05"), RF.anbuText(1)[0]],
+        ["2026-10-17", 6, 7100, 10, 14, 3, true, 1, 2, 0, "01012345678", "", "[routefly 안부] 오늘도 잘 지내요 😊(10:05)", "아직 오늘 안부 확인이 없어요"]);
+    var r5 = RF.anbuPlan(now, "10:00", null, 1, true);   // 5분마다 다시 울림 - 1시간 동안 12번 + 2 · 4시간 뒤
+    eq("anbuPlan 5분마다", [r5.length, new Date(r5[1].at).getMinutes(), r5.map(function (x) { return x.k; }).join(""), r5[13].id, new Set(r5.map(function (x) { return x.id; })).size],
+        [14, 5, "01111111111112", 7113, 14]);
 })();
 eq("telFormat", ["01012345678", "010-1234-5678", "010-", "010", "0101", "0101234", "01012345", "0101234567", "0212345678", "021234567", "0311234567", "010123456789"].map(RF.telFormat),
     ["010-1234-5678", "010-1234-5678", "010", "010", "010-1", "010-123-4", "010-123-45", "010-123-4567", "02-1234-5678", "02-123-4567", "031-123-4567", "010-1234-5678"]);

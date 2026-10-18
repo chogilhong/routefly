@@ -1,8 +1,7 @@
 /*
  * 🏠 오늘의 안부(anbu.html - 2026-10-17 홍TV님): 혼자 사는 분 · 늦은 귀가를 위한 가벼운 안부 확인. 서버 없이 이 핸드폰에서만.
  *   - 하루 한 번 "오늘도 잘 지내요" → 오늘 확인(rf-anbu.log), 켜 두면 보호자에게 보낼 문자를 내 문자 앱으로 열어 줌(보내기는 사람이)
- *   - 앱(Capacitor LocalNotifications): 정한 시각 · 2시간 뒤 · 4시간 뒤 알림(RF.anbuPlan). 오늘 확인하면 오늘 남은 알림은 지움
- *   - 늦은 귀가: 도착 예정 시각 · 30분 뒤 알림, "집에 왔어요" 로 끝
+ *   - 앱(Capacitor LocalNotifications): 정한 시각 · 2시간 뒤 · 4시간 뒤 알림(5분마다 다시 울림을 켜면 처음 1시간은 5분마다 - RF.anbuPlan). 오늘 확인하면 오늘 남은 알림은 지움
  *   - 119 자동 신고는 하지 않음(기술로도 막혀 있고 잘못된 신고가 생김) - 큰 119 전화 단추만
  */
 (function () {
@@ -16,16 +15,17 @@
     if (EN) { document.documentElement.lang = "en"; document.title = "routefly - Daily check-in"; RF.applyEn(document); }
     // 가 · A 글자 크기(2026-10-18 홍TV님 - 어르신은 글자가 작아 못 봄). 누를 때마다 100 → 120 → 140%, 모든 화면이 같은 설정
     document.getElementById("top").appendChild(RF.textButton());
+    if (EN) document.getElementById("backLink").setAttribute("href", "en/m/");
 
     var KEY = "rf-anbu";
-    var st = { on: false, time: "10:00", gName: "", gTel: "", sms: true, log: [], late: null };   // on - 설정을 저장한 뒤부터 매일 알림
+    var st = { on: false, time: "10:00", gName: "", gTel: "", sms: true, rep5: false, log: [] };   // on - 설정을 저장한 뒤부터 매일 알림
     try { var s0 = JSON.parse(lsGet(KEY) || "null"); if (s0) for (var k in s0) if (Object.prototype.hasOwnProperty.call(st, k)) st[k] = s0[k]; } catch (e) { /* 처음 */ }
     function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) { /* 저장 공간 */ } }
 
     // 앱 알림(Capacitor - 서버 주소를 띄우는 앱이라 registerPlugin 이 없음, hike.js 와 같게 Plugins 에서)
     var CAP = window.Capacitor, NATIVE = !!(CAP && CAP.isNativePlatform && CAP.isNativePlatform());
     var LN = NATIVE && (!CAP.isPluginAvailable || CAP.isPluginAvailable("LocalNotifications")) && CAP.Plugins && CAP.Plugins.LocalNotifications || null;
-    var CH = "rf-anbu", LATE_IDS = [7130, 7131];
+    var CH = "rf-anbu";
 
     function toast(t, ms) {
         var el = $("toast");
@@ -39,25 +39,19 @@
     function today() { return RF.dayKey(Date.now()); }
     function checkedToday() { var l = st.log[st.log.length - 1]; return l && l.day === today() ? l : null; }
 
-    /** 앱 알림 다시 맞춤 - 안부(7일 치) · 늦은 귀가. 앱이 아니면 아무것도 안 함. */
+    /** 앱 알림 다시 맞춤 - 안부(7일 치). 앱이 아니면 아무것도 안 함. */
     function reschedule() {
         if (!LN) return Promise.resolve();
         var ids = [];
-        for (var i = 0; i < 21; i++) ids.push({ id: 7100 + i });
+        for (var i = 7100; i < 7232; i++) ids.push({ id: i });   // 7일 × 16 + 예전 늦은 귀가(7130 · 7131)
         return Promise.resolve(LN.createChannel({ id: CH, name: T("routefly 안부 확인", "routefly check-in"), importance: 5, visibility: 1, vibration: true })).catch(function () { /* 이미 있음 */ })
-            .then(function () { return Promise.resolve(LN.cancel({ notifications: ids.concat(LATE_IDS.map(function (id) { return { id: id }; })) })).catch(function () { /* 없음 */ }); })
+            .then(function () { return Promise.resolve(LN.cancel({ notifications: ids })).catch(function () { /* 없음 */ }); })
             .then(function () {
-                var c = checkedToday(), plan = st.on ? RF.anbuPlan(Date.now(), st.time, c ? c.day : null, 7) : [];
+                var c = checkedToday(), plan = st.on ? RF.anbuPlan(Date.now(), st.time, c ? c.day : null, 7, st.rep5) : [];
                 var list = plan.map(function (p) {
                     var tx = RF.anbuText(p.k, EN);
                     return { id: p.id, title: tx[0], body: tx[1], schedule: { at: new Date(p.at), allowWhileIdle: true }, channelId: CH, extra: { page: "anbu" } };
                 });
-                if (st.late && !st.late.home && st.late.at > Date.now() - 1800000) {
-                    if (st.late.at > Date.now()) list.push({ id: LATE_IDS[0], title: T("🌙 집에 도착하셨나요?", "🌙 Are you home?"), body: T("도착했으면 눌러서 '집에 왔어요' 를 알려 주세요.", "Tap and press \"I'm home\"."),
-                        schedule: { at: new Date(st.late.at), allowWhileIdle: true }, channelId: CH, extra: { page: "anbu" } });
-                    list.push({ id: LATE_IDS[1], title: T("아직 집 도착 확인이 없어요", "Still no \"I'm home\""), body: T("괜찮으면 눌러 주세요. 도움이 필요하면 친구 · 가족에게 연락하세요.", "Tap if you are fine. If you need help, contact a friend or family."),
-                        schedule: { at: new Date(st.late.at + 1800000), allowWhileIdle: true }, channelId: CH, extra: { page: "anbu" } });
-                }
                 if (!list.length) return null;
                 return Promise.resolve(LN.requestPermissions()).catch(function () { return null; })
                     .then(function () { return LN.schedule({ notifications: list }); });
@@ -79,13 +73,11 @@
         $("log").textContent = last.length ? T("최근 확인: ", "Recent: ") + last.join(" · ") : "";
         // 📞 보호자에게 전화(2026-10-18 홍TV님 - 119 처럼 누르면 전화 걸기 화면). 번호가 없으면 설정으로
         $("helpCall").href = st.gTel ? "tel:" + st.gTel : "#settings";
-        var L = st.late;
-        $("lateState").textContent = !L ? "" : L.home ? T("🏠 " + clock(L.home) + " 집 도착 확인", "🏠 Home at " + clock(L.home))
-            : T("도착 예정 " + clock(L.at) + " - 도착하면 '집에 왔어요' 를 눌러 주세요", "Expected home " + clock(L.at) + " - tap \"I'm home\" when you arrive");
         timeSel.set.time(st.time);
         $("gName").value = st.gName;
         $("gTel").value = RF.telFormat(st.gTel);
         $("smsOn").checked = !!st.sms;
+        $("rep5").checked = !!st.rep5;
     }
 
     $("okBtn").addEventListener("click", function () {
@@ -103,11 +95,11 @@
         // 오늘 이미 확인했으면 문자는 물어보고(2026-10-18 PC: 다시 누를 때마다 문자가 또 열렸음 - 여러 번 누르는 어르신)
         if (c) {
             if (st.sms && confirm(T("오늘은 이미 안부를 남겼어요(" + clock(c.t) + "). 보호자에게 문자를 다시 보낼까요?", "Already checked in today (" + clock(c.t) + "). Text your guardian again?")))
-                location.href = smsHref(st.gTel, RF.anbuSms("ok", clock(now), EN));
+                location.href = smsHref(st.gTel, RF.anbuSms(clock(now), EN));
             return;
         }
         toast(T("😊 고맙습니다. 오늘 안부를 남겼어요.", "😊 Thanks! Checked in for today."));
-        if (st.sms) location.href = smsHref(st.gTel, RF.anbuSms("ok", clock(now), EN));
+        if (st.sms) location.href = smsHref(st.gTel, RF.anbuSms(clock(now), EN));
     });
     $("saveBtn").addEventListener("click", function () {
         var tel = $("gTel").value.trim();
@@ -116,35 +108,11 @@
         st.gName = $("gName").value.trim().slice(0, 20);
         st.gTel = RF.telClean(tel);
         st.sms = $("smsOn").checked;
+        st.rep5 = $("rep5").checked;
         st.on = true;
         save();
         draw();
         reschedule().then(function () { toast(LN ? T("저장했습니다. 매일 " + st.time + " 에 알림이 울립니다.", "Saved. Reminder every day at " + st.time + ".") : T("저장했습니다.", "Saved.")); });
-    });
-    $("lateSet").addEventListener("click", function () {
-        var v = $("lateAt").value;
-        if (!/^\d{1,2}:\d{2}$/.test(v)) { toast(T("도착 예정 시각을 고르세요.", "Pick your expected home time.")); return; }
-        var d = new Date(), p = v.split(":");
-        d.setHours(+p[0], +p[1], 0, 0);
-        if (d.getTime() < Date.now() - 600000) d.setDate(d.getDate() + 1);   // 지난 시각이면 내일(밤 12시를 넘는 귀가)
-        st.late = { at: d.getTime(), home: null, told: true };
-        save();
-        draw();
-        reschedule();
-        toast(T("🌙 " + clock(st.late.at) + " 까지 '집에 왔어요' 를 기다릴게요.", "🌙 Waiting for \"I'm home\" by " + clock(st.late.at) + "."));
-        // 출발 문자(2026-10-17 홍TV님) - 받은 사람은 "도착" 문자가 안 오면 전화. 보호자 번호가 없으면 문자 앱에서 받는 사람을 고름
-        location.href = smsHref(st.gTel, RF.anbuSms("leave", clock(st.late.at), EN, clock(st.late.at + 1800000)));
-    });
-    $("lateHome").addEventListener("click", function () {
-        if (!st.late) st.late = { at: Date.now(), home: null };
-        var told = !!st.late.told && !st.late.home;
-        st.late.home = Date.now();
-        save();
-        draw();
-        reschedule();
-        toast(T("🏠 잘 도착하셨어요.", "🏠 Glad you're home."));
-        // 출발 문자를 보냈으면 도착 문자는 바로(받은 사람이 기다림), 아니면 물어봄
-        if (told || (st.sms && st.gTel && confirm(T("보호자에게 '집에 잘 도착했어요' 문자를 보낼까요?", "Text your guardian that you're home?")))) location.href = smsHref(st.gTel, RF.anbuSms("home", clock(Date.now()), EN));
     });
 
     /** 시 · 분 선택 상자 - 숨긴 입력(id)에 "HH:MM" 을 맞춤. 분은 5분 단위(지금 값이 5분 단위가 아니면 그 값도). */
@@ -174,14 +142,11 @@
     }
     timeSel.set = {};
     timeSel("time");
-    timeSel("lateAt");
-    // 늦은 귀가 처음 값 - 지금부터 1시간 뒤(5분 단위)
-    (function () { var d = new Date(Math.ceil((Date.now() + 3600000) / 300000) * 300000); timeSel.set.lateAt(d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0")); })();
-    // 설정 초기화(2026-10-18 홍TV님) - 시각 · 보호자 · 안부 기록 · 늦은 귀가를 지우고 앱 알림도 끔
+    // 설정 초기화(2026-10-18 홍TV님) - 시각 · 보호자 · 안부 기록을 지우고 앱 알림도 끔
     $("resetBtn").addEventListener("click", function () {
-        if (!confirm(T("안부 설정을 처음으로 되돌릴까요?\n보호자 이름 · 번호, 안부 기록, 늦은 귀가, 매일 알림이 모두 지워집니다.",
-            "Reset check-in settings?\nGuardian name and number, check-in history, getting-home timer and daily reminders will be cleared."))) return;
-        st = { on: false, time: "10:00", gName: "", gTel: "", sms: true, log: [], late: null };
+        if (!confirm(T("안부 설정을 처음으로 되돌릴까요?\n보호자 이름 · 번호, 안부 기록, 매일 알림이 모두 지워집니다.",
+            "Reset check-in settings?\nGuardian name and number, check-in history and daily reminders will be cleared."))) return;
+        st = { on: false, time: "10:00", gName: "", gTel: "", sms: true, rep5: false, log: [] };
         try { localStorage.removeItem(KEY); } catch (e) { /* 이번만 */ }
         reschedule();   // on 이 꺼져 매일 알림은 지우기만 함
         draw();
