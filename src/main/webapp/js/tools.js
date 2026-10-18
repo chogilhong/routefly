@@ -835,17 +835,18 @@
         src.start(t0);
     }
     function tgStop() {
-        clearTimeout(tgIv); tgIv = null;
+        clearInterval(tgIv); tgIv = null;
         $("tgLoop").classList.remove("on");
         $("tgLoop").textContent = T("🔁 계속", "🔁 Keep roaring");
     }
     $("tgOne").addEventListener("click", roar);
     $("tgLoop").addEventListener("click", function () {
         if (tgIv) return tgStop();
+        // 녹음(0.9초)이면 2초마다, 합성(2.6초)이면 4초마다(2026-10-18 PC: 녹음은 짧아 3초쯤 조용했음).
+        // 간격은 울릴 때마다 다시 봄 - 첫 클릭 때는 녹음을 받는 중이라(tgRec 없음) 첫 간격만 4초가 되던 것(2026-10-18 PC)
+        var last = Date.now();
         roar();
-        (function again() {   // 녹음(0.9초)이면 2초마다, 합성(2.6초)이면 4초마다(2026-10-18 PC: 녹음은 짧아 3초쯤 조용했음)
-            tgIv = setTimeout(function () { roar(); again(); }, tgRec ? 2000 : 4000);
-        })();
+        tgIv = setInterval(function () { if (Date.now() - last >= (tgRec ? 2000 : 4000)) { last = Date.now(); roar(); } }, 100);
         this.classList.add("on");
         this.textContent = T("⏹ 멈춤", "⏹ Stop");
     });
