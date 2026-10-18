@@ -117,6 +117,8 @@ h2.grp { margin:22px 2px 0; font-size:14px; color:var(--dim); font-weight:bold; 
 .gcl input { width:22px; height:22px; flex:0 0 auto; margin-top:1px; }
 .gcl small { display:block; color:var(--dim); font-size:13px; margin-top:2px; }
 .gcl li.done span { opacity:0.55; text-decoration:line-through; }
+.sfl li.bad span { color:#ff8787; font-weight:bold; }
+.sfl li.mid span { color:#ffd43b; }
 #toast { position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom) + 24px); transform:translateX(-50%); max-width:90%; background:rgba(0,0,0,0.85);
          color:#fff; padding:10px 16px; border-radius:12px; font-size:15px; display:none; z-index:9; text-align:center; }
 </style>
@@ -367,6 +369,14 @@ h2.grp { margin:22px 2px 0; font-size:14px; color:var(--dim); font-weight:bold; 
         <ul id="gcList" class="gcl"></ul>
         <div class="row"><button type="button" class="btn2" id="gcReset" data-en="Uncheck all">모두 풀기</button></div>
         <p class="tip" id="gcCount"></p>
+    </div></details>
+    <details class="tool" id="t-safe"><summary data-en="🛟 Today's hiking safety">🛟 오늘의 산행 안전</summary><div class="tb">
+        <div class="row"><button type="button" class="btn2" id="sfHere" data-en="📍 My location">📍 내 위치로</button><button type="button" class="btn2" id="sfSeoul" data-en="Seoul">서울로</button></div>
+        <div class="out" id="sfHead"></div>
+        <ul id="sfList" class="wl sfl"></ul>
+        <h3 style="font-size:16px;margin:16px 0 0" data-en="🏥 Nearest emergency rooms">🏥 가까운 응급실</h3>
+        <ul id="sfEr" class="wl"></ul>
+        <p class="tip" data-en="Weather warnings and UV: Korea Meteorological Administration. Wildfire risk: Korea Forest Service. Emergency rooms: National Medical Center. The region is taken from the nearest emergency room's address. In an emergency call 119.">기상특보 · 자외선은 기상청, 산불위험은 산림청, 응급실은 국립중앙의료원 자료입니다. 지역(시도)은 가장 가까운 응급실 주소로 정합니다. 위급하면 119 에 먼저 전화하세요.</p>
     </div></details>
     <details class="tool" id="t-cmp"><summary data-en="🧭 Compass">🧭 나침반</summary><div class="tb">
         <button type="button" class="btn" id="cmpBtn" data-en="Turn on compass">나침반 켜기</button>
