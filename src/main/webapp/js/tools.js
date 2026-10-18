@@ -83,7 +83,11 @@
             box.innerHTML = "";
             box.style.display = "block";
             $("pcOut").style.display = "none";
-            new window.daum.Postcode({ oncomplete: showAddr, width: "100%", height: "100%" }).embed(box, { autoClose: false });
+            var z = document.createElement("div");
+            z.className = "zoom";
+            box.appendChild(z);
+            // 영문 주소를 처음부터 함께(alwaysShowEngAddr), "영문보기" 단추는 숨김(hideEngBtn) - 2026-10-18 홍TV님
+            new window.daum.Postcode({ oncomplete: showAddr, width: "100%", height: "100%", alwaysShowEngAddr: true, hideEngBtn: true }).embed(z, { autoClose: false });
         });
     });
 
