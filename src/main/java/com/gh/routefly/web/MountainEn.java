@@ -219,6 +219,11 @@ final class MountainEn {
 
     /** 순수 함수 - 영어 목록(/en/m/): 로마자 차례, 한글 이름 · 좌표(내 근처 찾기 - js/mountain-en.js), 아래에 걷기 · 자전거 길(groups - data/series.json). */
     static String indexPage(JsonArray peaks, JsonArray groups, String base) {
+        return indexPage(peaks, groups, base, "");
+    }
+
+    /** steep - 🧗 Steepest mountains(SteepRank.html, 없으면 ""). */
+    static String indexPage(JsonArray peaks, JsonArray groups, String base, String steep) {
         String desc = "Hiking trails, weather and sunrise for all " + peaks.size() + " of Korea's 100 Famous Mountains (Korea Forest Service) - "
                 + "Seoraksan, Jirisan, Hallasan, Bukhansan and more. Preview trails in 3D and follow them on your phone.";
         StringBuilder b = new StringBuilder(head("Korea's 100 Famous Mountains - Hiking Trails", desc, base + "/en/m/", base + "/m/", base));
@@ -276,7 +281,7 @@ final class MountainEn {
             }
             b.append("</div></details>");
         }
-        b.append("</div>");
+        b.append("</div>").append(steep);
         b.append("<p class=\"dim\">Trail and bike path maps show every section with checkpoints; place names on the map are in Korean.</p>");
         b.append(tips());
         return b.append("<section id=\"fun\" class=\"fun\" hidden></section>")

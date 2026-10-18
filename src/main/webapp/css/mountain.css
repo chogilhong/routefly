@@ -130,3 +130,16 @@ ul { margin:0; padding:0; list-style:none; }
 .cmpT th { color:var(--dim); font-weight:normal; width:28%; }
 .cmpT th.a, .cmpT th.b { color:var(--tx); font-weight:bold; width:auto; }
 .cmpCap { margin:10px 0 4px; font-weight:bold; font-size:13.5px; }
+/* 🧗 가파른 산 순위(SteepRank - 2026-10-18 홍TV님): 360px 에서 가로로 다 보이게 5칸, 높이 · 코스는 이름 아래 작은 글씨 */
+#steep .fb { padding:4px 0 10px; }
+.stCap { margin:12px 0 4px; font-size:14.5px; }
+.stWrap { overflow-x:auto; }
+.stT { width:100%; border-collapse:collapse; font-size:13.5px; }
+.stT th, .stT td { padding:6px 4px; border-top:1px solid var(--ln); text-align:left; vertical-align:top; word-break:keep-all; }
+.stT small { overflow-wrap:anywhere; }   /* 산 이름은 통째로, 높이 · 코스 줄만 아무 데서나 줄바꿈 */
+.stT small.cr { color:var(--tx); opacity:.8; }
+.stT th { color:var(--dim); font-weight:normal; font-size:12px; border-top:0; }
+.stT .n { text-align:right; white-space:nowrap; }
+.stT .rk { color:var(--dim); width:1.6em; }
+.stT a { font-weight:bold; }
+.stT small { display:block; font-size:12px; color:var(--dim); margin-top:1px; }

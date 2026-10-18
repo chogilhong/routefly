@@ -72,7 +72,7 @@ public class MountainServlet extends HttpServlet {
         if (name.isEmpty()) {
             resp.setHeader("Cache-Control", "public, max-age=600");   // 10분 - 1시간이면 배포한 문구가 늦게 보였음(2026-10-17 PC)
             // ?open=peaks - 산 페이지의 "‹ 코스 모음" 으로 오면 등산 › 100대 명산을 펼친 채(2026-10-15 홍TV님)
-            resp.getWriter().print(indexPage(all, seriesGroups(), base, "peaks".equals(req.getParameter("open"))));
+            resp.getWriter().print(indexPage(all, seriesGroups(), base, "peaks".equals(req.getParameter("open")), SteepRank.html(steepRank(all), false)));
             return;
         }
         List<JsonObject> same = byName(all, name);
@@ -98,7 +98,7 @@ public class MountainServlet extends HttpServlet {
     private void english(String key, JsonArray all, String base, HttpServletResponse resp) throws IOException {
         if (key.isEmpty()) {
             resp.setHeader("Cache-Control", "public, max-age=600");   // 10분 - 1시간이면 배포한 문구가 늦게 보였음(2026-10-17 PC)
-            resp.getWriter().print(MountainEn.indexPage(all, seriesGroups(), base));
+            resp.getWriter().print(MountainEn.indexPage(all, seriesGroups(), base, SteepRank.html(steepRank(all), true)));
             return;
         }
         JsonObject peak = MountainEn.find(all, key);
@@ -112,6 +112,39 @@ public class MountainServlet extends HttpServlet {
         if (failed) courses = new ArrayList<>();
         resp.setHeader("Cache-Control", failed ? "no-store" : "public, max-age=600");
         resp.getWriter().print(MountainEn.page(peak, courses, nearby(all, peak, NEARBY_MAX, NEARBY_M), parking(courses), base));
+    }
+
+    /** 🧗 가파른 산 순위(SteepRank) - 산 98곳의 코스가 필요해 뒤에서 셈하고 6시간 담아 둠. 처음 셈하는 동안은 표 없이 보냄. */
+    private static final long STEEP_TTL_MS = 6 * 60 * 60 * 1000L, STEEP_RETRY_MS = 10 * 60 * 1000L;
+    private volatile SteepRank.Result steepRank;
+    private volatile long steepNext;
+    private final java.util.concurrent.atomic.AtomicBoolean steepBusy = new java.util.concurrent.atomic.AtomicBoolean();
+
+    private SteepRank.Result steepRank(JsonArray all) {
+        if (System.currentTimeMillis() >= steepNext && steepBusy.compareAndSet(false, true)) {
+            Thread t = new Thread(() -> {
+                try {
+                    java.util.Map<String, List<JsonObject>> map = new java.util.HashMap<>();
+                    for (JsonElement e : all) {
+                        JsonObject p = e.getAsJsonObject();
+                        List<JsonObject> cs = courses(p);
+                        if (cs != null) map.put(MountainEn.id(p), cs);
+                    }
+                    boolean ok = !all.isEmpty() && map.size() * 10 >= all.size() * 8;   // 8할 넘게 읽혀야(DB 가 안 되면 다음에)
+                    if (ok) steepRank = SteepRank.rank(all, map);
+                    steepNext = System.currentTimeMillis() + (ok ? STEEP_TTL_MS : STEEP_RETRY_MS);
+                    log.info("[MOUNTAIN] 가파른 산 순위 {} - 코스 읽은 산 {}/{}", ok ? "셈함" : "미룸", map.size(), all.size());
+                } catch (Exception ex) {
+                    steepNext = System.currentTimeMillis() + STEEP_RETRY_MS;
+                    log.warn("[MOUNTAIN] 가파른 산 순위 실패 - {}", ex.toString());
+                } finally {
+                    steepBusy.set(false);
+                }
+            }, "steep-rank");
+            t.setDaemon(true);
+            t.start();
+        }
+        return steepRank;
     }
 
     /** 산마다 코스 목록 10분 담아 둠(2026-10-16 속도 점검 - 검색 로봇이 산 페이지 196쪽을 훑을 때 DB · 경사 계산을 줄임). 산 id → [시각, 목록]. */
@@ -586,6 +619,11 @@ public class MountainServlet extends HttpServlet {
      * 접는 칸은 &lt;details&gt; - 스크립트 없이 열리고 검색 엔진도 안을 읽음. groups 는 data/series.json 의 groups(못 읽으면 빈 것).
      */
     static String indexPage(JsonArray peaks, JsonArray groups, String base, boolean openPeaks) {
+        return indexPage(peaks, groups, base, openPeaks, "");
+    }
+
+    /** steep - 🧗 가파른 산 순위 칸(SteepRank.html, 없으면 ""). 접는 칸들 아래 · 안전 팁 위. */
+    static String indexPage(JsonArray peaks, JsonArray groups, String base, boolean openPeaks, String steep) {
         StringBuilder b = new StringBuilder(head("100대 명산 · 둘레길 · 자전거길 코스", "산림청 100대 명산 " + peaks.size()
                 + "곳의 등산코스 · 날씨 · 일출 일몰과 백두대간 · 국가숲길 · 코리아둘레길 · 국토종주 자전거길 노선. 3D 지형 위로 미리 날아 보고 핸드폰으로 따라 걷기.", base + "/m/", base, base + "/en/m/"));
         // 맨 위 로고(img/logo-dark.svg - 2026-10-14 홍TV님), 누르면 따라가기
@@ -645,7 +683,7 @@ public class MountainServlet extends HttpServlet {
             }
             b.append("</div></details>");
         }
-        b.append("</div>").append(tips()).append("<section id=\"fun\" class=\"fun\" hidden></section>")
+        b.append("</div>").append(steep).append(tips()).append("<section id=\"fun\" class=\"fun\" hidden></section>")
                 .append("<a class=\"anbuLink\" href=\"").append(REL).append("/anbu.html?lang=ko\">🏠 오늘의 안부 <small>하루 한 번 '잘 지내요' · 보호자에게 문자 · 매일 알림</small> ›</a>")
                 .append("<a class=\"anbuLink toolLink\" href=\"").append(REL).append("/tools.html?lang=ko\">🧰 별거 별거 <small>우편번호 · 환율 · 음력 · 날씨 · 이자 · 타이머 · 지하철 노선도 · 공휴일 · 기름값 · 물때 · 돋보기 · 약 알림 · 산행 안전 등 32가지</small> ›</a>")   // 2026-10-18 홍TV님   // 2026-10-18 홍TV님 - 따라가기 첫 화면에서 옮김   // 🔮 재미로 보는 오늘의 산행 한마디(js/mountain.js - 2026-10-17 홍TV님)
                 .append(foot(base, REL + "/en/m/"));
