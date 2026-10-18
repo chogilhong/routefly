@@ -1095,8 +1095,5 @@
     }
     $("ydOne").addEventListener("click", function () { yodelPlay("yodel"); });
     $("ydJungle").addEventListener("click", function () { yodelPlay("jungle"); });
-    $("ydEcho").addEventListener("click", function () {
-        ydEcho = !ydEcho;
-        this.textContent = ydEcho ? T("메아리 켬", "Echo: on") : T("메아리 끔", "Echo: off");
-    });
+    $("ydEcho").addEventListener("change", function () { ydEcho = this.checked; });   // 체크 칸(2026-10-18 홍TV님: "켬 · 끔" 단추가 계속 울리는 것처럼 헷갈림)
 })();
