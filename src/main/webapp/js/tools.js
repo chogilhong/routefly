@@ -77,6 +77,20 @@
         $("pcBtn").textContent = T("🔍 다른 주소 찾기", "🔍 Find another address");
         out.scrollIntoView({ block: "nearest" });
     }
+    /**
+     * 카카오 창 배율(2026-10-18 PC): 창 안에 min-width 300px 이 있어 1.2배로 고정하면 좁은 폭에서 오른쪽이 잘림 →
+     * 상자 폭 / 300 까지만(최대 1.2), 좁은 폰(480px 아래)은 상자를 화면 폭 가득. 상자 높이 = 450 × 배율.
+     */
+    function fitZoom() {
+        var box = $("pcBox"), z = box.querySelector(".zoom");
+        if (!z || box.style.display === "none") return;
+        box.classList.toggle("wide", innerWidth < 480);
+        var sc = Math.max(1, Math.min(1.2, box.clientWidth / 300));
+        z.style.width = (100 / sc) + "%";
+        z.style.transform = sc > 1 ? "scale(" + sc + ")" : "";
+        box.style.height = Math.round(450 * sc) + "px";
+    }
+    window.addEventListener("resize", fitZoom);
     $("pcBtn").addEventListener("click", function () {
         loadPostcode(function () {
             var box = $("pcBox");
@@ -86,6 +100,7 @@
             var z = document.createElement("div");
             z.className = "zoom";
             box.appendChild(z);
+            fitZoom();
             // 영문 주소를 처음부터 함께(alwaysShowEngAddr), "영문보기" 단추는 숨김(hideEngBtn) - 2026-10-18 홍TV님
             new window.daum.Postcode({ oncomplete: showAddr, width: "100%", height: "100%", alwaysShowEngAddr: true, hideEngBtn: true }).embed(z, { autoClose: false });
         });
