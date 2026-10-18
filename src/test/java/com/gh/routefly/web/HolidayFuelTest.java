@@ -45,4 +45,24 @@ public class HolidayFuelTest {
         assertEquals("https://www.opinet.co.kr/api/lowTop10.do?out=json&code=k%2B1&prodcd=B027", FuelServlet.url(FuelServlet.DEFAULT_URL, "lowTop10.do", "&prodcd=B027", "k+1"));
         assertEquals("S-OIL", FuelServlet.BRANDS.get("SOL"));
     }
+
+    /** 물때 - 칸 이름은 PC 조사(공공데이터포털 15156018 Swagger, 2026-10-18), 값은 지어낸 것. 실제 응답(tide/)이 오면 그것으로 다시 확인. */
+    @Test
+    public void tideParse() {
+        String two = "{\"header\":{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL\"},\"body\":{\"items\":{\"item\":["
+                + "{\"obsvtrNm\":\"지점\",\"predcDt\":\"2026-10-18 04:10\",\"predcTdlvVl\":\"612\",\"extrSe\":\"1\"},"
+                + "{\"obsvtrNm\":\"지점\",\"predcDt\":\"2026-10-18 10:30\",\"predcTdlvVl\":\"88\",\"extrSe\":\"2\"}]},\"totalCount\":2}}";
+        JsonObject p = TideServlet.parse(two);
+        assertEquals("지점", p.get("name").getAsString());
+        assertEquals(2, p.getAsJsonArray("tides").size());
+        assertTrue(p.getAsJsonArray("tides").get(0).getAsJsonObject().get("high").getAsBoolean());
+        assertFalse(p.getAsJsonArray("tides").get(1).getAsJsonObject().get("high").getAsBoolean());
+        assertEquals(88.0, p.getAsJsonArray("tides").get(1).getAsJsonObject().get("cm").getAsDouble(), 1e-9);
+        assertEquals("response 로 감싼 모양 · item 하나", 1, TideServlet.parse("{\"response\":{\"header\":{\"resultCode\":\"00\"},\"body\":{\"items\":{\"item\":"
+                + "{\"predcDt\":\"2026-10-18 16:40\",\"predcTdlvVl\":600,\"extrSe\":\"3\"}}}}}").getAsJsonArray("tides").size());
+        assertEquals("자료 없음(3)", 0, TideServlet.parse("{\"header\":{\"resultCode\":\"3\",\"resultMsg\":\"NO DATA\"}}").getAsJsonArray("tides").size());
+        assertNull("잘못된 값(10)", TideServlet.parse("{\"header\":{\"resultCode\":\"10\"}}"));
+        assertNull(TideServlet.parse("<xml/>"));
+        assertTrue(TideServlet.url("https://x/S", "k+1", "DT_0018", java.time.LocalDate.of(2026, 10, 18)).endsWith("?serviceKey=k%2B1&obsCode=DT_0018&reqDate=20261018&type=json&pageNo=1&numOfRows=20"));
+    }
 }

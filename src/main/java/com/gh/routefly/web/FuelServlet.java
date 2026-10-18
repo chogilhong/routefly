@@ -35,6 +35,8 @@ public class FuelServlet extends HttpServlet {
             Map.entry("SOL", "S-OIL"), Map.entry("RTO", "알뜰(자영)"), Map.entry("RTX", "알뜰(고속도로)"), Map.entry("NHO", "알뜰(농협)"), Map.entry("ETC", "자가상표"),
             Map.entry("E1G", "E1"), Map.entry("SKG", "SK가스"));
     private static final OpenApi.Cache<JsonArray> CACHE = new OpenApi.Cache<>(100, 60L * 60 * 1000);
+    /** 못 받은 호출은 10분 동안 다시 묻지 않음(빈 배열로 표시 - HolidayServlet 과 같은 까닭). */
+    private static final OpenApi.Cache<Boolean> FAILED = new OpenApi.Cache<>(100, 10L * 60 * 1000);
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -95,11 +97,13 @@ public class FuelServlet extends HttpServlet {
         long now = System.currentTimeMillis();
         JsonArray hit = CACHE.get(k, now);
         if (hit != null) return hit;
+        if (FAILED.get(k, now) != null) return null;
         String u = RouteflyConfig.get("opinet.url");
         String text = OpenApi.get(url(u != null ? u : DEFAULT_URL, what, query, key), "FUEL");
         JsonArray a = text == null ? null : oil(text);
         if (a == null && text != null) OpenApi.warn("FUEL", text);
         if (a != null) CACHE.put(k, a, now);
+        else FAILED.put(k, Boolean.TRUE, now);
         return a;
     }
 

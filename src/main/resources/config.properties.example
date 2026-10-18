@@ -79,6 +79,8 @@ site.baseUrl=
 #   공휴일: 한국천문연구원_특일 정보(SpcdeInfoService) - 비우면 tour.serviceKey 를 씀(같은 개인 키, 공공데이터포털에서 활용 신청만 따로).
 #           신청 전이거나 키가 없으면 별거 별거의 공휴일 칸에 "받을 수 없음" 이 보임.
 #holiday.serviceKey=
+#   물때: 해양수산부 국립해양조사원_조석예보(고, 저조)(공공데이터포털 15156018) - 비우면 tour.serviceKey(같은 키, 활용 신청만 따로).
+#tide.serviceKey=
 #   기름값: 한국석유공사 오피넷 무료 API(opinet.co.kr 에서 따로 받는 키). 없으면 기름값 칸에 "받을 수 없음".
 #opinet.key=
-#   holiday.url · opinet.url : 주소를 바꿀 때만(기본 SpcdeInfoService getRestDeInfo · https://www.opinet.co.kr/api/)
+#   holiday.url · tide.url · opinet.url : 주소를 바꿀 때만(기본 SpcdeInfoService getRestDeInfo · tideFcstHghLw GetTideFcstHghLwApiService · https://www.opinet.co.kr/api/)

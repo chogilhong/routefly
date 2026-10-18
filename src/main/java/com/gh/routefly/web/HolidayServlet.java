@@ -19,7 +19,7 @@ import com.google.gson.JsonParser;
  *
  * <ul>
  *   <li>인증키 {@code holiday.serviceKey}, 없으면 {@code tour.serviceKey}(공공데이터포털 개인 키는 같고 활용 신청만 따로).</li>
- *   <li>달마다 한 번씩 12번 묻고 해마다 12시간 담아 둠. 키가 없거나 다 실패하면 {@code {success:true, days:[], unavailable:true}}.</li>
+ *   <li>달마다 한 번씩 12번 묻고 해마다 12시간 담아 둠. 키가 없거나 한 달이라도 실패하면 {@code {success:true, days:[], unavailable:true}} - 이것은 10분 담아 둠.</li>
  * </ul>
  * → {@code {success, year, days:[{date:"2026-10-03", name:"개천절"}], source:"한국천문연구원"}} (날짜 차례)
  */
@@ -30,6 +30,8 @@ public class HolidayServlet extends HttpServlet {
 
     static final String DEFAULT_URL = "https://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getRestDeInfo";
     private static final OpenApi.Cache<JsonObject> CACHE = new OpenApi.Cache<>(20, 12L * 60 * 60 * 1000);
+    /** 못 받았을 때 10분 동안 다시 묻지 않음(2026-10-18 PC: 활용 신청 전에는 칸을 열 때마다 12번 · WARN 12줄). */
+    private static final OpenApi.Cache<JsonObject> FAILED = new OpenApi.Cache<>(20, 10L * 60 * 1000);
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -45,9 +47,10 @@ public class HolidayServlet extends HttpServlet {
     static JsonObject year(int y) {
         long now = System.currentTimeMillis();
         JsonObject out = CACHE.get(String.valueOf(y), now);
+        if (out == null) out = FAILED.get(String.valueOf(y), now);
         if (out == null) {
             out = fetch(y);
-            if (!out.has("unavailable")) CACHE.put(String.valueOf(y), out, now);
+            (out.has("unavailable") ? FAILED : CACHE).put(String.valueOf(y), out, now);
         }
         return out;
     }
@@ -58,15 +61,15 @@ public class HolidayServlet extends HttpServlet {
         if (key == null) return unavailable(y);
         String u = RouteflyConfig.get("holiday.url");
         JsonArray days = new JsonArray();
-        int ok = 0;
         for (int m = 1; m <= 12; m++) {
             String text = OpenApi.get(url(u != null ? u : DEFAULT_URL, key, y, m), "HOLIDAY");
             JsonArray d = text == null ? null : items(text);
-            if (d == null) { if (text != null) OpenApi.warn("HOLIDAY", text); continue; }
-            ok++;
+            if (d == null) {   // 한 달이라도 빠지면 틀린 목록이 되므로 바로 멈추고 10분 뒤 다시(키 오류면 나머지 달도 같음)
+                if (text != null) OpenApi.warn("HOLIDAY", text);
+                return unavailable(y);
+            }
             d.forEach(days::add);
         }
-        if (ok < 12) return unavailable(y);   // 한 달이라도 빠지면 틀린 목록이 되므로 다음에 다시
         JsonObject out = new JsonObject();
         out.addProperty("success", true);
         out.addProperty("year", y);

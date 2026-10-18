@@ -6,12 +6,12 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 
 /**
- * 공휴일(한국천문연구원) · 기름값(오피넷) 실제 응답 확인(시험이 아님 - 네트워크를 씀). 2026-10-18 🧰 별거 별거.
+ * 공휴일(한국천문연구원) · 물때(국립해양조사원) · 기름값(오피넷) 실제 응답 확인(시험이 아님 - 네트워크를 씀). 2026-10-18 🧰 별거 별거.
  *
  * <pre>
  * .claude\run-tests.ps1 -Run web.HolidayFuelProbe
  * </pre>
- * 키는 holiday.serviceKey(없으면 tour.serviceKey) · opinet.key. 응답은 src/test/resources/holiday/ · fuel/ 에(키는 지움).
+ * 키는 holiday.serviceKey · tide.serviceKey(없으면 tour.serviceKey) · opinet.key. 응답은 src/test/resources/holiday/ · tide/ · fuel/ 에(키는 지움).
  */
 public final class HolidayFuelProbe {
 
@@ -34,6 +34,7 @@ public final class HolidayFuelProbe {
             }
             System.out.println("저장: " + dir.toAbsolutePath());
         }
+        tide();
         String ok = RouteflyConfig.get("opinet.key");
         if (ok == null) { System.out.println("기름값: opinet.key 가 비어 있습니다."); return; }
         Path dir = Path.of("src", "test", "resources", "fuel");
@@ -45,6 +46,23 @@ public final class HolidayFuelProbe {
             System.out.println("기름값 " + c[0] + c[1] + " : " + (t == null ? "받지 못함(로그 [FUEL-PROBE])" : (FuelServlet.oil(t) == null ? "읽지 못함" : FuelServlet.oil(t).size() + "줄")
                     + " / 앞부분 " + t.substring(0, Math.min(300, t.length())).replaceAll("\\s+", " ")));
             if (t != null) Files.writeString(dir.resolve(c[0].replace(".do", "") + ".json"), PetTourProbe.scrub(t, ok), StandardCharsets.UTF_8);
+        }
+        System.out.println("저장: " + dir.toAbsolutePath());
+    }
+
+    /** 물때(조석예보 고 · 저조) - 공식 샘플 지점 DT_0018 의 오늘 · 내일. 응답은 src/test/resources/tide/. */
+    private static void tide() throws Exception {
+        String key = RouteflyConfig.get("tide.serviceKey");
+        if (key == null) key = RouteflyConfig.get("tour.serviceKey");
+        if (key == null) { System.out.println("물때: tide.serviceKey · tour.serviceKey 가 비어 있습니다."); return; }
+        Path dir = Path.of("src", "test", "resources", "tide");
+        Files.createDirectories(dir);
+        LocalDate d = LocalDate.now(WeatherServlet.KST);
+        for (int i = 0; i < 2; i++) {
+            Thread.sleep(500);
+            String t = OpenApi.get(TideServlet.url(TideServlet.DEFAULT_URL, key, "DT_0018", d.plusDays(i)), "TIDE-PROBE");
+            System.out.println("물때 DT_0018 " + d.plusDays(i) + " : " + (t == null ? "받지 못함(로그 [TIDE-PROBE])" : TideServlet.parse(t) + " / 앞부분 " + t.substring(0, Math.min(300, t.length())).replaceAll("\\s+", " ")));
+            if (t != null) Files.writeString(dir.resolve("DT_0018-" + i + ".json"), PetTourProbe.scrub(t, key), StandardCharsets.UTF_8);
         }
         System.out.println("저장: " + dir.toAbsolutePath());
     }
