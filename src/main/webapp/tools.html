@@ -100,8 +100,10 @@ h2.grp { margin:22px 2px 0; font-size:14px; color:var(--dim); font-weight:bold; 
 .reg .links { display:flex; gap:8px; flex-wrap:wrap; }
 .reg .links a { flex:1 1 130px; display:flex; align-items:center; justify-content:center; min-height:46px; border-radius:12px; text-decoration:none; font:bold 15px Arial,"Malgun Gothic",sans-serif; border:1px solid var(--sky); background:rgba(56,217,234,0.12); color:var(--sky); }
 .ccshow { background:#0b0f14; border:1px solid var(--ln); border-radius:12px; padding:10px 14px; text-align:right; margin-top:4px; }
-.ccshow small { display:block; min-height:20px; font-size:16px; color:var(--dim); overflow-wrap:anywhere; }
-.ccshow b { display:block; font-size:40px; overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
+/* 높이 고정 - 문구가 길어져도 아래 단추가 밀리지 않게(2026-10-18 PC: 7÷0 안내가 두 줄이 되며 = 자리에 + 가 눌림) */
+.ccshow small { display:block; height:22px; line-height:22px; font-size:16px; color:var(--dim); white-space:nowrap; overflow:hidden; direction:rtl; text-align:right; }
+.ccshow b { display:block; height:50px; line-height:50px; font-size:40px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-variant-numeric:tabular-nums; }
+.ccshow b.msg { font-size:20px; }
 .ccgrid { display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-top:10px; }
 .ccgrid button { height:64px; border-radius:14px; border:1px solid var(--ln); background:rgba(255,255,255,0.07); color:var(--tx); font:bold 26px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }
 .ccgrid button.op { background:rgba(56,217,234,0.14); color:var(--sky); border-color:rgba(56,217,234,0.45); }

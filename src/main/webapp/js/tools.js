@@ -154,7 +154,9 @@
         function show() {
             $("ccExpr").textContent = expr;
             var r = RF.calcEval(expr);
-            $("ccVal").textContent = expr === "" ? (last != null ? RF.unitFmt(last) : "0") : r == null ? (/÷0(?![.\d])/.test(expr) ? T("0으로 나눌 수 없어요", "Can't divide by 0") : "…") : RF.unitFmt(r);
+            var div0 = expr !== "" && r == null && /÷0(?![.\d])/.test(expr);
+            $("ccVal").className = div0 ? "msg" : "";
+            $("ccVal").textContent = expr === "" ? (last != null ? RF.unitFmt(last) : "0") : r == null ? (div0 ? T("0으로 나눌 수 없어요", "Can't divide by 0") : "…") : RF.unitFmt(r);
         }
         KEYS.forEach(function (k) {
             var b = document.createElement("button");
@@ -330,7 +332,10 @@
         var m = /[?&]open=(t-[a-z]+)/.exec(location.search), d = m && $(m[1]);
         if (d && d.tagName === "DETAILS") {   // 아래 접기 · 펼치기가 "마지막에 편 칸" 으로 열도록 - 직접 열면 그 칸과 둘이 열려 서로 접힘
             try { localStorage.setItem("rf-tools-open1", d.id); } catch (e) { d.open = true; }
-            setTimeout(function () { d.scrollIntoView({ block: "start" }); }, 150);
+            setTimeout(function () {   // 위쪽 띠(#top - 화면에 붙어 있음) 높이만큼 덜 내려 제목이 가리지 않게(2026-10-18 PC)
+                var top = d.getBoundingClientRect().top + scrollY - ($("top").offsetHeight || 0) - 8;
+                window.scrollTo(0, Math.max(0, top));
+            }, 150);
         }
     })();
 
