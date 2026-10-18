@@ -736,6 +736,18 @@
     });
     $("name").parentNode.insertBefore(favBtn, $("name").nextSibling);
 
+    /**
+     * 제목 앞 난이도(목록 · 산 페이지와 같은 기준 - 가장 가파른 1km 포함, 2026-10-18 PC: 코스 화면에는 안 나왔음). 좁은 머리글이라 앞에 둠(뒤는 잘릴 수 있음).
+     * 등산(hike · trek)만.
+     */
+    function nameLevel() {
+        if (!c || !c.course || (c.course.kind !== "hike" && c.course.kind !== "trek")) return;
+        var chip = RF.levelChip(c.total, c.asc && c.asc.length ? Math.round(c.asc[c.asc.length - 1]) : null, EN, RF.steepest(c.dist, c.ele));
+        if (!chip) return;
+        chip.classList.add("nmLv");
+        $("name").insertBefore(chip, $("name").firstChild);
+    }
+
     function loadCourse(id) {
         var my = ++loadSeq;
         $("pick").style.display = "none";
@@ -802,6 +814,7 @@
             if (hn && hn.length <= 30 && !c.pois.some(function (q) { return q.name === hn && +q.dist_m < 300; }))
                 c.pois.unshift({ name: hn, lat: c.lat[0], lon: c.lon[0], ele_m: c.ele[0], dist_m: 0, off_route_m: 0, end: true });
             RF.showName($("name"), c.course.name, true);
+            nameLevel();
             favBtn.refresh();
             // 산불조심기간 안내(하루 한 번 - 2026-10-15 홍TV님)
             var fire = RF.fireNote(Date.now()), today0 = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
@@ -840,6 +853,7 @@
                         if (Object.prototype.hasOwnProperty.call(n.names, q.name) && !(+q.off_route_m > 300) && (+q.dist_m < 300 || +q.dist_m > c.total - 300)) q.name = n.names[q.name];
                     });
                     RF.showName($("name"), c.course.name, true);
+                    nameLevel();
                     document.title = RF.nameText(c.course.name, true);
                 }
                 if (n.ele) (c.pois || []).forEach(function (q) { if (n.ele[q.name] != null) q.ele_m = n.ele[q.name]; });   // 바로잡은 높이(천왕봉 1,915m)
@@ -2045,6 +2059,7 @@
         $("arrived").style.display = "none";
         $("offroute").style.display = "none";
         RF.showName($("name"), c.course.name, true);
+        nameLevel();
         document.title = RF.nameText(c.course.name, true);
         // 새로 고침하면 이 코스로 이어서 - 들어온 화면 표시(&from=series · &m=산)는 남김(새로 고친 뒤에도 ‹ 가 그 화면으로)
         var keepHash = (location.hash.match(/&(from|m)=[^&]*/g) || []).join("");

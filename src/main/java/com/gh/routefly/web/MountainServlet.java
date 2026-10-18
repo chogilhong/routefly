@@ -424,9 +424,15 @@ public class MountainServlet extends HttpServlet {
      * 소요산 · 적상산은 확인할 곳. 아니면 그 자리에 공식 높이를 붙이지 않고(Peaks) 화면에 "정상 곰배령 1,426m" 처럼 쓰지 않음. 비교할 값이 없으면 true.
      */
     static boolean summitOk(JsonObject peak) {
+        if (closed(peak) != null) return false;   // 정상 통제(대암산) - 도장 자리는 갈 수 있는 끝
         Integer official = elev(peak);
         if (official == null || !peak.has("height") || peak.get("height").isJsonNull()) return true;
         return Math.abs(peak.get("height").getAsDouble() - GPS_BIAS_M - official) <= SUMMIT_TOL_M;
+    }
+
+    /** mountains100.json 의 closed - 정상까지 못 가는 까닭(대암산 통제구역 - 2026-10-18), 없으면 null. */
+    static String closed(JsonObject peak) {
+        return peak != null && peak.has("closed") && peak.get("closed").isJsonPrimitive() ? peak.get("closed").getAsString() : null;
     }
 
     /** 순수 함수 - 높이와 함께 쓸 정상 이름(정상 자리가 꼭대기일 때만, 아니면 null). */
@@ -560,6 +566,7 @@ public class MountainServlet extends HttpServlet {
                 .append(height != null ? String.format(Locale.KOREA, " %,dm", height) : "")
                 .append(topNm == null && summit != null && !summit.equals(str(peak, "name")) ? " · 도장 자리 " + esc(summit) : "")
                 .append(top != null ? String.format(Locale.KOREA, " · 코스 최고점 약 %,dm", top) : "").append("</p>");
+        if (closed(peak) != null) b.append("<p class=\"closedNote\">⛔ ").append(esc(closed(peak))).append("</p>");
         b.append("<section id=\"wx\" data-lat=\"").append(peak.get("lat").getAsDouble()).append("\" data-lon=\"").append(peak.get("lon").getAsDouble())
                 .append("\"><h2>날씨 · 미세먼지 · 일출 · 일몰</h2><p class=\"dim\" id=\"wxBody\">불러오는 중…</p></section>");
         // ⛑️ 오늘의 산행 안전(api/safety - 2026-10-18 홍TV님: 별거 별거와 같은 것을 산 페이지에도) - 정상 자리로, 보이면 받음(js/mountain.js)

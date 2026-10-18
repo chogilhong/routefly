@@ -18,6 +18,10 @@ public class SafetyServletTest {
     public void realResponses() throws Exception {
         JsonArray er = SafetyServlet.er(res("/safety/er-near.xml"));
         assertTrue(er.size() >= 2);
+        // 실제 응답 5곳 중 서울대학교치과병원(치과병원)은 뺌(2026-10-18) - 산행 부상에 맞지 않음
+        assertEquals(4, er.size());
+        for (int i = 0; i < er.size(); i++) assertFalse(er.get(i).getAsJsonObject().get("name").getAsString().contains("치과"));
+        assertEquals("서울대학교병원", er.get(3).getAsJsonObject().get("name").getAsString());
         JsonObject e0 = er.get(0).getAsJsonObject();
         assertEquals("강북삼성병원", e0.get("name").getAsString());
         assertEquals(0.91, e0.get("km").getAsDouble(), 1e-9);

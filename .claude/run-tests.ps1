@@ -43,6 +43,9 @@ $resDir = Join-Path $root 'src\main\resources'
 # src\test\resources (stays\pet-probe-*.json etc.) too - 2026-10-14 PetServletTest
 $resDir = "$resDir;$(Join-Path $root 'src\test\resources')"
 if ($Run) {
+  # probes that read the DB (e.g. web.MissingPeakProbe) need the JDBC driver - optional, tests do not (2026-10-18 PC)
+  $drv = Join-Path $m2 'org\mariadb\jdbc\mariadb-java-client\3.5.10\mariadb-java-client-3.5.10.jar'
+  if (Test-Path $drv) { $cp = "$cp;$drv" } else { Write-Output "NOTE no JDBC driver at $drv (DB probes will fail)" }
   Push-Location $root
   # catalina.base -> target, so log4j can write its log file outside Tomcat (2026-10-14 PetTourProbe)
   & "$jdk\java.exe" "-Dcatalina.base=$root\target" "-Dfile.encoding=UTF-8" "-Dstdout.encoding=UTF-8" -cp "$testOut;$mainOut;$resDir;$cp" "com.gh.routefly.$Run" @RunArgs

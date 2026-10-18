@@ -256,7 +256,7 @@
         var box = el("div", "card"), head = el("button"), nm = el("div", "nm", NM(s.name)), pg = el("div", "pg");
         box.setAttribute("data-card", g.key + "|" + s.name);   // 따라가기에서 돌아올 때 다시 펼칠 카드(view)
         head.type = "button";
-        // 정상 자료가 없는 산(천성산 · 대암산 - GPX 가 정상 쪽을 안 지남)은 빠져 있음
+        // 정상 자리가 없는 산이 있으면 "(N곳 중 정상 자료가 있는 곳)" - 2026-10-18 부터 100곳 모두 있음(천성산 · 대암산 추가)
         nm.appendChild(el("small", null, EN ? s.peaks.length + " mountains" + (s.official > s.peaks.length ? " (of " + s.official + ", those with summit data)" : "") + " · stamped near the summit"
             : s.peaks.length + "산" + (s.official > s.peaks.length ? "(" + s.official + "곳 중 정상 자료가 있는 곳)" : "") + " · 정상 가까이 가면 도장"));
         pg.innerHTML = "<b>" + p.got + "</b> / " + p.of + " " + gUnit(g);

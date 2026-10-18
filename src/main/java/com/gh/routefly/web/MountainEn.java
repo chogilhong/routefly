@@ -130,6 +130,8 @@ final class MountainEn {
         else if (height != null) b.append(" · Elevation");
         if (height != null) b.append(String.format(Locale.US, " %,d m", height));
         b.append("</p>");
+        if (MountainServlet.closed(peak) != null)   // 대암산 - 한국어 페이지의 ⛔ 와 같은 뜻(2026-10-18)
+            b.append("<p class=\"closedNote\">⛔ The summit area is a restricted zone. Trails go only as far as the marked point below the summit (Korea Forest Service).</p>");
         b.append("<section id=\"wx\" data-lat=\"").append(peak.get("lat").getAsDouble()).append("\" data-lon=\"").append(peak.get("lon").getAsDouble())
                 .append("\"><h2>Weather · Air quality · Sunrise &amp; Sunset</h2><p class=\"dim\" id=\"wxBody\">Loading…</p></section>");
         // ⛑️ Today's hiking safety(api/safety - 한국어 산 페이지와 같게, 2026-10-18) - js/mountain-en.js 가 채움

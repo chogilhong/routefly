@@ -57,7 +57,7 @@ public class SafetyServlet extends HttpServlet {
         String k = URLEncoder.encode(key, StandardCharsets.UTF_8);
 
         JsonArray er = (JsonArray) cached("er@" + String.format(Locale.ROOT, "%.2f,%.2f", at[0], at[1]), CACHE, () -> {
-            String t = OpenApi.get(ER_URL + "?serviceKey=" + k + String.format(Locale.ROOT, "&WGS84_LON=%.5f&WGS84_LAT=%.5f", at[1], at[0]) + "&pageNo=1&numOfRows=3", "SAFETY-ER");
+            String t = OpenApi.get(ER_URL + "?serviceKey=" + k + String.format(Locale.ROOT, "&WGS84_LON=%.5f&WGS84_LAT=%.5f", at[1], at[0]) + "&pageNo=1&numOfRows=" + ER_ASK, "SAFETY-ER");   // 치과병원을 빼고도 ER_MAX 곳 남게 넉넉히(2026-10-18 PC: 가야산 2곳뿐)
             return t == null ? null : er(t);
         });
         String sido = er != null && er.size() > 0 ? sido(er.get(0).getAsJsonObject().get("addr").getAsString()) : null;
@@ -109,7 +109,10 @@ public class SafetyServlet extends HttpServlet {
         return m.find() ? m.group(1).trim() : null;
     }
 
-    /** 순수 함수 - 응급실 XML → [{name, addr, tel, km, lat, lon, kind}] (가까운 순 그대로). resultCode 00 이 아니면 null. */
+    /** 순수 함수 - 응급실 XML → [{name, addr, tel, km, lat, lon, kind}] (가까운 순 그대로, 치과병원 빼고 ER_MAX 곳까지). resultCode 00 이 아니면 null. */
+    /** 응급실 몇 곳을 묻고(ER_ASK) 몇 곳을 보낼지(ER_MAX). */
+    static final int ER_ASK = 8, ER_MAX = 4;
+
     static JsonArray er(String xml) {
         if (!"00".equals(tag(xml, "resultCode"))) return null;
         JsonArray out = new JsonArray();
@@ -117,11 +120,15 @@ public class SafetyServlet extends HttpServlet {
         while (m.find()) {
             String it = m.group(1), name = tag(it, "dutyName"), addr = tag(it, "dutyAddr");
             if (name == null || addr == null) continue;
+            // 치과병원 응급실(서울대치과병원 등)은 산행 부상 · 응급에 맞지 않아 뺌(2026-10-18 - 실제 응답에 섞여 옴)
+            String kind = tag(it, "dutyDivName");
+            if (kind != null && kind.contains("치과") || name.contains("치과병원")) continue;
+            if (out.size() >= ER_MAX) break;
             JsonObject o = new JsonObject();
             o.addProperty("name", name);
             o.addProperty("addr", addr);
             o.addProperty("tel", tag(it, "dutyTel1"));
-            o.addProperty("kind", tag(it, "dutyDivName"));
+            o.addProperty("kind", kind);
             try { o.addProperty("km", Double.parseDouble(tag(it, "distance"))); } catch (RuntimeException e) { /* 없음 */ }
             try { o.addProperty("lat", Double.parseDouble(tag(it, "latitude"))); o.addProperty("lon", Double.parseDouble(tag(it, "longitude"))); } catch (RuntimeException e) { /* 없음 */ }
             out.add(o);
