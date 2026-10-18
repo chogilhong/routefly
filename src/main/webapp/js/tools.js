@@ -748,7 +748,7 @@
         outSet("ldOut", ld.names.map(function (nm, i) { return nm + " → " + ld.res[RF.ladderTrace(ld.rungs, i).end]; }).join("  ·  "));
     });
 
-    // ── 🐯 호랑이 소리(합성 - 녹음 아님). 2026-10-18 홍TV님 "전혀 호랑이 같지 않아" → 다시: 목청 떨림(불규칙한 성대 박동 · 반 박자 어긋남 = 거친 소리),
+    // ── 🐯 호랑이 소리 - 녹음을 못 받을 때 쓰는 합성. 2026-10-18 홍TV님 "전혀 호랑이 같지 않아" → 다시: 목청 떨림(불규칙한 성대 박동 · 반 박자 어긋남 = 거친 소리),
     //    낮게 시작해 올랐다가 길게 내려앉는 높이, 입이 "아 → 우" 로 바뀌는 울림(포먼트), 거친 숨소리, 숲 울림(메아리) ──
     var tgIv = null, tgBuf = null;
     function roarBuffer(c) {
@@ -787,7 +787,7 @@
         for (var ch = 0; ch < 2; ch++) { var x = b.getChannelData(ch); for (var i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3); }
         var v = c.createConvolver(); v.buffer = b; return v;
     }
-    // 실제 녹음(백두산 호랑이 - 아무르호랑이, 자유 이용 허락된 것만 sounds/tiger-roar.mp3)이 있으면 그것을 먼저. 없으면 합성(2026-10-18)
+    // 실제 녹음(sounds/tiger-roar.mp3 - freesound 811790 eZZin 성난 암호랑이, CC0 · 종 표시 없음, sounds/README.md)이 있으면 그것을 먼저. 못 받으면 합성(2026-10-18)
     var tgRec = null, tgRecTried = false;
     function loadRec(c, cb) {
         if (tgRecTried) return cb();
