@@ -499,7 +499,7 @@ rm ~/route.sql ~/route.tgz
 - 자동 스냅샷: 인스턴스 → Snapshots → Enable automatic snapshots(하루 한 번)
 - 보안 업데이트: `sudo apt -y install unattended-upgrades` (기본으로 켜져 있으면 그대로)
 - 지도 출처 표시(© OpenStreetMap contributors)는 서버를 옮겨도 그대로 보여야 합니다.
-- routefly.kr 이 열리면 설정의 `site.baseUrl=https://routefly.kr/routefly` 주석을 풀고(공유 링크 · og 그림 · 산 페이지 canonical - 이미 5장에서 넣었으면 또 넣지 않음. `sudo grep -c '^site.baseUrl=' /opt/routefly/config.properties` 가 1 이어야 함, 2026-10-19 두 줄이 되어 하나 지움), HSTS(6-1 의 `Strict-Transport-Security`)가 붙는지
+- routefly.kr 이 열리면 설정의 `site.baseUrl=https://routefly.kr/routefly` 주석을 풀고(공유 링크 · og 그림 · 산 페이지 canonical - 이미 5장에서 넣었으면 또 넣지 않음. `sudo grep -c '^site.baseUrl=' /opt/routefly/config.properties` 가 1 이어야 함, 2026-10-19 두 줄이 되어 하나 지움. site.baseUrl 은 서버에만 - PC 설정은 비움(주석): 켜 두면 PC 개발 · 테스트 때 /s/ 공유 · og 가 서버 routefly.kr 의 옛 화면으로 넘어가 헷갈림), HSTS(6-1 의 `Strict-Transport-Security`)가 붙는지
   `curl -sI https://routefly.kr/routefly/ | grep -i strict` 로 봅니다. 몇 주 문제없으면 그때 hstspreload.org 등록을 생각합니다(되돌리기 어려우니 서두르지 않음).
 
 - V-World 지도 키(2026-10-19): 서버는 routefly.kr 전용 개발키(서비스명 routefly, 서비스 URL https://routefly.kr, WMTS/TMS)를 씀.
