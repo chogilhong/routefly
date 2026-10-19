@@ -655,10 +655,11 @@ sudo fail2ban-client status sshd
 # DB 백업 - 매일 새벽 4시, 14일치. DB root 는 unix_socket(리눅스 root 면 비밀번호 없이 - 4장 2026-10-19 서버)이라 비밀번호 파일이 필요 없음.
 # root 에 비밀번호를 걸었다면 /root/.my.cnf([client] user=root password=…, chmod 600)를 홍TV님이 직접 만듦
 sudo install -d -m 700 /var/backups/routefly
-echo '0 4 * * * root mariadb-dump --single-transaction routefly | gzip > /var/backups/routefly/routefly-$(date +\%Y\%m\%d).sql.gz && find /var/backups/routefly -name "*.sql.gz" -mtime +14 -delete' \
+echo '0 4 * * * root umask 077 && mariadb-dump --single-transaction routefly | gzip > /var/backups/routefly/routefly-$(date +\%Y\%m\%d).sql.gz && find /var/backups/routefly -name "*.sql.gz" -mtime +14 -delete' \
   | sudo tee /etc/cron.d/routefly-db-backup
 ```
 
+- 백업 파일은 600(umask 077, 2026-10-20 - 처음 것은 644 였음. 폴더가 700 이라 남이 읽을 수는 없었지만 파일도 막음).
 - 서버 안 백업은 서버가 통째로 사라지면 같이 사라집니다. 자동 스냅샷(위)과 함께, 달에 한 번쯤 `scp` 로 PC 에 한 벌 받아 둡니다.
 - 되살리기: `gunzip -c routefly-YYYYMMDD.sql.gz | mariadb routefly`
 - 이용자 기록 · 사진은 서버에 없습니다(핸드폰 안 - 따라가기 "📒 내 기록 → 💾 백업 저장").
