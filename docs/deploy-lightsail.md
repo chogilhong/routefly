@@ -260,6 +260,8 @@ server {
 
     location = / { return 302 /routefly/; }
     # 검색 엔진용(산 소개 페이지 /routefly/m/… - 2026-10-14 SitemapServlet). 사이트 뿌리에 있어야 해서 앱으로 넘김
+    # 검색 사이트 소유 확인 파일(네이버 naver….html · 구글 google….html, 2026-10-19) - 받은 파일 그대로 /var/www/site-verify 에(6-3)
+    location ~ ^/(naver|google)[0-9a-f]+\.html$ { root /var/www/site-verify; }
     location = /robots.txt  { proxy_pass http://127.0.0.1:8080/routefly/robots.txt;  proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto $scheme; }
     location = /sitemap.xml { proxy_pass http://127.0.0.1:8080/routefly/sitemap.xml; proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto $scheme; }
 
@@ -293,6 +295,8 @@ server {
 
     location = / { return 302 /routefly/; }
     # 검색 엔진용(산 소개 페이지 /routefly/m/… - 2026-10-14 SitemapServlet). 사이트 뿌리에 있어야 해서 앱으로 넘김
+    # 검색 사이트 소유 확인 파일(네이버 naver….html · 구글 google….html, 2026-10-19) - 받은 파일 그대로 /var/www/site-verify 에(6-3)
+    location ~ ^/(naver|google)[0-9a-f]+\.html$ { root /var/www/site-verify; }
     location = /robots.txt  { proxy_pass http://127.0.0.1:8080/routefly/robots.txt;  proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto $scheme; }
     location = /sitemap.xml { proxy_pass http://127.0.0.1:8080/routefly/sitemap.xml; proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto $scheme; }
 
@@ -319,6 +323,26 @@ sudo nginx -t && sudo systemctl reload nginx
 그래서 6-2 로 바꿀 때는 Cloudflare 의 Origin Certificate(대시보드 SSL/TLS → Origin Server → Create Certificate, 최대 15년)를 받아
 Nginx 의 `ssl_certificate` · `ssl_certificate_key` 를 그 파일로 바꾸고 certbot 은 지웁니다(`sudo apt remove certbot`).
 Origin Certificate 는 Cloudflare 만 믿는 인증서라 Cloudflare 를 빼면 다시 6-1 + certbot 으로 돌아가야 합니다.
+
+### 6-3. 검색 등록 - 소유 확인 파일 (2026-10-19)
+
+네이버 서치어드바이저 · 구글 서치 콘솔은 `https://routefly.kr` 을 확인합니다. 첫 화면이 `/routefly/` 로 넘어가(302) 메타 태그 방식은 못 믿으므로
+그들이 주는 HTML 확인 파일을 사이트 뿌리에 그대로 둡니다(앱 · 톰캣은 건드리지 않음 - 위 nginx 의 `location ~ ^/(naver|google)…`).
+
+```
+(PC)    검색 사이트에서 확인 파일 내려받기 → MobaXterm 왼쪽 SFTP 창(ubuntu 집)에 끌어 놓기
+```
+
+```bash
+sudo mkdir -p /var/www/site-verify
+sudo install -m 644 ~/naver*.html /var/www/site-verify/ && rm ~/naver*.html      # 구글이면 google*.html
+sudo nano /etc/nginx/sites-available/routefly     # 처음 한 번: location = /robots.txt 줄 바로 위에 위의 location ~ 줄 넣기
+sudo nginx -t && sudo systemctl reload nginx
+curl -s https://routefly.kr/$(ls /var/www/site-verify | head -1)                   # 받은 파일 내용이 그대로 나오면 됨
+```
+
+그다음 검색 사이트에서 [소유확인] → 사이트맵 제출 `https://routefly.kr/sitemap.xml`(산 소개 페이지 등 200여 개, SitemapServlet).
+확인 파일은 지우지 않습니다(검색 사이트가 가끔 다시 확인함).
 
 ## 7. 배포 (버전업할 때마다)
 
