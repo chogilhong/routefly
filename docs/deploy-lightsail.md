@@ -379,6 +379,10 @@ PC 는 배치 개발 · 테스트 실행(`bin\run-dev.ps1`)과 jar 빌드(`bin\b
 2. 서버 배치: 9-1 ~ 9-4 - 1시간마다 `--once`(systemd 타이머)
 3. 서버 → PC: PC 작업 스케줄러는 배치 대신 서버 표를 받아 오기만(9-6). PC 에서는 배치를 정기로 돌리지 않음
 
+1 ~ 3 은 V-World 운영키를 받은 날 한꺼번에 합니다(2026-10-19 홍TV님). 지금 키는 PC(localhost)용이라 서버에서 지명을 못 받으면
+이름이 덜 붙은 코스가 lastrun 을 남겨 주기(7 ~ 30일) 동안 다시 돌지 않기 때문입니다. 그때까지 PC 배치는 그대로 돌고, 서버 화면은 배포 때 옮긴 자료입니다
+(10-19 route_course PC · 서버 모두 26683).
+
 저장소에 리눅스용 상주 실행 스크립트(`bin/routefly-batch.sh` · `bin/.setenv.sh`, 설치 자리 `/app/routefly/batch`)가 이미 있습니다.
 `data` · `cache` · `logs` 는 설정을 비워 두면 모두 그 아래(`<FXMS_HOME>/data/...`)를 씁니다.
 
