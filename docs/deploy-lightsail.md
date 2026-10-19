@@ -284,8 +284,8 @@ Origin Certificate 는 Cloudflare 만 믿는 인증서라 Cloudflare 를 빼면 
 ## 7. 배포 (버전업할 때마다)
 
 ```
-(PC)     이클립스: routefly 우클릭 → Run As → Maven build... → Goals: package  (또는 Export → WAR file)
-         → target/routefly.war
+(PC)     powershell -NoProfile -ExecutionPolicy Bypass -File .claude\build-war.ps1   # Maven 없이 javac + jar(2026-10-19)
+         → target\routefly.war   (이클립스 Run As → Maven build... → package 나 Export → WAR file 도 같은 것)
 (PC)     scp -i <키.pem> target\routefly.war ubuntu@<고정 IP>:~
 (서버)   sudo install -o tomcat -g tomcat -m 644 ~/routefly.war /opt/tomcat/webapps/routefly.war
 ```
