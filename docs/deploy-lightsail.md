@@ -384,28 +384,32 @@ fxms jar 는 저장소에 없으므로 PC 의 `deploy\lib` 에서만 가져옵�
 
 ### 9-2. 처음 한 번
 
+`/app/routefly` 는 routefly 의 집 폴더라 권한이 700 입니다(useradd -m). ubuntu 는 그 안에 들어가지 못하므로
+올린 묶음은 ubuntu 집(`~`)에 두고, 서버 쪽 명령은 모두 sudo 로 합니다(2026-10-19 서버에서 확인 - "올리는 동안만 ubuntu 소유" 는 안 통함).
+
 ```bash
 sudo useradd -r -m -d /app/routefly -s /bin/false routefly
-sudo mkdir -p /app/routefly/batch && sudo chown -R ubuntu: /app/routefly/batch   # 올리는 동안만 ubuntu 소유
+sudo mkdir -p /app/routefly/batch
 sudo locale-gen ko_KR.UTF-8                                                     # 스크립트의 LANG=ko_KR.UTF-8
 ```
 
 ```
 (PC)  bin\build.ps1 로 jar 만들기
-(PC)  scp -i <키.pem> -r bin deploy data cache ubuntu@<고정 IP>:/app/routefly/batch/
+(PC)  tar -czf batch.tgz bin deploy data cache                                  # 프로젝트 폴더에서(윈도우 tar)
+(PC)  scp -i <키.pem> batch.tgz ubuntu@<고정 IP>:~
 ```
 
 ```bash
-cd /app/routefly/batch
-sed -i 's/\r$//' bin/*.sh bin/.setenv.sh          # 윈도우에서 온 줄끝(CRLF)이면 bash 가 못 읽음
-chmod +x bin/routefly-batch.sh
-nano deploy/conf/batch.properties                  # 서버용으로 새로(아래)
-nano deploy/conf/databases.xml                     # url jdbc:mariadb://127.0.0.1:3306/routefly, routefly_batch 계정
-sudo chown -R routefly: /app/routefly/batch
+sudo tar -xzf ~/batch.tgz -C /app/routefly/batch && rm ~/batch.tgz
+sudo sed -i 's/\r$//' /app/routefly/batch/bin/*.sh /app/routefly/batch/bin/.setenv.sh   # 윈도우 줄끝(CRLF)이면 bash 가 못 읽음
+sudo nano /app/routefly/batch/deploy/conf/batch.properties     # 서버용으로 새로(아래)
+sudo nano /app/routefly/batch/deploy/conf/databases.xml        # url jdbc:mariadb://127.0.0.1:3306/routefly, routefly_batch 계정
 # 프로그램(bin · jar · 쿼리 XML)은 root 것 - 배치가 받은 자료를 읽다 뚫려도 자기 프로그램을 고쳐 남지 못하게(2026-10-11 오픈 전 점검)
-sudo chown -R root:routefly bin deploy/lib deploy/conf/sql && sudo chmod -R g+rX,o-rwx bin deploy/lib deploy/conf/sql
-sudo chown root:routefly deploy/conf/batch.properties deploy/conf/databases.xml
-sudo chmod 640 deploy/conf/batch.properties deploy/conf/databases.xml   # routefly 는 읽기만
+sudo bash -c 'cd /app/routefly/batch && chown -R routefly: . \
+  && chown -R root:routefly bin deploy/lib deploy/conf/sql && chmod -R g+rX,o-rwx bin deploy/lib deploy/conf/sql \
+  && chmod 750 bin/routefly-batch.sh \
+  && chown root:routefly deploy/conf/batch.properties deploy/conf/databases.xml \
+  && chmod 640 deploy/conf/batch.properties deploy/conf/databases.xml'     # routefly 는 설정을 읽기만
 ```
 
 서버용 `batch.properties` 는 `batch.properties.example` 을 바탕으로 만들고 이것만 다르게 둡니다.
@@ -417,11 +421,19 @@ sudo chmod 640 deploy/conf/batch.properties deploy/conf/databases.xml   # routef
 ### 9-3. 하나씩 시험한 뒤 상주로
 
 ```bash
-cd /app/routefly/batch
-sudo -u routefly bin/routefly-batch.sh --once=courseImport
-sudo -u routefly bin/routefly-batch.sh --once=knpsSign
-tail -n 50 logs/batch/courseImport.log
+sudo bash -c 'cd /app/routefly/batch && sudo -u routefly bin/routefly-batch.sh --once=courseImport; echo "끝 코드 $?"'
+sudo bash -c 'cd /app/routefly/batch && sudo -u routefly bin/routefly-batch.sh --once=knpsSign; echo "끝 코드 $?"'   # DB 계정 확인(넣음 3216)
+sudo ls -lt /app/routefly/batch/logs/batch/
+sudo tail -n 50 /app/routefly/batch/logs/batch/knpssign.log
 ```
+
+- 로그 이름은 배치 이름의 소문자입니다: `logs/batch/<소문자 이름>.log`(courseimport.log · knpssign.log), 지난 날은 `<소문자 이름>.YYYYMMDD.log`,
+  타이머 회차 전체는 `routefly-batch.log`, 주기 기록은 `<이름>.lastrun`(courseImport.lastrun - 이쪽은 대소문자 그대로).
+- 2026-10-19 서버 확인: courseImport 끝 코드 0("data/courses 에 .gpx 파일이 없습니다" - PC 도 README 뿐이라 정상),
+  knpsSign 끝 코드 0("넣음 3216" - PC 10-11 회차와 같음).
+- 실행 첫머리의 `DBManager.initSqlPoolCommon FILE-PATH(.../deploy/conf/sql/queries.xml) NOT FOUND` 는 무해합니다.
+  fxms 가 공용 쿼리 파일을 찾아보는 것이고, routefly-batch 는 그 파일을 쓰지 않습니다(쿼리는 `sql/course/CourseBatch.xml` - `CourseQid.QUERY_XML_FILE`). PC 에도 그 파일은 없습니다.
+- fxms 의 `project:routefly_batch.xml · service:courseImport.xml not found` 안내도 PC 와 같고 무해합니다.
 
 상주 실행(인자 없이 `routefly-batch.sh`) 대신 PC 작업 스케줄러와 같은 "1시간마다 `--once`" 를 systemd 타이머로 돌립니다(2026-10-19).
 상주 실행(`BatchDaemon`)은 켜는 순간 배치 9개를 한꺼번에 함께 돌리고(첫 대기 0, 배치마다 스레드), 지난 실행 시각(`logs/batch/*.lastrun`)을
@@ -464,10 +476,11 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now routefly-batch.timer
 systemctl list-timers routefly-batch.timer       # 다음 실행 시각
 sudo systemctl start routefly-batch.service      # 첫 회차를 바로 - 서버에는 lastrun 이 없어 모든 배치가 돌아 몇 시간 걸림(밤에)
-journalctl -u routefly-batch -f                  # 진행 보기
+journalctl -u routefly-batch -f                  # 진행 보기(배치별은 sudo tail -f .../logs/batch/<소문자 이름>.log)
 ```
 
-- 첫 회차는 모든 배치가 "주기가 지났다" 로 보고 돕니다 - PC 의 lastrun 파일은 올리지 않습니다(올리면 건너뜀).
+- 첫 회차는 lastrun 이 없는 배치가 모두 "주기가 지났다" 로 보고 돕니다 - PC 의 lastrun 파일은 올리지 않습니다(올리면 건너뜀).
+  위에서 손으로 돌린 courseImport · knpsSign 은 lastrun 이 생겨 주기(1시간 · 30일) 전이면 건너뜁니다(정상).
   courseImport · komount · durunubi · knps* 는 `data/` 의 파일을 읽으므로 9-2 에서 `data` 를 꼭 올립니다.
 - 서버가 한 바퀴 잘 돌면 PC 작업 스케줄러의 routefly-batch 작업을 "사용 안 함" 으로 바꾸고, 9-6 의 받아 오기 작업을 만듭니다(두 곳에서 같이 돌리지 않음).
 
