@@ -177,7 +177,7 @@ sudo rm /etc/nginx/sites-enabled/default
 server_tokens off;            # 응답에 nginx 판 번호를 넣지 않음
 # js · css 를 압축해서 보냄 - 지도 프로그램(maplibre-gl.js) 1,057KB → 275KB 등, 첫 방문이 약 1.4MB → 0.4MB.
 # /api 는 톰캣(GzipFilter)이 이미 압축하므로 nginx 는 그대로 넘깁니다(두 번 압축하지 않음)
-gzip on;
+# gzip on 은 Ubuntu 기본 /etc/nginx/nginx.conf 에 이미 있어 여기 다시 쓰면 "duplicate" 로 nginx -t 실패(2026-10-19 서버)
 gzip_proxied any;
 gzip_min_length 1024;
 gzip_types application/javascript text/javascript text/css image/svg+xml application/manifest+json;
@@ -186,6 +186,12 @@ gzip_vary on;
 # 기록은 logrotate 기본(14일)으로 지워짐
 log_format routefly_noargs '$remote_addr - [$time_local] "$request_method $uri" $status $body_bytes_sent "$http_user_agent"';
 access_log /var/log/nginx/access.log routefly_noargs;
+```
+
+Ubuntu 기본 `/etc/nginx/nginx.conf` 의 `access_log /var/log/nginx/access.log;` 는 ?뒤까지 남기므로 끕니다(두 줄이면 같은 파일에 둘 다 씀):
+
+```bash
+sudo sed -i 's|^\(\s*\)access_log /var/log/nginx/access.log;|\1# access_log /var/log/nginx/access.log;   # routefly-common.conf 의 ?뒤 없는 기록을 씀|' /etc/nginx/nginx.conf
 ```
 
 `/etc/nginx/sites-available/routefly` 에 아래 6-1 또는 6-2 중 하나를 넣고:
