@@ -353,6 +353,10 @@ curl -s https://routefly.kr/$(ls /var/www/site-verify | head -1)                
 (서버)   sudo install -o tomcat -g tomcat -m 644 ~/routefly.war /opt/tomcat/webapps/routefly.war
 ```
 
+scp 대신 FileZilla(SFTP)로 올려도 됩니다(2026-10-19 홍TV님 접속 확인): 프로토콜 SFTP · 호스트 routefly.kr · 포트 22 · 사용자 ubuntu · 로그온 유형 "키 파일"(.pem → FileZilla 가 .ppk 로 바꿈, 저장소 밖에 둠).
+열리는 곳은 /home/ubuntu(~) - 여기에 올린 뒤 위 `sudo install` 줄로 옮깁니다. /opt/routefly · /var/backups/routefly 처럼 다른 계정 폴더는 FileZilla 로 바로 못 쓰니
+받을 때도 `sudo cp <파일> ~/ && sudo chown ubuntu: ~/<파일>` 로 먼저 홈에 꺼냅니다(다 받으면 ~ 의 사본은 지움). FTP 서버(vsftpd 등)는 깔지 않습니다(비밀번호가 암호 없이 오감).
+
 톰캣이 알아서 풀어 다시 띄웁니다(몇 초). 확인:
 
 - `https://routefly.kr/routefly/` · `https://routefly.kr/routefly/hike.html`
