@@ -519,14 +519,9 @@ CONF
 sudo systemctl enable --now fail2ban
 sudo fail2ban-client status sshd
 
-# DB 백업 - 매일 새벽 4시, 14일치. 비밀번호는 root 만 읽는 파일에(명령 줄 · 이 문서에 쓰지 않음)
+# DB 백업 - 매일 새벽 4시, 14일치. DB root 는 unix_socket(리눅스 root 면 비밀번호 없이 - 4장 2026-10-19 서버)이라 비밀번호 파일이 필요 없음.
+# root 에 비밀번호를 걸었다면 /root/.my.cnf([client] user=root password=…, chmod 600)를 홍TV님이 직접 만듦
 sudo install -d -m 700 /var/backups/routefly
-sudo tee /root/.my.cnf >/dev/null <<'CONF'
-[client]
-user=root
-password=(서버 DB root 비밀번호 - 홍TV님이 직접)
-CONF
-sudo chmod 600 /root/.my.cnf
 echo '0 4 * * * root mariadb-dump --single-transaction routefly | gzip > /var/backups/routefly/routefly-$(date +\%Y\%m\%d).sql.gz && find /var/backups/routefly -name "*.sql.gz" -mtime +14 -delete' \
   | sudo tee /etc/cron.d/routefly-db-backup
 ```
