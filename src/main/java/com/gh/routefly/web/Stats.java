@@ -45,7 +45,7 @@ final class Stats {
     }
 
     /**
-     * 순수 함수 - 셀 화면 이름. 산 페이지는 "/m/가야산", 화면 파일은 "/hike.html" 처럼, 공유 링크는 "/s/". 그 밖(api · js · 그림)은 null.
+     * 순수 함수 - 셀 화면 이름. 산 페이지는 "/m/가야산", 화면 파일은 "/hike.html" 처럼, 공유 링크는 "/s/", 코스 페이지는 "/c/". 그 밖(api · js · 그림)은 null.
      * path 는 컨텍스트를 뺀 경로.
      */
     static String pageKey(String path) {
@@ -60,6 +60,7 @@ final class Stats {
             return n.isEmpty() ? "/en/m/" : n.matches("[A-Za-z0-9-]{1,40}") ? "/en/m/" + n.toLowerCase() : null;
         }
         if (path.startsWith("/s/")) return "/s/";
+        if (path.startsWith("/c/")) return "/c/";   // 코스 소개 페이지(2026-10-19) - 코스마다 나누지 않고 한 줄로
         if (path.matches("/[a-z]+\\.html")) return path;
         return null;
     }

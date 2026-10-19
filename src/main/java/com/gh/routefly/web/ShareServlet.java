@@ -64,7 +64,7 @@ public class ShareServlet extends HttpServlet {
         resp.setCharacterEncoding(StandardCharsets.UTF_8.name());
         resp.setHeader("Cache-Control", failed ? "no-store" : "public, max-age=300");   // DB 실패 때의 빈 미리 보기는 캐시하지 않음
         PrintWriter w = resp.getWriter();
-        w.print(page(title, desc, base + "/s/" + id, base + "/img/og.png?v=2", target));   // v=2: 새 로고(2026-10-14) - 카카오톡 등이 예전 그림을 담아 둔 것을 피함
+        w.print(page(title, desc, base + "/s/" + id, base + "/c/" + id, base + "/img/og.png?v=2", target));   // canonical - 검색에는 코스 소개 페이지(2026-10-19)   // v=2: 새 로고(2026-10-14) - 카카오톡 등이 예전 그림을 담아 둔 것을 피함
     }
 
     /** 순수 함수 - "5.81km · 오르막 1,460m · 최고 1,700m · 3D 미리 보기". */
@@ -75,13 +75,13 @@ public class ShareServlet extends HttpServlet {
         return sb.append(" · 3D 로 미리 날아 보고 핸드폰으로 따라 걷기").toString();
     }
 
-    /** 순수 함수 - 미리 보기 카드 + 곧장 넘어가는 페이지. */
-    static String page(String title, String desc, String url, String image, String target) {
+    /** 순수 함수 - 미리 보기 카드 + 곧장 넘어가는 페이지. canonical - 검색 사이트가 이 주소 대신 볼 코스 소개 페이지(/c/). */
+    static String page(String title, String desc, String url, String canonical, String image, String target) {
         String t = esc(title), d = esc(desc), u = esc(url), i = esc(image), g = esc(target);
         return "<!DOCTYPE html><html lang=\"ko\"><head><meta charset=\"UTF-8\">"
                 + "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
                 + "<title>" + t + " - routefly</title>"
-                + "<meta name=\"description\" content=\"" + d + "\">"
+                + "<meta name=\"description\" content=\"" + d + "\"><link rel=\"canonical\" href=\"" + esc(canonical) + "\">"
                 + "<meta property=\"og:type\" content=\"website\"><meta property=\"og:site_name\" content=\"routefly\">"
                 + "<meta property=\"og:title\" content=\"" + t + "\"><meta property=\"og:description\" content=\"" + d + "\">"
                 + "<meta property=\"og:url\" content=\"" + u + "\"><meta property=\"og:image\" content=\"" + i + "\">"

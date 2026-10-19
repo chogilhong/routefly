@@ -97,7 +97,7 @@ public class MountainServletTest {
 
     @Test
     public void sitemapAndRobots() {
-        String sm = SitemapServlet.sitemap("https://routefly.kr/routefly", List.of("가야산"));
+        String sm = SitemapServlet.sitemap("https://routefly.kr/routefly", List.of("가야산"), List.of());
         assertTrue(sm.contains("<loc>https://routefly.kr/routefly/m/%EA%B0%80%EC%95%BC%EC%82%B0</loc>"));
         assertTrue(sm.contains("<loc>https://routefly.kr/routefly/hike.html</loc>"));
         String r = SitemapServlet.robots("https://routefly.kr/routefly");

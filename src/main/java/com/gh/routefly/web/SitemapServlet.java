@@ -1,10 +1,9 @@
 package com.gh.routefly.web;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,9 +12,12 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 
 /**
  * 검색 엔진용 {@code /sitemap.xml} · {@code /robots.txt} (2026-10-14 홍TV님 - 산 소개 페이지가 검색에 잡히게).
@@ -25,6 +27,7 @@ import com.google.gson.JsonParser;
 public class SitemapServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
+    private static final Logger log = LogManager.getLogger(SitemapServlet.class);
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -37,20 +40,41 @@ public class SitemapServlet extends HttpServlet {
             resp.getWriter().print(robots(base));
             return;
         }
+        JsonArray peaks = CoursePageServlet.readPeaks(getServletContext());   // 못 읽으면 빈 것 - 산 목록 없이 기본 화면만
         List<String> names = new ArrayList<>();
-        try (InputStream in = getServletContext().getResourceAsStream("/data/mountains100.json")) {
-            JsonElement e = in == null ? null : JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8));
-            if (e != null && e.isJsonObject() && e.getAsJsonObject().has("peaks")) {
-                for (JsonElement p : e.getAsJsonObject().getAsJsonArray("peaks")) {
-                    JsonObject o = p.getAsJsonObject();
-                    if (o.has("id") && !o.get("id").isJsonNull()) names.add(o.get("id").getAsString());   // 지역 붙은 id(백운산(광양))
-                }
+        for (JsonElement p : peaks) {
+            JsonObject o = p.getAsJsonObject();
+            if (o.has("id") && !o.get("id").isJsonNull()) names.add(o.get("id").getAsString());   // 지역 붙은 id(백운산(광양))
+        }
+        List<String[]> courses = courses(peaks);
+        if (courses == null) resp.setHeader("Cache-Control", "no-store");   // DB 가 안 되면 코스 없이 - 담아 두지 않음
+        resp.setContentType("application/xml");
+        resp.getWriter().print(sitemap(base, names, courses == null ? List.of() : courses));
+    }
+
+    /** 검색에 내는 코스 [코스 ID, 넣은 날 YYYY-MM-DD] - 1시간 담아 둠(2만여 줄을 읽고 산마다 거리를 셈). */
+    private static final long COURSES_TTL_MS = 60 * 60 * 1000;
+    private static volatile Object[] cached;   // [시각, List<String[]>]
+
+    @SuppressWarnings("unchecked")
+    private List<String[]> courses(JsonArray peaks) {
+        Object[] c = cached;
+        if (c != null && System.currentTimeMillis() - (Long) c[0] < COURSES_TTL_MS) return (List<String[]>) c[1];
+        JsonObject parks = CoursePageServlet.readParks(getServletContext());
+        List<String[]> out = new ArrayList<>();
+        try (Connection con = Db.open()) {
+            for (JsonElement e : Json.rows(con, "SELECT course_id, name, kind, start_lat, start_lon, end_lat, end_lon, DATE_FORMAT(imported_at, '%Y-%m-%d') AS d FROM route_course ORDER BY course_id")) {
+                JsonObject r = e.getAsJsonObject();
+                String id = r.get("course_id").getAsString();
+                if (CoursePageServlet.indexable(id, r.get("name").getAsString(), r.get("kind").getAsString(), CoursePageServlet.peakOf(peaks, r), parks))
+                    out.add(new String[] {id, r.get("d").isJsonNull() ? null : r.get("d").getAsString()});
             }
         } catch (Exception e) {
-            // 산 목록 없이 기본 화면만
+            log.warn("[SITEMAP] 코스 조회 실패 - {}", e.toString());
+            return null;
         }
-        resp.setContentType("application/xml");
-        resp.getWriter().print(sitemap(base, names));
+        cached = new Object[] {System.currentTimeMillis(), out};
+        return out;
     }
 
     /** 순수 함수 - robots.txt(API 는 빼고, 사이트맵 주소). */
@@ -59,12 +83,17 @@ public class SitemapServlet extends HttpServlet {
         return "User-agent: *\nDisallow: " + path + "/api/\nAllow: /\nSitemap: " + base + "/sitemap.xml\n";
     }
 
-    /** 순수 함수 - 사이트맵(첫 화면 · 안내 · 100대 명산 목록 · 산마다, 영어 산 페이지도). */
-    static String sitemap(String base, List<String> mountains) {
+    /** 순수 함수 - 사이트맵(첫 화면 · 안내 · 100대 명산 목록 · 산마다, 영어 산 페이지도, 검색에 내는 코스 [ID, 넣은 날]). */
+    static String sitemap(String base, List<String> mountains, List<String[]> courses) {
         StringBuilder b = new StringBuilder("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n");
         for (String p : new String[] {"/", "/hike.html", "/series.html", "/about.html", "/privacy.html", "/m/", "/en/m/"}) url(b, base + p);
         for (String m : mountains) url(b, base + "/m/" + URLEncoder.encode(m, StandardCharsets.UTF_8).replace("+", "%20"));
         for (String m : mountains) url(b, base + "/en/m/" + Roman.slug(m));   // 영어 산 페이지(2026-10-15)
+        for (String[] c : courses) {   // 코스 소개 페이지(2026-10-19 CoursePageServlet) - 넣은 날을 lastmod 로
+            b.append("  <url><loc>").append(ShareServlet.esc(base + "/c/" + c[0])).append("</loc>");
+            if (c[1] != null) b.append("<lastmod>").append(c[1]).append("</lastmod>");
+            b.append("</url>\n");
+        }
         return b.append("</urlset>\n").toString();
     }
 

@@ -13,7 +13,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 /** 화면 · 산 페이지 방문 수 세기(Stats - 숫자만). 2026-10-15 홍TV님. 10분마다 파일로. */
-@WebFilter(urlPatterns = {"/", "*.html", "/m/*", "/en/m/*", "/s/*"})
+@WebFilter(urlPatterns = {"/", "*.html", "/m/*", "/en/m/*", "/s/*", "/c/*"})
 public class StatsFilter extends HttpFilter {
 
     private static final long serialVersionUID = 1L;

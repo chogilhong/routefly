@@ -34,6 +34,7 @@
 | `CourseServlet` | `GET /api/course?id=<코스ID>` - 요약 + 경로 점 `[경도,위도,고도,누적거리]` + 이름표 |
 | `TrailsServlet` | `GET /api/trails?bbox=` - 범위(0.2° 안) 코스 선을 솎아서(약 30m) - 산행 화면의 "가장 가까운 등산로" |
 | `ShareServlet` | `GET /s/<코스ID>[?to=hike]` - 공유 링크. 미리 보기 카드(Open Graph: 이름 · 거리 · 오르막, `img/og.png`) 뒤 화면으로 넘어감 |
+| `CoursePageServlet` | `GET /c/<코스ID>` - 코스 소개 페이지(2026-10-19, 검색용 · 스크립트 없음): 거리 · 오르막 · 예상 시간 · 난이도, 국립공원 공식 안내, 고도 그림(SVG), 지나는 곳, 출발점 가는 길, 3D · 따라가기 단추. 공식 코스(knps · drnb · kmp · kmf)와 100대 명산 정상에 닿는 등산 코스만 검색에 내고(사이트맵에도), 나머지(frst 자동 생성 · OSM 조각)는 noindex. 산 소개 페이지(`/m/`)의 코스 이름이 이리로 이어지고, 공유 링크 `/s/` 의 canonical 도 이 주소 |
 | `sw.js`, `manifest.json` | 홈 화면에 추가(PWA) · 오프라인(화면 파일 · API 는 인터넷 먼저, 지도 타일은 받아 둔 것 먼저) |
 | `MapConfigServlet` | `GET /api/map-config` - V-World 키 · 지형 타일 주소 |
 | `webapp/index.html`, `js/app.js` | 지도 화면(MapLibre) |

@@ -168,3 +168,15 @@ ul { margin:0; padding:0; list-style:none; }
 /* ⛔ 정상 통제(대암산 - mountains100.json closed, 2026-10-18) */
 .closedNote { margin:8px 0 12px; padding:10px 12px; border-radius:10px; background:rgba(255,135,135,0.10); border:1px solid rgba(255,135,135,0.45); font-size:14.5px; }
 #gearIdx .fb { padding:4px 0 10px; }   /* 🎒 이번 달 산행 챙길 것(/m/ - 2026-10-18) */
+/* 코스 소개 페이지(/c/ - CoursePageServlet, 2026-10-19). 산 페이지 코스 이름은 그 페이지로 가는 링크 */
+.cs b a { color:inherit; text-decoration:none; }
+.cs b a:hover { text-decoration:underline; }
+.cp .sum { display:grid; grid-template-columns:auto 1fr; gap:4px 14px; margin:0 0 14px; font-size:14.5px; }
+.cp .sum dt { color:var(--dim); }
+.cp .sum dd { margin:0; min-width:0; overflow-wrap:anywhere; }
+.cp .go { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 14px; }
+.cp .go a { text-decoration:none; font-size:14px; padding:6px 12px; border:1px solid var(--ln); border-radius:16px; }
+.cp .prof { display:block; height:auto; }
+.cp .pass { margin:0; padding-left:1.4em; }
+.cp .pass li { margin:3px 0; font-size:14px; }
+.cp .pass span { color:var(--dim); font-size:13px; }

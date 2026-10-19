@@ -16,7 +16,7 @@ import jakarta.servlet.http.HttpServletResponse;
  *   <li>Referrer-Policy - 다른 사이트로 넘어갈 때 우리 주소(코스 · 위치가 든 #) 를 다 넘기지 않게</li>
  *   <li>X-Frame-Options · CSP frame-ancestors - 남의 사이트가 routefly 를 끼워 넣어 누르게 하는 것(클릭재킹) 막기</li>
  *   <li>CSP script-src 'self' · object-src · base-uri · form-action - 남의 스크립트 · 플러그인 · base 태그 · 폼 바꿔치기 막기({@link #CSP})</li>
- *   <li>/api/* · /s/* · /m/* - 같은 곳에서 너무 잦은 요청은 429 ({@link RateLimiter})</li>
+ *   <li>/api/* · /s/* · /m/* · /c/* - 같은 곳에서 너무 잦은 요청은 429 ({@link RateLimiter})</li>
  * </ul>
  */
 @WebFilter(urlPatterns = {"/*"})
@@ -66,7 +66,7 @@ public class SecurityFilter extends HttpFilter {
         // 2026-10-10 점검: 서블릿 경로(디코딩 · ;매개변수 제거 뒤) - getRequestURI 로는 /%61pi/ · /api;x/ 가 제한 · noindex 를 피했음(path 는 위 CSP 에서 구함)
         // JSON 은 검색 결과에 나와서 좋을 것이 없습니다(공유 링크 /s/ 와 화면은 그대로 색인)
         if (path.startsWith("/api/")) res.setHeader("X-Robots-Tag", "noindex");
-        if (path.startsWith("/api/") || path.startsWith("/s/") || path.startsWith("/m/") || path.equals("/stats") || path.startsWith("/check/")) {   // /stats · /check/heights - 열쇠 맞히기 막기   // /m/ 산 소개 페이지도 DB 를 씀(2026-10-14)
+        if (path.startsWith("/api/") || path.startsWith("/s/") || path.startsWith("/m/") || path.startsWith("/c/") || path.equals("/stats") || path.startsWith("/check/")) {   // /stats · /check/heights - 열쇠 맞히기 막기   // /m/ 산 소개 페이지도 DB 를 씀(2026-10-14)
             String ip = clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For"));
             long now = System.currentTimeMillis();
             if (!LIMITER.allow(ip, now) || (heavy(path, req.getParameter("q"), req.getParameter("bbox")) && !HEAVY.allow(ip, now))) {

@@ -109,7 +109,7 @@ public class WebBasicsTest {
 
     @Test
     public void sharePageEscapesAndRedirects() {
-        String html = ShareServlet.page("설악 <b>\"", "d", "https://x/s/a", "https://x/img/og.png", "https://x/#c=a");
+        String html = ShareServlet.page("설악 <b>\"", "d", "https://x/s/a", "https://x/c/a", "https://x/img/og.png", "https://x/#c=a");
         assertTrue(html, html.contains("og:title\" content=\"설악 &lt;b&gt;&quot;\""));
         assertTrue(html, html.contains("location.replace(\"https://x/#c=a\")"));
         assertFalse(html.contains("<b>"));

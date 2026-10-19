@@ -277,14 +277,7 @@ public class MountainServlet extends HttpServlet {
 
     /** 순수 함수 - 정상(또는 alt)에서 nearM 안에 끝(또는 시작)이 있는 코스, 가까운 차례. 비법정 · 비매칭 길은 뺌. */
     static List<JsonObject> near(JsonArray rows, JsonObject peak, double nearM) {
-        List<double[]> tops = new ArrayList<>();
-        tops.add(new double[] {peak.get("lat").getAsDouble(), peak.get("lon").getAsDouble()});
-        if (peak.has("alt") && peak.get("alt").isJsonArray()) {
-            for (JsonElement a : peak.getAsJsonArray("alt")) {
-                JsonObject q = a.getAsJsonObject();
-                if (q.has("lat") && q.has("lon")) tops.add(new double[] {q.get("lat").getAsDouble(), q.get("lon").getAsDouble()});
-            }
-        }
+        List<double[]> tops = tops(peak);
         List<Object[]> hit = new ArrayList<>();
         for (JsonElement e : rows) {
             JsonObject c = e.getAsJsonObject();
@@ -306,7 +299,20 @@ public class MountainServlet extends HttpServlet {
         return out;
     }
 
-    private static double gap(JsonObject c, String la, String lo, double[] t) {
+    /** 순수 함수 - 정상 자리 [lat, lon] 들: 정상과 두 번째 정상(alt). 산 페이지 코스 고르기(near)와 코스 페이지의 산 찾기(CoursePageServlet)가 함께 씀. */
+    static List<double[]> tops(JsonObject peak) {
+        List<double[]> tops = new ArrayList<>();
+        tops.add(new double[] {peak.get("lat").getAsDouble(), peak.get("lon").getAsDouble()});
+        if (peak.has("alt") && peak.get("alt").isJsonArray()) {
+            for (JsonElement a : peak.getAsJsonArray("alt")) {
+                JsonObject q = a.getAsJsonObject();
+                if (q.has("lat") && q.has("lon")) tops.add(new double[] {q.get("lat").getAsDouble(), q.get("lon").getAsDouble()});
+            }
+        }
+        return tops;
+    }
+
+    static double gap(JsonObject c, String la, String lo, double[] t) {
         if (!c.has(la) || c.get(la).isJsonNull() || !c.has(lo) || c.get(lo).isJsonNull()) return Double.POSITIVE_INFINITY;
         return distM(c.get(la).getAsDouble(), c.get(lo).getAsDouble(), t[0], t[1]);
     }
@@ -584,7 +590,8 @@ public class MountainServlet extends HttpServlet {
                 Double steep = steep(c);
                 b.append("<li data-id=\"").append(esc(id)).append("\" data-name=\"").append(esc(str(c, "name"))).append("\" data-dist=\"").append(dist)
                         .append(asc != null ? "\" data-asc=\"" + asc : "").append(steep != null ? "\" data-steep=\"" + steep : "")
-                        .append("\"><b>").append(esc(str(c, "name"))).append(" ").append(levelChip(dist, asc, steep, false)).append("</b><span>")
+                        .append("\"><b><a href=\"").append(REL).append("/c/").append(esc(id)).append("\">").append(esc(str(c, "name"))).append("</a> ")   // 코스 소개 페이지(2026-10-19 - 검색 로봇이 코스까지)
+                        .append(levelChip(dist, asc, steep, false)).append("</b><span>")
                         .append(String.format(Locale.ROOT, "%.2fkm", dist / 1000.0))
                         .append(asc != null ? String.format(Locale.KOREA, " · 오르막 %,dm", asc) : "")
                         .append(SteepRank.slopeText(dist, asc, steep, false))   // 각도 · 경사 · 가파른 1km - 가파른 산 순위와 같은 기준(2026-10-18 홍TV님 "통일")
@@ -731,9 +738,15 @@ public class MountainServlet extends HttpServlet {
 
     /** og - 공유 그림 주소(산마다 OgServlet, null 이면 기본 img/og.png). */
     private static String head(String title, String desc, String url, String base, String enUrl, String og) {
+        return head(title, desc, url, base, enUrl, og, true);
+    }
+
+    /** index - false 면 검색에 내지 않음(noindex, 링크는 따라감 - 코스 페이지 CoursePageServlet 의 OSM 조각 · 자동 생성 코스). */
+    static String head(String title, String desc, String url, String base, String enUrl, String og, boolean index) {
         String t = esc(title) + " - routefly", d = esc(desc);
         return "<!DOCTYPE html><html lang=\"ko\"><head><meta charset=\"UTF-8\">"
                 + "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+                + (index ? "" : "<meta name=\"robots\" content=\"noindex, follow\">")
                 + "<title>" + t + "</title><meta name=\"description\" content=\"" + d + "\">"
                 + "<link rel=\"canonical\" href=\"" + esc(url) + "\">"
                 + (enUrl == null ? "" : "<link rel=\"alternate\" hreflang=\"ko\" href=\"" + esc(url) + "\"><link rel=\"alternate\" hreflang=\"en\" href=\""
@@ -752,6 +765,11 @@ public class MountainServlet extends HttpServlet {
 
     /** en - 영어 페이지 상대 주소(있으면 "English" 링크). */
     private static String foot(String base, String en) {
+        return foot(en, true);
+    }
+
+    /** scripts - false 면 mountain.js 를 붙이지 않음(코스 페이지 - 날씨 · 찜 칸이 없는 스크립트 없는 글). */
+    static String foot(String en, boolean scripts) {
         String b = REL;   // 상대 주소 - 터널(https → http 톰캣)에서 http 절대 주소가 막혔음(2026-10-14)
         return "<p class=\"dim\">자료: 산림청 100대 명산 · 등산로정보, 국립공원공단 탐방로, 기상청 단기예보 · 에어코리아 대기정보 · 두루누비(공공데이터포털), © OpenStreetMap contributors. "
                 + "<a href=\"" + b + "/about.html\">안전 · 출처 안내</a> · <a href=\"" + b + "/privacy.html\">개인정보처리방침</a>"
@@ -759,7 +777,7 @@ public class MountainServlet extends HttpServlet {
                 + "<p class=\"support\" id=\"support\" hidden></p>"   // ☕ 후원(설정 donate.url 이 있을 때만 mountain.js 가 보임)
                 + "<p class=\"brand\"><a href=\"" + b + "/hike.html?lang=ko\"><img src=\"" + b + "/img/logo-dark.svg\" alt=\"routefly\" width=\"160\" height=\"50\"> 앱 열기 ›</a></p>"
                 + "<p class=\"copy\">© 2026 홍TV · routefly. 코스 · 지도 자료의 권리는 위 출처에 있습니다.</p></main>"   // 저작권 표시(2026-10-17 홍TV님)
-                + "<script src=\"" + b + "/js/course-kit.js\"></script><script src=\"" + b + "/js/mountain.js\"></script></body></html>";
+                + (scripts ? "<script src=\"" + b + "/js/course-kit.js\"></script><script src=\"" + b + "/js/mountain.js\"></script>" : "") + "</body></html>";
     }
 
     static String enc(String s) {
