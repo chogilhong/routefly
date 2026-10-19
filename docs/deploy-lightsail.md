@@ -91,6 +91,21 @@ PC 의 DB 를 옮깁니다(PC 의 덤프 프로그램은 PATH 에 없음 - `C:\P
 
 MariaDB 메모리 상한(innodb_buffer_pool_size)도 이때 정합니다 - 11-2.
 
+PC 에서 DB 를 볼 때(DBeaver, 2026-10-19 홍TV님 연결 확인) - 3306 은 열지 않고 SSH 터널로:
+
+```sql
+-- 서버에서 sudo mariadb (DB root 는 unix_socket - 리눅스 root 만 들어옴, 비밀번호 없음)
+CREATE USER 'routefly_view'@'localhost' IDENTIFIED BY '<새 비밀번호>';
+GRANT SELECT ON routefly.* TO 'routefly_view'@'localhost';    -- 보기만. 고치기 · 지우기는 서버에서 sudo mariadb
+```
+
+| DBeaver 탭 | 값 |
+|---|---|
+| SSH | Host `routefly.kr` · 22 · User `ubuntu` · Authentication `Public Key`(.pem, .ppk 아님) |
+| Main | Host `localhost`(서버 안에서 본 주소) · 3306 · Database `routefly` · `routefly_view` |
+
+붙은 뒤 `SELECT @@hostname;` 이 `ip-172-26-...` 이면 서버입니다(SSH 터널 체크가 빠지면 같은 localhost 가 PC DB 로 붙음).
+
 ## 5. 톰캣 11
 
 Ubuntu 저장소에는 톰캣 11 이 없어 Apache 에서 받습니다. `11.0.X` 는 tomcat.apache.org 의 최신 번호로.
