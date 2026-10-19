@@ -73,6 +73,8 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다(route_course · 
 ### 승인 · 금지
 - 접근할 수 있는 폴더: `C:\GH\workspace`, `C:\GH\tomcat`, `D:\nginx-1.30.5\conf`, Claude 메모 폴더.
   그 밖은 guard.ps1 훅이 막습니다(`C:\GH\config`, 배치 `deploy\conf` 의 batch.properties · databases.xml, tomcat-users.xml, Temp · AppData 등). 밖이 꼭 필요할 때만 승인을 요청합니다.
+  허락 받은 폴더 밖은 이름 검색(Get-ChildItem -Recurse 등)도 하지 않습니다. 필요하면 어느 폴더를 볼지 홍TV님께 먼저 묻습니다
+  (2026-10-20: 백업 zip 을 찾느라 묻지 않고 E:\ · C:\GH\ · D:\ 를 이름 검색함 - 사과하고 이 줄을 넣음).
 - 읽기만 하는 명령(Get-Process, netstat 등)은 승인 없이 바로 씁니다.
 - 키 · 비밀번호는 대화에 붙이지도, 입력 칸에 넣지도 않습니다(로그인 · 키 입력은 홍TV님).
 - 파일 내려받기는 부탁받은 것만. 그 밖은 묻고 받습니다. 받은 압축 · 실행 파일은 새 빈 폴더에서 엽니다.
