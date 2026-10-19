@@ -358,6 +358,12 @@ npm run url -- https://routefly.kr/routefly/hike.html
 배치도 서버로 옮겨 PC 를 꺼도 코스가 갱신되게 합니다(2026-10-11 홍TV님 결정). 배치는 같은 서버의 MariaDB 에 바로 넣습니다.
 PC 는 배치 개발 · 테스트 실행(`bin\run-dev.ps1`)과 jar 빌드(`bin\build.ps1`)만 하고, PC 의 작업 스케줄러 실행은 끕니다.
 
+순서(2026-10-19 홍TV님 결정 - 코스의 원본은 서버 하나):
+
+1. PC → 서버: 지금까지 PC 배치가 만든 코스 표를 서버로 한 번 옮김(9-5 의 명령 그대로, 이번 한 번만)
+2. 서버 배치: 9-1 ~ 9-4 - 1시간마다 `--once`(systemd 타이머)
+3. 서버 → PC: PC 작업 스케줄러는 배치 대신 서버 표를 받아 오기만(9-6). PC 에서는 배치를 정기로 돌리지 않음
+
 저장소에 리눅스용 상주 실행 스크립트(`bin/routefly-batch.sh` · `bin/.setenv.sh`, 설치 자리 `/app/routefly/batch`)가 이미 있습니다.
 `data` · `cache` · `logs` 는 설정을 비워 두면 모두 그 아래(`<FXMS_HOME>/data/...`)를 씁니다.
 
@@ -417,47 +423,61 @@ sudo -u routefly bin/routefly-batch.sh --once=knpsSign
 tail -n 50 logs/batch/courseImport.log
 ```
 
-`/etc/systemd/system/routefly-batch.service`:
+상주 실행(인자 없이 `routefly-batch.sh`) 대신 PC 작업 스케줄러와 같은 "1시간마다 `--once`" 를 systemd 타이머로 돌립니다(2026-10-19).
+상주 실행(`BatchDaemon`)은 켜는 순간 배치 9개를 한꺼번에 함께 돌리고(첫 대기 0, 배치마다 스레드), 지난 실행 시각(`logs/batch/*.lastrun`)을
+보지 않아 다시 켤 때마다 30일짜리 osmBike · knps 까지 처음부터 돕니다 - CPU 를 오래 다 써 웹이 느려지고 Overpass 호출도 늘어납니다.
+`--once` 는 배치마다 주기(lastrun)를 지키며 하나씩 차례로 돌고, 앞 회차가 아직 돌면 systemd 가 새 회차를 시작하지 않습니다.
 
-```ini
+```bash
+sudo tee /etc/systemd/system/routefly-batch.service >/dev/null <<'UNIT'
 [Unit]
-Description=routefly-batch (fxms, 상주)
+Description=routefly-batch (--once, 배치마다 주기는 lastrun 이 지킴)
 After=network-online.target mariadb.service
 Wants=network-online.target
 
 [Service]
-Type=simple
+Type=oneshot
 User=routefly
 WorkingDirectory=/app/routefly/batch
-ExecStart=/app/routefly/batch/bin/routefly-batch.sh
-Restart=on-failure
-RestartSec=60
+ExecStart=/app/routefly/batch/bin/routefly-batch.sh --once
 # 2026-10-11 오픈 전 점검: 권한을 더 얻지 못하게 · /usr /boot /etc 는 읽기만 · 집 폴더 · /tmp 는 따로, 새 파일은 남이 못 읽게
 NoNewPrivileges=true
 ProtectSystem=full
 ProtectHome=true
 PrivateTmp=true
 UMask=0027
+UNIT
+
+sudo tee /etc/systemd/system/routefly-batch.timer >/dev/null <<'UNIT'
+[Unit]
+Description=routefly-batch 1시간마다
+
+[Timer]
+OnCalendar=*-*-* *:07:00
+Persistent=true
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=timers.target
+UNIT
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now routefly-batch.timer
+systemctl list-timers routefly-batch.timer       # 다음 실행 시각
+sudo systemctl start routefly-batch.service      # 첫 회차를 바로 - 서버에는 lastrun 이 없어 모든 배치가 돌아 몇 시간 걸림(밤에)
+journalctl -u routefly-batch -f                  # 진행 보기
 ```
 
-```bash
-sudo systemctl daemon-reload && sudo systemctl enable --now routefly-batch
-sudo systemctl status routefly-batch
-```
-
-상주 실행(`BatchDaemon`)은 배치마다 정해진 주기(courseImport 1시간, forestTrail 7일, osmBike 30일 등)대로 돕니다.
-서버가 잘 돌면 PC 작업 스케줄러의 routefly-batch 작업을 "사용 안 함" 으로 바꿉니다(두 곳에서 같이 돌리지 않음).
+- 첫 회차는 모든 배치가 "주기가 지났다" 로 보고 돕니다 - PC 의 lastrun 파일은 올리지 않습니다(올리면 건너뜀).
+  courseImport · komount · durunubi · knps* 는 `data/` 의 파일을 읽으므로 9-2 에서 `data` 를 꼭 올립니다.
+- 서버가 한 바퀴 잘 돌면 PC 작업 스케줄러의 routefly-batch 작업을 "사용 안 함" 으로 바꾸고, 9-6 의 받아 오기 작업을 만듭니다(두 곳에서 같이 돌리지 않음).
 
 ### 9-4. 배치를 고쳤을 때
 
 ```
 (PC)     bin\build.ps1
 (PC)     scp -i <키.pem> deploy\lib\routefly-batch.jar ubuntu@<고정 IP>:~
-(서버)   sudo install -o routefly -g routefly -m 644 ~/routefly-batch.jar /app/routefly/batch/deploy/lib/
-         sudo systemctl restart routefly-batch
+(서버)   sudo install -o root -g routefly -m 640 ~/routefly-batch.jar /app/routefly/batch/deploy/lib/   # 9-2 처럼 프로그램은 root 것
+         (restart 없음 - 다음 회차가 새 jar 로 돎. 도는 중에 바꾸면 그 회차는 끝까지 예전 jar)
 ```
 
 쿼리 XML(`deploy/conf/sql`)이나 표(`sql/route_ddl.sql`)가 바뀐 경우에는 그것도 함께 올리고, 표는 서버 DB 에서 실행합니다.
@@ -475,7 +495,8 @@ sudo systemctl status routefly-batch
 | 좋은 점 | 손이 안 감 | PC 화면에서 먼저 보고 괜찮을 때만 올림 |
 
 둘을 섞지 않습니다. 서버 배치가 넣은 코스를 PC 표가 덮어써 사라지므로, 9-5 로 가면 서버의 routefly-batch 를 끕니다
-(`sudo systemctl disable --now routefly-batch`).
+(`sudo systemctl disable --now routefly-batch.timer` - 9-3 의 타이머).
+2026-10-19 의 순서(9장 맨 위)에서는 9-5 를 PC → 서버 첫 옮기기에 한 번만 씁니다(그때는 서버 배치가 아직 없음).
 
 옮기는 표는 배치가 채우는 6개뿐입니다(route_course · route_course_point · route_course_poi · route_course_info · route_signpost · route_park_spot).
 웹이 쓰는 표가 나중에 생겨도(산악회 위치 등) 이 방법은 그 표를 건드리지 않습니다.
@@ -511,6 +532,34 @@ rm ~/route.sql ~/route.tgz
 - 서버 화면의 코스 목록은 10분 · 경사는 하루 메모리에 남으므로, 바로 보려면 `sudo systemctl restart tomcat`.
 - 되돌리기: 위 RENAME 을 routefly ↔ routefly_old 로 바꿔 한 번 더(routefly_new 는 그때 비어 있음). routefly_old 는 다음 옮길 때까지 남겨 둡니다.
 - 처음 한 번은 바꿔 끼울 표가 없으므로 4장처럼 `routefly` 에 바로 넣습니다.
+
+### 9-6. 서버 → PC 받아 오기 (2026-10-19 홍TV님 결정)
+
+배치는 서버에서만 돌고, PC 는 서버가 만든 6개 표를 하루 한 번 받아 옵니다(PC 화면 · 개발 확인도 서비스와 같은 코스로).
+9-5 를 방향만 거꾸로 한 스크립트가 routefly-batch 저장소의 `bin\pull-from-server.ps1` 입니다.
+
+1. ssh 로 서버에서 `sudo mariadb-dump`(6개 표) → gzip → scp 로 PC `work\` 에 가져오고 서버 파일은 지움(3306 은 열지 않음)
+2. PC DB 의 `routefly_new` 에 넣고, route_course 수가 지금 PC 보다 20% 넘게 줄었으면 멈춤(`-Force` 로 넣기)
+3. RENAME 한 번으로 `routefly` ↔ `routefly_old` 바꿔 끼움 - 되돌리기는 9-5 와 같음
+
+비밀값은 스크립트에 없습니다.
+
+- SSH 키 경로: `-Key` 또는 환경 변수 `ROUTEFLY_SSH_KEY`
+- PC DB 계정: 홍TV님이 `C:\GH\config\routefly\pull.cnf` 에 직접 씀(`[client]` 다음 줄에 `user=` · `password=`, 그 계정에 routefly · routefly_new · routefly_old 권한).
+  다른 곳에 두면 `-DefaultsFile`. PC Claude 는 이 폴더를 읽지 못합니다(guard).
+- 서버 ubuntu 계정의 sudo 가 비밀번호를 묻지 않아야 합니다(Lightsail Ubuntu 기본).
+
+```
+(PC, 손으로 한 번)  powershell -NoProfile -ExecutionPolicy Bypass -File bin\pull-from-server.ps1 -Key <키.pem>
+                   → 끝에 "OK route_course <수>" 면 성공, "FAIL ..." 면 그 까닭
+(PC, 작업 스케줄러) 이름 routefly-pull, 매일 05:30(서버 DB 백업 04:00 뒤), 동작: powershell.exe
+                   인수 -NoProfile -ExecutionPolicy Bypass -File C:\GH\workspace\routefly-batch\bin\pull-from-server.ps1 -Key <키.pem>
+                   시작 위치 C:\GH\workspace\routefly-batch
+```
+
+- PC 에서 고친 배치를 시험할 때는 `bin\run-dev.ps1 --once=<이름>` 으로 PC DB 에서 봅니다. 다음 받아 오기 때 서버 것으로 덮어써지므로,
+  그 결과를 서비스에 쓰려면 jar 를 서버에 올립니다(9-4).
+- 웹 화면은 코스 목록을 10분 메모리에 두므로 PC 톰캣에서 바로 보려면 다시 띄웁니다.
 
 ## 10. 꼭 해 둘 것
 
