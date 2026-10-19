@@ -137,6 +137,8 @@ public class CoursePageTest {
         assertTrue("공유 링크는 코스 페이지를 canonical 로",
                 ShareServlet.page("t", "d", "https://r.kr/s/a", "https://r.kr/c/a", "https://r.kr/img/og.png", "https://r.kr/#c=a").contains("<link rel=\"canonical\" href=\"https://r.kr/c/a\">"));
         assertEquals("/c/", Stats.pageKey("/c/knps-77"));
+        assertTrue("다음 웹마스터도구 확인 줄은 robots.txt 맨 아래", SitemapServlet.robots("https://r.kr/routefly")
+                .endsWith("\n#DaumWebMasterTool:e657a6d3b5a3bc76c259c18ecd78af8ae7d569dcaca333f0644af9989bc4ec56:1T0ZRs6bn/unEVfM5aXupg==\n"));
         JsonObject gaya = JsonParser.parseString("{\"id\":\"가야산\",\"name\":\"가야산\",\"lat\":35.822544,\"lon\":128.122849}").getAsJsonObject();
         String m = MountainServlet.page(gaya, List.of(course("knps-7013", "가야산 · 해인사 → 상왕봉", "hike", 35.80, 128.09, 35.8233, 128.1204)), List.of(), null, "https://r.kr");
         assertTrue("산 페이지 코스 이름 → 코스 페이지", m.contains("<b><a href=\"../c/knps-7013\">가야산 · 해인사 → 상왕봉</a> "));

@@ -77,10 +77,16 @@ public class SitemapServlet extends HttpServlet {
         return out;
     }
 
-    /** 순수 함수 - robots.txt(API 는 빼고, 사이트맵 주소). */
+    /**
+     * 다음(Daum) 웹마스터도구 소유 확인 줄 - robots.txt 맨 아래(2026-10-19 홍TV님 발급). 누구나 robots.txt 로 보는 값이라 비밀값이 아님.
+     * 네이버(HTML 파일) · 구글(DNS TXT) · 빙(구글에서 가져오기)은 다른 방식 - docs/deploy-lightsail.md 6-3.
+     */
+    static final String DAUM_PIN = "#DaumWebMasterTool:e657a6d3b5a3bc76c259c18ecd78af8ae7d569dcaca333f0644af9989bc4ec56:1T0ZRs6bn/unEVfM5aXupg==";
+
+    /** 순수 함수 - robots.txt(API 는 빼고, 사이트맵 주소, 다음 확인 줄). */
     static String robots(String base) {
         String path = base.replaceFirst("^https?://[^/]+", "");
-        return "User-agent: *\nDisallow: " + path + "/api/\nAllow: /\nSitemap: " + base + "/sitemap.xml\n";
+        return "User-agent: *\nDisallow: " + path + "/api/\nAllow: /\nSitemap: " + base + "/sitemap.xml\n\n" + DAUM_PIN + "\n";
     }
 
     /** 순수 함수 - 사이트맵(첫 화면 · 안내 · 100대 명산 목록 · 산마다, 영어 산 페이지도, 검색에 내는 코스 [ID, 넣은 날]). */
