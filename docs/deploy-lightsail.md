@@ -164,6 +164,24 @@ sudo nano /opt/routefly/config.properties
 sudo chown tomcat: /opt/routefly/config.properties && sudo chmod 600 /opt/routefly/config.properties
 ```
 
+PC 경로 설정 두 개는 서버 경로로 바꿔 넣습니다(2026-10-19 - 처음 옮길 때 빠졌던 것):
+
+```bash
+# 주차장 CSV(공공데이터 원본 - 저장소에 넣지 않음). PC 에서 먼저:  scp -i <키.pem> <PC 설정의 parking.csv 경로> ubuntu@routefly.kr:~/parking.csv
+sudo mkdir -p /opt/routefly/data /opt/routefly/stats
+sudo install -o tomcat -g tomcat -m 640 ~/parking.csv /opt/routefly/data/parking.csv && rm ~/parking.csv
+# 운영 통계 파일 폴더(비우면 /opt/tomcat/routefly-stats - 톰캣을 새로 깔면 사라지므로 밖에 둠)
+sudo chown tomcat: /opt/routefly/stats && sudo chmod 750 /opt/routefly/stats
+# 이미 있는지 먼저 본 뒤(0 이어야 함) 덧붙임 - 같은 키가 두 줄이 되지 않게
+sudo grep -cE '^(parking\.csv|stats\.dir)=' /opt/routefly/config.properties
+echo 'parking.csv=/opt/routefly/data/parking.csv' | sudo tee -a /opt/routefly/config.properties
+echo 'stats.dir=/opt/routefly/stats' | sudo tee -a /opt/routefly/config.properties
+sudo systemctl restart tomcat
+```
+
+확인: `https://routefly.kr/routefly/api/parking?lat=35.33&lon=127.73` 이 `"unavailable":true` 가 아니고 lots 가 나오면 됨
+(로그 `[PARKING] … 곳 읽음`). 통계는 10분 뒤 `sudo ls -l /opt/routefly/stats/` 에 stats.json.
+
 ## 6. Nginx + HTTPS
 
 ```bash
