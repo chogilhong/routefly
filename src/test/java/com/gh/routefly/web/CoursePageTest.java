@@ -88,10 +88,13 @@ public class CoursePageTest {
         JsonArray pois = JsonParser.parseString("[{\"name\":\"우이동\",\"ele_m\":120.5,\"dist_m\":0,\"off_route_m\":10},"
                 + "{\"name\":\"우이동\",\"ele_m\":121,\"dist_m\":50,\"off_route_m\":5},{\"name\":\"먼 곳\",\"ele_m\":null,\"dist_m\":900,\"off_route_m\":400},"
                 + "{\"name\":\"백운대\",\"ele_m\":null,\"dist_m\":3980,\"off_route_m\":3}]").getAsJsonArray();
-        List<Object[]> out = CoursePageServlet.passes(pois);
+        List<Object[]> out = CoursePageServlet.passes(pois, new double[] {0, 2000, 3980}, new Double[] {120.0, 500.0, 712.0});
         assertEquals(2, out.size());
         assertEquals("우이동", out.get(0)[0]);
         assertEquals("백운대", out.get(1)[0]);
+        assertEquals("높이는 코스선 높이(이름표 높이 아님)", 712.0, (Double) out.get(1)[2], 0.01);
+        assertEquals(120.0, CoursePageServlet.eleAt(new double[] {0, 2000}, new Double[] {120.0, 500.0}, 900), 0.01);
+        assertEquals(500.0, CoursePageServlet.eleAt(new double[] {0, 2000}, new Double[] {120.0, 500.0}, 1100), 0.01);
     }
 
     @Test
@@ -99,7 +102,8 @@ public class CoursePageTest {
         JsonObject c = bukhan("knps-77", "hike");
         JsonObject peak = CoursePageServlet.peakOf(peaks(), c);
         JsonObject info = JsonParser.parseString("{\"up_min\":120,\"down_min\":90,\"level\":\"어려움\",\"notice\":null}").getAsJsonObject();
-        JsonArray pois = JsonParser.parseString("[{\"name\":\"<b>백운대\",\"ele_m\":836,\"dist_m\":3980,\"off_route_m\":3}]").getAsJsonArray();
+        JsonArray pois = JsonParser.parseString("[{\"name\":\"<b>백운대\",\"ele_m\":836,\"dist_m\":3980,\"off_route_m\":3},"
+                + "{\"name\":\"만경대\",\"ele_m\":801,\"dist_m\":1800,\"off_route_m\":120}]").getAsJsonArray();
         String html = CoursePageServlet.page(c, peak, info, new double[] {0, 2000, 3980}, new Double[] {200.0, 500.0, 836.0}, pois, true, "https://routefly.kr/routefly");
         assertTrue(html.contains("<title>북한산 · 우이동 → 백운대 등산 코스 - routefly</title>"));
         assertTrue(html.contains("rel=\"canonical\" href=\"https://routefly.kr/routefly/c/knps-77\""));
@@ -112,6 +116,7 @@ public class CoursePageTest {
                 && html.contains("\"../hike.html?lang=ko#c=knps-77&amp;m=%EB%B6%81%ED%95%9C%EC%82%B0\""));
         assertTrue("출발점 가는 길(정상에서 먼 쪽 = 시작)", html.contains("https://map.kakao.com/link/to/%EB%B6%81%ED%95%9C%EC%82%B0%20%EC%B6%9C%EB%B0%9C%EC%A0%90,37.660000,127.010000"));
         assertTrue("고도 그림", html.contains("<svg class=\"prof\""));
+        assertTrue("옆을 지나는 봉우리는 코스선 높이 + 떨어진 거리", html.contains("만경대</b> <span>1.8km · 해발 500m · 길에서 120m 옆</span>"));
         assertTrue("이름표는 이스케이프", html.contains("&lt;b&gt;백운대") && !html.contains("<b><b>"));
         assertTrue("출처", html.contains("국립공원공단 「국립공원 탐방로 공간데이터」"));
         assertTrue("안전 팁(등산)", html.contains("산행 안전 팁"));

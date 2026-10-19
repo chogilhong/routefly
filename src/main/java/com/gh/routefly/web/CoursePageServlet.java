@@ -45,8 +45,8 @@ public class CoursePageServlet extends HttpServlet {
     static final Set<String> OFFICIAL = Set.of("knps", "drnb", "kmp", "kmf");
     /** 고도 그림 점 수 상한(코스 점이 수천 개라도 글이 커지지 않게). */
     static final int PROFILE_MAX = 240;
-    /** 지나는 곳: 경로에서 이만큼(m) 안의 이름표만, 이만큼까지. */
-    static final int POI_OFF_M = 150, POI_MAX = 25;
+    /** 지나는 곳: 경로에서 이만큼(m) 안의 이름표만, 이만큼까지. 이보다(SIDE_M) 멀면 "길에서 ○m 옆" 을 붙임. */
+    static final int POI_OFF_M = 150, POI_MAX = 25, SIDE_M = 50;
 
     private volatile JsonArray peaks;
     private volatile JsonObject parks;
@@ -218,19 +218,34 @@ public class CoursePageServlet extends HttpServlet {
         return b.append("</svg>").toString();
     }
 
-    /** 순수 함수 - 지나는 곳: 경로에서 POI_OFF_M 안, 바로 앞과 같은 이름은 한 번만, POI_MAX 개까지. 각 [이름, 거리 m, 높이 m 또는 null]. */
-    static List<Object[]> passes(JsonArray pois) {
+    /**
+     * 순수 함수 - 지나는 곳: 경로에서 POI_OFF_M 안, 바로 앞과 같은 이름은 한 번만, POI_MAX 개까지. 각 [이름, 거리 m, 높이 m 또는 null, 길에서 떨어진 m].
+     * 높이는 이름표 높이가 아니라 그 거리의 코스선 높이(2026-10-19 PC: 만경대 이름표 801m 인데 코스는 옆을 지나 최고 712m - 고도 그림과 어긋났음).
+     */
+    static List<Object[]> passes(JsonArray pois, double[] dist, Double[] ele) {
         List<Object[]> out = new ArrayList<>();
         String last = null;
         for (JsonElement e : pois) {
             JsonObject p = e.getAsJsonObject();
             String n = str(p, "name");
             if (n == null || n.isBlank() || p.get("off_route_m").getAsInt() > POI_OFF_M || n.equals(last)) continue;
-            out.add(new Object[] {n, p.get("dist_m").getAsInt(), p.get("ele_m").isJsonNull() ? null : p.get("ele_m").getAsDouble()});
+            int at = p.get("dist_m").getAsInt();
+            out.add(new Object[] {n, at, eleAt(dist, ele, at), p.get("off_route_m").getAsInt()});
             last = n;
             if (out.size() >= POI_MAX) break;
         }
         return out;
+    }
+
+    /** 순수 함수 - 누적 거리 at(m)에 가장 가까운 코스 점의 높이(그 점에 높이가 없거나 점이 없으면 null). dist 는 오름차순. */
+    static Double eleAt(double[] dist, Double[] ele, double at) {
+        if (dist == null || ele == null || dist.length == 0 || dist.length != ele.length) return null;
+        int i = java.util.Arrays.binarySearch(dist, at);
+        if (i < 0) {
+            int hi = Math.min(-i - 1, dist.length - 1), lo = Math.max(hi - 1, 0);
+            i = Math.abs(dist[lo] - at) <= Math.abs(dist[hi] - at) ? lo : hi;
+        }
+        return ele[i];
     }
 
     /** 순수 함수 - 코스 페이지. */
@@ -284,12 +299,13 @@ public class CoursePageServlet extends HttpServlet {
         String svg = profileSvg(dist, ele);
         if (!svg.isEmpty()) b.append("<section><h2>고도 그림</h2>").append(svg).append("</section>");
         // 지나는 곳
-        List<Object[]> ps = passes(pois);
+        List<Object[]> ps = passes(pois, dist, ele);
         if (!ps.isEmpty()) {
             b.append("<section><h2>지나는 곳</h2><ol class=\"pass\">");
             for (Object[] p : ps) {
                 b.append("<li><b>").append(esc((String) p[0])).append("</b> <span>").append(String.format(Locale.ROOT, "%.1fkm", (Integer) p[1] / 1000.0))
-                        .append(p[2] != null ? String.format(Locale.KOREA, " · 해발 %,dm", Math.round((Double) p[2])) : "").append("</span></li>");
+                        .append(p[2] != null ? String.format(Locale.KOREA, " · 해발 %,dm", Math.round((Double) p[2])) : "")
+                        .append((Integer) p[3] > SIDE_M ? " · 길에서 " + p[3] + "m 옆" : "").append("</span></li>");
             }
             b.append("</ol></section>");
         }
