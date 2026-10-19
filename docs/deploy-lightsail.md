@@ -502,9 +502,10 @@ rm ~/route.sql ~/route.tgz
 - routefly.kr 이 열리면 설정의 `site.baseUrl=https://routefly.kr/routefly` 주석을 풀고(공유 링크 · og 그림 · 산 페이지 canonical), HSTS(6-1 의 `Strict-Transport-Security`)가 붙는지
   `curl -sI https://routefly.kr/routefly/ | grep -i strict` 로 봅니다. 몇 주 문제없으면 그때 hstspreload.org 등록을 생각합니다(되돌리기 어려우니 서두르지 않음).
 
-- V-World 지도 키(2026-10-19): 운영키 신청함(서비스 URL https://routefly.kr, 심사 중). 그동안 개발키(만료 2027-04-19)로 운영.
-  운영키가 나오면 서버 `/opt/routefly/config.properties` 의 `map.vworld.key` 를 바꾸고 `sudo systemctl restart tomcat`.
-  승인 전에 개발키 만료가 가까우면(2027-04 초) vworld.kr 에서 연장. 키 값은 이 문서 · 대화에 적지 않음.
+- V-World 지도 키(2026-10-19): 서버는 routefly.kr 전용 개발키(서비스명 routefly, 서비스 URL https://routefly.kr, WMTS/TMS)를 씀.
+  발급 2026-10-19 · 만료 2027-04-19(6개월, 최대 3회 연장). PC 설정은 예전 키 그대로(localhost 개발용).
+  할 일: 만료 전에 운영키(2년, 심사)로 바꾸기 - 승인되면 서버 `/opt/routefly/config.properties` 의 `map.vworld.key` 교체 → `sudo systemctl restart tomcat`.
+  심사가 늦으면 2027-04 초에 개발키 연장. 키 값은 이 문서 · 대화에 적지 않음.
 
 ### 10-1. 막기 · 백업 (2026-10-15)
 
