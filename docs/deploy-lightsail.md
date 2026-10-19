@@ -504,6 +504,7 @@ rm ~/route.sql ~/route.tgz
 
 - V-World 지도 키(2026-10-19): 서버는 routefly.kr 전용 개발키(서비스명 routefly, 서비스 URL https://routefly.kr, WMTS/TMS)를 씀.
   발급 2026-10-19 · 만료 2027-04-19(6개월, 최대 3회 연장). PC 설정은 예전 키 그대로(localhost 개발용).
+  서버 반영 확인(2026-10-19 PC): api/map-config 의 키가 새 키, Referer https://routefly.kr 로 Satellite 타일 200 image/jpeg. 운영키는 신청해 두고 심사 기다리는 중.
   할 일: 만료 전에 운영키(2년, 심사)로 바꾸기 - 승인되면 서버 `/opt/routefly/config.properties` 의 `map.vworld.key` 교체 → `sudo systemctl restart tomcat`.
   심사가 늦으면 2027-04 초에 개발키 연장. 키 값은 이 문서 · 대화에 적지 않음.
 
