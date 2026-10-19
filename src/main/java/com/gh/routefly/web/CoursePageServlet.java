@@ -73,7 +73,7 @@ public class CoursePageServlet extends HttpServlet {
         Double[] ele = null;
         JsonArray pois = new JsonArray();
         try (Connection c = Db.open()) {
-            JsonArray rows = Json.rows(c, "SELECT " + CourseQueries.COURSE_COLUMNS + " FROM route_course WHERE course_id = ?", id);
+            JsonArray rows = Json.rows(c, "SELECT " + CourseQueries.COURSE_COLUMNS + ", imported_at FROM route_course WHERE course_id = ?", id);
             if (rows.size() > 0) {
                 course = rows.get(0).getAsJsonObject();
                 JsonArray pts = Json.rows(c, "SELECT dist_m, ele_m FROM route_course_point WHERE course_id = ? ORDER BY seq", id);
@@ -200,7 +200,7 @@ public class CoursePageServlet extends HttpServlet {
         }
         if (maxD <= 0) return "";
         double span = Math.max(hi - lo, 50);   // 평지도 선이 납작하게만(위아래 50m 는 늘 보임)
-        final int W = 640, H = 170, L = 6, R = W - 56, T = 10, B = H - 24;
+        final int W = 640, H = 150, L = 6, R = W - 6, T = 10, B = H - 6;
         StringBuilder line = new StringBuilder();
         for (double[] p : pts) {
             double x = L + p[0] / maxD * (R - L), y = B - (p[1] - lo) / span * (B - T);
@@ -211,11 +211,9 @@ public class CoursePageServlet extends HttpServlet {
                 + Math.round(lo) + "m, 최고 " + Math.round(hi) + "m, 거리 " + String.format(Locale.ROOT, "%.1f", maxD / 1000) + "km\">");
         b.append(String.format(Locale.ROOT, "<polygon points=\"%.1f,%d %s %.1f,%d\" fill=\"rgba(77,163,255,0.18)\"/>", (double) L, B, l, (double) R, B));
         b.append("<polyline points=\"").append(l).append("\" fill=\"none\" stroke=\"#4da3ff\" stroke-width=\"2\" stroke-linejoin=\"round\"/>");
-        b.append(String.format(Locale.ROOT, "<text x=\"%d\" y=\"%d\" fill=\"#a9b4c2\" font-size=\"12\">%,dm</text>", R + 6, T + 10, Math.round(hi)));
-        b.append(String.format(Locale.ROOT, "<text x=\"%d\" y=\"%d\" fill=\"#a9b4c2\" font-size=\"12\">%,dm</text>", R + 6, B, Math.round(lo)));
-        b.append(String.format(Locale.ROOT, "<text x=\"%d\" y=\"%d\" fill=\"#a9b4c2\" font-size=\"12\">0</text>", L, H - 6));
-        b.append(String.format(Locale.ROOT, "<text x=\"%d\" y=\"%d\" fill=\"#a9b4c2\" font-size=\"12\" text-anchor=\"end\">%.1fkm</text>", R, H - 6, maxD / 1000));
-        return b.append("</svg>").toString();
+        // 눈금 글자는 그림 밖 한 줄로(2026-10-19 다음 문서분석: 그림 안 글자가 본문에 "712m192m01.8km" 처럼 붙어 읽혔음)
+        b.append("</svg>");
+        return b.append(String.format(Locale.KOREA, "<p class=\"dim profCap\">출발 0km → 도착 %.1fkm · 높이 %,dm ~ %,dm</p>", maxD / 1000, Math.round(lo), Math.round(hi))).toString();
     }
 
     /**
@@ -309,6 +307,9 @@ public class CoursePageServlet extends HttpServlet {
             }
             b.append("</ol></section>");
         }
+        String day = str(c, "imported_at");
+        if (day != null && day.length() >= 10)   // 코스를 넣은 날(검색 사이트가 날짜로 읽음 - 2026-10-19 다음 문서분석 "날짜 -")
+            b.append("<p class=\"dim\">코스 자료 날짜 <time datetime=\"").append(esc(day.substring(0, 10))).append("\">").append(esc(day.substring(0, 10))).append("</time></p>");
         b.append("<p class=\"dim\">예상 시간 · 난이도는 routefly 가 거리 · 오르막으로 어림한 값입니다(공식 등급이 아님). 코스 자료는 참고용이니 현지 안내판 · 통제를 꼭 따르세요.</p>");
         if (hike) b.append(MountainServlet.tips());
         String src = source(id);

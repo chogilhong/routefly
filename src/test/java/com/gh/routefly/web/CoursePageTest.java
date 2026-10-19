@@ -79,7 +79,8 @@ public class CoursePageTest {
         assertTrue(svg.startsWith("<svg class=\"prof\""));
         int pts = svg.substring(svg.indexOf("<polyline points=\"") + 18).split("\"")[0].split(" ").length;
         assertTrue("점은 240개 남짓으로 솎음: " + pts, pts <= CoursePageServlet.PROFILE_MAX + 1 && pts > 100);
-        assertTrue("최고 · 최저 · 거리", svg.contains(">799m<") && svg.contains(">200m<") && svg.contains(">4.0km<"));
+        assertTrue("최고 · 최저 · 거리는 그림 밖 한 줄(그림 안 글자는 검색 본문에 붙어 읽힘)", svg.endsWith("</svg><p class=\"dim profCap\">출발 0km → 도착 4.0km · 높이 200m ~ 799m</p>"));
+        assertFalse(svg.contains("<text"));
         assertEquals("높이가 없으면 그림 없음", "", CoursePageServlet.profileSvg(new double[] {0, 10}, new Double[] {null, null}));
     }
 
@@ -100,6 +101,7 @@ public class CoursePageTest {
     @Test
     public void pageHasSummaryLinksSourceAndRobots() throws Exception {
         JsonObject c = bukhan("knps-77", "hike");
+        c.addProperty("imported_at", "2026-10-11 05:12:00");
         JsonObject peak = CoursePageServlet.peakOf(peaks(), c);
         JsonObject info = JsonParser.parseString("{\"up_min\":120,\"down_min\":90,\"level\":\"어려움\",\"notice\":null}").getAsJsonObject();
         JsonArray pois = JsonParser.parseString("[{\"name\":\"<b>백운대\",\"ele_m\":836,\"dist_m\":3980,\"off_route_m\":3},"
@@ -116,6 +118,8 @@ public class CoursePageTest {
                 && html.contains("\"../hike.html?lang=ko#c=knps-77&amp;m=%EB%B6%81%ED%95%9C%EC%82%B0\""));
         assertTrue("출발점 가는 길(정상에서 먼 쪽 = 시작)", html.contains("https://map.kakao.com/link/to/%EB%B6%81%ED%95%9C%EC%82%B0%20%EC%B6%9C%EB%B0%9C%EC%A0%90,37.660000,127.010000"));
         assertTrue("고도 그림", html.contains("<svg class=\"prof\""));
+        assertTrue("자료 날짜", html.contains("코스 자료 날짜 <time datetime=\"2026-10-11\">2026-10-11</time>"));
+        assertFalse("날짜가 없으면 줄 없음", CoursePageServlet.page(course("x-1", "x", "walk", 37.5, 127.0, 37.6, 127.1), null, null, null, null, new JsonArray(), false, "").contains("자료 날짜"));
         assertTrue("옆을 지나는 봉우리는 코스선 높이 + 떨어진 거리", html.contains("만경대</b> <span>1.8km · 해발 500m · 길에서 120m 옆</span>"));
         assertTrue("이름표는 이스케이프", html.contains("&lt;b&gt;백운대") && !html.contains("<b><b>"));
         assertTrue("출처", html.contains("국립공원공단 「국립공원 탐방로 공간데이터」"));
@@ -142,5 +146,8 @@ public class CoursePageTest {
         JsonObject gaya = JsonParser.parseString("{\"id\":\"가야산\",\"name\":\"가야산\",\"lat\":35.822544,\"lon\":128.122849}").getAsJsonObject();
         String m = MountainServlet.page(gaya, List.of(course("knps-7013", "가야산 · 해인사 → 상왕봉", "hike", 35.80, 128.09, 35.8233, 128.1204)), List.of(), null, "https://r.kr");
         assertTrue("산 페이지 코스 이름 → 코스 페이지", m.contains("<b><a href=\"../c/knps-7013\">가야산 · 해인사 → 상왕봉</a> "));
+        assertTrue("스크립트가 채울 칸은 '불러오는 중' 대신 무슨 칸인지(검색 본문)", m.contains("id=\"wxBody\">오늘부터 며칠 뒤까지의 날씨") && !m.contains("불러오는 중"));
+        String en = MountainEn.page(gaya, List.of(), List.of(), null, "https://r.kr");
+        assertTrue(en.contains("id=\"wxBody\">Weather, air quality") && !en.contains("Loading…"));
     }
 }
