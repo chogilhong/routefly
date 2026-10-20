@@ -126,7 +126,7 @@ final class Party {
     private final SecureRandom rnd = new SecureRandom();
     private final Map<String, Room> rooms = new HashMap<>();
     private final Map<String, Member> byToken = new HashMap<>();
-    private final Map<String, String> endedWhy = new HashMap<>();   // 끝난 방 열쇠 → 까닭
+    private final Map<String, String> endedWhy = new HashMap<>();   // 끝난 방 열쇠(또는 "#" + 방 코드 - 새로 들어오려는 사람용) → 까닭
     private final Map<String, Long> endedAt = new HashMap<>();
     /** 방 정보 파일(null = 저장 안 함 - 시험). */
     private final Path file;
@@ -160,7 +160,7 @@ final class Party {
         for (int tries = 0; tries < 50; tries++) {
             StringBuilder s = new StringBuilder();
             for (int i = 0; i < 6; i++) s.append(CODE_CHARS.charAt(rnd.nextInt(CODE_CHARS.length())));
-            if (!rooms.containsKey(s.toString())) return s.toString();
+            if (!rooms.containsKey(s.toString()) && !endedWhy.containsKey("#" + s)) return s.toString();   // 막 끝난 방 코드도 피함
         }
         throw new IllegalStateException("방 코드를 만들지 못함");
     }
@@ -231,6 +231,7 @@ final class Party {
     synchronized Room room(String code, long now) {
         sweep(now);
         Room r = code == null ? null : rooms.get(code.trim().toUpperCase());
+        if (r == null && code != null && endedWhy.containsKey("#" + code.trim().toUpperCase())) throw new Ended("이미 끝난 방입니다 - " + endedWhy.get("#" + code.trim().toUpperCase()));
         if (r == null) throw new IllegalArgumentException("방 코드를 찾지 못했습니다. 인솔자에게 다시 확인해 주세요.");
         return r;
     }
@@ -425,6 +426,8 @@ final class Party {
             endedWhy.put(t, why);
             endedAt.put(t, now);
         }
+        endedWhy.put("#" + r.code, why);   // 방 코드로 새로 들어오려는 사람에게도(48시간, 2026-10-20 PC)
+        endedAt.put("#" + r.code, now);
         audit.info("end room={} members={} ({})", r.code, r.members.size(), why);
         r.members.clear();
     }

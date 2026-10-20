@@ -123,6 +123,9 @@ public class PartyTest {
         String a = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"철수\",\"role\":\"hiker\",\"agree\":true}", T0).get("token").getAsString();
         call(p, "/end", "{\"token\":\"" + lead + "\",\"cancel\":true}", T0 + H);   // 인원 미달 - 산행 취소
         try { call(p, "/view", tok(a), T0 + 2 * H); fail(); } catch (Party.Ended e) { assertTrue(e.getMessage().contains("취소")); }
+        // 새로 들어오려는 사람도 방 코드로 "끝난 방" 을 앎(2026-10-20 PC) - 48시간 뒤엔 그냥 "못 찾음"
+        try { call(p, "/info", "{\"code\":\"" + code.toLowerCase() + "\"}", T0 + 2 * H); fail(); } catch (Party.Ended e) { assertTrue(e.getMessage().startsWith("이미 끝난 방입니다") && e.getMessage().contains("취소")); }
+        try { call(p, "/info", "{\"code\":\"" + code + "\"}", T0 + 60 * H); fail(); } catch (IllegalArgumentException e) { assertTrue(e.getMessage().contains("찾지 못했습니다")); }
 
         String lead2 = j(create(p, T0)).get("token").getAsString();
         p.sweep(END + 6 * H + 1);
