@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:excerpt="http://wordpress.org/export/1.2/excerpt/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:wfw="http://wellformedweb.org/CommentAPI/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:wp="http://wordpress.org/export/1.2/">
+<channel>
+  <title>시험 블로그</title>
+  <link>https://example.kr</link>
+  <item>
+    <title>두 번째 글 &amp; 그림</title>
+    <link>https://example.kr/%eb%91%90-%eb%b2%88%ec%a7%b8/</link>
+    <dc:creator><![CDATA[tester]]></dc:creator>
+    <content:encoded><![CDATA[<!-- wp:paragraph -->
+<p>첫 문단 <a href="http://www.example.kr/first-post/">앞 글</a></p>
+<!-- /wp:paragraph -->
+<!-- wp:image {"id":5} -->
+<figure class="wp-block-image"><img src="http://example.kr/wp-content/uploads/2026/08/a.jpg" alt=""/></figure>
+<!-- /wp:image -->]]></content:encoded>
+    <wp:post_id>12</wp:post_id>
+    <wp:post_date><![CDATA[2026-08-02 09:00:00]]></wp:post_date>
+    <wp:post_date_gmt><![CDATA[2026-08-02 00:00:00]]></wp:post_date_gmt>
+    <wp:post_modified_gmt><![CDATA[2026-08-03 00:00:00]]></wp:post_modified_gmt>
+    <wp:post_name><![CDATA[%eb%91%90-%eb%b2%88%ec%a7%b8]]></wp:post_name>
+    <wp:status><![CDATA[publish]]></wp:status>
+    <wp:post_type><![CDATA[post]]></wp:post_type>
+    <category domain="category" nicename="sports"><![CDATA[스포츠]]></category>
+    <category domain="post_tag" nicename="a"><![CDATA[야구, KBO]]></category>
+    <category domain="post_tag" nicename="b"><![CDATA[스포츠]]></category>
+  </item>
+  <item>
+    <title>first post</title>
+    <link>https://example.kr/first-post/</link>
+    <dc:creator><![CDATA[tester]]></dc:creator>
+    <content:encoded><![CDATA[옛 글 첫 줄
+둘째 줄
+
+새 문단]]></content:encoded>
+    <wp:post_id>3</wp:post_id>
+    <wp:post_date><![CDATA[2026-08-01 10:00:00]]></wp:post_date>
+    <wp:post_date_gmt><![CDATA[0000-00-00 00:00:00]]></wp:post_date_gmt>
+    <wp:post_modified_gmt><![CDATA[2026-08-01 01:00:00]]></wp:post_modified_gmt>
+    <wp:post_name><![CDATA[first-post]]></wp:post_name>
+    <wp:status><![CDATA[publish]]></wp:status>
+    <wp:post_type><![CDATA[post]]></wp:post_type>
+    <category domain="category" nicename="uncategorized"><![CDATA[Uncategorized]]></category>
+  </item>
+  <item>
+    <title>임시 글</title>
+    <wp:post_id>20</wp:post_id>
+    <wp:status><![CDATA[draft]]></wp:status>
+    <wp:post_type><![CDATA[post]]></wp:post_type>
+  </item>
+  <item>
+    <title>그림</title>
+    <wp:post_id>5</wp:post_id>
+    <wp:status><![CDATA[inherit]]></wp:status>
+    <wp:post_type><![CDATA[attachment]]></wp:post_type>
+  </item>
+</channel>
+</rss>
