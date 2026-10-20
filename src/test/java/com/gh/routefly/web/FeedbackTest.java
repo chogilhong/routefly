@@ -71,7 +71,7 @@ public class FeedbackTest {
     @Test
     public void sendsMail() throws Exception {
         List<String> got = new ArrayList<>();
-        try (ServerSocket ss = new ServerSocket(0)) {
+        try (ServerSocket ss = new ServerSocket(0, 1, java.net.InetAddress.getLoopbackAddress())) {   // 127.0.0.1 에만 - 0.0.0.0 이면 윈도 방화벽 창이 뜸(2026-10-20 PC)
             Thread t = new Thread(() -> {
                 try (Socket s = ss.accept()) {
                     BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream(), StandardCharsets.US_ASCII));
