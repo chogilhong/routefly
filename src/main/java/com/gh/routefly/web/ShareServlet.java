@@ -81,6 +81,7 @@ public class ShareServlet extends HttpServlet {
         return "<!DOCTYPE html><html lang=\"ko\"><head><meta charset=\"UTF-8\">"
                 + "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
                 + "<title>" + t + " - routefly</title>"
+                + MountainServlet.icons("..")
                 + "<meta name=\"description\" content=\"" + d + "\"><link rel=\"canonical\" href=\"" + esc(canonical) + "\">"
                 + "<meta property=\"og:type\" content=\"website\"><meta property=\"og:site_name\" content=\"routefly\">"
                 + "<meta property=\"og:title\" content=\"" + t + "\"><meta property=\"og:description\" content=\"" + d + "\">"

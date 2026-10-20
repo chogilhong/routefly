@@ -741,6 +741,12 @@ public class MountainServlet extends HttpServlet {
         return head(title, desc, url, base, enUrl, og, true);
     }
 
+    /** 탭 아이콘 · 홈 화면 아이콘 · 주소창 색 - 서버가 만드는 모든 화면이 같이 씀(2026-10-20 /stats 탭이 지구본으로 보였음). rel - 그 화면에서 앱 뿌리까지 상대 주소. */
+    static String icons(String rel) {
+        return "<link rel=\"icon\" type=\"image/svg+xml\" href=\"" + rel + "/favicon.svg?v=2\"><link rel=\"apple-touch-icon\" href=\"" + rel + "/img/apple-icon-180.png\">"
+                + "<meta name=\"theme-color\" content=\"#11161d\">";
+    }
+
     /** index - false 면 검색에 내지 않음(noindex, 링크는 따라감 - 코스 페이지 CoursePageServlet 의 OSM 조각 · 자동 생성 코스). */
     static String head(String title, String desc, String url, String base, String enUrl, String og, boolean index) {
         String t = esc(title) + " - routefly", d = esc(desc);
@@ -755,7 +761,7 @@ public class MountainServlet extends HttpServlet {
                 + "<meta property=\"og:title\" content=\"" + t + "\"><meta property=\"og:description\" content=\"" + d + "\">"
                 + "<meta property=\"og:url\" content=\"" + esc(url) + "\"><meta property=\"og:image\" content=\"" + esc(og != null ? og : base + "/img/og.png?v=2") + "\">"
                 + "<meta property=\"og:image:width\" content=\"1200\"><meta property=\"og:image:height\" content=\"630\">"
-                + "<link rel=\"icon\" type=\"image/svg+xml\" href=\"" + REL + "/favicon.svg?v=2\"><link rel=\"apple-touch-icon\" href=\"" + REL + "/img/apple-icon-180.png\"><meta name=\"theme-color\" content=\"#11161d\">"
+                + icons(REL)
                 + "<link rel=\"stylesheet\" href=\"" + REL + "/css/course-kit.css\"><link rel=\"stylesheet\" href=\"" + REL + "/css/mountain.css\"></head><body>";
     }
 

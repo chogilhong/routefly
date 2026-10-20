@@ -318,7 +318,7 @@ final class MountainEn {
                 + "<meta property=\"og:title\" content=\"" + t + "\"><meta property=\"og:description\" content=\"" + d + "\">"
                 + "<meta property=\"og:url\" content=\"" + esc(url) + "\"><meta property=\"og:image\" content=\"" + esc(og != null ? og : base + "/img/og.png?v=2") + "\">"
                 + "<meta property=\"og:image:width\" content=\"1200\"><meta property=\"og:image:height\" content=\"630\">"
-                + "<link rel=\"icon\" type=\"image/svg+xml\" href=\"" + REL + "/favicon.svg?v=2\"><link rel=\"apple-touch-icon\" href=\"" + REL + "/img/apple-icon-180.png\"><meta name=\"theme-color\" content=\"#11161d\">"
+                + MountainServlet.icons(REL)
                 + "<link rel=\"stylesheet\" href=\"" + REL + "/css/course-kit.css\"><link rel=\"stylesheet\" href=\"" + REL + "/css/mountain.css\"></head><body>";
     }
 

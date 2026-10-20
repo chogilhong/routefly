@@ -65,7 +65,7 @@ public class StatsServlet extends HttpServlet {
             rows.append("<tr><td>").append(last.get(i)).append("</td><td>").append(u).append("</td><td>").append(views).append("</td><td>").append(b).append("</td></tr>");
         }
         StringBuilder out = new StringBuilder("<!DOCTYPE html><html lang=\"ko\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
-                + "<meta name=\"robots\" content=\"noindex\"><title>routefly 통계</title><link rel=\"stylesheet\" href=\"css/mountain.css\"></head><body><main><h1>routefly 통계</h1>"
+                + "<meta name=\"robots\" content=\"noindex\"><title>routefly 통계</title>" + MountainServlet.icons(".") + "<link rel=\"stylesheet\" href=\"css/mountain.css\"></head><body><main><h1>routefly 통계</h1>"
                 + "<p class=\"lead\">최근 " + last.size() + "일 · 방문자(하루마다 센 수의 합) " + String.format(Locale.KOREA, "%,d", tu) + " · 화면 " + String.format(Locale.KOREA, "%,d", tp)
                 + " · 검색 로봇 · 미리보기 " + String.format(Locale.KOREA, "%,d", tb) + "</p>");
         out.append("<section><h2>날마다</h2><table class=\"st\"><tr><th>날짜</th><th>방문자</th><th>화면</th><th>로봇</th></tr>").append(rows).append("</table></section>");

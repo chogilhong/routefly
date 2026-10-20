@@ -172,7 +172,7 @@ public class HeightCheckServlet extends HttpServlet {
                     .append(ShareServlet.esc(String.join(" / ", r.pois))).append("</small></td></tr>");
         }
         return "<!DOCTYPE html><html lang=\"ko\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
-                + "<meta name=\"robots\" content=\"noindex\"><title>높이 점검 - routefly</title><link rel=\"stylesheet\" href=\"../css/mountain.css\">"
+                + "<meta name=\"robots\" content=\"noindex\"><title>높이 점검 - routefly</title>" + MountainServlet.icons("..") + "<link rel=\"stylesheet\" href=\"../css/mountain.css\">"
                 + "<style>.st td,.st th{font-size:12.5px;vertical-align:top}.bad{color:#ff8a8a;font-weight:bold}</style></head><body><main><h1>높이 점검</h1>"
                 + "<p class=\"lead\">100대 명산 " + rows.size() + "곳 · 공식 높이 없음 " + noOfficial + " · 코스 높이가 공식과 " + (int) WARN_M + "m 넘게 다름 " + courseWarn
                 + " · GPS 높이가 " + (int) WARN_M + "m 넘게 다름 " + gpsWarn + " · 정상 " + (int) NEAR_M + "m 안 코스 없음 " + noCourse + "</p>"
