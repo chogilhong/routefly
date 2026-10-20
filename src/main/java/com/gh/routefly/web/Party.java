@@ -92,12 +92,14 @@ final class Party {
         String notice;
         long noticeAt;
         final Map<Integer, double[]> busAt = new java.util.TreeMap<>();   // 호차 → 버스 세운 자리
+        final String[] plates;   // 호차 - 1 → 차량번호(null = 아직)
         boolean departed;
         int nextId = 1;
 
         Room(String code, String name, long created, long departAt, long endAt, int buses, int seats, int minPeople, List<String> stops, String leaderName, String leaderPhone) {
             this.code = code; this.name = name; this.created = created; this.departAt = departAt; this.endAt = endAt; this.buses = Math.max(1, buses); this.seats = seats;
             this.minPeople = minPeople; this.stops = stops; this.leaderName = leaderName; this.leaderPhone = leaderPhone;
+            this.plates = new String[this.buses];
         }
 
         Member atSeat(int bus, int seat) {
@@ -178,6 +180,14 @@ final class Party {
         return t.isEmpty() ? null : t.length() > 20 ? t.substring(0, 20) : t;
     }
 
+    /** 순수 함수 - 차량번호: 숫자 · 한글 · 빈칸 · - 만, 12자까지(예: 서울70사1234 · 12가 3456). 다른 글자가 있으면 IllegalArgumentException. */
+    static String plate(String s) {
+        String t = clean(s, 12);
+        if (t == null) return null;
+        if (!t.matches("[0-9가-힣 \\-]+") || !t.matches(".*[0-9].*")) throw new IllegalArgumentException("차량번호는 숫자 · 한글로 적어 주세요(예: 12가 3456).");
+        return t;
+    }
+
     /** 순수 함수 - 받을 수 있는 좌표(한국 둘레 넉넉히 - 제주 · 독도 · 백령도 포함). */
     static boolean okPos(Double lat, Double lon) {
         return lat != null && lon != null && lat >= 32 && lat <= 39.5 && lon >= 123.5 && lon <= 132.5;
@@ -197,7 +207,7 @@ final class Party {
     // ---------------------------------------------------------------- 만들기 · 참가
 
     synchronized Member create(String name, long departAt, long endAt, int buses, int seats, int minPeople, List<String> stops,
-                               String leaderName, String leaderPhone, long now) {
+                               String leaderName, String leaderPhone, List<String> plates, long now) {
         sweep(now);
         String n = clean(name, 30);
         if (n == null) throw new IllegalArgumentException("산행 이름을 적어 주세요.");
@@ -209,6 +219,7 @@ final class Party {
         if (endAt > 0 && departAt > 0 && endAt <= departAt) throw new IllegalArgumentException("하산 마감은 출발보다 뒤여야 합니다.");
         String lead = clean(leaderName, 12);
         Room r = new Room(newCode(), n, now, departAt, endAt, buses, seats, minPeople, List.copyOf(stops), lead, phone(leaderPhone));
+        if (plates != null) for (int i = 0; i < Math.min(plates.size(), r.buses); i++) r.plates[i] = plate(plates.get(i));
         rooms.put(r.code, r);
         Member m = add(r, lead != null ? lead : "인솔자", "lead", now);
         audit.info("create room={} members=1", r.code);
@@ -380,6 +391,13 @@ final class Party {
         save();
     }
 
+    /** 차량번호 - 운전자는 자기 호차, 인솔자는 고른 호차(bus). 빈 글이면 지움. */
+    synchronized void plate(Member m, Integer bus, String plate) {
+        int b = "driver".equals(m.role) ? m.bus : checkBus(m.room, bus);
+        m.room.plates[b - 1] = plate(plate);
+        save();
+    }
+
     /** 버스 세운 자리 - 운전자는 자기 호차, 인솔자는 고른 호차(bus). */
     synchronized void bus(Member m, Integer bus, Double lat, Double lon) {
         if (!okPos(lat, lon)) throw new IllegalArgumentException("위치가 올바르지 않습니다.");
@@ -438,6 +456,7 @@ final class Party {
             o.addProperty("code", r.code); o.addProperty("name", r.name); o.addProperty("created", r.created);
             o.addProperty("departAt", r.departAt); o.addProperty("endAt", r.endAt); o.addProperty("buses", r.buses); o.addProperty("seats", r.seats); o.addProperty("minPeople", r.minPeople);
             o.add("stops", strings(r.stops)); o.addProperty("leaderName", r.leaderName); o.addProperty("leaderPhone", r.leaderPhone);
+            o.add("plates", plateArray(r));
             JsonArray rs = new JsonArray(); r.reserved.forEach(rs::add); o.add("reserved", rs);
             o.addProperty("notice", r.notice); o.addProperty("noticeAt", r.noticeAt);
             JsonObject ba = new JsonObject();
@@ -474,6 +493,10 @@ final class Party {
                 Room r = new Room(o.get("code").getAsString(), o.get("name").getAsString(), o.get("created").getAsLong(), o.get("departAt").getAsLong(),
                         o.get("endAt").getAsLong(), o.has("buses") ? o.get("buses").getAsInt() : 1, o.get("seats").getAsInt(), o.get("minPeople").getAsInt(), List.copyOf(st), str(o, "leaderName"), str(o, "leaderPhone"));
                 o.getAsJsonArray("reserved").forEach(x -> r.reserved.add(x.getAsInt()));
+                if (o.has("plates")) {
+                    JsonArray pa = o.getAsJsonArray("plates");
+                    for (int i = 0; i < Math.min(pa.size(), r.buses); i++) r.plates[i] = pa.get(i).isJsonNull() ? null : pa.get(i).getAsString();
+                }
                 r.notice = str(o, "notice"); r.noticeAt = o.get("noticeAt").getAsLong();
                 if (o.has("busAt")) for (var be : o.getAsJsonObject("busAt").entrySet()) {
                     JsonArray p = be.getValue().getAsJsonArray();
@@ -495,6 +518,13 @@ final class Party {
         } catch (Exception e) {
             log.warn("[PARTY] 방 파일을 읽지 못함 - {}", e.toString());
         }
+    }
+
+    /** 차량번호 - 호차 차례, 없으면 null. */
+    private static JsonArray plateArray(Room r) {
+        JsonArray a = new JsonArray();
+        for (String p : r.plates) a.add(p);
+        return a;
     }
 
     private static JsonArray strings(List<String> l) {
@@ -526,6 +556,7 @@ final class Party {
         if (r.leaderName != null) o.addProperty("leaderName", r.leaderName);
         if (r.leaderPhone != null) o.addProperty("leaderPhone", r.leaderPhone);
         o.addProperty("buses", r.buses);
+        o.add("plates", plateArray(r));
         o.addProperty("seats", r.seats);
         o.add("stops", strings(r.stops));
         JsonArray taken = new JsonArray();   // 호차 × 100 + 좌석

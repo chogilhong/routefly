@@ -16,7 +16,7 @@ import com.google.gson.JsonParser;
  * 산악회 방 API(Party - 2026-10-20 홍TV님). 열쇠(token)는 주소가 아니라 본문으로(접속 기록에 남지 않게), 응답은 저장하지 않음(no-store).
  * <pre>
  * GET  /api/party/status                                  {enabled}
- * POST /api/party/create {name, departAt, endAt, minPeople, leaderName, leaderPhone, buses, seats, stops}  인솔자 → 방 + 열쇠(buses 차량 수 · seats 한 대 좌석)
+ * POST /api/party/create {name, departAt, endAt, minPeople, leaderName, leaderPhone, buses, seats, plates, stops}  인솔자 → 방 + 열쇠(buses 차량 수 · seats 한 대 좌석 · plates 호차별 차량번호)
  * POST /api/party/info   {code}                            참가 전 방 소개(이름 · 출발 · 인솔자 · 인원 · 좌석 수 · 탑승지 · 찬 좌석)
  * POST /api/party/join   {code, nick, role, bus, seat, stop, agree} 회원(hiker) · 운전자(driver) → 열쇠 - agree(위치 제공 동의)가 true 여야
  * POST /api/party/loc    {token, lat, lon, acc, batt, sos} 내 위치(출발 3시간 전부터 받음) → 방 화면
@@ -26,7 +26,7 @@ import com.google.gson.JsonParser;
  * POST /api/party/seat   {token, id?, bus, seat, stop}          자리 · 탑승지 - 회원은 자기 것, 인솔자 · 운전자는 id 로 아무나
  * POST /api/party/mark   {token, bus, seat, what: boarded|reserved, on} 인솔자 · 운전자 - 좌석표
  * POST /api/party/depart {token}                           인솔자 - 출발(안 탄 사람 취소)
- * POST /api/party/notice {token, text} · /bus {token, bus, lat, lon}
+ * POST /api/party/notice {token, text} · /bus {token, bus, lat, lon} · /plate {token, bus, plate}  (plate - 인솔자 · 운전자, 운전자는 자기 호차)
  * POST /api/party/leave  {token} · /end {token, cancel}    나가기 · (인솔자) 방 끝내기 · 산행 취소
  * </pre>
  * 끝난 방 열쇠로 오면 410 + 까닭. 설정 party.enabled=true 가 아니면 status 말고는 404.
@@ -86,7 +86,7 @@ public class PartyServlet extends HttpServlet {
     static JsonObject handle(Party p, String path, JsonObject in, long now) {
         if ("/create".equals(path)) {
             Party.Member lead = p.create(str(in, "name"), lng(in, "departAt"), lng(in, "endAt"), Math.max(1, (int) lng(in, "buses")), (int) lng(in, "seats"), (int) lng(in, "minPeople"),
-                    Party.stops(str(in, "stops")), str(in, "leaderName"), str(in, "leaderPhone"), now);
+                    Party.stops(str(in, "stops")), str(in, "leaderName"), str(in, "leaderPhone"), strs(in, "plates"), now);
             return withToken(p.view(lead, now), lead);
         }
         if ("/info".equals(path)) return p.info(str(in, "code"), now);
@@ -122,6 +122,7 @@ public class PartyServlet extends HttpServlet {
             }
             case "/notice" -> { if (!lead) throw new SecurityException("인솔자만 공지할 수 있습니다."); p.notice(m, str(in, "text"), now); }
             case "/bus" -> { if (!staff) throw new SecurityException("인솔자 · 운전자만 버스 자리를 정할 수 있습니다."); p.bus(m, integer(in, "bus"), num(in, "lat"), num(in, "lon")); }
+            case "/plate" -> { if (!staff) throw new SecurityException("인솔자 · 운전자만 차량번호를 적을 수 있습니다."); p.plate(m, integer(in, "bus"), str(in, "plate")); }
             case "/leave" -> { p.leave(m); return ok(); }
             case "/end" -> { if (!lead) throw new SecurityException("인솔자만 방을 끝낼 수 있습니다."); p.end(m, in.has("cancel") && in.get("cancel").getAsBoolean(), now); return ok(); }
             default -> throw new IllegalArgumentException("없는 주소입니다.");
@@ -143,6 +144,18 @@ public class PartyServlet extends HttpServlet {
     private static String str(JsonObject in, String k) {
         JsonElement e = in.get(k);
         return e == null || e.isJsonNull() || !e.isJsonPrimitive() ? null : e.getAsString();
+    }
+
+    /** 글 배열(8개까지) - 배열이 아니면 null. */
+    private static java.util.List<String> strs(JsonObject in, String k) {
+        JsonElement e = in.get(k);
+        if (e == null || !e.isJsonArray()) return null;
+        java.util.List<String> out = new java.util.ArrayList<>();
+        for (JsonElement x : e.getAsJsonArray()) {
+            if (out.size() >= Party.MAX_BUSES) break;
+            out.add(x.isJsonPrimitive() ? x.getAsString() : null);
+        }
+        return out;
     }
 
     private static Double num(JsonObject in, String k) {

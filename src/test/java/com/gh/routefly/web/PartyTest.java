@@ -218,4 +218,30 @@ public class PartyTest {
         call(p, "/mark", "{\"token\":\"" + lead + "\",\"bus\":1,\"seat\":21,\"what\":\"reserved\",\"on\":true}", T0);
         assertEquals("[121]", call(p, "/view", tok(lead), T0).getAsJsonArray("reserved").toString());
     }
+
+    /** 차량번호(2026-10-20 홍TV님) - 인솔자가 적으면 참가 전 소개 · 회원 화면에 나감. 운전자는 자기 호차만. 재시작해도 남음. */
+    @Test
+    public void plates() throws Exception {
+        assertEquals("12가 3456", Party.plate(" 12가  3456 "));
+        assertNull(Party.plate("  "));
+        try { Party.plate("<b>1234</b>x"); fail("이상한 글자"); } catch (IllegalArgumentException e) { /* 맞음 */ }
+        try { Party.plate("버스"); fail("숫자 없음"); } catch (IllegalArgumentException e) { /* 맞음 */ }
+
+        Path f = Files.createTempDirectory("party").resolve("party.json");
+        Party p = new Party(f);
+        JsonObject room = call(p, "/create", "{\"name\":\"내장산\",\"departAt\":" + DEPART + ",\"buses\":2,\"seats\":28,\"plates\":[\"서울70사1234\",\"\",\"99가9999\"]}", T0);
+        String code = room.get("code").getAsString(), lead = room.get("token").getAsString();
+        assertEquals("호차 수만큼, 빈 칸은 null", "[\"서울70사1234\",null]", room.getAsJsonArray("plates").toString());
+        assertEquals("[\"서울70사1234\",null]", call(p, "/info", "{\"code\":\"" + code + "\"}", T0).getAsJsonArray("plates").toString());
+
+        String a = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"철수\",\"role\":\"hiker\",\"bus\":2,\"seat\":3,\"agree\":true}", T0).get("token").getAsString();
+        String d1 = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"기사\",\"role\":\"driver\",\"bus\":1,\"agree\":true}", T0).get("token").getAsString();
+        call(p, "/plate", "{\"token\":\"" + lead + "\",\"bus\":2,\"plate\":\"경기71바5678\"}", T0);
+        call(p, "/plate", "{\"token\":\"" + d1 + "\",\"bus\":2,\"plate\":\"서울70사4321\"}", T0);   // 운전자는 자기 호차(1)로
+        assertEquals("[\"서울70사4321\",\"경기71바5678\"]", call(p, "/view", tok(a), T0).getAsJsonArray("plates").toString());
+        try { call(p, "/plate", "{\"token\":\"" + a + "\",\"bus\":2,\"plate\":\"1\"}", T0); fail("회원은 못 고침"); } catch (SecurityException e) { /* 맞음 */ }
+
+        Party again = new Party(f);
+        assertEquals("[\"서울70사4321\",\"경기71바5678\"]", call(again, "/view", tok(a), T0).getAsJsonArray("plates").toString());
+    }
 }

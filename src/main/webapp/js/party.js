@@ -45,6 +45,13 @@
     /** 호차 - 차가 한 대면 빈 글(단풍철 여러 대 - 2026-10-20 홍TV님). */
     function busLabel(s, bus) { return s && s.buses > 1 ? bus + "호차 " : ""; }
     function seatText(s, m) { return m.seat ? (s.buses > 1 ? m.bus + "-" : "") + m.seat : "-"; }
+    /** 차량번호 - "2호차 경기71바5678" 들(없으면 빈 글). */
+    function plateOf(s, bus) { return (s.plates || [])[bus - 1] || ""; }
+    function platesText(s) {
+        var out = [];
+        for (var b = 1; b <= (s.buses || 1); b++) if (plateOf(s, b)) out.push(busLabel(s, b) + plateOf(s, b));
+        return out.join(" · ");
+    }
     function tel(phone) { return phone ? " <a class=\"tel\" href=\"tel:" + esc(phone.replace(/[^0-9+]/g, "")) + "\">☎ " + esc(phone) + "</a>" : ""; }
     /** 인원 - "참가 12 / 최소 18 ⏳ 미달" */
     function headcount(s) {
@@ -57,6 +64,7 @@
         var lines = ["<b>" + esc(s.name) + "</b> · 방 코드 <b id=\"code\">" + esc(s.code) + "</b>"];
         if (s.departAt) lines.push("🚌 출발 <b>" + when(s.departAt) + "</b>" + (s.endAt ? " · 하산 마감 <b>" + when(s.endAt) + "</b>" : ""));
         if (s.leaderName || s.leaderPhone) lines.push("🧭 인솔자 <b>" + esc(s.leaderName || "") + "</b>" + tel(s.leaderPhone));
+        if (platesText(s)) lines.push("🚌 차량 <b>" + esc(platesText(s)) + "</b>");
         lines.push(headcount(s) + (s.buses > 1 ? " · 차 " + s.buses + "대" : "") + ((s.stops || []).length ? " · 탑승지 " + s.stops.map(esc).join(" · ") : ""));
         return lines.join("<br>");
     }
@@ -123,6 +131,18 @@
         }).catch(function (e) { msg(e.message); }).finally(function () { $("joinBtn").disabled = false; });
     });
 
+    /** 차량 수만큼 차량번호 칸. */
+    function plateInputs() {
+        var n = Math.max(1, Math.min(8, +$("mkBuses").value || 1)), box = $("mkPlates"), old = box.querySelectorAll("input");
+        var keep = Array.prototype.map.call(old, function (x) { return x.value; });
+        var h = "";
+        for (var b = 1; b <= n; b++) h += "<div><label for=\"mkPlate" + b + "\">" + (n > 1 ? b + "호차 " : "") + "차량번호(선택)</label><input id=\"mkPlate" + b
+            + "\" type=\"text\" maxlength=\"12\" placeholder=\"예: 서울70사1234\" value=\"" + esc(keep[b - 1] || "") + "\"></div>";
+        box.innerHTML = h;
+    }
+    $("mkBuses").addEventListener("input", plateInputs);
+    plateInputs();
+
     $("mkBtn").addEventListener("click", function () {
         var name = $("mkName").value.trim();
         if (!name) { msg("산행 이름을 적어 주세요."); return; }
@@ -137,6 +157,7 @@
         $("mkBtn").disabled = true;
         RFParty.post("create", { name: name, departAt: depart, endAt: endAt, minPeople: Math.max(0, Math.min(80, +$("mkMin").value || 0)),
             leaderName: $("mkLead").value.trim(), leaderPhone: $("mkPhone").value.trim(),
+            plates: Array.prototype.map.call(document.querySelectorAll("#mkPlates input"), function (x) { return x.value.trim(); }),
             buses: Math.max(1, Math.min(8, +$("mkBuses").value || 1)), seats: Math.max(0, Math.min(60, +$("mkSeats").value || 0)), stops: $("mkStops").value }).then(function (j) {
             RFParty.set({ code: j.code, token: j.token, role: "lead", name: j.name });
             enterRoom(j);
@@ -198,6 +219,7 @@
         var bar = [aboutHtml(s)];
         if (!staff && (s.seats > 0 || (s.stops || []).length || s.buses > 1))   // 내 자리 + 바로 고치기
             bar.push("💺 내 자리 <b>" + busLabel(s, s.bus) + (s.seat ? s.seat + "번" : s.buses > 1 ? "" : "없음") + "</b>" + (s.stop ? " · " + esc(s.stop) : "")
+                + (s.buses > 1 && plateOf(s, s.bus) ? " · 내 차 <b>" + esc(plateOf(s, s.bus)) + "</b>" : "")
                 + " <button type=\"button\" id=\"editSeat\" style=\"min-height:32px;padding:0 10px;font-size:13px\">✏️ 바꾸기</button>");
         $("bar").innerHTML = bar.join("<br>");
         if (s.notice) {
@@ -515,6 +537,7 @@
         var url = location.origin + location.pathname + "?c=" + p.code;
         var text = "[" + (s.name || p.name || "산악회") + "] routefly 산악회 방\n"
             + (s.departAt ? "출발 " + when(s.departAt) + "\n" : "")
+            + (platesText(s) ? "차량 " + platesText(s) + "\n" : "")
             + (s.leaderName || s.leaderPhone ? "인솔자 " + (s.leaderName || "") + (s.leaderPhone ? " " + s.leaderPhone : "") + "\n" : "")
             + "방 코드 " + p.code + " - 아래 링크로 들어와 좌석 · 탑승지를 남겨 주세요.\n" + url;
         if (navigator.share) navigator.share({ title: "산악회 방", text: text }).catch(function () { /* 닫음 */ });
@@ -555,10 +578,27 @@
     });
 
     /** 버스 단추 설명 - 인솔자는 좌석표에서 고른 호차, 운전자는 자기 호차. */
+    /** 차량번호를 고칠 호차 - 운전자는 자기 호차, 인솔자는 좌석표 탭. */
+    function plateBus() { return state.role === "driver" ? state.bus : state.buses > 1 ? curBus : 1; }
     function busTip() {
-        if (!state || !(state.buses > 1)) { $("busTip").textContent = ""; return; }
+        if (!state) return;
+        var pb = plateBus();
+        $("plateLabel").textContent = (state.buses > 1 ? pb + "호차 " : "") + "차량번호 (회원 화면에 나감)";
+        if (document.activeElement !== $("plateText") && $("plateText").getAttribute("data-bus") !== pb + ":" + plateOf(state, pb)) {
+            $("plateText").value = plateOf(state, pb);
+            $("plateText").setAttribute("data-bus", pb + ":" + plateOf(state, pb));
+        }
+        if (!(state.buses > 1)) { $("busTip").textContent = ""; return; }
         $("busTip").textContent = state.role === "driver" ? "내 차(" + state.bus + "호차) 자리로 정합니다." : "좌석표에서 고른 " + curBus + "호차의 자리로 정합니다.";
     }
+    $("plateBtn").addEventListener("click", function () {
+        var p = RFParty.get(), pb = plateBus();
+        RFParty.post("plate", { token: p.token, bus: pb, plate: $("plateText").value.trim() }).then(function (j) {
+            render(j);
+            roomMsg(plateOf(j, pb) ? busLabel(j, pb) + "차량번호를 " + plateOf(j, pb) + "(으)로 정했습니다. 회원 화면에 바로 나갑니다." : busLabel(j, pb) + "차량번호를 지웠습니다.");
+        }).catch(function (e) { e.ended ? fail(e) : roomMsg(e.message); });
+    });
+
     $("busBtn").addEventListener("click", function () {
         var p = RFParty.get();
         here(function (lat, lon) { RFParty.post("bus", { token: p.token, bus: curBus, lat: +lat.toFixed(6), lon: +lon.toFixed(6) }).then(render).catch(fail); });
