@@ -154,30 +154,6 @@ final class Feedback {
         }
     }
 
-    /** 지우기(/stats 의 삭제 단추 - 2026-10-20 홍TV님) - 받은 시각(at)이 같은 줄을 그 달 파일에서 뺌. 지웠으면 true. */
-    synchronized boolean delete(long at) {
-        if (dir == null) return false;
-        LocalDateTime t = LocalDateTime.ofInstant(java.time.Instant.ofEpochMilli(at), KST);
-        Path f = dir.resolve(String.format(Locale.ROOT, "feedback-%04d-%02d.jsonl", t.getYear(), t.getMonthValue()));
-        try {
-            if (!Files.isRegularFile(f)) return false;
-            List<String> keep = new ArrayList<>();
-            boolean gone = false;
-            for (String l : Files.readAllLines(f, StandardCharsets.UTF_8)) {
-                if (l.isBlank()) continue;
-                if (!gone && JsonParser.parseString(l).getAsJsonObject().get("at").getAsLong() == at) { gone = true; continue; }
-                keep.add(l);
-            }
-            if (!gone) return false;
-            if (keep.isEmpty()) Files.delete(f);
-            else Files.writeString(f, String.join("\n", keep) + "\n", StandardCharsets.UTF_8, StandardOpenOption.TRUNCATE_EXISTING);
-            return true;
-        } catch (Exception e) {
-            log.warn("[FEEDBACK] 지우지 못함 - {}", e.toString());
-            return false;
-        }
-    }
-
     /** 최근 n 개(새것부터) - /stats 보기. */
     synchronized List<JsonObject> recent(int n) {
         List<JsonObject> out = new ArrayList<>();
