@@ -36,7 +36,8 @@ import org.w3c.dom.NodeList;
  *     --map map.tsv                   옛 주소 → 새 주소(예상) 짝 - 가져온 뒤 맞는지 확인하고 nginx 301 에 씀
  * </pre>
  * 바꾸는 것: 발행(publish)된 글만 · 라벨은 카테고리 먼저 + 태그(글당 20개 · 글자 합 200자까지, 미분류 뺌) ·
- * 블록 편집기 주석(&lt;!-- wp:… --&gt;) 지움 · &lt;p&gt; 없는 옛 글은 빈 줄 → 문단 · 그림 주소 http/www → --site 모양.
+ * 블록 편집기 주석(&lt;!-- wp:… --&gt;) 지움 · &lt;p&gt; 없는 옛 글은 빈 줄 → 문단 · 그림 주소 http/www → --site 모양 ·
+ * 본문에 그림이 없으면 대표 그림(특성 이미지)을 맨 위에(2026-10-20 - 없으면 블로그스팟 목록이 제목 글자로만 보임).
  * 댓글은 넣지 않음(견본에 댓글 모양이 없음).
  */
 public class WxrToBlogger {
@@ -93,6 +94,11 @@ public class WxrToBlogger {
     static List<Post> posts(Document in, String site, String authorOpt) {
         List<Post> out = new ArrayList<>();
         NodeList items = in.getElementsByTagName("item");
+        java.util.Map<String, String> attach = new java.util.HashMap<>();   // 첨부 글번호 → 파일 주소(대표 그림 찾기)
+        for (int i = 0; i < items.getLength(); i++) {
+            Element it = (Element) items.item(i);
+            if ("attachment".equals(wp(it, "post_type"))) attach.put(wp(it, "post_id"), wp(it, "attachment_url"));
+        }
         for (int i = 0; i < items.getLength(); i++) {
             Element it = (Element) items.item(i);
             if (!"post".equals(wp(it, "post_type")) || !"publish".equals(wp(it, "status"))) continue;
@@ -104,8 +110,12 @@ public class WxrToBlogger {
                 ("category".equals(e.getAttribute("domain")) ? cats : tags).add(name);
             }
             String author = authorOpt != null ? authorOpt : text(first(it, DC, "creator"));
-            out.add(new Post(wp(it, "post_id"), text(first(it, null, "title")).trim(),
-                    cleanHtml(text(first(it, CONTENT, "encoded")), site),
+            String title = text(first(it, null, "title")).trim();
+            String html = cleanHtml(text(first(it, CONTENT, "encoded")), site);
+            String thumb = attach.get(meta(it, "_thumbnail_id"));
+            if (thumb != null && !thumb.isBlank() && !IMG.matcher(html).find())   // 본문에 그림이 없으면 대표 그림을 맨 위에(목록 썸네일 · 첫 화면)
+                html = "<p>" + sameSite("<img src=\"" + esc(thumb) + "\" alt=\"" + esc(title) + "\">", site) + "</p>\n" + html;
+            out.add(new Post(wp(it, "post_id"), title, html,
                     isoDate(wp(it, "post_date_gmt"), wp(it, "post_date")),
                     isoDate(wp(it, "post_modified_gmt"), wp(it, "post_modified")),
                     wp(it, "post_name"), text(first(it, null, "link")).trim(), author, labels(cats, tags)));
@@ -140,11 +150,14 @@ public class WxrToBlogger {
         String h = BLOCK.matcher(html).replaceAll("");
         h = h.replace("\r\n", "\n");
         if (!HAS_BLOCK_TAG.matcher(h).find()) h = autop(h);
-        if (site != null && !site.isEmpty()) {
-            String host = site.replaceFirst("^https?://", "").replaceFirst("^www\\.", "");
-            h = h.replaceAll("(?i)(https?:)?//(www\\.)?" + Pattern.quote(host) + "(?=[/\"'\\s)])", Matcher.quoteReplacement(site));
-        }
-        return h.trim();
+        return sameSite(h, site).trim();
+    }
+
+    /** 옛 사이트 주소(http · www 섞인 것)를 --site 한 모양으로. */
+    static String sameSite(String h, String site) {
+        if (site == null || site.isEmpty()) return h;
+        String host = site.replaceFirst("^https?://", "").replaceFirst("^www\\.", "");
+        return h.replaceAll("(?i)(https?:)?//(www\\.)?" + Pattern.quote(host) + "(?=[/\"'\\s)])", Matcher.quoteReplacement(site));
     }
 
     /** 워드프레스 wpautop 의 간단판: 빈 줄 → 문단, 홑 줄바꿈 → &lt;br&gt;. */
@@ -250,6 +263,20 @@ public class WxrToBlogger {
         if (ns == null && "link".equals(name)) {   // 채널 &lt;link&gt; 는 rss/channel 아래
             NodeList ch = parent.getElementsByTagName("channel");
             if (ch.getLength() > 0) return first((Element) ch.item(0), null, name);
+        }
+        return null;
+    }
+
+    static final Pattern IMG = Pattern.compile("(?i)<img[\\s>]");
+
+    static String esc(String s) {
+        return s.replace("&", "&amp;").replace("\"", "&quot;").replace("<", "&lt;");
+    }
+
+    /** wp:postmeta 의 meta_key 값(없으면 null). */
+    static String meta(Element it, String key) {
+        for (Node n = it.getFirstChild(); n != null; n = n.getNextSibling()) {
+            if (n instanceof Element e && "postmeta".equals(local(e)) && key.equals(wp(e, "meta_key"))) return wp(e, "meta_value");
         }
         return null;
     }

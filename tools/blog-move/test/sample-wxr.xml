@@ -14,6 +14,7 @@
 <figure class="wp-block-image"><img src="http://example.kr/wp-content/uploads/2026/08/a.jpg" alt=""/></figure>
 <!-- /wp:image -->]]></content:encoded>
     <wp:post_id>12</wp:post_id>
+    <wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[5]]></wp:meta_value></wp:postmeta>
     <wp:post_date><![CDATA[2026-08-02 09:00:00]]></wp:post_date>
     <wp:post_date_gmt><![CDATA[2026-08-02 00:00:00]]></wp:post_date_gmt>
     <wp:post_modified_gmt><![CDATA[2026-08-03 00:00:00]]></wp:post_modified_gmt>
@@ -47,6 +48,7 @@
     <dc:creator><![CDATA[tester]]></dc:creator>
     <content:encoded><![CDATA[<p>본문</p>]]></content:encoded>
     <wp:post_id>30</wp:post_id>
+    <wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[5]]></wp:meta_value></wp:postmeta>
     <wp:post_date><![CDATA[2026-09-01 05:00:00]]></wp:post_date>
     <wp:post_date_gmt><![CDATA[2026-08-31 20:00:00]]></wp:post_date_gmt>
     <wp:post_modified_gmt><![CDATA[2026-08-31 20:00:00]]></wp:post_modified_gmt>
@@ -79,6 +81,7 @@
   <item>
     <title>그림</title>
     <wp:post_id>5</wp:post_id>
+    <wp:attachment_url><![CDATA[http://www.example.kr/wp-content/uploads/2026/08/thumb.jpg]]></wp:attachment_url>
     <wp:status><![CDATA[inherit]]></wp:status>
     <wp:post_type><![CDATA[attachment]]></wp:post_type>
   </item>
