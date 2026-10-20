@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:blogger="http://schemas.google.com/blogger/2018">
+  <id>tag:blogger.com,0:blog-0</id>
+  <title>x</title>
+  <entry>
+    <id>tag:blogger.com,0:blog-0.post-0</id>
+    <blogger:type>POST</blogger:type>
+    <blogger:status>LIVE</blogger:status>
+    <author>
+      <name>x</name>
+      <uri></uri>
+      <blogger:type>BLOGGER</blogger:type>
+    </author>
+    <title>x</title>
+    <content type="html">x</content>
+    <blogger:metaDescription />
+    <blogger:created>2026-01-01T00:00:00.000Z</blogger:created>
+    <published>2026-01-01T00:00:00Z</published>
+    <updated>2026-01-01T00:00:00.000Z</updated>
+    <blogger:location />
+    <category scheme="tag:blogger.com,0:blog-0" term="x" />
+    <category scheme="tag:blogger.com,0:blog-0" term="x" />
+    <category scheme="tag:blogger.com,0:blog-0" term="x" />
+    <category scheme="tag:blogger.com,0:blog-0" term="x" />
+    <category scheme="tag:blogger.com,0:blog-0" term="x" />
+    <blogger:filename>/0000/00/x.html</blogger:filename>
+    <link />
+    <enclosure />
+    <blogger:trashed />
+  </entry>
+  <entry>
+    <id>tag:blogger.com,0:blog-0.post-0</id>
+    <blogger:type>POST</blogger:type>
+    <blogger:status>SOFT_TRASHED</blogger:status>
+    <author>
+      <name>x</name>
+      <uri></uri>
+      <blogger:type>BLOGGER</blogger:type>
+    </author>
+    <title>x</title>
+    <content type="html">x</content>
+    <blogger:metaDescription />
+    <blogger:created>2026-01-01T00:00:00.000Z</blogger:created>
+    <published>2026-01-01T00:00:00Z</published>
+    <updated>2026-01-01T00:00:00.000Z</updated>
+    <blogger:location />
+    <category scheme="tag:blogger.com,0:blog-0" term="x" />
+    <category scheme="tag:blogger.com,0:blog-0" term="x" />
+    <category scheme="tag:blogger.com,0:blog-0" term="x" />
+    <category scheme="tag:blogger.com,0:blog-0" term="x" />
+    <category scheme="tag:blogger.com,0:blog-0" term="x" />
+    <category scheme="tag:blogger.com,0:blog-0" term="x" />
+    <blogger:filename>/0000/00/x.html</blogger:filename>
+    <link />
+    <enclosure />
+    <blogger:trashed>2026-01-01T00:00:00.000Z</blogger:trashed>
+  </entry>
+  <entry>
+    <id>tag:blogger.com,0:blog-0.post-0</id>
+    <blogger:type>PAGE</blogger:type>
+    <blogger:status>LIVE</blogger:status>
+    <author>
+      <name>x</name>
+      <uri></uri>
+      <blogger:type>BLOGGER</blogger:type>
+    </author>
+    <title>x</title>
+    <content type="html">x</content>
+    <blogger:metaDescription />
+    <blogger:created>2026-01-01T00:00:00.000Z</blogger:created>
+    <published>2026-01-01T00:00:00.000Z</published>
+    <updated>2026-01-01T00:00:00.000Z</updated>
+    <blogger:location />
+    <category />
+    <blogger:filename>/p/x.html</blogger:filename>
+    <link />
+    <enclosure />
+    <blogger:trashed />
+  </entry>
+</feed>
