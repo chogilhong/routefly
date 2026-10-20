@@ -301,6 +301,7 @@ final class Party {
     synchronized boolean loc(Member m, Double lat, Double lon, Double acc, Integer batt, boolean sos, long now) {
         if (!okPos(lat, lon)) throw new IllegalArgumentException("위치가 올바르지 않습니다.");
         if (m.cancelled) throw new IllegalArgumentException("출발 때 탑승하지 않아 이 산행에서 빠졌습니다. 인솔자에게 연락해 주세요.");
+        if (m.aboard) { m.sos = false; return false; }   // 하산 탑승 뒤 - 위치 받지 않음
         if (m.room.departAt > 0 && now < m.room.departAt - LOC_BEFORE_MS) { m.sos = false; return false; }
         if (m.t == 0 || MountainServlet.distM(m.anchorLat, m.anchorLon, lat, lon) > STILL_M) {
             m.anchorLat = lat; m.anchorLon = lon; m.stillSince = now;
@@ -320,9 +321,10 @@ final class Party {
     }
 
     /** 본인 - 하산 뒤 "하산 탑승"(SOS 도 풂). */
+    /** 하산 탑승 - 산행 끝이라 위치를 지우고 더 받지 않음(loc). 명단 · 좌석표에는 "하산 탑승" 으로 남아 인솔자가 봄(2026-10-20 PC). */
     synchronized void aboard(Member m, boolean on) {
         m.aboard = on;
-        if (on) m.sos = false;
+        if (on) { m.sos = false; m.lat = null; m.lon = null; m.acc = null; }
         save();
     }
 
@@ -631,7 +633,7 @@ final class Party {
             x.addProperty("sos", m.sos);
             x.addProperty("aboard", m.aboard);
             if (m.aboard) aboard++;
-            if (m.t > 0) {
+            if (m.t > 0 && m.lat != null) {   // 하산 탑승하면 위치를 지움(aboard)
                 x.addProperty("lat", m.lat);
                 x.addProperty("lon", m.lon);
                 x.addProperty("ago", (now - m.t) / 1000);

@@ -320,6 +320,7 @@
     window.addEventListener("pagehide", function () { if (bgOn) bgStop(); });   // 따라가기 등 다른 화면으로 가면 그쪽이 맡음(알림이 남지 않게)
 
     function exit(text) {
+        leaving = true;
         bgStop();
         clearInterval(pollTimer);
         if (watch != null) navigator.geolocation.clearWatch(watch);
@@ -328,7 +329,9 @@
         location.href = EXIT;
     }
 
+    var leaving = false;   // 나가는 중 - 늦게 온 답(지운 열쇠)의 오류를 띄우지 않음(2026-10-20 PC)
     function fail(e) {
+        if (leaving) return;
         if (e && e.ended) { exit((e.message || "방이 끝났습니다.") + " 위치는 더 보내지 않습니다."); return; }
         roomMsg("잠시 연결이 안 됩니다(" + (e && e.message || e) + "). 저절로 다시 합니다.");
     }
@@ -424,7 +427,7 @@
         $("list").innerHTML = rows.map(function (m) {
             var cls = m.cancelled ? "aboard" : m.sos ? "sos" : m.aboard ? "aboard" : (s.departed && (m.ago == null || m.ago > OLD_S)) ? "old" : "";
             var st = m.cancelled ? "❌ 취소" : m.sos ? "🆘 SOS" : m.aboard ? "🚌 하산 탑승" : m.role === "driver" ? "운전" : m.boarded ? "✅ 탐" : s.departed ? "" : "안 탐";
-            return "<tr class=\"" + cls + "\" data-id=\"" + m.id + "\"><td>" + (m.role === "driver" ? busLabel(s, m.bus) || "-" : seatText(s, m)) + "</td><td>" + esc(m.nick) + (s.role === "lead" ? " <button type=\"button\" class=\"kick\" data-kick=\"" + m.id + "\" title=\"방에서 내보내기\" aria-label=\"" + esc(m.nick) + " 내보내기\">✕</button>" : "") + "</td><td>" + agoText(m.ago) + "</td><td>"
+            return "<tr class=\"" + cls + "\" data-id=\"" + m.id + "\"><td>" + (m.role === "driver" ? busLabel(s, m.bus) || "-" : seatText(s, m)) + "</td><td>" + esc(m.nick) + (s.role === "lead" ? " <button type=\"button\" class=\"kick\" data-kick=\"" + m.id + "\" title=\"방에서 내보내기\" aria-label=\"" + esc(m.nick) + " 내보내기\">✕</button>" : "") + "</td><td>" + (m.aboard ? "-" : agoText(m.ago)) + "</td><td>"
                 + (m.stillMin != null && m.ago != null ? m.stillMin + "분" : "-") + "</td><td>" + (m.batt != null ? m.batt + "%" : "-") + "</td><td>" + st + "</td></tr>";
         }).join("") || "<tr><td colspan=\"6\">아직 참가한 회원이 없습니다. 참가 안내를 보내 주세요.</td></tr>";
         function rank(m) { return m.cancelled ? 6 : m.sos ? 0 : m.aboard ? 5 : (s.departed && (m.ago == null || m.ago > OLD_S)) ? 1 : (m.stillMin || 0) >= 15 ? 2 : 3; }
@@ -764,15 +767,15 @@
         }).catch(function (e) { e.ended ? fail(e) : roomMsg(e.message); });
     });
 
+    // 하산 탑승 = 산행 끝(2026-10-20 홍TV님). 서버에는 "하산 탑승" 으로 남겨 인솔자가 명단 · 좌석표에서 보고(위치는 지움),
+    // 이 폰은 위치 보내기를 멈추고 화면을 닫음 - 예전엔 나가기(leave)로 회원이 지워져 인솔자에게 "하산 탑승 0 / 0" 이었음(PC)
     $("aboardBtn").addEventListener("click", function () {
-        var p = RFParty.get(), on = !(state && state.aboard);
-        if (on && p.sos) RFParty.sos(false);   // 하산 탑승하면 SOS 도 풂
-        RFParty.post("aboard", { token: p.token, on: on }).then(function (j) {
-            render(j);
-            // 하산 탑승 = 산행 끝 - 나가기(2026-10-20 홍TV님)
-            if (j.aboard && confirm("하산 탑승을 인솔자에게 알렸습니다. 산행이 끝났으니 방에서 나갈까요? (위치 보내기를 멈춥니다)")) {
-                RFParty.post("leave", { token: p.token }).catch(function () { /* 이미 끝났어도 */ }).finally(function () { exit(); });
-            }
+        var p = RFParty.get();
+        if (!confirm("하산 탑승을 인솔자에게 알릴까요?\n알리면 위치 보내기를 멈추고 이 화면을 닫습니다.")) return;
+        if (p.sos) RFParty.sos(false);   // 하산 탑승하면 SOS 도 풂
+        bgStop();
+        RFParty.post("aboard", { token: p.token, on: true }).then(function () {
+            exit("하산 탑승을 인솔자에게 알렸습니다. 수고하셨습니다!");
         }).catch(fail);
     });
 

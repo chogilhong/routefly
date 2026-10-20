@@ -281,4 +281,25 @@ public class PartyTest {
         call(p, "/seat", "{\"token\":\"" + lead + "\",\"id\":" + id + ",\"seat\":4}", T0);
         assertEquals(4, member(call(p, "/view", tok(lead), T0), "철수").get("seat").getAsInt());
     }
+
+    /** 하산 탑승 - 회원은 명단에 "하산 탑승" 으로 남고 위치는 지워지며 더 받지 않음(2026-10-20 PC: 나가기로 지워져 인솔자에게 0 / 0). */
+    @Test
+    public void aboardKeepsMemberDropsPosition() {
+        Party p = new Party();
+        JsonObject room = j(create(p, T0));
+        String code = room.get("code").getAsString(), lead = room.get("token").getAsString();
+        String a = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"철수\",\"role\":\"hiker\",\"seat\":3,\"agree\":true}", T0).get("token").getAsString();
+        call(p, "/board", "{\"token\":\"" + a + "\",\"on\":true}", DEPART - H);
+        call(p, "/depart", tok(lead), DEPART);
+        call(p, "/loc", "{\"token\":\"" + a + "\",\"lat\":38.12,\"lon\":128.47,\"sos\":true}", DEPART + H);
+        assertTrue(member(call(p, "/view", tok(lead), DEPART + H), "철수").has("lat"));
+        call(p, "/aboard", "{\"token\":\"" + a + "\",\"on\":true}", DEPART + 8 * H);
+        JsonObject loc = call(p, "/loc", "{\"token\":\"" + a + "\",\"lat\":38.2,\"lon\":128.5}", DEPART + 8 * H);
+        assertFalse("하산 탑승 뒤 위치는 안 받음", loc.get("locKept").getAsBoolean());
+        JsonObject m = member(call(p, "/view", tok(lead), DEPART + 8 * H), "철수");
+        assertTrue("명단에 남음", m.get("aboard").getAsBoolean());
+        assertFalse("위치 지움", m.has("lat"));
+        assertFalse("SOS 풂", m.get("sos").getAsBoolean());
+        assertEquals(1, call(p, "/view", tok(lead), DEPART + 8 * H).get("aboardCount").getAsInt());
+    }
 }
