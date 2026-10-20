@@ -7,6 +7,11 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=2"><link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
 <meta name="theme-color" content="#11161d">
 <meta name="robots" content="noindex">
+<!-- 카톡 · 문자 링크 미리보기(방 이름은 넣지 않음 - 같은 화면) -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="routefly 산악회 방 - 참가하기">
+<meta property="og:description" content="인솔자가 보낸 링크로 들어와 별명 · 좌석 · 탑승지를 남기세요. 산행 날 서로 위치 · SOS 를 봅니다.">
+<meta property="og:image" content="https://routefly.kr/routefly/img/og.png?v=2">
 <!-- 산악회 방(2026-10-20 홍TV님 - 안내 산악회): 인솔자가 산행 전에 방을 만들어 예약 회원에게 코드 · 링크를 보냄 → 회원 참가(좌석 · 탑승지 · 동의)
      → 출발 날 "버스 탔어요" → 인솔자 "출발"(안 탄 사람 취소) → 산행 중 서로 위치 · SOS(인솔자는 다 봄) → 하산 탑승 → 나가기.
      서버 설정 party.enabled=true 일 때만 열림. party.html?c=방코드 -->
@@ -80,6 +85,9 @@ select, input[type=number] { width:100%; height:44px; padding:0 10px; border-rad
 #joinBox > summary::after { content:"펼치기 ▾"; font-size:13px; color:var(--sky); flex:0 0 auto; }
 #joinBox[open] > summary { margin-bottom:8px; }
 #joinBox[open] > summary::after { content:"접기 ▴"; }
+.invite { margin-top:10px; padding:10px 12px; border:1px solid rgba(56,217,234,0.45); border-radius:12px; background:rgba(56,217,234,0.08); }
+.invite label { margin-top:0; }
+#inviteUrl { font-size:14px; }
 #busTabs button { flex:0 0 auto; min-height:36px; padding:0 12px; font-size:13.5px; }
 #busTabs button.on { background:var(--sky); color:#062026; border-color:var(--sky); }
 .s.drv { border:0; cursor:default; font-size:16px; }
@@ -166,7 +174,7 @@ a.tel { color:var(--sky); }
             <div id="mkPlates" class="plates"></div>
             <label for="mkStops">탑승지</label><input id="mkStops" type="text" maxlength="80" placeholder="사당, 양재, 복정">
             <p class="tip">하산 마감이 출발 시각보다 이르면 다음 날로 봅니다(무박). 단풍철처럼 차가 여러 대면 차량 수를 적으세요(호차마다 좌석표). 좌석표가 없으면 좌석 0. 탑승지는 쉼표로 나눠 적기. 차량번호는 회원 화면에 나가니 버스 찾기 쉽습니다(모르면 비우고 나중에 적어도 됨).
-                방을 만들면 "참가 안내 보내기"로 예약한 회원에게 방 코드 · 출발 · 인솔자를 보내세요.</p>
+                방을 만들면 참가 링크(방 코드 · 출발 · 인솔자 안내 글)를 카톡 · 문자로 예약한 회원에게 보내세요.</p>
             <button id="mkBtn" class="main">방 만들기</button>
         </section>
         <div id="msg"></div>
@@ -186,8 +194,14 @@ a.tel { color:var(--sky); }
                 <div class="row"><button id="mySeatBtn">저장</button><button id="mySeatClose">닫기</button></div>
             </details>
             <div id="phase"></div>
-            <div class="row" id="leadRow" hidden>
-                <button id="shareBtn">📨 참가 안내 보내기</button>
+            <div id="leadRow" class="invite" hidden>   <!-- 참가 링크 - 카톡 · 문자로(2026-10-20 홍TV님) -->
+                <label for="inviteUrl">📨 참가 링크 (회원에게 카톡 · 문자로)</label>
+                <input id="inviteUrl" type="text" readonly>
+                <div class="row">
+                    <button id="shareBtn">📨 카톡 등으로 보내기</button>
+                    <button id="smsBtn">💬 문자</button>
+                    <button id="copyBtn">📋 안내 글 복사</button>
+                </div>
             </div>
         </section>
         <section id="cancelBox" hidden>

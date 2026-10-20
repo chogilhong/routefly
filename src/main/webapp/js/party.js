@@ -1,6 +1,6 @@
 /*
  * 산악회 방 화면(party.html - 2026-10-20 홍TV님). 서버는 PartyServlet · 위치 보내기는 party-kit.js(RFParty).
- * 흐름: 인솔자가 산행 전에 방을 만들고 "참가 안내 보내기" → 회원 참가(좌석 · 탑승지) → 출발 날 "버스 탔어요" → 인솔자 "출발"(안 탄 사람 취소)
+ * 흐름: 인솔자가 산행 전에 방을 만들고 참가 링크(카톡 · 문자) → 회원 참가(좌석 · 탑승지) → 출발 날 "버스 탔어요" → 인솔자 "출발"(안 탄 사람 취소)
  * → 산행 중 서로 위치 · SOS(인솔자 · 운전자는 배터리 · 머문 시간까지) → "하산 탑승" → 나가기(산 모음 /m/ 로). 인원이 모자라면 인솔자 "산행 취소".
  * 위치: 이 화면이 열린 동안 watchPosition → 30초마다(RFParty.fix, 서버는 출발 3시간 전부터 받음). 인솔자 · 운전자 화면은 15초마다 새로 받음.
  */
@@ -161,7 +161,7 @@
             buses: Math.max(1, Math.min(8, +$("mkBuses").value || 1)), seats: Math.max(0, Math.min(60, +$("mkSeats").value || 0)), stops: $("mkStops").value }).then(function (j) {
             RFParty.set({ code: j.code, token: j.token, role: "lead", name: j.name });
             enterRoom(j);
-            roomMsg("방을 만들었습니다. \"참가 안내 보내기\"로 예약한 회원에게 보내세요.");
+            roomMsg("방을 만들었습니다. 아래 참가 링크를 예약한 회원에게 카톡 · 문자로 보내세요.");
         }).catch(function (e) { msg(e.message); }).finally(function () { $("mkBtn").disabled = false; });
     });
 
@@ -176,6 +176,7 @@
         $("staffBox").hidden = !staff;
         $("hikerBox").hidden = staff;
         $("leadRow").hidden = p.role !== "lead";
+        if (p.role === "lead") $("inviteUrl").value = inviteUrl();
         $("noticeRow").hidden = p.role !== "lead";
         $("endBtn").hidden = p.role !== "lead";
         $("leaveBtn").hidden = p.role === "lead";
@@ -532,18 +533,28 @@
 
     // ------------------------------------------------------------------ 단추
 
-    $("shareBtn").addEventListener("click", function () {
-        var p = RFParty.get(), s = state || {};
-        var url = location.origin + location.pathname + "?c=" + p.code;
-        var text = "[" + (s.name || p.name || "산악회") + "] routefly 산악회 방\n"
+    /** 참가 링크 · 안내 글(카톡 · 문자). */
+    function inviteUrl() { var p = RFParty.get() || {}; return location.origin + location.pathname + "?c=" + p.code; }
+    function inviteText() {
+        var p = RFParty.get() || {}, s = state || {};
+        return "[" + (s.name || p.name || "산악회") + "] routefly 산악회 방\n"
             + (s.departAt ? "출발 " + when(s.departAt) + "\n" : "")
             + (platesText(s) ? "차량 " + platesText(s) + "\n" : "")
             + (s.leaderName || s.leaderPhone ? "인솔자 " + (s.leaderName || "") + (s.leaderPhone ? " " + s.leaderPhone : "") + "\n" : "")
-            + "방 코드 " + p.code + " - 아래 링크로 들어와 좌석 · 탑승지를 남겨 주세요.\n" + url;
-        if (navigator.share) navigator.share({ title: "산악회 방", text: text }).catch(function () { /* 닫음 */ });
-        else if (navigator.clipboard) navigator.clipboard.writeText(text).then(function () { roomMsg("참가 안내를 복사했습니다. 단톡방 · 문자에 붙여 넣으세요."); });
+            + "방 코드 " + p.code + " - 아래 링크로 들어와 좌석 · 탑승지를 남겨 주세요.\n" + inviteUrl();
+    }
+    function copyInvite() {
+        var text = inviteText();
+        if (navigator.clipboard) navigator.clipboard.writeText(text).then(function () { roomMsg("참가 안내를 복사했습니다. 단톡방 · 문자에 붙여 넣으세요."); }, function () { prompt("이 글을 복사해 보내세요", text); });
         else prompt("이 글을 복사해 보내세요", text);
+    }
+    $("shareBtn").addEventListener("click", function () {   // 폰 - 카톡 · 밴드 · 문자 고르는 창
+        if (navigator.share) navigator.share({ title: "산악회 방", text: inviteText() }).catch(function () { /* 닫음 */ });
+        else copyInvite();
     });
+    $("smsBtn").addEventListener("click", function () { location.href = "sms:?&body=" + encodeURIComponent(inviteText()); });   // 안드로이드 · 아이폰 둘 다 되는 꼴
+    $("copyBtn").addEventListener("click", copyInvite);
+    $("inviteUrl").addEventListener("focus", function () { this.select(); });
 
     $("boardBtn").addEventListener("click", function () {
         var p = RFParty.get();
