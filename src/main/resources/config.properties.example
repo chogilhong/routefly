@@ -101,3 +101,5 @@ site.baseUrl=
 #mail.smtp.user=
 #mail.smtp.password=
 #mail.to=
+# 의견 파일 폴더(비우면 stats.dir 아래 feedback). 예: PC 는 feedback.dir=E:\\GH\\feedback (윈도 경로는 \\ 두 개 또는 / 로)
+#feedback.dir=

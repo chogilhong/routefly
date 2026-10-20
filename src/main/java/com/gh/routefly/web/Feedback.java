@@ -35,7 +35,7 @@ import com.google.gson.JsonParser;
 /**
  * 의견 보내기(2026-10-20 홍TV님 - "나에게 메일"). 손님이 앱에서 적은 글을 운영자 메일로 보내고, 파일에도 남김(메일이 안 될 때 /stats 에서 봄).
  * <ul>
- *   <li>파일: stats.dir(없으면 톰캣 폴더/routefly-stats)/feedback/feedback-YYYY-MM.jsonl (600) - 12달 지나면 지움. IP 는 남기지 않음.</li>
+ *   <li>파일: feedback.dir(없으면 stats.dir/feedback, 그것도 없으면 톰캣 폴더/routefly-stats/feedback)/feedback-YYYY-MM.jsonl (600) - 12달 지나면 지움. IP 는 남기지 않음.</li>
  *   <li>메일: 설정 mail.smtp.host · mail.smtp.user · mail.smtp.password · mail.to 가 다 있을 때만(SMTPS 465, 비번은 Gmail 앱 비밀번호).</li>
  *   <li>막기: 한 곳(IP)에서 10분에 3번 · 하루 10번, 서버 전체 하루 200번(메모리에만).</li>
  * </ul>
@@ -61,7 +61,10 @@ final class Feedback {
 
     static final Feedback STORE = new Feedback(defaultDir());
 
+    /** 설정 feedback.dir(폴더 그대로 - 예: E:\\GH\\feedback, 2026-10-20 홍TV님 PC), 없으면 stats.dir/feedback, 그것도 없으면 톰캣 폴더/routefly-stats/feedback. */
     static Path defaultDir() {
+        String own = RouteflyConfig.get("feedback.dir");
+        if (own != null) return Path.of(own);
         String d = RouteflyConfig.get("stats.dir");
         if (d == null) d = System.getProperty("catalina.base", System.getProperty("java.io.tmpdir")) + "/routefly-stats";
         return Path.of(d, "feedback");
