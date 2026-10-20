@@ -408,7 +408,9 @@
         $("boardBtn").hidden = s.departed || early;
         $("boardBtn").className = "main big" + (s.boarded ? " on" : "");
         $("boardBtn").textContent = s.boarded ? "✅ 버스 탔어요 (누르면 취소)" : "🚌 버스 탔어요";
-        $("tripBtns").hidden = !s.departed;
+        // SOS 는 출발 3시간 전(위치를 받기 시작할 때)부터 - 집결지 · 이동 중에도(2026-10-20 홍TV님 "출발 전엔 없다"). 하산 탑승은 출발 뒤만
+        $("tripBtns").hidden = !(s.departed || !s.locFrom || s.now >= s.locFrom);
+        $("aboardBtn").hidden = !s.departed;
         $("aboardBtn").className = "main big" + (s.aboard ? " on" : "");
         $("aboardBtn").textContent = s.aboard ? "✅ 하산 탑승함" : "🚌 하산 탑승";
         $("sosBtn").className = p.sos ? "sos" : "danger";
