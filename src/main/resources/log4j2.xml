@@ -15,9 +15,21 @@
         </Delete>
       </DefaultRolloverStrategy>
     </RollingFile>
+    <!-- 산악회 방(Party) 위치정보 이용 · 제공 사실 확인자료(위치정보법 - 6개월 넘게 보존): 참가 · 나감 · 방 끝 · SOS 만, 좌표 없음. 200일 뒤 지움. 이름이 routefly- 로 시작하면 위 90일 지우기에 걸려 party- 로. 2026-10-20 -->
+    <RollingFile name="PartyFile" fileName="${sys:catalina.base}/logs/party.log" filePattern="${sys:catalina.base}/logs/party-%d{yyyy-MM}.log.gz">
+      <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} %replace{%msg}{[\r\n]+}{ | }%n"/>
+      <Policies><TimeBasedTriggeringPolicy/></Policies>
+      <DefaultRolloverStrategy>
+        <Delete basePath="${sys:catalina.base}/logs" maxDepth="1">
+          <IfFileName glob="party-*.log.gz"/>
+          <IfLastModified age="200d"/>
+        </Delete>
+      </DefaultRolloverStrategy>
+    </RollingFile>
   </Appenders>
   <Loggers>
     <Logger name="com.gh.routefly" level="info" additivity="false"><AppenderRef ref="Console"/><AppenderRef ref="RouteflyFile"/></Logger>
+    <Logger name="party" level="info" additivity="false"><AppenderRef ref="PartyFile"/></Logger>
     <Root level="warn"><AppenderRef ref="Console"/><AppenderRef ref="RouteflyFile"/></Root>
   </Loggers>
 </Configuration>

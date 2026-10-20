@@ -180,6 +180,7 @@ public class StatsServlet extends HttpServlet {
             case "/series.html" -> "도장 · 완주";
             case "/anbu.html" -> "오늘의 안부";
             case "/tools.html" -> "별거 별거";
+            case "/party.html" -> "산악회 방";
             case "/subway.html" -> "지하철 노선도(예전 화면 - 지금은 별거 별거 안)";
             case "/about.html" -> "안내 - 안전 · 개인정보 · 출처";
             case "/privacy.html" -> "개인정보처리방침";

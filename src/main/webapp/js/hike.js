@@ -1952,6 +1952,7 @@
             if (acc != null && acc > 100) return;   // 너무 부정확한 위치는 쓰지 않습니다(실내 · 계곡 첫 신호)
         }
         hike.fix = { lat: co.latitude, lon: co.longitude, acc: acc, alt: co.altitude, t: t };
+        if (!hike.sim && window.RFParty) RFParty.fix(co.latitude, co.longitude, acc);   // 산악회 방에 참가했을 때만 인솔자에게(party-kit.js, 30초마다)
         addTrack(co.latitude, co.longitude, t, co.altitude);
         if (!hike.sim) stampCheck(co.latitude, co.longitude, acc);   // 국토종주 인증센터 · 100대 명산 정상 도장(실제 GPS 만)
         var s = RF.snap(c, co.latitude, co.longitude, hike.lastFix ? hike.d : null);
@@ -3413,6 +3414,10 @@
 
     $("sos").addEventListener("click", function () {
         $("sosSheet").style.display = "flex";
+        if (window.RFParty && RFParty.get()) {   // 산악회 방 - 인솔자 화면에 SOS(괜찮아요 · 닫기로 풂)
+            RFParty.sos(true);
+            if (hike.fix) RFParty.fix(hike.fix.lat, hike.fix.lon, hike.fix.acc, true);
+        }
         $("sosPhotoBox").style.display = "none";
         $("sosPhoto").textContent = PHOTO_LABEL;
         var fresh = hike.fix && Date.now() - (hike.sim ? Date.now() : hike.fix.t) < 60000 ? hike.fix : null;
@@ -3433,9 +3438,20 @@
         if (navigator.share) { navigator.share({ text: text }).catch(function () { /* 닫음 */ }); return; }
         if (navigator.clipboard) navigator.clipboard.writeText(text).then(function () { toast(T("글을 복사했습니다. 카톡 등에 붙여 넣으세요.", "Text copied. Paste it into a chat."), 4000); });
     });
-    $("sosClose").addEventListener("click", function () { $("sosSheet").style.display = "none"; hike.sosAuto = false; });
+    $("sosClose").addEventListener("click", function () { $("sosSheet").style.display = "none"; hike.sosAuto = false; partySosOff(); });
+    /** 산악회 방 SOS 풀기 - 닫기 · 괜찮아요. */
+    function partySosOff() {
+        if (!window.RFParty || !RFParty.get() || !RFParty.get().sos) return;
+        RFParty.sos(false);
+        if (hike.fix) RFParty.fix(hike.fix.lat, hike.fix.lon, hike.fix.acc, true);
+    }
+    if (window.RFParty) RFParty.onNotice = function (text) {   // 인솔자 공지 - 걷는 중에도 보이고 들리게
+        toast("📢 " + text, 12000);
+        say(text);
+        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    };
     $("stillOk").addEventListener("click", function () {
-        if (hike.sosAuto) { $("sosSheet").style.display = "none"; hike.sosAuto = false; }   // 저절로 열린 SOS 도 닫음 - 괜찮다고 했으니
+        if (hike.sosAuto) { $("sosSheet").style.display = "none"; hike.sosAuto = false; partySosOff(); }   // 저절로 열린 SOS 도 닫음 - 괜찮다고 했으니
         stillReset(); toast(EN ? "👍 OK, still watching. If you stop for over " + STILL_MS / 60000 + " minutes I will ask again." : "👍 계속 지켜볼게요. " + STILL_MS / 60000 + "분 넘게 멈추면 다시 묻습니다.", 4000); });
     $("stillSos").addEventListener("click", function () { stillReset(); $("sos").click(); });
 

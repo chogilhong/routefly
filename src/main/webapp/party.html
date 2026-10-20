@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>routefly 산악회 방</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=2"><link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
+<meta name="theme-color" content="#11161d">
+<meta name="robots" content="noindex">
+<!-- 산악회 방(2026-10-20 홍TV님 - 안내 산악회): 인솔자가 방을 만들고, 회원 · 운전자가 방 코드로 참가(위치 제공 동의).
+     인솔자 · 운전자는 회원 위치 · 마지막 소식 · 배터리 · SOS · 탑승을 봄. 회원은 공지 · 버스 자리 · 하산 마감.
+     서버 설정 party.enabled=true 일 때만 열림(위치기반서비스사업 신고 뒤). party.html?c=방코드 -->
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="img/apple-icon-180.png">
+<link rel="stylesheet" href="vendor/maplibre-gl-5.24.0/maplibre-gl.css">
+<link rel="stylesheet" href="css/course-kit.css">
+<style>
+:root { --bg:#11161d; --panel:#1a212b; --tx:#eef2f7; --dim:#9aa6b4; --ln:rgba(255,255,255,0.12); --sky:#38d9ea; --red:#ff6b6b; --green:#51cf66; }
+* { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+[hidden] { display:none !important; }   /* .row · button 의 display 가 hidden 을 덮지 않게 */
+html, body { margin:0; background:var(--bg); color:var(--tx); font-family:Arial,"Malgun Gothic",sans-serif; }
+#top { position:sticky; top:0; z-index:5; display:flex; align-items:center; gap:8px; padding:calc(env(safe-area-inset-top) + 8px) 10px 8px;
+       background:var(--panel); border-bottom:1px solid var(--ln); }
+#back { flex:0 0 auto; display:inline-flex; align-items:center; height:40px; padding:0 12px; border-radius:20px; text-decoration:none;
+        background:rgba(56,217,234,0.16); border:1px solid var(--sky); color:var(--sky); font-size:14px; font-weight:bold; }
+#title { flex:1; min-width:0; font-size:15px; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+main { max-width:720px; margin:0 auto; padding:12px 12px calc(env(safe-area-inset-bottom) + 24px); }
+section { background:var(--panel); border:1px solid var(--ln); border-radius:12px; padding:14px; margin-bottom:12px; }
+h2 { font-size:16px; margin:0 0 10px; }
+label { display:block; font-size:13.5px; color:var(--dim); margin:10px 0 4px; }
+input[type=text], input[type=time] { width:100%; height:44px; padding:0 12px; border-radius:10px; border:1px solid var(--ln); background:#0f141a; color:var(--tx); font-size:16px; }
+#joinCode { text-transform:uppercase; letter-spacing:4px; font-weight:bold; }
+.roles { display:flex; gap:8px; }
+.roles label { flex:1; margin:0; display:flex; align-items:center; justify-content:center; gap:6px; height:44px; border:1px solid var(--ln); border-radius:10px; color:var(--tx); font-size:14.5px; }
+.agree { display:flex; gap:8px; align-items:flex-start; color:var(--tx); font-size:13.5px; line-height:1.5; margin-top:12px; }
+.agree input { width:22px; height:22px; flex:0 0 auto; margin-top:1px; }
+button, .btn { display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:0 14px; border-radius:10px; border:1px solid var(--ln);
+               background:rgba(255,255,255,0.08); color:var(--tx); font-size:14.5px; font-weight:bold; text-decoration:none; cursor:pointer; }
+button.main { background:var(--sky); color:#062026; border-color:var(--sky); width:100%; margin-top:14px; }
+button.danger { color:var(--red); border-color:rgba(255,107,107,0.5); }
+button.on { background:var(--green); color:#06210c; border-color:var(--green); }
+button.sos { background:#c92a2a; color:#fff; border-color:#c92a2a; }
+.row { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+.row > * { flex:1 1 auto; }
+.tip { font-size:12.5px; color:var(--dim); line-height:1.5; margin:8px 0 0; }
+#msg { color:var(--red); font-size:13.5px; min-height:18px; margin-top:8px; }
+#closed { text-align:center; line-height:1.7; }
+#code { font-size:18px; letter-spacing:3px; font-weight:bold; color:var(--sky); }
+#mapBox { position:relative; height:46vh; min-height:260px; border-radius:12px; overflow:hidden; border:1px solid var(--ln); margin-bottom:12px; }
+#map { position:absolute; inset:0; }
+#bar { font-size:13.5px; line-height:1.8; color:var(--dim); margin-bottom:8px; }
+#bar b { color:var(--tx); }
+#notice { display:none; background:rgba(255,212,59,0.12); border:1px solid rgba(255,212,59,0.5); color:#ffe066; border-radius:10px; padding:10px 12px; font-size:14.5px; margin-bottom:12px; }
+table { width:100%; border-collapse:collapse; font-size:13.5px; }
+th, td { text-align:left; padding:7px 4px; border-top:1px solid var(--ln); vertical-align:middle; }
+th { color:var(--dim); font-weight:normal; }
+tr.sos td { color:var(--red); font-weight:bold; }
+tr.old td { color:#ffa94d; }
+tr.aboard td { color:var(--dim); }
+.pm { display:flex; flex-direction:column; align-items:center; pointer-events:none; }
+.pm .d { width:16px; height:16px; border-radius:50%; background:var(--sky); border:2px solid #fff; box-shadow:0 1px 3px rgba(0,0,0,0.6); }
+.pm .l { margin-top:2px; color:#fff; font-size:11.5px; font-weight:bold; white-space:nowrap; text-shadow:0 0 3px #000, 0 1px 2px #000; }
+.pm.sos .d { background:#c92a2a; width:22px; height:22px; }
+.pm.old .d { background:#ffa94d; }
+.pm.aboard .d { background:var(--green); }
+.pm.lead .d { background:#ffd43b; }
+.pm.bus .d { width:auto; height:auto; background:none; border:0; box-shadow:none; font-size:24px; }
+</style>
+</head>
+<body>
+<div id="top">
+    <a id="back" href="hike.html">← 따라가기</a>
+    <div id="title">🧑‍🤝‍🧑 산악회 방</div>
+</div>
+<main>
+    <section id="closed" hidden>
+        <p>🧑‍🤝‍🧑 산악회 방은 준비 중입니다.</p>
+        <p class="tip">회원 위치를 인솔자에게 보여 주는 서비스라, 위치기반서비스사업 신고를 마친 뒤 엽니다.</p>
+    </section>
+
+    <div id="start" hidden>
+        <section>
+            <h2>🙋 참가하기 (회원 · 운전자)</h2>
+            <label for="joinCode">방 코드 (인솔자에게 받은 6글자)</label>
+            <input id="joinCode" type="text" maxlength="6" autocomplete="off" autocapitalize="characters">
+            <label for="joinNick">별명 (인솔자 화면에 보이는 이름)</label>
+            <input id="joinNick" type="text" maxlength="12" autocomplete="off">
+            <label>역할</label>
+            <div class="roles">
+                <label><input type="radio" name="role" value="hiker" checked> 🥾 산행</label>
+                <label><input type="radio" name="role" value="driver"> 🚌 운전</label>
+            </div>
+            <div class="agree"><input id="joinAgree" type="checkbox">
+                <label for="joinAgree" style="margin:0;color:inherit;font-size:inherit">이 방의 <b>인솔자 · 운전자에게 내 위치(마지막 하나) · 배터리 · SOS</b>를 보여 주는 데 동의합니다.
+                방을 나가거나 산행이 끝나면(인솔자가 끝내기 · 늦어도 30시간 뒤) 위치는 지워집니다. <a href="privacy.html#party" style="color:var(--sky)">자세히</a></label></div>
+            <button id="joinBtn" class="main">참가하기</button>
+        </section>
+        <section>
+            <h2>🧭 방 만들기 (인솔자)</h2>
+            <label for="mkName">산행 이름</label>
+            <input id="mkName" type="text" maxlength="30" placeholder="예: 10/23 설악산 공룡능선">
+            <label for="mkEnd">하산 마감 시각 (버스 출발)</label>
+            <input id="mkEnd" type="time">
+            <button id="mkBtn" class="main">방 만들기</button>
+            <p class="tip">방 코드가 나오면 단톡방에 보내 주세요. 회원은 코드로 참가하고, 따라가기를 켜 두면 30초마다 위치가 옵니다.</p>
+        </section>
+        <div id="msg"></div>
+    </div>
+
+    <div id="room" hidden>
+        <div id="notice"></div>
+        <section>
+            <div id="bar"></div>
+            <div class="row" id="leadRow" hidden>
+                <button id="shareBtn">📨 참가 링크 보내기</button>
+            </div>
+        </section>
+        <div id="mapBox"><div id="map"></div></div>
+        <section id="hikerBox" hidden>
+            <div class="row">
+                <a class="btn" href="hike.html">🥾 따라가기 열기</a>
+                <button id="aboardBtn">🚌 버스 탑승(하산 끝)</button>
+            </div>
+            <div class="row"><button id="sosBtn" class="danger">🆘 인솔자에게 SOS</button></div>
+            <p class="tip">이 화면이나 따라가기를 켜 둔 동안 30초마다 위치를 보냅니다. 화면을 끄면 앱(따라가기)에서만 계속 보냅니다.</p>
+        </section>
+        <section id="staffBox" hidden>
+            <h2 id="listTitle">회원</h2>
+            <table><thead><tr><th>별명</th><th>소식</th><th>그 자리</th><th>배터리</th><th>상태</th></tr></thead><tbody id="list"></tbody></table>
+            <div class="row"><button id="busBtn">🚌 지금 내 자리를 버스로</button></div>
+            <div id="noticeRow" hidden>
+                <label for="noticeText">공지 (회원 화면 · 따라가기에 뜨고 읽어 줌)</label>
+                <input id="noticeText" type="text" maxlength="120" placeholder="예: 15시까지 소공원 주차장으로">
+                <div class="row"><button id="noticeBtn">📢 공지 보내기</button></div>
+            </div>
+        </section>
+        <section>
+            <div class="row">
+                <button id="leaveBtn" class="danger">방 나가기</button>
+                <button id="endBtn" class="danger" hidden>방 끝내기(모두의 위치 지움)</button>
+            </div>
+            <div id="roomMsg" class="tip"></div>
+        </section>
+    </div>
+</main>
+<script src="vendor/maplibre-gl-5.24.0/maplibre-gl.js"></script>
+<script src="js/course-kit.js"></script>
+<script src="js/party-kit.js"></script>
+<script src="js/party.js"></script>
+</body>
+</html>

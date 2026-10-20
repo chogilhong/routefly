@@ -87,3 +87,8 @@ site.baseUrl=
 #   기름값: 한국석유공사 오피넷 무료 API(opinet.co.kr 에서 따로 받는 키). 없으면 기름값 칸에 "받을 수 없음".
 #opinet.key=
 #   holiday.url · tide.url · opinet.url : 주소를 바꿀 때만(기본 SpcdeInfoService getRestDeInfo · tideFcstHghLw GetTideFcstHghLwApiService · https://www.opinet.co.kr/api/)
+
+# ---------------------------------------------------------------- 산악회 방(2026-10-20) - party.html · /api/party
+# 인솔자에게 회원 위치를 보여 주는 기능이라 위치기반서비스사업 신고를 마친 뒤에만 true. 그 전에는 비우거나 false(화면은 "준비 중").
+# PC(개발)에서 시험할 때만 true 로 켜 봄.
+#party.enabled=false

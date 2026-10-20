@@ -41,6 +41,15 @@ public class PrivacyPolicyTest {
         assertTrue(tools.contains("var cc = RF.cellCenter(p.coords.latitude, p.coords.longitude);") && tools.contains("loc = { lat: cc[0], lon: cc[1],"));
         assertFalse("tools.js 가 GPS 를 그대로 loc 에", tools.matches("(?s).*lat: p\\.coords\\.latitude.*"));
         assertTrue(policy.contains("별거 별거") && policy.contains("약 5km"));
+        // 산악회 방(2026-10-20): 참가(동의)한 때만 보냄 - party-kit 이 열쇠가 있을 때만, 서버는 설정을 켰을 때만, 확인자료는 좌표 없이 200일
+        String kit = read("src/main/webapp/js/party-kit.js");
+        assertTrue(kit.contains("if (!p || lat == null || lon == null) return null;"));
+        assertTrue(hike.contains("if (!hike.sim && window.RFParty) RFParty.fix(co.latitude, co.longitude, acc);"));
+        assertTrue(read("src/main/java/com/gh/routefly/web/PartyServlet.java").contains("return \"true\".equalsIgnoreCase(RouteflyConfig.get(\"party.enabled\"));"));
+        assertTrue(read("src/main/java/com/gh/routefly/web/PartyServlet.java").contains("위치 제공에 동의해야 참가할 수 있습니다."));
+        assertTrue(policy.contains("<b>참가할 때 동의한 사람의 위치만</b>") && policy.contains("6개월 넘게(200일)"));
+        String log4j = read("src/main/resources/log4j2.xml");
+        assertTrue(log4j.contains("<IfFileName glob=\"party-*.log.gz\"/>") && log4j.contains("<IfLastModified age=\"200d\"/>"));
         // 접속 기록에 ?뒤를 남기지 않고 14 · 30일
         String deploy = read("docs/deploy-lightsail.md");
         assertTrue(deploy.contains("access_log /var/log/nginx/access.log routefly_noargs;"));

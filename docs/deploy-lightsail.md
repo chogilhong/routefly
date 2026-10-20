@@ -822,3 +822,14 @@ sudo certbot --nginx -d hongtv.co.kr -d www.hongtv.co.kr
 확인: `curl -sI https://hongtv.co.kr/wp-content/uploads/<연>/<월>/<그림>` 이 200 image/…, `curl -sI https://hongtv.co.kr/<옛 글이름>/` 이 301 → 블로그스팟 글.
 certbot 이 붙인 443 칸에도 위 두 location 이 들어 있는지 봅니다(certbot 은 server 칸을 복사하므로 보통 그대로).
 
+
+## 13. 산악회 방 켜기 (2026-10-20 - 위치기반서비스사업 신고 뒤)
+
+party.html(+ /api/party) - 인솔자가 방을 만들고 회원 · 운전자가 방 코드로 참가(위치 제공 동의), 인솔자 · 운전자가 회원 위치 · SOS · 탑승 · 배터리를 봄.
+war 에는 늘 들어 있지만 설정을 켜기 전에는 "준비 중" 화면만 나오고 API 는 404 입니다.
+
+- 켜기(신고 수리 뒤): `/opt/routefly/config.properties` 에 `party.enabled=true` 한 줄(이미 있는지 `sudo grep -c '^party.enabled=' …` 가 0 인지 먼저) → `sudo systemctl restart tomcat`
+- 끄기: 그 줄을 지우거나 false → restart. 방 · 위치는 메모리에만 있어 재시작하면 모두 지워짐
+- 확인자료(위치정보 이용 · 제공 사실): `/opt/tomcat/logs/party.log`(달마다 party-YYYY-MM.log.gz, 200일 뒤 지움) - 참가 · 나감 · 방 끝 · SOS, 좌표 · 별명 없음
+- 들어가는 곳: 아직 화면에 링크 없음(주소 https://routefly.kr/routefly/party.html). 켠 뒤 따라가기 · 별거 별거에 입구를 넣음
+- 개인정보처리방침(privacy.html#party)에 미리 적어 둠 - 켜는 날 "준비 중" 글을 빼고 시행일을 적음(방침 10장: 7일 전 알림)
