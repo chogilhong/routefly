@@ -82,6 +82,16 @@
         return "intent://" + location.host + location.pathname + "?c=" + encodeURIComponent(code) + "#Intent;scheme=https;package=kr.routefly.app;"
             + (token ? "S.rf_token=" + encodeURIComponent(token) + ";" : "") + "S.browser_fallback_url=" + encodeURIComponent(back) + ";end";
     }
+    // 앱으로 열기 · 옮기기를 누른 뒤 이 브라우저(카톡) 화면 안내(2026-10-20 홍TV님 - 카톡과 앱에 같은 화면이 둘 떠 헷갈림).
+    // 앱이 없으면 S.browser_fallback_url(&web=1)로 이 화면이 다시 열리므로 그대로 쓰면 됨
+    $("appOpenBtn").addEventListener("click", function () {
+        $("appOpen").querySelector("p").textContent = "📱 앱이 열렸으면 앱에서 참가하세요. 이 카톡 화면은 닫으셔도 됩니다. (앱이 없으면 아래에서 그대로 참가)";
+    });
+    $("appOpenRoomBtn").addEventListener("click", function () {
+        // 이 브라우저는 위치 보내기를 멈춤 - 앱이 같은 사람으로 이어 보냄(앱이 없으면 &web=1 로 다시 열려 다시 보냄)
+        if (watch != null) { navigator.geolocation.clearWatch(watch); watch = null; }
+        $("appOpenRoom").querySelector("p").textContent = "📱 앱으로 옮겼습니다. 이 카톡 화면은 닫으셔도 됩니다(여기서는 위치를 더 보내지 않습니다).";
+    });
     function appOpen() {
         if (!canAppOpen()) return;
         $("appOpenBtn").href = appIntent(q.get("c"), null);

@@ -7,7 +7,11 @@
  */
 (function (g) {
     var KEY = "rf-party", EVERY_MS = 30000;
-    var last = 0, busy = false, lastSos = null, again = null;   // again - 보내는 중에 꼭 보낼 것(SOS)이 오면 끝난 뒤 한 번 더
+    var last = 0, busy = false, busyAt = 0, lastSos = null, again = null;
+    // 2026-10-20 PC: 앱 화면을 끈 직후(Doze) 4분 동안 위치가 안 갔음 - 보내기(fetch) · 배터리 읽기가 끝나지 않아 busy 가 풀리지 않은 것으로 봄.
+    // 보내기는 20초, 배터리는 2초에 끊고, 25초 넘게 busy 면 풀어 다음 위치를 보냄
+    var POST_MS = 20000, BATT_MS = 2000, STUCK_MS = 25000;
+    function stuck() { if (busy && Date.now() - busyAt > STUCK_MS) { busy = false; again = null; } return busy; }   // again - 보내는 중에 꼭 보낼 것(SOS)이 오면 끝난 뒤 한 번 더
 
     function get() {
         try {
@@ -20,8 +24,9 @@
 
     /** 서버에 보내기 - 실패하면 서버 글을 담은 Error. 방이 끝났으면(열쇠가 안 맞음) 이 기기 방 정보를 지움. */
     function post(path, body) {
+        var ctl = typeof AbortController === "function" ? new AbortController() : null, timer = ctl ? setTimeout(function () { ctl.abort(); }, POST_MS) : 0;
         return fetch("api/party/" + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}),
-            cache: "no-store", keepalive: true }).then(function (r) {
+            cache: "no-store", keepalive: true, signal: ctl ? ctl.signal : undefined }).finally(function () { clearTimeout(timer); }).then(function (r) {
             return r.json().catch(function () { return {}; }).then(function (j) {
                 if (!r.ok || j.success === false) {
                     var ended = r.status === 410 || (r.status === 400 && /끝났거나 열쇠/.test(j.message || ""));   // 410 - 방이 끝남(까닭이 글로 옴)
@@ -38,7 +43,8 @@
 
     function battery() {
         if (!navigator.getBattery) return Promise.resolve(null);
-        return navigator.getBattery().then(function (b) { return Math.round(b.level * 100); }).catch(function () { return null; });
+        return Promise.race([navigator.getBattery().then(function (b) { return Math.round(b.level * 100); }).catch(function () { return null; }),
+            new Promise(function (r) { setTimeout(function () { r(null); }, BATT_MS); })]);
     }
 
     /**
@@ -49,12 +55,13 @@
         var p = get();
         if (!p || lat == null || lon == null) return null;
         var now = Date.now(), sos = !!p.sos;
-        if (busy) {   // 보내는 중 - SOS 를 켜고 끈 것 · 꼭 보낼 것은 끝난 뒤 다시(2026-10-20 시험: 위치 보내는 사이 누른 SOS 가 빠졌음)
+        if (stuck()) {   // 보내는 중 - SOS 를 켜고 끈 것 · 꼭 보낼 것은 끝난 뒤 다시(2026-10-20 시험: 위치 보내는 사이 누른 SOS 가 빠졌음)
             if (force || sos !== lastSos) again = [lat, lon, acc];
             return null;
         }
         if (!force && sos === lastSos && now - last < EVERY_MS) return null;
         busy = true;
+        busyAt = now;
         last = now;
         lastSos = sos;
         return battery().then(function (b) {
@@ -79,10 +86,11 @@
      */
     function ping(force) {
         var p = get();
-        if (!p || busy) return null;
+        if (!p || stuck()) return null;
         var now = Date.now(), sos = !!p.sos;
         if (!force && sos === lastSos && now - last < EVERY_MS) return null;
         busy = true;
+        busyAt = now;
         last = now;
         lastSos = sos;
         return battery().then(function (b) { return post("ping", { token: p.token, batt: b, sos: sos }); })
