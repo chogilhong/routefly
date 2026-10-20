@@ -50,6 +50,10 @@ public class PrivacyPolicyTest {
         assertTrue(policy.contains("<b>참가할 때 동의한 사람의 위치만</b>") && policy.contains("6개월 넘게(200일)"));
         String log4j = read("src/main/resources/log4j2.xml");
         assertTrue(log4j.contains("<IfFileName glob=\"party-*.log.gz\"/>") && log4j.contains("<IfLastModified age=\"200d\"/>"));
+        // 의견 보내기(2026-10-20): IP 없이 파일, 12달 뒤 지움, 답장 메일은 적었을 때만
+        String fb = read("src/main/java/com/gh/routefly/web/Feedback.java");
+        assertTrue(fb.contains("KEEP_MONTHS = 12") && !fb.contains("o.addProperty(\"ip\""));
+        assertTrue(policy.contains("<b>1년(12달) 뒤 지웁니다</b>") && policy.contains("12달 뒤 삭제") && policy.contains("Google(Gmail)"));
         // 접속 기록에 ?뒤를 남기지 않고 14 · 30일
         String deploy = read("docs/deploy-lightsail.md");
         assertTrue(deploy.contains("access_log /var/log/nginx/access.log routefly_noargs;"));

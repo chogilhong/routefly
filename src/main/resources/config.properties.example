@@ -92,3 +92,12 @@ site.baseUrl=
 # 인솔자에게 회원 위치를 보여 주는 기능이라 위치기반서비스사업 신고를 마친 뒤에만 true. 그 전에는 비우거나 false(화면은 "준비 중").
 # PC(개발)에서 시험할 때만 true 로 켜 봄.
 #party.enabled=false
+
+# ---------------------------------------------------------------- 의견 보내기(2026-10-20) - feedback.html · /api/feedback
+# 손님 글을 이 메일로 보냄(SMTPS 465). 넷 중 하나라도 비면 메일 없이 파일(stats.dir/feedback/)에만 남고 /stats 아래에서 봄.
+# Gmail: Google 계정 → 보안 → 2단계 인증 켜기 → "앱 비밀번호" 만들기(16자). 계정 비밀번호가 아니라 그 앱 비밀번호를 넣음.
+#mail.smtp.host=smtp.gmail.com
+#mail.smtp.port=465
+#mail.smtp.user=
+#mail.smtp.password=
+#mail.to=

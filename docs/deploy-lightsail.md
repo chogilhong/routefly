@@ -841,3 +841,14 @@ war 에는 늘 들어 있지만 설정을 켜기 전에는 "준비 중" 화면�
 - 확인자료(위치정보 이용 · 제공 사실): `/opt/tomcat/logs/party.log`(달마다 party-YYYY-MM.log.gz, 200일 뒤 지움) - 참가 · 나감 · 방 끝 · SOS, 좌표 · 별명 없음
 - 들어가는 곳: 아직 화면에 링크 없음(주소 https://routefly.kr/routefly/party.html). 켠 뒤 따라가기 · 별거 별거에 입구를 넣음
 - 개인정보처리방침(privacy.html#party)에 미리 적어 둠 - 켜는 날 "준비 중" 글을 빼고 시행일을 적음(방침 10장: 7일 전 알림)
+
+## 14. 의견 보내기 메일 (2026-10-20)
+
+손님이 앱의 "📮 의견 보내기"(feedback.html)에 적은 글을 운영자 Gmail 로 받습니다. 메일 설정이 없어도 글은 `stats.dir/feedback/feedback-YYYY-MM.jsonl`(600)에 남고 `/routefly/stats?key=…` 맨 아래 "📮 의견"에서 봅니다.
+
+1. 홍TV님: Google 계정 → 보안 → 2단계 인증을 켬 → "앱 비밀번호"를 만듦(16자, 이름 예: routefly). 계정 비밀번호는 쓰지 않습니다.
+2. 홍TV님이 서버의 `/opt/routefly/config.properties` 에 직접 적음(Claude 는 읽지도 적지도 않음 - 예시는 config.properties.example 맨 아래):
+   `mail.smtp.host=smtp.gmail.com` · `mail.smtp.port=465` · `mail.smtp.user=<보내는 Gmail>` · `mail.smtp.password=<앱 비밀번호>` · `mail.to=<받을 메일>`
+3. 설정은 톰캣이 켜질 때 한 번 읽으므로 `sudo systemctl restart tomcat` 뒤 의견 하나를 보내 메일이 오는지 봅니다.
+4. 메일이 안 오면 `logs/catalina` 에 `[FEEDBACK] 메일을 보내지 못함` 줄(서버 답 첫 줄)이 남습니다. Lightsail 은 25번만 막고 465 는 열려 있습니다.
+5. 받은 메일은 12달 뒤 메일함에서 지웁니다(개인정보처리방침 3번). 서버 파일은 자동으로 지워집니다.
