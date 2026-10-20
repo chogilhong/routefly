@@ -53,7 +53,7 @@ public class StatsServlet extends HttpServlet {
     static String page(Map<String, JsonObject> days, int n) {
         List<String> keys = new ArrayList<>(days.keySet());
         List<String> last = keys.subList(Math.max(0, keys.size() - n), keys.size());
-        Map<String, Integer> mountains = new HashMap<>(), pages = new HashMap<>(), refs = new HashMap<>(), devs = new HashMap<>();
+        Map<String, Integer> mountains = new HashMap<>(), pages = new HashMap<>(), refs = new HashMap<>(), devs = new HashMap<>(), bots = new HashMap<>();
         StringBuilder rows = new StringBuilder();
         int tu = 0, tp = 0, tb = 0;
         for (int i = last.size() - 1; i >= 0; i--) {
@@ -67,6 +67,7 @@ public class StatsServlet extends HttpServlet {
             if (d.has("refs")) for (Map.Entry<String, com.google.gson.JsonElement> e : d.getAsJsonObject("refs").entrySet()) refs.merge(e.getKey(), e.getValue().getAsInt(), Integer::sum);
             int u = d.get("uniq").getAsInt(), b = d.get("bots").getAsInt();
             tu += u; tp += views; tb += b;
+            if (d.has("botKinds")) for (var e : d.getAsJsonObject("botKinds").entrySet()) bots.merge(e.getKey(), e.getValue().getAsInt(), Integer::sum);
             if (d.has("devUniq")) for (var e : d.getAsJsonObject("devUniq").entrySet()) devs.merge(e.getKey(), e.getValue().getAsInt(), Integer::sum);
             rows.append("<tr><td>").append(last.get(i)).append("</td><td>").append(u).append("</td><td>").append(dev(d, "모바일")).append("</td><td>").append(dev(d, "PC"))
                     .append("</td><td>").append(views).append("</td><td>").append(b).append("</td></tr>");
@@ -74,14 +75,26 @@ public class StatsServlet extends HttpServlet {
         StringBuilder out = new StringBuilder("<!DOCTYPE html><html lang=\"ko\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
                 + "<meta name=\"robots\" content=\"noindex\"><title>routefly 통계</title>" + MountainServlet.icons(".") + "<link rel=\"stylesheet\" href=\"css/mountain.css\"></head><body><main><h1>routefly 통계</h1>"
                 + "<p class=\"lead\">최근 " + last.size() + "일 · 방문자(하루마다 센 수의 합) " + String.format(Locale.KOREA, "%,d", tu) + " · 화면 " + String.format(Locale.KOREA, "%,d", tp)
-                + " · 검색 로봇 · 미리보기 " + String.format(Locale.KOREA, "%,d", tb) + "</p>");
+                + " · 로봇 " + String.format(Locale.KOREA, "%,d", tb) + botLine(bots) + "</p>");
         out.append(trend(days, n));
         out.append("<section><h2>날마다</h2><table class=\"st\"><tr><th>날짜</th><th>방문자</th><th>모바일</th><th>PC</th><th>화면</th><th>로봇</th></tr>").append(rows).append("</table></section>");
         out.append(top("모바일 · PC 방문자(" + last.size() + "일 - 10-20 부터 셈)", devs, 5, null))
                 .append(top("인기 산 페이지(" + last.size() + "일)", mountains, 20, null)).append(top("화면별(" + last.size() + "일)", pages, 20, StatsServlet::pageName))
-                .append(top("들어온 곳(" + last.size() + "일 - 바깥에서 처음 들어온 화면 수)", refs, 20, null));
+                .append(top("들어온 곳(" + last.size() + "일 - 바깥에서 처음 들어온 화면 수)", refs, 20, null))
+                .append(top("로봇 종류(" + last.size() + "일 - 10-21 부터 셈) - 검색: 구글 · 네이버 등 / 미리보기: 카톡 · 페이스북 링크 / 시험: curl · 점검 도구 / 기타: SEO · AI 수집기", bots, 4, null));
         out.append("<p class=\"dim\">숫자만 셉니다 - 방문자는 그 날만 쓰는 해시로 겹침만 걸러 내고 IP 는 남기지 않습니다. 이 화면을 연 기기(브라우저)는 운영자로 보고 방문 수에서 뺍니다(2년, 사이트 데이터를 지우면 다시 셈). 앱(따라가기 앱)은 따로라 빠지지 않습니다.</p></main></body></html>");
         return out.toString();
+    }
+
+    /** 순수 함수 - "(검색 n · 미리보기 n · 시험 n · 기타 n)" - 나눠 센 날이 없으면 빈 글. */
+    static String botLine(Map<String, Integer> bots) {
+        if (bots.isEmpty()) return "";
+        StringBuilder b = new StringBuilder();
+        for (String k : new String[] {"검색", "미리보기", "시험", "기타"}) {
+            if (!bots.containsKey(k)) continue;
+            b.append(b.length() == 0 ? "" : " · ").append(k).append(' ').append(String.format(Locale.KOREA, "%,d", bots.get(k)));
+        }
+        return " (" + b + ")";
     }
 
     /**

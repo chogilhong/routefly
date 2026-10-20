@@ -26,11 +26,34 @@ public class StatsTest {
 
     @Test
     public void bots() {
-        assertTrue(Stats.isBot("Mozilla/5.0 (compatible; Googlebot/2.1)"));
-        assertTrue(Stats.isBot("facebookexternalhit/1.1"));
-        assertTrue(Stats.isBot("Mozilla/5.0 (compatible; Yeti/1.1; +http://naver.me/spd)"));
-        assertTrue(Stats.isBot(null));
-        assertFalse(Stats.isBot("Mozilla/5.0 (Linux; Android 14; SM-S921N) AppleWebKit/537.36 Chrome/129.0 Mobile Safari/537.36"));
+        assertNotNull(Stats.botKind("Mozilla/5.0 (compatible; Googlebot/2.1)"));
+        assertNotNull(Stats.botKind("facebookexternalhit/1.1"));
+        assertNotNull(Stats.botKind("Mozilla/5.0 (compatible; Yeti/1.1; +http://naver.me/spd)"));
+        assertNotNull(Stats.botKind(null));
+        assertNull(Stats.botKind("Mozilla/5.0 (Linux; Android 14; SM-S921N) AppleWebKit/537.36 Chrome/129.0 Mobile Safari/537.36"));
+        // 종류(2026-10-20 홍TV님 "나눠서 세기")
+        assertEquals("검색", Stats.botKind("Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"));
+        assertEquals("검색", Stats.botKind("Mozilla/5.0 (compatible; Yeti/1.1; +http://naver.me/spd)"));
+        assertEquals("검색", Stats.botKind("Mozilla/5.0 (compatible; Daum/4.1; +http://cs.daum.net/faq/15/4118.html?faqId=28966)"));
+        assertEquals("미리보기", Stats.botKind("facebookexternalhit/1.1"));
+        assertEquals("미리보기", Stats.botKind("Mozilla/5.0 (Mobile; KAKAOTALK-SCRAP; ...)"));
+        assertEquals("미리보기", Stats.botKind("Slackbot-LinkExpanding 1.0"));
+        assertEquals("시험", Stats.botKind("curl/8.5.0"));
+        assertEquals("시험", Stats.botKind("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 HeadlessChrome/130.0 Safari/537.36"));
+        assertEquals("시험", Stats.botKind(""));
+        assertEquals("기타", Stats.botKind("Mozilla/5.0 (compatible; AhrefsBot/7.0)"));
+        assertEquals("기타", Stats.botKind("Mozilla/5.0 (compatible; GPTBot/1.2)"));
+        assertNull("다음 앱 손님은 사람", Stats.botKind("Mozilla/5.0 (Linux; Android 14; SM-S921N) AppleWebKit/537.36 Chrome/129.0 Mobile Safari/537.36 DaumApps/7.2.1"));
+        assertNull("네이버 앱 손님은 사람", Stats.botKind("Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/129.0 Mobile Safari/537.36 NAVER(inapp; search; 2000; 12.8.4)"));
+        assertNull(Stats.botKind("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1"));
+        java.util.Map<String, Integer> m = new java.util.HashMap<>();
+        assertEquals("", StatsServlet.botLine(m));
+        m.put("기타", 3); m.put("검색", 1200);
+        assertEquals(" (검색 1,200 · 기타 3)", StatsServlet.botLine(m));
+        java.util.TreeMap<String, JsonObject> days = new java.util.TreeMap<>();
+        days.put("2026-10-21", JsonParser.parseString("{\"pages\":{},\"uniq\":0,\"bots\":5,\"botKinds\":{\"검색\":4,\"시험\":1}}").getAsJsonObject());
+        String html = StatsServlet.page(days, 30);
+        assertTrue(html.contains("로봇 5 (검색 4 · 시험 1)") && html.contains("로봇 종류"));
     }
 
     @Test

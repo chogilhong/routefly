@@ -34,7 +34,7 @@ final class Stats {
     private static final Logger log = LogManager.getLogger(Stats.class);
     static final int KEEP_DAYS = 400;
 
-    /** 날짜 → {"pages":{화면: 수}, "uniq": 방문자 수, "bots": 로봇 수} */
+    /** 날짜 → {"pages":{화면: 수}, "uniq": 방문자 수, "bots": 로봇 수, "botKinds":{검색 · 미리보기 · 시험 · 기타: 수}(10-21 부터)} */
     private static final TreeMap<String, JsonObject> DAYS = new TreeMap<>();
     private static String today = "";
     private static final Set<String> seen = new HashSet<>();
@@ -66,8 +66,19 @@ final class Stats {
     }
 
     /** 순수 함수 - 검색 로봇 · 미리보기 수집기(카카오톡 · 페이스북 링크 미리보기 포함). */
-    static boolean isBot(String ua) {
-        return ua == null || ua.isBlank() || ua.toLowerCase().matches(".*(bot|crawl|spider|slurp|facebookexternalhit|kakaotalk-scrap|daum|yeti|headless|python|curl|wget).*");
+    /**
+     * 순수 함수 - 로봇 종류(2026-10-20 홍TV님 "나눠서 세기"). 사람이면 null.
+     * 다음 · 네이버 앱 안 브라우저(DaumApps · NAVER(inapp))는 사람이라 "daum/" · "yeti/" 처럼 수집기 이름만 봄(전에는 "daum" 으로 다음 앱 손님을 로봇으로 셌음).
+     * 미리보기(카톡 · 페이스북 등 링크 붙일 때) · 검색(구글 · 네이버 · 다음 · 빙 등) · 시험(curl · headless 브라우저 등 - 우리 점검 포함) · 기타(SEO · AI 수집기 등).
+     */
+    static String botKind(String ua) {
+        if (ua == null || ua.isBlank()) return "시험";
+        String u = ua.toLowerCase();
+        if (u.matches(".*(facebookexternalhit|kakaotalk-scrap|kakaostory-og|twitterbot|slackbot|telegrambot|discordbot|whatsapp|linkedinbot|skypeuripreview|line-poker|bandbot|naverbot-preview).*")) return "미리보기";
+        if (u.matches(".*(googlebot|google-inspectiontool|bingbot|yeti/|daum/|daumoa|duckduckbot|baiduspider|yandex|applebot|slurp|seznambot|petalbot|coccoc).*")) return "검색";
+        if (u.matches(".*(headless|python|curl|wget|playwright|node-fetch|axios|go-http|java/|okhttp|httpclient|powershell).*")) return "시험";
+        if (u.matches(".*(bot|crawl|spider|scrap).*")) return "기타";
+        return null;
     }
 
     /**
@@ -115,7 +126,7 @@ final class Stats {
     }
 
     /** 한 번 셈. ip 는 해시해 그 날 메모리에서만 견줌. src - 들어온 곳(source, null 이면 안 셈). */
-    static synchronized void hit(String page, String ip, boolean bot, String src, String device) {
+    static synchronized void hit(String page, String ip, String bot, String src, String device) {
         load();
         String d = LocalDate.now(WeatherServlet.KST).toString();
         if (!d.equals(today)) {   // 날이 바뀜 - 어제 방문자 집합 · 소금은 버림
@@ -130,8 +141,10 @@ final class Stats {
             o.addProperty("bots", 0);
             return o;
         });
-        if (bot) {
+        if (bot != null) {   // bot - 로봇 종류(botKind), null 이면 사람
             day.addProperty("bots", day.get("bots").getAsInt() + 1);
+            if (!day.has("botKinds")) day.add("botKinds", new JsonObject());
+            add(day.getAsJsonObject("botKinds"), bot);
         } else {
             JsonObject pages = day.getAsJsonObject("pages");
             pages.addProperty(page, (pages.has(page) ? pages.get(page).getAsInt() : 0) + 1);
