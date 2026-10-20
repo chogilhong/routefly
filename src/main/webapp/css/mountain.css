@@ -181,3 +181,5 @@ ul { margin:0; padding:0; list-style:none; }
 .cp .pass li { margin:3px 0; font-size:14px; }
 .cp .pass span { color:var(--dim); font-size:13px; }
 .cp .profCap { margin:4px 0 0; }
+.chN { display:none; }   /* 통계 방문 추세 - 휴대폰은 좁은 그림(2026-10-20) */
+@media (max-width:520px) { .chW { display:none; } .chN { display:block; } }

@@ -65,4 +65,45 @@ public class StatsTest {
         String h = StatsServlet.page(days, 30);
         assertTrue(h.contains("<td>네이버</td><td>5</td>") && h.contains("<td>구글</td><td>1</td>"));
     }
+
+    /** 모바일 · PC, 화면 이름 칸(2026-10-20). */
+    @Test
+    public void deviceAndNames() {
+        assertEquals("모바일", Stats.device("Mozilla/5.0 (Linux; Android 14; SM-S921N; wv) AppleWebKit/537.36 Chrome/129.0 Mobile Safari/537.36"));
+        assertEquals("모바일", Stats.device("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148"));
+        assertEquals("모바일", Stats.device("Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X)"));
+        assertEquals("PC", Stats.device("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/129.0 Safari/537.36"));
+        assertEquals("따라가기", StatsServlet.pageName("/hike.html"));
+        assertEquals("산 소개(영어) - naejangsan", StatsServlet.pageName("/en/m/naejangsan"));
+        assertEquals("", StatsServlet.pageName("/zzz.html"));
+        TreeMap<String, JsonObject> days = new TreeMap<>();
+        days.put("2026-10-19", JsonParser.parseString("{\"pages\":{\"/hike.html\":5},\"uniq\":4,\"bots\":0}").getAsJsonObject());
+        days.put("2026-10-20", JsonParser.parseString("{\"pages\":{\"/hike.html\":9,\"/c/\":3},\"uniq\":5,\"bots\":1,"
+                + "\"dev\":{\"모바일\":8,\"PC\":4},\"devUniq\":{\"모바일\":3,\"PC\":2}}").getAsJsonObject());
+        String h = StatsServlet.page(days, 30);
+        assertTrue("날마다 표 - 모바일 · PC 칸", h.contains("<tr><td>2026-10-20</td><td>5</td><td>3</td><td>2</td><td>12</td><td>1</td></tr>"));
+        assertTrue("세기 전 날은 -", h.contains("<tr><td>2026-10-19</td><td>4</td><td>-</td><td>-</td>"));
+        assertTrue("화면 이름 칸", h.contains("<td>/hike.html</td><td>따라가기</td><td>14</td>"));
+        assertTrue(h.contains("<td>모바일</td><td>3</td>"));
+    }
+
+    /** 방문 추세 그림(2026-10-20) - 빈 날은 0, 눈금 올림, 최근 n 일. */
+    @Test
+    public void trend() {
+        TreeMap<String, JsonObject> days = new TreeMap<>();
+        days.put("2026-10-14", JsonParser.parseString("{\"pages\":{\"/hike.html\":5},\"uniq\":4,\"bots\":0}").getAsJsonObject());
+        days.put("2026-10-16", JsonParser.parseString("{\"pages\":{\"/hike.html\":130},\"uniq\":37,\"bots\":0}").getAsJsonObject());
+        String h = StatsServlet.trend(days, 30);
+        assertTrue("빈 날(10-15)은 0", h.contains("<title>2026-10-15 · 방문자 0</title>"));
+        assertTrue(h.contains("<title>2026-10-16 · 화면 130</title>"));
+        assertTrue(h.contains("방문 추세(3일)"));
+        assertTrue("눈금 위끝 50(37 올림)", h.contains(">50</text>"));
+        assertTrue("눈금 위끝 200(130 올림)", h.contains(">200</text>"));
+        assertFalse("최근 2일만이면 10-14 빠짐", StatsServlet.trend(days, 2).contains("2026-10-14"));
+        assertEquals("", StatsServlet.trend(new TreeMap<>(), 30));
+        assertEquals(1, StatsServlet.nice(1));
+        assertEquals(500, StatsServlet.nice(301));
+        assertEquals(1000, StatsServlet.nice(1000));
+        assertTrue("보기 화면에 들어감", StatsServlet.page(days, 30).contains("방문 추세"));
+    }
 }

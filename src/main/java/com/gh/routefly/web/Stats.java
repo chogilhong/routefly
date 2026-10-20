@@ -70,6 +70,13 @@ final class Stats {
         return ua == null || ua.isBlank() || ua.toLowerCase().matches(".*(bot|crawl|spider|slurp|facebookexternalhit|kakaotalk-scrap|daum|yeti|headless|python|curl|wget).*");
     }
 
+    /** 순수 함수 - 모바일 · PC(2026-10-20 홍TV님). 휴대폰 · 태블릿 · 따라가기 앱(안드로이드 웹뷰)은 모바일. */
+    static String device(String ua) {
+        if (ua == null) return "PC";
+        String u = ua.toLowerCase();
+        return u.contains("mobi") || u.contains("android") || u.contains("iphone") || u.contains("ipad") ? "모바일" : "PC";
+    }
+
     /** 들어온 곳 묶음 - 도메인 끝이 이것이면 그 이름. */
     private static final String[][] SOURCES = {
         {"naver.com", "네이버"}, {"naver.me", "네이버"}, {"google.", "구글"}, {"daum.net", "다음"}, {"kakao.com", "카카오"}, {"kakaocdn.net", "카카오"},
@@ -99,7 +106,7 @@ final class Stats {
     }
 
     /** 한 번 셈. ip 는 해시해 그 날 메모리에서만 견줌. src - 들어온 곳(source, null 이면 안 셈). */
-    static synchronized void hit(String page, String ip, boolean bot, String src) {
+    static synchronized void hit(String page, String ip, boolean bot, String src, String device) {
         load();
         String d = LocalDate.now(WeatherServlet.KST).toString();
         if (!d.equals(today)) {   // 날이 바뀜 - 어제 방문자 집합 · 소금은 버림
@@ -119,7 +126,13 @@ final class Stats {
         } else {
             JsonObject pages = day.getAsJsonObject("pages");
             pages.addProperty(page, (pages.has(page) ? pages.get(page).getAsInt() : 0) + 1);
-            if (seen.add(hash(ip))) day.addProperty("uniq", day.get("uniq").getAsInt() + 1);
+            boolean first = seen.add(hash(ip));
+            if (first) day.addProperty("uniq", day.get("uniq").getAsInt() + 1);
+            if (device != null) {   // dev: 화면 수, devUniq: 방문자 수(그 날 처음 본 기기로)
+                if (!day.has("dev")) { day.add("dev", new JsonObject()); day.add("devUniq", new JsonObject()); }
+                add(day.getAsJsonObject("dev"), device);
+                if (first) add(day.getAsJsonObject("devUniq"), device);
+            }
             if (src != null) {
                 if (!day.has("refs")) day.add("refs", new JsonObject());
                 JsonObject refs = day.getAsJsonObject("refs");
@@ -128,6 +141,10 @@ final class Stats {
         }
         while (DAYS.size() > KEEP_DAYS) DAYS.pollFirstEntry();
         dirty = true;
+    }
+
+    private static void add(JsonObject o, String k) {
+        o.addProperty(k, (o.has(k) ? o.get(k).getAsInt() : 0) + 1);
     }
 
     private static String hash(String ip) {
