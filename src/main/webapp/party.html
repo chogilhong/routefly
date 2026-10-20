@@ -95,10 +95,14 @@ input.bad, .agree.bad { border-color:#ff6b6b !important; }
 #qrBox { position:fixed; inset:0; z-index:2000; background:rgba(0,0,0,0.85); display:flex; align-items:center; justify-content:center; padding:16px; }
 #qrBox .qrIn { background:#fff; color:#111; border-radius:16px; padding:18px; width:100%; max-width:380px; text-align:center; }
 #qrBox .qrHead { font-weight:bold; font-size:16px; margin:0 0 10px; }
-#qrImg svg { width:100%; height:auto; display:block; }
+#qrImg svg { width:100%; height:auto; display:block; shape-rendering:crispEdges; }
 #qrBox .qrCode { font-size:18px; margin:10px 0 4px; }
 #qrBox .qrCode b { font-size:30px; letter-spacing:4px; }
 #qrBox .tip { color:#444; }
+#qrBox .qrStop { text-align:left; margin:0 0 8px; }
+#qrBox .qrStop label { color:#333; margin:0 0 4px; }
+#qrBox .qrStop select { background:#f1f3f5; color:#111; border-color:#ccc; }
+#list .kick { min-height:28px; min-width:28px; padding:0 6px; margin-left:4px; font-size:12px; border-radius:8px; color:#ff8787; }
 #busTabs button { flex:0 0 auto; min-height:36px; padding:0 12px; font-size:13.5px; }
 #busTabs button.on { background:var(--sky); color:#062026; border-color:var(--sky); }
 .s.drv { border:0; cursor:default; font-size:16px; }
@@ -244,6 +248,7 @@ a.tel { color:var(--sky); }
                     <button id="actBoard">출발 탑승</button>
                     <button id="actMove">💺 자리 옮기기</button>
                     <button id="actMap">🗺 지도</button>
+                    <button id="actKick" class="danger" hidden>🚫 내보내기</button>
                 </div>
                 <div class="two" id="actStopBox"><div><label for="actStop">탑승지 바꾸기</label><select id="actStop"></select></div><div></div></div>
             </div>
@@ -280,6 +285,7 @@ a.tel { color:var(--sky); }
     <div id="qrBox" hidden>
         <div class="qrIn">
             <p class="qrHead">📱 폰 카메라로 비추면 참가 화면이 열립니다</p>
+            <div id="qrStopBox" class="qrStop"><label for="qrStop">지금 탑승지 (이 QR 로 들어오면 채워짐)</label><select id="qrStop"></select></div>
             <div id="qrImg"></div>
             <p class="qrCode">방 코드 <b id="qrCode"></b></p>
             <p class="tip">카메라가 안 되면 routefly.kr 에서 산악회 방 → 참가하기 → 이 코드를 치세요.</p>

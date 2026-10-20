@@ -247,4 +247,23 @@ public class PartyTest {
         Party again = new Party(f);
         assertEquals("[\"서울70사4321\",\"경기71바5678\"]", call(again, "/view", tok(a), T0).getAsJsonArray("plates").toString());
     }
+
+    /** 내보내기(2026-10-20 홍TV님) - 인솔자만, 내보낸 폰은 410 까닭. */
+    @Test
+    public void kick() {
+        Party p = new Party();
+        JsonObject room = j(create(p, T0));
+        String code = room.get("code").getAsString(), lead = room.get("token").getAsString();
+        JsonObject x = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"모르는이\",\"role\":\"hiker\",\"seat\":3,\"agree\":true}", T0);
+        String a = x.get("token").getAsString();
+        String b = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"철수\",\"role\":\"hiker\",\"agree\":true}", T0).get("token").getAsString();
+        int id = member(call(p, "/view", tok(lead), T0), "모르는이").get("id").getAsInt();
+        try { call(p, "/kick", "{\"token\":\"" + b + "\",\"id\":" + id + "}", T0); fail("회원은 못 함"); } catch (SecurityException e) { /* 맞음 */ }
+        JsonObject v = call(p, "/kick", "{\"token\":\"" + lead + "\",\"id\":" + id + "}", T0);
+        assertNull(member(v, "모르는이"));
+        assertEquals("자리도 빔", "[]", call(p, "/info", "{\"code\":\"" + code + "\"}", T0).getAsJsonArray("taken").toString());
+        try { call(p, "/view", tok(a), T0); fail(); } catch (Party.Ended e) { assertTrue(e.getMessage().contains("내보냈습니다")); }
+        try { call(p, "/kick", "{\"token\":\"" + lead + "\",\"id\":" + id + "}", T0); fail("두 번"); } catch (IllegalArgumentException e) { /* 맞음 */ }
+        try { call(p, "/kick", "{\"token\":\"" + lead + "\",\"id\":1}", T0); fail("인솔자 자신"); } catch (IllegalArgumentException e) { assertTrue(e.getMessage().contains("인솔자")); }
+    }
 }

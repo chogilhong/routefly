@@ -98,7 +98,8 @@
             busOptions($("joinBus"), j.buses, 1);
             $("joinBusBox").hidden = !(j.buses > 1);
             seatOptions($("joinSeat"), j.seats, j.taken, null, "고르기", 1);
-            stopOptions($("joinStop"), j.stops, null, "고르기");
+            var qs = new URLSearchParams(location.search).get("s");   // QR 에 실린 탑승지(인솔자가 그 자리에서 보여 준 것)
+            stopOptions($("joinStop"), j.stops, qs && (j.stops || []).indexOf(qs) >= 0 ? qs : null, "고르기");
             roleChanged();
         }).catch(function (e) { infoFor = null; $("joinCard").hidden = true; $("joinSeatBox").hidden = true; joinErr(e.message, $("joinCode")); });
     }
@@ -345,13 +346,22 @@
         $("list").innerHTML = rows.map(function (m) {
             var cls = m.cancelled ? "aboard" : m.sos ? "sos" : m.aboard ? "aboard" : (s.departed && (m.ago == null || m.ago > OLD_S)) ? "old" : "";
             var st = m.cancelled ? "❌ 취소" : m.sos ? "🆘 SOS" : m.aboard ? "🚌 하산 탑승" : m.role === "driver" ? "운전" : m.boarded ? "✅ 탐" : s.departed ? "" : "안 탐";
-            return "<tr class=\"" + cls + "\" data-id=\"" + m.id + "\"><td>" + (m.role === "driver" ? busLabel(s, m.bus) || "-" : seatText(s, m)) + "</td><td>" + esc(m.nick) + "</td><td>" + agoText(m.ago) + "</td><td>"
+            return "<tr class=\"" + cls + "\" data-id=\"" + m.id + "\"><td>" + (m.role === "driver" ? busLabel(s, m.bus) || "-" : seatText(s, m)) + "</td><td>" + esc(m.nick) + (s.role === "lead" ? " <button type=\"button\" class=\"kick\" data-kick=\"" + m.id + "\" title=\"방에서 내보내기\" aria-label=\"" + esc(m.nick) + " 내보내기\">✕</button>" : "") + "</td><td>" + agoText(m.ago) + "</td><td>"
                 + (m.stillMin != null && m.ago != null ? m.stillMin + "분" : "-") + "</td><td>" + (m.batt != null ? m.batt + "%" : "-") + "</td><td>" + st + "</td></tr>";
         }).join("") || "<tr><td colspan=\"6\">아직 참가한 회원이 없습니다. 참가 안내를 보내 주세요.</td></tr>";
         function rank(m) { return m.cancelled ? 6 : m.sos ? 0 : m.aboard ? 5 : (s.departed && (m.ago == null || m.ago > OLD_S)) ? 1 : (m.stillMin || 0) >= 15 ? 2 : 3; }
     }
 
+    /** 인솔자 - 회원 내보내기(2026-10-20 홍TV님 - 모르는 사람이 들어왔을 때). */
+    function kick(m) {
+        if (!m || !confirm(m.nick + " 님을 방에서 내보낼까요?\n그 폰의 산악회 방이 닫히고 위치도 지워집니다.")) return;
+        var p = RFParty.get();
+        RFParty.post("kick", { token: p.token, id: m.id }).then(function (j) { pick(null); render(j); roomMsg(m.nick + " 님을 내보냈습니다."); })
+            .catch(function (er) { er.ended ? fail(er) : roomMsg(er.message); });
+    }
     $("list").addEventListener("click", function (e) {   // 줄을 누르면 지도에서 그 사람
+        var k = e.target.closest("[data-kick]");
+        if (k && state) { kick((state.members || []).filter(function (x) { return String(x.id) === k.getAttribute("data-kick"); })[0]); return; }
         var tr = e.target.closest("tr[data-id]");
         if (!tr || !state || !map) return;
         var m = (state.members || []).filter(function (x) { return String(x.id) === tr.getAttribute("data-id"); })[0];
@@ -481,6 +491,7 @@
         $("actBoard").textContent = m.cancelled ? "↩ 탔음(취소 되돌리기)" : m.boarded ? "출발 탑승 취소" : "✅ 출발 탑승";
         stopOptions($("actStop"), state.stops, m.stop);
         $("actStopBox").hidden = !(state.stops || []).length;
+        $("actKick").hidden = state.role !== "lead";
     }
     $("seatMap").addEventListener("click", function (e) {
         var el = e.target.closest("[data-seat]");
@@ -498,6 +509,7 @@
         pick(null);
         RFParty.post("mark", { token: p.token, bus: curBus, seat: k, what: "reserved", on: (state.reserved || []).indexOf(curBus * 100 + k) < 0 }).then(render).catch(function (er) { roomMsg(er.message); });
     });
+    $("actKick").addEventListener("click", function () { kick(pickedMember()); });
     $("actBoard").addEventListener("click", function () {
         var m = pickedMember(), p = RFParty.get();
         if (!m) return;
@@ -613,16 +625,26 @@
         else copyInvite();
     });
     /** 현장 참가 QR - 참가 링크를 크게(화면 밝기 그대로 비추면 됨). qrcode-generator(MIT) 가 없으면 코드만. */
-    $("qrBtn").addEventListener("click", function () {
-        var p = RFParty.get() || {};
-        $("qrCode").textContent = p.code || "";
+    /** QR 주소 - 고른 탑승지를 실음(?s=) - 그 QR 로 들어오면 탑승지가 채워짐(2026-10-20 홍TV님). */
+    function qrDraw() {
+        var stop = $("qrStop").value, url = inviteUrl() + (stop ? "&s=" + encodeURIComponent(stop) : "");
         $("qrImg").innerHTML = "";
         if (window.qrcode) {
             var q = qrcode(0, "M");   // 0 - 크기 저절로, M - 15% 가려져도 읽힘
-            q.addData(inviteUrl());
+            q.addData(url);   // 한글 탑승지는 %인코딩이라 ASCII
             q.make();
             $("qrImg").innerHTML = q.createSvgTag({ cellSize: 6, margin: 4, scalable: true });
         }
+        try { localStorage.setItem("rf-party-qrstop", stop); } catch (e) { /* 이번만 */ }
+    }
+    $("qrStop").addEventListener("change", qrDraw);
+    $("qrBtn").addEventListener("click", function () {
+        var p = RFParty.get() || {}, stops = (state && state.stops) || [], last = "";
+        try { last = localStorage.getItem("rf-party-qrstop") || ""; } catch (e) { /* 없음 */ }
+        stopOptions($("qrStop"), stops, stops.indexOf(last) >= 0 ? last : null, "정하지 않음");
+        $("qrStopBox").hidden = !stops.length;
+        qrDraw();
+        $("qrCode").textContent = p.code || "";
         $("qrBox").hidden = false;
     });
     $("qrClose").addEventListener("click", function () { $("qrBox").hidden = true; });

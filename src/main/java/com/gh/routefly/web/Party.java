@@ -407,6 +407,20 @@ final class Party {
         save();
     }
 
+    /** 인솔자 - 회원 내보내기(2026-10-20 홍TV님 - 모르는 사람이 들어왔을 때). 그 폰에는 410 + 까닭. 인솔자 자신은 못 내보냄. */
+    synchronized void kick(Member lead, int id, long now) {
+        Member t = null;
+        for (Member x : lead.room.members.values()) if (x.id == id) t = x;
+        if (t == null) throw new IllegalArgumentException("이미 나간 사람입니다.");
+        if (t == lead || "lead".equals(t.role)) throw new IllegalArgumentException("인솔자는 내보낼 수 없습니다.");
+        lead.room.members.remove(t.token);
+        byToken.remove(t.token);
+        endedWhy.put(t.token, "인솔자가 이 방에서 내보냈습니다. 잘못이면 인솔자에게 연락하세요.");
+        endedAt.put(t.token, now);
+        audit.info("kick room={} member={}", lead.room.code, t.id);
+        save();
+    }
+
     synchronized void leave(Member m) {
         if (m.room.members.remove(m.token) != null) audit.info("leave room={} member={}", m.room.code, m.id);
         byToken.remove(m.token);

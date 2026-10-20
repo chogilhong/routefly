@@ -27,6 +27,7 @@ import com.google.gson.JsonParser;
  * POST /api/party/mark   {token, bus, seat, what: boarded|reserved, on} 인솔자 · 운전자 - 좌석표
  * POST /api/party/depart {token}                           인솔자 - 출발(안 탄 사람 취소)
  * POST /api/party/notice {token, text} · /bus {token, bus, lat, lon} · /plate {token, bus, plate}  (plate - 인솔자 · 운전자, 운전자는 자기 호차)
+ * POST /api/party/kick   {token, id}                       인솔자 - 회원 내보내기(그 폰은 410 "내보냈습니다")
  * POST /api/party/leave  {token} · /end {token, cancel}    나가기 · (인솔자) 방 끝내기 · 산행 취소
  * </pre>
  * 끝난 방 열쇠로 오면 410 + 까닭. 설정 party.enabled=true 가 아니면 status 말고는 404.
@@ -123,6 +124,7 @@ public class PartyServlet extends HttpServlet {
             case "/notice" -> { if (!lead) throw new SecurityException("인솔자만 공지할 수 있습니다."); p.notice(m, str(in, "text"), now); }
             case "/bus" -> { if (!staff) throw new SecurityException("인솔자 · 운전자만 버스 자리를 정할 수 있습니다."); p.bus(m, integer(in, "bus"), num(in, "lat"), num(in, "lon")); }
             case "/plate" -> { if (!staff) throw new SecurityException("인솔자 · 운전자만 차량번호를 적을 수 있습니다."); p.plate(m, integer(in, "bus"), str(in, "plate")); }
+            case "/kick" -> { if (!lead) throw new SecurityException("인솔자만 내보낼 수 있습니다."); p.kick(m, (int) lng(in, "id"), now); }
             case "/leave" -> { p.leave(m); return ok(); }
             case "/end" -> { if (!lead) throw new SecurityException("인솔자만 방을 끝낼 수 있습니다."); p.end(m, in.has("cancel") && in.get("cancel").getAsBoolean(), now); return ok(); }
             default -> throw new IllegalArgumentException("없는 주소입니다.");
