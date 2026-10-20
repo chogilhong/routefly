@@ -76,6 +76,7 @@ public class StatsTest {
         assertEquals("따라가기", StatsServlet.pageName("/hike.html"));
         assertEquals("산 소개(영어) - naejangsan", StatsServlet.pageName("/en/m/naejangsan"));
         assertEquals("", StatsServlet.pageName("/zzz.html"));
+        assertTrue("지운 화면도 이름(옛 주소 · 옛 북마크로 옴)", StatsServlet.pageName("/subway.html").startsWith("지하철 노선도"));
         TreeMap<String, JsonObject> days = new TreeMap<>();
         days.put("2026-10-19", JsonParser.parseString("{\"pages\":{\"/hike.html\":5},\"uniq\":4,\"bots\":0}").getAsJsonObject());
         days.put("2026-10-20", JsonParser.parseString("{\"pages\":{\"/hike.html\":9,\"/c/\":3},\"uniq\":5,\"bots\":1,"
