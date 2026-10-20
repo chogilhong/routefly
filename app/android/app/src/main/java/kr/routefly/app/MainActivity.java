@@ -1,7 +1,9 @@
 package kr.routefly.app;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 
@@ -30,5 +32,31 @@ public class MainActivity extends BridgeActivity {
                 && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[] {Manifest.permission.POST_NOTIFICATIONS}, REQ_NOTIFICATIONS);
         }
+        openLink(getIntent());
+    }
+
+    /** 앱이 열려 있을 때 링크를 누름(launchMode singleTask). */
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        openLink(intent);
+    }
+
+    /**
+     * 앱 링크(2026-10-20 홍TV님) - 산악회 방 참가 링크(https://routefly.kr/routefly/party.html?c=…)로 열렸으면 그 화면을 띄움.
+     * 같은 서버 주소라 웹뷰 안에서 열리고, 앱 안에서 참가해야 화면을 꺼도 위치가 감(party.js - BackgroundGeolocation).
+     */
+    private void openLink(Intent intent) {
+        Uri u = intent == null ? null : intent.getData();
+        if (!isPartyLink(u)) return;
+        final String url = u.toString();
+        bridge.getWebView().post(() -> bridge.getWebView().loadUrl(url));
+    }
+
+    /** routefly.kr 의 https 산악회 방 주소만(다른 주소로 웹뷰를 돌리지 않음). */
+    static boolean isPartyLink(Uri u) {
+        return u != null && "https".equals(u.getScheme()) && "routefly.kr".equals(u.getHost())
+                && u.getPath() != null && u.getPath().startsWith("/routefly/party.html");
     }
 }

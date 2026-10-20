@@ -168,16 +168,21 @@
         return false;
     }
     var DAY_ERR = "출발 날짜를 숫자로 적어 주세요(예: 10월 22일 → 1022).", TIME_ERR = { mkTime: "출발 시각을 숫자로 적어 주세요(예: 아침 7시 → 0700).", mkEnd: "하산 마감 시각을 숫자로 적어 주세요(예: 오후 4시 → 1600)." };
-    $("mkDate").addEventListener("blur", function () { var d = RFParty.parseDay(this.value, Date.now()); if (d) this.value = dayText(d); fieldErr(this, d || !this.value.trim() ? "" : DAY_ERR); });
-    // 누르면 숫자만 남김(10/22(목) → 1022) - 글자를 골라 두면 폰이 "잘라내기 · 복사 · 붙여넣기" 를 띄웠음(2026-10-20 홍TV님)
+    $("mkDate").addEventListener("blur", function () { restoreOnBlur(this); var d = RFParty.parseDay(this.value, Date.now()); if (d) this.value = dayText(d); fieldErr(this, d || !this.value.trim() ? "" : DAY_ERR); });
+    // 누르면 칸을 비우고 이전 값은 흐린 글씨로(2026-10-20): 글자를 골라 두면 폰이 "잘라내기 · 복사 · 붙여넣기" 를 띄웠고,
+    // 숫자만 남기면(1021) 새로 친 숫자가 뒤에 붙어 10211022 가 됐음. 아무것도 안 치고 나가면 이전 값으로 돌아감(blur)
     function digitsOnFocus() {
-        var d = this.id === "mkDate" ? RFParty.parseDay(this.value, Date.now()) : null, hm = this.id !== "mkDate" ? RFParty.parseTime(this.value) : null;
-        if (d) this.value = (d.getMonth() + 1) + two(d.getDate());
-        else if (hm) this.value = two(hm[0]) + two(hm[1]);
+        if (!this.getAttribute("data-ph")) this.setAttribute("data-ph", this.placeholder);
+        if (this.value.trim()) { this.setAttribute("data-prev", this.value); this.placeholder = this.value; this.value = ""; }
+    }
+    function restoreOnBlur(input) {
+        if (!input.value.trim() && input.getAttribute("data-prev")) input.value = input.getAttribute("data-prev");
+        input.removeAttribute("data-prev");
+        if (input.getAttribute("data-ph")) input.placeholder = input.getAttribute("data-ph");
     }
     $("mkDate").addEventListener("focus", digitsOnFocus);
     ["mkTime", "mkEnd"].forEach(function (id) {
-        $(id).addEventListener("blur", function () { var hm = RFParty.parseTime(this.value); if (hm) this.value = timeText(hm); fieldErr(this, hm || !this.value.trim() ? "" : TIME_ERR[id]); });
+        $(id).addEventListener("blur", function () { restoreOnBlur(this); var hm = RFParty.parseTime(this.value); if (hm) this.value = timeText(hm); fieldErr(this, hm || !this.value.trim() ? "" : TIME_ERR[id]); });
         $(id).addEventListener("focus", digitsOnFocus);
     });
 
@@ -244,7 +249,40 @@
     }
 
     /** 나가기 - 위치를 멈추고 산 모음으로. */
+    // ------------------------------------------------------------------ 앱 - 화면을 꺼도 위치(2026-10-20 홍TV님 "앱을 설치하면 문제 없는 거네")
+    /**
+     * routefly 안드로이드 앱(app/ - Capacitor)으로 열었을 때만. 출발 3시간 전부터 하산 탑승 · 취소 · 방 끝까지 BackgroundGeolocation 으로
+     * 화면을 꺼도 30초마다 위치를 보냄(알림창에 "routefly - 산악회 방"). 브라우저는 그대로 watchPosition(화면이 켜져 있을 때만).
+     */
+    var CAP = window.Capacitor, NATIVE = !!(CAP && CAP.isNativePlatform && CAP.isNativePlatform());
+    var BG = NATIVE ? (CAP.registerPlugin ? CAP.registerPlugin("BackgroundGeolocation") : (CAP.Plugins && CAP.Plugins.BackgroundGeolocation) || null) : null;
+    var bgOn = false, bgId = null, bgGen = 0;
+    function bgWant(s) { return !!(BG && s && !s.cancelled && !s.aboard && (!s.locFrom || s.now >= s.locFrom)); }
+    function bgStop() {
+        bgOn = false; bgGen++;
+        if (bgId != null) { Promise.resolve(BG.removeWatcher({ id: bgId })).catch(function () { /* 이미 멈춤 */ }); bgId = null; }
+    }
+    function bgSync(s) {
+        var want = bgWant(s);
+        if (!want) { if (bgOn) bgStop(); return; }
+        if (bgOn) return;
+        bgOn = true;
+        var gen = ++bgGen;
+        Promise.resolve(BG.addWatcher({ backgroundTitle: "routefly - 산악회 방", backgroundMessage: "화면을 꺼도 인솔자 · 일행에게 위치를 보냅니다(하산 탑승하면 멈춤).",
+            requestPermissions: true, stale: false, distanceFilter: 20 }, function (loc, err) {
+            if (err || !loc) return;
+            lastPos = { lat: loc.latitude, lon: loc.longitude, acc: loc.accuracy, t: Date.now() };
+            var r = RFParty.fix(loc.latitude, loc.longitude, loc.accuracy);
+            if (r) r.then(render).catch(fail);
+        })).then(function (id) {
+            if (bgOn && gen === bgGen) bgId = id;
+            else Promise.resolve(BG.removeWatcher({ id: id })).catch(function () { /* 이미 멈춤 */ });   // 그 사이 멈췄으면
+        }).catch(function () { bgOn = false; });
+    }
+    window.addEventListener("pagehide", function () { if (bgOn) bgStop(); });   // 따라가기 등 다른 화면으로 가면 그쪽이 맡음(알림이 남지 않게)
+
     function exit(text) {
+        bgStop();
         clearInterval(pollTimer);
         if (watch != null) navigator.geolocation.clearWatch(watch);
         RFParty.clear();
@@ -290,6 +328,7 @@
             hikerPhase(s, p);
         }
         drawMap(s);
+        if (BG) bgSync(s);
     }
 
     /** 회원 단계 - 취소됨 / 출발 전(버스 탔어요) / 산행 중(SOS · 하산 탑승) / 하산 탑승함. */

@@ -31,7 +31,8 @@
 
 ## 서버 주소 정하기
 
-앱은 `capacitor.config.json` 의 `server.url` 을 띄웁니다. 지금은 Cloudflare 터널 주소를 넣습니다(켤 때마다 바뀜).
+앱은 `capacitor.config.json` 의 `server.url` 을 띄웁니다. 2026-10-20 부터 저장소 값이 운영 서버 `https://routefly.kr/routefly/hike.html` 입니다
+(PC 의 예전 로컬 수정본 - 터널 주소 - 은 `git checkout app/capacitor.config.json` 으로 버리고 `npx cap sync android`). 아래 터널은 PC 서버로 시험할 때만.
 ```
 cloudflared tunnel --url http://localhost:8090        (다른 PowerShell 창에서 켜 둠 - nginx 의 터널 전용 입구, nginx 도 켜져 있어야 함)
 npm run url -- https://abc-def.trycloudflare.com      (나온 주소 - 뒤에 /routefly/hike.html 이 붙고 안드로이드 프로젝트에 반영)
@@ -78,3 +79,16 @@ APK 파일만 만들려면 Android Studio 메뉴 Build → Build App Bundle(s) /
 | `scripts/set-url.js` | `npm run url` - 서버 주소 바꾸고 `cap sync` |
 | `www/index.html` | 서버에 닿지 못할 때만 보이는 화면 |
 | `android/` | 안드로이드 프로젝트(`npx cap add android` 로 만든 것). 고친 곳: `MainActivity.java`(알림 권한), `res/values/strings.xml`(알림 이름 · 아이콘), `res/drawable/ic_tracking.xml`(알림 아이콘), 앱 아이콘 · 시작 화면 그림 |
+
+## 앱 링크 - 산악회 방 참가 링크를 앱으로 열기 (2026-10-20)
+
+카톡 · 문자 · QR · NFC 의 `https://routefly.kr/routefly/party.html?c=방코드` 를 누르면 앱이 깔린 폰에서는 앱이 열리고 그 방 참가 화면으로 갑니다
+(AndroidManifest 의 intent-filter autoVerify + MainActivity.openLink). 앱 안에서 참가해야 화면을 꺼도 위치가 갑니다(party.js - BackgroundGeolocation, 알림창 "routefly - 산악회 방").
+
+"항상 앱으로" 열리려면 서버가 이 앱의 서명 지문을 알려 줘야 합니다(없으면 "어느 앱으로 열까요" 창).
+1. 지문 읽기(PC Claude 가 지문 줄만 - 키 파일 · 비밀번호는 대화에 적지 않음):
+   - 시험판(USB 로 깐 debug): `keytool -list -v -keystore %USERPROFILE%\.android\debug.keystore -alias androiddebugkey -storepass android -keypass android` 의 `SHA256:` 줄
+   - 스토어: Play Console → 앱 무결성 → 앱 서명 키 인증서의 SHA-256(Play 가 다시 서명하므로 이 값이 꼭 필요), 업로드 키 것도 함께
+2. 서버 `/opt/routefly/config.properties` 에 `app.sha256=AA:BB:…,CC:DD:…`(쉼표로 여럿) → 톰캣 재시작 (홍TV님)
+3. nginx 에 사이트 뿌리 주소를 넘기는 줄(docs/deploy-lightsail.md 15번) → `https://routefly.kr/.well-known/assetlinks.json` 이 JSON 으로 보이면 됨
+4. 앱을 다시 깔고(설치 때 안드로이드가 확인), 폰 설정 → 앱 → routefly → 기본으로 열기 → "지원되는 링크 열기"가 켜졌는지 · routefly.kr 이 "확인됨"인지

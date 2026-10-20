@@ -852,3 +852,15 @@ war 에는 늘 들어 있지만 설정을 켜기 전에는 "준비 중" 화면�
 3. 설정은 톰캣이 켜질 때 한 번 읽으므로 `sudo systemctl restart tomcat` 뒤 의견 하나를 보내 메일이 오는지 봅니다.
 4. 메일이 안 오면 `logs/catalina` 에 `[FEEDBACK] 메일을 보내지 못함` 줄(서버 답 첫 줄)이 남습니다. Lightsail 은 25번만 막고 465 는 열려 있습니다.
 5. 받은 메일은 12달 뒤 메일함에서 지웁니다(개인정보처리방침 3번). 서버 파일은 자동으로 지워집니다.
+
+## 15. 안드로이드 앱 링크 (2026-10-20)
+
+산악회 방 참가 링크를 routefly 앱이 바로 열게(app/README.md "앱 링크"). 안드로이드는 사이트 뿌리 `https://routefly.kr/.well-known/assetlinks.json` 을 보므로
+routefly.kr 의 443 server 블록(robots.txt 줄 옆)에 한 줄 넣습니다:
+
+```nginx
+    location = /.well-known/assetlinks.json { proxy_pass http://127.0.0.1:8080/routefly/.well-known/assetlinks.json; proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto $scheme; }
+```
+
+`sudo nginx -t && sudo systemctl reload nginx`. 지문은 설정 `app.sha256`(AssetLinksServlet - 비우면 404). 넣은 뒤 `curl -s https://routefly.kr/.well-known/assetlinks.json` 이 JSON 이면 됩니다.
+www.routefly.kr 은 routefly.kr 로 넘기므로(301) 앱 링크는 routefly.kr 만 씁니다(참가 링크도 routefly.kr 로 만들어짐).

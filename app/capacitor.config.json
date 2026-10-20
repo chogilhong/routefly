@@ -3,7 +3,7 @@
   "appName": "routefly",
   "webDir": "www",
   "server": {
-    "url": "https://CHANGE-ME.trycloudflare.com/routefly/hike.html",
+    "url": "https://routefly.kr/routefly/hike.html",
     "cleartext": false,
     "androidScheme": "https"
   },

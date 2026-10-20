@@ -28,7 +28,7 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다(route_course · 
 
 - 이 PC: `.claude\run-tests.ps1 [-Only web.WebBasicsTest]` (Maven 없이 javac + JUnit 4, DB 없이 돕니다). 웹(클라우드): `LC_ALL=C.UTF-8 mvn -o test`
   (routefly 는 웹소켓을 안 써서 totonian · investing 과 달리 그대로 됩니다. 한글 파일 이름 때문에 LC_ALL 이 필요합니다).
-- 전체 테스트가 모두 통과하는 것이 정상입니다(2026-10-20 기준 199건). 하나라도 실패하면 새로 깨진 것이니 고칩니다.
+- 전체 테스트가 모두 통과하는 것이 정상입니다(2026-10-20 기준 200건). 하나라도 실패하면 새로 깨진 것이니 고칩니다.
 - 점검 단계마다 테스트 클래스를 둡니다(`CheckupStage1Test` 버그 · `CheckupStage2Test` 속도 · 호출 · `CheckupStage3Test` 화면 · 보안) - totonian 의 `VoidBulkV4435Test` 같은 방식.
 - 내 기록은 IndexedDB(`rf-records`), 사진은 IndexedDB(`rf-photos`), 걷는 중 저장분은 localStorage(`rf-hike-<코스>` · `-track` · `-notes`, 하루 지나면 지움).
 - course-kit.js 순수 함수는 `src/test/js/course-kit.test.js` 를 node 로 돌립니다(`CourseKitJsTest` 가 부름, node 가 없으면 건너뜀).
@@ -85,7 +85,8 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다(route_course · 
 ### 커밋
 - 메시지 끝: `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 - 메시지는 BOM 없는 UTF-8 임시 파일에 써서 `git commit -F` (PowerShell `Set-Content -Encoding utf8` 은 BOM 이 붙어 깨진 적 있음).
-- 홍TV님 로컬 수정본은 커밋하지 않습니다(예: routefly `app/capacitor.config.json` · `capacitor.settings.gradle`, `app/android/.idea`). pull 은 `--autostash`.
+- 홍TV님 로컬 수정본은 커밋하지 않습니다(예: routefly `capacitor.settings.gradle`, `app/android/.idea`). pull 은 `--autostash`.
+  `app/capacitor.config.json` 은 2026-10-20 부터 저장소 값이 운영 주소(https://routefly.kr/routefly/hike.html) - 예전 터널 주소 로컬 수정본은 `git checkout` 으로 버림.
 
 ### PC 경로 · 도구
 - JDK `C:\GH\java\jdk-21\bin`, Node `C:\Program Files\nodejs` (PATH 에 없으면 `$env:Path` 를 Machine + User 로 다시 읽음).

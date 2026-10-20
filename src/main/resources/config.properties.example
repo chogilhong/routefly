@@ -103,3 +103,8 @@ site.baseUrl=
 #mail.to=
 # 의견 파일 폴더(비우면 stats.dir 아래 feedback). 예: PC 는 feedback.dir=E:\\GH\\feedback (윈도 경로는 \\ 두 개 또는 / 로)
 #feedback.dir=
+
+# ---------------------------------------------------------------- 안드로이드 앱 링크(2026-10-20) - /.well-known/assetlinks.json
+# 산악회 방 참가 링크를 routefly 앱이 바로 열게. 앱 서명 키의 SHA-256 지문(공개 값, AB:CD:… 꼴). 쉼표로 여럿:
+#   시험판(debug.keystore) · 스토어 업로드 키 · Play Console > 앱 무결성 > 앱 서명 키. 비우면 그 주소는 404(앱 링크는 고르는 창으로).
+#app.sha256=
