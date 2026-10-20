@@ -454,7 +454,7 @@
                 if (m.id === picked) cls += " pick";
             } else if (rsv[k]) cls += " rsv";
             cells.push("<div class=\"" + cls + "\" data-seat=\"" + k + "\" style=\"grid-column:" + (at.col + 2) + ";grid-row:" + at.row + "\""
-                + (m ? " title=\"" + esc(m.nick + (m.stop ? " · " + m.stop : "")) + "\"" : "") + ">" + (m && !m.cancelled && (m.boarded || m.aboard) ? "✓" : "") + k + label + "</div>");   // ✓ - 탔음(2026-10-20 홍TV님)
+                + (m ? " title=\"" + esc(m.nick + (m.stop ? " · " + m.stop : "")) + "\"" : "") + ">" + k + label + "</div>");
         }
         cells.push("<div class=\"s drv\" style=\"grid-column:1;grid-row:4\" title=\"운전석\"><small>운전</small></div>");   // 🛞 은 PC 글꼴에서 □ 로 보였음
         $("seatMap").style.gridTemplateColumns = "repeat(" + (cols + 1) + ", minmax(30px, 1fr))";
