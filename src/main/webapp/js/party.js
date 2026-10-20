@@ -612,6 +612,22 @@
         if (navigator.share) navigator.share({ text: text }).catch(function () { /* 닫음 */ });
         else copyInvite();
     });
+    /** 현장 참가 QR - 참가 링크를 크게(화면 밝기 그대로 비추면 됨). qrcode-generator(MIT) 가 없으면 코드만. */
+    $("qrBtn").addEventListener("click", function () {
+        var p = RFParty.get() || {};
+        $("qrCode").textContent = p.code || "";
+        $("qrImg").innerHTML = "";
+        if (window.qrcode) {
+            var q = qrcode(0, "M");   // 0 - 크기 저절로, M - 15% 가려져도 읽힘
+            q.addData(inviteUrl());
+            q.make();
+            $("qrImg").innerHTML = q.createSvgTag({ cellSize: 6, margin: 4, scalable: true });
+        }
+        $("qrBox").hidden = false;
+    });
+    $("qrClose").addEventListener("click", function () { $("qrBox").hidden = true; });
+    $("qrBox").addEventListener("click", function (e) { if (e.target === this) this.hidden = true; });
+
     $("smsBtn").addEventListener("click", function () { location.href = "sms:?&body=" + encodeURIComponent(inviteText()); });   // 안드로이드 · 아이폰 둘 다 되는 꼴
     $("copyBtn").addEventListener("click", copyInvite);
     $("inviteUrl").addEventListener("focus", function () { this.select(); });

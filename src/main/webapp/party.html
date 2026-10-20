@@ -92,6 +92,13 @@ select, input[type=number] { width:100%; height:44px; padding:0 10px; border-rad
 .fieldMsg:empty { display:none; }
 input.bad, .agree.bad { border-color:#ff6b6b !important; }
 .agree.bad { outline:2px solid #ff6b6b; border-radius:8px; }
+#qrBox { position:fixed; inset:0; z-index:2000; background:rgba(0,0,0,0.85); display:flex; align-items:center; justify-content:center; padding:16px; }
+#qrBox .qrIn { background:#fff; color:#111; border-radius:16px; padding:18px; width:100%; max-width:380px; text-align:center; }
+#qrBox .qrHead { font-weight:bold; font-size:16px; margin:0 0 10px; }
+#qrImg svg { width:100%; height:auto; display:block; }
+#qrBox .qrCode { font-size:18px; margin:10px 0 4px; }
+#qrBox .qrCode b { font-size:30px; letter-spacing:4px; }
+#qrBox .tip { color:#444; }
 #busTabs button { flex:0 0 auto; min-height:36px; padding:0 12px; font-size:13.5px; }
 #busTabs button.on { background:var(--sky); color:#062026; border-color:var(--sky); }
 .s.drv { border:0; cursor:default; font-size:16px; }
@@ -207,6 +214,7 @@ a.tel { color:var(--sky); }
                     <button id="smsBtn">💬 문자</button>
                     <button id="copyBtn">📋 안내 글 복사</button>
                 </div>
+                <div class="row"><button id="qrBtn">📱 QR 보여 주기 (현장에서 바로 참가)</button></div>
                 <div id="inviteMsg" class="tip" role="status"></div>
             </div>
         </section>
@@ -268,10 +276,21 @@ a.tel { color:var(--sky); }
             <div id="roomMsg" class="tip"></div>
         </section>
     </div>
+    <!-- 현장 참가 QR(2026-10-20 홍TV님 "카톡 확인 없이 사당 출발장소로 왔어") - 인솔자 폰을 회원 폰 카메라에 비춤 -->
+    <div id="qrBox" hidden>
+        <div class="qrIn">
+            <p class="qrHead">📱 폰 카메라로 비추면 참가 화면이 열립니다</p>
+            <div id="qrImg"></div>
+            <p class="qrCode">방 코드 <b id="qrCode"></b></p>
+            <p class="tip">카메라가 안 되면 routefly.kr 에서 산악회 방 → 참가하기 → 이 코드를 치세요.</p>
+            <button id="qrClose" class="main">닫기</button>
+        </div>
+    </div>
     <p class="tip" style="text-align:center"><a href="feedback.html?from=/party.html" style="color:var(--sky)">📮 의견 보내기</a></p>
 </main>
 <script src="vendor/maplibre-gl-5.24.0/maplibre-gl.js"></script>
 <script src="js/course-kit.js"></script>
+<script src="vendor/qrcode-generator-1.4.4/qrcode.js"></script>
 <script src="js/party-kit.js"></script>
 <script src="js/party.js"></script>
 </body>
