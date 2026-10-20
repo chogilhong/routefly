@@ -205,6 +205,8 @@
 
     function enterRoom(first) {
         show("room");
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();   // 자판 닫기
+        window.scrollTo(0, 0);   // 방 만들기 · 참가 뒤 맨 위(방 소개 · 참가 링크)부터(2026-10-20 홍TV님)
         var p = RFParty.get(), staff = isStaff();
         $("title").textContent = "🧑‍🤝‍🧑 " + (p.name || "산악회 방");
         $("staffBox").hidden = !staff;
