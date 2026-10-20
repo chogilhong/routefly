@@ -244,6 +244,8 @@ final class Party {
         String n = clean(nick, 12);
         if (n == null) throw new IllegalArgumentException("별명을 적어 주세요.");
         if (!"hiker".equals(role) && !"driver".equals(role)) throw new IllegalArgumentException("역할을 골라 주세요.");
+        // 출발한 방에는 산행 회원이 새로 못 들어옴(2026-10-20 홍TV님 - 하산 탑승한 폰이 같은 링크로 또 참가됐음). 바꿔 타는 운전자는 됨
+        if (r.departed && "hiker".equals(role)) throw new IllegalStateException("이미 출발한 방이라 새로 참가할 수 없습니다. 인솔자에게 연락해 주세요.");
         if (r.members.size() >= MAX_MEMBERS) throw new IllegalStateException("이 방은 인원이 다 찼습니다(" + MAX_MEMBERS + "명).");
         int b = checkBus(r, bus);
         if ("hiker".equals(role)) checkSeat(r, null, b, seat);

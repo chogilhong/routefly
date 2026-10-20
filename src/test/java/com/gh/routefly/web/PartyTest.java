@@ -323,4 +323,17 @@ public class PartyTest {
         assertTrue("위치 없이도 SOS", m.get("sos").getAsBoolean());
         assertFalse("회원에게는 seen 안 감", member(call(p, "/view", tok(a), DEPART + 5 * 60_000), "철수").has("seen"));
     }
+
+    /** 출발한 방에는 산행 회원이 새로 못 들어옴, 운전자는 됨(2026-10-20 홍TV님 - 하산 탑승한 폰이 같은 링크로 다시 참가됐음). */
+    @Test
+    public void noJoinAfterDepart() {
+        Party p = new Party();
+        JsonObject room = j(create(p, T0));
+        String code = room.get("code").getAsString(), lead = room.get("token").getAsString();
+        call(p, "/depart", tok(lead), DEPART);
+        assertTrue(call(p, "/info", "{\"code\":\"" + code + "\"}", DEPART).get("departed").getAsBoolean());
+        try { call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"철수\",\"role\":\"hiker\",\"agree\":true}", DEPART); fail("출발 뒤 회원"); }
+        catch (IllegalStateException e) { assertTrue(e.getMessage().contains("이미 출발")); }
+        call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"교대 기사\",\"role\":\"driver\",\"agree\":true}", DEPART);
+    }
 }

@@ -145,6 +145,7 @@
             var qs = new URLSearchParams(location.search).get("s");   // QR 에 실린 탑승지(인솔자가 그 자리에서 보여 준 것)
             stopOptions($("joinStop"), j.stops, qs && (j.stops || []).indexOf(qs) >= 0 ? qs : null, "고르기");
             roleChanged();
+            if (j.departed) joinErr("이미 출발한 방이라 산행 회원은 새로 참가할 수 없습니다. 인솔자에게 연락해 주세요. (운전자는 참가할 수 있습니다)");
         }).catch(function (e) { infoFor = null; $("joinCard").hidden = true; $("joinSeatBox").hidden = true; joinErr(e.message, $("joinCode")); });
     }
     $("joinCode").addEventListener("input", loadInfo);
