@@ -579,13 +579,30 @@
             + (s.leaderName || s.leaderPhone ? "인솔자 " + (s.leaderName || "") + (s.leaderPhone ? " " + s.leaderPhone : "") + "\n" : "")
             + "방 코드 " + p.code + " - 아래 링크로 들어와 좌석 · 탑승지를 남겨 주세요.\n" + inviteUrl();
     }
+    function inviteMsg(t) { $("inviteMsg").textContent = t; }
+    /** 안내 글 복사 - 한 길로만(2026-10-20 홍TV님 "복사하면 문구가 두 번": 복사 + 확인 창이 겹칠 수 있던 것을 없앰). */
     function copyInvite() {
         var text = inviteText();
-        if (navigator.clipboard) navigator.clipboard.writeText(text).then(function () { roomMsg("참가 안내를 복사했습니다. 단톡방 · 문자에 붙여 넣으세요."); }, function () { prompt("이 글을 복사해 보내세요", text); });
-        else prompt("이 글을 복사해 보내세요", text);
+        function old() {   // 클립보드 API 가 없거나 막힌 브라우저 · 앱 - 숨은 칸에 넣고 복사
+            var ta = document.createElement("textarea");
+            ta.value = text; ta.setAttribute("readonly", ""); ta.style.cssText = "position:fixed;top:0;left:0;opacity:0;";
+            document.body.appendChild(ta); ta.select();
+            var ok = false;
+            try { ok = document.execCommand("copy"); } catch (e) { /* 못 함 */ }
+            document.body.removeChild(ta);
+            inviteMsg(ok ? "✅ 복사했습니다. 카톡 · 문자 창에 길게 눌러 붙여 넣으세요." : "복사하지 못했습니다. 위 링크 칸을 길게 눌러 복사해 주세요.");
+        }
+        if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(function () { inviteMsg("✅ 복사했습니다. 카톡 · 문자 창에 길게 눌러 붙여 넣으세요."); }, old);
+        else old();
     }
-    $("shareBtn").addEventListener("click", function () {   // 폰 - 카톡 · 밴드 · 문자 고르는 창
-        if (navigator.share) navigator.share({ title: "산악회 방", text: inviteText() }).catch(function () { /* 닫음 */ });
+    /** 카톡으로 - 안드로이드는 카톡을 바로 열어 글을 넣음(친구 · 단톡방 고르기), 그 밖(아이폰 등)은 공유 창(카톡 고르기). 2026-10-20 홍TV님. */
+    $("shareBtn").addEventListener("click", function () {
+        var text = inviteText();
+        if (/Android/i.test(navigator.userAgent) && !window.Capacitor) {
+            location.href = "intent:#Intent;action=android.intent.action.SEND;type=text/plain;S.android.intent.extra.TEXT=" + encodeURIComponent(text) + ";package=com.kakao.talk;end";
+            return;
+        }
+        if (navigator.share) navigator.share({ text: text }).catch(function () { /* 닫음 */ });
         else copyInvite();
     });
     $("smsBtn").addEventListener("click", function () { location.href = "sms:?&body=" + encodeURIComponent(inviteText()); });   // 안드로이드 · 아이폰 둘 다 되는 꼴
