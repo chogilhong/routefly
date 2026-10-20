@@ -64,8 +64,19 @@ public class FeedbackTest {
         assertFalse(Files.exists(dir.resolve("feedback-2024-09.jsonl")));
         assertTrue(Files.exists(dir.resolve("feedback-2024-11.jsonl")));
 
-        String html = StatsServlet.feedbackHtml(List.of(j("{\"at\":" + T0 + ",\"page\":\"/x\",\"text\":\"<script>\"}")));
+        String html = StatsServlet.feedbackHtml(List.of(j("{\"at\":" + T0 + ",\"page\":\"/x\",\"text\":\"<script>\"}")), "k&\"ey");
         assertTrue(html.contains("&lt;script&gt;") && !html.contains("<script>"));
+        assertTrue("삭제 단추 - 열쇠는 주소 꼴로", html.contains("action=\"stats?key=k%26%22ey\"") && html.contains("name=\"del\" value=\"" + T0 + "\""));
+
+        // 지우기 - 그 줄만, 달 파일이 비면 파일도
+        int before = f.recent(30).size();
+        long first = f.recent(30).get(4).get("at").getAsLong();
+        assertTrue(f.delete(first));
+        assertFalse("두 번은 못 지움", f.delete(first));
+        assertEquals(before - 1, f.recent(30).size());
+        assertFalse("그 달 파일이 없으면 false", f.delete(1));
+        assertTrue("처음 받은 것", f.delete(T0));
+
     }
 
     /** 가짜 메일 서버(평문)로 보내 봄 - 순서 · 로그인 · 한글 제목 · 본문. */

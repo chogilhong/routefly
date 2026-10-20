@@ -26,6 +26,18 @@ public class StatsServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
 
     @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {   // 의견 지우기(열쇠가 맞을 때만)
+        String key = req.getParameter("key");
+        if (!allowed(RouteflyConfig.get("stats.key"), key)) {
+            resp.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+        try { Feedback.STORE.delete(Long.parseLong(req.getParameter("del"))); } catch (NumberFormatException | NullPointerException e) { /* 없는 것 */ }
+        resp.setHeader("Cache-Control", "no-store");
+        resp.sendRedirect("stats?key=" + java.net.URLEncoder.encode(key, StandardCharsets.UTF_8) + "#feedback");
+    }
+
+    @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         if (!allowed(RouteflyConfig.get("stats.key"), req.getParameter("key"))) {
             resp.sendError(HttpServletResponse.SC_NOT_FOUND);
@@ -35,7 +47,7 @@ public class StatsServlet extends HttpServlet {
         resp.setCharacterEncoding(StandardCharsets.UTF_8.name());
         resp.setHeader("Cache-Control", "no-store");
         resp.setHeader("X-Robots-Tag", "noindex");
-        resp.getWriter().print(page(Stats.days(), 30).replace("</main></body>", feedbackHtml(Feedback.STORE.recent(30)) + "</main></body>"));
+        resp.getWriter().print(page(Stats.days(), 30).replace("</main></body>", feedbackHtml(Feedback.STORE.recent(30), req.getParameter("key")) + "</main></body>"));
     }
 
     /** 순수 함수 - 열쇠가 설정돼 있고(12자 이상) 같을 때만(시간이 같은 견줌). */
@@ -45,14 +57,18 @@ public class StatsServlet extends HttpServlet {
     }
 
     /** 순수 함수 - 의견 보내기 최근 것(메일이 안 될 때도 여기서 봄). */
-    static String feedbackHtml(List<JsonObject> list) {
-        StringBuilder b = new StringBuilder("<h2>📮 의견 (최근 " + list.size() + ")</h2>");
+    static String feedbackHtml(List<JsonObject> list, String key) {
+        StringBuilder b = new StringBuilder("<h2 id=\"feedback\">📮 의견 (최근 " + list.size() + ")</h2>");
         if (list.isEmpty()) return b.append("<p class=\"dim\">아직 없습니다.</p>").toString();
-        b.append("<table><tr><th>시각</th><th>화면</th><th>내용</th><th>답장</th></tr>");
+        b.append("<table><tr><th>시각</th><th>화면</th><th>내용</th><th style=\"white-space:nowrap\">답장</th><th></th></tr>");
         for (JsonObject o : list) {
             b.append("<tr><td>").append(Feedback.stamp(o.get("at").getAsLong())).append("</td><td>").append(h(o.has("page") ? o.get("page").getAsString() : ""))
                     .append("</td><td style=\"white-space:pre-wrap\">").append(h(o.get("text").getAsString())).append("</td><td>")
-                    .append(o.has("reply") ? h(o.get("reply").getAsString()) : "").append("</td></tr>");
+                    .append(o.has("reply") ? h(o.get("reply").getAsString()) : "").append("</td><td>")
+                    .append("<details><summary style=\"cursor:pointer;white-space:nowrap\">삭제</summary>")   // 한 번 더 눌러야 지움(화면 안 스크립트는 CSP 로 막혀 confirm 대신)
+                    .append("<form method=\"post\" action=\"stats?key=").append(h(key == null ? "" : java.net.URLEncoder.encode(key, StandardCharsets.UTF_8)))
+                    .append("\"><input type=\"hidden\" name=\"del\" value=\"").append(o.get("at").getAsLong())
+                    .append("\"><button>정말 지우기</button></form></details></td></tr>");
         }
         return b.append("</table>").toString();
     }
