@@ -428,8 +428,10 @@
     });
 
     $("aboardBtn").addEventListener("click", function () {
-        var p = RFParty.get();
-        RFParty.post("aboard", { token: p.token, on: !(state && state.aboard) }).then(render).catch(fail);
+        var p = RFParty.get(), on = !(state && state.aboard);
+        // 하산 탑승하면 SOS 도 풂 - 서버만 풀면 이 기기에 남은 SOS 를 다음 위치가 다시 켜서 좌석이 빨간 채였음(2026-10-20 PC 시험)
+        if (on && p.sos) RFParty.sos(false);
+        RFParty.post("aboard", { token: p.token, on: on }).then(render).catch(fail);
     });
 
     $("sosBtn").addEventListener("click", function () {
