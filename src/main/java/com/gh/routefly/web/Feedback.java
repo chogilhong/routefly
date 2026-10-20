@@ -85,7 +85,7 @@ final class Feedback {
     /** 순수 함수 - 어느 화면에서(경로만 - ? 뒤는 버림, 60자). */
     static String page(String s) {
         if (s == null) return "";
-        String t = s.replaceAll("[?#].*", "").replaceAll("[^A-Za-z0-9/._\\-]", "");
+        String t = s.replaceAll("[?#].*", "").replaceAll("[^A-Za-z0-9가-힣/._\\-]", "");
         return t.length() > 60 ? t.substring(0, 60) : t;
     }
 

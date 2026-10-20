@@ -37,6 +37,7 @@ public class FeedbackTest {
         assertEquals("a.b@c.kr", Feedback.reply(" a.b@c.kr "));
         try { Feedback.reply("a@b.kr\r\nBcc: x@y.z"); fail("메일 머리 끼워 넣기"); } catch (IllegalArgumentException e) { /* 맞음 */ }
         assertEquals("/m/bukhansan", Feedback.page("/m/bukhansan?<x>"));
+        assertEquals("산 이름까지", "/m/가야산", Feedback.page("/m/가야산"));
     }
 
     @Test

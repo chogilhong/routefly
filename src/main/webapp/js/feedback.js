@@ -2,7 +2,12 @@
 (function () {
     "use strict";
     var $ = function (id) { return document.getElementById(id); };
-    var from = (new URLSearchParams(location.search).get("from") || "").replace(/[^A-Za-z0-9\/._\-]/g, "").slice(0, 60);
+    var from = new URLSearchParams(location.search).get("from") || "";
+    try {   // 같은 누리집에서 왔으면 그 경로(산 페이지는 /m/가야산 처럼 산 이름까지 - 2026-10-20 PC)
+        var ref = document.referrer ? new URL(document.referrer) : null;
+        if (ref && ref.origin === location.origin) from = decodeURIComponent(ref.pathname).replace(/^\/routefly(?=\/)/, "") || from;
+    } catch (e) { /* from 그대로 */ }
+    from = from.replace(/[^A-Za-z0-9가-힣\/._\-]/g, "").slice(0, 60);
     function msg(t, ok) { $("msg").textContent = t || ""; $("msg").className = ok ? "ok" : ""; }
     $("fbText").addEventListener("input", function () { $("fbCount").textContent = $("fbText").value.length; });
     $("fbBack").addEventListener("click", function (e) {
