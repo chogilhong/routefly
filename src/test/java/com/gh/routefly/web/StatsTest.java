@@ -72,6 +72,8 @@ public class StatsTest {
         assertEquals("모바일", Stats.device("Mozilla/5.0 (Linux; Android 14; SM-S921N; wv) AppleWebKit/537.36 Chrome/129.0 Mobile Safari/537.36"));
         assertEquals("모바일", Stats.device("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148"));
         assertEquals("모바일", Stats.device("Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X)"));
+        assertTrue("사람이 연 화면", Stats.isPageView(null));
+        assertFalse("서비스워커가 미리 받아 두는 것(X-RF-Prefetch)은 안 셈", Stats.isPageView("1"));
         assertEquals("PC", Stats.device("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/129.0 Safari/537.36"));
         assertEquals("따라가기", StatsServlet.pageName("/hike.html"));
         assertEquals("산 소개(영어) - naejangsan", StatsServlet.pageName("/en/m/naejangsan"));

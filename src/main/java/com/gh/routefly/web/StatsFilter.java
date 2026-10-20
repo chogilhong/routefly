@@ -34,7 +34,7 @@ public class StatsFilter extends HttpFilter {
     @Override
     protected void doFilter(HttpServletRequest req, HttpServletResponse res, FilterChain chain) throws IOException, ServletException {
         chain.doFilter(req, res);
-        if (!"GET".equals(req.getMethod()) || res.getStatus() >= 400) return;
+        if (!"GET".equals(req.getMethod()) || res.getStatus() >= 400 || !Stats.isPageView(req.getHeader("X-RF-Prefetch"))) return;
         String page = Stats.pageKey(req.getServletPath() + (req.getPathInfo() == null ? "" : req.getPathInfo()));
         if (page == null) return;
         String ip = SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For"));

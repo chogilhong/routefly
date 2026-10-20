@@ -70,6 +70,15 @@ final class Stats {
         return ua == null || ua.isBlank() || ua.toLowerCase().matches(".*(bot|crawl|spider|slurp|facebookexternalhit|kakaotalk-scrap|daum|yeti|headless|python|curl|wget).*");
     }
 
+    /**
+     * 순수 함수 - 사람이 연 화면인가. 서비스워커가 처음 설치될 때 화면 파일(hike · about · park · route · series · privacy · anbu · tools …)을
+     * 한꺼번에 받아 두는데, 그것까지 세면 한 사람이 화면 9~10개를 본 것으로 잡혔음(2026-10-20 홍TV님 "통계가 이상").
+     * sw.js 가 그 받기에 X-RF-Prefetch: 1 을 붙임(rf-shell-v23 부터) - 붙은 것은 안 셈. Sec-Fetch-Dest 는 서비스워커가 넘겨준 화면도 empty 라 못 씀.
+     */
+    static boolean isPageView(String prefetch) {
+        return prefetch == null;
+    }
+
     /** 순수 함수 - 모바일 · PC(2026-10-20 홍TV님). 휴대폰 · 태블릿 · 따라가기 앱(안드로이드 웹뷰)은 모바일. */
     static String device(String ua) {
         if (ua == null) return "PC";

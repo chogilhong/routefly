@@ -6,7 +6,7 @@
  *   - 지도 타일(V-World 위성사진 · 지형): 받아 둔 것이 있으면 그것(오프라인 저장 · 본 적 있는 곳), 없으면 받아서 조금 남겨 둠
  *   - MapLibre(vendor): 바뀌지 않으므로 받아 둔 것 먼저
  */
-var SHELL = "rf-shell-v22", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
+var SHELL = "rf-shell-v23", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
 var TILE_KEEP = 1500;   // 지나가며 본 타일은 이만큼만 남깁니다(저장 공간)
 // 2026-10-09 점검: API 캐시도 한도 - 지도를 움직일 때마다 목록 주소(bbox)가 하나씩 늘어 끝없이 커졌습니다.
 // 오프라인 저장한 코스는 OFFLINE 캐시에 따로 있어 지워지지 않습니다.
@@ -18,8 +18,9 @@ var SHELL_FILES = ["hike.html", "about.html", "park.html", "js/park.js", "route.
 
 self.addEventListener("install", function (e) {
     // 하나씩 - addAll 은 하나만 못 받아도 모두 버려 오프라인 화면이 통째로 비었음(2026-10-11 오픈 전 점검)
+    // X-RF-Prefetch - 미리 받기라 서버 통계에서 화면 수로 세지 않게(2026-10-20 - 한 사람이 화면 9~10개 본 것으로 잡혔음, Stats.isPageView)
     e.waitUntil(caches.open(SHELL).then(function (c) {
-        return Promise.all(SHELL_FILES.map(function (f) { return c.add(f).catch(function () { /* 이 파일만 다음에 */ }); }));
+        return Promise.all(SHELL_FILES.map(function (f) { return c.add(new Request(f, { headers: { "X-RF-Prefetch": "1" } })).catch(function () { /* 이 파일만 다음에 */ }); }));
     }));
     self.skipWaiting();
 });
