@@ -7,9 +7,9 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=2"><link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
 <meta name="theme-color" content="#11161d">
 <meta name="robots" content="noindex">
-<!-- 산악회 방(2026-10-20 홍TV님 - 안내 산악회): 인솔자가 방을 만들고, 회원 · 운전자가 방 코드로 참가(위치 제공 동의).
-     인솔자 · 운전자는 회원 위치 · 마지막 소식 · 배터리 · SOS · 탑승을 봄. 회원은 공지 · 버스 자리 · 하산 마감.
-     서버 설정 party.enabled=true 일 때만 열림(위치기반서비스사업 신고 뒤). party.html?c=방코드 -->
+<!-- 산악회 방(2026-10-20 홍TV님 - 안내 산악회): 인솔자가 산행 전에 방을 만들어 예약 회원에게 코드 · 링크를 보냄 → 회원 참가(좌석 · 탑승지 · 동의)
+     → 출발 날 "버스 탔어요" → 인솔자 "출발"(안 탄 사람 취소) → 산행 중 서로 위치 · SOS(인솔자는 다 봄) → 하산 탑승 → 나가기.
+     서버 설정 party.enabled=true 일 때만 열림. party.html?c=방코드 -->
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="img/apple-icon-180.png">
 <link rel="stylesheet" href="vendor/maplibre-gl-5.24.0/maplibre-gl.css">
@@ -70,6 +70,7 @@ select, input[type=number] { width:100%; height:44px; padding:0 10px; border-rad
 .s.board { background:var(--sky); border:1.5px solid var(--sky); color:#062026; font-weight:bold; }
 .s.old { border:2px solid #ffa94d; }
 .s.sos { background:#c92a2a; border-color:#c92a2a; color:#fff; font-weight:bold; }
+.s.cxl { border:1.5px dashed var(--red); color:var(--red); text-decoration:line-through; }
 .s.back { background:var(--green); border-color:var(--green); color:#06210c; }
 .s.aisle { visibility:hidden; }
 .s.drv { border:0; cursor:default; font-size:16px; }
@@ -84,25 +85,34 @@ select, input[type=number] { width:100%; height:44px; padding:0 10px; border-rad
 .pm.aboard .d { background:var(--green); }
 .pm.lead .d { background:#ffd43b; }
 .pm.bus .d { width:auto; height:auto; background:none; border:0; box-shadow:none; font-size:24px; }
+.big { width:100%; min-height:56px; font-size:17px; margin-top:8px; }
+.card { background:rgba(56,217,234,0.07); border:1px solid rgba(56,217,234,0.35); border-radius:10px; padding:10px 12px; font-size:14px; line-height:1.7; margin-top:10px; }
+.card b { color:var(--tx); }
+.ok { color:var(--green); font-weight:bold; }
+.wait { color:#ffa94d; font-weight:bold; }
+#phase { font-size:14.5px; line-height:1.6; margin:8px 0 0; }
+#cancelBox { border-color:rgba(255,107,107,0.5); }
+a.tel { color:var(--sky); }
 </style>
 </head>
 <body>
 <div id="top">
-    <a id="back" href="hike.html">← 따라가기</a>
+    <a id="back" href="m/">← 산 모음</a>
     <div id="title">🧑‍🤝‍🧑 산악회 방</div>
 </div>
 <main>
     <section id="closed" hidden>
         <p>🧑‍🤝‍🧑 산악회 방은 준비 중입니다.</p>
-        <p class="tip">회원 위치를 인솔자에게 보여 주는 서비스라, 위치기반서비스사업 신고를 마친 뒤 엽니다.</p>
+        <p class="tip">회원 위치를 함께 보는 서비스라, 위치기반서비스사업 신고를 마친 뒤 엽니다.</p>
     </section>
 
     <div id="start" hidden>
         <section>
             <h2>🙋 참가하기 (회원 · 운전자)</h2>
-            <label for="joinCode">방 코드 (인솔자에게 받은 6글자)</label>
+            <label for="joinCode">방 코드 (인솔자가 보낸 6글자)</label>
             <input id="joinCode" type="text" maxlength="6" autocomplete="off" autocapitalize="characters">
-            <label for="joinNick">별명 (인솔자 화면에 보이는 이름)</label>
+            <div id="joinCard" class="card" hidden></div>
+            <label for="joinNick">별명 (방에서 보이는 이름)</label>
             <input id="joinNick" type="text" maxlength="12" autocomplete="off">
             <div id="joinSeatBox" hidden>
                 <div class="two">
@@ -116,23 +126,34 @@ select, input[type=number] { width:100%; height:44px; padding:0 10px; border-rad
                 <label><input type="radio" name="role" value="driver"> 🚌 운전</label>
             </div>
             <div class="agree"><input id="joinAgree" type="checkbox">
-                <label for="joinAgree" style="margin:0;color:inherit;font-size:inherit">이 방의 <b>인솔자 · 운전자에게 내 위치(마지막 하나) · 배터리 · SOS</b>를 보여 주는 데 동의합니다.
-                방을 나가거나 산행이 끝나면(인솔자가 끝내기 · 늦어도 30시간 뒤) 위치는 지워집니다. <a href="privacy.html#party" style="color:var(--sky)">자세히</a></label></div>
+                <label for="joinAgree" style="margin:0;color:inherit;font-size:inherit">이 방 사람들(인솔자 · 운전자 · 회원)에게 <b>내 별명 · 위치(마지막 하나) · SOS</b>를,
+                인솔자 · 운전자에게는 <b>배터리 · 탑승</b>도 보여 주는 데 동의합니다. 위치는 출발 3시간 전부터 보내고, 방을 나가거나 산행이 끝나면 지워집니다.
+                <a href="privacy.html#party" style="color:var(--sky)">자세히</a></label></div>
             <button id="joinBtn" class="main">참가하기</button>
         </section>
         <section>
             <h2>🧭 방 만들기 (인솔자)</h2>
             <label for="mkName">산행 이름</label>
-            <input id="mkName" type="text" maxlength="30" placeholder="예: 10/23 설악산 공룡능선">
-            <label for="mkEnd">하산 마감 시각 (버스 출발)</label>
-            <input id="mkEnd" type="time">
+            <input id="mkName" type="text" maxlength="30" placeholder="예: 설악산 공룡능선 무박">
+            <div class="two">
+                <div><label for="mkDate">출발 날짜</label><input id="mkDate" type="date"></div>
+                <div><label for="mkTime">출발 시각</label><input id="mkTime" type="time"></div>
+            </div>
+            <div class="two">
+                <div><label for="mkEnd">하산 마감</label><input id="mkEnd" type="time"></div>
+                <div><label for="mkMin">최소 인원</label><input id="mkMin" type="number" min="0" max="80" value="18" inputmode="numeric"></div>
+            </div>
+            <div class="two">
+                <div><label for="mkLead">인솔자 이름</label><input id="mkLead" type="text" maxlength="12" placeholder="예: 김대장"></div>
+                <div><label for="mkPhone">연락처(선택)</label><input id="mkPhone" type="tel" maxlength="20" placeholder="010-…"></div>
+            </div>
             <div class="two">
                 <div><label for="mkSeats">좌석 수</label><input id="mkSeats" type="number" min="0" max="60" value="28" inputmode="numeric"></div>
                 <div><label for="mkStops">탑승지</label><input id="mkStops" type="text" maxlength="80" placeholder="사당, 양재, 복정"></div>
             </div>
-            <p class="tip">좌석 수: 버스 좌석(좌석표가 없으면 0) · 탑승지: 쉼표로 나눠 적기. 회원은 예약한 좌석 번호를 골라 참가합니다.</p>
+            <p class="tip">하산 마감이 출발 시각보다 이르면 다음 날로 봅니다(무박). 좌석표가 없으면 좌석 수 0. 탑승지는 쉼표로 나눠 적기.
+                방을 만들면 "참가 안내 보내기"로 예약한 회원에게 방 코드 · 출발 · 인솔자를 보내세요.</p>
             <button id="mkBtn" class="main">방 만들기</button>
-            <p class="tip">방 코드가 나오면 단톡방에 보내 주세요. 회원은 코드로 참가하고, 따라가기를 켜 두면 30초마다 위치가 옵니다.</p>
         </section>
         <div id="msg"></div>
     </div>
@@ -149,19 +170,27 @@ select, input[type=number] { width:100%; height:44px; padding:0 10px; border-rad
                 </div>
                 <div class="row"><button id="mySeatBtn">저장</button><button id="mySeatClose">닫기</button></div>
             </details>
+            <div id="phase"></div>
             <div class="row" id="leadRow" hidden>
-                <button id="shareBtn">📨 참가 링크 보내기</button>
+                <button id="shareBtn">📨 참가 안내 보내기</button>
             </div>
+        </section>
+        <section id="cancelBox" hidden>
+            <p>❌ 출발 때 버스에 타지 않아 이 산행에서 빠졌습니다. 늦었다면 인솔자에게 연락하세요 - 인솔자가 좌석표에서 되돌리면 다시 들어옵니다.</p>
+            <div id="cancelTel"></div>
+        </section>
+        <section id="hikerBox" hidden>
+            <button id="boardBtn" class="main big">🚌 버스 탔어요</button>
+            <div id="tripBtns" hidden>
+                <div class="row">
+                    <a class="btn" href="hike.html">🥾 따라가기 열기</a>
+                    <button id="sosBtn" class="danger">🆘 SOS</button>
+                </div>
+                <button id="aboardBtn" class="main big">🚌 하산 탑승</button>
+            </div>
+            <p class="tip" id="hikerTip"></p>
         </section>
         <div id="mapBox"><div id="map"></div></div>
-        <section id="hikerBox" hidden>
-            <div class="row">
-                <a class="btn" href="hike.html">🥾 따라가기 열기</a>
-                <button id="aboardBtn">🚌 버스 탑승(하산 끝)</button>
-            </div>
-            <div class="row"><button id="sosBtn" class="danger">🆘 인솔자에게 SOS</button></div>
-            <p class="tip">이 화면이나 따라가기를 켜 둔 동안 30초마다 위치를 보냅니다. 화면을 끄면 앱(따라가기)에서만 계속 보냅니다.</p>
-        </section>
         <section id="seatSec" hidden>
             <h2>🚌 좌석표 <small id="seatSum" style="font-weight:normal;color:var(--dim);font-size:13px"></small></h2>
             <div id="seatMap"></div>
@@ -175,15 +204,19 @@ select, input[type=number] { width:100%; height:44px; padding:0 10px; border-rad
                 <div class="two" id="actStopBox"><div><label for="actStop">탑승지 바꾸기</label><select id="actStop"></select></div><div></div></div>
             </div>
             <div id="stopSum" class="tip"></div>
-            <p class="tip">사람이 있는 자리를 누르면 <b>출발 탑승</b> 표시 · 빈자리를 누르면 <b>예약됨</b>(예약했는데 아직 참가 안 함) 표시를 켜고 끕니다.</p>
-            <div class="legend"><span class="s rsv">예약 · 미참가</span><span class="s join">참가</span><span class="s board">출발 탑승</span><span class="s old">10분 소식 없음</span><span class="s sos">SOS</span><span class="s back">하산 탑승</span></div>
+            <p class="tip">사람이 있는 자리를 누르면 메뉴(출발 탑승 · 자리 옮기기 · 지도 · 탑승지) · 빈자리를 누르면 <b>예약됨</b>(예약했는데 아직 참가 안 함) 표시를 켜고 끕니다.</p>
+            <div class="legend"><span class="s rsv">예약 · 미참가</span><span class="s join">참가</span><span class="s board">출발 탑승</span><span class="s cxl">취소</span><span class="s old">10분 소식 없음</span><span class="s sos">SOS</span><span class="s back">하산 탑승</span></div>
         </section>
         <section id="staffBox" hidden>
-            <h2 id="listTitle">회원</h2>
+            <div class="row" id="departRow">
+                <button id="departBtn" class="main">🚌 출발 (안 탄 사람 취소)</button>
+                <button id="cancelTripBtn" class="danger">산행 취소 (인원 미달)</button>
+            </div>
+            <h2 id="listTitle" style="margin-top:12px">회원</h2>
             <table><thead><tr><th>좌석</th><th>별명</th><th>소식</th><th>그 자리</th><th>배터리</th><th>상태</th></tr></thead><tbody id="list"></tbody></table>
             <div class="row"><button id="busBtn">🚌 지금 내 자리를 버스로</button></div>
             <div id="noticeRow" hidden>
-                <label for="noticeText">공지 (회원 화면 · 따라가기에 뜨고 읽어 줌)</label>
+                <label for="noticeText">공지 (모두의 화면 · 따라가기에 뜨고 읽어 줌)</label>
                 <input id="noticeText" type="text" maxlength="120" placeholder="예: 15시까지 소공원 주차장으로">
                 <div class="row"><button id="noticeBtn">📢 공지 보내기</button></div>
             </div>
@@ -191,7 +224,7 @@ select, input[type=number] { width:100%; height:44px; padding:0 10px; border-rad
         <section>
             <div class="row">
                 <button id="leaveBtn" class="danger">방 나가기</button>
-                <button id="endBtn" class="danger" hidden>방 끝내기(모두의 위치 지움)</button>
+                <button id="endBtn" class="danger" hidden>방 끝내기 (산행 끝 - 모두의 위치 지움)</button>
             </div>
             <div id="roomMsg" class="tip"></div>
         </section>

@@ -1,7 +1,8 @@
 /*
  * 산악회 방 - 위치 보내기(2026-10-20 홍TV님). party.html(방 화면)과 hike.html(따라가기)이 같이 씀.
  * 참가한 방이 있을 때만(이 기기 localStorage "rf-party" 에 열쇠) 보냅니다 - 참가할 때 위치 제공에 동의함.
- * 서버(PartyServlet)는 사람마다 마지막 위치 하나만 메모리에 두고 인솔자 · 운전자에게만 보여 주며, 방이 끝나면 지웁니다.
+ * 서버(PartyServlet)는 사람마다 마지막 위치 하나만 메모리에 두고 같은 방 사람에게 보여 주며(배터리는 인솔자 · 운전자만), 방이 끝나면 지웁니다.
+ * 출발 3시간 전보다 이른 위치는 서버가 버림.
  * 보내는 간격: 30초(SOS 를 켜고 끌 때는 바로). 방이 끝났다고 오면 이 기기의 방 정보도 지움.
  */
 (function (g) {
@@ -23,9 +24,11 @@
             cache: "no-store", keepalive: true }).then(function (r) {
             return r.json().catch(function () { return {}; }).then(function (j) {
                 if (!r.ok || j.success === false) {
-                    if (r.status === 400 && /끝났거나 열쇠/.test(j.message || "")) clear();
+                    var ended = r.status === 410 || (r.status === 400 && /끝났거나 열쇠/.test(j.message || ""));   // 410 - 방이 끝남(까닭이 글로 옴)
+                    if (ended) clear();
                     var e = new Error(j.message || ("오류 " + r.status));
                     e.status = r.status;
+                    e.ended = ended;
                     throw e;
                 }
                 return j;

@@ -15,20 +15,21 @@ import com.google.gson.JsonParser;
 /**
  * 산악회 방 API(Party - 2026-10-20 홍TV님). 열쇠(token)는 주소가 아니라 본문으로(접속 기록에 남지 않게), 응답은 저장하지 않음(no-store).
  * <pre>
- * GET  /api/party/status                          {enabled}
- * POST /api/party/create {name, endAt, seats, stops} 인솔자 → 방 + 열쇠(seats 버스 좌석 수 0~60, stops "사당, 양재, 복정")
- * POST /api/party/info   {code}                    참가 전 - 방 이름 · 좌석 수 · 탑승지 · 이미 찬 좌석 번호
+ * GET  /api/party/status                                  {enabled}
+ * POST /api/party/create {name, departAt, endAt, minPeople, leaderName, leaderPhone, seats, stops}  인솔자 → 방 + 열쇠
+ * POST /api/party/info   {code}                            참가 전 방 소개(이름 · 출발 · 인솔자 · 인원 · 좌석 수 · 탑승지 · 찬 좌석)
  * POST /api/party/join   {code, nick, role, seat, stop, agree} 회원(hiker) · 운전자(driver) → 열쇠 - agree(위치 제공 동의)가 true 여야
- * POST /api/party/seat   {token, id?, seat, stop}   자리 · 탑승지 바꾸기 - 회원은 자기 것, 인솔자 · 운전자는 id 로 아무나
- * POST /api/party/mark   {token, seat, what: boarded|reserved, on} 인솔자 · 운전자 - 좌석표에서 출발 탑승 · 예약됨
- * POST /api/party/loc    {token, lat, lon, acc, batt, sos} 내 위치 → 방 상태
- * POST /api/party/view   {token}                   방 상태만(인솔자 · 운전자는 회원 위치까지)
- * POST /api/party/aboard {token, on}               버스 탑승(하산)
- * POST /api/party/notice {token, text}             인솔자 공지
- * POST /api/party/bus    {token, lat, lon}         인솔자 · 운전자 - 버스 자리
- * POST /api/party/leave  {token} · /end {token}    나가기 · (인솔자) 방 끝내기 - 위치를 모두 지움
+ * POST /api/party/loc    {token, lat, lon, acc, batt, sos} 내 위치(출발 3시간 전부터 받음) → 방 화면
+ * POST /api/party/view   {token}                           방 화면
+ * POST /api/party/board  {token, on}                       회원 - 출발 때 버스 탔어요
+ * POST /api/party/aboard {token, on}                       회원 - 하산 탑승
+ * POST /api/party/seat   {token, id?, seat, stop}          자리 · 탑승지 - 회원은 자기 것, 인솔자 · 운전자는 id 로 아무나
+ * POST /api/party/mark   {token, seat, what: boarded|reserved, on} 인솔자 · 운전자 - 좌석표
+ * POST /api/party/depart {token}                           인솔자 - 출발(안 탄 사람 취소)
+ * POST /api/party/notice {token, text} · /bus {token, lat, lon}
+ * POST /api/party/leave  {token} · /end {token, cancel}    나가기 · (인솔자) 방 끝내기 · 산행 취소
  * </pre>
- * 설정 party.enabled=true 가 아니면 status 말고는 404(위치기반서비스사업 신고 전에는 닫아 둠).
+ * 끝난 방 열쇠로 오면 410 + 까닭. 설정 party.enabled=true 가 아니면 status 말고는 404.
  */
 @WebServlet(urlPatterns = {"/api/party/*"})
 public class PartyServlet extends HttpServlet {
@@ -60,6 +61,8 @@ public class PartyServlet extends HttpServlet {
         }
         try {
             Json.write(resp, 200, handle(Party.STORE, req.getPathInfo(), in, System.currentTimeMillis()), false);
+        } catch (Party.Ended e) {
+            Json.fail(resp, 410, e.getMessage());
         } catch (IllegalArgumentException | IllegalStateException e) {
             Json.fail(resp, 400, e.getMessage());
         } catch (SecurityException e) {
@@ -79,41 +82,51 @@ public class PartyServlet extends HttpServlet {
         return JsonParser.parseString(sb.toString()).getAsJsonObject();
     }
 
-    /** 순수에 가까운 처리(시험이 store · 시각을 넣음). 잘못된 값 → IllegalArgumentException, 권한 없음 → SecurityException. */
+    /** 처리(시험이 store · 시각을 넣음). 잘못된 값 → IllegalArgumentException, 권한 없음 → SecurityException, 끝난 방 → Party.Ended. */
     static JsonObject handle(Party p, String path, JsonObject in, long now) {
         if ("/create".equals(path)) {
-            Party.Member lead = p.create(str(in, "name"), num(in, "endAt") == null ? 0 : num(in, "endAt").longValue(), now,
-                    num(in, "seats") == null ? 0 : num(in, "seats").intValue(), Party.stops(str(in, "stops")));
-            return withToken(p.full(lead, now), lead);
+            Party.Member lead = p.create(str(in, "name"), lng(in, "departAt"), lng(in, "endAt"), (int) lng(in, "seats"), (int) lng(in, "minPeople"),
+                    Party.stops(str(in, "stops")), str(in, "leaderName"), str(in, "leaderPhone"), now);
+            return withToken(p.view(lead, now), lead);
         }
+        if ("/info".equals(path)) return p.info(str(in, "code"), now);
         if ("/join".equals(path)) {
             if (!in.has("agree") || !in.get("agree").getAsBoolean()) throw new IllegalArgumentException("위치 제공에 동의해야 참가할 수 있습니다.");
             Party.Member m = p.join(str(in, "code"), str(in, "nick"), str(in, "role"), num(in, "seat") == null ? null : num(in, "seat").intValue(), str(in, "stop"), now);
-            return withToken(view(p, m, now), m);
+            return withToken(p.view(m, now), m);
         }
-        if ("/info".equals(path)) return p.info(str(in, "code"), now);   // 참가 전 - 방 이름 · 좌석 수 · 탑승지 · 이미 찬 자리(누구인지는 없음)
         Party.Member m = p.who(str(in, "token"), now);
         if (m == null) throw new IllegalArgumentException("방이 끝났거나 열쇠가 맞지 않습니다.");
-        boolean lead = "lead".equals(m.role), staff = lead || "driver".equals(m.role);
+        boolean lead = "lead".equals(m.role), staff = m.staff();
+        boolean on = in.has("on") && in.get("on").getAsBoolean();
+        JsonObject out;
         switch (path == null ? "" : path) {
-            case "/loc" -> p.loc(m, num(in, "lat"), num(in, "lon"), num(in, "acc"), num(in, "batt") == null ? null : num(in, "batt").intValue(),
-                    in.has("sos") && in.get("sos").getAsBoolean(), now);
+            case "/loc" -> {
+                boolean kept = p.loc(m, num(in, "lat"), num(in, "lon"), num(in, "acc"), num(in, "batt") == null ? null : num(in, "batt").intValue(),
+                        in.has("sos") && in.get("sos").getAsBoolean(), now);
+                out = p.view(m, now);
+                out.addProperty("locKept", kept);   // false - 출발 3시간 전이라 버림
+                return out;
+            }
             case "/view" -> { }
-            case "/aboard" -> p.aboard(m, in.has("on") && in.get("on").getAsBoolean());
-            case "/mark" -> { if (!staff) throw new SecurityException("인솔자 · 운전자만 좌석표를 고칠 수 있습니다.");
-                p.mark(m, num(in, "seat") == null ? 0 : num(in, "seat").intValue(), str(in, "what"), in.has("on") && in.get("on").getAsBoolean()); }
+            case "/board" -> p.board(m, on);
+            case "/aboard" -> p.aboard(m, on);
             case "/seat" -> p.seat(m, num(in, "id") == null ? null : num(in, "id").intValue(), num(in, "seat") == null ? null : num(in, "seat").intValue(), str(in, "stop"));
+            case "/mark" -> { if (!staff) throw new SecurityException("인솔자 · 운전자만 좌석표를 고칠 수 있습니다."); p.mark(m, (int) lng(in, "seat"), str(in, "what"), on); }
+            case "/depart" -> {
+                if (!lead) throw new SecurityException("인솔자만 출발할 수 있습니다.");
+                int n = p.depart(m);
+                out = p.view(m, now);
+                out.addProperty("cancelledNow", n);
+                return out;
+            }
             case "/notice" -> { if (!lead) throw new SecurityException("인솔자만 공지할 수 있습니다."); p.notice(m, str(in, "text"), now); }
             case "/bus" -> { if (!staff) throw new SecurityException("인솔자 · 운전자만 버스 자리를 정할 수 있습니다."); p.bus(m, num(in, "lat"), num(in, "lon")); }
             case "/leave" -> { p.leave(m); return ok(); }
-            case "/end" -> { if (!lead) throw new SecurityException("인솔자만 방을 끝낼 수 있습니다."); p.end(m); return ok(); }
+            case "/end" -> { if (!lead) throw new SecurityException("인솔자만 방을 끝낼 수 있습니다."); p.end(m, in.has("cancel") && in.get("cancel").getAsBoolean(), now); return ok(); }
             default -> throw new IllegalArgumentException("없는 주소입니다.");
         }
-        return view(p, m, now);
-    }
-
-    private static JsonObject view(Party p, Party.Member m, long now) {
-        return "lead".equals(m.role) || "driver".equals(m.role) ? p.full(m, now) : p.common(m, now);
+        return p.view(m, now);
     }
 
     private static JsonObject withToken(JsonObject o, Party.Member m) {
@@ -137,5 +150,10 @@ public class PartyServlet extends HttpServlet {
         if (e == null || e.isJsonNull() || !e.isJsonPrimitive() || !e.getAsJsonPrimitive().isNumber()) return null;
         double v = e.getAsDouble();
         return Double.isFinite(v) ? v : null;
+    }
+
+    private static long lng(JsonObject in, String k) {
+        Double d = num(in, k);
+        return d == null ? 0 : d.longValue();
     }
 }

@@ -836,6 +836,8 @@ war 에는 늘 들어 있지만 설정을 켜기 전에는 "준비 중" 화면�
 
 - 켜기(신고 수리 뒤): `/opt/routefly/config.properties` 에 `party.enabled=true` 한 줄(이미 있는지 `sudo grep -c '^party.enabled=' …` 가 0 인지 먼저) → `sudo systemctl restart tomcat`
 - 끄기: 그 줄을 지우거나 false → restart. 방 · 위치는 메모리에만 있어 재시작하면 모두 지워짐
+- 방 정보 파일(2026-10-20 - 산행 며칠 전에 만든 방이 배포 · 재시작에도 남게): `party.dir`(없으면 `stats.dir` = /opt/routefly/stats)/party.json, 600.
+  별명 · 좌석 · 탑승지 · 탑승 표시 · 열쇠만(좌표 없음). 방이 끝나면 그 방을 지움. 백업 · 스냅샷에도 들어가니 서버 밖으로 옮기지 않음
 - 확인자료(위치정보 이용 · 제공 사실): `/opt/tomcat/logs/party.log`(달마다 party-YYYY-MM.log.gz, 200일 뒤 지움) - 참가 · 나감 · 방 끝 · SOS, 좌표 · 별명 없음
 - 들어가는 곳: 아직 화면에 링크 없음(주소 https://routefly.kr/routefly/party.html). 켠 뒤 따라가기 · 별거 별거에 입구를 넣음
 - 개인정보처리방침(privacy.html#party)에 미리 적어 둠 - 켜는 날 "준비 중" 글을 빼고 시행일을 적음(방침 10장: 7일 전 알림)
