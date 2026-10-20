@@ -650,6 +650,30 @@
     $("qrClose").addEventListener("click", function () { $("qrBox").hidden = true; });
     $("qrBox").addEventListener("click", function (e) { if (e.target === this) this.hidden = true; });
 
+    /**
+     * NFC 스티커에 참가 링크 쓰기(2026-10-20 홍TV님 - 쓰고 안 쓰고는 인솔자가 고름). Web NFC 라 안드로이드 크롬에서만(단추도 그때만 보임).
+     * 스티커(NTAG213/215 등)를 버스 문 · 명찰에 붙여 두면 회원은 폰을 대기만 하면 참가 화면이 열림(안드로이드 · 아이폰 XS 이후 읽기). 산행마다 다시 씀.
+     */
+    var nfcStop = null;
+    if ("NDEFReader" in window) $("nfcRow").hidden = false;
+    $("nfcBtn").addEventListener("click", function () {
+        if (nfcStop) { nfcStop.abort(); return; }
+        var url = inviteUrl(), btn = this, ctl = new AbortController(), timer;
+        nfcStop = ctl;
+        btn.textContent = "📶 스티커에 폰 뒷면을 대세요… (누르면 그만)";
+        inviteMsg("NFC 를 켜 두고, 스티커에 폰 뒷면(카메라 아래쯤)을 1~2초 대세요.");
+        function done(t) { clearTimeout(timer); nfcStop = null; btn.textContent = "📶 NFC 스티커에 쓰기 (대기만 하면 참가)"; inviteMsg(t); }
+        timer = setTimeout(function () { ctl.abort(); }, 30000);
+        new NDEFReader().write({ records: [{ recordType: "url", data: url }] }, { signal: ctl.signal, overwrite: true })
+            .then(function () { done("✅ 스티커에 썼습니다. 회원이 폰을 대면 이 방 참가 화면이 열립니다."); },
+                function (e) {
+                    done(e && e.name === "AbortError" ? "NFC 쓰기를 그만두었습니다."
+                        : e && e.name === "NotAllowedError" ? "NFC 권한이 없습니다. 폰 설정에서 NFC 를 켜고, 크롬의 NFC 허용을 눌러 주세요."
+                        : e && e.name === "NotSupportedError" ? "이 폰은 NFC 쓰기가 안 됩니다."
+                        : "쓰지 못했습니다. 스티커를 떼었다가 다시 대 보세요(잠긴 스티커는 안 됨).");
+                });
+    });
+
     $("smsBtn").addEventListener("click", function () { location.href = "sms:?&body=" + encodeURIComponent(inviteText()); });   // 안드로이드 · 아이폰 둘 다 되는 꼴
     $("copyBtn").addEventListener("click", copyInvite);
     $("inviteUrl").addEventListener("focus", function () { this.select(); });
