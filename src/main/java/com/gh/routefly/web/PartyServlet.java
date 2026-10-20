@@ -16,17 +16,17 @@ import com.google.gson.JsonParser;
  * 산악회 방 API(Party - 2026-10-20 홍TV님). 열쇠(token)는 주소가 아니라 본문으로(접속 기록에 남지 않게), 응답은 저장하지 않음(no-store).
  * <pre>
  * GET  /api/party/status                                  {enabled}
- * POST /api/party/create {name, departAt, endAt, minPeople, leaderName, leaderPhone, seats, stops}  인솔자 → 방 + 열쇠
+ * POST /api/party/create {name, departAt, endAt, minPeople, leaderName, leaderPhone, buses, seats, stops}  인솔자 → 방 + 열쇠(buses 차량 수 · seats 한 대 좌석)
  * POST /api/party/info   {code}                            참가 전 방 소개(이름 · 출발 · 인솔자 · 인원 · 좌석 수 · 탑승지 · 찬 좌석)
- * POST /api/party/join   {code, nick, role, seat, stop, agree} 회원(hiker) · 운전자(driver) → 열쇠 - agree(위치 제공 동의)가 true 여야
+ * POST /api/party/join   {code, nick, role, bus, seat, stop, agree} 회원(hiker) · 운전자(driver) → 열쇠 - agree(위치 제공 동의)가 true 여야
  * POST /api/party/loc    {token, lat, lon, acc, batt, sos} 내 위치(출발 3시간 전부터 받음) → 방 화면
  * POST /api/party/view   {token}                           방 화면
  * POST /api/party/board  {token, on}                       회원 - 출발 때 버스 탔어요
  * POST /api/party/aboard {token, on}                       회원 - 하산 탑승
- * POST /api/party/seat   {token, id?, seat, stop}          자리 · 탑승지 - 회원은 자기 것, 인솔자 · 운전자는 id 로 아무나
- * POST /api/party/mark   {token, seat, what: boarded|reserved, on} 인솔자 · 운전자 - 좌석표
+ * POST /api/party/seat   {token, id?, bus, seat, stop}          자리 · 탑승지 - 회원은 자기 것, 인솔자 · 운전자는 id 로 아무나
+ * POST /api/party/mark   {token, bus, seat, what: boarded|reserved, on} 인솔자 · 운전자 - 좌석표
  * POST /api/party/depart {token}                           인솔자 - 출발(안 탄 사람 취소)
- * POST /api/party/notice {token, text} · /bus {token, lat, lon}
+ * POST /api/party/notice {token, text} · /bus {token, bus, lat, lon}
  * POST /api/party/leave  {token} · /end {token, cancel}    나가기 · (인솔자) 방 끝내기 · 산행 취소
  * </pre>
  * 끝난 방 열쇠로 오면 410 + 까닭. 설정 party.enabled=true 가 아니면 status 말고는 404.
@@ -85,14 +85,14 @@ public class PartyServlet extends HttpServlet {
     /** 처리(시험이 store · 시각을 넣음). 잘못된 값 → IllegalArgumentException, 권한 없음 → SecurityException, 끝난 방 → Party.Ended. */
     static JsonObject handle(Party p, String path, JsonObject in, long now) {
         if ("/create".equals(path)) {
-            Party.Member lead = p.create(str(in, "name"), lng(in, "departAt"), lng(in, "endAt"), (int) lng(in, "seats"), (int) lng(in, "minPeople"),
+            Party.Member lead = p.create(str(in, "name"), lng(in, "departAt"), lng(in, "endAt"), Math.max(1, (int) lng(in, "buses")), (int) lng(in, "seats"), (int) lng(in, "minPeople"),
                     Party.stops(str(in, "stops")), str(in, "leaderName"), str(in, "leaderPhone"), now);
             return withToken(p.view(lead, now), lead);
         }
         if ("/info".equals(path)) return p.info(str(in, "code"), now);
         if ("/join".equals(path)) {
             if (!in.has("agree") || !in.get("agree").getAsBoolean()) throw new IllegalArgumentException("위치 제공에 동의해야 참가할 수 있습니다.");
-            Party.Member m = p.join(str(in, "code"), str(in, "nick"), str(in, "role"), num(in, "seat") == null ? null : num(in, "seat").intValue(), str(in, "stop"), now);
+            Party.Member m = p.join(str(in, "code"), str(in, "nick"), str(in, "role"), integer(in, "bus"), integer(in, "seat"), str(in, "stop"), now);
             return withToken(p.view(m, now), m);
         }
         Party.Member m = p.who(str(in, "token"), now);
@@ -111,8 +111,8 @@ public class PartyServlet extends HttpServlet {
             case "/view" -> { }
             case "/board" -> p.board(m, on);
             case "/aboard" -> p.aboard(m, on);
-            case "/seat" -> p.seat(m, num(in, "id") == null ? null : num(in, "id").intValue(), num(in, "seat") == null ? null : num(in, "seat").intValue(), str(in, "stop"));
-            case "/mark" -> { if (!staff) throw new SecurityException("인솔자 · 운전자만 좌석표를 고칠 수 있습니다."); p.mark(m, (int) lng(in, "seat"), str(in, "what"), on); }
+            case "/seat" -> p.seat(m, integer(in, "id"), integer(in, "bus"), integer(in, "seat"), str(in, "stop"));
+            case "/mark" -> { if (!staff) throw new SecurityException("인솔자 · 운전자만 좌석표를 고칠 수 있습니다."); p.mark(m, integer(in, "bus"), (int) lng(in, "seat"), str(in, "what"), on); }
             case "/depart" -> {
                 if (!lead) throw new SecurityException("인솔자만 출발할 수 있습니다.");
                 int n = p.depart(m);
@@ -121,7 +121,7 @@ public class PartyServlet extends HttpServlet {
                 return out;
             }
             case "/notice" -> { if (!lead) throw new SecurityException("인솔자만 공지할 수 있습니다."); p.notice(m, str(in, "text"), now); }
-            case "/bus" -> { if (!staff) throw new SecurityException("인솔자 · 운전자만 버스 자리를 정할 수 있습니다."); p.bus(m, num(in, "lat"), num(in, "lon")); }
+            case "/bus" -> { if (!staff) throw new SecurityException("인솔자 · 운전자만 버스 자리를 정할 수 있습니다."); p.bus(m, integer(in, "bus"), num(in, "lat"), num(in, "lon")); }
             case "/leave" -> { p.leave(m); return ok(); }
             case "/end" -> { if (!lead) throw new SecurityException("인솔자만 방을 끝낼 수 있습니다."); p.end(m, in.has("cancel") && in.get("cancel").getAsBoolean(), now); return ok(); }
             default -> throw new IllegalArgumentException("없는 주소입니다.");
@@ -150,6 +150,11 @@ public class PartyServlet extends HttpServlet {
         if (e == null || e.isJsonNull() || !e.isJsonPrimitive() || !e.getAsJsonPrimitive().isNumber()) return null;
         double v = e.getAsDouble();
         return Double.isFinite(v) ? v : null;
+    }
+
+    private static Integer integer(JsonObject in, String k) {
+        Double d = num(in, k);
+        return d == null ? null : d.intValue();
     }
 
     private static long lng(JsonObject in, String k) {

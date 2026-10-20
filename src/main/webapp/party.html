@@ -73,6 +73,8 @@ select, input[type=number] { width:100%; height:44px; padding:0 10px; border-rad
 .s.cxl { border:1.5px dashed var(--red); color:var(--red); text-decoration:line-through; }
 .s.back { background:var(--green); border-color:var(--green); color:#06210c; }
 .s.aisle { visibility:hidden; }
+#busTabs button { flex:0 0 auto; min-height:36px; padding:0 12px; font-size:13.5px; }
+#busTabs button.on { background:var(--sky); color:#062026; border-color:var(--sky); }
 .s.drv { border:0; cursor:default; font-size:16px; }
 .s.pick { outline:3px solid #ffd43b; outline-offset:1px; }
 #seatMap.moving .s:not(.join):not(.board):not(.sos):not(.back):not(.drv) { border-color:#ffd43b; border-style:solid; }
@@ -116,6 +118,7 @@ a.tel { color:var(--sky); }
             <input id="joinNick" type="text" maxlength="12" autocomplete="off">
             <div id="joinSeatBox" hidden>
                 <div class="two">
+                    <div id="joinBusBox" hidden><label for="joinBus">🚌 호차</label><select id="joinBus"></select></div>
                     <div><label for="joinSeat">💺 좌석</label><select id="joinSeat"></select></div>
                     <div><label for="joinStop">탑승지</label><select id="joinStop"></select></div>
                 </div>
@@ -148,10 +151,11 @@ a.tel { color:var(--sky); }
                 <div><label for="mkPhone">연락처(선택)</label><input id="mkPhone" type="tel" maxlength="20" placeholder="010-…"></div>
             </div>
             <div class="two">
-                <div><label for="mkSeats">좌석 수</label><input id="mkSeats" type="number" min="0" max="60" value="28" inputmode="numeric"></div>
-                <div><label for="mkStops">탑승지</label><input id="mkStops" type="text" maxlength="80" placeholder="사당, 양재, 복정"></div>
+                <div><label for="mkBuses">차량 수</label><input id="mkBuses" type="number" min="1" max="8" value="1" inputmode="numeric"></div>
+                <div><label for="mkSeats">한 대 좌석</label><input id="mkSeats" type="number" min="0" max="60" value="28" inputmode="numeric"></div>
             </div>
-            <p class="tip">하산 마감이 출발 시각보다 이르면 다음 날로 봅니다(무박). 좌석표가 없으면 좌석 수 0. 탑승지는 쉼표로 나눠 적기.
+            <label for="mkStops">탑승지</label><input id="mkStops" type="text" maxlength="80" placeholder="사당, 양재, 복정">
+            <p class="tip">하산 마감이 출발 시각보다 이르면 다음 날로 봅니다(무박). 단풍철처럼 차가 여러 대면 차량 수를 적으세요(호차마다 좌석표). 좌석표가 없으면 좌석 0. 탑승지는 쉼표로 나눠 적기.
                 방을 만들면 "참가 안내 보내기"로 예약한 회원에게 방 코드 · 출발 · 인솔자를 보내세요.</p>
             <button id="mkBtn" class="main">방 만들기</button>
         </section>
@@ -165,6 +169,7 @@ a.tel { color:var(--sky); }
             <details id="mySeatBox" hidden>
                 <summary style="display:none">자리 · 탑승지 바꾸기</summary>   <!-- 위 줄 "✏️ 바꾸기" 로 엶 -->
                 <div class="two">
+                    <div id="myBusBox" hidden><label for="myBus">🚌 호차</label><select id="myBus"></select></div>
                     <div><label for="mySeat">💺 좌석</label><select id="mySeat"></select></div>
                     <div><label for="myStop">탑승지</label><select id="myStop"></select></div>
                 </div>
@@ -193,6 +198,7 @@ a.tel { color:var(--sky); }
         <div id="mapBox"><div id="map"></div></div>
         <section id="seatSec" hidden>
             <h2>🚌 좌석표 <small id="seatSum" style="font-weight:normal;color:var(--dim);font-size:13px"></small></h2>
+            <div id="busTabs" class="row" style="margin:0 0 8px" hidden></div>
             <div id="seatMap"></div>
             <div id="seatAct" hidden>
                 <div id="seatActName" style="font-size:14px;margin:6px 0"></div>
@@ -210,11 +216,12 @@ a.tel { color:var(--sky); }
         <section id="staffBox" hidden>
             <div class="row" id="departRow">
                 <button id="departBtn" class="main">🚌 출발 (안 탄 사람 취소)</button>
-                <button id="cancelTripBtn" class="danger">산행 취소 (인원 미달)</button>
+                <button id="cancelTripBtn" class="danger">산행 취소 (인원 미달 · 날씨 등)</button>
             </div>
             <h2 id="listTitle" style="margin-top:12px">회원</h2>
             <table><thead><tr><th>좌석</th><th>별명</th><th>소식</th><th>그 자리</th><th>배터리</th><th>상태</th></tr></thead><tbody id="list"></tbody></table>
             <div class="row"><button id="busBtn">🚌 지금 내 자리를 버스로</button></div>
+            <p class="tip" id="busTip"></p>
             <div id="noticeRow" hidden>
                 <label for="noticeText">공지 (모두의 화면 · 따라가기에 뜨고 읽어 줌)</label>
                 <input id="noticeText" type="text" maxlength="120" placeholder="예: 15시까지 소공원 주차장으로">

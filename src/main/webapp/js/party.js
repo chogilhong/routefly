@@ -42,6 +42,9 @@
         var t = (a >= 1440 ? Math.floor(a / 1440) + "일 " : "") + (a >= 60 ? Math.floor(a % 1440 / 60) + "시간 " : "") + (a % 60) + "분";
         return m >= 0 ? t + " 남음" : "<span style=\"color:var(--red)\">" + t + " 지남</span>";
     }
+    /** 호차 - 차가 한 대면 빈 글(단풍철 여러 대 - 2026-10-20 홍TV님). */
+    function busLabel(s, bus) { return s && s.buses > 1 ? bus + "호차 " : ""; }
+    function seatText(s, m) { return m.seat ? (s.buses > 1 ? m.bus + "-" : "") + m.seat : "-"; }
     function tel(phone) { return phone ? " <a class=\"tel\" href=\"tel:" + esc(phone.replace(/[^0-9+]/g, "")) + "\">☎ " + esc(phone) + "</a>" : ""; }
     /** 인원 - "참가 12 / 최소 18 ⏳ 미달" */
     function headcount(s) {
@@ -54,7 +57,7 @@
         var lines = ["<b>" + esc(s.name) + "</b> · 방 코드 <b id=\"code\">" + esc(s.code) + "</b>"];
         if (s.departAt) lines.push("🚌 출발 <b>" + when(s.departAt) + "</b>" + (s.endAt ? " · 하산 마감 <b>" + when(s.endAt) + "</b>" : ""));
         if (s.leaderName || s.leaderPhone) lines.push("🧭 인솔자 <b>" + esc(s.leaderName || "") + "</b>" + tel(s.leaderPhone));
-        lines.push(headcount(s) + ((s.stops || []).length ? " · 탑승지 " + s.stops.map(esc).join(" · ") : ""));
+        lines.push(headcount(s) + (s.buses > 1 ? " · 차 " + s.buses + "대" : "") + ((s.stops || []).length ? " · 탑승지 " + s.stops.map(esc).join(" · ") : ""));
         return lines.join("<br>");
     }
 
@@ -82,13 +85,25 @@
             msg("");
             $("joinCard").hidden = false;
             $("joinCard").innerHTML = aboutHtml(j);
-            $("joinSeatBox").hidden = !(j.seats > 0 || (j.stops || []).length);
-            seatOptions($("joinSeat"), j.seats, j.taken, null, "고르기");
-            $("joinSeat").parentNode.hidden = !(j.seats > 0);
+            joinInfo = j;
+            $("joinSeatBox").hidden = !(j.seats > 0 || (j.stops || []).length || j.buses > 1);
+            busOptions($("joinBus"), j.buses, 1);
+            $("joinBusBox").hidden = !(j.buses > 1);
+            seatOptions($("joinSeat"), j.seats, j.taken, null, "고르기", 1);
             stopOptions($("joinStop"), j.stops, null, "고르기");
+            roleChanged();
         }).catch(function (e) { infoFor = null; $("joinCard").hidden = true; $("joinSeatBox").hidden = true; msg(e.message); });
     }
     $("joinCode").addEventListener("input", loadInfo);
+    var joinInfo = null;
+    $("joinBus").addEventListener("change", function () { if (joinInfo) seatOptions($("joinSeat"), joinInfo.seats, joinInfo.taken, null, "고르기", +$("joinBus").value); });
+    /** 운전자는 호차만(좌석 · 탑승지 없음). */
+    function roleChanged() {
+        var drv = ((document.querySelector("input[name=role]:checked") || {}).value) === "driver";
+        $("joinSeat").parentNode.hidden = drv || !(joinInfo && joinInfo.seats > 0);
+        $("joinStop").parentNode.hidden = drv || !(joinInfo && (joinInfo.stops || []).length);
+    }
+    Array.prototype.forEach.call(document.querySelectorAll("input[name=role]"), function (r) { r.addEventListener("change", roleChanged); });
 
     $("joinBtn").addEventListener("click", function () {
         var code = $("joinCode").value.trim().toUpperCase(), nick = $("joinNick").value.trim();
@@ -100,7 +115,8 @@
         var seat = seatOn && $("joinSeat").value ? +$("joinSeat").value : null, stop = stopOn && $("joinStop").value ? $("joinStop").value : null;
         if (role === "hiker" && seatOn && !seat && !confirm("좌석 번호를 고르지 않았습니다. 인솔자 좌석표에 안 나옵니다. 그래도 참가할까요?")) return;
         $("joinBtn").disabled = true;
-        RFParty.post("join", { code: code, nick: nick, role: role, seat: role === "hiker" ? seat : null, stop: stop, agree: true }).then(function (j) {
+        var bus = !$("joinBusBox").hidden ? +$("joinBus").value : 1;
+        RFParty.post("join", { code: code, nick: nick, role: role, bus: bus, seat: role === "hiker" ? seat : null, stop: role === "hiker" ? stop : null, agree: true }).then(function (j) {
             try { localStorage.setItem("rf-party-nick", nick); } catch (e) { /* 이번만 */ }
             RFParty.set({ code: j.code, token: j.token, role: j.role, name: j.name });
             enterRoom(j);
@@ -121,7 +137,7 @@
         $("mkBtn").disabled = true;
         RFParty.post("create", { name: name, departAt: depart, endAt: endAt, minPeople: Math.max(0, Math.min(80, +$("mkMin").value || 0)),
             leaderName: $("mkLead").value.trim(), leaderPhone: $("mkPhone").value.trim(),
-            seats: Math.max(0, Math.min(60, +$("mkSeats").value || 0)), stops: $("mkStops").value }).then(function (j) {
+            buses: Math.max(1, Math.min(8, +$("mkBuses").value || 1)), seats: Math.max(0, Math.min(60, +$("mkSeats").value || 0)), stops: $("mkStops").value }).then(function (j) {
             RFParty.set({ code: j.code, token: j.token, role: "lead", name: j.name });
             enterRoom(j);
             roomMsg("방을 만들었습니다. \"참가 안내 보내기\"로 예약한 회원에게 보내세요.");
@@ -180,8 +196,8 @@
         state = s;
         var p = RFParty.get() || {}, staff = s.role === "lead" || s.role === "driver";
         var bar = [aboutHtml(s)];
-        if (!staff && (s.seats > 0 || (s.stops || []).length))   // 내 자리 + 바로 고치기
-            bar.push("💺 내 자리 <b>" + (s.seat ? s.seat + "번" : "없음") + "</b>" + (s.stop ? " · " + esc(s.stop) : "")
+        if (!staff && (s.seats > 0 || (s.stops || []).length || s.buses > 1))   // 내 자리 + 바로 고치기
+            bar.push("💺 내 자리 <b>" + busLabel(s, s.bus) + (s.seat ? s.seat + "번" : s.buses > 1 ? "" : "없음") + "</b>" + (s.stop ? " · " + esc(s.stop) : "")
                 + " <button type=\"button\" id=\"editSeat\" style=\"min-height:32px;padding:0 10px;font-size:13px\">✏️ 바꾸기</button>");
         $("bar").innerHTML = bar.join("<br>");
         if (s.notice) {
@@ -199,8 +215,10 @@
             $("phase").innerHTML = s.departed ? "🥾 산행 중 · 하산 탑승 <b>" + (s.aboardCount || 0) + "</b> / " + s.hikers
                 + (s.hikers > 0 && s.aboardCount >= s.hikers ? " <span class=\"ok\">모두 탔습니다 - 방을 끝내세요</span>" : "")
                 : s.departAt ? "출발까지 " + left(s.departAt, s.now) + " · 출발 탑승 " + (s.members || []).filter(function (m) { return m.role === "hiker" && m.boarded; }).length + " / " + s.hikers : "";
+            if (s.role === "driver" && !seatMap.once) { curBus = s.bus; seatMap.once = true; }   // 운전자는 자기 호차부터
             list(s);
             seatMap(s);
+            busTip();
         } else {
             hikerPhase(s, p);
         }
@@ -216,7 +234,7 @@
             $("cancelTel").innerHTML = s.leaderPhone ? "인솔자 " + esc(s.leaderName || "") + tel(s.leaderPhone) : "";
             return;
         }
-        $("mySeatBox").hidden = !(s.seats > 0 || (s.stops || []).length);
+        $("mySeatBox").hidden = !(s.seats > 0 || (s.stops || []).length || s.buses > 1);
         if (!$("mySeatBox").open) fillMySeat(s);
         var before = s.departAt && s.now < s.locFrom;
         $("boardBtn").hidden = s.departed;
@@ -244,7 +262,7 @@
             if (!m.sos || m.id === s.me) return;
             now[m.id] = 1;
             if (sosSeen[m.id]) return;
-            var who = m.nick + (m.seat ? "(" + m.seat + "번)" : "");
+            var who = m.nick + (m.seat ? "(" + busLabel(s, m.bus) + m.seat + "번)" : "");
             roomMsg("🆘 " + who + " 님이 SOS 를 보냈습니다.");
             if (navigator.vibrate) navigator.vibrate([400, 150, 400, 150, 400]);
             try { speechSynthesis.speak(new SpeechSynthesisUtterance(who + " 님이 에스오에스를 보냈습니다")); } catch (e) { /* 없음 */ }
@@ -261,7 +279,7 @@
         $("list").innerHTML = rows.map(function (m) {
             var cls = m.cancelled ? "aboard" : m.sos ? "sos" : m.aboard ? "aboard" : (s.departed && (m.ago == null || m.ago > OLD_S)) ? "old" : "";
             var st = m.cancelled ? "❌ 취소" : m.sos ? "🆘 SOS" : m.aboard ? "🚌 하산 탑승" : m.role === "driver" ? "운전" : m.boarded ? "✅ 탐" : s.departed ? "" : "안 탐";
-            return "<tr class=\"" + cls + "\" data-id=\"" + m.id + "\"><td>" + (m.seat || "-") + "</td><td>" + esc(m.nick) + "</td><td>" + agoText(m.ago) + "</td><td>"
+            return "<tr class=\"" + cls + "\" data-id=\"" + m.id + "\"><td>" + (m.role === "driver" ? busLabel(s, m.bus) || "-" : seatText(s, m)) + "</td><td>" + esc(m.nick) + "</td><td>" + agoText(m.ago) + "</td><td>"
                 + (m.stillMin != null && m.ago != null ? m.stillMin + "분" : "-") + "</td><td>" + (m.batt != null ? m.batt + "%" : "-") + "</td><td>" + st + "</td></tr>";
         }).join("") || "<tr><td colspan=\"6\">아직 참가한 회원이 없습니다. 참가 안내를 보내 주세요.</td></tr>";
         function rank(m) { return m.cancelled ? 6 : m.sos ? 0 : m.aboard ? 5 : (s.departed && (m.ago == null || m.ago > OLD_S)) ? 1 : (m.stillMin || 0) >= 15 ? 2 : 3; }
@@ -276,11 +294,21 @@
 
     // ------------------------------------------------------------------ 좌석 고르기 · 좌석표
 
-    function seatOptions(sel, seats, taken, cur, none) {
-        var t = {};
+    /** 좌석 고르기 - taken 은 호차 × 100 + 좌석(그 호차의 찬 자리만 막음). */
+    function seatOptions(sel, seats, taken, cur, none, bus) {
+        var t = {}, b = bus || 1;
         (taken || []).forEach(function (n) { t[n] = 1; });
         var o = ["<option value=\"\">" + (none || "없음") + "</option>"];
-        for (var i = 1; i <= seats; i++) o.push("<option value=\"" + i + "\"" + (t[i] ? " disabled" : "") + (i === cur ? " selected" : "") + ">" + i + (t[i] ? " (참가함)" : "") + "</option>");
+        for (var i = 1; i <= seats; i++) {
+            var x = t[b * 100 + i];
+            o.push("<option value=\"" + i + "\"" + (x ? " disabled" : "") + (i === cur ? " selected" : "") + ">" + i + (x ? " (참가함)" : "") + "</option>");
+        }
+        sel.innerHTML = o.join("");
+        sel.parentNode.hidden = !(seats > 0);
+    }
+    function busOptions(sel, buses, cur) {
+        var o = [];
+        for (var i = 1; i <= (buses || 1); i++) o.push("<option value=\"" + i + "\"" + (i === cur ? " selected" : "") + ">" + i + "호차</option>");
         sel.innerHTML = o.join("");
     }
     function stopOptions(sel, stops, cur, none) {
@@ -288,10 +316,12 @@
         sel.parentNode.hidden = !(stops || []).length;
     }
     function fillMySeat(s) {
-        seatOptions($("mySeat"), s.seats || 0, s.taken, s.seat);
-        $("mySeat").parentNode.hidden = !(s.seats > 0);
+        busOptions($("myBus"), s.buses, s.bus);
+        $("myBusBox").hidden = !(s.buses > 1);
+        seatOptions($("mySeat"), s.seats || 0, s.taken, s.seat, null, s.bus);
         stopOptions($("myStop"), s.stops, s.stop);
     }
+    $("myBus").addEventListener("change", function () { if (state) seatOptions($("mySeat"), state.seats || 0, state.taken, null, null, +$("myBus").value); });
     $("bar").addEventListener("click", function (e) {   // "✏️ 바꾸기" → 바로 아래 칸
         if (!e.target.closest("#editSeat") || !state) return;
         if ($("mySeatBox").open) { $("mySeatBox").open = false; return; }
@@ -302,7 +332,7 @@
     $("mySeatClose").addEventListener("click", function () { $("mySeatBox").open = false; });
     $("mySeatBtn").addEventListener("click", function () {
         var p = RFParty.get();
-        RFParty.post("seat", { token: p.token, seat: $("mySeat").value ? +$("mySeat").value : null, stop: $("myStop").value || null }).then(function (j) {
+        RFParty.post("seat", { token: p.token, bus: $("myBusBox").hidden ? null : +$("myBus").value, seat: $("mySeat").value ? +$("mySeat").value : null, stop: $("myStop").value || null }).then(function (j) {
             $("mySeatBox").open = false;
             render(j);
             roomMsg("자리를 바꿨습니다.");
@@ -320,13 +350,24 @@
         return { col: col, row: row };
     }
 
-    var picked = null, moving = false;
+    var picked = null, moving = false, curBus = 1;   // curBus - 좌석표에서 보는 호차
     function seatMap(s) {
         $("seatSec").hidden = !(s.seats > 0);
         if (!(s.seats > 0)) return;
+        if (curBus > (s.buses || 1)) curBus = 1;
+        $("busTabs").hidden = !(s.buses > 1);
+        if (s.buses > 1) {
+            var tabs = [];
+            for (var b = 1; b <= s.buses; b++) {
+                var on = (s.members || []).filter(function (m) { return m.bus === b && m.seat && !m.cancelled; });
+                var sos = on.some(function (m) { return m.sos; });
+                tabs.push("<button type=\"button\" data-bus=\"" + b + "\" class=\"" + (b === curBus ? "on" : "") + "\">" + (sos ? "🆘 " : "") + b + "호차 " + on.length + "</button>");
+            }
+            $("busTabs").innerHTML = tabs.join("");
+        }
         var by = {}, rsv = {}, cols = 0, cells = [];
-        (s.members || []).forEach(function (m) { if (m.seat && (!by[m.seat] || by[m.seat].cancelled)) by[m.seat] = m; });
-        (s.reserved || []).forEach(function (n) { rsv[n] = 1; });
+        (s.members || []).forEach(function (m) { if (m.seat && m.bus === curBus && (!by[m.seat] || by[m.seat].cancelled)) by[m.seat] = m; });
+        (s.reserved || []).forEach(function (n) { if (Math.floor(n / 100) === curBus) rsv[n % 100] = 1; });
         for (var k = 1; k <= s.seats; k++) {
             var at = seatPos(k, s.seats), m = by[k], cls = "s", label = "";
             cols = Math.max(cols, at.col + 1);
@@ -342,17 +383,25 @@
         cells.push("<div class=\"s drv\" style=\"grid-column:1;grid-row:4\" title=\"운전석\">🛞</div>");
         $("seatMap").style.gridTemplateColumns = "repeat(" + (cols + 1) + ", minmax(30px, 1fr))";
         $("seatMap").innerHTML = cells.join("");
-        var seated = (s.members || []).filter(function (m) { return m.seat && !m.cancelled; });
-        $("seatSum").textContent = "예약 · 미참가 " + (s.reserved || []).length + " · 참가 " + seated.length + " · 출발 탑승 "
+        var seated = (s.members || []).filter(function (m) { return m.seat && !m.cancelled && m.bus === curBus; });
+        $("seatSum").textContent = busLabel(s, curBus) + "예약 · 미참가 " + Object.keys(rsv).length + " · 참가 " + seated.length + " · 출발 탑승 "
             + seated.filter(function (m) { return m.boarded; }).length + " · 하산 탑승 " + seated.filter(function (m) { return m.aboard; }).length;
         $("stopSum").innerHTML = (s.stops || []).map(function (t) {
             var at = (s.members || []).filter(function (m) { return m.stop === t && !m.cancelled; });
             return "<b>" + esc(t) + "</b> 탐 " + at.filter(function (m) { return m.boarded; }).length + " / 참가 " + at.length;
-        }).join(" · ");
+        }).join(" · ") + (s.buses > 1 && (s.stops || []).length ? " (모든 호차)" : "");
     }
 
+    $("busTabs").addEventListener("click", function (e) {
+        var b = e.target.closest("[data-bus]");
+        if (!b || !state) return;
+        curBus = +b.getAttribute("data-bus");
+        pick(null);
+        seatMap(state);
+        busTip();
+    });
     function memberAt(k) {
-        var all = state ? (state.members || []).filter(function (x) { return x.seat === k; }) : [];
+        var all = state ? (state.members || []).filter(function (x) { return x.seat === k && x.bus === curBus; }) : [];
         return all.filter(function (x) { return !x.cancelled; })[0] || all[0];
     }
     function pickedMember() { return state && (state.members || []).filter(function (x) { return x.id === picked; })[0]; }
@@ -362,7 +411,7 @@
         $("seatMap").classList.remove("moving");
         $("seatAct").hidden = !m;
         if (!m) return;
-        $("seatActName").innerHTML = "<b>" + m.seat + "번 " + esc(m.nick) + "</b>" + (m.stop ? " · " + esc(m.stop) : "") + " · " + (m.cancelled ? "❌ 취소됨" : agoText(m.ago));
+        $("seatActName").innerHTML = "<b>" + busLabel(state, m.bus) + m.seat + "번 " + esc(m.nick) + "</b>" + (m.stop ? " · " + esc(m.stop) : "") + " · " + (m.cancelled ? "❌ 취소됨" : agoText(m.ago));
         $("actBoard").textContent = m.cancelled ? "↩ 탔음(취소 되돌리기)" : m.boarded ? "출발 탑승 취소" : "✅ 출발 탑승";
         stopOptions($("actStop"), state.stops, m.stop);
         $("actStopBox").hidden = !(state.stops || []).length;
@@ -374,19 +423,19 @@
         if (moving) {
             var who = pickedMember();
             if (!who || (m && m.id === who.id)) { pick(null); seatMap(state); roomMsg(""); return; }
-            if (m && !m.cancelled) { roomMsg(k + "번 자리에는 " + m.nick + " 님이 있습니다. 빈자리를 누르세요."); return; }
-            RFParty.post("seat", { token: p.token, id: who.id, seat: k, stop: who.stop || null }).then(function (j) { pick(null); render(j); roomMsg(who.nick + " 님을 " + k + "번으로 옮겼습니다."); })
+            if (m && !m.cancelled) { roomMsg(busLabel(state, curBus) + k + "번 자리에는 " + m.nick + " 님이 있습니다. 빈자리를 누르세요."); return; }
+            RFParty.post("seat", { token: p.token, id: who.id, bus: curBus, seat: k, stop: who.stop || null }).then(function (j) { pick(null); render(j); roomMsg(who.nick + " 님을 " + busLabel(state, curBus) + k + "번으로 옮겼습니다."); })
                 .catch(function (er) { roomMsg(er.message); });
             return;
         }
         if (m) { pick(m); seatMap(state); return; }
         pick(null);
-        RFParty.post("mark", { token: p.token, seat: k, what: "reserved", on: (state.reserved || []).indexOf(k) < 0 }).then(render).catch(function (er) { roomMsg(er.message); });
+        RFParty.post("mark", { token: p.token, bus: curBus, seat: k, what: "reserved", on: (state.reserved || []).indexOf(curBus * 100 + k) < 0 }).then(render).catch(function (er) { roomMsg(er.message); });
     });
     $("actBoard").addEventListener("click", function () {
         var m = pickedMember(), p = RFParty.get();
         if (!m) return;
-        RFParty.post("mark", { token: p.token, seat: m.seat, what: "boarded", on: m.cancelled || !m.boarded }).then(function (j) { render(j); pick(pickedMember()); }).catch(function (er) { roomMsg(er.message); });
+        RFParty.post("mark", { token: p.token, bus: m.bus, seat: m.seat, what: "boarded", on: m.cancelled || !m.boarded }).then(function (j) { render(j); pick(pickedMember()); }).catch(function (er) { roomMsg(er.message); });
     });
     $("actMove").addEventListener("click", function () {
         if (!pickedMember()) return;
@@ -402,7 +451,7 @@
     $("actStop").addEventListener("change", function () {
         var m = pickedMember(), p = RFParty.get();
         if (!m) return;
-        RFParty.post("seat", { token: p.token, id: m.id, seat: m.seat, stop: $("actStop").value || null }).then(function (j) { render(j); pick(pickedMember()); }).catch(function (er) { roomMsg(er.message); });
+        RFParty.post("seat", { token: p.token, id: m.id, bus: m.bus, seat: m.seat, stop: $("actStop").value || null }).then(function (j) { render(j); pick(pickedMember()); }).catch(function (er) { roomMsg(er.message); });
     });
 
     // ------------------------------------------------------------------ 지도
@@ -446,7 +495,7 @@
         });
         var meShown = (s.members || []).some(function (m) { return m.id === s.me && m.lat != null; });
         if (!meShown && lastPos) put("me", lastPos.lon, lastPos.lat, "lead", "나");   // 출발 전(서버가 아직 안 받음)에도 내 위치는 보이게
-        if (s.busLat != null) put("bus", s.busLon, s.busLat, "bus", "버스");
+        (s.busPins || []).forEach(function (b) { put("bus" + b.bus, b.lon, b.lat, "bus", s.buses > 1 ? b.bus + "호차" : "버스"); });
         Object.keys(marks).forEach(function (k) { if (!seen[k]) { marks[k].remove(); delete marks[k]; } });
         if ((!fitted || force) && pts.length) {
             fitted = true;
@@ -505,9 +554,14 @@
         if (state) render(state);
     });
 
+    /** 버스 단추 설명 - 인솔자는 좌석표에서 고른 호차, 운전자는 자기 호차. */
+    function busTip() {
+        if (!state || !(state.buses > 1)) { $("busTip").textContent = ""; return; }
+        $("busTip").textContent = state.role === "driver" ? "내 차(" + state.bus + "호차) 자리로 정합니다." : "좌석표에서 고른 " + curBus + "호차의 자리로 정합니다.";
+    }
     $("busBtn").addEventListener("click", function () {
         var p = RFParty.get();
-        here(function (lat, lon) { RFParty.post("bus", { token: p.token, lat: +lat.toFixed(6), lon: +lon.toFixed(6) }).then(render).catch(fail); });
+        here(function (lat, lon) { RFParty.post("bus", { token: p.token, bus: curBus, lat: +lat.toFixed(6), lon: +lon.toFixed(6) }).then(render).catch(fail); });
     });
 
     $("noticeBtn").addEventListener("click", function () {
@@ -518,7 +572,7 @@
 
     $("departBtn").addEventListener("click", function () {
         var p = RFParty.get(), not = (state.members || []).filter(function (m) { return m.role === "hiker" && !m.boarded && !m.cancelled; });
-        var names = not.map(function (m) { return (m.seat ? m.seat + "번 " : "") + m.nick; }).join(", ");
+        var names = not.map(function (m) { return (m.seat ? busLabel(state, m.bus) + m.seat + "번 " : "") + m.nick; }).join(", ");
         if (!confirm("출발할까요?" + (not.length ? "\n안 탄 " + not.length + "명은 취소됩니다: " + names + "\n(늦게 오면 좌석표에서 되돌릴 수 있습니다)" : "\n모두 탔습니다."))) return;
         RFParty.post("depart", { token: p.token }).then(function (j) { render(j); roomMsg("🚌 출발! " + (j.cancelledNow ? j.cancelledNow + "명 취소." : "")); }).catch(fail);
     });
