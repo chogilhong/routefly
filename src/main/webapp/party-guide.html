@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>routefly 산악회 방 - 인솔자 사용법</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=2"><link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
+<meta name="theme-color" content="#11161d">
+<!-- 인솔자 사용법(2026-10-20 홍TV님 - "인솔자는 사용법을 잘 알아야 하니까"). party.html 좌석표 색 설명 옆 · 방 만들기에서 링크. 기능이 바뀌면 여기도 고침 -->
+<style>
+:root { --bg:#11161d; --panel:#1a212b; --tx:#e9eef4; --dim:#9aa6b4; --ln:rgba(255,255,255,0.12); --sky:#38d9ea; --yel:#ffd43b; }
+* { box-sizing:border-box; }
+html, body { margin:0; background:var(--bg); color:var(--tx); font-family:Arial,"Malgun Gothic",sans-serif; line-height:1.65; }
+main { max-width:720px; margin:0 auto; padding:calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 40px); }
+h1 { font-size:21px; margin:0 0 4px; }
+.lead { color:var(--dim); font-size:14px; margin:0 0 14px; }
+nav { display:flex; flex-wrap:wrap; gap:6px; margin:0 0 14px; }
+nav a { color:var(--tx); text-decoration:none; font-size:13px; padding:5px 10px; border:1px solid var(--ln); border-radius:14px; }
+section { background:var(--panel); border:1px solid var(--ln); border-radius:12px; padding:14px 16px; margin-bottom:12px; }
+h2 { font-size:17px; margin:0 0 8px; }
+ol, ul { margin:0; padding-left:20px; }
+li { margin:5px 0; font-size:14.5px; }
+b { color:#fff; }
+.tip { color:var(--dim); font-size:13px; margin:8px 0 0; }
+.warn { color:#ffb4b4; }
+a { color:var(--sky); }
+table { width:100%; border-collapse:collapse; font-size:13.5px; }
+td, th { border-top:1px solid var(--ln); padding:6px 4px; vertical-align:top; text-align:left; }
+.c { display:inline-block; padding:1px 7px; border-radius:6px; font-size:12px; white-space:nowrap; }
+.rsv { border:1.5px dashed #ffa94d; color:#ffa94d; } .join { border:1.5px solid var(--sky); } .board { background:var(--sky); color:#062026; font-weight:bold; }
+.cxl { border:1.5px dashed #ff6b6b; color:#ff8787; } .old { border:2px solid #ffa94d; } .sos { background:#e03131; color:#fff; } .back { background:#51cf66; color:#0b2e13; }
+.back-link { display:inline-block; margin-top:6px; }
+</style>
+</head>
+<body>
+<main>
+    <h1>📖 산악회 방 - 인솔자 사용법</h1>
+    <p class="lead">방 만들기부터 하산까지 차례대로입니다. 출발 전날 한 번 읽어 두세요.</p>
+    <nav>
+        <a href="#make">1. 방 만들기</a><a href="#invite">2. 회원 부르기</a><a href="#seat">3. 좌석표</a>
+        <a href="#depart">4. 출발</a><a href="#trip">5. 산행 중</a><a href="#end">6. 하산 · 끝</a><a href="#member">7. 회원 안내</a><a href="#note">8. 알아 둘 것</a>
+    </nav>
+
+    <section id="make">
+        <h2>1. 방 만들기 (산행 전날까지)</h2>
+        <ol>
+            <li><b>산행 이름</b>: 예) 10/23 설악산 공룡능선</li>
+            <li><b>출발 날짜 · 시각</b>: 숫자만 치면 됩니다. 10월 23일 → <b>1023</b>, 밤 11시 20분 → <b>2320</b></li>
+            <li><b>하산 마감</b>: 버스가 떠나는 시각. 출발보다 이르면 다음 날로 봅니다(무박).</li>
+            <li><b>최소 인원</b>: 이보다 적으면 화면에 "⏳ 미달", 넘으면 "✅ 출발 확정".</li>
+            <li><b>인솔자 이름 · 연락처</b>: 회원 화면과 참가 안내 글에 나갑니다.</li>
+            <li><b>차량 수 · 한 대 좌석 · 차량번호</b>: 단풍철처럼 차가 여러 대면 차량 수를 적으세요(1호차 · 2호차 …). 차량번호는 나중에 방 화면에서 적어도 됩니다.</li>
+            <li><b>탑승지</b>: 쉼표로 나눠 적기. 예) 사당, 양재, 복정</li>
+        </ol>
+        <p class="tip">방을 만들면 이 폰이 인솔자가 됩니다. 다른 폰에서는 인솔자 화면을 열 수 없으니, 산행 날 이 폰을 가져가세요.</p>
+    </section>
+
+    <section id="invite">
+        <h2>2. 회원 부르기</h2>
+        <ul>
+            <li><b>💛 카톡으로 보내기</b>: 카톡이 열리면 예약 회원 단톡방을 고르세요. 출발 · 차량 · 인솔자 · 방 코드 · 링크가 담긴 안내 글이 들어갑니다.</li>
+            <li><b>💬 문자</b> · <b>📋 안내 글 복사</b>: 문자로 보내거나 밴드 등에 붙여 넣을 때.</li>
+            <li><b>📱 QR 보여 주기</b>: 링크를 못 받고 출발 장소에 온 회원에게. 맨 위에서 <b>지금 탑승지</b>(예: 사당)를 고르면, QR 로 들어온 회원은 탑승지가 채워집니다.</li>
+            <li><b>📶 NFC 스티커에 쓰기</b>(안드로이드만): 스티커를 버스 문 · 명찰에 붙이면 회원은 폰을 대기만 하면 참가 화면이 열립니다. 산행마다 다시 쓰세요.</li>
+        </ul>
+        <p class="tip">회원은 링크를 눌러 <b>별명 · 좌석 · 탑승지</b>를 고르고 위치 동의 후 "참가하기"를 누릅니다.</p>
+    </section>
+
+    <section id="seat">
+        <h2>3. 좌석표 보기 · 고치기</h2>
+        <table>
+            <tr><td><span class="c rsv">예약 · 미참가</span></td><td>빈자리를 누르면 켜고 끕니다. 예약은 했는데 아직 앱에 참가 안 한 자리 표시. 회원이 그 번호로 참가하면 저절로 바뀝니다.</td></tr>
+            <tr><td><span class="c join">참가</span></td><td>회원이 참가해 그 자리를 골랐습니다.</td></tr>
+            <tr><td><span class="c board">출발 탑승</span></td><td>회원이 "버스 탔어요"를 눌렀거나 인솔자가 체크했습니다.</td></tr>
+            <tr><td><span class="c cxl">취소</span></td><td>출발 때 안 타서 빠진 사람.</td></tr>
+            <tr><td><span class="c old">10분 소식 없음</span></td><td>산행 중 폰 소식이 10분 넘게 없음.</td></tr>
+            <tr><td><span class="c sos">SOS</span></td><td>SOS 를 누른 사람 - 소리 · 떨림으로도 알립니다.</td></tr>
+            <tr><td><span class="c back">하산 탑승</span></td><td>하산해서 버스에 다시 탄 사람.</td></tr>
+        </table>
+        <ul style="margin-top:8px">
+            <li><b>사람 있는 자리를 누르면</b> 메뉴: <b>출발 탑승</b> 체크 · <b>💺 자리 옮기기</b>(누른 뒤 빈자리) · <b>🗺 지도</b> · <b>탑승지 바꾸기</b> · <b>🚫 내보내기</b></li>
+            <li>차가 여러 대면 좌석표 위 <b>1호차 · 2호차</b> 탭으로 바꿔 봅니다(🆘 가 있으면 탭에 표시).</li>
+            <li>모르는 사람이 들어왔으면 명단 이름 옆 <b>✕</b> 로 내보내세요.</li>
+        </ul>
+    </section>
+
+    <section id="depart">
+        <h2>4. 출발 날</h2>
+        <ol>
+            <li>출발 <b>1시간 전</b>부터 회원 화면에 <b>"🚌 버스 탔어요"</b>가 나옵니다. 회원이 버스에 타면 누릅니다.</li>
+            <li>폰이 없거나 못 누른 회원은 인솔자가 좌석표에서 그 자리를 눌러 <b>출발 탑승</b>을 체크하세요(시각과 관계없이 됨).</li>
+            <li>모두 타면 <b>🚌 출발 (안 탄 사람 취소)</b>. 누가 취소되는지 먼저 보여 주고 묻습니다. 늦게 온 사람은 좌석표에서 <b>↩ 탔음</b>으로 되돌리면 됩니다.</li>
+            <li>인원 미달 · 날씨로 못 가면 <b>산행 취소</b>. 회원 폰에 "인솔자가 산행을 취소했습니다"가 뜨고 방이 닫힙니다.</li>
+        </ol>
+        <p class="tip">출발한 뒤에는 새 회원이 참가할 수 없고(운전자는 됨), 회원은 자리를 못 바꿉니다 - 자리는 인솔자가 좌석표에서 옮깁니다.</p>
+    </section>
+
+    <section id="trip">
+        <h2>5. 산행 중</h2>
+        <ul>
+            <li><b>지도</b>: 모든 회원의 마지막 위치(30초마다). 코스와 관계없이 각자 있는 곳 - 여러 들머리에 내려도, 산에 안 가고 근처에 있어도 보입니다.</li>
+            <li><b>회원 명단</b>: 소식(몇 분 전) · 그 자리(한곳에 머문 시간) · 배터리 · 상태. 이름을 누르면 지도가 그 사람으로.
+                <br><b>📵 폰 방금 · 위치 4분 전</b> = 폰은 켜져 있는데 GPS 를 못 잡는 중(골짜기 · 실내). 연락 끊김과 다릅니다.</li>
+            <li><b>🆘 SOS</b>: 회원이 누르면 인솔자 폰이 울리고 읽어 줍니다. 위치를 못 잡아도 SOS 는 갑니다. 119 신고는 회원이 따라가기의 SOS 로.</li>
+            <li><b>📢 공지 보내기</b>: 예) "15시까지 소공원 주차장으로" - 모든 회원 화면 · 따라가기에 뜨고 읽어 줍니다.</li>
+            <li><b>🚌 지금 내 자리를 버스로</b>: 버스 세운 곳을 지도에 표시(호차마다). 운전자도 할 수 있습니다.</li>
+            <li><b>차량번호</b>: 당일 차가 바뀌면 방 화면 아래 칸에서 고치세요. 회원 화면에 바로 나갑니다.</li>
+        </ul>
+    </section>
+
+    <section id="end">
+        <h2>6. 하산 · 방 끝내기</h2>
+        <ol>
+            <li>회원이 버스에 타며 <b>"🚌 하산 탑승"</b>을 누르면 명단 · 좌석표가 초록으로 바뀝니다(그 회원의 위치는 지움).</li>
+            <li>화면 위 "하산 탑승 n / 전체"가 다 차면 <b>"모두 탔습니다 - 방을 끝내세요"</b>.</li>
+            <li><b>방 끝내기</b>를 누르면 모두의 위치가 지워지고 방이 닫힙니다. 안 눌러도 하산 마감 6시간 뒤 저절로 닫힙니다.</li>
+        </ol>
+    </section>
+
+    <section id="member">
+        <h2>7. 회원에게 안내할 것</h2>
+        <ul>
+            <li>링크를 누른 뒤 <b>"routefly 앱으로 열기"</b>가 보이면 누르기(안드로이드 · 앱이 있을 때). 앱은 화면을 꺼도 위치가 갑니다.</li>
+            <li>브라우저(카톡)로 참가했으면 산행 중 <b>화면을 켜 두거나 따라가기를 켜 두기</b> - 화면을 끄면 위치가 멈춥니다.</li>
+            <li>출발 1시간 전부터 <b>버스 탔어요</b>, 하산해 버스에 타면 <b>하산 탑승</b>.</li>
+            <li>위험하면 <b>🆘 SOS</b>(출발 3시간 전부터 보임), 위급하면 119.</li>
+        </ul>
+    </section>
+
+    <section id="note">
+        <h2>8. 알아 둘 것</h2>
+        <ul>
+            <li>위치는 <b>출발 3시간 전</b>부터 받습니다. 그 전에는 참가 · 좌석만.</li>
+            <li>위치는 같은 방 사람들만 보고, 방이 끝나면 지웁니다. 인솔자 연락처도 방이 끝나면 지웁니다(<a href="privacy.html#party">개인정보처리방침</a>).</li>
+            <li>한 폰은 한 방 · 한 역할입니다. 다른 방에 들어가려면 지금 방을 나가거나(회원) 끝내야(인솔자) 합니다.</li>
+            <li class="warn">방 화면 오류 글 · 주소에 나오는 열쇠(token)는 남에게 보내지 마세요. 그 열쇠로 인솔자처럼 방을 다룰 수 있습니다.</li>
+        </ul>
+    </section>
+
+    <p><a href="party.html" class="back-link">‹ 산악회 방으로</a> · <a href="feedback.html?from=/party-guide.html">📮 의견 보내기</a></p>
+</main>
+</body>
+</html>

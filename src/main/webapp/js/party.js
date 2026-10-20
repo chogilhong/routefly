@@ -569,7 +569,7 @@
                 + (m ? " title=\"" + esc(m.nick + (m.stop ? " · " + m.stop : "")) + "\"" : "") + ">" + k + label + "</div>");
         }
         cells.push("<div class=\"s drv\" style=\"grid-column:1;grid-row:4\" title=\"운전석\"><small>운전</small></div>");   // 🛞 은 PC 글꼴에서 □ 로 보였음
-        $("seatMap").style.gridTemplateColumns = "repeat(" + (cols + 1) + ", minmax(30px, 1fr))";
+        $("seatMap").style.gridTemplateColumns = "repeat(" + (cols + 1) + ", minmax(24px, 1fr))";   // 30px 이면 28석 · 412px 폰에서 옆으로 넘쳐 "운전"이 잘렸음(2026-10-20)
         $("seatMap").innerHTML = cells.join("");
         var seated = (s.members || []).filter(function (m) { return m.seat && !m.cancelled && m.bus === curBus; });
         $("seatSum").textContent = busLabel(s, curBus) + "예약 · 미참가 " + Object.keys(rsv).length + " · 참가 " + seated.length + " · 출발 탑승 "
