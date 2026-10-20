@@ -24,6 +24,8 @@ import com.google.gson.JsonObject;
 public class StatsServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
+    /** 운영자 기기 쿠키 이름 - 있으면 방문 수에 안 셈. */
+    static final String OWNER_COOKIE = "rf-owner";
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -31,6 +33,9 @@ public class StatsServlet extends HttpServlet {
             resp.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
+        // 운영자 기기 표시(2026-10-20 홍TV님 "우리가 접속한 것도 잡히지?") - 이 기기의 방문은 그 뒤로 세지 않음(StatsFilter). 2년.
+        resp.addHeader("Set-Cookie", OWNER_COOKIE + "=1; Max-Age=" + (2 * 365 * 24 * 3600) + "; Path=" + (req.getContextPath().isEmpty() ? "/" : req.getContextPath())
+                + "; HttpOnly; SameSite=Lax" + (req.isSecure() || "https".equalsIgnoreCase(req.getHeader("X-Forwarded-Proto")) ? "; Secure" : ""));
         resp.setContentType("text/html");
         resp.setCharacterEncoding(StandardCharsets.UTF_8.name());
         resp.setHeader("Cache-Control", "no-store");
@@ -75,7 +80,7 @@ public class StatsServlet extends HttpServlet {
         out.append(top("모바일 · PC 방문자(" + last.size() + "일 - 10-20 부터 셈)", devs, 5, null))
                 .append(top("인기 산 페이지(" + last.size() + "일)", mountains, 20, null)).append(top("화면별(" + last.size() + "일)", pages, 20, StatsServlet::pageName))
                 .append(top("들어온 곳(" + last.size() + "일 - 바깥에서 처음 들어온 화면 수)", refs, 20, null));
-        out.append("<p class=\"dim\">숫자만 셉니다 - 방문자는 그 날만 쓰는 해시로 겹침만 걸러 내고 IP 는 남기지 않습니다.</p></main></body></html>");
+        out.append("<p class=\"dim\">숫자만 셉니다 - 방문자는 그 날만 쓰는 해시로 겹침만 걸러 내고 IP 는 남기지 않습니다. 이 화면을 연 기기(브라우저)는 운영자로 보고 방문 수에서 뺍니다(2년, 사이트 데이터를 지우면 다시 셈). 앱(따라가기 앱)은 따로라 빠지지 않습니다.</p></main></body></html>");
         return out.toString();
     }
 

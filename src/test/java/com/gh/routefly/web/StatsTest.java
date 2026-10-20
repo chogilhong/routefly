@@ -109,4 +109,13 @@ public class StatsTest {
         assertEquals(1000, StatsServlet.nice(1000));
         assertTrue("보기 화면에 들어감", StatsServlet.page(days, 30).contains("방문 추세"));
     }
+
+    /** 운영자 기기(/stats 를 연 브라우저)는 방문 수에서 뺌(2026-10-20 홍TV님). */
+    @Test
+    public void ownerNotCounted() {
+        assertTrue(StatsFilter.owner("a=b; rf-owner=1"));
+        assertTrue(StatsFilter.owner("rf-owner=1"));
+        assertFalse(StatsFilter.owner(null));
+        assertFalse(StatsFilter.owner("rf-owner=0; x-rf-owner=1"));
+    }
 }

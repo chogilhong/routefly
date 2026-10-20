@@ -31,10 +31,17 @@ public class StatsFilter extends HttpFilter {
         Stats.save();
     }
 
+    /** 순수 함수 - 운영자 기기인가(/stats 를 연 브라우저 - StatsServlet.OWNER_COOKIE). */
+    static boolean owner(String cookieHeader) {
+        if (cookieHeader == null) return false;
+        for (String c : cookieHeader.split(";")) if (c.trim().equals(StatsServlet.OWNER_COOKIE + "=1")) return true;
+        return false;
+    }
+
     @Override
     protected void doFilter(HttpServletRequest req, HttpServletResponse res, FilterChain chain) throws IOException, ServletException {
         chain.doFilter(req, res);
-        if (!"GET".equals(req.getMethod()) || res.getStatus() >= 400 || !Stats.isPageView(req.getHeader("X-RF-Prefetch"))) return;
+        if (!"GET".equals(req.getMethod()) || res.getStatus() >= 400 || !Stats.isPageView(req.getHeader("X-RF-Prefetch")) || owner(req.getHeader("Cookie"))) return;
         String page = Stats.pageKey(req.getServletPath() + (req.getPathInfo() == null ? "" : req.getPathInfo()));
         if (page == null) return;
         String ip = SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For"));
