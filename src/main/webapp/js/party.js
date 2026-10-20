@@ -71,11 +71,23 @@
 
     // ------------------------------------------------------------------ 처음 화면
 
+    /**
+     * 안드로이드 브라우저(특히 카톡 · 네이버 · 밴드 안 브라우저 - 앱 링크가 안 걸림)로 참가 링크를 열었으면 "routefly 앱으로 열기" 단추.
+     * intent: 주소 - 앱이 있으면 앱(MainActivity.openLink), 없으면 S.browser_fallback_url 로 이 화면에 그대로(&web=1 - 단추 숨김). 2026-10-20 PC 제안.
+     */
+    function appOpen() {
+        if (!/Android/i.test(navigator.userAgent) || window.Capacitor || q.get("web") === "1" || location.hostname !== "routefly.kr") return;
+        var path = location.pathname + location.search, back = location.href + (location.search ? "&" : "?") + "web=1";
+        $("appOpenBtn").href = "intent://" + location.host + path + "#Intent;scheme=https;package=kr.routefly.app;S.browser_fallback_url=" + encodeURIComponent(back) + ";end";
+        $("appOpen").hidden = false;
+    }
+
     function start() {
         fetch("api/party/status", { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (s) {
             if (!s.enabled) { show("closed"); return; }
             if (RFParty.get()) { enterRoom(); return; }
             show("start");
+            if (q.get("c")) appOpen();
             if (q.get("c")) { $("joinBox").open = true; $("joinCode").value = q.get("c").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6); loadInfo(); }
             try { $("joinNick").value = localStorage.getItem("rf-party-nick") || ""; } catch (e) { /* 없음 */ }
             var t = new Date(Date.now() + 86400000);   // 출발 날짜 - 내일로 두고 고치게
