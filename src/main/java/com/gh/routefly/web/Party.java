@@ -44,6 +44,8 @@ final class Party {
     static final long AFTER_END_MS = 6 * HOUR, NO_TIME_MS = 30 * HOUR, MAX_LIFE_MS = 40L * 24 * HOUR;
     /** 위치는 출발 이만큼 전부터 받음. */
     static final long LOC_BEFORE_MS = 3 * HOUR;
+    /** "버스 탔어요" 는 출발 이만큼 전부터(2026-10-20 홍TV님 - 참가하자마자 단추가 보여 모르고 누를까 봐). 인솔자 좌석표 체크는 언제나. */
+    static final long BOARD_BEFORE_MS = HOUR;
     /** 끝난 방의 열쇠로 오면 왜 끝났는지 알려 줌(이만큼 동안). */
     static final long ENDED_KEEP_MS = 48 * HOUR;
     static final double STILL_M = 30;
@@ -313,8 +315,9 @@ final class Party {
     }
 
     /** 본인 - 출발 때 "버스 탔어요". */
-    synchronized void board(Member m, boolean on) {
+    synchronized void board(Member m, boolean on, long now) {
         if (!"hiker".equals(m.role)) throw new IllegalArgumentException("산행 회원만 누릅니다.");
+        if (on && m.room.departAt > 0 && now < m.room.departAt - BOARD_BEFORE_MS) throw new IllegalStateException("\"버스 탔어요\" 는 출발 1시간 전부터 누를 수 있습니다.");
         if (m.cancelled) throw new IllegalArgumentException("출발 때 탑승하지 않아 이 산행에서 빠졌습니다. 인솔자에게 연락해 주세요.");
         m.boarded = on;
         save();
@@ -610,6 +613,7 @@ final class Party {
         if (me.stop != null) o.addProperty("stop", me.stop);
         o.addProperty("now", now);
         o.addProperty("locFrom", r.departAt > 0 ? r.departAt - LOC_BEFORE_MS : 0);
+        o.addProperty("boardFrom", r.departAt > 0 ? r.departAt - BOARD_BEFORE_MS : 0);
         if (r.notice != null) { o.addProperty("notice", r.notice); o.addProperty("noticeAt", r.noticeAt); }
         JsonArray pins = new JsonArray();   // 버스 세운 자리 - 회원은 자기 호차만, 인솔자 · 운전자는 다
         r.busAt.forEach((k, v) -> {

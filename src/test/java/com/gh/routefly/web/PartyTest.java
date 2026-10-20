@@ -274,7 +274,9 @@ public class PartyTest {
         JsonObject room = j(create(p, T0));
         String code = room.get("code").getAsString(), lead = room.get("token").getAsString();
         String a = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"철수\",\"role\":\"hiker\",\"seat\":3,\"agree\":true}", T0).get("token").getAsString();
-        call(p, "/board", "{\"token\":\"" + a + "\",\"on\":true}", T0);
+        try { call(p, "/board", "{\"token\":\"" + a + "\",\"on\":true}", DEPART - 2 * H); fail("출발 1시간 전보다 이름"); } catch (IllegalStateException e) { assertTrue(e.getMessage().contains("1시간 전")); }
+        assertEquals(DEPART - H, call(p, "/view", tok(a), T0).get("boardFrom").getAsLong());
+        call(p, "/board", "{\"token\":\"" + a + "\",\"on\":true}", DEPART - H);
         call(p, "/depart", tok(lead), T0);
         try { call(p, "/seat", "{\"token\":\"" + a + "\",\"seat\":4}", T0); fail("출발 뒤 회원"); } catch (IllegalStateException e) { assertTrue(e.getMessage().contains("인솔자")); }
         int id = member(call(p, "/view", tok(lead), T0), "철수").get("id").getAsInt();

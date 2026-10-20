@@ -110,7 +110,7 @@ public class PartyServlet extends HttpServlet {
                 return out;
             }
             case "/view" -> { }
-            case "/board" -> p.board(m, on);
+            case "/board" -> p.board(m, on, now);
             case "/aboard" -> p.aboard(m, on);
             case "/seat" -> p.seat(m, integer(in, "id"), integer(in, "bus"), integer(in, "seat"), str(in, "stop"));
             case "/mark" -> { if (!staff) throw new SecurityException("인솔자 · 운전자만 좌석표를 고칠 수 있습니다."); p.mark(m, integer(in, "bus"), (int) lng(in, "seat"), str(in, "what"), on); }

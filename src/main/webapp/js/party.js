@@ -392,7 +392,8 @@
         if (s.departed) $("mySeatBox").open = false;
         if (!$("mySeatBox").open) fillMySeat(s);
         var before = s.departAt && s.now < s.locFrom;
-        $("boardBtn").hidden = s.departed;
+        var early = s.boardFrom && s.now < s.boardFrom && !s.boarded;   // 출발 1시간 전까지는 단추 대신 안내(2026-10-20 홍TV님)
+        $("boardBtn").hidden = s.departed || early;
         $("boardBtn").className = "main big" + (s.boarded ? " on" : "");
         $("boardBtn").textContent = s.boarded ? "✅ 버스 탔어요 (누르면 취소)" : "🚌 버스 탔어요";
         $("tripBtns").hidden = !s.departed;
@@ -403,6 +404,8 @@
         $("phase").innerHTML = s.departed ? (s.aboard ? "🚌 하산 탑승 - 수고하셨습니다." : "🥾 산행 중" + (s.endAt ? " · 하산 마감 " + left(s.endAt, s.now) : ""))
             : s.departAt ? "출발까지 " + left(s.departAt, s.now) + (s.boarded ? " · ✅ 탑승 확인" : "") : "";
         $("hikerTip").textContent = s.departed ? "이 화면이나 따라가기를 켜 둔 동안 30초마다 위치를 보냅니다. 같은 방 사람들이 서로의 위치를 봅니다."
+            : early ? "출발 1시간 전(" + when(s.boardFrom) + ")부터 \"🚌 버스 탔어요\" 단추가 나옵니다. 버스에 타면 그때 누르세요. 출발 때 안 누른 사람은 취소됩니다."
+                + (before ? " 위치는 출발 3시간 전(" + when(s.locFrom) + ")부터 보냅니다." : "")
             : before ? "위치는 출발 3시간 전(" + when(s.locFrom) + ")부터 보냅니다. 출발 날 버스에 타면 \"버스 탔어요\"를 누르세요. 출발 때 안 탄 사람은 취소됩니다."
             : "버스에 타면 \"버스 탔어요\"를 누르세요. 인솔자가 출발을 누를 때 안 탄 사람은 취소됩니다.";
     }
