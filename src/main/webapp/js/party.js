@@ -315,7 +315,8 @@
         var gen = ++bgGen;
         Promise.resolve(BG.addWatcher({ backgroundTitle: "routefly - 산악회 방", backgroundMessage: "화면을 꺼도 인솔자 · 일행에게 위치를 보냅니다(하산 탑승하면 멈춤).",
             requestPermissions: true, stale: false, distanceFilter: 0 }, function (loc, err) {   // 0 - 멈춰 있어도 와야 쉼 · 부상 때 "소식 없음" 이 안 됨, 30초 거르기는 party-kit(2026-10-20 PC: 20 이면 멈춘 폰은 안 보냈음)
-            if (err || !loc) return;
+            if (err && err.code === "NOT_AUTHORIZED") return;
+            if (err || !loc) { var pr = RFParty.ping(); if (pr) pr.then(render).catch(fail); return; }   // GPS 를 못 잡음 - 폰은 켜짐 · 배터리만(2026-10-20 PC)
             lastPos = { lat: loc.latitude, lon: loc.longitude, acc: loc.accuracy, t: Date.now() };
             var r = RFParty.fix(loc.latitude, loc.longitude, loc.accuracy);
             if (r) r.then(render).catch(fail);
@@ -429,18 +430,25 @@
     }
 
     /** SOS → 10분 넘게 소식 없음 → 오래 그 자리 → 나머지, 하산 탑승 · 취소는 아래. */
+    /** 소식 칸 - 폰이 살아 있다고 알린 것(seen)이 위치보다 1분 넘게 새로우면 "폰 방금 · 위치 4분 전"(2026-10-20 PC: 화면 끈 실내는 GPS 를 못 잡음). */
+    function newsText(m) {
+        if (m.seen != null && (m.ago == null || m.ago - m.seen > 60)) return "📵 폰 " + agoText(m.seen) + " · 위치 " + (m.ago == null ? "없음" : agoText(m.ago));
+        return agoText(m.ago);
+    }
+    /** 소식 끊김 - 폰 소식(seen)이 있으면 그것으로(위치를 못 잡아도 폰이 살아 있으면 "소식 없음" 아님). */
+    function silent(m) { var a = m.seen != null ? m.seen : m.ago; return a == null || a > OLD_S; }
     function list(s) {
         sosAlert(s);
         var rows = (s.members || []).filter(function (m) { return m.id !== s.me; });
         rows.sort(function (a, b) { var ka = rank(a), kb = rank(b); return ka !== kb ? ka - kb : (b.stillMin || 0) - (a.stillMin || 0); });
         $("listTitle").textContent = "회원 " + rows.filter(function (m) { return !m.cancelled; }).length + "명" + (rows.some(function (m) { return m.cancelled; }) ? " · 취소 " + rows.filter(function (m) { return m.cancelled; }).length : "");
         $("list").innerHTML = rows.map(function (m) {
-            var cls = m.cancelled ? "aboard" : m.sos ? "sos" : m.aboard ? "aboard" : (s.departed && (m.ago == null || m.ago > OLD_S)) ? "old" : "";
+            var cls = m.cancelled ? "aboard" : m.sos ? "sos" : m.aboard ? "aboard" : (s.departed && silent(m)) ? "old" : "";
             var st = m.cancelled ? "❌ 취소" : m.sos ? "🆘 SOS" : m.aboard ? "🚌 하산 탑승" : m.role === "driver" ? "운전" : m.boarded ? "✅ 탐" : s.departed ? "" : "안 탐";
-            return "<tr class=\"" + cls + "\" data-id=\"" + m.id + "\"><td>" + (m.role === "driver" ? busLabel(s, m.bus) || "-" : seatText(s, m)) + "</td><td>" + esc(m.nick) + (s.role === "lead" ? " <button type=\"button\" class=\"kick\" data-kick=\"" + m.id + "\" title=\"방에서 내보내기\" aria-label=\"" + esc(m.nick) + " 내보내기\">✕</button>" : "") + "</td><td>" + (m.aboard ? "-" : agoText(m.ago)) + "</td><td>"
+            return "<tr class=\"" + cls + "\" data-id=\"" + m.id + "\"><td>" + (m.role === "driver" ? busLabel(s, m.bus) || "-" : seatText(s, m)) + "</td><td>" + esc(m.nick) + (s.role === "lead" ? " <button type=\"button\" class=\"kick\" data-kick=\"" + m.id + "\" title=\"방에서 내보내기\" aria-label=\"" + esc(m.nick) + " 내보내기\">✕</button>" : "") + "</td><td>" + (m.aboard ? "-" : newsText(m)) + "</td><td>"
                 + (m.stillMin != null && m.ago != null ? m.stillMin + "분" : "-") + "</td><td>" + (m.batt != null ? m.batt + "%" : "-") + "</td><td>" + st + "</td></tr>";
         }).join("") || "<tr><td colspan=\"6\">아직 참가한 회원이 없습니다. 참가 안내를 보내 주세요.</td></tr>";
-        function rank(m) { return m.cancelled ? 6 : m.sos ? 0 : m.aboard ? 5 : (s.departed && (m.ago == null || m.ago > OLD_S)) ? 1 : (m.stillMin || 0) >= 15 ? 2 : 3; }
+        function rank(m) { return m.cancelled ? 6 : m.sos ? 0 : m.aboard ? 5 : (s.departed && silent(m)) ? 1 : (m.stillMin || 0) >= 15 ? 2 : 3; }
     }
 
     /** 인솔자 - 회원 내보내기(2026-10-20 홍TV님 - 모르는 사람이 들어왔을 때). */
@@ -540,7 +548,7 @@
             cols = Math.max(cols, at.col + 1);
             if (m) {
                 cls += m.cancelled ? " cxl" : m.sos ? " sos" : m.aboard ? " back" : m.boarded ? " board" : " join";
-                if (s.departed && !m.cancelled && !m.sos && !m.aboard && (m.ago == null || m.ago > OLD_S)) cls += " old";
+                if (s.departed && !m.cancelled && !m.sos && !m.aboard && silent(m)) cls += " old";
                 label = "<small>" + esc(m.nick) + "</small>";
                 if (m.id === picked) cls += " pick";
             } else if (rsv[k]) cls += " rsv";
@@ -794,6 +802,8 @@
         if (!p.sos && !confirm("방 사람들에게 SOS 를 보낼까요? (119 신고는 따라가기의 SOS 를 쓰세요)")) return;
         if (p.sos && !confirm("SOS 를 풀까요? 빨간 SOS 표시가 사라집니다. 다시 필요하면 또 누르면 됩니다.")) return;
         RFParty.sos(!p.sos);
+        var pr = RFParty.ping(true);   // 위치를 못 잡아도 SOS 는 바로(2026-10-20 - 위치가 없으면 SOS 가 안 갔음)
+        if (pr) pr.then(render).catch(fail);
         here(function (lat, lon, acc) {
             var r = RFParty.fix(lat, lon, acc, true);
             if (r) r.then(render).catch(fail);

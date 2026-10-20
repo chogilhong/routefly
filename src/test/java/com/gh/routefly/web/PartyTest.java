@@ -304,4 +304,23 @@ public class PartyTest {
         assertFalse("SOS 풂", m.get("sos").getAsBoolean());
         assertEquals(1, call(p, "/view", tok(lead), DEPART + 8 * H).get("aboardCount").getAsInt());
     }
+
+    /** 위치를 못 잡아도 폰은 켜짐 · 배터리 · SOS(2026-10-20 PC - 화면 끈 실내). */
+    @Test
+    public void pingWithoutPosition() {
+        Party p = new Party();
+        JsonObject room = j(create(p, T0));
+        String code = room.get("code").getAsString(), lead = room.get("token").getAsString();
+        String a = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"철수\",\"role\":\"hiker\",\"agree\":true}", T0).get("token").getAsString();
+        call(p, "/ping", "{\"token\":\"" + a + "\",\"batt\":55}", T0);   // 출발 3시간 전보다 이르면 안 받음
+        assertFalse(member(call(p, "/view", tok(lead), T0), "철수").has("seen"));
+        call(p, "/loc", "{\"token\":\"" + a + "\",\"lat\":38.12,\"lon\":128.47}", DEPART);
+        call(p, "/ping", "{\"token\":\"" + a + "\",\"batt\":54,\"sos\":true}", DEPART + 5 * 60_000);
+        JsonObject m = member(call(p, "/view", tok(lead), DEPART + 5 * 60_000), "철수");
+        assertEquals(0, m.get("seen").getAsLong());
+        assertEquals("위치는 5분 전 그대로", 300, m.get("ago").getAsLong());
+        assertEquals(54, m.get("batt").getAsInt());
+        assertTrue("위치 없이도 SOS", m.get("sos").getAsBoolean());
+        assertFalse("회원에게는 seen 안 감", member(call(p, "/view", tok(a), DEPART + 5 * 60_000), "철수").has("seen"));
+    }
 }

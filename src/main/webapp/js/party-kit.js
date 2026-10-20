@@ -73,6 +73,22 @@
         });
     }
 
+    /**
+     * 위치를 못 잡을 때(화면 끈 실내 · 골짜기 - 앱 BackgroundGeolocation 이 "Location not available") "폰은 켜짐" · 배터리 · SOS 를 보냄(2026-10-20 PC).
+     * 위치와 같은 30초 간격을 씀(force - SOS 를 켜고 끌 때 바로). 돌려줌: 보냈으면 서버 답(Promise), 안 보냈으면 null.
+     */
+    function ping(force) {
+        var p = get();
+        if (!p || busy) return null;
+        var now = Date.now(), sos = !!p.sos;
+        if (!force && sos === lastSos && now - last < EVERY_MS) return null;
+        busy = true;
+        last = now;
+        lastSos = sos;
+        return battery().then(function (b) { return post("ping", { token: p.token, batt: b, sos: sos }); })
+            .finally(function () { busy = false; });
+    }
+
     /** SOS 켜기 · 끄기 - 다음 위치에 실어 바로 보냄. */
     function sos(on) {
         var p = get();
@@ -105,5 +121,5 @@
         return h < 24 && mi < 60 ? [h, mi] : null;
     }
 
-    g.RFParty = { KEY: KEY, get: get, set: set, clear: clear, post: post, fix: fix, sos: sos, onNotice: null, parseDay: parseDay, parseTime: parseTime };
+    g.RFParty = { KEY: KEY, get: get, set: set, clear: clear, post: post, fix: fix, ping: ping, sos: sos, onNotice: null, parseDay: parseDay, parseTime: parseTime };
 })(window);

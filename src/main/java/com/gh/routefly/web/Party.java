@@ -72,6 +72,7 @@ final class Party {
         Double lat, lon, acc;
         Integer batt;
         long t;                // 마지막 위치 받은 때(0 = 아직)
+        long seen;             // 마지막으로 폰이 살아 있다고 알린 때(위치 · ping - 위치를 못 잡아도, 2026-10-20 PC: 화면 끈 실내)
         boolean sos;
         double anchorLat, anchorLon;
         long stillSince;
@@ -308,13 +309,26 @@ final class Party {
         if (m.t == 0 || MountainServlet.distM(m.anchorLat, m.anchorLon, lat, lon) > STILL_M) {
             m.anchorLat = lat; m.anchorLon = lon; m.stillSince = now;
         }
-        m.lat = lat; m.lon = lon; m.acc = acc; m.batt = batt == null ? null : Math.max(0, Math.min(100, batt)); m.t = now;
+        m.lat = lat; m.lon = lon; m.acc = acc; m.batt = batt == null ? null : Math.max(0, Math.min(100, batt)); m.t = now; m.seen = now;
         if (sos && !m.sos) audit.info("sos room={} member={}", m.room.code, m.id);
         m.sos = sos;
         return true;
     }
 
     /** 본인 - 출발 때 "버스 탔어요". */
+    /**
+     * 위치 없이 "폰은 켜져 있음" · 배터리 · SOS(2026-10-20 PC: 화면을 끈 실내 · 골짜기에서 GPS 를 못 잡으면 인솔자에게 소식이 끊긴 것처럼 보였고,
+     * 위치가 없으면 SOS 도 못 보냈음). 출발 3시간 전보다 이르면 · 취소 · 하산 탑승이면 받지 않음.
+     */
+    synchronized void ping(Member m, Integer batt, boolean sos, long now) {
+        if (m.cancelled || m.aboard) return;
+        if (m.room.departAt > 0 && now < m.room.departAt - LOC_BEFORE_MS) return;
+        m.seen = now;
+        if (batt != null) m.batt = Math.max(0, Math.min(100, batt));
+        if (sos && !m.sos) audit.info("sos room={} member={} (위치 없음)", m.room.code, m.id);
+        m.sos = sos;
+    }
+
     synchronized void board(Member m, boolean on, long now) {
         if (!"hiker".equals(m.role)) throw new IllegalArgumentException("산행 회원만 누릅니다.");
         if (on && m.room.departAt > 0 && now < m.room.departAt - BOARD_BEFORE_MS) throw new IllegalStateException("\"버스 탔어요\" 는 출발 1시간 전부터 누를 수 있습니다.");
@@ -647,6 +661,7 @@ final class Party {
                 x.addProperty("cancelled", m.cancelled);
                 if (m.stop != null) x.addProperty("stop", m.stop);
                 if (m.batt != null) x.addProperty("batt", m.batt);
+                if (m.seen > 0) x.addProperty("seen", (now - m.seen) / 1000);   // 폰이 살아 있다고 알린 지 몇 초(위치보다 새로울 수 있음)
                 if (m.t > 0) {
                     if (m.acc != null) x.addProperty("acc", Math.round(m.acc));
                     x.addProperty("stillMin", (now - m.stillSince) / 60000);

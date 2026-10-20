@@ -20,6 +20,7 @@ import com.google.gson.JsonParser;
  * POST /api/party/info   {code}                            참가 전 방 소개(이름 · 출발 · 인솔자 · 인원 · 좌석 수 · 탑승지 · 찬 좌석)
  * POST /api/party/join   {code, nick, role, bus, seat, stop, agree} 회원(hiker) · 운전자(driver) → 열쇠 - agree(위치 제공 동의)가 true 여야
  * POST /api/party/loc    {token, lat, lon, acc, batt, sos} 내 위치(출발 3시간 전부터 받음) → 방 화면
+ * POST /api/party/ping   {token, batt, sos}               위치를 못 잡을 때 - 폰은 켜짐 · 배터리 · SOS(위치 없이)
  * POST /api/party/view   {token}                           방 화면
  * POST /api/party/board  {token, on}                       회원 - 출발 때 버스 탔어요
  * POST /api/party/aboard {token, on}                       회원 - 하산 탑승
@@ -110,6 +111,7 @@ public class PartyServlet extends HttpServlet {
                 return out;
             }
             case "/view" -> { }
+            case "/ping" -> p.ping(m, num(in, "batt") == null ? null : num(in, "batt").intValue(), in.has("sos") && in.get("sos").getAsBoolean(), now);
             case "/board" -> p.board(m, on, now);
             case "/aboard" -> p.aboard(m, on);
             case "/seat" -> p.seat(m, integer(in, "id"), integer(in, "bus"), integer(in, "seat"), str(in, "stop"));
