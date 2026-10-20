@@ -11,7 +11,7 @@
     var OLD_S = 600;        // 10분 넘게 소식이 없으면 주황
     var EXIT = "m/";        // 나가기 · 방 끝 뒤 갈 곳(2026-10-20 홍TV님 - 산 모음)
     var DAYS = ["일", "월", "화", "수", "목", "금", "토"];
-    var map = null, marks = {}, state = null, watch = null, pollTimer = null, lastNoticeAt = null, lastPos = null;
+    var map = null, marks = {}, state = null, watch = null, pollTimer = null, aliveTimer = null, lastNoticeAt = null, lastPos = null;
 
     /** 지금 위치로 fn(lat, lon, acc) - 2분 안에 받은 위치가 있으면 바로, 없으면 새로 받음. */
     function here(fn) {
@@ -296,6 +296,15 @@
         }
         clearInterval(pollTimer);
         pollTimer = setInterval(refresh, staff ? 15000 : 30000);
+        // 위치가 45초 넘게 안 오면 "폰은 켜짐" 만이라도(2026-10-20 PC: 폰 위치를 끄면 앱 위치 콜백이 아예 안 불려 ping 도 안 갔음).
+        // 화면이 꺼지면 웹뷰 타이머가 느려질 수 있으나(1분에 한 번쯤) 알림창 위치 서비스가 앱을 살려 두는 동안은 돎
+        clearInterval(aliveTimer);
+        aliveTimer = setInterval(function () {
+            if (!state || state.cancelled || state.aboard) return;
+            if (lastPos && Date.now() - lastPos.t < 45000) return;
+            var pr = RFParty.ping();
+            if (pr) pr.then(render).catch(fail);
+        }, 60000);
     }
 
     function refresh() {
@@ -326,8 +335,7 @@
         var gen = ++bgGen;
         Promise.resolve(BG.addWatcher({ backgroundTitle: "routefly - 산악회 방", backgroundMessage: "화면을 꺼도 인솔자 · 일행에게 위치를 보냅니다(하산 탑승하면 멈춤).",
             requestPermissions: true, stale: false, distanceFilter: 0 }, function (loc, err) {   // 0 - 멈춰 있어도 와야 쉼 · 부상 때 "소식 없음" 이 안 됨, 30초 거르기는 party-kit(2026-10-20 PC: 20 이면 멈춘 폰은 안 보냈음)
-            if (err && err.code === "NOT_AUTHORIZED") return;
-            if (err || !loc) { var pr = RFParty.ping(); if (pr) pr.then(render).catch(fail); return; }   // GPS 를 못 잡음 - 폰은 켜짐 · 배터리만(2026-10-20 PC)
+            if (err || !loc) { var pr = RFParty.ping(); if (pr) pr.then(render).catch(fail); return; }   // 권한 없음 · GPS 를 못 잡음 - 폰은 켜짐 · 배터리만(2026-10-20 PC)
             lastPos = { lat: loc.latitude, lon: loc.longitude, acc: loc.accuracy, t: Date.now() };
             var r = RFParty.fix(loc.latitude, loc.longitude, loc.accuracy);
             if (r) r.then(render).catch(fail);
@@ -341,7 +349,7 @@
     function exit(text) {
         leaving = true;
         bgStop();
-        clearInterval(pollTimer);
+        clearInterval(pollTimer); clearInterval(aliveTimer);
         if (watch != null) navigator.geolocation.clearWatch(watch);
         RFParty.clear();
         if (text) alert(text);
