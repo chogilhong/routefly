@@ -181,7 +181,7 @@
             $("mySeatBox").hidden = !(s.seats > 0 || (s.stops || []).length);
             if (!$("mySeatBox").open) fillMySeat(s);   // 고르는 중에는 다시 그리지 않음
             $("sosBtn").className = p.sos ? "sos" : "danger";
-            $("sosBtn").textContent = p.sos ? "🆘 SOS 보냄 - 누르면 풂" : "🆘 인솔자에게 SOS";
+            $("sosBtn").textContent = p.sos ? "🆘 SOS 보냄 - 누르면 풀림" : "🆘 인솔자에게 SOS";
         } else {
             list(s);
             seatMap(s);
@@ -190,7 +190,24 @@
     }
 
     /** 인솔자 · 운전자 목록 - SOS → 10분 넘게 소식 없음 → 오래 그 자리 → 나머지, 탑승한 사람은 맨 아래. */
+    var sosSeen = {};
+    /** 새로 SOS 를 켠 회원이 있으면 인솔자 · 운전자 폰을 떨고 읽어 줌(2026-10-20 - 화면만 바뀌면 놓칠 수 있음). */
+    function sosAlert(s) {
+        var now = {};
+        (s.members || []).forEach(function (m) {
+            if (!m.sos || m.id === s.me) return;
+            now[m.id] = 1;
+            if (sosSeen[m.id]) return;
+            var who = m.nick + (m.seat ? "(" + m.seat + "번)" : "");
+            roomMsg("🆘 " + who + " 님이 SOS 를 보냈습니다.");
+            if (navigator.vibrate) navigator.vibrate([400, 150, 400, 150, 400]);
+            try { speechSynthesis.speak(new SpeechSynthesisUtterance(who + " 님이 에스오에스를 보냈습니다")); } catch (e) { /* 없음 */ }
+        });
+        sosSeen = now;
+    }
+
     function list(s) {
+        sosAlert(s);
         var rows = (s.members || []).filter(function (m) { return m.id !== s.me; });
         rows.sort(function (a, b) {
             var ka = rank(a), kb = rank(b);
@@ -418,6 +435,7 @@
     $("sosBtn").addEventListener("click", function () {
         var p = RFParty.get();
         if (!p.sos && !confirm("인솔자에게 SOS 를 보낼까요? (119 신고는 따라가기의 SOS 를 쓰세요)")) return;
+        if (p.sos && !confirm("SOS 를 풀까요? 인솔자 화면의 빨간 SOS 표시가 사라집니다. 다시 필요하면 또 누르면 됩니다.")) return;
         RFParty.sos(!p.sos);
         here(function (lat, lon, acc) {
             var r = RFParty.fix(lat, lon, acc, true);   // 보내는 중이었으면 party-kit 이 끝난 뒤 다시 보냄
