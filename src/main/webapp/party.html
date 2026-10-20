@@ -74,6 +74,12 @@ select, input[type=number] { width:100%; height:44px; padding:0 10px; border-rad
 .s.back { background:var(--green); border-color:var(--green); color:#06210c; }
 .s.aisle { visibility:hidden; }
 #mkPlates { display:grid; grid-template-columns:1fr 1fr; gap:0 10px; }
+#joinBox > summary { list-style:none; cursor:pointer; display:flex; align-items:center; justify-content:space-between; }
+#joinBox > summary::-webkit-details-marker { display:none; }
+#joinBox > summary h2 { margin:0; }
+#joinBox > summary::after { content:"펼치기 ▾"; font-size:13px; color:var(--sky); flex:0 0 auto; }
+#joinBox[open] > summary { margin-bottom:8px; }
+#joinBox[open] > summary::after { content:"접기 ▴"; }
 #busTabs button { flex:0 0 auto; min-height:36px; padding:0 12px; font-size:13.5px; }
 #busTabs button.on { background:var(--sky); color:#062026; border-color:var(--sky); }
 .s.drv { border:0; cursor:default; font-size:16px; }
@@ -111,7 +117,8 @@ a.tel { color:var(--sky); }
 
     <div id="start" hidden>
         <section>
-            <h2>🙋 참가하기 (회원 · 운전자)</h2>
+            <details id="joinBox">   <!-- 2026-10-20 홍TV님: 접어 두고 누르면 펼침, ?c= 코드로 오면 펼친 채 -->
+            <summary><h2>🙋 참가하기 (회원 · 운전자)</h2></summary>
             <label for="joinCode">방 코드 (인솔자가 보낸 6글자)</label>
             <input id="joinCode" type="text" maxlength="6" autocomplete="off" autocapitalize="characters">
             <div id="joinCard" class="card" hidden></div>
@@ -134,6 +141,7 @@ a.tel { color:var(--sky); }
                 인솔자 · 운전자에게는 <b>배터리 · 탑승</b>도 보여 주는 데 동의합니다. 위치는 출발 3시간 전부터 보내고, 방을 나가거나 산행이 끝나면 지워집니다.
                 <a href="privacy.html#party" style="color:var(--sky)">자세히</a></label></div>
             <button id="joinBtn" class="main">참가하기</button>
+            </details>
         </section>
         <section>
             <h2>🧭 방 만들기 (인솔자)</h2>

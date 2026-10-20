@@ -76,7 +76,7 @@
             if (!s.enabled) { show("closed"); return; }
             if (RFParty.get()) { enterRoom(); return; }
             show("start");
-            if (q.get("c")) { $("joinCode").value = q.get("c").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6); loadInfo(); }
+            if (q.get("c")) { $("joinBox").open = true; $("joinCode").value = q.get("c").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6); loadInfo(); }
             try { $("joinNick").value = localStorage.getItem("rf-party-nick") || ""; } catch (e) { /* 없음 */ }
             var t = new Date(Date.now() + 86400000);   // 출발 날짜 - 내일로 두고 고치게
             $("mkDate").value = t.getFullYear() + "-" + two(t.getMonth() + 1) + "-" + two(t.getDate());
