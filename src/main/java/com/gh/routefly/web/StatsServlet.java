@@ -35,30 +35,13 @@ public class StatsServlet extends HttpServlet {
         resp.setCharacterEncoding(StandardCharsets.UTF_8.name());
         resp.setHeader("Cache-Control", "no-store");
         resp.setHeader("X-Robots-Tag", "noindex");
-        resp.getWriter().print(page(Stats.days(), 30).replace("</main></body>", feedbackHtml(Feedback.STORE.recent(30)) + "</main></body>"));
+        resp.getWriter().print(page(Stats.days(), 30));
     }
 
     /** 순수 함수 - 열쇠가 설정돼 있고(12자 이상) 같을 때만(시간이 같은 견줌). */
     static boolean allowed(String want, String got) {
         if (want == null || want.length() < 12 || got == null) return false;
         return MessageDigest.isEqual(want.getBytes(StandardCharsets.UTF_8), got.getBytes(StandardCharsets.UTF_8));
-    }
-
-    /** 순수 함수 - 의견 보내기 최근 것(메일이 안 될 때도 여기서 봄). */
-    static String feedbackHtml(List<JsonObject> list) {
-        StringBuilder b = new StringBuilder("<h2>📮 의견 (최근 " + list.size() + ")</h2>");
-        if (list.isEmpty()) return b.append("<p class=\"dim\">아직 없습니다.</p>").toString();
-        b.append("<table><tr><th>시각</th><th>화면</th><th>내용</th><th>답장</th></tr>");
-        for (JsonObject o : list) {
-            b.append("<tr><td>").append(Feedback.stamp(o.get("at").getAsLong())).append("</td><td>").append(h(o.has("page") ? o.get("page").getAsString() : ""))
-                    .append("</td><td style=\"white-space:pre-wrap\">").append(h(o.get("text").getAsString())).append("</td><td>")
-                    .append(o.has("reply") ? h(o.get("reply").getAsString()) : "").append("</td></tr>");
-        }
-        return b.append("</table>").toString();
-    }
-
-    private static String h(String s) {
-        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
     }
 
     /** 순수 함수 - 보기 화면(최근 n 일). */

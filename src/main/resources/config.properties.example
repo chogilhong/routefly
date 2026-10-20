@@ -94,7 +94,7 @@ site.baseUrl=
 #party.enabled=false
 
 # ---------------------------------------------------------------- 의견 보내기(2026-10-20) - feedback.html · /api/feedback
-# 손님 글을 이 메일로 보냄(SMTPS 465). 넷 중 하나라도 비면 메일 없이 파일(stats.dir/feedback/)에만 남고 /stats 아래에서 봄.
+# 손님 글을 이 메일로 보냄(SMTPS 465). 넷 중 하나라도 비면 메일 없이 파일(stats.dir/feedback/)에만 남음.
 # Gmail: Google 계정 → 보안 → 2단계 인증 켜기 → "앱 비밀번호" 만들기(16자). 계정 비밀번호가 아니라 그 앱 비밀번호를 넣음.
 #mail.smtp.host=smtp.gmail.com
 #mail.smtp.port=465

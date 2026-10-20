@@ -844,7 +844,7 @@ war 에는 늘 들어 있지만 설정을 켜기 전에는 "준비 중" 화면�
 
 ## 14. 의견 보내기 메일 (2026-10-20)
 
-손님이 앱의 "📮 의견 보내기"(feedback.html)에 적은 글을 운영자 Gmail 로 받습니다. 메일 설정이 없어도 글은 `feedback.dir`(비우면 `stats.dir/feedback`)의 `feedback-YYYY-MM.jsonl`(600)에 남고 `/routefly/stats?key=…` 맨 아래 "📮 의견"에서 봅니다.
+손님이 앱의 "📮 의견 보내기"(feedback.html)에 적은 글을 운영자 Gmail 로 받습니다. 메일 설정이 없어도 글은 `feedback.dir`(비우면 `stats.dir/feedback`)의 `feedback-YYYY-MM.jsonl`(600)에 남습니다(메일이 안 될 때 대비 - 화면으로는 보지 않음, 2026-10-20 홍TV님 "메일로 봄").
 
 1. 홍TV님: Google 계정 → 보안 → 2단계 인증을 켬 → "앱 비밀번호"를 만듦(16자, 이름 예: routefly). 계정 비밀번호는 쓰지 않습니다.
 2. 홍TV님이 서버의 `/opt/routefly/config.properties` 에 직접 적음(Claude 는 읽지도 적지도 않음 - 예시는 config.properties.example 맨 아래):

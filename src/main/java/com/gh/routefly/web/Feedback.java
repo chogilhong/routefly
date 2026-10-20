@@ -16,7 +16,6 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Base64;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -30,10 +29,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 
 /**
- * 의견 보내기(2026-10-20 홍TV님 - "나에게 메일"). 손님이 앱에서 적은 글을 운영자 메일로 보내고, 파일에도 남김(메일이 안 될 때 /stats 에서 봄).
+ * 의견 보내기(2026-10-20 홍TV님 - "나에게 메일"). 손님이 앱에서 적은 글을 운영자 메일로 보내고, 파일에도 남김(메일이 안 될 때를 대비 - 화면으로는 안 봄, 2026-10-20 홍TV님 "메일로 봄").
  * <ul>
  *   <li>파일: feedback.dir(없으면 stats.dir/feedback, 그것도 없으면 톰캣 폴더/routefly-stats/feedback)/feedback-YYYY-MM.jsonl (600) - 12달 지나면 지움. IP 는 남기지 않음.</li>
  *   <li>메일: 설정 mail.smtp.host · mail.smtp.user · mail.smtp.password · mail.to 가 다 있을 때만(SMTPS 465, 비번은 Gmail 앱 비밀번호).</li>
@@ -152,26 +150,6 @@ final class Feedback {
         } catch (IOException e) {
             log.warn("[FEEDBACK] 파일에 쓰지 못함 - {}", e.toString());
         }
-    }
-
-    /** 최근 n 개(새것부터) - /stats 보기. */
-    synchronized List<JsonObject> recent(int n) {
-        List<JsonObject> out = new ArrayList<>();
-        if (dir == null || !Files.isDirectory(dir)) return out;
-        try (var s = Files.list(dir)) {
-            List<Path> files = new ArrayList<>(s.filter(p -> p.getFileName().toString().matches("feedback-\\d{4}-\\d{2}\\.jsonl")).sorted().toList());
-            Collections.reverse(files);
-            for (Path f : files) {
-                List<String> lines = Files.readAllLines(f, StandardCharsets.UTF_8);
-                for (int i = lines.size() - 1; i >= 0 && out.size() < n; i--) {
-                    if (!lines.get(i).isBlank()) out.add(JsonParser.parseString(lines.get(i)).getAsJsonObject());
-                }
-                if (out.size() >= n) break;
-            }
-        } catch (Exception e) {
-            log.warn("[FEEDBACK] 파일을 읽지 못함 - {}", e.toString());
-        }
-        return out;
     }
 
     // ---------------------------------------------------------------- 메일(SMTPS - 따로 라이브러리 없이)

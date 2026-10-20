@@ -48,11 +48,11 @@ public class FeedbackTest {
         try { FeedbackServlet.handle(f, j("{\"text\":\"넷째\"}"), "1.2.3.4", T0 + 10); fail("10분에 3번"); } catch (IllegalStateException e) { /* 맞음 */ }
         FeedbackServlet.handle(f, j("{\"text\":\"다른 곳\"}"), "5.6.7.8", T0 + 10);
         FeedbackServlet.handle(f, j("{\"text\":\"10분 뒤\"}"), "1.2.3.4", T0 + 601_000);
-        List<JsonObject> r = f.recent(30);
-        assertEquals(5, r.size());
-        assertEquals("새것부터", "10분 뒤", r.get(0).get("text").getAsString());
-        assertEquals("a@b.kr", r.get(4).get("reply").getAsString());
         Path file = dir.resolve("feedback-2025-10.jsonl");
+        List<String> lines = Files.readAllLines(file);
+        assertEquals(5, lines.size());
+        assertEquals("10분 뒤", j(lines.get(4)).get("text").getAsString());
+        assertEquals("a@b.kr", j(lines.get(0)).get("reply").getAsString());
         assertTrue(Files.exists(file));
         assertFalse("IP 는 남기지 않음", Files.readString(file).contains("1.2.3.4"));
         try { assertEquals("rw-------", java.nio.file.attribute.PosixFilePermissions.toString(Files.getPosixFilePermissions(file))); } catch (UnsupportedOperationException e) { /* 윈도 */ }
@@ -64,8 +64,6 @@ public class FeedbackTest {
         assertFalse(Files.exists(dir.resolve("feedback-2024-09.jsonl")));
         assertTrue(Files.exists(dir.resolve("feedback-2024-11.jsonl")));
 
-        String html = StatsServlet.feedbackHtml(List.of(j("{\"at\":" + T0 + ",\"page\":\"/x\",\"text\":\"<script>\"}")));
-        assertTrue(html.contains("&lt;script&gt;") && !html.contains("<script>"));
     }
 
     /** 가짜 메일 서버(평문)로 보내 봄 - 순서 · 로그인 · 한글 제목 · 본문. */
