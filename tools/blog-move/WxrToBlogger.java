@@ -46,7 +46,7 @@ public class WxrToBlogger {
     static final String WP = "http://wordpress.org/export/";   // 판마다 1.0 · 1.1 · 1.2 - 앞부분으로 찾음
     static final String CONTENT = "http://purl.org/rss/1.0/modules/content/";
     static final String DC = "http://purl.org/dc/elements/1.1/";
-    static final int MAX_LABELS = 20, MAX_LABEL_CHARS = 200;
+    static final int MAX_LABELS = 20, MAX_LABEL_BYTES = 200;
 
     record Post(String id, String title, String html, String published, String updated, String slug, String link,
                 String author, List<String> labels) {}
@@ -113,17 +113,21 @@ public class WxrToBlogger {
         return out;
     }
 
-    /** 카테고리 먼저, 그다음 태그. 같은 이름은 한 번. 글당 20개 · 글자 합 200자까지(넘치면 뒤에서 뺌). */
+    /**
+     * 카테고리 먼저, 그다음 태그. 같은 이름은 한 번. 글당 20개 · 쉼표로 이은 UTF-8 200바이트까지(넘치면 뒤에서 뺌).
+     * 2026-10-20 시험: 쉼표 이음 209바이트는 들어가고 286 · 298바이트는 라벨이 통째로 빠짐 - 바이트로 세고 넉넉히 200.
+     */
     static List<String> labels(Set<String> cats, Set<String> tags) {
         Set<String> all = new LinkedHashSet<>();
         for (String c : cats) all.add(c.replaceAll("\\s*,\\s*", " "));
         for (String t : tags) all.add(t.replaceAll("\\s*,\\s*", " "));   // 블로그스팟 라벨에 쉼표는 못 씀
         List<String> out = new ArrayList<>();
-        int chars = 0;
+        int bytes = 0;
         for (String l : all) {
-            if (out.size() >= MAX_LABELS || chars + l.length() > MAX_LABEL_CHARS) break;
+            int b = l.getBytes(StandardCharsets.UTF_8).length + (out.isEmpty() ? 0 : 1);   // 앞 쉼표 1바이트
+            if (out.size() >= MAX_LABELS || bytes + b > MAX_LABEL_BYTES) continue;   // 긴 것은 건너뛰고 짧은 뒤엣것은 넣음
             out.add(l);
-            chars += l.length();
+            bytes += b;
         }
         return out;
     }
@@ -163,11 +167,12 @@ public class WxrToBlogger {
         return "1970-01-01T00:00:00.000Z";
     }
 
-    /** 새 주소 이름(예상): /YYYY/MM/&lt;이름&gt;.html - 글이름이 영문 · 숫자면 그대로, 한글 등이면 p&lt;글번호&gt;. */
+    /** 새 주소 이름(블로그스팟이 이대로 씀 - 2026-10-20 시험): /YYYY/MM(한국 날짜)/&lt;이름&gt;.html - 글이름이 영문 · 숫자면 그대로, 한글 등이면 p&lt;글번호&gt;. */
     static String filename(Post p) {
         String slug = p.slug() == null ? "" : URLDecoder.decode(p.slug(), StandardCharsets.UTF_8).toLowerCase(Locale.ROOT);
         String name = slug.matches("[a-z0-9][a-z0-9-]{0,60}") ? slug : "p" + p.id();
-        return "/" + p.published().substring(0, 4) + "/" + p.published().substring(5, 7) + "/" + name + ".html";
+        String kst = java.time.Instant.parse(p.published()).atZone(java.time.ZoneId.of("Asia/Seoul")).toString();   // 연 · 월은 한국 날짜로
+        return "/" + kst.substring(0, 4) + "/" + kst.substring(5, 7) + "/" + name + ".html";
     }
 
     // ---------------------------------------------------------------- 쓰기

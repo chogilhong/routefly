@@ -42,6 +42,35 @@
     <category domain="category" nicename="uncategorized"><![CDATA[Uncategorized]]></category>
   </item>
   <item>
+    <title>라벨 많은 글</title>
+    <link>https://example.kr/many-tags/</link>
+    <dc:creator><![CDATA[tester]]></dc:creator>
+    <content:encoded><![CDATA[<p>본문</p>]]></content:encoded>
+    <wp:post_id>30</wp:post_id>
+    <wp:post_date><![CDATA[2026-09-01 05:00:00]]></wp:post_date>
+    <wp:post_date_gmt><![CDATA[2026-08-31 20:00:00]]></wp:post_date_gmt>
+    <wp:post_modified_gmt><![CDATA[2026-08-31 20:00:00]]></wp:post_modified_gmt>
+    <wp:post_name><![CDATA[many-tags]]></wp:post_name>
+    <wp:status><![CDATA[publish]]></wp:status>
+    <wp:post_type><![CDATA[post]]></wp:post_type>
+    <category domain="category" nicename="sports"><![CDATA[스포츠]]></category>
+    <category domain="post_tag" nicename="t0"><![CDATA[긴한글태그이름번호0]]></category>
+    <category domain="post_tag" nicename="t1"><![CDATA[긴한글태그이름번호1]]></category>
+    <category domain="post_tag" nicename="t2"><![CDATA[긴한글태그이름번호2]]></category>
+    <category domain="post_tag" nicename="t3"><![CDATA[긴한글태그이름번호3]]></category>
+    <category domain="post_tag" nicename="t4"><![CDATA[긴한글태그이름번호4]]></category>
+    <category domain="post_tag" nicename="t5"><![CDATA[긴한글태그이름번호5]]></category>
+    <category domain="post_tag" nicename="t6"><![CDATA[긴한글태그이름번호6]]></category>
+    <category domain="post_tag" nicename="t7"><![CDATA[긴한글태그이름번호7]]></category>
+    <category domain="post_tag" nicename="t8"><![CDATA[긴한글태그이름번호8]]></category>
+    <category domain="post_tag" nicename="t9"><![CDATA[긴한글태그이름번호9]]></category>
+    <category domain="post_tag" nicename="t10"><![CDATA[긴한글태그이름번호10]]></category>
+    <category domain="post_tag" nicename="t11"><![CDATA[긴한글태그이름번호11]]></category>
+    <category domain="post_tag" nicename="t12"><![CDATA[긴한글태그이름번호12]]></category>
+    <category domain="post_tag" nicename="t13"><![CDATA[긴한글태그이름번호13]]></category>
+    <category domain="post_tag" nicename="t14"><![CDATA[긴한글태그이름번호14]]></category>
+  </item>
+  <item>
     <title>임시 글</title>
     <wp:post_id>20</wp:post_id>
     <wp:status><![CDATA[draft]]></wp:status>
