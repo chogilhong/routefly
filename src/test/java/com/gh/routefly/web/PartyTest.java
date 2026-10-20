@@ -121,5 +121,21 @@ public class PartyTest {
         try { call(p, "/mark", "{\"token\":\"" + lead + "\",\"seat\":21,\"what\":\"reserved\",\"on\":true}", T0); fail("사람 있는 자리는 예약 표시 안 됨"); }
         catch (IllegalArgumentException e) { /* 맞음 */ }
         assertEquals(8, Party.stops("a,b,c,d,e,f,g,h,i,j").size());
+
+        // 자리 바꾸기(2026-10-20) - 회원은 자기 것, 인솔자는 아무나, 남의 자리 · 없는 자리는 안 됨
+        String b = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"영희\",\"role\":\"hiker\",\"seat\":5,\"agree\":true}", T0).get("token").getAsString();
+        JsonObject bv = call(p, "/seat", "{\"token\":\"" + b + "\",\"seat\":6,\"stop\":\"복정\"}", T0);
+        assertEquals(6, bv.get("seat").getAsInt());
+        assertEquals("복정", bv.get("stop").getAsString());
+        assertEquals("회원 화면에도 찬 자리(나 빼고)", "[21]", bv.getAsJsonArray("taken").toString());
+        try { call(p, "/seat", "{\"token\":\"" + b + "\",\"seat\":21}", T0); fail("남의 자리"); } catch (IllegalArgumentException e) { assertTrue(e.getMessage().contains("철수")); }
+        int aId = call(p, "/view", "{\"token\":\"" + a + "\"}", T0).get("me").getAsInt();
+        try { call(p, "/seat", "{\"token\":\"" + b + "\",\"id\":" + aId + ",\"seat\":9}", T0); fail("회원이 남을 옮김"); } catch (SecurityException e) { /* 맞음 */ }
+        call(p, "/seat", "{\"token\":\"" + lead + "\",\"id\":" + aId + ",\"seat\":9,\"stop\":\"사당\"}", T0);   // 인솔자가 철수를 9번으로
+        JsonObject av = call(p, "/view", "{\"token\":\"" + a + "\"}", T0);
+        assertEquals(9, av.get("seat").getAsInt());
+        assertFalse("자리를 옮기면 출발 탑승 표시는 새로", av.get("boarded").getAsBoolean());
+        call(p, "/seat", "{\"token\":\"" + b + "\",\"seat\":null}", T0);   // 자리 빼기
+        assertFalse(call(p, "/view", "{\"token\":\"" + b + "\"}", T0).has("seat"));
     }
 }

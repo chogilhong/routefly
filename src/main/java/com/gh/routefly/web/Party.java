@@ -199,6 +199,34 @@ final class Party {
         if (on) m.sos = false;
     }
 
+    /**
+     * 자리 · 탑승지 바꾸기(2026-10-20 홍TV님 - 회원 · 인솔자가 고친 자리를 고칠 수 있어야). 회원은 자기 것만, 인솔자 · 운전자는 아무나(targetId).
+     * seat null = 자리 빼기. 다른 사람이 있는 자리는 안 됨(먼저 그 사람을 옮김). 옮겨 간 자리의 "예약됨" 표시는 지움.
+     */
+    synchronized void seat(Member actor, Integer targetId, Integer seat, String stop) {
+        Room r = actor.room;
+        boolean staff = "lead".equals(actor.role) || "driver".equals(actor.role);
+        Member t = actor;
+        if (targetId != null && targetId != actor.id) {
+            if (!staff) throw new SecurityException("다른 사람의 자리는 인솔자 · 운전자만 바꿀 수 있습니다.");
+            t = null;
+            for (Member m : r.members.values()) if (m.id == targetId) t = m;
+            if (t == null) throw new IllegalArgumentException("그 회원을 찾지 못했습니다.");
+        }
+        if (!"hiker".equals(t.role)) throw new IllegalArgumentException("자리는 산행 회원만 고릅니다.");
+        if (seat != null) {
+            if (seat < 1 || seat > r.seats) throw new IllegalArgumentException("좌석 번호는 1 ~ " + r.seats + " 입니다.");
+            Member there = r.atSeat(seat);
+            if (there != null && there != t) throw new IllegalArgumentException(seat + "번 자리에는 " + there.nick + " 님이 있습니다.");
+        }
+        String st = clean(stop, 12);
+        if (st != null && !r.stops.isEmpty() && !r.stops.contains(st)) throw new IllegalArgumentException("탑승지를 골라 주세요.");
+        if (seat != null && !seat.equals(t.seat)) t.boarded = false;   // 자리를 옮기면 출발 탑승 표시는 새로
+        t.seat = seat;
+        t.stop = st;
+        if (seat != null) r.reserved.remove(seat);
+    }
+
     /** 인솔자 · 운전자 - 좌석표에서 그 자리를 "출발 탑승" (사람이 있으면) 또는 "예약됨"(빈자리) 으로 켜고 끔. */
     synchronized void mark(Member staff, int seat, String what, boolean on) {
         Room r = staff.room;
@@ -289,6 +317,14 @@ final class Party {
         if (r.notice != null) { o.addProperty("notice", r.notice); o.addProperty("noticeAt", r.noticeAt); }
         if (r.busLat != null) { o.addProperty("busLat", r.busLat); o.addProperty("busLon", r.busLon); }
         o.addProperty("count", r.members.size());
+        if (r.seats > 0 || !r.stops.isEmpty()) {   // 자리 바꾸기 칸 - 좌석 수 · 탑승지 · 찬 자리 번호(누구인지는 없음)
+            o.addProperty("seats", r.seats);
+            JsonArray st = new JsonArray(), taken = new JsonArray();
+            r.stops.forEach(st::add);
+            for (Member m : r.members.values()) if (m.seat != null && m != me) taken.add(m.seat);
+            o.add("stops", st);
+            o.add("taken", taken);
+        }
         return o;
     }
 

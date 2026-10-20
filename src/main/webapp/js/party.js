@@ -175,6 +175,8 @@
         if (!staff) {
             $("aboardBtn").className = s.aboard ? "on" : "";
             $("aboardBtn").textContent = s.aboard ? "✅ 탑승함(누르면 취소)" : "🚌 버스 탑승(하산 끝)";
+            $("mySeatBox").hidden = !(s.seats > 0 || (s.stops || []).length);
+            if (!$("mySeatBox").open) fillMySeat(s);   // 고르는 중에는 다시 그리지 않음
             $("sosBtn").className = p.sos ? "sos" : "danger";
             $("sosBtn").textContent = p.sos ? "🆘 SOS 보냄 - 누르면 풂" : "🆘 인솔자에게 SOS";
         } else {
@@ -200,6 +202,33 @@
         }).join("") || "<tr><td colspan=\"6\">아직 참가한 회원이 없습니다. 참가 링크를 보내 주세요.</td></tr>";
         function rank(m) { return m.sos ? 0 : m.aboard ? 4 : (m.ago == null || m.ago > OLD_S) ? 1 : (m.stillMin || 0) >= 15 ? 2 : 3; }
     }
+
+    /** 좌석 고르기 칸 채우기 - 찬 자리(나 빼고)는 못 고름. */
+    function seatOptions(sel, seats, taken, cur) {
+        var t = {};
+        (taken || []).forEach(function (n) { t[n] = 1; });
+        var o = ["<option value=\"\">없음</option>"];
+        for (var i = 1; i <= seats; i++) o.push("<option value=\"" + i + "\"" + (t[i] ? " disabled" : "") + (i === cur ? " selected" : "") + ">" + i + (t[i] ? " (참가함)" : "") + "</option>");
+        sel.innerHTML = o.join("");
+    }
+    function stopOptions(sel, stops, cur) {
+        sel.innerHTML = "<option value=\"\">없음</option>" + (stops || []).map(function (x) { return "<option" + (x === cur ? " selected" : "") + ">" + esc(x) + "</option>"; }).join("");
+        sel.parentNode.hidden = !(stops || []).length;
+    }
+    function fillMySeat(s) {
+        seatOptions($("mySeat"), s.seats || 0, s.taken, s.seat);
+        $("mySeat").parentNode.hidden = !(s.seats > 0);
+        stopOptions($("myStop"), s.stops, s.stop);
+    }
+    $("mySeatBox").addEventListener("toggle", function () { if ($("mySeatBox").open && state) fillMySeat(state); });
+    $("mySeatBtn").addEventListener("click", function () {
+        var p = RFParty.get();
+        RFParty.post("seat", { token: p.token, seat: $("mySeat").value ? +$("mySeat").value : null, stop: $("myStop").value || null }).then(function (j) {
+            $("mySeatBox").open = false;
+            render(j);
+            roomMsg("자리를 바꿨습니다.");
+        }).catch(function (e) { roomMsg(e.message); });
+    });
 
     /**
      * 좌석표 - 예약 사이트처럼 앞(운전석)이 왼쪽, 위 줄 3 · 6 · 9 …, 통로, 아래 두 줄 2 · 5 · 8 … / 1 · 4 · 7 ….
@@ -229,6 +258,7 @@
                 if (!m.sos && !m.aboard && (m.ago == null || m.ago > OLD_S) && m.boarded) cls += " old";
                 label = "<small>" + esc(m.nick) + "</small>";
             } else if (rsv[k]) cls += " rsv";
+            if (m && m.id === picked) cls += " pick";
             cells.push("<div class=\"" + cls + "\" data-seat=\"" + k + "\" style=\"grid-column:" + (at.col + 2) + ";grid-row:" + at.row + "\""
                 + (m ? " title=\"" + esc(m.nick + (m.stop ? " · " + m.stop : "")) + "\"" : "") + ">" + k + label + "</div>");
         }
@@ -244,14 +274,60 @@
         }).join(" · ");
     }
 
+    /**
+     * 좌석 누르기(2026-10-20 홍TV님 - 인솔자도 자리를 고칠 수 있게): 사람 자리 → 아래 메뉴(출발 탑승 · 자리 옮기기 · 지도 · 탑승지),
+     * 빈자리 → 예약됨 켜고 끄기. "자리 옮기기" 를 누른 뒤 빈자리를 누르면 그리로 옮김.
+     */
+    var picked = null, moving = false;
+    function memberAt(k) { return state && (state.members || []).filter(function (x) { return x.seat === k; })[0]; }
+    function pick(m) {
+        picked = m ? m.id : null;
+        moving = false;
+        $("seatMap").classList.remove("moving");
+        $("seatAct").hidden = !m;
+        if (!m) return;
+        $("seatActName").innerHTML = "<b>" + m.seat + "번 " + esc(m.nick) + "</b>" + (m.stop ? " · " + esc(m.stop) : "") + " · " + agoText(m.ago);
+        $("actBoard").textContent = m.boarded ? "출발 탑승 취소" : "✅ 출발 탑승";
+        stopOptions($("actStop"), state.stops, m.stop);
+        $("actStopBox").hidden = !(state.stops || []).length;
+    }
+    function pickedMember() { return state && (state.members || []).filter(function (x) { return x.id === picked; })[0]; }
     $("seatMap").addEventListener("click", function (e) {
         var el = e.target.closest("[data-seat]");
         if (!el || !state) return;
-        var k = +el.getAttribute("data-seat"), p = RFParty.get();
-        var m = (state.members || []).filter(function (x) { return x.seat === k; })[0];
-        var body = m ? { token: p.token, seat: k, what: "boarded", on: !m.boarded }
-            : { token: p.token, seat: k, what: "reserved", on: (state.reserved || []).indexOf(k) < 0 };
-        RFParty.post("mark", body).then(render).catch(function (er) { roomMsg(er.message); });
+        var k = +el.getAttribute("data-seat"), p = RFParty.get(), m = memberAt(k);
+        if (moving) {   // 옮길 자리 고르는 중
+            var who = pickedMember();
+            if (!who || (m && m.id === who.id)) { pick(null); seatMap(state); roomMsg(""); return; }
+            if (m) { roomMsg(k + "번 자리에는 " + m.nick + " 님이 있습니다. 빈자리를 누르세요."); return; }
+            RFParty.post("seat", { token: p.token, id: who.id, seat: k, stop: who.stop || null }).then(function (j) { pick(null); render(j); roomMsg(who.nick + " 님을 " + k + "번으로 옮겼습니다."); })
+                .catch(function (er) { roomMsg(er.message); });
+            return;
+        }
+        if (m) { pick(m); seatMap(state); return; }
+        pick(null);
+        RFParty.post("mark", { token: p.token, seat: k, what: "reserved", on: (state.reserved || []).indexOf(k) < 0 }).then(render).catch(function (er) { roomMsg(er.message); });
+    });
+    $("actBoard").addEventListener("click", function () {
+        var m = pickedMember(), p = RFParty.get();
+        if (!m) return;
+        RFParty.post("mark", { token: p.token, seat: m.seat, what: "boarded", on: !m.boarded }).then(function (j) { render(j); pick(pickedMember()); }).catch(function (er) { roomMsg(er.message); });
+    });
+    $("actMove").addEventListener("click", function () {
+        if (!pickedMember()) return;
+        moving = true;
+        $("seatMap").classList.add("moving");
+        roomMsg("옮길 빈자리를 누르세요. (그만두려면 같은 자리를 다시 누르세요)");
+    });
+    $("actMap").addEventListener("click", function () {
+        var m = pickedMember();
+        if (m && m.lat != null && map) { map.easeTo({ center: [m.lon, m.lat], zoom: Math.max(map.getZoom(), 15) }); window.scrollTo({ top: $("mapBox").offsetTop - 70, behavior: "smooth" }); }
+        else roomMsg("아직 위치가 없습니다.");
+    });
+    $("actStop").addEventListener("change", function () {
+        var m = pickedMember(), p = RFParty.get();
+        if (!m) return;
+        RFParty.post("seat", { token: p.token, id: m.id, seat: m.seat, stop: $("actStop").value || null }).then(function (j) { render(j); pick(pickedMember()); }).catch(function (er) { roomMsg(er.message); });
     });
 
     $("list").addEventListener("click", function (e) {   // 줄을 누르면 지도에서 그 사람

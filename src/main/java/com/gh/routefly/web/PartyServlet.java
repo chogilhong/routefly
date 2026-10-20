@@ -19,6 +19,7 @@ import com.google.gson.JsonParser;
  * POST /api/party/create {name, endAt, seats, stops} 인솔자 → 방 + 열쇠(seats 버스 좌석 수 0~60, stops "사당, 양재, 복정")
  * POST /api/party/info   {code}                    참가 전 - 방 이름 · 좌석 수 · 탑승지 · 이미 찬 좌석 번호
  * POST /api/party/join   {code, nick, role, seat, stop, agree} 회원(hiker) · 운전자(driver) → 열쇠 - agree(위치 제공 동의)가 true 여야
+ * POST /api/party/seat   {token, id?, seat, stop}   자리 · 탑승지 바꾸기 - 회원은 자기 것, 인솔자 · 운전자는 id 로 아무나
  * POST /api/party/mark   {token, seat, what: boarded|reserved, on} 인솔자 · 운전자 - 좌석표에서 출발 탑승 · 예약됨
  * POST /api/party/loc    {token, lat, lon, acc, batt, sos} 내 위치 → 방 상태
  * POST /api/party/view   {token}                   방 상태만(인솔자 · 운전자는 회원 위치까지)
@@ -101,6 +102,7 @@ public class PartyServlet extends HttpServlet {
             case "/aboard" -> p.aboard(m, in.has("on") && in.get("on").getAsBoolean());
             case "/mark" -> { if (!staff) throw new SecurityException("인솔자 · 운전자만 좌석표를 고칠 수 있습니다.");
                 p.mark(m, num(in, "seat") == null ? 0 : num(in, "seat").intValue(), str(in, "what"), in.has("on") && in.get("on").getAsBoolean()); }
+            case "/seat" -> p.seat(m, num(in, "id") == null ? null : num(in, "id").intValue(), num(in, "seat") == null ? null : num(in, "seat").intValue(), str(in, "stop"));
             case "/notice" -> { if (!lead) throw new SecurityException("인솔자만 공지할 수 있습니다."); p.notice(m, str(in, "text"), now); }
             case "/bus" -> { if (!staff) throw new SecurityException("인솔자 · 운전자만 버스 자리를 정할 수 있습니다."); p.bus(m, num(in, "lat"), num(in, "lon")); }
             case "/leave" -> { p.leave(m); return ok(); }

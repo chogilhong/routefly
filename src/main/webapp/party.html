@@ -73,6 +73,8 @@ select, input[type=number] { width:100%; height:44px; padding:0 10px; border-rad
 .s.back { background:var(--green); border-color:var(--green); color:#06210c; }
 .s.aisle { visibility:hidden; }
 .s.drv { border:0; cursor:default; font-size:16px; }
+.s.pick { outline:3px solid #ffd43b; outline-offset:1px; }
+#seatMap.moving .s:not(.join):not(.board):not(.sos):not(.back):not(.drv) { border-color:#ffd43b; border-style:solid; }
 .legend { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
 .legend .s { min-width:0; height:auto; padding:3px 8px; cursor:default; font-size:11.5px; }
 .pm .d { width:16px; height:16px; border-radius:50%; background:var(--sky); border:2px solid #fff; box-shadow:0 1px 3px rgba(0,0,0,0.6); }
@@ -149,11 +151,28 @@ select, input[type=number] { width:100%; height:44px; padding:0 10px; border-rad
                 <button id="aboardBtn">🚌 버스 탑승(하산 끝)</button>
             </div>
             <div class="row"><button id="sosBtn" class="danger">🆘 인솔자에게 SOS</button></div>
+            <details id="mySeatBox" hidden>
+                <summary class="tip" style="cursor:pointer">💺 자리 · 탑승지 바꾸기</summary>
+                <div class="two">
+                    <div><label for="mySeat">좌석 번호</label><select id="mySeat"></select></div>
+                    <div><label for="myStop">탑승지</label><select id="myStop"></select></div>
+                </div>
+                <div class="row"><button id="mySeatBtn">저장</button></div>
+            </details>
             <p class="tip">이 화면이나 따라가기를 켜 둔 동안 30초마다 위치를 보냅니다. 화면을 끄면 앱(따라가기)에서만 계속 보냅니다.</p>
         </section>
         <section id="seatSec" hidden>
             <h2>🚌 좌석표 <small id="seatSum" style="font-weight:normal;color:var(--dim);font-size:13px"></small></h2>
             <div id="seatMap"></div>
+            <div id="seatAct" hidden>
+                <div id="seatActName" style="font-size:14px;margin:6px 0"></div>
+                <div class="row">
+                    <button id="actBoard">출발 탑승</button>
+                    <button id="actMove">💺 자리 옮기기</button>
+                    <button id="actMap">🗺 지도</button>
+                </div>
+                <div class="two" id="actStopBox"><div><label for="actStop">탑승지 바꾸기</label><select id="actStop"></select></div><div></div></div>
+            </div>
             <div id="stopSum" class="tip"></div>
             <p class="tip">사람이 있는 자리를 누르면 <b>출발 탑승</b> 표시 · 빈자리를 누르면 <b>예약됨</b>(예약했는데 아직 참가 안 함) 표시를 켜고 끕니다.</p>
             <div class="legend"><span class="s rsv">예약 · 미참가</span><span class="s join">참가</span><span class="s board">출발 탑승</span><span class="s old">10분 소식 없음</span><span class="s sos">SOS</span><span class="s back">하산 탑승</span></div>
