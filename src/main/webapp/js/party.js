@@ -79,7 +79,7 @@
             if (q.get("c")) { $("joinBox").open = true; $("joinCode").value = q.get("c").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6); loadInfo(); }
             try { $("joinNick").value = localStorage.getItem("rf-party-nick") || ""; } catch (e) { /* 없음 */ }
             var t = new Date(Date.now() + 86400000);   // 출발 날짜 - 내일로 두고 고치게
-            $("mkDate").value = t.getFullYear() + "-" + two(t.getMonth() + 1) + "-" + two(t.getDate());
+            $("mkDate").value = dayText(t);
         }).catch(function () { show("closed"); $("closed").querySelector("p").textContent = "서버에 닿지 않습니다. 인터넷 연결을 확인해 주세요."; });
     }
 
@@ -137,20 +137,34 @@
         var keep = Array.prototype.map.call(old, function (x) { return x.value; });
         var h = "";
         for (var b = 1; b <= n; b++) h += "<div><label for=\"mkPlate" + b + "\">" + (n > 1 ? b + "호차" : "차량번호") + "</label><input id=\"mkPlate" + b
-            + "\" type=\"text\" maxlength=\"12\" placeholder=\"예: 서울70사1234\" value=\"" + esc(keep[b - 1] || "") + "\"></div>";
+            + "\" type=\"text\" maxlength=\"12\" placeholder=\"예: 12가3456\" value=\"" + esc(keep[b - 1] || "") + "\"></div>";
         box.innerHTML = h;
     }
     $("mkBuses").addEventListener("input", plateInputs);
     plateInputs();
 
+    /** 날짜 · 시각 숫자 칸(폰 달력 · 시계 창 대신) - 칸을 떠나면 "10/22(목)" · "07:00" 으로 바꿔 보여 줌. */
+    function dayText(d) { return (d.getMonth() + 1) + "/" + d.getDate() + "(" + DAYS[d.getDay()] + ")"; }
+    function timeText(hm) { return two(hm[0]) + ":" + two(hm[1]); }
+    $("mkDate").addEventListener("blur", function () { var d = RFParty.parseDay(this.value, Date.now()); if (d) this.value = dayText(d); else if (this.value.trim()) msg("출발 날짜를 숫자로 적어 주세요(예: 10월 22일 → 1022)."); });
+    $("mkDate").addEventListener("focus", function () { this.select(); });
+    ["mkTime", "mkEnd"].forEach(function (id) {
+        $(id).addEventListener("blur", function () { var hm = RFParty.parseTime(this.value); if (hm) this.value = timeText(hm); else if (this.value.trim()) msg("시각을 숫자로 적어 주세요(예: 아침 7시 → 0700, 오후 4시 → 1600)."); });
+        $(id).addEventListener("focus", function () { this.select(); });
+    });
+
     $("mkBtn").addEventListener("click", function () {
         var name = $("mkName").value.trim();
         if (!name) { msg("산행 이름을 적어 주세요."); return; }
-        if (!$("mkDate").value || !$("mkTime").value) { msg("출발 날짜 · 시각을 정해 주세요."); return; }
-        var dp = $("mkDate").value.split("-"), tp = $("mkTime").value.split(":");
+        var day = RFParty.parseDay($("mkDate").value, Date.now()), tp = RFParty.parseTime($("mkTime").value);
+        if (!day) { msg("출발 날짜를 숫자로 적어 주세요(예: 10월 22일 → 1022)."); return; }
+        if (!tp) { msg("출발 시각을 숫자로 적어 주세요(예: 아침 7시 → 0700)."); return; }
+        var dp = [day.getFullYear(), day.getMonth() + 1, day.getDate()];
         var depart = new Date(+dp[0], +dp[1] - 1, +dp[2], +tp[0], +tp[1]).getTime(), endAt = 0;
-        if ($("mkEnd").value) {   // 하산 마감 - 출발 날 그 시각, 출발보다 이르면 다음 날(무박)
-            var ep = $("mkEnd").value.split(":"), e = new Date(+dp[0], +dp[1] - 1, +dp[2], +ep[0], +ep[1]);
+        if ($("mkEnd").value.trim()) {   // 하산 마감 - 출발 날 그 시각, 출발보다 이르면 다음 날(무박)
+            var ep = RFParty.parseTime($("mkEnd").value);
+            if (!ep) { msg("하산 마감 시각을 숫자로 적어 주세요(예: 오후 4시 → 1600)."); return; }
+            var e = new Date(+dp[0], +dp[1] - 1, +dp[2], +ep[0], +ep[1]);
             if (e.getTime() <= depart) e.setDate(e.getDate() + 1);
             endAt = e.getTime();
         }

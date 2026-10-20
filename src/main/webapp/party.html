@@ -156,11 +156,11 @@ a.tel { color:var(--sky); }
             <label for="mkName">산행 이름</label>
             <input id="mkName" type="text" maxlength="30" placeholder="예: 설악산 공룡능선 무박">
             <div class="two">
-                <div><label for="mkDate">출발 날짜</label><input id="mkDate" type="date"></div>
-                <div><label for="mkTime">출발 시각</label><input id="mkTime" type="time"></div>
+                <div><label for="mkDate">출발 날짜</label><input id="mkDate" type="text" inputmode="numeric" maxlength="12" autocomplete="off" placeholder="예: 1022"></div>
+                <div><label for="mkTime">출발 시각</label><input id="mkTime" type="text" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="예: 0700"></div>
             </div>
             <div class="two">
-                <div><label for="mkEnd">하산 마감</label><input id="mkEnd" type="time"></div>
+                <div><label for="mkEnd">하산 마감</label><input id="mkEnd" type="text" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="예: 1600"></div>
                 <div><label for="mkMin">최소 인원</label><input id="mkMin" type="number" min="0" max="80" value="18" inputmode="numeric"></div>
             </div>
             <div class="two">
@@ -173,7 +173,7 @@ a.tel { color:var(--sky); }
             </div>
             <div id="mkPlates" class="plates"></div>
             <label for="mkStops">탑승지</label><input id="mkStops" type="text" maxlength="80" placeholder="사당, 양재, 복정">
-            <p class="tip">하산 마감이 출발 시각보다 이르면 다음 날로 봅니다(무박). 단풍철처럼 차가 여러 대면 차량 수를 적으세요(호차마다 좌석표). 좌석표가 없으면 좌석 0. 탑승지는 쉼표로 나눠 적기. 차량번호는 회원 화면에 나가니 버스 찾기 쉽습니다(모르면 비우고 나중에 적어도 됨).
+            <p class="tip">날짜 · 시각은 숫자만 쳐도 됩니다(10월 22일 → 1022, 아침 7시 → 0700, 오후 4시 → 1600). 하산 마감이 출발 시각보다 이르면 다음 날로 봅니다(무박). 단풍철처럼 차가 여러 대면 차량 수를 적으세요(호차마다 좌석표). 좌석표가 없으면 좌석 0. 탑승지는 쉼표로 나눠 적기. 차량번호는 회원 화면에 나가니 버스 찾기 쉽습니다(모르면 비우고 나중에 적어도 됨).
                 방을 만들면 참가 링크(방 코드 · 출발 · 인솔자 안내 글)를 카톡 · 문자로 예약한 회원에게 보내세요.</p>
             <button id="mkBtn" class="main">방 만들기</button>
         </section>

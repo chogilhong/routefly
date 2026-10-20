@@ -81,5 +81,29 @@
         set(p);
     }
 
-    g.RFParty = { KEY: KEY, get: get, set: set, clear: clear, post: post, fix: fix, sos: sos, onNotice: null };
+    /**
+     * 순수 함수 - 날짜를 숫자로(2026-10-20 홍TV님: 폰 달력 창 대신 숫자 칸). "1022" · "10-22" · "10/22" · "10.22" · "10월 22일" · "922"(9/22) → Date(그 날 0시).
+     * 해는 now 의 해 - 어제보다 앞이면 다음 해. 틀리면 null.
+     */
+    function parseDay(s, now) {
+        var t = String(s == null ? "" : s).replace(/\(.*\)/, "").trim().replace(/^\d{4}\D+/, ""), m = t.match(/^(\d{1,2})\D+(\d{1,2})\D*$/), mo, d;
+        if (m) { mo = +m[1]; d = +m[2]; }
+        else if (/^\d{3,4}$/.test(t)) { mo = +t.slice(0, t.length - 2); d = +t.slice(-2); }
+        else return null;
+        if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+        var n = new Date(now), x = new Date(n.getFullYear(), mo - 1, d);
+        if (x.getMonth() !== mo - 1) return null;   // 2/30 등
+        if (x.getTime() < new Date(n.getFullYear(), n.getMonth(), n.getDate() - 1).getTime()) x = new Date(n.getFullYear() + 1, mo - 1, d);
+        return x;
+    }
+    /** 순수 함수 - 시각을 숫자로: "0700" · "700" · "7:00" · "7" · "15" · "15시 30분" → [시, 분](24시간). 틀리면 null. */
+    function parseTime(s) {
+        var t = String(s == null ? "" : s).trim(), m = t.match(/^(\d{1,2})(?:\D+(\d{1,2})\D*)?$/), h, mi;
+        if (m && !(m[2] === undefined && t.length > 2)) { h = +m[1]; mi = m[2] === undefined ? 0 : +m[2]; }
+        else if (/^\d{3,4}$/.test(t)) { h = +t.slice(0, t.length - 2); mi = +t.slice(-2); }
+        else return null;
+        return h < 24 && mi < 60 ? [h, mi] : null;
+    }
+
+    g.RFParty = { KEY: KEY, get: get, set: set, clear: clear, post: post, fix: fix, sos: sos, onNotice: null, parseDay: parseDay, parseTime: parseTime };
 })(window);
