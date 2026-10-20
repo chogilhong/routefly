@@ -105,6 +105,13 @@
         });
     }
 
+    $("mkShow").addEventListener("click", function (e) {
+        e.preventDefault();
+        $("mkShowRow").hidden = true;
+        $("mkSec").hidden = false;
+        $("mkSec").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
     function start() {
         fetch("api/party/status", { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (s) {
             if (!s.enabled) { show("closed"); return; }
@@ -112,7 +119,7 @@
             if (taken) { taken.then(function (j) { enterRoom(j); }).catch(function (e) { msg(e.message); if (RFParty.get()) enterRoom(); else show("start"); }); return; }
             if (RFParty.get()) { enterRoom(); return; }
             show("start");
-            if (q.get("c")) appOpen();
+            if (q.get("c")) { appOpen(); $("mkSec").hidden = true; $("mkShowRow").hidden = false; }
             if (q.get("c")) { $("joinBox").open = true; $("joinCode").value = q.get("c").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6); loadInfo(); }
             try { $("joinNick").value = localStorage.getItem("rf-party-nick") || ""; } catch (e) { /* 없음 */ }
             var t = new Date(Date.now() + 86400000);   // 출발 날짜 - 내일로 두고 고치게
