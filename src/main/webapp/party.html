@@ -141,6 +141,14 @@ select, input[type=number] { width:100%; height:44px; padding:0 10px; border-rad
         <div id="notice"></div>
         <section>
             <div id="bar"></div>
+            <details id="mySeatBox" hidden>
+                <summary style="display:none">자리 · 탑승지 바꾸기</summary>   <!-- 위 줄 "✏️ 바꾸기" 로 엶 -->
+                <div class="two">
+                    <div><label for="mySeat">💺 좌석</label><select id="mySeat"></select></div>
+                    <div><label for="myStop">탑승지</label><select id="myStop"></select></div>
+                </div>
+                <div class="row"><button id="mySeatBtn">저장</button><button id="mySeatClose">닫기</button></div>
+            </details>
             <div class="row" id="leadRow" hidden>
                 <button id="shareBtn">📨 참가 링크 보내기</button>
             </div>
@@ -152,14 +160,6 @@ select, input[type=number] { width:100%; height:44px; padding:0 10px; border-rad
                 <button id="aboardBtn">🚌 버스 탑승(하산 끝)</button>
             </div>
             <div class="row"><button id="sosBtn" class="danger">🆘 인솔자에게 SOS</button></div>
-            <details id="mySeatBox" hidden>
-                <summary class="tip" style="cursor:pointer">💺 자리 · 탑승지 바꾸기</summary>
-                <div class="two">
-                    <div><label for="mySeat">💺 좌석</label><select id="mySeat"></select></div>
-                    <div><label for="myStop">탑승지</label><select id="myStop"></select></div>
-                </div>
-                <div class="row"><button id="mySeatBtn">저장</button></div>
-            </details>
             <p class="tip">이 화면이나 따라가기를 켜 둔 동안 30초마다 위치를 보냅니다. 화면을 끄면 앱(따라가기)에서만 계속 보냅니다.</p>
         </section>
         <section id="seatSec" hidden>

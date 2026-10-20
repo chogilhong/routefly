@@ -242,11 +242,13 @@
     }
     $("bar").addEventListener("click", function (e) {   // 바의 "✏️ 바꾸기" → 자리 바꾸기 칸을 열고 그리로
         if (!e.target.closest("#editSeat") || !state) return;
+        if ($("mySeatBox").open) { $("mySeatBox").open = false; return; }   // 다시 누르면 닫음
         $("mySeatBox").open = true;
         fillMySeat(state);
-        $("mySeatBox").scrollIntoView({ behavior: "smooth", block: "center" });
+        $("mySeatBox").scrollIntoView({ behavior: "smooth", block: "nearest" });   // 바로 아래(지도 위) - 2026-10-20 홍TV님
     });
     $("mySeatBox").addEventListener("toggle", function () { if ($("mySeatBox").open && state) fillMySeat(state); });
+    $("mySeatClose").addEventListener("click", function () { $("mySeatBox").open = false; });
     $("mySeatBtn").addEventListener("click", function () {
         var p = RFParty.get();
         RFParty.post("seat", { token: p.token, seat: $("mySeat").value ? +$("mySeat").value : null, stop: $("myStop").value || null }).then(function (j) {
