@@ -50,10 +50,31 @@
             var p = RFParty.get();
             if (p) { enterRoom(); return; }
             show("start");
-            if (q.get("c")) $("joinCode").value = q.get("c").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+            if (q.get("c")) { $("joinCode").value = q.get("c").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6); loadInfo(); }
             try { $("joinNick").value = localStorage.getItem("rf-party-nick") || ""; } catch (e) { /* 없음 */ }
         }).catch(function () { show("closed"); $("closed").querySelector("p").textContent = "서버에 닿지 않습니다. 인터넷 연결을 확인해 주세요."; });
     }
+
+    /** 방 코드 6글자를 적으면 그 방의 좌석 수 · 탑승지(이미 찬 자리는 고를 수 없게). */
+    var infoFor = null;
+    function loadInfo() {
+        var code = $("joinCode").value.trim().toUpperCase();
+        if (code.length !== 6 || code === infoFor) return;
+        infoFor = code;
+        RFParty.post("info", { code: code }).then(function (j) {
+            msg("");
+            $("joinSeatBox").hidden = !(j.seats > 0 || (j.stops || []).length);
+            var taken = {};
+            (j.taken || []).forEach(function (n) { taken[n] = 1; });
+            var opt = ["<option value=\"\">고르기</option>"];
+            for (var i = 1; i <= j.seats; i++) opt.push("<option value=\"" + i + "\"" + (taken[i] ? " disabled" : "") + ">" + i + (taken[i] ? " (참가함)" : "") + "</option>");
+            $("joinSeat").innerHTML = opt.join("");
+            $("joinSeat").parentNode.hidden = !(j.seats > 0);
+            $("joinStop").innerHTML = "<option value=\"\">고르기</option>" + (j.stops || []).map(function (t) { return "<option>" + esc(t) + "</option>"; }).join("");
+            $("joinStop").parentNode.hidden = !(j.stops || []).length;
+        }).catch(function (e) { infoFor = null; $("joinSeatBox").hidden = true; msg(e.message); });
+    }
+    $("joinCode").addEventListener("input", loadInfo);
 
     $("joinBtn").addEventListener("click", function () {
         var code = $("joinCode").value.trim().toUpperCase(), nick = $("joinNick").value.trim();
@@ -62,7 +83,11 @@
         if (!nick) { msg("별명을 적어 주세요."); return; }
         if (!$("joinAgree").checked) { msg("위치 제공에 동의해야 참가할 수 있습니다."); return; }
         $("joinBtn").disabled = true;
-        RFParty.post("join", { code: code, nick: nick, role: role, agree: true }).then(function (j) {
+        var seat = !$("joinSeatBox").hidden && !$("joinSeat").parentNode.hidden && $("joinSeat").value ? +$("joinSeat").value : null;
+        var stop = !$("joinSeatBox").hidden && !$("joinStop").parentNode.hidden && $("joinStop").value ? $("joinStop").value : null;
+        if (role === "hiker" && !$("joinSeatBox").hidden && !$("joinSeat").parentNode.hidden && !seat
+            && !confirm("좌석 번호를 고르지 않았습니다. 인솔자 좌석표에 안 나옵니다. 그래도 참가할까요?")) return;
+        RFParty.post("join", { code: code, nick: nick, role: role, seat: role === "hiker" ? seat : null, stop: stop, agree: true }).then(function (j) {
             try { localStorage.setItem("rf-party-nick", nick); } catch (e) { /* 이번만 */ }
             RFParty.set({ code: j.code, token: j.token, role: j.role, name: j.name });
             enterRoom(j);
@@ -79,7 +104,7 @@
             endAt = d.getTime();
         }
         $("mkBtn").disabled = true;
-        RFParty.post("create", { name: name, endAt: endAt }).then(function (j) {
+        RFParty.post("create", { name: name, endAt: endAt, seats: Math.max(0, Math.min(60, +$("mkSeats").value || 0)), stops: $("mkStops").value }).then(function (j) {
             RFParty.set({ code: j.code, token: j.token, role: "lead", name: j.name });
             enterRoom(j);
         }).catch(function (e) { msg(e.message); }).finally(function () { $("mkBtn").disabled = false; });
@@ -133,8 +158,9 @@
         roomMsg("");
         var p = RFParty.get() || {}, staff = s.role === "lead" || s.role === "driver";
         var bar = ["방 코드 <b id=\"code\">" + esc(s.code) + "</b>", "참가 <b>" + s.count + "</b>명"];
-        if (staff) bar.push("탑승 <b>" + (s.aboardCount || 0) + "</b> / " + (s.members || []).filter(function (m) { return m.role === "hiker"; }).length);
+        if (staff) bar.push("하산 탑승 <b>" + (s.aboardCount || 0) + "</b> / " + (s.members || []).filter(function (m) { return m.role === "hiker"; }).length);
         if (s.endAt) bar.push(endText(s.endAt, s.now));
+        if (!staff && (s.seat || s.stop)) bar.push("내 자리 <b>" + (s.seat ? s.seat + "번" : "-") + "</b>" + (s.stop ? " · " + esc(s.stop) : "") + (s.boarded ? " · ✅ 출발 탑승 확인" : ""));
         $("bar").innerHTML = bar.join(" · ");
         if (s.notice) {
             $("notice").style.display = "block";
@@ -153,6 +179,7 @@
             $("sosBtn").textContent = p.sos ? "🆘 SOS 보냄 - 누르면 풂" : "🆘 인솔자에게 SOS";
         } else {
             list(s);
+            seatMap(s);
         }
         drawMap(s);
     }
@@ -168,11 +195,64 @@
         $("list").innerHTML = rows.map(function (m) {
             var cls = m.sos ? "sos" : m.aboard ? "aboard" : (m.ago == null || m.ago > OLD_S) ? "old" : "";
             var st = m.sos ? "🆘 SOS" : m.aboard ? "🚌 탑승" : m.role === "driver" ? "운전" : "";
-            return "<tr class=\"" + cls + "\" data-id=\"" + m.id + "\"><td>" + esc(m.nick) + "</td><td>" + agoText(m.ago) + "</td><td>"
+            return "<tr class=\"" + cls + "\" data-id=\"" + m.id + "\"><td>" + (m.seat || "-") + "</td><td>" + esc(m.nick) + "</td><td>" + agoText(m.ago) + "</td><td>"
                 + (m.stillMin != null && m.ago != null ? m.stillMin + "분" : "-") + "</td><td>" + (m.batt != null ? m.batt + "%" : "-") + "</td><td>" + st + "</td></tr>";
-        }).join("") || "<tr><td colspan=\"5\">아직 참가한 회원이 없습니다. 참가 링크를 보내 주세요.</td></tr>";
+        }).join("") || "<tr><td colspan=\"6\">아직 참가한 회원이 없습니다. 참가 링크를 보내 주세요.</td></tr>";
         function rank(m) { return m.sos ? 0 : m.aboard ? 4 : (m.ago == null || m.ago > OLD_S) ? 1 : (m.stillMin || 0) >= 15 ? 2 : 3; }
     }
+
+    /**
+     * 좌석표 - 예약 사이트처럼 앞(운전석)이 왼쪽, 위 줄 3 · 6 · 9 …, 통로, 아래 두 줄 2 · 5 · 8 … / 1 · 4 · 7 ….
+     * 좌석 수가 3 으로 나눠 1 이 남으면(28석 우등) 맨 뒤 줄은 4자리 - 맨 끝 앞자리가 통로에 옴(25 · 26 · 27 · 28).
+     */
+    function seatPos(k, n) {
+        var col = Math.floor((k - 1) / 3), p = (k - 1) % 3, row = p === 0 ? 4 : p === 1 ? 3 : 1;
+        if (n % 3 === 1 && n > 3) {
+            var last = Math.floor((n - 2) / 3);   // 4자리 줄
+            if (k === n) return { col: last, row: 1 };
+            if (k === n - 1) return { col: last, row: 2 };
+        }
+        return { col: col, row: row };
+    }
+
+    function seatMap(s) {
+        $("seatSec").hidden = !(s.seats > 0);
+        if (!(s.seats > 0)) return;
+        var by = {}, rsv = {}, cols = 0, cells = [];
+        (s.members || []).forEach(function (m) { if (m.seat) by[m.seat] = m; });
+        (s.reserved || []).forEach(function (n) { rsv[n] = 1; });
+        for (var k = 1; k <= s.seats; k++) {
+            var at = seatPos(k, s.seats), m = by[k], cls = "s", label = "";
+            cols = Math.max(cols, at.col + 1);
+            if (m) {
+                cls += m.sos ? " sos" : m.aboard ? " back" : m.boarded ? " board" : " join";
+                if (!m.sos && !m.aboard && (m.ago == null || m.ago > OLD_S) && m.boarded) cls += " old";
+                label = "<small>" + esc(m.nick) + "</small>";
+            } else if (rsv[k]) cls += " rsv";
+            cells.push("<div class=\"" + cls + "\" data-seat=\"" + k + "\" style=\"grid-column:" + (at.col + 2) + ";grid-row:" + at.row + "\""
+                + (m ? " title=\"" + esc(m.nick + (m.stop ? " · " + m.stop : "")) + "\"" : "") + ">" + k + label + "</div>");
+        }
+        cells.push("<div class=\"s drv\" style=\"grid-column:1;grid-row:4\" title=\"운전석\">🛞</div>");
+        $("seatMap").style.gridTemplateColumns = "repeat(" + (cols + 1) + ", minmax(30px, 1fr))";
+        $("seatMap").innerHTML = cells.join("");
+        var seated = (s.members || []).filter(function (m) { return m.seat; });
+        $("seatSum").textContent = "예약 · 미참가 " + (s.reserved || []).length + " · 참가 " + seated.length + " · 출발 탑승 "
+            + seated.filter(function (m) { return m.boarded; }).length + " · 하산 탑승 " + seated.filter(function (m) { return m.aboard; }).length;
+        $("stopSum").innerHTML = (s.stops || []).map(function (t) {
+            var at = (s.members || []).filter(function (m) { return m.stop === t; });
+            return "<b>" + esc(t) + "</b> 탐 " + at.filter(function (m) { return m.boarded; }).length + " / 참가 " + at.length;
+        }).join(" · ");
+    }
+
+    $("seatMap").addEventListener("click", function (e) {
+        var el = e.target.closest("[data-seat]");
+        if (!el || !state) return;
+        var k = +el.getAttribute("data-seat"), p = RFParty.get();
+        var m = (state.members || []).filter(function (x) { return x.seat === k; })[0];
+        var body = m ? { token: p.token, seat: k, what: "boarded", on: !m.boarded }
+            : { token: p.token, seat: k, what: "reserved", on: (state.reserved || []).indexOf(k) < 0 };
+        RFParty.post("mark", body).then(render).catch(function (er) { roomMsg(er.message); });
+    });
 
     $("list").addEventListener("click", function (e) {   // 줄을 누르면 지도에서 그 사람
         var tr = e.target.closest("tr[data-id]");

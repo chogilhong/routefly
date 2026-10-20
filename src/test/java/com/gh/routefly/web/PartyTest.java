@@ -83,4 +83,43 @@ public class PartyTest {
         assertEquals("철수 b", Party.clean("  철수\n<b>\t ", 12));
         assertNull(Party.clean("<>", 12));
     }
+
+    /** 좌석표(2026-10-20 홍TV님 - 예약 사이트 좌석표처럼, 회원이 직접 좌석 · 탑승지를 고름). */
+    @Test
+    public void seats() {
+        Party p = new Party();
+        JsonObject room = call(p, "/create", "{\"name\":\"설악산\",\"seats\":28,\"stops\":\"사당, 양재 · 복정,사당\"}", T0);
+        String code = room.get("code").getAsString(), lead = room.get("token").getAsString();
+        assertEquals("[\"사당\",\"양재\",\"복정\"]", room.getAsJsonArray("stops").toString());
+        assertEquals(28, room.get("seats").getAsInt());
+
+        call(p, "/mark", "{\"token\":\"" + lead + "\",\"seat\":21,\"what\":\"reserved\",\"on\":true}", T0);   // 예약 사이트에서 본 예약 자리
+        JsonObject info = call(p, "/info", "{\"code\":\"" + code + "\"}", T0);
+        assertEquals(28, info.get("seats").getAsInt());
+        assertFalse("참가 전 정보에 사람은 없음", info.has("members"));
+
+        String a = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"철수\",\"role\":\"hiker\",\"seat\":21,\"stop\":\"사당\",\"agree\":true}", T0).get("token").getAsString();
+        assertEquals("[21]", call(p, "/info", "{\"code\":\"" + code + "\"}", T0).getAsJsonArray("taken").toString());
+        try { call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"영희\",\"role\":\"hiker\",\"seat\":21,\"agree\":true}", T0); fail("같은 자리"); }
+        catch (IllegalArgumentException e) { assertTrue(e.getMessage().contains("21번")); }
+        try { call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"영희\",\"role\":\"hiker\",\"seat\":29,\"agree\":true}", T0); fail("없는 자리"); }
+        catch (IllegalArgumentException e) { /* 맞음 */ }
+        try { call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"영희\",\"role\":\"hiker\",\"stop\":\"강남\",\"agree\":true}", T0); fail("없는 탑승지"); }
+        catch (IllegalArgumentException e) { /* 맞음 */ }
+
+        try { call(p, "/mark", "{\"token\":\"" + a + "\",\"seat\":21,\"what\":\"boarded\",\"on\":true}", T0); fail("회원은 좌석표 못 고침"); } catch (SecurityException e) { /* 맞음 */ }
+        call(p, "/mark", "{\"token\":\"" + lead + "\",\"seat\":21,\"what\":\"boarded\",\"on\":true}", T0);
+        JsonObject v = call(p, "/view", "{\"token\":\"" + lead + "\"}", T0);
+        JsonObject m = v.getAsJsonArray("members").get(1).getAsJsonObject();
+        assertEquals(21, m.get("seat").getAsInt());
+        assertEquals("사당", m.get("stop").getAsString());
+        assertTrue("출발 탑승", m.get("boarded").getAsBoolean());
+        assertEquals("참가하면 예약 표시는 빠짐", "[]", v.getAsJsonArray("reserved").toString());
+        JsonObject me = call(p, "/view", "{\"token\":\"" + a + "\"}", T0);
+        assertEquals(21, me.get("seat").getAsInt());
+        assertTrue(me.get("boarded").getAsBoolean());
+        try { call(p, "/mark", "{\"token\":\"" + lead + "\",\"seat\":21,\"what\":\"reserved\",\"on\":true}", T0); fail("사람 있는 자리는 예약 표시 안 됨"); }
+        catch (IllegalArgumentException e) { /* 맞음 */ }
+        assertEquals(8, Party.stops("a,b,c,d,e,f,g,h,i,j").size());
+    }
 }

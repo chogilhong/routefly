@@ -16,8 +16,10 @@ import com.google.gson.JsonParser;
  * 산악회 방 API(Party - 2026-10-20 홍TV님). 열쇠(token)는 주소가 아니라 본문으로(접속 기록에 남지 않게), 응답은 저장하지 않음(no-store).
  * <pre>
  * GET  /api/party/status                          {enabled}
- * POST /api/party/create {name, endAt}             인솔자 → 방 + 열쇠
- * POST /api/party/join   {code, nick, role, agree} 회원(hiker) · 운전자(driver) → 열쇠 - agree(위치 제공 동의)가 true 여야
+ * POST /api/party/create {name, endAt, seats, stops} 인솔자 → 방 + 열쇠(seats 버스 좌석 수 0~60, stops "사당, 양재, 복정")
+ * POST /api/party/info   {code}                    참가 전 - 방 이름 · 좌석 수 · 탑승지 · 이미 찬 좌석 번호
+ * POST /api/party/join   {code, nick, role, seat, stop, agree} 회원(hiker) · 운전자(driver) → 열쇠 - agree(위치 제공 동의)가 true 여야
+ * POST /api/party/mark   {token, seat, what: boarded|reserved, on} 인솔자 · 운전자 - 좌석표에서 출발 탑승 · 예약됨
  * POST /api/party/loc    {token, lat, lon, acc, batt, sos} 내 위치 → 방 상태
  * POST /api/party/view   {token}                   방 상태만(인솔자 · 운전자는 회원 위치까지)
  * POST /api/party/aboard {token, on}               버스 탑승(하산)
@@ -79,14 +81,16 @@ public class PartyServlet extends HttpServlet {
     /** 순수에 가까운 처리(시험이 store · 시각을 넣음). 잘못된 값 → IllegalArgumentException, 권한 없음 → SecurityException. */
     static JsonObject handle(Party p, String path, JsonObject in, long now) {
         if ("/create".equals(path)) {
-            Party.Member lead = p.create(str(in, "name"), num(in, "endAt") == null ? 0 : num(in, "endAt").longValue(), now);
+            Party.Member lead = p.create(str(in, "name"), num(in, "endAt") == null ? 0 : num(in, "endAt").longValue(), now,
+                    num(in, "seats") == null ? 0 : num(in, "seats").intValue(), Party.stops(str(in, "stops")));
             return withToken(p.full(lead, now), lead);
         }
         if ("/join".equals(path)) {
             if (!in.has("agree") || !in.get("agree").getAsBoolean()) throw new IllegalArgumentException("위치 제공에 동의해야 참가할 수 있습니다.");
-            Party.Member m = p.join(str(in, "code"), str(in, "nick"), str(in, "role"), now);
+            Party.Member m = p.join(str(in, "code"), str(in, "nick"), str(in, "role"), num(in, "seat") == null ? null : num(in, "seat").intValue(), str(in, "stop"), now);
             return withToken(view(p, m, now), m);
         }
+        if ("/info".equals(path)) return p.info(str(in, "code"), now);   // 참가 전 - 방 이름 · 좌석 수 · 탑승지 · 이미 찬 자리(누구인지는 없음)
         Party.Member m = p.who(str(in, "token"), now);
         if (m == null) throw new IllegalArgumentException("방이 끝났거나 열쇠가 맞지 않습니다.");
         boolean lead = "lead".equals(m.role), staff = lead || "driver".equals(m.role);
@@ -95,6 +99,8 @@ public class PartyServlet extends HttpServlet {
                     in.has("sos") && in.get("sos").getAsBoolean(), now);
             case "/view" -> { }
             case "/aboard" -> p.aboard(m, in.has("on") && in.get("on").getAsBoolean());
+            case "/mark" -> { if (!staff) throw new SecurityException("인솔자 · 운전자만 좌석표를 고칠 수 있습니다.");
+                p.mark(m, num(in, "seat") == null ? 0 : num(in, "seat").intValue(), str(in, "what"), in.has("on") && in.get("on").getAsBoolean()); }
             case "/notice" -> { if (!lead) throw new SecurityException("인솔자만 공지할 수 있습니다."); p.notice(m, str(in, "text"), now); }
             case "/bus" -> { if (!staff) throw new SecurityException("인솔자 · 운전자만 버스 자리를 정할 수 있습니다."); p.bus(m, num(in, "lat"), num(in, "lon")); }
             case "/leave" -> { p.leave(m); return ok(); }
