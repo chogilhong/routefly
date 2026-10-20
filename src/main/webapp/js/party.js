@@ -75,16 +75,41 @@
      * 안드로이드 브라우저(특히 카톡 · 네이버 · 밴드 안 브라우저 - 앱 링크가 안 걸림)로 참가 링크를 열었으면 "routefly 앱으로 열기" 단추.
      * intent: 주소 - 앱이 있으면 앱(MainActivity.openLink), 없으면 S.browser_fallback_url 로 이 화면에 그대로(&web=1 - 단추 숨김). 2026-10-20 PC 제안.
      */
+    function canAppOpen() { return /Android/i.test(navigator.userAgent) && !window.Capacitor && q.get("web") !== "1" && location.hostname === "routefly.kr"; }
+    /** intent: 주소 - token 이 있으면 앱에 넘겨(S.rf_token → MainActivity 가 #t= 로) 같은 사람으로 이어 감(다시 참가하면 명단에 두 번). */
+    function appIntent(code, token) {
+        var back = location.origin + location.pathname + "?c=" + encodeURIComponent(code) + "&web=1";
+        return "intent://" + location.host + location.pathname + "?c=" + encodeURIComponent(code) + "#Intent;scheme=https;package=kr.routefly.app;"
+            + (token ? "S.rf_token=" + encodeURIComponent(token) + ";" : "") + "S.browser_fallback_url=" + encodeURIComponent(back) + ";end";
+    }
     function appOpen() {
-        if (!/Android/i.test(navigator.userAgent) || window.Capacitor || q.get("web") === "1" || location.hostname !== "routefly.kr") return;
-        var path = location.pathname + location.search, back = location.href + (location.search ? "&" : "?") + "web=1";
-        $("appOpenBtn").href = "intent://" + location.host + path + "#Intent;scheme=https;package=kr.routefly.app;S.browser_fallback_url=" + encodeURIComponent(back) + ";end";
+        if (!canAppOpen()) return;
+        $("appOpenBtn").href = appIntent(q.get("c"), null);
         $("appOpen").hidden = false;
+    }
+    /** 방 화면 - 카톡 등 브라우저로 먼저 참가한 사람도 앱으로 넘어가 화면을 꺼도 위치가 가게(2026-10-20 PC 제안). */
+    function appOpenRoom() {
+        var p = RFParty.get();
+        if (!p || !canAppOpen()) return;
+        $("appOpenRoomBtn").href = appIntent(p.code, p.token);
+        $("appOpenRoom").hidden = false;
+    }
+    /** 앱이 #t=열쇠 로 열렸으면 그 사람으로 이어 받음(MainActivity.openLink) - 주소에서 바로 지움. */
+    function takeToken() {
+        var m = /^#t=([A-Za-z0-9_-]{16,64})$/.exec(location.hash || "");
+        if (!m) return null;
+        try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* 그대로 */ }
+        return RFParty.post("view", { token: m[1] }).then(function (j) {
+            RFParty.set({ code: j.code, token: m[1], role: j.role, name: j.name });
+            return j;
+        });
     }
 
     function start() {
         fetch("api/party/status", { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (s) {
             if (!s.enabled) { show("closed"); return; }
+            var taken = takeToken();
+            if (taken) { taken.then(function (j) { enterRoom(j); }).catch(function (e) { msg(e.message); if (RFParty.get()) enterRoom(); else show("start"); }); return; }
             if (RFParty.get()) { enterRoom(); return; }
             show("start");
             if (q.get("c")) appOpen();
@@ -242,6 +267,7 @@
         $("endBtn").hidden = p.role !== "lead";
         $("leaveBtn").hidden = p.role === "lead";
         startMap();
+        appOpenRoom();
         if (first) render(first); else refresh();
         if (navigator.geolocation) {
             watch = navigator.geolocation.watchPosition(function (pos) {
@@ -281,7 +307,7 @@
         bgOn = true;
         var gen = ++bgGen;
         Promise.resolve(BG.addWatcher({ backgroundTitle: "routefly - 산악회 방", backgroundMessage: "화면을 꺼도 인솔자 · 일행에게 위치를 보냅니다(하산 탑승하면 멈춤).",
-            requestPermissions: true, stale: false, distanceFilter: 20 }, function (loc, err) {
+            requestPermissions: true, stale: false, distanceFilter: 0 }, function (loc, err) {   // 0 - 멈춰 있어도 와야 쉼 · 부상 때 "소식 없음" 이 안 됨, 30초 거르기는 party-kit(2026-10-20 PC: 20 이면 멈춘 폰은 안 보냈음)
             if (err || !loc) return;
             lastPos = { lat: loc.latitude, lon: loc.longitude, acc: loc.accuracy, t: Date.now() };
             var r = RFParty.fix(loc.latitude, loc.longitude, loc.accuracy);
@@ -312,10 +338,10 @@
         state = s;
         var p = RFParty.get() || {}, staff = s.role === "lead" || s.role === "driver";
         var bar = [aboutHtml(s)];
-        if (!staff && (s.seats > 0 || (s.stops || []).length || s.buses > 1))   // 내 자리 + 바로 고치기
-            bar.push("💺 내 자리 <b>" + busLabel(s, s.bus) + (s.seat ? s.seat + "번" : s.buses > 1 ? "" : "없음") + "</b>" + (s.stop ? " · " + esc(s.stop) : "")
+        if (!staff && (s.seats > 0 || (s.stops || []).length || s.buses > 1))   // 내 자리 + 바로 고치기(출발 뒤에는 인솔자만 - 2026-10-20)
+            bar.push("💺 내 자리 <b>" + busLabel(s, s.bus) + (s.seat ? s.seat + "번" : s.buses > 1 ? "" : "없음") + "</b>" + (s.stop && !s.departed ? " · " + esc(s.stop) : "")
                 + (s.buses > 1 && plateOf(s, s.bus) ? " · 내 차 <b>" + esc(plateOf(s, s.bus)) + "</b>" : "")
-                + " <button type=\"button\" id=\"editSeat\" style=\"min-height:32px;padding:0 10px;font-size:13px\">✏️ 바꾸기</button>");
+                + (s.departed ? "" : " <button type=\"button\" id=\"editSeat\" style=\"min-height:32px;padding:0 10px;font-size:13px\">✏️ 바꾸기</button>"));
         $("bar").innerHTML = bar.join("<br>");
         if (s.notice) {
             $("notice").style.display = "block";
@@ -352,7 +378,8 @@
             $("cancelTel").innerHTML = s.leaderPhone ? "인솔자 " + esc(s.leaderName || "") + tel(s.leaderPhone) : "";
             return;
         }
-        $("mySeatBox").hidden = !(s.seats > 0 || (s.stops || []).length || s.buses > 1);
+        $("mySeatBox").hidden = s.departed || !(s.seats > 0 || (s.stops || []).length || s.buses > 1);
+        if (s.departed) $("mySeatBox").open = false;
         if (!$("mySeatBox").open) fillMySeat(s);
         var before = s.departAt && s.now < s.locFrom;
         $("boardBtn").hidden = s.departed;

@@ -346,6 +346,8 @@ final class Party {
     synchronized void seat(Member actor, Integer targetId, Integer bus, Integer seat, String stop) {
         Room r = actor.room;
         Member t = target(actor, targetId);
+        // 출발 뒤 회원은 못 바꿈(2026-10-20 홍TV님 - 탑승지는 의미 없고 자리는 인솔자 좌석표에서) - 인솔자 · 운전자는 그대로
+        if (r.departed && !actor.staff()) throw new IllegalStateException("출발한 뒤에는 자리를 인솔자가 좌석표에서 옮깁니다.");
         int b = checkBus(r, bus == null ? t.bus : bus);
         if ("driver".equals(t.role)) { t.bus = b; save(); return; }   // 운전자 - 호차만
         if (!"hiker".equals(t.role)) throw new IllegalArgumentException("자리는 산행 회원만 고릅니다.");

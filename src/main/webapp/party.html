@@ -216,6 +216,10 @@ a.tel { color:var(--sky); }
                 <div class="row"><button id="mySeatBtn">저장</button><button id="mySeatClose">닫기</button></div>
             </details>
             <div id="phase"></div>
+            <div id="appOpenRoom" class="invite" hidden>   <!-- 브라우저로 참가한 사람 → 앱으로 이어 가기(2026-10-20) -->
+                <p style="margin:0 0 8px">📱 routefly 앱이 있으면 앱으로 옮기세요. 화면을 꺼도 위치가 갑니다(같은 사람으로 이어짐).</p>
+                <a id="appOpenRoomBtn" class="btn main" href="#">routefly 앱으로 옮기기</a>
+            </div>
             <div id="leadRow" class="invite" hidden>   <!-- 참가 링크 - 카톡 · 문자로(2026-10-20 홍TV님) -->
                 <label for="inviteUrl">📨 참가 링크 (회원에게 카톡 · 문자로)</label>
                 <input id="inviteUrl" type="text" readonly>

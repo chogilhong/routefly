@@ -50,7 +50,9 @@ public class MainActivity extends BridgeActivity {
     private void openLink(Intent intent) {
         Uri u = intent == null ? null : intent.getData();
         if (!isPartyLink(u)) return;
-        final String url = u.toString();
+        // 브라우저(카톡 등)에서 이미 참가한 사람의 열쇠 - 주소 # 뒤로 넘김(서버로 가지 않음, party.js takeToken 이 받아 바로 지움)
+        String t = intent.getStringExtra("rf_token");
+        final String url = u.toString() + (t != null && t.matches("[A-Za-z0-9_-]{16,64}") ? "#t=" + t : "");
         bridge.getWebView().post(() -> bridge.getWebView().loadUrl(url));
     }
 

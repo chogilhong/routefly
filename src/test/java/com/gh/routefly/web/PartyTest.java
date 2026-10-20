@@ -266,4 +266,19 @@ public class PartyTest {
         try { call(p, "/kick", "{\"token\":\"" + lead + "\",\"id\":" + id + "}", T0); fail("두 번"); } catch (IllegalArgumentException e) { /* 맞음 */ }
         try { call(p, "/kick", "{\"token\":\"" + lead + "\",\"id\":1}", T0); fail("인솔자 자신"); } catch (IllegalArgumentException e) { assertTrue(e.getMessage().contains("인솔자")); }
     }
+
+    /** 출발 뒤 회원은 자리 · 탑승지를 못 바꿈, 인솔자는 됨(2026-10-20 홍TV님). */
+    @Test
+    public void noSeatChangeAfterDepart() {
+        Party p = new Party();
+        JsonObject room = j(create(p, T0));
+        String code = room.get("code").getAsString(), lead = room.get("token").getAsString();
+        String a = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"철수\",\"role\":\"hiker\",\"seat\":3,\"agree\":true}", T0).get("token").getAsString();
+        call(p, "/board", "{\"token\":\"" + a + "\",\"on\":true}", T0);
+        call(p, "/depart", tok(lead), T0);
+        try { call(p, "/seat", "{\"token\":\"" + a + "\",\"seat\":4}", T0); fail("출발 뒤 회원"); } catch (IllegalStateException e) { assertTrue(e.getMessage().contains("인솔자")); }
+        int id = member(call(p, "/view", tok(lead), T0), "철수").get("id").getAsInt();
+        call(p, "/seat", "{\"token\":\"" + lead + "\",\"id\":" + id + ",\"seat\":4}", T0);
+        assertEquals(4, member(call(p, "/view", tok(lead), T0), "철수").get("seat").getAsInt());
+    }
 }
