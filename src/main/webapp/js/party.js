@@ -128,6 +128,7 @@
         if (navigator.geolocation) {
             watch = navigator.geolocation.watchPosition(function (pos) {
                 lastPos = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy, t: Date.now() };
+                if (state && !staff) drawMap(state, !marks.me);   // 회원 - 내 점(처음이면 지도를 나 · 버스에 맞춤)
                 var r = RFParty.fix(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
                 if (r) r.then(render).catch(fail);
             }, function () { roomMsg("위치를 받지 못하고 있습니다 - 위치 권한을 켜 주세요."); }, { enableHighAccuracy: true, maximumAge: 10000, timeout: 30000 });
@@ -160,7 +161,9 @@
         var bar = ["방 코드 <b id=\"code\">" + esc(s.code) + "</b>", "참가 <b>" + s.count + "</b>명"];
         if (staff) bar.push("하산 탑승 <b>" + (s.aboardCount || 0) + "</b> / " + (s.members || []).filter(function (m) { return m.role === "hiker"; }).length);
         if (s.endAt) bar.push(endText(s.endAt, s.now));
-        if (!staff && (s.seat || s.stop)) bar.push("내 자리 <b>" + (s.seat ? s.seat + "번" : "-") + "</b>" + (s.stop ? " · " + esc(s.stop) : "") + (s.boarded ? " · ✅ 출발 탑승 확인" : ""));
+        if (!staff && (s.seats > 0 || (s.stops || []).length))   // 내 자리 + 바로 고치기(2026-10-20 홍TV님 - 참가한 뒤 이 화면에서 바로 고칠 수 있게)
+            bar.push("내 자리 <b>" + (s.seat ? s.seat + "번" : "없음") + "</b>" + (s.stop ? " · " + esc(s.stop) : "") + (s.boarded ? " · ✅ 출발 탑승 확인" : "")
+                + " <button type=\"button\" id=\"editSeat\" style=\"min-height:32px;padding:0 10px;font-size:13px\">✏️ 바꾸기</button>");
         $("bar").innerHTML = bar.join(" · ");
         if (s.notice) {
             $("notice").style.display = "block";
@@ -220,6 +223,12 @@
         $("mySeat").parentNode.hidden = !(s.seats > 0);
         stopOptions($("myStop"), s.stops, s.stop);
     }
+    $("bar").addEventListener("click", function (e) {   // 바의 "✏️ 바꾸기" → 자리 바꾸기 칸을 열고 그리로
+        if (!e.target.closest("#editSeat") || !state) return;
+        $("mySeatBox").open = true;
+        fillMySeat(state);
+        $("mySeatBox").scrollIntoView({ behavior: "smooth", block: "center" });
+    });
     $("mySeatBox").addEventListener("toggle", function () { if ($("mySeatBox").open && state) fillMySeat(state); });
     $("mySeatBtn").addEventListener("click", function () {
         var p = RFParty.get();
@@ -376,6 +385,7 @@
             var cls = m.sos ? "sos" : m.aboard ? "aboard" : m.role === "lead" ? "lead" : (m.ago > OLD_S ? "old" : "");
             put("m" + m.id, m.lon, m.lat, cls, (m.id === s.me ? "나" : m.nick) + (m.ago > OLD_S ? " · " + agoText(m.ago) : ""));
         });
+        if (!(s.members || []).length && lastPos) put("me", lastPos.lon, lastPos.lat, "lead", "나");   // 회원 화면 - 내 위치(2026-10-20 폰: 전국 지도로 보였음)
         if (s.busLat != null) put("bus", s.busLon, s.busLat, "bus", "버스");
         Object.keys(marks).forEach(function (k) { if (!seen[k]) { marks[k].remove(); delete marks[k]; } });
         if ((!fitted || force) && pts.length) {   // 처음 한 번만 모두 보이게(그 뒤로는 사람이 움직인 지도 그대로)

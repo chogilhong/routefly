@@ -58,7 +58,7 @@ tr.sos td { color:var(--red); font-weight:bold; }
 tr.old td { color:#ffa94d; }
 tr.aboard td { color:var(--dim); }
 .pm { display:flex; flex-direction:column; align-items:center; pointer-events:none; }
-.two { display:flex; gap:8px; }
+.two { display:flex; gap:8px; align-items:flex-end; }   /* 글자를 키워 이름표가 두 줄이 돼도 칸은 같은 높이에(2026-10-20 홍TV님 폰 가++) */
 .two > div { flex:1; min-width:0; }
 select, input[type=number] { width:100%; height:44px; padding:0 10px; border-radius:10px; border:1px solid var(--ln); background:#0f141a; color:var(--tx); font-size:16px; }
 #seatMap { display:grid; gap:4px; overflow-x:auto; padding:2px 0 6px; }
@@ -106,7 +106,7 @@ select, input[type=number] { width:100%; height:44px; padding:0 10px; border-rad
             <input id="joinNick" type="text" maxlength="12" autocomplete="off">
             <div id="joinSeatBox" hidden>
                 <div class="two">
-                    <div><label for="joinSeat">좌석 번호 (예약한 자리)</label><select id="joinSeat"></select></div>
+                    <div><label for="joinSeat">💺 좌석</label><select id="joinSeat"></select></div>
                     <div><label for="joinStop">탑승지</label><select id="joinStop"></select></div>
                 </div>
             </div>
@@ -127,9 +127,10 @@ select, input[type=number] { width:100%; height:44px; padding:0 10px; border-rad
             <label for="mkEnd">하산 마감 시각 (버스 출발)</label>
             <input id="mkEnd" type="time">
             <div class="two">
-                <div><label for="mkSeats">버스 좌석 수 (없으면 0)</label><input id="mkSeats" type="number" min="0" max="60" value="28" inputmode="numeric"></div>
-                <div><label for="mkStops">탑승지 (쉼표로)</label><input id="mkStops" type="text" maxlength="80" placeholder="사당, 양재, 복정"></div>
+                <div><label for="mkSeats">좌석 수</label><input id="mkSeats" type="number" min="0" max="60" value="28" inputmode="numeric"></div>
+                <div><label for="mkStops">탑승지</label><input id="mkStops" type="text" maxlength="80" placeholder="사당, 양재, 복정"></div>
             </div>
+            <p class="tip">좌석 수: 버스 좌석(좌석표가 없으면 0) · 탑승지: 쉼표로 나눠 적기. 회원은 예약한 좌석 번호를 골라 참가합니다.</p>
             <button id="mkBtn" class="main">방 만들기</button>
             <p class="tip">방 코드가 나오면 단톡방에 보내 주세요. 회원은 코드로 참가하고, 따라가기를 켜 두면 30초마다 위치가 옵니다.</p>
         </section>
@@ -154,7 +155,7 @@ select, input[type=number] { width:100%; height:44px; padding:0 10px; border-rad
             <details id="mySeatBox" hidden>
                 <summary class="tip" style="cursor:pointer">💺 자리 · 탑승지 바꾸기</summary>
                 <div class="two">
-                    <div><label for="mySeat">좌석 번호</label><select id="mySeat"></select></div>
+                    <div><label for="mySeat">💺 좌석</label><select id="mySeat"></select></div>
                     <div><label for="myStop">탑승지</label><select id="myStop"></select></div>
                 </div>
                 <div class="row"><button id="mySeatBtn">저장</button></div>
