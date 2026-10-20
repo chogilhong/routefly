@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <entry>
+    <published>2026-08-01T10:00:00.000+09:00</published>
+    <title type="text">first  post</title>
+    <link rel="replies" href="https://x.blogspot.com/feeds/1/comments/default"/>
+    <link rel="alternate" type="text/html" href="http://x.blogspot.com/2026/08/first-post.html"/>
+  </entry>
+  <entry>
+    <published>2026-08-02T09:00:00.000+09:00</published>
+    <title type="text">두 번째 글 &amp; 그림 (고침)</title>
+    <link rel="alternate" type="text/html" href="https://x.blogspot.com/2026/08/blog-post_2.html"/>
+  </entry>
+  <entry>
+    <published>2025-01-01T00:00:00.000+09:00</published>
+    <title type="text">원래 있던 글</title>
+    <link rel="alternate" type="text/html" href="https://x.blogspot.com/2025/01/old.html"/>
+  </entry>
+</feed>

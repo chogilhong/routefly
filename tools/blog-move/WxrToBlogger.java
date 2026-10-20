@@ -75,7 +75,7 @@ public class WxrToBlogger {
         all.sort((x, y) -> x.published().compareTo(y.published()));
         List<Post> pick = all.subList(Math.min(skip, all.size()), (int) Math.min((long) skip + limit, all.size()));
         write(pick, blogId, new File(a[1]));
-        if (map != null) writeMap(pick, site, new File(map));
+        if (map != null) writeMap(pick, new File(map));
         int labels = pick.stream().mapToInt(p -> p.labels().size()).sum();
         System.out.println("발행 글 " + all.size() + "개 중 " + pick.size() + "개 → " + a[1] + " (라벨 합 " + labels + ")");
     }
@@ -219,12 +219,12 @@ public class WxrToBlogger {
         }
     }
 
-    /** 옛 경로(디코드한 것) TAB 새 경로(예상) TAB 제목. */
-    static void writeMap(List<Post> posts, String site, File f) throws Exception {
+    /** 옛 경로(디코드한 것) TAB 새 경로(예상) TAB 제목 TAB 올린 시각(UTC) - BloggerMap.java 가 실제 주소와 짝 맞춤. */
+    static void writeMap(List<Post> posts, File f) throws Exception {
         try (Writer w = new OutputStreamWriter(new FileOutputStream(f), StandardCharsets.UTF_8)) {
             for (Post p : posts) {
                 String path = p.link().replaceFirst("(?i)^https?://[^/]+", "");
-                w.write(URLDecoder.decode(path, StandardCharsets.UTF_8) + "\t" + filename(p) + "\t" + p.title().replace('\t', ' ') + "\n");
+                w.write(URLDecoder.decode(path, StandardCharsets.UTF_8) + "\t" + filename(p) + "\t" + p.title().replace('\t', ' ') + "\t" + p.published() + "\n");
             }
         }
     }

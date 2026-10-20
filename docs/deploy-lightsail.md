@@ -771,3 +771,49 @@ sudo certbot --nginx -d <옛도메인> -d www.<옛도메인> -d genie.<옛도메
 
 certbot 이 443 칸을 붙인 뒤 그 칸에도 `return 301 https://routefly.kr/routefly/;` 이 들어 있는지 봅니다(없으면 넣고 reload).
 DNS 를 아직 안 바꾼 이름이 섞이면 certbot 이 실패하니, 바꾼 이름만 -d 로 넣습니다.
+
+### 12-5. 옛 블로그 도메인 - 그림 + 글마다 301 (2026-10-20, 블로그스팟으로 옮긴 뒤)
+
+글은 블로그스팟에 있고, 옛 도메인은 이 서버가 받아 ① 옛 그림을 그대로 내주고 ② 옛 글 주소를 블로그스팟의 같은 글로 보냅니다(tools/blog-move).
+
+```bash
+# 그림: 백업의 wp-data/wp-content/uploads 를 FileZilla 로 ~/uploads 에 올린 뒤
+sudo mkdir -p /var/www/hongtv/wp-content
+sudo mv ~/uploads /var/www/hongtv/wp-content/uploads
+sudo chown -R root:root /var/www/hongtv && sudo find /var/www/hongtv -type d -exec chmod 755 {} + && sudo find /var/www/hongtv -type f -exec chmod 644 {} +
+# 짝: BloggerMap.java 가 만든 hongtv-posts.map 을 FileZilla 로 ~ 에 올린 뒤
+sudo install -o root -g root -m 644 ~/hongtv-posts.map /etc/nginx/hongtv-posts.map && rm ~/hongtv-posts.map
+```
+
+`/etc/nginx/conf.d/hongtv-map.conf` (http 칸 - conf.d 는 http 안에 읽힘):
+
+```nginx
+map_hash_bucket_size 256;          # 한글 경로가 길어서
+map $uri $hongtv_to {
+    default https://hong-tv.blogspot.com/;    # 짝 없는 주소는 블로그 첫 화면
+    include /etc/nginx/hongtv-posts.map;      # "/옛-글이름/" https://hong-tv.blogspot.com/2026/08/….html;
+}
+```
+
+`/etc/nginx/sites-available/old-domains` (12-4 대신 이것):
+
+```nginx
+server {
+    listen 80;
+    server_name hongtv.co.kr www.hongtv.co.kr;
+    root /var/www/hongtv;
+    location /wp-content/uploads/ { expires 30d; try_files $uri =404; }   # 그림만(php 는 없음 - 그대로 파일만)
+    location / { return 301 $hongtv_to; }
+}
+```
+
+```bash
+sudo ln -s /etc/nginx/sites-available/old-domains /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+# DNS(@ · www → 고정 IP)를 바꾼 뒤
+sudo certbot --nginx -d hongtv.co.kr -d www.hongtv.co.kr
+```
+
+확인: `curl -sI https://hongtv.co.kr/wp-content/uploads/<연>/<월>/<그림>` 이 200 image/…, `curl -sI https://hongtv.co.kr/<옛 글이름>/` 이 301 → 블로그스팟 글.
+certbot 이 붙인 443 칸에도 위 두 location 이 들어 있는지 봅니다(certbot 은 server 칸을 복사하므로 보통 그대로).
+

@@ -7,6 +7,8 @@
 |---|---|
 | `WxrToBlogger.java` | 변환 스크립트(JDK 만 있으면 됨) |
 | `blogger-sample-skeleton.xml` | 블로그스팟 백업(Takeout feed.atom)의 뼈대 - 값은 x · 0 |
+| `BloggerMap.java` | 가져온 뒤 블로그 피드에서 실제 주소를 읽어 옛 주소 → 새 주소 nginx map 을 만듦 |
+| `test/sample-feed.xml` | 가짜 블로그 피드(BloggerMap 시험용) |
 | `test/sample-wxr.xml` | 가짜 WXR(글 3 - 라벨 많은 글 · 달 경계 글 포함, 임시 1 · 첨부 1) - 고칠 때 이것으로 돌려 봄 |
 
 ## 쓰는 법 (PC, PowerShell)
@@ -18,7 +20,16 @@ cd C:\GH\workspace\routefly
 
 - `--skip N --limit N`: 오래된 글부터 N 개 건너뛰고 N 개만 - 시험 2~3개 → 30개 → 나머지처럼 나눠 넣기
 - `--author 이름` · `--blog-id 숫자`: 글쓴이 이름, 블로그 ID(모르면 0 - 가져오기가 받는지 시험에서 봄)
-- `--map`: 옛 경로 → 새 경로(예상) · 제목. 가져온 뒤 실제 주소와 맞춰 nginx 301 짝을 만듦
+- `--map`: 옛 경로 · 새 경로(예상) · 제목 · 올린 시각(UTC). 가져온 뒤 BloggerMap 이 실제 주소와 맞춤
+
+다 가져온 뒤(피드는 인터넷으로 읽음):
+
+```powershell
+& C:\GH\java\jdk-21\bin\java.exe tools\blog-move\BloggerMap.java https://hong-tv.blogspot.com <저장소 밖>\hongtv-posts.map <map-001-030.tsv> <map-031-301.tsv>
+```
+
+- 화면 끝 "못 맞춤 0" 이어야 함("제목 다름" 은 시각으로 맞춘 것 - 줄만 확인). 원래 있던 블로그 글은 짝에서 빠지는 것이 정상
+- 만든 hongtv-posts.map 을 서버 /etc/nginx/hongtv-posts.map 으로(docs/deploy-lightsail.md 12-5)
 
 ## 바꾸는 것
 
@@ -37,5 +48,5 @@ cd C:\GH\workspace\routefly
 
 1. 가져오기가 이 파일을 받는지(Takeout 형식 그대로)
 2. 날짜 · 라벨 · 글쓴이 · 본문 모양 · 그림(지금은 옛 호스팅에서 뜸)
-3. 새 주소가 `blogger:filename` 대로인지 → 아니면 제목으로 짝 맞춤
+3. 새 주소가 `blogger:filename` 대로인지 → 새 블로그 처음 넣기는 그대로였으나, 지운 글 뒤 다시 넣으니 제목 낱말 + _숫자 주소(2026-10-20). 그래서 BloggerMap 으로 실제 주소를 씀
 4. 바로 공개되는지, 임시 글로 들어오는지
