@@ -136,7 +136,7 @@
         var n = Math.max(1, Math.min(8, +$("mkBuses").value || 1)), box = $("mkPlates"), old = box.querySelectorAll("input");
         var keep = Array.prototype.map.call(old, function (x) { return x.value; });
         var h = "";
-        for (var b = 1; b <= n; b++) h += "<div><label for=\"mkPlate" + b + "\">" + (n > 1 ? b + "호차 " : "") + "차량번호(선택)</label><input id=\"mkPlate" + b
+        for (var b = 1; b <= n; b++) h += "<div><label for=\"mkPlate" + b + "\">" + (n > 1 ? b + "호차" : "차량번호") + "</label><input id=\"mkPlate" + b
             + "\" type=\"text\" maxlength=\"12\" placeholder=\"예: 서울70사1234\" value=\"" + esc(keep[b - 1] || "") + "\"></div>";
         box.innerHTML = h;
     }
