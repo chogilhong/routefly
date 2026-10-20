@@ -161,10 +161,16 @@
     }
     var DAY_ERR = "출발 날짜를 숫자로 적어 주세요(예: 10월 22일 → 1022).", TIME_ERR = { mkTime: "출발 시각을 숫자로 적어 주세요(예: 아침 7시 → 0700).", mkEnd: "하산 마감 시각을 숫자로 적어 주세요(예: 오후 4시 → 1600)." };
     $("mkDate").addEventListener("blur", function () { var d = RFParty.parseDay(this.value, Date.now()); if (d) this.value = dayText(d); fieldErr(this, d || !this.value.trim() ? "" : DAY_ERR); });
-    $("mkDate").addEventListener("focus", function () { this.select(); });
+    // 누르면 숫자만 남김(10/22(목) → 1022) - 글자를 골라 두면 폰이 "잘라내기 · 복사 · 붙여넣기" 를 띄웠음(2026-10-20 홍TV님)
+    function digitsOnFocus() {
+        var d = this.id === "mkDate" ? RFParty.parseDay(this.value, Date.now()) : null, hm = this.id !== "mkDate" ? RFParty.parseTime(this.value) : null;
+        if (d) this.value = (d.getMonth() + 1) + two(d.getDate());
+        else if (hm) this.value = two(hm[0]) + two(hm[1]);
+    }
+    $("mkDate").addEventListener("focus", digitsOnFocus);
     ["mkTime", "mkEnd"].forEach(function (id) {
         $(id).addEventListener("blur", function () { var hm = RFParty.parseTime(this.value); if (hm) this.value = timeText(hm); fieldErr(this, hm || !this.value.trim() ? "" : TIME_ERR[id]); });
-        $(id).addEventListener("focus", function () { this.select(); });
+        $(id).addEventListener("focus", digitsOnFocus);
     });
 
     $("mkBtn").addEventListener("click", function () {
@@ -675,6 +681,7 @@
     });
 
     start();
+    if (window.RF && RF.notifyDeploy) RF.notifyDeploy(["party.html", "js/party.js", "js/party-kit.js", "js/course-kit.js"], function () { return true; });   // 새 버전 띠(2026-10-20)
 })();
 
 // 글자 크기 "가+" - 위 줄 오른쪽(다른 화면과 같은 설정)

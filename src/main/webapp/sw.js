@@ -6,7 +6,7 @@
  *   - 지도 타일(V-World 위성사진 · 지형): 받아 둔 것이 있으면 그것(오프라인 저장 · 본 적 있는 곳), 없으면 받아서 조금 남겨 둠
  *   - MapLibre(vendor): 바뀌지 않으므로 받아 둔 것 먼저
  */
-var SHELL = "rf-shell-v24", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
+var SHELL = "rf-shell-v25", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
 var TILE_KEEP = 1500;   // 지나가며 본 타일은 이만큼만 남깁니다(저장 공간)
 // 2026-10-09 점검: API 캐시도 한도 - 지도를 움직일 때마다 목록 주소(bbox)가 하나씩 늘어 끝없이 커졌습니다.
 // 오프라인 저장한 코스는 OFFLINE 캐시에 따로 있어 지워지지 않습니다.
@@ -64,6 +64,24 @@ function cached(key, cacheName) {
     return caches.open(cacheName).then(function (c) { return c.match(key, { ignoreVary: true }); })
         .then(function (hit) { return hit || caches.match(key, { ignoreVary: true }); });
 }
+/** 받아 둔 것(a)과 새 답(b)이 다른 파일인가 - ETag, 없으면 Last-Modified · 크기. 표시가 하나도 없으면 다르다고 보지 않음. */
+function differs(a, b) {
+    function sig(r) { return [r.headers.get("ETag"), r.headers.get("Last-Modified"), r.headers.get("Content-Length")].join("|"); }
+    var x = sig(a), y = sig(b);
+    return !!x.replace(/\|/g, "") && !!y.replace(/\|/g, "") && x !== y;
+}
+var toldAt = 0;
+/** 열린 화면 모두에 "새 버전" 알림(30초에 한 번). 막 여는 화면은 아직 없을 수 있어 3초 뒤 한 번 더. */
+function tellUpdated() {
+    if (Date.now() - toldAt < 30000) return;
+    toldAt = Date.now();
+    function send() {
+        return self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (cs) {
+            cs.forEach(function (c) { c.postMessage({ type: "rf-updated" }); });
+        });
+    }
+    return send().then(function () { return new Promise(function (r) { setTimeout(r, 3000); }); }).then(send);
+}
 function networkFirst(e, cacheName) {
     var req = e.request;
     // 화면 파일은 ?뒤를 뺀 주소 하나로 - park.html?name=… · ?debug 마다 한 벌씩 쌓여 끝없이 커졌음(2026-10-11 오픈 전 점검).
@@ -97,9 +115,14 @@ function networkFirst(e, cacheName) {
                 { status: 503, headers: { "Content-Type": "application/json; charset=UTF-8" } });
         });
     });
-    e.waitUntil(net.catch(function () { /* 위에서 처리 */ }));   // 먼저 캐시를 내준 뒤에도 늦은 답으로 캐시를 고칠 때까지
+    // 2026-10-20 홍TV님 "폰에서 예전 버전이 계속 나옴": 늦어서 받아 둔 화면 파일을 먼저 내줬는데, 늦게 온 새 답이 그것과 다르면
+    // 열린 화면에 "새 버전이 있습니다" 띠를 띄우게 알림(course-kit.js notifyDeploy). 산속(신호 약함)에서 화면이 멈추지 않는 것은 그대로.
+    var servedHit = null;
+    e.waitUntil(net.then(function (res) {
+        if (servedHit && cacheName === SHELL && res && res.ok && differs(servedHit, res)) return tellUpdated();
+    }, function () { /* 위에서 처리 */ }));   // 먼저 캐시를 내준 뒤에도 늦은 답으로 캐시를 고칠 때까지
     var slow = new Promise(function (resolve) { setTimeout(resolve, NET_WAIT); }).then(function () {
-        return cached(key, cacheName).then(function (hit) { return hit || netOrOffline; });
+        return cached(key, cacheName).then(function (hit) { servedHit = hit || null; return hit || netOrOffline; });
     });
     return Promise.race([netOrOffline, slow]);
 }

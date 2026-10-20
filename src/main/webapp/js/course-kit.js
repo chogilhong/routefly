@@ -96,6 +96,13 @@
             document.body.appendChild(bar);
         }
         sign().then(function (v) { if (v.replace(/[|;]/g, "")) first = v; }).catch(function () { /* 오프라인 · 하나라도 실패 - 확인 안 함 */ });
+        // 서비스 워커가 신호가 늦어 받아 둔 옛 화면을 먼저 줬는데 새 파일이 왔을 때(sw.js tellUpdated - 2026-10-20 홍TV님 "폰에서 예전 버전")
+        if (global.navigator && navigator.serviceWorker && navigator.serviceWorker.addEventListener) {
+            navigator.serviceWorker.addEventListener("message", function (ev) {
+                if (ev.data && ev.data.type === "rf-updated") { pending = true; show(); }
+            });
+            if (navigator.serviceWorker.startMessages) navigator.serviceWorker.startMessages();
+        }
         document.addEventListener("visibilitychange", function () {
             if (document.visibilityState === "hidden") { hiddenAt = Date.now(); return; }
             if (pending) { show(); return; }
