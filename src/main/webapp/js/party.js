@@ -146,10 +146,24 @@
     /** 날짜 · 시각 숫자 칸(폰 달력 · 시계 창 대신) - 칸을 떠나면 "10/22(목)" · "07:00" 으로 바꿔 보여 줌. */
     function dayText(d) { return (d.getMonth() + 1) + "/" + d.getDate() + "(" + DAYS[d.getDay()] + ")"; }
     function timeText(hm) { return two(hm[0]) + ":" + two(hm[1]); }
-    $("mkDate").addEventListener("blur", function () { var d = RFParty.parseDay(this.value, Date.now()); if (d) this.value = dayText(d); else if (this.value.trim()) msg("출발 날짜를 숫자로 적어 주세요(예: 10월 22일 → 1022)."); });
+    /** 틀린 칸 바로 밑에 빨간 안내(2026-10-20 PC: 아래 msg 는 화면 밖이라 안 보였음). text 가 없으면 지움. */
+    function fieldErr(input, text) {
+        var row = input.closest(".two") || input, box = row.nextElementSibling;
+        if (!box || !box.classList.contains("fieldMsg")) { box = document.createElement("div"); box.className = "fieldMsg"; row.parentNode.insertBefore(box, row.nextSibling); }
+        var prev = input.getAttribute("data-err");
+        if (!text && prev && $("msg").textContent === prev) msg("");
+        input.classList.toggle("bad", !!text);
+        input.setAttribute("data-err", text || "");
+        var all = row.querySelectorAll ? Array.prototype.map.call(row.querySelectorAll("[data-err]"), function (x) { return x.getAttribute("data-err"); }).filter(Boolean) : [];
+        box.textContent = all.length ? all.join(" ") : (text || "");
+        if (text) msg(text);
+        return false;
+    }
+    var DAY_ERR = "출발 날짜를 숫자로 적어 주세요(예: 10월 22일 → 1022).", TIME_ERR = { mkTime: "출발 시각을 숫자로 적어 주세요(예: 아침 7시 → 0700).", mkEnd: "하산 마감 시각을 숫자로 적어 주세요(예: 오후 4시 → 1600)." };
+    $("mkDate").addEventListener("blur", function () { var d = RFParty.parseDay(this.value, Date.now()); if (d) this.value = dayText(d); fieldErr(this, d || !this.value.trim() ? "" : DAY_ERR); });
     $("mkDate").addEventListener("focus", function () { this.select(); });
     ["mkTime", "mkEnd"].forEach(function (id) {
-        $(id).addEventListener("blur", function () { var hm = RFParty.parseTime(this.value); if (hm) this.value = timeText(hm); else if (this.value.trim()) msg("시각을 숫자로 적어 주세요(예: 아침 7시 → 0700, 오후 4시 → 1600)."); });
+        $(id).addEventListener("blur", function () { var hm = RFParty.parseTime(this.value); if (hm) this.value = timeText(hm); fieldErr(this, hm || !this.value.trim() ? "" : TIME_ERR[id]); });
         $(id).addEventListener("focus", function () { this.select(); });
     });
 
@@ -157,13 +171,13 @@
         var name = $("mkName").value.trim();
         if (!name) { msg("산행 이름을 적어 주세요."); return; }
         var day = RFParty.parseDay($("mkDate").value, Date.now()), tp = RFParty.parseTime($("mkTime").value);
-        if (!day) { msg("출발 날짜를 숫자로 적어 주세요(예: 10월 22일 → 1022)."); return; }
-        if (!tp) { msg("출발 시각을 숫자로 적어 주세요(예: 아침 7시 → 0700)."); return; }
+        if (!day) { fieldErr($("mkDate"), DAY_ERR); $("mkDate").focus(); return; }
+        if (!tp) { fieldErr($("mkTime"), TIME_ERR.mkTime); $("mkTime").focus(); return; }
         var dp = [day.getFullYear(), day.getMonth() + 1, day.getDate()];
         var depart = new Date(+dp[0], +dp[1] - 1, +dp[2], +tp[0], +tp[1]).getTime(), endAt = 0;
         if ($("mkEnd").value.trim()) {   // 하산 마감 - 출발 날 그 시각, 출발보다 이르면 다음 날(무박)
             var ep = RFParty.parseTime($("mkEnd").value);
-            if (!ep) { msg("하산 마감 시각을 숫자로 적어 주세요(예: 오후 4시 → 1600)."); return; }
+            if (!ep) { fieldErr($("mkEnd"), TIME_ERR.mkEnd); $("mkEnd").focus(); return; }
             var e = new Date(+dp[0], +dp[1] - 1, +dp[2], +ep[0], +ep[1]);
             if (e.getTime() <= depart) e.setDate(e.getDate() + 1);
             endAt = e.getTime();
