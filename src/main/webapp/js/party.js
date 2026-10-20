@@ -90,7 +90,7 @@
         if (code.length !== 6 || code === infoFor) return;
         infoFor = code;
         RFParty.post("info", { code: code }).then(function (j) {
-            msg("");
+            joinErr("");
             $("joinCard").hidden = false;
             $("joinCard").innerHTML = aboutHtml(j);
             joinInfo = j;
@@ -100,7 +100,7 @@
             seatOptions($("joinSeat"), j.seats, j.taken, null, "고르기", 1);
             stopOptions($("joinStop"), j.stops, null, "고르기");
             roleChanged();
-        }).catch(function (e) { infoFor = null; $("joinCard").hidden = true; $("joinSeatBox").hidden = true; msg(e.message); });
+        }).catch(function (e) { infoFor = null; $("joinCard").hidden = true; $("joinSeatBox").hidden = true; joinErr(e.message, $("joinCode")); });
     }
     $("joinCode").addEventListener("input", loadInfo);
     var joinInfo = null;
@@ -113,12 +113,19 @@
     }
     Array.prototype.forEach.call(document.querySelectorAll("input[name=role]"), function (r) { r.addEventListener("change", roleChanged); });
 
+    /** 참가하기 안내 - 단추 바로 밑(아래 msg 는 방 만들기 밑이라 화면 밖이었음 - 2026-10-20 홍TV님 "코드 없이 누르면 안 움직임"). el - 빨간 테두리 · 그 칸으로. */
+    function joinErr(t, el) {
+        $("joinMsg").textContent = t || "";
+        Array.prototype.forEach.call(document.querySelectorAll("#joinBox .bad"), function (x) { x.classList.remove("bad"); });
+        if (el) { el.classList.add("bad"); el.focus(); el.scrollIntoView({ block: "center", behavior: "smooth" }); }
+    }
     $("joinBtn").addEventListener("click", function () {
         var code = $("joinCode").value.trim().toUpperCase(), nick = $("joinNick").value.trim();
         var role = (document.querySelector("input[name=role]:checked") || {}).value || "hiker";
-        if (code.length !== 6) { msg("방 코드 6글자를 적어 주세요."); return; }
-        if (!nick) { msg("별명을 적어 주세요."); return; }
-        if (!$("joinAgree").checked) { msg("위치 제공에 동의해야 참가할 수 있습니다."); return; }
+        if (code.length !== 6) { joinErr("방 코드 6글자를 적어 주세요. 인솔자가 보낸 카톡 · 문자의 링크를 누르면 저절로 채워집니다.", $("joinCode")); return; }
+        if (!nick) { joinErr("별명을 적어 주세요.", $("joinNick")); return; }
+        if (!$("joinAgree").checked) { joinErr("위치 제공에 동의해야 참가할 수 있습니다(위 네모 칸 체크).", $("joinAgree").parentNode); return; }
+        joinErr("");
         var seatOn = !$("joinSeatBox").hidden && !$("joinSeat").parentNode.hidden, stopOn = !$("joinSeatBox").hidden && !$("joinStop").parentNode.hidden;
         var seat = seatOn && $("joinSeat").value ? +$("joinSeat").value : null, stop = stopOn && $("joinStop").value ? $("joinStop").value : null;
         if (role === "hiker" && seatOn && !seat && !confirm("좌석 번호를 고르지 않았습니다. 인솔자 좌석표에 안 나옵니다. 그래도 참가할까요?")) return;
@@ -128,7 +135,7 @@
             try { localStorage.setItem("rf-party-nick", nick); } catch (e) { /* 이번만 */ }
             RFParty.set({ code: j.code, token: j.token, role: j.role, name: j.name });
             enterRoom(j);
-        }).catch(function (e) { msg(e.message); }).finally(function () { $("joinBtn").disabled = false; });
+        }).catch(function (e) { joinErr(e.message); }).finally(function () { $("joinBtn").disabled = false; });
     });
 
     /** 차량 수만큼 차량번호 칸. */
