@@ -98,6 +98,8 @@ final class Party {
         final String[] plates;   // 호차 - 1 → 차량번호(null = 아직)
         boolean departed;
         int nextId = 1;
+        /** 운전자 코드(2026-10-21 점검): 방 코드는 카톡 · QR · NFC 로 널리 퍼지므로, 운전자(좌석표 · 탑승 체크를 고침)는 인솔자가 기사님께만 주는 이 코드로만 참가. */
+        String driverCode;
 
         Room(String code, String name, long created, long departAt, long endAt, int buses, int seats, int minPeople, List<String> stops, String leaderName, String leaderPhone) {
             this.code = code; this.name = name; this.created = created; this.departAt = departAt; this.endAt = endAt; this.buses = Math.max(1, buses); this.seats = seats;
@@ -159,11 +161,17 @@ final class Party {
         return Base64.getUrlEncoder().withoutPadding().encodeToString(b);
     }
 
+    private Room byDriverCode(String c) {
+        for (Room r : rooms.values()) if (c.equals(r.driverCode)) return r;
+        return null;
+    }
+
     private String newCode() {
         for (int tries = 0; tries < 50; tries++) {
             StringBuilder s = new StringBuilder();
             for (int i = 0; i < 6; i++) s.append(CODE_CHARS.charAt(rnd.nextInt(CODE_CHARS.length())));
-            if (!rooms.containsKey(s.toString()) && !endedWhy.containsKey("#" + s)) return s.toString();   // 막 끝난 방 코드도 피함
+            String c = s.toString();
+            if (!rooms.containsKey(c) && !endedWhy.containsKey("#" + c) && byDriverCode(c) == null) return c;   // 막 끝난 방 코드 · 운전자 코드도 피함
         }
         throw new IllegalStateException("방 코드를 만들지 못함");
     }
@@ -220,9 +228,11 @@ final class Party {
         if (minPeople < 0 || minPeople > MAX_MEMBERS) throw new IllegalArgumentException("최소 인원이 올바르지 않습니다.");
         if (departAt > 0 && (departAt < now - 24 * HOUR || departAt > now + 30L * 24 * HOUR)) throw new IllegalArgumentException("출발은 오늘부터 30일 안으로 정해 주세요.");
         if (endAt > 0 && departAt > 0 && endAt <= departAt) throw new IllegalArgumentException("하산 마감은 출발보다 뒤여야 합니다.");
+        if (endAt > 0 && departAt > 0 && endAt > departAt + 48 * HOUR) throw new IllegalArgumentException("하산 마감은 출발 뒤 48시간 안으로 정해 주세요.");   // 방이 40일 동안 남지 않게(점검)
         String lead = clean(leaderName, 12);
         Room r = new Room(newCode(), n, now, departAt, endAt, buses, seats, minPeople, List.copyOf(stops), lead, phone(leaderPhone));
         if (plates != null) for (int i = 0; i < Math.min(plates.size(), r.buses); i++) r.plates[i] = plate(plates.get(i));
+        r.driverCode = newCode();
         rooms.put(r.code, r);
         Member m = add(r, lead != null ? lead : "인솔자", "lead", now);
         audit.info("create room={} members=1", r.code);
@@ -230,10 +240,11 @@ final class Party {
         return m;
     }
 
-    /** 방 코드로 찾기. 없으면 IllegalArgumentException. */
+    /** 방 코드(또는 운전자 코드)로 찾기. 없으면 IllegalArgumentException. */
     synchronized Room room(String code, long now) {
         sweep(now);
         Room r = code == null ? null : rooms.get(code.trim().toUpperCase());
+        if (r == null && code != null) r = byDriverCode(code.trim().toUpperCase());
         if (r == null && code != null && endedWhy.containsKey("#" + code.trim().toUpperCase())) throw new Ended("이미 끝난 방입니다 - " + endedWhy.get("#" + code.trim().toUpperCase()));
         if (r == null) throw new IllegalArgumentException("방 코드를 찾지 못했습니다. 인솔자에게 다시 확인해 주세요.");
         return r;
@@ -244,6 +255,9 @@ final class Party {
         String n = clean(nick, 12);
         if (n == null) throw new IllegalArgumentException("별명을 적어 주세요.");
         if (!"hiker".equals(role) && !"driver".equals(role)) throw new IllegalArgumentException("역할을 골라 주세요.");
+        boolean viaDriverCode = code.trim().toUpperCase().equals(r.driverCode);
+        if (viaDriverCode) role = "driver";   // 운전자 코드로 오면 운전자
+        else if ("driver".equals(role)) throw new IllegalArgumentException("운전자는 인솔자에게 받은 운전자 코드로 참가합니다.");
         // 출발한 방에는 산행 회원이 새로 못 들어옴(2026-10-20 홍TV님 - 하산 탑승한 폰이 같은 링크로 또 참가됐음). 바꿔 타는 운전자는 됨
         if (r.departed && "hiker".equals(role)) throw new IllegalStateException("이미 출발한 방이라 새로 참가할 수 없습니다. 인솔자에게 연락해 주세요.");
         if (r.members.size() >= MAX_MEMBERS) throw new IllegalStateException("이 방은 인원이 다 찼습니다(" + MAX_MEMBERS + "명).");
@@ -275,7 +289,7 @@ final class Party {
         if (seat == null) return;
         if (seat < 1 || seat > r.seats) throw new IllegalArgumentException("좌석 번호는 1 ~ " + r.seats + " 입니다.");
         Member there = r.atSeat(bus, seat);
-        if (there != null && there != self) throw new IllegalArgumentException(busName(r, bus) + seat + "번 자리에는 " + there.nick + " 님이 있습니다. 좌석 번호를 확인해 주세요.");
+        if (there != null && there != self) throw new IllegalArgumentException(busName(r, bus) + seat + "번 자리는 이미 다른 분이 골랐습니다. 좌석 번호를 확인해 주세요.");   // 참가 전 사람에게 별명은 안 보임(점검)
     }
 
     private static String checkStop(Room r, String stop) {
@@ -445,6 +459,7 @@ final class Party {
     }
 
     synchronized void leave(Member m) {
+        if ("lead".equals(m.role)) throw new IllegalStateException("인솔자는 \"방 끝내기\" 로 끝냅니다.");   // 인솔자가 나가면 아무도 방을 못 끝냄(점검)
         if (m.room.members.remove(m.token) != null) audit.info("leave room={} member={}", m.room.code, m.id);
         byToken.remove(m.token);
         save();
@@ -493,7 +508,7 @@ final class Party {
         JsonArray arr = new JsonArray();
         for (Room r : rooms.values()) {
             JsonObject o = new JsonObject();
-            o.addProperty("code", r.code); o.addProperty("name", r.name); o.addProperty("created", r.created);
+            o.addProperty("code", r.code); o.addProperty("name", r.name); o.addProperty("created", r.created); o.addProperty("driverCode", r.driverCode);
             o.addProperty("departAt", r.departAt); o.addProperty("endAt", r.endAt); o.addProperty("buses", r.buses); o.addProperty("seats", r.seats); o.addProperty("minPeople", r.minPeople);
             o.add("stops", strings(r.stops)); o.addProperty("leaderName", r.leaderName); o.addProperty("leaderPhone", r.leaderPhone);
             o.add("plates", plateArray(r));
@@ -543,6 +558,7 @@ final class Party {
                     r.busAt.put(Integer.parseInt(be.getKey()), new double[] {p.get(0).getAsDouble(), p.get(1).getAsDouble()});
                 }
                 r.departed = o.get("departed").getAsBoolean(); r.nextId = o.get("nextId").getAsInt();
+                r.driverCode = str(o, "driverCode");
                 for (JsonElement me : o.getAsJsonArray("members")) {
                     JsonObject x = me.getAsJsonObject();
                     Member m = new Member(x.get("id").getAsInt(), x.get("token").getAsString(), x.get("nick").getAsString(), x.get("role").getAsString(), r, x.get("joinedAt").getAsLong());
@@ -554,6 +570,7 @@ final class Party {
                 }
                 rooms.put(r.code, r);
             }
+            for (Room r : rooms.values()) if (r.driverCode == null) r.driverCode = newCode();   // 운전자 코드 전에 만든 방(10-21)
             log.info("[PARTY] 방 {}개 읽음", rooms.size());
         } catch (Exception e) {
             log.warn("[PARTY] 방 파일을 읽지 못함 - {}", e.toString());
@@ -594,7 +611,7 @@ final class Party {
         o.addProperty("minPeople", r.minPeople);
         o.addProperty("hikers", r.hikers());
         if (r.leaderName != null) o.addProperty("leaderName", r.leaderName);
-        if (r.leaderPhone != null) o.addProperty("leaderPhone", r.leaderPhone);
+        if (r.leaderPhone != null && me != null) o.addProperty("leaderPhone", r.leaderPhone);   // 참가한 사람에게만(방 코드만 아는 사람에게 연락처가 안 보이게 - 점검, 참가 안내 글에는 그대로)
         o.addProperty("buses", r.buses);
         o.add("plates", plateArray(r));
         o.addProperty("seats", r.seats);
@@ -607,7 +624,10 @@ final class Party {
     }
 
     synchronized JsonObject info(String code, long now) {
-        return about(room(code, now), null);
+        Room r = room(code, now);
+        JsonObject o = about(r, null);
+        if (code.trim().toUpperCase().equals(r.driverCode)) o.addProperty("driverInvite", true);   // 운전자 코드로 들어옴 - 화면이 "운전" 으로
+        return o;
     }
 
     /**
@@ -620,6 +640,7 @@ final class Party {
         JsonObject o = about(r, me);
         o.addProperty("role", me.role);
         o.addProperty("me", me.id);
+        if ("lead".equals(me.role) && r.driverCode != null) o.addProperty("driverCode", r.driverCode);
         o.addProperty("nick", me.nick);
         o.addProperty("boarded", me.boarded);
         o.addProperty("aboard", me.aboard);

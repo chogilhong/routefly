@@ -54,6 +54,14 @@ public class PartyServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         if (!enabled()) { Json.fail(resp, 404, "산악회 방은 준비 중입니다."); return; }
+        // JSON 으로 보낸 것만(다른 누리집이 손님 브라우저로 몰래 보내는 text/plain 글을 막음 - 점검)
+        String ct = req.getContentType();
+        if (ct == null || !ct.toLowerCase().startsWith("application/json")) { Json.fail(resp, 415, "요청을 읽지 못했습니다."); return; }
+        String path = req.getPathInfo(), ip = SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For"));
+        long now = System.currentTimeMillis();
+        boolean lookup = "/info".equals(path) || "/join".equals(path);
+        if (lookup && MISSES.over(ip, now)) { Json.fail(resp, 429, "방 코드를 너무 많이 틀렸습니다. 10분 뒤 다시 해 주세요."); return; }
+        if ("/create".equals(path) && !CREATES.take(ip, now)) { Json.fail(resp, 429, "하루에 만들 수 있는 방 수를 넘었습니다. 내일 다시 해 주세요."); return; }
         JsonObject in;
         try {
             in = body(req);
@@ -62,13 +70,47 @@ public class PartyServlet extends HttpServlet {
             return;
         }
         try {
-            Json.write(resp, 200, handle(Party.STORE, req.getPathInfo(), in, System.currentTimeMillis()), false);
+            Json.write(resp, 200, handle(Party.STORE, path, in, now), false);
         } catch (Party.Ended e) {
             Json.fail(resp, 410, e.getMessage());
         } catch (IllegalArgumentException | IllegalStateException e) {
+            if (lookup && e.getMessage() != null && e.getMessage().contains("찾지 못했습니다")) MISSES.take(ip, now);   // 없는 코드 - 하나씩 쳐 보기 막기
             Json.fail(resp, 400, e.getMessage());
         } catch (SecurityException e) {
             Json.fail(resp, 403, e.getMessage());
+        } catch (RuntimeException e) {   // 칸 꼴이 틀림(Gson 등) - 내부 글은 내보내지 않음
+            Json.fail(resp, 400, "요청을 읽지 못했습니다.");
+        }
+    }
+
+    /** 방 만들기: IP 마다 하루 5개(한 사람이 2000개를 채워 아무도 못 만들게 하는 것을 막음 - 점검). */
+    static final Quota CREATES = new Quota(5, 24 * 3600_000L);
+    /** 없는 방 코드: IP 마다 10분에 20번(코드를 하나씩 쳐 보기 막기 - 점검). */
+    static final Quota MISSES = new Quota(20, 600_000L);
+
+    /** IP 마다 기간 안 횟수(메모리, 1만 곳까지 - 넘으면 오래된 것부터 버림). */
+    static final class Quota {
+        private final int max;
+        private final long window;
+        private final java.util.LinkedHashMap<String, java.util.ArrayDeque<Long>> hits = new java.util.LinkedHashMap<>(16, 0.75f, true) {
+            private static final long serialVersionUID = 1L;
+            @Override protected boolean removeEldestEntry(java.util.Map.Entry<String, java.util.ArrayDeque<Long>> e) { return size() > 10_000; }
+        };
+        Quota(int max, long window) { this.max = max; this.window = window; }
+
+        private java.util.ArrayDeque<Long> of(String ip, long now) {
+            java.util.ArrayDeque<Long> q = hits.computeIfAbsent(ip == null ? "" : ip, k -> new java.util.ArrayDeque<>());
+            while (!q.isEmpty() && now - q.peekFirst() > window) q.pollFirst();
+            return q;
+        }
+        /** 이미 다 썼나(세지 않음). */
+        synchronized boolean over(String ip, long now) { return of(ip, now).size() >= max; }
+        /** 한 번 셈 - 다 썼으면 false(세지 않음). */
+        synchronized boolean take(String ip, long now) {
+            java.util.ArrayDeque<Long> q = of(ip, now);
+            if (q.size() >= max) return false;
+            q.addLast(now);
+            return true;
         }
     }
 
@@ -93,25 +135,25 @@ public class PartyServlet extends HttpServlet {
         }
         if ("/info".equals(path)) return p.info(str(in, "code"), now);
         if ("/join".equals(path)) {
-            if (!in.has("agree") || !in.get("agree").getAsBoolean()) throw new IllegalArgumentException("위치 제공에 동의해야 참가할 수 있습니다.");
+            if (!bool(in, "agree")) throw new IllegalArgumentException("위치 제공에 동의해야 참가할 수 있습니다.");
             Party.Member m = p.join(str(in, "code"), str(in, "nick"), str(in, "role"), integer(in, "bus"), integer(in, "seat"), str(in, "stop"), now);
             return withToken(p.view(m, now), m);
         }
         Party.Member m = p.who(str(in, "token"), now);
         if (m == null) throw new IllegalArgumentException("방이 끝났거나 열쇠가 맞지 않습니다.");
         boolean lead = "lead".equals(m.role), staff = m.staff();
-        boolean on = in.has("on") && in.get("on").getAsBoolean();
+        boolean on = bool(in, "on");
         JsonObject out;
         switch (path == null ? "" : path) {
             case "/loc" -> {
                 boolean kept = p.loc(m, num(in, "lat"), num(in, "lon"), num(in, "acc"), num(in, "batt") == null ? null : num(in, "batt").intValue(),
-                        in.has("sos") && in.get("sos").getAsBoolean(), now);
+                        bool(in, "sos"), now);
                 out = p.view(m, now);
                 out.addProperty("locKept", kept);   // false - 출발 3시간 전이라 버림
                 return out;
             }
             case "/view" -> { }
-            case "/ping" -> p.ping(m, num(in, "batt") == null ? null : num(in, "batt").intValue(), in.has("sos") && in.get("sos").getAsBoolean(), now);
+            case "/ping" -> p.ping(m, num(in, "batt") == null ? null : num(in, "batt").intValue(), bool(in, "sos"), now);
             case "/board" -> p.board(m, on, now);
             case "/aboard" -> p.aboard(m, on);
             case "/seat" -> p.seat(m, integer(in, "id"), integer(in, "bus"), integer(in, "seat"), str(in, "stop"));
@@ -128,7 +170,7 @@ public class PartyServlet extends HttpServlet {
             case "/plate" -> { if (!staff) throw new SecurityException("인솔자 · 운전자만 차량번호를 적을 수 있습니다."); p.plate(m, integer(in, "bus"), str(in, "plate")); }
             case "/kick" -> { if (!lead) throw new SecurityException("인솔자만 내보낼 수 있습니다."); p.kick(m, (int) lng(in, "id"), now); }
             case "/leave" -> { p.leave(m); return ok(); }
-            case "/end" -> { if (!lead) throw new SecurityException("인솔자만 방을 끝낼 수 있습니다."); p.end(m, in.has("cancel") && in.get("cancel").getAsBoolean(), now); return ok(); }
+            case "/end" -> { if (!lead) throw new SecurityException("인솔자만 방을 끝낼 수 있습니다."); p.end(m, bool(in, "cancel"), now); return ok(); }
             default -> throw new IllegalArgumentException("없는 주소입니다.");
         }
         return p.view(m, now);
@@ -143,6 +185,12 @@ public class PartyServlet extends HttpServlet {
         JsonObject o = new JsonObject();
         o.addProperty("success", true);
         return o;
+    }
+
+    /** 참 · 거짓 칸 - 다른 꼴(객체 · 글)이면 거짓(Gson 예외 글이 그대로 나가지 않게 - 점검). */
+    private static boolean bool(JsonObject in, String k) {
+        JsonElement e = in.get(k);
+        return e != null && e.isJsonPrimitive() && e.getAsJsonPrimitive().isBoolean() && e.getAsBoolean();
     }
 
     private static String str(JsonObject in, String k) {

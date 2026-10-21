@@ -62,10 +62,10 @@ public class PartyTest {
         String a = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"철수\",\"role\":\"hiker\",\"seat\":21,\"stop\":\"사당\",\"agree\":true}", T0).get("token").getAsString();
         String b = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"영희\",\"role\":\"hiker\",\"seat\":11,\"stop\":\"양재\",\"agree\":true}", T0).get("token").getAsString();
         String c = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"늦잠\",\"role\":\"hiker\",\"seat\":5,\"agree\":true}", T0).get("token").getAsString();
-        String d = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"기사님\",\"role\":\"driver\",\"agree\":true}", T0).get("token").getAsString();
+        String d = call(p, "/join", "{\"code\":\"" + room.get("driverCode").getAsString() + "\",\"nick\":\"기사님\",\"role\":\"driver\",\"agree\":true}", T0).get("token").getAsString();
         assertEquals(3, call(p, "/info", "{\"code\":\"" + code + "\"}", T0).get("hikers").getAsInt());
         try { call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"x\",\"role\":\"hiker\",\"seat\":21,\"agree\":true}", T0); fail("같은 자리"); }
-        catch (IllegalArgumentException e) { assertTrue(e.getMessage().contains("철수")); }
+        catch (IllegalArgumentException e) { assertTrue(e.getMessage().contains("이미 다른 분") && !e.getMessage().contains("철수")); }
 
         // 출발 3시간 전보다 이른 위치는 버림
         JsonObject early = call(p, "/loc", "{\"token\":\"" + a + "\",\"lat\":37.47,\"lon\":126.98}", T0 + H);
@@ -151,7 +151,7 @@ public class PartyTest {
         JsonObject bv = call(p, "/seat", "{\"token\":\"" + b + "\",\"seat\":6,\"stop\":\"복정\"}", T0);
         assertEquals(6, bv.get("seat").getAsInt());
         assertEquals("찬 자리(나 빼고) - 호차 × 100 + 좌석", "[121]", bv.getAsJsonArray("taken").toString());
-        try { call(p, "/seat", "{\"token\":\"" + b + "\",\"seat\":21}", T0); fail("남의 자리"); } catch (IllegalArgumentException e) { assertTrue(e.getMessage().contains("철수")); }
+        try { call(p, "/seat", "{\"token\":\"" + b + "\",\"seat\":21}", T0); fail("남의 자리"); } catch (IllegalArgumentException e) { assertTrue(e.getMessage().contains("이미 다른 분")); }
         int aId = call(p, "/view", tok(a), T0).get("me").getAsInt();
         try { call(p, "/seat", "{\"token\":\"" + b + "\",\"id\":" + aId + ",\"seat\":9}", T0); fail("회원이 남을 옮김"); } catch (SecurityException e) { /* 맞음 */ }
         call(p, "/mark", "{\"token\":\"" + lead + "\",\"seat\":21,\"what\":\"boarded\",\"on\":true}", T0);
@@ -200,10 +200,10 @@ public class PartyTest {
         String a = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"철수\",\"role\":\"hiker\",\"bus\":1,\"seat\":21,\"agree\":true}", T0).get("token").getAsString();
         String b = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"영희\",\"role\":\"hiker\",\"bus\":2,\"seat\":21,\"agree\":true}", T0).get("token").getAsString();   // 다른 호차 같은 번호
         try { call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"x\",\"role\":\"hiker\",\"bus\":2,\"seat\":21,\"agree\":true}", T0); fail("같은 호차 같은 자리"); }
-        catch (IllegalArgumentException e) { assertTrue(e.getMessage().contains("2호차 21번") && e.getMessage().contains("영희")); }
+        catch (IllegalArgumentException e) { assertTrue(e.getMessage().contains("2호차 21번") && !e.getMessage().contains("영희")); }
         try { call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"x\",\"role\":\"hiker\",\"bus\":4,\"seat\":1,\"agree\":true}", T0); fail("없는 호차"); }
         catch (IllegalArgumentException e) { /* 맞음 */ }
-        String d2 = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"2호차 기사\",\"role\":\"driver\",\"bus\":2,\"agree\":true}", T0).get("token").getAsString();
+        String d2 = call(p, "/join", "{\"code\":\"" + room.get("driverCode").getAsString() + "\",\"nick\":\"2호차 기사\",\"role\":\"driver\",\"bus\":2,\"agree\":true}", T0).get("token").getAsString();
         assertEquals("[121,221]", call(p, "/info", "{\"code\":\"" + code + "\"}", T0).getAsJsonArray("taken").toString());
 
         call(p, "/bus", "{\"token\":\"" + d2 + "\",\"bus\":1,\"lat\":38.17,\"lon\":128.48}", T0);   // 운전자는 자기 호차(2)로
@@ -238,7 +238,7 @@ public class PartyTest {
         assertEquals("[\"서울70사1234\",null]", call(p, "/info", "{\"code\":\"" + code + "\"}", T0).getAsJsonArray("plates").toString());
 
         String a = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"철수\",\"role\":\"hiker\",\"bus\":2,\"seat\":3,\"agree\":true}", T0).get("token").getAsString();
-        String d1 = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"기사\",\"role\":\"driver\",\"bus\":1,\"agree\":true}", T0).get("token").getAsString();
+        String d1 = call(p, "/join", "{\"code\":\"" + room.get("driverCode").getAsString() + "\",\"nick\":\"기사\",\"role\":\"driver\",\"bus\":1,\"agree\":true}", T0).get("token").getAsString();
         call(p, "/plate", "{\"token\":\"" + lead + "\",\"bus\":2,\"plate\":\"경기71바5678\"}", T0);
         call(p, "/plate", "{\"token\":\"" + d1 + "\",\"bus\":2,\"plate\":\"서울70사4321\"}", T0);   // 운전자는 자기 호차(1)로
         assertEquals("[\"서울70사4321\",\"경기71바5678\"]", call(p, "/view", tok(a), T0).getAsJsonArray("plates").toString());
@@ -334,6 +334,30 @@ public class PartyTest {
         assertTrue(call(p, "/info", "{\"code\":\"" + code + "\"}", DEPART).get("departed").getAsBoolean());
         try { call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"철수\",\"role\":\"hiker\",\"agree\":true}", DEPART); fail("출발 뒤 회원"); }
         catch (IllegalStateException e) { assertTrue(e.getMessage().contains("이미 출발")); }
-        call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"교대 기사\",\"role\":\"driver\",\"agree\":true}", DEPART);
+        call(p, "/join", "{\"code\":\"" + room.get("driverCode").getAsString() + "\",\"nick\":\"교대 기사\",\"role\":\"driver\",\"agree\":true}", DEPART);
+    }
+
+    /** 보안 점검(2026-10-21): 운전자 코드 · 연락처 · 인솔자 나가기 · 하산 마감 · 요청 횟수. */
+    @Test
+    public void securityChecks() {
+        Party p = new Party();
+        JsonObject room = j(create(p, T0));
+        String code = room.get("code").getAsString(), lead = room.get("token").getAsString(), dc = room.get("driverCode").getAsString();
+        assertNotEquals(code, dc);
+        try { call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"가짜기사\",\"role\":\"driver\",\"agree\":true}", T0); fail("방 코드로 운전자"); }
+        catch (IllegalArgumentException e) { assertTrue(e.getMessage().contains("운전자 코드")); }
+        JsonObject info = call(p, "/info", "{\"code\":\"" + code + "\"}", T0);
+        assertFalse("참가 전엔 연락처 없음", info.has("leaderPhone"));
+        assertFalse(info.has("driverCode"));
+        assertTrue(call(p, "/info", "{\"code\":\"" + dc.toLowerCase() + "\"}", T0).get("driverInvite").getAsBoolean());
+        JsonObject d = call(p, "/join", "{\"code\":\"" + dc + "\",\"nick\":\"기사\",\"role\":\"hiker\",\"agree\":true}", T0);
+        assertEquals("운전자 코드로 오면 운전자", "driver", d.get("role").getAsString());
+        assertFalse("운전자에게 운전자 코드는 안 감", d.has("driverCode"));
+        assertTrue("참가하면 연락처", d.has("leaderPhone"));
+        try { call(p, "/leave", tok(lead), T0); fail("인솔자 나가기"); } catch (IllegalStateException e) { assertTrue(e.getMessage().contains("방 끝내기")); }
+        try { call(p, "/create", "{\"name\":\"x\",\"departAt\":" + DEPART + ",\"endAt\":" + (DEPART + 49 * H) + "}", T0); fail("48시간 넘게"); } catch (IllegalArgumentException e) { /* 맞음 */ }
+        try { call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"x\",\"role\":\"hiker\",\"agree\":{}}", T0); fail("동의가 객체"); } catch (IllegalArgumentException e) { /* 거짓으로 봄 */ }
+        PartyServlet.Quota q = new PartyServlet.Quota(2, 1000);
+        assertTrue(q.take("a", 0) && q.take("a", 1) && !q.take("a", 2) && q.over("a", 2) && q.take("b", 2) && q.take("a", 1002));
     }
 }

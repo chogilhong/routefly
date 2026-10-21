@@ -109,7 +109,12 @@
         var m = /^#t=([A-Za-z0-9_-]{16,64})$/.exec(location.hash || "");
         if (!m) return null;
         try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* 그대로 */ }
+        // 앱 안에서만 받고, 누구로 이어지는지 묻고 받음(2026-10-21 점검 - 남의 열쇠를 실은 링크로 내 위치가 엉뚱한 방에 가지 않게)
+        if (!window.Capacitor) return null;
         return RFParty.post("view", { token: m[1] }).then(function (j) {
+            var cur = RFParty.get();
+            if (!confirm("카톡 등에서 참가한 산악회 방을 이 앱으로 이어 갈까요?\n방: " + j.name + "\n별명: " + j.nick
+                + (cur && cur.code !== j.code ? "\n(지금 이 앱의 다른 방 \"" + (cur.name || cur.code) + "\" 대신)" : ""))) throw new Error("앱으로 옮기기를 그만두었습니다.");
             RFParty.set({ code: j.code, token: m[1], role: j.role, name: j.name });
             return j;
         });
@@ -154,6 +159,14 @@
             seatOptions($("joinSeat"), j.seats, j.taken, null, "고르기", 1);
             var qs = new URLSearchParams(location.search).get("s");   // QR 에 실린 탑승지(인솔자가 그 자리에서 보여 준 것)
             stopOptions($("joinStop"), j.stops, qs && (j.stops || []).indexOf(qs) >= 0 ? qs : null, "고르기");
+            if (j.driverInvite) {   // 운전자 코드로 들어옴(인솔자가 기사님께만 준 것) - 운전으로 고정
+                document.querySelector("input[name=role][value=driver]").checked = true;
+                document.querySelector("input[name=role][value=hiker]").disabled = true;
+            } else {   // 방 코드 - 산행만(운전자는 운전자 코드로, 2026-10-21 점검)
+                document.querySelector("input[name=role][value=hiker]").disabled = false;
+                document.querySelector("input[name=role][value=hiker]").checked = true;
+                document.querySelector("input[name=role][value=driver]").disabled = true;
+            }
             roleChanged();
             if (j.departed) joinErr("이미 출발한 방이라 산행 회원은 새로 참가할 수 없습니다. 인솔자에게 연락해 주세요. (운전자는 참가할 수 있습니다)");
         }).catch(function (e) { infoFor = null; $("joinCard").hidden = true; $("joinSeatBox").hidden = true; joinErr(e.message, $("joinCode")); });
@@ -281,6 +294,7 @@
         $("hikerBox").hidden = staff;
         $("leadRow").hidden = p.role !== "lead";
         if (p.role === "lead") $("inviteUrl").value = inviteUrl();
+        if (first && first.driverCode) $("driverCode").textContent = first.driverCode;
         $("noticeRow").hidden = p.role !== "lead";
         $("endBtn").hidden = p.role !== "lead";
         $("leaveBtn").hidden = p.role === "lead";
@@ -407,6 +421,7 @@
         }
         drawMap(s);
         if (BG) bgSync(s);
+        if (s.driverCode) { $("driverCode").textContent = s.driverCode; $("driverRow").hidden = false; }
     }
 
     /** 회원 단계 - 취소됨 / 출발 전(버스 탔어요) / 산행 중(SOS · 하산 탑승) / 하산 탑승함. */
