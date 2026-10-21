@@ -163,6 +163,7 @@ public class StatsServlet extends HttpServlet {
                 + "<p class=\"lead\">최근 " + last.size() + "일 · 방문자(하루마다 센 수의 합) " + String.format(Locale.KOREA, "%,d", tu) + " · 화면 " + String.format(Locale.KOREA, "%,d", tp)
                 + " · 로봇 " + String.format(Locale.KOREA, "%,d", tb) + botLine(bots) + "</p>");
         out.append(trend(days, n));
+        out.append(checkTable(days, last));   // 날마다 위 · 늘 펼침(2026-10-22 홍TV님)
         out.append("<section><h2>날마다</h2><table class=\"st\"><tr><th>날짜</th><th class=\"num\">방문자</th><th class=\"num\">모바일</th><th class=\"num\">PC</th><th class=\"num\">화면</th><th class=\"num\">로봇</th></tr>").append(rows).append("</table></section>");
         out.append(top("모바일 · PC 방문자(" + last.size() + "일 - 10-20 부터 셈)", devs, 5, null))
                 .append(top("인기 산 페이지(" + last.size() + "일)", mountains, 20, null))
@@ -171,16 +172,18 @@ public class StatsServlet extends HttpServlet {
                 .append(top("화면별(" + last.size() + "일)", pages, 20, StatsServlet::pageName))
                 .append(top("들어온 곳(" + last.size() + "일 - 바깥에서 처음 들어온 화면 수)", refs, 20, null))
                 .append(botTable(bots, engines))
-                .append(checkTable(days, last))
                 .append(GUIDE);
         out.append("<p class=\"dim\">숫자만 셉니다 - 방문자는 그 날만 쓰는 해시로 겹침만 걸러 내고 IP 는 남기지 않습니다. 이 화면을 연 기기(브라우저)는 운영자로 보고 방문 수에서 뺍니다(2년, 사이트 데이터를 지우면 다시 셈). 앱은 안내 화면 \"안내\" 제목을 7번 누르고 열쇠를 넣으면 빠집니다.</p></main><script src=\"js/stats.js\"></script></body></html>");
         return fold(out.toString());
     }
 
     /** 늘 펼친 칸(제목 앞글자) - 접지 않음(2026-10-21 홍TV님). */
-    static final List<String> ALWAYS = List.of("방문 추세", "날마다", "모바일 · PC 방문자");
+    static final List<String> ALWAYS = List.of("방문 추세", "사람 확인", "날마다", "모바일 · PC 방문자");
 
-    /** 순수 함수 - 칸(section 의 h2 제목)마다 누르면 접고 펴는 details 로 감쌈(처음엔 접힘). {@link #ALWAYS} 칸은 그대로 늘 보임. */
+    /**
+     * 순수 함수 - 칸(section 의 h2 제목)마다 누르면 접고 펴는 details 로 감쌈(처음엔 접힘). {@link #ALWAYS} 칸은 그대로 늘 보임.
+     * 접는 칸은 모두 name="st" - 하나를 펴면 다른 것은 접힘(2026-10-22 홍TV님). name 을 모르는 옛 브라우저는 js/stats.js 가 대신.
+     */
     static String fold(String html) {
         java.util.regex.Matcher m = java.util.regex.Pattern.compile("(?s)<section><h2>(.*?)</h2>(.*?)</section>").matcher(html);
         StringBuilder b = new StringBuilder();
@@ -188,7 +191,7 @@ public class StatsServlet extends HttpServlet {
             String title = m.group(1);
             boolean keep = ALWAYS.stream().anyMatch(title::startsWith);
             m.appendReplacement(b, java.util.regex.Matcher.quoteReplacement(keep ? m.group()
-                    : "<section><details class=\"fold\"><summary><h2>" + title + "</h2></summary>" + m.group(2) + "</details></section>"));
+                    : "<section><details class=\"fold\" name=\"st\"><summary><h2>" + title + "</h2></summary>" + m.group(2) + "</details></section>"));
         }
         return m.appendTail(b).toString();
     }
@@ -242,18 +245,18 @@ public class StatsServlet extends HttpServlet {
         }
         StringBuilder b = new StringBuilder("<section><h2>사람 확인 <small style=\"font-weight:normal;color:var(--dim);font-size:13px\">사람으로 센 방문자를 한 번 더 봄 - 10월 22일부터</small></h2>");
         if (nd == 0) return b.append("<table class=\"st\"><tr><td>아직 없음</td></tr></table></section>").toString();
-        b.append("<table class=\"st\"><tr><th>기기</th><th class=\"num\">방문자</th><th class=\"num\">화면 js 돎</th><th class=\"num\">보안 머리글 빠짐</th></tr>");
+        b.append("<table class=\"st\"><tr><th>기기</th><th class=\"num\">방문자</th><th class=\"num\">화면 js 돎</th><th class=\"num\">비율</th><th class=\"num\">보안 머리글 빠짐</th></tr>");
         for (String dv : new String[] {"모바일", "PC"}) {
             int v = vis.getOrDefault(dv, 0), j = js.getOrDefault(dv, 0);
-            b.append("<tr><td class=\"kd\">").append(dv).append("</td><td class=\"num\">").append(n(v)).append("</td><td class=\"num\">").append(n(j))
-                    .append(v > 0 ? " (" + Math.round(100.0 * j / v) + "%)" : "").append("</td><td class=\"num\">").append(n(sus.getOrDefault(dv, 0))).append("</td></tr>");
+            b.append("<tr><td class=\"kd\">").append(dv).append("</td><td class=\"num\">").append(n(v)).append("</td><td class=\"num\">").append(n(j))   // 비율은 따로 칸 - 수끼리 자리가 맞게(2026-10-22 홍TV님)
+                    .append("</td><td class=\"num\">").append(v > 0 ? Math.round(100.0 * j / v) + "%" : "-").append("</td><td class=\"num\">").append(n(sus.getOrDefault(dv, 0))).append("</td></tr>");
         }
-        return b.append("</table><p class=\"dim\" style=\"margin:6px 0 0\">").append(nd).append("일 합. 화면 js 돎 - 화면이 열려 그 안의 프로그램이 돈 사람(사람 브라우저는 거의 다). ")
+        return b.append("</table><p class=\"dim\" style=\"margin:6px 0 0\">").append(nd).append("일 합. 화면 js 돎 - 방문자 가운데 화면이 열려 그 안의 프로그램이 돈 사람, 비율은 그 몫(사람 브라우저는 거의 100%). ")
                 .append("낮으면 언어 설정까지 흉내 낸 수집 프로그램이 섞였다는 뜻. 보안 머리글 빠짐 - 요즘 브라우저가 늘 보내는 표식이 없는 사람(예전 아이폰도 걸릴 수 있어 로봇으로 빼지는 않음).</p></section>").toString();
     }
 
     /** 보는 법(2026-10-21 홍TV님 "설명자료도 추가") - 표마다 무엇을 세는지. */
-    static final String GUIDE = "<section><details><summary style=\"cursor:pointer;font-weight:bold;font-size:15px\">📖 통계 보는 법 (누르면 펼침)</summary>"
+    static final String GUIDE = "<section><details name=\"st\"><summary style=\"cursor:pointer;font-weight:bold;font-size:15px\">📖 통계 보는 법 (누르면 펼침)</summary>"
             + "<table class=\"st\" style=\"font-size:12.5px;line-height:1.5;margin-top:8px\"><tr><th style=\"width:30%\">항목</th><th>뜻</th></tr>"
             + "<tr><td>방문자</td><td>그 날 들어온 사람 수(같은 사람은 하루 한 번). 여러 날 합이라 이틀 온 사람은 2</td></tr>"
             + "<tr><td>화면</td><td>연 화면 수</td></tr>"

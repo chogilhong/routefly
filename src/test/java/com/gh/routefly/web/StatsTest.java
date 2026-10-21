@@ -61,7 +61,7 @@ public class StatsTest {
         assertTrue(html.contains("로봇 5 (검색 4 · 시험 1)") && html.contains("로봇 종류"));
         assertTrue("방문 추세 · 날마다 · 모바일 PC 는 늘 펼침", html.contains("<section><h2>방문 추세") && html.contains("<section><h2>날마다</h2>") && html.contains("<section><h2>모바일 · PC 방문자"));
         assertTrue("주소에서 열쇠를 빼는 스크립트(302 대신 - 앱이 바깥 크롬으로 넘겼음)", html.contains("<script src=\"js/stats.js\"></script>"));
-        assertTrue("나머지는 처음엔 접힘(누르면 펼침)", html.contains("<details class=\"fold\"><summary><h2>로봇 종류") && !html.contains("class=\"fold\" open"));
+        assertTrue("나머지는 처음엔 접힘(누르면 펼침)", html.contains("<details class=\"fold\" name=\"st\"><summary><h2>로봇 종류") && !html.contains("class=\"fold\" open"));
     }
 
     @Test
@@ -215,10 +215,13 @@ public class StatsTest {
         days.put("2026-10-21", JsonParser.parseString("{\"pages\":{},\"uniq\":50,\"bots\":0,\"devUniq\":{\"PC\":50}}").getAsJsonObject());
         days.put("2026-10-22", JsonParser.parseString("{\"pages\":{},\"uniq\":30,\"bots\":0,\"devUniq\":{\"모바일\":10,\"PC\":20},\"jsUniq\":{\"모바일\":10,\"PC\":5},\"sus\":{\"PC\":12}}").getAsJsonObject());
         String t = StatsServlet.checkTable(days, new java.util.ArrayList<>(days.keySet()));
-        assertTrue(t, t.contains("<td class=\"num\">20</td><td class=\"num\">5 (25%)</td><td class=\"num\">12</td>"));   // 10-21(세기 전) PC 50 은 안 더함
-        assertTrue(t, t.contains("10 (100%)"));
+        assertTrue(t, t.contains("<td class=\"num\">20</td><td class=\"num\">5</td><td class=\"num\">25%</td><td class=\"num\">12</td>"));   // 10-21(세기 전) PC 50 은 안 더함
+        assertTrue(t, t.contains("<td class=\"num\">10</td><td class=\"num\">100%</td>"));
         assertTrue(t.contains("1일 합"));
         assertTrue(StatsServlet.checkTable(new TreeMap<>(), java.util.List.of()).contains("아직 없음"));
-        assertTrue("통계 화면에 들어감", StatsServlet.page(days, 30, null).contains("사람 확인"));
+        String pg = StatsServlet.page(days, 30, null);
+        assertTrue("날마다 위", pg.indexOf("사람 확인") > 0 && pg.indexOf("사람 확인") < pg.indexOf("<h2>날마다"));
+        assertFalse("늘 펼침", pg.contains("<summary><h2>사람 확인"));
+        assertTrue("접는 칸은 하나만 펴지게", pg.contains("<details class=\"fold\" name=\"st\">") && pg.contains("<details name=\"st\">"));
     }
 }
