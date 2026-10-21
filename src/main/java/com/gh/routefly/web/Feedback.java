@@ -53,11 +53,19 @@ final class Feedback {
         return t;
     });
 
+    /** 메일을 보내는가 - 서버의 STORE 만. 테스트가 만든 것은 안 보냄(2026-10-21: PC 테스트가 실제 설정으로 "글 0" 메일을 보냈음). */
+    private final boolean mails;
+
     Feedback(Path dir) {
-        this.dir = dir;
+        this(dir, false);
     }
 
-    static final Feedback STORE = new Feedback(defaultDir());
+    Feedback(Path dir, boolean mails) {
+        this.dir = dir;
+        this.mails = mails;
+    }
+
+    static final Feedback STORE = new Feedback(defaultDir(), true);
 
     /** 설정 feedback.dir(폴더 그대로 - 예: E:\\GH\\feedback, 2026-10-20 홍TV님 PC), 없으면 stats.dir/feedback, 그것도 없으면 톰캣 폴더/routefly-stats/feedback. */
     static Path defaultDir() {
@@ -115,7 +123,7 @@ final class Feedback {
         if (reply != null) o.addProperty("reply", reply);
         o.addProperty("text", text);
         save(o, now);
-        Mail m = Mail.fromConfig();
+        Mail m = mails ? Mail.fromConfig() : null;
         if (m != null) mailer.submit(() -> {
             try {
                 m.send("[routefly 의견] " + (page.isEmpty() ? "앱" : page), body(text, page, reply, now), reply);
