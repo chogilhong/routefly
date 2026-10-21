@@ -23,7 +23,10 @@
         $("note").textContent = "Runs only on this screen - no install, no login. Best scores stay on this device. Save your battery on the trail 🙂";
         var names = { tetris: "🧱 Tetris", shooter: "🚀 Galaga", snake: "🐍 Snake", g2048: "🔢 2048", breakout: "🏓 Breakout",
             mines: "💣 Minesweeper", runner: "🏔️ Mountain run", mole: "🐹 Whack-a-mole", memory: "🃏 Memory", flappy: "🐦 Flappy bird" };
-        Array.prototype.forEach.call(document.querySelectorAll("#pick button"), function (b) { b.textContent = names[b.getAttribute("data-g")]; });
+        Array.prototype.forEach.call(document.querySelectorAll("#pick button"), function (b) { b.querySelector(".n").textContent = names[b.getAttribute("data-g")].replace(/^\S+\s/, ""); });
+        $("pickChg").textContent = "Change ▾";
+        $("grpA").textContent = "🕹️ Arcade";
+        $("grpB").textContent = "👆 Tap games";
     }
     function fit() {
         var r = Math.min(window.devicePixelRatio || 1, 2), maxW = Math.min(document.querySelector("main").clientWidth - 2, 380);
@@ -211,7 +214,10 @@
         $("score").textContent = 0;
         game.reset();
         game.draw();
-        over("<b>" + document.querySelector("#pick [data-g=" + id + "]").textContent + "</b><br><small style=\"color:var(--dim)\">" + game.help + "</small>", T("시작", "Start"));
+        var nm = document.querySelector("#pick [data-g=" + id + "]"), label = nm.querySelector(".e").textContent + " " + nm.querySelector(".n").textContent;
+        $("pickNow").textContent = label;
+        $("pick").open = false;
+        over("<b>" + label + "</b><br><small style=\"color:var(--dim)\">" + game.help + "</small>", T("시작", "Start"));
         try { history.replaceState(null, "", "?g=" + id + (EN ? "&lang=en" : "")); } catch (e) { /* 그대로 */ }
     }
     Array.prototype.forEach.call(document.querySelectorAll("#pick button"), function (b) { b.addEventListener("click", function () { pick(b.getAttribute("data-g")); }); });
@@ -748,7 +754,9 @@
 
     // ------------------------------------------------------------------ 시작
     window.addEventListener("resize", fit);
-    pick(new URLSearchParams(location.search).get("g") || "tetris");
+    var first = new URLSearchParams(location.search).get("g");
+    pick(first || "tetris");
+    if (!first) $("pick").open = true;   // 처음 오면 펼쳐서 고르게
     fit();
     raf = requestAnimationFrame(loop);
 })();
