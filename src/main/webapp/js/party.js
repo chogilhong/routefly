@@ -44,7 +44,8 @@
     }
     /** 하산 마감이 지난 방 - 언제 저절로 끝나는지. */
     function overText(s) {
-        return "<span style=\"color:var(--red)\">하산 마감(" + when(s.endAt) + ")이 지났습니다</span>" + (s.closesAt ? " · " + when(s.closesAt) + "에 방이 저절로 끝나고 위치가 지워집니다" : "");
+        return "<span style=\"color:var(--red)\">하산 마감(" + when(s.endAt) + ")이 지났습니다</span>" + (s.closesAt ? " · " + when(s.closesAt) + "에 방이 저절로 끝나고 위치가 지워집니다" : "")
+            + ((s.members || []).some(function (m) { return m.sos && !m.aboard && !m.cancelled; }) ? " (🆘 SOS 가 켜져 있어 하산 마감 24시간 뒤까지 남김)" : "");
     }
     /** 호차 - 차가 한 대면 빈 글(단풍철 여러 대 - 2026-10-20 홍TV님). */
     function busLabel(s, bus) { return s && s.buses > 1 ? bus + "호차 " : ""; }

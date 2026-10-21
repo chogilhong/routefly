@@ -361,6 +361,15 @@ public class PartyTest {
         try { call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"x\",\"role\":\"hiker\",\"agree\":{}}", T0); fail("동의가 객체"); } catch (IllegalArgumentException e) { /* 거짓으로 봄 */ }
         PartyServlet.Quota q = new PartyServlet.Quota(2, 1000);
         assertTrue(q.take("a", 0) && q.take("a", 1) && !q.take("a", 2) && q.over("a", 2) && q.take("b", 2) && q.take("a", 1002));
+        // 조난(SOS) - 하산 마감 6시간이 지나도 방을 24시간까지 남김
+        room = j(create(p, T0));
+        code = room.get("code").getAsString(); lead = room.get("token").getAsString();
+        String h = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"조난\",\"role\":\"hiker\",\"agree\":true}", T0).get("token").getAsString();
+        call(p, "/ping", "{\"token\":\"" + h + "\",\"sos\":true}", DEPART - H);
+        assertEquals("SOS 가 켜져 있으면 하산 마감 24시간 뒤까지", base + 24 * H, call(p, "/info", "{\"code\":\"" + code + "\"}", T0).get("closesAt").getAsLong());
+        call(p, "/view", tok(lead), base + 7 * H);   // 6시간이 지나도 방이 남음(끝났으면 Ended)
+        call(p, "/ping", "{\"token\":\"" + h + "\",\"sos\":false}", base + 7 * H);
+        try { call(p, "/view", tok(lead), base + 7 * H + 1); fail("SOS 를 풀면 6시간으로"); } catch (Party.Ended e) { /* 맞음 */ }
     }
 
     /** 버그 점검(2026-10-21): 취소된 사람을 명단에서 되돌림(자리가 찼으면 좌석 없이) · 틀린 방 하나가 있어도 나머지는 읽음. */

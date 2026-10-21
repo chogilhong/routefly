@@ -42,6 +42,8 @@ final class Party {
     static final long HOUR = 3600_000L;
     /** 하산 마감(없으면 출발 + 24시간, 그것도 없으면 만든 뒤 30시간) 6시간 뒤 방을 지움. 만든 지 40일이 넘어도. */
     static final long AFTER_END_MS = 6 * HOUR, NO_TIME_MS = 30 * HOUR, MAX_LIFE_MS = 40L * 24 * HOUR;
+    /** SOS 를 켠 회원(하산 탑승 전)이 있으면 하산 마감 이만큼 뒤까지 방을 남김 - 조난자 위치를 인솔자가 계속 보게(2026-10-21 홍TV님 "조난자가 있으면 도움"). */
+    static final long SOS_KEEP_MS = 24 * HOUR;
     /** 위치는 출발 이만큼 전부터 받음. */
     static final long LOC_BEFORE_MS = 3 * HOUR;
     /** "버스 탔어요" 는 출발 이만큼 전부터(2026-10-20 홍TV님 - 참가하자마자 단추가 보여 모르고 누를까 봐). 인솔자 좌석표 체크는 언제나. */
@@ -116,8 +118,18 @@ final class Party {
             return endAt > 0 ? endAt : departAt > 0 ? departAt + 24 * HOUR : created + NO_TIME_MS - AFTER_END_MS;
         }
 
+        /** 방이 저절로 끝나는 때 - 하산 마감 6시간 뒤, SOS 가 켜져 있으면 24시간 뒤. */
+        long closesAt() {
+            return endBase() + (sosOn() ? SOS_KEEP_MS : AFTER_END_MS);
+        }
+
+        boolean sosOn() {
+            for (Member m : members.values()) if (m.sos && !m.aboard && !m.cancelled) return true;
+            return false;
+        }
+
         boolean expired(long now) {
-            return now > endBase() + AFTER_END_MS || now - created > MAX_LIFE_MS;
+            return now > closesAt() || now - created > MAX_LIFE_MS;
         }
 
         /** 산행 회원(취소 빼고). */
@@ -662,7 +674,7 @@ final class Party {
         o.addProperty("name", r.name);
         o.addProperty("departAt", r.departAt);
         o.addProperty("endAt", r.endAt);
-        o.addProperty("closesAt", r.endBase() + AFTER_END_MS);   // 방이 저절로 끝나는 때(하산 마감 6시간 뒤 - 2026-10-21 홍TV님: 마감이 지난 방에 "출발까지 9시간 지남"만 보였음)
+        o.addProperty("closesAt", r.closesAt());   // 방이 저절로 끝나는 때(하산 마감 6시간 뒤 - 2026-10-21 홍TV님: 마감이 지난 방에 "출발까지 9시간 지남"만 보였음)
         o.addProperty("minPeople", r.minPeople);
         o.addProperty("hikers", r.hikers());
         if (r.leaderName != null) o.addProperty("leaderName", r.leaderName);
