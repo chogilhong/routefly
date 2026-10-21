@@ -111,7 +111,7 @@ public class StatsServlet extends HttpServlet {
                 // 통계 화면만 글씨 · 간격을 작게(2026-10-21 홍TV님 "전체적으로 폰트가 너무 커") - 산 페이지(mountain.css)는 그대로
                 + "<style>main{font-size:13px;line-height:1.5}h1{font-size:19px;margin:0 0 4px}h2{font-size:14.5px;margin:0 0 6px}.lead{font-size:12.5px;margin:0 0 10px}"
                 + "section{padding:10px 12px;margin-bottom:10px}.st{font-size:12.5px}.st th,.st td{padding:3px 6px}.st th{font-weight:normal;color:var(--dim)}"
-                + "details summary{font-size:14px!important}</style></head><body><main><h1>routefly 통계</h1>"
+                + "details summary{font-size:14px!important}.st a{text-decoration:none}.st a:hover{text-decoration:underline}</style></head><body><main><h1>routefly 통계</h1>"
                 + "<p class=\"lead\">최근 " + last.size() + "일 · 방문자(하루마다 센 수의 합) " + String.format(Locale.KOREA, "%,d", tu) + " · 화면 " + String.format(Locale.KOREA, "%,d", tp)
                 + " · 로봇 " + String.format(Locale.KOREA, "%,d", tb) + botLine(bots) + "</p>");
         out.append(trend(days, n));
