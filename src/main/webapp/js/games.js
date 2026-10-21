@@ -596,7 +596,7 @@
         var GY = H - 80, p, obs, spd, dist, nextIn, clouds;
         function jump() { if (p.y >= GY - 0.5) { p.vy = -560; sfx("rotate"); } }
         return {
-            pad: [0, 0, 1, 0, T("점프", "Jump")],
+            pad: [0, 0, 0, 0, T("점프", "Jump")],
             onDown: true,
             repeat: {},
             help: T("화면을 누르거나 점프로 바위 · 나무를 뛰어넘기. 갈수록 빨라집니다.", "Tap or Jump over rocks and trees. It gets faster."),
