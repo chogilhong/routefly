@@ -15,7 +15,7 @@ h1{font-size:22px;margin:0 0 18px}
 <div class="arrow"><span>→</span>단말 위치<br>요청</div>
 <div class="box"><b>② 위치정보사업자</b>구글<br>· 앱: Google Play 서비스 Fused Location Provider API<br>· 웹(안드로이드 크롬 등): 브라우저 Geolocation API(Google 위치 서비스)<br>애플<br>· 아이폰 사파리: Geolocation API(Core Location)</div>
 <div class="arrow"><span>→</span>위도 · 경도 · 정확도<br>(HTTPS, 30초마다)</div>
-<div class="box"><b>③ 위치기반서비스사업자</b>routefly<br>AWS Lightsail 서울 서버 메모리에 사람마다 마지막 위치 · 출발 뒤 지나온 길만(파일 · DB 에 안 씀), 방이 끝나면 삭제</div>
+<div class="box"><b>③ 위치기반서비스사업자</b>routefly<br>AWS Lightsail 서울 서버<br>· 회원 위치 · 지나온 길: 메모리에만(파일 · DB 에 안 씀)<br>· 방 정보 파일(권한 600): 별명 · 좌석 · 탑승 표시 · 인솔자 연락처 · 버스 세운 자리(인솔자 · 운전자가 누른 곳)<br>방이 끝나면 모두 삭제</div>
 <div class="arrow"><span>→</span>같은 방에만<br>표시</div>
 <div class="box"><b>④ 서비스 제공 대상(제3자)</b>같은 산악회 방의 인솔자 · 버스 운전자(자기 호차) · 회원<br>- 위치 · SOS · 하산 탑승 표시<br>- 인솔자 · 운전자: 배터리 · 최근 2시간 지나온 길</div>
 </div>

@@ -20,7 +20,8 @@ function table(rows, widths) {
 }
 const H_ = s => ({ text: s, head: true });
 const fill = s => p([t(s, { color: 'C00000' })]);   // 홍TV님이 채울 칸
-const img = (f, w, hgt) => new ImageRun({ type: 'png', data: fs.readFileSync(D + f), transformation: { width: w, height: hgt } });
+const dims = f => { const b = fs.readFileSync(D + f); return [b.readUInt32BE(16), b.readUInt32BE(20)]; };   // PNG 폭 · 높이
+const img = (f, w, hgt) => new ImageRun({ type: 'png', data: fs.readFileSync(D + f), transformation: { width: w, height: hgt === undefined ? Math.round(w * dims(f)[1] / dims(f)[0]) : hgt } });
 
 const shots = [
   ['lbs/1-make.png', '① 인솔자가 방을 만듦(산행 이름 · 출발 · 하산 마감 · 좌석 · 탑승지)'],
@@ -32,13 +33,13 @@ const shots = [
   ['lbs/7-aboard.png', '⑦ 하산 탑승 - 위치 보내기를 멈추고 위치를 지움'],
   ['lbs/8-ended.png', '⑧ 방 끝 - 모든 회원의 위치를 지우고 화면을 닫음'],
 ];
-const IW = 176, IH = Math.round(176 * 1720 / 800);   // 한 쪽에 4장(2줄) - PC Word: 200 이면 쪽마다 한 줄만 들어가 아래가 빔
+const IW = 176;   // 한 쪽에 4장(2줄) - PC Word: 200 이면 쪽마다 한 줄만 들어가 아래가 빔
 const shotRows = [];
 for (let i = 0; i < shots.length; i += 2) {
   shotRows.push(new TableRow({ children: [0, 1].map(k => {
     const s = shots[i + k];
     return new TableCell({ width: { size: W / 2, type: WidthType.DXA }, borders, margins: { top: 80, bottom: 80, left: 80, right: 80 },
-      children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [img(s[0], IW, IH)] }), new Paragraph({ alignment: AlignmentType.CENTER, children: [t(s[1], { size: 18 })] })] });
+      children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [img(s[0], IW)] }), new Paragraph({ alignment: AlignmentType.CENTER, children: [t(s[1], { size: 18 })] })] });
   }) }));
 }
 
@@ -84,7 +85,7 @@ const doc = new Document({
         [H_('위치를 받는 때'), '참가 · 동의한 뒤, 출발 3시간 전부터 하산 탑승 · 방 나가기 · 방 끝까지 30초마다(위치를 못 잡으면 위치 없이 "폰 켜짐" · 배터리 · SOS 만)'],
         [H_('받는 것'), '위도 · 경도 · 정확도(m) · 배터리 % · SOS. 출발 뒤 산행 회원은 지나온 길(10m 움직일 때마다 한 점)'],
         [H_('보는 사람'), '같은 방 사람들만: 회원 - 별명 · 위치 · SOS · 하산 탑승 / 인솔자 · 운전자 - 더해서 배터리 · 탑승 · 한자리에 머문 시간 · 최근 2시간 지나온 길(조난 대비). 차가 여러 대면 운전자는 자기 호차 회원만. 운영자 화면 · 다른 회사 제공 · 광고 이용 없음'],
-        [H_('보관 · 파기'), '위치 · 지나온 길은 서버 메모리에만(파일 · DB 에 쓰지 않음). 방을 나가면 그 사람 것, 방이 끝나면(인솔자가 끝냄 · 취소, 또는 하산 마감 6시간 뒤 - SOS 회원이 있으면 24시간 뒤, 늦어도 만든 지 40일) 방 전체를 지움'],
+        [H_('보관 · 파기'), [p('회원 위치 · 지나온 길: 서버 메모리에만(파일 · DB 에 쓰지 않음).'), p('방 정보 파일(서버, 권한 600 - 재시작 · 배포에도 산행 날까지 이어지게): 방 이름 · 시각 · 인솔자 이름 · 연락처 · 회원 별명 · 좌석 · 탑승지 · 탑승 표시 · 버스 세운 자리(인솔자 · 운전자가 "지금 내 자리를 버스로" 누른 곳). 회원 위치는 없음.'), p('방을 나가면 그 사람 것, 방이 끝나면(인솔자가 끝냄 · 취소, 또는 하산 마감 6시간 뒤 - SOS 회원이 있으면 24시간 뒤, 늦어도 만든 지 40일) 방 전체를 지움.')]],
         [H_('익명 코스 통계'), '방이 끝나면(취소 빼고) 지나온 길을 별명 · 방 코드 · 시각 없이, 처음 · 끝 500m 와 차를 탄 구간을 빼고 DB 에 둠 - 코스 구간별 실제 걸린 시간 · 예상 시간 바로잡기'],
         [H_('보호조치'), '방마다 무작위 열쇠(토큰)를 가진 참가자만 그 방을 봄 · 방 코드 맞히기 막기 · HTTPS 만 · 서버 AWS Lightsail 서울(SSH 키 로그인, 22 · 80 · 443 만 엶) · 운영자 1명만 접속'],
         [H_('확인자료'), '참가(동의) · 나감 · 내보냄 · 출발 때 취소 · 방 끝 · SOS 의 시각과 방 코드 · 방 안 번호만(좌표 · 별명 없음) 서버 로그에 200일 보관 뒤 삭제'],
@@ -93,12 +94,12 @@ const doc = new Document({
 
       new Paragraph({ children: [new PageBreak()] }),
       h('2.1 서비스 시나리오', HeadingLevel.HEADING_2),
-      p('시험 방(가상 인솔자 "시험대장" · 010-0000-0000, 가상 회원)으로 찍은 화면입니다.'),
+      p('시험 방(가상 인솔자 "시험대장" · 010-0000-0000, 가상 회원)으로 찍은 화면입니다. 지도 칸(회원 점 · SOS · 지나온 길)은 실제 폰 화면으로 바꿔 넣으면 더 잘 보입니다.'),
       new Table({ width: { size: W, type: WidthType.DXA }, columnWidths: [W / 2, W / 2], rows: shotRows }),
 
       new Paragraph({ children: [new PageBreak()] }),
       h('2.2 위치정보 데이터 흐름도', HeadingLevel.HEADING_2),
-      new Paragraph({ alignment: AlignmentType.CENTER, children: [img('lbs-flow.png', 600, Math.round(600 * 1040 / 2312))] }),
+      new Paragraph({ alignment: AlignmentType.CENTER, children: [img('lbs-flow.png', 600)] }),
       table([
         [H_('위치정보사업자(API)'), [p('구글 - 앱: Google Play 서비스 Fused Location Provider API / 웹(안드로이드 크롬 등): 브라우저 Geolocation API(Google 위치 서비스)'), p('애플 - 아이폰 사파리: Geolocation API(Core Location)')]],
         [H_('참고'), '화면의 지도 그림(V-World · OpenStreetMap · 공개 지형 자료)은 위치를 받지 않습니다. 위치 수집에 쓰는 API 는 위 위치정보사업자의 것뿐입니다.'],
