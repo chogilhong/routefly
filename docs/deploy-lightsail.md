@@ -889,3 +889,23 @@ routefly.kr 의 443 server 블록(robots.txt 줄 옆)에 한 줄 넣습니다:
 
 `sudo nginx -t && sudo systemctl reload nginx`. 지문은 설정 `app.sha256`(AssetLinksServlet - 비우면 404). 넣은 뒤 `curl -s https://routefly.kr/.well-known/assetlinks.json` 이 JSON 이면 됩니다.
 www.routefly.kr 은 routefly.kr 로 넘기므로(301) 앱 링크는 routefly.kr 만 씁니다(참가 링크도 routefly.kr 로 만들어짐).
+
+## 16. 빙(Bing) 빨리 알리기 - IndexNow (2026-10-22)
+
+빙 웹마스터 도구에 등록(2026-10-21 홍TV님)한 뒤, 새 · 바뀐 페이지를 빙(과 IndexNow 를 받는 얀덱스 · 네이버 등)에 바로 알림.
+열쇠 파일 `src/main/webapp/indexnow-1ebb92f11183e4815e8381b4be01a354.txt`(값이 이름과 같음 - 공개되는 값, 비밀값 아님)가 war 에 들어가
+https://routefly.kr/routefly/indexnow-1ebb92f11183e4815e8381b4be01a354.txt 로 보임. 열쇠가 /routefly/ 아래라 그 아래 주소만 알릴 수 있음(사이트맵 주소는 모두 그 아래).
+
+PC(PowerShell)에서 사이트맵 주소를 한 번에 알리기 - 큰 배포 뒤 · 산 · 코스 페이지를 많이 바꿨을 때만(하루 한두 번이면 충분):
+
+```powershell
+$key = "1ebb92f11183e4815e8381b4be01a354"
+[xml]$sm = (Invoke-WebRequest -UseBasicParsing https://routefly.kr/sitemap.xml).Content
+$urls = @($sm.urlset.url | ForEach-Object { $_.loc })
+$body = @{ host = "routefly.kr"; key = $key; keyLocation = "https://routefly.kr/routefly/indexnow-$key.txt"; urlList = $urls } | ConvertTo-Json -Depth 3
+Invoke-WebRequest -UseBasicParsing -Method Post -Uri https://api.indexnow.org/indexnow -ContentType "application/json; charset=utf-8" -Body ([Text.Encoding]::UTF8.GetBytes($body))
+```
+
+- 200 · 202 면 받음. 403 은 열쇠 파일을 못 읽음(배포 확인), 422 는 주소가 열쇠 위치(/routefly/) 밖.
+- 결과는 빙 웹마스터 도구 → IndexNow 에서 보이고, /stats 로봇 종류 "검색" 아래 "빙" 숫자가 오름.
+
