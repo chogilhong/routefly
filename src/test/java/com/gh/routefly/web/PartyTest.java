@@ -435,4 +435,28 @@ public class PartyTest {
         assertTrue(got.isEmpty());
         assertNull("짧으면 안 남김", PartyTrack.anon(java.util.List.of(new double[] {37, 127, 0}, new double[] {37.001, 127, 30_000})));
     }
+
+    /** 운전자는 자기 호차 회원만(2026-10-21 홍TV님): 명단 · 지나온 길 · 좌석표 · 예약석. 인솔자는 모두. */
+    @Test
+    public void driverOwnBus() {
+        Party p = new Party();
+        JsonObject room = call(p, "/create", "{\"name\":\"단풍\",\"departAt\":" + DEPART + ",\"endAt\":" + END + ",\"buses\":2,\"seats\":28}", T0);
+        String code = room.get("code").getAsString(), lead = room.get("token").getAsString(), dc = room.get("driverCode").getAsString();
+        call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"일호\",\"role\":\"hiker\",\"bus\":1,\"seat\":3,\"agree\":true}", T0);
+        call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"이호\",\"role\":\"hiker\",\"bus\":2,\"seat\":3,\"agree\":true}", T0);
+        String d2 = call(p, "/join", "{\"code\":\"" + dc + "\",\"nick\":\"이호차 기사\",\"bus\":2,\"agree\":true}", T0).get("token").getAsString();
+        call(p, "/mark", "{\"token\":\"" + lead + "\",\"bus\":1,\"seat\":9,\"what\":\"reserved\",\"on\":true}", T0);
+        JsonObject dv = call(p, "/view", tok(d2), T0), lv = call(p, "/view", tok(lead), T0);
+        assertNull("운전자에게 다른 호차 회원은 안 감", member(dv, "일호"));
+        assertNotNull(member(dv, "이호"));
+        assertNotNull("인솔자는 보임", member(dv, lv.get("nick").getAsString()));
+        assertEquals("운전자 화면의 회원 수는 자기 호차", 1, dv.get("myHikers").getAsInt());
+        assertEquals("다른 호차 예약석은 안 감", 0, dv.getAsJsonArray("reserved").size());
+        assertNotNull("인솔자는 모두", member(lv, "일호"));
+        int one = member(lv, "일호").get("id").getAsInt();
+        try { call(p, "/trail", "{\"token\":\"" + d2 + "\",\"id\":" + one + "}", T0); fail("다른 호차 지나온 길"); } catch (SecurityException e) { assertTrue(e.getMessage().contains("2호차")); }
+        try { call(p, "/mark", "{\"token\":\"" + d2 + "\",\"bus\":1,\"seat\":3,\"what\":\"boarded\",\"on\":true}", T0); fail("다른 호차 좌석표"); } catch (SecurityException e) { /* 맞음 */ }
+        try { call(p, "/seat", "{\"token\":\"" + d2 + "\",\"id\":" + one + ",\"bus\":2,\"seat\":5}", T0); fail("다른 호차 사람 옮기기"); } catch (SecurityException e) { /* 맞음 */ }
+        call(p, "/mark", "{\"token\":\"" + d2 + "\",\"bus\":2,\"seat\":3,\"what\":\"boarded\",\"on\":true}", T0);   // 자기 호차는 됨
+    }
 }

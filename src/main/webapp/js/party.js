@@ -430,12 +430,13 @@
         if (over) $("appOpenRoom").hidden = true;   // 끝나 가는 방은 앱으로 옮길 까닭이 없음
         if (staff) {
             $("departRow").hidden = s.role !== "lead" || s.departed || over;
-            $("phase").innerHTML = over ? overText(s) + (s.departed ? " · 하산 탑승 <b>" + (s.aboardCount || 0) + "</b> / " + s.hikers : "") + (s.role === "lead" ? " - 산행이 끝났으면 아래 \"방 끝내기\"" : "")
+            var nh = s.myHikers != null ? s.myHikers : s.hikers;   // 운전자 - 자기 호차 회원 수
+            $("phase").innerHTML = over ? overText(s) + (s.departed ? " · 하산 탑승 <b>" + (s.aboardCount || 0) + "</b> / " + nh : "") + (s.role === "lead" ? " - 산행이 끝났으면 아래 \"방 끝내기\"" : "")
                 : !s.departed && s.departAt && s.now > s.departAt ? "<span style=\"color:var(--red)\">출발 시각(" + clock(s.departAt) + ")이 지났습니다</span>" + (s.role === "lead" ? " - 출발했으면 아래 \"출발\"을 눌러 주세요" : "")
-                    + " · 출발 탑승 " + (s.members || []).filter(function (m) { return m.role === "hiker" && m.boarded; }).length + " / " + s.hikers
-                : s.departed ? "🥾 산행 중 · 하산 탑승 <b>" + (s.aboardCount || 0) + "</b> / " + s.hikers
-                + (s.hikers > 0 && s.aboardCount >= s.hikers ? " <span class=\"ok\">모두 탔습니다 - 방을 끝내세요</span>" : "")
-                : s.departAt ? "출발까지 " + left(s.departAt, s.now) + " · 출발 탑승 " + (s.members || []).filter(function (m) { return m.role === "hiker" && m.boarded; }).length + " / " + s.hikers : "";
+                    + " · 출발 탑승 " + (s.members || []).filter(function (m) { return m.role === "hiker" && m.boarded; }).length + " / " + nh
+                : s.departed ? "🥾 산행 중 · 하산 탑승 <b>" + (s.aboardCount || 0) + "</b> / " + nh
+                + (nh > 0 && s.aboardCount >= nh ? " <span class=\"ok\">모두 탔습니다" + (s.role === "lead" ? " - 방을 끝내세요" : "") + "</span>" : "")
+                : s.departAt ? "출발까지 " + left(s.departAt, s.now) + " · 출발 탑승 " + (s.members || []).filter(function (m) { return m.role === "hiker" && m.boarded; }).length + " / " + nh : "";
             if (s.role === "driver" && !seatMap.once) { curBus = s.bus; seatMap.once = true; }   // 운전자는 자기 호차부터
             list(s);
             seatMap(s);
@@ -627,7 +628,8 @@
         $("seatSec").hidden = !(s.seats > 0);
         if (!(s.seats > 0)) return;
         if (curBus > (s.buses || 1)) curBus = 1;
-        $("busTabs").hidden = !(s.buses > 1);
+        if (s.role === "driver") curBus = s.bus;   // 운전자 - 자기 호차만(2026-10-21 홍TV님)
+        $("busTabs").hidden = !(s.buses > 1) || s.role === "driver";
         if (s.buses > 1) {
             var tabs = [];
             for (var b = 1; b <= s.buses; b++) {
