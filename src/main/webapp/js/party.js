@@ -255,6 +255,7 @@
         if (input.getAttribute("data-ph")) input.placeholder = input.getAttribute("data-ph");
     }
     $("mkDate").addEventListener("focus", digitsOnFocus);
+    $("mkNights").addEventListener("change", function () { $("mkEndLabel").textContent = +this.value ? "하산 마감(마지막 날)" : "하산 마감"; });
     ["mkTime", "mkEnd"].forEach(function (id) {
         $(id).addEventListener("blur", function () { restoreOnBlur(this); var hm = RFParty.parseTime(this.value); if (hm) this.value = timeText(hm); fieldErr(this, hm || !this.value.trim() ? "" : TIME_ERR[id]); });
         $(id).addEventListener("focus", digitsOnFocus);
@@ -268,10 +269,12 @@
         if (!tp) { fieldErr($("mkTime"), TIME_ERR.mkTime); $("mkTime").focus(); return; }
         var dp = [day.getFullYear(), day.getMonth() + 1, day.getDate()];
         var depart = new Date(+dp[0], +dp[1] - 1, +dp[2], +tp[0], +tp[1]).getTime(), endAt = 0;
-        if ($("mkEnd").value.trim()) {   // 하산 마감 - 출발 날 그 시각, 출발보다 이르면 다음 날(무박)
+        var nights = +$("mkNights").value || 0;   // 1박 2일 · 2박 3일 · 3박 4일(2026-10-21 홍TV님 - 지리산 · 설악산 종주)
+        if (nights && !$("mkEnd").value.trim()) { fieldErr($("mkEnd"), "여러 날 산행은 마지막 날 하산 마감 시각을 적어 주세요(예: 1600)."); $("mkEnd").focus(); return; }
+        if ($("mkEnd").value.trim()) {   // 하산 마감 - 당일은 출발 날 그 시각(출발보다 이르면 다음 날 - 무박), 여러 날은 출발 날 + n 일 그 시각
             var ep = RFParty.parseTime($("mkEnd").value);
             if (!ep) { fieldErr($("mkEnd"), TIME_ERR.mkEnd); $("mkEnd").focus(); return; }
-            var e = new Date(+dp[0], +dp[1] - 1, +dp[2], +ep[0], +ep[1]);
+            var e = new Date(+dp[0], +dp[1] - 1, +dp[2] + nights, +ep[0], +ep[1]);
             if (e.getTime() <= depart) e.setDate(e.getDate() + 1);
             endAt = e.getTime();
         }
@@ -824,8 +827,15 @@
     /** 카톡으로 - 안드로이드는 카톡을 바로 열어 글을 넣음(친구 · 단톡방 고르기), 그 밖(아이폰 등)은 공유 창(카톡 고르기). 2026-10-20 홍TV님. */
     $("shareBtn").addEventListener("click", function () {
         var text = inviteText();
-        if (/Android/i.test(navigator.userAgent) && !window.Capacitor) {
+        var cap = window.Capacitor, share = NATIVE && cap ? (cap.registerPlugin ? cap.registerPlugin("Share") : cap.Plugins && cap.Plugins.Share) : null;
+        if (share) {   // 앱(웹뷰)은 navigator.share 가 없어 아무 일도 없었음(2026-10-21 홍TV님 "카톡이 안 열려") - 앱 공유 창에서 카카오톡
+            Promise.resolve(share.share({ text: text, dialogTitle: "카카오톡으로 보내기" })).catch(function (e) { if (!/cancel/i.test(String(e && e.message))) copyInvite(); });
+            return;
+        }
+        if (/Android/i.test(navigator.userAgent) && !NATIVE) {
             location.href = "intent:#Intent;action=android.intent.action.SEND;type=text/plain;S.android.intent.extra.TEXT=" + encodeURIComponent(text) + ";package=com.kakao.talk;end";
+            // 카톡이 안 열렸으면(카톡이 없음 · 다른 앱 안 브라우저가 막음) 1.5초 뒤 공유 창 · 복사로
+            setTimeout(function () { if (!document.hidden) { if (navigator.share) navigator.share({ text: text }).catch(function () { /* 닫음 */ }); else copyInvite(); } }, 1500);
             return;
         }
         if (navigator.share) navigator.share({ text: text }).catch(function () { /* 닫음 */ });

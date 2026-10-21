@@ -20,12 +20,12 @@ import java.nio.charset.StandardCharsets;
  * 산악회 방 "폰은 켜짐"(2026-10-21 PC 시험): 화면이 꺼지면 웹 화면 타이머가 멈추고, 폰 위치를 끄면 위치 콜백도 안 불려
  * 인솔자에게 소식이 끊긴 것처럼 보였음. 앱(안드로이드)이 직접 1분마다 /api/party/ping 에 배터리만 보냄(위치 없음).
  * party.js 가 위치 보내기를 켤 때 start({url, token}), 하산 탑승 · 나가기 · 방 끝에 stop(). 서버가 410(방 끝 · 내보냄)이면 저절로 멈춤.
- * 화면이 꺼진 동안 CPU 가 잠들지 않게 부분 깨우기(PARTIAL_WAKE_LOCK)를 잡음 - 최대 14시간.
+ * 화면이 꺼진 동안 CPU 가 잠들지 않게 부분 깨우기(PARTIAL_WAKE_LOCK)를 잡음 - 최대 6일(여러 날 종주, 2026-10-21 - 전엔 14시간). 방이 끝나면 410 으로 먼저 멈춤.
  */
 @CapacitorPlugin(name = "RfAlive")
 public class RfAlivePlugin extends Plugin {
 
-    private static final long EVERY_MS = 60_000L, MAX_MS = 14L * 3600_000L;
+    private static final long EVERY_MS = 60_000L, MAX_MS = 6L * 24 * 3600_000L;
     private HandlerThread thread;
     private Handler handler;
     private PowerManager.WakeLock lock;

@@ -357,7 +357,8 @@ public class PartyTest {
         long endAt = info.get("endAt").getAsLong(), base = endAt > 0 ? endAt : DEPART + 24 * H;
         assertEquals("방이 저절로 끝나는 때 = 하산 마감 6시간 뒤(화면에 보여 줌)", base + 6 * H, info.get("closesAt").getAsLong());
         try { call(p, "/leave", tok(lead), T0); fail("인솔자 나가기"); } catch (IllegalStateException e) { assertTrue(e.getMessage().contains("방 끝내기")); }
-        try { call(p, "/create", "{\"name\":\"x\",\"departAt\":" + DEPART + ",\"endAt\":" + (DEPART + 49 * H) + "}", T0); fail("48시간 넘게"); } catch (IllegalArgumentException e) { /* 맞음 */ }
+        try { call(p, "/create", "{\"name\":\"x\",\"departAt\":" + DEPART + ",\"endAt\":" + (DEPART + 121 * H) + "}", T0); fail("5일 넘게"); } catch (IllegalArgumentException e) { /* 맞음 */ }
+        call(p, "/create", "{\"name\":\"지리산 화대종주 2박 3일\",\"departAt\":" + DEPART + ",\"endAt\":" + (DEPART + 59 * H) + "}", T0);   // 여러 날 산행(2026-10-21 홍TV님)
         try { call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"x\",\"role\":\"hiker\",\"agree\":{}}", T0); fail("동의가 객체"); } catch (IllegalArgumentException e) { /* 거짓으로 봄 */ }
         PartyServlet.Quota q = new PartyServlet.Quota(2, 1000);
         assertTrue(q.take("a", 0) && q.take("a", 1) && !q.take("a", 2) && q.over("a", 2) && q.take("b", 2) && q.take("a", 1002));

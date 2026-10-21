@@ -189,8 +189,13 @@ a.tel { color:var(--sky); }
                 <div><label for="mkTime">출발 시각</label><input id="mkTime" type="text" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="예: 0700"></div>
             </div>
             <div class="two">
-                <div><label for="mkEnd">하산 마감</label><input id="mkEnd" type="text" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="예: 1600"></div>
+                <div><label for="mkNights">일정</label><select id="mkNights">
+                    <option value="0">당일 · 무박</option><option value="1">1박 2일</option><option value="2">2박 3일</option><option value="3">3박 4일</option></select></div>
+                <div><label for="mkEnd" id="mkEndLabel">하산 마감</label><input id="mkEnd" type="text" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="예: 1600"></div>
+            </div>
+            <div class="two">
                 <div><label for="mkMin">최소 인원</label><input id="mkMin" type="number" min="0" max="80" value="18" inputmode="numeric"></div>
+                <div></div>
             </div>
             <div class="two">
                 <div><label for="mkLead">인솔자 이름</label><input id="mkLead" type="text" maxlength="12" placeholder="예: 김대장"></div>

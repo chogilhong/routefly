@@ -44,6 +44,8 @@ final class Party {
     static final long AFTER_END_MS = 6 * HOUR, NO_TIME_MS = 30 * HOUR, MAX_LIFE_MS = 40L * 24 * HOUR;
     /** SOS 를 켠 회원(하산 탑승 전)이 있으면 하산 마감 이만큼 뒤까지 방을 남김 - 조난자 위치를 인솔자가 계속 보게(2026-10-21 홍TV님 "조난자가 있으면 도움"). */
     static final long SOS_KEEP_MS = 24 * HOUR;
+    /** 하산 마감은 출발 뒤 이 안으로 - 지리산 · 설악산 1박 2일 ~ 3박 4일 종주(2026-10-21 홍TV님, 전엔 48시간). */
+    static final long MAX_TRIP_MS = 5 * 24 * HOUR;
     /** 지나온 길(출발 뒤 산행 회원만, 메모리) - 이만큼 움직였을 때 한 점, 사람마다 TRACK_MAX 점까지(넘으면 하나 걸러 버림). 인솔자는 최근 TRAIL_MS 만 봄(조난 대비). */
     static final double TRACK_MIN_M = 10;
     static final int TRACK_MAX = 4000;
@@ -264,7 +266,7 @@ final class Party {
         if (minPeople < 0 || minPeople > MAX_MEMBERS) throw new IllegalArgumentException("최소 인원이 올바르지 않습니다.");
         if (departAt > 0 && (departAt < now - 24 * HOUR || departAt > now + 30L * 24 * HOUR)) throw new IllegalArgumentException("출발은 오늘부터 30일 안으로 정해 주세요.");
         if (endAt > 0 && departAt > 0 && endAt <= departAt) throw new IllegalArgumentException("하산 마감은 출발보다 뒤여야 합니다.");
-        if (endAt > 0 && departAt > 0 && endAt > departAt + 48 * HOUR) throw new IllegalArgumentException("하산 마감은 출발 뒤 48시간 안으로 정해 주세요.");   // 방이 40일 동안 남지 않게(점검)
+        if (endAt > 0 && departAt > 0 && endAt > departAt + MAX_TRIP_MS) throw new IllegalArgumentException("하산 마감은 출발 뒤 5일 안으로 정해 주세요(3박 4일까지).");   // 방이 40일 동안 남지 않게(점검)
         String lead = clean(leaderName, 12);
         Room r = new Room(newCode(), n, now, departAt, endAt, buses, seats, minPeople, List.copyOf(stops), lead, phone(leaderPhone));
         if (plates != null) for (int i = 0; i < Math.min(plates.size(), r.buses); i++) r.plates[i] = plate(plates.get(i));
