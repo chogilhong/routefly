@@ -35,6 +35,43 @@ final class OpenApi {
      * 서버 로그 7,373줄 · 포털 부담). 한도 초과는 우리 시간 자정까지, 그 밖의 실패는 두 번째부터 5분 · 15분 쉼. 막힌 동안은 바로 null(로그도 없음).
      */
     private static final Map<String, long[]> BLOCK = new java.util.concurrent.ConcurrentHashMap<>();
+    static {
+        loadLimits(System.currentTimeMillis());
+    }
+
+    /** 하루 한도로 막힌 API 를 파일에 남김(stats 폴더 api-limits.json - tag → 자정 ms) - 같은 날 재시작 · 배포 때 막혔는지 알려고 다시 부르지 않게(2026-10-21 PC 제안). */
+    private static java.nio.file.Path limitsFile() {
+        return Stats.file().resolveSibling("api-limits.json");
+    }
+
+    private static void loadLimits(long now) {
+        try {
+            java.nio.file.Path f = limitsFile();
+            if (!java.nio.file.Files.isRegularFile(f)) return;
+            com.google.gson.JsonObject o = com.google.gson.JsonParser.parseString(java.nio.file.Files.readString(f, StandardCharsets.UTF_8)).getAsJsonObject();
+            for (var e : o.entrySet()) {
+                long until = e.getValue().getAsLong();
+                if (until > now) {
+                    BLOCK.put(e.getKey(), new long[] {until, 0});
+                    log.info("[{}] 오늘 하루 한도를 이미 넘었음(파일) - 자정까지 부르지 않음", e.getKey());
+                }
+            }
+        } catch (Exception e) {
+            // 없이 시작
+        }
+    }
+
+    private static void saveLimits(long now) {
+        try {
+            com.google.gson.JsonObject o = new com.google.gson.JsonObject();
+            BLOCK.forEach((k, v) -> { if (v[1] == 0 && v[0] > now + 60 * 60_000L) o.addProperty(k, v[0]); });   // 한도 초과(자정까지)만
+            java.nio.file.Path f = limitsFile();
+            java.nio.file.Files.createDirectories(f.getParent());
+            java.nio.file.Files.writeString(f, o.toString(), StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            // 다음에
+        }
+    }
 
     /** GET 한 번 - 큰 응답(에어코리아 측정소 목록 등)은 시간 한도를 늘려서. */
     static String get(String url, String tag, Duration timeout) {
@@ -47,6 +84,7 @@ final class OpenApi {
             if (limitHit(res.statusCode(), res.body())) {
                 long until = kstMidnightAfter(now);
                 BLOCK.put(tag, new long[] {until, 0});
+                saveLimits(now);
                 log.warn("[{}] 하루 호출 한도를 넘음 - 오늘 자정(우리 시간)까지 부르지 않음({}분)", tag, (until - now) / 60000);
                 return null;
             }

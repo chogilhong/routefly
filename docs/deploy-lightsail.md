@@ -197,7 +197,7 @@ sudo systemctl restart tomcat
 
 확인: `https://routefly.kr/routefly/api/parking?lat=35.33&lon=127.73` 이 `"unavailable":true` 가 아니고 lots 가 나오면 됨
 (로그 `[PARKING] … 곳 읽음`). 통계는 10분 뒤 `sudo ls -l /opt/routefly/stats/` 에 stats.json.
-같은 폴더에 `air-stations.json`(에어코리아 측정소 목록, 이레에 한 번) · `weekend.json`(주말 추천, 50분마다)도 생깁니다 - 재시작 · 배포 때 공공 API 를 다시 묻지 않게(2026-10-21 하루 한도 초과). 공공 API 가 하루 한도를 넘으면 로그에 `하루 호출 한도를 넘음 - 오늘 자정(우리 시간)까지 부르지 않음` 한 줄만 남고 그 API 는 자정까지 쉼.
+같은 폴더에 `air-stations.json`(에어코리아 측정소 목록, 이레에 한 번) · `weekend.json`(주말 추천, 50분마다) · `api-limits.json`(오늘 하루 한도를 넘은 공공 API - 자정까지)도 생깁니다 - 재시작 · 배포 때 공공 API 를 다시 묻지 않게(2026-10-21 하루 한도 초과). 공공 API 가 하루 한도를 넘으면 로그에 `하루 호출 한도를 넘음 - 오늘 자정(우리 시간)까지 부르지 않음` 한 줄만 남고 그 API 는 자정까지 쉼.
 
 ## 6. Nginx + HTTPS
 
