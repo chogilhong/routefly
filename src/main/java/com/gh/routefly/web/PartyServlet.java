@@ -153,6 +153,7 @@ public class PartyServlet extends HttpServlet {
                 return out;
             }
             case "/view" -> { }
+            case "/trail" -> { return p.trail(m, (int) lng(in, "id"), now); }
             case "/ping" -> p.ping(m, num(in, "batt") == null ? null : num(in, "batt").intValue(), bool(in, "sos"), now);
             case "/board" -> p.board(m, on, now);
             case "/aboard" -> p.aboard(m, on);

@@ -44,6 +44,10 @@ final class Party {
     static final long AFTER_END_MS = 6 * HOUR, NO_TIME_MS = 30 * HOUR, MAX_LIFE_MS = 40L * 24 * HOUR;
     /** SOS 를 켠 회원(하산 탑승 전)이 있으면 하산 마감 이만큼 뒤까지 방을 남김 - 조난자 위치를 인솔자가 계속 보게(2026-10-21 홍TV님 "조난자가 있으면 도움"). */
     static final long SOS_KEEP_MS = 24 * HOUR;
+    /** 지나온 길(출발 뒤 산행 회원만, 메모리) - 이만큼 움직였을 때 한 점, 사람마다 TRACK_MAX 점까지(넘으면 하나 걸러 버림). 인솔자는 최근 TRAIL_MS 만 봄(조난 대비). */
+    static final double TRACK_MIN_M = 10;
+    static final int TRACK_MAX = 4000;
+    static final long TRAIL_MS = 2 * HOUR;
     /** 위치는 출발 이만큼 전부터 받음. */
     static final long LOC_BEFORE_MS = 3 * HOUR;
     /** "버스 탔어요" 는 출발 이만큼 전부터(2026-10-20 홍TV님 - 참가하자마자 단추가 보여 모르고 누를까 봐). 인솔자 좌석표 체크는 언제나. */
@@ -76,6 +80,8 @@ final class Party {
         long t;                // 마지막 위치 받은 때(0 = 아직)
         long seen;             // 마지막으로 폰이 살아 있다고 알린 때(위치 · ping - 위치를 못 잡아도, 2026-10-20 PC: 화면 끈 실내)
         boolean sos;
+        /** 지나온 길 [위도, 경도, ms] - 메모리에만, 방이 끝나면 익명 통계(PartyTrack)로 넘기고 버림(2026-10-21 홍TV님). */
+        final List<double[]> track = new ArrayList<>();
         double anchorLat, anchorLon;
         long stillSince;
 
@@ -148,17 +154,25 @@ final class Party {
     /** 방 정보 파일(null = 저장 안 함 - 시험). */
     private final Path file;
 
-    Party(Path file) {
+    /** 방이 끝날 때 익명 자취를 받을 곳(null = 버림 - 시험). */
+    private final java.util.function.Consumer<JsonObject> trackSink;
+
+    Party(Path file, java.util.function.Consumer<JsonObject> trackSink) {
         this.file = file;
+        this.trackSink = trackSink;
         load();
     }
 
+    Party(Path file) {
+        this(file, null);
+    }
+
     Party() {
-        this(null);
+        this(null, null);
     }
 
     /** 서버 하나에 하나 - 파일은 설정 party.dir(없으면 stats.dir, 그것도 없으면 톰캣 폴더/routefly-party)/party.json. */
-    static final Party STORE = new Party(defaultFile());
+    static final Party STORE = new Party(defaultFile(), PartyTrack::save);
 
     static Path defaultFile() {
         String dir = RouteflyConfig.get("party.dir");
@@ -338,6 +352,13 @@ final class Party {
             m.anchorLat = lat; m.anchorLon = lon; m.stillSince = now;
         }
         m.lat = lat; m.lon = lon; m.acc = acc; m.batt = batt == null ? null : Math.max(0, Math.min(100, batt)); m.t = now; m.seen = now;
+        if (m.room.departed && "hiker".equals(m.role) && (acc == null || acc <= 100)) {   // 출발 뒤 산행 회원만 - 집 · 집결지 길은 남기지 않음
+            double[] last = m.track.isEmpty() ? null : m.track.get(m.track.size() - 1);
+            if (last == null || MountainServlet.distM(last[0], last[1], lat, lon) >= TRACK_MIN_M) {
+                if (m.track.size() >= TRACK_MAX) for (int i = m.track.size() - 1; i > 0; i -= 2) m.track.remove(i);
+                m.track.add(new double[] {lat, lon, now});
+            }
+        }
         if (sos && !m.sos) audit.info("sos room={} member={}", m.room.code, m.id);
         m.sos = sos;
         return true;
@@ -496,8 +517,42 @@ final class Party {
 
     /** 인솔자 - 방 끝내기 · 산행 취소(cancel). */
     synchronized void end(Member lead, boolean cancel, long now) {
+        if (!cancel) keepTracks(lead.room);
         drop(lead.room, cancel ? "인솔자가 산행을 취소했습니다." : "인솔자가 방을 끝냈습니다. 산행 수고하셨습니다.", now);
         save();
+    }
+
+    /** 방이 끝남(취소 빼고) - 산행 회원마다 익명 자취를 넘김(누구인지 · 방 · 시각 없이, PartyTrack.anon). 방을 나간 사람은 이미 지워져 없음. */
+    private void keepTracks(Room r) {
+        if (trackSink == null || !r.departed) return;
+        List<JsonObject> out = new ArrayList<>();
+        for (Member m : r.members.values()) {
+            if (!"hiker".equals(m.role) || m.cancelled) continue;
+            JsonObject t = PartyTrack.anon(m.track);
+            if (t != null) out.add(t);
+        }
+        java.util.Collections.shuffle(out);   // 넣는 차례로 같은 방 사람을 잇지 못하게
+        out.forEach(trackSink);
+    }
+
+    /** 인솔자 · 운전자 - 한 회원의 최근 TRAIL_MS 지나온 길(조난 대비 - SOS · 연락 끊긴 회원이 어디로 갔는지). [[위도, 경도, 몇 초 전], …] */
+    synchronized JsonObject trail(Member staff, int id, long now) {
+        if (!staff.staff()) throw new SecurityException("인솔자 · 운전자만 지나온 길을 봅니다.");
+        Member m = null;
+        for (Member x : staff.room.members.values()) if (x.id == id) m = x;
+        if (m == null) throw new IllegalArgumentException("그 회원을 찾지 못했습니다.");
+        JsonArray path = new JsonArray();
+        for (double[] p : m.track) {
+            if (now - p[2] > TRAIL_MS) continue;
+            JsonArray a = new JsonArray();
+            a.add(p[0]); a.add(p[1]); a.add(Math.round((now - p[2]) / 1000));
+            path.add(a);
+        }
+        JsonObject o = new JsonObject();
+        o.addProperty("success", true);
+        o.addProperty("id", id);
+        o.add("path", path);
+        return o;
     }
 
     private void drop(Room r, String why, long now) {
@@ -516,7 +571,7 @@ final class Party {
     synchronized void sweep(long now) {
         boolean changed = false;
         for (Room r : new ArrayList<>(rooms.values())) {
-            if (r.expired(now)) { drop(r, "산행 시간이 지나 방이 끝났습니다.", now); changed = true; }
+            if (r.expired(now)) { keepTracks(r); drop(r, "산행 시간이 지나 방이 끝났습니다.", now); changed = true; }
         }
         endedAt.entrySet().removeIf(e -> {
             boolean old = now - e.getValue() > ENDED_KEEP_MS;

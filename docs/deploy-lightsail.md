@@ -843,6 +843,28 @@ war 에는 늘 들어 있지만 설정을 켜기 전에는 "준비 중" 화면�
 - 들어가는 곳: 아직 화면에 링크 없음(주소 https://routefly.kr/routefly/party.html). 켠 뒤 따라가기 · 별거 별거에 입구를 넣음
 - 개인정보처리방침(privacy.html#party)에 미리 적어 둠 - 켜는 날 "준비 중" 글을 빼고 시행일을 적음(방침 10장: 7일 전 알림)
 
+### 13-1. 익명 코스 통계 표 (2026-10-21 홍TV님 - 산악회 방 지나온 길)
+
+방이 끝나면 산행 회원 지나온 길을 익명으로(별명 · 방 · 시각 없음, 처음 · 끝 500m · 차 구간 뺌) 넣는 표. 웹 계정의 첫 쓰기 권한입니다 - 이 표 하나에 INSERT 만.
+홍TV님이 서버에서 `sudo mariadb routefly` 로 한 번(표 정의는 routefly-batch `sql/route_ddl.sql` 8번과 같음):
+
+```sql
+CREATE TABLE IF NOT EXISTS party_track (
+    track_id   BIGINT       NOT NULL AUTO_INCREMENT,
+    hike_date  DATE         NOT NULL COMMENT '산행 날짜(시각 없음)',
+    points     INT          NOT NULL,
+    dist_m     INT          NOT NULL COMMENT '남긴 길이(m)',
+    dur_s      INT          NOT NULL COMMENT '첫 점 ~ 끝 점(초)',
+    path       MEDIUMTEXT   NOT NULL COMMENT '[[위도, 경도, 첫 점에서 지난 초], …] 소수 5자리',
+    PRIMARY KEY (track_id),
+    KEY ix_party_track_date (hike_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='산악회 방 익명 자취(누구 · 방 · 시각 없음)';
+GRANT INSERT ON routefly.party_track TO 'routefly_web'@'localhost';
+```
+
+확인: 시험 방을 출발 → 1km 넘게 걷고(또는 PC 가짜 위치) → 방 끝내기 → `SELECT track_id, hike_date, points, dist_m, dur_s FROM party_track ORDER BY track_id DESC LIMIT 3;`.
+표나 권한이 없으면 웹 로그에 `[PARTY] 익명 자취를 DB 에 넣지 못함` 만 남고 방은 그대로 끝납니다.
+
 ## 14. 의견 보내기 메일 (2026-10-20)
 
 손님이 앱의 "📮 의견 보내기"(feedback.html)에 적은 글을 운영자 Gmail 로 받습니다. 메일 설정이 없어도 글은 `feedback.dir`(비우면 `stats.dir/feedback`)의 `feedback-YYYY-MM.jsonl`(600)에 남습니다(메일이 안 될 때 대비 - 화면으로는 보지 않음, 2026-10-20 홍TV님 "메일로 봄").

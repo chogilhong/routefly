@@ -398,4 +398,41 @@ public class PartyTest {
         assertNotNull("틀린 방 뒤의 방도 읽음", again.who(good, T0));
         try (var st = Files.list(f.getParent())) { assertTrue("옛 파일을 남김", st.anyMatch(x -> x.getFileName().toString().startsWith("party.json.bad-"))); }
     }
+
+    /** 지나온 길(2026-10-21 홍TV님): 인솔자는 최근 2시간(조난 대비), 방이 끝나면 산행 회원 자취를 익명으로(별명 · 방 · 시각 없음, 앞뒤 500m · 버스 구간 뺌). */
+    @Test
+    public void trackChecks() {
+        java.util.List<JsonObject> got = new java.util.ArrayList<>();
+        Party p = new Party(null, got::add);
+        JsonObject room = j(create(p, T0));
+        String code = room.get("code").getAsString(), lead = room.get("token").getAsString();
+        String a = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"걷는이\",\"role\":\"hiker\",\"agree\":true}", T0).get("token").getAsString();
+        call(p, "/loc", "{\"token\":\"" + a + "\",\"lat\":37.47,\"lon\":126.98}", DEPART - H);   // 출발 전(집결지) - 남기지 않음
+        call(p, "/board", "{\"token\":\"" + a + "\",\"on\":true}", DEPART - 1000);
+        call(p, "/depart", tok(lead), DEPART);
+        long t = DEPART;
+        double lat = 37.47;
+        for (int i = 0; i < 40; i++) { lat += 0.01; t += 30_000; call(p, "/loc", "{\"token\":\"" + a + "\",\"lat\":" + lat + ",\"lon\":126.98}", t); }   // 버스(30초에 1.1km)
+        lat = 38.1;
+        for (int i = 0; i < 200; i++) { lat += 0.0004; t += 30_000; call(p, "/loc", "{\"token\":\"" + a + "\",\"lat\":" + lat + ",\"lon\":128.46}", t); }   // 걷기(30초에 44m) - 약 8.9km
+        JsonArray trail = call(p, "/trail", "{\"token\":\"" + lead + "\",\"id\":" + member(call(p, "/view", tok(lead), t), "걷는이").get("id").getAsInt() + "}", t).getAsJsonArray("path");
+        assertTrue("인솔자는 최근 2시간만(30초마다 - 약 240점)", trail.size() > 200 && trail.size() <= 241);
+        assertTrue("가장 오래된 점이 2시간 안", trail.get(0).getAsJsonArray().get(2).getAsLong() <= 2 * 3600);
+        try { call(p, "/trail", "{\"token\":\"" + a + "\",\"id\":1}", t); fail("회원은 남의 길을 못 봄"); } catch (SecurityException e) { /* 맞음 */ }
+        call(p, "/end", tok(lead), t);
+        assertEquals("산행 회원 하나", 1, got.size());
+        JsonObject o = got.get(0);
+        assertFalse("누구인지 · 방은 없음", o.toString().contains("걷는이") || o.toString().contains(code) || o.has("token"));
+        JsonArray path = o.getAsJsonArray("path");
+        assertEquals("시각은 첫 점에서 지난 초", 0, path.get(0).getAsJsonArray().get(2).getAsLong());
+        assertTrue("버스 구간은 빠짐", path.get(0).getAsJsonArray().get(0).getAsDouble() > 38.1);
+        double d = o.get("distM").getAsDouble();
+        assertTrue("걸은 약 8.9km 에서 앞뒤 500m 씩 뺌: " + d, d > 7500 && d < 8100);
+
+        got.clear();   // 산행 취소 · 출발 안 한 방은 남기지 않음
+        String lead2 = j(create(p, T0)).get("token").getAsString();
+        call(p, "/end", "{\"token\":\"" + lead2 + "\",\"cancel\":true}", T0);
+        assertTrue(got.isEmpty());
+        assertNull("짧으면 안 남김", PartyTrack.anon(java.util.List.of(new double[] {37, 127, 0}, new double[] {37.001, 127, 30_000})));
+    }
 }
