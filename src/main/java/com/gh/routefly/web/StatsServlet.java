@@ -124,7 +124,7 @@ public class StatsServlet extends HttpServlet {
     static String page(Map<String, JsonObject> days, int n, Map<String, String> courseNames) {
         List<String> keys = new ArrayList<>(days.keySet());
         List<String> last = keys.subList(Math.max(0, keys.size() - n), keys.size());
-        Map<String, Integer> mountains = new HashMap<>(), enMountains = new HashMap<>(), courses = new HashMap<>(), pages = new HashMap<>(), refs = new HashMap<>(), devs = new HashMap<>(), bots = new HashMap<>();
+        Map<String, Integer> mountains = new HashMap<>(), enMountains = new HashMap<>(), courses = new HashMap<>(), pages = new HashMap<>(), refs = new HashMap<>(), devs = new HashMap<>(), bots = new HashMap<>(), engines = new HashMap<>();
         StringBuilder rows = new StringBuilder();
         int tu = 0, tp = 0, tb = 0;
         for (int i = last.size() - 1; i >= 0; i--) {
@@ -143,6 +143,7 @@ public class StatsServlet extends HttpServlet {
             tu += u; tp += views; tb += b;
             if (d.has("courses")) for (var e : d.getAsJsonObject("courses").entrySet()) courses.merge(e.getKey(), e.getValue().getAsInt(), Integer::sum);
             if (d.has("botKinds")) for (var e : d.getAsJsonObject("botKinds").entrySet()) bots.merge(e.getKey(), e.getValue().getAsInt(), Integer::sum);
+            if (d.has("engines")) for (var e : d.getAsJsonObject("engines").entrySet()) engines.merge(e.getKey(), e.getValue().getAsInt(), Integer::sum);
             if (d.has("devUniq")) for (var e : d.getAsJsonObject("devUniq").entrySet()) devs.merge(e.getKey(), e.getValue().getAsInt(), Integer::sum);
             rows.append("<tr><td>").append(last.get(i)).append("</td><td>").append(u).append("</td><td>").append(dev(d, "모바일")).append("</td><td>").append(dev(d, "PC"))
                     .append("</td><td>").append(views).append("</td><td>").append(b).append("</td></tr>");
@@ -168,7 +169,7 @@ public class StatsServlet extends HttpServlet {
                 .append(courseTable(courses, courseNames == null ? Map.of() : courseNames, last.size()))
                 .append(top("화면별(" + last.size() + "일)", pages, 20, StatsServlet::pageName))
                 .append(top("들어온 곳(" + last.size() + "일 - 바깥에서 처음 들어온 화면 수)", refs, 20, null))
-                .append(botTable(bots))
+                .append(botTable(bots, engines))
                 .append(GUIDE);
         out.append("<p class=\"dim\">숫자만 셉니다 - 방문자는 그 날만 쓰는 해시로 겹침만 걸러 내고 IP 는 남기지 않습니다. 이 화면을 연 기기(브라우저)는 운영자로 보고 방문 수에서 뺍니다(2년, 사이트 데이터를 지우면 다시 셈). 앱은 안내 화면 \"안내\" 제목을 7번 누르고 열쇠를 넣으면 빠집니다.</p></main><script src=\"js/stats.js\"></script></body></html>");
         return fold(out.toString());
@@ -201,14 +202,24 @@ public class StatsServlet extends HttpServlet {
     }
 
     /** 순수 함수 - 로봇 종류 표(사람이 아닌 접속, 10-21 부터 나눠 셈) - 줄마다 뜻(2026-10-21 홍TV님 "무슨 말이야?" - 제목에 다 넣었던 것을 줄로). */
-    static String botTable(Map<String, Integer> bots) {
+    static String botTable(Map<String, Integer> bots, Map<String, Integer> engines) {
         StringBuilder b = new StringBuilder("<section><h2>로봇 종류 <small style=\"font-weight:normal;color:var(--dim);font-size:13px\">사람이 아닌 프로그램 - 10월 21일부터 나눠 셈</small></h2><table class=\"st\">");
         String[][] kinds = {{"검색", "구글 · 네이버 · 다음이 페이지를 읽어 감 - 많을수록 검색에 잘 나옴"}, {"미리보기", "카톡 · 페이스북에 우리 링크를 붙일 때 제목 · 그림을 가져감"},
             {"시험", "웹 · PC Claude 점검 도구"}, {"기타", "검색 순위 분석 · AI 회사 수집 프로그램"},
             {"숨은 로봇", "브라우저인 척하지만 언어 설정을 안 보내는 수집 프로그램(2026-10-21 배포부터 따로 셈 - 그 전엔 PC 방문자로 섞였음)"}};
         if (bots.isEmpty()) return b.append("<tr><td>아직 없음</td></tr></table></section>").toString();
         b.append("<tr><th>종류</th><th>뜻</th><th>수</th></tr>");
-        for (String[] k : kinds) b.append("<tr><td>").append(k[0]).append("</td><td>").append(k[1]).append("</td><td>").append(bots.getOrDefault(k[0], 0)).append("</td></tr>");
+        for (String[] k : kinds) {
+            b.append("<tr><td>").append(k[0]).append("</td><td>").append(k[1]).append("</td><td>").append(bots.getOrDefault(k[0], 0)).append("</td></tr>");
+            if ("검색".equals(k[0])) {   // 검색엔진마다(10-21 배포부터) - 늘 같은 차례, 0 도 보임(빙이 안 오는지 바로 알게)
+                StringBuilder e = new StringBuilder();
+                for (String n : new String[] {"구글", "네이버", "다음", "빙", "애플", "덕덕고", "얀덱스", "바이두", "그 밖"}) {
+                    int v = engines.getOrDefault(n, 0);
+                    if (v > 0 || n.equals("구글") || n.equals("네이버") || n.equals("다음") || n.equals("빙")) e.append(e.length() > 0 ? " · " : "").append(n).append(" ").append(v);
+                }
+                b.append("<tr><td></td><td colspan=\"2\" style=\"color:var(--dim)\">└ ").append(e).append("</td></tr>");
+            }
+        }
         return b.append("</table></section>").toString();
     }
 

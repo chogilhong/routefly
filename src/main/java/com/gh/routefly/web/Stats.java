@@ -138,7 +138,23 @@ final class Stats {
     }
 
     /** 한 번 셈. ip 는 해시해 그 날 메모리에서만 견줌. src - 들어온 곳(source, null 이면 안 셈). */
-    static synchronized void hit(String page, String course, String ip, String bot, String src, String device) {
+    /** 순수 함수 - 검색 로봇이 어느 검색엔진인지(2026-10-21 홍TV님 "빙은 검색을 안 하나?" - 로봇 종류 "검색" 을 나눠 봄). 검색 로봇이 아니면 null. */
+    static String searchEngine(String ua) {
+        if (ua == null) return null;
+        String u = ua.toLowerCase();
+        if (u.contains("googlebot") || u.contains("google-inspectiontool")) return "구글";
+        if (u.contains("yeti/")) return "네이버";
+        if (u.contains("daum/") || u.contains("daumoa")) return "다음";
+        if (u.contains("bingbot")) return "빙";
+        if (u.contains("applebot")) return "애플";
+        if (u.contains("duckduckbot")) return "덕덕고";
+        if (u.contains("yandex")) return "얀덱스";
+        if (u.contains("baiduspider")) return "바이두";
+        return "그 밖";
+    }
+
+    /** engine - 검색 로봇이면 어느 검색엔진(searchEngine), 아니면 null. */
+    static synchronized void hit(String page, String course, String ip, String bot, String engine, String src, String device) {
         load();
         String d = LocalDate.now(WeatherServlet.KST).toString();
         if (!d.equals(today)) {   // 날이 바뀜 - 어제 방문자 집합 · 소금은 버림
@@ -157,6 +173,10 @@ final class Stats {
             day.addProperty("bots", day.get("bots").getAsInt() + 1);
             if (!day.has("botKinds")) day.add("botKinds", new JsonObject());
             add(day.getAsJsonObject("botKinds"), bot);
+            if (engine != null) {   // 검색엔진마다(10-21 부터)
+                if (!day.has("engines")) day.add("engines", new JsonObject());
+                add(day.getAsJsonObject("engines"), engine);
+            }
         } else {
             JsonObject pages = day.getAsJsonObject("pages");
             pages.addProperty(page, (pages.has(page) ? pages.get(page).getAsInt() : 0) + 1);

@@ -50,6 +50,7 @@ public class StatsFilter extends HttpFilter {
         if (page == null) return;
         String ip = SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For"));
         String ua = req.getHeader("User-Agent");
-        Stats.hit(page, Stats.courseKey(path), ip, Stats.botKind(ua, req.getHeader("Accept-Language")), Stats.source(req.getHeader("Referer"), req.getServerName()), Stats.device(ua));
+        String bot = Stats.botKind(ua, req.getHeader("Accept-Language"));
+        Stats.hit(page, Stats.courseKey(path), ip, bot, "검색".equals(bot) ? Stats.searchEngine(ua) : null, Stats.source(req.getHeader("Referer"), req.getServerName()), Stats.device(ua));
     }
 }

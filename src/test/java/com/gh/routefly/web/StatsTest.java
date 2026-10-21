@@ -172,7 +172,11 @@ public class StatsTest {
         assertTrue("영어 표에 daeamsan", en > 0 && h.indexOf("daeamsan", en) > en && h.indexOf("daeamsan", en) < pagesAt);
         assertFalse("화면별 표에는 안 섞임", h.substring(pagesAt).contains("/en/m/daeamsan"));
         assertTrue(h.contains("📖 통계 보는 법"));
-        String bt = StatsServlet.botTable(java.util.Map.of("검색", 12));
+        String bt = StatsServlet.botTable(java.util.Map.of("검색", 12), java.util.Map.of("구글", 9, "네이버", 3));
         assertTrue(bt.contains("<td>검색</td><td>구글") && bt.contains("<td>12</td>") && bt.contains("<td>미리보기</td>"));
+        assertTrue("검색엔진마다 - 빙은 0 이어도 보임", bt.contains("└ 구글 9 · 네이버 3 · 다음 0 · 빙 0"));
+        assertEquals("빙", Stats.searchEngine("Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)"));
+        assertEquals("네이버", Stats.searchEngine("Mozilla/5.0 (compatible; Yeti/1.1; +http://naver.me/spd)"));
+        assertEquals("구글", Stats.searchEngine("Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X) Chrome/153 Mobile Safari/537.36 (compatible; Googlebot/2.1)"));
     }
 }
