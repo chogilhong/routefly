@@ -65,6 +65,12 @@ final class OpenApi {
         return null;
     }
 
+    /** 그 API 를 다시 부를 수 있는 때(막혀 있지 않으면 0). */
+    static long blockedUntil(String tag) {
+        long[] b = BLOCK.get(tag);
+        return b == null ? 0 : b[0];
+    }
+
     /** 순수 함수 - 공공데이터포털 하루 한도 초과(HTTP 429, 또는 200 이어도 본문에 LIMITED_NUMBER_OF_SERVICE_REQUESTS · returnReasonCode 22). */
     static boolean limitHit(int status, String body) {
         if (status == 429) return true;

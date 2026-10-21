@@ -52,7 +52,7 @@ public class AirServlet extends HttpServlet {
     static final int TRY_STATIONS = 3, ROWS = 6;
     /**
      * 측정소 목록(672곳). 2026-10-15 PC: 포털이 처음 한 번은 25초도 넘기고(HttpTimeoutException) 바로 다시 물으면 0.5초 -
-     * 서블릿이 뜰 때 뒤에서 미리 받고(init - 실패하면 30 · 60 · 120 · 240초 쉬었다 다시), 새로 받기에 실패하면 받아 둔 목록을 그대로 씁니다.
+     * 서블릿이 뜰 때 뒤에서 미리 받고(init - 실패하면 5 · 10 · 30분, 하루 한도면 자정까지 쉬었다 다시), 새로 받기에 실패하면 받아 둔 목록을 그대로 씁니다.
      * 측정소는 거의 바뀌지 않아 이레에 한 번 새로 받습니다.
      */
     static final Duration STATIONS_TIMEOUT = Duration.ofSeconds(25);
@@ -66,11 +66,6 @@ public class AirServlet extends HttpServlet {
     private static volatile boolean fileTried;
     private static final OpenApi.Cache<JsonObject> MEASURE = new OpenApi.Cache<>(800, 30L * 60 * 1000);
 
-    /**
-     * 뜰 때 미리 받기 - 받을 때까지 쉬었다 다시(초). 2026-10-15 PC: 포털의 느린 첫 응답은 바로 이어 다시 물어도 같고(25초 초과 두 번),
-     * 1분 남짓 뒤에는 바로 됨.
-     */
-    static final int[] WARM_WAIT_S = {0, 30, 60, 120, 240};
     private transient volatile Thread warm;
 
     @Override
@@ -78,15 +73,15 @@ public class AirServlet extends HttpServlet {
         String key = key();
         if (key == null) return;
         Thread t = new Thread(() -> {
-            for (int w : WARM_WAIT_S) {
+            // 받을 때까지: 실패하면 정한 쉬는 시간(5 · 10 · 30분, 하루 한도면 자정)이 지난 뒤 다시 - 말과 간격을 맞춤(2026-10-21 PC: "5분 뒤" 라 적고 30초 뒤 다시 물었음)
+            for (int i = 0; i < 48; i++) {
+                if (Thread.currentThread().isInterrupted()) return;
+                if (stationList(key, System.currentTimeMillis()) != null) return;
                 try {
-                    Thread.sleep(w * 1000L);
+                    Thread.sleep(Math.max(30_000L, nextTry - System.currentTimeMillis()));
                 } catch (InterruptedException e) {
                     return;   // 웹앱이 내려감(destroy)
                 }
-                if (Thread.currentThread().isInterrupted()) return;
-                Object[] st = stationList(key, System.currentTimeMillis(), true);   // 뜰 때는 쉬는 시간 없이(위 간격대로)
-                if (st != null || Thread.currentThread().isInterrupted()) return;
             }
         }, "air-stations");
         t.setDaemon(true);
@@ -104,7 +99,7 @@ public class AirServlet extends HttpServlet {
     /** 그 자리에서 가장 가까운 측정소 주소의 예보 지역(region) - 중기예보(MidServlet)도 씀. 측정소 목록이 없으면 null. */
     static String regionNear(double lat, double lon) {
         String key = key();
-        Object[] st = key == null ? null : stationList(key, System.currentTimeMillis(), false);
+        Object[] st = key == null ? null : stationList(key, System.currentTimeMillis());
         if (st == null) return null;
         @SuppressWarnings("unchecked") List<double[]> pos = (List<double[]>) st[1];
         @SuppressWarnings("unchecked") List<String> addrs = (List<String>) st[3];
@@ -122,15 +117,12 @@ public class AirServlet extends HttpServlet {
      * 다른 요청이 받는 중이면 예전 목록을 바로 쓰고, 예전 목록도 없으면 10초까지만 기다립니다(화면이 오래 멈추지 않게).
      */
     private static Object[] stationList(String key, long now) {
-        return stationList(key, now, false);
-    }
-
-    /** force - 실패 뒤 쉬는 시간(retryAfterMs)을 무시(뜰 때 미리 받기만). */
-    private static Object[] stationList(String key, long now, boolean force) {
         if (stationList == null && !fileTried) fromFile();
         Object[] cur = stationList;
         if (cur != null && now - (Long) cur[2] < STATIONS_TTL_MS) return cur;
-        if (!force && now < nextTry) return cur;   // 막 실패함 - 쉬는 동안은 묻지 않음(예전 목록 또는 null)
+        if (now < nextTry) return cur;   // 막 실패함 - 쉬는 동안은 묻지 않음(예전 목록 또는 null)
+        long blocked = OpenApi.blockedUntil("AIR");
+        if (blocked > now) { nextTry = blocked; return cur; }   // 하루 한도 등으로 막혀 있음 - 그때까지(로그 없이)
         try {
             if (cur != null ? !LOADING.tryLock() : !LOADING.tryLock(10, TimeUnit.SECONDS)) return cur;
         } catch (InterruptedException e) {
@@ -160,6 +152,11 @@ public class AirServlet extends HttpServlet {
             return stationList;
         }
         if (text != null) OpenApi.warn("AIR", text);   // 응답은 왔는데 목록이 아님(키 · 신청 문제)
+        long blocked = OpenApi.blockedUntil("AIR");
+        if (blocked > now + 60 * 60_000L) {   // 이번에 하루 한도에 걸림 - 자정까지(경고는 OpenApi 가 한 줄)
+            nextTry = blocked;
+            return cur;
+        }
         fails++;
         nextTry = now + retryAfterMs(fails);
         log.warn("[AIR] 측정소 목록을 못 받음 {}번째 - {}분 뒤 다시({})", fails, retryAfterMs(fails) / 60000, cur != null ? "예전 목록 씀" : "그동안 대기질 · 지역 없이");
