@@ -322,8 +322,17 @@
     var CAP = window.Capacitor, NATIVE = !!(CAP && CAP.isNativePlatform && CAP.isNativePlatform());
     var BG = NATIVE ? (CAP.registerPlugin ? CAP.registerPlugin("BackgroundGeolocation") : (CAP.Plugins && CAP.Plugins.BackgroundGeolocation) || null) : null;
     var bgOn = false, bgId = null, bgGen = 0;
+    // 앱이 직접 1분마다 "폰은 켜짐"(app RfAlivePlugin - 화면이 꺼지면 이 화면의 타이머가 멈춰서, 2026-10-21 PC). 옛 설치본엔 없음(null)
+    var ALIVE = NATIVE ? (CAP.Plugins && CAP.Plugins.RfAlive) || null : null;
+    function aliveStart() {
+        var p = RFParty.get();
+        if (!ALIVE || !p) return;
+        Promise.resolve(ALIVE.start({ url: new URL("api/party/ping", location.href).href, token: p.token })).catch(function () { /* 이번만 */ });
+    }
+    function aliveStop() { if (ALIVE) Promise.resolve(ALIVE.stop()).catch(function () { /* 이미 멈춤 */ }); }
     function bgWant(s) { return !!(BG && s && !s.cancelled && !s.aboard && (!s.locFrom || s.now >= s.locFrom)); }
     function bgStop() {
+        aliveStop();
         bgOn = false; bgGen++;
         if (bgId != null) { Promise.resolve(BG.removeWatcher({ id: bgId })).catch(function () { /* 이미 멈춤 */ }); bgId = null; }
     }
@@ -332,6 +341,7 @@
         if (!want) { if (bgOn) bgStop(); return; }
         if (bgOn) return;
         bgOn = true;
+        aliveStart();
         var gen = ++bgGen;
         Promise.resolve(BG.addWatcher({ backgroundTitle: "routefly - 산악회 방", backgroundMessage: "화면을 꺼도 인솔자 · 일행에게 위치를 보냅니다(하산 탑승하면 멈춤).",
             requestPermissions: true, stale: false, distanceFilter: 0 }, function (loc, err) {   // 0 - 멈춰 있어도 와야 쉼 · 부상 때 "소식 없음" 이 안 됨, 30초 거르기는 party-kit(2026-10-20 PC: 20 이면 멈춘 폰은 안 보냈음)

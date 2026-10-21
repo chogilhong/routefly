@@ -49,4 +49,6 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- 2026-10-17: 웹뷰 navigator.vibrate(움직임 없음 · 일몰 · 갈림길 알림)는 이 권한이 없으면 말없이 무시됨 -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- 2026-10-21: 산악회 방 "폰은 켜짐"(RfAlivePlugin) - 화면이 꺼진 동안 1분마다 보내려고 CPU 를 깨워 둠(방에 있는 동안만, 최대 14시간) -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 </manifest>
