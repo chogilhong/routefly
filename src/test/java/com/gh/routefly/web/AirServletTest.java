@@ -34,6 +34,16 @@ public class AirServletTest {
         assertTrue("40km 안에 없음", AirServlet.nearest(pos, 33.5, 126.5, AirServlet.AIR_NEAR_M, 3).isEmpty());
     }
 
+    /** 2026-10-21 PC: 포털이 느릴 때 측정소 목록을 산마다 25초씩 다시 물었음 - 못 받으면 5 · 10 · 30분 쉼. */
+    @Test
+    public void stationsBackOff() {
+        assertEquals(0, AirServlet.retryAfterMs(0));
+        assertEquals(5 * 60_000L, AirServlet.retryAfterMs(1));
+        assertEquals(10 * 60_000L, AirServlet.retryAfterMs(2));
+        assertEquals(30 * 60_000L, AirServlet.retryAfterMs(3));
+        assertEquals(30 * 60_000L, AirServlet.retryAfterMs(9));
+    }
+
     @Test
     public void errorCodeIsNotData() {
         assertFalse(AirServlet.stations("{\"response\":{\"header\":{\"resultCode\":\"30\"}}}", new ArrayList<>(), new ArrayList<>(), new ArrayList<>()));

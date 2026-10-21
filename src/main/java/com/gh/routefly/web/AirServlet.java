@@ -60,6 +60,10 @@ public class AirServlet extends HttpServlet {
     /** {이름 목록, [위도, 경도] 목록, 받은 시각, 주소 목록} - 아직 못 받았으면 null. */
     private static volatile Object[] stationList;
     private static final ReentrantLock LOADING = new ReentrantLock();
+    /** 측정소 목록을 못 받은 횟수 · 다음에 물어볼 때(2026-10-21 PC: 포털이 느릴 때 주말 산 미리 받기가 산마다 25초씩 다시 물어 경고가 쌓이고 포털에 부담). */
+    private static volatile int fails;
+    private static volatile long nextTry;
+    private static volatile boolean fileTried;
     private static final OpenApi.Cache<JsonObject> MEASURE = new OpenApi.Cache<>(800, 30L * 60 * 1000);
 
     /**
@@ -81,7 +85,7 @@ public class AirServlet extends HttpServlet {
                     return;   // 웹앱이 내려감(destroy)
                 }
                 if (Thread.currentThread().isInterrupted()) return;
-                Object[] st = stationList(key, System.currentTimeMillis());
+                Object[] st = stationList(key, System.currentTimeMillis(), true);   // 뜰 때는 쉬는 시간 없이(위 간격대로)
                 if (st != null || Thread.currentThread().isInterrupted()) return;
             }
         }, "air-stations");
@@ -100,7 +104,7 @@ public class AirServlet extends HttpServlet {
     /** 그 자리에서 가장 가까운 측정소 주소의 예보 지역(region) - 중기예보(MidServlet)도 씀. 측정소 목록이 없으면 null. */
     static String regionNear(double lat, double lon) {
         String key = key();
-        Object[] st = key == null ? null : stationList(key, System.currentTimeMillis());
+        Object[] st = key == null ? null : stationList(key, System.currentTimeMillis(), false);
         if (st == null) return null;
         @SuppressWarnings("unchecked") List<double[]> pos = (List<double[]>) st[1];
         @SuppressWarnings("unchecked") List<String> addrs = (List<String>) st[3];
@@ -118,8 +122,15 @@ public class AirServlet extends HttpServlet {
      * 다른 요청이 받는 중이면 예전 목록을 바로 쓰고, 예전 목록도 없으면 10초까지만 기다립니다(화면이 오래 멈추지 않게).
      */
     private static Object[] stationList(String key, long now) {
+        return stationList(key, now, false);
+    }
+
+    /** force - 실패 뒤 쉬는 시간(retryAfterMs)을 무시(뜰 때 미리 받기만). */
+    private static Object[] stationList(String key, long now, boolean force) {
+        if (stationList == null && !fileTried) fromFile();
         Object[] cur = stationList;
         if (cur != null && now - (Long) cur[2] < STATIONS_TTL_MS) return cur;
+        if (!force && now < nextTry) return cur;   // 막 실패함 - 쉬는 동안은 묻지 않음(예전 목록 또는 null)
         try {
             if (cur != null ? !LOADING.tryLock() : !LOADING.tryLock(10, TimeUnit.SECONDS)) return cur;
         } catch (InterruptedException e) {
@@ -142,11 +153,54 @@ public class AirServlet extends HttpServlet {
         List<double[]> pos = new ArrayList<>();
         if (text != null && stations(text, names, pos, addrs)) {
             stationList = new Object[] {names, pos, now, addrs};
+            fails = 0;
+            nextTry = 0;
             log.info("[AIR] 측정소 목록 {}곳 받음({})", names.size(), Thread.currentThread().getName());
+            toFile(text);
             return stationList;
         }
         if (text != null) OpenApi.warn("AIR", text);   // 응답은 왔는데 목록이 아님(키 · 신청 문제)
+        fails++;
+        nextTry = now + retryAfterMs(fails);
+        log.warn("[AIR] 측정소 목록을 못 받음 {}번째 - {}분 뒤 다시({})", fails, retryAfterMs(fails) / 60000, cur != null ? "예전 목록 씀" : "그동안 대기질 · 지역 없이");
         return cur;
+    }
+
+    /** 순수 함수 - n 번 연달아 못 받은 뒤 쉬는 시간: 5 · 10 · 30분(그 뒤로 30분). */
+    static long retryAfterMs(int n) {
+        return n <= 0 ? 0 : n == 1 ? 5 * 60_000L : n == 2 ? 10 * 60_000L : 30 * 60_000L;
+    }
+
+    /** 받은 목록을 파일로(stats.dir/air-stations.json - 공개 자료) - 다시 켜도 바로 씀. 받은 날은 파일 시각. */
+    private static java.nio.file.Path stationsFile() {
+        return Stats.file().resolveSibling("air-stations.json");
+    }
+
+    private static void toFile(String text) {
+        try {
+            java.nio.file.Path f = stationsFile();
+            java.nio.file.Files.createDirectories(f.getParent());
+            java.nio.file.Files.writeString(f, text, StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            log.warn("[AIR] 측정소 목록 파일을 쓰지 못함 - {}", e.toString());
+        }
+    }
+
+    private static synchronized void fromFile() {
+        if (fileTried) return;
+        fileTried = true;
+        try {
+            java.nio.file.Path f = stationsFile();
+            if (!java.nio.file.Files.isRegularFile(f)) return;
+            List<String> names = new ArrayList<>(), addrs = new ArrayList<>();
+            List<double[]> pos = new ArrayList<>();
+            if (stations(java.nio.file.Files.readString(f, StandardCharsets.UTF_8), names, pos, addrs)) {
+                stationList = new Object[] {names, pos, java.nio.file.Files.getLastModifiedTime(f).toMillis(), addrs};   // 이레 지났으면 다음에 새로 받음
+                log.info("[AIR] 측정소 목록 {}곳 파일에서 읽음", names.size());
+            }
+        } catch (Exception e) {
+            log.warn("[AIR] 측정소 목록 파일을 읽지 못함 - {}", e.toString());
+        }
     }
 
     @Override

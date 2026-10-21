@@ -44,6 +44,41 @@ public class WeekendServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
     private static final OpenApi.Cache<JsonObject> CACHE = new OpenApi.Cache<>(4, 60L * 60 * 1000);
     private transient ScheduledExecutorService warm;
+    static final long REFRESH_S = 50 * 60;
+
+    private static java.nio.file.Path file() {
+        return Stats.file().resolveSibling("weekend.json");
+    }
+
+    /** 남긴 파일을 담기 - 같은 주말 것이고 한 시간 안이면. 돌려줌: 몇 ms 전에 만든 것인지(못 쓰면 -1). */
+    private static long fromFile(long now) {
+        try {
+            java.nio.file.Path f = file();
+            if (!java.nio.file.Files.isRegularFile(f)) return -1;
+            JsonObject o = com.google.gson.JsonParser.parseString(java.nio.file.Files.readString(f, java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
+            long at = o.get("madeAt").getAsLong();
+            String ck = weekend(LocalDate.now(WeatherServlet.KST)).toString();
+            if (!ck.equals(o.get("key").getAsString()) || now - at >= 60L * 60 * 1000 || now < at) return -1;
+            CACHE.put(ck, o.getAsJsonObject("data"), at);
+            return now - at;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    private static void toFile(String ck, JsonObject data, long now) {
+        try {
+            JsonObject o = new JsonObject();
+            o.addProperty("key", ck);
+            o.addProperty("madeAt", now);
+            o.add("data", data);
+            java.nio.file.Path f = file();
+            java.nio.file.Files.createDirectories(f.getParent());
+            java.nio.file.Files.writeString(f, o.toString(), java.nio.charset.StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            // 다음 차례에
+        }
+    }
 
     @Override
     public void init() {
@@ -52,13 +87,17 @@ public class WeekendServlet extends HttpServlet {
             t.setDaemon(true);
             return t;
         });
+        // 재시작 · 배포가 잦은 날 공공 API 하루 한도를 덜 쓰게(2026-10-21: 재시작마다 산 100곳을 다시 물어 한도를 다 씀) -
+        // 파일에 남긴 것이 50분 안이면 그것부터 쓰고, 새로 만드는 것은 그 50분이 찼을 때
+        long age = fromFile(System.currentTimeMillis());
+        long first = age < 0 ? 60 : Math.max(60, REFRESH_S - age / 1000);
         warm.scheduleWithFixedDelay(() -> {
             try {
                 current(true);
             } catch (Exception e) {
                 // 다음 차례에 다시
             }
-        }, 60, 50 * 60, TimeUnit.SECONDS);
+        }, first, REFRESH_S, TimeUnit.SECONDS);
     }
 
     @Override
@@ -76,7 +115,7 @@ public class WeekendServlet extends HttpServlet {
         JsonObject out = refresh ? null : CACHE.get(ck, now);
         if (out == null && key != null) {
             out = build(key, dates, peaks());
-            if (out.getAsJsonArray("regions").size() > 0) CACHE.put(ck, out, now);
+            if (out.getAsJsonArray("regions").size() > 0) { CACHE.put(ck, out, now); toFile(ck, out, now); }
             else if (refresh) out = CACHE.get(ck, now);   // 새로 못 만들면 담아 둔 것 그대로
         }
         return out;
