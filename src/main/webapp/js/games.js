@@ -21,9 +21,10 @@
         $("lblScore").textContent = "Score";
         $("lblBest").textContent = "Best";
         $("note").textContent = "Runs only on this screen - no install, no login. Best scores stay on this device. Save your battery on the trail 🙂";
-        var names = { tetris: "🧱 Tetris", shooter: "🚀 Galaga", snake: "🐍 Snake", g2048: "🔢 2048", breakout: "🏓 Breakout",
-            mines: "💣 Minesweeper", runner: "🏔️ Mountain run", mole: "🐹 Whack-a-mole", memory: "🃏 Memory", flappy: "🐦 Flappy bird",
-            sudoku: "🧩 Sudoku", slide15: "🔢 Slide puzzle", omok: "⚫ Gomoku", react: "⚡ Reaction", simon: "🧠 Simon" };
+        // 이름은 일반 이름만(2026-10-21 저작권 · 상표 점검: Tetris · Galaga · Breakout · Minesweeper · Whac-A-Mole · Memory · Flappy Bird · Simon 은 남의 상표)
+        var names = { tetris: "🧱 Block stack", shooter: "🚀 Space shooter", snake: "🐍 Snake", g2048: "🔢 2048", breakout: "🏓 Brick breaker",
+            mines: "💣 Mine finder", runner: "🏔️ Mountain run", mole: "🐹 Mole tap", memory: "🃏 Pair match", flappy: "🐦 Flying bird",
+            sudoku: "🧩 Sudoku", slide15: "🔢 Slide puzzle", omok: "⚫ Five in a row", react: "⚡ Reaction", simon: "🧠 Light order" };
         Array.prototype.forEach.call(document.querySelectorAll("#pick button"), function (b) { b.querySelector(".n").textContent = names[b.getAttribute("data-g")].replace(/^\S+\s/, ""); });
         $("pickChg").textContent = "Change ▾";
         $("grpA").textContent = "🕹️ Arcade";
@@ -71,7 +72,7 @@
         b.addEventListener("lostpointercapture", up);
         b.addEventListener("contextmenu", function (e) { e.preventDefault(); });
     });
-    // 밀기(뱀 · 2048) · 끌기(벽돌깨기 · 갤러그)
+    // 밀기(뱀 · 2048) · 끌기(벽돌깨기 · 비행기 쏘기)
     var sx = 0, sy = 0, swiping = false;
     cv.addEventListener("pointerdown", function (e) {
         sx = e.clientX; sy = e.clientY; swiping = true;
@@ -248,7 +249,7 @@
 
     var GAMES = {};
 
-    // ================================================================== 🧱 테트리스
+    // ================================================================== 🧱 블록 쌓기(떨어지는 블록 - 이름 · 화면에 남의 상표를 쓰지 않음)
     GAMES.tetris = (function () {
         var C = 10, R = 20, S = 24, OX = (W - C * S) / 2, OY = 0;
         var SHAPES = [
@@ -325,7 +326,7 @@
         };
     })();
 
-    // ================================================================== 🚀 갤러그(비행기 쏘기)
+    // ================================================================== 🚀 비행기 쏘기(우주 슈팅)
     GAMES.shooter = (function () {
         var ship, shots, foes, bombs, booms, wave, lives, dirX, sway, cool, inv, dragX;
         function newWave() {
