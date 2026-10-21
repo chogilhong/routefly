@@ -4018,7 +4018,8 @@
      * lang - 이 페이지 말("ko" · "en"). 다른 말 페이지가 없으면(같은 이름 고르기 · 못 찾음) null.
      */
     function langToggle(lang) {
-        var other = document.querySelector('a[hreflang="' + (lang === "en" ? "ko" : "en") + '"]');
+        // 아래 "한국어 · English" 링크(hreflang + lang 둘 다) - 2026-10-21 홍TV님: hreflang="ko" 만 찾아 산악회 방 링크(한국어 화면)로 갔음
+        var o = lang === "en" ? "ko" : "en", other = document.querySelector('a[hreflang="' + o + '"][lang="' + o + '"]') || document.querySelector('link[rel="alternate"][hreflang="' + o + '"]');
         if (!other) return null;
         var a = document.createElement("a"), ko = document.createElement("span"), en = document.createElement("span");
         a.className = "rfLang";
