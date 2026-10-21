@@ -6,7 +6,7 @@
 <title>routefly 심심풀이 게임</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=2"><link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
 <meta name="theme-color" content="#11161d">
-<meta name="description" content="테트리스 · 갤러그 · 뱀 · 2048 · 벽돌깨기 - 버스 기다릴 때 가볍게 하는 게임(설치 · 로그인 없음)">
+<meta name="description" content="테트리스 · 갤러그 · 뱀 · 2048 · 벽돌깨기 · 지뢰찾기 · 산 뛰어넘기 · 두더지 · 짝 맞추기 · 날아라 새 - 버스 기다릴 때 가볍게 하는 게임(설치 · 로그인 없음)">
 <!-- 🎮 심심풀이 게임(2026-10-21 홍TV님 - 산 모음 /m/ · /en/m/ 의 별거 별거 아래). 서버 없이 이 화면에서만, 최고 점수는 이 기기(localStorage)에만 -->
 <style>
 :root { --bg:#11161d; --panel:#1a212b; --tx:#eef2f7; --dim:#9aa6b4; --ln:rgba(255,255,255,0.12); --sky:#38d9ea; --ok:#4ade80; }
@@ -48,6 +48,11 @@ canvas { display:block; background:#0b0f14; border:1px solid var(--ln); border-r
         <button data-g="snake">🐍 뱀</button>
         <button data-g="g2048">🔢 2048</button>
         <button data-g="breakout">🏓 벽돌깨기</button>
+        <button data-g="mines">💣 지뢰찾기</button>
+        <button data-g="runner">🏔️ 산 뛰어넘기</button>
+        <button data-g="mole">🐹 두더지 잡기</button>
+        <button data-g="memory">🃏 짝 맞추기</button>
+        <button data-g="flappy">🐦 날아라 새</button>
     </div>
     <div id="bar"><span id="lblScore">점수</span> <b id="score">0</b><span class="sp"></span><span id="lblBest">최고</span> <b id="best">0</b><button id="sound" aria-label="소리">🔊</button><button id="pause">⏸</button></div>
     <div id="stage">

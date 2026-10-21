@@ -21,7 +21,8 @@
         $("lblScore").textContent = "Score";
         $("lblBest").textContent = "Best";
         $("note").textContent = "Runs only on this screen - no install, no login. Best scores stay on this device. Save your battery on the trail 🙂";
-        var names = { tetris: "🧱 Tetris", shooter: "🚀 Galaga", snake: "🐍 Snake", g2048: "🔢 2048", breakout: "🏓 Breakout" };
+        var names = { tetris: "🧱 Tetris", shooter: "🚀 Galaga", snake: "🐍 Snake", g2048: "🔢 2048", breakout: "🏓 Breakout",
+            mines: "💣 Minesweeper", runner: "🏔️ Mountain run", mole: "🐹 Whack-a-mole", memory: "🃏 Memory", flappy: "🐦 Flappy bird" };
         Array.prototype.forEach.call(document.querySelectorAll("#pick button"), function (b) { b.textContent = names[b.getAttribute("data-g")]; });
     }
     function fit() {
@@ -70,17 +71,20 @@
     cv.addEventListener("pointerdown", function (e) {
         sx = e.clientX; sy = e.clientY; swiping = true;
         if (game && game.drag) game.drag(toX(e.clientX), true);
+        if (game && game.onDown) presses.push({ x: toX(e.clientX), y: toY(e.clientY) });   // 누른 자리(지뢰 · 두더지 · 짝 맞추기 · 점프 - 2026-10-21)
     });
     cv.addEventListener("pointermove", function (e) { if (swiping && game && game.drag) game.drag(toX(e.clientX), false); });
     cv.addEventListener("pointerup", function (e) {
         if (!swiping) return;
         swiping = false;
         if (game && game.drag) { game.drag(null); return; }
+        if (game && game.onDown) return;
         var dx = e.clientX - sx, dy = e.clientY - sy;
         if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) { press("tap"); return; }
         press(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up"));
     });
     function toX(clientX) { var r = cv.getBoundingClientRect(); return (clientX - r.left) * W / r.width; }
+    function toY(clientY) { var r = cv.getBoundingClientRect(); return (clientY - r.top) * H / r.height; }
 
     // ------------------------------------------------------------------ 소리(2026-10-21 홍TV님 "소리는 안 들려?") - 파일 없이 웹 오디오로 짧은 삐 소리. 🔊 단추로 끄고 켬(이 기기에 기억)
     var SND_KEY = "rf-game-sound", soundOn = true, ac = null;
@@ -199,6 +203,7 @@
         Array.prototype.forEach.call(document.querySelectorAll("#pick button"), function (b) { b.classList.toggle("on", b.getAttribute("data-g") === id); });
         var pad = game.pad;   // [왼, 아래, 위, 오른, 행동 글]
         ["left", "down", "up", "right"].forEach(function (k, i) { document.querySelector("#pad [data-k=" + k + "]").hidden = !pad[i]; });
+        $("pad").style.display = pad.some(Boolean) ? "" : "none";   // 화면만 누르는 게임은 단추 줄을 숨김
         $("actBtn").hidden = !pad[4];
         $("actBtn").textContent = pad[4] || "";
         $("help").textContent = game.help;
@@ -525,6 +530,220 @@
             }
         };
         function launch() { stuck = false; var s = 260 + stage * 20; ball.vx = (Math.random() - 0.5) * s * 0.6; ball.vy = -Math.sqrt(s * s - ball.vx * ball.vx); }
+    })();
+
+    // ================================================================== 💣 지뢰찾기(2026-10-21 - 아래 다섯은 두 번째 묶음)
+    GAMES.mines = (function () {
+        var C = 9, R = 12, S = 33, OX = (W - C * S) / 2, OY = 40, M = 15, cells, first, flagMode, opened, t0, done;
+        function at(x, y) { return x >= 0 && y >= 0 && x < C && y < R ? cells[y * C + x] : null; }
+        function around(x, y, f) { for (var dy = -1; dy <= 1; dy++) for (var dx = -1; dx <= 1; dx++) if (dx || dy) { var c = at(x + dx, y + dy); if (c) f(c, x + dx, y + dy); } }
+        function lay(sx, sy) {   // 처음 누른 칸과 그 둘레엔 지뢰를 두지 않음
+            var n = 0;
+            while (n < M) { var x = rnd(C), y = rnd(R), c = at(x, y); if (c.mine || (Math.abs(x - sx) <= 1 && Math.abs(y - sy) <= 1)) continue; c.mine = true; n++; }
+            for (var y2 = 0; y2 < R; y2++) for (var x2 = 0; x2 < C; x2++) { var k = 0; around(x2, y2, function (c2) { if (c2.mine) k++; }); at(x2, y2).n = k; }
+        }
+        function open(x, y) {
+            var c = at(x, y);
+            if (!c || c.open || c.flag) return;
+            c.open = true; opened++;
+            if (c.mine) { cells.forEach(function (d) { if (d.mine) d.open = true; }); done = true; end(T("펑! 지뢰를 밟았어요", "Boom! You hit a mine")); return; }
+            if (!c.n) around(x, y, function (d, ax, ay) { open(ax, ay); });
+        }
+        return {
+            pad: [0, 0, 0, 0, T("🚩 깃발", "🚩 Flag")],
+            onDown: true,
+            help: T("칸을 눌러 열기. 숫자는 둘레 지뢰 수. 🚩 깃발 단추를 켜고 누르면 깃발 꽂기. 지뢰 아닌 칸을 다 열면 이김(빠를수록 점수).", "Tap to open. Numbers count nearby mines. Turn on 🚩 Flag to mark. Open every safe cell to win (faster = more points)."),
+            reset: function () { cells = []; for (var i = 0; i < C * R; i++) cells.push({ mine: false, n: 0, open: false, flag: false }); first = true; flagMode = false; opened = 0; t0 = 0; done = false; },
+            update: function (dt, ps) {
+                if (!done) t0 += dt;
+                ps.forEach(function (p) {
+                    if (p === "act") { flagMode = !flagMode; $("actBtn").textContent = flagMode ? T("🚩 깃발 켬", "🚩 Flag ON") : T("🚩 깃발", "🚩 Flag"); return; }
+                    if (!p || p.x === undefined || done) return;
+                    var x = Math.floor((p.x - OX) / S), y = Math.floor((p.y - OY) / S), c = at(x, y);
+                    if (!c) return;
+                    if (flagMode && !c.open) { c.flag = !c.flag; sfx("move"); return; }
+                    if (first) { first = false; lay(x, y); }
+                    var before = opened;
+                    open(x, y);
+                    if (done) return;
+                    if (opened > before) { sfx("eat"); setScore(opened * 5); }
+                    if (opened === C * R - M) { done = true; setScore(score + Math.max(100, 1500 - Math.round(t0) * 5)); sfx("level"); end(T("🎉 모두 찾았어요!", "🎉 Cleared!")); }
+                });
+            },
+            draw: function () {
+                clear();
+                text("💣 " + M + "   ⏱ " + Math.floor(t0) + T("초", "s") + (flagMode ? "   🚩" : ""), W / 2, 26, 15, "#9aa6b4");
+                var NC = ["", "#4dabf7", "#69db7c", "#ff6b6b", "#b197fc", "#ffa94d", "#38d9ea", "#eef2f7", "#9aa6b4"];
+                for (var y = 0; y < R; y++) for (var x = 0; x < C; x++) {
+                    var c = at(x, y), px = OX + x * S, py = OY + y * S;
+                    rect(px + 1, py + 1, S - 2, S - 2, c.open ? (c.mine ? "#c92a2a" : "#1f2733") : "#3b4656");
+                    if (c.open && c.mine) text("💣", px + S / 2, py + S * 0.72, 18);
+                    else if (c.open && c.n) text(String(c.n), px + S / 2, py + S * 0.7, 18, NC[c.n]);
+                    else if (!c.open && c.flag) text("🚩", px + S / 2, py + S * 0.72, 17);
+                }
+            }
+        };
+    })();
+
+    // ================================================================== 🏔️ 산 뛰어넘기(달리기)
+    GAMES.runner = (function () {
+        var GY = H - 80, p, obs, spd, dist, nextIn, clouds;
+        function jump() { if (p.y >= GY - 0.5) { p.vy = -560; sfx("rotate"); } }
+        return {
+            pad: [0, 0, 1, 0, T("점프", "Jump")],
+            onDown: true,
+            repeat: {},
+            help: T("화면을 누르거나 점프로 바위 · 나무를 뛰어넘기. 갈수록 빨라집니다.", "Tap or Jump over rocks and trees. It gets faster."),
+            reset: function () { p = { y: GY, vy: 0 }; obs = []; spd = 200; dist = 0; nextIn = 1; clouds = [{ x: 60, y: 80 }, { x: 220, y: 130 }]; },
+            update: function (dt, ps) {
+                ps.forEach(function (k) { if (k === "act" || k === "up" || (k && k.x !== undefined)) jump(); });
+                p.vy += 1500 * dt; p.y = Math.min(GY, p.y + p.vy * dt);
+                if (p.y >= GY) p.vy = 0;
+                spd += 6 * dt; dist += spd * dt;
+                nextIn -= dt;
+                if (nextIn <= 0) { var tree = Math.random() < 0.4; obs.push({ x: W + 20, w: tree ? 18 : 26, h: tree ? 46 : 26, tree: tree }); nextIn = 0.9 + Math.random() * 1.1 - Math.min(0.5, spd / 1200); }
+                obs.forEach(function (o) { o.x -= spd * dt; });
+                obs = obs.filter(function (o) { return o.x > -40; });
+                clouds.forEach(function (c) { c.x -= spd * 0.2 * dt; if (c.x < -60) c.x = W + 40; });
+                var px = 60;
+                if (obs.some(function (o) { return px + 14 > o.x && px - 14 < o.x + o.w && p.y > GY - o.h + 4; })) { sfx("hurt"); end(); return; }
+                var sc = Math.floor(dist / 10);
+                if (sc !== score) { if (Math.floor(sc / 100) > Math.floor(score / 100)) sfx("level"); setScore(sc); }
+            },
+            draw: function () {
+                clear("#0e1a26");
+                cx.fillStyle = "#1f3a4d"; cx.beginPath(); cx.moveTo(0, GY); for (var x = 0; x <= W; x += 50) cx.lineTo(x, GY - 60 - 50 * Math.abs(Math.sin((x + dist * 0.15) / 70))); cx.lineTo(W, GY); cx.fill();
+                clouds.forEach(function (c) { text("☁️", c.x, c.y, 30); });
+                rect(0, GY, W, H - GY, "#2b2f1f"); rect(0, GY, W, 3, "#69db7c");
+                obs.forEach(function (o) { if (o.tree) text("🌲", o.x + o.w / 2, GY + 2, 44); else text("🪨", o.x + o.w / 2, GY + 4, 30); });
+                cx.save(); cx.translate(60, p.y); cx.scale(-1, 1); text("🥾", 0, 0, 30); cx.restore();
+                text(Math.floor(dist / 10) + " m", W - 10, 28, 15, "#9aa6b4", "right");
+            }
+        };
+    })();
+
+    // ================================================================== 🐹 두더지 잡기
+    GAMES.mole = (function () {
+        var holes, left, spawnIn, OY = 110, S = 92, pop;
+        return {
+            pad: [0, 0, 0, 0, 0],
+            onDown: true,
+            help: T("30초 동안 튀어나온 🐹 를 누르기. 💣 은 누르면 점수가 깎여요.", "Tap the 🐹 for 30 seconds. Avoid the 💣."),
+            reset: function () { holes = []; for (var i = 0; i < 9; i++) holes.push({ t: 0, bomb: false, hit: 0 }); left = 30; spawnIn = 0.5; pop = 0; },
+            update: function (dt, ps) {
+                left -= dt;
+                if (left <= 0) { left = 0; sfx("level"); end(T("시간 끝!", "Time's up!")); return; }
+                holes.forEach(function (h) { if (h.t > 0) h.t -= dt; if (h.hit > 0) h.hit -= dt; });
+                spawnIn -= dt;
+                if (spawnIn <= 0) {
+                    var free = holes.filter(function (h) { return h.t <= 0; });
+                    if (free.length) { var h = free[rnd(free.length)]; h.t = Math.max(0.55, 1.2 - (30 - left) * 0.02); h.bomb = Math.random() < 0.15; }
+                    spawnIn = Math.max(0.3, 0.8 - (30 - left) * 0.015);
+                }
+                ps.forEach(function (p) {
+                    if (!p || p.x === undefined) return;
+                    var c = Math.floor((p.x - (W - 3 * S) / 2) / S), r = Math.floor((p.y - OY) / S);
+                    if (c < 0 || c > 2 || r < 0 || r > 2) return;
+                    var h = holes[r * 3 + c];
+                    if (h.t > 0) {
+                        if (h.bomb) { setScore(Math.max(0, score - 30)); sfx("hurt"); } else { setScore(score + 10); sfx("brick"); }
+                        h.t = 0; h.hit = 0.25;
+                    }
+                });
+            },
+            draw: function () {
+                clear("#13261a");
+                text("⏱ " + Math.ceil(left) + T("초", "s"), W / 2, 50, 22, left < 6 ? "#ff6b6b" : "#eef2f7");
+                var ox = (W - 3 * S) / 2;
+                holes.forEach(function (h, i) {
+                    var x = ox + (i % 3) * S + S / 2, y = OY + Math.floor(i / 3) * S + S / 2;
+                    cx.fillStyle = "#3b2a1a"; cx.beginPath(); cx.ellipse(x, y + 22, 34, 12, 0, 0, Math.PI * 2); cx.fill();
+                    if (h.t > 0) text(h.bomb ? "💣" : "🐹", x, y + 18, 46);
+                    if (h.hit > 0) text("💥", x, y, 36);
+                });
+            }
+        };
+    })();
+
+    // ================================================================== 🃏 짝 맞추기
+    GAMES.memory = (function () {
+        var EM = ["⛰️", "🌲", "🦌", "🐿️", "🌸", "🍁", "🏕️", "🥾", "☀️", "🌙"], CO = 4, RO = 5, CW = 66, CH = 80, OX = (W - CO * CW) / 2, OY = 50;
+        var cards, openIdx, wait, moves, pairs, t0;
+        return {
+            pad: [0, 0, 0, 0, 0],
+            onDown: true,
+            help: T("카드 두 장을 뒤집어 같은 그림 짝을 찾기. 적게 뒤집고 빨리 끝낼수록 점수가 높아요.", "Flip two cards to find matching pairs. Fewer moves and less time = more points."),
+            reset: function () {
+                var d = EM.concat(EM);
+                for (var i = d.length - 1; i > 0; i--) { var j = rnd(i + 1), x = d[i]; d[i] = d[j]; d[j] = x; }
+                cards = d.map(function (e) { return { e: e, up: false, done: false }; });
+                openIdx = []; wait = 0; moves = 0; pairs = 0; t0 = 0;
+            },
+            update: function (dt, ps) {
+                t0 += dt;
+                if (wait > 0) { wait -= dt; if (wait <= 0) { openIdx.forEach(function (i) { cards[i].up = false; }); openIdx = []; } return; }
+                ps.forEach(function (p) {
+                    if (!p || p.x === undefined || openIdx.length >= 2) return;
+                    var c = Math.floor((p.x - OX) / CW), r = Math.floor((p.y - OY) / CH);
+                    if (c < 0 || c >= CO || r < 0 || r >= RO) return;
+                    var i = r * CO + c, cd = cards[i];
+                    if (cd.up || cd.done) return;
+                    cd.up = true; openIdx.push(i); sfx("move");
+                    if (openIdx.length === 2) {
+                        moves++;
+                        var a = cards[openIdx[0]], b = cards[openIdx[1]];
+                        if (a.e === b.e) {
+                            a.done = b.done = true; openIdx = []; pairs++; sfx("merge");
+                            setScore(Math.max(0, pairs * 100 - moves * 5));
+                            if (pairs === EM.length) { setScore(score + Math.max(0, 600 - Math.round(t0) * 5)); sfx("level"); end(T("🎉 다 맞췄어요! ", "🎉 All matched! ") + moves + T("번 만에", " moves")); }
+                        } else wait = 0.7;
+                    }
+                });
+            },
+            draw: function () {
+                clear();
+                text(T("뒤집은 수 ", "Moves ") + moves + "   ⏱ " + Math.floor(t0) + T("초", "s"), W / 2, 30, 15, "#9aa6b4");
+                cards.forEach(function (cd, i) {
+                    var x = OX + (i % CO) * CW + 3, y = OY + Math.floor(i / CO) * CH + 3;
+                    rect(x, y, CW - 6, CH - 6, cd.done ? "#1f3a2a" : cd.up ? "#eef2f7" : "#3b4656");
+                    if (cd.up || cd.done) text(cd.e, x + (CW - 6) / 2, y + (CH - 6) / 2 + 13, 36);
+                    else text("?", x + (CW - 6) / 2, y + (CH - 6) / 2 + 9, 26, "#9aa6b4");
+                });
+            }
+        };
+    })();
+
+    // ================================================================== 🐦 날아라 새
+    GAMES.flappy = (function () {
+        var b, pipes, nextIn, GAP = 150, PW = 52;
+        function flap() { b.vy = -330; sfx("rotate"); }
+        return {
+            pad: [0, 0, 0, 0, T("날기", "Flap")],
+            onDown: true,
+            help: T("화면을 누르거나 날기로 날갯짓. 봉우리 사이 틈을 지나가세요.", "Tap or Flap to fly. Pass through the gaps between the peaks."),
+            reset: function () { b = { y: H / 2, vy: 0 }; pipes = []; nextIn = 0.6; },
+            update: function (dt, ps) {
+                ps.forEach(function (k) { if (k === "act" || k === "up" || (k && k.x !== undefined)) flap(); });
+                b.vy += 900 * dt; b.y += b.vy * dt;
+                nextIn -= dt;
+                if (nextIn <= 0) { pipes.push({ x: W + 10, gy: 110 + rnd(H - 260), passed: false }); nextIn = 1.5; }
+                pipes.forEach(function (p) { p.x -= 140 * dt; if (!p.passed && p.x + PW < 70) { p.passed = true; setScore(score + 1); sfx("eat"); } });
+                pipes = pipes.filter(function (p) { return p.x > -PW; });
+                var hit = b.y < 0 || b.y > H - 20 || pipes.some(function (p) { return 70 + 12 > p.x && 70 - 12 < p.x + PW && (b.y - 10 < p.gy || b.y + 10 > p.gy + GAP); });
+                if (hit) { sfx("hurt"); end(); }
+            },
+            draw: function () {
+                clear("#0e1a26");
+                pipes.forEach(function (p) {
+                    cx.fillStyle = "#3b5b46";
+                    cx.beginPath(); cx.moveTo(p.x, 0); cx.lineTo(p.x + PW, 0); cx.lineTo(p.x + PW, p.gy - 14); cx.lineTo(p.x + PW / 2, p.gy); cx.lineTo(p.x, p.gy - 14); cx.fill();   // 거꾸로 봉우리
+                    cx.beginPath(); cx.moveTo(p.x, H); cx.lineTo(p.x, p.gy + GAP + 14); cx.lineTo(p.x + PW / 2, p.gy + GAP); cx.lineTo(p.x + PW, p.gy + GAP + 14); cx.lineTo(p.x + PW, H); cx.fill();
+                    rect(p.x + PW / 2 - 8, p.gy + GAP, 16, 4, "#eef2f7");   // 눈 덮인 꼭대기
+                });
+                cx.save(); cx.translate(70, b.y); cx.rotate(Math.max(-0.5, Math.min(0.8, b.vy / 600))); cx.scale(-1, 1); text("🐦", 0, 10, 28); cx.restore();
+                text(String(score), W / 2, 50, 32, "#eef2f7");
+            }
+        };
     })();
 
     // ------------------------------------------------------------------ 시작
