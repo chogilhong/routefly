@@ -3434,6 +3434,10 @@
         return b;
     }
     if (global.document && document.documentElement) applyTextScale(textScale());
+    // 안드로이드는 크롬의 "routefly 설치"(웹 앱) 권유를 띄우지 않음(2026-10-21 PC: 홍TV님이 설치해 원래 앱과 아이콘이 둘이 됨 -
+    // 웹 앱은 화면을 끄면 위치가 멈춰 산악회 방 · 따라가기는 routefly 앱이 맞음). PC 등 다른 기기는 그대로. 크롬 메뉴의 "앱 설치"는 남음
+    if (global.addEventListener && global.navigator && /Android/i.test(navigator.userAgent || "") && !global.Capacitor)
+        global.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); });
 
     /** 귀가 확인 시각 - 표준 시간의 1.5배, 적어도 1시간 더(2026-10-14). 지나도록 못 끝내면 따라가기가 알림. */
     function lateAt(startMs, planMs) {
