@@ -907,5 +907,6 @@ Invoke-WebRequest -UseBasicParsing -Method Post -Uri https://api.indexnow.org/in
 ```
 
 - 200 · 202 면 받음. 403 은 열쇠 파일을 못 읽음(배포 확인), 422 는 주소가 열쇠 위치(/routefly/) 밖.
+- 처음 한 번은 403 이 날 수 있음(열쇠를 아직 확인하기 전 - 2026-10-22 PC): `urlList` 에 주소 하나만 넣어 한 번 보내 200 을 받은 뒤 전체를 다시 보내면 200(8,854개).
 - 결과는 빙 웹마스터 도구 → IndexNow 에서 보이고, /stats 로봇 종류 "검색" 아래 "빙" 숫자가 오름.
 
