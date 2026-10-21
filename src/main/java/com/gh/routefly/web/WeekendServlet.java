@@ -90,6 +90,7 @@ public class WeekendServlet extends HttpServlet {
         // 재시작 · 배포가 잦은 날 공공 API 하루 한도를 덜 쓰게(2026-10-21: 재시작마다 산 100곳을 다시 물어 한도를 다 씀) -
         // 파일에 남긴 것이 50분 안이면 그것부터 쓰고, 새로 만드는 것은 그 50분이 찼을 때
         long age = fromFile(System.currentTimeMillis());
+        AirServlet.onStations = () -> { ScheduledExecutorService w = warm; if (w != null && !w.isShutdown()) w.schedule(() -> { try { current(true); } catch (Exception e) { /* 다음 차례에 */ } }, 5, TimeUnit.SECONDS); };
         long first = age < 0 ? 60 : Math.max(60, REFRESH_S - age / 1000);
         warm.scheduleWithFixedDelay(() -> {
             try {
@@ -103,6 +104,7 @@ public class WeekendServlet extends HttpServlet {
     @Override
     public void destroy() {
         if (warm != null) warm.shutdownNow();
+        AirServlet.onStations = null;
     }
 
     /** 지금 주말 추천 - 담아 둔 것, 없으면(또는 refresh) 새로 만듦. 키가 없거나 못 만들면 null. */

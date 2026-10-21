@@ -64,6 +64,8 @@ public class AirServlet extends HttpServlet {
     private static volatile int fails;
     private static volatile long nextTry;
     private static volatile boolean fileTried;
+    /** 측정소 목록을 새로 받았을 때 부를 것 - 주말 추천(WeekendServlet)이 다시 만들게(2026-10-22 PC: 한도로 막힌 동안 대체 구역으로 만든 weekend.json 이 남았음). */
+    static volatile Runnable onStations;
     private static final OpenApi.Cache<JsonObject> MEASURE = new OpenApi.Cache<>(800, 30L * 60 * 1000);
 
     private transient volatile Thread warm;
@@ -149,9 +151,14 @@ public class AirServlet extends HttpServlet {
             nextTry = 0;
             log.info("[AIR] 측정소 목록 {}곳 받음({})", names.size(), Thread.currentThread().getName());
             toFile(text);
+            Runnable r = onStations;
+            if (r != null && cur == null) r.run();   // 목록 없이 지내다 처음 받음 - 주말 추천을 측정소 기준으로 다시
             return stationList;
         }
-        if (text != null) OpenApi.warn("AIR", text);   // 응답은 왔는데 목록이 아님(키 · 신청 문제)
+        if (text != null) {   // 응답은 왔는데 목록이 아님(키 · 신청 문제, 또는 잘린 응답 - 2026-10-22 PC: 앞은 멀쩡한데 못 읽음 → 길이 · 끝을 남김)
+            OpenApi.warn("AIR", text);
+            log.warn("[AIR] 측정소 응답 길이 {}자, 끝: {}", text.length(), text.length() > 120 ? text.substring(text.length() - 120) : text);
+        }
         long blocked = OpenApi.blockedUntil("AIR");
         if (blocked > now + 60 * 60_000L) {   // 이번에 하루 한도에 걸림 - 자정까지(경고는 OpenApi 가 한 줄)
             nextTry = blocked;
