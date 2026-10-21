@@ -107,7 +107,11 @@ public class StatsServlet extends HttpServlet {
                     .append("</td><td>").append(views).append("</td><td>").append(b).append("</td></tr>");
         }
         StringBuilder out = new StringBuilder("<!DOCTYPE html><html lang=\"ko\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
-                + "<meta name=\"robots\" content=\"noindex\"><title>routefly 통계</title>" + MountainServlet.icons(".") + "<link rel=\"stylesheet\" href=\"css/mountain.css\"></head><body><main><h1>routefly 통계</h1>"
+                + "<meta name=\"robots\" content=\"noindex\"><title>routefly 통계</title>" + MountainServlet.icons(".") + "<link rel=\"stylesheet\" href=\"css/mountain.css\">"
+                // 통계 화면만 글씨 · 간격을 작게(2026-10-21 홍TV님 "전체적으로 폰트가 너무 커") - 산 페이지(mountain.css)는 그대로
+                + "<style>main{font-size:13px;line-height:1.5}h1{font-size:19px;margin:0 0 4px}h2{font-size:14.5px;margin:0 0 6px}.lead{font-size:12.5px;margin:0 0 10px}"
+                + "section{padding:10px 12px;margin-bottom:10px}.st{font-size:12.5px}.st th,.st td{padding:3px 6px}.st th{font-weight:normal;color:var(--dim)}"
+                + "details summary{font-size:14px!important}</style></head><body><main><h1>routefly 통계</h1>"
                 + "<p class=\"lead\">최근 " + last.size() + "일 · 방문자(하루마다 센 수의 합) " + String.format(Locale.KOREA, "%,d", tu) + " · 화면 " + String.format(Locale.KOREA, "%,d", tp)
                 + " · 로봇 " + String.format(Locale.KOREA, "%,d", tb) + botLine(bots) + "</p>");
         out.append(trend(days, n));
@@ -146,17 +150,19 @@ public class StatsServlet extends HttpServlet {
     }
 
     /** 보는 법(2026-10-21 홍TV님 "설명자료도 추가") - 표마다 무엇을 세는지. */
-    static final String GUIDE = "<section><h2>📖 통계 보는 법</h2><ul>"
-            + "<li><b>방문자</b>: 그 날 들어온 사람 수(같은 사람은 하루 한 번). 여러 날을 더한 수라 같은 사람이 이틀 오면 2. <b>화면</b>: 연 화면 수.</li>"
-            + "<li><b>로봇</b>: 사람이 아닌 접속. 검색(구글 · 네이버 · 다음이 페이지를 읽어 감 - 검색에 나오려면 필요), 미리보기(카톡 · 페이스북에 링크를 붙일 때), "
-            + "시험(웹 · PC Claude 점검 도구), 기타(검색 순위 분석 · AI 수집기). 방문자 · 화면 수에는 안 들어감.</li>"
-            + "<li><b>인기 산 페이지</b>: 산 소개(/m/산이름) - 산마다. <b>영어</b> 표는 외국 손님용 영어 산 소개(/en/m/영문이름, 예: daeamsan = 대암산).</li>"
-            + "<li><b>인기 코스 상위 20</b>: 코스 하나짜리 소개(/c/코스번호 - 수천 개, 주로 네이버 · 구글 검색 손님) - 코스 이름을 누르면 그 페이지. "
-            + "화면별 표의 \"코스 소개 페이지(검색 손님)\" 는 이 페이지들을 모두 더한 한 줄.</li>"
-            + "<li><b>들어온 곳</b>: 바깥(네이버 · 구글 · 카톡 등)에서 처음 들어온 화면 수. 우리 화면끼리 옮겨 다닌 것은 안 셈.</li>"
-            + "<li><b>모바일 · PC</b>: 방문자를 기기로 나눔(10-20 부터).</li>"
-            + "<li>이 화면을 연 브라우저(운영자)는 세지 않습니다. 앱 · 다른 브라우저는 따로라 셉니다. 숫자는 서버가 지금 세는 것 그대로(10분마다 파일로 저장).</li>"
-            + "</ul></section>";
+    static final String GUIDE = "<section><details><summary style=\"cursor:pointer;font-weight:bold;font-size:15px\">📖 통계 보는 법 (누르면 펼침)</summary>"
+            + "<table class=\"st\" style=\"font-size:12.5px;line-height:1.5;margin-top:8px\"><tr><th style=\"width:30%\">항목</th><th>뜻</th></tr>"
+            + "<tr><td>방문자</td><td>그 날 들어온 사람 수(같은 사람은 하루 한 번). 여러 날 합이라 이틀 온 사람은 2</td></tr>"
+            + "<tr><td>화면</td><td>연 화면 수</td></tr>"
+            + "<tr><td>로봇</td><td>사람이 아닌 프로그램(검색 · 미리보기 · 시험 · 기타 - 아래 로봇 종류 표). 방문자 · 화면 수에는 안 들어감</td></tr>"
+            + "<tr><td>인기 산 페이지</td><td>산 소개(/m/산이름) - 산마다</td></tr>"
+            + "<tr><td>인기 산 페이지 - 영어</td><td>외국 손님용 영어 산 소개(/en/m/영문이름, 예: daeamsan = 대암산)</td></tr>"
+            + "<tr><td>인기 코스 상위 20</td><td>코스 하나짜리 소개(/c/코스번호 - 주로 네이버 · 구글 검색 손님). 이름을 누르면 그 페이지. 화면별 표의 \"코스 소개 페이지\" 는 이것을 모두 더한 한 줄</td></tr>"
+            + "<tr><td>들어온 곳</td><td>바깥(네이버 · 구글 · 카톡 등)에서 처음 들어온 화면 수. 우리 화면끼리 옮긴 것은 안 셈</td></tr>"
+            + "<tr><td>모바일 · PC</td><td>방문자를 기기로 나눔(10-20 부터)</td></tr>"
+            + "<tr><td>운영자</td><td>이 화면을 연 브라우저는 세지 않음. 앱 · 다른 브라우저는 따로라 셈</td></tr>"
+            + "<tr><td>언제 숫자</td><td>서버가 지금 세는 그대로(10분마다 파일로 저장)</td></tr>"
+            + "</table></details></section>";
 
     /** 순수 함수 - "(검색 n · 미리보기 n · 시험 n · 기타 n)" - 나눠 센 날이 없으면 빈 글. */
     static String botLine(Map<String, Integer> bots) {
