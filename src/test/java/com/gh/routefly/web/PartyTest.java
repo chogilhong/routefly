@@ -360,4 +360,31 @@ public class PartyTest {
         PartyServlet.Quota q = new PartyServlet.Quota(2, 1000);
         assertTrue(q.take("a", 0) && q.take("a", 1) && !q.take("a", 2) && q.over("a", 2) && q.take("b", 2) && q.take("a", 1002));
     }
+
+    /** 버그 점검(2026-10-21): 취소된 사람을 명단에서 되돌림(자리가 찼으면 좌석 없이) · 틀린 방 하나가 있어도 나머지는 읽음. */
+    @Test
+    public void bugChecks() throws Exception {
+        Party p = new Party();
+        JsonObject room = j(create(p, T0));
+        String code = room.get("code").getAsString(), lead = room.get("token").getAsString();
+        String a = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"늦잠\",\"role\":\"hiker\",\"seat\":5,\"agree\":true}", T0).get("token").getAsString();
+        call(p, "/depart", tok(lead), DEPART);
+        int aId = member(call(p, "/view", tok(lead), DEPART), "늦잠").get("id").getAsInt();
+        String b = call(p, "/join", "{\"code\":\"" + room.get("driverCode").getAsString() + "\",\"nick\":\"기사\",\"agree\":true}", DEPART).get("token").getAsString();
+        String c = j(create(p, T0)).get("token").getAsString();   // 다른 방 - 남의 방 사람은 못 고침
+        try { call(p, "/mark", "{\"token\":\"" + c + "\",\"id\":" + aId + ",\"what\":\"boarded\",\"on\":true}", DEPART); fail(); } catch (IllegalArgumentException e) { /* 맞음 */ }
+        call(p, "/mark", "{\"token\":\"" + b + "\",\"id\":" + aId + ",\"what\":\"boarded\",\"on\":true}", DEPART);
+        JsonObject m = member(call(p, "/view", tok(lead), DEPART), "늦잠");
+        assertFalse(m.get("cancelled").getAsBoolean());
+        assertEquals("자리가 비어 있었으면 그대로", 5, m.get("seat").getAsInt());
+
+        Path f = Files.createTempDirectory("party").resolve("party.json");
+        Party q = new Party(f);
+        String good = j(create(q, T0)).get("token").getAsString();
+        String text = Files.readString(f);
+        Files.writeString(f, "[{\"name\":\"코드 없는 방\"}," + text.substring(1));
+        Party again = new Party(f);
+        assertNotNull("틀린 방 뒤의 방도 읽음", again.who(good, T0));
+        try (var st = Files.list(f.getParent())) { assertTrue("옛 파일을 남김", st.anyMatch(x -> x.getFileName().toString().startsWith("party.json.bad-"))); }
+    }
 }

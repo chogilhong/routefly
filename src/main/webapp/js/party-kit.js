@@ -7,7 +7,7 @@
  */
 (function (g) {
     var KEY = "rf-party", EVERY_MS = 30000;
-    var last = 0, busy = false, busyAt = 0, lastSos = null, again = null;
+    var last = 0, busy = false, busyAt = 0, lastSos = null, again = null, seq = 0;   // seq - 25초 넘어 풀린 옛 보내기가 늦게 끝나도 새 보내기의 busy 를 풀지 않게
     // 2026-10-20 PC: 앱 화면을 끈 직후(Doze) 4분 동안 위치가 안 갔음 - 보내기(fetch) · 배터리 읽기가 끝나지 않아 busy 가 풀리지 않은 것으로 봄.
     // 보내기는 20초, 배터리는 2초에 끊고, 25초 넘게 busy 면 풀어 다음 위치를 보냄
     var POST_MS = 20000, BATT_MS = 2000, STUCK_MS = 25000;
@@ -30,7 +30,8 @@
             return r.json().catch(function () { return {}; }).then(function (j) {
                 if (!r.ok || j.success === false) {
                     var ended = r.status === 410 || (r.status === 400 && /끝났거나 열쇠/.test(j.message || ""));   // 410 - 방이 끝남(까닭이 글로 옴)
-                    if (ended) clear();
+                    var mine = get();   // 지금 이 기기 방의 열쇠일 때만 지움(다른 열쇠 - 예전 방 · 들어오기 전 답 - 로 지우지 않게)
+                    if (ended && mine && body && mine.token === body.token) clear();
                     var e = new Error(j.message || ("오류 " + r.status));
                     e.status = r.status;
                     e.ended = ended;
@@ -64,6 +65,7 @@
         busyAt = now;
         last = now;
         lastSos = sos;
+        var my = ++seq;
         return battery().then(function (b) {
             return post("loc", { token: p.token, lat: +(+lat).toFixed(6), lon: +(+lon).toFixed(6), acc: acc == null ? null : Math.round(acc), batt: b, sos: sos });
         }).then(function (j) {
@@ -74,10 +76,7 @@
                 if (g.RFParty.onNotice) g.RFParty.onNotice(j.notice);
             }
             return j;
-        }).finally(function () {
-            busy = false;
-            if (again) { var a = again; again = null; fix(a[0], a[1], a[2], true); }
-        });
+        }).finally(function () { done(my); });
     }
 
     /**
@@ -93,8 +92,15 @@
         busyAt = now;
         last = now;
         lastSos = sos;
+        var my = ++seq;
         return battery().then(function (b) { return post("ping", { token: p.token, batt: b, sos: sos }); })
-            .finally(function () { busy = false; });
+            .finally(function () { done(my); });
+    }
+    /** 보내기가 끝남 - 가장 최근 보내기일 때만 busy 를 풀고, 그 사이 온 꼭 보낼 것(SOS)을 바로 보냄. */
+    function done(my) {
+        if (my !== seq) return;
+        busy = false;
+        if (again) { var a = again; again = null; fix(a[0], a[1], a[2], true); }
     }
 
     /** SOS 켜기 · 끄기 - 다음 위치에 실어 바로 보냄. */
@@ -120,10 +126,10 @@
         if (x.getTime() < new Date(n.getFullYear(), n.getMonth(), n.getDate() - 1).getTime()) x = new Date(n.getFullYear() + 1, mo - 1, d);
         return x;
     }
-    /** 순수 함수 - 시각을 숫자로: "0700" · "700" · "7:00" · "7" · "15" · "15시 30분" → [시, 분](24시간). 틀리면 null. */
+    /** 순수 함수 - 시각을 숫자로: "0700" · "700" · "7:00" · "7" · "15" · "15시 30분" · "7시" · "15시" → [시, 분](24시간). 틀리면 null. */
     function parseTime(s) {
-        var t = String(s == null ? "" : s).trim(), m = t.match(/^(\d{1,2})(?:\D+(\d{1,2})\D*)?$/), h, mi;
-        if (m && !(m[2] === undefined && t.length > 2)) { h = +m[1]; mi = m[2] === undefined ? 0 : +m[2]; }
+        var t = String(s == null ? "" : s).trim(), m = t.match(/^(\d{1,2})(?:\D+(\d{1,2}))?\D*$/), h, mi;
+        if (m && !(m[2] === undefined && /^\d{3,}$/.test(t))) { h = +m[1]; mi = m[2] === undefined ? 0 : +m[2]; }
         else if (/^\d{3,4}$/.test(t)) { h = +t.slice(0, t.length - 2); mi = +t.slice(-2); }
         else return null;
         return h < 24 && mi < 60 ? [h, mi] : null;

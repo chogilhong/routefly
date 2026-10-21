@@ -254,10 +254,10 @@ final class Party {
         Room r = room(code, now);
         String n = clean(nick, 12);
         if (n == null) throw new IllegalArgumentException("별명을 적어 주세요.");
-        if (!"hiker".equals(role) && !"driver".equals(role)) throw new IllegalArgumentException("역할을 골라 주세요.");
         boolean viaDriverCode = code.trim().toUpperCase().equals(r.driverCode);
         if (viaDriverCode) role = "driver";   // 운전자 코드로 오면 운전자
-        else if ("driver".equals(role)) throw new IllegalArgumentException("운전자는 인솔자에게 받은 운전자 코드로 참가합니다.");
+        if (!"hiker".equals(role) && !"driver".equals(role)) throw new IllegalArgumentException("역할을 골라 주세요.");
+        if (!viaDriverCode && "driver".equals(role)) throw new IllegalArgumentException("운전자는 인솔자에게 받은 운전자 코드로 참가합니다.");
         // 출발한 방에는 산행 회원이 새로 못 들어옴(2026-10-20 홍TV님 - 하산 탑승한 폰이 같은 링크로 또 참가됐음). 바꿔 타는 운전자는 됨
         if (r.departed && "hiker".equals(role)) throw new IllegalStateException("이미 출발한 방이라 새로 참가할 수 없습니다. 인솔자에게 연락해 주세요.");
         if (r.members.size() >= MAX_MEMBERS) throw new IllegalStateException("이 방은 인원이 다 찼습니다(" + MAX_MEMBERS + "명).");
@@ -404,6 +404,23 @@ final class Party {
     }
 
     /** 인솔자 · 운전자 - 좌석표에서 "출발 탑승"(사람 자리 - 취소도 풂) 또는 "예약됨"(빈자리). */
+    /**
+     * 인솔자 · 운전자 - 명단에서 사람으로 "탔음"(출발 때 취소된 사람 되돌리기, 2026-10-21 점검: 그 자리에 다른 사람이 앉으면 좌석표로는 고를 수 없었음).
+     * 자리가 이미 찼으면 자리는 비우고(좌석 없음) 되돌림 - 인솔자가 좌석표에서 새 자리로 옮김.
+     */
+    synchronized void boardById(Member staff, int id, boolean on) {
+        Member m = null;
+        for (Member x : staff.room.members.values()) if (x.id == id) m = x;
+        if (m == null || !"hiker".equals(m.role)) throw new IllegalArgumentException("그 회원을 찾지 못했습니다.");
+        m.boarded = on;
+        if (on && m.cancelled) {
+            m.cancelled = false;
+            if (m.seat != null) { Member there = staff.room.atSeat(m.bus, m.seat); if (there != null && there != m) m.seat = null; }
+            audit.info("uncancel room={} member={}", staff.room.code, m.id);
+        }
+        save();
+    }
+
     synchronized void mark(Member staff, Integer bus, int seat, String what, boolean on) {
         Room r = staff.room;
         int b = checkBus(r, bus);
@@ -530,8 +547,11 @@ final class Party {
         try {
             Files.createDirectories(file.getParent());
             Path tmp = file.resolveSibling("party.json.tmp");
+            Files.deleteIfExists(tmp);
+            // 처음부터 600 으로 만듦(점검: 쓴 뒤 바꾸면 잠깐 남이 읽을 수 있었음 - 열쇠가 들어 있음)
+            try { Files.createFile(tmp, java.nio.file.attribute.PosixFilePermissions.asFileAttribute(java.nio.file.attribute.PosixFilePermissions.fromString("rw-------"))); }
+            catch (UnsupportedOperationException e) { /* 윈도 */ }
             Files.writeString(tmp, arr.toString(), StandardCharsets.UTF_8);
-            try { Files.setPosixFilePermissions(tmp, java.nio.file.attribute.PosixFilePermissions.fromString("rw-------")); } catch (UnsupportedOperationException e) { /* 윈도 */ }
             Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING);
         } catch (Exception e) {
             log.warn("[PARTY] 방 파일을 쓰지 못함 - {}", e.toString());
@@ -540,41 +560,75 @@ final class Party {
 
     private void load() {
         if (file == null || !Files.isRegularFile(file)) return;
+        JsonArray all;
         try {
-            for (JsonElement e : JsonParser.parseString(Files.readString(file, StandardCharsets.UTF_8)).getAsJsonArray()) {
+            all = JsonParser.parseString(Files.readString(file, StandardCharsets.UTF_8)).getAsJsonArray();
+        } catch (Exception e) {
+            log.warn("[PARTY] 방 파일을 읽지 못함 - {}", e.toString());
+            backup();
+            return;
+        }
+        int bad = 0;
+        for (JsonElement e : all) {   // 방마다 따로(2026-10-21 점검: 한 방이 틀리면 뒤의 방들을 못 읽고 다음 저장 때 지워졌음) - 없는 칸은 기본값
+            try {
                 JsonObject o = e.getAsJsonObject();
                 List<String> st = new ArrayList<>();
-                o.getAsJsonArray("stops").forEach(x -> st.add(x.getAsString()));
-                Room r = new Room(o.get("code").getAsString(), o.get("name").getAsString(), o.get("created").getAsLong(), o.get("departAt").getAsLong(),
-                        o.get("endAt").getAsLong(), o.has("buses") ? o.get("buses").getAsInt() : 1, o.get("seats").getAsInt(), o.get("minPeople").getAsInt(), List.copyOf(st), str(o, "leaderName"), str(o, "leaderPhone"));
-                o.getAsJsonArray("reserved").forEach(x -> r.reserved.add(x.getAsInt()));
+                if (o.has("stops")) o.getAsJsonArray("stops").forEach(x -> st.add(x.getAsString()));
+                Room r = new Room(o.get("code").getAsString(), o.get("name").getAsString(), lng(o, "created"), lng(o, "departAt"), lng(o, "endAt"),
+                        o.has("buses") ? o.get("buses").getAsInt() : 1, (int) lng(o, "seats"), (int) lng(o, "minPeople"), List.copyOf(st), str(o, "leaderName"), str(o, "leaderPhone"));
+                if (o.has("reserved")) o.getAsJsonArray("reserved").forEach(x -> r.reserved.add(x.getAsInt()));
                 if (o.has("plates")) {
                     JsonArray pa = o.getAsJsonArray("plates");
                     for (int i = 0; i < Math.min(pa.size(), r.buses); i++) r.plates[i] = pa.get(i).isJsonNull() ? null : pa.get(i).getAsString();
                 }
-                r.notice = str(o, "notice"); r.noticeAt = o.get("noticeAt").getAsLong();
+                r.notice = str(o, "notice"); r.noticeAt = lng(o, "noticeAt");
                 if (o.has("busAt")) for (var be : o.getAsJsonObject("busAt").entrySet()) {
                     JsonArray p = be.getValue().getAsJsonArray();
                     r.busAt.put(Integer.parseInt(be.getKey()), new double[] {p.get(0).getAsDouble(), p.get(1).getAsDouble()});
                 }
-                r.departed = o.get("departed").getAsBoolean(); r.nextId = o.get("nextId").getAsInt();
+                r.departed = boolOf(o, "departed"); r.nextId = Math.max(1, (int) lng(o, "nextId"));
                 r.driverCode = str(o, "driverCode");
-                for (JsonElement me : o.getAsJsonArray("members")) {
+                List<Member> ms = new ArrayList<>();
+                if (o.has("members")) for (JsonElement me : o.getAsJsonArray("members")) {
                     JsonObject x = me.getAsJsonObject();
-                    Member m = new Member(x.get("id").getAsInt(), x.get("token").getAsString(), x.get("nick").getAsString(), x.get("role").getAsString(), r, x.get("joinedAt").getAsLong());
+                    Member m = new Member(x.get("id").getAsInt(), x.get("token").getAsString(), x.get("nick").getAsString(), x.get("role").getAsString(), r, lng(x, "joinedAt"));
                     m.seat = num(x, "seat") == null ? null : num(x, "seat").intValue();
                     m.bus = x.has("bus") ? x.get("bus").getAsInt() : 1;
-                    m.stop = str(x, "stop"); m.boarded = x.get("boarded").getAsBoolean(); m.aboard = x.get("aboard").getAsBoolean(); m.cancelled = x.get("cancelled").getAsBoolean();
-                    r.members.put(m.token, m);
-                    byToken.put(m.token, m);
+                    m.stop = str(x, "stop"); m.boarded = boolOf(x, "boarded"); m.aboard = boolOf(x, "aboard"); m.cancelled = boolOf(x, "cancelled");
+                    ms.add(m);
+                    r.nextId = Math.max(r.nextId, m.id + 1);
                 }
+                for (Member m : ms) { r.members.put(m.token, m); byToken.put(m.token, m); }   // 방을 다 읽은 뒤에만 열쇠를 올림
                 rooms.put(r.code, r);
+            } catch (Exception ex) {
+                bad++;
+                log.warn("[PARTY] 방 하나를 읽지 못해 건너뜀 - {}", ex.toString());
             }
-            for (Room r : rooms.values()) if (r.driverCode == null) r.driverCode = newCode();   // 운전자 코드 전에 만든 방(10-21)
-            log.info("[PARTY] 방 {}개 읽음", rooms.size());
-        } catch (Exception e) {
-            log.warn("[PARTY] 방 파일을 읽지 못함 - {}", e.toString());
         }
+        if (bad > 0) backup();   // 건너뛴 방이 다음 저장에 영영 지워지지 않게 옛 파일을 남김
+        boolean filled = false;
+        for (Room r : rooms.values()) if (r.driverCode == null) { r.driverCode = newCode(); filled = true; }   // 운전자 코드 전에 만든 방(10-21)
+        if (filled) save();   // 다시 켤 때 다른 코드가 되지 않게
+        log.info("[PARTY] 방 {}개 읽음{}", rooms.size(), bad > 0 ? " (" + bad + "개 건너뜀 - party.json.bad-* 에 옛 파일)" : "");
+    }
+
+    /** 읽지 못한 파일을 party.json.bad-<시각> 으로 남김(600). */
+    private void backup() {
+        try {
+            Path b = file.resolveSibling("party.json.bad-" + System.currentTimeMillis());
+            Files.copy(file, b);
+            try { Files.setPosixFilePermissions(b, java.nio.file.attribute.PosixFilePermissions.fromString("rw-------")); } catch (UnsupportedOperationException e) { /* 윈도 */ }
+        } catch (Exception e) {
+            log.warn("[PARTY] 옛 파일을 남기지 못함 - {}", e.toString());
+        }
+    }
+
+    private static long lng(JsonObject o, String k) {
+        return o.has(k) && !o.get(k).isJsonNull() ? o.get(k).getAsLong() : 0;
+    }
+
+    private static boolean boolOf(JsonObject o, String k) {
+        return o.has(k) && !o.get(k).isJsonNull() && o.get(k).getAsBoolean();
     }
 
     /** 차량번호 - 호차 차례, 없으면 null. */

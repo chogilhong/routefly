@@ -80,7 +80,10 @@ final class Feedback {
     static String text(String s) {
         String t = s == null ? "" : s.replace("\r\n", "\n").replaceAll("[\\p{Cntrl}&&[^\n\t]]", "").trim();
         if (t.length() < 2) throw new IllegalArgumentException("내용을 적어 주세요.");
-        return t.length() > MAX_TEXT ? t.substring(0, MAX_TEXT) : t;
+        if (t.length() <= MAX_TEXT) return t;
+        int end = MAX_TEXT;
+        if (Character.isHighSurrogate(t.charAt(end - 1))) end--;   // 이모지 반쪽이 남지 않게(점검)
+        return t.substring(0, end);
     }
 
     /** 순수 함수 - 어느 화면에서(경로만 - ? 뒤는 버림, 60자). */
@@ -137,10 +140,13 @@ final class Feedback {
             Files.createDirectories(dir);
             LocalDateTime t = LocalDateTime.ofInstant(java.time.Instant.ofEpochMilli(now), KST);
             Path f = dir.resolve(String.format(Locale.ROOT, "feedback-%04d-%02d.jsonl", t.getYear(), t.getMonthValue()));
-            boolean fresh = !Files.exists(f);
+            if (!Files.exists(f)) {   // 처음부터 600(점검: 만든 뒤 바꾸면 잠깐 남이 읽을 수 있었음)
+                try { Files.createFile(f, java.nio.file.attribute.PosixFilePermissions.asFileAttribute(java.nio.file.attribute.PosixFilePermissions.fromString("rw-------"))); }
+                catch (UnsupportedOperationException e) { /* 윈도 */ }
+            }
             Files.writeString(f, o + "\n", StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-            if (fresh) try { Files.setPosixFilePermissions(f, java.nio.file.attribute.PosixFilePermissions.fromString("rw-------")); } catch (UnsupportedOperationException e) { /* 윈도 */ }
-            String oldest = String.format(Locale.ROOT, "feedback-%04d-%02d.jsonl", t.minusMonths(KEEP_MONTHS).getYear(), t.minusMonths(KEEP_MONTHS).getMonthValue());
+            // 이번 달 + 앞 11달 = 12달만 남김(점검: minusMonths(12) 로 13달이 남았음)
+            String oldest = String.format(Locale.ROOT, "feedback-%04d-%02d.jsonl", t.minusMonths(KEEP_MONTHS - 1).getYear(), t.minusMonths(KEEP_MONTHS - 1).getMonthValue());
             try (var s = Files.list(dir)) {
                 for (Path p : (Iterable<Path>) s::iterator) {
                     String n = p.getFileName().toString();
@@ -178,6 +184,12 @@ final class Feedback {
         /** 한 통 보내기. 실패하면 IOException(서버 답 첫 줄). */
         void send(String subject, String body, String replyTo) throws IOException {
             try (Socket s = ssl ? SSLSocketFactory.getDefault().createSocket() : new Socket()) {
+                if (s instanceof javax.net.ssl.SSLSocket ss) {   // 이름 확인(SNI + 인증서의 호스트 이름) - 점검: 없으면 아무 인증서나 받아 비밀번호가 샐 수 있었음
+                    javax.net.ssl.SSLParameters prm = ss.getSSLParameters();
+                    prm.setEndpointIdentificationAlgorithm("HTTPS");
+                    prm.setServerNames(java.util.List.of(new javax.net.ssl.SNIHostName(host)));
+                    ss.setSSLParameters(prm);
+                }
                 s.connect(new InetSocketAddress(host, port), 10_000);
                 s.setSoTimeout(20_000);
                 BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream(), StandardCharsets.US_ASCII));

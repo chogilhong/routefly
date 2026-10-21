@@ -22,6 +22,9 @@ public class FeedbackServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        // JSON 으로 보낸 것만 - 다른 누리집이 손님 브라우저로 몰래 보내 하루 200통을 다 쓰거나 메일함을 채우지 못하게(점검)
+        String ct = req.getContentType();
+        if (ct == null || !ct.toLowerCase().startsWith("application/json")) { Json.fail(resp, 415, "요청을 읽지 못했습니다."); return; }
         JsonObject in;
         try {
             StringBuilder sb = new StringBuilder();
