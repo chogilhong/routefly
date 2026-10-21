@@ -33,6 +33,10 @@ public class StatsTest {
         assertNull(Stats.botKind("Mozilla/5.0 (Linux; Android 14; SM-S921N) AppleWebKit/537.36 Chrome/129.0 Mobile Safari/537.36"));
         // 종류(2026-10-20 홍TV님 "나눠서 세기")
         assertEquals("검색", Stats.botKind("Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"));
+        String pc = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/129.0 Safari/537.36";
+        assertNull("사람 브라우저는 언어 설정을 보냄", Stats.botKind(pc, "ko-KR,ko;q=0.9"));
+        assertEquals("언어 설정이 없으면 숨은 로봇", "숨은 로봇", Stats.botKind(pc, null));
+        assertEquals("이름을 댄 로봇은 그 종류", "검색", Stats.botKind("Mozilla/5.0 (compatible; Googlebot/2.1)", null));
         assertEquals("검색", Stats.botKind("Mozilla/5.0 (compatible; Yeti/1.1; +http://naver.me/spd)"));
         assertEquals("검색", Stats.botKind("Mozilla/5.0 (compatible; Daum/4.1; +http://cs.daum.net/faq/15/4118.html?faqId=28966)"));
         assertEquals("미리보기", Stats.botKind("facebookexternalhit/1.1"));

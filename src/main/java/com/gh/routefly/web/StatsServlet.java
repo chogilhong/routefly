@@ -194,7 +194,8 @@ public class StatsServlet extends HttpServlet {
     static String botTable(Map<String, Integer> bots) {
         StringBuilder b = new StringBuilder("<section><h2>로봇 종류 <small style=\"font-weight:normal;color:var(--dim);font-size:13px\">사람이 아닌 프로그램 - 10월 21일부터 나눠 셈</small></h2><table class=\"st\">");
         String[][] kinds = {{"검색", "구글 · 네이버 · 다음이 페이지를 읽어 감 - 많을수록 검색에 잘 나옴"}, {"미리보기", "카톡 · 페이스북에 우리 링크를 붙일 때 제목 · 그림을 가져감"},
-            {"시험", "웹 · PC Claude 점검 도구"}, {"기타", "검색 순위 분석 · AI 회사 수집 프로그램"}};
+            {"시험", "웹 · PC Claude 점검 도구"}, {"기타", "검색 순위 분석 · AI 회사 수집 프로그램"},
+            {"숨은 로봇", "브라우저인 척하지만 언어 설정을 안 보내는 수집 프로그램(2026-10-21 배포부터 따로 셈 - 그 전엔 PC 방문자로 섞였음)"}};
         if (bots.isEmpty()) return b.append("<tr><td>아직 없음</td></tr></table></section>").toString();
         b.append("<tr><th>종류</th><th>뜻</th><th>수</th></tr>");
         for (String[] k : kinds) b.append("<tr><td>").append(k[0]).append("</td><td>").append(k[1]).append("</td><td>").append(bots.getOrDefault(k[0], 0)).append("</td></tr>");
@@ -206,7 +207,7 @@ public class StatsServlet extends HttpServlet {
             + "<table class=\"st\" style=\"font-size:12.5px;line-height:1.5;margin-top:8px\"><tr><th style=\"width:30%\">항목</th><th>뜻</th></tr>"
             + "<tr><td>방문자</td><td>그 날 들어온 사람 수(같은 사람은 하루 한 번). 여러 날 합이라 이틀 온 사람은 2</td></tr>"
             + "<tr><td>화면</td><td>연 화면 수</td></tr>"
-            + "<tr><td>로봇</td><td>사람이 아닌 프로그램(검색 · 미리보기 · 시험 · 기타 - 아래 로봇 종류 표). 방문자 · 화면 수에는 안 들어감</td></tr>"
+            + "<tr><td>로봇</td><td>사람이 아닌 프로그램(검색 · 미리보기 · 시험 · 기타 · 숨은 로봇 - 아래 로봇 종류 표). 방문자 · 화면 수에는 안 들어감</td></tr>"
             + "<tr><td>인기 산 페이지</td><td>산 소개(/m/산이름) - 산마다</td></tr>"
             + "<tr><td>인기 산 페이지 - 영어</td><td>외국 손님용 영어 산 소개(/en/m/영문이름, 예: daeamsan = 대암산)</td></tr>"
             + "<tr><td>인기 코스 상위 20</td><td>코스 하나짜리 소개(/c/코스번호 - 주로 네이버 · 구글 검색 손님). 이름을 누르면 그 페이지. 화면별 표의 \"코스 소개 페이지\" 는 이것을 모두 더한 한 줄</td></tr>"
@@ -220,7 +221,7 @@ public class StatsServlet extends HttpServlet {
     static String botLine(Map<String, Integer> bots) {
         if (bots.isEmpty()) return "";
         StringBuilder b = new StringBuilder();
-        for (String k : new String[] {"검색", "미리보기", "시험", "기타"}) {
+        for (String k : new String[] {"검색", "미리보기", "시험", "기타", "숨은 로봇"}) {
             if (!bots.containsKey(k)) continue;
             b.append(b.length() == 0 ? "" : " · ").append(k).append(' ').append(String.format(Locale.KOREA, "%,d", bots.get(k)));
         }

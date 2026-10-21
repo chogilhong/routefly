@@ -77,6 +77,12 @@ final class Stats {
      * 다음 · 네이버 앱 안 브라우저(DaumApps · NAVER(inapp))는 사람이라 "daum/" · "yeti/" 처럼 수집기 이름만 봄(전에는 "daum" 으로 다음 앱 손님을 로봇으로 셌음).
      * 미리보기(카톡 · 페이스북 등 링크 붙일 때) · 검색(구글 · 네이버 · 다음 · 빙 등) · 시험(curl · headless 브라우저 등 - 우리 점검 포함) · 기타(SEO · AI 수집기 등).
      */
+    static String botKind(String ua, String acceptLanguage) {
+        String k = botKind(ua);
+        // 브라우저 이름을 대지만 언어 설정(Accept-Language)을 안 보냄 - 사람 브라우저 · 앱은 늘 보냄. 10-21 통계에서 PC 방문자 215명이 한 사람 1.3 화면이라 수상했음
+        return k == null && (acceptLanguage == null || acceptLanguage.isBlank()) ? "숨은 로봇" : k;
+    }
+
     static String botKind(String ua) {
         if (ua == null || ua.isBlank()) return "시험";
         String u = ua.toLowerCase();
