@@ -164,9 +164,20 @@ public class StatsServlet extends HttpServlet {
         return fold(out.toString());
     }
 
-    /** 순수 함수 - 칸(section 의 h2 제목)마다 접고 펴는 details 로 감쌈(처음엔 펼침). */
+    /** 늘 펼친 칸(제목 앞글자) - 접지 않음(2026-10-21 홍TV님). */
+    static final List<String> ALWAYS = List.of("방문 추세", "날마다", "모바일 · PC 방문자");
+
+    /** 순수 함수 - 칸(section 의 h2 제목)마다 누르면 접고 펴는 details 로 감쌈(처음엔 접힘). {@link #ALWAYS} 칸은 그대로 늘 보임. */
     static String fold(String html) {
-        return html.replaceAll("(?s)<section><h2>(.*?)</h2>(.*?)</section>", "<section><details class=\"fold\" open><summary><h2>$1</h2></summary>$2</details></section>");
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("(?s)<section><h2>(.*?)</h2>(.*?)</section>").matcher(html);
+        StringBuilder b = new StringBuilder();
+        while (m.find()) {
+            String title = m.group(1);
+            boolean keep = ALWAYS.stream().anyMatch(title::startsWith);
+            m.appendReplacement(b, java.util.regex.Matcher.quoteReplacement(keep ? m.group()
+                    : "<section><details class=\"fold\"><summary><h2>" + title + "</h2></summary>" + m.group(2) + "</details></section>"));
+        }
+        return m.appendTail(b).toString();
     }
 
     /** 순수 함수 - 인기 코스 상위 20(코스 소개 페이지 /c/<코스>, 10-21 부터 셈). 이름은 DB 에서(없으면 번호만), 누르면 그 코스 소개. */

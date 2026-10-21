@@ -54,6 +54,8 @@ public class StatsTest {
         days.put("2026-10-21", JsonParser.parseString("{\"pages\":{},\"uniq\":0,\"bots\":5,\"botKinds\":{\"검색\":4,\"시험\":1}}").getAsJsonObject());
         String html = StatsServlet.page(days, 30, null);
         assertTrue(html.contains("로봇 5 (검색 4 · 시험 1)") && html.contains("로봇 종류"));
+        assertTrue("방문 추세 · 날마다 · 모바일 PC 는 늘 펼침", html.contains("<section><h2>방문 추세") && html.contains("<section><h2>날마다</h2>") && html.contains("<section><h2>모바일 · PC 방문자"));
+        assertTrue("나머지는 처음엔 접힘(누르면 펼침)", html.contains("<details class=\"fold\"><summary><h2>로봇 종류") && !html.contains("class=\"fold\" open"));
     }
 
     @Test
