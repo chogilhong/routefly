@@ -159,5 +159,7 @@ public class StatsTest {
         assertTrue("영어 표에 daeamsan", en > 0 && h.indexOf("daeamsan", en) > en && h.indexOf("daeamsan", en) < pagesAt);
         assertFalse("화면별 표에는 안 섞임", h.substring(pagesAt).contains("/en/m/daeamsan"));
         assertTrue(h.contains("📖 통계 보는 법"));
+        String bt = StatsServlet.botTable(java.util.Map.of("검색", 12));
+        assertTrue(bt.contains("<td>검색</td><td>구글") && bt.contains("<td>12</td>") && bt.contains("<td>미리보기</td>"));
     }
 }

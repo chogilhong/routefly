@@ -118,7 +118,7 @@ public class StatsServlet extends HttpServlet {
                 .append(courseTable(courses, courseNames == null ? Map.of() : courseNames, last.size()))
                 .append(top("화면별(" + last.size() + "일)", pages, 20, StatsServlet::pageName))
                 .append(top("들어온 곳(" + last.size() + "일 - 바깥에서 처음 들어온 화면 수)", refs, 20, null))
-                .append(top("로봇 종류(" + last.size() + "일 - 10-21 부터 셈) - 검색: 구글 · 네이버 등 / 미리보기: 카톡 · 페이스북 링크 / 시험: curl · 점검 도구 / 기타: SEO · AI 수집기", bots, 4, null))
+                .append(botTable(bots))
                 .append(GUIDE);
         out.append("<p class=\"dim\">숫자만 셉니다 - 방문자는 그 날만 쓰는 해시로 겹침만 걸러 내고 IP 는 남기지 않습니다. 이 화면을 연 기기(브라우저)는 운영자로 보고 방문 수에서 뺍니다(2년, 사이트 데이터를 지우면 다시 셈). 앱(따라가기 앱)은 따로라 빠지지 않습니다.</p></main></body></html>");
         return out.toString();
@@ -131,6 +131,17 @@ public class StatsServlet extends HttpServlet {
         b.append("<tr><th>코스</th><th>번호</th><th>수</th></tr>");
         m.entrySet().stream().sorted((x, y) -> y.getValue() - x.getValue()).limit(20).forEach(e -> b.append("<tr><td><a href=\"c/").append(ShareServlet.esc(e.getKey())).append("\">")
                 .append(ShareServlet.esc(names.getOrDefault(e.getKey(), e.getKey()))).append("</a></td><td>").append(ShareServlet.esc(e.getKey())).append("</td><td>").append(e.getValue()).append("</td></tr>"));
+        return b.append("</table></section>").toString();
+    }
+
+    /** 순수 함수 - 로봇 종류 표(사람이 아닌 접속, 10-21 부터 나눠 셈) - 줄마다 뜻(2026-10-21 홍TV님 "무슨 말이야?" - 제목에 다 넣었던 것을 줄로). */
+    static String botTable(Map<String, Integer> bots) {
+        StringBuilder b = new StringBuilder("<section><h2>로봇 종류 <small style=\"font-weight:normal;color:var(--dim);font-size:13px\">사람이 아닌 프로그램 - 10월 21일부터 나눠 셈</small></h2><table class=\"st\">");
+        String[][] kinds = {{"검색", "구글 · 네이버 · 다음이 페이지를 읽어 감 - 많을수록 검색에 잘 나옴"}, {"미리보기", "카톡 · 페이스북에 우리 링크를 붙일 때 제목 · 그림을 가져감"},
+            {"시험", "웹 · PC Claude 점검 도구"}, {"기타", "검색 순위 분석 · AI 회사 수집 프로그램"}};
+        if (bots.isEmpty()) return b.append("<tr><td>아직 없음</td></tr></table></section>").toString();
+        b.append("<tr><th>종류</th><th>뜻</th><th>수</th></tr>");
+        for (String[] k : kinds) b.append("<tr><td>").append(k[0]).append("</td><td>").append(k[1]).append("</td><td>").append(bots.getOrDefault(k[0], 0)).append("</td></tr>");
         return b.append("</table></section>").toString();
     }
 
