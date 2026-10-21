@@ -251,10 +251,19 @@
 
     // ================================================================== 🧱 블록 쌓기(떨어지는 블록 - 이름 · 화면에 남의 상표를 쓰지 않음)
     GAMES.tetris = (function () {
-        var C = 10, R = 20, S = 24, OX = (W - C * S) / 2, OY = 0;
+        // 판 11 × 19 · 돌 모양 · 산 색(2026-10-21 저작권 점검 - 원작과 판 크기 · 생김새를 다르게)
+        var C = 11, R = 19, S = 24, OX = (W - C * S) / 2, OY = H - R * S;
         var SHAPES = [
             [[1, 1, 1, 1]], [[1, 1], [1, 1]], [[0, 1, 0], [1, 1, 1]], [[1, 0, 0], [1, 1, 1]], [[0, 0, 1], [1, 1, 1]], [[0, 1, 1], [1, 1, 0]], [[1, 1, 0], [0, 1, 1]]];
-        var COLORS = ["#38d9ea", "#ffd43b", "#b197fc", "#4dabf7", "#ffa94d", "#69db7c", "#ff6b6b"];
+        var COLORS = ["#8d99a6", "#c9a66b", "#7a9a5a", "#a0644a", "#5f7f9e", "#d8c9a8", "#4f6f52"];   // 화강암 · 황토 · 이끼 · 붉은 바위 · 청석 · 모래 · 소나무
+        function stone(x, y, c) {   // 둥근 돌 - 위 왼쪽은 밝게
+            cx.fillStyle = c;
+            cx.beginPath();
+            if (cx.roundRect) cx.roundRect(x + 1, y + 1, S - 2, S - 2, 7); else cx.rect(x + 1, y + 1, S - 2, S - 2);
+            cx.fill();
+            cx.fillStyle = "rgba(255,255,255,0.22)";
+            cx.beginPath(); cx.arc(x + S * 0.34, y + S * 0.32, S * 0.16, 0, Math.PI * 2); cx.fill();
+        }
         var grid, cur, nextT, t, lines, level, bag = [];
         function newBag() { bag = [0, 1, 2, 3, 4, 5, 6]; for (var i = 6; i > 0; i--) { var j = rnd(i + 1), x = bag[i]; bag[i] = bag[j]; bag[j] = x; } }
         function take() { if (!bag.length) newBag(); return bag.pop(); }
@@ -308,7 +317,7 @@
                 rect(OX, OY, C * S, R * S, "#0f141b");
                 for (var y = 0; y < R; y++) for (var x = 0; x < C; x++) {
                     var v = grid[y][x];
-                    if (v >= 0) rect(OX + x * S + 1, OY + y * S + 1, S - 2, S - 2, COLORS[v]);
+                    if (v >= 0) stone(OX + x * S, OY + y * S, COLORS[v]);
                     else rect(OX + x * S + S / 2 - 1, OY + y * S + S / 2 - 1, 2, 2, "#1f2733");
                 }
                 if (cur) {
@@ -316,12 +325,12 @@
                     cur.m.forEach(function (r, yy) { r.forEach(function (v, xx) {
                         if (!v) return;
                         if (cur.y + yy + gy >= 0) { cx.strokeStyle = COLORS[cur.k]; cx.globalAlpha = 0.35; cx.strokeRect(OX + (cur.x + xx) * S + 2, OY + (cur.y + yy + gy) * S + 2, S - 4, S - 4); cx.globalAlpha = 1; }
-                        if (cur.y + yy >= 0) rect(OX + (cur.x + xx) * S + 1, OY + (cur.y + yy) * S + 1, S - 2, S - 2, COLORS[cur.k]);
+                        if (cur.y + yy >= 0) stone(OX + (cur.x + xx) * S, OY + (cur.y + yy) * S, COLORS[cur.k]);
                     }); });
                 }
-                text(T("다음", "Next"), OX + C * S - 30, 20, 12, "#9aa6b4");
-                SHAPES[nextT].forEach(function (r, yy) { r.forEach(function (v, xx) { if (v) rect(OX + C * S - 52 + xx * 10, 28 + yy * 10, 9, 9, COLORS[nextT]); }); });
-                text(T("단계 ", "Lv ") + level, OX + 6, 20, 12, "#9aa6b4", "left");
+                text(T("다음", "Next"), OX + C * S - 34, 17, 12, "#9aa6b4", "right");
+                SHAPES[nextT].forEach(function (r, yy) { r.forEach(function (v, xx) { if (v) rect(OX + C * S - 28 + xx * 6, 4 + yy * 6, 5, 5, COLORS[nextT]); }); });
+                text(T("단계 ", "Lv ") + level, OX + 2, 17, 12, "#9aa6b4", "left");
             }
         };
     })();
