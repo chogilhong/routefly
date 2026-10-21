@@ -67,7 +67,7 @@ fetch("api/partners").then(function (r) { return r.json(); }).then(function (p) 
 }).catch(function () { /* 없이 */ });
 
 /* 운영자 기기 표시(2026-10-21 PC: 홍TV님 앱(웹뷰)의 방문이 통계에 섞임 - 앱은 브라우저와 쿠키가 따로라 /stats 를 열 길이 없었음).
-   "안내" 제목을 5초 안에 7번 누르면 통계 열쇠를 묻고 /stats 로 - 맞으면 이 기기는 그 뒤로 방문 수에서 빠짐. 열쇠가 없으면 아무 일도 없음 */
+   "안내" 제목을 5초 안에 7번 누르면 열쇠 칸이 나오고 /stats 로 - 맞으면 이 기기는 그 뒤로 방문 수에서 빠짐. 열쇠가 없으면 아무 일도 없음 */
 (function () {
     var h = document.querySelector("h1"), n = 0, t0 = 0;
     if (!h) return;
@@ -76,9 +76,21 @@ fetch("api/partners").then(function (r) { return r.json(); }).then(function (p) 
         if (now - t0 > 5000) { n = 0; t0 = now; }
         if (++n < 7) return;
         n = 0;
-        var k = prompt("운영자 - 통계 열쇠");
-        // 카톡에 둔 주소 전체를 붙여도 key= 뒤만(2026-10-21 PC: 주소째 넣어 404)
-        var m = k && k.match(/[?&]key=([^&#\s]+)/), v = m ? decodeURIComponent(m[1]) : (k || "").replace(/\s+/g, "");
-        if (v) location.href = "stats?key=" + encodeURIComponent(v);
+        if (document.getElementById("ownerKey")) return;
+        // prompt 대신 비밀번호 칸(2026-10-21 PC: 앱 prompt 에서 자판이 첫 글자를 대문자로 바꿔 404 - 비밀번호 칸은 자동 대문자 · 맞춤법 고침이 없음)
+        var f = document.createElement("form"), i = document.createElement("input"), b = document.createElement("button");
+        i.id = "ownerKey"; i.type = "password"; i.placeholder = "운영자 - 통계 열쇠";
+        i.setAttribute("autocapitalize", "off"); i.setAttribute("autocomplete", "off"); i.setAttribute("spellcheck", "false");
+        i.style.cssText = "width:100%;height:44px;font-size:16px;margin:8px 0;padding:0 10px;border-radius:10px";
+        b.type = "submit"; b.textContent = "열기";
+        f.appendChild(i); f.appendChild(b);
+        h.parentNode.insertBefore(f, h.nextSibling);
+        i.focus();
+        f.addEventListener("submit", function (e) {
+            e.preventDefault();
+            // 카톡에 둔 주소 전체를 붙여도 key= 뒤만(2026-10-21 PC: 주소째 넣어 404)
+            var k = i.value, m = k.match(/[?&]key=([^&#\s]+)/), v = m ? decodeURIComponent(m[1]) : k.replace(/\s+/g, "");
+            if (v) location.href = "stats?key=" + encodeURIComponent(v);
+        });
     });
 })();

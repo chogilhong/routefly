@@ -137,7 +137,21 @@
             if (!s.enabled) { show("closed"); return; }
             var taken = takeToken();
             if (taken) { taken.then(function (j) { enterRoom(j); }).catch(function (e) { msg(e.message); if (RFParty.get()) enterRoom(); else show("start"); }); return; }
-            if (RFParty.get()) { enterRoom(); return; }
+            var cur = RFParty.get(), want = (q.get("c") || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+            if (cur && want.length === 6 && cur.code && want !== cur.code) {   // 다른 방 참가 링크(2026-10-21 PC: 예전 시험 방이 그대로 열렸음)
+                if (cur.role === "lead") {
+                    alert("인솔자로 있는 방(" + cur.code + ")이 있습니다. 링크의 방(" + want + ")에 참가하려면 지금 방에서 \"방 끝내기\"를 한 뒤 링크를 다시 누르세요.");
+                    enterRoom();
+                    return;
+                }
+                if (confirm("다른 방(" + want + ") 참가 링크입니다.\n지금 방(" + (cur.name || cur.code) + ")에서 나가고 그 방으로 갈까요?\n(취소를 누르면 지금 방으로)")) {
+                    RFParty.post("leave", { token: cur.token }).catch(function () { /* 이미 끝났어도 */ }).finally(function () { RFParty.clear(); start(); });
+                    return;
+                }
+                enterRoom();
+                return;
+            }
+            if (cur) { enterRoom(); return; }
             show("start");
             if (q.get("c")) { appOpen(); $("mkSec").hidden = true; $("mkShowRow").hidden = false; }
             if (q.get("c")) { $("joinBox").open = true; $("joinCode").value = q.get("c").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6); loadInfo(); }
