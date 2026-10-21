@@ -135,5 +135,16 @@
         return h < 24 && mi < 60 ? [h, mi] : null;
     }
 
-    g.RFParty = { KEY: KEY, get: get, set: set, clear: clear, post: post, fix: fix, ping: ping, sos: sos, onNotice: null, parseDay: parseDay, parseTime: parseTime };
+    /** 순수 함수 - 숫자만 친 우리나라 번호에 - (서버 Party.dashes 와 같음, 2026-10-21 홍TV님 "01000000000 → 010-0000-0000"). 모르는 꼴이면 그대로. */
+    function dashes(s) {
+        var t = String(s == null ? "" : s).trim(), d = t.replace(/[\s-]/g, "");
+        if (!/^\d{8,12}$/.test(d)) return t;
+        if (/^1[5-9]\d{6}$/.test(d)) return d.slice(0, 4) + "-" + d.slice(4);
+        if (/^02/.test(d) && (d.length === 9 || d.length === 10)) return "02-" + d.slice(2, d.length - 4) + "-" + d.slice(-4);
+        if (/^050\d{9}$/.test(d)) return d.slice(0, 4) + "-" + d.slice(4, 8) + "-" + d.slice(8);
+        if (/^0\d{9,10}$/.test(d)) return d.slice(0, 3) + "-" + d.slice(3, d.length - 4) + "-" + d.slice(-4);
+        return t;
+    }
+
+    g.RFParty = { dashes: dashes, KEY: KEY, get: get, set: set, clear: clear, post: post, fix: fix, ping: ping, sos: sos, onNotice: null, parseDay: parseDay, parseTime: parseTime };
 })(window);

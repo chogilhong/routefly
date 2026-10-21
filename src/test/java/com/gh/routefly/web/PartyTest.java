@@ -462,4 +462,17 @@ public class PartyTest {
         try { call(p, "/seat", "{\"token\":\"" + d2 + "\",\"id\":" + one + ",\"bus\":2,\"seat\":5}", T0); fail("다른 호차 사람 옮기기"); } catch (SecurityException e) { /* 맞음 */ }
         call(p, "/mark", "{\"token\":\"" + d2 + "\",\"bus\":2,\"seat\":3,\"what\":\"boarded\",\"on\":true}", T0);   // 자기 호차는 됨
     }
+
+    /** 숫자만 친 연락처에 - (2026-10-21 홍TV님 "01000000000 → 010-0000-0000"). */
+    @Test
+    public void phoneDashes() {
+        assertEquals("010-0000-0000", Party.phone("01000000000"));
+        assertEquals("010-1234-5678", Party.phone("010 1234 5678"));
+        assertEquals("02-123-4567", Party.phone("021234567"));
+        assertEquals("031-1234-5678", Party.phone("03112345678"));
+        assertEquals("1588-1234", Party.phone("15881234"));
+        assertEquals("0504-1234-5678", Party.phone("050412345678"));
+        assertEquals("모르는 꼴은 그대로", "+82 10-1234-5678", Party.phone("+82 10-1234-5678"));
+        assertNull(Party.phone("없음"));
+    }
 }

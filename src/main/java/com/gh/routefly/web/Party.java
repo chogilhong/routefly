@@ -226,7 +226,23 @@ final class Party {
     static String phone(String s) {
         if (s == null) return null;
         String t = s.replaceAll("[^0-9+\\- ]", "").trim();
-        return t.isEmpty() ? null : t.length() > 20 ? t.substring(0, 20) : t;
+        if (t.isEmpty()) return null;
+        String f = dashes(t);
+        return f != null ? f : t.length() > 20 ? t.substring(0, 20) : t;
+    }
+
+    /**
+     * 순수 함수 - 숫자만 친 우리나라 번호에 - 를 넣음(2026-10-21 홍TV님 "01000000000 → 010-0000-0000"). 모르는 꼴이면 null(그대로 둠).
+     * 휴대폰 010-1234-5678 · 011-123-4567, 서울 02-123-4567 · 02-1234-5678, 지역 031-123-4567 · 031-1234-5678, 070 · 050x, 대표번호 1588-1234.
+     */
+    static String dashes(String s) {
+        String d = s.replaceAll("[\\s-]", "");
+        if (!d.matches("\\d{8,12}")) return null;
+        if (d.matches("1[5-9]\\d{6}")) return d.substring(0, 4) + "-" + d.substring(4);
+        if (d.startsWith("02") && (d.length() == 9 || d.length() == 10)) return "02-" + d.substring(2, d.length() - 4) + "-" + d.substring(d.length() - 4);
+        if (d.matches("050\\d{9}")) return d.substring(0, 4) + "-" + d.substring(4, 8) + "-" + d.substring(8);
+        if (d.matches("0\\d{9,10}")) return d.substring(0, 3) + "-" + d.substring(3, d.length() - 4) + "-" + d.substring(d.length() - 4);
+        return null;
     }
 
     /** 순수 함수 - 차량번호: 숫자 · 한글 · 빈칸 · - 만, 12자까지(예: 서울70사1234 · 12가 3456). 다른 글자가 있으면 IllegalArgumentException. */

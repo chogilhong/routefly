@@ -269,6 +269,7 @@
         if (input.getAttribute("data-ph")) input.placeholder = input.getAttribute("data-ph");
     }
     $("mkDate").addEventListener("focus", digitsOnFocus);
+    $("mkPhone").addEventListener("blur", function () { this.value = RFParty.dashes(this.value); });   // 01000000000 → 010-0000-0000(2026-10-21 홍TV님)
     $("mkNights").addEventListener("change", function () { $("mkEndLabel").textContent = +this.value ? "하산 마감(마지막 날)" : "하산 마감"; });
     ["mkTime", "mkEnd"].forEach(function (id) {
         $(id).addEventListener("blur", function () { restoreOnBlur(this); var hm = RFParty.parseTime(this.value); if (hm) this.value = timeText(hm); fieldErr(this, hm || !this.value.trim() ? "" : TIME_ERR[id]); });
@@ -294,7 +295,7 @@
         }
         $("mkBtn").disabled = true;
         RFParty.post("create", { name: name, departAt: depart, endAt: endAt, minPeople: Math.max(0, Math.min(80, +$("mkMin").value || 0)),
-            leaderName: $("mkLead").value.trim(), leaderPhone: $("mkPhone").value.trim(),
+            leaderName: $("mkLead").value.trim(), leaderPhone: RFParty.dashes($("mkPhone").value),
             plates: Array.prototype.map.call(document.querySelectorAll("#mkPlates input"), function (x) { return x.value.trim(); }),
             buses: Math.max(1, Math.min(8, +$("mkBuses").value || 1)), seats: Math.max(0, Math.min(60, +$("mkSeats").value || 0)), stops: $("mkStops").value }).then(function (j) {
             RFParty.set({ code: j.code, token: j.token, role: "lead", name: j.name });
