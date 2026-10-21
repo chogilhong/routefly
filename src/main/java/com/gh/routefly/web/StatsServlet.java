@@ -298,14 +298,19 @@ public class StatsServlet extends HttpServlet {
             if (o != null) for (var e : o.getAsJsonObject("pages").entrySet()) v += e.getValue().getAsInt();
             views.add(v);
         }
+        // 마지막 날이 오늘이면 아직 세는 중 - 점선 · "오늘" 로(2026-10-22 홍TV님: 새벽 1시 0명이 뚝 떨어진 것처럼 보였음)
+        boolean live = end.equals(java.time.LocalDate.now(WeatherServlet.KST));
         return "<section><h2>방문 추세(" + dates.size() + "일)</h2>"   // 넓은 화면 · 휴대폰 두 벌(css 가 하나만 보임 - 한 벌을 줄이면 글자가 너무 작아짐)
-                + "<div class=\"chW\">" + line("방문자", dates, uniq, 640) + line("화면", dates, views, 640) + "</div>"
-                + "<div class=\"chN\">" + line("방문자", dates, uniq, 340) + line("화면", dates, views, 340) + "</div>"
-                + "<p class=\"dim\">점에 손가락 · 마우스를 대면 그 날 수가 보입니다. 정확한 수는 아래 표.</p></section>";
+                + "<div class=\"chW\">" + line("방문자", dates, uniq, 640, live) + line("화면", dates, views, 640, live) + "</div>"
+                + "<div class=\"chN\">" + line("방문자", dates, uniq, 340, live) + line("화면", dates, views, 340, live) + "</div>"
+                + "<p class=\"dim\">점에 손가락 · 마우스를 대면 그 날 수가 보입니다. 정확한 수는 아래 표." + (live ? " 점선은 오늘 - 아직 세는 중이라 낮게 보입니다." : "") + "</p></section>";
     }
 
-    /** 선 그림 하나(SVG). 눈금 0 · 가운데 · 위(1 · 2 · 5 × 10ⁿ 로 올림), 날짜는 처음 · 가운데 · 끝, 마지막 값은 글자로. */
-    static String line(String name, List<String> dates, List<Integer> v, int w) {
+    /**
+     * 선 그림 하나(SVG). 눈금 0 · 가운데 · 위(1 · 2 · 5 × 10ⁿ 로 올림), 날짜는 며칠 안 되면 모두(아니면 처음 · 가운데 · 끝), 마지막 값은 글자로.
+     * live - 마지막 날이 오늘(세는 중): 마지막 토막은 점선, 날짜는 "오늘".
+     */
+    static String line(String name, List<String> dates, List<Integer> v, int w, boolean live) {
         int h = w < 500 ? 170 : 190, l = 40, r = 36, t = 14, b = 26, k = v.size();
         int max = 1;
         for (int x : v) max = Math.max(max, x);
@@ -321,18 +326,24 @@ public class StatsServlet extends HttpServlet {
             s.append(String.format(Locale.ROOT, "<line x1=\"%d\" x2=\"%d\" y1=\"%.1f\" y2=\"%.1f\" stroke=\"rgba(255,255,255,0.12)\" stroke-width=\"1\"/>", l, w - r, y, y))
                     .append(String.format(Locale.ROOT, "<text x=\"%d\" y=\"%.1f\" fill=\"#9aa6b4\" font-size=\"11\" text-anchor=\"end\">%,d</text>", l - 6, y + 4, g));
         }
-        for (int i : k == 1 ? new int[] {0} : w < 500 ? new int[] {0, k - 1} : new int[] {0, (k - 1) / 2, k - 1}) {   // 날짜(좁으면 처음 · 끝만)
+        int[] at = k == 1 ? new int[] {0} : k <= (w < 500 ? 4 : 7) ? java.util.stream.IntStream.range(0, k).toArray()   // 며칠 안 되면 날마다(10-22: 4일인데 10-21 이 빠졌음)
+                : w < 500 ? new int[] {0, k - 1} : new int[] {0, (k - 1) / 2, k - 1};   // 날짜(좁으면 처음 · 끝만)
+        for (int i : at) {
             String anchor = k == 1 ? "middle" : i == 0 ? "start" : i == k - 1 ? "end" : "middle";
-            s.append(String.format(Locale.ROOT, "<text x=\"%.1f\" y=\"%d\" fill=\"#9aa6b4\" font-size=\"11\" text-anchor=\"%s\">%s</text>", X.apply(i), h - 8, anchor, dates.get(i).substring(5)));
+            String label = live && i == k - 1 ? "오늘" : dates.get(i).substring(5);
+            s.append(String.format(Locale.ROOT, "<text x=\"%.1f\" y=\"%d\" fill=\"#9aa6b4\" font-size=\"11\" text-anchor=\"%s\">%s</text>", X.apply(i), h - 8, anchor, label));
         }
         double colW = k == 1 ? pw : pw / (k - 1);
         StringBuilder path = new StringBuilder(), area = new StringBuilder();
-        for (int i = 0; i < k; i++) {
+        int solid = live && k > 1 ? k - 1 : k;   // 오늘 토막은 따로 점선
+        for (int i = 0; i < solid; i++) {
             path.append(i == 0 ? "M" : "L").append(String.format(Locale.ROOT, "%.1f,%.1f", X.apply(i), Y.apply(v.get(i))));
         }
-        area.append(path).append(String.format(Locale.ROOT, "L%.1f,%.1fL%.1f,%.1fZ", X.apply(k - 1), Y.apply(0), X.apply(0), Y.apply(0)));
+        area.append(path).append(String.format(Locale.ROOT, "L%.1f,%.1fL%.1f,%.1fZ", X.apply(solid - 1), Y.apply(0), X.apply(0), Y.apply(0)));
         s.append("<path d=\"").append(area).append("\" fill=\"#38d9ea\" fill-opacity=\"0.10\"/>");
         s.append("<path d=\"").append(path).append("\" fill=\"none\" stroke=\"#38d9ea\" stroke-width=\"2\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/>");
+        if (solid < k) s.append(String.format(Locale.ROOT, "<path d=\"M%.1f,%.1fL%.1f,%.1f\" fill=\"none\" stroke=\"#38d9ea\" stroke-opacity=\"0.6\" stroke-width=\"2\" stroke-dasharray=\"4 4\"/>",
+                X.apply(k - 2), Y.apply(v.get(k - 2)), X.apply(k - 1), Y.apply(v.get(k - 1))));
         for (int i = 0; i < k; i++) {   // 점(점 사이가 넉넉할 때만) + 손 대는 칸(점보다 넓게)
             if (colW >= 12) s.append(String.format(Locale.ROOT, "<circle cx=\"%.1f\" cy=\"%.1f\" r=\"4\" fill=\"#38d9ea\" stroke=\"#1a212b\" stroke-width=\"2\"/>", X.apply(i), Y.apply(v.get(i))));
             s.append(String.format(Locale.ROOT, "<rect x=\"%.1f\" y=\"%d\" width=\"%.1f\" height=\"%.1f\" fill=\"transparent\"><title>%s · %s %,d</title></rect>",

@@ -142,6 +142,18 @@ public class StatsTest {
         assertEquals(500, StatsServlet.nice(301));
         assertEquals(1000, StatsServlet.nice(1000));
         assertTrue("보기 화면에 들어감", StatsServlet.page(days, 30, null).contains("방문 추세"));
+        assertTrue("3일이면 날짜 모두(가운데 10-15 도)", h.contains(">10-15</text>"));
+        assertFalse("지난 날이면 점선 · 오늘 없음", h.contains("stroke-dasharray") || h.contains(">오늘</text>"));
+
+        // 마지막 날이 오늘(세는 중) - 마지막 토막만 점선, 날짜는 "오늘"(2026-10-22 홍TV님: 새벽 0명이 뚝 떨어져 보였음)
+        String today = java.time.LocalDate.now(WeatherServlet.KST).toString(), yday = java.time.LocalDate.now(WeatherServlet.KST).minusDays(1).toString();
+        TreeMap<String, JsonObject> live = new TreeMap<>();
+        live.put(yday, JsonParser.parseString("{\"pages\":{\"/hike.html\":400},\"uniq\":300,\"bots\":0}").getAsJsonObject());
+        live.put(today, JsonParser.parseString("{\"pages\":{},\"uniq\":0,\"bots\":85}").getAsJsonObject());
+        String lh = StatsServlet.trend(live, 30);
+        assertTrue(lh, lh.contains(">오늘</text>") && lh.contains("stroke-dasharray=\"4 4\""));
+        assertTrue(lh.contains("점선은 오늘"));
+        assertTrue("오늘 수도 손 대면 보임", lh.contains("<title>" + today + " · 방문자 0</title>"));
     }
 
     /** 운영자 기기(/stats 를 연 브라우저)는 방문 수에서 뺌(2026-10-20 홍TV님). */
