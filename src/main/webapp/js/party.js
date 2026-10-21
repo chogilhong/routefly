@@ -9,7 +9,19 @@
     var $ = function (id) { return document.getElementById(id); };
     var q = new URLSearchParams(location.search);
     var OLD_S = 600;        // 10분 넘게 소식이 없으면 주황
-    var EXIT = "m/";        // 나가기 · 방 끝 뒤 갈 곳(2026-10-20 홍TV님 - 산 모음)
+    // 영어 산 페이지(/en/m/)에서 왔으면 돌아갈 곳도 영어로(2026-10-21 홍TV님 "en/m 에서 갔더니 한글이고 돌아와도 한글") - 이 화면은 한국어만
+    var EN = window.RF && RF.pageLang ? RF.pageLang(location.search, (function () { try { return localStorage.getItem("rf-lang"); } catch (e) { return null; } })()) === "en" : false;
+    var EXIT = EN ? "en/m/" : "m/";        // 나가기 · 방 끝 뒤 갈 곳(2026-10-20 홍TV님 - 산 모음)
+    if (EN) {
+        $("back").href = EXIT;
+        $("back").textContent = "← Mountains";
+        var note = document.createElement("section");
+        note.className = "invite";
+        note.innerHTML = "<p style=\"margin:0;line-height:1.55\">🇰🇷 <b>Hiking club room - Korean only.</b> This page is for Korean guided hiking groups: the leader makes a room, members join with a code and see each other on the map (SOS · bus boarding check). "
+            + "Your browser's translate button can help. <a href=\"en/m/\" style=\"color:var(--sky)\">‹ Back to Korea's 100 famous mountains</a></p>";
+        var mainEl = document.querySelector("main");
+        if (mainEl) mainEl.insertBefore(note, mainEl.firstChild);
+    }
     var DAYS = ["일", "월", "화", "수", "목", "금", "토"];
     var map = null, marks = {}, state = null, watch = null, pollTimer = null, aliveTimer = null, lastNoticeAt = null, lastPos = null;
 
