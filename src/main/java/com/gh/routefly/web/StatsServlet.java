@@ -145,14 +145,15 @@ public class StatsServlet extends HttpServlet {
             if (d.has("botKinds")) for (var e : d.getAsJsonObject("botKinds").entrySet()) bots.merge(e.getKey(), e.getValue().getAsInt(), Integer::sum);
             if (d.has("engines")) for (var e : d.getAsJsonObject("engines").entrySet()) engines.merge(e.getKey(), e.getValue().getAsInt(), Integer::sum);
             if (d.has("devUniq")) for (var e : d.getAsJsonObject("devUniq").entrySet()) devs.merge(e.getKey(), e.getValue().getAsInt(), Integer::sum);
-            rows.append("<tr><td>").append(last.get(i)).append("</td><td>").append(u).append("</td><td>").append(dev(d, "모바일")).append("</td><td>").append(dev(d, "PC"))
-                    .append("</td><td>").append(views).append("</td><td>").append(b).append("</td></tr>");
+            rows.append("<tr><td>").append(last.get(i)).append("</td><td class=\"num\">").append(n(u)).append("</td><td class=\"num\">").append(dev(d, "모바일")).append("</td><td class=\"num\">").append(dev(d, "PC"))
+                    .append("</td><td class=\"num\">").append(n(views)).append("</td><td class=\"num\">").append(n(b)).append("</td></tr>");
         }
         StringBuilder out = new StringBuilder("<!DOCTYPE html><html lang=\"ko\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
                 + "<meta name=\"robots\" content=\"noindex\"><title>routefly 통계</title>" + MountainServlet.icons(".") + "<link rel=\"stylesheet\" href=\"css/mountain.css\">"
                 // 통계 화면만 글씨 · 간격을 작게(2026-10-21 홍TV님 "전체적으로 폰트가 너무 커") - 산 페이지(mountain.css)는 그대로
                 + "<style>main{font-size:13px;line-height:1.5}h1{font-size:19px;margin:0 0 4px}h2{font-size:14.5px;margin:0 0 6px}.lead{font-size:12.5px;margin:0 0 10px}"
                 + "section{padding:10px 12px;margin-bottom:10px}.st{font-size:12.5px}.st th,.st td{padding:3px 6px}.st th{font-weight:normal;color:var(--dim)}"
+                + ".st td.num,.st th.num{text-align:right;white-space:nowrap}.st td.kd{white-space:nowrap;font-weight:bold;font-size:14px}"   // 숫자 오른쪽 · 종류 칸 한 줄(2026-10-21 홍TV님)
                 + "details summary{font-size:14px!important}.st a{text-decoration:none}.st a:hover{text-decoration:underline}"
                 // 칸마다 접고 펴기(2026-10-21 홍TV님) - 제목 줄을 누름, ▾ · ▸
                 + "details.fold>summary{list-style:none;cursor:pointer}details.fold>summary::-webkit-details-marker{display:none}"
@@ -162,7 +163,7 @@ public class StatsServlet extends HttpServlet {
                 + "<p class=\"lead\">최근 " + last.size() + "일 · 방문자(하루마다 센 수의 합) " + String.format(Locale.KOREA, "%,d", tu) + " · 화면 " + String.format(Locale.KOREA, "%,d", tp)
                 + " · 로봇 " + String.format(Locale.KOREA, "%,d", tb) + botLine(bots) + "</p>");
         out.append(trend(days, n));
-        out.append("<section><h2>날마다</h2><table class=\"st\"><tr><th>날짜</th><th>방문자</th><th>모바일</th><th>PC</th><th>화면</th><th>로봇</th></tr>").append(rows).append("</table></section>");
+        out.append("<section><h2>날마다</h2><table class=\"st\"><tr><th>날짜</th><th class=\"num\">방문자</th><th class=\"num\">모바일</th><th class=\"num\">PC</th><th class=\"num\">화면</th><th class=\"num\">로봇</th></tr>").append(rows).append("</table></section>");
         out.append(top("모바일 · PC 방문자(" + last.size() + "일 - 10-20 부터 셈)", devs, 5, null))
                 .append(top("인기 산 페이지(" + last.size() + "일)", mountains, 20, null))
                 .append(top("인기 산 페이지 - 영어(" + last.size() + "일 - /en/m/, 외국 손님)", enMountains, 20, null))
@@ -208,14 +209,14 @@ public class StatsServlet extends HttpServlet {
             {"시험", "웹 · PC Claude 점검 도구"}, {"기타", "검색 순위 분석 · AI 회사 수집 프로그램"},
             {"숨은 로봇", "브라우저인 척하지만 언어 설정을 안 보내는 수집 프로그램(2026-10-21 배포부터 따로 셈 - 그 전엔 PC 방문자로 섞였음)"}};
         if (bots.isEmpty()) return b.append("<tr><td>아직 없음</td></tr></table></section>").toString();
-        b.append("<tr><th>종류</th><th>뜻</th><th>수</th></tr>");
+        b.append("<tr><th>종류</th><th>뜻</th><th class=\"num\">수</th></tr>");
         for (String[] k : kinds) {
-            b.append("<tr><td>").append(k[0]).append("</td><td>").append(k[1]).append("</td><td>").append(bots.getOrDefault(k[0], 0)).append("</td></tr>");
+            b.append("<tr><td class=\"kd\">").append(k[0]).append("</td><td>").append(k[1]).append("</td><td class=\"num\">").append(n(bots.getOrDefault(k[0], 0))).append("</td></tr>");
             if ("검색".equals(k[0])) {   // 검색엔진마다(10-21 배포부터) - 늘 같은 차례, 0 도 보임(빙이 안 오는지 바로 알게)
                 StringBuilder e = new StringBuilder();
-                for (String n : new String[] {"구글", "네이버", "다음", "빙", "애플", "덕덕고", "얀덱스", "바이두", "그 밖"}) {
-                    int v = engines.getOrDefault(n, 0);
-                    if (v > 0 || n.equals("구글") || n.equals("네이버") || n.equals("다음") || n.equals("빙")) e.append(e.length() > 0 ? " · " : "").append(n).append(" ").append(v);
+                for (String nm : new String[] {"구글", "네이버", "다음", "빙", "애플", "덕덕고", "얀덱스", "바이두", "그 밖"}) {
+                    int v = engines.getOrDefault(nm, 0);
+                    if (v > 0 || nm.equals("구글") || nm.equals("네이버") || nm.equals("다음") || nm.equals("빙")) e.append(e.length() > 0 ? " · " : "").append(nm).append(" ").append(n(v));
                 }
                 b.append("<tr><td></td><td colspan=\"2\" style=\"color:var(--dim)\">└ ").append(e).append("</td></tr>");
             }
@@ -322,13 +323,18 @@ public class StatsServlet extends HttpServlet {
     }
 
     /** names - 가운데 칸에 넣을 화면 이름(null 이면 두 칸). */
+    /** 숫자 - 천 단위 쉼표(2026-10-21 홍TV님). */
+    static String n(int v) {
+        return String.format(Locale.KOREA, "%,d", v);
+    }
+
     private static String top(String title, Map<String, Integer> m, int n, java.util.function.Function<String, String> names) {
         StringBuilder b = new StringBuilder("<section><h2>").append(ShareServlet.esc(title)).append("</h2><table class=\"st\">");
         if (names != null && !m.isEmpty()) b.append("<tr><th>주소</th><th>화면 이름</th><th>수</th></tr>");
         m.entrySet().stream().sorted((x, y) -> y.getValue() - x.getValue()).limit(n)
                 .forEach(e -> b.append("<tr><td>").append(ShareServlet.esc(e.getKey())).append("</td>")
                         .append(names == null ? "" : "<td>" + ShareServlet.esc(names.apply(e.getKey())) + "</td>")
-                        .append("<td>").append(e.getValue()).append("</td></tr>"));
+                        .append("<td class=\"num\">").append(n(e.getValue())).append("</td></tr>"));
         if (m.isEmpty()) b.append("<tr><td>아직 없음</td></tr>");
         return b.append("</table></section>").toString();
     }

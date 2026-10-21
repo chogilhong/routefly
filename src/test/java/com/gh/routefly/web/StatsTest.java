@@ -78,7 +78,7 @@ public class StatsTest {
         days.put("2026-10-15", JsonParser.parseString("{\"pages\":{\"/m/가야산\":2,\"/m/<b>\":1},\"uniq\":2,\"bots\":0}").getAsJsonObject());
         String h = StatsServlet.page(days, 30, null);
         assertTrue(h.contains("방문자(하루마다 센 수의 합) 6 · 화면 11"));
-        assertTrue("인기 산 합", h.contains("<td>가야산</td><td>5</td>"));
+        assertTrue("인기 산 합", h.contains("<td>가야산</td><td class=\"num\">5</td>"));
         assertTrue("이름은 이스케이프", h.contains("&lt;b&gt;") && !h.contains("<td><b></td>"));
     }
 
@@ -97,7 +97,7 @@ public class StatsTest {
         days.put("2026-10-14", JsonParser.parseString("{\"pages\":{},\"uniq\":1,\"bots\":0,\"refs\":{\"네이버\":3}}").getAsJsonObject());
         days.put("2026-10-15", JsonParser.parseString("{\"pages\":{},\"uniq\":1,\"bots\":0,\"refs\":{\"네이버\":2,\"구글\":1}}").getAsJsonObject());
         String h = StatsServlet.page(days, 30, null);
-        assertTrue(h.contains("<td>네이버</td><td>5</td>") && h.contains("<td>구글</td><td>1</td>"));
+        assertTrue(h.contains("<td>네이버</td><td class=\"num\">5</td>") && h.contains("<td>구글</td><td class=\"num\">1</td>"));
     }
 
     /** 모바일 · PC, 화면 이름 칸(2026-10-20). */
@@ -118,10 +118,10 @@ public class StatsTest {
         days.put("2026-10-20", JsonParser.parseString("{\"pages\":{\"/hike.html\":9,\"/c/\":3},\"uniq\":5,\"bots\":1,"
                 + "\"dev\":{\"모바일\":8,\"PC\":4},\"devUniq\":{\"모바일\":3,\"PC\":2}}").getAsJsonObject());
         String h = StatsServlet.page(days, 30, null);
-        assertTrue("날마다 표 - 모바일 · PC 칸", h.contains("<tr><td>2026-10-20</td><td>5</td><td>3</td><td>2</td><td>12</td><td>1</td></tr>"));
-        assertTrue("세기 전 날은 -", h.contains("<tr><td>2026-10-19</td><td>4</td><td>-</td><td>-</td>"));
-        assertTrue("화면 이름 칸", h.contains("<td>/hike.html</td><td>따라가기</td><td>14</td>"));
-        assertTrue(h.contains("<td>모바일</td><td>3</td>"));
+        assertTrue("날마다 표 - 모바일 · PC 칸", h.contains("<tr><td>2026-10-20</td><td class=\"num\">5</td><td class=\"num\">3</td><td class=\"num\">2</td><td class=\"num\">12</td><td class=\"num\">1</td></tr>"));
+        assertTrue("세기 전 날은 -", h.contains("<tr><td>2026-10-19</td><td class=\"num\">4</td><td class=\"num\">-</td><td class=\"num\">-</td>"));
+        assertTrue("화면 이름 칸", h.contains("<td>/hike.html</td><td>따라가기</td><td class=\"num\">14</td>"));
+        assertTrue(h.contains("<td>모바일</td><td class=\"num\">3</td>"));
     }
 
     /** 방문 추세 그림(2026-10-20) - 빈 날은 0, 눈금 올림, 최근 n 일. */
@@ -173,7 +173,8 @@ public class StatsTest {
         assertFalse("화면별 표에는 안 섞임", h.substring(pagesAt).contains("/en/m/daeamsan"));
         assertTrue(h.contains("📖 통계 보는 법"));
         String bt = StatsServlet.botTable(java.util.Map.of("검색", 12), java.util.Map.of("구글", 9, "네이버", 3));
-        assertTrue(bt.contains("<td>검색</td><td>구글") && bt.contains("<td>12</td>") && bt.contains("<td>미리보기</td>"));
+        assertTrue(bt.contains("<td class=\"kd\">검색</td><td>구글") && bt.contains("<td class=\"num\">12</td>") && bt.contains("<td class=\"kd\">미리보기</td>"));
+        assertEquals("천 단위 쉼표", "9,117", StatsServlet.n(9117));
         assertTrue("검색엔진마다 - 빙은 0 이어도 보임", bt.contains("└ 구글 9 · 네이버 3 · 다음 0 · 빙 0"));
         assertEquals("빙", Stats.searchEngine("Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)"));
         assertEquals("네이버", Stats.searchEngine("Mozilla/5.0 (compatible; Yeti/1.1; +http://naver.me/spd)"));
