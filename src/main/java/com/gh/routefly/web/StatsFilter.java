@@ -51,6 +51,7 @@ public class StatsFilter extends HttpFilter {
         String ip = SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For"));
         String ua = req.getHeader("User-Agent");
         String bot = Stats.botKind(ua, req.getHeader("Accept-Language"));
-        Stats.hit(page, Stats.courseKey(path), ip, bot, "검색".equals(bot) ? Stats.searchEngine(ua) : null, Stats.source(req.getHeader("Referer"), req.getServerName()), Stats.device(ua));
+        Stats.hit(page, Stats.courseKey(path), ip, bot, "검색".equals(bot) ? Stats.searchEngine(ua) : null, Stats.source(req.getHeader("Referer"), req.getServerName()), Stats.device(ua),
+                bot == null ? Stats.suspect(ua, req.getHeader("Sec-Fetch-Mode"), req.getHeader("sec-ch-ua")) : null);
     }
 }

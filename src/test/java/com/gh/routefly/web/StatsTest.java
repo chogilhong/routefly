@@ -180,4 +180,33 @@ public class StatsTest {
         assertEquals("네이버", Stats.searchEngine("Mozilla/5.0 (compatible; Yeti/1.1; +http://naver.me/spd)"));
         assertEquals("구글", Stats.searchEngine("Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X) Chrome/153 Mobile Safari/537.36 (compatible; Googlebot/2.1)"));
     }
+
+    /** 사람 확인(2026-10-22 홍TV님 "언어 설정을 넣으면 구분을 못하겠네") - 보안 머리글 · js 신호. */
+    @Test
+    public void humanCheck() {
+        String chrome = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36";
+        String safari = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
+        assertNull(Stats.suspect(chrome, "navigate", "\"Chromium\";v=\"141\""));
+        assertNull("사파리 · 파이어폭스는 sec-ch-ua 를 안 보냄 - 의심 아님", Stats.suspect(safari, "navigate", null));
+        assertEquals("보안 머리글 없음", Stats.suspect(chrome, null, null));
+        assertEquals("보안 머리글 없음", Stats.suspect(safari, " ", null));
+        assertEquals("크롬 표식 없음", Stats.suspect(chrome, "navigate", ""));
+
+        // js 신호는 그 날 사람으로 센 방문자에서 온 것만, 한 사람 한 번
+        String ip = "198.51.100." + (int) (Math.random() * 200 + 20);
+        assertFalse("아직 안 센 사람의 신호는 안 셈(아무나 부풀리지 못하게)", Stats.js(ip, "PC"));
+        Stats.hit("/hike.html", null, ip, null, null, null, "PC", "보안 머리글 없음");
+        assertTrue(Stats.js(ip, "PC"));
+        assertFalse("두 번째는 안 셈", Stats.js(ip, "PC"));
+
+        TreeMap<String, JsonObject> days = new TreeMap<>();
+        days.put("2026-10-21", JsonParser.parseString("{\"pages\":{},\"uniq\":50,\"bots\":0,\"devUniq\":{\"PC\":50}}").getAsJsonObject());
+        days.put("2026-10-22", JsonParser.parseString("{\"pages\":{},\"uniq\":30,\"bots\":0,\"devUniq\":{\"모바일\":10,\"PC\":20},\"jsUniq\":{\"모바일\":10,\"PC\":5},\"sus\":{\"PC\":12}}").getAsJsonObject());
+        String t = StatsServlet.checkTable(days, new java.util.ArrayList<>(days.keySet()));
+        assertTrue(t, t.contains("<td class=\"num\">20</td><td class=\"num\">5 (25%)</td><td class=\"num\">12</td>"));   // 10-21(세기 전) PC 50 은 안 더함
+        assertTrue(t, t.contains("10 (100%)"));
+        assertTrue(t.contains("1일 합"));
+        assertTrue(StatsServlet.checkTable(new TreeMap<>(), java.util.List.of()).contains("아직 없음"));
+        assertTrue("통계 화면에 들어감", StatsServlet.page(days, 30, null).contains("사람 확인"));
+    }
 }

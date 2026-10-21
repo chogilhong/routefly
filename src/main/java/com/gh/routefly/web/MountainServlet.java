@@ -785,7 +785,8 @@ public class MountainServlet extends HttpServlet {
                 + "<p class=\"support\" id=\"support\" hidden></p>"   // ☕ 후원(설정 donate.url 이 있을 때만 mountain.js 가 보임)
                 + "<p class=\"brand\"><a href=\"" + b + "/hike.html?lang=ko\"><img src=\"" + b + "/img/logo-dark.svg\" alt=\"routefly\" width=\"160\" height=\"50\"> 앱 열기 ›</a></p>"
                 + "<p class=\"copy\">© 2026 홍TV · routefly. 코스 · 지도 자료의 권리는 위 출처에 있습니다.</p></main>"   // 저작권 표시(2026-10-17 홍TV님)
-                + (scripts ? "<script src=\"" + b + "/js/course-kit.js\"></script><script src=\"" + b + "/js/mountain.js\"></script>" : "") + "</body></html>";
+                + (scripts ? "<script src=\"" + b + "/js/course-kit.js\"></script><script src=\"" + b + "/js/mountain.js\"></script>" : "")
+                + "<script src=\"" + b + "/js/seen.js\"></script></body></html>";   // 사람 확인 신호(2026-10-22) - 코스 페이지에도
     }
 
     static String enc(String s) {

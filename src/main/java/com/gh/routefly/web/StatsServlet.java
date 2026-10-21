@@ -171,6 +171,7 @@ public class StatsServlet extends HttpServlet {
                 .append(top("화면별(" + last.size() + "일)", pages, 20, StatsServlet::pageName))
                 .append(top("들어온 곳(" + last.size() + "일 - 바깥에서 처음 들어온 화면 수)", refs, 20, null))
                 .append(botTable(bots, engines))
+                .append(checkTable(days, last))
                 .append(GUIDE);
         out.append("<p class=\"dim\">숫자만 셉니다 - 방문자는 그 날만 쓰는 해시로 겹침만 걸러 내고 IP 는 남기지 않습니다. 이 화면을 연 기기(브라우저)는 운영자로 보고 방문 수에서 뺍니다(2년, 사이트 데이터를 지우면 다시 셈). 앱은 안내 화면 \"안내\" 제목을 7번 누르고 열쇠를 넣으면 빠집니다.</p></main><script src=\"js/stats.js\"></script></body></html>");
         return fold(out.toString());
@@ -224,6 +225,33 @@ public class StatsServlet extends HttpServlet {
         return b.append("</table></section>").toString();
     }
 
+    /**
+     * 순수 함수 - 사람 확인 표(2026-10-22 홍TV님 "언어 설정을 넣으면 구분을 못하겠네"). 사람으로 센 방문자 가운데 화면 js 가 돈 사람(js/seen.js)과
+     * 브라우저 보안 머리글이 빠진 사람(Stats.suspect)을 기기마다. 세기 시작한 날(jsUniq · sus 가 있는 날)만 더함 - 배포한 날은 그 전 방문자도 들어가 js 비율이 낮게 나옴.
+     */
+    static String checkTable(Map<String, JsonObject> days, List<String> keys) {
+        Map<String, Integer> vis = new HashMap<>(), js = new HashMap<>(), sus = new HashMap<>();
+        int nd = 0;
+        for (String k : keys) {
+            JsonObject d = days.get(k);
+            if (!d.has("jsUniq") && !d.has("sus")) continue;
+            nd++;
+            if (d.has("devUniq")) for (var e : d.getAsJsonObject("devUniq").entrySet()) vis.merge(e.getKey(), e.getValue().getAsInt(), Integer::sum);
+            if (d.has("jsUniq")) for (var e : d.getAsJsonObject("jsUniq").entrySet()) js.merge(e.getKey(), e.getValue().getAsInt(), Integer::sum);
+            if (d.has("sus")) for (var e : d.getAsJsonObject("sus").entrySet()) sus.merge(e.getKey(), e.getValue().getAsInt(), Integer::sum);
+        }
+        StringBuilder b = new StringBuilder("<section><h2>사람 확인 <small style=\"font-weight:normal;color:var(--dim);font-size:13px\">사람으로 센 방문자를 한 번 더 봄 - 10월 22일부터</small></h2>");
+        if (nd == 0) return b.append("<table class=\"st\"><tr><td>아직 없음</td></tr></table></section>").toString();
+        b.append("<table class=\"st\"><tr><th>기기</th><th class=\"num\">방문자</th><th class=\"num\">화면 js 돎</th><th class=\"num\">보안 머리글 빠짐</th></tr>");
+        for (String dv : new String[] {"모바일", "PC"}) {
+            int v = vis.getOrDefault(dv, 0), j = js.getOrDefault(dv, 0);
+            b.append("<tr><td class=\"kd\">").append(dv).append("</td><td class=\"num\">").append(n(v)).append("</td><td class=\"num\">").append(n(j))
+                    .append(v > 0 ? " (" + Math.round(100.0 * j / v) + "%)" : "").append("</td><td class=\"num\">").append(n(sus.getOrDefault(dv, 0))).append("</td></tr>");
+        }
+        return b.append("</table><p class=\"dim\" style=\"margin:6px 0 0\">").append(nd).append("일 합. 화면 js 돎 - 화면이 열려 그 안의 프로그램이 돈 사람(사람 브라우저는 거의 다). ")
+                .append("낮으면 언어 설정까지 흉내 낸 수집 프로그램이 섞였다는 뜻. 보안 머리글 빠짐 - 요즘 브라우저가 늘 보내는 표식이 없는 사람(예전 아이폰도 걸릴 수 있어 로봇으로 빼지는 않음).</p></section>").toString();
+    }
+
     /** 보는 법(2026-10-21 홍TV님 "설명자료도 추가") - 표마다 무엇을 세는지. */
     static final String GUIDE = "<section><details><summary style=\"cursor:pointer;font-weight:bold;font-size:15px\">📖 통계 보는 법 (누르면 펼침)</summary>"
             + "<table class=\"st\" style=\"font-size:12.5px;line-height:1.5;margin-top:8px\"><tr><th style=\"width:30%\">항목</th><th>뜻</th></tr>"
@@ -234,6 +262,7 @@ public class StatsServlet extends HttpServlet {
             + "<tr><td>인기 산 페이지 - 영어</td><td>외국 손님용 영어 산 소개(/en/m/영문이름, 예: daeamsan = 대암산)</td></tr>"
             + "<tr><td>인기 코스 상위 20</td><td>코스 하나짜리 소개(/c/코스번호 - 주로 네이버 · 구글 검색 손님). 이름을 누르면 그 페이지. 화면별 표의 \"코스 소개 페이지\" 는 이것을 모두 더한 한 줄</td></tr>"
             + "<tr><td>들어온 곳</td><td>바깥(네이버 · 구글 · 카톡 등)에서 처음 들어온 화면 수. 우리 화면끼리 옮긴 것은 안 셈</td></tr>"
+            + "<tr><td>사람 확인</td><td>사람으로 센 방문자 가운데 화면 프로그램(js)이 돈 사람 · 브라우저 표식이 빠진 사람(10-22 부터). js 돈 비율이 낮으면 숨은 수집 프로그램이 섞인 것</td></tr>"
             + "<tr><td>모바일 · PC</td><td>방문자를 기기로 나눔(10-20 부터)</td></tr>"
             + "<tr><td>운영자</td><td>이 화면을 연 브라우저는 세지 않음. 앱 · 다른 브라우저는 따로라 셈</td></tr>"
             + "<tr><td>언제 숫자</td><td>서버가 지금 세는 그대로(10분마다 파일로 저장)</td></tr>"

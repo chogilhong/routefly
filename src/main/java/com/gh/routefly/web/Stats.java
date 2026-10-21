@@ -38,6 +38,8 @@ final class Stats {
     private static final TreeMap<String, JsonObject> DAYS = new TreeMap<>();
     private static String today = "";
     private static final Set<String> seen = new HashSet<>();
+    /** 그 날 화면 js 가 돈 방문자 · 보안 머리글이 빠진 방문자(사람 확인, 2026-10-22) - seen 처럼 날이 바뀌면 버림. */
+    private static final Set<String> jsSeen = new HashSet<>(), susSeen = new HashSet<>();
     private static byte[] salt = new byte[16];
     private static boolean loaded = false, dirty = false;
 
@@ -91,6 +93,34 @@ final class Stats {
         if (u.matches(".*(headless|python|curl|wget|playwright|node-fetch|axios|go-http|java/|okhttp|httpclient|powershell|claude/|electron/).*")) return "시험";   // claude/ · electron/ - Claude 앱 · PC Claude(2026-10-21 PC 접속 기록)
         if (u.matches(".*(bot|crawl|spider|scrap).*")) return "기타";
         return null;
+    }
+
+    /**
+     * 순수 함수 - 사람으로 셌지만 의심스러운 방문(2026-10-22 홍TV님 "언어 설정을 넣으면 구분을 못하겠네"). 로봇으로 빼지는 않고 따로 셈 - 예전 아이폰(iOS 16.4 전) ·
+     * 오래된 브라우저도 걸릴 수 있어서. 요즘 브라우저(크롬 · 엣지 · 삼성 · 파이어폭스 · 사파리 · 앱 안 브라우저)는 화면을 열 때 늘 Sec-Fetch-Mode 를 보내고,
+     * 크롬 계열(UA 에 Chrome/)은 sec-ch-ua 도 보냄 - 언어 설정만 흉내 낸 수집 프로그램은 이것을 빠뜨리기 쉬움. 의심 없으면 null.
+     */
+    static String suspect(String ua, String secFetchMode, String secChUa) {
+        if (secFetchMode == null || secFetchMode.isBlank()) return "보안 머리글 없음";
+        if (ua != null && ua.contains("Chrome/") && (secChUa == null || secChUa.isBlank())) return "크롬 표식 없음";
+        return null;
+    }
+
+    /**
+     * 화면 js 가 돌았다는 신호(js/seen.js → /api/seen). 그 날 사람으로 센 방문자(seen)에서 온 것만, 한 사람 한 번 - 아무나 보내 숫자를 부풀리지 못하게.
+     * 센 것이면 true.
+     */
+    static synchronized boolean js(String ip, String device) {
+        load();
+        if (!today.equals(LocalDate.now(WeatherServlet.KST).toString())) return false;
+        String h = hash(ip);
+        if (!seen.contains(h) || !jsSeen.add(h)) return false;
+        JsonObject day = DAYS.get(today);
+        if (day == null) return false;
+        if (!day.has("jsUniq")) day.add("jsUniq", new JsonObject());
+        add(day.getAsJsonObject("jsUniq"), device);
+        dirty = true;
+        return true;
     }
 
     /**
@@ -153,13 +183,15 @@ final class Stats {
         return "그 밖";
     }
 
-    /** engine - 검색 로봇이면 어느 검색엔진(searchEngine), 아니면 null. */
-    static synchronized void hit(String page, String course, String ip, String bot, String engine, String src, String device) {
+    /** engine - 검색 로봇이면 어느 검색엔진(searchEngine), 아니면 null. sus - 사람이지만 의심스러운 까닭(suspect), 없으면 null. */
+    static synchronized void hit(String page, String course, String ip, String bot, String engine, String src, String device, String sus) {
         load();
         String d = LocalDate.now(WeatherServlet.KST).toString();
         if (!d.equals(today)) {   // 날이 바뀜 - 어제 방문자 집합 · 소금은 버림
             today = d;
             seen.clear();
+            jsSeen.clear();
+            susSeen.clear();
             new SecureRandom().nextBytes(salt);
         }
         JsonObject day = DAYS.computeIfAbsent(d, k -> {
@@ -180,7 +212,12 @@ final class Stats {
         } else {
             JsonObject pages = day.getAsJsonObject("pages");
             pages.addProperty(page, (pages.has(page) ? pages.get(page).getAsInt() : 0) + 1);
-            boolean first = seen.add(hash(ip));
+            String h = hash(ip);
+            boolean first = seen.add(h);
+            if (sus != null && device != null && susSeen.add(h)) {   // 의심 방문자 - 기기마다(10-22 부터), 한 사람 한 번
+                if (!day.has("sus")) day.add("sus", new JsonObject());
+                add(day.getAsJsonObject("sus"), device);
+            }
             if (first) day.addProperty("uniq", day.get("uniq").getAsInt() + 1);
             if (device != null) {   // dev: 화면 수, devUniq: 방문자 수(그 날 처음 본 기기로)
                 if (!day.has("dev")) { day.add("dev", new JsonObject()); day.add("devUniq", new JsonObject()); }
