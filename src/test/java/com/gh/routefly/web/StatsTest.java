@@ -149,6 +149,8 @@ public class StatsTest {
     public void ownerNotCounted() {
         assertTrue(StatsFilter.owner("a=b; rf-owner=1"));
         assertTrue(StatsFilter.owner("rf-owner=1"));
+        assertTrue("열쇠에서 만든 값", StatsFilter.owner("rf-owner=" + StatsServlet.ownerToken("abcdefghijkl")));
+        assertNotEquals("보기 쿠키와 다른 값", StatsServlet.ownerToken("abcdefghijkl"), StatsServlet.seeToken("abcdefghijkl"));
         assertFalse(StatsFilter.owner(null));
         assertFalse(StatsFilter.owner("rf-owner=0; x-rf-owner=1"));
     }

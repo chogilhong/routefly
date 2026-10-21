@@ -1,0 +1,25 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><style>
+body{margin:0;background:#fff;font-family:"Noto Sans CJK KR","Malgun Gothic",sans-serif;color:#111}
+.wrap{width:1100px;padding:28px}
+h1{font-size:22px;margin:0 0 18px}
+.row{display:flex;align-items:stretch;gap:0}
+.box{border:2px solid #1f3a93;border-radius:10px;padding:12px 14px;width:220px;font-size:14px;line-height:1.45;background:#f5f8ff}
+.box b{display:block;font-size:15px;margin-bottom:6px;color:#1f3a93}
+.arrow{display:flex;flex-direction:column;justify-content:center;align-items:center;width:66px;font-size:12px;color:#444;text-align:center}
+.arrow span{font-size:28px;color:#1f3a93;line-height:1}
+.note{margin-top:18px;font-size:13px;line-height:1.6;color:#333;border-top:1px solid #ccc;padding-top:10px}
+</style></head><body><div class="wrap">
+<h1>routefly 산악회 방 - 위치정보 데이터 흐름도</h1>
+<div class="row">
+<div class="box"><b>① 개인위치정보주체(고객)</b>산악회 방에 참가해 위치 제공에 동의한 회원의 핸드폰<br>(만 14세 이상, 출발 3시간 전 ~ 하산 탑승 · 방 끝)</div>
+<div class="arrow"><span>→</span>단말 위치<br>요청</div>
+<div class="box"><b>② 위치정보사업자</b>구글<br>· 앱: Google Play 서비스 Fused Location Provider API<br>· 웹(안드로이드 크롬 등): 브라우저 Geolocation API(Google 위치 서비스)<br>애플<br>· 아이폰 사파리: Geolocation API(Core Location)</div>
+<div class="arrow"><span>→</span>위도 · 경도 · 정확도<br>(HTTPS, 30초마다)</div>
+<div class="box"><b>③ 위치기반서비스사업자</b>routefly<br>AWS Lightsail 서울 서버 메모리에 사람마다 마지막 위치 · 출발 뒤 지나온 길만(파일 · DB 에 안 씀), 방이 끝나면 삭제</div>
+<div class="arrow"><span>→</span>같은 방에만<br>표시</div>
+<div class="box"><b>④ 서비스 제공 대상(제3자)</b>같은 산악회 방의 인솔자 · 버스 운전자(자기 호차) · 회원<br>- 위치 · SOS · 하산 탑승 표시<br>- 인솔자 · 운전자: 배터리 · 최근 2시간 지나온 길</div>
+</div>
+<div class="note">· 방이 끝나면(취소 제외) 지나온 길을 별명 · 방 코드 · 시각 없이, 처음 · 끝 500m 와 차량 구간을 빼고 익명 코스 통계(DB)로만 보관합니다.<br>
+· 위치정보 이용 · 제공 사실 확인자료: 참가 · 나감 · SOS · 방 끝의 시각과 방 코드 · 방 안 번호만(좌표 · 별명 없음) 서버 로그에 200일 보관 후 삭제.<br>
+· 화면의 지도 그림(V-World · OpenStreetMap · 공개 지형 자료)은 위치를 받지 않습니다. 위치 수집에 쓰는 API 는 위 ② 뿐입니다.</div>
+</div></body></html>

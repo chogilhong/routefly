@@ -34,7 +34,10 @@ public class StatsFilter extends HttpFilter {
     /** 순수 함수 - 운영자 기기인가(/stats 를 연 브라우저 - StatsServlet.OWNER_COOKIE). */
     static boolean owner(String cookieHeader) {
         if (cookieHeader == null) return false;
-        for (String c : cookieHeader.split(";")) if (c.trim().equals(StatsServlet.OWNER_COOKIE + "=1")) return true;
+        for (String c : cookieHeader.split(";")) {
+            String t = c.trim();
+            if (t.startsWith(StatsServlet.OWNER_COOKIE + "=") && t.substring(StatsServlet.OWNER_COOKIE.length() + 1).matches("1|[0-9a-f]{64}")) return true;   // 옛 "1" 또는 열쇠에서 만든 값(2026-10-21)
+        }
         return false;
     }
 

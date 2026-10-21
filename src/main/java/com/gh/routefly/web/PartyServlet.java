@@ -61,7 +61,7 @@ public class PartyServlet extends HttpServlet {
         long now = System.currentTimeMillis();
         boolean lookup = "/info".equals(path) || "/join".equals(path);
         if (lookup && MISSES.over(ip, now)) { Json.fail(resp, 429, "방 코드를 너무 많이 틀렸습니다. 10분 뒤 다시 해 주세요."); return; }
-        if ("/create".equals(path) && !CREATES.take(ip, now)) { Json.fail(resp, 429, "하루에 만들 수 있는 방 수를 넘었습니다. 내일 다시 해 주세요."); return; }
+        if ("/create".equals(path) && !owner(req) && !CREATES.take(ip, now)) { Json.fail(resp, 429, "하루에 만들 수 있는 방 수를 넘었습니다. 내일 다시 해 주세요."); return; }
         JsonObject in;
         try {
             in = body(req);
@@ -85,6 +85,16 @@ public class PartyServlet extends HttpServlet {
 
     /** 방 만들기: IP 마다 하루 5개(한 사람이 2000개를 채워 아무도 못 만들게 하는 것을 막음 - 점검). */
     static final Quota CREATES = new Quota(5, 24 * 3600_000L);
+
+    /** 운영자 기기(/stats 를 연 브라우저 · 앱 - 쿠키 값이 통계 열쇠에서 만든 값과 맞을 때)는 방 만들기 하루 제한을 받지 않음(2026-10-21 PC: 시험하다 막힘). */
+    static boolean owner(HttpServletRequest req) {
+        String key = RouteflyConfig.get("stats.key");
+        if (key == null || key.length() < 12 || req.getCookies() == null) return false;
+        String want = StatsServlet.ownerToken(key);
+        for (jakarta.servlet.http.Cookie c : req.getCookies())
+            if (StatsServlet.OWNER_COOKIE.equals(c.getName()) && java.security.MessageDigest.isEqual(want.getBytes(java.nio.charset.StandardCharsets.UTF_8), c.getValue().getBytes(java.nio.charset.StandardCharsets.UTF_8))) return true;
+        return false;
+    }
     /** 없는 방 코드: IP 마다 10분에 20번(코드를 하나씩 쳐 보기 막기 - 점검). */
     static final Quota MISSES = new Quota(20, 600_000L);
 

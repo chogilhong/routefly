@@ -45,7 +45,7 @@ public class StatsServlet extends HttpServlet {
             resp.setHeader("Referrer-Policy", "no-referrer");
         }
         // 운영자 기기 표시(2026-10-20 홍TV님 "우리가 접속한 것도 잡히지?") - 이 기기의 방문은 그 뒤로 세지 않음(StatsFilter). 2년.
-        resp.addHeader("Set-Cookie", OWNER_COOKIE + "=1; Max-Age=" + (2 * 365 * 24 * 3600) + "; Path=" + (req.getContextPath().isEmpty() ? "/" : req.getContextPath())
+        resp.addHeader("Set-Cookie", OWNER_COOKIE + "=" + ownerToken(want) + "; Max-Age=" + (2 * 365 * 24 * 3600) + "; Path=" + (req.getContextPath().isEmpty() ? "/" : req.getContextPath())
                 + "; HttpOnly; SameSite=Lax" + secure);
         resp.setContentType("text/html");
         resp.setCharacterEncoding(StandardCharsets.UTF_8.name());
@@ -87,8 +87,20 @@ public class StatsServlet extends HttpServlet {
     /** 순수 함수 - 열쇠가 설정돼 있고(12자 이상) 같을 때만(시간이 같은 견줌). */
     /** 순수 함수 - 보기 쿠키 값(열쇠 자체가 아니라 열쇠의 SHA-256 - 쿠키가 새어도 열쇠는 안 나옴). 열쇠를 바꾸면 옛 쿠키는 안 맞음. */
     static String seeToken(String key) {
+        return hash("rf-stats:", key);
+    }
+
+    /**
+     * 순수 함수 - 운영자 기기 쿠키 값(2026-10-21: 예전엔 "1" 이라 누구나 흉내 낼 수 있었음). 통계에서 빼는 데는 아무 값이나 받지만(빼 봐야 제 방문만 빠짐),
+     * 산악회 방 하루 만들기 제한을 넘기는 데는 이 값이 맞아야 함(PartyServlet - 시험 많은 날).
+     */
+    static String ownerToken(String key) {
+        return hash("rf-owner:", key);
+    }
+
+    private static String hash(String prefix, String key) {
         try {
-            byte[] h = MessageDigest.getInstance("SHA-256").digest(("rf-stats:" + key).getBytes(StandardCharsets.UTF_8));
+            byte[] h = MessageDigest.getInstance("SHA-256").digest((prefix + key).getBytes(StandardCharsets.UTF_8));
             StringBuilder b = new StringBuilder();
             for (byte x : h) b.append(String.format("%02x", x));
             return b.toString();

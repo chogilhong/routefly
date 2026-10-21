@@ -753,7 +753,7 @@ final class Party {
         o.addProperty("seats", r.seats);
         o.add("stops", strings(r.stops));
         JsonArray taken = new JsonArray();   // 호차 × 100 + 좌석
-        for (Member m : r.members.values()) if (m.seat != null && !m.cancelled && m != me) taken.add(m.bus * 100 + m.seat);
+        for (Member m : r.members.values()) if (m.seat != null && !m.cancelled && m != me && (me == null || me.sees(m))) taken.add(m.bus * 100 + m.seat);   // 운전자 - 자기 호차만
         o.add("taken", taken);
         o.addProperty("departed", r.departed);
         return o;
@@ -796,7 +796,9 @@ final class Party {
             pins.add(p);
         });
         o.add("busPins", pins);
-        o.addProperty("count", r.members.size());
+        int count = 0;
+        for (Member m : r.members.values()) if (me.sees(m)) count++;
+        o.addProperty("count", count);   // 운전자 - 보이는 사람만
         JsonArray list = new JsonArray();
         int aboard = 0, mine = 0;
         for (Member m : r.members.values()) {

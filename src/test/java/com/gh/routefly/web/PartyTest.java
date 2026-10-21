@@ -452,6 +452,8 @@ public class PartyTest {
         assertNotNull("인솔자는 보임", member(dv, lv.get("nick").getAsString()));
         assertEquals("운전자 화면의 회원 수는 자기 호차", 1, dv.get("myHikers").getAsInt());
         assertEquals("다른 호차 예약석은 안 감", 0, dv.getAsJsonArray("reserved").size());
+        assertEquals("찬 자리도 자기 호차만", "[203]", dv.getAsJsonArray("taken").toString());
+        assertEquals("인원도 보이는 사람만(인솔자 · 2호차 회원 · 나)", 3, dv.get("count").getAsInt());
         assertNotNull("인솔자는 모두", member(lv, "일호"));
         int one = member(lv, "일호").get("id").getAsInt();
         try { call(p, "/trail", "{\"token\":\"" + d2 + "\",\"id\":" + one + "}", T0); fail("다른 호차 지나온 길"); } catch (SecurityException e) { assertTrue(e.getMessage().contains("2호차")); }
