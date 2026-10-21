@@ -76,6 +76,8 @@ fetch("api/partners").then(function (r) { return r.json(); }).then(function (p) 
         if (++n < 7) return;
         n = 0;
         var k = prompt("운영자 - 통계 열쇠");
-        if (k && k.trim()) location.href = "stats?key=" + encodeURIComponent(k.trim());
+        // 카톡에 둔 주소 전체를 붙여도 key= 뒤만(2026-10-21 PC: 주소째 넣어 404)
+        var m = k && k.match(/[?&]key=([^&#\s]+)/), v = m ? decodeURIComponent(m[1]) : (k || "").replace(/\s+/g, "");
+        if (v) location.href = "stats?key=" + encodeURIComponent(v);
     });
 })();

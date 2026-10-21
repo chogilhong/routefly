@@ -39,16 +39,14 @@ public class StatsServlet extends HttpServlet {
             return;
         }
         String secure = req.isSecure() || "https".equalsIgnoreCase(req.getHeader("X-Forwarded-Proto")) ? "; Secure" : "";
-        if (byKey) {   // 열쇠를 쿠키로 바꾸고 열쇠 없는 주소로 다시
+        // 열쇠를 쿠키로 바꿈. 화면은 바로 주고 주소에서 열쇠는 js/stats.js 가 뺌 - 302 로 다시 보내면 앱(Capacitor)이 그 주소를 바깥 크롬으로 넘겨 404 였음(2026-10-21 PC)
+        if (byKey) {
             resp.addHeader("Set-Cookie", SEE_COOKIE + "=" + seeToken(want) + "; Max-Age=" + (30 * 24 * 3600) + "; Path=" + req.getContextPath() + "/stats; HttpOnly; SameSite=Strict" + secure);
-            resp.setHeader("Cache-Control", "no-store");
             resp.setHeader("Referrer-Policy", "no-referrer");
-            resp.sendRedirect(req.getContextPath() + "/stats");
         }
         // 운영자 기기 표시(2026-10-20 홍TV님 "우리가 접속한 것도 잡히지?") - 이 기기의 방문은 그 뒤로 세지 않음(StatsFilter). 2년.
         resp.addHeader("Set-Cookie", OWNER_COOKIE + "=1; Max-Age=" + (2 * 365 * 24 * 3600) + "; Path=" + (req.getContextPath().isEmpty() ? "/" : req.getContextPath())
                 + "; HttpOnly; SameSite=Lax" + secure);
-        if (byKey) return;
         resp.setContentType("text/html");
         resp.setCharacterEncoding(StandardCharsets.UTF_8.name());
         resp.setHeader("Cache-Control", "no-store");
@@ -160,7 +158,7 @@ public class StatsServlet extends HttpServlet {
                 .append(top("들어온 곳(" + last.size() + "일 - 바깥에서 처음 들어온 화면 수)", refs, 20, null))
                 .append(botTable(bots))
                 .append(GUIDE);
-        out.append("<p class=\"dim\">숫자만 셉니다 - 방문자는 그 날만 쓰는 해시로 겹침만 걸러 내고 IP 는 남기지 않습니다. 이 화면을 연 기기(브라우저)는 운영자로 보고 방문 수에서 뺍니다(2년, 사이트 데이터를 지우면 다시 셈). 앱(따라가기 앱)은 따로라 빠지지 않습니다.</p></main></body></html>");
+        out.append("<p class=\"dim\">숫자만 셉니다 - 방문자는 그 날만 쓰는 해시로 겹침만 걸러 내고 IP 는 남기지 않습니다. 이 화면을 연 기기(브라우저)는 운영자로 보고 방문 수에서 뺍니다(2년, 사이트 데이터를 지우면 다시 셈). 앱은 안내 화면 \"안내\" 제목을 7번 누르고 열쇠를 넣으면 빠집니다.</p></main><script src=\"js/stats.js\"></script></body></html>");
         return fold(out.toString());
     }
 

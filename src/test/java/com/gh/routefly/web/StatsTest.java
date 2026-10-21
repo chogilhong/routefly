@@ -60,6 +60,7 @@ public class StatsTest {
         String html = StatsServlet.page(days, 30, null);
         assertTrue(html.contains("로봇 5 (검색 4 · 시험 1)") && html.contains("로봇 종류"));
         assertTrue("방문 추세 · 날마다 · 모바일 PC 는 늘 펼침", html.contains("<section><h2>방문 추세") && html.contains("<section><h2>날마다</h2>") && html.contains("<section><h2>모바일 · PC 방문자"));
+        assertTrue("주소에서 열쇠를 빼는 스크립트(302 대신 - 앱이 바깥 크롬으로 넘겼음)", html.contains("<script src=\"js/stats.js\"></script>"));
         assertTrue("나머지는 처음엔 접힘(누르면 펼침)", html.contains("<details class=\"fold\"><summary><h2>로봇 종류") && !html.contains("class=\"fold\" open"));
     }
 
