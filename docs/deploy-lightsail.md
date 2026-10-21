@@ -862,7 +862,7 @@ CREATE TABLE IF NOT EXISTS party_track (
 GRANT INSERT ON routefly.party_track TO 'routefly_web'@'localhost';
 ```
 
-확인: 시험 방을 출발 → 1km 넘게 걷고(또는 PC 가짜 위치) → 방 끝내기 → `SELECT track_id, hike_date, points, dist_m, dur_s FROM party_track ORDER BY track_id DESC LIMIT 3;`.
+확인: 시험 방을 출발 → 2km 넘게 걷고(앞뒤 500m 를 빼고도 1km 가 남아야 넣음 - PartyTrack.CUT_M · MIN_M)(또는 PC 가짜 위치) → 방 끝내기 → `SELECT track_id, hike_date, points, dist_m, dur_s FROM party_track ORDER BY track_id DESC LIMIT 3;`.
 표나 권한이 없으면 웹 로그에 `[PARTY] 익명 자취를 DB 에 넣지 못함` 만 남고 방은 그대로 끝납니다.
 
 ## 14. 의견 보내기 메일 (2026-10-20)

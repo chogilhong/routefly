@@ -543,25 +543,30 @@
             return;
         }
         var tr = e.target.closest("tr[data-id]");
-        if (!tr || !state || !map) return;
+        if (!tr || !state) return;
         var m = (state.members || []).filter(function (x) { return String(x.id) === tr.getAttribute("data-id"); })[0];
-        if (m && m.lat != null) { map.easeTo({ center: [m.lon, m.lat], zoom: Math.max(map.getZoom(), 15) }); window.scrollTo({ top: $("mapBox").offsetTop - 70, behavior: "smooth" }); }
+        if (m && m.lat != null && map) { map.easeTo({ center: [m.lon, m.lat], zoom: Math.max(map.getZoom(), 15) }); window.scrollTo({ top: $("mapBox").offsetTop - 70, behavior: "smooth" }); }
         if (m && isStaff()) showTrail(m);
     });
 
     /** 인솔자 · 운전자 - 명단에서 누른 회원의 최근 2시간 지나온 길(조난 대비, 2026-10-21 홍TV님). 같은 줄을 다시 누르면 지움. */
-    var trailFor = null;
-    function showTrail(m) {
+    var trailFor = null, trailData = { type: "FeatureCollection", features: [] };
+    /** 지도가 아직 안 떴으면(산속 · 느린 망) 받아 두었다가 뜬 뒤 그림(2026-10-21 PC: 소스가 없으면 아무 반응이 없었음). */
+    function setTrail(fc) {
+        trailData = fc;
         var src = map && map.getSource("trail");
-        if (!src) return;
-        if (trailFor === m.id) { trailFor = null; src.setData({ type: "FeatureCollection", features: [] }); return; }
+        if (src) src.setData(fc);
+    }
+    function showTrail(m) {
+        if (trailFor === m.id) { trailFor = null; setTrail({ type: "FeatureCollection", features: [] }); roomMsg(""); return; }
         trailFor = m.id;
         RFParty.post("trail", { token: RFParty.get().token, id: m.id }).then(function (j) {
             if (trailFor !== m.id) return;
             var line = (j.path || []).map(function (q) { return [q[1], q[0]]; });
             if (m.lat != null) line.push([m.lon, m.lat]);
-            src.setData({ type: "FeatureCollection", features: line.length > 1 ? [{ type: "Feature", geometry: { type: "LineString", coordinates: line }, properties: {} }] : [] });
-            roomMsg(line.length > 1 ? m.nick + " 님이 최근 2시간 지나온 길(주황 선)입니다. 같은 줄을 다시 누르면 지웁니다." : m.nick + " 님의 지나온 길이 아직 없습니다(출발 뒤 걸은 길부터 남김).");
+            setTrail({ type: "FeatureCollection", features: line.length > 1 ? [{ type: "Feature", geometry: { type: "LineString", coordinates: line }, properties: {} }] : [] });
+            var wait = !(map && map.getSource("trail")) ? " 지도를 불러오는 중이라 뜨면 바로 그립니다." : "";
+            roomMsg(line.length > 1 ? m.nick + " 님이 최근 2시간 지나온 길(주황 선)입니다. 같은 줄을 다시 누르면 지웁니다." + wait : m.nick + " 님의 지나온 길이 아직 없습니다(출발 뒤 걸은 길부터 남김).");
         }).catch(actFail);
     }
 
@@ -743,7 +748,7 @@
             map.addControl(new maplibregl.ScaleControl({ maxWidth: 90 }), "bottom-left");
             map.addControl(new maplibregl.GeolocateControl({ positionOptions: { enableHighAccuracy: true }, trackUserLocation: true }), "bottom-right");
             map.once("load", function () {
-                map.addSource("trail", { type: "geojson", data: { type: "FeatureCollection", features: [] } });   // 회원 지나온 길(인솔자)
+                map.addSource("trail", { type: "geojson", data: trailData });   // 회원 지나온 길(인솔자)
                 map.addLayer({ id: "trail", type: "line", source: "trail", paint: { "line-color": "#ff922b", "line-width": 4, "line-opacity": 0.85 }, layout: { "line-cap": "round", "line-join": "round" } });
                 if (state) drawMap(state, true);
             });
