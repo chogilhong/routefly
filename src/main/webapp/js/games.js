@@ -82,6 +82,57 @@
     });
     function toX(clientX) { var r = cv.getBoundingClientRect(); return (clientX - r.left) * W / r.width; }
 
+    // ------------------------------------------------------------------ 소리(2026-10-21 홍TV님 "소리는 안 들려?") - 파일 없이 웹 오디오로 짧은 삐 소리. 🔊 단추로 끄고 켬(이 기기에 기억)
+    var SND_KEY = "rf-game-sound", soundOn = true, ac = null;
+    try { soundOn = localStorage.getItem(SND_KEY) !== "0"; } catch (e) { /* 켬 */ }
+    function soundBtn() { $("sound").textContent = soundOn ? "🔊" : "🔇"; $("sound").setAttribute("aria-label", soundOn ? T("소리 끄기", "Sound off") : T("소리 켜기", "Sound on")); }
+    function audio() {   // 폰은 누른 뒤에만 소리를 낼 수 있어 시작 · 단추를 누를 때 만듦
+        if (!ac) { var A = window.AudioContext || window.webkitAudioContext; if (!A) return null; try { ac = new A(); } catch (e) { return null; } }
+        if (ac.state === "suspended") ac.resume().catch(function () { /* 다음에 */ });
+        return ac;
+    }
+    /** 짧은 소리: [주파수, 길이(초), 파형, 끝 주파수, 크기] 를 차례로. */
+    function tone(seq) {
+        if (!soundOn || !ac || ac.state !== "running") return;
+        var t = ac.currentTime;
+        seq.forEach(function (n) {
+            var o = ac.createOscillator(), g = ac.createGain(), d = n[1], v = n[4] || 0.08;
+            o.type = n[2] || "square";
+            o.frequency.setValueAtTime(n[0], t);
+            if (n[3]) o.frequency.exponentialRampToValueAtTime(n[3], t + d);
+            g.gain.setValueAtTime(v, t);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+            o.connect(g); g.connect(ac.destination);
+            o.start(t); o.stop(t + d + 0.02);
+            t += d * 0.9;
+        });
+    }
+    var SFX = {
+        move: [[220, 0.03, "square", 0, 0.03]],
+        rotate: [[440, 0.05, "square", 660, 0.04]],
+        drop: [[180, 0.08, "triangle", 90, 0.1]],
+        line: [[523, 0.07], [659, 0.07], [784, 0.12]],
+        shot: [[880, 0.05, "square", 440, 0.025]],
+        boom: [[160, 0.18, "sawtooth", 40, 0.07]],
+        hurt: [[300, 0.12, "sawtooth", 80, 0.1], [150, 0.2, "sawtooth", 50, 0.1]],
+        eat: [[600, 0.05, "square", 900, 0.06]],
+        merge: [[392, 0.06, "triangle", 0, 0.1], [523, 0.08, "triangle", 0, 0.1]],
+        slide: [[260, 0.04, "triangle", 200, 0.05]],
+        bounce: [[330, 0.04, "square", 0, 0.05]],
+        brick: [[660, 0.05, "square", 880, 0.05]],
+        level: [[523, 0.08], [659, 0.08], [784, 0.08], [1047, 0.16]],
+        over: [[392, 0.15, "triangle"], [330, 0.15, "triangle"], [262, 0.3, "triangle"]]
+    };
+    function sfx(name) { if (SFX[name]) tone(SFX[name]); }
+    soundBtn();
+    $("sound").addEventListener("click", function () {
+        soundOn = !soundOn;
+        try { localStorage.setItem(SND_KEY, soundOn ? "1" : "0"); } catch (e) { /* 이번만 */ }
+        soundBtn();
+        if (soundOn) { audio(); setTimeout(function () { sfx("eat"); }, 30); }
+    });
+    document.addEventListener("pointerdown", function () { if (soundOn) audio(); }, { capture: true });
+
     // ------------------------------------------------------------------ 점수
     var BEST_KEY = "rf-game-best", bests = {};
     try { bests = JSON.parse(localStorage.getItem(BEST_KEY) || "{}") || {}; } catch (e) { bests = {}; }
@@ -123,6 +174,7 @@
     }
     function end(msg) {
         running = false;
+        sfx("over");
         game.draw();
         over((msg || T("끝!", "Game over!")) + "<br>" + T("점수 ", "Score ") + "<b>" + score + "</b>" + (score > 0 && score >= (bests[gameId] || 0) ? "<br>🏆 " + T("최고 점수!", "New best!") : ""), T("다시 하기", "Play again"));
     }
@@ -197,7 +249,7 @@
             cur.m.forEach(function (r, y) { r.forEach(function (v, x) { if (v && cur.y + y >= 0) grid[cur.y + y][cur.x + x] = cur.k; }); });
             var n = 0;
             for (var y = R - 1; y >= 0; y--) if (grid[y].every(function (v) { return v >= 0; })) { grid.splice(y, 1); grid.unshift(new Array(C).fill(-1)); n++; y++; }
-            if (n) { lines += n; setScore(score + [0, 100, 300, 500, 800][n] * level); level = 1 + Math.floor(lines / 10); }
+            if (n) { sfx(n >= 4 ? "level" : "line"); lines += n; setScore(score + [0, 100, 300, 500, 800][n] * level); level = 1 + Math.floor(lines / 10); }
             spawn();
         }
         function speed() { return Math.max(0.08, 0.8 - (level - 1) * 0.07); }
@@ -214,8 +266,8 @@
                     else if (k === "down") { if (!hit(cur, 0, 1)) { cur.y++; setScore(score + 1); } }
                     else if (k === "up" || k === "tap") {
                         var m = rot(cur.m);
-                        for (var kick = 0; kick < 4; kick++) { var d = [0, -1, 1, -2][kick]; if (!hit(cur, d, 0, m)) { cur.m = m; cur.x += d; break; } }
-                    } else if (k === "act") { var n = 0; while (!hit(cur, 0, 1)) { cur.y++; n++; } setScore(score + n * 2); lock(); t = 0; }
+                        for (var kick = 0; kick < 4; kick++) { var d = [0, -1, 1, -2][kick]; if (!hit(cur, d, 0, m)) { cur.m = m; cur.x += d; sfx("rotate"); break; } }
+                    } else if (k === "act") { var n = 0; while (!hit(cur, 0, 1)) { cur.y++; n++; } setScore(score + n * 2); sfx("drop"); lock(); t = 0; }
                 });
                 if (!running) return;
                 t += dt;
@@ -267,7 +319,7 @@
                 if (dragX != null) ship.x += Math.max(-sp * 1.6 * dt, Math.min(sp * 1.6 * dt, dragX - ship.x));
                 ship.x = Math.max(14, Math.min(W - 14, ship.x));
                 cool -= dt;
-                if (cool <= 0) { shots.push({ x: ship.x, y: ship.y - 14 }); cool = held.act ? 0.16 : 0.32; }
+                if (cool <= 0) { shots.push({ x: ship.x, y: ship.y - 14 }); cool = held.act ? 0.16 : 0.32; sfx("shot"); }
                 ps.forEach(function (k) { if (k === "act" && cool > 0.12) { shots.push({ x: ship.x, y: ship.y - 14 }); cool = 0.16; } });
                 shots.forEach(function (s) { s.y -= 420 * dt; });
                 shots = shots.filter(function (s) { return s.y > -10; });
@@ -292,7 +344,7 @@
                     foes.forEach(function (f) {
                         if (s.y > -5 && f.hp > 0 && Math.abs(s.x - f.x) < 13 && Math.abs(s.y - f.y) < 12) {
                             s.y = -99; f.hp--;
-                            if (f.hp <= 0) { boom(f.x, f.y, FC[f.kind]); setScore(score + (f.dive ? 2 : 1) * [50, 80, 150][f.kind]); }
+                            if (f.hp <= 0) { boom(f.x, f.y, FC[f.kind]); sfx("boom"); setScore(score + (f.dive ? 2 : 1) * [50, 80, 150][f.kind]); }
                         }
                     });
                 });
@@ -305,14 +357,14 @@
                         || foes.some(function (f) { return Math.abs(f.x - ship.x) < 16 && Math.abs(f.y - ship.y) < 14; });
                     if (hitMe) {
                         boom(ship.x, ship.y, "#38d9ea");
-                        lives--; inv = 2; bombs = [];
+                        lives--; inv = 2; bombs = []; sfx("hurt");
                         foes.forEach(function (f) { if (f.dive) { f.dive = 0; f.y = -20; } });
                         if (lives <= 0) { end(); return; }
                     }
                 }
                 booms.forEach(function (p) { p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt; });
                 booms = booms.filter(function (p) { return p.life > 0; });
-                if (!foes.length) { wave++; setScore(score + 500); newWave(); }
+                if (!foes.length) { wave++; setScore(score + 500); sfx("level"); newWave(); }
             },
             draw: function () {
                 clear("#05070b");
@@ -354,7 +406,7 @@
                 var h = { x: body[0].x + dir[0], y: body[0].y + dir[1] };
                 if (h.x < 0 || h.y < 0 || h.x >= N || h.y >= ROWS || body.some(function (b, i) { return i < body.length - 1 && b.x === h.x && b.y === h.y; })) { end(); return; }
                 body.unshift(h);
-                if (h.x === food.x && h.y === food.y) { setScore(score + 10); step = Math.max(0.07, step - 0.004); place(); } else body.pop();
+                if (h.x === food.x && h.y === food.y) { setScore(score + 10); sfx("eat"); step = Math.max(0.07, step - 0.004); place(); } else body.pop();
             },
             draw: function () {
                 clear();
@@ -387,6 +439,7 @@
             }
             if (!moved) return;
             setScore(score + gain);
+            sfx(gain ? "merge" : "slide");
             add();
             anim = 0.12;
             if (!won && g.indexOf(2048) >= 0) { won = true; }
@@ -443,7 +496,7 @@
                     if (ball.y < ball.r) { ball.y = ball.r; ball.vy = Math.abs(ball.vy); }
                     if (ball.vy > 0 && ball.y + ball.r >= pad.y - 4 && ball.y < pad.y + 6 && Math.abs(ball.x - pad.x) < pad.w / 2 + ball.r) {
                         var off = (ball.x - pad.x) / (pad.w / 2), spd = Math.hypot(ball.vx, ball.vy);
-                        ball.vx = spd * off * 0.85; ball.vy = -Math.sqrt(Math.max(spd * spd - ball.vx * ball.vx, spd * spd * 0.2));
+                        ball.vx = spd * off * 0.85; ball.vy = -Math.sqrt(Math.max(spd * spd - ball.vx * ball.vx, spd * spd * 0.2)); sfx("bounce");
                     }
                     for (var j = 0; j < bricks.length; j++) {
                         var b = bricks[j];
@@ -451,14 +504,15 @@
                             var ox = Math.min(ball.x + ball.r - b.x, b.x + BW - (ball.x - ball.r)), oy = Math.min(ball.y + ball.r - b.y, b.y + BH - (ball.y - ball.r));
                             if (ox < oy) ball.vx = -ball.vx; else ball.vy = -ball.vy;
                             b.hp--;
+                            sfx("brick");
                             setScore(score + (b.hp > 0 ? 5 : 20));
                             break;
                         }
                     }
                 }
                 bricks = bricks.filter(function (b) { return b.hp > 0; });
-                if (ball.y > H + 20) { lives--; if (lives <= 0) { end(); return; } serve(); }
-                if (!bricks.length) { stage++; setScore(score + 200); build(); serve(); }
+                if (ball.y > H + 20) { lives--; if (lives <= 0) { end(); return; } sfx("hurt"); serve(); }
+                if (!bricks.length) { stage++; setScore(score + 200); sfx("level"); build(); serve(); }
             },
             draw: function () {
                 clear();
