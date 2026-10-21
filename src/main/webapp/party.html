@@ -102,7 +102,8 @@ input.bad, .agree.bad { border-color:#ff6b6b !important; }
 #qrBox .qrStop { text-align:left; margin:0 0 8px; }
 #qrBox .qrStop label { color:#333; margin:0 0 4px; }
 #qrBox .qrStop select { background:#f1f3f5; color:#111; border-color:#ccc; }
-#list .kick { min-height:36px; min-width:36px; padding:0 6px; margin-left:4px; font-size:12px; border-radius:8px; color:#ff8787; }
+#list .kick { min-height:32px; min-width:32px; padding:0 6px; margin-left:6px; font-size:11px; border-radius:8px; color:#ff8787; opacity:0.8; }   /* 상태 칸 끝 - 이름을 누르다 잘못 눌리지 않게(2026-10-21) */
+#mapMsg { margin:6px 2px; color:#ffc078; }
 #list .undo { min-height:36px; padding:0 8px; margin-left:4px; font-size:12px; border-radius:8px; color:#8ce99a; }
 #busTabs button { flex:0 0 auto; min-height:36px; padding:0 12px; font-size:13.5px; }
 #busTabs button.on { background:var(--sky); color:#062026; border-color:var(--sky); }
@@ -262,6 +263,7 @@ a.tel { color:var(--sky); }
             </div>
             <p class="tip" id="hikerTip"></p>
         </section>
+        <div id="mapMsg" class="tip" role="status" aria-live="polite" hidden></div>   <!-- 지도에 그린 것 안내(지나온 길) - 방 위쪽 글은 지도로 내려오면 안 보였음(2026-10-21 PC) -->
         <div id="mapBox"><div id="map"></div></div>
         <section id="seatSec" hidden>
             <h2>🚌 좌석표 <small id="seatSum" style="font-weight:normal;color:var(--dim);font-size:13px"></small></h2>
@@ -273,12 +275,13 @@ a.tel { color:var(--sky); }
                     <button id="actBoard">출발 탑승</button>
                     <button id="actMove">💺 자리 옮기기</button>
                     <button id="actMap">🗺 지도</button>
+                    <button id="actTrail">🧭 지나온 길</button>
                     <button id="actKick" class="danger" hidden>🚫 내보내기</button>
                 </div>
                 <div class="two" id="actStopBox"><div><label for="actStop">탑승지 바꾸기</label><select id="actStop"></select></div><div></div></div>
             </div>
             <div id="stopSum" class="tip"></div>
-            <p class="tip">사람이 있는 자리를 누르면 메뉴(출발 탑승 · 자리 옮기기 · 지도 · 탑승지) · 빈자리를 누르면 <b>예약됨</b>(예약했는데 아직 참가 안 함) 표시를 켜고 끕니다.</p>
+            <p class="tip">사람이 있는 자리를 누르면 메뉴(출발 탑승 · 자리 옮기기 · 지도 · 지나온 길 · 탑승지) · 빈자리를 누르면 <b>예약됨</b>(예약했는데 아직 참가 안 함) 표시를 켜고 끕니다.</p>
             <div class="legend"><span class="s rsv">예약 · 미참가</span><span class="s join">참가</span><span class="s board">출발 탑승</span><span class="s cxl">취소</span><span class="s old">10분 소식 없음</span><span class="s sos">SOS</span><span class="s back">하산 탑승</span>
                 <a class="guideLink" href="party-guide.html#seat">📖 인솔자 사용법</a></div>
         </section>

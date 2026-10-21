@@ -523,9 +523,10 @@
         $("list").innerHTML = rows.map(function (m) {
             var cls = m.cancelled ? "aboard" : m.sos ? "sos" : m.aboard ? "aboard" : (s.departed && silent(m)) ? "old" : "";
             var st = m.cancelled ? "❌ 취소" : m.sos ? "🆘 SOS" : m.aboard ? "🚌 하산 탑승" : m.role === "driver" ? "운전" : m.boarded ? "✅ 탐" : s.departed ? "" : "안 탐";
-            return "<tr class=\"" + cls + "\" data-id=\"" + m.id + "\"><td>" + (m.role === "driver" ? busLabel(s, m.bus) || "-" : seatText(s, m)) + "</td><td>" + esc(m.nick) + (s.role === "lead" ? " <button type=\"button\" class=\"kick\" data-kick=\"" + m.id + "\" title=\"방에서 내보내기\" aria-label=\"" + esc(m.nick) + " 내보내기\">✕</button>" : "")
+            return "<tr class=\"" + cls + "\" data-id=\"" + m.id + "\"><td>" + (m.role === "driver" ? busLabel(s, m.bus) || "-" : seatText(s, m)) + "</td><td>" + esc(m.nick)
                 + (m.cancelled && m.role === "hiker" ? " <button type=\"button\" class=\"undo\" data-undo=\"" + m.id + "\" title=\"늦게 온 회원 - 취소 되돌리기\">↩ 탔음</button>" : "") + "</td><td>" + (m.aboard ? "-" : newsText(m)) + "</td><td>"
-                + (m.stillMin != null && m.ago != null ? m.stillMin + "분" : "-") + "</td><td>" + (m.batt != null ? m.batt + "%" : "-") + "</td><td>" + st + "</td></tr>";
+                + (m.stillMin != null && m.ago != null ? m.stillMin + "분" : "-") + "</td><td>" + (m.batt != null ? m.batt + "%" : "-") + "</td><td>" + st
+                + (s.role === "lead" ? " <button type=\"button\" class=\"kick\" data-kick=\"" + m.id + "\" title=\"방에서 내보내기\" aria-label=\"" + esc(m.nick) + " 내보내기\">✕</button>" : "") + "</td></tr>";
         }).join("") || "<tr><td colspan=\"6\">아직 참가한 회원이 없습니다. 참가 안내를 보내 주세요.</td></tr>";
         function rank(m) { return m.cancelled ? 6 : m.sos ? 0 : m.aboard ? 5 : (s.departed && silent(m)) ? 1 : (m.stillMin || 0) >= 15 ? 2 : 3; }
     }
@@ -548,7 +549,7 @@
         var tr = e.target.closest("tr[data-id]");
         if (!tr || !state) return;
         var m = (state.members || []).filter(function (x) { return String(x.id) === tr.getAttribute("data-id"); })[0];
-        if (m && m.lat != null && map) { map.easeTo({ center: [m.lon, m.lat], zoom: Math.max(map.getZoom(), 15) }); window.scrollTo({ top: $("mapBox").offsetTop - 70, behavior: "smooth" }); }
+        if (m && m.lat != null && map) { map.easeTo({ center: [m.lon, m.lat], zoom: Math.max(map.getZoom(), 15) }); window.scrollTo({ top: $("mapBox").offsetTop - (isStaff() ? 120 : 70), behavior: "smooth" }); }   // 인솔자 - 지도 위 안내 띠까지 보이게
         if (m && isStaff()) showTrail(m);
     });
 
@@ -560,8 +561,9 @@
         var src = map && map.getSource("trail");
         if (src) src.setData(fc);
     }
+    function mapMsg(t) { $("mapMsg").textContent = t || ""; $("mapMsg").hidden = !t; }
     function showTrail(m) {
-        if (trailFor === m.id) { trailFor = null; setTrail({ type: "FeatureCollection", features: [] }); roomMsg(""); return; }
+        if (trailFor === m.id) { trailFor = null; setTrail({ type: "FeatureCollection", features: [] }); mapMsg(""); return; }
         trailFor = m.id;
         RFParty.post("trail", { token: RFParty.get().token, id: m.id }).then(function (j) {
             if (trailFor !== m.id) return;
@@ -569,7 +571,7 @@
             if (m.lat != null) line.push([m.lon, m.lat]);
             setTrail({ type: "FeatureCollection", features: line.length > 1 ? [{ type: "Feature", geometry: { type: "LineString", coordinates: line }, properties: {} }] : [] });
             var wait = !(map && map.getSource("trail")) ? " 지도를 불러오는 중이라 뜨면 바로 그립니다." : "";
-            roomMsg(line.length > 1 ? m.nick + " 님이 최근 2시간 지나온 길(주황 선)입니다. 같은 줄을 다시 누르면 지웁니다." + wait : m.nick + " 님의 지나온 길이 아직 없습니다(출발 뒤 걸은 길부터 남김).");
+            mapMsg(line.length > 1 ? "🧭 " + m.nick + " 님이 최근 2시간 지나온 길(주황 선) - 같은 줄 · 단추를 다시 누르면 지웁니다." + wait : "🧭 " + m.nick + " 님의 지나온 길이 아직 없습니다(출발 뒤 걸은 길부터 남김).");
         }).catch(actFail);
     }
 
@@ -731,6 +733,13 @@
         var m = pickedMember();
         if (m && m.lat != null && map) { map.easeTo({ center: [m.lon, m.lat], zoom: Math.max(map.getZoom(), 15) }); window.scrollTo({ top: $("mapBox").offsetTop - 70, behavior: "smooth" }); }
         else roomMsg("아직 위치가 없습니다.");
+    });
+    $("actTrail").addEventListener("click", function () {   // 좌석표 메뉴에서도(2026-10-21 PC: 자리를 누르면 메뉴만 나와 헷갈렸음)
+        var m = pickedMember();
+        if (!m) return;
+        if (m.lat != null && map) map.easeTo({ center: [m.lon, m.lat], zoom: Math.max(map.getZoom(), 14) });
+        showTrail(m);
+        window.scrollTo({ top: $("mapBox").offsetTop - 120, behavior: "smooth" });   // 지도 위 안내 띠(mapMsg)까지 보이게 - 숨어 있으면 offsetTop 이 0
     });
     $("actStop").addEventListener("change", function () {
         var m = pickedMember(), p = RFParty.get();
