@@ -52,7 +52,7 @@ public class StatsTest {
         assertEquals(" (검색 1,200 · 기타 3)", StatsServlet.botLine(m));
         java.util.TreeMap<String, JsonObject> days = new java.util.TreeMap<>();
         days.put("2026-10-21", JsonParser.parseString("{\"pages\":{},\"uniq\":0,\"bots\":5,\"botKinds\":{\"검색\":4,\"시험\":1}}").getAsJsonObject());
-        String html = StatsServlet.page(days, 30);
+        String html = StatsServlet.page(days, 30, null);
         assertTrue(html.contains("로봇 5 (검색 4 · 시험 1)") && html.contains("로봇 종류"));
     }
 
@@ -65,7 +65,7 @@ public class StatsTest {
         TreeMap<String, JsonObject> days = new TreeMap<>();
         days.put("2026-10-14", JsonParser.parseString("{\"pages\":{\"/m/가야산\":3,\"/hike.html\":5},\"uniq\":4,\"bots\":2}").getAsJsonObject());
         days.put("2026-10-15", JsonParser.parseString("{\"pages\":{\"/m/가야산\":2,\"/m/<b>\":1},\"uniq\":2,\"bots\":0}").getAsJsonObject());
-        String h = StatsServlet.page(days, 30);
+        String h = StatsServlet.page(days, 30, null);
         assertTrue(h.contains("방문자(하루마다 센 수의 합) 6 · 화면 11"));
         assertTrue("인기 산 합", h.contains("<td>가야산</td><td>5</td>"));
         assertTrue("이름은 이스케이프", h.contains("&lt;b&gt;") && !h.contains("<td><b></td>"));
@@ -85,7 +85,7 @@ public class StatsTest {
         TreeMap<String, JsonObject> days = new TreeMap<>();
         days.put("2026-10-14", JsonParser.parseString("{\"pages\":{},\"uniq\":1,\"bots\":0,\"refs\":{\"네이버\":3}}").getAsJsonObject());
         days.put("2026-10-15", JsonParser.parseString("{\"pages\":{},\"uniq\":1,\"bots\":0,\"refs\":{\"네이버\":2,\"구글\":1}}").getAsJsonObject());
-        String h = StatsServlet.page(days, 30);
+        String h = StatsServlet.page(days, 30, null);
         assertTrue(h.contains("<td>네이버</td><td>5</td>") && h.contains("<td>구글</td><td>1</td>"));
     }
 
@@ -106,7 +106,7 @@ public class StatsTest {
         days.put("2026-10-19", JsonParser.parseString("{\"pages\":{\"/hike.html\":5},\"uniq\":4,\"bots\":0}").getAsJsonObject());
         days.put("2026-10-20", JsonParser.parseString("{\"pages\":{\"/hike.html\":9,\"/c/\":3},\"uniq\":5,\"bots\":1,"
                 + "\"dev\":{\"모바일\":8,\"PC\":4},\"devUniq\":{\"모바일\":3,\"PC\":2}}").getAsJsonObject());
-        String h = StatsServlet.page(days, 30);
+        String h = StatsServlet.page(days, 30, null);
         assertTrue("날마다 표 - 모바일 · PC 칸", h.contains("<tr><td>2026-10-20</td><td>5</td><td>3</td><td>2</td><td>12</td><td>1</td></tr>"));
         assertTrue("세기 전 날은 -", h.contains("<tr><td>2026-10-19</td><td>4</td><td>-</td><td>-</td>"));
         assertTrue("화면 이름 칸", h.contains("<td>/hike.html</td><td>따라가기</td><td>14</td>"));
@@ -130,7 +130,7 @@ public class StatsTest {
         assertEquals(1, StatsServlet.nice(1));
         assertEquals(500, StatsServlet.nice(301));
         assertEquals(1000, StatsServlet.nice(1000));
-        assertTrue("보기 화면에 들어감", StatsServlet.page(days, 30).contains("방문 추세"));
+        assertTrue("보기 화면에 들어감", StatsServlet.page(days, 30, null).contains("방문 추세"));
     }
 
     /** 운영자 기기(/stats 를 연 브라우저)는 방문 수에서 뺌(2026-10-20 홍TV님). */
@@ -140,5 +140,24 @@ public class StatsTest {
         assertTrue(StatsFilter.owner("rf-owner=1"));
         assertFalse(StatsFilter.owner(null));
         assertFalse(StatsFilter.owner("rf-owner=0; x-rf-owner=1"));
+    }
+
+    /** 인기 코스 상위 20 · 영어 산 표 · 보는 법(2026-10-21 홍TV님). */
+    @Test
+    public void coursesAndEnglishTable() {
+        assertEquals("frst-123", Stats.courseKey("/c/frst-123"));
+        assertNull(Stats.courseKey("/c/"));
+        assertNull(Stats.courseKey("/c/<x>"));
+        assertNull(Stats.courseKey("/m/가야산"));
+        TreeMap<String, JsonObject> days = new TreeMap<>();
+        days.put("2026-10-21", JsonParser.parseString("{\"pages\":{\"/c/\":5,\"/m/가야산\":2,\"/en/m/daeamsan\":3},\"uniq\":3,\"bots\":0,"
+                + "\"courses\":{\"frst-1\":4,\"kmp-9\":1}}").getAsJsonObject());
+        assertEquals(java.util.List.of("frst-1", "kmp-9"), StatsServlet.topCourses(days, 30, 20));
+        String h = StatsServlet.page(days, 30, java.util.Map.of("frst-1", "가야산 <해인사>"));
+        assertTrue(h.contains("인기 코스 상위 20") && h.contains("<a href=\"c/frst-1\">가야산 &lt;해인사&gt;</a>") && h.contains(">kmp-9</a>"));
+        int en = h.indexOf("인기 산 페이지 - 영어"), pagesAt = h.indexOf("화면별(");
+        assertTrue("영어 표에 daeamsan", en > 0 && h.indexOf("daeamsan", en) > en && h.indexOf("daeamsan", en) < pagesAt);
+        assertFalse("화면별 표에는 안 섞임", h.substring(pagesAt).contains("/en/m/daeamsan"));
+        assertTrue(h.contains("📖 통계 보는 법"));
     }
 }

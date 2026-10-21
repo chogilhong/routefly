@@ -17,7 +17,7 @@ public class TabIconTest {
 
     @Test
     public void statsPage() {
-        hasIcon(StatsServlet.page(new TreeMap<>(), 30), "./favicon.svg?v=2");   // /stats
+        hasIcon(StatsServlet.page(new TreeMap<>(), 30, null), "./favicon.svg?v=2");   // /stats
     }
 
     @Test

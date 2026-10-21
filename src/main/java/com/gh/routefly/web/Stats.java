@@ -48,6 +48,13 @@ final class Stats {
      * 순수 함수 - 셀 화면 이름. 산 페이지는 "/m/가야산", 화면 파일은 "/hike.html" 처럼, 공유 링크는 "/s/", 코스 페이지는 "/c/". 그 밖(api · js · 그림)은 null.
      * path 는 컨텍스트를 뺀 경로.
      */
+    /** 순수 함수 - 코스 소개 페이지(/c/<코스>)의 코스 번호, 아니면 null(2026-10-21 홍TV님 "인기 코스 상위 20"). */
+    static String courseKey(String path) {
+        if (path == null || !path.startsWith("/c/")) return null;
+        String id = path.substring(3);
+        return CourseQueries.validId(id) ? id : null;
+    }
+
     static String pageKey(String path) {
         if (path == null) return null;
         if (path.equals("/") || path.equals("/index.html")) return "/index.html";
@@ -60,7 +67,7 @@ final class Stats {
             return n.isEmpty() ? "/en/m/" : n.matches("[A-Za-z0-9-]{1,40}") ? "/en/m/" + n.toLowerCase() : null;
         }
         if (path.startsWith("/s/")) return "/s/";
-        if (path.startsWith("/c/")) return "/c/";   // 코스 소개 페이지(2026-10-19) - 코스마다 나누지 않고 한 줄로
+        if (path.startsWith("/c/")) return "/c/";   // 코스 소개 페이지(2026-10-19) - 화면별 표에는 한 줄로, 코스마다는 courseKey 로 따로(10-21)
         if (path.matches("/[a-z]+\\.html")) return path;
         return null;
     }
@@ -125,7 +132,7 @@ final class Stats {
     }
 
     /** 한 번 셈. ip 는 해시해 그 날 메모리에서만 견줌. src - 들어온 곳(source, null 이면 안 셈). */
-    static synchronized void hit(String page, String ip, String bot, String src, String device) {
+    static synchronized void hit(String page, String course, String ip, String bot, String src, String device) {
         load();
         String d = LocalDate.now(WeatherServlet.KST).toString();
         if (!d.equals(today)) {   // 날이 바뀜 - 어제 방문자 집합 · 소금은 버림
@@ -153,6 +160,10 @@ final class Stats {
                 if (!day.has("dev")) { day.add("dev", new JsonObject()); day.add("devUniq", new JsonObject()); }
                 add(day.getAsJsonObject("dev"), device);
                 if (first) add(day.getAsJsonObject("devUniq"), device);
+            }
+            if (course != null) {   // 코스 소개 페이지 - 코스마다(10-21 부터)
+                if (!day.has("courses")) day.add("courses", new JsonObject());
+                add(day.getAsJsonObject("courses"), course);
             }
             if (src != null) {
                 if (!day.has("refs")) day.add("refs", new JsonObject());

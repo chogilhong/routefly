@@ -42,10 +42,11 @@ public class StatsFilter extends HttpFilter {
     protected void doFilter(HttpServletRequest req, HttpServletResponse res, FilterChain chain) throws IOException, ServletException {
         chain.doFilter(req, res);
         if (!"GET".equals(req.getMethod()) || res.getStatus() >= 400 || !Stats.isPageView(req.getHeader("X-RF-Prefetch")) || owner(req.getHeader("Cookie"))) return;
-        String page = Stats.pageKey(req.getServletPath() + (req.getPathInfo() == null ? "" : req.getPathInfo()));
+        String path = req.getServletPath() + (req.getPathInfo() == null ? "" : req.getPathInfo());
+        String page = Stats.pageKey(path);
         if (page == null) return;
         String ip = SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For"));
         String ua = req.getHeader("User-Agent");
-        Stats.hit(page, ip, Stats.botKind(ua), Stats.source(req.getHeader("Referer"), req.getServerName()), Stats.device(ua));
+        Stats.hit(page, Stats.courseKey(path), ip, Stats.botKind(ua), Stats.source(req.getHeader("Referer"), req.getServerName()), Stats.device(ua));
     }
 }

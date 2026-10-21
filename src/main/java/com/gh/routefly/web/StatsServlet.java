@@ -40,7 +40,37 @@ public class StatsServlet extends HttpServlet {
         resp.setCharacterEncoding(StandardCharsets.UTF_8.name());
         resp.setHeader("Cache-Control", "no-store");
         resp.setHeader("X-Robots-Tag", "noindex");
-        resp.getWriter().print(page(Stats.days(), 30));
+        Map<String, JsonObject> days = Stats.days();
+        resp.getWriter().print(page(days, 30, courseNames(topCourses(days, 30, 20))));
+    }
+
+    /** 인기 코스 이름(DB) - 못 읽으면 빈 표(번호만 보임). */
+    private static Map<String, String> courseNames(List<String> ids) {
+        Map<String, String> out = new HashMap<>();
+        if (ids.isEmpty()) return out;
+        try (java.sql.Connection c = Db.open()) {
+            String marks = String.join(",", java.util.Collections.nCopies(ids.size(), "?"));
+            for (var e : Json.rows(c, "SELECT course_id, name FROM route_course WHERE course_id IN (" + marks + ")", ids.toArray())) {
+                JsonObject o = e.getAsJsonObject();
+                out.put(o.get("course_id").getAsString(), o.get("name").getAsString());
+            }
+        } catch (Exception e) {
+            // DB 가 없거나 막힘 - 번호만
+        }
+        return out;
+    }
+
+    /** 순수 함수 - 최근 n 일 코스 소개 페이지 많이 본 코스 번호 위에서 k 개. */
+    static List<String> topCourses(Map<String, JsonObject> days, int n, int k) {
+        Map<String, Integer> m = new HashMap<>();
+        List<String> keys = new ArrayList<>(days.keySet());
+        for (String d : keys.subList(Math.max(0, keys.size() - n), keys.size())) {
+            JsonObject o = days.get(d);
+            if (o.has("courses")) for (var e : o.getAsJsonObject("courses").entrySet()) m.merge(e.getKey(), e.getValue().getAsInt(), Integer::sum);
+        }
+        List<String> out = new ArrayList<>();
+        m.entrySet().stream().sorted((x, y) -> y.getValue() - x.getValue()).limit(k).forEach(e -> out.add(e.getKey()));
+        return out;
     }
 
     /** 순수 함수 - 열쇠가 설정돼 있고(12자 이상) 같을 때만(시간이 같은 견줌). */
@@ -50,10 +80,10 @@ public class StatsServlet extends HttpServlet {
     }
 
     /** 순수 함수 - 보기 화면(최근 n 일). */
-    static String page(Map<String, JsonObject> days, int n) {
+    static String page(Map<String, JsonObject> days, int n, Map<String, String> courseNames) {
         List<String> keys = new ArrayList<>(days.keySet());
         List<String> last = keys.subList(Math.max(0, keys.size() - n), keys.size());
-        Map<String, Integer> mountains = new HashMap<>(), pages = new HashMap<>(), refs = new HashMap<>(), devs = new HashMap<>(), bots = new HashMap<>();
+        Map<String, Integer> mountains = new HashMap<>(), enMountains = new HashMap<>(), courses = new HashMap<>(), pages = new HashMap<>(), refs = new HashMap<>(), devs = new HashMap<>(), bots = new HashMap<>();
         StringBuilder rows = new StringBuilder();
         int tu = 0, tp = 0, tb = 0;
         for (int i = last.size() - 1; i >= 0; i--) {
@@ -62,11 +92,15 @@ public class StatsServlet extends HttpServlet {
             for (Map.Entry<String, com.google.gson.JsonElement> e : d.getAsJsonObject("pages").entrySet()) {
                 int v = e.getValue().getAsInt();
                 views += v;
-                (e.getKey().startsWith("/m/") && e.getKey().length() > 3 ? mountains : pages).merge(e.getKey().startsWith("/m/") && e.getKey().length() > 3 ? e.getKey().substring(3) : e.getKey(), v, Integer::sum);
+                String k = e.getKey();
+                if (k.startsWith("/m/") && k.length() > 3) mountains.merge(k.substring(3), v, Integer::sum);
+                else if (k.startsWith("/en/m/") && k.length() > 6) enMountains.merge(k.substring(6), v, Integer::sum);   // 영어 산 페이지는 따로 표(2026-10-21)
+                else pages.merge(k, v, Integer::sum);
             }
             if (d.has("refs")) for (Map.Entry<String, com.google.gson.JsonElement> e : d.getAsJsonObject("refs").entrySet()) refs.merge(e.getKey(), e.getValue().getAsInt(), Integer::sum);
             int u = d.get("uniq").getAsInt(), b = d.get("bots").getAsInt();
             tu += u; tp += views; tb += b;
+            if (d.has("courses")) for (var e : d.getAsJsonObject("courses").entrySet()) courses.merge(e.getKey(), e.getValue().getAsInt(), Integer::sum);
             if (d.has("botKinds")) for (var e : d.getAsJsonObject("botKinds").entrySet()) bots.merge(e.getKey(), e.getValue().getAsInt(), Integer::sum);
             if (d.has("devUniq")) for (var e : d.getAsJsonObject("devUniq").entrySet()) devs.merge(e.getKey(), e.getValue().getAsInt(), Integer::sum);
             rows.append("<tr><td>").append(last.get(i)).append("</td><td>").append(u).append("</td><td>").append(dev(d, "모바일")).append("</td><td>").append(dev(d, "PC"))
@@ -79,12 +113,39 @@ public class StatsServlet extends HttpServlet {
         out.append(trend(days, n));
         out.append("<section><h2>날마다</h2><table class=\"st\"><tr><th>날짜</th><th>방문자</th><th>모바일</th><th>PC</th><th>화면</th><th>로봇</th></tr>").append(rows).append("</table></section>");
         out.append(top("모바일 · PC 방문자(" + last.size() + "일 - 10-20 부터 셈)", devs, 5, null))
-                .append(top("인기 산 페이지(" + last.size() + "일)", mountains, 20, null)).append(top("화면별(" + last.size() + "일)", pages, 20, StatsServlet::pageName))
+                .append(top("인기 산 페이지(" + last.size() + "일)", mountains, 20, null))
+                .append(top("인기 산 페이지 - 영어(" + last.size() + "일 - /en/m/, 외국 손님)", enMountains, 20, null))
+                .append(courseTable(courses, courseNames == null ? Map.of() : courseNames, last.size()))
+                .append(top("화면별(" + last.size() + "일)", pages, 20, StatsServlet::pageName))
                 .append(top("들어온 곳(" + last.size() + "일 - 바깥에서 처음 들어온 화면 수)", refs, 20, null))
-                .append(top("로봇 종류(" + last.size() + "일 - 10-21 부터 셈) - 검색: 구글 · 네이버 등 / 미리보기: 카톡 · 페이스북 링크 / 시험: curl · 점검 도구 / 기타: SEO · AI 수집기", bots, 4, null));
+                .append(top("로봇 종류(" + last.size() + "일 - 10-21 부터 셈) - 검색: 구글 · 네이버 등 / 미리보기: 카톡 · 페이스북 링크 / 시험: curl · 점검 도구 / 기타: SEO · AI 수집기", bots, 4, null))
+                .append(GUIDE);
         out.append("<p class=\"dim\">숫자만 셉니다 - 방문자는 그 날만 쓰는 해시로 겹침만 걸러 내고 IP 는 남기지 않습니다. 이 화면을 연 기기(브라우저)는 운영자로 보고 방문 수에서 뺍니다(2년, 사이트 데이터를 지우면 다시 셈). 앱(따라가기 앱)은 따로라 빠지지 않습니다.</p></main></body></html>");
         return out.toString();
     }
+
+    /** 순수 함수 - 인기 코스 상위 20(코스 소개 페이지 /c/<코스>, 10-21 부터 셈). 이름은 DB 에서(없으면 번호만), 누르면 그 코스 소개. */
+    static String courseTable(Map<String, Integer> m, Map<String, String> names, int days) {
+        StringBuilder b = new StringBuilder("<section><h2>인기 코스 상위 20(" + days + "일 - 코스 소개 페이지, 10-21 부터 셈)</h2><table class=\"st\">");
+        if (m.isEmpty()) return b.append("<tr><td>아직 없음</td></tr></table></section>").toString();
+        b.append("<tr><th>코스</th><th>번호</th><th>수</th></tr>");
+        m.entrySet().stream().sorted((x, y) -> y.getValue() - x.getValue()).limit(20).forEach(e -> b.append("<tr><td><a href=\"c/").append(ShareServlet.esc(e.getKey())).append("\">")
+                .append(ShareServlet.esc(names.getOrDefault(e.getKey(), e.getKey()))).append("</a></td><td>").append(ShareServlet.esc(e.getKey())).append("</td><td>").append(e.getValue()).append("</td></tr>"));
+        return b.append("</table></section>").toString();
+    }
+
+    /** 보는 법(2026-10-21 홍TV님 "설명자료도 추가") - 표마다 무엇을 세는지. */
+    static final String GUIDE = "<section><h2>📖 통계 보는 법</h2><ul>"
+            + "<li><b>방문자</b>: 그 날 들어온 사람 수(같은 사람은 하루 한 번). 여러 날을 더한 수라 같은 사람이 이틀 오면 2. <b>화면</b>: 연 화면 수.</li>"
+            + "<li><b>로봇</b>: 사람이 아닌 접속. 검색(구글 · 네이버 · 다음이 페이지를 읽어 감 - 검색에 나오려면 필요), 미리보기(카톡 · 페이스북에 링크를 붙일 때), "
+            + "시험(웹 · PC Claude 점검 도구), 기타(검색 순위 분석 · AI 수집기). 방문자 · 화면 수에는 안 들어감.</li>"
+            + "<li><b>인기 산 페이지</b>: 산 소개(/m/산이름) - 산마다. <b>영어</b> 표는 외국 손님용 영어 산 소개(/en/m/영문이름, 예: daeamsan = 대암산).</li>"
+            + "<li><b>인기 코스 상위 20</b>: 코스 하나짜리 소개(/c/코스번호 - 수천 개, 주로 네이버 · 구글 검색 손님) - 코스 이름을 누르면 그 페이지. "
+            + "화면별 표의 \"코스 소개 페이지(검색 손님)\" 는 이 페이지들을 모두 더한 한 줄.</li>"
+            + "<li><b>들어온 곳</b>: 바깥(네이버 · 구글 · 카톡 등)에서 처음 들어온 화면 수. 우리 화면끼리 옮겨 다닌 것은 안 셈.</li>"
+            + "<li><b>모바일 · PC</b>: 방문자를 기기로 나눔(10-20 부터).</li>"
+            + "<li>이 화면을 연 브라우저(운영자)는 세지 않습니다. 앱 · 다른 브라우저는 따로라 셉니다. 숫자는 서버가 지금 세는 것 그대로(10분마다 파일로 저장).</li>"
+            + "</ul></section>";
 
     /** 순수 함수 - "(검색 n · 미리보기 n · 시험 n · 기타 n)" - 나눠 센 날이 없으면 빈 글. */
     static String botLine(Map<String, Integer> bots) {
