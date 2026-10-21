@@ -34,6 +34,9 @@ main { padding:8px 10px calc(env(safe-area-inset-bottom) + 20px); max-width:520p
 #bar { display:flex; align-items:center; gap:8px; margin:10px 2px 6px; font-size:15px; }
 #bar b { color:var(--sky); }
 #bar .sp { flex:1; }
+#bar #level { font-weight:bold; }
+#bar #level.l1 { color:#ffa94d; border-color:#ffa94d; }
+#bar #level.l2 { color:#ff6b6b; border-color:#ff6b6b; }
 #bar button { height:38px; padding:0 14px; border-radius:10px; border:1px solid var(--ln); background:rgba(255,255,255,0.08); color:var(--tx); font-size:14px; cursor:pointer; }
 #stage { position:relative; display:flex; justify-content:center; }
 canvas { display:block; background:#0b0f14; border:1px solid var(--ln); border-radius:10px; touch-action:none; max-width:100%; }
@@ -72,7 +75,7 @@ canvas { display:block; background:#0b0f14; border:1px solid var(--ln); border-r
             <button data-g="flappy"><span class="e">🐦</span><span class="n">날아라 새</span></button>
         </div>
     </details>
-    <div id="bar"><span id="lblScore">점수</span> <b id="score">0</b><span class="sp"></span><span id="lblBest">최고</span> <b id="best">0</b><button id="sound" aria-label="소리">🔊</button><button id="pause">⏸</button></div>
+    <div id="bar"><span id="lblScore">점수</span> <b id="score">0</b><span class="sp"></span><span id="lblBest">최고</span> <b id="best">0</b><button id="level" aria-label="난이도">보통</button><button id="sound" aria-label="소리">🔊</button><button id="pause">⏸</button></div>
     <div id="stage">
         <canvas id="cv" width="300" height="480"></canvas>
         <div id="over"><div id="overText"></div><button id="startBtn">시작</button></div>

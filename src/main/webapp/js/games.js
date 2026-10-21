@@ -144,11 +144,20 @@
     var BEST_KEY = "rf-game-best", bests = {};
     try { bests = JSON.parse(localStorage.getItem(BEST_KEY) || "{}") || {}; } catch (e) { bests = {}; }
     var score = 0;
+    // 난이도(2026-10-21 홍TV님 "난이도가 높은 게임으로") - 0 보통 · 1 어려움 · 2 고수. 이 기기에 기억, 최고 점수는 단계마다 따로
+    var LV_KEY = "rf-game-level", D = 0;
+    try { D = Math.max(0, Math.min(2, +localStorage.getItem(LV_KEY) || 0)); } catch (e) { D = 0; }
+    function dv(a, b, c) { return [a, b, c][D]; }
+    function bestKey(id) { return id + (D ? ":" + D : ""); }
+    function levelBtn() {
+        $("level").textContent = [T("보통", "Normal"), T("어려움", "Hard"), T("고수", "Expert")][D];
+        $("level").className = "l" + D;
+    }
     function setScore(v) {
         score = v;
         $("score").textContent = v;
-        if (v > (bests[gameId] || 0)) {
-            bests[gameId] = v;
+        if (v > (bests[bestKey(gameId)] || 0)) {
+            bests[bestKey(gameId)] = v;
             $("best").textContent = v;
             try { localStorage.setItem(BEST_KEY, JSON.stringify(bests)); } catch (e) { /* 이번만 */ }
         }
@@ -183,7 +192,7 @@
         running = false;
         sfx("over");
         game.draw();
-        over((msg || T("끝!", "Game over!")) + "<br>" + T("점수 ", "Score ") + "<b>" + score + "</b>" + (score > 0 && score >= (bests[gameId] || 0) ? "<br>🏆 " + T("최고 점수!", "New best!") : ""), T("다시 하기", "Play again"));
+        over((msg || T("끝!", "Game over!")) + "<br>" + T("점수 ", "Score ") + "<b>" + score + "</b>" + (score > 0 && score >= (bests[bestKey(gameId)] || 0) ? "<br>🏆 " + T("최고 점수!", "New best!") : ""), T("다시 하기", "Play again"));
     }
     function togglePause() {
         if (!running) return;
@@ -210,17 +219,24 @@
         $("actBtn").hidden = !pad[4];
         $("actBtn").textContent = pad[4] || "";
         $("help").textContent = game.help;
-        $("best").textContent = bests[id] || 0;
+        $("best").textContent = bests[bestKey(id)] || 0;
+        levelBtn();
         $("score").textContent = 0;
         game.reset();
         game.draw();
         var nm = document.querySelector("#pick [data-g=" + id + "]"), label = nm.querySelector(".e").textContent + " " + nm.querySelector(".n").textContent;
         $("pickNow").textContent = label;
         $("pick").open = false;
-        over("<b>" + label + "</b><br><small style=\"color:var(--dim)\">" + game.help + "</small>", T("시작", "Start"));
+        over("<b>" + label + "</b> <small style=\"color:" + ["#4ade80", "#ffa94d", "#ff6b6b"][D] + "\">" + $("level").textContent + "</small><br><small style=\"color:var(--dim)\">" + game.help + "</small>", T("시작", "Start"));
         try { history.replaceState(null, "", "?g=" + id + (EN ? "&lang=en" : "")); } catch (e) { /* 그대로 */ }
     }
     Array.prototype.forEach.call(document.querySelectorAll("#pick button"), function (b) { b.addEventListener("click", function () { pick(b.getAttribute("data-g")); }); });
+    $("level").addEventListener("click", function () {   // 보통 → 어려움 → 고수 → 보통, 하던 판은 처음부터
+        D = (D + 1) % 3;
+        try { localStorage.setItem(LV_KEY, String(D)); } catch (e) { /* 이번만 */ }
+        pick(gameId);
+        sfx(D ? "level" : "move");
+    });
 
     // ------------------------------------------------------------------ 그리기 도움
     function clear(c) { cx.fillStyle = c || "#0b0f14"; cx.fillRect(0, 0, W, H); }
@@ -263,7 +279,7 @@
             if (n) { sfx(n >= 4 ? "level" : "line"); lines += n; setScore(score + [0, 100, 300, 500, 800][n] * level); level = 1 + Math.floor(lines / 10); }
             spawn();
         }
-        function speed() { return Math.max(0.08, 0.8 - (level - 1) * 0.07); }
+        function speed() { return Math.max(dv(0.08, 0.06, 0.04), dv(0.8, 0.45, 0.28) - (level - 1) * dv(0.07, 0.05, 0.03)); }   // 어려움 · 고수는 처음부터 빠름
         return {
             pad: [1, 1, 1, 1, T("떨구기", "Drop")],
             repeat: { left: 110, right: 110, down: 60 },
@@ -321,7 +337,7 @@
         return {
             pad: [1, 0, 0, 1, T("쏘기", "Fire")],
             help: T("◀ ▶ 또는 화면을 끌어 움직이기 · 총알은 저절로 나가요(쏘기 = 더 빨리). 적 비행기를 모두 맞히면 다음 판.", "◀ ▶ or drag to move · auto fire (Fire = faster). Clear every ship for the next wave."),
-            reset: function () { ship = { x: W / 2, y: H - 40 }; shots = []; bombs = []; booms = []; wave = 1; lives = 3; cool = 0; inv = 0; dragX = null; newWave(); },
+            reset: function () { ship = { x: W / 2, y: H - 40 }; shots = []; bombs = []; booms = []; wave = 1; lives = dv(3, 3, 2); cool = 0; inv = 0; dragX = null; newWave(); },
             drag: function (x) { dragX = x; },
             update: function (dt, ps) {
                 var sp = 220;
@@ -336,11 +352,11 @@
                 shots = shots.filter(function (s) { return s.y > -10; });
                 sway += dirX * 30 * dt;
                 if (Math.abs(sway) > 26) dirX = -dirX;
-                var diveRate = 0.25 + wave * 0.08;
+                var diveRate = (0.25 + wave * 0.08) * dv(1, 2, 3.2);
                 foes.forEach(function (f) {
                     f.t += dt;
                     if (f.dive) {
-                        f.y += (120 + wave * 10) * dt;
+                        f.y += (120 + wave * 10) * dv(1, 1.3, 1.6) * dt;
                         f.x += Math.sin(f.t * 3) * 110 * dt + (ship.x - f.x) * 0.6 * dt;
                         if (f.y > H + 20) { f.dive = 0; f.y = -20; }
                         if (Math.random() < 0.9 * dt) bombs.push({ x: f.x, y: f.y + 8 });
@@ -348,7 +364,7 @@
                         f.x += (f.hx + sway - f.x) * Math.min(1, 3 * dt);
                         f.y += (f.hy - f.y) * Math.min(1, 3 * dt);
                         if (Math.random() < diveRate * dt / foes.length * 3) f.dive = 1;
-                        if (Math.random() < 0.05 * wave * dt / Math.max(1, foes.length / 8)) bombs.push({ x: f.x, y: f.y + 8 });
+                        if (Math.random() < 0.05 * wave * dv(1, 2, 3.5) * dt / Math.max(1, foes.length / 8)) bombs.push({ x: f.x, y: f.y + 8 });
                     }
                 });
                 shots.forEach(function (s) {
@@ -360,7 +376,7 @@
                     });
                 });
                 foes = foes.filter(function (f) { return f.hp > 0; });
-                bombs.forEach(function (b) { b.y += (170 + wave * 8) * dt; });
+                bombs.forEach(function (b) { b.y += (170 + wave * 8) * dv(1, 1.3, 1.6) * dt; });
                 bombs = bombs.filter(function (b) { return b.y < H + 10; });
                 inv -= dt;
                 if (inv <= 0) {
@@ -407,7 +423,7 @@
         return {
             pad: [1, 1, 1, 1, 0],
             help: T("화면을 밀거나 ◀ ▲ ▼ ▶ 로 방향 바꾸기. 먹이를 먹으면 길어지고 빨라집니다. 벽 · 내 몸에 닿으면 끝.", "Swipe or ◀ ▲ ▼ ▶ to turn. Eat to grow and speed up. Don't hit the wall or yourself."),
-            reset: function () { body = [{ x: 5, y: 10 }, { x: 4, y: 10 }, { x: 3, y: 10 }]; dir = [1, 0]; nextDir = dir; t = 0; step = 0.16; place(); },
+            reset: function () { body = [{ x: 5, y: 10 }, { x: 4, y: 10 }, { x: 3, y: 10 }]; dir = [1, 0]; nextDir = dir; t = 0; step = dv(0.16, 0.11, 0.08); place(); },
             update: function (dt, ps) {
                 ps.forEach(function (k) { var d = D[k]; if (d && (d[0] !== -dir[0] || d[1] !== -dir[1])) nextDir = d; });
                 t += dt;
@@ -417,7 +433,7 @@
                 var h = { x: body[0].x + dir[0], y: body[0].y + dir[1] };
                 if (h.x < 0 || h.y < 0 || h.x >= N || h.y >= ROWS || body.some(function (b, i) { return i < body.length - 1 && b.x === h.x && b.y === h.y; })) { end(); return; }
                 body.unshift(h);
-                if (h.x === food.x && h.y === food.y) { setScore(score + 10); sfx("eat"); step = Math.max(0.07, step - 0.004); place(); } else body.pop();
+                if (h.x === food.x && h.y === food.y) { setScore(score + 10); sfx("eat"); step = Math.max(dv(0.07, 0.05, 0.04), step - dv(0.004, 0.004, 0.003)); place(); } else body.pop();
             },
             draw: function () {
                 clear();
@@ -432,7 +448,7 @@
     GAMES.g2048 = (function () {
         var g, won, P = 12, CS = (W - P * 5) / 4, OY = 90, anim;
         var COL = { 2: "#3b4656", 4: "#4a5568", 8: "#f08c00", 16: "#e8590c", 32: "#e03131", 64: "#c2255c", 128: "#ffd43b", 256: "#fcc419", 512: "#fab005", 1024: "#82c91e", 2048: "#38d9ea" };
-        function add() { var e = []; for (var i = 0; i < 16; i++) if (!g[i]) e.push(i); if (e.length) g[e[rnd(e.length)]] = Math.random() < 0.9 ? 2 : 4; }
+        function add() { var e = []; for (var i = 0; i < 16; i++) if (!g[i]) e.push(i); if (e.length) g[e[rnd(e.length)]] = Math.random() < dv(0.9, 0.7, 0.5) ? 2 : 4; }   // 어려움 · 고수는 4 가 자주
         function line(a) {   // 왼쪽으로 밀기 - [새 줄, 얻은 점수]
             var v = a.filter(Boolean), out = [], s = 0;
             for (var i = 0; i < v.length; i++) { if (v[i] === v[i + 1]) { out.push(v[i] * 2); s += v[i] * 2; i++; } else out.push(v[i]); }
@@ -489,7 +505,7 @@
         return {
             pad: [1, 0, 0, 1, T("발사", "Launch")],
             help: T("◀ ▶ 또는 화면을 끌어 받침대 움직이기 · 발사(또는 화면 누르기)로 공 쏘기. 벽돌을 모두 깨면 다음 판.", "◀ ▶ or drag to move · Launch (or tap) to serve. Break every brick for the next stage."),
-            reset: function () { pad = { x: W / 2, y: H - 28, w: 64 }; lives = 3; stage = 1; dragX = null; build(); serve(); },
+            reset: function () { pad = { x: W / 2, y: H - 28, w: dv(64, 52, 42) }; lives = dv(3, 3, 2); stage = 1; dragX = null; build(); serve(); },
             drag: function (x, down) { dragX = x; if (down === true && stuck) launch(); },
             update: function (dt, ps) {
                 var sp = 300;
@@ -535,12 +551,12 @@
                 if (stuck && running) text(T("발사 또는 화면을 누르세요", "Tap or Launch"), W / 2, H / 2 + 40, 15, "#9aa6b4");
             }
         };
-        function launch() { stuck = false; var s = 260 + stage * 20; ball.vx = (Math.random() - 0.5) * s * 0.6; ball.vy = -Math.sqrt(s * s - ball.vx * ball.vx); }
+        function launch() { stuck = false; var s = dv(260, 330, 400) + stage * dv(20, 25, 30); ball.vx = (Math.random() - 0.5) * s * 0.6; ball.vy = -Math.sqrt(s * s - ball.vx * ball.vx); }
     })();
 
     // ================================================================== 💣 지뢰찾기(2026-10-21 - 아래 다섯은 두 번째 묶음)
     GAMES.mines = (function () {
-        var C = 9, R = 12, S = 33, OX = (W - C * S) / 2, OY = 40, M = 15, cells, first, flagMode, opened, t0, done;
+        var C = 9, R = 12, S = 33, OX = (W - C * S) / 2, OY = 40, M, cells, first, flagMode, opened, t0, done;
         function at(x, y) { return x >= 0 && y >= 0 && x < C && y < R ? cells[y * C + x] : null; }
         function around(x, y, f) { for (var dy = -1; dy <= 1; dy++) for (var dx = -1; dx <= 1; dx++) if (dx || dy) { var c = at(x + dx, y + dy); if (c) f(c, x + dx, y + dy); } }
         function lay(sx, sy) {   // 처음 누른 칸과 그 둘레엔 지뢰를 두지 않음
@@ -559,7 +575,7 @@
             pad: [0, 0, 0, 0, T("🚩 깃발", "🚩 Flag")],
             onDown: true,
             help: T("칸을 눌러 열기. 숫자는 둘레 지뢰 수. 🚩 깃발 단추를 켜고 누르면 깃발 꽂기. 지뢰 아닌 칸을 다 열면 이김(빠를수록 점수).", "Tap to open. Numbers count nearby mines. Turn on 🚩 Flag to mark. Open every safe cell to win (faster = more points)."),
-            reset: function () { cells = []; for (var i = 0; i < C * R; i++) cells.push({ mine: false, n: 0, open: false, flag: false }); first = true; flagMode = false; opened = 0; t0 = 0; done = false; },
+            reset: function () { M = dv(15, 22, 30); cells = []; for (var i = 0; i < C * R; i++) cells.push({ mine: false, n: 0, open: false, flag: false }); first = true; flagMode = false; opened = 0; t0 = 0; done = false; },
             update: function (dt, ps) {
                 if (!done) t0 += dt;
                 ps.forEach(function (p) {
@@ -600,14 +616,14 @@
             onDown: true,
             repeat: {},
             help: T("화면을 누르거나 점프로 바위 · 나무를 뛰어넘기. 갈수록 빨라집니다.", "Tap or Jump over rocks and trees. It gets faster."),
-            reset: function () { p = { y: GY, vy: 0 }; obs = []; spd = 200; dist = 0; nextIn = 1; clouds = [{ x: 60, y: 80 }, { x: 220, y: 130 }]; },
+            reset: function () { p = { y: GY, vy: 0 }; obs = []; spd = dv(200, 270, 340); dist = 0; nextIn = 1; clouds = [{ x: 60, y: 80 }, { x: 220, y: 130 }]; },
             update: function (dt, ps) {
                 ps.forEach(function (k) { if (k === "act" || k === "up" || (k && k.x !== undefined)) jump(); });
                 p.vy += 1500 * dt; p.y = Math.min(GY, p.y + p.vy * dt);
                 if (p.y >= GY) p.vy = 0;
-                spd += 6 * dt; dist += spd * dt;
+                spd += dv(6, 10, 14) * dt; dist += spd * dt;
                 nextIn -= dt;
-                if (nextIn <= 0) { var tree = Math.random() < 0.4; obs.push({ x: W + 20, w: tree ? 18 : 26, h: tree ? 46 : 26, tree: tree }); nextIn = 0.9 + Math.random() * 1.1 - Math.min(0.5, spd / 1200); }
+                if (nextIn <= 0) { var tree = Math.random() < 0.4; obs.push({ x: W + 20, w: tree ? 18 : 26, h: tree ? 46 : 26, tree: tree }); nextIn = dv(0.9, 0.75, 0.62) + Math.random() * dv(1.1, 0.9, 0.7) - Math.min(0.5, spd / 1200); }
                 obs.forEach(function (o) { o.x -= spd * dt; });
                 obs = obs.filter(function (o) { return o.x > -40; });
                 clouds.forEach(function (c) { c.x -= spd * 0.2 * dt; if (c.x < -60) c.x = W + 40; });
@@ -643,8 +659,8 @@
                 spawnIn -= dt;
                 if (spawnIn <= 0) {
                     var free = holes.filter(function (h) { return h.t <= 0; });
-                    if (free.length) { var h = free[rnd(free.length)]; h.t = Math.max(0.55, 1.2 - (30 - left) * 0.02); h.bomb = Math.random() < 0.15; }
-                    spawnIn = Math.max(0.3, 0.8 - (30 - left) * 0.015);
+                    if (free.length) { var h = free[rnd(free.length)]; h.t = Math.max(dv(0.55, 0.4, 0.3), dv(1.2, 0.85, 0.6) - (30 - left) * 0.02); h.bomb = Math.random() < dv(0.15, 0.25, 0.35); }
+                    spawnIn = Math.max(dv(0.3, 0.22, 0.16), dv(0.8, 0.6, 0.45) - (30 - left) * 0.015);
                 }
                 ps.forEach(function (p) {
                     if (!p || p.x === undefined) return;
@@ -687,6 +703,8 @@
             },
             update: function (dt, ps) {
                 t0 += dt;
+                var lim = dv(0, 75, 50);   // 어려움 75초 · 고수 50초 안에
+                if (lim && t0 >= lim) { end(T("시간 끝!", "Time's up!")); return; }
                 if (wait > 0) { wait -= dt; if (wait <= 0) { openIdx.forEach(function (i) { cards[i].up = false; }); openIdx = []; } return; }
                 ps.forEach(function (p) {
                     if (!p || p.x === undefined || openIdx.length >= 2) return;
@@ -702,13 +720,13 @@
                             a.done = b.done = true; openIdx = []; pairs++; sfx("merge");
                             setScore(Math.max(0, pairs * 100 - moves * 5));
                             if (pairs === EM.length) { setScore(score + Math.max(0, 600 - Math.round(t0) * 5)); sfx("level"); end(T("🎉 다 맞췄어요! ", "🎉 All matched! ") + moves + T("번 만에", " moves")); }
-                        } else wait = 0.7;
+                        } else wait = dv(0.7, 0.45, 0.3);
                     }
                 });
             },
             draw: function () {
                 clear();
-                text(T("뒤집은 수 ", "Moves ") + moves + "   ⏱ " + Math.floor(t0) + T("초", "s"), W / 2, 30, 15, "#9aa6b4");
+                text(T("뒤집은 수 ", "Moves ") + moves + "   ⏱ " + (dv(0, 75, 50) ? Math.max(0, Math.ceil(dv(0, 75, 50) - t0)) + T("초 남음", "s left") : Math.floor(t0) + T("초", "s")), W / 2, 30, 15, dv(0, 75, 50) && dv(0, 75, 50) - t0 < 10 ? "#ff6b6b" : "#9aa6b4");
                 cards.forEach(function (cd, i) {
                     var x = OX + (i % CO) * CW + 3, y = OY + Math.floor(i / CO) * CH + 3;
                     rect(x, y, CW - 6, CH - 6, cd.done ? "#1f3a2a" : cd.up ? "#eef2f7" : "#3b4656");
@@ -721,19 +739,19 @@
 
     // ================================================================== 🐦 날아라 새
     GAMES.flappy = (function () {
-        var b, pipes, nextIn, GAP = 150, PW = 52;
+        var b, pipes, nextIn, GAP, PW = 52;
         function flap() { b.vy = -330; sfx("rotate"); }
         return {
             pad: [0, 0, 0, 0, T("날기", "Flap")],
             onDown: true,
             help: T("화면을 누르거나 날기로 날갯짓. 봉우리 사이 틈을 지나가세요.", "Tap or Flap to fly. Pass through the gaps between the peaks."),
-            reset: function () { b = { y: H / 2, vy: 0 }; pipes = []; nextIn = 0.6; },
+            reset: function () { b = { y: H / 2, vy: 0 }; pipes = []; nextIn = 0.6; GAP = dv(150, 128, 112); },
             update: function (dt, ps) {
                 ps.forEach(function (k) { if (k === "act" || k === "up" || (k && k.x !== undefined)) flap(); });
                 b.vy += 900 * dt; b.y += b.vy * dt;
                 nextIn -= dt;
-                if (nextIn <= 0) { pipes.push({ x: W + 10, gy: 110 + rnd(H - 260), passed: false }); nextIn = 1.5; }
-                pipes.forEach(function (p) { p.x -= 140 * dt; if (!p.passed && p.x + PW < 70) { p.passed = true; setScore(score + 1); sfx("eat"); } });
+                if (nextIn <= 0) { pipes.push({ x: W + 10, gy: 110 + rnd(H - 260), passed: false }); nextIn = dv(1.5, 1.3, 1.15); }
+                pipes.forEach(function (p) { p.x -= dv(140, 170, 200) * dt; if (!p.passed && p.x + PW < 70) { p.passed = true; setScore(score + 1); sfx("eat"); } });
                 pipes = pipes.filter(function (p) { return p.x > -PW; });
                 var hit = b.y < 0 || b.y > H - 20 || pipes.some(function (p) { return 70 + 12 > p.x && 70 - 12 < p.x + PW && (b.y - 10 < p.gy || b.y + 10 > p.gy + GAP); });
                 if (hit) { sfx("hurt"); end(); }
