@@ -325,8 +325,10 @@
     function refresh() {
         var p = RFParty.get();
         if (!p) { location.href = EXIT; return; }
+        if (document.hidden && !isStaff()) return;   // 회원 - 화면을 안 볼 때는 방 새로 받기를 쉼(위치 · 켜짐을 보낼 때 답으로 공지가 옴). 인솔자 · 운전자는 SOS 를 놓치지 않게 그대로
         RFParty.post("view", { token: p.token }).then(render).catch(fail);
     }
+    document.addEventListener("visibilitychange", function () { if (!document.hidden && state && !leaving) refresh(); });   // 다시 보면 바로 새로
 
     /** 나가기 - 위치를 멈추고 산 모음으로. */
     // ------------------------------------------------------------------ 앱 - 화면을 꺼도 위치(2026-10-20 홍TV님 "앱을 설치하면 문제 없는 거네")

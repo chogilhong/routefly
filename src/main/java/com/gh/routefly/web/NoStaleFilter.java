@@ -15,7 +15,7 @@ import jakarta.servlet.http.HttpServletResponse;
  * 바뀌지 않았으면 304 로 짧게 답하므로 느려지지 않습니다. MapLibre(vendor/)는 바뀌지 않으니 그대로 둡니다.
  * data/(series.json · mountains100.json)도 - 2026-10-12 PC: 머리글이 없어 브라우저가 짐작으로 예전 것을 써서 점봉산 안내가 안 보였음.
  */
-@WebFilter(urlPatterns = {"/", "*.html", "*.js", "*.css", "/manifest.json", "/data/*"})
+@WebFilter(urlPatterns = {"/", "*.html", "*.js", "*.css", "/manifest.json", "/data/*", "/img/*"})
 public class NoStaleFilter extends HttpFilter {
 
     private static final long serialVersionUID = 1L;
@@ -24,6 +24,8 @@ public class NoStaleFilter extends HttpFilter {
     protected void doFilter(HttpServletRequest req, HttpServletResponse res, FilterChain chain) throws IOException, ServletException {
         // vendor/ 는 폴더 이름에 판(maplibre-gl-5.24.0)이 있어 바뀌지 않음 - 1년 그대로 써도 됨(2026-10-11 오픈 전 점검: 예전엔 머리글이 없어 브라우저가 짐작)
         if (req.getRequestURI().contains("/vendor/")) res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        // img/(아이콘 · 로고 · og)는 하루 - 예전엔 머리글이 없어 화면마다 다시 물었음(2026-10-21 원스토어 전 점검). 바꾸면 하루 안에 퍼짐
+        else if (req.getRequestURI().contains("/img/")) res.setHeader("Cache-Control", "public, max-age=86400");
         else res.setHeader("Cache-Control", "no-cache");
         chain.doFilter(req, res);
     }

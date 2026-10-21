@@ -213,7 +213,7 @@ server_tokens off;            # 응답에 nginx 판 번호를 넣지 않음
 # gzip on 은 Ubuntu 기본 /etc/nginx/nginx.conf 에 이미 있어 여기 다시 쓰면 "duplicate" 로 nginx -t 실패(2026-10-19 서버)
 gzip_proxied any;
 gzip_min_length 1024;
-gzip_types application/javascript text/javascript text/css image/svg+xml application/manifest+json;
+gzip_types application/javascript text/javascript text/css image/svg+xml application/manifest+json application/json;   # application/json - data/*.json(산 안내 31KB 등, 2026-10-21 점검)
 gzip_vary on;
 # 접속 기록에는 주소의 ?뒤(코스 검색어 · 지도 범위 - "내 주변 코스" 는 내 둘레 약 1km 칸)를 남기지 않음 - 개인정보처리방침(privacy.html)과 맞춤.
 # 기록은 logrotate 기본(14일)으로 지워짐

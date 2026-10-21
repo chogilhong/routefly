@@ -57,3 +57,5 @@
 .rf-legend i { font-style:normal; display:inline-flex; align-items:center; gap:4px; }
 .rf-legend i::before { content:""; width:18px; height:5px; border-radius:3px; background:var(--c); }
 .lv.nmLv { flex:0 0 auto; }   /* 따라가기 "다음 지점" 줄 오른쪽 난이도(2026-10-18 - 제목 칸은 좁아 옮김) */
+/* 자판(Tab) · 외부 자판으로 움직일 때 지금 칸이 보이게(2026-10-21 원스토어 전 점검 - 손가락으로 누를 때는 안 나옴) */
+:focus-visible { outline: 2px solid #4dabf7; outline-offset: 2px; }

@@ -18,6 +18,7 @@ import com.google.gson.JsonObject;
 
 /**
  * 운영 통계 보기. {@code GET /stats?key=…} - 설정 {@code stats.key}(12자 이상)와 같을 때만, 아니면 404. 2026-10-15 홍TV님.
+ * 맞으면 보기 쿠키(30일)를 주고 {@code /stats} 로 다시 보냄 - 그 뒤 30일은 {@code /stats} 만 열어도 됨.
  * 최근 30일 날마다 방문자 · 화면 수 · 로봇, 30일 인기 산 페이지 20곳, 화면별 수. 검색 엔진에 안 나오게(noindex).
  */
 @WebServlet(urlPatterns = {"/stats"})
@@ -26,16 +27,28 @@ public class StatsServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
     /** 운영자 기기 쿠키 이름 - 있으면 방문 수에 안 셈. */
     static final String OWNER_COOKIE = "rf-owner";
+    /** 보기 쿠키 - ?key= 로 한 번 들어오면 이것으로 바꾸고 주소에서 열쇠를 뺌(2026-10-21 점검: 방문 기록 · 화면 공유에 열쇠가 남았음). 30일. */
+    static final String SEE_COOKIE = "rf-stats";
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        if (!allowed(RouteflyConfig.get("stats.key"), req.getParameter("key"))) {
+        String want = RouteflyConfig.get("stats.key");
+        boolean byKey = allowed(want, req.getParameter("key"));
+        if (!byKey && !allowed(want == null ? null : seeToken(want), cookie(req, SEE_COOKIE))) {
             resp.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
+        String secure = req.isSecure() || "https".equalsIgnoreCase(req.getHeader("X-Forwarded-Proto")) ? "; Secure" : "";
+        if (byKey) {   // 열쇠를 쿠키로 바꾸고 열쇠 없는 주소로 다시
+            resp.addHeader("Set-Cookie", SEE_COOKIE + "=" + seeToken(want) + "; Max-Age=" + (30 * 24 * 3600) + "; Path=" + req.getContextPath() + "/stats; HttpOnly; SameSite=Strict" + secure);
+            resp.setHeader("Cache-Control", "no-store");
+            resp.setHeader("Referrer-Policy", "no-referrer");
+            resp.sendRedirect(req.getContextPath() + "/stats");
+        }
         // 운영자 기기 표시(2026-10-20 홍TV님 "우리가 접속한 것도 잡히지?") - 이 기기의 방문은 그 뒤로 세지 않음(StatsFilter). 2년.
         resp.addHeader("Set-Cookie", OWNER_COOKIE + "=1; Max-Age=" + (2 * 365 * 24 * 3600) + "; Path=" + (req.getContextPath().isEmpty() ? "/" : req.getContextPath())
-                + "; HttpOnly; SameSite=Lax" + (req.isSecure() || "https".equalsIgnoreCase(req.getHeader("X-Forwarded-Proto")) ? "; Secure" : ""));
+                + "; HttpOnly; SameSite=Lax" + secure);
+        if (byKey) return;
         resp.setContentType("text/html");
         resp.setCharacterEncoding(StandardCharsets.UTF_8.name());
         resp.setHeader("Cache-Control", "no-store");
@@ -74,6 +87,24 @@ public class StatsServlet extends HttpServlet {
     }
 
     /** 순수 함수 - 열쇠가 설정돼 있고(12자 이상) 같을 때만(시간이 같은 견줌). */
+    /** 순수 함수 - 보기 쿠키 값(열쇠 자체가 아니라 열쇠의 SHA-256 - 쿠키가 새어도 열쇠는 안 나옴). 열쇠를 바꾸면 옛 쿠키는 안 맞음. */
+    static String seeToken(String key) {
+        try {
+            byte[] h = MessageDigest.getInstance("SHA-256").digest(("rf-stats:" + key).getBytes(StandardCharsets.UTF_8));
+            StringBuilder b = new StringBuilder();
+            for (byte x : h) b.append(String.format("%02x", x));
+            return b.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private static String cookie(HttpServletRequest req, String name) {
+        if (req.getCookies() == null) return null;
+        for (jakarta.servlet.http.Cookie c : req.getCookies()) if (name.equals(c.getName())) return c.getValue();
+        return null;
+    }
+
     static boolean allowed(String want, String got) {
         if (want == null || want.length() < 12 || got == null) return false;
         return MessageDigest.isEqual(want.getBytes(StandardCharsets.UTF_8), got.getBytes(StandardCharsets.UTF_8));

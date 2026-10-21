@@ -102,8 +102,8 @@ input.bad, .agree.bad { border-color:#ff6b6b !important; }
 #qrBox .qrStop { text-align:left; margin:0 0 8px; }
 #qrBox .qrStop label { color:#333; margin:0 0 4px; }
 #qrBox .qrStop select { background:#f1f3f5; color:#111; border-color:#ccc; }
-#list .kick { min-height:28px; min-width:28px; padding:0 6px; margin-left:4px; font-size:12px; border-radius:8px; color:#ff8787; }
-#list .undo { min-height:28px; padding:0 8px; margin-left:4px; font-size:12px; border-radius:8px; color:#8ce99a; }
+#list .kick { min-height:36px; min-width:36px; padding:0 6px; margin-left:4px; font-size:12px; border-radius:8px; color:#ff8787; }
+#list .undo { min-height:36px; padding:0 8px; margin-left:4px; font-size:12px; border-radius:8px; color:#8ce99a; }
 #busTabs button { flex:0 0 auto; min-height:36px; padding:0 12px; font-size:13.5px; }
 #busTabs button.on { background:var(--sky); color:#062026; border-color:var(--sky); }
 .s.drv { border:0; cursor:default; font-size:16px; }
@@ -206,7 +206,7 @@ a.tel { color:var(--sky); }
                 방을 만들면 참가 링크(방 코드 · 출발 · 인솔자 안내 글)를 카톡 · 문자로 예약한 회원에게 보내세요.</p>
             <button id="mkBtn" class="main">방 만들기</button>
         </section>
-        <div id="msg"></div>
+        <div id="msg" role="status" aria-live="polite"></div>
     </div>
 
     <div id="room" hidden>
@@ -300,7 +300,7 @@ a.tel { color:var(--sky); }
                 <button id="leaveBtn" class="danger">방 나가기</button>
                 <button id="endBtn" class="danger" hidden>방 끝내기 (산행 끝 - 모두의 위치 지움)</button>
             </div>
-            <div id="roomMsg" class="tip"></div>
+            <div id="roomMsg" class="tip" role="status" aria-live="polite"></div>
         </section>
     </div>
     <!-- 현장 참가 QR(2026-10-20 홍TV님 "카톡 확인 없이 사당 출발장소로 왔어") - 인솔자 폰을 회원 폰 카메라에 비춤 -->

@@ -60,6 +60,9 @@ public class StatsTest {
     public void keyAndPage() {
         assertFalse("설정이 없으면 닫힘", StatsServlet.allowed(null, "x"));
         assertFalse("짧은 열쇠는 안 받음", StatsServlet.allowed("short", "short"));
+        assertEquals("보기 쿠키는 64자 hex", 64, StatsServlet.seeToken("abcdefghijkl").length());
+        assertFalse("쿠키에 열쇠가 그대로 들지 않음", StatsServlet.seeToken("abcdefghijkl").contains("abcdefghijkl"));
+        assertNotEquals("열쇠를 바꾸면 옛 쿠키는 안 맞음", StatsServlet.seeToken("abcdefghijkl"), StatsServlet.seeToken("abcdefghijkx"));
         assertTrue(StatsServlet.allowed("abcdefghijkl", "abcdefghijkl"));
         assertFalse(StatsServlet.allowed("abcdefghijkl", "abcdefghijkx"));
         TreeMap<String, JsonObject> days = new TreeMap<>();

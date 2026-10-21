@@ -12,7 +12,7 @@ var TILE_KEEP = 1500;   // 지나가며 본 타일은 이만큼만 남깁니다(
 // 오프라인 저장한 코스는 OFFLINE 캐시에 따로 있어 지워지지 않습니다.
 var API_KEEP = 300;
 
-var SHELL_FILES = ["hike.html", "about.html", "park.html", "js/park.js", "route.html", "js/route.js", "series.html", "js/series.js", "data/series.json", "data/mountains100.json", "./", "css/course-kit.css", "js/course-kit.js", "js/hike.js", "js/party-kit.js", "js/app.js", "js/early.js", "js/sw-reg.js", "js/about.js", "js/onboard.js", "js/root-go.js", "privacy.html", "anbu.html", "js/anbu.js", "tools.html", "js/tools.js",
+var SHELL_FILES = ["hike.html", "about.html", "park.html", "js/park.js", "route.html", "js/route.js", "series.html", "js/series.js", "data/series.json", "data/mountains100.json", "data/park-notes.json", "./", "css/course-kit.css", "js/course-kit.js", "js/hike.js", "js/party-kit.js", "js/app.js", "js/early.js", "js/sw-reg.js", "js/about.js", "js/onboard.js", "js/root-go.js", "privacy.html", "anbu.html", "js/anbu.js", "tools.html", "js/tools.js",
     "vendor/maplibre-gl-5.24.0/maplibre-gl.js", "vendor/maplibre-gl-5.24.0/maplibre-gl.css", "favicon.svg", "manifest.json",
     "img/icon-192.png", "img/icon-512.png"];
 

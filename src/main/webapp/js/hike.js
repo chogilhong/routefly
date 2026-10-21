@@ -724,8 +724,13 @@
     }, 30000);
 
     // 목록 이름에도 산 안내(park-notes)의 바로잡은 탐방로 이름 - 한 번 받아 둠(못 받으면 그대로)
-    var listNotes = null;
-    fetch("data/park-notes.json").then(function (x) { return x.json(); }).then(function (d) { listNotes = d && d.parks; }).catch(function () { /* 그대로 */ });
+    var listNotes = null, jsonP = {};
+    /** 같은 자료(산 안내 · 100대 명산)는 한 번만 받아 나눠 씀(2026-10-21 점검 - 코스를 고를 때마다 다시 받았음). 실패하면 다음에 다시. */
+    function jsonOnce(url) {
+        return jsonP[url] || (jsonP[url] = fetch(url).then(function (x) { if (!x.ok) throw new Error(x.status); return x.json(); })
+            .catch(function (e) { delete jsonP[url]; throw e; }));
+    }
+    jsonOnce("data/park-notes.json").then(function (d) { listNotes = d && d.parks; }).catch(function () { /* 그대로 */ });
 
     var loadSeq = 0;   // 2026-10-09 점검: A 를 누르고 바로 B 를 누르면 늦게 온 A 가 B 를 덮지 않게
     // ☆ 찜(2026-10-15 홍TV님) - 위 줄 코스 이름 옆. 찜한 코스는 따라가기 첫 화면(검색 전)에 모아 보임. 이 기기에만(rf-fav)
@@ -759,7 +764,7 @@
         var got = parts ? Promise.all(parts.map(function (p) { return getJson("api/course?id=" + encodeURIComponent(p.base)); }))
             : isGpxId(id) ? storedGpx(id) : getJson("api/course?id=" + encodeURIComponent(id));
         // 산 안내(park-notes)를 먼저 받아 이름을 바로잡은 탐방로는 그 이름으로(들머리 · 날머리 이름표 - 설악산 "대청봉코스(백담)" → 백담사 → 소청봉)
-        var notesP = fetch("data/park-notes.json").then(function (x) { return x.json(); }).then(function (d) { return d && d.parks; }).catch(function () { return null; });
+        var notesP = jsonOnce("data/park-notes.json").then(function (d) { return d && d.parks; }).catch(function () { return null; });
         return Promise.all([got, mapReady, notesP]).then(function (r) {
             if (my !== loadSeq) return;   // 그 사이 다른 코스를 골랐음
             var fix = function (cid, j) {
@@ -837,7 +842,7 @@
             var noteOf = RF.parkOf(c.course.name) || RF.mountainOf(c.course.name, id) || RF.parkOf(rawNames[0] || "") || RF.mountainOf(rawNames[0] || "", id);
             rules = null;
             $("access").hidden = true;
-            if (noteOf) fetch("data/park-notes.json").then(function (x) { return x.json(); }).then(function (d) {
+            if (noteOf) jsonOnce("data/park-notes.json").then(function (d) {
                 var n = d && d.parks && d.parks[noteOf];
                 if (!n || my !== loadSeq) return;
                 // 공단 교통편(park-notes access - 2026-10-14 홍TV님: 가야산1코스 치인대형주차장 → 토신골탐방지원센터). 이은 코스는 첫 코스 것
@@ -1199,7 +1204,7 @@
     function peakCheck(lat, lon, acc) {
         if (peakList === null) {
             peakList = [];
-            fetch("data/mountains100.json").then(function (r) { return r.json(); })
+            jsonOnce("data/mountains100.json")
                 .then(function (d) { peakList = (d && d.peaks) || []; }, function () { peakList = null; });   // 못 받으면 다음 위치 때 다시
             return;
         }
@@ -1391,7 +1396,7 @@
     function summaryCardShare(r) {
         var go = function (pts) { shareCanvas(summaryCard(r, pts), "routefly-" + r.label.replace(/[^0-9a-zA-Z가-힣]+/g, "") + ".png", r.label + T(" 산행 결산 - routefly", " hiking summary - routefly")); };
         if (peakPts) { go(peakPts); return; }
-        fetch("data/mountains100.json").then(function (x) { return x.json(); }).then(function (j) {
+        jsonOnce("data/mountains100.json").then(function (j) {
             var have = loadMap(PEAKS);
             peakPts = (j.peaks || []).map(function (k) { var st = have[RF.peakKey(k)]; return { lat: k.lat, lon: k.lon, t: st && st.t }; });
             go(peakPts);
