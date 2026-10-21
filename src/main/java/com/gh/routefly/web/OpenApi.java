@@ -53,7 +53,7 @@ final class OpenApi {
                 long until = e.getValue().getAsLong();
                 if (until > now) {
                     BLOCK.put(e.getKey(), new long[] {until, 0});
-                    log.info("[{}] 오늘 하루 한도를 이미 넘었음(파일) - 자정까지 부르지 않음", e.getKey());
+                    log.info("[{}] DAILY_LIMIT_FILE 오늘 하루 한도를 이미 넘었음(파일) - 자정까지 부르지 않음", e.getKey());
                 }
             }
         } catch (Exception e) {
@@ -85,7 +85,7 @@ final class OpenApi {
                 long until = kstMidnightAfter(now);
                 BLOCK.put(tag, new long[] {until, 0});
                 saveLimits(now);
-                log.warn("[{}] 하루 호출 한도를 넘음 - 오늘 자정(우리 시간)까지 부르지 않음({}분)", tag, (until - now) / 60000);
+                log.warn("[{}] DAILY_LIMIT 하루 호출 한도를 넘음 - 오늘 자정(우리 시간)까지 부르지 않음({}분)", tag, (until - now) / 60000);
                 return null;
             }
             if (res.statusCode() == 200) { BLOCK.remove(tag); return res.body(); }
