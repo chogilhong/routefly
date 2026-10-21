@@ -64,3 +64,18 @@ fetch("api/partners").then(function (r) { return r.json(); }).then(function (p) 
     }
     sec.hidden = false;
 }).catch(function () { /* 없이 */ });
+
+/* 운영자 기기 표시(2026-10-21 PC: 홍TV님 앱(웹뷰)의 방문이 통계에 섞임 - 앱은 브라우저와 쿠키가 따로라 /stats 를 열 길이 없었음).
+   "안내" 제목을 5초 안에 7번 누르면 통계 열쇠를 묻고 /stats 로 - 맞으면 이 기기는 그 뒤로 방문 수에서 빠짐. 열쇠가 없으면 아무 일도 없음 */
+(function () {
+    var h = document.querySelector("h1"), n = 0, t0 = 0;
+    if (!h) return;
+    h.addEventListener("click", function () {
+        var now = Date.now();
+        if (now - t0 > 5000) { n = 0; t0 = now; }
+        if (++n < 7) return;
+        n = 0;
+        var k = prompt("운영자 - 통계 열쇠");
+        if (k && k.trim()) location.href = "stats?key=" + encodeURIComponent(k.trim());
+    });
+})();

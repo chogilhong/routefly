@@ -88,7 +88,7 @@ final class Stats {
         String u = ua.toLowerCase();
         if (u.matches(".*(facebookexternalhit|kakaotalk-scrap|kakaostory-og|twitterbot|slackbot|telegrambot|discordbot|whatsapp|linkedinbot|skypeuripreview|line-poker|bandbot|naverbot-preview).*")) return "미리보기";
         if (u.matches(".*(googlebot|google-inspectiontool|bingbot|yeti/|daum/|daumoa|duckduckbot|baiduspider|yandex|applebot|slurp|seznambot|petalbot|coccoc).*")) return "검색";
-        if (u.matches(".*(headless|python|curl|wget|playwright|node-fetch|axios|go-http|java/|okhttp|httpclient|powershell).*")) return "시험";
+        if (u.matches(".*(headless|python|curl|wget|playwright|node-fetch|axios|go-http|java/|okhttp|httpclient|powershell|claude/|electron/).*")) return "시험";   // claude/ · electron/ - Claude 앱 · PC Claude(2026-10-21 PC 접속 기록)
         if (u.matches(".*(bot|crawl|spider|scrap).*")) return "기타";
         return null;
     }

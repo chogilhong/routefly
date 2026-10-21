@@ -36,6 +36,7 @@ public class StatsTest {
         String pc = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/129.0 Safari/537.36";
         assertNull("사람 브라우저는 언어 설정을 보냄", Stats.botKind(pc, "ko-KR,ko;q=0.9"));
         assertEquals("언어 설정이 없으면 숨은 로봇", "숨은 로봇", Stats.botKind(pc, null));
+        assertEquals("Claude 앱 · PC Claude 는 시험", "시험", Stats.botKind("Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 Claude/2.42304 Chrome/138 Electron/37.2.0 Safari/537.36", "ko"));
         assertEquals("이름을 댄 로봇은 그 종류", "검색", Stats.botKind("Mozilla/5.0 (compatible; Googlebot/2.1)", null));
         assertEquals("검색", Stats.botKind("Mozilla/5.0 (compatible; Yeti/1.1; +http://naver.me/spd)"));
         assertEquals("검색", Stats.botKind("Mozilla/5.0 (compatible; Daum/4.1; +http://cs.daum.net/faq/15/4118.html?faqId=28966)"));
