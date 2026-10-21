@@ -22,11 +22,13 @@
         $("lblBest").textContent = "Best";
         $("note").textContent = "Runs only on this screen - no install, no login. Best scores stay on this device. Save your battery on the trail 🙂";
         var names = { tetris: "🧱 Tetris", shooter: "🚀 Galaga", snake: "🐍 Snake", g2048: "🔢 2048", breakout: "🏓 Breakout",
-            mines: "💣 Minesweeper", runner: "🏔️ Mountain run", mole: "🐹 Whack-a-mole", memory: "🃏 Memory", flappy: "🐦 Flappy bird" };
+            mines: "💣 Minesweeper", runner: "🏔️ Mountain run", mole: "🐹 Whack-a-mole", memory: "🃏 Memory", flappy: "🐦 Flappy bird",
+            sudoku: "🧩 Sudoku", slide15: "🔢 Slide puzzle", omok: "⚫ Gomoku", react: "⚡ Reaction", simon: "🧠 Simon" };
         Array.prototype.forEach.call(document.querySelectorAll("#pick button"), function (b) { b.querySelector(".n").textContent = names[b.getAttribute("data-g")].replace(/^\S+\s/, ""); });
         $("pickChg").textContent = "Change ▾";
         $("grpA").textContent = "🕹️ Arcade";
         $("grpB").textContent = "👆 Tap games";
+        $("grpC").textContent = "🧠 Brain";
     }
     function fit() {
         var r = Math.min(window.devicePixelRatio || 1, 2), maxW = Math.min(document.querySelector("main").clientWidth - 2, 380);
@@ -766,6 +768,302 @@
                 });
                 cx.save(); cx.translate(70, b.y); cx.rotate(Math.max(-0.5, Math.min(0.8, b.vy / 600))); cx.scale(-1, 1); text("🐦", 0, 10, 28); cx.restore();
                 text(String(score), W / 2, 50, 32, "#eef2f7");
+            }
+        };
+    })();
+
+    // ================================================================== 🧩 스도쿠(2026-10-21 - 아래 다섯은 🧠 두뇌 묶음)
+    GAMES.sudoku = (function () {
+        var S = 32, OX = (W - 9 * S) / 2, OY = 36, BY = 340, BW = 56, BH = 50, grid, fixed, sel, t0, done;
+        function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = rnd(i + 1), x = a[i]; a[i] = a[j]; a[j] = x; } return a; }
+        function make() {   // 정답 판: 기본 무늬를 줄 · 칸 · 숫자 섞기로
+            var bands = shuffle([0, 1, 2]), stacks = shuffle([0, 1, 2]), rows = [], cols = [], nums = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+            bands.forEach(function (b) { shuffle([0, 1, 2]).forEach(function (r) { rows.push(b * 3 + r); }); });
+            stacks.forEach(function (s) { shuffle([0, 1, 2]).forEach(function (c) { cols.push(s * 3 + c); }); });
+            var sol = [];
+            for (var r = 0; r < 9; r++) for (var c = 0; c < 9; c++) { var rr = rows[r], cc = cols[c]; sol.push(nums[(3 * (rr % 3) + Math.floor(rr / 3) + cc) % 9]); }
+            return sol;
+        }
+        function bad(i) {   // 같은 줄 · 칸 · 3x3 에 같은 숫자
+            var v = grid[i]; if (!v) return false;
+            var r = Math.floor(i / 9), c = i % 9;
+            for (var k = 0; k < 9; k++) {
+                if (k !== c && grid[r * 9 + k] === v) return true;
+                if (k !== r && grid[k * 9 + c] === v) return true;
+                var br = Math.floor(r / 3) * 3 + Math.floor(k / 3), bc = Math.floor(c / 3) * 3 + k % 3;
+                if ((br !== r || bc !== c) && grid[br * 9 + bc] === v) return true;
+            }
+            return false;
+        }
+        return {
+            pad: [0, 0, 0, 0, 0],
+            onDown: true,
+            help: T("빈칸을 누르고 아래 숫자를 누르기. 가로 · 세로 · 3x3 칸에 1~9 가 한 번씩. 겹치면 빨갛게 보여요.", "Tap a cell, then a number. Each row, column and 3x3 box has 1-9 once. Clashes turn red."),
+            reset: function () {
+                grid = make(); fixed = grid.map(function () { return true; });
+                var holes = dv(36, 46, 54), idx = shuffle(grid.map(function (v, i) { return i; }));
+                for (var h = 0; h < holes; h++) { grid[idx[h]] = 0; fixed[idx[h]] = false; }
+                sel = -1; t0 = 0; done = false;
+            },
+            update: function (dt, ps) {
+                if (!done) t0 += dt;
+                ps.forEach(function (p) {
+                    if (!p || p.x === undefined || done) return;
+                    if (p.y >= OY && p.y < OY + 9 * S && p.x >= OX && p.x < OX + 9 * S) {
+                        var i = Math.floor((p.y - OY) / S) * 9 + Math.floor((p.x - OX) / S);
+                        if (!fixed[i]) { sel = i; sfx("move"); }
+                        return;
+                    }
+                    var col = Math.floor((p.x - (W - 5 * BW) / 2) / BW), row = Math.floor((p.y - BY) / BH);
+                    if (sel < 0 || col < 0 || col > 4 || row < 0 || row > 1) return;
+                    var n = row * 5 + col + 1;   // 10 = 지움
+                    grid[sel] = n === 10 ? 0 : n;
+                    sfx(n === 10 ? "slide" : bad(sel) ? "hurt" : "rotate");
+                    var filled = grid.every(Boolean), ok = filled && !grid.some(function (v, k) { return bad(k); });
+                    setScore(grid.filter(function (v, k) { return v && !fixed[k] && !bad(k); }).length * 10);
+                    if (ok) { done = true; setScore(score + Math.max(100, 3000 - Math.round(t0) * 3) * (1 + D)); sfx("level"); end(T("🎉 다 풀었어요! ", "🎉 Solved! ") + Math.floor(t0 / 60) + T("분 ", "m ") + Math.floor(t0 % 60) + T("초", "s")); }
+                });
+            },
+            draw: function () {
+                clear();
+                text("⏱ " + Math.floor(t0 / 60) + ":" + ("0" + Math.floor(t0 % 60)).slice(-2), W / 2, 24, 15, "#9aa6b4");
+                var sr = sel >= 0 ? Math.floor(sel / 9) : -1, sc = sel % 9;
+                for (var i = 0; i < 81; i++) {
+                    var r = Math.floor(i / 9), c = i % 9, x = OX + c * S, y = OY + r * S;
+                    var same = sel >= 0 && (r === sr || c === sc || (Math.floor(r / 3) === Math.floor(sr / 3) && Math.floor(c / 3) === Math.floor(sc / 3)));
+                    rect(x, y, S, S, i === sel ? "#21505a" : same ? "#18222d" : "#10161d");
+                    if (grid[i]) text(String(grid[i]), x + S / 2, y + S * 0.72, 19, bad(i) && !fixed[i] ? "#ff6b6b" : fixed[i] ? "#eef2f7" : "#38d9ea");
+                }
+                cx.strokeStyle = "#2f3a48"; cx.lineWidth = 1;
+                for (var k = 0; k <= 9; k++) {
+                    cx.strokeStyle = k % 3 ? "#2f3a48" : "#9aa6b4"; cx.lineWidth = k % 3 ? 1 : 2;
+                    cx.beginPath(); cx.moveTo(OX + k * S, OY); cx.lineTo(OX + k * S, OY + 9 * S); cx.stroke();
+                    cx.beginPath(); cx.moveTo(OX, OY + k * S); cx.lineTo(OX + 9 * S, OY + k * S); cx.stroke();
+                }
+                for (var n = 0; n < 10; n++) {
+                    var bx = (W - 5 * BW) / 2 + (n % 5) * BW, by = BY + Math.floor(n / 5) * BH;
+                    rect(bx + 3, by + 3, BW - 6, BH - 6, sel < 0 ? "#1f2733" : "#2a3442");
+                    text(n === 9 ? "⌫" : String(n + 1), bx + BW / 2, by + BH / 2 + 8, 22, sel < 0 ? "#556" : "#eef2f7");
+                }
+            }
+        };
+    })();
+
+    // ================================================================== 🔢 숫자 퍼즐(15 퍼즐)
+    GAMES.slide15 = (function () {
+        var n, tiles, empty, moves, t0, TS, OX = 10, OY = 70;
+        function solved() { for (var i = 0; i < n * n - 1; i++) if (tiles[i] !== i + 1) return false; return true; }
+        function slideTo(i) {   // 빈칸과 같은 줄 · 칸이면 그 줄을 한 칸씩 밀기
+            var er = Math.floor(empty / n), ec = empty % n, r = Math.floor(i / n), c = i % n;
+            if (r !== er && c !== ec) return false;
+            var step = r === er ? (c > ec ? 1 : -1) : (r > er ? n : -n);
+            while (empty !== i) { tiles[empty] = tiles[empty + step]; empty += step; tiles[empty] = 0; }
+            return true;
+        }
+        return {
+            pad: [0, 0, 0, 0, 0],
+            onDown: true,
+            help: T("빈칸 옆(같은 줄 · 칸)의 숫자를 눌러 밀기. 1부터 차례대로 맞추면 끝. 보통 3x3 · 어려움 4x4 · 고수 5x5.", "Tap a tile in line with the gap to slide. Put the numbers in order. Normal 3x3 · Hard 4x4 · Expert 5x5."),
+            reset: function () {
+                n = dv(3, 4, 5); TS = (W - 2 * OX) / n;
+                tiles = []; for (var i = 1; i < n * n; i++) tiles.push(i); tiles.push(0); empty = n * n - 1;
+                for (var k = 0; k < n * n * 40; k++) { var er = Math.floor(empty / n), ec = empty % n, nb = [];
+                    if (er > 0) nb.push(empty - n); if (er < n - 1) nb.push(empty + n); if (ec > 0) nb.push(empty - 1); if (ec < n - 1) nb.push(empty + 1);
+                    var t = nb[rnd(nb.length)]; tiles[empty] = tiles[t]; tiles[t] = 0; empty = t; }
+                if (solved()) slideTo(empty - 1 >= 0 && (empty % n) ? empty - 1 : empty + 1);
+                moves = 0; t0 = 0;
+            },
+            update: function (dt, ps) {
+                t0 += dt;
+                ps.forEach(function (p) {
+                    if (!p || p.x === undefined) return;
+                    var c = Math.floor((p.x - OX) / TS), r = Math.floor((p.y - OY) / TS);
+                    if (c < 0 || c >= n || r < 0 || r >= n) return;
+                    if (slideTo(r * n + c)) {
+                        moves++; sfx("slide"); setScore(0);
+                        if (solved()) { setScore(Math.max(50, (n * n * 60) - moves * 3 - Math.round(t0)) * (1 + D)); sfx("level"); end(T("🎉 맞췄어요! ", "🎉 Solved! ") + moves + T("번 움직여", " moves")); }
+                    }
+                });
+            },
+            draw: function () {
+                clear();
+                text(T("움직인 수 ", "Moves ") + moves + "   ⏱ " + Math.floor(t0) + T("초", "s"), W / 2, 40, 15, "#9aa6b4");
+                tiles.forEach(function (v, i) {
+                    if (!v) return;
+                    var x = OX + (i % n) * TS, y = OY + Math.floor(i / n) * TS, ok = v === i + 1;
+                    rect(x + 3, y + 3, TS - 6, TS - 6, ok ? "#2b6a4a" : "#3b4656");
+                    text(String(v), x + TS / 2, y + TS / 2 + TS * 0.14, Math.round(TS * 0.4), "#eef2f7");
+                });
+            }
+        };
+    })();
+
+    // ================================================================== ⚫ 오목(컴퓨터와)
+    GAMES.omok = (function () {
+        var N = 13, S = 22, OX = (W - N * S) / 2 + S / 2, OY = 70, b, turn, last, moves, win, think;
+        var DIRS = [[1, 0], [0, 1], [1, 1], [1, -1]];
+        function at(x, y) { return x >= 0 && y >= 0 && x < N && y < N ? b[y * N + x] : -1; }
+        function line(x, y, c, dx, dy) {   // (x, y) 에 c 를 둔다 치고 그 방향으로 이어진 수 · 막히지 않은 끝 수
+            var n = 1, open = 0, k;
+            for (k = 1; at(x + dx * k, y + dy * k) === c; k++) n++;
+            if (at(x + dx * k, y + dy * k) === 0) open++;
+            for (k = 1; at(x - dx * k, y - dy * k) === c; k++) n++;
+            if (at(x - dx * k, y - dy * k) === 0) open++;
+            return [n, open];
+        }
+        function val(x, y, c) {
+            var s = 0;
+            DIRS.forEach(function (d) {
+                var l = line(x, y, c, d[0], d[1]), n = l[0], o = l[1];
+                if (n >= 5) s += 1000000;
+                else if (o === 0) s += 0;
+                else if (n === 4) s += o === 2 ? 100000 : 10000;
+                else if (n === 3) s += o === 2 ? 5000 : 500;
+                else if (n === 2) s += o === 2 ? 200 : 30;
+                else s += o === 2 ? 10 : 2;
+            });
+            return s;
+        }
+        function five(x, y, c) { return DIRS.some(function (d) { return line(x, y, c, d[0], d[1])[0] >= 5; }); }
+        function aiMove() {
+            var best = [], def = dv(0.75, 0.95, 1.1);
+            for (var y = 0; y < N; y++) for (var x = 0; x < N; x++) {
+                if (b[y * N + x]) continue;
+                var near = false;
+                for (var dy = -2; dy <= 2 && !near; dy++) for (var dx = -2; dx <= 2; dx++) if (at(x + dx, y + dy) > 0) { near = true; break; }
+                if (!near) continue;
+                best.push({ x: x, y: y, v: val(x, y, 2) + val(x, y, 1) * def + Math.random() });
+            }
+            if (!best.length) return { x: (N - 1) / 2, y: (N - 1) / 2 };
+            best.sort(function (a, c) { return c.v - a.v; });
+            return D === 0 && best.length > 2 && best[0].v < 50000 ? best[rnd(3)] : best[0];   // 보통은 가끔 덜 좋은 수
+        }
+        function put(x, y, c) {
+            b[y * N + x] = c; last = [x, y]; moves++;
+            sfx(c === 1 ? "move" : "bounce");
+            if (five(x, y, c)) {
+                win = c;
+                if (c === 1) { setScore(Math.max(100, 1500 - moves * 15) * (1 + D)); sfx("level"); end(T("🎉 이겼어요! ", "🎉 You win! ") + Math.ceil(moves / 2) + T("수 만에", " moves")); }
+                else end(T("컴퓨터가 이겼어요", "The computer wins"));
+                return true;
+            }
+            if (b.indexOf(0) < 0) { end(T("비겼어요", "Draw")); return true; }
+            return false;
+        }
+        return {
+            pad: [0, 0, 0, 0, 0],
+            onDown: true,
+            help: T("나는 ⚫, 컴퓨터는 ⚪. 가로 · 세로 · 대각선으로 다섯 개를 먼저 이으면 이김. 고수는 컴퓨터가 먼저 둠.", "You are ⚫, the computer is ⚪. Five in a row wins. On Expert the computer moves first."),
+            reset: function () { b = new Array(N * N).fill(0); turn = 1; last = null; moves = 0; win = 0; think = 0; if (D === 2) { b[6 * N + 6] = 2; last = [6, 6]; moves = 1; } },
+            update: function (dt, ps) {
+                if (win) return;
+                if (turn === 2) { think -= dt; if (think <= 0) { var m = aiMove(); if (!put(m.x, m.y, 2)) turn = 1; } return; }
+                ps.forEach(function (p) {
+                    if (!p || p.x === undefined || turn !== 1 || win) return;
+                    var x = Math.round((p.x - OX) / S), y = Math.round((p.y - OY) / S);
+                    if (at(x, y) !== 0) return;
+                    if (!put(x, y, 1)) { turn = 2; think = 0.35; }
+                });
+            },
+            draw: function () {
+                clear("#3a2e1c");
+                text(turn === 1 ? T("⚫ 내 차례", "⚫ Your turn") : T("⚪ 생각 중…", "⚪ Thinking…"), W / 2, 40, 16, "#f1e3c6");
+                cx.strokeStyle = "#7a6440"; cx.lineWidth = 1;
+                for (var k = 0; k < N; k++) {
+                    cx.beginPath(); cx.moveTo(OX, OY + k * S); cx.lineTo(OX + (N - 1) * S, OY + k * S); cx.stroke();
+                    cx.beginPath(); cx.moveTo(OX + k * S, OY); cx.lineTo(OX + k * S, OY + (N - 1) * S); cx.stroke();
+                }
+                for (var i = 0; i < N * N; i++) {
+                    if (!b[i]) continue;
+                    var x = OX + (i % N) * S, y = OY + Math.floor(i / N) * S;
+                    cx.fillStyle = b[i] === 1 ? "#111" : "#f8f9fa"; cx.beginPath(); cx.arc(x, y, S * 0.43, 0, Math.PI * 2); cx.fill();
+                    if (last && last[0] === i % N && last[1] === Math.floor(i / N)) rect(x - 2, y - 2, 4, 4, "#ff6b6b");
+                }
+            }
+        };
+    })();
+
+    // ================================================================== ⚡ 반응 속도
+    GAMES.react = (function () {
+        var ROUNDS = 5, round, state, wait, shown, ms, log, tx, ty, decoy;
+        function next() { round++; if (round > ROUNDS) { finish(); return; } state = "wait"; wait = 1.2 + Math.random() * 2.5; decoy = D > 0 && Math.random() < 0.35; tx = W / 2; ty = H / 2; }
+        function finish() {
+            var good = log.filter(function (v) { return v > 0; }), avg = good.length ? Math.round(good.reduce(function (a, c) { return a + c; }, 0) / good.length) : 0;
+            sfx("level");
+            end(T("평균 ", "Average ") + (avg ? avg + " ms" : "-") + "<br><small>" + log.map(function (v) { return v > 0 ? v + "ms" : "✕"; }).join(" · ") + "</small>");
+        }
+        return {
+            pad: [0, 0, 0, 0, 0],
+            onDown: true,
+            help: T("초록 동그라미가 나오면 바로 누르기(5번). 어려움 · 고수는 🔴 빨강이 나오면 누르지 마세요, 고수는 동그라미 자리도 바뀝니다.", "Tap as soon as the green circle shows (5 rounds). Hard/Expert: don't tap 🔴 red. Expert: the circle moves around."),
+            reset: function () { round = 0; log = []; ms = 0; next(); },
+            update: function (dt, ps) {
+                if (state === "wait") { wait -= dt; if (wait <= 0) { state = decoy ? "red" : "go"; shown = performance.now(); if (D === 2) { tx = 60 + rnd(W - 120); ty = 120 + rnd(H - 220); } } }
+                else if (state === "red") { if (performance.now() - shown > 900) { state = "gap"; wait = 0.6; ms = -3; round--; sfx("eat"); } }   // 빨강을 잘 참음 - 이 판은 다시
+                else if (state === "gap") { wait -= dt; if (wait <= 0) next(); }
+                ps.forEach(function (p) {
+                    if (!p || p.x === undefined) return;
+                    if (state === "wait") { log.push(0); sfx("hurt"); ms = -1; state = "gap"; wait = 0.8; return; }   // 너무 빨리
+                    if (state === "red") { log.push(0); sfx("hurt"); ms = -2; state = "gap"; wait = 0.8; return; }
+                    if (state === "go") {
+                        if (D === 2 && Math.hypot(p.x - tx, p.y - ty) > 46) return;   // 고수 - 동그라미를 눌러야
+                        ms = Math.round(performance.now() - shown); log.push(ms);
+                        setScore(score + Math.max(0, 600 - ms));
+                        sfx("eat"); state = "gap"; wait = 0.8;
+                    }
+                });
+            },
+            draw: function () {
+                clear();
+                text(T("라운드 ", "Round ") + Math.min(round, ROUNDS) + " / " + ROUNDS, W / 2, 40, 16, "#9aa6b4");
+                if (state === "wait") text(T("기다리세요…", "Wait…"), W / 2, H / 2 + 8, 24, "#9aa6b4");
+                if (state === "go" || state === "red") { cx.fillStyle = state === "go" ? "#40c057" : "#fa5252"; cx.beginPath(); cx.arc(tx, ty, 44, 0, Math.PI * 2); cx.fill(); text(state === "go" ? T("지금!", "Now!") : T("누르지 마요", "Don't!"), tx, ty + 8, 18, "#fff"); }
+                if (state === "gap") text(ms > 0 ? ms + " ms" : ms === -1 ? T("너무 빨라요!", "Too soon!") : ms === -2 ? T("빨강을 눌렀어요!", "That was red!") : ms === -3 ? T("잘 참았어요 👍", "Well held 👍") : "", W / 2, H / 2 + 10, 28, ms > 0 || ms === -3 ? "#38d9ea" : "#ff6b6b");
+            }
+        };
+    })();
+
+    // ================================================================== 🧠 순서 기억
+    GAMES.simon = (function () {
+        var n, seq, pos, phase, t, idx, lit, PAD, OX, OY = 110, COLS = ["#fa5252", "#40c057", "#228be6", "#fab005", "#be4bdb", "#15aabf", "#fd7e14", "#82c91e", "#e64980", "#7950f2", "#12b886", "#fcc419", "#4c6ef5", "#f76707", "#20c997", "#e8590c"];
+        function grow() { seq.push(rnd(n * n)); phase = "show"; idx = 0; t = 0.6; lit = -1; }
+        return {
+            pad: [0, 0, 0, 0, 0],
+            onDown: true,
+            help: T("불이 켜지는 차례를 보고 똑같이 누르기. 한 번 맞출 때마다 하나씩 길어져요. 고수는 4x4.", "Watch the order the lights flash, then tap the same order. It grows by one each round. Expert is 4x4."),
+            reset: function () { n = dv(3, 3, 4); PAD = (W - 30) / n; OX = 15; seq = []; grow(); },
+            update: function (dt, ps) {
+                var flash = dv(0.6, 0.42, 0.3);
+                if (phase === "show") {
+                    t -= dt;
+                    if (t <= 0) {
+                        if (lit >= 0) { lit = -1; t = flash * 0.4; idx++; if (idx >= seq.length) { phase = "input"; pos = 0; } }
+                        else { lit = seq[idx]; t = flash; sfx("move"); }
+                    }
+                    return;
+                }
+                if (lit >= 0) { t -= dt; if (t <= 0) lit = -1; }
+                ps.forEach(function (p) {
+                    if (!p || p.x === undefined || phase !== "input") return;
+                    var c = Math.floor((p.x - OX) / PAD), r = Math.floor((p.y - OY) / PAD);
+                    if (c < 0 || c >= n || r < 0 || r >= n) return;
+                    var k = r * n + c;
+                    lit = k; t = 0.15;
+                    if (k !== seq[pos]) { sfx("hurt"); end(T("틀렸어요! ", "Wrong! ") + (seq.length - 1) + T("개까지 기억", " remembered")); return; }
+                    sfx("rotate"); pos++;
+                    if (pos >= seq.length) { setScore(seq.length * 10 * (1 + D)); sfx("eat"); phase = "wait"; t = 0.7; setTimeout(function () { if (running && phase === "wait") grow(); }, 700); }
+                });
+            },
+            draw: function () {
+                clear();
+                text(phase === "show" ? T("잘 보세요…", "Watch…") : phase === "input" ? T("차례대로 누르세요 (", "Your turn (") + pos + "/" + seq.length + ")" : T("잘했어요!", "Good!"), W / 2, 50, 18, "#eef2f7");
+                for (var i = 0; i < n * n; i++) {
+                    var x = OX + (i % n) * PAD, y = OY + Math.floor(i / n) * PAD;
+                    cx.globalAlpha = i === lit ? 1 : 0.28;
+                    rect(x + 5, y + 5, PAD - 10, PAD - 10, COLS[i]);
+                    cx.globalAlpha = 1;
+                }
+                text(T("길이 ", "Length ") + seq.length, W / 2, OY + n * PAD + 30, 15, "#9aa6b4");
             }
         };
     })();
