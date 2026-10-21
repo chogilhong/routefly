@@ -19,6 +19,7 @@ import com.google.gson.JsonObject;
  *       한 물건에 여러 개면 쉼표로(앞의 COUPANG_MAX 개까지) → 응답은 물건마다 주소 배열.
  *       화면은 링크 아래에 공정위가 정한 "수수료를 받습니다" 문구를 붙입니다.</li>
  *   <li>{@code partner.agoda.url} - 아고다 제휴 링크(www.agoda.com). 안에 {lat} · {lon} 이 있으면 들머리 좌표로 바꿉니다.</li>
+ *   <li>{@code partner.trip.url} - 트립닷컴 제휴 링크(www · kr · us.trip.com, 2026-10-21 신청 중). {lat} · {lon} 도 아고다처럼.</li>
  *   <li>{@code donate.url} - 후원(toss.me · qr.kakaopay.com 등 https 주소).</li>
  *   <li>{@code donate.en.url} - 외국 사람용 후원(PayPal 결제 링크 · paypal.me · ko-fi.com) - 영어 페이지(/en/m/)에만. 2026-10-17 홍TV님.</li>
  * </ul>
@@ -56,6 +57,8 @@ public class PartnersServlet extends HttpServlet {
         out.add("coupang", coupang);
         String agoda = conf.apply("partner.agoda.url");
         if (allowed(agoda, "https://www.agoda.com/")) out.addProperty("agoda", agoda);
+        String trip = conf.apply("partner.trip.url");
+        if (allowed(trip, "https://www.trip.com/", "https://kr.trip.com/", "https://us.trip.com/")) out.addProperty("trip", trip);
         String donate = conf.apply("donate.url");
         if (allowed(donate, "https://")) out.addProperty("donate", donate);
         String donateEn = conf.apply("donate.en.url");

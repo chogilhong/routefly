@@ -884,10 +884,16 @@
                     var ag = el("div", "gNote");
                     body.appendChild(ag);
                     partners().then(function (p) {
-                        if (!p.agoda) { ag.remove(); return; }
-                        var al = gLink(T("🏨 아고다에서 들머리 근처 숙소 더 보기 ›", "🏨 More stays near the trailhead on Agoda ›"), p.agoda.replace(/\{lat\}/g, start.lat.toFixed(5)).replace(/\{lon\}/g, start.lon.toFixed(5)));
-                        al.rel = "noopener sponsored";
-                        ag.appendChild(al);
+                        if (!p.agoda && !p.trip) { ag.remove(); return; }
+                        var at = function (u) { return u.replace(/\{lat\}/g, start.lat.toFixed(5)).replace(/\{lon\}/g, start.lon.toFixed(5)); };
+                        [[p.agoda, T("🏨 아고다에서 들머리 근처 숙소 더 보기 ›", "🏨 More stays near the trailhead on Agoda ›")],
+                            [p.trip, T("🏨 트립닷컴에서 들머리 근처 숙소 더 보기 ›", "🏨 More stays near the trailhead on Trip.com ›")]].forEach(function (x) {   // 트립닷컴(2026-10-21 신청)
+                            if (!x[0]) return;
+                            if (ag.childNodes.length) ag.appendChild(document.createTextNode(" · "));
+                            var al = gLink(x[1], at(x[0]));
+                            al.rel = "noopener sponsored";
+                            ag.appendChild(al);
+                        });
                         ag.appendChild(document.createTextNode(T(" (제휴 링크 - 예약하면 routefly 가 수수료를 받습니다)", " (affiliate link - routefly earns a commission if you book)")));
                     });
                 }

@@ -31,14 +31,15 @@
 
 /* 제휴 · 후원(2026-10-15 홍TV님) - 설정(api/partners)에 링크가 있을 때만 '💚 routefly 응원하기' 를 보임 */
 fetch("api/partners").then(function (r) { return r.json(); }).then(function (p) {
-    var aff = p.agoda || (p.coupang && Object.keys(p.coupang).length), sec = document.getElementById("support");
+    var aff = p.agoda || p.trip || (p.coupang && Object.keys(p.coupang).length), sec = document.getElementById("support");
     if (!sec || !(aff || p.donate)) return;
     if (aff) {   // 설정에 있는 제휴만 적음(2026-10-15 PC: 아고다 링크가 없는데 "숙박의 아고다" 가 보였음)
         var where = [];
         if (p.coupang && Object.keys(p.coupang).length) where.push("🎒 챙길 것의 쿠팡");
         if (p.agoda) where.push("숙박의 아고다");
+        if (p.trip) where.push("숙박의 트립닷컴");
         document.getElementById("supportWhere").textContent = where.join(" · ");
-        document.getElementById("supportVerb").textContent = where.length > 1 ? "사거나 예약하면" : p.agoda ? "예약하면" : "사면";
+        document.getElementById("supportVerb").textContent = where.length > 1 ? "사거나 예약하면" : p.agoda || p.trip ? "예약하면" : "사면";
         document.getElementById("supportAff").hidden = false;
     }
     if (p.donate) {

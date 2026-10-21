@@ -19,6 +19,7 @@ public class PartnersServletTest {
                 "partner.coupang.stick", "https://evil.example/a",
                 "partner.coupang.crampon", "https://coupa.ng/x\"><script>",
                 "partner.agoda.url", "https://www.agoda.com/partners/partnersearch.aspx?cid=1&lat={lat}",
+                "partner.trip.url", "https://kr.trip.com/hotels/list?Allianceid=1&lat={lat}",
                 "donate.url", "https://toss.me/test",
                 "donate.en.url", "https://www.paypal.com/ncp/payment/TEST");
         JsonObject o = PartnersServlet.body(c::get);
@@ -28,6 +29,8 @@ public class PartnersServletTest {
         assertFalse("다른 곳 주소는 뺌", o.getAsJsonObject("coupang").has("stick"));
         assertFalse("따옴표 · 꺾쇠가 든 주소는 뺌", o.getAsJsonObject("coupang").has("crampon"));
         assertTrue(o.get("agoda").getAsString().startsWith("https://www.agoda.com/"));
+        assertTrue(o.get("trip").getAsString().startsWith("https://kr.trip.com/"));
+        assertFalse("트립닷컴 흉내 주소는 뺌", PartnersServlet.body(Map.of("partner.trip.url", "https://www.trip.com.evil.example/x")::get).has("trip"));
         assertEquals("https://toss.me/test", o.get("donate").getAsString());
         assertEquals("https://www.paypal.com/ncp/payment/TEST", o.get("donateEn").getAsString());
         assertFalse("영어 후원은 PayPal · Ko-fi 만", PartnersServlet.body(Map.of("donate.en.url", "https://toss.me/x")::get).has("donateEn"));
@@ -37,7 +40,7 @@ public class PartnersServletTest {
     public void emptyConfigGivesNothing() {
         JsonObject o = PartnersServlet.body(k -> null);
         assertEquals(0, o.getAsJsonObject("coupang").size());
-        assertFalse(o.has("agoda") || o.has("donate") || o.has("donateEn"));
+        assertFalse(o.has("agoda") || o.has("trip") || o.has("donate") || o.has("donateEn"));
         assertFalse(PartnersServlet.allowed("http://toss.me/a", "https://"));
         assertFalse(PartnersServlet.allowed("https://", "https://"));
     }
