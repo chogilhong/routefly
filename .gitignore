@@ -22,3 +22,6 @@ config.properties
 
 # 공공데이터포털 참고문서(활용매뉴얼 등) - 커밋하지 않음
 docs/open/
+
+# 테스트(mvn test)에서 catalina.base 가 없어 log4j 가 저장소 뿌리에 만드는 기록 폴더(2026-10-21)
+${sys:catalina.base}/
