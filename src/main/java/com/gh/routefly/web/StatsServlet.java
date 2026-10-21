@@ -111,7 +111,12 @@ public class StatsServlet extends HttpServlet {
                 // 통계 화면만 글씨 · 간격을 작게(2026-10-21 홍TV님 "전체적으로 폰트가 너무 커") - 산 페이지(mountain.css)는 그대로
                 + "<style>main{font-size:13px;line-height:1.5}h1{font-size:19px;margin:0 0 4px}h2{font-size:14.5px;margin:0 0 6px}.lead{font-size:12.5px;margin:0 0 10px}"
                 + "section{padding:10px 12px;margin-bottom:10px}.st{font-size:12.5px}.st th,.st td{padding:3px 6px}.st th{font-weight:normal;color:var(--dim)}"
-                + "details summary{font-size:14px!important}.st a{text-decoration:none}.st a:hover{text-decoration:underline}</style></head><body><main><h1>routefly 통계</h1>"
+                + "details summary{font-size:14px!important}.st a{text-decoration:none}.st a:hover{text-decoration:underline}"
+                // 칸마다 접고 펴기(2026-10-21 홍TV님) - 제목 줄을 누름, ▾ · ▸
+                + "details.fold>summary{list-style:none;cursor:pointer}details.fold>summary::-webkit-details-marker{display:none}"
+                + "details.fold>summary h2{display:inline;margin:0}details.fold>summary::before{content:'▶';display:inline-block;width:16px;color:var(--sky);font-size:11px}details.fold[open]>summary::before{content:'▼'}"
+                + "details.fold[open]>summary{margin-bottom:6px}.statLogo{display:flex;align-items:center;gap:10px;margin:0 0 4px}.statLogo img{height:34px;width:auto}"
+                + "</style></head><body><main><h1 class=\"statLogo\"><img src=\"img/logo-dark.svg\" alt=\"routefly\" width=\"110\" height=\"34\">통계</h1>"
                 + "<p class=\"lead\">최근 " + last.size() + "일 · 방문자(하루마다 센 수의 합) " + String.format(Locale.KOREA, "%,d", tu) + " · 화면 " + String.format(Locale.KOREA, "%,d", tp)
                 + " · 로봇 " + String.format(Locale.KOREA, "%,d", tb) + botLine(bots) + "</p>");
         out.append(trend(days, n));
@@ -125,7 +130,12 @@ public class StatsServlet extends HttpServlet {
                 .append(botTable(bots))
                 .append(GUIDE);
         out.append("<p class=\"dim\">숫자만 셉니다 - 방문자는 그 날만 쓰는 해시로 겹침만 걸러 내고 IP 는 남기지 않습니다. 이 화면을 연 기기(브라우저)는 운영자로 보고 방문 수에서 뺍니다(2년, 사이트 데이터를 지우면 다시 셈). 앱(따라가기 앱)은 따로라 빠지지 않습니다.</p></main></body></html>");
-        return out.toString();
+        return fold(out.toString());
+    }
+
+    /** 순수 함수 - 칸(section 의 h2 제목)마다 접고 펴는 details 로 감쌈(처음엔 펼침). */
+    static String fold(String html) {
+        return html.replaceAll("(?s)<section><h2>(.*?)</h2>(.*?)</section>", "<section><details class=\"fold\" open><summary><h2>$1</h2></summary>$2</details></section>");
     }
 
     /** 순수 함수 - 인기 코스 상위 20(코스 소개 페이지 /c/<코스>, 10-21 부터 셈). 이름은 DB 에서(없으면 번호만), 누르면 그 코스 소개. */
