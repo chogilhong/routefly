@@ -292,7 +292,8 @@ final class MountainEn {
         return b.append("<section id=\"fun\" class=\"fun\" hidden></section>")
                 .append(PartyServlet.enabled() ? "<a class=\"anbuLink partyLink\" href=\"" + REL + "/party.html\" hreflang=\"ko\">🧑‍🤝‍🧑 Hiking club room (Korean) <small>For guided hiking groups · seats · boarding check · see each other on the map · SOS · multiple buses · bus plate numbers</small> ›</a>" : "")   // 2026-10-20 홍TV님 - 켜졌을 때만
                 .append("<a class=\"anbuLink\" href=\"" + REL + "/anbu.html?lang=en\">🏠 Daily check-in <small>Tap \"I'm fine\" once a day · text your guardian · daily reminder</small> ›</a>")
-                .append("<a class=\"anbuLink toolLink\" href=\"" + REL + "/tools.html?lang=en\">🧰 Handy tools <small>Postcode · exchange rates · lunar calendar · weather · timer · ladder game · subway maps · holidays · fuel prices · tides · magnifier · medicine reminder · hiking safety and more (32)</small> ›</a>")   // 🔮 just for fun(js/mountain-en.js - 2026-10-17)
+                .append("<a class=\"anbuLink toolLink\" href=\"" + REL + "/tools.html?lang=en\">🧰 Handy tools <small>Postcode · exchange rates · lunar calendar · weather · timer · ladder game · subway maps · holidays · fuel prices · tides · magnifier · medicine reminder · hiking safety and more (32)</small> ›</a>")
+                .append("<a class=\"anbuLink gameLink\" href=\"" + REL + "/games.html?lang=en\">🎮 Mini games <small>Tetris · Galaga · Snake · 2048 · Breakout - for the bus ride</small> ›</a>")   // 2026-10-21 홍TV님   // 🔮 just for fun(js/mountain-en.js - 2026-10-17)
                 .append(foot(REL + "/m/")).toString();
     }
 

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>routefly 심심풀이 게임</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=2"><link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
+<meta name="theme-color" content="#11161d">
+<meta name="description" content="테트리스 · 갤러그 · 뱀 · 2048 · 벽돌깨기 - 버스 기다릴 때 가볍게 하는 게임(설치 · 로그인 없음)">
+<!-- 🎮 심심풀이 게임(2026-10-21 홍TV님 - 산 모음 /m/ · /en/m/ 의 별거 별거 아래). 서버 없이 이 화면에서만, 최고 점수는 이 기기(localStorage)에만 -->
+<style>
+:root { --bg:#11161d; --panel:#1a212b; --tx:#eef2f7; --dim:#9aa6b4; --ln:rgba(255,255,255,0.12); --sky:#38d9ea; --ok:#4ade80; }
+* { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { margin:0; background:var(--bg); color:var(--tx); font-family:Arial,"Malgun Gothic",sans-serif; overscroll-behavior:none; }
+#top { position:sticky; top:0; z-index:2; display:flex; align-items:center; gap:8px; padding:calc(env(safe-area-inset-top) + 8px) 10px 8px;
+       background:var(--panel); border-bottom:1px solid var(--ln); }
+#top a { flex:0 0 auto; display:inline-flex; align-items:center; height:40px; padding:0 12px; border-radius:20px; text-decoration:none;
+         background:rgba(56,217,234,0.16); border:1px solid var(--sky); color:var(--sky); font-size:14px; font-weight:bold; }
+#top h1 { flex:1; margin:0; font-size:17px; }
+main { padding:8px 10px calc(env(safe-area-inset-bottom) + 20px); max-width:520px; margin:0 auto; }
+#pick { display:flex; flex-wrap:wrap; gap:6px; }
+#pick button { flex:1 1 30%; height:44px; border-radius:12px; border:1px solid var(--ln); background:rgba(255,255,255,0.06); color:var(--tx); font-size:15px; cursor:pointer; }
+#pick button.on { background:rgba(56,217,234,0.2); border-color:var(--sky); color:var(--sky); font-weight:bold; }
+#bar { display:flex; align-items:center; gap:8px; margin:10px 2px 6px; font-size:15px; }
+#bar b { color:var(--sky); }
+#bar .sp { flex:1; }
+#bar button { height:38px; padding:0 14px; border-radius:10px; border:1px solid var(--ln); background:rgba(255,255,255,0.08); color:var(--tx); font-size:14px; cursor:pointer; }
+#stage { position:relative; display:flex; justify-content:center; }
+canvas { display:block; background:#0b0f14; border:1px solid var(--ln); border-radius:10px; touch-action:none; max-width:100%; }
+#over { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; text-align:center;
+        background:rgba(11,15,20,0.78); border-radius:10px; font-size:18px; line-height:1.5; }
+#over[hidden] { display:none; }
+#over button { height:52px; padding:0 28px; border-radius:26px; border:0; background:var(--sky); color:#062b30; font:bold 18px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }
+#pad { display:grid; grid-template-columns:repeat(5, 1fr); gap:8px; margin-top:10px; user-select:none; -webkit-user-select:none; }
+#pad button { height:60px; border-radius:14px; border:1px solid var(--ln); background:rgba(255,255,255,0.08); color:var(--tx); font-size:24px; cursor:pointer; touch-action:none; }
+#pad button.act { background:rgba(74,222,128,0.18); border-color:var(--ok); color:var(--ok); font-size:16px; font-weight:bold; }
+#pad button:active { background:rgba(56,217,234,0.3); }
+#pad button[hidden] { visibility:hidden; display:block; }
+.tip { font-size:13px; color:var(--dim); line-height:1.55; margin:10px 2px 0; word-break:keep-all; }
+</style>
+</head>
+<body>
+<div id="top"><a id="back" href="m/">‹ 산 모음</a><h1 id="ttl">🎮 심심풀이 게임</h1></div>
+<main>
+    <div id="pick">
+        <button data-g="tetris">🧱 테트리스</button>
+        <button data-g="shooter">🚀 갤러그</button>
+        <button data-g="snake">🐍 뱀</button>
+        <button data-g="g2048">🔢 2048</button>
+        <button data-g="breakout">🏓 벽돌깨기</button>
+    </div>
+    <div id="bar"><span id="lblScore">점수</span> <b id="score">0</b><span class="sp"></span><span id="lblBest">최고</span> <b id="best">0</b><button id="pause">⏸</button></div>
+    <div id="stage">
+        <canvas id="cv" width="300" height="480"></canvas>
+        <div id="over"><div id="overText"></div><button id="startBtn">시작</button></div>
+    </div>
+    <div id="pad">
+        <button data-k="left" aria-label="왼쪽">◀</button>
+        <button data-k="down" aria-label="아래">▼</button>
+        <button data-k="up" aria-label="돌리기 · 위">▲</button>
+        <button data-k="right" aria-label="오른쪽">▶</button>
+        <button data-k="act" class="act" id="actBtn">떨구기</button>
+    </div>
+    <p class="tip" id="help"></p>
+    <p class="tip" id="note">설치 · 로그인 없이 이 화면에서만 돕니다. 최고 점수는 이 기기에만 남습니다. 산행 중에는 배터리를 아껴 주세요 🙂</p>
+</main>
+<script src="js/games.js"></script>
+</body>
+</html>

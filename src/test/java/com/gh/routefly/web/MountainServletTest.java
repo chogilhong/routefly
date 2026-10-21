@@ -69,6 +69,8 @@ public class MountainServletTest {
         assertTrue("목록에도 안전 팁", MountainServlet.indexPage(peaks, new JsonArray(), "", false).contains("<h2>⚠ 산행 안전 팁</h2>"));
         assertTrue("안부 링크는 한국어로(영어를 쓴 적 있어도 - 2026-10-18)", MountainServlet.indexPage(peaks, new JsonArray(), "", false).contains("/anbu.html?lang=ko\">🏠 오늘의 안부"));
         assertTrue("🧰 별거 별거 링크", MountainServlet.indexPage(peaks, new JsonArray(), "", false).contains("/tools.html?lang=ko\">🧰 별거 별거"));
+        String ix = MountainServlet.indexPage(peaks, new JsonArray(), "", false);
+        assertTrue("🎮 게임은 별거 별거 아래(2026-10-21)", ix.indexOf("/games.html?lang=ko\">🎮 심심풀이 게임") > ix.indexOf("/tools.html?lang=ko"));
     }
 
     @Test
