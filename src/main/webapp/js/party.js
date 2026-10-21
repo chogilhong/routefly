@@ -42,6 +42,10 @@
         var t = (a >= 1440 ? Math.floor(a / 1440) + "일 " : "") + (a >= 60 ? Math.floor(a % 1440 / 60) + "시간 " : "") + (a % 60) + "분";
         return m >= 0 ? t + " 남음" : "<span style=\"color:var(--red)\">" + t + " 지남</span>";
     }
+    /** 하산 마감이 지난 방 - 언제 저절로 끝나는지. */
+    function overText(s) {
+        return "<span style=\"color:var(--red)\">하산 마감(" + when(s.endAt) + ")이 지났습니다</span>" + (s.closesAt ? " · " + when(s.closesAt) + "에 방이 저절로 끝나고 위치가 지워집니다" : "");
+    }
     /** 호차 - 차가 한 대면 빈 글(단풍철 여러 대 - 2026-10-20 홍TV님). */
     function busLabel(s, bus) { return s && s.buses > 1 ? bus + "호차 " : ""; }
     function seatText(s, m) { return m.seat ? (s.buses > 1 ? m.bus + "-" : "") + m.seat : "-"; }
@@ -421,9 +425,14 @@
             lastNoticeAt = s.noticeAt;
             if (p.noticeAt !== s.noticeAt) { p.noticeAt = s.noticeAt; RFParty.set(p); }
         }
+        var over = s.endAt && s.now > s.endAt;   // 하산 마감이 지남 - 방은 closesAt 에 저절로 끝남
+        if (over) $("appOpenRoom").hidden = true;   // 끝나 가는 방은 앱으로 옮길 까닭이 없음
         if (staff) {
-            $("departRow").hidden = s.role !== "lead" || s.departed;
-            $("phase").innerHTML = s.departed ? "🥾 산행 중 · 하산 탑승 <b>" + (s.aboardCount || 0) + "</b> / " + s.hikers
+            $("departRow").hidden = s.role !== "lead" || s.departed || over;
+            $("phase").innerHTML = over ? overText(s) + (s.departed ? " · 하산 탑승 <b>" + (s.aboardCount || 0) + "</b> / " + s.hikers : "") + (s.role === "lead" ? " - 산행이 끝났으면 아래 \"방 끝내기\"" : "")
+                : !s.departed && s.departAt && s.now > s.departAt ? "<span style=\"color:var(--red)\">출발 시각(" + clock(s.departAt) + ")이 지났습니다</span>" + (s.role === "lead" ? " - 출발했으면 아래 \"출발\"을 눌러 주세요" : "")
+                    + " · 출발 탑승 " + (s.members || []).filter(function (m) { return m.role === "hiker" && m.boarded; }).length + " / " + s.hikers
+                : s.departed ? "🥾 산행 중 · 하산 탑승 <b>" + (s.aboardCount || 0) + "</b> / " + s.hikers
                 + (s.hikers > 0 && s.aboardCount >= s.hikers ? " <span class=\"ok\">모두 탔습니다 - 방을 끝내세요</span>" : "")
                 : s.departAt ? "출발까지 " + left(s.departAt, s.now) + " · 출발 탑승 " + (s.members || []).filter(function (m) { return m.role === "hiker" && m.boarded; }).length + " / " + s.hikers : "";
             if (s.role === "driver" && !seatMap.once) { curBus = s.bus; seatMap.once = true; }   // 운전자는 자기 호차부터
@@ -452,7 +461,8 @@
         if (!$("mySeatBox").open) fillMySeat(s);
         var before = s.departAt && s.now < s.locFrom;
         var early = s.boardFrom && s.now < s.boardFrom && !s.boarded;   // 출발 1시간 전까지는 단추 대신 안내(2026-10-20 홍TV님)
-        $("boardBtn").hidden = s.departed || early;
+        var over = s.endAt && s.now > s.endAt;
+        $("boardBtn").hidden = s.departed || early || over;
         $("boardBtn").className = "main big" + (s.boarded ? " on" : "");
         $("boardBtn").textContent = s.boarded ? "✅ 버스 탔어요 (누르면 취소)" : "🚌 버스 탔어요";
         // SOS 는 출발 3시간 전(위치를 받기 시작할 때)부터 - 집결지 · 이동 중에도(2026-10-20 홍TV님 "출발 전엔 없다"). 하산 탑승은 출발 뒤만
@@ -462,9 +472,12 @@
         $("aboardBtn").textContent = s.aboard ? "✅ 하산 탑승함" : "🚌 하산 탑승";
         $("sosBtn").className = p.sos ? "sos" : "danger";
         $("sosBtn").textContent = p.sos ? "🆘 SOS 보냄 - 누르면 풀림" : "🆘 SOS";
-        $("phase").innerHTML = s.departed ? (s.aboard ? "🚌 하산 탑승 - 수고하셨습니다." : "🥾 산행 중" + (s.endAt ? " · 하산 마감 " + left(s.endAt, s.now) : ""))
+        $("phase").innerHTML = over ? overText(s)
+            : !s.departed && s.departAt && s.now > s.departAt ? "출발 시각(" + clock(s.departAt) + ")이 지났습니다 · 인솔자가 아직 출발을 누르지 않았습니다" + (s.boarded ? " · ✅ 탑승 확인" : "")
+            : s.departed ? (s.aboard ? "🚌 하산 탑승 - 수고하셨습니다." : "🥾 산행 중" + (s.endAt ? " · 하산 마감 " + left(s.endAt, s.now) : ""))
             : s.departAt ? "출발까지 " + left(s.departAt, s.now) + (s.boarded ? " · ✅ 탑승 확인" : "") : "";
-        $("hikerTip").textContent = s.departed ? "이 화면이나 따라가기를 켜 둔 동안 30초마다 위치를 보냅니다. 같은 방 사람들이 서로의 위치를 봅니다."
+        $("hikerTip").textContent = over ? "산행이 끝났으면 \"방 나가기\"를 누르세요. 그대로 두어도 " + when(s.closesAt) + "에 방이 끝나고 위치가 모두 지워집니다."
+            : s.departed ? "이 화면이나 따라가기를 켜 둔 동안 30초마다 위치를 보냅니다. 같은 방 사람들이 서로의 위치를 봅니다."
             : early ? "출발 1시간 전(" + when(s.boardFrom) + ")부터 \"🚌 버스 탔어요\" 단추가 나옵니다. 버스에 타면 그때 누르세요. 출발 때 안 누른 사람은 취소됩니다."
                 + (before ? " 위치는 출발 3시간 전(" + when(s.locFrom) + ")부터 보냅니다." : "")
             : before ? "위치는 출발 3시간 전(" + when(s.locFrom) + ")부터 보냅니다. 출발 날 버스에 타면 \"버스 탔어요\"를 누르세요. 출발 때 안 탄 사람은 취소됩니다."

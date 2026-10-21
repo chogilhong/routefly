@@ -662,6 +662,7 @@ final class Party {
         o.addProperty("name", r.name);
         o.addProperty("departAt", r.departAt);
         o.addProperty("endAt", r.endAt);
+        o.addProperty("closesAt", r.endBase() + AFTER_END_MS);   // 방이 저절로 끝나는 때(하산 마감 6시간 뒤 - 2026-10-21 홍TV님: 마감이 지난 방에 "출발까지 9시간 지남"만 보였음)
         o.addProperty("minPeople", r.minPeople);
         o.addProperty("hikers", r.hikers());
         if (r.leaderName != null) o.addProperty("leaderName", r.leaderName);
