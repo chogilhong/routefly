@@ -9,6 +9,7 @@
     var $ = function (id) { return document.getElementById(id); };
     var q = new URLSearchParams(location.search);
     var OLD_S = 600;        // 10분 넘게 소식이 없으면 주황
+    var LEAD_SEAT = 3;      // 인솔자 자리 - Party.LEAD_SEAT 와 같게(2026-10-22 홍TV님)
     // 영어 화면 - 주소에 ?lang=en 이 있을 때만(2026-10-22: 기억해 둔 rf-lang 으로 정하면 한국어 링크로 와도 영어로 열렸음).
     // 영어 산 페이지(/en/m/)에서 왔으면 돌아갈 곳도 영어로(2026-10-21 홍TV님 "en/m 에서 갔더니 한글이고 돌아와도 한글")
     var EN = /[?&]lang=en\b/.test(location.search);
@@ -28,6 +29,7 @@
     var EN_MSG = [
         [/^이미 끝난 방입니다 - ([\s\S]*)$/, function (x, why) { return "This room has already ended - " + enMsg(why); }],
         [/방 코드를 찾지 못했습니다/, "Room code not found. Please check it with your leader."],
+        [/(\d+)번은 인솔자 자리입니다/, "Seat $1 is the leader's seat. Please choose another seat."],
         [/방이 끝났거나 열쇠가 맞지 않습니다/, "This room has ended, or this phone's key no longer matches."],
         [/인원이 다 찼습니다\((\d+)명\)/, "This room is full ($1 people)."],
         [/(?:(\d+)호차 )?(\d+)번 자리는 이미 다른 분이 골랐습니다/, function (x, b, n) { return (b ? "Bus " + b + " seat " : "Seat ") + n + " is already taken. Please check your seat number."; }],
@@ -742,7 +744,8 @@
         var o = ["<option value=\"\">" + (none || T("없음", "None")) + "</option>"];
         for (var i = 1; i <= seats; i++) {
             var x = t[b * 100 + i];
-            o.push("<option value=\"" + i + "\"" + (x ? " disabled" : "") + (i === cur ? " selected" : "") + ">" + i + (x ? T(" (참가함)", " (taken)") : "") + "</option>");
+            var ld = i === LEAD_SEAT && seats >= LEAD_SEAT;   // 3번은 인솔자 자리(2026-10-22 홍TV님 - 출입문 쪽 맨 앞)
+            o.push("<option value=\"" + i + "\"" + (x || ld ? " disabled" : "") + (i === cur ? " selected" : "") + ">" + i + (ld ? T(" (인솔자)", " (leader)") : x ? T(" (참가함)", " (taken)") : "") + "</option>");
         }
         sel.innerHTML = o.join("");
         sel.parentNode.hidden = !(seats > 0);
@@ -818,7 +821,8 @@
                 if (s.departed && !m.cancelled && !m.sos && !m.aboard && silent(m)) cls += " old";
                 label = "<small>" + esc(m.nick) + "</small>";
                 if (m.id === picked) cls += " pick";
-            } else if (rsv[k]) cls += " rsv";
+            } else if (k === LEAD_SEAT && s.seats >= LEAD_SEAT) { cls += " drv"; label = "<small>" + T("인솔", "Leader") + "</small>"; }   // 인솔자 자리(누를 수 없음)
+            else if (rsv[k]) cls += " rsv";
             cells.push("<div class=\"" + cls + "\" data-seat=\"" + k + "\" style=\"grid-column:" + (at.col + 2) + ";grid-row:" + at.row + "\""
                 + (m ? " title=\"" + esc(m.nick + (m.stop ? " · " + m.stop : "")) + "\"" : "") + ">" + k + label + "</div>");
         }
@@ -863,6 +867,7 @@
         var el = e.target.closest("[data-seat]");
         if (!el || !state) return;
         var k = +el.getAttribute("data-seat"), p = RFParty.get(), m = memberAt(k);
+        if (k === LEAD_SEAT && state.seats >= LEAD_SEAT && !m) { if (moving) roomMsg(T(LEAD_SEAT + "번은 인솔자 자리입니다. 다른 빈자리를 누르세요.", "Seat " + LEAD_SEAT + " is the leader's seat. Tap another empty seat.")); return; }
         if (moving) {
             var who = pickedMember();
             if (!who || (m && m.id === who.id)) { pick(null); seatMap(state); roomMsg(""); return; }

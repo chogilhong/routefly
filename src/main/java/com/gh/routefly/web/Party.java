@@ -379,9 +379,17 @@ final class Party {
         return r.buses > 1 ? bus + "호차 " : "";
     }
 
+    /** 3번은 인솔자 자리(2026-10-22 홍TV님 - 출입문 쪽 맨 앞, 안내산악회 좌석표에서 늘 비워 둠) - 좌석이 3개 이상인 방에서 회원은 못 고름. */
+    static final int LEAD_SEAT = 3;
+
+    static boolean leadSeat(Room r, int seat) {
+        return seat == LEAD_SEAT && r.seats >= LEAD_SEAT;
+    }
+
     private static void checkSeat(Room r, Member self, int bus, Integer seat) {
         if (seat == null) return;
         if (seat < 1 || seat > r.seats) throw new IllegalArgumentException("좌석 번호는 1 ~ " + r.seats + " 입니다.");
+        if (leadSeat(r, seat)) throw new IllegalArgumentException(busName(r, bus) + LEAD_SEAT + "번은 인솔자 자리입니다. 다른 좌석을 골라 주세요.");
         Member there = r.atSeat(bus, seat);
         if (there != null && there != self) throw new IllegalArgumentException(busName(r, bus) + seat + "번 자리는 이미 다른 분이 골랐습니다. 좌석 번호를 확인해 주세요.");   // 참가 전 사람에게 별명은 안 보임(점검)
     }
@@ -541,6 +549,7 @@ final class Party {
             if (on && m.cancelled) { m.cancelled = false; audit.info("uncancel room={} member={}", r.code, m.id); }
         } else if ("reserved".equals(what)) {
             if (m != null && !m.cancelled) throw new IllegalArgumentException(busName(r, b) + seat + "번 자리는 이미 참가했습니다.");
+            if (on && leadSeat(r, seat)) throw new IllegalArgumentException(LEAD_SEAT + "번은 인솔자 자리입니다.");
             if (on) r.reserved.add(b * 100 + seat); else r.reserved.remove(b * 100 + seat);
         } else {
             throw new IllegalArgumentException("모르는 표시입니다.");
@@ -840,6 +849,7 @@ final class Party {
         o.add("stops", strings(r.stops));
         JsonArray taken = new JsonArray();   // 호차 × 100 + 좌석
         for (Member m : r.members.values()) if (m.seat != null && !m.cancelled && m != me && (me == null || me.sees(m))) taken.add(m.bus * 100 + m.seat);   // 운전자 - 자기 호차만
+        if (r.seats >= LEAD_SEAT) for (int b = 1; b <= r.buses; b++) if (me == null || !"driver".equals(me.role) || me.bus == b) taken.add(b * 100 + LEAD_SEAT);   // 인솔자 자리 - 참가 칸에서 못 고르게
         o.add("taken", taken);
         o.addProperty("departed", r.departed);
         return o;
