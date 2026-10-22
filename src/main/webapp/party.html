@@ -47,7 +47,7 @@ button.on { background:var(--green); color:#06210c; border-color:var(--green); }
 button.sos { background:#c92a2a; color:#fff; border-color:#c92a2a; }
 .row { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
 .row > * { flex:1 1 auto; }
-.tip { font-size:12.5px; color:var(--dim); line-height:1.5; margin:8px 0 0; }
+.tip { font-size:14px; color:var(--dim); line-height:1.5; margin:8px 0 0; }
 #msg { color:var(--red); font-size:13.5px; min-height:18px; margin-top:8px; }
 #closed { text-align:center; line-height:1.7; }
 #code { font-size:18px; letter-spacing:3px; font-weight:bold; color:var(--sky); }
@@ -55,8 +55,13 @@ button.sos { background:#c92a2a; color:#fff; border-color:#c92a2a; }
 #map { position:absolute; inset:0; }
 #bar { font-size:13.5px; line-height:1.8; color:var(--dim); margin-bottom:8px; }
 #bar b { color:var(--tx); }
+/* 글씨 · 단추 크게(2026-10-22 점검 - 50~70대 회원) · SOS 줄 · 연결 줄 */
+#sosBar { position:sticky; top:0; z-index:5; background:#c92a2a; color:#fff; border-radius:10px; padding:10px 12px; font-size:16px; font-weight:bold; margin-bottom:10px; line-height:1.6; }
+#sosBar button { min-height:40px; margin:4px 6px 0 0; background:#fff; color:#c92a2a; border-color:#fff; font-size:14px; }
+#net { background:rgba(255,169,77,0.14); border:1px solid rgba(255,169,77,0.55); color:#ffc078; border-radius:10px; padding:8px 12px; font-size:14.5px; margin-bottom:10px; }
+#hikerBox .btn { min-height:52px; font-size:16px; }
 #notice { display:none; background:rgba(255,212,59,0.12); border:1px solid rgba(255,212,59,0.5); color:#ffe066; border-radius:10px; padding:10px 12px; font-size:14.5px; margin-bottom:12px; }
-table { width:100%; border-collapse:collapse; font-size:13.5px; }
+table { width:100%; border-collapse:collapse; font-size:15px; }
 th, td { text-align:left; padding:7px 4px; border-top:1px solid var(--ln); vertical-align:middle; }
 th { color:var(--dim); font-weight:normal; }
 tr.sos td { color:var(--red); font-weight:bold; }
@@ -69,7 +74,7 @@ select, input[type=number] { width:100%; height:44px; padding:0 10px; border-rad
 #seatMap { display:grid; gap:4px; overflow-x:auto; padding:2px 0 6px; }
 .s { display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:24px; height:40px; border-radius:6px; border:1px dashed var(--ln);
      color:var(--dim); font-size:12px; line-height:1.1; cursor:pointer; user-select:none; }
-.s small { font-size:9.5px; max-width:34px; overflow:hidden; white-space:nowrap; }
+.s small { font-size:11px; max-width:38px; overflow:hidden; white-space:nowrap; }
 .s.rsv { border:1.5px dashed #ffa94d; color:#ffa94d; }
 .s.join { border:1.5px solid var(--sky); color:var(--tx); }
 .s.board { background:var(--sky); border:1.5px solid var(--sky); color:#062026; font-weight:bold; }
@@ -102,10 +107,10 @@ input.bad, .agree.bad { border-color:#ff6b6b !important; }
 #qrBox .qrStop { text-align:left; margin:0 0 8px; }
 #qrBox .qrStop label { color:#333; margin:0 0 4px; }
 #qrBox .qrStop select { background:#f1f3f5; color:#111; border-color:#ccc; }
-#list .kick { min-height:32px; min-width:32px; padding:0 6px; margin-left:6px; font-size:11px; border-radius:8px; color:#ff8787; opacity:0.8; }   /* 상태 칸 끝 - 이름을 누르다 잘못 눌리지 않게(2026-10-21) */
+#list .kick { min-height:44px; min-width:44px; padding:0 6px; margin-left:6px; font-size:13px; border-radius:8px; color:#ff8787; opacity:0.8; }   /* 상태 칸 끝 - 이름을 누르다 잘못 눌리지 않게(2026-10-21) */
 #mapMsg { margin:6px 2px; color:#ffc078; }
-#list .undo { min-height:36px; padding:0 8px; margin-left:4px; font-size:12px; border-radius:8px; color:#8ce99a; }
-#busTabs button { flex:0 0 auto; min-height:36px; padding:0 12px; font-size:13.5px; }
+#list .undo { min-height:44px; padding:0 10px; margin-left:4px; font-size:14px; border-radius:8px; color:#8ce99a; }
+#busTabs button { flex:0 0 auto; min-height:44px; padding:0 14px; font-size:15px; }
 #busTabs button.on { background:var(--sky); color:#062026; border-color:var(--sky); }
 .s.drv { border:0; cursor:default; font-size:16px; }
 .s.pick { outline:3px solid #ffd43b; outline-offset:1px; }
@@ -115,9 +120,9 @@ input.bad, .agree.bad { border-color:#ff6b6b !important; }
 .guideLink { display:inline-flex; align-items:center; min-height:30px; padding:4px 12px; border-radius:16px; background:#ffd43b; color:#2b2100 !important;
              font-weight:bold; font-size:13.5px; text-decoration:none; box-shadow:0 0 0 2px rgba(255,212,59,0.35); }
 .legend .guideLink { margin-left:auto; }
-.legend .s { min-width:0; height:auto; padding:3px 8px; cursor:default; font-size:11.5px; }
+.legend .s { min-width:0; height:auto; padding:3px 8px; cursor:default; font-size:13px; }
 .pm .d { width:16px; height:16px; border-radius:50%; background:var(--sky); border:2px solid #fff; box-shadow:0 1px 3px rgba(0,0,0,0.6); }
-.pm .l { margin-top:2px; color:#fff; font-size:11.5px; font-weight:bold; white-space:nowrap; text-shadow:0 0 3px #000, 0 1px 2px #000; }
+.pm .l { margin-top:2px; color:#fff; font-size:13px; font-weight:bold; white-space:nowrap; text-shadow:0 0 3px #000, 0 1px 2px #000; }
 .pm.sos .d { background:#c92a2a; width:22px; height:22px; }
 .pm.old .d { background:#ffa94d; }
 .pm.aboard .d { background:var(--green); }
@@ -216,6 +221,8 @@ a.tel { color:var(--sky); }
     </div>
 
     <div id="room" hidden>
+        <div id="sosBar" role="alert" hidden></div>   <!-- 인솔자 · 운전자 - SOS 가 켜진 동안 늘 위에(2026-10-22 점검: 맨 아래 글로만 나와 안 보였음) -->
+        <div id="net" role="status" aria-live="polite" hidden></div>   <!-- 연결이 약할 때 - 마지막으로 받은 때 -->
         <div id="notice"></div>
         <section>
             <div id="bar"></div>
@@ -255,9 +262,10 @@ a.tel { color:var(--sky); }
         <section id="hikerBox" hidden>
             <button id="boardBtn" class="main big">🚌 버스 탔어요</button>
             <div id="tripBtns" hidden>
+                <button id="sosBtn" class="danger big">🆘 SOS</button>   <!-- 한 줄 가득 · 크게(2026-10-22 점검: 반쪽 44px 이었음) -->
                 <div class="row">
+                    <a class="btn" id="callLead" hidden>☎ 인솔자에게 전화</a>
                     <a class="btn" href="hike.html">🥾 따라가기 열기</a>
-                    <button id="sosBtn" class="danger">🆘 SOS</button>
                 </div>
                 <button id="aboardBtn" class="main big">🚌 하산 탑승</button>
             </div>
@@ -292,7 +300,7 @@ a.tel { color:var(--sky); }
             </div>
             <a class="guideLink" href="party-guide.html" style="margin-top:10px">📖 인솔자 사용법 (처음이면 꼭 읽어 보세요)</a>
             <h2 id="listTitle" style="margin-top:12px">회원</h2>
-            <table><thead><tr><th>좌석</th><th>별명</th><th>소식</th><th>그 자리</th><th>배터리</th><th>상태</th></tr></thead><tbody id="list"></tbody></table>
+            <table><thead><tr><th>좌석</th><th>별명</th><th>마지막 연락</th><th>멈춘 시간</th><th>배터리</th><th>상태</th></tr></thead><tbody id="list"></tbody></table>
             <label for="plateText" id="plateLabel" style="margin-top:12px">차량번호 (회원 화면에 나감)</label>
             <div class="row"><input id="plateText" type="text" maxlength="12" placeholder="예: 서울70사1234" style="flex:1"><button id="plateBtn">저장</button></div>
             <div class="row"><button id="busBtn">🚌 지금 내 자리를 버스로</button></div>

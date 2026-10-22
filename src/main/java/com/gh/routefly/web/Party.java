@@ -175,6 +175,42 @@ final class Party {
         load();
     }
 
+    /**
+     * 파일 쓰기를 모아서(2026-10-22 점검): 바뀔 때마다 모든 방을 통째로 쓰느라 한 자물쇠 아래 다른 방 요청이 모두 기다렸음.
+     * 바뀐 표시만 해 두고 SAVE_MS 마다 한 번 - 쓸 글은 자물쇠 안에서 만들고 디스크 쓰기는 밖에서. 운영(STORE)만, 시험은 바로 씀.
+     */
+    static final long SAVE_MS = 3000;
+    private volatile boolean lazy, dirty;
+    private java.util.concurrent.ScheduledExecutorService saver;
+
+    Party lazySave() {
+        lazy = true;
+        saver = java.util.concurrent.Executors.newSingleThreadScheduledExecutor(r -> { Thread t = new Thread(r, "routefly-party-save"); t.setDaemon(true); return t; });
+        saver.scheduleWithFixedDelay(this::flush, SAVE_MS, SAVE_MS, java.util.concurrent.TimeUnit.MILLISECONDS);
+        return this;
+    }
+
+    /** 바뀐 것이 있으면 지금 파일로(모아 쓰기 · 내려갈 때). */
+    void flush() {
+        String text;
+        synchronized (this) {
+            if (!dirty) return;
+            dirty = false;
+            text = snapshot();
+        }
+        write(text);
+    }
+
+    /** 웹앱이 내려갈 때 - 남은 것을 쓰고 멈춤(DbShutdown). */
+    void shutdown() {
+        if (saver != null) saver.shutdownNow();
+        flush();
+    }
+
+    /** 방 둘러보기(끝난 방 정리)는 이 간격에 한 번(요청마다 모든 방을 훑었음, 2026-10-22 점검). 자기 방이 끝났는지는 who · room 이 바로 봄. */
+    static final long SWEEP_MS = 30_000;
+    private long lastSweep = Long.MIN_VALUE / 4;   // /4 - 빼기가 넘치지 않게
+
     Party(Path file) {
         this(file, null);
     }
@@ -184,7 +220,7 @@ final class Party {
     }
 
     /** 서버 하나에 하나 - 파일은 설정 party.dir(없으면 stats.dir, 그것도 없으면 톰캣 폴더/routefly-party)/party.json. */
-    static final Party STORE = new Party(defaultFile(), PartyTrack::save);
+    static final Party STORE = new Party(defaultFile(), PartyTrack::save).lazySave();
 
     static Path defaultFile() {
         String dir = RouteflyConfig.get("party.dir");
@@ -280,13 +316,16 @@ final class Party {
         if (seats < 0 || seats > MAX_SEATS) throw new IllegalArgumentException("좌석 수는 0 ~ " + MAX_SEATS + " 입니다.");
         if (buses < 1 || buses > MAX_BUSES) throw new IllegalArgumentException("차량은 1 ~ " + MAX_BUSES + "대입니다.");
         if (minPeople < 0 || minPeople > MAX_MEMBERS) throw new IllegalArgumentException("최소 인원이 올바르지 않습니다.");
+        if (departAt < 0 || endAt < 0) throw new IllegalArgumentException("시각이 올바르지 않습니다.");
         if (departAt > 0 && (departAt < now - 24 * HOUR || departAt > now + 30L * 24 * HOUR)) throw new IllegalArgumentException("출발은 오늘부터 30일 안으로 정해 주세요.");
+        // 출발 시각 없이 하산 마감만 - 지난 때 · 너무 먼 때는 받지 않음(점검: 방이 40일 동안 남았음)
+        if (endAt > 0 && departAt == 0 && (endAt <= now || endAt > now + 30L * 24 * HOUR + MAX_TRIP_MS)) throw new IllegalArgumentException("하산 마감은 지금부터 35일 안으로 정해 주세요.");
         if (endAt > 0 && departAt > 0 && endAt <= departAt) throw new IllegalArgumentException("하산 마감은 출발보다 뒤여야 합니다.");
         if (endAt > 0 && departAt > 0 && endAt > departAt + MAX_TRIP_MS) throw new IllegalArgumentException("하산 마감은 출발 뒤 5일 안으로 정해 주세요(3박 4일까지).");   // 방이 40일 동안 남지 않게(점검)
         String lead = clean(leaderName, 12);
         Room r = new Room(newCode(), n, now, departAt, endAt, buses, seats, minPeople, List.copyOf(stops), lead, phone(leaderPhone));
         if (plates != null) for (int i = 0; i < Math.min(plates.size(), r.buses); i++) r.plates[i] = plate(plates.get(i));
-        r.driverCode = newCode();
+        do r.driverCode = newCode(); while (r.driverCode.equals(r.code));   // 방 코드와 같으면 모두 운전자로 들어옴(점검)
         rooms.put(r.code, r);
         Member m = add(r, lead != null ? lead : "인솔자", "lead", now);
         audit.info("create room={} members=1", r.code);
@@ -297,6 +336,7 @@ final class Party {
     /** 방 코드(또는 운전자 코드)로 찾기. 없으면 IllegalArgumentException. */
     synchronized Room room(String code, long now) {
         sweep(now);
+        if (code != null) { Room hit = rooms.get(code.trim().toUpperCase()); if (hit == null) hit = byDriverCode(code.trim().toUpperCase()); if (hit != null && hit.expired(now)) sweep(now, true); }
         Room r = code == null ? null : rooms.get(code.trim().toUpperCase());
         if (r == null && code != null) r = byDriverCode(code.trim().toUpperCase());
         if (r == null && code != null && endedWhy.containsKey("#" + code.trim().toUpperCase())) throw new Ended("이미 끝난 방입니다 - " + endedWhy.get("#" + code.trim().toUpperCase()));
@@ -364,6 +404,7 @@ final class Party {
         sweep(now);
         if (token == null) return null;
         Member m = byToken.get(token);
+        if (m != null && m.room.expired(now)) { sweep(now, true); m = byToken.get(token); }
         if (m == null && endedWhy.containsKey(token)) throw new Ended(endedWhy.get(token));
         return m;
     }
@@ -397,11 +438,13 @@ final class Party {
      * 위치 없이 "폰은 켜져 있음" · 배터리 · SOS(2026-10-20 PC: 화면을 끈 실내 · 골짜기에서 GPS 를 못 잡으면 인솔자에게 소식이 끊긴 것처럼 보였고,
      * 위치가 없으면 SOS 도 못 보냈음). 출발 3시간 전보다 이르면 · 취소 · 하산 탑승이면 받지 않음.
      */
-    synchronized void ping(Member m, Integer batt, boolean sos, long now) {
+    /** sos - null 이면 그대로 둠(앱의 "폰 켜짐" 신호 RfAlive 는 sos 를 안 보냄 - 전에는 1분마다 SOS 가 꺼져 인솔자에게 "새 SOS" 가 되풀이됐음, 2026-10-22 점검). */
+    synchronized void ping(Member m, Integer batt, Boolean sos, long now) {
         if (m.cancelled || m.aboard) return;
         if (m.room.departAt > 0 && now < m.room.departAt - LOC_BEFORE_MS) return;
         m.seen = now;
         if (batt != null) m.batt = Math.max(0, Math.min(100, batt));
+        if (sos == null) return;
         if (sos && !m.sos) audit.info("sos room={} member={} (위치 없음)", m.room.code, m.id);
         m.sos = sos;
     }
@@ -446,6 +489,7 @@ final class Party {
         if (r.departed && !actor.staff()) throw new IllegalStateException("출발한 뒤에는 자리를 인솔자가 좌석표에서 옮깁니다.");
         int b = checkBus(r, bus == null ? t.bus : bus);
         if (t != actor) { actor.ownBus(t.bus); actor.ownBus(b); }
+        else if ("driver".equals(actor.role) && b != actor.bus) throw new SecurityException("운전자의 호차는 인솔자가 바꿉니다.");   // 스스로 바꿔 다른 호차 회원을 보는 것 막기(점검)
         if ("driver".equals(t.role)) { t.bus = b; save(); return; }   // 운전자 - 호차만
         if (!"hiker".equals(t.role)) throw new IllegalArgumentException("자리는 산행 회원만 고릅니다.");
         checkSeat(r, t, b, seat);
@@ -596,11 +640,18 @@ final class Party {
         }
         endedWhy.put("#" + r.code, why);   // 방 코드로 새로 들어오려는 사람에게도(48시간, 2026-10-20 PC)
         endedAt.put("#" + r.code, now);
+        if (r.driverCode != null) { endedWhy.put("#" + r.driverCode, why); endedAt.put("#" + r.driverCode, now); }   // 운전자 코드도 48시간 다시 안 씀(점검)
         audit.info("end room={} members={} ({})", r.code, r.members.size(), why);
         r.members.clear();
     }
 
     synchronized void sweep(long now) {
+        sweep(now, false);
+    }
+
+    synchronized void sweep(long now, boolean force) {
+        if (!force && now >= lastSweep && now - lastSweep < SWEEP_MS) return;
+        lastSweep = now;
         boolean changed = false;
         for (Room r : new ArrayList<>(rooms.values())) {
             if (r.expired(now)) { keepTracks(r); drop(r, "산행 시간이 지나 방이 끝났습니다.", now); changed = true; }
@@ -621,6 +672,12 @@ final class Party {
 
     private void save() {
         if (file == null) return;
+        if (lazy) { dirty = true; return; }
+        write(snapshot());
+    }
+
+    /** 파일에 쓸 글(자물쇠 안에서). */
+    private String snapshot() {
         JsonArray arr = new JsonArray();
         for (Room r : rooms.values()) {
             JsonObject o = new JsonObject();
@@ -643,6 +700,17 @@ final class Party {
             o.add("members", ms);
             arr.add(o);
         }
+        return arr.toString();
+    }
+
+    private final Object fileLock = new Object();
+
+    private void write(String text) {
+        if (file == null) return;
+        synchronized (fileLock) { writeLocked(text); }
+    }
+
+    private void writeLocked(String text) {
         try {
             Files.createDirectories(file.getParent());
             Path tmp = file.resolveSibling("party.json.tmp");
@@ -650,7 +718,7 @@ final class Party {
             // 처음부터 600 으로 만듦(점검: 쓴 뒤 바꾸면 잠깐 남이 읽을 수 있었음 - 열쇠가 들어 있음)
             try { Files.createFile(tmp, java.nio.file.attribute.PosixFilePermissions.asFileAttribute(java.nio.file.attribute.PosixFilePermissions.fromString("rw-------"))); }
             catch (UnsupportedOperationException e) { /* 윈도 */ }
-            Files.writeString(tmp, arr.toString(), StandardCharsets.UTF_8);
+            Files.writeString(tmp, text, StandardCharsets.UTF_8);
             Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING);
         } catch (Exception e) {
             log.warn("[PARTY] 방 파일을 쓰지 못함 - {}", e.toString());
@@ -832,7 +900,8 @@ final class Party {
             x.addProperty("sos", m.sos);
             x.addProperty("aboard", m.aboard);
             if (m.aboard) aboard++;
-            if (m.t > 0 && m.lat != null) {   // 하산 탑승하면 위치를 지움(aboard)
+            // 출발 때 안 타서 취소된 회원은 남의 위치를 못 봄(점검: 안 온 사람이 하루 내내 일행 위치를 봤음). 인솔자가 되돌리면 다시 봄
+            if (m.t > 0 && m.lat != null && (staff || !me.cancelled || m == me)) {   // 하산 탑승하면 위치를 지움(aboard)
                 x.addProperty("lat", m.lat);
                 x.addProperty("lon", m.lon);
                 x.addProperty("ago", (now - m.t) / 1000);

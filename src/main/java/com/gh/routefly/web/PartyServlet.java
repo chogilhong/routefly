@@ -57,11 +57,14 @@ public class PartyServlet extends HttpServlet {
         // JSON 으로 보낸 것만(다른 누리집이 손님 브라우저로 몰래 보내는 text/plain 글을 막음 - 점검)
         String ct = req.getContentType();
         if (ct == null || !ct.toLowerCase().startsWith("application/json")) { Json.fail(resp, 415, "요청을 읽지 못했습니다."); return; }
-        String path = req.getPathInfo(), ip = SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For"));
+        // IPv6 는 /64 로 묶음(점검: 주소마다 따로 세어 한 사람이 주소를 바꿔 가며 방 2000개를 채울 수 있었음)
+        String path = req.getPathInfo(), ip = RateLimiter.group(SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For")));
         long now = System.currentTimeMillis();
         boolean lookup = "/info".equals(path) || "/join".equals(path);
         if (lookup && MISSES.over(ip, now)) { Json.fail(resp, 429, "방 코드를 너무 많이 틀렸습니다. 10분 뒤 다시 해 주세요."); return; }
-        if ("/create".equals(path) && !owner(req) && !CREATES.take(ip, now)) { Json.fail(resp, 429, "하루에 만들 수 있는 방 수를 넘었습니다. 내일 다시 해 주세요."); return; }
+        boolean create = "/create".equals(path) && !owner(req);
+        if (create && (CREATES.over(ip, now) || CREATES_ALL.over("*", now))) { Json.fail(resp, 429, "하루에 만들 수 있는 방 수를 넘었습니다. 내일 다시 해 주세요."); return; }
+        if ("/join".equals(path) && JOINS.over(ip, now)) { Json.fail(resp, 429, "한 곳에서 참가를 너무 많이 했습니다. 1시간 뒤 다시 해 주세요."); return; }
         JsonObject in;
         try {
             in = body(req);
@@ -70,7 +73,10 @@ public class PartyServlet extends HttpServlet {
             return;
         }
         try {
-            Json.write(resp, 200, handle(Party.STORE, path, in, now), false);
+            JsonObject out = handle(Party.STORE, path, in, now);
+            if (create) { CREATES.take(ip, now); CREATES_ALL.take("*", now); }   // 만든 것만 셈(점검: 날짜를 틀린 것도 세어 하루 막혔음)
+            if ("/join".equals(path)) JOINS.take(ip, now);
+            Json.write(resp, 200, out, false);
         } catch (Party.Ended e) {
             Json.fail(resp, 410, e.getMessage());
         } catch (IllegalArgumentException | IllegalStateException e) {
@@ -85,6 +91,10 @@ public class PartyServlet extends HttpServlet {
 
     /** 방 만들기: IP 마다 하루 5개(한 사람이 2000개를 채워 아무도 못 만들게 하는 것을 막음 - 점검). */
     static final Quota CREATES = new Quota(5, 24 * 3600_000L);
+    /** 방 만들기 - 서버 전체 하루 300개(주소를 바꿔 가며 채우기 막기, 2026-10-22 점검). 운영자는 빼고 셈. */
+    static final Quota CREATES_ALL = new Quota(300, 24 * 3600_000L);
+    /** 참가 - 한 곳(IP · IPv6 /64)에서 1시간에 15번(가짜 회원 300명으로 방 채우기 막기 - 점검). 집결지 한 와이파이에 여럿이어도 넉넉히. */
+    static final Quota JOINS = new Quota(15, 3600_000L);
 
     /** 운영자 기기(/stats 를 연 브라우저 · 앱 - 쿠키 값이 통계 열쇠에서 만든 값과 맞을 때)는 방 만들기 하루 제한을 받지 않음(2026-10-21 PC: 시험하다 막힘). */
     static boolean owner(HttpServletRequest req) {
@@ -164,7 +174,7 @@ public class PartyServlet extends HttpServlet {
             }
             case "/view" -> { }
             case "/trail" -> { return p.trail(m, (int) lng(in, "id"), now); }
-            case "/ping" -> p.ping(m, num(in, "batt") == null ? null : num(in, "batt").intValue(), bool(in, "sos"), now);
+            case "/ping" -> p.ping(m, num(in, "batt") == null ? null : num(in, "batt").intValue(), in.has("sos") ? bool(in, "sos") : null, now);   // sos 가 없으면(앱 RfAlive) 그대로
             case "/board" -> p.board(m, on, now);
             case "/aboard" -> p.aboard(m, on);
             case "/seat" -> p.seat(m, integer(in, "id"), integer(in, "bus"), integer(in, "seat"), str(in, "stop"));

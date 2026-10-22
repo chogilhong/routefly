@@ -170,7 +170,11 @@
             try { $("joinNick").value = localStorage.getItem("rf-party-nick") || ""; } catch (e) { /* 없음 */ }
             var t = new Date(Date.now() + 86400000);   // 출발 날짜 - 내일로 두고 고치게
             $("mkDate").value = dayText(t);
-        }).catch(function () { show("closed"); $("closed").querySelector("p").textContent = "서버에 닿지 않습니다. 인터넷 연결을 확인해 주세요."; });
+        }).catch(function () {
+            // 산속 · 약한 신호 - 이미 들어간 방이 있으면 그 방 화면으로(저절로 다시 받음). 2026-10-22 점검: "서비스 닫힘" 처럼 보였음
+            if (RFParty.get()) { enterRoom(); netBad(); return; }
+            show("closed"); $("closed").querySelector("p").textContent = "서버에 닿지 않습니다. 인터넷 연결을 확인해 주세요.";
+        });
     }
 
     /** 방 코드 6글자를 적으면 방 소개 · 좌석 · 탑승지(이미 찬 자리는 고를 수 없게). */
@@ -339,6 +343,7 @@
         if (first) render(first); else refresh();
         if (navigator.geolocation) {
             watch = navigator.geolocation.watchPosition(function (pos) {
+                if (bgOn) return;   // 앱 - 화면 꺼도 도는 위치(BackgroundGeolocation)가 보냄, 두 번 보내지 않음(2026-10-22 점검)
                 lastPos = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy, t: Date.now() };
                 var r = RFParty.fix(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
                 if (r) r.then(render).catch(fail);
@@ -360,6 +365,7 @@
     function refresh() {
         var p = RFParty.get();
         if (!p) { location.href = EXIT; return; }
+        if (Date.now() - lastOk < 10000) return;   // 방금 위치 · 켜짐의 답으로 받았음 - 같은 것을 또 받지 않음(2026-10-22 점검: 회원 1분에 4번)
         if (document.hidden && !isStaff()) return;   // 회원 - 화면을 안 볼 때는 방 새로 받기를 쉼(위치 · 켜짐을 보낼 때 답으로 공지가 옴). 인솔자 · 운전자는 SOS 를 놓치지 않게 그대로
         RFParty.post("view", { token: p.token }).then(render).catch(fail);
     }
@@ -422,7 +428,14 @@
     function fail(e) {
         if (leaving) return;
         if (e && e.ended) { exit((e.message || "방이 끝났습니다.") + " 위치는 더 보내지 않습니다."); return; }
-        roomMsg("잠시 연결이 안 됩니다(" + (e && e.message || e) + "). 저절로 다시 합니다.");
+        netBad();
+    }
+    /** 연결 줄(위쪽) - 마지막으로 받은 때와 함께, 다음에 받으면 저절로 사라짐(2026-10-22 점검: 맨 아래 roomMsg 에 "Failed to fetch" 가 나왔음). */
+    var lastOk = 0;
+    function netBad() {
+        var ago = lastOk ? Math.max(0, Math.round((Date.now() - lastOk) / 60000)) : null;
+        $("net").textContent = "📶 연결이 약합니다" + (ago == null ? "" : ago < 1 ? " · 방금 받은 정보" : " · " + ago + "분 전 정보") + " - 저절로 다시 합니다.";
+        $("net").hidden = false;
     }
     /** 누른 단추가 실패 - 방이 끝났으면 닫고, 아니면 까닭(저절로 다시 하지 않으니 다시 누르라고). */
     function actFail(e) {
@@ -439,12 +452,14 @@
     function render(s) {
         if (!s) return;
         state = s;
+        lastOk = Date.now();
+        $("net").hidden = true;
         var p = RFParty.get() || {}, staff = s.role === "lead" || s.role === "driver";
         var bar = [aboutHtml(s)];
         if (!staff && (s.seats > 0 || (s.stops || []).length || s.buses > 1))   // 내 자리 + 바로 고치기(출발 뒤에는 인솔자만 - 2026-10-20)
             bar.push("💺 내 자리 <b>" + busLabel(s, s.bus) + (s.seat ? s.seat + "번" : s.buses > 1 ? "" : "없음") + "</b>" + (s.stop && !s.departed ? " · " + esc(s.stop) : "")
                 + (s.buses > 1 && plateOf(s, s.bus) ? " · 내 차 <b>" + esc(plateOf(s, s.bus)) + "</b>" : "")
-                + (s.departed ? "" : " <button type=\"button\" id=\"editSeat\" style=\"min-height:32px;padding:0 10px;font-size:13px\">✏️ 바꾸기</button>"));
+                + (s.departed ? "" : " <button type=\"button\" id=\"editSeat\" style=\"min-height:44px;padding:0 12px;font-size:15px\">✏️ 바꾸기</button>"));
         $("bar").innerHTML = bar.join("<br>");
         if (s.notice) {
             $("notice").style.display = "block";
@@ -464,8 +479,8 @@
             $("phase").innerHTML = over ? overText(s) + (s.departed ? " · 하산 탑승 <b>" + (s.aboardCount || 0) + "</b> / " + nh : "") + (s.role === "lead" ? " - 산행이 끝났으면 아래 \"방 끝내기\"" : "")
                 : !s.departed && s.departAt && s.now > s.departAt ? "<span style=\"color:var(--red)\">출발 시각(" + clock(s.departAt) + ")이 지났습니다</span>" + (s.role === "lead" ? " - 출발했으면 아래 \"출발\"을 눌러 주세요" : "")
                     + " · 출발 탑승 " + (s.members || []).filter(function (m) { return m.role === "hiker" && m.boarded; }).length + " / " + nh
-                : s.departed ? "🥾 산행 중 · 하산 탑승 <b>" + (s.aboardCount || 0) + "</b> / " + nh
-                + (nh > 0 && s.aboardCount >= nh ? " <span class=\"ok\">모두 탔습니다" + (s.role === "lead" ? " - 방을 끝내세요" : "") + "</span>" : "")
+                : s.departed ? "🥾 산행 중 · 하산 탑승 <b>" + (s.aboardCount || 0) + "</b> / " + nh + (s.endAt ? " · 하산 마감 " + left(s.endAt, s.now) : "")
+                + (nh > 0 && s.aboardCount >= nh ? " <span class=\"ok\">모두 탔습니다" + (s.role === "lead" ? " - 방을 끝내세요" : "") + "</span>" : notDown(s))
                 : s.departAt ? "출발까지 " + left(s.departAt, s.now) + " · 출발 탑승 " + (s.members || []).filter(function (m) { return m.role === "hiker" && m.boarded; }).length + " / " + nh : "";
             if (s.role === "driver" && !seatMap.once) { curBus = s.bus; seatMap.once = true; }   // 운전자는 자기 호차부터
             list(s);
@@ -480,6 +495,13 @@
     }
 
     /** 회원 단계 - 취소됨 / 출발 전(버스 탔어요) / 산행 중(SOS · 하산 탑승) / 하산 탑승함. */
+    /** 인솔자 · 운전자 - 아직 하산 탑승 안 한 사람(2026-10-22 점검: 숫자만 있어 누가 남았는지 명단을 훑어야 했음). 8명까지 이름. */
+    function notDown(s) {
+        var rest = (s.members || []).filter(function (m) { return m.role === "hiker" && !m.cancelled && !m.aboard && m.id !== s.me; });
+        if (!rest.length) return "";
+        return "<br>🥾 아직 하산 안 함 <b>" + rest.length + "</b>명: " + rest.slice(0, 8).map(function (m) { return esc(m.nick) + (m.seat ? "(" + seatText(s, m) + ")" : ""); }).join(", ") + (rest.length > 8 ? " 외 " + (rest.length - 8) + "명" : "");
+    }
+
     function hikerPhase(s, p) {
         $("cancelBox").hidden = !s.cancelled;
         $("hikerBox").hidden = s.cancelled;
@@ -502,7 +524,9 @@
         $("aboardBtn").hidden = !s.departed;
         $("aboardBtn").className = "main big" + (s.aboard ? " on" : "");
         $("aboardBtn").textContent = s.aboard ? "✅ 하산 탑승함" : "🚌 하산 탑승";
-        $("sosBtn").className = p.sos ? "sos" : "danger";
+        $("callLead").hidden = !s.leaderPhone;   // 크게 - 인솔자 번호(2026-10-22 점검: 위 줄의 작은 글자뿐이었음)
+        if (s.leaderPhone) $("callLead").href = "tel:" + s.leaderPhone.replace(/[^0-9+]/g, "");
+        $("sosBtn").className = (p.sos ? "sos" : "danger") + " big";
         $("sosBtn").textContent = p.sos ? "🆘 SOS 보냄 - 누르면 풀림" : "🆘 SOS";
         $("phase").innerHTML = over ? overText(s)
             : !s.departed && s.departAt && s.now > s.departAt ? "출발 시각(" + clock(s.departAt) + ")이 지났습니다 · 인솔자가 아직 출발을 누르지 않았습니다" + (s.boarded ? " · ✅ 탑승 확인" : "")
@@ -521,18 +545,30 @@
     var sosSeen = {};
     /** 새로 SOS 를 켠 사람이 있으면 떨고 읽어 줌. */
     function sosAlert(s) {
-        var now = {};
+        var now = {}, bar = [];
         (s.members || []).forEach(function (m) {
             if (!m.sos || m.id === s.me) return;
             now[m.id] = 1;
-            if (sosSeen[m.id]) return;
             var who = m.nick + (m.seat ? "(" + busLabel(s, m.bus) + m.seat + "번)" : "");
-            roomMsg("🆘 " + who + " 님이 SOS 를 보냈습니다.");
+            // 위쪽 빨간 줄 - SOS 가 켜진 동안 늘(2026-10-22 점검: 맨 아래 글로만 나와 안 보였음). 누르면 지도 · 지나온 길
+            bar.push("🆘 " + esc(who) + " <button type=\"button\" data-sos=\"" + m.id + "\">🗺 지도 · 지나온 길</button>");
+            if (sosSeen[m.id]) return;
             if (navigator.vibrate) navigator.vibrate([400, 150, 400, 150, 400]);
             try { speechSynthesis.speak(new SpeechSynthesisUtterance(who + " 님이 에스오에스를 보냈습니다")); } catch (e) { /* 없음 */ }
         });
         sosSeen = now;
+        $("sosBar").innerHTML = bar.length ? "SOS " + bar.length + "명<br>" + bar.join("<br>") : "";
+        $("sosBar").hidden = !bar.length;
     }
+    $("sosBar").addEventListener("click", function (e) {
+        var b = e.target.closest("[data-sos]");
+        if (!b || !state) return;
+        var m = (state.members || []).filter(function (x) { return String(x.id) === b.getAttribute("data-sos"); })[0];
+        if (!m) return;
+        if (m.lat != null && map) map.easeTo({ center: [m.lon, m.lat], zoom: Math.max(map.getZoom(), 15) });
+        if (trailFor !== m.id) showTrail(m);
+        window.scrollTo({ top: $("mapBox").offsetTop - 120, behavior: "smooth" });
+    });
 
     /** SOS → 10분 넘게 소식 없음 → 오래 그 자리 → 나머지, 하산 탑승 · 취소는 아래. */
     /** 소식 칸 - 폰이 살아 있다고 알린 것(seen)이 위치보다 1분 넘게 새로우면 "폰 방금 · 위치 4분 전"(2026-10-20 PC: 화면 끈 실내는 GPS 를 못 잡음). */
@@ -549,7 +585,7 @@
         $("listTitle").textContent = "회원 " + rows.filter(function (m) { return !m.cancelled; }).length + "명" + (rows.some(function (m) { return m.cancelled; }) ? " · 취소 " + rows.filter(function (m) { return m.cancelled; }).length : "");
         $("list").innerHTML = rows.map(function (m) {
             var cls = m.cancelled ? "aboard" : m.sos ? "sos" : m.aboard ? "aboard" : (s.departed && silent(m)) ? "old" : "";
-            var st = m.cancelled ? "❌ 취소" : m.sos ? "🆘 SOS" : m.aboard ? "🚌 하산 탑승" : m.role === "driver" ? "운전" : m.boarded ? "✅ 탐" : s.departed ? "" : "안 탐";
+            var st = m.cancelled ? "❌ 취소" : m.sos ? "🆘 SOS" : m.aboard ? "🚌 하산 탑승" : m.role === "driver" ? "운전" : s.departed ? "🥾 산행 중" : m.boarded ? "✅ 탐" : "안 탐";
             return "<tr class=\"" + cls + "\" data-id=\"" + m.id + "\"><td>" + (m.role === "driver" ? busLabel(s, m.bus) || "-" : seatText(s, m)) + "</td><td>" + esc(m.nick)
                 + (m.cancelled && m.role === "hiker" ? " <button type=\"button\" class=\"undo\" data-undo=\"" + m.id + "\" title=\"늦게 온 회원 - 취소 되돌리기\">↩ 탔음</button>" : "") + "</td><td>" + (m.aboard ? "-" : newsText(m)) + "</td><td>"
                 + (m.stillMin != null && m.ago != null ? m.stillMin + "분" : "-") + "</td><td>" + (m.batt != null ? m.batt + "%" : "-") + "</td><td>" + st
@@ -933,6 +969,8 @@
 
     $("boardBtn").addEventListener("click", function () {
         var p = RFParty.get();
+        // 탄 뒤 "확인하려고" 또 누르면 취소되던 것 막기(2026-10-22 점검 - 출발 때 안 탄 사람으로 빠질 수 있음)
+        if (state && state.boarded && !confirm("\"버스 탔어요\" 를 취소할까요?\n취소하면 출발 때 안 탄 사람으로 빠질 수 있습니다.")) return;
         RFParty.post("board", { token: p.token, on: !(state && state.boarded) }).then(function (j) {
             render(j);
             if (j.boarded) roomMsg("✅ 탑승을 인솔자에게 알렸습니다.");
@@ -953,9 +991,11 @@
 
     $("sosBtn").addEventListener("click", function () {
         var p = RFParty.get();
-        if (!p.sos && !confirm("방 사람들에게 SOS 를 보낼까요? (119 신고는 따라가기의 SOS 를 쓰세요)")) return;
+        if (!p.sos && !confirm("인솔자 · 일행에게 SOS 를 보낼까요?\n\n위급하면 119 에도 바로 전화하세요(확인 뒤 전화 단추가 나옵니다).")) return;
         if (p.sos && !confirm("SOS 를 풀까요? 빨간 SOS 표시가 사라집니다. 다시 필요하면 또 누르면 됩니다.")) return;
-        RFParty.sos(!p.sos);
+        var on = !p.sos;
+        RFParty.sos(on);
+        if (on) setTimeout(function () { if (confirm("119 에 전화할까요?\n(산 이름 · 가까운 이정표 번호를 알려 주세요)")) location.href = "tel:119"; }, 300);
         var pr = RFParty.ping(true);   // 위치를 못 잡아도 SOS 는 바로(2026-10-20 - 위치가 없으면 SOS 가 안 갔음)
         if (pr) pr.then(render).catch(fail);
         here(function (lat, lon, acc) {

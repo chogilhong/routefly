@@ -475,4 +475,63 @@ public class PartyTest {
         assertEquals("모르는 꼴은 그대로", "+82 10-1234-5678", Party.phone("+82 10-1234-5678"));
         assertNull(Party.phone("없음"));
     }
+
+    /** 앱의 "폰 켜짐" 신호(RfAlive - sos 를 안 보냄)가 SOS 를 끄지 않음(2026-10-22 점검: 1분마다 꺼졌다 켜져 인솔자에게 "새 SOS" 가 되풀이됐음). */
+    @Test
+    public void alivePingKeepsSos() {
+        Party p = new Party();
+        JsonObject room = j(create(p, T0));
+        String code = room.get("code").getAsString(), lead = room.get("token").getAsString();
+        String a = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"철수\",\"role\":\"hiker\",\"agree\":true}", T0).get("token").getAsString();
+        call(p, "/ping", "{\"token\":\"" + a + "\",\"batt\":50,\"sos\":true}", DEPART + H);
+        assertTrue(member(call(p, "/view", tok(lead), DEPART + H), "철수").get("sos").getAsBoolean());
+        call(p, "/ping", "{\"token\":\"" + a + "\",\"batt\":49}", DEPART + H + 60_000);   // 앱 RfAlive
+        JsonObject m = member(call(p, "/view", tok(lead), DEPART + H + 60_000), "철수");
+        assertTrue("sos 가 없는 신호는 SOS 를 그대로 둠", m.get("sos").getAsBoolean());
+        assertEquals(49, m.get("batt").getAsInt());
+        call(p, "/ping", "{\"token\":\"" + a + "\",\"sos\":false}", DEPART + H + 120_000);   // 화면에서 끔
+        assertFalse(member(call(p, "/view", tok(lead), DEPART + H + 120_000), "철수").get("sos").getAsBoolean());
+    }
+
+    /** 2026-10-22 보안 점검 - 운전자 스스로 호차 못 바꿈 · 취소된 회원은 남의 위치 못 봄 · 시각 범위 · 운전자 코드 ≠ 방 코드 · 모아 쓰기. */
+    @Test
+    public void securityChecks2() throws Exception {
+        Party p = new Party();
+        String two = "{\"name\":\"두 대\",\"departAt\":" + DEPART + ",\"endAt\":" + END + ",\"buses\":2,\"seats\":28}";
+        JsonObject room = call(p, "/create", two, T0);
+        String code = room.get("code").getAsString(), lead = room.get("token").getAsString();
+        assertNotEquals(code, room.get("driverCode").getAsString());
+        String d = call(p, "/join", "{\"code\":\"" + room.get("driverCode").getAsString() + "\",\"nick\":\"기사\",\"role\":\"driver\",\"bus\":1,\"agree\":true}", T0).get("token").getAsString();
+        try { call(p, "/seat", "{\"token\":\"" + d + "\",\"bus\":2}", T0); fail("운전자가 스스로 2호차로"); } catch (SecurityException e) { assertTrue(e.getMessage().contains("인솔자")); }
+        int dId = member(call(p, "/view", tok(lead), T0), "기사").get("id").getAsInt();
+        call(p, "/seat", "{\"token\":\"" + lead + "\",\"id\":" + dId + ",\"bus\":2}", T0);   // 인솔자는 됨
+        assertEquals(2, call(p, "/view", tok(d), T0).get("bus").getAsInt());
+
+        // 출발 때 안 탄 회원(취소)은 남의 위치를 못 봄
+        String a = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"철수\",\"role\":\"hiker\",\"agree\":true}", T0).get("token").getAsString();
+        String b = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"늦잠\",\"role\":\"hiker\",\"agree\":true}", T0).get("token").getAsString();
+        call(p, "/board", "{\"token\":\"" + a + "\",\"on\":true}", DEPART - H);
+        call(p, "/depart", tok(lead), DEPART);
+        call(p, "/loc", "{\"token\":\"" + a + "\",\"lat\":37.5,\"lon\":127.0}", DEPART + H);
+        assertTrue(call(p, "/view", tok(b), DEPART + H).get("cancelled").getAsBoolean());
+        JsonObject seen = member(call(p, "/view", tok(b), DEPART + H), "철수");
+        assertTrue("이름은 보여도", seen != null);
+        assertFalse("위치는 안 보임", seen.has("lat"));
+        assertTrue("인솔자는 봄", member(call(p, "/view", tok(lead), DEPART + H), "철수").has("lat"));
+
+        // 시각 범위 - 출발 없이 하산 마감만 40일 뒤 · 음수 출발
+        try { call(p, "/create", "{\"name\":\"x\",\"endAt\":" + (T0 + 40 * 24 * H) + "}", T0); fail(); } catch (IllegalArgumentException e) { /* 맞음 */ }
+        try { call(p, "/create", "{\"name\":\"x\",\"departAt\":-5}", T0); fail(); } catch (IllegalArgumentException e) { /* 맞음 */ }
+        call(p, "/create", "{\"name\":\"x\",\"endAt\":" + (T0 + 10 * H) + "}", T0);   // 가까운 마감은 됨
+
+        // 모아 쓰기(운영) - flush 해야 파일에 남음
+        Path f = Files.createTempDirectory("party").resolve("party.json");
+        Party lz = new Party(f).lazySave();
+        try {
+            call(lz, "/create", "{\"name\":\"모아 쓰기\",\"departAt\":" + DEPART + "}", T0);
+            assertFalse("바로는 안 씀", Files.exists(f));
+            lz.flush();
+            assertEquals(1, new Party(f).size());
+        } finally { lz.shutdown(); }
+    }
 }

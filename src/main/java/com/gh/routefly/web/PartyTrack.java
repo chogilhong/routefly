@@ -100,6 +100,17 @@ final class PartyTrack {
         return o;
     }
 
+    /** 웹앱이 내려갈 때 - 줄 선 자취를 잠깐(5초) 마저 쓰고 스레드를 멈춤(옛 웹앱이 메모리에 남지 않게, 2026-10-22 점검). */
+    static void shutdown() {
+        writer.shutdown();
+        try {
+            if (!writer.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS)) writer.shutdownNow();
+        } catch (InterruptedException e) {
+            writer.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+    }
+
     /** DB 에 넣기(뒤에서 - 방 끝내기를 늦추지 않게). 표가 없거나 웹 계정에 쓰기 권한이 없으면 로그만. */
     static void save(JsonObject t) {
         writer.submit(() -> {
