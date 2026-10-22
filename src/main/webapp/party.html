@@ -289,6 +289,13 @@ a.tel { color:var(--sky); }
                 <div class="two" id="actStopBox"><div><label for="actStop">탑승지 바꾸기</label><select id="actStop"></select></div><div></div></div>
             </div>
             <div id="stopSum" class="tip"></div>
+            <details id="rosterBox" hidden style="margin-top:10px">   <!-- 예약 명단 붙여넣기(2026-10-22 - 산악회 누리집 예약자 명단) -->
+                <summary style="cursor:pointer;font-weight:bold;min-height:44px;display:flex;align-items:center">📋 예약 명단 붙여넣기</summary>
+                <p class="tip">산악회 누리집 · 엑셀의 예약자 명단을 한 줄에 한 사람씩 붙여넣으세요. 좌석표에 <b>예약 · 미참가</b>로 이름이 채워지고, 회원이 그 자리로 참가하면 바뀝니다.
+                    예) <code>21 홍길동 사당</code> · <code>21,홍길동,사당</code> · 차가 여러 대면 <code>2-21 홍길동</code>. 붙여넣으면 아직 참가 안 한 예약 표시를 이 명단으로 바꿉니다. 이름은 인솔자 · 운전자만 보고 방이 끝나면 지워집니다.</p>
+                <textarea id="rosterText" rows="6" maxlength="15000" style="width:100%;font:15px Arial,'Malgun Gothic',sans-serif;background:#0f141a;color:var(--tx);border:1px solid var(--ln);border-radius:10px;padding:10px" placeholder="21 홍길동 사당&#10;22 김영희 양재"></textarea>
+                <div class="row"><button id="rosterBtn" class="main" style="margin-top:6px">명단 넣기</button></div>
+            </details>
             <p class="tip">사람이 있는 자리를 누르면 메뉴(출발 탑승 · 자리 옮기기 · 지도 · 지나온 길 · 탑승지) · 빈자리를 누르면 <b>예약됨</b>(예약했는데 아직 참가 안 함) 표시를 켜고 끕니다.</p>
             <div class="legend"><span class="s rsv">예약 · 미참가</span><span class="s join">참가</span><span class="s board">출발 탑승</span><span class="s cxl">취소</span><span class="s old">10분 소식 없음</span><span class="s sos">SOS</span><span class="s back">하산 탑승</span>
                 <a class="guideLink" href="party-guide.html#seat">📖 인솔자 사용법</a></div>

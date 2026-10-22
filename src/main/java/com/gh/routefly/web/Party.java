@@ -112,6 +112,8 @@ final class Party {
         final String leaderName, leaderPhone;
         final Map<String, Member> members = new LinkedHashMap<>();
         final TreeSet<Integer> reserved = new TreeSet<>();   // 예약됨 - 호차 × 100 + 좌석
+        /** 예약 명단(인솔자가 산악회 누리집 예약자 명단을 붙여넣음, 2026-10-22) - 자리 → "이름 · 탑승지". 인솔자 · 운전자만 봄, 그 자리에 참가하면 지움. */
+        final Map<Integer, String> resNames = new java.util.TreeMap<>();
         String notice;
         long noticeAt;
         final Map<Integer, double[]> busAt = new java.util.TreeMap<>();   // 호차 → 버스 세운 자리
@@ -362,7 +364,7 @@ final class Party {
         m.bus = b;
         m.seat = "driver".equals(role) ? null : seat;
         m.stop = st;
-        if (m.seat != null) r.reserved.remove(b * 100 + m.seat);
+        if (m.seat != null) { r.reserved.remove(b * 100 + m.seat); r.resNames.remove(b * 100 + m.seat); }
         audit.info("join room={} member={} role={} (위치 제공 동의)", r.code, m.id, role);
         save();
         return m;
@@ -498,8 +500,58 @@ final class Party {
         t.bus = b;
         t.seat = seat;
         t.stop = st;
-        if (seat != null) r.reserved.remove(b * 100 + seat);
+        if (seat != null) { r.reserved.remove(b * 100 + seat); r.resNames.remove(b * 100 + seat); }
         save();
+    }
+
+    /**
+     * 예약 명단 붙여넣기(인솔자, 2026-10-22 홍TV님 - 모집 · 예약은 산악회 누리집, 산행 날은 이 방). 한 줄에 한 사람:
+     * "21 홍길동 사당" · "21,홍길동,사당" · "2-21 홍길동" · "2호차 21 홍길동" (탑승지는 방의 탑승지 이름과 같을 때만). 이미 참가한 자리는 건너뜀.
+     * 붙여넣으면 아직 참가 안 한 예약 표시를 이 명단으로 바꿈. 돌려줌: {added, skipped:[까닭 …]}.
+     */
+    synchronized JsonObject roster(Member lead, String text) {
+        Room r = lead.room;
+        if (r.seats <= 0) throw new IllegalArgumentException("좌석 수가 0 인 방은 좌석 명단을 쓸 수 없습니다.");
+        if (text == null || text.isBlank()) throw new IllegalArgumentException("명단을 붙여넣어 주세요.");
+        String[] lines = text.split("\\r?\\n");
+        if (lines.length > 500) throw new IllegalArgumentException("명단이 너무 깁니다(500줄까지).");
+        Map<Integer, String> got = new java.util.TreeMap<>();
+        JsonArray skipped = new JsonArray();
+        for (String raw : lines) {
+            String line = raw.replaceAll("[,\\t·|]", " ").replaceAll("\\s+", " ").trim();
+            if (line.isEmpty()) continue;
+            String why = null;
+            List<String> tk = new ArrayList<>(List.of(line.split(" ")));
+            int bus = 1;
+            Integer seat = null;
+            java.util.regex.Matcher mb = java.util.regex.Pattern.compile("(\\d)호차").matcher(tk.get(0));
+            if (mb.matches()) { bus = Integer.parseInt(mb.group(1)); tk.remove(0); }
+            if (!tk.isEmpty()) {
+                java.util.regex.Matcher ms = java.util.regex.Pattern.compile("(?:(\\d)-)?(\\d{1,2})번?").matcher(tk.get(0));
+                if (ms.matches()) { if (ms.group(1) != null) bus = Integer.parseInt(ms.group(1)); seat = Integer.parseInt(ms.group(2)); tk.remove(0); }
+            }
+            String stop = null;
+            if (tk.size() > 1 && r.stops.contains(tk.get(tk.size() - 1))) stop = tk.remove(tk.size() - 1);
+            String name = clean(String.join(" ", tk), 12);
+            if (seat == null) why = "좌석 번호가 없음";
+            else if (name == null) why = "이름이 없음";
+            else if (bus < 1 || bus > r.buses) why = "호차가 1 ~ " + r.buses + " 밖";
+            else if (seat < 1 || seat > r.seats) why = "좌석이 1 ~ " + r.seats + " 밖";
+            else if (r.atSeat(bus, seat) != null) why = "이미 참가한 자리";
+            else if (got.containsKey(bus * 100 + seat)) why = "같은 자리가 두 번";
+            if (why != null) { if (skipped.size() < 20) skipped.add(clean(raw, 30) + " - " + why); continue; }
+            got.put(bus * 100 + seat, name + (stop != null ? " · " + stop : ""));
+        }
+        r.reserved.removeIf(k -> r.atSeat(k / 100, k % 100) == null);   // 아직 참가 안 한 예약 표시는 새 명단으로
+        r.resNames.clear();
+        r.reserved.addAll(got.keySet());
+        r.resNames.putAll(got);
+        audit.info("roster room={} added={}", r.code, got.size());   // 이름은 남기지 않음
+        save();
+        JsonObject o = new JsonObject();
+        o.addProperty("added", got.size());
+        o.add("skipped", skipped);
+        return o;
     }
 
     private Member target(Member actor, Integer targetId) {
@@ -541,7 +593,7 @@ final class Party {
             if (on && m.cancelled) { m.cancelled = false; audit.info("uncancel room={} member={}", r.code, m.id); }
         } else if ("reserved".equals(what)) {
             if (m != null && !m.cancelled) throw new IllegalArgumentException(busName(r, b) + seat + "번 자리는 이미 참가했습니다.");
-            if (on) r.reserved.add(b * 100 + seat); else r.reserved.remove(b * 100 + seat);
+            if (on) r.reserved.add(b * 100 + seat); else { r.reserved.remove(b * 100 + seat); r.resNames.remove(b * 100 + seat); }
         } else {
             throw new IllegalArgumentException("모르는 표시입니다.");
         }
@@ -686,6 +738,7 @@ final class Party {
             o.add("stops", strings(r.stops)); o.addProperty("leaderName", r.leaderName); o.addProperty("leaderPhone", r.leaderPhone);
             o.add("plates", plateArray(r));
             JsonArray rs = new JsonArray(); r.reserved.forEach(rs::add); o.add("reserved", rs);
+            JsonObject rn = new JsonObject(); r.resNames.forEach((k, v) -> rn.addProperty(String.valueOf(k), v)); o.add("resNames", rn);
             o.addProperty("notice", r.notice); o.addProperty("noticeAt", r.noticeAt);
             JsonObject ba = new JsonObject();
             r.busAt.forEach((k, v) -> { JsonArray p = new JsonArray(); p.add(v[0]); p.add(v[1]); ba.add(String.valueOf(k), p); });
@@ -744,6 +797,7 @@ final class Party {
                 Room r = new Room(o.get("code").getAsString(), o.get("name").getAsString(), lng(o, "created"), lng(o, "departAt"), lng(o, "endAt"),
                         o.has("buses") ? o.get("buses").getAsInt() : 1, (int) lng(o, "seats"), (int) lng(o, "minPeople"), List.copyOf(st), str(o, "leaderName"), str(o, "leaderPhone"));
                 if (o.has("reserved")) o.getAsJsonArray("reserved").forEach(x -> r.reserved.add(x.getAsInt()));
+                if (o.has("resNames")) for (var rn : o.getAsJsonObject("resNames").entrySet()) r.resNames.put(Integer.parseInt(rn.getKey()), rn.getValue().getAsString());
                 if (o.has("plates")) {
                     JsonArray pa = o.getAsJsonArray("plates");
                     for (int i = 0; i < Math.min(pa.size(), r.buses); i++) r.plates[i] = pa.get(i).isJsonNull() ? null : pa.get(i).getAsString();
@@ -926,6 +980,9 @@ final class Party {
             JsonArray rs = new JsonArray();
             r.reserved.forEach(k -> { if (!"driver".equals(me.role) || k / 100 == me.bus) rs.add(k); });
             o.add("reserved", rs);
+            JsonObject rn = new JsonObject();   // 예약 명단 이름(인솔자 · 운전자만)
+            r.resNames.forEach((k, v) -> { if (!"driver".equals(me.role) || k / 100 == me.bus) rn.addProperty(String.valueOf(k), v); });
+            o.add("resNames", rn);
         }
         return o;
     }

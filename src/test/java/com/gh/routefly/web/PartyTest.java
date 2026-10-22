@@ -534,4 +534,38 @@ public class PartyTest {
             assertEquals(1, new Party(f).size());
         } finally { lz.shutdown(); }
     }
+
+    /** 예약 명단 붙여넣기(2026-10-22) - 여러 꼴 · 이미 참가한 자리 건너뜀 · 참가하면 이름 지움 · 인솔자만 · 운전자는 자기 호차만. */
+    @Test
+    public void rosterPaste() {
+        Party p = new Party();
+        JsonObject room = call(p, "/create", "{\"name\":\"두 대\",\"departAt\":" + DEPART + ",\"buses\":2,\"seats\":28,\"stops\":\"사당, 양재\"}", T0);
+        String code = room.get("code").getAsString(), lead = room.get("token").getAsString();
+        String a = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"철수\",\"role\":\"hiker\",\"seat\":5,\"agree\":true}", T0).get("token").getAsString();
+        String text = "21 홍길동 사당\n22,김영희,양재\n2-3 박민수\n2호차 4 이순자 양재\n5 이미참가\n99 너무큰\n이름만\n\n21 겹침";
+        JsonObject v = call(p, "/roster", "{\"token\":\"" + lead + "\",\"text\":" + new com.google.gson.Gson().toJson(text) + "}", T0);
+        JsonObject r = v.getAsJsonObject("roster");
+        assertEquals(4, r.get("added").getAsInt());
+        assertEquals(4, r.getAsJsonArray("skipped").size());
+        JsonObject rn = v.getAsJsonObject("resNames");
+        assertEquals("홍길동 · 사당", rn.get("121").getAsString());
+        assertEquals("김영희 · 양재", rn.get("122").getAsString());
+        assertEquals("박민수", rn.get("203").getAsString());
+        assertEquals("이순자 · 양재", rn.get("204").getAsString());
+        assertTrue(v.getAsJsonArray("reserved").toString().contains("121"));
+        try { call(p, "/roster", "{\"token\":\"" + a + "\",\"text\":\"1 x\"}", T0); fail("회원은 못 넣음"); } catch (SecurityException e) { /* 맞음 */ }
+        assertFalse("회원 화면엔 이름 없음", call(p, "/view", tok(a), T0).has("resNames"));
+        // 그 자리로 참가하면 예약 이름은 지움
+        call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"길동\",\"role\":\"hiker\",\"seat\":21,\"agree\":true}", T0);
+        assertFalse(call(p, "/view", tok(lead), T0).getAsJsonObject("resNames").has("121"));
+        // 운전자(1호차)는 1호차 이름만
+        String d = call(p, "/join", "{\"code\":\"" + room.get("driverCode").getAsString() + "\",\"nick\":\"기사\",\"role\":\"driver\",\"bus\":1,\"agree\":true}", T0).get("token").getAsString();
+        JsonObject dn = call(p, "/view", tok(d), T0).getAsJsonObject("resNames");
+        assertTrue(dn.has("122") && !dn.has("203"));
+        // 다시 붙이면 아직 참가 안 한 예약은 새 명단으로
+        call(p, "/roster", "{\"token\":\"" + lead + "\",\"text\":\"10 새사람\"}", T0);
+        JsonObject again = call(p, "/view", tok(lead), T0);
+        assertEquals(1, again.getAsJsonObject("resNames").size());
+        assertFalse(again.getAsJsonArray("reserved").toString().contains("122"));
+    }
 }

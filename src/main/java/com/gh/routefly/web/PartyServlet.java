@@ -62,12 +62,12 @@ public class PartyServlet extends HttpServlet {
         long now = System.currentTimeMillis();
         boolean lookup = "/info".equals(path) || "/join".equals(path);
         if (lookup && MISSES.over(ip, now)) { Json.fail(resp, 429, "방 코드를 너무 많이 틀렸습니다. 10분 뒤 다시 해 주세요."); return; }
-        boolean create = "/create".equals(path) && !owner(req);
+        boolean create = "/create".equals(path) && !owner(req) && !ClubServlet.approvedClub(req);   // 확인된 안내산악회(로그인)는 하루 제한 없음(2026-10-22)
         if (create && (CREATES.over(ip, now) || CREATES_ALL.over("*", now))) { Json.fail(resp, 429, "하루에 만들 수 있는 방 수를 넘었습니다. 내일 다시 해 주세요."); return; }
         if ("/join".equals(path) && JOINS.over(ip, now)) { Json.fail(resp, 429, "한 곳에서 참가를 너무 많이 했습니다. 1시간 뒤 다시 해 주세요."); return; }
         JsonObject in;
         try {
-            in = body(req);
+            in = body(req, "/roster".equals(path) ? 16384 : 4096);   // 명단은 60명 × 여러 대라 길게
         } catch (Exception e) {
             Json.fail(resp, 400, "요청을 읽지 못했습니다.");
             return;
@@ -139,13 +139,13 @@ public class PartyServlet extends HttpServlet {
     }
 
     /** 본문 JSON(4KB 까지). */
-    private static JsonObject body(HttpServletRequest req) throws IOException {
+    private static JsonObject body(HttpServletRequest req, int max) throws IOException {
         StringBuilder sb = new StringBuilder();
         char[] buf = new char[1024];
         BufferedReader r = req.getReader();
         for (int n; (n = r.read(buf)) > 0;) {
             sb.append(buf, 0, n);
-            if (sb.length() > 4096) throw new IOException("too large");
+            if (sb.length() > max) throw new IOException("too large");
         }
         return JsonParser.parseString(sb.toString()).getAsJsonObject();
     }
@@ -186,6 +186,13 @@ public class PartyServlet extends HttpServlet {
                 if (!staff) throw new SecurityException("인솔자 · 운전자만 좌석표를 고칠 수 있습니다.");
                 if (integer(in, "id") != null && "boarded".equals(str(in, "what"))) p.boardById(m, integer(in, "id"), on);   // 명단에서 사람으로(취소 되돌리기)
                 else p.mark(m, integer(in, "bus"), (int) lng(in, "seat"), str(in, "what"), on);
+            }
+            case "/roster" -> {   // 예약 명단 붙여넣기(2026-10-22)
+                if (!lead) throw new SecurityException("인솔자만 명단을 넣을 수 있습니다.");
+                JsonObject res = p.roster(m, str(in, "text"));
+                JsonObject v = p.view(m, now);
+                v.add("roster", res);
+                return v;
             }
             case "/depart" -> {
                 if (!lead) throw new SecurityException("인솔자만 출발할 수 있습니다.");

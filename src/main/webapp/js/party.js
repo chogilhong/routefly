@@ -170,6 +170,10 @@
             try { $("joinNick").value = localStorage.getItem("rf-party-nick") || ""; } catch (e) { /* 없음 */ }
             var t = new Date(Date.now() + 86400000);   // 출발 날짜 - 내일로 두고 고치게
             $("mkDate").value = dayText(t);
+            if (q.get("mk")) {   // 안내산악회 일정에서 "🧭 산악회 방"(club.html - 2026-10-22) - 그 일정으로 채움, 고칠 수 있음
+                [["n", "mkName"], ["d", "mkDate"], ["t", "mkTime"], ["st", "mkStops"], ["ld", "mkLead"], ["ph", "mkPhone"]].forEach(function (x) { var v = q.get(x[0]); if (v) $(x[1]).value = v.slice(0, 80); });
+                $("mkSec").scrollIntoView({ block: "start" });
+            }
         }).catch(function () {
             // 산속 · 약한 신호 - 이미 들어간 방이 있으면 그 방 화면으로(저절로 다시 받음). 2026-10-22 점검: "서비스 닫힘" 처럼 보였음
             if (RFParty.get()) { enterRoom(); netBad(); return; }
@@ -336,6 +340,7 @@
         if (p.role === "lead") $("inviteUrl").value = inviteUrl();
         if (first && first.driverCode) $("driverCode").textContent = first.driverCode;
         $("noticeRow").hidden = p.role !== "lead";
+        $("rosterBox").hidden = p.role !== "lead";
         $("endBtn").hidden = p.role !== "lead";
         $("leaveBtn").hidden = p.role === "lead";
         startMap();
@@ -714,7 +719,7 @@
         }
         var by = {}, rsv = {}, cols = 0, cells = [];
         (s.members || []).forEach(function (m) { if (m.seat && m.bus === curBus && (!by[m.seat] || by[m.seat].cancelled)) by[m.seat] = m; });
-        (s.reserved || []).forEach(function (n) { if (Math.floor(n / 100) === curBus) rsv[n % 100] = 1; });
+        (s.reserved || []).forEach(function (n) { if (Math.floor(n / 100) === curBus) rsv[n % 100] = (s.resNames || {})[n] || 1; });
         for (var k = 1; k <= s.seats; k++) {
             var at = seatPos(k, s.seats), m = by[k], cls = "s", label = "";
             cols = Math.max(cols, at.col + 1);
@@ -723,9 +728,9 @@
                 if (s.departed && !m.cancelled && !m.sos && !m.aboard && silent(m)) cls += " old";
                 label = "<small>" + esc(m.nick) + "</small>";
                 if (m.id === picked) cls += " pick";
-            } else if (rsv[k]) cls += " rsv";
+            } else if (rsv[k]) { cls += " rsv"; if (rsv[k] !== 1) label = "<small>" + esc(String(rsv[k]).split(" · ")[0]) + "</small>"; }   // 예약 명단 이름(2026-10-22)
             cells.push("<div class=\"" + cls + "\" data-seat=\"" + k + "\" style=\"grid-column:" + (at.col + 2) + ";grid-row:" + at.row + "\""
-                + (m ? " title=\"" + esc(m.nick + (m.stop ? " · " + m.stop : "")) + "\"" : "") + ">" + k + label + "</div>");
+                + (m ? " title=\"" + esc(m.nick + (m.stop ? " · " + m.stop : "")) + "\"" : rsv[k] && rsv[k] !== 1 ? " title=\"예약 " + esc(rsv[k]) + "\"" : "") + ">" + k + label + "</div>");
         }
         cells.push("<div class=\"s drv\" style=\"grid-column:1;grid-row:4\" title=\"운전석\"><small>운전</small></div>");   // 🛞 은 PC 글꼴에서 □ 로 보였음
         $("seatMap").style.gridTemplateColumns = "repeat(" + (cols + 1) + ", minmax(24px, 1fr))";   // 30px 이면 28석 · 412px 폰에서 옆으로 넘쳐 "운전"이 잘렸음(2026-10-20)
@@ -778,6 +783,8 @@
         }
         if (m) { pick(m); seatMap(state); return; }
         pick(null);
+        var rn = (state.resNames || {})[curBus * 100 + k];   // 예약 명단 이름이 있는 자리 - 잘못 눌러 지우지 않게
+        if (rn && !confirm(k + "번 " + rn + " 님의 예약 표시를 지울까요?")) return;
         RFParty.post("mark", { token: p.token, bus: curBus, seat: k, what: "reserved", on: (state.reserved || []).indexOf(curBus * 100 + k) < 0 }).then(render).catch(function (er) { roomMsg(er.message); });
     });
     $("actKick").addEventListener("click", function () { kick(pickedMember()); });
@@ -966,6 +973,17 @@
     $("smsBtn").addEventListener("click", function () { location.href = "sms:?&body=" + encodeURIComponent(inviteText()); });   // 안드로이드 · 아이폰 둘 다 되는 꼴
     $("copyBtn").addEventListener("click", copyInvite);
     $("inviteUrl").addEventListener("focus", function () { this.select(); });
+
+    $("rosterBtn").addEventListener("click", function () {   // 예약 명단 붙여넣기(2026-10-22)
+        var t = $("rosterText").value.trim();
+        if (!t) { roomMsg("명단을 붙여넣어 주세요."); return; }
+        RFParty.post("roster", { token: RFParty.get().token, text: t }).then(function (j) {
+            render(j);
+            var r = j.roster || {}, sk = r.skipped || [];
+            alert("예약 " + (r.added || 0) + "명을 좌석표에 넣었습니다." + (sk.length ? "\n\n넣지 못한 줄 " + sk.length + "개:\n" + sk.join("\n") : ""));
+            if (!sk.length) { $("rosterText").value = ""; $("rosterBox").open = false; }
+        }).catch(actFail);
+    });
 
     $("boardBtn").addEventListener("click", function () {
         var p = RFParty.get();

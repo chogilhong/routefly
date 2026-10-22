@@ -185,3 +185,9 @@ ul { margin:0; padding:0; list-style:none; }
 .cp .profCap { margin:4px 0 0; }
 .chN { display:none; }   /* 통계 방문 추세 - 휴대폰은 좁은 그림(2026-10-20) */
 @media (max-width:520px) { .chW { display:none; } .chN { display:block; } }
+/* 🚌 이 산에 가는 안내산악회(2026-10-22) - 산 페이지 · 일정 모음(clubs.html) */
+.cl { list-style:none; margin:0; padding:0; }
+.cl li { padding:10px 0; border-top:1px solid var(--ln, rgba(255,255,255,0.12)); line-height:1.6; font-size:15px; }
+.cl li:first-child { border-top:0; }
+.cl .ad { display:inline-block; padding:1px 7px; border-radius:8px; background:#ffd43b; color:#2b2100; font-size:12px; font-weight:bold; }
+.cl .bk { display:inline-flex; align-items:center; min-height:36px; padding:0 12px; margin-top:4px; border-radius:18px; border:1px solid var(--sky, #38d9ea); color:var(--sky, #38d9ea); text-decoration:none; font-weight:bold; font-size:14px; }
