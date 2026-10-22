@@ -93,8 +93,12 @@ public class PartyServlet extends HttpServlet {
     static final Quota CREATES = new Quota(5, 24 * 3600_000L);
     /** 방 만들기 - 서버 전체 하루 300개(주소를 바꿔 가며 채우기 막기, 2026-10-22 점검). 운영자는 빼고 셈. */
     static final Quota CREATES_ALL = new Quota(300, 24 * 3600_000L);
-    /** 참가 - 한 곳(IP · IPv6 /64)에서 1시간에 15번(가짜 회원 300명으로 방 채우기 막기 - 점검). 집결지 한 와이파이에 여럿이어도 넉넉히. */
-    static final Quota JOINS = new Quota(15, 3600_000L);
+    /**
+     * 참가 - 한 곳(IP · IPv6 /64)에서 1시간에 120번. 처음엔 15번이었으나 출발하는 버스 안에서 인솔자가 "지금 등록하세요" 하면
+     * 버스 와이파이 · 통신사 공유 주소 하나로 수십 명이 한꺼번에 들어옴(2026-10-22 홍TV님 "풀어줘") - 버스 두 대(120석)도 막히지 않게.
+     * 프로그램으로 300명을 채우는 것만 늦춤(방 한도 MAX_MEMBERS 300).
+     */
+    static final Quota JOINS = new Quota(120, 3600_000L);
 
     /** 운영자 기기(/stats 를 연 브라우저 · 앱 - 쿠키 값이 통계 열쇠에서 만든 값과 맞을 때)는 방 만들기 하루 제한을 받지 않음(2026-10-21 PC: 시험하다 막힘). */
     static boolean owner(HttpServletRequest req) {
