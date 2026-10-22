@@ -119,7 +119,8 @@ final class Clubs {
     static String httpsUrl(String s) {
         if (s == null || s.isBlank()) return null;
         String t = s.trim();
-        if (t.length() > 200 || !t.matches("https://[A-Za-z0-9.-]+(:\\d{2,5})?(/[^\\s<>\"'`]*)?")) throw new IllegalArgumentException("주소는 https:// 로 시작하는 누리집 주소를 넣어 주세요.");
+        // 이름.도메인 꼴만(2026-10-22 홍TV님 시험: https://routefly/cafe/test 처럼 .com · .kr 없는 주소도 받았음). 한글 도메인은 xn-- 꼴로
+        if (t.length() > 200 || !t.matches("https://([A-Za-z0-9-]+\\.)+([A-Za-z]{2,24}|xn--[A-Za-z0-9-]{2,30})(:\\d{2,5})?(/[^\\s<>\"'`]*)?")) throw new IllegalArgumentException("주소는 https:// 로 시작하는 누리집 주소를 넣어 주세요(예: https://cafe.daum.net/산악회).");
         return t;
     }
 

@@ -37,6 +37,9 @@ public class ClubsTest {
         try { s.signup("other1", "other1234", "x", "010-1111-2222", null, T0); fail("아이디가 든 비번"); } catch (IllegalArgumentException e) { /* 맞음 */ }
         try { s.signup("other1", "pass1234", "x", "010-1111-2222", "javascript:alert(1)", T0); fail("https 만"); } catch (IllegalArgumentException e) { /* 맞음 */ }
         try { s.signup("other1", "pass1234", "x", "010-1111-2222", "https://a.kr/\"onload=x", T0); fail("따옴표"); } catch (IllegalArgumentException e) { /* 맞음 */ }
+        try { s.signup("other1", "pass1234", "x", "010-1111-2222", "https://routefly/cafe/test", T0); fail(".com · .kr 없는 주소"); } catch (IllegalArgumentException e) { /* 맞음 */ }
+        assertEquals("https://xn--9m1bj1idyc.com/travel/detail.html?tid=3148182&tour_date=2026/10/23", Clubs.httpsUrl("https://xn--9m1bj1idyc.com/travel/detail.html?tid=3148182&tour_date=2026/10/23"));
+        assertEquals("https://cafe.daum.net/abc", Clubs.httpsUrl(" https://cafe.daum.net/abc "));
         assertNull("로그인 30일 지나면 끝", s.who(tok, T0 + Clubs.SESSION_MS + 1));
         assertNull(s.who("x", T0));
         s.logout(tok);
