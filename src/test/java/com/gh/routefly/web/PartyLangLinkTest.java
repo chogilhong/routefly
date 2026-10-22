@@ -24,4 +24,15 @@ public class PartyLangLinkTest {
         assertTrue("한국어 산 페이지", ms.contains("/party.html?lang=ko"));
         assertFalse(ms.contains("/party.html\\\""));
     }
+
+    /** 의견 보내기 영어(2026-10-22 홍TV님 "이 화면 영어로 안 돼") - 영어 화면에서 온 링크(?lang=en)만 영어. */
+    @Test
+    public void feedbackEnglishFromEnglishPages() throws Exception {
+        String hike = Files.readString(Path.of("src/main/webapp/hike.html"), StandardCharsets.UTF_8);
+        assertTrue("따라가기 영어 줄의 의견 보내기", hike.contains("feedback.html?from=/hike.html&amp;amp;lang=en"));
+        assertTrue("산악회 방 영어", Files.readString(Path.of("src/main/webapp/js/party.js"), StandardCharsets.UTF_8).contains("feedback.html?from=/party.html&lang=en"));
+        String fb = Files.readString(Path.of("src/main/webapp/js/feedback.js"), StandardCharsets.UTF_8);
+        assertTrue(fb.contains("Send feedback") && fb.contains("/[?&]lang=en\\b/"));
+        assertFalse("기억된 말(rf-lang)은 쓰지 않음", fb.contains("rf-lang\")"));
+    }
 }

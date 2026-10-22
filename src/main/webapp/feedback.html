@@ -31,15 +31,15 @@ a { color:var(--sky); }
 </head>
 <body>
 <main>
-    <h1>📮 의견 보내기</h1>
-    <p class="lead">고칠 곳, 틀린 자료, 바라는 기능을 적어 주세요. 운영자에게 메일로 바로 갑니다.</p>
+    <h1 id="fbTitle">📮 의견 보내기</h1>
+    <p class="lead" id="fbLead">고칠 곳, 틀린 자료, 바라는 기능을 적어 주세요. 운영자에게 메일로 바로 갑니다.</p>
     <section id="form">
-        <label for="fbText">내용</label>
+        <label for="fbText" id="fbTextL">내용</label>
         <textarea id="fbText" maxlength="1000" placeholder="예: 북한산 백운대 코스 들머리 주차장 위치가 달라요."></textarea>
         <div class="dim count"><span id="fbCount">0</span> / 1000</div>
-        <label for="fbReply">답장 받을 메일 (선택)</label>
+        <label for="fbReply" id="fbReplyL">답장 받을 메일 (선택)</label>
         <input id="fbReply" type="email" maxlength="80" autocomplete="email" placeholder="비워 두면 답장 없이 받기만 합니다">
-        <p class="dim">위치 · 기기 정보는 함께 보내지 않습니다. 어느 화면에서 왔는지(주소 경로)만 붙습니다.
+        <p class="dim" id="fbNote">위치 · 기기 정보는 함께 보내지 않습니다. 어느 화면에서 왔는지(주소 경로)만 붙습니다.
             적은 글과 메일 주소는 답장 · 서비스 고치기에만 쓰고 1년 뒤 지웁니다. <a href="privacy.html#feedback">자세히</a></p>
         <button id="fbSend">보내기</button>
         <div id="msg" role="status"></div>

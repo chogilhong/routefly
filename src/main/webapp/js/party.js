@@ -15,6 +15,7 @@
     if (EN) {
         $("back").href = EXIT;
         $("back").textContent = "← Mountains";
+        $("fbLink").href = "feedback.html?from=/party.html&lang=en"; $("fbLink").textContent = "📮 Feedback (English OK)";
         var note = document.createElement("section");
         note.className = "invite";
         note.innerHTML = "<p style=\"margin:0;line-height:1.55\">🇰🇷 <b>Hiking club room - Korean only.</b> This page is for Korean guided hiking groups: the leader makes a room, members join with a code and see each other on the map (SOS · bus boarding check). "
