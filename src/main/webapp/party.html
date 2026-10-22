@@ -90,6 +90,8 @@ select, input[type=number] { width:100%; height:44px; padding:0 10px; border-rad
 #joinBox > summary::after { content:"펼치기 ▾"; font-size:13px; color:var(--sky); flex:0 0 auto; }
 #joinBox[open] > summary { margin-bottom:8px; }
 #joinBox[open] > summary::after { content:"접기 ▴"; }
+html[lang=en] #joinBox > summary::after { content:"Open ▾"; }   /* 영어(2026-10-22) */
+html[lang=en] #joinBox[open] > summary::after { content:"Close ▴"; }
 .invite { margin-top:10px; padding:10px 12px; border:1px solid rgba(56,217,234,0.45); border-radius:12px; background:rgba(56,217,234,0.08); }
 .invite label { margin-top:0; }
 #inviteUrl { font-size:14px; }

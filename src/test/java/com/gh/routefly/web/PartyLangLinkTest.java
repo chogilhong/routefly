@@ -35,4 +35,19 @@ public class PartyLangLinkTest {
         assertTrue(fb.contains("Send feedback") && fb.contains("/[?&]lang=en\\b/"));
         assertFalse("기억된 말(rf-lang)은 쓰지 않음", fb.contains("rf-lang\")"));
     }
+
+    /** 산악회 방 한글 · 영어(2026-10-22 홍TV님) - ?lang=en 만 영어(기억된 말 안 씀), 화면 글은 data-en, 움직이는 글은 T(), 한/EN 단추. */
+    @Test
+    public void partyRoomBilingual() throws Exception {
+        String js = Files.readString(Path.of("src/main/webapp/js/party.js"), StandardCharsets.UTF_8);
+        assertTrue(js.contains("/[?&]lang=en\\b/.test(location.search)"));
+        assertTrue("화면 글 바꾸기", js.contains("RF.applyEn(document)"));
+        assertTrue("한/EN 단추", js.contains("langBtn"));
+        assertFalse("예전 \"Korean only\" 안내는 없음", js.contains("Korean only"));
+        assertTrue("서버 오류 글 영어", js.contains("function enMsg("));
+        String html = Files.readString(Path.of("src/main/webapp/party.html"), StandardCharsets.UTF_8);
+        int n = html.split("data-en", -1).length - 1;
+        assertTrue("영어 글 " + n, n > 80);
+        assertTrue(html.contains("I am 14 or older"));
+    }
 }

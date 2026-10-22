@@ -396,7 +396,7 @@
 
     function buildStyle(cfg) {
         var dem = { type: "raster-dem", tiles: [cfg.demUrl], encoding: "terrarium", tileSize: 256, maxzoom: 15,
-            attribution: "지형: Terrain Tiles (AWS Open Data)" };
+            attribution: RF.tr("지형: ", "Terrain: ") + "Terrain Tiles (AWS Open Data)" };
         var sources = { hillshade: dem }, layers = [{ id: "bg", type: "background", paint: { "background-color": cfg.vworldKey ? "#1b2430" : "#dcd6c6" } }];
         if (cfg.vworldKey) {
             var key = encodeURIComponent(cfg.vworldKey);
