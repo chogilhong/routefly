@@ -518,7 +518,7 @@ final class Party {
         Map<Integer, String> got = new java.util.TreeMap<>();
         JsonArray skipped = new JsonArray();
         for (String raw : lines) {
-            String line = raw.replaceAll("[,\\t·|]", " ").replaceAll("\\s+", " ").trim();
+            String line = raw.replaceAll("[,\\t·|/]", " ").replaceAll("\\s+", " ").trim();   // / - 카페 댓글 "홍길동 / 9번 / 사당"
             if (line.isEmpty()) continue;
             String why = null;
             List<String> tk = new ArrayList<>(List.of(line.split(" ")));
@@ -530,8 +530,12 @@ final class Party {
                 java.util.regex.Matcher ms = java.util.regex.Pattern.compile("(?:(\\d)-)?(\\d{1,2})번?").matcher(tk.get(0));
                 if (ms.matches()) { if (ms.group(1) != null) bus = Integer.parseInt(ms.group(1)); seat = Integer.parseInt(ms.group(2)); tk.remove(0); }
             }
+            if (seat == null) for (int i = 1; i < tk.size(); i++) {   // 이름이 앞에 온 줄(다음 카페 댓글 등, 2026-10-22 홍TV님) - 뒤에서 "9번" · "2-9" · "9" 를 찾음
+                java.util.regex.Matcher ms = java.util.regex.Pattern.compile("(?:(\\d)-)?(\\d{1,2})번?").matcher(tk.get(i));
+                if (ms.matches()) { if (ms.group(1) != null) bus = Integer.parseInt(ms.group(1)); seat = Integer.parseInt(ms.group(2)); tk.remove(i); break; }
+            }
             String stop = null;
-            if (tk.size() > 1 && r.stops.contains(tk.get(tk.size() - 1))) stop = tk.remove(tk.size() - 1);
+            for (int i = tk.size() - 1; i > 0 && stop == null; i--) if (r.stops.contains(tk.get(i))) stop = tk.remove(i);   // 탑승지는 어디 있어도(이름 뒤)
             String name = clean(String.join(" ", tk), 12);
             if (seat == null) why = "좌석 번호가 없음";
             else if (name == null) why = "이름이 없음";

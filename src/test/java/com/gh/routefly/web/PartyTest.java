@@ -562,6 +562,10 @@ public class PartyTest {
         String d = call(p, "/join", "{\"code\":\"" + room.get("driverCode").getAsString() + "\",\"nick\":\"기사\",\"role\":\"driver\",\"bus\":1,\"agree\":true}", T0).get("token").getAsString();
         JsonObject dn = call(p, "/view", tok(d), T0).getAsJsonObject("resNames");
         assertTrue(dn.has("122") && !dn.has("203"));
+        // 다음 카페 댓글 꼴 - 이름이 앞, / 로 나눔, 탑승지가 가운데
+        JsonObject cafe = call(p, "/roster", "{\"token\":\"" + lead + "\",\"text\":\"김철수 / 9번 / 양재\\n최영자 사당 11번\"}", T0);
+        assertEquals("김철수 · 양재", cafe.getAsJsonObject("resNames").get("109").getAsString());
+        assertEquals("최영자 · 사당", cafe.getAsJsonObject("resNames").get("111").getAsString());
         // 다시 붙이면 아직 참가 안 한 예약은 새 명단으로
         call(p, "/roster", "{\"token\":\"" + lead + "\",\"text\":\"10 새사람\"}", T0);
         JsonObject again = call(p, "/view", tok(lead), T0);
