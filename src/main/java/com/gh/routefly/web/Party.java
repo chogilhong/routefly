@@ -117,6 +117,8 @@ final class Party {
         final Map<Integer, double[]> busAt = new java.util.TreeMap<>();   // 호차 → 버스 세운 자리
         final String[] plates;   // 호차 - 1 → 차량번호(null = 아직)
         boolean departed;
+        /** 출발한 탑승지 수(2026-10-23 홍TV님 "영종에서 태우고 출발, 가면서 중동에서 태우고 출발") - 탑승지 차례대로, 마지막 탑승지를 떠나면 departed. */
+        int stopsDone;
         int nextId = 1;
         /** 운전자 코드(2026-10-21 점검): 방 코드는 카톡 · QR · NFC 로 널리 퍼지므로, 운전자(좌석표 · 탑승 체크를 고침)는 인솔자가 기사님께만 주는 이 코드로만 참가. */
         String driverCode;
@@ -474,17 +476,27 @@ final class Party {
     }
 
     /** 인솔자 - 출발: 안 탄 산행 회원은 취소(좌석표에서 "탐" 으로 되돌리면 다시 들어옴). 돌려줌: 취소된 수. */
+    /**
+     * 인솔자 - 출발. 탑승지가 있으면 차례대로 그 탑승지만(2026-10-23 홍TV님 - 영종에서 출발할 때 중동에서 탈 회원까지 취소됐음):
+     * 이번 탑승지 회원 가운데 안 탄 사람만 취소, 마지막 탑승지를 떠날 때 탑승지 없는 회원까지 정리하고 산행으로(departed).
+     * 탑승지가 없는 방은 한 번에. 돌려줌: 취소된 수.
+     */
     synchronized int depart(Member lead) {
         Room r = lead.room;
+        if (r.departed) throw new IllegalStateException("이미 출발했습니다.");
+        String stop = r.stops.isEmpty() ? null : r.stops.get(Math.min(r.stopsDone, r.stops.size() - 1));
+        boolean last = r.stops.isEmpty() || r.stopsDone >= r.stops.size() - 1;
         int n = 0;
         for (Member m : r.members.values()) {
-            if ("hiker".equals(m.role) && !m.boarded && !m.cancelled) {
-                m.cancelled = true;
-                n++;
-                audit.info("cancel room={} member={} (출발 때 미탑승)", r.code, m.id);
-            }
+            if (!"hiker".equals(m.role) || m.boarded || m.cancelled) continue;
+            boolean here = stop == null || stop.equals(m.stop) || (last && (m.stop == null || !r.stops.contains(m.stop) || r.stops.indexOf(m.stop) < r.stopsDone));
+            if (!here) continue;
+            m.cancelled = true;
+            n++;
+            audit.info("cancel room={} member={} (출발 때 미탑승)", r.code, m.id);
         }
-        r.departed = true;
+        if (!r.stops.isEmpty()) r.stopsDone = Math.min(r.stops.size(), r.stopsDone + 1);
+        if (last) r.departed = true;
         save();
         return n;
     }
@@ -698,7 +710,7 @@ final class Party {
             o.addProperty("notice", r.notice); o.addProperty("noticeAt", r.noticeAt);
             JsonObject ba = new JsonObject();
             r.busAt.forEach((k, v) -> { JsonArray p = new JsonArray(); p.add(v[0]); p.add(v[1]); ba.add(String.valueOf(k), p); });
-            o.add("busAt", ba); o.addProperty("departed", r.departed); o.addProperty("nextId", r.nextId);
+            o.add("busAt", ba); o.addProperty("departed", r.departed); o.addProperty("stopsDone", r.stopsDone); o.addProperty("nextId", r.nextId);
             JsonArray ms = new JsonArray();
             for (Member m : r.members.values()) {
                 JsonObject x = new JsonObject();
@@ -762,7 +774,7 @@ final class Party {
                     JsonArray p = be.getValue().getAsJsonArray();
                     r.busAt.put(Integer.parseInt(be.getKey()), new double[] {p.get(0).getAsDouble(), p.get(1).getAsDouble()});
                 }
-                r.departed = boolOf(o, "departed"); r.nextId = Math.max(1, (int) lng(o, "nextId"));
+                r.departed = boolOf(o, "departed"); r.stopsDone = (int) lng(o, "stopsDone"); r.nextId = Math.max(1, (int) lng(o, "nextId"));
                 r.driverCode = str(o, "driverCode");
                 List<Member> ms = new ArrayList<>();
                 if (o.has("members")) for (JsonElement me : o.getAsJsonArray("members")) {
@@ -852,6 +864,7 @@ final class Party {
         if (r.seats >= LEAD_SEAT) for (int b = 1; b <= r.buses; b++) if (me == null || !"driver".equals(me.role) || me.bus == b) taken.add(b * 100 + LEAD_SEAT);   // 인솔자 자리 - 참가 칸에서 못 고르게
         o.add("taken", taken);
         o.addProperty("departed", r.departed);
+        o.addProperty("stopsDone", r.departed ? r.stops.size() : r.stopsDone);   // 출발한 탑승지 수(차례대로)
         return o;
     }
 

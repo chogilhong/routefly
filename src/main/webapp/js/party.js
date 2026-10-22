@@ -564,7 +564,13 @@
         if (staff) {
             $("departRow").hidden = s.role !== "lead" || s.departed || over;
             var nh = s.myHikers != null ? s.myHikers : s.hikers;   // 운전자 - 자기 호차 회원 수
+            if (s.role === "lead" && !s.departed) {   // 탑승지마다 출발(2026-10-23 홍TV님) - 단추에 이번 탑승지
+                var ns = nextStop(s);
+                $("departBtn").textContent = ns ? T("🚌 " + ns.stop + " 출발 (" + ns.stop + "에서 안 탄 사람 취소)", "🚌 Depart " + ns.stop + " (cancel no-shows there)") : T("🚌 출발 (안 탄 사람 취소)", "🚌 Depart (cancel no-shows)");
+            }
             $("phase").innerHTML = over ? overText(s) + (s.departed ? T(" · 하산 탑승 <b>", " · Back on bus <b>") + (s.aboardCount || 0) + "</b> / " + nh : "") + (s.role === "lead" ? T(" - 산행이 끝났으면 아래 \"방 끝내기\"", " - if the hike is over, tap \"End room\" below") : "")
+                : !s.departed && s.stopsDone > 0 ? T("🚌 이동 중 · " + esc(s.stops.slice(0, s.stopsDone).join(" · ")) + " 출발함 · 다음 탑승지 <b>" + esc(nextStop(s).stop) + "</b>", "🚌 On the way · left " + esc(s.stops.slice(0, s.stopsDone).join(" · ")) + " · next stop <b>" + esc(nextStop(s).stop) + "</b>")
+                    + T(" · 출발 탑승 ", " · Boarded ") + (s.members || []).filter(function (m) { return m.role === "hiker" && m.boarded; }).length + " / " + nh
                 : !s.departed && s.departAt && s.now > s.departAt ? "<span style=\"color:var(--red)\">" + T("출발 시각(" + clock(s.departAt) + ")이 지났습니다", "Departure time (" + clock(s.departAt) + ") has passed") + "</span>"
                     + (s.role === "lead" ? T(" - 출발했으면 아래 \"출발\"을 눌러 주세요", " - if you've left, tap \"Depart\" below") : "")
                     + T(" · 출발 탑승 ", " · Boarded ") + (s.members || []).filter(function (m) { return m.role === "hiker" && m.boarded; }).length + " / " + nh
@@ -619,6 +625,8 @@
         $("sosBtn").className = (p.sos ? "sos" : "danger") + " big";
         $("sosBtn").textContent = p.sos ? T("🆘 SOS 보냄 - 누르면 풀림", "🆘 SOS sent - tap to cancel") : "🆘 SOS";
         $("phase").innerHTML = over ? overText(s)
+            : !s.departed && s.stopsDone > 0 ? T("🚌 버스가 " + esc(s.stops.slice(0, s.stopsDone).join(" · ")) + "에서 출발했습니다 · 다음 탑승지 " + nextStop(s).stop, "🚌 The bus has left " + esc(s.stops.slice(0, s.stopsDone).join(" · ")) + " · next stop " + nextStop(s).stop)
+                + (s.boarded ? T(" · ✅ 탑승 확인", " · ✅ Boarding confirmed") : s.stop && s.stops.indexOf(s.stop) >= s.stopsDone ? T(" · " + s.stop + "에서 타면 \"버스 탔어요\"", " · tap \"I'm on the bus\" when you board at " + s.stop) : "")
             : !s.departed && s.departAt && s.now > s.departAt ? T("출발 시각(" + clock(s.departAt) + ")이 지났습니다 · 인솔자가 아직 출발을 누르지 않았습니다", "Departure time (" + clock(s.departAt) + ") has passed · the leader hasn't tapped Depart yet")
                 + (s.boarded ? T(" · ✅ 탑승 확인", " · ✅ Boarding confirmed") : "")
             : s.departed ? (s.aboard ? T("🚌 하산 탑승 - 수고하셨습니다.", "🚌 Back on the bus - well done!") : T("🥾 산행 중", "🥾 Hiking") + (s.endAt ? T(" · 하산 마감 ", " · Descent deadline: ") + left(s.endAt, s.now) : ""))
@@ -1139,12 +1147,25 @@
         RFParty.post("notice", { token: p.token, text: t }).then(function (j) { $("noticeText").value = ""; render(j); }).catch(actFail);
     });
 
+    /** 이번에 출발할 탑승지 {stop, last} - 탑승지가 없는 방이면 null. */
+    function nextStop(s) {
+        var st = s.stops || [];
+        if (!st.length) return null;
+        var i = Math.min(s.stopsDone || 0, st.length - 1);
+        return { stop: st[i], last: i >= st.length - 1 };
+    }
     $("departBtn").addEventListener("click", function () {
-        var p = RFParty.get(), not = (state.members || []).filter(function (m) { return m.role === "hiker" && !m.boarded && !m.cancelled; });
+        var ns = nextStop(state);   // 탑승지마다(서버 Party.depart 와 같은 규칙) - 이번 탑승지 회원만, 마지막엔 탑승지 없는 회원도
+        var p = RFParty.get(), not = (state.members || []).filter(function (m) {
+            if (m.role !== "hiker" || m.boarded || m.cancelled) return false;
+            if (!ns) return true;
+            var i = state.stops.indexOf(m.stop);
+            return m.stop === ns.stop || (ns.last && (i < 0 || i < state.stopsDone));
+        });
         var names = not.map(function (m) { return (m.seat ? seatName(state, m.bus, m.seat) + " " : "") + m.nick; }).join(", ");
-        if (!confirm(T("출발할까요?", "Depart now?") + (not.length ? T("\n안 탄 " + not.length + "명은 취소됩니다: " + names + "\n(늦게 오면 좌석표에서 되돌릴 수 있습니다)",
+        if (!confirm((ns ? T(ns.stop + "에서 출발할까요?" + (ns.last ? "" : "\n(다음 탑승지 " + state.stops[state.stopsDone + 1] + " 회원은 그대로)"), "Depart from " + ns.stop + "?" + (ns.last ? "" : "\n(Members boarding at " + state.stops[state.stopsDone + 1] + " are kept)")) : T("출발할까요?", "Depart now?")) + (not.length ? T("\n안 탄 " + not.length + "명은 취소됩니다: " + names + "\n(늦게 오면 좌석표에서 되돌릴 수 있습니다)",
             "\n" + not.length + " not on the bus will be cancelled: " + names + "\n(If they come late, you can undo it on the seat map)") : T("\n모두 탔습니다.", "\nEveryone is on the bus.")))) return;
-        RFParty.post("depart", { token: p.token }).then(function (j) { render(j); roomMsg(T("🚌 출발! ", "🚌 Departed! ") + (j.cancelledNow ? T(j.cancelledNow + "명 취소.", j.cancelledNow + " cancelled.") : "")); }).catch(actFail);
+        RFParty.post("depart", { token: p.token }).then(function (j) { render(j); roomMsg((ns && !ns.last ? T("🚌 " + ns.stop + " 출발! ", "🚌 Left " + ns.stop + "! ") : T("🚌 출발! ", "🚌 Departed! ")) + (j.cancelledNow ? T(j.cancelledNow + "명 취소.", j.cancelledNow + " cancelled.") : "")); }).catch(actFail);
     });
 
     $("cancelTripBtn").addEventListener("click", function () {
