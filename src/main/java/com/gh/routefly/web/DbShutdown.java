@@ -10,7 +10,6 @@ public class DbShutdown implements ServletContextListener {
     @Override
     public void contextDestroyed(ServletContextEvent e) {
         Party.STORE.shutdown();
-        Clubs.STORE.shutdown();
         PartyTrack.shutdown();
         Db.close();
     }

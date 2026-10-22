@@ -408,8 +408,6 @@ public class StatsServlet extends HttpServlet {
             case "/anbu.html" -> "오늘의 안부";
             case "/tools.html" -> "별거 별거";
             case "/games.html" -> "심심풀이 게임";
-            case "/clubs.html" -> "안내산악회 산행 일정";
-            case "/club.html" -> "안내산악회 로그인 · 일정 올리기";
             case "/party.html" -> "산악회 방";
             case "/party-guide.html" -> "산악회 방 - 인솔자 사용법";
             case "/subway.html" -> "지하철 노선도(예전 화면 - 지금은 별거 별거 안)";

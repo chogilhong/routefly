@@ -170,11 +170,6 @@
             try { $("joinNick").value = localStorage.getItem("rf-party-nick") || ""; } catch (e) { /* 없음 */ }
             var t = new Date(Date.now() + 86400000);   // 출발 날짜 - 내일로 두고 고치게
             $("mkDate").value = dayText(t);
-            if (q.get("mk")) {   // 안내산악회 일정에서 "🧭 산악회 방"(club.html - 2026-10-22) - 그 일정으로 채움, 고칠 수 있음
-                [["n", "mkName"], ["d", "mkDate"], ["t", "mkTime"], ["st", "mkStops"], ["ld", "mkLead"], ["ph", "mkPhone"], ["b", "mkBuses"], ["s", "mkSeats"]].forEach(function (x) { var v = q.get(x[0]); if (v) $(x[1]).value = v.slice(0, 80); });
-                plateInputs();
-                $("mkSec").scrollIntoView({ block: "start" });
-            }
         }).catch(function () {
             // 산속 · 약한 신호 - 이미 들어간 방이 있으면 그 방 화면으로(저절로 다시 받음). 2026-10-22 점검: "서비스 닫힘" 처럼 보였음
             if (RFParty.get()) { enterRoom(); netBad(); return; }

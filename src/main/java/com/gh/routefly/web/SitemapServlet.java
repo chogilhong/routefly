@@ -92,7 +92,7 @@ public class SitemapServlet extends HttpServlet {
     /** 순수 함수 - 사이트맵(첫 화면 · 안내 · 100대 명산 목록 · 산마다, 영어 산 페이지도, 검색에 내는 코스 [ID, 넣은 날]). */
     static String sitemap(String base, List<String> mountains, List<String[]> courses) {
         StringBuilder b = new StringBuilder("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n");
-        for (String p : new String[] {"/", "/hike.html", "/series.html", "/about.html", "/privacy.html", "/clubs.html", "/m/", "/en/m/"}) url(b, base + p);
+        for (String p : new String[] {"/", "/hike.html", "/series.html", "/about.html", "/privacy.html", "/m/", "/en/m/"}) url(b, base + p);
         for (String m : mountains) url(b, base + "/m/" + URLEncoder.encode(m, StandardCharsets.UTF_8).replace("+", "%20"));
         for (String m : mountains) url(b, base + "/en/m/" + Roman.slug(m));   // 영어 산 페이지(2026-10-15)
         for (String[] c : courses) {   // 코스 소개 페이지(2026-10-19 CoursePageServlet) - 넣은 날을 lastmod 로

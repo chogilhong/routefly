@@ -543,6 +543,11 @@ final class Party {
      * "21 홍길동 사당" · "21,홍길동,사당" · "2-21 홍길동" · "2호차 21 홍길동" (탑승지는 방의 탑승지 이름과 같을 때만). 이미 참가한 자리는 건너뜀.
      * 붙여넣으면 아직 참가 안 한 예약 표시를 이 명단으로 바꿈. 돌려줌: {added, skipped:[까닭 …]}.
      */
+    /** 붙여넣은 글 다듬기 - 전각 숫자 · 빈칸(NBSP · U+3000)을 보통 것으로(카페에서 복사한 글). */
+    static String norm(String s) {
+        return java.text.Normalizer.normalize(s, java.text.Normalizer.Form.NFKC).replace('\u00A0', ' ').replace('\u3000', ' ');
+    }
+
     private static final java.util.regex.Pattern P_PHONE = java.util.regex.Pattern.compile("0\\d{1,2}[- .]?\\d{3,4}[- .]?\\d{4}|\\d{5,}"),
             P_BUS = java.util.regex.Pattern.compile("(\\d)호차"), P_SEAT = java.util.regex.Pattern.compile("(?:(\\d)-)?(\\d{1,2})번?");
 
@@ -550,7 +555,7 @@ final class Party {
         Room r = lead.room;
         if (r.seats <= 0) throw new IllegalArgumentException("좌석 수가 0 인 방은 좌석 명단을 쓸 수 없습니다.");
         if (text == null || text.isBlank()) throw new IllegalArgumentException("명단을 붙여넣어 주세요.");
-        String[] lines = Clubs.norm(text).split("\\r?\\n|\\r");   // 전각 숫자 · NBSP · U+3000(카페에서 복사한 글) · 맥 줄바꿈
+        String[] lines = norm(text).split("\\r?\\n|\\r");   // 전각 숫자 · NBSP · U+3000(카페에서 복사한 글) · 맥 줄바꿈
         if (lines.length > 500) throw new IllegalArgumentException("명단이 너무 깁니다(500줄까지).");
         Map<Integer, String> got = new java.util.TreeMap<>();
         JsonArray skipped = new JsonArray();

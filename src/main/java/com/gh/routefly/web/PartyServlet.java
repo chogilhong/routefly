@@ -62,12 +62,8 @@ public class PartyServlet extends HttpServlet {
         long now = System.currentTimeMillis();
         boolean lookup = "/info".equals(path) || "/join".equals(path);
         if (lookup && MISSES.over(ip, now)) { Json.fail(resp, 429, "방 코드를 너무 많이 틀렸습니다. 10분 뒤 다시 해 주세요."); return; }
-        // 안내산악회(관리 링크로 로그인)는 IP 대신 산악회마다 하루 CLUB_CREATES 개 - 사무실 한 곳에서 주말 방 여럿을 만듦(2026-10-22). 서버 전체 한도에는 같이 셈
-        int club = "/create".equals(path) && !owner(req) ? ClubServlet.clubId(req) : 0;
-        String createKey = club > 0 ? "club:" + club : ip;
-        Quota createQ = club > 0 ? CLUB_CREATES : CREATES;
         boolean create = "/create".equals(path) && !owner(req);
-        if (create && (createQ.over(createKey, now) || CREATES_ALL.over("*", now))) { Json.fail(resp, 429, "하루에 만들 수 있는 방 수를 넘었습니다. 내일 다시 해 주세요."); return; }
+        if (create && (CREATES.over(ip, now) || CREATES_ALL.over("*", now))) { Json.fail(resp, 429, "하루에 만들 수 있는 방 수를 넘었습니다. 내일 다시 해 주세요."); return; }
         if ("/join".equals(path) && JOINS.over(ip, now)) { Json.fail(resp, 429, "한 곳에서 참가를 너무 많이 했습니다. 1시간 뒤 다시 해 주세요."); return; }
         JsonObject in;
         try {
@@ -78,7 +74,7 @@ public class PartyServlet extends HttpServlet {
         }
         try {
             JsonObject out = handle(Party.STORE, path, in, now);
-            if (create) { createQ.take(createKey, now); CREATES_ALL.take("*", now); }   // 만든 것만 셈(점검: 날짜를 틀린 것도 세어 하루 막혔음)
+            if (create) { CREATES.take(ip, now); CREATES_ALL.take("*", now); }   // 만든 것만 셈(점검: 날짜를 틀린 것도 세어 하루 막혔음)
             if ("/join".equals(path)) JOINS.take(ip, now);
             Json.write(resp, 200, out, false);
         } catch (Party.Ended e) {
@@ -95,8 +91,6 @@ public class PartyServlet extends HttpServlet {
 
     /** 방 만들기: IP 마다 하루 5개(한 사람이 2000개를 채워 아무도 못 만들게 하는 것을 막음 - 점검). */
     static final Quota CREATES = new Quota(5, 24 * 3600_000L);
-    /** 안내산악회(관리 링크 로그인)는 산악회마다 하루 40개(주말 15~20개 산행 · 차 여러 대). */
-    static final Quota CLUB_CREATES = new Quota(40, 24 * 3600_000L);
     /** 방 만들기 - 서버 전체 하루 300개(주소를 바꿔 가며 채우기 막기, 2026-10-22 점검). 운영자는 빼고 셈. */
     static final Quota CREATES_ALL = new Quota(300, 24 * 3600_000L);
     /**

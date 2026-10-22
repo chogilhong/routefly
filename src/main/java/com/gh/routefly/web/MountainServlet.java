@@ -616,7 +616,6 @@ public class MountainServlet extends HttpServlet {
             for (String[] x : qa) b.append("<dt>").append(esc(x[0])).append("</dt><dd>").append(esc(x[1])).append("</dd>");
             b.append("</dl></section>").append(faqLd(qa));
         }
-        if (ClubServlet.enabled()) b.append(Clubs.section(name, System.currentTimeMillis()));   // 이 산에 가는 안내산악회(2026-10-22 - 누르면 그 산악회 예약 화면)
         b.append(tips());
         if (!nearby.isEmpty()) {   // 가까운 100대 명산(2026-10-15) - 다음 산행 고르기 · 산 페이지끼리 잇기
             b.append("<section><h2>가까운 100대 명산</h2><ul class=\"ms\">");
