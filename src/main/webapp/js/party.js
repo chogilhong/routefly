@@ -171,7 +171,8 @@
             var t = new Date(Date.now() + 86400000);   // 출발 날짜 - 내일로 두고 고치게
             $("mkDate").value = dayText(t);
             if (q.get("mk")) {   // 안내산악회 일정에서 "🧭 산악회 방"(club.html - 2026-10-22) - 그 일정으로 채움, 고칠 수 있음
-                [["n", "mkName"], ["d", "mkDate"], ["t", "mkTime"], ["st", "mkStops"], ["ld", "mkLead"], ["ph", "mkPhone"]].forEach(function (x) { var v = q.get(x[0]); if (v) $(x[1]).value = v.slice(0, 80); });
+                [["n", "mkName"], ["d", "mkDate"], ["t", "mkTime"], ["st", "mkStops"], ["ld", "mkLead"], ["ph", "mkPhone"], ["b", "mkBuses"], ["s", "mkSeats"]].forEach(function (x) { var v = q.get(x[0]); if (v) $(x[1]).value = v.slice(0, 80); });
+                plateInputs();
                 $("mkSec").scrollIntoView({ block: "start" });
             }
         }).catch(function () {
@@ -208,6 +209,12 @@
                 document.querySelector("input[name=role][value=driver]").disabled = true;
             }
             roleChanged();
+            document.querySelector(".roles").hidden = !!j.leadInvite;
+            if (j.leadInvite) {   // 인솔자 코드(넘기기 · 함께 인솔, 2026-10-22) - 좌석 · 역할 없이 인솔자로
+                $("joinSeatBox").hidden = true;
+                $("joinCard").innerHTML += "<br><b style=\"color:var(--sky)\">🧭 인솔자 코드입니다 - 참가하면 이 방의 인솔자가 됩니다.</b>";
+                return;
+            }
             if (j.departed) joinErr("이미 출발한 방이라 산행 회원은 새로 참가할 수 없습니다. 인솔자에게 연락해 주세요. (운전자는 참가할 수 있습니다)");
         }).catch(function (e) { if ($("joinCode").value.trim().toUpperCase() !== code) return; infoFor = null; $("joinCard").hidden = true; $("joinSeatBox").hidden = true; joinErr(e.message, $("joinCode")); });
     }
@@ -480,13 +487,15 @@
         if (over) $("appOpenRoom").hidden = true;   // 끝나 가는 방은 앱으로 옮길 까닭이 없음
         if (staff) {
             $("departRow").hidden = s.role !== "lead" || s.departed || over;
-            var nh = s.myHikers != null ? s.myHikers : s.hikers;   // 운전자 - 자기 호차 회원 수
+            var ro = rosterOnly(s);   // 명단에만 있는 예약자(폰 참가 안 함)도 인원에(2026-10-22)
+            var nh = (s.myHikers != null ? s.myHikers : s.hikers) + ro.live.length;   // 운전자 - 자기 호차 회원 수
+            s = Object.assign({}, s, { aboardCount: (s.aboardCount || 0) + ro.aboard });
             $("phase").innerHTML = over ? overText(s) + (s.departed ? " · 하산 탑승 <b>" + (s.aboardCount || 0) + "</b> / " + nh : "") + (s.role === "lead" ? " - 산행이 끝났으면 아래 \"방 끝내기\"" : "")
                 : !s.departed && s.departAt && s.now > s.departAt ? "<span style=\"color:var(--red)\">출발 시각(" + clock(s.departAt) + ")이 지났습니다</span>" + (s.role === "lead" ? " - 출발했으면 아래 \"출발\"을 눌러 주세요" : "")
-                    + " · 출발 탑승 " + (s.members || []).filter(function (m) { return m.role === "hiker" && m.boarded; }).length + " / " + nh
+                    + " · 출발 탑승 " + boardedCount(s) + " / " + nh
                 : s.departed ? "🥾 산행 중 · 하산 탑승 <b>" + (s.aboardCount || 0) + "</b> / " + nh + (s.endAt ? " · 하산 마감 " + left(s.endAt, s.now) : "")
                 + (nh > 0 && s.aboardCount >= nh ? " <span class=\"ok\">모두 탔습니다" + (s.role === "lead" ? " - 방을 끝내세요" : "") + "</span>" : notDown(s))
-                : s.departAt ? "출발까지 " + left(s.departAt, s.now) + " · 출발 탑승 " + (s.members || []).filter(function (m) { return m.role === "hiker" && m.boarded; }).length + " / " + nh : "";
+                : s.departAt ? "출발까지 " + left(s.departAt, s.now) + " · 출발 탑승 " + boardedCount(s) + " / " + nh : "";
             if (s.role === "driver" && !seatMap.once) { curBus = s.bus; seatMap.once = true; }   // 운전자는 자기 호차부터
             list(s);
             seatMap(s);
@@ -497,12 +506,27 @@
         drawMap(s);
         if (BG) bgSync(s);
         if (s.driverCode) { $("driverCode").textContent = s.driverCode; $("driverRow").hidden = false; }
+        if (s.role === "lead") {   // 인솔자가 둘 이상이면 나갈 수 있음(넘기기)
+            $("leaveBtn").hidden = (s.members || []).filter(function (m) { return m.role === "lead"; }).length < 2;
+            leadCodeShow(s);
+        }
     }
 
     /** 회원 단계 - 취소됨 / 출발 전(버스 탔어요) / 산행 중(SOS · 하산 탑승) / 하산 탑승함. */
     /** 인솔자 · 운전자 - 아직 하산 탑승 안 한 사람(2026-10-22 점검: 숫자만 있어 누가 남았는지 명단을 훑어야 했음). 8명까지 이름. */
+    function boardedCount(s) {
+        return (s.members || []).filter(function (m) { return m.role === "hiker" && m.boarded; }).length + (s.resBoarded || []).filter(function (k) { return !inSet(s.resCancelled, k); }).length;
+    }
+    /** 명단에만 있는 예약자 - live: 취소 안 된 자리들, aboard: 하산 탑승 수. */
+    function rosterOnly(s) {
+        var live = Object.keys(s.resNames || {}).map(Number).filter(function (k) { return !inSet(s.resCancelled, k); });
+        return { live: live, aboard: live.filter(function (k) { return inSet(s.resAboard, k); }).length };
+    }
     function notDown(s) {
         var rest = (s.members || []).filter(function (m) { return m.role === "hiker" && !m.cancelled && !m.aboard && m.id !== s.me; });
+        rosterOnly(s).live.forEach(function (k) {   // 명단 예약자(출발 탑승한 사람만)
+            if (inSet(s.resBoarded, k) && !inSet(s.resAboard, k)) rest.push({ nick: String(s.resNames[k]).split(" · ")[0], seat: k % 100, bus: Math.floor(k / 100) });
+        });
         if (!rest.length) return "";
         return "<br>🥾 아직 하산 안 함 <b>" + rest.length + "</b>명: " + rest.slice(0, 8).map(function (m) { return esc(m.nick) + (m.seat ? "(" + seatText(s, m) + ")" : ""); }).join(", ") + (rest.length > 8 ? " 외 " + (rest.length - 8) + "명" : "");
     }
@@ -728,7 +752,12 @@
                 if (s.departed && !m.cancelled && !m.sos && !m.aboard && silent(m)) cls += " old";
                 label = "<small>" + esc(m.nick) + "</small>";
                 if (m.id === picked) cls += " pick";
-            } else if (rsv[k]) { cls += " rsv"; if (rsv[k] !== 1) label = "<small>" + esc(String(rsv[k]).split(" · ")[0]) + "</small>"; }   // 예약 명단 이름(2026-10-22)
+            } else if (rsv[k]) {   // 예약 명단 이름(2026-10-22) - 폰 없이도 인솔자가 탑승 · 하산 체크
+                var rk = curBus * 100 + k;
+                cls += inSet(s.resCancelled, rk) ? " cxl" : inSet(s.resAboard, rk) ? " back" : inSet(s.resBoarded, rk) ? " board" : " rsv";
+                if (rsv[k] !== 1) label = "<small>" + esc(String(rsv[k]).split(" · ")[0]) + "</small>";
+                if (rk === resPicked) cls += " pick";
+            }
             cells.push("<div class=\"" + cls + "\" data-seat=\"" + k + "\" style=\"grid-column:" + (at.col + 2) + ";grid-row:" + at.row + "\""
                 + (m ? " title=\"" + esc(m.nick + (m.stop ? " · " + m.stop : "")) + "\"" : rsv[k] && rsv[k] !== 1 ? " title=\"예약 " + esc(rsv[k]) + "\"" : "") + ">" + k + label + "</div>");
         }
@@ -752,6 +781,34 @@
         seatMap(state);
         busTip();
     });
+    function inSet(a, k) { return (a || []).indexOf(k) >= 0; }
+    /** 명단에만 있는 예약자 - 자리를 누르면 메뉴(출발 탑승 · 하산 탑승 · 예약 지우기). */
+    var resPicked = null;
+    function resPick(k) {
+        resPicked = k;
+        $("resAct").hidden = k == null;
+        if (k == null || !state) return;
+        var nm = (state.resNames || {})[k], seat = k % 100;
+        var st = inSet(state.resCancelled, k) ? "❌ 출발 때 안 탐" : inSet(state.resAboard, k) ? "🚌 하산 탑승" : inSet(state.resBoarded, k) ? "✅ 출발 탑승" : "예약 · 폰 참가 안 함";
+        $("resActName").innerHTML = "<b>" + busLabel(state, Math.floor(k / 100)) + seat + "번 " + esc(nm) + "</b> · " + st;
+        $("resBoard").textContent = inSet(state.resBoarded, k) && !inSet(state.resCancelled, k) ? "출발 탑승 취소" : "✅ 출발 탑승";
+        $("resAboard").textContent = inSet(state.resAboard, k) ? "하산 탑승 취소" : "🚌 하산 탑승";
+        $("resAboard").hidden = !state.departed;
+    }
+    function resMark(what, on) {
+        var k = resPicked, p = RFParty.get();
+        if (k == null) return;
+        RFParty.post("mark", { token: p.token, bus: Math.floor(k / 100), seat: k % 100, what: what, on: on }).then(function (j) { render(j); resPick(k); }).catch(actFail);
+    }
+    $("resBoard").addEventListener("click", function () { var k = resPicked; resMark("boarded", !(inSet(state.resBoarded, k) && !inSet(state.resCancelled, k))); });
+    $("resAboard").addEventListener("click", function () { resMark("aboard", !inSet(state.resAboard, resPicked)); });
+    $("resDel").addEventListener("click", function () {
+        var k = resPicked;
+        if (k == null || !confirm((k % 100) + "번 " + (state.resNames || {})[k] + " 님의 예약을 좌석표에서 지울까요?")) return;
+        RFParty.post("mark", { token: RFParty.get().token, bus: Math.floor(k / 100), seat: k % 100, what: "reserved", on: false }).then(function (j) { resPick(null); render(j); }).catch(actFail);
+    });
+    $("resClose").addEventListener("click", function () { resPick(null); if (state) seatMap(state); });
+
     function memberAt(k) {
         var all = state ? (state.members || []).filter(function (x) { return x.seat === k && x.bus === curBus; }) : [];
         return all.filter(function (x) { return !x.cancelled; })[0] || all[0];
@@ -765,6 +822,8 @@
         if (!m) return;
         $("seatActName").innerHTML = "<b>" + busLabel(state, m.bus) + m.seat + "번 " + esc(m.nick) + "</b>" + (m.stop ? " · " + esc(m.stop) : "") + " · " + (m.cancelled ? "❌ 취소됨" : agoText(m.ago));
         $("actBoard").textContent = m.cancelled ? "↩ 탔음(취소 되돌리기)" : m.boarded ? "출발 탑승 취소" : "✅ 출발 탑승";
+        $("actAboard").hidden = !state.departed || m.cancelled;   // 폰을 못 누른 회원 - 인솔자가 하산 탑승 체크(2026-10-22)
+        $("actAboard").textContent = m.aboard ? "하산 탑승 취소" : "🚌 하산 탑승";
         stopOptions($("actStop"), state.stops, m.stop);
         $("actStopBox").hidden = !(state.stops || []).length;
         $("actKick").hidden = state.role !== "lead";
@@ -781,10 +840,10 @@
                 .catch(function (er) { roomMsg(er.message); });
             return;
         }
-        if (m) { pick(m); seatMap(state); return; }
+        if (m) { resPick(null); pick(m); seatMap(state); return; }
         pick(null);
-        var rn = (state.resNames || {})[curBus * 100 + k];   // 예약 명단 이름이 있는 자리 - 잘못 눌러 지우지 않게
-        if (rn && !confirm(k + "번 " + rn + " 님의 예약 표시를 지울까요?")) return;
+        if ((state.resNames || {})[curBus * 100 + k]) { resPick(curBus * 100 + k); seatMap(state); return; }   // 명단 예약자 - 메뉴
+        resPick(null);
         RFParty.post("mark", { token: p.token, bus: curBus, seat: k, what: "reserved", on: (state.reserved || []).indexOf(curBus * 100 + k) < 0 }).then(render).catch(function (er) { roomMsg(er.message); });
     });
     $("actKick").addEventListener("click", function () { kick(pickedMember()); });
@@ -792,6 +851,12 @@
         var m = pickedMember(), p = RFParty.get();
         if (!m) return;
         RFParty.post("mark", m.cancelled ? { token: p.token, id: m.id, what: "boarded", on: true } : { token: p.token, bus: m.bus, seat: m.seat, what: "boarded", on: !m.boarded }).then(function (j) { render(j); pick(pickedMember()); }).catch(function (er) { roomMsg(er.message); });
+    });
+    $("actAboard").addEventListener("click", function () {
+        var m = pickedMember(), p = RFParty.get();
+        if (!m) return;
+        if (!m.aboard && !confirm(m.nick + " 님을 하산 탑승으로 체크할까요? (그 폰의 위치 보내기는 멈춥니다)")) return;
+        RFParty.post("mark", { token: p.token, bus: m.bus, seat: m.seat, what: "aboard", on: !m.aboard }).then(function (j) { render(j); pick(pickedMember()); }).catch(actFail);
     });
     $("actMove").addEventListener("click", function () {
         if (!pickedMember()) return;
@@ -974,6 +1039,18 @@
     $("copyBtn").addEventListener("click", copyInvite);
     $("inviteUrl").addEventListener("focus", function () { this.select(); });
 
+    $("leadBtn").addEventListener("click", function () {   // 인솔자 넘기기 · 함께 인솔(2026-10-22)
+        if (!confirm("인솔자 코드를 만들까요?\n이 코드로 참가한 사람은 이 방의 인솔자가 됩니다(공지 · 출발 · 방 끝내기 모두). 믿을 수 있는 사람에게만 보내세요.\n한 번 쓰면 없어지고, 다시 만들면 옛 코드는 못 씁니다.")) return;
+        RFParty.post("leadcode", { token: RFParty.get().token }).then(function (j) { render(j); leadCodeShow(j); }).catch(actFail);
+    });
+    function leadCodeShow(s) {
+        $("leadInfo").hidden = !s.leadCode;
+        if (!s.leadCode) return;
+        var url = new URL("party.html?c=" + s.leadCode, location.href).href;
+        $("leadInfo").innerHTML = "🧭 인솔자 코드 <b style=\"font-size:17px;letter-spacing:2px;color:var(--tx)\">" + esc(s.leadCode) + "</b> - 이 링크를 넘겨받을 분께만 보내세요: <a href=\"" + esc(url) + "\">" + esc(url) + "</a>"
+            + "<br>그분이 들어오면 지금 폰은 \"방 나가기\" 를 해도 됩니다.";
+    }
+
     $("rosterBtn").addEventListener("click", function () {   // 예약 명단 붙여넣기(2026-10-22)
         var t = $("rosterText").value.trim();
         if (!t) { roomMsg("명단을 붙여넣어 주세요."); return; }
@@ -1058,6 +1135,9 @@
 
     $("departBtn").addEventListener("click", function () {
         var p = RFParty.get(), not = (state.members || []).filter(function (m) { return m.role === "hiker" && !m.boarded && !m.cancelled; });
+        Object.keys(state.resNames || {}).map(Number).forEach(function (k) {   // 명단에만 있고 탑승 체크 안 된 예약자도
+            if (!inSet(state.resBoarded, k) && !inSet(state.resCancelled, k)) not.push({ seat: k % 100, bus: Math.floor(k / 100), nick: String(state.resNames[k]).split(" · ")[0] });
+        });
         var names = not.map(function (m) { return (m.seat ? busLabel(state, m.bus) + m.seat + "번 " : "") + m.nick; }).join(", ");
         if (!confirm("출발할까요?" + (not.length ? "\n안 탄 " + not.length + "명은 취소됩니다: " + names + "\n(늦게 오면 좌석표에서 되돌릴 수 있습니다)" : "\n모두 탔습니다."))) return;
         RFParty.post("depart", { token: p.token }).then(function (j) { render(j); roomMsg("🚌 출발! " + (j.cancelledNow ? j.cancelledNow + "명 취소." : "")); }).catch(actFail);

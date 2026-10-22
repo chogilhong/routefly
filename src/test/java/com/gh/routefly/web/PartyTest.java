@@ -572,4 +572,43 @@ public class PartyTest {
         assertEquals(1, again.getAsJsonObject("resNames").size());
         assertFalse(again.getAsJsonArray("reserved").toString().contains("122"));
     }
+
+    /** 명단에만 있는 예약자(폰 없이) - 인솔자가 출발 · 하산 탑승 체크, 출발 때 안 탄 예약자는 취소, 폰으로 들어오면 체크를 이어 받음(2026-10-22). */
+    @Test
+    public void rosterOnlyBoardingAndLeadCode() {
+        Party p = new Party();
+        JsonObject room = call(p, "/create", "{\"name\":\"한 대\",\"departAt\":" + DEPART + ",\"seats\":28,\"stops\":\"사당, 양재\"}", T0);
+        String code = room.get("code").getAsString(), lead = room.get("token").getAsString();
+        String text = "21 홍길동 사당\n22 김영희 010-1234-5678 양재\n최영자\u00a0/\u00a0２３번\r24 박민수";
+        JsonObject v = call(p, "/roster", "{\"token\":\"" + lead + "\",\"text\":" + new com.google.gson.Gson().toJson(text) + "}", T0);
+        assertEquals(4, v.getAsJsonObject("roster").get("added").getAsInt());
+        assertEquals("전화번호는 빠짐", "김영희 · 양재", v.getAsJsonObject("resNames").get("122").getAsString());
+        assertEquals("NBSP · 전각 숫자 · 맥 줄바꿈", "최영자", v.getAsJsonObject("resNames").get("123").getAsString());
+        call(p, "/mark", "{\"token\":\"" + lead + "\",\"seat\":21,\"what\":\"boarded\",\"on\":true}", DEPART - H);
+        call(p, "/mark", "{\"token\":\"" + lead + "\",\"seat\":22,\"what\":\"boarded\",\"on\":true}", DEPART - H);
+        // 22번 예약자가 폰으로 들어오면 탑승 체크를 이어 받음
+        String a = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"영희\",\"role\":\"hiker\",\"seat\":22,\"agree\":true}", DEPART - H).get("token").getAsString();
+        assertTrue(call(p, "/view", tok(a), DEPART - H).get("boarded").getAsBoolean());
+        JsonObject dep = call(p, "/depart", tok(lead), DEPART);
+        assertEquals("안 탄 예약자 23 · 24번 취소", 2, dep.get("cancelledNow").getAsInt());
+        assertEquals("[123,124]", dep.getAsJsonArray("resCancelled").toString());
+        call(p, "/mark", "{\"token\":\"" + lead + "\",\"seat\":21,\"what\":\"aboard\",\"on\":true}", DEPART + 5 * H);
+        call(p, "/mark", "{\"token\":\"" + lead + "\",\"seat\":22,\"what\":\"aboard\",\"on\":true}", DEPART + 5 * H);   // 폰 회원도 인솔자가
+        JsonObject end = call(p, "/view", tok(lead), DEPART + 5 * H);
+        assertEquals("[121]", end.getAsJsonArray("resAboard").toString());
+        assertTrue(member(end, "영희").get("aboard").getAsBoolean());
+        try { call(p, "/mark", "{\"token\":\"" + lead + "\",\"seat\":5,\"what\":\"boarded\",\"on\":true}", DEPART); fail("빈자리"); } catch (IllegalArgumentException e) { assertTrue(e.getMessage().contains("예약 명단도")); }
+
+        // 인솔자 넘기기 - 코드로 들어오면 인솔자, 한 번만, 그 뒤 처음 인솔자는 나갈 수 있음
+        try { call(p, "/leave", tok(lead), DEPART); fail("혼자인 인솔자는 못 나감"); } catch (IllegalStateException e) { assertTrue(e.getMessage().contains("넘기기")); }
+        try { call(p, "/leadcode", tok(a), DEPART); fail(); } catch (SecurityException e) { /* 맞음 */ }
+        String lc = call(p, "/leadcode", tok(lead), DEPART).get("leadCode").getAsString();
+        assertTrue(call(p, "/info", "{\"code\":\"" + lc + "\"}", DEPART).get("leadInvite").getAsBoolean());
+        JsonObject l2 = call(p, "/join", "{\"code\":\"" + lc + "\",\"nick\":\"진짜대장\",\"role\":\"hiker\",\"agree\":true}", DEPART);
+        assertEquals("lead", l2.get("role").getAsString());
+        try { call(p, "/join", "{\"code\":\"" + lc + "\",\"nick\":\"또\",\"role\":\"hiker\",\"agree\":true}", DEPART); fail("한 번만"); } catch (RuntimeException e) { /* 맞음 */ }
+        call(p, "/leave", tok(lead), DEPART);
+        call(p, "/notice", "{\"token\":\"" + l2.get("token").getAsString() + "\",\"text\":\"새 인솔자 공지\"}", DEPART);
+        assertEquals("새 인솔자 공지", call(p, "/view", tok(a), DEPART).get("notice").getAsString());
+    }
 }

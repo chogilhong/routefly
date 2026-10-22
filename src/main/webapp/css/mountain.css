@@ -191,3 +191,5 @@ ul { margin:0; padding:0; list-style:none; }
 .cl li:first-child { border-top:0; }
 .cl .ad { display:inline-block; padding:1px 7px; border-radius:8px; background:#ffd43b; color:#2b2100; font-size:12px; font-weight:bold; }
 .cl .bk { display:inline-flex; align-items:center; min-height:36px; padding:0 12px; margin-top:4px; border-radius:18px; border:1px solid var(--sky, #38d9ea); color:var(--sky, #38d9ea); text-decoration:none; font-weight:bold; font-size:14px; }
+.cl .gone { display:inline-block; padding:1px 7px; border-radius:8px; background:rgba(255,255,255,0.12); font-size:12px; }
+.cl .bk small { font-weight:normal; opacity:0.75; margin-left:4px; }
