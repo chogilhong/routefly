@@ -251,8 +251,6 @@ a.tel { color:var(--sky); }
                 <div class="row"><button id="qrBtn">📱 QR 보여 주기 (현장에서 바로 참가)</button></div>
                 <p id="driverRow" class="tip" hidden style="margin:8px 0 0">🚌 운전자 코드 <b id="driverCode" style="font-size:17px;letter-spacing:2px;color:var(--tx)"></b> - 기사님께만 알려 주세요.
                     기사님은 참가하기에 이 코드를 넣으면 운전자로 들어옵니다(방 코드로는 운전자가 될 수 없음).</p>
-                <div class="row"><button id="leadBtn">🧭 인솔자 넘기기 · 함께 인솔</button></div>
-                <p id="leadInfo" class="tip" hidden style="margin:8px 0 0;word-break:break-all"></p>
                 <div class="row" id="nfcRow" hidden><button id="nfcBtn">📶 NFC 스티커에 쓰기 (대기만 하면 참가)</button></div>
                 <div id="inviteMsg" class="tip" role="status"></div>
             </div>
@@ -286,28 +284,11 @@ a.tel { color:var(--sky); }
                     <button id="actMove">💺 자리 옮기기</button>
                     <button id="actMap">🗺 지도</button>
                     <button id="actTrail">🧭 지나온 길</button>
-                    <button id="actAboard" hidden>🚌 하산 탑승</button>
                     <button id="actKick" class="danger" hidden>🚫 내보내기</button>
                 </div>
                 <div class="two" id="actStopBox"><div><label for="actStop">탑승지 바꾸기</label><select id="actStop"></select></div><div></div></div>
             </div>
-            <div id="resAct" hidden>   <!-- 명단에만 있는 예약자(폰 참가 안 함) - 인솔자가 체크(2026-10-22) -->
-                <div id="resActName" style="font-size:14px;margin:6px 0"></div>
-                <div class="row">
-                    <button id="resBoard">✅ 출발 탑승</button>
-                    <button id="resAboard" hidden>🚌 하산 탑승</button>
-                    <button id="resDel" class="danger">예약 지우기</button>
-                    <button id="resClose">닫기</button>
-                </div>
-            </div>
             <div id="stopSum" class="tip"></div>
-            <details id="rosterBox" hidden style="margin-top:10px">   <!-- 예약 명단 붙여넣기(2026-10-22 - 산악회 누리집 예약자 명단) -->
-                <summary style="cursor:pointer;font-weight:bold;min-height:44px;display:flex;align-items:center">📋 예약 명단 붙여넣기</summary>
-                <p class="tip">산악회 누리집 · 엑셀의 예약자 명단을 한 줄에 한 사람씩 붙여넣으세요. 좌석표에 <b>예약 · 미참가</b>로 이름이 채워지고, 회원이 그 자리로 참가하면 바뀝니다.
-                    예) <code>21 홍길동 사당</code> · <code>21,홍길동,사당</code> · 카페 댓글 <code>홍길동 / 21번 / 사당</code> · 차가 여러 대면 <code>2-21 홍길동</code>. 붙여넣으면 아직 참가 안 한 예약 표시를 이 명단으로 바꿉니다. 이름은 인솔자 · 운전자만 보고 방이 끝나면 지워집니다.</p>
-                <textarea id="rosterText" rows="6" maxlength="15000" style="width:100%;font:15px Arial,'Malgun Gothic',sans-serif;background:#0f141a;color:var(--tx);border:1px solid var(--ln);border-radius:10px;padding:10px" placeholder="21 홍길동 사당&#10;22 김영희 양재"></textarea>
-                <div class="row"><button id="rosterBtn" class="main" style="margin-top:6px">명단 넣기</button></div>
-            </details>
             <p class="tip">사람이 있는 자리를 누르면 메뉴(출발 탑승 · 자리 옮기기 · 지도 · 지나온 길 · 탑승지) · 빈자리를 누르면 <b>예약됨</b>(예약했는데 아직 참가 안 함) 표시를 켜고 끕니다.</p>
             <div class="legend"><span class="s rsv">예약 · 미참가</span><span class="s join">참가</span><span class="s board">출발 탑승</span><span class="s cxl">취소</span><span class="s old">10분 소식 없음</span><span class="s sos">SOS</span><span class="s back">하산 탑승</span>
                 <a class="guideLink" href="party-guide.html#seat">📖 인솔자 사용법</a></div>
