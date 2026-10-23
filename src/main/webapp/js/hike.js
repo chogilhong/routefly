@@ -975,7 +975,10 @@
         if (last) {
             var d = RF.distM(last[0], last[1], lat, lon);
             if (d < 8 && t - last[2] < 60000) return;
-            if (d < 300) hike.walked += d;   // GPS 튐(한 번에 300m 넘게)은 거리에 넣지 않습니다
+            // GPS 튐(한 번에 300m 넘게)은 거리에 넣지 않습니다. 단 걸어서 갈 만한 빠르기면 넣음 - 2026-10-23 지리산: 크롬은 화면이 꺼지면
+            // 위치가 끊겨 점 사이가 수 km 벌어졌고, 그것을 모두 빼 12km 산행이 2.02km 로 나왔음(튄 위치는 onFix 에서 먼저 버림)
+            var dt = (t - last[2]) / 1000;
+            if (d < 300 || (dt > 0 && d / dt <= (K() === RF.KINDS.bike ? 25 : 3))) hike.walked += d;
         }
         hike.track.push([Math.round(lat * 1e6) / 1e6, Math.round(lon * 1e6) / 1e6, Math.round(t), alt == null ? null : Math.round(alt)]);
         // 2026-10-09 점검: 점마다 기록 전체를 다시 쓰면 긴 산행에서 점점 무거워집니다(점 n 개면 n² 글자) -
@@ -1066,10 +1069,17 @@
         try { return !!(navigator.canShare && navigator.canShare({ files: [new File(["x"], "a.txt", { type: "text/plain" })] })); } catch (e) { return false; }
     }
 
+    /** 파일 이름 조각 - 코스 이름에서 / \\ : * ? " < > | · 공백을 _ 로, 40자까지(앱 저장 경로 · 핸드폰 파일 이름 한도). */
+    function gpxSlug(rec) {
+        var n = String(NM(rec.name || "") || "").replace(/[\\/:*?"<>|.\s·~,]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40);
+        return n || "track";
+    }
+
     function downloadGpx(rec) {
         var d = new Date(rec.start);
         var name = "routefly-" + d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0")
-            + "-" + String(rec.courseId || "track").replace(/[^\w.-]/g, "_") + ".gpx";   // 파일 이름에 / · .. 이 들어가지 않게(앱 저장 경로)
+            + "-" + gpxSlug(rec) + ".gpx";
+        // 2026-10-23 홍TV님 지리산: 이은 코스 ID(구간 5개)를 그대로 넣어 파일 이름이 250자를 넘어 앱 · 크롬에서 저장이 안 됐음
         if (FS && SHARE) {   // 앱 - 공유 창으로(파일 저장 · 다른 앱으로 보내기)
             nativeShareFile(name, btoa(unescape(encodeURIComponent(toGpx(rec)))), rec.name)
                 .catch(function (e) { toast(T("GPX 를 보내지 못했습니다: ", "Could not send the GPX: ") + (e && e.message || e), 5000); });
