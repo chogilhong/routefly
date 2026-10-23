@@ -1967,13 +1967,17 @@
         addTrack(co.latitude, co.longitude, t, co.altitude);
         if (!hike.sim) stampCheck(co.latitude, co.longitude, acc);   // 국토종주 인증센터 · 100대 명산 정상 도장(실제 GPS 만)
         var s = RF.snap(c, co.latitude, co.longitude, hike.lastFix ? hike.d : null);
+        var dtFix = hike.lastFix ? Math.max(0, t - hike.lastFix) / 1000 : null;
         hike.lastFix = t;
         hike.off = s.off;
         if (s.off <= OFF_ROUTE_M * 2) {   // 코스에서 아주 멀면 진행 거리는 그대로 둡니다
             // 송산: 시작 버튼을 누른 뒤 코스 0.86km 지점으로 들어갔는데 0 부터 걸은 것으로 쳐서 3분 만에 81kcal · 1,353보
             if (hike.d0 == null) hike.d0 = s.d;
+            // 2026-10-23 홍TV님 지리산 로터리대피소: 지그재그 길에서 위치가 위쪽 굽이로 잘못 붙어 앞으로 확 뛰었다 돌아오니
+            // "되돌아감" 으로 보고 코스가 거꾸로 바뀜. 걸어서 갈 수 없는 만큼(30m + 초당 3m) 앞으로 뛴 것은 가장 멀리 간 자리로 치지 않습니다.
+            var reach = dtFix == null ? s.d : Math.min(s.d, hike.d + 30 + 3 * dtFix);
             hike.d = s.d;
-            hike.dMax = Math.max(hike.dMax || 0, s.d);
+            hike.dMax = Math.max(hike.dMax || 0, reach);
         }
         // 빠르기 - GPS 가 주면 그것, 아니면 최근 1분 이동 거리로
         hike.hist.push({ t: t, lat: co.latitude, lon: co.longitude });
@@ -1987,7 +1991,12 @@
         setMe(co.latitude, co.longitude, co.heading);
         if (hike.follow) map.easeTo({ center: [co.longitude, co.latitude], zoom: Math.max(map.getZoom(), 15), duration: 600 });
         // 코스를 따라 되돌아가면(올라가다 내려옴) 거꾸로 된 코스로 - "벗어났다" 대신 내려가는 길 안내
-        if (!hike.sim && s.off <= OFF_ROUTE_M && hike.dMax - hike.d >= TURN_BACK_M) {
+        // 한 번 튄 위치로 바꾸지 않게 1분 동안 계속 되돌아간 상태일 때만(2026-10-23 지리산)
+        var turned = !hike.sim && s.off <= OFF_ROUTE_M && hike.dMax - hike.d >= TURN_BACK_M;
+        if (!turned) hike.backT = 0;
+        else if (!hike.backT) hike.backT = t;
+        if (turned && t - hike.backT >= 60000) {
+            hike.backT = 0;
             adoptCourse(RF.reverseCourse(c), T("되돌아가는 길로 안내를 바꿨습니다.", "Switched guidance to the way back."));
             s = { d: hike.d, off: hike.off };
         }
