@@ -1945,6 +1945,25 @@
         if (document.visibilityState === "visible" && hike.running && !hike.sim && !BG) keepAwake();   // 앱은 화면을 켜 두지 않음(위 start)
     });
 
+    // 배터리 적음 알림(2026-10-23 홍TV님 지리산 - 하산 끝에 배터리가 다 되어 핸드폰이 꺼짐). 20% 에 한 번 알리고 10% 에 기록을 바로 남김.
+    // 걸은 길은 30초마다 이 핸드폰에 남으니 꺼져도 다시 열면 이어집니다. 크롬 · 앱(안드로이드)만 배터리를 알려 줌.
+    if (navigator.getBattery) navigator.getBattery().then(function (b) {
+        function check() {
+            if (!hike.running || hike.sim || b.charging) return;
+            var left = c ? km(Math.max(0, c.total - hike.d)) : "";
+            if (b.level <= 0.2 && !hike.bat20) {
+                hike.bat20 = true;
+                toast(EN ? "🔋 Battery " + Math.round(b.level * 100) + "%" + (left ? ", " + left + " km to go" : "") + ". Dim the screen and close other apps. Your hike is saved, so it continues if you reopen this page."
+                    : "🔋 배터리 " + Math.round(b.level * 100) + "%" + (left ? " · 남은 길 " + left + "km" : "") + ". 화면을 어둡게 하고 다른 앱을 닫으세요. 기록은 저장되고 있어 꺼져도 다시 열면 이어집니다.", 10000);
+                say(T("배터리가 20퍼센트 남았습니다. 연락용 배터리를 남겨 두세요.", "Battery is at 20 percent. Keep some for calls."), { urgent: true });
+            }
+            if (b.level <= 0.1 && !hike.bat10) { hike.bat10 = true; flushTrack(); save(); }
+        }
+        b.addEventListener("levelchange", check);
+        b.addEventListener("chargingchange", check);
+        setInterval(check, 60000);
+    }).catch(function () { /* 알려 주지 않는 브라우저 */ });
+
     function onGpsError(e) {
         $("gps").className = "bad";
         $("gps").textContent = e.code === 1 ? T("위치 권한 없음", "No location permission") : T("GPS 신호 없음", "No GPS signal");
