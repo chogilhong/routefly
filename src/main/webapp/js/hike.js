@@ -1776,6 +1776,7 @@
         hike.spotDone = {};
         hike.passed = {};
         hike.voiceD = null;   // 지난번 음성 확인 때의 거리 - 그 사이 지나친 지점도 말함(2026-10-16 PC)
+        hike.offT = 0; hike.offShown = false;
         hike.wasOff = false;
         hike.d0 = saved && saved.d0 != null ? saved.d0 : null;   // 첫 위치가 코스 위일 때 정합니다(코스 중간에서 시작하면 그 자리)
         hike.dMax = saved && saved.dMax != null ? saved.dMax : hike.d;
@@ -1978,6 +1979,10 @@
         var dtFix = hike.lastFix ? Math.max(0, t - hike.lastFix) / 1000 : null;
         hike.lastFix = t;
         hike.off = s.off;
+        // 2026-10-23 홍TV님 장터목 → 유암폭포: 코스 선이 실제 길과 50m 안팎으로 어긋난 곳에서 "벗어났습니다" · "돌아왔습니다" 가 되풀이됨.
+        // 50m 밖이 20초 이어져야 벗어남, 35m 안으로 들어와야 돌아옴.
+        if (s.off > OFF_ROUTE_M) { if (!hike.offT) hike.offT = t; if (hike.sim || t - hike.offT >= 20000) hike.offShown = true; }
+        else if (s.off <= OFF_ROUTE_M * 0.7) { hike.offT = 0; hike.offShown = false; }
         if (s.off <= OFF_ROUTE_M * 2) {   // 코스에서 아주 멀면 진행 거리는 그대로 둡니다
             // 송산: 시작 버튼을 누른 뒤 코스 0.86km 지점으로 들어갔는데 0 부터 걸은 것으로 쳐서 3분 만에 81kcal · 1,353보
             if (hike.d0 == null) hike.d0 = s.d;
@@ -2083,6 +2088,8 @@
         hike.d0 = s.d;
         hike.dMax = s.d;
         hike.dMaxAt = f ? { lat: f.lat, lon: f.lon } : null;
+        hike.offT = 0;
+        hike.offShown = s.off > OFF_ROUTE_M;
         hike.backT = 0;
         hike.segT0 = now();
         hike.passed = {};
@@ -2401,7 +2408,7 @@
         $("sign").hidden = !ns;
         if (ns) $("sign").textContent = T("📍 위치표지 ", "📍 Location sign ") + RF.signText(ns);
         // 코스에서 벗어남 - 가장 가까운 등산로(지금 코스 · 주변 길)까지 거리 · 방향, 지도에 점선
-        if (hike.running && hike.off > OFF_ROUTE_M && hike.fix) {
+        if (hike.running && hike.offShown && hike.fix) {
             var me = hike.fix, nt, br, far = hike.off > FAR_M;
             if (far !== hike.farMode) {   // 멀리 ↔ 코스 근처로 바뀌면 그 상황 안내를 바로 다시
                 hike.farMode = far;
@@ -2491,7 +2498,7 @@
             map.getSource("guide").setData({ type: "Feature", properties: {},
                 geometry: { type: "LineString", coordinates: [[me.lon, me.lat], [nt.lon, nt.lat]] } });
         } else {
-            if (hike.running && hike.wasOff && hike.off <= OFF_ROUTE_M) {
+            if (hike.running && hike.wasOff && !hike.offShown) {
                 hike.wasOff = false;
                 voice.last.off = 0;
                 say(T("코스로 돌아왔습니다.", "Back on the trail."), { urgent: true });
