@@ -1985,6 +1985,7 @@
             // "되돌아감" 으로 보고 코스가 거꾸로 바뀜. 걸어서 갈 수 없는 만큼(30m + 초당 3m) 앞으로 뛴 것은 가장 멀리 간 자리로 치지 않습니다.
             var reach = dtFix == null ? s.d : Math.min(s.d, hike.d + 30 + 3 * dtFix);
             hike.d = s.d;
+            if (reach > (hike.dMax || 0) || !hike.dMaxAt) hike.dMaxAt = { lat: co.latitude, lon: co.longitude };   // 가장 멀리 간 자리(실제 위치)
             hike.dMax = Math.max(hike.dMax || 0, reach);
         }
         // 빠르기 - GPS 가 주면 그것, 아니면 최근 1분 이동 거리로
@@ -2001,7 +2002,10 @@
         if (hike.follow) map.easeTo({ center: [co.longitude, co.latitude], zoom: Math.max(map.getZoom(), 15), duration: 600 });
         // 코스를 따라 되돌아가면(올라가다 내려옴) 거꾸로 된 코스로 - "벗어났다" 대신 내려가는 길 안내
         // 한 번 튄 위치로 바꾸지 않게 1분 동안 계속 되돌아간 상태일 때만(2026-10-23 지리산)
-        var turned = !hike.sim && s.off <= OFF_ROUTE_M && hike.dMax - hike.d >= TURN_BACK_M;
+        // 2026-10-23 장터목 아래로 내려가는데 서너 번 거꾸로 바뀜 - 코스 위 거리만 줄고(대피소 앞 되돌이 길 · 위치 붙는 자리) 몸은
+        // 그대로였음. 가장 멀리 간 자리에서 실제로 100m 넘게 떨어졌을 때만 되돌아간 것으로 봅니다.
+        var turned = !hike.sim && s.off <= OFF_ROUTE_M && hike.dMax - hike.d >= TURN_BACK_M
+            && hike.dMaxAt && RF.distM(hike.dMaxAt.lat, hike.dMaxAt.lon, co.latitude, co.longitude) >= 100;
         if (!turned) hike.backT = 0;
         else if (!hike.backT) hike.backT = t;
         if (turned && t - hike.backT >= 60000) {
@@ -2078,6 +2082,8 @@
         hike.off = s.off;
         hike.d0 = s.d;
         hike.dMax = s.d;
+        hike.dMaxAt = f ? { lat: f.lat, lon: f.lon } : null;
+        hike.backT = 0;
         hike.segT0 = now();
         hike.passed = {};
         hike.voiceD = null;
