@@ -1961,6 +1961,14 @@
             $("gps").className = acc != null && acc <= 30 ? "ok" : "";
             $("gps").textContent = "GPS ±" + (acc == null ? "?" : Math.round(acc)) + "m";
             if (acc != null && acc > 100) return;   // 너무 부정확한 위치는 쓰지 않습니다(실내 · 계곡 첫 신호)
+            // 2026-10-23 홍TV님 천왕봉 아래: 위치 하나가 멀리 튀어 "코스에서 벗어났습니다" → 곧바로 "돌아왔습니다", 속도 132.7km/h.
+            // 걷거나 자전거로 갈 수 없는 빠르기로 뛴 위치는 버립니다. 3번 잇따르거나 20초 넘게 버렸으면(차를 탔음 등) 그대로 받습니다.
+            var pf = hike.fix, lim = K() === RF.KINDS.bike ? 25 : 10;   // m/s(걷기 36km/h · 자전거 90km/h)
+            if (pf && t > pf.t) {
+                var jump = RF.distM(pf.lat, pf.lon, co.latitude, co.longitude);
+                if (jump > 30 + (acc || 0) && jump / ((t - pf.t) / 1000) > lim && (hike.jumps || 0) < 3 && t - pf.t < 20000) { hike.jumps = (hike.jumps || 0) + 1; return; }
+            }
+            hike.jumps = 0;
         }
         hike.fix = { lat: co.latitude, lon: co.longitude, acc: acc, alt: co.altitude, t: t };
         if (!hike.sim && window.RFParty) RFParty.fix(co.latitude, co.longitude, acc);   // 산악회 방에 참가했을 때만 인솔자에게(party-kit.js, 30초마다)
@@ -1983,6 +1991,7 @@
         hike.hist.push({ t: t, lat: co.latitude, lon: co.longitude });
         while (hike.hist.length > 2 && t - hike.hist[0].t > 60000) hike.hist.shift();
         var v = co.speed;
+        if (v != null && v > (K() === RF.KINDS.bike ? 25 : 10)) v = null;   // 튄 값(132.7km/h)은 최근 1분 이동으로
         if (v == null || !isFinite(v)) {
             var h0 = hike.hist[0], dt = (t - h0.t) / 1000;
             v = dt >= 10 ? distM(h0.lat, h0.lon, co.latitude, co.longitude) / dt : null;
