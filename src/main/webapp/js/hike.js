@@ -3206,10 +3206,11 @@
     function fillSos(f) {
         $("sosGrid").textContent = f ? (RF.nationalPoint(f.lat, f.lon) || T("범위 밖", "out of range")) : T("위치를 찾는 중…", "Finding location…");
         $("sosLatLon").textContent = f ? f.lat.toFixed(5) + ", " + f.lon.toFixed(5) + (f.acc ? " (±" + Math.round(f.acc) + "m)" : "") : "-";
-        // 해발: GPS 고도가 있으면 그것, 없으면 산행 중 코스 위에 있을 때만 코스 고도(아니면 엉뚱한 값이라 비움)
+        // 해발: 산행 중 코스 위면 코스 고도(정상 가까이는 공식 높이), 아니면 GPS 고도.
+        // 2026-10-23 홍TV님 천왕봉(1,915m)에서 GPS 고도 1,938m - 핸드폰 GPS 고도는 해수면보다 20~30m 높게 나옴(지오이드)
         var ele = null, eleNote = "";
-        if (f && f.alt != null) ele = Math.round(f.alt);
-        else if (c && hike.running && hike.off <= OFF_ROUTE_M) { ele = RF.at(c, hike.d).ele; eleNote = " (코스 기준)"; }
+        if (c && hike.running && hike.off <= OFF_ROUTE_M) { var oe = RF.officialEleAt(c, hike.d); ele = oe != null ? oe : RF.at(c, hike.d).ele; }
+        if (ele == null && f && f.alt != null) ele = Math.round(f.alt);
         $("sosEle").textContent = ele == null ? "-" : num(ele) + "m" + (eleNote && EN ? " (trail data)" : eleNote);
         var where = c && hike.running ? km(hike.d) + "km 지점" + (hike.off > OFF_ROUTE_M ? " · 코스에서 " + num(hike.off) + "m 벗어남" : "") : "";
         var whereEn = c && hike.running ? km(hike.d) + " km along" + (hike.off > OFF_ROUTE_M ? " · " + num(hike.off) + " m off the trail" : "") : "";

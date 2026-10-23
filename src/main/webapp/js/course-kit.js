@@ -1968,7 +1968,8 @@
         // 국가숲길 "지리산둘레길 가탄-송정" → "지리산둘레길 송정-가탄"(2026-10-12 PC: "(거꾸로)" 대신)
         var ab = a < 0 && /^(.*?)([가-힣]+)-([가-힣]+)(\s*\)?\s*)$/.exec(name);
         if (ab) return ab[1] + ab[3] + "-" + ab[2] + ab[4];
-        if (a < 0) return name + " (거꾸로)";
+        // 2026-10-23 지리산: 두 번 뒤집으면 "(거꾸로) (거꾸로)" 가 붙었음 - 떼어 원래 이름으로
+        if (a < 0) return / \(거꾸로\)$/.test(name) ? name.slice(0, -6) : name + " (거꾸로)";
         var dot = name.lastIndexOf(" · ", a);
         var head = dot >= 0 ? name.slice(0, dot + 3) : "";
         return head + name.slice(head.length).split(" → ").reverse().join(" → ");
