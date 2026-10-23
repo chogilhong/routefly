@@ -1938,6 +1938,11 @@
         $("gps").className = "bad";
         $("gps").textContent = e.code === 1 ? T("위치 권한 없음", "No location permission") : T("GPS 신호 없음", "No GPS signal");
         if (e.code === 1) toast(T("위치 권한이 꺼져 있습니다. 브라우저 설정에서 이 사이트의 위치 권한을 허용해 주세요.", "Location permission is off. Allow location for this site in your browser settings."), 7000);
+        // 2026-10-23 홍TV님 지리산 칼바위 - 카카오톡 안 브라우저에서는 'GPS 신호 없음', 크롬으로 여니 바로 ±3m. 한 번만 알림.
+        else if (/KAKAOTALK/i.test(navigator.userAgent) && !hike.kakaoGps) {
+            hike.kakaoGps = true;
+            toast(T("카카오톡 안 화면은 위치를 잘 받지 못합니다. 오른쪽 위 ⋮ → '다른 브라우저로 열기'로 크롬 · 삼성 인터넷에서 열어 주세요.", "KakaoTalk's built-in browser often can't get your location. Tap ⋮ (top right) → 'Open in another browser' to use Chrome."), 10000);
+        }
     }
 
     /** 위치 한 번 - 코스에 맞추고 화면을 고칩니다. */
