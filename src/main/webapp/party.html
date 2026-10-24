@@ -71,10 +71,11 @@ tr.aboard td { color:var(--dim); }
 .two { display:flex; gap:8px; align-items:flex-end; }   /* 글자를 키워 이름표가 두 줄이 돼도 칸은 같은 높이에(2026-10-20 홍TV님 폰 가++) */
 .two > div { flex:1; min-width:0; }
 select, input[type=number] { width:100%; height:44px; padding:0 10px; border-radius:10px; border:1px solid var(--ln); background:#0f141a; color:var(--tx); font-size:16px; }
-#seatMap { display:grid; gap:4px; overflow-x:auto; padding:2px 0 6px; }
+#seatMap { display:grid; gap:4px; padding:2px 0 6px; grid-template-columns:minmax(0, 1fr) minmax(0, 1fr) minmax(20px, .7fr) minmax(0, 1fr); max-width:360px; margin:0 auto; }   /* 세로 좌석표 - 운전석 쪽 2칸 · 통로 · 앞문 쪽 1칸(2026-10-24) */
 .s { display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:24px; height:40px; border-radius:6px; border:1px dashed var(--ln);
      color:var(--dim); font-size:12px; line-height:1.1; cursor:pointer; user-select:none; }
-.s small { font-size:11px; max-width:38px; overflow:hidden; white-space:nowrap; }
+.s small { font-size:11px; max-width:100%; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.s.door { color:var(--dim); font-size:12px; }
 .s.rsv { border:1.5px dashed #ffa94d; color:#ffa94d; }
 .s.listed { border-style:dashed !important; opacity:.8; }   /* 명단에만(핸드폰 안 들어옴) */
 #rosterText { width:100%; min-height:72px; box-sizing:border-box; }

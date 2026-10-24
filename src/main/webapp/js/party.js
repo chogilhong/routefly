@@ -715,14 +715,19 @@
         sel.parentNode.hidden = !(stops || []).length;
     }
     /** 좌석 자리 - 앞(운전석)이 왼쪽, 위 줄 3 · 6 · 9 …, 통로, 아래 2 · 5 · 8 … / 1 · 4 · 7 …. 28석 우등처럼 3 으로 나눠 1 남으면 맨 뒤 4자리. */
+    /**
+     * 좌석 자리 - 세로(2026-10-24 홍TV님 "좌-우 대신 상-하"): 앞(운전석 · 앞문)이 위, 버스 안에서 앞을 보고 선 모습 그대로.
+     * 칸 1 · 2 = 운전석 쪽(1 · 4 · 7 … 창가, 2 · 5 · 8 … 통로 옆), 칸 3 = 통로, 칸 4 = 앞문 쪽(3 · 6 · 9 …). 번호 매기는 방식은 그대로.
+     * 28석 우등처럼 3 으로 나눠 1 남으면 맨 뒤 줄 4자리(통로 칸까지). 돌려줌: {row(1 = 운전석 줄), col(1 ~ 4)}.
+     */
     function seatPos(k, n) {
-        var col = Math.floor((k - 1) / 3), p = (k - 1) % 3, row = p === 0 ? 4 : p === 1 ? 3 : 1;
+        var line = Math.floor((k - 1) / 3), p = (k - 1) % 3, col = p === 0 ? 1 : p === 1 ? 2 : 4;
         if (n % 3 === 1 && n > 3) {
             var last = Math.floor((n - 2) / 3);
-            if (k === n) return { col: last, row: 1 };
-            if (k === n - 1) return { col: last, row: 2 };
+            if (k === n) return { row: last + 2, col: 4 };
+            if (k === n - 1) return { row: last + 2, col: 3 };
         }
-        return { col: col, row: row };
+        return { row: line + 2, col: col };
     }
 
     var picked = null, moving = false, curBus = 1;   // curBus - 좌석표에서 보는 호차
@@ -741,12 +746,11 @@
             }
             $("busTabs").innerHTML = tabs.join("");
         }
-        var by = {}, rsv = {}, cols = 0, cells = [];
+        var by = {}, rsv = {}, cells = [];
         (s.members || []).forEach(function (m) { if (m.seat && m.bus === curBus && (!by[m.seat] || by[m.seat].cancelled)) by[m.seat] = m; });
         (s.reserved || []).forEach(function (n) { if (Math.floor(n / 100) === curBus) rsv[n % 100] = 1; });
         for (var k = 1; k <= s.seats; k++) {
             var at = seatPos(k, s.seats), m = by[k], cls = "s", label = "";
-            cols = Math.max(cols, at.col + 1);
             if (m) {
                 cls += m.cancelled ? " cxl" : m.sos ? " sos" : m.aboard ? " back" : m.boarded ? " board" : " join";
                 if (m.listed) cls += " listed";   // 명단에만(핸드폰 안 들어옴)
@@ -755,11 +759,11 @@
                 if (m.id === picked) cls += " pick";
             } else if (k === LEAD_SEAT && s.seats >= LEAD_SEAT) { cls += " drv"; label = "<small>" + T("인솔", "Leader") + "</small>"; }   // 인솔자 자리(누를 수 없음)
             else if (rsv[k]) cls += " rsv";
-            cells.push("<div class=\"" + cls + "\" data-seat=\"" + k + "\" style=\"grid-column:" + (at.col + 2) + ";grid-row:" + at.row + "\""
+            cells.push("<div class=\"" + cls + "\" data-seat=\"" + k + "\" style=\"grid-column:" + at.col + ";grid-row:" + at.row + "\""
                 + (m ? " title=\"" + esc(m.nick + (m.stop ? " · " + m.stop : "")) + "\"" : "") + ">" + k + label + "</div>");
         }
-        cells.push("<div class=\"s drv\" style=\"grid-column:1;grid-row:4\" title=\"" + T("운전석", "Driver's seat") + "\"><small>" + T("운전", "Driver") + "</small></div>");   // 🛞 은 PC 글꼴에서 □ 로 보였음
-        $("seatMap").style.gridTemplateColumns = "repeat(" + (cols + 1) + ", minmax(24px, 1fr))";   // 30px 이면 28석 · 412px 폰에서 옆으로 넘쳐 "운전"이 잘렸음(2026-10-20)
+        cells.push("<div class=\"s drv\" style=\"grid-column:1;grid-row:1\" title=\"" + T("운전석", "Driver's seat") + "\"><small>" + T("운전", "Driver") + "</small></div>");   // 🛞 은 PC 글꼴에서 □ 로 보였음
+        cells.push("<div class=\"s drv door\" style=\"grid-column:4;grid-row:1\"><small>" + T("앞문", "Door") + "</small></div>");
         $("seatMap").innerHTML = cells.join("");
         var seated = (s.members || []).filter(function (m) { return m.seat && !m.cancelled && m.bus === curBus; });
         $("seatSum").textContent = busLabel(s, curBus) + T("예약 · 미참가 ", "Reserved, not joined ") + Object.keys(rsv).length + T(" · 참가 ", " · Joined ") + seated.length + T(" · 출발 탑승 ", " · Boarded ")
