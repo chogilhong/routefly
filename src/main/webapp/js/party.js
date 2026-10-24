@@ -719,8 +719,10 @@
      * 좌석 자리 - 세로(2026-10-24 홍TV님 "좌-우 대신 상-하"): 앞(운전석 · 앞문)이 위, 버스 안에서 앞을 보고 선 모습 그대로.
      * 칸 1 · 2 = 운전석 쪽(1 · 4 · 7 … 창가, 2 · 5 · 8 … 통로 옆), 칸 3 = 통로, 칸 4 = 앞문 쪽(3 · 6 · 9 …). 번호 매기는 방식은 그대로.
      * 28석 우등처럼 3 으로 나눠 1 남으면 맨 뒤 줄 4자리(통로 칸까지). 돌려줌: {row(1 = 운전석 줄), col(1 ~ 4)}.
+     * 30석 넘는 일반 대형(45인승 등, 2026-10-24 홍TV님 "좌우 2열 2-2 배열")은 seatPos22.
      */
     function seatPos(k, n) {
+        if (wide(n)) return seatPos22(k, n);
         var line = Math.floor((k - 1) / 3), p = (k - 1) % 3, col = p === 0 ? 1 : p === 1 ? 2 : 4;
         if (n % 3 === 1 && n > 3) {
             var last = Math.floor((n - 2) / 3);
@@ -728,6 +730,14 @@
             if (k === n - 1) return { row: last + 2, col: 3 };
         }
         return { row: line + 2, col: col };
+    }
+    /** 2-2 배열인가(30석 넘음 - 41 · 45인승 일반 대형). 우등(28석 안팎)은 2-1. */
+    function wide(n) { return n > 30; }
+    /** 2-2 배열: 한 줄에 1 · 2(운전석 쪽) | 통로 | 3 · 4(앞문 쪽). 4 로 나눠 1 남으면(41 · 45석) 맨 뒤 줄 5자리(통로 칸까지). 칸 1 · 2 · 통로 3 · 4 · 5. */
+    function seatPos22(k, n) {
+        if (n % 4 === 1 && k > n - 5) return { row: Math.floor((n - 5) / 4) + 2, col: k - (n - 5) };
+        var line = Math.floor((k - 1) / 4), p = (k - 1) % 4;
+        return { row: line + 2, col: p < 2 ? p + 1 : p + 2 };
     }
 
     var picked = null, moving = false, curBus = 1;   // curBus - 좌석표에서 보는 호차
@@ -763,7 +773,8 @@
                 + (m ? " title=\"" + esc(m.nick + (m.stop ? " · " + m.stop : "")) + "\"" : "") + ">" + k + label + "</div>");
         }
         cells.push("<div class=\"s drv\" style=\"grid-column:1;grid-row:1\" title=\"" + T("운전석", "Driver's seat") + "\"><small>" + T("운전", "Driver") + "</small></div>");   // 🛞 은 PC 글꼴에서 □ 로 보였음
-        cells.push("<div class=\"s drv door\" style=\"grid-column:4;grid-row:1\"><small>" + T("앞문", "Door") + "</small></div>");
+        cells.push("<div class=\"s drv door\" style=\"grid-column:" + (wide(s.seats) ? 5 : 4) + ";grid-row:1\"><small>" + T("앞문", "Door") + "</small></div>");
+        $("seatMap").style.gridTemplateColumns = wide(s.seats) ? "minmax(0, 1fr) minmax(0, 1fr) minmax(20px, .7fr) minmax(0, 1fr) minmax(0, 1fr)" : "";   // 2-2 는 다섯 칸, 2-1 은 CSS 네 칸
         $("seatMap").innerHTML = cells.join("");
         var seated = (s.members || []).filter(function (m) { return m.seat && !m.cancelled && m.bus === curBus; });
         $("seatSum").textContent = busLabel(s, curBus) + T("예약 · 미참가 ", "Reserved, not joined ") + Object.keys(rsv).length + T(" · 참가 ", " · Joined ") + seated.length + T(" · 출발 탑승 ", " · Boarded ")
