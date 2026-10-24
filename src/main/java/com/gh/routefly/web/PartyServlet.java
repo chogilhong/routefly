@@ -161,7 +161,7 @@ public class PartyServlet extends HttpServlet {
         if ("/info".equals(path)) return p.info(str(in, "code"), now);
         if ("/join".equals(path)) {
             if (!bool(in, "agree")) throw new IllegalArgumentException("위치 제공에 동의해야 참가할 수 있습니다.");
-            Party.Member m = p.join(str(in, "code"), str(in, "nick"), str(in, "role"), integer(in, "bus"), integer(in, "seat"), str(in, "stop"), now);
+            Party.Member m = p.join(str(in, "code"), str(in, "nick"), str(in, "role"), integer(in, "bus"), integer(in, "seat"), str(in, "stop"), bool(in, "onBus"), now);
             return withToken(p.view(m, now), m);
         }
         Party.Member m = p.who(str(in, "token"), now);
@@ -185,7 +185,8 @@ public class PartyServlet extends HttpServlet {
             case "/seat" -> p.seat(m, integer(in, "id"), integer(in, "bus"), integer(in, "seat"), str(in, "stop"));
             case "/mark" -> {
                 if (!staff) throw new SecurityException("인솔자 · 운전자만 좌석표를 고칠 수 있습니다.");
-                if (integer(in, "id") != null && "boarded".equals(str(in, "what"))) p.boardById(m, integer(in, "id"), on);   // 명단에서 사람으로(취소 되돌리기)
+                if (integer(in, "id") != null && "boarded".equals(str(in, "what"))) p.boardById(m, integer(in, "id"), on);   // 명단에서 사람으로(취소 되돌리기 · 핸드폰 없는 회원)
+                else if (integer(in, "id") != null && "aboard".equals(str(in, "what"))) p.aboardById(m, integer(in, "id"), on);
                 else p.mark(m, integer(in, "bus"), (int) lng(in, "seat"), str(in, "what"), on);
             }
             case "/depart" -> {
@@ -193,6 +194,13 @@ public class PartyServlet extends HttpServlet {
                 int n = p.depart(m);
                 out = p.view(m, now);
                 out.addProperty("cancelledNow", n);
+                return out;
+            }
+            case "/roster" -> {
+                if (!lead) throw new SecurityException("인솔자만 명단을 넣을 수 있습니다.");
+                int n = p.roster(m, str(in, "text"), now);
+                out = p.view(m, now);
+                out.addProperty("added", n);
                 return out;
             }
             case "/notice" -> { if (!lead) throw new SecurityException("인솔자만 공지할 수 있습니다."); p.notice(m, str(in, "text"), now); }

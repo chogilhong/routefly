@@ -76,6 +76,10 @@ final class Party {
         boolean boarded;       // 출발 때 버스 탐(본인 · 인솔자)
         boolean aboard;        // 하산 뒤 버스 탐
         boolean cancelled;     // 출발 때 안 타서 취소(인솔자가 좌석표에서 "탐" 으로 되돌릴 수 있음)
+        /** 인솔자가 붙여 넣은 예약 명단에서 온 사람(2026-10-24 홍TV님 - 회원은 앱 · 화면을 안 열 수도 있음). */
+        boolean rostered;
+        /** 명단에만 있고 아직 이 사람 핸드폰이 들어오지 않음 - 위치 없음, 출발 때 저절로 취소하지 않음(인솔자가 눈으로 확인). */
+        boolean listed;
         // ---- 메모리에만(파일에 안 씀)
         Double lat, lon, acc;
         Integer batt;
@@ -347,13 +351,27 @@ final class Party {
     }
 
     synchronized Member join(String code, String nick, String role, Integer bus, Integer seat, String stop, long now) {
+        return join(code, nick, role, bus, seat, stop, false, now);
+    }
+
+    /**
+     * 참가. onBus - 버스에 붙인 QR · NFC 로 들어옴(2026-10-24 홍TV님): 출발 1시간 전부터면 "버스 탔어요" 까지 한 번에.
+     * 인솔자 명단에 같은 이름이 있으면 그 사람으로 들어옴(좌석 · 탑승지 그대로). 같은 이름이 둘 넘으면 좌석 번호로 가림.
+     */
+    synchronized Member join(String code, String nick, String role, Integer bus, Integer seat, String stop, boolean onBus, long now) {
         Room r = room(code, now);
         String n = clean(nick, 12);
-        if (n == null) throw new IllegalArgumentException("별명을 적어 주세요.");
+        if (n == null) throw new IllegalArgumentException("이름을 적어 주세요.");
         boolean viaDriverCode = code.trim().toUpperCase().equals(r.driverCode);
         if (viaDriverCode) role = "driver";   // 운전자 코드로 오면 운전자
+        if (role == null && !viaDriverCode) role = "hiker";   // 회원 참가 화면은 역할을 묻지 않음
         if (!"hiker".equals(role) && !"driver".equals(role)) throw new IllegalArgumentException("역할을 골라 주세요.");
         if (!viaDriverCode && "driver".equals(role)) throw new IllegalArgumentException("운전자는 인솔자에게 받은 운전자 코드로 참가합니다.");
+        boolean boardNow = onBus && !r.departed && (r.departAt == 0 || now >= r.departAt - BOARD_BEFORE_MS);
+        if ("hiker".equals(role)) {
+            Member c = claim(r, n, bus, seat, stop, boardNow);
+            if (c != null) return c;
+        }
         // 출발한 방에는 산행 회원이 새로 못 들어옴(2026-10-20 홍TV님 - 하산 탑승한 폰이 같은 링크로 또 참가됐음). 바꿔 타는 운전자는 됨
         if (r.departed && "hiker".equals(role)) throw new IllegalStateException("이미 출발한 방이라 새로 참가할 수 없습니다. 인솔자에게 연락해 주세요.");
         if (r.members.size() >= MAX_MEMBERS) throw new IllegalStateException("이 방은 인원이 다 찼습니다(" + MAX_MEMBERS + "명).");
@@ -365,9 +383,112 @@ final class Party {
         m.seat = "driver".equals(role) ? null : seat;
         m.stop = st;
         if (m.seat != null) r.reserved.remove(b * 100 + m.seat);
+        if (boardNow && "hiker".equals(role)) m.boarded = true;
         audit.info("join room={} member={} role={} (위치 제공 동의)", r.code, m.id, role);
         save();
         return m;
+    }
+
+    /** 이름 비교 - 빈칸은 빼고. */
+    private static String nameKey(String s) {
+        return s == null ? "" : s.replace(" ", "");
+    }
+
+    /** 명단에 있는 사람이면 그 사람으로(아직 핸드폰이 안 들어온 사람만). 없으면 null. */
+    private Member claim(Room r, String n, Integer bus, Integer seat, String stop, boolean boardNow) {
+        List<Member> same = new ArrayList<>();
+        for (Member x : r.members.values()) if (x.listed && !x.cancelled && nameKey(x.nick).equals(nameKey(n))) same.add(x);
+        if (same.isEmpty()) return null;
+        Member pick = null;
+        if (same.size() == 1) pick = same.get(0);
+        else if (seat != null) for (Member x : same) if (x.seat != null && x.seat.intValue() == seat && (bus == null || x.bus == bus)) pick = x;
+        if (pick == null) throw new IllegalArgumentException("명단에 \"" + n + "\" 이(가) " + same.size() + "명 있습니다. 좌석 번호도 함께 넣어 주세요.");
+        if (pick.seat == null && seat != null) {
+            int b = checkBus(r, bus);
+            checkSeat(r, pick, b, seat);
+            pick.bus = b;
+            pick.seat = seat;
+            r.reserved.remove(b * 100 + seat);
+        }
+        String st = checkStop(r, stop);
+        if (st != null) pick.stop = st;
+        pick.listed = false;
+        if (boardNow) pick.boarded = true;
+        audit.info("join room={} member={} role=hiker (명단 · 위치 제공 동의)", r.code, pick.id);
+        save();
+        return pick;
+    }
+
+    /**
+     * 인솔자 - 예약 명단 붙여 넣기(2026-10-24 홍TV님 "일식이 5 이식이 6 삼식이 7"). 이름 뒤 숫자는 좌석, "2-15" 는 2호차 15번, 숫자가 없으면 자리 없이.
+     * 이름만 받습니다(연락처 없음). 이미 있는 같은 이름 · 같은 자리는 건너뜀. 돌려줌: 새로 넣은 사람 수.
+     */
+    synchronized int roster(Member lead, String text, long now) {
+        Room r = lead.room;
+        List<Object[]> es = rosterParse(text);
+        if (es.isEmpty()) throw new IllegalArgumentException("명단을 읽지 못했습니다. \"홍길동 5 김철수 6\" 처럼 이름(과 좌석 번호)을 적어 주세요.");
+        if (r.members.size() + es.size() > MAX_MEMBERS) throw new IllegalStateException("이 방은 " + MAX_MEMBERS + "명까지입니다.");
+        java.util.Set<Integer> used = new java.util.HashSet<>();
+        List<Object[]> add = new ArrayList<>();
+        for (Object[] e : es) {
+            String n = (String) e[0];
+            int b = (Integer) e[1];
+            Integer seat = (Integer) e[2];
+            boolean dup = false;
+            for (Member x : r.members.values()) if (nameKey(x.nick).equals(nameKey(n)) && x.bus == b && java.util.Objects.equals(x.seat, seat)) dup = true;
+            if (dup) continue;
+            try {
+                checkBus(r, b);
+                checkSeat(r, null, b, seat);
+            } catch (IllegalArgumentException ex) {
+                throw new IllegalArgumentException(n + ": " + ex.getMessage());
+            }
+            if (seat != null && !used.add(b * 100 + seat)) throw new IllegalArgumentException(n + ": " + busName(r, b) + seat + "번이 명단에 두 번 있습니다.");
+            add.add(e);
+        }
+        for (Object[] e : add) {
+            Member m = add(r, (String) e[0], "hiker", now);
+            m.bus = (Integer) e[1];
+            m.seat = (Integer) e[2];
+            m.rostered = true;
+            m.listed = true;
+            if (m.seat != null) r.reserved.remove(m.bus * 100 + m.seat);
+        }
+        audit.info("roster room={} added={}", r.code, add.size());
+        save();
+        return add.size();
+    }
+
+    /** 순수 함수 - 명단 글 → [이름, 호차, 좌석(null)]. "일식이 5 이식이6 삼식이 2-7 사식이" · 줄 · 쉼표 나눔, "5번" 도 됨. */
+    static List<Object[]> rosterParse(String text) {
+        List<Object[]> out = new ArrayList<>();
+        if (text == null) return out;
+        java.util.regex.Pattern busSeat = java.util.regex.Pattern.compile("(?:(\\d{1,2})-)?(\\d{1,3})번?");
+        java.util.regex.Pattern nameNum = java.util.regex.Pattern.compile("(.*?\\D)((?:\\d{1,2}-)?\\d{1,3})번?");
+        for (String t : text.split("[\\s,·;/]+")) {
+            if (t.isEmpty()) continue;
+            java.util.regex.Matcher m = busSeat.matcher(t);
+            if (m.matches()) {   // 앞 이름의 좌석
+                if (out.isEmpty()) continue;
+                Object[] last = out.get(out.size() - 1);
+                if (last[2] != null) continue;
+                last[1] = m.group(1) == null ? 1 : Integer.parseInt(m.group(1));
+                last[2] = Integer.parseInt(m.group(2));
+                continue;
+            }
+            String name = t, num = null;
+            java.util.regex.Matcher nm = nameNum.matcher(t);
+            if (nm.matches()) { name = nm.group(1); num = nm.group(2); }
+            name = clean(name, 12);
+            if (name == null) continue;
+            Object[] e = {name, 1, null};
+            if (num != null) {
+                java.util.regex.Matcher bm = busSeat.matcher(num);
+                if (bm.matches()) { e[1] = bm.group(1) == null ? 1 : Integer.parseInt(bm.group(1)); e[2] = Integer.parseInt(bm.group(2)); }
+            }
+            out.add(e);
+        }
+        return out;
     }
 
     private static int checkBus(Room r, Integer bus) {
@@ -488,7 +609,7 @@ final class Party {
         boolean last = r.stops.isEmpty() || r.stopsDone >= r.stops.size() - 1;
         int n = 0;
         for (Member m : r.members.values()) {
-            if (!"hiker".equals(m.role) || m.boarded || m.cancelled) continue;
+            if (!"hiker".equals(m.role) || m.boarded || m.cancelled || m.listed) continue;   // 명단에만 있는 사람은 인솔자가 눈으로
             boolean here = stop == null || stop.equals(m.stop) || (last && (m.stop == null || !r.stops.contains(m.stop) || r.stops.indexOf(m.stop) < r.stopsDone));
             if (!here) continue;
             m.cancelled = true;
@@ -546,6 +667,15 @@ final class Party {
             audit.info("uncancel room={} member={}", staff.room.code, m.id);
         }
         save();
+    }
+
+    /** 인솔자 · 운전자 - 핸드폰 없는(명단에만 있는) 회원도 하산 탑승을 체크(2026-10-24 홍TV님). */
+    synchronized void aboardById(Member staff, int id, boolean on) {
+        Member m = null;
+        for (Member x : staff.room.members.values()) if (x.id == id) m = x;
+        if (m == null || !"hiker".equals(m.role)) throw new IllegalArgumentException("그 회원을 찾지 못했습니다.");
+        staff.ownBus(m.bus);
+        aboard(m, on);
     }
 
     synchronized void mark(Member staff, Integer bus, int seat, String what, boolean on) {
@@ -606,6 +736,13 @@ final class Party {
 
     synchronized void leave(Member m) {
         if ("lead".equals(m.role)) throw new IllegalStateException("인솔자는 \"방 끝내기\" 로 끝냅니다.");   // 인솔자가 나가면 아무도 방을 못 끝냄(점검)
+        if (m.rostered) {   // 명단 사람 - 위치만 그만 보내고 명단 · 좌석 · 탑승은 남김(인솔자 인원 확인)
+            m.listed = true;
+            m.lat = null; m.lon = null; m.acc = null; m.t = 0; m.sos = false; m.track.clear();
+            audit.info("leave room={} member={} (명단에 남음)", m.room.code, m.id);
+            save();
+            return;
+        }
         if (m.room.members.remove(m.token) != null) audit.info("leave room={} member={}", m.room.code, m.id);
         byToken.remove(m.token);
         save();
@@ -716,6 +853,7 @@ final class Party {
                 JsonObject x = new JsonObject();
                 x.addProperty("id", m.id); x.addProperty("token", m.token); x.addProperty("nick", m.nick); x.addProperty("role", m.role); x.addProperty("joinedAt", m.joinedAt);
                 x.addProperty("bus", m.bus); x.addProperty("seat", m.seat); x.addProperty("stop", m.stop); x.addProperty("boarded", m.boarded); x.addProperty("aboard", m.aboard); x.addProperty("cancelled", m.cancelled);
+                x.addProperty("rostered", m.rostered); x.addProperty("listed", m.listed);
                 ms.add(x);
             }
             o.add("members", ms);
@@ -783,6 +921,7 @@ final class Party {
                     m.seat = num(x, "seat") == null ? null : num(x, "seat").intValue();
                     m.bus = x.has("bus") ? x.get("bus").getAsInt() : 1;
                     m.stop = str(x, "stop"); m.boarded = boolOf(x, "boarded"); m.aboard = boolOf(x, "aboard"); m.cancelled = boolOf(x, "cancelled");
+                    m.rostered = boolOf(x, "rostered"); m.listed = boolOf(x, "listed");
                     ms.add(m);
                     r.nextId = Math.max(r.nextId, m.id + 1);
                 }
@@ -932,6 +1071,7 @@ final class Party {
             if (staff) {
                 x.addProperty("boarded", m.boarded);
                 x.addProperty("cancelled", m.cancelled);
+                if (m.listed) x.addProperty("listed", true);   // 명단에만(핸드폰 안 들어옴)
                 if (m.stop != null) x.addProperty("stop", m.stop);
                 if (m.batt != null) x.addProperty("batt", m.batt);
                 if (m.seen > 0) x.addProperty("seen", (now - m.seen) / 1000);   // 폰이 살아 있다고 알린 지 몇 초(위치보다 새로울 수 있음)

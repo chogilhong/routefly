@@ -42,6 +42,14 @@ button { font-family:inherit; }
 
 /* ③ 지도 */
 #mapWrap { position:relative; flex:1 1 auto; min-height:160px; }
+/* 산악회 한 줄(2026-10-24 - 회원은 산악회 방 화면 없이 따라가기만, js/party-bar.js) */
+#partyBar { background:#14303a; border-bottom:1px solid #22b8cf55; padding:6px 10px; font-size:14px; line-height:1.4; }
+#pbBtns { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+#pbBtns .pb { min-height:40px; padding:0 12px; border-radius:10px; border:1px solid #3b5563; background:#1d2a33; color:var(--tx); font-size:14px; display:inline-flex; align-items:center; text-decoration:none; cursor:pointer; }
+/* 코스 고르는 화면(#pick)이 위를 덮으므로 그때는 아래에 붙임 */
+html.picking.partyOn #partyBar { position:fixed; left:0; right:0; bottom:0; z-index:12; border-top:1px solid #22b8cf55; padding-bottom:calc(env(safe-area-inset-bottom) + 6px); }
+html.picking.partyOn #pick { padding-bottom:120px; box-sizing:border-box; }
+#pbBtns .pb.main { background:#22b8cf; color:#06222a; border-color:#22b8cf; font-weight:bold; }
 #map { position:absolute; inset:0; }
 #follow { position:absolute; right:10px; bottom:12px; width:44px; height:44px; border-radius:50%; border:0; z-index:2;
           background:#fff; color:#1a73e8; font-size:22px; box-shadow:0 2px 8px rgba(0,0,0,0.45); }
@@ -293,6 +301,7 @@ html.picking #pick { display:flex; }
     <a href="about.html" title="안전 · 개인정보 · 출처 안내" data-en-title="Safety · privacy · data sources" data-en-aria-label="Safety · privacy · data sources" aria-label="안전 · 개인정보 · 출처 안내" style="font-size:17px;min-width:32px;min-height:40px;display:inline-flex;align-items:center;justify-content:center">ⓘ</a>
     <button type="button" id="sos" data-en-title="Call 119 emergency · my location" title="119 긴급 신고 · 내 위치">SOS</button>
 </div>
+<div id="partyBar" role="status" aria-live="polite" hidden><div id="pbText"></div><div id="pbBtns"></div></div>
 
 <div id="mapWrap">
     <div id="map"></div>
@@ -638,6 +647,7 @@ html.picking #pick { display:flex; }
 <script src="js/course-kit.js"></script>
 <script src="js/party-kit.js"></script>
 <script src="js/hike.js"></script>
+<script src="js/party-bar.js"></script>
 <script src="js/onboard.js"></script>
 <script src="js/sw-reg.js"></script>
 <script src="js/seen.js"></script>

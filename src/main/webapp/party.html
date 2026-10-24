@@ -60,7 +60,6 @@ button.sos { background:#c92a2a; color:#fff; border-color:#c92a2a; }
 #sosBar { position:sticky; top:0; z-index:5; background:#c92a2a; color:#fff; border-radius:10px; padding:10px 12px; font-size:16px; font-weight:bold; margin-bottom:10px; line-height:1.6; }
 #sosBar button { min-height:40px; margin:4px 6px 0 0; background:#fff; color:#c92a2a; border-color:#fff; font-size:14px; }
 #net { background:rgba(255,169,77,0.14); border:1px solid rgba(255,169,77,0.55); color:#ffc078; border-radius:10px; padding:8px 12px; font-size:14.5px; margin-bottom:10px; }
-#hikerBox .btn { min-height:52px; font-size:16px; }
 #notice { display:none; background:rgba(255,212,59,0.12); border:1px solid rgba(255,212,59,0.5); color:#ffe066; border-radius:10px; padding:10px 12px; font-size:14.5px; margin-bottom:12px; }
 table { width:100%; border-collapse:collapse; font-size:15px; }
 th, td { text-align:left; padding:7px 4px; border-top:1px solid var(--ln); vertical-align:middle; }
@@ -77,6 +76,8 @@ select, input[type=number] { width:100%; height:44px; padding:0 10px; border-rad
      color:var(--dim); font-size:12px; line-height:1.1; cursor:pointer; user-select:none; }
 .s small { font-size:11px; max-width:38px; overflow:hidden; white-space:nowrap; }
 .s.rsv { border:1.5px dashed #ffa94d; color:#ffa94d; }
+.s.listed { border-style:dashed !important; opacity:.8; }   /* 명단에만(핸드폰 안 들어옴) */
+#rosterText { width:100%; min-height:72px; box-sizing:border-box; }
 .s.join { border:1.5px solid var(--sky); color:var(--tx); }
 .s.board { background:var(--sky); border:1.5px solid var(--sky); color:#062026; font-weight:bold; }
 .s.old { border:2px solid #ffa94d; }
@@ -131,13 +132,11 @@ input.bad, .agree.bad { border-color:#ff6b6b !important; }
 .pm.aboard .d { background:var(--green); }
 .pm.lead .d { background:#ffd43b; }
 .pm.bus .d { width:auto; height:auto; background:none; border:0; box-shadow:none; font-size:24px; }
-.big { width:100%; min-height:56px; font-size:17px; margin-top:8px; }
 .card { background:rgba(56,217,234,0.07); border:1px solid rgba(56,217,234,0.35); border-radius:10px; padding:10px 12px; font-size:14px; line-height:1.7; margin-top:10px; }
 .card b { color:var(--tx); }
 .ok { color:var(--green); font-weight:bold; }
 .wait { color:#ffa94d; font-weight:bold; }
 #phase { font-size:14.5px; line-height:1.6; margin:8px 0 0; }
-#cancelBox { border-color:rgba(255,107,107,0.5); }
 a.tel { color:var(--sky); }
 </style>
 </head>
@@ -165,7 +164,7 @@ a.tel { color:var(--sky); }
             <label for="joinCode" data-en="Room code (6 letters from the leader)">방 코드 (인솔자가 보낸 6글자)</label>
             <input id="joinCode" type="text" maxlength="6" autocomplete="off" autocapitalize="characters">
             <div id="joinCard" class="card" hidden></div>
-            <label for="joinNick" data-en="Nickname (shown in the room)">별명 (방에서 보이는 이름)</label>
+            <label for="joinNick" data-en="Name (as you booked with the club)">이름 (산악회에 예약한 이름)</label>
             <input id="joinNick" type="text" maxlength="12" autocomplete="off">
             <div id="joinSeatBox" hidden>
                 <div class="two">
@@ -180,8 +179,8 @@ a.tel { color:var(--sky); }
                 <label><input type="radio" name="role" value="driver"> <span data-en="🚌 Driver">🚌 운전</span></label>
             </div>
             <div class="agree"><input id="joinAgree" type="checkbox">
-                <label for="joinAgree" style="margin:0;color:inherit;font-size:inherit" data-en="I agree to show &lt;b&gt;my nickname · location (latest one only) · SOS · battery · boarding&lt;/b&gt; to the leader and driver of this room (other members see only my nickname, seat and SOS, not my location). My location is sent from 3 hours before departure and is deleted when I leave the room or the hike ends. After departure, the leader and driver can see the path I took over the last 2 hours, in case of an emergency. When the room ends, it is used for trail statistics in a way that cannot identify me (no nickname or time, first and last 500 m removed). I am 14 or older.
-                &lt;a href=&quot;privacy.html#party&quot; style=&quot;color:var(--sky)&quot;&gt;Details (in Korean)&lt;/a&gt;">이 방 인솔자 · 운전자에게 <b>내 별명 · 위치(마지막 하나) · SOS · 배터리 · 탑승</b>을 보여 주는 데 동의합니다(다른 회원에게는 별명 · 좌석 · SOS 만 보이고 위치는 안 보임). 위치는 출발 3시간 전부터 보내고, 방을 나가거나 산행이 끝나면 지워집니다. 출발 뒤 지나온 길은 조난 대비로 인솔자 · 운전자가 최근 2시간을 볼 수 있고, 방이 끝나면 누구인지 알 수 없게(별명 · 시각 없이, 처음 · 끝 500m 빼고) 코스 통계에 씁니다. 만 14세 이상입니다.
+                <label for="joinAgree" style="margin:0;color:inherit;font-size:inherit" data-en="I agree to show &lt;b&gt;my name · location (latest one only) · SOS · battery · boarding&lt;/b&gt; to the leader and driver of this room (other members don't see my location). My location is sent while the trail guide screen is open. My location is sent from 3 hours before departure and is deleted when I leave the room or the hike ends. After departure, the leader and driver can see the path I took over the last 2 hours, in case of an emergency. When the room ends, it is used for trail statistics in a way that cannot identify me (no nickname or time, first and last 500 m removed). I am 14 or older.
+                &lt;a href=&quot;privacy.html#party&quot; style=&quot;color:var(--sky)&quot;&gt;Details (in Korean)&lt;/a&gt;">이 방 인솔자 · 운전자에게 <b>내 이름 · 위치(마지막 하나) · SOS · 배터리 · 탑승</b>을 보여 주는 데 동의합니다(다른 회원에게는 위치가 안 보임). 위치는 따라가기 화면이 켜져 있는 동안 보냅니다. 위치는 출발 3시간 전부터 보내고, 방을 나가거나 산행이 끝나면 지워집니다. 출발 뒤 지나온 길은 조난 대비로 인솔자 · 운전자가 최근 2시간을 볼 수 있고, 방이 끝나면 누구인지 알 수 없게(별명 · 시각 없이, 처음 · 끝 500m 빼고) 코스 통계에 씁니다. 만 14세 이상입니다.
                 <a href="privacy.html#party" style="color:var(--sky)">자세히</a></label></div>
             <button id="joinBtn" class="main" data-en="Join">참가하기</button>
             <div id="joinMsg" class="fieldMsg" role="alert"></div>
@@ -230,20 +229,7 @@ a.tel { color:var(--sky); }
         <div id="notice"></div>
         <section>
             <div id="bar"></div>
-            <details id="mySeatBox" hidden>
-                <summary style="display:none" data-en="Change seat · boarding">자리 · 탑승지 바꾸기</summary>   <!-- 위 줄 "✏️ 바꾸기" 로 엶 -->
-                <div class="two">
-                    <div id="myBusBox" hidden><label for="myBus" data-en="🚌 Bus">🚌 호차</label><select id="myBus"></select></div>
-                    <div><label for="mySeat" data-en="💺 Seat">💺 좌석</label><select id="mySeat"></select></div>
-                    <div><label for="myStop" data-en="Boarding">탑승지</label><select id="myStop"></select></div>
-                </div>
-                <div class="row"><button id="mySeatBtn" data-en="Save">저장</button><button id="mySeatClose" data-en="Close">닫기</button></div>
-            </details>
             <div id="phase"></div>
-            <div id="appOpenRoom" class="invite" hidden>   <!-- 브라우저로 참가한 사람 → 앱으로 이어 가기(2026-10-20) -->
-                <p style="margin:0 0 8px" data-en="📱 Please move to the routefly app. Your location still goes out with the screen off (you stay the same person). No app? It takes you to install it.">📱 routefly 앱으로 옮겨 주세요. 화면을 꺼도 위치가 갑니다(같은 사람으로 이어짐). 앱이 없으면 설치 화면으로 갑니다.</p>
-                <a id="appOpenRoomBtn" class="btn main" href="#" data-en="Move to the routefly app">routefly 앱으로 옮기기</a>
-            </div>
             <div id="leadRow" class="invite" hidden>   <!-- 참가 링크 - 카톡 · 문자로(2026-10-20 홍TV님) -->
                 <label for="inviteUrl" data-en="📨 Join link (send to members by KakaoTalk · text)">📨 참가 링크 (회원에게 카톡 · 문자로)</label>
                 <input id="inviteUrl" type="text" readonly>
@@ -258,23 +244,6 @@ a.tel { color:var(--sky); }
                 <div class="row" id="nfcRow" hidden><button id="nfcBtn" data-en="📶 Write to NFC sticker (tap to join)">📶 NFC 스티커에 쓰기 (대기만 하면 참가)</button></div>
                 <div id="inviteMsg" class="tip" role="status"></div>
             </div>
-        </section>
-        <section id="cancelBox" hidden>
-            <p data-en="❌ You weren't on the bus at departure, so you were dropped from this hike. If you're late, contact the leader - once the leader restores you on the seat map, you're back in.">❌ 출발 때 버스에 타지 않아 이 산행에서 빠졌습니다. 늦었다면 인솔자에게 연락하세요 - 인솔자가 좌석표에서 되돌리면 다시 들어옵니다.</p>
-            <div id="cancelTel"></div>
-        </section>
-        <section id="hikerBox" hidden>
-            <button id="boardBtn" class="main big" data-en="🚌 I'm on the bus">🚌 버스 탔어요</button>
-            <div id="tripBtns" hidden>
-                <button id="sosBtn" class="danger big">🆘 SOS</button>   <!-- 한 줄 가득 · 크게(2026-10-22 점검: 반쪽 44px 이었음) -->
-                <div class="row">
-                    <a class="btn" id="callLead" hidden data-en="☎ Call the leader">☎ 인솔자에게 전화</a>
-                    <a class="btn" href="hike.html" data-en="🥾 Open trail guide">🥾 따라가기 열기</a>
-                    <a class="btn" id="busLink" hidden target="_blank" rel="noopener" data-en="🚌 Where our bus is">🚌 우리 버스 있는 곳</a>
-                </div>
-                <button id="aboardBtn" class="main big" data-en="🚌 Back on the bus">🚌 하산 탑승</button>
-            </div>
-            <p class="tip" id="hikerTip"></p>
         </section>
         <div id="mapMsg" class="tip" role="status" aria-live="polite" hidden></div>   <!-- 지도에 그린 것 안내(지나온 길) - 방 위쪽 글은 지도로 내려오면 안 보였음(2026-10-21 PC) -->
         <div id="mapBox"><div id="map"></div></div>
@@ -295,17 +264,23 @@ a.tel { color:var(--sky); }
             </div>
             <div id="stopSum" class="tip"></div>
             <p class="tip" data-en="Tap a taken seat for the menu (boarded at departure · move seat · map · path taken · boarding stop) · tap an empty seat to turn the &lt;b&gt;Booked&lt;/b&gt; mark (booked but not joined yet) on or off.">사람이 있는 자리를 누르면 메뉴(출발 탑승 · 자리 옮기기 · 지도 · 지나온 길 · 탑승지) · 빈자리를 누르면 <b>예약됨</b>(예약했는데 아직 참가 안 함) 표시를 켜고 끕니다.</p>
-            <div class="legend"><span class="s rsv" data-en="Booked · not joined">예약 · 미참가</span><span class="s join" data-en="Joined">참가</span><span class="s board" data-en="Boarded">출발 탑승</span><span class="s cxl" data-en="Cancelled">취소</span><span class="s old" data-en="No update 10 min">10분 소식 없음</span><span class="s sos" data-en="SOS">SOS</span><span class="s back" data-en="Back on bus">하산 탑승</span>
+            <div class="legend"><span class="s rsv" data-en="Booked · not joined">예약 · 미참가</span><span class="s join" data-en="Joined">참가</span><span class="s join listed" data-en="List only (no phone)">명단만(핸드폰 없음)</span><span class="s board" data-en="Boarded">출발 탑승</span><span class="s cxl" data-en="Cancelled">취소</span><span class="s old" data-en="No update 10 min">10분 소식 없음</span><span class="s sos" data-en="SOS">SOS</span><span class="s back" data-en="Back on bus">하산 탑승</span>
                 <a class="guideLink" href="party-guide.html#seat" data-en="📖 Leader guide (Korean)">📖 인솔자 사용법</a></div>
         </section>
         <section id="staffBox" hidden>
+            <details id="rosterBox" hidden>   <!-- 예약 명단(2026-10-24 홍TV님) - 회원은 앱 · 화면을 안 열 수도 있음 -->
+                <summary data-en="📋 Paste the booking list (names · seats)">📋 예약 명단 넣기 (이름 · 좌석)</summary>
+                <p class="tip" data-en="Paste names as booked, e.g. &quot;Kim 5 Lee 6 Park&quot; - a number after a name is the seat, &quot;2-15&quot; is bus 2 seat 15, no number = no seat. Names only (no phone numbers). Members who open the link · QR and type the same name become that person.">예약받은 이름을 그대로 붙여 넣으세요. 예: "일식이 5 이식이 6 삼식이" - 이름 뒤 숫자는 좌석, "2-15" 는 2호차 15번, 숫자가 없으면 자리 없이. 이름만 넣습니다(전화번호 X). 회원이 링크 · QR 로 들어와 같은 이름을 넣으면 그 사람이 됩니다.</p>
+                <textarea id="rosterText" maxlength="3000"></textarea>
+                <div class="row"><button id="rosterBtn" data-en="Add to the list">명단에 넣기</button></div>
+            </details>
             <div class="row" id="departRow">
                 <button id="departBtn" class="main" data-en="🚌 Depart (cancel no-shows)">🚌 출발 (안 탄 사람 취소)</button>
                 <button id="cancelTripBtn" class="danger" data-en="Cancel hike (too few people · weather etc.)">산행 취소 (인원 미달 · 날씨 등)</button>
             </div>
             <a class="guideLink" href="party-guide.html" style="margin-top:10px" data-en="📖 Leader guide (Korean - a must-read the first time)">📖 인솔자 사용법 (처음이면 꼭 읽어 보세요)</a>
             <h2 id="listTitle" style="margin-top:12px" data-en="Members">회원</h2>
-            <table><thead><tr><th data-en="Seat">좌석</th><th data-en="Nickname">별명</th><th data-en="Last update">마지막 연락</th><th data-en="Stopped for">멈춘 시간</th><th data-en="Battery">배터리</th><th data-en="Status">상태</th></tr></thead><tbody id="list"></tbody></table>
+            <table><thead><tr><th data-en="Seat">좌석</th><th data-en="Name">이름</th><th data-en="Last update">마지막 연락</th><th data-en="Stopped for">멈춘 시간</th><th data-en="Battery">배터리</th><th data-en="Status">상태</th></tr></thead><tbody id="list"></tbody></table>
             <label for="plateText" id="plateLabel" style="margin-top:12px" data-en="Bus plate number (shown to members)">차량번호 (회원 화면에 나감)</label>
             <div class="row"><input id="plateText" type="text" maxlength="12" placeholder="예: 서울70사1234" data-en-placeholder="e.g. 서울70사1234" style="flex:1"><button id="plateBtn" data-en="Save">저장</button></div>
             <div class="row"><button id="busBtn" data-en="🚌 Set my spot as the bus now">🚌 지금 내 자리를 버스로</button></div>
