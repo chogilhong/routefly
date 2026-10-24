@@ -4,16 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>routefly 산악회 방</title>
+<script src="js/no-kakao.js"></script>
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=2"><link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
 <meta name="theme-color" content="#11161d">
 <meta name="robots" content="noindex">
 <!-- 카톡 · 문자 링크 미리보기(방 이름은 넣지 않음 - 같은 화면) -->
 <meta property="og:type" content="website">
 <meta property="og:title" content="routefly 산악회 방 - 참가하기">
-<meta property="og:description" content="인솔자가 보낸 링크로 들어와 별명 · 좌석 · 탑승지를 남기세요. 산행 날 서로 위치 · SOS 를 봅니다.">
+<meta property="og:description" content="인솔자가 보낸 링크로 들어와 별명 · 좌석 · 탑승지를 남기세요. 산행 날 인솔자가 회원 위치 · SOS 를 봅니다.">
 <meta property="og:image" content="https://routefly.kr/routefly/img/og.png?v=2">
 <!-- 산악회 방(2026-10-20 홍TV님 - 안내 산악회): 인솔자가 산행 전에 방을 만들어 예약 회원에게 코드 · 링크를 보냄 → 회원 참가(좌석 · 탑승지 · 동의)
-     → 출발 날 "버스 탔어요" → 인솔자 "출발"(안 탄 사람 취소) → 산행 중 서로 위치 · SOS(인솔자는 다 봄) → 하산 탑승 → 나가기.
+     → 출발 날 "버스 탔어요" → 인솔자 "출발"(안 탄 사람 취소) → 산행 중 인솔자가 회원 위치 · SOS 를 봄(회원은 따라가기 지도로 걷고 남의 위치는 안 봄 - 2026-10-24 홍TV님) → 하산 탑승 → 나가기.
      서버 설정 party.enabled=true 일 때만 열림. party.html?c=방코드 -->
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="img/apple-icon-180.png">
@@ -154,7 +155,7 @@ a.tel { color:var(--sky); }
     <div id="start" hidden>
         <!-- 앱으로 열기(2026-10-20 PC: 카톡 안 브라우저에서는 앱 링크가 안 걸림) - 안드로이드 · 참가 링크로 왔을 때만 -->
         <section id="appOpen" class="invite" hidden>
-            <p style="margin:0 0 8px" data-en="📱 If you have the routefly app, join with the app. Your location still reaches the leader with the screen off.">📱 routefly 앱이 깔려 있으면 앱으로 참가하세요. 화면을 꺼도 인솔자에게 위치가 갑니다.</p>
+            <p style="margin:0 0 8px" data-en="📱 Please join with the routefly app. Your location still reaches the leader with the screen off. (No app? It takes you to install it.)">📱 routefly 앱으로 참가해 주세요. 화면을 꺼도 인솔자에게 위치가 갑니다. (앱이 없으면 설치 화면으로 갑니다)</p>
             <a id="appOpenBtn" class="btn main" href="#" data-en="Open in the routefly app">routefly 앱으로 열기</a>
             <p class="tip" style="margin:6px 0 0" data-en="No app? Just join below.">앱이 없으면 아래에서 그대로 참가하면 됩니다.</p>
         </section>
@@ -179,9 +180,8 @@ a.tel { color:var(--sky); }
                 <label><input type="radio" name="role" value="driver"> <span data-en="🚌 Driver">🚌 운전</span></label>
             </div>
             <div class="agree"><input id="joinAgree" type="checkbox">
-                <label for="joinAgree" style="margin:0;color:inherit;font-size:inherit" data-en="I agree to show &lt;b&gt;my nickname · location (latest one only) · SOS&lt;/b&gt; to people in this room (leader · driver · members), and also &lt;b&gt;battery · boarding&lt;/b&gt; to the leader and driver. My location is sent from 3 hours before departure and is deleted when I leave the room or the hike ends. After departure, the leader and driver can see the path I took over the last 2 hours, in case of an emergency. When the room ends, it is used for trail statistics in a way that cannot identify me (no nickname or time, first and last 500 m removed). I am 14 or older.
-                &lt;a href=&quot;privacy.html#party&quot; style=&quot;color:var(--sky)&quot;&gt;Details (in Korean)&lt;/a&gt;">이 방 사람들(인솔자 · 운전자 · 회원)에게 <b>내 별명 · 위치(마지막 하나) · SOS</b>를,
-                인솔자 · 운전자에게는 <b>배터리 · 탑승</b>도 보여 주는 데 동의합니다. 위치는 출발 3시간 전부터 보내고, 방을 나가거나 산행이 끝나면 지워집니다. 출발 뒤 지나온 길은 조난 대비로 인솔자 · 운전자가 최근 2시간을 볼 수 있고, 방이 끝나면 누구인지 알 수 없게(별명 · 시각 없이, 처음 · 끝 500m 빼고) 코스 통계에 씁니다. 만 14세 이상입니다.
+                <label for="joinAgree" style="margin:0;color:inherit;font-size:inherit" data-en="I agree to show &lt;b&gt;my nickname · location (latest one only) · SOS · battery · boarding&lt;/b&gt; to the leader and driver of this room (other members see only my nickname, seat and SOS, not my location). My location is sent from 3 hours before departure and is deleted when I leave the room or the hike ends. After departure, the leader and driver can see the path I took over the last 2 hours, in case of an emergency. When the room ends, it is used for trail statistics in a way that cannot identify me (no nickname or time, first and last 500 m removed). I am 14 or older.
+                &lt;a href=&quot;privacy.html#party&quot; style=&quot;color:var(--sky)&quot;&gt;Details (in Korean)&lt;/a&gt;">이 방 인솔자 · 운전자에게 <b>내 별명 · 위치(마지막 하나) · SOS · 배터리 · 탑승</b>을 보여 주는 데 동의합니다(다른 회원에게는 별명 · 좌석 · SOS 만 보이고 위치는 안 보임). 위치는 출발 3시간 전부터 보내고, 방을 나가거나 산행이 끝나면 지워집니다. 출발 뒤 지나온 길은 조난 대비로 인솔자 · 운전자가 최근 2시간을 볼 수 있고, 방이 끝나면 누구인지 알 수 없게(별명 · 시각 없이, 처음 · 끝 500m 빼고) 코스 통계에 씁니다. 만 14세 이상입니다.
                 <a href="privacy.html#party" style="color:var(--sky)">자세히</a></label></div>
             <button id="joinBtn" class="main" data-en="Join">참가하기</button>
             <div id="joinMsg" class="fieldMsg" role="alert"></div>
@@ -241,7 +241,7 @@ a.tel { color:var(--sky); }
             </details>
             <div id="phase"></div>
             <div id="appOpenRoom" class="invite" hidden>   <!-- 브라우저로 참가한 사람 → 앱으로 이어 가기(2026-10-20) -->
-                <p style="margin:0 0 8px" data-en="📱 Have the routefly app? Move to the app. Your location still goes out with the screen off (you stay the same person).">📱 routefly 앱이 있으면 앱으로 옮기세요. 화면을 꺼도 위치가 갑니다(같은 사람으로 이어짐).</p>
+                <p style="margin:0 0 8px" data-en="📱 Please move to the routefly app. Your location still goes out with the screen off (you stay the same person). No app? It takes you to install it.">📱 routefly 앱으로 옮겨 주세요. 화면을 꺼도 위치가 갑니다(같은 사람으로 이어짐). 앱이 없으면 설치 화면으로 갑니다.</p>
                 <a id="appOpenRoomBtn" class="btn main" href="#" data-en="Move to the routefly app">routefly 앱으로 옮기기</a>
             </div>
             <div id="leadRow" class="invite" hidden>   <!-- 참가 링크 - 카톡 · 문자로(2026-10-20 홍TV님) -->
@@ -270,6 +270,7 @@ a.tel { color:var(--sky); }
                 <div class="row">
                     <a class="btn" id="callLead" hidden data-en="☎ Call the leader">☎ 인솔자에게 전화</a>
                     <a class="btn" href="hike.html" data-en="🥾 Open trail guide">🥾 따라가기 열기</a>
+                    <a class="btn" id="busLink" hidden target="_blank" rel="noopener" data-en="🚌 Where our bus is">🚌 우리 버스 있는 곳</a>
                 </div>
                 <button id="aboardBtn" class="main big" data-en="🚌 Back on the bus">🚌 하산 탑승</button>
             </div>

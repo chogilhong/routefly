@@ -96,12 +96,13 @@ public class PartyTest {
         catch (IllegalArgumentException e) { assertTrue(e.getMessage().contains("빠졌")); }
         assertNull("회원 화면에는 취소된 사람이 안 보임", member(call(p, "/view", tok(a), DEPART), "늦잠"));
 
-        // 산행 중: 서로 위치(회원은 배터리 · 머문 시간 없이), 인솔자는 다
+        // 산행 중: 회원은 남의 위치를 안 봄(2026-10-24 인솔자 위주), 인솔자는 다
         call(p, "/loc", "{\"token\":\"" + a + "\",\"lat\":38.1192,\"lon\":128.4656,\"acc\":12,\"batt\":64}", DEPART + H);
         call(p, "/loc", "{\"token\":\"" + a + "\",\"lat\":38.1193,\"lon\":128.4657,\"batt\":63}", DEPART + H + 20 * 60_000);
         call(p, "/loc", "{\"token\":\"" + b + "\",\"lat\":38.12,\"lon\":128.47,\"sos\":true}", DEPART + H + 20 * 60_000);
         JsonObject seenByB = member(call(p, "/view", tok(b), DEPART + H + 21 * 60_000), "철수");
-        assertEquals(38.1193, seenByB.get("lat").getAsDouble(), 1e-9);
+        assertFalse("회원은 남의 위치를 안 봄", seenByB.has("lat"));
+        assertTrue("자기 위치는 봄", member(call(p, "/view", tok(b), DEPART + H + 21 * 60_000), "영희").has("lat"));
         assertFalse("회원은 남의 배터리를 안 봄", seenByB.has("batt"));
         JsonObject seenByLead = member(call(p, "/view", tok(lead), DEPART + H + 21 * 60_000), "철수");
         assertEquals(63, seenByLead.get("batt").getAsInt());

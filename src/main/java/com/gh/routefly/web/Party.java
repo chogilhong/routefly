@@ -923,8 +923,8 @@ final class Party {
             x.addProperty("sos", m.sos);
             x.addProperty("aboard", m.aboard);
             if (m.aboard) aboard++;
-            // 출발 때 안 타서 취소된 회원은 남의 위치를 못 봄(점검: 안 온 사람이 하루 내내 일행 위치를 봤음). 인솔자가 되돌리면 다시 봄
-            if (m.t > 0 && m.lat != null && (staff || !me.cancelled || m == me)) {   // 하산 탑승하면 위치를 지움(aboard)
+            // 위치는 인솔자 · 운전자와 자기 것만(2026-10-24 홍TV님 - 인솔자 위주, 회원은 따라가기 지도로 걷고 남의 위치는 안 봄)
+            if (m.t > 0 && m.lat != null && (staff || m == me)) {   // 하산 탑승하면 위치를 지움(aboard)
                 x.addProperty("lat", m.lat);
                 x.addProperty("lon", m.lon);
                 x.addProperty("ago", (now - m.t) / 1000);

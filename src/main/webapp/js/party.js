@@ -1,7 +1,7 @@
 /*
  * 산악회 방 화면(party.html - 2026-10-20 홍TV님). 서버는 PartyServlet · 위치 보내기는 party-kit.js(RFParty).
  * 흐름: 인솔자가 산행 전에 방을 만들고 참가 링크(카톡 · 문자) → 회원 참가(좌석 · 탑승지) → 출발 날 "버스 탔어요" → 인솔자 "출발"(안 탄 사람 취소)
- * → 산행 중 서로 위치 · SOS(인솔자 · 운전자는 배터리 · 머문 시간까지) → "하산 탑승" → 나가기(산 모음 /m/ 로). 인원이 모자라면 인솔자 "산행 취소".
+ * → 산행 중 인솔자 · 운전자가 회원 위치 · SOS · 배터리 · 머문 시간을 봄(회원 화면은 지도 없이 - 따라가기 지도로 걸음, 2026-10-24 홍TV님) → "하산 탑승" → 나가기(산 모음 /m/ 로). 인원이 모자라면 인솔자 "산행 취소".
  * 위치: 이 화면이 열린 동안 watchPosition → 30초마다(RFParty.fix, 서버는 출발 3시간 전부터 받음). 인솔자 · 운전자 화면은 15초마다 새로 받음.
  */
 (function () {
@@ -174,10 +174,12 @@
      * 안드로이드 브라우저(특히 카톡 · 네이버 · 밴드 안 브라우저 - 앱 링크가 안 걸림)로 참가 링크를 열었으면 "routefly 앱으로 열기" 단추.
      * intent: 주소 - 앱이 있으면 앱(MainActivity.openLink), 없으면 S.browser_fallback_url 로 이 화면에 그대로(&web=1 - 단추 숨김). 2026-10-20 PC 제안.
      */
-    function canAppOpen() { return /Android/i.test(navigator.userAgent) && !window.Capacitor && q.get("web") !== "1" && location.hostname === "routefly.kr"; }
+    // 앱을 플레이스토어에 올리기 전에는 크롬, 올린 뒤에는 앱으로(2026-10-24 홍TV님) - 서버 설정 app.released=true 일 때만 "앱으로" 단추
+    var appReleased = false;
+    function canAppOpen() { return appReleased && /Android/i.test(navigator.userAgent) && !window.Capacitor && q.get("web") !== "1" && location.hostname === "routefly.kr"; }
     /** intent: 주소 - token 이 있으면 앱에 넘겨(S.rf_token → MainActivity 가 #t= 로) 같은 사람으로 이어 감(다시 참가하면 명단에 두 번). */
     function appIntent(code, token) {
-        var back = location.origin + location.pathname + "?c=" + encodeURIComponent(code) + "&web=1";
+        var back = "https://play.google.com/store/apps/details?id=kr.routefly.app";   // 앱이 없으면 설치 화면으로
         return "intent://" + location.host + location.pathname + "?c=" + encodeURIComponent(code) + "#Intent;scheme=https;package=kr.routefly.app;"
             + (token ? "S.rf_token=" + encodeURIComponent(token) + ";" : "") + "S.browser_fallback_url=" + encodeURIComponent(back) + ";end";
     }
@@ -229,6 +231,7 @@
     function start() {
         fetch("api/party/status", { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (s) {
             if (!s.enabled) { show("closed"); return; }
+            appReleased = !!s.app;
             var taken = takeToken();
             if (taken) { taken.then(function (j) { enterRoom(j); }).catch(function (e) { msg(enMsg(e.message)); if (RFParty.get()) enterRoom(); else show("start"); }); return; }
             var cur = RFParty.get(), want = (q.get("c") || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
@@ -424,7 +427,10 @@
         $("noticeRow").hidden = p.role !== "lead";
         $("endBtn").hidden = p.role !== "lead";
         $("leaveBtn").hidden = p.role === "lead";
-        startMap();
+        // 회원은 지도 없이(따라가기 화면에 지도가 있음 - 2026-10-24 홍TV님). 지도는 인솔자 · 운전자만
+        $("mapBox").hidden = !staff;
+        if (!staff) $("mapMsg").hidden = true;
+        if (staff) startMap();
         appOpenRoom();
         if (first) render(first); else refresh();
         if (navigator.geolocation) {
@@ -601,6 +607,10 @@
     function hikerPhase(s, p) {
         $("cancelBox").hidden = !s.cancelled;
         $("hikerBox").hidden = s.cancelled;
+        // 회원 - 우리 호차 세운 자리를 지도 앱으로(방 화면에는 지도가 없음)
+        var myBus = !isStaff() && (s.busPins || []).filter(function (b) { return b.bus === s.bus; })[0];
+        $("busLink").hidden = !myBus;
+        if (myBus) $("busLink").href = "https://map.kakao.com/link/map/" + encodeURIComponent(T("우리 버스", "Our bus")) + "," + myBus.lat + "," + myBus.lon;
         if (s.cancelled) {
             $("phase").textContent = "";
             $("cancelTel").innerHTML = s.leaderPhone ? T("인솔자 ", "Leader ") + esc(s.leaderName || "") + tel(s.leaderPhone) : "";
@@ -633,8 +643,8 @@
             : s.departAt ? T("출발까지 ", "Departure: ") + left(s.departAt, s.now) + (s.boarded ? T(" · ✅ 탑승 확인", " · ✅ Boarding confirmed") : "") : "";
         $("hikerTip").textContent = over ? T("산행이 끝났으면 \"방 나가기\"를 누르세요. 그대로 두어도 " + when(s.closesAt) + "에 방이 끝나고 위치가 모두 지워집니다.",
                 "If the hike is over, tap \"Leave room\". Otherwise the room closes at " + when(s.closesAt) + " and all locations are deleted.")
-            : s.departed ? T("이 화면이나 따라가기를 켜 둔 동안 30초마다 위치를 보냅니다. 같은 방 사람들이 서로의 위치를 봅니다.",
-                "While this screen or hike tracking is open, your location is sent every 30 seconds. People in this room see each other's locations.")
+            : s.departed ? T("이 화면이나 따라가기를 켜 둔 동안 30초마다 인솔자에게 위치를 보냅니다. 길은 \"따라가기 열기\"의 지도로 보세요.",
+                "While this screen or hike tracking is open, your location goes to the leader every 30 seconds. Use \"Open trail guide\" for the map.")
             : early ? T("출발 1시간 전(" + when(s.boardFrom) + ")부터 \"🚌 버스 탔어요\" 단추가 나옵니다. 버스에 타면 그때 누르세요. 출발 때 안 누른 사람은 취소됩니다.",
                 "The \"🚌 I'm on the bus\" button appears 1 hour before departure (" + when(s.boardFrom) + "). Tap it once you're on the bus. Anyone who hasn't tapped it at departure is cancelled.")
                 + (before ? T(" 위치는 출발 3시간 전(" + when(s.locFrom) + ")부터 보냅니다.", " Your location is sent from 3 hours before departure (" + when(s.locFrom) + ").") : "")
@@ -665,7 +675,7 @@
     }
     $("sosBar").addEventListener("click", function (e) {
         var b = e.target.closest("[data-sos]");
-        if (!b || !state) return;
+        if (!b || !state || !isStaff()) return;   // 회원 화면에는 지도가 없음 - 이름만
         var m = (state.members || []).filter(function (x) { return String(x.id) === b.getAttribute("data-sos"); })[0];
         if (!m) return;
         if (m.lat != null && map) map.easeTo({ center: [m.lon, m.lat], zoom: Math.max(map.getZoom(), 15) });
