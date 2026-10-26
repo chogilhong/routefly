@@ -222,6 +222,7 @@ a.tel { color:var(--sky); }
                 <div class="row"><button id="qrBtn" data-en="📱 Show QR (join on the spot)">📱 QR 보여 주기 (현장에서 바로 참가)</button></div>
                 <p id="leadCodeRow" class="tip" hidden style="margin:8px 0 0"><span data-en="🧭 Co-leader code">🧭 공동 인솔자 코드</span> <b id="leadCode" style="font-size:17px;letter-spacing:2px;color:var(--tx)"></b> <span data-en="- only for people who watch members with you (company staff, another bus's leader, etc.). They enter this code under Join and get the same leader screen.">- 회원을 함께 지켜볼 사람(회사 관계자 · 다른 버스 인솔자 등)에게만 알려 주세요.
                     "공동 인솔자 · 방 코드로 참가" 에 이 코드를 넣으면 같은 인솔자 화면으로 들어옵니다.</span></p>
+                <div class="row" id="myPhoneRow" hidden><button id="myPhoneBtn" data-en="📱 Also view on my phone (QR)">📱 내 핸드폰에서도 보기 (QR)</button></div>
                 <div class="row" id="nfcRow" hidden><button id="nfcBtn" data-en="📶 Write to NFC sticker (tap to join)">📶 NFC 스티커에 쓰기 (대기만 하면 참가)</button></div>
                 <div id="inviteMsg" class="tip" role="status"></div>
             </div>
@@ -283,10 +284,10 @@ a.tel { color:var(--sky); }
     <!-- 현장 참가 QR(2026-10-20 홍TV님 "카톡 확인 없이 사당 출발장소로 왔어") - 인솔자 폰을 회원 폰 카메라에 비춤 -->
     <div id="qrBox" hidden>
         <div class="qrIn">
-            <p class="qrHead" data-en="📱 Point a phone camera here to open the join screen">📱 폰 카메라로 비추면 참가 화면이 열립니다</p>
+            <p class="qrHead" id="qrHead"></p>
             <div id="qrImg"></div>
-            <p class="qrCode"><span data-en="Room code">방 코드</span> <b id="qrCode"></b></p>
-            <p class="tip" data-en="Camera not working? On routefly.kr go to Hiking club room → Join → type this code.">카메라가 안 되면 routefly.kr 에서 산악회 방 → 참가하기 → 이 코드를 치세요.</p>
+            <p class="qrCode"><span id="qrCodeLabel"></span> <b id="qrCode"></b></p>
+            <p class="tip" id="qrTip"></p>
             <button id="qrClose" class="main" data-en="Close">닫기</button>
         </div>
     </div>

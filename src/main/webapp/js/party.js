@@ -576,7 +576,7 @@
         }
         drawMap(s);
         if (BG) bgSync(s);
-        if (s.leadCode) { $("leadCode").textContent = s.leadCode; $("leadCodeRow").hidden = false; }
+        if (s.leadCode) { $("leadCode").textContent = s.leadCode; $("leadCodeRow").hidden = false; $("myPhoneRow").hidden = false; }
         // 인솔자가 둘 넘으면(공동 인솔자) "방 나가기" 도 - 혼자 남은 인솔자는 "방 끝내기" 로만(서버도 같음, 2026-10-27 PC)
         $("leaveBtn").hidden = staff && (s.members || []).filter(function (m) { return m.role === "lead"; }).length <= 1;
     }
@@ -976,9 +976,12 @@
         else copyInvite();
     });
     /** 현장 참가 QR - 참가 링크를 크게(화면 밝기 그대로 비추면 됨). qrcode-generator(MIT) 가 없으면 코드만. 방마다 QR 하나(2026-10-27 홍TV님 - 탑승지 고르기 뺌). */
-    function qrDraw() {
-        // &on=1 - 버스에서 찍는 QR: 출발 1시간 전부터면 들어오면서 탑승까지(2026-10-24 홍TV님)
-        var url = inviteUrl() + "&on=1";
+    /** QR 창 - url 을 QR 로, 위 · 아래 글과 코드. 회원 참가 QR · 내 핸드폰에서도 보기(공동 인솔자 코드)가 같이 씀. */
+    function showQr(url, head, codeLabel, code, tip) {
+        $("qrHead").textContent = head;
+        $("qrCodeLabel").textContent = codeLabel;
+        $("qrCode").textContent = code || "";
+        $("qrTip").textContent = tip;
         $("qrImg").innerHTML = "";
         if (window.qrcode) {
             var q = qrcode(0, "M");   // 0 - 크기 저절로, M - 15% 가려져도 읽힘
@@ -986,12 +989,22 @@
             q.make();
             $("qrImg").innerHTML = q.createSvgTag({ cellSize: 6, margin: 4, scalable: true });
         }
+        $("qrBox").hidden = false;
     }
     $("qrBtn").addEventListener("click", function () {
         var p = RFParty.get() || {};
-        qrDraw();
-        $("qrCode").textContent = p.code || "";
-        $("qrBox").hidden = false;
+        // &on=1 - 버스에서 찍는 QR: 출발 1시간 전부터면 들어오면서 탑승까지(2026-10-24 홍TV님)
+        showQr(inviteUrl() + "&on=1", T("📱 폰 카메라로 비추면 참가 화면이 열립니다", "📱 Point a phone camera here to open the join screen"), T("방 코드", "Room code"), p.code,
+            T("카메라가 안 되면 routefly.kr 에서 산악회 방 → 참가하기 → 이 코드를 치세요.", "Camera not working? On routefly.kr go to Hiking club room → Join → type this code."));
+    });
+    // 내 핸드폰에서도 보기(2026-10-27 홍TV님 - PC 에서 방을 만들면 핸드폰은 인솔자 열쇠가 없음): 공동 인솔자 코드가 채워진 참가 화면 QR
+    $("myPhoneBtn").addEventListener("click", function () {
+        var code = $("leadCode").textContent;
+        if (!code) return;
+        showQr(location.origin + location.pathname + "?c=" + encodeURIComponent(code) + (EN ? "&lang=en" : ""),
+            T("📱 내 핸드폰 카메라로 찍으세요 - 이름만 넣으면 핸드폰에도 이 인솔자 화면이 열립니다", "📱 Scan with your own phone - enter your name and this leader screen opens there too"),
+            T("공동 인솔자 코드", "Co-leader code"), code,
+            T("이 QR 은 인솔자용입니다. 회원에게 보여 주지 마세요(회원에게는 \"QR 보여 주기\").", "This QR is for leaders only - don't show it to members (use \"Show QR\" for them)."));
     });
     $("qrClose").addEventListener("click", function () { $("qrBox").hidden = true; });
     $("qrBox").addEventListener("click", function (e) { if (e.target === this) this.hidden = true; });
