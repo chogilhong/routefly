@@ -1,0 +1,27 @@
+#!/bin/bash
+# root 로 도는 읽기 부분(sudoers 로 logview 계정에 이 파일 하나만 허용). /opt/tomcat/logs 아래 파일만, 읽기만 합니다.
+#   files            - 로그 파일 목록(크기 · 시각, 서버 시각은 UTC)
+#   tail [N]         - catalina.out 끝 N줄(기본 200, 많아야 3000)
+#   log 이름 [N]     - 그 로그 파일 끝 N줄(이름은 .log · .out · .txt, 폴더 · 경로 없이)
+#   grep 낱말 [N]    - catalina.out 끝 5만 줄에서 그 낱말(글자 그대로)이 든 줄 중 마지막 N줄
+# 한 줄은 400자까지 자릅니다.
+set -euo pipefail
+DIR=/opt/tomcat/logs
+MAXN=3000
+num() { if [[ "${1:-}" =~ ^[0-9]{1,4}$ ]] && [ "$1" -ge 1 ] && [ "$1" -le "$MAXN" ]; then echo "$1"; else echo 200; fi; }
+okfile() {
+  local re='^[A-Za-z0-9][A-Za-z0-9._-]{0,80}\.(log|out|txt)$'
+  [[ "${1:-}" =~ $re ]] && [ -f "$DIR/$1" ] || { echo "파일 이름이 이상하거나 없습니다(files 로 목록을 보세요)."; exit 3; }
+}
+case "${1:-}" in
+  files) ls -l --time-style=+%F_%T "$DIR" | awk 'NR>1 {print $5, $6, $7}' ;;
+  tail)  n=$(num "${2:-}"); tail -n "$n" "$DIR/catalina.out" | cut -c1-400 ;;
+  log)   okfile "${2:-}"; n=$(num "${3:-}"); tail -n "$n" "$DIR/$2" | cut -c1-400 ;;
+  grep)
+    re='^[][A-Za-z0-9_.:=-]{2,60}$'
+    [[ "${2:-}" =~ $re ]] || { echo "낱말은 영문 · 숫자 · [ ] _ . : = - 로 2~60자"; exit 3; }
+    n=$(num "${3:-}")
+    tail -n 50000 "$DIR/catalina.out" | grep -aF -- "$2" | tail -n "$n" | cut -c1-400 || true
+    ;;
+  *) echo "이 열쇠로는 files · tail [N] · log 이름 [N] · grep 낱말 [N] 만 됩니다." >&2; exit 2 ;;
+esac

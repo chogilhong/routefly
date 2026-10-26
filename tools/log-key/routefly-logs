@@ -1,0 +1,6 @@
+#!/bin/bash
+# 로그 읽기 전용 열쇠(logview 계정)로 들어오면 이 스크립트만 돕니다(authorized_keys 의 command=, docs/log-key.md).
+# 보낸 명령을 낱말로 나눠(eval 없이) root 쪽 읽기 스크립트에 넘깁니다 - 무엇을 읽을지는 그쪽이 검사합니다.
+set -euo pipefail
+read -r -a args <<< "${SSH_ORIGINAL_COMMAND:-}"
+exec sudo -n /usr/local/sbin/routefly-logs-read "${args[@]}"
