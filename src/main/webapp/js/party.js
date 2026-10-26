@@ -576,6 +576,8 @@
         drawMap(s);
         if (BG) bgSync(s);
         if (s.leadCode) { $("leadCode").textContent = s.leadCode; $("leadCodeRow").hidden = false; }
+        // 인솔자가 둘 넘으면(공동 인솔자) "방 나가기" 도 - 혼자 남은 인솔자는 "방 끝내기" 로만(서버도 같음, 2026-10-27 PC)
+        $("leaveBtn").hidden = staff && (s.members || []).filter(function (m) { return m.role === "lead"; }).length <= 1;
     }
 
     /** 인솔자 - 아직 하산 탑승 안 한 사람(2026-10-22 점검: 숫자만 있어 누가 남았는지 명단을 훑어야 했음). 8명까지 이름. */
