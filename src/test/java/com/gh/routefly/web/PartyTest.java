@@ -216,7 +216,7 @@ public class PartyTest {
         try { call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"x\",\"role\":\"hiker\",\"bus\":4,\"seat\":1,\"agree\":true}", T0); fail("없는 호차"); }
         catch (IllegalArgumentException e) { /* 맞음 */ }
         String d2 = call(p, "/join", "{\"code\":\"" + room.get("driverCode").getAsString() + "\",\"nick\":\"2호차 기사\",\"role\":\"driver\",\"bus\":2,\"agree\":true}", T0).get("token").getAsString();
-        assertEquals("[121,221,103,203,303]", call(p, "/info", "{\"code\":\"" + code + "\"}", T0).getAsJsonArray("taken").toString());
+        assertEquals("인솔자 자리는 1호차 3번만(2026-10-27)", "[121,221,103]", call(p, "/info", "{\"code\":\"" + code + "\"}", T0).getAsJsonArray("taken").toString());
 
         call(p, "/bus", "{\"token\":\"" + d2 + "\",\"bus\":1,\"lat\":38.17,\"lon\":128.48}", T0);   // 운전자는 자기 호차(2)로
         call(p, "/bus", "{\"token\":\"" + lead + "\",\"bus\":1,\"lat\":38.16,\"lon\":128.47}", T0);
@@ -465,7 +465,7 @@ public class PartyTest {
         assertNotNull("인솔자는 보임", member(dv, lv.get("nick").getAsString()));
         assertEquals("운전자 화면의 회원 수는 자기 호차", 1, dv.get("myHikers").getAsInt());
         assertEquals("다른 호차 예약석은 안 감", 0, dv.getAsJsonArray("reserved").size());
-        assertEquals("찬 자리도 자기 호차만", "[207,203]", dv.getAsJsonArray("taken").toString());
+        assertEquals("찬 자리도 자기 호차만(2호차 3번은 회원 자리)", "[207]", dv.getAsJsonArray("taken").toString());
         assertEquals("인원도 보이는 사람만(인솔자 · 2호차 회원 · 나)", 3, dv.get("count").getAsInt());
         assertNotNull("인솔자는 모두", member(lv, "일호"));
         int one = member(lv, "일호").get("id").getAsInt();

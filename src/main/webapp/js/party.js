@@ -711,7 +711,7 @@
         var o = ["<option value=\"\">" + (none || T("없음", "None")) + "</option>"];
         for (var i = 1; i <= seats; i++) {
             var x = t[b * 100 + i];
-            var ld = i === LEAD_SEAT && seats >= LEAD_SEAT;   // 3번은 인솔자 자리(2026-10-22 홍TV님 - 출입문 쪽 맨 앞)
+            var ld = i === LEAD_SEAT && b === 1 && seats >= LEAD_SEAT;   // 1호차만(2026-10-27)   // 3번은 인솔자 자리(2026-10-22 홍TV님 - 출입문 쪽 맨 앞)
             o.push("<option value=\"" + i + "\"" + (x || ld ? " disabled" : "") + (i === cur ? " selected" : "") + ">" + i + (ld ? T(" (인솔자)", " (leader)") : x ? T(" (참가함)", " (taken)") : bk[b * 100 + i] ? T(" (예약)", " (booked)") : "") + "</option>");
         }
         sel.innerHTML = o.join("");
@@ -779,7 +779,7 @@
                 if (s.departed && !m.cancelled && !m.sos && !m.aboard && silent(m)) cls += " old";
                 label = "<small>" + esc(m.nick) + "</small>";
                 if (m.id === picked) cls += " pick";
-            } else if (k === LEAD_SEAT && n >= LEAD_SEAT) { cls += " drv"; label = "<small>" + T("인솔", "Leader") + "</small>"; }   // 인솔자 자리(누를 수 없음)
+            } else if (k === LEAD_SEAT && curBus === 1 && n >= LEAD_SEAT) { cls += " drv"; label = "<small>" + T("인솔", "Leader") + "</small>"; }   // 인솔자 자리(누를 수 없음)
             else if (rsv[k]) cls += " rsv";
             cells.push("<div class=\"" + cls + "\" data-seat=\"" + k + "\" style=\"grid-column:" + at.col + ";grid-row:" + at.row + "\""
                 + (m ? " title=\"" + esc(m.nick + (m.stop ? " · " + m.stop : "")) + "\"" : "") + ">" + k + label + "</div>");
@@ -827,7 +827,7 @@
         var el = e.target.closest("[data-seat]");
         if (!el || !state) return;
         var k = +el.getAttribute("data-seat"), p = RFParty.get(), m = memberAt(k);
-        if (k === LEAD_SEAT && seatsOf(state, curBus) >= LEAD_SEAT && !m) { if (moving) roomMsg(T(LEAD_SEAT + "번은 인솔자 자리입니다. 다른 빈자리를 누르세요.", "Seat " + LEAD_SEAT + " is the leader's seat. Tap another empty seat.")); return; }
+        if (k === LEAD_SEAT && curBus === 1 && seatsOf(state, curBus) >= LEAD_SEAT && !m) { if (moving) roomMsg(T(LEAD_SEAT + "번은 인솔자 자리입니다. 다른 빈자리를 누르세요.", "Seat " + LEAD_SEAT + " is the leader's seat. Tap another empty seat.")); return; }
         if (moving) {
             var who = pickedMember();
             if (!who || (m && m.id === who.id)) { pick(null); seatMap(state); roomMsg(""); return; }

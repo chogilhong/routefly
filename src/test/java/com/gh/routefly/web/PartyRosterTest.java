@@ -117,6 +117,9 @@ public class PartyRosterTest {
         try { call(p, "/roster", "{\"token\":\"" + lead + "\",\"text\":\"이식이 2-44\"}", T0); fail("2호차는 28석"); }
         catch (IllegalArgumentException e) { assertTrue(e.getMessage().contains("1 ~ 28")); }
         JsonObject k = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"삼식이\",\"bus\":2,\"seat\":28,\"agree\":true}", T0);
+        assertEquals("2호차 3번은 회원 자리", 3, call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"오식이\",\"bus\":2,\"seat\":3,\"agree\":true}", T0).get("seat").getAsInt());
+        try { call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"육식이\",\"bus\":1,\"seat\":3,\"agree\":true}", T0); fail("1호차 3번은 인솔자"); }
+        catch (IllegalArgumentException e) { assertTrue(e.getMessage().contains("인솔자")); }
         assertEquals(28, k.get("seat").getAsInt());
         // 좌석표 없는 차(0석)
         JsonObject z = call(p, "/create", "{\"name\":\"반반\",\"departAt\":" + DEPART + ",\"buses\":2,\"busSeats\":[28,0]}", T0);

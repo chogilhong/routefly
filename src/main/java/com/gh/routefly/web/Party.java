@@ -529,7 +529,7 @@ final class Party {
     static final int LEAD_SEAT = 3;
 
     static boolean leadSeat(Room r, int bus, int seat) {
-        return seat == LEAD_SEAT && r.seatsOf(bus) >= LEAD_SEAT;
+        return seat == LEAD_SEAT && bus == 1 && r.seatsOf(bus) >= LEAD_SEAT;   // 1호차만(2026-10-27 홍TV님 - 인솔자는 1호차, 다른 호차 3번은 회원 자리)
     }
 
     private static void checkSeat(Room r, Member self, int bus, Integer seat) {
@@ -1030,7 +1030,7 @@ final class Party {
         for (Member m : r.members.values()) if (m.seat != null && !m.cancelled && m != me && (me == null || me.sees(m)))   // 운전자 - 자기 호차만
             (m.listed ? booked : taken).add(m.bus * 100 + m.seat);   // 명단에만 있는 자리는 "예약" - 같은 이름이 둘일 때 좌석으로 고름(2026-10-26 PC)
         o.add("booked", booked);
-        for (int b = 1; b <= r.buses; b++) if (r.seatsOf(b) >= LEAD_SEAT && (me == null || !"driver".equals(me.role) || me.bus == b)) taken.add(b * 100 + LEAD_SEAT);   // 인솔자 자리 - 참가 칸에서 못 고르게
+        if (leadSeat(r, 1, LEAD_SEAT) && (me == null || !"driver".equals(me.role) || me.bus == 1)) taken.add(100 + LEAD_SEAT);   // 인솔자 자리(1호차) - 참가 칸에서 못 고르게
         o.add("taken", taken);
         o.addProperty("departed", r.departed);
         o.addProperty("stopsDone", r.departed ? r.stops.size() : r.stopsDone);   // 출발한 탑승지 수(차례대로)
