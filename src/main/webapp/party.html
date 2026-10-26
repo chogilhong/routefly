@@ -156,7 +156,7 @@ a.tel { color:var(--sky); }
             <a id="appOpenBtn" class="btn main" href="#" data-en="Open in the routefly app">routefly 앱으로 열기</a>
             <p class="tip" style="margin:6px 0 0" data-en="No app? Just join below.">앱이 없으면 아래에서 그대로 참가하면 됩니다.</p>
         </section>
-        <section id="joinSec" hidden>   <!-- 2026-10-26 홍TV님 "참가하기가 아직도 있네" - 링크 · QR(?c=)로 온 회원 · 기사님 코드로만. 그냥 열면 방 만들기 -->
+        <section id="joinSec" hidden>   <!-- 2026-10-26 홍TV님 "참가하기가 아직도 있네" - 링크 · QR(?c=)로 온 회원 · 공동 인솔자 코드로만. 그냥 열면 방 만들기 -->
             <details id="joinBox">   <!-- 2026-10-20 홍TV님: 접어 두고 누르면 펼침, ?c= 코드로 오면 펼친 채 -->
             <summary><h2 data-en="🙋 Join">🙋 참가하기</h2></summary>
             <label for="joinCode" data-en="Room code (6 letters from the leader)">방 코드 (인솔자가 보낸 6글자)</label>
@@ -172,8 +172,8 @@ a.tel { color:var(--sky); }
                 </div>
             </div>
             <div class="agree"><input id="joinAgree" type="checkbox">
-                <label for="joinAgree" style="margin:0;color:inherit;font-size:inherit" data-en="I agree to show &lt;b&gt;my name · location (latest one only) · SOS · battery · boarding&lt;/b&gt; to the leader and driver of this room (other members don't see my location). My location is sent while the trail guide screen is open. My location is sent from 3 hours before departure and is deleted when I leave the room or the hike ends. After departure, the leader and driver can see the path I took over the last 2 hours, in case of an emergency. When the room ends, it is used for trail statistics in a way that cannot identify me (no nickname or time, first and last 500 m removed). I am 14 or older.
-                &lt;a href=&quot;privacy.html#party&quot; style=&quot;color:var(--sky)&quot;&gt;Details (in Korean)&lt;/a&gt; · &lt;a href=&quot;lbs-terms.html&quot; style=&quot;color:var(--sky)&quot;&gt;Location terms (Korean)&lt;/a&gt;">이 방 인솔자 · 운전자에게 <b>내 이름 · 위치(마지막 하나) · SOS · 배터리 · 탑승</b>을 보여 주는 데 동의합니다(다른 회원에게는 위치가 안 보임). 위치는 따라가기 화면이 켜져 있는 동안 보냅니다. 위치는 출발 3시간 전부터 보내고, 방을 나가거나 산행이 끝나면 지워집니다. 출발 뒤 지나온 길은 조난 대비로 인솔자 · 운전자가 최근 2시간을 볼 수 있고, 방이 끝나면 누구인지 알 수 없게(별명 · 시각 없이, 처음 · 끝 500m 빼고) 코스 통계에 씁니다. 만 14세 이상입니다.
+                <label for="joinAgree" style="margin:0;color:inherit;font-size:inherit" data-en="I agree to show &lt;b&gt;my name · location (latest one only) · SOS · battery · boarding&lt;/b&gt; to the leaders of this room (leader · co-leader) (other members don't see my location). My location is sent while the trail guide screen is open. My location is sent from 3 hours before departure and is deleted when I leave the room or the hike ends. After departure, the leaders can see the path I took over the last 2 hours, in case of an emergency. When the room ends, it is used for trail statistics in a way that cannot identify me (no nickname or time, first and last 500 m removed). I am 14 or older.
+                &lt;a href=&quot;privacy.html#party&quot; style=&quot;color:var(--sky)&quot;&gt;Details (in Korean)&lt;/a&gt; · &lt;a href=&quot;lbs-terms.html&quot; style=&quot;color:var(--sky)&quot;&gt;Location terms (Korean)&lt;/a&gt;">이 방 인솔자(공동 인솔자 포함)에게 <b>내 이름 · 위치(마지막 하나) · SOS · 배터리 · 탑승</b>을 보여 주는 데 동의합니다(다른 회원에게는 위치가 안 보임). 위치는 따라가기 화면이 켜져 있는 동안 보냅니다. 위치는 출발 3시간 전부터 보내고, 방을 나가거나 산행이 끝나면 지워집니다. 출발 뒤 지나온 길은 조난 대비로 인솔자가 최근 2시간을 볼 수 있고, 방이 끝나면 누구인지 알 수 없게(별명 · 시각 없이, 처음 · 끝 500m 빼고) 코스 통계에 씁니다. 만 14세 이상입니다.
                 <a href="privacy.html#party" style="color:var(--sky)">자세히</a> · <a href="lbs-terms.html" style="color:var(--sky)">위치기반서비스 이용약관</a></label></div>
             <button id="joinBtn" class="main" data-en="Join">참가하기</button>
             <div id="joinMsg" class="fieldMsg" role="alert"></div>
@@ -210,12 +210,12 @@ a.tel { color:var(--sky); }
                 방을 만들면 참가 링크(방 코드 · 출발 · 인솔자 안내 글)를 카톡 · 문자로 예약한 회원에게 보내세요.</p>
             <button id="mkBtn" class="main" data-en="Create room">방 만들기</button>
         </section>
-        <p id="joinShowRow" class="tip" style="text-align:center"><a href="#" id="joinShow" style="color:var(--sky)" data-en="🚌 Driver (driver code) · join with a room code">🚌 기사님(운전자 코드) · 방 코드로 참가</a></p>
+        <p id="joinShowRow" class="tip" style="text-align:center"><a href="#" id="joinShow" style="color:var(--sky)" data-en="🧭 Co-leader (co-leader code) · join with a room code">🧭 공동 인솔자(인솔자 코드) · 방 코드로 참가</a></p>
         <div id="msg" role="status" aria-live="polite"></div>
     </div>
 
     <div id="room" hidden>
-        <div id="sosBar" role="alert" hidden></div>   <!-- 인솔자 · 운전자 - SOS 가 켜진 동안 늘 위에(2026-10-22 점검: 맨 아래 글로만 나와 안 보였음) -->
+        <div id="sosBar" role="alert" hidden></div>   <!-- 인솔자 - SOS 가 켜진 동안 늘 위에(2026-10-22 점검: 맨 아래 글로만 나와 안 보였음) -->
         <div id="net" role="status" aria-live="polite" hidden></div>   <!-- 연결이 약할 때 - 마지막으로 받은 때 -->
         <div id="notice"></div>
         <section>
@@ -230,8 +230,8 @@ a.tel { color:var(--sky); }
                     <button id="copyBtn" data-en="📋 Copy invite text">📋 안내 글 복사</button>
                 </div>
                 <div class="row"><button id="qrBtn" data-en="📱 Show QR (join on the spot)">📱 QR 보여 주기 (현장에서 바로 참가)</button></div>
-                <p id="driverRow" class="tip" hidden style="margin:8px 0 0"><span data-en="🚌 Driver code">🚌 운전자 코드</span> <b id="driverCode" style="font-size:17px;letter-spacing:2px;color:var(--tx)"></b> <span data-en="- give it to the driver only. The driver enters this code under Join to come in as driver (the room code can't make you a driver).">- 기사님께만 알려 주세요.
-                    기사님은 참가하기에 이 코드를 넣으면 운전자로 들어옵니다(방 코드로는 운전자가 될 수 없음).</span></p>
+                <p id="leadCodeRow" class="tip" hidden style="margin:8px 0 0"><span data-en="🧭 Co-leader code">🧭 공동 인솔자 코드</span> <b id="leadCode" style="font-size:17px;letter-spacing:2px;color:var(--tx)"></b> <span data-en="- only for company staff or another bus's leader who must watch members (not for drivers). They enter this code under Join and get the same leader screen (the room code can't make you a leader).">- 회원을 함께 지켜볼 회사 관계자 · 다른 버스 인솔자에게만 알려 주세요(기사님 X).
+                    "공동 인솔자 · 방 코드로 참가" 에 이 코드를 넣으면 같은 인솔자 화면으로 들어옵니다(방 코드로는 인솔자가 될 수 없음).</span></p>
                 <div class="row" id="nfcRow" hidden><button id="nfcBtn" data-en="📶 Write to NFC sticker (tap to join)">📶 NFC 스티커에 쓰기 (대기만 하면 참가)</button></div>
                 <div id="inviteMsg" class="tip" role="status"></div>
             </div>
@@ -254,8 +254,8 @@ a.tel { color:var(--sky); }
                 <div class="two" id="actStopBox"><div><label for="actStop" data-en="Change boarding stop">탑승지 바꾸기</label><select id="actStop"></select></div><div></div></div>
             </div>
             <div id="stopSum" class="tip"></div>
-            <p class="tip" data-en="Tap a taken seat for the menu (boarded at departure · move seat · map · path taken · boarding stop) · tap an empty seat to turn the &lt;b&gt;Booked&lt;/b&gt; mark (booked but not joined yet) on or off.">사람이 있는 자리를 누르면 메뉴(출발 탑승 · 자리 옮기기 · 지도 · 지나온 길 · 탑승지) · 빈자리를 누르면 <b>예약됨</b>(예약했는데 아직 참가 안 함) 표시를 켜고 끕니다.</p>
-            <div class="legend"><span class="s rsv" data-en="Booked · not joined">예약 · 미참가</span><span class="s join" data-en="Joined">참가</span><span class="s join listed" data-en="List only (no phone)">명단만(핸드폰 없음)</span><span class="s board" data-en="Boarded">출발 탑승</span><span class="s cxl" data-en="Cancelled">취소</span><span class="s old" data-en="No update 10 min">10분 소식 없음</span><span class="s sos" data-en="SOS">SOS</span><span class="s back" data-en="Back on bus">하산 탑승</span>
+            <p class="tip" data-en="Tap a taken seat for the menu (boarded at departure · move seat · map · path taken · boarding stop) · each tap on an empty seat cycles empty → &lt;b&gt;Booked&lt;/b&gt; → &lt;b&gt;Leader&lt;/b&gt; (leader&#x27;s seat) → empty.">사람이 있는 자리를 누르면 메뉴(출발 탑승 · 자리 옮기기 · 지도 · 지나온 길 · 탑승지) · 빈자리를 누를 때마다 빈자리 → <b>예약됨</b> → <b>인솔</b>(인솔자 자리) → 빈자리로 바뀝니다.</p>
+            <div class="legend"><span class="s rsv" data-en="Booked · not joined">예약 · 미참가</span><span class="s drv" data-en="Leader seat">인솔</span><span class="s join" data-en="Joined">참가</span><span class="s join listed" data-en="List only (no phone)">명단만(핸드폰 없음)</span><span class="s board" data-en="Boarded">출발 탑승</span><span class="s cxl" data-en="Cancelled">취소</span><span class="s old" data-en="No update 10 min">10분 소식 없음</span><span class="s sos" data-en="SOS">SOS</span><span class="s back" data-en="Back on bus">하산 탑승</span>
                 <a class="guideLink" href="party-guide.html#seat" data-en="📖 Leader guide (Korean)">📖 인솔자 사용법</a></div>
         </section>
         <section id="staffBox" hidden>

@@ -38,6 +38,7 @@ public class PartyRosterTest {
         assertEquals(4, v.get("added").getAsInt());
         assertTrue("명단에만", member(v, "박영희").get("listed").getAsBoolean());
         assertEquals("같은 걸 또 넣으면 건너뜀", 0, call(p, "/roster", "{\"token\":\"" + lead + "\",\"text\":\"시험대장 5\"}", T0).get("added").getAsInt());
+        call(p, "/mark", "{\"token\":\"" + lead + "\",\"seat\":3,\"what\":\"lead\",\"on\":true}", T0);   // 인솔자가 3번을 인솔 자리로
         try { call(p, "/roster", "{\"token\":\"" + lead + "\",\"text\":\"누구 3\"}", T0); fail("인솔자 자리"); }
         catch (IllegalArgumentException e) { assertTrue(e.getMessage().startsWith("누구:")); }
         try { call(p, "/roster", "{\"token\":\"" + lead + "\",\"text\":\"누구 5\"}", T0); fail("이미 있는 자리"); }
@@ -117,15 +118,13 @@ public class PartyRosterTest {
         try { call(p, "/roster", "{\"token\":\"" + lead + "\",\"text\":\"이식이 2-44\"}", T0); fail("2호차는 28석"); }
         catch (IllegalArgumentException e) { assertTrue(e.getMessage().contains("1 ~ 28")); }
         JsonObject k = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"삼식이\",\"bus\":2,\"seat\":28,\"agree\":true}", T0);
-        assertEquals("2호차 3번은 회원 자리", 3, call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"오식이\",\"bus\":2,\"seat\":3,\"agree\":true}", T0).get("seat").getAsInt());
-        try { call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"육식이\",\"bus\":1,\"seat\":3,\"agree\":true}", T0); fail("1호차 3번은 인솔자"); }
-        catch (IllegalArgumentException e) { assertTrue(e.getMessage().contains("인솔자")); }
+        assertEquals("인솔 자리를 안 정하면 3번도 회원 자리", 3, call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"오식이\",\"bus\":2,\"seat\":3,\"agree\":true}", T0).get("seat").getAsInt());
         assertEquals(28, k.get("seat").getAsInt());
         // 좌석표 없는 차(0석)
         JsonObject z = call(p, "/create", "{\"name\":\"반반\",\"departAt\":" + DEPART + ",\"buses\":2,\"busSeats\":[28,0]}", T0);
         try { call(p, "/join", "{\"code\":\"" + z.get("code").getAsString() + "\",\"nick\":\"사식이\",\"bus\":2,\"seat\":1,\"agree\":true}", T0); fail("0석 차에 좌석"); }
         catch (IllegalArgumentException e) { assertTrue(e.getMessage().contains("좌석표가 없는")); }
-        assertTrue("인솔자 자리는 좌석 있는 차만", z.getAsJsonArray("taken").toString().contains("103") && !z.getAsJsonArray("taken").toString().contains("203"));
+        assertEquals("인솔 자리는 정하기 전엔 없음", "[]", z.getAsJsonArray("leadSeats").toString());
     }
 
     @Test

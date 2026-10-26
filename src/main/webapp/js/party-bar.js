@@ -2,7 +2,7 @@
  * 따라가기(hike.html) 위 산악회 한 줄(2026-10-24 홍TV님 - 인솔자 위주, 회원은 산악회 방 화면 없이 따라가기만).
  * 회원은 링크 · 버스 QR · NFC 로 한 번 들어와 이름만 넣고 여기로 옴. 이 화면이 켜져 있는 동안 30초마다 인솔자에게 위치(party-kit.js).
  * 단추: 버스 탔어요(출발 1시간 전부터) · 하산 탑승 · 인솔자 전화 · 우리 버스(카카오맵) · 그만 보내기. SOS 는 따라가기 SOS 단추가 인솔자에게도 보냄(hike.js).
- * 인솔자 · 운전자는 "산악회 방 열기" 만.
+ * 인솔자(공동 인솔자 포함)는 "산악회 방 열기" 만.
  */
 (function () {
     if (!window.RFParty) return;
@@ -43,7 +43,7 @@
     function render(s) {
         if (!s || !s.role) return;
         state = s;
-        var p = RFParty.get() || {}, bar = $("partyBar"), staff = s.role === "lead" || s.role === "driver";
+        var p = RFParty.get() || {}, bar = $("partyBar"), staff = s.role === "lead";
         bar.hidden = false;
         document.documentElement.classList.add("partyOn");
         // 새 공지 - 따라가기에서 띄우고 읽어 줌(hike.js 의 RFParty.onNotice)

@@ -18,16 +18,16 @@ import com.google.gson.JsonParser;
  * GET  /api/party/status                                  {enabled, app} - app: 앱을 플레이스토어에 올렸으면(app.released=true) 회원을 앱으로
  * POST /api/party/create {name, departAt, endAt, leaderName, leaderPhone, buses, seats, plates, stops}  인솔자 → 방 + 열쇠(buses 차량 수 · seats 한 대 좌석 · plates 호차별 차량번호)
  * POST /api/party/info   {code}                            참가 전 방 소개(이름 · 출발 · 인솔자 · 인원 · 좌석 수 · 탑승지 · 찬 좌석)
- * POST /api/party/join   {code, nick, role, bus, seat, stop, agree} 회원(hiker) · 운전자(driver) → 열쇠 - agree(위치 제공 동의)가 true 여야
+ * POST /api/party/join   {code, nick, role, bus, seat, stop, agree} 방 코드 → 회원(hiker), 공동 인솔자 코드 → 인솔자(lead) · 열쇠(role 은 코드가 정함) - agree(위치 제공 동의)가 true 여야
  * POST /api/party/loc    {token, lat, lon, acc, batt, sos} 내 위치(출발 3시간 전부터 받음) → 방 화면
  * POST /api/party/ping   {token, batt, sos}               위치를 못 잡을 때 - 폰은 켜짐 · 배터리 · SOS(위치 없이)
  * POST /api/party/view   {token}                           방 화면
  * POST /api/party/board  {token, on}                       회원 - 출발 때 버스 탔어요
  * POST /api/party/aboard {token, on}                       회원 - 하산 탑승
- * POST /api/party/seat   {token, id?, bus, seat, stop}          자리 · 탑승지 - 회원은 자기 것, 인솔자 · 운전자는 id 로 아무나
- * POST /api/party/mark   {token, bus, seat, what: boarded|reserved, on} 인솔자 · 운전자 - 좌석표
+ * POST /api/party/seat   {token, id?, bus, seat, stop}          자리 · 탑승지 - 회원은 자기 것, 인솔자는 id 로 아무나
+ * POST /api/party/mark   {token, bus, seat, what: boarded|reserved|lead, on} 인솔자 - 좌석표(lead = 인솔자 자리)
  * POST /api/party/depart {token}                           인솔자 - 출발(안 탄 사람 취소)
- * POST /api/party/notice {token, text} · /bus {token, bus, lat, lon} · /plate {token, bus, plate}  (plate - 인솔자 · 운전자, 운전자는 자기 호차)
+ * POST /api/party/notice {token, text} · /bus {token, bus, lat, lon} · /plate {token, bus, plate}  (인솔자)
  * POST /api/party/kick   {token, id}                       인솔자 - 회원 내보내기(그 폰은 410 "내보냈습니다")
  * POST /api/party/leave  {token} · /end {token, cancel}    나가기 · (인솔자) 방 끝내기 · 산행 취소
  * </pre>
@@ -184,7 +184,7 @@ public class PartyServlet extends HttpServlet {
             case "/aboard" -> p.aboard(m, on);
             case "/seat" -> p.seat(m, integer(in, "id"), integer(in, "bus"), integer(in, "seat"), str(in, "stop"));
             case "/mark" -> {
-                if (!staff) throw new SecurityException("인솔자 · 운전자만 좌석표를 고칠 수 있습니다.");
+                if (!staff) throw new SecurityException("인솔자만 좌석표를 고칠 수 있습니다.");
                 if (integer(in, "id") != null && "boarded".equals(str(in, "what"))) p.boardById(m, integer(in, "id"), on);   // 명단에서 사람으로(취소 되돌리기 · 핸드폰 없는 회원)
                 else if (integer(in, "id") != null && "aboard".equals(str(in, "what"))) p.aboardById(m, integer(in, "id"), on);
                 else p.mark(m, integer(in, "bus"), (int) lng(in, "seat"), str(in, "what"), on);
@@ -204,8 +204,8 @@ public class PartyServlet extends HttpServlet {
                 return out;
             }
             case "/notice" -> { if (!lead) throw new SecurityException("인솔자만 공지할 수 있습니다."); p.notice(m, str(in, "text"), now); }
-            case "/bus" -> { if (!staff) throw new SecurityException("인솔자 · 운전자만 버스 자리를 정할 수 있습니다."); p.bus(m, integer(in, "bus"), num(in, "lat"), num(in, "lon")); }
-            case "/plate" -> { if (!staff) throw new SecurityException("인솔자 · 운전자만 차량번호를 적을 수 있습니다."); p.plate(m, integer(in, "bus"), str(in, "plate")); }
+            case "/bus" -> { if (!staff) throw new SecurityException("인솔자만 버스 자리를 정할 수 있습니다."); p.bus(m, integer(in, "bus"), num(in, "lat"), num(in, "lon")); }
+            case "/plate" -> { if (!staff) throw new SecurityException("인솔자만 차량번호를 적을 수 있습니다."); p.plate(m, integer(in, "bus"), str(in, "plate")); }
             case "/kick" -> { if (!lead) throw new SecurityException("인솔자만 내보낼 수 있습니다."); p.kick(m, (int) lng(in, "id"), now); }
             case "/leave" -> { p.leave(m); return ok(); }
             case "/end" -> { if (!lead) throw new SecurityException("인솔자만 방을 끝낼 수 있습니다."); p.end(m, bool(in, "cancel"), now); return ok(); }
