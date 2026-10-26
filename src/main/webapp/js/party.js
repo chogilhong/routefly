@@ -77,7 +77,7 @@
         [/산행 시간이 지나 방이 끝났습니다/, "The hike time is over, so the room has ended."],
         [/준비 중/, "Hiking club rooms are not open yet."],
         [/(\d+)번은 인솔자 자리입니다/, "Seat $1 is a leader's seat. Please choose another seat."],
-        [/인솔자는 내보낼 수 없습니다/, "Leaders can't be removed (a co-leader can leave on their own)."],
+        [/인솔자는 내보낼 수 없습니다/, "Leaders can't be removed (other leaders can leave on their own)."],
         [/출발한 뒤에는 자리를 인솔자가/, "After departure, the leader moves seats on the seat map."],
         [/자리는 산행 회원만/, "Only hiking members pick seats."],
         [/산행 회원만/, "Only hiking members can use this."],
@@ -997,7 +997,7 @@
         if (!code) return;
         showQr(location.origin + location.pathname + "?c=" + encodeURIComponent(code) + (EN ? "&lang=en" : ""),
             T("📱 내 핸드폰 카메라로 찍으세요 - 이름만 넣으면 핸드폰에도 이 인솔자 화면이 열립니다", "📱 Scan with your own phone - enter your name and this leader screen opens there too"),
-            T("공동 인솔자 코드", "Co-leader code"), code,
+            T("인솔자 코드", "Leader code"), code,
             T("이 QR 은 인솔자용입니다. 회원에게 보여 주지 마세요(회원에게는 \"QR 보여 주기\").", "This QR is for leaders only - don't show it to members (use \"Show QR\" for them)."));
     });
     $("qrClose").addEventListener("click", function () { $("qrBox").hidden = true; });
