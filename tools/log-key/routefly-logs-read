@@ -11,7 +11,8 @@ MAXN=3000
 num() { if [[ "${1:-}" =~ ^[0-9]{1,4}$ ]] && [ "$1" -ge 1 ] && [ "$1" -le "$MAXN" ]; then echo "$1"; else echo 200; fi; }
 okfile() {
   local re='^[A-Za-z0-9][A-Za-z0-9._-]{0,80}\.(log|out|txt)$'
-  [[ "${1:-}" =~ $re ]] && [ -f "$DIR/$1" ] || { echo "파일 이름이 이상하거나 없습니다(files 로 목록을 보세요)."; exit 3; }
+  # 바로 가기(링크)로 폴더 밖 파일을 읽지 못하게 [ ! -L ] 도 봄
+  [[ "${1:-}" =~ $re ]] && [ -f "$DIR/$1" ] && [ ! -L "$DIR/$1" ] || { echo "파일 이름이 이상하거나 없습니다(files 로 목록을 보세요)."; exit 3; }
 }
 case "${1:-}" in
   files) ls -l --time-style=+%F_%T "$DIR" | awk 'NR>1 {print $5, $6, $7}' ;;
