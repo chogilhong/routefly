@@ -217,6 +217,8 @@
     $("joinShow").addEventListener("click", function (e) {
         e.preventDefault();
         $("joinShowRow").hidden = true;
+        $("mkSec").hidden = true;   // 참가할 사람에게는 참가 칸만(링크로 온 회원과 같게) - 방 만들기는 위 한 줄로(2026-10-26 PC)
+        $("mkShowRow").hidden = false;
         $("joinSec").hidden = false;
         $("joinBox").open = true;
         $("joinSec").scrollIntoView({ behavior: "smooth", block: "start" });
