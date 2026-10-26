@@ -24,6 +24,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(RfAlivePlugin.class);   // 산악회 방 "폰은 켜짐"(화면이 꺼져도 1분마다) - super.onCreate 앞에서 등록
+        registerPlugin(RfNfcPlugin.class);     // NFC 스티커에 참가 링크 쓰기(앱 웹뷰에는 Web NFC 가 없음, 2026-10-27)
         super.onCreate(savedInstanceState);
         // 핸드폰 글자 크기 설정(삼성 기본이 큼)이 웹 화면 글자만 1.6배쯤 키워 그래프 이름 · 버튼이 서로 겹쳤습니다.
         // 따라가기 화면은 밖에서 보려고 이미 큰 글자로 만들었으므로 앱 안에서는 설계한 크기(100%) 그대로 씁니다.

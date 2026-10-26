@@ -990,27 +990,40 @@
     $("qrBox").addEventListener("click", function (e) { if (e.target === this) this.hidden = true; });
 
     /**
-     * NFC 스티커에 참가 링크 쓰기(2026-10-20 홍TV님 - 쓰고 안 쓰고는 인솔자가 고름). Web NFC 라 안드로이드 크롬에서만(단추도 그때만 보임).
+     * NFC 스티커에 참가 링크 쓰기(2026-10-20 홍TV님 - 쓰고 안 쓰고는 인솔자가 고름). 안드로이드 크롬은 Web NFC, routefly 앱은 RfNfc(앱 웹뷰에는 Web NFC 가 없음, 2026-10-27).
      * 스티커(NTAG213/215 등)를 버스 문 · 명찰에 붙여 두면 회원은 폰을 대기만 하면 참가 화면이 열림(안드로이드 · 아이폰 XS 이후 읽기). 산행마다 다시 씀.
      */
     var nfcStop = null;
+    var NFC = NATIVE ? (CAP.Plugins && CAP.Plugins.RfNfc) || null : null;   // 옛 설치본엔 없음(null)
     if ("NDEFReader" in window) $("nfcRow").hidden = false;
+    else if (NFC) Promise.resolve(NFC.status()).then(function (r) { if (r && r.supported) $("nfcRow").hidden = false; }).catch(function () { /* 없음 */ });
+    var NFC_IDLE = function () { return T("📶 NFC 스티커에 쓰기 (대기만 하면 참가)", "📶 Write to NFC sticker (tap a phone to join)"); };
+    function nfcErr(code) {
+        return code === "cancelled" || code === "AbortError" || code === "timeout" ? T("NFC 쓰기를 그만두었습니다.", "Stopped writing NFC.")
+            : code === "off" ? T("NFC 가 꺼져 있습니다. 폰 설정에서 NFC 를 켜고 다시 눌러 주세요.", "NFC is off. Turn on NFC in phone settings and try again.")
+            : code === "NotAllowedError" ? T("NFC 권한이 없습니다. 폰 설정에서 NFC 를 켜고, 크롬의 NFC 허용을 눌러 주세요.", "No NFC permission. Turn on NFC in phone settings and allow NFC in Chrome.")
+            : code === "NotSupportedError" || code === "unsupported" ? T("이 폰은 NFC 쓰기가 안 됩니다.", "This phone can't write NFC.")
+            : code === "readonly" ? T("잠긴 스티커라 쓸 수 없습니다. 새 스티커를 써 주세요.", "This sticker is locked. Use a new one.")
+            : code === "small" ? T("스티커 용량이 작습니다. NTAG213 이상을 써 주세요.", "The sticker is too small. Use NTAG213 or larger.")
+            : T("쓰지 못했습니다. 스티커를 떼었다가 다시 대 보세요(잠긴 스티커는 안 됨).", "Couldn't write. Move the phone away and try again (locked stickers won't work).");
+    }
     $("nfcBtn").addEventListener("click", function () {
-        if (nfcStop) { nfcStop.abort(); return; }
-        var url = inviteUrl() + "&on=1", btn = this, ctl = new AbortController(), timer;   // 버스에 붙이는 스티커 - 탑승까지
-        nfcStop = ctl;
+        if (nfcStop) { nfcStop(); return; }
+        var url = inviteUrl() + "&on=1", btn = this, timer;   // 버스에 붙이는 스티커 - 탑승까지
         btn.textContent = T("📶 스티커에 폰 뒷면을 대세요… (누르면 그만)", "📶 Hold the back of your phone to the sticker… (tap to stop)");
         inviteMsg(T("NFC 를 켜 두고, 스티커에 폰 뒷면(카메라 아래쯤)을 1~2초 대세요.", "Turn NFC on and hold the back of your phone (below the camera) to the sticker for 1-2 seconds."));
-        function done(t) { clearTimeout(timer); nfcStop = null; btn.textContent = T("📶 NFC 스티커에 쓰기 (대기만 하면 참가)", "📶 Write to NFC sticker (tap a phone to join)"); inviteMsg(t); }
+        function done(t) { clearTimeout(timer); nfcStop = null; btn.textContent = NFC_IDLE(); inviteMsg(t); }
+        var OK = T("✅ 스티커에 썼습니다. 회원이 폰을 대면 이 방 참가 화면이 열립니다.", "✅ Written. When members tap their phone on it, this room's join page opens.");
+        if (!("NDEFReader" in window) && NFC) {   // 앱 - 30초는 앱이 셈
+            nfcStop = function () { Promise.resolve(NFC.cancel()).catch(function () { /* 이미 끝 */ }); };
+            Promise.resolve(NFC.write({ url: url })).then(function () { done(OK); }, function (e) { done(nfcErr(e && (e.code || e.message))); });
+            return;
+        }
+        var ctl = new AbortController();
+        nfcStop = function () { ctl.abort(); };
         timer = setTimeout(function () { ctl.abort(); }, 30000);
         new NDEFReader().write({ records: [{ recordType: "url", data: url }] }, { signal: ctl.signal, overwrite: true })
-            .then(function () { done(T("✅ 스티커에 썼습니다. 회원이 폰을 대면 이 방 참가 화면이 열립니다.", "✅ Written. When members tap their phone on it, this room's join page opens.")); },
-                function (e) {
-                    done(e && e.name === "AbortError" ? T("NFC 쓰기를 그만두었습니다.", "Stopped writing NFC.")
-                        : e && e.name === "NotAllowedError" ? T("NFC 권한이 없습니다. 폰 설정에서 NFC 를 켜고, 크롬의 NFC 허용을 눌러 주세요.", "No NFC permission. Turn on NFC in phone settings and allow NFC in Chrome.")
-                        : e && e.name === "NotSupportedError" ? T("이 폰은 NFC 쓰기가 안 됩니다.", "This phone can't write NFC.")
-                        : T("쓰지 못했습니다. 스티커를 떼었다가 다시 대 보세요(잠긴 스티커는 안 됨).", "Couldn't write. Move the phone away and try again (locked stickers won't work)."));
-                });
+            .then(function () { done(OK); }, function (e) { done(nfcErr(e && e.name)); });
     });
 
     $("copyBtn").addEventListener("click", copyInvite);

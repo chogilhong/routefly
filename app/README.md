@@ -8,6 +8,7 @@
 | 백그라운드 위치 | @capacitor-community/background-geolocation | 화면을 끄거나 주머니에 넣어도 위치 기록 · 갈림길 · 코스 이탈 안내. 알림창에 "routefly - 산행 중" 이 떠 있는 동안 |
 | 음성 안내 | @capacitor-community/text-to-speech | 화면이 꺼져도 말합니다 |
 | 공유 | @capacitor/share · @capacitor/filesystem | SOS 위치 사진 · GPX 를 공유 창으로(앱 안 웹뷰는 내려받기 · navigator.share 가 안 됨) |
+| NFC 스티커 쓰기 | RfNfcPlugin(앱 안 자바, 2026-10-27) | 인솔자가 산악회 방에서 "📶 NFC 스티커에 쓰기" - 앱 웹뷰에는 크롬의 Web NFC 가 없어 앱이 직접 씀(routefly.kr 참가 주소만, 30초 기다림) |
 | 안전 알림 | @capacitor/local-notifications | 움직임 없음("괜찮으세요?") · 긴급 신고 화면을 연 때 알림창 + 진동 · 소리(화면이 꺼지면 웹뷰 navigator.vibrate 가 막힘, 2026-10-17) |
 
 - 앱 이름 routefly, 앱 ID `kr.routefly.app`(스토어에 올린 뒤에는 바꿀 수 없습니다 - 바꾸려면 올리기 전에)

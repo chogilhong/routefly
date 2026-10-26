@@ -51,4 +51,7 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- 2026-10-21: 산악회 방 "폰은 켜짐"(RfAlivePlugin) - 화면이 꺼진 동안 1분마다 보내려고 CPU 를 깨워 둠(방에 있는 동안만, 최대 14시간) -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- 2026-10-27: 인솔자가 NFC 스티커에 참가 링크 쓰기(RfNfcPlugin). NFC 가 없는 폰에도 깔리게 required=false -->
+    <uses-permission android:name="android.permission.NFC" />
+    <uses-feature android:name="android.hardware.nfc" android:required="false" />
 </manifest>
