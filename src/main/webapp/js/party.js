@@ -278,8 +278,7 @@
             busOptions($("joinBus"), j.buses, 1);
             $("joinBusBox").hidden = !(j.buses > 1);
             seatOptions($("joinSeat"), seatsOf(j, 1), j.taken, null, T("고르기", "Choose"), 1, j.booked, j.leadSeats);
-            var qs = new URLSearchParams(location.search).get("s");   // QR 에 실린 탑승지(인솔자가 그 자리에서 보여 준 것)
-            stopOptions($("joinStop"), j.stops, qs && (j.stops || []).indexOf(qs) >= 0 ? qs : null, T("고르기", "Choose"));
+            stopOptions($("joinStop"), j.stops, null, T("고르기", "Choose"));
             roleChanged();   // 역할은 코드가 정함 - 공동 인솔자 코드면 인솔자, 방 코드면 산행(2026-10-27)
             if (j.departed && !j.leadInvite) joinErr(T("이미 출발한 방이라 산행 회원은 새로 참가할 수 없습니다. 인솔자에게 연락해 주세요.", "This room has already departed, so new hikers can't join. Please contact your leader."));
         }).catch(function (e) { if ($("joinCode").value.trim().toUpperCase() !== code) return; infoFor = null; $("joinCard").hidden = true; $("joinSeatBox").hidden = true; joinErr(enMsg(e.message), $("joinCode")); });
@@ -974,26 +973,20 @@
         if (navigator.share) navigator.share({ text: text }).catch(function () { /* 닫음 */ });
         else copyInvite();
     });
-    /** 현장 참가 QR - 참가 링크를 크게(화면 밝기 그대로 비추면 됨). qrcode-generator(MIT) 가 없으면 코드만. */
-    /** QR 주소 - 고른 탑승지를 실음(?s=) - 그 QR 로 들어오면 탑승지가 채워짐(2026-10-20 홍TV님). */
+    /** 현장 참가 QR - 참가 링크를 크게(화면 밝기 그대로 비추면 됨). qrcode-generator(MIT) 가 없으면 코드만. 방마다 QR 하나(2026-10-27 홍TV님 - 탑승지 고르기 뺌). */
     function qrDraw() {
         // &on=1 - 버스에서 찍는 QR: 출발 1시간 전부터면 들어오면서 탑승까지(2026-10-24 홍TV님)
-        var stop = $("qrStop").value, url = inviteUrl() + "&on=1" + (stop ? "&s=" + encodeURIComponent(stop) : "");
+        var url = inviteUrl() + "&on=1";
         $("qrImg").innerHTML = "";
         if (window.qrcode) {
             var q = qrcode(0, "M");   // 0 - 크기 저절로, M - 15% 가려져도 읽힘
-            q.addData(url);   // 한글 탑승지는 %인코딩이라 ASCII
+            q.addData(url);
             q.make();
             $("qrImg").innerHTML = q.createSvgTag({ cellSize: 6, margin: 4, scalable: true });
         }
-        try { localStorage.setItem("rf-party-qrstop", stop); } catch (e) { /* 이번만 */ }
     }
-    $("qrStop").addEventListener("change", qrDraw);
     $("qrBtn").addEventListener("click", function () {
-        var p = RFParty.get() || {}, stops = (state && state.stops) || [], last = "";
-        try { last = localStorage.getItem("rf-party-qrstop") || ""; } catch (e) { /* 없음 */ }
-        stopOptions($("qrStop"), stops, stops.indexOf(last) >= 0 ? last : null, T("정하지 않음", "Not set"));
-        $("qrStopBox").hidden = !stops.length;
+        var p = RFParty.get() || {};
         qrDraw();
         $("qrCode").textContent = p.code || "";
         $("qrBox").hidden = false;
