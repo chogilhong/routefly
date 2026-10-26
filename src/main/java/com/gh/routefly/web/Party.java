@@ -131,6 +131,15 @@ final class Party {
             this.code = code; this.name = name; this.created = created; this.departAt = departAt; this.endAt = endAt; this.buses = Math.max(1, buses); this.seats = seats;
             this.stops = stops; this.leaderName = leaderName; this.leaderPhone = leaderPhone;
             this.plates = new String[this.buses];
+            this.busSeats = new int[this.buses];
+            java.util.Arrays.fill(this.busSeats, seats);
+        }
+
+        /** 호차마다 좌석 수(2026-10-27 홍TV님 "1호차 45인승, 2호차 28인승"). seats 는 그 가운데 가장 큰 값. */
+        final int[] busSeats;
+
+        int seatsOf(int bus) {
+            return bus >= 1 && bus <= buses ? busSeats[bus - 1] : 0;
         }
 
         Member atSeat(int bus, int seat) {
@@ -315,11 +324,25 @@ final class Party {
 
     synchronized Member create(String name, long departAt, long endAt, int buses, int seats, List<String> stops,
                                String leaderName, String leaderPhone, List<String> plates, long now) {
+        return create(name, departAt, endAt, buses, seats, null, stops, leaderName, leaderPhone, plates, now);
+    }
+
+    /** busSeats - 호차마다 좌석 수(없거나 모자라면 seats). */
+    synchronized Member create(String name, long departAt, long endAt, int buses, int seats, List<Integer> busSeats, List<String> stops,
+                               String leaderName, String leaderPhone, List<String> plates, long now) {
         sweep(now);
         String n = clean(name, 30);
         if (n == null) throw new IllegalArgumentException("산행 이름을 적어 주세요.");
         if (rooms.size() >= MAX_ROOMS) throw new IllegalStateException("지금은 방을 더 만들 수 없습니다. 잠시 뒤 다시 해 주세요.");
         if (seats < 0 || seats > MAX_SEATS) throw new IllegalArgumentException("좌석 수는 0 ~ " + MAX_SEATS + " 입니다.");
+        int[] per = new int[Math.max(1, buses)];
+        for (int i = 0; i < per.length; i++) {
+            per[i] = busSeats != null && i < busSeats.size() && busSeats.get(i) != null ? busSeats.get(i) : seats;
+            if (per[i] < 0 || per[i] > MAX_SEATS) throw new IllegalArgumentException("좌석 수는 0 ~ " + MAX_SEATS + " 입니다.");
+        }
+        int maxSeats = java.util.Arrays.stream(per).max().orElse(0);
+        // 인솔자 연락처는 꼭(2026-10-27 홍TV님 - 회원 따라가기의 "☎ 인솔자" · 출발 때 빠진 회원 연락)
+        if (phone(leaderPhone) == null) throw new IllegalArgumentException("인솔자 연락처를 적어 주세요(회원이 산에서 인솔자에게 전화할 때 씁니다).");
         if (buses < 1 || buses > MAX_BUSES) throw new IllegalArgumentException("차량은 1 ~ " + MAX_BUSES + "대입니다.");
         if (departAt < 0 || endAt < 0) throw new IllegalArgumentException("시각이 올바르지 않습니다.");
         if (departAt > 0 && (departAt < now - 24 * HOUR || departAt > now + 30L * 24 * HOUR)) throw new IllegalArgumentException("출발은 오늘부터 30일 안으로 정해 주세요.");
@@ -328,7 +351,8 @@ final class Party {
         if (endAt > 0 && departAt > 0 && endAt <= departAt) throw new IllegalArgumentException("하산 마감은 출발보다 뒤여야 합니다.");
         if (endAt > 0 && departAt > 0 && endAt > departAt + MAX_TRIP_MS) throw new IllegalArgumentException("하산 마감은 출발 뒤 5일 안으로 정해 주세요(3박 4일까지).");   // 방이 40일 동안 남지 않게(점검)
         String lead = clean(leaderName, 12);
-        Room r = new Room(newCode(), n, now, departAt, endAt, buses, seats, List.copyOf(stops), lead, phone(leaderPhone));
+        Room r = new Room(newCode(), n, now, departAt, endAt, buses, maxSeats, List.copyOf(stops), lead, phone(leaderPhone));
+        System.arraycopy(per, 0, r.busSeats, 0, Math.min(per.length, r.busSeats.length));
         if (plates != null) for (int i = 0; i < Math.min(plates.size(), r.buses); i++) r.plates[i] = plate(plates.get(i));
         do r.driverCode = newCode(); while (r.driverCode.equals(r.code));   // 방 코드와 같으면 모두 운전자로 들어옴(점검)
         rooms.put(r.code, r);
@@ -504,14 +528,15 @@ final class Party {
     /** 3번은 인솔자 자리(2026-10-22 홍TV님 - 출입문 쪽 맨 앞, 안내산악회 좌석표에서 늘 비워 둠) - 좌석이 3개 이상인 방에서 회원은 못 고름. */
     static final int LEAD_SEAT = 3;
 
-    static boolean leadSeat(Room r, int seat) {
-        return seat == LEAD_SEAT && r.seats >= LEAD_SEAT;
+    static boolean leadSeat(Room r, int bus, int seat) {
+        return seat == LEAD_SEAT && r.seatsOf(bus) >= LEAD_SEAT;
     }
 
     private static void checkSeat(Room r, Member self, int bus, Integer seat) {
         if (seat == null) return;
-        if (seat < 1 || seat > r.seats) throw new IllegalArgumentException("좌석 번호는 1 ~ " + r.seats + " 입니다.");
-        if (leadSeat(r, seat)) throw new IllegalArgumentException(busName(r, bus) + LEAD_SEAT + "번은 인솔자 자리입니다. 다른 좌석을 골라 주세요.");
+        if (r.seatsOf(bus) == 0) throw new IllegalArgumentException(busName(r, bus) + "좌석표가 없는 차입니다. 좌석 없이 참가해 주세요.");
+        if (seat < 1 || seat > r.seatsOf(bus)) throw new IllegalArgumentException(busName(r, bus) + "좌석 번호는 1 ~ " + r.seatsOf(bus) + " 입니다.");
+        if (leadSeat(r, bus, seat)) throw new IllegalArgumentException(busName(r, bus) + LEAD_SEAT + "번은 인솔자 자리입니다. 다른 좌석을 골라 주세요.");
         Member there = r.atSeat(bus, seat);
         if (there != null && there != self) throw new IllegalArgumentException(busName(r, bus) + seat + "번 자리는 이미 다른 분이 골랐습니다. 좌석 번호를 확인해 주세요.");   // 참가 전 사람에게 별명은 안 보임(점검)
     }
@@ -681,7 +706,7 @@ final class Party {
         Room r = staff.room;
         int b = checkBus(r, bus);
         staff.ownBus(b);
-        if (seat < 1 || seat > r.seats) throw new IllegalArgumentException("없는 좌석입니다.");
+        if (seat < 1 || seat > r.seatsOf(b)) throw new IllegalArgumentException("없는 좌석입니다.");
         Member m = r.atSeat(b, seat);
         if (m == null) for (Member x : r.members.values()) if (x.seat != null && x.seat == seat && x.bus == b) m = x;   // 취소된 사람도
         if ("boarded".equals(what)) {
@@ -690,7 +715,7 @@ final class Party {
             if (on && m.cancelled) { m.cancelled = false; audit.info("uncancel room={} member={}", r.code, m.id); }
         } else if ("reserved".equals(what)) {
             if (m != null && !m.cancelled) throw new IllegalArgumentException(busName(r, b) + seat + "번 자리는 이미 참가했습니다.");
-            if (on && leadSeat(r, seat)) throw new IllegalArgumentException(LEAD_SEAT + "번은 인솔자 자리입니다.");
+            if (on && leadSeat(r, b, seat)) throw new IllegalArgumentException(LEAD_SEAT + "번은 인솔자 자리입니다.");
             if (on) r.reserved.add(b * 100 + seat); else r.reserved.remove(b * 100 + seat);
         } else {
             throw new IllegalArgumentException("모르는 표시입니다.");
@@ -840,6 +865,7 @@ final class Party {
             JsonObject o = new JsonObject();
             o.addProperty("code", r.code); o.addProperty("name", r.name); o.addProperty("created", r.created); o.addProperty("driverCode", r.driverCode);
             o.addProperty("departAt", r.departAt); o.addProperty("endAt", r.endAt); o.addProperty("buses", r.buses); o.addProperty("seats", r.seats);
+            JsonArray bs = new JsonArray(); for (int x : r.busSeats) bs.add(x); o.add("busSeats", bs);
             o.add("stops", strings(r.stops)); o.addProperty("leaderName", r.leaderName); o.addProperty("leaderPhone", r.leaderPhone);
             o.add("plates", plateArray(r));
             JsonArray rs = new JsonArray(); r.reserved.forEach(rs::add); o.add("reserved", rs);
@@ -901,6 +927,7 @@ final class Party {
                 if (o.has("stops")) o.getAsJsonArray("stops").forEach(x -> st.add(x.getAsString()));
                 Room r = new Room(o.get("code").getAsString(), o.get("name").getAsString(), lng(o, "created"), lng(o, "departAt"), lng(o, "endAt"),
                         o.has("buses") ? o.get("buses").getAsInt() : 1, (int) lng(o, "seats"), List.copyOf(st), str(o, "leaderName"), str(o, "leaderPhone"));
+                if (o.has("busSeats")) { JsonArray bs = o.getAsJsonArray("busSeats"); for (int i = 0; i < Math.min(bs.size(), r.buses); i++) r.busSeats[i] = bs.get(i).getAsInt(); }   // 없으면(10-27 전 방) 모두 seats
                 if (o.has("reserved")) o.getAsJsonArray("reserved").forEach(x -> r.reserved.add(x.getAsInt()));
                 if (o.has("plates")) {
                     JsonArray pa = o.getAsJsonArray("plates");
@@ -995,12 +1022,15 @@ final class Party {
         o.addProperty("buses", r.buses);
         o.add("plates", plateArray(r));
         o.addProperty("seats", r.seats);
+        JsonArray bs = new JsonArray();
+        for (int x : r.busSeats) bs.add(x);
+        o.add("busSeats", bs);   // 호차마다 좌석 수(seats 는 가장 큰 값)
         o.add("stops", strings(r.stops));
         JsonArray taken = new JsonArray(), booked = new JsonArray();   // 호차 × 100 + 좌석
         for (Member m : r.members.values()) if (m.seat != null && !m.cancelled && m != me && (me == null || me.sees(m)))   // 운전자 - 자기 호차만
             (m.listed ? booked : taken).add(m.bus * 100 + m.seat);   // 명단에만 있는 자리는 "예약" - 같은 이름이 둘일 때 좌석으로 고름(2026-10-26 PC)
         o.add("booked", booked);
-        if (r.seats >= LEAD_SEAT) for (int b = 1; b <= r.buses; b++) if (me == null || !"driver".equals(me.role) || me.bus == b) taken.add(b * 100 + LEAD_SEAT);   // 인솔자 자리 - 참가 칸에서 못 고르게
+        for (int b = 1; b <= r.buses; b++) if (r.seatsOf(b) >= LEAD_SEAT && (me == null || !"driver".equals(me.role) || me.bus == b)) taken.add(b * 100 + LEAD_SEAT);   // 인솔자 자리 - 참가 칸에서 못 고르게
         o.add("taken", taken);
         o.addProperty("departed", r.departed);
         o.addProperty("stopsDone", r.departed ? r.stops.size() : r.stopsDone);   // 출발한 탑승지 수(차례대로)

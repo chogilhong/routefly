@@ -103,6 +103,28 @@ public class PartyRosterTest {
         catch (SecurityException e) { /* 됨 */ }
     }
 
+    /** 2026-10-27 홍TV님: 인솔자 연락처는 꼭, 호차마다 좌석 수(1호차 45인승 · 2호차 28인승). */
+    @Test
+    public void phoneRequiredAndSeatsPerBus() {
+        Party p = new Party();
+        try { PartyServlet.handle(p, "/create", j("{\"name\":\"x\",\"departAt\":" + DEPART + "}"), T0); fail("연락처 없이"); }
+        catch (IllegalArgumentException e) { assertTrue(e.getMessage().contains("연락처")); }
+        JsonObject room = call(p, "/create", "{\"name\":\"단풍\",\"departAt\":" + DEPART + ",\"buses\":2,\"seats\":28,\"busSeats\":[45,28]}", T0);
+        assertEquals("[45,28]", room.getAsJsonArray("busSeats").toString());
+        assertEquals("가장 큰 값", 45, room.get("seats").getAsInt());
+        String code = room.get("code").getAsString(), lead = room.get("token").getAsString();
+        assertEquals(1, call(p, "/roster", "{\"token\":\"" + lead + "\",\"text\":\"일식이 44\"}", T0).get("added").getAsInt());
+        try { call(p, "/roster", "{\"token\":\"" + lead + "\",\"text\":\"이식이 2-44\"}", T0); fail("2호차는 28석"); }
+        catch (IllegalArgumentException e) { assertTrue(e.getMessage().contains("1 ~ 28")); }
+        JsonObject k = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"삼식이\",\"bus\":2,\"seat\":28,\"agree\":true}", T0);
+        assertEquals(28, k.get("seat").getAsInt());
+        // 좌석표 없는 차(0석)
+        JsonObject z = call(p, "/create", "{\"name\":\"반반\",\"departAt\":" + DEPART + ",\"buses\":2,\"busSeats\":[28,0]}", T0);
+        try { call(p, "/join", "{\"code\":\"" + z.get("code").getAsString() + "\",\"nick\":\"사식이\",\"bus\":2,\"seat\":1,\"agree\":true}", T0); fail("0석 차에 좌석"); }
+        catch (IllegalArgumentException e) { assertTrue(e.getMessage().contains("좌석표가 없는")); }
+        assertTrue("인솔자 자리는 좌석 있는 차만", z.getAsJsonArray("taken").toString().contains("103") && !z.getAsJsonArray("taken").toString().contains("203"));
+    }
+
     @Test
     public void rosterSurvivesRestart() throws Exception {
         java.nio.file.Path f = java.nio.file.Files.createTempFile("party", ".json");
@@ -115,6 +137,7 @@ public class PartyRosterTest {
             Party q = new Party(f, null);
             JsonObject v = call(q, "/view", tok(lead), T0);
             assertTrue(member(v, "시험대장").get("listed").getAsBoolean());
+            assertEquals("호차 좌석 수도 남음", "[28]", v.getAsJsonArray("busSeats").toString());
         } finally {
             java.nio.file.Files.deleteIfExists(f);
         }

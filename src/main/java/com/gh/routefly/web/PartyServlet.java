@@ -154,7 +154,7 @@ public class PartyServlet extends HttpServlet {
     /** 처리(시험이 store · 시각을 넣음). 잘못된 값 → IllegalArgumentException, 권한 없음 → SecurityException, 끝난 방 → Party.Ended. */
     static JsonObject handle(Party p, String path, JsonObject in, long now) {
         if ("/create".equals(path)) {
-            Party.Member lead = p.create(str(in, "name"), lng(in, "departAt"), lng(in, "endAt"), Math.max(1, (int) lng(in, "buses")), (int) lng(in, "seats"),
+            Party.Member lead = p.create(str(in, "name"), lng(in, "departAt"), lng(in, "endAt"), Math.max(1, (int) lng(in, "buses")), (int) lng(in, "seats"), ints(in, "busSeats"),
                     Party.stops(str(in, "stops")), str(in, "leaderName"), str(in, "leaderPhone"), strs(in, "plates"), now);
             return withToken(p.view(lead, now), lead);
         }
@@ -237,6 +237,20 @@ public class PartyServlet extends HttpServlet {
     }
 
     /** 글 배열(8개까지) - 배열이 아니면 null. */
+    /** 호차마다 좌석 수 - 숫자가 아니면 null(그 호차는 seats). */
+    private static java.util.List<Integer> ints(JsonObject in, String k) {
+        JsonElement e = in.get(k);
+        if (e == null || !e.isJsonArray()) return null;
+        java.util.List<Integer> out = new java.util.ArrayList<>();
+        for (JsonElement x : e.getAsJsonArray()) {
+            if (out.size() >= Party.MAX_BUSES) break;
+            Integer v = null;
+            try { if (x.isJsonPrimitive()) v = x.getAsInt(); } catch (NumberFormatException ex) { /* 숫자 아님 */ }
+            out.add(v);
+        }
+        return out;
+    }
+
     private static java.util.List<String> strs(JsonObject in, String k) {
         JsonElement e = in.get(k);
         if (e == null || !e.isJsonArray()) return null;

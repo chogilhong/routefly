@@ -24,7 +24,9 @@ public class PartyTest {
     }
 
     static JsonObject call(Party p, String path, String body, long now) {
-        return PartyServlet.handle(p, path, j(body), now);
+        JsonObject in = j(body);
+        if ("/create".equals(path) && !in.has("leaderPhone")) in.addProperty("leaderPhone", "010-0000-0000");   // 인솔자 연락처는 꼭(2026-10-27) - 시험마다 적지 않게
+        return PartyServlet.handle(p, path, in, now);
     }
 
     static String tok(String t) {
