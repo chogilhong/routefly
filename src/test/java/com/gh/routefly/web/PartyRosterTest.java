@@ -43,6 +43,11 @@ public class PartyRosterTest {
         try { call(p, "/roster", "{\"token\":\"" + lead + "\",\"text\":\"누구 5\"}", T0); fail("이미 있는 자리"); }
         catch (IllegalArgumentException e) { assertTrue(e.getMessage().contains("5번")); }
 
+        // 참가 화면: 명단에만 있는 자리는 "예약"(고를 수 있음), 참가한 자리만 "참가함"
+        JsonObject info = call(p, "/info", "{\"code\":\"" + code + "\"}", T0);
+        assertTrue(info.getAsJsonArray("booked").toString().contains("106"));
+        assertFalse(info.getAsJsonArray("taken").toString().contains("106"));
+
         // 링크로 이름만 넣으면 명단의 그 사람(좌석 그대로)
         JsonObject a = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"시험 대장\",\"agree\":true}", T0);
         assertEquals("빈칸은 빼고 맞춤", 5, a.get("seat").getAsInt());

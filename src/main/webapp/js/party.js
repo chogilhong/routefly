@@ -271,7 +271,7 @@
             $("joinSeatBox").hidden = !(j.seats > 0 || (j.stops || []).length || j.buses > 1);
             busOptions($("joinBus"), j.buses, 1);
             $("joinBusBox").hidden = !(j.buses > 1);
-            seatOptions($("joinSeat"), j.seats, j.taken, null, T("고르기", "Choose"), 1);
+            seatOptions($("joinSeat"), j.seats, j.taken, null, T("고르기", "Choose"), 1, j.booked);
             var qs = new URLSearchParams(location.search).get("s");   // QR 에 실린 탑승지(인솔자가 그 자리에서 보여 준 것)
             stopOptions($("joinStop"), j.stops, qs && (j.stops || []).indexOf(qs) >= 0 ? qs : null, T("고르기", "Choose"));
             if (j.driverInvite) {   // 운전자 코드로 들어옴(인솔자가 기사님께만 준 것) - 운전으로 고정
@@ -288,7 +288,7 @@
     }
     $("joinCode").addEventListener("input", loadInfo);
     var joinInfo = null;
-    $("joinBus").addEventListener("change", function () { if (joinInfo) seatOptions($("joinSeat"), joinInfo.seats, joinInfo.taken, null, T("고르기", "Choose"), +$("joinBus").value); });
+    $("joinBus").addEventListener("change", function () { if (joinInfo) seatOptions($("joinSeat"), joinInfo.seats, joinInfo.taken, null, T("고르기", "Choose"), +$("joinBus").value, joinInfo.booked); });
     /** 운전자는 호차만(좌석 · 탑승지 없음). */
     function roleChanged() {
         var drv = ((document.querySelector("input[name=role]:checked") || {}).value) === "driver";
@@ -693,14 +693,16 @@
     // ------------------------------------------------------------------ 좌석 고르기 · 좌석표
 
     /** 좌석 고르기 - taken 은 호차 × 100 + 좌석(그 호차의 찬 자리만 막음). */
-    function seatOptions(sel, seats, taken, cur, none, bus) {
-        var t = {}, b = bus || 1;
+    /** booked - 인솔자 명단에만 있는 자리: 고를 수 있게 "(예약)" (같은 이름이 둘이면 자기 좌석으로 고름, 2026-10-26 PC). */
+    function seatOptions(sel, seats, taken, cur, none, bus, booked) {
+        var t = {}, bk = {}, b = bus || 1;
         (taken || []).forEach(function (n) { t[n] = 1; });
+        (booked || []).forEach(function (n) { bk[n] = 1; });
         var o = ["<option value=\"\">" + (none || T("없음", "None")) + "</option>"];
         for (var i = 1; i <= seats; i++) {
             var x = t[b * 100 + i];
             var ld = i === LEAD_SEAT && seats >= LEAD_SEAT;   // 3번은 인솔자 자리(2026-10-22 홍TV님 - 출입문 쪽 맨 앞)
-            o.push("<option value=\"" + i + "\"" + (x || ld ? " disabled" : "") + (i === cur ? " selected" : "") + ">" + i + (ld ? T(" (인솔자)", " (leader)") : x ? T(" (참가함)", " (taken)") : "") + "</option>");
+            o.push("<option value=\"" + i + "\"" + (x || ld ? " disabled" : "") + (i === cur ? " selected" : "") + ">" + i + (ld ? T(" (인솔자)", " (leader)") : x ? T(" (참가함)", " (taken)") : bk[b * 100 + i] ? T(" (예약)", " (booked)") : "") + "</option>");
         }
         sel.innerHTML = o.join("");
         sel.parentNode.hidden = !(seats > 0);
