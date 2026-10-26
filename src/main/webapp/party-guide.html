@@ -29,7 +29,7 @@ table { width:100%; border-collapse:collapse; font-size:13.5px; }
 td, th { border-top:1px solid var(--ln); padding:6px 4px; vertical-align:top; text-align:left; }
 .c { display:inline-block; padding:1px 7px; border-radius:6px; font-size:12px; white-space:nowrap; }
 .rsv { border:1.5px dashed #ffa94d; color:#ffa94d; } .join { border:1.5px solid var(--sky); } .board { background:var(--sky); color:#062026; font-weight:bold; }
-.cxl { border:1.5px dashed #ff6b6b; color:#ff8787; } .old { border:2px solid #ffa94d; } .sos { background:#e03131; color:#fff; } .back { background:#51cf66; color:#0b2e13; }
+.old { border:2px solid #ffa94d; } .sos { background:#e03131; color:#fff; } .back { background:#51cf66; color:#0b2e13; }
 .back-link { display:inline-block; margin-top:6px; }
 </style>
 </head>
@@ -63,7 +63,7 @@ td, th { border-top:1px solid var(--ln); padding:6px 4px; vertical-align:top; te
         <ul>
             <li><b>📋 예약 명단 넣기</b>(방 화면 아래): 예약받은 이름을 그대로 붙여 넣으세요. "일식이 5 이식이 6 삼식이" 처럼 이름 뒤 숫자는 좌석, "2-15" 는 2호차 15번, 숫자가 없으면 자리 없이(아무 자리나 앉는 산악회). 이름만 넣고 전화번호는 넣지 마세요.
                 회원이 같은 이름을 넣으면 그 사람이 되고 좌석도 따라옵니다. 같은 이름이 둘이면 회원에게 좌석 번호도 넣게 합니다.</li>
-            <li><b>핸드폰 없는 회원</b>: 회원 목록의 <b>✅ 탔음</b> · <b>🚌 하산 탐</b> 단추로 인솔자가 체크합니다. 출발 때까지 체크가 없으면 다른 회원처럼 취소됩니다.</li>
+            <li><b>핸드폰 없는 회원</b>: 회원 목록의 <b>✅ 탔음</b> · <b>🚌 하산 탐</b> 단추로 인솔자가 체크합니다. 출발 때까지 체크가 없으면 다른 회원처럼 "안 탐"으로 빠집니다.</li>
             <li><b>💛 카톡으로 보내기</b>: 카톡이 열리면 예약 회원 단톡방을 고르세요. 출발 · 차량 · 인솔자 · 방 코드 · 링크가 담긴 안내 글이 들어갑니다.</li>
             <li><b>💬 문자</b> · <b>📋 안내 글 복사</b>: 문자로 보내거나 밴드 등에 붙여 넣을 때.</li>
             <li><b>📱 QR 보여 주기</b>: 링크를 못 받고 출발 장소에 온 회원에게(화면을 찍어 종이로 뽑아 버스 문 · 좌석 뒤에 붙여도 됩니다). 방마다 QR 은 하나입니다(모든 탑승지에서 같은 QR).
@@ -80,9 +80,8 @@ td, th { border-top:1px solid var(--ln); padding:6px 4px; vertical-align:top; te
         <h2>3. 좌석표 보기 · 고치기</h2>
         <p class="tip">좌석표는 버스 안에서 앞을 보고 선 모습 그대로입니다 - 위가 앞(왼쪽 위 운전석, 오른쪽 위 앞문), 아래로 갈수록 뒷자리. 30석까지는 우등(2-1 배열, 28석은 맨 뒤 4자리), 그보다 많으면 일반 대형(2-2 배열, 41 · 45석은 맨 뒤 5자리)으로 그립니다.</p>
         <table>
-            <tr><td><span class="c join">안 탐</span></td><td>명단에 있거나 링크로 참가했지만 아직 버스에서 QR · NFC 를 안 찍은 사람.</td></tr>
+            <tr><td><span class="c join">안 탐</span></td><td>아직 버스에서 QR · NFC 를 안 찍었고 인솔자 체크도 없는 사람. 출발 때 그대로면 산행에서 빠집니다(위치도 안 받음).</td></tr>
             <tr><td><span class="c board">출발 탑승</span></td><td>버스에서 QR · NFC 를 찍었거나 인솔자가 체크했습니다.</td></tr>
-            <tr><td><span class="c cxl">취소</span></td><td>출발 때 안 타서 빠진 사람(명단에만 있던 사람도).</td></tr>
             <tr><td><span class="c old">10분 소식 없음</span></td><td>산행 중 폰 소식이 10분 넘게 없음.</td></tr>
             <tr><td><span class="c sos">SOS</span></td><td>SOS 를 누른 사람 - 소리 · 떨림으로도 알립니다.</td></tr>
             <tr><td><span class="c back">하산 탑승</span></td><td>하산해서 버스에 다시 탄 사람.</td></tr>
@@ -101,8 +100,8 @@ td, th { border-top:1px solid var(--ln); padding:6px 4px; vertical-align:top; te
             <li>폰이 없거나 못 찍은 회원은 인솔자가 좌석표에서 그 자리를 눌러 <b>출발 탑승</b>을 체크하세요.</li>
             <li><b>버스 안에서 처음 등록받을 때</b>(아직 방을 모르는 회원이 많은 초창기): 출발 버튼을 누르기 전에 QR 이나 카톡 링크로 모두 참가시키세요.
                 같은 버스 와이파이로 여러 명이 한꺼번에 들어와도 됩니다. QR · NFC 로 들어오면 출발 탑승까지 한 번에 됩니다.</li>
-            <li><b>탑승지가 여러 곳이면 탑승지마다 출발</b>합니다(예: 영종에서 태우고 <b>🚌 영종 출발</b> → 중동에서 태우고 <b>🚌 중동 출발</b>). 영종에서 출발할 때는 영종 회원 가운데 안 탄 사람만 취소되고, 중동 회원은 그대로입니다. 마지막 탑승지를 떠나면 산행으로 넘어갑니다.</li>
-            <li>모두 타면 <b>🚌 출발 (안 탄 사람 취소)</b>. 누가 취소되는지 먼저 보여 주고 묻습니다. 늦게 온 사람은 좌석표에서 <b>↩ 탔음</b>으로 되돌리면 됩니다.</li>
+            <li><b>탑승지가 여러 곳이면 탑승지마다 출발</b>합니다(예: 영종에서 태우고 <b>🚌 영종 출발</b> → 중동에서 태우고 <b>🚌 중동 출발</b>). 영종에서 출발할 때는 영종 회원 가운데 안 탄 사람만 빠지고, 중동 회원은 그대로입니다. 마지막 탑승지를 떠나면 산행으로 넘어갑니다.</li>
+            <li>모두 타면 <b>🚌 출발</b>. 안 탄 사람이 있으면 이름을 먼저 보여 주고 묻습니다. 늦게 온 사람은 좌석표에서 <b>출발 탑승</b>을 누르면 됩니다.</li>
             <li>날씨 · 사고 등으로 못 가면 <b>산행 취소</b>. 회원 폰에 "인솔자가 산행을 취소했습니다"가 뜨고 방이 닫힙니다.</li>
         </ol>
         <p class="tip">출발한 뒤에는 새 회원이 참가할 수 없고(인솔자 코드로는 됨), 회원은 자리를 못 바꿉니다 - 자리는 인솔자가 좌석표에서 옮깁니다.</p>

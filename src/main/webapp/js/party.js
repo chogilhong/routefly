@@ -1,6 +1,6 @@
 /*
  * 산악회 방 화면(party.html - 2026-10-20 홍TV님). 서버는 PartyServlet · 위치 보내기는 party-kit.js(RFParty).
- * 흐름: 인솔자가 산행 전에 방을 만들고 참가 링크(카톡 · 문자) → 회원 참가(좌석 · 탑승지) → 출발 날 버스 안 QR · NFC 로 출발 탑승 → 인솔자 "출발"(안 탄 사람 취소)
+ * 흐름: 인솔자가 산행 전에 방을 만들고 참가 링크(카톡 · 문자) → 회원 참가(좌석 · 탑승지) → 출발 날 버스 안 QR · NFC 로 출발 탑승 → 인솔자 "출발"(안 탄 사람은 빠짐)
  * → 산행 중 인솔자(공동 인솔자 포함)가 회원 위치 · SOS · 배터리 · 머문 시간을 봄(회원 화면은 지도 없이 - 따라가기 지도로 걸음, 2026-10-24 홍TV님) → "하산 탑승" → 나가기(산 모음 /m/ 로). 인원이 모자라면 인솔자 "산행 취소".
  * 위치: 이 화면이 열린 동안 watchPosition → 30초마다(RFParty.fix, 서버는 출발할 때부터 받음). 인솔자 화면은 15초마다 새로 받음. 운전자 역할은 없음(2026-10-27 홍TV님 - 기사님에게 안전 책임이 가지 않게).
  */
@@ -561,7 +561,7 @@
             var nh = s.hikers;
             if (s.role === "lead" && !s.departed) {   // 탑승지마다 출발(2026-10-23 홍TV님) - 단추에 이번 탑승지
                 var ns = nextStop(s);
-                $("departBtn").textContent = ns ? T("🚌 " + ns.stop + " 출발 (" + ns.stop + "에서 안 탄 사람 취소)", "🚌 Depart " + ns.stop + " (cancel no-shows there)") : T("🚌 출발 (안 탄 사람 취소)", "🚌 Depart (cancel no-shows)");
+                $("departBtn").textContent = ns ? T("🚌 " + ns.stop + " 출발", "🚌 Depart " + ns.stop) : T("🚌 출발", "🚌 Depart");
             }
             $("phase").innerHTML = over ? overText(s) + (s.departed ? T(" · 하산 탑승 <b>", " · Back on bus <b>") + (s.aboardCount || 0) + "</b> / " + nh : "") + (s.role === "lead" ? T(" - 산행이 끝났으면 아래 \"방 끝내기\"", " - if the hike is over, tap \"End room\" below") : "")
                 : !s.departed && s.stopsDone > 0 ? T("🚌 이동 중 · " + esc(s.stops.slice(0, s.stopsDone).join(" · ")) + " 출발함 · 다음 탑승지 <b>" + esc(nextStop(s).stop) + "</b>", "🚌 On the way · left " + esc(s.stops.slice(0, s.stopsDone).join(" · ")) + " · next stop <b>" + esc(nextStop(s).stop) + "</b>")
@@ -633,16 +633,16 @@
         sosAlert(s);
         var rows = (s.members || []).filter(function (m) { return m.id !== s.me; });
         rows.sort(function (a, b) { var ka = rank(a), kb = rank(b); return ka !== kb ? ka - kb : (b.stillMin || 0) - (a.stillMin || 0); });
-        $("listTitle").textContent = T("회원 ", "Members ") + rows.filter(function (m) { return !m.cancelled; }).length + T("명", "") + (rows.some(function (m) { return m.cancelled; }) ? T(" · 취소 ", " · cancelled ") + rows.filter(function (m) { return m.cancelled; }).length : "");
+        $("listTitle").textContent = T("회원 ", "Members ") + rows.filter(function (m) { return !m.cancelled; }).length + T("명", "") + (rows.some(function (m) { return m.cancelled; }) ? T(" · 안 탐 ", " · not on bus ") + rows.filter(function (m) { return m.cancelled; }).length : "");
         $("list").innerHTML = rows.map(function (m) {
             var cls = m.cancelled ? "aboard" : m.sos ? "sos" : m.aboard ? "aboard" : (s.departed && silent(m)) ? "old" : "";
-            var st = m.cancelled ? T("❌ 취소", "❌ Cancelled") : m.sos ? "🆘 SOS" : m.aboard ? T("🚌 하산 탑승", "🚌 Back on bus") : m.role === "lead" ? T("인솔", "Leader")
+            var st = m.cancelled ? T("안 탐", "Not on bus") : m.sos ? "🆘 SOS" : m.aboard ? T("🚌 하산 탑승", "🚌 Back on bus") : m.role === "lead" ? T("인솔", "Leader")
                 : s.departed ? T("🥾 산행 중", "🥾 Hiking") : m.boarded ? T("✅ 탐", "✅ On bus") : T("안 탐", "Not on bus");
             if (m.listed) st = T("📋 핸드폰 없음 · ", "📋 No phone · ") + st   // 명단에만 - 인솔자가 눈으로 확인하고 눌러 체크(2026-10-24 홍TV님)
                 + (s.departed ? " <button type=\"button\" class=\"undo\" data-aboard=\"" + m.id + "\" data-on=\"" + (m.aboard ? 0 : 1) + "\">" + (m.aboard ? T("↩ 되돌리기", "↩ Undo") : T("🚌 하산 탐", "🚌 Back")) + "</button>"
                     : " <button type=\"button\" class=\"undo\" data-board=\"" + m.id + "\" data-on=\"" + (m.boarded ? 0 : 1) + "\">" + (m.boarded ? T("↩ 안 탐", "↩ Not on") : T("✅ 탔음", "✅ On bus")) + "</button>");
             return "<tr class=\"" + cls + "\" data-id=\"" + m.id + "\"><td>" + (m.role === "lead" ? "-" : seatText(s, m)) + "</td><td>" + esc(m.nick)
-                + (m.cancelled && m.role === "hiker" ? " <button type=\"button\" class=\"undo\" data-undo=\"" + m.id + "\" title=\"" + T("늦게 온 회원 - 취소 되돌리기", "Late member - undo cancel") + "\">" + T("↩ 탔음", "↩ On bus") + "</button>" : "") + "</td><td>" + (m.aboard ? "-" : newsText(m)) + "</td><td>"
+                + (m.cancelled && m.role === "hiker" ? " <button type=\"button\" class=\"undo\" data-undo=\"" + m.id + "\" title=\"" + T("늦게 온 회원", "Late member") + "\">" + T("✅ 탔음", "✅ On bus") + "</button>" : "") + "</td><td>" + (m.aboard ? "-" : newsText(m)) + "</td><td>"
                 + (m.stillMin != null && m.ago != null ? m.stillMin + T("분", " min") : "-") + "</td><td>" + (m.batt != null ? m.batt + "%" : "-") + "</td><td>" + st
                 + (s.role === "lead" && m.role !== "lead" ? " <button type=\"button\" class=\"kick\" data-kick=\"" + m.id + "\" title=\"" + T("방에서 내보내기", "Remove from room") + "\" aria-label=\"" + T(esc(m.nick) + " 내보내기", "Remove " + esc(m.nick)) + "\">✕</button>" : "") + "</td></tr>";
         }).join("") || "<tr><td colspan=\"6\">" + T("아직 참가한 회원이 없습니다. 참가 안내를 보내 주세요.", "No members have joined yet. Send the invite.") + "</td></tr>";
@@ -667,7 +667,7 @@
         }
         var u = e.target.closest("[data-undo]");
         if (u && state) {   // 취소된 회원(늦게 옴) - 자리가 다른 분에게 갔으면 자리 없이 되돌림(좌석표에서 다시 정함)
-            RFParty.post("mark", { token: RFParty.get().token, id: +u.getAttribute("data-undo"), what: "boarded", on: true }).then(function (j) { render(j); roomMsg(T("취소를 되돌렸습니다. 자리가 비어 있으면 좌석표에서 정해 주세요.", "Cancel undone. If they have no seat, set one on the seat map.")); }).catch(actFail);
+            RFParty.post("mark", { token: RFParty.get().token, id: +u.getAttribute("data-undo"), what: "boarded", on: true }).then(function (j) { render(j); roomMsg(T("탔음으로 바꿨습니다. 자리가 비어 있으면 좌석표에서 정해 주세요.", "Marked on the bus. If they have no seat, set one on the seat map.")); }).catch(actFail);
             return;
         }
         var tr = e.target.closest("tr[data-id]");
@@ -773,7 +773,7 @@
         for (var k = 1; k <= n; k++) {
             var at = seatPos(k, n), m = by[k], cls = "s", label = "";
             if (m) {
-                cls += m.cancelled ? " cxl" : m.sos ? " sos" : m.aboard ? " back" : m.boarded ? " board" : " join";   // join = 안 탐(2026-10-27 홍TV님 - 예약 · 인솔 · 참가 표시는 없앰, 출발 탑승이면 됨)
+                cls += m.cancelled ? " join" : m.sos ? " sos" : m.aboard ? " back" : m.boarded ? " board" : " join";   // join = 안 탐(2026-10-27 홍TV님 - 예약 · 인솔 · 참가 표시는 없앰, 출발 탑승이면 됨)
                 if (s.departed && !m.cancelled && !m.sos && !m.aboard && silent(m)) cls += " old";
                 label = "<small>" + esc(m.nick) + "</small>";
                 if (m.id === picked) cls += " pick";
@@ -814,8 +814,8 @@
         $("seatMap").classList.remove("moving");
         $("seatAct").hidden = !m;
         if (!m) return;
-        $("seatActName").innerHTML = "<b>" + seatName(state, m.bus, m.seat) + " " + esc(m.nick) + "</b>" + (m.stop ? " · " + esc(m.stop) : "") + " · " + (m.cancelled ? T("❌ 취소됨", "❌ Cancelled") : agoText(m.ago));
-        $("actBoard").textContent = m.cancelled ? T("↩ 탔음(취소 되돌리기)", "↩ On bus (undo cancel)") : m.boarded ? T("출발 탑승 취소", "Undo boarding") : T("✅ 출발 탑승", "✅ Boarded");
+        $("seatActName").innerHTML = "<b>" + seatName(state, m.bus, m.seat) + " " + esc(m.nick) + "</b>" + (m.stop ? " · " + esc(m.stop) : "") + " · " + (m.cancelled ? T("안 탐", "Not on bus") : agoText(m.ago));
+        $("actBoard").textContent = m.cancelled ? T("✅ 출발 탑승", "✅ Boarded") : m.boarded ? T("출발 탑승 취소", "Undo boarding") : T("✅ 출발 탑승", "✅ Boarded");
         stopOptions($("actStop"), state.stops, m.stop);
         $("actStopBox").hidden = !(state.stops || []).length;
         $("actKick").hidden = state.role !== "lead";
@@ -1093,9 +1093,9 @@
             return m.stop === ns.stop || (ns.last && (i < 0 || i < state.stopsDone));
         });
         var names = not.map(function (m) { return (m.seat ? seatName(state, m.bus, m.seat) + " " : "") + m.nick; }).join(", ");
-        if (!confirm((ns ? T(ns.stop + "에서 출발할까요?" + (ns.last ? "" : "\n(다음 탑승지 " + state.stops[state.stopsDone + 1] + " 회원은 그대로)"), "Depart from " + ns.stop + "?" + (ns.last ? "" : "\n(Members boarding at " + state.stops[state.stopsDone + 1] + " are kept)")) : T("출발할까요?", "Depart now?")) + (not.length ? T("\n안 탄 " + not.length + "명은 취소됩니다: " + names + "\n(늦게 오면 좌석표에서 되돌릴 수 있습니다)",
-            "\n" + not.length + " not on the bus will be cancelled: " + names + "\n(If they come late, you can undo it on the seat map)") : T("\n모두 탔습니다.", "\nEveryone is on the bus.")))) return;
-        RFParty.post("depart", { token: p.token }).then(function (j) { render(j); roomMsg((ns && !ns.last ? T("🚌 " + ns.stop + " 출발! ", "🚌 Left " + ns.stop + "! ") : T("🚌 출발! ", "🚌 Departed! ")) + (j.cancelledNow ? T(j.cancelledNow + "명 취소.", j.cancelledNow + " cancelled.") : "")); }).catch(actFail);
+        if (!confirm((ns ? T(ns.stop + "에서 출발할까요?" + (ns.last ? "" : "\n(다음 탑승지 " + state.stops[state.stopsDone + 1] + " 회원은 그대로)"), "Depart from " + ns.stop + "?" + (ns.last ? "" : "\n(Members boarding at " + state.stops[state.stopsDone + 1] + " are kept)")) : T("출발할까요?", "Depart now?")) + (not.length ? T("\n안 탄 " + not.length + "명(산행에서 빠짐): " + names + "\n(늦게 오면 좌석표에서 \"출발 탑승\"을 누르면 됩니다)",
+            "\n" + not.length + " not on the bus (left out of the hike): " + names + "\n(If they come late, tap \"Boarded\" on the seat map)") : T("\n모두 탔습니다.", "\nEveryone is on the bus.")))) return;
+        RFParty.post("depart", { token: p.token }).then(function (j) { render(j); roomMsg((ns && !ns.last ? T("🚌 " + ns.stop + " 출발! ", "🚌 Left " + ns.stop + "! ") : T("🚌 출발! ", "🚌 Departed! ")) + (j.cancelledNow ? T("안 탐 " + j.cancelledNow + "명.", j.cancelledNow + " not on the bus.") : "")); }).catch(actFail);
     });
 
     $("cancelTripBtn").addEventListener("click", function () {

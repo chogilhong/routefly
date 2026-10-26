@@ -14,7 +14,7 @@
 <meta property="og:description" content="인솔자가 보낸 링크로 들어와 별명 · 좌석 · 탑승지를 남기세요. 산행 날 인솔자가 회원 위치 · SOS 를 봅니다.">
 <meta property="og:image" content="https://routefly.kr/routefly/img/og.png?v=2">
 <!-- 산악회 방(2026-10-20 홍TV님 - 안내 산악회): 인솔자가 산행 전에 방을 만들어 예약 회원에게 코드 · 링크를 보냄 → 회원 참가(좌석 · 탑승지 · 동의)
-     → 출발 날 버스 안 QR · NFC 를 찍으면 출발 탑승(2026-10-27) → 인솔자 "출발"(안 탄 사람 취소) → 산행 중 인솔자가 회원 위치 · SOS 를 봄(회원은 따라가기 지도로 걷고 남의 위치는 안 봄 - 2026-10-24 홍TV님) → 하산 탑승 → 나가기.
+     → 출발 날 버스 안 QR · NFC 를 찍으면 출발 탑승(2026-10-27) → 인솔자 "출발"(안 탄 사람은 빠짐) → 산행 중 인솔자가 회원 위치 · SOS 를 봄(회원은 따라가기 지도로 걷고 남의 위치는 안 봄 - 2026-10-24 홍TV님) → 하산 탑승 → 나가기.
      서버 설정 party.enabled=true 일 때만 열림. party.html?c=방코드 -->
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="img/apple-icon-180.png">
@@ -80,7 +80,6 @@ select, input[type=number] { width:100%; height:44px; padding:0 10px; border-rad
 .s.board { background:var(--sky); border:1.5px solid var(--sky); color:#062026; font-weight:bold; }
 .s.old { border:2px solid #ffa94d; }
 .s.sos { background:#c92a2a; border-color:#c92a2a; color:#fff; font-weight:bold; }
-.s.cxl { border:1.5px dashed var(--red); color:var(--red); text-decoration:line-through; }
 .s.back { background:var(--green); border-color:var(--green); color:#06210c; }
 .s.aisle { visibility:hidden; }
 #mkPlates { display:grid; grid-template-columns:1fr 1fr; gap:0 10px; }
@@ -243,8 +242,8 @@ a.tel { color:var(--sky); }
                 <div class="two" id="actStopBox"><div><label for="actStop" data-en="Change boarding stop">탑승지 바꾸기</label><select id="actStop"></select></div><div></div></div>
             </div>
             <div id="stopSum" class="tip"></div>
-            <p class="tip" data-en="Members who scan the bus QR · NFC become &lt;b&gt;Boarded&lt;/b&gt;. Tap a seat with a person for the menu (boarded · move seat · map · path taken · boarding stop) - check people without a phone yourself. Anyone not boarded at departure is &lt;b&gt;Cancelled&lt;/b&gt;.">회원이 버스 안 QR · NFC 를 찍으면 <b>출발 탑승</b>이 됩니다. 사람이 있는 자리를 누르면 메뉴(출발 탑승 · 자리 옮기기 · 지도 · 지나온 길 · 탑승지) - 핸드폰 없는 분은 여기서 체크하세요. 출발 때 안 탄 사람은 <b>취소</b>됩니다.</p>
-            <div class="legend"><span class="s join" data-en="Not on bus">안 탐</span><span class="s board" data-en="Boarded">출발 탑승</span><span class="s cxl" data-en="Cancelled">취소</span><span class="s old" data-en="No update 10 min">10분 소식 없음</span><span class="s sos" data-en="SOS">SOS</span><span class="s back" data-en="Back on bus">하산 탑승</span>
+            <p class="tip" data-en="Members who scan the bus QR · NFC become &lt;b&gt;Boarded&lt;/b&gt;. Tap a seat with a person for the menu (boarded · move seat · map · path taken · boarding stop) - check people without a phone yourself. Anyone still &lt;b&gt;Not on bus&lt;/b&gt; at departure is left out of the hike.">회원이 버스 안 QR · NFC 를 찍으면 <b>출발 탑승</b>이 됩니다. 사람이 있는 자리를 누르면 메뉴(출발 탑승 · 자리 옮기기 · 지도 · 지나온 길 · 탑승지) - 핸드폰 없는 분은 여기서 체크하세요. 출발 때 <b>안 탐</b>인 사람은 산행에서 빠집니다.</p>
+            <div class="legend"><span class="s join" data-en="Not on bus">안 탐</span><span class="s board" data-en="Boarded">출발 탑승</span><span class="s old" data-en="No update 10 min">10분 소식 없음</span><span class="s sos" data-en="SOS">SOS</span><span class="s back" data-en="Back on bus">하산 탑승</span>
                 <a class="guideLink" href="party-guide.html#seat" data-en="📖 Leader guide (Korean)">📖 인솔자 사용법</a></div>
         </section>
         <section id="staffBox" hidden>
@@ -255,7 +254,7 @@ a.tel { color:var(--sky); }
                 <div class="row"><button id="rosterBtn" data-en="Add to the list">명단에 넣기</button></div>
             </details>
             <div class="row" id="departRow">
-                <button id="departBtn" class="main" data-en="🚌 Depart (cancel no-shows)">🚌 출발 (안 탄 사람 취소)</button>
+                <button id="departBtn" class="main" data-en="🚌 Depart">🚌 출발</button>
                 <button id="cancelTripBtn" class="danger" data-en="Cancel hike (weather · accident etc.)">산행 취소 (날씨 · 사고 등)</button>
             </div>
             <a class="guideLink" href="party-guide.html" style="margin-top:10px" data-en="📖 Leader guide (Korean - a must-read the first time)">📖 인솔자 사용법 (처음이면 꼭 읽어 보세요)</a>
