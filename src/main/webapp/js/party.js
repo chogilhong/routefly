@@ -213,6 +213,15 @@
         });
     }
 
+    // 기사님(운전자 코드) · 링크 없이 코드만 받은 회원 - 아래 한 줄로 참가 칸을 엶(2026-10-26 홍TV님 - 그냥 열면 방 만들기만)
+    $("joinShow").addEventListener("click", function (e) {
+        e.preventDefault();
+        $("joinShowRow").hidden = true;
+        $("joinSec").hidden = false;
+        $("joinBox").open = true;
+        $("joinSec").scrollIntoView({ behavior: "smooth", block: "start" });
+        $("joinCode").focus();
+    });
     $("mkShow").addEventListener("click", function (e) {
         e.preventDefault();
         $("mkShowRow").hidden = true;
@@ -244,7 +253,7 @@
             }
             if (cur) { enterRoom(); return; }
             show("start");
-            if (q.get("c")) { appOpen(); $("mkSec").hidden = true; $("mkShowRow").hidden = false; }
+            if (q.get("c")) { appOpen(); $("mkSec").hidden = true; $("mkShowRow").hidden = false; $("joinSec").hidden = false; $("joinShowRow").hidden = true; }
             if (q.get("c")) { $("joinBox").open = true; $("joinCode").value = q.get("c").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6); loadInfo(); }
             try { $("joinNick").value = localStorage.getItem("rf-party-nick") || ""; } catch (e) { /* 없음 */ }
             var t = new Date(Date.now() + 86400000);   // 출발 날짜 - 내일로 두고 고치게
@@ -274,15 +283,7 @@
             seatOptions($("joinSeat"), j.seats, j.taken, null, T("고르기", "Choose"), 1, j.booked);
             var qs = new URLSearchParams(location.search).get("s");   // QR 에 실린 탑승지(인솔자가 그 자리에서 보여 준 것)
             stopOptions($("joinStop"), j.stops, qs && (j.stops || []).indexOf(qs) >= 0 ? qs : null, T("고르기", "Choose"));
-            if (j.driverInvite) {   // 운전자 코드로 들어옴(인솔자가 기사님께만 준 것) - 운전으로 고정
-                document.querySelector("input[name=role][value=driver]").checked = true;
-                document.querySelector("input[name=role][value=hiker]").disabled = true;
-            } else {   // 방 코드 - 산행만(운전자는 운전자 코드로, 2026-10-21 점검)
-                document.querySelector("input[name=role][value=hiker]").disabled = false;
-                document.querySelector("input[name=role][value=hiker]").checked = true;
-                document.querySelector("input[name=role][value=driver]").disabled = true;
-            }
-            roleChanged();
+            roleChanged();   // 역할은 코드가 정함 - 운전자 코드면 운전, 방 코드면 산행(2026-10-21 점검)
             if (j.departed) joinErr(T("이미 출발한 방이라 산행 회원은 새로 참가할 수 없습니다. 인솔자에게 연락해 주세요. (운전자는 참가할 수 있습니다)", "This room has already departed, so new hikers can't join. Please contact your leader. (Drivers can still join.)"));
         }).catch(function (e) { if ($("joinCode").value.trim().toUpperCase() !== code) return; infoFor = null; $("joinCard").hidden = true; $("joinSeatBox").hidden = true; joinErr(enMsg(e.message), $("joinCode")); });
     }
@@ -291,11 +292,10 @@
     $("joinBus").addEventListener("change", function () { if (joinInfo) seatOptions($("joinSeat"), joinInfo.seats, joinInfo.taken, null, T("고르기", "Choose"), +$("joinBus").value, joinInfo.booked); });
     /** 운전자는 호차만(좌석 · 탑승지 없음). */
     function roleChanged() {
-        var drv = ((document.querySelector("input[name=role]:checked") || {}).value) === "driver";
+        var drv = !!(joinInfo && joinInfo.driverInvite);
         $("joinSeat").parentNode.hidden = drv || !(joinInfo && joinInfo.seats > 0);
         $("joinStop").parentNode.hidden = drv || !(joinInfo && (joinInfo.stops || []).length);
     }
-    Array.prototype.forEach.call(document.querySelectorAll("input[name=role]"), function (r) { r.addEventListener("change", roleChanged); });
 
     /** 참가하기 안내 - 단추 바로 밑(아래 msg 는 방 만들기 밑이라 화면 밖이었음 - 2026-10-20 홍TV님 "코드 없이 누르면 안 움직임"). el - 빨간 테두리 · 그 칸으로. */
     function joinErr(t, el) {
@@ -305,7 +305,7 @@
     }
     $("joinBtn").addEventListener("click", function () {
         var code = $("joinCode").value.trim().toUpperCase(), nick = $("joinNick").value.trim();
-        var role = (document.querySelector("input[name=role]:checked") || {}).value || "hiker";
+        var role = joinInfo && joinInfo.driverInvite ? "driver" : "hiker";
         if (code.length !== 6) { joinErr(T("방 코드 6글자를 적어 주세요. 인솔자가 보낸 카톡 · 문자의 링크를 누르면 저절로 채워집니다.", "Please enter the 6-letter room code. Opening the link your leader sent (KakaoTalk · text) fills it in."), $("joinCode")); return; }
         if (!nick) { joinErr(T("이름을 적어 주세요.", "Please enter your name."), $("joinNick")); return; }
         if (!$("joinAgree").checked) { joinErr(T("위치 제공에 동의해야 참가할 수 있습니다(위 네모 칸 체크).", "You need to agree to share your location to join (tick the box above)."), $("joinAgree").parentNode); return; }
