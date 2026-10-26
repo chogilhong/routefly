@@ -16,7 +16,7 @@ import com.google.gson.JsonParser;
  * 산악회 방 API(Party - 2026-10-20 홍TV님). 열쇠(token)는 주소가 아니라 본문으로(접속 기록에 남지 않게), 응답은 저장하지 않음(no-store).
  * <pre>
  * GET  /api/party/status                                  {enabled, app} - app: 앱을 플레이스토어에 올렸으면(app.released=true) 회원을 앱으로
- * POST /api/party/create {name, departAt, endAt, minPeople, leaderName, leaderPhone, buses, seats, plates, stops}  인솔자 → 방 + 열쇠(buses 차량 수 · seats 한 대 좌석 · plates 호차별 차량번호)
+ * POST /api/party/create {name, departAt, endAt, leaderName, leaderPhone, buses, seats, plates, stops}  인솔자 → 방 + 열쇠(buses 차량 수 · seats 한 대 좌석 · plates 호차별 차량번호)
  * POST /api/party/info   {code}                            참가 전 방 소개(이름 · 출발 · 인솔자 · 인원 · 좌석 수 · 탑승지 · 찬 좌석)
  * POST /api/party/join   {code, nick, role, bus, seat, stop, agree} 회원(hiker) · 운전자(driver) → 열쇠 - agree(위치 제공 동의)가 true 여야
  * POST /api/party/loc    {token, lat, lon, acc, batt, sos} 내 위치(출발 3시간 전부터 받음) → 방 화면
@@ -154,7 +154,7 @@ public class PartyServlet extends HttpServlet {
     /** 처리(시험이 store · 시각을 넣음). 잘못된 값 → IllegalArgumentException, 권한 없음 → SecurityException, 끝난 방 → Party.Ended. */
     static JsonObject handle(Party p, String path, JsonObject in, long now) {
         if ("/create".equals(path)) {
-            Party.Member lead = p.create(str(in, "name"), lng(in, "departAt"), lng(in, "endAt"), Math.max(1, (int) lng(in, "buses")), (int) lng(in, "seats"), (int) lng(in, "minPeople"),
+            Party.Member lead = p.create(str(in, "name"), lng(in, "departAt"), lng(in, "endAt"), Math.max(1, (int) lng(in, "buses")), (int) lng(in, "seats"),
                     Party.stops(str(in, "stops")), str(in, "leaderName"), str(in, "leaderPhone"), strs(in, "plates"), now);
             return withToken(p.view(lead, now), lead);
         }

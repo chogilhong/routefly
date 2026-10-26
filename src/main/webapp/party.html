@@ -134,7 +134,6 @@ input.bad, .agree.bad { border-color:#ff6b6b !important; }
 .card { background:rgba(56,217,234,0.07); border:1px solid rgba(56,217,234,0.35); border-radius:10px; padding:10px 12px; font-size:14px; line-height:1.7; margin-top:10px; }
 .card b { color:var(--tx); }
 .ok { color:var(--green); font-weight:bold; }
-.wait { color:#ffa94d; font-weight:bold; }
 #phase { font-size:14.5px; line-height:1.6; margin:8px 0 0; }
 a.tel { color:var(--sky); }
 </style>
@@ -194,10 +193,6 @@ a.tel { color:var(--sky); }
                 <div><label for="mkNights" data-en="Schedule">일정</label><select id="mkNights">
                     <option value="0" data-en="Day trip · overnight bus">당일 · 무박</option><option value="1" data-en="2 days, 1 night">1박 2일</option><option value="2" data-en="3 days, 2 nights">2박 3일</option><option value="3" data-en="4 days, 3 nights">3박 4일</option></select></div>
                 <div><label for="mkEnd" id="mkEndLabel" data-en="Back-down deadline">하산 마감</label><input id="mkEnd" type="text" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="예: 1600" data-en-placeholder="e.g. 1600"></div>
-            </div>
-            <div class="two">
-                <div><label for="mkMin" data-en="Minimum group size">최소 인원</label><input id="mkMin" type="number" min="0" max="80" value="18" inputmode="numeric"></div>
-                <div></div>
             </div>
             <div class="two">
                 <div><label for="mkLead" data-en="Leader name">인솔자 이름</label><input id="mkLead" type="text" maxlength="12" placeholder="예: 김대장" data-en-placeholder="e.g. Captain Kim"></div>

@@ -60,11 +60,11 @@ public class PartyTest {
         assertEquals("010-1234-5678", room.get("leaderPhone").getAsString());
         assertEquals("[\"사당\",\"양재\",\"복정\"]", room.getAsJsonArray("stops").toString());
 
-        // 참가 전 소개 - 인솔자 · 인원 · 최소 인원
+        // 참가 전 소개 - 인솔자 · 인원
         JsonObject info = call(p, "/info", "{\"code\":\"" + code.toLowerCase() + "\"}", T0);
         assertEquals("김대장", info.get("leaderName").getAsString());
         assertEquals(0, info.get("hikers").getAsInt());
-        assertEquals(2, info.get("minPeople").getAsInt());
+        assertFalse("최소 인원은 뺌(2026-10-26)", info.has("minPeople"));
 
         try { call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"철수\",\"role\":\"hiker\"}", T0); fail("동의 없이"); }
         catch (IllegalArgumentException e) { assertTrue(e.getMessage().contains("동의")); }

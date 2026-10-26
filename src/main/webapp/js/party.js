@@ -72,7 +72,6 @@
         [/차량번호는/, "Write the plate number in numbers and Korean letters (e.g. 12가 3456)."],
         [/위치가 올바르지 않습니다/, "Invalid location."],
         [/시각이 올바르지 않습니다/, "Invalid time."],
-        [/최소 인원이 올바르지 않습니다/, "Invalid minimum headcount."],
         [/인솔자가 이 방에서 내보냈습니다/, "The leader removed you from this room. If this is a mistake, contact your leader."],
         [/인솔자가 산행을 취소했습니다/, "The leader cancelled the hike."],
         [/인솔자가 방을 끝냈습니다/, "The leader ended the room. Thanks for hiking!"],
@@ -156,11 +155,9 @@
         return out.join(" · ");
     }
     function tel(phone) { return phone ? " <a class=\"tel\" href=\"tel:" + esc(phone.replace(/[^0-9+]/g, "")) + "\">☎ " + esc(phone) + "</a>" : ""; }
-    /** 인원 - "참가 12 / 최소 18 ⏳ 미달" */
+    /** 인원 - "산행 12명" */
     function headcount(s) {
-        var t = T("산행 <b>" + s.hikers + "</b>명", "Hikers <b>" + s.hikers + "</b>");
-        if (s.minPeople > 0 && !s.departed) t += T(" / 최소 ", " / min ") + s.minPeople + (s.hikers >= s.minPeople ? " <span class=\"ok\">" + T("✅ 출발 확정", "✅ Trip confirmed") + "</span>" : " <span class=\"wait\">" + T("⏳ 미달", "⏳ Not enough yet") + "</span>");
-        return t;
+        return T("산행 <b>" + s.hikers + "</b>명", "Hikers <b>" + s.hikers + "</b>");
     }
     /** 방 소개 카드(참가 전 · 방 위 칸이 같이 씀). */
     function aboutHtml(s) {
@@ -392,7 +389,7 @@
             endAt = e.getTime();
         }
         $("mkBtn").disabled = true;
-        RFParty.post("create", { name: name, departAt: depart, endAt: endAt, minPeople: Math.max(0, Math.min(80, +$("mkMin").value || 0)),
+        RFParty.post("create", { name: name, departAt: depart, endAt: endAt, 
             leaderName: $("mkLead").value.trim(), leaderPhone: RFParty.dashes($("mkPhone").value),
             plates: Array.prototype.map.call(document.querySelectorAll("#mkPlates input"), function (x) { return x.value.trim(); }),
             buses: Math.max(1, Math.min(8, +$("mkBuses").value || 1)), seats: Math.max(0, Math.min(60, +$("mkSeats").value || 0)), stops: $("mkStops").value }).then(function (j) {

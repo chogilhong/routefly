@@ -24,7 +24,7 @@ import com.google.gson.JsonParser;
 /**
  * 산악회 방(2026-10-20 홍TV님 - 안내 산악회). 흐름: 인솔자가 산행 전에 방을 만들어 예약한 회원에게 코드 · 링크를 보냄 → 회원이 참가(좌석 · 탑승지)
  * → 출발 날 탑승지에서 "버스 탔어요"(또는 인솔자가 좌석표에서) → 인솔자 "출발" 때 안 탄 사람은 취소 → 산행 중 서로 위치(인솔자는 다 봄) · SOS
- * → 하산 뒤 "하산 탑승" → 나가기 · 인솔자가 방 끝내기. 최소 인원이 안 차면 인솔자가 "산행 취소".
+ * → 하산 뒤 "하산 탑승" → 나가기 · 인솔자가 방 끝내기. 산행을 안 하게 되면 인솔자가 "산행 취소".
  *
  * <ul>
  *   <li>방 정보(이름 · 시각 · 좌석 · 탑승지 · 별명 · 탑승 표시 · 열쇠)는 서버 파일(party.json, 600)에 - 산행 며칠 전에 만든 방이 배포 · 재시작에도 남게.
@@ -111,7 +111,7 @@ final class Party {
     static final class Room {
         final String code, name;
         final long created, departAt, endAt;   // departAt 출발 · endAt 하산 마감(0 = 없음)
-        final int seats, minPeople, buses;   // seats - 차 한 대 좌석 수
+        final int seats, buses;   // seats - 차 한 대 좌석 수(최소 인원은 2026-10-26 뺌 - 미달이면 산악회가 미리 취소해 방을 만들 일이 없음)
         final List<String> stops;
         final String leaderName, leaderPhone;
         final Map<String, Member> members = new LinkedHashMap<>();
@@ -127,9 +127,9 @@ final class Party {
         /** 운전자 코드(2026-10-21 점검): 방 코드는 카톡 · QR · NFC 로 널리 퍼지므로, 운전자(좌석표 · 탑승 체크를 고침)는 인솔자가 기사님께만 주는 이 코드로만 참가. */
         String driverCode;
 
-        Room(String code, String name, long created, long departAt, long endAt, int buses, int seats, int minPeople, List<String> stops, String leaderName, String leaderPhone) {
+        Room(String code, String name, long created, long departAt, long endAt, int buses, int seats, List<String> stops, String leaderName, String leaderPhone) {
             this.code = code; this.name = name; this.created = created; this.departAt = departAt; this.endAt = endAt; this.buses = Math.max(1, buses); this.seats = seats;
-            this.minPeople = minPeople; this.stops = stops; this.leaderName = leaderName; this.leaderPhone = leaderPhone;
+            this.stops = stops; this.leaderName = leaderName; this.leaderPhone = leaderPhone;
             this.plates = new String[this.buses];
         }
 
@@ -313,7 +313,7 @@ final class Party {
 
     // ---------------------------------------------------------------- 만들기 · 참가
 
-    synchronized Member create(String name, long departAt, long endAt, int buses, int seats, int minPeople, List<String> stops,
+    synchronized Member create(String name, long departAt, long endAt, int buses, int seats, List<String> stops,
                                String leaderName, String leaderPhone, List<String> plates, long now) {
         sweep(now);
         String n = clean(name, 30);
@@ -321,7 +321,6 @@ final class Party {
         if (rooms.size() >= MAX_ROOMS) throw new IllegalStateException("지금은 방을 더 만들 수 없습니다. 잠시 뒤 다시 해 주세요.");
         if (seats < 0 || seats > MAX_SEATS) throw new IllegalArgumentException("좌석 수는 0 ~ " + MAX_SEATS + " 입니다.");
         if (buses < 1 || buses > MAX_BUSES) throw new IllegalArgumentException("차량은 1 ~ " + MAX_BUSES + "대입니다.");
-        if (minPeople < 0 || minPeople > MAX_MEMBERS) throw new IllegalArgumentException("최소 인원이 올바르지 않습니다.");
         if (departAt < 0 || endAt < 0) throw new IllegalArgumentException("시각이 올바르지 않습니다.");
         if (departAt > 0 && (departAt < now - 24 * HOUR || departAt > now + 30L * 24 * HOUR)) throw new IllegalArgumentException("출발은 오늘부터 30일 안으로 정해 주세요.");
         // 출발 시각 없이 하산 마감만 - 지난 때 · 너무 먼 때는 받지 않음(점검: 방이 40일 동안 남았음)
@@ -329,7 +328,7 @@ final class Party {
         if (endAt > 0 && departAt > 0 && endAt <= departAt) throw new IllegalArgumentException("하산 마감은 출발보다 뒤여야 합니다.");
         if (endAt > 0 && departAt > 0 && endAt > departAt + MAX_TRIP_MS) throw new IllegalArgumentException("하산 마감은 출발 뒤 5일 안으로 정해 주세요(3박 4일까지).");   // 방이 40일 동안 남지 않게(점검)
         String lead = clean(leaderName, 12);
-        Room r = new Room(newCode(), n, now, departAt, endAt, buses, seats, minPeople, List.copyOf(stops), lead, phone(leaderPhone));
+        Room r = new Room(newCode(), n, now, departAt, endAt, buses, seats, List.copyOf(stops), lead, phone(leaderPhone));
         if (plates != null) for (int i = 0; i < Math.min(plates.size(), r.buses); i++) r.plates[i] = plate(plates.get(i));
         do r.driverCode = newCode(); while (r.driverCode.equals(r.code));   // 방 코드와 같으면 모두 운전자로 들어옴(점검)
         rooms.put(r.code, r);
@@ -840,7 +839,7 @@ final class Party {
         for (Room r : rooms.values()) {
             JsonObject o = new JsonObject();
             o.addProperty("code", r.code); o.addProperty("name", r.name); o.addProperty("created", r.created); o.addProperty("driverCode", r.driverCode);
-            o.addProperty("departAt", r.departAt); o.addProperty("endAt", r.endAt); o.addProperty("buses", r.buses); o.addProperty("seats", r.seats); o.addProperty("minPeople", r.minPeople);
+            o.addProperty("departAt", r.departAt); o.addProperty("endAt", r.endAt); o.addProperty("buses", r.buses); o.addProperty("seats", r.seats);
             o.add("stops", strings(r.stops)); o.addProperty("leaderName", r.leaderName); o.addProperty("leaderPhone", r.leaderPhone);
             o.add("plates", plateArray(r));
             JsonArray rs = new JsonArray(); r.reserved.forEach(rs::add); o.add("reserved", rs);
@@ -901,7 +900,7 @@ final class Party {
                 List<String> st = new ArrayList<>();
                 if (o.has("stops")) o.getAsJsonArray("stops").forEach(x -> st.add(x.getAsString()));
                 Room r = new Room(o.get("code").getAsString(), o.get("name").getAsString(), lng(o, "created"), lng(o, "departAt"), lng(o, "endAt"),
-                        o.has("buses") ? o.get("buses").getAsInt() : 1, (int) lng(o, "seats"), (int) lng(o, "minPeople"), List.copyOf(st), str(o, "leaderName"), str(o, "leaderPhone"));
+                        o.has("buses") ? o.get("buses").getAsInt() : 1, (int) lng(o, "seats"), List.copyOf(st), str(o, "leaderName"), str(o, "leaderPhone"));
                 if (o.has("reserved")) o.getAsJsonArray("reserved").forEach(x -> r.reserved.add(x.getAsInt()));
                 if (o.has("plates")) {
                     JsonArray pa = o.getAsJsonArray("plates");
@@ -990,7 +989,6 @@ final class Party {
         o.addProperty("departAt", r.departAt);
         o.addProperty("endAt", r.endAt);
         o.addProperty("closesAt", r.closesAt());   // 방이 저절로 끝나는 때(하산 마감 6시간 뒤 - 2026-10-21 홍TV님: 마감이 지난 방에 "출발까지 9시간 지남"만 보였음)
-        o.addProperty("minPeople", r.minPeople);
         o.addProperty("hikers", r.hikers());
         if (r.leaderName != null) o.addProperty("leaderName", r.leaderName);
         if (r.leaderPhone != null && me != null) o.addProperty("leaderPhone", r.leaderPhone);   // 참가한 사람에게만(방 코드만 아는 사람에게 연락처가 안 보이게 - 점검, 참가 안내 글에는 그대로)
