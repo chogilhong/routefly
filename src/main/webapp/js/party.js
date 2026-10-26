@@ -789,10 +789,12 @@
         var seated = (s.members || []).filter(function (m) { return m.seat && !m.cancelled && m.bus === curBus; });
         $("seatSum").textContent = busLabel(s, curBus) + T("명단 ", "Listed ") + seated.length + T(" · 출발 탑승 ", " · Boarded ")
             + seated.filter(function (m) { return m.boarded; }).length + T(" · 하산 탑승 ", " · Back on bus ") + seated.filter(function (m) { return m.aboard; }).length;
-        $("stopSum").innerHTML = (s.stops || []).map(function (t) {
-            var at = (s.members || []).filter(function (m) { return m.stop === t && !m.cancelled; });
-            return "<b>" + esc(t) + "</b>" + T(" 탐 ", " on bus ") + at.filter(function (m) { return m.boarded; }).length + " / " + at.length;
-        }).join(" · ") + (s.buses > 1 && (s.stops || []).length ? T(" (모든 호차)", " (all buses)") : "");
+        // 탑승지별 인원(2026-10-27 홍TV님 "사당 2명, 양재 1명, 복정 1명") - 회원이 참가할 때 고른 탑승지, 고르지 않은 사람은 "탑승지 모름"
+        var hk = (s.members || []).filter(function (m) { return m.role === "hiker" && !m.cancelled; });
+        var none = hk.filter(function (m) { return !m.stop || (s.stops || []).indexOf(m.stop) < 0; }).length;
+        $("stopSum").innerHTML = (s.stops || []).length ? (s.stops || []).map(function (t) {
+            return "<b>" + esc(t) + "</b> " + hk.filter(function (m) { return m.stop === t; }).length + T("명", "");
+        }).join(" · ") + (none ? T(" · 탑승지 모름 ", " · stop unknown ") + none + T("명", "") : "") + (s.buses > 1 ? T(" (모든 호차)", " (all buses)") : "") : "";
     }
 
     $("busTabs").addEventListener("click", function (e) {
@@ -953,23 +955,6 @@
         if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(function () { copyMsg(T("✅ 복사했습니다. 카톡 · 문자 창에 길게 눌러 붙여 넣으세요.", "✅ Copied. Long-press in a KakaoTalk or text message to paste.")); }, old);
         else old();
     }
-    /** 카톡으로 - 안드로이드는 카톡을 바로 열어 글을 넣음(친구 · 단톡방 고르기), 그 밖(아이폰 등)은 공유 창(카톡 고르기). 2026-10-20 홍TV님. */
-    $("shareBtn").addEventListener("click", function () {
-        var text = inviteText();
-        var cap = window.Capacitor, share = NATIVE && cap ? (cap.registerPlugin ? cap.registerPlugin("Share") : cap.Plugins && cap.Plugins.Share) : null;
-        if (share) {   // 앱(웹뷰)은 navigator.share 가 없어 아무 일도 없었음(2026-10-21 홍TV님 "카톡이 안 열려") - 앱 공유 창에서 카카오톡
-            Promise.resolve(share.share({ text: text, dialogTitle: T("카카오톡으로 보내기", "Send via KakaoTalk") })).catch(function (e) { if (!/cancel/i.test(String(e && e.message))) copyInvite(); });
-            return;
-        }
-        if (/Android/i.test(navigator.userAgent) && !NATIVE) {
-            location.href = "intent:#Intent;action=android.intent.action.SEND;type=text/plain;S.android.intent.extra.TEXT=" + encodeURIComponent(text) + ";package=com.kakao.talk;end";
-            // 카톡이 안 열렸으면(카톡이 없음 · 다른 앱 안 브라우저가 막음) 1.5초 뒤 공유 창 · 복사로
-            setTimeout(function () { if (!document.hidden) { if (navigator.share) navigator.share({ text: text }).catch(function () { /* 닫음 */ }); else copyInvite(); } }, 1500);
-            return;
-        }
-        if (navigator.share) navigator.share({ text: text }).catch(function () { /* 닫음 */ });
-        else copyInvite();
-    });
     /** 현장 참가 QR - 참가 링크를 크게(화면 밝기 그대로 비추면 됨). qrcode-generator(MIT) 가 없으면 코드만. 방마다 QR 하나(2026-10-27 홍TV님 - 탑승지 고르기 뺌). */
     /** QR 창 - url 을 QR 로, 위 · 아래 글과 코드. 회원 참가 QR · 내 핸드폰에서도 보기(공동 인솔자 코드)가 같이 씀. */
     function showQr(url, head, codeLabel, code, tip) {
@@ -1028,7 +1013,6 @@
                 });
     });
 
-    $("smsBtn").addEventListener("click", function () { location.href = "sms:?&body=" + encodeURIComponent(inviteText()); });   // 안드로이드 · 아이폰 둘 다 되는 꼴
     $("copyBtn").addEventListener("click", copyInvite);
     $("inviteUrl").addEventListener("focus", function () { this.select(); });
 
