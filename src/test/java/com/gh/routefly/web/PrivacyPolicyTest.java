@@ -48,6 +48,7 @@ public class PrivacyPolicyTest {
         assertTrue(read("src/main/java/com/gh/routefly/web/PartyServlet.java").contains("return \"true\".equalsIgnoreCase(RouteflyConfig.get(\"party.enabled\"));"));
         assertTrue(read("src/main/java/com/gh/routefly/web/PartyServlet.java").contains("위치 제공에 동의해야 참가할 수 있습니다."));
         assertTrue(policy.contains("<b>참가할 때 동의한 사람의 위치만</b>") && policy.contains("6개월 넘게(200일)"));
+        assertTrue("위치기반서비스사업 신고번호(2026-10-26)", policy.contains("신고번호 제1857호"));
         String log4j = read("src/main/resources/log4j2.xml");
         assertTrue(log4j.contains("<IfFileName glob=\"party-*.log.gz\"/>") && log4j.contains("<IfLastModified age=\"200d\"/>"));
         // 의견 보내기(2026-10-20): IP 없이 파일, 12달 뒤 지움, 답장 메일은 적었을 때만
