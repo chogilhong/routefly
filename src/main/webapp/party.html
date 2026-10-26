@@ -14,7 +14,7 @@
 <meta property="og:description" content="인솔자가 보낸 링크로 들어와 별명 · 좌석 · 탑승지를 남기세요. 산행 날 인솔자가 회원 위치 · SOS 를 봅니다.">
 <meta property="og:image" content="https://routefly.kr/routefly/img/og.png?v=2">
 <!-- 산악회 방(2026-10-20 홍TV님 - 안내 산악회): 인솔자가 산행 전에 방을 만들어 예약 회원에게 코드 · 링크를 보냄 → 회원 참가(좌석 · 탑승지 · 동의)
-     → 출발 날 "버스 탔어요" → 인솔자 "출발"(안 탄 사람 취소) → 산행 중 인솔자가 회원 위치 · SOS 를 봄(회원은 따라가기 지도로 걷고 남의 위치는 안 봄 - 2026-10-24 홍TV님) → 하산 탑승 → 나가기.
+     → 출발 날 버스 안 QR · NFC 를 찍으면 출발 탑승(2026-10-27) → 인솔자 "출발"(안 탄 사람 취소) → 산행 중 인솔자가 회원 위치 · SOS 를 봄(회원은 따라가기 지도로 걷고 남의 위치는 안 봄 - 2026-10-24 홍TV님) → 하산 탑승 → 나가기.
      서버 설정 party.enabled=true 일 때만 열림. party.html?c=방코드 -->
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="img/apple-icon-180.png">
@@ -75,8 +75,6 @@ select, input[type=number] { width:100%; height:44px; padding:0 10px; border-rad
      color:var(--dim); font-size:12px; line-height:1.1; cursor:pointer; user-select:none; }
 .s small { font-size:11px; max-width:100%; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
 .s.door { color:var(--dim); font-size:12px; }
-.s.rsv { border:1.5px dashed #ffa94d; color:#ffa94d; }
-.s.listed { border-style:dashed !important; opacity:.8; }   /* 명단에만(핸드폰 안 들어옴) */
 #rosterText { width:100%; min-height:72px; box-sizing:border-box; }
 .s.join { border:1.5px solid var(--sky); color:var(--tx); }
 .s.board { background:var(--sky); border:1.5px solid var(--sky); color:#062026; font-weight:bold; }
@@ -164,8 +162,8 @@ a.tel { color:var(--sky); }
                 </div>
             </div>
             <div class="agree"><input id="joinAgree" type="checkbox">
-                <label for="joinAgree" style="margin:0;color:inherit;font-size:inherit" data-en="I agree to show &lt;b&gt;my name · location (latest one only) · SOS · battery · boarding&lt;/b&gt; to the leaders of this room (leader · co-leader) (other members don't see my location). My location is sent while the trail guide screen is open. My location is sent from 3 hours before departure and is deleted when I leave the room or the hike ends. After departure, the leaders can see the path I took over the last 2 hours, in case of an emergency. When the room ends, it is used for trail statistics in a way that cannot identify me (no nickname or time, first and last 500 m removed). I am 14 or older.
-                &lt;a href=&quot;privacy.html#party&quot; style=&quot;color:var(--sky)&quot;&gt;Details (in Korean)&lt;/a&gt; · &lt;a href=&quot;lbs-terms.html&quot; style=&quot;color:var(--sky)&quot;&gt;Location terms (Korean)&lt;/a&gt;">이 방 인솔자(공동 인솔자 포함)에게 <b>내 이름 · 위치(마지막 하나) · SOS · 배터리 · 탑승</b>을 보여 주는 데 동의합니다(다른 회원에게는 위치가 안 보임). 위치는 따라가기 화면이 켜져 있는 동안 보냅니다. 위치는 출발 3시간 전부터 보내고, 방을 나가거나 산행이 끝나면 지워집니다. 출발 뒤 지나온 길은 조난 대비로 인솔자가 최근 2시간을 볼 수 있고, 방이 끝나면 누구인지 알 수 없게(별명 · 시각 없이, 처음 · 끝 500m 빼고) 코스 통계에 씁니다. 만 14세 이상입니다.
+                <label for="joinAgree" style="margin:0;color:inherit;font-size:inherit" data-en="I agree to show &lt;b&gt;my name · location (latest one only) · SOS · battery · boarding&lt;/b&gt; to the leaders of this room (leader · co-leader) (other members don't see my location). My location is sent while the trail guide screen is open. My location is sent from departure and is deleted when I leave the room or the hike ends. After departure, the leaders can see the path I took over the last 2 hours, in case of an emergency. When the room ends, it is used for trail statistics in a way that cannot identify me (no nickname or time, first and last 500 m removed). I am 14 or older.
+                &lt;a href=&quot;privacy.html#party&quot; style=&quot;color:var(--sky)&quot;&gt;Details (in Korean)&lt;/a&gt; · &lt;a href=&quot;lbs-terms.html&quot; style=&quot;color:var(--sky)&quot;&gt;Location terms (Korean)&lt;/a&gt;">이 방 인솔자(공동 인솔자 포함)에게 <b>내 이름 · 위치(마지막 하나) · SOS · 배터리 · 탑승</b>을 보여 주는 데 동의합니다(다른 회원에게는 위치가 안 보임). 위치는 따라가기 화면이 켜져 있는 동안 보냅니다. 위치는 출발할 때부터 보내고, 방을 나가거나 산행이 끝나면 지워집니다. 출발 뒤 지나온 길은 조난 대비로 인솔자가 최근 2시간을 볼 수 있고, 방이 끝나면 누구인지 알 수 없게(별명 · 시각 없이, 처음 · 끝 500m 빼고) 코스 통계에 씁니다. 만 14세 이상입니다.
                 <a href="privacy.html#party" style="color:var(--sky)">자세히</a> · <a href="lbs-terms.html" style="color:var(--sky)">위치기반서비스 이용약관</a></label></div>
             <button id="joinBtn" class="main" data-en="Join">참가하기</button>
             <div id="joinMsg" class="fieldMsg" role="alert"></div>
@@ -245,8 +243,8 @@ a.tel { color:var(--sky); }
                 <div class="two" id="actStopBox"><div><label for="actStop" data-en="Change boarding stop">탑승지 바꾸기</label><select id="actStop"></select></div><div></div></div>
             </div>
             <div id="stopSum" class="tip"></div>
-            <p class="tip" data-en="Tap a taken seat for the menu (boarded at departure · move seat · map · path taken · boarding stop) · each tap on an empty seat cycles empty → &lt;b&gt;Booked&lt;/b&gt; → &lt;b&gt;Leader&lt;/b&gt; (leader&#x27;s seat) → empty.">사람이 있는 자리를 누르면 메뉴(출발 탑승 · 자리 옮기기 · 지도 · 지나온 길 · 탑승지) · 빈자리를 누를 때마다 빈자리 → <b>예약됨</b> → <b>인솔</b>(인솔자 자리) → 빈자리로 바뀝니다.</p>
-            <div class="legend"><span class="s rsv" data-en="Booked · not joined">예약 · 미참가</span><span class="s drv" data-en="Leader seat">인솔</span><span class="s join" data-en="Joined">참가</span><span class="s join listed" data-en="List only (no phone)">명단만(핸드폰 없음)</span><span class="s board" data-en="Boarded">출발 탑승</span><span class="s cxl" data-en="Cancelled">취소</span><span class="s old" data-en="No update 10 min">10분 소식 없음</span><span class="s sos" data-en="SOS">SOS</span><span class="s back" data-en="Back on bus">하산 탑승</span>
+            <p class="tip" data-en="Members who scan the bus QR · NFC become &lt;b&gt;Boarded&lt;/b&gt;. Tap a seat with a person for the menu (boarded · move seat · map · path taken · boarding stop) - check people without a phone yourself. Anyone not boarded at departure is &lt;b&gt;Cancelled&lt;/b&gt;.">회원이 버스 안 QR · NFC 를 찍으면 <b>출발 탑승</b>이 됩니다. 사람이 있는 자리를 누르면 메뉴(출발 탑승 · 자리 옮기기 · 지도 · 지나온 길 · 탑승지) - 핸드폰 없는 분은 여기서 체크하세요. 출발 때 안 탄 사람은 <b>취소</b>됩니다.</p>
+            <div class="legend"><span class="s join" data-en="Not on bus">안 탐</span><span class="s board" data-en="Boarded">출발 탑승</span><span class="s cxl" data-en="Cancelled">취소</span><span class="s old" data-en="No update 10 min">10분 소식 없음</span><span class="s sos" data-en="SOS">SOS</span><span class="s back" data-en="Back on bus">하산 탑승</span>
                 <a class="guideLink" href="party-guide.html#seat" data-en="📖 Leader guide (Korean)">📖 인솔자 사용법</a></div>
         </section>
         <section id="staffBox" hidden>

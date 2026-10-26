@@ -1,7 +1,8 @@
 /*
  * 따라가기(hike.html) 위 산악회 한 줄(2026-10-24 홍TV님 - 인솔자 위주, 회원은 산악회 방 화면 없이 따라가기만).
- * 회원은 링크 · 버스 QR · NFC 로 한 번 들어와 이름만 넣고 여기로 옴. 이 화면이 켜져 있는 동안 30초마다 인솔자에게 위치(party-kit.js).
- * 단추: 버스 탔어요(출발 1시간 전부터) · 하산 탑승 · 인솔자 전화 · 우리 버스(카카오맵) · 그만 보내기. SOS 는 따라가기 SOS 단추가 인솔자에게도 보냄(hike.js).
+ * 회원은 링크 · 버스 QR · NFC 로 한 번 들어와 이름만 넣고 여기로 옴. 버스 안 QR · NFC 를 찍으면 출발 탑승(2026-10-27 홍TV님 - "버스 탔어요" 단추는 없앰).
+ * 출발한 뒤 이 화면이 켜져 있는 동안 30초마다 인솔자에게 위치(party-kit.js).
+ * 단추: 하산 탑승 · 인솔자 전화 · 우리 버스(카카오맵) · 그만 보내기. SOS 는 따라가기 SOS 단추가 인솔자에게도 보냄(hike.js).
  * 인솔자(공동 인솔자 포함)는 "산악회 방 열기" 만.
  */
 (function () {
@@ -16,8 +17,8 @@
 
     function hide() { $("partyBar").hidden = true; document.documentElement.classList.remove("partyOn"); stopWatch(); clearInterval(timer); timer = null; }
 
-    /** 위치 보내기 - 출발 3시간 전부터, 하산 탑승 · 취소 전까지, 화면이 보이는 동안만. 따라가기를 시작했으면 hike.js 도 보내지만 30초에 한 번으로 묶임. */
-    function wantWatch(s) { return !!(s && !s.cancelled && !s.aboard && (!s.locFrom || s.now >= s.locFrom) && document.visibilityState === "visible"); }
+    /** 위치 보내기 - 출발할 때부터(2026-10-27 홍TV님), 하산 탑승 · 취소 전까지, 화면이 보이는 동안만. 따라가기를 시작했으면 hike.js 도 보내지만 30초에 한 번으로 묶임. */
+    function wantWatch(s) { return !!(s && !s.cancelled && !s.aboard && s.locOn !== false && document.visibilityState === "visible"); }
     function startWatch() {
         if (watch != null || !navigator.geolocation) return;
         watch = navigator.geolocation.watchPosition(function (pos) {
@@ -60,13 +61,12 @@
         var line = "📡 " + esc(s.name) + " · ";
         if (s.cancelled) line += T("❌ 출발 때 타지 않아 빠졌습니다. 인솔자에게 연락하세요.", "❌ You weren't on the bus at departure, so you were dropped. Contact your leader.");
         else if (s.aboard) line += T("🚌 하산 탑승 - 수고하셨습니다.", "🚌 Back on the bus - well done!");
-        else if (s.locFrom && s.now < s.locFrom) line += T("출발 3시간 전(" + clock(s.locFrom) + ")부터 인솔자에게 위치를 보냅니다.", "Your location goes to the leader from " + clock(s.locFrom) + " (3 hours before departure).");
+        else if (s.locOn === false) line += T("출발" + (s.departAt ? "(" + clock(s.departAt) + ")" : "") + "할 때부터 인솔자에게 위치를 보냅니다.", "Your location goes to the leader from departure" + (s.departAt ? " (" + clock(s.departAt) + ")" : "") + ".");
         else line += T("인솔자에게 위치 보내는 중", "Sending your location to the leader");
         if (s.seat && !s.cancelled) line += T(" · 💺 " + (s.buses > 1 ? s.bus + "호차 " : "") + s.seat + "번", " · 💺 " + (s.buses > 1 ? "bus " + s.bus + " " : "") + "seat " + s.seat);
         if (s.boarded && !s.departed && !s.cancelled) line += T(" · ✅ 탑승", " · ✅ On bus");
         $("pbText").innerHTML = line;
         var b = [];
-        if (!s.departed && !s.cancelled && !s.boarded && (!s.boardFrom || s.now >= s.boardFrom)) b.push("<button type=\"button\" class=\"pb main\" data-act=\"board\">" + T("🚌 버스 탔어요", "🚌 I'm on the bus") + "</button>");
         if (s.departed && !s.cancelled && !s.aboard) b.push("<button type=\"button\" class=\"pb main\" data-act=\"aboard\">" + T("🚌 하산 탑승", "🚌 Back on the bus") + "</button>");
         if (s.leaderPhone) b.push("<a class=\"pb\" href=\"tel:" + esc(String(s.leaderPhone).replace(/[^0-9+]/g, "")) + "\">" + T("☎ 인솔자", "☎ Leader") + "</a>");
         var my = (s.busPins || []).filter(function (x) { return x.bus === s.bus; })[0];
@@ -81,9 +81,7 @@
         if (!a || !state) return;
         var p = RFParty.get(), act = a.getAttribute("data-act");
         if (!p) { hide(); return; }
-        if (act === "board") {
-            RFParty.post("board", { token: p.token, on: true }).then(render).catch(function (er) { fail(er); if (!er.ended) alert(er.message); });
-        } else if (act === "aboard") {
+        if (act === "aboard") {
             if (!confirm(T("하산 탑승을 인솔자에게 알릴까요?\n알리면 위치 보내기를 멈춥니다.", "Tell your leader you're back on the bus?\nThis stops sending your location."))) return;
             if (p.sos) RFParty.sos(false);
             RFParty.post("aboard", { token: p.token, on: true }).then(render).catch(function (er) { fail(er); if (!er.ended) alert(er.message); });

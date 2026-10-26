@@ -115,3 +115,8 @@ PC 가 읽어 준 양식 항목에 맞춤. [ ] 칸은 홍TV님이 직접(사업�
 출처: [위치정보지원센터 - 소상공인등의 위치기반서비스 사업신고](https://www.lbsc.kr/front/content/contentViewer.do?contentId=CONTENT_0000091) ·
 [전자민원 - 위치기반서비스사업 신고](https://www.emsit.go.kr/cp/cv/Cp1440000_0182_01Reg.do) · [정부24 안내](https://www.gov.kr/mw/AA020InfoCappView.do?HighCtgCD=A09001&CappBizCD=15701000085) ·
 [캐치시큐 - 소상공인/1인기업 신고 방법](https://www.catchsecu.com/archives/14060). 양식 · 서류 목록은 바뀔 수 있으니 신고 화면 안내를 따릅니다.
+
+## 바뀐 것 (신고 뒤)
+
+- 2026-10-27 홍TV님: 위치는 "출발 3시간 전" → "출발할 때부터"(출발 시각 또는 인솔자 "출발") 받음 - 집 위치가 인솔자에게 가지 않게, 받는 범위를 줄임.
+  "버스 탔어요" 단추는 없애고 버스 안 QR · NFC 를 찍으면 출발 탑승. 동의 문구 · 개인정보처리방침 · 인솔자 사용법을 함께 고침. 위 본문(신고 때 내용)은 그대로 둠.

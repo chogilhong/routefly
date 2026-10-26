@@ -11,7 +11,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeSet;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -50,10 +49,6 @@ final class Party {
     static final double TRACK_MIN_M = 10;
     static final int TRACK_MAX = 4000;
     static final long TRAIL_MS = 2 * HOUR;
-    /** 위치는 출발 이만큼 전부터 받음. */
-    static final long LOC_BEFORE_MS = 3 * HOUR;
-    /** "버스 탔어요" 는 출발 이만큼 전부터(2026-10-20 홍TV님 - 참가하자마자 단추가 보여 모르고 누를까 봐). 인솔자 좌석표 체크는 언제나. */
-    static final long BOARD_BEFORE_MS = HOUR;
     /** 끝난 방의 열쇠로 오면 왜 끝났는지 알려 줌(이만큼 동안). */
     static final long ENDED_KEEP_MS = 48 * HOUR;
     static final double STILL_M = 30;
@@ -75,10 +70,10 @@ final class Party {
         String stop;           // 탑승지
         boolean boarded;       // 출발 때 버스 탐(본인 · 인솔자)
         boolean aboard;        // 하산 뒤 버스 탐
-        boolean cancelled;     // 출발 때 안 타서 취소(인솔자가 좌석표에서 "탐" 으로 되돌릴 수 있음)
+        boolean cancelled;     // 출발 때 안 탐(QR · NFC 도 안 찍고 인솔자 체크도 없음) - 인솔자가 "탔음" 으로 되돌릴 수 있음
         /** 인솔자가 붙여 넣은 예약 명단에서 온 사람(2026-10-24 홍TV님 - 회원은 앱 · 화면을 안 열 수도 있음). */
         boolean rostered;
-        /** 명단에만 있고 아직 이 사람 핸드폰이 들어오지 않음 - 위치 없음, 출발 때 저절로 취소하지 않음(인솔자가 눈으로 확인). */
+        /** 명단에만 있고 아직 이 사람 핸드폰이 들어오지 않음 - 위치 없음. 출발 때 안 탔으면 취소(2026-10-27 홍TV님), 핸드폰 없이 탄 사람은 인솔자가 "탔음". */
         boolean listed;
         // ---- 메모리에만(파일에 안 씀)
         Double lat, lon, acc;
@@ -106,7 +101,6 @@ final class Party {
         final List<String> stops;
         final String leaderName, leaderPhone;
         final Map<String, Member> members = new LinkedHashMap<>();
-        final TreeSet<Integer> reserved = new TreeSet<>();   // 예약됨 - 호차 × 100 + 좌석
         String notice;
         long noticeAt;
         final Map<Integer, double[]> busAt = new java.util.TreeMap<>();   // 호차 → 버스 세운 자리
@@ -117,8 +111,6 @@ final class Party {
         int nextId = 1;
         /** 공동 인솔자 코드(2026-10-27 - 예전 운전자 코드): 방 코드는 카톡 · QR · NFC 로 널리 퍼지므로, 인솔자 권한은 인솔자가 회사 관계자 · 다른 버스 인솔자에게만 주는 이 코드로만. */
         String leadCode;
-        /** 인솔자 자리(호차 × 100 + 좌석) - 인솔자가 좌석표에서 정함(2026-10-27 홍TV님 "3번으로 정하지 말고 인솔자가 알아서", 없을 수도). */
-        final TreeSet<Integer> leadSeats = new TreeSet<>();
 
         Room(String code, String name, long created, long departAt, long endAt, int buses, int seats, List<String> stops, String leaderName, String leaderPhone) {
             this.code = code; this.name = name; this.created = created; this.departAt = departAt; this.endAt = endAt; this.buses = Math.max(1, buses); this.seats = seats;
@@ -380,7 +372,7 @@ final class Party {
         if (n == null) throw new IllegalArgumentException("이름을 적어 주세요.");
         // 역할은 코드가 정함 - 공동 인솔자 코드면 인솔자, 방 코드면 산행 회원(보낸 role 은 보지 않음)
         role = code.trim().toUpperCase().equals(r.leadCode) ? "lead" : "hiker";
-        boolean boardNow = onBus && !r.departed && (r.departAt == 0 || now >= r.departAt - BOARD_BEFORE_MS);
+        boolean boardNow = onBus && !r.departed;   // 버스 안 QR · NFC 로 들어오면 출발 탑승(2026-10-27 홍TV님 - "버스 탔어요" 단추는 없앰)
         if ("hiker".equals(role)) {
             Member c = claim(r, n, bus, seat, stop, boardNow);
             if (c != null) return c;
@@ -395,7 +387,6 @@ final class Party {
         m.bus = b;
         m.seat = "lead".equals(role) ? null : seat;
         m.stop = st;
-        if (m.seat != null) r.reserved.remove(b * 100 + m.seat);
         if (boardNow && "hiker".equals(role)) m.boarded = true;
         audit.info("join room={} member={} role={} (위치 제공 동의)", r.code, m.id, role);
         save();
@@ -421,7 +412,6 @@ final class Party {
             checkSeat(r, pick, b, seat);
             pick.bus = b;
             pick.seat = seat;
-            r.reserved.remove(b * 100 + seat);
         }
         String st = checkStop(r, stop);
         if (st != null) pick.stop = st;
@@ -465,7 +455,6 @@ final class Party {
             m.seat = (Integer) e[2];
             m.rostered = true;
             m.listed = true;
-            if (m.seat != null) r.reserved.remove(m.bus * 100 + m.seat);
         }
         audit.info("roster room={} added={}", r.code, add.size());
         save();
@@ -515,16 +504,15 @@ final class Party {
         return r.buses > 1 ? bus + "호차 " : "";
     }
 
-    /** 3번은 인솔자 자리(2026-10-22 홍TV님 - 출입문 쪽 맨 앞, 안내산악회 좌석표에서 늘 비워 둠) - 좌석이 3개 이상인 방에서 회원은 못 고름. */
-    static boolean leadSeat(Room r, int bus, int seat) {
-        return r.leadSeats.contains(bus * 100 + seat);
+    /** 위치는 출발할 때부터(2026-10-27 홍TV님 - 전엔 3시간 전부터라 집 위치가 인솔자에게 갔음): 출발 시각이 됐거나 인솔자가 "출발"을 눌렀으면. */
+    static boolean started(Room r, long now) {
+        return r.departed || r.stopsDone > 0 || r.departAt == 0 || now >= r.departAt;
     }
 
     private static void checkSeat(Room r, Member self, int bus, Integer seat) {
         if (seat == null) return;
         if (r.seatsOf(bus) == 0) throw new IllegalArgumentException(busName(r, bus) + "좌석표가 없는 차입니다. 좌석 없이 참가해 주세요.");
         if (seat < 1 || seat > r.seatsOf(bus)) throw new IllegalArgumentException(busName(r, bus) + "좌석 번호는 1 ~ " + r.seatsOf(bus) + " 입니다.");
-        if (leadSeat(r, bus, seat)) throw new IllegalArgumentException(busName(r, bus) + seat + "번은 인솔자 자리입니다. 다른 좌석을 골라 주세요.");
         Member there = r.atSeat(bus, seat);
         if (there != null && there != self) throw new IllegalArgumentException(busName(r, bus) + seat + "번 자리는 이미 다른 분이 골랐습니다. 좌석 번호를 확인해 주세요.");   // 참가 전 사람에게 별명은 안 보임(점검)
     }
@@ -554,12 +542,12 @@ final class Party {
 
     // ---------------------------------------------------------------- 산행 중
 
-    /** 위치 - 출발 3시간 전보다 이르면 버림(false). 취소된 사람은 받지 않음. */
+    /** 위치 - 출발 전이면 버림(false). 취소된 사람은 받지 않음. */
     synchronized boolean loc(Member m, Double lat, Double lon, Double acc, Integer batt, boolean sos, long now) {
         if (!okPos(lat, lon)) throw new IllegalArgumentException("위치가 올바르지 않습니다.");
         if (m.cancelled) throw new IllegalArgumentException("출발 때 탑승하지 않아 이 산행에서 빠졌습니다. 인솔자에게 연락해 주세요.");
         if (m.aboard) { m.sos = false; return false; }   // 하산 탑승 뒤 - 위치 받지 않음
-        if (m.room.departAt > 0 && now < m.room.departAt - LOC_BEFORE_MS) { m.sos = false; return false; }
+        if (!started(m.room, now)) { m.sos = false; return false; }
         if (m.t == 0 || MountainServlet.distM(m.anchorLat, m.anchorLon, lat, lon) > STILL_M) {
             m.anchorLat = lat; m.anchorLon = lon; m.stillSince = now;
         }
@@ -576,15 +564,13 @@ final class Party {
         return true;
     }
 
-    /** 본인 - 출발 때 "버스 탔어요". */
     /**
      * 위치 없이 "폰은 켜져 있음" · 배터리 · SOS(2026-10-20 PC: 화면을 끈 실내 · 골짜기에서 GPS 를 못 잡으면 인솔자에게 소식이 끊긴 것처럼 보였고,
-     * 위치가 없으면 SOS 도 못 보냈음). 출발 3시간 전보다 이르면 · 취소 · 하산 탑승이면 받지 않음.
+     * 위치가 없으면 SOS 도 못 보냈음). 출발 전 · 취소 · 하산 탑승이면 받지 않음.
      */
     /** sos - null 이면 그대로 둠(앱의 "폰 켜짐" 신호 RfAlive 는 sos 를 안 보냄 - 전에는 1분마다 SOS 가 꺼져 인솔자에게 "새 SOS" 가 되풀이됐음, 2026-10-22 점검). */
     synchronized void ping(Member m, Integer batt, Boolean sos, long now) {
-        if (m.cancelled || m.aboard) return;
-        if (m.room.departAt > 0 && now < m.room.departAt - LOC_BEFORE_MS) return;
+        if (m.cancelled || m.aboard || !started(m.room, now)) return;
         m.seen = now;
         if (batt != null) m.batt = Math.max(0, Math.min(100, batt));
         if (sos == null) return;
@@ -592,11 +578,10 @@ final class Party {
         m.sos = sos;
     }
 
-    synchronized void board(Member m, boolean on, long now) {
-        if (!"hiker".equals(m.role)) throw new IllegalArgumentException("산행 회원만 누릅니다.");
-        if (on && m.room.departAt > 0 && now < m.room.departAt - BOARD_BEFORE_MS) throw new IllegalStateException("\"버스 탔어요\" 는 출발 1시간 전부터 누를 수 있습니다.");
-        if (m.cancelled) throw new IllegalArgumentException("출발 때 탑승하지 않아 이 산행에서 빠졌습니다. 인솔자에게 연락해 주세요.");
-        m.boarded = on;
+    /** 이미 참가한 폰으로 버스 안 QR · NFC 를 찍음 - 출발 탑승(2026-10-27 홍TV님 - "버스 탔어요" 단추 대신). 출발 뒤 · 취소된 사람은 그대로(인솔자가 되돌림). */
+    synchronized void board(Member m) {
+        if (!"hiker".equals(m.role) || m.room.departed || m.cancelled) return;
+        m.boarded = true;
         save();
     }
 
@@ -612,6 +597,7 @@ final class Party {
     /**
      * 인솔자 - 출발. 탑승지가 있으면 차례대로 그 탑승지만(2026-10-23 홍TV님 - 영종에서 출발할 때 중동에서 탈 회원까지 취소됐음):
      * 이번 탑승지 회원 가운데 안 탄 사람만 취소, 마지막 탑승지를 떠날 때 탑승지 없는 회원까지 정리하고 산행으로(departed).
+     * 명단에만 있는 사람도 QR · NFC 를 안 찍었고 인솔자 체크도 없으면 취소(2026-10-27 홍TV님).
      * 탑승지가 없는 방은 한 번에. 돌려줌: 취소된 수.
      */
     synchronized int depart(Member lead) {
@@ -621,7 +607,7 @@ final class Party {
         boolean last = r.stops.isEmpty() || r.stopsDone >= r.stops.size() - 1;
         int n = 0;
         for (Member m : r.members.values()) {
-            if (!"hiker".equals(m.role) || m.boarded || m.cancelled || m.listed) continue;   // 명단에만 있는 사람은 인솔자가 눈으로
+            if (!"hiker".equals(m.role) || m.boarded || m.cancelled) continue;
             boolean here = stop == null || stop.equals(m.stop) || (last && (m.stop == null || !r.stops.contains(m.stop) || r.stops.indexOf(m.stop) < r.stopsDone));
             if (!here) continue;
             m.cancelled = true;
@@ -648,7 +634,6 @@ final class Party {
         t.bus = b;
         t.seat = seat;
         t.stop = st;
-        if (seat != null) r.reserved.remove(b * 100 + seat);
         save();
     }
 
@@ -659,7 +644,6 @@ final class Party {
         throw new IllegalArgumentException("그 회원을 찾지 못했습니다.");
     }
 
-    /** 인솔자 - 좌석표에서 "출발 탑승"(사람 자리 - 취소도 풂) 또는 "예약됨"(빈자리). */
     /**
      * 인솔자 - 명단에서 사람으로 "탔음"(출발 때 취소된 사람 되돌리기, 2026-10-21 점검: 그 자리에 다른 사람이 앉으면 좌석표로는 고를 수 없었음).
      * 자리가 이미 찼으면 자리는 비우고(좌석 없음) 되돌림 - 인솔자가 좌석표에서 새 자리로 옮김.
@@ -685,26 +669,16 @@ final class Party {
         aboard(m, on);
     }
 
-    synchronized void mark(Member staff, Integer bus, int seat, String what, boolean on) {
+    /** 인솔자 - 좌석표에서 그 자리 사람을 "출발 탑승"(취소도 풂, 2026-10-27 홍TV님 - 예약 · 인솔 자리 표시는 없앰). */
+    synchronized void mark(Member staff, Integer bus, int seat, boolean on) {
         Room r = staff.room;
         int b = checkBus(r, bus);
         if (seat < 1 || seat > r.seatsOf(b)) throw new IllegalArgumentException("없는 좌석입니다.");
         Member m = r.atSeat(b, seat);
         if (m == null) for (Member x : r.members.values()) if (x.seat != null && x.seat == seat && x.bus == b) m = x;   // 취소된 사람도
-        if ("boarded".equals(what)) {
-            if (m == null) throw new IllegalArgumentException(busName(r, b) + seat + "번 자리에 참가한 사람이 없습니다.");
-            m.boarded = on;
-            if (on && m.cancelled) { m.cancelled = false; audit.info("uncancel room={} member={}", r.code, m.id); }
-        } else if ("reserved".equals(what)) {
-            if (m != null && !m.cancelled) throw new IllegalArgumentException(busName(r, b) + seat + "번 자리는 이미 참가했습니다.");
-            if (on && leadSeat(r, b, seat)) throw new IllegalArgumentException(busName(r, b) + seat + "번은 인솔자 자리입니다.");
-            if (on) r.reserved.add(b * 100 + seat); else r.reserved.remove(b * 100 + seat);
-        } else if ("lead".equals(what)) {   // 인솔자 자리 - 빈자리만(2026-10-27)
-            if (on && m != null && !m.cancelled) throw new IllegalArgumentException(busName(r, b) + seat + "번 자리는 이미 참가했습니다.");
-            if (on) { r.leadSeats.add(b * 100 + seat); r.reserved.remove(b * 100 + seat); } else r.leadSeats.remove(b * 100 + seat);
-        } else {
-            throw new IllegalArgumentException("모르는 표시입니다.");
-        }
+        if (m == null) throw new IllegalArgumentException(busName(r, b) + seat + "번 자리에 사람이 없습니다.");
+        m.boarded = on;
+        if (on && m.cancelled) { m.cancelled = false; audit.info("uncancel room={} member={}", r.code, m.id); }
         save();
     }
 
@@ -857,8 +831,6 @@ final class Party {
             JsonArray bs = new JsonArray(); for (int x : r.busSeats) bs.add(x); o.add("busSeats", bs);
             o.add("stops", strings(r.stops)); o.addProperty("leaderName", r.leaderName); o.addProperty("leaderPhone", r.leaderPhone);
             o.add("plates", plateArray(r));
-            JsonArray rs = new JsonArray(); r.reserved.forEach(rs::add); o.add("reserved", rs);
-            JsonArray lsv = new JsonArray(); r.leadSeats.forEach(lsv::add); o.add("leadSeats", lsv);
             o.addProperty("notice", r.notice); o.addProperty("noticeAt", r.noticeAt);
             JsonObject ba = new JsonObject();
             r.busAt.forEach((k, v) -> { JsonArray p = new JsonArray(); p.add(v[0]); p.add(v[1]); ba.add(String.valueOf(k), p); });
@@ -918,8 +890,6 @@ final class Party {
                 Room r = new Room(o.get("code").getAsString(), o.get("name").getAsString(), lng(o, "created"), lng(o, "departAt"), lng(o, "endAt"),
                         o.has("buses") ? o.get("buses").getAsInt() : 1, (int) lng(o, "seats"), List.copyOf(st), str(o, "leaderName"), str(o, "leaderPhone"));
                 if (o.has("busSeats")) { JsonArray bs = o.getAsJsonArray("busSeats"); for (int i = 0; i < Math.min(bs.size(), r.buses); i++) r.busSeats[i] = bs.get(i).getAsInt(); }   // 없으면(10-27 전 방) 모두 seats
-                if (o.has("reserved")) o.getAsJsonArray("reserved").forEach(x -> r.reserved.add(x.getAsInt()));
-                if (o.has("leadSeats")) o.getAsJsonArray("leadSeats").forEach(x -> r.leadSeats.add(x.getAsInt()));
                 if (o.has("plates")) {
                     JsonArray pa = o.getAsJsonArray("plates");
                     for (int i = 0; i < Math.min(pa.size(), r.buses); i++) r.plates[i] = pa.get(i).isJsonNull() ? null : pa.get(i).getAsString();
@@ -1022,9 +992,6 @@ final class Party {
         for (Member m : r.members.values()) if (m.seat != null && !m.cancelled && m != me)
             (m.listed ? booked : taken).add(m.bus * 100 + m.seat);   // 명단에만 있는 자리는 "예약" - 같은 이름이 둘일 때 좌석으로 고름(2026-10-26 PC)
         o.add("booked", booked);
-        JsonArray ls = new JsonArray();
-        r.leadSeats.forEach(k -> { taken.add(k); ls.add(k); });   // 인솔자 자리 - 참가 칸에서 못 고르게
-        o.add("leadSeats", ls);
         o.add("taken", taken);
         o.addProperty("departed", r.departed);
         o.addProperty("stopsDone", r.departed ? r.stops.size() : r.stopsDone);   // 출발한 탑승지 수(차례대로)
@@ -1040,7 +1007,7 @@ final class Party {
 
     /**
      * 방 화면. 모두: 방 소개 · 공지 · 버스 · 내 상태 · 회원(별명 · 좌석 · 위치 · SOS · 하산 탑승).
-     * 인솔자는 더해서: 배터리 · 정확도 · 그 자리에 머문 분 · 탑승지 · 출발 탑승 · 취소 · 예약됨 좌석.
+     * 인솔자는 더해서: 배터리 · 정확도 · 그 자리에 머문 분 · 탑승지 · 출발 탑승 · 취소 · 명단만.
      */
     synchronized JsonObject view(Member me, long now) {
         Room r = me.room;
@@ -1057,8 +1024,7 @@ final class Party {
         if (me.seat != null) o.addProperty("seat", me.seat);
         if (me.stop != null) o.addProperty("stop", me.stop);
         o.addProperty("now", now);
-        o.addProperty("locFrom", r.departAt > 0 ? r.departAt - LOC_BEFORE_MS : 0);
-        o.addProperty("boardFrom", r.departAt > 0 ? r.departAt - BOARD_BEFORE_MS : 0);
+        o.addProperty("locOn", started(r, now));   // 위치는 출발할 때부터(출발 시각 또는 인솔자 "출발", 2026-10-27 홍TV님)
         if (r.notice != null) { o.addProperty("notice", r.notice); o.addProperty("noticeAt", r.noticeAt); }
         JsonArray pins = new JsonArray();   // 버스 세운 자리 - 회원은 자기 호차만, 인솔자는 다
         r.busAt.forEach((k, v) -> {
@@ -1104,11 +1070,6 @@ final class Party {
         }
         o.add("members", list);
         o.addProperty("aboardCount", aboard);
-        if (staff) {
-            JsonArray rs = new JsonArray();
-            r.reserved.forEach(rs::add);
-            o.add("reserved", rs);
-        }
         return o;
     }
 }

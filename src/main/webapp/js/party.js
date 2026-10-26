@@ -1,8 +1,8 @@
 /*
  * 산악회 방 화면(party.html - 2026-10-20 홍TV님). 서버는 PartyServlet · 위치 보내기는 party-kit.js(RFParty).
- * 흐름: 인솔자가 산행 전에 방을 만들고 참가 링크(카톡 · 문자) → 회원 참가(좌석 · 탑승지) → 출발 날 "버스 탔어요" → 인솔자 "출발"(안 탄 사람 취소)
+ * 흐름: 인솔자가 산행 전에 방을 만들고 참가 링크(카톡 · 문자) → 회원 참가(좌석 · 탑승지) → 출발 날 버스 안 QR · NFC 로 출발 탑승 → 인솔자 "출발"(안 탄 사람 취소)
  * → 산행 중 인솔자(공동 인솔자 포함)가 회원 위치 · SOS · 배터리 · 머문 시간을 봄(회원 화면은 지도 없이 - 따라가기 지도로 걸음, 2026-10-24 홍TV님) → "하산 탑승" → 나가기(산 모음 /m/ 로). 인원이 모자라면 인솔자 "산행 취소".
- * 위치: 이 화면이 열린 동안 watchPosition → 30초마다(RFParty.fix, 서버는 출발 3시간 전부터 받음). 인솔자 화면은 15초마다 새로 받음. 운전자 역할은 없음(2026-10-27 홍TV님 - 기사님에게 안전 책임이 가지 않게).
+ * 위치: 이 화면이 열린 동안 watchPosition → 30초마다(RFParty.fix, 서버는 출발할 때부터 받음). 인솔자 화면은 15초마다 새로 받음. 운전자 역할은 없음(2026-10-27 홍TV님 - 기사님에게 안전 책임이 가지 않게).
  */
 (function () {
     "use strict";
@@ -250,6 +250,8 @@
                 enterRoom();
                 return;
             }
+            // 이미 참가한 폰으로 버스 안 QR · NFC(&on=1)를 찍음 - 출발 탑승(2026-10-27 홍TV님 - "버스 탔어요" 단추 대신)
+            if (cur && cur.role !== "lead" && q.get("on") === "1") { RFParty.post("board", { token: cur.token }).catch(function () { /* 방이 끝났으면 따라가기가 알림 */ }).finally(function () { enterRoom(); }); return; }
             if (cur) { enterRoom(); return; }
             show("start");
             if (q.get("c")) { appOpen(); $("mkSec").hidden = true; $("mkShowRow").hidden = false; $("joinSec").hidden = false; $("joinShowRow").hidden = true; }
@@ -279,7 +281,7 @@
             $("joinSeatBox").hidden = !(j.seats > 0 || (j.stops || []).length || j.buses > 1);
             busOptions($("joinBus"), j.buses, 1);
             $("joinBusBox").hidden = !(j.buses > 1);
-            seatOptions($("joinSeat"), seatsOf(j, 1), j.taken, null, T("고르기", "Choose"), 1, j.booked, j.leadSeats);
+            seatOptions($("joinSeat"), seatsOf(j, 1), j.taken, null, T("고르기", "Choose"), 1, j.booked);
             stopOptions($("joinStop"), j.stops, null, T("고르기", "Choose"));
             roleChanged();   // 역할은 코드가 정함 - 공동 인솔자 코드면 인솔자, 방 코드면 산행(2026-10-27)
             if (j.departed && !j.leadInvite) joinErr(T("이미 출발한 방이라 산행 회원은 새로 참가할 수 없습니다. 인솔자에게 연락해 주세요.", "This room has already departed, so new hikers can't join. Please contact your leader."));
@@ -287,7 +289,7 @@
     }
     $("joinCode").addEventListener("input", loadInfo);
     var joinInfo = null;
-    $("joinBus").addEventListener("change", function () { if (joinInfo) seatOptions($("joinSeat"), seatsOf(joinInfo, +$("joinBus").value), joinInfo.taken, null, T("고르기", "Choose"), +$("joinBus").value, joinInfo.booked, joinInfo.leadSeats); });
+    $("joinBus").addEventListener("change", function () { if (joinInfo) seatOptions($("joinSeat"), seatsOf(joinInfo, +$("joinBus").value), joinInfo.taken, null, T("고르기", "Choose"), +$("joinBus").value, joinInfo.booked); });
     /** 공동 인솔자는 좌석 · 탑승지 없음. */
     function roleChanged() {
         var drv = !!(joinInfo && joinInfo.leadInvite);
@@ -463,7 +465,7 @@
     /** 나가기 - 위치를 멈추고 산 모음으로. */
     // ------------------------------------------------------------------ 앱 - 화면을 꺼도 위치(2026-10-20 홍TV님 "앱을 설치하면 문제 없는 거네")
     /**
-     * routefly 안드로이드 앱(app/ - Capacitor)으로 열었을 때만. 출발 3시간 전부터 하산 탑승 · 취소 · 방 끝까지 BackgroundGeolocation 으로
+     * routefly 안드로이드 앱(app/ - Capacitor)으로 열었을 때만. 출발할 때부터 하산 탑승 · 취소 · 방 끝까지 BackgroundGeolocation 으로
      * 화면을 꺼도 30초마다 위치를 보냄(알림창에 "routefly - 산악회 방"). 브라우저는 그대로 watchPosition(화면이 켜져 있을 때만).
      */
     var CAP = window.Capacitor, NATIVE = !!(CAP && CAP.isNativePlatform && CAP.isNativePlatform());
@@ -477,7 +479,7 @@
         Promise.resolve(ALIVE.start({ url: new URL("api/party/ping", location.href).href, token: p.token })).catch(function () { /* 이번만 */ });
     }
     function aliveStop() { if (ALIVE) Promise.resolve(ALIVE.stop()).catch(function () { /* 이미 멈춤 */ }); }
-    function bgWant(s) { return !!(BG && s && !s.cancelled && !s.aboard && (!s.locFrom || s.now >= s.locFrom)); }
+    function bgWant(s) { return !!(BG && s && !s.cancelled && !s.aboard && s.locOn !== false); }
     function bgStop() {
         aliveStop();
         bgOn = false; bgGen++;
@@ -703,16 +705,15 @@
     /** 좌석 고르기 - taken 은 호차 × 100 + 좌석(그 호차의 찬 자리만 막음). */
     /** 그 호차 좌석 수(2026-10-27 - 호차마다 다름, 없으면 seats). */
     function seatsOf(s, bus) { var a = s && s.busSeats, v = a && a[(bus || 1) - 1]; return v != null ? v : (s && s.seats) || 0; }
-    /** booked - 인솔자 명단에만 있는 자리: 고를 수 있게 "(예약)" (같은 이름이 둘이면 자기 좌석으로 고름, 2026-10-26 PC). */
-    function seatOptions(sel, seats, taken, cur, none, bus, booked, lead) {
+    /** booked - 인솔자 명단에만 있는 자리: 고를 수 있게 "(명단)" (같은 이름이 둘이면 자기 좌석으로 고름, 2026-10-26 PC). */
+    function seatOptions(sel, seats, taken, cur, none, bus, booked) {
         var t = {}, bk = {}, b = bus || 1;
         (taken || []).forEach(function (n) { t[n] = 1; });
         (booked || []).forEach(function (n) { bk[n] = 1; });
         var o = ["<option value=\"\">" + (none || T("없음", "None")) + "</option>"];
         for (var i = 1; i <= seats; i++) {
             var x = t[b * 100 + i];
-            var ld = (lead || []).indexOf(b * 100 + i) >= 0;   // 인솔자가 정한 인솔 자리(2026-10-27)
-            o.push("<option value=\"" + i + "\"" + (x || ld ? " disabled" : "") + (i === cur ? " selected" : "") + ">" + i + (ld ? T(" (인솔자)", " (leader)") : x ? T(" (참가함)", " (taken)") : bk[b * 100 + i] ? T(" (예약)", " (booked)") : "") + "</option>");
+            o.push("<option value=\"" + i + "\"" + (x ? " disabled" : "") + (i === cur ? " selected" : "") + ">" + i + (x ? T(" (참가함)", " (taken)") : bk[b * 100 + i] ? T(" (명단)", " (listed)") : "") + "</option>");
         }
         sel.innerHTML = o.join("");
         sel.parentNode.hidden = !(seats > 0);
@@ -767,19 +768,16 @@
             }
             $("busTabs").innerHTML = tabs.join("");
         }
-        var by = {}, rsv = {}, cells = [], n = seatsOf(s, curBus);
+        var by = {}, cells = [], n = seatsOf(s, curBus);
         (s.members || []).forEach(function (m) { if (m.seat && m.bus === curBus && (!by[m.seat] || by[m.seat].cancelled)) by[m.seat] = m; });
-        (s.reserved || []).forEach(function (n) { if (Math.floor(n / 100) === curBus) rsv[n % 100] = 1; });
         for (var k = 1; k <= n; k++) {
             var at = seatPos(k, n), m = by[k], cls = "s", label = "";
             if (m) {
-                cls += m.cancelled ? " cxl" : m.sos ? " sos" : m.aboard ? " back" : m.boarded ? " board" : " join";
-                if (m.listed) cls += " listed";   // 명단에만(핸드폰 안 들어옴)
+                cls += m.cancelled ? " cxl" : m.sos ? " sos" : m.aboard ? " back" : m.boarded ? " board" : " join";   // join = 안 탐(2026-10-27 홍TV님 - 예약 · 인솔 · 참가 표시는 없앰, 출발 탑승이면 됨)
                 if (s.departed && !m.cancelled && !m.sos && !m.aboard && silent(m)) cls += " old";
                 label = "<small>" + esc(m.nick) + "</small>";
                 if (m.id === picked) cls += " pick";
-            } else if ((s.leadSeats || []).indexOf(curBus * 100 + k) >= 0) { cls += " drv lead"; label = "<small>" + T("인솔", "Leader") + "</small>"; }   // 인솔자가 정한 인솔 자리(누르면 풂)
-            else if (rsv[k]) cls += " rsv";
+            }
             cells.push("<div class=\"" + cls + "\" data-seat=\"" + k + "\" style=\"grid-column:" + at.col + ";grid-row:" + at.row + "\""
                 + (m ? " title=\"" + esc(m.nick + (m.stop ? " · " + m.stop : "")) + "\"" : "") + ">" + k + label + "</div>");
         }
@@ -789,11 +787,11 @@
         $("seatMap").style.gridTemplateColumns = wide(n) ? "minmax(0, 1fr) minmax(0, 1fr) minmax(20px, .7fr) minmax(0, 1fr) minmax(0, 1fr)" : "";   // 2-2 는 다섯 칸, 2-1 은 CSS 네 칸
         $("seatMap").innerHTML = cells.join("");
         var seated = (s.members || []).filter(function (m) { return m.seat && !m.cancelled && m.bus === curBus; });
-        $("seatSum").textContent = busLabel(s, curBus) + T("예약 · 미참가 ", "Reserved, not joined ") + Object.keys(rsv).length + T(" · 참가 ", " · Joined ") + seated.length + T(" · 출발 탑승 ", " · Boarded ")
+        $("seatSum").textContent = busLabel(s, curBus) + T("명단 ", "Listed ") + seated.length + T(" · 출발 탑승 ", " · Boarded ")
             + seated.filter(function (m) { return m.boarded; }).length + T(" · 하산 탑승 ", " · Back on bus ") + seated.filter(function (m) { return m.aboard; }).length;
         $("stopSum").innerHTML = (s.stops || []).map(function (t) {
             var at = (s.members || []).filter(function (m) { return m.stop === t && !m.cancelled; });
-            return "<b>" + esc(t) + "</b>" + T(" 탐 ", " on bus ") + at.filter(function (m) { return m.boarded; }).length + T(" / 참가 ", " / joined ") + at.length;
+            return "<b>" + esc(t) + "</b>" + T(" 탐 ", " on bus ") + at.filter(function (m) { return m.boarded; }).length + " / " + at.length;
         }).join(" · ") + (s.buses > 1 && (s.stops || []).length ? T(" (모든 호차)", " (all buses)") : "");
     }
 
@@ -826,8 +824,6 @@
         var el = e.target.closest("[data-seat]");
         if (!el || !state) return;
         var k = +el.getAttribute("data-seat"), p = RFParty.get(), m = memberAt(k);
-        var isLead = (state.leadSeats || []).indexOf(curBus * 100 + k) >= 0, isRsv = (state.reserved || []).indexOf(curBus * 100 + k) >= 0;
-        if (isLead && moving && !m) { roomMsg(T(k + "번은 인솔자 자리입니다. 다른 빈자리를 누르세요.", "Seat " + k + " is a leader's seat. Tap another empty seat.")); return; }
         if (moving) {
             var who = pickedMember();
             if (!who || (m && m.id === who.id)) { pick(null); seatMap(state); roomMsg(""); return; }
@@ -837,16 +833,14 @@
             return;
         }
         if (m) { pick(m); seatMap(state); return; }
-        pick(null);
-        // 빈자리를 누를 때마다: 빈자리 → 예약됨 → 인솔 → 빈자리(2026-10-27 홍TV님 - 인솔 자리는 인솔자가 정함, 없을 수도)
-        var next = isLead ? { what: "lead", on: false } : isRsv ? { what: "lead", on: true } : { what: "reserved", on: true };
-        RFParty.post("mark", { token: p.token, bus: curBus, seat: k, what: next.what, on: next.on }).then(render).catch(function (er) { roomMsg(enMsg(er.message)); });
+        pick(null);   // 빈자리 - 할 일 없음(2026-10-27 홍TV님 - 예약 · 인솔 표시는 없앰)
+        seatMap(state);
     });
     $("actKick").addEventListener("click", function () { kick(pickedMember()); });
     $("actBoard").addEventListener("click", function () {
         var m = pickedMember(), p = RFParty.get();
         if (!m) return;
-        RFParty.post("mark", m.cancelled ? { token: p.token, id: m.id, what: "boarded", on: true } : { token: p.token, bus: m.bus, seat: m.seat, what: "boarded", on: !m.boarded }).then(function (j) { render(j); pick(pickedMember()); }).catch(function (er) { roomMsg(enMsg(er.message)); });
+        RFParty.post("mark", m.cancelled ? { token: p.token, id: m.id, what: "boarded", on: true } : { token: p.token, bus: m.bus, seat: m.seat, on: !m.boarded }).then(function (j) { render(j); pick(pickedMember()); }).catch(function (er) { roomMsg(enMsg(er.message)); });
     });
     $("actMove").addEventListener("click", function () {
         if (!pickedMember()) return;

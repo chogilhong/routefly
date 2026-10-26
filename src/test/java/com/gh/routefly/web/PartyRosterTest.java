@@ -38,9 +38,6 @@ public class PartyRosterTest {
         assertEquals(4, v.get("added").getAsInt());
         assertTrue("명단에만", member(v, "박영희").get("listed").getAsBoolean());
         assertEquals("같은 걸 또 넣으면 건너뜀", 0, call(p, "/roster", "{\"token\":\"" + lead + "\",\"text\":\"시험대장 5\"}", T0).get("added").getAsInt());
-        call(p, "/mark", "{\"token\":\"" + lead + "\",\"seat\":3,\"what\":\"lead\",\"on\":true}", T0);   // 인솔자가 3번을 인솔 자리로
-        try { call(p, "/roster", "{\"token\":\"" + lead + "\",\"text\":\"누구 3\"}", T0); fail("인솔자 자리"); }
-        catch (IllegalArgumentException e) { assertTrue(e.getMessage().startsWith("누구:")); }
         try { call(p, "/roster", "{\"token\":\"" + lead + "\",\"text\":\"누구 5\"}", T0); fail("이미 있는 자리"); }
         catch (IllegalArgumentException e) { assertTrue(e.getMessage().contains("5번")); }
 
@@ -60,25 +57,27 @@ public class PartyRosterTest {
         catch (IllegalArgumentException e) { assertTrue(e.getMessage().contains("2명")); }
         JsonObject k = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"김철수\",\"seat\":7,\"agree\":true}", T0);
         assertEquals(7, k.get("seat").getAsInt());
-        assertFalse("출발 1시간 전보다 이르면 링크로는 탑승 아님", k.get("boarded").getAsBoolean());
+        assertFalse("링크로는 탑승 아님", k.get("boarded").getAsBoolean());
 
-        // 버스 QR(onBus)로 출발 1시간 안에 들어오면 바로 탑승
+        // 버스 QR · NFC(onBus)로 들어오면 바로 탑승(2026-10-27 홍TV님 - 시각 제한 없음)
         JsonObject y = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"박영희\",\"onBus\":true,\"agree\":true}", DEPART - H / 2);
         assertTrue(y.get("boarded").getAsBoolean());
         JsonObject z = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"현장손님\",\"onBus\":true,\"agree\":true}", DEPART - H / 2);
         assertTrue("명단에 없으면 새 회원 + 탑승", z.get("boarded").getAsBoolean());
         assertEquals("hiker", z.get("role").getAsString());
 
-        // 출발: 핸드폰이 들어온 회원 중 안 탄 사람만 취소, 명단에만 있는 김철수(6번)는 그대로
-        call(p, "/board", "{\"token\":\"" + a.get("token").getAsString() + "\",\"on\":true}", DEPART - H / 2);
+        // 출발: QR · NFC 를 안 찍었고 인솔자 체크도 없으면 취소 - 명단에만 있는 사람도(2026-10-27 홍TV님)
+        call(p, "/board", tok(a.get("token").getAsString()), T0);   // 링크로 먼저 참가한 폰이 버스에서 QR 을 찍음
         JsonObject d = departAll(p, lead, DEPART);
-        assertEquals("링크로 들어와 안 탄 김철수(7번)만", 1, d.get("cancelledNow").getAsInt());
+        assertEquals("안 탄 김철수(7번) · 명단만 김철수(6번)", 2, d.get("cancelledNow").getAsInt());
         JsonObject six = null;
         for (var e : d.getAsJsonArray("members")) { JsonObject x = e.getAsJsonObject(); if (x.has("seat") && x.get("seat").getAsInt() == 6) six = x; }
         assertNotNull(six);
-        assertFalse("명단에만 있는 사람은 취소 안 함", six.get("cancelled").getAsBoolean());
+        assertTrue(six.get("cancelled").getAsBoolean());
+        assertFalse("시험대장은 탐", member(d, "시험대장").get("cancelled").getAsBoolean());
 
-        // 출발 뒤에도 명단 사람은 들어올 수 있음(산에서 처음 엶)
+        // 핸드폰 없이 탄 사람 - 인솔자가 "탔음" 으로 되돌리면 취소가 풀리고, 산에서 처음 열어도 들어옴
+        call(p, "/mark", "{\"token\":\"" + lead + "\",\"id\":" + six.get("id").getAsInt() + ",\"what\":\"boarded\",\"on\":true}", DEPART);
         JsonObject late = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"김철수\",\"seat\":6,\"agree\":true}", DEPART + H);
         assertEquals(6, late.get("seat").getAsInt());
         try { call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"모르는사람\",\"agree\":true}", DEPART + H); fail("명단 밖 새 회원은 출발 뒤 안 됨"); }
@@ -129,13 +128,12 @@ public class PartyRosterTest {
         try { call(p, "/roster", "{\"token\":\"" + lead + "\",\"text\":\"이식이 2-44\"}", T0); fail("2호차는 28석"); }
         catch (IllegalArgumentException e) { assertTrue(e.getMessage().contains("1 ~ 28")); }
         JsonObject k = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"삼식이\",\"bus\":2,\"seat\":28,\"agree\":true}", T0);
-        assertEquals("인솔 자리를 안 정하면 3번도 회원 자리", 3, call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"오식이\",\"bus\":2,\"seat\":3,\"agree\":true}", T0).get("seat").getAsInt());
+        assertEquals("3번도 회원 자리", 3, call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"오식이\",\"bus\":2,\"seat\":3,\"agree\":true}", T0).get("seat").getAsInt());
         assertEquals(28, k.get("seat").getAsInt());
         // 좌석표 없는 차(0석)
         JsonObject z = call(p, "/create", "{\"name\":\"반반\",\"departAt\":" + DEPART + ",\"buses\":2,\"busSeats\":[28,0]}", T0);
         try { call(p, "/join", "{\"code\":\"" + z.get("code").getAsString() + "\",\"nick\":\"사식이\",\"bus\":2,\"seat\":1,\"agree\":true}", T0); fail("0석 차에 좌석"); }
         catch (IllegalArgumentException e) { assertTrue(e.getMessage().contains("좌석표가 없는")); }
-        assertEquals("인솔 자리는 정하기 전엔 없음", "[]", z.getAsJsonArray("leadSeats").toString());
     }
 
     @Test
