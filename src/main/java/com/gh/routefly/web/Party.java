@@ -749,7 +749,8 @@ final class Party {
             for (Member x : m.room.members.values()) if ("lead".equals(x.role)) leads++;
             if (leads <= 1) throw new IllegalStateException("인솔자는 \"방 끝내기\" 로 끝냅니다.");
         }
-        if (m.rostered) {   // 명단 사람 - 위치만 그만 보내고 명단 · 좌석 · 탑승은 남김(인솔자 인원 확인)
+        if ("hiker".equals(m.role)) {   // 산행 회원 - 위치만 그만 보내고 명단 · 좌석 · 탑승은 남김(인솔자 인원 확인, 2026-10-26 홍TV님 "좌석표에서도 빠지는데")
+            m.rostered = true;   // 명단으로 들어오지 않았어도 이제 명단 사람(같은 이름으로 다시 참가하면 그 자리로)
             m.listed = true;
             m.lat = null; m.lon = null; m.acc = null; m.t = 0; m.sos = false; m.track.clear();
             audit.info("leave room={} member={} (명단에 남음)", m.room.code, m.id);

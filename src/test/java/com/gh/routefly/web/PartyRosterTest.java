@@ -99,6 +99,17 @@ public class PartyRosterTest {
         int sixId = six2.get("id").getAsInt();
         assertTrue(member(call(p, "/mark", "{\"token\":\"" + lead + "\",\"id\":" + sixId + ",\"what\":\"aboard\",\"on\":true}", DEPART + 2 * H), "김철수").get("aboard").getAsBoolean());
 
+        // 명단 없이 방 코드로 들어온 회원도 그만 보내기 뒤 좌석표에 남음(2026-10-26 홍TV님 "좌석표에서도 빠지는데")
+        String zt = z.get("token").getAsString();
+        call(p, "/leave", tok(zt), DEPART + H);
+        JsonObject guest = member(call(p, "/view", tok(lead), DEPART + H), "현장손님");
+        assertNotNull("좌석표 · 명단에 남음", guest);
+        assertTrue(guest.get("listed").getAsBoolean());
+        assertTrue("탑승 표시도 그대로", guest.get("boarded").getAsBoolean());
+        JsonObject back = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"현장손님\",\"agree\":true}", DEPART + H);
+        assertEquals("다시 참가하면 같은 사람 · 같은 자리", zt, back.get("token").getAsString());
+        assertTrue(back.get("boarded").getAsBoolean());
+
         // 회원은 명단을 넣을 수 없음
         try { call(p, "/roster", "{\"token\":\"" + a.get("token").getAsString() + "\",\"text\":\"x\"}", T0); fail(); }
         catch (SecurityException e) { /* 됨 */ }
