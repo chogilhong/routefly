@@ -1,0 +1,44 @@
+#!/bin/bash
+# root 로 도는 부분(sudoers 로 deploy 계정에 이 파일 하나만 허용). routefly-deploy 가 부릅니다.
+set -euo pipefail
+umask 022
+WAR=/opt/tomcat/webapps/routefly.war
+KEEP=/var/backups/routefly-war
+LOG=/var/log/routefly-deploy.log
+MIN=1000000; MAX=104857600
+mkdir -p "$KEEP"; chmod 700 "$KEEP"
+log() { echo "$(date '+%F %T') $*" >> "$LOG"; echo "$*"; }
+info() { [ -f "$1" ] && echo "$(stat -c %s "$1")B $(date -r "$1" '+%F %T') $(sha256sum "$1" | cut -c1-12)" || echo "없음"; }
+put() {   # 같은 폴더의 숨김 임시 파일에 쓴 뒤 mv - 톰캣이 반쯤 쓴 war 를 읽지 않게
+  install -o tomcat -g tomcat -m 644 "$1" "/opt/tomcat/webapps/.routefly.war.new"
+  mv -f /opt/tomcat/webapps/.routefly.war.new "$WAR"
+}
+case "${1:-}" in
+  deploy)
+    src="${2:-}"
+    [[ "$src" =~ ^/tmp/rfwar\.[A-Za-z0-9]{8}$ ]] && [ -f "$src" ] || { log "거절: 받은 파일 경로가 이상함"; exit 3; }
+    size=$(stat -c %s "$src")
+    [ "$size" -ge "$MIN" ] && [ "$size" -le "$MAX" ] || { log "거절: 크기 ${size}B (1MB ~ 100MB 만)"; exit 3; }
+    python3 - "$src" <<'PY' || { log "거절: routefly war 가 아님(zip 이 아니거나 RouteflyConfig.class 없음)"; exit 3; }
+import sys, zipfile
+z = zipfile.ZipFile(sys.argv[1])
+if z.testzip() is not None or "WEB-INF/classes/com/gh/routefly/web/RouteflyConfig.class" not in z.namelist():
+    sys.exit(1)
+PY
+    [ -f "$WAR" ] && cp -p "$WAR" "$KEEP/routefly.war.prev"
+    put "$src"
+    log "배포 $(info "$WAR") (앞 것은 $KEEP/routefly.war.prev)"
+    ;;
+  rollback)
+    [ -f "$KEEP/routefly.war.prev" ] || { log "되돌리기 실패: 앞 war 없음"; exit 3; }
+    cp -p "$WAR" "$KEEP/routefly.war.rolledback" 2>/dev/null || true
+    put "$KEEP/routefly.war.prev"
+    log "되돌림 $(info "$WAR")"
+    ;;
+  status)
+    echo "지금 war: $(info "$WAR")"
+    echo "앞 war:   $(info "$KEEP/routefly.war.prev")"
+    echo "최근 기록:"; tail -5 "$LOG" 2>/dev/null || echo "(없음)"
+    ;;
+  *) exit 2 ;;
+esac

@@ -1,0 +1,21 @@
+#!/bin/bash
+# 배포 전용 열쇠(deploy 계정)로 들어오면 이 스크립트만 돕니다(authorized_keys 의 command=, docs/deploy-key.md).
+# 셸 · 파일 보기 · 터널은 막혀 있고, 보낸 명령(SSH_ORIGINAL_COMMAND)은 아래 셋만 받습니다.
+#   deploy   - 표준 입력으로 받은 war 를 운영 routefly.war 로(바로 앞 것은 되돌리기용으로 남김)
+#   rollback - 바로 앞 war 로 되돌림
+#   status   - 지금 war 크기 · 시각 · 지문, 최근 배포 기록
+set -euo pipefail
+umask 077
+MAX=104857600   # 100MB
+cmd="${SSH_ORIGINAL_COMMAND:-}"
+case "$cmd" in
+  deploy)
+    tmp=$(mktemp /tmp/rfwar.XXXXXXXX)
+    trap 'rm -f "$tmp"' EXIT
+    head -c "$((MAX + 1))" > "$tmp"
+    sudo -n /usr/local/sbin/routefly-war-install deploy "$tmp"
+    ;;
+  rollback) sudo -n /usr/local/sbin/routefly-war-install rollback ;;
+  status)   sudo -n /usr/local/sbin/routefly-war-install status ;;
+  *) echo "이 열쇠로는 deploy · rollback · status 만 됩니다." >&2; exit 2 ;;
+esac
