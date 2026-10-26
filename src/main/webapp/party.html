@@ -61,7 +61,8 @@ button.sos { background:#c92a2a; color:#fff; border-color:#c92a2a; }
 #notice { display:none; background:rgba(255,212,59,0.12); border:1px solid rgba(255,212,59,0.5); color:#ffe066; border-radius:10px; padding:10px 12px; font-size:14.5px; margin-bottom:12px; }
 table { width:100%; border-collapse:collapse; font-size:15px; }
 th, td { text-align:left; padding:7px 4px; border-top:1px solid var(--ln); vertical-align:middle; }
-th { color:var(--dim); font-weight:normal; }
+th { color:var(--dim); font-weight:normal; white-space:nowrap; font-size:12.5px; }   /* 좁은 폰에서 머리글 · 이름이 한 글자씩 꺾였음(2026-10-27 홍TV님) */
+#list td:nth-child(2) { white-space:nowrap; }
 tr.sos td { color:var(--red); font-weight:bold; }
 tr.old td { color:#ffa94d; }
 tr.aboard td { color:var(--dim); }
@@ -271,7 +272,7 @@ a.tel { color:var(--sky); }
             <table><thead><tr><th data-en="Seat">좌석</th><th data-en="Name">이름</th><th data-en="Last update">마지막 연락</th><th data-en="Stopped for">멈춘 시간</th><th data-en="Battery">배터리</th><th data-en="Status">상태</th></tr></thead><tbody id="list"></tbody></table>
             <label for="plateText" id="plateLabel" style="margin-top:12px" data-en="Bus plate number (shown to members)">차량번호 (회원 화면에 나감)</label>
             <div class="row"><input id="plateText" type="text" maxlength="12" placeholder="예: 서울70사1234" data-en-placeholder="e.g. 서울70사1234" style="flex:1"><button id="plateBtn" data-en="Save">저장</button></div>
-            <div class="row"><button id="busBtn" data-en="🚌 Set my spot as the bus now">🚌 지금 내 자리를 버스로</button></div>
+            <div class="row"><button id="busBtn" data-en="📍 Bus is parked here (my location now)">📍 버스 세운 곳 = 지금 내 위치</button></div>
             <p class="tip" id="busTip"></p>
             <div id="noticeRow" hidden>
                 <label for="noticeText" data-en="Notice (shown on everyone's screen and trail guide, read aloud)">공지 (모두의 화면 · 따라가기에 뜨고 읽어 줌)</label>

@@ -1033,8 +1033,9 @@
             $("plateText").value = plateOf(state, pb);
             $("plateText").setAttribute("data-bus", pb + ":" + plateOf(state, pb));
         }
-        if (!(state.buses > 1)) { $("busTip").textContent = ""; return; }
-        $("busTip").textContent = T("좌석표에서 고른 " + curBus + "호차의 자리로 정합니다.", "Sets the location of bus " + curBus + " (chosen on the seat map).");
+        // 하산 뒤 버스 찾기(2026-10-27 홍TV님 "이게 뭐야?") - 버스가 선 곳에서 누르면 회원 따라가기에 "🚌 우리 버스"(카카오맵)
+        $("busTip").textContent = T("버스가 선 곳에서 누르세요" + (state.buses > 1 ? "(좌석표에서 고른 " + curBus + "호차)" : "") + ". 회원 따라가기 화면에 \"🚌 우리 버스\" 단추로 나가 하산 뒤 버스를 찾기 쉽습니다.",
+            "Tap where the bus is parked" + (state.buses > 1 ? " (bus " + curBus + ", chosen on the seat map)" : "") + ". Members get an \"🚌 Our bus\" button in the trail guide to find it after the hike.");
     }
     $("plateBtn").addEventListener("click", function () {
         var p = RFParty.get(), pb = plateBus();
@@ -1047,7 +1048,7 @@
 
     $("busBtn").addEventListener("click", function () {
         var p = RFParty.get();
-        here(function (lat, lon) { RFParty.post("bus", { token: p.token, bus: curBus, lat: +lat.toFixed(6), lon: +lon.toFixed(6) }).then(render).catch(actFail); });
+        here(function (lat, lon) { RFParty.post("bus", { token: p.token, bus: curBus, lat: +lat.toFixed(6), lon: +lon.toFixed(6) }).then(function (j) { render(j); roomMsg(T("📍 " + (state.buses > 1 ? curBus + "호차 " : "") + "버스 위치를 지금 내 자리로 정했습니다. 회원 화면에 \"🚌 우리 버스\" 가 나갑니다.", "📍 Bus" + (state.buses > 1 ? " " + curBus : "") + " location set to where you are. Members now see \"🚌 Our bus\".")); }).catch(actFail); });
     });
 
     // 예약 명단 넣기(2026-10-24 홍TV님) - 이름 · 좌석만, 회원이 같은 이름으로 들어오면 그 사람
