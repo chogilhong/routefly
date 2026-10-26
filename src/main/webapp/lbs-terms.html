@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>routefly 위치기반서비스 이용약관</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=2"><link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
+<meta name="theme-color" content="#11161d">
+<style>
+:root { --bg:#11161d; --panel:#1a212b; --tx:#e9eef4; --dim:#9aa6b4; --ln:rgba(255,255,255,0.12); --sky:#38d9ea; --fill:#ffd166; }
+* { box-sizing:border-box; }
+html, body { margin:0; background:var(--bg); color:var(--tx); font-family:Arial,"Malgun Gothic",sans-serif; line-height:1.65; }
+main { max-width:760px; margin:0 auto; padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 40px); }
+h1 { font-size:22px; margin:0 0 4px; }
+h1 span { color:#ffb703; }
+.lead { color:var(--dim); font-size:14px; margin:0 0 18px; }
+section { background:var(--panel); border:1px solid var(--ln); border-radius:12px; padding:14px 16px; margin-bottom:14px; }
+h2 { font-size:16.5px; margin:0 0 8px; }
+ul { margin:0; padding-left:20px; }
+li { margin:4px 0; font-size:14.5px; }
+p { font-size:14.5px; margin:6px 0; }
+.dim { color:var(--dim); font-size:13px; }
+.fill { color:var(--fill); }
+a { color:var(--sky); }
+table { width:100%; border-collapse:collapse; font-size:13.5px; }
+td, th { border-top:1px solid var(--ln); padding:7px 4px; vertical-align:top; text-align:left; }
+th { color:var(--dim); font-weight:normal; width:30%; }
+.key { background:rgba(56,217,234,0.10); border:1px solid rgba(56,217,234,0.35); border-radius:10px; padding:10px 12px; font-size:14.5px; }
+.back { display:inline-block; margin-top:6px; }
+/* 오른쪽 위 닫기 - 아래 '‹ 돌아가기' 와 같음(앞 화면으로, about.html 과 같은 모양 - 2026-10-14 홍TV님) */
+.close { position:fixed; top:calc(env(safe-area-inset-top) + 10px); right:12px; z-index:5; width:40px; height:40px; border-radius:50%;
+         display:flex; align-items:center; justify-content:center; font-size:20px; text-decoration:none; color:var(--tx);
+         background:var(--panel); border:1px solid var(--ln); box-shadow:0 2px 6px rgba(0,0,0,0.4); }
+h1 { padding-right:46px; }   /* 제목이 닫기 단추 밑으로 들어가지 않게 */
+/* 글자 크기 "가+"(js/about.js) - ✕ 왼쪽 */
+.rfz main { zoom: var(--rfz); }
+.rfTextBtn { position:fixed; top:calc(env(safe-area-inset-top) + 13px); right:60px; z-index:5; min-width:44px; height:34px; padding:0 8px; border-radius:17px;
+             border:1px solid var(--ln); background:var(--panel); color:var(--tx); font:bold 13px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }
+h1 { padding-right:110px; }
+.rfz h1 { padding-right:calc(110px / var(--rfz)); }   /* zoom 이 여백도 키우므로 */
+</style>
+</head>
+<body>
+<a class="close" id="aboutClose" href="about.html" aria-label="닫기" title="닫기(앞 화면으로)">✕</a>
+<main>
+    <h1>route<span>fly</span> 위치기반서비스 이용약관</h1>
+    <p class="lead">시행일: 2026년 10월 26일 · 위치정보법 제12조에 따라 공개합니다. 개인정보 전반은 <a href="privacy.html">개인정보처리방침</a>을 보세요.</p>
+
+    <section>
+        <h2>1. 사업자</h2>
+        <table>
+            <tr><th>상호</th><td id="bizName">준비 중</td></tr>
+            <tr><th>주소</th><td id="bizAddress">준비 중</td></tr>
+            <tr><th>전화</th><td id="bizPhone">준비 중</td></tr>
+            <tr><th>그 밖의 연락처</th><td><a href="mailto:sportsnews.javanian@gmail.com">sportsnews.javanian@gmail.com</a> · <a href="feedback.html?from=/lbs-terms.html">📮 의견 보내기</a></td></tr>
+            <tr><th>위치기반서비스사업 신고</th><td>방송미디어통신위원회 신고번호 제1857호(소상공인 등의 위치기반서비스사업, 2026년 10월 23일 수리)</td></tr>
+            <tr><th>사업 내용</th><td>이용자 위치기반 등산 관련 정보 제공 서비스</td></tr>
+            <tr><th>위치정보관리책임자</th><td>조길홍 (연락처는 위 메일)</td></tr>
+        </table>
+    </section>
+
+    <section id="service">
+        <h2>2. 서비스 내용 · 요금</h2>
+        <ul>
+            <li><b>산악회 방</b>: 안내 산악회 인솔자가 방을 만들고, 참가에 동의한 회원의 위치(마지막 하나) · SOS · 배터리 · 탑승 표시를 그 방 <b>인솔자 · 운전자</b>에게 보여 줍니다(회원끼리는 위치를 보지 않음). 조난 대비로 인솔자 · 운전자는 회원이 출발 뒤 지나온 길 최근 2시간을 볼 수 있습니다.</li>
+            <li><b>따라가기(내 위치 · 코스 안내 · 기록)</b>: 위치는 이용자 핸드폰 안에서만 쓰고 서버로 보내지 않습니다(산악회 방에 참가했을 때만 위 내용).</li>
+            <li>위치는 이용자 핸드폰의 GPS(브라우저 위치 기능 · 안드로이드 앱의 위치 서비스)로 핸드폰이 직접 재어 보냅니다. 이동통신사 등 다른 위치정보사업자에게서 받지 않습니다.</li>
+            <li><b>요금: 무료</b>입니다. 데이터 통신 요금은 이용자가 가입한 통신사 요금제에 따릅니다.</li>
+        </ul>
+    </section>
+
+    <section id="rights">
+        <h2>3. 개인위치정보주체의 권리와 행사 방법</h2>
+        <ul>
+            <li><b>동의 철회</b>: 따라가기 화면 위 "📡 인솔자에게 위치 보내는 중" 줄의 <b>그만 보내기</b>를 누르면 그때부터 위치를 받지 않고 서버의 위치 · 지나온 길을 지웁니다(인솔자 명단에는 이름만 남음).</li>
+            <li><b>일시 중지</b>: 핸드폰 · 브라우저의 위치 권한을 끄거나 따라가기 화면을 닫으면 위치가 가지 않습니다.</li>
+            <li><b>열람 · 고지 · 정정 요구</b>: 내 위치정보를 이용 · 제공한 사실 확인자료, 제공받은 자 · 이유 · 내용의 열람이나 고지, 오류의 정정을 위 연락처로 요구할 수 있고, 지체 없이 처리합니다.
+                서버는 위치를 방이 끝나면 지우고 확인자료에 이름 · 좌표를 남기지 않으므로, 요구할 때 방 코드와 참가한 날을 알려 주세요.</li>
+            <li>만 14세 미만은 참가할 수 없습니다(법정대리인 동의를 받지 않음).</li>
+        </ul>
+    </section>
+
+    <section id="keep">
+        <h2>4. 보유 근거 · 목적 · 기간</h2>
+        <table>
+            <tr><th>개인위치정보</th><td>목적: 인솔자 · 운전자의 회원 위치 확인 · 조난 대비. 서버 메모리에만 두고(파일 · DB 에 쓰지 않음), 방을 나가거나 방이 끝나면 지웁니다.
+                방이 끝나면(산행 취소 빼고) 지나온 길은 누구인지 알 수 없게 바꿔 코스 통계에 씁니다(별명 · 시각 없이, 처음 · 끝 500m 빼고).</td></tr>
+            <tr><th>위치정보 이용 · 제공사실 확인자료</th><td>근거: 위치정보법 제16조 제2항. 참가 · 나감 · 내보냄 · 출발 때 취소 · 방 끝 · SOS 의 때와 방 코드 · 방 안 번호만 남기고(좌표 · 이름 없음), 6개월 넘게(200일) 보관한 뒤 지웁니다.</td></tr>
+        </table>
+    </section>
+
+    <section id="provide">
+        <h2>5. 제3자 제공</h2>
+        <p>참가할 때 동의한 범위(그 방 인솔자 · 운전자에게 보여 주기) 밖으로 개인위치정보를 제공하지 않습니다. 보내는 동안에는 따라가기 화면 위에 "인솔자에게 위치 보내는 중" 이 늘 보입니다.
+            법령에 따라 수사기관 등이 요구하는 경우는 예외입니다. 119 신고는 이용자가 직접 SOS 화면에서 고른 경우에만 이용자 핸드폰에서 보냅니다.</p>
+    </section>
+
+    <section>
+        <h2>6. 손해배상 · 분쟁 해결</h2>
+        <p>사업자의 잘못으로 이용자에게 손해가 생기면 위치정보법에 따라 배상합니다. 분쟁은 먼저 위 연락처로 알려 주시고, 해결되지 않으면 위치정보법 제28조에 따라
+            방송미디어통신위원회에 재정을 신청하거나 개인정보 분쟁조정위원회(www.kopico.go.kr, 1833-6972)에 조정을 신청할 수 있습니다.</p>
+    </section>
+
+    <section>
+        <h2>7. 바뀔 때</h2>
+        <p>이 약관이 바뀌면 시행 7일 전부터 이 화면에 알립니다.</p>
+    </section>
+
+    <a class="back" id="aboutBack" href="about.html">‹ 돌아가기</a>
+</main>
+<script src="js/lbs-terms.js"></script>
+<script src="js/about.js"></script>
+<script src="js/seen.js"></script>
+</body>
+</html>

@@ -780,7 +780,7 @@ public class MountainServlet extends HttpServlet {
     static String foot(String en, boolean scripts) {
         String b = REL;   // 상대 주소 - 터널(https → http 톰캣)에서 http 절대 주소가 막혔음(2026-10-14)
         return "<p class=\"dim\">자료: 산림청 100대 명산 · 등산로정보, 국립공원공단 탐방로, 기상청 단기예보 · 에어코리아 대기정보 · 두루누비(공공데이터포털), © OpenStreetMap contributors. "
-                + "<a href=\"" + b + "/about.html\">안전 · 출처 안내</a> · <a href=\"" + b + "/privacy.html\">개인정보처리방침</a> · <a href=\"" + b + "/feedback.html?from=/m/\">📮 의견 보내기</a>"
+                + "<a href=\"" + b + "/about.html\">안전 · 출처 안내</a> · <a href=\"" + b + "/privacy.html\">개인정보처리방침</a> · <a href=\"" + b + "/lbs-terms.html\">위치기반서비스 이용약관</a> · <a href=\"" + b + "/feedback.html?from=/m/\">📮 의견 보내기</a>"
                 + (en == null ? "" : " · <a href=\"" + esc(en) + "\" hreflang=\"en\" lang=\"en\">English</a>") + "</p>"
                 + "<p class=\"support\" id=\"support\" hidden></p>"   // ☕ 후원(설정 donate.url 이 있을 때만 mountain.js 가 보임)
                 + "<p class=\"brand\"><a href=\"" + b + "/hike.html?lang=ko\"><img src=\"" + b + "/img/logo-dark.svg\" alt=\"routefly\" width=\"160\" height=\"50\"> 앱 열기 ›</a></p>"

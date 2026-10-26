@@ -413,6 +413,7 @@ public class StatsServlet extends HttpServlet {
             case "/subway.html" -> "지하철 노선도(예전 화면 - 지금은 별거 별거 안)";
             case "/about.html" -> "안내 - 안전 · 개인정보 · 출처";
             case "/privacy.html" -> "개인정보처리방침";
+            case "/lbs-terms.html" -> "위치기반서비스 이용약관";
             case "/feedback.html" -> "의견 보내기";
             case "/c/" -> "코스 소개 페이지(검색 손님)";
             case "/s/" -> "공유 링크";

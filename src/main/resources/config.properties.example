@@ -97,6 +97,10 @@ site.baseUrl=
 # 인솔자에게 회원 위치를 보여 주는 기능이라 위치기반서비스사업 신고를 마친 뒤에만 true. 그 전에는 비우거나 false(화면은 "준비 중").
 # PC(개발)에서 시험할 때만 true 로 켜 봄.
 #party.enabled=false
+#   위치기반서비스 이용약관(lbs-terms.html)의 사업자 정보(위치정보법 12조 - 상호 · 주소 · 전화, 2026-10-26). 저장소에는 적지 않음.
+#biz.name=
+#biz.address=
+#biz.phone=
 #   안드로이드 앱을 플레이스토어에 올린 뒤 true(2026-10-24 홍TV님). 그 전에는 비움 - 산악회 방 회원을 크롬으로, true 면 앱으로(없으면 설치 화면).
 #app.released=false
 

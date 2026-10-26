@@ -22,6 +22,8 @@ import com.google.gson.JsonObject;
  *   <li>{@code partner.trip.url} - 트립닷컴 제휴 링크(www · kr · us.trip.com, 2026-10-21 신청 중). {lat} · {lon} 도 아고다처럼.</li>
  *   <li>{@code donate.url} - 후원(toss.me · qr.kakaopay.com 등 https 주소).</li>
  *   <li>{@code donate.en.url} - 외국 사람용 후원(PayPal 결제 링크 · paypal.me · ko-fi.com) - 영어 페이지(/en/m/)에만. 2026-10-17 홍TV님.</li>
+ *   <li>{@code biz.name} · {@code biz.address} · {@code biz.phone} - 위치기반서비스 이용약관(lbs-terms.html)에 적는 상호 · 주소 · 전화(위치정보법 12조, 2026-10-26).
+ *       개인 · 사업자 정보라 저장소에 적지 않고 설정에만 둡니다. 비어 있으면 화면에 "준비 중".</li>
  * </ul>
  * 가입 · 링크 만들기는 홍TV님이 하고, 링크는 설정에만 둡니다. 주소는 정해진 곳(https)만 받습니다 - 설정이 잘못돼도 엉뚱한 곳으로 보내지 않게.
  */
@@ -63,6 +65,12 @@ public class PartnersServlet extends HttpServlet {
         if (allowed(donate, "https://")) out.addProperty("donate", donate);
         String donateEn = conf.apply("donate.en.url");
         if (allowed(donateEn, "https://www.paypal.com/", "https://paypal.me/", "https://www.paypal.me/", "https://ko-fi.com/")) out.addProperty("donateEn", donateEn);
+        JsonObject biz = new JsonObject();
+        for (String k : new String[] {"name", "address", "phone"}) {
+            String v = Party.clean(conf.apply("biz." + k), 120);   // 꺾쇠 · 따옴표 뺌
+            if (v != null) biz.addProperty(k, v);
+        }
+        out.add("biz", biz);
         return out;
     }
 

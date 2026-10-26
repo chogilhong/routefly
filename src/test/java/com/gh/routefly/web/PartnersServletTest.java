@@ -33,6 +33,10 @@ public class PartnersServletTest {
         assertFalse("트립닷컴 흉내 주소는 뺌", PartnersServlet.body(Map.of("partner.trip.url", "https://www.trip.com.evil.example/x")::get).has("trip"));
         assertEquals("https://toss.me/test", o.get("donate").getAsString());
         assertEquals("https://www.paypal.com/ncp/payment/TEST", o.get("donateEn").getAsString());
+        JsonObject biz = PartnersServlet.body(java.util.Map.of("biz.name", "시험상호", "biz.phone", "<b>010-0000-0000")::get).getAsJsonObject("biz");
+        assertEquals("시험상호", biz.get("name").getAsString());
+        assertEquals("꺾쇠는 뺌", "b010-0000-0000", biz.get("phone").getAsString());
+        assertFalse("없으면 안 보냄", biz.has("address"));
         assertFalse("영어 후원은 PayPal · Ko-fi 만", PartnersServlet.body(Map.of("donate.en.url", "https://toss.me/x")::get).has("donateEn"));
     }
 
