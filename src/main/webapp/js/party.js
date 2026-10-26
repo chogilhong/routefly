@@ -937,6 +937,7 @@
             + T("방 코드 ", "Room code ") + p.code + T(" - 아래 링크로 들어와 예약한 이름만 넣으면 됩니다. 산행 날 따라가기 화면을 켜 두면 인솔자에게 위치가 갑니다.\n", " - open the link below and enter the name you booked with. On the day, keep the trail guide open so your leader can see where you are.\n") + inviteUrl();
     }
     function inviteMsg(t) { $("inviteMsg").textContent = t; }
+    function copyMsg(t) { $("copyMsg").textContent = t; }   // 안내 글 복사 단추 바로 아래(2026-10-27 홍TV님)
     /** 안내 글 복사 - 한 길로만(2026-10-20 홍TV님 "복사하면 문구가 두 번": 복사 + 확인 창이 겹칠 수 있던 것을 없앰). */
     function copyInvite() {
         var text = inviteText();
@@ -947,9 +948,9 @@
             var ok = false;
             try { ok = document.execCommand("copy"); } catch (e) { /* 못 함 */ }
             document.body.removeChild(ta);
-            inviteMsg(ok ? T("✅ 복사했습니다. 카톡 · 문자 창에 길게 눌러 붙여 넣으세요.", "✅ Copied. Long-press in a KakaoTalk or text message to paste.") : T("복사하지 못했습니다. 위 링크 칸을 길게 눌러 복사해 주세요.", "Couldn't copy. Long-press the link box above to copy it."));
+            copyMsg(ok ? T("✅ 복사했습니다. 카톡 · 문자 창에 길게 눌러 붙여 넣으세요.", "✅ Copied. Long-press in a KakaoTalk or text message to paste.") : T("복사하지 못했습니다. 위 링크 칸을 길게 눌러 복사해 주세요.", "Couldn't copy. Long-press the link box above to copy it."));
         }
-        if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(function () { inviteMsg(T("✅ 복사했습니다. 카톡 · 문자 창에 길게 눌러 붙여 넣으세요.", "✅ Copied. Long-press in a KakaoTalk or text message to paste.")); }, old);
+        if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(function () { copyMsg(T("✅ 복사했습니다. 카톡 · 문자 창에 길게 눌러 붙여 넣으세요.", "✅ Copied. Long-press in a KakaoTalk or text message to paste.")); }, old);
         else old();
     }
     /** 카톡으로 - 안드로이드는 카톡을 바로 열어 글을 넣음(친구 · 단톡방 고르기), 그 밖(아이폰 등)은 공유 창(카톡 고르기). 2026-10-20 홍TV님. */
@@ -998,7 +999,7 @@
         showQr(location.origin + location.pathname + "?c=" + encodeURIComponent(code) + (EN ? "&lang=en" : ""),
             T("📱 내 핸드폰 카메라로 찍으세요 - 이름만 넣으면 핸드폰에도 이 인솔자 화면이 열립니다", "📱 Scan with your own phone - enter your name and this leader screen opens there too"),
             T("인솔자 코드", "Leader code"), code,
-            T("이 QR 은 인솔자용입니다. 회원에게 보여 주지 마세요(회원에게는 \"QR 보여 주기\").", "This QR is for leaders only - don't show it to members (use \"Show QR\" for them)."));
+            T("이 QR 은 인솔자용입니다. 회원에게 보여 주지 마세요(회원에게는 \"회원 코드 QR\").", "This QR is for leaders only - don't show it to members (use \"Member code QR\" for them)."));
     });
     $("qrClose").addEventListener("click", function () { $("qrBox").hidden = true; });
     $("qrBox").addEventListener("click", function (e) { if (e.target === this) this.hidden = true; });

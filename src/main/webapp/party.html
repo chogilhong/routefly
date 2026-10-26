@@ -216,10 +216,11 @@ a.tel { color:var(--sky); }
                     <button id="smsBtn" data-en="💬 Text">💬 문자</button>
                     <button id="copyBtn" data-en="📋 Copy invite text">📋 안내 글 복사</button>
                 </div>
-                <div class="row"><button id="qrBtn" data-en="📱 Show QR (join on the spot)">📱 QR 보여 주기 (현장에서 바로 참가)</button></div>
+                <div id="copyMsg" class="tip" role="status"></div>   <!-- 복사했습니다 - 단추 바로 아래(2026-10-27 홍TV님) -->
+                <div class="row"><button id="qrBtn" data-en="📱 Member code QR">📱 회원 코드 QR</button></div>
                 <p id="leadCodeRow" class="tip" hidden style="margin:8px 0 0"><span data-en="🧭 Leader code">🧭 인솔자 코드</span> <b id="leadCode" style="font-size:17px;letter-spacing:2px;color:var(--tx)"></b> <span data-en="- only for people who watch members with you (company staff, another bus's leader, etc.). They enter this code under &quot;Enter with a leader code&quot; and get the same leader screen.">- 회원을 함께 지켜볼 사람(회사 관계자 · 다른 버스 인솔자 등)에게만 알려 주세요.
                     "인솔자 코드 · 방 코드로 들어가기" 에 이 코드를 넣으면 같은 인솔자 화면으로 들어옵니다.</span></p>
-                <div class="row" id="myPhoneRow" hidden><button id="myPhoneBtn" data-en="📱 Also view on my phone (QR)">📱 내 핸드폰에서도 보기 (QR)</button></div>
+                <div class="row" id="myPhoneRow" hidden><button id="myPhoneBtn" data-en="📱 Leader code QR">📱 인솔자 코드 QR</button></div>
                 <div class="row" id="nfcRow" hidden><button id="nfcBtn" data-en="📶 Write to NFC sticker (tap to join)">📶 NFC 스티커에 쓰기 (대기만 하면 참가)</button></div>
                 <div id="inviteMsg" class="tip" role="status"></div>
             </div>
@@ -247,7 +248,7 @@ a.tel { color:var(--sky); }
                 <a class="guideLink" href="party-guide.html#seat" data-en="📖 Leader guide (Korean)">📖 인솔자 사용법</a></div>
         </section>
         <section id="staffBox" hidden>
-            <details id="rosterBox" hidden>   <!-- 예약 명단(2026-10-24 홍TV님) - 회원은 앱 · 화면을 안 열 수도 있음 -->
+            <details id="rosterBox" hidden open>   <!-- 예약 명단(2026-10-24 홍TV님) - 회원은 앱 · 화면을 안 열 수도 있음 -->
                 <summary data-en="📋 Paste the booking list (names · seats)">📋 예약 명단 넣기 (이름 · 좌석)</summary>
                 <p class="tip" data-en="Paste names as booked, e.g. &quot;Kim 5 Lee 6 Park&quot; - a number after a name is the seat, &quot;2-15&quot; is bus 2 seat 15, no number = no seat. Names only (no phone numbers). Members who open the link · QR and type the same name become that person.">예약받은 이름을 그대로 붙여 넣으세요. 예: "일식이 5 이식이 6 삼식이" - 이름 뒤 숫자는 좌석, "2-15" 는 2호차 15번, 숫자가 없으면 자리 없이. 이름만 넣습니다(전화번호 X). 회원이 링크 · QR 로 들어와 같은 이름을 넣으면 그 사람이 됩니다.</p>
                 <textarea id="rosterText" maxlength="3000"></textarea>
