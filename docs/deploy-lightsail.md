@@ -166,6 +166,16 @@ WantedBy=multi-user.target
 sudo systemctl daemon-reload && sudo systemctl enable --now tomcat
 ```
 
+나중에 `tomcat.service` 를 고쳤을 때(예: `CATALINA_OPTS` 메모리 · 설정 경로)는 systemd 가 바뀐 파일을 다시 읽게 한 뒤 톰캣을 다시 켭니다. `daemon-reload` 를 빼면 옛 내용 그대로 켜집니다:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart tomcat
+systemctl show tomcat -p Environment     # 바뀐 값이 들어갔는지
+```
+
+`config.properties` 만 고쳤을 때는 `daemon-reload` 없이 `sudo systemctl restart tomcat` 만 하면 됩니다.
+
 설정 파일은 `src/main/resources/config.properties.example` 을 바탕으로 만듭니다:
 
 ```bash
