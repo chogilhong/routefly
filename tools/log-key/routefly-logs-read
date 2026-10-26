@@ -1,6 +1,6 @@
 #!/bin/bash
 # root 로 도는 읽기 부분(sudoers 로 logview 계정에 이 파일 하나만 허용). /opt/tomcat/logs 아래 파일만, 읽기만 합니다.
-#   files            - 로그 파일 목록(크기 · 시각, 서버 시각은 UTC)
+#   files            - 로그 파일 목록(크기 · 시각, 한국 시간)
 #   tail [N]         - catalina.out 끝 N줄(기본 200, 많아야 3000)
 #   log 이름 [N]     - 그 로그 파일 끝 N줄(이름은 .log · .out · .txt, 폴더 · 경로 없이)
 #   grep 낱말 [N]    - catalina.out 끝 5만 줄에서 그 낱말(글자 그대로)이 든 줄 중 마지막 N줄

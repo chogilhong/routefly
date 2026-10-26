@@ -8,7 +8,7 @@
 - 이 열쇠로 들어오면 `/usr/local/bin/routefly-deploy` 만 돕니다(authorized_keys 의 `restrict,command=`). 셸 · 파일 보기 · 터널 · scp 는 안 됩니다.
 - 받는 명령은 셋: `deploy`(표준 입력의 war 를 운영으로), `rollback`(바로 앞 war 로), `status`(지금 · 앞 war, 최근 기록 5줄).
 - `deploy` 는 1MB ~ 100MB 이고, zip 이 온전하고, `WEB-INF/classes/com/gh/routefly/web/RouteflyConfig.class` 가 들어 있어야 받습니다.
-  바꾸기 전 war 는 `/var/backups/routefly-war/routefly.war.prev` 에 남기고, 기록은 `/var/log/routefly-deploy.log`(시각 · 크기 · sha256 앞 12자, 시각은 서버 시간 UTC - 한국 시각은 +9시간).
+  바꾸기 전 war 는 `/var/backups/routefly-war/routefly.war.prev` 에 남기고, 기록은 `/var/log/routefly-deploy.log`(시각 · 크기 · sha256 앞 12자, 시각은 한국 시간 - 2026-10-27 확인, 앞서 UTC 로 적은 것은 잘못).
 - root 로 도는 부분은 `/usr/local/sbin/routefly-war-install` 하나이고, sudoers 는 deploy 계정에 그 파일만 허용합니다.
 - 한계: war 안의 프로그램은 서버에서 톰캣 권한으로 돕니다. 이 열쇠는 실수(잘못된 명령 · 파일 지우기 · 설정 망가뜨리기)를 막지만,
   PC 가 털려 나쁜 war 가 올라가는 것까지 막지는 못합니다. 그래서 PC Claude 는 홍TV님이 "배포해" 라고 할 때만 씁니다.
