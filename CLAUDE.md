@@ -77,6 +77,8 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다 - 산악회 방 
   (2026-10-20: 백업 zip 을 찾느라 묻지 않고 E:\ · C:\GH\ · D:\ 를 이름 검색함 - 사과하고 이 줄을 넣음).
 - 배포 전용 열쇠(`C:\GH\workspace\.deploy-key`)는 홍TV님이 "배포해" 라고 할 때만 PC Claude 가 씁니다(docs/deploy-key.md - 서버 deploy 계정은 deploy · rollback · status 만, 2026-10-27).
   메인 .pem · `C:\GH\config` 는 그대로 금지입니다.
+- 로그 읽기 전용 열쇠(docs/log-key.md - 서버 logview 계정은 /opt/tomcat/logs 읽기만, 2026-10-27)는 PC Claude 가 허락 없이 써도 됩니다.
+  보고 · 메모 · 커밋에 IP · 토큰 · 방 코드 · 이름 같은 개인정보는 옮기지 않습니다.
 - 읽기만 하는 명령(Get-Process, netstat 등)은 승인 없이 바로 씁니다.
 - 키 · 비밀번호는 대화에 붙이지도, 입력 칸에 넣지도 않습니다(로그인 · 키 입력은 홍TV님).
 - 파일 내려받기는 부탁받은 것만. 그 밖은 묻고 받습니다. 받은 압축 · 실행 파일은 새 빈 폴더에서 엽니다.
