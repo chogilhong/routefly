@@ -215,15 +215,17 @@
         $("mkSec").hidden = true;   // 참가할 사람에게는 참가 칸만(링크로 온 회원과 같게) - 방 만들기는 위 한 줄로(2026-10-26 PC)
         $("mkShowRow").hidden = false;
         $("joinSec").hidden = false;
-        $("joinBox").open = true;
         $("joinSec").scrollIntoView({ behavior: "smooth", block: "start" });
         $("joinCode").focus();
     });
+    // "인솔자이신가요? 방 만들기" - 첫 화면으로(방 만들기 + 맨 위 "공동 인솔자 · 방 코드로 참가", 참가 칸은 숨김 - 2026-10-27 홍TV님)
     $("mkShow").addEventListener("click", function (e) {
         e.preventDefault();
         $("mkShowRow").hidden = true;
+        $("joinSec").hidden = true;
+        $("joinShowRow").hidden = false;
         $("mkSec").hidden = false;
-        $("mkSec").scrollIntoView({ behavior: "smooth", block: "start" });
+        window.scrollTo(0, 0);
     });
 
     function start() {
@@ -251,7 +253,7 @@
             if (cur) { enterRoom(); return; }
             show("start");
             if (q.get("c")) { appOpen(); $("mkSec").hidden = true; $("mkShowRow").hidden = false; $("joinSec").hidden = false; $("joinShowRow").hidden = true; }
-            if (q.get("c")) { $("joinBox").open = true; $("joinCode").value = q.get("c").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6); loadInfo(); }
+            if (q.get("c")) { $("joinCode").value = q.get("c").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6); loadInfo(); }
             try { $("joinNick").value = localStorage.getItem("rf-party-nick") || ""; } catch (e) { /* 없음 */ }
             var t = new Date(Date.now() + 86400000);   // 출발 날짜 - 내일로 두고 고치게
             $("mkDate").value = dayText(t);

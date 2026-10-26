@@ -86,14 +86,6 @@ select, input[type=number] { width:100%; height:44px; padding:0 10px; border-rad
 .s.back { background:var(--green); border-color:var(--green); color:#06210c; }
 .s.aisle { visibility:hidden; }
 #mkPlates { display:grid; grid-template-columns:1fr 1fr; gap:0 10px; }
-#joinBox > summary { list-style:none; cursor:pointer; display:flex; align-items:center; justify-content:space-between; }
-#joinBox > summary::-webkit-details-marker { display:none; }
-#joinBox > summary h2 { margin:0; }
-#joinBox > summary::after { content:"펼치기 ▾"; font-size:13px; color:var(--sky); flex:0 0 auto; }
-#joinBox[open] > summary { margin-bottom:8px; }
-#joinBox[open] > summary::after { content:"접기 ▴"; }
-html[lang=en] #joinBox > summary::after { content:"Open ▾"; }   /* 영어(2026-10-22) */
-html[lang=en] #joinBox[open] > summary::after { content:"Close ▴"; }
 .invite { margin-top:10px; padding:10px 12px; border:1px solid rgba(56,217,234,0.45); border-radius:12px; background:rgba(56,217,234,0.08); }
 .invite label { margin-top:0; }
 #inviteUrl { font-size:14px; }
@@ -149,6 +141,7 @@ a.tel { color:var(--sky); }
 
     <div id="start" hidden>
         <p id="joinShowRow" class="tip" style="text-align:center;margin:0 0 12px">   <!-- 화면 제일 위(2026-10-27 홍TV님 - 맨 아래라 안 보였음) --><a href="#" id="joinShow" style="color:var(--sky)" data-en="🧭 Co-leader (co-leader code) · join with a room code">🧭 공동 인솔자(인솔자 코드) · 방 코드로 참가</a></p>
+        <p id="mkShowRow" class="tip" style="text-align:center;margin:0 0 12px" hidden>   <!-- 맨 위(2026-10-27 홍TV님) - 누르면 첫 화면(방 만들기)으로 --><a href="#" id="mkShow" style="color:var(--sky)" data-en="🧭 Are you the leader? Create a room">🧭 인솔자이신가요? 방 만들기</a></p>
         <!-- 앱으로 열기(2026-10-20 PC: 카톡 안 브라우저에서는 앱 링크가 안 걸림) - 안드로이드 · 참가 링크로 왔을 때만 -->
         <section id="appOpen" class="invite" hidden>
             <p style="margin:0 0 8px" data-en="📱 Please join with the routefly app. Your location still reaches the leader with the screen off. (No app? It takes you to install it.)">📱 routefly 앱으로 참가해 주세요. 화면을 꺼도 인솔자에게 위치가 갑니다. (앱이 없으면 설치 화면으로 갑니다)</p>
@@ -156,8 +149,8 @@ a.tel { color:var(--sky); }
             <p class="tip" style="margin:6px 0 0" data-en="No app? Just join below.">앱이 없으면 아래에서 그대로 참가하면 됩니다.</p>
         </section>
         <section id="joinSec" hidden>   <!-- 2026-10-26 홍TV님 "참가하기가 아직도 있네" - 링크 · QR(?c=)로 온 회원 · 공동 인솔자 코드로만. 그냥 열면 방 만들기 -->
-            <details id="joinBox">   <!-- 2026-10-20 홍TV님: 접어 두고 누르면 펼침, ?c= 코드로 오면 펼친 채 -->
-            <summary><h2 data-en="🙋 Join">🙋 참가하기</h2></summary>
+            <div id="joinBox">   <!-- 2026-10-27 홍TV님: 접기 뺌 - 이 칸이 보일 때는 늘 펼친 채 -->
+            <h2 data-en="🙋 Join">🙋 참가하기</h2>
             <label for="joinCode" data-en="Room code (6 letters from the leader)">방 코드 (인솔자가 보낸 6글자)</label>
             <input id="joinCode" type="text" maxlength="6" autocomplete="off" autocapitalize="characters">
             <div id="joinCard" class="card" hidden></div>
@@ -176,9 +169,8 @@ a.tel { color:var(--sky); }
                 <a href="privacy.html#party" style="color:var(--sky)">자세히</a> · <a href="lbs-terms.html" style="color:var(--sky)">위치기반서비스 이용약관</a></label></div>
             <button id="joinBtn" class="main" data-en="Join">참가하기</button>
             <div id="joinMsg" class="fieldMsg" role="alert"></div>
-            </details>
+            </div>
         </section>
-        <p id="mkShowRow" class="tip" style="text-align:center" hidden><a href="#" id="mkShow" style="color:var(--sky)" data-en="🧭 Are you the leader? Create a room">🧭 인솔자이신가요? 방 만들기</a></p>
         <section id="mkSec">   <!-- 참가 링크(?c=)로 온 회원에게는 숨김(2026-10-20 홍TV님 - 헷갈림), 위 한 줄로 엶 -->
             <h2 data-en="🧭 Create a room (leader)">🧭 방 만들기 (인솔자)</h2>
             <a class="guideLink" href="party-guide.html#make" data-en="📖 Read the leader guide first (Korean)">📖 인솔자 사용법 먼저 보기</a>
