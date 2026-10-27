@@ -55,4 +55,21 @@ public class PartySayTest {
         assertTrue("80자까지", call(p, "/say", "{\"token\":\"" + b + "\",\"text\":\"" + "가".repeat(100) + "\"}", T0).toString().length() > 0);
         assertEquals(80, member(call(p, "/view", tok(lead), T0), "영희").get("msg").getAsString().length());
     }
+
+    /** 제3자 제공 매회 즉시 통보(위치정보지원센터 답 · 홍TV님 (가)): 인솔자 화면이 받아 간 때가 회원 화면에 바로. */
+    @Test
+    public void providedAtTellsMember() {
+        Party p = new Party();
+        JsonObject room = j(create(p, T0));
+        String code = room.get("code").getAsString(), lead = room.get("token").getAsString();
+        String a = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"철수\",\"agree\":true}", T0).get("token").getAsString();
+        assertFalse("아직 제공 전", call(p, "/view", tok(a), T0).has("providedAt"));
+        call(p, "/loc", "{\"token\":\"" + a + "\",\"lat\":38.12,\"lon\":128.46}", DEPART);
+        call(p, "/view", tok(lead), DEPART);
+        assertEquals("인솔자 화면이 위치를 받아 감", DEPART, call(p, "/view", tok(a), DEPART).get("providedAt").getAsLong());
+        call(p, "/view", tok(lead), DEPART + 60_000);
+        assertEquals("인솔자가 받아 간 때", DEPART + 60_000, call(p, "/view", tok(a), DEPART + 61_000).get("providedAt").getAsLong());
+        call(p, "/view", tok(a), DEPART + 120_000);
+        assertEquals("본인 화면은 제공이 아님", DEPART + 60_000, call(p, "/view", tok(a), DEPART + 121_000).get("providedAt").getAsLong());
+    }
 }

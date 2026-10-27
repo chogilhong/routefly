@@ -85,6 +85,8 @@ final class Party {
         /** 인솔자에게 한 줄(2026-10-27 홍TV님 - 공지의 반대 방향) - 메모리에만, 방이 끝나면 사라짐. */
         String msg;
         long msgAt;
+        /** 인솔자 화면이 이 회원의 위치를 마지막으로 받아 간 때(제3자 제공 - 위치정보법 제19조 제3항 매회 즉시 통보, 2026-10-27 위치정보지원센터 답 · 홍TV님 (가)). */
+        long providedAt;
         /** 지나온 길 [위도, 경도, ms] - 메모리에만, 방이 끝나면 익명 통계(PartyTrack)로 넘기고 버림(2026-10-21 홍TV님). */
         final List<double[]> track = new ArrayList<>();
         double anchorLat, anchorLon;
@@ -1077,6 +1079,7 @@ final class Party {
         o.addProperty("boarded", me.boarded);
         o.addProperty("aboard", me.aboard);
         if (me.apart) o.addProperty("apart", true);
+        if (me.providedAt > 0) o.addProperty("providedAt", me.providedAt);   // 내 위치를 인솔자에게 마지막으로 제공한 때(매회 즉시 통보)
         o.addProperty("cancelled", me.cancelled);
         o.addProperty("bus", me.bus);
         if (me.seat != null) o.addProperty("seat", me.seat);
@@ -1109,6 +1112,7 @@ final class Party {
             if (m.aboard) aboard++;
             // 위치는 인솔자와 자기 것만(2026-10-24 홍TV님 - 인솔자 위주, 회원은 따라가기 지도로 걷고 남의 위치는 안 봄)
             if (m.t > 0 && m.lat != null && (staff || m == me)) {   // 하산 탑승하면 위치를 지움(aboard)
+                if (staff && m != me) m.providedAt = now;   // 인솔자에게 제공한 때 - 회원 화면에 바로 알림
                 x.addProperty("lat", m.lat);
                 x.addProperty("lon", m.lon);
                 x.addProperty("ago", (now - m.t) / 1000);

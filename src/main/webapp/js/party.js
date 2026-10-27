@@ -493,7 +493,7 @@
         aliveStart();
         var gen = ++bgGen;
         Promise.resolve(BG.addWatcher({ backgroundTitle: T("routefly - 산악회 방", "routefly - Hiking club room"),
-            backgroundMessage: T("화면을 꺼도 인솔자 · 일행에게 위치를 보냅니다(하산 탑승하면 멈춤).", "Sends your location to the leader and group even with the screen off (stops once you're back on the bus)."),
+            backgroundMessage: T("화면을 꺼도 산악회 인솔자에게 위치를 제공합니다(목적: 산행 안전 확인, 하산 탑승하면 멈춤).", "Shares your location with the club leader even with the screen off (purpose: hiking safety; stops once you're back on the bus)."),
             requestPermissions: true, stale: false, distanceFilter: 0 }, function (loc, err) {   // 0 - 멈춰 있어도 와야 쉼 · 부상 때 "소식 없음" 이 안 됨, 30초 거르기는 party-kit(2026-10-20 PC: 20 이면 멈춘 폰은 안 보냈음)
             if (err || !loc) { var pr = RFParty.ping(); if (pr) pr.then(render).catch(fail); return; }   // 권한 없음 · GPS 를 못 잡음 - 폰은 켜짐 · 배터리만(2026-10-20 PC)
             lastPos = { lat: loc.latitude, lon: loc.longitude, acc: loc.accuracy, t: Date.now() };

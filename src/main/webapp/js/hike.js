@@ -1836,7 +1836,8 @@
             // 2026-10-17 PC: Capacitor.Plugins 로 받은 BG 의 addWatcher(콜백 방식)는 Promise 가 아니라 감시 번호를 바로 돌려줌 -
             // .then 에서 TypeError 로 bgWatch 가 저장되지 않아 끝내도 "산행 중" 알림 · 감시가 남았음. 둘 다 받게 Promise.resolve 로 감쌈
             Promise.resolve(BG.addWatcher({ backgroundTitle: T("routefly - " + K().act + " 중", "routefly - " + K().act.toLowerCase() + " in progress"),
-                            backgroundMessage: T("화면을 꺼도 위치를 기록하고 갈림길 · 코스 이탈을 알려 줍니다.", "Keeps recording and warns at junctions or off-trail even with the screen off."),
+                            backgroundMessage: T("화면을 꺼도 위치를 기록하고 갈림길 · 코스 이탈을 알려 줍니다." + (window.RFParty && RFParty.get() ? " 산악회 인솔자에게도 위치를 제공합니다(목적: 산행 안전 확인)." : ""),
+                                "Keeps recording and warns at junctions or off-trail even with the screen off." + (window.RFParty && RFParty.get() ? " Also shares your location with the club leader (purpose: hiking safety)." : "")),
                             requestPermissions: true, stale: false, distanceFilter: 0 },   // 0: 멈춰 있어도 위치가 와야 움직임 없음 알림이 화면이 꺼진 채로도 돎(2026-10-16 홍TV님 폰: 20분인데 30분째에 뜸) - 작은 움직임은 onFix 가 일찍 끝냄
                 function (loc, err) {
                     if (err) {
