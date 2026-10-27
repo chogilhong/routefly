@@ -261,8 +261,15 @@ a.tel { color:var(--sky); }
             <table><thead><tr><th data-en="Seat">좌석</th><th data-en="Name">이름</th><th data-en="Last update">마지막 연락</th><th data-en="Stopped for">멈춘 시간</th><th data-en="Battery">배터리</th><th data-en="Status">상태</th></tr></thead><tbody id="list"></tbody></table>
             <label for="plateText" id="plateLabel" style="margin-top:12px" data-en="Bus plate number (shown to members)">차량번호 (회원 화면에 나감)</label>
             <div class="row"><input id="plateText" type="text" maxlength="12" placeholder="예: 서울70사1234" data-en-placeholder="e.g. 서울70사1234" style="flex:1"><button id="plateBtn" data-en="Save">저장</button></div>
-            <div class="row"><button id="busBtn" data-en="📍 Bus is parked here (my location now)">📍 버스 세운 곳 = 지금 내 위치</button></div>
-            <p class="tip" id="busTip"></p>
+            <div class="invite" style="margin-top:14px">   <!-- 우리 버스 위치(2026-10-27 홍TV님 "타이틀을 두고 위와 구분되게") -->
+                <h2 style="margin:0 0 6px" data-en="🚌 Tell members where the bus is">🚌 우리 버스 위치 알리기</h2>
+                <p class="tip" style="margin:0 0 8px" data-en="Tap this standing next to the bus: that spot is pinned on the map, and members get an &lt;b&gt;🚌 Our bus&lt;/b&gt; button on their trail guide that opens KakaoMap to walk to the bus.&lt;br&gt;· Members waiting at the next boarding stop see where the bus has stopped.&lt;br&gt;· After the hike, members find the bus even when it waits somewhere other than where it dropped them off.&lt;br&gt;If the bus moves, tap again at the new spot (only the latest spot is shown).">버스 옆에서 누르면 그 자리가 지도에 찍히고, 회원 따라가기 화면에 <b>🚌 우리 버스</b> 단추가 생깁니다. 회원은 그 단추로 카카오맵을 열어 버스까지 찾아옵니다.
+                    <br>· 다음 탑승지에서 기다리는 회원 - 버스가 어디에 섰는지 바로 봅니다.
+                    <br>· 하산한 회원 - 내려 준 곳과 다른 주차장에서 기다릴 때도 버스를 찾습니다.
+                    <br>버스가 자리를 옮기면 새 자리에서 다시 누르세요(마지막 자리만 보입니다).</p>
+                <div class="row" style="margin:0"><button id="busBtn" data-en="📍 Set the bus location to where I am now">📍 지금 이 자리를 버스 위치로 알리기</button></div>
+                <p class="tip" id="busTip" style="margin:6px 0 0"></p>
+            </div>
             <div id="noticeRow" hidden>
                 <label for="noticeText" data-en="Notice (shown on everyone's screen and trail guide, read aloud)">공지 (모두의 화면 · 따라가기에 뜨고 읽어 줌)</label>
                 <input id="noticeText" type="text" maxlength="120" placeholder="예: 15시까지 소공원 주차장으로" data-en-placeholder="e.g. Meet at Sogongwon parking lot by 3 pm">

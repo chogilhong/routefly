@@ -1042,8 +1042,10 @@
             $("plateText").setAttribute("data-bus", pb + ":" + plateOf(state, pb));
         }
         // 하산 뒤 버스 찾기(2026-10-27 홍TV님 "이게 뭐야?") - 버스가 선 곳에서 누르면 회원 따라가기에 "🚌 우리 버스"(카카오맵)
-        $("busTip").textContent = T("버스가 선 곳에서 누르세요" + (state.buses > 1 ? "(좌석표에서 고른 " + curBus + "호차)" : "") + ". 회원 따라가기 화면에 \"🚌 우리 버스\" 단추로 나가 하산 뒤 버스를 찾기 쉽습니다.",
-            "Tap where the bus is parked" + (state.buses > 1 ? " (bus " + curBus + ", chosen on the seat map)" : "") + ". Members get an \"🚌 Our bus\" button in the trail guide to find it after the hike.");
+        // 위 설명은 party.html 에 - 여기는 호차와 지금 알린 자리가 있는지만(2026-10-27 홍TV님 - 버스 위치 알리기를 따로 묶음)
+        var pin = (state.busPins || []).some(function (b) { return b.bus === curBus; });
+        $("busTip").textContent = (state.buses > 1 ? T("좌석표에서 고른 " + curBus + "호차의 위치입니다. ", "This is for bus " + curBus + " (chosen on the seat map). ") : "")
+            + (pin ? T("✅ 알린 자리가 있습니다(지도의 🚌).", "✅ A bus location is set (🚌 on the map).") : T("아직 알린 자리가 없습니다.", "No bus location set yet."));
     }
     $("plateBtn").addEventListener("click", function () {
         var p = RFParty.get(), pb = plateBus();
