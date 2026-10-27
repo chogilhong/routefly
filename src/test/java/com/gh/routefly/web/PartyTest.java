@@ -553,28 +553,36 @@ public class PartyTest {
 
     @Test
     public void departStopByStop() {
+        // 2026-10-27 홍TV님: 탑승지마다 누르지 않고 들머리에서 "산행 시작" 한 번 - 그때까지 안 탄 사람은 탑승지와 관계없이 안 탐
         Party p = new Party();
-        JsonObject room = call(p, "/create", "{\"name\":\"지리산\",\"departAt\":" + DEPART + ",\"seats\":28,\"stops\":\"영종, 중동\"}", T0);
+        JsonObject room = call(p, "/create", "{\"name\":\"지리산\",\"departAt\":" + DEPART + ",\"seats\":28,\"stops\":\"영종 18:00, 중동 19:00\"}", T0);
         String code = room.get("code").getAsString(), lead = room.get("token").getAsString();
         String a = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"영종1\",\"role\":\"hiker\",\"seat\":1,\"stop\":\"영종\",\"agree\":true}", T0).get("token").getAsString();
         call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"영종2\",\"role\":\"hiker\",\"seat\":2,\"stop\":\"영종\",\"agree\":true}", T0);
         String c = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"중동1\",\"role\":\"hiker\",\"seat\":4,\"stop\":\"중동\",\"agree\":true}", T0).get("token").getAsString();
+        String d = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"중동2\",\"role\":\"hiker\",\"seat\":6,\"stop\":\"중동\",\"agree\":true}", T0).get("token").getAsString();
         call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"정해지지않음\",\"role\":\"hiker\",\"seat\":5,\"agree\":true}", T0);
-        call(p, "/board", "{\"token\":\"" + a + "\",\"on\":true}", DEPART - H);
-        JsonObject v1 = call(p, "/depart", tok(lead), DEPART);   // 영종 출발 - 영종2 만 취소
-        assertEquals(1, v1.get("cancelledNow").getAsInt());
-        assertFalse("아직 산행 아님", v1.get("departed").getAsBoolean());
-        assertEquals(1, v1.get("stopsDone").getAsInt());
-        assertTrue(member(v1, "영종2").get("cancelled").getAsBoolean());
-        assertFalse("중동 회원은 그대로", member(v1, "중동1").get("cancelled").getAsBoolean());
-        call(p, "/board", "{\"token\":\"" + c + "\",\"on\":true}", DEPART + H);   // 중동에서 탐
-        JsonObject v2 = call(p, "/depart", tok(lead), DEPART + H);   // 중동 출발 - 탑승지 없는 회원도 정리
-        assertEquals(1, v2.get("cancelledNow").getAsInt());
-        assertTrue(v2.get("departed").getAsBoolean());
-        assertTrue(member(v2, "정해지지않음").get("cancelled").getAsBoolean());
-        assertFalse(member(v2, "중동1").get("cancelled").getAsBoolean());
-        try { call(p, "/depart", tok(lead), DEPART + H); fail("두 번"); } catch (IllegalStateException e) { /* 맞음 */ }
-        // 탑승지 없는 방은 한 번에
+
+        // 위치는 회원마다 자기 탑승지 시각(또는 탄 때)부터 - 중동 회원은 영종 시각에 아직 집일 수 있음
+        long jung = Party.stopAt(p.room(code, T0), "중동");
+        assertTrue("중동 19:00 은 출발(영종 18:00 무렵)보다 뒤", jung > DEPART);
+        assertFalse(call(p, "/loc", "{\"token\":\"" + c + "\",\"lat\":37.5,\"lon\":126.7}", DEPART).get("locKept").getAsBoolean());
+        assertFalse(call(p, "/view", tok(c), DEPART).get("locOn").getAsBoolean());
+        assertEquals(jung, call(p, "/view", tok(c), DEPART).get("locFrom").getAsLong());
+        assertTrue(call(p, "/loc", "{\"token\":\"" + c + "\",\"lat\":37.5,\"lon\":126.7}", jung).get("locKept").getAsBoolean());
+        call(p, "/board", tok(d), DEPART);   // 중동2 는 영종에서 미리 탐 - 탄 때부터
+        assertTrue(call(p, "/loc", "{\"token\":\"" + d + "\",\"lat\":37.5,\"lon\":126.7}", DEPART).get("locKept").getAsBoolean());
+
+        call(p, "/board", tok(a), DEPART - H);
+        call(p, "/board", tok(c), jung);
+        JsonObject v = call(p, "/depart", tok(lead), jung + 3 * H);   // 들머리에서 산행 시작
+        assertEquals("영종2 · 정해지지않음", 2, v.get("cancelledNow").getAsInt());
+        assertTrue(v.get("departed").getAsBoolean());
+        assertTrue(member(v, "영종2").get("cancelled").getAsBoolean());
+        assertTrue(member(v, "정해지지않음").get("cancelled").getAsBoolean());
+        assertFalse(member(v, "중동1").get("cancelled").getAsBoolean());
+        try { call(p, "/depart", tok(lead), jung + 3 * H); fail("두 번"); } catch (IllegalStateException e) { /* 맞음 */ }
+        // 탑승지 없는 방도 같음
         Party q = new Party();
         String l2 = call(q, "/create", "{\"name\":\"x\",\"departAt\":" + DEPART + "}", T0).get("token").getAsString();
         assertTrue(call(q, "/depart", tok(l2), DEPART).get("departed").getAsBoolean());

@@ -545,9 +545,26 @@ final class Party {
         return r.buses > 1 ? bus + "호차 " : "";
     }
 
-    /** 위치는 출발할 때부터(2026-10-27 홍TV님 - 전엔 3시간 전부터라 집 위치가 인솔자에게 갔음): 출발 시각이 됐거나 인솔자가 "출발"을 눌렀으면. */
-    static boolean started(Room r, long now) {
-        return r.departed || r.stopsDone > 0 || r.departAt == 0 || now >= r.departAt;
+    /**
+     * 이 회원의 위치를 받기 시작하는 때(2026-10-27 홍TV님 - 전엔 출발 3시간 전부터라 집 위치가 인솔자에게 갔음): 자기 탑승지 출발 시각 또는 버스에 탄 때(QR · NFC · 인솔자 체크) 가운데 먼저 오는 때.
+     * 뒤 탑승지 회원은 첫 탑승지 출발 시각에 아직 집일 수 있음. 탑승지 시각이 없으면 방 출발 시각. 산행 시작 뒤에는 모두.
+     */
+    static boolean started(Member m, long now) {
+        Room r = m.room;
+        if (r.departed || m.boarded || r.departAt == 0) return true;
+        long at = stopAt(r, m.stop);
+        return now >= (at > 0 ? at : r.departAt);
+    }
+
+    /** 탑승지 출발 시각(ms) - 방 출발 날의 HH:MM, 방 출발보다 이르면 다음 날(자정을 넘는 경우). 시각이 없으면 0. */
+    static long stopAt(Room r, String stop) {
+        int i = stop == null ? -1 : r.stops.indexOf(stop);
+        if (i < 0 || r.stopTimes.isEmpty() || r.stopTimes.get(i).isEmpty() || r.departAt == 0) return 0;
+        String[] hm = r.stopTimes.get(i).split(":");
+        java.time.ZonedDateTime d = java.time.Instant.ofEpochMilli(r.departAt).atZone(java.time.ZoneId.of("Asia/Seoul"))
+                .withHour(Integer.parseInt(hm[0])).withMinute(Integer.parseInt(hm[1])).withSecond(0).withNano(0);
+        long t = d.toInstant().toEpochMilli();
+        return t < r.departAt - 12 * HOUR ? t + 24 * HOUR : t;
     }
 
     private static void checkSeat(Room r, Member self, int bus, Integer seat) {
@@ -588,7 +605,7 @@ final class Party {
         if (!okPos(lat, lon)) throw new IllegalArgumentException("위치가 올바르지 않습니다.");
         if (m.cancelled) throw new IllegalArgumentException("출발 때 탑승하지 않아 이 산행에서 빠졌습니다. 인솔자에게 연락해 주세요.");
         if (m.aboard) { m.sos = false; return false; }   // 하산 탑승 뒤 - 위치 받지 않음
-        if (!started(m.room, now)) { m.sos = false; return false; }
+        if (!started(m, now)) { m.sos = false; return false; }
         if (m.t == 0 || MountainServlet.distM(m.anchorLat, m.anchorLon, lat, lon) > STILL_M) {
             m.anchorLat = lat; m.anchorLon = lon; m.stillSince = now;
         }
@@ -611,7 +628,7 @@ final class Party {
      */
     /** sos - null 이면 그대로 둠(앱의 "폰 켜짐" 신호 RfAlive 는 sos 를 안 보냄 - 전에는 1분마다 SOS 가 꺼져 인솔자에게 "새 SOS" 가 되풀이됐음, 2026-10-22 점검). */
     synchronized void ping(Member m, Integer batt, Boolean sos, long now) {
-        if (m.cancelled || m.aboard || !started(m.room, now)) return;
+        if (m.cancelled || m.aboard || !started(m, now)) return;
         m.seen = now;
         if (batt != null) m.batt = Math.max(0, Math.min(100, batt));
         if (sos == null) return;
@@ -638,27 +655,21 @@ final class Party {
 
     /** 인솔자 - 출발: 안 탄 산행 회원은 취소(좌석표에서 "탐" 으로 되돌리면 다시 들어옴). 돌려줌: 취소된 수. */
     /**
-     * 인솔자 - 출발. 탑승지가 있으면 차례대로 그 탑승지만(2026-10-23 홍TV님 - 영종에서 출발할 때 중동에서 탈 회원까지 취소됐음):
-     * 이번 탑승지 회원 가운데 안 탄 사람만 취소, 마지막 탑승지를 떠날 때 탑승지 없는 회원까지 정리하고 산행으로(departed).
-     * 명단에만 있는 사람도 QR · NFC 를 안 찍었고 인솔자 체크도 없으면 취소(2026-10-27 홍TV님).
-     * 탑승지가 없는 방은 한 번에. 돌려줌: 취소된 수.
+     * 인솔자 - 산행 시작(2026-10-27 홍TV님 "사당 출발 등 필요 없을 것 같아"): 버스는 탑승지마다 정각에 떠나므로 탑승지마다 누르지 않고,
+     * 들머리에서 한 번 누르면 그때까지 안 탄 산행 회원(명단에만 있는 사람 포함)을 "안 탐"으로 하고 산행으로(departed). 돌려줌: 안 탐이 된 수.
      */
     synchronized int depart(Member lead, long now) {
         Room r = lead.room;
-        if (r.departed) throw new IllegalStateException("이미 출발했습니다.");
-        String stop = r.stops.isEmpty() ? null : r.stops.get(Math.min(r.stopsDone, r.stops.size() - 1));
-        boolean last = r.stops.isEmpty() || r.stopsDone >= r.stops.size() - 1;
+        if (r.departed) throw new IllegalStateException("이미 산행을 시작했습니다.");
         int n = 0;
         for (Member m : r.members.values()) {
             if (!"hiker".equals(m.role) || m.boarded || m.cancelled) continue;
-            boolean here = stop == null || stop.equals(m.stop) || (last && (m.stop == null || !r.stops.contains(m.stop) || r.stops.indexOf(m.stop) < r.stopsDone));
-            if (!here) continue;
             m.cancelled = true;
             n++;
-            memberLog.add(now, r.code, m.id, "notonbus");   // 출발 때 안 탐
+            memberLog.add(now, r.code, m.id, "notonbus");   // 산행 시작 때 안 탐
         }
-        if (!r.stops.isEmpty()) r.stopsDone = Math.min(r.stops.size(), r.stopsDone + 1);
-        if (last) r.departed = true;
+        r.stopsDone = r.stops.size();
+        r.departed = true;
         save();
         return n;
     }
@@ -1085,7 +1096,8 @@ final class Party {
         if (me.seat != null) o.addProperty("seat", me.seat);
         if (me.stop != null) o.addProperty("stop", me.stop);
         o.addProperty("now", now);
-        o.addProperty("locOn", started(r, now));   // 위치는 출발할 때부터(출발 시각 또는 인솔자 "출발", 2026-10-27 홍TV님)
+        o.addProperty("locOn", started(me, now));   // 위치는 내 탑승지 출발 시각 · 탄 때 · 산행 시작부터(2026-10-27 홍TV님)
+        if (stopAt(r, me.stop) > 0) o.addProperty("locFrom", stopAt(r, me.stop));
         if (r.notice != null) { o.addProperty("notice", r.notice); o.addProperty("noticeAt", r.noticeAt); }
         JsonArray pins = new JsonArray();   // 버스 세운 자리 - 회원은 자기 호차만, 인솔자는 다
         r.busAt.forEach((k, v) -> {

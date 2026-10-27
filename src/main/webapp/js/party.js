@@ -561,15 +561,12 @@
         if (staff) {
             $("departRow").hidden = s.role !== "lead" || s.departed || over;
             var nh = s.hikers;
-            if (s.role === "lead" && !s.departed) {   // 탑승지마다 출발(2026-10-23 홍TV님) - 단추에 이번 탑승지
-                var ns = nextStop(s);
-                $("departBtn").textContent = ns ? T("🚌 " + stopLabel(s, ns.stop) + " 출발", "🚌 Depart " + stopLabel(s, ns.stop)) : T("🚌 출발", "🚌 Depart");
-            }
+            $("departBtn").textContent = T("🥾 산행 시작", "🥾 Start the hike");   // 탑승지마다 누르지 않음(2026-10-27 홍TV님 - 버스는 정각에 떠남)
             $("phase").innerHTML = over ? overText(s) + (s.departed ? T(" · 하산 탑승 <b>", " · Back on bus <b>") + (s.aboardCount || 0) + "</b> / " + nh : "") + (s.role === "lead" ? T(" - 산행이 끝났으면 아래 \"방 끝내기\"", " - if the hike is over, tap \"End room\" below") : "")
-                : !s.departed && s.stopsDone > 0 ? T("🚌 이동 중 · " + esc(s.stops.slice(0, s.stopsDone).join(" · ")) + " 출발함 · 다음 탑승지 <b>" + esc(nextStop(s).stop) + "</b>", "🚌 On the way · left " + esc(s.stops.slice(0, s.stopsDone).join(" · ")) + " · next stop <b>" + esc(nextStop(s).stop) + "</b>")
+                : !s.departed && busNow(s) ? busNow(s)
                     + T(" · 출발 탑승 ", " · Boarded ") + (s.members || []).filter(function (m) { return m.role === "hiker" && m.boarded; }).length + " / " + nh
                 : !s.departed && s.departAt && s.now > s.departAt ? "<span style=\"color:var(--red)\">" + T("출발 시각(" + clock(s.departAt) + ")이 지났습니다", "Departure time (" + clock(s.departAt) + ") has passed") + "</span>"
-                    + (s.role === "lead" ? T(" - 출발했으면 아래 \"출발\"을 눌러 주세요", " - if you've left, tap \"Depart\" below") : "")
+                    + (s.role === "lead" ? T(" - 들머리에 도착하면 아래 \"산행 시작\"을 눌러 주세요", " - tap \"Start the hike\" below at the trailhead") : "")
                     + T(" · 출발 탑승 ", " · Boarded ") + (s.members || []).filter(function (m) { return m.role === "hiker" && m.boarded; }).length + " / " + nh
                 : s.departed ? T("🥾 산행 중 · 하산 탑승 <b>", "🥾 Hiking · Back on bus <b>") + (s.aboardCount || 0) + "</b> / " + nh + (s.apartCount ? T(" (따로 귀가 " + s.apartCount + ")", " (" + s.apartCount + " going home separately)") : "") + (s.endAt ? T(" · 하산 마감 ", " · Descent deadline: ") + left(s.endAt, s.now) : "")
                 + (nh > 0 && s.aboardCount >= nh ? " <span class=\"ok\">" + T("모두 탔습니다", "Everyone is on the bus") + (s.role === "lead" ? T(" - 방을 끝내세요", " - you can end the room") : "") + "</span>" : notDown(s))
@@ -652,6 +649,7 @@
     function silent(m) { var a = m.seen != null ? m.seen : m.ago; return a == null || a > OLD_S; }
     function list(s) {
         sosAlert(s);
+        trailTick(s);
         msgAlert(s);
         var rows = (s.members || []).filter(function (m) { return m.id !== s.me; });
         rows.sort(function (a, b) { var ka = rank(a), kb = rank(b); return ka !== kb ? ka - kb : (b.stillMin || 0) - (a.stillMin || 0); });
@@ -718,16 +716,27 @@
         if (src) src.setData(fc);
     }
     function mapMsg(t) { $("mapMsg").textContent = t || ""; $("mapMsg").hidden = !t; }
+    var trailAt = 0;
     function showTrail(m) {
         if (trailFor === m.id) { trailFor = null; setTrail({ type: "FeatureCollection", features: [] }); mapMsg(""); return; }
         trailFor = m.id;
+        drawTrail(m);
+    }
+    /** 보고 있는 회원의 길을 1분마다 새로(2026-10-27 홍TV님 "그 사람이 걷는 코스를 보여 줄 수 있을까" - 한 번 그리고 멈춰 있었음). render 가 부름. */
+    function trailTick(s) {
+        if (trailFor == null || Date.now() - trailAt < 60000) return;
+        var m = (s.members || []).filter(function (x) { return x.id === trailFor; })[0];
+        if (m) drawTrail(m, true);
+    }
+    function drawTrail(m, quiet) {
+        trailAt = Date.now();
         RFParty.post("trail", { token: RFParty.get().token, id: m.id }).then(function (j) {
             if (trailFor !== m.id) return;
             var line = (j.path || []).map(function (q) { return [q[1], q[0]]; });
             if (m.lat != null) line.push([m.lon, m.lat]);
             setTrail({ type: "FeatureCollection", features: line.length > 1 ? [{ type: "Feature", geometry: { type: "LineString", coordinates: line }, properties: {} }] : [] });
             var wait = !(map && map.getSource("trail")) ? T(" 지도를 불러오는 중이라 뜨면 바로 그립니다.", " The map is still loading; the trail appears once it's ready.") : "";
-            mapMsg(line.length > 1 ? "🧭 " + T(m.nick + " 님이 최근 2시간 지나온 길(주황 선) - 같은 줄 · 단추를 다시 누르면 지웁니다.", m.nick + "'s trail over the last 2 hours (orange line) - tap the same row or button again to clear.") + wait
+            if (!quiet) mapMsg(line.length > 1 ? "🧭 " + T(m.nick + " 님이 최근 2시간 지나온 길(주황 선) - 같은 줄 · 단추를 다시 누르면 지웁니다.", m.nick + "'s trail over the last 2 hours (orange line) - tap the same row or button again to clear.") + wait
                 : "🧭 " + T(m.nick + " 님의 지나온 길이 아직 없습니다(출발 뒤 걸은 길부터 남김).", "No trail for " + m.nick + " yet (recorded from departure)."));
         }).catch(actFail);
     }
@@ -1114,25 +1123,34 @@
         RFParty.post("notice", { token: p.token, text: t }).then(function (j) { $("noticeText").value = ""; render(j); }).catch(actFail);
     });
 
-    /** 이번에 출발할 탑승지 {stop, last} - 탑승지가 없는 방이면 null. */
-    function nextStop(s) {
-        var st = s.stops || [];
-        if (!st.length) return null;
-        var i = Math.min(s.stopsDone || 0, st.length - 1);
-        return { stop: st[i], last: i >= st.length - 1 };
+    /** 탑승지 출발 시각(ms) - 방 출발 날의 HH:MM, 방 출발보다 12시간 넘게 이르면 다음 날(서버 Party.stopAt 과 같음). 없으면 0. */
+    function stopAtMs(s, i) {
+        var t = s.stopTimes && s.stopTimes[i];
+        if (!t || !s.departAt) return 0;
+        var hm = t.split(":");
+        // 한국 시각 기준 - 브라우저 시간대와 관계없이(+9시간)
+        var k = new Date(s.departAt + 9 * 3600000);
+        var base = Date.UTC(k.getUTCFullYear(), k.getUTCMonth(), k.getUTCDate(), +hm[0], +hm[1]) - 9 * 3600000;
+        return base < s.departAt - 12 * 3600000 ? base + 86400000 : base;
     }
-    $("departBtn").addEventListener("click", function () {
-        var ns = nextStop(state);   // 탑승지마다(서버 Party.depart 와 같은 규칙) - 이번 탑승지 회원만, 마지막엔 탑승지 없는 회원도
-        var p = RFParty.get(), not = (state.members || []).filter(function (m) {
-            if (m.role !== "hiker" || m.boarded || m.cancelled) return false;
-            if (!ns) return true;
-            var i = state.stops.indexOf(m.stop);
-            return m.stop === ns.stop || (ns.last && (i < 0 || i < state.stopsDone));
-        });
+    /** 버스가 어디쯤인지 - 탑승지 시각으로 저절로(2026-10-27 홍TV님 - 버스는 정각에 떠나 인솔자가 탑승지마다 누르지 않음). 시각이 없으면 "". */
+    function busNow(s) {
+        var st = s.stops || [], left = [], next = null;
+        for (var i = 0; i < st.length; i++) {
+            var at = stopAtMs(s, i);
+            if (!at) return "";
+            if (s.now >= at) left.push(st[i] + " " + s.stopTimes[i]); else if (!next) next = st[i] + " " + s.stopTimes[i];
+        }
+        if (!left.length) return "";
+        return T("🚌 " + esc(left.join(" · ")) + " 출발함" + (next ? " · 다음 <b>" + esc(next) + "</b>" : " · 들머리로 가는 중"),
+            "🚌 Left " + esc(left.join(" · ")) + (next ? " · next <b>" + esc(next) + "</b>" : " · heading to the trailhead"));
+    }
+    $("departBtn").addEventListener("click", function () {   // 산행 시작(2026-10-27 홍TV님) - 들머리에서 한 번, 그때까지 안 탄 사람은 안 탐
+        var p = RFParty.get(), not = (state.members || []).filter(function (m) { return m.role === "hiker" && !m.boarded && !m.cancelled; });
         var names = not.map(function (m) { return (m.seat ? seatName(state, m.bus, m.seat) + " " : "") + m.nick; }).join(", ");
-        if (!confirm((ns ? T(ns.stop + "에서 출발할까요?" + (ns.last ? "" : "\n(다음 탑승지 " + state.stops[state.stopsDone + 1] + " 회원은 그대로)"), "Depart from " + ns.stop + "?" + (ns.last ? "" : "\n(Members boarding at " + state.stops[state.stopsDone + 1] + " are kept)")) : T("출발할까요?", "Depart now?")) + (not.length ? T("\n안 탄 " + not.length + "명(산행에서 빠짐): " + names + "\n(늦게 오면 좌석표에서 \"출발 탑승\"을 누르면 됩니다)",
+        if (!confirm(T("산행을 시작할까요?", "Start the hike?") + (not.length ? T("\n안 탄 " + not.length + "명(산행에서 빠짐): " + names + "\n(늦게 오면 좌석표에서 \"출발 탑승\"을 누르면 됩니다)",
             "\n" + not.length + " not on the bus (left out of the hike): " + names + "\n(If they come late, tap \"Boarded\" on the seat map)") : T("\n모두 탔습니다.", "\nEveryone is on the bus.")))) return;
-        RFParty.post("depart", { token: p.token }).then(function (j) { render(j); roomMsg((ns && !ns.last ? T("🚌 " + ns.stop + " 출발! ", "🚌 Left " + ns.stop + "! ") : T("🚌 출발! ", "🚌 Departed! ")) + (j.cancelledNow ? T("안 탐 " + j.cancelledNow + "명.", j.cancelledNow + " not on the bus.") : "")); }).catch(actFail);
+        RFParty.post("depart", { token: p.token }).then(function (j) { render(j); roomMsg(T("🥾 산행 시작! ", "🥾 Hike started! ") + (j.cancelledNow ? T("안 탐 " + j.cancelledNow + "명.", j.cancelledNow + " not on the bus.") : "")); }).catch(actFail);
     });
 
     $("cancelTripBtn").addEventListener("click", function () {

@@ -62,13 +62,14 @@
         if (s.cancelled) line += T("❌ 출발 때 타지 않아 빠졌습니다. 인솔자에게 연락하세요.", "❌ You weren't on the bus at departure, so you were dropped. Contact your leader.");
         else if (s.aboard && s.apart) line += T("🚶 따로 귀가 - 조심히 가세요. 위치는 더 보내지 않습니다.", "🚶 Going home separately - take care. Your location is no longer sent.");
         else if (s.aboard) line += T("🚌 하산 탑승 - 수고하셨습니다.", "🚌 Back on the bus - well done!");
-        else if (s.locOn === false) line += T("출발" + (s.departAt ? "(" + clock(s.departAt) + ")" : "") + "할 때부터 인솔자에게 위치를 보냅니다.", "Your location goes to the leader from departure" + (s.departAt ? " (" + clock(s.departAt) + ")" : "") + ".");
+        else if (s.locOn === false) line += T((s.locFrom ? "내 탑승지 출발(" + clock(s.locFrom) + ")" : "출발" + (s.departAt ? "(" + clock(s.departAt) + ")" : "")) + "부터 · 버스에 타면 바로 인솔자에게 위치를 보냅니다.",
+            "Your location goes to the leader from " + (s.locFrom ? "your stop's departure (" + clock(s.locFrom) + ")" : "departure" + (s.departAt ? " (" + clock(s.departAt) + ")" : "")) + ", or as soon as you board.");
         // 제3자 제공 매회 즉시 통보(위치정보법 제19조 제3항, 2026-10-27 위치정보지원센터 답 · 홍TV님 (가)): 받는 자 · 목적 · 마지막 제공 때
         else line += T("인솔자" + (s.leaderName ? "(" + esc(s.leaderName) + ")" : "") + "에게 위치 제공 중 · 목적: 산행 안전 확인" + (s.providedAt ? " · 마지막 제공 " + clock(s.providedAt) : " · 아직 제공 전"),
             "Sharing your location with the leader" + (s.leaderName ? " (" + esc(s.leaderName) + ")" : "") + " · purpose: hiking safety" + (s.providedAt ? " · last shared " + clock(s.providedAt) : " · not shared yet"));
         // 내 탑승지 출발 시각 - 정각에 떠남(2026-10-27 홍TV님 "기다려 주지 않아")
         var si = (s.stops || []).indexOf(s.stop), stt = si >= 0 && s.stopTimes ? s.stopTimes[si] : "";
-        if (stt && !s.departed && !s.boarded && !s.cancelled && si >= (s.stopsDone || 0)) line += T(" · 🚏 " + esc(s.stop) + " " + stt + " 정각 출발 - 미리 와 계세요", " · 🚏 " + esc(s.stop) + " leaves at " + stt + " sharp - be there early");
+        if (stt && !s.departed && !s.boarded && !s.cancelled) line += T(" · 🚏 " + esc(s.stop) + " " + stt + " 정각 출발 - 미리 와 계세요", " · 🚏 " + esc(s.stop) + " leaves at " + stt + " sharp - be there early");
         // 내가 탈 차 - 호차 · 차량번호(방 만들 때 넣은 것, 2026-10-27 홍TV님 "이미 있는데 그걸 이용해서 회원에게 보여주면 되지") - 탈 때까지
         var plate = (s.plates || [])[(s.bus || 1) - 1];
         if (plate && !s.boarded && !s.departed && !s.cancelled) line += T(" · 🚌 " + (s.buses > 1 ? s.bus + "호차 " : "") + esc(plate), " · 🚌 " + (s.buses > 1 ? "bus " + s.bus + " " : "") + esc(plate));
