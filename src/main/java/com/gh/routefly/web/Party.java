@@ -69,7 +69,8 @@ final class Party {
         Integer seat;          // 버스 좌석(없으면 null)
         String stop;           // 탑승지
         boolean boarded;       // 출발 때 버스 탐(본인 · 인솔자)
-        boolean aboard;        // 하산 뒤 버스 탐
+        boolean aboard;        // 하산 뒤 버스 탐(따로 귀가도 끝난 것으로 함께 true)
+        boolean apart;         // 하산 뒤 버스를 타지 않고 따로 귀가(2026-10-27 홍TV님 - 설악산에서 더 여행하다 오는 회원)
         boolean cancelled;     // 출발 때 안 탐(QR · NFC 도 안 찍고 인솔자 체크도 없음) - 인솔자가 "탔음" 으로 되돌릴 수 있음
         /** 인솔자가 붙여 넣은 예약 명단에서 온 사람(2026-10-24 홍TV님 - 회원은 앱 · 화면을 안 열 수도 있음). */
         boolean rostered;
@@ -591,8 +592,10 @@ final class Party {
 
     /** 본인 - 하산 뒤 "하산 탑승"(SOS 도 풂). */
     /** 하산 탑승 - 산행 끝이라 위치를 지우고 더 받지 않음(loc). 명단 · 좌석표에는 "하산 탑승" 으로 남아 인솔자가 봄(2026-10-20 PC). */
-    synchronized void aboard(Member m, boolean on) {
+    /** apart - "따로 귀가"(버스를 안 타고 끝남): 하산 탑승과 같이 위치를 지우고 하산 인원에 들어감. */
+    synchronized void aboard(Member m, boolean on, boolean apart) {
         m.aboard = on;
+        m.apart = on && apart;
         if (on) { m.sos = false; m.lat = null; m.lon = null; m.acc = null; }
         save();
     }
@@ -666,11 +669,11 @@ final class Party {
     }
 
     /** 인솔자 - 핸드폰 없는(명단에만 있는) 회원도 하산 탑승을 체크(2026-10-24 홍TV님). */
-    synchronized void aboardById(Member staff, int id, boolean on) {
+    synchronized void aboardById(Member staff, int id, boolean on, boolean apart) {
         Member m = null;
         for (Member x : staff.room.members.values()) if (x.id == id) m = x;
         if (m == null || !"hiker".equals(m.role)) throw new IllegalArgumentException("그 회원을 찾지 못했습니다.");
-        aboard(m, on);
+        aboard(m, on, apart);
     }
 
     /** 인솔자 - 좌석표에서 그 자리 사람을 "출발 탑승"(취소도 풂, 2026-10-27 홍TV님 - 예약 · 인솔 자리 표시는 없앰). */
@@ -847,7 +850,7 @@ final class Party {
             for (Member m : r.members.values()) {
                 JsonObject x = new JsonObject();
                 x.addProperty("id", m.id); x.addProperty("token", m.token); x.addProperty("nick", m.nick); x.addProperty("role", m.role); x.addProperty("joinedAt", m.joinedAt);
-                x.addProperty("bus", m.bus); x.addProperty("seat", m.seat); x.addProperty("stop", m.stop); x.addProperty("boarded", m.boarded); x.addProperty("aboard", m.aboard); x.addProperty("cancelled", m.cancelled);
+                x.addProperty("bus", m.bus); x.addProperty("seat", m.seat); x.addProperty("stop", m.stop); x.addProperty("boarded", m.boarded); x.addProperty("aboard", m.aboard); x.addProperty("apart", m.apart); x.addProperty("cancelled", m.cancelled);
                 x.addProperty("rostered", m.rostered); x.addProperty("listed", m.listed);
                 ms.add(x);
             }
@@ -916,7 +919,7 @@ final class Party {
                     Member m = new Member(x.get("id").getAsInt(), x.get("token").getAsString(), x.get("nick").getAsString(), x.get("role").getAsString(), r, lng(x, "joinedAt"));
                     m.seat = num(x, "seat") == null ? null : num(x, "seat").intValue();
                     m.bus = x.has("bus") ? x.get("bus").getAsInt() : 1;
-                    m.stop = str(x, "stop"); m.boarded = boolOf(x, "boarded"); m.aboard = boolOf(x, "aboard"); m.cancelled = boolOf(x, "cancelled");
+                    m.stop = str(x, "stop"); m.boarded = boolOf(x, "boarded"); m.aboard = boolOf(x, "aboard"); m.apart = boolOf(x, "apart"); m.cancelled = boolOf(x, "cancelled");
                     m.rostered = boolOf(x, "rostered"); m.listed = boolOf(x, "listed");
                     ms.add(m);
                     r.nextId = Math.max(r.nextId, m.id + 1);
@@ -1027,6 +1030,7 @@ final class Party {
         o.addProperty("nick", me.nick);
         o.addProperty("boarded", me.boarded);
         o.addProperty("aboard", me.aboard);
+        if (me.apart) o.addProperty("apart", true);
         o.addProperty("cancelled", me.cancelled);
         o.addProperty("bus", me.bus);
         if (me.seat != null) o.addProperty("seat", me.seat);
@@ -1044,7 +1048,7 @@ final class Party {
         o.add("busPins", pins);
         o.addProperty("count", r.members.size());
         JsonArray list = new JsonArray();
-        int aboard = 0;
+        int aboard = 0, apart = 0;
         for (Member m : r.members.values()) {
             if (m.cancelled && !staff) continue;
             JsonObject x = new JsonObject();
@@ -1055,6 +1059,7 @@ final class Party {
             if (m.seat != null) x.addProperty("seat", m.seat);
             x.addProperty("sos", m.sos);
             x.addProperty("aboard", m.aboard);
+            if (m.apart) { x.addProperty("apart", true); apart++; }
             if (m.aboard) aboard++;
             // 위치는 인솔자와 자기 것만(2026-10-24 홍TV님 - 인솔자 위주, 회원은 따라가기 지도로 걷고 남의 위치는 안 봄)
             if (m.t > 0 && m.lat != null && (staff || m == me)) {   // 하산 탑승하면 위치를 지움(aboard)
@@ -1077,7 +1082,8 @@ final class Party {
             list.add(x);
         }
         o.add("members", list);
-        o.addProperty("aboardCount", aboard);
+        o.addProperty("aboardCount", aboard);   // 따로 귀가 포함(하산이 끝난 사람)
+        o.addProperty("apartCount", apart);
         return o;
     }
 }

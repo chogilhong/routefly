@@ -2,7 +2,7 @@
  * 따라가기(hike.html) 위 산악회 한 줄(2026-10-24 홍TV님 - 인솔자 위주, 회원은 산악회 방 화면 없이 따라가기만).
  * 회원은 링크 · 버스 QR · NFC 로 한 번 들어와 이름만 넣고 여기로 옴. 버스 안 QR · NFC 를 찍으면 출발 탑승(2026-10-27 홍TV님 - "버스 탔어요" 단추는 없앰).
  * 출발한 뒤 이 화면이 켜져 있는 동안 30초마다 인솔자에게 위치(party-kit.js).
- * 단추: 하산 탑승 · 인솔자 전화 · 우리 버스(카카오맵) · 그만 보내기. SOS 는 따라가기 SOS 단추가 인솔자에게도 보냄(hike.js).
+ * 단추: 하산 탑승 · 따로 귀가(버스 안 탐, 2026-10-27) · 인솔자 전화 · 우리 버스(카카오맵) · 그만 보내기. SOS 는 따라가기 SOS 단추가 인솔자에게도 보냄(hike.js).
  * 인솔자(공동 인솔자 포함)는 "산악회 방 열기" 만.
  */
 (function () {
@@ -60,6 +60,7 @@
         }
         var line = "📡 " + esc(s.name) + " · ";
         if (s.cancelled) line += T("❌ 출발 때 타지 않아 빠졌습니다. 인솔자에게 연락하세요.", "❌ You weren't on the bus at departure, so you were dropped. Contact your leader.");
+        else if (s.aboard && s.apart) line += T("🚶 따로 귀가 - 조심히 가세요. 위치는 더 보내지 않습니다.", "🚶 Going home separately - take care. Your location is no longer sent.");
         else if (s.aboard) line += T("🚌 하산 탑승 - 수고하셨습니다.", "🚌 Back on the bus - well done!");
         else if (s.locOn === false) line += T("출발" + (s.departAt ? "(" + clock(s.departAt) + ")" : "") + "할 때부터 인솔자에게 위치를 보냅니다.", "Your location goes to the leader from departure" + (s.departAt ? " (" + clock(s.departAt) + ")" : "") + ".");
         else line += T("인솔자에게 위치 보내는 중", "Sending your location to the leader");
@@ -67,7 +68,10 @@
         if (s.boarded && !s.departed && !s.cancelled) line += T(" · ✅ 탑승", " · ✅ On bus");
         $("pbText").innerHTML = line;
         var b = [];
-        if (s.departed && !s.cancelled && !s.aboard) b.push("<button type=\"button\" class=\"pb main\" data-act=\"aboard\">" + T("🚌 하산 탑승", "🚌 Back on the bus") + "</button>");
+        if (s.departed && !s.cancelled && !s.aboard) {
+            b.push("<button type=\"button\" class=\"pb main\" data-act=\"aboard\">" + T("🚌 하산 탑승", "🚌 Back on the bus") + "</button>");
+            b.push("<button type=\"button\" class=\"pb\" data-act=\"apart\">" + T("🚶 따로 귀가", "🚶 Going home separately") + "</button>");
+        }
         if (s.leaderPhone) b.push("<a class=\"pb\" href=\"tel:" + esc(String(s.leaderPhone).replace(/[^0-9+]/g, "")) + "\">" + T("☎ 인솔자", "☎ Leader") + "</a>");
         var my = (s.busPins || []).filter(function (x) { return x.bus === s.bus; })[0];
         if (my && !s.cancelled) b.push("<a class=\"pb\" target=\"_blank\" rel=\"noopener\" href=\"https://map.kakao.com/link/map/" + encodeURIComponent(T("우리 버스", "Our bus")) + "," + my.lat + "," + my.lon + "\">" + T("🚌 우리 버스", "🚌 Our bus") + "</a>");
@@ -85,6 +89,10 @@
             if (!confirm(T("하산 탑승을 인솔자에게 알릴까요?\n알리면 위치 보내기를 멈춥니다.", "Tell your leader you're back on the bus?\nThis stops sending your location."))) return;
             if (p.sos) RFParty.sos(false);
             RFParty.post("aboard", { token: p.token, on: true }).then(render).catch(function (er) { fail(er); if (!er.ended) alert(er.message); });
+        } else if (act === "apart") {   // 하산 뒤 버스를 안 타고 따로 감(2026-10-27 홍TV님 - 설악산에서 더 여행하다 오는 회원)
+            if (!confirm(T("버스를 타지 않고 따로 귀가한다고 인솔자에게 알릴까요?\n알리면 위치 보내기를 멈춥니다.", "Tell your leader you're going home separately (not on the bus)?\nThis stops sending your location."))) return;
+            if (p.sos) RFParty.sos(false);
+            RFParty.post("aboard", { token: p.token, on: true, apart: true }).then(render).catch(function (er) { fail(er); if (!er.ended) alert(er.message); });
         } else if (act === "leave") {
             var done = state.aboard || state.cancelled;
             if (!done && !confirm(T("인솔자에게 위치 보내기를 그만둘까요?\n인솔자 명단에는 이름이 남고, 위치만 더 가지 않습니다.", "Stop sending your location to the leader?\nYour name stays on the leader's list; only your location stops."))) return;

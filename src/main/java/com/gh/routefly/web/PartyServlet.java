@@ -23,9 +23,9 @@ import com.google.gson.JsonParser;
  * POST /api/party/ping   {token, batt, sos}               위치를 못 잡을 때 - 폰은 켜짐 · 배터리 · SOS(위치 없이)
  * POST /api/party/view   {token}                           방 화면
  * POST /api/party/board  {token}                           회원 - 이미 참가한 폰으로 버스 QR · NFC 를 찍음 = 출발 탑승
- * POST /api/party/aboard {token, on}                       회원 - 하산 탑승
+ * POST /api/party/aboard {token, on, apart}                회원 - 하산 탑승(apart = 따로 귀가)
  * POST /api/party/seat   {token, id?, bus, seat, stop}          자리 · 탑승지 - 회원은 자기 것, 인솔자는 id 로 아무나
- * POST /api/party/mark   {token, bus, seat, on} · {token, id, what: boarded|aboard, on} 인솔자 - 출발 탑승 · 하산 탑승 체크
+ * POST /api/party/mark   {token, bus, seat, on} · {token, id, what: boarded|aboard|apart, on} 인솔자 - 출발 탑승 · 하산 탑승 · 따로 귀가 체크
  * POST /api/party/depart {token}                           인솔자 - 출발(안 탄 사람 취소)
  * POST /api/party/notice {token, text} · /bus {token, bus, lat, lon} · /plate {token, bus, plate}  (인솔자)
  * POST /api/party/kick   {token, id}                       인솔자 - 회원 내보내기(그 폰은 410 "내보냈습니다")
@@ -181,11 +181,11 @@ public class PartyServlet extends HttpServlet {
             case "/trail" -> { return p.trail(m, (int) lng(in, "id"), now); }
             case "/ping" -> p.ping(m, num(in, "batt") == null ? null : num(in, "batt").intValue(), in.has("sos") ? bool(in, "sos") : null, now);   // sos 가 없으면(앱 RfAlive) 그대로
             case "/board" -> p.board(m);
-            case "/aboard" -> p.aboard(m, on);
+            case "/aboard" -> p.aboard(m, on, bool(in, "apart"));   // apart - 따로 귀가
             case "/seat" -> p.seat(m, integer(in, "id"), integer(in, "bus"), integer(in, "seat"), str(in, "stop"));
             case "/mark" -> {
                 if (!staff) throw new SecurityException("인솔자만 좌석표를 고칠 수 있습니다.");
-                if (integer(in, "id") != null && "aboard".equals(str(in, "what"))) p.aboardById(m, integer(in, "id"), on);
+                if (integer(in, "id") != null && ("aboard".equals(str(in, "what")) || "apart".equals(str(in, "what")))) p.aboardById(m, integer(in, "id"), on, "apart".equals(str(in, "what")));
                 else if (integer(in, "id") != null) p.boardById(m, integer(in, "id"), on, now);   // 명단에서 사람으로(핸드폰 없는 · 자리 없는 회원)
                 else p.mark(m, integer(in, "bus"), (int) lng(in, "seat"), on, now);
             }
