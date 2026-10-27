@@ -845,7 +845,7 @@ sudo certbot --nginx -d hongtv.co.kr -d www.hongtv.co.kr
 certbot 이 붙인 443 칸에도 위 두 location 이 들어 있는지 봅니다(certbot 은 server 칸을 복사하므로 보통 그대로).
 
 
-### 12-6. 옛 도메인을 그만둘 때 (2026-10-27 홍TV님 결정 - 이번 기한까지만 두고 갱신하지 않음)
+### 12-6. 옛 도메인을 그만둠 (2026-10-28 - 기록)
 
 > 2026-10-28 그만둠: 기한을 기다리지 않고 호스팅 · 도메인을 함께 해지(홍TV님). 아래 2의 명령으로 서버 정리 - old-domains · hongtv-map.conf · hongtv-posts.map · /var/www/hongtv · www 인증서 지움, nginx -t · reload.
 > 확인(PC): routefly.kr / 302, /routefly/ 200, /routefly/api/party/status 200, routefly.kr 인증서 그대로, 옛 도메인 Host 로 오면 404.
@@ -853,8 +853,8 @@ certbot 이 붙인 443 칸에도 위 두 location 이 들어 있는지 봅니다
 블로그 글 속 링크는 모두 블로그스팟 새 주소로 고쳤고(10-27), 그림도 블로그스팟에 있으므로 도메인이 끝나도 블로그 안에서 끊기는 곳은 없습니다.
 끊기는 것은 바깥(검색 · 다른 사이트 · 즐겨찾기)에 남은 옛 주소뿐입니다 - 받아들임. @옛도메인 메일은 쓰지 않음.
 
-1. 기한 한 달 전: 갱신 알림이 와도 갱신하지 않음(자동 연장이 켜져 있으면 끔). 끝난 도메인은 남이 사서 옛 주소로 다른 내용을 띄울 수 있음 - 받아들임.
-2. 기한 날(또는 그 직전) - 홍TV님이 메인 열쇠로, 먼저 이름을 확인하고 지웁니다:
+1. 도메인 해지(홍TV님) - 남이 사서 옛 주소로 다른 내용을 띄울 수 있음 - 받아들임.
+2. 서버 정리 - 홍TV님이 메인 열쇠로, 먼저 이름을 확인하고 지움(2026-10-28 이 순서로 함):
 
 ```bash
 sudo certbot certificates                                   # 옛 도메인 인증서 이름 확인(예: www.<옛도메인>)
@@ -866,7 +866,7 @@ sudo tar czf ~/hongtv-www-$(date +%F).tgz -C /var/www hongtv && sudo rm -rf /var
 ```
 
 3. 확인: https://routefly.kr 정상 · `sudo certbot renew --dry-run` 에 옛 도메인 없음 · `sudo nginx -T | grep -i hongtv` 가 비어 있음.
-4. 이 문서 12장은 기록으로 남기고, 12-6 끝에 그만둔 날을 적습니다.
+4. 이 문서 12장은 기록으로만 남김(그만둔 날은 12-6 위 상자).
 
 ## 13. 산악회 방 켜기 (2026-10-20)
 
