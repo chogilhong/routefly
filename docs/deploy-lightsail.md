@@ -727,7 +727,7 @@ sudo mariadb -e "SELECT @@innodb_buffer_pool_size/1024/1024 AS MB, @@max_connect
 
 ## 12. 옛 도메인을 routefly.kr 로 넘기기 (2026-10-19 홍TV님 결정)
 
-> **끝남(2026-10-28)**: 옛 블로그 글은 블로그스팟(hong-tv.blogspot.com)으로 옮김(글 · 그림 · 글 사이 링크 모두 블로그스팟 안). 옛 호스팅 · 도메인은 해지(홍TV님),
+> 끝남(2026-10-28): 옛 블로그 글은 블로그스팟(hong-tv.blogspot.com)으로 옮김(글 · 그림 · 글 사이 링크 모두 블로그스팟 안). 옛 호스팅 · 도메인은 해지(홍TV님),
 > 서버의 옛 도메인 설정 · 짝 파일 · /var/www/hongtv · 인증서를 지움(12-6). 지금 서버 nginx sites-enabled 는 routefly 하나. 아래 12-1 ~ 12-5 는 기록으로만 남김(다시 쓰지 않음).
 
 > 2026-10-20 바뀜(홍TV님): 옛 블로그 글은 블로그스팟(Blogger)으로 옮기고 호스팅은 해지(마감 11-02).
