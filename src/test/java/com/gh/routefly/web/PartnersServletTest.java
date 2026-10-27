@@ -47,5 +47,11 @@ public class PartnersServletTest {
         assertFalse(o.has("agoda") || o.has("trip") || o.has("donate") || o.has("donateEn"));
         assertFalse(PartnersServlet.allowed("http://toss.me/a", "https://"));
         assertFalse(PartnersServlet.allowed("https://", "https://"));
+        // 2026-10-28: 트립닷컴 검색 결과 링크는 500자를 넘음 - 2000자까지, 까닭은 why 로
+        String longTrip = "https://kr.trip.com/hotels/list?" + "a=1&".repeat(200);
+        assertTrue(longTrip.length() > 500 && PartnersServlet.allowed(longTrip, "https://kr.trip.com/"));
+        assertTrue(PartnersServlet.why("https://kr.trip.com/x " , "https://kr.trip.com/").startsWith("빈칸"));
+        assertTrue(PartnersServlet.why("https://kr.trip.com", "https://kr.trip.com/").startsWith("주소 시작"));
+        assertTrue(PartnersServlet.why("https://kr.trip.com/" + "x".repeat(2000), "https://kr.trip.com/").startsWith("길이"));
     }
 }

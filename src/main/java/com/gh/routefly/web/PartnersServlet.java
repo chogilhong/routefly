@@ -58,9 +58,9 @@ public class PartnersServlet extends HttpServlet {
         }
         out.add("coupang", coupang);
         String agoda = conf.apply("partner.agoda.url");
-        if (allowed(agoda, "https://www.agoda.com/")) out.addProperty("agoda", agoda);
+        if (check("partner.agoda.url", agoda, "https://www.agoda.com/")) out.addProperty("agoda", agoda);
         String trip = conf.apply("partner.trip.url");
-        if (allowed(trip, "https://www.trip.com/", "https://kr.trip.com/", "https://us.trip.com/")) out.addProperty("trip", trip);
+        if (check("partner.trip.url", trip, "https://www.trip.com/", "https://kr.trip.com/", "https://us.trip.com/")) out.addProperty("trip", trip);
         String donate = conf.apply("donate.url");
         if (allowed(donate, "https://")) out.addProperty("donate", donate);
         String donateEn = conf.apply("donate.en.url");
@@ -75,9 +75,30 @@ public class PartnersServlet extends HttpServlet {
     }
 
     /** 순수 함수 - 그 앞부분으로 시작하는 https 주소이고 따옴표 · 꺾쇠 · 빈칸이 없으면 true. */
+    /** 제휴 링크 최대 길이 - 트립닷컴 검색 결과 주소 + 제휴 꼬리는 500자를 넘음(2026-10-28 kr.trip.com 링크가 걸러져 단추가 사라짐). */
+    static final int MAX_URL = 2000;
+
     static boolean allowed(String url, String... prefixes) {
-        if (url == null || url.length() > 500 || url.matches(".*[\\s\"'<>\\\\].*")) return false;
-        for (String p : prefixes) if (url.startsWith(p) && url.length() > p.length()) return true;
+        return why(url, prefixes) == null;
+    }
+
+    /** 왜 받지 않는지(받으면 null) - 값은 로그에 남기지 않고 까닭 · 길이만. */
+    static String why(String url, String... prefixes) {
+        if (url == null) return "없음";
+        if (url.length() > MAX_URL) return "길이 " + url.length() + "자(" + MAX_URL + "자까지)";
+        if (url.matches(".*[\\s\"'<>\\\\].*")) return "빈칸 · 따옴표 · 꺾쇠 · 역슬래시가 들어 있음(줄 끝 빈칸도)";
+        for (String p : prefixes) if (url.startsWith(p) && url.length() > p.length()) return null;
+        return "주소 시작이 " + String.join(" · ", prefixes) + " 가 아님";
+    }
+
+    private static final java.util.Set<String> warned = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    /** 설정이 있는데 받지 않으면 까닭을 한 번만 로그에(2026-10-28 - 왜 단추가 없는지 서버 로그로 알 수 있게). */
+    static boolean check(String key, String url, String... prefixes) {
+        String w = why(url, prefixes);
+        if (w == null) return true;
+        if (url != null && warned.add(key + ":" + w))
+            org.apache.logging.log4j.LogManager.getLogger(PartnersServlet.class).warn("설정 {} 를 받지 않음: {}", key, w);
         return false;
     }
 }
