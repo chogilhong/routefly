@@ -58,9 +58,9 @@ public class PartnersServlet extends HttpServlet {
         }
         out.add("coupang", coupang);
         String agoda = conf.apply("partner.agoda.url");
-        if (check("partner.agoda.url", agoda, "https://www.agoda.com/")) out.addProperty("agoda", agoda);
+        if (checkHost("partner.agoda.url", agoda, "agoda.com")) out.addProperty("agoda", agoda);
         String trip = conf.apply("partner.trip.url");
-        if (check("partner.trip.url", trip, "https://www.trip.com/", "https://kr.trip.com/", "https://us.trip.com/")) out.addProperty("trip", trip);
+        if (checkHost("partner.trip.url", trip, "trip.com")) out.addProperty("trip", trip);
         String donate = conf.apply("donate.url");
         if (allowed(donate, "https://")) out.addProperty("donate", donate);
         String donateEn = conf.apply("donate.en.url");
@@ -91,14 +91,31 @@ public class PartnersServlet extends HttpServlet {
         return "주소 시작이 " + String.join(" · ", prefixes) + " 가 아님";
     }
 
-    private static final java.util.Set<String> warned = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    /**
+     * 주소 이름(host)으로 - https 이고 이름이 domain 이거나 그 아래(kr.trip.com · www.trip.com · trip.com).
+     * 2026-10-28: 트립닷컴 링크가 "https://kr.trip.com?…" 처럼 / 없이 ? 로 이어져 앞글자 비교에 걸렸음.
+     */
+    static String whyHost(String url, String domain) {
+        if (url == null) return "없음";
+        if (url.length() > MAX_URL) return "길이 " + url.length() + "자(" + MAX_URL + "자까지)";
+        if (url.matches(".*[\\s\"'<>\\\\].*")) return "빈칸 · 따옴표 · 꺾쇠 · 역슬래시가 들어 있음(줄 끝 빈칸도)";
+        // URI 로 풀지 않음 - 링크 안의 {lat} · {lon} · | 같은 글자 때문에 풀리지 않을 수 있음. 앞부분 "https://이름" 만 봄
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("^(?i:https)://([^/?#:@]+)(?::\\d+)?(?:[/?#].*)?$").matcher(url);
+        if (!m.matches()) return url.regionMatches(true, 0, "https://", 0, 8) ? "주소 이름 모양이 아님(@ 등)" : "https 가 아님";
+        String host = m.group(1).toLowerCase(java.util.Locale.ROOT);
+        if (!host.equals(domain) && !host.endsWith("." + domain)) return "주소 이름이 " + domain + " 가 아님(" + host + ")";
+        return null;
+    }
 
-    /** 설정이 있는데 받지 않으면 까닭을 한 번만 로그에(2026-10-28 - 왜 단추가 없는지 서버 로그로 알 수 있게). */
-    static boolean check(String key, String url, String... prefixes) {
-        String w = why(url, prefixes);
+    /** 설정이 있는데 받지 않으면 까닭을 한 번만 로그에(2026-10-28 - 왜 단추가 없는지 서버 로그로 알 수 있게, 값은 안 남김). */
+    static boolean checkHost(String key, String url, String domain) {
+        String w = whyHost(url, domain);
         if (w == null) return true;
         if (url != null && warned.add(key + ":" + w))
             org.apache.logging.log4j.LogManager.getLogger(PartnersServlet.class).warn("설정 {} 를 받지 않음: {}", key, w);
         return false;
     }
+
+    private static final java.util.Set<String> warned = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
 }

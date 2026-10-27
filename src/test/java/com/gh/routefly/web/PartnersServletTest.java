@@ -53,5 +53,13 @@ public class PartnersServletTest {
         assertTrue(PartnersServlet.why("https://kr.trip.com/x " , "https://kr.trip.com/").startsWith("빈칸"));
         assertTrue(PartnersServlet.why("https://kr.trip.com", "https://kr.trip.com/").startsWith("주소 시작"));
         assertTrue(PartnersServlet.why("https://kr.trip.com/" + "x".repeat(2000), "https://kr.trip.com/").startsWith("길이"));
+        // 트립닷컴 · 아고다는 주소 이름으로(2026-10-28 - "https://kr.trip.com?Allianceid=…" 처럼 / 없이 ? 가 붙은 링크가 걸러졌음)
+        assertNull(PartnersServlet.whyHost("https://kr.trip.com?Allianceid=1&SID=2", "trip.com"));
+        assertNull(PartnersServlet.whyHost("https://trip.com/t/abc", "trip.com"));
+        assertNull(PartnersServlet.whyHost("https://www.agoda.com/partners/x?cid=1", "agoda.com"));
+        assertTrue(PartnersServlet.whyHost("http://kr.trip.com/x", "trip.com").startsWith("https"));
+        assertTrue(PartnersServlet.whyHost("https://kr.trip.com.evil.kr/x", "trip.com").startsWith("주소 이름"));
+        assertTrue(PartnersServlet.whyHost("https://eviltrip.com/x", "trip.com").startsWith("주소 이름"));
+        assertNotNull(PartnersServlet.whyHost("https://trip.com@evil.kr/x", "trip.com"));
     }
 }
