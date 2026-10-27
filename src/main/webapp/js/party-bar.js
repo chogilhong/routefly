@@ -67,6 +67,9 @@
         // 내 탑승지 출발 시각 - 정각에 떠남(2026-10-27 홍TV님 "기다려 주지 않아")
         var si = (s.stops || []).indexOf(s.stop), stt = si >= 0 && s.stopTimes ? s.stopTimes[si] : "";
         if (stt && !s.departed && !s.boarded && !s.cancelled && si >= (s.stopsDone || 0)) line += T(" · 🚏 " + esc(s.stop) + " " + stt + " 정각 출발 - 미리 와 계세요", " · 🚏 " + esc(s.stop) + " leaves at " + stt + " sharp - be there early");
+        // 내가 탈 차 - 호차 · 차량번호(방 만들 때 넣은 것, 2026-10-27 홍TV님 "이미 있는데 그걸 이용해서 회원에게 보여주면 되지") - 탈 때까지
+        var plate = (s.plates || [])[(s.bus || 1) - 1];
+        if (plate && !s.boarded && !s.departed && !s.cancelled) line += T(" · 🚌 " + (s.buses > 1 ? s.bus + "호차 " : "") + esc(plate), " · 🚌 " + (s.buses > 1 ? "bus " + s.bus + " " : "") + esc(plate));
         if (s.seat && !s.cancelled) line += T(" · 💺 " + (s.buses > 1 ? s.bus + "호차 " : "") + s.seat + "번", " · 💺 " + (s.buses > 1 ? "bus " + s.bus + " " : "") + "seat " + s.seat);
         if (s.boarded && !s.departed && !s.cancelled) line += T(" · ✅ 탑승", " · ✅ On bus");
         $("pbText").innerHTML = line;
@@ -78,7 +81,7 @@
         b.push("<button type=\"button\" class=\"pb\" data-act=\"say\">" + T("💬 인솔자에게", "💬 To leader") + "</button>");   // 한 줄(2026-10-27)
         if (s.leaderPhone) b.push("<a class=\"pb\" href=\"tel:" + esc(String(s.leaderPhone).replace(/[^0-9+]/g, "")) + "\">" + T("☎ 인솔자", "☎ Leader") + "</a>");
         var my = (s.busPins || []).filter(function (x) { return x.bus === s.bus; })[0];
-        if (my && !s.cancelled) b.push("<a class=\"pb\" target=\"_blank\" rel=\"noopener\" href=\"https://map.kakao.com/link/map/" + encodeURIComponent(T("우리 버스", "Our bus")) + "," + my.lat + "," + my.lon + "\">" + T("🚌 우리 버스", "🚌 Our bus") + "</a>");
+        if (my && !s.cancelled) b.push("<a class=\"pb\" target=\"_blank\" rel=\"noopener\" href=\"https://map.kakao.com/link/map/" + encodeURIComponent(T("우리 버스", "Our bus") + (plate ? " " + plate : "")) + "," + my.lat + "," + my.lon + "\">" + T("🚌 우리 버스", "🚌 Our bus") + "</a>");
         b.push("<button type=\"button\" class=\"pb\" data-act=\"leave\">" + (s.aboard || s.cancelled ? T("닫기", "Close") : T("그만 보내기", "Stop sending")) + "</button>");
         $("pbBtns").innerHTML = b.join("");
         if (wantWatch(s)) startWatch(); else stopWatch();

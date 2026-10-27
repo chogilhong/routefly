@@ -550,6 +550,8 @@
         var p = RFParty.get() || {}, staff = s.role === "lead";
         var bar = [aboutHtml(s)];
         $("bar").innerHTML = bar.join("<br>");
+        // 차량번호 고치기(당일 차가 바뀔 때) - 아래 따로 있던 칸은 뺌(2026-10-27 홍TV님 "이미 있는데 그걸 이용해서 회원에게 보여주면 되지")
+        if (staff) $("bar").insertAdjacentHTML("beforeend", "<br><button type=\"button\" class=\"undo\" id=\"plateEdit\">" + T(platesText(s) ? "✏️ 차량번호 고치기" : "✏️ 차량번호 적기", platesText(s) ? "✏️ Edit plate number" : "✏️ Add plate number") + "</button>");
         if (s.notice) {
             $("notice").style.display = "block";
             $("notice").textContent = "📢 " + s.notice + " (" + clock(s.noticeAt) + ")";
@@ -1068,28 +1070,26 @@
 
 
     /** 차량번호 · 버스 자리를 고칠 호차 - 좌석표 탭. */
-    function plateBus() { return state.buses > 1 ? curBus : 1; }
     function busTip() {
         if (!state) return;
-        var pb = plateBus();
-        $("plateLabel").textContent = T((state.buses > 1 ? pb + "호차 " : "") + "차량번호 (회원 화면에 나감)", (state.buses > 1 ? "Bus " + pb + " plate" : "Plate") + " number (shown to members)");
-        if (document.activeElement !== $("plateText") && $("plateText").getAttribute("data-bus") !== pb + ":" + plateOf(state, pb)) {
-            $("plateText").value = plateOf(state, pb);
-            $("plateText").setAttribute("data-bus", pb + ":" + plateOf(state, pb));
-        }
         // 하산 뒤 버스 찾기(2026-10-27 홍TV님 "이게 뭐야?") - 버스가 선 곳에서 누르면 회원 따라가기에 "🚌 우리 버스"(카카오맵)
         // 위 설명은 party.html 에 - 여기는 호차와 지금 알린 자리가 있는지만(2026-10-27 홍TV님 - 버스 위치 알리기를 따로 묶음)
         var pin = (state.busPins || []).some(function (b) { return b.bus === curBus; });
         $("busTip").textContent = (state.buses > 1 ? T("좌석표에서 고른 " + curBus + "호차의 위치입니다. ", "This is for bus " + curBus + " (chosen on the seat map). ") : "")
             + (pin ? T("✅ 알린 자리가 있습니다(지도의 🚌).", "✅ A bus location is set (🚌 on the map).") : T("아직 알린 자리가 없습니다.", "No bus location set yet."));
     }
-    $("plateBtn").addEventListener("click", function () {
-        var p = RFParty.get(), pb = plateBus();
-        RFParty.post("plate", { token: p.token, bus: pb, plate: $("plateText").value.trim() }).then(function (j) {
-            render(j);
-            roomMsg(plateOf(j, pb) ? T(busLabel(j, pb) + "차량번호를 " + plateOf(j, pb) + "(으)로 정했습니다. 회원 화면에 바로 나갑니다.", "Plate number set: " + busLabel(j, pb) + plateOf(j, pb) + ". Members see it right away.")
-                : T(busLabel(j, pb) + "차량번호를 지웠습니다.", "Plate number cleared" + (busLabel(j, pb) ? " (" + busLabel(j, pb).trim() + ")" : "") + "."));
-        }).catch(function (e) { e.ended ? fail(e) : roomMsg(enMsg(e.message)); });
+    /** 차량번호 고치기 - 호차마다 물음(빈칸이면 지움). 회원 따라가기 줄 · 안내 글에 바로 나감. */
+    $("bar").addEventListener("click", function (e) {
+        if (!e.target.closest("#plateEdit") || !state) return;
+        var p = RFParty.get(), n = state.buses || 1, jobs = [];
+        for (var b = 1; b <= n; b++) {
+            var v = prompt(T((n > 1 ? b + "호차 " : "") + "차량번호 (예: 서울70사1234, 지우려면 빈칸)", (n > 1 ? "Bus " + b + " p" : "P") + "late number (e.g. 서울70사1234, empty to clear)"), plateOf(state, b));
+            if (v == null) break;
+            if (v.trim() !== plateOf(state, b)) jobs.push({ bus: b, plate: v.trim() });
+        }
+        jobs.reduce(function (pr, x) { return pr.then(function () { return RFParty.post("plate", { token: p.token, bus: x.bus, plate: x.plate }); }); }, Promise.resolve(null))
+            .then(function (j) { if (j) { render(j); roomMsg(T("차량번호를 고쳤습니다. 회원 화면에 바로 나갑니다.", "Plate number updated. Members see it right away.")); } })
+            .catch(function (er) { er.ended ? fail(er) : roomMsg(enMsg(er.message)); });
     });
 
     $("busBtn").addEventListener("click", function () {
