@@ -28,6 +28,8 @@ cd C:\GH\workspace\routefly
 & C:\GH\java\jdk-21\bin\java.exe tools\blog-move\BloggerMap.java https://hong-tv.blogspot.com <저장소 밖>\hongtv-posts.map <map-001-030.tsv> <map-031-301.tsv>
 ```
 
+- 같은 글이 두 벌이면(가져오기를 두 번 하고 앞 것을 안 지움 - 2026-10-27: 10-21 글 224 · 10-27 글 301 이 함께 남음) "두 벌(n)" 줄과 끝에 "두 벌 n" 이 나옴.
+  기본은 먼저 들어온 쪽(updated 가 이른 것, 주소가 깨끗하고 검색에 먼저 잡혔을 수 있음), `--prefer new` 면 나중 쪽. 중복 글을 지운 뒤 다시 만들어 "두 벌 0" 으로 맞추는 것이 좋음
 - 화면 끝 "못 맞춤 0" 이어야 함("제목 다름" 은 시각으로 맞춘 것 - 줄만 확인). 원래 있던 블로그 글은 짝에서 빠지는 것이 정상
 - 만든 hongtv-posts.map 을 서버 /etc/nginx/hongtv-posts.map 으로(docs/deploy-lightsail.md 12-5)
 

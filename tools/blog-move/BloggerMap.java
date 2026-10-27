@@ -41,11 +41,14 @@ public class BloggerMap {
     static final String ATOM = "http://www.w3.org/2005/Atom";
 
     record Old(String path, String title, Instant at) {}
-    record Live(String url, String title, Instant at) {}
+    record Live(String url, String title, Instant at, Instant updated) {}
+
+    /** 같은 글이 두 벌(가져오기를 두 번 - 2026-10-27 PC: 10-21 · 10-27 글이 함께 남음)일 때 고를 쪽: old = 먼저 들어온 것(updated 가 이른 것), new = 나중 것. */
+    static boolean preferNew;
 
     public static void main(String[] a) throws Exception {
         if (a.length < 3) {
-            System.out.println("사용: java BloggerMap.java <블로그 주소> <out.conf> <map.tsv>... [--feed 피드.xml ...]");
+            System.out.println("사용: java BloggerMap.java <블로그 주소> <out.conf> <map.tsv>... [--prefer old|new] [--feed 피드.xml ...]");
             System.exit(1);
         }
         String blog = a[0].replaceAll("/+$", "");
@@ -53,6 +56,7 @@ public class BloggerMap {
         boolean feedArgs = false;
         for (int i = 2; i < a.length; i++) {
             if ("--feed".equals(a[i])) { feedArgs = true; continue; }
+            if ("--prefer".equals(a[i]) && i + 1 < a.length) { preferNew = "new".equals(a[++i]); continue; }
             (feedArgs ? feeds : maps).add(new File(a[i]));
         }
         List<Old> olds = new ArrayList<>();
@@ -112,22 +116,27 @@ public class BloggerMap {
         NodeList es = d.getElementsByTagNameNS(ATOM, "entry");
         for (int i = 0; i < es.getLength(); i++) {
             Element e = (Element) es.item(i);
-            String url = null, title = "", pub = null;
+            String url = null, title = "", pub = null, upd = null;
             for (Node n = e.getFirstChild(); n != null; n = n.getNextSibling()) {
                 if (!(n instanceof Element c) || !ATOM.equals(c.getNamespaceURI())) continue;
                 switch (c.getLocalName()) {
                     case "title" -> title = c.getTextContent().trim();
                     case "published" -> pub = c.getTextContent().trim();
+                    case "updated" -> upd = c.getTextContent().trim();
                     case "link" -> { if ("alternate".equals(c.getAttribute("rel"))) url = c.getAttribute("href"); }
                     default -> { }
                 }
             }
-            if (url != null && pub != null) out.add(new Live(url.replaceFirst("^http:", "https:"), title, OffsetDateTime.parse(pub).toInstant()));
+            if (url != null && pub != null) out.add(new Live(url.replaceFirst("^http:", "https:"), title, OffsetDateTime.parse(pub).toInstant(),
+                    upd == null ? OffsetDateTime.parse(pub).toInstant() : OffsetDateTime.parse(upd).toInstant()));
         }
         return out;
     }
 
-    /** 옛 경로 → 새 주소. 시각(초) 먼저, 그다음 제목이 하나뿐인 것. */
+    /**
+     * 옛 경로 → 새 주소. 시각(초) 먼저, 그다음 제목이 하나뿐인 것.
+     * 같은 시각 · 같은 제목이 여러 벌이면 "두 벌" 로 알리고 --prefer 쪽을 고름(전에는 피드 순서로 아무거나 - 2026-10-27 PC 보고로 고침).
+     */
     static Map<String, String> match(List<Old> olds, List<Live> lives) {
         Map<Long, List<Live>> byTime = new HashMap<>();
         Map<String, List<Live>> byTitle = new HashMap<>();
@@ -136,10 +145,15 @@ public class BloggerMap {
             byTitle.computeIfAbsent(norm(l.title()), k -> new ArrayList<>()).add(l);
         }
         Map<String, String> out = new LinkedHashMap<>();
-        int warn = 0, miss = 0;
+        int warn = 0, miss = 0, dup = 0;
         for (Old o : olds) {
             List<Live> t = byTime.getOrDefault(o.at().getEpochSecond(), List.of());
-            Live hit = t.size() == 1 ? t.get(0) : t.stream().filter(l -> norm(l.title()).equals(norm(o.title()))).findFirst().orElse(null);
+            List<Live> same = t.size() == 1 ? t : t.stream().filter(l -> norm(l.title()).equals(norm(o.title()))).toList();
+            Live hit = pick(same);
+            if (same.size() > 1) {
+                dup++;
+                System.out.println("두 벌(" + same.size() + "): " + o.path() + " | " + o.title() + " → " + hit.url());
+            }
             if (hit == null) {
                 List<Live> n = byTitle.getOrDefault(norm(o.title()), List.of());
                 if (n.size() == 1) hit = n.get(0);
@@ -155,8 +169,16 @@ public class BloggerMap {
             }
             out.put(o.path(), hit.url());
         }
-        System.out.println("못 맞춤 " + miss + " · 제목 다름 " + warn);
+        System.out.println("못 맞춤 " + miss + " · 제목 다름 " + warn + " · 두 벌 " + dup + (dup > 0 ? " (중복 글을 지운 뒤 다시 만드는 것이 좋음, 지금은 " + (preferNew ? "나중" : "먼저") + " 들어온 쪽)" : ""));
         return out;
+    }
+
+    /** 여러 벌이면 updated 로 고름(없으면 null). */
+    static Live pick(List<Live> c) {
+        if (c.isEmpty()) return null;
+        Live best = c.get(0);
+        for (Live l : c) if (preferNew ? l.updated().isAfter(best.updated()) : l.updated().isBefore(best.updated())) best = l;
+        return best;
     }
 
     static String norm(String s) {
