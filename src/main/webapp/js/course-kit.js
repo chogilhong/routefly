@@ -4730,6 +4730,7 @@
      * 순수 함수 - 트립닷컴 제휴 링크(설정 partner.trip.url)를 들머리 근처 숙소 검색으로(2026-10-28 홍TV님 "들머리 근처 숙소가 나와야").
      * PC 가 kr.trip.com 에서 확인한 꼴: /hotels/list?cityId=0&searchType=LM&searchWord=이름&searchValue=13|0*13*위도|경도|이름|0|1
      * (cityId 가 없으면 0개, lat · lon 쿼리는 무시됨). 제휴 꼬리(Allianceid · SID · trip_sub1 · curr · locale 등)는 그대로 붙임.
+     * listFilters=17~5*17*5 - 직선거리 가까운 순(17 = 정렬, 5 = 직선거리, 2026-10-28 PC 확인 - 붙이면 둘레 숙소만 남음).
      * trip.com 주소가 아니면 null. name 은 숙소 카드의 "{이름}에서 직선 거리" 에 나옴.
      */
     function tripLink(base, lat, lon, name) {
@@ -4738,12 +4739,12 @@
         var qi = base.indexOf("?"), q = qi < 0 ? "" : base.slice(qi + 1).split("#")[0];
         var keep = q.split("&").filter(function (kv) {
             var k = kv.split("=")[0];
-            return k && !/^(cityId|city|cityName|provinceId|countryId|districtId|optionId|destName|searchType|searchWord|searchValue|searchCoordinate|lat|lon|checkIn|checkOut|checkin|checkout)$/i.test(k);
+            return k && !/^(cityId|city|cityName|provinceId|countryId|districtId|optionId|destName|searchType|searchWord|searchValue|searchCoordinate|lat|lon|checkIn|checkOut|checkin|checkout|listFilters)$/i.test(k);
         });
         var nm = String(name || "").replace(/[|*&#?=]/g, " ").replace(/\s+/g, " ").trim().slice(0, 30) || "들머리";
         var la = (+lat).toFixed(6), lo = (+lon).toFixed(6);
         return "https://" + m[1].toLowerCase() + "/hotels/list?" + ["cityId=0", "searchType=LM", "searchWord=" + encodeURIComponent(nm),
-            "searchValue=" + encodeURIComponent("13|0*13*" + la + "|" + lo + "|" + nm + "|0|1")].concat(keep).join("&");
+            "searchValue=" + encodeURIComponent("13|0*13*" + la + "|" + lo + "|" + nm + "|0|1"), "listFilters=17~5*17*5"].concat(keep).join("&");
     }
 
     /** 순수 함수 - 기록들에 든 사진 열쇠. */
