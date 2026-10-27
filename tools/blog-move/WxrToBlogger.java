@@ -6,7 +6,9 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -34,6 +36,9 @@ import org.w3c.dom.NodeList;
  *     --author 이름                   글쓴이 이름(기본 WXR 의 dc:creator)
  *     --blog-id 숫자                  블로그 ID(블로그스팟 백업의 feed id 숫자 - 모르면 0)
  *     --map map.tsv                   옛 주소 → 새 주소(예상) 짝 - 가져온 뒤 맞는지 확인하고 nginx 301 에 씀
+ *     --img-map img.tsv               옛 그림 경로 → 블로그스팟 그림 주소(2026-10-27 - 그림을 블로그스팟 저장소로 옮김).
+ *                                     한 줄에 "/wp-content/uploads/2026/09/a.jpg[탭]https://blogger.googleusercontent.com/…" (경로는 % 풀린 글자),
+ *                                     본문의 옛 그림 주소(--site 모양으로 맞춘 뒤)를 바꿈. 짝 없는 그림은 그대로 두고 수를 알림
  * </pre>
  * 바꾸는 것: 발행(publish)된 글만 · 라벨은 카테고리 먼저 + 태그(글당 20개 · 글자 합 200자까지, 미분류 뺌) ·
  * 블록 편집기 주석(&lt;!-- wp:… --&gt;) 지움 · &lt;p&gt; 없는 옛 글은 빈 줄 → 문단 · 그림 주소 http/www → --site 모양 ·
@@ -54,10 +59,10 @@ public class WxrToBlogger {
 
     public static void main(String[] a) throws Exception {
         if (a.length < 2) {
-            System.out.println("사용: java WxrToBlogger.java <WXR.xml> <out.xml> [--site URL] [--skip N] [--limit N] [--author 이름] [--blog-id 숫자] [--map map.tsv]");
+            System.out.println("사용: java WxrToBlogger.java <WXR.xml> <out.xml> [--site URL] [--skip N] [--limit N] [--author 이름] [--blog-id 숫자] [--map map.tsv] [--img-map img.tsv]");
             System.exit(1);
         }
-        String site = null, author = null, blogId = "0", map = null;
+        String site = null, author = null, blogId = "0", map = null, imgMap = null;
         int skip = 0, limit = Integer.MAX_VALUE;
         for (int i = 2; i < a.length; i++) {
             switch (a[i]) {
@@ -67,6 +72,7 @@ public class WxrToBlogger {
                 case "--author" -> author = a[++i];
                 case "--blog-id" -> blogId = a[++i];
                 case "--map" -> map = a[++i];
+                case "--img-map" -> imgMap = a[++i];
                 default -> throw new IllegalArgumentException("모르는 옵션 " + a[i]);
             }
         }
@@ -75,10 +81,47 @@ public class WxrToBlogger {
         List<Post> all = posts(in, site, author);
         all.sort((x, y) -> x.published().compareTo(y.published()));
         List<Post> pick = all.subList(Math.min(skip, all.size()), (int) Math.min((long) skip + limit, all.size()));
+        if (imgMap != null) pick = swapImages(pick, site, readImgMap(new File(imgMap)));
         write(pick, blogId, new File(a[1]));
         if (map != null) writeMap(pick, new File(map));
         int labels = pick.stream().mapToInt(p -> p.labels().size()).sum();
         System.out.println("발행 글 " + all.size() + "개 중 " + pick.size() + "개 → " + a[1] + " (라벨 합 " + labels + ")");
+    }
+
+    // ---------------------------------------------------------------- 그림 주소 바꾸기(--img-map)
+
+    /** 옛 경로(% 풀린 글자) → 새 주소. 빈 줄 · # 줄은 건너뜀. */
+    static Map<String, String> readImgMap(File f) throws Exception {
+        Map<String, String> m = new LinkedHashMap<>();
+        for (String line : java.nio.file.Files.readAllLines(f.toPath(), StandardCharsets.UTF_8)) {
+            String[] c = line.split("\t", -1);
+            if (c.length < 2 || c[0].isBlank() || c[0].startsWith("#")) continue;
+            m.put(c[0].trim(), c[1].trim());
+        }
+        return m;
+    }
+
+    /** 본문의 옛 그림 주소(site + /wp-content/uploads/…)를 짝의 새 주소로. 바꾼 수 · 짝 없는 그림(서로 다른 경로) 수를 알림. */
+    static List<Post> swapImages(List<Post> posts, String site, Map<String, String> m) {
+        Pattern p = Pattern.compile(Pattern.quote(site) + "(/wp-content/uploads/[^\"'\\s<>)]+)");
+        int[] hit = {0};
+        Set<String> miss = new java.util.TreeSet<>();
+        List<Post> out = new ArrayList<>();
+        for (Post x : posts) {
+            Matcher mt = p.matcher(x.html());
+            StringBuilder sb = new StringBuilder();
+            while (mt.find()) {
+                String path = URLDecoder.decode(mt.group(1).replace("+", "%2B"), StandardCharsets.UTF_8);
+                String to = m.get(path);
+                if (to == null) { miss.add(path); mt.appendReplacement(sb, Matcher.quoteReplacement(mt.group())); continue; }
+                hit[0]++;
+                mt.appendReplacement(sb, Matcher.quoteReplacement(to));
+            }
+            mt.appendTail(sb);
+            out.add(new Post(x.id(), x.title(), sb.toString(), x.published(), x.updated(), x.slug(), x.link(), x.author(), x.labels()));
+        }
+        System.out.println("그림 주소 바꿈 " + hit[0] + " · 짝 없는 그림 " + miss.size() + (miss.isEmpty() ? "" : " (옛 주소 그대로 - 예: " + miss.iterator().next() + ")"));
+        return out;
     }
 
     // ---------------------------------------------------------------- 읽기
