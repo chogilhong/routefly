@@ -842,6 +842,26 @@ sudo certbot --nginx -d hongtv.co.kr -d www.hongtv.co.kr
 certbot 이 붙인 443 칸에도 위 두 location 이 들어 있는지 봅니다(certbot 은 server 칸을 복사하므로 보통 그대로).
 
 
+### 12-6. 옛 도메인을 그만둘 때 (2026-10-27 홍TV님 결정 - 이번 기한까지만 두고 갱신하지 않음)
+
+블로그 글 속 링크는 모두 블로그스팟 새 주소로 고쳤고(10-27), 그림도 블로그스팟에 있으므로 도메인이 끝나도 블로그 안에서 끊기는 곳은 없습니다.
+끊기는 것은 바깥(검색 · 다른 사이트 · 즐겨찾기)에 남은 옛 주소뿐입니다 - 받아들임. @옛도메인 메일은 쓰지 않음.
+
+1. 기한 한 달 전: 갱신 알림이 와도 갱신하지 않음(자동 연장이 켜져 있으면 끔). 끝난 도메인은 남이 사서 옛 주소로 다른 내용을 띄울 수 있음 - 받아들임.
+2. 기한 날(또는 그 직전) - 홍TV님이 메인 열쇠로, 먼저 이름을 확인하고 지웁니다:
+
+```bash
+sudo certbot certificates                                   # 옛 도메인 인증서 이름 확인(예: www.<옛도메인>)
+sudo certbot delete --cert-name <위에서 본 이름>               # 끝난 도메인은 갱신이 실패해 경고만 쌓임
+sudo rm /etc/nginx/sites-enabled/old-domains /etc/nginx/sites-available/old-domains
+sudo rm /etc/nginx/conf.d/hongtv-map.conf /etc/nginx/hongtv-posts.map
+sudo nginx -t && sudo systemctl reload nginx
+sudo tar czf ~/hongtv-www-$(date +%F).tgz -C /var/www hongtv && sudo rm -rf /var/www/hongtv   # 지우기 전 한 벌(PC 로 받아 두고 서버의 tgz 는 지움)
+```
+
+3. 확인: https://routefly.kr 정상 · `sudo certbot renew --dry-run` 에 옛 도메인 없음 · `sudo nginx -T | grep -i hongtv` 가 비어 있음.
+4. 이 문서 12장은 기록으로 남기고, 12-6 끝에 그만둔 날을 적습니다.
+
 ## 13. 산악회 방 켜기 (2026-10-20)
 
 2026-10-20 홍TV님: 바로 켬. 위치정보법 제9조의2 - 소상공인 · 1인 창조기업은 사업을 시작한 뒤 1개월 안에 위치기반서비스사업 신고를 해도 됨(사후 신고).
