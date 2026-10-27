@@ -984,7 +984,7 @@
         showQr(location.origin + location.pathname + "?c=" + encodeURIComponent(code) + (EN ? "&lang=en" : ""),
             T("📱 내 핸드폰 카메라로 찍으세요 - 이름만 넣으면 핸드폰에도 이 인솔자 화면이 열립니다", "📱 Scan with your own phone - enter your name and this leader screen opens there too"),
             T("인솔자 코드", "Leader code"), code,
-            T("이 QR 은 인솔자용입니다. 회원에게 보여 주지 마세요(회원에게는 \"회원 코드 QR\").", "This QR is for leaders only - don't show it to members (use \"Member code QR\" for them)."));
+            T("이 QR 은 인솔자용입니다. 회원에게 보여 주지 마세요(회원에게는 \"회원 방 코드 QR\").", "This QR is for leaders only - don't show it to members (use \"Member room code QR\" for them)."));
     });
     $("qrClose").addEventListener("click", function () { $("qrBox").hidden = true; });
     $("qrBox").addEventListener("click", function (e) { if (e.target === this) this.hidden = true; });
