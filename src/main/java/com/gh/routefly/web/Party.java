@@ -82,6 +82,9 @@ final class Party {
         long t;                // 마지막 위치 받은 때(0 = 아직)
         long seen;             // 마지막으로 폰이 살아 있다고 알린 때(위치 · ping - 위치를 못 잡아도, 2026-10-20 PC: 화면 끈 실내)
         boolean sos;
+        /** 인솔자에게 한 줄(2026-10-27 홍TV님 - 공지의 반대 방향) - 메모리에만, 방이 끝나면 사라짐. */
+        String msg;
+        long msgAt;
         /** 지나온 길 [위도, 경도, ms] - 메모리에만, 방이 끝나면 익명 통계(PartyTrack)로 넘기고 버림(2026-10-21 홍TV님). */
         final List<double[]> track = new ArrayList<>();
         double anchorLat, anchorLon;
@@ -104,6 +107,8 @@ final class Party {
         final Map<String, Member> members = new LinkedHashMap<>();
         String notice;
         long noticeAt;
+        /** 탑승지마다 출발 시각 "HH:MM"(없으면 "") - stops 와 같은 차례(2026-10-27 홍TV님 "정각에 출발, 기다려 주지 않아"). */
+        List<String> stopTimes = List.of();
         final Map<Integer, double[]> busAt = new java.util.TreeMap<>();   // 호차 → 버스 세운 자리
         final String[] plates;   // 호차 - 1 → 차량번호(null = 아직)
         boolean departed;
@@ -302,12 +307,41 @@ final class Party {
     /** 순수 함수 - 탑승지 목록(쉼표 · 줄바꿈 · 가운뎃점으로 나눔, 8곳 · 곳마다 12자까지, 같은 이름 한 번). */
     static List<String> stops(String text) {
         List<String> out = new ArrayList<>();
+        for (String[] e : stopEntries(text)) out.add(e[0]);
+        return out;
+    }
+
+    /** 순수 함수 - 탑승지마다 출발 시각 "HH:MM"(없으면 ""). "사당 17:00, 양재 17시20분, 복정" → ["17:00", "17:20", ""]. stops 와 같은 차례. */
+    static List<String> stopTimes(String text) {
+        List<String> out = new ArrayList<>();
+        for (String[] e : stopEntries(text)) out.add(e[1]);
+        return out;
+    }
+
+    private static final java.util.regex.Pattern STOP_TIME = java.util.regex.Pattern.compile("(?<!\\d)([01]?\\d|2[0-3])\\s*(?:[:.]|시)\\s*([0-5]\\d)?\\s*분?(?!\\d)");
+
+    private static List<String[]> stopEntries(String text) {
+        List<String[]> out = new ArrayList<>();
         if (text == null) return out;
+        List<String> names = new ArrayList<>();
         for (String t : text.split("[,\n·]")) {
+            String time = "";
+            java.util.regex.Matcher m = STOP_TIME.matcher(t);
+            if (m.find()) {
+                time = String.format("%02d:%s", Integer.parseInt(m.group(1)), m.group(2) == null ? "00" : m.group(2));
+                t = t.substring(0, m.start()) + t.substring(m.end());
+            }
             String c = clean(t, 12);
-            if (c != null && !out.contains(c) && out.size() < MAX_STOPS) out.add(c);
+            if (c != null && !names.contains(c) && out.size() < MAX_STOPS) { names.add(c); out.add(new String[] {c, time}); }
         }
         return out;
+    }
+
+    /** 방 만들 때 탑승지 시각(PartyServlet - create 다음). 이름 수와 다르면 버림. */
+    synchronized void stopTimes(Member lead, List<String> times) {
+        Room r = lead.room;
+        r.stopTimes = times != null && times.size() == r.stops.size() && times.stream().anyMatch(x -> !x.isEmpty()) ? List.copyOf(times) : List.of();
+        save();
     }
 
     // ---------------------------------------------------------------- 만들기 · 참가
@@ -689,6 +723,16 @@ final class Party {
         save();
     }
 
+    /** 인솔자에게 한 줄 - 산행 회원이 보냄(80자, 1분에 한 번). 메모리에만(파일 · 로그에 안 씀), 방이 끝나면 사라짐. */
+    synchronized void say(Member m, String text, long now) {
+        if (!"hiker".equals(m.role)) throw new IllegalArgumentException("인솔자는 \"공지\" 로 보냅니다.");
+        String t = clean(text, 80);
+        if (t == null) throw new IllegalArgumentException("보낼 말을 적어 주세요.");
+        if (m.msgAt > 0 && now - m.msgAt < 60_000) throw new IllegalStateException("1분 뒤에 다시 보내 주세요.");
+        m.msg = t;
+        m.msgAt = now;
+    }
+
     synchronized void notice(Member lead, String text, long now) {
         lead.room.notice = clean(text, 120);
         lead.room.noticeAt = now;
@@ -842,7 +886,7 @@ final class Party {
             JsonArray bs = new JsonArray(); for (int x : r.busSeats) bs.add(x); o.add("busSeats", bs);
             o.add("stops", strings(r.stops)); o.addProperty("leaderName", r.leaderName); o.addProperty("leaderPhone", r.leaderPhone);
             o.add("plates", plateArray(r));
-            o.addProperty("notice", r.notice); o.addProperty("noticeAt", r.noticeAt);
+            o.addProperty("notice", r.notice); o.addProperty("noticeAt", r.noticeAt); o.add("stopTimes", strings(r.stopTimes));
             JsonObject ba = new JsonObject();
             r.busAt.forEach((k, v) -> { JsonArray p = new JsonArray(); p.add(v[0]); p.add(v[1]); ba.add(String.valueOf(k), p); });
             o.add("busAt", ba); o.addProperty("departed", r.departed); o.addProperty("stopsDone", r.stopsDone); o.addProperty("nextId", r.nextId);
@@ -906,6 +950,7 @@ final class Party {
                     for (int i = 0; i < Math.min(pa.size(), r.buses); i++) r.plates[i] = pa.get(i).isJsonNull() ? null : pa.get(i).getAsString();
                 }
                 r.notice = str(o, "notice"); r.noticeAt = lng(o, "noticeAt");
+                if (o.has("stopTimes")) { List<String> tt = new ArrayList<>(); o.getAsJsonArray("stopTimes").forEach(x -> tt.add(x.getAsString())); if (tt.size() == r.stops.size()) r.stopTimes = List.copyOf(tt); }
                 if (o.has("busAt")) for (var be : o.getAsJsonObject("busAt").entrySet()) {
                     JsonArray p = be.getValue().getAsJsonArray();
                     r.busAt.put(Integer.parseInt(be.getKey()), new double[] {p.get(0).getAsDouble(), p.get(1).getAsDouble()});
@@ -999,6 +1044,7 @@ final class Party {
         for (int x : r.busSeats) bs.add(x);
         o.add("busSeats", bs);   // 호차마다 좌석 수(seats 는 가장 큰 값)
         o.add("stops", strings(r.stops));
+        if (!r.stopTimes.isEmpty()) o.add("stopTimes", strings(r.stopTimes));   // 탑승지마다 출발 시각
         JsonArray taken = new JsonArray(), booked = new JsonArray();   // 호차 × 100 + 좌석
         for (Member m : r.members.values()) if (m.seat != null && !m.cancelled && m != me)
             (m.listed ? booked : taken).add(m.bus * 100 + m.seat);   // 명단에만 있는 자리는 "예약" - 같은 이름이 둘일 때 좌석으로 고름(2026-10-26 PC)
@@ -1067,6 +1113,7 @@ final class Party {
                 x.addProperty("lon", m.lon);
                 x.addProperty("ago", (now - m.t) / 1000);
             }
+            if (m.msg != null && (staff || m == me)) { x.addProperty("msg", m.msg); x.addProperty("msgAt", m.msgAt); }   // 인솔자에게 한 줄
             if (staff) {
                 x.addProperty("boarded", m.boarded);
                 x.addProperty("cancelled", m.cancelled);

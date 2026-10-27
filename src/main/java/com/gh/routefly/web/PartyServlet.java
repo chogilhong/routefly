@@ -23,6 +23,7 @@ import com.google.gson.JsonParser;
  * POST /api/party/ping   {token, batt, sos}               위치를 못 잡을 때 - 폰은 켜짐 · 배터리 · SOS(위치 없이)
  * POST /api/party/view   {token}                           방 화면
  * POST /api/party/board  {token}                           회원 - 이미 참가한 폰으로 버스 QR · NFC 를 찍음 = 출발 탑승
+ * POST /api/party/say    {token, text}                     회원 - 인솔자에게 한 줄(80자, 1분에 한 번, 메모리에만)
  * POST /api/party/aboard {token, on, apart}                회원 - 하산 탑승(apart = 따로 귀가)
  * POST /api/party/seat   {token, id?, bus, seat, stop}          자리 · 탑승지 - 회원은 자기 것, 인솔자는 id 로 아무나
  * POST /api/party/mark   {token, bus, seat, on} · {token, id, what: boarded|aboard|apart, on} 인솔자 - 출발 탑승 · 하산 탑승 · 따로 귀가 체크
@@ -156,6 +157,7 @@ public class PartyServlet extends HttpServlet {
         if ("/create".equals(path)) {
             Party.Member lead = p.create(str(in, "name"), lng(in, "departAt"), lng(in, "endAt"), Math.max(1, (int) lng(in, "buses")), (int) lng(in, "seats"), ints(in, "busSeats"),
                     Party.stops(str(in, "stops")), str(in, "leaderName"), str(in, "leaderPhone"), strs(in, "plates"), now);
+            p.stopTimes(lead, Party.stopTimes(str(in, "stops")));   // 탑승지마다 출발 시각(2026-10-27)
             return withToken(p.view(lead, now), lead);
         }
         if ("/info".equals(path)) return p.info(str(in, "code"), now);
@@ -203,6 +205,7 @@ public class PartyServlet extends HttpServlet {
                 out.addProperty("added", n);
                 return out;
             }
+            case "/say" -> p.say(m, str(in, "text"), now);   // 회원 → 인솔자 한 줄(2026-10-27)
             case "/notice" -> { if (!lead) throw new SecurityException("인솔자만 공지할 수 있습니다."); p.notice(m, str(in, "text"), now); }
             case "/bus" -> { if (!staff) throw new SecurityException("인솔자만 버스 자리를 정할 수 있습니다."); p.bus(m, integer(in, "bus"), num(in, "lat"), num(in, "lon")); }
             case "/plate" -> { if (!staff) throw new SecurityException("인솔자만 차량번호를 적을 수 있습니다."); p.plate(m, integer(in, "bus"), str(in, "plate")); }

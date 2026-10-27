@@ -64,6 +64,9 @@
         else if (s.aboard) line += T("🚌 하산 탑승 - 수고하셨습니다.", "🚌 Back on the bus - well done!");
         else if (s.locOn === false) line += T("출발" + (s.departAt ? "(" + clock(s.departAt) + ")" : "") + "할 때부터 인솔자에게 위치를 보냅니다.", "Your location goes to the leader from departure" + (s.departAt ? " (" + clock(s.departAt) + ")" : "") + ".");
         else line += T("인솔자에게 위치 보내는 중", "Sending your location to the leader");
+        // 내 탑승지 출발 시각 - 정각에 떠남(2026-10-27 홍TV님 "기다려 주지 않아")
+        var si = (s.stops || []).indexOf(s.stop), stt = si >= 0 && s.stopTimes ? s.stopTimes[si] : "";
+        if (stt && !s.departed && !s.boarded && !s.cancelled && si >= (s.stopsDone || 0)) line += T(" · 🚏 " + esc(s.stop) + " " + stt + " 정각 출발 - 미리 와 계세요", " · 🚏 " + esc(s.stop) + " leaves at " + stt + " sharp - be there early");
         if (s.seat && !s.cancelled) line += T(" · 💺 " + (s.buses > 1 ? s.bus + "호차 " : "") + s.seat + "번", " · 💺 " + (s.buses > 1 ? "bus " + s.bus + " " : "") + "seat " + s.seat);
         if (s.boarded && !s.departed && !s.cancelled) line += T(" · ✅ 탑승", " · ✅ On bus");
         $("pbText").innerHTML = line;
@@ -72,6 +75,7 @@
             b.push("<button type=\"button\" class=\"pb main\" data-act=\"aboard\">" + T("🚌 하산 탑승", "🚌 Back on the bus") + "</button>");
             b.push("<button type=\"button\" class=\"pb\" data-act=\"apart\">" + T("🚶 따로 귀가", "🚶 Going home separately") + "</button>");
         }
+        b.push("<button type=\"button\" class=\"pb\" data-act=\"say\">" + T("💬 인솔자에게", "💬 To leader") + "</button>");   // 한 줄(2026-10-27)
         if (s.leaderPhone) b.push("<a class=\"pb\" href=\"tel:" + esc(String(s.leaderPhone).replace(/[^0-9+]/g, "")) + "\">" + T("☎ 인솔자", "☎ Leader") + "</a>");
         var my = (s.busPins || []).filter(function (x) { return x.bus === s.bus; })[0];
         if (my && !s.cancelled) b.push("<a class=\"pb\" target=\"_blank\" rel=\"noopener\" href=\"https://map.kakao.com/link/map/" + encodeURIComponent(T("우리 버스", "Our bus")) + "," + my.lat + "," + my.lon + "\">" + T("🚌 우리 버스", "🚌 Our bus") + "</a>");
@@ -85,6 +89,13 @@
         if (!a || !state) return;
         var p = RFParty.get(), act = a.getAttribute("data-act");
         if (!p) { hide(); return; }
+        if (act === "say") {   // 인솔자에게 한 줄 - 인솔자 화면에 뜨고 읽어 줌(80자, 1분에 한 번)
+            var t = prompt(T("인솔자에게 보낼 한 줄(80자까지)\n예: 화장실 들렀다 10분 늦어요", "One line to your leader (up to 80 characters)\ne.g. Running 10 minutes late"), "");
+            if (t == null || !t.trim()) return;
+            RFParty.post("say", { token: p.token, text: t.trim().slice(0, 80) }).then(function (j) { render(j); alert(T("인솔자에게 보냈습니다.", "Sent to your leader.")); })
+                .catch(function (er) { fail(er); if (!er.ended) alert(er.message); });
+            return;
+        }
         if (act === "aboard") {
             if (!confirm(T("하산 탑승을 인솔자에게 알릴까요?\n알리면 위치 보내기를 멈춥니다.", "Tell your leader you're back on the bus?\nThis stops sending your location."))) return;
             if (p.sos) RFParty.sos(false);

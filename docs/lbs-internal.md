@@ -14,6 +14,7 @@
 | 무엇 | 어디 | 얼마나 | 코드 |
 |---|---|---|---|
 | 회원 위치 · 배터리 · SOS · 지나온 길(최근 2시간) | 서버 메모리만 | 방을 나가거나 방이 끝나면 지움 | Party.java |
+| 회원이 인솔자에게 보낸 한 줄(80자, 2026-10-27) | 서버 메모리만(파일 · 로그 안 씀) | 방이 끝나면 사라짐 | Party.say, PartySayTest |
 | 방 정보 · 이름 · 좌석 · 탑승 표시 · 열쇠(위치 없음) | 서버 파일 party.json (권한 600, 처음부터 600 으로 만듦) | 방이 끝나면 지움 | Party.java write |
 | 회원별 이용 · 제공사실 확인자료(참가 · SOS · 출발 때 안 탐 · 내보냄 의 때, 방 코드, 방 안 번호 - 좌표 · 이름 없음) | party.json 옆 party-log/party-member-YYYY-MM.log (권한 600) | 200일 뒤 자동 삭제, 동의 철회(그만 보내기 · 나가기) 때 그 회원 것 즉시 파기(2026-10-27 위치정보지원센터 답) | PartyLog.java, PartyLogTest |
 | 방 단위 기록(방 만들기 · 명단 넣기 · 방 끝 - 회원 번호 없음) | logs/party.log · party-YYYY-MM.log.gz | 200일 뒤 자동 삭제 | log4j2.xml PartyFile, PrivacyPolicyTest |
