@@ -995,7 +995,8 @@
      */
     var nfcStop = null;
     var NFC = NATIVE ? (CAP.Plugins && CAP.Plugins.RfNfc) || null : null;   // 옛 설치본엔 없음(null)
-    if ("NDEFReader" in window) $("nfcRow").hidden = false;
+    // 앱 웹뷰에도 NDEFReader 이름은 있지만 쓰면 NotAllowedError(10-27 폰 시험) - 앱이면 RfNfc 를 먼저 씀
+    if (!NFC && "NDEFReader" in window) $("nfcRow").hidden = false;
     else if (NFC) Promise.resolve(NFC.status()).then(function (r) { if (r && r.supported) $("nfcRow").hidden = false; }).catch(function () { /* 없음 */ });
     var NFC_IDLE = function () { return T("📶 NFC 스티커에 쓰기 (대기만 하면 참가)", "📶 Write to NFC sticker (tap a phone to join)"); };
     function nfcErr(code) {
@@ -1014,7 +1015,7 @@
         inviteMsg(T("NFC 를 켜 두고, 스티커에 폰 뒷면(카메라 아래쯤)을 1~2초 대세요.", "Turn NFC on and hold the back of your phone (below the camera) to the sticker for 1-2 seconds."));
         function done(t) { clearTimeout(timer); nfcStop = null; btn.textContent = NFC_IDLE(); inviteMsg(t); }
         var OK = T("✅ 스티커에 썼습니다. 회원이 폰을 대면 이 방 참가 화면이 열립니다.", "✅ Written. When members tap their phone on it, this room's join page opens.");
-        if (!("NDEFReader" in window) && NFC) {   // 앱 - 30초는 앱이 셈
+        if (NFC) {   // 앱 - 30초는 앱이 셈
             nfcStop = function () { Promise.resolve(NFC.cancel()).catch(function () { /* 이미 끝 */ }); };
             Promise.resolve(NFC.write({ url: url })).then(function () { done(OK); }, function (e) { done(nfcErr(e && (e.code || e.message))); });
             return;
