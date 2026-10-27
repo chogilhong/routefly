@@ -186,12 +186,12 @@ public class PartyServlet extends HttpServlet {
             case "/mark" -> {
                 if (!staff) throw new SecurityException("인솔자만 좌석표를 고칠 수 있습니다.");
                 if (integer(in, "id") != null && "aboard".equals(str(in, "what"))) p.aboardById(m, integer(in, "id"), on);
-                else if (integer(in, "id") != null) p.boardById(m, integer(in, "id"), on);   // 명단에서 사람으로(핸드폰 없는 · 자리 없는 회원)
-                else p.mark(m, integer(in, "bus"), (int) lng(in, "seat"), on);
+                else if (integer(in, "id") != null) p.boardById(m, integer(in, "id"), on, now);   // 명단에서 사람으로(핸드폰 없는 · 자리 없는 회원)
+                else p.mark(m, integer(in, "bus"), (int) lng(in, "seat"), on, now);
             }
             case "/depart" -> {
                 if (!lead) throw new SecurityException("인솔자만 출발할 수 있습니다.");
-                int n = p.depart(m);
+                int n = p.depart(m, now);
                 out = p.view(m, now);
                 out.addProperty("cancelledNow", n);
                 return out;
@@ -207,7 +207,7 @@ public class PartyServlet extends HttpServlet {
             case "/bus" -> { if (!staff) throw new SecurityException("인솔자만 버스 자리를 정할 수 있습니다."); p.bus(m, integer(in, "bus"), num(in, "lat"), num(in, "lon")); }
             case "/plate" -> { if (!staff) throw new SecurityException("인솔자만 차량번호를 적을 수 있습니다."); p.plate(m, integer(in, "bus"), str(in, "plate")); }
             case "/kick" -> { if (!lead) throw new SecurityException("인솔자만 내보낼 수 있습니다."); p.kick(m, (int) lng(in, "id"), now); }
-            case "/leave" -> { p.leave(m); return ok(); }
+            case "/leave" -> { p.leave(m, now); return ok(); }
             case "/end" -> { if (!lead) throw new SecurityException("인솔자만 방을 끝낼 수 있습니다."); p.end(m, bool(in, "cancel"), now); return ok(); }
             default -> throw new IllegalArgumentException("없는 주소입니다.");
         }

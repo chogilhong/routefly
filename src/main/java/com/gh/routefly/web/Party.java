@@ -169,9 +169,13 @@ final class Party {
     /** 방이 끝날 때 익명 자취를 받을 곳(null = 버림 - 시험). */
     private final java.util.function.Consumer<JsonObject> trackSink;
 
+    /** 회원별 확인자료(철회하면 그 사람 것만 지움, 2026-10-27) - party.json 옆 party-log 폴더, 시험은 메모리. */
+    final PartyLog memberLog;
+
     Party(Path file, java.util.function.Consumer<JsonObject> trackSink) {
         this.file = file;
         this.trackSink = trackSink;
+        this.memberLog = new PartyLog(file == null ? null : file.toAbsolutePath().getParent().resolve("party-log"));
         load();
     }
 
@@ -374,7 +378,7 @@ final class Party {
         role = code.trim().toUpperCase().equals(r.leadCode) ? "lead" : "hiker";
         boolean boardNow = onBus && !r.departed;   // 버스 안 QR · NFC 로 들어오면 출발 탑승(2026-10-27 홍TV님 - "버스 탔어요" 단추는 없앰)
         if ("hiker".equals(role)) {
-            Member c = claim(r, n, bus, seat, stop, boardNow);
+            Member c = claim(r, n, bus, seat, stop, boardNow, now);
             if (c != null) return c;
         }
         // 출발한 방에는 산행 회원이 새로 못 들어옴(2026-10-20 홍TV님 - 하산 탑승한 폰이 같은 링크로 또 참가됐음). 공동 인솔자는 됨
@@ -388,7 +392,7 @@ final class Party {
         m.seat = "lead".equals(role) ? null : seat;
         m.stop = st;
         if (boardNow && "hiker".equals(role)) m.boarded = true;
-        audit.info("join room={} member={} role={} (위치 제공 동의)", r.code, m.id, role);
+        memberLog.add(now, r.code, m.id, "join role=" + role);   // 위치 제공 동의
         save();
         return m;
     }
@@ -399,7 +403,7 @@ final class Party {
     }
 
     /** 명단에 있는 사람이면 그 사람으로(아직 핸드폰이 안 들어온 사람만). 없으면 null. */
-    private Member claim(Room r, String n, Integer bus, Integer seat, String stop, boolean boardNow) {
+    private Member claim(Room r, String n, Integer bus, Integer seat, String stop, boolean boardNow, long now) {
         List<Member> same = new ArrayList<>();
         for (Member x : r.members.values()) if (x.listed && !x.cancelled && nameKey(x.nick).equals(nameKey(n))) same.add(x);
         if (same.isEmpty()) return null;
@@ -417,7 +421,7 @@ final class Party {
         if (st != null) pick.stop = st;
         pick.listed = false;
         if (boardNow) pick.boarded = true;
-        audit.info("join room={} member={} role=hiker (명단 · 위치 제공 동의)", r.code, pick.id);
+        memberLog.add(now, r.code, pick.id, "join role=hiker roster");   // 명단 사람 · 위치 제공 동의
         save();
         return pick;
     }
@@ -559,7 +563,7 @@ final class Party {
                 m.track.add(new double[] {lat, lon, now});
             }
         }
-        if (sos && !m.sos) audit.info("sos room={} member={}", m.room.code, m.id);
+        if (sos && !m.sos) memberLog.add(now, m.room.code, m.id, "sos");
         m.sos = sos;
         return true;
     }
@@ -574,7 +578,7 @@ final class Party {
         m.seen = now;
         if (batt != null) m.batt = Math.max(0, Math.min(100, batt));
         if (sos == null) return;
-        if (sos && !m.sos) audit.info("sos room={} member={} (위치 없음)", m.room.code, m.id);
+        if (sos && !m.sos) memberLog.add(now, m.room.code, m.id, "sos noloc");
         m.sos = sos;
     }
 
@@ -600,7 +604,7 @@ final class Party {
      * 명단에만 있는 사람도 QR · NFC 를 안 찍었고 인솔자 체크도 없으면 취소(2026-10-27 홍TV님).
      * 탑승지가 없는 방은 한 번에. 돌려줌: 취소된 수.
      */
-    synchronized int depart(Member lead) {
+    synchronized int depart(Member lead, long now) {
         Room r = lead.room;
         if (r.departed) throw new IllegalStateException("이미 출발했습니다.");
         String stop = r.stops.isEmpty() ? null : r.stops.get(Math.min(r.stopsDone, r.stops.size() - 1));
@@ -612,7 +616,7 @@ final class Party {
             if (!here) continue;
             m.cancelled = true;
             n++;
-            audit.info("cancel room={} member={} (출발 때 미탑승)", r.code, m.id);
+            memberLog.add(now, r.code, m.id, "notonbus");   // 출발 때 안 탐
         }
         if (!r.stops.isEmpty()) r.stopsDone = Math.min(r.stops.size(), r.stopsDone + 1);
         if (last) r.departed = true;
@@ -648,7 +652,7 @@ final class Party {
      * 인솔자 - 명단에서 사람으로 "탔음"(출발 때 취소된 사람 되돌리기, 2026-10-21 점검: 그 자리에 다른 사람이 앉으면 좌석표로는 고를 수 없었음).
      * 자리가 이미 찼으면 자리는 비우고(좌석 없음) 되돌림 - 인솔자가 좌석표에서 새 자리로 옮김.
      */
-    synchronized void boardById(Member staff, int id, boolean on) {
+    synchronized void boardById(Member staff, int id, boolean on, long now) {
         Member m = null;
         for (Member x : staff.room.members.values()) if (x.id == id) m = x;
         if (m == null || !"hiker".equals(m.role)) throw new IllegalArgumentException("그 회원을 찾지 못했습니다.");
@@ -656,7 +660,7 @@ final class Party {
         if (on && m.cancelled) {
             m.cancelled = false;
             if (m.seat != null) { Member there = staff.room.atSeat(m.bus, m.seat); if (there != null && there != m) m.seat = null; }
-            audit.info("uncancel room={} member={}", staff.room.code, m.id);
+            memberLog.add(now, staff.room.code, m.id, "onbus");   // 안 탐 되돌림
         }
         save();
     }
@@ -670,7 +674,7 @@ final class Party {
     }
 
     /** 인솔자 - 좌석표에서 그 자리 사람을 "출발 탑승"(취소도 풂, 2026-10-27 홍TV님 - 예약 · 인솔 자리 표시는 없앰). */
-    synchronized void mark(Member staff, Integer bus, int seat, boolean on) {
+    synchronized void mark(Member staff, Integer bus, int seat, boolean on, long now) {
         Room r = staff.room;
         int b = checkBus(r, bus);
         if (seat < 1 || seat > r.seatsOf(b)) throw new IllegalArgumentException("없는 좌석입니다.");
@@ -678,7 +682,7 @@ final class Party {
         if (m == null) for (Member x : r.members.values()) if (x.seat != null && x.seat == seat && x.bus == b) m = x;   // 취소된 사람도
         if (m == null) throw new IllegalArgumentException(busName(r, b) + seat + "번 자리에 사람이 없습니다.");
         m.boarded = on;
-        if (on && m.cancelled) { m.cancelled = false; audit.info("uncancel room={} member={}", r.code, m.id); }
+        if (on && m.cancelled) { m.cancelled = false; memberLog.add(now, r.code, m.id, "onbus"); }
         save();
     }
 
@@ -713,11 +717,15 @@ final class Party {
         byToken.remove(t.token);
         endedWhy.put(t.token, "인솔자가 이 방에서 내보냈습니다. 잘못이면 인솔자에게 연락하세요.");
         endedAt.put(t.token, now);
-        audit.info("kick room={} member={}", lead.room.code, t.id);
+        memberLog.add(now, lead.room.code, t.id, "kick");
         save();
     }
 
-    synchronized void leave(Member m) {
+    /**
+     * 그만 보내기 · 나가기 = 위치 제공 동의 철회. 위치정보지원센터 답(2026-10-27): 법 제24조 제4항에 따라 그 회원의 확인자료를 즉시 파기(PartyLog.purge).
+     * 인솔자(인솔자 코드로 들어온 사람)가 나가도 같음.
+     */
+    synchronized void leave(Member m, long now) {
         if ("lead".equals(m.role)) {   // 인솔자가 모두 나가면 아무도 방을 못 끝냄(점검) - 다른 인솔자가 있을 때만(공동 인솔자, 2026-10-27)
             int leads = 0;
             for (Member x : m.room.members.values()) if ("lead".equals(x.role)) leads++;
@@ -727,11 +735,11 @@ final class Party {
             m.rostered = true;   // 명단으로 들어오지 않았어도 이제 명단 사람(같은 이름으로 다시 참가하면 그 자리로)
             m.listed = true;
             m.lat = null; m.lon = null; m.acc = null; m.t = 0; m.sos = false; m.track.clear();
-            audit.info("leave room={} member={} (명단에 남음)", m.room.code, m.id);
+            memberLog.purge(m.room.code, m.id);   // 철회 - 이 회원의 확인자료 즉시 파기
             save();
             return;
         }
-        if (m.room.members.remove(m.token) != null) audit.info("leave room={} member={}", m.room.code, m.id);
+        if (m.room.members.remove(m.token) != null) memberLog.purge(m.room.code, m.id);   // 철회 - 확인자료 즉시 파기
         byToken.remove(m.token);
         save();
     }
