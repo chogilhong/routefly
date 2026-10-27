@@ -888,8 +888,11 @@
                         var at = function (u) { return u.replace(/\{lat\}/g, start.lat.toFixed(5)).replace(/\{lon\}/g, start.lon.toFixed(5)); };
                         // 링크에 {lat} · {lon} 이 있을 때만 "들머리 근처"(2026-10-28 - 트립닷컴 제휴 링크는 좌표 없이 숙소 첫 화면일 수 있음)
                         var near = function (u, ko, en, koAny, enAny) { return /\{lat\}/.test(u || "") ? T(ko, en) : T(koAny, enAny); };
+                        // 트립닷컴은 들머리 좌표 · 이름으로 숙소 검색(RF.tripLink, 2026-10-28) - 이름은 "지리산 백무동" 처럼 공원 + 들머리(카드에 "…에서 직선 거리")
+                        var cn = String(c.course && c.course.name || ""), head = (/·\s*([^→·]+?)\s*→/.exec(cn) || [])[1];
+                        var tripUrl = p.trip && RF.tripLink(p.trip, start.lat, start.lon, [RF.parkOf(cn), head].filter(Boolean).join(" ") || cn.split("→")[0]);
                         [[p.agoda, near(p.agoda, "🏨 아고다에서 들머리 근처 숙소 더 보기 ›", "🏨 More stays near the trailhead on Agoda ›", "🏨 아고다에서 숙소 찾기 ›", "🏨 Find stays on Agoda ›")],
-                            [p.trip, near(p.trip, "🏨 트립닷컴에서 들머리 근처 숙소 더 보기 ›", "🏨 More stays near the trailhead on Trip.com ›", "🏨 트립닷컴에서 숙소 찾기 ›", "🏨 Find stays on Trip.com ›")]].forEach(function (x) {   // 트립닷컴(2026-10-28 승인)
+                            [tripUrl || p.trip, tripUrl ? T("🏨 트립닷컴에서 들머리 근처 숙소 더 보기 ›", "🏨 More stays near the trailhead on Trip.com ›") : T("🏨 트립닷컴에서 숙소 찾기 ›", "🏨 Find stays on Trip.com ›")]].forEach(function (x) {   // 트립닷컴(2026-10-28 승인)
                             if (!x[0]) return;
                             if (ag.childNodes.length) ag.appendChild(document.createTextNode(" · "));
                             var al = gLink(x[1], at(x[0]));

@@ -121,6 +121,12 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
     eq("공원 - 공단 코스", RF.parkOf("지리산 · 백무동 → 천왕봉"), "지리산");
     eq("공원 - 자락", RF.parkOf("지리산 자락 21코스 · 운리 → 무명폭포"), "지리산");
     eq("공원 - 괄호", RF.parkOf("지리산(천왕봉) 1코스"), "지리산");
+    // 트립닷컴 들머리 근처 숙소 링크(2026-10-28) - 제휴 꼬리는 그대로, 검색 칸은 우리 것으로
+    eq("트립 - 들머리", RF.tripLink("https://kr.trip.com/?Allianceid=1&SID=2&trip_sub1=routefly&curr=KRW&locale=ko-KR", 35.3070131, 127.6136087, "지리산 중산리"),
+        "https://kr.trip.com/hotels/list?cityId=0&searchType=LM&searchWord=%EC%A7%80%EB%A6%AC%EC%82%B0%20%EC%A4%91%EC%82%B0%EB%A6%AC&searchValue=13%7C0*13*35.307013%7C127.613609%7C%EC%A7%80%EB%A6%AC%EC%82%B0%20%EC%A4%91%EC%82%B0%EB%A6%AC%7C0%7C1&Allianceid=1&SID=2&trip_sub1=routefly&curr=KRW&locale=ko-KR");
+    eq("트립 - 옛 검색 칸은 버림 · ? 앞 / 없어도", RF.tripLink("https://kr.trip.com?Allianceid=1&city=88097&checkIn=2026-10-28&lat=1", 38.17, 128.49, "설악산|소공원").indexOf("city=88097") < 0 && RF.tripLink("https://kr.trip.com?Allianceid=1", 38.17, 128.49, "a").indexOf("Allianceid=1") > 0, true);
+    eq("트립 - 이름의 | 는 빈칸", RF.tripLink("https://kr.trip.com/?a=1", 38.17, 128.49, "설악산|소공원").indexOf("%7C%EC%84%A4%EC%95%85%EC%82%B0%20%EC%86%8C%EA%B3%B5%EC%9B%90%7C") > 0, true);
+    eq("트립 - trip.com 이 아니면 null", [RF.tripLink("https://www.agoda.com/x", 1, 2, "a"), RF.tripLink("https://kr.trip.com.evil.kr/x", 1, 2, "a"), RF.tripLink("https://kr.trip.com/", NaN, 2, "a")], [null, null, null]);
     eq("공원 - 다른 산", RF.parkOf("지리봉 1코스"), null);
     eq("공원 - 한려해상", RF.parkOf("한려해상 · 금산 → 쌍홍문"), "한려해상");
     eq("공원 - 없음", RF.parkOf(null), null);
