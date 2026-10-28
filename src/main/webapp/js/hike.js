@@ -1633,7 +1633,9 @@
             .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok || j.success === false) throw new Error(j.message || ("오류 " + r.status)); return j; }); });
     }
     var xferTimer = null;
-    $("xferClose").addEventListener("click", function () { clearInterval(xferTimer); $("xferBox").hidden = true; $("xferBox").style.display = "none"; });
+    function xferHide() { clearInterval(xferTimer); $("xferBox").hidden = true; $("xferBox").style.display = "none"; }
+    $("xferClose").addEventListener("click", xferHide);
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !$("xferBox").hidden) xferHide(); });   // Esc 로 닫기(2026-10-28 접근성)
     /** 받기 - 이 기기에 QR · 코드를 띄우고 기다림. */
     function xferReceive() {
         if (!window.crypto || !crypto.subtle) { toast(T("이 브라우저는 옮기기를 못 합니다(https 주소에서 열어 주세요).", "This browser can't transfer (open the https address)."), 6000); return; }

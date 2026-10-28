@@ -32,7 +32,7 @@ public class PartyDropTest {
         try { call(p, "/drop", "{\"token\":\"" + a + "\",\"id\":" + yid + ",\"drop\":\"한계령\"}", T0); fail("회원은 남의 것 못 바꿈"); } catch (SecurityException e) { /* 맞음 */ }
         call(p, "/drop", "{\"token\":\"" + a + "\",\"drop\":\"소공원\"}", T0);   // 회원은 자기 것은 바꿈
         JsonObject hv = call(p, "/view", tok(a), T0);
-        assertNull("회원은 남의 하차 지점을 못 봄", member(hv, "영희").get("drop"));
+        assertNull("회원은 남의 하차 지점을 못 봄(명단도 안 받음)", member(hv, "영희"));
         assertEquals("회원은 인솔자 하차는 봄", Party.BUS_STAY, member(hv, "시험대장").get("drop").getAsString());
         JsonObject r = call(p, "/office/rooms", "{\"key\":\"" + key + "\"}", T0).getAsJsonArray("rooms").get(0).getAsJsonObject();
         assertEquals("{\"소공원\":1,\"오색\":1}", r.getAsJsonObject("drops").toString());

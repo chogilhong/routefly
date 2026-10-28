@@ -78,6 +78,7 @@ tr.warn td { background:rgba(255,212,59,0.14); }
         </section>
         <section>
             <h2>끝난 산행 <span class="tip">(200일, 이름 · 위치 없이 숫자만)</span></h2>
+            <p><button id="csvBtn">📥 엑셀로 내려받기 (CSV)</button> <span class="tip">200일 모두 - 월별 산행 수 · 탑승 인원 정산, 안전 기록 보관에</span></p>
             <div class="wrap"><table><thead><tr><th>끝난 때</th><th>산행</th><th>끝낸 사람</th><th>출발 탑승</th><th>하산 탑승</th><th>하산 미확인</th><th>SOS</th></tr></thead>
                 <tbody id="ended"></tbody></table></div>
         </section>
@@ -98,6 +99,7 @@ tr.warn td { background:rgba(255,212,59,0.14); }
     <div id="msg" role="status" aria-live="polite"></div>
 </main>
 <script src="js/party-kit.js"></script>
+<script src="js/office-csv.js"></script>
 <script src="js/party-office.js"></script>
 </body>
 </html>

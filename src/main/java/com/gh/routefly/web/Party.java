@@ -533,6 +533,11 @@ final class Party {
         if (st != null) pick.stop = st;
         pick.listed = false;
         if (boardNow) pick.boarded = true;
+        if (r.departed) {   // 출발 뒤 명단 이름으로 들어옴 - 다른 폰이 이름만 대고 가로챌 수 있어 인솔자에게 알림(2026-10-28 보안 점검)
+            pick.msg = "📱 출발 뒤 명단 이름으로 핸드폰이 들어왔습니다 - 본인이 맞는지 확인해 주세요(아니면 내보내기)";
+            pick.msgAt = now;
+            audit.info("late claim room={} id={}", r.code, pick.id);
+        }
         memberLog.add(now, r.code, pick.id, "join role=hiker roster");   // 명단 사람 · 위치 제공 동의
         save();
         return pick;
@@ -1656,7 +1661,11 @@ final class Party {
         JsonArray list = new JsonArray();
         int aboard = 0, apart = 0;
         for (Member m : r.members.values()) {
+            if (m.apart) apart++;
+            if (m.aboard) aboard++;
             if (m.cancelled && !staff) continue;
+            // 회원 화면(hike.html 띠)은 인솔자 · 자기만 씀 - 나머지 명단은 보내지 않음(2026-10-28 속도 점검: 45명 방에서 회원 답의 90%가 안 쓰는 명단)
+            if (!staff && m != me && !m.staff()) continue;
             JsonObject x = new JsonObject();
             x.addProperty("id", m.id);
             x.addProperty("nick", m.nick);
@@ -1671,8 +1680,7 @@ final class Party {
             if (m.seat != null) x.addProperty("seat", m.seat);
             x.addProperty("sos", m.sos);
             x.addProperty("aboard", m.aboard);
-            if (m.apart) { x.addProperty("apart", true); apart++; }
-            if (m.aboard) aboard++;
+            if (m.apart) x.addProperty("apart", true);
             // 위치는 인솔자와 자기 것만(2026-10-24 홍TV님 - 인솔자 위주, 회원은 따라가기 지도로 걷고 남의 위치는 안 봄)
             if (m.t > 0 && m.lat != null && (staff || m == me)) {   // 하산 탑승하면 위치를 지움(aboard)
                 if (staff && m != me) m.providedAt = now;   // 인솔자에게 제공한 때 - 회원 화면에 바로 알림

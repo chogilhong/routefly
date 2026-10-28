@@ -67,11 +67,16 @@ public class MidServlet extends HttpServlet {
             Json.fail(resp, HttpServletResponse.SC_BAD_REQUEST, "lat · lon 은 우리나라 안 좌표입니다.");
             return;
         }
-        String key = RouteflyConfig.get("weather.serviceKey");
-        if (key == null) key = RouteflyConfig.get("tour.serviceKey");
-        JsonObject out = key == null ? unavailable() : answer(key, at[0], at[1]);
+        JsonObject out = at(at[0], at[1]);
         if (out.has("unavailable")) Json.write(resp, HttpServletResponse.SC_OK, out, false);
         else Json.ok(req, resp, out);
+    }
+
+    /** 그 자리 중기예보(키가 없으면 unavailable) - api/wx 도 씀. */
+    static JsonObject at(double lat, double lon) {
+        String key = RouteflyConfig.get("weather.serviceKey");
+        if (key == null) key = RouteflyConfig.get("tour.serviceKey");
+        return key == null ? unavailable() : answer(key, lat, lon);
     }
 
     private static JsonObject answer(String key, double lat, double lon) {

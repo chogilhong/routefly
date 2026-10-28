@@ -416,6 +416,11 @@
 
     // ------------------------------------------------------------------ 방 화면
 
+    // 큰 글씨 확인 창(rf-dialog.js, 2026-10-28 접근성 - 인솔자는 버스 · 산에서 서서 누름). 없으면 브라우저 창
+    var D = window.RFDialog;
+    function say(t) { if (D) return D.alert(t); alert(t); return Promise.resolve(); }
+    function ask(t, o) { return D ? D.confirm(t, o) : Promise.resolve(confirm(t)); }
+    function askText(t, v) { return D ? D.prompt(t, v) : Promise.resolve(prompt(t, v)); }
     function isStaff() { var p = RFParty.get() || {}; return p.role === "lead"; }
 
     /** 회원(산행)은 방 화면 없이 따라가기로(2026-10-24 홍TV님 - 인솔자 위주, 회원은 따라가기 지도만). 방 화면은 인솔자(공동 인솔자 포함)만. */
@@ -518,8 +523,7 @@
         if (watch != null) navigator.geolocation.clearWatch(watch);
         var office = (RFParty.get() || {}).office;
         RFParty.clear();
-        if (text) alert(text);
-        location.href = office ? "party-office.html" : EXIT;   // 회사 사무실은 사무실 화면으로
+        (text ? say(text) : Promise.resolve()).then(function () { location.href = office ? "party-office.html" : EXIT; });   // 회사 사무실은 사무실 화면으로
     }
 
     var leaving = false;   // 나가는 중 - 늦게 온 답(지운 열쇠)의 오류를 띄우지 않음(2026-10-20 PC)
@@ -577,6 +581,7 @@
                 : s.departed ? T("🥾 산행 중 · 하산 탑승 <b>", "🥾 Hiking · Back on bus <b>") + (s.aboardCount || 0) + "</b> / " + nh + (s.apartCount ? T(" (따로 귀가 " + s.apartCount + ")", " (" + s.apartCount + " going home separately)") : "") + (s.endAt ? T(" · 하산 마감 ", " · Descent deadline: ") + left(s.endAt, s.now) : "")
                 + (nh > 0 && s.aboardCount >= nh ? " <span class=\"ok\">" + T("모두 탔습니다", "Everyone is on the bus") + (s.role === "lead" ? T(" - 방을 끝내세요", " - you can end the room") : "") + "</span>" : notDown(s))
                 : s.departAt ? T("출발까지 ", "Departure: ") + left(s.departAt, s.now) + T(" · 출발 탑승 ", " · Boarded ") + (s.members || []).filter(function (m) { return m.role === "hiker" && m.boarded; }).length + " / " + nh : "";
+            steps(s);
             list(s);
             seatMap(s);
             busTip();
@@ -720,13 +725,37 @@
         function rank(m) { return m.cancelled ? 6 : m.sos ? 0 : m.aboard ? 5 : (s.departed && silent(m)) ? 1 : (m.stillMin || 0) >= 15 ? 2 : 3; }
     }
 
+    /** 인솔자 "지금 할 일" - 단계(출발 전 · 산행 중 · 하산)마다 할 일만(2026-10-28 홍TV님 추천 2). 사무실 자리는 안 보임. */
+    function steps(s) {
+        var box = $("steps");
+        if (!window.RF || !RF.leadSteps || s.officeMe) { box.hidden = true; return; }
+        var st = RF.leadSteps(s, EN), go = { departBtn: T("시작", "Start"), endBtn: T("끝내기", "End"), copyBtn: T("안내 글", "Invite") };
+        box.innerHTML = st.steps.map(function (x) {
+            return "<li class=\"" + (x.done ? "done" : "") + "\"><span class=\"ck\" aria-hidden=\"true\">" + (x.done ? "✅" : "⬜") + "</span><span class=\"tx\">" + esc(x.text) + "</span>"
+                + (x.act ? "<button type=\"button\" data-step=\"" + x.act + "\">" + (go[x.act] || T("보기", "Show")) + "</button>" : "") + "</li>";
+        }).join("");
+        box.hidden = false;
+    }
+    $("steps").addEventListener("click", function (e) {
+        var b = e.target.closest("[data-step]");
+        if (!b) return;
+        var id = b.getAttribute("data-step"), el = $(id);
+        if (!el) return;
+        if (id === "departBtn" || id === "endBtn") { el.click(); return; }   // 바로 그 일(확인 창이 뜸)
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        if (el.focus) el.focus({ preventScroll: true });
+    });
+
     /** 인솔자 - 회원 내보내기(2026-10-20 홍TV님 - 모르는 사람이 들어왔을 때). */
     function kick(m) {
-        if (!m || !confirm(m.role === "lead" ? T(m.nick + " 님을 보조 인솔자에서 내보낼까요?\n그 폰에서 인솔자 화면이 닫힙니다. 코드가 샜다면 \"보조 인솔자 코드 바꾸기\"도 눌러 주세요.", "Remove " + m.nick + " as assistant leader?\nTheir leader screen closes. If the code leaked, also tap \"Change code\".")
-            : T(m.nick + " 님을 방에서 내보낼까요?\n그 폰의 산악회 방이 닫히고 위치도 지워집니다.", "Remove " + m.nick + " from the room?\nThe room closes on their phone and their location is deleted."))) return;
+        if (!m) return;
+        ask(m.role === "lead" ? T(m.nick + " 님을 보조 인솔자에서 내보낼까요?\n그 폰에서 인솔자 화면이 닫힙니다. 코드가 샜다면 \"보조 인솔자 코드 바꾸기\"도 눌러 주세요.", "Remove " + m.nick + " as assistant leader?\nTheir leader screen closes. If the code leaked, also tap \"Change code\".")
+            : T(m.nick + " 님을 방에서 내보낼까요?\n그 폰의 산악회 방이 닫히고 위치도 지워집니다.", "Remove " + m.nick + " from the room?\nThe room closes on their phone and their location is deleted."), { ok: T("내보내기", "Remove"), danger: true }).then(function (ok) {
+        if (!ok) return;
         var p = RFParty.get();
         RFParty.post("kick", { token: p.token, id: m.id }).then(function (j) { pick(null); render(j); roomMsg(T(m.nick + " 님을 내보냈습니다.", "Removed " + m.nick + ".")); })
             .catch(function (er) { er.ended ? fail(er) : roomMsg(enMsg(er.message)); });
+        });
     }
     $("list").addEventListener("click", function (e) {   // 줄을 누르면 지도에서 그 사람
         if (e.target.closest("select")) return;   // 하차 지점 고르기
@@ -1124,10 +1153,14 @@
     });
     $("newCodeBtn").addEventListener("click", function () {
         var p = RFParty.get();
-        if (!p || !confirm(T("보조 인솔자 코드를 새로 바꿀까요?\n옛 코드로는 더 들어올 수 없습니다. 이미 들어온 보조 인솔자는 그대로입니다(필요하면 명단에서 ✕).", "Change the assistant leader code?\nThe old code stops working. Assistants already in stay (remove with ✕ if needed)."))) return;
-        RFParty.post("leadcode", { token: p.token }).then(function (j) { $("leadCode").textContent = j.leadCode; roomMsg(T("새 보조 인솔자 코드: ", "New assistant code: ") + j.leadCode); }).catch(function (e) { roomMsg(enMsg(e.message)); });
+        if (!p) return;
+        ask(T("보조 인솔자 코드를 새로 바꿀까요?\n옛 코드로는 더 들어올 수 없습니다. 이미 들어온 보조 인솔자는 그대로입니다(필요하면 명단에서 ✕).", "Change the assistant leader code?\nThe old code stops working. Assistants already in stay (remove with ✕ if needed).")).then(function (ok) {
+            if (!ok) return;
+            RFParty.post("leadcode", { token: p.token }).then(function (j) { $("leadCode").textContent = j.leadCode; roomMsg(T("새 보조 인솔자 코드: ", "New assistant code: ") + j.leadCode); }).catch(function (e) { roomMsg(enMsg(e.message)); });
+        });
     });
     $("qrClose").addEventListener("click", function () { $("qrBox").hidden = true; });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !$("qrBox").hidden) $("qrBox").hidden = true; });   // Esc 로 닫기(2026-10-28 접근성)
     $("qrBox").addEventListener("click", function (e) { if (e.target === this) this.hidden = true; });
 
     /**
@@ -1185,12 +1218,15 @@
     $("bar").addEventListener("click", function (e) {
         if (!e.target.closest("#plateEdit") || !state) return;
         var p = RFParty.get(), n = state.buses || 1, jobs = [];
-        for (var b = 1; b <= n; b++) {
-            var v = prompt(T((n > 1 ? b + "호차 " : "") + "차량번호 (예: 서울70사1234, 지우려면 빈칸)", (n > 1 ? "Bus " + b + " p" : "P") + "late number (e.g. 서울70사1234, empty to clear)"), plateOf(state, b));
-            if (v == null) break;
-            if (v.trim() !== plateOf(state, b)) jobs.push({ bus: b, plate: v.trim() });
+        function askBus(b) {   // 호차마다 차례로(취소하면 거기까지)
+            if (b > n) return Promise.resolve();
+            return askText(T((n > 1 ? b + "호차 " : "") + "차량번호 (예: 서울70사1234, 지우려면 빈칸)", (n > 1 ? "Bus " + b + " p" : "P") + "late number (e.g. 서울70사1234, empty to clear)"), plateOf(state, b)).then(function (v) {
+                if (v == null) return;
+                if (v.trim() !== plateOf(state, b)) jobs.push({ bus: b, plate: v.trim() });
+                return askBus(b + 1);
+            });
         }
-        jobs.reduce(function (pr, x) { return pr.then(function () { return RFParty.post("plate", { token: p.token, bus: x.bus, plate: x.plate }); }); }, Promise.resolve(null))
+        askBus(1).then(function () { return jobs.reduce(function (pr, x) { return pr.then(function () { return RFParty.post("plate", { token: p.token, bus: x.bus, plate: x.plate }); }); }, Promise.resolve(null)); })
             .then(function (j) { if (j) { render(j); roomMsg(T("차량번호를 고쳤습니다. 회원 화면에 바로 나갑니다.", "Plate number updated. Members see it right away.")); } })
             .catch(function (er) { er.ended ? fail(er) : roomMsg(enMsg(er.message)); });
     });
@@ -1242,27 +1278,34 @@
     $("departBtn").addEventListener("click", function () {   // 산행 시작(2026-10-27 홍TV님) - 들머리에서 한 번, 그때까지 안 탄 사람은 안 탐
         var p = RFParty.get(), not = (state.members || []).filter(function (m) { return m.role === "hiker" && !m.boarded && !m.cancelled; });
         var names = not.map(function (m) { return (m.seat ? seatName(state, m.bus, m.seat) + " " : "") + m.nick; }).join(", ");
-        if (!confirm(T("산행을 시작할까요?", "Start the hike?") + (not.length ? T("\n안 탄 " + not.length + "명(산행에서 빠짐): " + names + "\n(늦게 오면 좌석표에서 \"출발 탑승\"을 누르면 됩니다)",
-            "\n" + not.length + " not on the bus (left out of the hike): " + names + "\n(If they come late, tap \"Boarded\" on the seat map)") : T("\n모두 탔습니다.", "\nEveryone is on the bus.")))) return;
-        RFParty.post("depart", { token: p.token }).then(function (j) { render(j); roomMsg(T("🥾 산행 시작! ", "🥾 Hike started! ") + (j.cancelledNow ? T("안 탐 " + j.cancelledNow + "명.", j.cancelledNow + " not on the bus.") : "")); }).catch(actFail);
+        ask(T("산행을 시작할까요?", "Start the hike?") + (not.length ? T("\n안 탄 " + not.length + "명(산행에서 빠짐): " + names + "\n(늦게 오면 좌석표에서 \"출발 탑승\"을 누르면 됩니다)",
+            "\n" + not.length + " not on the bus (left out of the hike): " + names + "\n(If they come late, tap \"Boarded\" on the seat map)") : T("\n모두 탔습니다.", "\nEveryone is on the bus.")), { ok: T("🥾 산행 시작", "🥾 Start") }).then(function (ok) {
+            if (!ok) return;
+            RFParty.post("depart", { token: p.token }).then(function (j) { render(j); roomMsg(T("🥾 산행 시작! ", "🥾 Hike started! ") + (j.cancelledNow ? T("안 탐 " + j.cancelledNow + "명.", j.cancelledNow + " not on the bus.") : "")); }).catch(actFail);
+        });
     });
 
     $("cancelTripBtn").addEventListener("click", function () {
         var p = RFParty.get();
-        if (!confirm(T("산행을 취소할까요? 모든 회원 화면에 \"산행이 취소되었습니다\"가 뜨고 방이 닫힙니다. 되돌릴 수 없습니다.", "Cancel the hike? Every member sees \"The hike was cancelled\" and the room closes. This can't be undone."))) return;
-        var why = prompt(T("취소 사유(회사 화면에 남음, 예: 태풍 · 인원 미달)", "Reason (kept on the office screen, e.g. typhoon)"), "") || "";
-        endRoom({ token: p.token, cancel: true, why: why.slice(0, 60) });
+        ask(T("산행을 취소할까요? 모든 회원 화면에 \"산행이 취소되었습니다\"가 뜨고 방이 닫힙니다. 되돌릴 수 없습니다.", "Cancel the hike? Every member sees \"The hike was cancelled\" and the room closes. This can't be undone."), { ok: T("산행 취소", "Cancel hike"), cancel: T("그대로 둠", "Keep"), danger: true }).then(function (ok) {
+            if (!ok) return;
+            return askText(T("취소 사유(회사 화면에 남음, 예: 태풍 · 인원 미달)", "Reason (kept on the office screen, e.g. typhoon)"), "").then(function (why) {
+                endRoom({ token: p.token, cancel: true, why: (why || "").slice(0, 60) });
+            });
+        });
     });
 
     $("leaveBtn").addEventListener("click", function () {
-        if (!confirm(T("방을 나갈까요? 내 위치 보내기를 멈추고, 방에서 내 정보가 지워집니다.", "Leave the room? Your location stops being sent and your info is removed from the room."))) return;
-        var p = RFParty.get();
-        quit("leave", { token: p.token });
+        ask(T("방을 나갈까요? 내 위치 보내기를 멈추고, 방에서 내 정보가 지워집니다.", "Leave the room? Your location stops being sent and your info is removed from the room."), { ok: T("나가기", "Leave"), danger: true }).then(function (ok) {
+            if (!ok) return;
+            quit("leave", { token: RFParty.get().token });
+        });
     });
 
     $("endBtn").addEventListener("click", function () {
-        if (!confirm(T("방을 끝낼까요? 산행이 끝난 것으로 모두의 위치가 지워지고 다시 열 수 없습니다.", "End the room? The hike is treated as finished, everyone's location is deleted, and it can't be reopened."))) return;
-        endRoom({ token: RFParty.get().token });
+        ask(T("방을 끝낼까요? 산행이 끝난 것으로 모두의 위치가 지워지고 다시 열 수 없습니다.", "End the room? The hike is treated as finished, everyone's location is deleted, and it can't be reopened."), { ok: T("방 끝내기", "End room"), danger: true }).then(function (ok) {
+            if (ok) endRoom({ token: RFParty.get().token });
+        });
     });
     /**
      * 방 끝내기 · 산행 취소(2026-10-28): SOS 중이면 서버가 막음. 하산 확인이 안 된 회원이 있으면 한 번 더 묻고 force 로 다시 -
@@ -1272,7 +1315,7 @@
         RFParty.post("end", body).then(function () { exit(); }).catch(function (e) {
             if (e && (e.ended || e.status === 410)) { exit(); return; }
             if (e && /^아직 하산 확인이/.test(e.message || "") && !body.force) {
-                if (confirm(e.message + T("\n\n그래도 끝낼까요? 회사 화면에 \"하산 미확인\"으로 남습니다.", "\n\nEnd anyway? It stays as \"not confirmed down\" on the office screen."))) { body.force = true; endRoom(body); }
+                ask(e.message + T("\n\n그래도 끝낼까요? 회사 화면에 \"하산 미확인\"으로 남습니다.", "\n\nEnd anyway? It stays as \"not confirmed down\" on the office screen."), { ok: T("그래도 끝내기", "End anyway"), danger: true }).then(function (ok) { if (ok) { body.force = true; endRoom(body); } });
                 return;
             }
             actFail(e);
@@ -1306,9 +1349,11 @@
         var b = e.target.closest("[data-arrive]");
         if (!b) return;
         var d = b.getAttribute("data-arrive");
-        if (!confirm(T(d + " 도착 - 버스 안 회원 폰에 \"지금 " + d + "입니다, 여기서 내리세요?\"를 15분 동안 띄울까요?\n(지금 내 위치를 하차 자리로 남겨, 앱 회원은 위치로도 내린 곳을 확인합니다)", "Arrived at " + d + " - show members on the bus \"Get off here?\" for 15 min?\n(Your current location is saved as the drop-off spot)"))) return;
+        ask(T(d + " 도착 - 버스 안 회원 폰에 \"지금 " + d + "입니다, 여기서 내리세요?\"를 15분 동안 띄울까요?\n(지금 내 위치를 하차 자리로 남겨, 앱 회원은 위치로도 내린 곳을 확인합니다)", "Arrived at " + d + " - show members on the bus \"Get off here?\" for 15 min?\n(Your current location is saved as the drop-off spot)"), { ok: T("⬇ 도착 알리기", "⬇ Announce") }).then(function (ok) {
+        if (!ok) return;
         var at = lastPos && Date.now() - lastPos.t < 5 * 60000 ? lastPos : null;
         RFParty.post("arrive", { token: RFParty.get().token, drop: d, lat: at ? at.lat : null, lon: at ? at.lon : null }).then(function (j) { render(j); roomMsg(T("⬇ " + d + " 도착을 알렸습니다.", "⬇ Arrival at " + d + " announced.") + (at ? "" : T(" (내 위치가 없어 위치 확인은 안 됨)", " (no location - auto check off)"))); }).catch(actFail);
+        });
     });
     $("officeLinkBtn").addEventListener("click", function () {
         var c = $("officeCode").value.trim().toUpperCase();

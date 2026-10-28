@@ -214,11 +214,16 @@ public class AirServlet extends HttpServlet {
             Json.fail(resp, HttpServletResponse.SC_BAD_REQUEST, "lat · lon 은 우리나라 안 좌표입니다.");
             return;
         }
-        String key = key();
-        JsonObject out = key == null ? unavailable() : answer(key, at[0], at[1]);
+        JsonObject out = at(at[0], at[1]);
         // 못 받았을 때는 브라우저 · 서비스워커가 담아 두지 않게(2026-10-15 PC: 뜰 때 목록을 받는 사이 10초에 unavailable) - 다음에 다시 물음
         if (out.has("unavailable")) Json.write(resp, HttpServletResponse.SC_OK, out, false);
         else Json.ok(req, resp, out);
+    }
+
+    /** 그 자리 미세먼지(키가 없으면 unavailable) - api/wx 도 씀. */
+    static JsonObject at(double lat, double lon) {
+        String key = key();
+        return key == null ? unavailable() : answer(key, lat, lon);
     }
 
     private static JsonObject answer(String key, double lat, double lon) {

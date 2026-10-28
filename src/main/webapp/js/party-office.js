@@ -29,7 +29,9 @@
         ["newSec", "madeSec", "officeSec"].forEach(function (x) { $(x).hidden = x !== id; });
     }
 
+    var last = null;   // 마지막으로 받은 사무실 - 엑셀 내려받기에 씀(서버에 다시 묻지 않음)
     function render(j) {
+        last = j;
         $("offTitle").textContent = "🏢 " + j.name + " 사무실";
         $("title").textContent = "🏢 " + j.name + " 사무실";
         $("offCode").textContent = j.code;
@@ -92,6 +94,20 @@
         clearInterval(timer);
         timer = setInterval(function () { if (!document.hidden) load(); }, EVERY_MS);
     }
+
+    // 끝난 산행 엑셀(CSV) 내려받기(2026-10-28 홍TV님 추천 1) - 이 화면이 이미 받은 숫자만
+    $("csvBtn").addEventListener("click", function () {
+        if (!last) { msg("아직 받지 못했습니다. 잠시 뒤 다시 눌러 주세요."); return; }
+        if (!(last.ended || []).length) { msg("아직 끝난 산행이 없습니다."); return; }
+        var d = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10).replace(/-/g, "");
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob([RFOfficeCsv.officeCsv(last.ended)], { type: "text/csv;charset=utf-8" }));
+        a.download = "routefly-끝난산행-" + d + ".csv";
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+        msg("📥 " + last.ended.length + "건을 내려받았습니다(엑셀에서 열림).");
+    });
 
     $("offCreate").addEventListener("click", function () {
         var n = $("offName").value.trim();

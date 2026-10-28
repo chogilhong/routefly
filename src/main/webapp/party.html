@@ -58,7 +58,7 @@ button.sos { background:#c92a2a; color:#fff; border-color:#c92a2a; }
 #sosBar { position:sticky; top:0; z-index:5; background:#c92a2a; color:#fff; border-radius:10px; padding:10px 12px; font-size:16px; font-weight:bold; margin-bottom:10px; line-height:1.6; }
 #msgBar { background:#1c3a4a; border:1px solid var(--sky); border-radius:10px; padding:8px 12px; margin-bottom:10px; line-height:1.6; font-size:15px; }
 #msgBar small { color:var(--dim); }
-#sosBar button { min-height:40px; margin:4px 6px 0 0; background:#fff; color:#c92a2a; border-color:#fff; font-size:14px; }
+#sosBar button { min-height:44px; margin:4px 6px 0 0; background:#fff; color:#c92a2a; border-color:#fff; font-size:14px; }
 #net { background:rgba(255,169,77,0.14); border:1px solid rgba(255,169,77,0.55); color:#ffc078; border-radius:10px; padding:8px 12px; font-size:14.5px; margin-bottom:10px; }
 #notice { display:none; background:rgba(255,212,59,0.12); border:1px solid rgba(255,212,59,0.5); color:#ffe066; border-radius:10px; padding:10px 12px; font-size:14.5px; margin-bottom:12px; }
 table { width:100%; border-collapse:collapse; font-size:15px; }
@@ -92,6 +92,12 @@ select, input[type=number] { width:100%; height:44px; padding:0 10px; border-rad
 .fieldMsg:empty { display:none; }
 input.bad, .agree.bad { border-color:#ff6b6b !important; }
 .agree.bad { outline:2px solid #ff6b6b; border-radius:8px; }
+#steps { list-style:none; margin:10px 0 0; padding:0; display:grid; gap:6px; }
+#steps li { display:flex; align-items:center; gap:8px; min-height:44px; padding:6px 10px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid var(--ln); font-size:15px; }
+#steps li.done { opacity:0.6; }
+#steps li .ck { flex:0 0 auto; width:22px; text-align:center; }
+#steps li .tx { flex:1 1 auto; }
+#steps li button { flex:0 0 auto; min-height:40px; font-size:14px; }
 #qrBox { position:fixed; inset:0; z-index:2000; background:rgba(0,0,0,0.85); display:flex; align-items:center; justify-content:center; padding:16px; }
 #qrBox .qrIn { background:#fff; color:#111; border-radius:16px; padding:18px; width:100%; max-width:380px; text-align:center; }
 #qrBox .qrHead { font-weight:bold; font-size:16px; margin:0 0 10px; }
@@ -109,7 +115,7 @@ input.bad, .agree.bad { border-color:#ff6b6b !important; }
 #seatMap.moving .s:not(.join):not(.board):not(.sos):not(.back):not(.drv) { border-color:#ffd43b; border-style:solid; }
 .legend { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; align-items:center; }
 /* 인솔자 사용법 링크(2026-10-20 홍TV님 - 눈에 띄게) */
-.guideLink { display:inline-flex; align-items:center; min-height:30px; padding:4px 12px; border-radius:16px; background:#ffd43b; color:#2b2100 !important;
+.guideLink { display:inline-flex; align-items:center; min-height:44px; padding:4px 12px; border-radius:16px; background:#ffd43b; color:#2b2100 !important;
              font-weight:bold; font-size:13.5px; text-decoration:none; box-shadow:0 0 0 2px rgba(255,212,59,0.35); }
 .legend .guideLink { margin-left:auto; }
 .legend .s { min-width:0; height:auto; padding:3px 8px; cursor:default; font-size:13px; }
@@ -217,6 +223,7 @@ a.tel { color:var(--sky); }
         <section>
             <div id="bar"></div>
             <div id="phase"></div>
+            <ol id="steps" hidden aria-label="지금 할 일" data-en-aria-label="To do now"></ol>   <!-- 단계마다 할 일(2026-10-28 홍TV님 추천 2 - RF.leadSteps) -->
             <div id="leadRow" class="invite" hidden>   <!-- 참가 링크 - 카톡 · 문자로(2026-10-20 홍TV님) -->
                 <label for="inviteUrl" data-en="📨 Join link">📨 참가 링크</label>
                 <input id="inviteUrl" type="text" readonly>
@@ -297,7 +304,7 @@ a.tel { color:var(--sky); }
         </section>
     </div>
     <!-- 현장 참가 QR(2026-10-20 홍TV님 "카톡 확인 없이 사당 출발장소로 왔어") - 인솔자 폰을 회원 폰 카메라에 비춤 -->
-    <div id="qrBox" hidden>
+    <div id="qrBox" hidden role="dialog" aria-modal="true" aria-labelledby="qrHead">
         <div class="qrIn">
             <p class="qrHead" id="qrHead"></p>
             <div id="qrImg"></div>
@@ -311,6 +318,7 @@ a.tel { color:var(--sky); }
 <script src="vendor/maplibre-gl-5.24.0/maplibre-gl.js"></script>
 <script src="js/course-kit.js"></script>
 <script src="vendor/qrcode-generator-1.4.4/qrcode.js"></script>
+<script src="js/rf-dialog.js"></script>
 <script src="js/party-kit.js"></script>
 <script src="js/party.js"></script>
 <script src="js/seen.js"></script>

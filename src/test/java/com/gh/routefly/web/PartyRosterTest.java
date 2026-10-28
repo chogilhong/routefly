@@ -153,4 +153,28 @@ public class PartyRosterTest {
             java.nio.file.Files.deleteIfExists(f);
         }
     }
+
+    /** 2026-10-28 보안 점검 - 출발 뒤 명단 이름으로 들어온 폰은 인솔자에게 알림(가로채기 막기). 회원 화면 명단은 인솔자 · 자기만, 숫자는 모두로 셈. */
+    @Test
+    public void lateClaimAlertsLead() {
+        Party p = new Party();
+        JsonObject room = j(create(p, T0));
+        String code = room.get("code").getAsString(), lead = room.get("token").getAsString();
+        call(p, "/roster", "{\"token\":\"" + lead + "\",\"text\":\"박영희 6 최민수 7\"}", T0);
+        String early = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"최민수\",\"agree\":true}", T0).get("token").getAsString();
+        assertFalse("출발 전 들어오면 알림 없음", member(call(p, "/view", tok(lead), T0), "최민수").has("msg"));
+        int id = member(call(p, "/view", tok(lead), T0), "박영희").get("id").getAsInt();
+        call(p, "/mark", "{\"token\":\"" + lead + "\",\"id\":" + id + ",\"on\":true}", DEPART - H);   // 핸드폰 없이 탐
+        call(p, "/board", tok(early), DEPART - H);
+        PartyTest.departAll(p, lead, DEPART);
+        String late = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"박영희\",\"agree\":true}", DEPART + H).get("token").getAsString();
+        assertTrue("출발 뒤 들어오면 인솔자에게 알림", member(call(p, "/view", tok(lead), DEPART + H), "박영희").get("msg").getAsString().contains("확인"));
+        JsonObject hv = call(p, "/view", tok(late), DEPART + H);
+        assertNull("회원은 다른 회원 명단을 안 받음", member(hv, "최민수"));
+        boolean leadSeen = false;
+        for (com.google.gson.JsonElement e : hv.getAsJsonArray("members")) leadSeen |= "lead".equals(e.getAsJsonObject().get("role").getAsString());
+        assertTrue("인솔자는 봄", leadSeen);
+        call(p, "/mark", "{\"token\":\"" + lead + "\",\"id\":" + id + ",\"what\":\"aboard\",\"on\":true}", DEPART + 5 * H);
+        assertEquals("하산 탑승 수는 모두로 셈", 1, call(p, "/view", tok(early), DEPART + 5 * H).get("aboardCount").getAsInt());
+    }
 }

@@ -362,15 +362,15 @@
         var last = pick.options.length > 1 ? pick.options[pick.options.length - 1].value : today;
         Object.keys(mid.days).sort().forEach(function (d) { if (d > last) addTab(d); });
     }
-    fetch("../api/mid?lat=" + lat.toFixed(4) + "&lon=" + lon.toFixed(4)).then(function (r) { return r.json(); }).then(function (m) {
+    // 단기 · 중기예보 · 미세먼지를 한 요청으로(api/wx, 2026-10-28 속도 - 예전엔 셋)
+    var wxAll = fetch("../api/wx?lat=" + lat.toFixed(4) + "&lon=" + lon.toFixed(4)).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); });
+    wxAll.then(function (x) { return x.mid; }).then(function (m) {
         if (m.unavailable) return;
         mid = m;
         addMidTabs();
     }).catch(function () { /* 4일 뒤부터는 없이 */ });
-    fetch("../api/air?lat=" + lat.toFixed(4) + "&lon=" + lon.toFixed(4)).then(function (r) { return r.json(); }).then(function (a) { air = a; draw(); })
-        .catch(function () { /* 미세먼지 없이 */ });
-    // 상대 주소 - 이 페이지는 /m/산 이라 한 단계 위가 앱 뿌리
-    fetch("../api/weather?lat=" + lat.toFixed(4) + "&lon=" + lon.toFixed(4)).then(function (r) { return r.json(); }).then(function (w) {
+    wxAll.then(function (x) { if (x.air) { air = x.air; draw(); } }).catch(function () { /* 미세먼지 없이 */ });
+    wxAll.then(function (x) { return x.weather || { unavailable: true }; }).then(function (w) {
         if (w.unavailable || !(w.hours || []).length) { show([sunLine(Date.now()), "날씨를 지금 받지 못했습니다."]); return; }
         wx = w;
         today = w.hours[0].t.slice(0, 10);

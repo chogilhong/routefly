@@ -4620,7 +4620,7 @@
         b.addEventListener("click", function () {
             var q = "?lat=" + (+anchor.getAttribute("data-lat")).toFixed(4) + "&lon=" + (+anchor.getAttribute("data-lon")).toFixed(4);
             var urls = [location.href, rel + "/css/course-kit.css", rel + "/css/mountain.css", rel + "/js/course-kit.js", rel + "/js/" + script, rel + "/img/logo-dark.svg",
-                rel + "/api/weather" + q, rel + "/api/air" + q, rel + "/api/mid" + q, rel + "/api/partners", rel + "/hike.html" + (script === "mountain-en.js" ? "?lang=en" : "")];
+                rel + "/api/wx" + q, rel + "/api/partners", rel + "/hike.html" + (script === "mountain-en.js" ? "?lang=en" : "")];
             Array.prototype.forEach.call(document.querySelectorAll(".cs li[data-id]"), function (li) { urls.push(rel + "/api/course?id=" + encodeURIComponent(li.getAttribute("data-id"))); });
             b.disabled = true;
             p.textContent = T.saving;
@@ -4864,6 +4864,54 @@
     }
 
     /**
+     * 순수 함수 - 인솔자 "지금 할 일"(2026-10-28 홍TV님 추천 2 - 단계마다 할 일만). s - 인솔자 view.
+     * → {phase: "before" · "hiking" · "after", steps: [{done, text, act}]} (act - 누르면 할 단추 id: departBtn · endBtn · arrive · list).
+     */
+    function leadSteps(s, en) {
+        var T = function (ko, e) { return en ? e : ko; };
+        var hk = (s.members || []).filter(function (m) { return m.role === "hiker" && !m.cancelled; });
+        var nh = hk.length, boarded = hk.filter(function (m) { return m.boarded; }).length, aboard = hk.filter(function (m) { return m.aboard; });
+        var over = s.endAt && s.now > s.endAt, steps = [];
+        if (!s.departed) {
+            steps.push({ done: nh > 0, text: nh > 0 ? T("회원 참가 " + nh + "명", nh + " members joined") : T("안내 글 · QR 로 회원 참가받기", "Invite members (text · QR)"), act: nh > 0 ? "" : "copyBtn" });
+            steps.push({ done: nh > 0 && boarded >= nh, text: T("출발 탑승 확인 " + boarded + " / " + nh + (nh > boarded ? " - 좌석표에서 탄 사람 누르기" : ""), "Boarding " + boarded + " / " + nh + (nh > boarded ? " - tap who's on in the seat map" : "")), act: nh > boarded ? "seatSec" : "" });
+            steps.push({ done: false, text: T("들머리에 도착하면 산행 시작", "At the trailhead, start the hike"), act: s.role === "lead" && !over ? "departBtn" : "" });
+            return { phase: "before", steps: steps };
+        }
+        var sos = hk.filter(function (m) { return m.sos && !m.aboard; }), left = hk.filter(function (m) { return !m.aboard; });
+        var done = nh > 0 && left.length === 0;
+        if (!done && !over) {
+            steps.push({ done: !sos.length, text: sos.length ? T("🆘 SOS " + sos.length + "명 - 바로 연락", "🆘 SOS: " + sos.length + " - call now") : T("SOS 없음", "No SOS"), act: sos.length ? "list" : "" });
+            if ((s.drops || []).length) steps.push({ done: false, text: T("하차 지점에 서면 \"⬇ 도착\" 누르기", "At each drop-off, tap \"⬇ Arrived\""), act: "arriveRow" });
+            steps.push({ done: false, text: T("하산 탑승 " + aboard.length + " / " + nh + (left.length && left.length <= 5 ? " · 남은 사람 " + left.map(function (m) { return m.nick; }).join(", ") : ""),
+                "Back on bus " + aboard.length + " / " + nh + (left.length && left.length <= 5 ? " · still out: " + left.map(function (m) { return m.nick; }).join(", ") : "")), act: "list" });
+            return { phase: "hiking", steps: steps };
+        }
+        steps.push({ done: done, text: done ? T("모두 하산 탑승 " + nh + "명", "All " + nh + " back on the bus") : T("하산 미확인 " + left.length + "명 - 전화로 확인", left.length + " not confirmed down - call them"), act: done ? "" : "list" });
+        steps.push({ done: false, text: T("출발하면 방 끝내기(모두의 위치를 지움)", "When you leave, end the room (deletes locations)"), act: s.chief ? "endBtn" : "" });
+        return { phase: "after", steps: steps };
+    }
+
+    /**
+     * 순수 함수 - 회원 "내 탑승 카드"(2026-10-28 홍TV님 추천 2): 큰 글씨 한 장 - 기사님 · 인솔자에게 보여 줌. s - 회원 view. → 줄 배열.
+     */
+    function boardingCard(s, en) {
+        var T = function (ko, e) { return en ? e : ko; };
+        var hm = function (ms) { var d = new Date(ms + 9 * 3600000); return ("0" + d.getUTCHours()).slice(-2) + ":" + ("0" + d.getUTCMinutes()).slice(-2); };
+        var out = ["🎫 " + (s.name || "") + (s.nick ? " · " + s.nick : "")], plate = (s.plates || [])[(s.bus || 1) - 1];
+        if (s.buses > 1 || plate) out.push("🚌 " + (s.buses > 1 ? T(s.bus + "호차", "Bus " + s.bus) + (plate ? " · " : "") : "") + (plate || ""));
+        if (s.seat) out.push("💺 " + T(s.seat + "번", "Seat " + s.seat));
+        if (s.stop) { var i = (s.stops || []).indexOf(s.stop), t = i >= 0 && s.stopTimes ? s.stopTimes[i] : ""; out.push("🚏 " + s.stop + (t ? " " + t : "")); }
+        if (s.drop) out.push("⬇ " + (s.drop === "버스 대기" ? T("버스 대기", "Staying on bus") : s.drop + T(" 하차", " drop-off")));
+        var pk = s.pickup && s.pickupAt && s.pickupAt[s.pickup];
+        if (pk) out.push(T("🚌 하산 탑승 ", "🚌 Pickup ") + s.pickup + " " + hm(pk));
+        else if (s.endAt) out.push(T("⏰ 하산 마감 ", "⏰ Back by ") + hm(s.endAt));
+        if (s.homeAt) out.push(T("🏠 출발지 도착 예정 ", "🏠 Back home ") + hm(s.homeAt));
+        if (s.leaderPhone) out.push(T("📞 인솔자 ", "📞 Leader ") + s.leaderPhone);
+        return out;
+    }
+
+    /**
      * 국립공원 스탬프투어 인증지(2026-10-28 홍TV님, data/np-stamps.json - 국립공원공단 공식 목록). 순수 함수.
      * npStampKey - 다녀감 저장 키. npStampsOn - 코스 선에서 maxM 안의 인증지 [{s, off(m), at(점 번호)}], 코스 차례대로.
      * npStampsDue - 지금 자리에서 radiusM 안이고 아직 안 다녀간 인증지.
@@ -4914,6 +4962,6 @@
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },
         cellCenter: cellCenter, warnName: warnName, safetyRows: safetyRows, safetyAlert: safetyAlert, safetyRender: safetyRender,
         setLang: setLang, isEn: isEn, tr: tr, pageLang: pageLang, applyEn: applyEn,
-        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, cleanTrack: cleanTrack, recDist: recDist, dropLog: dropLog, recordLines: recordLines, recordHighest: recordHighest, partyAlerts: partyAlerts, npStampKey: npStampKey, npStampsOn: npStampsOn, npStampsDue: npStampsDue, tripLink: tripLink, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, regionEn: regionEn, weekendWordEn: weekendWordEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox, LEVELS: LEVELS, difficulty: difficulty, boardSegments: boardSegments, boardProfile: boardProfile, nameEnds: nameEnds, boardButtons: boardButtons, levelChip: levelChip, roman: roman, enName: enName, weekendText: weekendText, boardHere: boardHere, slopeBetween: slopeBetween, recentAdd: recentAdd, recentPages: recentPages, recentFold: recentFold, compareRows: compareRows, compareButtons: compareButtons, steepest: steepest, officialEleAt: officialEleAt, stampRadius: stampRadius, stillCheck: stillCheck, windChill: windChill, windNote: windNote, paceProfile: paceProfile, paceAt: paceAt, paceDistAt: paceDistAt, paceText: paceText, fortune: fortune, fortuneDay: fortuneDay, supportLine: supportLine, dayKey: dayKey, anbuPlan: anbuPlan, anbuText: anbuText, anbuSms: anbuSms, telClean: telClean, telFormat: telFormat, UNITS: UNITS, unitConv: unitConv, unitFmt: unitFmt, dayNo: dayNo, dayYmd: dayYmd, ageInfo: ageInfo, dDay: dDay, dateAdd: dateAdd, dateDiff: dateDiff, pctCalc: pctCalc, dutchPay: dutchPay, textCount: textCount, smsKind: smsKind, compassHeading: compassHeading, SOS_PATTERN: SOS_PATTERN, fxConv: fxConv, toLunar: toLunar, fromLunar: fromLunar, nextLunarBirthday: nextLunarBirthday, leapMonth: leapMonth, moonPhase: moonPhase, MOON_NAMES: MOON_NAMES, interestCalc: interestCalc, vatCalc: vatCalc, bmiInfo: bmiInfo, discomfort: discomfort, nameRoman: nameRoman, tzOffsetMin: tzOffsetMin, ladderMake: ladderMake, ladderTrace: ladderTrace, holidayRuns: holidayRuns, calcEval: calcEval, mobileOnlyUrl: mobileOnlyUrl, summitCard: summitCard, trackClimb: trackClimb
+        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, cleanTrack: cleanTrack, recDist: recDist, dropLog: dropLog, recordLines: recordLines, recordHighest: recordHighest, partyAlerts: partyAlerts, leadSteps: leadSteps, boardingCard: boardingCard, npStampKey: npStampKey, npStampsOn: npStampsOn, npStampsDue: npStampsDue, tripLink: tripLink, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, regionEn: regionEn, weekendWordEn: weekendWordEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox, LEVELS: LEVELS, difficulty: difficulty, boardSegments: boardSegments, boardProfile: boardProfile, nameEnds: nameEnds, boardButtons: boardButtons, levelChip: levelChip, roman: roman, enName: enName, weekendText: weekendText, boardHere: boardHere, slopeBetween: slopeBetween, recentAdd: recentAdd, recentPages: recentPages, recentFold: recentFold, compareRows: compareRows, compareButtons: compareButtons, steepest: steepest, officialEleAt: officialEleAt, stampRadius: stampRadius, stillCheck: stillCheck, windChill: windChill, windNote: windNote, paceProfile: paceProfile, paceAt: paceAt, paceDistAt: paceDistAt, paceText: paceText, fortune: fortune, fortuneDay: fortuneDay, supportLine: supportLine, dayKey: dayKey, anbuPlan: anbuPlan, anbuText: anbuText, anbuSms: anbuSms, telClean: telClean, telFormat: telFormat, UNITS: UNITS, unitConv: unitConv, unitFmt: unitFmt, dayNo: dayNo, dayYmd: dayYmd, ageInfo: ageInfo, dDay: dDay, dateAdd: dateAdd, dateDiff: dateDiff, pctCalc: pctCalc, dutchPay: dutchPay, textCount: textCount, smsKind: smsKind, compassHeading: compassHeading, SOS_PATTERN: SOS_PATTERN, fxConv: fxConv, toLunar: toLunar, fromLunar: fromLunar, nextLunarBirthday: nextLunarBirthday, leapMonth: leapMonth, moonPhase: moonPhase, MOON_NAMES: MOON_NAMES, interestCalc: interestCalc, vatCalc: vatCalc, bmiInfo: bmiInfo, discomfort: discomfort, nameRoman: nameRoman, tzOffsetMin: tzOffsetMin, ladderMake: ladderMake, ladderTrace: ladderTrace, holidayRuns: holidayRuns, calcEval: calcEval, mobileOnlyUrl: mobileOnlyUrl, summitCard: summitCard, trackClimb: trackClimb
     };
 })(window);

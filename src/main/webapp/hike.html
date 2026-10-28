@@ -46,7 +46,7 @@ button { font-family:inherit; }
 /* 산악회 한 줄(2026-10-24 - 회원은 산악회 방 화면 없이 따라가기만, js/party-bar.js) */
 #partyBar { background:#14303a; border-bottom:1px solid #22b8cf55; padding:6px 10px; font-size:14px; line-height:1.4; }
 #pbBtns { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
-#pbBtns .pb { min-height:40px; padding:0 12px; border-radius:10px; border:1px solid #3b5563; background:#1d2a33; color:var(--tx); font-size:14px; display:inline-flex; align-items:center; text-decoration:none; cursor:pointer; }
+#pbBtns .pb { min-height:44px; padding:0 12px; border-radius:10px; border:1px solid #3b5563; background:#1d2a33; color:var(--tx); font-size:14px; display:inline-flex; align-items:center; text-decoration:none; cursor:pointer; }
 /* 코스 고르는 화면(#pick)이 위를 덮으므로 그때는 아래에 붙임 */
 html.picking.partyOn #partyBar { position:fixed; left:0; right:0; bottom:0; z-index:12; border-top:1px solid #22b8cf55; padding-bottom:calc(env(safe-area-inset-bottom) + 6px); }
 html.picking.partyOn #pick { padding-bottom:120px; box-sizing:border-box; }
@@ -299,10 +299,10 @@ html.picking #pick { display:flex; }
     <a href="#" id="back" data-en="&lt;b&gt;‹&lt;/b&gt;List" data-en-title="Back to the trail list (search)" title="코스 목록(검색)으로"><b>‹</b>목록</a>
     <div class="nm" id="name" data-en="Pick a trail">코스를 고르세요</div>
     <span id="gps" data-en="GPS off">GPS 꺼짐</span>
-    <a href="about.html" title="안전 · 개인정보 · 출처 안내" data-en-title="Safety · privacy · data sources" data-en-aria-label="Safety · privacy · data sources" aria-label="안전 · 개인정보 · 출처 안내" style="font-size:17px;min-width:32px;min-height:40px;display:inline-flex;align-items:center;justify-content:center">ⓘ</a>
+    <a href="about.html" title="안전 · 개인정보 · 출처 안내" data-en-title="Safety · privacy · data sources" data-en-aria-label="Safety · privacy · data sources" aria-label="안전 · 개인정보 · 출처 안내" style="font-size:17px;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center">ⓘ</a>
     <button type="button" id="sos" data-en-title="Call 119 emergency · my location" title="119 긴급 신고 · 내 위치">SOS</button>
 </div>
-<div id="partyBar" role="status" aria-live="polite" hidden><div id="pbText"></div><div id="pbBtns"></div></div>
+<div id="partyBar" role="region" aria-label="산악회 방" data-en-aria-label="Hiking club room" hidden><div id="pbText"></div><div id="pbBtns"></div></div>
 
 <div id="mapWrap">
     <div id="map"></div>
@@ -648,9 +648,9 @@ html.picking #pick { display:flex; }
 
 <script src="vendor/maplibre-gl-5.24.0/maplibre-gl.js"></script>
 <!-- 기기 사이 기록 옮기기 QR 창(2026-10-28) -->
-<div id="xferBox" hidden style="position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;padding:16px">
+<div id="xferBox" hidden role="dialog" aria-modal="true" aria-labelledby="xferTitle" style="position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;padding:16px">
     <div style="background:#fff;color:#111;border-radius:14px;padding:18px;max-width:360px;width:100%;text-align:center;font:15px/1.6 Arial,'Malgun Gothic',sans-serif">
-        <b data-en="📲 Get records from another device">📲 다른 기기에서 기록 가져오기</b>
+        <b id="xferTitle" data-en="📲 Get records from another device">📲 다른 기기에서 기록 가져오기</b>
         <div id="xferQr" style="width:240px;margin:10px auto"></div>
         <p data-en="Scan this QR with the camera of the phone that has the records.&lt;br&gt;In the app: 📒 My records → &quot;📤 Send to another device&quot; and type the code below.">기록이 있는 폰의 카메라로 이 QR 을 찍으세요.<br>앱에서는 📒 내 기록 → "📤 다른 기기로 보내기" 에 아래 코드를 치세요.</p>
         <p id="xferCode" style="font-size:26px;letter-spacing:4px;font-weight:bold"></p>
@@ -660,6 +660,7 @@ html.picking #pick { display:flex; }
 </div>
 <script src="vendor/qrcode-generator-1.4.4/qrcode.js"></script>
 <script src="js/course-kit.js"></script>
+<script src="js/rf-dialog.js"></script>
 <script src="js/party-kit.js"></script>
 <script src="js/hike.js"></script>
 <script src="js/party-bar.js"></script>

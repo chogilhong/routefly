@@ -103,9 +103,8 @@ public class PartyTest {
         call(p, "/loc", "{\"token\":\"" + a + "\",\"lat\":38.1193,\"lon\":128.4657,\"batt\":63}", DEPART + H + 20 * 60_000);
         call(p, "/loc", "{\"token\":\"" + b + "\",\"lat\":38.12,\"lon\":128.47,\"sos\":true}", DEPART + H + 20 * 60_000);
         JsonObject seenByB = member(call(p, "/view", tok(b), DEPART + H + 21 * 60_000), "철수");
-        assertFalse("회원은 남의 위치를 안 봄", seenByB.has("lat"));
+        assertNull("회원은 남의 위치 · 명단을 안 받음", seenByB);
         assertTrue("자기 위치는 봄", member(call(p, "/view", tok(b), DEPART + H + 21 * 60_000), "영희").has("lat"));
-        assertFalse("회원은 남의 배터리를 안 봄", seenByB.has("batt"));
         JsonObject seenByLead = member(call(p, "/view", tok(lead), DEPART + H + 21 * 60_000), "철수");
         assertEquals(63, seenByLead.get("batt").getAsInt());
         assertEquals("처음 온 뒤 21분째 그 자리(10m 남짓만 움직임)", 21, seenByLead.get("stillMin").getAsLong());
@@ -517,8 +516,7 @@ public class PartyTest {
         call(p, "/loc", "{\"token\":\"" + a + "\",\"lat\":37.5,\"lon\":127.0}", DEPART + H);
         assertTrue(call(p, "/view", tok(b), DEPART + H).get("cancelled").getAsBoolean());
         JsonObject seen = member(call(p, "/view", tok(b), DEPART + H), "철수");
-        assertTrue("이름은 보여도", seen != null);
-        assertFalse("위치는 안 보임", seen.has("lat"));
+        assertNull("회원 화면에는 남의 명단을 보내지 않음(2026-10-28 속도 점검 - 인솔자 · 자기만)", seen);
         assertTrue("인솔자는 봄", member(call(p, "/view", tok(lead), DEPART + H), "철수").has("lat"));
 
         // 시각 범위 - 출발 없이 하산 마감만 40일 뒤 · 음수 출발

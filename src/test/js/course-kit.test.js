@@ -762,6 +762,31 @@ tick().then(function () {
     eq("notifyDeploy ✕ 이름", bar.children[1].attrs["aria-label"], "새 버전 알림 닫기");
     bar.children[1].onclick();
     eq("notifyDeploy ✕ 로 닫힘", envOk.body.children.length, 0);
+    // 인솔자 지금 할 일 · 회원 탑승 카드(2026-10-28 추천 2)
+    var mem = function (n, o) { var m = { role: "hiker", nick: n }; for (var k in o) m[k] = o[k]; return m; };
+    var b0 = RF.leadSteps({ role: "lead", chief: true, now: 0, members: [mem("가", { boarded: true }), mem("나", {}), mem("다", { cancelled: true })] });
+    eq("할 일 - 출발 전", [b0.phase, b0.steps[1].text, b0.steps[2].act], ["before", "출발 탑승 확인 1 / 2 - 좌석표에서 탄 사람 누르기", "departBtn"]);
+    var b1 = RF.leadSteps({ role: "lead", chief: true, departed: true, now: 0, endAt: 9, drops: ["한계령"], members: [mem("가", { aboard: true }), mem("나", { sos: true })] });
+    eq("할 일 - 산행 중 SOS · 하차 · 남은 사람", [b1.phase, b1.steps[0].text, b1.steps[1].act, b1.steps[2].text], ["hiking", "🆘 SOS 1명 - 바로 연락", "arriveRow", "하산 탑승 1 / 2 · 남은 사람 나"]);
+    var b2 = RF.leadSteps({ role: "lead", chief: true, departed: true, now: 0, members: [mem("가", { aboard: true })] });
+    eq("할 일 - 모두 탔으면 방 끝내기", [b2.phase, b2.steps[0].done, b2.steps[1].act], ["after", true, "endBtn"]);
+    eq("할 일 - 보조 인솔자는 끝내기 단추 없음", RF.leadSteps({ role: "lead", departed: true, now: 0, members: [mem("가", { aboard: true })] }).steps[1].act, "");
+    var P0 = Date.UTC(2026, 9, 29, 8, 0);
+    eq("탑승 카드", RF.boardingCard({ name: "설악산", nick: "철수", buses: 2, bus: 2, plates: ["서울70사1111", "서울70사2222"], seat: 12, stop: "사당", stops: ["사당", "양재"], stopTimes: ["23:20", "23:40"],
+        drop: "한계령", pickup: "설악동", pickupAt: { "설악동": P0 }, endAt: P0 + 3600000, leaderPhone: "010-0000-0000" }),
+        ["🎫 설악산 · 철수", "🚌 2호차 · 서울70사2222", "💺 12번", "🚏 사당 23:20", "⬇ 한계령 하차", "🚌 하산 탑승 설악동 17:00", "📞 인솔자 010-0000-0000"]);
+    eq("탑승 카드 - 시각 없는 하산 탑승지는 하산 마감", RF.boardingCard({ name: "x", pickup: "용대리", pickupAt: {}, endAt: P0 }).slice(-1)[0], "⏰ 하산 마감 17:00");
+    // 사무실 끝난 산행 CSV(2026-10-28) - office-csv.js
+    var cs = { window: {} };
+    vm.createContext(cs);
+    vm.runInContext(fs.readFileSync(path.join(__dirname, "../../main/webapp/js/office-csv.js"), "utf8"), cs);
+    var csv = cs.window.RFOfficeCsv.officeCsv([{ endedAt: Date.UTC(2026, 9, 28, 9, 5), departAt: Date.UTC(2026, 9, 27, 14, 20), name: "=설악산, \"공룡\"", by: "시험대장", hikers: 40, boarded: 38, notBoarded: 2, departed: true, aboard: 37, apart: 1, notDown: 1, sosEver: true },
+        { endedAt: Date.UTC(2026, 9, 28, 0, 0), name: "취소 산행", cancelled: true, why: "태풍", by: "시험대장", hikers: 10 }]);
+    var lines = csv.split("\r\n");
+    eq("CSV - 엑셀용 BOM", csv.charCodeAt(0), 0xFEFF);
+    eq("CSV - 머리 줄", lines[0].slice(1), "끝난 날,끝난 시각,산행,출발,취소,취소 사유,끝낸 사람,회원,출발 탑승,안 탐,하산 탑승,따로 귀가,하산 미확인,SOS");
+    eq("CSV - 한국 시각 · 수식 막기 · 따옴표", lines[1], "2026-10-28,18:05,\"'=설악산, \"\"공룡\"\"\",2026-10-27 23:20,,,시험대장,40,38,2,37,1,1,있었음");
+    eq("CSV - 취소는 하산 칸 비움", lines[2], "2026-10-28,09:00,취소 산행,,취소,태풍,시험대장,10,0,0,,,,");
     console.log((fails ? "FAILED " : "OK ") + (runs - fails) + "/" + runs);
     process.exit(fails ? 1 : 0);
 });

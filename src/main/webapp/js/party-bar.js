@@ -28,9 +28,15 @@
     }
     function stopWatch() { if (watch != null) { navigator.geolocation.clearWatch(watch); watch = null; } }
 
+    // 큰 글씨 확인 창(rf-dialog.js, 2026-10-28 접근성) - 없으면 브라우저 창
+    var D = window.RFDialog;
+    function say(t) { if (D) return D.alert(t); alert(t); return Promise.resolve(); }
+    function ask(t, o) { return D ? D.confirm(t, o) : Promise.resolve(confirm(t)); }
+    function askText(t, v) { return D ? D.prompt(t, v) : Promise.resolve(prompt(t, v)); }
+
     function fail(e) {
         if (e && e.ended) {   // 방이 끝남 · 내보내짐 - party-kit 이 이 기기의 방 정보를 지움
-            alert(T("산악회 방이 끝났습니다. 인솔자에게 위치를 더 보내지 않습니다.", "The hiking club room has ended. Your location is no longer sent.") + (e.message ? "\n" + e.message : ""));
+            say(T("산악회 방이 끝났습니다. 인솔자에게 위치를 더 보내지 않습니다.", "The hiking club room has ended. Your location is no longer sent.") + (e.message ? "\n" + e.message : ""));
             hide();
         }
     }
@@ -120,6 +126,7 @@
             b.push("<button type=\"button\" class=\"pb main\" data-act=\"aboard\">" + T("🚌 하산 탑승", "🚌 Back on the bus") + "</button>");
             b.push("<button type=\"button\" class=\"pb\" data-act=\"apart\">" + T("🚶 따로 귀가", "🚶 Going home separately") + "</button>");
         }
+        if (!s.cancelled && !s.apart && window.RF && RF.boardingCard) b.push("<button type=\"button\" class=\"pb\" data-act=\"card\">" + T("🎫 내 탑승 카드", "🎫 My boarding card") + "</button>");   // 큰 글씨 한 장(2026-10-28 추천 2)
         b.push("<button type=\"button\" class=\"pb\" data-act=\"say\">" + T("💬 인솔자에게", "💬 To leader") + "</button>");   // 한 줄(2026-10-27)
         if (s.leaderPhone) b.push("<a class=\"pb\" href=\"tel:" + esc(String(s.leaderPhone).replace(/[^0-9+]/g, "")) + "\">" + T("☎ 인솔자", "☎ Leader") + "</a>");
         var my = (s.busPins || []).filter(function (x) { return x.bus === s.bus; })[0];
@@ -135,30 +142,38 @@
         if (!a || !state) return;
         var p = RFParty.get(), act = a.getAttribute("data-act");
         if (!p) { hide(); return; }
+        if (act === "card") { say(RF.boardingCard(state, EN).join("\n")); return; }   // 기사님 · 인솔자에게 보여 줌
         if (act === "say") {   // 인솔자에게 한 줄 - 인솔자 화면에 뜨고 읽어 줌(80자, 1분에 한 번)
-            var t = prompt(T("인솔자에게 보낼 한 줄(80자까지)\n예: 화장실 들렀다 10분 늦어요", "One line to your leader (up to 80 characters)\ne.g. Running 10 minutes late"), "");
+            askText(T("인솔자에게 보낼 한 줄(80자까지)\n예: 화장실 들렀다 10분 늦어요", "One line to your leader (up to 80 characters)\ne.g. Running 10 minutes late"), "").then(function (t) {
             if (t == null || !t.trim()) return;
-            RFParty.post("say", { token: p.token, text: t.trim().slice(0, 80) }).then(function (j) { render(j); alert(T("인솔자에게 보냈습니다.", "Sent to your leader.")); })
-                .catch(function (er) { fail(er); if (!er.ended) alert(er.message); });
+            RFParty.post("say", { token: p.token, text: t.trim().slice(0, 80) }).then(function (j) { render(j); say(T("인솔자에게 보냈습니다.", "Sent to your leader.")); })
+                .catch(function (er) { fail(er); if (!er.ended) say(er.message); });
+            });
             return;
         }
         if (act === "alight" || act === "stay") {   // 하차 안내 답
-            RFParty.post("alight", { token: p.token, yes: act === "alight" }).then(function (j) { render(j); if (act === "alight") alert(T("⬇ " + (j.drop || "") + " 하차 - 인솔자에게 알렸습니다. 안전한 산행 되세요!", "⬇ Got off - your leader knows. Have a safe hike!")); })
-                .catch(function (er) { fail(er); if (!er.ended) alert(er.message); });
+            RFParty.post("alight", { token: p.token, yes: act === "alight" }).then(function (j) { render(j); if (act === "alight") say(T("⬇ " + (j.drop || "") + " 하차 - 인솔자에게 알렸습니다. 안전한 산행 되세요!", "⬇ Got off - your leader knows. Have a safe hike!")); })
+                .catch(function (er) { fail(er); if (!er.ended) say(er.message); });
             return;
         }
         if (act === "aboard") {
-            if (!confirm(T("하산 탑승을 인솔자에게 알릴까요?\n알리면 위치 보내기를 멈춥니다.", "Tell your leader you're back on the bus?\nThis stops sending your location."))) return;
-            if (p.sos) RFParty.sos(false);
-            RFParty.post("aboard", { token: p.token, on: true }).then(render).catch(function (er) { fail(er); if (!er.ended) alert(er.message); });
+            ask(T("하산 탑승을 인솔자에게 알릴까요?\n알리면 위치 보내기를 멈춥니다.", "Tell your leader you're back on the bus?\nThis stops sending your location."), { ok: T("🚌 탔어요", "🚌 I'm on") }).then(function (ok) {
+                if (!ok) return;
+                if (p.sos) RFParty.sos(false);
+                RFParty.post("aboard", { token: p.token, on: true }).then(render).catch(function (er) { fail(er); if (!er.ended) say(er.message); });
+            });
         } else if (act === "apart") {   // 하산 뒤 버스를 안 타고 따로 감(2026-10-27 홍TV님 - 설악산에서 더 여행하다 오는 회원)
-            if (!confirm(T("버스를 타지 않고 따로 귀가한다고 인솔자에게 알릴까요?\n알리면 위치 보내기를 멈춥니다.", "Tell your leader you're going home separately (not on the bus)?\nThis stops sending your location."))) return;
-            if (p.sos) RFParty.sos(false);
-            RFParty.post("aboard", { token: p.token, on: true, apart: true }).then(render).catch(function (er) { fail(er); if (!er.ended) alert(er.message); });
+            ask(T("버스를 타지 않고 따로 귀가한다고 인솔자에게 알릴까요?\n알리면 위치 보내기를 멈춥니다.", "Tell your leader you're going home separately (not on the bus)?\nThis stops sending your location.")).then(function (ok) {
+                if (!ok) return;
+                if (p.sos) RFParty.sos(false);
+                RFParty.post("aboard", { token: p.token, on: true, apart: true }).then(render).catch(function (er) { fail(er); if (!er.ended) say(er.message); });
+            });
         } else if (act === "leave") {
             var done = state.aboard || state.cancelled;
-            if (!done && !confirm(T("인솔자에게 위치 보내기를 그만둘까요?\n인솔자 명단에는 이름이 남고, 위치만 더 가지 않습니다.", "Stop sending your location to the leader?\nYour name stays on the leader's list; only your location stops."))) return;
-            RFParty.post("leave", { token: p.token }).catch(function () { /* 이미 끝났어도 */ }).finally(function () { RFParty.clear(); hide(); });
+            (done ? Promise.resolve(true) : ask(T("인솔자에게 위치 보내기를 그만둘까요?\n인솔자 명단에는 이름이 남고, 위치만 더 가지 않습니다.", "Stop sending your location to the leader?\nYour name stays on the leader's list; only your location stops."), { danger: true })).then(function (ok) {
+                if (!ok) return;
+                RFParty.post("leave", { token: p.token }).catch(function () { /* 이미 끝났어도 */ }).finally(function () { RFParty.clear(); hide(); });
+            });
         }
     });
     document.addEventListener("change", function (e) {   // 하차 지점 바꾸기(따라가기 띠)
@@ -166,7 +181,7 @@
         var p = RFParty.get(), v = e.target.value, pick = e.target.id === "pbPick";
         e.target.blur();
         if (!p) return;
-        RFParty.post(pick ? "pickup" : "drop", pick ? { token: p.token, pickup: v } : { token: p.token, drop: v }).then(render).catch(function (er) { fail(er); if (!er.ended) alert(er.message); });
+        RFParty.post(pick ? "pickup" : "drop", pick ? { token: p.token, pickup: v } : { token: p.token, drop: v }).then(render).catch(function (er) { fail(er); if (!er.ended) say(er.message); });
     });
     document.addEventListener("visibilitychange", function () {
         if (document.visibilityState === "visible") refresh();

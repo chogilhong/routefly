@@ -45,7 +45,7 @@ public class PartySayTest {
         JsonObject v = call(p, "/view", tok(lead), T0);
         assertEquals("화장실 들렀다 10분 늦어요", member(v, "철수").get("msg").getAsString());
         assertEquals(T0, member(v, "철수").get("msgAt").getAsLong());
-        assertFalse("다른 회원은 못 봄", member(call(p, "/view", tok(b), T0), "철수").has("msg"));
+        assertNull("다른 회원은 못 봄(명단도 안 받음)", member(call(p, "/view", tok(b), T0), "철수"));
         try { call(p, "/say", "{\"token\":\"" + a + "\",\"text\":\"또\"}", T0 + 30_000); fail("1분에 한 번"); }
         catch (IllegalStateException e) { assertTrue(e.getMessage().contains("1분")); }
         call(p, "/say", "{\"token\":\"" + a + "\",\"text\":\"양재에서 탈게요\"}", T0 + 61_000);
