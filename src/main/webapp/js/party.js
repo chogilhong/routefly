@@ -420,7 +420,7 @@
     var D = window.RFDialog;
     function say(t) { if (D) return D.alert(t); alert(t); return Promise.resolve(); }
     function ask(t, o) { return D ? D.confirm(t, o) : Promise.resolve(confirm(t)); }
-    function askText(t, v) { return D ? D.prompt(t, v) : Promise.resolve(prompt(t, v)); }
+    function askText(t, v, o) { return D ? D.prompt(t, v, o) : Promise.resolve(prompt(t, v)); }
     function isStaff() { var p = RFParty.get() || {}; return p.role === "lead"; }
 
     /** 회원(산행)은 방 화면 없이 따라가기로(2026-10-24 홍TV님 - 인솔자 위주, 회원은 따라가기 지도만). 방 화면은 인솔자(공동 인솔자 포함)만. */
@@ -1323,8 +1323,11 @@
         var p = RFParty.get();
         ask(T("산행을 취소할까요? 모든 회원 화면에 \"산행이 취소되었습니다\"가 뜨고 방이 닫힙니다. 되돌릴 수 없습니다.", "Cancel the hike? Every member sees \"The hike was cancelled\" and the room closes. This can't be undone."), { ok: T("산행 취소", "Cancel hike"), cancel: T("그대로 둠", "Keep"), danger: true }).then(function (ok) {
             if (!ok) return;
-            return askText(T("취소 사유(회사 화면에 남음, 예: 태풍 · 인원 미달)", "Reason (kept on the office screen, e.g. typhoon)"), "").then(function (why) {
-                endRoom({ token: p.token, cancel: true, why: (why || "").slice(0, 60) });
+            // 사유 창의 "돌아가기" · Esc 는 산행 취소를 멈춤(2026-10-28 PC: 큰 창의 "취소" 가 그만두기로 읽혀 사유 없이 취소됐음). 사유는 비워도 됨
+            return askText(T("취소 사유(회사 화면에 남음, 예: 태풍 · 인원 미달)\n비워 두고 \"산행 취소하기\"를 눌러도 됩니다.", "Reason (kept on the office screen, e.g. typhoon)\nYou may leave it empty."), "",
+                    { ok: T("산행 취소하기", "Cancel the hike"), cancel: T("돌아가기", "Go back"), danger: true }).then(function (why) {
+                if (why == null) { roomMsg(T("산행 취소를 멈췄습니다. 방은 그대로입니다.", "Stopped - the room stays as it is.")); return; }
+                endRoom({ token: p.token, cancel: true, why: why.slice(0, 60) });
             });
         });
     });
