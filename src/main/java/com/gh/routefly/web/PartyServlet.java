@@ -34,6 +34,7 @@ import com.google.gson.JsonParser;
  * POST /api/party/leadcode {token} · /mecode {token} · /link {token, office}  주 인솔자 - 보조 인솔자 코드 바꾸기 · 내 폰 코드 · 회사 연결
  * POST /api/party/office/create {name} → {code, key}   회사 사무실 만들기(비밀 링크 = key)
  * POST /api/party/office/rooms {key} · /office/enter {key, code} · /office/detach {key, code}  사무실 - 방 목록(숫자) · 방 열기(인솔자 화면) · 방 빼기
+ * POST /api/party/office/newkey {key} → {key} · /office/delete {key, name}  사무실 링크 바꾸기 · 사무실 없애기(회사 이름을 한 번 더)
  * </pre>
  * 끝난 방 열쇠로 오면 410 + 까닭. 설정 party.enabled=true 가 아니면 status 말고는 404.
  */
@@ -183,6 +184,8 @@ public class PartyServlet extends HttpServlet {
         if ("/office/rooms".equals(path)) return p.officeRooms(str(in, "key"), now);
         if ("/office/enter".equals(path)) { Party.Member om = p.officeEnter(str(in, "key"), str(in, "code"), now); return withToken(p.view(om, now), om); }
         if ("/office/detach".equals(path)) { p.officeDetach(str(in, "key"), str(in, "code")); return ok(); }
+        if ("/office/newkey".equals(path)) { JsonObject o = ok(); o.addProperty("key", p.officeNewKey(str(in, "key"))); return o; }
+        if ("/office/delete".equals(path)) { p.officeDelete(str(in, "key"), str(in, "name")); return ok(); }
         if ("/join".equals(path)) {
             if (!bool(in, "agree")) throw new IllegalArgumentException("위치 제공에 동의해야 참가할 수 있습니다.");
             Party.Member m = p.join(str(in, "code"), str(in, "nick"), str(in, "role"), integer(in, "bus"), integer(in, "seat"), str(in, "stop"), bool(in, "onBus"), now);

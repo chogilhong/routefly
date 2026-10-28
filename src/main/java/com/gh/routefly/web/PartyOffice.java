@@ -32,7 +32,8 @@ final class PartyOffice {
     static final int MAX_OFFICES = 500, MAX_ENDED = 500;
 
     static final class Office {
-        final String code, name, key;
+        final String code, name;
+        String key;   // 사무실 링크 바꾸기로 바뀜
         final long created;
         final List<JsonObject> ended = new ArrayList<>();   // 끝난 산행 요약(새것이 앞)
 
@@ -72,6 +73,23 @@ final class PartyOffice {
             for (Office o : byCode.values())
                 if (java.security.MessageDigest.isEqual(o.key.getBytes(StandardCharsets.UTF_8), key.getBytes(StandardCharsets.UTF_8))) return o;
         throw new SecurityException("사무실 링크가 맞지 않습니다.");
+    }
+
+    /** 사무실 링크 바꾸기(샜을 때) - 옛 링크는 바로 안 됨. 돌려줌: 새 열쇠. */
+    synchronized String newKey(Office o) {
+        byte[] b = new byte[24];
+        rnd.nextBytes(b);
+        o.key = Base64.getUrlEncoder().withoutPadding().encodeToString(b);
+        save();
+        log.info("[OFFICE] 사무실 링크 바꿈 code={}", o.code);
+        return o.key;
+    }
+
+    /** 사무실 없애기 - 사무실 · 끝난 산행 요약을 모두 지움. */
+    synchronized void delete(Office o) {
+        byCode.remove(o.code);
+        save();
+        log.info("[OFFICE] 사무실 없앰 code={}", o.code);
     }
 
     synchronized boolean has(String code) {

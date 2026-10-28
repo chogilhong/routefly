@@ -107,9 +107,32 @@
     });
     $("goOffice").addEventListener("click", start);
     $("forget").addEventListener("click", function () {
-        if (!confirm("이 기기에서 사무실 링크를 지울까요? 다시 들어오려면 사무실 링크가 있어야 합니다.")) return;
+        if (!confirm("이 기기에서 로그아웃할까요? 사무실은 그대로이고, 다시 들어오려면 사무실 링크가 있어야 합니다.")) return;
         store(null);
         location.reload();
+    });
+    // 사무실 링크 바꾸기 · 사무실 없애기(2026-10-28 홍TV님 "만들어")
+    $("newKey").addEventListener("click", function () {
+        if (!confirm("사무실 링크를 바꿀까요? 옛 링크는 바로 안 되고, 다른 직원에게 새 링크를 다시 알려 줘야 합니다.")) return;
+        RFParty.post("office/newkey", { key: key }).then(function (j) {
+            store(j.key);
+            key = j.key;
+            clearInterval(timer);
+            $("madeTitle").textContent = "🔄 사무실 링크를 바꿨습니다";
+            $("linkBox").textContent = linkOf(j.key);
+            showOnly("madeSec");
+            msg("");
+        }).catch(function (e) { msg(e.message); });
+    });
+    $("delOffice").addEventListener("click", function () {
+        var name = $("offTitle").textContent.replace(/^🏢 /, "").replace(/ 사무실$/, "");
+        var typed = prompt("사무실을 없애면 되돌릴 수 없습니다. 회사 코드 · 사무실 링크가 안 되고 끝난 산행 요약이 모두 지워집니다(진행 중인 방은 그대로, 회사 연결만 끊음).\n\n없애려면 회사 이름을 그대로 적어 주세요: " + name, "");
+        if (typed == null) return;
+        RFParty.post("office/delete", { key: key, name: typed.trim() }).then(function () {
+            store(null);
+            alert("사무실을 없앴습니다.");
+            location.reload();
+        }).catch(function (e) { msg(e.message); });
     });
 
     document.addEventListener("click", function (e) {

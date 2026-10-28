@@ -986,6 +986,28 @@ final class Party {
         save();
     }
 
+    /** 사무실 - 링크 바꾸기. 돌려줌: 새 열쇠. */
+    synchronized String officeNewKey(String key) {
+        return offices.newKey(offices.byKey(key));
+    }
+
+    /**
+     * 사무실 없애기(탈퇴, 2026-10-28 홍TV님 "만들어") - 회사 이름을 한 번 더 적어야 함. 사무실 · 끝난 산행 요약을 지우고,
+     * 진행 중인 방은 그대로 두되 회사 연결 · 사무실 자리만 뺌(회원 화면의 "○○ 사무실" 도 빠짐).
+     */
+    synchronized void officeDelete(String key, String name) {
+        PartyOffice.Office o = offices.byKey(key);
+        if (name == null || !name.trim().equals(o.name)) throw new IllegalArgumentException("회사 이름이 맞지 않습니다. 없애려면 회사 이름을 그대로 적어 주세요.");
+        for (Room r : rooms.values()) {
+            if (!o.code.equals(r.officeCode)) continue;
+            r.officeCode = null;
+            r.officeName = null;
+            for (Member m : new ArrayList<>(r.members.values())) if (m.office) { r.members.remove(m.token); byToken.remove(m.token); }
+        }
+        offices.delete(o);
+        save();
+    }
+
     /** 방 요약 - 숫자만(이름 · 좌표 없음): 사무실 화면 · 끝난 산행. */
     private static JsonObject summary(Room r, long now) {
         int hikers = 0, boarded = 0, aboard = 0, apart = 0, cancelled = 0;

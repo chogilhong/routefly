@@ -70,6 +70,19 @@ public class PartyOfficeTest {
         // 방을 만든 뒤 주 인솔자가 회사 코드로 올림
         call(p, "/link", "{\"token\":\"" + chief + "\",\"office\":\"" + oc + "\"}", T0);
         assertEquals(1, call(p, "/office/rooms", "{\"key\":\"" + key + "\"}", T0).getAsJsonArray("rooms").size());
+        // 사무실 링크 바꾸기 - 옛 링크는 안 됨
+        String k2 = call(p, "/office/newkey", "{\"key\":\"" + key + "\"}", T0).get("key").getAsString();
+        try { call(p, "/office/rooms", "{\"key\":\"" + key + "\"}", T0); fail("옛 링크"); } catch (SecurityException e) { /* 맞음 */ }
+        String ot2 = call(p, "/office/enter", "{\"key\":\"" + k2 + "\",\"code\":\"" + code + "\"}", T0).get("token").getAsString();
+        // 사무실 없애기(탈퇴) - 회사 이름이 맞아야, 방은 그대로 · 연결 · 사무실 자리만 빠짐
+        try { call(p, "/office/delete", "{\"key\":\"" + k2 + "\",\"name\":\"다른이름\"}", T0); fail("이름 틀림"); } catch (IllegalArgumentException e) { /* 맞음 */ }
+        call(p, "/office/delete", "{\"key\":\"" + k2 + "\",\"name\":\"시험산악회\"}", T0);
+        try { call(p, "/office/rooms", "{\"key\":\"" + k2 + "\"}", T0); fail("없앤 사무실"); } catch (SecurityException e) { /* 맞음 */ }
+        JsonObject hv = call(p, "/view", tok(h), T0);
+        assertFalse("회원 화면에서 사무실이 빠짐", hv.has("office"));
+        assertNull("사무실 자리도 빠짐", member(call(p, "/view", tok(chief), T0), "시험산악회 사무실"));
+        try { call(p, "/view", tok(ot2), T0); fail("사무실 자리 열쇠"); } catch (RuntimeException e) { /* 맞음 */ }
+        try { room(p, oc); fail("없앤 회사 코드"); } catch (IllegalArgumentException e) { /* 맞음 */ }
     }
 
     @Test
