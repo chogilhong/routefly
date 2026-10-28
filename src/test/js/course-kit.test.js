@@ -771,6 +771,9 @@ tick().then(function () {
     eq("명단 - 머리 줄 없는 CSV(순번 칸은 좌석 아님)", RF.rosterLines(rn.people), ["홍길동 5\n김철수 6\n박영희"]);
     var rf = RF.rosterRead("일식이 5 이식이 6 삼식이 010-1234-5678 사식이 2-15");
     eq("명단 - 자유 글 · 전화번호 버림", [RF.rosterLines(rf.people), rf.phones], [["일식이 5\n이식이 6\n삼식이\n사식이 2-15"], 1]);
+    var rd = RF.rosterRead("이름\t좌석\n시험일\t5\n시험이\t2월 15일\n시험삼\t3/7\n시험사\t");
+    eq("명단 - 엑셀이 날짜로 바꾼 좌석(2월 15일 · 3/7)", RF.rosterLines(rd.people), ["시험일 5\n시험이 2-15\n시험삼 3-7\n시험사"]);
+    eq("명단 - 머리 줄 없이 날짜 꼴 좌석", RF.rosterLines(RF.rosterRead("시험일\t5\n시험이\t2월 15일").people), ["시험일 5\n시험이 2-15"]);
     eq("명단 - 40명씩 나눔", RF.rosterLines(Array.apply(null, Array(90)).map(function (x, i) { return { name: "회원" + i, bus: 1, seat: null }; }), 40).length, 3);
     // 인솔자 지금 할 일 · 회원 탑승 카드(2026-10-28 추천 2)
     var mem = function (n, o) { var m = { role: "hiker", nick: n }; for (var k in o) m[k] = o[k]; return m; };

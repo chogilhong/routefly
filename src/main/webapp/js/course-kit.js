@@ -4927,7 +4927,7 @@
             var best = -1, bestN = 0, seatBest = -1;
             for (var c = 0; c < width; c++) {
                 var nN = 0, sN = 0, filled = 0;
-                body.forEach(function (r) { var v = r[c] || ""; if (v) filled++; if (rosterName(v) && !SEAT_RE.test(v)) nN++; if (/^(?:\d{1,2}-)?\d{1,3}번?$/.test(v)) sN++; });
+                body.forEach(function (r) { var v = (r[c] || "").replace(/\s/g, ""); if (v) filled++; if (rosterName(v) && !SEAT_RE.test(v) && !/^\d{1,2}월\d{1,2}일$/.test(v)) nN++; if (/^(?:\d{1,2}-)?\d{1,3}번?$|^\d{1,2}월\d{1,2}일$|^\d{1,2}\/\d{1,2}$/.test(v)) sN++; });
                 if (nN > bestN) { best = c; bestN = nN; }
                 // 좌석 칸 - 채운 칸이 거의 다 번호이고 절반 넘게 채움. 여럿이면 오른쪽(앞의 "순번" 칸보다 좌석이 뒤에 옴, 빈 좌석이 있어도)
                 if (sN && sN >= filled * 0.8 && sN >= body.length * 0.5) seatBest = c;
@@ -4942,6 +4942,8 @@
             var name = rosterName(r[col.name]);
             if (!name) return;
             var e = { name: name, bus: 1, seat: null }, sv = col.seat >= 0 ? (r[col.seat] || "").replace(/\s/g, "") : "";
+            // 엑셀이 "2-15" 를 날짜로 바꿈(2026-10-28 PC: 칸에 "2월 15일" · "2/15" · "02-15") - 좌석 칸에서는 2호차 15번
+            sv = sv.replace(/^(?:\d{4}[-./년])?(\d{1,2})월(\d{1,2})일$/, "$1-$2").replace(/^(?:\d{4}[-./])?(\d{1,2})[/.](\d{1,2})\.?$/, "$1-$2").replace(/^0(\d)-/, "$1-");
             var sm = /^(?:(\d{1,2})-)?(\d{1,3})번?$/.exec(sv);
             if (sm) { e.seat = +sm[2]; if (sm[1]) e.bus = +sm[1]; }
             if (col.bus >= 0) { var bm = /(\d{1,2})/.exec(r[col.bus] || ""); if (bm) e.bus = +bm[1]; }

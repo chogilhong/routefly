@@ -177,4 +177,15 @@ public class PartyRosterTest {
         call(p, "/mark", "{\"token\":\"" + lead + "\",\"id\":" + id + ",\"what\":\"aboard\",\"on\":true}", DEPART + 5 * H);
         assertEquals("하산 탑승 수는 모두로 셈", 1, call(p, "/view", tok(early), DEPART + 5 * H).get("aboardCount").getAsInt());
     }
+
+    /** 2026-10-28 PC - 다시 불러오기에서 좌석 없이 이름만 온 줄은 같은 이름이 있으면 건너뜀(중복 회원이 생겼음). 좌석이 다르면 동명이인으로 넣음. */
+    @Test
+    public void seatlessSameNameIsDuplicate() {
+        Party p = new Party();
+        JsonObject room = j(create(p, T0));
+        String lead = room.get("token").getAsString();
+        assertEquals(1, call(p, "/roster", "{\"token\":\"" + lead + "\",\"text\":\"시험이 5\"}", T0).get("added").getAsInt());
+        assertEquals("좌석 없는 같은 이름은 건너뜀", 0, call(p, "/roster", "{\"token\":\"" + lead + "\",\"text\":\"시험이\"}", T0).get("added").getAsInt());
+        assertEquals("좌석이 다르면 동명이인", 1, call(p, "/roster", "{\"token\":\"" + lead + "\",\"text\":\"시험이 6\"}", T0).get("added").getAsInt());
+    }
 }

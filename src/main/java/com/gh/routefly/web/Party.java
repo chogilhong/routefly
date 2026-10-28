@@ -559,7 +559,9 @@ final class Party {
             int b = (Integer) e[1];
             Integer seat = (Integer) e[2];
             boolean dup = false;
-            for (Member x : r.members.values()) if (nameKey(x.nick).equals(nameKey(n)) && x.bus == b && java.util.Objects.equals(x.seat, seat)) dup = true;
+            // 같은 이름 · 같은 자리면 건너뜀. 좌석 없이 이름만 온 줄은 같은 이름이 있으면 건너뜀(2026-10-28 PC: 다시 불러오기에서 좌석을 못 읽은 줄이 하나 더 생겼음)
+            for (Member x : r.members.values())
+                if (nameKey(x.nick).equals(nameKey(n)) && !x.cancelled && (seat == null || x.bus == b && java.util.Objects.equals(x.seat, seat))) dup = true;
             if (dup) continue;
             try {
                 checkBus(r, b);
