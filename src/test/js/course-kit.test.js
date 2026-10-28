@@ -762,6 +762,16 @@ tick().then(function () {
     eq("notifyDeploy ✕ 이름", bar.children[1].attrs["aria-label"], "새 버전 알림 닫기");
     bar.children[1].onclick();
     eq("notifyDeploy ✕ 로 닫힘", envOk.body.children.length, 0);
+    // 예약 명단 파일 · 엑셀 붙여 넣기(2026-10-28) - 이름 · 좌석만, 전화번호 · 다른 칸은 버림
+    var rr = RF.rosterRead(["이름\t연락처\t탑승지\t좌석", "홍 길동\t010-1234-5678\t사당\t5", "김철수\t01098765432\t양재\t2-15", "박영희\t010-1111-2222\t사당\t"].join("\n"));
+    eq("명단 - 엑셀 붙여 넣기(머리 줄)", JSON.stringify(rr), JSON.stringify({ people: [{ name: "홍길동", bus: 1, seat: 5 }, { name: "김철수", bus: 2, seat: 15 }, { name: "박영희", bus: 1, seat: null }], phones: 3, dropped: ["연락처", "탑승지"] }));
+    var rc = RF.rosterRead("\uFEFF번호,성명,호차,좌석,금액\r\n1,홍길동,2,15,\"35,000\"\r\n2,김철수,1,3,35000");
+    eq("명단 - CSV 호차 칸 · 따옴표 · BOM", [RF.rosterLines(rc.people), rc.dropped], [["홍길동 2-15\n김철수 3"], ["번호", "금액"]]);
+    var rn = RF.rosterRead("1,홍길동,010-1234-5678,5\n2,김철수,010-2222-3333,6\n3,박영희,010-3333-4444,");
+    eq("명단 - 머리 줄 없는 CSV(순번 칸은 좌석 아님)", RF.rosterLines(rn.people), ["홍길동 5\n김철수 6\n박영희"]);
+    var rf = RF.rosterRead("일식이 5 이식이 6 삼식이 010-1234-5678 사식이 2-15");
+    eq("명단 - 자유 글 · 전화번호 버림", [RF.rosterLines(rf.people), rf.phones], [["일식이 5\n이식이 6\n삼식이\n사식이 2-15"], 1]);
+    eq("명단 - 40명씩 나눔", RF.rosterLines(Array.apply(null, Array(90)).map(function (x, i) { return { name: "회원" + i, bus: 1, seat: null }; }), 40).length, 3);
     // 인솔자 지금 할 일 · 회원 탑승 카드(2026-10-28 추천 2)
     var mem = function (n, o) { var m = { role: "hiker", nick: n }; for (var k in o) m[k] = o[k]; return m; };
     var b0 = RF.leadSteps({ role: "lead", chief: true, now: 0, members: [mem("가", { boarded: true }), mem("나", {}), mem("다", { cancelled: true })] });

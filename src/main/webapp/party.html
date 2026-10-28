@@ -264,8 +264,10 @@ a.tel { color:var(--sky); }
             <details id="rosterBox" hidden open>   <!-- 예약 명단(2026-10-24 홍TV님) - 회원은 앱 · 화면을 안 열 수도 있음 -->
                 <summary data-en="📋 Paste the booking list (names · seats)">📋 예약 명단 넣기 (이름 · 좌석)</summary>
                 <p class="tip" data-en="Paste names as booked, e.g. &quot;Kim 5 Lee 6 Park&quot; - a number after a name is the seat, &quot;2-15&quot; is bus 2 seat 15, no number = no seat. Names only (no phone numbers). Members who open the link · QR and type the same name become that person.">예약받은 이름을 그대로 붙여 넣으세요. 예: "일식이 5 이식이 6 삼식이" - 이름 뒤 숫자는 좌석, "2-15" 는 2호차 15번, 숫자가 없으면 자리 없이. 이름만 넣습니다(전화번호 X). 회원이 링크 · QR 로 들어와 같은 이름을 넣으면 그 사람이 됩니다.</p>
-                <textarea id="rosterText" maxlength="3000"></textarea>
-                <div class="row"><button id="rosterBtn" data-en="Add to the list">명단에 넣기</button></div>
+                <p class="tip" data-en="Or paste straight from Excel (copy the whole table), or load a TXT · CSV file. Name and seat columns are found automatically; phone numbers and other columns are left out (never sent). For an .xlsx file: Excel → Save As → CSV.">엑셀 표를 통째로 복사해 붙여 넣거나, TXT · CSV 파일을 불러와도 됩니다. 이름 · 좌석(· 호차) 칸을 저절로 찾고, 전화번호 · 탑승지 등 다른 칸은 넣지 않습니다(서버로 안 보냄). 엑셀 파일(.xlsx)은 엑셀에서 "다른 이름으로 저장 → CSV".</p>
+                <textarea id="rosterText" maxlength="30000"></textarea>
+                <div class="row"><button id="rosterBtn" data-en="Add to the list">명단에 넣기</button><button id="rosterFileBtn" type="button" data-en="📄 Load from file (TXT · CSV)">📄 파일에서 불러오기 (TXT · CSV)</button></div>
+                <input id="rosterFile" type="file" accept=".txt,.csv,.tsv,text/plain,text/csv" hidden>
             </details>
             <div class="row" id="departRow">
                 <button id="departBtn" class="main" data-en="🥾 Start the hike">🥾 산행 시작</button>

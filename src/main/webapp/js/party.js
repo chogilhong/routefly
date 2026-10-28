@@ -1237,15 +1237,49 @@
     });
 
     // 예약 명단 넣기(2026-10-24 홍TV님) - 이름 · 좌석만, 회원이 같은 이름으로 들어오면 그 사람
+    // 2026-10-28 홍TV님 "TXT나 엑셀 등 문서로 업로드 돼?" - 엑셀 표 붙여 넣기 · TXT · CSV 파일. 이 기기에서 읽어 이름 · 좌석만(RF.rosterRead),
+    // 미리 보여 주고 40명씩 나눠 보냄(서버 본문 4KB). 전화번호 · 다른 칸은 서버로 가지 않음
+    function rosterSubmit(text) {
+        var r = RF.rosterRead(text), ppl = r.people;
+        if (!ppl.length) { roomMsg(T("명단에서 이름을 찾지 못했습니다. \"홍길동 5 김철수 6\" 처럼, 또는 첫 줄에 \"이름 · 좌석\" 칸 이름이 있는 표로 넣어 주세요.", "No names found. Use \"Kim 5 Lee 6\" or a table whose first row has \"이름\" (name) and \"좌석\" (seat).")); return; }
+        var show = ppl.slice(0, 8).map(function (x) { return x.name + (x.seat ? " " + (x.bus > 1 ? x.bus + "-" : "") + x.seat + T("번", "") : ""); }).join(", ") + (ppl.length > 8 ? " …" : "");
+        var noSeat = ppl.filter(function (x) { return !x.seat; }).length;
+        var note = (r.phones ? T("\n📵 전화번호 " + r.phones + "개는 넣지 않습니다.", "\n📵 " + r.phones + " phone numbers are left out.") : "")
+            + (r.dropped.length ? T("\n넣지 않는 칸: " + r.dropped.slice(0, 5).join(", "), "\nColumns left out: " + r.dropped.slice(0, 5).join(", ")) : "")
+            + (noSeat ? T("\n좌석 없음 " + noSeat + "명.", "\n" + noSeat + " without a seat.") : "");
+        ask(T("명단 " + ppl.length + "명을 넣을까요?\n", "Add " + ppl.length + " people to the list?\n") + show + note, { ok: T("명단에 넣기", "Add") }).then(function (ok) {
+            if (!ok) return;
+            var parts = RF.rosterLines(ppl, 40), added = 0, last = null;
+            return parts.reduce(function (pr, t) {
+                return pr.then(function () { return RFParty.post("roster", { token: RFParty.get().token, text: t }).then(function (j) { added += j.added; last = j; }); });
+            }, Promise.resolve()).then(function () {
+                if (last) render(last);
+                $("rosterText").value = "";
+                roomMsg(T("명단에 " + added + "명을 넣었습니다" + (added < ppl.length ? "(이미 있는 " + (ppl.length - added) + "명은 건너뜀)" : "") + ". 좌석표 · 회원 목록에 \"핸드폰 없음\" 으로 보이고, 링크 · QR 로 같은 이름을 넣으면 그 사람이 됩니다.",
+                    "Added " + added + " to the list" + (added < ppl.length ? " (" + (ppl.length - added) + " already there)" : "") + ". They show as \"No phone\" until they open the link · QR and enter the same name."));
+            }).catch(function (e) {
+                if (last) render(last);
+                actFail(e.message ? { message: (added ? T(added + "명까지 넣고 멈춤 - ", "Stopped after " + added + " - ") : "") + e.message, status: e.status, ended: e.ended } : e);
+            });
+        });
+    }
     $("rosterBtn").addEventListener("click", function () {
         var text = $("rosterText").value.trim();
         if (!text) { roomMsg(T("명단을 붙여 넣어 주세요.", "Paste the list first.")); return; }
-        RFParty.post("roster", { token: RFParty.get().token, text: text }).then(function (j) {
-            render(j);
-            $("rosterText").value = "";
-            roomMsg(T("명단에 " + j.added + "명을 넣었습니다. 좌석표 · 회원 목록에 \"핸드폰 없음\" 으로 보이고, 링크 · QR 로 같은 이름을 넣으면 그 사람이 됩니다.",
-                "Added " + j.added + " to the list. They show as \"No phone\" until they open the link · QR and enter the same name."));
-        }).catch(actFail);
+        rosterSubmit(text);
+    });
+    $("rosterFileBtn").addEventListener("click", function () { $("rosterFile").value = ""; $("rosterFile").click(); });
+    $("rosterFile").addEventListener("change", function () {
+        var f = this.files && this.files[0];
+        if (!f) return;
+        if (/\.xlsx?$/i.test(f.name)) { roomMsg(T("엑셀 파일(.xlsx)은 바로 못 읽습니다. 엑셀에서 \"다른 이름으로 저장 → CSV\" 로 저장하거나, 표를 복사해 위 칸에 붙여 넣어 주세요.", "Can't read .xlsx directly. In Excel use Save As → CSV, or copy the table and paste it above.")); return; }
+        if (f.size > 1024 * 1024) { roomMsg(T("파일이 너무 큽니다(1MB 까지).", "File too large (1 MB max).")); return; }
+        f.arrayBuffer().then(function (buf) {
+            var text;
+            try { text = new TextDecoder("utf-8", { fatal: true }).decode(buf); }
+            catch (e) { text = new TextDecoder("euc-kr").decode(buf); }   // 한국어 엑셀의 "CSV(쉼표로 분리)" 는 EUC-KR
+            rosterSubmit(text);
+        }).catch(function () { roomMsg(T("파일을 읽지 못했습니다.", "Could not read the file.")); });
     });
     $("noticeBtn").addEventListener("click", function () {
         var p = RFParty.get(), t = $("noticeText").value.trim();
