@@ -43,7 +43,7 @@
         $("live").innerHTML = rooms.map(function (r) {
             var cls = r.sos > 0 ? "sos" : r.silent > 0 ? "warn" : "";
             var state = r.departed ? (r.notDown === 0 && r.hikers > 0 ? "<span class=\"ok\">모두 하산</span>" : "🥾 산행 중") : "출발 전 · " + when(r.departAt);
-            // 호차마다 "1호차 34나2222 (45석)", 탑승지 "사당 17:00 · 양재 17:20"(2026-10-28 홍TV님 "더 해")
+            // 호차마다 "1호차 34나2222 (45석)", 탑승지 "사당 23:20 · 양재 23:30"(2026-10-28 홍TV님 "더 해")
             var buses = [];
             for (var i = 0; i < (r.buses || 1); i++) {
                 var pl = (r.plates || [])[i], st = (r.busSeats || [])[i];
