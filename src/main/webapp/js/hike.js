@@ -498,8 +498,11 @@
                 // 코스에서 벗어났을 때 가장 가까운 길까지 점선
                 // 내 기록 하나를 지도에 볼 때 - 보라 선(코스 선과 헷갈리지 않게)
                 map.addSource("recTrack", { type: "geojson", data: empty });
-                map.addLayer({ id: "recTrack", type: "line", source: "recTrack", layout: { "line-join": "round", "line-cap": "round" },
+                map.addLayer({ id: "recTrack", type: "line", source: "recTrack", filter: ["!=", ["get", "gap"], true], layout: { "line-join": "round", "line-cap": "round" },
                     paint: { "line-color": "#c77dff", "line-width": 4, "line-opacity": 0.9 } });
+                // 위치가 끊긴 구간(크롬 화면 꺼짐 등)은 점선(2026-10-28 홍TV님 "지도도 점선으로")
+                map.addLayer({ id: "recTrackGap", type: "line", source: "recTrack", filter: ["==", ["get", "gap"], true], layout: { "line-cap": "butt" },
+                    paint: { "line-color": "#c77dff", "line-width": 3, "line-opacity": 0.75, "line-dasharray": [2, 2] } });
                 map.addSource("guide", { type: "geojson", data: empty });
                 map.addLayer({ id: "guide", type: "line", source: "guide",
                     paint: { "line-color": "#ff5d5d", "line-width": 3, "line-dasharray": [1.5, 1.2] } });
@@ -1695,8 +1698,9 @@
         $("recViewMap").onclick = function () {
             if (!mapReady) { toast(T("지도가 아직 준비되지 않았습니다.", "The map is not ready yet."), 2500); return; }
             mapReady.then(function () {
-                map.getSource("recTrack").setData({ type: "FeatureCollection", features: [{ type: "Feature", properties: {},
-                    geometry: { type: "LineString", coordinates: rc.lon.map(function (lon, i) { return [lon, rc.lat[i]]; }) } }] });
+                map.getSource("recTrack").setData(RF.recordLines(rc));   // 이어 걸은 곳 실선 · 끊긴 구간 점선
+                var nGap = rc.gap.filter(Boolean).length;
+                if (nGap) toast(T("보라 점선 " + nGap + "곳은 위치가 끊긴 구간입니다(화면 꺼짐 · 신호 없음) - 그 사이는 기록이 없어 곧게 이었습니다.", "The " + nGap + " dashed purple part(s) are gaps where location stopped (screen off / no signal) - drawn straight."), 7000);
                 var b = new maplibregl.LngLatBounds();
                 for (var i = 0; i < rc.lon.length; i++) b.extend([rc.lon[i], rc.lat[i]]);
                 setFollow(false);
