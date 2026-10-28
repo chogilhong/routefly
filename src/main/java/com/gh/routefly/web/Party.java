@@ -590,8 +590,14 @@ final class Party {
         if (text == null) return out;
         java.util.regex.Pattern busSeat = java.util.regex.Pattern.compile("(?:(\\d{1,2})-)?(\\d{1,3})번?");
         java.util.regex.Pattern nameNum = java.util.regex.Pattern.compile("(.*?\\D)((?:\\d{1,2}-)?\\d{1,3})번?");
+        java.util.regex.Pattern busOnly = java.util.regex.Pattern.compile("(\\d{1,2})호차");
         for (String t : text.split("[\\s,·;/]+")) {
             if (t.isEmpty()) continue;
+            java.util.regex.Matcher bo = busOnly.matcher(t);
+            if (bo.matches()) {   // 좌석 없이 호차만 "시험육 2호차"(2026-10-28 PC - 엑셀 호차 칸만 있고 좌석이 빈 사람)
+                if (!out.isEmpty() && out.get(out.size() - 1)[2] == null) out.get(out.size() - 1)[1] = Integer.parseInt(bo.group(1));
+                continue;
+            }
             java.util.regex.Matcher m = busSeat.matcher(t);
             if (m.matches()) {   // 앞 이름의 좌석
                 if (out.isEmpty()) continue;

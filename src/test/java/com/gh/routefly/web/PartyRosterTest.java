@@ -188,4 +188,15 @@ public class PartyRosterTest {
         assertEquals("좌석 없는 같은 이름은 건너뜀", 0, call(p, "/roster", "{\"token\":\"" + lead + "\",\"text\":\"시험이\"}", T0).get("added").getAsInt());
         assertEquals("좌석이 다르면 동명이인", 1, call(p, "/roster", "{\"token\":\"" + lead + "\",\"text\":\"시험이 6\"}", T0).get("added").getAsInt());
     }
+
+    /** 좌석 없이 호차만 "시험육 2호차"(2026-10-28 PC) - 호차를 남기고, "2호차" 가 이름으로 들어가지 않음. */
+    @Test
+    public void busWithoutSeat() {
+        java.util.List<Object[]> es = Party.rosterParse("시험육 2호차 시험칠");
+        assertEquals(2, es.size());
+        assertEquals("시험육", es.get(0)[0]);
+        assertEquals(2, es.get(0)[1]);
+        assertNull(es.get(0)[2]);
+        assertEquals(1, es.get(1)[1]);
+    }
 }

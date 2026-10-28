@@ -774,6 +774,8 @@ tick().then(function () {
     var rd = RF.rosterRead("이름\t좌석\n시험일\t5\n시험이\t2월 15일\n시험삼\t3/7\n시험사\t");
     eq("명단 - 엑셀이 날짜로 바꾼 좌석(2월 15일 · 3/7)", RF.rosterLines(rd.people), ["시험일 5\n시험이 2-15\n시험삼 3-7\n시험사"]);
     eq("명단 - 머리 줄 없이 날짜 꼴 좌석", RF.rosterLines(RF.rosterRead("시험일\t5\n시험이\t2월 15일").people), ["시험일 5\n시험이 2-15"]);
+    eq("명단 - 좌석 없이 호차만 남김", RF.rosterLines(RF.rosterRead("이름\t호차\t좌석\n시험사\t1\t7\n시험오\t2\t20\n시험육\t2\t").people), ["시험사 7\n시험오 2-20\n시험육 2호차"]);
+    eq("명단 - 자유 글 호차만", JSON.stringify(RF.rosterRead("시험육 2호차 시험칠").people), JSON.stringify([{ name: "시험육", bus: 2, seat: null }, { name: "시험칠", bus: 1, seat: null }]));
     eq("명단 - 40명씩 나눔", RF.rosterLines(Array.apply(null, Array(90)).map(function (x, i) { return { name: "회원" + i, bus: 1, seat: null }; }), 40).length, 3);
     // 인솔자 지금 할 일 · 회원 탑승 카드(2026-10-28 추천 2)
     var mem = function (n, o) { var m = { role: "hiker", nick: n }; for (var k in o) m[k] = o[k]; return m; };

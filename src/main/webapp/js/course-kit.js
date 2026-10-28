@@ -4898,6 +4898,8 @@
             text.replace(/(\+?82[-\s]?)?0?1[016789][-\s.]?\d{3,4}[-\s.]?\d{4}/g, function () { phones++; return " "; })
                 .split(/[\s,·;/]+/).forEach(function (t) {
                     if (!t) return;
+                    var bo = /^(\d{1,2})호차$/.exec(t);
+                    if (bo) { var lb = people[people.length - 1]; if (lb && lb.seat == null) lb.bus = +bo[1]; return; }
                     var m = SEAT_RE.exec(t);
                     if (m && !/호차/.test(t) || /^\d{1,2}-\d{1,3}번?$/.test(t)) {
                         var last = people[people.length - 1], mm = /^(?:(\d{1,2})-)?(\d{1,3})번?$/.exec(t);
@@ -4954,7 +4956,7 @@
     function rosterLines(people, per) {
         var out = [];
         for (var i = 0; i < people.length; i += per || 40)
-            out.push(people.slice(i, i + (per || 40)).map(function (p) { return p.name + (p.seat ? " " + (p.bus > 1 ? p.bus + "-" : "") + p.seat : ""); }).join("\n"));
+            out.push(people.slice(i, i + (per || 40)).map(function (p) { return p.name + (p.seat ? " " + (p.bus > 1 ? p.bus + "-" : "") + p.seat : p.bus > 1 ? " " + p.bus + "호차" : ""); }).join("\n"));
         return out;
     }
 
