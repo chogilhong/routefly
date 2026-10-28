@@ -70,6 +70,13 @@ public class PartyOfficeTest {
         // 방을 만든 뒤 주 인솔자가 회사 코드로 올림
         call(p, "/link", "{\"token\":\"" + chief + "\",\"office\":\"" + oc + "\"}", T0);
         assertEquals(1, call(p, "/office/rooms", "{\"key\":\"" + key + "\"}", T0).getAsJsonArray("rooms").size());
+        // 회사 코드 바꾸기 - 옛 코드로는 못 올림, 이미 올라온 방은 그대로
+        String oc2 = call(p, "/office/newcode", "{\"key\":\"" + key + "\"}", T0).get("code").getAsString();
+        assertNotEquals(oc, oc2);
+        try { room(p, oc); fail("옛 회사 코드"); } catch (IllegalArgumentException e) { /* 맞음 */ }
+        assertEquals("올라온 방은 그대로", 1, call(p, "/office/rooms", "{\"key\":\"" + key + "\"}", T0).getAsJsonArray("rooms").size());
+        assertEquals(oc2, call(p, "/office/rooms", "{\"key\":\"" + key + "\"}", T0).get("code").getAsString());
+        oc = oc2;
         // 사무실 링크 바꾸기 - 옛 링크는 안 됨
         String k2 = call(p, "/office/newkey", "{\"key\":\"" + key + "\"}", T0).get("key").getAsString();
         try { call(p, "/office/rooms", "{\"key\":\"" + key + "\"}", T0); fail("옛 링크"); } catch (SecurityException e) { /* 맞음 */ }

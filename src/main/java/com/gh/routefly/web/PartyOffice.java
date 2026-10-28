@@ -32,7 +32,8 @@ final class PartyOffice {
     static final int MAX_OFFICES = 500, MAX_ENDED = 500;
 
     static final class Office {
-        final String code, name;
+        String code;   // 회사 코드 바꾸기로 바뀜
+        final String name;
         String key;   // 사무실 링크 바꾸기로 바뀜
         final long created;
         final List<JsonObject> ended = new ArrayList<>();   // 끝난 산행 요약(새것이 앞)
@@ -83,6 +84,15 @@ final class PartyOffice {
         save();
         log.info("[OFFICE] 사무실 링크 바꿈 code={}", o.code);
         return o.key;
+    }
+
+    /** 회사 코드 바꾸기 - 새 코드로(이미 올라온 방은 Party 가 새 코드로 옮김). */
+    synchronized void newCode(Office o, String code) {
+        byCode.remove(o.code);
+        o.code = code;
+        byCode.put(code, o);
+        save();
+        log.info("[OFFICE] 회사 코드 바꿈");
     }
 
     /** 사무실 없애기 - 사무실 · 끝난 산행 요약을 모두 지움. */

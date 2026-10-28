@@ -1187,6 +1187,18 @@ final class Party {
         save();
     }
 
+    /**
+     * 사무실 - 회사 코드 바꾸기(2026-10-28 홍TV님 "넣어 줘"): 옛 코드로는 새 방을 못 올림. 이미 올라온 방은 그대로 이 사무실에(새 코드로 옮김). 돌려줌: 새 코드.
+     */
+    synchronized String officeNewCode(String key) {
+        PartyOffice.Office o = offices.byKey(key);
+        String old = o.code, c = newCode();
+        offices.newCode(o, c);
+        for (Room r : rooms.values()) if (old.equals(r.officeCode)) r.officeCode = c;
+        save();
+        return c;
+    }
+
     /** 사무실 - 링크 바꾸기. 돌려줌: 새 열쇠. */
     synchronized String officeNewKey(String key) {
         return offices.newKey(offices.byKey(key));

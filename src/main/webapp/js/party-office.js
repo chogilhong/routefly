@@ -127,6 +127,15 @@
             msg("");
         }).catch(function (e) { msg(e.message); });
     });
+    $("copyMine").addEventListener("click", function () {   // 이 기기에 저장된 사무실 링크(2026-10-28 홍TV님 - 만든 뒤 링크를 놓쳤음)
+        var t = linkOf(key);
+        (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { msg("사무실 링크를 복사했습니다. 즐겨찾기 · 메모에 남겨 두세요(다른 사람에게 보이지 않게)."); })
+            .catch(function () { prompt("아래 링크를 길게 눌러 복사하세요", t); });
+    });
+    $("newCode").addEventListener("click", function () {
+        if (!confirm("회사 코드를 바꿀까요? 옛 코드로는 새 방을 올릴 수 없습니다(이미 올라온 방은 그대로). 인솔자들에게 새 코드를 다시 알려 줘야 합니다.")) return;
+        RFParty.post("office/newcode", { key: key }).then(function (j) { msg("새 회사 코드: " + j.code + " - 인솔자들에게 알려 주세요."); load(); }).catch(function (e) { msg(e.message); });
+    });
     $("delOffice").addEventListener("click", function () {
         var name = $("offTitle").textContent.replace(/^🏢 /, "").replace(/ 사무실$/, "");
         var typed = prompt("사무실을 없애면 되돌릴 수 없습니다. 회사 코드 · 사무실 링크가 안 되고 끝난 산행 요약이 모두 지워집니다(진행 중인 방은 그대로, 회사 연결만 끊음).\n\n없애려면 회사 이름을 그대로 적어 주세요: " + name, "");
