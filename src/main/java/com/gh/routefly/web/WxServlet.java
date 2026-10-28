@@ -16,14 +16,13 @@ import com.google.gson.JsonObject;
 /**
  * 산 페이지 날씨 한 번에(2026-10-28 홍TV님 추천 4 - 속도): 단기예보(api/weather) · 중기예보(api/mid) · 미세먼지(api/air)를 한 요청으로.
  * 셋을 함께 물어(가장 늦은 것만큼) {weather, mid, air} 로 돌려줌. 하나라도 못 받았으면 담아 두지 않게(다음에 다시 물음).
- * 따라가기 화면(app.js)은 예전 셋을 그대로 씀.
+ * 산 페이지(mountain.js · mountain-en.js) · 따라가기 3D 날씨(app.js)가 씀. 🧰 도구(tools.js)는 중기예보가 필요 없어 예전 둘(weather · air)을 그대로 씀.
  */
 @WebServlet(urlPatterns = {"/api/wx"})
 public class WxServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
-    /** 기상청 · 에어코리아를 함께 묻는 일꾼(데몬 - 톰캣이 내려갈 때 붙잡지 않음). */
-    /** 기다리는 일 60개까지 - 넘으면 그 요청은 unavailable(2026-10-28 보안 점검: 위쪽이 느릴 때 끝없이 쌓였음). 다시 배포할 때 destroy 가 닫음. */
+    /** 기상청 · 에어코리아를 함께 묻는 일꾼(데몬). 기다리는 일 60개까지 - 넘으면 그 요청은 unavailable(2026-10-28 보안 점검: 위쪽이 느릴 때 끝없이 쌓였음). 다시 배포할 때 destroy 가 닫음. */
     private static final ExecutorService POOL = new java.util.concurrent.ThreadPoolExecutor(6, 6, 30, TimeUnit.SECONDS, new java.util.concurrent.ArrayBlockingQueue<>(60), r -> {
         Thread t = new Thread(r, "rf-wx");
         t.setDaemon(true);
