@@ -183,6 +183,11 @@ body.compact #statGrids { display:none; }
 .sheet h2 { margin:0 0 10px; font-size:18px; }
 .sheet .big { display:block; text-align:center; text-decoration:none; font-size:18px; font-weight:bold; padding:14px; border-radius:12px; margin-bottom:8px; }
 .sheet .call { background:#e03131; color:#fff; }
+#doneNext { margin:10px 0 0; padding:10px 0 0; border-top:1px solid var(--ln); }
+#doneNext b { display:block; font-size:14px; color:var(--dim); margin-bottom:6px; }
+#doneNext .nx { display:flex; flex-wrap:wrap; gap:6px; }
+#doneNext .nx a { display:inline-flex; align-items:center; min-height:44px; padding:0 12px; border-radius:10px; border:1px solid var(--ln); background:rgba(255,255,255,0.06); color:var(--tx); text-decoration:none; font-size:14px; }
+#doneNext small { display:block; margin-top:6px; color:var(--dim); font-size:12px; line-height:1.5; }
 .sheet .fam { display:block; text-align:center; color:var(--sky); font-size:14.5px; padding:8px 0 10px; }   /* 귀가 확인 알림 뒤 가족에게(2026-10-14) */
 .sheet .sms { background:rgba(255,255,255,0.08); color:var(--tx); border:1px solid var(--ln); font-size:15px; }
 .sheet .photo { width:100%; font-family:inherit; cursor:pointer; background:#1971c2; color:#fff; border:0; font-size:16px; }
@@ -489,6 +494,8 @@ html.picking #pick { display:flex; }
             <button type="button" id="doneGpx" data-en="Save GPX">GPX 저장</button>
             <button type="button" id="doneClose" class="main" data-en="Close">닫기</button>
         </div>
+        <!-- 다음은? - 날머리 맛집 · 숙소 · 무릎 보호대 · 다음 산(2026-10-28 홍TV님 추천, RF.afterHikeLinks) -->
+        <div id="doneNext" hidden></div>
         <!-- 2026-10-15 홍TV님: 후원 단추가 안내 맨 아래에만 있어 찾기 어려웠음 - 설정(donate.url)에 있을 때만 -->
         <a class="fam" id="doneDonate" target="_blank" rel="noopener" hidden data-en="☕ Support routefly">☕ routefly 후원하기</a>
     </div>

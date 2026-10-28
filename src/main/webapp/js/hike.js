@@ -1344,10 +1344,39 @@
         $("doneCard").onclick = function () { shareCard(rec); };
         $("doneGpx").textContent = canShareFiles() ? T("📤 GPX 보내기", "📤 Send GPX") : T("GPX 저장", "Save GPX");
         $("doneSheet").style.display = "flex";
+        $("doneNext").hidden = true;
         getJson("api/partners").then(function (p) {   // 후원 링크(설정에 있을 때만 - 2026-10-15)
             var dn = EN ? p && p.donateEn : p && p.donate;   // 영어 화면은 PayPal(donate.en.url)
             if (/^https:\/\//.test(dn || "")) { $("doneDonate").href = dn; $("doneDonate").hidden = false; }
-        }).catch(function () { /* 없이 */ });
+            doneNext(p, rec);
+        }).catch(function () { doneNext({}, rec); });
+    }
+
+    /** 산행을 마친 화면 "다음은?"(2026-10-28 홍TV님 추천) - 끝낸 자리(마지막 위치, 없으면 코스 끝) 근처 맛집 · 숙소 · 다음 산. */
+    function doneNext(p, rec) {
+        var last = rec.track && rec.track.length ? rec.track[rec.track.length - 1] : null;
+        var cn = String(rec.name || ""), tail = (/→\s*([^→·]+?)\s*$/.exec(cn) || [])[1];
+        var end = last ? { lat: last[0], lon: last[1] } : (c && c.lat && c.lat.length ? { lat: c.lat[c.lat.length - 1], lon: c.lon[c.lon.length - 1] } : {});
+        end.name = [RF.parkOf(cn), tail].filter(Boolean).join(" ") || cn.split("→")[0].trim();
+        var r = RF.afterHikeLinks(p, end, EN), box = $("doneNext");
+        box.textContent = "";
+        var b = document.createElement("b"), nx = document.createElement("div");
+        b.textContent = T("수고하셨습니다! 다음은?", "Well done! What's next?");
+        nx.className = "nx";
+        r.links.forEach(function (x) {
+            var a = document.createElement("a");
+            a.href = x.href;
+            a.textContent = x.text;
+            if (/^https:/.test(x.href)) { a.target = "_blank"; a.rel = x.sponsored ? "noopener sponsored" : "noopener"; }
+            nx.appendChild(a);
+        });
+        box.appendChild(b); box.appendChild(nx);
+        if (r.affiliate || r.coupang) {
+            var sm = document.createElement("small");
+            sm.textContent = (r.affiliate ? T("숙소는 제휴 링크 - 예약하면 routefly 가 수수료를 받습니다. ", "Stay links are affiliate links - routefly earns a commission if you book. ") : "") + (r.coupang ? RF.COUPANG_NOTE : "");
+            box.appendChild(sm);
+        }
+        box.hidden = false;
     }
 
     /**

@@ -72,6 +72,13 @@ tr.warn td { background:rgba(255,212,59,0.14); }
             <p class="tip">🧭 인솔자에게 줄 <b>회사 코드</b>: <span id="offCode" class="code"></span> - 방을 만들 때 "회사 코드" 칸에 넣거나, 방 화면의 "🏢 회사 사무실에 올리기"로 넣으면 이 화면에 올라옵니다.
                 회원 화면에는 "○○ 사무실에게 위치 제공 중"으로 보입니다.</p>
         </section>
+        <!-- 승인 기다리는 방(2026-10-28 - 회사 코드만 알면 아무나 방을 올릴 수 있어, 우리 방이 맞는지 사무실이 승인) -->
+        <section id="pendSec" hidden>
+            <h2>🕓 승인 기다리는 방 <span id="pendCount" class="tip"></span></h2>
+            <div class="wrap"><table><thead><tr><th>산행</th><th>출발</th><th>인솔자</th><th>회원</th><th></th></tr></thead>
+                <tbody id="pend"></tbody></table></div>
+            <p class="tip">인솔자가 회사 코드를 넣은 방입니다. 우리 산악회 방이 맞으면 <b>승인</b> - 그때부터 아래 "지금 산행" 에 올라오고, 회원 화면에도 "○○ 사무실" 이 보입니다. 모르는 방이면 <b>빼기</b>.</p>
+        </section>
         <section>
             <h2>지금 산행 <span id="liveCount" class="tip"></span></h2>
             <div class="wrap"><table><thead><tr><th>산행</th><th>상태</th><th>출발 탑승</th><th>하산 탑승</th><th>SOS</th><th>10분 소식 없음</th><th>마지막 소식</th><th>인솔자</th><th></th></tr></thead>

@@ -160,6 +160,11 @@ final class Party {
         long meCodeUntil;
         /** 회사 사무실(회사 코드 · 이름) - 있으면 회사 화면에 올라가고 회원에게도 받는 사람으로 보임(2026-10-28). */
         String officeCode, officeName;
+        /**
+         * 회사 사무실 승인 기다림(2026-10-28 보안 점검: 회사 코드만 알면 아무나 그 사무실에 가짜 방 · 가짜 SOS 를 올릴 수 있었음).
+         * 사무실이 "승인" 하기 전에는 사무실 화면 "승인 기다리는 방" 에만(알림 · 열기 · 끝난 산행 요약 없음), 회원 화면에도 사무실 이름 안 보임.
+         */
+        boolean officePending;
         /** 산행 중 SOS 가 한 번이라도 켜졌나(끝난 산행 요약). */
         boolean sosEver;
         /** 산행 시작한 때 - 사무실 "10분 소식 없음" 은 이때부터 셈(출발 직후 위치를 아직 안 보낸 회원을 바로 세지 않게, 2026-10-28 PC). */
@@ -324,9 +329,19 @@ final class Party {
     }
 
     private String newCode() {
+        return newCode(6);
+    }
+
+    /**
+     * 보조 인솔자 코드 길이(2026-10-28 보안 점검: 6글자는 많은 주소로 하루에 맞힐 수 있었고, 맞히면 회원 위치를 모두 봄).
+     * 링크 · QR 로 주고받아 길어도 불편이 적음. 회원 방 코드는 그대로 6글자(버스 안에서 불러 주기도 함).
+     */
+    static final int LEAD_CODE_LEN = 10;
+
+    private String newCode(int len) {
         for (int tries = 0; tries < 50; tries++) {
             StringBuilder s = new StringBuilder();
-            for (int i = 0; i < 6; i++) s.append(CODE_CHARS.charAt(rnd.nextInt(CODE_CHARS.length())));
+            for (int i = 0; i < len; i++) s.append(CODE_CHARS.charAt(rnd.nextInt(CODE_CHARS.length())));
             String c = s.toString();
             if (!rooms.containsKey(c) && !endedWhy.containsKey("#" + c) && byLeadCode(c) == null && byMeCode(c, Long.MIN_VALUE + 1) == null && !offices.has(c)) return c;   // 막 끝난 방 코드 · 공동 인솔자 코드도 피함
         }
@@ -458,7 +473,7 @@ final class Party {
         Room r = new Room(newCode(), n, now, departAt, endAt, buses, maxSeats, List.copyOf(stops), lead, phone(leaderPhone));
         System.arraycopy(per, 0, r.busSeats, 0, Math.min(per.length, r.busSeats.length));
         if (plates != null) for (int i = 0; i < Math.min(plates.size(), r.buses); i++) r.plates[i] = plate(plates.get(i));
-        do r.leadCode = newCode(); while (r.leadCode.equals(r.code));   // 방 코드와 같으면 모두 인솔자로 들어옴(점검)
+        do r.leadCode = newCode(LEAD_CODE_LEN); while (r.leadCode.equals(r.code));   // 방 코드와 같으면 모두 인솔자로 들어옴(점검)
         rooms.put(r.code, r);
         Member m = add(r, lead != null ? lead : "인솔자", "lead", now);
         audit.info("create room={} members=1", r.code);
@@ -1175,9 +1190,10 @@ final class Party {
         if (!lead.chief()) throw new SecurityException("회사 연결은 주 인솔자만 합니다.");
         PartyOffice.Office o = offices.byCode(code);
         if (o == null) throw new IllegalArgumentException("회사 코드를 찾지 못했습니다. 회사에 다시 확인해 주세요.");
+        if (!o.code.equals(lead.room.officeCode)) lead.room.officePending = true;   // 같은 회사로 다시 넣으면 그대로
         lead.room.officeCode = o.code;
         lead.room.officeName = o.name;
-        audit.info("office room={} office={}", lead.room.code, o.code);
+        audit.info("office room={} office={} pending", lead.room.code, o.code);
         save();
     }
 
@@ -1189,9 +1205,19 @@ final class Party {
         out.addProperty("name", o.name);
         out.addProperty("code", o.code);
         out.addProperty("now", now);
-        JsonArray live = new JsonArray();
+        JsonArray live = new JsonArray(), pending = new JsonArray();
         for (Room r : rooms.values()) {
             if (!o.code.equals(r.officeCode)) continue;
+            if (r.officePending) {   // 승인 기다림 - 알아볼 만큼만(이름 · 출발 · 인솔자 · 연락처 · 인원)
+                JsonObject q = new JsonObject();
+                q.addProperty("code", r.code); q.addProperty("name", r.name); q.addProperty("departAt", r.departAt);
+                Member pc = r.chief();
+                if (pc != null) q.addProperty("chief", pc.nick);
+                if (r.leaderPhone != null) q.addProperty("leaderPhone", r.leaderPhone);
+                q.addProperty("hikers", (int) r.members.values().stream().filter(m -> "hiker".equals(m.role) && !m.cancelled).count());
+                pending.add(q);
+                continue;
+            }
             JsonObject x = summary(r, now);
             x.addProperty("code", r.code);
             int silent = 0;
@@ -1237,8 +1263,19 @@ final class Party {
             live.add(x);
         }
         out.add("rooms", live);
+        out.add("pending", pending);   // 승인 기다리는 방(2026-10-28)
         out.add("ended", offices.endedOf(o, now));
         return out;
+    }
+
+    /** 사무실 - 승인 기다리는 방을 승인(우리 방이 맞음). 아니면 officeDetach(빼기). */
+    synchronized void officeApprove(String key, String code) {
+        PartyOffice.Office o = offices.byKey(key);
+        Room r = code == null ? null : rooms.get(code.trim().toUpperCase());
+        if (r == null || !o.code.equals(r.officeCode)) throw new IllegalArgumentException("이 회사의 방이 아니거나 이미 끝난 방입니다.");
+        r.officePending = false;
+        audit.info("office approve room={}", r.code);
+        save();
     }
 
     /** 사무실이 방 하나를 엶 - 그 방에 사무실 자리(보조 자리를 쓰지 않음)를 만들거나 있던 것을 돌려줌. 화면은 인솔자 화면 그대로. */
@@ -1246,6 +1283,7 @@ final class Party {
         PartyOffice.Office o = offices.byKey(key);
         Room r = code == null ? null : rooms.get(code.trim().toUpperCase());
         if (r == null || !o.code.equals(r.officeCode)) throw new IllegalArgumentException("이 회사의 방이 아니거나 이미 끝난 방입니다.");
+        if (r.officePending) throw new IllegalStateException("승인 기다리는 방입니다. 우리 산악회 방이 맞으면 먼저 \"승인\" 을 눌러 주세요.");
         for (Member m : r.members.values()) if (m.office) return m;
         Member m = add(r, clean(o.name + " 사무실", 12) != null ? clean(o.name + " 사무실", 12) : "사무실", "lead", now);
         m.office = true;
@@ -1259,6 +1297,7 @@ final class Party {
         Room r = code == null ? null : rooms.get(code.trim().toUpperCase());
         if (r == null || !o.code.equals(r.officeCode)) throw new IllegalArgumentException("이 회사의 방이 아닙니다.");
         r.officeCode = null;
+        r.officePending = false;
         r.officeName = null;
         for (Member m : new ArrayList<>(r.members.values())) if (m.office) { r.members.remove(m.token); byToken.remove(m.token); }
         save();
@@ -1298,6 +1337,7 @@ final class Party {
         for (Room r : rooms.values()) {
             if (!o.code.equals(r.officeCode)) continue;
             r.officeCode = null;
+            r.officePending = false;
             r.officeName = null;
             for (Member m : new ArrayList<>(r.members.values())) if (m.office) { r.members.remove(m.token); byToken.remove(m.token); }
         }
@@ -1353,7 +1393,7 @@ final class Party {
         Room r = lead.room;
         if (r.leadCode != null) { endedWhy.put("#" + r.leadCode, "인솔자 코드가 바뀌었습니다. 주 인솔자에게 새 코드를 받으세요."); endedAt.put("#" + r.leadCode, now); }
         String c;
-        do c = newCode(); while (c.equals(r.code));
+        do c = newCode(LEAD_CODE_LEN); while (c.equals(r.code));
         r.leadCode = c;
         audit.info("leadcode room={}", r.code);
         save();
@@ -1394,7 +1434,7 @@ final class Party {
     }
 
     private void drop(Room r, String why, long now) {
-        if (r.officeCode != null) {   // 회사 화면에 끝난 산행 요약(2026-10-28)
+        if (r.officeCode != null && !r.officePending) {   // 회사 화면에 끝난 산행 요약(2026-10-28) - 승인한 방만
             JsonObject x = summary(r, now);
             x.addProperty("endedAt", now);
             x.addProperty("by", r.endedBy != null ? r.endedBy : "자동(하산 마감이 지남)");
@@ -1460,7 +1500,7 @@ final class Party {
             JsonObject ba = new JsonObject();
             r.busAt.forEach((k, v) -> { JsonArray p = new JsonArray(); p.add(v[0]); p.add(v[1]); ba.add(String.valueOf(k), p); });
             o.add("busAt", ba); o.addProperty("departed", r.departed); o.addProperty("stopsDone", r.stopsDone); o.addProperty("nextId", r.nextId);
-            o.addProperty("officeCode", r.officeCode); o.addProperty("officeName", r.officeName); o.addProperty("sosEver", r.sosEver); o.addProperty("departedAt", r.departedAt); o.add("drops", strings(r.drops)); o.add("pickups", strings(r.pickups)); o.add("pickupTimes", strings(r.pickupTimes)); o.addProperty("homeTime", r.homeTime);
+            o.addProperty("officeCode", r.officeCode); o.addProperty("officeName", r.officeName); if (r.officePending) o.addProperty("officePending", true); o.addProperty("sosEver", r.sosEver); o.addProperty("departedAt", r.departedAt); o.add("drops", strings(r.drops)); o.add("pickups", strings(r.pickups)); o.add("pickupTimes", strings(r.pickupTimes)); o.addProperty("homeTime", r.homeTime);
             JsonArray ms = new JsonArray();
             for (Member m : r.members.values()) {
                 JsonObject x = new JsonObject();
@@ -1534,7 +1574,7 @@ final class Party {
                 }
                 r.departed = boolOf(o, "departed"); r.stopsDone = (int) lng(o, "stopsDone"); r.nextId = Math.max(1, (int) lng(o, "nextId"));
                 r.leadCode = str(o, "leadCode") != null ? str(o, "leadCode") : str(o, "driverCode");   // 10-27 전 파일은 driverCode
-                r.officeCode = str(o, "officeCode"); r.officeName = str(o, "officeName"); r.sosEver = boolOf(o, "sosEver"); r.departedAt = lng(o, "departedAt");
+                r.officeCode = str(o, "officeCode"); r.officeName = str(o, "officeName"); r.officePending = boolOf(o, "officePending"); r.sosEver = boolOf(o, "sosEver"); r.departedAt = lng(o, "departedAt");
                 if (o.has("drops")) { List<String> dd = new ArrayList<>(); o.getAsJsonArray("drops").forEach(x -> dd.add(x.getAsString())); r.drops = List.copyOf(dd); }
                 if (o.has("pickups") && o.has("pickupTimes")) {
                     List<String> pp = new ArrayList<>(), pt = new ArrayList<>();
@@ -1563,7 +1603,7 @@ final class Party {
         }
         if (bad > 0) backup();   // 건너뛴 방이 다음 저장에 영영 지워지지 않게 옛 파일을 남김
         boolean filled = false;
-        for (Room r : rooms.values()) if (r.leadCode == null) { r.leadCode = newCode(); filled = true; }   // 코드 전에 만든 방(10-21)
+        for (Room r : rooms.values()) if (r.leadCode == null) { r.leadCode = newCode(LEAD_CODE_LEN); filled = true; }   // 코드 전에 만든 방(10-21)
         if (filled) save();   // 다시 켤 때 다른 코드가 되지 않게
         log.info("[PARTY] 방 {}개 읽음{}", rooms.size(), bad > 0 ? " (" + bad + "개 건너뜀 - party.json.bad-* 에 옛 파일)" : "");
     }
@@ -1672,7 +1712,8 @@ final class Party {
         o.addProperty("me", me.id);
         if (me.chief()) o.addProperty("chief", true);
         if (me.office) o.addProperty("officeMe", true);   // 회사 사무실 자리 - 위치를 보내지 않음, 방 끝내기 됨
-        if (r.officeName != null) o.addProperty("office", r.officeName);   // 회원에게도 - 위치를 받는 사람
+        if (r.officeName != null && !r.officePending) o.addProperty("office", r.officeName);   // 회원에게도 - 위치를 받는 사람(승인 뒤부터)
+        if (r.officeName != null && r.officePending && me.staff()) o.addProperty("officeWait", r.officeName);   // 인솔자 - 승인 기다림
         o.addProperty("assistMax", r.buses);
         if (me.chief() && r.leadCode != null) o.addProperty("leadCode", r.leadCode);   // 보조 인솔자 코드는 주 인솔자만(보조가 또 퍼뜨리지 않게, 2026-10-28)
         o.addProperty("nick", me.nick);

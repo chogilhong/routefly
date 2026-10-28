@@ -48,6 +48,15 @@
             return ka !== kb ? ka - kb : (a.departAt || 0) - (b.departAt || 0);
         });
         $("liveCount").textContent = rooms.length + "곳";
+        var pend = j.pending || [];   // 승인 기다리는 방(2026-10-28)
+        $("pendSec").hidden = !pend.length;
+        $("pendCount").textContent = pend.length + "곳";
+        $("pend").innerHTML = pend.map(function (r) {
+            return "<tr><td class=\"name\"><b>" + esc(r.name) + "</b></td><td>" + when(r.departAt) + "</td><td class=\"name\">" + esc(r.chief || "-")
+                + (r.leaderPhone ? "<br><a href=\"tel:" + esc(r.leaderPhone.replace(/[^0-9+]/g, "")) + "\" style=\"color:var(--sky)\">📞 " + esc(r.leaderPhone) + "</a>" : "") + "</td>"
+                + "<td>" + r.hikers + "명</td><td><button class=\"main\" data-approve=\"" + esc(r.code) + "\" data-name=\"" + esc(r.name) + "\">승인</button> "
+                + "<button class=\"danger\" data-detach=\"" + esc(r.code) + "\" data-name=\"" + esc(r.name) + "\">빼기</button></td></tr>";
+        }).join("");
         $("live").innerHTML = rooms.map(function (r) {
             var cls = r.sos > 0 ? "sos" : r.silent > 0 ? "warn" : "";
             var state = r.departed ? (r.notDown === 0 && r.hikers > 0 ? "<span class=\"ok\">모두 하산</span>" : "🥾 산행 중") : "출발 전 · " + when(r.departAt);
@@ -176,6 +185,13 @@
     });
 
     document.addEventListener("click", function (e) {
+        var ap = e.target.closest && e.target.closest("button[data-approve]");
+        if (ap) {   // 승인 기다리는 방 - 우리 방이 맞음(2026-10-28)
+            ask("\"" + ap.getAttribute("data-name") + "\" 방을 승인할까요? 우리 산악회 방이 맞을 때만 - 승인하면 사무실이 회원 위치를 함께 봅니다.", { ok: "승인" }).then(function (ok) {
+                if (ok) RFParty.post("office/approve", { key: key, code: ap.getAttribute("data-approve") }).then(function () { msg("승인했습니다."); return load(); }).catch(function (e2) { msg(e2.message); });
+            });
+            return;
+        }
         var b = e.target.closest && e.target.closest("button[data-open], button[data-detach]");
         if (!b) return;
         var code = b.getAttribute("data-open") || b.getAttribute("data-detach"), name = b.getAttribute("data-name");

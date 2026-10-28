@@ -64,6 +64,7 @@ public class ReviewRound2Test {
         JsonObject o = call(p, "/office/create", "{\"name\":\"시험산악회\"}", T0);
         String key = o.get("key").getAsString();
         JsonObject r = call(p, "/create", "{\"name\":\"설악산\",\"departAt\":" + DEPART + ",\"endAt\":" + END + ",\"leaderName\":\"시험대장\",\"seats\":28,\"office\":\"" + o.get("code").getAsString() + "\"}", T0);
+        PartyOfficeTest.approve(p, key, r.get("code").getAsString());
         String seat = call(p, "/office/enter", "{\"key\":\"" + key + "\",\"code\":\"" + r.get("code").getAsString() + "\"}", T0).get("token").getAsString();
         call(p, "/view", tok(seat), T0);
         String nk = call(p, "/office/newkey", "{\"key\":\"" + key + "\"}", T0).get("key").getAsString();
@@ -96,5 +97,17 @@ public class ReviewRound2Test {
             java.nio.file.Path b = ls.filter(x -> x.getFileName().toString().startsWith("office.json.bad-")).findFirst().orElseThrow();
             assertEquals("옛 파일 백업은 600(원래 644 여도)", "rw-------", java.nio.file.attribute.PosixFilePermissions.toString(java.nio.file.Files.getPosixFilePermissions(b)));
         }
+    }
+
+    /** 보조 인솔자 코드 10글자(2026-10-28 - 맞혀 들어오기 어렵게), 그 코드로 보조 인솔자 참가 · 바꾸기도 10글자. 회원 방 코드는 6글자 그대로. */
+    @Test
+    public void assistantCodeIsLong() {
+        Party p = new Party();
+        JsonObject r = room(p, 1);
+        String lc = r.get("leadCode").getAsString(), chief = r.get("token").getAsString();
+        assertEquals(6, r.get("code").getAsString().length());
+        assertEquals(Party.LEAD_CODE_LEN, lc.length());
+        assertEquals("lead", call(p, "/join", "{\"code\":\"" + lc.toLowerCase() + "\",\"nick\":\"보조\",\"agree\":true}", T0).get("role").getAsString());
+        assertEquals(10, call(p, "/leadcode", tok(chief), T0).get("leadCode").getAsString().length());
     }
 }

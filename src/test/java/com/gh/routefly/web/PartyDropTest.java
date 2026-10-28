@@ -20,6 +20,7 @@ public class PartyDropTest {
         JsonObject room = call(p, "/create", "{\"name\":\"설악산\",\"departAt\":" + DEPART + ",\"endAt\":" + END + ",\"leaderName\":\"시험대장\",\"seats\":28,"
                 + "\"drops\":\"한계령, 오색, 소공원\",\"office\":\"" + o.get("code").getAsString() + "\"}", T0);
         String code = room.get("code").getAsString(), lead = room.get("token").getAsString(), key = o.get("key").getAsString();
+        PartyOfficeTest.approve(p, key, code);
         assertEquals("[\"한계령\",\"오색\",\"소공원\"]", call(p, "/info", "{\"code\":\"" + code + "\"}", T0).getAsJsonArray("drops").toString());
         String a = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"철수\",\"drop\":\"한계령\",\"agree\":true}", T0).get("token").getAsString();
         call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"영희\",\"agree\":true}", T0);

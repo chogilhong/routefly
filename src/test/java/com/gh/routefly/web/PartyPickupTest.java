@@ -28,6 +28,7 @@ public class PartyPickupTest {
         JsonObject room = call(p, "/create", "{\"name\":\"설악산\",\"departAt\":" + DEPART + ",\"endAt\":" + END + ",\"leaderName\":\"시험대장\",\"seats\":28,"
                 + "\"pickups\":\"설악동C지구 17:00, 용대리 17:30, 남교리 17:35\",\"home\":\"20:30\",\"office\":\"" + o.get("code").getAsString() + "\"}", T0);
         String code = room.get("code").getAsString(), lead = room.get("token").getAsString();
+        PartyOfficeTest.approve(p, o.get("key").getAsString(), code);
         JsonObject info = call(p, "/info", "{\"code\":\"" + code + "\"}", T0);
         assertEquals("[\"설악동C지구\",\"용대리\",\"남교리\"]", info.getAsJsonArray("pickups").toString());
         long seorak = info.getAsJsonObject("pickupAt").get("설악동C지구").getAsLong(), namgyo = info.getAsJsonObject("pickupAt").get("남교리").getAsLong();

@@ -15,6 +15,11 @@ import com.google.gson.JsonObject;
  */
 public class PartyOfficeTest {
 
+    /** 승인 기다리는 방을 사무실이 승인(2026-10-28). */
+    static void approve(Party p, String key, String code) {
+        call(p, "/office/approve", "{\"key\":\"" + key + "\",\"code\":\"" + code + "\"}", T0);
+    }
+
     private static JsonObject office(Party p) {
         return call(p, "/office/create", "{\"name\":\"시험산악회\"}", T0);
     }
@@ -34,7 +39,15 @@ public class PartyOfficeTest {
         assertEquals("틀린 코드면 방도 안 만들어짐", 0, p.size());
         JsonObject r = j(room(p, oc));
         String code = r.get("code").getAsString(), chief = r.get("token").getAsString();
-        assertEquals("시험산악회", r.get("office").getAsString());
+        // 승인 기다림(2026-10-28) - 사무실 "지금 산행" 에 없고 열 수 없음, 인솔자에게는 "승인 기다리는 중", 회원 화면엔 사무실 이름 없음
+        assertEquals("시험산악회", r.get("officeWait").getAsString());
+        assertFalse(r.has("office"));
+        JsonObject before = call(p, "/office/rooms", "{\"key\":\"" + key + "\"}", T0);
+        assertEquals(0, before.getAsJsonArray("rooms").size());
+        assertEquals(code, before.getAsJsonArray("pending").get(0).getAsJsonObject().get("code").getAsString());
+        try { call(p, "/office/enter", "{\"key\":\"" + key + "\",\"code\":\"" + code + "\"}", T0); fail("승인 전에는 못 엶"); } catch (IllegalStateException e) { assertTrue(e.getMessage().contains("승인")); }
+        approve(p, key, code);
+        assertEquals("시험산악회", call(p, "/view", tok(chief), T0).get("office").getAsString());
         room(p, null);   // 다른 회사 · 연결 없는 방은 안 보임
         String h = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"회원\",\"seat\":3,\"agree\":true}", T0).get("token").getAsString();
         assertEquals("회원도 사무실을 받는 사람으로 봄", "시험산악회", call(p, "/view", tok(h), T0).get("office").getAsString());
@@ -69,6 +82,8 @@ public class PartyOfficeTest {
         assertFalse(call(p, "/view", tok(h), T0).has("office"));
         // 방을 만든 뒤 주 인솔자가 회사 코드로 올림
         call(p, "/link", "{\"token\":\"" + chief + "\",\"office\":\"" + oc + "\"}", T0);
+        assertEquals("나중에 올려도 승인 기다림", 1, call(p, "/office/rooms", "{\"key\":\"" + key + "\"}", T0).getAsJsonArray("pending").size());
+        approve(p, key, code);
         assertEquals(1, call(p, "/office/rooms", "{\"key\":\"" + key + "\"}", T0).getAsJsonArray("rooms").size());
         // 회사 코드 바꾸기 - 옛 코드로는 못 올림, 이미 올라온 방은 그대로
         String oc2 = call(p, "/office/newcode", "{\"key\":\"" + key + "\"}", T0).get("code").getAsString();
@@ -99,6 +114,7 @@ public class PartyOfficeTest {
         String key = o.get("key").getAsString();
         JsonObject r = j(room(p, o.get("code").getAsString()));
         String code = r.get("code").getAsString(), chief = r.get("token").getAsString();
+        approve(p, o.get("key").getAsString(), code);
         String a = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"철수\",\"seat\":1,\"agree\":true}", T0).get("token").getAsString();
         String b = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"영희\",\"seat\":2,\"agree\":true}", T0).get("token").getAsString();
         call(p, "/board", tok(a), DEPART - H);
@@ -132,12 +148,18 @@ public class PartyOfficeTest {
         assertFalse("요약에 이름 없음", s.toString().contains("영희") || s.toString().contains("철수"));
         // 출발 전 취소 - 사유가 남고, 하산 확인은 묻지 않음
         JsonObject r2 = j(room(p, o.get("code").getAsString()));
+        approve(p, key, r2.get("code").getAsString());
         call(p, "/join", "{\"code\":\"" + r2.get("code").getAsString() + "\",\"nick\":\"민수\",\"agree\":true}", T0);
         call(p, "/end", "{\"token\":\"" + r2.get("token").getAsString() + "\",\"cancel\":true,\"why\":\"태풍\"}", T0 + H);
         JsonObject c = call(p, "/office/rooms", "{\"key\":\"" + key + "\"}", T0 + H).getAsJsonArray("ended").get(0).getAsJsonObject();
         assertTrue(c.get("cancelled").getAsBoolean());
         assertEquals("태풍", c.get("why").getAsString());
         assertEquals("주 인솔자", c.get("by").getAsString());
+        // 승인하지 않은 방은 끝나도 요약을 남기지 않음(가짜 방 막기)
+        int n = call(p, "/office/rooms", "{\"key\":\"" + key + "\"}", T0 + H).getAsJsonArray("ended").size();
+        JsonObject r3 = j(room(p, o.get("code").getAsString()));
+        call(p, "/end", "{\"token\":\"" + r3.get("token").getAsString() + "\",\"cancel\":true,\"why\":\"가짜\"}", T0 + H);
+        assertEquals(n, call(p, "/office/rooms", "{\"key\":\"" + key + "\"}", T0 + H).getAsJsonArray("ended").size());
     }
 
     /** 2026-10-28 버그 점검 - 깨진 사무실 하나가 나머지를 지우지 않음, 옛 파일은 office.json.bad-* 로 남김. */

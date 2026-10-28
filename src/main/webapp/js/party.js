@@ -236,8 +236,8 @@
             appReleased = !!s.app;
             var taken = takeToken();
             if (taken) { taken.then(function (j) { enterRoom(j); }).catch(function (e) { msg(enMsg(e.message)); if (RFParty.get()) enterRoom(); else show("start"); }); return; }
-            var cur = RFParty.get(), want = (q.get("c") || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
-            if (cur && want.length === 6 && cur.code && want !== cur.code) {   // 다른 방 참가 링크(2026-10-21 PC: 예전 시험 방이 그대로 열렸음)
+            var cur = RFParty.get(), want = (q.get("c") || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10);
+            if (cur && (want.length === 6 || want.length === 10) && cur.code && want !== cur.code) {   // 다른 방 참가 링크(2026-10-21 PC: 예전 시험 방이 그대로 열렸음)
                 if (cur.role === "lead") {
                     say(T("인솔자로 있는 방(" + cur.code + ")이 있습니다. 링크의 방(" + want + ")에 참가하려면 지금 방에서 \"방 끝내기\"를 한 뒤 링크를 다시 누르세요.",
                         "You are the leader of room " + cur.code + ". To join room " + want + " from the link, tap \"End room\" in your current room first, then open the link again."));
@@ -256,7 +256,7 @@
             if (cur) { enterRoom(); return; }
             show("start");
             if (q.get("c")) { appOpen(); $("mkSec").hidden = true; $("mkShowRow").hidden = false; $("joinSec").hidden = false; $("joinShowRow").hidden = true; }
-            if (q.get("c")) { $("joinCode").value = q.get("c").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6); loadInfo(); }
+            if (q.get("c")) { $("joinCode").value = q.get("c").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10); loadInfo(); }
             try { $("joinNick").value = localStorage.getItem("rf-party-nick") || ""; } catch (e) { /* 없음 */ }
             var t = new Date(Date.now() + 86400000);   // 출발 날짜 - 내일로 두고 고치게
             $("mkDate").value = dayText(t);
@@ -271,7 +271,7 @@
     var infoFor = null;
     function loadInfo() {
         var code = $("joinCode").value.trim().toUpperCase();
-        if (code.length !== 6 || code === infoFor) return;
+        if ((code.length !== 6 && code.length !== 10) || code === infoFor) return;   // 회원 방 코드 6글자 · 보조 인솔자 코드 10글자(2026-10-28)
         infoFor = code;
         RFParty.post("info", { code: code }).then(function (j) {
             if ($("joinCode").value.trim().toUpperCase() !== code) return;   // 그 사이 코드를 고침 - 늦게 온 옛 답은 버림
@@ -312,7 +312,7 @@
     $("joinBtn").addEventListener("click", function () {
         var code = $("joinCode").value.trim().toUpperCase(), nick = $("joinNick").value.trim();
         var role = joinInfo && joinInfo.leadInvite ? "lead" : "hiker";   // 서버가 코드로 다시 정함
-        if (code.length !== 6) { joinErr(T("방 코드 6글자를 적어 주세요. 인솔자가 보낸 카톡 · 문자의 링크를 누르면 저절로 채워집니다.", "Please enter the 6-letter room code. Opening the link your leader sent (KakaoTalk · text) fills it in."), $("joinCode")); return; }
+        if (code.length !== 6 && code.length !== 10) { joinErr(T("방 코드 6글자를 적어 주세요(보조 인솔자는 10글자). 인솔자가 보낸 카톡 · 문자의 링크를 누르면 저절로 채워집니다.", "Please enter the 6-letter room code (assistant leaders: 10). Opening the link your leader sent (KakaoTalk · text) fills it in."), $("joinCode")); return; }
         if (!nick) { joinErr(T("이름을 적어 주세요.", "Please enter your name."), $("joinNick")); return; }
         if (!$("joinAgree").checked) { joinErr(T("위치 제공에 동의해야 참가할 수 있습니다(위 네모 칸 체크).", "You need to agree to share your location to join (tick the box above)."), $("joinAgree").parentNode); return; }
         joinErr("");
@@ -596,9 +596,10 @@
         $("endBtn").hidden = $("cancelTripBtn").hidden = !(s.chief || s.officeMe);   // 방 끝내기 · 산행 취소 - 주 인솔자 · 회사 사무실
         $("leaveBtn").hidden = !!s.chief || !!s.officeMe;   // 보조 인솔자는 언제든 "방 나가기"
         // 회사 사무실(2026-10-28): 연결돼 있으면 알림, 아니면 주 인솔자가 회사 코드로 올림
-        $("officeRow").hidden = !s.office;
+        $("officeRow").hidden = !s.office && !s.officeWait;
         if (s.office) $("officeRow").textContent = T("🏢 " + s.office + " 사무실이 이 방을 함께 봅니다(회원 화면에도 표시).", "🏢 " + s.office + " office watches this room too (shown to members).");
-        $("officeLinkRow").hidden = !!s.office || !s.chief;
+        else if (s.officeWait) $("officeRow").textContent = T("🏢 " + s.officeWait + " 사무실 승인 기다리는 중 - 사무실 화면에서 \"승인\" 을 누르면 함께 봅니다.", "🏢 Waiting for " + s.officeWait + " office to approve - it watches once approved.");   // 2026-10-28 승인
+        $("officeLinkRow").hidden = !!s.office || !!s.officeWait || !s.chief;
         $("officeBack").hidden = !s.officeMe;
         $("alertRow").hidden = !!s.officeMe || (window.Notification && Notification.permission === "granted" && !NATIVE);   // 인솔자 폰 알림(2026-10-28)
         // 내 하차 지점(인솔자도 원하는 곳에서 내려 산행 · 버스 대기, 2026-10-28 홍TV님) - 회사 사무실에 보임

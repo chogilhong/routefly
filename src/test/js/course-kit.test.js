@@ -781,6 +781,14 @@ tick().then(function () {
     eq("명단 - 머리 낱말은 회원이 아님(한 칸 · 자유 글)", [rh("이름\n홍길동\n김철수"), rh("이름 좌석\n홍길동 5")], ["홍길동\n김철수", "홍길동 5"]);
     eq("명단 - 모르는 머리 이름(고객명 · 예약자 이름 · 좌석번호)", [rh("고객명,연락처,좌석\n홍길동,010-1111-2222,5\n김철수,010-2222-3333,6"), rh("예약자 이름\t좌석번호\n홍길동\t5")], ["홍길동 5\n김철수 6", "홍길동 5"]);
     eq("명단 - 2호차 15번 · 이름 끝 숫자", [rh("홍길동 2호차 15번 김철수2 5"), rh("홍길동 2호차15번")], ["홍길동 2-15\n김철수2 5", "홍길동 2-15"]);
+    // 산행을 마친 화면 "다음은?"(2026-10-28)
+    var ah = RF.afterHikeLinks({ trip: "https://kr.trip.com/hotels/?Allianceid=1&SID=2", coupang: { knee: ["https://link.coupang.com/a/x"] } }, { lat: 38.1, lon: 128.5, name: "설악산 오색" }, false);
+    eq("다음은 - 맛집 · 숙소 · 쿠팡 · 다음 산", ah.links.map(function (x) { return x.text + (x.sponsored ? "*" : ""); }), ["🍜 설악산 오색 맛집", "🏨 근처 숙소(트립닷컴)*", "🦵 무릎 보호대 · 스틱(쿠팡)*", "⛰️ 다음 산 고르기"]);
+    eq("다음은 - 맛집은 카카오맵 검색", ah.links[0].href, "https://map.kakao.com/link/search/" + encodeURIComponent("설악산 오색 맛집"));
+    eq("다음은 - 제휴 표시", [ah.affiliate, ah.coupang, ah.links[1].href.indexOf("Allianceid=1") > 0], [true, true, true]);
+    var ae = RF.afterHikeLinks({ agoda: "https://www.agoda.com/search?lat={lat}&lon={lon}&cid=1" }, { lat: 38.1, lon: 128.5, name: "x" }, true);
+    eq("다음은 - 영어 · 아고다 좌표 · 쿠팡 없음", [ae.links.length, ae.links[1].href, ae.links[2].href, ae.coupang], [3, "https://www.agoda.com/search?lat=38.10000&lon=128.50000&cid=1", "en/m/", false]);
+    eq("다음은 - 제휴 설정 없으면 맛집 · 다음 산만", RF.afterHikeLinks({}, { name: "북한산" }, false).links.length, 2);
     // 인솔자 지금 할 일 · 회원 탑승 카드(2026-10-28 추천 2)
     var mem = function (n, o) { var m = { role: "hiker", nick: n }; for (var k in o) m[k] = o[k]; return m; };
     var b0 = RF.leadSteps({ role: "lead", chief: true, now: 0, seats: 28, members: [mem("가", { boarded: true }), mem("나", {}), mem("다", { cancelled: true })] });
