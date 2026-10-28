@@ -350,6 +350,7 @@ public class CoursePageServlet extends HttpServlet {
         if (hike) b.append(MountainServlet.tips());
         String src = source(id);
         if (!src.isEmpty()) b.append("<p class=\"dim\">코스 자료: ").append(src).append("</p>");   // 이미 이스케이프 · 링크가 든 고정 글
+        b.append(Ads.box("c"));   // 광고(설정이 있을 때만, 2026-10-28)
         b.append(MountainServlet.foot(null, false));
         return b.toString();
     }

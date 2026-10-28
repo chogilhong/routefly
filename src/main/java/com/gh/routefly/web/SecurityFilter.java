@@ -48,9 +48,16 @@ public class SecurityFilter extends HttpFilter {
             // postcode.v2.js 가 창 주소를 "//postcode.map.kakao.com" 처럼 써서 http(PC localhost)에서는 창도 http - 그 두 곳만 더(2026-10-18 PC). https 서버 · 앱은 https
             + "frame-src 'self' https: http://postcode.map.kakao.com http://postcode.map.daum.net;");
 
+    /**
+     * 산 · 코스 소개 페이지 - 구글 애드센스(2026-10-28, js/ads.js 가 부름). 애드센스가 부르는 스크립트 곳만 더함(화면 안 스크립트는 그대로 막음).
+     */
+    static final String CSP_ADS = CSP.replace("script-src 'self';", "script-src 'self' https://pagead2.googlesyndication.com https://*.googlesyndication.com "
+            + "https://*.doubleclick.net https://*.google.com https://*.googleadservices.com https://*.googletagservices.com https://*.gstatic.com https://*.adtrafficquality.google; ");
+
     /** 순수 함수 - 이 경로에 줄 CSP. */
     static String cspFor(String path) {
-        return "/tools.html".equals(path) ? CSP_TOOLS : CSP;
+        if ("/tools.html".equals(path)) return CSP_TOOLS;
+        return path != null && (path.startsWith("/m/") || path.startsWith("/en/m/") || path.startsWith("/c/") || "/m".equals(path)) ? CSP_ADS : CSP;
     }
 
     @Override
