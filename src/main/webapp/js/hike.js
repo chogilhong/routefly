@@ -1407,8 +1407,8 @@
             }
             box.appendChild(row);
         });
-        $("sumNote").textContent = T("기록은 끝낸 산행마다 이 핸드폰에 쌓입니다(" + log.length + "번). 백업 파일에도 들어갑니다. 100대 명산은 그 기간에 처음 도장을 찍은 산 수입니다.",
-            "Every finished hike is kept on this phone (" + log.length + " so far) and included in backups. 100 Famous Mountains counts mountains first stamped in that period.");
+        $("sumNote").textContent = T("기록은 끝낸 산행마다 이 기기에 쌓입니다(" + log.length + "번). 백업 파일에도 들어갑니다. 100대 명산은 그 기간에 처음 도장을 찍은 산 수입니다.",
+            "Every finished hike is kept on this device (" + log.length + " so far) and included in backups. 100 Famous Mountains counts mountains first stamped in that period.");
     }
 
     /** 결산 카드 그림(1080 × 1350) - 숫자 + 100대 명산 점 지도(그 기간 끝까지 다녀온 곳 주황). */
@@ -1565,8 +1565,8 @@
             var bad = RF.backupCheck(o);
             if (bad) { toast(bad, 6000); return; }
             var photos = o.photos && typeof o.photos === "object" ? o.photos : {};
-            if (!confirm(EN ? "Merge this backup (" + o.records.length + " records · " + Object.keys(photos).length + " photos) into this phone?\nYour current records are kept (up to the latest " + REC_MAX + ")."
-                : "백업(기록 " + o.records.length + "개 · 사진 " + Object.keys(photos).length + "장)을 이 핸드폰에 합칠까요?\n지금 기록은 지우지 않습니다(기록은 최근 " + REC_MAX + "개까지).")) return;
+            if (!confirm(EN ? "Merge this backup (" + o.records.length + " records · " + Object.keys(photos).length + " photos) into this device?\nYour current records are kept (up to the latest " + REC_MAX + ")."
+                : "백업(기록 " + o.records.length + "개 · 사진 " + Object.keys(photos).length + "장)을 이 기기에 합칠까요?\n지금 기록은 지우지 않습니다(기록은 최근 " + REC_MAX + "개까지).")) return;
             recordsReady.then(function () {
                 var merged = RF.mergeRecords(records(), o.records, REC_MAX);
                 return Promise.all(RF.photoIds(merged).filter(function (id) { return typeof photos[id] === "string"; }).map(function (id) {
@@ -2818,14 +2818,14 @@
             $("navTip").textContent = "Opens directions from here to " + NM(nm) + " in a map app."
                 + (to.parking ? " From the parking lot it is about " + distText(walk) + " on foot to the trailhead - this screen guides you there." : "")
                 + (acc.buses.length ? " Nearby bus stops: " + acc.buses.map(function (b) { return NM(b.name) + " (" + distText(distM(+b.lat, +b.lon, h0.lat, h0.lon)) + " from the trailhead)"; }).join(", ") + "." : "")
-                + " Your hike is saved on this phone, so it continues when you come back or reopen this screen.";
+                + " Your hike is saved on this device, so it continues when you come back or reopen this screen.";
             return;
         }
         $("navTip").textContent = "지금 위치에서 " + nm + "까지 길을 지도 앱으로 엽니다."
             + (to.parking ? " 주차장에서 들머리까지는 약 " + distText(walk) + " 걸어서 - 이 화면이 들머리까지 안내합니다." : "")
             + (acc.buses.length ? " 가까운 버스 정류장: " + acc.buses.map(function (b) {
                 return b.name + "(들머리에서 " + distText(distM(+b.lat, +b.lon, h0.lat, h0.lon)) + ")"; }).join(", ") + "." : "")
-            + " 산행 기록은 이 핸드폰에 저장되어 있어, "
+            + " 산행 기록은 이 기기에 저장되어 있어, "
             + (/KAKAOTALK/i.test(navigator.userAgent)
                 ? "카카오톡 안에서 이 화면이 닫혀도 같은 링크를 다시 열면 그대로 이어집니다."
                 : "길찾기 뒤 이 화면으로 돌아오거나 다시 열면 그대로 이어집니다.");
@@ -3367,7 +3367,7 @@
     });
 
     $("kcalBox").addEventListener("click", function () {
-        var kg = askNumber(T("몸무게(kg)를 넣어 주세요. 칼로리 추정에만 쓰고 이 핸드폰에만 저장합니다.", "Your weight (kg). Used only to estimate calories and kept on this phone."), body.kg, 20, 200);
+        var kg = askNumber(T("몸무게(kg)를 넣어 주세요. 칼로리 추정에만 쓰고 이 기기에만 저장합니다.", "Your weight (kg). Used only to estimate calories and kept on this device."), body.kg, 20, 200);
         if (kg == null) return;
         body.kg = kg;
         saveBody();
