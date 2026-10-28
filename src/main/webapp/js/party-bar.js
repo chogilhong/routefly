@@ -41,6 +41,16 @@
         RFParty.post("view", { token: p.token }).then(render).catch(fail);
     }
 
+    /** 위치를 받는 사람 - "인솔자 홍길동 · 보조 김철수 · 이영희". */
+    function leadsText(s, ko) {
+        var ls = (s.members || []).filter(function (m) { return m.role === "lead"; });
+        var main = ls.filter(function (m) { return m.chief; }).map(function (m) { return esc(m.nick); });
+        var sub = ls.filter(function (m) { return !m.chief; }).map(function (m) { return esc(m.nick); });
+        if (!main.length && s.leaderName) main = [esc(s.leaderName)];
+        if (ko) return "인솔자" + (main.length ? " " + main.join(" · ") : "") + (sub.length ? " · 보조 " + sub.join(" · ") : "");
+        return "the leader" + (main.length ? " " + main.join(", ") : "") + (sub.length ? " and assistant" + (sub.length > 1 ? "s " : " ") + sub.join(", ") : "");
+    }
+
     function render(s) {
         if (!s || !s.role) return;
         state = s;
@@ -54,7 +64,7 @@
             if (RFParty.onNotice) RFParty.onNotice(s.notice);
         }
         if (staff) {
-            $("pbText").innerHTML = "🧭 " + esc(s.name) + T(" · 인솔자", " · Leader");
+            $("pbText").innerHTML = "🧭 " + esc(s.name) + (s.chief ? T(" · 주 인솔자", " · Leader") : T(" · 보조 인솔자", " · Assistant leader"));
             $("pbBtns").innerHTML = "<a class=\"pb\" href=\"party.html" + (EN ? "?lang=en" : "") + "\">" + T("산악회 방 열기", "Open club room") + "</a>";
             return;
         }
@@ -65,8 +75,9 @@
         else if (s.locOn === false) line += T((s.locFrom ? "내 탑승지 출발(" + clock(s.locFrom) + ")" : "출발" + (s.departAt ? "(" + clock(s.departAt) + ")" : "")) + "부터 · 버스에 타면 바로 인솔자에게 위치를 보냅니다.",
             "Your location goes to the leader from " + (s.locFrom ? "your stop's departure (" + clock(s.locFrom) + ")" : "departure" + (s.departAt ? " (" + clock(s.departAt) + ")" : "")) + ", or as soon as you board.");
         // 제3자 제공 매회 즉시 통보(위치정보법 제19조 제3항, 2026-10-27 위치정보지원센터 답 · 홍TV님 (가)): 받는 자 · 목적 · 마지막 제공 때
-        else line += T("인솔자" + (s.leaderName ? "(" + esc(s.leaderName) + ")" : "") + "에게 위치 제공 중 · 목적: 산행 안전 확인" + (s.providedAt ? " · 마지막 제공 " + clock(s.providedAt) : " · 아직 제공 전"),
-            "Sharing your location with the leader" + (s.leaderName ? " (" + esc(s.leaderName) + ")" : "") + " · purpose: hiking safety" + (s.providedAt ? " · last shared " + clock(s.providedAt) : " · not shared yet"));
+        // 받는 자는 인솔자 모두(주 · 보조, 2026-10-28 홍TV님 - 몰래 들어온 인솔자가 없게 회원이 다 봄)
+        else line += T(leadsText(s, true) + "에게 위치 제공 중 · 목적: 산행 안전 확인" + (s.providedAt ? " · 마지막 제공 " + clock(s.providedAt) : " · 아직 제공 전"),
+            "Sharing your location with " + leadsText(s, false) + " · purpose: hiking safety" + (s.providedAt ? " · last shared " + clock(s.providedAt) : " · not shared yet"));
         // 내 탑승지 출발 시각 - 정각에 떠남(2026-10-27 홍TV님 "기다려 주지 않아")
         var si = (s.stops || []).indexOf(s.stop), stt = si >= 0 && s.stopTimes ? s.stopTimes[si] : "";
         if (stt && !s.departed && !s.boarded && !s.cancelled) line += T(" · 🚏 " + esc(s.stop) + " " + stt + " 정각 출발 - 미리 와 계세요", " · 🚏 " + esc(s.stop) + " leaves at " + stt + " sharp - be there early");

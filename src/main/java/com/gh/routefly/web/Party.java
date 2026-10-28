@@ -98,6 +98,9 @@ final class Party {
 
         /** 인솔자(방을 만든 사람 · 공동 인솔자 코드로 들어온 회사 관계자). 2026-10-27 홍TV님: 운전자 역할은 없앰(차량 임대로 온 기사님에게 회원 안전 책임이 가지 않게). */
         boolean staff() { return "lead".equals(role); }
+
+        /** 주 인솔자 = 방을 만든 사람(인솔자 가운데 번호가 가장 작은 사람). 나머지 인솔자는 보조(2026-10-28 홍TV님 "주 인솔자, 보조 인솔자"). */
+        boolean chief() { return staff() && room.chief() == this; }
     }
 
     static final class Room {
@@ -119,6 +122,22 @@ final class Party {
         int nextId = 1;
         /** 공동 인솔자 코드(2026-10-27 - 예전 운전자 코드): 방 코드는 카톡 · QR · NFC 로 널리 퍼지므로, 인솔자 권한은 인솔자가 회사 관계자 · 다른 버스 인솔자에게만 주는 이 코드로만. */
         String leadCode;
+        /** 주 인솔자 "내 폰에서도 보기" 한 번 쓰는 코드(10분) - 같은 사람으로 들어감(보조 자리를 쓰지 않음). 메모리에만. */
+        String meCode;
+        long meCodeUntil;
+
+        Member chief() {
+            Member c = null;
+            for (Member m : members.values()) if (m.staff() && (c == null || m.id < c.id)) c = m;
+            return c;
+        }
+
+        /** 보조 인솔자 수(주 인솔자 빼고). */
+        int assistants() {
+            int n = 0;
+            for (Member m : members.values()) if (m.staff()) n++;
+            return Math.max(0, n - 1);
+        }
 
         Room(String code, String name, long created, long departAt, long endAt, int buses, int seats, List<String> stops, String leaderName, String leaderPhone) {
             this.code = code; this.name = name; this.created = created; this.departAt = departAt; this.endAt = endAt; this.buses = Math.max(1, buses); this.seats = seats;
@@ -252,12 +271,17 @@ final class Party {
         return null;
     }
 
+    private Room byMeCode(String c, long now) {
+        for (Room r : rooms.values()) if (c.equals(r.meCode) && now <= r.meCodeUntil) return r;
+        return null;
+    }
+
     private String newCode() {
         for (int tries = 0; tries < 50; tries++) {
             StringBuilder s = new StringBuilder();
             for (int i = 0; i < 6; i++) s.append(CODE_CHARS.charAt(rnd.nextInt(CODE_CHARS.length())));
             String c = s.toString();
-            if (!rooms.containsKey(c) && !endedWhy.containsKey("#" + c) && byLeadCode(c) == null) return c;   // 막 끝난 방 코드 · 공동 인솔자 코드도 피함
+            if (!rooms.containsKey(c) && !endedWhy.containsKey("#" + c) && byLeadCode(c) == null && byMeCode(c, Long.MIN_VALUE + 1) == null) return c;   // 막 끝난 방 코드 · 공동 인솔자 코드도 피함
         }
         throw new IllegalStateException("방 코드를 만들지 못함");
     }
@@ -394,6 +418,9 @@ final class Party {
         if (code != null) { Room hit = rooms.get(code.trim().toUpperCase()); if (hit == null) hit = byLeadCode(code.trim().toUpperCase()); if (hit != null && hit.expired(now)) sweep(now, true); }
         Room r = code == null ? null : rooms.get(code.trim().toUpperCase());
         if (r == null && code != null) r = byLeadCode(code.trim().toUpperCase());
+        if (r == null && code != null) r = byMeCode(code.trim().toUpperCase(), now);
+        if (r == null && code != null && String.valueOf(endedWhy.get("#" + code.trim().toUpperCase())).startsWith("인솔자 코드가 바뀌"))
+            throw new IllegalArgumentException(endedWhy.get("#" + code.trim().toUpperCase()));   // 바뀐 옛 인솔자 코드 - 방은 그대로
         if (r == null && code != null && endedWhy.containsKey("#" + code.trim().toUpperCase())) throw new Ended("이미 끝난 방입니다 - " + endedWhy.get("#" + code.trim().toUpperCase()));
         if (r == null) throw new IllegalArgumentException("방 코드를 찾지 못했습니다. 인솔자에게 다시 확인해 주세요.");
         return r;
@@ -409,6 +436,13 @@ final class Party {
      */
     synchronized Member join(String code, String nick, String role, Integer bus, Integer seat, String stop, boolean onBus, long now) {
         Room r = room(code, now);
+        String up = code.trim().toUpperCase();
+        if (up.equals(r.meCode) && now <= r.meCodeUntil) {   // 주 인솔자 내 폰 - 같은 사람(한 번만)
+            r.meCode = null;
+            Member c = r.chief();
+            if (c == null) throw new IllegalStateException("주 인솔자가 없는 방입니다.");
+            return c;
+        }
         String n = clean(nick, 12);
         if (n == null) throw new IllegalArgumentException("이름을 적어 주세요.");
         // 역할은 코드가 정함 - 공동 인솔자 코드면 인솔자, 방 코드면 산행 회원(보낸 role 은 보지 않음)
@@ -421,6 +455,8 @@ final class Party {
         // 출발한 방에는 산행 회원이 새로 못 들어옴(2026-10-20 홍TV님 - 하산 탑승한 폰이 같은 링크로 또 참가됐음). 공동 인솔자는 됨
         if (r.departed && "hiker".equals(role)) throw new IllegalStateException("이미 출발한 방이라 새로 참가할 수 없습니다. 인솔자에게 연락해 주세요.");
         if (r.members.size() >= MAX_MEMBERS) throw new IllegalStateException("이 방은 인원이 다 찼습니다(" + MAX_MEMBERS + "명).");
+        if ("lead".equals(role) && r.assistants() >= r.buses)   // 보조 인솔자는 차량 수만큼(2026-10-28 홍TV님)
+            throw new IllegalStateException("보조 인솔자 자리가 다 찼습니다(차량 " + r.buses + "대 - " + r.buses + "명). 주 인솔자에게 확인해 주세요.");
         int b = checkBus(r, bus);
         if ("hiker".equals(role)) checkSeat(r, null, b, seat);
         String st = checkStop(r, stop);
@@ -772,10 +808,13 @@ final class Party {
         Member t = null;
         for (Member x : lead.room.members.values()) if (x.id == id) t = x;
         if (t == null) throw new IllegalArgumentException("이미 나간 사람입니다.");
-        if (t == lead || "lead".equals(t.role)) throw new IllegalArgumentException("인솔자는 내보낼 수 없습니다(다른 인솔자는 스스로 나감).");
+        if (t == lead) throw new IllegalArgumentException("인솔자 자신은 내보낼 수 없습니다.");
+        boolean assist = "lead".equals(t.role);
+        if (assist && !lead.chief()) throw new SecurityException("보조 인솔자는 주 인솔자만 내보냅니다.");
+        if (t.chief()) throw new IllegalArgumentException("주 인솔자는 내보낼 수 없습니다.");
         lead.room.members.remove(t.token);
         byToken.remove(t.token);
-        endedWhy.put(t.token, "인솔자가 이 방에서 내보냈습니다. 잘못이면 인솔자에게 연락하세요.");
+        endedWhy.put(t.token, assist ? "주 인솔자가 보조 인솔자에서 내보냈습니다." : "인솔자가 이 방에서 내보냈습니다. 잘못이면 인솔자에게 연락하세요.");
         endedAt.put(t.token, now);
         memberLog.add(now, lead.room.code, t.id, "kick");
         save();
@@ -786,11 +825,7 @@ final class Party {
      * 인솔자(인솔자 코드로 들어온 사람)가 나가도 같음.
      */
     synchronized void leave(Member m, long now) {
-        if ("lead".equals(m.role)) {   // 인솔자가 모두 나가면 아무도 방을 못 끝냄(점검) - 다른 인솔자가 있을 때만(공동 인솔자, 2026-10-27)
-            int leads = 0;
-            for (Member x : m.room.members.values()) if ("lead".equals(x.role)) leads++;
-            if (leads <= 1) throw new IllegalStateException("인솔자는 \"방 끝내기\" 로 끝냅니다.");
-        }
+        if (m.chief()) throw new IllegalStateException("주 인솔자는 \"방 끝내기\" 로 끝냅니다.");   // 보조 인솔자는 언제든 나감
         if ("hiker".equals(m.role)) {   // 산행 회원 - 위치만 그만 보내고 명단 · 좌석 · 탑승은 남김(인솔자 인원 확인, 2026-10-26 홍TV님 "좌석표에서도 빠지는데")
             m.rostered = true;   // 명단으로 들어오지 않았어도 이제 명단 사람(같은 이름으로 다시 참가하면 그 자리로)
             m.listed = true;
@@ -806,6 +841,7 @@ final class Party {
 
     /** 인솔자 - 방 끝내기 · 산행 취소(cancel). */
     synchronized void end(Member lead, boolean cancel, long now) {
+        if (!lead.chief()) throw new SecurityException("방은 주 인솔자만 끝냅니다.");
         if (!cancel) keepTracks(lead.room);
         drop(lead.room, cancel ? "인솔자가 산행을 취소했습니다." : "인솔자가 방을 끝냈습니다. 산행 수고하셨습니다.", now);
         save();
@@ -823,6 +859,32 @@ final class Party {
         java.util.Collections.shuffle(out);   // 넣는 차례로 같은 방 사람을 잇지 못하게
         out.forEach(trackSink);
     }
+
+    /** 주 인솔자 - 인솔자 코드 바꾸기(샜을 때). 옛 코드는 48시간 다시 안 씀. 이미 들어온 보조는 그대로(필요하면 내보내기). 돌려줌: 새 코드. */
+    synchronized String newLeadCode(Member lead, long now) {
+        if (!lead.chief()) throw new SecurityException("인솔자 코드는 주 인솔자만 바꿉니다.");
+        Room r = lead.room;
+        if (r.leadCode != null) { endedWhy.put("#" + r.leadCode, "인솔자 코드가 바뀌었습니다. 주 인솔자에게 새 코드를 받으세요."); endedAt.put("#" + r.leadCode, now); }
+        String c;
+        do c = newCode(); while (c.equals(r.code));
+        r.leadCode = c;
+        audit.info("leadcode room={}", r.code);
+        save();
+        return c;
+    }
+
+    /** 주 인솔자 - 내 폰에서도 보기 코드(10분 · 한 번). */
+    synchronized String meCode(Member lead, long now) {
+        if (!lead.chief()) throw new SecurityException("주 인솔자만 씁니다.");
+        Room r = lead.room;
+        String c;
+        do c = newCode(); while (c.equals(r.code) || c.equals(r.leadCode));
+        r.meCode = c;
+        r.meCodeUntil = now + ME_CODE_MS;
+        return c;
+    }
+
+    static final long ME_CODE_MS = 10 * 60_000L;
 
     /** 인솔자 - 한 회원의 최근 TRAIL_MS 지나온 길(조난 대비 - SOS · 연락 끊긴 회원이 어디로 갔는지). [[위도, 경도, 몇 초 전], …] */
     synchronized JsonObject trail(Member staff, int id, long now) {
@@ -1071,7 +1133,9 @@ final class Party {
     synchronized JsonObject info(String code, long now) {
         Room r = room(code, now);
         JsonObject o = about(r, null);
-        if (code.trim().toUpperCase().equals(r.leadCode)) o.addProperty("leadInvite", true);   // 공동 인솔자 코드로 들어옴 - 참가 칸에 좌석 · 탑승지 없음
+        if (code.trim().toUpperCase().equals(r.leadCode)) o.addProperty("leadInvite", true);
+        if (code.trim().toUpperCase().equals(r.meCode) && now <= r.meCodeUntil) { o.addProperty("leadInvite", true); o.addProperty("meInvite", true); }   // 주 인솔자 내 폰
+        o.addProperty("assistMax", r.buses);   // 공동 인솔자 코드로 들어옴 - 참가 칸에 좌석 · 탑승지 없음
         return o;
     }
 
@@ -1085,7 +1149,9 @@ final class Party {
         JsonObject o = about(r, me);
         o.addProperty("role", me.role);
         o.addProperty("me", me.id);
-        if ("lead".equals(me.role) && r.leadCode != null) o.addProperty("leadCode", r.leadCode);
+        if (me.chief()) o.addProperty("chief", true);
+        o.addProperty("assistMax", r.buses);
+        if (me.chief() && r.leadCode != null) o.addProperty("leadCode", r.leadCode);   // 보조 인솔자 코드는 주 인솔자만(보조가 또 퍼뜨리지 않게, 2026-10-28)
         o.addProperty("nick", me.nick);
         o.addProperty("boarded", me.boarded);
         o.addProperty("aboard", me.aboard);
@@ -1116,6 +1182,7 @@ final class Party {
             x.addProperty("id", m.id);
             x.addProperty("nick", m.nick);
             x.addProperty("role", m.role);
+            if (m.chief()) x.addProperty("chief", true);   // 주 인솔자(나머지 lead 는 보조) - 회원도 위치를 받는 사람을 모두 봄
             x.addProperty("bus", m.bus);
             if (m.seat != null) x.addProperty("seat", m.seat);
             x.addProperty("sos", m.sos);

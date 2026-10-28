@@ -361,7 +361,7 @@ public class PartyTest {
         assertTrue(call(p, "/info", "{\"code\":\"" + dc.toLowerCase() + "\"}", T0).get("leadInvite").getAsBoolean());
         JsonObject d = call(p, "/join", "{\"code\":\"" + dc + "\",\"nick\":\"사무실\",\"role\":\"hiker\",\"agree\":true}", T0);
         assertEquals("공동 인솔자 코드로 오면 인솔자", "lead", d.get("role").getAsString());
-        assertTrue("공동 인솔자도 코드를 봄(다른 사람에게 줄 수 있게)", d.has("leadCode"));
+        assertFalse("보조 인솔자는 코드를 못 봄 - 주 인솔자만(2026-10-28)", d.has("leadCode"));
         assertTrue("참가하면 연락처", d.has("leaderPhone"));
         long endAt = info.get("endAt").getAsLong(), base = endAt > 0 ? endAt : DEPART + 24 * H;
         assertEquals("방이 저절로 끝나는 때 = 하산 마감 6시간 뒤(화면에 보여 줌)", base + 6 * H, info.get("closesAt").getAsLong());

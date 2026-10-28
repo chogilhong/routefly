@@ -211,6 +211,8 @@ public class PartyServlet extends HttpServlet {
             case "/plate" -> { if (!staff) throw new SecurityException("인솔자만 차량번호를 적을 수 있습니다."); p.plate(m, integer(in, "bus"), str(in, "plate")); }
             case "/kick" -> { if (!lead) throw new SecurityException("인솔자만 내보낼 수 있습니다."); p.kick(m, (int) lng(in, "id"), now); }
             case "/leave" -> { p.leave(m, now); return ok(); }
+            case "/leadcode" -> { JsonObject o = ok(); o.addProperty("leadCode", p.newLeadCode(m, now)); return o; }
+            case "/mecode" -> { JsonObject o = ok(); o.addProperty("code", p.meCode(m, now)); o.addProperty("min", Party.ME_CODE_MS / 60_000); return o; }
             case "/end" -> { if (!lead) throw new SecurityException("인솔자만 방을 끝낼 수 있습니다."); p.end(m, bool(in, "cancel"), now); return ok(); }
             default -> throw new IllegalArgumentException("없는 주소입니다.");
         }

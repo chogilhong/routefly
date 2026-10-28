@@ -284,6 +284,7 @@
             seatOptions($("joinSeat"), seatsOf(j, 1), j.taken, null, T("고르기", "Choose"), 1, j.booked);
             stopOptions($("joinStop"), j.stops, null, T("고르기", "Choose"), j);
             roleChanged();   // 역할은 코드가 정함 - 공동 인솔자 코드면 인솔자, 방 코드면 산행(2026-10-27)
+            if (j.meInvite && !$("joinNick").value.trim()) $("joinNick").value = j.leaderName || T("인솔자", "Leader");   // 주 인솔자 내 폰 - 이름은 그대로 씀
             if (j.departed && !j.leadInvite) joinErr(T("이미 출발한 방이라 산행 회원은 새로 참가할 수 없습니다. 인솔자에게 연락해 주세요.", "This room has already departed, so new hikers can't join. Please contact your leader."));
         }).catch(function (e) { if ($("joinCode").value.trim().toUpperCase() !== code) return; infoFor = null; $("joinCard").hidden = true; $("joinSeatBox").hidden = true; joinErr(enMsg(e.message), $("joinCode")); });
     }
@@ -428,7 +429,7 @@
         if (first && first.leadCode) $("leadCode").textContent = first.leadCode;
         $("noticeRow").hidden = p.role !== "lead";
         $("rosterBox").hidden = p.role !== "lead";
-        $("endBtn").hidden = p.role !== "lead";
+        $("endBtn").hidden = true;   // 주 인솔자만 - render 에서(2026-10-28)
         $("leaveBtn").hidden = p.role === "lead";
         startMap();
         if (first) render(first); else refresh();
@@ -577,9 +578,12 @@
         }
         drawMap(s);
         if (BG) bgSync(s);
-        if (s.leadCode) { $("leadCode").textContent = s.leadCode; $("leadCodeRow").hidden = false; $("myPhoneRow").hidden = false; }
-        // 인솔자가 둘 넘으면(공동 인솔자) "방 나가기" 도 - 혼자 남은 인솔자는 "방 끝내기" 로만(서버도 같음, 2026-10-27 PC)
-        $("leaveBtn").hidden = staff && (s.members || []).filter(function (m) { return m.role === "lead"; }).length <= 1;
+        // 주 인솔자(방 만든 사람) · 보조 인솔자(차량 수만큼, 2026-10-28 홍TV님). 코드 · 내 폰 · 코드 바꾸기 · 방 끝내기는 주 인솔자만
+        var nAssist = (s.members || []).filter(function (m) { return m.role === "lead" && !m.chief; }).length + (s.role === "lead" && !s.chief ? 1 : 0);
+        if (s.leadCode && s.chief) { $("leadCode").textContent = s.leadCode; $("assistCount").textContent = T("(보조 " + nAssist + " / " + s.assistMax + "명)", "(assistants " + nAssist + " / " + s.assistMax + ")"); }
+        $("leadCodeRow").hidden = $("myPhoneRow").hidden = !(s.leadCode && s.chief);
+        $("endBtn").hidden = !s.chief;
+        $("leaveBtn").hidden = !!s.chief;   // 보조 인솔자는 언제든 "방 나가기"
     }
 
     /** 인솔자 - 아직 하산 탑승 안 한 사람(2026-10-22 점검: 숫자만 있어 누가 남았는지 명단을 훑어야 했음). 8명까지 이름. */
@@ -656,7 +660,7 @@
         $("listTitle").textContent = T("회원 ", "Members ") + rows.filter(function (m) { return !m.cancelled; }).length + T("명", "") + (rows.some(function (m) { return m.cancelled; }) ? T(" · 안 탐 ", " · not on bus ") + rows.filter(function (m) { return m.cancelled; }).length : "");
         $("list").innerHTML = rows.map(function (m) {
             var cls = m.cancelled ? "aboard" : m.sos ? "sos" : m.aboard ? "aboard" : (s.departed && silent(m)) ? "old" : "";
-            var st = m.cancelled ? T("안 탐", "Not on bus") : m.sos ? "🆘 SOS" : m.aboard ? (m.apart ? T("🚶 따로 귀가", "🚶 Home separately") : T("🚌 하산 탑승", "🚌 Back on bus")) : m.role === "lead" ? T("인솔", "Leader")
+            var st = m.cancelled ? T("안 탐", "Not on bus") : m.sos ? "🆘 SOS" : m.aboard ? (m.apart ? T("🚶 따로 귀가", "🚶 Home separately") : T("🚌 하산 탑승", "🚌 Back on bus")) : m.role === "lead" ? (m.chief ? T("주 인솔자", "Leader") : T("보조 인솔자", "Assistant"))
                 : s.departed ? T("🥾 산행 중", "🥾 Hiking") : m.boarded ? T("✅ 탐", "✅ On bus") : T("안 탐", "Not on bus");
             if (m.listed) st = T("📋 핸드폰 없음 · ", "📋 No phone · ") + st;   // 명단에만 - 인솔자가 눈으로 확인하고 눌러 체크(2026-10-24 홍TV님)
             if (m.role === "hiker" && !m.cancelled && s.departed)   // 하산 - 인솔자가 체크(핸드폰 없는 · 못 누른 회원, 따로 귀가는 2026-10-27)
@@ -669,14 +673,15 @@
                 + (m.msg ? "<br><small>💬 " + esc(m.msg) + " (" + clock(m.msgAt) + ")</small>" : "")
                 + (m.cancelled && m.role === "hiker" ? " <button type=\"button\" class=\"undo\" data-undo=\"" + m.id + "\" title=\"" + T("늦게 온 회원", "Late member") + "\">" + T("✅ 탔음", "✅ On bus") + "</button>" : "") + "</td><td>" + (m.aboard ? "-" : newsText(m)) + "</td><td>"
                 + (m.stillMin != null && m.ago != null ? m.stillMin + T("분", " min") : "-") + "</td><td>" + (m.batt != null ? m.batt + "%" : "-") + "</td><td>" + st
-                + (s.role === "lead" && m.role !== "lead" ? " <button type=\"button\" class=\"kick\" data-kick=\"" + m.id + "\" title=\"" + T("방에서 내보내기", "Remove from room") + "\" aria-label=\"" + T(esc(m.nick) + " 내보내기", "Remove " + esc(m.nick)) + "\">✕</button>" : "") + "</td></tr>";
+                + (s.role === "lead" && (m.role !== "lead" || (s.chief && !m.chief)) ? " <button type=\"button\" class=\"kick\" data-kick=\"" + m.id + "\" title=\"" + T("방에서 내보내기", "Remove from room") + "\" aria-label=\"" + T(esc(m.nick) + " 내보내기", "Remove " + esc(m.nick)) + "\">✕</button>" : "") + "</td></tr>";
         }).join("") || "<tr><td colspan=\"6\">" + T("아직 참가한 회원이 없습니다. 참가 안내를 보내 주세요.", "No members have joined yet. Send the invite.") + "</td></tr>";
         function rank(m) { return m.cancelled ? 6 : m.sos ? 0 : m.aboard ? 5 : (s.departed && silent(m)) ? 1 : (m.stillMin || 0) >= 15 ? 2 : 3; }
     }
 
     /** 인솔자 - 회원 내보내기(2026-10-20 홍TV님 - 모르는 사람이 들어왔을 때). */
     function kick(m) {
-        if (!m || !confirm(T(m.nick + " 님을 방에서 내보낼까요?\n그 폰의 산악회 방이 닫히고 위치도 지워집니다.", "Remove " + m.nick + " from the room?\nThe room closes on their phone and their location is deleted."))) return;
+        if (!m || !confirm(m.role === "lead" ? T(m.nick + " 님을 보조 인솔자에서 내보낼까요?\n그 폰에서 인솔자 화면이 닫힙니다. 코드가 샜다면 \"코드 바꾸기\"도 눌러 주세요.", "Remove " + m.nick + " as assistant leader?\nTheir leader screen closes. If the code leaked, also tap \"Change code\".")
+            : T(m.nick + " 님을 방에서 내보낼까요?\n그 폰의 산악회 방이 닫히고 위치도 지워집니다.", "Remove " + m.nick + " from the room?\nThe room closes on their phone and their location is deleted."))) return;
         var p = RFParty.get();
         RFParty.post("kick", { token: p.token, id: m.id }).then(function (j) { pick(null); render(j); roomMsg(T(m.nick + " 님을 내보냈습니다.", "Removed " + m.nick + ".")); })
             .catch(function (er) { er.ended ? fail(er) : roomMsg(enMsg(er.message)); });
@@ -1025,13 +1030,29 @@
             T("카메라가 안 되면 routefly.kr 에서 산악회 방 → 참가하기 → 이 코드를 치세요.", "Camera not working? On routefly.kr go to Hiking club room → Join → type this code."));
     });
     // 내 핸드폰에서도 보기(2026-10-27 홍TV님 - PC 에서 방을 만들면 핸드폰은 인솔자 열쇠가 없음): 공동 인솔자 코드가 채워진 참가 화면 QR
+    // 주 인솔자 내 폰: 10분 · 한 번 쓰는 코드로 같은 사람(보조 자리를 쓰지 않음, 2026-10-28)
     $("myPhoneBtn").addEventListener("click", function () {
+        var p = RFParty.get();
+        if (!p) return;
+        RFParty.post("mecode", { token: p.token }).then(function (j) {
+            showQr(location.origin + location.pathname + "?c=" + encodeURIComponent(j.code) + (EN ? "&lang=en" : ""),
+                T("📱 내 핸드폰 카메라로 찍으세요 - 핸드폰에도 이 주 인솔자 화면이 열립니다", "📱 Scan with your own phone - this leader screen opens there too"),
+                T("내 폰 코드", "My phone code"), j.code,
+                T(j.min + "분 안에 한 번만 쓸 수 있습니다. 다른 사람에게 보여 주지 마세요.", "Works once within " + j.min + " min. Don't show it to anyone else."));
+        }).catch(function (e) { roomMsg(enMsg(e.message)); });
+    });
+    $("assistQrBtn").addEventListener("click", function () {
         var code = $("leadCode").textContent;
         if (!code) return;
         showQr(location.origin + location.pathname + "?c=" + encodeURIComponent(code) + (EN ? "&lang=en" : ""),
-            T("📱 내 핸드폰 카메라로 찍으세요 - 이름만 넣으면 핸드폰에도 이 인솔자 화면이 열립니다", "📱 Scan with your own phone - enter your name and this leader screen opens there too"),
-            T("인솔자 코드", "Leader code"), code,
-            T("이 QR 은 인솔자용입니다. 회원에게 보여 주지 마세요(회원에게는 \"회원 방 코드 QR\").", "This QR is for leaders only - don't show it to members (use \"Member room code QR\" for them)."));
+            T("📱 보조 인솔자 핸드폰 카메라로 찍으세요 - 이름을 넣으면 보조 인솔자로 들어옵니다", "📱 Assistant leader scans this - enters a name and joins as assistant"),
+            T("보조 인솔자 코드", "Assistant leader code"), code,
+            T("이 QR 은 보조 인솔자용입니다. 회원에게 보여 주지 마세요(회원에게는 \"회원 방 코드 QR\").", "For assistant leaders only - don't show it to members (use \"Member room code QR\" for them)."));
+    });
+    $("newCodeBtn").addEventListener("click", function () {
+        var p = RFParty.get();
+        if (!p || !confirm(T("보조 인솔자 코드를 새로 바꿀까요?\n옛 코드로는 더 들어올 수 없습니다. 이미 들어온 보조 인솔자는 그대로입니다(필요하면 명단에서 ✕).", "Change the assistant leader code?\nThe old code stops working. Assistants already in stay (remove with ✕ if needed)."))) return;
+        RFParty.post("leadcode", { token: p.token }).then(function (j) { $("leadCode").textContent = j.leadCode; roomMsg(T("새 보조 인솔자 코드: ", "New assistant code: ") + j.leadCode); }).catch(function (e) { roomMsg(enMsg(e.message)); });
     });
     $("qrClose").addEventListener("click", function () { $("qrBox").hidden = true; });
     $("qrBox").addEventListener("click", function (e) { if (e.target === this) this.hidden = true; });
