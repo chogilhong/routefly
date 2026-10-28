@@ -134,12 +134,27 @@ sudo mkdir -p /opt/tomcat/conf/Catalina/localhost && sudo chown -R tomcat: /opt/
 <Valve className="org.apache.catalina.valves.ErrorReportValve" showReport="false" showServerInfo="false" />
 ```
 
-같은 `<Host>` 안의 접속 기록(AccessLogValve)은 주소의 ?뒤를 빼고(`%U`) 30일만 둡니다 - 개인정보처리방침(privacy.html) "접속 기록" 과 맞춤:
+같은 `<Host>` 안의 접속 기록(AccessLogValve)은 주소의 ?뒤를 빼고(`%U`) 30일만 둡니다 - 개인정보처리방침(privacy.html) "접속 기록"(IP 주소 · 접속 시각 · 경로 · 브라우저 종류)과 맞춤.
+2026-10-28 부터 앞 칸은 `%{X-Forwarded-For}i`(nginx 가 넣은 실제 IP - 맨 뒤 값), 끝 칸은 브라우저(`%{User-Agent}i`) - 예전 `%h` 는 nginx 뒤라 모두 127.0.0.1 이어서
+수집기와 사람을 가릴 수 없었음(2026-10-28 화면 수 3배 조사). RemoteIpValve 는 쓰지 않음(요청의 IP 가 바뀌어 SecurityFilter.clientIp 판단이 달라질 수 있음):
 
 ```xml
 <Valve className="org.apache.catalina.valves.AccessLogValve" directory="logs" prefix="localhost_access_log" suffix=".txt"
-       pattern="%h %t &quot;%m %U&quot; %s %b" maxDays="30" />
+       pattern="%{X-Forwarded-For}i %t &quot;%m %U&quot; %s %b &quot;%{User-Agent}i&quot;" maxDays="30" />
 ```
+
+이미 돌고 있는 서버를 바꿀 때(메인 열쇠 - 홍TV님):
+
+```bash
+sudo cp /opt/tomcat/conf/server.xml /opt/tomcat/conf/server.xml.bak-20261028
+sudo sed -i 's|pattern="%h %t &quot;%m %U&quot; %s %b"|pattern="%{X-Forwarded-For}i %t \&quot;%m %U\&quot; %s %b \&quot;%{User-Agent}i\&quot;"|' /opt/tomcat/conf/server.xml
+grep -n 'AccessLogValve' -A1 /opt/tomcat/conf/server.xml     # pattern 에 User-Agent 가 보이면 됨
+sudo systemctl restart tomcat && sleep 15 && systemctl is-active tomcat
+curl -s -o /dev/null -w '%{http_code}\n' https://routefly.kr/routefly/api/party/status   # 200
+sudo tail -n 3 /opt/tomcat/logs/localhost_access_log.$(date +%F).txt                      # 맨 앞이 127.0.0.1 이 아닌 IP, 맨 끝에 "Mozilla/…"
+```
+
+되돌리기: `sudo cp /opt/tomcat/conf/server.xml.bak-20261028 /opt/tomcat/conf/server.xml && sudo systemctl restart tomcat`.
 
 `/etc/systemd/system/tomcat.service`:
 

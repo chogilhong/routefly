@@ -58,7 +58,9 @@ public class PrivacyPolicyTest {
         // 접속 기록에 ?뒤를 남기지 않고 14 · 30일
         String deploy = read("docs/deploy-lightsail.md");
         assertTrue(deploy.contains("access_log /var/log/nginx/access.log routefly_noargs;"));
-        assertTrue(deploy.contains("pattern=\"%h %t &quot;%m %U&quot; %s %b\" maxDays=\"30\""));
+        // 2026-10-28: 실제 IP(nginx X-Forwarded-For) · 브라우저 - 방침의 "IP 주소 · 브라우저 종류" 그대로, ?뒤(%U)는 여전히 안 남김
+        assertTrue(deploy.contains("pattern=\"%{X-Forwarded-For}i %t &quot;%m %U&quot; %s %b &quot;%{User-Agent}i&quot;\" maxDays=\"30\""));
+        assertTrue(policy.contains("IP 주소, 접속 시각") && policy.contains("브라우저 종류"));
         assertTrue(policy.contains("14일 뒤 자동 삭제") && policy.contains("30일 뒤 자동 삭제"));
         // 요청 횟수는 2분 쉬면 지움(RateLimiter.sweep idle 120초)
         assertTrue(policy.contains("2분 동안 요청이 없으면"));
