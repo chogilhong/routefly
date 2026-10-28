@@ -1479,8 +1479,10 @@
             v.onclick = function () { showRecord(r); };
             var x = document.createElement("button"); x.textContent = T("지우기", "Delete");
             x.onclick = function () {
-                if (!confirm(T("이 기록을 지울까요?", "Delete this record?"))) return;
+                if (!confirm(T("이 기록을 지울까요?\n산행 결산에서도 빠집니다.", "Delete this record?\nIt is also removed from the hiking summary."))) return;
                 var l = records(); l.splice(i, 1);
+                // 직접 지운 기록은 결산에서도 뺌(2026-10-28 홍TV님) - 30개가 넘어 저절로 밀려난 기록은 결산에 남음
+                try { localStorage.setItem(LOG_KEY, JSON.stringify(RF.dropLog(readLog(), r))); } catch (e) { /* 저장 공간 */ }
                 writeRecords(l).then(gcPhotos);
                 drawRecords();
             };

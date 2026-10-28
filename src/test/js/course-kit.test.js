@@ -190,6 +190,7 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
     eq("거리 - 큰 값", RF.recDist({ walked: 3000, done: 5800 }), 5800);
     eq("합계 - 큰 값으로 더함", RF.recordStats([{ start: 1, end: 2, walked: 3000, done: 5800 }, { start: 3, end: 4, walked: 3000 }]).walked, 8800);
     eq("요약 - 옛 것(3000)을 새 것(5800)으로", RF.mergeLog([{ start: 1, courseId: "a", walked: 3000 }], [{ start: 1, courseId: "a", walked: 5800 }])[0].walked, 5800);
+    eq("결산 - 직접 지운 산행만 뺌", RF.dropLog([{ start: 1, courseId: "a" }, { start: 2, courseId: "a" }, { start: 1, courseId: "b" }], { start: 1, courseId: "a" }).map(function (e) { return e.start + e.courseId; }).join(), "2a,1b");
     eq("트립 - 들머리", RF.tripLink("https://kr.trip.com/?Allianceid=1&SID=2&trip_sub1=routefly&curr=KRW&locale=ko-KR", 35.3070131, 127.6136087, "지리산 중산리"),
         "https://kr.trip.com/hotels/list?cityId=0&searchType=LM&searchWord=%EC%A7%80%EB%A6%AC%EC%82%B0%20%EC%A4%91%EC%82%B0%EB%A6%AC&searchValue=13%7C0*13*35.307013%7C127.613609%7C%EC%A7%80%EB%A6%AC%EC%82%B0%20%EC%A4%91%EC%82%B0%EB%A6%AC%7C0%7C1&listFilters=17~5*17*5&Allianceid=1&SID=2&trip_sub1=routefly&curr=KRW&locale=ko-KR");
     eq("트립 - 옛 검색 칸은 버림 · ? 앞 / 없어도", RF.tripLink("https://kr.trip.com?Allianceid=1&city=88097&checkIn=2026-10-28&lat=1&listFilters=x", 38.17, 128.49, "설악산|소공원").indexOf("city=88097") < 0 && RF.tripLink("https://kr.trip.com?listFilters=x", 1, 2, "a").indexOf("listFilters=x") < 0 && RF.tripLink("https://kr.trip.com?Allianceid=1", 38.17, 128.49, "a").indexOf("Allianceid=1") > 0, true);
