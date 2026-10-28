@@ -1155,7 +1155,7 @@
         // 숫자
         var eles = rc.ele.filter(function (e) { return e != null; }), high = RF.recordHighest(rc, cardPeaks.peaks, cardPeaks.elev);
         // 거리: 걸은 거리와 코스 진행 가운데 큰 값(2026-10-28 PC: 화면이 꺼져 위치가 끊긴 옛 기록은 걸은 거리가 짧게 남음 - 12km 산행이 5.45km)
-        var stats = [[T("거리", "Distance"), km(Math.max(rec.walked || 0, rec.done || 0)) + " km"], [T("시간", "Time"), RF.hm(rec.end - rec.start, true)]]
+        var stats = [[T("거리", "Distance"), km(RF.recDist(rec)) + " km"], [T("시간", "Time"), RF.hm(rec.end - rec.start, true)]]
             .concat(rec.up != null ? [[T("오른 높이", "Climb"), num(rec.up) + " m"]] : [])
             .concat(high != null ? [[T("가장 높은 곳", "Highest"), num(high) + " m"]] : []);
         var sy = top + boxH + 70, cw = (W - P * 2) / stats.length;
@@ -1466,7 +1466,7 @@
             var info = document.createElement("div"), b = document.createElement("b"), sp = document.createElement("span");
             b.textContent = NM(r.name);
             var d = new Date(r.start);
-            sp.textContent = d.getFullYear() + "." + (d.getMonth() + 1) + "." + d.getDate() + " · " + km(Math.max(r.walked || 0, r.done || 0)) + "km · " + hhmmss(r.end - r.start)
+            sp.textContent = d.getFullYear() + "." + (d.getMonth() + 1) + "." + d.getDate() + " · " + km(RF.recDist(r)) + "km · " + hhmmss(r.end - r.start)
                 + (r.kcal != null ? " · " + num(r.kcal) + "kcal" : "") + (r.steps != null ? " · " + num(r.steps) + T("보", " steps") : "");
             info.appendChild(b); info.appendChild(sp);
             var g = document.createElement("button"); g.textContent = canShareFiles() ? "📤 GPX" : "GPX"; g.title = T("GPX 파일 보내기 · 저장", "Send or save GPX file"); g.onclick = function () { downloadGpx(r); };
@@ -1680,7 +1680,7 @@
         var d = new Date(rec.start);
         var eles = rc.ele.filter(function (e) { return e != null; });
         [[T("날짜", "Date"), d.getFullYear() + "." + (d.getMonth() + 1) + "." + d.getDate() + " " + clock(rec.start)],
-         [T("거리", "Distance"), km(Math.max(rec.walked || 0, rec.done || 0)) + " km"], [T("걸린 시간", "Time"), hhmmss(rec.end - rec.start)]]   // 카드와 같은 규칙(2026-10-28 PC)
+         [T("거리", "Distance"), km(RF.recDist(rec)) + " km"], [T("걸린 시간", "Time"), hhmmss(rec.end - rec.start)]]   // 카드와 같은 규칙(2026-10-28 PC)
             .concat(rec.up != null ? [[T("오른 높이", "Climb"), num(rec.up) + " m"]] : [])
             .concat(eles.length ? [[T("가장 높은 곳", "Highest"), num(RF.recordHighest(rc, cardPeaks.peaks, cardPeaks.elev)) + " m"]] : [])
             .concat(rec.kcal != null ? [[T("칼로리(추정)", "Calories (est.)"), num(rec.kcal) + " kcal"]] : [])

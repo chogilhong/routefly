@@ -186,6 +186,10 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
         eq("가장 높은 곳 - 한 점 튐(1,990)은 가운뎃값으로", RF.recordHighest(spikeEle, [], null), 1904);
         eq("가장 높은 곳 - 정상 200m 안이면 공식 높이", RF.recordHighest(spikeEle, [{ id: "지리산", lat: 35.3321, lon: 127.7 }], { "지리산": 1915 }), 1915);
     })();
+    // 합계도 같은 거리(2026-10-28 PC): 걸은 거리와 코스 진행 가운데 큰 값, 옛 요약은 합칠 때 큰 값으로
+    eq("거리 - 큰 값", RF.recDist({ walked: 3000, done: 5800 }), 5800);
+    eq("합계 - 큰 값으로 더함", RF.recordStats([{ start: 1, end: 2, walked: 3000, done: 5800 }, { start: 3, end: 4, walked: 3000 }]).walked, 8800);
+    eq("요약 - 옛 것(3000)을 새 것(5800)으로", RF.mergeLog([{ start: 1, courseId: "a", walked: 3000 }], [{ start: 1, courseId: "a", walked: 5800 }])[0].walked, 5800);
     eq("트립 - 들머리", RF.tripLink("https://kr.trip.com/?Allianceid=1&SID=2&trip_sub1=routefly&curr=KRW&locale=ko-KR", 35.3070131, 127.6136087, "지리산 중산리"),
         "https://kr.trip.com/hotels/list?cityId=0&searchType=LM&searchWord=%EC%A7%80%EB%A6%AC%EC%82%B0%20%EC%A4%91%EC%82%B0%EB%A6%AC&searchValue=13%7C0*13*35.307013%7C127.613609%7C%EC%A7%80%EB%A6%AC%EC%82%B0%20%EC%A4%91%EC%82%B0%EB%A6%AC%7C0%7C1&listFilters=17~5*17*5&Allianceid=1&SID=2&trip_sub1=routefly&curr=KRW&locale=ko-KR");
     eq("트립 - 옛 검색 칸은 버림 · ? 앞 / 없어도", RF.tripLink("https://kr.trip.com?Allianceid=1&city=88097&checkIn=2026-10-28&lat=1&listFilters=x", 38.17, 128.49, "설악산|소공원").indexOf("city=88097") < 0 && RF.tripLink("https://kr.trip.com?listFilters=x", 1, 2, "a").indexOf("listFilters=x") < 0 && RF.tripLink("https://kr.trip.com?Allianceid=1", 38.17, 128.49, "a").indexOf("Allianceid=1") > 0, true);
