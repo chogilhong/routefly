@@ -3,4 +3,4 @@
 # 보낸 명령을 낱말로 나눠(eval 없이) root 쪽 읽기 스크립트에 넘깁니다 - 무엇을 읽을지는 그쪽이 검사합니다.
 set -euo pipefail
 read -r -a args <<< "${SSH_ORIGINAL_COMMAND:-}"
-exec sudo -n /usr/local/sbin/routefly-logs-read "${args[@]}"
+exec sudo -n -u tomcat /usr/local/sbin/routefly-logs-read "${args[@]}"

@@ -82,7 +82,7 @@ public class PartyServlet extends HttpServlet {
         if (office && (OFFICES.over(ip, now) || OFFICES_ALL.over("*", now))) { Json.fail(resp, 429, "하루에 만들 수 있는 사무실 수를 넘었습니다. 내일 다시 해 주세요."); return; }
         JsonObject in;
         try {
-            in = body(req);
+            in = body(req, "/roster".equals(path) ? 32_768 : 4096);   // 명단은 300줄을 한 번에(2026-10-28 - 40명씩 나눠 보내다 한도 · 중복 판단이 어긋났음)
         } catch (Exception e) {
             Json.fail(resp, 400, "요청을 읽지 못했습니다.");
             return;
@@ -170,14 +170,14 @@ public class PartyServlet extends HttpServlet {
         }
     }
 
-    /** 본문 JSON(4KB 까지). */
-    private static JsonObject body(HttpServletRequest req) throws IOException {
+    /** 본문 JSON(max 글자까지 - 보통 4KB, 명단 32KB). */
+    private static JsonObject body(HttpServletRequest req, int max) throws IOException {
         StringBuilder sb = new StringBuilder();
         char[] buf = new char[1024];
         BufferedReader r = req.getReader();
         for (int n; (n = r.read(buf)) > 0;) {
             sb.append(buf, 0, n);
-            if (sb.length() > 4096) throw new IOException("too large");
+            if (sb.length() > max) throw new IOException("too large");
         }
         return JsonParser.parseString(sb.toString()).getAsJsonObject();
     }
@@ -257,7 +257,7 @@ public class PartyServlet extends HttpServlet {
             }
             case "/roster" -> {
                 if (!lead) throw new SecurityException("인솔자만 명단을 넣을 수 있습니다.");
-                int n = p.roster(m, str(in, "text"), now);
+                int n = in.has("rows") && in.get("rows").isJsonArray() ? p.rosterRows(m, in.getAsJsonArray("rows"), now) : p.roster(m, str(in, "text"), now);
                 out = p.view(m, now);
                 out.addProperty("added", n);
                 return out;

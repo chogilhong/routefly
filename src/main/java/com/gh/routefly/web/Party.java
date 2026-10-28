@@ -48,6 +48,12 @@ final class Party {
     /** 지나온 길(출발 뒤 산행 회원만, 메모리) - 이만큼 움직였을 때 한 점, 사람마다 TRACK_MAX 점까지(넘으면 하나 걸러 버림). 인솔자는 최근 TRAIL_MS 만 봄(조난 대비). */
     static final double TRACK_MIN_M = 10;
     static final int TRACK_MAX = 4000;
+    /**
+     * 지나온 길 한 점의 최소 간격 · 방 전체 점 한도(2026-10-28 보안 점검: 간격 없이 /loc 를 몰아 보내 방마다 수십 MB 를 채워 톰캣 메모리를 바닥낼 수 있었음).
+     * 정상 폰은 30초마다 보내므로 10초 간격은 걸리지 않음. 방 한도를 넘으면 그 사람 길을 하나 걸러 줄임.
+     */
+    static final long TRACK_EVERY_MS = 10_000L;
+    static final int ROOM_TRACK_MAX = 150_000;
     static final long TRAIL_MS = 2 * HOUR;
     /** 끝난 방의 열쇠로 오면 왜 끝났는지 알려 줌(이만큼 동안). */
     static final long ENDED_KEEP_MS = 48 * HOUR;
@@ -98,6 +104,8 @@ final class Party {
         boolean sos;
         /** 인솔자에게 한 줄(2026-10-27 홍TV님 - 공지의 반대 방향) - 메모리에만, 방이 끝나면 사라짐. */
         String msg;
+        /** 출발 뒤 명단 이름으로 핸드폰이 들어온 때(2026-10-28 보안 점검) - 회원 한 줄(msg)과 따로 두어 회원이 덮어쓰지 못하게. 메모리. */
+        long lateAt;
         long msgAt;
         /** 인솔자 화면이 이 회원의 위치를 마지막으로 받아 간 때(제3자 제공 - 위치정보법 제19조 제3항 매회 즉시 통보, 2026-10-27 위치정보지원센터 답 · 홍TV님 (가)). */
         long providedAt;
@@ -136,6 +144,8 @@ final class Party {
         /** 하차 지점 도착(인솔자 "⬇ 한계령 도착") - [지점, 때, 위도, 경도(없으면 NaN)], 최근 8개. 메모리. */
         final List<Object[]> arrivals = new ArrayList<>();
 
+        /** 이 방 회원들 지나온 길 점 수(ROOM_TRACK_MAX). 메모리. */
+        int trackPts;
         Object[] lastArrival() { return arrivals.isEmpty() ? null : arrivals.get(arrivals.size() - 1); }
         final Map<Integer, double[]> busAt = new java.util.TreeMap<>();   // 호차 → 버스 세운 자리
         final String[] plates;   // 호차 - 1 → 차량번호(null = 아직)
@@ -382,7 +392,11 @@ final class Party {
     }
 
     /** "17:00 · 17.00 · 17시 · 17시20분", 그리고 숫자만 "2320"(2026-10-28 점검 - 안내에 "숫자만 쳐도 됩니다" 인데 탑승지 이름으로 들어갔음). */
-    private static final java.util.regex.Pattern STOP_TIME = java.util.regex.Pattern.compile("(?<!\\d)(?:([01]?\\d|2[0-3])\\s*(?:[:.]|시)\\s*([0-5]\\d)?\\s*분?|([01]\\d|2[0-3])([0-5]\\d))(?!\\d)");
+    private static final java.util.regex.Pattern STOP_TIME = java.util.regex.Pattern.compile("(?<!\\d)([01]?\\d|2[0-3])\\s*(?:[:.]|시)\\s*([0-5]\\d)?\\s*분?(?!\\d)");
+    /**
+     * 숫자만 "2320" · "930" - 앞뒤에 글자 · 숫자가 붙지 않은 것만, 위 꼴이 없을 때만(2026-10-28 버그 점검: "1100고지 08:30" 이 11:00 · "고지" 가 됐음).
+     */
+    private static final java.util.regex.Pattern STOP_HHMM = java.util.regex.Pattern.compile("(?<![\\d가-힣A-Za-z])([01]?\\d|2[0-3])([0-5]\\d)(?![\\d가-힣A-Za-z])");
 
     private static List<String[]> stopEntries(String text) {
         List<String[]> out = new ArrayList<>();
@@ -391,9 +405,10 @@ final class Party {
         for (String t : text.split("[,\n·]")) {
             String time = "";
             java.util.regex.Matcher m = STOP_TIME.matcher(t);
-            if (m.find()) {
-                time = m.group(3) != null ? m.group(3) + ":" + m.group(4)
-                        : String.format("%02d:%s", Integer.parseInt(m.group(1)), m.group(2) == null ? "00" : m.group(2));
+            boolean hit = m.find();
+            if (!hit) { m = STOP_HHMM.matcher(t); hit = m.find(); }
+            if (hit) {
+                time = String.format("%02d:%s", Integer.parseInt(m.group(1)), m.group(2) == null ? "00" : m.group(2));
                 t = t.substring(0, m.start()) + t.substring(m.end());
             }
             String c = clean(t, 12);
@@ -534,8 +549,7 @@ final class Party {
         pick.listed = false;
         if (boardNow) pick.boarded = true;
         if (r.departed) {   // 출발 뒤 명단 이름으로 들어옴 - 다른 폰이 이름만 대고 가로챌 수 있어 인솔자에게 알림(2026-10-28 보안 점검)
-            pick.msg = "📱 출발 뒤 명단 이름으로 핸드폰이 들어왔습니다 - 본인이 맞는지 확인해 주세요(아니면 내보내기)";
-            pick.msgAt = now;
+            pick.lateAt = now;
             audit.info("late claim room={} id={}", r.code, pick.id);
         }
         memberLog.add(now, r.code, pick.id, "join role=hiker roster");   // 명단 사람 · 위치 제공 동의
@@ -548,10 +562,30 @@ final class Party {
      * 이름만 받습니다(연락처 없음). 이미 있는 같은 이름 · 같은 자리는 건너뜀. 돌려줌: 새로 넣은 사람 수.
      */
     synchronized int roster(Member lead, String text, long now) {
+        return rosterAdd(lead, rosterParse(text), now);
+    }
+
+    /**
+     * 명단 줄로(2026-10-28 버그 점검 - 엑셀 · 파일에서 읽은 것은 화면이 이름 · 호차 · 좌석을 따로 보냄: "김철수2" 같은 이름 끝 숫자 · "2호차 15번" 을 글로 다시 읽다 틀렸음).
+     * rows - [{name, bus, seat}] 300줄까지.
+     */
+    synchronized int rosterRows(Member lead, com.google.gson.JsonArray rows, long now) {
+        List<Object[]> es = new ArrayList<>();
+        if (rows != null) for (int i = 0; i < rows.size() && i < MAX_MEMBERS; i++) {
+            if (!rows.get(i).isJsonObject()) continue;
+            JsonObject o = rows.get(i).getAsJsonObject();
+            String n = o.has("name") && o.get("name").isJsonPrimitive() ? clean(o.get("name").getAsString().replace(" ", ""), 12) : null;
+            if (n == null) continue;
+            int b = o.has("bus") && o.get("bus").isJsonPrimitive() && o.get("bus").getAsJsonPrimitive().isNumber() ? o.get("bus").getAsInt() : 1;
+            Integer seat = o.has("seat") && o.get("seat").isJsonPrimitive() && o.get("seat").getAsJsonPrimitive().isNumber() ? Integer.valueOf(o.get("seat").getAsInt()) : null;
+            es.add(new Object[] {n, b, seat});
+        }
+        return rosterAdd(lead, es, now);
+    }
+
+    private int rosterAdd(Member lead, List<Object[]> es, long now) {
         Room r = lead.room;
-        List<Object[]> es = rosterParse(text);
         if (es.isEmpty()) throw new IllegalArgumentException("명단을 읽지 못했습니다. \"홍길동 5 김철수 6\" 처럼 이름(과 좌석 번호)을 적어 주세요.");
-        if (r.members.size() + es.size() > MAX_MEMBERS) throw new IllegalStateException("이 방은 " + MAX_MEMBERS + "명까지입니다.");
         java.util.Set<Integer> used = new java.util.HashSet<>();
         List<Object[]> add = new ArrayList<>();
         for (Object[] e : es) {
@@ -559,9 +593,10 @@ final class Party {
             int b = (Integer) e[1];
             Integer seat = (Integer) e[2];
             boolean dup = false;
-            // 같은 이름 · 같은 자리면 건너뜀. 좌석 없이 이름만 온 줄은 같은 이름이 있으면 건너뜀(2026-10-28 PC: 다시 불러오기에서 좌석을 못 읽은 줄이 하나 더 생겼음)
+            // 같은 이름 · 같은 자리면 건너뜀. 좌석 없이 온 줄은 같은 호차에 명단으로 넣은 같은 이름이 있으면 건너뜀(다시 불러오기, 2026-10-28 PC).
+            // 핸드폰으로 들어온 사람 · 다른 호차의 같은 이름은 동명이인으로 봄(2026-10-28 버그 점검: 다른 김민수를 말없이 빼 먹었음)
             for (Member x : r.members.values())
-                if (nameKey(x.nick).equals(nameKey(n)) && !x.cancelled && (seat == null || x.bus == b && java.util.Objects.equals(x.seat, seat))) dup = true;
+                if (nameKey(x.nick).equals(nameKey(n)) && !x.cancelled && x.bus == b && (seat == null ? x.rostered : java.util.Objects.equals(x.seat, seat))) dup = true;
             if (dup) continue;
             try {
                 checkBus(r, b);
@@ -572,6 +607,8 @@ final class Party {
             if (seat != null && !used.add(b * 100 + seat)) throw new IllegalArgumentException(n + ": " + busName(r, b) + seat + "번이 명단에 두 번 있습니다.");
             add.add(e);
         }
+        // 인원 한도는 이미 있는 사람을 뺀 뒤로(2026-10-28 버그 점검: 다시 불러오기가 261명부터 막혔음)
+        if (r.members.size() + add.size() > MAX_MEMBERS) throw new IllegalStateException("이 방은 " + MAX_MEMBERS + "명까지입니다(지금 " + r.members.size() + "명, 새로 " + add.size() + "명).");
         for (Object[] e : add) {
             Member m = add(r, (String) e[0], "hiker", now);
             m.bus = (Integer) e[1];
@@ -591,6 +628,8 @@ final class Party {
         java.util.regex.Pattern busSeat = java.util.regex.Pattern.compile("(?:(\\d{1,2})-)?(\\d{1,3})번?");
         java.util.regex.Pattern nameNum = java.util.regex.Pattern.compile("(.*?\\D)((?:\\d{1,2}-)?\\d{1,3})번?");
         java.util.regex.Pattern busOnly = java.util.regex.Pattern.compile("(\\d{1,2})호차");
+        // "2호차 15번" · "2호차15번" → "2-15"(2026-10-28 버그 점검: 좌석이 호차를 1로 되돌렸음)
+        text = text.replaceAll("(\\d{1,2})\\s*호차\\s*(\\d{1,3})\\s*번?", "$1-$2");
         for (String t : text.split("[\\s,·;/]+")) {
             if (t.isEmpty()) continue;
             java.util.regex.Matcher bo = busOnly.matcher(t);
@@ -873,9 +912,14 @@ final class Party {
         m.lat = lat; m.lon = lon; m.acc = acc; m.batt = batt == null ? null : Math.max(0, Math.min(100, batt)); m.t = now; m.seen = now;
         if (m.room.departed && "hiker".equals(m.role) && (acc == null || acc <= 100)) {   // 출발 뒤 산행 회원만 - 집 · 집결지 길은 남기지 않음
             double[] last = m.track.isEmpty() ? null : m.track.get(m.track.size() - 1);
-            if (last == null || MountainServlet.distM(last[0], last[1], lat, lon) >= TRACK_MIN_M) {
-                if (m.track.size() >= TRACK_MAX) for (int i = m.track.size() - 1; i > 0; i -= 2) m.track.remove(i);
+            if (last == null || MountainServlet.distM(last[0], last[1], lat, lon) >= TRACK_MIN_M && now - (long) last[2] >= TRACK_EVERY_MS) {
+                if (m.track.size() >= TRACK_MAX || m.room.trackPts >= ROOM_TRACK_MAX && m.track.size() > 100) {
+                    int before = m.track.size();
+                    for (int i = m.track.size() - 1; i > 0; i -= 2) m.track.remove(i);
+                    m.room.trackPts -= before - m.track.size();
+                }
                 m.track.add(new double[] {lat, lon, now});
+                m.room.trackPts++;
             }
         }
         autoDrop(m, lat, lon, now);   // 위치로 하차 확인(2026-10-28)
@@ -1049,6 +1093,7 @@ final class Party {
         if (t.office) throw new IllegalArgumentException("회사 사무실은 내보낼 수 없습니다.");
         lead.room.members.remove(t.token);
         byToken.remove(t.token);
+        lead.room.trackPts -= t.track.size();
         endedWhy.put(t.token, assist ? "주 인솔자가 보조 인솔자에서 내보냈습니다." : "인솔자가 이 방에서 내보냈습니다. 잘못이면 인솔자에게 연락하세요.");
         endedAt.put(t.token, now);
         memberLog.add(now, lead.room.code, t.id, "kick");
@@ -1061,9 +1106,12 @@ final class Party {
      */
     synchronized void leave(Member m, long now) {
         if (m.chief()) throw new IllegalStateException("주 인솔자는 \"방 끝내기\" 로 끝냅니다.");   // 보조 인솔자는 언제든 나감
+        // 이미 그만 보낸 회원이 또 누름 - 확인자료 파기(파일 다시 쓰기)를 되풀이하지 않음(2026-10-28 보안 점검: 같은 열쇠로 /leave 를 몰아 보내 모든 방이 멈췄음)
+        if ("hiker".equals(m.role) && m.listed && m.t == 0 && m.track.isEmpty()) return;
         if ("hiker".equals(m.role)) {   // 산행 회원 - 위치만 그만 보내고 명단 · 좌석 · 탑승은 남김(인솔자 인원 확인, 2026-10-26 홍TV님 "좌석표에서도 빠지는데")
             m.rostered = true;   // 명단으로 들어오지 않았어도 이제 명단 사람(같은 이름으로 다시 참가하면 그 자리로)
             m.listed = true;
+            m.room.trackPts -= m.track.size();
             m.lat = null; m.lon = null; m.acc = null; m.t = 0; m.sos = false; m.track.clear();
             memberLog.purge(m.room.code, m.id);   // 철회 - 이 회원의 확인자료 즉시 파기
             save();
@@ -1230,7 +1278,14 @@ final class Party {
 
     /** 사무실 - 링크 바꾸기. 돌려줌: 새 열쇠. */
     synchronized String officeNewKey(String key) {
-        return offices.newKey(offices.byKey(key));
+        PartyOffice.Office o = offices.byKey(key);
+        // 옛 링크로 이미 연 방의 사무실 자리도 끊음(2026-10-28 보안 점검: 링크가 샌 뒤 바꿔도 이미 연 자리로 회원 위치를 계속 볼 수 있었음). 다음 "열기" 때 새 자리
+        for (Room r : rooms.values()) {
+            if (!o.code.equals(r.officeCode)) continue;
+            for (Member m : new ArrayList<>(r.members.values())) if (m.office) { r.members.remove(m.token); byToken.remove(m.token); }
+        }
+        save();
+        return offices.newKey(o);
     }
 
     /**
@@ -1520,7 +1575,7 @@ final class Party {
             // 만들 때부터 600(2026-10-28 보안 점검: 복사한 뒤 권한을 바꾸면 그 사이 남이 읽을 수 있음)
             try { Files.createFile(b, java.nio.file.attribute.PosixFilePermissions.asFileAttribute(java.nio.file.attribute.PosixFilePermissions.fromString("rw-------"))); }
             catch (UnsupportedOperationException e) { /* 윈도 */ }
-            Files.copy(file, b, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            Files.write(b, Files.readAllBytes(file));   // 만든 600 파일에 씀(copy 는 파일을 새로 만들어 원래 권한이 됐음, 2026-10-28 점검)
         } catch (Exception e) {
             log.warn("[PARTY] 옛 파일을 남기지 못함 - {}", e.toString());
         }
@@ -1696,7 +1751,8 @@ final class Party {
                 x.addProperty("lon", m.lon);
                 x.addProperty("ago", (now - m.t) / 1000);
             }
-            if (m.msg != null && (staff || m == me)) { x.addProperty("msg", m.msg); x.addProperty("msgAt", m.msgAt); }   // 인솔자에게 한 줄
+            if (m.msg != null && (staff || m == me)) { x.addProperty("msg", m.msg); x.addProperty("msgAt", m.msgAt); }
+            if (staff && m.lateAt > 0) x.addProperty("lateAt", m.lateAt);   // 출발 뒤 명단 이름으로 들어옴 - 인솔자 화면에 "본인 확인"   // 인솔자에게 한 줄
             if (staff) {
                 if (m.app) x.addProperty("app", true);   // 📱 앱(화면을 꺼도 보냄) · 아니면 🌐 웹
                 x.addProperty("boarded", m.boarded);

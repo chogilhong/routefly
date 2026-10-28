@@ -23,6 +23,11 @@
         if (sec == null) return "-";
         return sec < 60 ? "방금" : sec < 3600 ? Math.floor(sec / 60) + "분 전" : Math.floor(sec / 3600) + "시간 전";
     }
+    // 큰 글씨 확인 창(rf-dialog.js, 2026-10-28 접근성 - 인솔자 화면과 같게). 없으면 브라우저 창
+    var D = window.RFDialog;
+    function say(t) { if (D) return D.alert(t); alert(t); return Promise.resolve(); }
+    function ask(t, o) { return D ? D.confirm(t, o) : Promise.resolve(confirm(t)); }
+    function askText(t, v, o) { return D ? D.prompt(t, v, o) : Promise.resolve(prompt(t, v)); }
     function linkOf(k) { return location.origin + location.pathname + "#k=" + k; }
 
     function showOnly(id) {
@@ -127,13 +132,16 @@
     });
     $("goOffice").addEventListener("click", start);
     $("forget").addEventListener("click", function () {
-        if (!confirm("이 기기에서 로그아웃할까요? 사무실은 그대로이고, 다시 들어오려면 사무실 링크가 있어야 합니다.")) return;
-        store(null);
-        location.reload();
+        ask("이 기기에서 로그아웃할까요? 사무실은 그대로이고, 다시 들어오려면 사무실 링크가 있어야 합니다.", { ok: "로그아웃" }).then(function (ok) {
+            if (!ok) return;
+            store(null);
+            location.reload();
+        });
     });
     // 사무실 링크 바꾸기 · 사무실 없애기(2026-10-28 홍TV님 "만들어")
     $("newKey").addEventListener("click", function () {
-        if (!confirm("사무실 링크를 바꿀까요? 옛 링크는 바로 안 되고, 다른 직원에게 새 링크를 다시 알려 줘야 합니다.")) return;
+        ask("사무실 링크를 바꿀까요? 옛 링크는 바로 안 되고, 다른 직원에게 새 링크를 다시 알려 줘야 합니다.", { ok: "링크 바꾸기", danger: true }).then(function (ok) {
+        if (!ok) return;
         RFParty.post("office/newkey", { key: key }).then(function (j) {
             store(j.key);
             key = j.key;
@@ -143,25 +151,28 @@
             showOnly("madeSec");
             msg("");
         }).catch(function (e) { msg(e.message); });
+        });
     });
     $("copyMine").addEventListener("click", function () {   // 이 기기에 저장된 사무실 링크(2026-10-28 홍TV님 - 만든 뒤 링크를 놓쳤음)
         var t = linkOf(key);
         (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { msg("사무실 링크를 복사했습니다. 즐겨찾기 · 메모에 남겨 두세요(다른 사람에게 보이지 않게)."); })
-            .catch(function () { prompt("아래 링크를 길게 눌러 복사하세요", t); });
+            .catch(function () { askText("복사가 안 됩니다. 아래 칸의 링크를 길게 눌러 복사하세요.", t, { ok: "닫기" }); });
     });
     $("newCode").addEventListener("click", function () {
-        if (!confirm("회사 코드를 바꿀까요? 옛 코드로는 새 방을 올릴 수 없습니다(이미 올라온 방은 그대로). 인솔자들에게 새 코드를 다시 알려 줘야 합니다.")) return;
-        RFParty.post("office/newcode", { key: key }).then(function (j) { msg("새 회사 코드: " + j.code + " - 인솔자들에게 알려 주세요."); load(); }).catch(function (e) { msg(e.message); });
+        ask("회사 코드를 바꿀까요? 옛 코드로는 새 방을 올릴 수 없습니다(이미 올라온 방은 그대로). 인솔자들에게 새 코드를 다시 알려 줘야 합니다.", { ok: "코드 바꾸기", danger: true }).then(function (ok) {
+            if (!ok) return;
+            RFParty.post("office/newcode", { key: key }).then(function (j) { msg("새 회사 코드: " + j.code + " - 인솔자들에게 알려 주세요."); load(); }).catch(function (e) { msg(e.message); });
+        });
     });
     $("delOffice").addEventListener("click", function () {
         var name = $("offTitle").textContent.replace(/^🏢 /, "").replace(/ 사무실$/, "");
-        var typed = prompt("사무실을 없애면 되돌릴 수 없습니다. 회사 코드 · 사무실 링크가 안 되고 끝난 산행 요약이 모두 지워집니다(진행 중인 방은 그대로, 회사 연결만 끊음).\n\n없애려면 회사 이름을 그대로 적어 주세요: " + name, "");
-        if (typed == null) return;
-        RFParty.post("office/delete", { key: key, name: typed.trim() }).then(function () {
-            store(null);
-            alert("사무실을 없앴습니다.");
-            location.reload();
-        }).catch(function (e) { msg(e.message); });
+        askText("사무실을 없애면 되돌릴 수 없습니다. 회사 코드 · 사무실 링크가 안 되고 끝난 산행 요약이 모두 지워집니다(진행 중인 방은 그대로, 회사 연결만 끊음).\n\n없애려면 회사 이름을 그대로 적어 주세요: " + name, "", { ok: "사무실 없애기", danger: true }).then(function (typed) {
+            if (typed == null) return;
+            RFParty.post("office/delete", { key: key, name: typed.trim() }).then(function () {
+                store(null);
+                return say("사무실을 없앴습니다.");
+            }).then(function () { if (!stored()) location.reload(); }).catch(function (e) { msg(e.message); });
+        });
     });
 
     document.addEventListener("click", function (e) {
@@ -170,14 +181,17 @@
         var code = b.getAttribute("data-open") || b.getAttribute("data-detach"), name = b.getAttribute("data-name");
         if (b.hasAttribute("data-open")) {
             var cur = RFParty.get();
-            if (cur && !cur.office && !confirm("이 기기에 참가한 다른 산악회 방(" + (cur.name || cur.code) + ")이 있습니다. 사무실로 이 방을 열면 그 방 화면은 이 기기에서 닫힙니다(방은 그대로). 열까요?")) return;
-            RFParty.post("office/enter", { key: key, code: code }).then(function (j) {
-                RFParty.set({ code: j.code, token: j.token, role: j.role, name: j.name, office: true });
-                location.href = "party.html";
-            }).catch(function (e2) { msg(e2.message); });
+            (cur && !cur.office ? ask("이 기기에 참가한 다른 산악회 방(" + (cur.name || cur.code) + ")이 있습니다. 사무실로 이 방을 열면 그 방 화면은 이 기기에서 닫힙니다(방은 그대로). 열까요?", { ok: "열기" }) : Promise.resolve(true)).then(function (ok) {
+                if (!ok) return;
+                RFParty.post("office/enter", { key: key, code: code }).then(function (j) {
+                    RFParty.set({ code: j.code, token: j.token, role: j.role, name: j.name, office: true });
+                    location.href = "party.html";
+                }).catch(function (e2) { msg(e2.message); });
+            });
         } else {
-            if (!confirm("\"" + name + "\" 방을 이 회사 화면에서 뺄까요? (방은 그대로, 사무실만 빠짐)")) return;
-            RFParty.post("office/detach", { key: key, code: code }).then(load).catch(function (e2) { msg(e2.message); });
+            ask("\"" + name + "\" 방을 이 회사 화면에서 뺄까요? (방은 그대로, 사무실만 빠짐)", { ok: "빼기", danger: true }).then(function (ok) {
+                if (ok) RFParty.post("office/detach", { key: key, code: code }).then(load).catch(function (e2) { msg(e2.message); });
+            });
         }
     });
 

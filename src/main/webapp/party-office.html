@@ -41,9 +41,11 @@ tr.warn td { background:rgba(255,212,59,0.14); }
 .ok { color:var(--green); }
 #msg { color:var(--red); font-size:14px; min-height:18px; margin-top:8px; }
 #linkBox { word-break:break-all; background:#0f141a; border:1px solid var(--ln); border-radius:8px; padding:8px; font-size:13px; }
+.vh { position:absolute !important; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
 </style>
 </head>
 <body>
+<h1 class="vh">routefly 회사 사무실</h1>
 <div id="top"><a href="m/">‹ routefly</a><div id="title">🏢 회사 사무실</div><span id="updated" class="tip" style="margin:0"></span></div>
 <main>
     <!-- 사무실 링크가 없을 때: 만들기 -->
@@ -98,6 +100,7 @@ tr.warn td { background:rgba(255,212,59,0.14); }
     </div>
     <div id="msg" role="status" aria-live="polite"></div>
 </main>
+<script src="js/rf-dialog.js"></script>
 <script src="js/party-kit.js"></script>
 <script src="js/office-csv.js"></script>
 <script src="js/party-office.js"></script>

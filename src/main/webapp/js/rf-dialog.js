@@ -70,8 +70,9 @@
             function yes() { close(kind === "prompt" ? input.value : kind === "confirm" ? true : undefined); }
             function no() { close(kind === "prompt" ? null : kind === "confirm" ? false : undefined); }
             function key(e) {
-                if (e.key === "Escape") { e.preventDefault(); no(); }
-                else if (e.key === "Enter" && input && document.activeElement === input) { e.preventDefault(); yes(); }
+                // 뒤 화면의 Esc(QR · 옮기기 창 닫기)까지 가지 않게(2026-10-28 점검)
+                if (e.key === "Escape") { e.preventDefault(); e.stopImmediatePropagation(); no(); }
+                else if (e.key === "Enter" && input && document.activeElement === input) { e.preventDefault(); e.stopImmediatePropagation(); yes(); }
                 else if (e.key === "Tab") {   // 창 안에서만 돌게
                     var f = [input, cancel, ok].filter(Boolean), i = f.indexOf(document.activeElement);
                     e.preventDefault();

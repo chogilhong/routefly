@@ -316,6 +316,9 @@
         try { localStorage.setItem(BODY_KEY, JSON.stringify({ kg: body.kg, cm: body.cm })); } catch (e) { /* 이번만 */ }
     }
 
+    // 큰 글씨 확인 창(rf-dialog.js, 2026-10-28 접근성 - 앱 안에서 "routefly.kr 의 메시지" 작은 창 대신). 없으면 브라우저 창
+    function hAsk(t, o) { return window.RFDialog ? RFDialog.confirm(t, o) : Promise.resolve(confirm(t)); }
+    function hAskText(t, v, o) { return window.RFDialog ? RFDialog.prompt(t, v, o) : Promise.resolve(prompt(t, v)); }
     function askNumber(msg, cur, min, max) {
         var v = prompt(msg, String(cur));
         if (v == null) return null;
@@ -1479,12 +1482,16 @@
             v.onclick = function () { showRecord(r); };
             var x = document.createElement("button"); x.textContent = T("지우기", "Delete");
             x.onclick = function () {
-                if (!confirm(T("이 기록을 지울까요?\n산행 결산에서도 빠집니다.", "Delete this record?\nIt is also removed from the hiking summary."))) return;
-                var l = records(); l.splice(i, 1);
-                // 직접 지운 기록은 결산에서도 뺌(2026-10-28 홍TV님) - 30개가 넘어 저절로 밀려난 기록은 결산에 남음
-                try { localStorage.setItem(LOG_KEY, JSON.stringify(RF.dropLog(readLog(), r))); } catch (e) { /* 저장 공간 */ }
-                writeRecords(l).then(gcPhotos);
-                drawRecords();
+                hAsk(T("이 기록을 지울까요?\n산행 결산에서도 빠집니다.", "Delete this record?\nIt is also removed from the hiking summary."), { ok: T("지우기", "Delete"), danger: true }).then(function (ok) {
+                    if (!ok) return;
+                    var l = records(), at = l.indexOf(r);   // 창이 떠 있는 사이 목록이 바뀌었을 수 있어 그 기록을 다시 찾음
+                    if (at < 0) return;
+                    l.splice(at, 1);
+                    // 직접 지운 기록은 결산에서도 뺌(2026-10-28 홍TV님) - 30개가 넘어 저절로 밀려난 기록은 결산에 남음
+                    try { localStorage.setItem(LOG_KEY, JSON.stringify(RF.dropLog(readLog(), r))); } catch (e) { /* 저장 공간 */ }
+                    writeRecords(l).then(gcPhotos);
+                    drawRecords();
+                });
             };
             if (info) row.appendChild(info);
             row.appendChild(v); row.appendChild(g); row.appendChild(x);
@@ -1565,9 +1572,10 @@
             var bad = RF.backupCheck(o);
             if (bad) { toast(bad, 6000); return; }
             var photos = o.photos && typeof o.photos === "object" ? o.photos : {};
-            if (!confirm(EN ? "Merge this backup (" + o.records.length + " records · " + Object.keys(photos).length + " photos) into this device?\nYour current records are kept (up to the latest " + REC_MAX + ")."
-                : "백업(기록 " + o.records.length + "개 · 사진 " + Object.keys(photos).length + "장)을 이 기기에 합칠까요?\n지금 기록은 지우지 않습니다(기록은 최근 " + REC_MAX + "개까지).")) return;
-            recordsReady.then(function () {
+            hAsk(EN ? "Merge this backup (" + o.records.length + " records · " + Object.keys(photos).length + " photos) into this device?\nYour current records are kept (up to the latest " + REC_MAX + ")."
+                : "백업(기록 " + o.records.length + "개 · 사진 " + Object.keys(photos).length + "장)을 이 기기에 합칠까요?\n지금 기록은 지우지 않습니다(기록은 최근 " + REC_MAX + "개까지).", { ok: T("합치기", "Merge") }).then(function (ok) {
+            if (!ok) return;
+            return recordsReady.then(function () {
                 var merged = RF.mergeRecords(records(), o.records, REC_MAX);
                 return Promise.all(RF.photoIds(merged).filter(function (id) { return typeof photos[id] === "string"; }).map(function (id) {
                     try { return photoPut(id, b64Blob(photos[id], "image/jpeg")).catch(function () { /* 그 사진만 */ }); } catch (e) { return null; }
@@ -1583,6 +1591,7 @@
                 addLog(records().map(RF.logEntry));   // 백업의 기록도 결산에
                 drawRecords();
                 toast(T("백업을 불러왔습니다.", "Backup restored."), 4000);
+            });
             }).catch(function (e) { toast(T("백업을 불러오지 못했습니다: ", "Could not restore the backup: ") + (e && e.message || e), 6000); });
         }
     }
@@ -1998,9 +2007,8 @@
                             requestPermissions: true, stale: false, distanceFilter: 0 },   // 0: 멈춰 있어도 위치가 와야 움직임 없음 알림이 화면이 꺼진 채로도 돎(2026-10-16 홍TV님 폰: 20분인데 30분째에 뜸) - 작은 움직임은 onFix 가 일찍 끝냄
                 function (loc, err) {
                     if (err) {
-                        if (err.code === "NOT_AUTHORIZED" && confirm(T("위치 권한이 꺼져 있습니다. 설정을 열어 routefly 의 위치를 '앱 사용 중에만 허용' 으로 바꿀까요?", "Location permission is off. Open settings and allow location for routefly (\"While using the app\")?"))) {
-                            BG.openSettings();
-                        }
+                        if (err.code === "NOT_AUTHORIZED") hAsk(T("위치 권한이 꺼져 있습니다. 설정을 열어 routefly 의 위치를 '앱 사용 중에만 허용' 으로 바꿀까요?", "Location permission is off. Open settings and allow location for routefly (\"While using the app\")?"), { ok: T("설정 열기", "Open settings") })
+                            .then(function (ok) { if (ok) BG.openSettings(); });
                         onGpsError({ code: err.code === "NOT_AUTHORIZED" ? 1 : 2 });
                         return;
                     }
@@ -2034,11 +2042,11 @@
     function batteryGuide() {
         if (lsGet("rf-batt-asked") === "1") return;
         try { localStorage.setItem("rf-batt-asked", "1"); } catch (e) { /* 이번만 */ }
-        if (confirm(EN ? "So recording does not stop with the phone in your pocket, set routefly's battery use to \"Unrestricted\".\n\nOpen settings? (App info → Battery → Unrestricted)"
+        hAsk(EN ? "So recording does not stop with the phone in your pocket, set routefly's battery use to \"Unrestricted\".\n\nOpen settings? (App info → Battery → Unrestricted)"
                 : "화면을 끄고 주머니에 넣어도 위치 기록이 끊기지 않게, routefly 배터리 사용을 '제한 없음' 으로 바꿔 주세요.\n\n"
-                + "설정을 열까요? (애플리케이션 정보 → 배터리 → 제한 없음)")) {
-            Promise.resolve(BG.openSettings()).catch(function () { /* 설정 못 엶 */ });
-        }
+                + "설정을 열까요? (애플리케이션 정보 → 배터리 → 제한 없음)", { ok: T("설정 열기", "Open settings") }).then(function (ok) {
+            if (ok) Promise.resolve(BG.openSettings()).catch(function () { /* 설정 못 엶 */ });
+        });
     }
 
     /** 끝내기 확인 - 기록은 지우지 않고 "내 기록" 에 남깁니다(finishRecord). */
@@ -3240,8 +3248,8 @@
     $("backupSave").addEventListener("click", backupSave);
     $("xferGet").addEventListener("click", xferReceive);
     $("xferSend").addEventListener("click", function () {
-        var c = prompt(T("받는 기기(PC 등) 화면에 나온 코드 8글자를 넣으세요", "Enter the 8-letter code shown on the receiving device (PC etc.)"), "");
-        if (c != null) xferSend(c);
+        hAskText(T("받는 기기(PC 등) 화면에 나온 코드 8글자를 넣으세요", "Enter the 8-letter code shown on the receiving device (PC etc.)"), "", { ok: T("보내기", "Send") })
+            .then(function (c) { if (c != null) xferSend(c); });
     });
     (function () {   // QR 을 찍어 들어옴(#xfer=코드) - 이 기기 기록을 보낼지 묻고 보냄
         var m = /^#xfer=([A-Za-z0-9]{8})(?:\.([A-Za-z0-9_-]{22}))?$/.exec(location.hash || "");
@@ -3250,8 +3258,8 @@
         setTimeout(function () {
             recordsReady.then(function () {
                 // 남이 보낸 링크로 기록을 빼 가는 것 막기(2026-10-28 보안 점검) - 내 기기 QR 을 내가 직접 찍었을 때만
-                if (confirm(T("이 기기의 기록 " + records().length + "개(사진 · 도장 · 완주 · 정상 · 걸은 위치 포함)를 QR 을 띄운 기기로 보낼까요?\n\n⚠ 내 PC · 내 폰에 띄운 QR 을 방금 직접 찍었을 때만 확인을 누르세요. 문자 · 카톡으로 받은 링크라면 취소하세요 - 기록이 그 사람에게 갑니다.\n(기기 안에서 암호화해 보냅니다)",
-                        "Send this device's " + records().length + " records (with photos, stamps, peaks and where you walked) to the device showing the QR?\n\n⚠ Only confirm if you just scanned a QR on your own PC or phone. If this link came by message, cancel - your records would go to that person.\n(Encrypted on this device)"))) xferSend(m[1], m[2]);
+                hAsk(T("이 기기의 기록 " + records().length + "개(사진 · 도장 · 완주 · 정상 · 걸은 위치 포함)를 QR 을 띄운 기기로 보낼까요?\n\n⚠ 내 PC · 내 폰에 띄운 QR 을 방금 직접 찍었을 때만 확인을 누르세요. 문자 · 카톡으로 받은 링크라면 취소하세요 - 기록이 그 사람에게 갑니다.\n(기기 안에서 암호화해 보냅니다)",
+                        "Send this device's " + records().length + " records (with photos, stamps, peaks and where you walked) to the device showing the QR?\n\n⚠ Only confirm if you just scanned a QR on your own PC or phone. If this link came by message, cancel - your records would go to that person.\n(Encrypted on this device)"), { ok: T("보내기", "Send"), danger: true }).then(function (ok) { if (ok) xferSend(m[1], m[2]); });
             });
         }, 800);
     })();
@@ -3484,7 +3492,7 @@
         $("sosFamily").href = "sms:" + (/iPhone|iPad/.test(navigator.userAgent) ? "&" : "?") + "body=" + encodeURIComponent(fam);
         $("sosCopy").onclick = function () {
             (navigator.clipboard ? navigator.clipboard.writeText(body) : Promise.reject()).then(function () { toast(T("위치를 복사했습니다.", "Location copied.")); })
-                .catch(function () { prompt(T("아래 글을 길게 눌러 복사하세요", "Long-press to copy"), body); });
+                .catch(function () { hAskText(T("복사가 안 됩니다. 아래 칸의 글을 길게 눌러 복사하세요.", "Copy didn't work. Long-press the text below to copy."), body, { ok: T("닫기", "Close") }); });
         };
     }
 
@@ -3738,7 +3746,7 @@
         var text = NM(c.course.name) + " · " + km(c.total) + "km";
         if (navigator.share) navigator.share({ title: NM(c.course.name), text: text, url: url }).catch(function () {});
         else (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(function () { toast(T("링크를 복사했습니다: ", "Link copied: ") + url, 5000); })
-            .catch(function () { prompt(T("링크를 복사하세요", "Copy the link"), url); });
+            .catch(function () { hAskText(T("링크를 길게 눌러 복사하세요.", "Long-press to copy the link."), url, { ok: T("닫기", "Close") }); });
     });
 
     /** 지도 타일 주소들 - 코스 범위의 z(lo~hi). */
@@ -3866,12 +3874,14 @@
     $("saveDelete").addEventListener("click", function () {
         if (!c || !("caches" in window)) return;
         var id = c.id;
-        if (!confirm(T("이 코스의 오프라인 저장(지도 그림)을 지울까요? 다른 저장 코스와 겹치는 지도는 남깁니다.", "Delete this trail's offline map? Map areas shared with other saved trails are kept."))) return;
-        $("saveSheet").style.display = "none";
-        deleteOffline(id).then(function () {
-            if (c && c.id === id) $("save").textContent = T("📥 저장", "📥 Save");
-            toast(T("오프라인 저장을 지웠습니다.", "Offline save deleted."), 3000);
-        }).catch(function (e) { toast(T("지우지 못했습니다: ", "Could not delete: ") + (e && e.message || e), 5000); });
+        hAsk(T("이 코스의 오프라인 저장(지도 그림)을 지울까요? 다른 저장 코스와 겹치는 지도는 남깁니다.", "Delete this trail's offline map? Map areas shared with other saved trails are kept."), { ok: T("지우기", "Delete"), danger: true }).then(function (ok) {
+            if (!ok) return;
+            $("saveSheet").style.display = "none";
+            deleteOffline(id).then(function () {
+                if (c && c.id === id) $("save").textContent = T("📥 저장", "📥 Save");
+                toast(T("오프라인 저장을 지웠습니다.", "Offline save deleted."), 3000);
+            }).catch(function (e) { toast(T("지우지 못했습니다: ", "Could not delete: ") + (e && e.message || e), 5000); });
+        });
     });
 
     function saveOffline(plan) {

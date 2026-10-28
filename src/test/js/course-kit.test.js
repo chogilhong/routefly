@@ -763,24 +763,29 @@ tick().then(function () {
     bar.children[1].onclick();
     eq("notifyDeploy ✕ 로 닫힘", envOk.body.children.length, 0);
     // 예약 명단 파일 · 엑셀 붙여 넣기(2026-10-28) - 이름 · 좌석만, 전화번호 · 다른 칸은 버림
+    var lines = function (ppl) { return [ppl.map(function (p) { return p.name + (p.seat ? " " + (p.bus > 1 ? p.bus + "-" : "") + p.seat : p.bus > 1 ? " " + p.bus + "호차" : ""); }).join("\n")]; };
     var rr = RF.rosterRead(["이름\t연락처\t탑승지\t좌석", "홍 길동\t010-1234-5678\t사당\t5", "김철수\t01098765432\t양재\t2-15", "박영희\t010-1111-2222\t사당\t"].join("\n"));
     eq("명단 - 엑셀 붙여 넣기(머리 줄)", JSON.stringify(rr), JSON.stringify({ people: [{ name: "홍길동", bus: 1, seat: 5 }, { name: "김철수", bus: 2, seat: 15 }, { name: "박영희", bus: 1, seat: null }], phones: 3, dropped: ["연락처", "탑승지"] }));
     var rc = RF.rosterRead("\uFEFF번호,성명,호차,좌석,금액\r\n1,홍길동,2,15,\"35,000\"\r\n2,김철수,1,3,35000");
-    eq("명단 - CSV 호차 칸 · 따옴표 · BOM", [RF.rosterLines(rc.people), rc.dropped], [["홍길동 2-15\n김철수 3"], ["번호", "금액"]]);
+    eq("명단 - CSV 호차 칸 · 따옴표 · BOM", [lines(rc.people), rc.dropped], [["홍길동 2-15\n김철수 3"], ["번호", "금액"]]);
     var rn = RF.rosterRead("1,홍길동,010-1234-5678,5\n2,김철수,010-2222-3333,6\n3,박영희,010-3333-4444,");
-    eq("명단 - 머리 줄 없는 CSV(순번 칸은 좌석 아님)", RF.rosterLines(rn.people), ["홍길동 5\n김철수 6\n박영희"]);
+    eq("명단 - 머리 줄 없는 CSV(순번 칸은 좌석 아님)", lines(rn.people), ["홍길동 5\n김철수 6\n박영희"]);
     var rf = RF.rosterRead("일식이 5 이식이 6 삼식이 010-1234-5678 사식이 2-15");
-    eq("명단 - 자유 글 · 전화번호 버림", [RF.rosterLines(rf.people), rf.phones], [["일식이 5\n이식이 6\n삼식이\n사식이 2-15"], 1]);
+    eq("명단 - 자유 글 · 전화번호 버림", [lines(rf.people), rf.phones], [["일식이 5\n이식이 6\n삼식이\n사식이 2-15"], 1]);
     var rd = RF.rosterRead("이름\t좌석\n시험일\t5\n시험이\t2월 15일\n시험삼\t3/7\n시험사\t");
-    eq("명단 - 엑셀이 날짜로 바꾼 좌석(2월 15일 · 3/7)", RF.rosterLines(rd.people), ["시험일 5\n시험이 2-15\n시험삼 3-7\n시험사"]);
-    eq("명단 - 머리 줄 없이 날짜 꼴 좌석", RF.rosterLines(RF.rosterRead("시험일\t5\n시험이\t2월 15일").people), ["시험일 5\n시험이 2-15"]);
-    eq("명단 - 좌석 없이 호차만 남김", RF.rosterLines(RF.rosterRead("이름\t호차\t좌석\n시험사\t1\t7\n시험오\t2\t20\n시험육\t2\t").people), ["시험사 7\n시험오 2-20\n시험육 2호차"]);
+    eq("명단 - 엑셀이 날짜로 바꾼 좌석(2월 15일 · 3/7)", lines(rd.people), ["시험일 5\n시험이 2-15\n시험삼 3-7\n시험사"]);
+    eq("명단 - 머리 줄 없이 날짜 꼴 좌석", lines(RF.rosterRead("시험일\t5\n시험이\t2월 15일").people), ["시험일 5\n시험이 2-15"]);
+    eq("명단 - 좌석 없이 호차만 남김", lines(RF.rosterRead("이름\t호차\t좌석\n시험사\t1\t7\n시험오\t2\t20\n시험육\t2\t").people), ["시험사 7\n시험오 2-20\n시험육 2호차"]);
     eq("명단 - 자유 글 호차만", JSON.stringify(RF.rosterRead("시험육 2호차 시험칠").people), JSON.stringify([{ name: "시험육", bus: 2, seat: null }, { name: "시험칠", bus: 1, seat: null }]));
-    eq("명단 - 40명씩 나눔", RF.rosterLines(Array.apply(null, Array(90)).map(function (x, i) { return { name: "회원" + i, bus: 1, seat: null }; }), 40).length, 3);
+    var rh = function (t) { return lines(RF.rosterRead(t).people)[0]; };
+    eq("명단 - 머리 낱말은 회원이 아님(한 칸 · 자유 글)", [rh("이름\n홍길동\n김철수"), rh("이름 좌석\n홍길동 5")], ["홍길동\n김철수", "홍길동 5"]);
+    eq("명단 - 모르는 머리 이름(고객명 · 예약자 이름 · 좌석번호)", [rh("고객명,연락처,좌석\n홍길동,010-1111-2222,5\n김철수,010-2222-3333,6"), rh("예약자 이름\t좌석번호\n홍길동\t5")], ["홍길동 5\n김철수 6", "홍길동 5"]);
+    eq("명단 - 2호차 15번 · 이름 끝 숫자", [rh("홍길동 2호차 15번 김철수2 5"), rh("홍길동 2호차15번")], ["홍길동 2-15\n김철수2 5", "홍길동 2-15"]);
     // 인솔자 지금 할 일 · 회원 탑승 카드(2026-10-28 추천 2)
     var mem = function (n, o) { var m = { role: "hiker", nick: n }; for (var k in o) m[k] = o[k]; return m; };
-    var b0 = RF.leadSteps({ role: "lead", chief: true, now: 0, members: [mem("가", { boarded: true }), mem("나", {}), mem("다", { cancelled: true })] });
+    var b0 = RF.leadSteps({ role: "lead", chief: true, now: 0, seats: 28, members: [mem("가", { boarded: true }), mem("나", {}), mem("다", { cancelled: true })] });
     eq("할 일 - 출발 전", [b0.phase, b0.steps[1].text, b0.steps[2].act], ["before", "출발 탑승 확인 1 / 2 - 좌석표에서 탄 사람 누르기", "departBtn"]);
+    eq("할 일 - 좌석 없는 방은 명단으로", RF.leadSteps({ role: "lead", chief: true, now: 0, seats: 0, members: [mem("나", {})] }).steps[1].act, "list");
     var b1 = RF.leadSteps({ role: "lead", chief: true, departed: true, now: 0, endAt: 9, drops: ["한계령"], members: [mem("가", { aboard: true }), mem("나", { sos: true })] });
     eq("할 일 - 산행 중 SOS · 하차 · 남은 사람", [b1.phase, b1.steps[0].text, b1.steps[1].act, b1.steps[2].text], ["hiking", "🆘 SOS 1명 - 바로 연락", "arriveRow", "하산 탑승 1 / 2 · 남은 사람 나"]);
     var b2 = RF.leadSteps({ role: "lead", chief: true, departed: true, now: 0, members: [mem("가", { aboard: true })] });

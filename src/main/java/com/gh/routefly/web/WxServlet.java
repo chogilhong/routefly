@@ -3,7 +3,6 @@ package com.gh.routefly.web;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -24,11 +23,19 @@ public class WxServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
     /** 기상청 · 에어코리아를 함께 묻는 일꾼(데몬 - 톰캣이 내려갈 때 붙잡지 않음). */
-    private static final ExecutorService POOL = Executors.newFixedThreadPool(6, r -> {
+    /** 기다리는 일 60개까지 - 넘으면 그 요청은 unavailable(2026-10-28 보안 점검: 위쪽이 느릴 때 끝없이 쌓였음). 다시 배포할 때 destroy 가 닫음. */
+    private static final ExecutorService POOL = new java.util.concurrent.ThreadPoolExecutor(6, 6, 30, TimeUnit.SECONDS, new java.util.concurrent.ArrayBlockingQueue<>(60), r -> {
         Thread t = new Thread(r, "rf-wx");
         t.setDaemon(true);
         return t;
-    });
+    }, new java.util.concurrent.ThreadPoolExecutor.AbortPolicy());
+    /** 셋을 함께 기다리는 한도 - 셋이 한 마감을 나눔(예전엔 하나씩 20초라 60초까지 걸렸음). */
+    static final long WAIT_MS = 20_000L;
+
+    @Override
+    public void destroy() {
+        POOL.shutdownNow();
+    }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -44,11 +51,13 @@ public class WxServlet extends HttpServlet {
 
     /** 셋을 함께 물어 {weather, mid, air}. 하나가 실패 · 20초 넘으면 그것만 {unavailable:true}. */
     static JsonObject all(Supplier<JsonObject> weather, Supplier<JsonObject> mid, Supplier<JsonObject> air) {
-        CompletableFuture<JsonObject> w = CompletableFuture.supplyAsync(weather, POOL), m = CompletableFuture.supplyAsync(mid, POOL), a = CompletableFuture.supplyAsync(air, POOL);
+        CompletableFuture<JsonObject> w = start(weather), m = start(mid), a = start(air);
+        long until = System.currentTimeMillis() + WAIT_MS;
         JsonObject out = new JsonObject();
-        out.add("weather", get(w));
-        out.add("mid", get(m));
-        out.add("air", get(a));
+        out.addProperty("success", true);   // 따라가기 3D 화면(app.js getJson)은 success 를 봄 - 셋 각각의 실패는 그 안의 unavailable 로
+        out.add("weather", get(w, until));
+        out.add("mid", get(m, until));
+        out.add("air", get(a, until));
         return out;
     }
 
@@ -58,9 +67,17 @@ public class WxServlet extends HttpServlet {
         return false;
     }
 
-    private static JsonObject get(CompletableFuture<JsonObject> f) {
+    private static CompletableFuture<JsonObject> start(Supplier<JsonObject> s) {
         try {
-            JsonObject o = f.get(20, TimeUnit.SECONDS);
+            return CompletableFuture.supplyAsync(s, POOL);
+        } catch (java.util.concurrent.RejectedExecutionException e) {   // 일꾼이 다 참 - 이번엔 없이
+            return CompletableFuture.failedFuture(e);
+        }
+    }
+
+    private static JsonObject get(CompletableFuture<JsonObject> f, long until) {
+        try {
+            JsonObject o = f.get(Math.max(1, until - System.currentTimeMillis()), TimeUnit.MILLISECONDS);
             if (o != null) return o;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

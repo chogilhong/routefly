@@ -39,7 +39,8 @@ public class FeedbackServlet extends HttpServlet {
             Json.fail(resp, 400, "요청을 읽지 못했습니다.");
             return;
         }
-        String ip = SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For"));
+        // IPv6 는 /64 로 묶어 셈(2026-10-28 보안 점검: 주소를 바꿔 가며 하루 전체 한도 200건을 혼자 채울 수 있었음)
+        String ip = RateLimiter.group(SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For")));
         try {
             Json.write(resp, 200, handle(Feedback.STORE, in, ip, System.currentTimeMillis()), false);
         } catch (IllegalArgumentException e) {

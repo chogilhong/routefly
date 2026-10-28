@@ -177,7 +177,7 @@ final class PartyOffice {
             Path b = file.resolveSibling("office.json.bad-" + System.currentTimeMillis());
             try { Files.createFile(b, java.nio.file.attribute.PosixFilePermissions.asFileAttribute(java.nio.file.attribute.PosixFilePermissions.fromString("rw-------"))); }
             catch (UnsupportedOperationException e) { /* 윈도 */ }
-            Files.copy(file, b, StandardCopyOption.REPLACE_EXISTING);
+            Files.write(b, Files.readAllBytes(file));   // 만든 600 파일에 씀(copy 는 파일을 새로 만들어 원래 권한이 됐음, 2026-10-28 점검)
         } catch (Exception e) {
             log.warn("[OFFICE] 옛 파일을 남기지 못함 - {}", e.toString());
         }

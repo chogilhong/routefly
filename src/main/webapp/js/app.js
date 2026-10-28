@@ -800,9 +800,11 @@
             title.textContent = T("☁️ 날씨 (들머리)", "☁️ Weather (trailhead)");
             body.appendChild(el("div", "gNote", T("불러오는 중…", "Loading…")));
             var top = Math.max.apply(null, c.ele.filter(function (e) { return e != null; }).concat([start.ele || 0]));
-            var airP = getJson("api/air?lat=" + start.lat.toFixed(4) + "&lon=" + start.lon.toFixed(4)).catch(function () { return null; });   // 미세먼지(2026-10-15)
-            var midP = getJson("api/mid?lat=" + start.lat.toFixed(4) + "&lon=" + start.lon.toFixed(4)).catch(function () { return null; });   // 4~10일 뒤(중기예보, 2026-10-15)
-            getJson("api/weather?lat=" + start.lat.toFixed(4) + "&lon=" + start.lon.toFixed(4)).then(function (w) {
+            // 단기 · 중기예보(4~10일 뒤) · 미세먼지를 한 요청으로(api/wx - 산 페이지와 같음, 2026-10-28 속도 점검: 예전엔 셋)
+            var wxP = getJson("api/wx?lat=" + start.lat.toFixed(4) + "&lon=" + start.lon.toFixed(4));
+            var airP = wxP.then(function (x) { return x.air || null; }).catch(function () { return null; });
+            var midP = wxP.then(function (x) { return x.mid || null; }).catch(function () { return null; });
+            wxP.then(function (x) { return x.weather || { unavailable: true }; }).then(function (w) {
                 if (!$("guideSheet").classList.contains("open") || guide.c !== c) return;
                 body.textContent = "";
                 var ab = el("div", "gNote", "");

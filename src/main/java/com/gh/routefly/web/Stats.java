@@ -213,7 +213,8 @@ final class Stats {
             JsonObject pages = day.getAsJsonObject("pages");
             pages.addProperty(page, (pages.has(page) ? pages.get(page).getAsInt() : 0) + 1);
             String h = hash(ip);
-            boolean first = seen.add(h);
+            // 하루 방문자 칸 한도(2026-10-28 보안 점검: 화면은 횟수 제한이 없어 IPv6 주소를 바꿔 가며 수백만 칸을 채울 수 있었음) - 넘으면 방문자 수만 더 세지 않음
+            boolean first = seen.size() < SEEN_MAX && seen.add(h);
             if (sus != null && device != null && susSeen.add(h)) {   // 의심 방문자 - 기기마다(10-22 부터), 한 사람 한 번
                 if (!day.has("sus")) day.add("sus", new JsonObject());
                 add(day.getAsJsonObject("sus"), device);
@@ -242,7 +243,11 @@ final class Stats {
         o.addProperty(k, (o.has(k) ? o.get(k).getAsInt() : 0) + 1);
     }
 
+    static final int SEEN_MAX = 200_000;
+
+    /** IPv6 는 /64 로 묶어 셈(한 집 · 한 폰의 주소 바꾸기를 한 사람으로, RateLimiter.group). */
     private static String hash(String ip) {
+        ip = RateLimiter.group(ip);
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             md.update(salt);

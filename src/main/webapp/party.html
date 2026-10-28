@@ -131,9 +131,11 @@ input.bad, .agree.bad { border-color:#ff6b6b !important; }
 .ok { color:var(--green); font-weight:bold; }
 #phase { font-size:14.5px; line-height:1.6; margin:8px 0 0; }
 a.tel { color:var(--sky); }
+.vh { position:absolute !important; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
 </style>
 </head>
 <body>
+<h1 class="vh" data-en="routefly hiking club room">routefly 산악회 방</h1>
 <div id="top">
     <a id="back" href="m/">← 산 모음</a>
     <div id="title" data-en="🧑‍🤝‍🧑 Hiking club room">🧑‍🤝‍🧑 산악회 방</div>
@@ -324,5 +326,6 @@ a.tel { color:var(--sky); }
 <script src="js/party-kit.js"></script>
 <script src="js/party.js"></script>
 <script src="js/seen.js"></script>
+<script src="js/sw-reg.js"></script>   <!-- 링크로만 들어온 회원 · 인솔자도 산에서 신호 없을 때 방 화면이 열리게(2026-10-28 점검) -->
 </body>
 </html>

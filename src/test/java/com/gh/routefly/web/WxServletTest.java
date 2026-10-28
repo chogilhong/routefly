@@ -18,6 +18,7 @@ public class WxServletTest {
         assertEquals(30, o.getAsJsonObject("air").get("pm10").getAsInt());
         assertTrue(o.getAsJsonObject("mid").has("days"));
         assertFalse("다 받음 - 담아 둠", WxServlet.partial(o));
+        assertTrue("app.js getJson 이 보는 success", o.get("success").getAsBoolean());
     }
 
     @Test

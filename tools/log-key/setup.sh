@@ -12,11 +12,14 @@ passwd -l logview >/dev/null
 
 tr -d '\r' < "$here/routefly-logs"      > /usr/local/bin/routefly-logs
 tr -d '\r' < "$here/routefly-logs-read" > /usr/local/sbin/routefly-logs-read
-chown root:root /usr/local/bin/routefly-logs /usr/local/sbin/routefly-logs-read
+# 읽기 부분은 root 가 아니라 tomcat 계정으로 돎(2026-10-28 보안 점검: tomcat 이 로그 폴더 주인이라, 검사 뒤 바로 가기로 바꿔치기하면
+# root 로 아무 파일이나 읽을 수 있었음). tomcat 은 이 파일을 고칠 수 없고(root 소유) 돌리기만 함
+chown root:root /usr/local/bin/routefly-logs
+chown root:tomcat /usr/local/sbin/routefly-logs-read
 chmod 755 /usr/local/bin/routefly-logs
-chmod 700 /usr/local/sbin/routefly-logs-read
+chmod 750 /usr/local/sbin/routefly-logs-read
 
-echo 'logview ALL=(root) NOPASSWD: /usr/local/sbin/routefly-logs-read' > /etc/sudoers.d/routefly-logs
+echo 'logview ALL=(tomcat) NOPASSWD: /usr/local/sbin/routefly-logs-read' > /etc/sudoers.d/routefly-logs
 chmod 440 /etc/sudoers.d/routefly-logs
 visudo -cf /etc/sudoers.d/routefly-logs
 

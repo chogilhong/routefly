@@ -162,13 +162,16 @@ public class PartyRosterTest {
         String code = room.get("code").getAsString(), lead = room.get("token").getAsString();
         call(p, "/roster", "{\"token\":\"" + lead + "\",\"text\":\"박영희 6 최민수 7\"}", T0);
         String early = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"최민수\",\"agree\":true}", T0).get("token").getAsString();
-        assertFalse("출발 전 들어오면 알림 없음", member(call(p, "/view", tok(lead), T0), "최민수").has("msg"));
+        assertFalse("출발 전 들어오면 알림 없음", member(call(p, "/view", tok(lead), T0), "최민수").has("lateAt"));
         int id = member(call(p, "/view", tok(lead), T0), "박영희").get("id").getAsInt();
         call(p, "/mark", "{\"token\":\"" + lead + "\",\"id\":" + id + ",\"on\":true}", DEPART - H);   // 핸드폰 없이 탐
         call(p, "/board", tok(early), DEPART - H);
         PartyTest.departAll(p, lead, DEPART);
         String late = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"박영희\",\"agree\":true}", DEPART + H).get("token").getAsString();
-        assertTrue("출발 뒤 들어오면 인솔자에게 알림", member(call(p, "/view", tok(lead), DEPART + H), "박영희").get("msg").getAsString().contains("확인"));
+        assertEquals("출발 뒤 들어오면 인솔자에게 알림(회원 한 줄과 따로 - 덮어쓰지 못함)", DEPART + H, member(call(p, "/view", tok(lead), DEPART + H), "박영희").get("lateAt").getAsLong());
+        call(p, "/say", "{\"token\":\"" + late + "\",\"text\":\"저 맞아요\"}", DEPART + H + 2 * 60_000);
+        assertTrue("회원이 한 줄을 보내도 알림은 남음", member(call(p, "/view", tok(lead), DEPART + H + 3 * 60_000), "박영희").has("lateAt"));
+        assertFalse("회원 자신에게는 안 보임", member(call(p, "/view", tok(late), DEPART + H), "박영희").has("lateAt"));
         JsonObject hv = call(p, "/view", tok(late), DEPART + H);
         assertNull("회원은 다른 회원 명단을 안 받음", member(hv, "최민수"));
         boolean leadSeen = false;

@@ -201,10 +201,12 @@
         if (!window.Capacitor) return null;
         return RFParty.post("view", { token: m[1] }).then(function (j) {
             var cur = RFParty.get();
-            if (!confirm(T("카톡 등에서 참가한 산악회 방을 이 앱으로 이어 갈까요?\n방: ", "Continue in this app the hiking club room you joined in KakaoTalk etc.?\nRoom: ") + j.name + T("\n별명: ", "\nNickname: ") + j.nick
-                + (cur && cur.code !== j.code ? T("\n(지금 이 앱의 다른 방 \"" + (cur.name || cur.code) + "\" 대신)", "\n(instead of the other room \"" + (cur.name || cur.code) + "\" in this app)") : ""))) throw new Error(T("앱으로 옮기기를 그만두었습니다.", "Stopped moving to the app."));
-            RFParty.set({ code: j.code, token: m[1], role: j.role, name: j.name });
-            return j;
+            return ask(T("카톡 등에서 참가한 산악회 방을 이 앱으로 이어 갈까요?\n방: ", "Continue in this app the hiking club room you joined in KakaoTalk etc.?\nRoom: ") + j.name + T("\n별명: ", "\nNickname: ") + j.nick
+                + (cur && cur.code !== j.code ? T("\n(지금 이 앱의 다른 방 \"" + (cur.name || cur.code) + "\" 대신)", "\n(instead of the other room \"" + (cur.name || cur.code) + "\" in this app)") : ""), { ok: T("이어 가기", "Continue") }).then(function (ok) {
+                if (!ok) throw new Error(T("앱으로 옮기기를 그만두었습니다.", "Stopped moving to the app."));
+                RFParty.set({ code: j.code, token: m[1], role: j.role, name: j.name });
+                return j;
+            });
         });
     }
 
@@ -237,17 +239,16 @@
             var cur = RFParty.get(), want = (q.get("c") || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
             if (cur && want.length === 6 && cur.code && want !== cur.code) {   // 다른 방 참가 링크(2026-10-21 PC: 예전 시험 방이 그대로 열렸음)
                 if (cur.role === "lead") {
-                    alert(T("인솔자로 있는 방(" + cur.code + ")이 있습니다. 링크의 방(" + want + ")에 참가하려면 지금 방에서 \"방 끝내기\"를 한 뒤 링크를 다시 누르세요.",
+                    say(T("인솔자로 있는 방(" + cur.code + ")이 있습니다. 링크의 방(" + want + ")에 참가하려면 지금 방에서 \"방 끝내기\"를 한 뒤 링크를 다시 누르세요.",
                         "You are the leader of room " + cur.code + ". To join room " + want + " from the link, tap \"End room\" in your current room first, then open the link again."));
                     enterRoom();
                     return;
                 }
-                if (confirm(T("다른 방(" + want + ") 참가 링크입니다.\n지금 방(" + (cur.name || cur.code) + ")에서 나가고 그 방으로 갈까요?\n(취소를 누르면 지금 방으로)",
-                    "This link is for another room (" + want + ").\nLeave your current room (" + (cur.name || cur.code) + ") and go there?\n(Cancel keeps you in the current room)"))) {
-                    RFParty.post("leave", { token: cur.token }).catch(function () { /* 이미 끝났어도 */ }).finally(function () { RFParty.clear(); start(); });
-                    return;
-                }
-                enterRoom();
+                ask(T("다른 방(" + want + ") 참가 링크입니다.\n지금 방(" + (cur.name || cur.code) + ")에서 나가고 그 방으로 갈까요?",
+                    "This link is for another room (" + want + ").\nLeave your current room (" + (cur.name || cur.code) + ") and go there?"), { ok: T("그 방으로", "Go there"), cancel: T("지금 방에 있기", "Stay here") }).then(function (ok) {
+                    if (ok) RFParty.post("leave", { token: cur.token }).catch(function () { /* 이미 끝났어도 */ }).finally(function () { RFParty.clear(); start(); });
+                    else enterRoom();
+                });
                 return;
             }
             // 이미 참가한 폰으로 버스 안 QR · NFC(&on=1)를 찍음 - 출발 탑승(2026-10-27 홍TV님 - "버스 탔어요" 단추 대신)
@@ -641,7 +642,10 @@
     /** 회원 → 인솔자 한 줄(2026-10-27 홍TV님) - 새로 오면 떨림 · 읽어 줌, 위쪽 줄에 최근 것(6시간 안, 셋까지). 처음 그릴 때 이미 있던 것은 읽지 않음. */
     var msgSeen = null;
     function msgAlert(s) {
+        // 출발 뒤 명단 이름으로 들어온 폰(서버 lateAt - 회원 한 줄과 따로, 2026-10-28 보안 점검)도 같은 칸에 알림
+        var LATE = T("📱 출발 뒤 명단 이름으로 핸드폰이 들어왔습니다 - 본인이 맞는지 확인해 주세요(아니면 내보내기)", "📱 A phone joined under this roster name after departure - check it's really them (or remove)");
         var ms = (s.members || []).filter(function (m) { return m.msg && m.id !== s.me && s.now - m.msgAt < 6 * 3600000; })
+            .concat((s.members || []).filter(function (m) { return m.lateAt && s.now - m.lateAt < 6 * 3600000; }).map(function (m) { return { id: "L" + m.id, nick: m.nick, seat: m.seat, bus: m.bus, msg: LATE, msgAt: m.lateAt }; }))
             .sort(function (a, b) { return b.msgAt - a.msgAt; });
         var first = msgSeen === null, seen = msgSeen || {};
         ms.forEach(function (m) {
@@ -718,6 +722,7 @@
             var via = m.role === "hiker" && !m.listed && (m.app || m.ago != null || m.seen != null) ? (m.app ? " <small title=\"" + T("앱 - 화면을 꺼도 보냄", "app - sends with screen off") + "\">📱</small>" : " <small title=\"" + T("웹 - 화면을 끄면 멈춤", "web - stops when screen off") + "\">🌐</small>") : "";
             return "<tr class=\"" + cls + "\" data-id=\"" + m.id + "\"><td>" + (m.role === "lead" ? "-" : seatText(s, m)) + "</td><td>" + esc(m.nick) + via
                 + dsel + (m.msg ? "<br><small>💬 " + esc(m.msg) + " (" + clock(m.msgAt) + ")</small>" : "")
+                + (m.lateAt ? "<br><small style=\"color:#ffd43b\">" + T("📱 출발 뒤 들어옴 - 본인 확인", "📱 Joined after departure - check") + " (" + clock(m.lateAt) + ")</small>" : "")
                 + (m.cancelled && m.role === "hiker" ? " <button type=\"button\" class=\"undo\" data-undo=\"" + m.id + "\" title=\"" + T("늦게 온 회원", "Late member") + "\">" + T("✅ 탔음", "✅ On bus") + "</button>" : "") + "</td><td>" + (m.aboard ? "-" : newsText(m)) + "</td><td>"
                 + (m.stillMin != null && m.ago != null ? m.stillMin + T("분", " min") : "-") + "</td><td>" + (m.batt != null ? m.batt + "%" : "-") + "</td><td>" + st
                 + (s.role === "lead" && (m.role !== "lead" || (s.chief && !m.chief && !m.office)) ? " <button type=\"button\" class=\"kick\" data-kick=\"" + m.id + "\" title=\"" + T("방에서 내보내기", "Remove from room") + "\" aria-label=\"" + T(esc(m.nick) + " 내보내기", "Remove " + esc(m.nick)) + "\">✕</button>" : "") + "</td></tr>";
@@ -1246,21 +1251,17 @@
         var noSeat = ppl.filter(function (x) { return !x.seat; }).length;
         var note = (r.phones ? T("\n📵 전화번호 " + r.phones + "개는 넣지 않습니다.", "\n📵 " + r.phones + " phone numbers are left out.") : "")
             + (r.dropped.length ? T("\n넣지 않는 칸: " + r.dropped.slice(0, 5).join(", "), "\nColumns left out: " + r.dropped.slice(0, 5).join(", ")) : "")
-            + (noSeat ? T("\n좌석 없음 " + noSeat + "명.", "\n" + noSeat + " without a seat.") : "");
+            + (noSeat ? T("\n좌석 없음 " + noSeat + "명.", "\n" + noSeat + " without a seat.") : "")
+            + (state && (state.count || 0) + ppl.length > 300 ? T("\n⚠ 방은 300명까지입니다(지금 " + state.count + "명) - 이미 있는 사람을 빼고도 넘으면 넣지 못합니다.", "\n⚠ A room holds 300 (now " + state.count + ").") : "");
         ask(T("명단 " + ppl.length + "명을 넣을까요?\n", "Add " + ppl.length + " people to the list?\n") + show + note, { ok: T("명단에 넣기", "Add") }).then(function (ok) {
             if (!ok) return;
-            var parts = RF.rosterLines(ppl, 40), added = 0, last = null;
-            return parts.reduce(function (pr, t) {
-                return pr.then(function () { return RFParty.post("roster", { token: RFParty.get().token, text: t }).then(function (j) { added += j.added; last = j; }); });
-            }, Promise.resolve()).then(function () {
-                if (last) render(last);
+            // 이름 · 호차 · 좌석을 따로, 한 번에(2026-10-28 버그 점검 - 글로 다시 읽으면 "김철수2" · "2호차 15번" 이 틀렸고, 40명씩 나누면 한도 · 중복 판단이 어긋났음)
+            return RFParty.post("roster", { token: RFParty.get().token, rows: ppl.slice(0, 300).map(function (x) { return { name: x.name, bus: x.bus, seat: x.seat }; }) }).then(function (j) {
+                render(j);
                 $("rosterText").value = "";
-                roomMsg(T("명단에 " + added + "명을 넣었습니다" + (added < ppl.length ? "(이미 있는 " + (ppl.length - added) + "명은 건너뜀)" : "") + ". 좌석표 · 회원 목록에 \"핸드폰 없음\" 으로 보이고, 링크 · QR 로 같은 이름을 넣으면 그 사람이 됩니다.",
-                    "Added " + added + " to the list" + (added < ppl.length ? " (" + (ppl.length - added) + " already there)" : "") + ". They show as \"No phone\" until they open the link · QR and enter the same name."));
-            }).catch(function (e) {
-                if (last) render(last);
-                actFail(e.message ? { message: (added ? T(added + "명까지 넣고 멈춤 - ", "Stopped after " + added + " - ") : "") + e.message, status: e.status, ended: e.ended } : e);
-            });
+                roomMsg(T("명단에 " + j.added + "명을 넣었습니다" + (j.added < ppl.length ? "(이미 있는 " + (ppl.length - j.added) + "명은 건너뜀)" : "") + ". 좌석표 · 회원 목록에 \"핸드폰 없음\" 으로 보이고, 링크 · QR 로 같은 이름을 넣으면 그 사람이 됩니다.",
+                    "Added " + j.added + " to the list" + (j.added < ppl.length ? " (" + (ppl.length - j.added) + " already there)" : "") + ". They show as \"No phone\" until they open the link · QR and enter the same name."));
+            }).catch(actFail);
         });
     }
     $("rosterBtn").addEventListener("click", function () {
@@ -1275,9 +1276,13 @@
         if (/\.xlsx?$/i.test(f.name)) { roomMsg(T("엑셀 파일(.xlsx)은 바로 못 읽습니다. 엑셀에서 \"다른 이름으로 저장 → CSV\" 로 저장하거나, 표를 복사해 위 칸에 붙여 넣어 주세요.", "Can't read .xlsx directly. In Excel use Save As → CSV, or copy the table and paste it above.")); return; }
         if (f.size > 1024 * 1024) { roomMsg(T("파일이 너무 큽니다(1MB 까지).", "File too large (1 MB max).")); return; }
         f.arrayBuffer().then(function (buf) {
-            var text;
-            try { text = new TextDecoder("utf-8", { fatal: true }).decode(buf); }
-            catch (e) { text = new TextDecoder("euc-kr").decode(buf); }   // 한국어 엑셀의 "CSV(쉼표로 분리)" 는 EUC-KR
+            var text, u = new Uint8Array(buf);
+            if (u[0] === 0xFF && u[1] === 0xFE) text = new TextDecoder("utf-16le").decode(buf);   // 엑셀 "유니코드 텍스트(*.txt)"(2026-10-28 버그 점검)
+            else if (u[0] === 0xFE && u[1] === 0xFF) text = new TextDecoder("utf-16be").decode(buf);
+            else {
+                try { text = new TextDecoder("utf-8", { fatal: true }).decode(buf); }
+                catch (e) { text = new TextDecoder("euc-kr").decode(buf); }   // 한국어 엑셀의 "CSV(쉼표로 분리)" 는 EUC-KR
+            }
             rosterSubmit(text);
         }).catch(function () { roomMsg(T("파일을 읽지 못했습니다.", "Could not read the file.")); });
     });
