@@ -1,0 +1,8 @@
+{
+  "name": "routefly-minify",
+  "private": true,
+  "description": "war 만들 때 js · css 줄이기(2026-10-28) - .claude/build-war.ps1 이 부름. 원본(src/main/webapp)은 그대로.",
+  "devDependencies": {
+    "esbuild": "0.25.12"
+  }
+}

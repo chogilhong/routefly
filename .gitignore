@@ -25,3 +25,6 @@ docs/open/
 
 # 테스트(mvn test)에서 catalina.base 가 없어 log4j 가 저장소 뿌리에 만드는 기록 폴더(2026-10-21)
 ${sys:catalina.base}/
+
+# war 줄이기 도구(tools/minify)의 npm 패키지 - npm ci 로 받음
+/tools/minify/node_modules/

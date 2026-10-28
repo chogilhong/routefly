@@ -381,6 +381,11 @@ curl -s https://routefly.kr/$(ls /var/www/site-verify | head -1)                
 (서버)   sudo install -o tomcat -g tomcat -m 644 ~/routefly.war /opt/tomcat/webapps/routefly.war
 ```
 
+2026-10-28 부터 build-war.ps1 이 war 에 넣는 우리 js · css · sw.js 를 줄입니다(esbuild, `tools/minify` - 1.3MB → 0.67MB, gzip 으로 약 절반).
+원본(src/main/webapp)과 시험은 그대로이고, 줄이기는 war 를 만드는 임시 폴더에서만 합니다. vendor/(maplibre · qrcode) · data/ 는 그대로.
+PC 에서 처음 한 번 `cd tools\minify; npm ci` - 안 했으면 "MINIFY-SKIP" 이 찍히고 줄이지 않은 war 가 나옵니다(그대로 써도 됨).
+줄인 war 에서 화면이 이상하면 `node_modules` 를 지우고 다시 만들면 예전(줄이지 않은) war 가 됩니다.
+
 scp 대신 FileZilla(SFTP)로 올려도 됩니다(2026-10-19 홍TV님 접속 확인): 프로토콜 SFTP · 호스트 routefly.kr · 포트 22 · 사용자 ubuntu · 로그온 유형 "키 파일"(.pem → FileZilla 가 .ppk 로 바꿈, 저장소 밖에 둠).
 열리는 곳은 /home/ubuntu(~) - 여기에 올린 뒤 위 `sudo install` 줄로 옮깁니다. /opt/routefly · /var/backups/routefly 처럼 다른 계정 폴더는 FileZilla 로 바로 못 쓰니
 받을 때도 `sudo cp <파일> ~/ && sudo chown ubuntu: ~/<파일>` 로 먼저 홈에 꺼냅니다(다 받으면 ~ 의 사본은 지움). FTP 서버(vsftpd 등)는 깔지 않습니다(비밀번호가 암호 없이 오감).

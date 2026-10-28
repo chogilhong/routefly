@@ -6,13 +6,13 @@
  *   - 지도 타일(V-World 위성사진 · 지형): 받아 둔 것이 있으면 그것(오프라인 저장 · 본 적 있는 곳), 없으면 받아서 조금 남겨 둠
  *   - MapLibre(vendor): 바뀌지 않으므로 받아 둔 것 먼저
  */
-var SHELL = "rf-shell-v105", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
+var SHELL = "rf-shell-v106", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
 var TILE_KEEP = 1500;   // 지나가며 본 타일은 이만큼만 남깁니다(저장 공간)
 // 2026-10-09 점검: API 캐시도 한도 - 지도를 움직일 때마다 목록 주소(bbox)가 하나씩 늘어 끝없이 커졌습니다.
 // 오프라인 저장한 코스는 OFFLINE 캐시에 따로 있어 지워지지 않습니다.
 var API_KEEP = 300;
 
-var SHELL_FILES = ["hike.html", "about.html", "park.html", "js/park.js", "route.html", "js/route.js", "series.html", "js/series.js", "data/series.json", "data/mountains100.json", "data/park-notes.json", "data/np-stamps.json", "./", "css/course-kit.css", "js/course-kit.js", "js/seen.js", "js/hike.js", "js/party-kit.js", "party.html", "js/party.js", "js/no-kakao.js", "js/party-bar.js", "vendor/qrcode-generator-1.4.4/qrcode.js", "js/app.js", "js/early.js", "js/sw-reg.js", "js/about.js", "js/onboard.js", "js/root-go.js", "privacy.html", "lbs-terms.html", "js/lbs-terms.js", "anbu.html", "js/anbu.js", "tools.html", "js/tools.js",
+var SHELL_FILES = ["hike.html", "about.html", "park.html", "js/park.js", "route.html", "js/route.js", "series.html", "js/series.js", "data/series.json", "data/mountains100.json", "data/park-notes.json", "data/np-stamps.json", "./", "css/course-kit.css", "js/course-kit.js", "js/seen.js", "js/hike.js", "js/party-kit.js", "party.html", "js/party.js", "js/no-kakao.js", "js/party-bar.js", "vendor/qrcode-generator-1.4.4/qrcode.js", "js/app.js", "js/early.js", "js/sw-reg.js", "js/about.js", "js/onboard.js", "js/root-go.js", "privacy.html",
     "vendor/maplibre-gl-5.24.0/maplibre-gl.js", "vendor/maplibre-gl-5.24.0/maplibre-gl.css", "favicon.svg", "manifest.json",
     "img/icon-192.png", "img/icon-512.png", "data/peak-elev.json", "party-office.html", "js/party-office.js", "js/office-csv.js", "js/rf-dialog.js"];
 
@@ -56,6 +56,8 @@ function trim(name, keep) {
  * 먼저 내주고(없으면 계속 기다림), 늦게 온 답은 뒤에서 캐시만 고칩니다(waitUntil).
  */
 var NET_WAIT = 4000;
+/** 화면 주소가 아닌 js · css · 자료는 받아 둔 것이 있으면 1.5초만 기다림(2026-10-28 점검: 산속에서 파일마다 4초씩 기다려 첫 화면이 10초 걸렸음). */
+var SUB_WAIT = 1500;
 /**
  * 받아 둔 것 찾기 - 이 종류의 캐시(cacheName)를 먼저, 없으면 다른 캐시. 2026-10-18 홍TV님: 그냥 caches.match 는 먼저 만든 캐시부터 보므로
  * 산 페이지 "신호 없을 때 보기"(rf-offline-v1)에 예전에 담은 화면 파일이 새 화면 파일(rf-shell)보다 먼저 나와, 지운 문구가 계속 보였을 수 있음.
@@ -121,7 +123,7 @@ function networkFirst(e, cacheName) {
     e.waitUntil(net.then(function (res) {
         if (servedHit && cacheName === SHELL && res && res.ok && differs(servedHit, res)) return tellUpdated();
     }, function () { /* 위에서 처리 */ }));   // 먼저 캐시를 내준 뒤에도 늦은 답으로 캐시를 고칠 때까지
-    var slow = new Promise(function (resolve) { setTimeout(resolve, NET_WAIT); }).then(function () {
+    var slow = new Promise(function (resolve) { setTimeout(resolve, req.mode === "navigate" ? NET_WAIT : SUB_WAIT); }).then(function () {
         return cached(key, cacheName).then(function (hit) { servedHit = hit || null; return hit || netOrOffline; });
     });
     return Promise.race([netOrOffline, slow]);
