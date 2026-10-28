@@ -130,7 +130,7 @@ final class Party {
         List<String> stopTimes = List.of();
         /** 하차 지점(없으면 빈 것) - 회원은 참가할 때 · 인솔자가 명단에서 고름. */
         List<String> drops = List.of();
-        /** 하산 탑승지 · 출발 시각 "HH:MM"(없으면 ""), 서울 도착 예정 "HH:MM"(없으면 null). */
+        /** 하산 탑승지 · 출발 시각 "HH:MM"(없으면 ""), 도착 예정(출발지로 돌아오는 시각 - 서울만이 아님) "HH:MM"(없으면 null). */
         List<String> pickups = List.of(), pickupTimes = List.of();
         String homeTime;
         /** 하차 지점 도착(인솔자 "⬇ 한계령 도착") - [지점, 때, 위도, 경도(없으면 NaN)], 최근 8개. 메모리. */
@@ -198,7 +198,7 @@ final class Party {
 
         /** 방이 저절로 끝나는 때 - 하산 마감 6시간 뒤, SOS 가 켜져 있으면 24시간 뒤. */
         long closesAt() {
-            return Math.max(endBase(), homeAt(this)) + (sosOn() ? SOS_KEEP_MS : AFTER_END_MS);   // 서울 도착 예정이 더 늦으면 그 뒤로
+            return Math.max(endBase(), homeAt(this)) + (sosOn() ? SOS_KEEP_MS : AFTER_END_MS);   // 도착 예정이 더 늦으면 그 뒤로
         }
 
         boolean sosOn() {
@@ -660,7 +660,7 @@ final class Party {
         return t < r.departAt ? t + 24 * HOUR : t;
     }
 
-    /** 서울 도착 예정(ms, 없으면 0) - 마지막 하산 탑승(없으면 하산 마감) 뒤 첫 그 시각. */
+    /** 도착 예정(ms, 없으면 0) - 마지막 하산 탑승(없으면 하산 마감) 뒤 첫 그 시각. */
     static long homeAt(Room r) {
         if (r.homeTime == null) return 0;
         long base = r.endAt;
@@ -677,7 +677,7 @@ final class Party {
         return p > 0 ? p : m.room.endAt;
     }
 
-    /** 인솔자 - 하산 탑승지 · 서울 도착 예정(방 만들 때). text 는 "설악동C지구 17:00, 용대리 17:30". */
+    /** 인솔자 - 하산 탑승지 · 도착 예정(방 만들 때). text 는 "설악동C지구 17:00, 용대리 17:30". */
     synchronized void pickups(Member lead, String text, String home) {
         if (!lead.staff()) throw new SecurityException("인솔자만 정합니다.");
         Room r = lead.room;
@@ -1542,7 +1542,7 @@ final class Party {
             for (String p : r.pickups) if (pickupAt(r, p) > 0) pa.addProperty(p, pickupAt(r, p));
             o.add("pickupAt", pa);
         }
-        if (homeAt(r) > 0) { o.addProperty("homeAt", homeAt(r)); o.addProperty("homeTime", r.homeTime); }   // 서울 도착 예정
+        if (homeAt(r) > 0) { o.addProperty("homeAt", homeAt(r)); o.addProperty("homeTime", r.homeTime); }   // 도착 예정
         JsonArray taken = new JsonArray(), booked = new JsonArray();   // 호차 × 100 + 좌석
         for (Member m : r.members.values()) if (m.seat != null && !m.cancelled && m != me)
             (m.listed ? booked : taken).add(m.bus * 100 + m.seat);   // 명단에만 있는 자리는 "예약" - 같은 이름이 둘일 때 좌석으로 고름(2026-10-26 PC)

@@ -96,7 +96,7 @@
             line += " · " + (soon ? "<b>" : "") + what + clock(mine) + (soon ? T(" (" + Math.ceil((mine - s.now) / 60000) + "분 남음)", " (" + Math.ceil((mine - s.now) / 60000) + " min left)") + "</b>" : "");
         }
         // 하산 탑승 뒤 - 서울 하차(올 때 탄 곳 · 역순) · 도착 예정
-        if (s.aboard && !s.apart && (s.stop || s.homeAt)) line += T(" · 🏠 " + (s.stop ? esc(s.stop) + " 하차(예정)" : "") + (s.homeAt ? " · 서울 도착 " + clock(s.homeAt) : ""), " · 🏠 " + (s.stop ? "drop-off " + esc(s.stop) : "") + (s.homeAt ? " · back " + clock(s.homeAt) : ""));
+        if (s.aboard && !s.apart && (s.stop || s.homeAt)) line += T(" · 🏠 " + (s.stop ? esc(s.stop) + " 하차(예정)" : "") + (s.homeAt ? " · 도착 예정 " + clock(s.homeAt) : ""), " · 🏠 " + (s.stop ? "drop-off " + esc(s.stop) : "") + (s.homeAt ? " · back " + clock(s.homeAt) : ""));
         // 웹(크롬 · 카톡)은 화면을 끄면 위치가 멈춤 - 회원이 알게(2026-10-28 홍TV님 "계속 키고 다닐 수는 없잖아")
         if (!RFParty.isApp() && s.locOn !== false && !s.aboard && !s.cancelled)
             line += T(" · 🌐 화면을 끄면 위치가 멈춥니다 - 갈림길 · 쉬는 곳에서 이 화면을 열어 주세요(SOS 는 누르면 바로 갑니다)",

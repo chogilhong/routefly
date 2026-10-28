@@ -33,7 +33,7 @@ import com.google.gson.JsonParser;
  * POST /api/party/leave  {token} · /end {token, cancel, why, force}  나가기 · (주 인솔자 · 사무실) 방 끝내기 · 산행 취소 - SOS 중이면 막음, 하산 미확인이 있으면 force 없이는 막음
  * POST /api/party/leadcode {token} · /mecode {token} · /link {token, office}  주 인솔자 - 보조 인솔자 코드 바꾸기 · 내 폰 코드 · 회사 연결
  * POST /api/party/drop   {token, id?, drop}                하차 지점(2026-10-28) - 나, 인솔자는 id 로 아무나("버스 대기" 도)
- * POST /api/party/pickup {token, id?, pickup}            하산 탑승지(곳마다 출발 시각 - 하산 마감 알림이 이 시각으로). 방 만들 때 pickups · home(서울 도착 예정)
+ * POST /api/party/pickup {token, id?, pickup}            하산 탑승지(곳마다 출발 시각 - 하산 마감 알림이 이 시각으로). 방 만들 때 pickups · home(도착 예정(출발지로 돌아오는 시각 - 서울만이 아님))
  * POST /api/party/arrive {token, drop, lat, lon} · /alight {token, yes}  인솔자 - 하차 지점 도착 · 회원 - 여기서 내려요(위치로도 확인)
  * POST /api/party/office/create {name} → {code, key}   회사 사무실 만들기(비밀 링크 = key)
  * POST /api/party/office/rooms {key} · /office/enter {key, code} · /office/detach {key, code}  사무실 - 방 목록(숫자) · 방 열기(인솔자 화면) · 방 빼기
@@ -175,7 +175,7 @@ public class PartyServlet extends HttpServlet {
                     Party.stops(str(in, "stops")), str(in, "leaderName"), str(in, "leaderPhone"), strs(in, "plates"), now);
             p.stopTimes(lead, Party.stopTimes(str(in, "stops")));   // 탑승지마다 출발 시각(2026-10-27)
             if (str(in, "drops") != null) p.drops(lead, Party.stops(str(in, "drops")));   // 하차 지점(2026-10-28)
-            if (str(in, "pickups") != null || str(in, "home") != null) p.pickups(lead, str(in, "pickups"), str(in, "home"));   // 하산 탑승지 · 서울 도착 예정
+            if (str(in, "pickups") != null || str(in, "home") != null) p.pickups(lead, str(in, "pickups"), str(in, "home"));   // 하산 탑승지 · 도착 예정
             if (str(in, "drop") != null && !str(in, "drop").isBlank()) p.drop(lead, null, str(in, "drop"));   // 인솔자 내 하차 지점
             if (oc != null) p.linkOffice(lead, oc);
             return withToken(p.view(lead, now), lead);
