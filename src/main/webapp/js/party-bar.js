@@ -70,6 +70,7 @@
             return;
         }
         var line = "📡 " + esc(s.name) + " · ";
+        if (s.arrive) line = "<b>⬇ " + T("지금 " + esc(s.arrive.drop) + "입니다 - 여기서 내리세요?", "We're at " + esc(s.arrive.drop) + " - getting off here?") + "</b><br>" + line;   // 하차 안내(2026-10-28)
         if (s.cancelled) line += T("❌ 출발 때 타지 않아 빠졌습니다. 인솔자에게 연락하세요.", "❌ You weren't on the bus at departure, so you were dropped. Contact your leader.");
         else if (s.aboard && s.apart) line += T("🚶 따로 귀가 - 조심히 가세요. 위치는 더 보내지 않습니다.", "🚶 Going home separately - take care. Your location is no longer sent.");
         else if (s.aboard) line += T("🚌 하산 탑승 - 수고하셨습니다.", "🚌 Back on the bus - well done!");
@@ -97,6 +98,13 @@
                 " · 🌐 Location stops when the screen is off - open this screen at junctions and rest stops (SOS goes out immediately)");
         $("pbText").innerHTML = line;
         var b = [];
+        if (s.arrive) {   // 하차 안내 - 계획과 달라도 여기서 내리면 이것(인솔자 명단에 실제 하차로)
+            b.push("<button type=\"button\" class=\"pb main\" data-act=\"alight\">" + T("⬇ 여기서 내려요", "⬇ I'm getting off here") + "</button>");
+            b.push("<button type=\"button\" class=\"pb\" data-act=\"stay\">" + T("아니요", "No") + "</button>");
+        } else if ((s.drops || []).length && !s.cancelled && !s.aboard) {   // 하차 지점 바꾸기 - 아무 때나
+            b.push("<select class=\"pb\" id=\"pbDrop\" aria-label=\"" + T("하차 지점", "Drop-off") + "\">" + [""].concat(s.drops, ["버스 대기"]).map(function (x) {
+                return "<option value=\"" + esc(x) + "\"" + ((s.drop || "") === x ? " selected" : "") + ">" + (x ? "⬇ " + esc(x === "버스 대기" ? T("버스 대기", "stay on bus") : x) : T("⬇ 하차 미정", "⬇ drop-off unset")) + "</option>"; }).join("") + "</select>");
+        }
         if (s.departed && !s.cancelled && !s.aboard) {
             b.push("<button type=\"button\" class=\"pb main\" data-act=\"aboard\">" + T("🚌 하산 탑승", "🚌 Back on the bus") + "</button>");
             b.push("<button type=\"button\" class=\"pb\" data-act=\"apart\">" + T("🚶 따로 귀가", "🚶 Going home separately") + "</button>");
@@ -106,6 +114,7 @@
         var my = (s.busPins || []).filter(function (x) { return x.bus === s.bus; })[0];
         if (my && !s.cancelled) b.push("<a class=\"pb\" target=\"_blank\" rel=\"noopener\" href=\"https://map.kakao.com/link/map/" + encodeURIComponent(T("우리 버스", "Our bus") + (plate ? " " + plate : "")) + "," + my.lat + "," + my.lon + "\">" + T("🚌 우리 버스", "🚌 Our bus") + "</a>");
         b.push("<button type=\"button\" class=\"pb\" data-act=\"leave\">" + (s.aboard || s.cancelled ? T("닫기", "Close") : T("그만 보내기", "Stop sending")) + "</button>");
+        if (document.activeElement && document.activeElement.id === "pbDrop") return;   // 고르는 중 - 새로 그리면 닫힘
         $("pbBtns").innerHTML = b.join("");
         if (wantWatch(s)) startWatch(); else stopWatch();
     }
@@ -122,6 +131,11 @@
                 .catch(function (er) { fail(er); if (!er.ended) alert(er.message); });
             return;
         }
+        if (act === "alight" || act === "stay") {   // 하차 안내 답
+            RFParty.post("alight", { token: p.token, yes: act === "alight" }).then(function (j) { render(j); if (act === "alight") alert(T("⬇ " + (j.drop || "") + " 하차 - 인솔자에게 알렸습니다. 안전한 산행 되세요!", "⬇ Got off - your leader knows. Have a safe hike!")); })
+                .catch(function (er) { fail(er); if (!er.ended) alert(er.message); });
+            return;
+        }
         if (act === "aboard") {
             if (!confirm(T("하산 탑승을 인솔자에게 알릴까요?\n알리면 위치 보내기를 멈춥니다.", "Tell your leader you're back on the bus?\nThis stops sending your location."))) return;
             if (p.sos) RFParty.sos(false);
@@ -135,6 +149,13 @@
             if (!done && !confirm(T("인솔자에게 위치 보내기를 그만둘까요?\n인솔자 명단에는 이름이 남고, 위치만 더 가지 않습니다.", "Stop sending your location to the leader?\nYour name stays on the leader's list; only your location stops."))) return;
             RFParty.post("leave", { token: p.token }).catch(function () { /* 이미 끝났어도 */ }).finally(function () { RFParty.clear(); hide(); });
         }
+    });
+    document.addEventListener("change", function (e) {   // 하차 지점 바꾸기(따라가기 띠)
+        if (!e.target || e.target.id !== "pbDrop") return;
+        var p = RFParty.get(), v = e.target.value;
+        e.target.blur();
+        if (!p) return;
+        RFParty.post("drop", { token: p.token, drop: v }).then(render).catch(function (er) { fail(er); if (!er.ended) alert(er.message); });
     });
     document.addEventListener("visibilitychange", function () {
         if (document.visibilityState === "visible") refresh();

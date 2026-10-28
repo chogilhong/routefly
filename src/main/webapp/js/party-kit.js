@@ -38,7 +38,8 @@
         if (!st || st.code !== s.code) st = { code: s.code, fired: {} };
         var r = g.RF.partyAlerts(s, st.fired);
         try { localStorage.setItem(AL_KEY, JSON.stringify({ code: s.code, fired: r.fired })); } catch (e) { /* 이번만 */ }
-        if (r.msgs.length) notify(r.msgs.join("\n"));
+        var msgs = r.msgs.filter(function (m) { return !(g.RFParty.ownSos && !document.hidden && m.indexOf("🆘") === 0); });   // 인솔자 방 화면은 SOS 를 따로 읽음(두 번 읽지 않게, 10-28 PC)
+        if (msgs.length) notify(msgs.join("\n"));
     }
     function notify(text) {
         try { if (navigator.vibrate) navigator.vibrate([400, 150, 400, 150, 400]); } catch (e) { /* 없음 */ }

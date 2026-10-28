@@ -70,6 +70,12 @@ final class Party {
         String stop;           // 탑승지
         /** 하차 지점(2026-10-28 홍TV님 - 회원을 한계령 · 오색 · 소공원 등 여러 곳에 내려 줌, 인솔자도 골라 내려 산행하거나 "버스 대기"). */
         String drop;
+        /** 실제로 내린 곳을 어떻게 알았나(2026-10-28 홍TV님 "소공원 골랐다가 한계령에서 갑자기 생각을 바꿔 내리는 경우도"): me(여기서 내려요) · auto(위치) · lead(인솔자), null = 계획만. */
+        String dropHow;
+        /** 실제 하차가 계획과 다를 때 처음 계획(인솔자 명단 "계획: 소공원"). */
+        String dropPlan;
+        /** 하차 안내에 답한 도착(그 도착 시각) - 같은 안내를 다시 띄우지 않음. 메모리. */
+        long arrAns;
         boolean boarded;       // 출발 때 버스 탐(본인 · 인솔자)
         boolean aboard;        // 하산 뒤 버스 탐(따로 귀가도 끝난 것으로 함께 true)
         boolean apart;         // 하산 뒤 버스를 타지 않고 따로 귀가(2026-10-27 홍TV님 - 설악산에서 더 여행하다 오는 회원)
@@ -122,6 +128,10 @@ final class Party {
         List<String> stopTimes = List.of();
         /** 하차 지점(없으면 빈 것) - 회원은 참가할 때 · 인솔자가 명단에서 고름. */
         List<String> drops = List.of();
+        /** 하차 지점 도착(인솔자 "⬇ 한계령 도착") - [지점, 때, 위도, 경도(없으면 NaN)], 최근 8개. 메모리. */
+        final List<Object[]> arrivals = new ArrayList<>();
+
+        Object[] lastArrival() { return arrivals.isEmpty() ? null : arrivals.get(arrivals.size() - 1); }
         final Map<Integer, double[]> busAt = new java.util.TreeMap<>();   // 호차 → 버스 세운 자리
         final String[] plates;   // 호차 - 1 → 차량번호(null = 아직)
         boolean departed;
@@ -663,8 +673,57 @@ final class Party {
             for (Member x : actor.room.members.values()) if (x.id == id) t = x;
             if (t == null) throw new IllegalArgumentException("이미 나간 사람입니다.");
         }
-        t.drop = checkDrop(actor.room, drop);
+        String d = checkDrop(actor.room, drop);
+        if (actor.room.arrivals.isEmpty()) { t.drop = d; t.dropHow = null; t.dropPlan = null; }   // 내리기 전 - 계획 바꾸기
+        else setActual(t, d, t == actor ? "me" : "lead");   // 내린 뒤 - 실제
         save();
+    }
+
+    /** 하차 안내를 보여 주는 동안(도착 뒤). */
+    static final long ARRIVE_MS = 15 * 60_000L;
+    /** 위치로 하차 확인 - 도착 뒤 이만큼 지나서도 그 자리 둘레(AUTO_M)에 있으면 내린 것(버스는 떠났음). */
+    static final long AUTO_AFTER_MS = 10 * 60_000L, AUTO_UNTIL_MS = 60 * 60_000L;
+    static final double AUTO_M = 400;
+
+    /** 실제 하차를 정함 - 계획과 다르면 계획을 남김. */
+    private static void setActual(Member m, String drop, String how) {
+        if (drop != null && m.drop != null && !drop.equals(m.drop) && m.dropPlan == null && m.dropHow == null) m.dropPlan = m.drop;
+        m.drop = drop;
+        m.dropHow = how;
+    }
+
+    /** 인솔자 - 하차 지점 도착: 버스 안 회원 폰에 "지금 한계령입니다 - 여기서 내리세요?"(15분). lat · lon - 그 자리(위치로 하차 확인에 씀). */
+    synchronized void arrive(Member lead, String drop, Double lat, Double lon, long now) {
+        if (!lead.staff() || lead.office) throw new SecurityException("인솔자만 알립니다.");
+        Room r = lead.room;
+        String d = clean(drop, 12);
+        if (d == null || !r.drops.contains(d)) throw new IllegalArgumentException("하차 지점을 골라 주세요.");
+        boolean pos = okPos(lat, lon);
+        r.arrivals.add(new Object[] {d, now, pos ? lat : Double.NaN, pos ? lon : Double.NaN});
+        while (r.arrivals.size() > 8) r.arrivals.remove(0);
+        audit.info("arrive room={} drop#{}", r.code, r.drops.indexOf(d) + 1);
+    }
+
+    /** 회원 - 하차 안내에 답함(yes = 여기서 내려요 → 실제 하차). */
+    synchronized void alight(Member m, boolean yes, long now) {
+        Object[] a = m.room.lastArrival();
+        if (a == null || now - (Long) a[1] > ARRIVE_MS) throw new IllegalArgumentException("지금은 하차 안내가 없습니다.");
+        m.arrAns = (Long) a[1];
+        if (yes) setActual(m, (String) a[0], "me");
+        save();
+    }
+
+    /** 위치로 하차 확인(앱 회원 등 계속 보내는 폰): 도착 10분 ~ 1시간 뒤에 그 자리 400m 안이면 거기서 내린 것. 이미 정해졌으면 그대로. */
+    private static void autoDrop(Member m, double lat, double lon, long now) {
+        if (m.dropHow != null || !"hiker".equals(m.role) || m.aboard || m.cancelled || BUS_STAY.equals(m.drop)) return;   // 버스 대기 - 버스가 그 자리에 서 있어도 내린 것 아님
+        Object[] best = null;
+        for (Object[] a : m.room.arrivals) {
+            long at = (Long) a[1];
+            double alat = (Double) a[2], alon = (Double) a[3];
+            if (Double.isNaN(alat) || now - at < AUTO_AFTER_MS || now - at > AUTO_UNTIL_MS) continue;
+            if (MountainServlet.distM(alat, alon, lat, lon) <= AUTO_M) best = a;   // 뒤의 도착일수록 나중(가까운 곳을 다시 지나면 마지막 것)
+        }
+        if (best != null) setActual(m, (String) best[0], "auto");
     }
 
     private static String checkStop(Room r, String stop) {
@@ -710,6 +769,7 @@ final class Party {
                 m.track.add(new double[] {lat, lon, now});
             }
         }
+        autoDrop(m, lat, lon, now);   // 위치로 하차 확인(2026-10-28)
         if (sos && !m.sos) memberLog.add(now, m.room.code, m.id, "sos");
         m.sos = sos;
         if (sos) m.room.sosEver = true;
@@ -1222,6 +1282,8 @@ final class Party {
                 if (m.office) x.addProperty("office", true);
                 if (m.app) x.addProperty("app", true);
                 if (m.drop != null) x.addProperty("drop", m.drop);
+                if (m.dropHow != null) x.addProperty("dropHow", m.dropHow);
+                if (m.dropPlan != null) x.addProperty("dropPlan", m.dropPlan);
                 ms.add(x);
             }
             o.add("members", ms);
@@ -1293,7 +1355,7 @@ final class Party {
                     m.seat = num(x, "seat") == null ? null : num(x, "seat").intValue();
                     m.bus = x.has("bus") ? x.get("bus").getAsInt() : 1;
                     m.stop = str(x, "stop"); m.boarded = boolOf(x, "boarded"); m.aboard = boolOf(x, "aboard"); m.apart = boolOf(x, "apart"); m.cancelled = boolOf(x, "cancelled");
-                    m.rostered = boolOf(x, "rostered"); m.listed = boolOf(x, "listed"); m.office = boolOf(x, "office"); m.app = boolOf(x, "app"); m.drop = str(x, "drop");
+                    m.rostered = boolOf(x, "rostered"); m.listed = boolOf(x, "listed"); m.office = boolOf(x, "office"); m.app = boolOf(x, "app"); m.drop = str(x, "drop"); m.dropHow = str(x, "dropHow"); m.dropPlan = str(x, "dropPlan");
                     ms.add(m);
                     r.nextId = Math.max(r.nextId, m.id + 1);
                 }
@@ -1418,6 +1480,26 @@ final class Party {
         if (me.seat != null) o.addProperty("seat", me.seat);
         if (me.stop != null) o.addProperty("stop", me.stop);
         if (me.drop != null) o.addProperty("drop", me.drop);
+        Object[] arr = r.lastArrival();   // 하차 안내 - 버스 안 회원에게 15분(답했으면 안 띄움)
+        if (arr != null && now - (Long) arr[1] <= ARRIVE_MS && "hiker".equals(me.role) && !me.cancelled && !me.aboard && me.arrAns != (Long) arr[1]) {
+            JsonObject a = new JsonObject();
+            a.addProperty("drop", (String) arr[0]);
+            a.addProperty("at", (Long) arr[1]);
+            o.add("arrive", a);
+        }
+        if (staff && !r.arrivals.isEmpty()) {   // 인솔자 - 도착 기록 · 거기서 내린 사람 수
+            JsonArray al = new JsonArray();
+            for (Object[] x : r.arrivals) {
+                JsonObject a = new JsonObject();
+                a.addProperty("drop", (String) x[0]);
+                a.addProperty("at", (Long) x[1]);
+                int n = 0;
+                for (Member m : r.members.values()) if ("hiker".equals(m.role) && m.dropHow != null && x[0].equals(m.drop)) n++;
+                a.addProperty("off", n);
+                al.add(a);
+            }
+            o.add("arrivals", al);
+        }
         o.addProperty("now", now);
         if (r.departedAt > 0) o.addProperty("departedAt", r.departedAt);   // "10분 소식 없음" 은 산행 시작 10분 뒤부터
         o.addProperty("locOn", started(me, now));   // 위치는 내 탑승지 출발 시각 · 탄 때 · 산행 시작부터(2026-10-27 홍TV님)
@@ -1442,6 +1524,8 @@ final class Party {
             x.addProperty("role", m.role);
             if (m.office) x.addProperty("office", true);   // 회사 사무실 자리
             if (m.drop != null && (staff || m == me || m.staff())) x.addProperty("drop", m.drop);   // 하차 지점 - 인솔자는 모두, 회원은 자기 것 · 인솔자 것
+            if (staff && m.dropHow != null) x.addProperty("dropHow", m.dropHow);   // 실제로 내림: me · auto(위치) · lead
+            if (staff && m.dropPlan != null) x.addProperty("dropPlan", m.dropPlan);   // 처음 계획
             if (m.chief()) x.addProperty("chief", true);   // 주 인솔자(나머지 lead 는 보조) - 회원도 위치를 받는 사람을 모두 봄
             x.addProperty("bus", m.bus);
             if (m.seat != null) x.addProperty("seat", m.seat);

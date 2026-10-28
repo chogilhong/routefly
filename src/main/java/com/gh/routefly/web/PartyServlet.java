@@ -33,6 +33,7 @@ import com.google.gson.JsonParser;
  * POST /api/party/leave  {token} · /end {token, cancel, why, force}  나가기 · (주 인솔자 · 사무실) 방 끝내기 · 산행 취소 - SOS 중이면 막음, 하산 미확인이 있으면 force 없이는 막음
  * POST /api/party/leadcode {token} · /mecode {token} · /link {token, office}  주 인솔자 - 보조 인솔자 코드 바꾸기 · 내 폰 코드 · 회사 연결
  * POST /api/party/drop   {token, id?, drop}                하차 지점(2026-10-28) - 나, 인솔자는 id 로 아무나("버스 대기" 도)
+ * POST /api/party/arrive {token, drop, lat, lon} · /alight {token, yes}  인솔자 - 하차 지점 도착 · 회원 - 여기서 내려요(위치로도 확인)
  * POST /api/party/office/create {name} → {code, key}   회사 사무실 만들기(비밀 링크 = key)
  * POST /api/party/office/rooms {key} · /office/enter {key, code} · /office/detach {key, code}  사무실 - 방 목록(숫자) · 방 열기(인솔자 화면) · 방 빼기
  * POST /api/party/office/newkey {key} → {key} · /office/delete {key, name}  사무실 링크 바꾸기 · 사무실 없애기(회사 이름을 한 번 더)
@@ -248,6 +249,8 @@ public class PartyServlet extends HttpServlet {
             case "/end" -> { if (!lead) throw new SecurityException("인솔자만 방을 끝낼 수 있습니다."); p.end(m, bool(in, "cancel"), str(in, "why"), bool(in, "force"), now); return ok(); }
             case "/link" -> { p.linkOffice(m, str(in, "office")); }
             case "/drop" -> p.drop(m, integer(in, "id"), str(in, "drop"));   // 하차 지점 - 나 · 인솔자는 아무나
+            case "/arrive" -> p.arrive(m, str(in, "drop"), num(in, "lat"), num(in, "lon"), now);   // 인솔자 - 하차 지점 도착(회원 폰에 "여기서 내리세요?")
+            case "/alight" -> p.alight(m, bool(in, "yes"), now);   // 회원 - 여기서 내려요 · 아니요
             default -> throw new IllegalArgumentException("없는 주소입니다.");
         }
         return p.view(m, now);

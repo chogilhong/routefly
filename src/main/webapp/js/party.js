@@ -595,6 +595,11 @@
         $("alertRow").hidden = !!s.officeMe || (window.Notification && Notification.permission === "granted" && !NATIVE);   // 인솔자 폰 알림(2026-10-28)
         // 내 하차 지점(인솔자도 원하는 곳에서 내려 산행 · 버스 대기, 2026-10-28 홍TV님) - 회사 사무실에 보임
         $("myDropRow").hidden = !(s.drops || []).length || !!s.officeMe;
+        $("arriveBox").hidden = !(s.drops || []).length || !!s.officeMe;
+        if (!$("arriveBox").hidden) {
+            $("arriveRow").innerHTML = s.drops.map(function (d) { return "<button type=\"button\" data-arrive=\"" + esc(d) + "\">" + T("⬇ " + esc(d) + " 도착", "⬇ At " + esc(d)) + "</button>"; }).join("");
+            $("arriveLog").innerHTML = (s.arrivals || []).map(function (a) { return "⬇ " + esc(a.drop) + " " + clock(a.at) + T(" 도착 · 내림 ", " · off ") + a.off + T("명", ""); }).join(" / ");
+        }
         if (!$("myDropRow").hidden && document.activeElement !== $("myDrop")) dropOptions($("myDrop"), s.drops, s.drop || null);
     }
 
@@ -696,6 +701,8 @@
             else if (m.listed && !s.departed)
                 st += " <button type=\"button\" class=\"undo\" data-board=\"" + m.id + "\" data-on=\"" + (m.boarded ? 0 : 1) + "\">" + (m.boarded ? T("↩ 안 탐", "↩ Not on") : T("✅ 탔음", "✅ On bus")) + "</button>";
             var dsel = (s.drops || []).length && m.role === "hiker" && !m.cancelled ? "<br><select class=\"dropSel\" data-drop=\"" + m.id + "\" aria-label=\"" + T("하차 지점", "Drop-off") + "\">" + ["", ].concat(s.drops, ["버스 대기"]).map(function (x) { return "<option value=\"" + esc(x) + "\"" + ((m.drop || "") === x ? " selected" : "") + ">" + (x ? "⬇ " + esc(x) : T("⬇ 하차 미정", "⬇ unset")) + "</option>"; }).join("") + "</select>" : (m.drop ? "<br><small>⬇ " + esc(m.drop) + "</small>" : "");
+            if (m.dropHow) dsel += " <small>" + (m.dropHow === "me" ? T("✓ 여기서 내림", "✓ got off") : m.dropHow === "auto" ? T("📍 위치로 확인", "📍 by location") : T("✓ 인솔자", "✓ leader")) + "</small>";
+            if (m.dropPlan) dsel += " <small>" + T("(계획: ", "(planned: ") + esc(m.dropPlan) + ")</small>";
             var via = m.role === "hiker" && !m.listed && (m.app || m.ago != null || m.seen != null) ? (m.app ? " <small title=\"" + T("앱 - 화면을 꺼도 보냄", "app - sends with screen off") + "\">📱</small>" : " <small title=\"" + T("웹 - 화면을 끄면 멈춤", "web - stops when screen off") + "\">🌐</small>") : "";
             return "<tr class=\"" + cls + "\" data-id=\"" + m.id + "\"><td>" + (m.role === "lead" ? "-" : seatText(s, m)) + "</td><td>" + esc(m.nick) + via
                 + dsel + (m.msg ? "<br><small>💬 " + esc(m.msg) + " (" + clock(m.msgAt) + ")</small>" : "")
@@ -1249,6 +1256,7 @@
             actFail(e);
         });
     }
+    RFParty.ownSos = true;   // 이 화면은 SOS 를 따로 읽음
     $("alertBtn").addEventListener("click", function () {
         RFParty.alertsOn().then(function (ok) {
             roomMsg(ok ? T("🔔 폰 알림을 켰습니다. SOS · 앱 회원 10분 소식 없음 · 하산 마감 1시간 · 30분 전에 진동 · 소리 · 알림으로 알려 드립니다(따라가기 화면에서도).", "🔔 Alerts on: SOS, app members silent 10+ min, and 60/30 min before the deadline (also on the trail guide).")
@@ -1262,7 +1270,17 @@
     $("list").addEventListener("change", function (e) {   // 명단 - 회원 하차 지점(버스 안에서 정하는 경우가 많음)
         var sel = e.target.closest && e.target.closest("select[data-drop]");
         if (!sel) return;
+        sel.blur();   // 고른 뒤 포커스가 남으면 명단이 멈춤(10-28 PC)
         RFParty.post("drop", { token: RFParty.get().token, id: +sel.getAttribute("data-drop"), drop: sel.value }).then(render).catch(actFail);
+    });
+    // 하차 지점 도착(2026-10-28 홍TV님 "소공원 골랐다가 한계령에서 갑자기 생각을 바꿔 내리는 경우도") - 버스 안 회원 폰에 "여기서 내리세요?"
+    $("arriveRow").addEventListener("click", function (e) {
+        var b = e.target.closest("[data-arrive]");
+        if (!b) return;
+        var d = b.getAttribute("data-arrive");
+        if (!confirm(T(d + " 도착 - 버스 안 회원 폰에 \"지금 " + d + "입니다, 여기서 내리세요?\"를 15분 동안 띄울까요?\n(지금 내 위치를 하차 자리로 남겨, 앱 회원은 위치로도 내린 곳을 확인합니다)", "Arrived at " + d + " - show members on the bus \"Get off here?\" for 15 min?\n(Your current location is saved as the drop-off spot)"))) return;
+        var at = lastPos && Date.now() - lastPos.t < 5 * 60000 ? lastPos : null;
+        RFParty.post("arrive", { token: RFParty.get().token, drop: d, lat: at ? at.lat : null, lon: at ? at.lon : null }).then(function (j) { render(j); roomMsg(T("⬇ " + d + " 도착을 알렸습니다.", "⬇ Arrival at " + d + " announced.") + (at ? "" : T(" (내 위치가 없어 위치 확인은 안 됨)", " (no location - auto check off)"))); }).catch(actFail);
     });
     $("officeLinkBtn").addEventListener("click", function () {
         var c = $("officeCode").value.trim().toUpperCase();

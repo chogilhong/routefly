@@ -4756,15 +4756,21 @@
                     if (eff > 600) hit("quiet" + m.id, en ? "📵 No update from " + m.nick + " for over 10 min" : "📵 " + m.nick + " 님 10분 넘게 소식 없음");
                 }
             });
+            var left = Math.ceil((s.endAt - now) / 60000);   // 실제 남은 분(10-28 PC: 45분 남았는데 "60분" 이라 읽었음)
             [60, 30].forEach(function (w) {
-                if (s.departed && s.endAt && notDown > 0 && now >= s.endAt - w * 60000 && now < s.endAt)
-                    hit("end" + w, en ? "⏰ Back-down deadline " + hm(s.endAt) + " in " + w + " min - " + notDown + " not back yet" : "⏰ 하산 마감 " + hm(s.endAt) + " " + w + "분 전 - 아직 " + notDown + "명 하산 전");
+                if (s.departed && s.endAt && notDown > 0 && now >= s.endAt - w * 60000 && now < s.endAt && !(w === 60 && left <= 30))   // 30분 안에 처음 보면 30분 것 하나만
+                    hit("end" + w, en ? "⏰ Back-down deadline " + hm(s.endAt) + " (" + left + " min left) - " + notDown + " not back yet" : "⏰ 하산 마감 " + hm(s.endAt) + " (" + left + "분 남음) - 아직 " + notDown + "명 하산 전");
             });
-        } else if (s.role === "hiker" && s.departed && s.endAt && !s.aboard && !s.cancelled) {
-            [60, 30].forEach(function (w) {
-                if (now >= s.endAt - w * 60000 && now < s.endAt)
-                    hit("mine" + w, en ? "⏰ Back-down deadline " + hm(s.endAt) + " - " + w + " min left. Please head back to the bus." : "⏰ 하산 마감 " + hm(s.endAt) + " - " + w + "분 남았습니다. 버스로 내려와 주세요.");
-            });
+        } else if (s.role === "hiker") {
+            // 하차 안내(인솔자 "⬇ 한계령 도착") - 버스 안 회원
+            if (s.arrive && !s.aboard && !s.cancelled) hit("arr" + s.arrive.at, en ? "⬇ We're at " + s.arrive.drop + ". If you get off here, tap \"I'm getting off here\"." : "⬇ 지금 " + s.arrive.drop + "입니다. 여기서 내리시면 \"여기서 내려요\"를 눌러 주세요.");
+            if (s.departed && s.endAt && !s.aboard && !s.cancelled) {
+                var mleft = Math.ceil((s.endAt - now) / 60000);
+                [60, 30].forEach(function (w) {
+                    if (now >= s.endAt - w * 60000 && now < s.endAt && !(w === 60 && mleft <= 30))
+                        hit("mine" + w, en ? "⏰ Back-down deadline " + hm(s.endAt) + " - " + mleft + " min left. Please head back to the bus." : "⏰ 하산 마감 " + hm(s.endAt) + " - " + mleft + "분 남았습니다. 버스로 내려와 주세요.");
+                });
+            }
         }
         return { msgs: out, fired: f };
     }
