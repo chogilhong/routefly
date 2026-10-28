@@ -4968,7 +4968,7 @@
         p = p || {};
         end = end || {};
         var name = String(end.name || "").replace(/\s+/g, " ").trim().slice(0, 30), ok = isFinite(end.lat) && isFinite(end.lon) && end.lat !== null && end.lon !== null;
-        if (name) out.push({ text: T("🍜 " + name + " 맛집", "🍜 Food near " + name), href: "https://map.kakao.com/link/search/" + encodeURIComponent(name + " 맛집"), sponsored: false });
+        if (name) out.push({ text: T("🍜 " + name + " 맛집", "🍜 Food near " + enName(name)), href: "https://map.kakao.com/link/search/" + encodeURIComponent(name + " 맛집"), sponsored: false });
         var trip = p.trip && ok ? tripLink(p.trip, end.lat, end.lon, name) : null;
         if (trip) { out.push({ text: T("🏨 근처 숙소(트립닷컴)", "🏨 Stays nearby (Trip.com)"), href: trip, sponsored: true }); af = true; }
         else if (p.agoda && ok && /\{lat\}/.test(p.agoda)) {

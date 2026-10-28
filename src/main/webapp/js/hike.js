@@ -1310,10 +1310,11 @@
     }
 
     /** 산행을 끝낼 때 - 기록을 "내 기록" 에 남기고 요약을 보여 줍니다(최근 30개만). 아주 짧거나 코스와 먼 곳이면 남기지 않습니다. */
-    function finishRecord() {
-        markDone();
+    /** sim - 시험 걷기: 기록 · 완주 · 결산에 남기지 않고 산행 기록 창만 보여 줌(2026-10-28 PC - "다음은?" 을 시험 걷기로도 확인). */
+    function finishRecord(sim) {
+        if (!sim) markDone();
         if (hike.track.length < 2) return;
-        if (RF.recordSkip(hike.walked, hike.track, c)) return;   // 알림 없이(2026-10-09 홍TV님)
+        if (!sim && RF.recordSkip(hike.walked, hike.track, c)) return;   // 알림 없이(2026-10-09 홍TV님)
         var rec = { courseId: c.id, name: c.course.name, kind: c.course.kind, start: hike.start, end: now(),
                     walked: Math.round(hike.walked), done: Math.round(hike.d), track: hike.track };
         if (hike.notes.length) rec.notes = hike.notes.slice();
@@ -1321,12 +1322,15 @@
         rec.kcal = ef.kcal;
         rec.steps = ef.steps;
         rec.up = Math.max(ef.up, RF.trackClimb(hike.track));   // 코스 밖(새 길 · 들머리 가는 길)도 GPS 높이로(2026-10-17 송산 0m)
-        recordsReady.then(function () {
-            var list = records();
-            list.unshift(rec);
-            return writeRecords(list);
-        }).then(gcPhotos).then(keepStorage);
-        addLog([RF.logEntry(rec)]);   // 30개 밖으로 밀려난 기록의 사진
+        $("doneTitle").textContent = sim ? T("🧪 시험 걷기 끝 - 기록은 남기지 않습니다", "🧪 Test walk done - not saved") : T(K().act + " 기록", K().act + " record");
+        if (!sim) {
+            recordsReady.then(function () {
+                var list = records();
+                list.unshift(rec);
+                return writeRecords(list);
+            }).then(gcPhotos).then(keepStorage);
+            addLog([RF.logEntry(rec)]);   // 30개 밖으로 밀려난 기록의 사진
+        }
         var sum = $("doneSum");
         sum.innerHTML = "";
         [[T("코스", "Trail"), NM(rec.name)], [T("걸은 거리", "Walked"), km(rec.walked) + " km"], [T("코스 진행", "Trail progress"), km(rec.done) + " / " + km(c.total) + " km"],
@@ -2102,7 +2106,7 @@
         if (!wasSim) {
             finishRecord();
             clearSaved();
-        }
+        } else finishRecord(true);
         hike.sim = false;
         compassOff();   // 2026-10-10 점검: 다 걸은 뒤에도 센서를 계속 받던 것
         $("go").textContent = T(K().act + " 시작", "Start " + K().act.toLowerCase());

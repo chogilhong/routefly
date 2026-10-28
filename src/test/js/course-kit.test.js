@@ -788,6 +788,7 @@ tick().then(function () {
     eq("다음은 - 제휴 표시", [ah.affiliate, ah.coupang, ah.links[1].href.indexOf("Allianceid=1") > 0], [true, true, true]);
     var ae = RF.afterHikeLinks({ agoda: "https://www.agoda.com/search?lat={lat}&lon={lon}&cid=1" }, { lat: 38.1, lon: 128.5, name: "x" }, true);
     eq("다음은 - 영어 · 아고다 좌표 · 쿠팡 없음", [ae.links.length, ae.links[1].href, ae.links[2].href, ae.coupang], [3, "https://www.agoda.com/search?lat=38.10000&lon=128.50000&cid=1", "en/m/", false]);
+    eq("다음은 - 영어는 이름도 영어(검색은 한글)", [RF.afterHikeLinks({}, { name: "설악산 대청봉" }, true).links[0].text, RF.afterHikeLinks({}, { name: "설악산 대청봉" }, true).links[0].href.indexOf(encodeURIComponent("설악산")) > 0], ["🍜 Food near Seoraksan Daecheongbong", true]);
     eq("다음은 - 제휴 설정 없으면 맛집 · 다음 산만", RF.afterHikeLinks({}, { name: "북한산" }, false).links.length, 2);
     // 인솔자 지금 할 일 · 회원 탑승 카드(2026-10-28 추천 2)
     var mem = function (n, o) { var m = { role: "hiker", nick: n }; for (var k in o) m[k] = o[k]; return m; };
