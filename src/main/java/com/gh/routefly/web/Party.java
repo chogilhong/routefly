@@ -68,6 +68,8 @@ final class Party {
         int bus = 1;           // 몇 호차(단풍철 - 한 인솔자가 차 두세 대, 2026-10-20 홍TV님)
         Integer seat;          // 버스 좌석(없으면 null)
         String stop;           // 탑승지
+        /** 하차 지점(2026-10-28 홍TV님 - 회원을 한계령 · 오색 · 소공원 등 여러 곳에 내려 줌, 인솔자도 골라 내려 산행하거나 "버스 대기"). */
+        String drop;
         boolean boarded;       // 출발 때 버스 탐(본인 · 인솔자)
         boolean aboard;        // 하산 뒤 버스 탐(따로 귀가도 끝난 것으로 함께 true)
         boolean apart;         // 하산 뒤 버스를 타지 않고 따로 귀가(2026-10-27 홍TV님 - 설악산에서 더 여행하다 오는 회원)
@@ -118,6 +120,8 @@ final class Party {
         long noticeAt;
         /** 탑승지마다 출발 시각 "HH:MM"(없으면 "") - stops 와 같은 차례(2026-10-27 홍TV님 "정각에 출발, 기다려 주지 않아"). */
         List<String> stopTimes = List.of();
+        /** 하차 지점(없으면 빈 것) - 회원은 참가할 때 · 인솔자가 명단에서 고름. */
+        List<String> drops = List.of();
         final Map<Integer, double[]> busAt = new java.util.TreeMap<>();   // 호차 → 버스 세운 자리
         final String[] plates;   // 호차 - 1 → 차량번호(null = 아직)
         boolean departed;
@@ -629,6 +633,40 @@ final class Party {
         if (there != null && there != self) throw new IllegalArgumentException(busName(r, bus) + seat + "번 자리는 이미 다른 분이 골랐습니다. 좌석 번호를 확인해 주세요.");   // 참가 전 사람에게 별명은 안 보임(점검)
     }
 
+    /** 버스에 남음(몸이 안 좋을 때 · 인솔자 대기) - 하차 지점 목록에 없어도 됨. */
+    static final String BUS_STAY = "버스 대기";
+
+    private static String checkDrop(Room r, String drop) {
+        String d = clean(drop, 12);
+        if (d != null && !BUS_STAY.equals(d) && !r.drops.contains(d)) throw new IllegalArgumentException("하차 지점을 골라 주세요.");
+        return d;
+    }
+
+    /** 참가 전에 하차 지점 확인(틀리면 사람이 들어가기 전에 막음). */
+    synchronized void checkDrop(String code, String drop, long now) {
+        checkDrop(room(code, now), drop);
+    }
+
+    /** 인솔자 - 하차 지점 목록(방 만들 때). */
+    synchronized void drops(Member lead, List<String> drops) {
+        if (!lead.staff()) throw new SecurityException("인솔자만 정합니다.");
+        lead.room.drops = drops == null ? List.of() : List.copyOf(drops.subList(0, Math.min(drops.size(), MAX_STOPS)));
+        save();
+    }
+
+    /** 하차 지점 고르기 - id 가 없으면 나, 있으면 인솔자가 그 사람(빈 값 = 지움). */
+    synchronized void drop(Member actor, Integer id, String drop) {
+        Member t = actor;
+        if (id != null && id != actor.id) {
+            if (!actor.staff()) throw new SecurityException("다른 사람의 하차 지점은 인솔자만 바꿉니다.");
+            t = null;
+            for (Member x : actor.room.members.values()) if (x.id == id) t = x;
+            if (t == null) throw new IllegalArgumentException("이미 나간 사람입니다.");
+        }
+        t.drop = checkDrop(actor.room, drop);
+        save();
+    }
+
     private static String checkStop(Room r, String stop) {
         String st = clean(stop, 12);
         if (st != null && !r.stops.isEmpty() && !r.stops.contains(st)) throw new IllegalArgumentException("탑승지를 골라 주세요.");
@@ -963,6 +1001,10 @@ final class Party {
             x.add("busSeats", seats);
             x.add("stops", strings(r.stops));
             x.add("stopTimes", strings(r.stopTimes));
+            if (c != null && c.drop != null) x.addProperty("chiefDrop", c.drop);   // 인솔자는 어디서 내려 산행 중인지 · 버스 대기
+            JsonObject dc = new JsonObject();   // 하차 지점마다 산행 회원 수
+            for (Member m : r.members.values()) if ("hiker".equals(m.role) && !m.cancelled) { String k = m.drop != null ? m.drop : "미정"; dc.addProperty(k, (dc.has(k) ? dc.get(k).getAsInt() : 0) + 1); }
+            x.add("drops", dc);
             live.add(x);
         }
         out.add("rooms", live);
@@ -1170,7 +1212,7 @@ final class Party {
             JsonObject ba = new JsonObject();
             r.busAt.forEach((k, v) -> { JsonArray p = new JsonArray(); p.add(v[0]); p.add(v[1]); ba.add(String.valueOf(k), p); });
             o.add("busAt", ba); o.addProperty("departed", r.departed); o.addProperty("stopsDone", r.stopsDone); o.addProperty("nextId", r.nextId);
-            o.addProperty("officeCode", r.officeCode); o.addProperty("officeName", r.officeName); o.addProperty("sosEver", r.sosEver); o.addProperty("departedAt", r.departedAt);
+            o.addProperty("officeCode", r.officeCode); o.addProperty("officeName", r.officeName); o.addProperty("sosEver", r.sosEver); o.addProperty("departedAt", r.departedAt); o.add("drops", strings(r.drops));
             JsonArray ms = new JsonArray();
             for (Member m : r.members.values()) {
                 JsonObject x = new JsonObject();
@@ -1179,6 +1221,7 @@ final class Party {
                 x.addProperty("rostered", m.rostered); x.addProperty("listed", m.listed);
                 if (m.office) x.addProperty("office", true);
                 if (m.app) x.addProperty("app", true);
+                if (m.drop != null) x.addProperty("drop", m.drop);
                 ms.add(x);
             }
             o.add("members", ms);
@@ -1241,6 +1284,7 @@ final class Party {
                 r.departed = boolOf(o, "departed"); r.stopsDone = (int) lng(o, "stopsDone"); r.nextId = Math.max(1, (int) lng(o, "nextId"));
                 r.leadCode = str(o, "leadCode") != null ? str(o, "leadCode") : str(o, "driverCode");   // 10-27 전 파일은 driverCode
                 r.officeCode = str(o, "officeCode"); r.officeName = str(o, "officeName"); r.sosEver = boolOf(o, "sosEver"); r.departedAt = lng(o, "departedAt");
+                if (o.has("drops")) { List<String> dd = new ArrayList<>(); o.getAsJsonArray("drops").forEach(x -> dd.add(x.getAsString())); r.drops = List.copyOf(dd); }
                 List<Member> ms = new ArrayList<>();
                 if (o.has("members")) for (JsonElement me : o.getAsJsonArray("members")) {
                     JsonObject x = me.getAsJsonObject();
@@ -1249,7 +1293,7 @@ final class Party {
                     m.seat = num(x, "seat") == null ? null : num(x, "seat").intValue();
                     m.bus = x.has("bus") ? x.get("bus").getAsInt() : 1;
                     m.stop = str(x, "stop"); m.boarded = boolOf(x, "boarded"); m.aboard = boolOf(x, "aboard"); m.apart = boolOf(x, "apart"); m.cancelled = boolOf(x, "cancelled");
-                    m.rostered = boolOf(x, "rostered"); m.listed = boolOf(x, "listed"); m.office = boolOf(x, "office"); m.app = boolOf(x, "app");
+                    m.rostered = boolOf(x, "rostered"); m.listed = boolOf(x, "listed"); m.office = boolOf(x, "office"); m.app = boolOf(x, "app"); m.drop = str(x, "drop");
                     ms.add(m);
                     r.nextId = Math.max(r.nextId, m.id + 1);
                 }
@@ -1329,6 +1373,7 @@ final class Party {
         o.add("busSeats", bs);   // 호차마다 좌석 수(seats 는 가장 큰 값)
         o.add("stops", strings(r.stops));
         if (!r.stopTimes.isEmpty()) o.add("stopTimes", strings(r.stopTimes));   // 탑승지마다 출발 시각
+        if (!r.drops.isEmpty()) o.add("drops", strings(r.drops));   // 하차 지점(2026-10-28)
         JsonArray taken = new JsonArray(), booked = new JsonArray();   // 호차 × 100 + 좌석
         for (Member m : r.members.values()) if (m.seat != null && !m.cancelled && m != me)
             (m.listed ? booked : taken).add(m.bus * 100 + m.seat);   // 명단에만 있는 자리는 "예약" - 같은 이름이 둘일 때 좌석으로 고름(2026-10-26 PC)
@@ -1372,6 +1417,7 @@ final class Party {
         o.addProperty("bus", me.bus);
         if (me.seat != null) o.addProperty("seat", me.seat);
         if (me.stop != null) o.addProperty("stop", me.stop);
+        if (me.drop != null) o.addProperty("drop", me.drop);
         o.addProperty("now", now);
         if (r.departedAt > 0) o.addProperty("departedAt", r.departedAt);   // "10분 소식 없음" 은 산행 시작 10분 뒤부터
         o.addProperty("locOn", started(me, now));   // 위치는 내 탑승지 출발 시각 · 탄 때 · 산행 시작부터(2026-10-27 홍TV님)
@@ -1395,6 +1441,7 @@ final class Party {
             x.addProperty("nick", m.nick);
             x.addProperty("role", m.role);
             if (m.office) x.addProperty("office", true);   // 회사 사무실 자리
+            if (m.drop != null && (staff || m == me || m.staff())) x.addProperty("drop", m.drop);   // 하차 지점 - 인솔자는 모두, 회원은 자기 것 · 인솔자 것
             if (m.chief()) x.addProperty("chief", true);   // 주 인솔자(나머지 lead 는 보조) - 회원도 위치를 받는 사람을 모두 봄
             x.addProperty("bus", m.bus);
             if (m.seat != null) x.addProperty("seat", m.seat);

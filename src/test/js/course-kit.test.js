@@ -122,6 +122,29 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
     eq("공원 - 자락", RF.parkOf("지리산 자락 21코스 · 운리 → 무명폭포"), "지리산");
     eq("공원 - 괄호", RF.parkOf("지리산(천왕봉) 1코스"), "지리산");
     // 트립닷컴 들머리 근처 숙소 링크(2026-10-28) - 제휴 꼬리는 그대로, 검색 칸은 우리 것으로
+    // 산악회 방 알림(2026-10-28) - 인솔자 SOS · 앱 회원 10분 소식 없음 · 하산 마감 60/30분 전, 회원 하산 마감
+    (function () {
+        var D = 1760000000000, E = D + 8 * 3600000;
+        var lead = { role: "lead", now: D + 5 * 60000, departed: true, departedAt: D, endAt: E, members: [
+            { id: 1, role: "hiker", nick: "철수", app: true, seen: 900 }, { id: 2, role: "hiker", nick: "영희", seen: 900 },
+            { id: 3, role: "hiker", nick: "민수", sos: true }, { id: 4, role: "hiker", nick: "명단", app: true, listed: true }, { id: 5, role: "hiker", nick: "탄사람", aboard: true, sos: true }] };
+        var r1 = RF.partyAlerts(lead, {});
+        eq("알림 - SOS 만(산행 시작 5분 - 아직 소식 없음 안 셈, 하산 탑승한 SOS 는 빼고)", r1.msgs.join("|"), "🆘 SOS - 민수 님");
+        lead.now = D + 20 * 60000;
+        var r2 = RF.partyAlerts(lead, r1.fired);
+        eq("알림 - 앱 회원만 10분 소식 없음(웹 · 폰 없는 명단 빼고), SOS 는 다시 안 울림", r2.msgs.join("|"), "📵 철수 님 10분 넘게 소식 없음");
+        lead.members[2].sos = false; lead.members[0].seen = 30;
+        var r3 = RF.partyAlerts(lead, r2.fired);
+        eq("알림 - 풀리면 지움(다시 울릴 수 있게)", [r3.msgs.length, !!r3.fired.sos3, !!r3.fired.quiet1].join(), "0,false,false");
+        lead.members[2].sos = true;
+        eq("알림 - 다시 SOS 면 다시", RF.partyAlerts(lead, r3.fired).msgs.join("|"), "🆘 SOS - 민수 님");
+        lead.now = E - 50 * 60000;
+        eq("알림 - 하산 마감 60분 전 미하산 인원(사무실 자리 · 탄 사람 빼고)", RF.partyAlerts(lead, r3.fired).msgs.filter(function (m) { return m.indexOf("⏰") === 0; }).join("|"), "⏰ 하산 마감 01:53 60분 전 - 아직 4명 하산 전");
+        eq("알림 - 사무실 자리는 울리지 않음", RF.partyAlerts({ role: "lead", officeMe: true, now: lead.now, departed: true, endAt: E, members: lead.members }, {}).msgs.length, 0);
+        var me = { role: "hiker", now: E - 20 * 60000, departed: true, endAt: E };
+        eq("알림 - 회원 하산 마감 60 · 30분(한 번에 둘)", RF.partyAlerts(me, {}).msgs.length, 2);
+        eq("알림 - 회원 하산 탑승하면 없음", RF.partyAlerts({ role: "hiker", now: me.now, departed: true, endAt: E, aboard: true }, {}).msgs.length, 0);
+    })();
     eq("트립 - 들머리", RF.tripLink("https://kr.trip.com/?Allianceid=1&SID=2&trip_sub1=routefly&curr=KRW&locale=ko-KR", 35.3070131, 127.6136087, "지리산 중산리"),
         "https://kr.trip.com/hotels/list?cityId=0&searchType=LM&searchWord=%EC%A7%80%EB%A6%AC%EC%82%B0%20%EC%A4%91%EC%82%B0%EB%A6%AC&searchValue=13%7C0*13*35.307013%7C127.613609%7C%EC%A7%80%EB%A6%AC%EC%82%B0%20%EC%A4%91%EC%82%B0%EB%A6%AC%7C0%7C1&listFilters=17~5*17*5&Allianceid=1&SID=2&trip_sub1=routefly&curr=KRW&locale=ko-KR");
     eq("트립 - 옛 검색 칸은 버림 · ? 앞 / 없어도", RF.tripLink("https://kr.trip.com?Allianceid=1&city=88097&checkIn=2026-10-28&lat=1&listFilters=x", 38.17, 128.49, "설악산|소공원").indexOf("city=88097") < 0 && RF.tripLink("https://kr.trip.com?listFilters=x", 1, 2, "a").indexOf("listFilters=x") < 0 && RF.tripLink("https://kr.trip.com?Allianceid=1", 38.17, 128.49, "a").indexOf("Allianceid=1") > 0, true);

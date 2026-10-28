@@ -25,6 +25,42 @@
     function set(p) { try { localStorage.setItem(KEY, JSON.stringify(p)); } catch (e) { /* 이번만 */ } }
     function clear() { try { localStorage.removeItem(KEY); } catch (e) { /* 없음 */ } }
 
+    /**
+     * 알림(2026-10-28 홍TV님 - 인솔자도 혼자 산행해 화면을 못 봄): 무엇을 울릴지는 RF.partyAlerts(course-kit, 시험 있음).
+     * 화면이 보이면 진동 · 소리(따라가기는 onNotice - 알림 띠 · 읽어 주기), 화면이 꺼졌거나 앱이면 폰 알림(앱 LocalNotifications · 브라우저 Notification).
+     * 이미 울린 것은 이 기기 "rf-party-al" 에(방이 바뀌면 처음부터).
+     */
+    var AL_KEY = "rf-party-al", alId = 7400;
+    function alerts(s) {
+        if (!g.RF || !g.RF.partyAlerts) return;
+        var st = null;
+        try { st = JSON.parse(localStorage.getItem(AL_KEY) || "null"); } catch (e) { /* 처음 */ }
+        if (!st || st.code !== s.code) st = { code: s.code, fired: {} };
+        var r = g.RF.partyAlerts(s, st.fired);
+        try { localStorage.setItem(AL_KEY, JSON.stringify({ code: s.code, fired: r.fired })); } catch (e) { /* 이번만 */ }
+        if (r.msgs.length) notify(r.msgs.join("\n"));
+    }
+    function notify(text) {
+        try { if (navigator.vibrate) navigator.vibrate([400, 150, 400, 150, 400]); } catch (e) { /* 없음 */ }
+        if (g.RFParty && g.RFParty.onNotice && !document.hidden) { g.RFParty.onNotice(text); return; }   // 따라가기 - 띠 · 읽어 주기
+        if (!document.hidden && g.speechSynthesis && g.SpeechSynthesisUtterance) {
+            try { var u = new SpeechSynthesisUtterance(text.replace(/[^\uAC00-\uD7A3\w\s:·,.-]/g, " ")); u.lang = "ko-KR"; speechSynthesis.speak(u); } catch (e) { /* 없음 */ }
+        }
+        var CAP = g.Capacitor, LN = CAP && CAP.isNativePlatform && CAP.isNativePlatform() && CAP.Plugins && CAP.Plugins.LocalNotifications;
+        if (LN) {   // 앱 - 화면이 꺼져 있어도
+            Promise.resolve(LN.schedule({ notifications: [{ id: alId++, title: "routefly 산악회 방", body: text }] })).catch(function () { /* 권한 없음 */ });
+        } else if (document.hidden && g.Notification && Notification.permission === "granted") {
+            try { new Notification("routefly 산악회 방", { body: text, tag: "rf-party-" + (alId++) }); } catch (e) { /* 안드로이드 크롬은 서비스워커로만 - 진동 · 소리로 갈음 */ }
+        }
+    }
+    /** 알림 켜기(인솔자 화면 단추 - 사용자가 눌러야 권한 창을 띄울 수 있음). */
+    function alertsOn() {
+        var CAP = g.Capacitor, LN = CAP && CAP.isNativePlatform && CAP.isNativePlatform() && CAP.Plugins && CAP.Plugins.LocalNotifications;
+        if (LN) return Promise.resolve(LN.requestPermissions()).then(function (r) { return r && r.display === "granted"; }).catch(function () { return false; });
+        if (g.Notification && Notification.requestPermission) return Promise.resolve(Notification.requestPermission()).then(function (p) { return p === "granted"; }).catch(function () { return false; });
+        return Promise.resolve(false);
+    }
+
     /** 서버에 보내기 - 실패하면 서버 글을 담은 Error. 방이 끝났으면(열쇠가 안 맞음) 이 기기 방 정보를 지움. */
     function post(path, body) {
         var ctl = typeof AbortController === "function" ? new AbortController() : null, timer = ctl ? setTimeout(function () { ctl.abort(); }, POST_MS) : 0;
@@ -40,6 +76,7 @@
                     e.ended = ended;
                     throw e;
                 }
+                if (j && j.role && j.members) alerts(j);   // 방 화면이 올 때마다(위치 · 켜짐 · 새로 받기 답) - 화면을 꺼도 앱이 보내는 답으로
                 return j;
             });
         });
@@ -149,5 +186,5 @@
         return t;
     }
 
-    g.RFParty = { isApp: isApp, dashes: dashes, KEY: KEY, get: get, set: set, clear: clear, post: post, fix: fix, ping: ping, sos: sos, onNotice: null, parseDay: parseDay, parseTime: parseTime };
+    g.RFParty = { alertsOn: alertsOn, isApp: isApp, dashes: dashes, KEY: KEY, get: get, set: set, clear: clear, post: post, fix: fix, ping: ping, sos: sos, onNotice: null, parseDay: parseDay, parseTime: parseTime };
 })(window);

@@ -283,6 +283,8 @@
             $("joinBusBox").hidden = !(j.buses > 1);
             seatOptions($("joinSeat"), seatsOf(j, 1), j.taken, null, T("고르기", "Choose"), 1, j.booked);
             stopOptions($("joinStop"), j.stops, null, T("고르기", "Choose"), j);
+            dropOptions($("joinDrop"), j.drops, null);
+            $("joinDropBox").hidden = !(j.drops || []).length || !!j.leadInvite;
             roleChanged();   // 역할은 코드가 정함 - 공동 인솔자 코드면 인솔자, 방 코드면 산행(2026-10-27)
             if (j.meInvite) $("joinNick").value = j.leaderName || T("인솔자", "Leader");   // 주 인솔자 내 폰 - 같은 사람(이 기기에 남은 옛 이름 대신, 10-28 PC)
             if (j.departed && !j.leadInvite) joinErr(T("이미 출발한 방이라 산행 회원은 새로 참가할 수 없습니다. 인솔자에게 연락해 주세요.", "This room has already departed, so new hikers can't join. Please contact your leader."));
@@ -315,7 +317,7 @@
         var seat = seatOn && $("joinSeat").value ? +$("joinSeat").value : null, stop = stopOn && $("joinStop").value ? $("joinStop").value : null;
         $("joinBtn").disabled = true;
         var bus = !$("joinBusBox").hidden ? +$("joinBus").value : 1;
-        RFParty.post("join", { code: code, nick: nick, role: role, bus: bus, seat: role === "hiker" ? seat : null, stop: role === "hiker" ? stop : null, onBus: q.get("on") === "1", agree: true }).then(function (j) {
+        RFParty.post("join", { code: code, nick: nick, role: role, bus: bus, seat: role === "hiker" ? seat : null, stop: role === "hiker" ? stop : null, drop: $("joinDropBox").hidden ? null : $("joinDrop").value, onBus: q.get("on") === "1", agree: true }).then(function (j) {
             try { localStorage.setItem("rf-party-nick", nick); } catch (e) { /* 이번만 */ }
             RFParty.set({ code: j.code, token: j.token, role: j.role, name: j.name });
             enterRoom(j);
@@ -403,7 +405,7 @@
             leaderName: $("mkLead").value.trim(), leaderPhone: RFParty.dashes($("mkPhone").value), office: $("mkOffice").value.trim().toUpperCase(),
             plates: Array.prototype.map.call(document.querySelectorAll("#mkPlates .mkPlate"), function (x) { return x.value.trim(); }),
             busSeats: seatsIn, seats: Math.max.apply(null, seatsIn.concat([0])),
-            buses: Math.max(1, Math.min(8, +$("mkBuses").value || 1)), stops: $("mkStops").value }).then(function (j) {
+            buses: Math.max(1, Math.min(8, +$("mkBuses").value || 1)), stops: $("mkStops").value, drops: $("mkDrops").value }).then(function (j) {
             RFParty.set({ code: j.code, token: j.token, role: "lead", name: j.name });
             enterRoom(j);
             roomMsg(T("방을 만들었습니다. 아래 참가 링크를 예약한 회원에게 카톡 · 문자로 보내세요.", "Room created. Send the join link below to your members by KakaoTalk or text."));
@@ -590,6 +592,10 @@
         if (s.office) $("officeRow").textContent = T("🏢 " + s.office + " 사무실이 이 방을 함께 봅니다(회원 화면에도 표시).", "🏢 " + s.office + " office watches this room too (shown to members).");
         $("officeLinkRow").hidden = !!s.office || !s.chief;
         $("officeBack").hidden = !s.officeMe;
+        $("alertRow").hidden = !!s.officeMe || (window.Notification && Notification.permission === "granted" && !NATIVE);   // 인솔자 폰 알림(2026-10-28)
+        // 내 하차 지점(인솔자도 원하는 곳에서 내려 산행 · 버스 대기, 2026-10-28 홍TV님) - 회사 사무실에 보임
+        $("myDropRow").hidden = !(s.drops || []).length || !!s.officeMe;
+        if (!$("myDropRow").hidden && document.activeElement !== $("myDrop")) dropOptions($("myDrop"), s.drops, s.drop || null);
     }
 
     /** 인솔자 - 아직 하산 탑승 안 한 사람(2026-10-22 점검: 숫자만 있어 누가 남았는지 명단을 훑어야 했음). 8명까지 이름. */
@@ -674,7 +680,10 @@
         msgAlert(s);
         var rows = (s.members || []).filter(function (m) { return m.id !== s.me; });
         rows.sort(function (a, b) { var ka = rank(a), kb = rank(b); return ka !== kb ? ka - kb : (b.stillMin || 0) - (a.stillMin || 0); });
-        $("listTitle").textContent = T("회원 ", "Members ") + rows.filter(function (m) { return !m.cancelled; }).length + T("명", "") + (rows.some(function (m) { return m.cancelled; }) ? T(" · 안 탐 ", " · not on bus ") + rows.filter(function (m) { return m.cancelled; }).length : "");
+        var dc = dropCounts(s);
+        $("listTitle").innerHTML = T("회원 ", "Members ") + rows.filter(function (m) { return !m.cancelled; }).length + T("명", "") + (rows.some(function (m) { return m.cancelled; }) ? T(" · 안 탐 ", " · not on bus ") + rows.filter(function (m) { return m.cancelled; }).length : "")
+            + (dc ? " <small style=\"font-weight:normal;color:var(--dim)\">⬇ " + dc + "</small>" : "");   // 하차 지점마다 몇 명
+        if (document.activeElement && document.activeElement.classList && document.activeElement.classList.contains("dropSel")) return;   // 하차 지점을 고르는 중 - 새로 그리면 닫힘
         $("list").innerHTML = rows.map(function (m) {
             var cls = m.cancelled ? "aboard" : m.sos ? "sos" : m.aboard ? "aboard" : (s.departed && silent(m)) ? "old" : "";
             var st = m.cancelled ? T("안 탐", "Not on bus") : m.sos ? "🆘 SOS" : m.aboard ? (m.apart ? T("🚶 따로 귀가", "🚶 Home separately") : T("🚌 하산 탑승", "🚌 Back on bus")) : m.role === "lead" ? (m.office ? T("🏢 사무실", "🏢 Office") : m.chief ? T("주 인솔자", "Leader") : T("보조 인솔자", "Assistant"))
@@ -686,9 +695,10 @@
                         + " <button type=\"button\" class=\"undo\" data-apart=\"" + m.id + "\">" + T("🚶 따로 귀가", "🚶 Home sep.") + "</button>";
             else if (m.listed && !s.departed)
                 st += " <button type=\"button\" class=\"undo\" data-board=\"" + m.id + "\" data-on=\"" + (m.boarded ? 0 : 1) + "\">" + (m.boarded ? T("↩ 안 탐", "↩ Not on") : T("✅ 탔음", "✅ On bus")) + "</button>";
+            var dsel = (s.drops || []).length && m.role === "hiker" && !m.cancelled ? "<br><select class=\"dropSel\" data-drop=\"" + m.id + "\" aria-label=\"" + T("하차 지점", "Drop-off") + "\">" + ["", ].concat(s.drops, ["버스 대기"]).map(function (x) { return "<option value=\"" + esc(x) + "\"" + ((m.drop || "") === x ? " selected" : "") + ">" + (x ? "⬇ " + esc(x) : T("⬇ 하차 미정", "⬇ unset")) + "</option>"; }).join("") + "</select>" : (m.drop ? "<br><small>⬇ " + esc(m.drop) + "</small>" : "");
             var via = m.role === "hiker" && !m.listed && (m.app || m.ago != null || m.seen != null) ? (m.app ? " <small title=\"" + T("앱 - 화면을 꺼도 보냄", "app - sends with screen off") + "\">📱</small>" : " <small title=\"" + T("웹 - 화면을 끄면 멈춤", "web - stops when screen off") + "\">🌐</small>") : "";
             return "<tr class=\"" + cls + "\" data-id=\"" + m.id + "\"><td>" + (m.role === "lead" ? "-" : seatText(s, m)) + "</td><td>" + esc(m.nick) + via
-                + (m.msg ? "<br><small>💬 " + esc(m.msg) + " (" + clock(m.msgAt) + ")</small>" : "")
+                + dsel + (m.msg ? "<br><small>💬 " + esc(m.msg) + " (" + clock(m.msgAt) + ")</small>" : "")
                 + (m.cancelled && m.role === "hiker" ? " <button type=\"button\" class=\"undo\" data-undo=\"" + m.id + "\" title=\"" + T("늦게 온 회원", "Late member") + "\">" + T("✅ 탔음", "✅ On bus") + "</button>" : "") + "</td><td>" + (m.aboard ? "-" : newsText(m)) + "</td><td>"
                 + (m.stillMin != null && m.ago != null ? m.stillMin + T("분", " min") : "-") + "</td><td>" + (m.batt != null ? m.batt + "%" : "-") + "</td><td>" + st
                 + (s.role === "lead" && (m.role !== "lead" || (s.chief && !m.chief && !m.office)) ? " <button type=\"button\" class=\"kick\" data-kick=\"" + m.id + "\" title=\"" + T("방에서 내보내기", "Remove from room") + "\" aria-label=\"" + T(esc(m.nick) + " 내보내기", "Remove " + esc(m.nick)) + "\">✕</button>" : "") + "</td></tr>";
@@ -705,6 +715,7 @@
             .catch(function (er) { er.ended ? fail(er) : roomMsg(enMsg(er.message)); });
     }
     $("list").addEventListener("click", function (e) {   // 줄을 누르면 지도에서 그 사람
+        if (e.target.closest("select")) return;   // 하차 지점 고르기
         var k = e.target.closest("[data-kick]");
         if (k && state) { kick((state.members || []).filter(function (x) { return String(x.id) === k.getAttribute("data-kick"); })[0]); return; }
         var ap = e.target.closest("[data-apart]");
@@ -791,6 +802,18 @@
     function stopLabel(s, name) {
         var i = (s && s.stops || []).indexOf(name), t = i >= 0 && s.stopTimes ? s.stopTimes[i] : "";
         return name + (t ? " " + t : "");
+    }
+    /** 하차 지점 고르기 - 목록 + "버스 대기"(2026-10-28 홍TV님 - 몸이 안 좋으면 버스에서 쉼). */
+    function dropOptions(sel, drops, cur) {
+        var list = (drops || []).concat(["버스 대기"]);
+        sel.innerHTML = "<option value=\"\">" + T("아직 모름", "Not sure yet") + "</option>" + list.map(function (x) { return "<option value=\"" + esc(x) + "\"" + (x === cur ? " selected" : "") + ">" + esc(x === "버스 대기" ? T("🚌 버스 대기", "🚌 Stay on bus") : x) + "</option>"; }).join("");
+    }
+    /** 하차 지점마다 몇 명 - "한계령 12 · 오색 8 · 미정 3". */
+    function dropCounts(s) {
+        if (!(s.drops || []).length) return "";
+        var c = {}, order = (s.drops || []).concat(["버스 대기", ""]);
+        (s.members || []).forEach(function (m) { if (m.role === "hiker" && !m.cancelled) { var k = m.drop || ""; c[k] = (c[k] || 0) + 1; } });
+        return order.filter(function (k) { return c[k]; }).map(function (k) { return (k ? esc(k) : T("미정", "unset")) + " " + c[k]; }).join(" · ");
     }
     function stopOptions(sel, stops, cur, none, s) {
         sel.innerHTML = "<option value=\"\">" + (none || T("없음", "None")) + "</option>" + (stops || []).map(function (x) { return "<option value=\"" + esc(x) + "\"" + (x === cur ? " selected" : "") + ">" + esc(stopLabel(s, x)) + "</option>"; }).join("");
@@ -1226,6 +1249,21 @@
             actFail(e);
         });
     }
+    $("alertBtn").addEventListener("click", function () {
+        RFParty.alertsOn().then(function (ok) {
+            roomMsg(ok ? T("🔔 폰 알림을 켰습니다. SOS · 앱 회원 10분 소식 없음 · 하산 마감 1시간 · 30분 전에 진동 · 소리 · 알림으로 알려 드립니다(따라가기 화면에서도).", "🔔 Alerts on: SOS, app members silent 10+ min, and 60/30 min before the deadline (also on the trail guide).")
+                : T("🔔 알림 권한을 받지 못했습니다. 화면이 켜져 있을 때는 진동 · 소리로 알려 드립니다(폰 설정에서 알림을 허용해 주세요).", "🔔 No notification permission. While the screen is on you still get vibration and sound (allow notifications in phone settings)."));
+            if (navigator.vibrate) navigator.vibrate(200);
+        });
+    });
+    $("myDrop").addEventListener("change", function () {
+        RFParty.post("drop", { token: RFParty.get().token, drop: this.value }).then(function (j) { render(j); roomMsg(T("⬇ 내 하차 지점을 바꿨습니다.", "⬇ Your drop-off is updated.")); }).catch(actFail);
+    });
+    $("list").addEventListener("change", function (e) {   // 명단 - 회원 하차 지점(버스 안에서 정하는 경우가 많음)
+        var sel = e.target.closest && e.target.closest("select[data-drop]");
+        if (!sel) return;
+        RFParty.post("drop", { token: RFParty.get().token, id: +sel.getAttribute("data-drop"), drop: sel.value }).then(render).catch(actFail);
+    });
     $("officeLinkBtn").addEventListener("click", function () {
         var c = $("officeCode").value.trim().toUpperCase();
         if (c.length !== 6) { roomMsg(T("회사 코드 6글자를 넣어 주세요.", "Enter the 6-letter company code.")); return; }

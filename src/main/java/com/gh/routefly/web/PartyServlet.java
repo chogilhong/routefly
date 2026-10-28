@@ -32,6 +32,7 @@ import com.google.gson.JsonParser;
  * POST /api/party/kick   {token, id}                       인솔자 - 회원 내보내기(그 폰은 410 "내보냈습니다")
  * POST /api/party/leave  {token} · /end {token, cancel, why, force}  나가기 · (주 인솔자 · 사무실) 방 끝내기 · 산행 취소 - SOS 중이면 막음, 하산 미확인이 있으면 force 없이는 막음
  * POST /api/party/leadcode {token} · /mecode {token} · /link {token, office}  주 인솔자 - 보조 인솔자 코드 바꾸기 · 내 폰 코드 · 회사 연결
+ * POST /api/party/drop   {token, id?, drop}                하차 지점(2026-10-28) - 나, 인솔자는 id 로 아무나("버스 대기" 도)
  * POST /api/party/office/create {name} → {code, key}   회사 사무실 만들기(비밀 링크 = key)
  * POST /api/party/office/rooms {key} · /office/enter {key, code} · /office/detach {key, code}  사무실 - 방 목록(숫자) · 방 열기(인솔자 화면) · 방 빼기
  * POST /api/party/office/newkey {key} → {key} · /office/delete {key, name}  사무실 링크 바꾸기 · 사무실 없애기(회사 이름을 한 번 더)
@@ -171,6 +172,8 @@ public class PartyServlet extends HttpServlet {
             Party.Member lead = p.create(str(in, "name"), lng(in, "departAt"), lng(in, "endAt"), Math.max(1, (int) lng(in, "buses")), (int) lng(in, "seats"), ints(in, "busSeats"),
                     Party.stops(str(in, "stops")), str(in, "leaderName"), str(in, "leaderPhone"), strs(in, "plates"), now);
             p.stopTimes(lead, Party.stopTimes(str(in, "stops")));   // 탑승지마다 출발 시각(2026-10-27)
+            if (str(in, "drops") != null) p.drops(lead, Party.stops(str(in, "drops")));   // 하차 지점(2026-10-28)
+            if (str(in, "drop") != null && !str(in, "drop").isBlank()) p.drop(lead, null, str(in, "drop"));   // 인솔자 내 하차 지점
             if (oc != null) p.linkOffice(lead, oc);
             return withToken(p.view(lead, now), lead);
         }
@@ -188,7 +191,10 @@ public class PartyServlet extends HttpServlet {
         if ("/office/delete".equals(path)) { p.officeDelete(str(in, "key"), str(in, "name")); return ok(); }
         if ("/join".equals(path)) {
             if (!bool(in, "agree")) throw new IllegalArgumentException("위치 제공에 동의해야 참가할 수 있습니다.");
+            boolean dropIn = str(in, "drop") != null && !str(in, "drop").isBlank();
+            if (dropIn) p.checkDrop(str(in, "code"), str(in, "drop"), now);   // 틀린 하차 지점이면 들어가기 전에 막음
             Party.Member m = p.join(str(in, "code"), str(in, "nick"), str(in, "role"), integer(in, "bus"), integer(in, "seat"), str(in, "stop"), bool(in, "onBus"), now);
+            if (str(in, "drop") != null && !str(in, "drop").isBlank()) p.drop(m, null, str(in, "drop"));   // 하차 지점(2026-10-28)
             return withToken(p.view(m, now), m);
         }
         Party.Member m = p.who(str(in, "token"), now);
@@ -241,6 +247,7 @@ public class PartyServlet extends HttpServlet {
             case "/mecode" -> { JsonObject o = ok(); o.addProperty("code", p.meCode(m, now)); o.addProperty("min", Party.ME_CODE_MS / 60_000); return o; }
             case "/end" -> { if (!lead) throw new SecurityException("인솔자만 방을 끝낼 수 있습니다."); p.end(m, bool(in, "cancel"), str(in, "why"), bool(in, "force"), now); return ok(); }
             case "/link" -> { p.linkOffice(m, str(in, "office")); }
+            case "/drop" -> p.drop(m, integer(in, "id"), str(in, "drop"));   // 하차 지점 - 나 · 인솔자는 아무나
             default -> throw new IllegalArgumentException("없는 주소입니다.");
         }
         return p.view(m, now);

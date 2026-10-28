@@ -49,15 +49,16 @@
                 var pl = (r.plates || [])[i], st = (r.busSeats || [])[i];
                 buses.push((r.buses > 1 ? (i + 1) + "호차 " : "🚌 ") + (pl ? esc(pl) : "번호 없음") + (st ? " (" + st + "석)" : ""));
             }
+            var dk = Object.keys(r.drops || {}), drops = dk.length > 1 || (dk.length === 1 && dk[0] !== "미정") ? dk.map(function (k) { return esc(k) + " " + r.drops[k]; }).join(" · ") : "";   // 하차 지점마다 몇 명
             var stops = (r.stops || []).map(function (x, k) { var t = (r.stopTimes || [])[k]; return esc(x) + (t ? " " + esc(t) : ""); }).join(" · ");
-            return "<tr class=\"" + cls + "\"><td class=\"name\"><b>" + esc(r.name) + "</b><br><small>" + when(r.departAt) + "<br>" + buses.join("<br>") + (stops ? "<br>🚏 " + stops : "") + "</small></td>"
+            return "<tr class=\"" + cls + "\"><td class=\"name\"><b>" + esc(r.name) + "</b><br><small>" + when(r.departAt) + "<br>" + buses.join("<br>") + (stops ? "<br>🚏 " + stops : "") + (drops ? "<br>⬇ " + drops : "") + "</small></td>"
                 + "<td>" + state + "</td>"
                 + "<td>" + r.boarded + " / " + r.hikers + (r.notBoarded ? " <small>(안 탐 " + r.notBoarded + ")</small>" : "") + "</td>"
                 + "<td>" + (r.departed ? r.aboard + " / " + r.hikers + (r.apart ? " <small>(따로 " + r.apart + ")</small>" : "") : "-") + "</td>"
                 + "<td>" + (r.sos > 0 ? "<span class=\"red\">🆘 " + r.sos + "</span>" : "0") + "</td>"
                 + "<td>" + (r.silent > 0 ? "<span class=\"yel\">" + r.silent + "명</span>" : "0") + "</td>"
                 + "<td>" + ago(r.lastAgo) + "</td>"
-                + "<td class=\"name\">" + esc(r.chief || "-") + (r.leaderPhone ? "<br><a href=\"tel:" + esc(r.leaderPhone.replace(/[^0-9+]/g, "")) + "\" style=\"color:var(--sky)\">📞 " + esc(r.leaderPhone) + "</a>" : "")
+                + "<td class=\"name\">" + esc(r.chief || "-") + (r.chiefDrop ? " <small>(" + (r.chiefDrop === "버스 대기" ? "🚌 버스 대기" : "⬇ " + esc(r.chiefDrop) + " 하차") + ")</small>" : "") + (r.leaderPhone ? "<br><a href=\"tel:" + esc(r.leaderPhone.replace(/[^0-9+]/g, "")) + "\" style=\"color:var(--sky)\">📞 " + esc(r.leaderPhone) + "</a>" : "")
                     + ((r.assistantNames || []).length ? "<br><small>보조 " + r.assistantNames.map(esc).join(" · ") + "</small>" : "") + "</td>"
                 + "<td><button data-open=\"" + esc(r.code) + "\" data-name=\"" + esc(r.name) + "\">열기</button> <button class=\"danger\" data-detach=\"" + esc(r.code) + "\" data-name=\"" + esc(r.name) + "\" title=\"잘못 올라온 방을 이 화면에서 뺌\">빼기</button></td></tr>";
         }).join("") || "<tr><td colspan=\"9\">지금 이 회사에 올라온 방이 없습니다. 인솔자에게 회사 코드 <b>" + esc(j.code) + "</b> 를 알려 주세요.</td></tr>";

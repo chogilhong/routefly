@@ -85,8 +85,12 @@
         // 내가 탈 차 - 호차 · 차량번호(방 만들 때 넣은 것, 2026-10-27 홍TV님 "이미 있는데 그걸 이용해서 회원에게 보여주면 되지") - 탈 때까지
         var plate = (s.plates || [])[(s.bus || 1) - 1];
         if (plate && !s.boarded && !s.departed && !s.cancelled) line += T(" · 🚌 " + (s.buses > 1 ? s.bus + "호차 " : "") + esc(plate), " · 🚌 " + (s.buses > 1 ? "bus " + s.bus + " " : "") + esc(plate));
+        if (s.drop && !s.cancelled && !s.aboard) line += T(" · ⬇ " + esc(s.drop) + (s.drop === "버스 대기" ? "" : " 하차"), " · ⬇ " + (s.drop === "버스 대기" ? "staying on bus" : "drop-off " + esc(s.drop)));   // 하차 지점(2026-10-28)
         if (s.seat && !s.cancelled) line += T(" · 💺 " + (s.buses > 1 ? s.bus + "호차 " : "") + s.seat + "번", " · 💺 " + (s.buses > 1 ? "bus " + s.bus + " " : "") + "seat " + s.seat);
         if (s.boarded && !s.departed && !s.cancelled) line += T(" · ✅ 탑승", " · ✅ On bus");
+        // 하산 마감 1시간 안 - 남은 시간(2026-10-28 홍TV님 - 인솔자가 다 챙길 수 없음)
+        if (s.departed && s.endAt && !s.aboard && !s.cancelled && s.endAt - s.now <= 3600000 && s.endAt > s.now)
+            line += T(" · <b>⏰ 하산 마감 " + clock(s.endAt) + " (" + Math.ceil((s.endAt - s.now) / 60000) + "분 남음)</b>", " · <b>⏰ Back-down deadline " + clock(s.endAt) + " (" + Math.ceil((s.endAt - s.now) / 60000) + " min left)</b>");
         // 웹(크롬 · 카톡)은 화면을 끄면 위치가 멈춤 - 회원이 알게(2026-10-28 홍TV님 "계속 키고 다닐 수는 없잖아")
         if (!RFParty.isApp() && s.locOn !== false && !s.aboard && !s.cancelled)
             line += T(" · 🌐 화면을 끄면 위치가 멈춥니다 - 갈림길 · 쉬는 곳에서 이 화면을 열어 주세요(SOS 는 누르면 바로 갑니다)",
