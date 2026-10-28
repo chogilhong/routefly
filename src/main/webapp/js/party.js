@@ -580,7 +580,7 @@
         drawMap(s);
         if (BG) bgSync(s);
         // 주 인솔자(방 만든 사람) · 보조 인솔자(차량 수만큼, 2026-10-28 홍TV님). 코드 · 내 폰 · 코드 바꾸기 · 방 끝내기는 주 인솔자만
-        var nAssist = (s.members || []).filter(function (m) { return m.role === "lead" && !m.chief; }).length + (s.role === "lead" && !s.chief ? 1 : 0);
+        var nAssist = (s.members || []).filter(function (m) { return m.role === "lead" && !m.chief && !m.office; }).length + (s.role === "lead" && !s.chief && !s.officeMe ? 1 : 0);   // 사무실 자리는 빼고(서버 assistants() 와 같게, 10-28 PC)
         if (s.leadCode && s.chief) { $("leadCode").textContent = s.leadCode; $("assistCount").textContent = T("(보조 " + nAssist + " / " + s.assistMax + "명)", "(assistants " + nAssist + " / " + s.assistMax + ")"); }
         $("leadCodeRow").hidden = $("myPhoneRow").hidden = !(s.leadCode && s.chief);
         $("endBtn").hidden = $("cancelTripBtn").hidden = !(s.chief || s.officeMe);   // 방 끝내기 · 산행 취소 - 주 인솔자 · 회사 사무실

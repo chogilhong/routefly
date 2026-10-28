@@ -131,6 +131,8 @@ final class Party {
         String officeCode, officeName;
         /** 산행 중 SOS 가 한 번이라도 켜졌나(끝난 산행 요약). */
         boolean sosEver;
+        /** 산행 시작한 때 - 사무실 "10분 소식 없음" 은 이때부터 셈(출발 직후 위치를 아직 안 보낸 회원을 바로 세지 않게, 2026-10-28 PC). */
+        long departedAt;
         /** 누가 끝냈나(요약) - drop 바로 전에 정함. */
         String endedBy;
         boolean cancelled;
@@ -723,6 +725,7 @@ final class Party {
         }
         r.stopsDone = r.stops.size();
         r.departed = true;
+        r.departedAt = now;
         save();
         return n;
     }
@@ -934,7 +937,7 @@ final class Party {
             for (Member m : r.members.values()) {
                 if (!"hiker".equals(m.role) || m.cancelled) continue;
                 last = Math.max(last, Math.max(m.t, m.seen));
-                if (r.departed && !m.aboard && !m.listed && now - Math.max(m.t, m.seen) > 10 * 60_000L) silent++;
+                if (r.departed && !m.aboard && !m.listed && now - Math.max(Math.max(m.t, m.seen), r.departedAt) > 10 * 60_000L) silent++;
             }
             x.addProperty("sos", (int) r.members.values().stream().filter(m -> m.sos && !m.aboard && !m.cancelled).count());
             x.addProperty("silent", silent);   // 출발 뒤 10분 넘게 소식 없는 회원
@@ -1138,7 +1141,7 @@ final class Party {
             JsonObject ba = new JsonObject();
             r.busAt.forEach((k, v) -> { JsonArray p = new JsonArray(); p.add(v[0]); p.add(v[1]); ba.add(String.valueOf(k), p); });
             o.add("busAt", ba); o.addProperty("departed", r.departed); o.addProperty("stopsDone", r.stopsDone); o.addProperty("nextId", r.nextId);
-            o.addProperty("officeCode", r.officeCode); o.addProperty("officeName", r.officeName); o.addProperty("sosEver", r.sosEver);
+            o.addProperty("officeCode", r.officeCode); o.addProperty("officeName", r.officeName); o.addProperty("sosEver", r.sosEver); o.addProperty("departedAt", r.departedAt);
             JsonArray ms = new JsonArray();
             for (Member m : r.members.values()) {
                 JsonObject x = new JsonObject();
@@ -1207,7 +1210,7 @@ final class Party {
                 }
                 r.departed = boolOf(o, "departed"); r.stopsDone = (int) lng(o, "stopsDone"); r.nextId = Math.max(1, (int) lng(o, "nextId"));
                 r.leadCode = str(o, "leadCode") != null ? str(o, "leadCode") : str(o, "driverCode");   // 10-27 전 파일은 driverCode
-                r.officeCode = str(o, "officeCode"); r.officeName = str(o, "officeName"); r.sosEver = boolOf(o, "sosEver");
+                r.officeCode = str(o, "officeCode"); r.officeName = str(o, "officeName"); r.sosEver = boolOf(o, "sosEver"); r.departedAt = lng(o, "departedAt");
                 List<Member> ms = new ArrayList<>();
                 if (o.has("members")) for (JsonElement me : o.getAsJsonArray("members")) {
                     JsonObject x = me.getAsJsonObject();

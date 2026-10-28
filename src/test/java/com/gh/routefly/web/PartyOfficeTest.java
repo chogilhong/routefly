@@ -84,6 +84,8 @@ public class PartyOfficeTest {
         call(p, "/board", tok(a), DEPART - H);
         call(p, "/board", tok(b), DEPART - H);
         departAll(p, chief, DEPART);
+        assertEquals("출발 직후에는 소식 없음으로 세지 않음(10분부터, 10-28 PC)", 0, call(p, "/office/rooms", "{\"key\":\"" + key + "\"}", DEPART + 60_000).getAsJsonArray("rooms").get(0).getAsJsonObject().get("silent").getAsInt());
+        assertEquals(2, call(p, "/office/rooms", "{\"key\":\"" + key + "\"}", DEPART + 11 * 60_000).getAsJsonArray("rooms").get(0).getAsJsonObject().get("silent").getAsInt());
         call(p, "/ping", "{\"token\":\"" + a + "\",\"sos\":true}", DEPART + H);
         try { call(p, "/end", "{\"token\":\"" + chief + "\",\"force\":true}", DEPART + H); fail("SOS 중"); } catch (IllegalStateException e) { assertTrue(e.getMessage().contains("SOS")); }
         assertEquals(1, call(p, "/office/rooms", "{\"key\":\"" + key + "\"}", DEPART + H).getAsJsonArray("rooms").get(0).getAsJsonObject().get("sos").getAsInt());
