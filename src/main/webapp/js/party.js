@@ -1037,13 +1037,16 @@
     });
     // 내 핸드폰에서도 보기(2026-10-27 홍TV님 - PC 에서 방을 만들면 핸드폰은 인솔자 열쇠가 없음): 공동 인솔자 코드가 채워진 참가 화면 QR
     // 주 인솔자 내 폰: 10분 · 한 번 쓰는 코드로 같은 사람(보조 자리를 쓰지 않음, 2026-10-28)
+    var MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
     $("myPhoneBtn").addEventListener("click", function () {
         var p = RFParty.get();
         if (!p) return;
         RFParty.post("mecode", { token: p.token }).then(function (j) {
             showQr(location.origin + location.pathname + "?c=" + encodeURIComponent(j.code) + (EN ? "&lang=en" : ""),
-                T("📱 내 핸드폰 카메라로 찍으세요 - 핸드폰에도 이 주 인솔자 화면이 열립니다", "📱 Scan with your own phone - this leader screen opens there too"),
-                T("내 폰 코드", "My phone code"), j.code,
+                // 다른 기기에서도 보기(2026-10-28 홍TV님): PC → 내 폰, 폰 → 다른 폰 · 태블릿(배터리가 떨어질 때 넘기기)
+                MOBILE ? T("📱 다른 폰 · 태블릿 카메라로 찍으세요 - 그 기기에도 이 주 인솔자 화면이 열립니다(이 폰으로는 못 찍음)", "📱 Scan with another phone or tablet - this leader screen opens there too (this phone can't scan itself)")
+                    : T("📱 내 핸드폰 카메라로 찍으세요 - 핸드폰에도 이 주 인솔자 화면이 열립니다", "📱 Scan with your phone - this leader screen opens there too"),
+                T("다른 기기 코드", "Device code"), j.code,
                 T(j.min + "분 안에 한 번만 쓸 수 있습니다. 다른 사람에게 보여 주지 마세요.", "Works once within " + j.min + " min. Don't show it to anyone else."));
         }).catch(function (e) { roomMsg(enMsg(e.message)); });
     });
