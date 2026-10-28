@@ -110,4 +110,11 @@ public class ReviewRound2Test {
         assertEquals("lead", call(p, "/join", "{\"code\":\"" + lc.toLowerCase() + "\",\"nick\":\"보조\",\"agree\":true}", T0).get("role").getAsString());
         assertEquals(10, call(p, "/leadcode", tok(chief), T0).get("leadCode").getAsString().length());
     }
+
+    /** 산행 뒤 회복 용품 쿠팡 칸(partner.coupang.recovery, 2026-10-28 홍TV님 "a, b"). */
+    @Test
+    public void partnersRecoveryKey() {
+        JsonObject o = PartnersServlet.body(k -> "partner.coupang.recovery".equals(k) ? "https://link.coupang.com/a/r1" : null);
+        assertEquals("[\"https://link.coupang.com/a/r1\"]", o.getAsJsonObject("coupang").getAsJsonArray("recovery").toString());
+    }
 }

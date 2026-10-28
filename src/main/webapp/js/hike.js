@@ -1322,6 +1322,8 @@
         rec.kcal = ef.kcal;
         rec.steps = ef.steps;
         rec.up = Math.max(ef.up, RF.trackClimb(hike.track));   // 코스 밖(새 길 · 들머리 가는 길)도 GPS 높이로(2026-10-17 송산 0m)
+        var tip = document.querySelector("#doneSheet .tip");   // 시험 걷기는 "기록은 이 핸드폰에 남습니다" 안내를 숨김(2026-10-28 PC)
+        if (tip) tip.hidden = !!sim;
         $("doneTitle").textContent = sim ? T("🧪 시험 걷기 끝 - 기록은 남기지 않습니다", "🧪 Test walk done - not saved") : T(K().act + " 기록", K().act + " record");
         if (!sim) {
             recordsReady.then(function () {
@@ -1362,6 +1364,8 @@
         var cn = String(rec.name || ""), tail = (/→\s*([^→·]+?)\s*$/.exec(cn) || [])[1];
         var end = last ? { lat: last[0], lon: last[1] } : (c && c.lat && c.lat.length ? { lat: c.lat[c.lat.length - 1], lon: c.lon[c.lon.length - 1] } : {});
         end.name = [RF.parkOf(cn), tail].filter(Boolean).join(" ") || cn.split("→")[0].trim();
+        end.up = rec.up;
+        end.month = new Date(Date.now() + 9 * 3600000).getUTCMonth() + 1;   // 한국 달
         var r = RF.afterHikeLinks(p, end, EN), box = $("doneNext");
         box.textContent = "";
         var b = document.createElement("b"), nx = document.createElement("div");

@@ -783,12 +783,18 @@ tick().then(function () {
     eq("명단 - 2호차 15번 · 이름 끝 숫자", [rh("홍길동 2호차 15번 김철수2 5"), rh("홍길동 2호차15번")], ["홍길동 2-15\n김철수2 5", "홍길동 2-15"]);
     // 산행을 마친 화면 "다음은?"(2026-10-28)
     var ah = RF.afterHikeLinks({ trip: "https://kr.trip.com/hotels/?Allianceid=1&SID=2", coupang: { knee: ["https://link.coupang.com/a/x"] } }, { lat: 38.1, lon: 128.5, name: "설악산 오색" }, false);
-    eq("다음은 - 맛집 · 숙소 · 쿠팡 · 다음 산", ah.links.map(function (x) { return x.text + (x.sponsored ? "*" : ""); }), ["🍜 설악산 오색 맛집", "🏨 근처 숙소(트립닷컴)*", "🦵 무릎 보호대 · 스틱(쿠팡)*", "⛰️ 다음 산 고르기"]);
+    eq("다음은 - 맛집 · 숙소 · 쿠팡 · 다음 산", ah.links.map(function (x) { return x.text + (x.sponsored ? "*" : ""); }), ["🍜 설악산 오색 맛집", "🏨 근처 숙소(트립닷컴)*", "🦵 무릎 보호대(쿠팡)*", "⛰️ 다음 산 고르기"]);
     eq("다음은 - 맛집은 카카오맵 검색", ah.links[0].href, "https://map.kakao.com/link/search/" + encodeURIComponent("설악산 오색 맛집"));
     eq("다음은 - 제휴 표시", [ah.affiliate, ah.coupang, ah.links[1].href.indexOf("Allianceid=1") > 0], [true, true, true]);
     var ae = RF.afterHikeLinks({ agoda: "https://www.agoda.com/search?lat={lat}&lon={lon}&cid=1" }, { lat: 38.1, lon: 128.5, name: "x" }, true);
     eq("다음은 - 영어 · 아고다 좌표 · 쿠팡 없음", [ae.links.length, ae.links[1].href, ae.links[2].href, ae.coupang], [3, "https://www.agoda.com/search?lat=38.10000&lon=128.50000&cid=1", "en/m/", false]);
     eq("다음은 - 영어는 이름도 영어(검색은 한글)", [RF.afterHikeLinks({}, { name: "설악산 대청봉" }, true).links[0].text, RF.afterHikeLinks({}, { name: "설악산 대청봉" }, true).links[0].href.indexOf(encodeURIComponent("설악산")) > 0], ["🍜 Food near Seoraksan Daecheongbong", true]);
+    // 쿠팡 - 회복 용품 + 오늘 산행 · 계절에 맞는 것(2026-10-28 홍TV님 "a, b")
+    var CP = { crampon: ["https://link.coupang.com/c"], knee: ["https://link.coupang.com/k"], warm: ["https://link.coupang.com/w"], sun: ["https://link.coupang.com/s"], stick: ["https://link.coupang.com/t"], recovery: ["https://link.coupang.com/r"] };
+    var gk = function (up, mo, cp) { var g = RF.afterHikeGear(cp || CP, up, mo); return (g.recovery ? "r+" : "") + (g.gear ? g.gear.key : "-"); };
+    eq("쿠팡 - 한겨울 아이젠 · 큰 오르막 무릎 · 11월 보온 · 여름 모자 · 400m 스틱 · 봄 낮은 산 무릎", [gk(900, 1), gk(900, 10), gk(300, 11), gk(300, 7), gk(500, 5), gk(100, 5)], ["r+crampon", "r+knee", "r+warm", "r+sun", "r+stick", "r+knee"]);
+    eq("쿠팡 - 링크 없는 것은 건너뜀 · 회복 없으면 하나만", [gk(900, 1, { stick: ["https://link.coupang.com/t"] }), gk(0, 1, {})], ["stick", "-"]);
+    eq("쿠팡 - 화면에 둘(회복 · 그날 것)", RF.afterHikeLinks({ coupang: CP }, { name: "x", up: 900, month: 7 }, false).links.map(function (x) { return x.text; }).slice(1, 3), ["🧴 산행 뒤 회복 용품(쿠팡)", "🦵 무릎 보호대(쿠팡)"]);
     eq("다음은 - 제휴 설정 없으면 맛집 · 다음 산만", RF.afterHikeLinks({}, { name: "북한산" }, false).links.length, 2);
     // 인솔자 지금 할 일 · 회원 탑승 카드(2026-10-28 추천 2)
     var mem = function (n, o) { var m = { role: "hiker", nick: n }; for (var k in o) m[k] = o[k]; return m; };
