@@ -692,6 +692,26 @@ echo '0 4 * * * root umask 077 && mariadb-dump --single-transaction routefly | g
 - 되살리기: `gunzip -c routefly-YYYYMMDD.sql.gz | mariadb routefly`
 - 이용자 기록 · 사진은 서버에 없습니다(핸드폰 안 - 따라가기 "📒 내 기록 → 💾 백업 저장").
 
+### 10-2. 수집기(스크래퍼) 막기 - nginx (2026-10-28 홍TV님 "지금 막으면 안돼?")
+
+코스 페이지(/c/)를 20초~2분 간격으로 하나씩 긁어 가던 "맥 크롬 124"(2024년 봄 판 - 맥 크롬은 저절로 올라가 실제 손님은 거의 없음)를,
+브라우저 글이 글자 하나까지 같을 때만 403 으로 막습니다. 검색 로봇(구글 · 네이버 · 다음)은 이름이 달라 그대로입니다.
+nginx 에서 끝나므로 톰캣 접속 기록에는 남지 않고, nginx `access.log` 에 403 으로 남습니다.
+
+```bash
+echo 'map $http_user_agent $rf_scraper { default 0; "~Macintosh; Intel Mac OS X 10_15_7\) AppleWebKit/537\.36 \(KHTML, like Gecko\) Chrome/124\.0\.0\.0 Safari/537\.36$" 1; }' | sudo tee /etc/nginx/conf.d/routefly-scraper.conf
+sudo cp /etc/nginx/sites-available/routefly /etc/nginx/sites-available/routefly.bak-20261028
+sudo sed -i 's|^\(\s*\)server_name routefly.kr;|&\n\1if ($rf_scraper) { return 403; }   # 2026-10-28 맥 크롬 124 수집기|' /etc/nginx/sites-available/routefly
+grep -n "rf_scraper" /etc/nginx/sites-available/routefly          # server 칸마다 한 줄(2026-10-28 서버: 23 · 79 줄)
+sudo nginx -t && sudo systemctl reload nginx
+curl -s -o /dev/null -w '%{http_code}\n' -A 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36' https://routefly.kr/routefly/hike.html   # 403
+curl -s -o /dev/null -w '%{http_code}\n' https://routefly.kr/routefly/hike.html   # 200
+```
+
+- 다른 브라우저 글을 더 막으려면 `routefly-scraper.conf` 의 map 에 줄을 더하고 `sudo nginx -t && sudo systemctl reload nginx`.
+- 브라우저 글을 바꿔 다시 오면 다음은 코스 페이지(/c/)에도 한 곳당 횟수 제한(SecurityFilter 는 지금 /api · /s 만).
+- 되돌리기: `sudo rm /etc/nginx/conf.d/routefly-scraper.conf && sudo cp /etc/nginx/sites-available/routefly.bak-20261028 /etc/nginx/sites-available/routefly && sudo nginx -t && sudo systemctl reload nginx`
+
 ## 11. 메모리 · CPU (4GB 요금제) - 2026-10-16
 
 ### 11-1. 나눠 쓰는 모양
