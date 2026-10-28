@@ -532,8 +532,35 @@
                 }
             });
         });
+        npSection(list);
         restoreView();
     }).catch(function () { $("list").textContent = T("목록을 읽지 못했습니다.", "Could not load the list."); });
+
+    /** 🏞 국립공원 스탬프투어(2026-10-28 홍TV님, data/np-stamps.json - 국립공원공단 공식 목록): 공원마다 인증지 · 다녀감(rf-npstamps, 따라가기가 남김). */
+    function npSection(list) {
+        function esc(t) { return String(t == null ? "" : t).replace(/[&<>"']/g, function (ch) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[ch]; }); }
+        fetch("data/np-stamps.json").then(function (r) { return r.json(); }).then(function (j) {
+            var st = ((j && j.stamps) || []).filter(function (x) { return typeof x.lat === "number"; });
+            if (!st.length) return;
+            var have = load("rf-npstamps"), parks = [];
+            st.forEach(function (x) { if (parks.indexOf(x.park) < 0) parks.push(x.park); });
+            var got = st.filter(function (x) { return have[RF.npStampKey(x)]; }).length;
+            var f = fold("kind", "k:np", T("🏞 국립공원 스탬프투어", "🏞 National park stamp tour"), (EN ? parks.length + " parks · visited " : parks.length + "개 공원 · 다녀감 ") + got + " / " + st.length);
+            list.appendChild(f.box);
+            parks.forEach(function (pk) {
+                var rows = st.filter(function (x) { return x.park === pk; }), div = document.createElement("div");
+                div.className = "card";
+                div.style.cssText = "padding:10px 12px;line-height:1.8";
+                div.innerHTML = "<b>" + esc(pk) + "</b> <small>" + rows.filter(function (x) { return have[RF.npStampKey(x)]; }).length + " / " + rows.length + "</small><br>"
+                    + rows.map(function (x) { var h = have[RF.npStampKey(x)]; return (h ? "✅ " : "⬜ ") + esc(x.name) + (h ? " <small>" + new Date(h.t).toLocaleDateString() + "</small>" : "") + (x.note ? " <small>" + esc(x.note) + "</small>" : ""); }).join("<br>");
+                f.body.appendChild(div);
+            });
+            var tip = document.createElement("p");
+            tip.className = "tip";
+            tip.textContent = T("따라가기로 인증지 100m 안에 가면 다녀감이 남습니다(이 핸드폰). 실제 스탬프 · 기념품은 현장 스탬프북 · 국립공원공단 앱으로 받으세요.", "Visits are saved when you pass within 100 m with Follow (this phone). Get the official stamps on site (stamp book) or in the park service app.");
+            f.body.appendChild(tip);
+        }).catch(function () { /* 자료 없음 */ });
+    }
 })();
 
 // 글자 크기 "가+" - 위 줄 오른쪽(2026-10-14 홍TV님, 같은 설정이 모든 화면에)

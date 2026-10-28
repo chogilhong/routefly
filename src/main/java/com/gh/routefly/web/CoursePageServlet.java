@@ -50,6 +50,7 @@ public class CoursePageServlet extends HttpServlet {
 
     private volatile JsonArray peaks;
     private volatile JsonObject parks;
+    private volatile JsonArray npStamps;
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -69,18 +70,22 @@ public class CoursePageServlet extends HttpServlet {
             return;
         }
         JsonObject course = null, info = null;
-        double[] dist = null;
+        double[] dist = null, plat = null, plon = null;
         Double[] ele = null;
         JsonArray pois = new JsonArray();
         try (Connection c = Db.open()) {
             JsonArray rows = Json.rows(c, "SELECT " + CourseQueries.COURSE_COLUMNS + ", imported_at FROM route_course WHERE course_id = ?", id);
             if (rows.size() > 0) {
                 course = rows.get(0).getAsJsonObject();
-                JsonArray pts = Json.rows(c, "SELECT dist_m, ele_m FROM route_course_point WHERE course_id = ? ORDER BY seq", id);
+                JsonArray pts = Json.rows(c, "SELECT dist_m, ele_m, lat, lon FROM route_course_point WHERE course_id = ? ORDER BY seq", id);
                 dist = new double[pts.size()];
                 ele = new Double[pts.size()];
+                plat = new double[pts.size()];
+                plon = new double[pts.size()];
                 for (int i = 0; i < pts.size(); i++) {
                     JsonObject p = pts.get(i).getAsJsonObject();
+                    plat[i] = p.get("lat").getAsDouble();
+                    plon[i] = p.get("lon").getAsDouble();
                     dist[i] = p.get("dist_m").getAsDouble();
                     ele[i] = p.get("ele_m").isJsonNull() ? null : p.get("ele_m").getAsDouble();
                 }
@@ -112,7 +117,7 @@ public class CoursePageServlet extends HttpServlet {
         JsonObject peak = peakOf(peaks(), course);
         boolean index = indexable(id, rawName, str(course, "kind"), peak, pk);
         resp.setHeader("Cache-Control", "public, max-age=600");
-        resp.getWriter().print(page(course, peak, info, dist, ele, pois, index, base));
+        resp.getWriter().print(page(course, peak, info, dist, ele, pois, index, base, stampsOn(npStamps(), plat, plon, dist)));
     }
 
     /** 순수 함수 - 코스 ID 앞머리("knps-…" → "knps"). '-' 가 없으면 ""(GPX 로 넣은 코스). */
@@ -248,6 +253,29 @@ public class CoursePageServlet extends HttpServlet {
 
     /** 순수 함수 - 코스 페이지. */
     static String page(JsonObject c, JsonObject peak, JsonObject info, double[] dist, Double[] ele, JsonArray pois, boolean index, String base) {
+        return page(c, peak, info, dist, ele, pois, index, base, List.of());
+    }
+
+    /** 국립공원 스탬프투어 인증지가 코스 선에서 이만큼(m) 안이면 코스 페이지에 냄. */
+    static final double STAMP_NEAR_M = 300;
+
+    /** 순수 함수 - 코스 선 STAMP_NEAR_M 안의 스탬프투어 인증지 [이름, 공원, 길에서 m, 출발에서 m], 코스 차례대로(2026-10-28 홍TV님). */
+    static List<Object[]> stampsOn(JsonArray stamps, double[] lat, double[] lon, double[] dist) {
+        List<Object[]> out = new java.util.ArrayList<>();
+        if (stamps == null || lat == null || lat.length == 0) return out;
+        for (JsonElement e : stamps) {
+            JsonObject s = e.getAsJsonObject();
+            if (!s.has("lat") || !s.has("lon") || !s.get("lat").isJsonPrimitive()) continue;
+            double sl = s.get("lat").getAsDouble(), so = s.get("lon").getAsDouble(), best = Double.MAX_VALUE;
+            int at = 0;
+            for (int i = 0; i < lat.length; i++) { double d = MountainServlet.distM(sl, so, lat[i], lon[i]); if (d < best) { best = d; at = i; } }
+            if (best <= STAMP_NEAR_M) out.add(new Object[] {str(s, "name"), str(s, "park"), (int) Math.round(best), dist != null && at < dist.length ? (int) Math.round(dist[at]) : 0});
+        }
+        out.sort((a, b) -> Integer.compare((Integer) a[3], (Integer) b[3]));
+        return out;
+    }
+
+    static String page(JsonObject c, JsonObject peak, JsonObject info, double[] dist, Double[] ele, JsonArray pois, boolean index, String base, List<Object[]> stamps) {
         String id = str(c, "course_id"), name = str(c, "name"), kind = str(c, "kind"), kl = kindLabel(kind);
         String peakId = peak == null ? null : str(peak, "id") != null ? str(peak, "id") : str(peak, "name");
         int d = c.get("distance_m").getAsInt();
@@ -296,6 +324,14 @@ public class CoursePageServlet extends HttpServlet {
         // 고도 그림
         String svg = profileSvg(dist, ele);
         if (!svg.isEmpty()) b.append("<section><h2>고도 그림</h2>").append(svg).append("</section>");
+        // 🏅 국립공원 스탬프투어 인증지(data/np-stamps.json - 국립공원공단 공식 목록, 2026-10-28)
+        if (stamps != null && !stamps.isEmpty()) {
+            b.append("<section><h2>🏅 국립공원 스탬프투어 인증지</h2><ul class=\"tips\">");
+            for (Object[] s : stamps)
+                b.append("<li><b>").append(esc((String) s[0])).append("</b> <span>").append(String.format(Locale.ROOT, "%.1fkm", (Integer) s[3] / 1000.0))
+                        .append((Integer) s[2] > 50 ? " · 길에서 " + s[2] + "m" : "").append("</span></li>");
+            b.append("</ul><p class=\"tip\">따라가기로 가까이 가면 다녀감이 남습니다(이 핸드폰). 실제 스탬프는 현장 스탬프북 · 국립공원공단 앱으로 받으세요.</p></section>");
+        }
         // 지나는 곳
         List<Object[]> ps = passes(pois, dist, ele);
         if (!ps.isEmpty()) {
@@ -332,6 +368,20 @@ public class CoursePageServlet extends HttpServlet {
     private JsonArray peaks() {
         JsonArray p = peaks;
         if (p == null) peaks = p = readPeaks(getServletContext());
+        return p;
+    }
+
+    private JsonArray npStamps() {
+        JsonArray p = npStamps;
+        if (p == null) {
+            try (InputStream in = getServletContext().getResourceAsStream("/data/np-stamps.json")) {
+                JsonElement e = in == null ? null : JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+                p = e != null && e.isJsonObject() && e.getAsJsonObject().has("stamps") ? e.getAsJsonObject().getAsJsonArray("stamps") : new JsonArray();
+            } catch (Exception e) {
+                p = new JsonArray();
+            }
+            npStamps = p;
+        }
         return p;
     }
 

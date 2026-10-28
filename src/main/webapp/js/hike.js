@@ -516,6 +516,7 @@
     function drawCourse(keepView) {
         (drawCourse.markers || []).forEach(function (m) { m.remove(); });
         var ms = drawCourse.markers = [];
+        npMarks();   // 🏅 국립공원 스탬프투어 인증지
         map.getSource("route").setData({ type: "Feature", properties: {},
             geometry: { type: "LineString", coordinates: c.lon.map(function (lon, i) { return [lon, c.lat[i]]; }) } });
         // km 번호(동그라미)
@@ -1206,7 +1207,20 @@
 
     // ------------------------------------------------------------------ 인증센터 도장 · 완주(2026-10-11 홍TV님 - series.html 에서 모아 봄)
     // 기록(최근 30개)과 따로 이 핸드폰에 오래 남깁니다: rf-stamps {stampKey: {name, t, course}} · rf-done {코스ID: {name, t}} · rf-peaks {peakKey: {name, t, course}}
-    var STAMPS = "rf-stamps", DONE = "rf-done";
+    var STAMPS = "rf-stamps", DONE = "rf-done", NPSTAMPS = "rf-npstamps";
+    // 국립공원 스탬프투어 인증지(2026-10-28 홍TV님, data/np-stamps.json - 국립공원공단 공식 목록): 지도에 🏅, 가까이 가면 다녀감을 남기고 알림
+    var NPS = [];
+    fetch("data/np-stamps.json").then(function (r) { return r.json(); }).then(function (j) { NPS = (j && j.stamps) || []; if (c && map) npMarks(); }).catch(function () { /* 없음 */ });
+    function npMarks() {
+        (npMarks.ms || []).forEach(function (m) { m.remove(); });
+        npMarks.ms = RF.npStampsOn(NPS, c, 300).map(function (x) {
+            var e = document.createElement("div");
+            e.textContent = "🏅";
+            e.title = T("국립공원 스탬프투어 인증지 - ", "National park stamp tour - ") + x.s.name;
+            e.style.cssText = "font-size:20px;line-height:1;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.6))";
+            return marker(e, [x.s.lon, x.s.lat], "bottom");
+        });
+    }
     function loadMap(key) { try { return JSON.parse(localStorage.getItem(key) || "{}") || {}; } catch (e) { return {}; } }
     function saveMap(key, m) { try { localStorage.setItem(key, JSON.stringify(m)); } catch (e) { /* 저장 공간 - 이번에는 못 남김 */ } }
 
@@ -1244,6 +1258,7 @@
 
     function stampCheck(lat, lon, acc) {
         peakCheck(lat, lon, acc);
+        npCheck(lat, lon, acc);
         if (!c) return;
         var have = loadMap(STAMPS), due = RF.stampsDue(c, lat, lon, have, RF.stampRadius(acc, 100));
         if (!due.length) return;
@@ -1252,6 +1267,19 @@
         var names = due.map(function (p) { return NM(p.name); }).join(" · ");
         toast(EN ? "📮 Stamp collected: " + names + " (" + Object.keys(have).length + " in total)" : "📮 " + names + " 도장을 찍었습니다 (모두 " + Object.keys(have).length + "곳)", 7000);
         say(EN ? "Stamp collected, " + names + "." : names + " 도장을 찍었습니다.");
+        if (navigator.vibrate) navigator.vibrate([100, 60, 100, 60, 200]);
+    }
+
+    /** 국립공원 스탬프투어 인증지 가까이(100m, GPS 오차만큼 넓힘) - 다녀감을 남기고 알림. 실제 스탬프는 현장 · 공단 앱. */
+    function npCheck(lat, lon, acc) {
+        if (!NPS.length) return;
+        var have = loadMap(NPSTAMPS), due = RF.npStampsDue(NPS, lat, lon, have, RF.stampRadius(acc, 100));
+        if (!due.length) return;
+        due.forEach(function (s) { have[RF.npStampKey(s)] = { park: s.park, name: s.name, t: Date.now() }; });
+        saveMap(NPSTAMPS, have);
+        var names = due.map(function (s) { return s.name; }).join(" · ");
+        toast(T("🏅 국립공원 스탬프투어 인증지 " + names + " - 다녀감을 남겼습니다. 실제 스탬프는 여기서 스탬프북 · 국립공원 앱으로 받으세요.", "🏅 National park stamp tour spot " + names + " - visit saved. Get the official stamp here (stamp book or the park app)."), 9000);
+        say(T(names + ", 국립공원 스탬프투어 인증지입니다.", names + ", a national park stamp tour spot."));
         if (navigator.vibrate) navigator.vibrate([100, 60, 100, 60, 200]);
     }
 

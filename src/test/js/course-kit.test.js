@@ -159,6 +159,15 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
         eq("알림 - 하차 안내 한 번", [b1.msgs.join("|"), RF.partyAlerts(bus, b1.fired).msgs.length].join(), "⬇ 지금 한계령입니다. 여기서 내리시면 \"여기서 내려요\"를 눌러 주세요.,0");
         eq("알림 - 회원 하산 탑승하면 없음", RF.partyAlerts({ role: "hiker", now: me.now, departed: true, endAt: E, aboard: true }, {}).msgs.length, 0);
     })();
+    // 국립공원 스탬프투어 인증지(2026-10-28)
+    (function () {
+        var st = [{ park: "시험", name: "가까운 센터", lat: 38.0010, lon: 128.0 }, { park: "시험", name: "먼센터", lat: 38.05, lon: 128.0 }, { park: "시험", name: "좌표없음" }];
+        var c = { lat: [38.0, 38.0005, 38.002], lon: [128.001, 128.001, 128.001] };
+        eq("스탬프 - 코스 300m 안만", RF.npStampsOn(st, c, 300).map(function (x) { return x.s.name; }).join(), "가까운 센터");
+        eq("스탬프 - 키(빈칸 뺌)", RF.npStampKey(st[0]), "시험|가까운센터");
+        eq("스탬프 - 100m 안 · 안 다녀간 것", RF.npStampsDue(st, 38.0011, 128.0, {}, 100).length, 1);
+        eq("스탬프 - 다녀갔으면 없음", RF.npStampsDue(st, 38.0011, 128.0, { "시험|가까운센터": {} }, 100).length, 0);
+    })();
     eq("트립 - 들머리", RF.tripLink("https://kr.trip.com/?Allianceid=1&SID=2&trip_sub1=routefly&curr=KRW&locale=ko-KR", 35.3070131, 127.6136087, "지리산 중산리"),
         "https://kr.trip.com/hotels/list?cityId=0&searchType=LM&searchWord=%EC%A7%80%EB%A6%AC%EC%82%B0%20%EC%A4%91%EC%82%B0%EB%A6%AC&searchValue=13%7C0*13*35.307013%7C127.613609%7C%EC%A7%80%EB%A6%AC%EC%82%B0%20%EC%A4%91%EC%82%B0%EB%A6%AC%7C0%7C1&listFilters=17~5*17*5&Allianceid=1&SID=2&trip_sub1=routefly&curr=KRW&locale=ko-KR");
     eq("트립 - 옛 검색 칸은 버림 · ? 앞 / 없어도", RF.tripLink("https://kr.trip.com?Allianceid=1&city=88097&checkIn=2026-10-28&lat=1&listFilters=x", 38.17, 128.49, "설악산|소공원").indexOf("city=88097") < 0 && RF.tripLink("https://kr.trip.com?listFilters=x", 1, 2, "a").indexOf("listFilters=x") < 0 && RF.tripLink("https://kr.trip.com?Allianceid=1", 38.17, 128.49, "a").indexOf("Allianceid=1") > 0, true);
