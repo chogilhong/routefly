@@ -619,6 +619,8 @@ html.picking #pick { display:flex; }
         <!-- 2026-10-15 홍TV님: 기록 백업 - 핸드폰을 바꾸거나 앱을 지워도 옮길 수 있게 -->
         <div class="sbtn"><button type="button" id="backupSave" data-en="💾 Back up">💾 백업 저장</button><button type="button" id="backupLoad" data-en="📂 Restore backup">📂 백업 불러오기</button></div>
         <input type="file" id="backupFile" accept=".json,application/json" hidden>
+        <!-- 2026-10-28 홍TV님 "qr 로 옮겨줘" - 폰 ↔ PC · 앱 ↔ 크롬 -->
+        <div class="sbtn"><button type="button" id="xferGet" data-en="📲 Get from another device (QR)">📲 다른 기기에서 가져오기 (QR)</button><button type="button" id="xferSend" data-en="📤 Send to another device (code)">📤 다른 기기로 보내기 (코드)</button></div>
         <p class="tip" data-en="One backup file holds your records, photos, stamps and favorites. &quot;Back up&quot; opens the share window - pick Drive, email, your files or a chat to yourself. On a new phone use &quot;Restore backup&quot; (nothing goes to our server).">백업 파일 하나에 기록 · 사진 · 도장 · 찜이 모두 들어갑니다. "백업 저장" 을 누르면 공유 창이 열립니다 - 드라이브 · 카톡 '나와의 채팅' · 메일 · 내 파일 중 둘 곳을 고르세요. 새 핸드폰에서는 그 파일을 "백업 불러오기" 로(서버로는 가지 않습니다).</p>
         <div class="sbtn"><button type="button" id="recClose" class="main" data-en="Close">닫기</button></div>
     </div>
@@ -645,6 +647,18 @@ html.picking #pick { display:flex; }
 </div>
 
 <script src="vendor/maplibre-gl-5.24.0/maplibre-gl.js"></script>
+<!-- 기기 사이 기록 옮기기 QR 창(2026-10-28) -->
+<div id="xferBox" hidden style="position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;padding:16px">
+    <div style="background:#fff;color:#111;border-radius:14px;padding:18px;max-width:360px;width:100%;text-align:center;font:15px/1.6 Arial,'Malgun Gothic',sans-serif">
+        <b data-en="📲 Get records from another device">📲 다른 기기에서 기록 가져오기</b>
+        <div id="xferQr" style="width:240px;margin:10px auto"></div>
+        <p data-en="Scan this QR with the camera of the phone that has the records.&lt;br&gt;In the app: 📒 My records → &quot;📤 Send to another device&quot; and type the code below.">기록이 있는 폰의 카메라로 이 QR 을 찍으세요.<br>앱에서는 📒 내 기록 → "📤 다른 기기로 보내기" 에 아래 코드를 치세요.</p>
+        <p id="xferCode" style="font-size:26px;letter-spacing:4px;font-weight:bold"></p>
+        <p id="xferState" style="color:#555"></p>
+        <p><button type="button" id="xferClose" style="min-height:44px;padding:0 18px;border-radius:10px;border:1px solid #ccc;background:#f3f3f3;font-weight:bold" data-en="Close">닫기</button></p>
+    </div>
+</div>
+<script src="vendor/qrcode-generator-1.4.4/qrcode.js"></script>
 <script src="js/course-kit.js"></script>
 <script src="js/party-kit.js"></script>
 <script src="js/hike.js"></script>

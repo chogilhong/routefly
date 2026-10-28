@@ -1475,8 +1475,9 @@
      * JSON 파일 하나로(사진은 base64). 핸드폰 안에서 만들고 이용자가 고른 곳(드라이브 · 메일 · 내 파일)으로만 보냅니다.
      * 불러오기는 지금 기록에 합칩니다(같은 기록은 하나로, 최근 REC_MAX 개).
      */
-    function backupSave() {
-        recordsReady.then(function () {
+    /** 백업 내용 만들기(파일 · QR 옮기기가 같이 씀). */
+    function buildBackup() {
+        return recordsReady.then(function () {
             var recs = records(), photos = {};
             return Promise.all(RF.photoIds(recs).map(function (id) {
                 return photoGet(id).then(function (b) { return b ? blobToBase64(b).then(function (s) { photos[id] = s; }) : null; }, function () { /* 없는 사진 */ });
@@ -1485,7 +1486,10 @@
                 RF.BACKUP_KEYS.forEach(function (k) { try { var v = localStorage.getItem(k); if (v) ls[k] = JSON.parse(v); } catch (e) { /* 깨진 값은 뺌 */ } });
                 return { app: "routefly", v: 1, at: now(), records: recs, photos: photos, ls: ls };
             });
-        }).then(function (o) {
+        });
+    }
+    function backupSave() {
+        buildBackup().then(function (o) {
             var d = new Date(), text = JSON.stringify(o);
             var name = "routefly-backup-" + d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0") + ".json";
             toast(EN ? "Backup file: " + o.records.length + " records · " + Object.keys(o.photos).length + " photos - in the share window pick where to keep it (Drive, email, your files, a chat to yourself)."
@@ -1510,6 +1514,13 @@
         rd.onload = function () {
             var o = null;
             try { o = JSON.parse(String(rd.result)); } catch (e) { /* 아래 */ }
+            mergeBackup(o);
+        };
+        rd.readAsText(file);
+    }
+    /** 백업 합치기(파일 · QR 옮기기가 같이 씀) - 묻고 합침. */
+    function mergeBackup(o) {
+        {
             var bad = RF.backupCheck(o);
             if (bad) { toast(bad, 6000); return; }
             var photos = o.photos && typeof o.photos === "object" ? o.photos : {};
@@ -1532,8 +1543,91 @@
                 drawRecords();
                 toast(T("백업을 불러왔습니다.", "Backup restored."), 4000);
             }).catch(function (e) { toast(T("백업을 불러오지 못했습니다: ", "Could not restore the backup: ") + (e && e.message || e), 6000); });
-        };
-        rd.readAsText(file);
+        }
+    }
+
+    /**
+     * 기기 사이 QR 옮기기(2026-10-28 홍TV님 "qr 로 옮겨줘" - 폰의 지리산 인증이 PC 에 없음).
+     * 받는 기기: 코드(8글자)를 만들어 QR · 글로 보여 주고 3초마다 기다림. 보내는 기기: QR 을 찍거나(카메라 → 이 화면 #xfer=코드) 코드를 쳐서 보냄.
+     * 백업을 코드에서 만든 열쇠로 기기 안에서 암호화(AES-GCM)해 조각으로 서버(XferServlet)에 10분 맡김 - 서버에는 코드의 해시와 암호문만(내용을 볼 수 없음).
+     */
+    var XFER_ABC = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", XFER_PART = 500000;
+    function xferCode() {
+        var b = new Uint8Array(8), s = "";
+        crypto.getRandomValues(b);
+        for (var i = 0; i < 8; i++) s += XFER_ABC[b[i] % 32];
+        return s;
+    }
+    function xferClean(c) { return String(c || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); }
+    function sha(text) { return crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)); }
+    function hex(buf) { return Array.prototype.map.call(new Uint8Array(buf), function (x) { return ("0" + x.toString(16)).slice(-2); }).join(""); }
+    function xferId(code) { return sha("rf-xfer-id|" + code).then(function (h) { return hex(h).slice(0, 32); }); }
+    function xferKey(code) { return sha("rf-xfer-key|" + code).then(function (h) { return crypto.subtle.importKey("raw", h, "AES-GCM", false, ["encrypt", "decrypt"]); }); }
+    function b64(buf) {
+        var u = new Uint8Array(buf), s = "";
+        for (var i = 0; i < u.length; i += 32768) s += String.fromCharCode.apply(null, u.subarray(i, i + 32768));
+        return btoa(s);
+    }
+    function unb64(s) { var bin = atob(s), u = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u; }
+    function xferPost(path, body) {
+        return fetch("api/xfer/" + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), cache: "no-store" })
+            .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok || j.success === false) throw new Error(j.message || ("오류 " + r.status)); return j; }); });
+    }
+    var xferTimer = null;
+    $("xferClose").addEventListener("click", function () { clearInterval(xferTimer); $("xferBox").hidden = true; $("xferBox").style.display = "none"; });
+    /** 받기 - 이 기기에 QR · 코드를 띄우고 기다림. */
+    function xferReceive() {
+        if (!window.crypto || !crypto.subtle) { toast(T("이 브라우저는 옮기기를 못 합니다(https 주소에서 열어 주세요).", "This browser can't transfer (open the https address)."), 6000); return; }
+        var code = xferCode(), url = location.origin + location.pathname + (EN ? "?lang=en" : "") + "#xfer=" + code;
+        xferId(code).then(function (id) {
+            return xferPost("open", { id: id }).then(function () {
+                $("xferQr").innerHTML = "";
+                if (window.qrcode) { var q = qrcode(0, "M"); q.addData(url); q.make(); $("xferQr").innerHTML = q.createSvgTag({ cellSize: 6, margin: 2, scalable: true }); }
+                $("xferCode").textContent = code.slice(0, 4) + "-" + code.slice(4);
+                $("xferState").textContent = T("기다리는 중… (10분)", "Waiting… (10 min)");
+                $("xferBox").hidden = false;
+                $("xferBox").style.display = "flex";
+                var until = Date.now() + 10 * 60000;
+                clearInterval(xferTimer);
+                xferTimer = setInterval(function () {
+                    if (Date.now() > until) { clearInterval(xferTimer); $("xferState").textContent = T("시간이 지났습니다. 다시 해 주세요.", "Timed out. Please try again."); return; }
+                    xferPost("take", { id: id }).then(function (j) {
+                        if (j.waiting) { if (j.n && $("xferState")) $("xferState").textContent = T("받는 중… ", "Receiving… ") + j.got + " / " + j.n; return; }
+                        clearInterval(xferTimer);
+                        return xferKey(code).then(function (key) {
+                            var all = unb64(j.data);
+                            return crypto.subtle.decrypt({ name: "AES-GCM", iv: all.slice(0, 12) }, key, all.slice(12));
+                        }).then(function (plain) {
+                            $("xferBox").hidden = true; $("xferBox").style.display = "none";
+                            mergeBackup(JSON.parse(new TextDecoder().decode(plain)));
+                        });
+                    }).catch(function (e) { clearInterval(xferTimer); $("xferState").textContent = (e && e.message) || T("받지 못했습니다.", "Could not receive."); });
+                }, 3000);
+            });
+        }).catch(function (e) { toast((e && e.message) || T("옮기기를 시작하지 못했습니다.", "Could not start the transfer."), 6000); });
+    }
+    /** 보내기 - 받는 기기의 코드로 이 기기 백업을 암호화해 올림. */
+    function xferSend(code) {
+        code = xferClean(code);
+        if (code.length !== 8) { toast(T("받는 기기 화면의 코드 8글자를 넣어 주세요.", "Enter the 8-letter code shown on the receiving device."), 5000); return; }
+        if (!window.crypto || !crypto.subtle) { toast(T("이 브라우저는 옮기기를 못 합니다(https 주소에서 열어 주세요).", "This browser can't transfer (open the https address)."), 6000); return; }
+        toast(T("📤 보내는 중…", "📤 Sending…"), 4000);
+        Promise.all([buildBackup(), xferKey(code), xferId(code)]).then(function (a) {
+            var o = a[0], iv = crypto.getRandomValues(new Uint8Array(12));
+            return crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, a[1], new TextEncoder().encode(JSON.stringify(o))).then(function (ct) {
+                var buf = new Uint8Array(12 + ct.byteLength);
+                buf.set(iv, 0); buf.set(new Uint8Array(ct), 12);
+                var text = b64(buf), n = Math.max(1, Math.ceil(text.length / XFER_PART)), i = 0;
+                function next() {
+                    if (i >= n) return null;
+                    var k = i++;
+                    return xferPost("put", { id: a[2], i: k, n: n, part: text.slice(k * XFER_PART, (k + 1) * XFER_PART) }).then(next);
+                }
+                return Promise.resolve().then(next);   // 조각을 하나씩 차례로
+            }).then(function () {
+                toast(T("📤 보냈습니다 - 기록 " + o.records.length + "개. 받는 기기 화면에서 \"합칠까요?\" 에 확인을 누르세요.", "📤 Sent - " + o.records.length + " records. Confirm \"merge\" on the receiving device."), 8000);
+            });
+        }).catch(function (e) { toast(T("보내지 못했습니다: ", "Could not send: ") + ((e && e.message) || e), 7000); });
     }
 
     /**
@@ -3081,6 +3175,21 @@
     $("myRecords").addEventListener("click", showRecords);
     $("recClose").addEventListener("click", function () { $("recSheet").style.display = "none"; });
     $("backupSave").addEventListener("click", backupSave);
+    $("xferGet").addEventListener("click", xferReceive);
+    $("xferSend").addEventListener("click", function () {
+        var c = prompt(T("받는 기기(PC 등) 화면에 나온 코드 8글자를 넣으세요", "Enter the 8-letter code shown on the receiving device (PC etc.)"), "");
+        if (c != null) xferSend(c);
+    });
+    (function () {   // QR 을 찍어 들어옴(#xfer=코드) - 이 기기 기록을 보낼지 묻고 보냄
+        var m = /^#xfer=([A-Za-z0-9]{8})$/.exec(location.hash || "");
+        if (!m) return;
+        try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* 그대로 */ }
+        setTimeout(function () {
+            recordsReady.then(function () {
+                if (confirm(T("이 기기의 기록 " + records().length + "개(사진 · 도장 · 완주 · 정상 포함)를 QR 을 띄운 기기로 보낼까요?\n(암호화해 보내며 서버는 내용을 볼 수 없습니다)", "Send this device's " + records().length + " records (with photos, stamps, peaks) to the device showing the QR?\n(Encrypted - our server can't read it)"))) xferSend(m[1]);
+            });
+        }, 800);
+    })();
     // 결산은 내 기록 창 대신 띄우고, 닫으면 내 기록으로 돌아감(두 창이 겹쳐 결산이 뒤에 가려졌음)
     $("sumOpen").addEventListener("click", function () { peakPts = null; drawSummary(); $("recSheet").style.display = "none"; $("sumSheet").style.display = "flex"; });
     $("sumClose").addEventListener("click", function () { $("sumSheet").style.display = "none"; $("recSheet").style.display = "flex"; });

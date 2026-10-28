@@ -9,7 +9,8 @@
     var key = null, timer = null;
 
     function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c]; }); }
-    function msg(t) { $("msg").textContent = t || ""; }
+    var netErr = false;   // 서버 오류 글만 새로 받기에서 지움(복사 · 새 코드 안내는 남김, 10-28 PC)
+    function msg(t, err) { $("msg").textContent = t || ""; netErr = !!err; }
     function store(k) { try { if (k) localStorage.setItem(KEY, k); else localStorage.removeItem(KEY); } catch (e) { /* 이번만 */ } }
     function stored() { try { return localStorage.getItem(KEY); } catch (e) { return null; } }
     /** KST 날짜 · 시각 "10/28 13:05". */
@@ -73,9 +74,9 @@
     }
 
     function load() {
-        return RFParty.post("office/rooms", { key: key }).then(function (j) { msg(""); showOnly("officeSec"); render(j); }).catch(function (e) {
+        return RFParty.post("office/rooms", { key: key }).then(function (j) { if (netErr) msg(""); showOnly("officeSec"); render(j); }).catch(function (e) {
             if (e && e.status === 403) { store(null); key = null; showOnly("newSec"); msg("사무실 링크가 맞지 않습니다. 링크를 다시 확인해 주세요."); return; }
-            msg(e && e.message ? e.message : "서버에 닿지 않습니다.");
+            msg(e && e.message ? e.message : "서버에 닿지 않습니다.", true);
         });
     }
 
