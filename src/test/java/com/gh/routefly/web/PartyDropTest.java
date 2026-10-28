@@ -75,5 +75,6 @@ public class PartyDropTest {
         JsonObject ma2 = member(call(p, "/view", tok(lead), t1 + 20 * 60_000), "마음바꿈");
         assertEquals("오색", ma2.get("drop").getAsString());
         assertEquals("소공원", ma2.get("dropPlan").getAsString());
+        assertEquals("내린 뒤 직접 바꾸면 \"여기서 내림\" 이 아님", "edit", ma2.get("dropHow").getAsString());
     }
 }

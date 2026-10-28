@@ -70,7 +70,7 @@ final class Party {
         String stop;           // 탑승지
         /** 하차 지점(2026-10-28 홍TV님 - 회원을 한계령 · 오색 · 소공원 등 여러 곳에 내려 줌, 인솔자도 골라 내려 산행하거나 "버스 대기"). */
         String drop;
-        /** 실제로 내린 곳을 어떻게 알았나(2026-10-28 홍TV님 "소공원 골랐다가 한계령에서 갑자기 생각을 바꿔 내리는 경우도"): me(여기서 내려요) · auto(위치) · lead(인솔자), null = 계획만. */
+        /** 실제로 내린 곳을 어떻게 알았나(2026-10-28 홍TV님 "소공원 골랐다가 한계령에서 갑자기 생각을 바꿔 내리는 경우도"): me(여기서 내려요) · auto(위치) · edit(내린 뒤 회원이 직접 바꿈) · lead(인솔자), null = 계획만. */
         String dropHow;
         /** 실제 하차가 계획과 다를 때 처음 계획(인솔자 명단 "계획: 소공원"). */
         String dropPlan;
@@ -675,7 +675,7 @@ final class Party {
         }
         String d = checkDrop(actor.room, drop);
         if (actor.room.arrivals.isEmpty()) { t.drop = d; t.dropHow = null; t.dropPlan = null; }   // 내리기 전 - 계획 바꾸기
-        else setActual(t, d, t == actor ? "me" : "lead");   // 내린 뒤 - 실제
+        else setActual(t, d, t == actor ? "edit" : "lead");   // 내린 뒤 - 실제(회원이 직접 바꿈 · 인솔자, 10-28 PC: 바꿔도 "여기서 내림" 이 남았음)
         save();
     }
 

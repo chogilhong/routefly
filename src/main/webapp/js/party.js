@@ -701,7 +701,7 @@
             else if (m.listed && !s.departed)
                 st += " <button type=\"button\" class=\"undo\" data-board=\"" + m.id + "\" data-on=\"" + (m.boarded ? 0 : 1) + "\">" + (m.boarded ? T("↩ 안 탐", "↩ Not on") : T("✅ 탔음", "✅ On bus")) + "</button>";
             var dsel = (s.drops || []).length && m.role === "hiker" && !m.cancelled ? "<br><select class=\"dropSel\" data-drop=\"" + m.id + "\" aria-label=\"" + T("하차 지점", "Drop-off") + "\">" + ["", ].concat(s.drops, ["버스 대기"]).map(function (x) { return "<option value=\"" + esc(x) + "\"" + ((m.drop || "") === x ? " selected" : "") + ">" + (x ? "⬇ " + esc(x) : T("⬇ 하차 미정", "⬇ unset")) + "</option>"; }).join("") + "</select>" : (m.drop ? "<br><small>⬇ " + esc(m.drop) + "</small>" : "");
-            if (m.dropHow) dsel += " <small>" + (m.dropHow === "me" ? T("✓ 여기서 내림", "✓ got off") : m.dropHow === "auto" ? T("📍 위치로 확인", "📍 by location") : T("✓ 인솔자", "✓ leader")) + "</small>";
+            if (m.dropHow) dsel += " <small>" + (m.dropHow === "me" ? T("✓ 여기서 내림", "✓ got off") : m.dropHow === "auto" ? T("📍 위치로 확인", "📍 by location") : m.dropHow === "edit" ? T("✏️ 회원이 바꿈", "✏️ changed by member") : T("✓ 인솔자", "✓ leader")) + "</small>";
             if (m.dropPlan) dsel += " <small>" + T("(계획: ", "(planned: ") + esc(m.dropPlan) + ")</small>";
             var via = m.role === "hiker" && !m.listed && (m.app || m.ago != null || m.seen != null) ? (m.app ? " <small title=\"" + T("앱 - 화면을 꺼도 보냄", "app - sends with screen off") + "\">📱</small>" : " <small title=\"" + T("웹 - 화면을 끄면 멈춤", "web - stops when screen off") + "\">🌐</small>") : "";
             return "<tr class=\"" + cls + "\" data-id=\"" + m.id + "\"><td>" + (m.role === "lead" ? "-" : seatText(s, m)) + "</td><td>" + esc(m.nick) + via

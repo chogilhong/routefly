@@ -42,8 +42,8 @@
         if (msgs.length) notify(msgs.join("\n"));
     }
     function notify(text) {
+        if (g.RFParty && g.RFParty.onNotice && !document.hidden) { g.RFParty.onNotice(text); return; }   // 따라가기 - 띠 · 읽어 주기 · 진동(그쪽이 울림 - 두 번 울리지 않게, 10-28 PC)
         try { if (navigator.vibrate) navigator.vibrate([400, 150, 400, 150, 400]); } catch (e) { /* 없음 */ }
-        if (g.RFParty && g.RFParty.onNotice && !document.hidden) { g.RFParty.onNotice(text); return; }   // 따라가기 - 띠 · 읽어 주기
         if (!document.hidden && g.speechSynthesis && g.SpeechSynthesisUtterance) {
             try { var u = new SpeechSynthesisUtterance(text.replace(/[^\uAC00-\uD7A3\w\s:·,.-]/g, " ")); u.lang = "ko-KR"; speechSynthesis.speak(u); } catch (e) { /* 없음 */ }
         }
