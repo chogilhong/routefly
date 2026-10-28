@@ -74,6 +74,8 @@ final class Party {
         String dropHow;
         /** 실제 하차가 계획과 다를 때 처음 계획(인솔자 명단 "계획: 소공원"). */
         String dropPlan;
+        /** 하산 탑승지(2026-10-28 홍TV님 일정표 - 설악동C지구 17:00 · 용대리 17:30 · 남교리 17:35, 곳마다 출발 시각) - 하산 마감 알림이 이 시각으로. */
+        String pickup;
         /** 하차 안내에 답한 도착(그 도착 시각) - 같은 안내를 다시 띄우지 않음. 메모리. */
         long arrAns;
         boolean boarded;       // 출발 때 버스 탐(본인 · 인솔자)
@@ -128,6 +130,9 @@ final class Party {
         List<String> stopTimes = List.of();
         /** 하차 지점(없으면 빈 것) - 회원은 참가할 때 · 인솔자가 명단에서 고름. */
         List<String> drops = List.of();
+        /** 하산 탑승지 · 출발 시각 "HH:MM"(없으면 ""), 서울 도착 예정 "HH:MM"(없으면 null). */
+        List<String> pickups = List.of(), pickupTimes = List.of();
+        String homeTime;
         /** 하차 지점 도착(인솔자 "⬇ 한계령 도착") - [지점, 때, 위도, 경도(없으면 NaN)], 최근 8개. 메모리. */
         final List<Object[]> arrivals = new ArrayList<>();
 
@@ -193,7 +198,7 @@ final class Party {
 
         /** 방이 저절로 끝나는 때 - 하산 마감 6시간 뒤, SOS 가 켜져 있으면 24시간 뒤. */
         long closesAt() {
-            return endBase() + (sosOn() ? SOS_KEEP_MS : AFTER_END_MS);
+            return Math.max(endBase(), homeAt(this)) + (sosOn() ? SOS_KEEP_MS : AFTER_END_MS);   // 서울 도착 예정이 더 늦으면 그 뒤로
         }
 
         boolean sosOn() {
@@ -635,6 +640,81 @@ final class Party {
         return t < r.departAt - 12 * HOUR ? t + 24 * HOUR : t;
     }
 
+    /** 그 시각 "HH:MM" 을 base 날(서울 시각)에 놓은 ms. */
+    private static long onDay(long base, String hhmm) {
+        String[] hm = hhmm.split(":");
+        return java.time.Instant.ofEpochMilli(base).atZone(java.time.ZoneId.of("Asia/Seoul"))
+                .withHour(Integer.parseInt(hm[0])).withMinute(Integer.parseInt(hm[1])).withSecond(0).withNano(0).toInstant().toEpochMilli();
+    }
+
+    /** 하산 탑승지 출발 때(ms, 없으면 0) - 하산 마감 날 기준(±12시간 안으로), 하산 마감이 없으면 출발 뒤 첫 그 시각. */
+    static long pickupAt(Room r, String pickup) {
+        int i = pickup == null ? -1 : r.pickups.indexOf(pickup);
+        if (i < 0 || i >= r.pickupTimes.size() || r.pickupTimes.get(i).isEmpty()) return 0;
+        if (r.endAt > 0) {
+            long t = onDay(r.endAt, r.pickupTimes.get(i));
+            return t > r.endAt + 12 * HOUR ? t - 24 * HOUR : t < r.endAt - 12 * HOUR ? t + 24 * HOUR : t;
+        }
+        if (r.departAt == 0) return 0;
+        long t = onDay(r.departAt, r.pickupTimes.get(i));
+        return t < r.departAt ? t + 24 * HOUR : t;
+    }
+
+    /** 서울 도착 예정(ms, 없으면 0) - 마지막 하산 탑승(없으면 하산 마감) 뒤 첫 그 시각. */
+    static long homeAt(Room r) {
+        if (r.homeTime == null) return 0;
+        long base = r.endAt;
+        for (String p : r.pickups) base = Math.max(base, pickupAt(r, p));
+        if (base == 0) base = r.departAt;
+        if (base == 0) return 0;
+        long t = onDay(base, r.homeTime);
+        return t < base - HOUR ? t + 24 * HOUR : t;
+    }
+
+    /** 그 회원의 하산 마감 - 하산 탑승지 시각, 없으면 방 하산 마감. */
+    static long deadline(Member m) {
+        long p = pickupAt(m.room, m.pickup);
+        return p > 0 ? p : m.room.endAt;
+    }
+
+    /** 인솔자 - 하산 탑승지 · 서울 도착 예정(방 만들 때). text 는 "설악동C지구 17:00, 용대리 17:30". */
+    synchronized void pickups(Member lead, String text, String home) {
+        if (!lead.staff()) throw new SecurityException("인솔자만 정합니다.");
+        Room r = lead.room;
+        List<String> names = stops(text), times = stopTimes(text);
+        int n = Math.min(names.size(), MAX_STOPS);
+        r.pickups = List.copyOf(names.subList(0, n));
+        r.pickupTimes = List.copyOf(times.subList(0, n));
+        String h = home == null ? null : home.trim();
+        List<String> ht = h == null || h.isEmpty() ? List.of() : stopTimes("x " + h);
+        r.homeTime = ht.isEmpty() || ht.get(0).isEmpty() ? null : ht.get(0);
+        save();
+    }
+
+    /** 하산 탑승지 고르기 - id 가 없으면 나, 있으면 인솔자가 그 사람(빈 값 = 지움). */
+    synchronized void pickup(Member actor, Integer id, String pickup) {
+        Member t = actor;
+        if (id != null && id != actor.id) {
+            if (!actor.staff()) throw new SecurityException("다른 사람의 하산 탑승지는 인솔자만 바꿉니다.");
+            t = null;
+            for (Member x : actor.room.members.values()) if (x.id == id) t = x;
+            if (t == null) throw new IllegalArgumentException("이미 나간 사람입니다.");
+        }
+        t.pickup = checkPickup(actor.room, pickup);
+        save();
+    }
+
+    private static String checkPickup(Room r, String pickup) {
+        String p = clean(pickup, 12);
+        if (p != null && !r.pickups.contains(p)) throw new IllegalArgumentException("하산 탑승지를 골라 주세요.");
+        return p;
+    }
+
+    /** 참가 전에 하산 탑승지 확인. */
+    synchronized void checkPickup(String code, String pickup, long now) {
+        checkPickup(room(code, now), pickup);
+    }
+
     private static void checkSeat(Room r, Member self, int bus, Integer seat) {
         if (seat == null) return;
         if (r.seatsOf(bus) == 0) throw new IllegalArgumentException(busName(r, bus) + "좌석표가 없는 차입니다. 좌석 없이 참가해 주세요.");
@@ -1065,6 +1145,18 @@ final class Party {
             JsonObject dc = new JsonObject();   // 하차 지점마다 산행 회원 수
             for (Member m : r.members.values()) if ("hiker".equals(m.role) && !m.cancelled) { String k = m.drop != null ? m.drop : "미정"; dc.addProperty(k, (dc.has(k) ? dc.get(k).getAsInt() : 0) + 1); }
             x.add("drops", dc);
+            if (!r.pickups.isEmpty()) {   // 하산 탑승지마다 [탄 사람, 그곳 회원], 출발 때
+                JsonArray pk = new JsonArray();
+                for (String pn : r.pickups) {
+                    int on = 0, all = 0;
+                    for (Member m : r.members.values()) if ("hiker".equals(m.role) && !m.cancelled && pn.equals(m.pickup)) { all++; if (m.aboard) on++; }
+                    JsonObject q = new JsonObject();
+                    q.addProperty("name", pn); q.addProperty("at", pickupAt(r, pn)); q.addProperty("on", on); q.addProperty("all", all);
+                    pk.add(q);
+                }
+                x.add("pickups", pk);
+            }
+            if (homeAt(r) > 0) x.addProperty("homeAt", homeAt(r));
             live.add(x);
         }
         out.add("rooms", live);
@@ -1272,7 +1364,7 @@ final class Party {
             JsonObject ba = new JsonObject();
             r.busAt.forEach((k, v) -> { JsonArray p = new JsonArray(); p.add(v[0]); p.add(v[1]); ba.add(String.valueOf(k), p); });
             o.add("busAt", ba); o.addProperty("departed", r.departed); o.addProperty("stopsDone", r.stopsDone); o.addProperty("nextId", r.nextId);
-            o.addProperty("officeCode", r.officeCode); o.addProperty("officeName", r.officeName); o.addProperty("sosEver", r.sosEver); o.addProperty("departedAt", r.departedAt); o.add("drops", strings(r.drops));
+            o.addProperty("officeCode", r.officeCode); o.addProperty("officeName", r.officeName); o.addProperty("sosEver", r.sosEver); o.addProperty("departedAt", r.departedAt); o.add("drops", strings(r.drops)); o.add("pickups", strings(r.pickups)); o.add("pickupTimes", strings(r.pickupTimes)); o.addProperty("homeTime", r.homeTime);
             JsonArray ms = new JsonArray();
             for (Member m : r.members.values()) {
                 JsonObject x = new JsonObject();
@@ -1282,6 +1374,7 @@ final class Party {
                 if (m.office) x.addProperty("office", true);
                 if (m.app) x.addProperty("app", true);
                 if (m.drop != null) x.addProperty("drop", m.drop);
+                if (m.pickup != null) x.addProperty("pickup", m.pickup);
                 if (m.dropHow != null) x.addProperty("dropHow", m.dropHow);
                 if (m.dropPlan != null) x.addProperty("dropPlan", m.dropPlan);
                 ms.add(x);
@@ -1347,6 +1440,12 @@ final class Party {
                 r.leadCode = str(o, "leadCode") != null ? str(o, "leadCode") : str(o, "driverCode");   // 10-27 전 파일은 driverCode
                 r.officeCode = str(o, "officeCode"); r.officeName = str(o, "officeName"); r.sosEver = boolOf(o, "sosEver"); r.departedAt = lng(o, "departedAt");
                 if (o.has("drops")) { List<String> dd = new ArrayList<>(); o.getAsJsonArray("drops").forEach(x -> dd.add(x.getAsString())); r.drops = List.copyOf(dd); }
+                if (o.has("pickups") && o.has("pickupTimes")) {
+                    List<String> pp = new ArrayList<>(), pt = new ArrayList<>();
+                    o.getAsJsonArray("pickups").forEach(x -> pp.add(x.getAsString())); o.getAsJsonArray("pickupTimes").forEach(x -> pt.add(x.getAsString()));
+                    if (pp.size() == pt.size()) { r.pickups = List.copyOf(pp); r.pickupTimes = List.copyOf(pt); }
+                }
+                r.homeTime = str(o, "homeTime");
                 List<Member> ms = new ArrayList<>();
                 if (o.has("members")) for (JsonElement me : o.getAsJsonArray("members")) {
                     JsonObject x = me.getAsJsonObject();
@@ -1355,7 +1454,7 @@ final class Party {
                     m.seat = num(x, "seat") == null ? null : num(x, "seat").intValue();
                     m.bus = x.has("bus") ? x.get("bus").getAsInt() : 1;
                     m.stop = str(x, "stop"); m.boarded = boolOf(x, "boarded"); m.aboard = boolOf(x, "aboard"); m.apart = boolOf(x, "apart"); m.cancelled = boolOf(x, "cancelled");
-                    m.rostered = boolOf(x, "rostered"); m.listed = boolOf(x, "listed"); m.office = boolOf(x, "office"); m.app = boolOf(x, "app"); m.drop = str(x, "drop"); m.dropHow = str(x, "dropHow"); m.dropPlan = str(x, "dropPlan");
+                    m.rostered = boolOf(x, "rostered"); m.listed = boolOf(x, "listed"); m.office = boolOf(x, "office"); m.app = boolOf(x, "app"); m.drop = str(x, "drop"); m.dropHow = str(x, "dropHow"); m.dropPlan = str(x, "dropPlan"); m.pickup = str(x, "pickup");
                     ms.add(m);
                     r.nextId = Math.max(r.nextId, m.id + 1);
                 }
@@ -1436,6 +1535,14 @@ final class Party {
         o.add("stops", strings(r.stops));
         if (!r.stopTimes.isEmpty()) o.add("stopTimes", strings(r.stopTimes));   // 탑승지마다 출발 시각
         if (!r.drops.isEmpty()) o.add("drops", strings(r.drops));   // 하차 지점(2026-10-28)
+        if (!r.pickups.isEmpty()) {   // 하산 탑승지 · 출발 때(ms)
+            o.add("pickups", strings(r.pickups));
+            o.add("pickupTimes", strings(r.pickupTimes));
+            JsonObject pa = new JsonObject();
+            for (String p : r.pickups) if (pickupAt(r, p) > 0) pa.addProperty(p, pickupAt(r, p));
+            o.add("pickupAt", pa);
+        }
+        if (homeAt(r) > 0) { o.addProperty("homeAt", homeAt(r)); o.addProperty("homeTime", r.homeTime); }   // 서울 도착 예정
         JsonArray taken = new JsonArray(), booked = new JsonArray();   // 호차 × 100 + 좌석
         for (Member m : r.members.values()) if (m.seat != null && !m.cancelled && m != me)
             (m.listed ? booked : taken).add(m.bus * 100 + m.seat);   // 명단에만 있는 자리는 "예약" - 같은 이름이 둘일 때 좌석으로 고름(2026-10-26 PC)
@@ -1480,6 +1587,8 @@ final class Party {
         if (me.seat != null) o.addProperty("seat", me.seat);
         if (me.stop != null) o.addProperty("stop", me.stop);
         if (me.drop != null) o.addProperty("drop", me.drop);
+        if (me.pickup != null) o.addProperty("pickup", me.pickup);
+        if (deadline(me) > 0) o.addProperty("myEndAt", deadline(me));   // 내 하산 마감 = 내 하산 탑승지 시각
         Object[] arr = r.lastArrival();   // 하차 안내 - 버스 안 회원에게 15분(답했으면 안 띄움)
         if (arr != null && now - (Long) arr[1] <= ARRIVE_MS && "hiker".equals(me.role) && !me.cancelled && !me.aboard && me.arrAns != (Long) arr[1]) {
             JsonObject a = new JsonObject();
@@ -1524,6 +1633,7 @@ final class Party {
             x.addProperty("role", m.role);
             if (m.office) x.addProperty("office", true);   // 회사 사무실 자리
             if (m.drop != null && (staff || m == me || m.staff())) x.addProperty("drop", m.drop);   // 하차 지점 - 인솔자는 모두, 회원은 자기 것 · 인솔자 것
+            if (m.pickup != null && (staff || m == me)) x.addProperty("pickup", m.pickup);   // 하산 탑승지
             if (staff && m.dropHow != null) x.addProperty("dropHow", m.dropHow);   // 실제로 내림: me · auto(위치) · lead
             if (staff && m.dropPlan != null) x.addProperty("dropPlan", m.dropPlan);   // 처음 계획
             if (m.chief()) x.addProperty("chief", true);   // 주 인솔자(나머지 lead 는 보조) - 회원도 위치를 받는 사람을 모두 봄

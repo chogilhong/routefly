@@ -148,6 +148,12 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
         eq("알림 - 45분 남음(60분 칸)", m1.msgs.join("|"), "⏰ 하산 마감 01:53 - 45분 남았습니다. 버스로 내려와 주세요.");
         me.now = E - 25 * 60000;
         eq("알림 - 30분 칸은 따로 한 번 더", RF.partyAlerts(me, m1.fired).msgs.join("|"), "⏰ 하산 마감 01:53 - 25분 남았습니다. 버스로 내려와 주세요.");
+        // 하산 탑승지마다(2026-10-28 일정표 - 설악동 17:00 · 남교리 17:35)
+        var P1 = E - 35 * 60000, P2 = E;
+        var pk = { role: "lead", now: P1 - 40 * 60000, departed: true, departedAt: D, endAt: E, pickupAt: { "설악동": P1, "남교리": P2 }, members: [
+            { id: 1, role: "hiker", nick: "가", pickup: "설악동" }, { id: 2, role: "hiker", nick: "나", pickup: "설악동" }, { id: 3, role: "hiker", nick: "다", pickup: "남교리" }] };
+        eq("알림 - 인솔자 하산 탑승지마다", RF.partyAlerts(pk, {}).msgs.join("|"), "⏰ 설악동 하산 탑승 01:18 (40분 남음) - 아직 2명 하산 전");   // 남교리는 75분 남아 아직
+        eq("알림 - 회원 내 하산 탑승지 시각으로", RF.partyAlerts({ role: "hiker", now: P1 - 20 * 60000, departed: true, endAt: E, myEndAt: P1, pickup: "설악동" }, {}).msgs.join("|"), "⏰ 설악동 하산 탑승 01:18 - 20분 남았습니다. 하산 탑승지(설악동)로 내려와 주세요.");
         var bus = { role: "hiker", now: D, arrive: { drop: "한계령", at: D } };
         var b1 = RF.partyAlerts(bus, {});
         eq("알림 - 하차 안내 한 번", [b1.msgs.join("|"), RF.partyAlerts(bus, b1.fired).msgs.length].join(), "⬇ 지금 한계령입니다. 여기서 내리시면 \"여기서 내려요\"를 눌러 주세요.,0");

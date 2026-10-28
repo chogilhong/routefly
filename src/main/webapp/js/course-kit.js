@@ -4746,29 +4746,35 @@
         function hit(k, msg) { f[k] = true; if (!old[k]) out.push(msg); }
         var en = LANG === "en";
         if (s.role === "lead" && !s.officeMe) {
-            var notDown = 0;
+            var groups = {};   // 하산 마감마다(하산 탑승지 시각 · 없으면 방 하산 마감) 아직 안 탄 사람 수
             (s.members || []).forEach(function (m) {
                 if (m.role !== "hiker" || m.cancelled || m.aboard) return;
-                notDown++;
+                var at = m.pickup && s.pickupAt && s.pickupAt[m.pickup] || s.endAt;
+                if (at) { var gk = m.pickup && s.pickupAt && s.pickupAt[m.pickup] ? m.pickup : ""; groups[gk] = groups[gk] || { at: at, n: 0 }; groups[gk].n++; }
                 if (m.sos) hit("sos" + m.id, en ? "🆘 SOS - " + m.nick : "🆘 SOS - " + m.nick + " 님");
                 if (m.app && !m.listed && s.departedAt && !m.sos) {
                     var a = m.seen != null ? m.seen : m.ago, eff = Math.min(a == null ? Infinity : a, (now - s.departedAt) / 1000);
                     if (eff > 600) hit("quiet" + m.id, en ? "📵 No update from " + m.nick + " for over 10 min" : "📵 " + m.nick + " 님 10분 넘게 소식 없음");
                 }
             });
-            var left = Math.ceil((s.endAt - now) / 60000);   // 실제 남은 분(10-28 PC: 45분 남았는데 "60분" 이라 읽었음)
-            [60, 30].forEach(function (w) {
-                if (s.departed && s.endAt && notDown > 0 && now >= s.endAt - w * 60000 && now < s.endAt && !(w === 60 && left <= 30))   // 30분 안에 처음 보면 30분 것 하나만
-                    hit("end" + w, en ? "⏰ Back-down deadline " + hm(s.endAt) + " (" + left + " min left) - " + notDown + " not back yet" : "⏰ 하산 마감 " + hm(s.endAt) + " (" + left + "분 남음) - 아직 " + notDown + "명 하산 전");
+            Object.keys(groups).forEach(function (gk) {   // 하산 탑승지마다(2026-10-28 홍TV님 일정표 - 설악동 17:00 · 남교리 17:35)
+                var g = groups[gk], left = Math.ceil((g.at - now) / 60000);   // 실제 남은 분
+                [60, 30].forEach(function (w) {
+                    if (s.departed && now >= g.at - w * 60000 && now < g.at && !(w === 60 && left <= 30))   // 30분 안에 처음 보면 30분 것 하나만
+                        hit("end" + w + gk, en ? "⏰ " + (gk ? gk + " pickup " : "Back-down deadline ") + hm(g.at) + " (" + left + " min left) - " + g.n + " not back yet"
+                            : "⏰ " + (gk ? gk + " 하산 탑승 " : "하산 마감 ") + hm(g.at) + " (" + left + "분 남음) - 아직 " + g.n + "명 하산 전");
+                });
             });
         } else if (s.role === "hiker") {
             // 하차 안내(인솔자 "⬇ 한계령 도착") - 버스 안 회원
             if (s.arrive && !s.aboard && !s.cancelled) hit("arr" + s.arrive.at, en ? "⬇ We're at " + s.arrive.drop + ". If you get off here, tap \"I'm getting off here\"." : "⬇ 지금 " + s.arrive.drop + "입니다. 여기서 내리시면 \"여기서 내려요\"를 눌러 주세요.");
-            if (s.departed && s.endAt && !s.aboard && !s.cancelled) {
-                var mleft = Math.ceil((s.endAt - now) / 60000);
+            var mine = s.myEndAt || s.endAt, pk = s.pickup && s.myEndAt ? s.pickup : "";   // 내 하산 탑승지 시각(없으면 방 하산 마감)
+            if (s.departed && mine && !s.aboard && !s.cancelled) {
+                var mleft = Math.ceil((mine - now) / 60000);
                 [60, 30].forEach(function (w) {
-                    if (now >= s.endAt - w * 60000 && now < s.endAt && !(w === 60 && mleft <= 30))
-                        hit("mine" + w, en ? "⏰ Back-down deadline " + hm(s.endAt) + " - " + mleft + " min left. Please head back to the bus." : "⏰ 하산 마감 " + hm(s.endAt) + " - " + mleft + "분 남았습니다. 버스로 내려와 주세요.");
+                    if (now >= mine - w * 60000 && now < mine && !(w === 60 && mleft <= 30))
+                        hit("mine" + w, en ? "⏰ " + (pk ? pk + " pickup " : "Back-down deadline ") + hm(mine) + " - " + mleft + " min left. Please head back to the bus."
+                            : "⏰ " + (pk ? pk + " 하산 탑승 " : "하산 마감 ") + hm(mine) + " - " + mleft + "분 남았습니다. " + (pk ? "하산 탑승지(" + pk + ")로 내려와 주세요." : "버스로 내려와 주세요."));
                 });
             }
         }

@@ -284,6 +284,8 @@
             seatOptions($("joinSeat"), seatsOf(j, 1), j.taken, null, T("고르기", "Choose"), 1, j.booked);
             stopOptions($("joinStop"), j.stops, null, T("고르기", "Choose"), j);
             dropOptions($("joinDrop"), j.drops, null);
+            pickOptions($("joinPickup"), j, null);
+            $("joinPickupBox").hidden = !(j.pickups || []).length || !!j.leadInvite;
             $("joinDropBox").hidden = !(j.drops || []).length || !!j.leadInvite;
             roleChanged();   // 역할은 코드가 정함 - 공동 인솔자 코드면 인솔자, 방 코드면 산행(2026-10-27)
             if (j.meInvite) $("joinNick").value = j.leaderName || T("인솔자", "Leader");   // 주 인솔자 내 폰 - 같은 사람(이 기기에 남은 옛 이름 대신, 10-28 PC)
@@ -317,7 +319,7 @@
         var seat = seatOn && $("joinSeat").value ? +$("joinSeat").value : null, stop = stopOn && $("joinStop").value ? $("joinStop").value : null;
         $("joinBtn").disabled = true;
         var bus = !$("joinBusBox").hidden ? +$("joinBus").value : 1;
-        RFParty.post("join", { code: code, nick: nick, role: role, bus: bus, seat: role === "hiker" ? seat : null, stop: role === "hiker" ? stop : null, drop: $("joinDropBox").hidden ? null : $("joinDrop").value, onBus: q.get("on") === "1", agree: true }).then(function (j) {
+        RFParty.post("join", { code: code, nick: nick, role: role, bus: bus, seat: role === "hiker" ? seat : null, stop: role === "hiker" ? stop : null, drop: $("joinDropBox").hidden ? null : $("joinDrop").value, pickup: $("joinPickupBox").hidden ? null : $("joinPickup").value, onBus: q.get("on") === "1", agree: true }).then(function (j) {
             try { localStorage.setItem("rf-party-nick", nick); } catch (e) { /* 이번만 */ }
             RFParty.set({ code: j.code, token: j.token, role: j.role, name: j.name });
             enterRoom(j);
@@ -405,7 +407,7 @@
             leaderName: $("mkLead").value.trim(), leaderPhone: RFParty.dashes($("mkPhone").value), office: $("mkOffice").value.trim().toUpperCase(),
             plates: Array.prototype.map.call(document.querySelectorAll("#mkPlates .mkPlate"), function (x) { return x.value.trim(); }),
             busSeats: seatsIn, seats: Math.max.apply(null, seatsIn.concat([0])),
-            buses: Math.max(1, Math.min(8, +$("mkBuses").value || 1)), stops: $("mkStops").value, drops: $("mkDrops").value }).then(function (j) {
+            buses: Math.max(1, Math.min(8, +$("mkBuses").value || 1)), stops: $("mkStops").value, drops: $("mkDrops").value, pickups: $("mkPickups").value, home: $("mkHome").value }).then(function (j) {
             RFParty.set({ code: j.code, token: j.token, role: "lead", name: j.name });
             enterRoom(j);
             roomMsg(T("방을 만들었습니다. 아래 참가 링크를 예약한 회원에게 카톡 · 문자로 보내세요.", "Room created. Send the join link below to your members by KakaoTalk or text."));
@@ -687,8 +689,9 @@
         rows.sort(function (a, b) { var ka = rank(a), kb = rank(b); return ka !== kb ? ka - kb : (b.stillMin || 0) - (a.stillMin || 0); });
         var dc = dropCounts(s);
         $("listTitle").innerHTML = T("회원 ", "Members ") + rows.filter(function (m) { return !m.cancelled; }).length + T("명", "") + (rows.some(function (m) { return m.cancelled; }) ? T(" · 안 탐 ", " · not on bus ") + rows.filter(function (m) { return m.cancelled; }).length : "")
-            + (dc ? " <small style=\"font-weight:normal;color:var(--dim)\">⬇ " + dc + "</small>" : "");   // 하차 지점마다 몇 명
-        if (document.activeElement && document.activeElement.classList && document.activeElement.classList.contains("dropSel")) return;   // 하차 지점을 고르는 중 - 새로 그리면 닫힘
+            + (dc ? " <small style=\"font-weight:normal;color:var(--dim)\">⬇ " + dc + "</small>" : "")   // 하차 지점마다 몇 명
+            + (pickCounts(s) ? " <small style=\"font-weight:normal;color:var(--dim)\">🚌 " + pickCounts(s) + "</small>" : "");   // 하산 탑승지마다 탄 사람
+        if (document.activeElement && document.activeElement.classList && (document.activeElement.classList.contains("dropSel") || document.activeElement.classList.contains("pickSel"))) return;   // 하차 지점을 고르는 중 - 새로 그리면 닫힘
         $("list").innerHTML = rows.map(function (m) {
             var cls = m.cancelled ? "aboard" : m.sos ? "sos" : m.aboard ? "aboard" : (s.departed && silent(m)) ? "old" : "";
             var st = m.cancelled ? T("안 탐", "Not on bus") : m.sos ? "🆘 SOS" : m.aboard ? (m.apart ? T("🚶 따로 귀가", "🚶 Home separately") : T("🚌 하산 탑승", "🚌 Back on bus")) : m.role === "lead" ? (m.office ? T("🏢 사무실", "🏢 Office") : m.chief ? T("주 인솔자", "Leader") : T("보조 인솔자", "Assistant"))
@@ -701,6 +704,10 @@
             else if (m.listed && !s.departed)
                 st += " <button type=\"button\" class=\"undo\" data-board=\"" + m.id + "\" data-on=\"" + (m.boarded ? 0 : 1) + "\">" + (m.boarded ? T("↩ 안 탐", "↩ Not on") : T("✅ 탔음", "✅ On bus")) + "</button>";
             var dsel = (s.drops || []).length && m.role === "hiker" && !m.cancelled ? "<br><select class=\"dropSel\" data-drop=\"" + m.id + "\" aria-label=\"" + T("하차 지점", "Drop-off") + "\">" + ["", ].concat(s.drops, ["버스 대기"]).map(function (x) { return "<option value=\"" + esc(x) + "\"" + ((m.drop || "") === x ? " selected" : "") + ">" + (x ? "⬇ " + esc(x) : T("⬇ 하차 미정", "⬇ unset")) + "</option>"; }).join("") + "</select>" : (m.drop ? "<br><small>⬇ " + esc(m.drop) + "</small>" : "");
+            if ((s.pickups || []).length && m.role === "hiker" && !m.cancelled)   // 하산 탑승지(2026-10-28)
+                dsel += "<br><select class=\"pickSel\" data-pick=\"" + m.id + "\" aria-label=\"" + T("하산 탑승지", "Return pickup") + "\">" + [""].concat(s.pickups).map(function (x) {
+                    var i = s.pickups.indexOf(x), t = i >= 0 ? (s.pickupTimes || [])[i] : "";
+                    return "<option value=\"" + esc(x) + "\"" + ((m.pickup || "") === x ? " selected" : "") + ">" + (x ? "🚌 " + esc(x) + (t ? " " + esc(t) : "") : T("🚌 하산 탑승 미정", "🚌 pickup unset")) + "</option>"; }).join("") + "</select>";
             if (m.dropHow) dsel += " <small>" + (m.dropHow === "me" ? T("✓ 여기서 내림", "✓ got off") : m.dropHow === "auto" ? T("📍 위치로 확인", "📍 by location") : m.dropHow === "edit" ? T("✏️ 회원이 바꿈", "✏️ changed by member") : T("✓ 인솔자", "✓ leader")) + "</small>";
             if (m.dropPlan) dsel += " <small>" + T("(계획: ", "(planned: ") + esc(m.dropPlan) + ")</small>";
             var via = m.role === "hiker" && !m.listed && (m.app || m.ago != null || m.seen != null) ? (m.app ? " <small title=\"" + T("앱 - 화면을 꺼도 보냄", "app - sends with screen off") + "\">📱</small>" : " <small title=\"" + T("웹 - 화면을 끄면 멈춤", "web - stops when screen off") + "\">🌐</small>") : "";
@@ -814,6 +821,21 @@
     function dropOptions(sel, drops, cur) {
         var list = (drops || []).concat(["버스 대기"]);
         sel.innerHTML = "<option value=\"\">" + T("아직 모름", "Not sure yet") + "</option>" + list.map(function (x) { return "<option value=\"" + esc(x) + "\"" + (x === cur ? " selected" : "") + ">" + esc(x === "버스 대기" ? T("🚌 버스 대기", "🚌 Stay on bus") : x) + "</option>"; }).join("");
+    }
+    /** 하산 탑승지 고르기 - "설악동C지구 17:00"(2026-10-28 홍TV님 일정표). */
+    function pickOptions(sel, s, cur) {
+        sel.innerHTML = "<option value=\"\">" + T("아직 모름", "Not sure yet") + "</option>" + (s.pickups || []).map(function (x, i) {
+            var t = (s.pickupTimes || [])[i];
+            return "<option value=\"" + esc(x) + "\"" + (x === cur ? " selected" : "") + ">" + esc(x) + (t ? " " + esc(t) : "") + "</option>"; }).join("");
+    }
+    /** 하산 탑승지마다 "🚌 설악동 17:00 탐 2/5". */
+    function pickCounts(s) {
+        if (!(s.pickups || []).length) return "";
+        return s.pickups.map(function (x, i) {
+            var all = 0, on = 0;
+            (s.members || []).forEach(function (m) { if (m.role === "hiker" && !m.cancelled && m.pickup === x) { all++; if (m.aboard) on++; } });
+            return all ? esc(x) + " " + ((s.pickupTimes || [])[i] || "") + T(" 탐 ", " on ") + on + "/" + all : "";
+        }).filter(Boolean).join(" · ");
     }
     /** 하차 지점마다 몇 명 - "한계령 12 · 오색 8 · 미정 3". */
     function dropCounts(s) {
@@ -1272,6 +1294,12 @@
         if (!sel) return;
         sel.blur();   // 고른 뒤 포커스가 남으면 명단이 멈춤(10-28 PC)
         RFParty.post("drop", { token: RFParty.get().token, id: +sel.getAttribute("data-drop"), drop: sel.value }).then(render).catch(actFail);
+    });
+    $("list").addEventListener("change", function (e) {   // 명단 - 하산 탑승지
+        var sel = e.target.closest && e.target.closest("select[data-pick]");
+        if (!sel) return;
+        sel.blur();
+        RFParty.post("pickup", { token: RFParty.get().token, id: +sel.getAttribute("data-pick"), pickup: sel.value }).then(render).catch(actFail);
     });
     // 하차 지점 도착(2026-10-28 홍TV님 "소공원 골랐다가 한계령에서 갑자기 생각을 바꿔 내리는 경우도") - 버스 안 회원 폰에 "여기서 내리세요?"
     $("arriveRow").addEventListener("click", function (e) {

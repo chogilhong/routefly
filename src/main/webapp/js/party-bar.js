@@ -89,9 +89,14 @@
         if (s.drop && !s.cancelled && !s.aboard) line += T(" · ⬇ " + esc(s.drop) + (s.drop === "버스 대기" ? "" : " 하차"), " · ⬇ " + (s.drop === "버스 대기" ? "staying on bus" : "drop-off " + esc(s.drop)));   // 하차 지점(2026-10-28)
         if (s.seat && !s.cancelled) line += T(" · 💺 " + (s.buses > 1 ? s.bus + "호차 " : "") + s.seat + "번", " · 💺 " + (s.buses > 1 ? "bus " + s.bus + " " : "") + "seat " + s.seat);
         if (s.boarded && !s.departed && !s.cancelled) line += T(" · ✅ 탑승", " · ✅ On bus");
-        // 하산 마감 1시간 안 - 남은 시간(2026-10-28 홍TV님 - 인솔자가 다 챙길 수 없음)
-        if (s.departed && s.endAt && !s.aboard && !s.cancelled && s.endAt - s.now <= 3600000 && s.endAt > s.now)
-            line += T(" · <b>⏰ 하산 마감 " + clock(s.endAt) + " (" + Math.ceil((s.endAt - s.now) / 60000) + "분 남음)</b>", " · <b>⏰ Back-down deadline " + clock(s.endAt) + " (" + Math.ceil((s.endAt - s.now) / 60000) + " min left)</b>");
+        // 하산 탑승지 · 마감(2026-10-28 홍TV님 일정표 - 곳마다 시각): 산행 중이면 늘, 1시간 안이면 남은 분을 굵게
+        var mine = s.myEndAt || s.endAt;
+        if (s.departed && mine && !s.aboard && !s.cancelled) {
+            var soon = mine - s.now <= 3600000 && mine > s.now, what = s.pickup && s.myEndAt ? T("🚌 하산 탑승 " + esc(s.pickup) + " ", "🚌 Pickup " + esc(s.pickup) + " ") : T("⏰ 하산 마감 ", "⏰ Back-down deadline ");
+            line += " · " + (soon ? "<b>" : "") + what + clock(mine) + (soon ? T(" (" + Math.ceil((mine - s.now) / 60000) + "분 남음)", " (" + Math.ceil((mine - s.now) / 60000) + " min left)") + "</b>" : "");
+        }
+        // 하산 탑승 뒤 - 서울 하차(올 때 탄 곳 · 역순) · 도착 예정
+        if (s.aboard && !s.apart && (s.stop || s.homeAt)) line += T(" · 🏠 " + (s.stop ? esc(s.stop) + " 하차(예정)" : "") + (s.homeAt ? " · 서울 도착 " + clock(s.homeAt) : ""), " · 🏠 " + (s.stop ? "drop-off " + esc(s.stop) : "") + (s.homeAt ? " · back " + clock(s.homeAt) : ""));
         // 웹(크롬 · 카톡)은 화면을 끄면 위치가 멈춤 - 회원이 알게(2026-10-28 홍TV님 "계속 키고 다닐 수는 없잖아")
         if (!RFParty.isApp() && s.locOn !== false && !s.aboard && !s.cancelled)
             line += T(" · 🌐 화면을 끄면 위치가 멈춥니다 - 갈림길 · 쉬는 곳에서 이 화면을 열어 주세요(SOS 는 누르면 바로 갑니다)",
@@ -101,7 +106,13 @@
         if (s.arrive) {   // 하차 안내 - 계획과 달라도 여기서 내리면 이것(인솔자 명단에 실제 하차로)
             b.push("<button type=\"button\" class=\"pb main\" data-act=\"alight\">" + T("⬇ 여기서 내려요", "⬇ I'm getting off here") + "</button>");
             b.push("<button type=\"button\" class=\"pb\" data-act=\"stay\">" + T("아니요", "No") + "</button>");
-        } else if ((s.drops || []).length && !s.cancelled && !s.aboard) {   // 하차 지점 바꾸기 - 아무 때나
+        }
+        if ((s.pickups || []).length && !s.cancelled && !s.aboard && !s.arrive) {   // 하산 탑승지 바꾸기(코스를 바꾸면 내려오는 곳도 바뀜)
+            b.push("<select class=\"pb\" id=\"pbPick\" aria-label=\"" + T("하산 탑승지", "Return pickup") + "\">" + [""].concat(s.pickups).map(function (x) {
+                var i = s.pickups.indexOf(x), t = i >= 0 ? (s.pickupTimes || [])[i] : "";
+                return "<option value=\"" + esc(x) + "\"" + ((s.pickup || "") === x ? " selected" : "") + ">" + (x ? "🚌 " + esc(x) + (t ? " " + t : "") : T("🚌 하산 탑승 미정", "🚌 pickup unset")) + "</option>"; }).join("") + "</select>");
+        }
+        if (!s.arrive && (s.drops || []).length && !s.cancelled && !s.aboard) {   // 하차 지점 바꾸기 - 아무 때나
             b.push("<select class=\"pb\" id=\"pbDrop\" aria-label=\"" + T("하차 지점", "Drop-off") + "\">" + [""].concat(s.drops, ["버스 대기"]).map(function (x) {
                 return "<option value=\"" + esc(x) + "\"" + ((s.drop || "") === x ? " selected" : "") + ">" + (x ? "⬇ " + esc(x === "버스 대기" ? T("버스 대기", "stay on bus") : x) : T("⬇ 하차 미정", "⬇ drop-off unset")) + "</option>"; }).join("") + "</select>");
         }
@@ -114,7 +125,7 @@
         var my = (s.busPins || []).filter(function (x) { return x.bus === s.bus; })[0];
         if (my && !s.cancelled) b.push("<a class=\"pb\" target=\"_blank\" rel=\"noopener\" href=\"https://map.kakao.com/link/map/" + encodeURIComponent(T("우리 버스", "Our bus") + (plate ? " " + plate : "")) + "," + my.lat + "," + my.lon + "\">" + T("🚌 우리 버스", "🚌 Our bus") + "</a>");
         b.push("<button type=\"button\" class=\"pb\" data-act=\"leave\">" + (s.aboard || s.cancelled ? T("닫기", "Close") : T("그만 보내기", "Stop sending")) + "</button>");
-        if (document.activeElement && document.activeElement.id === "pbDrop") return;   // 고르는 중 - 새로 그리면 닫힘
+        if (document.activeElement && (document.activeElement.id === "pbDrop" || document.activeElement.id === "pbPick")) return;   // 고르는 중 - 새로 그리면 닫힘
         $("pbBtns").innerHTML = b.join("");
         if (wantWatch(s)) startWatch(); else stopWatch();
     }
@@ -151,11 +162,11 @@
         }
     });
     document.addEventListener("change", function (e) {   // 하차 지점 바꾸기(따라가기 띠)
-        if (!e.target || e.target.id !== "pbDrop") return;
-        var p = RFParty.get(), v = e.target.value;
+        if (!e.target || (e.target.id !== "pbDrop" && e.target.id !== "pbPick")) return;
+        var p = RFParty.get(), v = e.target.value, pick = e.target.id === "pbPick";
         e.target.blur();
         if (!p) return;
-        RFParty.post("drop", { token: p.token, drop: v }).then(render).catch(function (er) { fail(er); if (!er.ended) alert(er.message); });
+        RFParty.post(pick ? "pickup" : "drop", pick ? { token: p.token, pickup: v } : { token: p.token, drop: v }).then(render).catch(function (er) { fail(er); if (!er.ended) alert(er.message); });
     });
     document.addEventListener("visibilitychange", function () {
         if (document.visibilityState === "visible") refresh();
