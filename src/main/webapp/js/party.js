@@ -722,7 +722,7 @@
 
     /** 인솔자 - 회원 내보내기(2026-10-20 홍TV님 - 모르는 사람이 들어왔을 때). */
     function kick(m) {
-        if (!m || !confirm(m.role === "lead" ? T(m.nick + " 님을 보조 인솔자에서 내보낼까요?\n그 폰에서 인솔자 화면이 닫힙니다. 코드가 샜다면 \"코드 바꾸기\"도 눌러 주세요.", "Remove " + m.nick + " as assistant leader?\nTheir leader screen closes. If the code leaked, also tap \"Change code\".")
+        if (!m || !confirm(m.role === "lead" ? T(m.nick + " 님을 보조 인솔자에서 내보낼까요?\n그 폰에서 인솔자 화면이 닫힙니다. 코드가 샜다면 \"보조 인솔자 코드 바꾸기\"도 눌러 주세요.", "Remove " + m.nick + " as assistant leader?\nTheir leader screen closes. If the code leaked, also tap \"Change code\".")
             : T(m.nick + " 님을 방에서 내보낼까요?\n그 폰의 산악회 방이 닫히고 위치도 지워집니다.", "Remove " + m.nick + " from the room?\nThe room closes on their phone and their location is deleted."))) return;
         var p = RFParty.get();
         RFParty.post("kick", { token: p.token, id: m.id }).then(function (j) { pick(null); render(j); roomMsg(T(m.nick + " 님을 내보냈습니다.", "Removed " + m.nick + ".")); })
