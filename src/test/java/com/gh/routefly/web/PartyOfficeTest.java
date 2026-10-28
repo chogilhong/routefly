@@ -43,6 +43,9 @@ public class PartyOfficeTest {
         JsonArray rooms = list.getAsJsonArray("rooms");
         assertEquals(1, rooms.size());
         assertEquals(1, rooms.get(0).getAsJsonObject().get("hikers").getAsInt());
+        JsonObject one = rooms.get(0).getAsJsonObject();
+        assertEquals("인솔자 연락처 - 사무실이 바로 전화", "010-0000-0000", one.get("leaderPhone").getAsString());
+        assertEquals("[28]", one.getAsJsonArray("busSeats").toString());
         assertFalse("목록에는 이름 · 위치 없음", list.toString().contains("회원") || list.toString().contains("\"lat\""));
         try { call(p, "/office/rooms", "{\"key\":\"" + key.substring(1) + "x\"}", T0); fail("틀린 열쇠"); } catch (SecurityException e) { /* 맞음 */ }
 
@@ -53,6 +56,7 @@ public class PartyOfficeTest {
         assertFalse(v.has("chief"));
         assertEquals(ot, call(p, "/office/enter", "{\"key\":\"" + key + "\",\"code\":\"" + code + "\"}", T0).get("token").getAsString());
         assertEquals("lead", call(p, "/join", "{\"code\":\"" + r.get("leadCode").getAsString() + "\",\"nick\":\"보조\",\"agree\":true}", T0).get("role").getAsString());
+        assertEquals("보조 이름은 보이고 사무실 자리는 빠짐", "[\"보조\"]", call(p, "/office/rooms", "{\"key\":\"" + key + "\"}", T0).getAsJsonArray("rooms").get(0).getAsJsonObject().getAsJsonArray("assistantNames").toString());
         assertFalse("사무실 위치는 버림", call(p, "/loc", "{\"token\":\"" + ot + "\",\"lat\":37.5,\"lon\":127.0}", DEPART).get("locKept").getAsBoolean());
         int oid = member(call(p, "/view", tok(chief), T0), "시험산악회 사무실").get("id").getAsInt();
         try { call(p, "/kick", "{\"token\":\"" + chief + "\",\"id\":" + oid + "}", T0); fail("사무실은 못 내보냄"); } catch (IllegalArgumentException e) { /* 맞음 */ }

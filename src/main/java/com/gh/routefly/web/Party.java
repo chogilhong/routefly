@@ -941,11 +941,18 @@ final class Party {
             if (last > 0) x.addProperty("lastAgo", (now - last) / 1000);
             Member c = r.chief();
             if (c != null) x.addProperty("chief", c.nick);
+            if (r.leaderPhone != null) x.addProperty("leaderPhone", r.leaderPhone);   // 사무실이 바로 전화(2026-10-28 홍TV님 "더 해")
             x.addProperty("assistants", r.assistants());
-            JsonArray plates = new JsonArray();
+            JsonArray an = new JsonArray();   // 보조 인솔자 이름 - 모르는 사람이 들어왔는지 사무실도 봄
+            for (Member m : r.members.values()) if (m.staff() && !m.office && m != c) an.add(m.nick);
+            x.add("assistantNames", an);
+            JsonArray plates = new JsonArray(), seats = new JsonArray();   // 호차마다 차량번호 · 좌석 수
             for (String pl : r.plates) plates.add(pl);
+            for (int n : r.busSeats) seats.add(n);
             x.add("plates", plates);
+            x.add("busSeats", seats);
             x.add("stops", strings(r.stops));
+            x.add("stopTimes", strings(r.stopTimes));
             live.add(x);
         }
         out.add("rooms", live);
