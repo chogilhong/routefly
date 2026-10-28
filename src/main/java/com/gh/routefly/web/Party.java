@@ -78,6 +78,8 @@ final class Party {
         boolean listed;
         /** 회사 사무실이 방을 보려고 들어온 자리(2026-10-28) - 보조 자리를 쓰지 않고, 위치를 보내지 않음. */
         boolean office;
+        /** 마지막으로 앱에서 보냈나(2026-10-28 홍TV님 "크롬 안에 있는 웹도 보내나?") - 웹은 화면을 끄면 멈추므로 "10분 소식 없음" 경고는 앱 회원만. */
+        boolean app;
         // ---- 메모리에만(파일에 안 씀)
         Double lat, lon, acc;
         Integer batt;
@@ -681,6 +683,11 @@ final class Party {
      * 위치가 없으면 SOS 도 못 보냈음). 출발 전 · 취소 · 하산 탑승이면 받지 않음.
      */
     /** sos - null 이면 그대로 둠(앱의 "폰 켜짐" 신호 RfAlive 는 sos 를 안 보냄 - 전에는 1분마다 SOS 가 꺼져 인솔자에게 "새 SOS" 가 되풀이됐음, 2026-10-22 점검). */
+    /** 앱 · 웹 어디서 보냈나(loc · ping 마다). */
+    synchronized void via(Member m, boolean app) {
+        m.app = app;
+    }
+
     synchronized void ping(Member m, Integer batt, Boolean sos, long now) {
         if (m.cancelled || m.aboard || !started(m, now)) return;
         m.seen = now;
@@ -937,7 +944,7 @@ final class Party {
             for (Member m : r.members.values()) {
                 if (!"hiker".equals(m.role) || m.cancelled) continue;
                 last = Math.max(last, Math.max(m.t, m.seen));
-                if (r.departed && !m.aboard && !m.listed && now - Math.max(Math.max(m.t, m.seen), r.departedAt) > 10 * 60_000L) silent++;
+                if (r.departed && m.app && !m.aboard && !m.listed && now - Math.max(Math.max(m.t, m.seen), r.departedAt) > 10 * 60_000L) silent++;   // 앱 회원만(웹은 화면을 끄면 멈춤)
             }
             x.addProperty("sos", (int) r.members.values().stream().filter(m -> m.sos && !m.aboard && !m.cancelled).count());
             x.addProperty("silent", silent);   // 출발 뒤 10분 넘게 소식 없는 회원
@@ -1171,6 +1178,7 @@ final class Party {
                 x.addProperty("bus", m.bus); x.addProperty("seat", m.seat); x.addProperty("stop", m.stop); x.addProperty("boarded", m.boarded); x.addProperty("aboard", m.aboard); x.addProperty("apart", m.apart); x.addProperty("cancelled", m.cancelled);
                 x.addProperty("rostered", m.rostered); x.addProperty("listed", m.listed);
                 if (m.office) x.addProperty("office", true);
+                if (m.app) x.addProperty("app", true);
                 ms.add(x);
             }
             o.add("members", ms);
@@ -1241,7 +1249,7 @@ final class Party {
                     m.seat = num(x, "seat") == null ? null : num(x, "seat").intValue();
                     m.bus = x.has("bus") ? x.get("bus").getAsInt() : 1;
                     m.stop = str(x, "stop"); m.boarded = boolOf(x, "boarded"); m.aboard = boolOf(x, "aboard"); m.apart = boolOf(x, "apart"); m.cancelled = boolOf(x, "cancelled");
-                    m.rostered = boolOf(x, "rostered"); m.listed = boolOf(x, "listed"); m.office = boolOf(x, "office");
+                    m.rostered = boolOf(x, "rostered"); m.listed = boolOf(x, "listed"); m.office = boolOf(x, "office"); m.app = boolOf(x, "app");
                     ms.add(m);
                     r.nextId = Math.max(r.nextId, m.id + 1);
                 }
@@ -1365,6 +1373,7 @@ final class Party {
         if (me.seat != null) o.addProperty("seat", me.seat);
         if (me.stop != null) o.addProperty("stop", me.stop);
         o.addProperty("now", now);
+        if (r.departedAt > 0) o.addProperty("departedAt", r.departedAt);   // "10분 소식 없음" 은 산행 시작 10분 뒤부터
         o.addProperty("locOn", started(me, now));   // 위치는 내 탑승지 출발 시각 · 탄 때 · 산행 시작부터(2026-10-27 홍TV님)
         if (stopAt(r, me.stop) > 0) o.addProperty("locFrom", stopAt(r, me.stop));
         if (r.notice != null) { o.addProperty("notice", r.notice); o.addProperty("noticeAt", r.noticeAt); }
@@ -1402,6 +1411,7 @@ final class Party {
             }
             if (m.msg != null && (staff || m == me)) { x.addProperty("msg", m.msg); x.addProperty("msgAt", m.msgAt); }   // 인솔자에게 한 줄
             if (staff) {
+                if (m.app) x.addProperty("app", true);   // 📱 앱(화면을 꺼도 보냄) · 아니면 🌐 웹
                 x.addProperty("boarded", m.boarded);
                 x.addProperty("cancelled", m.cancelled);
                 if (m.listed) x.addProperty("listed", true);   // 명단에만(핸드폰 안 들어옴)

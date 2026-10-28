@@ -13,6 +13,9 @@
     var POST_MS = 20000, BATT_MS = 2000, STUCK_MS = 25000;
     function stuck() { if (busy && Date.now() - busyAt > STUCK_MS) { busy = false; again = null; } return busy; }   // again - 보내는 중에 꼭 보낼 것(SOS)이 오면 끝난 뒤 한 번 더
 
+    /** 앱(Capacitor)에서 보내나 - 서버가 "10분 소식 없음" 경고를 앱 회원에게만(웹은 화면을 끄면 멈춤, 2026-10-28). */
+    function isApp() { return !!(g.Capacitor && (!g.Capacitor.isNativePlatform || g.Capacitor.isNativePlatform())); }
+
     function get() {
         try {
             var p = JSON.parse(localStorage.getItem(KEY) || "null");
@@ -67,7 +70,7 @@
         lastSos = sos;
         var my = ++seq;
         return battery().then(function (b) {
-            return post("loc", { token: p.token, lat: +(+lat).toFixed(6), lon: +(+lon).toFixed(6), acc: acc == null ? null : Math.round(acc), batt: b, sos: sos });
+            return post("loc", { token: p.token, lat: +(+lat).toFixed(6), lon: +(+lon).toFixed(6), acc: acc == null ? null : Math.round(acc), batt: b, sos: sos, app: isApp() });
         }).then(function (j) {
             var q = get();
             if (q && j.notice && j.noticeAt && j.noticeAt !== q.noticeAt) {   // 새 공지 - 따라가기 화면에서도 알림
@@ -93,7 +96,7 @@
         last = now;
         lastSos = sos;
         var my = ++seq;
-        return battery().then(function (b) { return post("ping", { token: p.token, batt: b, sos: sos }); })
+        return battery().then(function (b) { return post("ping", { token: p.token, batt: b, sos: sos, app: isApp() }); })
             .finally(function () { done(my); });
     }
     /** 보내기가 끝남 - 가장 최근 보내기일 때만 busy 를 풀고, 그 사이 온 꼭 보낼 것(SOS)을 바로 보냄. */
@@ -146,5 +149,5 @@
         return t;
     }
 
-    g.RFParty = { dashes: dashes, KEY: KEY, get: get, set: set, clear: clear, post: post, fix: fix, ping: ping, sos: sos, onNotice: null, parseDay: parseDay, parseTime: parseTime };
+    g.RFParty = { isApp: isApp, dashes: dashes, KEY: KEY, get: get, set: set, clear: clear, post: post, fix: fix, ping: ping, sos: sos, onNotice: null, parseDay: parseDay, parseTime: parseTime };
 })(window);

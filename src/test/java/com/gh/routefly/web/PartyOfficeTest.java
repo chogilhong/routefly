@@ -96,9 +96,15 @@ public class PartyOfficeTest {
         String b = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"영희\",\"seat\":2,\"agree\":true}", T0).get("token").getAsString();
         call(p, "/board", tok(a), DEPART - H);
         call(p, "/board", tok(b), DEPART - H);
+        call(p, "/ping", "{\"token\":\"" + a + "\",\"sos\":false,\"app\":true}", DEPART - H);   // 철수는 앱
+        call(p, "/ping", "{\"token\":\"" + b + "\",\"sos\":false,\"app\":false}", DEPART - H);   // 영희는 웹(크롬)
         departAll(p, chief, DEPART);
+        assertTrue("인솔자에게 앱 표시", member(call(p, "/view", tok(chief), DEPART), "철수").get("app").getAsBoolean());
+        assertFalse(member(call(p, "/view", tok(chief), DEPART), "영희").has("app"));
         assertEquals("출발 직후에는 소식 없음으로 세지 않음(10분부터, 10-28 PC)", 0, call(p, "/office/rooms", "{\"key\":\"" + key + "\"}", DEPART + 60_000).getAsJsonArray("rooms").get(0).getAsJsonObject().get("silent").getAsInt());
-        assertEquals(2, call(p, "/office/rooms", "{\"key\":\"" + key + "\"}", DEPART + 11 * 60_000).getAsJsonArray("rooms").get(0).getAsJsonObject().get("silent").getAsInt());
+        assertEquals("앱 회원만 셈(웹은 화면을 끄면 멈춤, 2026-10-28)", 1, call(p, "/office/rooms", "{\"key\":\"" + key + "\"}", DEPART + 11 * 60_000).getAsJsonArray("rooms").get(0).getAsJsonObject().get("silent").getAsInt());
+        call(p, "/ping", "{\"token\":\"" + a + "\",\"batt\":80}", DEPART + 12 * 60_000);   // 앱 RfAlive(sos 없음) - 앱으로 셈, 소식이 와서 풀림
+        assertEquals(0, call(p, "/office/rooms", "{\"key\":\"" + key + "\"}", DEPART + 12 * 60_000).getAsJsonArray("rooms").get(0).getAsJsonObject().get("silent").getAsInt());
         call(p, "/ping", "{\"token\":\"" + a + "\",\"sos\":true}", DEPART + H);
         try { call(p, "/end", "{\"token\":\"" + chief + "\",\"force\":true}", DEPART + H); fail("SOS 중"); } catch (IllegalStateException e) { assertTrue(e.getMessage().contains("SOS")); }
         assertEquals(1, call(p, "/office/rooms", "{\"key\":\"" + key + "\"}", DEPART + H).getAsJsonArray("rooms").get(0).getAsJsonObject().get("sos").getAsInt());

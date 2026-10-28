@@ -87,6 +87,10 @@
         if (plate && !s.boarded && !s.departed && !s.cancelled) line += T(" · 🚌 " + (s.buses > 1 ? s.bus + "호차 " : "") + esc(plate), " · 🚌 " + (s.buses > 1 ? "bus " + s.bus + " " : "") + esc(plate));
         if (s.seat && !s.cancelled) line += T(" · 💺 " + (s.buses > 1 ? s.bus + "호차 " : "") + s.seat + "번", " · 💺 " + (s.buses > 1 ? "bus " + s.bus + " " : "") + "seat " + s.seat);
         if (s.boarded && !s.departed && !s.cancelled) line += T(" · ✅ 탑승", " · ✅ On bus");
+        // 웹(크롬 · 카톡)은 화면을 끄면 위치가 멈춤 - 회원이 알게(2026-10-28 홍TV님 "계속 키고 다닐 수는 없잖아")
+        if (!RFParty.isApp() && s.locOn !== false && !s.aboard && !s.cancelled)
+            line += T(" · 🌐 화면을 끄면 위치가 멈춥니다 - 갈림길 · 쉬는 곳에서 이 화면을 열어 주세요(SOS 는 누르면 바로 갑니다)",
+                " · 🌐 Location stops when the screen is off - open this screen at junctions and rest stops (SOS goes out immediately)");
         $("pbText").innerHTML = line;
         var b = [];
         if (s.departed && !s.cancelled && !s.aboard) {

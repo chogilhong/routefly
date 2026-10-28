@@ -652,11 +652,22 @@
     /** SOS → 10분 넘게 소식 없음 → 오래 그 자리 → 나머지, 하산 탑승 · 취소는 아래. */
     /** 소식 칸 - 폰이 살아 있다고 알린 것(seen)이 위치보다 1분 넘게 새로우면 "폰 방금 · 위치 4분 전"(2026-10-20 PC: 화면 끈 실내는 GPS 를 못 잡음). */
     function newsText(m) {
+        var t = newsText0(m);
+        // 웹 회원 - 화면을 끄면 멈춤(경고 아님, 2026-10-28 홍TV님 "크롬 안에 있는 웹도 보내나?")
+        if (!m.app && !m.listed && m.role === "hiker") { var a = m.seen != null ? m.seen : m.ago; if (a == null || a > OLD_S) t += T(" <small>🌐 웹 - 화면 끄면 멈춤</small>", " <small>🌐 web - stops when screen off</small>"); }
+        return t;
+    }
+    function newsText0(m) {
         if (m.seen != null && (m.ago == null || m.ago - m.seen > 60)) return T("📵 폰 ", "📵 Phone ") + agoText(m.seen) + T(" · 위치 ", " · location ") + (m.ago == null ? T("없음", "none") : agoText(m.ago));
         return agoText(m.ago);
     }
     /** 소식 끊김 - 폰 소식(seen)이 있으면 그것으로(위치를 못 잡아도 폰이 살아 있으면 "소식 없음" 아님). */
-    function silent(m) { var a = m.seen != null ? m.seen : m.ago; return a == null || a > OLD_S; }
+    // 2026-10-28: 앱 회원만(웹은 화면을 끄면 멈춰 늘 주황이 됨) · 폰 없는 명단 회원 빼고 · 산행 시작 10분 뒤부터(사무실 화면과 같게)
+    function silent(m) {
+        if (!m.app || m.listed) return false;
+        var a = m.seen != null ? m.seen : m.ago, since = state && state.departedAt ? (state.now - state.departedAt) / 1000 : Infinity;
+        return Math.min(a == null ? Infinity : a, since) > OLD_S;
+    }
     function list(s) {
         sosAlert(s);
         trailTick(s);
@@ -675,7 +686,8 @@
                         + " <button type=\"button\" class=\"undo\" data-apart=\"" + m.id + "\">" + T("🚶 따로 귀가", "🚶 Home sep.") + "</button>";
             else if (m.listed && !s.departed)
                 st += " <button type=\"button\" class=\"undo\" data-board=\"" + m.id + "\" data-on=\"" + (m.boarded ? 0 : 1) + "\">" + (m.boarded ? T("↩ 안 탐", "↩ Not on") : T("✅ 탔음", "✅ On bus")) + "</button>";
-            return "<tr class=\"" + cls + "\" data-id=\"" + m.id + "\"><td>" + (m.role === "lead" ? "-" : seatText(s, m)) + "</td><td>" + esc(m.nick)
+            var via = m.role === "hiker" && !m.listed && (m.app || m.ago != null || m.seen != null) ? (m.app ? " <small title=\"" + T("앱 - 화면을 꺼도 보냄", "app - sends with screen off") + "\">📱</small>" : " <small title=\"" + T("웹 - 화면을 끄면 멈춤", "web - stops when screen off") + "\">🌐</small>") : "";
+            return "<tr class=\"" + cls + "\" data-id=\"" + m.id + "\"><td>" + (m.role === "lead" ? "-" : seatText(s, m)) + "</td><td>" + esc(m.nick) + via
                 + (m.msg ? "<br><small>💬 " + esc(m.msg) + " (" + clock(m.msgAt) + ")</small>" : "")
                 + (m.cancelled && m.role === "hiker" ? " <button type=\"button\" class=\"undo\" data-undo=\"" + m.id + "\" title=\"" + T("늦게 온 회원", "Late member") + "\">" + T("✅ 탔음", "✅ On bus") + "</button>" : "") + "</td><td>" + (m.aboard ? "-" : newsText(m)) + "</td><td>"
                 + (m.stillMin != null && m.ago != null ? m.stillMin + T("분", " min") : "-") + "</td><td>" + (m.batt != null ? m.batt + "%" : "-") + "</td><td>" + st

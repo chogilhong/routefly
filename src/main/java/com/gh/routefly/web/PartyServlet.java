@@ -198,6 +198,7 @@ public class PartyServlet extends HttpServlet {
         JsonObject out;
         switch (path == null ? "" : path) {
             case "/loc" -> {
+                p.via(m, bool(in, "app"));   // 앱 · 웹(2026-10-28)
                 boolean kept = p.loc(m, num(in, "lat"), num(in, "lon"), num(in, "acc"), num(in, "batt") == null ? null : num(in, "batt").intValue(),
                         bool(in, "sos"), now);
                 out = p.view(m, now);
@@ -206,7 +207,7 @@ public class PartyServlet extends HttpServlet {
             }
             case "/view" -> { }
             case "/trail" -> { return p.trail(m, (int) lng(in, "id"), now); }
-            case "/ping" -> p.ping(m, num(in, "batt") == null ? null : num(in, "batt").intValue(), in.has("sos") ? bool(in, "sos") : null, now);   // sos 가 없으면(앱 RfAlive) 그대로
+            case "/ping" -> { p.via(m, bool(in, "app") || !in.has("sos")); p.ping(m, num(in, "batt") == null ? null : num(in, "batt").intValue(), in.has("sos") ? bool(in, "sos") : null, now); }   // sos 가 없으면(앱 RfAlive) 그대로 - 앱으로 셈
             case "/board" -> p.board(m);
             case "/aboard" -> p.aboard(m, on, bool(in, "apart"));   // apart - 따로 귀가
             case "/seat" -> p.seat(m, integer(in, "id"), integer(in, "bus"), integer(in, "seat"), str(in, "stop"));
