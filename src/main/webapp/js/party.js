@@ -688,7 +688,7 @@
         var rows = (s.members || []).filter(function (m) { return m.id !== s.me; });
         rows.sort(function (a, b) { var ka = rank(a), kb = rank(b); return ka !== kb ? ka - kb : (b.stillMin || 0) - (a.stillMin || 0); });
         var dc = dropCounts(s);
-        $("listTitle").innerHTML = T("회원 ", "Members ") + rows.filter(function (m) { return !m.cancelled; }).length + T("명", "") + (rows.some(function (m) { return m.cancelled; }) ? T(" · 안 탐 ", " · not on bus ") + rows.filter(function (m) { return m.cancelled; }).length : "")
+        $("listTitle").innerHTML = T("👥 회원 ", "👥 Members ") + rows.filter(function (m) { return !m.cancelled; }).length + T("명", "") + (rows.some(function (m) { return m.cancelled; }) ? T(" · 안 탐 ", " · not on bus ") + rows.filter(function (m) { return m.cancelled; }).length : "")
             + (dc ? " <small style=\"font-weight:normal;color:var(--dim)\">⬇ " + dc + "</small>" : "")   // 하차 지점마다 몇 명
             + (pickCounts(s) ? " <small style=\"font-weight:normal;color:var(--dim)\">🚌 " + pickCounts(s) + "</small>" : "");   // 하산 탑승지마다 탄 사람
         if (document.activeElement && document.activeElement.classList && (document.activeElement.classList.contains("dropSel") || document.activeElement.classList.contains("pickSel"))) return;   // 하차 지점을 고르는 중 - 새로 그리면 닫힘

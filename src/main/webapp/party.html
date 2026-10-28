@@ -32,7 +32,7 @@ html, body { margin:0; background:var(--bg); color:var(--tx); font-family:Arial,
 #title { flex:1; min-width:0; font-size:15px; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 main { max-width:720px; margin:0 auto; padding:12px 12px calc(env(safe-area-inset-bottom) + 24px); }
 section { background:var(--panel); border:1px solid var(--ln); border-radius:12px; padding:14px; margin-bottom:12px; }
-h2 { font-size:16px; margin:0 0 10px; }
+h2 { font-size:19px; margin:0 0 10px; }   /* 칸 제목 크게(2026-10-28 홍TV님 - 사무실 화면과 같게) */
 label { display:block; font-size:13.5px; color:var(--dim); margin:10px 0 4px; }
 input[type=text], input[type=time], input[type=tel], input[type=date] { width:100%; height:44px; padding:0 12px; border-radius:10px; border:1px solid var(--ln); background:#0f141a; color:var(--tx); font-size:16px; }
 #joinCode { text-transform:uppercase; letter-spacing:4px; font-weight:bold; }
@@ -265,7 +265,7 @@ a.tel { color:var(--sky); }
                 <button id="cancelTripBtn" class="danger" data-en="Cancel hike (weather · accident etc.)">산행 취소 (날씨 · 사고 등)</button>
             </div>
             <a class="guideLink" href="party-guide.html" style="margin-top:10px" data-en="📖 Leader guide (Korean - a must-read the first time)">📖 인솔자 사용법 (처음이면 꼭 읽어 보세요)</a>
-            <h2 id="listTitle" style="margin-top:12px" data-en="Members">회원</h2>
+            <h2 id="listTitle" style="margin-top:12px" data-en="👥 Members">👥 회원</h2>
             <table><thead><tr><th data-en="Seat">좌석</th><th data-en="Name">이름</th><th data-en="Last update">마지막 연락</th><th data-en="Stopped for">멈춘 시간</th><th data-en="Battery">배터리</th><th data-en="Status">상태</th></tr></thead><tbody id="list"></tbody></table>
             <div class="invite" style="margin-top:14px">   <!-- 우리 버스 위치(2026-10-27 홍TV님 "타이틀을 두고 위와 구분되게") -->
                 <h2 style="margin:0 0 6px" data-en="🚌 Tell members where the bus is">🚌 우리 버스 위치 알리기</h2>
