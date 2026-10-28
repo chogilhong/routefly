@@ -451,7 +451,7 @@
         // 화면이 꺼지면 웹뷰 타이머가 느려질 수 있으나(1분에 한 번쯤) 알림창 위치 서비스가 앱을 살려 두는 동안은 돎
         clearInterval(aliveTimer);
         aliveTimer = setInterval(function () {
-            if (!state || state.cancelled || state.aboard) return;
+            if (!state || state.cancelled || state.aboard || state.officeMe) return;
             if (lastPos && Date.now() - lastPos.t < 45000) return;
             var pr = RFParty.ping();
             if (pr) pr.then(render).catch(fail);
@@ -461,7 +461,7 @@
     function refresh() {
         var p = RFParty.get();
         if (!p) { location.href = EXIT; return; }
-        if (Date.now() - lastOk < 10000) return;   // 방금 위치 · 켜짐의 답으로 받았음 - 같은 것을 또 받지 않음(2026-10-22 점검: 회원 1분에 4번)
+        if (Date.now() - lastOk < (isStaff() ? 14000 : 10000)) return;   // 방금 위치 · 켜짐의 답으로 받았음 - 같은 것을 또 받지 않음(2026-10-22 점검: 회원 1분에 4번)
         if (document.hidden && !isStaff()) return;   // 회원 - 화면을 안 볼 때는 방 새로 받기를 쉼(위치 · 켜짐을 보낼 때 답으로 공지가 옴). 인솔자는 SOS 를 놓치지 않게 그대로
         RFParty.post("view", { token: p.token }).then(render).catch(fail);
     }
@@ -484,7 +484,7 @@
         Promise.resolve(ALIVE.start({ url: new URL("api/party/ping", location.href).href, token: p.token })).catch(function () { /* 이번만 */ });
     }
     function aliveStop() { if (ALIVE) Promise.resolve(ALIVE.stop()).catch(function () { /* 이미 멈춤 */ }); }
-    function bgWant(s) { return !!(BG && s && !s.cancelled && !s.aboard && s.locOn !== false); }
+    function bgWant(s) { return !!(BG && s && !s.cancelled && !s.aboard && !s.officeMe && s.locOn !== false); }   // 회사 사무실 자리는 위치 없음(2026-10-28 버그 점검)
     function bgStop() {
         aliveStop();
         bgOn = false; bgGen++;
@@ -1217,7 +1217,7 @@
         RFParty.post("notice", { token: p.token, text: t }).then(function (j) { $("noticeText").value = ""; render(j); }).catch(actFail);
     });
 
-    /** 탑승지 출발 시각(ms) - 방 출발 날의 HH:MM, 방 출발보다 12시간 넘게 이르면 다음 날(서버 Party.stopAt 과 같음). 없으면 0. */
+    /** 탑승지 출발 시각(ms) - 방 출발 날의 HH:MM, 방 출발 앞뒤 12시간 안으로(서버 Party.stopAt 과 같음). 없으면 0. */
     function stopAtMs(s, i) {
         var t = s.stopTimes && s.stopTimes[i];
         if (!t || !s.departAt) return 0;
@@ -1225,7 +1225,7 @@
         // 한국 시각 기준 - 브라우저 시간대와 관계없이(+9시간)
         var k = new Date(s.departAt + 9 * 3600000);
         var base = Date.UTC(k.getUTCFullYear(), k.getUTCMonth(), k.getUTCDate(), +hm[0], +hm[1]) - 9 * 3600000;
-        return base < s.departAt - 12 * 3600000 ? base + 86400000 : base;
+        return base > s.departAt + 12 * 3600000 ? base - 86400000 : base < s.departAt - 12 * 3600000 ? base + 86400000 : base;   // 앞뒤 12시간 안으로
     }
     /** 버스가 어디쯤인지 - 탑승지 시각으로 저절로(2026-10-27 홍TV님 - 버스는 정각에 떠나 인솔자가 탑승지마다 누르지 않음). 시각이 없으면 "". */
     function busNow(s) {

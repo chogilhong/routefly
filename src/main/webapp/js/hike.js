@@ -1221,7 +1221,7 @@
     var STAMPS = "rf-stamps", DONE = "rf-done", NPSTAMPS = "rf-npstamps";
     // 국립공원 스탬프투어 인증지(2026-10-28 홍TV님, data/np-stamps.json - 국립공원공단 공식 목록): 지도에 🏅, 가까이 가면 다녀감을 남기고 알림
     var NPS = [];
-    fetch("data/np-stamps.json").then(function (r) { return r.json(); }).then(function (j) { NPS = (j && j.stamps) || []; if (c && map) npMarks(); }).catch(function () { /* 없음 */ });
+    jsonOnce("data/np-stamps.json").then(function (j) { NPS = (j && j.stamps) || []; if (c && map) npMarks(); }).catch(function () { /* 없음 */ });
     function npMarks() {
         (npMarks.ms || []).forEach(function (m) { m.remove(); });
         npMarks.ms = RF.npStampsOn(NPS, c, 300).map(function (x) {
@@ -1602,8 +1602,26 @@
     function xferClean(c) { return String(c || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); }
     function sha(text) { return crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)); }
     function hex(buf) { return Array.prototype.map.call(new Uint8Array(buf), function (x) { return ("0" + x.toString(16)).slice(-2); }).join(""); }
-    function xferId(code) { return sha("rf-xfer-id|" + code).then(function (h) { return hex(h).slice(0, 32); }); }
-    function xferKey(code) { return sha("rf-xfer-key|" + code).then(function (h) { return crypto.subtle.importKey("raw", h, "AES-GCM", false, ["encrypt", "decrypt"]); }); }
+    /**
+     * 2026-10-28 보안 점검: 코드 8글자(40비트)만으로는 서버에 맡긴 암호문을 하나씩 쳐 볼 수 있었음.
+     * QR 에는 코드 뒤에 기기 밖으로 나가지 않는 비밀 128비트(#xfer=코드.비밀)를 붙여 그것으로 열쇠를 만듦.
+     * 코드만 쳐서 보낼 때는 열쇠 · 자리 이름을 PBKDF2(10만 번)로 만들어 쳐 보기를 아주 느리게.
+     */
+    var XFER_ITER = 100000;
+    function slow(text, salt) {
+        return crypto.subtle.importKey("raw", new TextEncoder().encode(text), "PBKDF2", false, ["deriveBits"]).then(function (k) {
+            return crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt: new TextEncoder().encode(salt), iterations: XFER_ITER }, k, 256);
+        });
+    }
+    function xferSecret() {
+        var b = crypto.getRandomValues(new Uint8Array(16));
+        return btoa(String.fromCharCode.apply(null, b)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    }
+    function xferId(code) { return slow(code, "rf-xfer-id").then(function (h) { return hex(h).slice(0, 32); }); }
+    function xferKey(code, secret) {
+        var raw = secret ? sha("rf-xfer-key|" + code + "|" + secret) : slow(code, "rf-xfer-key");
+        return raw.then(function (h) { return crypto.subtle.importKey("raw", h, "AES-GCM", false, ["encrypt", "decrypt"]); });
+    }
     function b64(buf) {
         var u = new Uint8Array(buf), s = "";
         for (var i = 0; i < u.length; i += 32768) s += String.fromCharCode.apply(null, u.subarray(i, i + 32768));
@@ -1619,7 +1637,7 @@
     /** 받기 - 이 기기에 QR · 코드를 띄우고 기다림. */
     function xferReceive() {
         if (!window.crypto || !crypto.subtle) { toast(T("이 브라우저는 옮기기를 못 합니다(https 주소에서 열어 주세요).", "This browser can't transfer (open the https address)."), 6000); return; }
-        var code = xferCode(), url = location.origin + location.pathname + (EN ? "?lang=en" : "") + "#xfer=" + code;
+        var code = xferCode(), secret = xferSecret(), url = location.origin + location.pathname + (EN ? "?lang=en" : "") + "#xfer=" + code + "." + secret;
         xferId(code).then(function (id) {
             return xferPost("open", { id: id }).then(function () {
                 $("xferQr").innerHTML = "";
@@ -1631,14 +1649,15 @@
                 var until = Date.now() + 10 * 60000;
                 clearInterval(xferTimer);
                 xferTimer = setInterval(function () {
+                    if (document.hidden && Date.now() <= until) return;   // 화면을 안 볼 때는 쉼(2026-10-28 속도 점검: 3초마다 10분 = 200번)
                     if (Date.now() > until) { clearInterval(xferTimer); $("xferState").textContent = T("시간이 지났습니다. 다시 해 주세요.", "Timed out. Please try again."); return; }
                     xferPost("take", { id: id }).then(function (j) {
                         if (j.waiting) { if (j.n && $("xferState")) $("xferState").textContent = T("받는 중… ", "Receiving… ") + j.got + " / " + j.n; return; }
                         clearInterval(xferTimer);
-                        return xferKey(code).then(function (key) {
-                            var all = unb64(j.data);
-                            return crypto.subtle.decrypt({ name: "AES-GCM", iv: all.slice(0, 12) }, key, all.slice(12));
-                        }).then(function (plain) {
+                        var all = unb64(j.data);
+                        function open(key) { return crypto.subtle.decrypt({ name: "AES-GCM", iv: all.slice(0, 12) }, key, all.slice(12)); }
+                        // QR 로 왔으면 비밀 열쇠, 코드를 쳐서 왔으면 코드 열쇠(어느 쪽인지 서버는 모름 - 맞는 열쇠만 풀림)
+                        return xferKey(code, secret).then(open).catch(function () { return xferKey(code).then(open); }).then(function (plain) {
                             $("xferBox").hidden = true; $("xferBox").style.display = "none";
                             mergeBackup(JSON.parse(new TextDecoder().decode(plain)));
                         });
@@ -1648,12 +1667,12 @@
         }).catch(function (e) { toast((e && e.message) || T("옮기기를 시작하지 못했습니다.", "Could not start the transfer."), 6000); });
     }
     /** 보내기 - 받는 기기의 코드로 이 기기 백업을 암호화해 올림. */
-    function xferSend(code) {
+    function xferSend(code, secret) {
         code = xferClean(code);
         if (code.length !== 8) { toast(T("받는 기기 화면의 코드 8글자를 넣어 주세요.", "Enter the 8-letter code shown on the receiving device."), 5000); return; }
         if (!window.crypto || !crypto.subtle) { toast(T("이 브라우저는 옮기기를 못 합니다(https 주소에서 열어 주세요).", "This browser can't transfer (open the https address)."), 6000); return; }
         toast(T("📤 보내는 중…", "📤 Sending…"), 4000);
-        Promise.all([buildBackup(), xferKey(code), xferId(code)]).then(function (a) {
+        Promise.all([buildBackup(), xferKey(code, secret), xferId(code)]).then(function (a) {
             var o = a[0], iv = crypto.getRandomValues(new Uint8Array(12));
             return crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, a[1], new TextEncoder().encode(JSON.stringify(o))).then(function (ct) {
                 var buf = new Uint8Array(12 + ct.byteLength);
@@ -2884,7 +2903,7 @@
     // 노선 이름 · 다른 이름(data/series.json) - 노선 안내도 카드가 다른 자료의 같은 노선도 잡게. 못 받으면 없이
     // 받기 전에 그린 목록은 받은 뒤 한 번 다시 그림(느린 망 - 2026-10-12 PC)
     var seriesFlat = [], lastList = null;
-    fetch("data/series.json").then(function (r) { return r.json(); }).then(function (d) {
+    jsonOnce("data/series.json").then(function (d) {
         (d.groups || []).forEach(function (g) { seriesFlat = seriesFlat.concat(g.series || []); });
         if (lastList && lastList.seq === pickSeq) listCourses.apply(null, lastList.args);
     }).catch(function () { /* 없이 */ });
@@ -3092,7 +3111,7 @@
     var enPeaksLoading = null;
     function loadEnPeaks() {
         if (enPeaks.length) return Promise.resolve();
-        if (!enPeaksLoading) enPeaksLoading = fetch("data/mountains100.json").then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (d) {
+        if (!enPeaksLoading) enPeaksLoading = jsonOnce("data/mountains100.json").then(function (d) {
             enPeaks = ((d && d.peaks) || []).map(function (p) { var ko = String(p.id || p.name); return { ko: ko.replace(/\(.*\)$/, ""), key: RF.roman(ko).toLowerCase().replace(/[^a-z]/g, "") }; });
         }).catch(function () { /* 다음에 다시 */ }).then(function () { enPeaksLoading = null; });
         return enPeaksLoading;
@@ -3223,12 +3242,14 @@
         if (c != null) xferSend(c);
     });
     (function () {   // QR 을 찍어 들어옴(#xfer=코드) - 이 기기 기록을 보낼지 묻고 보냄
-        var m = /^#xfer=([A-Za-z0-9]{8})$/.exec(location.hash || "");
+        var m = /^#xfer=([A-Za-z0-9]{8})(?:\.([A-Za-z0-9_-]{22}))?$/.exec(location.hash || "");
         if (!m) return;
         try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* 그대로 */ }
         setTimeout(function () {
             recordsReady.then(function () {
-                if (confirm(T("이 기기의 기록 " + records().length + "개(사진 · 도장 · 완주 · 정상 포함)를 QR 을 띄운 기기로 보낼까요?\n(암호화해 보내며 서버는 내용을 볼 수 없습니다)", "Send this device's " + records().length + " records (with photos, stamps, peaks) to the device showing the QR?\n(Encrypted - our server can't read it)"))) xferSend(m[1]);
+                // 남이 보낸 링크로 기록을 빼 가는 것 막기(2026-10-28 보안 점검) - 내 기기 QR 을 내가 직접 찍었을 때만
+                if (confirm(T("이 기기의 기록 " + records().length + "개(사진 · 도장 · 완주 · 정상 · 걸은 위치 포함)를 QR 을 띄운 기기로 보낼까요?\n\n⚠ 내 PC · 내 폰에 띄운 QR 을 방금 직접 찍었을 때만 확인을 누르세요. 문자 · 카톡으로 받은 링크라면 취소하세요 - 기록이 그 사람에게 갑니다.\n(기기 안에서 암호화해 보냅니다)",
+                        "Send this device's " + records().length + " records (with photos, stamps, peaks and where you walked) to the device showing the QR?\n\n⚠ Only confirm if you just scanned a QR on your own PC or phone. If this link came by message, cancel - your records would go to that person.\n(Encrypted on this device)"))) xferSend(m[1], m[2]);
             });
         }, 800);
     })();

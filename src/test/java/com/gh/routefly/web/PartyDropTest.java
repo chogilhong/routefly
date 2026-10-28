@@ -77,4 +77,43 @@ public class PartyDropTest {
         assertEquals("소공원", ma2.get("dropPlan").getAsString());
         assertEquals("내린 뒤 직접 바꾸면 \"여기서 내림\" 이 아님", "edit", ma2.get("dropHow").getAsString());
     }
+
+    /** 2026-10-28 버그 점검 - 첫 도착 뒤 버스 안에서 바꾸면 계획만, "아니요" 답 · 버스가 아직 서 있으면 위치로 내림 처리 안 함. */
+    @Test
+    public void planChangeAndAutoDropGuards() {
+        Party p = new Party();
+        JsonObject room = call(p, "/create", "{\"name\":\"설악산\",\"departAt\":" + DEPART + ",\"endAt\":" + END + ",\"leaderName\":\"시험대장\",\"seats\":28,\"drops\":\"한계령, 오색, 소공원\"}", T0);
+        String code = room.get("code").getAsString(), lead = room.get("token").getAsString();
+        String x = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"버스안\",\"drop\":\"소공원\",\"agree\":true}", T0).get("token").getAsString();
+        String y = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"아니요\",\"drop\":\"소공원\",\"agree\":true}", T0).get("token").getAsString();
+        String z = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"쉬는중\",\"drop\":\"소공원\",\"agree\":true}", T0).get("token").getAsString();
+        for (String t : new String[] {x, y, z}) call(p, "/board", tok(t), DEPART - H);
+        PartyTest.departAll(p, lead, DEPART);
+        long t1 = DEPART + 2 * H;
+        call(p, "/arrive", "{\"token\":\"" + lead + "\",\"drop\":\"한계령\",\"lat\":38.0838,\"lon\":128.4612}", t1);
+        call(p, "/drop", "{\"token\":\"" + x + "\",\"drop\":\"오색\"}", t1 + 5 * 60_000);   // 버스 안에서 계획만 바꿈
+        call(p, "/alight", "{\"token\":\"" + y + "\",\"yes\":false}", t1 + 60_000);
+        call(p, "/loc", "{\"token\":\"" + lead + "\",\"lat\":38.0839,\"lon\":128.4613}", t1 + 14 * 60_000);   // 버스(인솔자)가 아직 그 자리
+        call(p, "/loc", "{\"token\":\"" + y + "\",\"lat\":38.0840,\"lon\":128.4615}", t1 + 25 * 60_000   /* 인솔자 위치는 10분 넘음 - 아니요 답만으로 막힘 */);
+        call(p, "/loc", "{\"token\":\"" + z + "\",\"lat\":38.0840,\"lon\":128.4615}", t1 + 15 * 60_000);
+        JsonObject lv = call(p, "/view", tok(lead), t1 + 26 * 60_000);
+        JsonObject mx = member(lv, "버스안"), my = member(lv, "아니요"), mz = member(lv, "쉬는중");
+        assertEquals("오색", mx.get("drop").getAsString());
+        assertFalse("계획 바꾸기는 내림이 아님", mx.has("dropHow"));
+        assertFalse(mx.has("dropPlan"));
+        assertFalse("아니요라고 답했으면 위치로 내림 안 함", my.has("dropHow"));
+        assertFalse("버스가 아직 그 자리면 위치로 내림 안 함", mz.has("dropHow"));
+    }
+
+    /** 탑승지 시각 - 방 출발 앞뒤 12시간 안으로(출발 00:10 · 사당 23:40 은 전날 밤), "2320" 처럼 숫자 넷도 시각. */
+    @Test
+    public void stopTimesAroundMidnight() {
+        assertEquals("[23:20, 23:50]", Party.stopTimes("사당 2320, 양재 23:50").toString());
+        long dep = java.time.ZonedDateTime.of(2026, 10, 30, 0, 10, 0, 0, java.time.ZoneId.of("Asia/Seoul")).toInstant().toEpochMilli();
+        Party p = new Party();
+        JsonObject room = call(p, "/create", "{\"name\":\"무박\",\"departAt\":" + dep + ",\"endAt\":" + (dep + 16 * H) + ",\"leaderName\":\"시험대장\",\"seats\":28,\"stops\":\"사당 23:40, 양재 00:10\"}", dep - 48 * H);
+        String code = room.get("code").getAsString();
+        JsonObject v = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"사당\",\"stop\":\"사당\",\"agree\":true}", dep - 48 * H);
+        assertEquals("사당은 출발 30분 전(전날 밤)", dep - 30 * 60_000L, v.get("locFrom").getAsLong());
+    }
 }

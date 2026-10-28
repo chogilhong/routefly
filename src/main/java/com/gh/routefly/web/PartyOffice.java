@@ -146,18 +146,40 @@ final class PartyOffice {
         }
     }
 
+    /**
+     * 읽기 - 한 곳씩(2026-10-28 버그 점검: 깨진 곳 하나에 나머지를 못 읽고, 다음 저장이 빈 목록으로 덮어 모든 사무실을 잃었음).
+     * 깨진 곳이 있으면 office.json.bad-<시각>(600)으로 옛 파일을 남김.
+     */
     private void load() {
         if (file == null || !Files.isRegularFile(file)) return;
+        int bad = 0;
         try {
             for (JsonElement e : JsonParser.parseString(Files.readString(file, StandardCharsets.UTF_8)).getAsJsonArray()) {
-                JsonObject x = e.getAsJsonObject();
-                Office o = new Office(x.get("code").getAsString(), x.get("name").getAsString(), x.get("key").getAsString(), x.get("created").getAsLong());
-                if (x.has("ended")) x.getAsJsonArray("ended").forEach(s -> o.ended.add(s.getAsJsonObject()));
-                byCode.put(o.code, o);
+                try {
+                    JsonObject x = e.getAsJsonObject();
+                    Office o = new Office(x.get("code").getAsString(), x.get("name").getAsString(), x.get("key").getAsString(), x.get("created").getAsLong());
+                    if (x.has("ended")) x.getAsJsonArray("ended").forEach(s -> o.ended.add(s.getAsJsonObject()));
+                    byCode.put(o.code, o);
+                } catch (RuntimeException ex) {
+                    bad++;
+                }
             }
-            log.info("[OFFICE] 사무실 {}곳 읽음", byCode.size());
         } catch (Exception ex) {
+            bad++;
             log.warn("[OFFICE] 사무실 파일을 읽지 못함 - {}", ex.toString());
+        }
+        if (bad > 0) backup();
+        log.info("[OFFICE] 사무실 {}곳 읽음{}", byCode.size(), bad > 0 ? " (" + bad + "곳 건너뜀 - office.json.bad-* 에 옛 파일)" : "");
+    }
+
+    private void backup() {
+        try {
+            Path b = file.resolveSibling("office.json.bad-" + System.currentTimeMillis());
+            try { Files.createFile(b, java.nio.file.attribute.PosixFilePermissions.asFileAttribute(java.nio.file.attribute.PosixFilePermissions.fromString("rw-------"))); }
+            catch (UnsupportedOperationException e) { /* 윈도 */ }
+            Files.copy(file, b, StandardCopyOption.REPLACE_EXISTING);
+        } catch (Exception e) {
+            log.warn("[OFFICE] 옛 파일을 남기지 못함 - {}", e.toString());
         }
     }
 }

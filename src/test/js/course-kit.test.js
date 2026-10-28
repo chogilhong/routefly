@@ -153,7 +153,9 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
         var pk = { role: "lead", now: P1 - 40 * 60000, departed: true, departedAt: D, endAt: E, pickupAt: { "설악동": P1, "남교리": P2 }, members: [
             { id: 1, role: "hiker", nick: "가", pickup: "설악동" }, { id: 2, role: "hiker", nick: "나", pickup: "설악동" }, { id: 3, role: "hiker", nick: "다", pickup: "남교리" }] };
         eq("알림 - 인솔자 하산 탑승지마다", RF.partyAlerts(pk, {}).msgs.join("|"), "⏰ 설악동 하산 탑승 01:18 (40분 남음) - 아직 2명 하산 전");   // 남교리는 75분 남아 아직
-        eq("알림 - 회원 내 하산 탑승지 시각으로", RF.partyAlerts({ role: "hiker", now: P1 - 20 * 60000, departed: true, endAt: E, myEndAt: P1, pickup: "설악동" }, {}).msgs.join("|"), "⏰ 설악동 하산 탑승 01:18 - 20분 남았습니다. 하산 탑승지(설악동)로 내려와 주세요.");
+        eq("알림 - 회원 내 하산 탑승지 시각으로", RF.partyAlerts({ role: "hiker", now: P1 - 20 * 60000, departed: true, endAt: E, myEndAt: P1, pickup: "설악동", pickupAt: { "설악동": P1 } }, {}).msgs.join("|"), "⏰ 설악동 하산 탑승 01:18 - 20분 남았습니다. 하산 탑승지(설악동)로 내려와 주세요.");
+        // 시각 없는 하산 탑승지 - 방 하산 마감을 그곳 시각으로 적지 않음(2026-10-28 버그 점검)
+        eq("알림 - 시각 없는 하산 탑승지는 하산 마감", RF.partyAlerts({ role: "hiker", now: E - 20 * 60000, departed: true, endAt: E, myEndAt: E, pickup: "용대리", pickupAt: { "설악동": P1 } }, {}).msgs.join("|"), "⏰ 하산 마감 01:53 - 20분 남았습니다. 버스로 내려와 주세요.");
         var bus = { role: "hiker", now: D, arrive: { drop: "한계령", at: D } };
         var b1 = RF.partyAlerts(bus, {});
         eq("알림 - 하차 안내 한 번", [b1.msgs.join("|"), RF.partyAlerts(bus, b1.fired).msgs.length].join(), "⬇ 지금 한계령입니다. 여기서 내리시면 \"여기서 내려요\"를 눌러 주세요.,0");
@@ -177,6 +179,10 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
         eq("튐 - 나갔다 돌아온 점 둘 뺌", [cl.length, cl.some(function (p) { return p[0] > 35.39; })].join(), "10,false");
         var gap = tr.filter(function (p) { return p[0] < 35.39; }).concat([[35.32, 127.70, T0 + 30 * 60000, 1300]]);   // 화면 꺼짐 - 27분 뒤 2km 너머
         eq("끊김 - 걸을 만한 빠르기면 남김", RF.cleanTrack(gap, false).length, 11);
+        // 첫 점이 튐(옛 · 기지국 위치, 2026-10-28 버그 점검)
+        var first = [[35.32, 127.70, T0 - 5000, 1000]].concat(tr.filter(function (p) { return p[0] < 35.39; }));
+        eq("튐 - 첫 점도 뺌", RF.cleanTrack(first, false).length, 10);
+        eq("튐 - 걸어 온 첫 점은 남김", RF.cleanTrack(tr.filter(function (p) { return p[0] < 35.39; }), false).length, 10);
         var rc = RF.recordCourse({ name: "x", kind: "hike", track: gap });
         eq("끊김 - 점선 표시(마지막 구간만)", rc.gap.filter(Boolean).length + ":" + rc.gap[rc.gap.length - 1], "1:true");
         var fc = RF.recordLines(rc);

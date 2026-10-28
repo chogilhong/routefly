@@ -139,4 +139,35 @@ public class PartyOfficeTest {
         assertEquals("태풍", c.get("why").getAsString());
         assertEquals("주 인솔자", c.get("by").getAsString());
     }
+
+    /** 2026-10-28 버그 점검 - 깨진 사무실 하나가 나머지를 지우지 않음, 옛 파일은 office.json.bad-* 로 남김. */
+    @Test
+    public void corruptOfficeFileKeepsOthers() throws Exception {
+        java.nio.file.Path dir = java.nio.file.Files.createTempDirectory("rf-office");
+        java.nio.file.Path f = dir.resolve("office.json");
+        java.nio.file.Files.writeString(f, "[{\"code\":\"AAAAAA\",\"name\":\"좋음\",\"key\":\"k1k1k1k1k1k1k1k1k1k1k1\",\"created\":1},{\"code\":\"BBBBBB\"}]");
+        PartyOffice po = new PartyOffice(f);
+        assertNotNull("깨지지 않은 곳은 읽음", po.byCode("AAAAAA"));
+        try (java.util.stream.Stream<java.nio.file.Path> ls = java.nio.file.Files.list(dir)) {
+            assertTrue("옛 파일을 남김", ls.anyMatch(x -> x.getFileName().toString().startsWith("office.json.bad-")));
+        }
+    }
+
+    /** 틀린 코드 세기 - IPv6 는 /48 로 묶음(2026-10-28 보안 점검). */
+    @Test
+    public void missKeyGroupsIpv6By48() {
+        assertEquals("2001:db8:1::/48", PartyServlet.missKey(RateLimiter.group("2001:db8:1:ff::1")));
+        assertEquals(PartyServlet.missKey(RateLimiter.group("2001:db8:1:1::9")), PartyServlet.missKey(RateLimiter.group("2001:db8:1:2::9")));
+        assertEquals("1.2.3.4", PartyServlet.missKey("1.2.3.4"));
+    }
+
+    /** 앱(RfAlive)의 켜짐 알림(sos 없음)은 방 전체 대신 ok 만(2026-10-28 속도 점검) - 화면의 ping(sos 있음)은 그대로. */
+    @Test
+    public void nativePingIsLean() {
+        Party p = new Party();
+        JsonObject room = call(p, "/create", "{\"name\":\"시험\",\"departAt\":" + DEPART + ",\"endAt\":" + END + ",\"leaderName\":\"시험대장\",\"seats\":28}", T0);
+        String lead = room.get("token").getAsString();
+        assertFalse(call(p, "/ping", tok(lead), T0).has("members"));
+        assertTrue(call(p, "/ping", "{\"token\":\"" + lead + "\",\"sos\":false}", T0).has("members"));
+    }
 }

@@ -92,7 +92,7 @@
         // 하산 탑승지 · 마감(2026-10-28 홍TV님 일정표 - 곳마다 시각): 산행 중이면 늘, 1시간 안이면 남은 분을 굵게
         var mine = s.myEndAt || s.endAt;
         if (s.departed && mine && !s.aboard && !s.cancelled) {
-            var soon = mine - s.now <= 3600000 && mine > s.now, what = s.pickup && s.myEndAt ? T("🚌 하산 탑승 " + esc(s.pickup) + " ", "🚌 Pickup " + esc(s.pickup) + " ") : T("⏰ 하산 마감 ", "⏰ Back-down deadline ");
+            var soon = mine - s.now <= 3600000 && mine > s.now, what = s.pickup && s.pickupAt && s.pickupAt[s.pickup] ? T("🚌 하산 탑승 " + esc(s.pickup) + " ", "🚌 Pickup " + esc(s.pickup) + " ") : T("⏰ 하산 마감 ", "⏰ Back-down deadline ");
             line += " · " + (soon ? "<b>" : "") + what + clock(mine) + (soon ? T(" (" + Math.ceil((mine - s.now) / 60000) + "분 남음)", " (" + Math.ceil((mine - s.now) / 60000) + " min left)") + "</b>" : "");
         }
         // 하산 탑승 뒤 - 서울 하차(올 때 탄 곳 · 역순) · 도착 예정

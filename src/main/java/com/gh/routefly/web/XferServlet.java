@@ -30,19 +30,29 @@ public class XferServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
     static final long TTL_MS = 10 * 60_000L;
-    static final int MAX_SLOTS = 300, PART_MAX = 600_000, MAX_PARTS = 60;   // 조각 60개 × 60만 글자 ≈ 36MB(사진 많은 백업)
+    static final int MAX_SLOTS = 300, PART_MAX = 600_000, MAX_PARTS = 60;
+    /**
+     * 메모리 한도(2026-10-28 보안 점검: 한 곳에서 자리 20개 × 36MB 를 채워 톰캣 힙(768MB)을 1분 안에 바닥낼 수 있었음).
+     * 자리 하나 16MB, 서버 전체 96MB, 한 곳(IP)에서 올리는 양 1시간 48MB.
+     */
+    static final long SLOT_MAX_CHARS = 16_000_000L, TOTAL_MAX_CHARS = 96_000_000L, IP_HOUR_CHARS = 48_000_000L;
+    private static long totalChars;
     private static final java.util.regex.Pattern ID = java.util.regex.Pattern.compile("[0-9a-f]{32}");
 
     static final class Slot {
         final long created;
         String[] parts;
         int got;
+        long chars;
         Slot(long created) { this.created = created; }
     }
 
     static final Map<String, Slot> SLOTS = new LinkedHashMap<>();
     /** 자리 만들기 - IP 마다 1시간에 20번. */
     static final PartyServlet.Quota OPENS = new PartyServlet.Quota(20, 3600_000L);
+    /** 올리는 양 - IP 마다 1시간 IP_HOUR_CHARS(조각 하나를 PART_UNIT 글자로 쳐서 셈). */
+    static final int PART_UNIT = 100_000;
+    static final PartyServlet.Quota PUT_UNITS = new PartyServlet.Quota((int) (IP_HOUR_CHARS / PART_UNIT), 3600_000L);
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -51,6 +61,7 @@ public class XferServlet extends HttpServlet {
         String path = req.getPathInfo(), ip = RateLimiter.group(SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For")));
         long now = System.currentTimeMillis();
         if ("/open".equals(path) && OPENS.over(ip, now)) { Json.fail(resp, 429, "잠시 뒤 다시 해 주세요."); return; }
+        if ("/put".equals(path) && PUT_UNITS.over(ip, now)) { Json.fail(resp, 429, "한 곳에서 보내는 양이 너무 많습니다. 1시간 뒤 다시 해 주세요."); return; }
         JsonObject in;
         try {
             in = body(req.getInputStream(), PART_MAX + 4096);
@@ -61,6 +72,10 @@ public class XferServlet extends HttpServlet {
         try {
             JsonObject out = handle(path, in, now);
             if ("/open".equals(path)) OPENS.take(ip, now);
+            if ("/put".equals(path)) {   // 올린 양만큼(10만 글자마다 1)
+                String part = in.has("part") && in.get("part").isJsonPrimitive() ? in.get("part").getAsString() : "";
+                for (int k = 0; k <= part.length() / PART_UNIT; k++) PUT_UNITS.take(ip, now);
+            }
             Json.write(resp, 200, out, false);
         } catch (IllegalArgumentException | IllegalStateException e) {
             Json.fail(resp, 400, e.getMessage());
@@ -76,12 +91,13 @@ public class XferServlet extends HttpServlet {
         JsonObject out = new JsonObject();
         out.addProperty("success", true);
         synchronized (SLOTS) {
-            SLOTS.values().removeIf(s -> now - s.created > TTL_MS);
+            SLOTS.values().removeIf(s -> { boolean old = now - s.created > TTL_MS; if (old) totalChars -= s.chars; return old; });
             Slot s = SLOTS.get(id);
             switch (path == null ? "" : path) {
                 case "/open" -> {
                     if (SLOTS.size() >= MAX_SLOTS) throw new IllegalStateException("지금은 옮기기가 많습니다. 잠시 뒤 다시 해 주세요.");
-                    SLOTS.put(id, new Slot(now));
+                    Slot old = SLOTS.put(id, new Slot(now));
+                    if (old != null) totalChars -= old.chars;
                     out.addProperty("ttl", TTL_MS / 1000);
                 }
                 case "/put" -> {
@@ -92,8 +108,13 @@ public class XferServlet extends HttpServlet {
                         throw new IllegalArgumentException("기록이 너무 크거나 올바르지 않습니다.");
                     if (s.parts == null) s.parts = new String[n];
                     if (s.parts.length != n) throw new IllegalArgumentException("조각 수가 맞지 않습니다. 처음부터 다시 보내 주세요.");
+                    long add = part.length() - (s.parts[i] == null ? 0 : s.parts[i].length());
+                    if (s.chars + add > SLOT_MAX_CHARS) throw new IllegalArgumentException("기록이 너무 큽니다(사진이 많으면 파일 백업으로 옮겨 주세요).");
+                    if (totalChars + add > TOTAL_MAX_CHARS) throw new IllegalStateException("지금은 옮기기가 많습니다. 잠시 뒤 다시 해 주세요.");
                     if (s.parts[i] == null) s.got++;
                     s.parts[i] = part;
+                    s.chars += add;
+                    totalChars += add;
                     out.addProperty("got", s.got);
                 }
                 case "/take" -> {
@@ -105,6 +126,7 @@ public class XferServlet extends HttpServlet {
                     } else {
                         out.addProperty("data", String.join("", s.parts));
                         SLOTS.remove(id);   // 한 번 가져가면 지움
+                        totalChars -= s.chars;
                     }
                 }
                 default -> throw new IllegalArgumentException("없는 주소입니다.");

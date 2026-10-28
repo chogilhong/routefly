@@ -1754,6 +1754,11 @@
     function cleanTrack(tr, bike) {
         var lim = bike ? 25 : 10, out = [], i = 0;
         tr = tr || [];
+        // 첫 점이 튐(폰이 옛 위치 · 기지국 위치를 먼저 줌, 2026-10-28 버그 점검) - 첫 점은 앞 점이 없어 아래에서 못 거름
+        if (tr.length >= 3) {
+            var d01 = distM(tr[0][0], tr[0][1], tr[1][0], tr[1][1]), d12 = distM(tr[1][0], tr[1][1], tr[2][0], tr[2][1]);
+            if (d01 > 100 && d12 < d01 * 0.5 && d01 / Math.max(1, (tr[1][2] - tr[0][2]) / 1000) > lim) i = 1;
+        }
         while (i < tr.length) {
             var a = out[out.length - 1], skip = 0;
             if (a) for (var k = 1; k <= 5 && i + k < tr.length; k++) {
@@ -4845,12 +4850,12 @@
         } else if (s.role === "hiker") {
             // 하차 안내(인솔자 "⬇ 한계령 도착") - 버스 안 회원
             if (s.arrive && !s.aboard && !s.cancelled) hit("arr" + s.arrive.at, en ? "⬇ We're at " + s.arrive.drop + ". If you get off here, tap \"I'm getting off here\"." : "⬇ 지금 " + s.arrive.drop + "입니다. 여기서 내리시면 \"여기서 내려요\"를 눌러 주세요.");
-            var mine = s.myEndAt || s.endAt, pk = s.pickup && s.myEndAt ? s.pickup : "";   // 내 하산 탑승지 시각(없으면 방 하산 마감)
+            var mine = s.myEndAt || s.endAt, pk = s.pickup && s.pickupAt && s.pickupAt[s.pickup] ? s.pickup : "";   // 내 하산 탑승지 시각(없으면 방 하산 마감)
             if (s.departed && mine && !s.aboard && !s.cancelled) {
                 var mleft = Math.ceil((mine - now) / 60000);
                 [60, 30].forEach(function (w) {
                     if (now >= mine - w * 60000 && now < mine && !(w === 60 && mleft <= 30))
-                        hit("mine" + w, en ? "⏰ " + (pk ? pk + " pickup " : "Back-down deadline ") + hm(mine) + " - " + mleft + " min left. Please head back to the bus."
+                        hit("mine" + w + "_" + mine, en ? "⏰ " + (pk ? pk + " pickup " : "Back-down deadline ") + hm(mine) + " - " + mleft + " min left. Please head back to the bus."
                             : "⏰ " + (pk ? pk + " 하산 탑승 " : "하산 마감 ") + hm(mine) + " - " + mleft + "분 남았습니다. " + (pk ? "하산 탑승지(" + pk + ")로 내려와 주세요." : "버스로 내려와 주세요."));
                 });
             }

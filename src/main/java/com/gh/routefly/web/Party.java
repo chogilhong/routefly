@@ -381,7 +381,8 @@ final class Party {
         return out;
     }
 
-    private static final java.util.regex.Pattern STOP_TIME = java.util.regex.Pattern.compile("(?<!\\d)([01]?\\d|2[0-3])\\s*(?:[:.]|시)\\s*([0-5]\\d)?\\s*분?(?!\\d)");
+    /** "17:00 · 17.00 · 17시 · 17시20분", 그리고 숫자만 "2320"(2026-10-28 점검 - 안내에 "숫자만 쳐도 됩니다" 인데 탑승지 이름으로 들어갔음). */
+    private static final java.util.regex.Pattern STOP_TIME = java.util.regex.Pattern.compile("(?<!\\d)(?:([01]?\\d|2[0-3])\\s*(?:[:.]|시)\\s*([0-5]\\d)?\\s*분?|([01]\\d|2[0-3])([0-5]\\d))(?!\\d)");
 
     private static List<String[]> stopEntries(String text) {
         List<String[]> out = new ArrayList<>();
@@ -391,7 +392,8 @@ final class Party {
             String time = "";
             java.util.regex.Matcher m = STOP_TIME.matcher(t);
             if (m.find()) {
-                time = String.format("%02d:%s", Integer.parseInt(m.group(1)), m.group(2) == null ? "00" : m.group(2));
+                time = m.group(3) != null ? m.group(3) + ":" + m.group(4)
+                        : String.format("%02d:%s", Integer.parseInt(m.group(1)), m.group(2) == null ? "00" : m.group(2));
                 t = t.substring(0, m.start()) + t.substring(m.end());
             }
             String c = clean(t, 12);
@@ -637,7 +639,8 @@ final class Party {
         java.time.ZonedDateTime d = java.time.Instant.ofEpochMilli(r.departAt).atZone(java.time.ZoneId.of("Asia/Seoul"))
                 .withHour(Integer.parseInt(hm[0])).withMinute(Integer.parseInt(hm[1])).withSecond(0).withNano(0);
         long t = d.toInstant().toEpochMilli();
-        return t < r.departAt - 12 * HOUR ? t + 24 * HOUR : t;
+        // 앞뒤 12시간 안으로(2026-10-28 버그 점검: 출발 00:10 · 사당 23:40 이면 다음 날 밤으로 갔음)
+        return t > r.departAt + 12 * HOUR ? t - 24 * HOUR : t < r.departAt - 12 * HOUR ? t + 24 * HOUR : t;
     }
 
     /** 그 시각 "HH:MM" 을 base 날(서울 시각)에 놓은 ms. */
@@ -668,7 +671,7 @@ final class Party {
         if (base == 0) base = r.departAt;
         if (base == 0) return 0;
         long t = onDay(base, r.homeTime);
-        return t < base - HOUR ? t + 24 * HOUR : t;
+        return t < base ? t + 24 * HOUR : t;   // 마지막 하산 탑승보다 이르면 다음 날(2026-10-28 버그 점검)
     }
 
     /** 그 회원의 하산 마감 - 하산 탑승지 시각, 없으면 방 하산 마감. */
@@ -754,7 +757,8 @@ final class Party {
             if (t == null) throw new IllegalArgumentException("이미 나간 사람입니다.");
         }
         String d = checkDrop(actor.room, drop);
-        if (actor.room.arrivals.isEmpty()) { t.drop = d; t.dropHow = null; t.dropPlan = null; }   // 내리기 전 - 계획 바꾸기
+        // 아직 안 내린 사람 - 계획 바꾸기(2026-10-28 버그 점검: 첫 도착 뒤 버스 안에서 소공원 → 오색으로 바꿔도 "내림"으로 적었고, 다시 켠 뒤에는 실제 하차를 지웠음)
+        if (t.dropHow == null) { t.drop = d; t.dropPlan = null; }
         else setActual(t, d, t == actor ? "edit" : "lead");   // 내린 뒤 - 실제(회원이 직접 바꿈 · 인솔자, 10-28 PC: 바꿔도 "여기서 내림" 이 남았음)
         save();
     }
@@ -797,13 +801,25 @@ final class Party {
     private static void autoDrop(Member m, double lat, double lon, long now) {
         if (m.dropHow != null || !"hiker".equals(m.role) || m.aboard || m.cancelled || BUS_STAY.equals(m.drop)) return;   // 버스 대기 - 버스가 그 자리에 서 있어도 내린 것 아님
         Object[] best = null;
+        Object[] last = m.room.lastArrival();
         for (Object[] a : m.room.arrivals) {
             long at = (Long) a[1];
             double alat = (Double) a[2], alon = (Double) a[3];
             if (Double.isNaN(alat) || now - at < AUTO_AFTER_MS || now - at > AUTO_UNTIL_MS) continue;
+            if (m.arrAns == at) continue;   // 그 안내에 이미 답함(아니요 = 안 내림, 2026-10-28 버그 점검)
+            if (a == last && busStillAt(m.room, a, now)) continue;   // 버스가 아직 그 자리(휴게 · 채비) - 탄 채 둘레에 있는 것
             if (MountainServlet.distM(alat, alon, lat, lon) <= AUTO_M) best = a;   // 뒤의 도착일수록 나중(가까운 곳을 다시 지나면 마지막 것)
         }
         if (best != null) setActual(m, (String) best[0], "auto");
+    }
+
+    /** 버스가 아직 그 도착 자리에 있나 - 거기서 내리지 않은 인솔자(버스에 남은)의 5분 안 위치가 그 둘레면 그렇다고 봄. */
+    static boolean busStillAt(Room r, Object[] a, long now) {
+        for (Member s : r.members.values()) {
+            if (!s.staff() || s.office || s.lat == null || now - s.t > 5 * 60_000L || a[0].equals(s.drop)) continue;
+            if (MountainServlet.distM((Double) a[2], (Double) a[3], s.lat, s.lon) <= AUTO_M) return true;
+        }
+        return false;
     }
 
     private static String checkStop(Room r, String stop) {
@@ -1488,8 +1504,10 @@ final class Party {
     private void backup() {
         try {
             Path b = file.resolveSibling("party.json.bad-" + System.currentTimeMillis());
-            Files.copy(file, b);
-            try { Files.setPosixFilePermissions(b, java.nio.file.attribute.PosixFilePermissions.fromString("rw-------")); } catch (UnsupportedOperationException e) { /* 윈도 */ }
+            // 만들 때부터 600(2026-10-28 보안 점검: 복사한 뒤 권한을 바꾸면 그 사이 남이 읽을 수 있음)
+            try { Files.createFile(b, java.nio.file.attribute.PosixFilePermissions.asFileAttribute(java.nio.file.attribute.PosixFilePermissions.fromString("rw-------"))); }
+            catch (UnsupportedOperationException e) { /* 윈도 */ }
+            Files.copy(file, b, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
         } catch (Exception e) {
             log.warn("[PARTY] 옛 파일을 남기지 못함 - {}", e.toString());
         }

@@ -70,13 +70,16 @@ public class PartyServlet extends HttpServlet {
         // IPv6 는 /64 로 묶음(점검: 주소마다 따로 세어 한 사람이 주소를 바꿔 가며 방 2000개를 채울 수 있었음)
         String path = req.getPathInfo(), ip = RateLimiter.group(SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For")));
         long now = System.currentTimeMillis();
-        boolean lookup = "/info".equals(path) || "/join".equals(path) || (path != null && path.startsWith("/office/") && !"/office/create".equals(path));
-        if (lookup && MISSES.over(ip, now)) { Json.fail(resp, 429, "방 코드를 너무 많이 틀렸습니다. 10분 뒤 다시 해 주세요."); return; }
+        // 회사 코드도 쳐 보기 막기(2026-10-28 보안 점검: /create · /link 의 회사 코드는 세지 않았음)
+        boolean lookup = "/info".equals(path) || "/join".equals(path) || "/create".equals(path) || "/link".equals(path)
+                || (path != null && path.startsWith("/office/") && !"/office/create".equals(path));
+        String missKey = missKey(ip);
+        if (lookup && MISSES.over(missKey, now)) { Json.fail(resp, 429, "방 코드를 너무 많이 틀렸습니다. 10분 뒤 다시 해 주세요."); return; }
         boolean create = "/create".equals(path) && !owner(req);
         if (create && (CREATES.over(ip, now) || CREATES_ALL.over("*", now))) { Json.fail(resp, 429, "하루에 만들 수 있는 방 수를 넘었습니다. 내일 다시 해 주세요."); return; }
         if ("/join".equals(path) && JOINS.over(ip, now)) { Json.fail(resp, 429, "한 곳에서 참가를 너무 많이 했습니다. 1시간 뒤 다시 해 주세요."); return; }
         boolean office = "/office/create".equals(path) && !owner(req);
-        if (office && OFFICES.over(ip, now)) { Json.fail(resp, 429, "하루에 만들 수 있는 사무실 수를 넘었습니다. 내일 다시 해 주세요."); return; }
+        if (office && (OFFICES.over(ip, now) || OFFICES_ALL.over("*", now))) { Json.fail(resp, 429, "하루에 만들 수 있는 사무실 수를 넘었습니다. 내일 다시 해 주세요."); return; }
         JsonObject in;
         try {
             in = body(req);
@@ -88,15 +91,15 @@ public class PartyServlet extends HttpServlet {
             JsonObject out = handle(Party.STORE, path, in, now);
             if (create) { CREATES.take(ip, now); CREATES_ALL.take("*", now); }   // 만든 것만 셈(점검: 날짜를 틀린 것도 세어 하루 막혔음)
             if ("/join".equals(path)) JOINS.take(ip, now);
-            if (office) OFFICES.take(ip, now);
+            if (office) { OFFICES.take(ip, now); OFFICES_ALL.take("*", now); }
             Json.write(resp, 200, out, false);
         } catch (Party.Ended e) {
             Json.fail(resp, 410, e.getMessage());
         } catch (IllegalArgumentException | IllegalStateException e) {
-            if (lookup && e.getMessage() != null && e.getMessage().contains("찾지 못했습니다")) MISSES.take(ip, now);   // 없는 코드 - 하나씩 쳐 보기 막기
+            if (lookup && e.getMessage() != null && e.getMessage().contains("찾지 못했습니다")) MISSES.take(missKey, now);   // 없는 코드 - 하나씩 쳐 보기 막기
             Json.fail(resp, 400, e.getMessage());
         } catch (SecurityException e) {
-            if (lookup && path.startsWith("/office/")) MISSES.take(ip, now);   // 틀린 사무실 링크 - 하나씩 쳐 보기 막기
+            if (lookup && path.startsWith("/office/")) MISSES.take(missKey, now);   // 틀린 사무실 링크 - 하나씩 쳐 보기 막기
             Json.fail(resp, 403, e.getMessage());
         } catch (RuntimeException e) {   // 칸 꼴이 틀림(Gson 등) - 내부 글은 내보내지 않음
             Json.fail(resp, 400, "요청을 읽지 못했습니다.");
@@ -125,6 +128,19 @@ public class PartyServlet extends HttpServlet {
             if (StatsServlet.OWNER_COOKIE.equals(c.getName()) && java.security.MessageDigest.isEqual(want.getBytes(java.nio.charset.StandardCharsets.UTF_8), c.getValue().getBytes(java.nio.charset.StandardCharsets.UTF_8))) return true;
         return false;
     }
+    /** 회사 사무실 만들기 - 서버 전체 하루 30곳(주소를 바꿔 가며 500곳을 채우기 막기, 2026-10-28 보안 점검). 운영자는 빼고 셈. */
+    static final Quota OFFICES_ALL = new Quota(30, 24 * 3600_000L);
+
+    /**
+     * 틀린 코드 세는 묶음 - IPv6 는 /48 로 더 넓게(2026-10-28 보안 점검: 한 집이 받는 /56 · /48 안에서 /64 를 바꿔 가며 쳐 볼 수 있었음).
+     * 틀린 코드만 이렇게 묶음 - 참가 · 만들기 한도는 그대로 /64.
+     */
+    static String missKey(String ip) {
+        if (ip == null || !ip.endsWith(":/64")) return ip;
+        String[] h = ip.split(":");
+        return h.length >= 3 ? h[0] + ":" + h[1] + ":" + h[2] + "::/48" : ip;
+    }
+
     /** 없는 방 코드: IP 마다 10분에 20번(코드를 하나씩 쳐 보기 막기 - 점검). */
     static final Quota MISSES = new Quota(20, 600_000L);
 
@@ -221,7 +237,8 @@ public class PartyServlet extends HttpServlet {
             }
             case "/view" -> { }
             case "/trail" -> { return p.trail(m, (int) lng(in, "id"), now); }
-            case "/ping" -> { p.via(m, bool(in, "app") || !in.has("sos")); p.ping(m, num(in, "batt") == null ? null : num(in, "batt").intValue(), in.has("sos") ? bool(in, "sos") : null, now); }   // sos 가 없으면(앱 RfAlive) 그대로 - 앱으로 셈
+            case "/ping" -> { p.via(m, bool(in, "app") || !in.has("sos")); p.ping(m, num(in, "batt") == null ? null : num(in, "batt").intValue(), in.has("sos") ? bool(in, "sos") : null, now);
+                if (!in.has("sos")) return ok(); }   // sos 가 없으면(앱 RfAlive) 그대로 - 앱으로 셈. 앱은 답을 읽지 않으니 방 전체 대신 ok 만(2026-10-28 속도 점검: 1시간 60번 × 14KB 버림)
             case "/board" -> p.board(m);
             case "/aboard" -> p.aboard(m, on, bool(in, "apart"));   // apart - 따로 귀가
             case "/seat" -> p.seat(m, integer(in, "id"), integer(in, "bus"), integer(in, "seat"), str(in, "stop"));
