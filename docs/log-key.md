@@ -14,6 +14,7 @@
 | `tail [N]` | catalina.out 끝 N줄(기본 200, 많아야 3000) |
 | `log 이름 [N]` | 그 폴더의 `.log` · `.out` · `.txt` 파일 끝 N줄(경로 · `..` 안 됨, 압축된 옛 로그는 안 됨) |
 | `grep 낱말 [N]` | catalina.out 끝 5만 줄에서 그 낱말(글자 그대로, 영문 · 숫자 · `[ ] _ . : = -` 2~60자)이 든 줄의 마지막 N줄 |
+| `access 날짜` | 그 날(`YYYY-MM-DD`) 톰캣 접속 기록 하루 요약(2026-10-28): 화면 수 · 경로 묶음 · 15분별 · 브라우저 종류(사람 · 검색 로봇 · AI 수집 · 프로그램 · Headless · 오래된 크롬) · 많이 연 곳 상위 10. 주소는 내보내지 않고, 돌릴 때마다 바뀌는 무작위 값과 섞은 해시 8글자만 |
 
 - 한 줄은 400자까지 자릅니다. root 로 도는 부분은 `/usr/local/sbin/routefly-logs-read` 하나이고, sudoers 는 logview 에 그 파일만 허용합니다.
 - 읽기만 합니다 - 로그 · 설정 · war 를 바꾸거나 지우지 못하고, `/opt/tomcat/logs` 밖(설정 파일 · DB)은 읽지 못합니다.
@@ -36,10 +37,14 @@ ssh -i "C:\GH\config\routefly\LightsailDefaultKey-ap-northeast-2.pem" ubuntu@rou
 
 마지막에 "로그 읽기 전용 계정 준비 끝" 이 나오면 됩니다.
 
+읽기 명령을 늘렸을 때(예: 2026-10-28 `access`)도 같은 세 줄을 다시 돌리면 됩니다 - setup.sh 는 여러 번 돌려도 같은 결과이고, 열쇠는 그대로입니다.
+`access` 는 서버의 python3 를 씁니다(Ubuntu 기본).
+
 ## 쓰기 (PC Claude - 언제든, 읽기만이라 "배포해" 같은 허락 없이)
 
 ```
 C:\Windows\System32\OpenSSH\ssh.exe -i C:\GH\workspace\.deploy-key\routefly_logs -o BatchMode=yes logview@routefly.kr "grep [PARTY] 50"
+C:\Windows\System32\OpenSSH\ssh.exe -i C:\GH\workspace\.deploy-key\routefly_logs -o BatchMode=yes logview@routefly.kr "access 2026-10-29"
 ```
 
 ## 없애기 (홍TV님, 메인 열쇠로)

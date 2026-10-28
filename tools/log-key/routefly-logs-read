@@ -4,6 +4,8 @@
 #   tail [N]         - catalina.out 끝 N줄(기본 200, 많아야 3000)
 #   log 이름 [N]     - 그 로그 파일 끝 N줄(이름은 .log · .out · .txt, 폴더 · 경로 없이)
 #   grep 낱말 [N]    - catalina.out 끝 5만 줄에서 그 낱말(글자 그대로)이 든 줄 중 마지막 N줄
+#   access 날짜      - 그 날(YYYY-MM-DD) 톰캣 접속 기록 요약(2026-10-28): 화면 수 · 경로 묶음 · 15분 · 브라우저 종류 · 많이 연 곳 상위 10.
+#                      주소는 내보내지 않음 - 이번 한 번만 쓰는 무작위 값과 섞은 해시 8글자(다시 돌리면 달라져 이어 볼 수 없음)
 # 한 줄은 400자까지 자릅니다.
 set -euo pipefail
 DIR=/opt/tomcat/logs
@@ -24,5 +26,52 @@ case "${1:-}" in
     n=$(num "${3:-}")
     tail -n 50000 "$DIR/catalina.out" | grep -aF -- "$2" | tail -n "$n" | cut -c1-400 || true
     ;;
-  *) echo "이 열쇠로는 files · tail [N] · log 이름 [N] · grep 낱말 [N] 만 됩니다." >&2; exit 2 ;;
+  access)
+    [[ "${2:-}" =~ ^20[0-9]{2}-[01][0-9]-[0-3][0-9]$ ]] || { echo "날짜는 YYYY-MM-DD"; exit 3; }
+    f="$DIR/localhost_access_log.$2.txt"
+    [ -f "$f" ] && [ ! -L "$f" ] || { echo "그 날 접속 기록이 없습니다."; exit 3; }
+    python3 -I - "$f" <<'PY'
+import sys, re, os, hashlib, collections
+salt = os.urandom(16)
+LINE = re.compile(r'^(\S+) \[[^:]+:(\d\d):(\d\d):\d\d [^\]]*\] "(\S+) (\S+)" (\d{3}) \S+(?: "(.*)")?$')
+def page(p):
+    if p.startswith("/routefly/api/") or re.search(r"\.(js|css|png|jpg|jpeg|svg|ico|json|webmanifest|txt|xml|woff2?|map|gpx|pbf)$", p): return None
+    for pre, k in (("/routefly/en/m/", "/en/m/"), ("/routefly/m/", "/m/"), ("/routefly/c/", "/c/"), ("/routefly/s/", "/s/")):
+        if p.startswith(pre): return k
+    if p in ("/routefly/", "/routefly"): return "/"
+    if p.endswith(".html"): return p[len("/routefly/"):] if p.startswith("/routefly/") else p
+    return None
+def kind(ua):
+    if not ua or ua == "-": return "UA 없음(예전 줄 · 서버 안)"
+    u = ua.lower()
+    if re.search(r"googlebot|yeti|daum|bingbot|duckduckbot|applebot|naver", u): return "검색 로봇"
+    if re.search(r"gptbot|chatgpt|claudebot|claude-web|perplexity|ccbot|bytespider|amazonbot|meta-externalagent|ai2bot", u): return "AI 수집"
+    if re.search(r"bot|crawl|spider|slurp|scan|fetch|monitor|preview", u): return "그 밖의 로봇"
+    if re.search(r"python|curl|wget|go-http|java/|okhttp|axios|node-fetch|libwww|httpclient|postman", u): return "프로그램"
+    if "headless" in u: return "Headless 브라우저"
+    m = re.search(r"chrome/(\d+)", u)
+    if m and int(m.group(1)) < 130 and "samsungbrowser" not in u and "whale" not in u: return "오래된 크롬(<130)"
+    return "사람 브라우저"
+tot = 0; paths = collections.Counter(); q = collections.Counter(); kinds = collections.Counter(); who = collections.Counter(); whoKind = {}; whoPath = collections.defaultdict(collections.Counter); qk = collections.defaultdict(collections.Counter)
+with open(sys.argv[1], encoding="utf-8", errors="replace") as fh:
+    for line in fh:
+        m = LINE.match(line.rstrip("\n"))
+        if not m or m.group(4) != "GET" or int(m.group(6)) >= 400: continue
+        pk = page(m.group(5))
+        if not pk: continue
+        tot += 1; paths[pk] += 1
+        slot = "%s:%02d" % (m.group(2), int(m.group(3)) // 15 * 15); q[slot] += 1
+        k = kind(m.group(7)); kinds[k] += 1; qk[slot][k] += 1
+        h = hashlib.sha256(salt + m.group(1).encode()).hexdigest()[:8]
+        who[h] += 1; whoKind[h] = k; whoPath[h][pk] += 1
+print("화면 합계", tot, "· 서로 다른 곳", len(who))
+print("\n[브라우저 종류]"); [print(" %6d  %s" % (n, k)) for k, n in kinds.most_common()]
+print("\n[경로 묶음 상위 15]"); [print(" %6d  %s" % (n, k)) for k, n in paths.most_common(15)]
+print("\n[15분별 - 많은 순 12, 가장 많은 종류]")
+for s, n in q.most_common(12): print(" %s %5d  %s" % (s, n, qk[s].most_common(1)[0][0]))
+print("\n[많이 연 곳 상위 10 - 주소 대신 해시]")
+for h, n in who.most_common(10): print(" %s %5d  %s  %s" % (h, n, whoKind[h], ", ".join("%s %d" % x for x in whoPath[h].most_common(2))))
+PY
+    ;;
+  *) echo "이 열쇠로는 files · tail [N] · log 이름 [N] · grep 낱말 [N] · access 날짜 만 됩니다." >&2; exit 2 ;;
 esac
