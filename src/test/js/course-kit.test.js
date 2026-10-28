@@ -168,6 +168,21 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
         eq("스탬프 - 100m 안 · 안 다녀간 것", RF.npStampsDue(st, 38.0011, 128.0, {}, 100).length, 1);
         eq("스탬프 - 다녀갔으면 없음", RF.npStampsDue(st, 38.0011, 128.0, { "시험|가까운센터": {} }, 100).length, 0);
     })();
+    // 옛 기록 카드 바로잡기(2026-10-28 PC - 10-23 지리산 기록: 튄 점 직선 왕복 · 끊김 · 1,950m)
+    (function () {
+        var T0 = 1760000000000, tr = [];
+        for (var i = 0; i < 10; i++) tr.push([35.30 + i * 0.0003, 127.70, T0 + i * 30000, 1000 + i * 10]);   // 30초에 33m - 걷기
+        tr.splice(5, 0, [35.40, 127.80, T0 + 4 * 30000 + 5000, 1990], [35.4001, 127.8001, T0 + 4 * 30000 + 8000, 1995]);   // 5초 만에 14km 튄 점 둘(이어짐)
+        var cl = RF.cleanTrack(tr, false);
+        eq("튐 - 나갔다 돌아온 점 둘 뺌", [cl.length, cl.some(function (p) { return p[0] > 35.39; })].join(), "10,false");
+        var gap = tr.filter(function (p) { return p[0] < 35.39; }).concat([[35.32, 127.70, T0 + 30 * 60000, 1300]]);   // 화면 꺼짐 - 27분 뒤 2km 너머
+        eq("끊김 - 걸을 만한 빠르기면 남김", RF.cleanTrack(gap, false).length, 11);
+        var rc = RF.recordCourse({ name: "x", kind: "hike", track: gap });
+        eq("끊김 - 점선 표시(마지막 구간만)", rc.gap.filter(Boolean).length + ":" + rc.gap[rc.gap.length - 1], "1:true");
+        var spikeEle = { lat: [35.33, 35.331, 35.332, 35.333, 35.334], lon: [127.7, 127.7, 127.7, 127.7, 127.7], ele: [1900, 1902, 1990, 1904, 1903] };
+        eq("가장 높은 곳 - 한 점 튐(1,990)은 가운뎃값으로", RF.recordHighest(spikeEle, [], null), 1904);
+        eq("가장 높은 곳 - 정상 200m 안이면 공식 높이", RF.recordHighest(spikeEle, [{ id: "지리산", lat: 35.3321, lon: 127.7 }], { "지리산": 1915 }), 1915);
+    })();
     eq("트립 - 들머리", RF.tripLink("https://kr.trip.com/?Allianceid=1&SID=2&trip_sub1=routefly&curr=KRW&locale=ko-KR", 35.3070131, 127.6136087, "지리산 중산리"),
         "https://kr.trip.com/hotels/list?cityId=0&searchType=LM&searchWord=%EC%A7%80%EB%A6%AC%EC%82%B0%20%EC%A4%91%EC%82%B0%EB%A6%AC&searchValue=13%7C0*13*35.307013%7C127.613609%7C%EC%A7%80%EB%A6%AC%EC%82%B0%20%EC%A4%91%EC%82%B0%EB%A6%AC%7C0%7C1&listFilters=17~5*17*5&Allianceid=1&SID=2&trip_sub1=routefly&curr=KRW&locale=ko-KR");
     eq("트립 - 옛 검색 칸은 버림 · ? 앞 / 없어도", RF.tripLink("https://kr.trip.com?Allianceid=1&city=88097&checkIn=2026-10-28&lat=1&listFilters=x", 38.17, 128.49, "설악산|소공원").indexOf("city=88097") < 0 && RF.tripLink("https://kr.trip.com?listFilters=x", 1, 2, "a").indexOf("listFilters=x") < 0 && RF.tripLink("https://kr.trip.com?Allianceid=1", 38.17, 128.49, "a").indexOf("Allianceid=1") > 0, true);

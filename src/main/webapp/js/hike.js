@@ -1109,6 +1109,10 @@
      * 기록 공유 카드(2026-10-14 홍TV님) - 지나온 선 · 거리 · 시간 · 오른 높이 · 고도 그래프를 그림 한 장(1080×1350)으로.
      * 지도 그림은 넣지 않고(받아 오는 데 오래 걸리고 출처 표시가 필요) 선만 그립니다. 핸드폰 안에서 만들고 이용자가 고른 앱으로만 보냅니다.
      */
+    /** 카드의 "가장 높은 곳" 을 정상 공식 높이로(100대 명산 자리 · 공식 높이 - 처음 한 번 받아 둠). */
+    var cardPeaks = { peaks: null, elev: null };
+    jsonOnce("data/mountains100.json").then(function (d) { cardPeaks.peaks = (d && d.peaks) || []; }, function () { /* 없으면 GPS 높이 */ });
+    jsonOnce("data/peak-elev.json").then(function (d) { cardPeaks.elev = (d && d.elev) || null; }, function () { /* 없으면 GPS 높이 */ });
     function recordCard(rec) {
         var rc = RF.recordCourse(rec), W = 1080, H = 1350, P = 72;
         var cv = document.createElement("canvas");
@@ -1133,9 +1137,12 @@
         if (pts.length > 1) {
             g.save(); g.translate(P, top);
             g.lineJoin = "round"; g.lineCap = "round";
-            g.beginPath(); pts.forEach(function (q, i) { if (i) g.lineTo(q[0], q[1]); else g.moveTo(q[0], q[1]); });
+            // 위치가 끊긴 구간(rc.gap - 크롬 화면 꺼짐 등)은 가는 점선, 나머지는 굵은 선(2026-10-28 PC)
+            g.beginPath(); pts.forEach(function (q, i) { if (i && !rc.gap[i]) g.lineTo(q[0], q[1]); else g.moveTo(q[0], q[1]); });
             g.strokeStyle = "rgba(56,217,234,0.25)"; g.lineWidth = 22; g.stroke();
             g.strokeStyle = "#38d9ea"; g.lineWidth = 9; g.stroke();
+            g.beginPath(); pts.forEach(function (q, i) { if (i && rc.gap[i]) { g.moveTo(pts[i - 1][0], pts[i - 1][1]); g.lineTo(q[0], q[1]); } });
+            g.setLineDash([14, 14]); g.strokeStyle = "rgba(56,217,234,0.55)"; g.lineWidth = 5; g.stroke(); g.setLineDash([]);
             [[pts[0], "#2fb344"], [pts[pts.length - 1], "#ff5c5c"]].forEach(function (e) {
                 g.beginPath(); g.arc(e[0][0], e[0][1], 16, 0, Math.PI * 2); g.fillStyle = e[1]; g.fill();
                 g.lineWidth = 5; g.strokeStyle = "#fff"; g.stroke();
@@ -1143,10 +1150,11 @@
             g.restore();
         }
         // 숫자
-        var eles = rc.ele.filter(function (e) { return e != null; });
-        var stats = [[T("거리", "Distance"), km(rec.walked) + " km"], [T("시간", "Time"), RF.hm(rec.end - rec.start, true)]]
+        var eles = rc.ele.filter(function (e) { return e != null; }), high = RF.recordHighest(rc, cardPeaks.peaks, cardPeaks.elev);
+        // 거리: 걸은 거리와 코스 진행 가운데 큰 값(2026-10-28 PC: 화면이 꺼져 위치가 끊긴 옛 기록은 걸은 거리가 짧게 남음 - 12km 산행이 5.45km)
+        var stats = [[T("거리", "Distance"), km(Math.max(rec.walked || 0, rec.done || 0)) + " km"], [T("시간", "Time"), RF.hm(rec.end - rec.start, true)]]
             .concat(rec.up != null ? [[T("오른 높이", "Climb"), num(rec.up) + " m"]] : [])
-            .concat(eles.length ? [[T("가장 높은 곳", "Highest"), num(Math.max.apply(null, eles)) + " m"]] : []);
+            .concat(high != null ? [[T("가장 높은 곳", "Highest"), num(high) + " m"]] : []);
         var sy = top + boxH + 70, cw = (W - P * 2) / stats.length;
         stats.forEach(function (s, i) {
             var x = P + cw * i;
