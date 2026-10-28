@@ -791,9 +791,11 @@ tick().then(function () {
     eq("다음은 - 영어는 이름도 영어(검색은 한글)", [RF.afterHikeLinks({}, { name: "설악산 대청봉" }, true).links[0].text, RF.afterHikeLinks({}, { name: "설악산 대청봉" }, true).links[0].href.indexOf(encodeURIComponent("설악산")) > 0], ["🍜 Food near Seoraksan Daecheongbong", true]);
     // 쿠팡 - 회복 용품 + 오늘 산행 · 계절에 맞는 것(2026-10-28 홍TV님 "a, b")
     var CP = { crampon: ["https://link.coupang.com/c"], knee: ["https://link.coupang.com/k"], warm: ["https://link.coupang.com/w"], sun: ["https://link.coupang.com/s"], stick: ["https://link.coupang.com/t"], recovery: ["https://link.coupang.com/r"] };
-    var gk = function (up, mo, cp) { var g = RF.afterHikeGear(cp || CP, up, mo); return (g.recovery ? "r+" : "") + (g.gear ? g.gear.key : "-"); };
+    var gk = function (up, mo, cp) { var g = RF.afterHikeGear(cp || CP, up, mo); return (g.recovery.length ? "r+" : "") + (g.gear ? g.gear.key : "-"); };
     eq("쿠팡 - 한겨울 아이젠 · 큰 오르막 무릎 · 11월 보온 · 여름 모자 · 400m 스틱 · 봄 낮은 산 무릎", [gk(900, 1), gk(900, 10), gk(300, 11), gk(300, 7), gk(500, 5), gk(100, 5)], ["r+crampon", "r+knee", "r+warm", "r+sun", "r+stick", "r+knee"]);
     eq("쿠팡 - 링크 없는 것은 건너뜀 · 회복 없으면 하나만", [gk(900, 1, { stick: ["https://link.coupang.com/t"] }), gk(0, 1, {})], ["stick", "-"]);
+    var named = RF.afterHikeLinks({ coupang: { recovery: ["https://link.coupang.com/1", "https://link.coupang.com/2", "https://link.coupang.com/3"], knee: ["https://link.coupang.com/k"] }, coupangNames: { recovery: ["폼롤러", "마사지건", "콘드로이친"] } }, { name: "x", up: 100, month: 10 }, false);
+    eq("쿠팡 - 회복 용품 이름마다(폼롤러 · 마사지건 · 콘드로이친)", named.links.map(function (x) { return x.text; }).slice(1, 5), ["🧴 폼롤러(쿠팡)", "🧴 마사지건(쿠팡)", "🧴 콘드로이친(쿠팡)", "🦵 무릎 보호대(쿠팡)"]);
     eq("쿠팡 - 화면에 둘(회복 · 그날 것)", RF.afterHikeLinks({ coupang: CP }, { name: "x", up: 900, month: 7 }, false).links.map(function (x) { return x.text; }).slice(1, 3), ["🧴 산행 뒤 회복 용품(쿠팡)", "🦵 무릎 보호대(쿠팡)"]);
     eq("다음은 - 제휴 설정 없으면 맛집 · 다음 산만", RF.afterHikeLinks({}, { name: "북한산" }, false).links.length, 2);
     // 인솔자 지금 할 일 · 회원 탑승 카드(2026-10-28 추천 2)

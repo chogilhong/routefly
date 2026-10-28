@@ -4965,10 +4965,10 @@
      */
     /**
      * 순수 함수 - 산행을 마친 화면의 쿠팡 물건(2026-10-28 홍TV님 "a, b"). coupang - api/partners 의 coupang, up - 오늘 오른 높이(m), month - 1~12.
-     * recovery: 산행 뒤 회복 용품(설정 partner.coupang.recovery). gear: 다음 산행에 맞는 것 하나 -
+     * recovery: 산행 뒤 회복 용품 배열(설정 partner.coupang.recovery, "이름|주소" 면 이름마다 - names 는 api/partners 의 coupangNames). gear: 다음 산행에 맞는 것 하나 -
      * 한겨울(12~2월) 아이젠 → 오늘 오르막 800m 넘으면 무릎 보호대 → 11 · 3월 보온 → 6~8월 모자 · 선크림 → 400m 넘으면 스틱 → 무릎 보호대 · 스틱. 링크가 없는 것은 건너뜀.
      */
-    function afterHikeGear(coupang, up, month) {
+    function afterHikeGear(coupang, up, month, names) {
         var cp = coupang || {}, first = function (k) { var u = cp[k] && cp[k][0]; return /^https:\/\//.test(u || "") ? u : null; };
         var NAMES = { crampon: "🧊 아이젠", knee: "🦵 무릎 보호대", warm: "🔥 보온병 · 핫팩", sun: "🧢 모자 · 선크림", stick: "🥢 등산 스틱" };
         up = +up || 0; month = +month || 0;
@@ -4981,8 +4981,14 @@
         order.push("knee", "stick");
         var gear = null;
         for (var i = 0; i < order.length && !gear; i++) if (first(order[i])) gear = { key: order[i], label: NAMES[order[i]], href: first(order[i]) };
-        var rc = first("recovery");
-        return { recovery: rc ? { key: "recovery", label: "🧴 산행 뒤 회복 용품", href: rc } : null, gear: gear };
+        // 회복 용품 - 이름이 있으면 이름마다 단추(폼롤러 · 마사지건 · 콘드로이친, 2026-10-28 홍TV님), 없으면 "산행 뒤 회복 용품" 하나
+        var recovery = [], ru = cp.recovery || [], rn = (names && names.recovery) || [];
+        for (var j = 0; j < ru.length && j < 3; j++) {
+            if (!/^https:\/\//.test(ru[j] || "")) continue;
+            if (rn[j]) recovery.push({ key: "recovery", label: "🧴 " + rn[j], href: ru[j] });
+            else if (!recovery.length) recovery.push({ key: "recovery", label: "🧴 산행 뒤 회복 용품", href: ru[j] });
+        }
+        return { recovery: recovery, gear: gear };
     }
 
     function afterHikeLinks(p, end, en) {
@@ -4998,8 +5004,8 @@
             af = true;
         }
         if (!en) {   // 쿠팡(한국어만) - 회복 용품 하나 + 오늘 산행 · 계절에 맞는 것 하나(2026-10-28 홍TV님 "a, b 로 하자")
-            var pick = afterHikeGear(p.coupang, end.up, end.month);
-            [pick.recovery, pick.gear].forEach(function (x) { if (x) { out.push({ text: x.label + "(쿠팡)", href: x.href, sponsored: true }); co = true; } });
+            var pick = afterHikeGear(p.coupang, end.up, end.month, p.coupangNames);
+            pick.recovery.concat(pick.gear ? [pick.gear] : []).forEach(function (x) { out.push({ text: x.label + "(쿠팡)", href: x.href, sponsored: true }); co = true; });
         }
         out.push({ text: T("⛰️ 다음 산 고르기", "⛰️ Pick your next mountain"), href: en ? "en/m/" : "m/", sponsored: false });
         return { links: out, coupang: co, affiliate: af };

@@ -116,5 +116,10 @@ public class ReviewRound2Test {
     public void partnersRecoveryKey() {
         JsonObject o = PartnersServlet.body(k -> "partner.coupang.recovery".equals(k) ? "https://link.coupang.com/a/r1" : null);
         assertEquals("[\"https://link.coupang.com/a/r1\"]", o.getAsJsonObject("coupang").getAsJsonArray("recovery").toString());
+        // "이름|주소" - 이름마다 단추(2026-10-28 홍TV님 "폼롤러 · 마사지건 · 콘드로이친"), 이름은 꺾쇠 · 따옴표 뺌, 주소는 쿠팡만
+        JsonObject n = PartnersServlet.body(k -> "partner.coupang.recovery".equals(k) ? "폼롤러|https://link.coupang.com/a/1, 마사지<건>|https://link.coupang.com/a/2,콘드로이친|https://evil.example/x" : null);
+        assertEquals("[\"https://link.coupang.com/a/1\",\"https://link.coupang.com/a/2\"]", n.getAsJsonObject("coupang").getAsJsonArray("recovery").toString());
+        assertEquals("[\"폼롤러\",\"마사지건\"]", n.getAsJsonObject("coupangNames").getAsJsonArray("recovery").toString());
+        assertFalse("이름 없으면 coupangNames 에 안 넣음", o.getAsJsonObject("coupangNames").has("recovery"));
     }
 }

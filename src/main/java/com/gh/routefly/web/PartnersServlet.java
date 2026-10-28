@@ -17,6 +17,7 @@ import com.google.gson.JsonObject;
  * <ul>
  *   <li>{@code partner.coupang.<물건>} - 쿠팡 파트너스 링크(link.coupang.com · coupa.ng). 물건은 {@link #GEAR}.
  *       한 물건에 여러 개면 쉼표로(앞의 COUPANG_MAX 개까지) → 응답은 물건마다 주소 배열.
+ *       "이름|주소" 로 적으면 coupangNames 에 같은 차례로 이름(10자까지) - 산행을 마친 화면의 회복 용품 단추(2026-10-28).
  *       화면은 링크 아래에 공정위가 정한 "수수료를 받습니다" 문구를 붙입니다.</li>
  *   <li>{@code partner.agoda.url} - 아고다 제휴 링크(www.agoda.com). 안에 {lat} · {lon} 이 있으면 들머리 좌표로 바꿉니다.</li>
  *   <li>{@code partner.trip.url} - 트립닷컴 제휴 링크(www · kr · us.trip.com, 2026-10-21 신청 중). {lat} · {lon} 도 아고다처럼.</li>
@@ -44,19 +45,27 @@ public class PartnersServlet extends HttpServlet {
 
     /** 순수 함수 - 응답 본문. conf 는 설정 읽기(열쇠 → 값, 없으면 null). */
     static JsonObject body(UnaryOperator<String> conf) {
-        JsonObject out = new JsonObject(), coupang = new JsonObject();
+        JsonObject out = new JsonObject(), coupang = new JsonObject(), names = new JsonObject();
         out.addProperty("success", true);
         for (String g : GEAR) {
             String v = conf.apply("partner.coupang." + g);
             if (v == null) continue;
-            JsonArray urls = new JsonArray();
+            JsonArray urls = new JsonArray(), nm = new JsonArray();
             for (String u : v.split(",")) {
                 u = u.trim();
-                if (urls.size() < COUPANG_MAX && allowed(u, "https://link.coupang.com/", "https://coupa.ng/")) urls.add(u);
+                // "이름|주소" 도 받음(2026-10-28 홍TV님 "폼롤러 · 마사지건 · 콘드로이친" - 회복 용품을 이름별 단추로)
+                String label = null;
+                int bar = u.indexOf('|');
+                if (bar > 0) { label = Party.clean(u.substring(0, bar), 10); u = u.substring(bar + 1).trim(); }
+                if (urls.size() < COUPANG_MAX && allowed(u, "https://link.coupang.com/", "https://coupa.ng/")) { urls.add(u); nm.add(label == null ? "" : label); }
             }
             if (urls.size() > 0) coupang.add(g, urls);
+            boolean any = false;
+            for (int i = 0; i < nm.size(); i++) any |= !nm.get(i).getAsString().isEmpty();
+            if (any) names.add(g, nm);   // 주소와 같은 차례, 이름 없는 것은 ""
         }
         out.add("coupang", coupang);
+        out.add("coupangNames", names);
         String agoda = conf.apply("partner.agoda.url");
         if (checkHost("partner.agoda.url", agoda, "agoda.com")) out.addProperty("agoda", agoda);
         String trip = conf.apply("partner.trip.url");

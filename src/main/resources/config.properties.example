@@ -56,6 +56,7 @@ site.baseUrl=
 #   물건: water(물 · 간식) · rain(우비) · headlamp(헤드랜턴) · battery(보조배터리) · firstaid(구급약 · 밴드) · shoes(등산화)
 #        · pack(등산 가방) · stick(등산 스틱) · knee(무릎 보호대) · sun(모자 · 선크림) · warm(보온병 · 핫팩) · crampon(아이젠) · glove(장갑)
 #        · recovery(산행 뒤 회복 용품 - 산행을 마친 화면 "다음은?" 에만, 2026-10-28)
+#   "이름|주소" 로 적으면 이름마다 단추(recovery 처럼). 예: partner.coupang.recovery=폼롤러|https://link.coupang.com/a/AAA,마사지건|https://link.coupang.com/a/BBB,콘드로이친|https://link.coupang.com/a/CCC
 #   산행을 마친 화면 "다음은?"(한국어): recovery 하나 + 그날 것 하나(한겨울 아이젠 → 오르막 800m~ 무릎 보호대 → 11 · 3월 보온 → 6~8월 모자 · 선크림 → 400m~ 스틱 → 무릎 보호대 · 스틱)
 #   화면에 보이는 때: 늘 - 물 · 우비 · 헤드랜턴 · 배터리 · 구급약 · 등산화 · 가방 / 오르막 500m~ 스틱, 800m~ 무릎 보호대 /
 #                    4~9월 모자 · 선크림, 11~3월 보온병 · 핫팩 · 아이젠, 10~4월 장갑
@@ -65,7 +66,7 @@ site.baseUrl=
 #partner.coupang.stick=
 #partner.coupang.crampon=
 # 산행을 마친 화면 "다음은?" 의 회복 용품(폼롤러 · 마사지건 · 파스 등, 2026-10-28) - 없으면 그 단추만 안 나옴
-#partner.coupang.recovery=
+#partner.coupang.recovery=폼롤러|,마사지건|,콘드로이친|
 # 아고다 제휴(승인 뒤): 아고다 파트너 누리집에서 만든 링크(https://www.agoda.com/...). 안의 {lat} · {lon} 은 들머리 좌표로 바뀜.
 #partner.agoda.url=
 # 트립닷컴 제휴(승인 뒤 - 2026-10-21 신청): 트립닷컴 제휴 누리집에서 만든 숙소 링크(https://kr.trip.com… · www.trip.com… 등 trip.com 주소). {lat} · {lon} 은 들머리 좌표로.
