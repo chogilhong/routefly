@@ -1463,7 +1463,7 @@
             var info = document.createElement("div"), b = document.createElement("b"), sp = document.createElement("span");
             b.textContent = NM(r.name);
             var d = new Date(r.start);
-            sp.textContent = d.getFullYear() + "." + (d.getMonth() + 1) + "." + d.getDate() + " · " + km(r.walked) + "km · " + hhmmss(r.end - r.start)
+            sp.textContent = d.getFullYear() + "." + (d.getMonth() + 1) + "." + d.getDate() + " · " + km(Math.max(r.walked || 0, r.done || 0)) + "km · " + hhmmss(r.end - r.start)
                 + (r.kcal != null ? " · " + num(r.kcal) + "kcal" : "") + (r.steps != null ? " · " + num(r.steps) + T("보", " steps") : "");
             info.appendChild(b); info.appendChild(sp);
             var g = document.createElement("button"); g.textContent = canShareFiles() ? "📤 GPX" : "GPX"; g.title = T("GPX 파일 보내기 · 저장", "Send or save GPX file"); g.onclick = function () { downloadGpx(r); };
@@ -1677,9 +1677,9 @@
         var d = new Date(rec.start);
         var eles = rc.ele.filter(function (e) { return e != null; });
         [[T("날짜", "Date"), d.getFullYear() + "." + (d.getMonth() + 1) + "." + d.getDate() + " " + clock(rec.start)],
-         [T("걸은 거리", "Walked"), km(rec.walked) + " km"], [T("걸린 시간", "Time"), hhmmss(rec.end - rec.start)]]
+         [T("거리", "Distance"), km(Math.max(rec.walked || 0, rec.done || 0)) + " km"], [T("걸린 시간", "Time"), hhmmss(rec.end - rec.start)]]   // 카드와 같은 규칙(2026-10-28 PC)
             .concat(rec.up != null ? [[T("오른 높이", "Climb"), num(rec.up) + " m"]] : [])
-            .concat(eles.length ? [[T("가장 높은 곳", "Highest"), num(Math.max.apply(null, eles)) + " m"]] : [])
+            .concat(eles.length ? [[T("가장 높은 곳", "Highest"), num(RF.recordHighest(rc, cardPeaks.peaks, cardPeaks.elev)) + " m"]] : [])
             .concat(rec.kcal != null ? [[T("칼로리(추정)", "Calories (est.)"), num(rec.kcal) + " kcal"]] : [])
             .forEach(function (r) {
                 var row = document.createElement("div"), a = document.createElement("span"), b = document.createElement("b");
