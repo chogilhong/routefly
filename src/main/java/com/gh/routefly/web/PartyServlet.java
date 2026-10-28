@@ -30,7 +30,10 @@ import com.google.gson.JsonParser;
  * POST /api/party/depart {token}                           인솔자 - 출발(안 탄 사람 취소)
  * POST /api/party/notice {token, text} · /bus {token, bus, lat, lon} · /plate {token, bus, plate}  (인솔자)
  * POST /api/party/kick   {token, id}                       인솔자 - 회원 내보내기(그 폰은 410 "내보냈습니다")
- * POST /api/party/leave  {token} · /end {token, cancel}    나가기 · (인솔자) 방 끝내기 · 산행 취소
+ * POST /api/party/leave  {token} · /end {token, cancel, why, force}  나가기 · (주 인솔자 · 사무실) 방 끝내기 · 산행 취소 - SOS 중이면 막음, 하산 미확인이 있으면 force 없이는 막음
+ * POST /api/party/leadcode {token} · /mecode {token} · /link {token, office}  주 인솔자 - 보조 인솔자 코드 바꾸기 · 내 폰 코드 · 회사 연결
+ * POST /api/party/office/create {name} → {code, key}   회사 사무실 만들기(비밀 링크 = key)
+ * POST /api/party/office/rooms {key} · /office/enter {key, code} · /office/detach {key, code}  사무실 - 방 목록(숫자) · 방 열기(인솔자 화면) · 방 빼기
  * </pre>
  * 끝난 방 열쇠로 오면 410 + 까닭. 설정 party.enabled=true 가 아니면 status 말고는 404.
  */
@@ -62,11 +65,13 @@ public class PartyServlet extends HttpServlet {
         // IPv6 는 /64 로 묶음(점검: 주소마다 따로 세어 한 사람이 주소를 바꿔 가며 방 2000개를 채울 수 있었음)
         String path = req.getPathInfo(), ip = RateLimiter.group(SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For")));
         long now = System.currentTimeMillis();
-        boolean lookup = "/info".equals(path) || "/join".equals(path);
+        boolean lookup = "/info".equals(path) || "/join".equals(path) || (path != null && path.startsWith("/office/") && !"/office/create".equals(path));
         if (lookup && MISSES.over(ip, now)) { Json.fail(resp, 429, "방 코드를 너무 많이 틀렸습니다. 10분 뒤 다시 해 주세요."); return; }
         boolean create = "/create".equals(path) && !owner(req);
         if (create && (CREATES.over(ip, now) || CREATES_ALL.over("*", now))) { Json.fail(resp, 429, "하루에 만들 수 있는 방 수를 넘었습니다. 내일 다시 해 주세요."); return; }
         if ("/join".equals(path) && JOINS.over(ip, now)) { Json.fail(resp, 429, "한 곳에서 참가를 너무 많이 했습니다. 1시간 뒤 다시 해 주세요."); return; }
+        boolean office = "/office/create".equals(path) && !owner(req);
+        if (office && OFFICES.over(ip, now)) { Json.fail(resp, 429, "하루에 만들 수 있는 사무실 수를 넘었습니다. 내일 다시 해 주세요."); return; }
         JsonObject in;
         try {
             in = body(req);
@@ -78,6 +83,7 @@ public class PartyServlet extends HttpServlet {
             JsonObject out = handle(Party.STORE, path, in, now);
             if (create) { CREATES.take(ip, now); CREATES_ALL.take("*", now); }   // 만든 것만 셈(점검: 날짜를 틀린 것도 세어 하루 막혔음)
             if ("/join".equals(path)) JOINS.take(ip, now);
+            if (office) OFFICES.take(ip, now);
             Json.write(resp, 200, out, false);
         } catch (Party.Ended e) {
             Json.fail(resp, 410, e.getMessage());
@@ -85,6 +91,7 @@ public class PartyServlet extends HttpServlet {
             if (lookup && e.getMessage() != null && e.getMessage().contains("찾지 못했습니다")) MISSES.take(ip, now);   // 없는 코드 - 하나씩 쳐 보기 막기
             Json.fail(resp, 400, e.getMessage());
         } catch (SecurityException e) {
+            if (lookup && path.startsWith("/office/")) MISSES.take(ip, now);   // 틀린 사무실 링크 - 하나씩 쳐 보기 막기
             Json.fail(resp, 403, e.getMessage());
         } catch (RuntimeException e) {   // 칸 꼴이 틀림(Gson 등) - 내부 글은 내보내지 않음
             Json.fail(resp, 400, "요청을 읽지 못했습니다.");
@@ -101,6 +108,8 @@ public class PartyServlet extends HttpServlet {
      * 프로그램으로 300명을 채우는 것만 늦춤(방 한도 MAX_MEMBERS 300).
      */
     static final Quota JOINS = new Quota(120, 3600_000L);
+    /** 회사 사무실 만들기 - IP 마다 하루 3곳. */
+    static final Quota OFFICES = new Quota(3, 24 * 3600_000L);
 
     /** 운영자 기기(/stats 를 연 브라우저 · 앱 - 쿠키 값이 통계 열쇠에서 만든 값과 맞을 때)는 방 만들기 하루 제한을 받지 않음(2026-10-21 PC: 시험하다 막힘). */
     static boolean owner(HttpServletRequest req) {
@@ -155,12 +164,25 @@ public class PartyServlet extends HttpServlet {
     /** 처리(시험이 store · 시각을 넣음). 잘못된 값 → IllegalArgumentException, 권한 없음 → SecurityException, 끝난 방 → Party.Ended. */
     static JsonObject handle(Party p, String path, JsonObject in, long now) {
         if ("/create".equals(path)) {
+            String oc = str(in, "office");   // 회사 코드(있으면) - 틀리면 방을 만들기 전에 알림
+            if (oc != null && oc.isBlank()) oc = null;
+            if (oc != null && p.offices.byCode(oc) == null) throw new IllegalArgumentException("회사 코드를 찾지 못했습니다. 회사에 다시 확인해 주세요.");
             Party.Member lead = p.create(str(in, "name"), lng(in, "departAt"), lng(in, "endAt"), Math.max(1, (int) lng(in, "buses")), (int) lng(in, "seats"), ints(in, "busSeats"),
                     Party.stops(str(in, "stops")), str(in, "leaderName"), str(in, "leaderPhone"), strs(in, "plates"), now);
             p.stopTimes(lead, Party.stopTimes(str(in, "stops")));   // 탑승지마다 출발 시각(2026-10-27)
+            if (oc != null) p.linkOffice(lead, oc);
             return withToken(p.view(lead, now), lead);
         }
         if ("/info".equals(path)) return p.info(str(in, "code"), now);
+        if ("/office/create".equals(path)) {
+            String[] o = p.createOffice(str(in, "name"), now);
+            JsonObject out = ok();
+            out.addProperty("code", o[0]); out.addProperty("key", o[1]); out.addProperty("name", o[2]);
+            return out;
+        }
+        if ("/office/rooms".equals(path)) return p.officeRooms(str(in, "key"), now);
+        if ("/office/enter".equals(path)) { Party.Member om = p.officeEnter(str(in, "key"), str(in, "code"), now); return withToken(p.view(om, now), om); }
+        if ("/office/detach".equals(path)) { p.officeDetach(str(in, "key"), str(in, "code")); return ok(); }
         if ("/join".equals(path)) {
             if (!bool(in, "agree")) throw new IllegalArgumentException("위치 제공에 동의해야 참가할 수 있습니다.");
             Party.Member m = p.join(str(in, "code"), str(in, "nick"), str(in, "role"), integer(in, "bus"), integer(in, "seat"), str(in, "stop"), bool(in, "onBus"), now);
@@ -213,7 +235,8 @@ public class PartyServlet extends HttpServlet {
             case "/leave" -> { p.leave(m, now); return ok(); }
             case "/leadcode" -> { JsonObject o = ok(); o.addProperty("leadCode", p.newLeadCode(m, now)); return o; }
             case "/mecode" -> { JsonObject o = ok(); o.addProperty("code", p.meCode(m, now)); o.addProperty("min", Party.ME_CODE_MS / 60_000); return o; }
-            case "/end" -> { if (!lead) throw new SecurityException("인솔자만 방을 끝낼 수 있습니다."); p.end(m, bool(in, "cancel"), now); return ok(); }
+            case "/end" -> { if (!lead) throw new SecurityException("인솔자만 방을 끝낼 수 있습니다."); p.end(m, bool(in, "cancel"), str(in, "why"), bool(in, "force"), now); return ok(); }
+            case "/link" -> { p.linkOffice(m, str(in, "office")); }
             default -> throw new IllegalArgumentException("없는 주소입니다.");
         }
         return p.view(m, now);

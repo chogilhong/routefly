@@ -45,10 +45,11 @@
     function leadsText(s, ko) {
         var ls = (s.members || []).filter(function (m) { return m.role === "lead"; });
         var main = ls.filter(function (m) { return m.chief; }).map(function (m) { return esc(m.nick); });
-        var sub = ls.filter(function (m) { return !m.chief; }).map(function (m) { return esc(m.nick); });
         if (!main.length && s.leaderName) main = [esc(s.leaderName)];
-        if (ko) return "인솔자" + (main.length ? " " + main.join(" · ") : "") + (sub.length ? " · 보조 " + sub.join(" · ") : "");
-        return "the leader" + (main.length ? " " + main.join(", ") : "") + (sub.length ? " and assistant" + (sub.length > 1 ? "s " : " ") + sub.join(", ") : "");
+        var sub = ls.filter(function (m) { return !m.chief && !m.office; }).map(function (m) { return esc(m.nick); });   // 사무실 자리는 아래 회사 이름으로
+        var off = s.office ? esc(s.office) : "";   // 회사 사무실(2026-10-28)
+        if (ko) return "인솔자" + (main.length ? " " + main.join(" · ") : "") + (sub.length ? " · 보조 " + sub.join(" · ") : "") + (off ? " · " + off + " 사무실" : "");
+        return "the leader" + (main.length ? " " + main.join(", ") : "") + (sub.length ? ", assistant" + (sub.length > 1 ? "s " : " ") + sub.join(", ") : "") + (off ? " and the " + off + " office" : "");
     }
 
     function render(s) {

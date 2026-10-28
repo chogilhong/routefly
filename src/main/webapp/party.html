@@ -187,6 +187,7 @@ a.tel { color:var(--sky); }
             <div class="two">
                 <div><label for="mkLead" data-en="Leader name">인솔자 이름</label><input id="mkLead" type="text" maxlength="12" placeholder="예: 김대장" data-en-placeholder="e.g. Captain Kim"></div>
                 <div><label for="mkPhone" data-en="Leader phone (required)">인솔자 연락처(필수)</label><input id="mkPhone" type="tel" maxlength="20" placeholder="010-…"></div>
+                <div><label for="mkOffice" data-en="Company code (optional)">회사 코드(있으면)</label><input id="mkOffice" type="text" maxlength="6" autocapitalize="characters" placeholder="회사 사무실이 함께 봄" data-en-placeholder="company office watches too"></div>
             </div>
             <div class="two">
                 <div><label for="mkBuses" data-en="Number of buses">차량 수</label><input id="mkBuses" type="number" min="1" max="8" value="1" inputmode="numeric"></div>
@@ -281,6 +282,9 @@ a.tel { color:var(--sky); }
                 <button id="leaveBtn" class="danger" data-en="Leave room">방 나가기</button>
                 <button id="endBtn" class="danger" hidden data-en="End room (hike over - deletes everyone's location)">방 끝내기 (산행 끝 - 모두의 위치 지움)</button>
             </div>
+            <p id="officeRow" class="tip" hidden></p>
+            <div class="row" id="officeLinkRow" hidden><input id="officeCode" type="text" maxlength="6" placeholder="회사 코드" data-en-placeholder="Company code" style="max-width:9em"><button id="officeLinkBtn" data-en="🏢 Link to company office">🏢 회사 사무실에 올리기</button></div>
+            <p id="officeBack" class="tip" hidden><a href="party-office.html" style="color:var(--sky)" data-en="← Back to the office screen">← 사무실 화면으로</a></p>
             <div id="roomMsg" class="tip" role="status" aria-live="polite"></div>
         </section>
     </div>

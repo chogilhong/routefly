@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>routefly 회사 사무실</title>
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=2">
+<meta name="theme-color" content="#11161d">
+<!-- 2026-10-28 홍TV님 "회사는 이 전체를 모니터링 가능해?" - 한 회사의 산악회 방(한라산 · 지리산 · 설악산 …)을 한 화면에.
+     아이디 · 비밀번호 없이 비밀 사무실 링크(#k=…)로 들어옴. 목록은 숫자만, 방을 열면 인솔자 화면(party.html)으로. -->
+<style>
+:root { --bg:#11161d; --panel:#1a212b; --tx:#eef2f7; --dim:#9aa6b4; --ln:rgba(255,255,255,0.12); --sky:#38d9ea; --red:#ff6b6b; --yel:#ffd43b; --green:#51cf66; }
+* { box-sizing:border-box; }
+[hidden] { display:none !important; }
+html, body { margin:0; background:var(--bg); color:var(--tx); font-family:Arial,"Malgun Gothic",sans-serif; }
+#top { position:sticky; top:0; z-index:5; display:flex; align-items:center; gap:8px; padding:calc(env(safe-area-inset-top) + 8px) 12px 8px; background:var(--panel); border-bottom:1px solid var(--ln); }
+#top a { color:var(--sky); text-decoration:none; font-weight:bold; font-size:14px; }
+#title { flex:1; min-width:0; font-size:15px; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+main { max-width:1100px; margin:0 auto; padding:12px 12px calc(env(safe-area-inset-bottom) + 24px); }
+section { background:var(--panel); border:1px solid var(--ln); border-radius:12px; padding:14px; margin-bottom:12px; }
+h2 { font-size:16px; margin:0 0 10px; }
+label { display:block; font-size:13.5px; color:var(--dim); margin:10px 0 4px; }
+input[type=text] { width:100%; height:44px; padding:0 12px; border-radius:10px; border:1px solid var(--ln); background:#0f141a; color:var(--tx); font-size:16px; }
+button { min-height:40px; padding:0 12px; border-radius:10px; border:1px solid var(--ln); background:rgba(255,255,255,0.08); color:var(--tx); font-size:14px; font-weight:bold; cursor:pointer; }
+button.main { background:var(--sky); color:#062026; border-color:var(--sky); }
+button.danger { color:var(--red); border-color:rgba(255,107,107,0.5); }
+.tip { font-size:14px; color:var(--dim); line-height:1.6; margin:8px 0 0; }
+.code { font-size:20px; letter-spacing:3px; font-weight:bold; color:var(--sky); }
+.wrap { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; font-size:14px; }
+th, td { padding:8px 6px; border-bottom:1px solid var(--ln); text-align:left; vertical-align:top; white-space:nowrap; }
+th { color:var(--dim); font-weight:normal; font-size:13px; }
+td.name { white-space:normal; min-width:10em; }
+tr.sos td { background:rgba(201,42,42,0.35); }
+tr.warn td { background:rgba(255,212,59,0.14); }
+.red { color:var(--red); font-weight:bold; }
+.yel { color:var(--yel); font-weight:bold; }
+.ok { color:var(--green); }
+#msg { color:var(--red); font-size:14px; min-height:18px; margin-top:8px; }
+#linkBox { word-break:break-all; background:#0f141a; border:1px solid var(--ln); border-radius:8px; padding:8px; font-size:13px; }
+</style>
+</head>
+<body>
+<div id="top"><a href="m/">‹ routefly</a><div id="title">🏢 회사 사무실</div><span id="updated" class="tip" style="margin:0"></span></div>
+<main>
+    <!-- 사무실 링크가 없을 때: 만들기 -->
+    <section id="newSec" hidden>
+        <h2>🏢 회사 사무실 만들기</h2>
+        <p class="tip">여러 산악회 방(한라산 · 지리산 · 설악산 등)을 한 화면에서 봅니다. 아이디 · 비밀번호 없이, 만들 때 나오는 <b>사무실 링크</b>로 들어옵니다.
+            링크를 잃어버리면 다시 찾을 수 없으니 사무실 PC 즐겨찾기 등에 꼭 남겨 두세요.</p>
+        <label for="offName">회사 이름</label>
+        <input id="offName" type="text" maxlength="30" placeholder="예: 시험산악회">
+        <p><button id="offCreate" class="main">사무실 만들기</button></p>
+        <p class="tip">이미 사무실 링크가 있으면 그 링크로 들어오세요.</p>
+    </section>
+    <!-- 만든 직후: 링크 보관 -->
+    <section id="madeSec" hidden>
+        <h2>✅ 사무실을 만들었습니다</h2>
+        <p class="tip">아래 <b>사무실 링크</b>가 비밀번호 대신입니다. 사무실 사람끼리만 나누고, 즐겨찾기에 꼭 남겨 두세요(잃어버리면 다시 찾을 수 없음).</p>
+        <div id="linkBox"></div>
+        <p><button id="copyLink">📋 사무실 링크 복사</button> <button id="goOffice" class="main">사무실 화면으로</button></p>
+    </section>
+    <!-- 사무실 화면 -->
+    <div id="officeSec" hidden>
+        <section>
+            <h2 id="offTitle"></h2>
+            <p class="tip">🧭 인솔자에게 줄 <b>회사 코드</b>: <span id="offCode" class="code"></span> - 방을 만들 때 "회사 코드" 칸에 넣거나, 방 화면의 "🏢 회사 사무실에 올리기"로 넣으면 이 화면에 올라옵니다.
+                회원 화면에는 "○○ 사무실에게 위치 제공 중"으로 보입니다.</p>
+        </section>
+        <section>
+            <h2>지금 산행 <span id="liveCount" class="tip"></span></h2>
+            <div class="wrap"><table><thead><tr><th>산행</th><th>상태</th><th>출발 탑승</th><th>하산 탑승</th><th>SOS</th><th>10분 소식 없음</th><th>마지막 소식</th><th>인솔자</th><th></th></tr></thead>
+                <tbody id="live"></tbody></table></div>
+            <p class="tip">빨강 = SOS, 노랑 = 10분 넘게 소식 없는 회원. "열기"를 누르면 인솔자 화면(지도 · 좌석표)으로 봅니다. 30초마다 저절로 새로 받습니다.</p>
+        </section>
+        <section>
+            <h2>끝난 산행 <span class="tip">(200일, 이름 · 위치 없이 숫자만)</span></h2>
+            <div class="wrap"><table><thead><tr><th>끝난 때</th><th>산행</th><th>끝낸 사람</th><th>출발 탑승</th><th>하산 탑승</th><th>하산 미확인</th><th>SOS</th></tr></thead>
+                <tbody id="ended"></tbody></table></div>
+        </section>
+        <p><button id="forget" class="danger">이 기기에서 사무실 링크 지우기</button></p>
+    </div>
+    <div id="msg" role="status" aria-live="polite"></div>
+</main>
+<script src="js/party-kit.js"></script>
+<script src="js/party-office.js"></script>
+</body>
+</html>

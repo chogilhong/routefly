@@ -122,7 +122,8 @@ public class PartyTest {
 
         // 끝 - 회원 열쇠로 오면 까닭(410)
         try { call(p, "/end", tok(a), END); fail(); } catch (SecurityException e) { /* 맞음 */ }
-        call(p, "/end", tok(lead), END);
+        try { call(p, "/end", tok(lead), END); fail("하산 미확인 회원이 있으면 한 번 더 물음(2026-10-28)"); } catch (Party.NotDown e) { assertTrue(e.getMessage().startsWith("아직 하산 확인이")); }
+        call(p, "/end", "{\"token\":\"" + lead + "\",\"force\":true}", END);
         assertEquals(0, p.size());
         try { call(p, "/view", tok(a), END); fail(); } catch (Party.Ended e) { assertTrue(e.getMessage().contains("끝냈")); }
     }
@@ -432,7 +433,7 @@ public class PartyTest {
         assertTrue("인솔자는 최근 2시간만(30초마다 - 약 240점)", trail.size() > 200 && trail.size() <= 241);
         assertTrue("가장 오래된 점이 2시간 안", trail.get(0).getAsJsonArray().get(2).getAsLong() <= 2 * 3600);
         try { call(p, "/trail", "{\"token\":\"" + a + "\",\"id\":1}", t); fail("회원은 남의 길을 못 봄"); } catch (SecurityException e) { /* 맞음 */ }
-        call(p, "/end", tok(lead), t);
+        call(p, "/end", "{\"token\":\"" + lead + "\",\"force\":true}", t);   // 하산 미확인 - 그래도 끝냄(2026-10-28)
         assertEquals("산행 회원 하나", 1, got.size());
         JsonObject o = got.get(0);
         assertFalse("누구인지 · 방은 없음", o.toString().contains("걷는이") || o.toString().contains(code) || o.has("token"));
