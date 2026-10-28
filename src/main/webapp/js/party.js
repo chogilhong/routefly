@@ -1242,7 +1242,7 @@
     function rosterSubmit(text) {
         var r = RF.rosterRead(text), ppl = r.people;
         if (!ppl.length) { roomMsg(T("명단에서 이름을 찾지 못했습니다. \"홍길동 5 김철수 6\" 처럼, 또는 첫 줄에 \"이름 · 좌석\" 칸 이름이 있는 표로 넣어 주세요.", "No names found. Use \"Kim 5 Lee 6\" or a table whose first row has \"이름\" (name) and \"좌석\" (seat).")); return; }
-        var show = ppl.slice(0, 8).map(function (x) { return x.name + (x.seat ? " " + (x.bus > 1 ? x.bus + "-" : "") + x.seat + T("번", "") : ""); }).join(", ") + (ppl.length > 8 ? " …" : "");
+        var show = ppl.slice(0, 8).map(function (x) { return x.name + (x.seat ? " " + (x.bus > 1 ? x.bus + "-" : "") + x.seat + T("번", "") : x.bus > 1 ? T(" " + x.bus + "호차", " bus " + x.bus) : ""); })   // 좌석 없이 호차만도(10-28 PC).join(", ") + (ppl.length > 8 ? " …" : "");
         var noSeat = ppl.filter(function (x) { return !x.seat; }).length;
         var note = (r.phones ? T("\n📵 전화번호 " + r.phones + "개는 넣지 않습니다.", "\n📵 " + r.phones + " phone numbers are left out.") : "")
             + (r.dropped.length ? T("\n넣지 않는 칸: " + r.dropped.slice(0, 5).join(", "), "\nColumns left out: " + r.dropped.slice(0, 5).join(", ")) : "")
