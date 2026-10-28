@@ -704,7 +704,7 @@ public class MountainServlet extends HttpServlet {
             b.append("</div></details>");
         }
         b.append("</div>").append(steep)
-                .append("<section id=\"gearIdx\" hidden></section>")   // 🎒 이번 달 산행 챙길 것(js/mountain.js - 계절 기준, 산 페이지는 그 산 오르막까지 - 2026-10-18 홍TV님)
+                .append("<section id=\"gearIdx\" hidden></section>")   // 🎒 산행 시 챙길 것(js/mountain.js - 계절 기준, 산 페이지는 그 산 오르막까지 - 2026-10-18 홍TV님)
                 .append(tips()).append("<section id=\"fun\" class=\"fun\" hidden></section>")
                 .append(PartyServlet.enabled() ? "<a class=\"anbuLink partyLink\" href=\"" + REL + "/party.html?lang=ko\">🧑‍🤝‍🧑 산악회 방 <small>안내 산악회 · 인솔자 - 좌석 · 탑승 확인 · 서로 위치 · SOS · 호차 · 차량번호</small> ›</a>" : "")   // 2026-10-20 홍TV님 - 켜졌을 때만
                 .append("<a class=\"anbuLink\" href=\"").append(REL).append("/anbu.html?lang=ko\">🏠 오늘의 안부 <small>하루 한 번 '잘 지내요' · 보호자에게 문자 · 매일 알림</small> ›</a>")

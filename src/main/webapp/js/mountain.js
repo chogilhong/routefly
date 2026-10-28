@@ -220,7 +220,7 @@
         gearBox(gs, ascs.length ? ascs[Math.floor(ascs.length / 2)] : 0);
         wx0.parentNode.insertBefore(gs, wx0.nextSibling);
     }
-    // 목록(/m/): 접는 칸 "🎒 이번 달 산행 챙길 것" - 산을 정하기 전에도. 산마다 다른 것(스틱 · 무릎 보호대)은 산 페이지에서
+    // 목록(/m/): 접는 칸 "🎒 산행 시 챙길 것" - 산을 정하기 전에도. 산마다 다른 것(스틱 · 무릎 보호대)은 산 페이지에서
     var gi = document.getElementById("gearIdx");
     if (gi && window.RF) {
         var mon = new Date().getMonth() + 1;
@@ -228,9 +228,9 @@
         det.className = "fold kind";
         det.setAttribute("name", "kind");
         var ft = document.createElement("span"), fs = document.createElement("span"), fa = document.createElement("span");
-        ft.className = "ft"; ft.textContent = "🎒 이번 달 산행 챙길 것";
+        ft.className = "ft"; ft.textContent = "🎒 산행 시 챙길 것";   // 2026-10-28 홍TV님 "이번 달 산행 챙길 것 10월" → (목록은 그대로 이번 달 계절 기준)
         fs.className = "fs";
-        fs.textContent = mon + "월 · " + window.RF.gearList(mon, 0, "hike").map(function (g) { return g.label.split(" · ")[0]; }).slice(0, 4).join(" · ") + " …";
+        fs.textContent = window.RF.gearList(mon, 0, "hike").map(function (g) { return g.label.split(" · ")[0]; }).slice(0, 4).join(" · ") + " …";
         fa.className = "fa"; fa.textContent = "▾";
         sum.appendChild(ft); sum.appendChild(fs); sum.appendChild(fa);
         fb.className = "fb";
