@@ -1382,3 +1382,19 @@ eq("kmaLink 행정동이 있으면 동네예보, 없으면 첫 화면", [RF.kmaL
     k.reset(); k.add("ridge"); k.add("valley"); var b = k.add("top"), wb = k.plan();
     eq("안내도 고르기: 편도 + 고리 닫는 길 · 고리 + 정상 갈래 → 정상은 왕복(고리 방향은 어느 쪽이든)", [a, b, / top top~ /.test(" " + wa + " "), / top top~ /.test(" " + wb + " ")], ["ridge,top,valley", "ridge,top,valley", true, true]);
 })();
+// park-gaps 높이 - terrarium PNG 풀기(2026-10-30). 2 × 2 그림을 직접 만들어(줄 거르기 0 · 1 · 2) 높이 = R × 256 + G + B / 256 - 32768
+(function () {
+    var pg = require(path.join(__dirname, "../../../tools/park-gaps/fetch.js")), zlib = require("zlib");
+    var chunk = function (k, d) { var b = Buffer.alloc(12 + d.length); b.writeUInt32BE(d.length, 0); b.write(k, 4, "ascii"); d.copy(b, 8); return b; };
+    var ih = Buffer.alloc(13); ih.writeUInt32BE(2, 0); ih.writeUInt32BE(2, 4); ih[8] = 8; ih[9] = 2;
+    // 픽셀: (0,0)=836m [131,68,0] (1,0)=837m [131,69,0] / (0,1)=500m [129,244,0] (1,1)=500.5m [129,244,128]
+    var row0 = [1, 131, 68, 0, 0, 1, 0], row1 = [2, 129 - 131, 244 - 68, 0, 129 - 131, 244 - 69, 128];   // 1 = 왼쪽 더하기, 2 = 위 더하기
+    var raw = Buffer.from(row0.concat(row1).map(function (v) { return v & 255; }));
+    var png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk("IHDR", ih), chunk("IDAT", zlib.deflateSync(raw)), chunk("IEND", Buffer.alloc(0))]);
+    var img = pg.pngDecode(png);
+    eq("park-gaps 높이: PNG 풀기 · terrarium 높이", [img.w, img.ch, pg.eleAt(img, 0.5, 0.5), pg.eleAt(img, 1.5, 0.5), pg.eleAt(img, 0.5, 1.5), pg.eleAt(img, 1.5, 1.5)], [2, 3, 836, 837, 500, 500.5]);
+    var t = pg.tileOf(37.658722, 126.978088, 15);
+    var la = 37.658722 * Math.PI / 180, n15 = Math.pow(2, 15);   // 표준 식(tan + sec)으로 따로 셈
+    eq("park-gaps 높이: 타일 번호(백운대 15단계)", [t.x, t.y, t.px >= 0 && t.px < 256 && t.py >= 0 && t.py < 256],
+        [Math.floor((126.978088 + 180) / 360 * n15), Math.floor((1 - Math.log(Math.tan(la) + 1 / Math.cos(la)) / Math.PI) / 2 * n15), true]);
+})();

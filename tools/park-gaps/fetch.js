@@ -8,6 +8,8 @@
  * - Overpass(overpass-api.de)에 두 점 둘레(300m 더)의 걷는 길(path · footway · steps · track)을 묻고, 길 이음(노드)을 따라 가장 짧은 길을 찾음.
  * - 지나는 길에 access=no · private 이 있으면 쓰지 않음(출입금지 길을 그리지 않으려고). sac_scale(난이도) 은 함께 적어 둠.
  * - 자료는 © OpenStreetMap contributors(ODbL) - 화면 지도 출처에 이미 있음.
+ * - 점마다 높이(m)를 Terrain Tiles(AWS Open Data, terrarium 15단계 - 화면 지형과 같은 자료)에서 읽어 [경도, 위도, 높이] 로 둠 - 따라가기 고도 그래프용(2026-10-30).
+ *   이미 넣은 것만 높이를 다시: node tools/park-gaps/fetch.js --ele
  */
 "use strict";
 var fs = require("fs"), path = require("path");
@@ -67,9 +69,69 @@ function closedWays(tags) {
     return (tags || []).filter(function (t) { return /^(no|private)$/.test(String(t.access || "")); });
 }
 
-module.exports = { route: route, closedWays: closedWays, distM: distM, FILE: FILE };
+// ── 높이(Terrain Tiles terrarium PNG: 높이 = R × 256 + G + B / 256 - 32768) ──
+var DEM_URL = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png", DEM_Z = 15;
 
-if (require.main === module) {
+/** 순수 함수 - PNG(8비트 RGB · RGBA, 겹치지 않은 것) → {w, h, ch, px(Buffer, 줄마다 w × ch)}. 다른 꼴이면 null. */
+function pngDecode(buf) {
+    var zlib = require("zlib");
+    if (buf.readUInt32BE(0) !== 0x89504e47) return null;
+    var off = 8, w = 0, h = 0, depth = 0, type = 0, inter = 0, idat = [];
+    while (off < buf.length) {
+        var len = buf.readUInt32BE(off), kind = buf.toString("ascii", off + 4, off + 8), data = buf.slice(off + 8, off + 8 + len);
+        if (kind === "IHDR") { w = data.readUInt32BE(0); h = data.readUInt32BE(4); depth = data[8]; type = data[9]; inter = data[12]; }
+        else if (kind === "IDAT") idat.push(data);
+        else if (kind === "IEND") break;
+        off += 12 + len;
+    }
+    if (depth !== 8 || (type !== 2 && type !== 6) || inter) return null;
+    var ch = type === 6 ? 4 : 3, raw = zlib.inflateSync(Buffer.concat(idat)), stride = w * ch, px = Buffer.alloc(h * stride);
+    for (var y = 0; y < h; y++) {
+        var f = raw[y * (stride + 1)], src = raw.slice(y * (stride + 1) + 1, (y + 1) * (stride + 1));
+        for (var i = 0; i < stride; i++) {
+            var a = i >= ch ? px[y * stride + i - ch] : 0, b = y ? px[(y - 1) * stride + i] : 0, c = i >= ch && y ? px[(y - 1) * stride + i - ch] : 0, v;
+            if (f === 0) v = src[i];
+            else if (f === 1) v = src[i] + a;
+            else if (f === 2) v = src[i] + b;
+            else if (f === 3) v = src[i] + ((a + b) >> 1);
+            else { var pp = a + b - c, pa = Math.abs(pp - a), pb = Math.abs(pp - b), pc = Math.abs(pp - c); v = src[i] + (pa <= pb && pa <= pc ? a : pb <= pc ? b : c); }
+            px[y * stride + i] = v & 255;
+        }
+    }
+    return { w: w, h: h, ch: ch, px: px };
+}
+
+/** 순수 함수 - 위경도 → 타일 번호 · 타일 안 픽셀(실수). */
+function tileOf(lat, lon, z) {
+    var n = Math.pow(2, z), x = (lon + 180) / 360 * n, s = Math.sin(lat * Math.PI / 180), y = (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * n;
+    return { x: Math.floor(x), y: Math.floor(y), px: (x - Math.floor(x)) * 256, py: (y - Math.floor(y)) * 256 };
+}
+
+/** 순수 함수 - 풀어 둔 타일에서 그 픽셀의 높이(m, 소수 한 자리). */
+function eleAt(img, px, py) {
+    var x = Math.min(img.w - 1, Math.max(0, Math.round(px - 0.5))), y = Math.min(img.h - 1, Math.max(0, Math.round(py - 0.5))), i = (y * img.w + x) * img.ch;
+    return Math.round((img.px[i] * 256 + img.px[i + 1] + img.px[i + 2] / 256 - 32768) * 10) / 10;
+}
+
+/** coords [[경도, 위도(, 높이)]…] → 높이를 붙인 새 배열(타일은 한 번씩 받음). */
+function withEle(coords) {
+    var tiles = {};
+    var get = function (t) {
+        var k = t.x + "/" + t.y;
+        if (!tiles[k]) tiles[k] = fetch(DEM_URL.replace("{z}", DEM_Z).replace("{x}", t.x).replace("{y}", t.y)).then(function (r) { if (!r.ok) throw new Error("DEM " + r.status); return r.arrayBuffer(); })
+            .then(function (b) { var img = pngDecode(Buffer.from(b)); if (!img) throw new Error("DEM 그림 꼴이 다름"); return img; });
+        return tiles[k];
+    };
+    return Promise.all(coords.map(function (p) { var t = tileOf(p[1], p[0], DEM_Z); return get(t).then(function (img) { return [p[0], p[1], eleAt(img, t.px, t.py)]; }); }));
+}
+
+module.exports = { route: route, closedWays: closedWays, distM: distM, FILE: FILE, pngDecode: pngDecode, tileOf: tileOf, eleAt: eleAt };
+
+if (require.main === module && process.argv.indexOf("--ele") > 0) {   // 이미 넣은 빈 구간에 높이만 다시
+    var doc0 = JSON.parse(fs.readFileSync(FILE, "utf8")), jobs = [];
+    Object.keys(doc0.parks || {}).forEach(function (pk) { (doc0.parks[pk] || []).forEach(function (g) { jobs.push(withEle(g.coords).then(function (c) { g.coords = c; g.ele = "Terrain Tiles(AWS Open Data) terrarium " + DEM_Z; console.log(g.name + " 높이 " + Math.min.apply(null, c.map(function (q) { return q[2]; })) + " ~ " + Math.max.apply(null, c.map(function (q) { return q[2]; })) + "m"); })); }); });
+    Promise.all(jobs).then(function () { fs.writeFileSync(FILE, JSON.stringify(doc0, null, 1) + "\n"); console.log("넣음: " + FILE); }).catch(function (err) { console.log("실패: " + err.message); process.exit(1); });
+} else if (require.main === module) {
     var a = process.argv.slice(2).filter(function (x) { return x !== "--dry"; }), dry = process.argv.indexOf("--dry") > 0;
     var ll = function (s) { var m = /^(-?\d+(\.\d+)?),(-?\d+(\.\d+)?)$/.exec(s || ""); return m ? [+m[1], +m[3]] : null; };
     var park = a[0], fromName = a[1], from = ll(a[2]), toName = a[3], to = ll(a[4]);
@@ -86,10 +148,14 @@ if (require.main === module) {
             var closed = closedWays(r.tags);
             if (closed.length) { console.log("출입금지 길(access=no · private)이 있어 쓰지 않음: " + closed.map(function (t) { return t.id; }).join(", ")); process.exit(1); }
             if (dry) return;
+            return withEle(r.coords).then(function (c) { r.coords = c; return r; });
+        })
+        .then(function (r) {
+            if (!r) return;
             var doc = fs.existsSync(FILE) ? JSON.parse(fs.readFileSync(FILE, "utf8")) : { parks: {} };
             var list = doc.parks[park] = (doc.parks[park] || []).filter(function (x) { return x.name !== park + " · " + fromName + " → " + toName; });
             list.push({ id: "osmgap-" + r.ways[0] + "-" + r.ways[r.ways.length - 1], name: park + " · " + fromName + " → " + toName, distance_m: r.distance_m, coords: r.coords,
-                src: "© OpenStreetMap contributors", ways: r.ways, sac: r.tags.map(function (t) { return t.sac_scale; }).filter(Boolean), fetched: new Date().toISOString().slice(0, 10) });
+                src: "© OpenStreetMap contributors", ele: "Terrain Tiles(AWS Open Data) terrarium " + DEM_Z, ways: r.ways, sac: r.tags.map(function (t) { return t.sac_scale; }).filter(Boolean), fetched: new Date().toISOString().slice(0, 10) });
             fs.writeFileSync(FILE, JSON.stringify(doc, null, 1) + "\n");
             console.log("넣음: " + FILE);
         })
