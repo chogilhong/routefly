@@ -3218,10 +3218,10 @@
             }));
             Promise.all([getJson("api/courses?q=" + encodeURIComponent(q) + (kindFilter ? "&kind=" + kindFilter : ""))].concat(renamed.map(function (id) {
                 return getJson("api/course?id=" + encodeURIComponent(id)).then(function (j) { return j.course; }, function () { return null; });
-            })).concat([offRows]))
+            })).concat([offRows, jsonOnce("data/mountains100.json").catch(function () { return null; })]))
                 .then(function (r) {
                     if (my !== pickSeq) return;
-                    var rows = (r[0].courses || []).slice();
+                    var m100 = r.pop(), rows = RF.summitFirst((r[0].courses || []).slice(), q, m100 && m100.peaks);   // 명산이면 정상까지 가는 코스 먼저(2026-10-30 홍TV님 북한산 백운대)
                     r.pop().reduce(function (a, b) { return a.concat(b); }, []).reverse().forEach(function (c) {
                         if (!rows.some(function (x) { return x.course_id === c.course_id; })) rows.unshift(c);
                     });

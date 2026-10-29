@@ -1406,3 +1406,13 @@ eq("kmaLink 행정동이 있으면 동네예보, 없으면 첫 화면", [RF.kmaL
     var plain = RF.fromApi("c", { course: { name: "x · p → q" }, points: [[126.977, 37.661, 586, 0], [126.978, 37.6587, 808, 600]], pois: [{ name: "q", dist_m: 600, off_route_m: 0, ele_m: 900 }] });
     eq("joinCourses 최고는 공식 정상 높이까지(공식 표시 없는 이름표 높이는 안 씀)", [RF.joinCourses([a, b], "a,b").course.ele_max_m, RF.joinCourses([a, plain], "a,c").course.ele_max_m], [836, 808]);
 })();
+// 명산 이름으로 찾으면 정상까지 가는 코스 먼저(2026-10-30 홍TV님: 북한산 → 백운대 코스가 121번째부터)
+(function () {
+    var peaks = [{ id: "북한산", name: "북한산", summit: "북한산백운대", height: 856 }, { id: "가리산", name: "가리산", summit: "가리산", height: 1060 }, { id: "백운산(광양)", name: "백운산", summit: "상봉", height: 1240 }];
+    var rows = [{ name: "북한산 · 거북골 → 보문능선", ele_max_m: 492 }, { name: "북한산 · 광륜사 → 은석암", ele_max_m: 284 }, { name: "고양 북한산 백운대 · 원효암 → 북한산(백운대)", ele_max_m: 836 },
+        { name: "북한산 · 사기막골입구 → 백운대", ele_max_m: 594 }];
+    eq("summitFirst 높이로 닿는 코스 · 이름만 정상인 코스 · 나머지(같은 쪽은 원래 차례)", RF.summitFirst(rows, "북한산", peaks).map(function (r) { return r.ele_max_m; }), [836, 594, 492, 284]);
+    eq("summitFirst 이름만 정상인 것은 높이로 닿는 것 뒤", RF.summitFirst([rows[3], rows[0], rows[2]], "북한산", peaks).map(function (r) { return r.ele_max_m; }), [836, 594, 492]);
+    eq("summitFirst 정상 이름이 산 이름이면 높이로", RF.summitFirst([{ name: "가리산 · a → b", ele_max_m: 600 }, { name: "가리산 · c → 가리산", ele_max_m: 1050 }], "가리산", peaks).map(function (r) { return r.ele_max_m; }), [1050, 600]);
+    eq("summitFirst 명산이 아니면 그대로", RF.summitFirst(rows, "보문능선", peaks), rows);
+})();
