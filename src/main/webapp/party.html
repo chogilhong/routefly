@@ -148,7 +148,7 @@ a.tel { color:var(--sky); }
 
     <div id="start" hidden>
         <!-- 회사 사무실로 가는 길(2026-10-29 홍TV님 "링크를 넣어야 겠는데" - 주소를 알아야만 들어갔음) - 화면 맨 위 - 인솔자 코드 줄 위(2026-10-29 "그 위로"), 방 만들기 칸과 함께 숨음(party.js) -->
-        <p class="tip" id="officeGo" style="text-align:center;margin:0 0 8px"><a href="party-office.html" style="color:var(--sky)" data-en="🏢 Company office (many rooms on one screen) ›">🏢 회사 사무실 (여러 방을 한 화면에) ›</a></p>
+        <p class="tip" id="officeGo" style="text-align:center;margin:0 0 8px"><a href="party-office.html" style="color:var(--sky)" data-en-href="party-office.html?lang=en" data-en="🏢 Company office (many rooms on one screen) ›">🏢 회사 사무실 (여러 방을 한 화면에) ›</a></p>
 
         <p id="joinShowRow" class="tip" style="text-align:center;margin:0 0 12px">   <!-- 화면 제일 위(2026-10-27 홍TV님 - 맨 아래라 안 보였음) --><a href="#" id="joinShow" style="color:var(--sky)" data-en="🧭 Enter with a leader code · join with a room code">🧭 인솔자 코드 · 방 코드로 들어가기</a></p>
         <p id="mkShowRow" class="tip" style="text-align:center;margin:0 0 12px" hidden>   <!-- 맨 위(2026-10-27 홍TV님) - 누르면 첫 화면(방 만들기)으로 --><a href="#" id="mkShow" style="color:var(--sky)" data-en="🧭 Are you the leader? Create a room">🧭 인솔자이신가요? 방 만들기</a></p>
@@ -306,7 +306,7 @@ a.tel { color:var(--sky); }
             <div class="row" id="myDropRow" hidden><label for="myDrop" style="margin:0;align-self:center;flex:0 0 auto" data-en="⬇ My drop-off">⬇ 내 하차</label><select id="myDrop"></select></div>
             <p id="officeRow" class="tip" hidden></p>
             <div class="row" id="officeLinkRow" hidden><input id="officeCode" type="text" maxlength="6" placeholder="회사 코드" data-en-placeholder="Company code" style="max-width:9em"><button id="officeLinkBtn" data-en="🏢 Link to company office">🏢 회사 사무실에 올리기</button></div>
-            <p id="officeBack" class="tip" hidden><a href="party-office.html" style="color:var(--sky)" data-en="← Back to the office screen">← 사무실 화면으로</a></p>
+            <p id="officeBack" class="tip" hidden><a href="party-office.html" style="color:var(--sky)" data-en-href="party-office.html?lang=en" data-en="← Back to the office screen">← 사무실 화면으로</a></p>
             <div id="roomMsg" class="tip" role="status" aria-live="polite"></div>
         </section>
     </div>

@@ -824,6 +824,8 @@ tick().then(function () {
     eq("CSV - 머리 줄", lines[0].slice(1), "끝난 날,끝난 시각,산행,출발,취소,취소 사유,끝낸 사람,회원,출발 탑승,안 탐,하산 탑승,따로 귀가,하산 미확인,SOS");
     eq("CSV - 한국 시각 · 수식 막기 · 따옴표", lines[1], "2026-10-28,18:05,\"'=설악산, \"\"공룡\"\"\",2026-10-27 23:20,,,시험대장,40,38,2,37,1,1,있었음");
     eq("CSV - 취소는 하산 칸 비움", lines[2], "2026-10-28,09:00,취소 산행,,취소,태풍,시험대장,10,0,0,,,,");
+    var csvEn = cs.window.RFOfficeCsv.officeCsv([{ endedAt: Date.UTC(2026, 9, 28, 0, 0), name: "취소 산행", cancelled: true, why: "태풍", by: "시험대장", hikers: 10, sosEver: true }], true).split("\r\n");
+    eq("CSV 영어 - 머리 줄 · 취소 · SOS", [csvEn[0].slice(1).split(",")[0], csvEn[0].split(",").length, csvEn[1]], ["Ended date", 14, "2026-10-28,09:00,취소 산행,,Cancelled,태풍,시험대장,10,0,0,,,,Yes"]);
     console.log((fails ? "FAILED " : "OK ") + (runs - fails) + "/" + runs);
     process.exit(fails ? 1 : 0);
 });

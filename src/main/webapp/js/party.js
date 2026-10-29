@@ -524,7 +524,7 @@
         if (watch != null) navigator.geolocation.clearWatch(watch);
         var office = (RFParty.get() || {}).office;
         RFParty.clear();
-        (text ? say(text) : Promise.resolve()).then(function () { location.href = office ? "party-office.html" : EXIT; });   // 회사 사무실은 사무실 화면으로
+        (text ? say(text) : Promise.resolve()).then(function () { location.href = office ? (EN ? "party-office.html?lang=en" : "party-office.html") : EXIT; });   // 회사 사무실은 사무실 화면으로
     }
 
     var leaving = false;   // 나가는 중 - 늦게 온 답(지운 열쇠)의 오류를 띄우지 않음(2026-10-20 PC)

@@ -50,72 +50,72 @@ tr.warn td { background:rgba(255,212,59,0.14); }
 </style>
 </head>
 <body>
-<h1 class="vh">routefly 회사 사무실</h1>
-<div id="top"><a href="party.html?lang=ko" id="backTop">‹ 뒤로</a><div id="title">🏢 회사 사무실</div><span id="updated" class="tip" style="margin:0"></span></div>
+<h1 data-en="routefly Company office" class="vh">routefly 회사 사무실</h1>
+<div id="top"><a data-en="‹ Back" href="party.html?lang=ko" id="backTop">‹ 뒤로</a><div data-en="🏢 Company office" id="title">🏢 회사 사무실</div><span id="updated" class="tip" style="margin:0"></span></div>
 <main>
     <!-- 내 사무실 여럿(2026-10-29 홍TV님 - 회사 2곳): 이 기기가 연 사무실을 골라 봄. PC 는 탭마다 다른 사무실도 됨 -->
     <div id="mineBar" hidden>
-        <select id="mineSel" aria-label="내 사무실 고르기"></select>
-        <button id="mineAdd" type="button">＋ 사무실 하나 더 만들기</button>
-        <button id="mineBack" type="button" hidden>‹ 보던 사무실로</button>
+        <select data-en-aria-label="Choose my office" id="mineSel" aria-label="내 사무실 고르기"></select>
+        <button data-en="＋ Create another office" id="mineAdd" type="button">＋ 사무실 하나 더 만들기</button>
+        <button data-en="‹ Back to my office" id="mineBack" type="button" hidden>‹ 보던 사무실로</button>
     </div>
     <!-- 사무실 링크가 없을 때: 만들기 -->
     <section id="newSec" hidden>
-        <h2>🏢 회사 사무실 만들기</h2>
-        <p class="tip">여러 산악회 방(한라산 · 지리산 · 설악산 등)을 한 화면에서 봅니다. 아이디 · 비밀번호 없이, 만들 때 나오는 <b>사무실 링크</b>로 들어옵니다.
+        <h2 data-en="🏢 Create a company office">🏢 회사 사무실 만들기</h2>
+        <p data-en="See several hiking club rooms (Hallasan, Jirisan, Seoraksan etc.) on one screen. No ID or password - you enter with the &lt;b&gt;office link&lt;/b&gt; shown when you create it. A lost link cannot be recovered, so be sure to bookmark it on your office PC." class="tip">여러 산악회 방(한라산 · 지리산 · 설악산 등)을 한 화면에서 봅니다. 아이디 · 비밀번호 없이, 만들 때 나오는 <b>사무실 링크</b>로 들어옵니다.
             링크를 잃어버리면 다시 찾을 수 없으니 사무실 PC 즐겨찾기 등에 꼭 남겨 두세요.</p>
-        <label for="offName">회사 이름</label>
-        <input id="offName" type="text" maxlength="30" placeholder="예: 시험산악회">
-        <p><button id="offCreate" class="main">사무실 만들기</button></p>
-        <p class="tip">이미 사무실 링크가 있으면 그 링크로 들어오세요.</p>
+        <label data-en="Company name" for="offName">회사 이름</label>
+        <input data-en-placeholder="e.g. Test Hiking Club" id="offName" type="text" maxlength="30" placeholder="예: 시험산악회">
+        <p data-en="&lt;button id=&quot;offCreate&quot; class=&quot;main&quot;&gt;Create office&lt;/button&gt;"><button id="offCreate" class="main">사무실 만들기</button></p>
+        <p data-en="If you already have an office link, open it instead." class="tip">이미 사무실 링크가 있으면 그 링크로 들어오세요.</p>
     </section>
     <!-- 만든 직후: 링크 보관 -->
     <section id="madeSec" hidden>
-        <h2 id="madeTitle">✅ 사무실을 만들었습니다</h2>
-        <p class="tip">아래 <b>사무실 링크</b>가 비밀번호 대신입니다. 사무실 사람끼리만 나누고, 즐겨찾기에 꼭 남겨 두세요(잃어버리면 다시 찾을 수 없음).</p>
+        <h2 data-en="✅ Office created" id="madeTitle">✅ 사무실을 만들었습니다</h2>
+        <p data-en="The &lt;b&gt;office link&lt;/b&gt; below works as your password. Share it only within your office and be sure to bookmark it (a lost link cannot be recovered)." class="tip">아래 <b>사무실 링크</b>가 비밀번호 대신입니다. 사무실 사람끼리만 나누고, 즐겨찾기에 꼭 남겨 두세요(잃어버리면 다시 찾을 수 없음).</p>
         <div id="linkBox"></div>
-        <p><button id="copyLink">📋 사무실 링크 복사</button> <button id="goOffice" class="main">사무실 화면으로</button></p>
+        <p data-en="&lt;button id=&quot;copyLink&quot;&gt;📋 Copy office link&lt;/button&gt; &lt;button id=&quot;goOffice&quot; class=&quot;main&quot;&gt;Go to the office screen&lt;/button&gt;"><button id="copyLink">📋 사무실 링크 복사</button> <button id="goOffice" class="main">사무실 화면으로</button></p>
     </section>
     <!-- 사무실 화면 -->
     <div id="officeSec" hidden>
         <section>
             <h2 id="offTitle"></h2>
-            <p class="tip">🧭 인솔자에게 줄 <b>회사 코드</b>: <span id="offCode" class="code"></span> - 방을 만들 때 "회사 코드" 칸에 넣거나, 방 화면의 "🏢 회사 사무실에 올리기"로 넣으면 이 화면에 올라옵니다.
+            <p data-en="🧭 &lt;b&gt;Company code&lt;/b&gt; to give your leaders: &lt;span id=&quot;offCode&quot; class=&quot;code&quot;&gt;&lt;/span&gt; - when they enter it in the &quot;Company code&quot; field while creating a room, or with &quot;🏢 Link to company office&quot; on the room screen, the room appears here. Members&#x27; screens show &quot;Sharing your location with ... office&quot;." class="tip">🧭 인솔자에게 줄 <b>회사 코드</b>: <span id="offCode" class="code"></span> - 방을 만들 때 "회사 코드" 칸에 넣거나, 방 화면의 "🏢 회사 사무실에 올리기"로 넣으면 이 화면에 올라옵니다.
                 회원 화면에는 "○○ 사무실에게 위치 제공 중"으로 보입니다.</p>
         </section>
         <!-- 승인 기다리는 방(2026-10-28 - 회사 코드만 알면 아무나 방을 올릴 수 있어, 우리 방이 맞는지 사무실이 승인) -->
         <section id="pendSec" hidden>
-            <h2>🕓 승인 기다리는 방 <span id="pendCount" class="tip"></span></h2>
-            <div class="wrap"><table><thead><tr><th>산행</th><th>출발</th><th>인솔자</th><th>회원</th><th></th></tr></thead>
+            <h2 data-en="🕓 Rooms waiting for approval &lt;span id=&quot;pendCount&quot; class=&quot;tip&quot;&gt;&lt;/span&gt;">🕓 승인 기다리는 방 <span id="pendCount" class="tip"></span></h2>
+            <div class="wrap"><table><thead data-en="&lt;tr&gt;&lt;th&gt;Hike&lt;/th&gt;&lt;th&gt;Departure&lt;/th&gt;&lt;th&gt;Leader&lt;/th&gt;&lt;th&gt;Members&lt;/th&gt;&lt;th&gt;&lt;/th&gt;&lt;/tr&gt;"><tr><th>산행</th><th>출발</th><th>인솔자</th><th>회원</th><th></th></tr></thead>
                 <tbody id="pend"></tbody></table></div>
-            <p class="tip">인솔자가 회사 코드를 넣은 방입니다. 우리 산악회 방이 맞으면 <b>승인</b> - 그때부터 아래 "지금 산행" 에 올라오고, 회원 화면에도 "○○ 사무실" 이 보입니다. 모르는 방이면 <b>빼기</b>.</p>
+            <p data-en="Rooms where a leader entered your company code. If it is your club&#x27;s room, &lt;b&gt;Approve&lt;/b&gt; - from then on it appears in &quot;Hikes now&quot; below and members&#x27; screens show your office. If you don&#x27;t know the room, &lt;b&gt;Remove&lt;/b&gt; it." class="tip">인솔자가 회사 코드를 넣은 방입니다. 우리 산악회 방이 맞으면 <b>승인</b> - 그때부터 아래 "지금 산행" 에 올라오고, 회원 화면에도 "○○ 사무실" 이 보입니다. 모르는 방이면 <b>빼기</b>.</p>
         </section>
         <section>
-            <h2>지금 산행 <span id="liveCount" class="tip"></span></h2>
-            <div class="wrap"><table><thead><tr><th>산행</th><th>상태</th><th>출발 탑승</th><th>하산 탑승</th><th>SOS</th><th>10분 소식 없음</th><th>마지막 소식</th><th>인솔자</th><th></th></tr></thead>
+            <h2 data-en="Hikes now &lt;span id=&quot;liveCount&quot; class=&quot;tip&quot;&gt;&lt;/span&gt;">지금 산행 <span id="liveCount" class="tip"></span></h2>
+            <div class="wrap"><table><thead data-en="&lt;tr&gt;&lt;th&gt;Hike&lt;/th&gt;&lt;th&gt;Status&lt;/th&gt;&lt;th&gt;Boarded&lt;/th&gt;&lt;th&gt;Back on bus&lt;/th&gt;&lt;th&gt;SOS&lt;/th&gt;&lt;th&gt;Silent 10 min&lt;/th&gt;&lt;th&gt;Last update&lt;/th&gt;&lt;th&gt;Leader&lt;/th&gt;&lt;th&gt;&lt;/th&gt;&lt;/tr&gt;"><tr><th>산행</th><th>상태</th><th>출발 탑승</th><th>하산 탑승</th><th>SOS</th><th>10분 소식 없음</th><th>마지막 소식</th><th>인솔자</th><th></th></tr></thead>
                 <tbody id="live"></tbody></table></div>
-            <p class="tip">빨강 = SOS, 노랑 = 10분 넘게 소식 없는 회원. "열기"를 누르면 인솔자 화면(지도 · 좌석표)으로 봅니다. 30초마다 저절로 새로 받습니다.</p>
+            <p data-en="Red = SOS, yellow = members silent for over 10 minutes. &quot;Open&quot; shows the leader screen (map, seat chart). Refreshes every 30 seconds." class="tip">빨강 = SOS, 노랑 = 10분 넘게 소식 없는 회원. "열기"를 누르면 인솔자 화면(지도 · 좌석표)으로 봅니다. 30초마다 저절로 새로 받습니다.</p>
         </section>
         <section>
-            <h2>끝난 산행 <span class="tip">(200일, 이름 · 위치 없이 숫자만)</span></h2>
-            <p><button id="csvBtn">📥 엑셀로 내려받기 (CSV)</button> <span class="tip">200일 모두 - 월별 산행 수 · 탑승 인원 정산, 안전 기록 보관에</span></p>
-            <div class="wrap"><table><thead><tr><th>끝난 때</th><th>산행</th><th>끝낸 사람</th><th>출발 탑승</th><th>하산 탑승</th><th>하산 미확인</th><th>SOS</th></tr></thead>
+            <h2 data-en="Finished hikes &lt;span class=&quot;tip&quot;&gt;(200 days, numbers only - no names or locations)&lt;/span&gt;">끝난 산행 <span class="tip">(200일, 이름 · 위치 없이 숫자만)</span></h2>
+            <p data-en="&lt;button id=&quot;csvBtn&quot;&gt;📥 Download for Excel (CSV)&lt;/button&gt; &lt;span class=&quot;tip&quot;&gt;All 200 days - for monthly hike and passenger counts and safety records&lt;/span&gt;"><button id="csvBtn">📥 엑셀로 내려받기 (CSV)</button> <span class="tip">200일 모두 - 월별 산행 수 · 탑승 인원 정산, 안전 기록 보관에</span></p>
+            <div class="wrap"><table><thead data-en="&lt;tr&gt;&lt;th&gt;Ended&lt;/th&gt;&lt;th&gt;Hike&lt;/th&gt;&lt;th&gt;Ended by&lt;/th&gt;&lt;th&gt;Boarded&lt;/th&gt;&lt;th&gt;Back on bus&lt;/th&gt;&lt;th&gt;Descent unconfirmed&lt;/th&gt;&lt;th&gt;SOS&lt;/th&gt;&lt;/tr&gt;"><tr><th>끝난 때</th><th>산행</th><th>끝낸 사람</th><th>출발 탑승</th><th>하산 탑승</th><th>하산 미확인</th><th>SOS</th></tr></thead>
                 <tbody id="ended"></tbody></table></div>
         </section>
         <section>
-            <h2>사무실 관리</h2>
-            <p><button id="forget">이 기기에서 로그아웃 (사무실은 그대로)</button></p>
-            <p class="tip">공용 PC 에서 쓰고 나갈 때. 이 브라우저에 저장된 이 사무실 링크만 지웁니다(다른 내 사무실은 그대로) - 사무실 링크로 다시 들어올 수 있습니다.</p>
-            <p><button id="copyMine">📋 이 기기의 사무실 링크 복사</button></p>
-            <p class="tip">다른 직원 · 다른 PC 에 줄 때, 즐겨찾기에 다시 남길 때. 링크는 바뀌지 않습니다.</p>
-            <p><button id="rename">✏️ 회사 이름 바꾸기</button></p>
-            <p class="tip">오타 · 상호가 바뀌었을 때. 회사 코드 · 사무실 링크는 그대로이고, 이미 올라온 방의 회원 화면에도 새 이름으로 보입니다. 사무실에서 열어 둔 방 화면은 "열기" 를 다시 눌러 주세요.</p>
-            <p><button id="newKey">🔄 사무실 링크 바꾸기</button></p>
-            <p class="tip">링크가 샌 것 같을 때. 새 링크가 나오고 옛 링크는 바로 안 됩니다(다른 직원에게 새 링크를 다시 알려 주세요). 회사 코드는 그대로입니다.</p>
-            <p><button id="newCode">🔄 회사 코드 바꾸기</button></p>
-            <p class="tip">회사 코드가 엉뚱한 사람에게 퍼졌을 때. 옛 코드로는 새 방을 올릴 수 없고, 이미 올라온 방은 그대로입니다. 인솔자들에게 새 코드를 다시 알려 주세요.</p>
-            <p><button id="delOffice" class="danger">사무실 없애기 (탈퇴)</button></p>
-            <p class="tip">회사 코드 · 사무실 링크가 더는 안 되고, 끝난 산행 요약을 모두 지웁니다. 진행 중인 방은 그대로 두고 회사 연결만 끊습니다. 되돌릴 수 없습니다.</p>
+            <h2 data-en="Office settings">사무실 관리</h2>
+            <p data-en="&lt;button id=&quot;forget&quot;&gt;Log out on this device (office stays)&lt;/button&gt;"><button id="forget">이 기기에서 로그아웃 (사무실은 그대로)</button></p>
+            <p data-en="When leaving a shared PC. Deletes only this office link saved in this browser (your other offices stay) - you can come back with the office link." class="tip">공용 PC 에서 쓰고 나갈 때. 이 브라우저에 저장된 이 사무실 링크만 지웁니다(다른 내 사무실은 그대로) - 사무실 링크로 다시 들어올 수 있습니다.</p>
+            <p data-en="&lt;button id=&quot;copyMine&quot;&gt;📋 Copy this device&#x27;s office link&lt;/button&gt;"><button id="copyMine">📋 이 기기의 사무실 링크 복사</button></p>
+            <p data-en="To give to other staff or PCs, or to bookmark again. The link does not change." class="tip">다른 직원 · 다른 PC 에 줄 때, 즐겨찾기에 다시 남길 때. 링크는 바뀌지 않습니다.</p>
+            <p data-en="&lt;button id=&quot;rename&quot;&gt;✏️ Rename company&lt;/button&gt;"><button id="rename">✏️ 회사 이름 바꾸기</button></p>
+            <p data-en="For typos or a new business name. The company code and office link stay, and members&#x27; screens of linked rooms show the new name too. Tap &quot;Open&quot; again for room screens opened from the office." class="tip">오타 · 상호가 바뀌었을 때. 회사 코드 · 사무실 링크는 그대로이고, 이미 올라온 방의 회원 화면에도 새 이름으로 보입니다. 사무실에서 열어 둔 방 화면은 "열기" 를 다시 눌러 주세요.</p>
+            <p data-en="&lt;button id=&quot;newKey&quot;&gt;🔄 Change office link&lt;/button&gt;"><button id="newKey">🔄 사무실 링크 바꾸기</button></p>
+            <p data-en="If the link may have leaked. You get a new link and the old one stops working at once (send the new link to other staff). The company code stays." class="tip">링크가 샌 것 같을 때. 새 링크가 나오고 옛 링크는 바로 안 됩니다(다른 직원에게 새 링크를 다시 알려 주세요). 회사 코드는 그대로입니다.</p>
+            <p data-en="&lt;button id=&quot;newCode&quot;&gt;🔄 Change company code&lt;/button&gt;"><button id="newCode">🔄 회사 코드 바꾸기</button></p>
+            <p data-en="If the company code spread to the wrong people. New rooms cannot be linked with the old code; linked rooms stay. Send the new code to your leaders." class="tip">회사 코드가 엉뚱한 사람에게 퍼졌을 때. 옛 코드로는 새 방을 올릴 수 없고, 이미 올라온 방은 그대로입니다. 인솔자들에게 새 코드를 다시 알려 주세요.</p>
+            <p data-en="&lt;button id=&quot;delOffice&quot; class=&quot;danger&quot;&gt;Delete office (leave)&lt;/button&gt;"><button id="delOffice" class="danger">사무실 없애기 (탈퇴)</button></p>
+            <p data-en="The company code and office link stop working and all finished hike summaries are deleted. Rooms in progress stay; only the company link is cut. This cannot be undone." class="tip">회사 코드 · 사무실 링크가 더는 안 되고, 끝난 산행 요약을 모두 지웁니다. 진행 중인 방은 그대로 두고 회사 연결만 끊습니다. 되돌릴 수 없습니다.</p>
         </section>
     </div>
     <div id="msg" role="status" aria-live="polite"></div>
