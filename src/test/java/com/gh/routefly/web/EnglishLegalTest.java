@@ -47,6 +47,12 @@ public class EnglishLegalTest {
         assertTrue(abEn.contains("© OpenStreetMap contributors") && abEn.contains("call 119"));
         assertTrue(read("hike.html").contains("data-en-href=\"about-en.html\"") && read("js/course-kit.js").contains("\"alt\", \"href\"]"));
         assertFalse("영어 화면에 (Korean) 안내 링크가 남지 않게", read("hike.html").contains("Safety and data sources (Korean page)") || read("index.html").contains("About · sources (Korean)"));
+        // 인솔자 사용법 영어판(2026-10-29 점검) - 같은 칸 수, 영어 인솔자 화면에서 영어판으로
+        String g = read("party-guide.html"), gEn = read("party-guide-en.html");
+        assertEquals("party-guide-en 칸 수", h2(g), h2(gEn));
+        assertTrue(g.contains("href=\"party-guide-en.html\"") && gEn.contains("href=\"party-guide.html\""));
+        assertFalse("영어판 본문에 한글 없음(주석 · 한국어 링크 · 글꼴 이름 빼고)", gEn.substring(gEn.indexOf("<body>")).replaceAll("(?s)<!--.*?-->", "").replace("한국어", "").matches("(?s).*[가-힣].*"));
+        assertTrue(read("party.html").contains("data-en-href=\"party-guide-en.html#make\""));
         // 이용약관 목차 - 영어판도 20개, 대상 id 모두
         String t = read("terms-en.html");
         java.util.regex.Matcher m = java.util.regex.Pattern.compile("href=\"#(a\\d+)\"").matcher(t);

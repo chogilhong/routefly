@@ -185,7 +185,7 @@ a.tel { color:var(--sky); }
         </section>
         <section id="mkSec">   <!-- 참가 링크(?c=)로 온 회원에게는 숨김(2026-10-20 홍TV님 - 헷갈림), 위 한 줄로 엶 -->
             <h2 data-en="🧭 Create a room (leader)">🧭 방 만들기 (인솔자)</h2>
-            <a class="guideLink" href="party-guide.html#make" data-en="📖 Read the leader guide first (Korean)">📖 인솔자 사용법 먼저 보기</a>
+            <a class="guideLink" href="party-guide.html#make" data-en-href="party-guide-en.html#make" data-en="📖 Read the leader guide first">📖 인솔자 사용법 먼저 보기</a>
             <label for="mkName" data-en="Hike name">산행 이름</label>
             <input id="mkName" type="text" maxlength="30" placeholder="예: 설악산 공룡능선 무박" data-en-placeholder="e.g. Seoraksan Dinosaur Ridge overnight">
             <div class="two">
@@ -263,7 +263,7 @@ a.tel { color:var(--sky); }
             <div id="stopSum" class="tip"></div>
             <p class="tip" data-en="Members who scan the bus QR · NFC become &lt;b&gt;Boarded&lt;/b&gt;. Tap a seat with a person for the menu (boarded · move seat · map · path taken · boarding stop) - check people without a phone yourself. Anyone still &lt;b&gt;Not on bus&lt;/b&gt; at departure is left out of the hike.">회원이 버스 안 QR · NFC 를 찍으면 <b>출발 탑승</b>이 됩니다. 사람이 있는 자리를 누르면 메뉴(출발 탑승 · 자리 옮기기 · 지도 · 지나온 길 · 탑승지) - 핸드폰 없는 분은 여기서 체크하세요. 출발 때 <b>안 탐</b>인 사람은 산행에서 빠집니다.</p>
             <div class="legend"><span class="s join" data-en="Not on bus">안 탐</span><span class="s board" data-en="Boarded">출발 탑승</span><span class="s old" data-en="No update 10 min (app)">10분 소식 없음(앱)</span><span class="s sos" data-en="SOS">SOS</span><span class="s back" data-en="Back on bus">하산 탑승</span>
-                <a class="guideLink" href="party-guide.html#seat" data-en="📖 Leader guide (Korean)">📖 인솔자 사용법</a></div>
+                <a class="guideLink" href="party-guide.html#seat" data-en-href="party-guide-en.html#seat" data-en="📖 Leader guide">📖 인솔자 사용법</a></div>
         </section>
         <section id="staffBox" hidden>
             <details id="rosterBox" hidden open>   <!-- 예약 명단(2026-10-24 홍TV님) - 회원은 앱 · 화면을 안 열 수도 있음 -->
@@ -278,7 +278,7 @@ a.tel { color:var(--sky); }
                 <button id="departBtn" class="main" data-en="🥾 Start the hike">🥾 산행 시작</button>
                 <button id="cancelTripBtn" class="danger" data-en="Cancel hike (weather · accident etc.)">산행 취소 (날씨 · 사고 등)</button>
             </div>
-            <a class="guideLink" href="party-guide.html" style="margin-top:10px" data-en="📖 Leader guide (Korean - a must-read the first time)">📖 인솔자 사용법 (처음이면 꼭 읽어 보세요)</a>
+            <a class="guideLink" href="party-guide.html" style="margin-top:10px" data-en-href="party-guide-en.html" data-en="📖 Leader guide (a must-read the first time)">📖 인솔자 사용법 (처음이면 꼭 읽어 보세요)</a>
             <h2 id="listTitle" style="margin-top:12px" data-en="👥 Members">👥 회원</h2>
             <table><thead><tr><th data-en="Seat">좌석</th><th data-en="Name">이름</th><th data-en="Last update">마지막 연락</th><th data-en="Stopped for">멈춘 시간</th><th data-en="Battery">배터리</th><th data-en="Status">상태</th></tr></thead><tbody id="list"></tbody></table>
             <div class="invite" style="margin-top:14px">   <!-- 우리 버스 위치(2026-10-27 홍TV님 "타이틀을 두고 위와 구분되게") -->
