@@ -27,7 +27,8 @@ var ABOUT_EN = document.documentElement.lang === "en";   // 영어판(about-en �
     function apply(v) {
         document.documentElement.style.setProperty("--rfz", String(v));
         document.documentElement.classList.toggle("rfz", v !== 1);
-        b.textContent = v >= 1.4 ? "가++" : v >= 1.2 ? "가+" : "가";   // course-kit.js textLabel 과 같음
+        var g = ABOUT_EN ? "A" : "가";   // 영어판은 A(2026-10-29 홍TV님 - course-kit.js textLabel 과 같게)
+        b.textContent = v >= 1.4 ? g + "++" : v >= 1.2 ? g + "+" : g;
         b.title = ABOUT_EN ? "Text size " + Math.round(v * 100) + "% - each tap 100 → 120 → 140%" : "글자 크기 " + Math.round(v * 100) + "% - 누를 때마다 100 → 120 → 140%";
     }
     b.type = "button";
