@@ -687,6 +687,11 @@ public class MountainServlet extends HttpServlet {
                 // 📍 내 근처 - 다른 칸처럼 접고 펴기(2026-10-16 홍TV님), 펴면 위치를 찾음(js/mountain.js)
                 + "<section id=\"near\"><details class=\"fold kind\" name=\"kind\" id=\"nearFold\"><summary><span class=\"ft\">📍 내 근처 100대 명산</span>"
                 + "<span class=\"fs\">지금 자리에서 가까운 8곳</span><span class=\"fa\">▾</span></summary><div class=\"fb\"><div id=\"nearList\"></div></div></details></section>"
+                // 🏨 근처 숙소 찾기(2026-10-29 홍TV님 "산청군청 근처 숙소" - 장소 이름 → 예약 단추 · 근처 숙소 목록, js/mountain.js · course-kit staySearch)
+                + "<section id=\"staySearch\"><details class=\"fold kind\" name=\"kind\"><summary><span class=\"ft\">🏨 근처 숙소 찾기</span>"
+                + "<span class=\"fs\">군청 · 역 · 터미널 · 산 이름으로</span><span class=\"fa\">▾</span></summary><div class=\"fb\">"
+                + "<form id=\"ssForm\" class=\"ssForm\" role=\"search\"><input id=\"ssQ\" type=\"search\" maxlength=\"30\" placeholder=\"예: 산청군청\" aria-label=\"숙소를 찾을 장소 이름\"><button type=\"submit\">찾기</button></form>"
+                + "<div id=\"ssOut\" aria-live=\"polite\"></div></div></details></section>"
                 + "<section id=\"weekend\" hidden></section><div class=\"folds\">");   // 이번 주말 날씨 좋은 산(js/mountain.js · /api/weekend - 2026-10-15)
         boolean hasPeaks = false;
         for (JsonElement e : groups) {

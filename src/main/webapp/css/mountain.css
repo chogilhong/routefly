@@ -192,3 +192,13 @@ ul { margin:0; padding:0; list-style:none; }
 /* 광고(2026-10-28 - 설정이 있을 때만 서버가 넣음, 앱에서는 ads.js 가 지움) */
 .adBox { margin:18px 0 6px; padding:8px 0; border-top:1px solid rgba(127,127,127,0.25); border-bottom:1px solid rgba(127,127,127,0.25); min-height:60px; }
 .adNote { margin:0 0 4px; font-size:11px; color:#8a94a0; }
+
+/* 🏨 근처 숙소 찾기(/m/ · /en/m/, 2026-10-29) - 손가락 크기 44px */
+.ssForm { display:flex; gap:8px; margin:4px 0 10px; }
+.ssForm input { flex:1; min-width:0; min-height:44px; padding:0 12px; border-radius:12px; border:1px solid var(--ln); background:#0f141a; color:var(--tx); font-size:16px; }
+.ssForm button, .ssAlt { min-height:44px; padding:0 16px; border-radius:22px; border:1px solid var(--sky); background:rgba(56,217,234,0.12); color:var(--tx); font:bold 15px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }
+.ssAlt { margin:4px 6px 0 0; font-weight:normal; }
+.ssAt { font-weight:bold; margin:6px 0; }
+.ssLinks { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0; }
+.ssLinks a { display:inline-flex; align-items:center; min-height:44px; padding:0 14px; border-radius:22px; border:1px solid var(--sky); color:var(--tx); text-decoration:none; font-weight:bold; }
+.ssList li { font-size:14.5px; }

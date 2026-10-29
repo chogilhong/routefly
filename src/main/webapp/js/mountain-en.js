@@ -29,7 +29,9 @@
         fun.hidden = false;
     }
     // ☕ Support routefly(PayPal - 설정 donate.en.url 이 있을 때만, 2026-10-17 홍TV님)
-    fetch("../../api/partners").then(function (r) { return r.json(); }).then(function (p) {
+    var partnersP = fetch("../../api/partners").then(function (r) { return r.json(); });
+    if (RF.staySearch) RF.staySearch(document.getElementById("ssForm"), document.getElementById("ssOut"), partnersP, "../../", true);   // 🏨 Find lodging near a place(2026-10-29)
+    partnersP.then(function (p) {
         RF.supportLine(document.getElementById("support"), p.donateEn, "☕ Support routefly ›");
         var wx = document.getElementById("wx");   // 🏨 Stays nearby(summit coordinates, 2026-10-29)
         if (wx) RF.staysLine(document.getElementById("stays"), p, +wx.getAttribute("data-lat"), +wx.getAttribute("data-lon"), true);

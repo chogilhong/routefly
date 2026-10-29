@@ -99,6 +99,7 @@
     }
     // 제휴 · 후원 링크(api/partners) - 한 번만 받아 ☕ 후원 줄과 🎒 챙길 것의 쿠팡 링크가 함께 씀
     var partnersP = fetch("../api/partners").then(function (r) { return r.json(); });
+    if (window.RF && RF.staySearch) RF.staySearch(document.getElementById("ssForm"), document.getElementById("ssOut"), partnersP, "../", false);   // 🏨 근처 숙소 찾기(/m/, 2026-10-29)
     partnersP.then(function (p) {
         if (!window.RF) return;
         window.RF.supportLine(document.getElementById("support"), p.donate, "☕ routefly 후원하기 ›", p.donateEn);

@@ -72,6 +72,12 @@ site.baseUrl=
 # 트립닷컴 제휴(승인 뒤 - 2026-10-21 신청): 트립닷컴 제휴 누리집에서 만든 숙소 링크(https://kr.trip.com… · www.trip.com… 등 trip.com 주소). {lat} · {lon} 은 들머리 좌표로.
 #   한국어 · 영어 화면 모두 "숙소 더 보기" 아래에 아고다와 나란히(둘 다 있으면 둘 다). https 이고 주소 이름이 trip.com(아고다는 agoda.com) 또는 그 아래, 2000자까지, 빈칸 · 따옴표 없이 한 줄(받지 않으면 서버 로그에 까닭)
 #partner.trip.url=
+# 나중에 제휴할 숙소 사이트(2026-10-29) - /m/ "🏨 근처 숙소 찾기" 단추. {q} 는 찾는 장소 이름, {lat} · {lon} 은 그 좌표로 바뀜. 비우면 단추 없음
+#partner.yeogi.url=
+#partner.yanolja.url=
+#partner.hotels.url=
+# 장소 이름 → 좌표(V-World 검색 API) 키 - 비우면 map.vworld.key 를 씀(V-World 에서 "검색 API" 활용을 함께 신청)
+#place.vworld.key=
 # 후원: 토스 아이디(https://toss.me/...) · 카카오페이 송금 코드(https://qr.kakaopay.com/...) 등 https 주소. 안내(about.html) 아래에 단추.
 #donate.url=
 # 외국 사람용 후원(2026-10-17): PayPal 결제 링크(https://www.paypal.com/ncp/payment/...) · https://paypal.me/... · https://ko-fi.com/...

@@ -1272,6 +1272,93 @@
         // afterHikeLinks 는 {links: [...]} 를 돌려줌(2026-10-29 PC: .filter 를 바로 불러 산 페이지 숙소 줄이 안 나왔음)
         return (afterHikeLinks({ trip: p.trip, agoda: p.agoda }, { name: name || "", lat: lat, lon: lon }, en).links || []).filter(function (x) { return x.sponsored && /🏨/.test(x.text); })[0] || null;
     }
+    /**
+     * 순수 함수 - "🏨 근처 숙소 찾기"(/m/, 2026-10-29 홍TV님 "산청군청 근처 숙소") 예약 단추들: 설정된 제휴(트립닷컴 · 아고다 · 여기어때 · 야놀자 · 호텔스컴바인) + 카카오맵 숙소 검색(제휴 아님).
+     * q - 찾은 장소 이름, lat · lon - 그 좌표. → [{text, href, sponsored}]
+     */
+    function stayLinks(p, q, lat, lon, en) {
+        p = p || {};
+        var out = [], ok = isFinite(lat) && isFinite(lon) && lat !== null && lon !== null, nm = String(q || "").replace(/\s+/g, " ").trim().slice(0, 30);
+        var trip = p.trip && ok ? tripLink(p.trip, lat, lon, nm) : null;
+        if (trip) out.push({ text: en ? "🏨 Trip.com" : "🏨 트립닷컴", href: trip, sponsored: true });
+        function fill(u) { return u.replace(/\{q\}/g, encodeURIComponent(nm)).replace(/\{lat\}/g, ok ? (+lat).toFixed(5) : "").replace(/\{lon\}/g, ok ? (+lon).toFixed(5) : ""); }
+        [["agoda", "아고다", "Agoda"], ["yeogi", "여기어때", "Yeogi"], ["yanolja", "야놀자", "Yanolja"], ["hotels", "호텔스컴바인", "HotelsCombined"]].forEach(function (x) {
+            var u = p[x[0]];
+            if (!u || (/\{lat\}/.test(u) && !ok) || (!/\{lat\}/.test(u) && !/\{q\}/.test(u))) return;   // 좌표 · 이름 자리가 없는 링크는 엉뚱한 곳이라 뺌
+            out.push({ text: "🏨 " + (en ? x[2] : x[1]), href: fill(u), sponsored: true });
+        });
+        if (nm) out.push({ text: en ? "🗺 Kakao Map lodging" : "🗺 카카오맵 숙소", href: "https://map.kakao.com/link/search/" + encodeURIComponent(nm + " 숙소"), sponsored: false });
+        return out;
+    }
+    /**
+     * "🏨 근처 숙소 찾기" 칸(/m/ · /en/m/, 2026-10-29 홍TV님) - 장소 이름(산청군청 등) → api/place 로 좌표 → 예약 단추(stayLinks) + 그 근처 숙소 목록(api/stays, 한국관광공사).
+     * form 안의 input · out 칸. partnersP - api/partners 약속. base - "../" 처럼 api 앞에 붙일 길.
+     */
+    function staySearch(form, out, partnersP, base, en) {
+        if (!form || !out || form.rfBound) return;
+        form.rfBound = true;
+        var T = function (ko, e) { return en ? e : ko; }, input = form.querySelector("input");
+        function el(tag, text, cls) { var x = document.createElement(tag); if (text != null) x.textContent = text; if (cls) x.className = cls; return x; }
+        function links(p, q, lat, lon) {
+            var row = el("p", null, "ssLinks"), ls = stayLinks(p, q, lat, lon, en), spon = false;
+            ls.forEach(function (x) {
+                var a = el("a", x.text + " ›");
+                a.href = x.href; a.target = "_blank"; a.rel = x.sponsored ? "noopener sponsored" : "noopener";
+                row.appendChild(a);
+                spon = spon || x.sponsored;
+            });
+            out.appendChild(row);
+            if (spon) out.appendChild(el("p", T("🏨 표시는 제휴 링크 - 예약하면 routefly 가 수수료를 받습니다(값은 같음).", "🏨 links are affiliate links - routefly earns a commission if you book (same price)."), "dim"));
+        }
+        function show(p, pl, all) {
+            out.textContent = "";
+            out.appendChild(el("p", "📍 " + pl.name + (pl.addr && pl.addr !== pl.name ? " · " + pl.addr : "") + T(" 근처", " - nearby"), "ssAt"));
+            if (all.length > 1) {   // 다른 곳이면 고르기
+                var alt = el("p", T("다른 곳: ", "Other matches: "), "dim");
+                all.forEach(function (o) {
+                    if (o === pl) return;
+                    var b = el("button", o.name, "ssAlt");
+                    b.type = "button";
+                    b.addEventListener("click", function () { show(p, o, all); });
+                    alt.appendChild(b);
+                });
+                out.appendChild(alt);
+            }
+            links(p, pl.name, pl.lat, pl.lon);
+            var list = el("ul", null, "wl ssList");
+            list.appendChild(el("li", T("근처 숙소를 찾는 중…", "Finding lodging nearby…")));
+            out.appendChild(list);
+            fetch(base + "api/stays?lat=" + pl.lat + "&lon=" + pl.lon).then(function (r) { return r.json(); }).then(function (j) {
+                list.textContent = "";
+                var st = (j.stays || []).slice(0, 10);
+                if (!st.length) { list.appendChild(el("li", j.unavailable ? T("숙소 목록을 지금 받지 못했습니다. 위 예약 단추로 찾아 주세요.", "Couldn't load the lodging list now. Use the buttons above.") : T("5km 안에 등록된 숙소가 없습니다. 위 예약 단추로 찾아 주세요.", "No registered lodging within 5 km. Use the buttons above."))); return; }
+                st.forEach(function (x) {
+                    var li = el("li"), b = el("b", x.name), sm = el("small", " " + (x.dist_m != null ? (x.dist_m / 1000).toFixed(1) + "km" : "") + (x.addr ? " · " + x.addr : ""));
+                    li.appendChild(b); li.appendChild(sm);
+                    if (x.tel) { var t = el("a", " 📞 " + x.tel); t.href = "tel:" + String(x.tel).replace(/[^0-9+]/g, ""); li.appendChild(t); }
+                    list.appendChild(li);
+                });
+                out.appendChild(el("p", T("숙소 목록: 한국관광공사(TourAPI) · 위치: 국토교통부 V-World. 요금 · 빈방은 예약 사이트에서 확인하세요.", "Lodging list: Korea Tourism Organization · location: V-World. Check prices and rooms on the booking sites."), "dim"));
+            }).catch(function () { list.textContent = ""; list.appendChild(el("li", T("숙소 목록을 받지 못했습니다.", "Couldn't load the lodging list."))); });
+        }
+        form.addEventListener("submit", function (e) {
+            e.preventDefault();
+            var q = String(input.value || "").trim();
+            if (q.length < 2) { out.textContent = T("장소 이름을 두 글자 넘게 적어 주세요(예: 산청군청).", "Enter a place name (e.g. Sancheong County Office in Korean: 산청군청)."); input.focus(); return; }
+            out.textContent = T("찾는 중…", "Searching…");
+            Promise.all([fetch(base + "api/place?q=" + encodeURIComponent(q)).then(function (r) { return r.json(); }), partnersP.catch(function () { return {}; })]).then(function (r) {
+                var pl = (r[0].places || []), p = r[1] || {};
+                if (!pl.length) {
+                    out.textContent = "";
+                    out.appendChild(el("p", r[0].unavailable ? T("지금은 장소를 찾지 못합니다. 아래 지도로 찾아 주세요.", "Place search is unavailable now. Try the map below.")
+                        : T("\"" + q + "\" 을(를) 찾지 못했습니다. 군청 · 역 · 터미널 · 산 이름처럼 적어 보세요.", "Couldn't find \"" + q + "\". Try a county office, station, terminal or mountain name.")));
+                    links(p, q, NaN, NaN);   // 카카오맵 숙소 검색은 이름만으로
+                    return;
+                }
+                show(p, pl[0], pl);
+            }).catch(function () { out.textContent = T("서버에 닿지 않습니다. 잠시 뒤 다시 해 주세요.", "Can't reach the server. Please try again shortly."); });
+        });
+    }
     function staysLine(box, p, lat, lon, en) {
         if (!box || !p) return false;
         var it = staysItem(p, box.getAttribute("data-name"), lat, lon, en);
@@ -5132,6 +5219,6 @@
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },
         cellCenter: cellCenter, warnName: warnName, safetyRows: safetyRows, safetyAlert: safetyAlert, safetyRender: safetyRender,
         setLang: setLang, isEn: isEn, tr: tr, pageLang: pageLang, applyEn: applyEn,
-        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, cleanTrack: cleanTrack, recDist: recDist, dropLog: dropLog, recordLines: recordLines, recordHighest: recordHighest, partyAlerts: partyAlerts, afterHikeLinks: afterHikeLinks, afterHikeGear: afterHikeGear, rosterRead: rosterRead, leadSteps: leadSteps, boardingCard: boardingCard, npStampKey: npStampKey, npStampsOn: npStampsOn, npStampsDue: npStampsDue, tripLink: tripLink, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, regionEn: regionEn, weekendWordEn: weekendWordEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox, LEVELS: LEVELS, difficulty: difficulty, boardSegments: boardSegments, boardProfile: boardProfile, nameEnds: nameEnds, boardButtons: boardButtons, levelChip: levelChip, roman: roman, enName: enName, weekendText: weekendText, boardHere: boardHere, slopeBetween: slopeBetween, recentAdd: recentAdd, recentPages: recentPages, recentFold: recentFold, compareRows: compareRows, compareButtons: compareButtons, steepest: steepest, officialEleAt: officialEleAt, stampRadius: stampRadius, stillCheck: stillCheck, windChill: windChill, windNote: windNote, paceProfile: paceProfile, paceAt: paceAt, paceDistAt: paceDistAt, paceText: paceText, fortune: fortune, fortuneDay: fortuneDay, supportLine: supportLine, staysLine: staysLine, staysItem: staysItem, dayKey: dayKey, anbuPlan: anbuPlan, anbuText: anbuText, anbuSms: anbuSms, telClean: telClean, telFormat: telFormat, UNITS: UNITS, unitConv: unitConv, unitFmt: unitFmt, dayNo: dayNo, dayYmd: dayYmd, ageInfo: ageInfo, dDay: dDay, dateAdd: dateAdd, dateDiff: dateDiff, pctCalc: pctCalc, dutchPay: dutchPay, textCount: textCount, smsKind: smsKind, compassHeading: compassHeading, SOS_PATTERN: SOS_PATTERN, fxConv: fxConv, toLunar: toLunar, fromLunar: fromLunar, nextLunarBirthday: nextLunarBirthday, leapMonth: leapMonth, moonPhase: moonPhase, MOON_NAMES: MOON_NAMES, interestCalc: interestCalc, vatCalc: vatCalc, bmiInfo: bmiInfo, discomfort: discomfort, nameRoman: nameRoman, tzOffsetMin: tzOffsetMin, ladderMake: ladderMake, ladderTrace: ladderTrace, holidayRuns: holidayRuns, calcEval: calcEval, mobileOnlyUrl: mobileOnlyUrl, summitCard: summitCard, trackClimb: trackClimb
+        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, cleanTrack: cleanTrack, recDist: recDist, dropLog: dropLog, recordLines: recordLines, recordHighest: recordHighest, partyAlerts: partyAlerts, afterHikeLinks: afterHikeLinks, afterHikeGear: afterHikeGear, rosterRead: rosterRead, leadSteps: leadSteps, boardingCard: boardingCard, npStampKey: npStampKey, npStampsOn: npStampsOn, npStampsDue: npStampsDue, tripLink: tripLink, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, regionEn: regionEn, weekendWordEn: weekendWordEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox, LEVELS: LEVELS, difficulty: difficulty, boardSegments: boardSegments, boardProfile: boardProfile, nameEnds: nameEnds, boardButtons: boardButtons, levelChip: levelChip, roman: roman, enName: enName, weekendText: weekendText, boardHere: boardHere, slopeBetween: slopeBetween, recentAdd: recentAdd, recentPages: recentPages, recentFold: recentFold, compareRows: compareRows, compareButtons: compareButtons, steepest: steepest, officialEleAt: officialEleAt, stampRadius: stampRadius, stillCheck: stillCheck, windChill: windChill, windNote: windNote, paceProfile: paceProfile, paceAt: paceAt, paceDistAt: paceDistAt, paceText: paceText, fortune: fortune, fortuneDay: fortuneDay, supportLine: supportLine, staysLine: staysLine, staysItem: staysItem, stayLinks: stayLinks, staySearch: staySearch, dayKey: dayKey, anbuPlan: anbuPlan, anbuText: anbuText, anbuSms: anbuSms, telClean: telClean, telFormat: telFormat, UNITS: UNITS, unitConv: unitConv, unitFmt: unitFmt, dayNo: dayNo, dayYmd: dayYmd, ageInfo: ageInfo, dDay: dDay, dateAdd: dateAdd, dateDiff: dateDiff, pctCalc: pctCalc, dutchPay: dutchPay, textCount: textCount, smsKind: smsKind, compassHeading: compassHeading, SOS_PATTERN: SOS_PATTERN, fxConv: fxConv, toLunar: toLunar, fromLunar: fromLunar, nextLunarBirthday: nextLunarBirthday, leapMonth: leapMonth, moonPhase: moonPhase, MOON_NAMES: MOON_NAMES, interestCalc: interestCalc, vatCalc: vatCalc, bmiInfo: bmiInfo, discomfort: discomfort, nameRoman: nameRoman, tzOffsetMin: tzOffsetMin, ladderMake: ladderMake, ladderTrace: ladderTrace, holidayRuns: holidayRuns, calcEval: calcEval, mobileOnlyUrl: mobileOnlyUrl, summitCard: summitCard, trackClimb: trackClimb
     };
 })(window);
