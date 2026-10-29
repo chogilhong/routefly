@@ -1331,7 +1331,7 @@ eq("stayKindEn 카카오 숙소 종류 → 영어", ["호텔", "여관,모텔", 
         vm.runInContext(b.text, sb);
         var K = sb.window.RF || {}, used = split.usedNames(b.users.map(function (u) { return fs.readFileSync(path.join(split.WEB, u), "utf8"); }));
         var miss = Object.keys(used).filter(function (n) { return n in RF && !(n in K); });
-        var diff = Object.keys(K).filter(function (n) { return typeof K[n] === "function" && String(K[n]) !== String(RF[n]); });
+        var diff = Object.keys(K).filter(function (n) { return typeof K[n] === "function" && String(K[n]).replace(/\r/g, "") !== String(RF[n]).replace(/\r/g, ""); });   // PC 는 원본이 CRLF(autocrlf), 만든 글은 LF
         eq(b.out + " 에 화면이 쓰는 이름이 다 있고 원본과 같은 함수", [miss, diff], [[], []]);
     });
     var m = sandboxOf("js/kit-m.js");
