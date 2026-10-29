@@ -859,6 +859,21 @@ eq("stayLinks 제휴 설정 없음 - 여기어때 · 야놀자는 지역(산청�
     eq("var RF 보다 앞에서 RF. 를 쓰는 줄 없음(window.RF 로)", bad, []);
 })();
 
+// 아고다 도시 번호(2026-10-29) - 가까운 도시 · 링크에 city= 붙이기, 번호표 만들기 스크립트(시험 CSV)
+var AC = [{ id: 180228, name: "Sancheong", n: 20, lat: 35.41, lon: 127.87 }, { id: 9999, name: "Far", n: 500, lat: 37.5, lon: 127.0 }];
+eq("nearCity 40km 안 가까운 곳 · 없으면 null", [RF.nearCity(AC, 35.415, 127.873), RF.nearCity(AC, 33.3, 126.5), RF.nearCity(null, 1, 2)], [180228, null, null]);
+eq("stayLinks 아고다 도시 번호 - 파트너 링크에 city · 지역, 없으면 아고다 검색(제휴 아님)", [
+    RF.stayLinks({ agoda: "https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1&hl=ko-kr" }, "산청군청", 35.4, 127.8, false, "산청군", 180228)[0].href,
+    RF.stayLinks({}, "산청군청", 35.4, 127.8, false, "산청군", 180228)[0].href],
+    ["https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1&hl=ko-kr&city=180228&textToSearch=%EC%82%B0%EC%B2%AD%EA%B5%B0", "https://www.agoda.com/ko-kr/search?city=180228&textToSearch=%EC%82%B0%EC%B2%AD%EA%B5%B0"]);
+(function () {
+    var tmp = fs.mkdtempSync(path.join(require("os").tmpdir(), "agoda-")), csv = path.join(tmp, "h.csv"), outF = path.join(tmp, "c.json");
+    fs.writeFileSync(csv, "\uFEFFhotel_id,hotel_name,city_id,city,countryisocode,latitude,longitude\n1,\"A, B\",180228,Sancheong,KR,35.41,127.87\n2,C,180228,Sancheong,KR,35.43,127.89\n3,D,5,Tokyo,JP,35.6,139.7\n");
+    require("child_process").execFileSync(process.execPath, [path.join(__dirname, "../../../tools/agoda-cities/make.js"), csv, "--out=" + outF]);
+    var j = JSON.parse(fs.readFileSync(outF, "utf8"));
+    eq("agoda-cities make.js - 한국만, 도시마다 수 · 가운데, 숙소 이름은 넣지 않음", [j.cities, /hotel_name|A, B/.test(fs.readFileSync(outF, "utf8"))], [[{ id: 180228, name: "Sancheong", n: 2, lat: 35.42, lon: 127.88 }], false]);
+})();
+
 var OFN = { 가야산: { official: { "knps-7013": "가야산1코스", "knps-7012": "가야산2코스", "knps-7017": "만물상코스" } } };
 eq("officialName 공단 공식 이름(ID 앞부분)", [RF.officialName(OFN, "knps-7013-3d5c7ede"), RF.officialName(OFN, "knps-70131-aa"), RF.officialName(null, "x")], ["가야산1코스", "", ""]);
 eq("officialMatches 띄어쓰기 무시 · 두 글자부터", [RF.officialMatches(OFN, "가야산 1코스").map(function (m) { return m.key; }),

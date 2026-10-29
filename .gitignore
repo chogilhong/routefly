@@ -28,3 +28,7 @@ ${sys:catalina.base}/
 
 # war 줄이기 도구(tools/minify)의 npm 패키지 - npm ci 로 받음
 /tools/minify/node_modules/
+
+# 아고다 숙소 데이터 파일 원본(크고 홍TV님 계정에서 받은 것) - 저장소에 넣지 않음. 뽑은 도시표만 src/main/webapp/data/agoda-cities.json
+agoda-raw/
+*.agoda.csv
