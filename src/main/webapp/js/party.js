@@ -214,7 +214,7 @@
     $("joinShow").addEventListener("click", function (e) {
         e.preventDefault();
         $("joinShowRow").hidden = true;
-        $("mkSec").hidden = true;   // 참가할 사람에게는 참가 칸만(링크로 온 회원과 같게) - 방 만들기는 위 한 줄로(2026-10-26 PC)
+        $("mkSec").hidden = $("officeGo").hidden = true;   // 참가할 사람에게는 참가 칸만(링크로 온 회원과 같게) - 방 만들기는 위 한 줄로(2026-10-26 PC)
         $("mkShowRow").hidden = false;
         $("joinSec").hidden = false;
         $("joinSec").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -226,7 +226,7 @@
         $("mkShowRow").hidden = true;
         $("joinSec").hidden = true;
         $("joinShowRow").hidden = false;
-        $("mkSec").hidden = false;
+        $("mkSec").hidden = $("officeGo").hidden = false;
         window.scrollTo(0, 0);
     });
 
@@ -255,7 +255,7 @@
             if (cur && cur.role !== "lead" && q.get("on") === "1") { RFParty.post("board", { token: cur.token }).catch(function () { /* 방이 끝났으면 따라가기가 알림 */ }).finally(function () { enterRoom(); }); return; }
             if (cur) { enterRoom(); return; }
             show("start");
-            if (q.get("c")) { appOpen(); $("mkSec").hidden = true; $("mkShowRow").hidden = false; $("joinSec").hidden = false; $("joinShowRow").hidden = true; }
+            if (q.get("c")) { appOpen(); $("mkSec").hidden = $("officeGo").hidden = true; $("mkShowRow").hidden = false; $("joinSec").hidden = false; $("joinShowRow").hidden = true; }
             if (q.get("c")) { $("joinCode").value = q.get("c").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10); loadInfo(); }
             try { $("joinNick").value = localStorage.getItem("rf-party-nick") || ""; } catch (e) { /* 없음 */ }
             var t = new Date(Date.now() + 86400000);   // 출발 날짜 - 내일로 두고 고치게
