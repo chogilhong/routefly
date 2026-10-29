@@ -30,7 +30,8 @@ public class TermsPageTest {
         assertTrue("무료", t.contains("모든 서비스가 무료"));
         assertTrue("119 대신 아님", t.contains("119 신고를 대신하지 않습니다"));
         assertTrue("수집 프로그램 금지", t.contains("자동 수집 프로그램"));
-        assertTrue("어긴 이용자의 손해배상(2026-10-29 홍TV님 \"손해배상만 넣어\") - 불리한 변경이라 30일 뒤 적용", t.contains("<h2>제17조 (이용자의 손해배상)</h2>") && t.contains("2026년 11월 29일부터 적용"));
+        assertTrue("어긴 이용자의 손해배상(2026-10-29 홍TV님 \"손해배상만 넣어\") - 불리한 변경이라 30일 뒤 적용", t.contains("<h2>제17조 (이용자의 손해배상)</h2>") && t.contains("2026년 11월 29일부터 적용")
+                && t.contains("프로그램 · 로봇으로 접속하게 한 사람 포함") && t.contains("부정경쟁방지법"));
         assertTrue("사업자 연락처는 위치 약관 제4조로", t.contains("lbs-terms.html#a4") && read("src/main/webapp/lbs-terms.html").contains("<section id=\"a4\">"));
         assertFalse("전화 · 주소를 적지 않음", t.matches("(?s).*\\b01[016789]-?\\d{3,4}-?\\d{4}\\b.*"));
         // 찾아가는 곳
