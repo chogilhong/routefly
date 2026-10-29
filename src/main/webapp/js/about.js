@@ -7,6 +7,17 @@
     });
 });
 
+/* 목차 · 위 목록(#a1 · #safety 등) - 누를 때마다 기록이 쌓여 ✕ · 돌아가기가 앞 조로 한 칸씩 돌아가던 것(2026-10-29 PC). 주소의 # 만 바꾸고 기록은 늘리지 않음 */
+document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[href^='#']");
+    if (!a || a.getAttribute("href").length < 2) return;
+    var t = document.getElementById(a.getAttribute("href").slice(1));
+    if (!t) return;
+    e.preventDefault();
+    t.scrollIntoView();
+    try { history.replaceState(history.state, "", a.getAttribute("href")); } catch (x) { /* 그대로 */ }
+});
+
 /* 글자 크기 "가+"(course-kit.js textButton 과 같은 저장 rf-text - 2026-10-14 홍TV님). 오른쪽 위 ✕ 왼쪽 */
 (function () {
     var STEPS = [1, 1.2, 1.4], b = document.createElement("button");
