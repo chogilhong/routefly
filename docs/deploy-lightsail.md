@@ -713,6 +713,15 @@ curl -s -o /dev/null -w '%{http_code}\n' -A 'Mozilla/5.0 (Macintosh; Intel Mac O
 curl -s -o /dev/null -w '%{http_code}\n' https://routefly.kr/routefly/hike.html   # 200
 ```
 
+- 2026-10-29 넓힘: 같은 수집기가 윈도 모양("Windows NT 10.0 … Chrome/124.0.0.0", 주소를 돌려 가며 몇 분 간격 · css/js 안 받음)으로 다시 와서,
+  운영체제 상관없이 크롬 판 번호 124.0.0.0 으로 막음(실제 손님 크롬은 저절로 올라가 이 판을 쓰지 않음). 지금 서버의 파일:
+
+```bash
+echo 'map $http_user_agent $rf_scraper { default 0; "~Chrome/124\.0\.0\.0 Safari/537\.36$" 1; }' | sudo tee /etc/nginx/conf.d/routefly-scraper.conf
+sudo nginx -t && sudo systemctl reload nginx
+curl -s -o /dev/null -w '%{http_code}\n' -A 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36' https://routefly.kr/routefly/hike.html   # 403
+```
+
 - 다른 브라우저 글을 더 막으려면 `routefly-scraper.conf` 의 map 에 줄을 더하고 `sudo nginx -t && sudo systemctl reload nginx`.
 - 브라우저 글을 바꿔 다시 오면 다음은 코스 페이지(/c/)에도 한 곳당 횟수 제한(SecurityFilter 는 지금 /api · /s 만).
 - 되돌리기: `sudo rm /etc/nginx/conf.d/routefly-scraper.conf && sudo cp /etc/nginx/sites-available/routefly.bak-20261028 /etc/nginx/sites-available/routefly && sudo nginx -t && sudo systemctl reload nginx`
