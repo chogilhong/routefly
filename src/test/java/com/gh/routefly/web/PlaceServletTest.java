@@ -37,6 +37,33 @@ public class PlaceServletTest {
         assertTrue(u.startsWith(PlaceServlet.URL + "?service=search&request=search&version=2.0&crs=EPSG:4326") && u.contains("&type=address&category=road&query=%EC%82%B0%EC%B2%AD+%EA%B5%B0%EC%B2%AD") && u.contains("&domain=routefly.kr"));
     }
 
+    private static JsonObject places(double[]... pts) {
+        JsonObject o = new JsonObject();
+        com.google.gson.JsonArray a = new com.google.gson.JsonArray();
+        for (double[] p : pts) { JsonObject x = new JsonObject(); x.addProperty("name", "곳" + a.size()); x.addProperty("lat", p[0]); x.addProperty("lon", p[1]); a.add(x); }
+        o.add("places", a);
+        return o;
+    }
+
+    @Test
+    public void spacedQueries() {
+        // "설악산 소공원"(2026-10-29 홍TV님 화면) - 그대로 · 붙여 쓰기로 없음 → 설악산을 찾고 소공원 중 30km 안만
+        java.util.Map<String, JsonObject> v = new java.util.HashMap<>();
+        v.put("설악산", places(new double[] {38.119, 128.465}));
+        v.put("소공원", places(new double[] {37.5, 127.0}, new double[] {38.172, 128.488}));
+        JsonObject r = PlaceServlet.resolve("설악산 소공원", q -> v.getOrDefault(q, places()));
+        assertEquals("멀리 있는 소공원(서울)은 빼고 설악산 근처 것만", 1, r.getAsJsonArray("places").size());
+        assertEquals(38.172, r.getAsJsonArray("places").get(0).getAsJsonObject().get("lat").getAsDouble(), 1e-9);
+        assertFalse(r.has("partial"));
+        v.remove("소공원");
+        JsonObject s = PlaceServlet.resolve("설악산 소공원", q -> v.getOrDefault(q, places()));
+        assertEquals("뒤 낱말을 못 찾으면 앞 낱말 자리 + partial", "설악산", s.get("partial").getAsString());
+        v.put("설악산소공원", places(new double[] {38.17, 128.49}));
+        assertFalse("붙여 쓴 이름이 있으면 그것", PlaceServlet.resolve("설악산 소공원", q -> v.getOrDefault(q, places())).has("partial"));
+        assertTrue("키 · 연결 문제는 unavailable", PlaceServlet.resolve("설악산 소공원", q -> null).has("unavailable"));
+        assertEquals("띄어쓰기 없는 말은 한 번만", 0, PlaceServlet.resolve("없는곳", q -> places()).getAsJsonArray("places").size());
+    }
+
     @Test
     public void futurePartnerSlots() {
         java.util.Map<String, String> c = new java.util.HashMap<>();

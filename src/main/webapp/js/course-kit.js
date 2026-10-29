@@ -1338,8 +1338,9 @@
             out.appendChild(row);
             if (spon) out.appendChild(el("p", T("🏨 표시는 제휴 링크 - 예약하면 routefly 가 수수료를 받습니다(값은 같음).", "🏨 links are affiliate links - routefly earns a commission if you book (same price)."), "dim"));
         }
-        function show(p, pl, all) {
+        function show(p, pl, all, note) {
             out.textContent = "";
+            if (note) out.appendChild(el("p", note, "dim"));   // 뒤 낱말은 못 찾아 앞 낱말(산 이름) 근처로(2026-10-29)
             out.appendChild(el("p", "📍 " + pl.name + (pl.addr && pl.addr !== pl.name ? " · " + pl.addr : "") + T(" 근처", " - nearby"), "ssAt"));
             if (all.length > 1) {   // 다른 곳이면 고르기
                 var alt = el("p", T("다른 곳: ", "Other matches: "), "dim");
@@ -1384,7 +1385,7 @@
                     links(p, q, NaN, NaN);   // 카카오맵 숙소 검색은 이름만으로
                     return;
                 }
-                show(p, pl[0], pl);
+                show(p, pl[0], pl, r[0].partial ? T("\"" + q + "\" 을(를) 그대로는 찾지 못해 \"" + r[0].partial + "\" 근처로 보여 드립니다.", "Couldn't find \"" + q + "\" exactly - showing near \"" + r[0].partial + "\".") : "");
             }).catch(function () { out.textContent = T("서버에 닿지 않습니다. 잠시 뒤 다시 해 주세요.", "Can't reach the server. Please try again shortly."); });
         });
     }

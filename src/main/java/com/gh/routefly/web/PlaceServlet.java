@@ -57,15 +57,57 @@ public class PlaceServlet extends HttpServlet {
         String key = RouteflyConfig.get("place.vworld.key");
         if (key == null) key = RouteflyConfig.get("map.vworld.key");
         if (key == null) return empty(true);
-        String domain = host(RouteflyConfig.get("site.baseUrl"));
+        String k = key, domain = host(RouteflyConfig.get("site.baseUrl"));
+        return resolve(q, w -> lookup(k, w, domain));
+    }
+
+    /** V-World 한 번(장소 → 도로명 → 지번). 못 받으면 null(키 · 연결 문제), 없으면 빈 places. */
+    private static JsonObject lookup(String key, String q, String domain) {
         for (String[] t : new String[][] {{"place", null}, {"address", "road"}, {"address", "parcel"}}) {
             String text = OpenApi.get(url(key, q, t[0], t[1], domain), "PLACE");
-            if (text == null) return empty(true);
+            if (text == null) return null;
             JsonObject out = parse(text);
-            if (out == null) { log.warn("[PLACE] V-World 답이 OK 가 아님 - 키 · 서비스 주소 확인"); return empty(true); }   // 답 내용은 남기지 않음(찾는 말 · 키가 섞일 수 있음)
+            if (out == null) { log.warn("[PLACE] V-World 답이 OK 가 아님 - 키 · 서비스 주소 확인"); return null; }   // 답 내용은 남기지 않음(찾는 말 · 키가 섞일 수 있음)
             if (out.getAsJsonArray("places").size() > 0) return out;
         }
         return empty(false);
+    }
+
+    /** 앞 낱말 근처로 볼 거리(m) - "설악산 소공원" 의 소공원을 설악산 30km 안에서. */
+    static final double NEAR_M = 30_000;
+
+    /**
+     * 순수 함수(찾기는 바깥에서) - "설악산 소공원" 처럼 띄어 쓴 말도(2026-10-29 홍TV님 화면: 못 찾음).
+     * ① 그대로 ② 띄어쓰기 빼고 ③ 앞 낱말(설악산)을 찾고, 나머지(소공원)를 찾아 그 30km 안의 곳만 ④ 그래도 없으면 앞 낱말 자리(설악산) 그대로.
+     * lookup 이 null 이면(키 · 연결 문제) 바로 unavailable.
+     */
+    static JsonObject resolve(String q, java.util.function.Function<String, JsonObject> lookup) {
+        JsonObject r = lookup.apply(q);
+        if (r == null) return empty(true);
+        if (r.getAsJsonArray("places").size() > 0 || !q.contains(" ")) return r;
+        r = lookup.apply(q.replace(" ", ""));
+        if (r == null) return empty(true);
+        if (r.getAsJsonArray("places").size() > 0) return r;
+        int sp = q.indexOf(' ');
+        String head = q.substring(0, sp).trim(), rest = q.substring(sp + 1).trim();
+        if (head.codePointCount(0, head.length()) < 2 || rest.codePointCount(0, rest.length()) < 2) return r;
+        JsonObject a = lookup.apply(head);
+        if (a == null) return empty(true);
+        if (a.getAsJsonArray("places").size() == 0) return a;
+        JsonObject at = a.getAsJsonArray("places").get(0).getAsJsonObject();
+        double la = at.get("lat").getAsDouble(), lo = at.get("lon").getAsDouble();
+        JsonObject b = lookup.apply(rest);
+        if (b == null) return empty(true);
+        JsonArray near = new JsonArray();
+        for (JsonElement e : b.getAsJsonArray("places")) {
+            JsonObject x = e.getAsJsonObject();
+            if (MountainServlet.distM(la, lo, x.get("lat").getAsDouble(), x.get("lon").getAsDouble()) <= NEAR_M) near.add(x);
+        }
+        JsonObject out = empty(false);
+        if (near.size() > 0) { out.add("places", near); return out; }
+        out.add("places", a.getAsJsonArray("places"));   // 나머지는 못 찾음 - 앞 낱말 자리라도
+        out.addProperty("partial", head);
+        return out;
     }
 
     /** 순수 함수 - 요청 주소. */
