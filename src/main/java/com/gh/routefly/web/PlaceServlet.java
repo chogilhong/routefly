@@ -31,6 +31,8 @@ public class PlaceServlet extends HttpServlet {
     private static final org.apache.logging.log4j.Logger log = org.apache.logging.log4j.LogManager.getLogger(PlaceServlet.class);
     static final String URL = "https://api.vworld.kr/req/search";
     private static final OpenApi.Cache<JsonObject> CACHE = new OpenApi.Cache<>(2000, 24L * 3600_000L);
+    /** 기억에 없어 바깥(카카오 · V-World)에 새로 묻는 횟수 상한 - 주소마다 한 시간 30번, 하루 3,000번(설정 quota.place.ip · .day, 2026-10-30). */
+    private static final OutQuota QUOTA = OutQuota.of("place", 30, 3000);
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -42,7 +44,8 @@ public class PlaceServlet extends HttpServlet {
         long now = System.currentTimeMillis();
         JsonObject out = CACHE.get(q, now);
         if (out == null) {
-            out = fetch(q);
+            String ip = SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For"));
+            out = QUOTA.allow(ip, now) ? fetch(q) : empty(true);
             if (!out.has("unavailable")) CACHE.put(q, out, now);
         }
         Json.ok(req, resp, out);

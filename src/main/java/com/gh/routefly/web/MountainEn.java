@@ -137,7 +137,7 @@ final class MountainEn {
         // ⛑️ Today's hiking safety(api/safety - 한국어 산 페이지와 같게, 2026-10-18) - js/mountain-en.js 가 채움
         b.append("<section id=\"safe\"><h2>⛑️ Today's hiking safety</h2><ul class=\"wl sfl\" id=\"sfList\"><li><span>Weather warnings, wildfire risk, UV and the nearest emergency room appear here.</span></li></ul>")
                 .append("<h3>🏥 Nearest emergency rooms</h3><ul class=\"wl\" id=\"sfEr\"></ul><p class=\"dim\">Weather warnings and UV: Korea Meteorological Administration. Wildfire risk: Korea Forest Service. Emergency rooms: National Medical Center (region from the nearest ER's address). In an emergency call <b>119</b>.</p></section>");
-        if (MountainServlet.overnight(peak)) b.append(MountainServlet.staysP(peak));   // 1박이 많은 산은 위로(한국어 페이지와 같게)
+        if (MountainServlet.overnight(peak)) b.append(MountainServlet.staysBlock(peak, courses, true));   // 1박이 많은 산은 위로(한국어 페이지와 같게)
         b.append("<section><h2>").append(courses.size()).append(courses.size() == 1 ? " trail" : " trails").append("</h2>");
         if (courses.isEmpty()) b.append("<p class=\"dim\">No trail to the summit was found in our data.</p>");
         else {
@@ -179,7 +179,7 @@ final class MountainEn {
             }
             b.append("</ul></section>");
         }
-        if (!MountainServlet.overnight(peak)) b.append(MountainServlet.staysP(peak));   // 🏨 Stays nearby(js/mountain-en.js, 2026-10-29) - 1박 산은 위에
+        if (!MountainServlet.overnight(peak)) b.append(MountainServlet.staysBlock(peak, courses, true));   // 🏨 Stays nearby(js/mountain-en.js, 2026-10-29) - 1박 산은 위에
         b.append(Ads.box("m", true));   // 광고 - 영어 산 페이지에도(설정이 있을 때만, 2026-10-29)
         return b.append(foot(REL + "/m/" + MountainServlet.enc(ko))).toString();
     }
@@ -244,10 +244,7 @@ final class MountainEn {
                 .append("<section id=\"near\"><details class=\"fold kind\" name=\"kind\" id=\"nearFold\"><summary><span class=\"ft\">📍 Near me</span>")
                 .append("<span class=\"fs\">8 closest famous mountains</span><span class=\"fa\">▾</span></summary><div class=\"fb\"><div id=\"nearList\"></div></div></details></section>")
                 // 🏨 Find lodging near a place(한국어 /m/ 과 같게, 2026-10-29)
-                .append("<section id=\"staySearch\"><details class=\"fold kind\" name=\"kind\"><summary><span class=\"ft\">🏨 Find lodging near a place</span>"
-                        + "<span class=\"fs\">County office · station · terminal · mountain</span><span class=\"fa\">▾</span></summary><div class=\"fb\">"
-                        + "<form id=\"ssForm\" class=\"ssForm\" role=\"search\"><input id=\"ssQ\" type=\"search\" maxlength=\"30\" placeholder=\"e.g. 산청군청 (Korean name works best)\" aria-label=\"Place to find lodging near\"><button type=\"submit\">Search</button></form>"
-                        + "<div id=\"ssOut\" aria-live=\"polite\"></div></div></details></section>")
+                .append(MountainServlet.staySearchBox(null, true))
                 .append("<section id=\"weekend\" hidden></section>")   // ☀️ Good weather this weekend(js/mountain-en.js · api/weekend - 한국어 /m/ 과 같게, 2026-10-17)
                 .append("<div class=\"folds\">");
         // 접고 펴는 칸(2026-10-15 홍TV님 - /m/ 과 같게): ⛰️ Hiking(100 Famous Mountains · 백두대간) · 🥾 Walking · 🚴 Cycling

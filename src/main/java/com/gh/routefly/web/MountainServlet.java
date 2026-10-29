@@ -475,6 +475,50 @@ public class MountainServlet extends HttpServlet {
     }
 
     /** 🏨 근처 숙소 자리(제휴 - 설정이 있을 때만 js/mountain.js · mountain-en.js 가 채움, 2026-10-29). data-name 은 한글 산 이름(숙소 검색어). */
+    /**
+     * 🏨 근처 숙소 찾기 칸(js/mountain.js · mountain-en.js 가 course-kit staySearch 로 붙임). value - 미리 채울 장소(산 페이지는 대표 들머리, 2026-10-30 홍TV님 "작업해"),
+     * 누를 때만 찾음(바깥 호출을 아끼려고 저절로 찾지 않음).
+     */
+    static String staySearchBox(String value, boolean en) {
+        return "<section id=\"staySearch\"><details class=\"fold kind\" name=\"kind\"><summary><span class=\"ft\">" + (en ? "🏨 Find lodging near a place" : "🏨 근처 숙소 찾기") + "</span>"
+                + "<span class=\"fs\">" + (en ? (value != null ? "Trailhead · county office · station" : "County office · station · terminal · mountain") : value != null ? "들머리 · 군청 · 역 이름으로" : "군청 · 역 · 터미널 · 산 이름으로")
+                + "</span><span class=\"fa\">▾</span></summary><div class=\"fb\">"
+                + "<form id=\"ssForm\" class=\"ssForm\" role=\"search\"><input id=\"ssQ\" type=\"search\" maxlength=\"30\"" + (value != null ? " value=\"" + esc(value) + "\"" : "")
+                + (en ? " placeholder=\"e.g. 산청군청 (Korean name works best)\" aria-label=\"Place to find lodging near\"><button type=\"submit\">Search</button></form>"
+                        : " placeholder=\"예: 산청군청\" aria-label=\"숙소를 찾을 장소 이름\"><button type=\"submit\">찾기</button></form>")
+                + "<div id=\"ssOut\" aria-live=\"polite\"></div></div></details></section>";
+    }
+
+    /** 순수 함수 - 코스 이름의 들머리("설악산 · 소공원 → 대청봉" → 소공원). 괄호는 뺌. 없으면 null. */
+    static String trailheadName(String course) {
+        if (course == null) return null;
+        int i = course.indexOf(" · ");
+        String route = i > 0 ? course.substring(i + 3) : course;
+        int j = route.indexOf(" → ");
+        if (j <= 0) return null;
+        String t = route.substring(0, j).replaceAll("\\([^)]*\\)|\\[[^\\]]*\\]", "").trim();
+        return t.isEmpty() ? null : t;
+    }
+
+    /** 순수 함수 - 숙소 찾기에 미리 채울 말: 코스가 가장 많이 시작하는 들머리(같으면 앞 코스) + 산 이름(들머리에 산 이름이 없을 때). 코스가 없으면 산 이름. */
+    static String stayPrefill(String mountain, List<JsonObject> courses) {
+        java.util.Map<String, Integer> n = new java.util.LinkedHashMap<>();
+        for (JsonObject c : courses) {
+            String t = trailheadName(str(c, "name"));
+            if (t != null) n.merge(t, 1, Integer::sum);
+        }
+        String best = null;
+        for (java.util.Map.Entry<String, Integer> e : n.entrySet()) if (best == null || e.getValue() > n.get(best)) best = e.getKey();
+        String m = mountain.replaceAll("\\(.*\\)$", "");   // 백운산(광양) → 백운산
+        String v = best == null ? m : best.contains(m) ? best : m + " " + best;
+        return v.codePointCount(0, v.length()) > 30 ? m : v;
+    }
+
+    /** 🏨 숙소 줄 + 근처 숙소 찾기 칸(산 페이지). */
+    static String staysBlock(JsonObject peak, List<JsonObject> courses, boolean en) {
+        return staysP(peak) + staySearchBox(stayPrefill(str(peak, "id") != null ? str(peak, "id") : str(peak, "name"), courses), en);
+    }
+
     static String staysP(JsonObject peak) {
         return "<p class=\"stays\" id=\"stays\" data-name=\"" + esc(str(peak, "id") != null ? str(peak, "id") : str(peak, "name")) + "\" hidden></p>";
     }
@@ -606,7 +650,7 @@ public class MountainServlet extends HttpServlet {
         // ⛑️ 오늘의 산행 안전(api/safety - 2026-10-18 홍TV님: 별거 별거와 같은 것을 산 페이지에도) - 정상 자리로, 보이면 받음(js/mountain.js)
         b.append("<section id=\"safe\"><h2>⛑️ 오늘의 산행 안전</h2><ul class=\"wl sfl\" id=\"sfList\"><li><span>기상특보 · 산불위험 · 자외선 · 가까운 응급실을 이 칸에서 봅니다.</span></li></ul>")
                 .append("<h3>🏥 가까운 응급실</h3><ul class=\"wl\" id=\"sfEr\"></ul><p class=\"dim\">기상특보 · 자외선은 기상청, 산불위험은 산림청, 응급실은 국립중앙의료원 자료(지역은 가장 가까운 응급실 주소로). 위급하면 <b>119</b>.</p></section>");
-        if (overnight(peak)) b.append(staysP(peak));   // 1박이 많은 산은 숙소 줄을 위로(2026-10-29 홍TV님 "작업해")
+        if (overnight(peak)) b.append(staysBlock(peak, courses, false));   // 1박이 많은 산은 숙소 줄을 위로(2026-10-29 홍TV님 "작업해")
         b.append("<section><h2>코스 ").append(courses.size()).append("개</h2>");
         if (courses.isEmpty()) b.append("<p class=\"dim\">정상까지 가는 코스를 찾지 못했습니다. <a href=\"").append(REL)
                 .append("/hike.html?lang=ko\">따라가기에서 산 이름으로 찾아보세요</a>.</p>");
@@ -655,7 +699,7 @@ public class MountainServlet extends HttpServlet {
             }
             b.append("</ul></section>");
         }
-        if (!overnight(peak)) b.append(staysP(peak));   // 🏨 근처 숙소 - 1박 산은 위(날씨 · 안전 아래)에
+        if (!overnight(peak)) b.append(staysBlock(peak, courses, false));   // 🏨 근처 숙소 - 1박 산은 위(날씨 · 안전 아래)에
         b.append(Ads.box("m"));   // 광고(설정이 있을 때만, 2026-10-28)
         b.append(foot(base, REL + enPath));
         return b.toString();
@@ -688,10 +732,7 @@ public class MountainServlet extends HttpServlet {
                 + "<section id=\"near\"><details class=\"fold kind\" name=\"kind\" id=\"nearFold\"><summary><span class=\"ft\">📍 내 근처 100대 명산</span>"
                 + "<span class=\"fs\">지금 자리에서 가까운 8곳</span><span class=\"fa\">▾</span></summary><div class=\"fb\"><div id=\"nearList\"></div></div></details></section>"
                 // 🏨 근처 숙소 찾기(2026-10-29 홍TV님 "산청군청 근처 숙소" - 장소 이름 → 예약 단추 · 근처 숙소 목록, js/mountain.js · course-kit staySearch)
-                + "<section id=\"staySearch\"><details class=\"fold kind\" name=\"kind\"><summary><span class=\"ft\">🏨 근처 숙소 찾기</span>"
-                + "<span class=\"fs\">군청 · 역 · 터미널 · 산 이름으로</span><span class=\"fa\">▾</span></summary><div class=\"fb\">"
-                + "<form id=\"ssForm\" class=\"ssForm\" role=\"search\"><input id=\"ssQ\" type=\"search\" maxlength=\"30\" placeholder=\"예: 산청군청\" aria-label=\"숙소를 찾을 장소 이름\"><button type=\"submit\">찾기</button></form>"
-                + "<div id=\"ssOut\" aria-live=\"polite\"></div></div></details></section>"
+                + staySearchBox(null, false)
                 + "<section id=\"weekend\" hidden></section><div class=\"folds\">");   // 이번 주말 날씨 좋은 산(js/mountain.js · /api/weekend - 2026-10-15)
         boolean hasPeaks = false;
         for (JsonElement e : groups) {

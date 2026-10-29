@@ -208,6 +208,8 @@ ul { margin:0; padding:0; list-style:none; }
 .ssList .ssPh { float:right; width:64px; height:64px; margin:2px 0 4px 8px; border-radius:8px; object-fit:cover; }
 .ssMap { position:relative; height:220px; margin:8px 0; overflow:hidden; border-radius:10px; background:#dfe6e9; }
 .ssMap img { position:absolute; width:256px; height:256px; max-width:none; }
-.ssMap .ssPin { position:absolute; transform:translate(-50%,-50%); min-width:20px; height:20px; line-height:20px; border-radius:10px; background:#e8505b; color:#fff; font-size:12px; font-weight:700; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.4); }
+.ssMap .ssPin { position:absolute; transform:translate(-50%,-50%); min-width:24px; height:24px; padding:0 4px; border:0; border-radius:12px; background:#e8505b; color:#fff; font-size:12px; font-weight:700; line-height:24px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.4); cursor:pointer; }
+.ssMap .ssPin::after { content:""; position:absolute; inset:-10px; }   /* 누르는 칸 44px */
+.ssList li.ssHi { background:rgba(232,80,91,.18); border-radius:8px; transition:background .3s; }
 .ssMap .ssHere { position:absolute; transform:translate(-50%,-100%); font-size:24px; line-height:1; }
 .ssMap .ssAttr { position:absolute; right:4px; bottom:2px; padding:0 4px; font-size:10px; color:#333; background:rgba(255,255,255,.75); border-radius:3px; }

@@ -20,7 +20,7 @@ public class RevenueA11yTest {
         String box = Ads.box("ca-pub-1234567890123456", "1234567");
         assertTrue(box.contains(">광고</p>"));
         String ko = read("src/main/java/com/gh/routefly/web/MountainServlet.java"), en = read("src/main/java/com/gh/routefly/web/MountainEn.java");
-        assertTrue(ko.contains("id=\\\"stays\\\" data-name=") && en.contains("MountainServlet.staysP(peak)"));
+        assertTrue(ko.contains("id=\\\"stays\\\" data-name=") && en.contains("MountainServlet.staysBlock(peak, courses, true)"));   // 숙소 줄 + 근처 숙소 찾기 칸(2026-10-30)
         assertTrue("영어 산 페이지 · 목록에도 광고", en.split("Ads.box\\(\"m\", true\\)", -1).length - 1 == 2);
         assertTrue(read("src/main/webapp/js/mountain.js").contains("RF.staysLine(") && read("src/main/webapp/js/mountain-en.js").contains("RF.staysLine("));
         String kit = read("src/main/webapp/js/course-kit.js");

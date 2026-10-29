@@ -81,6 +81,13 @@ site.baseUrl=
 #place.vworld.key=
 # 장소 찾기 - 카카오 로컬(키워드) 먼저(들머리 · 관광지 이름을 잘 찾음). 카카오 개발자 앱 → 앱 키 → REST API 키. 서버에서만 씀(화면 · 저장소로 나가지 않음). 비우면 V-World 만
 #kakao.restKey=
+# 바깥 API 에 새로 묻는 횟수 상한(서버 기억에 없을 때만 셈, 2026-10-30). 비우면 기본값
+#   근처 숙소(api/stays - 관광공사 · 카카오): 주소마다 한 시간 40번, 하루 3000번
+#   장소 찾기(api/place - 카카오 · V-World): 주소마다 한 시간 30번, 하루 3000번
+#quota.stays.ip=40
+#quota.stays.day=3000
+#quota.place.ip=30
+#quota.place.day=3000
 # 후원: 토스 아이디(https://toss.me/...) · 카카오페이 송금 코드(https://qr.kakaopay.com/...) 등 https 주소. 안내(about.html) 아래에 단추.
 #donate.url=
 # 외국 사람용 후원(2026-10-17): PayPal 결제 링크(https://www.paypal.com/ncp/payment/...) · https://paypal.me/... · https://ko-fi.com/...

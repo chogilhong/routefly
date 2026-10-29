@@ -1318,3 +1318,5 @@ eq("stayMapLink 숙소 이름 → 카카오맵 자리(쉼표는 빈칸, 나라 �
         names[c.name] = 1; return ok;
     }) && doc.cities.length >= 70, true);
 })();
+eq("stayKindEn 카카오 숙소 종류 → 영어", ["호텔", "여관,모텔", "콘도,리조트", "게스트하우스", "펜션", "민박", "캠핑,야영장", "", null].map(RF.stayKindEn),
+    ["Hotel", "Motel", "Resort", "Guesthouse", "Pension", "Homestay", "Campground", "Lodging", "Lodging"]);
