@@ -708,6 +708,7 @@ public class MountainServlet extends HttpServlet {
                 .append("<section id=\"gearIdx\" hidden></section>")   // 🎒 산행 시 챙길 것(js/mountain.js - 계절 기준, 산 페이지는 그 산 오르막까지 - 2026-10-18 홍TV님)
                 .append(tips()).append("<section id=\"fun\" class=\"fun\" hidden></section>")
                 .append(PartyServlet.enabled() ? "<a class=\"anbuLink partyLink\" href=\"" + REL + "/party.html?lang=ko\">🧑‍🤝‍🧑 산악회 방 <small>안내 산악회 · 인솔자 - 좌석 · 탑승 확인 · 인솔자가 회원 위치 확인 · SOS · 호차 · 차량번호</small> ›</a>" : "")   // 2026-10-20 홍TV님 - 켜졌을 때만
+                .append(PartyServlet.enabled() ? "<a class=\"anbuLink partyLink\" href=\"" + REL + "/party-office.html\">🏢 회사 사무실 <small>안내 산악회 · 여행사 - 여러 방을 한 화면에 · 회사 코드 · 승인 · 엑셀 내려받기</small> ›</a>" : "")   // 2026-10-29 홍TV님 "산악회 방 만들기 외에 더 없잖아" - 바로 가는 입구
                 .append("<a class=\"anbuLink\" href=\"").append(REL).append("/anbu.html?lang=ko\">🏠 오늘의 안부 <small>하루 한 번 '잘 지내요' · 보호자에게 문자 · 매일 알림</small> ›</a>")
                 .append("<a class=\"anbuLink toolLink\" href=\"").append(REL).append("/tools.html?lang=ko\">🧰 별거 별거 <small>우편번호 · 환율 · 음력 · 날씨 · 이자 · 타이머 · 지하철 노선도 · 공휴일 · 기름값 · 물때 · 돋보기 · 약 알림 · 산행 안전 등 32가지</small> ›</a>")
                 .append("<a class=\"anbuLink gameLink\" href=\"").append(REL).append("/games.html?lang=ko\">🎮 심심풀이 게임 <small>블록 쌓기 · 비행기 쏘기 · 뱀 · 2048 · 벽돌깨기 · 지뢰찾기 · 산 뛰어넘기 · 두더지 · 짝 맞추기 · 날아라 새 · 스도쿠 · 오목 등 15가지</small> ›</a>")   // 2026-10-21 홍TV님 - 별거 별거 아래   // 2026-10-18 홍TV님   // 2026-10-18 홍TV님 - 따라가기 첫 화면에서 옮김   // 🔮 재미로 보는 오늘의 산행 한마디(js/mountain.js - 2026-10-17 홍TV님)
