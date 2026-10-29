@@ -5447,7 +5447,12 @@
         // 높이로 정상에 닿는 코스 먼저, 이름만 정상인 것(공단 "→ 백운대" 선이 위문 · 숨은벽에서 끝남 - 최고 494 · 594m)은 그다음
         var tier = function (r) {
             if (pk.height != null && r.ele_max_m != null && +r.ele_max_m >= +pk.height - 60) return 0;
-            return core && String(nameOf ? nameOf(r) : r.name || "").replace(/\s+/g, "").indexOf(core) >= 0 ? 1 : 2;
+            // 이름의 지점 하나가 정상 이름 그대로일 때만("백운대" · "북한산(백운대)" · "북한산 백운대") - "백운대탐방지원센터" 는 아님
+            var n = String(nameOf ? nameOf(r) : r.name || ""), at = n.indexOf(" · "), spots = (at >= 0 ? n.slice(at + 3) : n).split(" → ").concat(at >= 0 ? [n.slice(0, at)] : []);
+            return core && spots.some(function (w) {
+                var x = w.replace(/\s+/g, "");
+                return x === core || x === base + core || x === base + "(" + core + ")" || new RegExp("(^|[^가-힣])" + core + "$").test(x);
+            }) ? 1 : 2;
         };
         var out = [[], [], []];
         rows.forEach(function (r) { out[tier(r)].push(r); });
