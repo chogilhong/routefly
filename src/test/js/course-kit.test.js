@@ -1398,3 +1398,11 @@ eq("kmaLink 행정동이 있으면 동네예보, 없으면 첫 화면", [RF.kmaL
     eq("park-gaps 높이: 타일 번호(백운대 15단계)", [t.x, t.y, t.px >= 0 && t.px < 256 && t.py >= 0 && t.py < 256],
         [Math.floor((126.978088 + 180) / 360 * n15), Math.floor((1 - Math.log(Math.tan(la) + 1 / Math.cos(la)) / Math.PI) / 2 * n15), true]);
 })();
+// 이은 코스 최고 - 지나는 정상의 공식 높이(ele_official)도(2026-10-30 PC: 숨은벽 · 백운대 대표 코스 그래프 최고 808m, 백운대 836m)
+(function () {
+    var a = RF.fromApi("a", { course: { name: "북한산 · 밤골 → 숨은벽 안부" }, points: [[126.962, 37.675, 200, 0], [126.977, 37.661, 586, 2400]], pois: [] });
+    var b = RF.fromApi("b", { course: { name: "북한산 · 숨은벽 안부 → 백운대" }, points: [[126.977, 37.661, 586, 0], [126.978, 37.6587, 808, 600]],
+        pois: [{ name: "백운대", dist_m: 600, off_route_m: 0, lat: 37.6587, lon: 126.978, ele_m: 836, ele_official: true }] });
+    var plain = RF.fromApi("c", { course: { name: "x · p → q" }, points: [[126.977, 37.661, 586, 0], [126.978, 37.6587, 808, 600]], pois: [{ name: "q", dist_m: 600, off_route_m: 0, ele_m: 900 }] });
+    eq("joinCourses 최고는 공식 정상 높이까지(공식 표시 없는 이름표 높이는 안 씀)", [RF.joinCourses([a, b], "a,b").course.ele_max_m, RF.joinCourses([a, plain], "a,c").course.ele_max_m], [836, 808]);
+})();
