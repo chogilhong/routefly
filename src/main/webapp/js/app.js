@@ -904,9 +904,10 @@
                         ag.appendChild(document.createTextNode(T(" (제휴 링크 - 예약하면 routefly 가 수수료를 받습니다)", " (affiliate link - routefly earns a commission if you book)")));
                     });
                 }
-                if (EN) body.appendChild(el("div", "gNote", "Source: Korea Tourism Organization " + (petOnly ? "pet travel service" : "TourAPI") + " · within " + rk + " km of the trailhead, nearest first. "
+                var kk = /카카오/.test(w.source || "");   // 숙박은 카카오 숙박 분류도(2026-10-29)
+                if (EN) body.appendChild(el("div", "gNote", "Source: " + (kk ? "Kakao · " : "") + "Korea Tourism Organization " + (petOnly ? "pet travel service" : "TourAPI") + " · within " + rk + " km of the trailhead, nearest first. "
                     + (food ? "Check opening hours with the restaurant." : "Check booking and prices with the place.")));
-                else body.appendChild(el("div", "gNote", "자료: 한국관광공사 " + (petOnly ? "반려동물 동반여행 서비스" : "TourAPI") + "(관광공사에 등록된 곳) · 들머리 " + rk + "km 안 · 가까운 순."
+                else body.appendChild(el("div", "gNote", "자료: " + (kk ? "카카오 · " : "") + "한국관광공사 " + (petOnly ? "반려동물 동반여행 서비스" : "TourAPI") + (kk ? "" : "(관광공사에 등록된 곳)") + " · 들머리 " + rk + "km 안 · 가까운 순."
                     + (rk > 5 ? " 5km 안에 없어 " + rk + "km 까지 넓혀 찾았습니다." : "")
                     + (food ? " 영업시간 · 휴무는 가게에 확인하세요." : " 예약 · 요금은 숙소에 확인하세요.")));
             }).catch(function () { body.textContent = ""; body.appendChild(el("div", "gNote", EN ? "Could not get " + what.toLowerCase() + " info." : what + " 정보를 받지 못했습니다.")); });

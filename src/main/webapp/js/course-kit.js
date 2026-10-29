@@ -1338,6 +1338,33 @@
             out.appendChild(row);
             if (spon) out.appendChild(el("p", T("🏨 표시는 제휴 링크 - 예약하면 routefly 가 수수료를 받습니다(값은 같음).", "🏨 links are affiliate links - routefly earns a commission if you book (same price)."), "dim"));
         }
+        // 작은 지도 - 찾은 곳(📍)과 숙소 번호 핀. V-World 지도 키(api/map-config)가 없으면 그리지 않음
+        var mapKeyP = null;
+        function stayMap(pl, st, before) {
+            if (!mapKeyP) mapKeyP = fetch(base + "api/map-config").then(function (r) { return r.json(); }).then(function (c) { return c.vworldKey || null; }).catch(function () { return null; });
+            var box = el("div", null, "ssMap");
+            box.setAttribute("role", "img");
+            box.setAttribute("aria-label", T("찾은 곳과 숙소 자리 지도 - 번호는 아래 목록 번호", "Map of the place and lodging - numbers match the list below"));
+            before.parentNode.insertBefore(box, before);
+            mapKeyP.then(function (key) {
+                var w = box.clientWidth || 320, h = box.clientHeight || 220, lay = key && stayTiles(pl, st, w, h);
+                if (!lay) { box.remove(); return; }
+                lay.tiles.forEach(function (t) {
+                    var im = el("img"); im.alt = "";
+                    im.addEventListener("error", function () { im.style.visibility = "hidden"; });
+                    im.src = "https://api.vworld.kr/req/wmts/1.0.0/" + encodeURIComponent(key) + "/Base/" + lay.z + "/" + t.y + "/" + t.x + ".png";
+                    im.style.left = t.left + "px"; im.style.top = t.top + "px";
+                    box.appendChild(im);
+                });
+                lay.pins.forEach(function (q, i) {
+                    var pn = el("span", String(i + 1), "ssPin"); pn.style.left = q[0] + "px"; pn.style.top = q[1] + "px";
+                    box.appendChild(pn);
+                });
+                var me = el("span", "📍", "ssHere"); me.style.left = lay.at[0] + "px"; me.style.top = lay.at[1] + "px";
+                box.appendChild(me);
+                box.appendChild(el("small", T("지도: 국토교통부 V-World", "Map: V-World (Korea MOLIT)"), "ssAttr"));
+            });
+        }
         var src = "";   // 위치 자료 출처(카카오 · 국토교통부 V-World) - 답의 source
         function show(p, pl, all, note) {
             out.textContent = "";
@@ -1364,15 +1391,24 @@
                 var st = (j.stays || []).slice(0, 10);
                 if (st.length && j.radius_km > 5) list.appendChild(el("li", T("5km 안에 없어 " + j.radius_km + "km 까지 넓혀 찾았습니다.", "None within 5 km - widened to " + j.radius_km + " km."), "dim"));
                 if (!st.length) { list.appendChild(el("li", j.unavailable ? T("숙소 목록을 지금 받지 못했습니다. 위 예약 단추로 찾아 주세요.", "Couldn't load the lodging list now. Use the buttons above.") : T((j.radius_km || 5) + "km 안에 등록된 숙소가 없습니다. 위 예약 단추로 찾아 주세요.", "No registered lodging within " + (j.radius_km || 5) + " km. Use the buttons above."))); return; }
-                st.forEach(function (x) {
-                    var li = el("li"), b = el("b"), nm = el("a", x.name), sm = el("small", " " + (x.dist_m != null ? (x.dist_m / 1000).toFixed(1) + "km" : "") + (x.addr ? " · " + x.addr : ""));
-                    var mh = stayMapLink(x.name, x.lat, x.lon);   // 이름을 누르면 카카오맵에서 그 숙소 자리(2026-10-29 홍TV님)
+                stayMap(pl, st, list);
+                st.forEach(function (x, i) {
+                    var li = el("li"), b = el("b"), nm = el("a", x.name), sm = el("small", " " + (x.kind ? x.kind + " · " : "") + (x.dist_m != null ? (x.dist_m / 1000).toFixed(1) + "km" : "") + (x.addr ? " · " + x.addr : ""));
+                    li.appendChild(el("span", String(i + 1), "ssNo"));
+                    if (x.photo) {   // 관광공사 대표 사진(있는 곳만)
+                        var ph = el("img", null, "ssPh"); ph.src = x.photo; ph.alt = ""; ph.loading = "lazy"; ph.referrerPolicy = "no-referrer";
+                        ph.addEventListener("error", function () { ph.remove(); });
+                        li.appendChild(ph);
+                    }
+                    // 이름을 누르면 카카오맵 장소 화면(사진 · 후기) - 없으면 그 자리(2026-10-29 홍TV님)
+                    var mh = /^https:\/\/place\.map\.kakao\.com\/\d+$/.test(x.url || "") ? x.url : stayMapLink(x.name, x.lat, x.lon);
                     if (mh) { nm.href = mh; nm.target = "_blank"; nm.rel = "noopener"; nm.setAttribute("aria-label", x.name + T(" - 카카오맵에서 보기", " - view on Kakao Map")); }
                     b.appendChild(nm); li.appendChild(b); li.appendChild(sm);
                     if (x.tel) { var t = el("a", " 📞 " + x.tel); t.href = "tel:" + String(x.tel).replace(/[^0-9+]/g, ""); li.appendChild(t); }
                     list.appendChild(li);
                 });
-                out.appendChild(el("p", T("숙소 목록: 한국관광공사(TourAPI) · 위치: " + (src || "국토교통부 V-World") + ". 요금 · 빈방은 예약 사이트에서 확인하세요.", "Lodging list: Korea Tourism Organization · location: " + (src === "카카오" ? "Kakao" : "V-World") + ". Check prices and rooms on the booking sites."), "dim"));
+                var kk = /카카오/.test(j.source || "");
+                out.appendChild(el("p", T("숙소 목록: " + (kk ? "카카오 · " : "") + "한국관광공사(TourAPI) · 위치: " + (src || "국토교통부 V-World") + ". 요금 · 빈방은 예약 사이트에서 확인하세요.", "Lodging list: " + (kk ? "Kakao · " : "") + "Korea Tourism Organization · location: " + (src === "카카오" ? "Kakao" : "V-World") + ". Check prices and rooms on the booking sites."), "dim"));
             }).catch(function () { list.textContent = ""; list.appendChild(el("li", T("숙소 목록을 받지 못했습니다.", "Couldn't load the lodging list."))); });
         }
         form.addEventListener("submit", function (e) {
@@ -5224,6 +5260,34 @@
         return (stamps || []).filter(function (s) { return typeof s.lat === "number" && typeof s.lon === "number" && !(have || {})[npStampKey(s)] && distM(s.lat, s.lon, lat, lon) <= radiusM; });
     }
 
+    /**
+     * 순수 함수 - 작은 지도(지도 조각 그림을 이어 붙임 - 지도 라이브러리 없이): 가운데 c{lat,lon} 와 점들이 w × h 안에 다 들어가는 가장 큰 줌(6~16).
+     * → {z, tiles:[{x, y, left, top}], pins:[[left, top]…], at:[left, top]} (조각은 256px, 왼쪽 위 기준 px).
+     */
+    function stayTiles(c, points, w, h) {
+        var all = [c].concat(points || []).filter(function (p) { return p && isFinite(p.lat) && isFinite(p.lon); });
+        if (!all.length || !(w > 0) || !(h > 0)) return null;
+        function px(p, z) {
+            var n = 256 * Math.pow(2, z), s = Math.sin(p.lat * Math.PI / 180);
+            return [(p.lon + 180) / 360 * n, (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * n];
+        }
+        var z = 16, pad = 18;
+        for (; z > 6; z--) {
+            var xs = all.map(function (p) { return px(p, z); });
+            var dx = Math.max.apply(null, xs.map(function (q) { return q[0]; })) - Math.min.apply(null, xs.map(function (q) { return q[0]; }));
+            var dy = Math.max.apply(null, xs.map(function (q) { return q[1]; })) - Math.min.apply(null, xs.map(function (q) { return q[1]; }));
+            if (dx <= w - 2 * pad && dy <= h - 2 * pad) break;
+        }
+        var ps = all.map(function (p) { return px(p, z); });
+        var cx = (Math.max.apply(null, ps.map(function (q) { return q[0]; })) + Math.min.apply(null, ps.map(function (q) { return q[0]; }))) / 2;
+        var cy = (Math.max.apply(null, ps.map(function (q) { return q[1]; })) + Math.min.apply(null, ps.map(function (q) { return q[1]; }))) / 2;
+        var x0 = cx - w / 2, y0 = cy - h / 2, tiles = [];
+        for (var ty = Math.floor(y0 / 256); ty * 256 < y0 + h; ty++)
+            for (var tx = Math.floor(x0 / 256); tx * 256 < x0 + w; tx++) tiles.push({ x: tx, y: ty, left: Math.round(tx * 256 - x0), top: Math.round(ty * 256 - y0) });
+        var at = function (q) { return [Math.round(q[0] - x0), Math.round(q[1] - y0)]; };
+        return { z: z, tiles: tiles, at: at(ps[0]), pins: ps.slice(1).map(at) };
+    }
+
     /** 순수 함수 - 숙소 이름 · 좌표 → 카카오맵 자리 링크(좌표가 우리나라 밖이거나 없으면 null). 이름의 쉼표 · / 는 링크를 끊어 빈칸으로. */
     function stayMapLink(name, lat, lon) {
         var a = +lat, o = +lon;
@@ -5262,6 +5326,6 @@
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },
         cellCenter: cellCenter, warnName: warnName, safetyRows: safetyRows, safetyAlert: safetyAlert, safetyRender: safetyRender,
         setLang: setLang, isEn: isEn, tr: tr, pageLang: pageLang, applyEn: applyEn,
-        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, cleanTrack: cleanTrack, recDist: recDist, dropLog: dropLog, recordLines: recordLines, recordHighest: recordHighest, partyAlerts: partyAlerts, afterHikeLinks: afterHikeLinks, afterHikeGear: afterHikeGear, rosterRead: rosterRead, leadSteps: leadSteps, boardingCard: boardingCard, npStampKey: npStampKey, npStampsOn: npStampsOn, npStampsDue: npStampsDue, tripLink: tripLink, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, regionEn: regionEn, weekendWordEn: weekendWordEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox, LEVELS: LEVELS, difficulty: difficulty, boardSegments: boardSegments, boardProfile: boardProfile, nameEnds: nameEnds, boardButtons: boardButtons, levelChip: levelChip, roman: roman, enName: enName, weekendText: weekendText, boardHere: boardHere, slopeBetween: slopeBetween, recentAdd: recentAdd, recentPages: recentPages, recentFold: recentFold, compareRows: compareRows, compareButtons: compareButtons, steepest: steepest, officialEleAt: officialEleAt, stampRadius: stampRadius, stillCheck: stillCheck, windChill: windChill, windNote: windNote, paceProfile: paceProfile, paceAt: paceAt, paceDistAt: paceDistAt, paceText: paceText, fortune: fortune, fortuneDay: fortuneDay, supportLine: supportLine, staysLine: staysLine, staysItem: staysItem, stayLinks: stayLinks, stayMapLink: stayMapLink, staySearch: staySearch, nearCity: nearCity, dayKey: dayKey, anbuPlan: anbuPlan, anbuText: anbuText, anbuSms: anbuSms, telClean: telClean, telFormat: telFormat, UNITS: UNITS, unitConv: unitConv, unitFmt: unitFmt, dayNo: dayNo, dayYmd: dayYmd, ageInfo: ageInfo, dDay: dDay, dateAdd: dateAdd, dateDiff: dateDiff, pctCalc: pctCalc, dutchPay: dutchPay, textCount: textCount, smsKind: smsKind, compassHeading: compassHeading, SOS_PATTERN: SOS_PATTERN, fxConv: fxConv, toLunar: toLunar, fromLunar: fromLunar, nextLunarBirthday: nextLunarBirthday, leapMonth: leapMonth, moonPhase: moonPhase, MOON_NAMES: MOON_NAMES, interestCalc: interestCalc, vatCalc: vatCalc, bmiInfo: bmiInfo, discomfort: discomfort, nameRoman: nameRoman, tzOffsetMin: tzOffsetMin, ladderMake: ladderMake, ladderTrace: ladderTrace, holidayRuns: holidayRuns, calcEval: calcEval, mobileOnlyUrl: mobileOnlyUrl, summitCard: summitCard, trackClimb: trackClimb
+        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, cleanTrack: cleanTrack, recDist: recDist, dropLog: dropLog, recordLines: recordLines, recordHighest: recordHighest, partyAlerts: partyAlerts, afterHikeLinks: afterHikeLinks, afterHikeGear: afterHikeGear, rosterRead: rosterRead, leadSteps: leadSteps, boardingCard: boardingCard, npStampKey: npStampKey, npStampsOn: npStampsOn, npStampsDue: npStampsDue, tripLink: tripLink, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, regionEn: regionEn, weekendWordEn: weekendWordEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox, LEVELS: LEVELS, difficulty: difficulty, boardSegments: boardSegments, boardProfile: boardProfile, nameEnds: nameEnds, boardButtons: boardButtons, levelChip: levelChip, roman: roman, enName: enName, weekendText: weekendText, boardHere: boardHere, slopeBetween: slopeBetween, recentAdd: recentAdd, recentPages: recentPages, recentFold: recentFold, compareRows: compareRows, compareButtons: compareButtons, steepest: steepest, officialEleAt: officialEleAt, stampRadius: stampRadius, stillCheck: stillCheck, windChill: windChill, windNote: windNote, paceProfile: paceProfile, paceAt: paceAt, paceDistAt: paceDistAt, paceText: paceText, fortune: fortune, fortuneDay: fortuneDay, supportLine: supportLine, staysLine: staysLine, staysItem: staysItem, stayLinks: stayLinks, stayMapLink: stayMapLink, stayTiles: stayTiles, staySearch: staySearch, nearCity: nearCity, dayKey: dayKey, anbuPlan: anbuPlan, anbuText: anbuText, anbuSms: anbuSms, telClean: telClean, telFormat: telFormat, UNITS: UNITS, unitConv: unitConv, unitFmt: unitFmt, dayNo: dayNo, dayYmd: dayYmd, ageInfo: ageInfo, dDay: dDay, dateAdd: dateAdd, dateDiff: dateDiff, pctCalc: pctCalc, dutchPay: dutchPay, textCount: textCount, smsKind: smsKind, compassHeading: compassHeading, SOS_PATTERN: SOS_PATTERN, fxConv: fxConv, toLunar: toLunar, fromLunar: fromLunar, nextLunarBirthday: nextLunarBirthday, leapMonth: leapMonth, moonPhase: moonPhase, MOON_NAMES: MOON_NAMES, interestCalc: interestCalc, vatCalc: vatCalc, bmiInfo: bmiInfo, discomfort: discomfort, nameRoman: nameRoman, tzOffsetMin: tzOffsetMin, ladderMake: ladderMake, ladderTrace: ladderTrace, holidayRuns: holidayRuns, calcEval: calcEval, mobileOnlyUrl: mobileOnlyUrl, summitCard: summitCard, trackClimb: trackClimb
     };
 })(window);

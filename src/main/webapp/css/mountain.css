@@ -203,3 +203,11 @@ ul { margin:0; padding:0; list-style:none; }
 .ssLinks a { display:inline-flex; align-items:center; min-height:44px; padding:0 14px; border-radius:22px; border:1px solid var(--sky); color:var(--tx); text-decoration:none; font-weight:bold; }
 .ssList li { font-size:14.5px; }
 .ssList li b a { color:inherit; text-decoration:underline; text-underline-offset:3px; }
+.ssList li { overflow:hidden; padding:4px 0; }
+.ssList .ssNo { display:inline-block; min-width:20px; height:20px; line-height:20px; margin-right:6px; border-radius:10px; background:#e8505b; color:#fff; font-size:12px; font-weight:700; text-align:center; }
+.ssList .ssPh { float:right; width:64px; height:64px; margin:2px 0 4px 8px; border-radius:8px; object-fit:cover; }
+.ssMap { position:relative; height:220px; margin:8px 0; overflow:hidden; border-radius:10px; background:#dfe6e9; }
+.ssMap img { position:absolute; width:256px; height:256px; max-width:none; }
+.ssMap .ssPin { position:absolute; transform:translate(-50%,-50%); min-width:20px; height:20px; line-height:20px; border-radius:10px; background:#e8505b; color:#fff; font-size:12px; font-weight:700; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.4); }
+.ssMap .ssHere { position:absolute; transform:translate(-50%,-100%); font-size:24px; line-height:1; }
+.ssMap .ssAttr { position:absolute; right:4px; bottom:2px; padding:0 4px; font-size:10px; color:#333; background:rgba(255,255,255,.75); border-radius:3px; }

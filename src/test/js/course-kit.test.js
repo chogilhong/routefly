@@ -1301,3 +1301,11 @@ eq("cellCenter 고정 5km 칸 가운데(서버에 내 위치 대신)", [RF.cellC
     [[37.575, 126.975], [37.575, 126.975], [35.025, 129.025], [33.475, 126.525]]);
 eq("stayMapLink 숙소 이름 → 카카오맵 자리(쉼표는 빈칸, 나라 밖 좌표는 없음)", [RF.stayMapLink("주황집", 38.1, 128.5), RF.stayMapLink("A,B/C", "38.2", "128.6"), RF.stayMapLink("x", 0, 0), RF.stayMapLink("", 38, 128)],
     ["https://map.kakao.com/link/map/%EC%A3%BC%ED%99%A9%EC%A7%91,38.100000,128.500000", "https://map.kakao.com/link/map/A%20B%20C,38.200000,128.600000", null, "https://map.kakao.com/link/map/%EC%88%99%EC%86%8C,38.000000,128.000000"]);
+(function () {
+    var lay = RF.stayTiles({ lat: 38.173, lon: 128.4925 }, [{ lat: 38.1745, lon: 128.497 }, { lat: 38.19, lon: 128.58 }], 320, 220);
+    eq("stayTiles 모든 점이 칸 안(가장 큰 줌)", lay.pins.concat([lay.at]).every(function (q) { return q[0] >= 0 && q[0] <= 320 && q[1] >= 0 && q[1] <= 220; }) && lay.z >= 6 && lay.z <= 16, true);
+    eq("stayTiles 조각이 칸을 다 덮음", lay.tiles.some(function (t) { return t.left <= 0 && t.top <= 0; }) && lay.tiles.some(function (t) { return t.left + 256 >= 320 && t.top + 256 >= 220; }), true);
+    var near = RF.stayTiles({ lat: 38.173, lon: 128.4925 }, [{ lat: 38.1735, lon: 128.493 }], 320, 220);
+    eq("stayTiles 가까우면 줌 16, 멀면 낮게", [near.z, lay.z < near.z], [16, true]);
+    eq("stayTiles 점 없음 · 칸 없음은 null", [RF.stayTiles({ lat: NaN, lon: 1 }, [], 320, 220), RF.stayTiles({ lat: 38, lon: 128 }, [], 0, 220)], [null, null]);
+})();

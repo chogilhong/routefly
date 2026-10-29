@@ -61,18 +61,111 @@ public class StaysServlet extends HttpServlet {
 
     private static JsonObject fetch(double lat, double lon, String type, boolean pet) {
         String serviceKey = RouteflyConfig.get("tour.serviceKey");
-        if (serviceKey == null) return unavailable();
+        // 숙박은 카카오 "숙박" 분류(AD5)도 - 관광공사에 없는 호텔 · 리조트까지(2026-10-29 홍TV님: 구글처럼 소공원 앞 켄싱턴 등이 나오게)
+        String kakao = !pet && "32".equals(type) ? RouteflyConfig.get("kakao.restKey") : null;
+        if (serviceKey == null && kakao == null) return unavailable();
         String base = RouteflyConfig.get(pet ? "tour.petListUrl" : "tour.url");
         if (base == null) base = pet ? PET_URL : DEFAULT_URL;
-        JsonObject out = fetch(base, serviceKey, lat, lon, type, RADIUS_M, pet);
+        JsonObject out = gather(base, serviceKey, kakao, lat, lon, type, RADIUS_M, pet);
         // 반려동물 동반 가능한 곳은 드묾 - 5km 안에 없으면 20km 까지 넓혀 한 번 더(2026-10-14 PC: 가야산 · 북한산 5km 안 0곳)
         // 숙박도 5km 안에 없으면 20km 까지(2026-10-29 홍TV님 - PC: 설악산 소공원 5km 안 0곳, 관광공사에 설악동 숙소가 없고 속초 시내가 7~8km)
         int wideM = wideRadius(pet, type);
         if (wideM > 0 && out != null && out.getAsJsonArray("stays").size() == 0) {
-            JsonObject wide = fetch(base, serviceKey, lat, lon, type, wideM, pet);
+            JsonObject wide = gather(base, serviceKey, kakao, lat, lon, type, wideM, pet);
             if (wide != null) out = wide;
         }
         return out != null ? out : unavailable();
+    }
+
+    static final String KAKAO_URL = "https://dapi.kakao.com/v2/local/search/category.json";
+
+    /** 관광공사 + (숙박이면) 카카오. 둘 다 못 받으면 null. */
+    private static JsonObject gather(String base, String serviceKey, String kakao, double lat, double lon, String type, int radius, boolean pet) {
+        JsonObject tour = serviceKey == null ? null : fetch(base, serviceKey, lat, lon, type, radius, pet);
+        if (kakao == null) return tour;
+        String t = OpenApi.get(kakaoUrl(lat, lon, radius), "STAYS-KAKAO", java.time.Duration.ofSeconds(8), "Authorization", "KakaoAK " + kakao);
+        JsonArray kk = t == null ? null : kakaoStays(t);
+        if (kk == null) {
+            if (t != null) OpenApi.warn("STAYS-KAKAO", t);
+            return tour;
+        }
+        JsonObject out = merge(kk, tour == null ? new JsonArray() : tour.getAsJsonArray("stays"));
+        out.addProperty("radius_km", radius / 1000);
+        return out;
+    }
+
+    /** 순수 함수 - 카카오 숙박 분류 검색 주소(가까운 순 15곳 - 한 쪽 최대). */
+    static String kakaoUrl(double lat, double lon, int radius) {
+        return KAKAO_URL + String.format(Locale.ROOT, "?category_group_code=AD5&x=%.6f&y=%.6f&radius=%d&sort=distance&size=15", lon, lat, Math.min(radius, 20000));
+    }
+
+    /** 순수 함수 - 카카오 답 → 숙소들 [{name, kind, addr, tel, lat, lon, dist_m, url}]. 꼴이 틀리면 null. */
+    static JsonArray kakaoStays(String text) {
+        try {
+            JsonArray docs = JsonParser.parseString(text).getAsJsonObject().getAsJsonArray("documents"), out = new JsonArray();
+            for (JsonElement e : docs) {
+                JsonObject d = e.getAsJsonObject(), s = new JsonObject();
+                Double y = num(d, "y"), x = num(d, "x");
+                String name = str(d, "place_name");
+                if (name == null || y == null || x == null || parse(String.valueOf(y), String.valueOf(x)) == null) continue;
+                s.addProperty("name", Party.clean(name, 60));
+                String cat = str(d, "category_name");   // "여행 > 숙박 > 호텔" → 호텔
+                if (cat != null && cat.contains(">")) s.addProperty("kind", Party.clean(cat.substring(cat.lastIndexOf('>') + 1).trim(), 20));
+                String addr = str(d, "road_address_name");
+                if (addr == null) addr = str(d, "address_name");
+                if (addr != null) s.addProperty("addr", Party.clean(addr, 80));
+                String tel = str(d, "phone");
+                if (tel != null && tel.matches("[0-9+()\\- ]{4,20}")) s.addProperty("tel", tel);
+                s.addProperty("lat", y);
+                s.addProperty("lon", x);
+                Double dist = num(d, "distance");
+                if (dist != null) s.addProperty("dist_m", Math.round(dist));
+                String url = str(d, "place_url");   // 카카오맵 장소 화면(사진 · 후기)
+                if (url != null && url.matches("https?://place\\.map\\.kakao\\.com/\\d{1,15}")) s.addProperty("url", url.replaceFirst("^http:", "https:"));
+                out.add(s);
+            }
+            return out;
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
+    /** 순수 함수 - 이름 맞추기용(괄호 안 · 빈칸 · 기호 빼고 소문자). */
+    static String nameKey(String n) {
+        return n == null ? "" : n.replaceAll("\\([^)]*\\)", "").replaceAll("[^\\p{L}\\p{N}]", "").toLowerCase(Locale.ROOT);
+    }
+
+    /**
+     * 순수 함수 - 카카오 숙소 + 관광공사 숙소 → 하나로. 이름이 같거나(앞이 같아도) 300m 안이면 같은 곳으로 보고 관광공사의 사진 · contentid 를 카카오 쪽에 붙임,
+     * 맞는 짝이 없는 관광공사 숙소는 뒤에 더함. 가까운 순 20곳.
+     */
+    static JsonObject merge(JsonArray kakao, JsonArray tour) {
+        java.util.List<JsonObject> all = new java.util.ArrayList<>();
+        boolean[] used = new boolean[tour.size()];
+        for (JsonElement e : kakao) {
+            JsonObject k = e.getAsJsonObject();
+            String kn = nameKey(str(k, "name"));
+            for (int i = 0; i < tour.size(); i++) {
+                if (used[i]) continue;
+                JsonObject t = tour.get(i).getAsJsonObject();
+                String tn = nameKey(str(t, "name"));
+                boolean same = kn.length() >= 2 && tn.length() >= 2 && (kn.startsWith(tn) || tn.startsWith(kn));
+                if (!same || MountainServlet.distM(k.get("lat").getAsDouble(), k.get("lon").getAsDouble(), t.get("lat").getAsDouble(), t.get("lon").getAsDouble()) > 300) continue;
+                used[i] = true;
+                for (String f : new String[] {"photo", "id", "tel"}) if (t.has(f) && !k.has(f)) k.add(f, t.get(f));
+                break;
+            }
+            all.add(k);
+        }
+        for (int i = 0; i < tour.size(); i++) if (!used[i]) all.add(tour.get(i).getAsJsonObject());
+        all.sort(java.util.Comparator.comparingLong(o -> o.has("dist_m") ? o.get("dist_m").getAsLong() : Long.MAX_VALUE));
+        JsonArray stays = new JsonArray();
+        for (JsonObject o : all) if (stays.size() < ROWS) stays.add(o);
+        JsonObject out = new JsonObject();
+        out.addProperty("success", true);
+        out.add("stays", stays);
+        out.addProperty("source", "카카오 · 한국관광공사");
+        return out;
     }
 
     private static JsonObject fetch(String base, String serviceKey, double lat, double lon, String type, int radius, boolean pet) {
@@ -155,6 +248,8 @@ public class StaysServlet extends HttpServlet {
             String addr = OpenApi.plain(str(it, "addr1")), tel = str(it, "tel");
             if (addr != null && !addr.isEmpty()) s.addProperty("addr", addr);
             if (tel != null) s.addProperty("tel", tel);
+            String photo = photo(str(it, "firstimage2"), str(it, "firstimage"));
+            if (photo != null) s.addProperty("photo", photo);
             s.addProperty("lat", y);
             s.addProperty("lon", x);
             Double d = num(it, "dist");
@@ -166,6 +261,16 @@ public class StaysServlet extends HttpServlet {
         out.add("stays", stays);
         out.addProperty("source", "한국관광공사");
         return out;
+    }
+
+    /** 순수 함수 - 관광공사 대표 사진(작은 것 먼저). 관광공사 사진 서버(visitkorea.or.kr)만, https 로. */
+    static String photo(String... urls) {
+        for (String u : urls) {
+            if (u == null) continue;
+            String h = u.trim().replaceFirst("^http:", "https:");
+            if (h.matches("https://[a-z0-9.-]*visitkorea\\.or\\.kr/[\\w./%-]{1,200}")) return h;
+        }
+        return null;
     }
 
     private static JsonArray one(JsonElement e) {

@@ -80,4 +80,44 @@ public class StaysServletTest {
         for (String f : new String[] {"bukhansan-80", "bukhansan-82", "jeju-32", "jeju-39", "gayasan-32", "gayasan-39"})
             assertEquals(f, 0, StaysServlet.body(PetServletTest.read("pet-probe-" + f + ".json")).getAsJsonArray("stays").size());
     }
+
+    /** 카카오 숙박 분류 + 관광공사 합치기(2026-10-29 홍TV님 - 구글처럼 근처 호텔이 나오게). 카카오 답 모양으로 만든 테스트 데이터(실제 숙소 아님). */
+    @Test
+    public void kakaoStaysMergeWithTour() {
+        String k = "{\"documents\":["
+                + "{\"place_name\":\"시험호텔 설악\",\"category_name\":\"여행 > 숙박 > 호텔\",\"road_address_name\":\"강원특별자치도 속초시 시험로 1\",\"address_name\":\"x\",\"phone\":\"033-000-0000\","
+                + "\"x\":\"128.4900\",\"y\":\"38.1720\",\"distance\":\"250\",\"place_url\":\"http://place.map.kakao.com/12345\"},"
+                + "{\"place_name\":\"시험펜션\",\"category_name\":\"여행 > 숙박 > 펜션\",\"road_address_name\":\"\",\"address_name\":\"강원특별자치도 속초시 설악동 1\",\"phone\":\"\","
+                + "\"x\":\"128.5000\",\"y\":\"38.1800\",\"distance\":\"1200\",\"place_url\":\"http://evil.example/1\"},"
+                + "{\"place_name\":\"나라밖\",\"x\":\"0.1\",\"y\":\"51.5\"}],\"meta\":{}}";
+        com.google.gson.JsonArray kk = StaysServlet.kakaoStays(k);
+        assertEquals("나라 밖 좌표는 뺌", 2, kk.size());
+        JsonObject a = kk.get(0).getAsJsonObject();
+        assertEquals("호텔", a.get("kind").getAsString());
+        assertEquals("https://place.map.kakao.com/12345", a.get("url").getAsString());
+        assertEquals(250, a.get("dist_m").getAsLong());
+        JsonObject b = kk.get(1).getAsJsonObject();
+        assertEquals("도로명이 비면 지번", "강원특별자치도 속초시 설악동 1", b.get("addr").getAsString());
+        assertFalse("카카오맵 장소 주소가 아니면 넣지 않음", b.has("url"));
+        assertFalse("빈 전화는 넣지 않음", b.has("tel"));
+        assertNull("꼴이 틀리면 null", StaysServlet.kakaoStays("<html>"));
+        assertTrue(StaysServlet.kakaoUrl(38.17, 128.49, 50000).contains("category_group_code=AD5&x=128.490000&y=38.170000&radius=20000&sort=distance"));
+
+        String tour = "{\"response\":{\"header\":{\"resultCode\":\"0000\"},\"body\":{\"items\":{\"item\":["
+                + "{\"title\":\"시험호텔설악(본관)\",\"contentid\":\"77\",\"firstimage\":\"http://tong.visitkorea.or.kr/cms/a.jpg\",\"firstimage2\":\"http://tong.visitkorea.or.kr/cms/b.jpg\",\"mapx\":\"128.4910\",\"mapy\":\"38.1721\",\"dist\":\"300\"},"
+                + "{\"title\":\"관광공사만\",\"firstimage\":\"http://evil.example/x.jpg\",\"mapx\":\"128.55\",\"mapy\":\"38.19\",\"dist\":\"6500\"}]}}}}";
+        com.google.gson.JsonArray ts = StaysServlet.body(tour).getAsJsonArray("stays");
+        assertEquals("작은 사진 먼저, https", "https://tong.visitkorea.or.kr/cms/b.jpg", ts.get(0).getAsJsonObject().get("photo").getAsString());
+        assertFalse("관광공사 사진 서버가 아니면 넣지 않음", ts.get(1).getAsJsonObject().has("photo"));
+
+        JsonObject m = StaysServlet.merge(kk, ts);
+        com.google.gson.JsonArray st = m.getAsJsonArray("stays");
+        assertEquals("같은 곳(이름 앞이 같고 300m 안)은 하나로", 3, st.size());
+        assertEquals("시험호텔 설악", st.get(0).getAsJsonObject().get("name").getAsString());
+        assertEquals("관광공사 사진 · contentid 를 붙임", "https://tong.visitkorea.or.kr/cms/b.jpg", st.get(0).getAsJsonObject().get("photo").getAsString());
+        assertEquals("77", st.get(0).getAsJsonObject().get("id").getAsString());
+        assertEquals("가까운 순 - 관광공사만 있는 곳은 뒤", "관광공사만", st.get(2).getAsJsonObject().get("name").getAsString());
+        assertEquals("카카오 · 한국관광공사", m.get("source").getAsString());
+        assertEquals("시험호텔설악", StaysServlet.nameKey("시험호텔 설악(본관)"));
+    }
 }
