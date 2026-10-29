@@ -123,8 +123,9 @@
                 buses.push((r.buses > 1 ? (i + 1) + "호차 " : "🚌 ") + (pl ? esc(pl) : "번호 없음") + (st ? " (" + st + "석)" : ""));
             }
             var dk = Object.keys(r.drops || {}), drops = dk.length > 1 || (dk.length === 1 && dk[0] !== "미정") ? dk.map(function (k) { return esc(k) + " " + r.drops[k]; }).join(" · ") : "";   // 하차 지점마다 몇 명
+            // "열기" 는 산행 이름 옆(2026-10-29 PC - 폰에서 맨 끝 칸은 표를 밀어야 보였음), "빼기" 는 실수로 누르지 않게 맨 끝 그대로
             var stops = (r.stops || []).map(function (x, k) { var t = (r.stopTimes || [])[k]; return esc(x) + (t ? " " + esc(t) : ""); }).join(" · ");
-            return "<tr class=\"" + cls + "\"><td class=\"name\"><b>" + esc(r.name) + "</b><br><small>" + when(r.departAt) + "<br>" + buses.join("<br>") + (stops ? "<br>🚏 " + stops : "") + (drops ? "<br>⬇ " + drops : "")
+            return "<tr class=\"" + cls + "\"><td class=\"name\"><b>" + esc(r.name) + "</b> <button data-open=\"" + esc(r.code) + "\" data-name=\"" + esc(r.name) + "\">열기</button><br><small>" + when(r.departAt) + "<br>" + buses.join("<br>") + (stops ? "<br>🚏 " + stops : "") + (drops ? "<br>⬇ " + drops : "")
                 + ((r.pickups || []).length ? "<br>🚌 " + r.pickups.map(function (q) { return esc(q.name) + " " + (q.at ? when(q.at).split(" ")[1] : "") + (r.departed ? " " + q.on + "/" + q.all : " " + q.all + "명"); }).join(" · ") : "")
                 + (r.homeAt ? "<br>🏠 출발지 도착 예정 " + when(r.homeAt).split(" ")[1] : "") + "</small></td>"
                 + "<td>" + state + "</td>"
@@ -135,7 +136,7 @@
                 + "<td>" + ago(r.lastAgo) + "</td>"
                 + "<td class=\"name\">" + esc(r.chief || "-") + (r.chiefDrop ? " <small>(" + (r.chiefDrop === "버스 대기" ? "🚌 버스 대기" : "⬇ " + esc(r.chiefDrop) + " 하차") + ")</small>" : "") + (r.leaderPhone ? "<br><a href=\"tel:" + esc(r.leaderPhone.replace(/[^0-9+]/g, "")) + "\" style=\"color:var(--sky)\">📞 " + esc(r.leaderPhone) + "</a>" : "")
                     + ((r.assistantNames || []).length ? "<br><small>보조 " + r.assistantNames.map(esc).join(" · ") + "</small>" : "") + "</td>"
-                + "<td><button data-open=\"" + esc(r.code) + "\" data-name=\"" + esc(r.name) + "\">열기</button> <button class=\"danger\" data-detach=\"" + esc(r.code) + "\" data-name=\"" + esc(r.name) + "\" title=\"잘못 올라온 방을 이 화면에서 뺌\">빼기</button></td></tr>";
+                + "<td><button class=\"danger\" data-detach=\"" + esc(r.code) + "\" data-name=\"" + esc(r.name) + "\" title=\"잘못 올라온 방을 이 화면에서 뺌\">빼기</button></td></tr>";
         }).join("") || "<tr><td colspan=\"9\">지금 이 회사에 올라온 방이 없습니다. 인솔자에게 회사 코드 <b>" + esc(j.code) + "</b> 를 알려 주세요.</td></tr>";
         $("ended").innerHTML = (j.ended || []).slice(0, 100).map(function (r) {
             var nd = r.notDown > 0 && !r.cancelled;
