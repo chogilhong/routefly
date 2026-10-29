@@ -16,14 +16,22 @@
     /** 앱(Capacitor)에서 보내나 - 서버가 "10분 소식 없음" 경고를 앱 회원에게만(웹은 화면을 끄면 멈춤, 2026-10-28). */
     function isApp() { return !!(g.Capacitor && (!g.Capacitor.isNativePlatform || g.Capacitor.isNativePlatform())); }
 
+    // 회사 사무실이 "열기" 로 연 방(office:true)은 이 탭에만(sessionStorage, 2026-10-29 홍TV님 - 회사 2곳 · 방 5개를 PC 탭마다 따로 봄).
+    // 내가 참가한 방(localStorage)을 덮지 않고, 탭끼리도 섞이지 않음. 탭을 닫으면 잊음(사무실에서 다시 "열기").
+    function tab() { try { return sessionStorage.getItem(KEY); } catch (e) { return null; } }
     function get() {
         try {
-            var p = JSON.parse(localStorage.getItem(KEY) || "null");
+            var p = JSON.parse(tab() || localStorage.getItem(KEY) || "null");
             return p && p.token && p.code ? p : null;
         } catch (e) { return null; }
     }
-    function set(p) { try { localStorage.setItem(KEY, JSON.stringify(p)); } catch (e) { /* 이번만 */ } }
-    function clear() { try { localStorage.removeItem(KEY); } catch (e) { /* 없음 */ } }
+    function set(p) {
+        try {
+            if (p && p.office) sessionStorage.setItem(KEY, JSON.stringify(p));
+            else { sessionStorage.removeItem(KEY); localStorage.setItem(KEY, JSON.stringify(p)); }
+        } catch (e) { /* 이번만 */ }
+    }
+    function clear() { try { if (tab()) sessionStorage.removeItem(KEY); else localStorage.removeItem(KEY); } catch (e) { /* 없음 */ } }
 
     /**
      * 알림(2026-10-28 홍TV님 - 인솔자도 혼자 산행해 화면을 못 봄): 무엇을 울릴지는 RF.partyAlerts(course-kit, 시험 있음).

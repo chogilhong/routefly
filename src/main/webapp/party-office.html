@@ -43,6 +43,9 @@ tr.warn td { background:rgba(255,212,59,0.14); }
 .ok { color:var(--green); }
 #msg { color:var(--red); font-size:14px; min-height:18px; margin-top:8px; }
 #linkBox { word-break:break-all; background:#0f141a; border:1px solid var(--ln); border-radius:8px; padding:8px; font-size:13px; }
+#mineBar { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 12px; }
+#mineSel { flex:1 1 220px; min-height:44px; padding:0 10px; border-radius:10px; border:1px solid var(--sky); background:#0f141a; color:var(--tx); font-size:16px; font-weight:bold; }
+#mineBar button { min-height:44px; }
 .vh { position:absolute !important; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
 </style>
 </head>
@@ -50,6 +53,12 @@ tr.warn td { background:rgba(255,212,59,0.14); }
 <h1 class="vh">routefly 회사 사무실</h1>
 <div id="top"><a href="party.html?lang=ko" id="backTop">‹ 뒤로</a><div id="title">🏢 회사 사무실</div><span id="updated" class="tip" style="margin:0"></span></div>
 <main>
+    <!-- 내 사무실 여럿(2026-10-29 홍TV님 - 회사 2곳): 이 기기가 연 사무실을 골라 봄. PC 는 탭마다 다른 사무실도 됨 -->
+    <div id="mineBar" hidden>
+        <select id="mineSel" aria-label="내 사무실 고르기"></select>
+        <button id="mineAdd" type="button">＋ 사무실 하나 더 만들기</button>
+        <button id="mineBack" type="button" hidden>‹ 보던 사무실로</button>
+    </div>
     <!-- 사무실 링크가 없을 때: 만들기 -->
     <section id="newSec" hidden>
         <h2>🏢 회사 사무실 만들기</h2>
@@ -96,7 +105,7 @@ tr.warn td { background:rgba(255,212,59,0.14); }
         <section>
             <h2>사무실 관리</h2>
             <p><button id="forget">이 기기에서 로그아웃 (사무실은 그대로)</button></p>
-            <p class="tip">공용 PC 에서 쓰고 나갈 때. 이 브라우저에 저장된 사무실 링크만 지웁니다 - 사무실 링크로 다시 들어올 수 있습니다.</p>
+            <p class="tip">공용 PC 에서 쓰고 나갈 때. 이 브라우저에 저장된 이 사무실 링크만 지웁니다(다른 내 사무실은 그대로) - 사무실 링크로 다시 들어올 수 있습니다.</p>
             <p><button id="copyMine">📋 이 기기의 사무실 링크 복사</button></p>
             <p class="tip">다른 직원 · 다른 PC 에 줄 때, 즐겨찾기에 다시 남길 때. 링크는 바뀌지 않습니다.</p>
             <p><button id="rename">✏️ 회사 이름 바꾸기</button></p>
