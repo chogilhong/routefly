@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>routefly Privacy Policy</title>
+<link rel="canonical" href="https://routefly.kr/routefly/privacy-en.html">
+<link rel="alternate" hreflang="ko" href="https://routefly.kr/routefly/privacy.html">
+<link rel="alternate" hreflang="en" href="https://routefly.kr/routefly/privacy-en.html">
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=2"><link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
+<meta name="theme-color" content="#11161d">
+<!-- 2026-10-11 오픈 전. 시행일(2026-10-21) · 서버 지역(서울)은 2026-10-21 홍TV님이 정함(책임자 · 연락처는 2026-10-14 홍TV님이 줌). 내용은 코드와 맞춰 두었습니다:
+     내 주변 코스는 고정 격자 칸만 묻기(course-kit.js gridCells · snapOut, hike.js nearList, app.js loadCourses), 접속 기록 ?뒤 빼기 · 보관 기간(docs/deploy-lightsail.md),
+     횟수 제한 2분(RateLimiter). 고치면 PrivacyPolicyTest 도 함께. -->
+<style>
+:root { --bg:#11161d; --panel:#1a212b; --tx:#e9eef4; --dim:#9aa6b4; --ln:rgba(255,255,255,0.12); --sky:#38d9ea; --fill:#ffd166; }
+* { box-sizing:border-box; }
+html, body { margin:0; background:var(--bg); color:var(--tx); font-family:Arial,"Malgun Gothic",sans-serif; line-height:1.65; }
+main { max-width:760px; margin:0 auto; padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 40px); }
+h1 { font-size:22px; margin:0 0 4px; }
+h1 span { color:#ffb703; }
+.lead { color:var(--dim); font-size:14px; margin:0 0 18px; }
+section { background:var(--panel); border:1px solid var(--ln); border-radius:12px; padding:14px 16px; margin-bottom:14px; }
+h2 { font-size:16.5px; margin:0 0 8px; }
+ul { margin:0; padding-left:20px; }
+li { margin:4px 0; font-size:14.5px; }
+p { font-size:14.5px; margin:6px 0; }
+.dim { color:var(--dim); font-size:13px; }
+.fill { color:var(--fill); }
+a { color:var(--sky); }
+table { width:100%; border-collapse:collapse; font-size:13.5px; }
+td, th { border-top:1px solid var(--ln); padding:7px 4px; vertical-align:top; text-align:left; }
+th { color:var(--dim); font-weight:normal; width:30%; }
+.key { background:rgba(56,217,234,0.10); border:1px solid rgba(56,217,234,0.35); border-radius:10px; padding:10px 12px; font-size:14.5px; }
+.back { display:inline-block; margin-top:6px; }
+/* 오른쪽 위 닫기 - 아래 '‹ 돌아가기' 와 같음(앞 화면으로, about.html 과 같은 모양 - 2026-10-14 홍TV님) */
+.close { position:fixed; top:calc(env(safe-area-inset-top) + 10px); right:12px; z-index:5; width:40px; height:40px; border-radius:50%;
+         display:flex; align-items:center; justify-content:center; font-size:20px; text-decoration:none; color:var(--tx);
+         background:var(--panel); border:1px solid var(--ln); box-shadow:0 2px 6px rgba(0,0,0,0.4); }
+h1 { padding-right:46px; }   /* 제목이 닫기 단추 밑으로 들어가지 않게 */
+/* 글자 크기 "가+"(js/about.js) - ✕ 왼쪽 */
+.rfz main { zoom: var(--rfz); }
+.rfTextBtn { position:fixed; top:calc(env(safe-area-inset-top) + 13px); right:60px; z-index:5; min-width:44px; height:34px; padding:0 8px; border-radius:17px;
+             border:1px solid var(--ln); background:var(--panel); color:var(--tx); font:bold 13px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }
+h1 { padding-right:110px; }
+.rfz h1 { padding-right:calc(110px / var(--rfz)); }   /* zoom 이 여백도 키우므로 */
+</style>
+<body>
+<a class="close" id="aboutClose" href="hike.html?lang=en" aria-label="Close" title="Close (back to the previous screen)">✕</a>
+<main>
+    <h1>route<span>fly</span> Privacy Policy</h1>
+    <p class="lead">Effective: October 21, 2026 · This is an English translation for convenience. If it differs from the <a href="privacy.html" hreflang="ko" lang="ko">Korean original (개인정보처리방침)</a>, the Korean original prevails.</p>
+
+    <div class="key">
+        routefly has no sign-up or login and does not collect personal information such as names or contact details (except an email address you choose to enter in <a href="#feedback">Feedback</a> to get a reply).
+        Your GPS location is used <b>only on your own phone</b> and is not sent to our server, and your hike records and photos are stored only on your phone.
+        The only things kept on the server are access logs (IP address etc.), which are deleted automatically after a set period.
+    </div>
+    <p></p>
+
+    <section>
+        <h2>1. Information the server receives and how it is used</h2>
+        <table>
+            <tr><th>Access logs</th><td>IP address, time of access, path of the requested page or data (search words and map areas after "?" in the address are not kept), browser type.
+                Created automatically when you connect.<br><span class="dim">Used for: providing the service, blocking hacking and excessive requests, checking failures</span></td></tr>
+            <tr><th>"Near me"</th><td>Your location is not sent. Your phone receives the course lists of a few <b>fixed map cells</b> that divide Korea into squares of about 10 km (the same for every user),
+                then picks courses within 5 km of you and measures distances on the phone. To the server, the request looks the same as moving the map to those cells.</td></tr>
+            <tr><th>Request counting</th><td>To block too many requests in a short time, request counts per IP address are kept briefly in server memory only (deleted after 2 minutes without requests; never written to files or the database).</td></tr>
+        </table>
+        <p class="dim">Course search words, course numbers and map areas are used only to find lists and are not stored.</p>
+    </section>
+
+    <section>
+        <h2>Location information</h2>
+        <p>routefly uses your phone's location (GPS) <b>only on that phone</b> for the map, remaining distance, off-course alerts and records,
+            and does not send it to or store it on the operator's server. The operator therefore cannot know where you are.
+            Your location goes elsewhere only when you choose it yourself (directions, SOS text and sharing in section 4 below) and when you join a hiking club room below and agree.</p>
+    </section>
+
+    <section id="party">
+        <h2>Hiking club rooms (from October 20, 2026)</h2>
+        <p>A guided hiking club leader creates a room before the hike, and members who booked join with the room code. <b>Only the location of people who agreed when joining</b> is shown to that room's leaders (including company staff the leader gave a leader code to). Members do not see each other's locations.</p>
+        <p>routefly has <b>filed a location-based service business report</b> under the Location Information Act (Korea Media and Communications Commission, <b>report No. 1857</b>; business: location-based hiking information service for users). <a href="lbs-terms-en.html">Location-Based Service Terms</a></p>
+        <table>
+            <tr><th>What we receive</th><td>Room: hike name, departure and descent deadline times, minimum number of people, leader name and contact (as the leader enters them), number of buses and plate numbers, number of seats, pickup stops. If the room is linked with a company code, that company office also sees this room information and assistant leader names (2026-10-28).<br>
+                Return pickup point (2026-10-28): where to board the bus after the descent (e.g. Seoraksan C district 17:00) - shown to leaders and the company office, deleted when the room ends.<br>
+                Drop-off point (2026-10-28): where a member or leader chose to get off (e.g. Hangyeryeong, Osaek, waiting on the bus) - shown to leaders and the company office, deleted when the room ends.<br>
+                Booking list (2026-10-24): only member names and seat numbers pasted by the leader (no contact details). Until that member joins there is no location, and the leader's screen just shows "no phone".<br>
+                People who joined: name (nickname), role (hiker or leader), seat number and pickup stop, departure and return boarding marks, location (latitude, longitude, accuracy), battery %, SOS (every 30 seconds from your stop's departure time or from when you board), and the path a hiking member has walked since departure (one point every 10 m of movement). When no location can be found (indoors, deep valleys), only the "phone is on" time, battery and SOS are sent, without location.<br>
+                Once a member joins by link, QR or NFC, the top line of the hike screen shows "Sharing your location with the leader · purpose: hiking safety · last shared time" (immediate notice of each third-party provision - Location Information Act Article 19(3)). Browsers send only while that screen is on. If you join with the routefly Android app, it keeps sending even with the screen off, from 3 hours before departure until you board for the return (or the hike is cancelled or the room ends),
+                and a "routefly - hiking club room" notification stays in the notification bar during that time.
+                <br>A one-line message (up to 80 characters) a member sends with "💬 To leader" is seen only by that room's leaders, kept only in server memory (never written to files or logs) and deleted when the room ends.</td></tr>
+            <tr><th>Who sees it</th><td>Only the leaders (the chief leader who created the room and assistant leaders who joined with the assistant leader code - as many as there are buses) and, if the chief leader linked the room with a company code, that company office (members' screens show everyone who receives their location): name, seat, SOS, return boarding, location, battery, pickup stop, departure boarding, time spent in one place, and the last 2 hours of the path of a member tapped in the list (in case of distress).
+                Before joining, only the room introduction (name, departure, leader, head count, taken seat numbers). There is no screen that shows this to the operator.</td></tr>
+            <tr><th>Where and how long</th><td>Location, battery, SOS and walked paths are kept only in server memory (never written to files or the database; erased when the server restarts) and deleted when you leave the room or the room ends.
+                Room information (name, times, leader name and contact, where the bus is parked) and nicknames, seats, pickup stops and boarding marks are kept in a server file (without member locations) so they last until the hike day. Your own entry is deleted when you leave the room,
+                and the whole room is deleted when the leader ends the room or cancels the hike, or 6 hours after the descent deadline (24 hours if any member turned on SOS, in case of distress; at most 40 days after creation).</td></tr>
+            <tr><th>Anonymous course statistics</th><td>When a room ends (except cancelled hikes), the paths walked by hiking members are made unidentifiable and used for course statistics (actual time per section, popular paths, correcting estimated times).
+                They are stored in the database without nicknames, keys, room codes or times (only the hike date and seconds since the first point), excluding the first and last 500 m and sections ridden in a vehicle. Paths of people who left the room partway are not kept.
+                As the data cannot identify anyone, there is no separate deletion period.</td></tr>
+            <tr><th>Records required by law</th><td>As records confirming the use and provision of location information, only the times of joining, removal, not boarding at departure, room end and SOS, with the room code and in-room number, are kept (no coordinates or nicknames),
+                for more than 6 months (200 days) and then deleted. When a member withdraws consent (stop sharing, leaving the room), that member's records are deleted immediately (Location Information Act Article 24(4)).</td></tr>
+        </table>
+        <p class="dim">Children under 14 cannot join (the Location Information Act requires a legal guardian's consent, which we do not collect). You can stop at any time with "Stop sharing" at the top of the hike screen (only your name stays in the leader's list). To stop sending your location, tap Stop sharing or turn off location permission.</p>
+    </section>
+
+    <section id="feedback">
+        <h2>Feedback (from October 20, 2026)</h2>
+        <p>We receive the <b>text</b> you write in "📮 Feedback", the <b>email address for a reply</b> only if you enter one, and which screen you came from (address path).
+            Location, device information and IP address are not stored with it (to block sending too often, only counts per IP address are kept in server memory for one day).</p>
+        <p>Received messages are sent to the operator's email (Gmail) and also kept in a server file. They are used only for replies and improving the service, and <b>deleted after 1 year (12 months)</b>.</p>
+    </section>
+
+    <section>
+        <h2>2. Information stored only on your phone</h2>
+        <p>The following is kept only in this device's browser (app) storage and is not sent to the server. The operator cannot see it either.</p>
+        <ul>
+            <li>GPS location and walked path (shown on screen during the hike, used for remaining distance and saved records)</li>
+            <li>Hike records (latest 30), photos and notes taken during hikes, GPX files you opened</li>
+            <li>Weight and height for calorie and step estimates (if entered), certification center and 100 famous mountains summit stamps, completion marks, saved courses, last search words</li>
+            <li>Courses and map images saved for offline use</li>
+        </ul>
+        <p class="dim">How to delete: delete records in "📒 Records" on the hike screen, or delete site data in your browser settings (app: App info → Storage → Clear data, or uninstall).
+            The app does not include this information in phone backups. To keep your records, download a backup file (records, photos, stamps, saved courses) with "📒 Records → 💾 Save backup",
+            or save each record with "Save GPX". The backup file is made on your phone and sent only where you choose (drive, email etc.), never to our server.</p>
+    </section>
+
+    <section>
+        <h2>3. Retention period and deletion</h2>
+        <table>
+            <tr><th>Web server (Nginx) access logs</th><td>Deleted automatically after 14 days</td></tr>
+            <tr><th>Application (Tomcat) access logs</th><td>Deleted automatically after 30 days</td></tr>
+            <tr><th>Error logs</th><td>Deleted automatically after 90 days (no IP addresses or other identifying information)</td></tr>
+            <tr><th>Request counts (memory)</th><td>Deleted after 2 minutes without requests; all deleted when the server restarts</td></tr>
+            <tr><th>Hiking club room locations (memory)</th><td>Deleted when you leave the room or the room ends; all deleted when the server restarts</td></tr>
+            <tr><th>Hiking club room information (file)</th><td>Your entry when you leave; the whole room when it ends or is cancelled (at the latest 6 hours after the descent deadline - 24 hours if SOS is on - or 40 days after creation)</td></tr>
+            <tr><th>Hiking club room confirmation records</th><td>Deleted automatically after 200 days (no coordinates or nicknames); deleted immediately for members who withdraw consent</td></tr>
+            <tr><th>Feedback (file and operator email)</th><td>Deleted after 12 months (server file automatically; the operator deletes the mailbox copies)</td></tr>
+        </table>
+        <p class="dim">Expired records are deleted so they cannot be recovered. Where a law requires keeping something, it is kept separately for that period.</p>
+    </section>
+
+    <section>
+        <h2>4. Information given to others</h2>
+        <ul>
+            <li>The operator does not give or sell personal information to others (except when investigative agencies etc. request it under the law).</li>
+            <li><b>Map images:</b> your browser fetches satellite photos and map labels directly from the Ministry of Land's V-World servers and terrain heights from AWS (Terrain Tiles) servers.
+                The map area you are viewing and your IP address reach those servers.</li>
+            <li><b>Only when you choose:</b> tapping directions (Kakao Map, Naver Map, Google Maps) passes the start point and your location to that app;
+                SOS texts and location photos, course links and record sharing go to the app you choose (text, messenger etc.). After that, that service's policy applies.</li>
+            <li><b>Weather, fine dust, hiking safety, lodging, restaurants and pet information:</b> the operator's server asks the Korea Meteorological Administration, Korea Environment Corporation (AirKorea),
+                Korea Forest Service, National Medical Center and Korea Tourism Organization using the coordinates of the course trailhead (the summit on mountain pages). When you tap "Use my location" in Tools, the center of the <b>fixed cell of about 5 km</b> around you (the same for everyone in that cell) is used instead of your location.
+                Your location and IP address are not passed on.</li>
+            <li><b>Affiliate links:</b> tapping a Coupang Partners, Agoda or Trip.com affiliate link takes you to that company's site, where its cookies and privacy policy apply.
+                The operator earns a commission when you buy or book, but no personal information such as who bought what reaches the operator.</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>5. Outsourcing and server location</h2>
+        <table>
+            <tr><th>Server hosting</th><td>Amazon Web Services (Lightsail) - server region: Seoul (ap-northeast-2)</td></tr>
+            <tr><th>Receiving feedback email</th><td>Google (Gmail) - receives Feedback messages in the operator's mailbox</td></tr>
+        </table>
+        <p class="dim">These companies only rent out servers and mailboxes and do not separately process the records in them.</p>
+    </section>
+
+    <section>
+        <h2>6. Cookies and visit analysis</h2>
+        <p>We do not use login cookies, ads or external analytics tools (such as Google Analytics). The information in section 2 is kept in this device's browser storage, not in cookies.
+            (Only the operator's own devices get a cookie marking "don't count operator visits". No cookies are created for visitors.)</p>
+        <p>To improve the service, the operator counts daily visits and visitors per screen and mountain page as numbers only. Visitors are de-duplicated by mixing the IP address with a value used only that day (discarded the next day),
+            and no IP addresses or identifying information are kept in the statistics. The kinds of access that day (people, search robots, scraping programs etc.) and the most opened pages are viewed only in server memory on the operator's statistics screen (addresses as a same-day hash, browser type text),
+            never written to files and deleted when the day changes (2026-10-29 - to detect and block scraping programs). Which site (Naver, Google etc.) visitors came through is counted only by site name, without referring addresses or search words.</p>
+    </section>
+
+    <section>
+        <h2>7. Your rights</h2>
+        <p>The server holds no information that identifies you, such as names or contacts, so there is almost nothing to view or correct.
+            If you want to view or delete access logs etc., contact us below. You can delete the information on your device yourself at any time as described in section 2.
+            You can turn off location permission in your phone settings at any time; without it you can only view courses and use test walks.</p>
+    </section>
+
+    <section>
+        <h2>8. How we keep it safe</h2>
+        <ul>
+            <li>All connections are encrypted with HTTPS.</li>
+            <li>Servers and the database get only the permissions they need (the web app only reads course data), and the database cannot be reached directly from outside.</li>
+            <li>We block excessive requests and do not show internal information on error screens.</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>9. Privacy officer and contact</h2>
+        <table>
+            <tr><th>Privacy officer</th><td>조길홍 (Gilhong Cho)</td></tr>
+            <tr><th>Contact</th><td><a href="mailto:sportsnews.javanian@gmail.com">sportsnews.javanian@gmail.com</a> · <a href="feedback.html?from=/privacy-en.html&amp;lang=en">📮 Feedback (English OK)</a></td></tr>
+        </table>
+        <p class="dim">You can also report or get advice on privacy violations from the following Korean agencies.</p>
+        <ul class="dim">
+            <li>Personal Information Infringement Report Center (KISA): privacy.kisa.or.kr, 118</li>
+            <li>Personal Information Dispute Mediation Committee: www.kopico.go.kr, 1833-6972</li>
+            <li>Supreme Prosecutors' Office: www.spo.go.kr, 1301</li>
+            <li>Korean National Police Agency: ecrm.police.go.kr, 182</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>10. Changes</h2>
+        <p>Ads (2026-10-28): Google AdSense ads may appear on mountain and course introduction pages (not on the hike or hiking club room screens, nor in the app). Google and other ad companies may use cookies to show ads suited to this browser; routefly does not receive the contents of those cookies.
+            You can turn off personalized ads in <a href="https://adssettings.google.com" rel="noopener">Google Ad Settings</a>.</p>
+        <p>Moving records between devices (2026-10-28, 📒 Records → QR): the sending device <b>encrypts the record backup on the device</b> and leaves it on the server in pieces; it is deleted as soon as the receiving device takes it (or after 10 minutes if not taken; memory only).
+            With a QR code, the key is only inside the QR and never reaches the server. With an 8-character code, the key is made from the code, so it can only be opened by someone who learns the code within 10 minutes (the server never receives the code).
+            Use QR codes and codes only between your own devices and do not send them to others.</p>
+        <p>If this policy changes, we announce it on this screen from 7 days before it takes effect.</p>
+        <p>Revised October 28, 2026: in hiking club rooms, the people who see member locations are limited to the chief leader and as many assistant leaders as there are buses, and all their names are shown on members' screens.
+            Added the company office screen where a hiking club company watches several rooms together - the office is shown on members' screens as a recipient; when a room ends, locations are deleted and the office keeps only a numeric summary without names or locations (head count, descent check, whether SOS occurred) for 200 days. When the company uses "Delete office" on the office screen, the office and its summaries are all deleted immediately.</p>
+    </section>
+
+    <a class="back" id="aboutBack" href="hike.html?lang=en">‹ Back</a>
+</main>
+<script src="js/about.js"></script>
+<script src="js/seen.js"></script>
+</body>
+</html>

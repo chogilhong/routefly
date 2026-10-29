@@ -20,7 +20,7 @@
         $("fbText").placeholder = "e.g. The trailhead parking for Bukhansan Baegundae course is in a different place.";
         $("fbReplyL").textContent = "Your email for a reply (optional)";
         $("fbReply").placeholder = "Leave empty if you don't need a reply";
-        $("fbNote").innerHTML = "We don't send your location or device info - only which page you came from. Your message and email are used only to reply and improve the service, and deleted after 1 year. <a href=\"privacy.html#feedback\">Details (Korean)</a>";
+        $("fbNote").innerHTML = "We don't send your location or device info - only which page you came from. Your message and email are used only to reply and improve the service, and deleted after 1 year. <a href=\"privacy-en.html#feedback\">Details</a>";
         $("fbSend").textContent = "Send";
         $("fbBack").textContent = "‹ Back";
     }
