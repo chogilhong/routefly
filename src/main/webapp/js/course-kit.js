@@ -3743,6 +3743,70 @@
         return { 1: "☀️ 맑음", 3: "⛅ 구름많음", 4: "☁️ 흐림" }[+sky] || "-";
     }
 
+    // ── 기상청 날씨누리처럼 시간별 가로 표(2026-10-30 홍TV님 "참고해" - 날씨누리 동네예보 화면) ──
+    var DIR16 = ["북", "북북동", "북동", "동북동", "동", "동남동", "남동", "남남동", "남", "남남서", "남서", "서남서", "서", "서북서", "북서", "북북서"];
+    var DIR16_EN = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+    /** 순수 함수 - 강수량 글("강수없음" · "1mm 미만" · "1.0mm" · "30.0~50.0mm") → 칸 글. */
+    function pcpText(p, en) {
+        var t = String(p == null ? "" : p).trim();
+        if (!t || /없음/.test(t) || t === "0") return "-";
+        if (/미만/.test(t)) return en ? "<1mm" : "1mm 미만";
+        return t.replace(/\.0(?=mm|~)/g, "");
+    }
+    /**
+     * 순수 함수 - 그 날(day "2026-10-30")의 시간별 칸 [{h, icon, word, tmp, pop, pcp, wsd, reh, arrow, dir}] - 날씨누리 표의 한 열씩.
+     * arrow 는 바람이 불어 가는 쪽 화살표(VEC 는 불어오는 쪽), dir 은 "북서" 처럼 불어오는 쪽 이름(…풍).
+     */
+    function wxCols(hours, day, en) {
+        var arrows = ["↓", "↙", "←", "↖", "↑", "↗", "→", "↘"];
+        return (hours || []).filter(function (h) { return String(h.t).slice(0, 10) === day; }).map(function (h) {
+            var w = weatherWord(h.sky, h.pty), sp = w.indexOf(" "), v = h.vec != null && isFinite(h.vec) ? ((+h.vec % 360) + 360) % 360 : null;
+            var word = sp > 0 ? w.slice(sp + 1) : w;
+            if (en) word = { "맑음": "Clear", "구름많음": "Mostly cloudy", "흐림": "Overcast", "비": "Rain", "비/눈": "Rain/snow", "눈": "Snow", "소나기": "Showers" }[word] || word;
+            return { h: String(h.t).slice(11, 13), icon: sp > 0 ? w.slice(0, sp) : w, word: word, tmp: h.tmp, pop: h.pop, pcp: pcpText(h.pcp, en), wsd: h.wsd, reh: h.reh,
+                arrow: v == null ? "" : arrows[Math.round(v / 45) % 8], dir: v == null ? "" : (en ? DIR16_EN : DIR16)[Math.round(v / 22.5) % 16] };
+        });
+    }
+    /** 시간별 가로 표(옆으로 밀어 봄). cols - wxCols. 표 하나를 돌려줌. */
+    function wxTable(cols, en) {
+        var t = function (ko, e) { return en ? e : ko; };
+        var wrap = document.createElement("div"), tb = document.createElement("table");
+        wrap.className = "wxt";
+        wrap.setAttribute("tabindex", "0");   // 키보드로도 옆으로
+        wrap.setAttribute("role", "region");
+        wrap.setAttribute("aria-label", t("시간별 날씨 - 옆으로 밀어 보기", "Hourly weather - scroll sideways"));
+        var rows = [[t("시각", "Time"), function (c) { return c.h + t("시", ""); }], [t("날씨", "Sky"), function (c) { return c.icon; }, function (c) { return c.word; }],
+            [t("기온", "Temp"), function (c) { return c.tmp != null ? c.tmp + "°" : "-"; }], [t("강수확률", "Rain %"), function (c) { return c.pop != null ? c.pop + "%" : "-"; }],
+            [t("강수량", "Rain"), function (c) { return c.pcp; }], [t("바람", "Wind"), function (c) { return (c.arrow ? c.arrow + " " : "") + (c.wsd != null ? c.wsd : "-"); },
+                function (c) { return (c.dir ? c.dir + t("풍 ", " wind ") : "") + (c.wsd != null ? c.wsd + "m/s" : ""); }],
+            [t("습도", "Humidity"), function (c) { return c.reh != null ? c.reh + "%" : "-"; }]];
+        rows.forEach(function (r, i) {
+            var tr = document.createElement("tr"), th = document.createElement("th");
+            th.scope = "row";
+            th.textContent = r[0] + (i === 5 ? " m/s" : "");
+            tr.appendChild(th);
+            cols.forEach(function (c) {
+                var td = document.createElement(i ? "td" : "th");
+                if (!i) td.scope = "col";
+                td.textContent = r[1](c);
+                if (r[2]) { td.title = r[2](c); td.setAttribute("aria-label", r[2](c)); }
+                if (i === 3 && c.pop >= 60) td.className = "wet";
+                if (i === 5 && c.wsd >= 9) td.className = "windy";   // 9m/s 넘으면 능선은 더 셈
+                tr.appendChild(td);
+            });
+            tb.appendChild(tr);
+        });
+        wrap.appendChild(tb);
+        return wrap;
+    }
+    /** 순수 함수 - 기상청 날씨누리 동네예보 주소. region {code, name}(api/wx 의 행정동)이 없으면 날씨누리 첫 화면. */
+    function kmaLink(region, lat, lon) {
+        if (!region || !/^\d{10}$/.test(String(region.code)) || !isFinite(lat) || !isFinite(lon)) return "https://www.weather.go.kr/w/index.do";
+        var la = (+lat).toFixed(4), lo = (+lon).toFixed(4);
+        return "https://www.weather.go.kr/w/index.do#dong/" + region.code + "/" + la + "/" + lo + "/" + encodeURIComponent(String(region.name || ""))
+            + "/LOC/" + encodeURIComponent("위경도(" + (+lat).toFixed(2) + "," + (+lon).toFixed(2) + ")").replace(/%2C/g, ",");   // 날씨누리 주소처럼 쉼표는 그대로
+    }
+
     /** 순수 함수 - 들머리 기온으로 정상 기온 추정(100m 오를 때마다 0.65℃ 낮게). 높이를 모르면 null. */
     function summitTemp(tmp, startEle, topEle) {
         if (tmp == null || startEle == null || topEle == null) return null;
@@ -5350,7 +5414,7 @@
     global.RF = {
         LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, regionNames: regionNames, stampKey: stampKey, summitName: summitName, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakGapM: peakGapM, peakCourses: peakCourses, isClosedTrail: isClosedTrail, isHiddenCourse: isHiddenCourse, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
-        sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap,
+        sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, wxCols: wxCols, wxTable: wxTable, kmaLink: kmaLink, pcpText: pcpText, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap,
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },
         cellCenter: cellCenter, warnName: warnName, safetyRows: safetyRows, safetyAlert: safetyAlert, safetyRender: safetyRender,
         setLang: setLang, isEn: isEn, tr: tr, pageLang: pageLang, applyEn: applyEn,

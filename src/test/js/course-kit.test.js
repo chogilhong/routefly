@@ -1339,3 +1339,17 @@ eq("stayKindEn 카카오 숙소 종류 → 영어", ["호텔", "여관,모텔", 
         [RF.fortuneDay(2026, 10, 30, "ko"), String(RF.sunrise(38.1, 128.5, new Date(Date.UTC(2026, 9, 30)))), "function"]);
     function sandboxOf(f) { var sb = { window: {}, console: console }; vm.createContext(sb); vm.runInContext(fs.readFileSync(path.join(split.WEB, f), "utf8"), sb); return sb.window.RF; }
 })();
+// 시간별 날씨 표 · 기상청 날씨누리 링크(2026-10-30 홍TV님 "참고해")
+eq("pcpText 강수량 글", ["강수없음", "1mm 미만", "1.0mm", "30.0~50.0mm", null].map(function (p) { return RF.pcpText(p, false); }).concat([RF.pcpText("1mm 미만", true)]),
+    ["-", "1mm 미만", "1mm", "30~50mm", "-", "<1mm"]);
+(function () {
+    var hs = [{ t: "2026-10-30 05:00", sky: 1, pty: 0, tmp: 3, pop: 0, pcp: "강수없음", wsd: 2.1, vec: 315, reh: 80 }, { t: "2026-10-30 06:00", sky: 4, pty: 1, tmp: 4, pop: 70, pcp: "1.0mm", wsd: 9.5, vec: 90, reh: 95 },
+        { t: "2026-10-31 00:00", sky: 1, pty: 0, tmp: 1 }];
+    var c = RF.wxCols(hs, "2026-10-30", false);
+    eq("wxCols 그 날 시간마다 - 북서풍은 남동쪽으로 부는 화살표", [c.length, c[0].h, c[0].icon, c[0].word, c[0].arrow, c[0].dir, c[1].word, c[1].arrow, c[1].dir, c[1].pcp],
+        [2, "05", "☀️", "맑음", "↘", "북서", "비", "←", "동", "1mm"]);
+    eq("wxCols 영어 · 풍향 없으면 빈칸", [RF.wxCols(hs, "2026-10-30", true)[0].word, RF.wxCols(hs, "2026-10-30", true)[0].dir, RF.wxCols(hs, "2026-10-31", false)[0].arrow], ["Clear", "NW", ""]);
+})();
+eq("kmaLink 행정동이 있으면 동네예보, 없으면 첫 화면", [RF.kmaLink({ code: "2815552000", name: "인천광역시 영종구 영종1동" }, 37.48441, 126.56), RF.kmaLink(null, 37.4, 126.5), RF.kmaLink({ code: "x", name: "a" }, 37.4, 126.5)],
+    ["https://www.weather.go.kr/w/index.do#dong/2815552000/37.4844/126.5600/" + encodeURIComponent("인천광역시 영종구 영종1동") + "/LOC/" + encodeURIComponent("위경도(37.48,126.56)").replace("%2C", ","),
+        "https://www.weather.go.kr/w/index.do", "https://www.weather.go.kr/w/index.do"]);

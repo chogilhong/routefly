@@ -213,3 +213,13 @@ ul { margin:0; padding:0; list-style:none; }
 .ssList li.ssHi { background:rgba(232,80,91,.18); border-radius:8px; transition:background .3s; }
 .ssMap .ssHere { position:absolute; transform:translate(-50%,-100%); font-size:24px; line-height:1; }
 .ssMap .ssAttr { position:absolute; right:4px; bottom:2px; padding:0 4px; font-size:10px; color:#333; background:rgba(255,255,255,.75); border-radius:3px; }
+/* 시간별 날씨 가로 표 - 기상청 날씨누리처럼(2026-10-30) */
+.wxt { overflow-x:auto; margin:8px 0 6px; -webkit-overflow-scrolling:touch; border:1px solid var(--ln, rgba(255,255,255,.12)); border-radius:10px; }
+.wxt table { border-collapse:collapse; font-size:13px; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.wxt th, .wxt td { padding:5px 8px; text-align:center; border-left:1px solid var(--ln, rgba(255,255,255,.08)); }
+.wxt tr + tr th, .wxt tr + tr td { border-top:1px solid var(--ln, rgba(255,255,255,.08)); }
+.wxt th[scope=row] { position:sticky; left:0; z-index:1; background:var(--panel); color:var(--dim); font-weight:normal; text-align:left; border-left:0; }
+.wxt tr:first-child th[scope=col] { color:var(--dim, #9aa6b4); font-weight:normal; }
+.wxt td.wet { color:#74c0fc; font-weight:bold; }
+.wxt td.windy { color:#ffa94d; font-weight:bold; }
+a.kma { display:inline-block; margin-top:6px; min-height:44px; line-height:44px; }

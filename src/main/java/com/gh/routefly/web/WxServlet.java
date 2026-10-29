@@ -44,6 +44,8 @@ public class WxServlet extends HttpServlet {
             return;
         }
         JsonObject out = all(() -> WeatherServlet.forecast(at[0], at[1]), () -> MidServlet.at(at[0], at[1]), () -> AirServlet.at(at[0], at[1]));
+        JsonObject rg = region(at[0], at[1]);   // 기상청 날씨누리 링크용 행정동(2026-10-30 홍TV님) - 못 받으면 없이
+        if (rg != null) out.add("region", rg);
         if (partial(out)) Json.write(resp, HttpServletResponse.SC_OK, out, false);
         else Json.ok(req, resp, out);
     }
@@ -58,6 +60,48 @@ public class WxServlet extends HttpServlet {
         out.add("mid", get(m, until));
         out.add("air", get(a, until));
         return out;
+    }
+
+    static final String REGION_URL = "https://dapi.kakao.com/v2/local/geo/coord2regioncode.json";
+    /** 자리(소수 둘째 자리 - 약 1km) → 행정동. 행정동은 거의 안 바뀌어 30일. 못 찾은 곳도 빈 것으로 기억(다시 묻지 않음). */
+    private static final OpenApi.Cache<JsonObject> REGIONS = new OpenApi.Cache<>(5000, 30L * 86_400_000L);
+    private static final JsonObject NONE = new JsonObject();
+
+    /**
+     * 그 자리의 행정동 {code, name} - 기상청 날씨누리 동네예보 주소(#dong/행정동코드/위도/경도/…)에 씀. 카카오 좌표 → 행정구역(키 kakao.restKey).
+     * 키가 없거나 못 받으면 null(화면은 날씨누리 첫 화면으로).
+     */
+    static JsonObject region(double lat, double lon) {
+        String key = String.format(java.util.Locale.ROOT, "%.2f,%.2f", lat, lon);
+        long now = System.currentTimeMillis();
+        JsonObject hit = REGIONS.get(key, now);
+        if (hit != null) return hit == NONE ? null : hit;
+        String kakao = RouteflyConfig.get("kakao.restKey");
+        if (kakao == null) return null;
+        String t = OpenApi.get(REGION_URL + String.format(java.util.Locale.ROOT, "?x=%.6f&y=%.6f", lon, lat), "WX-REGION", java.time.Duration.ofSeconds(4), "Authorization", "KakaoAK " + kakao);
+        if (t == null) return null;   // 연결 문제 - 기억하지 않음
+        JsonObject r = parseRegion(t);
+        REGIONS.put(key, r == null ? NONE : r, now);
+        return r;
+    }
+
+    /** 순수 함수 - 카카오 좌표 → 행정구역 답에서 행정동(H) {code(숫자 10자리), name}. 없으면 null. */
+    static JsonObject parseRegion(String text) {
+        try {
+            for (com.google.gson.JsonElement e : com.google.gson.JsonParser.parseString(text).getAsJsonObject().getAsJsonArray("documents")) {
+                JsonObject d = e.getAsJsonObject();
+                if (!"H".equals(d.has("region_type") ? d.get("region_type").getAsString() : null)) continue;
+                String code = d.has("code") ? d.get("code").getAsString() : "", name = d.has("address_name") ? d.get("address_name").getAsString() : "";
+                if (!code.matches("\\d{10}") || name.isBlank()) return null;
+                JsonObject o = new JsonObject();
+                o.addProperty("code", code);
+                o.addProperty("name", Party.clean(name, 60));
+                return o;
+            }
+        } catch (RuntimeException e) {
+            return null;
+        }
+        return null;
     }
 
     /** 하나라도 못 받았나. */

@@ -325,6 +325,7 @@
             RF.midLines(md).forEach(function (l) { lines.push(l); });
             lines.push("기상청 중기예보(" + mid.tmFc + " 발표) · " + mid.region + " 권역 · 기온은 " + mid.city + " 기준 - 산 위는 이보다 춥고 바람이 셉니다. 날이 가까워지면 3시간마다 예보로 바뀝니다.");
             show(lines);
+            kmaA();
             airBox.textContent = "😷 이 날 미세먼지 예보는 아직 없습니다(에어코리아 예보는 모레까지).";
             airBox.hidden = false;
             markTabs(day);
@@ -332,22 +333,32 @@
         }
         if (mm && RF.tempRange(mm.tmn, mm.tmx)) lines.push(RF.tempRange(mm.tmn, mm.tmx));
         var hours = wx.hours.filter(function (h) { return h.t.slice(0, 10) === day; });
-        var winds = RF.windNote(hours, today, "정상 둘레"), windH = winds.length ? winds[0].hour : -1;   // 경고 시각 줄도 보이게(2026-10-16 PC: 20시 8.3 인데 줄은 18 · 21시)
-        hours.filter(function (h, i) { return day === today ? i % 3 === 0 : +h.t.slice(11, 13) % 3 === 0; }).slice(0, 8)
-            .concat(hours.filter(function (h, i) { return +h.t.slice(11, 13) === windH && (day === today ? i % 3 : +h.t.slice(11, 13) % 3) !== 0; }))
-            .sort(function (a, b) { return a.t < b.t ? -1 : a.t > b.t ? 1 : 0; }).forEach(function (h) {
-            lines.push(h.t.slice(11, 13) + "시  " + RF.weatherWord(h.sky, h.pty) + "  " + (h.tmp != null ? h.tmp + "℃" : "-")
-                + "  · 비 " + (h.pop != null ? h.pop + "%" : "-") + "  · 바람 " + (h.wsd != null ? h.wsd + "m/s" : "-"));
-        });
+        var winds = RF.windNote(hours, today, "정상 둘레");
         var lastH = hours.length ? +hours[hours.length - 1].t.slice(11, 13) : 23;
         winds.forEach(function (n) { lines.push(n.text); });   // 강풍(2026-10-16 홍TV님) - 정상 둘레 격자라 정상 바람에 가까움
-        lines.push("기상청 단기예보(" + wx.base + " 발표) · 정상 둘레 5km 격자 - 정상은 이보다 춥고 바람이 셀 수 있습니다."
-            + (lastH < 21 ? " 이 날은 " + lastH + "시까지만 나왔습니다(다음 발표에 이어짐)." : ""));
         show(lines);
+        // 시간마다 가로 표 - 기상청 날씨누리 동네예보처럼(2026-10-30 홍TV님 "참고해", 예전엔 3시간마다 글 줄)
+        if (hours.length) out.appendChild(RF.wxTable(RF.wxCols(wx.hours, day, false), false));
+        var src = document.createElement("div");
+        src.className = "dim";
+        src.textContent = "기상청 단기예보(" + wx.base + " 발표) · 정상 둘레 5km 격자 - 정상은 이보다 춥고 바람이 셀 수 있습니다."
+            + (lastH < 21 ? " 이 날은 " + lastH + "시까지만 나왔습니다(다음 발표에 이어짐)." : "");
+        out.appendChild(src);
+        kmaA();
         var t = day === today ? RF.airText(air) : RF.airForecastText(air, day);
         airBox.textContent = t ? "😷 " + t + " · 에어코리아" : day === today ? "" : "😷 이 날 미세먼지 예보는 아직 없습니다(에어코리아 예보는 모레까지).";
         airBox.hidden = !airBox.textContent;
         markTabs(day);
+    }
+    var region = null;   // api/wx 의 행정동 - 기상청 날씨누리 동네예보 링크(2026-10-30)
+    function kmaA() {
+        var a = document.createElement("a");
+        a.className = "kma";
+        a.href = RF.kmaLink(region, lat, lon);
+        a.target = "_blank";
+        a.rel = "noopener";
+        a.textContent = "기상청 날씨누리에서 자세히 ›";
+        out.appendChild(a);
     }
     function markTabs(day) {
         var on = day === today;
@@ -377,7 +388,7 @@
         addMidTabs();
     }).catch(function () { /* 4일 뒤부터는 없이 */ });
     wxAll.then(function (x) { if (x.air) { air = x.air; draw(); } }).catch(function () { /* 미세먼지 없이 */ });
-    wxAll.then(function (x) { return x.weather || { unavailable: true }; }).then(function (w) {
+    wxAll.then(function (x) { region = x.region || null; return x.weather || { unavailable: true }; }).then(function (w) {
         if (w.unavailable || !(w.hours || []).length) { show([sunLine(Date.now()), "날씨를 지금 받지 못했습니다."]); return; }
         wx = w;
         today = w.hours[0].t.slice(0, 10);

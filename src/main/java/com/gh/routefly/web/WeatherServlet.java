@@ -181,7 +181,7 @@ public class WeatherServlet extends HttpServlet {
                 String key = day + " " + tm.substring(0, 2) + ":" + tm.substring(2);
                 JsonObject h = hours.computeIfAbsent(key, k -> { JsonObject o = new JsonObject(); o.addProperty("t", k); return o; });
                 switch (cat) {
-                    case "TMP": case "POP": case "WSD": case "REH": case "SKY": case "PTY": {
+                    case "TMP": case "POP": case "WSD": case "VEC": case "REH": case "SKY": case "PTY": {   // VEC 풍향(바람이 불어오는 쪽, 도) - 시간별 표의 바람 화살표(2026-10-30)
                         Double n = number(v);
                         if (n != null) h.addProperty(cat.toLowerCase(Locale.ROOT), n);
                         break;

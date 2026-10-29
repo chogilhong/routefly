@@ -804,7 +804,8 @@
             var wxP = getJson("api/wx?lat=" + start.lat.toFixed(4) + "&lon=" + start.lon.toFixed(4));
             var airP = wxP.then(function (x) { return x.air || null; }).catch(function () { return null; });
             var midP = wxP.then(function (x) { return x.mid || null; }).catch(function () { return null; });
-            wxP.then(function (x) { return x.weather || { unavailable: true }; }).then(function (w) {
+            var region = null;   // 행정동 - 기상청 날씨누리 링크(2026-10-30)
+            wxP.then(function (x) { region = x.region || null; return x.weather || { unavailable: true }; }).then(function (w) {
                 if (!$("guideSheet").classList.contains("open") || guide.c !== c) return;
                 body.textContent = "";
                 var ab = el("div", "gNote", "");
@@ -835,6 +836,8 @@
                 });
                 if (EN) body.appendChild(el("div", "gNote", "Source: Korea Meteorological Administration short-range forecast (" + w.base + ") · 5 km grid at the trailhead. Summit temperature is estimated from elevation."));
                 else body.appendChild(el("div", "gNote", "자료: 기상청 단기예보(" + w.base + " 발표) · 들머리 둘레 5km 격자" + (w.near ? "(들머리 격자에 자료가 없어 바로 옆 격자)" : "") + ". 정상 기온은 높이로 어림한 값입니다."));
+                var kl = gLink(T("기상청 날씨누리에서 자세히 ›", "More on the KMA weather site (Korean) ›"), RF.kmaLink(region, start.lat, start.lon));   // 날씨누리 동네예보(2026-10-30 홍TV님)
+                body.appendChild(el("div", "gNote")).appendChild(kl);
                 var midBox = body.appendChild(el("div"));
                 midP.then(function (m) {
                     if (!m || m.unavailable || !m.days) return;

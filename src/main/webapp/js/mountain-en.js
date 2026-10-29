@@ -48,9 +48,6 @@
     var DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     var AIR = { "좋음": "Good", "보통": "Moderate", "나쁨": "Unhealthy", "매우나쁨": "Very unhealthy" };
     function clock(ms) { var d = new Date(ms + 9 * 3600000); return d.getUTCHours() + ":" + String(d.getUTCMinutes()).padStart(2, "0"); }
-    function sky(s, p) {
-        return { 1: "🌧 Rain", 2: "🌨 Rain/snow", 3: "❄️ Snow", 4: "🌦 Showers" }[+p] || { 1: "☀️ Clear", 3: "⛅ Mostly cloudy", 4: "☁️ Overcast" }[+s] || "-";
-    }
     function dayLabel(d, today) {
         var t = Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10)), n = Math.round((t - Date.parse(today + "T00:00:00Z")) / 86400000);
         return (["Today ", "Tomorrow "][n] || "") + DAYS[new Date(t).getUTCDay()] + " " + (+d.slice(5, 7)) + "/" + (+d.slice(8, 10));
@@ -211,13 +208,19 @@
                 + "much colder and windier on the summit. Hourly forecasts appear as the day gets closer.");
         } else {
             if (mm && range(mm.tmn, mm.tmx)) lines.push(range(mm.tmn, mm.tmx));
-            hours.filter(function (h, i) { return day === today ? i % 3 === 0 : +h.t.slice(11, 13) % 3 === 0; }).slice(0, 8).forEach(function (h) {
-                lines.push(h.t.slice(11, 13) + ":00  " + sky(h.sky, h.pty) + "  " + (h.tmp != null ? h.tmp + "°C" : "-") + "  · rain " + (h.pop != null ? h.pop + "%" : "-")
-                    + "  · wind " + (h.wsd != null ? h.wsd + " m/s" : "-"));
-            });
-            lines.push("Korea Meteorological Administration short-term forecast (issued " + wx.base + " KST) for a 5 km grid around the summit. The summit can be colder and windier.");
         }
         show(lines);
+        if (hours.length) {   // hourly table like the KMA site (2026-10-30)
+            out.appendChild(RF.wxTable(RF.wxCols(wx.hours, day, true), true));
+            var src = document.createElement("div");
+            src.className = "dim";
+            src.textContent = "Korea Meteorological Administration short-term forecast (issued " + wx.base + " KST) for a 5 km grid around the summit. The summit can be colder and windier.";
+            out.appendChild(src);
+        }
+        var a = document.createElement("a");   // 기상청 날씨누리(한국어 사이트)
+        a.className = "kma"; a.href = RF.kmaLink(region, lat, lon); a.target = "_blank"; a.rel = "noopener";
+        a.textContent = "More on the KMA weather site (Korean) ›";
+        out.appendChild(a);
         airBox.textContent = day === today ? airText(air) : "";
         airBox.hidden = !airBox.textContent;
         var on = day === today;
@@ -247,7 +250,8 @@
         addMid();
     }).catch(function () { /* 4일 뒤부터는 없이 */ });
     wxAll.then(function (x) { if (x.air) { air = x.air; draw(); } }).catch(function () { /* 미세먼지 없이 */ });
-    wxAll.then(function (x) { return x.weather || { unavailable: true }; }).then(function (w) {
+    var region = null;   // 행정동 for the KMA link
+    wxAll.then(function (x) { region = x.region || null; return x.weather || { unavailable: true }; }).then(function (w) {
         if (w.unavailable || !(w.hours || []).length) { show([sunLine(Date.now()), "Weather is not available right now."]); return; }
         wx = w;
         today = w.hours[0].t.slice(0, 10);
