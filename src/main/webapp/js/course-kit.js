@@ -2530,6 +2530,14 @@
             }
             return false;
         };
+        var knpsD = function (p) {   // 가까운 공단 탐방로 점까지(m) - 둘레 칸에 없으면 아주 큼
+            var cx = Math.round(p[0] * 300), cy = Math.round(p[1] * 300), best = Infinity;
+            for (var dx = -2; dx <= 2; dx++) for (var dy = -2; dy <= 2; dy++) {
+                var g = grid[(cx + dx) + "," + (cy + dy)];
+                if (g) for (var i = 0; i < g.length; i++) best = Math.min(best, d(p, g[i]));
+            }
+            return best;
+        };
         // 점이 닿은 공단 탐방로와 그 탐방로 위 거리(처음부터 m) - 같은 탐방로 옆을 나란히 그린 선을 거르려고
         var tcum = trails.map(function (t) { var cu = [0]; for (var i = 1; i < t.coords.length; i++) cu.push(cu[i - 1] + d(t.coords[i - 1], t.coords[i])); return cu; });
         var onTrail = function (p) {
@@ -2559,12 +2567,20 @@
             if (!c || c.length < 3) return;
             var cum = [0];
             for (var i = 1; i < c.length; i++) cum.push(cum[i - 1] + d(c[i - 1], c[i]));
-            var total = cum[cum.length - 1], far = c.map(function (p) { return !nearKnps(p, FAR_M); }), e = routeEnds(o.name);
+            var total = cum[cum.length - 1], far = c.map(function (p) { return !nearKnps(p, FAR_M); }), e = routeEnds(o.name), prevEnd = -1;
             for (var a = 0; a < c.length; a++) {
                 if (!far[a]) continue;
                 var b = a;
                 while (b + 1 < c.length && far[b + 1]) b++;
                 var i0 = Math.max(0, a - 1), i1 = Math.min(c.length - 1, b + 1);
+                // 양 끝을 공단 탐방로에 가장 가까운 점까지 늘림(가까운 구간 안에서) - 120m 밖부터 그리면 공단 선이 끝나는 곳에서 틈이 보였음(2026-10-30 숨은벽)
+                var nextFar = b + 1;
+                while (nextFar < c.length && !far[nextFar]) nextFar++;
+                // 25m 안에 닿으면 멈춤 · 최대 150m(그 너머는 공단 선과 나란한 길이라 덮지 않음)
+                var a0 = i0, b1 = i1;
+                for (var k0 = i0 - 1, best0 = knpsD(c[i0]); best0 > 25 && k0 > prevEnd && k0 >= 0 && cum[a0] - cum[k0] <= 150; k0--) { var x0 = knpsD(c[k0]); if (x0 < best0) { best0 = x0; i0 = k0; } }
+                for (var k1 = i1 + 1, best1 = knpsD(c[i1]); best1 > 25 && k1 < nextFar && k1 < c.length && cum[k1] - cum[b1] <= 150; k1++) { var x1 = knpsD(c[k1]); if (x1 < best1) { best1 = x1; i1 = k1; } }
+                prevEnd = b;
                 var attA = a > 0, attB = b < c.length - 1;   // 앞 · 뒤 점이 공단 탐방로 둘레
                 var headA = !attA && (nearHead(c[0]) || nearTop(c[0])), headB = !attB && (nearHead(c[c.length - 1]) || nearTop(c[c.length - 1]));
                 var top = false;
@@ -2575,7 +2591,7 @@
                 // 양 끝이 같은 공단 탐방로에 닿고 그 사이 공단 길이와 비슷하면(0.6 ~ 1.6배) 같은 길을 옆에 나란히 그린 것 - 뺌
                 // (2026-10-13: 설악산 "대청봉 → 중청봉 → 대청봉" 같은 가짜 고리가 생겼음)
                 var ta = onTrail(c[i0]), tb = onTrail(c[i1]);
-                if (ta && tb && ta.t === tb.t) {
+                if (ta && tb && ta.t === tb.t && !top) {   // 정상으로 가는 막다른 길은 공단 선 끝 옆이라 나란해 보여도 씀(2026-10-30: 위문 → 백운대가 걸러졌음)
                     var along = Math.abs(tb.at - ta.at), run = cum[i1] - cum[i0];
                     if (along > 0.6 * run && along < 1.6 * run) continue;
                 }
