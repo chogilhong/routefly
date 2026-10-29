@@ -5438,7 +5438,7 @@
      * 가장 높은 곳이 정상 GPS 높이(약 25m 높음) - 60m 넘는 코스, 그다음 이름에 정상 이름(산 이름을 뗀 "백운대" - 붙여 쓴 "북한산백운대" 도)이 든 코스.
      * 같은 쪽 안에서는 원래 차례. peaks - mountains100.json 의 peaks. 명산 이름이 아니면 그대로.
      */
-    function summitFirst(rows, q, peaks) {
+    function summitFirst(rows, q, peaks, nameOf) {   // nameOf - 화면에 보일 이름(park-notes 로 바로잡은 탐방로 이름 - 공단 "→ 백운대" 가 실제로는 인수대피소까지)
         var k = String(q || "").replace(/\s+/g, "");
         var pk = (peaks || []).filter(function (p) { var id = String(p.id || p.name || "").replace(/\(.*\)$/, ""); return id && (k === id || k === String(p.id)); })[0];
         if (!pk || !rows || rows.length < 2) return rows;
@@ -5447,7 +5447,7 @@
         // 높이로 정상에 닿는 코스 먼저, 이름만 정상인 것(공단 "→ 백운대" 선이 위문 · 숨은벽에서 끝남 - 최고 494 · 594m)은 그다음
         var tier = function (r) {
             if (pk.height != null && r.ele_max_m != null && +r.ele_max_m >= +pk.height - 60) return 0;
-            return core && String(r.name || "").replace(/\s+/g, "").indexOf(core) >= 0 ? 1 : 2;
+            return core && String(nameOf ? nameOf(r) : r.name || "").replace(/\s+/g, "").indexOf(core) >= 0 ? 1 : 2;
         };
         var out = [[], [], []];
         rows.forEach(function (r) { out[tier(r)].push(r); });

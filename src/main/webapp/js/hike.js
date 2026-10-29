@@ -3225,7 +3225,8 @@
                 .then(function (r) {
                     if (my !== pickSeq) return;
                     // 탐방 안내도 대표 코스 가운데 목록에도 둘 것(이은 코스 - 북한산 숨은벽 · 백운대(밤골), 2026-10-30 홍TV님) - 맨 앞에 넣고 정상 먼저로 다시 줄 세움
-                    var m100 = r.pop(), rows = RF.summitFirst(RF.listBest(listNotes, q).concat((r[0].courses || []).slice()), q, m100 && m100.peaks);   // 명산이면 정상까지 가는 코스 먼저(2026-10-30 홍TV님 북한산 백운대)
+                    var m100 = r.pop(), rows = RF.summitFirst(RF.listBest(listNotes, q).concat((r[0].courses || []).slice()), q, m100 && m100.peaks,
+                        function (x) { return x.best ? x.name : RF.noteTrailName(listNotes, x.course_id, x.name); });   // 명산이면 정상까지 가는 코스 먼저(2026-10-30 홍TV님 북한산 백운대)
                     r.pop().reduce(function (a, b) { return a.concat(b); }, []).reverse().forEach(function (c) {
                         if (!rows.some(function (x) { return x.course_id === c.course_id; })) rows.unshift(c);
                     });
