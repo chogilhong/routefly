@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>routefly 이용약관</title>
+<link rel="canonical" href="https://routefly.kr/routefly/terms.html">
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=2"><link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
+<meta name="theme-color" content="#11161d">
+<style>
+:root { --bg:#11161d; --panel:#1a212b; --tx:#e9eef4; --dim:#9aa6b4; --ln:rgba(255,255,255,0.12); --sky:#38d9ea; --fill:#ffd166; }
+* { box-sizing:border-box; }
+html, body { margin:0; background:var(--bg); color:var(--tx); font-family:Arial,"Malgun Gothic",sans-serif; line-height:1.65; }
+main { max-width:760px; margin:0 auto; padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 40px); }
+h1 { font-size:22px; margin:0 0 4px; }
+h1 span { color:#ffb703; }
+.lead { color:var(--dim); font-size:14px; margin:0 0 18px; }
+section { background:var(--panel); border:1px solid var(--ln); border-radius:12px; padding:14px 16px; margin-bottom:14px; }
+h2 { font-size:16.5px; margin:0 0 8px; }
+.toc { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:2px 12px; margin:0; padding:0; list-style:none; }
+.toc li { margin:0; font-size:14px; }
+.toc a { display:block; padding:6px 0; text-decoration:none; }   /* 목차(2026-10-29 홍TV님 - 베트맨 약관처럼) */
+ul { margin:0; padding-left:20px; }
+li { margin:4px 0; font-size:14.5px; }
+p { font-size:14.5px; margin:6px 0; }
+.dim { color:var(--dim); font-size:13px; }
+.fill { color:var(--fill); }
+a { color:var(--sky); }
+table { width:100%; border-collapse:collapse; font-size:13.5px; }
+td, th { border-top:1px solid var(--ln); padding:7px 4px; vertical-align:top; text-align:left; }
+th { color:var(--dim); font-weight:normal; width:30%; }
+.key { background:rgba(56,217,234,0.10); border:1px solid rgba(56,217,234,0.35); border-radius:10px; padding:10px 12px; font-size:14.5px; }
+.back { display:inline-block; margin-top:6px; }
+/* 오른쪽 위 닫기 - 아래 '‹ 돌아가기' 와 같음(앞 화면으로, about.html 과 같은 모양 - 2026-10-14 홍TV님) */
+.close { position:fixed; top:calc(env(safe-area-inset-top) + 10px); right:12px; z-index:5; width:40px; height:40px; border-radius:50%;
+         display:flex; align-items:center; justify-content:center; font-size:20px; text-decoration:none; color:var(--tx);
+         background:var(--panel); border:1px solid var(--ln); box-shadow:0 2px 6px rgba(0,0,0,0.4); }
+h1 { padding-right:46px; }   /* 제목이 닫기 단추 밑으로 들어가지 않게 */
+/* 글자 크기 "가+"(js/about.js) - ✕ 왼쪽 */
+.rfz main { zoom: var(--rfz); }
+.rfTextBtn { position:fixed; top:calc(env(safe-area-inset-top) + 13px); right:60px; z-index:5; min-width:44px; height:34px; padding:0 8px; border-radius:17px;
+             border:1px solid var(--ln); background:var(--panel); color:var(--tx); font:bold 13px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }
+h1 { padding-right:110px; }
+.rfz h1 { padding-right:calc(110px / var(--rfz)); }   /* zoom 이 여백도 키우므로 */
+</style>
+</head>
+<body>
+<a class="close" id="aboutClose" href="about.html" aria-label="닫기" title="닫기(앞 화면으로)">✕</a>
+<main>
+    <h1>route<span>fly</span> 이용약관</h1>
+    <p class="lead">시행일: 2026년 10월 29일 · routefly 서비스 전체에 적용합니다. 위치는 <a href="lbs-terms.html">위치기반서비스 이용약관</a>, 개인정보는 <a href="privacy.html">개인정보처리방침</a>이 함께 적용됩니다.</p>
+
+    <section>
+        <h2>목차</h2>
+        <ul class="toc">
+            <li><a href="#a1">제1조 (목적)</a></li>
+            <li><a href="#a2">제2조 (용어의 뜻)</a></li>
+            <li><a href="#a3">제3조 (약관의 게시와 개정)</a></li>
+            <li><a href="#a4">제4조 (약관 외 준칙)</a></li>
+            <li><a href="#a5">제5조 (이용계약의 성립)</a></li>
+            <li><a href="#a6">제6조 (서비스 내용 · 요금)</a></li>
+            <li><a href="#a7">제7조 (코드 · 링크의 관리)</a></li>
+            <li><a href="#a8">제8조 (운영자의 의무)</a></li>
+            <li><a href="#a9">제9조 (이용자의 의무)</a></li>
+            <li><a href="#a10">제10조 (산악회 방 · 회사 사무실)</a></li>
+            <li><a href="#a11">제11조 (서비스의 변경 · 중지)</a></li>
+            <li><a href="#a12">제12조 (정보 제공 · 광고 · 제휴 링크)</a></li>
+            <li><a href="#a13">제13조 (게시물의 관리)</a></li>
+            <li><a href="#a14">제14조 (저작권)</a></li>
+            <li><a href="#a15">제15조 (이용 제한)</a></li>
+            <li><a href="#a16">제16조 (책임 제한)</a></li>
+            <li><a href="#a17">제17조 (개인정보 · 위치정보 보호)</a></li>
+            <li><a href="#a18">제18조 (분쟁 해결 · 재판권 · 준거법)</a></li>
+            <li><a href="#a19">부칙</a></li>
+        </ul>
+    </section>
+
+    <section id="a1">
+        <h2>제1조 (목적)</h2>
+        <p>이 약관은 routefly(아래 "운영자")가 제공하는 routefly 웹 · 안드로이드 앱 서비스(아래 "서비스")를 이용할 때 운영자와 이용자의 권리 · 의무 · 책임과 그 밖에 필요한 사항을 정합니다.</p>
+    </section>
+
+    <section id="a2">
+        <h2>제2조 (용어의 뜻)</h2>
+        <ul>
+            <li><b>이용자</b>: 이 약관에 따라 서비스를 쓰는 사람. 회원 가입 · 로그인은 없습니다.</li>
+            <li><b>인솔자</b>: 산악회 방을 만든 주 인솔자와, 주 인솔자가 준 인솔자 코드로 들어온 보조 인솔자.</li>
+            <li><b>회원</b>: 방 코드 · 참가 링크로 산악회 방에 참가하고 위치 제공에 동의한 사람.</li>
+            <li><b>회사 사무실</b>: 안내 산악회 · 여행사 등이 여러 산악회 방을 한 화면에서 보는 곳. <b>사무실 링크</b>(비밀 열쇠)로 들어오고, 인솔자는 <b>회사 코드</b>로 방을 올립니다.</li>
+            <li><b>게시물</b>: 이용자가 서비스에 적거나 올린 글 · 자료(의견 보내기 글, 방 이름 · 공지, 예약 명단, 회사 이름 등).</li>
+        </ul>
+    </section>
+
+    <section id="a3">
+        <h2>제3조 (약관의 게시와 개정)</h2>
+        <ul>
+            <li>운영자는 이 약관을 이 화면에 게시하고, 서비스 첫 화면 · 안내 화면에서 찾아갈 수 있게 합니다.</li>
+            <li>운영자는 약관의 규제에 관한 법률 등 관계 법령을 어기지 않는 범위에서 약관을 바꿀 수 있습니다. 바꿀 때는 바뀌는 내용 · 시행일 · 이유를 시행 7일 전부터(이용자에게 불리하면 30일 전부터) 이 화면에 알립니다.
+                운영자는 이용자의 연락처를 받지 않으므로 따로 알리는 대신 화면에 게시합니다.</li>
+            <li>바뀐 약관에 동의하지 않으면 서비스 이용을 그만둘 수 있습니다. 시행일 뒤에도 계속 쓰면 바뀐 약관에 동의한 것으로 봅니다.</li>
+        </ul>
+    </section>
+
+    <section id="a4">
+        <h2>제4조 (약관 외 준칙)</h2>
+        <p>이 약관에 정하지 않은 것은 위치기반서비스 이용약관 · 개인정보처리방침, 그리고 위치정보법 · 개인정보 보호법 · 정보통신망법 · 전자상거래법 · 약관의 규제에 관한 법률 등 관계 법령과 상관례에 따릅니다.</p>
+    </section>
+
+    <section id="a5">
+        <h2>제5조 (이용계약의 성립)</h2>
+        <ul>
+            <li>회원 가입이 없으므로, 이용자가 이 약관을 볼 수 있는 상태에서 서비스를 쓰기 시작하면 이용계약이 성립합니다.</li>
+            <li>산악회 방 참가는 따로 위치 제공 동의를 받습니다(위치기반서비스 이용약관). 만 14세 미만은 산악회 방에 참가할 수 없습니다.</li>
+        </ul>
+    </section>
+
+    <section id="a6">
+        <h2>제6조 (서비스 내용 · 요금)</h2>
+        <ul>
+            <li>코스 3D 미리 보기, 따라가기(내 위치 · 코스 안내 · SOS 화면 · 기록), 100대 명산 · 코스 소개(날씨 · 대기 · 챙길 것), 국립공원 · 스탬프, 별거 별거(생활 도구), 심심풀이 게임, 오늘의 안부</li>
+            <li>산악회 방(좌석 · 탑승 확인, 인솔자가 회원 위치 · SOS 확인)과 회사 사무실(여러 방을 한 화면에, 끝난 산행 엑셀 내려받기)</li>
+            <li><b>요금: 모든 서비스가 무료</b>입니다. 데이터 통신 요금은 이용자가 가입한 통신사 요금제에 따릅니다. 앞으로 유료 서비스를 둘 때는 요금 · 내용을 미리 알리고, 이용자가 따로 신청한 때에만 요금을 받습니다.</li>
+        </ul>
+    </section>
+
+    <section id="a7">
+        <h2>제7조 (코드 · 링크의 관리)</h2>
+        <ul>
+            <li>아이디 · 비밀번호 대신 방 코드 · 인솔자 코드 · 회사 코드 · 사무실 링크를 씁니다. 이를 관리할 책임은 받은 사람에게 있습니다.</li>
+            <li>사무실 링크는 비밀번호와 같습니다. 회사 안 사람끼리만 나누고, 단체 대화방 등 남이 보는 곳에 올리지 마세요. 샌 것 같으면 회사 사무실의 "사무실 링크 바꾸기", 인솔자 코드는 방 화면에서 바꿀 수 있습니다.</li>
+            <li>운영자는 사무실 링크를 따로 보관하지 않아, 잃어버리면 다시 찾아 드릴 수 없습니다.</li>
+        </ul>
+    </section>
+
+    <section id="a8">
+        <h2>제8조 (운영자의 의무)</h2>
+        <ul>
+            <li>운영자는 관계 법령과 이 약관이 금지하는 일을 하지 않고, 서비스를 계속 · 안정적으로 제공하려고 노력합니다.</li>
+            <li>운영자는 이용자의 개인정보 · 위치정보를 개인정보처리방침과 위치기반서비스 이용약관에 따라 보호합니다.</li>
+            <li>운영자는 이용자의 의견 · 불만이 정당하면 지체 없이 처리하고, 처리 결과를 답장 메일(적은 경우) 또는 화면으로 알립니다.</li>
+        </ul>
+    </section>
+
+    <section id="a9">
+        <h2>제9조 (이용자의 의무)</h2>
+        <p>이용자는 다음을 하면 안 됩니다.</p>
+        <ul>
+            <li>동의하지 않은 사람의 위치를 보려고 그 사람의 핸드폰으로 몰래 참가하는 일, 남을 사칭하거나 거짓 산악회 방 · 회사 사무실을 만드는 일</li>
+            <li>남의 회사 코드 · 사무실 링크 · 인솔자 코드를 허락 없이 쓰거나 퍼뜨리는 일, 코드를 하나씩 쳐 보는 일</li>
+            <li>자동 수집 프로그램(크롤러 · 스크래퍼 등)으로 코스 · 산 정보 · 지도 자료를 대량으로 가져가거나, 서버에 지나친 부담을 주는 일(검색 엔진의 일반적인 수집은 robots.txt 범위 안에서 허용)</li>
+            <li>서비스의 보안 장치를 우회하거나 서비스 운영을 방해하는 일</li>
+            <li>법령에 어긋나거나 남의 권리 · 명예를 해치는 글, 음란 · 광고성 글을 게시물로 올리는 일</li>
+        </ul>
+    </section>
+
+    <section id="a10">
+        <h2>제10조 (산악회 방 · 회사 사무실)</h2>
+        <ul>
+            <li>산악회 방은 인솔자가, 회사 사무실은 그 회사가 스스로 만들고 운영합니다. 회원에게 방 참가 · 위치 공유를 안내하고 명단을 바르게 관리할 책임은 인솔자와 회사에 있습니다.</li>
+            <li>회사 사무실은 회사 코드로 올라온 방을 <b>승인</b>한 뒤에만 회원 위치를 함께 봅니다. 우리 회사 방이 아니면 승인하지 말고 빼야 합니다.</li>
+            <li>산행 운영 · 버스 운송 · 참가비 등은 산악회 · 회사와 회원 사이의 일이며, 운영자는 그 계약의 당사자가 아닙니다.</li>
+            <li>인솔자 · 회사는 서비스로 알게 된 회원의 위치 · 이름 · 연락처를 산행 안전 확인 밖의 목적으로 쓰거나 남에게 주면 안 됩니다.</li>
+        </ul>
+    </section>
+
+    <section id="a11">
+        <h2>제11조 (서비스의 변경 · 중지)</h2>
+        <ul>
+            <li>운영자는 서비스 내용을 더하거나 바꿀 수 있고, 중요한 변경은 이 화면 또는 서비스 화면에 알립니다.</li>
+            <li>서버 점검 · 고장 · 통신 장애, 천재지변 · 국가 비상사태, 사업을 이어 가기 어려운 사정이 있으면 서비스의 전부 또는 일부를 멈출 수 있습니다. 미리 알 수 있으면 미리, 아니면 멈춘 뒤 바로 알립니다.</li>
+            <li>날씨 · 대기 · 지도 등 바깥 기관의 자료가 끊기면 그 부분이 잠시 보이지 않을 수 있습니다.</li>
+        </ul>
+    </section>
+
+    <section id="a12">
+        <h2>제12조 (정보 제공 · 광고 · 제휴 링크)</h2>
+        <ul>
+            <li>산 · 코스 소개 페이지에는 구글 애드센스 광고가 나올 수 있습니다(따라가기 · 산악회 방 화면과 앱에는 없음).</li>
+            <li>챙길 것 · 숙소 등 일부 링크는 제휴 링크(쿠팡 파트너스 · 숙박 예약 사이트)입니다. 그 링크로 사거나 예약하면 운영자가 수수료를 받으며, 링크 옆에 그 사실을 적습니다. 이용자가 내는 값은 같습니다.</li>
+            <li>광고 · 제휴 사이트에서 사고 예약하는 일은 이용자와 그 판매자 사이의 거래이며, 운영자는 그 거래의 당사자가 아닙니다.</li>
+        </ul>
+    </section>
+
+    <section id="a13">
+        <h2>제13조 (게시물의 관리)</h2>
+        <ul>
+            <li>게시물의 책임은 올린 사람에게 있습니다.</li>
+            <li>운영자는 게시물이 법령 · 이 약관(제9조)에 어긋나거나 남의 권리를 해친다고 신고받거나 알게 되면, 미리 알리지 않고 지우거나 보이지 않게 할 수 있습니다.</li>
+            <li>게시물의 보관 기간은 개인정보처리방침을 따릅니다(예: 의견 보내기 글 1년, 산악회 방의 명단 · 위치는 방이 끝나면 지우고 회사 사무실에는 숫자 요약만).</li>
+        </ul>
+    </section>
+
+    <section id="a14">
+        <h2>제14조 (저작권)</h2>
+        <ul>
+            <li>서비스 화면 · 프로그램 · 운영자가 만든 글과 그림의 권리는 운영자에게 있습니다.</li>
+            <li>지도 · 코스 · 날씨 등 바깥 자료의 권리는 그 출처에 있고, 출처와 이용 조건은 <a href="about.html#sources">자료 출처와 이용 조건</a>에 적습니다(예: © OpenStreetMap contributors, ODbL).</li>
+            <li>이용자는 서비스로 얻은 정보를 운영자의 허락 없이 복제 · 배포 · 판매하거나 다른 서비스에 쓰면 안 됩니다(개인의 산행 준비 · 공유는 괜찮음).</li>
+            <li>게시물의 권리는 올린 사람에게 있습니다. 운영자는 서비스를 운영하는 데 필요한 범위(보여 주기 · 보관)에서만 씁니다.</li>
+        </ul>
+    </section>
+
+    <section id="a15">
+        <h2>제15조 (이용 제한)</h2>
+        <p>이용자가 제9조를 어기면 운영자는 그 접속을 막거나, 산악회 방 · 회사 사무실의 이용을 멈추거나 없앨 수 있습니다. 급하지 않으면 미리, 급하면(다른 이용자의 위치 · 안전, 서버 장애와 관련된 때 등) 먼저 막고 뒤에 화면 · 답장으로 알립니다.
+            이용자는 제한에 이의가 있으면 의견 보내기로 알릴 수 있고, 정당하면 바로 풀어 드립니다.</p>
+    </section>
+
+    <section id="a16">
+        <h2>제16조 (책임 제한)</h2>
+        <ul>
+            <li>코스 · 산 높이 · 날씨 · 대기 · 길 안내 · 소요 시간은 <b>참고용</b>입니다. 실제 길 · 날씨 · 통제 상황과 다를 수 있으니 산행 결정과 안전은 이용자가 현장 상황 · 공식 안내를 보고 스스로 판단해야 합니다(<a href="about.html#safety">안전 안내</a>).</li>
+            <li>GPS 오차, 통신 끊김, 핸드폰 배터리 · 설정 때문에 위치 · SOS · 알림이 늦거나 가지 않을 수 있습니다. 산악회 방 위치 공유와 SOS 화면은 119 신고를 대신하지 않습니다. 위급하면 바로 119 에 전화하세요.</li>
+            <li>운영자는 천재지변, 이용자의 잘못, 바깥 기관 자료의 오류 · 중단 등 운영자에게 고의 또는 과실이 없는 사유로 생긴 손해에는 책임을 지지 않습니다. 다만 운영자의 고의 또는 중대한 과실로 생긴 손해는 그렇지 않습니다.</li>
+            <li>이용자끼리, 또는 이용자와 산악회 · 회사 · 제휴 판매자 사이에 생긴 분쟁에는 운영자가 끼지 않으며, 운영자는 그로 생긴 손해에 책임을 지지 않습니다(운영자의 고의 · 과실이 있으면 그렇지 않음).</li>
+        </ul>
+    </section>
+
+    <section id="a17">
+        <h2>제17조 (개인정보 · 위치정보 보호)</h2>
+        <p>개인정보는 <a href="privacy.html">개인정보처리방침</a>, 위치정보는 <a href="lbs-terms.html">위치기반서비스 이용약관</a>을 따릅니다. routefly 는 로그인 쿠키를 쓰지 않고(산 · 코스 소개 페이지 광고의 쿠키는 개인정보처리방침 10번), 따라가기의 위치는 산악회 방에 참가했을 때 말고는 서버로 보내지 않습니다.</p>
+    </section>
+
+    <section id="a18">
+        <h2>제18조 (분쟁 해결 · 재판권 · 준거법)</h2>
+        <ul>
+            <li>불만 · 분쟁은 먼저 <a href="feedback.html?from=/terms.html">📮 의견 보내기</a> 또는 <a href="lbs-terms.html#a4">위치기반서비스 이용약관 제4조</a>의 연락처로 알려 주세요. 운영자는 지체 없이 처리합니다.</li>
+            <li>해결되지 않으면 한국소비자원(1372) · 개인정보 분쟁조정위원회(1833-6972) 등에 조정을 신청할 수 있습니다.</li>
+            <li>운영자와 이용자 사이의 소송은 대한민국 법을 따르고, 민사소송법에 따른 관할 법원에 냅니다.</li>
+        </ul>
+    </section>
+
+    <section id="a19">
+        <h2>부칙</h2>
+        <p>이 약관은 2026년 10월 29일부터 시행합니다.</p>
+    </section>
+
+    <a class="back" id="aboutBack" href="about.html">‹ 돌아가기</a>
+</main>
+<script src="js/about.js"></script>
+<script src="js/seen.js"></script>
+</body>
+</html>
