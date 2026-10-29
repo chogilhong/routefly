@@ -39,6 +39,8 @@ final class Access {
     private static final Map<Integer, Map<String, Integer>> quarters = new TreeMap<>();   // 0~95(15분) → 종류 → 수
     private static final Map<String, Source> sources = new HashMap<>();
     private static int total;
+    /** 세기 시작한 때(그 날 자정 또는 서버를 켠 때 - 다시 켜면 처음부터라 제목에 보임, 2026-10-29). */
+    private static String since = "00:00";
 
     private Access() {
     }
@@ -80,6 +82,7 @@ final class Access {
         day = d;
         new SecureRandom().nextBytes(salt);
         kinds.clear(); groups.clear(); status.clear(); notFound.clear(); quarters.clear(); sources.clear();
+        since = LocalTime.now(WeatherServlet.KST).toString().substring(0, 5);   // 자정이면 00:00, 서버를 켠 뒤 처음이면 그 시각
         total = 0;
     }
 
@@ -139,7 +142,7 @@ final class Access {
     static synchronized String section(long now) {
         roll(now);
         StringBuilder b = new StringBuilder("<section><h2>오늘 접속 분석 <small style=\"font-weight:normal;color:var(--dim);font-size:13px\">")
-                .append(day).append(" 00:00 ~ ").append(LocalTime.now(WeatherServlet.KST).toString().substring(0, 5))
+                .append(day).append(" ").append(since).append(" ~ ").append(LocalTime.now(WeatherServlet.KST).toString().substring(0, 5))
                 .append(" · 화면 ").append(n(total)).append(" · 서로 다른 곳 ").append(n(sources.size())).append("</small></h2>");
         // 브라우저 종류
         b.append("<table class=\"st\"><tr><th>브라우저 종류</th><th class=\"num\">화면</th><th class=\"num\">비율</th></tr>");
