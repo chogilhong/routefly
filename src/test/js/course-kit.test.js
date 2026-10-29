@@ -842,6 +842,20 @@ eq("stayLinks 설정된 곳만 · 이름 · 좌표 넣기 · 카카오맵(제휴
 eq("stayLinks 여기어때 {q} · 아고다 좌표", [SL[2].href, SL[1].href], ["https://www.yeogi.com/s?k=%EC%82%B0%EC%B2%AD%EA%B5%B0%EC%B2%AD&a=7", "https://www.agoda.com/x?lat=35.41500&lon=127.87300"]);
 eq("stayLinks 아무 설정 없음 - 카카오맵만", RF.stayLinks({}, "산청군청", 35.4, 127.8, true).map(function (x) { return x.text; }), ["🗺 Kakao Map lodging"]);
 
+// 화면 js 검사(2026-10-29 PC: mountain.js 가 뒤쪽 "var … RF = window.RF" 보다 앞에서 RF. 를 써 undefined 로 멈췄음) - 그런 줄이 없어야 함(주석 빼고)
+(function () {
+    var dir = path.join(__dirname, "../../main/webapp/js"), bad = [];
+    fs.readdirSync(dir).filter(function (f) { return /\.js$/.test(f); }).forEach(function (f) {
+        var lines = fs.readFileSync(path.join(dir, f), "utf8").split("\n"), decl = -1;
+        lines.forEach(function (l, i) { if (decl < 0 && /(var |, )RF = window\.RF\b/.test(l)) decl = i; });
+        for (var i = 0; i < decl; i++) {
+            var code = lines[i].replace(/\/\/.*$/, "");
+            if (/(^|[^.\w])RF\./.test(code)) bad.push(f + ":" + (i + 1));
+        }
+    });
+    eq("var RF 보다 앞에서 RF. 를 쓰는 줄 없음(window.RF 로)", bad, []);
+})();
+
 var OFN = { 가야산: { official: { "knps-7013": "가야산1코스", "knps-7012": "가야산2코스", "knps-7017": "만물상코스" } } };
 eq("officialName 공단 공식 이름(ID 앞부분)", [RF.officialName(OFN, "knps-7013-3d5c7ede"), RF.officialName(OFN, "knps-70131-aa"), RF.officialName(null, "x")], ["가야산1코스", "", ""]);
 eq("officialMatches 띄어쓰기 무시 · 두 글자부터", [RF.officialMatches(OFN, "가야산 1코스").map(function (m) { return m.key; }),

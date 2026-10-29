@@ -1317,7 +1317,8 @@
                 var alt = el("p", T("다른 곳: ", "Other matches: "), "dim");
                 all.forEach(function (o) {
                     if (o === pl) return;
-                    var b = el("button", o.name, "ssAlt");
+                    // 이름이 같은 곳이 많음(산청군청 3곳 - 본청 · 별관 등, 2026-10-29 PC) - 시 · 도 · 군을 뺀 주소를 붙여 구분
+                    var b = el("button", o.name + (o.addr ? " · " + String(o.addr).replace(/^(\S+(도|시)\s+)?(\S+(군|구|시)\s+)?/, "") : ""), "ssAlt");
                     b.type = "button";
                     b.addEventListener("click", function () { show(p, o, all); });
                     alt.appendChild(b);
