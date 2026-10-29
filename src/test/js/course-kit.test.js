@@ -1365,3 +1365,20 @@ eq("kmaLink 행정동이 있으면 동네예보, 없으면 첫 화면", [RF.kmaL
         [3, [10, 11], "demanding_mountain_hiking", 0, 1]);
     eq("park-gaps 처음 · 끝 둘레에 길이 없으면 알림", !!pg.route(el, [37.60, 126.90], [37.6587, 126.9781]).error, true);
 })();
+// 탐방 안내도 구간 고르기(park.js addTrail) - 고리를 닫는 길 · 고리에 붙은 정상 갈래(2026-10-30 홍TV님: 밤골 → 숨은벽 → 백운대 → 숨은벽 → 계곡 → 밤골). 좌표는 테스트 데이터
+(function () {
+    var src = fs.readFileSync(path.join(__dirname, "../../main/webapp/js/park.js"), "utf8");
+    var code = src.slice(src.indexOf("    function chainCut(t) {"), src.indexOf("    function pick(t) {"));
+    var H = [126.960, 37.675], J = [126.977, 37.661], T = [126.978, 37.6587];
+    var line = function (a, b, n) { var o = []; for (var i = 0; i <= n; i++) o.push([a[0] + (b[0] - a[0]) * i / n, a[1] + (b[1] - a[1]) * i / n]); return o; };
+    var mid = [126.966, 37.664];
+    var lines = { ridge: line(H, J, 20), valley: line(J, mid, 10).concat(line(mid, H, 10).slice(1)), top: line(J, T, 8) };
+    var segs = Object.keys(lines).map(function (k) { return { id: k, coords: lines[k] }; });
+    var heads = [{ name: "밤골입구", lat: H[1], lon: H[0] }];
+    var run = new Function("RF", "lines", "segs", "heads", code + "\nvar chosen = [];\nfunction planOf(ids) { return RF.planWalk(ids, lines, { heads: heads, first: ids[0] }); }\n"
+        + "return { add: function (id) { chosen = addTrail({ id: id }); return chosen.slice().sort().join(','); }, reset: function () { chosen = []; }, plan: function () { var p = planOf(chosen); return p.walk.map(function (w) { return w.id + (w.rev ? '~' : ''); }).join(' '); } };");
+    var k = run(RF, lines, segs, heads);
+    k.add("ridge"); k.add("top"); var a = k.add("valley"), wa = k.plan();
+    k.reset(); k.add("ridge"); k.add("valley"); var b = k.add("top"), wb = k.plan();
+    eq("안내도 고르기: 편도 + 고리 닫는 길 · 고리 + 정상 갈래 → 정상은 왕복(고리 방향은 어느 쪽이든)", [a, b, / top top~ /.test(" " + wa + " "), / top top~ /.test(" " + wb + " ")], ["ridge,top,valley", "ridge,top,valley", true, true]);
+})();

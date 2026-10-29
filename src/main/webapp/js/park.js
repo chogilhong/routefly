@@ -204,6 +204,11 @@
         if (!chosen.length) return [t.id];
         var p = planOf(chosen);
         if (!p.ok || !lines[t.id]) return [t.id];
+        // 더해서 원점회귀가 되면 그대로 더함(2026-10-30 홍TV님: 밤골 → 사기막봉 → 숨은벽 → 백운대 → 숨은벽 → 계곡 → 밤골 을 못 그렸음) -
+        // 편도에 고리를 닫는 길(계곡)을 누르면 갈림길에서 바꾸기(chainCut)로 보고 백운대 갈래를 지웠고, 고리에 정상 갈래를 누르면 새로 시작했음.
+        // planWalk 가 막다른 갈래(정상)는 올랐다 같은 길로 내려오게 짬
+        var full = chosen.concat([t.id]), pf = planOf(full);
+        if (pf.ok && pf.loop) return full;
         var cut = chainCut(t);
         if (cut) return cut;
         var S = p.start, E = p.end, L = lines[t.id], te = [L[0], L[L.length - 1]];
