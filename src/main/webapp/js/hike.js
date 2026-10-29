@@ -2892,6 +2892,15 @@
     })();
     // 🌐 한국어 · English(2026-10-17 홍TV님 - 따라가기 영어) - 첫 화면 아랫줄. 고른 말은 이 기기에 기억
     (function () {
+        // 아래 "산악회 방" - 참가한 회원은 방 화면이 없어(인솔자만) 열자마자 이 화면으로 돌아왔음(2026-10-29 홍TV님 "회원이면?") → 위 산악회 띠로 안내
+        $("pickFoot").addEventListener("click", function (e) {
+            var l = e.target.closest && e.target.closest("a[href^='party.html']"), p = window.RFParty && RFParty.get();
+            if (!l || !p || p.role === "lead") return;   // 방이 없으면 참가 · 만들기 화면, 인솔자는 인솔자 화면 그대로
+            e.preventDefault();
+            var bar = $("partyBar");
+            if (bar && !bar.hidden) bar.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            toast(T("참가한 산악회 방은 이 화면 아래 산악회 띠에서 봅니다(하산 탑승 · 인솔자에게 · 탑승 카드).", "Your club room is the club bar on this screen (back on bus · message leader · boarding card)."), 6000);
+        });
         var foot = $("pickFoot"), a = document.createElement("a");
         a.href = "#";
         a.textContent = EN ? "🌐 한국어" : "🌐 English";
