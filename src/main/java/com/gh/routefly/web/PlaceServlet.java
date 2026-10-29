@@ -101,7 +101,8 @@ public class PlaceServlet extends HttpServlet {
                 String addr = a == null ? null : a.has("road") && !a.get("road").getAsString().isEmpty() ? a.get("road").getAsString() : a.has("parcel") ? a.get("parcel").getAsString() : null;
                 p.addProperty("name", Party.clean(name != null ? name : addr, 60));
                 if (addr != null) p.addProperty("addr", Party.clean(addr, 80));
-                if (!seen.add((addr != null ? addr.replaceAll("\\s+", "") : "") + "@" + Math.round(lat * 1e4) + "," + Math.round(lon * 1e4))) continue;
+                // 주소가 있으면 주소만으로(같은 건물도 V-World 좌표가 수십 m 씩 다름 - 2026-10-29 PC), 없으면 약 100m 칸으로
+                if (!seen.add(addr != null && !addr.isBlank() ? addr.replaceAll("\\s+", "") : "@" + Math.round(lat * 1e3) + "," + Math.round(lon * 1e3))) continue;
                 p.addProperty("lat", Math.round(lat * 1e6) / 1e6);
                 p.addProperty("lon", Math.round(lon * 1e6) / 1e6);
                 places.add(p);

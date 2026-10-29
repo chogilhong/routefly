@@ -22,6 +22,12 @@ public class PlaceServletTest {
         String dup = "{\"response\":{\"status\":\"OK\",\"result\":{\"items\":[{\"title\":\"경상남도산청군청\",\"address\":{\"road\":\"경상남도 산청군 시험로 1\"},\"point\":{\"x\":\"127.87300\",\"y\":\"35.41500\"}},"
                 + "{\"title\":\"산청군청\",\"address\":{\"road\":\"경상남도 산청군 시험로 1\"},\"point\":{\"x\":\"127.87301\",\"y\":\"35.41501\"}},{\"title\":\"산청군청\",\"address\":{\"road\":\"경상남도 산청군 다른로 2\"},\"point\":{\"x\":\"127.9\",\"y\":\"35.4\"}}]}}}";
         assertEquals("주소 · 좌표가 같은 곳은 하나만", 2, PlaceServlet.parse(dup).getAsJsonArray("places").size());
+        // 실제 V-World 답(2026-10-29 PC): 같은 주소에 좌표가 조금씩 다른 셋
+        String real = "{\"response\":{\"status\":\"OK\",\"result\":{\"items\":["
+                + "{\"title\":\"산청군청\",\"address\":{\"road\":\"경상남도 산청군 산청읍 산엔청로 1\"},\"point\":{\"x\":\"127.873658\",\"y\":\"35.415461\"}},"
+                + "{\"title\":\"산청군청\",\"address\":{\"road\":\"경상남도 산청군 산청읍 산엔청로 1\"},\"point\":{\"x\":\"127.873421\",\"y\":\"35.415562\"}},"
+                + "{\"title\":\"경상남도산청군청\",\"address\":{\"road\":\"경상남도 산청군 산청읍 산엔청로 1\"},\"point\":{\"x\":\"127.873357\",\"y\":\"35.415478\"}}]}}}";
+        assertEquals("같은 주소는 하나만", 1, PlaceServlet.parse(real).getAsJsonArray("places").size());
         assertEquals(0, PlaceServlet.parse("{\"response\":{\"status\":\"NOT_FOUND\"}}").getAsJsonArray("places").size());
         assertNull("키 오류 등은 null(로그에 답을 남기지 않음)", PlaceServlet.parse("{\"response\":{\"status\":\"ERROR\",\"error\":{\"text\":\"x\"}}}"));
         assertNull(PlaceServlet.parse("not json"));
