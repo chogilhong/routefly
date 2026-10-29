@@ -173,6 +173,10 @@
             RFParty.post("office/newcode", { key: key }).then(function (j) { msg("새 회사 코드: " + j.code + " - 인솔자들에게 알려 주세요."); load(); }).catch(function (e) { msg(e.message); });
         });
     });
+    // ‹ 뒤로(2026-10-29 홍TV님 - 들어온 문으로): 우리 화면에서 왔으면 그 화면으로, 카톡 링크 등 처음 연 탭이면 산악회 방 화면으로
+    $("backTop").addEventListener("click", function (e) {
+        if (document.referrer && document.referrer.indexOf(location.origin + "/") === 0 && history.length > 1) { e.preventDefault(); history.back(); }
+    });
     $("rename").addEventListener("click", function () {   // 2026-10-29 홍TV님 "만들어줘"
         var name = $("offTitle").textContent.replace(/^🏢 /, "").replace(/ 사무실$/, "");
         askText("새 회사 이름(30자까지). 회사 코드 · 사무실 링크는 그대로입니다.", name, { ok: "이름 바꾸기" }).then(function (typed) {
