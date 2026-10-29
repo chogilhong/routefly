@@ -14,7 +14,7 @@ import org.junit.Test;
 public class TermsPageTest {
 
     private static String read(String p) throws Exception {
-        return Files.readString(Path.of(p), StandardCharsets.UTF_8);
+        return Files.readString(Path.of(p), StandardCharsets.UTF_8).replace("\r\n", "\n");   // PC(core.autocrlf) 의 CRLF 에서도 같게(2026-10-29 PC)
     }
 
     @Test
