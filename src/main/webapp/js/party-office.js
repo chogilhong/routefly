@@ -27,6 +27,7 @@
         [/지금은 사무실을 더 만들 수 없습니다/, "No more offices can be created right now."],
         [/이 회사의 방이 아니거나 이미 끝난 방입니다/, "This room isn't your company's, or it has already ended."],
         [/승인 기다리는 방입니다/, "This room is waiting for approval. If it's your club's room, tap \"Approve\" first."],
+        [/이름을 너무 자주 바꿨습니다/, "The name was changed too often. Please try again in an hour."],
         [/너무 많이|잠시 뒤/, "Too many requests. Please try again in a moment."]
     ];
     function em(e) {
@@ -225,8 +226,10 @@
     function start() {
         var m = /^#k=([A-Za-z0-9_-]{20,64})$/.exec(location.hash || "");
         if (m) {
-            store(m[1]);
             try { history.replaceState(null, "", HERE); } catch (e) { /* 그대로 */ }   // 주소창 · 화면 캡처에 열쇠가 남지 않게
+            // 처음 보는 사무실 링크는 이름을 보여 주고 묻고 넣음(2026-10-29 보안 점검: 남이 보낸 링크 하나로 내 사무실 화면이 다른 회사 사무실로 바뀌었음 - 같은 이름으로 꾸며 회사 코드를 받아 갈 수 있었음)
+            if (!mine().some(function (y) { return y.k === m[1]; })) { confirmNew(m[1]); return; }
+            store(m[1]);
         }
         key = (m && m[1]) || stored();
         if (!key) { showOnly("newSec"); drawMine(); return; }
@@ -235,6 +238,19 @@
         clearInterval(timer);
         lastLoad = Date.now();
         timer = setInterval(function () { if (!document.hidden || Date.now() - lastLoad >= 59000) { lastLoad = Date.now(); load(); } }, EVERY_MS);   // 숨은 탭도 1분마다(SOS 알림, 2026-10-29)
+    }
+
+    function confirmNew(k) {
+        RFParty.post("office/rooms", { key: k }).then(function (j) {
+            return ask(T("사무실 링크로 들어왔습니다.\n\n🏢 " + j.name + " 사무실 (회사 코드 " + j.code + ")\n\n이 사무실을 이 기기에 추가할까요? 우리 회사 사무실이 맞을 때만 추가하세요.",
+                "You opened an office link.\n\n🏢 " + j.name + " office (company code " + j.code + ")\n\nAdd this office to this device? Only add it if it's your company's office."), { ok: T("추가", "Add") }).then(function (ok) {
+                if (ok) { store(k, j.name); key = k; } else msg(T("추가하지 않았습니다.", "Not added."));
+                start();
+            });
+        }).catch(function (e) {
+            msg(e && e.status === 403 ? T("사무실 링크가 맞지 않습니다. 링크를 다시 확인해 주세요.", "The office link is not valid. Please check the link.") : em(e));
+            start();
+        });
     }
 
     // 끝난 산행 엑셀(CSV) 내려받기(2026-10-28 홍TV님 추천 1) - 이 화면이 이미 받은 숫자만

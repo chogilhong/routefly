@@ -76,23 +76,27 @@ public class PartyServlet extends HttpServlet {
                 || (path != null && path.startsWith("/office/") && !"/office/create".equals(path));
         String missKey = missKey(ip);
         if (lookup && MISSES.over(missKey, now)) { Json.fail(resp, 429, "방 코드를 너무 많이 틀렸습니다. 10분 뒤 다시 해 주세요."); return; }
+        // 만들기 한도는 먼저 셈(자리 잡기) - 실패하면 돌려줌(2026-10-29 보안 점검: over 로 보고 끝난 뒤 take 하면 한꺼번에 보낸 요청이 모두 지나갔음)
         boolean create = "/create".equals(path) && !owner(req);
-        if (create && (CREATES.over(ip, now) || CREATES_ALL.over("*", now))) { Json.fail(resp, 429, "하루에 만들 수 있는 방 수를 넘었습니다. 내일 다시 해 주세요."); return; }
+        if (create && !reserve(CREATES, ip, CREATES_ALL, now)) { Json.fail(resp, 429, "하루에 만들 수 있는 방 수를 넘었습니다. 내일 다시 해 주세요."); return; }
+        if ("/office/rename".equals(path) && !RENAMES.take(ip, now)) { Json.fail(resp, 429, "이름을 너무 자주 바꿨습니다. 1시간 뒤 다시 해 주세요."); return; }   // 2026-10-29 보안 점검 - 바꿀 때마다 파일 둘을 다시 씀
         if ("/join".equals(path) && JOINS.over(ip, now)) { Json.fail(resp, 429, "한 곳에서 참가를 너무 많이 했습니다. 1시간 뒤 다시 해 주세요."); return; }
         boolean office = "/office/create".equals(path) && !owner(req);
-        if (office && (OFFICES.over(ip, now) || OFFICES_ALL.over("*", now))) { Json.fail(resp, 429, "하루에 만들 수 있는 사무실 수를 넘었습니다. 내일 다시 해 주세요."); return; }
+        if (office && !reserve(OFFICES, ip, OFFICES_ALL, now)) { Json.fail(resp, 429, "하루에 만들 수 있는 사무실 수를 넘었습니다. 내일 다시 해 주세요."); return; }
+        boolean ok = false;
         JsonObject in;
         try {
             in = body(req, "/roster".equals(path) ? 32_768 : 4096);   // 명단은 300줄을 한 번에(2026-10-28 - 40명씩 나눠 보내다 한도 · 중복 판단이 어긋났음)
         } catch (Exception e) {
+            if (create) { CREATES.give(ip, now); CREATES_ALL.give("*", now); }
+            if (office) { OFFICES.give(ip, now); OFFICES_ALL.give("*", now); }
             Json.fail(resp, 400, "요청을 읽지 못했습니다.");
             return;
         }
         try {
             JsonObject out = handle(Party.STORE, path, in, now);
-            if (create) { CREATES.take(ip, now); CREATES_ALL.take("*", now); }   // 만든 것만 셈(점검: 날짜를 틀린 것도 세어 하루 막혔음)
+            ok = true;   // 만든 것만 셈(점검: 날짜를 틀린 것도 세어 하루 막혔음) - 실패하면 아래 finally 가 돌려줌
             if ("/join".equals(path)) JOINS.take(ip, now);
-            if (office) { OFFICES.take(ip, now); OFFICES_ALL.take("*", now); }
             Json.write(resp, 200, out, false);
         } catch (Party.Ended e) {
             Json.fail(resp, 410, e.getMessage());
@@ -104,7 +108,18 @@ public class PartyServlet extends HttpServlet {
             Json.fail(resp, 403, e.getMessage());
         } catch (RuntimeException e) {   // 칸 꼴이 틀림(Gson 등) - 내부 글은 내보내지 않음
             Json.fail(resp, 400, "요청을 읽지 못했습니다.");
+        } finally {
+            if (!ok && create) { CREATES.give(ip, now); CREATES_ALL.give("*", now); }
+            if (!ok && office) { OFFICES.give(ip, now); OFFICES_ALL.give("*", now); }
         }
+    }
+
+    /** IP 한도와 서버 전체 한도에 한 번씩 자리 잡기 - 둘 다 될 때만 true(하나만 되면 돌려줌). */
+    static boolean reserve(Quota one, String ip, Quota all, long now) {
+        if (!one.take(ip, now)) return false;
+        if (all.take("*", now)) return true;
+        one.give(ip, now);
+        return false;
     }
 
     /** 방 만들기: IP 마다 하루 5개(한 사람이 2000개를 채워 아무도 못 만들게 하는 것을 막음 - 점검). */
@@ -117,6 +132,8 @@ public class PartyServlet extends HttpServlet {
      * 프로그램으로 300명을 채우는 것만 늦춤(방 한도 MAX_MEMBERS 300).
      */
     static final Quota JOINS = new Quota(120, 3600_000L);
+    /** 회사 이름 바꾸기 - IP 마다 1시간에 10번. */
+    static final Quota RENAMES = new Quota(10, 3600_000L);
     /** 회사 사무실 만들기 - IP 마다 하루 3곳. */
     static final Quota OFFICES = new Quota(3, 24 * 3600_000L);
 
@@ -162,6 +179,11 @@ public class PartyServlet extends HttpServlet {
         }
         /** 이미 다 썼나(세지 않음). */
         synchronized boolean over(String ip, long now) { return of(ip, now).size() >= max; }
+        /** 자리 잡은 것을 돌려줌(가장 나중 것 하나). */
+        synchronized void give(String ip, long now) {
+            java.util.ArrayDeque<Long> q = of(ip, now);
+            if (!q.isEmpty()) q.pollLast();
+        }
         /** 한 번 셈 - 다 썼으면 false(세지 않음). */
         synchronized boolean take(String ip, long now) {
             java.util.ArrayDeque<Long> q = of(ip, now);

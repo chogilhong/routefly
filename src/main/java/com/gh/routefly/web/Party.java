@@ -351,9 +351,10 @@ final class Party {
     /** 순수 함수 - 별명 · 방 이름: 줄바꿈 · 탭은 빈칸으로, 꺾쇠 · 따옴표 · 제어 문자는 빼고, 길이 제한. 비면 null. */
     static String clean(String s, int max) {
         if (s == null) return null;
-        String t = s.replaceAll("\\s+", " ").replaceAll("[\\p{Cntrl}<>\"'`&]", "").replaceAll(" +", " ").trim();
+        // \p{Cf}: 보이지 않는 글자 · 글 방향 바꾸기(U+200B · U+202E 등) - 회사 · 방 이름 흉내 막기(2026-10-29 보안 점검). 자르기는 글자(코드 포인트) 단위로
+        String t = s.replaceAll("\\s+", " ").replaceAll("[\\p{Cntrl}\\p{Cf}<>\"'`&]", "").replaceAll(" +", " ").trim();
         if (t.isEmpty()) return null;
-        return t.length() > max ? t.substring(0, max) : t;
+        return t.codePointCount(0, t.length()) > max ? t.substring(0, t.offsetByCodePoints(0, max)).trim() : t;
     }
 
     /** 순수 함수 - 연락처: 숫자 · - · + · 빈칸만, 20자까지. */
@@ -1200,6 +1201,7 @@ final class Party {
     /** 사무실 화면 - 이 회사의 지금 방들(숫자만, 위치 없음) + 끝난 산행 요약. */
     synchronized JsonObject officeRooms(String key, long now) {
         PartyOffice.Office o = offices.byKey(key);
+        offices.seen(o, now);
         sweep(now);
         JsonObject out = new JsonObject();
         out.addProperty("name", o.name);
@@ -1488,6 +1490,9 @@ final class Party {
         for (Room r : new ArrayList<>(rooms.values())) {
             if (r.expired(now)) { keepTracks(r); drop(r, "산행 시간이 지나 방이 끝났습니다.", now); changed = true; }
         }
+        java.util.Set<String> linked = new java.util.HashSet<>();
+        for (Room r : rooms.values()) if (r.officeCode != null) linked.add(r.officeCode);
+        offices.sweepIdle(now, linked);
         endedAt.entrySet().removeIf(e -> {
             boolean old = now - e.getValue() > ENDED_KEEP_MS;
             if (old) endedWhy.remove(e.getKey());

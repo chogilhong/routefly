@@ -30,16 +30,19 @@ final class PartyOffice {
     private static final Logger log = LogManager.getLogger(PartyOffice.class);
     static final long KEEP_MS = 200L * 24 * 3600_000L;
     static final int MAX_OFFICES = 500, MAX_ENDED = 500;
+    /** 1년 동안 사무실 화면을 안 열고, 올라온 방 · 끝난 산행도 없으면 지움(500곳이 차 아무도 못 만들게 되는 것을 막음, 2026-10-29 보안 점검). */
+    static final long IDLE_MS = 365L * 24 * 3600_000L;
 
     static final class Office {
         String code;   // 회사 코드 바꾸기로 바뀜
         String name;   // 이름 바꾸기로 바뀜(2026-10-29)
         String key;   // 사무실 링크 바꾸기로 바뀜
         final long created;
+        long seen;   // 마지막으로 사무실 화면을 연 때(하루 단위로 파일에) - 오래 안 쓴 빈 사무실 정리(2026-10-29 보안 점검)
         final List<JsonObject> ended = new ArrayList<>();   // 끝난 산행 요약(새것이 앞)
 
         Office(String code, String name, String key, long created) {
-            this.code = code; this.name = name; this.key = key; this.created = created;
+            this.code = code; this.name = name; this.key = key; this.created = created; this.seen = created;
         }
     }
 
@@ -109,6 +112,25 @@ final class PartyOffice {
         log.info("[OFFICE] 사무실 없앰 code={}", o.code);
     }
 
+    /** 사무실 화면을 엶 - 하루에 한 번만 파일에. */
+    synchronized void seen(Office o, long now) {
+        if (now - o.seen < 24 * 3600_000L) return;
+        o.seen = now;
+        save();
+    }
+
+    /** 오래 안 쓴 빈 사무실 지우기 - linked: 지금 방이 올라온 회사 코드. 돌려줌: 지운 수. */
+    synchronized int sweepIdle(long now, java.util.Set<String> linked) {
+        int n = 0;
+        for (java.util.Iterator<Office> it = byCode.values().iterator(); it.hasNext();) {
+            Office o = it.next();
+            o.ended.removeIf(x -> now - x.get("endedAt").getAsLong() > KEEP_MS);
+            if (now - o.seen > IDLE_MS && o.ended.isEmpty() && !linked.contains(o.code)) { it.remove(); n++; log.info("[OFFICE] 1년 안 쓴 빈 사무실 지움 code={}", o.code); }
+        }
+        if (n > 0) save();
+        return n;
+    }
+
     synchronized boolean has(String code) {
         return byCode.containsKey(code);
     }
@@ -134,7 +156,7 @@ final class PartyOffice {
         JsonArray arr = new JsonArray();
         for (Office o : byCode.values()) {
             JsonObject x = new JsonObject();
-            x.addProperty("code", o.code); x.addProperty("name", o.name); x.addProperty("key", o.key); x.addProperty("created", o.created);
+            x.addProperty("code", o.code); x.addProperty("name", o.name); x.addProperty("key", o.key); x.addProperty("created", o.created); x.addProperty("seen", o.seen);
             JsonArray e = new JsonArray();
             o.ended.forEach(e::add);
             x.add("ended", e);
@@ -166,6 +188,7 @@ final class PartyOffice {
                     JsonObject x = e.getAsJsonObject();
                     Office o = new Office(x.get("code").getAsString(), x.get("name").getAsString(), x.get("key").getAsString(), x.get("created").getAsLong());
                     if (x.has("ended")) x.getAsJsonArray("ended").forEach(s -> o.ended.add(s.getAsJsonObject()));
+                    if (x.has("seen")) o.seen = x.get("seen").getAsLong();
                     byCode.put(o.code, o);
                 } catch (RuntimeException ex) {
                     bad++;
