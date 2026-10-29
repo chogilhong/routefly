@@ -54,7 +54,10 @@ public class MainActivity extends BridgeActivity {
         if (!isPartyLink(u)) return;
         // 브라우저(카톡 등)에서 이미 참가한 사람의 열쇠 - 주소 # 뒤로 넘김(서버로 가지 않음, party.js takeToken 이 받아 바로 지움)
         String t = intent.getStringExtra("rf_token");
-        final String url = u.toString() + (t != null && t.matches("[A-Za-z0-9_-]{16,64}") ? "#t=" + t : "");
+        // 카톡에서 넘어온 회사 사무실 열쇠(2026-10-29, no-kakao.js S.rf_office) - #k= 로(party-office.js 가 받아 주소에서 지움)
+        String k = intent.getStringExtra("rf_office");
+        final String url = u.toString() + (t != null && t.matches("[A-Za-z0-9_-]{16,64}") ? "#t=" + t
+                : k != null && k.matches("[A-Za-z0-9_-]{20,64}") && u.getFragment() == null && u.getPath().startsWith("/routefly/party-office.html") ? "#k=" + k : "");
         bridge.getWebView().post(() -> bridge.getWebView().loadUrl(url));
     }
 

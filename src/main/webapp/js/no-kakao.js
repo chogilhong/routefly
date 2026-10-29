@@ -15,15 +15,28 @@
     if (!/KAKAOTALK/i.test(ua)) return;
     var android = /Android/i.test(ua), en = /[?&]lang=en/.test(location.search);
     var q = location.search + (location.hash ? (location.search ? "&" : "?") + "rfh=" + encodeURIComponent(location.hash) : "");
-    var go = android ? "intent://" + location.host + location.pathname + q + "#Intent;scheme=https;package=com.android.chrome;end"
-        : "kakaotalk://web/openExternal?url=" + encodeURIComponent(location.href);
+    var chrome = "intent://" + location.host + location.pathname + q + "#Intent;scheme=https;package=com.android.chrome;end";
+    var go = android ? chrome : "kakaotalk://web/openExternal?url=" + encodeURIComponent(location.href);
     var where = android ? (en ? "Chrome" : "크롬") : (en ? "Safari" : "사파리");
     var office = /party-office\.html$/.test(location.pathname);   // 회사 사무실(2026-10-29) - 위치 대신 즐겨찾기 · 엑셀 이야기
+    // 회사 사무실 - 안드로이드는 앱이 깔려 있으면 앱으로, 없으면 크롬으로(2026-10-29 홍TV님).
+    // 앱이 없거나 사무실 링크를 모르는 옛 앱이면 S.browser_fallback_url(&rfapp=0)로 이 화면이 카톡에서 다시 열리고, 그때는 크롬으로 넘김.
+    // # 뒤 열쇠는 intent 에 실을 수 없어 S.rf_office 로(MainActivity.openLink 가 #k= 로 되돌림)
+    var app = android && office && !/[?&]rfapp=0/.test(location.search);
+    if (app) {
+        var k = /^#k=([A-Za-z0-9_-]{20,64})$/.exec(location.hash || "");
+        go = "intent://" + location.host + location.pathname + "#Intent;scheme=https;package=kr.routefly.app;" + (k ? "S.rf_office=" + k[1] + ";" : "")
+            + "S.browser_fallback_url=" + encodeURIComponent(location.origin + location.pathname + q + (q ? "&" : "?") + "rfapp=0") + ";end";
+    }
     function cover() {
         var d = document.createElement("div");
         d.setAttribute("role", "dialog");
         d.style.cssText = "position:fixed;inset:0;z-index:99999;background:#0f1720;color:#e9eef4;display:flex;flex-direction:column;justify-content:center;padding:24px;font:16px/1.6 sans-serif;text-align:center";
-        d.innerHTML = en
+        d.innerHTML = app
+            ? "<p style='font-size:20px;font-weight:bold;margin:0 0 12px'>" + (en ? "Opening the routefly app" : "routefly 앱으로 여는 중") + "</p><p style='margin:0 0 20px'>" + (en ? "No app? It opens in Chrome." : "앱이 없으면 크롬으로 열립니다.") + "</p>"
+            + "<a id='rfGo' style='display:block;padding:14px;border-radius:12px;background:#22b8cf;color:#06222a;font-weight:bold;text-decoration:none;font-size:18px'>" + (en ? "📱 Open in app" : "📱 앱으로 열기") + "</a>"
+            + "<a id='rfChrome' style='display:block;margin-top:12px;padding:14px;border-radius:12px;border:1px solid #22b8cf;color:#22b8cf;font-weight:bold;text-decoration:none;font-size:18px'>" + (en ? "Open in Chrome" : "크롬으로 열기") + "</a>"
+            : en
             ? "<p style='font-size:20px;font-weight:bold;margin:0 0 12px'>Open in " + where + "</p><p style='margin:0 0 20px'>KakaoTalk's built-in browser often can't get your location and stops when the screen turns off. routefly works in " + where + ".</p>"
             + "<a id='rfGo' style='display:block;padding:14px;border-radius:12px;background:#22b8cf;color:#06222a;font-weight:bold;text-decoration:none;font-size:18px'>Open in " + where + "</a>"
             + "<p style='margin:20px 0 0;color:#9fb0c0;font-size:14px'>If it doesn't open: tap ⋮ (top right) → 'Open in another browser'.</p>"
@@ -32,6 +45,7 @@
             + "<p style='margin:20px 0 0;color:#9fb0c0;font-size:14px'>안 열리면: 오른쪽 위 ⋮ (또는 ∨) → '다른 브라우저로 열기'</p>";
         document.body.appendChild(d);
         document.getElementById("rfGo").href = go;
+        if (app) document.getElementById("rfChrome").href = chrome;
     }
     if (document.body) cover(); else document.addEventListener("DOMContentLoaded", cover);
     window.RF_INAPP = true;
