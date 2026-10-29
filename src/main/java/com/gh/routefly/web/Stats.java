@@ -30,6 +30,12 @@ import com.google.gson.JsonParser;
  * </ul>
  */
 final class Stats {
+    // 요청마다 쓰는 글자 검사는 미리 만들어 둠(2026-10-29 점검 - 수집기가 몰릴 때 요청마다 다시 만들었음). 뜻은 예전 matches(".*(…).*") 와 같음(find)
+    private static final java.util.regex.Pattern EN_SLUG = java.util.regex.Pattern.compile("[A-Za-z0-9-]{1,40}"), HTML_PAGE = java.util.regex.Pattern.compile("/[a-z]+\\.html"),
+            UA_PREVIEW = java.util.regex.Pattern.compile("facebookexternalhit|kakaotalk-scrap|kakaostory-og|twitterbot|slackbot|telegrambot|discordbot|whatsapp|linkedinbot|skypeuripreview|line-poker|bandbot|naverbot-preview"),
+            UA_SEARCH = java.util.regex.Pattern.compile("googlebot|google-inspectiontool|bingbot|yeti/|daum/|daumoa|duckduckbot|baiduspider|yandex|applebot|slurp|seznambot|petalbot|coccoc"),
+            UA_TEST = java.util.regex.Pattern.compile("headless|python|curl|wget|playwright|node-fetch|axios|go-http|java/|okhttp|httpclient|powershell|claude/|electron/"),
+            UA_BOT = java.util.regex.Pattern.compile("bot|crawl|spider|scrap");
 
     private static final Logger log = LogManager.getLogger(Stats.class);
     static final int KEEP_DAYS = 400;
@@ -66,11 +72,11 @@ final class Stats {
         }
         if (path.startsWith("/en/m/")) {   // 영어 산 페이지 - slug(영문 · 숫자 · -)만
             String n = path.substring(6);
-            return n.isEmpty() ? "/en/m/" : n.matches("[A-Za-z0-9-]{1,40}") ? "/en/m/" + n.toLowerCase() : null;
+            return n.isEmpty() ? "/en/m/" : EN_SLUG.matcher(n).matches() ? "/en/m/" + n.toLowerCase() : null;
         }
         if (path.startsWith("/s/")) return "/s/";
         if (path.startsWith("/c/")) return "/c/";   // 코스 소개 페이지(2026-10-19) - 화면별 표에는 한 줄로, 코스마다는 courseKey 로 따로(10-21)
-        if (path.matches("/[a-z]+\\.html")) return path;
+        if (HTML_PAGE.matcher(path).matches()) return path;
         return null;
     }
 
@@ -88,10 +94,10 @@ final class Stats {
     static String botKind(String ua) {
         if (ua == null || ua.isBlank()) return "시험";
         String u = ua.toLowerCase();
-        if (u.matches(".*(facebookexternalhit|kakaotalk-scrap|kakaostory-og|twitterbot|slackbot|telegrambot|discordbot|whatsapp|linkedinbot|skypeuripreview|line-poker|bandbot|naverbot-preview).*")) return "미리보기";
-        if (u.matches(".*(googlebot|google-inspectiontool|bingbot|yeti/|daum/|daumoa|duckduckbot|baiduspider|yandex|applebot|slurp|seznambot|petalbot|coccoc).*")) return "검색";
-        if (u.matches(".*(headless|python|curl|wget|playwright|node-fetch|axios|go-http|java/|okhttp|httpclient|powershell|claude/|electron/).*")) return "시험";   // claude/ · electron/ - Claude 앱 · PC Claude(2026-10-21 PC 접속 기록)
-        if (u.matches(".*(bot|crawl|spider|scrap).*")) return "기타";
+        if (UA_PREVIEW.matcher(u).find()) return "미리보기";
+        if (UA_SEARCH.matcher(u).find()) return "검색";
+        if (UA_TEST.matcher(u).find()) return "시험";   // claude/ · electron/ - Claude 앱 · PC Claude(2026-10-21 PC 접속 기록)
+        if (UA_BOT.matcher(u).find()) return "기타";
         return null;
     }
 

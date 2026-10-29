@@ -1200,6 +1200,13 @@ final class Party {
 
     /** 사무실 화면 - 이 회사의 지금 방들(숫자만, 위치 없음) + 끝난 산행 요약. */
     synchronized JsonObject officeRooms(String key, long now) {
+        return officeRooms(key, now, null);
+    }
+
+    /**
+     * endedSig - 화면이 이미 가진 끝난 산행의 표시(수 · 가장 새 것의 끝난 때). 같으면 ended 를 빼고 endedSig 만(2026-10-29 점검: 30초마다 최대 500건을 통째로 보냈음).
+     */
+    synchronized JsonObject officeRooms(String key, long now, String endedSig) {
         PartyOffice.Office o = offices.byKey(key);
         offices.seen(o, now);
         sweep(now);
@@ -1266,7 +1273,10 @@ final class Party {
         }
         out.add("rooms", live);
         out.add("pending", pending);   // 승인 기다리는 방(2026-10-28)
-        out.add("ended", offices.endedOf(o, now));
+        JsonArray ended = offices.endedOf(o, now);
+        String sig = ended.size() + ":" + (ended.size() > 0 ? ended.get(0).getAsJsonObject().get("endedAt").getAsLong() : 0);
+        out.addProperty("endedSig", sig);
+        if (!sig.equals(endedSig)) out.add("ended", ended);
         return out;
     }
 

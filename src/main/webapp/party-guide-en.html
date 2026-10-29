@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>routefly Hiking club room - Leader guide</title>
+<meta name="robots" content="noindex">
+<link rel="canonical" href="https://routefly.kr/routefly/party-guide-en.html">
+<link rel="alternate" hreflang="ko" href="https://routefly.kr/routefly/party-guide.html">
+<link rel="alternate" hreflang="en" href="https://routefly.kr/routefly/party-guide-en.html">
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=2"><link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
+<meta name="theme-color" content="#11161d">
+<!-- 인솔자 사용법(2026-10-20 홍TV님 - "인솔자는 사용법을 잘 알아야 하니까"). party.html 좌석표 색 설명 옆 · 방 만들기에서 링크. 기능이 바뀌면 여기도 고침 -->
+<style>
+:root { --bg:#11161d; --panel:#1a212b; --tx:#e9eef4; --dim:#9aa6b4; --ln:rgba(255,255,255,0.12); --sky:#38d9ea; --yel:#ffd43b; }
+* { box-sizing:border-box; }
+html, body { margin:0; background:var(--bg); color:var(--tx); font-family:Arial,"Malgun Gothic",sans-serif; line-height:1.65; }
+main { max-width:720px; margin:0 auto; padding:calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 40px); }
+h1 { font-size:21px; margin:0 0 4px; }
+.lead { color:var(--dim); font-size:14px; margin:0 0 14px; }
+nav { display:flex; flex-wrap:wrap; gap:6px; margin:0 0 14px; }
+nav a { color:var(--tx); text-decoration:none; font-size:13px; padding:5px 10px; border:1px solid var(--ln); border-radius:14px; }
+section { background:var(--panel); border:1px solid var(--ln); border-radius:12px; padding:14px 16px; margin-bottom:12px; }
+h2 { font-size:17px; margin:0 0 8px; }
+ol, ul { margin:0; padding-left:20px; }
+li { margin:5px 0; font-size:14.5px; }
+b { color:#fff; }
+.tip { color:var(--dim); font-size:13px; margin:8px 0 0; }
+.warn { color:#ffb4b4; }
+a { color:var(--sky); }
+table { width:100%; border-collapse:collapse; font-size:13.5px; }
+td, th { border-top:1px solid var(--ln); padding:6px 4px; vertical-align:top; text-align:left; }
+.c { display:inline-block; padding:1px 7px; border-radius:6px; font-size:12px; white-space:nowrap; }
+.rsv { border:1.5px dashed #ffa94d; color:#ffa94d; } .join { border:1.5px solid var(--sky); } .board { background:var(--sky); color:#062026; font-weight:bold; }
+.old { border:2px solid #ffa94d; } .sos { background:#e03131; color:#fff; } .back { background:#51cf66; color:#0b2e13; }
+.back-link { display:inline-block; margin-top:6px; }
+</style>
+</head>
+<body>
+<main>
+    <h1>📖 Hiking club room - Leader guide</h1>
+    <p class="lead">Step by step, from creating the room to coming back down. Please read it once the day before departure. · <a href="party-guide.html" hreflang="ko" lang="ko">한국어</a></p>
+    <nav>
+        <a href="#make">1. Create a room</a><a href="#invite">2. Invite members</a><a href="#seat">3. Seat map</a>
+        <a href="#depart">4. Departure</a><a href="#trip">5. During the hike</a><a href="#end">6. Back down · end</a><a href="#member">7. Tell members</a><a href="#note">8. Good to know</a>
+    </nav>
+
+    <section id="make">
+        <h2>1. Create a room (by the day before the hike)</h2>
+        <ol>
+            <li><b>Hike name</b>: e.g. 10/23 Seoraksan Gongryong Ridge</li>
+            <li><b>Departure date · time</b>: just type numbers. October 23 → <b>1023</b>, 11:20 pm → <b>2320</b></li>
+            <li><b>Schedule</b>: Day trip · overnight bus, 2 days, 1 night, 3 days, 2 nights, 4 days, 3 nights (e.g. Jirisan · Seoraksan traverses).</li>
+            <li><b>Back-down deadline</b>: the time the bus leaves. For a day trip, a time earlier than the departure counts as the next day (overnight bus). For a trip of several days, enter the time on the <b>last day</b> (e.g. 3 days, 2 nights · 1600 → 16:00 on the third day).
+                Location and "phone is on" keep going through nights spent in a shelter, so remind members to bring a power bank.</li>
+            <li><b>Leader name · phone</b>: the phone number is required (used by the "☎ Leader" button on the members' trail guide, and to call members missing at departure). It is shown on member screens and in the invite text. For a practice or test room, enter <b>010-0000-0000</b> instead of a real number (so your number doesn't show up in screenshots).</li>
+            <li><b>Number of buses · seats per bus · plate numbers</b>: when there are several buses, as in autumn foliage season, enter the number of buses and you get a seat field for each bus (e.g. Bus 1: 45, Bus 2: 28). Even clubs that don't assign seats get an empty seat map if they enter the number of seats (list names without numbers). If you don't need a seat map at all, enter 0. You can add plate numbers later on the room screen.</li>
+            <li><b>Boarding stops</b>: separate them with commas and put the departure time after each name. e.g. Sadang 23:20, Yangjae 23:30, Bokjeong 23:50
+                - the bus leaves each stop on time, so the invite text, the join screen and the members' trail guide show "🚏 Yangjae leaves at 23:30 sharp - be there early".</li>
+        </ol>
+        <p class="tip">The phone that creates the room becomes the leader's phone. The leader screen cannot be opened on other phones, so take this phone with you on the hike day.</p>
+    </section>
+
+    <section id="invite">
+        <h2>2. Booking list · inviting members</h2>
+        <p class="tip">From 2026-10-24: the hiking club room screen is used only by leaders (including people who entered with a leader code). Members come in once by link · QR · NFC and just enter <b>the name they booked with</b>; they then go to the <b>trail guide</b> (Follow) screen, and their location reaches the leader while that screen is open. Members who open nothing don't appear on the map and stay on the list only as "No phone" (their choice).</p>
+        <ul>
+            <li><b>📋 Paste the booking list (names · seats)</b> (bottom of the room screen): paste the booked names as they are. In "Kim 5 Lee 6 Park", a number after a name is the seat, "2-15" is bus 2 seat 15, and no number means no seat (clubs where people sit anywhere). Enter names only - no phone numbers.
+                A member who enters the same name becomes that person, and the seat comes along. If two people have the same name, have members enter their seat number too.</li>
+            <li><b>From Excel · a file</b> (2026-10-28): copy the whole Excel booking table and paste it, or choose a TXT · CSV file with <b>📄 Load from file (TXT · CSV)</b>. If the first row has column names such as "name · seat (· bus)", those columns are used; if not, the columns are found by their shape.
+                Other columns such as phone numbers, boarding stops and amounts are dropped inside the phone · PC and never sent to the server. Before adding, it shows you "Add n names?", and it can add 90 names at once. For an Excel file (.xlsx): "Save As → CSV".</li>
+            <li><b>Members without a phone</b>: the leader checks them with the <b>✅ On bus</b> · <b>🚌 Back</b> buttons in the member list. If they are not checked by departure, they are left out as "Not on bus" like any other member.</li>
+            <li><b>📋 Copy invite text</b>: copies an invite text with the departure, buses, leader, room code and link. Paste it into the club's KakaoTalk group, a text message or BAND.</li>
+            <li><b>📱 Member room code QR</b>: for members who come to the departure point without having received the link (you can also take a picture of the screen, print it and stick it on the bus door or seat backs). Each room has one QR (the same QR at every boarding stop).
+                QR · NFC are for use on the bus, so <b>scanning means Boarded right away</b> (members who joined in advance by link become Boarded when they scan on the bus).</li>
+            <li><b>Leader · assistant leaders</b> (2026-10-28): the person who created the room is the <b>leader</b>; people who enter with the code below are <b>assistant leaders</b>. Up to <b>one assistant per bus</b> can join (1 for one bus, 2 for two buses), and they use the map, seat map, boarding checks and SOS exactly like the leader. Only the leader can end the room, remove assistants and change the code.
+                Member screens show everyone who receives their location, e.g. "Sharing your location with the leader Hong Gil-dong, assistant Kim Cheol-su".</li>
+            <li><b>🧭 Assistant leader code</b>: the 10 characters below the join link field (from 2026-10-28 - so it is hard to guess. Rooms created before that keep their 6 characters; tap "Change assistant leader code" to get 10). Give it only to <b>company staff · the person in charge of each bus</b>. They enter it in "🧭 Enter with a leader code · join with a room code" at the hiking club room screen, or scan the <b>📱 Assistant leader QR</b>, to come in as an assistant leader. For a bus without the leader on board (e.g. one leaving from Busan), the company keeps watch with this code.
+                If you think the code has leaked, tap <b>🔄 Change assistant leader code</b>, and remove any assistant leader you don't know from the list with ✕.</li>
+            <li><b>📱 Open on another device too</b>: scan this button's QR with another device's camera and the same leader screen opens on that device (once, within 10 minutes - it doesn't use an assistant slot). Use it to move a room you created on a PC to your phone, or to hand over to another phone · tablet when your phone battery runs low. Don't show this QR to anyone else.</li>
+            <li><b>📶 Write to NFC sticker</b> (the button appears in Chrome on Android phones and in the routefly app - not on PCs · iPhones. The app needs the new version): stick it on the bus door or a name tag, and members only have to touch it with their phone to open the join screen. Write it again for each hike.</li>
+        </ul>
+        <p class="tip">Members tap the link, enter their <b>name</b> (if they are not on the list, also their seat and boarding stop), agree to share their location and tap "Join" to go to the trail guide. Tapped in KakaoTalk, it switches to Chrome automatically.</p>
+    </section>
+
+    <section id="seat">
+        <h2>3. Viewing and editing the seat map</h2>
+        <p class="tip">The seat map is drawn as you see the bus standing inside facing forward - the top is the front (driver's seat top left, front door top right), and seats further down are further back. Up to 30 seats it is drawn as a premium coach (2-1 layout; with 28 seats the back row has 4 seats), above that as a standard large bus (2-2 layout; with 41 · 45 seats the back row has 5 seats).</p>
+        <table>
+            <tr><td><span class="c join">Not on bus</span></td><td>Has not yet scanned the QR · NFC on the bus and has not been checked by the leader. If still so at departure, they are left out of the hike (and their location is not received).</td></tr>
+            <tr><td><span class="c board">Boarded</span></td><td>Scanned the QR · NFC on the bus, or was checked by the leader.</td></tr>
+            <tr><td><span class="c old">No update 10 min</span></td><td>No word from their phone for over 10 minutes during the hike.</td></tr>
+            <tr><td><span class="c sos">SOS</span></td><td>Pressed SOS - you are also alerted by sound and vibration.</td></tr>
+            <tr><td><span class="c back">Back on bus</span></td><td>Came down and got back on the bus.</td></tr>
+        </table>
+        <ul style="margin-top:8px">
+            <li><b>Tap a seat with a person</b> for a menu: check <b>Boarded</b> · <b>💺 Move seat</b> (tap it, then an empty seat) · <b>🗺 Map</b> · <b>Change boarding stop</b> · <b>🚫 Remove</b></li>
+            <li>With several buses, switch with the <b>Bus 1 · Bus 2</b> tabs above the seat map (a tab is marked if it has an 🆘).</li>
+            <li>If someone you don't know has come in, remove them with the <b>✕</b> next to the name on the list.</li>
+        </ul>
+    </section>
+
+    <section id="depart">
+        <h2>4. Departure day</h2>
+        <p>The <b>To do now</b> box at the top of the room screen shows the tasks for each stage (before departure · hiking · coming down) in order. Finished tasks get ✅; tap the button next to a task to go straight to it (2026-10-28).</p>
+        <ol>
+            <li>Members scan the <b>QR · NFC</b> as they get on the bus. Once scanned, they are <b>Boarded</b> right away.</li>
+            <li>For members who have no phone or couldn't scan, the leader taps their seat on the seat map and checks <b>Boarded</b>.</li>
+            <li><b>When signing people up for the first time on the bus</b> (early days, when many members don't know about the room yet): have everyone join with the QR or the KakaoTalk link before you tap the departure button.
+                Many people can join at once over the same bus Wi-Fi. Joining by QR · NFC also makes them Boarded in one step.</li>
+            <li><b>Nothing to tap at each boarding stop</b>: the bus leaves each stop on time, so the top of the room screen shows it automatically by the clock, e.g. "🚌 Left Sadang 23:20 · next Yangjae 23:30" (if you entered boarding stop times when creating the room).</li>
+            <li>When you reach the trailhead, tap <b>🥾 Start the hike</b>. Anyone not yet on board (including people only on the list) is shown by name first and then changed to "Not on bus". For latecomers, just tap <b>Boarded</b> on the seat map.</li>
+            <li>If you can't go because of weather, an accident, etc., use <b>Cancel hike</b>. Members' phones show "The leader cancelled the hike." and the room closes.</li>
+        </ol>
+        <p class="tip">After departure, new members can't join (they can with a leader code), and members can't change seats - the leader moves seats on the seat map.</p>
+    </section>
+
+    <section id="trip">
+        <h2>5. During the hike</h2>
+        <ul>
+            <li><b>Map</b>: every member's last location (every 30 seconds). It shows where each person is, regardless of the course - even if they got off at different trailheads, or stayed nearby without going up the mountain.</li>
+            <li><b>Member list</b>: last update (minutes ago) · stopped for (time spent in one place) · battery · status. Tap a name to move the map to that person.
+                <br>The top line shows the <b>time left until the back-down deadline</b> and the names of members marked <b>🥾 Not back yet</b>.
+                <br><b>📵 Phone just now · location 4 min ago</b> = the phone is on but can't get a GPS fix (in a valley · indoors). That is different from losing contact.</li>
+            <li><b>🆘 SOS</b>: when a member presses it, the leader's phone rings and reads it aloud. SOS gets through even without a location fix. While an SOS is on, a <b>red bar</b> stays at the top of the room screen; tap it to see that member's map · path taken.
+                After sending SOS, the member's screen immediately asks whether to <b>call 119</b>.</li>
+            <li><b>📶 Weak connection</b>: appears at the top when the phone briefly can't reach the server in the mountains (with how many minutes old the information is). It retries automatically, so just leave it.</li>
+            <li><b>💬 One-line messages from members</b>: what a member sends with "💬 To leader" on the trail guide (e.g. "Stopping at the toilet, 10 minutes late") appears in a blue bar at the top of the room screen and under their name in the member list, and is read aloud with a vibration. One per person per minute, up to 80 characters. Deleted when the room ends.</li>
+            <li><b>📢 Send notice</b>: e.g. "Meet at the Sogongwon parking lot by 15:00" - it appears on every member's screen · trail guide and is read aloud.</li>
+            <li><b>📍 Set the bus location to where I am now</b>: tap it where the bus has stopped and that spot is marked as the bus location (per bus). People who entered with a leader code can do it too. Members get it as a "🚌 Our bus" button (KakaoMap).</li>
+            <li><b>If the link is opened in KakaoTalk</b>, it switches to Chrome automatically (location doesn't work well inside KakaoTalk).</li>
+            <li><b>Plate number</b>: the number entered when creating the room appears on the members' trail guide bar until they board, e.g. "🚌 Bus 2 12Ga1111", and is also shown on the "🚌 Our bus" map after the hike. If the bus changes on the day, fix it with <b>✏️ Edit plate number</b> in the room info at the very top of the room screen.</li>
+        </ul>
+    </section>
+
+    <section id="end">
+        <h2>When the leader hikes too (2026-10-28)</h2>
+        <ul>
+            <li>A guided hiking club's leader is usually <b>alone</b>, and after dropping members off at several places (e.g. Hangyeryeong · Osaek · Sogongwon), gets off wherever they like to hike or rests on the bus. So they can't keep watching the screen.</li>
+            <li><b>⬇ Drop-off points</b>: when creating the room, enter e.g. "Hangyeryeong, Osaek, Sogongwon" under "Drop-off points"; members choose where to get off when they join, and the leader can change it on the list (you can also decide on the bus). The list title shows e.g. "⬇ Hangyeryeong 12 · Osaek 8 · unset 3".
+                If the leader also chooses in "⬇ My drop-off", or chooses "🚌 Stay on bus", it shows on the company office screen.</li>
+            <li><b>⬇ At Hangyeryeong</b>: when the bus stops at a drop-off point, the leader taps that button once. Members' phones on the bus show "We're at Hangyeryeong - getting off here?" for 15 minutes and read it aloud.
+                A member who chose Sogongwon when joining but changes their mind and gets off here just taps "⬇ I'm getting off here". App members who get off without tapping are confirmed by location if they are around that spot 10 minutes later ("📍 by location"; members who chose Stay on bus are left out).
+                The list shows the actual and the planned stop together, e.g. "⬇ Hangyeryeong ✓ got off (planned: Sogongwon)", and an arrival line "⬇ Hangyeryeong 14:05 · off 12" stays. Members can change their drop-off point any time from the trail guide bar.</li>
+            <li><b>🔔 Turn on phone alerts</b>: tap once and you are alerted by vibration · sound · notification without looking at the screen - 🆘 SOS, 📵 app member with no update for over 10 minutes, ⏰ members not yet down 1 hour · 30 minutes before the back-down deadline. It also works while you walk with the trail guide screen.
+                To get them with the screen off, the leader's phone must also use the routefly app (on the web, only while the screen is on).</li>
+            <li><b>🚌 Return pickups</b>: when creating the room, enter a departure time for each place, e.g. "Seorak-dong District C 17:00, Yongdae-ri 17:30, Namgyo-ri 17:35", and also fill in "Expected arrival back (where you departed)" (the time you get back to the departure point, e.g. 20:30 - wherever you start from: Seoul, Busan, Daegu, etc.).
+                Members choose when they join · or during the hike from the trail guide bar (if they change course, their pickup changes too), and the leader changes it on the list. Back-down deadline alerts go by <b>each person's own return pickup time</b> (leader alerts are per place too: "⏰ Seorak-dong pickup 17:00 (40 min left) - 2 not back yet").
+                The list title shows "🚌 Seorak-dong District C 17:00 on 8/10 · …", and the company office shows, for each place, who is on and the expected arrival back. Members who are back on the bus see "🏠 drop-off Yangjae · back 20:30" on their bar (where they got on - on the way back the drop-offs are usually in reverse order). The room closes after the expected arrival back.</li>
+            <li>From 1 hour before the back-down deadline, members' trail guide screens also show "⏰ Back-down deadline 16:00 (40 min left)", read aloud 1 hour · 30 minutes before.</li>
+            <li>Since most hikes have no assistant leader, the <b>company office screen</b> backs you up - even if the leader loses signal in a valley, the office sees SOS · no-update alerts too. Be sure to enter the company code when creating the room.</li>
+        </ul>
+
+        <h2>Company office (many rooms on one screen, 2026-10-28)</h2>
+        <ul>
+            <li>When a company sends buses to several places such as Hallasan, Jirisan and Seoraksan, it sees all rooms at a glance on the <a href="party-office.html?lang=en">company office screen</a>. Do "Create office" once at the start and you get an <b>office link</b> (instead of a password) and a <b>company code</b> (6 characters).</li>
+            <li>Leaders enter it in the "Company code" field when creating a room, or with "🏢 Link to company office" on the room screen.
+                A linked room first appears under <b>🕓 Rooms waiting for approval</b> on the office screen, and only after the office taps <b>Approve</b> does it move to "Hikes now" and can be opened (2026-10-28 - because anyone who knows the company code could link a room).
+                After approval, members' screens show "Sharing your location with ... and the ○○ office", and a summary of the finished hike is kept. If you don't know the room, <b>Remove</b> it.</li>
+            <li>Finished hikes (200 days) can be downloaded with <b>📥 Download for Excel (CSV)</b> - only numbers for date · hike · boarded · back on bus · descent unconfirmed · SOS (no names or locations). Use it for monthly accounts and keeping safety records.</li>
+            <li>The office screen shows only numbers (boarded · back on bus · SOS · silent 10 min · last update). Rooms with SOS are red, and rooms with silent members are yellow, at the top. Tap "Open" to see the leader screen (map · seat map) (it doesn't use an assistant slot).</li>
+            <li>Hikes where you fly and use a local vehicle work the same way: enter the boarding stop as "Jeju Airport 10:30" and the plate number of the local vehicle.</li>
+            <li>Office settings: "Log out on this device (office stays)" (shared PC - the office stays as it is), "🔄 Change office link" (if it leaked - the old link stops working at once), "Delete office (leave)" (type the company name once more and the office and all summaries are deleted; rooms in progress only lose their company link).</li>
+            <li>When a room ends, a numbers-only summary (who ended it · descent unconfirmed · whether there was an SOS · reason for cancelling) stays under "Finished hikes" on the office screen for 200 days. No names or locations are kept.</li>
+        </ul>
+
+        <h2>6. Back down · ending the room</h2>
+        <ol>
+            <li>When a member taps <b>"🚌 Back on bus"</b> as they get on, the list and seat map turn green (that member's location is deleted).</li>
+            <li><b>Going home separately</b>: for members who don't take the bus after the hike and go their own way (e.g. travelling on from Seoraksan), the member taps <b>"🚶 Home separately"</b> on their screen, or the leader taps <b>🚶 Home separately</b> in the member list. They count as finished and their location is deleted. For members without a phone or who couldn't tap it, the leader also taps <b>🚌 Back</b> in the member list.</li>
+            <li>When "Back on bus n / total" at the top of the screen is full, it says <b>"Everyone is on the bus - you can end the room"</b>.</li>
+            <li>Safety (2026-10-28): you can't end the room while a member has SOS on. If some members are not confirmed as down, it shows their names and asks once more; if you end it anyway, it is recorded on the company office as "n not confirmed down". When cancelling a hike, you enter a reason.</li>
+            <li>Tapping <b>End room</b> (leader · company office) deletes everyone's location and closes the room. Even if you don't tap it, it closes by itself 6 hours after the back-down deadline. But if a member has SOS on, it stays until 24 hours after the deadline so the missing person's location can still be seen (if the SOS is cleared or they get back on the bus, it goes back to 6 hours).</li>
+        </ol>
+    </section>
+
+    <section id="member">
+        <h2>7. What to tell members</h2>
+        <ul>
+            <li>Tap <b>🎫 My boarding card</b> on the trail guide to see bus · plate number · seat · boarding stop · drop-off · return pickup time on one page in large print - for finding the bus or showing the driver.</li>
+            <li>If a new phone comes in under a name on the list after departure, the leader screen shows "📱 Joined after departure - check". If it isn't them, remove it from the list.</li>
+            <li>Come in once by link · QR · NFC and enter <b>the name you booked with</b> → the top of the trail guide shows a line "📡 Sharing your location with the leader · purpose · last shared time" (a notice each time it is shared, as required by the Location Information Act).</li>
+            <li>If you joined with Chrome, <b>keep the trail guide screen on</b> during the hike - when the screen is off, your location stops (once the app is out, the app keeps sending with the screen off).</li>
+            <li><b>Scan the QR · NFC</b> when getting on the bus (Boarded). On the top bar of the trail guide: <b>🚌 Back on bus</b> · <b>🚶 Home separately</b> · <b>💬 To leader</b> (one line) · <b>☎ Leader</b> · <b>🚌 Our bus</b>.</li>
+            <li>The bus <b>leaves each boarding stop on time</b>. Your boarding stop and time are shown on the top bar of the trail guide, so please be there early.</li>
+            <li>If you are in danger, use <b>SOS</b> on the trail guide - it shows up in red on the leader screen too. In an emergency, call 119.</li>
+        </ul>
+    </section>
+
+    <section id="note">
+        <h2>8. Good to know</h2>
+        <ul>
+            <li>Each member's location is received from <b>their own boarding stop's departure time</b> (or when they get on the bus), so the home locations of members at later stops are not sent. Before that, only joining · seat · boarding.</li>
+            <li>Members' locations are seen only by leaders (the leader · assistant leaders) (members don't see each other - members walk with the "trail guide" map). They are deleted when the room ends. The leader's phone number is also deleted when the room ends (<a href="privacy-en.html#party">Privacy Policy</a>).</li>
+            <li>One phone is one room · one role. To enter another room, you must leave the current room (member) or end it (leader).</li>
+            <li class="warn">If an error message or a screenshot shows a long string such as "token" · "rf_token" (the room key), don't send it to anyone. With that key, someone could control the room like a leader. (It doesn't normally appear in the address bar.)</li>
+        </ul>
+    </section>
+
+    <p><a href="party.html?lang=en" class="back-link">‹ Back to the hiking club room</a> · <a href="feedback.html?from=/party-guide.html&amp;lang=en">📮 Send feedback</a></p>
+</main>
+<script src="js/seen.js"></script>
+</body>
+</html>

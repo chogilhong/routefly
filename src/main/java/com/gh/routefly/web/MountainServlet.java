@@ -479,7 +479,23 @@ public class MountainServlet extends HttpServlet {
         geo.addProperty("longitude", peak.get("lon").getAsDouble());
         if (elev(peak) != null) geo.addProperty("elevation", elev(peak));   // 공식 높이만(GPS height 는 안 씀)
         o.add("geo", geo);
-        return "<script type=\"application/ld+json\">" + new Gson().toJson(o) + "</script>";
+        // 경로 표시(BreadcrumbList) - 검색 결과에 "routefly › 100대 명산 코스 › 산" 으로(2026-10-29 점검)
+        boolean en = url.contains("/en/m/");
+        JsonObject bc = new JsonObject();
+        com.google.gson.JsonArray items = new com.google.gson.JsonArray();
+        String[][] steps = {{en ? "100 famous mountains" : "100대 명산 코스", url.substring(0, url.lastIndexOf('/') + 1)}, {name, url}};
+        for (int i = 0; i < steps.length; i++) {
+            JsonObject it = new JsonObject();
+            it.addProperty("@type", "ListItem");
+            it.addProperty("position", i + 1);
+            it.addProperty("name", steps[i][0]);
+            it.addProperty("item", steps[i][1]);
+            items.add(it);
+        }
+        bc.addProperty("@context", "https://schema.org");
+        bc.addProperty("@type", "BreadcrumbList");
+        bc.add("itemListElement", items);
+        return "<script type=\"application/ld+json\">" + new Gson().toJson(o) + "</script><script type=\"application/ld+json\">" + new Gson().toJson(bc) + "</script>";
     }
 
     /**

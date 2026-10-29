@@ -48,6 +48,28 @@ public class ReviewRound3Test {
     }
 
     @Test
+    public void officeRoomsSkipsSameEnded() {
+        Party p = new Party();
+        com.google.gson.JsonObject o = PartyTest.call(p, "/office/create", "{\"name\":\"시험산악회\"}", PartyTest.T0);
+        String key = o.get("key").getAsString();
+        com.google.gson.JsonObject first = p.officeRooms(key, PartyTest.T0, null);
+        assertTrue(first.has("ended"));
+        String sig = first.get("endedSig").getAsString();
+        assertFalse("같으면 끝난 산행을 다시 보내지 않음", p.officeRooms(key, PartyTest.T0, sig).has("ended"));
+        assertTrue("다르면 보냄", p.officeRooms(key, PartyTest.T0, "9:1").has("ended"));
+    }
+
+    @Test
+    public void searchExtras() {
+        com.google.gson.JsonObject peak = com.google.gson.JsonParser.parseString("{\"lat\":35.8,\"lon\":128.1}").getAsJsonObject();
+        String ko = MountainServlet.jsonLd(peak, "가야산", "https://r.kr/m/%EA%B0%80%EC%95%BC%EC%82%B0"), en = MountainServlet.jsonLd(peak, "Gayasan", "https://r.kr/en/m/gayasan");
+        assertTrue(ko.contains("\"BreadcrumbList\"") && ko.contains("\"100대 명산 코스\"") && ko.contains("\"item\":\"https://r.kr/m/\""));
+        assertTrue(en.contains("\"100 famous mountains\"") && en.contains("\"item\":\"https://r.kr/en/m/\""));
+        String sm = SitemapServlet.sitemap("https://r.kr", java.util.List.of("가야산"), java.util.List.of());
+        assertTrue("사이트맵 한 · 영 짝", sm.contains("xmlns:xhtml") && sm.contains("<loc>https://r.kr/en/m/gayasan</loc><xhtml:link rel=\"alternate\" hreflang=\"ko\" href=\"https://r.kr/m/%EA%B0%80%EC%95%BC%EC%82%B0\"/>"));
+    }
+
+    @Test
     public void cleanDropsInvisibleChars() {
         assertEquals("시험산악회", Party.clean("시험​산악‮회", 30));
         assertEquals("글자 단위로 자름(이모지가 반으로 갈리지 않게)", "가😀", Party.clean("가😀😀", 2));

@@ -19,6 +19,10 @@ import java.util.TreeMap;
  * nginx 에서 막힌 수집기(크롬 124 등, docs/deploy-lightsail.md 10-2)는 여기 오지 않음.
  */
 final class Access {
+    // 요청마다 쓰는 글자 검사는 미리 만들어 둠(2026-10-29 점검). 뜻은 예전 matches(".*(…).*") 와 같음(find)
+    private static final java.util.regex.Pattern UA_AI = java.util.regex.Pattern.compile("gptbot|chatgpt|oai-searchbot|claudebot|claude-web|anthropic-ai|perplexity|ccbot|bytespider|amazonbot|meta-externalagent|ai2bot|cohere-ai|diffbot|google-extended"),
+            CHROME_VER = java.util.regex.Pattern.compile("chrome/(\\d+)"),
+            ATTACK = java.util.regex.Pattern.compile("wp-|wordpress|xmlrpc|\\.env|\\.git|phpmyadmin|\\.php|/admin|cgi-bin|\\.\\./|/etc/passwd|\\.aws|actuator|/boaform|/hnap|\\.ds_store|/vendor/phpunit");
 
     /** 브라우저 종류(표 차례). */
     static final List<String> KINDS = List.of("사람", "검색 로봇", "AI 수집", "미리보기", "그 밖의 로봇", "오래된 크롬", "숨은 로봇", "Headless", "프로그램", "운영자");
@@ -50,14 +54,14 @@ final class Access {
         if (owner) return "운영자";
         if (ua == null || ua.isBlank()) return "프로그램";
         String u = ua.toLowerCase();
-        if (u.matches(".*(gptbot|chatgpt|oai-searchbot|claudebot|claude-web|anthropic-ai|perplexity|ccbot|bytespider|amazonbot|meta-externalagent|ai2bot|cohere-ai|diffbot|google-extended).*")) return "AI 수집";
+        if (UA_AI.matcher(u).find()) return "AI 수집";
         String b = Stats.botKind(ua);
         if ("미리보기".equals(b)) return "미리보기";
         if ("검색".equals(b)) return "검색 로봇";
         if ("시험".equals(b)) return u.contains("headless") ? "Headless" : "프로그램";
         if ("기타".equals(b)) return "그 밖의 로봇";
         if (acceptLanguage == null || acceptLanguage.isBlank()) return "숨은 로봇";
-        java.util.regex.Matcher m = java.util.regex.Pattern.compile("chrome/(\\d+)").matcher(u);
+        java.util.regex.Matcher m = CHROME_VER.matcher(u);
         if (m.find() && Integer.parseInt(m.group(1)) < 130 && !u.contains("samsungbrowser") && !u.contains("whale")) return "오래된 크롬";
         return "사람";
     }
@@ -73,7 +77,7 @@ final class Access {
 
     /** 순수 함수 - 404 로 찾은 경로가 공격 시도 꼴인가(관리 화면 · 설정 파일 · 다른 프로그램의 빈틈 찾기). */
     static boolean attack(String path) {
-        return path != null && path.toLowerCase().matches(".*(wp-|wordpress|xmlrpc|\\.env|\\.git|phpmyadmin|\\.php|/admin|cgi-bin|\\.\\./|/etc/passwd|\\.aws|actuator|/boaform|/hnap|\\.ds_store|/vendor/phpunit).*");
+        return path != null && ATTACK.matcher(path.toLowerCase()).find();
     }
 
     private static void roll(long now) {

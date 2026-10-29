@@ -212,7 +212,14 @@
 
     function load() {
         var k = key;   // 보낸 사무실 - 답이 오기 전에 사무실 · 링크를 바꿨으면 그 답은 버림(2026-10-29 점검: 다른 사무실 이름으로 덮거나 새 링크를 지웠음)
-        return RFParty.post("office/rooms", { key: k }).then(function (j) { if (k !== key) return; if (netErr) msg(""); showOnly("officeSec"); render(j); }).catch(function (e) {
+        // 끝난 산행은 바뀌었을 때만 받음 - 같으면 서버가 빼고 보내고, 가진 것을 그대로 씀(2026-10-29 점검)
+        var have = last && last.endedSig && last.key === k ? last : null;
+        return RFParty.post("office/rooms", have ? { key: k, endedSig: have.endedSig } : { key: k }).then(function (j) {
+            if (k !== key) return;
+            if (!j.ended && have) j.ended = have.ended;
+            j.key = k;
+            if (netErr) msg(""); showOnly("officeSec"); render(j);
+        }).catch(function (e) {
             if (k !== key) return;
             if (e && e.status === 403) {   // 없앤 · 링크를 바꾼 사무실 - 목록에서 빼고 남은 사무실로
                 store(null); key = null;

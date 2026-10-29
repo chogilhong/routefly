@@ -227,7 +227,7 @@ public class PartyServlet extends HttpServlet {
             out.addProperty("code", o[0]); out.addProperty("key", o[1]); out.addProperty("name", o[2]);
             return out;
         }
-        if ("/office/rooms".equals(path)) return p.officeRooms(str(in, "key"), now);
+        if ("/office/rooms".equals(path)) return p.officeRooms(str(in, "key"), now, str(in, "endedSig"));
         if ("/office/enter".equals(path)) { Party.Member om = p.officeEnter(str(in, "key"), str(in, "code"), now); return withToken(p.view(om, now), om); }
         if ("/office/detach".equals(path)) { p.officeDetach(str(in, "key"), str(in, "code")); return ok(); }
         if ("/office/approve".equals(path)) { p.officeApprove(str(in, "key"), str(in, "code")); return ok(); }   // 승인 기다리는 방 승인(2026-10-28)

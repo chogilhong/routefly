@@ -91,7 +91,7 @@
                     e.ended = ended;
                     throw e;
                 }
-                if (j && j.role && j.members && !j.officeMe) alerts(j);   // 사무실 자리는 알림 기억("rf-party-al")을 덮지 않게 - 같은 PC 인솔자 탭 알림이 다시 울렸음(2026-10-29 점검)   // 방 화면이 올 때마다(위치 · 켜짐 · 새로 받기 답) - 화면을 꺼도 앱이 보내는 답으로
+                if (j && j.role && j.members && !j.officeMe) { alerts(j); g.RFParty.lastView = { at: Date.now(), token: body && body.token, j: j }; }   // 따라가기 아래 줄이 방금 받은 것을 다시 묻지 않게(2026-10-29 점검)   // 사무실 자리는 알림 기억("rf-party-al")을 덮지 않게 - 같은 PC 인솔자 탭 알림이 다시 울렸음(2026-10-29 점검)   // 방 화면이 올 때마다(위치 · 켜짐 · 새로 받기 답) - 화면을 꺼도 앱이 보내는 답으로
                 return j;
             });
         });

@@ -44,6 +44,8 @@
     function refresh() {
         var p = RFParty.get();
         if (!p) { hide(); return; }
+        var lv = RFParty.lastView;   // 위치를 보낸 답(30초마다)으로 방금 받았으면 그것으로(2026-10-29 점검: 회원마다 분당 1번 더 물었음)
+        if (lv && lv.token === p.token && Date.now() - lv.at < 50000) { render(lv.j); return; }
         RFParty.post("view", { token: p.token }).then(render).catch(fail);
     }
 

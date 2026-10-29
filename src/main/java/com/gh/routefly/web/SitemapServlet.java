@@ -91,16 +91,27 @@ public class SitemapServlet extends HttpServlet {
 
     /** 순수 함수 - 사이트맵(첫 화면 · 안내 · 100대 명산 목록 · 산마다, 영어 산 페이지도, 검색에 내는 코스 [ID, 넣은 날]). */
     static String sitemap(String base, List<String> mountains, List<String[]> courses) {
-        StringBuilder b = new StringBuilder("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n");
+        StringBuilder b = new StringBuilder("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\" xmlns:xhtml=\"http://www.w3.org/1999/xhtml\">\n");
         for (String p : new String[] {"/", "/hike.html", "/series.html", "/about.html", "/about-en.html", "/terms.html", "/privacy.html", "/lbs-terms.html", "/terms-en.html", "/privacy-en.html", "/lbs-terms-en.html", "/m/", "/en/m/"}) url(b, base + p);
-        for (String m : mountains) url(b, base + "/m/" + URLEncoder.encode(m, StandardCharsets.UTF_8).replace("+", "%20"));
-        for (String m : mountains) url(b, base + "/en/m/" + Roman.slug(m));   // 영어 산 페이지(2026-10-15)
+        // 한국어 · 영어 산 페이지는 서로 짝(hreflang)으로 - 페이지 머리의 짝과 같음, 검색 엔진이 100쌍을 빨리 묶게(2026-10-29 점검)
+        for (String m : mountains) {
+            String ko = base + "/m/" + URLEncoder.encode(m, StandardCharsets.UTF_8).replace("+", "%20"), en = base + "/en/m/" + Roman.slug(m);
+            pair(b, ko, ko, en);
+            pair(b, en, ko, en);
+        }
         for (String[] c : courses) {   // 코스 소개 페이지(2026-10-19 CoursePageServlet) - 넣은 날을 lastmod 로
             b.append("  <url><loc>").append(ShareServlet.esc(base + "/c/" + c[0])).append("</loc>");
             if (c[1] != null) b.append("<lastmod>").append(c[1]).append("</lastmod>");
             b.append("</url>\n");
         }
         return b.append("</urlset>\n").toString();
+    }
+
+    private static void pair(StringBuilder b, String loc, String ko, String en) {
+        b.append("  <url><loc>").append(ShareServlet.esc(loc)).append("</loc>")
+                .append("<xhtml:link rel=\"alternate\" hreflang=\"ko\" href=\"").append(ShareServlet.esc(ko)).append("\"/>")
+                .append("<xhtml:link rel=\"alternate\" hreflang=\"en\" href=\"").append(ShareServlet.esc(en)).append("\"/>")
+                .append("<xhtml:link rel=\"alternate\" hreflang=\"x-default\" href=\"").append(ShareServlet.esc(ko)).append("\"/></url>\n");
     }
 
     private static void url(StringBuilder b, String loc) {
