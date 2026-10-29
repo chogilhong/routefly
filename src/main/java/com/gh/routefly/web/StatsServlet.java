@@ -301,11 +301,17 @@ public class StatsServlet extends HttpServlet {
         java.time.LocalDate first = java.time.LocalDate.parse(sorted.firstKey()), end = java.time.LocalDate.parse(sorted.lastKey());
         if (first.isBefore(end.minusDays(n - 1))) first = end.minusDays(n - 1);
         List<String> dates = new ArrayList<>();
-        List<Integer> uniq = new ArrayList<>(), views = new ArrayList<>();
+        List<Integer> uniq = new ArrayList<>(), views = new ArrayList<>(), human = new ArrayList<>();   // human - 화면 js 가 돈 사람(10-22 부터, 없는 날 null)
         for (java.time.LocalDate d = first; !d.isAfter(end); d = d.plusDays(1)) {
             JsonObject o = days.get(d.toString());
             dates.add(d.toString());
             uniq.add(o == null ? 0 : o.get("uniq").getAsInt());
+            Integer hm = null;
+            if (o != null && o.has("jsUniq")) {
+                hm = 0;
+                for (var e : o.getAsJsonObject("jsUniq").entrySet()) hm += e.getValue().getAsInt();
+            }
+            human.add(hm);
             int v = 0;
             if (o != null) for (var e : o.getAsJsonObject("pages").entrySet()) v += e.getValue().getAsInt();
             views.add(v);
@@ -313,9 +319,10 @@ public class StatsServlet extends HttpServlet {
         // 마지막 날이 오늘이면 아직 세는 중 - 점선 · "오늘" 로(2026-10-22 홍TV님: 새벽 1시 0명이 뚝 떨어진 것처럼 보였음)
         boolean live = end.equals(java.time.LocalDate.now(WeatherServlet.KST));
         return "<section><h2>방문 추세(" + dates.size() + "일)</h2>"   // 넓은 화면 · 휴대폰 두 벌(css 가 하나만 보임 - 한 벌을 줄이면 글자가 너무 작아짐)
-                + "<div class=\"chW\">" + line("방문자", dates, uniq, 640, live) + line("화면", dates, views, 640, live) + "</div>"
-                + "<div class=\"chN\">" + line("방문자", dates, uniq, 340, live) + line("화면", dates, views, 340, live) + "</div>"
-                + "<p class=\"dim\">점에 손가락 · 마우스를 대면 그 날 수가 보입니다. 정확한 수는 아래 표." + (live ? " 점선은 오늘 - 아직 세는 중이라 낮게 보입니다." : "") + "</p></section>";
+                + "<div class=\"chW\">" + line("방문자", dates, uniq, 640, live, human) + line("화면", dates, views, 640, live) + "</div>"
+                + "<div class=\"chN\">" + line("방문자", dates, uniq, 340, live, human) + line("화면", dates, views, 340, live) + "</div>"
+                + "<p class=\"dim\">점에 손가락 · 마우스를 대면 그 날 수가 보입니다. 정확한 수는 아래 표."
+                + (human.stream().anyMatch(java.util.Objects::nonNull) ? " 주황 선은 사람 확인 - 방문자 가운데 화면이 열려 그 안의 프로그램이 돈 사람(10-22 부터, 수집 프로그램을 더 뺀 실제 사람에 가까운 수)." : "") + (live ? " 점선은 오늘 - 아직 세는 중이라 낮게 보입니다." : "") + "</p></section>";
     }
 
     /**
@@ -323,14 +330,22 @@ public class StatsServlet extends HttpServlet {
      * live - 마지막 날이 오늘(세는 중): 마지막 토막은 점선, 날짜는 "오늘".
      */
     static String line(String name, List<String> dates, List<Integer> v, int w, boolean live) {
+        return line(name, dates, v, w, live, null);
+    }
+
+    /** v2 - 둘째 선(주황, 사람 확인 - 2026-10-29 홍TV님 "사람 기준으로 한 줄 더"). null 인 날은 건너뜀. */
+    static String line(String name, List<String> dates, List<Integer> v, int w, boolean live, List<Integer> v2) {
         int h = w < 500 ? 170 : 190, l = 40, r = 36, t = 14, b = 26, k = v.size();
         int max = 1;
         for (int x : v) max = Math.max(max, x);
+        boolean two = v2 != null && v2.stream().anyMatch(java.util.Objects::nonNull);
+        if (two) for (Integer x : v2) if (x != null) max = Math.max(max, x);
         int top = nice(max);
         double pw = w - l - r, ph = h - t - b;
         java.util.function.IntFunction<Double> X = i -> k == 1 ? l + pw / 2 : l + pw * i / (k - 1);
         java.util.function.IntFunction<Double> Y = val -> t + ph * (1 - (double) val / top);
-        StringBuilder s = new StringBuilder("<figure style=\"margin:8px 0 14px\"><figcaption class=\"dim\">" + name + " (하루)</figcaption>")
+        StringBuilder s = new StringBuilder("<figure style=\"margin:8px 0 14px\"><figcaption class=\"dim\">" + name + " (하루)"
+                + (two ? " <span style=\"color:#38d9ea\">━ 방문자</span> <span style=\"color:#ffa94d\">━ 사람 확인</span>" : "") + "</figcaption>")
                 .append("<svg viewBox=\"0 0 ").append(w).append(' ').append(h).append("\" width=\"100%\" role=\"img\" aria-label=\"")
                 .append(name).append(" 날마다 - ").append(dates.get(0)).append("부터 ").append(dates.get(k - 1)).append("까지, 마지막 날 ").append(v.get(k - 1)).append("\">");
         for (int g : new int[] {0, top / 2, top}) {   // 눈금 - 옅게
@@ -356,10 +371,30 @@ public class StatsServlet extends HttpServlet {
         s.append("<path d=\"").append(path).append("\" fill=\"none\" stroke=\"#38d9ea\" stroke-width=\"2\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/>");
         if (solid < k) s.append(String.format(Locale.ROOT, "<path d=\"M%.1f,%.1fL%.1f,%.1f\" fill=\"none\" stroke=\"#38d9ea\" stroke-opacity=\"0.6\" stroke-width=\"2\" stroke-dasharray=\"4 4\"/>",
                 X.apply(k - 2), Y.apply(v.get(k - 2)), X.apply(k - 1), Y.apply(v.get(k - 1))));
+        if (two) {   // 사람 확인 선 - 값이 있는 날만 잇고(빈 날에서 끊음) 오늘 토막은 점선
+            StringBuilder p2 = new StringBuilder();
+            for (int i = 0; i < k; i++) {
+                Integer x = v2.get(i);
+                if (x == null || (live && i == k - 1 && k > 1)) continue;
+                boolean cont = i > 0 && v2.get(i - 1) != null;
+                p2.append(cont ? "L" : "M").append(String.format(Locale.ROOT, "%.1f,%.1f", X.apply(i), Y.apply(x)));
+            }
+            s.append("<path d=\"").append(p2).append("\" fill=\"none\" stroke=\"#ffa94d\" stroke-width=\"2\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/>");
+            if (live && k > 1 && v2.get(k - 1) != null && v2.get(k - 2) != null) s.append(String.format(Locale.ROOT, "<path d=\"M%.1f,%.1fL%.1f,%.1f\" fill=\"none\" stroke=\"#ffa94d\" stroke-opacity=\"0.6\" stroke-width=\"2\" stroke-dasharray=\"4 4\"/>",
+                    X.apply(k - 2), Y.apply(v2.get(k - 2)), X.apply(k - 1), Y.apply(v2.get(k - 1))));
+            for (int i = 0; i < k; i++) if (v2.get(i) != null && colW >= 12)
+                s.append(String.format(Locale.ROOT, "<circle cx=\"%.1f\" cy=\"%.1f\" r=\"3\" fill=\"#ffa94d\" stroke=\"#1a212b\" stroke-width=\"1.5\"/>", X.apply(i), Y.apply(v2.get(i))));
+            Integer last = v2.get(k - 1);
+            if (last != null) {   // 마지막 값 - 방문자 글자와 겹치지 않게 위아래로 떼어 놓음
+                double y1 = Y.apply(v.get(k - 1)) + 4, y2 = Y.apply(last) + 4;
+                if (Math.abs(y2 - y1) < 13) y2 = y1 + (y2 >= y1 ? 13 : -13);
+                s.append(String.format(Locale.ROOT, "<text x=\"%.1f\" y=\"%.1f\" fill=\"#ffa94d\" font-size=\"12\" font-weight=\"bold\">%,d</text>", X.apply(k - 1) + 8, y2, last));
+            }
+        }
         for (int i = 0; i < k; i++) {   // 점(점 사이가 넉넉할 때만) + 손 대는 칸(점보다 넓게)
             if (colW >= 12) s.append(String.format(Locale.ROOT, "<circle cx=\"%.1f\" cy=\"%.1f\" r=\"4\" fill=\"#38d9ea\" stroke=\"#1a212b\" stroke-width=\"2\"/>", X.apply(i), Y.apply(v.get(i))));
-            s.append(String.format(Locale.ROOT, "<rect x=\"%.1f\" y=\"%d\" width=\"%.1f\" height=\"%.1f\" fill=\"transparent\"><title>%s · %s %,d</title></rect>",
-                    X.apply(i) - colW / 2, t, colW, ph, dates.get(i), name, v.get(i)));
+            s.append(String.format(Locale.ROOT, "<rect x=\"%.1f\" y=\"%d\" width=\"%.1f\" height=\"%.1f\" fill=\"transparent\"><title>%s · %s %,d%s</title></rect>",
+                    X.apply(i) - colW / 2, t, colW, ph, dates.get(i), name, v.get(i), two && v2.get(i) != null ? String.format(Locale.ROOT, " · 사람 확인 %,d", v2.get(i)) : ""));
         }
         s.append(String.format(Locale.ROOT, "<text x=\"%.1f\" y=\"%.1f\" fill=\"#e9eef4\" font-size=\"12\" font-weight=\"bold\">%,d</text>",   // 마지막 값
                 X.apply(k - 1) + 8, Y.apply(v.get(k - 1)) + 4, v.get(k - 1)));
