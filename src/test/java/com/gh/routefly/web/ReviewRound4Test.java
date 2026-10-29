@@ -20,13 +20,23 @@ public class ReviewRound4Test {
         return o;
     }
 
+    private static JsonObject lo(JsonObject o, double ele) {
+        o.addProperty("ele_min_m", ele);
+        return o;
+    }
+
     @Test
     public void trailheadPrefill() {
         assertEquals("소공원", MountainServlet.trailheadName("설악산 · 소공원 → 대청봉"));
         assertEquals("중산리", MountainServlet.trailheadName("지리산 · 중산리(탐방지원센터) → 천왕봉"));
         assertNull("들머리 → 없음", MountainServlet.trailheadName("둘레길 한 바퀴"));
-        assertEquals("가장 많이 시작하는 들머리", "설악산 소공원", MountainServlet.stayPrefill("설악산",
+        assertEquals("높이를 모르면 많이 시작하는 들머리", "설악산 소공원", MountainServlet.stayPrefill("설악산",
                 List.of(c("설악산 · 오색 → 대청봉"), c("설악산 · 소공원 → 대청봉"), c("설악산 · 소공원 → 울산바위"))));
+        // 2026-10-30 PC: 설악산은 남설악탐방지원센터, 한라산은 남벽분기점이 골라졌음 - 가장 낮은 들머리, 갈림길은 뺌
+        assertEquals("가장 낮은 들머리", "설악산 소공원", MountainServlet.stayPrefill("설악산",
+                List.of(lo(c("설악산 · 남설악탐방지원센터 → 대청봉"), 340), lo(c("설악산 · 소공원 → 대청봉"), 180), lo(c("설악산 · 한계령 → 대청봉"), 1000))));
+        assertEquals("갈림길은 들머리가 아님", "한라산 성판악", MountainServlet.stayPrefill("한라산",
+                List.of(lo(c("한라산 · 남벽분기점 → 윗세오름"), 1500), lo(c("한라산 · 성판악 → 백록담"), 750), lo(c("한라산 · 어리목 → 윗세오름"), 970))));
         assertEquals("들머리에 산 이름이 있으면 그대로", "한라산 성판악", MountainServlet.stayPrefill("한라산", List.of(c("한라산 · 한라산 성판악 → 백록담"))));
         assertEquals("지역 붙은 이름은 떼고", "백운산 진틀", MountainServlet.stayPrefill("백운산(광양)", List.of(c("백운산 · 진틀 → 백운산"))));
         assertEquals("코스가 없으면 산 이름", "가리산", MountainServlet.stayPrefill("가리산", new ArrayList<>()));

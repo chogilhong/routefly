@@ -500,15 +500,26 @@ public class MountainServlet extends HttpServlet {
         return t.isEmpty() ? null : t;
     }
 
-    /** 순수 함수 - 숙소 찾기에 미리 채울 말: 코스가 가장 많이 시작하는 들머리(같으면 앞 코스) + 산 이름(들머리에 산 이름이 없을 때). 코스가 없으면 산 이름. */
+    /**
+     * 순수 함수 - 숙소 찾기에 미리 채울 말: 들머리 가운데 가장 낮은 데서 시작하는 곳(코스 최저 높이 ele_min_m - 낮은 들머리일수록 숙소가 모인 마을 쪽,
+     * 2026-10-30 PC: 많이 시작하는 곳으로 고르니 설악산은 동점이라 남설악, 한라산은 길 중간 남벽분기점이 골라졌음). 분기점 · 삼거리 · 갈림길 · 고개 마루는 들머리가 아니라 뺌.
+     * 높이를 모르면 코스가 많은 곳, 그것도 같으면 앞 코스. + 산 이름(들머리에 산 이름이 없을 때). 코스가 없으면 산 이름.
+     */
     static String stayPrefill(String mountain, List<JsonObject> courses) {
-        java.util.Map<String, Integer> n = new java.util.LinkedHashMap<>();
+        java.util.Map<String, double[]> n = new java.util.LinkedHashMap<>();   // 들머리 → {가장 낮은 높이, 코스 수}
         for (JsonObject c : courses) {
             String t = trailheadName(str(c, "name"));
-            if (t != null) n.merge(t, 1, Integer::sum);
+            if (t == null || t.matches(".*(분기점|삼거리|사거리|갈림길|갈림목)$")) continue;
+            double lo = c.has("ele_min_m") && !c.get("ele_min_m").isJsonNull() ? c.get("ele_min_m").getAsDouble() : Double.MAX_VALUE;
+            double[] v = n.computeIfAbsent(t, k -> new double[] {Double.MAX_VALUE, 0});
+            v[0] = Math.min(v[0], lo);
+            v[1]++;
         }
         String best = null;
-        for (java.util.Map.Entry<String, Integer> e : n.entrySet()) if (best == null || e.getValue() > n.get(best)) best = e.getKey();
+        for (java.util.Map.Entry<String, double[]> e : n.entrySet()) {
+            double[] v = e.getValue(), b = best == null ? null : n.get(best);
+            if (b == null || v[0] < b[0] || (v[0] == b[0] && v[1] > b[1])) best = e.getKey();
+        }
         String m = mountain.replaceAll("\\(.*\\)$", "");   // 백운산(광양) → 백운산
         String v = best == null ? m : best.contains(m) ? best : m + " " + best;
         return v.codePointCount(0, v.length()) > 30 ? m : v;
