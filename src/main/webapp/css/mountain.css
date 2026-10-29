@@ -20,17 +20,21 @@ ul { margin:0; padding:0; list-style:none; }
 .cs b, .cs span, .cs small { min-width:0; overflow-wrap:anywhere; }   /* 띄어쓰기 없는 긴 이름(Seoraksandaecheongbong…)도 줄바꿈 - 글자 140% 가로 넘침(2026-10-17 PC) */
 .cs span { font-size:13.5px; color:var(--dim); }
 .cs .go { margin-left:auto; display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; }
-.cs .go a { text-decoration:none; font-size:13.5px; padding:4px 10px; border:1px solid var(--ln); border-radius:14px; }
+.cs .go a { display:inline-flex; align-items:center; min-height:44px; box-sizing:border-box; text-decoration:none; font-size:14.5px; padding:0 12px; border:1px solid var(--ln); border-radius:22px; }   /* 손가락 크기 44px(2026-10-29 점검 - 검색으로 가장 많이 오는 화면, 어르신) */
 .ms { display:flex; flex-wrap:wrap; gap:8px; }
 .ms a { display:inline-block; text-decoration:none; color:var(--tx); font-size:14px; padding:6px 11px; border:1px solid var(--ln); border-radius:16px; }
 .brand { margin-top:18px; font-size:15px; font-weight:bold; }
 .copy { margin:10px 0 0; font-size:11.5px; color:var(--dim); }   /* © 2026 홍TV · routefly */
 .support { margin:14px 0 0; }
+/* 🏨 근처 숙소(제휴, 2026-10-29) - 안전 칸과 떨어진 페이지 아래, 손가락 크기 */
+.stays { margin:16px 0 0; }
+.stays a { display:inline-flex; align-items:center; min-height:44px; padding:0 16px; border-radius:22px; border:1px solid var(--sky); color:var(--tx); text-decoration:none; font-weight:bold; }
+.stays small { display:block; margin-top:6px; color:var(--dim); font-size:12px; }
 .support a { display:inline-block; padding:8px 14px; border-radius:10px; background:#2f9e44; color:#fff; text-decoration:none; font-weight:bold; }
 .brand span { color:#ffb703; }
 /* 글자 크기(RF.textButton) */
 .rfz main { zoom: var(--rfz); }
-.rfTextBtn { min-width:44px; height:32px; padding:0 8px; border-radius:16px; border:1px solid var(--ln); background:rgba(255,255,255,0.06); color:var(--tx);
+.rfTextBtn { min-width:44px; height:44px; padding:0 8px; border-radius:22px; border:1px solid var(--ln); background:rgba(255,255,255,0.06); color:var(--tx);
              font:bold 13px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }
 /* 로고(img/logo-dark.svg) - 목록 맨 위 · 페이지 아래 "열기" */
 .logo { display:inline-block; margin:0 0 8px -6px; }
@@ -38,12 +42,12 @@ ul { margin:0; padding:0; list-style:none; }
 .logoRow { display:flex; align-items:center; justify-content:space-between; gap:8px; }   /* 로고 + 따라가기 ›(2026-10-17) */
 .logoRow .logo { flex:0 1 auto; min-width:0; }   /* 따라가기 › 자리를 먼저 - 로고가 줄어듦(글자 140% 에서 넘쳤음, 2026-10-17 PC) */
 .logoRow .logo img { display:block; max-width:100%; height:auto; }
-.goHike { flex:0 0 auto; display:inline-flex; align-items:center; height:38px; padding:0 14px; border-radius:19px; box-sizing:border-box;
+.goHike { flex:0 0 auto; display:inline-flex; align-items:center; height:44px; padding:0 14px; border-radius:22px; box-sizing:border-box;
           border:1px dashed rgba(255,255,255,0.35); color:var(--tx); font-size:14px; text-decoration:none; white-space:nowrap; }
 .brand a { display:inline-flex; align-items:center; gap:6px; text-decoration:none; }
 .brand img { width:160px; height:auto; }
 /* ☆ 찜 · 가까운 산 거리(2026-10-15) */
-.rfFavBtn { background:none; border:1px solid var(--ln); border-radius:14px; color:var(--dim); font-size:15px; line-height:1; padding:3px 9px; cursor:pointer; }
+.rfFavBtn { background:none; border:1px solid var(--ln); border-radius:22px; color:var(--dim); font-size:17px; line-height:1; min-width:44px; min-height:44px; padding:0 10px; cursor:pointer; }
 .rfFavBtn.on { color:#ffd43b; border-color:#ffd43b; }
 .ms small { color:var(--dim); font-size:12px; }
 .gear li { border-top:1px solid var(--ln); padding:8px 0; display:flex; flex-wrap:wrap; gap:2px 10px; align-items:baseline; font-size:14px; }
@@ -106,26 +110,26 @@ ul { margin:0; padding:0; list-style:none; }
 .tips li { margin: 0.35em 0; list-style: disc; }
 /* 오른쪽 위 한/EN · 글자 크기(2026-10-15 홍TV님) */
 .rfTools { float:right; display:inline-flex; gap:6px; align-items:center; margin-left:8px; }
-.rfLang { display:inline-flex; height:32px; border:1px solid var(--ln); border-radius:16px; overflow:hidden; text-decoration:none;
+.rfLang { display:inline-flex; height:44px; border:1px solid var(--ln); border-radius:22px; overflow:hidden; text-decoration:none;
           font:bold 13px Arial,"Malgun Gothic",sans-serif; }
 .rfLang span { display:inline-flex; align-items:center; padding:0 9px; color:var(--dim); background:rgba(255,255,255,0.06); }
 .rfLang span.on { color:#0b1118; background:var(--sky); }
 /* 📥 신호 없을 때 보기(오프라인 저장 - 2026-10-15) */
-.offline button { height:36px; padding:0 14px; border-radius:18px; border:1px solid var(--sky); background:rgba(56,217,234,0.12); color:var(--tx); font:bold 14px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }
+.offline button { height:44px; padding:0 14px; border-radius:18px; border:1px solid var(--sky); background:rgba(56,217,234,0.12); color:var(--tx); font:bold 14px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }
 .offline button:disabled { opacity:0.6; }
 /* 난이도 · 📈 고도(공단 탐방로 안내판처럼 - 2026-10-15) */
-.cs .go button.boardBtn { font-size:13.5px; padding:4px 10px; border:1px solid var(--ln); border-radius:14px; background:none; color:var(--sky); cursor:pointer; }
+.cs .go button.boardBtn { min-height:44px; font-size:14.5px; padding:0 12px; border:1px solid var(--ln); border-radius:22px; background:none; color:var(--sky); cursor:pointer; }
 .cs .go button.boardBtn.on { background:rgba(56,217,234,0.15); }
 .cs li .board { flex-basis:100%; width:100%; margin-top:8px; }   /* 모양은 course-kit.css .rfBoardBox · .rf-board · .lv(산 페이지도 읽음 - 2026-10-16 겹침 정리) */
 /* 🕘 최근 본 산 · ⚖️ 코스 견주기(2026-10-16) */
 #recent { padding:4px 16px; }
 #recent .fb { padding:4px 0 10px; }
-.cs .go button.cmpBtn { font-size:13.5px; padding:4px 10px; border:1px solid var(--ln); border-radius:14px; background:none; color:var(--tx); cursor:pointer; }
+.cs .go button.cmpBtn { min-height:44px; font-size:14.5px; padding:0 12px; border:1px solid var(--ln); border-radius:22px; background:none; color:var(--tx); cursor:pointer; }
 .cs .go button.cmpBtn.on { border-color:#ffb703; background:rgba(255,183,3,0.15); }
 .cmp { margin:8px 0 12px; padding:10px; border:1px solid #ffb703; border-radius:12px; background:rgba(255,183,3,0.06); }
 .cmp .dim { margin:0; }
 .cmpHead { display:flex; justify-content:space-between; align-items:center; font-weight:bold; margin-bottom:6px; }
-.cmpClose { background:none; border:1px solid var(--ln); border-radius:12px; color:var(--tx); width:30px; height:28px; cursor:pointer; }
+.cmpClose { background:none; border:1px solid var(--ln); border-radius:22px; color:var(--tx); width:44px; height:44px; cursor:pointer; }
 .cmpT { width:100%; border-collapse:collapse; font-size:13.5px; table-layout:fixed; }
 .cmpT th, .cmpT td { padding:5px 4px; border-top:1px solid var(--ln); text-align:left; vertical-align:top; word-break:keep-all; }
 .cmpT tr:first-child th { border-top:0; }

@@ -326,6 +326,25 @@
     $("backTop").addEventListener("click", function (e) {
         if (document.referrer && document.referrer.indexOf(location.origin + "/") === 0 && history.length > 1) { e.preventDefault(); history.back(); }
     });
+    (function () {   // 글자 크기 단추(about.js · course-kit 과 같은 rf-text: 1 → 1.2 → 1.4)
+        var STEPS = [1, 1.2, 1.4], b = document.createElement("button");
+        function cur() { try { var v = +localStorage.getItem("rf-text"); return STEPS.indexOf(v) >= 0 ? v : 1; } catch (e) { return 1; } }
+        function apply(v) {
+            document.documentElement.style.setProperty("--rfz", String(v));
+            document.documentElement.classList.toggle("rfz", v !== 1);
+            var g = EN ? "A" : "가";
+            b.textContent = v >= 1.4 ? g + "++" : v >= 1.2 ? g + "+" : g;
+            b.setAttribute("aria-label", T("글자 크기 ", "Text size ") + Math.round(v * 100) + "%");
+        }
+        b.type = "button"; b.className = "rfTextBtn";
+        b.addEventListener("click", function () {
+            var n = STEPS[(STEPS.indexOf(cur()) + 1) % STEPS.length];
+            try { localStorage.setItem("rf-text", String(n)); } catch (e) { /* 이번만 */ }
+            apply(n);
+        });
+        $("top").insertBefore(b, $("updated"));
+        apply(cur());
+    })();
     document.addEventListener("visibilitychange", function () {   // 탭으로 돌아오면 바로 새로 받기
         if (!document.hidden && key && !$("officeSec").hidden && Date.now() - lastLoad > 5000) { lastLoad = Date.now(); load(); }
     });

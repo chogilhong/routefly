@@ -153,7 +153,7 @@ final class MountainEn {
                         .append(asc != null ? String.format(Locale.US, " · %,d m ascent", asc) : "")
                         .append(SteepRank.slopeText(dist, asc, steep, true))   // 순위와 같은 기준(2026-10-18)
                         .append(" · about ").append(hours(dist, asc)).append("</span><span class=\"go\">")
-                        .append("<a href=\"").append(REL).append("/index.html#c=").append(esc(id)).append("\">3D fly-through</a>")
+                        .append("<a href=\"").append(REL).append("/index.html?lang=en#c=").append(esc(id)).append("\">3D fly-through</a>")
                         .append("<a href=\"").append(REL).append("/hike.html?lang=en#c=").append(esc(id)).append("&amp;m=").append(esc(MountainServlet.enc(id(peak)))).append("\">Follow (GPS)</a>");   // 따라가기 영어 · ‹ 는 이 페이지로
                 double[] th = MountainServlet.trailhead(c, peak);
                 if (th != null) b.append("<a class=\"way\" href=\"").append(esc(googleTo(th))).append("\" target=\"_blank\" rel=\"noopener\">🚌 Directions</a>");
@@ -162,7 +162,7 @@ final class MountainEn {
             b.append("</ul>");
         }
         b.append("<p class=\"dim\">Times are estimates at 4 km/h plus 1 hour per 600 m of ascent. Trail data is for reference - always follow signs and closures on site. "
-                + "The 3D and GPS screens are in Korean; the map and route work the same. 🚌 Directions opens Google Maps transit directions from where you are to the trailhead. "
+                + "The 3D and GPS screens are in English too. 🚌 Directions opens Google Maps transit directions from where you are to the trailhead. "
                 + "Difficulty (Easy to Expert) is routefly's estimate from distance and ascent, not an official grade; 📈 Elevation shows the slope of each section like the park trail boards.</p></section>");
         List<String[]> qa = faq(peak, name, courses, parking);
         b.append("<section class=\"faq\"><h2>").append(esc(name)).append(" FAQ</h2><dl>");
@@ -178,6 +178,8 @@ final class MountainEn {
             }
             b.append("</ul></section>");
         }
+        b.append("<p class=\"stays\" id=\"stays\" data-name=\"").append(esc(ko)).append("\" hidden></p>");   // 🏨 Stays nearby(js/mountain-en.js, 2026-10-29)
+        b.append(Ads.box("m", true));   // 광고 - 영어 산 페이지에도(설정이 있을 때만, 2026-10-29)
         return b.append(foot(REL + "/m/" + MountainServlet.enc(ko))).toString();
     }
 
@@ -295,6 +297,7 @@ final class MountainEn {
                 .append("<a class=\"anbuLink\" href=\"" + REL + "/anbu.html?lang=en\">🏠 Daily check-in <small>Tap \"I'm fine\" once a day · text your guardian · daily reminder</small> ›</a>")
                 .append("<a class=\"anbuLink toolLink\" href=\"" + REL + "/tools.html?lang=en\">🧰 Handy tools <small>Postcode · exchange rates · lunar calendar · weather · timer · ladder game · subway maps · holidays · fuel prices · tides · magnifier · medicine reminder · hiking safety and more (32)</small> ›</a>")
                 .append("<a class=\"anbuLink gameLink\" href=\"" + REL + "/games.html?lang=en\">🎮 Mini games <small>Block stack · Space shooter · Snake · 2048 · Brick breaker · Mine finder · Mountain run · Sudoku · Five in a row and more (15)</small> ›</a>")   // 2026-10-21 홍TV님   // 🔮 just for fun(js/mountain-en.js - 2026-10-17)
+                .append(Ads.box("m", true))
                 .append(foot(REL + "/m/")).toString();
     }
 

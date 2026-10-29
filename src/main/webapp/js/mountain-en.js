@@ -31,6 +31,8 @@
     // ☕ Support routefly(PayPal - 설정 donate.en.url 이 있을 때만, 2026-10-17 홍TV님)
     fetch("../../api/partners").then(function (r) { return r.json(); }).then(function (p) {
         RF.supportLine(document.getElementById("support"), p.donateEn, "☕ Support routefly ›");
+        var wx = document.getElementById("wx");   // 🏨 Stays nearby(summit coordinates, 2026-10-29)
+        if (wx) RF.staysLine(document.getElementById("stays"), p, +wx.getAttribute("data-lat"), +wx.getAttribute("data-lon"), true);
     }).catch(function () { /* 링크 없이 */ });
     RF.foldOne(document);   // 하나를 펴면 나머지는 접힘(/m/ 과 같음)
     RF.boardButtons("../..", true);   // 📈 Elevation(한국어 화면과 같음)

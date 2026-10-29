@@ -15,7 +15,13 @@ final class Ads {
 
     /** 설정의 광고 자리(where = m · c). 설정이 없거나 꼴이 틀리면 "". */
     static String box(String where) {
-        return box(RouteflyConfig.get("adsense.client"), RouteflyConfig.get("adsense.slot." + where));
+        return box(where, false);
+    }
+
+    /** 영어 산 페이지(/en/m/, 2026-10-29 점검 - 숙소를 예약할 외국 손님 화면에 광고가 없었음)는 표시만 "Ad". */
+    static String box(String where, boolean en) {
+        String h = box(RouteflyConfig.get("adsense.client"), RouteflyConfig.get("adsense.slot." + where));
+        return en ? h.replace("aria-label=\"광고\"><p class=\"adNote\">광고</p>", "aria-label=\"Ad\"><p class=\"adNote\">Ad</p>") : h;
     }
 
     /** 순수 함수 - 광고 자리 HTML("광고" 표시 + 애드센스 칸). 꼴이 틀리면 "". */

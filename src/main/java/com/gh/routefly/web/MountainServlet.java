@@ -626,6 +626,8 @@ public class MountainServlet extends HttpServlet {
             }
             b.append("</ul></section>");
         }
+        // 🏨 근처 숙소(제휴 - 설정이 있을 때만 js/mountain.js 가 채움, 2026-10-29 점검: 1박 산행이 많은 산의 검색 첫 화면에 숙소 링크가 없었음)
+        b.append("<p class=\"stays\" id=\"stays\" data-name=\"").append(esc(str(peak, "id") != null ? str(peak, "id") : str(peak, "name"))).append("\" hidden></p>");
         b.append(Ads.box("m"));   // 광고(설정이 있을 때만, 2026-10-28)
         b.append(foot(base, REL + enPath));
         return b.toString();

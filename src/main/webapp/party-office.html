@@ -18,13 +18,16 @@
 [hidden] { display:none !important; }
 html, body { margin:0; background:var(--bg); color:var(--tx); font-family:Arial,"Malgun Gothic",sans-serif; }
 #top { position:sticky; top:0; z-index:5; display:flex; align-items:center; gap:8px; padding:calc(env(safe-area-inset-top) + 8px) 12px 8px; background:var(--panel); border-bottom:1px solid var(--ln); }
-#top a { color:var(--sky); text-decoration:none; font-weight:bold; font-size:14px; }
+#top a { display:inline-flex; align-items:center; min-height:44px; color:var(--sky); text-decoration:none; font-weight:bold; font-size:15px; }
+/* 글자 크기 A · 가(2026-10-29 점검 - 회사 사장님 · 직원도 어르신이 많음, 다른 화면과 같은 rf-text 저장) */
+.rfz main { zoom: var(--rfz); }
+.rfTextBtn { flex:0 0 auto; min-width:44px; height:44px; padding:0 8px; border-radius:22px; border:1px solid var(--ln); background:rgba(255,255,255,0.06); color:var(--tx); font:bold 14px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }
 #title { flex:1; min-width:0; font-size:17px; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 main { max-width:1100px; margin:0 auto; padding:12px 12px calc(env(safe-area-inset-bottom) + 24px); }
 section { background:var(--panel); border:1px solid var(--ln); border-radius:12px; padding:14px; margin-bottom:12px; }
 h2 { font-size:19px; margin:0 0 10px; }
 #offTitle { font-size:23px; }   /* 사무실 이름 - 크게(2026-10-28 홍TV님) */
-label { display:block; font-size:13.5px; color:var(--dim); margin:10px 0 4px; }
+label { display:block; font-size:15px; color:var(--dim); margin:10px 0 4px; }
 input[type=text] { width:100%; height:44px; padding:0 12px; border-radius:10px; border:1px solid var(--ln); background:#0f141a; color:var(--tx); font-size:16px; }
 button { min-height:44px; padding:0 12px; border-radius:10px; border:1px solid var(--ln); background:rgba(255,255,255,0.08); color:var(--tx); font-size:14px; font-weight:bold; cursor:pointer; }
 button.main { background:var(--sky); color:#062026; border-color:var(--sky); }
@@ -32,9 +35,9 @@ button.danger { color:var(--red); border-color:rgba(255,107,107,0.5); }
 .tip { font-size:14px; color:var(--dim); line-height:1.6; margin:8px 0 0; }
 .code { font-size:20px; letter-spacing:3px; font-weight:bold; color:var(--sky); }
 .wrap { overflow-x:auto; }
-table { width:100%; border-collapse:collapse; font-size:14px; }
+table { width:100%; border-collapse:collapse; font-size:15px; }
 th, td { padding:8px 6px; border-bottom:1px solid var(--ln); text-align:left; vertical-align:top; white-space:nowrap; }
-th { color:var(--dim); font-weight:normal; font-size:13px; }
+th { color:var(--dim); font-weight:normal; font-size:14px; }
 td.name { white-space:normal; min-width:10em; }
 tr.sos td { background:rgba(201,42,42,0.35); }
 tr.warn td { background:rgba(255,212,59,0.14); }
@@ -42,7 +45,7 @@ tr.warn td { background:rgba(255,212,59,0.14); }
 .yel { color:var(--yel); font-weight:bold; }
 .ok { color:var(--green); }
 #msg { color:var(--red); font-size:14px; min-height:18px; margin-top:8px; }
-#linkBox { word-break:break-all; background:#0f141a; border:1px solid var(--ln); border-radius:8px; padding:8px; font-size:13px; }
+#linkBox { word-break:break-all; background:#0f141a; border:1px solid var(--ln); border-radius:8px; padding:8px; font-size:14px; }
 #mineBar { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 12px; }
 #mineSel { flex:1 1 220px; min-height:44px; padding:0 10px; border-radius:10px; border:1px solid var(--sky); background:#0f141a; color:var(--tx); font-size:16px; font-weight:bold; }
 #mineBar button { min-height:44px; }

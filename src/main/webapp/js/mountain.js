@@ -99,7 +99,12 @@
     }
     // 제휴 · 후원 링크(api/partners) - 한 번만 받아 ☕ 후원 줄과 🎒 챙길 것의 쿠팡 링크가 함께 씀
     var partnersP = fetch("../api/partners").then(function (r) { return r.json(); });
-    partnersP.then(function (p) { if (window.RF) window.RF.supportLine(document.getElementById("support"), p.donate, "☕ routefly 후원하기 ›", p.donateEn); }).catch(function () { /* 링크 없이 */ });
+    partnersP.then(function (p) {
+        if (!window.RF) return;
+        window.RF.supportLine(document.getElementById("support"), p.donate, "☕ routefly 후원하기 ›", p.donateEn);
+        var wx = document.getElementById("wx");   // 🏨 근처 숙소(정상 좌표, 2026-10-29)
+        if (wx) window.RF.staysLine(document.getElementById("stays"), p, +wx.getAttribute("data-lat"), +wx.getAttribute("data-lon"), false);
+    }).catch(function () { /* 링크 없이 */ });
     // ☀️ 이번 주말 날씨 좋은 산(코스 모음 /m/ - 2026-10-15 홍TV님): 권역마다 토 · 일 낮 날씨, 좋은 권역의 100대 명산
     var wk = document.getElementById("weekend");
     if (wk && window.RF) fetch("../api/weekend").then(function (r) { return r.json(); }).then(function (w) {
