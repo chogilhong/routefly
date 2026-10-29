@@ -1316,7 +1316,7 @@ final class Party {
     }
 
     /** 사무실 - 이름 바꾸기. 이미 올라온 방(승인 기다림 포함)의 회사 이름도 함께 - 회원 화면 "○○ 사무실" 이 바로 새 이름. 돌려줌: 새 이름. */
-    synchronized String officeRename(String key, String name) {
+    synchronized String officeRename(String key, String name, long now) {
         PartyOffice.Office o = offices.byKey(key);
         String n = clean(name, 30);
         if (n == null) throw new IllegalArgumentException("회사 이름을 적어 주세요.");
@@ -1325,19 +1325,25 @@ final class Party {
             if (!o.code.equals(r.officeCode)) continue;
             r.officeName = n;
             // 사무실 자리 이름("○○ 사무실")은 바꿀 수 없어 자리를 뺌 - 다음 "열기" 때 새 이름으로(사무실은 위치를 보내지 않아 잃는 것 없음)
-            for (Member m : new ArrayList<>(r.members.values())) if (m.office) { r.members.remove(m.token); byToken.remove(m.token); }
+            for (Member m : new ArrayList<>(r.members.values())) if (m.office) { r.members.remove(m.token); byToken.remove(m.token); officeGone(m.token, "회사 이름이 바뀌었습니다. 사무실 화면에서 이 방을 다시 열어 주세요.", now); }
         }
         save();
         return n;
     }
 
+    /** 빠진 사무실 자리에 까닭을 남김 - 열어 둔 탭이 "방이 끝났습니다" 대신 이 글을 봄(방은 그대로, 2026-10-29 점검). */
+    private void officeGone(String token, String why, long now) {
+        endedWhy.put(token, why);
+        endedAt.put(token, now);
+    }
+
     /** 사무실 - 링크 바꾸기. 돌려줌: 새 열쇠. */
-    synchronized String officeNewKey(String key) {
+    synchronized String officeNewKey(String key, long now) {
         PartyOffice.Office o = offices.byKey(key);
         // 옛 링크로 이미 연 방의 사무실 자리도 끊음(2026-10-28 보안 점검: 링크가 샌 뒤 바꿔도 이미 연 자리로 회원 위치를 계속 볼 수 있었음). 다음 "열기" 때 새 자리
         for (Room r : rooms.values()) {
             if (!o.code.equals(r.officeCode)) continue;
-            for (Member m : new ArrayList<>(r.members.values())) if (m.office) { r.members.remove(m.token); byToken.remove(m.token); }
+            for (Member m : new ArrayList<>(r.members.values())) if (m.office) { r.members.remove(m.token); byToken.remove(m.token); officeGone(m.token, "사무실 링크가 바뀌었습니다. 새 사무실 링크로 들어와 이 방을 다시 열어 주세요.", now); }
         }
         save();
         return offices.newKey(o);

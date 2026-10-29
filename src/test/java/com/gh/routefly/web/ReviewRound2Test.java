@@ -68,7 +68,7 @@ public class ReviewRound2Test {
         String seat = call(p, "/office/enter", "{\"key\":\"" + key + "\",\"code\":\"" + r.get("code").getAsString() + "\"}", T0).get("token").getAsString();
         call(p, "/view", tok(seat), T0);
         String nk = call(p, "/office/newkey", "{\"key\":\"" + key + "\"}", T0).get("key").getAsString();
-        try { call(p, "/view", tok(seat), T0); fail("옛 사무실 자리는 끊김"); } catch (IllegalArgumentException e) { /* 맞음 */ }
+        try { call(p, "/view", tok(seat), T0); fail("옛 사무실 자리는 끊김"); } catch (RuntimeException e) { assertTrue("까닭을 알려 줌(2026-10-29 점검)", e.getMessage().contains("사무실 링크가 바뀌었습니다")); }
         assertNotEquals(seat, call(p, "/office/enter", "{\"key\":\"" + nk + "\",\"code\":\"" + r.get("code").getAsString() + "\"}", T0).get("token").getAsString());
     }
 

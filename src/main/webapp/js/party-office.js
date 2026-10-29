@@ -53,12 +53,14 @@
         return a;
     }
     function saveMine(a) { try { localStorage.setItem(LIST, JSON.stringify(a)); } catch (e) { /* 이번만 */ } }
-    /** 이 탭 · 이 기기가 k 사무실을 봄(목록에 없으면 넣음, name 이 있으면 이름도). k 가 null 이면 이 탭 사무실을 목록에서 뺌. */
-    function store(k, name) {
+    /** 이 탭 · 이 기기가 k 사무실을 봄(목록에 없으면 넣음, name 이 있으면 이름도). k 가 null 이면 이 탭 사무실을 목록에서 뺌.
+     *  onlyName - 새로 받기(30초)에서 이름만: 목록에 없으면 넣지 않음(다른 탭에서 로그아웃한 사무실이 되살아나지 않게, 2026-10-29 점검). */
+    function store(k, name, onlyName) {
         var a = mine();
         try {
             if (k) {
                 var x = a.filter(function (y) { return y.k === k; })[0];
+                if (!x && onlyName) return;
                 if (!x) a.push(x = { k: k, n: "" });
                 if (name) x.n = name;
                 sessionStorage.setItem(KEY, k);
@@ -111,7 +113,8 @@
     function say(t) { if (D) return D.alert(t); alert(t); return Promise.resolve(); }
     function ask(t, o) { return D ? D.confirm(t, o) : Promise.resolve(confirm(t)); }
     function askText(t, v, o) { return D ? D.prompt(t, v, o) : Promise.resolve(prompt(t, v)); }
-    function linkOf(k) { return location.origin + location.pathname + "#k=" + k; }
+    var HERE = location.pathname + (EN ? "?lang=en" : "");   // 주소를 정리해도 영어는 남김(2026-10-29 점검)
+    function linkOf(k) { return location.origin + HERE + "#k=" + k; }
 
     function showOnly(id) {
         ["newSec", "madeSec", "officeSec"].forEach(function (x) { $(x).hidden = x !== id; });
@@ -120,7 +123,7 @@
     var last = null;   // 마지막으로 받은 사무실 - 엑셀 내려받기에 씀(서버에 다시 묻지 않음)
     function render(j) {
         last = j;
-        store(key, j.name);   // 내 사무실 목록의 이름(바꾸기 · 처음 들어온 링크)
+        store(key, j.name, true);   // 내 사무실 목록의 이름(바꾸기 · 처음 들어온 링크)
         drawMine();
         $("offTitle").textContent = "🏢 " + officeOf(j.name);
         $("title").textContent = "🏢 " + officeOf(j.name);
@@ -176,7 +179,9 @@
     }
 
     function load() {
-        return RFParty.post("office/rooms", { key: key }).then(function (j) { if (netErr) msg(""); showOnly("officeSec"); render(j); }).catch(function (e) {
+        var k = key;   // 보낸 사무실 - 답이 오기 전에 사무실 · 링크를 바꿨으면 그 답은 버림(2026-10-29 점검: 다른 사무실 이름으로 덮거나 새 링크를 지웠음)
+        return RFParty.post("office/rooms", { key: k }).then(function (j) { if (k !== key) return; if (netErr) msg(""); showOnly("officeSec"); render(j); }).catch(function (e) {
+            if (k !== key) return;
             if (e && e.status === 403) {   // 없앤 · 링크를 바꾼 사무실 - 목록에서 빼고 남은 사무실로
                 store(null); key = null;
                 if (stored()) { start(); msg(T("맞지 않는 사무실 링크를 이 기기 목록에서 뺐습니다.", "Removed an invalid office link from this device's list.")); return; }
@@ -190,7 +195,7 @@
         var m = /^#k=([A-Za-z0-9_-]{20,64})$/.exec(location.hash || "");
         if (m) {
             store(m[1]);
-            try { history.replaceState(null, "", location.pathname); } catch (e) { /* 그대로 */ }   // 주소창 · 화면 캡처에 열쇠가 남지 않게
+            try { history.replaceState(null, "", HERE); } catch (e) { /* 그대로 */ }   // 주소창 · 화면 캡처에 열쇠가 남지 않게
         }
         key = (m && m[1]) || stored();
         if (!key) { showOnly("newSec"); drawMine(); return; }
@@ -221,8 +226,10 @@
             store(j.key, j.name);
             drawMine();
             key = j.key;
+            $("madeTitle").textContent = T("✅ 사무실을 만들었습니다", "✅ Office created");   // 링크 바꾸기 뒤 남은 제목 지움
             $("linkBox").textContent = linkOf(j.key);
             showOnly("madeSec");
+            drawMine();
             msg("");
         }).catch(function (e) { msg(em(e)); });
     });
@@ -251,6 +258,7 @@
             $("madeTitle").textContent = T("🔄 사무실 링크를 바꿨습니다", "🔄 Office link changed");
             $("linkBox").textContent = linkOf(j.key);
             showOnly("madeSec");
+            drawMine();
             msg("");
         }).catch(function (e) { msg(em(e)); });
         });

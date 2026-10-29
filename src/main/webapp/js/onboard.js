@@ -50,6 +50,6 @@
     // 처음이고 코스 없이 열었을 때만(공유 링크로 코스를 바로 연 사람은 코스 목록으로 갈 때 '❓ 사용법')
     // 산악회 참가로 막 들어온 회원은 소개 없이(2026-10-24 - 이름만 넣고 바로 따라가기, 소개 창이 "버스 탔어요" 를 가렸음)
     var party = false;
-    try { party = !!localStorage.getItem("rf-party"); } catch (e) { /* 없음 */ }
+    try { party = window.RFParty ? !!RFParty.get() : !!localStorage.getItem("rf-party"); } catch (e) { /* 없음 */ }   // RFParty 가 있으면 그것으로(열쇠 · 코드 확인, 2026-10-29 점검)
     if (!seen() && !party && /\bpicking\b/.test(document.documentElement.className)) open();
 })();

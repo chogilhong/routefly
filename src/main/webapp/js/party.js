@@ -28,6 +28,8 @@
     var EN_MSG = [
         [/^이미 끝난 방입니다 - ([\s\S]*)$/, function (x, why) { return "This room has already ended - " + enMsg(why); }],
         [/방 코드를 찾지 못했습니다/, "Room code not found. Please check it with your leader."],
+        [/회사 이름이 바뀌었습니다/, "The company name changed. Open this room again from the office screen."],
+        [/사무실 링크가 바뀌었습니다/, "The office link changed. Enter with the new office link and open this room again."],
         [/(\d+)번은 인솔자 자리입니다/, "Seat $1 is the leader's seat. Please choose another seat."],
         [/방이 끝났거나 열쇠가 맞지 않습니다/, "This room has ended, or this phone's key no longer matches."],
         [/인원이 다 찼습니다\((\d+)명\)/, "This room is full ($1 people)."],
@@ -522,7 +524,7 @@
         bgStop();
         clearInterval(pollTimer); clearInterval(aliveTimer);
         if (watch != null) navigator.geolocation.clearWatch(watch);
-        var office = (RFParty.get() || {}).office;
+        var office = (RFParty.get() || {}).office || !!(state && state.officeMe);   // 끝난 답이 오면 party-kit 이 먼저 지워 get() 이 비어 있음 - 받아 둔 방 화면으로도(2026-10-29 점검)
         RFParty.clear();
         (text ? say(text) : Promise.resolve()).then(function () { location.href = office ? (EN ? "party-office.html?lang=en" : "party-office.html") : EXIT; });   // 회사 사무실은 사무실 화면으로
     }
@@ -530,7 +532,8 @@
     var leaving = false;   // 나가는 중 - 늦게 온 답(지운 열쇠)의 오류를 띄우지 않음(2026-10-20 PC)
     function fail(e) {
         if (leaving) return;
-        if (e && e.ended) { exit((e.message ? enMsg(e.message) : T("방이 끝났습니다.", "The room has ended.")) + T(" 위치는 더 보내지 않습니다.", " Your location is no longer sent.")); return; }
+        // 사무실 자리는 위치를 보내지 않으므로 "위치는 더 보내지 않습니다" 를 붙이지 않음(이름 · 링크 바꾸기로 빠졌을 때 - 방은 그대로, 2026-10-29 점검)
+        if (e && e.ended) { exit((e.message ? enMsg(e.message) : T("방이 끝났습니다.", "The room has ended.")) + ((RFParty.get() || {}).office || (state && state.officeMe) ? "" : T(" 위치는 더 보내지 않습니다.", " Your location is no longer sent."))); return; }
         netBad();
     }
     /** 연결 줄(위쪽) - 마지막으로 받은 때와 함께, 다음에 받으면 저절로 사라짐(2026-10-22 점검: 맨 아래 roomMsg 에 "Failed to fetch" 가 나왔음). */

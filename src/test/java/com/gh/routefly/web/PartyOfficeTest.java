@@ -181,7 +181,7 @@ public class PartyOfficeTest {
         assertEquals("코드 그대로", oc, list.get("code").getAsString());
         assertEquals("회원 화면도 새 이름", "한라관광", call(p, "/view", tok(h), T0).get("office").getAsString());
         assertEquals("승인 기다리는 방도", "한라관광", call(p, "/view", tok(w.get("token").getAsString()), T0).get("officeWait").getAsString());
-        try { call(p, "/view", tok(ot), T0); fail("옛 사무실 자리는 빠짐"); } catch (RuntimeException e) { /* 맞음 */ }
+        try { call(p, "/view", tok(ot), T0); fail("옛 사무실 자리는 빠짐"); } catch (RuntimeException e) { assertTrue("방이 끝났다가 아니라 까닭(2026-10-29 점검)", e.getMessage().contains("회사 이름이 바뀌었습니다")); }
         call(p, "/office/enter", "{\"key\":\"" + key + "\",\"code\":\"" + code + "\"}", T0);
         assertNotNull("다시 열면 새 이름 자리", member(call(p, "/view", tok(chief), T0), "한라관광 사무실"));
         assertNotNull("회사 코드로 새 방도 그대로 올라감", j(room(p, oc)).get("code"));

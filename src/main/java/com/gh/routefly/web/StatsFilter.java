@@ -31,12 +31,23 @@ public class StatsFilter extends HttpFilter {
         Stats.save();
     }
 
-    /** 순수 함수 - 운영자 기기인가(/stats 를 연 브라우저 - StatsServlet.OWNER_COOKIE). */
+    /** 운영자 기기인가(/stats 를 연 브라우저 - StatsServlet.OWNER_COOKIE). 설정 stats.key 에서 만든 값과 같아야 함. */
     static boolean owner(String cookieHeader) {
-        if (cookieHeader == null) return false;
+        return owner(cookieHeader, RouteflyConfig.get("stats.key"));
+    }
+
+    /**
+     * 순수 함수 - 쿠키 값이 열쇠에서 만든 값(StatsServlet.ownerToken)과 같을 때만(시각이 새지 않게 MessageDigest.isEqual).
+     * 2026-10-29 점검: 예전엔 "1" 이나 아무 64자리 16진수도 받아, 수집 프로그램이 "rf-owner=1" 만 보내면 방문 수 · 접속 분석(수집기 의심)에서 빠졌음.
+     * 옛 "1" 쿠키는 이제 운영자로 안 봄 - 운영자는 /stats 를 한 번 열면 새 값을 받음.
+     */
+    static boolean owner(String cookieHeader, String key) {
+        if (cookieHeader == null || key == null || key.length() < 12) return false;
+        byte[] want = StatsServlet.ownerToken(key).getBytes(java.nio.charset.StandardCharsets.UTF_8);
         for (String c : cookieHeader.split(";")) {
             String t = c.trim();
-            if (t.startsWith(StatsServlet.OWNER_COOKIE + "=") && t.substring(StatsServlet.OWNER_COOKIE.length() + 1).matches("1|[0-9a-f]{64}")) return true;   // 옛 "1" 또는 열쇠에서 만든 값(2026-10-21)
+            if (t.startsWith(StatsServlet.OWNER_COOKIE + "=")
+                    && java.security.MessageDigest.isEqual(want, t.substring(StatsServlet.OWNER_COOKIE.length() + 1).getBytes(java.nio.charset.StandardCharsets.UTF_8))) return true;
         }
         return false;
     }

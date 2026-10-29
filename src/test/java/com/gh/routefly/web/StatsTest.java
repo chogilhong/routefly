@@ -159,9 +159,13 @@ public class StatsTest {
     /** 운영자 기기(/stats 를 연 브라우저)는 방문 수에서 뺌(2026-10-20 홍TV님). */
     @Test
     public void ownerNotCounted() {
-        assertTrue(StatsFilter.owner("a=b; rf-owner=1"));
-        assertTrue(StatsFilter.owner("rf-owner=1"));
-        assertTrue("열쇠에서 만든 값", StatsFilter.owner("rf-owner=" + StatsServlet.ownerToken("abcdefghijkl")));
+        // 2026-10-29 점검: 열쇠에서 만든 값만 - "1" · 남의 64자리 값으로는 통계에서 숨지 못함
+        String k = "abcdefghijkl";
+        assertFalse("옛 1 은 이제 아님", StatsFilter.owner("a=b; rf-owner=1", k));
+        assertFalse("아무 64자리", StatsFilter.owner("rf-owner=" + "0".repeat(64), k));
+        assertTrue("열쇠에서 만든 값", StatsFilter.owner("a=b; rf-owner=" + StatsServlet.ownerToken(k), k));
+        assertFalse("다른 열쇠의 값", StatsFilter.owner("rf-owner=" + StatsServlet.ownerToken("zzzzzzzzzzzz"), k));
+        assertFalse("열쇠 설정이 없으면 아무도", StatsFilter.owner("rf-owner=" + StatsServlet.ownerToken(k), null));
         assertNotEquals("보기 쿠키와 다른 값", StatsServlet.ownerToken("abcdefghijkl"), StatsServlet.seeToken("abcdefghijkl"));
         assertFalse(StatsFilter.owner(null));
         assertFalse(StatsFilter.owner("rf-owner=0; x-rf-owner=1"));

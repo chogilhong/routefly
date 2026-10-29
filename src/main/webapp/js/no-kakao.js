@@ -5,10 +5,11 @@
  * <head> 에서 다른 스크립트보다 먼저 읽습니다(되돌린 # 을 화면 스크립트가 읽게).
  */
 (function () {
+    function safeDecode(v) { try { return decodeURIComponent(v); } catch (e) { return ""; } }
     var ua = navigator.userAgent || "";
     // 크롬에서 열린 뒤 - ?rfh= 를 # 으로 되돌림
     var m = /[?&]rfh=([^&]*)/.exec(location.search);
-    if (m) {
+    if (m && /^#[A-Za-z0-9=_-]{1,80}$/.test(safeDecode(m[1]))) {   // # 뒤 조각만 되돌림(다른 주소 · 경로로 바꾸지 못하게, 2026-10-29 점검)
         var rest = location.search.replace(/([?&])rfh=[^&]*&?/, "$1").replace(/[?&]$/, "");
         try { history.replaceState(null, "", location.pathname + rest + decodeURIComponent(m[1])); } catch (e) { /* 그대로 */ }
     }
@@ -25,7 +26,9 @@
     var app = android && office && !/[?&]rfapp=0/.test(location.search);
     if (app) {
         var k = /^#k=([A-Za-z0-9_-]{20,64})$/.exec(location.hash || "");
-        go = "intent://" + location.host + location.pathname + "#Intent;scheme=https;package=kr.routefly.app;" + (k ? "S.rf_office=" + k[1] + ";" : "")
+        // 앱 링크는 routefly.kr 만(www 로 와도) · 영어 등 주소의 ? 뒤도 함께(rfh · rfapp 빼고, 2026-10-29 점검)
+        var keep = location.search.replace(/([?&])(rfh|rfapp)=[^&]*/g, "$1").replace(/[?&]+/g, function (x, i) { return i ? "&" : "?"; }).replace(/[?&]$/, "");
+        go = "intent://" + location.host.replace(/^www\./, "") + location.pathname + keep + "#Intent;scheme=https;package=kr.routefly.app;" + (k ? "S.rf_office=" + k[1] + ";" : "")
             + "S.browser_fallback_url=" + encodeURIComponent(location.origin + location.pathname + q + (q ? "&" : "?") + "rfapp=0") + ";end";
     }
     function cover() {

@@ -210,8 +210,8 @@ public class PartyServlet extends HttpServlet {
         if ("/office/detach".equals(path)) { p.officeDetach(str(in, "key"), str(in, "code")); return ok(); }
         if ("/office/approve".equals(path)) { p.officeApprove(str(in, "key"), str(in, "code")); return ok(); }   // 승인 기다리는 방 승인(2026-10-28)
         if ("/office/newcode".equals(path)) { JsonObject o = ok(); o.addProperty("code", p.officeNewCode(str(in, "key"))); return o; }
-        if ("/office/newkey".equals(path)) { JsonObject o = ok(); o.addProperty("key", p.officeNewKey(str(in, "key"))); return o; }
-        if ("/office/rename".equals(path)) { JsonObject o = ok(); o.addProperty("name", p.officeRename(str(in, "key"), str(in, "name"))); return o; }
+        if ("/office/newkey".equals(path)) { JsonObject o = ok(); o.addProperty("key", p.officeNewKey(str(in, "key"), now)); return o; }
+        if ("/office/rename".equals(path)) { JsonObject o = ok(); o.addProperty("name", p.officeRename(str(in, "key"), str(in, "name"), now)); return o; }
         if ("/office/delete".equals(path)) { p.officeDelete(str(in, "key"), str(in, "name")); return ok(); }
         if ("/join".equals(path)) {
             if (!bool(in, "agree")) throw new IllegalArgumentException("위치 제공에 동의해야 참가할 수 있습니다.");

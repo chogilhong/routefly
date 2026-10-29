@@ -18,7 +18,13 @@
 
     // 회사 사무실이 "열기" 로 연 방(office:true)은 이 탭에만(sessionStorage, 2026-10-29 홍TV님 - 회사 2곳 · 방 5개를 PC 탭마다 따로 봄).
     // 내가 참가한 방(localStorage)을 덮지 않고, 탭끼리도 섞이지 않음. 탭을 닫으면 잊음(사무실에서 다시 "열기").
-    function tab() { try { return sessionStorage.getItem(KEY); } catch (e) { return null; } }
+    // 사무실 방은 인솔자 화면(party.html)에서만 - 같은 탭으로 따라가기 · 내 참가 링크(?c=)를 열면 내 방으로(2026-10-29 점검: 사무실 자리가 내 위치 · SOS 를 가로채 서버가 버렸음)
+    function tab() {
+        try {
+            if (!/\/party\.html$/.test(location.pathname) || /[?&]c=/.test(location.search)) return null;
+            return sessionStorage.getItem(KEY);
+        } catch (e) { return null; }
+    }
     function get() {
         try {
             var p = JSON.parse(tab() || localStorage.getItem(KEY) || "null");
@@ -85,7 +91,7 @@
                     e.ended = ended;
                     throw e;
                 }
-                if (j && j.role && j.members) alerts(j);   // 방 화면이 올 때마다(위치 · 켜짐 · 새로 받기 답) - 화면을 꺼도 앱이 보내는 답으로
+                if (j && j.role && j.members && !j.officeMe) alerts(j);   // 사무실 자리는 알림 기억("rf-party-al")을 덮지 않게 - 같은 PC 인솔자 탭 알림이 다시 울렸음(2026-10-29 점검)   // 방 화면이 올 때마다(위치 · 켜짐 · 새로 받기 답) - 화면을 꺼도 앱이 보내는 답으로
                 return j;
             });
         });
