@@ -2550,6 +2550,9 @@
             return best;
         };
         var nearHead = function (p) { return (heads || []).some(function (h) { return d(p, [+h.lon, +h.lat]) < 500; }); };
+        // 100대 명산 정상(/api/park 의 summit 이름표) - 정상까지 가는 짧은 막다른 길도 씀(2026-10-30 홍TV님: 북한산 위문 → 백운대 250m 가 300m 미만 · 막다른 길이라 빠졌음)
+        var tops = (places || []).filter(function (p) { return p.summit; });
+        var nearTop = function (p) { return tops.some(function (t) { return d(p, [+t.lon, +t.lat]) < 80; }); };
         var out = [];
         others.forEach(function (o) {
             var c = o.coords;
@@ -2563,10 +2566,12 @@
                 while (b + 1 < c.length && far[b + 1]) b++;
                 var i0 = Math.max(0, a - 1), i1 = Math.min(c.length - 1, b + 1);
                 var attA = a > 0, attB = b < c.length - 1;   // 앞 · 뒤 점이 공단 탐방로 둘레
-                var headA = !attA && nearHead(c[0]), headB = !attB && nearHead(c[c.length - 1]);
+                var headA = !attA && (nearHead(c[0]) || nearTop(c[0])), headB = !attB && (nearHead(c[c.length - 1]) || nearTop(c[c.length - 1]));
+                var top = false;
+                for (var k = i0; k <= i1 && !top; k++) top = nearTop(c[k]);
                 a = b;
                 if (!((attA && attB) || (attA && headB) || (attB && headA))) continue;
-                if (cum[i1] - cum[i0] < MIN_M || !total) continue;
+                if (cum[i1] - cum[i0] < (top ? 30 : MIN_M) || !total) continue;
                 // 양 끝이 같은 공단 탐방로에 닿고 그 사이 공단 길이와 비슷하면(0.6 ~ 1.6배) 같은 길을 옆에 나란히 그린 것 - 뺌
                 // (2026-10-13: 설악산 "대청봉 → 중청봉 → 대청봉" 같은 가짜 고리가 생겼음)
                 var ta = onTrail(c[i0]), tb = onTrail(c[i1]);

@@ -137,7 +137,9 @@ public class ParkServlet extends HttpServlet {
             JsonArray bbox = new JsonArray();
             for (double v : box) bbox.add(CourseQueries.round5(v));
             out.add("bbox", bbox);
-            out.add("places", places(c, ids));
+            JsonArray pl = places(c, ids);
+            addSummits(pl, peaks(), box);   // 100대 명산 정상 - 탐방로가 꼭대기를 안 지나면 이름표가 없었음(2026-10-30 홍TV님: 북한산 백운대)
+            out.add("places", pl);
             // 들머리는 공원 범위 밖 2km 까지(2026-10-13 PC: 덕유산 영각탐방지원센터가 범위 남쪽 1.1km 밖)
             out.add("heads", heads(c, widen(box, HEAD_MARGIN_DEG)));
             // 국립공원: 공단 자료에 빠진 탐방로를 메울 다른 자료 등산 코스(2026-10-12 홍TV님: 설악산 소공원 → 비선대 → 천불동이 공단 자료에 없어
@@ -147,6 +149,7 @@ public class ParkServlet extends HttpServlet {
                     + " WHERE course_id NOT LIKE 'knps-%' AND name LIKE ? AND kind IN ('hike', 'trek')"
                     + " AND max_lat >= ? AND min_lat <= ? AND max_lon >= ? AND min_lon <= ? ORDER BY course_id LIMIT " + OTHER_LIMIT,
                     new Object[] {"%" + park + "%", box[1], box[3], box[0], box[2]}, others, new java.util.ArrayList<>(), new double[] {180, 90, -180, -90});
+            if (national) addGaps(others, gaps(), park);   // 어느 자료에도 없는 구간(OpenStreetMap - tools/park-gaps, 2026-10-30 홍TV님: 숨은벽 → 백운대)
             out.add("others", others);
             try {
                 out.add("spots", Json.rows(c, "SELECT kind, name, info, lat, lon FROM route_park_spot"
@@ -319,6 +322,97 @@ public class ParkServlet extends HttpServlet {
     }
 
     /** 그 코스들의 이름표(같은 이름은 하나, 경로에서 100m 안 - 들머리 지점은 400m 안, PLACE_LIMIT 까지). */
+    private transient volatile JsonObject gaps;
+
+    /** data/park-gaps.json 의 parks - 한 번 읽어 둠. 못 읽으면 빈 것. */
+    private JsonObject gaps() {
+        JsonObject g = gaps;
+        if (g != null) return g;
+        try (java.io.InputStream in = getServletContext().getResourceAsStream("/data/park-gaps.json")) {
+            com.google.gson.JsonElement e = in == null ? null : com.google.gson.JsonParser.parseReader(new java.io.InputStreamReader(in, java.nio.charset.StandardCharsets.UTF_8));
+            g = e != null && e.isJsonObject() && e.getAsJsonObject().has("parks") ? e.getAsJsonObject().getAsJsonObject("parks") : new JsonObject();
+        } catch (Exception e) {
+            g = new JsonObject();
+        }
+        gaps = g;
+        return g;
+    }
+
+    /** 순수 함수 - 그 공원의 빈 구간(park-gaps.json)을 others 꼴({id, name, distance_m, ascent_m, coords})로 더함. 좌표가 우리나라 밖이거나 두 점 미만이면 뺌. */
+    static void addGaps(JsonArray others, JsonObject gaps, String park) {
+        if (gaps == null || !gaps.has(park) || !gaps.get(park).isJsonArray()) return;
+        for (com.google.gson.JsonElement e : gaps.getAsJsonArray(park)) {
+            JsonObject g = e.getAsJsonObject();
+            JsonArray cs = g.has("coords") && g.get("coords").isJsonArray() ? g.getAsJsonArray("coords") : new JsonArray();
+            boolean ok = cs.size() >= 2 && g.has("id") && g.has("name");
+            for (int i = 0; ok && i < cs.size(); i++) {
+                JsonArray p = cs.get(i).getAsJsonArray();
+                ok = StaysServlet.parse(String.valueOf(p.get(1).getAsDouble()), String.valueOf(p.get(0).getAsDouble())) != null;
+            }
+            if (!ok) continue;
+            JsonObject o = new JsonObject();
+            o.addProperty("id", g.get("id").getAsString());
+            o.addProperty("name", g.get("name").getAsString());
+            o.add("distance_m", g.has("distance_m") ? g.get("distance_m") : JsonNull.INSTANCE);
+            o.add("ascent_m", JsonNull.INSTANCE);
+            o.add("coords", cs);
+            others.add(o);
+        }
+    }
+
+    private transient volatile JsonArray peaks;
+
+    /** data/mountains100.json 의 산들 + 공식 높이(peak-elev.json) - 한 번 읽어 둠. 못 읽으면 빈 것. */
+    private JsonArray peaks() {
+        JsonArray p = peaks;
+        if (p != null) return p;
+        try (java.io.InputStream in = getServletContext().getResourceAsStream("/data/mountains100.json")) {
+            com.google.gson.JsonElement e = in == null ? null : com.google.gson.JsonParser.parseReader(new java.io.InputStreamReader(in, java.nio.charset.StandardCharsets.UTF_8));
+            p = e != null && e.isJsonObject() && e.getAsJsonObject().has("peaks") ? e.getAsJsonObject().getAsJsonArray("peaks") : new JsonArray();
+        } catch (Exception e) {
+            p = new JsonArray();
+        }
+        MountainServlet.withElev(p, MountainServlet.readElev(getServletContext()));
+        peaks = p;
+        return p;
+    }
+
+    /** 정상 이름표를 더할 범위 - 공원 범위 밖 약 500m 까지. 이미 있는 이름표가 이 거리 안이면 더하지 않음. */
+    static final double SUMMIT_PAD_DEG = 0.005;
+    static final double SUMMIT_SAME_M = 250;
+
+    /**
+     * 순수 함수 - 공원 범위(box [w,s,e,n]) 안의 100대 명산 정상을 이름표(places)에 더함 - 공단 탐방로가 꼭대기를 지나지 않으면 정상 이름표가 없었음
+     * (2026-10-30 홍TV님 "백운대 정상이 없어" - 북한산 공단 선은 위문 · 숨은벽까지). 정상 자리가 미심쩍은 산(summitOk 아님 · 통제)은 뺌.
+     * 이름은 "북한산(백운대)" 처럼(정상 이름이 산 이름으로 시작하면), 높이는 공식 높이(peak-elev). 250m 안에 그 정상 이름이 든 이름표가 있으면 그대로.
+     */
+    static void addSummits(JsonArray places, JsonArray peaks, double[] box) {
+        for (com.google.gson.JsonElement e : peaks) {
+            JsonObject pk = e.getAsJsonObject();
+            String top = MountainServlet.topName(pk), id = pk.has("id") ? pk.get("id").getAsString() : null;
+            if (top == null || id == null || !pk.has("lat") || !pk.has("lon")) continue;
+            double lat = pk.get("lat").getAsDouble(), lon = pk.get("lon").getAsDouble();
+            if (lon < box[0] - SUMMIT_PAD_DEG || lon > box[2] + SUMMIT_PAD_DEG || lat < box[1] - SUMMIT_PAD_DEG || lat > box[3] + SUMMIT_PAD_DEG) continue;
+            String base = id.replaceAll("\\(.*\\)$", ""), core = top.startsWith(base) && top.length() > base.length() ? top.substring(base.length()) : top;
+            String name = core.equals(top) && !top.equals(base) ? top : core.equals(top) ? base : base + "(" + core + ")";
+            boolean have = false;
+            for (com.google.gson.JsonElement q : places) {
+                JsonObject o = q.getAsJsonObject();
+                String n = o.get("name").getAsString().replaceAll("\\s+", "");
+                if ((n.contains(core) || n.equals(base)) && MountainServlet.distM(lat, lon, o.get("lat").getAsDouble(), o.get("lon").getAsDouble()) <= SUMMIT_SAME_M) { have = true; break; }
+            }
+            if (have) continue;
+            JsonObject o = new JsonObject();
+            o.addProperty("name", name);
+            o.addProperty("lat", lat);
+            o.addProperty("lon", lon);
+            Integer ele = MountainServlet.elev(pk);
+            if (ele == null) o.add("ele_m", JsonNull.INSTANCE); else o.addProperty("ele_m", ele);
+            o.addProperty("summit", true);
+            places.add(o);
+        }
+    }
+
     static JsonArray places(Connection c, List<String> ids) throws Exception {
         JsonArray out = new JsonArray();
         if (ids.isEmpty()) return out;

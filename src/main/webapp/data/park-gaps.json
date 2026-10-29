@@ -1,0 +1,4 @@
+{
+ "_note": "탐방 안내도(park.html) 빈 구간 - 공단 · 산림청 · 다른 코스 자료에 없는 길. tools/park-gaps/fetch.js 가 OpenStreetMap 길에서 찾아 넣음(© OpenStreetMap contributors, ODbL). ParkServlet 이 그 공원의 others 에 더함(2026-10-30 홍TV님: 북한산 숨은벽 → 백운대).",
+ "parks": {}
+}

@@ -1353,3 +1353,15 @@ eq("pcpText 강수량 글", ["강수없음", "1mm 미만", "1.0mm", "30.0~50.0mm
 eq("kmaLink 행정동이 있으면 동네예보, 없으면 첫 화면", [RF.kmaLink({ code: "2815552000", name: "인천광역시 영종구 영종1동" }, 37.48441, 126.56), RF.kmaLink(null, 37.4, 126.5), RF.kmaLink({ code: "x", name: "a" }, 37.4, 126.5)],
     ["https://www.weather.go.kr/w/index.do#dong/2815552000/37.4844/126.5600/" + encodeURIComponent("인천광역시 영종구 영종1동") + "/LOC/" + encodeURIComponent("위경도(37.48,126.56)").replace("%2C", ","),
         "https://www.weather.go.kr/w/index.do", "https://www.weather.go.kr/w/index.do"]);
+// 탐방 안내도 빈 구간 - OpenStreetMap 길에서 가장 짧은 길(tools/park-gaps, 2026-10-30 숨은벽 → 백운대). 노드 · 길은 테스트 데이터
+(function () {
+    var pg = require(path.join(__dirname, "../../../tools/park-gaps/fetch.js"));
+    var el = [{ type: "node", id: 1, lat: 37.6618, lon: 126.9775 }, { type: "node", id: 2, lat: 37.6605, lon: 126.9779 }, { type: "node", id: 3, lat: 37.6587, lon: 126.9781 },
+        { type: "node", id: 4, lat: 37.6610, lon: 126.9800 }, { type: "node", id: 9, lat: 37.70, lon: 127.0 },
+        { type: "way", id: 10, nodes: [1, 2], tags: { highway: "path", sac_scale: "demanding_mountain_hiking" } }, { type: "way", id: 11, nodes: [2, 3], tags: { highway: "path" } },
+        { type: "way", id: 12, nodes: [1, 3], tags: { highway: "path", access: "no" } }];   // 12 가 더 짧지만 출입금지
+    var r = pg.route(el, [37.6618, 126.9775], [37.6587, 126.9781]);
+    eq("park-gaps 가장 짧은 열린 길 · 지난 길 · 출입금지 빼기", [r.coords.length, r.ways, r.tags[0].sac_scale, pg.closedWays(r.tags).length, pg.closedWays([{ access: "private" }]).length],
+        [3, [10, 11], "demanding_mountain_hiking", 0, 1]);
+    eq("park-gaps 처음 · 끝 둘레에 길이 없으면 알림", !!pg.route(el, [37.60, 126.90], [37.6587, 126.9781]).error, true);
+})();
