@@ -846,10 +846,10 @@ eq("stayLinks 아무 설정 없음 - 카카오맵만", RF.stayLinks({}, "산청�
 (function () {
     var dir = path.join(__dirname, "../../main/webapp/js"), bad = [];
     fs.readdirSync(dir).filter(function (f) { return /\.js$/.test(f); }).forEach(function (f) {
-        var lines = fs.readFileSync(path.join(dir, f), "utf8").split("\n"), decl = -1;
+        var lines = fs.readFileSync(path.join(dir, f), "utf8").split(/\r?\n/), decl = -1;   // PC(core.autocrlf)는 CRLF - \r 이 남으면 주석 지우기가 안 됐음(2026-10-29 PC)
         lines.forEach(function (l, i) { if (decl < 0 && /(var |, )RF = window\.RF\b/.test(l)) decl = i; });
         for (var i = 0; i < decl; i++) {
-            var code = lines[i].replace(/\/\/.*$/, "");
+            var code = /^\s*(\/\*|\*)/.test(lines[i]) ? "" : lines[i].replace(/\/\/.*$/, "");   // 주석 줄(// · /* · *) 빼고
             if (/(^|[^.\w])RF\./.test(code)) bad.push(f + ":" + (i + 1));
         }
     });
