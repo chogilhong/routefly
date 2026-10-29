@@ -173,6 +173,13 @@
             RFParty.post("office/newcode", { key: key }).then(function (j) { msg("새 회사 코드: " + j.code + " - 인솔자들에게 알려 주세요."); load(); }).catch(function (e) { msg(e.message); });
         });
     });
+    $("rename").addEventListener("click", function () {   // 2026-10-29 홍TV님 "만들어줘"
+        var name = $("offTitle").textContent.replace(/^🏢 /, "").replace(/ 사무실$/, "");
+        askText("새 회사 이름(30자까지). 회사 코드 · 사무실 링크는 그대로입니다.", name, { ok: "이름 바꾸기" }).then(function (typed) {
+            if (typed == null || !typed.trim() || typed.trim() === name) return;
+            RFParty.post("office/rename", { key: key, name: typed.trim() }).then(function (j) { msg("회사 이름을 \"" + j.name + "\" 로 바꿨습니다."); load(); }).catch(function (e) { msg(e.message); });
+        });
+    });
     $("delOffice").addEventListener("click", function () {
         var name = $("offTitle").textContent.replace(/^🏢 /, "").replace(/ 사무실$/, "");
         askText("사무실을 없애면 되돌릴 수 없습니다. 회사 코드 · 사무실 링크가 안 되고 끝난 산행 요약이 모두 지워집니다(진행 중인 방은 그대로, 회사 연결만 끊음).\n\n없애려면 회사 이름을 그대로 적어 주세요: " + name, "", { ok: "사무실 없애기", danger: true }).then(function (typed) {

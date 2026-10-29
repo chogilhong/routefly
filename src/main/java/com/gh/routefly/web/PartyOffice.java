@@ -33,7 +33,7 @@ final class PartyOffice {
 
     static final class Office {
         String code;   // 회사 코드 바꾸기로 바뀜
-        final String name;
+        String name;   // 이름 바꾸기로 바뀜(2026-10-29)
         String key;   // 사무실 링크 바꾸기로 바뀜
         final long created;
         final List<JsonObject> ended = new ArrayList<>();   // 끝난 산행 요약(새것이 앞)
@@ -93,6 +93,13 @@ final class PartyOffice {
         byCode.put(code, o);
         save();
         log.info("[OFFICE] 회사 코드 바꿈");
+    }
+
+    /** 이름 바꾸기(2026-10-29 홍TV님 "만들어줘" - 오타 · 상호 변경). 코드 · 링크는 그대로. */
+    synchronized void rename(Office o, String name) {
+        o.name = name;
+        save();
+        log.info("[OFFICE] 사무실 이름 바꿈 code={}", o.code);
     }
 
     /** 사무실 없애기 - 사무실 · 끝난 산행 요약을 모두 지움. */

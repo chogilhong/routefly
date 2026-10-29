@@ -39,6 +39,7 @@ import com.google.gson.JsonParser;
  * POST /api/party/office/rooms {key} · /office/enter {key, code} · /office/detach {key, code}  사무실 - 방 목록(숫자) · 방 열기(인솔자 화면) · 방 빼기
  * POST /api/party/office/newkey {key} → {key} · /office/delete {key, name}  사무실 링크 바꾸기 · 사무실 없애기(회사 이름을 한 번 더)
  * POST /api/party/office/newcode {key} → {code}         회사 코드 바꾸기(이미 올라온 방은 그대로)
+ * POST /api/party/office/rename {key, name} → {name}    회사 이름 바꾸기(올라온 방의 이름도 함께, 2026-10-29)
  * </pre>
  * 끝난 방 열쇠로 오면 410 + 까닭. 설정 party.enabled=true 가 아니면 status 말고는 404.
  */
@@ -210,6 +211,7 @@ public class PartyServlet extends HttpServlet {
         if ("/office/approve".equals(path)) { p.officeApprove(str(in, "key"), str(in, "code")); return ok(); }   // 승인 기다리는 방 승인(2026-10-28)
         if ("/office/newcode".equals(path)) { JsonObject o = ok(); o.addProperty("code", p.officeNewCode(str(in, "key"))); return o; }
         if ("/office/newkey".equals(path)) { JsonObject o = ok(); o.addProperty("key", p.officeNewKey(str(in, "key"))); return o; }
+        if ("/office/rename".equals(path)) { JsonObject o = ok(); o.addProperty("name", p.officeRename(str(in, "key"), str(in, "name"))); return o; }
         if ("/office/delete".equals(path)) { p.officeDelete(str(in, "key"), str(in, "name")); return ok(); }
         if ("/join".equals(path)) {
             if (!bool(in, "agree")) throw new IllegalArgumentException("위치 제공에 동의해야 참가할 수 있습니다.");

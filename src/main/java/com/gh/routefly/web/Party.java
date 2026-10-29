@@ -1315,6 +1315,22 @@ final class Party {
         return c;
     }
 
+    /** 사무실 - 이름 바꾸기. 이미 올라온 방(승인 기다림 포함)의 회사 이름도 함께 - 회원 화면 "○○ 사무실" 이 바로 새 이름. 돌려줌: 새 이름. */
+    synchronized String officeRename(String key, String name) {
+        PartyOffice.Office o = offices.byKey(key);
+        String n = clean(name, 30);
+        if (n == null) throw new IllegalArgumentException("회사 이름을 적어 주세요.");
+        offices.rename(o, n);
+        for (Room r : rooms.values()) {
+            if (!o.code.equals(r.officeCode)) continue;
+            r.officeName = n;
+            // 사무실 자리 이름("○○ 사무실")은 바꿀 수 없어 자리를 뺌 - 다음 "열기" 때 새 이름으로(사무실은 위치를 보내지 않아 잃는 것 없음)
+            for (Member m : new ArrayList<>(r.members.values())) if (m.office) { r.members.remove(m.token); byToken.remove(m.token); }
+        }
+        save();
+        return n;
+    }
+
     /** 사무실 - 링크 바꾸기. 돌려줌: 새 열쇠. */
     synchronized String officeNewKey(String key) {
         PartyOffice.Office o = offices.byKey(key);

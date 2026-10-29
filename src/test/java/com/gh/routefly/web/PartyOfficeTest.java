@@ -162,6 +162,31 @@ public class PartyOfficeTest {
         assertEquals(n, call(p, "/office/rooms", "{\"key\":\"" + key + "\"}", T0 + H).getAsJsonArray("ended").size());
     }
 
+    /** 회사 이름 바꾸기(2026-10-29 홍TV님 "만들어줘") - 코드 · 링크는 그대로, 올라온 방(승인 기다림 포함)의 회원 화면도 새 이름, 사무실 자리는 새 이름으로 다시. */
+    @Test
+    public void officeRename() {
+        Party p = new Party();
+        JsonObject o = office(p);
+        String key = o.get("key").getAsString(), oc = o.get("code").getAsString();
+        JsonObject r = j(room(p, oc)), w = j(room(p, oc));
+        String code = r.get("code").getAsString(), chief = r.get("token").getAsString();
+        approve(p, key, code);
+        String h = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"회원\",\"seat\":3,\"agree\":true}", T0).get("token").getAsString();
+        String ot = call(p, "/office/enter", "{\"key\":\"" + key + "\",\"code\":\"" + code + "\"}", T0).get("token").getAsString();
+        try { call(p, "/office/rename", "{\"key\":\"" + key + "\",\"name\":\"  \"}", T0); fail("빈 이름"); } catch (IllegalArgumentException e) { assertTrue(e.getMessage().contains("회사 이름")); }
+        try { call(p, "/office/rename", "{\"key\":\"" + key.substring(1) + "x\",\"name\":\"새이름\"}", T0); fail("틀린 열쇠"); } catch (SecurityException e) { /* 맞음 */ }
+        assertEquals("한라관광", call(p, "/office/rename", "{\"key\":\"" + key + "\",\"name\":\" 한라관광 \"}", T0).get("name").getAsString());
+        JsonObject list = call(p, "/office/rooms", "{\"key\":\"" + key + "\"}", T0);
+        assertEquals("한라관광", list.get("name").getAsString());
+        assertEquals("코드 그대로", oc, list.get("code").getAsString());
+        assertEquals("회원 화면도 새 이름", "한라관광", call(p, "/view", tok(h), T0).get("office").getAsString());
+        assertEquals("승인 기다리는 방도", "한라관광", call(p, "/view", tok(w.get("token").getAsString()), T0).get("officeWait").getAsString());
+        try { call(p, "/view", tok(ot), T0); fail("옛 사무실 자리는 빠짐"); } catch (RuntimeException e) { /* 맞음 */ }
+        call(p, "/office/enter", "{\"key\":\"" + key + "\",\"code\":\"" + code + "\"}", T0);
+        assertNotNull("다시 열면 새 이름 자리", member(call(p, "/view", tok(chief), T0), "한라관광 사무실"));
+        assertNotNull("회사 코드로 새 방도 그대로 올라감", j(room(p, oc)).get("code"));
+    }
+
     /** 2026-10-28 버그 점검 - 깨진 사무실 하나가 나머지를 지우지 않음, 옛 파일은 office.json.bad-* 로 남김. */
     @Test
     public void corruptOfficeFileKeepsOthers() throws Exception {
