@@ -1282,10 +1282,13 @@
         var trip = p.trip && ok ? tripLink(p.trip, lat, lon, nm) : null;
         if (trip) out.push({ text: en ? "🏨 Trip.com" : "🏨 트립닷컴", href: trip, sponsored: true });
         function fill(u) { return u.replace(/\{q\}/g, encodeURIComponent(nm)).replace(/\{lat\}/g, ok ? (+lat).toFixed(5) : "").replace(/\{lon\}/g, ok ? (+lon).toFixed(5) : ""); }
-        [["agoda", "아고다", "Agoda"], ["yeogi", "여기어때", "Yeogi"], ["yanolja", "야놀자", "Yanolja"], ["hotels", "호텔스컴바인", "HotelsCombined"]].forEach(function (x) {
+        // 제휴 링크가 설정되면 그것(🏨, 수수료), 아직이면 그 사이트 첫 화면(🔎, 제휴 아님 - 2026-10-29 홍TV님 "아고다 · 여기어때 · 야놀자도 보여줘").
+        // 첫 화면 주소만 씀 - 검색 주소 모양은 확인한 뒤(지어내지 않음). 호텔스컴바인은 설정했을 때만
+        [["agoda", "아고다", "Agoda", en ? "https://www.agoda.com/" : "https://www.agoda.com/ko-kr/"], ["yeogi", "여기어때", "Yeogi", "https://www.yeogi.com/"],
+            ["yanolja", "야놀자", "Yanolja", "https://nol.yanolja.com/"], ["hotels", "호텔스컴바인", "HotelsCombined", null]].forEach(function (x) {
             var u = p[x[0]];
-            if (!u || (/\{lat\}/.test(u) && !ok) || (!/\{lat\}/.test(u) && !/\{q\}/.test(u))) return;   // 좌표 · 이름 자리가 없는 링크는 엉뚱한 곳이라 뺌
-            out.push({ text: "🏨 " + (en ? x[2] : x[1]), href: fill(u), sponsored: true });
+            if (u && !((/\{lat\}/.test(u) && !ok) || (!/\{lat\}/.test(u) && !/\{q\}/.test(u)))) { out.push({ text: "🏨 " + (en ? x[2] : x[1]), href: fill(u), sponsored: true }); return; }   // 좌표 · 이름 자리가 없는 링크는 엉뚱한 곳이라 뺌
+            if (x[3]) out.push({ text: "🔎 " + (en ? x[2] : x[1]), href: x[3], sponsored: false });
         });
         if (nm) out.push({ text: en ? "🗺 Kakao Map lodging" : "🗺 카카오맵 숙소", href: "https://map.kakao.com/link/search/" + encodeURIComponent(nm + " 숙소"), sponsored: false });
         return out;
