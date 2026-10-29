@@ -1416,3 +1416,17 @@ eq("kmaLink 행정동이 있으면 동네예보, 없으면 첫 화면", [RF.kmaL
     eq("summitFirst 정상 이름이 산 이름이면 높이로", RF.summitFirst([{ name: "가리산 · a → b", ele_max_m: 600 }, { name: "가리산 · c → 가리산", ele_max_m: 1050 }], "가리산", peaks).map(function (r) { return r.ele_max_m; }), [1050, 600]);
     eq("summitFirst 명산이 아니면 그대로", RF.summitFirst(rows, "보문능선", peaks), rows);
 })();
+// 대표 코스를 따라가기 목록에도(park-notes best 의 list, 2026-10-30 홍TV님 "일반 코스에도")
+(function () {
+    var notes = { "북한산": { best: [{ course: "a@0.0000-0.5203:가>나,b,b~,a@0.5203-1.0000:나>다", label: "숨은벽 · 백운대(밤골)", name: "밤골입구 → 숨은벽 → 백운대 → 밤골입구",
+        list: { distance_m: 6250, ascent_m: 776, ele_max_m: 836 } }, { course: "knps-1", label: "우이령길", name: "우이동 → 교현리" }] } };
+    var r = RF.listBest(notes, "북한산");
+    eq("listBest 목록에 둘 대표 코스만 · 검색 줄 꼴", [r.length, r[0].name, r[0].distance_m, r[0].head, r[0].best], [1, "북한산 · 밤골입구 → 숨은벽 → 백운대 → 밤골입구", 6250, "밤골입구", "숨은벽 · 백운대(밤골)"]);
+    eq("listBest 코스 이름 · 이름표로도, 다른 말은 없음", [RF.listBest(notes, "숨은벽").length, RF.listBest(notes, "북한산 백운대").length, RF.listBest(notes, "설악산").length, RF.listBest(notes, "북").length], [1, 1, 0, 0]);
+})();
+// 실제 park-notes: 북한산 숨은벽 대표 코스가 목록에 나오고 그 이은 ID 가 읽힘
+(function () {
+    var pn = JSON.parse(fs.readFileSync(path.join(__dirname, "../../main/webapp/data/park-notes.json"), "utf8")).parks;
+    var r = RF.listBest(pn, "북한산");
+    eq("park-notes 북한산 목록 대표 코스", [r.length >= 1, RF.parseJoinId(r[0].course_id).length, r[0].ele_max_m], [true, 4, 836]);
+})();

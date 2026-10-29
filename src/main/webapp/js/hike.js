@@ -3039,16 +3039,16 @@
             var it = document.createElement("div");
             it.className = "it";
             var b = document.createElement("b");
-            RF.showName(b, RF.noteTrailName(listNotes, r.course_id, regional[r.course_id] || r.name));   // 지역 없는 무리에 지역(광양 가야산 자락 1코스)   // 이름을 바로잡은 탐방로(park-notes trails - 설악산 "백담사" → 용대리 → 백담사)
+            RF.showName(b, r.best ? r.name : RF.noteTrailName(listNotes, r.course_id, regional[r.course_id] || r.name));   // 대표 코스(이은 ID)는 이름 그대로 - 첫 조각 ID 로 공단 이름이 붙지 않게   // 지역 없는 무리에 지역(광양 가야산 자락 1코스)   // 이름을 바로잡은 탐방로(park-notes trails - 설악산 "백담사" → 용대리 → 백담사)
             var s = document.createElement("span");
-            var ofn = RF.officialName(listNotes, r.course_id);   // 공단 공식 이름(가야산1코스) - 이름에 이미 들었으면 빼고(남산제일봉1코스)
+            var ofn = r.best ? "" : RF.officialName(listNotes, r.course_id);   // 공단 공식 이름(가야산1코스) - 이름에 이미 들었으면 빼고(남산제일봉1코스)
             if (ofn && String(r.name).replace(/\s+/g, "").indexOf(ofn.replace(/\s+/g, "")) >= 0) ofn = "";
-            s.textContent = EN ? (ofn ? "Park: " + NM(ofn) + " · " : "") + km(+r.distance_m) + " km" + (r.ascent_m != null ? " · climb " + num(+r.ascent_m) + " m" : "")
+            s.textContent = EN ? (r.best ? "★ Featured · " : "") + (ofn ? "Park: " + NM(ofn) + " · " : "") + km(+r.distance_m) + " km" + (r.ascent_m != null ? " · climb " + num(+r.ascent_m) + " m" : "")
                 + (r.steep_pct >= 28 ? " · steepest km " + Math.round(r.steep_pct) + "%" : "")
                 + (r.ele_max_m != null ? " · top " + num(+r.ele_max_m) + " m" : "")
                 + (r.away != null ? " · " + km(r.away) + " km to start" : "")
                 + (offSet.indexOf(String(r.course_id)) >= 0 ? " · ✅ Saved" : "")
-                : (ofn ? "공단 " + ofn + " · " : "") + km(+r.distance_m) + "km" + (r.ascent_m != null ? " · 오르막 " + num(+r.ascent_m) + "m" : "")
+                : (r.best ? "★ 대표 코스 " + r.best + " · " : "") + (ofn ? "공단 " + ofn + " · " : "") + km(+r.distance_m) + "km" + (r.ascent_m != null ? " · 오르막 " + num(+r.ascent_m) + "m" : "")
                 + (r.steep_pct >= 28 ? " · 가장 가파른 1km " + Math.round(r.steep_pct) + "%" : "")
                 + (r.ele_max_m != null ? " · 최고 " + num(+r.ele_max_m) + "m" : "")
                 + (r.away != null ? " · 출발점까지 " + km(r.away) + "km" : "")
@@ -3058,7 +3058,7 @@
             it.appendChild(b);
             it.appendChild(s);
             // fly(3D) - 3D 지형 위로 날아 보기(2026-10-13 홍TV님: 실제 코스만, 탐방 안내도 카드는 뺌). 그 화면 ← 는 이 목록으로
-            if (!isGpxId(r.course_id)) {
+            if (!isGpxId(r.course_id) && !RF.parseJoinId(r.course_id)) {   // 이은 코스(대표 코스)는 3D 비행 화면이 못 받음
                 var fly = document.createElement("a");
                 fly.className = "fly";
                 fly.textContent = "fly(3D)";
@@ -3071,7 +3071,10 @@
                 it.classList.add("hasfly");
                 it.appendChild(fly);
             }
-            it.onclick = function () { fromList = true; location.hash = "#c=" + encodeURIComponent(r.course_id); };
+            it.onclick = function () {
+                fromList = true;   // 대표 코스는 길 이름 · 들머리 이름도(탐방 안내도 대표 코스와 같게 - "3구간 이어 걷기" 대신)
+                location.hash = "#c=" + encodeURIComponent(r.course_id) + (r.title ? "&title=" + encodeURIComponent(r.title) : "") + (r.head ? "&head=" + encodeURIComponent(r.head) : "");
+            };
             box.appendChild(it);
         });
         // fly(3D) 에서 "← 뒤로" 로 돌아왔으면 목록을 그 자리로(2026-10-13 PC: 맨 위로 갔음) - 한 번만
@@ -3221,7 +3224,8 @@
             })).concat([offRows, jsonOnce("data/mountains100.json").catch(function () { return null; })]))
                 .then(function (r) {
                     if (my !== pickSeq) return;
-                    var m100 = r.pop(), rows = RF.summitFirst((r[0].courses || []).slice(), q, m100 && m100.peaks);   // 명산이면 정상까지 가는 코스 먼저(2026-10-30 홍TV님 북한산 백운대)
+                    // 탐방 안내도 대표 코스 가운데 목록에도 둘 것(이은 코스 - 북한산 숨은벽 · 백운대(밤골), 2026-10-30 홍TV님) - 맨 앞에 넣고 정상 먼저로 다시 줄 세움
+                    var m100 = r.pop(), rows = RF.summitFirst(RF.listBest(listNotes, q).concat((r[0].courses || []).slice()), q, m100 && m100.peaks);   // 명산이면 정상까지 가는 코스 먼저(2026-10-30 홍TV님 북한산 백운대)
                     r.pop().reduce(function (a, b) { return a.concat(b); }, []).reverse().forEach(function (c) {
                         if (!rows.some(function (x) { return x.course_id === c.course_id; })) rows.unshift(c);
                     });
