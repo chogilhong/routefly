@@ -20,26 +20,22 @@ public class ReviewRound4Test {
         return o;
     }
 
-    private static JsonObject lo(JsonObject o, double ele) {
-        o.addProperty("ele_min_m", ele);
-        return o;
-    }
-
     @Test
-    public void trailheadPrefill() {
-        assertEquals("소공원", MountainServlet.trailheadName("설악산 · 소공원 → 대청봉"));
-        assertEquals("중산리", MountainServlet.trailheadName("지리산 · 중산리(탐방지원센터) → 천왕봉"));
-        assertNull("들머리 → 없음", MountainServlet.trailheadName("둘레길 한 바퀴"));
-        assertEquals("높이를 모르면 많이 시작하는 들머리", "설악산 소공원", MountainServlet.stayPrefill("설악산",
-                List.of(c("설악산 · 오색 → 대청봉"), c("설악산 · 소공원 → 대청봉"), c("설악산 · 소공원 → 울산바위"))));
-        // 2026-10-30 PC: 설악산은 남설악탐방지원센터, 한라산은 남벽분기점이 골라졌음 - 가장 낮은 들머리, 갈림길은 뺌
-        assertEquals("가장 낮은 들머리", "설악산 소공원", MountainServlet.stayPrefill("설악산",
-                List.of(lo(c("설악산 · 남설악탐방지원센터 → 대청봉"), 340), lo(c("설악산 · 소공원 → 대청봉"), 180), lo(c("설악산 · 한계령 → 대청봉"), 1000))));
-        assertEquals("갈림길은 들머리가 아님", "한라산 성판악", MountainServlet.stayPrefill("한라산",
-                List.of(lo(c("한라산 · 남벽분기점 → 윗세오름"), 1500), lo(c("한라산 · 성판악 → 백록담"), 750), lo(c("한라산 · 어리목 → 윗세오름"), 970))));
-        assertEquals("들머리에 산 이름이 있으면 그대로", "한라산 성판악", MountainServlet.stayPrefill("한라산", List.of(c("한라산 · 한라산 성판악 → 백록담"))));
-        assertEquals("지역 붙은 이름은 떼고", "백운산 진틀", MountainServlet.stayPrefill("백운산(광양)", List.of(c("백운산 · 진틀 → 백운산"))));
-        assertEquals("코스가 없으면 산 이름", "가리산", MountainServlet.stayPrefill("가리산", new ArrayList<>()));
+    public void stayBasePrefill() {
+        // 2026-10-30 PC: 코스 들머리로 고르니 "남벽분 기점" · "관심사" 등이 나옴 - 이름난 산은 거점 표, 나머지는 산 이름
+        assertEquals("설악산 소공원", MountainServlet.stayPrefill("설악산"));
+        assertEquals("한라산 성판악", MountainServlet.stayPrefill("한라산"));
+        assertEquals("표에 없는 산은 산 이름", "가리산", MountainServlet.stayPrefill("가리산"));
+        assertEquals("지역 붙은 이름은 지역을 앞에(통영 지리산이 큰 지리산과 섞이지 않게)", "통영 지리산", MountainServlet.stayPrefill("지리산(통영)"));
+        com.google.gson.JsonArray peaks;
+        try {
+            peaks = JsonParser.parseString(java.nio.file.Files.readString(java.nio.file.Path.of("src/main/webapp/data/mountains100.json"))).getAsJsonObject().getAsJsonArray("peaks");
+        } catch (java.io.IOException e) {
+            throw new AssertionError(e);
+        }
+        java.util.Set<String> ids = new java.util.HashSet<>();
+        for (com.google.gson.JsonElement e : peaks) ids.add(e.getAsJsonObject().get("id").getAsString());
+        assertTrue("거점 표의 산은 모두 100대 명산 id", ids.containsAll(MountainServlet.STAY_BASE.keySet()));
     }
 
     @Test

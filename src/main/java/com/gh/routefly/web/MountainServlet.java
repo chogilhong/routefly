@@ -489,45 +489,30 @@ public class MountainServlet extends HttpServlet {
                 + "<div id=\"ssOut\" aria-live=\"polite\"></div></div></details></section>";
     }
 
-    /** 순수 함수 - 코스 이름의 들머리("설악산 · 소공원 → 대청봉" → 소공원). 괄호는 뺌. 없으면 null. */
-    static String trailheadName(String course) {
-        if (course == null) return null;
-        int i = course.indexOf(" · ");
-        String route = i > 0 ? course.substring(i + 3) : course;
-        int j = route.indexOf(" → ");
-        if (j <= 0) return null;
-        String t = route.substring(0, j).replaceAll("\\([^)]*\\)|\\[[^\\]]*\\]", "").trim();
-        return t.isEmpty() ? null : t;
-    }
-
     /**
-     * 순수 함수 - 숙소 찾기에 미리 채울 말: 들머리 가운데 가장 낮은 데서 시작하는 곳(코스 최저 높이 ele_min_m - 낮은 들머리일수록 숙소가 모인 마을 쪽,
-     * 2026-10-30 PC: 많이 시작하는 곳으로 고르니 설악산은 동점이라 남설악, 한라산은 길 중간 남벽분기점이 골라졌음). 분기점 · 삼거리 · 갈림길 · 고개 마루는 들머리가 아니라 뺌.
-     * 높이를 모르면 코스가 많은 곳, 그것도 같으면 앞 코스. + 산 이름(들머리에 산 이름이 없을 때). 코스가 없으면 산 이름.
+     * 산 페이지 숙소 찾기에 미리 채울 숙박 거점(2026-10-30 홍TV님 "작업해" - 운영 /api/place 로 카카오가 그 자리를 찾는 것을 하나씩 확인).
+     * 코스 자료의 들머리 이름으로 고르면 제각각이라(남벽분 기점 · 관심사 등, PC 확인) 이름난 산만 표로 둠. 없는 산은 산 이름.
      */
-    static String stayPrefill(String mountain, List<JsonObject> courses) {
-        java.util.Map<String, double[]> n = new java.util.LinkedHashMap<>();   // 들머리 → {가장 낮은 높이, 코스 수}
-        for (JsonObject c : courses) {
-            String t = trailheadName(str(c, "name"));
-            if (t == null || t.matches(".*(분기점|삼거리|사거리|갈림길|갈림목)$")) continue;
-            double lo = c.has("ele_min_m") && !c.get("ele_min_m").isJsonNull() ? c.get("ele_min_m").getAsDouble() : Double.MAX_VALUE;
-            double[] v = n.computeIfAbsent(t, k -> new double[] {Double.MAX_VALUE, 0});
-            v[0] = Math.min(v[0], lo);
-            v[1]++;
-        }
-        String best = null;
-        for (java.util.Map.Entry<String, double[]> e : n.entrySet()) {
-            double[] v = e.getValue(), b = best == null ? null : n.get(best);
-            if (b == null || v[0] < b[0] || (v[0] == b[0] && v[1] > b[1])) best = e.getKey();
-        }
-        String m = mountain.replaceAll("\\(.*\\)$", "");   // 백운산(광양) → 백운산
-        String v = best == null ? m : best.contains(m) ? best : m + " " + best;
-        return v.codePointCount(0, v.length()) > 30 ? m : v;
+    static final java.util.Map<String, String> STAY_BASE = java.util.Map.ofEntries(
+            java.util.Map.entry("설악산", "설악산 소공원"), java.util.Map.entry("한라산", "한라산 성판악"), java.util.Map.entry("지리산", "지리산 중산리"),
+            java.util.Map.entry("북한산", "북한산우이역"), java.util.Map.entry("속리산", "속리산 법주사"), java.util.Map.entry("오대산", "오대산 월정사"),
+            java.util.Map.entry("덕유산", "무주구천동"), java.util.Map.entry("계룡산", "계룡산 동학사"), java.util.Map.entry("내장산", "내장산 내장사"),
+            java.util.Map.entry("월출산", "월출산 천황사"), java.util.Map.entry("주왕산", "주왕산 대전사"), java.util.Map.entry("가야산", "가야산 해인사"),
+            java.util.Map.entry("치악산", "치악산 구룡사"), java.util.Map.entry("태백산", "태백산 당골"), java.util.Map.entry("월악산", "월악산 덕주사"),
+            java.util.Map.entry("무등산", "무등산 증심사"), java.util.Map.entry("팔공산", "팔공산 동화사"), java.util.Map.entry("소백산", "소백산 희방사"),
+            java.util.Map.entry("주흘산", "주흘산 문경새재"), java.util.Map.entry("두륜산", "두륜산 대흥사"));
+
+    /** 순수 함수 - 숙소 찾기에 미리 채울 말: 거점 표, 없으면 산 이름(지역 붙은 이름은 "백운산(광양)" → "광양 백운산" - 같은 이름 다른 산과 섞이지 않게). */
+    static String stayPrefill(String id) {
+        String b = STAY_BASE.get(id);
+        if (b != null) return b;
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("^(.+)\\((.+)\\)$").matcher(id);
+        return m.matches() ? m.group(2) + " " + m.group(1) : id;
     }
 
     /** 🏨 숙소 줄 + 근처 숙소 찾기 칸(산 페이지). */
-    static String staysBlock(JsonObject peak, List<JsonObject> courses, boolean en) {
-        return staysP(peak) + staySearchBox(stayPrefill(str(peak, "id") != null ? str(peak, "id") : str(peak, "name"), courses), en);
+    static String staysBlock(JsonObject peak, boolean en) {
+        return staysP(peak) + staySearchBox(stayPrefill(str(peak, "id") != null ? str(peak, "id") : str(peak, "name")), en);
     }
 
     static String staysP(JsonObject peak) {
@@ -661,7 +646,7 @@ public class MountainServlet extends HttpServlet {
         // ⛑️ 오늘의 산행 안전(api/safety - 2026-10-18 홍TV님: 별거 별거와 같은 것을 산 페이지에도) - 정상 자리로, 보이면 받음(js/mountain.js)
         b.append("<section id=\"safe\"><h2>⛑️ 오늘의 산행 안전</h2><ul class=\"wl sfl\" id=\"sfList\"><li><span>기상특보 · 산불위험 · 자외선 · 가까운 응급실을 이 칸에서 봅니다.</span></li></ul>")
                 .append("<h3>🏥 가까운 응급실</h3><ul class=\"wl\" id=\"sfEr\"></ul><p class=\"dim\">기상특보 · 자외선은 기상청, 산불위험은 산림청, 응급실은 국립중앙의료원 자료(지역은 가장 가까운 응급실 주소로). 위급하면 <b>119</b>.</p></section>");
-        if (overnight(peak)) b.append(staysBlock(peak, courses, false));   // 1박이 많은 산은 숙소 줄을 위로(2026-10-29 홍TV님 "작업해")
+        if (overnight(peak)) b.append(staysBlock(peak, false));   // 1박이 많은 산은 숙소 줄을 위로(2026-10-29 홍TV님 "작업해")
         b.append("<section><h2>코스 ").append(courses.size()).append("개</h2>");
         if (courses.isEmpty()) b.append("<p class=\"dim\">정상까지 가는 코스를 찾지 못했습니다. <a href=\"").append(REL)
                 .append("/hike.html?lang=ko\">따라가기에서 산 이름으로 찾아보세요</a>.</p>");
@@ -710,7 +695,7 @@ public class MountainServlet extends HttpServlet {
             }
             b.append("</ul></section>");
         }
-        if (!overnight(peak)) b.append(staysBlock(peak, courses, false));   // 🏨 근처 숙소 - 1박 산은 위(날씨 · 안전 아래)에
+        if (!overnight(peak)) b.append(staysBlock(peak, false));   // 🏨 근처 숙소 - 1박 산은 위(날씨 · 안전 아래)에
         b.append(Ads.box("m"));   // 광고(설정이 있을 때만, 2026-10-28)
         b.append(foot(base, REL + enPath));
         return b.toString();
