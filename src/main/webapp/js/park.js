@@ -31,6 +31,12 @@
 
     /** 탐방로 색 - 공단 선 · 메운 구간(extra). on - 일반 지도(아니면 위성). */
     function trailColor(on) { return ["case", ["get", "extra"], on ? "#c2255c" : "#ffd43b", on ? "#e8590c" : "#ffffff"]; }
+    var lastSt = null;   // 고른 코스 줄의 거리 · 설명 - 지도 바탕을 바꾸면 색 이름도 다시(2026-10-30 PC: 위성 → 일반에서 "노란 선" 이 남았음)
+    function stText() {
+        if (!lastSt) return;
+        lastSt.el.textContent = lastSt.base + (lastSt.extra ? (light ? T(" · 자주색 선", " · purple lines") : T(" · 노란 선", " · yellow lines"))
+            + T("은 공단 자료에 없는 길(산림청 · 등산트레킹 · OpenStreetMap)", ": not in the park service data (Korea Forest Service, OpenStreetMap)") : "");
+    }
     function setLight(on) {
         light = on;
         if (map.getLayer("sat")) map.setLayoutProperty("sat", "visibility", on ? "none" : "visible");
@@ -38,6 +44,7 @@
         map.setPaintProperty("trails", "line-color", trailColor(on));   // 메운 구간(extra - 공단 자료에 없는 길)은 바탕마다 다른 색 그대로(2026-10-30 PC: 위성에서 흰색 하나로 덮여 구분이 안 됐음)
         map.setPaintProperty("trails-case", "line-color", on ? "#ffffff" : "#000000");
         $("layerBtn").textContent = on ? "🛰️" : "🗺️";
+        stText();
     }
 
     /**
@@ -311,8 +318,9 @@
             : chosen.length + T("구간 이어 걷기", " sections joined") + (from || to ? " · " + RF.endsText(from, to) : ""));
         var st = document.createElement("div");
         st.className = "st";
-        st.textContent = RF.km(meters) + "km" + (one && one.ascent_m != null ? T(" · 오르막 ", " · climb ") + RF.num(one.ascent_m) + "m" : T(" · 오르막은 따라가기 화면에서", " · climb shown in Follow"))
-            + (full.some(function (s) { return byId[s.id].extra; }) ? (light ? T(" · 자주색 선", " · purple lines") : T(" · 노란 선", " · yellow lines")) + T("은 공단 자료에 없는 길(산림청 · 등산트레킹 · OpenStreetMap)", ": not in the park service data (Korea Forest Service, OpenStreetMap)") : "");
+        lastSt = { el: st, extra: full.some(function (s) { return byId[s.id].extra; }),
+            base: RF.km(meters) + "km" + (one && one.ascent_m != null ? T(" · 오르막 ", " · climb ") + RF.num(one.ascent_m) + "m" : T(" · 오르막은 따라가기 화면에서", " · climb shown in Follow")) };
+        stText();
         var row = document.createElement("div");
         row.className = "row";
         var link = function (list) {

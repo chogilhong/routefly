@@ -214,6 +214,8 @@ ul { margin:0; padding:0; list-style:none; }
 .ssMap .ssHere { position:absolute; transform:translate(-50%,-100%); font-size:24px; line-height:1; }
 .ssMap .ssAttr { position:absolute; right:4px; bottom:2px; padding:0 4px; font-size:10px; color:#333; background:rgba(255,255,255,.75); border-radius:3px; }
 /* 시간별 날씨 가로 표 - 기상청 날씨누리처럼(2026-10-30) */
+.wxt.drag { cursor:grabbing; user-select:none; }
+@media (pointer:fine) { .wxt { cursor:grab; } .wxt::-webkit-scrollbar { height:10px; } .wxt::-webkit-scrollbar-thumb { background:rgba(255,255,255,.35); border-radius:5px; } }
 .wxt { overflow-x:auto; margin:8px 0 6px; -webkit-overflow-scrolling:touch; border:1px solid var(--ln, rgba(255,255,255,.12)); border-radius:10px; }
 .wxt table { border-collapse:collapse; font-size:13px; white-space:nowrap; font-variant-numeric:tabular-nums; }
 .wxt th, .wxt td { padding:5px 8px; text-align:center; border-left:1px solid var(--ln, rgba(255,255,255,.08)); }

@@ -538,6 +538,23 @@
             tb.appendChild(tr);
         });
         wrap.appendChild(tb);
+        // PC: 마우스 휠(위아래)을 옆으로 밀기로 · 마우스로 끌어 밀기(2026-10-30 홍TV님 "pc에서 좌우 스크롤이 움직이지 않아"). 끝에 닿으면 휠은 화면 스크롤 그대로
+        wrap.addEventListener("wheel", function (e) {
+            if (e.ctrlKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+            var max = wrap.scrollWidth - wrap.clientWidth;
+            if (max <= 0 || (e.deltaY < 0 && wrap.scrollLeft <= 0) || (e.deltaY > 0 && wrap.scrollLeft >= max - 1)) return;
+            wrap.scrollLeft += e.deltaY * (e.deltaMode === 1 ? 16 : 1);
+            e.preventDefault();
+        }, { passive: false });
+        var drag = null;
+        wrap.addEventListener("pointerdown", function (e) { if (e.pointerType === "mouse" && e.button === 0) { drag = { x: e.clientX, l: wrap.scrollLeft }; wrap.classList.add("drag"); } });
+        wrap.addEventListener("pointermove", function (e) { if (drag) { wrap.scrollLeft = drag.l - (e.clientX - drag.x); e.preventDefault(); } });
+        var stop = function () { drag = null; wrap.classList.remove("drag"); };
+        wrap.addEventListener("pointerup", stop);
+        wrap.addEventListener("pointerleave", stop);
+        wrap.addEventListener("keydown", function (e) {   // 키보드 ← →
+            if (e.key === "ArrowRight" || e.key === "ArrowLeft") { wrap.scrollLeft += (e.key === "ArrowRight" ? 1 : -1) * 80; e.preventDefault(); }
+        });
         return wrap;
     }
     /** 순수 함수 - 기상청 날씨누리 동네예보 주소. region {code, name}(api/wx 의 행정동)이 없으면 날씨누리 첫 화면. */
