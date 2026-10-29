@@ -1299,3 +1299,5 @@ eq("calcEval 계산기", ["12+3×4", "10−4−3", "-3÷2", "50%", "200×15%", "
 })();
 eq("cellCenter 고정 5km 칸 가운데(서버에 내 위치 대신)", [RF.cellCenter(37.5663, 126.9779), RF.cellCenter(37.5501, 126.9999), RF.cellCenter(35.0, 129.0), RF.cellCenter(33.4999, 126.53)],
     [[37.575, 126.975], [37.575, 126.975], [35.025, 129.025], [33.475, 126.525]]);
+eq("stayMapLink 숙소 이름 → 카카오맵 자리(쉼표는 빈칸, 나라 밖 좌표는 없음)", [RF.stayMapLink("주황집", 38.1, 128.5), RF.stayMapLink("A,B/C", "38.2", "128.6"), RF.stayMapLink("x", 0, 0), RF.stayMapLink("", 38, 128)],
+    ["https://map.kakao.com/link/map/%EC%A3%BC%ED%99%A9%EC%A7%91,38.100000,128.500000", "https://map.kakao.com/link/map/A%20B%20C,38.200000,128.600000", null, "https://map.kakao.com/link/map/%EC%88%99%EC%86%8C,38.000000,128.000000"]);

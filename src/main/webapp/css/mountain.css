@@ -202,3 +202,4 @@ ul { margin:0; padding:0; list-style:none; }
 .ssLinks { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0; }
 .ssLinks a { display:inline-flex; align-items:center; min-height:44px; padding:0 14px; border-radius:22px; border:1px solid var(--sky); color:var(--tx); text-decoration:none; font-weight:bold; }
 .ssList li { font-size:14.5px; }
+.ssList li b a { color:inherit; text-decoration:underline; text-underline-offset:3px; }
