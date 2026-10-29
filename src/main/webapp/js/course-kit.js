@@ -1311,6 +1311,7 @@
         if (!cities || !isFinite(lat) || !isFinite(lon)) return null;
         var best = null, bd = Infinity;
         cities.forEach(function (c) {
+            if (!(c && /^\d{1,9}$/.test(String(c.id)))) return;   // 번호를 아직 못 채운 시 · 군(id null)은 건너뜀
             var d = distM(lat, lon, c.lat, c.lon), score = d / (1 + Math.log(1 + (c.n || 1)) / 10);
             if (d <= 40000 && score < bd) { bd = score; best = c.id; }
         });

@@ -1309,3 +1309,12 @@ eq("stayMapLink 숙소 이름 → 카카오맵 자리(쉼표는 빈칸, 나라 �
     eq("stayTiles 가까우면 줌 16, 멀면 낮게", [near.z, lay.z < near.z], [16, true]);
     eq("stayTiles 점 없음 · 칸 없음은 null", [RF.stayTiles({ lat: NaN, lon: 1 }, [], 320, 220), RF.stayTiles({ lat: 38, lon: 128 }, [], 0, 220)], [null, null]);
 })();
+(function () {
+    eq("nearCity 번호를 못 채운 곳(id null)은 건너뜀", RF.nearCity([{ id: null, lat: 35.415, lon: 127.873, n: 1 }, { id: 77, lat: 35.5, lon: 127.9, n: 1 }], 35.415, 127.873), 77);
+    var doc = JSON.parse(require("fs").readFileSync(require("path").join(__dirname, "../../main/webapp/data/agoda-cities.json"), "utf8"));
+    var names = {};
+    eq("agoda-cities.json 번호는 숫자나 null, 좌표는 우리나라, 이름은 하나씩", doc.cities.every(function (c) {
+        var ok = (c.id === null || /^\d{1,9}$/.test(String(c.id))) && c.lat > 33 && c.lat < 39 && c.lon > 124 && c.lon < 132 && !names[c.name];
+        names[c.name] = 1; return ok;
+    }) && doc.cities.length >= 70, true);
+})();
