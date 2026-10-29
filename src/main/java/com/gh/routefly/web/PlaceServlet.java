@@ -90,6 +90,7 @@ public class PlaceServlet extends HttpServlet {
             if ("NOT_FOUND".equals(status)) return empty(false);
             if (!"OK".equals(status)) return null;
             JsonArray items = r.getAsJsonObject("result").getAsJsonArray("items"), places = new JsonArray();
+            java.util.Set<String> seen = new java.util.HashSet<>();   // 같은 곳(주소 · 좌표 같음)은 하나만 - 산청군청 · 경상남도산청군청이 둘 다 나왔음(2026-10-29 홍TV님 화면)
             for (JsonElement e : items) {
                 JsonObject it = e.getAsJsonObject(), pt = it.getAsJsonObject("point");
                 double lat = pt.get("y").getAsDouble(), lon = pt.get("x").getAsDouble();
@@ -100,6 +101,7 @@ public class PlaceServlet extends HttpServlet {
                 String addr = a == null ? null : a.has("road") && !a.get("road").getAsString().isEmpty() ? a.get("road").getAsString() : a.has("parcel") ? a.get("parcel").getAsString() : null;
                 p.addProperty("name", Party.clean(name != null ? name : addr, 60));
                 if (addr != null) p.addProperty("addr", Party.clean(addr, 80));
+                if (!seen.add((addr != null ? addr.replaceAll("\\s+", "") : "") + "@" + Math.round(lat * 1e4) + "," + Math.round(lon * 1e4))) continue;
                 p.addProperty("lat", Math.round(lat * 1e6) / 1e6);
                 p.addProperty("lon", Math.round(lon * 1e6) / 1e6);
                 places.add(p);

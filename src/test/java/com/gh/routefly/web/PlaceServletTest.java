@@ -19,6 +19,9 @@ public class PlaceServletTest {
         assertEquals("산청군청", p.get("name").getAsString());
         assertEquals("경상남도 산청군 시험로 1", p.get("addr").getAsString());
         assertEquals(35.415, p.get("lat").getAsDouble(), 1e-6);
+        String dup = "{\"response\":{\"status\":\"OK\",\"result\":{\"items\":[{\"title\":\"경상남도산청군청\",\"address\":{\"road\":\"경상남도 산청군 시험로 1\"},\"point\":{\"x\":\"127.87300\",\"y\":\"35.41500\"}},"
+                + "{\"title\":\"산청군청\",\"address\":{\"road\":\"경상남도 산청군 시험로 1\"},\"point\":{\"x\":\"127.87301\",\"y\":\"35.41501\"}},{\"title\":\"산청군청\",\"address\":{\"road\":\"경상남도 산청군 다른로 2\"},\"point\":{\"x\":\"127.9\",\"y\":\"35.4\"}}]}}}";
+        assertEquals("주소 · 좌표가 같은 곳은 하나만", 2, PlaceServlet.parse(dup).getAsJsonArray("places").size());
         assertEquals(0, PlaceServlet.parse("{\"response\":{\"status\":\"NOT_FOUND\"}}").getAsJsonArray("places").size());
         assertNull("키 오류 등은 null(로그에 답을 남기지 않음)", PlaceServlet.parse("{\"response\":{\"status\":\"ERROR\",\"error\":{\"text\":\"x\"}}}"));
         assertNull(PlaceServlet.parse("not json"));
