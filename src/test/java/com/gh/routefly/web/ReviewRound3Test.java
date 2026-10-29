@@ -70,6 +70,18 @@ public class ReviewRound3Test {
     }
 
     @Test
+    public void staysLinkSameAsJs() {
+        com.google.gson.JsonObject p = new com.google.gson.JsonObject();
+        p.addProperty("trip", "https://kr.trip.com/hotels/?cityId=1&Allianceid=1&SID=2");
+        String[] it = Stays.pick(p, 33.361667, 126.529167, "한라산");
+        assertEquals("🏨 근처 숙소(트립닷컴)", it[0]);
+        assertEquals("course-kit.test.js staysItem 과 같은 주소", "https://kr.trip.com/hotels/list?cityId=0&searchType=LM&searchWord=%ED%95%9C%EB%9D%BC%EC%82%B0&searchValue=13%7C0*13*33.361667%7C126.529167%7C%ED%95%9C%EB%9D%BC%EC%82%B0%7C0%7C1&listFilters=17~5*17*5&Allianceid=1&SID=2", it[1]);
+        assertTrue(Stays.html(p, 33.361667, 126.529167, "한라산").contains("rel=\"noopener sponsored\"") && Stays.html(p, 1, 2, "x").contains("수수료"));
+        assertEquals("설정이 없으면 없음", "", Stays.html(new com.google.gson.JsonObject(), 1, 2, "x"));
+        assertTrue("1박 산은 위로", MountainServlet.overnight(com.google.gson.JsonParser.parseString("{\"id\":\"한라산\"}").getAsJsonObject()));
+    }
+
+    @Test
     public void cleanDropsInvisibleChars() {
         assertEquals("시험산악회", Party.clean("시험​산악‮회", 30));
         assertEquals("글자 단위로 자름(이모지가 반으로 갈리지 않게)", "가😀", Party.clean("가😀😀", 2));

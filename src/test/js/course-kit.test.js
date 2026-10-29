@@ -832,6 +832,11 @@ tick().then(function () {
     process.exit(fails ? 1 : 0);
 });
 
+// 🏨 근처 숙소(2026-10-29) - 서버 Stays.tripLink(ReviewRound3Test)와 같은 주소
+var STAY = RF.staysItem({ trip: "https://kr.trip.com/hotels/?cityId=1&Allianceid=1&SID=2" }, "한라산", 33.361667, 126.529167, false);
+eq("staysItem 트립닷컴 - 제휴 꼬리 두고 좌표로", [STAY && STAY.text, STAY && STAY.href], ["🏨 근처 숙소(트립닷컴)", "https://kr.trip.com/hotels/list?cityId=0&searchType=LM&searchWord=%ED%95%9C%EB%9D%BC%EC%82%B0&searchValue=13%7C0*13*33.361667%7C126.529167%7C%ED%95%9C%EB%9D%BC%EC%82%B0%7C0%7C1&listFilters=17~5*17*5&Allianceid=1&SID=2"]);
+eq("staysItem 아고다 · 없음", [RF.staysItem({ agoda: "https://www.agoda.com/x?lat={lat}&lon={lon}" }, "설악산", 38.1, 128.4, true).text, RF.staysItem({}, "x", 1, 2), RF.staysItem(null)], ["🏨 Stays nearby (Agoda)", null, null]);
+
 var OFN = { 가야산: { official: { "knps-7013": "가야산1코스", "knps-7012": "가야산2코스", "knps-7017": "만물상코스" } } };
 eq("officialName 공단 공식 이름(ID 앞부분)", [RF.officialName(OFN, "knps-7013-3d5c7ede"), RF.officialName(OFN, "knps-70131-aa"), RF.officialName(null, "x")], ["가야산1코스", "", ""]);
 eq("officialMatches 띄어쓰기 무시 · 두 글자부터", [RF.officialMatches(OFN, "가야산 1코스").map(function (m) { return m.key; }),

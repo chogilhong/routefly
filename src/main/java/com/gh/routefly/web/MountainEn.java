@@ -137,6 +137,7 @@ final class MountainEn {
         // ⛑️ Today's hiking safety(api/safety - 한국어 산 페이지와 같게, 2026-10-18) - js/mountain-en.js 가 채움
         b.append("<section id=\"safe\"><h2>⛑️ Today's hiking safety</h2><ul class=\"wl sfl\" id=\"sfList\"><li><span>Weather warnings, wildfire risk, UV and the nearest emergency room appear here.</span></li></ul>")
                 .append("<h3>🏥 Nearest emergency rooms</h3><ul class=\"wl\" id=\"sfEr\"></ul><p class=\"dim\">Weather warnings and UV: Korea Meteorological Administration. Wildfire risk: Korea Forest Service. Emergency rooms: National Medical Center (region from the nearest ER's address). In an emergency call <b>119</b>.</p></section>");
+        if (MountainServlet.overnight(peak)) b.append(MountainServlet.staysP(peak));   // 1박이 많은 산은 위로(한국어 페이지와 같게)
         b.append("<section><h2>").append(courses.size()).append(courses.size() == 1 ? " trail" : " trails").append("</h2>");
         if (courses.isEmpty()) b.append("<p class=\"dim\">No trail to the summit was found in our data.</p>");
         else {
@@ -178,7 +179,7 @@ final class MountainEn {
             }
             b.append("</ul></section>");
         }
-        b.append("<p class=\"stays\" id=\"stays\" data-name=\"").append(esc(ko)).append("\" hidden></p>");   // 🏨 Stays nearby(js/mountain-en.js, 2026-10-29)
+        if (!MountainServlet.overnight(peak)) b.append(MountainServlet.staysP(peak));   // 🏨 Stays nearby(js/mountain-en.js, 2026-10-29) - 1박 산은 위에
         b.append(Ads.box("m", true));   // 광고 - 영어 산 페이지에도(설정이 있을 때만, 2026-10-29)
         return b.append(foot(REL + "/m/" + MountainServlet.enc(ko))).toString();
     }

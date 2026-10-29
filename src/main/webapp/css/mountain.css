@@ -72,7 +72,7 @@ ul { margin:0; padding:0; list-style:none; }
 .fold.group > .ms { padding:10px 0 8px; }
 /* 날씨 날짜 고르기(2026-10-15) */
 .days { display:flex; flex-wrap:wrap; gap:6px; margin:0 0 10px; }
-.days button { padding:6px 10px; border-radius:14px; border:1px solid var(--ln); background:rgba(255,255,255,0.04); color:var(--tx); font:13px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }
+.days button { min-height:44px; padding:0 12px; border-radius:22px; border:1px solid var(--ln); background:rgba(255,255,255,0.04); color:var(--tx); font:14px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }   /* 날씨 날짜 단추 44px(2026-10-29 PC: 31px) */
 .days button.on { background:var(--sky); border-color:var(--sky); color:#062b30; font-weight:bold; }
 .days select { color-scheme:dark; padding:6px 10px; border-radius:14px; border:1px solid var(--ln); background:rgba(255,255,255,0.04); color:var(--tx); font:13px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }
 .days select.on { background:var(--sky); border-color:var(--sky); color:#062b30; font-weight:bold; }

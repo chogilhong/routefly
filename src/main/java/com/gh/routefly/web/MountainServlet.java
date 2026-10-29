@@ -467,6 +467,18 @@ public class MountainServlet extends HttpServlet {
         return hit.size() > max ? hit.subList(0, max) : hit;
     }
 
+    /** 1박이 거의 확실한 산(섬 · 큰 산 종주) - 🏨 근처 숙소 줄을 페이지 위쪽(날씨 · 안전 아래)에(2026-10-29 홍TV님). 나머지는 페이지 아래. */
+    static final java.util.Set<String> OVERNIGHT = java.util.Set.of("한라산", "설악산", "지리산", "성인봉", "깃대봉");
+
+    static boolean overnight(JsonObject peak) {
+        return OVERNIGHT.contains(str(peak, "id"));
+    }
+
+    /** 🏨 근처 숙소 자리(제휴 - 설정이 있을 때만 js/mountain.js · mountain-en.js 가 채움, 2026-10-29). data-name 은 한글 산 이름(숙소 검색어). */
+    static String staysP(JsonObject peak) {
+        return "<p class=\"stays\" id=\"stays\" data-name=\"" + esc(str(peak, "id") != null ? str(peak, "id") : str(peak, "name")) + "\" hidden></p>";
+    }
+
     /** 순수 함수 - 검색 엔진용 구조 정보(schema.org Mountain, JSON-LD). Gson 이 &lt; · &gt; 를 \u003c 로 바꿔 &lt;/script&gt; 로 끊기지 않음. */
     static String jsonLd(JsonObject peak, String name, String url) {
         JsonObject o = new JsonObject(), geo = new JsonObject();
@@ -594,6 +606,7 @@ public class MountainServlet extends HttpServlet {
         // ⛑️ 오늘의 산행 안전(api/safety - 2026-10-18 홍TV님: 별거 별거와 같은 것을 산 페이지에도) - 정상 자리로, 보이면 받음(js/mountain.js)
         b.append("<section id=\"safe\"><h2>⛑️ 오늘의 산행 안전</h2><ul class=\"wl sfl\" id=\"sfList\"><li><span>기상특보 · 산불위험 · 자외선 · 가까운 응급실을 이 칸에서 봅니다.</span></li></ul>")
                 .append("<h3>🏥 가까운 응급실</h3><ul class=\"wl\" id=\"sfEr\"></ul><p class=\"dim\">기상특보 · 자외선은 기상청, 산불위험은 산림청, 응급실은 국립중앙의료원 자료(지역은 가장 가까운 응급실 주소로). 위급하면 <b>119</b>.</p></section>");
+        if (overnight(peak)) b.append(staysP(peak));   // 1박이 많은 산은 숙소 줄을 위로(2026-10-29 홍TV님 "작업해")
         b.append("<section><h2>코스 ").append(courses.size()).append("개</h2>");
         if (courses.isEmpty()) b.append("<p class=\"dim\">정상까지 가는 코스를 찾지 못했습니다. <a href=\"").append(REL)
                 .append("/hike.html?lang=ko\">따라가기에서 산 이름으로 찾아보세요</a>.</p>");
@@ -642,8 +655,7 @@ public class MountainServlet extends HttpServlet {
             }
             b.append("</ul></section>");
         }
-        // 🏨 근처 숙소(제휴 - 설정이 있을 때만 js/mountain.js 가 채움, 2026-10-29 점검: 1박 산행이 많은 산의 검색 첫 화면에 숙소 링크가 없었음)
-        b.append("<p class=\"stays\" id=\"stays\" data-name=\"").append(esc(str(peak, "id") != null ? str(peak, "id") : str(peak, "name"))).append("\" hidden></p>");
+        if (!overnight(peak)) b.append(staysP(peak));   // 🏨 근처 숙소 - 1박 산은 위(날씨 · 안전 아래)에
         b.append(Ads.box("m"));   // 광고(설정이 있을 때만, 2026-10-28)
         b.append(foot(base, REL + enPath));
         return b.toString();
@@ -818,7 +830,7 @@ public class MountainServlet extends HttpServlet {
         return ShareServlet.esc(s == null ? "" : s);
     }
 
-    private static String str(JsonObject o, String k) {
+    static String str(JsonObject o, String k) {
         JsonElement e = o.get(k);
         return e == null || e.isJsonNull() ? null : e.getAsString();
     }

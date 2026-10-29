@@ -350,6 +350,8 @@ public class CoursePageServlet extends HttpServlet {
         if (hike) b.append(MountainServlet.tips());
         String src = source(id);
         if (!src.isEmpty()) b.append("<p class=\"dim\">코스 자료: ").append(src).append("</p>");   // 이미 이스케이프 · 링크가 든 고정 글
+        // 🏨 근처 숙소(제휴 - 설정이 있을 때만, 2026-10-29 홍TV님 "작업해": 검색으로 들어오는 코스 페이지에도). 들머리 좌표 · 산 이름(없으면 코스 이름)으로
+        if (start != null) b.append(Stays.html(PartnersServlet.body(RouteflyConfig::get), start[0], start[1], peak != null && MountainServlet.str(peak, "id") != null ? MountainServlet.str(peak, "id") : name.replaceFirst(" · .*$", "")));
         b.append(Ads.box("c"));   // 광고(설정이 있을 때만, 2026-10-28)
         b.append(MountainServlet.foot(null, false));
         return b.toString();
