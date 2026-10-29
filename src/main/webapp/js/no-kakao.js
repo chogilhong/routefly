@@ -18,6 +18,7 @@
     var go = android ? "intent://" + location.host + location.pathname + q + "#Intent;scheme=https;package=com.android.chrome;end"
         : "kakaotalk://web/openExternal?url=" + encodeURIComponent(location.href);
     var where = android ? (en ? "Chrome" : "크롬") : (en ? "Safari" : "사파리");
+    var office = /party-office\.html$/.test(location.pathname);   // 회사 사무실(2026-10-29) - 위치 대신 즐겨찾기 · 엑셀 이야기
     function cover() {
         var d = document.createElement("div");
         d.setAttribute("role", "dialog");
@@ -26,7 +27,7 @@
             ? "<p style='font-size:20px;font-weight:bold;margin:0 0 12px'>Open in " + where + "</p><p style='margin:0 0 20px'>KakaoTalk's built-in browser often can't get your location and stops when the screen turns off. routefly works in " + where + ".</p>"
             + "<a id='rfGo' style='display:block;padding:14px;border-radius:12px;background:#22b8cf;color:#06222a;font-weight:bold;text-decoration:none;font-size:18px'>Open in " + where + "</a>"
             + "<p style='margin:20px 0 0;color:#9fb0c0;font-size:14px'>If it doesn't open: tap ⋮ (top right) → 'Open in another browser'.</p>"
-            : "<p style='font-size:20px;font-weight:bold;margin:0 0 12px'>" + where + "(으)로 열어 주세요</p><p style='margin:0 0 20px'>카카오톡 안 화면은 위치를 잘 받지 못하고, 화면이 꺼지면 위치가 끊깁니다. routefly 는 " + where + "에서 씁니다.</p>"
+            : "<p style='font-size:20px;font-weight:bold;margin:0 0 12px'>" + where + "(으)로 열어 주세요</p><p style='margin:0 0 20px'>" + (office ? "회사 사무실은 " + where + "에서 씁니다. 즐겨찾기 · 엑셀 내려받기도 " + where + "에서 하세요." : "카카오톡 안 화면은 위치를 잘 받지 못하고, 화면이 꺼지면 위치가 끊깁니다. routefly 는 " + where + "에서 씁니다.") + "</p>"
             + "<a id='rfGo' style='display:block;padding:14px;border-radius:12px;background:#22b8cf;color:#06222a;font-weight:bold;text-decoration:none;font-size:18px'>" + where + "(으)로 열기</a>"
             + "<p style='margin:20px 0 0;color:#9fb0c0;font-size:14px'>안 열리면: 오른쪽 위 ⋮ (또는 ∨) → '다른 브라우저로 열기'</p>";
         document.body.appendChild(d);

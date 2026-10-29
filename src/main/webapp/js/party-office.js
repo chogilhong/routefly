@@ -1,6 +1,6 @@
 /*
  * 회사 사무실 화면(2026-10-28 홍TV님) - 한 회사의 산악회 방을 한눈에. party-office.html 이 씀.
- * 사무실 링크 = party-office.html#k=비밀열쇠 (# 뒤라 서버 접속 기록에 남지 않음). 이 기기 localStorage "rf-office-key" 에 둠.
+ * 사무실 링크 = party-office.html#k=비밀열쇠 (# 뒤라 서버로 가지 않음 - 카톡에서 크롬으로 넘길 때만 잠깐 ?rfh=, no-kakao.js · 서버 기록은 ? 뒤 없음). 이 기기 localStorage "rf-office-key" 에 둠.
  * 목록은 숫자만(이름 · 위치 없음). "열기" = 그 방에 사무실 자리를 만들어 인솔자 화면(party.html)으로 - 위치는 거기서만 봄.
  */
 (function () {

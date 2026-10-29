@@ -58,9 +58,9 @@ public class MainActivity extends BridgeActivity {
         bridge.getWebView().post(() -> bridge.getWebView().loadUrl(url));
     }
 
-    /** routefly.kr 의 https 산악회 방 주소만(다른 주소로 웹뷰를 돌리지 않음). */
+    /** routefly.kr 의 https 산악회 방 · 회사 사무실(2026-10-29) 주소만(다른 주소로 웹뷰를 돌리지 않음). 사무실 링크의 #k= 는 u.toString() 에 그대로 실림. */
     static boolean isPartyLink(Uri u) {
         return u != null && "https".equals(u.getScheme()) && "routefly.kr".equals(u.getHost())
-                && u.getPath() != null && u.getPath().startsWith("/routefly/party.html");
+                && u.getPath() != null && (u.getPath().startsWith("/routefly/party.html") || u.getPath().startsWith("/routefly/party-office.html"));
     }
 }

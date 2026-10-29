@@ -29,6 +29,8 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="routefly.kr" android:pathPrefix="/routefly/party.html" />
+                <!-- 회사 사무실 링크(2026-10-29 홍TV님 "앱이 만들어지면 앱에서") - #k= 열쇠는 그대로 웹뷰로 -->
+                <data android:scheme="https" android:host="routefly.kr" android:pathPrefix="/routefly/party-office.html" />
             </intent-filter>
 
         </activity>
