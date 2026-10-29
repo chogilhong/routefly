@@ -5415,7 +5415,8 @@
 
     /**
      * 순수 함수 - 탐방 안내도 대표 코스 가운데 목록에도 둘 것(park-notes best 의 list - 이은 코스라 DB 에 없음, 2026-10-30 홍TV님 "일반 코스에도")을
-     * 따라가기 검색 줄 꼴로. q 가 그 산 이름이거나 코스 이름 · 이름표에 들면. → [{course_id(이은 ID), name, kind, distance_m, ascent_m, ele_max_m, title, head}]
+     * 따라가기 검색 줄 꼴로. q 가 그 산 이름이거나 코스 이름 · 이름표에 들면. → [{course_id(이은 ID), name, kind, distance_m, ascent_m, ele_max_m, steep_pct, title, head}]
+     * steep_pct(가장 가파른 1km) 가 있어야 목록 난이도가 따라가기 화면과 같음(2026-10-30 홍TV님 "맞춰줘" - 보통 ↔ 어려움).
      */
     function listBest(notes, q) {
         var k = String(q || "").replace(/\s+/g, ""), out = [];
@@ -5426,7 +5427,7 @@
                 var hay = (pk + b.name + (b.label || "")).replace(/\s+/g, "");
                 if (hay.indexOf(k) < 0 && k.indexOf(pk.replace(/\s+/g, "")) !== 0) return;
                 out.push({ course_id: b.course, name: pk + " · " + b.name, kind: b.list.kind || "hike", distance_m: b.list.distance_m, ascent_m: b.list.ascent_m,
-                    ele_max_m: b.list.ele_max_m, title: b.name, head: routeEnds(pk + " · " + b.name).from || null, best: b.label || null });
+                    ele_max_m: b.list.ele_max_m, steep_pct: b.list.steep_pct != null ? b.list.steep_pct : null, title: b.name, head: routeEnds(pk + " · " + b.name).from || null, best: b.label || null });
             });
         });
         return out;
