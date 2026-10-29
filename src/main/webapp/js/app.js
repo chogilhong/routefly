@@ -1365,7 +1365,7 @@
         map.addControl(new maplibregl.AttributionControl({ compact: true,
             customAttribution: T("등산로: 산림청 등산로정보 | 걷기길: 한국관광공사 두루누비 | 봉우리 · 국가숲길: 한국등산·트레킹지원센터 | 지명 · 자전거길 · 등산 노선: ",
                 "Trails: Korea Forest Service | Walking: Korea Tourism Organization Durunubi | Peaks · forest trails: Korea Hiking & Trekking Center | Places · bike paths: ") + "<a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\" rel=\"noopener\">© OpenStreetMap contributors</a>"
-                + " | <a href=\"about.html\">" + T("안전 · 개인정보 · 출처 안내", "Safety · privacy · sources (Korean)") + "</a>" }), "top-right");
+                + " | <a href=\"" + T("about.html", "about-en.html") + "\">" + T("안전 · 개인정보 · 출처 안내", "Safety · privacy · sources") + "</a>" }), "top-right");
         map.on("error", function (e) {
             // 타일 한 장이 안 와도 지도는 계속 씁니다 - 콘솔에만 남깁니다.
             if (window.console) console.warn("map", e && e.error ? e.error.message : e);

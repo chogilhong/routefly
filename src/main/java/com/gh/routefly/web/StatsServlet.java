@@ -417,6 +417,7 @@ public class StatsServlet extends HttpServlet {
             case "/lbs-terms.html" -> "위치기반서비스 이용약관";
             case "/terms.html" -> "이용약관";
             case "/terms-en.html" -> "이용약관(영어)";
+            case "/about-en.html" -> "안내(영어)";
             case "/privacy-en.html" -> "개인정보처리방침(영어)";
             case "/lbs-terms-en.html" -> "위치기반서비스 이용약관(영어)";
             case "/feedback.html" -> "의견 보내기";

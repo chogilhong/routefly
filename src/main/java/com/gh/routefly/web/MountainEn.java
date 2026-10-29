@@ -328,7 +328,7 @@ final class MountainEn {
     private static String foot(String koHref) {
         return "<p class=\"dim\">Data: Korea Forest Service (100 Famous Mountains, hiking trails), Korea National Park Service, Korea Meteorological Administration, "
                 + "AirKorea, Durunubi (data.go.kr), © OpenStreetMap contributors. Names follow the Revised Romanization of Korean. "
-                + "<a href=\"" + esc(koHref) + "\" hreflang=\"ko\" lang=\"ko\">한국어</a> · <a href=\"" + REL + "/terms-en.html\">Terms</a> · <a href=\"" + REL + "/privacy-en.html\">Privacy</a> · <a href=\"" + REL + "/lbs-terms-en.html\">Location terms</a></p>"
+                + "<a href=\"" + esc(koHref) + "\" hreflang=\"ko\" lang=\"ko\">한국어</a> · <a href=\"" + REL + "/about-en.html\">Safety · sources</a> · <a href=\"" + REL + "/terms-en.html\">Terms</a> · <a href=\"" + REL + "/privacy-en.html\">Privacy</a> · <a href=\"" + REL + "/lbs-terms-en.html\">Location terms</a></p>"
                 + "<p class=\"support\" id=\"support\" hidden></p>"   // ☕ Support(설정 donate.en.url 이 있을 때만 mountain-en.js 가 보임)
                 + "<p class=\"brand\"><a href=\"" + REL + "/hike.html?lang=en\"><img src=\"" + REL + "/img/logo-dark.svg\" alt=\"routefly\" width=\"160\" height=\"50\"> Open app ›</a></p>"
                 + "<p class=\"copy\">© 2026 홍TV (HongTV) · routefly. Trail and map data belong to the sources above.</p></main>"

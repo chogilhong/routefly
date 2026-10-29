@@ -264,7 +264,7 @@
             map.touchZoomRotate.disableRotation();
             map.addControl(new maplibregl.AttributionControl({ compact: true,
                 customAttribution: T("노선: © OpenStreetMap contributors · 산림청 · 한국등산트레킹지원센터 | <a href=\"about.html\">안내</a>",
-                    "Routes: © OpenStreetMap contributors · Korea Forest Service | <a href=\"about.html\">About</a>") }), "top-right");
+                    "Routes: © OpenStreetMap contributors · Korea Forest Service | <a href=\"about-en.html\">About</a>") }), "top-right");
             // 출처는 ⓘ 로 접어 둠(탐방 안내도와 같게 - 지도를 가리지 않게)
             var fold = function () { var at = document.querySelector(".maplibregl-ctrl-attrib"); if (at) at.classList.remove("maplibregl-compact-show"); };
             fold();

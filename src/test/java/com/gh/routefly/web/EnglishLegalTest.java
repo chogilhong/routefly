@@ -39,6 +39,14 @@ public class EnglishLegalTest {
             assertTrue(en.startsWith("<!DOCTYPE html>\n<html lang=\"en\">"));
             assertFalse(p[1] + " 에 한글 본문이 남지 않게(원문 이름 · 책임자 이름만)", en.substring(en.indexOf("<body>")).replaceAll("\\([^()]*[가-힣][^()]*\\)|조길홍", "").matches("(?s).*[가-힣].*"));
         }
+        // 안내 화면 영어판(2026-10-29 홍TV님 "2번 해줘") - 같은 칸 수, 서로 링크, 영어 화면은 영어판으로
+        String ab = read("about.html"), abEn = read("about-en.html");
+        assertEquals("about-en 칸 수", h2(ab), h2(abEn));
+        assertEquals("about-en 출처 줄 수", ab.split("<tr><th>", -1).length, abEn.split("<tr><th>", -1).length);
+        assertTrue(ab.contains("<a href=\"about-en.html\" hreflang=\"en\" lang=\"en\">English</a>") && abEn.contains("href=\"about.html\""));
+        assertTrue(abEn.contains("© OpenStreetMap contributors") && abEn.contains("call 119"));
+        assertTrue(read("hike.html").contains("data-en-href=\"about-en.html\"") && read("js/course-kit.js").contains("\"alt\", \"href\"]"));
+        assertFalse("영어 화면에 (Korean) 안내 링크가 남지 않게", read("hike.html").contains("Safety and data sources (Korean page)") || read("index.html").contains("About · sources (Korean)"));
         // 이용약관 목차 - 영어판도 20개, 대상 id 모두
         String t = read("terms-en.html");
         java.util.regex.Matcher m = java.util.regex.Pattern.compile("href=\"#(a\\d+)\"").matcher(t);

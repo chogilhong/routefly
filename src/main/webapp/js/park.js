@@ -868,7 +868,7 @@
             RF.spotsByZoom(map);   // 위험 · 조망 아이콘은 확대했을 때만
             map.addControl(new maplibregl.AttributionControl({ compact: true,
                 customAttribution: (data.national ? T("탐방로: 국립공원공단 탐방로 공간데이터", "Trails: Korea National Park Service") : T("등산로: 산림청 · 한국등산트레킹지원센터 · OpenStreetMap", "Trails: Korea Forest Service · OpenStreetMap"))
-                    + T(" | 지명: © OpenStreetMap contributors | <a href=\"about.html\">안내</a>", " | Places: © OpenStreetMap contributors | <a href=\"about.html\">About</a>") }), "top-right");
+                    + T(" | 지명: © OpenStreetMap contributors | <a href=\"about.html\">안내</a>", " | Places: © OpenStreetMap contributors | <a href=\"about-en.html\">About</a>") }), "top-right");
             // 출처는 ⓘ 로 접어 둠(따라가기 화면과 같게 - 지도를 가리지 않게)
             var fold = function () { var a = document.querySelector(".maplibregl-ctrl-attrib"); if (a) a.classList.remove("maplibregl-compact-show"); };
             fold();

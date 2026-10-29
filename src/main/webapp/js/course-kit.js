@@ -39,11 +39,11 @@
         return m ? m[1] : stored === "en" ? "en" : "ko";
     }
     /**
-     * 화면의 data-en 글을 영어로(hike.html): data-en 은 안의 HTML(우리가 쓴 글만 - 바깥 자료 아님), data-en-title · -placeholder · -aria-label · -alt 는 그 속성.
+     * 화면의 data-en 글을 영어로(hike.html): data-en 은 안의 HTML(우리가 쓴 글만 - 바깥 자료 아님), data-en-title · -placeholder · -aria-label · -alt · -href(영어판 문서로, 2026-10-29) 는 그 속성.
      */
     function applyEn(root) {
         Array.prototype.forEach.call(root.querySelectorAll("[data-en]"), function (el) { el.innerHTML = el.getAttribute("data-en"); });
-        ["title", "placeholder", "aria-label", "alt"].forEach(function (a) {
+        ["title", "placeholder", "aria-label", "alt", "href"].forEach(function (a) {
             Array.prototype.forEach.call(root.querySelectorAll("[data-en-" + a + "]"), function (el) { el.setAttribute(a, el.getAttribute("data-en-" + a)); });
         });
     }

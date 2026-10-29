@@ -304,7 +304,7 @@ html.picking #pick { display:flex; }
     <a href="#" id="back" data-en="&lt;b&gt;‹&lt;/b&gt;List" data-en-title="Back to the trail list (search)" title="코스 목록(검색)으로"><b>‹</b>목록</a>
     <div class="nm" id="name" data-en="Pick a trail">코스를 고르세요</div>
     <span id="gps" data-en="GPS off">GPS 꺼짐</span>
-    <a href="about.html" title="안전 · 개인정보 · 출처 안내" data-en-title="Safety · privacy · data sources" data-en-aria-label="Safety · privacy · data sources" aria-label="안전 · 개인정보 · 출처 안내" style="font-size:17px;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center">ⓘ</a>
+    <a href="about.html" data-en-href="about-en.html" title="안전 · 개인정보 · 출처 안내" data-en-title="Safety · privacy · data sources" data-en-aria-label="Safety · privacy · data sources" aria-label="안전 · 개인정보 · 출처 안내" style="font-size:17px;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center">ⓘ</a>
     <button type="button" id="sos" data-en-title="Call 119 emergency · my location" title="119 긴급 신고 · 내 위치">SOS</button>
 </div>
 <div id="partyBar" role="region" aria-label="산악회 방" data-en-aria-label="Hiking club room" hidden><div id="pbText"></div><div id="pbBtns"></div></div>
@@ -381,7 +381,7 @@ html.picking #pick { display:flex; }
     <div id="pickList"><div class="msg" data-en="Search by mountain name, or tap &quot;Near me&quot; at a trailhead.">산 이름으로 찾거나, 산 입구에서 "내 주변 코스" 를 누르세요.</div></div>
     <!-- ⛰️ 코스 모음(/m/ - 2026-10-15 홍TV님) -->
     <!-- 늘 보이는 아랫줄(2026-10-11 PC: 사용법 링크가 안내 글 안에만 있어 지난 검색 목록이 떠 있으면 안 보였음) -->
-    <div id="pickFoot" data-en="&lt;a href=&quot;#&quot; data-onboard&gt;❓ Help&lt;/a&gt; · &lt;a href=&quot;about.html&quot; title=&quot;Safety and data sources (Korean page)&quot;&gt;⚠ Safety&lt;/a&gt; · &lt;a href=&quot;terms-en.html&quot;&gt;Terms&lt;/a&gt; · &lt;a href=&quot;privacy-en.html&quot;&gt;Privacy&lt;/a&gt; · &lt;a href=&quot;lbs-terms-en.html&quot;&gt;Location terms&lt;/a&gt; · &lt;a href=&quot;party.html?lang=en&quot;&gt;🧑‍🤝‍🧑 Hiking club (Korean)&lt;/a&gt; · &lt;a href=&quot;party-office.html&quot;&gt;🏢 Company office (Korean)&lt;/a&gt; · &lt;a href=&quot;feedback.html?from=/hike.html&amp;amp;lang=en&quot;&gt;📮 Feedback&lt;/a&gt;"><a href="#" data-onboard>❓ 사용법</a> · <a href="about.html" title="안전 · 출처 안내">⚠ 안전 · 출처</a> · <a href="terms.html">이용약관</a> · <a href="privacy.html">개인정보처리방침</a> · <a href="lbs-terms.html">위치기반서비스 이용약관</a> · <a href="party.html?lang=ko" title="안내 산악회 - 인솔자가 회원 위치 · SOS 를 봄(참가 · 동의한 사람만)">🧑‍🤝‍🧑 산악회 방</a> · <a href="party-office.html" title="안내 산악회 · 여행사 - 여러 방을 한 화면에">🏢 회사 사무실</a> · <a href="feedback.html?from=/hike.html">📮 의견 보내기</a></div>
+    <div id="pickFoot" data-en="&lt;a href=&quot;#&quot; data-onboard&gt;❓ Help&lt;/a&gt; · &lt;a href=&quot;about-en.html&quot;&gt;⚠ Safety · sources&lt;/a&gt; · &lt;a href=&quot;terms-en.html&quot;&gt;Terms&lt;/a&gt; · &lt;a href=&quot;privacy-en.html&quot;&gt;Privacy&lt;/a&gt; · &lt;a href=&quot;lbs-terms-en.html&quot;&gt;Location terms&lt;/a&gt; · &lt;a href=&quot;party.html?lang=en&quot;&gt;🧑‍🤝‍🧑 Hiking club (Korean)&lt;/a&gt; · &lt;a href=&quot;party-office.html&quot;&gt;🏢 Company office (Korean)&lt;/a&gt; · &lt;a href=&quot;feedback.html?from=/hike.html&amp;amp;lang=en&quot;&gt;📮 Feedback&lt;/a&gt;"><a href="#" data-onboard>❓ 사용법</a> · <a href="about.html" title="안전 · 출처 안내">⚠ 안전 · 출처</a> · <a href="terms.html">이용약관</a> · <a href="privacy.html">개인정보처리방침</a> · <a href="lbs-terms.html">위치기반서비스 이용약관</a> · <a href="party.html?lang=ko" title="안내 산악회 - 인솔자가 회원 위치 · SOS 를 봄(참가 · 동의한 사람만)">🧑‍🤝‍🧑 산악회 방</a> · <a href="party-office.html" title="안내 산악회 · 여행사 - 여러 방을 한 화면에">🏢 회사 사무실</a> · <a href="feedback.html?from=/hike.html">📮 의견 보내기</a></div>
 </div>
 
 <!-- 처음 안내(2026-10-11 오픈 전) - 처음 한 번, 코스 목록 아래 '❓ 사용법' 으로 다시(js/onboard.js) -->
@@ -645,7 +645,7 @@ html.picking #pick { display:flex; }
             <li data-en="📍 &lt;b&gt;Your location stays on this phone&lt;/b&gt; - used only to measure progress, never sent to a server or stored.">📍 <b>위치는 이 핸드폰 안에서만</b> 진행 거리 계산에 쓰고, 서버로 보내거나 저장하지 않습니다.</li>
         </ul>
         <label class="chk" data-en="&lt;input type=&quot;checkbox&quot; id=&quot;safetyChk&quot;&gt; I have read the above"><input type="checkbox" id="safetyChk"> 위 내용을 읽고 확인했습니다</label>
-        <a href="about.html" class="more" data-en="More details (Korean) ›">자세한 안내 보기 ›</a>
+        <a href="about.html" class="more" data-en-href="about-en.html" data-en="More details ›">자세한 안내 보기 ›</a>
         <div class="sbtn">
             <button type="button" id="safetyNo" data-en="Cancel">취소</button>
             <button type="button" id="safetyGo" class="main" disabled data-en="Confirm and start">확인하고 시작</button>

@@ -18,6 +18,8 @@ document.addEventListener("click", function (e) {
     try { history.replaceState(history.state, "", a.getAttribute("href")); } catch (x) { /* 그대로 */ }
 });
 
+var ABOUT_EN = document.documentElement.lang === "en";   // 영어판(about-en · privacy-en · terms-en · lbs-terms-en, 2026-10-29)
+
 /* 글자 크기 "가+"(course-kit.js textButton 과 같은 저장 rf-text - 2026-10-14 홍TV님). 오른쪽 위 ✕ 왼쪽 */
 (function () {
     var STEPS = [1, 1.2, 1.4], b = document.createElement("button");
@@ -26,11 +28,11 @@ document.addEventListener("click", function (e) {
         document.documentElement.style.setProperty("--rfz", String(v));
         document.documentElement.classList.toggle("rfz", v !== 1);
         b.textContent = v >= 1.4 ? "가++" : v >= 1.2 ? "가+" : "가";   // course-kit.js textLabel 과 같음
-        b.title = "글자 크기 " + Math.round(v * 100) + "% - 누를 때마다 100 → 120 → 140%";
+        b.title = ABOUT_EN ? "Text size " + Math.round(v * 100) + "% - each tap 100 → 120 → 140%" : "글자 크기 " + Math.round(v * 100) + "% - 누를 때마다 100 → 120 → 140%";
     }
     b.type = "button";
     b.className = "rfTextBtn";
-    b.title = "글자 크기(누를 때마다 100 → 120 → 140%)";
+    b.title = ABOUT_EN ? "Text size (each tap 100 → 120 → 140%)" : "글자 크기(누를 때마다 100 → 120 → 140%)";
     b.addEventListener("click", function () {
         var n = STEPS[(STEPS.indexOf(get()) + 1) % STEPS.length];
         try { localStorage.setItem("rf-text", String(n)); } catch (e) { /* 이번 화면만 */ }
@@ -46,29 +48,30 @@ fetch("api/partners").then(function (r) { return r.json(); }).then(function (p) 
     if (!sec || !(aff || p.donate)) return;
     if (aff) {   // 설정에 있는 제휴만 적음(2026-10-15 PC: 아고다 링크가 없는데 "숙박의 아고다" 가 보였음)
         var where = [];
-        if (p.coupang && Object.keys(p.coupang).length) where.push("🎒 챙길 것의 쿠팡");
-        if (p.agoda) where.push("숙박의 아고다");
-        if (p.trip) where.push("숙박의 트립닷컴");
-        document.getElementById("supportWhere").textContent = where.join(" · ");
-        document.getElementById("supportVerb").textContent = where.length > 1 ? "사거나 예약하면" : p.agoda || p.trip ? "예약하면" : "사면";
+        if (p.coupang && Object.keys(p.coupang).length) where.push(ABOUT_EN ? "Coupang in 🎒 gear" : "🎒 챙길 것의 쿠팡");
+        if (p.agoda) where.push(ABOUT_EN ? "Agoda in lodging" : "숙박의 아고다");
+        if (p.trip) where.push(ABOUT_EN ? "Trip.com in lodging" : "숙박의 트립닷컴");
+        document.getElementById("supportWhere").textContent = where.join(ABOUT_EN ? ", " : " · ");
+        document.getElementById("supportVerb").textContent = ABOUT_EN ? (where.length > 1 ? "buy or book" : p.agoda || p.trip ? "book" : "buy")
+            : where.length > 1 ? "사거나 예약하면" : p.agoda || p.trip ? "예약하면" : "사면";
         document.getElementById("supportAff").hidden = false;
     }
     if (p.donate) {
         var dl = document.getElementById("donateLink");
-        dl.href = p.donate;
+        dl.href = ABOUT_EN && /^https:\/\//.test(p.donateEn || "") ? p.donateEn : p.donate;   // 영어판은 PayPal(카드)이 있으면 그것
         document.getElementById("supportDonate").hidden = false;
         // 카카오페이 송금 코드는 핸드폰에서만 열림(PC 는 404) - PC 에서 누르면 안내만(2026-10-17 홍TV님)
-        if (/^https:\/\/qr\.kakaopay\.com\//i.test(p.donate) && !/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || "")) dl.addEventListener("click", function (e) {
+        if (/^https:\/\/qr\.kakaopay\.com\//i.test(dl.href) && !/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || "")) dl.addEventListener("click", function (e) {
             e.preventDefault();
             var box = document.getElementById("supportDonate");
             if (box.querySelector("small")) return;
             var s = document.createElement("small");
             s.style.cssText = "display:block;margin-top:6px";
-            s.textContent = "카카오페이 송금은 핸드폰에서만 열립니다. 핸드폰으로 이 페이지를 열어 눌러 주세요.";
+            s.textContent = ABOUT_EN ? "KakaoPay transfers open only on a phone. Open this page on your phone and tap it." : "카카오페이 송금은 핸드폰에서만 열립니다. 핸드폰으로 이 페이지를 열어 눌러 주세요.";
             if (/^https:\/\//.test(p.donateEn || "")) {   // PC 에서는 PayPal(카드)로도
                 var pp = document.createElement("a");
                 pp.href = p.donateEn; pp.target = "_blank"; pp.rel = "noopener";
-                pp.textContent = " PC 에서는 PayPal(카드)로 후원 ›";
+                pp.textContent = ABOUT_EN ? " On a PC, support with PayPal (card) ›" : " PC 에서는 PayPal(카드)로 후원 ›";
                 s.appendChild(pp);
             }
             box.appendChild(s);

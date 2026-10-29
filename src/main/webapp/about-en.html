@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>routefly About</title>
+<link rel="canonical" href="https://routefly.kr/routefly/about-en.html">
+<link rel="alternate" hreflang="ko" href="https://routefly.kr/routefly/about.html">
+<link rel="alternate" hreflang="en" href="https://routefly.kr/routefly/about-en.html">
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=2"><link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
+<meta name="theme-color" content="#11161d">
+<style>
+:root { --bg:#11161d; --panel:#1a212b; --tx:#e9eef4; --dim:#9aa6b4; --ln:rgba(255,255,255,0.12); --sky:#38d9ea; --warn:#ffb4b4; }
+* { box-sizing:border-box; }
+html, body { margin:0; background:var(--bg); color:var(--tx); font-family:Arial,"Malgun Gothic",sans-serif; line-height:1.65; }
+main { max-width:760px; margin:0 auto; padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 40px); }
+h1 { font-size:22px; margin:0 0 4px; }
+h1 span { color:#ffb703; }
+.lead { color:var(--dim); font-size:14px; margin:0 0 18px; }
+nav { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px; }
+nav a { color:var(--tx); text-decoration:none; font-size:13.5px; padding:6px 11px; border:1px solid var(--ln); border-radius:16px; }
+.donate { display:inline-block; padding:10px 16px; border-radius:10px; background:#2f9e44; color:#fff; text-decoration:none; font-weight:bold; }
+section { background:var(--panel); border:1px solid var(--ln); border-radius:12px; padding:14px 16px; margin-bottom:14px; }
+h2 { font-size:17px; margin:0 0 8px; }
+ul { margin:0; padding-left:20px; }
+li { margin:4px 0; font-size:14.5px; }
+.warn { color:var(--warn); font-weight:bold; }
+.dim { color:var(--dim); font-size:13px; }
+a { color:var(--sky); }
+table { width:100%; border-collapse:collapse; font-size:13.5px; }
+td, th { border-top:1px solid var(--ln); padding:7px 4px; vertical-align:top; text-align:left; }
+th { color:var(--dim); font-weight:normal; width:34%; }
+.back { display:inline-block; margin-top:6px; }
+.logo { display:block; width:240px; max-width:62%; height:auto; margin:0 0 6px -6px; }   /* 로고(img/logo-dark.svg - 2026-10-14 홍TV님, 어두운 바탕용으로 route 글자만 밝게) */
+/* 오른쪽 위 닫기 - 아래 '‹ 돌아가기' 와 같음(앞 화면으로, 2026-10-13 홍TV님) */
+.close { position:fixed; top:calc(env(safe-area-inset-top) + 10px); right:12px; z-index:5; width:40px; height:40px; border-radius:50%;
+         display:flex; align-items:center; justify-content:center; font-size:20px; text-decoration:none; color:var(--tx);
+         background:var(--panel); border:1px solid var(--ln); box-shadow:0 2px 6px rgba(0,0,0,0.4); }
+/* 글자 크기 "가+"(js/about.js) - ✕ 왼쪽 */
+.rfz main { zoom: var(--rfz); }
+.rfTextBtn { position:fixed; top:calc(env(safe-area-inset-top) + 13px); right:60px; z-index:5; min-width:44px; height:34px; padding:0 8px; border-radius:17px;
+             border:1px solid var(--ln); background:var(--panel); color:var(--tx); font:bold 13px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }
+h1 { padding-right:110px; }
+.rfz h1 { padding-right:calc(110px / var(--rfz)); }   /* zoom 이 여백도 키우므로 */
+</style>
+<body>
+<a class="close" id="aboutClose" href="hike.html?lang=en" aria-label="Close" title="Close (back to the previous screen)">✕</a>
+<main>
+    <img class="logo" src="img/logo-dark.svg" alt="routefly - hiking, walking and cycling courses" width="240" height="75">
+    <h1>About</h1>
+    <p class="lead">Preview courses over 3D terrain, then walk them while checking your location on your phone. · <a href="about.html" hreflang="ko" lang="ko">한국어</a></p>
+    <nav>
+        <a href="#safety">Safety</a>
+        <a href="#privacy">Location · privacy</a>
+        <a href="#sources">Data sources</a>
+        <a href="terms-en.html">Terms of Service</a>
+        <a href="privacy-en.html">Privacy Policy</a>
+        <a href="lbs-terms-en.html">Location-Based Service Terms</a>
+        <a href="en/m/">100 famous mountains</a>
+        <a href="hike.html?lang=en">Hike screen</a>
+    </nav>
+
+    <section id="safety">
+        <h2>⚠ Safety</h2>
+        <ul>
+            <li class="warn">Courses, distances, elevations and estimated times are for reference only. Do not decide on a hike or ride from this information alone.</li>
+            <li>Trail data is based on the Korea Forest Service trail information (as of 2016). Trails may have disappeared, changed or become dangerous since then.</li>
+            <li><b>Always check closures</b> - nature rest periods, spring and autumn wildfire season entry bans, and trail closures for weather warnings or construction
+                are not included in this service. Before you go, check the Korea National Park Service and local government notices and <b>follow local signs and rangers' instructions</b>.</li>
+            <li>GPS can be off by tens of meters in forests, valleys and under cliffs. At junctions, check the signposts as well.</li>
+            <li>In the mountains the network may drop and map images may not load, and GPS and the screen use a lot of battery. Bring a power bank.</li>
+            <li>Plan to turn back early to suit sunset, weather and your fitness. The <b>weather</b> in fly (3D) is the trailhead forecast, and summit temperatures are estimated from elevation.</li>
+            <li><b>Pets:</b> most national park trails do not allow pets (only pilot sections in some parks, by reservation). Check the park's notice before you go.</li>
+            <li><b>In an emergency, call 119</b> (Korea). Giving the <b>location sign or Korea grid number</b> on the trail (e.g. 다사 1234 5678) helps rescuers find you quickly.
+                With <b>SOS → 📷 Send location photo</b> on the hike screen, you can also attach a map photo of your location to a text message (119).</li>
+        </ul>
+    </section>
+
+    <section id="privacy">
+        <h2>📍 Location · privacy</h2>
+        <ul>
+            <li><b>Your location is used only on your phone.</b> The browser asks for location permission only when you tap "Start" or "Near me" on the hike screen,
+                and the location is used only to calculate progress and remaining distance on the course. <b>It is never sent to or stored on a server.</b>
+                ("Near me" doesn't send your location either: it receives the lists of fixed map cells of about 10 km, the same for every user, and picks on the phone.)
+                SOS location photos are also made on the phone and sent only to the app you choose (text etc.).</li>
+            <li>The <b>weight and height</b> you enter for calories and steps <b>are stored only on this device</b> (if not entered, 65 kg and 170 cm are assumed).
+                Calories and steps are rough estimates from distance and elevation.</li>
+            <li>A hike in progress (start time, distance so far) is kept only in <b>this device's browser storage</b> so it continues after a refresh.
+                It is deleted when you tap "Finish" or after a day, and you can delete it anytime by clearing the site data in your browser.</li>
+            <li><b>Photos and notes</b> taken during a hike and <b>files opened with "Open GPX"</b> are also kept only on this device (never sent to the server). Photos are shrunk to save space.
+                Deleting a record also deletes its photos.</li>
+            <li>There is no sign-up or login, and we don't collect personal information such as names or contacts (only an email address if you enter one in Feedback to get a reply). We don't use external analytics tools; we only count visits per screen as numbers. Google AdSense ads may appear on mountain and course pages (not on the hike or hiking club room screens).</li>
+            <li>Map images (satellite photos, terrain) come from the Ministry of Land's V-World and AWS. The map area you are viewing is passed to those servers as a request.</li>
+            <li>The web server keeps access logs (IP address, time, request path - without search words or map areas) for security and troubleshooting, and deletes them after 14-30 days. They are not used for anything else.</li>
+            <li>Before changing phones, use <b>📒 Records → 💾 Save backup</b> on the hike screen to download your records, photos, stamps and saved courses as one file, then use <b>📂 Load backup</b> on the new phone.
+                The backup file is made on your phone and sent only where you choose.</li>
+            <li>You can turn off location permission anytime in your phone settings (or the site settings in the browser's address bar). Without it, only "Test walk" and viewing courses work.</li>
+        </ul>
+        <p class="dim">For details, see the <a href="privacy-en.html">Privacy Policy</a>.</p>
+        <p id="feedbackLink"><a class="donate" style="background:#1971c2" href="feedback.html?from=/about-en.html&amp;lang=en">📮 Feedback (English OK)</a></p>
+        <p class="dim" id="contact">Contact: <a href="mailto:sportsnews.javanian@gmail.com">sportsnews.javanian@gmail.com</a></p>
+    </section>
+
+    <section id="sources">
+        <h2>📚 Data sources and terms of use</h2>
+        <table>
+            <tr><th>Hiking trails</th><td>Korea Forest Service "Forest spatial information - hiking trails" (Public Data Portal, as of 2016). This service joined the trail sections
+                and rebuilt them as trailhead → summit courses.</td></tr>
+            <tr><th>Walking paths</th><td>Korea Tourism Organization "Durunubi information service" (Public Data Portal) - Korea Dulle-gil course GPX</td></tr>
+            <tr><th>Bike paths</th><td><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors</a> (ODbL)
+                bicycle routes - Cross-country bike paths etc. This service split them into sections.</td></tr>
+            <tr><th>Hiking and walking routes</th><td><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors</a> (ODbL)
+                hiking and walking routes - dulle-gil, olle, ridge traverses etc. This service split them into sections.</td></tr>
+            <tr><th>Peak courses and national forest trails</th><td>Korea Hiking &amp; Trekking Support Center "Major peak courses" and "National forest trail courses" (Public Data Portal) GPX.
+                This service joined them into one line and recalculated elevations.</td></tr>
+            <tr><th>Summits of the 100 famous mountains</th><td>Korea Hiking &amp; Trekking Support Center "Korea Forest Service 100 famous mountains GPX" (Public Data Portal). Summit spots for stamps and completion -
+                this service chose a summit marker for each mountain. For Cheonseongsan and Daeamsan, whose GPX does not pass the summit, the summit name labels in the Forest Service trail and peak course data were used (the Daeamsan summit area is restricted, so as far as you can go).</td></tr>
+            <tr><th>National park trails</th><td>Korea National Park Service "National park linear facilities" (Public Data Portal, as of 2018) - parks missing from the Forest Service data (Wolchulsan etc.).
+                This service joined the trails into trailhead → summit courses.</td></tr>
+            <tr><th>Weather, lodging and restaurants</th><td>Korea Meteorological Administration short-term and mid-term forecasts (4-10 days ahead, by region), Korea Tourism Organization tour information service (TourAPI) - Public Data Portal.
+                Queried only with the course trailhead coordinates (your location is not sent). Summit temperatures are estimated from elevation.</td></tr>
+            <tr><th>Fine dust</th><td>Korea Environment Corporation AirKorea "Air pollution information" and "Station information" (Public Data Portal) - real-time values from the nearest station (unconfirmed data).
+                Good, moderate and bad follow the Ministry of Environment forecast standards (PM10 30 · 80 · 150, PM2.5 15 · 35 · 75 ㎍/㎥). Values on the mountain may differ from the station.</td></tr>
+            <tr><th>Parking</th><td>National parking lot standard data (Public Data Portal) - parking lots within 3 km of the trailhead. Fees and hours may change.</td></tr>
+            <tr><th>Pet-friendly information</th><td>Korea Tourism Organization pet travel service (Public Data Portal) - pet-friendly lodging and restaurants and their conditions.
+                Only places registered with the Tourism Organization appear. National park pet sections open the Korea National Park Service reservation site notice as a link.</td></tr>
+            <tr><th>National park transport and course names</th><td>Korea National Park Service website trail course guide - only the official course names (e.g. Gayasan course 1) and one line of transport (parking lot → trailhead) are used, and the original opens as a link
+                (<a href="https://www.knps.or.kr/portal/main/contents.do?menuNo=8000186" target="_blank" rel="noopener">Korea National Park Service copyright policy</a>).</td></tr>
+            <tr><th>Place names</th><td>Ministry of Land V-World place search,
+                <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors</a> (ODbL)</td></tr>
+            <tr><th>Satellite photos and map labels</th><td>Ministry of Land, Infrastructure and Transport V-World (spatial information open platform)</td></tr>
+            <tr><th>Terrain elevation</th><td><a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">Terrain Tiles (AWS Open Data)</a></td></tr>
+            <tr><th>Map program</th><td>MapLibre GL JS (BSD-3-Clause)</td></tr>
+            <tr><th>QR code drawing</th><td>QR Code Generator for JavaScript © Kazuhiko Arase (MIT) - hiking club room join QR. QR Code is a registered trademark of DENSO WAVE INCORPORATED</td></tr>
+        </table>
+        <p class="dim">If you find mistakes in the data, please let us know at the contact above.</p>
+    </section>
+
+    <section id="support" hidden>
+        <h2>💚 Support routefly</h2>
+        <p id="supportAff" hidden>routefly is free. Some links (<span id="supportWhere">Coupang in 🎒 gear, Agoda in lodging</span>) are affiliate links, so when you <span id="supportVerb">buy or book</span> through them the operator earns a commission (the price is the same).
+            The money goes to server and map costs.</p>
+        <p id="supportDonate" hidden><a id="donateLink" class="donate" target="_blank" rel="noopener">☕ Support routefly</a></p>
+    </section>
+
+    <a class="back" id="aboutBack" href="hike.html?lang=en">‹ Back</a>
+    <p style="margin-top:18px;font-size:12px;color:#9aa6b4">© 2026 홍TV (HongTV) · routefly. Rights to course and map data belong to the sources above (Korea Forest Service, Korea National Park Service, Durunubi, OpenStreetMap etc.).</p>
+</main>
+<script src="js/about.js"></script>
+<script src="js/seen.js"></script>
+</body>
+</html>
