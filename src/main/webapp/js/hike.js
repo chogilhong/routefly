@@ -404,9 +404,9 @@
         if (cfg.vworldKey) {
             var key = encodeURIComponent(cfg.vworldKey);
             sources.sat = { type: "raster", tileSize: 256, minzoom: 6, maxzoom: 19,
-                tiles: ["https://api.vworld.kr/req/wmts/1.0.0/" + key + "/Satellite/{z}/{y}/{x}.jpeg"], attribution: "위성사진: 국토교통부 V-World" };
+                tiles: ["https://api.vworld.kr/req/wmts/1.0.0/" + key + "/Satellite/{z}/{y}/{x}.jpeg"], attribution: T("위성사진: 국토교통부 V-World", "Satellite: V-World (Korea MOLIT)") };
             sources.base = { type: "raster", tileSize: 256, minzoom: 6, maxzoom: 19,
-                tiles: ["https://api.vworld.kr/req/wmts/1.0.0/" + key + "/Base/{z}/{y}/{x}.png"], attribution: "지도: 국토교통부 V-World" };
+                tiles: ["https://api.vworld.kr/req/wmts/1.0.0/" + key + "/Base/{z}/{y}/{x}.png"], attribution: T("지도: 국토교통부 V-World", "Map: V-World (Korea MOLIT)") };
             layers.push({ id: "sat", type: "raster", source: "sat", layout: { visibility: basemap === "sat" ? "visible" : "none" } });
             layers.push({ id: "base", type: "raster", source: "base", layout: { visibility: basemap === "light" ? "visible" : "none" } });
             layers.push({ id: "hillshade", type: "hillshade", source: "hillshade", paint: { "hillshade-exaggeration": 0.2 } });

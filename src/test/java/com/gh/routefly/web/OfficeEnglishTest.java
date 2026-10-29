@@ -29,6 +29,10 @@ public class OfficeEnglishTest {
         String js = read("src/main/webapp/js/party-office.js");
         assertTrue(js.contains("var EN = /[?&]lang=en\\b/.test(location.search);") && js.contains("officeCsv(last.ended, EN)"));
         assertTrue("열기는 영어 인솔자 화면으로", js.contains("location.href = EN ? \"party.html?lang=en\" : \"party.html\";"));
+        // 서버가 남긴 끝낸 사람 · 지도 출처도 영어(2026-10-29 PC)
+        assertTrue(read("src/main/java/com/gh/routefly/web/Party.java").contains("r.endedBy = lead.office ? \"사무실\" : \"주 인솔자\";")
+                && read("src/main/java/com/gh/routefly/web/Party.java").contains("\"자동(하산 마감이 지남)\"") && js.contains("RFOfficeCsv.byText(r.by, EN)"));
+        assertTrue(read("src/main/webapp/js/course-kit.js").contains("tr(\"지도: 국토교통부 V-World\", \"Map: V-World (Korea MOLIT)\")"));
         // 들어가는 길
         assertTrue(read("src/main/webapp/hike.html").contains("party-office.html?lang=en"));
         assertTrue(read("src/main/webapp/party.html").contains("data-en-href=\"party-office.html?lang=en\""));

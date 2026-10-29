@@ -7,6 +7,9 @@
     var HEAD = ["끝난 날", "끝난 시각", "산행", "출발", "취소", "취소 사유", "끝낸 사람", "회원", "출발 탑승", "안 탐", "하산 탑승", "따로 귀가", "하산 미확인", "SOS"];
     // 영어 사무실 화면(2026-10-29) - 머리 줄 · "취소" · "있었음" 만 영어로(산행 이름 · 사유는 적은 그대로)
     var HEAD_EN = ["Ended date", "Ended time", "Hike", "Departure", "Cancelled", "Cancel reason", "Ended by", "Members", "Boarded", "Not on bus", "Back on bus", "Home separately", "Descent unconfirmed", "SOS"];
+    /** 끝낸 사람(서버가 남긴 말) - 영어로. 모르는 말은 그대로. */
+    var BY_EN = { "주 인솔자": "Chief leader", "사무실": "Office", "자동(하산 마감이 지남)": "Auto (descent deadline passed)" };
+    function byText(s, en) { return en && BY_EN[s] ? BY_EN[s] : s || ""; }
     function kst(ms) {
         if (!ms) return ["", ""];
         var d = new Date(ms + 9 * 3600000), p = function (n) { return ("0" + n).slice(-2); };
@@ -22,11 +25,11 @@
         var rows = [en ? HEAD_EN : HEAD];
         (ended || []).forEach(function (r) {
             var e = kst(r.endedAt), dep = kst(r.departAt);
-            rows.push([e[0], e[1], r.name, dep[0] ? dep[0] + " " + dep[1] : "", r.cancelled ? (en ? "Cancelled" : "취소") : "", r.why || "", r.by || "",
+            rows.push([e[0], e[1], r.name, dep[0] ? dep[0] + " " + dep[1] : "", r.cancelled ? (en ? "Cancelled" : "취소") : "", r.why || "", byText(r.by, en),
                 r.hikers || 0, r.boarded || 0, r.notBoarded || 0, r.departed ? r.aboard || 0 : "", r.departed ? r.apart || 0 : "",
                 r.cancelled || !r.departed ? "" : r.notDown || 0, r.sosEver ? (en ? "Yes" : "있었음") : ""]);
         });
         return "﻿" + rows.map(function (r) { return r.map(cell).join(","); }).join("\r\n") + "\r\n";
     }
-    g.RFOfficeCsv = { officeCsv: officeCsv };
+    g.RFOfficeCsv = { officeCsv: officeCsv, byText: byText };
 })(typeof window !== "undefined" ? window : this);

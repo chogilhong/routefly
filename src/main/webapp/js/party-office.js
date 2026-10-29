@@ -170,7 +170,7 @@
         $("ended").innerHTML = (j.ended || []).slice(0, 100).map(function (r) {
             var nd = r.notDown > 0 && !r.cancelled;
             return "<tr" + (nd ? " class=\"warn\"" : "") + "><td>" + when(r.endedAt) + "</td><td class=\"name\">" + esc(r.name) + (r.cancelled ? " <span class=\"red\">" + T("취소", "Cancelled") + "</span>" + (r.why ? " <small>(" + esc(r.why) + ")</small>" : "") : "") + "</td>"
-                + "<td>" + esc(r.by) + "</td><td>" + r.boarded + " / " + r.hikers + "</td><td>" + (r.departed ? r.aboard + " / " + r.hikers : "-") + "</td>"
+                + "<td>" + esc(RFOfficeCsv.byText(r.by, EN)) + "</td><td>" + r.boarded + " / " + r.hikers + "</td><td>" + (r.departed ? r.aboard + " / " + r.hikers : "-") + "</td>"
                 + "<td>" + (nd ? "<span class=\"yel\">⚠ " + r.notDown + T("명", "") + "</span>" : "0") + "</td><td>" + (r.sosEver ? "<span class=\"red\">" + T("있었음", "Yes") + "</span>" : "-") + "</td></tr>";
         }).join("") || "<tr><td colspan=\"7\">" + T("아직 끝난 산행이 없습니다.", "No finished hikes yet.") + "</td></tr>";
     }
