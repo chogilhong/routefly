@@ -65,6 +65,20 @@ public class PlaceServletTest {
     }
 
     @Test
+    public void kakaoKeyword() {
+        String t = "{\"documents\":[{\"place_name\":\"설악산 소공원\",\"road_address_name\":\"강원특별자치도 속초시 설악산로 833\",\"address_name\":\"강원 속초시 설악동 1\",\"x\":\"128.4880\",\"y\":\"38.1720\"},"
+                + "{\"place_name\":\"설악산 소공원 주차장\",\"road_address_name\":\"강원특별자치도 속초시 설악산로 833\",\"address_name\":\"\",\"x\":\"128.4882\",\"y\":\"38.1721\"},"
+                + "{\"place_name\":\"바깥\",\"road_address_name\":\"\",\"address_name\":\"\",\"x\":\"10\",\"y\":\"10\"}],\"meta\":{\"total_count\":3}}";
+        JsonObject o = PlaceServlet.parseKakao(t);
+        assertEquals("같은 주소 하나 · 나라 밖 뺌", 1, o.getAsJsonArray("places").size());
+        JsonObject p = o.getAsJsonArray("places").get(0).getAsJsonObject();
+        assertEquals("설악산 소공원", p.get("name").getAsString());
+        assertEquals("강원특별자치도 속초시 설악산로 833", p.get("addr").getAsString());
+        assertEquals("카카오", o.get("source").getAsString());
+        assertNull(PlaceServlet.parseKakao("{\"errorType\":\"x\"}"));
+    }
+
+    @Test
     public void futurePartnerSlots() {
         java.util.Map<String, String> c = new java.util.HashMap<>();
         c.put("partner.yeogi.url", "https://www.yeogi.com/search?k={q}");

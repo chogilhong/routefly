@@ -1338,6 +1338,7 @@
             out.appendChild(row);
             if (spon) out.appendChild(el("p", T("🏨 표시는 제휴 링크 - 예약하면 routefly 가 수수료를 받습니다(값은 같음).", "🏨 links are affiliate links - routefly earns a commission if you book (same price)."), "dim"));
         }
+        var src = "";   // 위치 자료 출처(카카오 · 국토교통부 V-World) - 답의 source
         function show(p, pl, all, note) {
             out.textContent = "";
             if (note) out.appendChild(el("p", note, "dim"));   // 뒤 낱말은 못 찾아 앞 낱말(산 이름) 근처로(2026-10-29)
@@ -1368,7 +1369,7 @@
                     if (x.tel) { var t = el("a", " 📞 " + x.tel); t.href = "tel:" + String(x.tel).replace(/[^0-9+]/g, ""); li.appendChild(t); }
                     list.appendChild(li);
                 });
-                out.appendChild(el("p", T("숙소 목록: 한국관광공사(TourAPI) · 위치: 국토교통부 V-World. 요금 · 빈방은 예약 사이트에서 확인하세요.", "Lodging list: Korea Tourism Organization · location: V-World. Check prices and rooms on the booking sites."), "dim"));
+                out.appendChild(el("p", T("숙소 목록: 한국관광공사(TourAPI) · 위치: " + (src || "국토교통부 V-World") + ". 요금 · 빈방은 예약 사이트에서 확인하세요.", "Lodging list: Korea Tourism Organization · location: " + (src === "카카오" ? "Kakao" : "V-World") + ". Check prices and rooms on the booking sites."), "dim"));
             }).catch(function () { list.textContent = ""; list.appendChild(el("li", T("숙소 목록을 받지 못했습니다.", "Couldn't load the lodging list."))); });
         }
         form.addEventListener("submit", function (e) {
@@ -1378,6 +1379,7 @@
             out.textContent = T("찾는 중…", "Searching…");
             Promise.all([fetch(base + "api/place?q=" + encodeURIComponent(q)).then(function (r) { return r.json(); }), partnersP.catch(function () { return {}; })]).then(function (r) {
                 var pl = (r[0].places || []), p = r[1] || {};
+                src = r[0].source || "";
                 if (!pl.length) {
                     out.textContent = "";
                     out.appendChild(el("p", r[0].unavailable ? T("지금은 장소를 찾지 못합니다. 아래 지도로 찾아 주세요.", "Place search is unavailable now. Try the map below.")

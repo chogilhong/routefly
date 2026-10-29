@@ -18,7 +18,8 @@ import com.google.gson.JsonParser;
  * 장소 이름 → 좌표(2026-10-29 홍TV님 "산청군청 근처 숙소" 를 /m/ 에서). {@code GET /api/place?q=산청군청} - 국토교통부 V-World 검색 API 2.0.
  * 장소(place)로 먼저, 없으면 도로명 주소 · 지번 주소로. 우리나라 안 좌표만, 5곳까지.
  * <ul>
- *   <li>키는 서버 설정 {@code place.vworld.key}(없으면 지도와 같은 {@code map.vworld.key}). 없거나 실패하면 {@code {success:true, places:[], unavailable:true}}.</li>
+ *   <li>카카오 로컬 키워드 검색을 먼저(설정 {@code kakao.restKey} - 카카오 개발자 앱의 REST API 키, 2026-10-29), 없거나 못 찾으면 V-World.</li>
+ *   <li>V-World 키는 서버 설정 {@code place.vworld.key}(없으면 지도와 같은 {@code map.vworld.key}). 없거나 실패하면 {@code {success:true, places:[], unavailable:true}}.</li>
  *   <li>찾는 말은 사람이 친 이름이라 로그 · 통계에 남기지 않음(OpenApi 로그는 tag 와 까닭만). 같은 말은 하루 동안 담아 둠.</li>
  * </ul>
  * → {@code {success, places:[{name, addr, lat, lon}], source:"국토교통부 V-World"}}
@@ -58,7 +59,45 @@ public class PlaceServlet extends HttpServlet {
         if (key == null) key = RouteflyConfig.get("map.vworld.key");
         if (key == null) return empty(true);
         String k = key, domain = host(RouteflyConfig.get("site.baseUrl"));
+        // 카카오 로컬(키워드) 먼저 - 들머리 · 관광지 이름(설악산 소공원 · 중산리 탐방지원센터)을 V-World 보다 잘 찾음(2026-10-29 홍TV님 "구글 검색인데"). 키가 없거나 못 찾으면 V-World
+        String kakao = RouteflyConfig.get("kakao.restKey");
+        if (kakao != null) {
+            String t = OpenApi.get(KAKAO_URL + "?size=5&query=" + URLEncoder.encode(q, StandardCharsets.UTF_8), "PLACE-KAKAO", java.time.Duration.ofSeconds(8), "Authorization", "KakaoAK " + kakao);
+            JsonObject r = t == null ? null : parseKakao(t);
+            if (r != null && r.getAsJsonArray("places").size() > 0) return r;
+        }
         return resolve(q, w -> lookup(k, w, domain));
+    }
+
+    static final String KAKAO_URL = "https://dapi.kakao.com/v2/local/search/keyword.json";
+
+    /** 순수 함수 - 카카오 로컬 키워드 답 → {success, places, source}. 꼴이 틀리면 null. 주소 · 좌표가 같은 곳은 하나만(V-World 와 같게). */
+    static JsonObject parseKakao(String text) {
+        try {
+            JsonArray docs = JsonParser.parseString(text).getAsJsonObject().getAsJsonArray("documents"), places = new JsonArray();
+            java.util.Set<String> seen = new java.util.HashSet<>();
+            for (JsonElement e : docs) {
+                JsonObject d = e.getAsJsonObject();
+                double lat = d.get("y").getAsDouble(), lon = d.get("x").getAsDouble();
+                if (StaysServlet.parse(String.valueOf(lat), String.valueOf(lon)) == null) continue;
+                String road = d.has("road_address_name") ? d.get("road_address_name").getAsString() : "", jibun = d.has("address_name") ? d.get("address_name").getAsString() : "";
+                String addr = !road.isEmpty() ? road : !jibun.isEmpty() ? jibun : null;
+                if (!seen.add(addr != null ? addr.replaceAll("\\s+", "") : "@" + Math.round(lat * 1e3) + "," + Math.round(lon * 1e3))) continue;
+                JsonObject p = new JsonObject();
+                p.addProperty("name", Party.clean(d.get("place_name").getAsString(), 60));
+                if (addr != null) p.addProperty("addr", Party.clean(addr, 80));
+                p.addProperty("lat", Math.round(lat * 1e6) / 1e6);
+                p.addProperty("lon", Math.round(lon * 1e6) / 1e6);
+                places.add(p);
+                if (places.size() >= 5) break;
+            }
+            JsonObject out = empty(false);
+            out.add("places", places);
+            out.addProperty("source", "카카오");
+            return out;
+        } catch (RuntimeException e) {
+            return null;
+        }
     }
 
     /** V-World 한 번(장소 → 도로명 → 지번). 못 받으면 null(키 · 연결 문제), 없으면 빈 places. */

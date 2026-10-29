@@ -79,6 +79,8 @@ site.baseUrl=
 #partner.hotels.url=
 # 장소 이름 → 좌표(V-World 검색 API) 키 - 비우면 map.vworld.key 를 씀(V-World 에서 "검색 API" 활용을 함께 신청)
 #place.vworld.key=
+# 장소 찾기 - 카카오 로컬(키워드) 먼저(들머리 · 관광지 이름을 잘 찾음). 카카오 개발자 앱 → 앱 키 → REST API 키. 서버에서만 씀(화면 · 저장소로 나가지 않음). 비우면 V-World 만
+#kakao.restKey=
 # 후원: 토스 아이디(https://toss.me/...) · 카카오페이 송금 코드(https://qr.kakaopay.com/...) 등 https 주소. 안내(about.html) 아래에 단추.
 #donate.url=
 # 외국 사람용 후원(2026-10-17): PayPal 결제 링크(https://www.paypal.com/ncp/payment/...) · https://paypal.me/... · https://ko-fi.com/...

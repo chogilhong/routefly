@@ -75,11 +75,18 @@ final class OpenApi {
 
     /** GET 한 번 - 큰 응답(에어코리아 측정소 목록 등)은 시간 한도를 늘려서. */
     static String get(String url, String tag, Duration timeout) {
+        return get(url, tag, timeout, new String[0]);
+    }
+
+    /** 머리글을 붙여 GET(카카오 로컬 API 의 Authorization: KakaoAK … 등, 2026-10-29). headers - 이름, 값, 이름, 값 … */
+    static String get(String url, String tag, Duration timeout, String... headers) {
         long now = System.currentTimeMillis();
         long[] b = BLOCK.get(tag);
         if (b != null && now < b[0]) return null;
         try {
-            HttpRequest r = HttpRequest.newBuilder(URI.create(url)).timeout(timeout).GET().build();
+            HttpRequest.Builder rb = HttpRequest.newBuilder(URI.create(url)).timeout(timeout).GET();
+            for (int i = 0; i + 1 < headers.length; i += 2) rb.header(headers[i], headers[i + 1]);
+            HttpRequest r = rb.build();
             HttpResponse<String> res = HTTP.send(r, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
             if (limitHit(res.statusCode(), res.body())) {
                 long until = kstMidnightAfter(now);
