@@ -1409,7 +1409,7 @@
     });
 
     start();
-    if (window.RF && RF.notifyDeploy) RF.notifyDeploy(["party.html", "js/party.js", "js/party-kit.js", "js/course-kit.js"], function () { return true; });   // 새 버전 띠(2026-10-20)
+    if (window.RF && RF.notifyDeploy) RF.notifyDeploy(["party.html", "js/party.js", "js/party-kit.js", "js/kit-party.js"], function () { return true; });   // 새 버전 띠(2026-10-20)
 })();
 
 // 글자 크기 "가+" - 위 줄 오른쪽(다른 화면과 같은 설정) · 그 옆 한/EN 단추(2026-10-22 - 같은 주소에 lang=en · lang=ko)

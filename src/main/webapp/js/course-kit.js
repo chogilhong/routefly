@@ -4820,7 +4820,7 @@
         p.textContent = saved ? T.done(when(saved)) : T.tip;
         b.addEventListener("click", function () {
             var q = "?lat=" + (+anchor.getAttribute("data-lat")).toFixed(4) + "&lon=" + (+anchor.getAttribute("data-lon")).toFixed(4);
-            var urls = [location.href, rel + "/css/course-kit.css", rel + "/css/mountain.css", rel + "/js/course-kit.js", rel + "/js/" + script, rel + "/img/logo-dark.svg",
+            var urls = [location.href, rel + "/css/course-kit.css", rel + "/css/mountain.css", rel + "/js/kit-m.js", rel + "/js/" + script, rel + "/img/logo-dark.svg",
                 rel + "/api/wx" + q, rel + "/api/partners", rel + "/hike.html" + (script === "mountain-en.js" ? "?lang=en" : "")];
             Array.prototype.forEach.call(document.querySelectorAll(".cs li[data-id]"), function (li) { urls.push(rel + "/api/course?id=" + encodeURIComponent(li.getAttribute("data-id"))); });
             b.disabled = true;

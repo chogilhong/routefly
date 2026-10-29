@@ -1320,3 +1320,22 @@ eq("stayMapLink 숙소 이름 → 카카오맵 자리(쉼표는 빈칸, 나라 �
 })();
 eq("stayKindEn 카카오 숙소 종류 → 영어", ["호텔", "여관,모텔", "콘도,리조트", "게스트하우스", "펜션", "민박", "캠핑,야영장", "", null].map(RF.stayKindEn),
     ["Hotel", "Motel", "Resort", "Guesthouse", "Pension", "Homestay", "Campground", "Lodging", "Lodging"]);
+// 화면별 작은 course-kit(js/kit-*.js - tools/kit-split, 2026-10-30): 원본과 맞는지, 불러지는지, 그 화면이 쓰는 RF 이름이 다 같은 함수로 있는지
+(function () {
+    var split = require(path.join(__dirname, "../../../tools/kit-split/split.js"));
+    split.all().forEach(function (b) {
+        var file = path.join(split.WEB, b.out), now = fs.existsSync(file) ? fs.readFileSync(file, "utf8").replace(/\r\n/g, "\n") : "";
+        eq(b.out + " 가 course-kit.js 와 맞음(틀리면 node tools/kit-split/split.js)", now === b.text, true);
+        var sb = { window: {}, console: console };
+        vm.createContext(sb);
+        vm.runInContext(b.text, sb);
+        var K = sb.window.RF || {}, used = split.usedNames(b.users.map(function (u) { return fs.readFileSync(path.join(split.WEB, u), "utf8"); }));
+        var miss = Object.keys(used).filter(function (n) { return n in RF && !(n in K); });
+        var diff = Object.keys(K).filter(function (n) { return typeof K[n] === "function" && String(K[n]) !== String(RF[n]); });
+        eq(b.out + " 에 화면이 쓰는 이름이 다 있고 원본과 같은 함수", [miss, diff], [[], []]);
+    });
+    var m = sandboxOf("js/kit-m.js");
+    eq("kit-m 으로도 같은 답(오늘의 한마디 · 해 뜨는 때 · 숙소 찾기 칸 있음)", [m.fortuneDay(2026, 10, 30, "ko"), String(m.sunrise(38.1, 128.5, new Date(Date.UTC(2026, 9, 30)))), typeof m.staySearch],
+        [RF.fortuneDay(2026, 10, 30, "ko"), String(RF.sunrise(38.1, 128.5, new Date(Date.UTC(2026, 9, 30)))), "function"]);
+    function sandboxOf(f) { var sb = { window: {}, console: console }; vm.createContext(sb); vm.runInContext(fs.readFileSync(path.join(split.WEB, f), "utf8"), sb); return sb.window.RF; }
+})();

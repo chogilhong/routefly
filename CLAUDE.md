@@ -32,6 +32,8 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다 - 산악회 방 
 - 점검 단계마다 테스트 클래스를 둡니다(`CheckupStage1Test` 버그 · `CheckupStage2Test` 속도 · 호출 · `CheckupStage3Test` 화면 · 보안) - totonian 의 `VoidBulkV4435Test` 같은 방식.
 - 내 기록은 IndexedDB(`rf-records`), 사진은 IndexedDB(`rf-photos`), 걷는 중 저장분은 localStorage(`rf-hike-<코스>` · `-track` · `-notes`, 하루 지나면 지움).
 - course-kit.js 순수 함수는 `src/test/js/course-kit.test.js` 를 node 로 돌립니다(`CourseKitJsTest` 가 부름, node 가 없으면 건너뜀).
+- course-kit.js 를 고치면 `node tools/kit-split/split.js` 로 화면별 작은 파일(js/kit-m.js 산 페이지 · kit-party.js 산악회 방 · kit-tools.js 별거별거 · kit-anbu.js 안부)을 다시 만듭니다(2026-10-30).
+  그 화면이 쓰는 RF 함수만 남긴 만든 파일이라 직접 고치지 않습니다. 안 맞으면 node 테스트가 "원본과 다름" 으로 실패합니다.
 - 테스트 데이터는 만들거나 받으면 바로 커밋합니다.
 
 ## 4. 비밀값
