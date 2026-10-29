@@ -23,7 +23,9 @@ files.forEach(function (f) {
     try {
         var out = esbuild.transformSync(src, { loader: f.endsWith(".css") ? "css" : "js", minify: true, target: f.endsWith(".css") ? "chrome80" : "es2017", charset: "utf8", legalComments: "none" }).code;
         if (!out || out.length > src.length) return;
+        var st = fs.statSync(f);
         fs.writeFileSync(f, out);
+        fs.utimesSync(f, st.atime, st.mtime);   // 원래 파일 시각 그대로 - 톰캣 ETag(길이-시각)가 안 바뀐 파일은 같아 304(2026-10-29 점검: 배포마다 손님이 js · css 를 모두 다시 받았음)
         before += Buffer.byteLength(src); after += Buffer.byteLength(out);
     } catch (e) {
         bad.push(path.basename(f) + ": " + String(e.message || e).split("\n")[0]);

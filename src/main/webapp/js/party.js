@@ -470,6 +470,7 @@
         var p = RFParty.get();
         if (!p) { location.href = EXIT; return; }
         if (Date.now() - lastOk < (isStaff() ? 14000 : 10000)) return;   // 방금 위치 · 켜짐의 답으로 받았음 - 같은 것을 또 받지 않음(2026-10-22 점검: 회원 1분에 4번)
+        if (p.office && Date.now() - lastOk < (document.hidden ? 60000 : 28000)) return;   // 사무실 자리 - 위치를 보내지 않고 사무실 화면이 SOS 를 모아 봄: 보일 때 30초 · 숨었을 때 1분(2026-10-29 점검: 숨은 탭마다 15초)
         if (document.hidden && !isStaff()) return;   // 회원 - 화면을 안 볼 때는 방 새로 받기를 쉼(위치 · 켜짐을 보낼 때 답으로 공지가 옴). 인솔자는 SOS 를 놓치지 않게 그대로
         RFParty.post("view", { token: p.token }).then(render).catch(fail);
     }

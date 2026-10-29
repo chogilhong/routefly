@@ -26,6 +26,7 @@ public class MinifyBuildTest {
         assertTrue("esbuild 가 없으면 건너뜀", ps.contains("MINIFY-SKIP"));
         for (char c : ps.toCharArray()) assertTrue("PowerShell 5.1 이 읽게 ASCII 만", c < 128);
         String m = read("tools/minify/minify.js");
+        assertTrue("줄인 파일도 원래 시각 - 안 바뀐 파일은 배포 뒤에도 304", m.contains("fs.utimesSync(f, st.atime, st.mtime);"));
         assertTrue("vendor · data 는 손대지 않음", m.contains("[\"js\", \"css\"].forEach") && !m.contains("\"vendor\""));
         assertTrue("판 고정", read("tools/minify/package.json").matches("(?s).*\"esbuild\": \"\\d+\\.\\d+\\.\\d+\".*"));
         assertTrue(Files.exists(Path.of("tools/minify/package-lock.json")));

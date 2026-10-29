@@ -44,7 +44,7 @@ var ABOUT_EN = document.documentElement.lang === "en";   // 영어판(about-en �
 })();
 
 /* 제휴 · 후원(2026-10-15 홍TV님) - 설정(api/partners)에 링크가 있을 때만 '💚 routefly 응원하기' 를 보임 */
-fetch("api/partners").then(function (r) { return r.json(); }).then(function (p) {
+if (document.getElementById("support")) fetch("api/partners").then(function (r) { return r.json(); }).then(function (p) {   // 응원 칸이 있는 안내 화면만(약관 · 방침 6개는 묻지 않음, 2026-10-29 점검)
     var aff = p.agoda || p.trip || (p.coupang && Object.keys(p.coupang).length), sec = document.getElementById("support");
     if (!sec || !(aff || p.donate)) return;
     if (aff) {   // 설정에 있는 제휴만 적음(2026-10-15 PC: 아고다 링크가 없는데 "숙박의 아고다" 가 보였음)

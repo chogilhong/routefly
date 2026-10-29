@@ -4,7 +4,7 @@
  * 목록은 숫자만(이름 · 위치 없음). "열기" = 그 방에 사무실 자리를 만들어 인솔자 화면(party.html)으로 - 위치는 거기서만 봄.
  */
 (function () {
-    var KEY = "rf-office-key", EVERY_MS = 30000;
+    var KEY = "rf-office-key", EVERY_MS = 30000, lastLoad = 0;
     var $ = function (id) { return document.getElementById(id); };
     var key = null, timer = null;
     // 영어(2026-10-29 홍TV님 "영어로는 회사 사무실이 없네") - ?lang=en. 화면 글은 data-en, 스크립트 글은 T(한국어, 영어)
@@ -120,6 +120,35 @@
         ["newSec", "madeSec", "officeSec"].forEach(function (x) { $(x).hidden = x !== id; });
     }
 
+    // SOS 알림(2026-10-29 점검 - 사무실 PC 는 탭이 많아 다른 탭을 보는 동안 SOS 를 늦게 봄): 탭 제목 "🆘(n)", 삑 소리, PC 알림(허락했을 때)
+    var seenSos = null, seenPend = null, audio = null, baseTitle = document.title;
+    function beep() {
+        try {
+            audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+            if (audio.state === "suspended") audio.resume();
+            [0, 0.35, 0.7].forEach(function (t) {
+                var o = audio.createOscillator(), gn = audio.createGain();
+                o.frequency.value = 880; gn.gain.value = 0.25;
+                o.connect(gn); gn.connect(audio.destination);
+                o.start(audio.currentTime + t); o.stop(audio.currentTime + t + 0.2);
+            });
+        } catch (e) { /* 소리 없음 */ }
+    }
+    function warn(rooms, pend) {
+        var sos = {}, total = 0, fresh = [];
+        rooms.forEach(function (r) { if (r.sos > 0) { sos[r.code] = r.sos; total += r.sos; if (seenSos && !(seenSos[r.code] >= r.sos)) fresh.push(r.name); } });
+        var newPend = seenPend != null && pend.length > seenPend;
+        document.title = (total ? "🆘(" + total + ") " : "") + (pend.length ? "🕓(" + pend.length + ") " : "") + baseTitle;
+        if (fresh.length || newPend) {
+            beep();
+            var text = fresh.length ? T("🆘 SOS - ", "🆘 SOS - ") + fresh.join(", ") : T("🕓 승인 기다리는 방이 새로 올라왔습니다.", "🕓 A new room is waiting for approval.");
+            if (document.hidden && window.Notification && Notification.permission === "granted") {
+                try { new Notification(T("routefly 회사 사무실", "routefly Company office"), { body: text, tag: "rf-office-" + Date.now() }); } catch (e) { /* 소리 · 제목으로 갈음 */ }
+            }
+        }
+        seenSos = sos; seenPend = pend.length;
+    }
+
     var last = null;   // 마지막으로 받은 사무실 - 엑셀 내려받기에 씀(서버에 다시 묻지 않음)
     function render(j) {
         last = j;
@@ -127,6 +156,7 @@
         drawMine();
         $("offTitle").textContent = "🏢 " + officeOf(j.name);
         $("title").textContent = "🏢 " + officeOf(j.name);
+        baseTitle = "🏢 " + officeOf(j.name);
         $("offCode").textContent = j.code;
         $("updated").textContent = when(j.now) + T(" 기준", "");
         var rooms = (j.rooms || []).slice();
@@ -137,6 +167,7 @@
         });
         $("liveCount").textContent = rooms.length + T("곳", "");
         var pend = j.pending || [];   // 승인 기다리는 방(2026-10-28)
+        warn(rooms, pend);
         $("pendSec").hidden = !pend.length;
         $("pendCount").textContent = pend.length + T("곳", "");
         $("pend").innerHTML = pend.map(function (r) {
@@ -202,7 +233,8 @@
         store(key);
         load();
         clearInterval(timer);
-        timer = setInterval(function () { if (!document.hidden) load(); }, EVERY_MS);
+        lastLoad = Date.now();
+        timer = setInterval(function () { if (!document.hidden || Date.now() - lastLoad >= 59000) { lastLoad = Date.now(); load(); } }, EVERY_MS);   // 숨은 탭도 1분마다(SOS 알림, 2026-10-29)
     }
 
     // 끝난 산행 엑셀(CSV) 내려받기(2026-10-28 홍TV님 추천 1) - 이 화면이 이미 받은 숫자만
@@ -278,13 +310,29 @@
     $("backTop").addEventListener("click", function (e) {
         if (document.referrer && document.referrer.indexOf(location.origin + "/") === 0 && history.length > 1) { e.preventDefault(); history.back(); }
     });
+    document.addEventListener("visibilitychange", function () {   // 탭으로 돌아오면 바로 새로 받기
+        if (!document.hidden && key && !$("officeSec").hidden && Date.now() - lastLoad > 5000) { lastLoad = Date.now(); load(); }
+    });
+    function alertBtn() {
+        var b = $("alertOn");
+        b.hidden = !window.Notification || Notification.permission === "granted" || Notification.permission === "denied";
+    }
+    $("alertOn").addEventListener("click", function () {
+        beep();   // 누른 김에 소리도 허락(브라우저는 한 번 누른 뒤에만 소리를 냄)
+        Promise.resolve(Notification.requestPermission()).then(function (r) {
+            msg(r === "granted" ? T("🔔 알림을 켰습니다. 다른 탭을 보고 있어도 SOS 를 알려 드립니다.", "🔔 Alerts on. You'll be alerted to SOS even while viewing other tabs.") : T("알림이 꺼져 있습니다. 탭 제목의 🆘 와 소리로 알려 드립니다.", "Alerts are off. You'll still see 🆘 in the tab title and hear a beep."));
+            alertBtn();
+        }).catch(function () { alertBtn(); });
+    });
+    document.addEventListener("click", function () { if (!audio) { try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { /* 없음 */ } } }, { once: true });   // 첫 누름에 소리 준비
+    alertBtn();
     // 내 사무실 고르기 · 하나 더 만들기(2026-10-29)
     $("mineSel").addEventListener("change", function () {
         var y = mine()[+this.value];
         if (!y || y.k === key) return;
         clearInterval(timer);
         store(y.k);
-        last = null;
+        last = null; seenSos = null; seenPend = null;
         msg("");
         start();
     });
