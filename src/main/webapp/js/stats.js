@@ -9,4 +9,9 @@
             Array.prototype.forEach.call(all, function (o) { if (o !== d && o.open) o.open = false; });
         });
     });
+    // 5분마다 저절로 새로(2026-10-29 홍TV님) - 화면을 안 볼 때는 쉬고, 다시 보면 5분 넘었을 때 바로
+    var loaded = Date.now(), EVERY = 5 * 60000;
+    function again() { if (!document.hidden && Date.now() - loaded >= EVERY) location.reload(); }
+    setInterval(again, 30000);
+    document.addEventListener("visibilitychange", again);
 })();

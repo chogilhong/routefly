@@ -16,6 +16,7 @@ public class SeenServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) {
+        Access.js(SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For")), System.currentTimeMillis());   // 오늘 접속 분석 - js 가 돈 곳
         if (!StatsFilter.owner(req.getHeader("Cookie"))) {
             String ua = req.getHeader("User-Agent");
             if (Stats.botKind(ua, req.getHeader("Accept-Language")) == null)

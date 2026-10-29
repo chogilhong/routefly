@@ -44,12 +44,15 @@ public class StatsFilter extends HttpFilter {
     @Override
     protected void doFilter(HttpServletRequest req, HttpServletResponse res, FilterChain chain) throws IOException, ServletException {
         chain.doFilter(req, res);
-        if (!"GET".equals(req.getMethod()) || res.getStatus() >= 400 || !Stats.isPageView(req.getHeader("X-RF-Prefetch")) || owner(req.getHeader("Cookie"))) return;
+        if (!"GET".equals(req.getMethod()) || res.getStatus() >= 400 || !Stats.isPageView(req.getHeader("X-RF-Prefetch"))) return;
         String path = req.getServletPath() + (req.getPathInfo() == null ? "" : req.getPathInfo());
         String page = Stats.pageKey(path);
         if (page == null) return;
         String ip = SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For"));
         String ua = req.getHeader("User-Agent");
+        boolean own = owner(req.getHeader("Cookie"));
+        Access.page(page, ip, ua, req.getHeader("Accept-Language"), own, System.currentTimeMillis());   // 오늘 접속 분석 - 로봇 · 운영자도 종류별로(2026-10-29)
+        if (own) return;
         String bot = Stats.botKind(ua, req.getHeader("Accept-Language"));
         Stats.hit(page, Stats.courseKey(path), ip, bot, "검색".equals(bot) ? Stats.searchEngine(ua) : null, Stats.source(req.getHeader("Referer"), req.getServerName()), Stats.device(ua),
                 bot == null ? Stats.suspect(ua, req.getHeader("Sec-Fetch-Mode"), req.getHeader("sec-ch-ua")) : null);

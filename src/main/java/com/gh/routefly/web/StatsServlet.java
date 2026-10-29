@@ -164,6 +164,7 @@ public class StatsServlet extends HttpServlet {
                 + " · 로봇 " + String.format(Locale.KOREA, "%,d", tb) + botLine(bots) + "</p>");
         out.append(trend(days, n));
         out.append(checkTable(days, last));   // 날마다 위 · 늘 펼침(2026-10-22 홍TV님)
+        out.append(Access.section(System.currentTimeMillis()));   // 오늘 접속 분석 - 사람 확인 아래(2026-10-29 홍TV님)
         out.append("<section><h2>날마다</h2><table class=\"st\"><tr><th>날짜</th><th class=\"num\">방문자</th><th class=\"num\">모바일</th><th class=\"num\">PC</th><th class=\"num\">화면</th><th class=\"num\">로봇</th></tr>").append(rows).append("</table></section>");
         out.append(top("모바일 · PC 방문자(" + last.size() + "일 - 10-20 부터 셈)", devs, 5, null))
                 .append(top("인기 산 페이지(" + last.size() + "일)", mountains, 20, null))
@@ -178,7 +179,7 @@ public class StatsServlet extends HttpServlet {
     }
 
     /** 늘 펼친 칸(제목 앞글자) - 접지 않음(2026-10-21 홍TV님). */
-    static final List<String> ALWAYS = List.of("방문 추세", "사람 확인", "날마다", "모바일 · PC 방문자");
+    static final List<String> ALWAYS = List.of("방문 추세", "사람 확인", "오늘 접속 분석", "날마다", "모바일 · PC 방문자");
 
     /**
      * 순수 함수 - 칸(section 의 h2 제목)마다 누르면 접고 펴는 details 로 감쌈(처음엔 접힘). {@link #ALWAYS} 칸은 그대로 늘 보임.

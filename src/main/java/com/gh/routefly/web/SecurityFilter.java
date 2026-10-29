@@ -79,10 +79,12 @@ public class SecurityFilter extends HttpFilter {
             if (!LIMITER.allow(ip, now) || (heavy(path, req.getParameter("q"), req.getParameter("bbox")) && !HEAVY.allow(ip, now))) {
                 res.setHeader("Retry-After", "5");
                 Json.fail(res, 429, "요청이 너무 잦습니다. 잠시 뒤 다시 해 주세요.");
+                Access.status(path, 429, now);
                 return;
             }
         }
         chain.doFilter(req, res);
+        Access.status(path, res.getStatus(), System.currentTimeMillis());   // 오늘 접속 분석 - 결과 번호 · 404 경로(2026-10-29)
     }
 
     /** 순수 함수 - 무거운 요청인가: 공원 전체, 이름 검색(q), 넓은 bbox 목록. */
