@@ -66,8 +66,10 @@ public class StaysServlet extends HttpServlet {
         if (base == null) base = pet ? PET_URL : DEFAULT_URL;
         JsonObject out = fetch(base, serviceKey, lat, lon, type, RADIUS_M, pet);
         // 반려동물 동반 가능한 곳은 드묾 - 5km 안에 없으면 20km 까지 넓혀 한 번 더(2026-10-14 PC: 가야산 · 북한산 5km 안 0곳)
-        if (pet && out != null && out.getAsJsonArray("stays").size() == 0) {
-            JsonObject wide = fetch(base, serviceKey, lat, lon, type, PET_WIDE_M, pet);
+        // 숙박도 5km 안에 없으면 20km 까지(2026-10-29 홍TV님 - PC: 설악산 소공원 5km 안 0곳, 관광공사에 설악동 숙소가 없고 속초 시내가 7~8km)
+        int wideM = wideRadius(pet, type);
+        if (wideM > 0 && out != null && out.getAsJsonArray("stays").size() == 0) {
+            JsonObject wide = fetch(base, serviceKey, lat, lon, type, wideM, pet);
             if (wide != null) out = wide;
         }
         return out != null ? out : unavailable();
@@ -102,6 +104,11 @@ public class StaysServlet extends HttpServlet {
     /** 순수 함수 - 담아 두는 열쇠(소수 셋째 자리 - 약 100m). */
     static String cacheKey(double lat, double lon) {
         return String.format(Locale.ROOT, "%.3f,%.3f", lat, lon);
+    }
+
+    /** 순수 함수 - 5km 안에 없을 때 넓혀 볼 반경(반려동물 · 숙박 20km, 음식점은 넓히지 않음 0). */
+    static int wideRadius(boolean pet, String type) {
+        return pet || "32".equals(type) ? PET_WIDE_M : 0;
     }
 
     /** 순수 함수 - kind → TourAPI 관광타입(food 면 음식점 39, 그 밖은 숙박 32). */

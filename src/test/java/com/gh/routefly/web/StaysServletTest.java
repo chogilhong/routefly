@@ -29,6 +29,9 @@ public class StaysServletTest {
         assertTrue(u, u.contains("serviceKey=a%2Bb%2Fc%3D%3D"));
         assertTrue(u, u.contains("mapX=128.120000&mapY=35.790000"));
         assertTrue(u, u.contains("contentTypeId=32") && u.contains("radius=5000") && u.contains("_type=json"));
+        assertEquals("숙박은 5km 안에 없으면 20km 까지(설악산 소공원)", 20000, StaysServlet.wideRadius(false, "32"));
+        assertEquals("반려동물도 20km", 20000, StaysServlet.wideRadius(true, "39"));
+        assertEquals("음식점은 넓히지 않음", 0, StaysServlet.wideRadius(false, "39"));
         assertTrue("반려동물은 20km 까지 넓혀 봄", StaysServlet.url(StaysServlet.PET_URL, "k", 35.79, 128.12, "32", StaysServlet.PET_WIDE_M).contains("radius=20000"));
         assertTrue("식당은 음식점 39", StaysServlet.url(StaysServlet.DEFAULT_URL, "k", 35.79, 128.12, StaysServlet.typeOf("food")).contains("contentTypeId=39"));
         assertEquals("모르는 값은 숙박", "32", StaysServlet.typeOf("x"));

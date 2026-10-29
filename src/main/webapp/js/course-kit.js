@@ -1362,7 +1362,8 @@
             fetch(base + "api/stays?lat=" + pl.lat + "&lon=" + pl.lon).then(function (r) { return r.json(); }).then(function (j) {
                 list.textContent = "";
                 var st = (j.stays || []).slice(0, 10);
-                if (!st.length) { list.appendChild(el("li", j.unavailable ? T("숙소 목록을 지금 받지 못했습니다. 위 예약 단추로 찾아 주세요.", "Couldn't load the lodging list now. Use the buttons above.") : T("5km 안에 등록된 숙소가 없습니다. 위 예약 단추로 찾아 주세요.", "No registered lodging within 5 km. Use the buttons above."))); return; }
+                if (st.length && j.radius_km > 5) list.appendChild(el("li", T("5km 안에 없어 " + j.radius_km + "km 까지 넓혀 찾았습니다.", "None within 5 km - widened to " + j.radius_km + " km."), "dim"));
+                if (!st.length) { list.appendChild(el("li", j.unavailable ? T("숙소 목록을 지금 받지 못했습니다. 위 예약 단추로 찾아 주세요.", "Couldn't load the lodging list now. Use the buttons above.") : T((j.radius_km || 5) + "km 안에 등록된 숙소가 없습니다. 위 예약 단추로 찾아 주세요.", "No registered lodging within " + (j.radius_km || 5) + " km. Use the buttons above."))); return; }
                 st.forEach(function (x) {
                     var li = el("li"), b = el("b", x.name), sm = el("small", " " + (x.dist_m != null ? (x.dist_m / 1000).toFixed(1) + "km" : "") + (x.addr ? " · " + x.addr : ""));
                     li.appendChild(b); li.appendChild(sm);
