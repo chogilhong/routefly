@@ -45,7 +45,7 @@ public class PlaceServletTest {
         c.put("partner.hotels.url", "https://evil.example/{q}");
         JsonObject b = PartnersServlet.body(c::get);
         assertTrue("{q} 가 든 그 사이트 링크만", b.has("yeogi"));
-        assertFalse("자리 표시가 없으면 뺌", b.has("yanolja"));
+        assertTrue("자리 표시가 없어도 그 사이트 링크면 받음(검색 화면으로)", b.has("yanolja"));
         assertFalse("다른 사이트는 뺌", b.has("hotels"));
     }
 }

@@ -1287,7 +1287,8 @@
         [["agoda", "아고다", "Agoda", en ? "https://www.agoda.com/" : "https://www.agoda.com/ko-kr/"], ["yeogi", "여기어때", "Yeogi", "https://www.yeogi.com/"],
             ["yanolja", "야놀자", "Yanolja", "https://nol.yanolja.com/"], ["hotels", "호텔스컴바인", "HotelsCombined", null]].forEach(function (x) {
             var u = p[x[0]];
-            if (u && !((/\{lat\}/.test(u) && !ok) || (!/\{lat\}/.test(u) && !/\{q\}/.test(u)))) { out.push({ text: "🏨 " + (en ? x[2] : x[1]), href: fill(u), sponsored: true }); return; }   // 좌표 · 이름 자리가 없는 링크는 엉뚱한 곳이라 뺌
+            // 자리({q} · {lat}) 없는 제휴 링크도 씀 - 아고다 파트너스 텍스트 링크(partnersearch.aspx?cid=…)처럼 그 사이트 검색 화면으로 가고, 거기서 예약하면 수수료(2026-10-29 홍TV님 화면)
+            if (u && !(/\{lat\}/.test(u) && !ok)) { out.push({ text: "🏨 " + (en ? x[2] : x[1]), href: fill(u), sponsored: true }); return; }
             if (x[3]) out.push({ text: "🔎 " + (en ? x[2] : x[1]), href: x[3], sponsored: false });
         });
         if (nm) out.push({ text: en ? "🗺 Kakao Map lodging" : "🗺 카카오맵 숙소", href: "https://map.kakao.com/link/search/" + encodeURIComponent(nm + " 숙소"), sponsored: false });
