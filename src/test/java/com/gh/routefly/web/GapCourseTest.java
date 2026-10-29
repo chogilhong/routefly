@@ -40,4 +40,19 @@ public class GapCourseTest {
         assertNull("나라 밖", CourseServlet.gapDetail(JsonParser.parseString("{\"id\":\"x\",\"name\":\"a\",\"coords\":[[0.1,51.5],[0.2,51.6]]}").getAsJsonObject()));
         assertNull(CourseServlet.gapDetail(null));
     }
+
+    /** 정상 이름이 산 이름과 붙어 쓴 것("북한산백운대")도 "백운대" 이름표에 공식 높이(2026-10-30 PC: 숨은벽 · 백운대 그래프 최고 808m). */
+    @Test
+    public void summitNameGluedToMountain() {
+        Peaks.Top t = new Peaks.Top(37.658722, 126.978088, 836, "북한산", "북한산백운대");
+        assertTrue(Peaks.sameTop("백운대", t));
+        assertFalse("다른 봉우리는 아님", Peaks.sameTop("인수봉", t));
+        JsonObject g = JsonParser.parseString("{\"id\":\"osmgap-1-2\",\"name\":\"북한산 · 숨은벽 → 백운대\","
+                + "\"coords\":[[126.9770,37.6619,585.7],[126.97807,37.65872,808.4]]}").getAsJsonObject();
+        JsonObject d = CourseServlet.gapDetail(g);
+        Peaks.applyDetail(d, java.util.List.of(t));
+        JsonObject end = d.getAsJsonArray("pois").get(1).getAsJsonObject();
+        assertEquals(836, end.get("ele_m").getAsInt());
+        assertTrue(end.get("ele_official").getAsBoolean());
+    }
 }

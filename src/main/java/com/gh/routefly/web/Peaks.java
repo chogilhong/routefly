@@ -192,6 +192,10 @@ final class Peaks {
             String b = k.replaceAll("\\(.*\\)|\\s+", "");   // 백운산(광양) → 백운산
             if (!b.isEmpty() && n.contains(b)) return true;
         }
+        if (t.summit() != null && t.name() != null) {   // "북한산백운대" 처럼 산 이름이 붙어 쓴 정상 - 뒤의 "백운대" 만 적힌 지점(2026-10-30 PC: 숨은벽 → 백운대 끝 808m 그대로)
+            String sm = t.summit().replaceAll("\\s+", ""), base = t.name().replaceAll("\\(.*\\)|\\s+", "");
+            if (!base.isEmpty() && sm.startsWith(base) && sm.length() - base.length() >= 2 && n.contains(sm.substring(base.length()))) return true;
+        }
         if (t.summit() != null)   // "한라산 백록담" 의 "백록담" 만 적힌 지점(2026-10-16 PC: 조망점 백록담 1950 그대로)
             for (String w : t.summit().replaceAll("\\(.*?\\)", " ").trim().split("\\s+"))
                 if (w.length() >= 2 && n.contains(w)) return true;
