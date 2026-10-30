@@ -1507,3 +1507,11 @@ eq("islands 차도 3km 넘으면 뺌", (function (I) { return [!!I.rejectReason(
     var mk = function (kind, lat0) { return RF.fromApi("x", { course: { name: "북한산 · 가 → 나", kind: kind }, points: [[127, lat0, 100, 0], [127, lat0 + 0.001, 120, 111]], pois: [] }); };
     eq("joinCourses 등산 조각이 있으면 hike", [RF.joinCourses([mk("walk", 37.6), mk("hike", 37.601)], "a,b").course.kind, RF.joinCourses([mk("walk", 37.6), mk("walk", 37.601)], "a,b").course.kind], ["hike", "walk"]);
 })();
+// 하나를 펴면 나머지는 접힘(foldOne) - 묶음 이름 없는 칸(/m/ 근처 숙소 찾기, 처음부터 펴 둠)은 접지 않음(2026-10-30 PC)
+(function () {
+    var mk = function (named, open) { return { tagName: "DETAILS", open: open, named: named, classList: { contains: function (c) { return c === "kind"; } } }; };
+    var stay = mk(false, true), a = mk(true, false), b = mk(true, true), all = [stay, a, b], fn = null;
+    RF.foldOne({ addEventListener: function (t, f) { fn = f; }, querySelectorAll: function (q) { return all.filter(function (o) { return o.open && (q.indexOf("[name]") < 0 || o.named); }); } });
+    a.open = true; fn({ target: a });
+    eq("foldOne 이름 있는 칸만 접고 숙소 칸은 펴 둠", [stay.open, a.open, b.open], [true, true, false]);
+})();

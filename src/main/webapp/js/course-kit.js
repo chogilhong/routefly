@@ -4460,7 +4460,8 @@
             if (!d || d.tagName !== "DETAILS" || !d.open) return;
             var cls = d.classList.contains("kind") ? "kind" : d.classList.contains("group") ? "group" : null;
             if (!cls) return;
-            Array.prototype.forEach.call(doc.querySelectorAll("details." + cls + "[open]"), function (o) { if (o !== d) o.open = false; });
+            // 묶음 이름(name)이 있는 칸끼리만 - 처음부터 펴 둔 /m/ 근처 숙소 찾기(name 없음)는 같이 접지 않음(2026-10-30 PC)
+            Array.prototype.forEach.call(doc.querySelectorAll("details." + cls + "[open][name]"), function (o) { if (o !== d) o.open = false; });
         }, true);
     }
 
