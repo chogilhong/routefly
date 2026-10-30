@@ -106,6 +106,8 @@
     function drawMine() {
         var a = mine(), sel = $("mineSel");
         $("mineBar").hidden = !a.length;
+        $("allRow").hidden = $("allTip").hidden = a.length < 2;   // 사무실이 둘 이상이면 "모두 복사"
+        $("qrMine").textContent = a.length > 1 ? T("🔳 사무실 " + Math.min(a.length, ALL_MAX) + "개 모두 QR", "🔳 QR for all " + Math.min(a.length, ALL_MAX) + " offices") : T("🔳 사무실 링크 QR", "🔳 Office link QR");
         sel.hidden = a.length < 2;
         var html = a.map(function (y, i) { return "<option value=\"" + i + "\"" + (y.k === key ? " selected" : "") + ">🏢 " + esc(y.n || T("사무실 ", "Office ") + (i + 1)) + "</option>"; }).join("");
         if (html !== drawn) { sel.innerHTML = html; drawn = html; }   // 30초마다 그대로면 손대지 않음(펼친 목록이 닫히지 않게)
@@ -130,6 +132,11 @@
     function askText(t, v, o) { return D ? D.prompt(t, v, o) : Promise.resolve(prompt(t, v)); }
     var HERE = location.pathname + (EN ? "?lang=en" : "");   // 주소를 정리해도 영어는 남김(2026-10-29 점검)
     function linkOf(k) { return location.origin + HERE + "#k=" + k; }
+    /** 이 기기의 사무실 모두를 링크 하나로(#ks=열쇠.열쇠… - 2026-10-30 홍TV님 "pc 의 두 개를 폰에서도 두 개로"). 많아야 ALL_MAX 개. */
+    var ALL_MAX = 10;
+    function linkAll() { return location.origin + HERE + "#ks=" + mine().slice(0, ALL_MAX).map(function (y) { return y.k; }).join("."); }
+    /** 지금 QR · 모두 복사가 쓸 링크 - 사무실이 둘 이상이면 모두, 아니면 이 사무실. */
+    function shareLink() { return mine().length > 1 ? linkAll() : linkOf(key); }
 
     function showOnly(id) {
         ["newSec", "madeSec", "officeSec"].forEach(function (x) { $(x).hidden = x !== id; });
@@ -246,6 +253,14 @@
 
     function start() {
         if ($("qrBox")) $("qrBox").hidden = true;   // 다른 사무실 QR 이 남지 않게
+        var ms = /^#ks=([A-Za-z0-9_.-]{20,700})$/.exec(location.hash || "");
+        if (ms) {   // 여러 사무실 링크 - 이 기기에 없는 것만 묻고 넣음
+            try { history.replaceState(null, "", HERE); } catch (e) { /* 그대로 */ }
+            var have = mine().map(function (y) { return y.k; }), ks = [];
+            ms[1].split(".").forEach(function (k) { if (/^[A-Za-z0-9_-]{20,64}$/.test(k) && ks.indexOf(k) < 0 && have.indexOf(k) < 0 && ks.length < ALL_MAX) ks.push(k); });
+            if (ks.length) { confirmMany(ks); return; }
+            msg(T("이 사무실들은 이미 이 기기에 있습니다.", "These offices are already on this device."));
+        }
         var m = /^#k=([A-Za-z0-9_-]{20,64})$/.exec(location.hash || "");
         if (m) {
             try { history.replaceState(null, "", HERE); } catch (e) { /* 그대로 */ }   // 주소창 · 화면 캡처에 열쇠가 남지 않게
@@ -465,16 +480,16 @@
     $("qrMine").addEventListener("click", function () {
         if (!window.qrcode || !key) { noteBelow($("qrMine"), T("QR 을 만들지 못했습니다. 링크 복사를 쓰세요.", "Could not make the QR. Use Copy link.")); return; }
         var box = $("qrBox");
-        if (!box.hidden && box.rfKey === key) { box.hidden = true; return; }   // 다시 누르면 닫음
-        $("qrImg").innerHTML = qrOf(linkOf(key)).createSvgTag({ cellSize: 6, margin: 2, scalable: true });
+        if (!box.hidden && box.rfKey === shareLink()) { box.hidden = true; return; }   // 다시 누르면 닫음
+        $("qrImg").innerHTML = qrOf(shareLink()).createSvgTag({ cellSize: 6, margin: 2, scalable: true });
         $("qrImg").setAttribute("role", "img");
         $("qrImg").setAttribute("aria-label", T("사무실 링크 QR", "Office link QR"));
-        box.rfKey = key;
+        box.rfKey = shareLink();
         box.hidden = false;
     });
     $("qrCopy").addEventListener("click", function () {
         var btn = this;
-        qrPng(qrOf(linkOf(key)), function (blob) {
+        qrPng(qrOf(shareLink()), function (blob) {
             var can = blob && navigator.clipboard && window.ClipboardItem;
             (can ? navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]) : Promise.reject()).then(function () {
                 noteBelow(btn, T("QR 그림을 복사했습니다. 카톡 · 문자 창에 붙여 넣으세요(우리 직원에게만).", "QR image copied. Paste it into a chat (your staff only)."));
@@ -483,7 +498,7 @@
     });
     $("qrSave").addEventListener("click", function () {
         var btn = this;
-        qrPng(qrOf(linkOf(key)), function (blob) {
+        qrPng(qrOf(shareLink()), function (blob) {
             if (!blob) { noteBelow(btn, T("그림을 만들지 못했습니다.", "Could not make the image.")); return; }
             var a = document.createElement("a");
             a.href = URL.createObjectURL(blob);
@@ -494,9 +509,37 @@
             noteBelow(btn, T("QR 그림을 저장했습니다.", "QR image saved."));
         });
     });
+    $("copyAll").addEventListener("click", function () {
+        var t = linkAll(), btn = this;
+        (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () {
+            noteBelow(btn, T("사무실 " + Math.min(mine().length, ALL_MAX) + "개 링크를 복사했습니다. 폰 카톡 · 메모로 보내 폰에서 여세요(다른 사람에게 보이지 않게).", "Copied a link for " + Math.min(mine().length, ALL_MAX) + " offices. Send it to your phone and open it there (out of others' sight)."));
+        }).catch(function () { askText(T("복사가 안 됩니다. 아래 칸의 링크를 길게 눌러 복사하세요.", "Copying failed. Press and hold the link below to copy it."), t, { ok: T("닫기", "Close") }); });
+    });
+    // 여러 사무실 링크(#ks=…)로 들어옴 - 이 기기에 없는 사무실만 이름을 보여 주고 한 번에 묻고 넣음(2026-10-30)
+    function confirmMany(ks) {
+        var got = [];
+        ks.reduce(function (p, k) {
+            return p.then(function () {
+                return RFParty.post("office/rooms", { key: k }).then(function (j) { got.push({ k: k, n: j.name, c: j.code }); }).catch(function () { /* 맞지 않는 링크는 뺌 */ });
+            });
+        }, Promise.resolve()).then(function () {
+            if (!got.length) { msg(T("사무실 링크가 맞지 않습니다. 링크를 다시 확인해 주세요.", "The office links are not valid. Please check the link.")); start(); return; }
+            var lines = got.map(function (g) { return "🏢 " + g.n + " (" + T("회사 코드 ", "code ") + g.c + ")"; }).join("\n");
+            return ask(T("사무실 링크로 들어왔습니다.\n\n" + lines + "\n\n이 사무실 " + got.length + "개를 이 기기에 추가할까요? 우리 회사 사무실이 맞을 때만 추가하세요.",
+                "You opened office links.\n\n" + lines + "\n\nAdd these " + got.length + " offices to this device? Only add them if they're your company's offices."), { ok: T("모두 추가", "Add all") }).then(function (ok) {
+                if (ok) {
+                    got.forEach(function (g) { store(g.k, g.n); });   // PC 와 같은 차례
+                    store(got[0].k);   // 첫 사무실을 봄
+                    key = got[0].k;
+                    msg(T("추가했습니다. 이 기기 사무실 " + mine().length + "개 - 위 칸에서 골라 봅니다.", "Added. " + mine().length + " offices on this device - pick one in the box at the top."));
+                } else msg(T("추가하지 않았습니다.", "Not added."));
+                start();
+            });
+        });
+    }
     // 이미 이 화면을 연 탭에서 다른 사무실 링크(#k=…)를 열면 주소의 # 뒤만 바뀌어 페이지가 다시 읽히지 않음 - 그때도 받아 넣음
     // (2026-10-30 홍TV님: PC 에서 만든 두 번째 사무실 링크를 폰에서 추가했는데 하나뿐이었음)
-    window.addEventListener("hashchange", function () { if (/^#k=/.test(location.hash || "")) start(); });
+    window.addEventListener("hashchange", function () { if (/^#ks?=/.test(location.hash || "")) start(); });
 
     start();
 })();
