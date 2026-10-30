@@ -1499,3 +1499,5 @@ eq("courseGaps 250m 넘게 뛰는 곳", [RF.courseGaps({ lat: [37.6, 37.6001, 37
     eq("routeSets 출입금지 길을 피해 돌아 이음", [r.ways, r.coords.length, r.distance_m > 1800 && r.distance_m < 2100], [[10, 12], 4, true]);
     eq("routeSets 길 없음", F.routeSets(el, [[37.7, 127.0]], [[37.6, 127.01]], 150).error, "조각 · 큰 묶음에서 150m 안에 길이 없음");
 })();
+eq("islands roadNote", (function (I) { return [I.roadNote([{ highway: "path" }, { highway: "tertiary" }]), I.roadNote([{ highway: "service" }, { highway: "path" }]), I.roadNote([{ highway: "path" }])]; })(require("../../../tools/park-gaps/islands.js")),
+    [" (차도 포함)", " (마을길 포함)", ""]);

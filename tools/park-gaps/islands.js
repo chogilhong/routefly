@@ -34,6 +34,14 @@ function rejectReason(r, straightM) {
     return null;
 }
 
+/** 순수 함수 - 지나는 길에 차가 다니는 길이 있으면 이름 뒤에 붙일 말(안내도 · 따라가기에서 보이게 - 2026-10-30 월출산 · 가야산 --dry). */
+function roadNote(tags) {
+    var hw = (tags || []).map(function (t) { return t.highway; });
+    if (hw.some(function (h) { return /^(tertiary|unclassified)$/.test(h); })) return " (차도 포함)";
+    if (hw.some(function (h) { return /^(residential|service|living_street)$/.test(h); })) return " (마을길 포함)";
+    return "";
+}
+
 /** 순수 함수 - 가까운 지명 글("백운대 38m") → 이름만. */
 function placeName(s) {
     return String(s || "").replace(/\s+\d+m$/, "").trim() || "?";
@@ -52,7 +60,7 @@ async function overpass(q) {
     throw new Error("Overpass 서버 모두 실패");
 }
 
-module.exports = { rejectReason: rejectReason, placeName: placeName };
+module.exports = { rejectReason: rejectReason, placeName: placeName, roadNote: roadNote };
 
 if (require.main === module) {
     var arg = function (k, dflt) { var a = process.argv.filter(function (x) { return x.indexOf("--" + k + "=") === 0; })[0]; return a ? a.slice(k.length + 3) : dflt; };
@@ -90,7 +98,7 @@ if (require.main === module) {
                 }
                 var why = rejectReason(r, L.m);
                 if (why) { console.log("  ✗ " + an + " → " + bn + " (직선 " + L.m + "m) - " + why); continue; }
-                var name = pk + " · " + (an === bn ? an + " 둘레" : an + " → " + bn);
+                var name = pk + " · " + (an === bn ? an + " 둘레" : an + " → " + bn) + roadNote(r.tags);
                 var gap = { id: "osmgap-" + r.ways[0] + "-" + r.ways[r.ways.length - 1], name: name, distance_m: r.distance_m, ascent_m: null, coords: r.coords };
                 data.others = (data.others || []).concat([gap]);
                 var r1 = A.checkPark(data, pk, NOTES);
