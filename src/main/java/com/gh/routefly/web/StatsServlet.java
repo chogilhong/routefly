@@ -159,7 +159,9 @@ public class StatsServlet extends HttpServlet {
                 + "details.fold>summary{list-style:none;cursor:pointer}details.fold>summary::-webkit-details-marker{display:none}"
                 + "details.fold>summary h2{display:inline;margin:0}details.fold>summary::before{content:'▶';display:inline-block;width:16px;color:var(--sky);font-size:11px}details.fold[open]>summary::before{content:'▼'}"
                 + "details.fold[open]>summary{margin-bottom:6px}.statLogo{display:flex;align-items:center;gap:10px;margin:0 0 4px}.statLogo img{height:34px;width:auto}"
-                + "</style></head><body><main><h1 class=\"statLogo\"><img src=\"img/logo-dark.svg\" alt=\"routefly\" width=\"110\" height=\"34\">통계</h1>"
+                + ".statBack{display:inline-block;margin:0 0 8px;padding:8px 14px;border:1px solid var(--sky);border-radius:10px;color:var(--sky);text-decoration:none;font-size:14px}"
+                // 앱(웹뷰)은 주소창이 없어 뒤로 가기를 누르면 앱이 닫혔음(2026-10-30 홍TV님 "뒤로 가기 버튼 달아줘") - 통계는 "안내" 에서 들어오므로 그리로
+                + "</style></head><body><main><a class=\"statBack\" href=\"about.html\">‹ 뒤로</a><h1 class=\"statLogo\"><img src=\"img/logo-dark.svg\" alt=\"routefly\" width=\"110\" height=\"34\">통계</h1>"
                 + "<p class=\"lead\">최근 " + last.size() + "일 · 방문자(하루마다 센 수의 합) " + String.format(Locale.KOREA, "%,d", tu) + " · 화면 " + String.format(Locale.KOREA, "%,d", tp)
                 + " · 로봇 " + String.format(Locale.KOREA, "%,d", tb) + botLine(bots) + "</p>");
         out.append(trend(days, n));
