@@ -48,9 +48,9 @@ public class CoursesServlet extends HttpServlet {
         try (Connection c = Db.open()) {
             JsonArray courses = CourseQueries.list(c, bbox, kind, q);
             Steep.fill(c, courses, Peaks.tops(getServletContext()), Peaks.named(getServletContext()));   // 등산 코스마다 가장 가파른 1km 경사(steep_pct) - 난이도, 정상을 지나면 최고 높이는 공식 값(2026-10-16)
-            Steep.dropFarMiss(courses);   // 이름의 정상에서 1km 넘게 먼 선은 목록에서 뺌(링크로는 열림 - 2026-10-30 홍TV님 "해줘")
-            boolean truncated = courses.size() > CourseQueries.LIST_LIMIT;
+            boolean truncated = courses.size() > CourseQueries.LIST_LIMIT;   // 빼기 전에 - 잘렸는지는 읽은 줄 수로(2026-10-30 점검)
             if (truncated) courses.remove(courses.size() - 1);
+            Steep.dropFarMiss(courses);   // 이름의 정상에서 1km 넘게 먼 선은 목록에서 뺌(링크로는 열림 - 2026-10-30 홍TV님 "해줘")
             JsonObject out = new JsonObject();
             out.addProperty("success", true);
             out.add("courses", courses);

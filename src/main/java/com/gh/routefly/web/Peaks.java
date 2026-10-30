@@ -242,8 +242,8 @@ final class Peaks {
 
     /** 순수 함수 - 정상 이름에서 산 이름을 뗀 것("강천산왕자봉" → 왕자봉, 없으면 정상 이름 · 산 이름). */
     static String core(Top t) {
-        String base = t.name() == null ? "" : t.name().replaceAll("\\(.*?\\)|\\s+", "");
-        String sm = t.summit() == null ? base : t.summit().replaceAll("\\(.*?\\)|\\s+", "");
+        String base = norm(t.name());
+        String sm = t.summit() == null ? base : norm(t.summit());
         return sm.startsWith(base) && sm.length() - base.length() >= 2 ? sm.substring(base.length()) : sm;
     }
 
@@ -254,18 +254,31 @@ final class Peaks {
     static List<Top> namedTops(String name, List<Top> tops, double lat, double lon) {
         List<Top> out = new ArrayList<>();
         if (name == null || tops == null) return out;
-        int i = name.indexOf(" · ");
-        List<String> spots = new ArrayList<>();
-        for (String w : (i > 0 ? name.substring(i + 3) : name).split("→")) spots.add(w.replaceAll("\\(.*?\\)|\\s+", ""));
+        List<String> spots = null;
         for (Top t : tops) {
-            String base = t.name() == null ? "" : t.name().replaceAll("\\(.*?\\)|\\s+", ""), c = core(t);
-            String sm = t.summit() == null ? "" : t.summit().replaceAll("\\(.*?\\)|\\s+", "");
+            if (MountainServlet.distM(lat, lon, t.lat(), t.lon()) > NAMED_NEAR_M) continue;   // 거리 먼저(값쌈) - 둘레 15km 안 정상만 글자를 봄(2026-10-30 점검: 목록마다 정규식 수만 번)
+            if (spots == null) {
+                int i = name.indexOf(" · ");
+                spots = new ArrayList<>();
+                for (String w : (i > 0 ? name.substring(i + 3) : name).split("→")) spots.add(norm(w));
+            }
+            String base = norm(t.name()), c = core(t), sm = norm(t.summit());
             if (c.isEmpty()) continue;
-            boolean hit = false;
-            for (String w : spots) if (w.equals(c) || w.equals(base + c) || (!sm.isEmpty() && w.equals(sm))) hit = true;
-            if (hit && MountainServlet.distM(lat, lon, t.lat(), t.lon()) <= NAMED_NEAR_M) out.add(t);
+            for (String w : spots) {
+                if (w.equals(c) || w.equals(base + c) || (!sm.isEmpty() && w.equals(sm))) {
+                    out.add(t);
+                    break;
+                }
+            }
         }
         return out;
+    }
+
+    private static final java.util.regex.Pattern PAREN_SPACE = java.util.regex.Pattern.compile("\\(.*?\\)|\\s+");
+
+    /** 순수 함수 - 괄호 · 빈칸을 뺀 이름(null 은 ""). */
+    static String norm(String s) {
+        return s == null ? "" : PAREN_SPACE.matcher(s).replaceAll("");
     }
 
     /** 순수 함수 - 선분(a → b)과 자리 t 사이 가장 가까운 거리(m). */
@@ -281,10 +294,6 @@ final class Peaks {
      * 순수 함수 - 이름에 정상이 있는데 선이 그 정상 PASS_M(200m) 안을 안 지나면 그 정상 이름(화면 "정상 미포함"), 아니면 null.
      * lat · lon 은 코스 점 차례대로. 이름의 정상이 여럿이면 하나라도 지나면 null.
      */
-    static String summitMiss(String name, double[] lat, double[] lon, List<Top> tops) {
-        Miss m = miss(name, lat, lon, tops);
-        return m == null ? null : m.name();
-    }
 
     /** 이름의 정상까지 안 가는 코스 - 정상 이름 · 선에서 그 정상까지 가장 가까운 거리(m). */
     record Miss(String name, double m) {
@@ -299,13 +308,19 @@ final class Peaks {
         List<Top> named = namedTops(name, tops, lat[0], lon[0]);
         if (named.isEmpty()) return null;
         double best = Double.MAX_VALUE;
+        Top bestTop = named.get(0);
         for (Top t : named) {
             for (int i = 0; i < lat.length; i++) {
                 int j = Math.max(0, i - 1);
-                best = Math.min(best, segM(t, lat[j], lon[j], lat[i], lon[i]));
+                double d = segM(t, lat[j], lon[j], lat[i], lon[i]);
+                if (d <= PASS_M) return null;   // 하나라도 지나면 끝
+                if (d < best) {
+                    best = d;
+                    bestTop = t;
+                }
             }
         }
-        return best <= PASS_M ? null : new Miss(core(named.get(0)), best);
+        return new Miss(core(bestTop), best);   // 거리와 이름이 같은 정상(2026-10-30 점검)
     }
 
     /** 순수 함수 - /api/course 답에 course.summit_miss(이름의 정상까지 안 가면 그 정상 이름). points 는 [경도, 위도, …]. */

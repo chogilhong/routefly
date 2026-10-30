@@ -168,11 +168,12 @@ public class MountainServlet extends HttpServlet {
             double lat = peak.get("lat").getAsDouble(), lon = peak.get("lon").getAsDouble();
             double dLat = 0.05, dLon = 0.05 / Math.cos(Math.toRadians(lat));
             JsonArray rows = CourseQueries.list(c, new double[] {lon - dLon, lat - dLat, lon + dLon, lat + dLat}, "hike", null);
-            courses = near(rows, peak, NEAR_M);
+            courses = near(rows, peak, NEAR_M, MAX_COURSES * 2);   // 정상 이름만 같은 다른 산길을 뺀 뒤에도 30개가 차게 넉넉히(2026-10-30 점검)
             JsonArray picked = new JsonArray();
             courses.forEach(picked::add);
             Steep.fill(c, picked, Peaks.tops(getServletContext()), Peaks.named(getServletContext()));   // 가장 가파른 1km(난이도) · 정상을 지나면 최고 높이는 공식 값(2026-10-16)
             courses.removeIf(o -> o.has("summit_miss_m") && o.get("summit_miss_m").getAsDouble() > Peaks.HIDE_MISS_M);   // 이름만 이 산 정상인 다른 산길(2026-10-30)
+            if (courses.size() > MAX_COURSES) courses = new ArrayList<>(courses.subList(0, MAX_COURSES));
             names(courses, parks());   // 앱과 같은 이름(공단 공식 이름 · 산마다 지명) · 지금은 없는 탐방로는 뺌
         } catch (Exception e) {
             log.warn("[MOUNTAIN] 코스 조회 실패 {} - {}", str(peak, "id"), e.toString());
@@ -278,6 +279,11 @@ public class MountainServlet extends HttpServlet {
 
     /** 순수 함수 - 정상(또는 alt)에서 nearM 안에 끝(또는 시작)이 있는 코스, 가까운 차례. 비법정 · 비매칭 길은 뺌. */
     static List<JsonObject> near(JsonArray rows, JsonObject peak, double nearM) {
+        return near(rows, peak, nearM, MAX_COURSES);
+    }
+
+    /** max - 가까운 차례로 많아야 몇 개. */
+    static List<JsonObject> near(JsonArray rows, JsonObject peak, double nearM, int max) {
         List<double[]> tops = tops(peak);
         List<Object[]> hit = new ArrayList<>();
         for (JsonElement e : rows) {
@@ -294,7 +300,7 @@ public class MountainServlet extends HttpServlet {
         hit.sort(Comparator.comparingDouble(o -> (Double) o[1]));
         List<JsonObject> out = new ArrayList<>();
         for (Object[] o : hit) {
-            if (out.size() >= MAX_COURSES) break;
+            if (out.size() >= max) break;
             out.add((JsonObject) o[0]);
         }
         return out;

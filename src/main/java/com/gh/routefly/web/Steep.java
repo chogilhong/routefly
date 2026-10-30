@@ -82,10 +82,6 @@ final class Steep {
     }
 
     /** 목록 줄(course_id · kind)마다 steep_pct 를 붙이고, 정상을 지나면 ele_max_m 을 공식 높이로 - 등산(hike · trek)만. 못 셈하면 그대로. */
-    static void fill(Connection c, JsonArray rows, List<Peaks.Top> tops) {
-        fill(c, rows, tops, List.of());
-    }
-
     /** 이름의 정상까지 안 가는 코스 - 정상 이름 · 거리(목록 summit_miss · summit_miss_m, 화면 "정상 미포함", 2026-10-30 코스 점검). */
     private static final Peaks.Miss NONE = new Peaks.Miss("", 0);
 
@@ -189,7 +185,10 @@ final class Steep {
                         miss(cur, names.get(cur), las, los, named);
                     }
                 }
-                for (String id : part) CACHE.putIfAbsent(id, new double[] {Double.NaN, now, Double.NaN, Double.NaN});   // 점이 없는 코스 - 다시 묻지 않게
+                for (String id : part) {   // 점이 없는 코스 - 다시 묻지 않게
+                    CACHE.putIfAbsent(id, new double[] {Double.NaN, now, Double.NaN, Double.NaN});
+                    MISS.putIfAbsent(id, NONE);
+                }
             } catch (Exception e) {
                 return;   // 경사 없이 - 난이도는 시간 · 오르막으로
             }
@@ -197,7 +196,11 @@ final class Steep {
     }
 
     private static void miss(String id, String name, List<Double> las, List<Double> los, List<Peaks.Top> named) {
-        if (named == null || named.isEmpty() || name == null) return;
+        if (named == null || named.isEmpty()) return;
+        if (name == null) {   // 이름 없음 - 다시 묻지 않게(2026-10-30 점검)
+            MISS.put(id, NONE);
+            return;
+        }
         double[] a = new double[las.size()], b = new double[los.size()];
         for (int i = 0; i < a.length; i++) {
             a[i] = las.get(i);

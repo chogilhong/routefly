@@ -59,7 +59,8 @@ public class CourseServlet extends HttpServlet {
                 Json.write(resp, HttpServletResponse.SC_NOT_FOUND, out, false);
                 return;
             }
-            Peaks.markMiss(detail, Peaks.named(getServletContext()));   // 이름의 정상까지 안 가는 코스 - 화면 "정상 미포함"(2026-10-30 코스 점검)
+            if (detail.has("course") && detail.getAsJsonObject("course").has("kind") && java.util.Set.of("hike", "trek").contains(detail.getAsJsonObject("course").get("kind").getAsString()))
+                Peaks.markMiss(detail, Peaks.named(getServletContext()));   // 등산만 - 목록(Steep)과 같게(2026-10-30 점검)   // 이름의 정상까지 안 가는 코스 - 화면 "정상 미포함"(2026-10-30 코스 점검)
             Peaks.applyDetail(detail, Peaks.tops(getServletContext()), Peaks.shelters(getServletContext()), Peaks.subs(getServletContext()));   // 정상 높이는 공식 값으로(대청봉 1,700 → 1,708 - 2026-10-16 홍TV님)
             detail.addProperty("success", true);
             if (tag == null) Json.ok(req, resp, detail);
@@ -182,7 +183,7 @@ public class CourseServlet extends HttpServlet {
     }
 
     /** 응답 모양 판 - ETag 에 넣음. */
-    static final String SHAPE = "ends1-elev1-miss1";   // elev1 - 정상 높이 공식 값(2026-10-16), miss1 - summit_miss(2026-10-30)
+    static final String SHAPE = "ends1-elev1-miss2";   // elev1 - 정상 높이 공식 값(2026-10-16), miss1 - summit_miss(2026-10-30)
 
     /** 2026-10-11 오픈 전 점검: 코스를 열 때마다(304 포함) 두 표를 훑었음 - 1분 동안은 받아 둔 값(배치는 몇 시간 · 며칠마다). */
     static final long SIDE_TTL_MS = 60_000;

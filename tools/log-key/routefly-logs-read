@@ -18,11 +18,12 @@ okfile() {
 }
 case "${1:-}" in
   files) ls -l --time-style=+%F_%T "$DIR" | awk 'NR>1 {print $5, $6, $7}' ;;
-  tail)  n=$(num "${2:-}"); tail -n "$n" "$DIR/catalina.out" | cut -c1-400 | tr -d '\000-\010\013-\037\177' ;;
+  tail)  okfile catalina.out; n=$(num "${2:-}"); tail -n "$n" "$DIR/catalina.out" | cut -c1-400 | tr -d '\000-\010\013-\037\177' ;;
   log)   okfile "${2:-}"; n=$(num "${3:-}"); tail -n "$n" "$DIR/$2" | cut -c1-400 | tr -d '\000-\010\013-\037\177' ;;
   grep)
     re='^[][A-Za-z0-9_.:=-]{2,60}$'
     [[ "${2:-}" =~ $re ]] || { echo "낱말은 영문 · 숫자 · [ ] _ . : = - 로 2~60자"; exit 3; }
+    okfile catalina.out   # 바로 가기면 거절(2026-10-30 점검)
     n=$(num "${3:-}")
     tail -n 50000 "$DIR/catalina.out" | grep -aF -- "$2" | tail -n "$n" | cut -c1-400 | tr -d '\000-\010\013-\037\177' || true
     ;;
