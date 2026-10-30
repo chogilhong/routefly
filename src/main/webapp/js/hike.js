@@ -782,21 +782,8 @@
         var notesP = jsonOnce("data/park-notes.json").then(function (d) { return d && d.parks; }).catch(function () { return null; });
         return Promise.all([got, mapReady, notesP]).then(function (r) {
             if (my !== loadSeq) return;   // 그 사이 다른 코스를 골랐음
-            var fix = function (cid, j) {
-                if (!j || !j.course) return j;
-                j.course.name = RF.noteTrailName(r[2], cid, j.course.name);
-                // 산마다 다른 이름(설악산 신흥사 → 소공원)도 그리기 전에 - 이름 · 이름표
-                var pk = RF.parkOf(j.course.name), nm = pk && r[2] && r[2][pk] && r[2][pk].names;
-                if (nm) {
-                    j.course.name = RF.aliasName(j.course.name, nm);
-                    // 이름표는 들머리 · 날머리 자리(처음 · 끝 300m 안)만 - 떨어진 신흥사(절)까지 소공원이 되어 지도에 소공원이 둘이었음(2026-10-13)
-                    var T = j.points && j.points.length ? +j.points[j.points.length - 1][3] : 0;
-                    (j.pois || []).forEach(function (q) {
-                        if (Object.prototype.hasOwnProperty.call(nm, q.name) && !(+q.off_route_m > 300) && (+q.dist_m < 300 || +q.dist_m > T - 300)) q.name = nm[q.name];
-                    });
-                }
-                return j;
-            };
+            // 산 안내로 이름 · 들머리 · 날머리 이름표 다듬기(바로잡은 탐방로 이름, 산마다 지명 - RF.fixPart, 3D 와 같게)
+            var fix = function (cid, j) { return RF.fixPart(r[2], cid, j); };
             if (parts) r[0] = r[0].map(function (j, i) { return fix(parts[i].base, j); }); else if (!isGpxId(id)) fix(id, r[0]);
             // 여러 구간 이어 걷기(#c=구간,구간~,… - 2026-10-12 홍TV님): 구간마다 걷는 방향으로 돌려 하나로
             // 갈림길에서 자른 구간(코스ID@비율-비율:처음>끝 - 탐방 안내도)은 그 부분만
@@ -811,19 +798,8 @@
             if (tt && tt.length <= 60) c.course.name = (RF.nameParts(c.course.name).group.replace(/\s*\d+구간 이어 걷기$/, "") || "") + (RF.nameParts(c.course.name).group ? " · " : "") + tt;
             // 탐방 안내도 원점회귀 예시의 들머리 이름(#…&head=윗새재마을) - 구간 이름의 처음("새재")보다 정확
             var hm = /[#&]head=([^&]*)/.exec(location.hash), hn = hm ? RF.safeDecode(hm[1]) : "";
-            // 처음 · 끝이 600m 안(제자리로 돌아옴)이면 이름에 출발 · 도착이 없는 왕복("설악산 2구간 이어 걷기")도
-            var back = c.lon.length > 1 && RF.distM(c.lat[0], c.lon[0], c.lat[c.lat.length - 1], c.lon[c.lon.length - 1]) < 600;
-            if (hn && hn.length <= 30 && !tt && (back || /원점회귀$/.test(c.course.name))) c.course.name = RF.headLoopName(c.course.name, hn, true);
-            // 탐방 안내도의 출발 이름을 출발 이름표로(그 자리 다른 지명 "권금성" 이 출발로 보였음 - 2026-10-13 홍TV님). 같은 이름이 처음 300m 안에 있으면 그대로
-            // 들머리 자리(처음 · 원점회귀면 끝 100m 안)의 다른 이름도 들머리 이름으로(2026-10-13 PC: ★ 공룡능선 소공원 출발인데 산림청 선 이름 "권금성" 이 처음 · 끝에)
-            var total = +c.total || 0;
-            if (hn && hn.length <= 30) c.pois.forEach(function (q) {
-                if (+q.off_route_m > 100) return;   // 길에서 떨어진 것(소공원 정류장 · 화장실)은 그대로
-                if (+q.dist_m < 100) q.name = hn;
-                else if (back && +q.dist_m > total - 100) { q.name = hn; q.again = true; }   // 돌아온 끝 이름표는 그래프에만
-            });
-            if (hn && hn.length <= 30 && !c.pois.some(function (q) { return q.name === hn && +q.dist_m < 300; }))
-                c.pois.unshift({ name: hn, lat: c.lat[0], lon: c.lon[0], ele_m: c.ele[0], dist_m: 0, off_route_m: 0, end: true });
+            // 들머리 이름(탐방 안내도 원점회귀 예시의 &head=) - 이름 · 이름표(RF.applyHead, 3D 와 같게)
+            RF.applyHead(c, hn, tt);
             RF.showName($("name"), c.course.name, true);
             nameLevel();
             favBtn.refresh();
@@ -846,7 +822,7 @@
                 if (gp) warns.push(T("⚠ 이 코스 자료에 " + gp.m + "m 끊긴 구간이 있습니다(" + km(gp.at) + "km 지점). 그 구간은 현지 안내판 · 길을 따르세요.",
                     "⚠ This trail's data has a " + gp.m + " m gap (at " + km(gp.at) + " km). Follow the local signs there."));
                 if (inf) warns.push(inf);
-                if (warns.length) toast(warns.join(" "), warns.length > 1 || warns[0] !== inf ? 12000 : 6000);
+                if (warns.length) toast(warns.join("\n"), warns.length > 1 || warns[0] !== inf ? 12000 : 6000);
             }
             // 그 산의 입산 · 통제 · 예약(data/park-notes.json - 2026-10-12 한라산: 오늘 계절 · 이 코스의 통제 지점 시각)
             // 코스 이름은 받은 그대로(자르거나 이은 코스도 원래 이름 - "성판악 탐방로")

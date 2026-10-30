@@ -410,15 +410,13 @@
         // 이은 코스(탐방 안내도 대표 코스 - 숨은벽 · 백운대(밤골))는 조각을 받아 하나로(2026-10-30 홍TV님 "우리가 그 코스를 만들면 되잖아")
         var parts = RF.parseJoinId(id);
         var p = !parts ? getJson("api/course?id=" + encodeURIComponent(id))
-            : Promise.all(RF.partBases(parts).map(function (b) { return getJson("api/course?id=" + encodeURIComponent(b)); })).then(function (rs) {
-                var c = RF.joinedCourse(id, parts, RF.partAnswers(parts, RF.partBases(parts), rs));   // 같은 코스를 앞뒤로 쓰면 한 번만 받음
+            : Promise.all([Promise.all(RF.partBases(parts).map(function (b) { return getJson("api/course?id=" + encodeURIComponent(b)); })), parkNotes()]).then(function (r2) {
+                var rs = RF.partAnswers(parts, RF.partBases(parts), r2[0]).map(function (j, i) { return RF.fixPart(r2[1], parts[i].base, j); });   // 조각마다 산 안내로 이름 다듬기(따라가기와 같게)
+                var c = RF.joinedCourse(id, parts, rs);   // 같은 코스를 앞뒤로 쓰면 한 번만 받음
                 if (/[#&]rev=1(&|$)/.test(location.hash)) c = RF.reverseCourse(c);
                 if (joinTitle) c.course.name = (RF.nameParts(c.course.name).group || "").replace(/\s*\d+구간 이어 걷기$/, "") + (RF.nameParts(c.course.name).group ? " · " : "") + joinTitle;
-                var hm = /[#&]head=([^&]*)/.exec(location.hash), hn = hm ? RF.safeDecode(hm[1]) : "", T0 = +c.total || 0;
-                var back = c.lon.length > 1 && RF.distM(c.lat[0], c.lon[0], c.lat[c.lat.length - 1], c.lon[c.lon.length - 1]) < 600;
-                if (hn && hn.length <= 30) c.pois.forEach(function (q) {   // 들머리 이름(따라가기와 같게 - 처음, 원점회귀면 끝 100m 안)
-                    if (!(+q.off_route_m > 100) && (+q.dist_m < 100 || (back && +q.dist_m > T0 - 100))) q.name = hn;
-                });
+                var hm = /[#&]head=([^&]*)/.exec(location.hash);
+                RF.applyHead(c, hm ? RF.safeDecode(hm[1]) : "", joinTitle);   // 들머리 이름 · 원점회귀 이름(따라가기와 같게)
                 return RF.toApi(c);
             });
         courseMemo.unshift({ id: id, p: p });
@@ -427,7 +425,11 @@
         return p;
     }
 
-    var notesOnce = null;   // data/park-notes.json 약속(select)
+    var notesOnce = null;   // data/park-notes.json 약속
+    /** 산 안내(park-notes parks) - 한 번만 받음(2026-10-30 점검: 코스를 고를 때마다 받았음), 못 받았으면 다음에 다시. 없으면 null. */
+    function parkNotes() {
+        return notesOnce || (notesOnce = fetch("data/park-notes.json").then(function (x) { return x.json(); }).then(function (d) { return d && d.parks; }).catch(function () { notesOnce = null; return null; }));
+    }
     var selectSeq = 0;   // 2026-10-09 점검: 늦게 온 앞 코스가 새로 고른 코스를 덮지 않게
     function select(id) {
         var my = ++selectSeq;
@@ -438,8 +440,7 @@
         // 'gpx-' 코스는 이 기기에 둔 GPX(📂 GPX 열기 - 따라가기와 같이 씀)
         var data = RF.isGpxId(id) ? RF.storedGpx(id) : courseData(id);
         // 산 안내(park-notes) - 바로잡은 탐방로 이름 · 산마다 다른 지명을 따라가기와 같게(2026-10-13 PC: "구기분소 → 대남문" 이 "헤원사삼거리 → 대남문" 과 달랐음)
-        // 한 번만 받음(2026-10-30 점검: 코스를 고를 때마다 받았음) - 못 받았으면 다음에 다시
-        var notesP = notesOnce || (notesOnce = fetch("data/park-notes.json").then(function (x) { return x.json(); }).then(function (d) { return d && d.parks; }).catch(function () { notesOnce = null; return null; }));
+        var notesP = parkNotes();
         return Promise.all([data, mapReady, notesP]).then(function (r) {
             if (my !== selectSeq) return;
             var j = r[0];
