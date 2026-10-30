@@ -473,7 +473,7 @@
             var official = RF.infoText(j.info);   // 국립공원 공식 코스 - 공단 기준 시간 · 난이도
             var spots = EN ? spotSummaryEn(j.spots) : RF.spotSummary(j.spots);   // 국립공원 위험지역 · 조망점
             $("courseStat").textContent = statLine(j.course)
-                + (j.course.ele_source === "none" ? T(" · 고도 자료 없음", " · no elevation data") : "") + (j.course.summit_miss ? T(" · ⚠ " + j.course.summit_miss + " 정상 미포함", " · ⚠ does not reach " + NM(j.course.summit_miss)) : "") + (official ? " · " + official : "") + (spots ? " · " + spots : "");
+                + (j.course.ele_source === "none" ? T(" · 고도 자료 없음", " · no elevation data") : "") + (j.course.summit_miss ? T(" · ⚠ " + j.course.summit_miss + " 정상 미포함", " · ⚠ does not reach " + NM(j.course.summit_miss)) : "") + (RF.courseGaps(c).length ? T(" · ⚠ 자료가 " + RF.courseGaps(c)[0].m + "m 끊긴 구간", " · ⚠ " + RF.courseGaps(c)[0].m + " m gap in the data") : "")   /* 따라가기와 같게(2026-10-30) */ + (official ? " · " + official : "") + (spots ? " · " + spots : "");
             setupGuide(c, j, r[2], id);
             $("bottom").style.display = "block";
             $("hud").style.display = "block";
