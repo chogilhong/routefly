@@ -42,6 +42,7 @@ import com.google.gson.JsonParser;
  * POST /api/party/office/rename {key, name} → {name}    회사 이름 바꾸기(올라온 방의 이름도 함께, 2026-10-29)
  * POST /api/party/office/bundle/new {keys:[…]} → {bundle} · /office/bundle {bundle} → {offices:[{key, name, code}]}
  *      · /office/bundle/add {bundle, key} · /office/bundle/remove {bundle, key} · /office/bundle/newkey {bundle} → {bundle}   내 사무실 묶음(2026-10-30)
+ *      - 묶음 만들기 · 넣기 · 빼기 · 바꾸기는 운영자 기기(/stats 쿠키)만. /office/me → {owner} 로 화면이 단추를 보일지 정함
  * </pre>
  * 끝난 방 열쇠로 오면 410 + 까닭. 설정 party.enabled=true 가 아니면 status 말고는 404.
  */
@@ -73,6 +74,10 @@ public class PartyServlet extends HttpServlet {
         // IPv6 는 /64 로 묶음(점검: 주소마다 따로 세어 한 사람이 주소를 바꿔 가며 방 2000개를 채울 수 있었음)
         String path = req.getPathInfo(), ip = RateLimiter.group(SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For")));
         long now = System.currentTimeMillis();
+        // 운영자 기기인가(2026-10-30 홍TV님 "묶음 · 사무실 여럿은 나만") - 화면이 묶음 단추 · 사무실 하나 더 만들기를 보일지
+        if ("/office/me".equals(path)) { JsonObject o = ok(); o.addProperty("owner", owner(req)); Json.write(resp, 200, o, false); return; }
+        // 묶음 만들기 · 넣기 · 빼기 · 링크 바꾸기는 운영자 기기만(묶음 읽기 /office/bundle 은 묶음 열쇠로)
+        if (ownerOnly(path) && !owner(req)) { Json.fail(resp, 403, "관리자 기기에서만 쓸 수 있습니다."); return; }
         // 회사 코드도 쳐 보기 막기(2026-10-28 보안 점검: /create · /link 의 회사 코드는 세지 않았음)
         boolean lookup = "/info".equals(path) || "/join".equals(path) || "/create".equals(path) || "/link".equals(path)
                 || (path != null && path.startsWith("/office/") && !"/office/create".equals(path));
@@ -138,6 +143,11 @@ public class PartyServlet extends HttpServlet {
     static final Quota RENAMES = new Quota(10, 3600_000L);
     /** 회사 사무실 만들기 - IP 마다 하루 3곳. */
     static final Quota OFFICES = new Quota(3, 24 * 3600_000L);
+
+    /** 순수 함수 - 운영자 기기만 부를 수 있는 주소(묶음 만들기 · 넣기 · 빼기 · 링크 바꾸기, 2026-10-30). */
+    static boolean ownerOnly(String path) {
+        return path != null && path.startsWith("/office/bundle/");
+    }
 
     /** 운영자 기기(/stats 를 연 브라우저 · 앱 - 쿠키 값이 통계 열쇠에서 만든 값과 맞을 때)는 방 만들기 하루 제한을 받지 않음(2026-10-21 PC: 시험하다 막힘). */
     static boolean owner(HttpServletRequest req) {

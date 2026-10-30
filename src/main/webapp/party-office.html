@@ -62,6 +62,8 @@ tr.warn td { background:rgba(255,212,59,0.14); }
 <div id="top"><a data-en="‹ Back" href="party.html?lang=ko" id="backTop">‹ 뒤로</a><div data-en="🏢 Company office" id="title">🏢 회사 사무실</div><span id="updated" class="tip" style="margin:0"></span></div>
 <main>
     <!-- 내 사무실 여럿(2026-10-29 홍TV님 - 회사 2곳): 이 기기가 연 사무실을 골라 봄. PC 는 탭마다 다른 사무실도 됨 -->
+    <!-- 관리자(운영자) 기기에만: 나처럼 / 일반 사용자처럼 보기(2026-10-30 홍TV님 "양쪽을 검토해보게") -->
+    <p id="ownerRow" hidden><button id="asWho" type="button"></button> <span id="asTip" class="tip"></span></p>
     <div id="mineBar" hidden>
         <select data-en-aria-label="Choose my office" id="mineSel" aria-label="내 사무실 고르기"></select>
         <button data-en="＋ Create another office" id="mineAdd" type="button">＋ 사무실 하나 더 만들기</button>

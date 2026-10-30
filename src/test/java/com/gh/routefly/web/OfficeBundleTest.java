@@ -54,4 +54,17 @@ public class OfficeBundleTest {
         PartyOffice again = new PartyOffice(dir.resolve("office.json"));
         assertEquals("다시 켜도 묶음 그대로", "AAAAAA", again.bundleOffices(bk, 0).get(0).code);
     }
+
+    /** 묶음 만들기 · 넣기 · 빼기 · 바꾸기는 운영자 기기만(2026-10-30 홍TV님 "나만"), 묶음 읽기 · 사무실 주소는 누구나. */
+    @Test
+    public void bundleChangesOwnerOnly() {
+        assertTrue(PartyServlet.ownerOnly("/office/bundle/new"));
+        assertTrue(PartyServlet.ownerOnly("/office/bundle/add"));
+        assertTrue(PartyServlet.ownerOnly("/office/bundle/remove"));
+        assertTrue(PartyServlet.ownerOnly("/office/bundle/newkey"));
+        assertFalse(PartyServlet.ownerOnly("/office/bundle"));
+        assertFalse(PartyServlet.ownerOnly("/office/rooms"));
+        assertFalse(PartyServlet.ownerOnly("/office/create"));
+        assertFalse(PartyServlet.ownerOnly(null));
+    }
 }

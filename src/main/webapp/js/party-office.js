@@ -106,14 +106,14 @@
     function drawMine() {
         var a = mine(), sel = $("mineSel");
         $("mineBar").hidden = !a.length;
-        $("allRow").hidden = $("allTip").hidden = a.length < 2 || !!bundle();   // 사무실이 둘 이상이면 "모두 복사"(묶음이 있으면 묶음 링크로)
-        $("qrMine").textContent = bundle() ? T("🔳 묶음 QR", "🔳 Bundle QR") : a.length > 1 ? T("🔳 사무실 " + Math.min(a.length, ALL_MAX) + "개 모두 QR", "🔳 QR for all " + Math.min(a.length, ALL_MAX) + " offices") : T("🔳 사무실 링크 QR", "🔳 Office link QR");
+        $("allRow").hidden = $("allTip").hidden = a.length < 2 || !!bundle() || !OWNER;   // 사무실이 둘 이상이면 "모두 복사"(묶음이 있으면 묶음 링크로)
+        $("qrMine").textContent = bundle() ? T("🔳 묶음 QR", "🔳 Bundle QR") : OWNER && a.length > 1 ? T("🔳 사무실 " + Math.min(a.length, ALL_MAX) + "개 모두 QR", "🔳 QR for all " + Math.min(a.length, ALL_MAX) + " offices") : T("🔳 사무실 링크 QR", "🔳 Office link QR");
         drawBundle();
         sel.hidden = a.length < 2;
         var html = a.map(function (y, i) { return "<option value=\"" + i + "\"" + (y.k === key ? " selected" : "") + ">🏢 " + esc(y.n || T("사무실 ", "Office ") + (i + 1)) + "</option>"; }).join("");
         if (html !== drawn) { sel.innerHTML = html; drawn = html; }   // 30초마다 그대로면 손대지 않음(펼친 목록이 닫히지 않게)
         var making = !$("newSec").hidden || !$("madeSec").hidden;
-        $("mineAdd").hidden = making;
+        $("mineAdd").hidden = making || !OWNER;   // 사무실이 있는 일반 사용자는 하나 더 만들기 없음(처음은 "사무실 만들기")
         $("mineBack").hidden = !making || !key;   // 만들기 화면에서 보던 사무실로
     }
     /** KST 날짜 · 시각 "10/28 13:05". */
@@ -137,10 +137,21 @@
     var ALL_MAX = 10;
     function linkAll() { return location.origin + HERE + "#ks=" + mine().slice(0, ALL_MAX).map(function (y) { return y.k; }).join("."); }
     /** 지금 QR · 모두 복사가 쓸 링크 - 사무실이 둘 이상이면 모두, 아니면 이 사무실. */
-    function shareLink() { return bundle() ? linkBundle() : mine().length > 1 ? linkAll() : linkOf(key); }
+    function shareLink() { return bundle() ? linkBundle() : OWNER && mine().length > 1 ? linkAll() : linkOf(key); }
     // ---- 내 사무실 묶음(2026-10-30 홍TV님 "② 내 사무실 묶음 링크로 해줘"): 묶음 열쇠 하나를 기기마다 두고, 사무실 목록은 서버 묶음을 따름
     var BKEY = "rf-office-bundle", bundleSync = 0, bundleN = 0;
-    function bundle() { var b = null; try { b = localStorage.getItem(BKEY); } catch (e) { /* 없음 */ } return /^[A-Za-z0-9_-]{20,64}$/.test(b || "") ? b : null; }
+    // 관리자(운영자) 기기만 묶음 · 사무실 여럿(2026-10-30 홍TV님 "나만 묶음 관련, 그 외에는 안 보이게").
+    // 운영자 = /stats 를 연 기기(서버 쿠키 - /office/me). "일반 사용자로 보기"(rf-office-guest)를 켜면 운영자 기기도 남처럼 보임(홍TV님 "양쪽을 검토해보게")
+    var GKEY = "rf-office-guest", REAL_OWNER = false, OWNER = false;
+    function guest() { try { return localStorage.getItem(GKEY) === "1"; } catch (e) { return false; } }
+    var ownerP = RFParty.post("office/me", {}).then(function (j) { REAL_OWNER = !!(j && j.owner); }).catch(function () { /* 남으로 */ }).then(function () { OWNER = REAL_OWNER && !guest(); drawOwner(); });
+    function drawOwner() {
+        $("ownerRow").hidden = !REAL_OWNER;
+        if (!REAL_OWNER) return;
+        $("asWho").textContent = OWNER ? T("👤 일반 사용자로 보기", "👤 View as a regular user") : T("👑 관리자로 보기", "👑 View as admin");
+        $("asTip").textContent = OWNER ? T("지금: 관리자 화면(묶음 · 사무실 여럿 보임)", "Now: admin view (bundle, several offices)") : T("지금: 일반 사용자 화면(다른 회사가 보는 그대로)", "Now: regular user view (as other companies see it)");
+    }
+    function bundle() { if (!OWNER) return null; var b = null; try { b = localStorage.getItem(BKEY); } catch (e) { /* 없음 */ } return /^[A-Za-z0-9_-]{20,64}$/.test(b || "") ? b : null; }
     function setBundle(b) { try { if (b) localStorage.setItem(BKEY, b); else localStorage.removeItem(BKEY); } catch (e) { /* 이번만 */ } }
     function linkBundle() { return location.origin + HERE + "#b=" + bundle(); }
     /** 서버 묶음 목록을 이 기기 목록으로(보던 사무실이 빠졌으면 첫 사무실). */
@@ -195,7 +206,7 @@
     }
     function drawBundle() {
         var b = bundle();
-        $("bundleOff").hidden = !!b;
+        $("bundleOff").hidden = !!b || !OWNER;
         $("bundleOn").hidden = !b;
         $("forget").textContent = b ? T("이 사무실을 묶음에서 빼기 (사무실은 그대로)", "Remove this office from the bundle (office stays)") : T("이 기기에서 로그아웃 (사무실은 그대로)", "Log out on this device (office stays)");
         // 묶음이면 "🔳 묶음 QR" 을 "📋 묶음 링크 복사" 바로 옆으로(QR 도 그 아래) - 2026-10-30 홍TV님 "떨어져 있는데 옆에 같이"
@@ -327,10 +338,12 @@
     }
 
     /** 묶음이 있으면 먼저 맞추고(1분에 한 번) 시작. */
-    function start() {
+    function start() { ownerP.then(start1); }
+    function start1() {
         var mb = /^#b=([A-Za-z0-9_-]{20,64})$/.exec(location.hash || "");
         if (mb) {   // 묶음 링크 - 주소에서 지우고 묻고 연결
             try { history.replaceState(null, "", HERE); } catch (e) { /* 그대로 */ }
+            if (!OWNER) { msg(T("묶음 링크는 관리자 기기에서만 열 수 있습니다.", "Bundle links open only on the admin device.")); startNow(); return; }
             joinBundle(mb[1]);
             return;
         }
@@ -344,8 +357,9 @@
             try { history.replaceState(null, "", HERE); } catch (e) { /* 그대로 */ }
             var have = mine().map(function (y) { return y.k; }), ks = [];
             ms[1].split(".").forEach(function (k) { if (/^[A-Za-z0-9_-]{20,64}$/.test(k) && ks.indexOf(k) < 0 && have.indexOf(k) < 0 && ks.length < ALL_MAX) ks.push(k); });
-            if (ks.length) { confirmMany(ks); return; }
-            msg(T("이 사무실들은 이미 이 기기에 있습니다.", "These offices are already on this device."));
+            if (ks.length && !OWNER) msg(T("여러 사무실 링크는 관리자 기기에서만 열 수 있습니다. 사무실 링크를 하나만 받아 열어 주세요.", "Links with several offices open only on the admin device. Please open a single office link."));
+            else if (ks.length) { confirmMany(ks); return; }
+            else msg(T("이 사무실들은 이미 이 기기에 있습니다.", "These offices are already on this device."));
         }
         var m = /^#k=([A-Za-z0-9_-]{20,64})$/.exec(location.hash || "");
         if (m) {
@@ -364,7 +378,15 @@
     }
 
     function confirmNew(k) {
+        var swap = !OWNER && mine().some(function (y) { return y.k !== k; });   // 일반 사용자는 기기에 사무실 하나 - 바꾸기
         RFParty.post("office/rooms", { key: k }).then(function (j) {
+            if (swap) return ask(T("사무실 링크로 들어왔습니다.\n\n🏢 " + j.name + " 사무실 (회사 코드 " + j.code + ")\n\n이 기기에는 사무실을 하나만 둘 수 있습니다. 이 사무실로 바꿀까요? 지금 사무실은 이 기기 목록에서 빠집니다(사무실은 그대로, 링크로 다시 들어올 수 있음).",
+                "You opened an office link.\n\n🏢 " + j.name + " office (company code " + j.code + ")\n\nThis device can keep one office. Switch to this office? The current one leaves this device's list (the office stays; open its link to come back)."), { ok: T("바꾸기", "Switch") }).then(function (ok) {
+                if (ok) { store(k, j.name); saveMine([{ k: k, n: j.name || "" }]); key = k;   // store 가 먼저 마지막 사무실(KEY)을 k 로 - 옛 사무실이 이름 없이 되살아나지 않게
+                    msg(T("이 사무실로 바꿨습니다.", "Switched to this office.")); }
+                else msg(T("바꾸지 않았습니다.", "Not switched."));
+                start();
+            });
             return ask(T("사무실 링크로 들어왔습니다.\n\n🏢 " + j.name + " 사무실 (회사 코드 " + j.code + ")\n\n이 사무실을 이 기기에 추가할까요? 우리 회사 사무실이 맞을 때만 추가하세요.",
                 "You opened an office link.\n\n🏢 " + j.name + " office (company code " + j.code + ")\n\nAdd this office to this device? Only add it if it's your company's office."), { ok: T("추가", "Add") }).then(function (ok) {
                 if (ok) {
@@ -516,6 +538,10 @@
         $("offName").focus();
     }
     $("mineAdd").addEventListener("click", addOne);
+    $("asWho").addEventListener("click", function () {
+        try { if (OWNER) localStorage.setItem(GKEY, "1"); else localStorage.removeItem(GKEY); } catch (e) { /* 이번만 */ }
+        location.reload();
+    });
     $("mineBack").addEventListener("click", function () { msg(""); start(); });
     $("rename").addEventListener("click", function () {   // 2026-10-29 홍TV님 "만들어줘"
         var name = last ? last.name : "";
