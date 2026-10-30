@@ -7,6 +7,7 @@
 #   batch timer          - 서버 배치 타이머 · 서비스 상태(다음 실행 · 마지막 결과)
 # 한 줄은 400자까지 자르고 제어 글자는 지웁니다(routefly-logs-read 와 같게).
 set -euo pipefail
+cd /   # logview 집 폴더에 routefly 가 못 들어가 find 가 경고를 냄(2026-10-30 PC)
 DIR=/app/routefly/batch/logs/batch
 MAXN=3000
 num() { if [[ "${1:-}" =~ ^[0-9]{1,4}$ ]] && [ "$1" -ge 1 ] && [ "$1" -le "$MAXN" ]; then echo "$1"; else echo 200; fi; }

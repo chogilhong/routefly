@@ -3419,7 +3419,9 @@
         // 처음 자리로 돌아오면 "중산리탐방지원센터 원점회귀"(2026-10-12 홍TV님 - 지리산 대표 원점회귀 코스)
         var back = c.lat.length > 1 && distM(c.lat[0], c.lon[0], c.lat[c.lat.length - 1], c.lon[c.lon.length - 1]) < 600;   // 끝이 출발 600m 안(중산리 ↔ 법계교 257m)
         var route = from && (from === to || back) ? from + " 원점회귀" : endsText(from, to);
-        c.course = { name: g + " " + span + (route ? " · " + route : ""), kind: first.kind,
+        // 등산 조각이 하나라도 있으면 등산(2026-10-30 밤골 대표 코스: 매표소 → 효자길(둘레길 walk) 로 시작해 걷기가 됐음 - 난이도 · 시간이 빠짐)
+        var kinds = list.map(function (p) { return p.course && p.course.kind; });
+        c.course = { name: g + " " + span + (route ? " · " + route : ""), kind: kinds.indexOf("hike") >= 0 ? "hike" : kinds.indexOf("trek") >= 0 ? "trek" : first.kind,
                      distance_m: Math.round(c.total), ascent_m: Math.round(asc), descent_m: down,
                      ele_min_m: lo == null ? null : Math.round(lo), ele_max_m: hi == null ? null : Math.round(hi),
                      start_lat: c.lat[0], start_lon: c.lon[0], end_lat: c.lat[c.lat.length - 1], end_lon: c.lon[c.lon.length - 1] };

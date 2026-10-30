@@ -1428,9 +1428,9 @@ eq("kmaLink 행정동이 있으면 동네예보, 없으면 첫 화면", [RF.kmaL
 (function () {
     var pn = JSON.parse(fs.readFileSync(path.join(__dirname, "../../main/webapp/data/park-notes.json"), "utf8")).parks;
     var r = RF.listBest(pn, "북한산");
-    eq("park-notes 북한산 목록 대표 코스", [r.length >= 1, RF.parseJoinId(r[0].course_id).length, r[0].ele_max_m], [true, 6, 836]);   // 밤골입구 원점회귀(150118 앞뒤 - 2026-10-30)
+    eq("park-notes 북한산 목록 대표 코스", [r.length >= 1, RF.parseJoinId(r[0].course_id).length, r[0].ele_max_m], [true, 8, 836]);   // 밤골매표소 원점회귀(효자길 · 150118 끝 조각 - 2026-10-30)
     // 목록 난이도 = 따라가기 난이도(그 화면은 거리 · 오르막 · 가장 가파른 1km 로 셈) - 운영 자료 계산값 6,253m · 776m · 40%
-    eq("park-notes 대표 코스 목록 난이도가 따라가기와 같음(어려움)", [RF.difficulty(r[0].distance_m, r[0].ascent_m, r[0].steep_pct), RF.difficulty(6791, 804, 40)], [3, 3]);
+    eq("park-notes 대표 코스 목록 난이도가 따라가기와 같음(어려움)", [RF.difficulty(r[0].distance_m, r[0].ascent_m, r[0].steep_pct), RF.difficulty(7164, 835, 40)], [3, 3]);
 })();
 // 정상 먼저 줄 세우기는 바로잡은 이름으로(2026-10-30 PC: 공단 "백운대매표소 → … → 백운대" 는 인수대피소까지 - 0.96km · 최고 494m)
 (function () {
@@ -1503,3 +1503,8 @@ eq("islands roadNote", (function (I) { return [I.roadNote([{ highway: "path" }, 
     [" (차도 포함)", " (마을길 포함)", ""]);
 eq("islands 차도 3km 넘으면 뺌", (function (I) { return [!!I.rejectReason({ distance_m: 3300, tags: [{ highway: "tertiary" }] }, 2200), I.rejectReason({ distance_m: 2900, tags: [{ highway: "tertiary" }] }, 2200), I.rejectReason({ distance_m: 3300, tags: [{ highway: "track" }] }, 2200)]; })(require("../../../tools/park-gaps/islands.js")),
     [true, null, null]);
+// 이은 코스 - 등산 조각이 하나라도 있으면 등산(2026-10-30 밤골: 둘레길(walk)로 시작). 좌표는 테스트 데이터
+(function () {
+    var mk = function (kind, lat0) { return RF.fromApi("x", { course: { name: "북한산 · 가 → 나", kind: kind }, points: [[127, lat0, 100, 0], [127, lat0 + 0.001, 120, 111]], pois: [] }); };
+    eq("joinCourses 등산 조각이 있으면 hike", [RF.joinCourses([mk("walk", 37.6), mk("hike", 37.601)], "a,b").course.kind, RF.joinCourses([mk("walk", 37.6), mk("walk", 37.601)], "a,b").course.kind], ["hike", "walk"]);
+})();
