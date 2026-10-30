@@ -26,7 +26,8 @@ var SPIKE_LEG_M = 80, SPIKE_DEG = 160, SPIKE_POI_M = 60;   // 짧게 갔다 바�
 var ELE_JUMP_M = 40, ELE_SLOPE = 1.2;   // 높이가 짧은 거리에서 급히 뜀(경사 50° 넘음)
 var END_NAME_M = 300;       // 끝 이름은 끝 300m 안의 이름표
 var SUMMIT_PASS_M = 200;    // 정상 이름 코스가 정상 200m 안을 지나야
-var LINK_M = 60;            // 안내도 구간끼리 이 안이면 이어진 것
+var LINK_M = 60;            // 안내도 구간 끝이 다른 구간 선(어디든) 이 안이면 이어진 것
+var JOIN_M = 150;           // 구간 끝끼리 이 안이면 이어진 것 - 화면이 구간을 이어 고를 때(planWalk)와 같은 기준
 var HEAD_M = 400;           // 막다른 끝이 들머리 · 정상 · 지명 이 안이면 괜찮음
 
 function d(a, b) { return RF.distM(a[1], a[0], b[1], b[0]); }
@@ -111,12 +112,15 @@ function checkPark(data, park, notes) {
     var extras = RF.gapFill(data.trails, data.others, data.places, data.heads, park);
     var segs = RF.splitTrails(RF.mergeBare(data.trails, data.places).concat(extras), flips, null, null);
     var hs = RF.trailHeads(segs, data.heads, flips, data.others, data.places, null);
-    var anchors = (data.heads || []).concat(hs).concat((data.places || []).filter(function (p) { return p.summit || RF.isTopName(p.name) || /(대피소|사|암|폭포|전망대|약수|샘)$/.test(p.name); }));
+    var anchors = (data.heads || []).concat(hs).concat((data.places || []).filter(function (p) { return p.summit || RF.isTopName(p.name) || /(대피소|사|암|폭포|전망대|조망대|약수|약수터|샘|바위|대|굴|담|소)$/.test(String(p.name).replace(/\s+/g, "")); }));   // 정상 · 바위 · 폭포 같은 곳에서 끝나는 막다른 길은 왕복(문제 아님)
     var issues = [];
     // 끝마다 다른 구간(점 어디든) 60m 안인가
     var grid = {}, cell = function (p) { return Math.round(p[0] * 500) + "," + Math.round(p[1] * 500); };
     segs.forEach(function (s, si) { s.coords.forEach(function (p) { (grid[cell(p)] = grid[cell(p)] || []).push([si, p]); }); });
+    var ends = [];
+    segs.forEach(function (s, si) { ends.push([si, s.coords[0]], [si, s.coords[s.coords.length - 1]]); });
     var touches = function (p, si) {
+        for (var e = 0; e < ends.length; e++) if (ends[e][0] !== si && d(p, ends[e][1]) < JOIN_M) return ends[e][0];
         var cx = Math.round(p[0] * 500), cy = Math.round(p[1] * 500);
         for (var dx = -1; dx <= 1; dx++) for (var dy = -1; dy <= 1; dy++) {
             var g = grid[(cx + dx) + "," + (cy + dy)] || [];
