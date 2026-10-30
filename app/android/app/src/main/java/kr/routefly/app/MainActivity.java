@@ -57,8 +57,15 @@ public class MainActivity extends BridgeActivity {
         // 카톡에서 넘어온 회사 사무실 열쇠(2026-10-29, no-kakao.js S.rf_office) - #k= 로(party-office.js 가 받아 주소에서 지움)
         String k = intent.getStringExtra("rf_office");
         final String url = u.toString() + (t != null && t.matches("[A-Za-z0-9_-]{16,64}") ? "#t=" + t
-                : k != null && k.matches("[A-Za-z0-9_-]{20,64}") && u.getFragment() == null && u.getPath().startsWith("/routefly/party-office.html") ? "#k=" + k : "");
+                : k != null && u.getFragment() == null && u.getPath().startsWith("/routefly/party-office.html") ? officeHash(k) : "");
         bridge.getWebView().post(() -> bridge.getWebView().loadUrl(url));
+    }
+
+    /** 사무실 열쇠 하나면 #k=, 점으로 이은 여럿(이 기기의 사무실 모두 - 2026-10-30)이면 #ks=. 모양이 다르면 "". */
+    static String officeHash(String k) {
+        if (k.matches("[A-Za-z0-9_-]{20,64}")) return "#k=" + k;
+        if (k.length() <= 700 && k.matches("[A-Za-z0-9_-]{20,64}(\\.[A-Za-z0-9_-]{20,64}){1,9}")) return "#ks=" + k;
+        return "";
     }
 
     /** routefly.kr 의 https 산악회 방 · 회사 사무실(2026-10-29) 주소만(다른 주소로 웹뷰를 돌리지 않음). 사무실 링크의 #k= 는 u.toString() 에 그대로 실림. */

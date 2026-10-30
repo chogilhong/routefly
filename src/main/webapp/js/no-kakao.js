@@ -25,7 +25,8 @@
     // # 뒤 열쇠는 intent 에 실을 수 없어 S.rf_office 로(MainActivity.openLink 가 #k= 로 되돌림)
     var app = android && office && !/[?&]rfapp=0/.test(location.search);
     if (app) {
-        var k = /^#k=([A-Za-z0-9_-]{20,64})$/.exec(location.hash || "");
+        // 사무실 하나(#k=) 또는 여럿(#ks=열쇠.열쇠 - 2026-10-30 "이 기기의 사무실 모두"). 여럿은 새 앱(MainActivity 가 점 든 값을 #ks= 로)만 받음
+        var k = /^#ks?=([A-Za-z0-9_.-]{20,700})$/.exec(location.hash || "");
         // 앱 링크는 routefly.kr 만(www 로 와도) · 영어 등 주소의 ? 뒤도 함께(rfh · rfapp 빼고, 2026-10-29 점검)
         var keep = location.search.replace(/([?&])(rfh|rfapp)=[^&]*/g, "$1").replace(/[?&]+/g, function (x, i) { return i ? "&" : "?"; }).replace(/[?&]$/, "");
         go = "intent://" + location.host.replace(/^www\./, "") + location.pathname + keep + "#Intent;scheme=https;package=kr.routefly.app;" + (k ? "S.rf_office=" + k[1] + ";" : "")
