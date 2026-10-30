@@ -836,8 +836,9 @@
                 "⚠ This trail line does not reach the summit (" + NM(c.course.summit_miss) + ") in its name. Follow the local signs to the top."), 10000);   // 2026-10-30 코스 점검
             else if (RF.courseGaps(c).length) {   // 자료가 끊긴 구간(2026-10-30 코스 점검) - 그 구간은 선이 곧게 이어져 실제 길이 아님
                 var gp = RF.courseGaps(c)[0];
+                var inf = RF.infoText(c.info, c.total);   // 공단 시간도 함께(2026-10-30 PC: 끊김 알림이 먼저라 공단 기준이 안 떴음)
                 toast(T("⚠ 이 코스 자료에 " + gp.m + "m 끊긴 구간이 있습니다(" + km(gp.at) + "km 지점). 그 구간은 현지 안내판 · 길을 따르세요.",
-                    "⚠ This trail's data has a " + gp.m + " m gap (at " + km(gp.at) + " km). Follow the local signs there."), 10000);
+                    "⚠ This trail's data has a " + gp.m + " m gap (at " + km(gp.at) + " km). Follow the local signs there.") + (inf ? " " + inf : ""), 12000);
             }
             else if (RF.infoText(c.info, c.total)) toast(RF.infoText(c.info, c.total), 6000);   // 국립공원 공식 코스 - 공단 기준 시간 · 난이도
             // 그 산의 입산 · 통제 · 예약(data/park-notes.json - 2026-10-12 한라산: 오늘 계절 · 이 코스의 통제 지점 시각)
