@@ -171,7 +171,7 @@ public class MountainServlet extends HttpServlet {
             courses = near(rows, peak, NEAR_M);
             JsonArray picked = new JsonArray();
             courses.forEach(picked::add);
-            Steep.fill(c, picked, Peaks.tops(getServletContext()));   // 가장 가파른 1km(난이도) · 정상을 지나면 최고 높이는 공식 값(2026-10-16)
+            Steep.fill(c, picked, Peaks.tops(getServletContext()), Peaks.named(getServletContext()));   // 가장 가파른 1km(난이도) · 정상을 지나면 최고 높이는 공식 값(2026-10-16)
             names(courses, parks());   // 앱과 같은 이름(공단 공식 이름 · 산마다 지명) · 지금은 없는 탐방로는 뺌
         } catch (Exception e) {
             log.warn("[MOUNTAIN] 코스 조회 실패 {} - {}", str(peak, "id"), e.toString());
@@ -664,7 +664,9 @@ public class MountainServlet extends HttpServlet {
                         .append(String.format(Locale.ROOT, "%.2fkm", dist / 1000.0))
                         .append(asc != null ? String.format(Locale.KOREA, " · 오르막 %,dm", asc) : "")
                         .append(SteepRank.slopeText(dist, asc, steep, false))   // 각도 · 경사 · 가파른 1km - 가파른 산 순위와 같은 기준(2026-10-18 홍TV님 "통일")
-                        .append(" · 약 ").append(hours(dist, asc)).append("</span><span class=\"go\">")
+                        .append(" · 약 ").append(hours(dist, asc))
+                        .append(str(c, "summit_miss") != null ? " · ⚠ " + esc(str(c, "summit_miss")) + " 정상 미포함" : "")   // 이름의 정상까지 안 가는 선(2026-10-30 코스 점검)
+                        .append("</span><span class=\"go\">")
                         .append("<a href=\"").append(REL).append("/index.html?lang=ko#c=").append(esc(id)).append("&amp;m=").append(esc(enc(name))).append("\">fly(3D)</a>")
                         .append("<a href=\"").append(REL).append("/hike.html?lang=ko#c=").append(esc(id)).append("&amp;m=").append(esc(enc(name))).append("\">따라가기</a>");   // m= - 따라가기의 ‹ 가 이 화면으로
                 double[] th = trailhead(c, peak);

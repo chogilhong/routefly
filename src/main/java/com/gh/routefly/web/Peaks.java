@@ -202,6 +202,112 @@ final class Peaks {
         return false;
     }
 
+    private static volatile List<Top> named;
+
+    /** "정상 미포함" 을 볼 정상 자리 - 공식 높이가 없어도 모든 100대 명산 정상 + 두 번째 정상(alt - 명성산 지도 표시 자리 · 삼각봉). */
+    static List<Top> named(ServletContext ctx) {
+        List<Top> t = named;
+        if (t != null) return t;
+        JsonArray peaks = new JsonArray();
+        try (InputStream in = ctx.getResourceAsStream("/data/mountains100.json")) {
+            JsonElement e = in == null ? null : JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+            if (e != null && e.isJsonObject() && e.getAsJsonObject().has("peaks")) peaks = e.getAsJsonObject().getAsJsonArray("peaks");
+        } catch (Exception e) {
+            // 없이 - 표시 안 함
+        }
+        t = Collections.unmodifiableList(named(peaks));
+        named = t;
+        return t;
+    }
+
+    /** 순수 함수 - 정상(통제 정상 · 좌표 없는 것 빼고) + alt 자리, 이름 · 정상 이름은 그 산 것. */
+    static List<Top> named(JsonArray peaks) {
+        List<Top> out = new ArrayList<>();
+        for (JsonElement e : peaks) {
+            JsonObject o = e.getAsJsonObject();
+            if (MountainServlet.closed(o) != null || !o.has("lat") || !o.has("lon") || o.get("lat").isJsonNull()) continue;
+            String sm = o.has("summit") && !o.get("summit").isJsonNull() ? o.get("summit").getAsString() : null;
+            out.add(new Top(o.get("lat").getAsDouble(), o.get("lon").getAsDouble(), 0, MountainEn.id(o), sm));
+            if (o.has("alt") && o.get("alt").isJsonArray())
+                for (JsonElement a : o.getAsJsonArray("alt")) {
+                    JsonObject q = a.getAsJsonObject();
+                    if (q.has("lat") && q.has("lon")) out.add(new Top(q.get("lat").getAsDouble(), q.get("lon").getAsDouble(), 0, MountainEn.id(o), sm));
+                }
+        }
+        return out;
+    }
+
+    /** 이름의 정상이 코스 출발점에서 이보다 멀면 같은 이름의 다른 산(m). */
+    static final double NAMED_NEAR_M = 15000;
+
+    /** 순수 함수 - 정상 이름에서 산 이름을 뗀 것("강천산왕자봉" → 왕자봉, 없으면 정상 이름 · 산 이름). */
+    static String core(Top t) {
+        String base = t.name() == null ? "" : t.name().replaceAll("\\(.*?\\)|\\s+", "");
+        String sm = t.summit() == null ? base : t.summit().replaceAll("\\(.*?\\)|\\s+", "");
+        return sm.startsWith(base) && sm.length() - base.length() >= 2 ? sm.substring(base.length()) : sm;
+    }
+
+    /**
+     * 순수 함수 - 코스 이름의 길(" · " 뒤, → 로 나눈 곳)에 정상 이름이 그대로 있는 정상들 - 출발점(lat, lon) 15km 안만.
+     * 2026-10-30 코스 점검(tools/course-audit 의 summit 과 같은 규칙): "용문사 → 용문산" 인데 선이 정상에 안 가는 코스 38개.
+     */
+    static List<Top> namedTops(String name, List<Top> tops, double lat, double lon) {
+        List<Top> out = new ArrayList<>();
+        if (name == null || tops == null) return out;
+        int i = name.indexOf(" · ");
+        List<String> spots = new ArrayList<>();
+        for (String w : (i > 0 ? name.substring(i + 3) : name).split("→")) spots.add(w.replaceAll("\\(.*?\\)|\\s+", ""));
+        for (Top t : tops) {
+            String base = t.name() == null ? "" : t.name().replaceAll("\\(.*?\\)|\\s+", ""), c = core(t);
+            String sm = t.summit() == null ? "" : t.summit().replaceAll("\\(.*?\\)|\\s+", "");
+            if (c.isEmpty()) continue;
+            boolean hit = false;
+            for (String w : spots) if (w.equals(c) || w.equals(base + c) || (!sm.isEmpty() && w.equals(sm))) hit = true;
+            if (hit && MountainServlet.distM(lat, lon, t.lat(), t.lon()) <= NAMED_NEAR_M) out.add(t);
+        }
+        return out;
+    }
+
+    /** 순수 함수 - 선분(a → b)과 자리 t 사이 가장 가까운 거리(m). */
+    static double segM(Top t, double aLat, double aLon, double bLat, double bLon) {
+        double kx = 111320 * Math.cos(Math.toRadians((aLat + bLat) / 2)), ky = 110540;
+        double ax = (aLon - t.lon()) * kx, ay = (aLat - t.lat()) * ky, bx = (bLon - t.lon()) * kx, by = (bLat - t.lat()) * ky;
+        double dx = bx - ax, dy = by - ay, len2 = dx * dx + dy * dy;
+        double f = len2 == 0 ? 0 : Math.max(0, Math.min(1, -(ax * dx + ay * dy) / len2));
+        return Math.hypot(ax + f * dx, ay + f * dy);
+    }
+
+    /**
+     * 순수 함수 - 이름에 정상이 있는데 선이 그 정상 PASS_M(200m) 안을 안 지나면 그 정상 이름(화면 "정상 미포함"), 아니면 null.
+     * lat · lon 은 코스 점 차례대로. 이름의 정상이 여럿이면 하나라도 지나면 null.
+     */
+    static String summitMiss(String name, double[] lat, double[] lon, List<Top> tops) {
+        if (lat == null || lat.length == 0) return null;
+        List<Top> named = namedTops(name, tops, lat[0], lon[0]);
+        if (named.isEmpty()) return null;
+        for (Top t : named) {
+            for (int i = 0; i < lat.length; i++) {
+                int j = Math.max(0, i - 1);
+                if (segM(t, lat[j], lon[j], lat[i], lon[i]) <= PASS_M) return null;
+            }
+        }
+        return core(named.get(0));
+    }
+
+    /** 순수 함수 - /api/course 답에 course.summit_miss(이름의 정상까지 안 가면 그 정상 이름). points 는 [경도, 위도, …]. */
+    static void markMiss(JsonObject detail, List<Top> named) {
+        if (detail == null || !detail.has("course") || !detail.get("course").isJsonObject() || !detail.has("points") || !detail.get("points").isJsonArray()) return;
+        JsonObject course = detail.getAsJsonObject("course");
+        JsonArray pts = detail.getAsJsonArray("points");
+        double[] la = new double[pts.size()], lo = new double[pts.size()];
+        for (int i = 0; i < la.length; i++) {
+            la[i] = pts.get(i).getAsJsonArray().get(1).getAsDouble();
+            lo[i] = pts.get(i).getAsJsonArray().get(0).getAsDouble();
+        }
+        String miss = summitMiss(course.has("name") && !course.get("name").isJsonNull() ? course.get("name").getAsString() : null, la, lo, named);
+        if (miss != null) course.addProperty("summit_miss", miss);
+    }
+
     /** 순수 함수 - 지형 자료 최고점(demMax)과 지나는 정상들의 공식 높이 → 화면 "최고" 높이. 지나는 정상이 없거나 너무 다르면 null(그대로). */
     static Integer courseTop(Double demMax, List<Integer> passed) {
         Integer best = null;

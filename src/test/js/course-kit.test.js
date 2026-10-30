@@ -1470,3 +1470,14 @@ eq("kmaLink 행정동이 있으면 동네예보, 없으면 첫 화면", [RF.kmaL
 // 따라가기 - 자료가 끊긴 구간 알림(2026-10-30 코스 점검). 좌표는 테스트 데이터
 eq("courseGaps 250m 넘게 뛰는 곳", [RF.courseGaps({ lat: [37.6, 37.6001, 37.605, 37.6051], lon: [127, 127, 127, 127], dist: [0, 11, 555, 566] }),
     RF.courseGaps({ lat: [37.6, 37.6001], lon: [127, 127], dist: [0, 11] })], [[{ at: 11, m: 545 }], []]);
+// fly(3D) 도 이은 코스(대표 코스)를 받음 - joinedCourse → toApi → fromApi 가 같은 선(2026-10-30 홍TV님). 좌표는 테스트 데이터
+(function () {
+    var ja = { course: { name: "북한산 · 가 → 나", kind: "hike", distance_m: 1000 }, points: [[127, 37.60, 100, 0], [127, 37.609, 300, 1000]],
+               pois: [{ name: "가", lat: 37.60, lon: 127, ele_m: 100, dist_m: 0, off_route_m: 0 }, { name: "갈림길", lat: 37.609, lon: 127, ele_m: 300, dist_m: 1000, off_route_m: 0 }] };
+    var jb = { course: { name: "북한산 · 다 → 나", kind: "hike", distance_m: 1000 }, points: [[127.01, 37.609, 200, 0], [127, 37.609, 300, 900]], pois: [] };
+    var parts = RF.parseJoinId("a,b~");
+    var c = RF.joinedCourse("a,b~", parts, [ja, jb]);
+    var api = RF.toApi(c), back = RF.fromApi("a,b~", api);
+    eq("joinedCourse → toApi 점 · 거리 그대로", [api.points.length, back.lon.length === c.lon.length, Math.round(back.total) === Math.round(c.total), api.course === c.course], [c.lon.length, true, true, true]);
+    eq("joinedCourse 거꾸로 이음 - 끝이 다", [c.lon[c.lon.length - 1], c.lat[c.lat.length - 1]], [127.01, 37.609]);
+})();

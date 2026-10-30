@@ -793,18 +793,7 @@
             if (parts) r[0] = r[0].map(function (j, i) { return fix(parts[i].base, j); }); else if (!isGpxId(id)) fix(id, r[0]);
             // 여러 구간 이어 걷기(#c=구간,구간~,… - 2026-10-12 홍TV님): 구간마다 걷는 방향으로 돌려 하나로
             // 갈림길에서 자른 구간(코스ID@비율-비율:처음>끝 - 탐방 안내도)은 그 부분만
-            var one = function (p, j) {
-                var x = RF.fromApi(p.base, j);
-                if (p.r0 != null) {
-                    var g = RF.nameParts(x.course.name).group;
-                    var label = RF.endsText(p.from, p.to);   // 이은 구간의 첫 조각은 "가에서", 끝 조각은 "나까지"(mergeBare)
-                    x = RF.sliceCourse(x, p.r0, p.r1, label ? (g || x.course.name) + " · " + label : x.course.name, p.id);
-                }
-                return x;
-            };
-            var nc = !parts ? RF.fromApi(id, r[0])
-                : parts.length === 1 ? one(parts[0], r[0][0])   // 자른 구간 하나 - 거꾸로는 &rev=1 로(아래)
-                : RF.joinCourses(r[0].map(function (j, i) { var x = one(parts[i], j); return parts[i].rev ? RF.reverseCourse(x) : x; }), id);
+            var nc = !parts ? RF.fromApi(id, r[0]) : RF.joinedCourse(id, parts, r[0]);   // 갈림길에서 자른 구간(코스ID@비율-비율:처음>끝 - 탐방 안내도)은 그 부분만
             if (nc.lon.length < 2) throw new Error("경로 점이 없습니다.");   // 2026-10-11 점검: 확인한 뒤에 바꿈(깨진 코스로 공유 · SOS 가 돌지 않게)
             c = nc;
             var sv = loadSaved();
@@ -843,6 +832,8 @@
             }).catch(function () { /* 안전 정보 없이 */ });
             document.title = RF.nameText(c.course.name, true);   // 길만 - "- routefly" 를 붙이면 탭 · 최근 앱 목록에서 잘림(2026-10-12 홍TV님)
             if ((parts ? r[0] : [r[0]]).some(function (j) { return j && j.course && RF.isClosedTrail(j.course.name); })) toast(T("⚠ 비법정탐방로(통제구역)입니다. 국립공원 지정 탐방로가 아니라 출입이 금지된 길이니 따라가지 마세요.", "⚠ Closed trail (restricted area). This is not an official national park trail and entry is banned - do not follow it."), 12000);   // 링크로 바로 연 경우(목록에는 안 나옴)
+            else if (c.course && c.course.summit_miss) toast(T("⚠ 이 코스 선은 이름의 " + c.course.summit_miss + " 정상까지 가지 않습니다(정상 미포함 - 자료의 선 그대로). 정상은 현지 길 · 안내판을 따르세요.",
+                "⚠ This trail line does not reach the summit (" + NM(c.course.summit_miss) + ") in its name. Follow the local signs to the top."), 10000);   // 2026-10-30 코스 점검
             else if (RF.courseGaps(c).length) {   // 자료가 끊긴 구간(2026-10-30 코스 점검) - 그 구간은 선이 곧게 이어져 실제 길이 아님
                 var gp = RF.courseGaps(c)[0];
                 toast(T("⚠ 이 코스 자료에 " + gp.m + "m 끊긴 구간이 있습니다(" + km(gp.at) + "km 지점). 그 구간은 현지 안내판 · 길을 따르세요.",
@@ -3048,12 +3039,12 @@
             var s = document.createElement("span");
             var ofn = r.best ? "" : RF.officialName(listNotes, r.course_id);   // 공단 공식 이름(가야산1코스) - 이름에 이미 들었으면 빼고(남산제일봉1코스)
             if (ofn && String(r.name).replace(/\s+/g, "").indexOf(ofn.replace(/\s+/g, "")) >= 0) ofn = "";
-            s.textContent = EN ? (r.best ? "★ Featured · " : "") + (ofn ? "Park: " + NM(ofn) + " · " : "") + km(+r.distance_m) + " km" + (r.ascent_m != null ? " · climb " + num(+r.ascent_m) + " m" : "")
+            s.textContent = EN ? (r.best ? "★ Featured · " : "") + (r.summit_miss ? "⚠ Does not reach the summit (" + NM(r.summit_miss) + ") · " : "") + (ofn ? "Park: " + NM(ofn) + " · " : "") + km(+r.distance_m) + " km" + (r.ascent_m != null ? " · climb " + num(+r.ascent_m) + " m" : "")
                 + (r.steep_pct >= 28 ? " · steepest km " + Math.round(r.steep_pct) + "%" : "")
                 + (r.ele_max_m != null ? " · top " + num(+r.ele_max_m) + " m" : "")
                 + (r.away != null ? " · " + km(r.away) + " km to start" : "")
                 + (offSet.indexOf(String(r.course_id)) >= 0 ? " · ✅ Saved" : "")
-                : (r.best ? "★ 대표 코스 " + r.best + " · " : "") + (ofn ? "공단 " + ofn + " · " : "") + km(+r.distance_m) + "km" + (r.ascent_m != null ? " · 오르막 " + num(+r.ascent_m) + "m" : "")
+                : (r.best ? "★ 대표 코스 " + r.best + " · " : "") + (r.summit_miss ? "⚠ " + r.summit_miss + " 정상 미포함 · " : "") + (ofn ? "공단 " + ofn + " · " : "") + km(+r.distance_m) + "km" + (r.ascent_m != null ? " · 오르막 " + num(+r.ascent_m) + "m" : "")
                 + (r.steep_pct >= 28 ? " · 가장 가파른 1km " + Math.round(r.steep_pct) + "%" : "")
                 + (r.ele_max_m != null ? " · 최고 " + num(+r.ele_max_m) + "m" : "")
                 + (r.away != null ? " · 출발점까지 " + km(r.away) + "km" : "")
@@ -3063,11 +3054,11 @@
             it.appendChild(b);
             it.appendChild(s);
             // fly(3D) - 3D 지형 위로 날아 보기(2026-10-13 홍TV님: 실제 코스만, 탐방 안내도 카드는 뺌). 그 화면 ← 는 이 목록으로
-            if (!isGpxId(r.course_id) && !RF.parseJoinId(r.course_id)) {   // 이은 코스(대표 코스)는 3D 비행 화면이 못 받음
+            if (!isGpxId(r.course_id)) {   // 이은 코스(대표 코스)도 - 3D 화면이 조각을 받아 이어 그림(2026-10-30 홍TV님)
                 var fly = document.createElement("a");
                 fly.className = "fly";
                 fly.textContent = "fly(3D)";
-                fly.href = "index.html#c=" + encodeURIComponent(r.course_id) + "&from=hike";   // 그 화면 "← 뒤로" 가 새로 고쳐도 남게(2026-10-14)
+                fly.href = "index.html#c=" + encodeURIComponent(r.course_id) + (r.title ? "&title=" + encodeURIComponent(r.title) : "") + (r.head ? "&head=" + encodeURIComponent(r.head) : "") + "&from=hike";   // 그 화면 "← 뒤로" 가 새로 고쳐도 남게(2026-10-14)
                 fly.title = T("3D 지형 위로 날아 보기", "Fly over the 3D terrain");
                 fly.onclick = function (e) {
                     e.stopPropagation();

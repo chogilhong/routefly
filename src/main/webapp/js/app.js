@@ -398,9 +398,25 @@
 
     // 2026-10-11 오픈 전 점검: '처음으로' · 같은 코스를 다시 고를 때 같은 코스를 또 받았음 - 최근 5개는 받아 둔 것(실패한 것은 빼서 다시 받게)
     var courseMemo = [];
+    // 이은 코스의 길 이름(#…&title=밤골입구 → … - 따라가기 목록의 fly(3D) 가 붙임), 들머리(&head=)
+    var joinTitle = (function () { var m = /[#&]title=([^&]*)/.exec(location.hash), t = m ? RF.safeDecode(m[1]) : ""; return t && t.length <= 60 ? t : ""; })();
+    var joinExtra = (/[#&](rev=1)(&|$)/.test(location.hash) ? "&rev=1" : "") + (joinTitle ? "&title=" + encodeURIComponent(joinTitle) : "") + ((/[#&](head=[^&]*)/.exec(location.hash) || [])[1] ? "&" + /[#&](head=[^&]*)/.exec(location.hash)[1] : "");
     function courseData(id) {
         for (var i = 0; i < courseMemo.length; i++) if (courseMemo[i].id === id) return courseMemo[i].p;
-        var p = getJson("api/course?id=" + encodeURIComponent(id));
+        // 이은 코스(탐방 안내도 대표 코스 - 숨은벽 · 백운대(밤골))는 조각을 받아 하나로(2026-10-30 홍TV님 "우리가 그 코스를 만들면 되잖아")
+        var parts = RF.parseJoinId(id);
+        var p = !parts ? getJson("api/course?id=" + encodeURIComponent(id))
+            : Promise.all(parts.map(function (q) { return getJson("api/course?id=" + encodeURIComponent(q.base)); })).then(function (rs) {
+                var c = RF.joinedCourse(id, parts, rs);
+                if (/[#&]rev=1(&|$)/.test(location.hash)) c = RF.reverseCourse(c);
+                if (joinTitle) c.course.name = (RF.nameParts(c.course.name).group || "").replace(/\s*\d+구간 이어 걷기$/, "") + (RF.nameParts(c.course.name).group ? " · " : "") + joinTitle;
+                var hm = /[#&]head=([^&]*)/.exec(location.hash), hn = hm ? RF.safeDecode(hm[1]) : "", T0 = +c.total || 0;
+                var back = c.lon.length > 1 && RF.distM(c.lat[0], c.lon[0], c.lat[c.lat.length - 1], c.lon[c.lon.length - 1]) < 600;
+                if (hn && hn.length <= 30) c.pois.forEach(function (q) {   // 들머리 이름(따라가기와 같게 - 처음, 원점회귀면 끝 100m 안)
+                    if (!(+q.off_route_m > 100) && (+q.dist_m < 100 || (back && +q.dist_m > T0 - 100))) q.name = hn;
+                });
+                return RF.toApi(c);
+            });
         courseMemo.unshift({ id: id, p: p });
         if (courseMemo.length > 5) courseMemo.pop();
         p.catch(function () { courseMemo = courseMemo.filter(function (m) { return m.p !== p; }); });
@@ -422,7 +438,7 @@
             if (my !== selectSeq) return;
             var j = r[0];
             if (j && j.course && r[2]) {
-                j.course.name = RF.noteTrailName(r[2], id, j.course.name);
+                if (!RF.parseJoinId(id)) j.course.name = RF.noteTrailName(r[2], id, j.course.name);   // 이은 코스는 첫 조각 ID 로 공단 이름이 붙지 않게
                 var pk = RF.parkOf(j.course.name), nm = pk && r[2][pk] && r[2][pk].names;
                 if (nm) j.course.name = RF.aliasName(j.course.name, nm);
             }
@@ -434,7 +450,7 @@
             cur = c;
             // 고른 코스의 출발점은 "출발" 이름표와 겹치므로 점 자료에서 뺍니다(묶음 원에도 안 들어가게)
             map.getSource("starts").setData(startsData());
-            try { history.replaceState(null, "", "#c=" + encodeURIComponent(id) + (fromTag ? "&from=" + fromTag : "") + (fromMountain ? "&m=" + encodeURIComponent(fromMountain) : "")); } catch (e) { /* 주소를 못 바꿔도 됩니다 */ }
+            try { history.replaceState(null, "", "#c=" + encodeURIComponent(id) + (RF.parseJoinId(id) ? joinExtra : "") + (fromTag ? "&from=" + fromTag : "") + (fromMountain ? "&m=" + encodeURIComponent(fromMountain) : "")); } catch (e) { /* 주소를 못 바꿔도 됩니다 */ }
 
             map.getSource("route").setData({ type: "Feature", properties: {},
                 geometry: { type: "LineString", coordinates: c.lon.map(function (lon, i) { return [lon, c.lat[i]]; }) } });
@@ -457,7 +473,7 @@
             var official = RF.infoText(j.info);   // 국립공원 공식 코스 - 공단 기준 시간 · 난이도
             var spots = EN ? spotSummaryEn(j.spots) : RF.spotSummary(j.spots);   // 국립공원 위험지역 · 조망점
             $("courseStat").textContent = statLine(j.course)
-                + (j.course.ele_source === "none" ? T(" · 고도 자료 없음", " · no elevation data") : "") + (official ? " · " + official : "") + (spots ? " · " + spots : "");
+                + (j.course.ele_source === "none" ? T(" · 고도 자료 없음", " · no elevation data") : "") + (j.course.summit_miss ? T(" · ⚠ " + j.course.summit_miss + " 정상 미포함", " · ⚠ does not reach " + NM(j.course.summit_miss)) : "") + (official ? " · " + official : "") + (spots ? " · " + spots : "");
             setupGuide(c, j, r[2], id);
             $("bottom").style.display = "block";
             $("hud").style.display = "block";
@@ -1464,7 +1480,8 @@
     // 공유 - 그 코스의 따라가기 화면 링크(2026-10-13 홍TV님: fly(3D) 에서 공유해도 따라가기로). s/…?to=hike 라 카카오톡 등에 코스 카드도 뜸
     $("shareBtn").addEventListener("click", function () {
         if (!cur) return;
-        var url = new URL(EN ? "hike.html?lang=en#c=" + encodeURIComponent(cur.id) : "s/" + encodeURIComponent(cur.id) + "?to=hike", location.href).href;
+        var url = new URL(RF.parseJoinId(cur.id) ? (EN ? "hike.html?lang=en" : "hike.html") + "#c=" + encodeURIComponent(cur.id) + joinExtra   // 이은 코스는 s/ 카드가 없어 따라가기 주소로
+            : EN ? "hike.html?lang=en#c=" + encodeURIComponent(cur.id) : "s/" + encodeURIComponent(cur.id) + "?to=hike", location.href).href;
         if (navigator.share) { navigator.share({ title: NM(cur.course.name), url: url }).catch(function () {}); return; }
         (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(function () { show(T("링크를 복사했습니다: ", "Link copied: ") + url); setTimeout(function () { show(null); }, 2500); })
             .catch(function () { prompt(T("링크를 복사하세요", "Copy the link"), url); });
@@ -1499,7 +1516,7 @@
         if (fromTag) { stop(); location.href = FROM_PAGES[fromTag]; return; }
         if (fromMountain) { stop(); location.href = EN ? "en/m/" + RF.roman(fromMountain).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") : "m/" + encodeURIComponent(fromMountain); return; }   // 앞 기록이 우리 화면인지 모르면 온 화면을 새로 엶
         // 공유 링크로 바로 열었으면 이 화면 목록 대신 그 코스의 따라가기로(2026-10-13 홍TV님: 뒤로 하니 미리보기 목록이 나왔음)
-        if (cur && !RF.isGpxId(cur.id)) { stop(); location.href = "hike.html#c=" + encodeURIComponent(cur.id); return; }
+        if (cur && !RF.isGpxId(cur.id)) { stop(); location.href = "hike.html#c=" + encodeURIComponent(cur.id) + (RF.parseJoinId(cur.id) ? joinExtra : ""); return; }
         var fromHike = document.referrer && document.referrer.indexOf(new URL("hike.html", location.href).href) === 0;
         if (fromHike && history.length > 1) history.back();   // 따라가기에서 왔으면 그 화면 그대로(검색 결과 포함)
         else location.href = "hike.html";
