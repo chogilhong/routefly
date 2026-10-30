@@ -470,7 +470,7 @@
             favCur = RF.isGpxId(id) ? null : { id: id, name: j.course.name, kind: j.course.kind, dist: Math.round(+j.course.distance_m || c.total),
                                                   asc: j.course.ascent_m != null ? Math.round(+j.course.ascent_m) : null };
             favBtn.refresh();
-            var official = RF.infoText(j.info);   // 국립공원 공식 코스 - 공단 기준 시간 · 난이도
+            var official = RF.infoText(j.info, +j.course.distance_m || c.total);   // 국립공원 공식 코스 - 공단 기준 시간 · 난이도
             var spots = EN ? spotSummaryEn(j.spots) : RF.spotSummary(j.spots);   // 국립공원 위험지역 · 조망점
             $("courseStat").textContent = statLine(j.course)
                 + (j.course.ele_source === "none" ? T(" · 고도 자료 없음", " · no elevation data") : "") + (j.course.summit_miss ? T(" · ⚠ " + j.course.summit_miss + " 정상 미포함", " · ⚠ does not reach " + NM(j.course.summit_miss)) : "") + (RF.courseGaps(c).length ? T(" · ⚠ 자료가 " + RF.courseGaps(c)[0].m + "m 끊긴 구간", " · ⚠ " + RF.courseGaps(c)[0].m + " m gap in the data") : "")   /* 따라가기와 같게(2026-10-30) */ + (official ? " · " + official : "") + (spots ? " · " + spots : "");
@@ -785,7 +785,7 @@
                 out.appendChild(endRow);
                 if (sun) out.appendChild(el("div", "gNote" + (late ? " gWarn" : ""), T("오늘 일몰 ", "Sunset today ") + clockText(sun)
                     + (late ? T(" - 해 지기 30분 전까지 못 내려올 수 있습니다. 더 일찍 떠나세요.", " - you may not be down 30 minutes before sunset. Start earlier.") : "")));
-                var official = RF.infoText(c.info);
+                var official = RF.infoText(c.info, c.total);
                 out.appendChild(el("div", "gNote", T("표준 소요 시간(거리 · 오른 높이)으로 어림했습니다.", "Estimated from standard pace (distance and climb).") + (official ? " " + official + "." : "")));
             };
             inp.addEventListener("change", draw);

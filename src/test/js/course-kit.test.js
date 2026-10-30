@@ -1515,3 +1515,6 @@ eq("islands 차도 3km 넘으면 뺌", (function (I) { return [!!I.rejectReason(
     a.open = true; fn({ target: a });
     eq("foldOne 이름 있는 칸만 접고 숙소 칸은 펴 둠", [stay.open, a.open, b.open], [true, true, false]);
 })();
+// 공단 시간이 선보다 긴 공식 구간 것(2026-10-30 점검: 설악산 소공원 → 희운각 1.47km 에 오름 230분)
+eq("infoPartial", [RF.infoPartial({ up_min: 230 }, 1467), RF.infoPartial({ up_min: 150 }, 2670), RF.infoPartial({ up_min: 230 }, null), RF.infoPartial(null, 1000)], [true, false, false, false]);
+eq("infoText 일부면 덧붙임", [/전체 구간 기준/.test(RF.infoText({ up_min: 230, down_min: 160 }, 1467)), /전체 구간 기준/.test(RF.infoText({ up_min: 150 }, 2670))], [true, false]);
