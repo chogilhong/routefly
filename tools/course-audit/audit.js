@@ -146,8 +146,29 @@ function checkPark(data, park, notes) {
     var groups = {};
     segs.forEach(function (s, si) { var r = find(si); (groups[r] = groups[r] || { n: 0, m: 0, names: [] }).n++; groups[r].m += +s.distance_m || 0; if (groups[r].names.length < 3) groups[r].names.push(s.name); });
     var gl = Object.keys(groups).map(function (k) { return groups[k]; }).sort(function (a, b) { return b.m - a.m; });
-    gl.slice(1).forEach(function (g) {
-        if (g.m < 30000) issues.push({ kind: "island", msg: "따로 떨어진 조각 " + g.n + "구간 " + (g.m / 1000).toFixed(1) + "km - " + g.names.join(" / "), at: null });
+    // 조각마다 큰 묶음(가장 긴 것)과 가장 가까운 두 점(link) - 빈 구간 메우기(tools/park-gaps)의 처음 · 끝(2026-10-30)
+    var keyOf = {};
+    Object.keys(groups).forEach(function (k) { keyOf[k] = groups[k]; });
+    var mainKey = Object.keys(groups).filter(function (k) { return groups[k] === gl[0]; })[0];
+    var near = function (aKey, bKey) {
+        var best = null;
+        segs.forEach(function (s, i) {
+            if (String(find(i)) !== aKey) return;
+            segs.forEach(function (t, j) {
+                if (String(find(j)) !== bKey) return;
+                for (var a = 0; a < s.coords.length; a += Math.max(1, Math.floor(s.coords.length / 80)))
+                    for (var b = 0; b < t.coords.length; b += Math.max(1, Math.floor(t.coords.length / 80))) {
+                        var m = d(s.coords[a], t.coords[b]);
+                        if (!best || m < best.m) best = { m: Math.round(m), a: s.coords[a], b: t.coords[b], an: nearestName(s.coords[a]), bn: nearestName(t.coords[b]) };
+                    }
+            });
+        });
+        return best;
+    };
+    Object.keys(groups).forEach(function (k) {
+        var g = groups[k];
+        if (k === mainKey || g.m >= 30000) return;
+        issues.push({ kind: "island", msg: "따로 떨어진 조각 " + g.n + "구간 " + (g.m / 1000).toFixed(1) + "km - " + g.names.join(" / "), at: null, link: near(k, mainKey) });
     });
     return { segs: segs, groups: gl.length, issues: issues };
 }

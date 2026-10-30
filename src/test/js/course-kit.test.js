@@ -1481,3 +1481,10 @@ eq("courseGaps 250m 넘게 뛰는 곳", [RF.courseGaps({ lat: [37.6, 37.6001, 37
     eq("joinedCourse → toApi 점 · 거리 그대로", [api.points.length, back.lon.length === c.lon.length, Math.round(back.total) === Math.round(c.total), api.course === c.course], [c.lon.length, true, true, true]);
     eq("joinedCourse 거꾸로 이음 - 끝이 다", [c.lon[c.lon.length - 1], c.lat[c.lat.length - 1]], [127.01, 37.609]);
 })();
+// 탐방 안내도 떨어진 조각 잇기(tools/park-gaps/islands.js, 2026-10-30) - 받을 길 거르기
+(function () {
+    var I = require("../../../tools/park-gaps/islands.js");
+    var ok = { distance_m: 900, tags: [{ access: null }] };
+    eq("islands rejectReason", [I.rejectReason(ok, 700), !!I.rejectReason({ distance_m: 900, tags: [{ access: "no" }] }, 700), !!I.rejectReason({ distance_m: 4100, tags: [] }, 2000),
+        !!I.rejectReason({ distance_m: 3000, tags: [] }, 500), I.rejectReason({ error: "길 없음" }, 500), I.placeName("등천리 757m")], [null, true, true, true, "길 없음", "등천리"]);
+})();

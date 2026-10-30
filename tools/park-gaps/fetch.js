@@ -125,7 +125,7 @@ function withEle(coords) {
     return Promise.all(coords.map(function (p) { var t = tileOf(p[1], p[0], DEM_Z); return get(t).then(function (img) { return [p[0], p[1], eleAt(img, t.px, t.py)]; }); }));
 }
 
-module.exports = { route: route, closedWays: closedWays, distM: distM, FILE: FILE, pngDecode: pngDecode, tileOf: tileOf, eleAt: eleAt };
+module.exports = { route: route, closedWays: closedWays, distM: distM, FILE: FILE, pngDecode: pngDecode, tileOf: tileOf, eleAt: eleAt, withEle: withEle };
 
 if (require.main === module && process.argv.indexOf("--ele") > 0) {   // 이미 넣은 빈 구간에 높이만 다시
     var doc0 = JSON.parse(fs.readFileSync(FILE, "utf8")), jobs = [];
