@@ -106,8 +106,9 @@
     function drawMine() {
         var a = mine(), sel = $("mineSel");
         $("mineBar").hidden = !a.length;
-        $("allRow").hidden = $("allTip").hidden = a.length < 2;   // 사무실이 둘 이상이면 "모두 복사"
-        $("qrMine").textContent = a.length > 1 ? T("🔳 사무실 " + Math.min(a.length, ALL_MAX) + "개 모두 QR", "🔳 QR for all " + Math.min(a.length, ALL_MAX) + " offices") : T("🔳 사무실 링크 QR", "🔳 Office link QR");
+        $("allRow").hidden = $("allTip").hidden = a.length < 2 || !!bundle();   // 사무실이 둘 이상이면 "모두 복사"(묶음이 있으면 묶음 링크로)
+        $("qrMine").textContent = bundle() ? T("🔳 묶음 QR", "🔳 Bundle QR") : a.length > 1 ? T("🔳 사무실 " + Math.min(a.length, ALL_MAX) + "개 모두 QR", "🔳 QR for all " + Math.min(a.length, ALL_MAX) + " offices") : T("🔳 사무실 링크 QR", "🔳 Office link QR");
+        drawBundle();
         sel.hidden = a.length < 2;
         var html = a.map(function (y, i) { return "<option value=\"" + i + "\"" + (y.k === key ? " selected" : "") + ">🏢 " + esc(y.n || T("사무실 ", "Office ") + (i + 1)) + "</option>"; }).join("");
         if (html !== drawn) { sel.innerHTML = html; drawn = html; }   // 30초마다 그대로면 손대지 않음(펼친 목록이 닫히지 않게)
@@ -136,7 +137,68 @@
     var ALL_MAX = 10;
     function linkAll() { return location.origin + HERE + "#ks=" + mine().slice(0, ALL_MAX).map(function (y) { return y.k; }).join("."); }
     /** 지금 QR · 모두 복사가 쓸 링크 - 사무실이 둘 이상이면 모두, 아니면 이 사무실. */
-    function shareLink() { return mine().length > 1 ? linkAll() : linkOf(key); }
+    function shareLink() { return bundle() ? linkBundle() : mine().length > 1 ? linkAll() : linkOf(key); }
+    // ---- 내 사무실 묶음(2026-10-30 홍TV님 "② 내 사무실 묶음 링크로 해줘"): 묶음 열쇠 하나를 기기마다 두고, 사무실 목록은 서버 묶음을 따름
+    var BKEY = "rf-office-bundle", bundleSync = 0, bundleN = 0;
+    function bundle() { var b = null; try { b = localStorage.getItem(BKEY); } catch (e) { /* 없음 */ } return /^[A-Za-z0-9_-]{20,64}$/.test(b || "") ? b : null; }
+    function setBundle(b) { try { if (b) localStorage.setItem(BKEY, b); else localStorage.removeItem(BKEY); } catch (e) { /* 이번만 */ } }
+    function linkBundle() { return location.origin + HERE + "#b=" + bundle(); }
+    /** 서버 묶음 목록을 이 기기 목록으로(보던 사무실이 빠졌으면 첫 사무실). */
+    function applyBundle(list) {
+        saveMine(list.map(function (x) { return { k: x.key, n: x.name || "" }; }));
+        var cur = null;
+        try { cur = sessionStorage.getItem(KEY) || localStorage.getItem(KEY); } catch (e) { /* 없음 */ }
+        if (!list.some(function (x) { return x.key === cur; })) {
+            try {
+                if (list.length) { sessionStorage.setItem(KEY, list[0].key); localStorage.setItem(KEY, list[0].key); }
+                else { sessionStorage.removeItem(KEY); localStorage.removeItem(KEY); }
+            } catch (e) { /* 이번만 */ }
+        }
+        bundleN = list.length;
+    }
+    /** 묶음 맞추기 - force 가 아니면 1분에 한 번. 묶음이 없어졌으면(403) 연결만 끊고 목록은 그대로. */
+    function syncBundle(force) {
+        var b = bundle();
+        if (!b || (!force && Date.now() - bundleSync < 60000)) return Promise.resolve();
+        bundleSync = Date.now();
+        return RFParty.post("office/bundle", { bundle: b }).then(function (j) { if (bundle() === b) applyBundle(j.offices || []); }).catch(function (e) {
+            if (e && e.status === 403 && bundle() === b) {
+                setBundle(null);
+                msg(T("묶음 링크가 바뀌었거나 없어져 이 기기의 묶음 연결을 끊었습니다(사무실 목록은 그대로). 새 묶음 링크로 다시 연결하세요.", "The bundle link changed or is gone, so this device was disconnected (office list kept). Reconnect with the new bundle link."));
+            }
+        });
+    }
+    /** 이 기기에만 있는 사무실을 묶음에 넣음(차례로, 실패는 건너뜀). */
+    function pushLocal(b, have) {
+        return mine().filter(function (y) { return have.indexOf(y.k) < 0; }).reduce(function (p, y) {
+            return p.then(function () { return RFParty.post("office/bundle/add", { bundle: b, key: y.k }).catch(function () { /* 틀린 사무실 */ }); });
+        }, Promise.resolve());
+    }
+    /** 묶음 링크(#b=…)로 들어옴 - 묶음의 사무실 이름을 보여 주고 연결할지 묻고, 이 기기에만 있던 사무실도 묶음에 넣음. */
+    function joinBundle(b) {
+        RFParty.post("office/bundle", { bundle: b }).then(function (j) {
+            var list = j.offices || [];
+            if (bundle() === b) { syncBundle(true).then(startNow); return; }
+            var lines = list.map(function (x) { return "🏢 " + x.name; }).join("\n") || T("(아직 사무실 없음)", "(no offices yet)");
+            return ask(T("묶음 링크로 들어왔습니다.\n\n" + lines + "\n\n이 기기를 이 묶음에 연결할까요? 이 기기에만 있던 사무실도 묶음에 들어가고, 앞으로 사무실 목록이 묶음과 같아집니다. 우리 회사 묶음이 맞을 때만 연결하세요.",
+                "You opened a bundle link.\n\n" + lines + "\n\nConnect this device to the bundle? Offices only on this device join the bundle too, and the office list follows the bundle from now on. Only connect if it's your company's bundle."), { ok: T("연결", "Connect") }).then(function (ok) {
+                if (!ok) { msg(T("연결하지 않았습니다.", "Not connected.")); startNow(); return; }
+                return pushLocal(b, list.map(function (x) { return x.key; })).then(function () {
+                    setBundle(b);
+                    return syncBundle(true);
+                }).then(function () { msg(T("묶음에 연결했습니다. 이 기기 사무실 " + mine().length + "곳.", "Connected to the bundle. " + mine().length + " offices on this device.")); startNow(); });
+            });
+        }).catch(function (e) {
+            msg(e && e.status === 403 ? T("묶음 링크가 맞지 않습니다. 링크를 다시 확인해 주세요.", "The bundle link is not valid. Please check the link.") : em(e));
+            startNow();
+        });
+    }
+    function drawBundle() {
+        var b = bundle();
+        $("bundleOff").hidden = !!b;
+        $("bundleOn").hidden = !b;
+        if (b) $("bundleState").textContent = T("🔗 이 기기는 내 사무실 묶음에 연결됨 - 사무실 " + mine().length + "곳(다른 기기와 같음)", "🔗 This device is connected to the office bundle - " + mine().length + " offices (same as other devices)");
+    }
 
     function showOnly(id) {
         ["newSec", "madeSec", "officeSec"].forEach(function (x) { $(x).hidden = x !== id; });
@@ -251,7 +313,18 @@
         });
     }
 
+    /** 묶음이 있으면 먼저 맞추고(1분에 한 번) 시작. */
     function start() {
+        var mb = /^#b=([A-Za-z0-9_-]{20,64})$/.exec(location.hash || "");
+        if (mb) {   // 묶음 링크 - 주소에서 지우고 묻고 연결
+            try { history.replaceState(null, "", HERE); } catch (e) { /* 그대로 */ }
+            joinBundle(mb[1]);
+            return;
+        }
+        syncBundle().then(startNow, startNow);
+    }
+
+    function startNow() {
         if ($("qrBox")) $("qrBox").hidden = true;   // 다른 사무실 QR 이 남지 않게
         var ms = /^#ks=([A-Za-z0-9_.-]{20,700})$/.exec(location.hash || "");
         if (ms) {   // 여러 사무실 링크 - 이 기기에 없는 것만 묻고 넣음
@@ -316,6 +389,7 @@
             store(j.key, j.name);
             drawMine();
             key = j.key;
+            if (bundle()) RFParty.post("office/bundle/add", { bundle: bundle(), key: j.key }).catch(function () { /* 다음 맞추기 때 */ });   // 묶음에도 - 다른 기기 목록에 저절로
             $("madeTitle").textContent = T("✅ 사무실을 만들었습니다", "✅ Office created");   // 링크 바꾸기 뒤 남은 제목 지움
             $("linkBox").textContent = linkOf(j.key);
             showOnly("madeSec");
@@ -330,8 +404,11 @@
     });
     $("goOffice").addEventListener("click", start);
     $("forget").addEventListener("click", function () {
-        ask(T("이 기기에서 로그아웃할까요? 사무실은 그대로이고, 다시 들어오려면 사무실 링크가 있어야 합니다.", "Log out on this device? The office stays; you need the office link to come back."), { ok: T("로그아웃", "Log out") }).then(function (ok) {
+        var bk = bundle();
+        ask(bk ? T("이 사무실을 내 사무실 묶음에서 뺄까요? 묶음에 연결된 모든 기기 목록에서 빠집니다(사무실은 그대로, 다시 넣으려면 사무실 링크가 있어야 함).", "Remove this office from the office bundle? It leaves the list on every connected device (the office stays; you need its link to add it back).")
+            : T("이 기기에서 로그아웃할까요? 사무실은 그대로이고, 다시 들어오려면 사무실 링크가 있어야 합니다.", "Log out on this device? The office stays; you need the office link to come back."), { ok: bk ? T("묶음에서 빼기", "Remove") : T("로그아웃", "Log out") }).then(function (ok) {
             if (!ok) return;
+            if (bk) RFParty.post("office/bundle/remove", { bundle: bk, key: key }).catch(function () { /* 이미 없음 */ });
             store(null);   // 이 사무실만 이 기기 목록에서 빠짐 - 다른 사무실이 있으면 그리로
             key = null;
             location.reload();
@@ -537,6 +614,38 @@
             });
         });
     }
+    $("bundleMake").addEventListener("click", function () {
+        var btn = this, ks = mine().map(function (y) { return y.k; });
+        if (!ks.length) { noteBelow(btn, T("먼저 사무실을 만들거나 사무실 링크로 들어오세요.", "Create or open an office first.")); return; }
+        RFParty.post("office/bundle/new", { keys: ks }).then(function (j) {
+            setBundle(j.bundle);
+            return syncBundle(true);
+        }).then(function () { drawMine(); noteBelow($("bundleCopy"), T("묶음을 만들었습니다. 📋 묶음 링크 복사 · 🔳 묶음 QR 로 다른 기기를 연결하세요.", "Bundle made. Connect other devices with Copy bundle link or Bundle QR."), 5000); })
+            .catch(function (e) { noteBelow(btn, em(e), 5000); });
+    });
+    $("bundleCopy").addEventListener("click", function () {
+        var t = linkBundle(), btn = this;
+        (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () {
+            noteBelow(btn, T("묶음 링크를 복사했습니다. 다른 기기에서 한 번 열면 연결됩니다(우리 직원에게만).", "Bundle link copied. Open it once on another device to connect (your staff only)."));
+        }).catch(function () { askText(T("복사가 안 됩니다. 아래 칸의 링크를 길게 눌러 복사하세요.", "Copying failed. Press and hold the link below to copy it."), t, { ok: T("닫기", "Close") }); });
+    });
+    $("bundleNewKey").addEventListener("click", function () {
+        var btn = this;
+        ask(T("묶음 링크를 바꿀까요? 옛 묶음 링크는 바로 안 되고, 다른 기기는 연결이 끊겨 새 묶음 링크로 다시 연결해야 합니다(사무실은 그대로).", "Change the bundle link? The old one stops working at once and other devices must reconnect with the new link (offices stay)."), { ok: T("링크 바꾸기", "Change link"), danger: true }).then(function (ok) {
+            if (!ok) return;
+            RFParty.post("office/bundle/newkey", { bundle: bundle() }).then(function (j) { setBundle(j.bundle); $("qrBox").hidden = true; drawMine(); noteBelow(btn, T("묶음 링크를 바꿨습니다. 다른 기기에 새 링크를 보내 다시 연결하세요.", "Bundle link changed. Send the new link to other devices to reconnect."), 5000); })
+                .catch(function (e) { noteBelow(btn, em(e), 5000); });
+        });
+    });
+    $("bundleLeave").addEventListener("click", function () {
+        ask(T("이 기기의 묶음 연결을 끊을까요? 지금 사무실 목록은 이 기기에 그대로 남고, 앞으로 다른 기기와 맞춰지지 않습니다.", "Disconnect this device from the bundle? The current office list stays on this device but will no longer follow other devices."), { ok: T("끊기", "Disconnect") }).then(function (ok) {
+            if (!ok) return;
+            setBundle(null);
+            $("qrBox").hidden = true;
+            drawMine();
+        });
+    });
+
     // PC 에서 넓은 표 옆으로 밀기(2026-10-30 홍TV님 "좌우 스크롤이 안 돼" - 날씨 표와 같은 방식): 마우스 휠 → 옆으로(끝에 닿으면 화면 스크롤),
     // 마우스로 끌기(6px 넘게 움직였을 때만 - "열기" 단추 누르기는 그대로), 키보드 ← →
     Array.prototype.forEach.call(document.querySelectorAll(".wrap"), function (wrap) {
@@ -568,7 +677,8 @@
     });
     // 이미 이 화면을 연 탭에서 다른 사무실 링크(#k=…)를 열면 주소의 # 뒤만 바뀌어 페이지가 다시 읽히지 않음 - 그때도 받아 넣음
     // (2026-10-30 홍TV님: PC 에서 만든 두 번째 사무실 링크를 폰에서 추가했는데 하나뿐이었음)
-    window.addEventListener("hashchange", function () { if (/^#ks?=/.test(location.hash || "")) start(); });
+    window.addEventListener("hashchange", function () { if (/^#(ks?|b)=/.test(location.hash || "")) start(); });
+    document.addEventListener("visibilitychange", function () { if (!document.hidden && bundle()) syncBundle().then(drawMine); });   // 다른 기기에서 만들거나 없앤 것
 
     start();
 })();

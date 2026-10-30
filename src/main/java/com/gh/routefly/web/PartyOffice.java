@@ -50,9 +50,91 @@ final class PartyOffice {
     private final SecureRandom rnd = new SecureRandom();
     private final Map<String, Office> byCode = new LinkedHashMap<>();
 
+    // ---- 내 사무실 묶음(2026-10-30 홍TV님 "② 내 사무실 묶음 링크로 해줘") - PC · 폰 · 직원 기기가 같은 사무실 목록을 씀.
+    // 묶음 열쇠(비밀) → 회사 코드 목록. 사무실 열쇠가 아니라 코드를 두어 사무실 링크 · 회사 코드를 바꿔도 묶음은 그대로(코드 바꾸기는 묶음도 고침).
+    // 없앤 사무실은 묶음을 읽을 때 뺌. 파일은 office.json 옆 office-bundle.json(600).
+    static final int MAX_BUNDLES = 2000, BUNDLE_MAX = 20;
+
+    static final class Bundle {
+        String key;
+        final List<String> codes = new ArrayList<>();
+        long seen;
+
+        Bundle(String key, long seen) {
+            this.key = key; this.seen = seen;
+        }
+    }
+
+    private final Path bundleFile;
+    private final Map<String, Bundle> bundles = new LinkedHashMap<>();   // 묶음 열쇠 → 묶음
+
     PartyOffice(Path file) {
         this.file = file;
+        this.bundleFile = file == null ? null : file.resolveSibling("office-bundle.json");
         load();
+        loadBundles();
+    }
+
+    private String newSecret() {
+        byte[] b = new byte[24];
+        rnd.nextBytes(b);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(b);
+    }
+
+    /** 새 묶음 - 사무실들(비밀 링크로 확인한 것)로. 돌려줌: 묶음 열쇠. */
+    synchronized String newBundle(List<Office> list, long now) {
+        if (list.isEmpty()) throw new IllegalArgumentException("묶을 사무실이 없습니다.");
+        if (bundles.size() >= MAX_BUNDLES) throw new IllegalStateException("지금은 묶음을 더 만들 수 없습니다.");
+        Bundle b = new Bundle(newSecret(), now);
+        for (Office o : list) if (!b.codes.contains(o.code) && b.codes.size() < BUNDLE_MAX) b.codes.add(o.code);
+        bundles.put(b.key, b);
+        saveBundles();
+        log.info("[OFFICE] 묶음 만듦 사무실 {}곳", b.codes.size());
+        return b.key;
+    }
+
+    /** 묶음 열쇠로 - 없으면 SecurityException. 같은 길이만 견줌(byKey 와 같게). */
+    private Bundle bundleOf(String key) {
+        if (key != null && key.length() >= 20 && key.length() <= 64)
+            for (Bundle b : bundles.values())
+                if (java.security.MessageDigest.isEqual(b.key.getBytes(StandardCharsets.UTF_8), key.getBytes(StandardCharsets.UTF_8))) return b;
+        throw new SecurityException("묶음 링크가 맞지 않습니다.");
+    }
+
+    /** 묶음의 사무실들(없앤 사무실은 빼고 파일도 고침). 하루에 한 번 seen. */
+    synchronized List<Office> bundleOffices(String key, long now) {
+        Bundle b = bundleOf(key);
+        boolean changed = b.codes.removeIf(c -> !byCode.containsKey(c));
+        if (now - b.seen >= 24 * 3600_000L) { b.seen = now; changed = true; }
+        if (changed) saveBundles();
+        List<Office> out = new ArrayList<>();
+        for (String c : b.codes) out.add(byCode.get(c));
+        return out;
+    }
+
+    /** 묶음에 사무실 더하기(이미 있으면 그대로). */
+    synchronized void bundleAdd(String key, Office o) {
+        Bundle b = bundleOf(key);
+        if (b.codes.contains(o.code)) return;
+        if (b.codes.size() >= BUNDLE_MAX) throw new IllegalStateException("한 묶음에는 사무실을 " + BUNDLE_MAX + "곳까지 넣습니다.");
+        b.codes.add(o.code);
+        saveBundles();
+    }
+
+    /** 묶음에서 사무실 빼기(사무실은 그대로). */
+    synchronized void bundleRemove(String key, Office o) {
+        if (bundleOf(key).codes.remove(o.code)) saveBundles();
+    }
+
+    /** 묶음 링크 바꾸기(샜을 때) - 옛 묶음 링크는 바로 안 됨. 돌려줌: 새 열쇠. */
+    synchronized String bundleNewKey(String key) {
+        Bundle b = bundleOf(key);
+        bundles.remove(b.key);
+        b.key = newSecret();
+        bundles.put(b.key, b);
+        saveBundles();
+        log.info("[OFFICE] 묶음 링크 바꿈");
+        return b.key;
     }
 
     /** 새 사무실 - 돌려줌: 사무실(key 는 이때 한 번만 화면에 보여 줌). */
@@ -92,6 +174,12 @@ final class PartyOffice {
     /** 회사 코드 바꾸기 - 새 코드로(이미 올라온 방은 Party 가 새 코드로 옮김). */
     synchronized void newCode(Office o, String code) {
         byCode.remove(o.code);
+        boolean inBundle = false;
+        for (Bundle b : bundles.values()) {   // 묶음도 새 코드로
+            int i = b.codes.indexOf(o.code);
+            if (i >= 0) { b.codes.set(i, code); inBundle = true; }
+        }
+        if (inBundle) saveBundles();
         o.code = code;
         byCode.put(code, o);
         save();
@@ -128,6 +216,9 @@ final class PartyOffice {
             if (now - o.seen > IDLE_MS && o.ended.isEmpty() && !linked.contains(o.code)) { it.remove(); n++; log.info("[OFFICE] 1년 안 쓴 빈 사무실 지움 code={}", o.code); }
         }
         if (n > 0) save();
+        int nb = bundles.size();   // 1년 안 쓴 묶음 · 빈 묶음도 지움
+        bundles.values().removeIf(b -> now - b.seen > IDLE_MS || b.codes.stream().noneMatch(byCode::containsKey) && now - b.seen > 24 * 3600_000L);
+        if (bundles.size() != nb) saveBundles();
         return n;
     }
 
@@ -200,6 +291,48 @@ final class PartyOffice {
         }
         if (bad > 0) backup();
         log.info("[OFFICE] 사무실 {}곳 읽음{}", byCode.size(), bad > 0 ? " (" + bad + "곳 건너뜀 - office.json.bad-* 에 옛 파일)" : "");
+    }
+
+    private void saveBundles() {
+        if (bundleFile == null) return;
+        JsonArray arr = new JsonArray();
+        for (Bundle b : bundles.values()) {
+            JsonObject x = new JsonObject();
+            x.addProperty("key", b.key);
+            x.addProperty("seen", b.seen);
+            JsonArray c = new JsonArray();
+            b.codes.forEach(c::add);
+            x.add("codes", c);
+            arr.add(x);
+        }
+        try {
+            Files.createDirectories(bundleFile.getParent());
+            Path tmp = bundleFile.resolveSibling("office-bundle.json.tmp");
+            Files.deleteIfExists(tmp);
+            try { Files.createFile(tmp, java.nio.file.attribute.PosixFilePermissions.asFileAttribute(java.nio.file.attribute.PosixFilePermissions.fromString("rw-------"))); }
+            catch (UnsupportedOperationException ex) { Files.createFile(tmp); }
+            Files.writeString(tmp, arr.toString(), StandardCharsets.UTF_8);
+            Files.move(tmp, bundleFile, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+        } catch (Exception ex) {
+            log.warn("[OFFICE] 묶음 파일을 쓰지 못함 - {}", ex.toString());
+        }
+    }
+
+    /** 묶음 읽기 - 하나씩(깨진 것은 건너뜀). */
+    private void loadBundles() {
+        if (bundleFile == null || !Files.isRegularFile(bundleFile)) return;
+        try {
+            for (JsonElement e : JsonParser.parseString(Files.readString(bundleFile, StandardCharsets.UTF_8)).getAsJsonArray()) {
+                try {
+                    JsonObject x = e.getAsJsonObject();
+                    Bundle b = new Bundle(x.get("key").getAsString(), x.get("seen").getAsLong());
+                    x.getAsJsonArray("codes").forEach(c -> b.codes.add(c.getAsString()));
+                    bundles.put(b.key, b);
+                } catch (RuntimeException ex) { /* 건너뜀 */ }
+            }
+        } catch (Exception ex) {
+            log.warn("[OFFICE] 묶음 파일을 읽지 못함 - {}", ex.toString());
+        }
     }
 
     private void backup() {

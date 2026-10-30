@@ -56,8 +56,11 @@ public class MainActivity extends BridgeActivity {
         String t = intent.getStringExtra("rf_token");
         // 카톡에서 넘어온 회사 사무실 열쇠(2026-10-29, no-kakao.js S.rf_office) - #k= 로(party-office.js 가 받아 주소에서 지움)
         String k = intent.getStringExtra("rf_office");
+        // 내 사무실 묶음(2026-10-30, S.rf_bundle) - #b= 로
+        String b = intent.getStringExtra("rf_bundle");
         final String url = u.toString() + (t != null && t.matches("[A-Za-z0-9_-]{16,64}") ? "#t=" + t
-                : k != null && u.getFragment() == null && u.getPath().startsWith("/routefly/party-office.html") ? officeHash(k) : "");
+                : k != null && u.getFragment() == null && u.getPath().startsWith("/routefly/party-office.html") ? officeHash(k)
+                : b != null && b.matches("[A-Za-z0-9_-]{20,64}") && u.getFragment() == null && u.getPath().startsWith("/routefly/party-office.html") ? "#b=" + b : "");
         bridge.getWebView().post(() -> bridge.getWebView().loadUrl(url));
     }
 

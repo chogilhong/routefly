@@ -115,6 +115,15 @@ tr.warn td { background:rgba(255,212,59,0.14); }
             <h2 data-en="Office settings">사무실 관리</h2>
             <p data-en="&lt;button id=&quot;forget&quot;&gt;Log out on this device (office stays)&lt;/button&gt;"><button id="forget">이 기기에서 로그아웃 (사무실은 그대로)</button></p>
             <p data-en="When leaving a shared PC. Deletes only this office link saved in this browser (your other offices stay) - you can come back with the office link." class="tip">공용 PC 에서 쓰고 나갈 때. 이 브라우저에 저장된 이 사무실 링크만 지웁니다(다른 내 사무실은 그대로) - 사무실 링크로 다시 들어올 수 있습니다.</p>
+            <div id="bundleOff">
+                <p data-en="&lt;button id=&quot;bundleMake&quot;&gt;🔗 Make my office bundle&lt;/button&gt;"><button id="bundleMake">🔗 내 사무실 묶음 만들기</button></p>
+                <p data-en="PC, phone and staff devices share one office list. Create or delete an office on one device and the others follow - open the bundle link (or QR) once on each device to connect it." class="tip">PC · 폰 · 직원 기기가 같은 사무실 목록을 씁니다. 한 기기에서 사무실을 만들거나 없애면 다른 기기에도 저절로 - 다른 기기에서 묶음 링크(또는 QR)를 한 번 열면 연결됩니다.</p>
+            </div>
+            <div id="bundleOn" hidden>
+                <p id="bundleState" class="btnNote"></p>
+                <p data-en="&lt;button id=&quot;bundleCopy&quot;&gt;📋 Copy bundle link&lt;/button&gt; &lt;button id=&quot;bundleNewKey&quot;&gt;🔄 Change bundle link&lt;/button&gt; &lt;button id=&quot;bundleLeave&quot;&gt;Disconnect this device&lt;/button&gt;"><button id="bundleCopy">📋 묶음 링크 복사</button> <button id="bundleNewKey">🔄 묶음 링크 바꾸기</button> <button id="bundleLeave">이 기기 묶음 끊기</button></p>
+                <p data-en="Open the bundle link (or the QR below) on another device to connect it. Anyone with it can open every office in the bundle - if it may have leaked, change it (other devices then reconnect with the new link)." class="tip">다른 기기에서 묶음 링크(또는 아래 QR)를 열면 연결됩니다. 묶음 링크를 가진 사람은 묶음의 모든 사무실을 열 수 있으니, 샌 것 같으면 바꾸세요(다른 기기는 새 링크로 다시 연결).</p>
+            </div>
             <p data-en="&lt;button id=&quot;copyMine&quot;&gt;📋 Copy this device&#x27;s office link&lt;/button&gt;"><button id="copyMine">📋 이 기기의 사무실 링크 복사</button></p>
             <p data-en="To give to other staff or PCs, or to bookmark again. The link does not change." class="tip">다른 직원 · 다른 PC 에 줄 때, 즐겨찾기에 다시 남길 때. 링크는 바뀌지 않습니다.</p>
             <p id="allRow" hidden data-en="&lt;button id=&quot;copyAll&quot;&gt;📋 Copy all offices on this device (one link)&lt;/button&gt;"><button id="copyAll">📋 이 기기의 사무실 모두 복사 (링크 하나)</button></p>

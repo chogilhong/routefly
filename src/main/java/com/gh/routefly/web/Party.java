@@ -1280,6 +1280,43 @@ final class Party {
         return out;
     }
 
+    // ---- 내 사무실 묶음(2026-10-30)
+
+    /** 이 기기의 사무실들(비밀 링크들)로 묶음을 만듦 - 틀린 링크가 하나라도 있으면 SecurityException. 돌려줌: 묶음 열쇠. */
+    synchronized String officeBundleNew(List<String> keys, long now) {
+        List<PartyOffice.Office> list = new ArrayList<>();
+        for (String k : keys) if (list.size() < PartyOffice.BUNDLE_MAX) list.add(offices.byKey(k));
+        return offices.newBundle(list, now);
+    }
+
+    /** 묶음의 사무실 목록 [{key, name, code}] - 이 기기가 그대로 목록으로 씀. */
+    synchronized JsonObject officeBundle(String bundle, long now) {
+        JsonArray a = new JsonArray();
+        for (PartyOffice.Office o : offices.bundleOffices(bundle, now)) {
+            JsonObject x = new JsonObject();
+            x.addProperty("key", o.key);
+            x.addProperty("name", o.name);
+            x.addProperty("code", o.code);
+            a.add(x);
+        }
+        JsonObject out = new JsonObject();
+        out.addProperty("success", true);
+        out.add("offices", a);
+        return out;
+    }
+
+    synchronized void officeBundleAdd(String bundle, String key) {
+        offices.bundleAdd(bundle, offices.byKey(key));
+    }
+
+    synchronized void officeBundleRemove(String bundle, String key) {
+        offices.bundleRemove(bundle, offices.byKey(key));
+    }
+
+    synchronized String officeBundleNewKey(String bundle) {
+        return offices.bundleNewKey(bundle);
+    }
+
     /** 사무실 - 승인 기다리는 방을 승인(우리 방이 맞음). 아니면 officeDetach(빼기). */
     synchronized void officeApprove(String key, String code) {
         PartyOffice.Office o = offices.byKey(key);

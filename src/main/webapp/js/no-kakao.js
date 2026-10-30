@@ -27,9 +27,10 @@
     if (app) {
         // 사무실 하나(#k=) 또는 여럿(#ks=열쇠.열쇠 - 2026-10-30 "이 기기의 사무실 모두"). 여럿은 새 앱(MainActivity 가 점 든 값을 #ks= 로)만 받음
         var k = /^#ks?=([A-Za-z0-9_.-]{20,700})$/.exec(location.hash || "");
+        var b = /^#b=([A-Za-z0-9_-]{20,64})$/.exec(location.hash || "");   // 내 사무실 묶음(2026-10-30) - 묶음을 아는 새 앱만 S.rf_bundle 을 받음
         // 앱 링크는 routefly.kr 만(www 로 와도) · 영어 등 주소의 ? 뒤도 함께(rfh · rfapp 빼고, 2026-10-29 점검)
         var keep = location.search.replace(/([?&])(rfh|rfapp)=[^&]*/g, "$1").replace(/[?&]+/g, function (x, i) { return i ? "&" : "?"; }).replace(/[?&]$/, "");
-        go = "intent://" + location.host.replace(/^www\./, "") + location.pathname + keep + "#Intent;scheme=https;package=kr.routefly.app;" + (k ? "S.rf_office=" + k[1] + ";" : "")
+        go = "intent://" + location.host.replace(/^www\./, "") + location.pathname + keep + "#Intent;scheme=https;package=kr.routefly.app;" + (k ? "S.rf_office=" + k[1] + ";" : "") + (b ? "S.rf_bundle=" + b[1] + ";" : "")
             + "S.browser_fallback_url=" + encodeURIComponent(location.origin + location.pathname + q + (q ? "&" : "?") + "rfapp=0") + ";end";
     }
     function cover() {

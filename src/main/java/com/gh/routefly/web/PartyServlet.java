@@ -40,6 +40,8 @@ import com.google.gson.JsonParser;
  * POST /api/party/office/newkey {key} → {key} · /office/delete {key, name}  사무실 링크 바꾸기 · 사무실 없애기(회사 이름을 한 번 더)
  * POST /api/party/office/newcode {key} → {code}         회사 코드 바꾸기(이미 올라온 방은 그대로)
  * POST /api/party/office/rename {key, name} → {name}    회사 이름 바꾸기(올라온 방의 이름도 함께, 2026-10-29)
+ * POST /api/party/office/bundle/new {keys:[…]} → {bundle} · /office/bundle {bundle} → {offices:[{key, name, code}]}
+ *      · /office/bundle/add {bundle, key} · /office/bundle/remove {bundle, key} · /office/bundle/newkey {bundle} → {bundle}   내 사무실 묶음(2026-10-30)
  * </pre>
  * 끝난 방 열쇠로 오면 410 + 까닭. 설정 party.enabled=true 가 아니면 status 말고는 404.
  */
@@ -235,6 +237,16 @@ public class PartyServlet extends HttpServlet {
         if ("/office/newkey".equals(path)) { JsonObject o = ok(); o.addProperty("key", p.officeNewKey(str(in, "key"), now)); return o; }
         if ("/office/rename".equals(path)) { JsonObject o = ok(); o.addProperty("name", p.officeRename(str(in, "key"), str(in, "name"), now)); return o; }
         if ("/office/delete".equals(path)) { p.officeDelete(str(in, "key"), str(in, "name")); return ok(); }
+        // 내 사무실 묶음(2026-10-30) - PC · 폰 · 직원 기기가 같은 사무실 목록
+        if ("/office/bundle/new".equals(path)) {
+            java.util.List<String> ks = new java.util.ArrayList<>();
+            if (in.has("keys") && in.get("keys").isJsonArray()) for (com.google.gson.JsonElement e : in.getAsJsonArray("keys")) if (ks.size() < 20) ks.add(e.getAsString());
+            JsonObject o = ok(); o.addProperty("bundle", p.officeBundleNew(ks, now)); return o;
+        }
+        if ("/office/bundle".equals(path)) return p.officeBundle(str(in, "bundle"), now);
+        if ("/office/bundle/add".equals(path)) { p.officeBundleAdd(str(in, "bundle"), str(in, "key")); return ok(); }
+        if ("/office/bundle/remove".equals(path)) { p.officeBundleRemove(str(in, "bundle"), str(in, "key")); return ok(); }
+        if ("/office/bundle/newkey".equals(path)) { JsonObject o = ok(); o.addProperty("bundle", p.officeBundleNewKey(str(in, "bundle"))); return o; }
         if ("/join".equals(path)) {
             if (!bool(in, "agree")) throw new IllegalArgumentException("위치 제공에 동의해야 참가할 수 있습니다.");
             boolean dropIn = str(in, "drop") != null && !str(in, "drop").isBlank();
