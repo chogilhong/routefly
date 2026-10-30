@@ -537,6 +537,35 @@
             });
         });
     }
+    // PC 에서 넓은 표 옆으로 밀기(2026-10-30 홍TV님 "좌우 스크롤이 안 돼" - 날씨 표와 같은 방식): 마우스 휠 → 옆으로(끝에 닿으면 화면 스크롤),
+    // 마우스로 끌기(6px 넘게 움직였을 때만 - "열기" 단추 누르기는 그대로), 키보드 ← →
+    Array.prototype.forEach.call(document.querySelectorAll(".wrap"), function (wrap) {
+        wrap.addEventListener("wheel", function (e) {
+            if (e.ctrlKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+            var max = wrap.scrollWidth - wrap.clientWidth;
+            if (max <= 0 || (e.deltaY < 0 && wrap.scrollLeft <= 0) || (e.deltaY > 0 && wrap.scrollLeft >= max - 1)) return;
+            wrap.scrollLeft += e.deltaY * (e.deltaMode === 1 ? 16 : 1);
+            e.preventDefault();
+        }, { passive: false });
+        var drag = null, moved = false;
+        wrap.addEventListener("pointerdown", function (e) { if (e.pointerType === "mouse" && e.button === 0) { drag = { x: e.clientX, l: wrap.scrollLeft }; moved = false; } });
+        wrap.addEventListener("pointermove", function (e) {
+            if (!drag) return;
+            if (!moved && Math.abs(e.clientX - drag.x) < 6) return;
+            moved = true;
+            wrap.classList.add("drag");
+            wrap.scrollLeft = drag.l - (e.clientX - drag.x);
+            e.preventDefault();
+        });
+        var stop = function () { drag = null; wrap.classList.remove("drag"); };
+        wrap.addEventListener("pointerup", stop);
+        wrap.addEventListener("pointerleave", stop);
+        wrap.addEventListener("click", function (e) { if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; } }, true);   // 끌기 끝의 클릭은 단추로 보내지 않음
+        wrap.addEventListener("keydown", function (e) {
+            if (e.target !== wrap) return;   // 표 안 단추에 초점이 있을 때는 그대로
+            if (e.key === "ArrowRight" || e.key === "ArrowLeft") { wrap.scrollLeft += (e.key === "ArrowRight" ? 1 : -1) * 80; e.preventDefault(); }
+        });
+    });
     // 이미 이 화면을 연 탭에서 다른 사무실 링크(#k=…)를 열면 주소의 # 뒤만 바뀌어 페이지가 다시 읽히지 않음 - 그때도 받아 넣음
     // (2026-10-30 홍TV님: PC 에서 만든 두 번째 사무실 링크를 폰에서 추가했는데 하나뿐이었음)
     window.addEventListener("hashchange", function () { if (/^#ks?=/.test(location.hash || "")) start(); });

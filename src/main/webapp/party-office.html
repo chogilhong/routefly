@@ -38,6 +38,8 @@ button.danger { color:var(--red); border-color:rgba(255,107,107,0.5); }
 .btnNote { font-size:14px; color:#7ee0a0; line-height:1.6; margin:6px 0 0; }   /* 단추 바로 아래 잠깐 알림(복사했음 - noteBelow) */
 .code { font-size:20px; letter-spacing:3px; font-weight:bold; color:var(--sky); }
 .wrap { overflow-x:auto; }
+.wrap.drag { cursor:grabbing; user-select:none; }
+@media (pointer:fine) { .wrap { cursor:grab; } .wrap::-webkit-scrollbar { height:10px; } .wrap::-webkit-scrollbar-thumb { background:rgba(255,255,255,.35); border-radius:5px; } }
 table { width:100%; border-collapse:collapse; font-size:15px; }
 th, td { padding:8px 6px; border-bottom:1px solid var(--ln); text-align:left; vertical-align:top; white-space:nowrap; }
 th { color:var(--dim); font-weight:normal; font-size:14px; }
@@ -92,13 +94,13 @@ tr.warn td { background:rgba(255,212,59,0.14); }
         <!-- 승인 기다리는 방(2026-10-28 - 회사 코드만 알면 아무나 방을 올릴 수 있어, 우리 방이 맞는지 사무실이 승인) -->
         <section id="pendSec" hidden>
             <h2 data-en="🕓 Rooms waiting for approval &lt;span id=&quot;pendCount&quot; class=&quot;tip&quot;&gt;&lt;/span&gt;">🕓 승인 기다리는 방 <span id="pendCount" class="tip"></span></h2>
-            <div class="wrap"><table><thead data-en="&lt;tr&gt;&lt;th&gt;Hike&lt;/th&gt;&lt;th&gt;Departure&lt;/th&gt;&lt;th&gt;Leader&lt;/th&gt;&lt;th&gt;Members&lt;/th&gt;&lt;th&gt;&lt;/th&gt;&lt;/tr&gt;"><tr><th>산행</th><th>출발</th><th>인솔자</th><th>회원</th><th></th></tr></thead>
+            <div class="wrap" tabindex="0"><table><thead data-en="&lt;tr&gt;&lt;th&gt;Hike&lt;/th&gt;&lt;th&gt;Departure&lt;/th&gt;&lt;th&gt;Leader&lt;/th&gt;&lt;th&gt;Members&lt;/th&gt;&lt;th&gt;&lt;/th&gt;&lt;/tr&gt;"><tr><th>산행</th><th>출발</th><th>인솔자</th><th>회원</th><th></th></tr></thead>
                 <tbody id="pend"></tbody></table></div>
             <p data-en="Rooms where a leader entered your company code. If it is your club&#x27;s room, &lt;b&gt;Approve&lt;/b&gt; - from then on it appears in &quot;Hikes now&quot; below and members&#x27; screens show your office. If you don&#x27;t know the room, &lt;b&gt;Remove&lt;/b&gt; it." class="tip">인솔자가 회사 코드를 넣은 방입니다. 우리 산악회 방이 맞으면 <b>승인</b> - 그때부터 아래 "지금 산행" 에 올라오고, 회원 화면에도 "○○ 사무실" 이 보입니다. 모르는 방이면 <b>빼기</b>.</p>
         </section>
         <section>
             <h2 data-en="Hikes now &lt;span id=&quot;liveCount&quot; class=&quot;tip&quot;&gt;&lt;/span&gt;">지금 산행 <span id="liveCount" class="tip"></span></h2>
-            <div class="wrap"><table><thead data-en="&lt;tr&gt;&lt;th&gt;Hike&lt;/th&gt;&lt;th&gt;Status&lt;/th&gt;&lt;th&gt;Boarded&lt;/th&gt;&lt;th&gt;Back on bus&lt;/th&gt;&lt;th&gt;SOS&lt;/th&gt;&lt;th&gt;Silent 10 min&lt;/th&gt;&lt;th&gt;Last update&lt;/th&gt;&lt;th&gt;Leader&lt;/th&gt;&lt;th&gt;&lt;/th&gt;&lt;/tr&gt;"><tr><th>산행</th><th>상태</th><th>출발 탑승</th><th>하산 탑승</th><th>SOS</th><th>10분 소식 없음</th><th>마지막 소식</th><th>인솔자</th><th></th></tr></thead>
+            <div class="wrap" tabindex="0"><table><thead data-en="&lt;tr&gt;&lt;th&gt;Hike&lt;/th&gt;&lt;th&gt;Status&lt;/th&gt;&lt;th&gt;Boarded&lt;/th&gt;&lt;th&gt;Back on bus&lt;/th&gt;&lt;th&gt;SOS&lt;/th&gt;&lt;th&gt;Silent 10 min&lt;/th&gt;&lt;th&gt;Last update&lt;/th&gt;&lt;th&gt;Leader&lt;/th&gt;&lt;th&gt;&lt;/th&gt;&lt;/tr&gt;"><tr><th>산행</th><th>상태</th><th>출발 탑승</th><th>하산 탑승</th><th>SOS</th><th>10분 소식 없음</th><th>마지막 소식</th><th>인솔자</th><th></th></tr></thead>
                 <tbody id="live"></tbody></table></div>
             <p><button id="alertOn" type="button" hidden data-en="🔔 Turn on SOS alerts (even in other tabs)">🔔 SOS 알림 켜기 (다른 탭을 볼 때도)</button></p>
             <p data-en="Red = SOS, yellow = members silent for over 10 minutes. &quot;Open&quot; shows the leader screen (map, seat chart). Refreshes every 30 seconds." class="tip">빨강 = SOS, 노랑 = 10분 넘게 소식 없는 회원. "열기"를 누르면 인솔자 화면(지도 · 좌석표)으로 봅니다. 30초마다 저절로 새로 받습니다.</p>
@@ -106,7 +108,7 @@ tr.warn td { background:rgba(255,212,59,0.14); }
         <section>
             <h2 data-en="Finished hikes &lt;span class=&quot;tip&quot;&gt;(200 days, numbers only - no names or locations)&lt;/span&gt;">끝난 산행 <span class="tip">(200일, 이름 · 위치 없이 숫자만)</span></h2>
             <p data-en="&lt;button id=&quot;csvBtn&quot;&gt;📥 Download for Excel (CSV)&lt;/button&gt; &lt;span class=&quot;tip&quot;&gt;All 200 days - for monthly hike and passenger counts and safety records&lt;/span&gt;"><button id="csvBtn">📥 엑셀로 내려받기 (CSV)</button> <span class="tip">200일 모두 - 월별 산행 수 · 탑승 인원 정산, 안전 기록 보관에</span></p>
-            <div class="wrap"><table><thead data-en="&lt;tr&gt;&lt;th&gt;Ended&lt;/th&gt;&lt;th&gt;Hike&lt;/th&gt;&lt;th&gt;Ended by&lt;/th&gt;&lt;th&gt;Boarded&lt;/th&gt;&lt;th&gt;Back on bus&lt;/th&gt;&lt;th&gt;Descent unconfirmed&lt;/th&gt;&lt;th&gt;SOS&lt;/th&gt;&lt;/tr&gt;"><tr><th>끝난 때</th><th>산행</th><th>끝낸 사람</th><th>출발 탑승</th><th>하산 탑승</th><th>하산 미확인</th><th>SOS</th></tr></thead>
+            <div class="wrap" tabindex="0"><table><thead data-en="&lt;tr&gt;&lt;th&gt;Ended&lt;/th&gt;&lt;th&gt;Hike&lt;/th&gt;&lt;th&gt;Ended by&lt;/th&gt;&lt;th&gt;Boarded&lt;/th&gt;&lt;th&gt;Back on bus&lt;/th&gt;&lt;th&gt;Descent unconfirmed&lt;/th&gt;&lt;th&gt;SOS&lt;/th&gt;&lt;/tr&gt;"><tr><th>끝난 때</th><th>산행</th><th>끝낸 사람</th><th>출발 탑승</th><th>하산 탑승</th><th>하산 미확인</th><th>SOS</th></tr></thead>
                 <tbody id="ended"></tbody></table></div>
         </section>
         <section>
