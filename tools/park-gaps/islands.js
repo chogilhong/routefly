@@ -18,7 +18,7 @@ var G = require("./fetch.js"), A = require("../course-audit/audit.js");
 var NOTES = require("../../src/main/webapp/data/park-notes.json").parks;
 
 var MOUNTAIN_PARKS = ["설악산", "지리산", "속리산", "월악산", "무등산", "경주", "변산반도", "계룡산", "한라산", "월출산", "가야산", "내장산", "덕유산", "오대산", "치악산", "소백산", "주왕산", "북한산"];
-var MAX_TOTAL_M = 4000;
+var MAX_TOTAL_M = 4000, MAX_ROAD_M = 3000;
 /** 걷는 길 - 등산로 · 오솔길 · 계단 · 임도에 마을 안 작은 길(들머리 사이를 잇는 마을길 - 2026-10-30 PC: 등산로만으로는 거의 못 이었음). 큰 차도는 뺌. */
 var WALK = "path|footway|steps|track|bridleway|pedestrian|cycleway|residential|unclassified|service|living_street|tertiary";
 /** 묻는 범위 - 후보 점들 둘레 이만큼 더(도, 약 800m). */
@@ -31,6 +31,8 @@ function rejectReason(r, straightM) {
     if (G.closedWays(r.tags).length) return "출입금지 길(access=no · private)";
     if (r.distance_m > MAX_TOTAL_M) return r.distance_m + "m - 4km 넘음";
     if (r.distance_m > straightM * 3 + 800) return r.distance_m + "m - 직선 " + straightM + "m 보다 너무 돌아감";
+    // 차도(tertiary · unclassified)를 지나며 3km 넘으면 등산로 잇기가 아니라 차 길 걷기 - 넣지 않음(2026-10-30 지리산 구룡폭포 3762m · 속리산 상판리 3329m)
+    if (r.distance_m > MAX_ROAD_M && roadNote(r.tags) === " (차도 포함)") return r.distance_m + "m - 차도를 3km 넘게 걸음";
     return null;
 }
 

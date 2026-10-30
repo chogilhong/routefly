@@ -1501,3 +1501,5 @@ eq("courseGaps 250m 넘게 뛰는 곳", [RF.courseGaps({ lat: [37.6, 37.6001, 37
 })();
 eq("islands roadNote", (function (I) { return [I.roadNote([{ highway: "path" }, { highway: "tertiary" }]), I.roadNote([{ highway: "service" }, { highway: "path" }]), I.roadNote([{ highway: "path" }])]; })(require("../../../tools/park-gaps/islands.js")),
     [" (차도 포함)", " (마을길 포함)", ""]);
+eq("islands 차도 3km 넘으면 뺌", (function (I) { return [!!I.rejectReason({ distance_m: 3300, tags: [{ highway: "tertiary" }] }, 2200), I.rejectReason({ distance_m: 2900, tags: [{ highway: "tertiary" }] }, 2200), I.rejectReason({ distance_m: 3300, tags: [{ highway: "track" }] }, 2200)]; })(require("../../../tools/park-gaps/islands.js")),
+    [true, null, null]);
