@@ -475,7 +475,7 @@
             // 난이도 - 목록 · 산 페이지와 같은 기준(가장 가파른 1km 포함, 2026-10-18 PC: 코스 화면에는 안 나왔음)
             var lvChip = (j.course.kind === "hike" || j.course.kind === "trek") && RF.levelChip(+j.course.distance_m || c.total, j.course.ascent_m != null ? +j.course.ascent_m : null, EN, RF.steepest(c.dist, c.ele));
             if (lvChip) { $("courseName").appendChild(document.createTextNode(" ")); $("courseName").appendChild(lvChip); }
-            favCur = RF.isGpxId(id) ? null : { id: id, x: RF.parseJoinId(id) ? joinExtra || undefined : undefined, name: j.course.name, kind: j.course.kind, dist: Math.round(+j.course.distance_m || c.total),
+            favCur = RF.isGpxId(id) ? null : { id: id, x: RF.parseJoinId(id) ? RF.favJoinExtra(location.hash, j.course.name) || undefined : undefined, name: j.course.name, kind: j.course.kind, dist: Math.round(+j.course.distance_m || c.total),
                                                   asc: j.course.ascent_m != null ? Math.round(+j.course.ascent_m) : null };
             favBtn.refresh();
             var gap0 = RF.shownGaps(c)[0];   // 등산 코스만(내 GPX · 걷기 · 자전거 직선 길은 빼고)

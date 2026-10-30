@@ -749,7 +749,7 @@
     // ☆ 찜(2026-10-15 홍TV님) - 위 줄 코스 이름 옆. 찜한 코스는 따라가기 첫 화면(검색 전)에 모아 보임. 이 기기에만(rf-fav)
     var favBtn = RF.favButton(function () {
         if (!c || isGpxId(c.id)) return null;
-        return { id: c.id, x: RF.parseJoinId(c.id) ? RF.joinHashExtra(location.hash) || undefined : undefined,   // 대표 코스 이름 · 들머리도(2026-10-30)
+        return { id: c.id, x: RF.parseJoinId(c.id) ? RF.favJoinExtra(location.hash, c.course.name) || undefined : undefined,   // 대표 코스 이름 · 들머리도(2026-10-30)
                  name: c.course.name, kind: c.course.kind, dist: Math.round(c.total),
                  asc: c.asc && c.asc.length ? Math.round(c.asc[c.asc.length - 1]) : null, steep: RF.steepest(c.dist, c.ele) };
     });
@@ -3127,7 +3127,11 @@
             sp.textContent = (f.dist ? km(f.dist) + "km" : "") + (f.asc != null ? T(" · 오르막 ", " · climb ") + num(f.asc) + "m" : "");
             it.appendChild(b);
             it.appendChild(sp);
-            it.onclick = function () { fromList = true; location.hash = "#c=" + encodeURIComponent(f.id) + (/^&[a-z]+=/.test(f.x || "") ? f.x : ""); };   // 대표 코스는 이름 · 들머리도
+            it.onclick = function () {   // 대표 코스는 이름 · 들머리도(예전에 제목 없이 찜한 것은 찜 이름의 길로)
+                fromList = true;
+                var x = /^&[a-z]+=/.test(f.x || "") ? f.x : "";
+                location.hash = "#c=" + encodeURIComponent(f.id) + (RF.parseJoinId(f.id) ? RF.favJoinExtra("#" + x, f.name) : x);
+            };
             if (!isGpxId(f.id) && !RF.parseJoinId(f.id)) withPt.push([f, sp]);   // 이은 코스는 주말 날씨 묻기에서 뺌(서버가 한 코스 번호만 앎)
             box.appendChild(it);
         });

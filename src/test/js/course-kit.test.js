@@ -1542,3 +1542,5 @@ eq("joinHashExtra", [RF.joinHashExtra("#c=a,b&title=%EB%B0%A4&head=x&from=hike")
     eq("gapLines · shownGaps 등산만", [RF.gapLines(mk("hike")).features.length, RF.gapLines(mk("walk")).features.length, RF.shownGaps(mk("trek")).length, RF.shownGaps(mk("hike", "gpx-1")).length],
         [1, 0, 1, 0]);
 })();
+eq("favJoinExtra 제목이 없으면 지금 이름의 길", [RF.favJoinExtra("#c=a,b&head=%EB%B0%A4", "북한산 · 밤골입구 → 백운대 → 밤골입구"), RF.favJoinExtra("#c=a,b&title=x&head=y", "북한산 · 가 → 나")],
+    ["&head=%EB%B0%A4&title=" + encodeURIComponent("밤골입구 → 백운대 → 밤골입구"), "&title=x&head=y"]);
