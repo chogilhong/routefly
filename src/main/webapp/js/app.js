@@ -406,8 +406,8 @@
         // 이은 코스(탐방 안내도 대표 코스 - 숨은벽 · 백운대(밤골))는 조각을 받아 하나로(2026-10-30 홍TV님 "우리가 그 코스를 만들면 되잖아")
         var parts = RF.parseJoinId(id);
         var p = !parts ? getJson("api/course?id=" + encodeURIComponent(id))
-            : Promise.all(parts.map(function (q) { return getJson("api/course?id=" + encodeURIComponent(q.base)); })).then(function (rs) {
-                var c = RF.joinedCourse(id, parts, rs);
+            : Promise.all(RF.partBases(parts).map(function (b) { return getJson("api/course?id=" + encodeURIComponent(b)); })).then(function (rs) {
+                var c = RF.joinedCourse(id, parts, RF.partAnswers(parts, RF.partBases(parts), rs));   // 같은 코스를 앞뒤로 쓰면 한 번만 받음
                 if (/[#&]rev=1(&|$)/.test(location.hash)) c = RF.reverseCourse(c);
                 if (joinTitle) c.course.name = (RF.nameParts(c.course.name).group || "").replace(/\s*\d+구간 이어 걷기$/, "") + (RF.nameParts(c.course.name).group ? " · " : "") + joinTitle;
                 var hm = /[#&]head=([^&]*)/.exec(location.hash), hn = hm ? RF.safeDecode(hm[1]) : "", T0 = +c.total || 0;
@@ -423,6 +423,7 @@
         return p;
     }
 
+    var notesOnce = null;   // data/park-notes.json 약속(select)
     var selectSeq = 0;   // 2026-10-09 점검: 늦게 온 앞 코스가 새로 고른 코스를 덮지 않게
     function select(id) {
         var my = ++selectSeq;
@@ -433,7 +434,8 @@
         // 'gpx-' 코스는 이 기기에 둔 GPX(📂 GPX 열기 - 따라가기와 같이 씀)
         var data = RF.isGpxId(id) ? RF.storedGpx(id) : courseData(id);
         // 산 안내(park-notes) - 바로잡은 탐방로 이름 · 산마다 다른 지명을 따라가기와 같게(2026-10-13 PC: "구기분소 → 대남문" 이 "헤원사삼거리 → 대남문" 과 달랐음)
-        var notesP = fetch("data/park-notes.json").then(function (x) { return x.json(); }).then(function (d) { return d && d.parks; }).catch(function () { return null; });
+        // 한 번만 받음(2026-10-30 점검: 코스를 고를 때마다 받았음) - 못 받았으면 다음에 다시
+        var notesP = notesOnce || (notesOnce = fetch("data/park-notes.json").then(function (x) { return x.json(); }).then(function (d) { return d && d.parks; }).catch(function () { notesOnce = null; return null; }));
         return Promise.all([data, mapReady, notesP]).then(function (r) {
             if (my !== selectSeq) return;
             var j = r[0];
@@ -470,10 +472,11 @@
             favCur = RF.isGpxId(id) ? null : { id: id, name: j.course.name, kind: j.course.kind, dist: Math.round(+j.course.distance_m || c.total),
                                                   asc: j.course.ascent_m != null ? Math.round(+j.course.ascent_m) : null };
             favBtn.refresh();
+            var gap0 = RF.isGpxId(id) || !/^(hike|trek)$/.test(String(j.course.kind)) ? null : RF.courseGaps(c)[0];   // 등산 코스만(내 GPX · 걷기 · 자전거 직선 길은 빼고)
             var official = RF.infoText(j.info, +j.course.distance_m || c.total);   // 국립공원 공식 코스 - 공단 기준 시간 · 난이도
             var spots = EN ? spotSummaryEn(j.spots) : RF.spotSummary(j.spots);   // 국립공원 위험지역 · 조망점
             $("courseStat").textContent = statLine(j.course)
-                + (j.course.ele_source === "none" ? T(" · 고도 자료 없음", " · no elevation data") : "") + (j.course.summit_miss ? T(" · ⚠ " + j.course.summit_miss + " 정상 미포함", " · ⚠ does not reach " + NM(j.course.summit_miss)) : "") + (RF.courseGaps(c).length ? T(" · ⚠ 자료가 " + RF.courseGaps(c)[0].m + "m 끊긴 구간", " · ⚠ " + RF.courseGaps(c)[0].m + " m gap in the data") : "")   /* 따라가기와 같게(2026-10-30) */ + (official ? " · " + official : "") + (spots ? " · " + spots : "");
+                + (j.course.ele_source === "none" ? T(" · 고도 자료 없음", " · no elevation data") : "") + (j.course.summit_miss ? T(" · ⚠ " + j.course.summit_miss + " 정상 미포함", " · ⚠ does not reach " + NM(j.course.summit_miss)) : "") + (gap0 ? T(" · ⚠ 자료가 " + gap0.m + "m 끊긴 구간", " · ⚠ " + gap0.m + " m gap in the data") : "")   /* 따라가기와 같게(2026-10-30) */ + (official ? " · " + official : "") + (spots ? " · " + spots : "");
             setupGuide(c, j, r[2], id);
             $("bottom").style.display = "block";
             $("hud").style.display = "block";
@@ -488,7 +491,7 @@
         }).catch(function (e) {
             if (my !== selectSeq) return;
             // 배치를 다시 돌려 코스 번호가 바뀐 예전 링크 - 같은 산 코스를 목록에
-            var similar = e.data && e.data.similar || [];
+            var similar = !RF.parseJoinId(id) && e.data && e.data.similar || [];   // 이은 코스는 조각 하나의 비슷한 코스가 아니라 그냥 오류로(2026-10-30 점검)
             if (similar.length) {
                 courses = similar;
                 list.truncated = false;

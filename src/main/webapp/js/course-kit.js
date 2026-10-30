@@ -1332,9 +1332,11 @@
         // 접으면 검색 칸을 칸 밖(제목 바로 아래)으로 옮기고 결과 · 지도만 접힘, 펴면 제자리로. 접힌 채로 찾으면 다시 폄
         var det = form.closest ? form.closest("details[data-keep]") : null, home = form.parentNode;
         if (det) det.addEventListener("toggle", function () {
+            var had = document.activeElement === input;   // 옮기면 입력 칸 초점이 풀림 - 다시 줌(2026-10-30 점검, 키보드 · 화면 읽기)
             if (det.open) home.insertBefore(form, home.firstChild);
             else det.parentNode.insertBefore(form, det.nextSibling);
             form.classList.toggle("ssOutside", !det.open);
+            if (had) input.focus();
         });
         function el(tag, text, cls) { var x = document.createElement(tag); if (text != null) x.textContent = text; if (cls) x.className = cls; return x; }
         /** 주소에서 시 · 군 · 구 하나("경상남도 산청군 산청읍 …" → 산청군, "서울특별시 종로구 …" → 종로구). */
@@ -3358,6 +3360,7 @@
     function joinedCourse(id, parts, jsons) {
         var one = function (p, j) {
             var x = fromApi(p.base, j);
+            if (x.lon.length < 2) throw new Error("코스 조각 " + p.base + " 의 선이 없습니다");   // 이을 수 없음(2026-10-30 점검: NaN 거리로 그렸음)
             if (p.r0 != null) {
                 var g = nameParts(x.course.name).group;
                 var label = endsText(p.from, p.to);   // 이은 구간의 첫 조각은 "가에서", 끝 조각은 "나까지"(mergeBare)
@@ -3367,6 +3370,18 @@
         };
         return parts.length === 1 ? one(parts[0], jsons[0])   // 자른 구간 하나 - 거꾸로는 &rev=1 로
             : joinCourses(jsons.map(function (j, i) { var x = one(parts[i], j); return parts[i].rev ? reverseCourse(x) : x; }), id);
+    }
+
+    /** 순수 함수 - 이은 코스 조각들의 서로 다른 코스 ID(같은 코스를 앞뒤로 쓰면 한 번만 받게 - 2026-10-30 점검: 밤골 8조각 · 4코스). */
+    function partBases(parts) {
+        var out = [];
+        (parts || []).forEach(function (p) { if (out.indexOf(p.base) < 0) out.push(p.base); });
+        return out;
+    }
+
+    /** 순수 함수 - partBases 차례로 받은 답들 → 조각 차례 답(조각마다 따로 고치므로 복사). */
+    function partAnswers(parts, bases, answers) {
+        return parts.map(function (p) { return JSON.parse(JSON.stringify(answers[bases.indexOf(p.base)])); });
     }
 
     /** 순수 함수 - 코스(fromApi 모양) → /api/course 답 모양 {course, points, pois, info, spots, signs, ends}. 갈림길은 이름표로 되돌림. fly(3D) 가 이은 코스를 받는 길. */
@@ -4478,8 +4493,8 @@
             if (!d || d.tagName !== "DETAILS" || !d.open) return;
             var cls = d.classList.contains("kind") ? "kind" : d.classList.contains("group") ? "group" : null;
             if (!cls) return;
-            // 묶음 이름(name)이 있는 칸끼리만 - 처음부터 펴 둔 /m/ 근처 숙소 찾기(name 없음)는 같이 접지 않음(2026-10-30 PC)
-            Array.prototype.forEach.call(doc.querySelectorAll("details." + cls + "[open][name]"), function (o) { if (o !== d) o.open = false; });
+            // 처음부터 펴 둔 /m/ 근처 숙소 찾기(data-keep)만 같이 접지 않음 - 나중에 붙인 주말 칸(name 없음)은 그대로 접음(2026-10-30 점검)
+            Array.prototype.forEach.call(doc.querySelectorAll("details." + cls + "[open]:not([data-keep])"), function (o) { if (o !== d) o.open = false; });
         }, true);
     }
 
@@ -5567,6 +5582,6 @@
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },
         cellCenter: cellCenter, warnName: warnName, safetyRows: safetyRows, safetyAlert: safetyAlert, safetyRender: safetyRender,
         setLang: setLang, isEn: isEn, tr: tr, pageLang: pageLang, applyEn: applyEn,
-        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, cleanTrack: cleanTrack, recDist: recDist, dropLog: dropLog, recordLines: recordLines, recordHighest: recordHighest, partyAlerts: partyAlerts, afterHikeLinks: afterHikeLinks, afterHikeGear: afterHikeGear, rosterRead: rosterRead, leadSteps: leadSteps, boardingCard: boardingCard, npStampKey: npStampKey, npStampsOn: npStampsOn, npStampsDue: npStampsDue, tripLink: tripLink, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, regionEn: regionEn, weekendWordEn: weekendWordEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox, LEVELS: LEVELS, difficulty: difficulty, boardSegments: boardSegments, boardProfile: boardProfile, nameEnds: nameEnds, boardButtons: boardButtons, levelChip: levelChip, roman: roman, enName: enName, weekendText: weekendText, boardHere: boardHere, slopeBetween: slopeBetween, recentAdd: recentAdd, recentPages: recentPages, recentFold: recentFold, compareRows: compareRows, compareButtons: compareButtons, steepest: steepest, officialEleAt: officialEleAt, stampRadius: stampRadius, stillCheck: stillCheck, windChill: windChill, windNote: windNote, paceProfile: paceProfile, paceAt: paceAt, paceDistAt: paceDistAt, paceText: paceText, fortune: fortune, fortuneDay: fortuneDay, supportLine: supportLine, staysLine: staysLine, staysItem: staysItem, stayLinks: stayLinks, stayMapLink: stayMapLink, stayKindEn: stayKindEn, summitFirst: summitFirst, listBest: listBest, courseGaps: courseGaps, infoPartial: infoPartial, joinedCourse: joinedCourse, toApi: toApi, stayTiles: stayTiles, staySearch: staySearch, nearCity: nearCity, dayKey: dayKey, anbuPlan: anbuPlan, anbuText: anbuText, anbuSms: anbuSms, telClean: telClean, telFormat: telFormat, UNITS: UNITS, unitConv: unitConv, unitFmt: unitFmt, dayNo: dayNo, dayYmd: dayYmd, ageInfo: ageInfo, dDay: dDay, dateAdd: dateAdd, dateDiff: dateDiff, pctCalc: pctCalc, dutchPay: dutchPay, textCount: textCount, smsKind: smsKind, compassHeading: compassHeading, SOS_PATTERN: SOS_PATTERN, fxConv: fxConv, toLunar: toLunar, fromLunar: fromLunar, nextLunarBirthday: nextLunarBirthday, leapMonth: leapMonth, moonPhase: moonPhase, MOON_NAMES: MOON_NAMES, interestCalc: interestCalc, vatCalc: vatCalc, bmiInfo: bmiInfo, discomfort: discomfort, nameRoman: nameRoman, tzOffsetMin: tzOffsetMin, ladderMake: ladderMake, ladderTrace: ladderTrace, holidayRuns: holidayRuns, calcEval: calcEval, mobileOnlyUrl: mobileOnlyUrl, summitCard: summitCard, trackClimb: trackClimb
+        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, cleanTrack: cleanTrack, recDist: recDist, dropLog: dropLog, recordLines: recordLines, recordHighest: recordHighest, partyAlerts: partyAlerts, afterHikeLinks: afterHikeLinks, afterHikeGear: afterHikeGear, rosterRead: rosterRead, leadSteps: leadSteps, boardingCard: boardingCard, npStampKey: npStampKey, npStampsOn: npStampsOn, npStampsDue: npStampsDue, tripLink: tripLink, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, regionEn: regionEn, weekendWordEn: weekendWordEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox, LEVELS: LEVELS, difficulty: difficulty, boardSegments: boardSegments, boardProfile: boardProfile, nameEnds: nameEnds, boardButtons: boardButtons, levelChip: levelChip, roman: roman, enName: enName, weekendText: weekendText, boardHere: boardHere, slopeBetween: slopeBetween, recentAdd: recentAdd, recentPages: recentPages, recentFold: recentFold, compareRows: compareRows, compareButtons: compareButtons, steepest: steepest, officialEleAt: officialEleAt, stampRadius: stampRadius, stillCheck: stillCheck, windChill: windChill, windNote: windNote, paceProfile: paceProfile, paceAt: paceAt, paceDistAt: paceDistAt, paceText: paceText, fortune: fortune, fortuneDay: fortuneDay, supportLine: supportLine, staysLine: staysLine, staysItem: staysItem, stayLinks: stayLinks, stayMapLink: stayMapLink, stayKindEn: stayKindEn, summitFirst: summitFirst, listBest: listBest, courseGaps: courseGaps, infoPartial: infoPartial, joinedCourse: joinedCourse, toApi: toApi, partBases: partBases, partAnswers: partAnswers, stayTiles: stayTiles, staySearch: staySearch, nearCity: nearCity, dayKey: dayKey, anbuPlan: anbuPlan, anbuText: anbuText, anbuSms: anbuSms, telClean: telClean, telFormat: telFormat, UNITS: UNITS, unitConv: unitConv, unitFmt: unitFmt, dayNo: dayNo, dayYmd: dayYmd, ageInfo: ageInfo, dDay: dDay, dateAdd: dateAdd, dateDiff: dateDiff, pctCalc: pctCalc, dutchPay: dutchPay, textCount: textCount, smsKind: smsKind, compassHeading: compassHeading, SOS_PATTERN: SOS_PATTERN, fxConv: fxConv, toLunar: toLunar, fromLunar: fromLunar, nextLunarBirthday: nextLunarBirthday, leapMonth: leapMonth, moonPhase: moonPhase, MOON_NAMES: MOON_NAMES, interestCalc: interestCalc, vatCalc: vatCalc, bmiInfo: bmiInfo, discomfort: discomfort, nameRoman: nameRoman, tzOffsetMin: tzOffsetMin, ladderMake: ladderMake, ladderTrace: ladderTrace, holidayRuns: holidayRuns, calcEval: calcEval, mobileOnlyUrl: mobileOnlyUrl, summitCard: summitCard, trackClimb: trackClimb
     };
 })(window);

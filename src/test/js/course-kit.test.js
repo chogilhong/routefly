@@ -1509,11 +1509,11 @@ eq("islands 차도 3km 넘으면 뺌", (function (I) { return [!!I.rejectReason(
 })();
 // 하나를 펴면 나머지는 접힘(foldOne) - 묶음 이름 없는 칸(/m/ 근처 숙소 찾기, 처음부터 펴 둠)은 접지 않음(2026-10-30 PC)
 (function () {
-    var mk = function (named, open) { return { tagName: "DETAILS", open: open, named: named, classList: { contains: function (c) { return c === "kind"; } } }; };
-    var stay = mk(false, true), a = mk(true, false), b = mk(true, true), all = [stay, a, b], fn = null;
-    RF.foldOne({ addEventListener: function (t, f) { fn = f; }, querySelectorAll: function (q) { return all.filter(function (o) { return o.open && (q.indexOf("[name]") < 0 || o.named); }); } });
+    var mk = function (keep, open) { return { tagName: "DETAILS", open: open, keep: keep, classList: { contains: function (c) { return c === "kind"; } } }; };
+    var stay = mk(true, true), a = mk(false, false), b = mk(false, true), wk = mk(false, true), all = [stay, a, b, wk], fn = null;
+    RF.foldOne({ addEventListener: function (t, f) { fn = f; }, querySelectorAll: function (q) { return all.filter(function (o) { return o.open && (q.indexOf(":not([data-keep])") < 0 || !o.keep); }); } });
     a.open = true; fn({ target: a });
-    eq("foldOne 이름 있는 칸만 접고 숙소 칸은 펴 둠", [stay.open, a.open, b.open], [true, true, false]);
+    eq("foldOne 숙소 칸(data-keep)만 펴 두고 나머지(나중에 붙인 주말 칸 포함)는 접음", [stay.open, a.open, b.open, wk.open], [true, true, false, false]);
 })();
 // 공단 시간이 선보다 긴 공식 구간 것(2026-10-30 점검: 설악산 소공원 → 희운각 1.47km 에 오름 230분)
 eq("infoPartial", [RF.infoPartial({ up_min: 230 }, 1467), RF.infoPartial({ up_min: 150 }, 2670), RF.infoPartial({ up_min: 230 }, null), RF.infoPartial(null, 1000)], [true, false, false, false]);
@@ -1525,4 +1525,13 @@ eq("infoText 일부면 덧붙임", [/전체 구간 기준/.test(RF.infoText({ up
     eq("compareCounts 나빠진 것만", r.worse, ["best-missing", "course-gap"]);
     eq("compareCounts 글", r.text.split("\n")[1], "best-missing 1(+1) · course-gap 5(+2) · park-dead 90(-8)");
     eq("compareCounts 처음", A.compareCounts(null, { "course-gap": 3 }), { worse: [], text: "course-gap 3" });
+})();
+// 이은 코스 - 같은 코스는 한 번만 받고 조각 차례로 나눔(2026-10-30 점검)
+(function () {
+    var parts = RF.parseJoinId("a@0.1-0.5:x>y,b,a@0.5-1.0:y>z~");
+    var bases = RF.partBases(parts), ans = RF.partAnswers(parts, bases, [{ k: "A" }, { k: "B" }]);
+    eq("partBases · partAnswers", [bases, ans.map(function (x) { return x.k; }), ans[0] !== ans[2]], [["a", "b"], ["A", "B", "A"], true]);
+    var bad = false;
+    try { RF.joinedCourse("a,b", RF.parseJoinId("a,b"), [{ course: { name: "x" }, points: [[127, 37, 0, 0]] }, { course: { name: "y" }, points: [[127, 37, 0, 0], [127, 37.01, 0, 1000]] }]); } catch (e) { bad = /선이 없습니다/.test(e.message); }
+    eq("joinedCourse 점 하나뿐인 조각은 오류", bad, true);
 })();

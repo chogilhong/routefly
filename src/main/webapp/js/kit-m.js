@@ -192,9 +192,11 @@
         // 접으면 검색 칸을 칸 밖(제목 바로 아래)으로 옮기고 결과 · 지도만 접힘, 펴면 제자리로. 접힌 채로 찾으면 다시 폄
         var det = form.closest ? form.closest("details[data-keep]") : null, home = form.parentNode;
         if (det) det.addEventListener("toggle", function () {
+            var had = document.activeElement === input;   // 옮기면 입력 칸 초점이 풀림 - 다시 줌(2026-10-30 점검, 키보드 · 화면 읽기)
             if (det.open) home.insertBefore(form, home.firstChild);
             else det.parentNode.insertBefore(form, det.nextSibling);
             form.classList.toggle("ssOutside", !det.open);
+            if (had) input.focus();
         });
         function el(tag, text, cls) { var x = document.createElement(tag); if (text != null) x.textContent = text; if (cls) x.className = cls; return x; }
         /** 주소에서 시 · 군 · 구 하나("경상남도 산청군 산청읍 …" → 산청군, "서울특별시 종로구 …" → 종로구). */
@@ -774,8 +776,8 @@
             if (!d || d.tagName !== "DETAILS" || !d.open) return;
             var cls = d.classList.contains("kind") ? "kind" : d.classList.contains("group") ? "group" : null;
             if (!cls) return;
-            // 묶음 이름(name)이 있는 칸끼리만 - 처음부터 펴 둔 /m/ 근처 숙소 찾기(name 없음)는 같이 접지 않음(2026-10-30 PC)
-            Array.prototype.forEach.call(doc.querySelectorAll("details." + cls + "[open][name]"), function (o) { if (o !== d) o.open = false; });
+            // 처음부터 펴 둔 /m/ 근처 숙소 찾기(data-keep)만 같이 접지 않음 - 나중에 붙인 주말 칸(name 없음)은 그대로 접음(2026-10-30 점검)
+            Array.prototype.forEach.call(doc.querySelectorAll("details." + cls + "[open]:not([data-keep])"), function (o) { if (o !== d) o.open = false; });
         }, true);
     }
 

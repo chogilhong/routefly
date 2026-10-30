@@ -769,7 +769,8 @@
         // 이 기기에만 있는 GPX 는 링크로 보낼 수 없습니다(이은 코스는 따라가기 주소로 보냄)
         var parts = RF.parseJoinId(id);
         $("share").style.display = isGpxId(id) ? "none" : "";
-        var got = parts ? Promise.all(parts.map(function (p) { return getJson("api/course?id=" + encodeURIComponent(p.base)); }))
+        var bases = parts ? RF.partBases(parts) : null;   // 같은 코스를 앞뒤로 쓰면 한 번만 받음
+        var got = parts ? Promise.all(bases.map(function (b) { return getJson("api/course?id=" + encodeURIComponent(b)); })).then(function (rs) { return RF.partAnswers(parts, bases, rs); })
             : isGpxId(id) ? storedGpx(id) : getJson("api/course?id=" + encodeURIComponent(id));
         // 산 안내(park-notes)를 먼저 받아 이름을 바로잡은 탐방로는 그 이름으로(들머리 · 날머리 이름표 - 설악산 "대청봉코스(백담)" → 백담사 → 소청봉)
         var notesP = jsonOnce("data/park-notes.json").then(function (d) { return d && d.parks; }).catch(function () { return null; });
@@ -832,15 +833,15 @@
             }).catch(function () { /* 안전 정보 없이 */ });
             document.title = RF.nameText(c.course.name, true);   // 길만 - "- routefly" 를 붙이면 탭 · 최근 앱 목록에서 잘림(2026-10-12 홍TV님)
             if ((parts ? r[0] : [r[0]]).some(function (j) { return j && j.course && RF.isClosedTrail(j.course.name); })) toast(T("⚠ 비법정탐방로(통제구역)입니다. 국립공원 지정 탐방로가 아니라 출입이 금지된 길이니 따라가지 마세요.", "⚠ Closed trail (restricted area). This is not an official national park trail and entry is banned - do not follow it."), 12000);   // 링크로 바로 연 경우(목록에는 안 나옴)
-            else if (c.course && c.course.summit_miss) toast(T("⚠ 이 코스 선은 이름의 " + c.course.summit_miss + " 정상까지 가지 않습니다(정상 미포함 - 자료의 선 그대로). 정상은 현지 길 · 안내판을 따르세요.",
-                "⚠ This trail line does not reach the summit (" + NM(c.course.summit_miss) + ") in its name. Follow the local signs to the top."), 10000);   // 2026-10-30 코스 점검
-            else if (RF.courseGaps(c).length) {   // 자료가 끊긴 구간(2026-10-30 코스 점검) - 그 구간은 선이 곧게 이어져 실제 길이 아님
-                var gp = RF.courseGaps(c)[0];
-                var inf = RF.infoText(c.info, c.total);   // 공단 시간도 함께(2026-10-30 PC: 끊김 알림이 먼저라 공단 기준이 안 떴음)
-                toast(T("⚠ 이 코스 자료에 " + gp.m + "m 끊긴 구간이 있습니다(" + km(gp.at) + "km 지점). 그 구간은 현지 안내판 · 길을 따르세요.",
-                    "⚠ This trail's data has a " + gp.m + " m gap (at " + km(gp.at) + " km). Follow the local signs there.") + (inf ? " " + inf : ""), 12000);
+            else {   // 정상 미포함 · 자료가 끊긴 구간 · 공단 기준 시간을 한 알림에(2026-10-30 점검: 앞 것이 뜨면 뒤 것이 가려졌음)
+                var warns = [], gp = isGpxId(id) || !/^(hike|trek)$/.test(String(c.course && c.course.kind)) ? null : RF.courseGaps(c)[0], inf = RF.infoText(c.info, c.total);
+                if (c.course && c.course.summit_miss) warns.push(T("⚠ 이 코스 선은 이름의 " + c.course.summit_miss + " 정상까지 가지 않습니다(정상 미포함 - 자료의 선 그대로). 정상은 현지 길 · 안내판을 따르세요.",
+                    "⚠ This trail line does not reach the summit (" + NM(c.course.summit_miss) + ") in its name. Follow the local signs to the top."));
+                if (gp) warns.push(T("⚠ 이 코스 자료에 " + gp.m + "m 끊긴 구간이 있습니다(" + km(gp.at) + "km 지점). 그 구간은 현지 안내판 · 길을 따르세요.",
+                    "⚠ This trail's data has a " + gp.m + " m gap (at " + km(gp.at) + " km). Follow the local signs there."));
+                if (inf) warns.push(inf);
+                if (warns.length) toast(warns.join(" "), warns.length > 1 || warns[0] !== inf ? 12000 : 6000);
             }
-            else if (RF.infoText(c.info, c.total)) toast(RF.infoText(c.info, c.total), 6000);   // 국립공원 공식 코스 - 공단 기준 시간 · 난이도
             // 그 산의 입산 · 통제 · 예약(data/park-notes.json - 2026-10-12 한라산: 오늘 계절 · 이 코스의 통제 지점 시각)
             // 코스 이름은 받은 그대로(자르거나 이은 코스도 원래 이름 - "성판악 탐방로")
             var rawNames = (parts ? r[0] : [r[0]]).map(function (j) { return j && j.course && j.course.name; });
