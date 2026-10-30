@@ -53,7 +53,7 @@
         }
         n.textContent = t;
         clearTimeout(n.rfTimer);
-        n.rfTimer = setTimeout(function () { n.remove(); }, ms || 3000);
+        n.rfTimer = setTimeout(function () { n.remove(); }, ms || 10000);   // 2026-10-30 홍TV님 "3초는 너무 빠르네, 10초"
     }
     // 내 사무실 여럿(2026-10-29 홍TV님 - 회사 2곳 · 방 5개): 이 기기가 연 사무실 [{k, n}] 을 LIST 에, 이 탭이 보는 사무실은 sessionStorage KEY(탭마다 다른 사무실),
     // 마지막으로 본 사무실은 localStorage KEY(새 탭 · 다음에 열 때). 예전 한 개짜리 KEY 는 처음 읽을 때 목록으로 옮김.
@@ -573,7 +573,7 @@
             var can = blob && navigator.clipboard && window.ClipboardItem;
             (can ? navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]) : Promise.reject()).then(function () {
                 noteBelow(btn, T("QR 그림을 복사했습니다. 카톡 · 문자 창에 붙여 넣으세요(우리 직원에게만).", "QR image copied. Paste it into a chat (your staff only)."));
-            }).catch(function () { noteBelow(btn, T("이 브라우저는 그림 복사가 안 됩니다 - 💾 QR 그림 저장을 쓰세요.", "This browser can't copy images - use Save QR image."), 4000); });
+            }).catch(function () { noteBelow(btn, T("이 브라우저는 그림 복사가 안 됩니다 - 💾 QR 그림 저장을 쓰세요.", "This browser can't copy images - use Save QR image."), 10000); });
         });
     });
     $("qrSave").addEventListener("click", function () {
@@ -623,8 +623,8 @@
         RFParty.post("office/bundle/new", { keys: ks }).then(function (j) {
             setBundle(j.bundle);
             return syncBundle(true);
-        }).then(function () { drawMine(); noteBelow($("bundleCopy"), T("묶음을 만들었습니다. 📋 묶음 링크 복사 · 🔳 묶음 QR 로 다른 기기를 연결하세요.", "Bundle made. Connect other devices with Copy bundle link or Bundle QR."), 5000); })
-            .catch(function (e) { noteBelow(btn, em(e), 5000); });
+        }).then(function () { drawMine(); noteBelow($("bundleCopy"), T("묶음을 만들었습니다. 📋 묶음 링크 복사 · 🔳 묶음 QR 로 다른 기기를 연결하세요.", "Bundle made. Connect other devices with Copy bundle link or Bundle QR."), 10000); })
+            .catch(function (e) { noteBelow(btn, em(e), 10000); });
     });
     $("bundleCopy").addEventListener("click", function () {
         var t = linkBundle(), btn = this;
@@ -636,8 +636,8 @@
         var btn = this;
         ask(T("묶음 링크를 바꿀까요? 옛 묶음 링크는 바로 안 되고, 다른 기기는 연결이 끊겨 새 묶음 링크로 다시 연결해야 합니다(사무실은 그대로).", "Change the bundle link? The old one stops working at once and other devices must reconnect with the new link (offices stay)."), { ok: T("링크 바꾸기", "Change link"), danger: true }).then(function (ok) {
             if (!ok) return;
-            RFParty.post("office/bundle/newkey", { bundle: bundle() }).then(function (j) { setBundle(j.bundle); $("qrBox").hidden = true; drawMine(); noteBelow(btn, T("묶음 링크를 바꿨습니다. 다른 기기에 새 링크를 보내 다시 연결하세요.", "Bundle link changed. Send the new link to other devices to reconnect."), 5000); })
-                .catch(function (e) { noteBelow(btn, em(e), 5000); });
+            RFParty.post("office/bundle/newkey", { bundle: bundle() }).then(function (j) { setBundle(j.bundle); $("qrBox").hidden = true; drawMine(); noteBelow(btn, T("묶음 링크를 바꿨습니다. 다른 기기에 새 링크를 보내 다시 연결하세요.", "Bundle link changed. Send the new link to other devices to reconnect."), 10000); })
+                .catch(function (e) { noteBelow(btn, em(e), 10000); });
         });
     });
     $("bundleLeave").addEventListener("click", function () {
