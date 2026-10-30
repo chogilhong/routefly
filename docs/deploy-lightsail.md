@@ -634,6 +634,9 @@ rm ~/route.sql ~/route.tgz
 1. ssh 로 서버에서 `sudo mariadb-dump`(6개 표) → gzip → scp 로 PC `work\` 에 가져오고 서버 파일은 지움(3306 은 열지 않음)
 2. PC DB 의 `routefly_new` 에 넣고, route_course 수가 지금 PC 보다 20% 넘게 줄었으면 멈춤(`-Force` 로 넣기)
 3. RENAME 한 번으로 `routefly` ↔ `routefly_old` 바꿔 끼움 - 되돌리기는 9-5 와 같음
+4. 운영 코스 점검(routefly `tools/course-audit/audit.js --scope=all`, 약 10분 - 2026-10-30 홍TV님 "해줘"): `work\audit\<날짜>\report.md` 와
+   지난 회차와 견준 `work\audit\latest.txt`(끊김 · 대표 코스 조각 없어짐 · 정상 미포함 · 튀는 점 · 떨어진 조각이 늘면 첫 줄 "⚠ 나빠짐"). 끝 줄 `AUDIT …` 로도 나옴.
+   받기 결과(끝 코드)에는 영향 없음. 빼려면 `-NoAudit`, node · routefly 폴더가 다르면 `-Node` · `-WebRepo`
 
 비밀값은 스크립트에 없습니다.
 

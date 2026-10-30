@@ -86,8 +86,23 @@ final class Steep {
         fill(c, rows, tops, List.of());
     }
 
-    /** 이름의 정상까지 안 가는 코스 - 정상 이름(목록 summit_miss · 화면 "정상 미포함", 2026-10-30 코스 점검). 값 "" 은 문제 없음. */
-    private static final Map<String, String> MISS = new ConcurrentHashMap<>();
+    /** 이름의 정상까지 안 가는 코스 - 정상 이름 · 거리(목록 summit_miss · summit_miss_m, 화면 "정상 미포함", 2026-10-30 코스 점검). */
+    private static final Peaks.Miss NONE = new Peaks.Miss("", 0);
+
+    /** 순수 함수 - 목록에서 선이 이름의 정상에서 Peaks.HIDE_MISS_M 넘게 먼 코스를 뺌(2026-10-30 홍TV님 "해줘"). 뺀 수. */
+    static int dropFarMiss(JsonArray rows) {
+        int n = 0;
+        for (int i = rows.size() - 1; i >= 0; i--) {
+            JsonObject o = rows.get(i).getAsJsonObject();
+            if (o.has("summit_miss_m") && o.get("summit_miss_m").getAsDouble() > Peaks.HIDE_MISS_M) {
+                rows.remove(i);
+                n++;
+            }
+        }
+        return n;
+    }
+
+    private static final Map<String, Peaks.Miss> MISS = new ConcurrentHashMap<>();   // 문제 없는 코스는 NONE
 
     /** named - "정상 미포함" 을 볼 정상 자리(Peaks.named), 비면 보지 않음. */
     static void fill(Connection c, JsonArray rows, List<Peaks.Top> tops, List<Peaks.Top> named) {
@@ -111,8 +126,11 @@ final class Steep {
             JsonObject o = e.getAsJsonObject();
             double[] hit = str(o, "course_id") == null ? null : CACHE.get(str(o, "course_id"));
             if (hit == null) continue;
-            String miss = MISS.get(str(o, "course_id"));
-            if (miss != null && !miss.isEmpty()) o.addProperty("summit_miss", miss);
+            Peaks.Miss miss = MISS.get(str(o, "course_id"));
+            if (miss != null && miss != NONE) {
+                o.addProperty("summit_miss", miss.name());
+                o.addProperty("summit_miss_m", Math.round(miss.m()));
+            }
             if (!Double.isNaN(hit[0])) o.addProperty("steep_pct", hit[0]);
             if (hit.length > 3 && !Double.isNaN(hit[3])) {   // 오르막이 적어도 오르는 높이보다 작으면 그 높이로(난이도 · 화면)
                 Integer db = o.has("ascent_m") && !o.get("ascent_m").isJsonNull() ? o.get("ascent_m").getAsInt() : null;
@@ -185,8 +203,8 @@ final class Steep {
             a[i] = las.get(i);
             b[i] = los.get(i);
         }
-        String m = Peaks.summitMiss(name, a, b, named);
-        MISS.put(id, m == null ? "" : m);
+        Peaks.Miss m = Peaks.miss(name, a, b, named);
+        MISS.put(id, m == null ? NONE : m);
     }
 
     private static void put(String id, List<Double> ds, List<Double> es, long now, double top) {

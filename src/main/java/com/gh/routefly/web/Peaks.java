@@ -282,16 +282,30 @@ final class Peaks {
      * lat · lon 은 코스 점 차례대로. 이름의 정상이 여럿이면 하나라도 지나면 null.
      */
     static String summitMiss(String name, double[] lat, double[] lon, List<Top> tops) {
+        Miss m = miss(name, lat, lon, tops);
+        return m == null ? null : m.name();
+    }
+
+    /** 이름의 정상까지 안 가는 코스 - 정상 이름 · 선에서 그 정상까지 가장 가까운 거리(m). */
+    record Miss(String name, double m) {
+    }
+
+    /** 선이 이름의 정상에서 이보다 멀면 목록에서 뺌(m) - 이름만 정상이고 다른 산길(2026-10-30 홍TV님 "해줘" - 용문산 3코스 1.6km · 천관산 1.4km 등). 링크로는 열림. */
+    static final double HIDE_MISS_M = 1000;
+
+    /** 순수 함수 - 이름에 정상이 있는데 선이 그 정상 PASS_M 안을 안 지나면 Miss, 아니면 null. 이름의 정상이 여럿이면 가장 가까운 것. */
+    static Miss miss(String name, double[] lat, double[] lon, List<Top> tops) {
         if (lat == null || lat.length == 0) return null;
         List<Top> named = namedTops(name, tops, lat[0], lon[0]);
         if (named.isEmpty()) return null;
+        double best = Double.MAX_VALUE;
         for (Top t : named) {
             for (int i = 0; i < lat.length; i++) {
                 int j = Math.max(0, i - 1);
-                if (segM(t, lat[j], lon[j], lat[i], lon[i]) <= PASS_M) return null;
+                best = Math.min(best, segM(t, lat[j], lon[j], lat[i], lon[i]));
             }
         }
-        return core(named.get(0));
+        return best <= PASS_M ? null : new Miss(core(named.get(0)), best);
     }
 
     /** 순수 함수 - /api/course 답에 course.summit_miss(이름의 정상까지 안 가면 그 정상 이름). points 는 [경도, 위도, …]. */
@@ -304,8 +318,11 @@ final class Peaks {
             la[i] = pts.get(i).getAsJsonArray().get(1).getAsDouble();
             lo[i] = pts.get(i).getAsJsonArray().get(0).getAsDouble();
         }
-        String miss = summitMiss(course.has("name") && !course.get("name").isJsonNull() ? course.get("name").getAsString() : null, la, lo, named);
-        if (miss != null) course.addProperty("summit_miss", miss);
+        Miss miss = miss(course.has("name") && !course.get("name").isJsonNull() ? course.get("name").getAsString() : null, la, lo, named);
+        if (miss != null) {
+            course.addProperty("summit_miss", miss.name());
+            course.addProperty("summit_miss_m", Math.round(miss.m()));
+        }
     }
 
     /** 순수 함수 - 지형 자료 최고점(demMax)과 지나는 정상들의 공식 높이 → 화면 "최고" 높이. 지나는 정상이 없거나 너무 다르면 null(그대로). */

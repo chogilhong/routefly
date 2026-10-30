@@ -1518,3 +1518,11 @@ eq("islands 차도 3km 넘으면 뺌", (function (I) { return [!!I.rejectReason(
 // 공단 시간이 선보다 긴 공식 구간 것(2026-10-30 점검: 설악산 소공원 → 희운각 1.47km 에 오름 230분)
 eq("infoPartial", [RF.infoPartial({ up_min: 230 }, 1467), RF.infoPartial({ up_min: 150 }, 2670), RF.infoPartial({ up_min: 230 }, null), RF.infoPartial(null, 1000)], [true, false, false, false]);
 eq("infoText 일부면 덧붙임", [/전체 구간 기준/.test(RF.infoText({ up_min: 230, down_min: 160 }, 1467)), /전체 구간 기준/.test(RF.infoText({ up_min: 150 }, 2670))], [true, false]);
+// 매일 코스 점검 - 지난 회차와 견줌(2026-10-30)
+(function () {
+    var A = require("../../../tools/course-audit/audit.js");
+    var r = A.compareCounts({ "course-gap": 3, "park-dead": 98 }, { "course-gap": 5, "park-dead": 90, "best-missing": 1 });
+    eq("compareCounts 나빠진 것만", r.worse, ["best-missing", "course-gap"]);
+    eq("compareCounts 글", r.text.split("\n")[1], "best-missing 1(+1) · course-gap 5(+2) · park-dead 90(-8)");
+    eq("compareCounts 처음", A.compareCounts(null, { "course-gap": 3 }), { worse: [], text: "course-gap 3" });
+})();

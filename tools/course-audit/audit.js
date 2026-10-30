@@ -185,12 +185,30 @@ function checkPark(data, park, notes) {
     return { segs: segs, groups: gl.length, issues: issues };
 }
 
-module.exports = { checkCourse: checkCourse, checkPark: checkPark, RF: RF, GAP_M: GAP_M };
+/** 나빠지면 알릴 것 - 끊김 · 대표 코스 조각 없어짐 · 정상 미포함 · 튀는 점 · 떨어진 조각. */
+var WATCH = ["course-gap", "best-missing", "course-summit", "course-spike", "park-island"];
+
+/** 순수 함수 - 지난 회차 · 이번 회차 숫자 → {worse:[항목], text}. 지난 회차가 없으면 숫자만. */
+function compareCounts(prev, cur) {
+    var keys = {}, worse = [], parts = [];
+    Object.keys(prev || {}).concat(Object.keys(cur || {})).forEach(function (k) { keys[k] = 1; });
+    Object.keys(keys).sort().forEach(function (k) {
+        var a = prev ? +(prev[k] || 0) : null, b = +((cur || {})[k] || 0);
+        parts.push(k + " " + b + (a != null && a !== b ? "(" + (b > a ? "+" : "") + (b - a) + ")" : ""));
+        if (a != null && b > a && WATCH.indexOf(k) >= 0) worse.push(k);
+    });
+    return { worse: worse, text: (worse.length ? "⚠ 나빠짐: " + worse.join(" · ") + "\n" : "") + parts.join(" · ") };
+}
+
+module.exports = { checkCourse: checkCourse, checkPark: checkPark, RF: RF, GAP_M: GAP_M, compareCounts: compareCounts };
 
 // ── 실행 ──
 if (require.main === module) {
     var arg = function (k, dflt) { var a = process.argv.filter(function (x) { return x.indexOf("--" + k + "=") === 0; })[0]; return a ? a.slice(k.length + 3) : dflt; };
     var BASE = arg("base", "https://routefly.kr/routefly").replace(/\/$/, ""), SCOPE = arg("scope", "all"), ONLY = arg("only", ""), OUT = arg("out", path.join(ROOT, "target/course-audit")), RPS = +arg("rps", "4");
+    // --history=<폴더> - 매일 점검(2026-10-30 홍TV님 "해줘"): <폴더>/<날짜>/ 에 보고서, 지난 회차와 견준 한 줄 요약을 <폴더>/latest.txt 에(나빠지면 "⚠ 나빠짐")
+    var HIST = arg("history", "");
+    if (HIST) OUT = path.join(HIST, new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10));
     var only = ONLY ? ONLY.split(",") : null;
     fs.mkdirSync(OUT, { recursive: true });
     var last = 0, calls = 0;
@@ -286,6 +304,14 @@ if (require.main === module) {
         fs.writeFileSync(path.join(OUT, "report.json"), JSON.stringify(report, null, 1));
         fs.writeFileSync(path.join(OUT, "report.md"), toMd(report));
         console.log("끝 · 요청 " + calls + " · " + JSON.stringify(report.counts) + " → " + OUT);
+        if (HIST) {
+            var prev = fs.readdirSync(HIST).filter(function (d) { return /^\d{4}-\d{2}-\d{2}$/.test(d) && path.join(HIST, d) !== OUT && fs.existsSync(path.join(HIST, d, "report.json")); }).sort().pop();
+            var pc = prev ? JSON.parse(fs.readFileSync(path.join(HIST, prev, "report.json"), "utf8")).counts : null;
+            var line = compareCounts(pc, report.counts);
+            var text = path.basename(OUT) + " 코스 점검" + (prev ? "(지난 " + prev + " 과 견줌)" : "") + "\n" + line.text + "\n";
+            fs.writeFileSync(path.join(HIST, "latest.txt"), text);
+            console.log(text.trim());
+        }
     });
 }
 

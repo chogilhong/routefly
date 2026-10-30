@@ -40,4 +40,16 @@ public class SummitMissTest {
         Peaks.markMiss(d, t);
         assertEquals("왕자봉", d.getAsJsonObject("course").get("summit_miss").getAsString());
     }
+
+    @Test
+    public void farMissDropped() {
+        List<Peaks.Top> t = Peaks.named(PEAKS);
+        Peaks.Miss m = Peaks.miss("x · 입구 → 왕자봉", new double[] {35.38, 35.391}, new double[] {127.05, 127.05}, t);
+        assertEquals("왕자봉", m.name());
+        assertEquals("선 끝(35.391)에서 정상(35.40)까지 약 1km", 1000, m.m(), 30);
+        JsonArray rows = JsonParser.parseString("[{\"course_id\":\"a\",\"summit_miss_m\":1643},{\"course_id\":\"b\",\"summit_miss_m\":231},{\"course_id\":\"c\"}]").getAsJsonArray();
+        assertEquals(1, Steep.dropFarMiss(rows));
+        assertEquals("1km 넘는 것만 뺌", "b", rows.get(0).getAsJsonObject().get("course_id").getAsString());
+        assertEquals(2, rows.size());
+    }
 }
