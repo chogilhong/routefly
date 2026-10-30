@@ -1319,6 +1319,14 @@
         if (!form || !out || form.rfBound) return;
         form.rfBound = true;
         var T = function (ko, e) { return en ? e : ko; }, input = form.querySelector("input");
+        // 접어도 검색 칸은 보이게(/m/ 처음부터 펴 둔 칸, data-keep - 2026-10-30 홍TV님 "접으면? 그래도 검색창은 보이게 해"):
+        // 접으면 검색 칸을 칸 밖(제목 바로 아래)으로 옮기고 결과 · 지도만 접힘, 펴면 제자리로. 접힌 채로 찾으면 다시 폄
+        var det = form.closest ? form.closest("details[data-keep]") : null, home = form.parentNode;
+        if (det) det.addEventListener("toggle", function () {
+            if (det.open) home.insertBefore(form, home.firstChild);
+            else det.parentNode.insertBefore(form, det.nextSibling);
+            form.classList.toggle("ssOutside", !det.open);
+        });
         function el(tag, text, cls) { var x = document.createElement(tag); if (text != null) x.textContent = text; if (cls) x.className = cls; return x; }
         /** 주소에서 시 · 군 · 구 하나("경상남도 산청군 산청읍 …" → 산청군, "서울특별시 종로구 …" → 종로구). */
         function areaOf(a) { var m = /(?:^|\s)(\S+(?:군|구|시))(?=\s)/.exec(" " + String(a || "").replace(/^\S+(?:도|특별시|광역시|특별자치시|특별자치도)\s+/, "") + " "); return m ? m[1] : ""; }
@@ -1430,6 +1438,7 @@
         }
         form.addEventListener("submit", function (e) {
             e.preventDefault();
+            if (det && !det.open) det.open = true;   // 결과가 보이게
             var q = String(input.value || "").trim();
             if (q.length < 2) { out.textContent = T("장소 이름을 두 글자 넘게 적어 주세요(예: 산청군청).", "Enter a place name (e.g. Sancheong County Office in Korean: 산청군청)."); input.focus(); return; }
             out.textContent = T("찾는 중…", "Searching…");

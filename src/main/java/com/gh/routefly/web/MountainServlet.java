@@ -485,10 +485,10 @@ public class MountainServlet extends HttpServlet {
 
     /**
      * open - 처음부터 펴 둠(코스 모음 /m/ - 2026-10-30 홍TV님 "처음부터 이렇게 검색 가능하게 펴놓자"). 펴 둔 칸은 다른 칸을 펼 때 같이 접히지 않게
-     * 한 묶음(name="kind")에서 뺌.
+     * 한 묶음(name="kind")에서 뺌. data-keep - 접어도 검색 칸은 제목 아래에 남음(course-kit staySearch).
      */
     static String staySearchBox(String value, boolean en, boolean open) {
-        return "<section id=\"staySearch\"><details class=\"fold kind\"" + (open ? " open" : " name=\"kind\"") + "><summary><span class=\"ft\">" + (en ? "🏨 Find lodging near a place" : "🏨 근처 숙소 찾기") + "</span>"
+        return "<section id=\"staySearch\"><details class=\"fold kind\"" + (open ? " open data-keep=\"1\"" : " name=\"kind\"") + "><summary><span class=\"ft\">" + (en ? "🏨 Find lodging near a place" : "🏨 근처 숙소 찾기") + "</span>"
                 + "<span class=\"fs\">" + (en ? (value != null ? "Trailhead · county office · station" : "County office · station · terminal · mountain") : value != null ? "들머리 · 군청 · 역 이름으로" : "군청 · 역 · 터미널 · 산 이름으로")
                 + "</span><span class=\"fa\">▾</span></summary><div class=\"fb\">"
                 + "<form id=\"ssForm\" class=\"ssForm\" role=\"search\"><input id=\"ssQ\" type=\"search\" maxlength=\"30\"" + (value != null ? " value=\"" + esc(value) + "\"" : "")
