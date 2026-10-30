@@ -50,14 +50,19 @@ function placeName(s) {
 function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 
 async function overpass(q) {
-    for (var k = 0; k < SERVERS.length; k++) {
-        try {
-            var res = await fetch(SERVERS[k], { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": "routefly park-gaps" }, body: "data=" + encodeURIComponent(q) });
-            if (res.ok) return await res.json();
-        } catch (e) { /* 다음 서버 */ }
-        await sleep(3000);
+    // 공용 서버라 바쁘면 429 · 504 - 서버를 돌아가며, 한 바퀴 실패마다 더 오래 쉬고 세 바퀴까지(2026-10-30 PC: 무등산 3곳 "모두 실패")
+    var waits = [0, 30000, 90000];
+    for (var round = 0; round < waits.length; round++) {
+        if (waits[round]) await sleep(waits[round]);
+        for (var k = 0; k < SERVERS.length; k++) {
+            try {
+                var res = await fetch(SERVERS[k], { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": "routefly park-gaps" }, body: "data=" + encodeURIComponent(q) });
+                if (res.ok) return await res.json();
+            } catch (e) { /* 다음 서버 */ }
+            await sleep(5000);
+        }
     }
-    throw new Error("Overpass 서버 모두 실패");
+    throw new Error("Overpass 서버 모두 실패(세 바퀴)");
 }
 
 module.exports = { rejectReason: rejectReason, placeName: placeName, roadNote: roadNote };
