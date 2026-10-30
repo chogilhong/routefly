@@ -7,6 +7,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
@@ -34,6 +35,21 @@ public class MainActivity extends BridgeActivity {
                 && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[] {Manifest.permission.POST_NOTIFICATIONS}, REQ_NOTIFICATIONS);
         }
+        // 폰 뒤로 가기(2026-10-30 홍TV님 "앱이 닫혀 버리는데"): 웹 화면에 앞 화면이 있으면 그리로(통계 → 안내 등).
+        // 따라가기(hike.html) · 산악회 방(party.html)은 예전처럼 앱을 뒤로 보냄 - 화면을 떠나면 위치 기록이 끊길 수 있음
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                android.webkit.WebView w = bridge.getWebView();
+                if (w != null && w.canGoBack() && webBack(w.getUrl())) {
+                    w.goBack();
+                    return;
+                }
+                setEnabled(false);
+                getOnBackPressedDispatcher().onBackPressed();
+                setEnabled(true);
+            }
+        });
         // 첫 링크(getIntent)는 BridgeActivity.load() 가 onNewIntent 로 넘겨 openLink 가 받음(여기서 또 부르면 두 번 열림)
     }
 
@@ -62,6 +78,13 @@ public class MainActivity extends BridgeActivity {
                 : k != null && u.getFragment() == null && u.getPath().startsWith("/routefly/party-office.html") ? officeHash(k)
                 : b != null && b.matches("[A-Za-z0-9_-]{20,64}") && u.getFragment() == null && u.getPath().startsWith("/routefly/party-office.html") ? "#b=" + b : "");
         bridge.getWebView().post(() -> bridge.getWebView().loadUrl(url));
+    }
+
+    /** 순수 함수 - 이 화면에서 폰 뒤로 가기를 웹 앞 화면으로 돌릴지. 따라가기 · 산악회 방은 아님(위치 기록 화면). */
+    static boolean webBack(String url) {
+        if (url == null) return false;
+        String path = Uri.parse(url).getPath();
+        return path != null && !path.endsWith("/hike.html") && !path.endsWith("/party.html");
     }
 
     /** 사무실 열쇠 하나면 #k=, 점으로 이은 여럿(이 기기의 사무실 모두 - 2026-10-30)이면 #ks=. 모양이 다르면 "". */
