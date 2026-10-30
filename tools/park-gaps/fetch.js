@@ -64,6 +64,59 @@ function route(elements, from, to) {
     return { coords: seq.map(function (id) { return [+nodes[id][1].toFixed(6), +nodes[id][0].toFixed(6)]; }), distance_m: Math.round(dist[t[0]]), ways: used, tags: tags, snap: [Math.round(s[1]), Math.round(t[1])] };
 }
 
+/**
+ * 순수 함수 - 점 무리 A(떨어진 조각) 의 어느 점 → 점 무리 B(큰 묶음) 의 어느 점, 가장 짧은 길(여러 출발 다익스트라). 점은 [위도, 경도].
+ * 길에 닿는 점(노드)은 각 점에서 snapM 안. 출발 · 도착에 붙는 거리(snap)도 길이에 더함. → route() 와 같은 모양 또는 {error}.
+ * 2026-10-30 PC: 가장 가까운 두 점만 이으면 그 자리에 길이 없어 거의 다 "잇는 길이 없음" 이었음.
+ */
+function routeSets(elements, A, B, snapM) {
+    var lim = snapM || 150, nodes = {}, adj = {};
+    elements.forEach(function (e) { if (e.type === "node") nodes[e.id] = [e.lat, e.lon]; });
+    var ways = elements.filter(function (e) { return e.type === "way" && e.nodes && e.nodes.length > 1 && !closedWays([{ access: e.tags && (e.tags.access || e.tags.foot) }]).length; });
+    ways.forEach(function (w) {
+        for (var i = 1; i < w.nodes.length; i++) {
+            var a = w.nodes[i - 1], b = w.nodes[i];
+            if (!nodes[a] || !nodes[b]) continue;
+            var m = distM(nodes[a], nodes[b]);
+            (adj[a] = adj[a] || []).push([b, m, w.id]);
+            (adj[b] = adj[b] || []).push([a, m, w.id]);
+        }
+    });
+    var ids = Object.keys(adj);
+    if (!ids.length) return { error: "둘레에 걷는 길이 없음" };
+    var snapTo = function (pts) {   // 노드 → 가장 가까운 점까지 거리(lim 안)
+        var out = {};
+        ids.forEach(function (id) {
+            var best = Infinity;
+            pts.forEach(function (p) { var x = distM(p, nodes[id]); if (x < best) best = x; });
+            if (best <= lim) out[id] = best;
+        });
+        return out;
+    };
+    var src = snapTo(A), dst = snapTo(B);
+    if (!Object.keys(src).length || !Object.keys(dst).length) return { error: "조각 · 큰 묶음에서 " + lim + "m 안에 길이 없음" };
+    var dist = {}, prev = {}, done = {}, start = {};
+    Object.keys(src).forEach(function (k) { dist[k] = src[k]; start[k] = src[k]; });
+    var hit = null;
+    for (;;) {
+        var u = null;
+        Object.keys(dist).forEach(function (k) { if (!done[k] && (u === null || dist[k] < dist[u])) u = k; });
+        if (u === null) break;
+        if (dst[u] !== undefined && dist[u] > (start[u] || 0) + 1e-9) { hit = u; break; }   // 출발과 같은 노드(겹친 곳)는 건너뜀
+        done[u] = true;
+        adj[u].forEach(function (e) {
+            var v = String(e[0]), nd = dist[u] + e[1];
+            if (dist[v] === undefined || nd < dist[v]) { dist[v] = nd; prev[v] = [u, e[2]]; }
+        });
+    }
+    if (hit === null) return { error: "조각과 큰 묶음을 잇는 길이 없음" };
+    var seq = [hit], used = [];
+    while (prev[seq[0]]) { var pv = prev[seq[0]]; if (used.indexOf(pv[1]) < 0) used.unshift(pv[1]); seq.unshift(pv[0]); }
+    var tags = used.map(function (id) { var w = ways.filter(function (x) { return x.id === id; })[0], g = w.tags || {}; return { id: id, highway: g.highway || null, sac_scale: g.sac_scale || null, access: g.access || g.foot || null, name: g.name || null }; });
+    return { coords: seq.map(function (id) { return [+nodes[id][1].toFixed(6), +nodes[id][0].toFixed(6)]; }), distance_m: Math.round(dist[hit] + dst[hit]), ways: used, tags: tags,
+        snap: [Math.round(src[seq[0]] || 0), Math.round(dst[hit])] };
+}
+
 /** 순수 함수 - 지나는 길 가운데 출입금지(access · foot = no · private)인 것. */
 function closedWays(tags) {
     return (tags || []).filter(function (t) { return /^(no|private)$/.test(String(t.access || "")); });
@@ -125,7 +178,7 @@ function withEle(coords) {
     return Promise.all(coords.map(function (p) { var t = tileOf(p[1], p[0], DEM_Z); return get(t).then(function (img) { return [p[0], p[1], eleAt(img, t.px, t.py)]; }); }));
 }
 
-module.exports = { route: route, closedWays: closedWays, distM: distM, FILE: FILE, pngDecode: pngDecode, tileOf: tileOf, eleAt: eleAt, withEle: withEle };
+module.exports = { route: route, closedWays: closedWays, distM: distM, FILE: FILE, pngDecode: pngDecode, tileOf: tileOf, eleAt: eleAt, withEle: withEle, routeSets: routeSets };
 
 if (require.main === module && process.argv.indexOf("--ele") > 0) {   // 이미 넣은 빈 구간에 높이만 다시
     var doc0 = JSON.parse(fs.readFileSync(FILE, "utf8")), jobs = [];

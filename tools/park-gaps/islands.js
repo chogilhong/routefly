@@ -6,7 +6,7 @@
  *   --dry : 파일에 쓰지 않고 찾은 것만 보여 줌
  * 순서(공원마다):
  *   1) /api/park 답 → checkPark(코스 점검과 같은 규칙)로 조각과, 조각 ↔ 큰 묶음의 가장 가까운 두 점(link)
- *   2) 직선 max(m) 안인 것만 Overpass 에 걷는 길(path · footway · steps · track)을 묻고 가장 짧은 길(fetch.js route)
+ *   2) 직선 max(m) 안인 것만 Overpass 에 걷는 길(등산로 · 임도 · 마을 안 작은 길)을 묻고, 조각의 어느 점 → 큰 묶음의 어느 점 가장 짧은 길(fetch.js routeSets)
  *   3) 받지 않음: 출입금지 길(access · foot = no · private) · 4km 넘음 · 직선의 3배(+800m) 넘게 돌아감
  *   4) 그 길을 others 에 더해 checkPark 를 다시 - 묶음 수가 줄 때만 넣음(화면 gapFill 이 실제로 이어 주는 것만)
  *   5) 점마다 높이(Terrain Tiles) 붙여 park-gaps.json 에 - 이름 "공원 · 처음 → 끝"(가까운 지명)
@@ -19,6 +19,10 @@ var NOTES = require("../../src/main/webapp/data/park-notes.json").parks;
 
 var MOUNTAIN_PARKS = ["설악산", "지리산", "속리산", "월악산", "무등산", "경주", "변산반도", "계룡산", "한라산", "월출산", "가야산", "내장산", "덕유산", "오대산", "치악산", "소백산", "주왕산", "북한산"];
 var MAX_TOTAL_M = 4000;
+/** 걷는 길 - 등산로 · 오솔길 · 계단 · 임도에 마을 안 작은 길(들머리 사이를 잇는 마을길 - 2026-10-30 PC: 등산로만으로는 거의 못 이었음). 큰 차도는 뺌. */
+var WALK = "path|footway|steps|track|bridleway|pedestrian|cycleway|residential|unclassified|service|living_street|tertiary";
+/** 묻는 범위 - 후보 점들 둘레 이만큼 더(도, 약 800m). */
+var PAD = 0.008;
 var SERVERS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter", "https://overpass.private.coffee/api/interpreter"];
 
 /** 순수 함수 - 찾은 길을 받을지: 출입금지 없음 · 4km 안 · 직선의 3배(+800m) 안. 받으면 null, 아니면 까닭. */
@@ -64,12 +68,26 @@ if (require.main === module) {
             var isl = r0.issues.filter(function (x) { return x.kind === "island" && x.link && x.link.m <= MAX; });
             console.log("## " + pk + " 묶음 " + groups + " · 직선 " + MAX + "m 안 조각 " + isl.length);
             for (var x of isl) {
-                var L = x.link, from = [L.a[1], L.a[0]], to = [L.b[1], L.b[0]], an = placeName(L.an), bn = placeName(L.bn);
-                var pad = 0.004, s = Math.min(from[0], to[0]) - pad, n = Math.max(from[0], to[0]) + pad, w = Math.min(from[1], to[1]) - pad * 1.25, e = Math.max(from[1], to[1]) + pad * 1.25;
-                var q = "[out:json][timeout:25];way[\"highway\"~\"^(path|footway|steps|track)$\"](" + [s, w, n, e].map(function (v) { return v.toFixed(5); }).join(",") + ");(._;>;);out body;";
+                var L = x.link, an = placeName(L.an), bn = placeName(L.bn);
+                var all = (L.aPts || [L.a]).concat(L.bPts || [L.b]), la = all.map(function (p) { return p[1]; }), lo = all.map(function (p) { return p[0]; });
+                var pad = PAD, s = Math.min.apply(null, la) - pad, n = Math.max.apply(null, la) + pad, w = Math.min.apply(null, lo) - pad * 1.25, e = Math.max.apply(null, lo) + pad * 1.25;
+                var q = "[out:json][timeout:60];way[\"highway\"~\"^(" + WALK + ")$\"](" + [s, w, n, e].map(function (v) { return v.toFixed(5); }).join(",") + ");(._;>;);out body;";
                 var r;
-                try { r = G.route((await overpass(q)).elements || [], from, to); } catch (err) { console.log("  ✗ " + an + " → " + bn + " - " + err.message); continue; }
+                try {
+                    r = G.routeSets((await overpass(q)).elements || [], (L.aPts || [L.a]).map(function (p) { return [p[1], p[0]]; }), (L.bPts || [L.b]).map(function (p) { return [p[1], p[0]]; }), 150);
+                } catch (err) { console.log("  ✗ " + an + " → " + bn + " - " + err.message); continue; }
                 await sleep(3000);
+                if (r && !r.error) {   // 두 끝을 탐방로 점에 붙임(길 노드는 탐방로에서 150m 안 - 안내도가 끝끼리 잇게)
+                    var closest = function (p, pts) { var best = null, bd = Infinity; pts.forEach(function (q2) { var dd = G.distM([p[1], p[0]], [q2[1], q2[0]]); if (dd < bd) { bd = dd; best = q2; } }); return bd > 1 ? [best[0], best[1]] : null; };
+                    var ca = closest(r.coords[0], L.aPts || [L.a]), cb = closest(r.coords[r.coords.length - 1], L.bPts || [L.b]);
+                    if (ca) r.coords.unshift(ca);
+                    if (cb) r.coords.push(cb);
+                }
+                if (r && !r.error) {   // 실제로 이은 두 끝의 가까운 지명
+                    var near = function (p) { var best = null, bd = Infinity; (data.places || []).concat(data.heads || []).forEach(function (q2) { var dd = G.distM([p[1], p[0]], [+q2.lat, +q2.lon]); if (dd < bd) { bd = dd; best = q2.name; } }); return best || "?"; };
+                    an = near(r.coords[0]);
+                    bn = near(r.coords[r.coords.length - 1]);
+                }
                 var why = rejectReason(r, L.m);
                 if (why) { console.log("  ✗ " + an + " → " + bn + " (직선 " + L.m + "m) - " + why); continue; }
                 var name = pk + " · " + (an === bn ? an + " 둘레" : an + " → " + bn);

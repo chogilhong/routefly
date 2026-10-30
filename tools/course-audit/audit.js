@@ -165,10 +165,22 @@ function checkPark(data, park, notes) {
         });
         return best;
     };
+    // 잇기 후보 점 - 조각 전체(aPts)와, 큰 묶음 가운데 가장 가까운 곳 둘레(bPts, link 거리 + 1.5km 안). 빈 구간 메우기가 어느 점끼리든 잇게
+    var ptsOf = function (key, centre, lim) {
+        var out = [];
+        segs.forEach(function (s, i) {
+            if (String(find(i)) !== key) return;
+            var step = Math.max(1, Math.floor(s.coords.length / 60));
+            for (var a = 0; a < s.coords.length; a += step) if (!centre || d(s.coords[a], centre) <= lim) out.push([s.coords[a][0], s.coords[a][1]]);
+        });
+        return out;
+    };
     Object.keys(groups).forEach(function (k) {
         var g = groups[k];
         if (k === mainKey || g.m >= 30000) return;
-        issues.push({ kind: "island", msg: "따로 떨어진 조각 " + g.n + "구간 " + (g.m / 1000).toFixed(1) + "km - " + g.names.join(" / "), at: null, link: near(k, mainKey) });
+        var link = near(k, mainKey);
+        if (link) { link.aPts = ptsOf(k, null, 0); link.bPts = ptsOf(mainKey, link.a, link.m + 1500); }
+        issues.push({ kind: "island", msg: "따로 떨어진 조각 " + g.n + "구간 " + (g.m / 1000).toFixed(1) + "km - " + g.names.join(" / "), at: null, link: link });
     });
     return { segs: segs, groups: gl.length, issues: issues };
 }

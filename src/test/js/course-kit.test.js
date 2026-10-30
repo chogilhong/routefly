@@ -1488,3 +1488,14 @@ eq("courseGaps 250m 넘게 뛰는 곳", [RF.courseGaps({ lat: [37.6, 37.6001, 37
     eq("islands rejectReason", [I.rejectReason(ok, 700), !!I.rejectReason({ distance_m: 900, tags: [{ access: "no" }] }, 700), !!I.rejectReason({ distance_m: 4100, tags: [] }, 2000),
         !!I.rejectReason({ distance_m: 3000, tags: [] }, 500), I.rejectReason({ error: "길 없음" }, 500), I.placeName("등천리 757m")], [null, true, true, true, "길 없음", "등천리"]);
 })();
+// 떨어진 조각 ↔ 큰 묶음 - 어느 점끼리든 가장 짧은 길(routeSets, 2026-10-30 PC: 가장 가까운 두 점만 이으면 거의 다 "잇는 길이 없음"). 좌표는 테스트 데이터
+(function () {
+    var F = require("../../../tools/park-gaps/fetch.js");
+    var el = [{ type: "node", id: 1, lat: 37.600, lon: 127.000 }, { type: "node", id: 2, lat: 37.605, lon: 127.000 }, { type: "node", id: 3, lat: 37.610, lon: 127.000 },
+        { type: "node", id: 4, lat: 37.600, lon: 127.010 }, { type: "node", id: 5, lat: 37.610, lon: 127.010 },
+        { type: "way", id: 10, nodes: [1, 2, 3], tags: { highway: "path" } }, { type: "way", id: 11, nodes: [4, 1], tags: { highway: "residential", access: "private" } },
+        { type: "way", id: 12, nodes: [3, 5], tags: { highway: "track" } }];
+    var r = F.routeSets(el, [[37.6, 127.0]], [[37.6, 127.01], [37.61, 127.01]], 150);
+    eq("routeSets 출입금지 길을 피해 돌아 이음", [r.ways, r.coords.length, r.distance_m > 1800 && r.distance_m < 2100], [[10, 12], 4, true]);
+    eq("routeSets 길 없음", F.routeSets(el, [[37.7, 127.0]], [[37.6, 127.01]], 150).error, "조각 · 큰 묶음에서 150m 안에 길이 없음");
+})();
