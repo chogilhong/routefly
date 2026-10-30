@@ -1427,7 +1427,7 @@ eq("kmaLink 행정동이 있으면 동네예보, 없으면 첫 화면", [RF.kmaL
 (function () {
     var pn = JSON.parse(fs.readFileSync(path.join(__dirname, "../../main/webapp/data/park-notes.json"), "utf8")).parks;
     var r = RF.listBest(pn, "북한산");
-    eq("park-notes 북한산 목록 대표 코스", [r.length >= 1, RF.parseJoinId(r[0].course_id).length, r[0].ele_max_m], [true, 8, 836]);   // 밤골매표소 원점회귀(효자길 · 150118 끝 조각 - 2026-10-30)
+    eq("park-notes 북한산 목록 대표 코스", [r.length >= 1, RF.parseJoinId(r[0].course_id).length, r[0].ele_max_m], [true, 6, 836]);   // 밤골매표소 원점회귀(효자길로 올라 계곡 길 150118 로 바로 내려옴 - 2026-10-30)
     // 목록 난이도 = 따라가기 난이도(그 화면은 거리 · 오르막 · 가장 가파른 1km 로 셈) - 운영 자료 계산값 6,253m · 776m · 40%
     eq("park-notes 대표 코스 목록 난이도가 따라가기와 같음(어려움)", [RF.difficulty(r[0].distance_m, r[0].ascent_m, r[0].steep_pct), RF.difficulty(7164, 835, 40)], [3, 3]);
 })();
