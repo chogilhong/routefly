@@ -494,6 +494,10 @@
                     paint: { "line-color": "#ffffff", "line-width": 4.5 } });
                 map.addLayer({ id: "route-done", type: "line", source: "route", layout: { "line-join": "round", "line-cap": "round" },
                     paint: { "line-width": 5, "line-gradient": progressGradient(0) } });
+                // 자료가 끊긴 구간 - 붉은 점선(2026-10-30, 그 사이는 실제 길이 아님 - 현지 안내판)
+                map.addSource("gaps", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+                map.addLayer({ id: "gaps", type: "line", source: "gaps", layout: { "line-cap": "round" },
+                    paint: { "line-color": "#ff5a3c", "line-width": 5, "line-dasharray": [1, 1.6] } });
                 // 갈림길 - 글자 없이 작은 점
                 map.addSource("junctions", { type: "geojson", data: empty });
                 map.addLayer({ id: "junctions", type: "circle", source: "junctions",
@@ -525,6 +529,7 @@
         npMarks();   // 🏅 국립공원 스탬프투어 인증지
         map.getSource("route").setData({ type: "Feature", properties: {},
             geometry: { type: "LineString", coordinates: c.lon.map(function (lon, i) { return [lon, c.lat[i]]; }) } });
+        if (map.getSource("gaps")) map.getSource("gaps").setData(RF.gapLines(c));   // 끊긴 구간 붉은 점선
         // km 번호(동그라미)
         var step = RF.kmStep(c.total);
         for (var m = step; m < c.total - step * 0.3; m += step) {
@@ -744,7 +749,8 @@
     // ☆ 찜(2026-10-15 홍TV님) - 위 줄 코스 이름 옆. 찜한 코스는 따라가기 첫 화면(검색 전)에 모아 보임. 이 기기에만(rf-fav)
     var favBtn = RF.favButton(function () {
         if (!c || isGpxId(c.id)) return null;
-        return { id: c.id, name: c.course.name, kind: c.course.kind, dist: Math.round(c.total),
+        return { id: c.id, x: RF.parseJoinId(c.id) ? RF.joinHashExtra(location.hash) || undefined : undefined,   // 대표 코스 이름 · 들머리도(2026-10-30)
+                 name: c.course.name, kind: c.course.kind, dist: Math.round(c.total),
                  asc: c.asc && c.asc.length ? Math.round(c.asc[c.asc.length - 1]) : null, steep: RF.steepest(c.dist, c.ele) };
     });
     $("name").parentNode.insertBefore(favBtn, $("name").nextSibling);
@@ -834,7 +840,7 @@
             document.title = RF.nameText(c.course.name, true);   // 길만 - "- routefly" 를 붙이면 탭 · 최근 앱 목록에서 잘림(2026-10-12 홍TV님)
             if ((parts ? r[0] : [r[0]]).some(function (j) { return j && j.course && RF.isClosedTrail(j.course.name); })) toast(T("⚠ 비법정탐방로(통제구역)입니다. 국립공원 지정 탐방로가 아니라 출입이 금지된 길이니 따라가지 마세요.", "⚠ Closed trail (restricted area). This is not an official national park trail and entry is banned - do not follow it."), 12000);   // 링크로 바로 연 경우(목록에는 안 나옴)
             else {   // 정상 미포함 · 자료가 끊긴 구간 · 공단 기준 시간을 한 알림에(2026-10-30 점검: 앞 것이 뜨면 뒤 것이 가려졌음)
-                var warns = [], gp = isGpxId(id) || !/^(hike|trek)$/.test(String(c.course && c.course.kind)) ? null : RF.courseGaps(c)[0], inf = RF.infoText(c.info, c.total);
+                var warns = [], gp = RF.shownGaps(c)[0], inf = RF.infoText(c.info, c.total);
                 if (c.course && c.course.summit_miss) warns.push(T("⚠ 이 코스 선은 이름의 " + c.course.summit_miss + " 정상까지 가지 않습니다(정상 미포함 - 자료의 선 그대로). 정상은 현지 길 · 안내판을 따르세요.",
                     "⚠ This trail line does not reach the summit (" + NM(c.course.summit_miss) + ") in its name. Follow the local signs to the top."));
                 if (gp) warns.push(T("⚠ 이 코스 자료에 " + gp.m + "m 끊긴 구간이 있습니다(" + km(gp.at) + "km 지점). 그 구간은 현지 안내판 · 길을 따르세요.",
@@ -892,7 +898,7 @@
             barFit();
             setKindWords();
             drawCourse();
-            prof = RF.profile($("profile"), c, {});
+            prof = RF.profile($("profile"), c, { gaps: RF.shownGaps(c) });
             boardBtn();
             $("save").textContent = offlineIds().indexOf(id) >= 0 ? T("✅ 저장됨", "✅ Saved") : T("📥 저장", "📥 Save");
             // 이름 없이 저장된 예전 코스 - 열 때 이름을 채움(첫 화면 저장 목록)
@@ -2340,7 +2346,7 @@
         var keepHash = (location.hash.match(/&(from|m)=[^&]*/g) || []).join("");
         try { history.replaceState(null, "", "#c=" + encodeURIComponent(c.id) + keepHash); } catch (e) { /* 주소만 못 바꿈 */ }
         drawCourse(true);
-        prof = RF.profile($("profile"), c, {});
+        prof = RF.profile($("profile"), c, { gaps: RF.shownGaps(c) });
         boardBtn();
         try {
             localStorage.setItem(saveKey() + "-track", JSON.stringify(track));
@@ -3145,8 +3151,8 @@
             sp.textContent = (f.dist ? km(f.dist) + "km" : "") + (f.asc != null ? T(" · 오르막 ", " · climb ") + num(f.asc) + "m" : "");
             it.appendChild(b);
             it.appendChild(sp);
-            it.onclick = function () { fromList = true; location.hash = "#c=" + encodeURIComponent(f.id); };
-            if (!isGpxId(f.id)) withPt.push([f, sp]);
+            it.onclick = function () { fromList = true; location.hash = "#c=" + encodeURIComponent(f.id) + (/^&[a-z]+=/.test(f.x || "") ? f.x : ""); };   // 대표 코스는 이름 · 들머리도
+            if (!isGpxId(f.id) && !RF.parseJoinId(f.id)) withPt.push([f, sp]);   // 이은 코스는 주말 날씨 묻기에서 뺌(서버가 한 코스 번호만 앎)
             box.appendChild(it);
         });
         // ☀️ 찜한 코스 주말 날씨(2026-10-16 홍TV님) - 그 코스 들머리의 중기 구역 날씨(api/weekend, 주말 추천과 같은 자료).

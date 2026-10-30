@@ -256,6 +256,24 @@
      * 공식 정보(국립공원 탐방로 자료) → "공단 기준 오름 4시간 · 내림 3시간 · 난이도 2.27". 없으면 null.
      * info: {up_min, down_min, level} (api/course 의 info).
      */
+    /**
+     * 순수 함수 - 자료가 끊긴 구간(courseGaps 와 같은 기준)의 선 GeoJSON(FeatureCollection) - 지도에 붉은 점선으로(2026-10-30).
+     * 등산 · 장거리 코스만(kind hike · trek) - 내 GPX · 걷기 · 자전거의 곧은 길은 빼고. c: {lon, lat, course.kind, id}.
+     */
+    function gapLines(c, minM) {
+        var out = { type: "FeatureCollection", features: [] }, lim = minM || 250;
+        if (!c || !c.lat || isGpxId(c.id) || !/^(hike|trek)$/.test(String(c.course && c.course.kind))) return out;
+        for (var i = 1; i < c.lat.length; i++)
+            if (distM(c.lat[i - 1], c.lon[i - 1], c.lat[i], c.lon[i]) > lim)
+                out.features.push({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: [[c.lon[i - 1], c.lat[i - 1]], [c.lon[i], c.lat[i]]] } });
+        return out;
+    }
+
+    /** 순수 함수 - 화면에 알릴 끊긴 구간(등산 · 장거리 코스만, gapLines 와 같은 거름) [{at, m}]. */
+    function shownGaps(c) {
+        return !c || isGpxId(c.id) || !/^(hike|trek)$/.test(String(c.course && c.course.kind)) ? [] : courseGaps(c);
+    }
+
     /** 공단 오름 시간이 선 1km 에 이보다 길면 선이 공식 구간의 일부(2026-10-30 점검: 공단 코스 147개는 40 ~ 55분, 설악산 소공원 → 희운각 1.47km 에 230분). */
     var INFO_PART_MIN_PER_KM = 65;
 
@@ -1331,8 +1349,12 @@
         // 접어도 검색 칸은 보이게(/m/ 처음부터 펴 둔 칸, data-keep - 2026-10-30 홍TV님 "접으면? 그래도 검색창은 보이게 해"):
         // 접으면 검색 칸을 칸 밖(제목 바로 아래)으로 옮기고 결과 · 지도만 접힘, 펴면 제자리로. 접힌 채로 찾으면 다시 폄
         var det = form.closest ? form.closest("details[data-keep]") : null, home = form.parentNode;
+        // 마우스로 제목을 누르면 브라우저가 먼저 초점을 제목으로 옮김 - 누르는 순간에 입력 칸이었는지 기억(2026-10-30 PC 확인)
+        var wasIn = false, sum = det && det.querySelector("summary");
+        if (sum) sum.addEventListener("pointerdown", function () { wasIn = document.activeElement === input; });
         if (det) det.addEventListener("toggle", function () {
-            var had = document.activeElement === input;   // 옮기면 입력 칸 초점이 풀림 - 다시 줌(2026-10-30 점검, 키보드 · 화면 읽기)
+            var had = wasIn || document.activeElement === input;   // 옮기면 입력 칸 초점이 풀림 - 다시 줌(2026-10-30 점검, 키보드 · 화면 읽기)
+            wasIn = false;
             if (det.open) home.insertBefore(form, home.firstChild);
             else det.parentNode.insertBefore(form, det.nextSibling);
             form.classList.toggle("ssOutside", !det.open);
@@ -3372,6 +3394,20 @@
             : joinCourses(jsons.map(function (j, i) { var x = one(parts[i], j); return parts[i].rev ? reverseCourse(x) : x; }), id);
     }
 
+    /**
+     * 순수 함수 - 주소 hash 에서 이은 코스(대표 코스)의 이름 · 들머리 · 거꾸로(&title= · &head= · &rev=1) 부분만 "&…" 로. 없으면 "".
+     * 찜 · 3D 공유 · 되돌아가기가 같은 이름으로 다시 열게(2026-10-30 점검: 찜에서 열면 "6구간 이어 걷기" 로 바뀌었음).
+     */
+    function joinHashExtra(hash) {
+        var h = String(hash || ""), out = "";
+        if (/[#&]rev=1(&|$)/.test(h)) out += "&rev=1";
+        ["title", "head"].forEach(function (k) {
+            var m = new RegExp("[#&](" + k + "=[^&]*)").exec(h);
+            if (m && m[1].length <= 200) out += "&" + m[1];
+        });
+        return out;
+    }
+
     /** 순수 함수 - 이은 코스 조각들의 서로 다른 코스 ID(같은 코스를 앞뒤로 쓰면 한 번만 받게 - 2026-10-30 점검: 밤골 8조각 · 4코스). */
     function partBases(parts) {
         var out = [];
@@ -4024,6 +4060,18 @@
             + '<g clip-path="url(#' + uid + 'c)"><polygon points="0,' + PH + ' ' + pts.join(" ") + ' ' + PW + ',' + PH + '" fill="url(#' + uid + 'g)"/>'
             + '<polyline points="' + pts.join(" ") + '" fill="none" stroke="' + LINE_COLOR + '" stroke-width="2.5" vector-effect="non-scaling-stroke"/></g>'
             + '<line class="cursor" x1="0" x2="0" y1="0" y2="' + PH + '" stroke="rgba(255,255,255,0.8)" stroke-width="1" vector-effect="non-scaling-stroke"/>';
+        // 자료가 끊긴 구간(opts.gaps = courseGaps) - 그래프에 붉은 띠(2026-10-30 홍TV님 "추천한 것 작업해줘")
+        (opts.gaps || []).forEach(function (g) {
+            if (!(c.total > 0) || g.at == null) return;
+            var r = document.createElementNS(NS, "rect");
+            r.setAttribute("x", (g.at / c.total * PW).toFixed(1));
+            r.setAttribute("width", Math.max(2, g.m / c.total * PW).toFixed(1));
+            r.setAttribute("y", "0");
+            r.setAttribute("height", String(PH));
+            r.setAttribute("fill", "rgba(255,90,60,0.32)");
+            r.setAttribute("class", "gap");
+            svg.insertBefore(r, svg.querySelector(".cursor"));
+        });
         box.appendChild(svg);
 
         // km 눈금(아래)
@@ -5582,6 +5630,6 @@
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },
         cellCenter: cellCenter, warnName: warnName, safetyRows: safetyRows, safetyAlert: safetyAlert, safetyRender: safetyRender,
         setLang: setLang, isEn: isEn, tr: tr, pageLang: pageLang, applyEn: applyEn,
-        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, cleanTrack: cleanTrack, recDist: recDist, dropLog: dropLog, recordLines: recordLines, recordHighest: recordHighest, partyAlerts: partyAlerts, afterHikeLinks: afterHikeLinks, afterHikeGear: afterHikeGear, rosterRead: rosterRead, leadSteps: leadSteps, boardingCard: boardingCard, npStampKey: npStampKey, npStampsOn: npStampsOn, npStampsDue: npStampsDue, tripLink: tripLink, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, regionEn: regionEn, weekendWordEn: weekendWordEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox, LEVELS: LEVELS, difficulty: difficulty, boardSegments: boardSegments, boardProfile: boardProfile, nameEnds: nameEnds, boardButtons: boardButtons, levelChip: levelChip, roman: roman, enName: enName, weekendText: weekendText, boardHere: boardHere, slopeBetween: slopeBetween, recentAdd: recentAdd, recentPages: recentPages, recentFold: recentFold, compareRows: compareRows, compareButtons: compareButtons, steepest: steepest, officialEleAt: officialEleAt, stampRadius: stampRadius, stillCheck: stillCheck, windChill: windChill, windNote: windNote, paceProfile: paceProfile, paceAt: paceAt, paceDistAt: paceDistAt, paceText: paceText, fortune: fortune, fortuneDay: fortuneDay, supportLine: supportLine, staysLine: staysLine, staysItem: staysItem, stayLinks: stayLinks, stayMapLink: stayMapLink, stayKindEn: stayKindEn, summitFirst: summitFirst, listBest: listBest, courseGaps: courseGaps, infoPartial: infoPartial, joinedCourse: joinedCourse, toApi: toApi, partBases: partBases, partAnswers: partAnswers, stayTiles: stayTiles, staySearch: staySearch, nearCity: nearCity, dayKey: dayKey, anbuPlan: anbuPlan, anbuText: anbuText, anbuSms: anbuSms, telClean: telClean, telFormat: telFormat, UNITS: UNITS, unitConv: unitConv, unitFmt: unitFmt, dayNo: dayNo, dayYmd: dayYmd, ageInfo: ageInfo, dDay: dDay, dateAdd: dateAdd, dateDiff: dateDiff, pctCalc: pctCalc, dutchPay: dutchPay, textCount: textCount, smsKind: smsKind, compassHeading: compassHeading, SOS_PATTERN: SOS_PATTERN, fxConv: fxConv, toLunar: toLunar, fromLunar: fromLunar, nextLunarBirthday: nextLunarBirthday, leapMonth: leapMonth, moonPhase: moonPhase, MOON_NAMES: MOON_NAMES, interestCalc: interestCalc, vatCalc: vatCalc, bmiInfo: bmiInfo, discomfort: discomfort, nameRoman: nameRoman, tzOffsetMin: tzOffsetMin, ladderMake: ladderMake, ladderTrace: ladderTrace, holidayRuns: holidayRuns, calcEval: calcEval, mobileOnlyUrl: mobileOnlyUrl, summitCard: summitCard, trackClimb: trackClimb
+        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, cleanTrack: cleanTrack, recDist: recDist, dropLog: dropLog, recordLines: recordLines, recordHighest: recordHighest, partyAlerts: partyAlerts, afterHikeLinks: afterHikeLinks, afterHikeGear: afterHikeGear, rosterRead: rosterRead, leadSteps: leadSteps, boardingCard: boardingCard, npStampKey: npStampKey, npStampsOn: npStampsOn, npStampsDue: npStampsDue, tripLink: tripLink, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, regionEn: regionEn, weekendWordEn: weekendWordEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox, LEVELS: LEVELS, difficulty: difficulty, boardSegments: boardSegments, boardProfile: boardProfile, nameEnds: nameEnds, boardButtons: boardButtons, levelChip: levelChip, roman: roman, enName: enName, weekendText: weekendText, boardHere: boardHere, slopeBetween: slopeBetween, recentAdd: recentAdd, recentPages: recentPages, recentFold: recentFold, compareRows: compareRows, compareButtons: compareButtons, steepest: steepest, officialEleAt: officialEleAt, stampRadius: stampRadius, stillCheck: stillCheck, windChill: windChill, windNote: windNote, paceProfile: paceProfile, paceAt: paceAt, paceDistAt: paceDistAt, paceText: paceText, fortune: fortune, fortuneDay: fortuneDay, supportLine: supportLine, staysLine: staysLine, staysItem: staysItem, stayLinks: stayLinks, stayMapLink: stayMapLink, stayKindEn: stayKindEn, summitFirst: summitFirst, listBest: listBest, courseGaps: courseGaps, gapLines: gapLines, shownGaps: shownGaps, infoPartial: infoPartial, joinedCourse: joinedCourse, toApi: toApi, partBases: partBases, joinHashExtra: joinHashExtra, partAnswers: partAnswers, stayTiles: stayTiles, staySearch: staySearch, nearCity: nearCity, dayKey: dayKey, anbuPlan: anbuPlan, anbuText: anbuText, anbuSms: anbuSms, telClean: telClean, telFormat: telFormat, UNITS: UNITS, unitConv: unitConv, unitFmt: unitFmt, dayNo: dayNo, dayYmd: dayYmd, ageInfo: ageInfo, dDay: dDay, dateAdd: dateAdd, dateDiff: dateDiff, pctCalc: pctCalc, dutchPay: dutchPay, textCount: textCount, smsKind: smsKind, compassHeading: compassHeading, SOS_PATTERN: SOS_PATTERN, fxConv: fxConv, toLunar: toLunar, fromLunar: fromLunar, nextLunarBirthday: nextLunarBirthday, leapMonth: leapMonth, moonPhase: moonPhase, MOON_NAMES: MOON_NAMES, interestCalc: interestCalc, vatCalc: vatCalc, bmiInfo: bmiInfo, discomfort: discomfort, nameRoman: nameRoman, tzOffsetMin: tzOffsetMin, ladderMake: ladderMake, ladderTrace: ladderTrace, holidayRuns: holidayRuns, calcEval: calcEval, mobileOnlyUrl: mobileOnlyUrl, summitCard: summitCard, trackClimb: trackClimb
     };
 })(window);

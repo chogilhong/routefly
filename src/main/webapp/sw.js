@@ -6,7 +6,7 @@
  *   - 지도 타일(V-World 위성사진 · 지형): 받아 둔 것이 있으면 그것(오프라인 저장 · 본 적 있는 곳), 없으면 받아서 조금 남겨 둠
  *   - MapLibre(vendor): 바뀌지 않으므로 받아 둔 것 먼저
  */
-var SHELL = "rf-shell-v179", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
+var SHELL = "rf-shell-v180", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
 var TILE_KEEP = 1500;   // 지나가며 본 타일은 이만큼만 남깁니다(저장 공간)
 // 2026-10-09 점검: API 캐시도 한도 - 지도를 움직일 때마다 목록 주소(bbox)가 하나씩 늘어 끝없이 커졌습니다.
 // 오프라인 저장한 코스는 OFFLINE 캐시에 따로 있어 지워지지 않습니다.

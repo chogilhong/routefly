@@ -1535,3 +1535,10 @@ eq("infoText 일부면 덧붙임", [/전체 구간 기준/.test(RF.infoText({ up
     try { RF.joinedCourse("a,b", RF.parseJoinId("a,b"), [{ course: { name: "x" }, points: [[127, 37, 0, 0]] }, { course: { name: "y" }, points: [[127, 37, 0, 0], [127, 37.01, 0, 1000]] }]); } catch (e) { bad = /선이 없습니다/.test(e.message); }
     eq("joinedCourse 점 하나뿐인 조각은 오류", bad, true);
 })();
+eq("joinHashExtra", [RF.joinHashExtra("#c=a,b&title=%EB%B0%A4&head=x&from=hike"), RF.joinHashExtra("#c=a&rev=1"), RF.joinHashExtra("#c=a")], ["&title=%EB%B0%A4&head=x", "&rev=1", ""]);
+// 끊긴 구간 지도 선 · 알림 거름(2026-10-30) - 등산만
+(function () {
+    var mk = function (kind, id) { return { id: id || "knps-1", course: { kind: kind }, lat: [37.6, 37.6001, 37.605], lon: [127, 127, 127], dist: [0, 11, 555] }; };
+    eq("gapLines · shownGaps 등산만", [RF.gapLines(mk("hike")).features.length, RF.gapLines(mk("walk")).features.length, RF.shownGaps(mk("trek")).length, RF.shownGaps(mk("hike", "gpx-1")).length],
+        [1, 0, 1, 0]);
+})();

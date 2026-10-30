@@ -182,6 +182,10 @@
         map.addLayer({ id: "route-done", type: "line", source: "route",
             layout: { "line-join": "round", "line-cap": "round" },
             paint: { "line-width": 4, "line-gradient": progressGradient(0) } });
+        // 자료가 끊긴 구간 - 붉은 점선(따라가기와 같게, 2026-10-30)
+        map.addSource("gaps", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+        map.addLayer({ id: "gaps", type: "line", source: "gaps", layout: { "line-cap": "round" },
+            paint: { "line-color": "#ff5a3c", "line-width": 5, "line-dasharray": [1, 1.6] } });
         // 현재 위치 바닥의 번짐 - 숨 쉬듯 커졌다 작아집니다(tick 에서). 위치 표시 자체는 동그란 배지(headMarker)
         map.addLayer({ id: "head-halo", type: "circle", source: "head",
             paint: { "circle-radius": 14, "circle-color": LINE_COLOR, "circle-opacity": 0.35, "circle-blur": 0.5,
@@ -400,7 +404,7 @@
     var courseMemo = [];
     // 이은 코스의 길 이름(#…&title=밤골입구 → … - 따라가기 목록의 fly(3D) 가 붙임), 들머리(&head=)
     var joinTitle = (function () { var m = /[#&]title=([^&]*)/.exec(location.hash), t = m ? RF.safeDecode(m[1]) : ""; return t && t.length <= 60 ? t : ""; })();
-    var joinExtra = (/[#&](rev=1)(&|$)/.test(location.hash) ? "&rev=1" : "") + (joinTitle ? "&title=" + encodeURIComponent(joinTitle) : "") + ((/[#&](head=[^&]*)/.exec(location.hash) || [])[1] ? "&" + /[#&](head=[^&]*)/.exec(location.hash)[1] : "");
+    var joinExtra = RF.joinHashExtra(location.hash);
     function courseData(id) {
         for (var i = 0; i < courseMemo.length; i++) if (courseMemo[i].id === id) return courseMemo[i].p;
         // 이은 코스(탐방 안내도 대표 코스 - 숨은벽 · 백운대(밤골))는 조각을 받아 하나로(2026-10-30 홍TV님 "우리가 그 코스를 만들면 되잖아")
@@ -456,6 +460,7 @@
 
             map.getSource("route").setData({ type: "Feature", properties: {},
                 geometry: { type: "LineString", coordinates: c.lon.map(function (lon, i) { return [lon, c.lat[i]]; }) } });
+            if (map.getSource("gaps")) map.getSource("gaps").setData(RF.gapLines(c));   // 끊긴 구간 붉은 점선
             anim.d = 0;
             setPlayButton();   // '▶ 이어서' 가 남지 않게(같은 코스를 다시 고를 때 - 2026-10-11)
             setProgressPaint(0);
@@ -469,10 +474,10 @@
             // 난이도 - 목록 · 산 페이지와 같은 기준(가장 가파른 1km 포함, 2026-10-18 PC: 코스 화면에는 안 나왔음)
             var lvChip = (j.course.kind === "hike" || j.course.kind === "trek") && RF.levelChip(+j.course.distance_m || c.total, j.course.ascent_m != null ? +j.course.ascent_m : null, EN, RF.steepest(c.dist, c.ele));
             if (lvChip) { $("courseName").appendChild(document.createTextNode(" ")); $("courseName").appendChild(lvChip); }
-            favCur = RF.isGpxId(id) ? null : { id: id, name: j.course.name, kind: j.course.kind, dist: Math.round(+j.course.distance_m || c.total),
+            favCur = RF.isGpxId(id) ? null : { id: id, x: RF.parseJoinId(id) ? joinExtra || undefined : undefined, name: j.course.name, kind: j.course.kind, dist: Math.round(+j.course.distance_m || c.total),
                                                   asc: j.course.ascent_m != null ? Math.round(+j.course.ascent_m) : null };
             favBtn.refresh();
-            var gap0 = RF.isGpxId(id) || !/^(hike|trek)$/.test(String(j.course.kind)) ? null : RF.courseGaps(c)[0];   // 등산 코스만(내 GPX · 걷기 · 자전거 직선 길은 빼고)
+            var gap0 = RF.shownGaps(c)[0];   // 등산 코스만(내 GPX · 걷기 · 자전거 직선 길은 빼고)
             var official = RF.infoText(j.info, +j.course.distance_m || c.total);   // 국립공원 공식 코스 - 공단 기준 시간 · 난이도
             var spots = EN ? spotSummaryEn(j.spots) : RF.spotSummary(j.spots);   // 국립공원 위험지역 · 조망점
             $("courseStat").textContent = statLine(j.course)
@@ -1141,7 +1146,7 @@
 
     /** 아래 고도 그래프(지점 이름 · km 눈금) + 작은 평면 지도(km 번호 · 지금 위치) - course-kit.js. */
     function renderProfile(c) {
-        c.profile = RF.profile($("profile"), c, { onSeek: function (d) {
+        c.profile = RF.profile($("profile"), c, { gaps: RF.shownGaps(c), onSeek: function (d) {
             stop();
             anim.d = d;
             seekCaptions(d);

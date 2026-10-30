@@ -191,8 +191,12 @@
         // 접어도 검색 칸은 보이게(/m/ 처음부터 펴 둔 칸, data-keep - 2026-10-30 홍TV님 "접으면? 그래도 검색창은 보이게 해"):
         // 접으면 검색 칸을 칸 밖(제목 바로 아래)으로 옮기고 결과 · 지도만 접힘, 펴면 제자리로. 접힌 채로 찾으면 다시 폄
         var det = form.closest ? form.closest("details[data-keep]") : null, home = form.parentNode;
+        // 마우스로 제목을 누르면 브라우저가 먼저 초점을 제목으로 옮김 - 누르는 순간에 입력 칸이었는지 기억(2026-10-30 PC 확인)
+        var wasIn = false, sum = det && det.querySelector("summary");
+        if (sum) sum.addEventListener("pointerdown", function () { wasIn = document.activeElement === input; });
         if (det) det.addEventListener("toggle", function () {
-            var had = document.activeElement === input;   // 옮기면 입력 칸 초점이 풀림 - 다시 줌(2026-10-30 점검, 키보드 · 화면 읽기)
+            var had = wasIn || document.activeElement === input;   // 옮기면 입력 칸 초점이 풀림 - 다시 줌(2026-10-30 점검, 키보드 · 화면 읽기)
+            wasIn = false;
             if (det.open) home.insertBefore(form, home.firstChild);
             else det.parentNode.insertBefore(form, det.nextSibling);
             form.classList.toggle("ssOutside", !det.open);
