@@ -36,4 +36,19 @@ install -d -o logview -g logview -m 700 /home/logview/.ssh
 echo "restrict,command=\"/usr/local/bin/routefly-logs\" $pub" > /home/logview/.ssh/authorized_keys
 chown logview:logview /home/logview/.ssh/authorized_keys
 chmod 600 /home/logview/.ssh/authorized_keys
+# 두 번째 잠금(2026-10-30 점검 추천): authorized_keys 의 command= 와 별도로 sshd 설정에서도 logview 는 이 스크립트만 · 터널 · 화면 없음.
+# 설정이 틀리면(sshd -t 실패) 파일을 지우고 그대로 둠 - ssh 가 막히지 않게
+if [ -d /etc/ssh/sshd_config.d ]; then
+  conf=/etc/ssh/sshd_config.d/routefly-logview.conf
+  printf '%s\n' 'Match User logview' '    ForceCommand /usr/local/bin/routefly-logs' '    AllowTcpForwarding no' \
+    '    AllowAgentForwarding no' '    X11Forwarding no' '    PermitTTY no' > "$conf"
+  chmod 644 "$conf"
+  if sshd -t; then
+    systemctl reload ssh 2>/dev/null || systemctl reload sshd 2>/dev/null || true
+    echo "sshd: logview 두 번째 잠금 켬"
+  else
+    rm -f "$conf"
+    echo "sshd 설정 검사 실패 - 두 번째 잠금 없이 그대로 둠(첫 잠금 command= 는 그대로)"
+  fi
+fi
 echo "로그 읽기 전용 계정 준비 끝"

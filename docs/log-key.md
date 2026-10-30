@@ -6,6 +6,8 @@
 ## 무엇이 되고 무엇이 안 되나
 
 - 이 열쇠로 들어오면 `/usr/local/bin/routefly-logs` 만 돕니다(authorized_keys 의 `restrict,command=`). 셸 · scp · 터널은 안 됩니다.
+  2026-10-30 부터 sshd 설정(`/etc/ssh/sshd_config.d/routefly-logview.conf` 의 `Match User logview` · `ForceCommand`)으로도 한 번 더 막습니다 - setup.sh 가 `sshd -t` 로 검사한 뒤에만 켬.
+  배치 로그(`batch …`)에 비밀값처럼 보이는 것(password= · key= · jdbc:)은 `***` 로 가리고, 그런 낱말은 찾지 않습니다.
 - 받는 명령(보낸 글을 낱말로 나눌 뿐 셸로 돌리지 않음):
 
 | 명령 | 하는 일 |
