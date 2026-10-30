@@ -41,6 +41,20 @@
     function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c]; }); }
     var netErr = false;   // 서버 오류 글만 새로 받기에서 지움(복사 · 새 코드 안내는 남김, 10-28 PC)
     function msg(t, err) { $("msg").textContent = t || ""; netErr = !!err; }
+    /** 단추 바로 아래에 잠깐(ms, 기본 3초) 알림 - 복사했다는 말처럼 그 자리에서 보이고 사라지는 것(2026-10-30 홍TV님 "아래에 나오게 하고 3초 쯤 지나면 사라지게"). */
+    function noteBelow(btn, t, ms) {
+        var row = btn.closest("p") || btn, n = row.nextElementSibling && row.nextElementSibling.classList.contains("btnNote") ? row.nextElementSibling : null;
+        if (!n) {
+            n = document.createElement("p");
+            n.className = "btnNote";
+            n.setAttribute("role", "status");
+            n.setAttribute("aria-live", "polite");
+            row.parentNode.insertBefore(n, row.nextSibling);
+        }
+        n.textContent = t;
+        clearTimeout(n.rfTimer);
+        n.rfTimer = setTimeout(function () { n.remove(); }, ms || 3000);
+    }
     // 내 사무실 여럿(2026-10-29 홍TV님 - 회사 2곳 · 방 5개): 이 기기가 연 사무실 [{k, n}] 을 LIST 에, 이 탭이 보는 사무실은 sessionStorage KEY(탭마다 다른 사무실),
     // 마지막으로 본 사무실은 localStorage KEY(새 탭 · 다음에 열 때). 예전 한 개짜리 KEY 는 처음 읽을 때 목록으로 옮김.
     var LIST = "rf-office-keys", drawn = null;
@@ -290,7 +304,7 @@
     });
     $("copyLink").addEventListener("click", function () {
         var t = $("linkBox").textContent;
-        (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { msg(T("사무실 링크를 복사했습니다. 즐겨찾기에도 남겨 두세요.", "Office link copied. Bookmark it too.")); })
+        (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { noteBelow($("copyLink"), T("사무실 링크를 복사했습니다. 즐겨찾기에도 남겨 두세요.", "Office link copied. Bookmark it too.")); })
             .catch(function () { msg(T("복사가 안 되면 위 링크를 길게 눌러 복사하세요.", "If copying fails, press and hold the link above to copy it.")); });
     });
     $("goOffice").addEventListener("click", start);
@@ -320,7 +334,7 @@
     });
     $("copyMine").addEventListener("click", function () {   // 이 기기에 저장된 사무실 링크(2026-10-28 홍TV님 - 만든 뒤 링크를 놓쳤음)
         var t = linkOf(key);
-        (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { msg(T("사무실 링크를 복사했습니다. 즐겨찾기 · 메모에 남겨 두세요(다른 사람에게 보이지 않게).", "Office link copied. Keep it in a bookmark or note (out of others' sight).")); })
+        (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { noteBelow($("copyMine"), T("사무실 링크를 복사했습니다. 즐겨찾기 · 메모에 남겨 두세요(다른 사람에게 보이지 않게).", "Office link copied. Keep it in a bookmark or note (out of others' sight).")); })
             .catch(function () { askText(T("복사가 안 됩니다. 아래 칸의 링크를 길게 눌러 복사하세요.", "Copying failed. Press and hold the link below to copy it."), t, { ok: T("닫기", "Close") }); });
     });
     $("newCode").addEventListener("click", function () {
