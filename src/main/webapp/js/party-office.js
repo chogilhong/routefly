@@ -197,6 +197,7 @@
         var b = bundle();
         $("bundleOff").hidden = !!b;
         $("bundleOn").hidden = !b;
+        $("forget").textContent = b ? T("이 사무실을 묶음에서 빼기 (사무실은 그대로)", "Remove this office from the bundle (office stays)") : T("이 기기에서 로그아웃 (사무실은 그대로)", "Log out on this device (office stays)");
         if (b) $("bundleState").textContent = T("🔗 이 기기는 내 사무실 묶음에 연결됨 - 사무실 " + mine().length + "곳(다른 기기와 같음)", "🔗 This device is connected to the office bundle - " + mine().length + " offices (same as other devices)");
     }
 
@@ -408,10 +409,12 @@
         ask(bk ? T("이 사무실을 내 사무실 묶음에서 뺄까요? 묶음에 연결된 모든 기기 목록에서 빠집니다(사무실은 그대로, 다시 넣으려면 사무실 링크가 있어야 함).", "Remove this office from the office bundle? It leaves the list on every connected device (the office stays; you need its link to add it back).")
             : T("이 기기에서 로그아웃할까요? 사무실은 그대로이고, 다시 들어오려면 사무실 링크가 있어야 합니다.", "Log out on this device? The office stays; you need the office link to come back."), { ok: bk ? T("묶음에서 빼기", "Remove") : T("로그아웃", "Log out") }).then(function (ok) {
             if (!ok) return;
-            if (bk) RFParty.post("office/bundle/remove", { bundle: bk, key: key }).catch(function () { /* 이미 없음 */ });
-            store(null);   // 이 사무실만 이 기기 목록에서 빠짐 - 다른 사무실이 있으면 그리로
-            key = null;
-            location.reload();
+            // 묶음이면 서버에서 먼저 빼고 다시 읽음(기다리지 않으면 다시 읽을 때 묶음 맞추기로 되살아남 - 2026-10-30 PC)
+            (bk ? RFParty.post("office/bundle/remove", { bundle: bk, key: key }) : Promise.resolve()).then(function () {
+                store(null);   // 이 사무실만 이 기기 목록에서 빠짐 - 다른 사무실이 있으면 그리로
+                key = null;
+                location.reload();
+            }).catch(function (e) { msg(em(e)); });
         });
     });
     // 사무실 링크 바꾸기 · 사무실 없애기(2026-10-28 홍TV님 "만들어")
