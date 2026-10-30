@@ -33,6 +33,8 @@ button { min-height:44px; padding:0 12px; border-radius:10px; border:1px solid v
 button.main { background:var(--sky); color:#062026; border-color:var(--sky); }
 button.danger { color:var(--red); border-color:rgba(255,107,107,0.5); }
 .tip { font-size:14px; color:var(--dim); line-height:1.6; margin:8px 0 0; }
+.qrImg { background:#fff; padding:12px; border-radius:12px; width:220px; max-width:100%; margin:8px 0; }
+.qrImg svg { display:block; width:100%; height:auto; }
 .btnNote { font-size:14px; color:#7ee0a0; line-height:1.6; margin:6px 0 0; }   /* 단추 바로 아래 잠깐 알림(복사했음 - noteBelow) */
 .code { font-size:20px; letter-spacing:3px; font-weight:bold; color:var(--sky); }
 .wrap { overflow-x:auto; }
@@ -113,6 +115,12 @@ tr.warn td { background:rgba(255,212,59,0.14); }
             <p data-en="When leaving a shared PC. Deletes only this office link saved in this browser (your other offices stay) - you can come back with the office link." class="tip">공용 PC 에서 쓰고 나갈 때. 이 브라우저에 저장된 이 사무실 링크만 지웁니다(다른 내 사무실은 그대로) - 사무실 링크로 다시 들어올 수 있습니다.</p>
             <p data-en="&lt;button id=&quot;copyMine&quot;&gt;📋 Copy this device&#x27;s office link&lt;/button&gt;"><button id="copyMine">📋 이 기기의 사무실 링크 복사</button></p>
             <p data-en="To give to other staff or PCs, or to bookmark again. The link does not change." class="tip">다른 직원 · 다른 PC 에 줄 때, 즐겨찾기에 다시 남길 때. 링크는 바뀌지 않습니다.</p>
+            <p data-en="&lt;button id=&quot;qrMine&quot;&gt;🔳 Office link QR&lt;/button&gt;"><button id="qrMine">🔳 사무실 링크 QR</button></p>
+            <div id="qrBox" hidden>
+                <div id="qrImg" class="qrImg"></div>
+                <p data-en="&lt;button id=&quot;qrCopy&quot;&gt;📋 Copy QR image&lt;/button&gt; &lt;button id=&quot;qrSave&quot;&gt;💾 Save QR image&lt;/button&gt;"><button id="qrCopy">📋 QR 그림 복사</button> <button id="qrSave">💾 QR 그림 저장</button></p>
+                <p data-en="Scan with a phone camera to open this office. Anyone with the QR can open the office - show it only to your staff." class="tip">폰 카메라로 비추면 이 사무실이 열립니다. QR 을 가진 사람은 누구나 사무실을 열 수 있으니 우리 직원에게만 보여 주세요.</p>
+            </div>
             <p data-en="&lt;button id=&quot;rename&quot;&gt;✏️ Rename company&lt;/button&gt;"><button id="rename">✏️ 회사 이름 바꾸기</button></p>
             <p data-en="For typos or a new business name. The company code and office link stay, and members&#x27; screens of linked rooms show the new name too. Tap &quot;Open&quot; again for room screens opened from the office." class="tip">오타 · 상호가 바뀌었을 때. 회사 코드 · 사무실 링크는 그대로이고, 이미 올라온 방의 회원 화면에도 새 이름으로 보입니다. 사무실에서 열어 둔 방 화면은 "열기" 를 다시 눌러 주세요.</p>
             <p data-en="&lt;button id=&quot;newKey&quot;&gt;🔄 Change office link&lt;/button&gt;"><button id="newKey">🔄 사무실 링크 바꾸기</button></p>
@@ -128,6 +136,7 @@ tr.warn td { background:rgba(255,212,59,0.14); }
 <script src="js/rf-dialog.js"></script>
 <script src="js/party-kit.js"></script>
 <script src="js/office-csv.js"></script>
+<script src="vendor/qrcode-generator-1.4.4/qrcode.js"></script>
 <script src="js/party-office.js"></script>
 </body>
 </html>

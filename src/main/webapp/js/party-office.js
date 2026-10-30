@@ -245,6 +245,7 @@
     }
 
     function start() {
+        if ($("qrBox")) $("qrBox").hidden = true;   // 다른 사무실 QR 이 남지 않게
         var m = /^#k=([A-Za-z0-9_-]{20,64})$/.exec(location.hash || "");
         if (m) {
             try { history.replaceState(null, "", HERE); } catch (e) { /* 그대로 */ }   // 주소창 · 화면 캡처에 열쇠가 남지 않게
@@ -265,7 +266,12 @@
         RFParty.post("office/rooms", { key: k }).then(function (j) {
             return ask(T("사무실 링크로 들어왔습니다.\n\n🏢 " + j.name + " 사무실 (회사 코드 " + j.code + ")\n\n이 사무실을 이 기기에 추가할까요? 우리 회사 사무실이 맞을 때만 추가하세요.",
                 "You opened an office link.\n\n🏢 " + j.name + " office (company code " + j.code + ")\n\nAdd this office to this device? Only add it if it's your company's office."), { ok: T("추가", "Add") }).then(function (ok) {
-                if (ok) { store(k, j.name); key = k; } else msg(T("추가하지 않았습니다.", "Not added."));
+                if (ok) {
+                    store(k, j.name);
+                    key = k;
+                    var n = mine().length;
+                    if (n > 1) msg(T("추가했습니다. 이 기기 사무실 " + n + "개 - 위 칸에서 골라 봅니다.", "Added. " + n + " offices on this device - pick one in the box at the top."));
+                } else msg(T("추가하지 않았습니다.", "Not added."));
                 start();
             });
         }).catch(function (e) {
@@ -323,6 +329,7 @@
         RFParty.post("office/newkey", { key: key }).then(function (j) {
             swapKey(key, j.key);
             key = j.key;
+            $("qrBox").hidden = true;   // 옛 링크 QR 을 닫음
             clearInterval(timer);
             $("madeTitle").textContent = T("🔄 사무실 링크를 바꿨습니다", "🔄 Office link changed");
             $("linkBox").textContent = linkOf(j.key);
@@ -444,6 +451,52 @@
             });
         }
     });
+
+    // 🔳 사무실 링크 QR(2026-10-30 홍TV님 "QR 을 만들어서 카피하게 해줘") - qrcode-generator(MIT). 그림 복사(되는 브라우저) · 저장
+    function qrOf(text) { var q = qrcode(0, "M"); q.addData(text); q.make(); return q; }
+    function qrPng(q, cb) {   // 흰 바탕 PNG(복사 · 저장용) - 칸 8px, 둘레 4칸
+        var n = q.getModuleCount(), cell = 8, pad = 4, size = (n + pad * 2) * cell, cv = document.createElement("canvas");
+        cv.width = cv.height = size;
+        var g = cv.getContext("2d");
+        g.fillStyle = "#fff"; g.fillRect(0, 0, size, size); g.fillStyle = "#000";
+        for (var r = 0; r < n; r++) for (var c2 = 0; c2 < n; c2++) if (q.isDark(r, c2)) g.fillRect((c2 + pad) * cell, (r + pad) * cell, cell, cell);
+        cv.toBlob(cb, "image/png");
+    }
+    $("qrMine").addEventListener("click", function () {
+        if (!window.qrcode || !key) { noteBelow($("qrMine"), T("QR 을 만들지 못했습니다. 링크 복사를 쓰세요.", "Could not make the QR. Use Copy link.")); return; }
+        var box = $("qrBox");
+        if (!box.hidden && box.rfKey === key) { box.hidden = true; return; }   // 다시 누르면 닫음
+        $("qrImg").innerHTML = qrOf(linkOf(key)).createSvgTag({ cellSize: 6, margin: 2, scalable: true });
+        $("qrImg").setAttribute("role", "img");
+        $("qrImg").setAttribute("aria-label", T("사무실 링크 QR", "Office link QR"));
+        box.rfKey = key;
+        box.hidden = false;
+    });
+    $("qrCopy").addEventListener("click", function () {
+        var btn = this;
+        qrPng(qrOf(linkOf(key)), function (blob) {
+            var can = blob && navigator.clipboard && window.ClipboardItem;
+            (can ? navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]) : Promise.reject()).then(function () {
+                noteBelow(btn, T("QR 그림을 복사했습니다. 카톡 · 문자 창에 붙여 넣으세요(우리 직원에게만).", "QR image copied. Paste it into a chat (your staff only)."));
+            }).catch(function () { noteBelow(btn, T("이 브라우저는 그림 복사가 안 됩니다 - 💾 QR 그림 저장을 쓰세요.", "This browser can't copy images - use Save QR image."), 4000); });
+        });
+    });
+    $("qrSave").addEventListener("click", function () {
+        var btn = this;
+        qrPng(qrOf(linkOf(key)), function (blob) {
+            if (!blob) { noteBelow(btn, T("그림을 만들지 못했습니다.", "Could not make the image.")); return; }
+            var a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = T("routefly-사무실-QR.png", "routefly-office-QR.png");
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+            noteBelow(btn, T("QR 그림을 저장했습니다.", "QR image saved."));
+        });
+    });
+    // 이미 이 화면을 연 탭에서 다른 사무실 링크(#k=…)를 열면 주소의 # 뒤만 바뀌어 페이지가 다시 읽히지 않음 - 그때도 받아 넣음
+    // (2026-10-30 홍TV님: PC 에서 만든 두 번째 사무실 링크를 폰에서 추가했는데 하나뿐이었음)
+    window.addEventListener("hashchange", function () { if (/^#k=/.test(location.hash || "")) start(); });
 
     start();
 })();
