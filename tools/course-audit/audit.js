@@ -260,7 +260,29 @@ if (require.main === module) {
             }, Promise.resolve());
         });
     };
-    doParks().then(doM100).then(function () {
+    // 대표 코스(park-notes best)의 조각 ID 가 지금도 있는가 - 산림청 다시 만들기로 번호가 바뀌면 그 대표 코스가 끊김(2026-10-30 내장산 백양사 frst-900008-d22847)
+    var doBest = function () {
+        if (SCOPE === "m100") return Promise.resolve();
+        var bases = {};
+        Object.keys(notes).forEach(function (pk) {
+            if (only && only.indexOf(pk) < 0) return;
+            (notes[pk].best || []).forEach(function (b) {
+                (RF.parseJoinId(b.course) || [{ base: b.course }]).forEach(function (q) { (bases[q.base] = bases[q.base] || []).push(pk + " · " + b.label); });
+            });
+        });
+        report.best = {};
+        return Object.keys(bases).filter(function (id) { return id.indexOf("osmgap-") !== 0; }).reduce(function (pr, id) {
+            return pr.then(function () {
+                return get("/api/course?id=" + encodeURIComponent(id)).then(function (j) {
+                    if (j && j.success) return;
+                    report.best[id] = bases[id];
+                    count("best-missing");
+                    console.log("[대표 코스] 없는 조각 " + id + " - " + bases[id].join(" / "));
+                }).catch(function () { /* 다음 */ });
+            });
+        }, Promise.resolve());
+    };
+    doParks().then(doBest).then(doM100).then(function () {
         fs.writeFileSync(path.join(OUT, "report.json"), JSON.stringify(report, null, 1));
         fs.writeFileSync(path.join(OUT, "report.md"), toMd(report));
         console.log("끝 · 요청 " + calls + " · " + JSON.stringify(report.counts) + " → " + OUT);
@@ -271,6 +293,10 @@ if (require.main === module) {
 function toMd(r) {
     var L = ["# 코스 정확도 점검 " + r.at.slice(0, 16).replace("T", " "), "", "기준: " + r.base, "", "## 합계", ""];
     Object.keys(r.counts).sort().forEach(function (k) { L.push("- " + k + ": " + r.counts[k]); });
+    if (r.best && Object.keys(r.best).length) {
+        L.push("", "## 대표 코스의 없어진 조각", "");
+        Object.keys(r.best).forEach(function (id) { L.push("- " + id + " - " + r.best[id].join(" / ")); });
+    }
     L.push("", "## 국립공원 탐방 안내도", "");
     Object.keys(r.parks).forEach(function (pk) {
         var p = r.parks[pk];
