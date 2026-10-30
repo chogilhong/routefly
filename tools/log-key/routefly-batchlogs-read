@@ -1,0 +1,32 @@
+#!/bin/bash
+# routefly 계정(배치를 돌리는 계정)으로 도는 배치 로그 읽기(sudoers 로 logview 에 이 파일 하나만, 2026-10-30 홍TV님 - 서버 배치 결과를 PC Claude 가 보게).
+# /app/routefly/batch/logs/batch 아래 .log 파일만, 읽기만 합니다. 설정(deploy/conf) · DB 는 읽지 못합니다.
+#   batch files          - 배치 로그 목록(크기 · 시각)
+#   batch log 이름 [N]   - 그 로그 끝 N줄(기본 200, 많아야 3000) - 이름은 foresttrail.log 처럼(폴더 · 경로 없이)
+#   batch grep 낱말 [N]  - 그 폴더 오늘 로그들(.log)에서 낱말이 든 줄 마지막 N줄
+#   batch timer          - 서버 배치 타이머 · 서비스 상태(다음 실행 · 마지막 결과)
+# 한 줄은 400자까지 자르고 제어 글자는 지웁니다(routefly-logs-read 와 같게).
+set -euo pipefail
+DIR=/app/routefly/batch/logs/batch
+MAXN=3000
+num() { if [[ "${1:-}" =~ ^[0-9]{1,4}$ ]] && [ "$1" -ge 1 ] && [ "$1" -le "$MAXN" ]; then echo "$1"; else echo 200; fi; }
+clean() { cut -c1-400 | tr -d '\000-\010\013-\037\177'; }
+okfile() {
+  local re='^[A-Za-z0-9][A-Za-z0-9._-]{0,80}\.log$'
+  [[ "${1:-}" =~ $re ]] && [ -f "$DIR/$1" ] && [ ! -L "$DIR/$1" ] || { echo "파일 이름이 이상하거나 없습니다(batch files 로 목록을 보세요)."; exit 3; }
+}
+case "${1:-}" in
+  files) ls -l --time-style=+%F_%T "$DIR" | awk 'NR>1 && $NF ~ /\.(log|lastrun)$/ {print $5, $6, $7}' ;;
+  log)   okfile "${2:-}"; n=$(num "${3:-}"); tail -n "$n" "$DIR/$2" | clean ;;
+  grep)
+    re='^[][A-Za-z0-9_.:=-]{2,60}$'
+    [[ "${2:-}" =~ $re ]] || { echo "낱말은 영문 · 숫자 · [ ] _ . : = - 로 2~60자"; exit 3; }
+    n=$(num "${3:-}")
+    find "$DIR" -maxdepth 1 -type f -name '*.log' ! -name '*.[0-9]*.log' -print0 | xargs -0 -r grep -aHF -- "$2" | tail -n "$n" | sed "s#^$DIR/##" | clean || true
+    ;;
+  timer)
+    systemctl list-timers routefly-batch.timer --no-pager --all 2>&1 | clean
+    systemctl show routefly-batch.service -p ActiveState -p Result -p ExecMainStartTimestamp -p ExecMainExitTimestamp -p ExecMainStatus --no-pager 2>&1 | clean
+    ;;
+  *) echo "batch 뒤에는 files · log 이름 [N] · grep 낱말 [N] · timer 만 됩니다." >&2; exit 2 ;;
+esac

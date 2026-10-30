@@ -1,7 +1,7 @@
 #!/bin/bash
 # 서버에 로그 읽기 전용 계정(logview)을 한 번 만듭니다. 메인 열쇠(ubuntu)로 들어가 sudo 로 돌립니다(docs/log-key.md).
 #   sudo bash ~/log-key/setup.sh
-# 같은 폴더에 routefly-logs · routefly-logs-read · routefly_logs.pub 가 있어야 합니다. 여러 번 돌려도 같은 결과입니다.
+# 같은 폴더에 routefly-logs · routefly-logs-read · routefly-batchlogs-read · routefly_logs.pub 가 있어야 합니다. 여러 번 돌려도 같은 결과입니다.
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 pub="$(tr -d '\r\n' < "$here/routefly_logs.pub")"
@@ -18,8 +18,17 @@ chown root:root /usr/local/bin/routefly-logs
 chown root:tomcat /usr/local/sbin/routefly-logs-read
 chmod 755 /usr/local/bin/routefly-logs
 chmod 750 /usr/local/sbin/routefly-logs-read
+# 배치 로그 읽기(2026-10-30) - 배치를 돌리는 routefly 계정으로(그 로그 폴더 주인). routefly 가 없으면(배치 안 깐 서버) 건너뜀
+if id routefly >/dev/null 2>&1; then
+  tr -d '\r' < "$here/routefly-batchlogs-read" > /usr/local/sbin/routefly-batchlogs-read
+  chown root:routefly /usr/local/sbin/routefly-batchlogs-read
+  chmod 750 /usr/local/sbin/routefly-batchlogs-read
+fi
 
-echo 'logview ALL=(tomcat) NOPASSWD: /usr/local/sbin/routefly-logs-read' > /etc/sudoers.d/routefly-logs
+{
+  echo 'logview ALL=(tomcat) NOPASSWD: /usr/local/sbin/routefly-logs-read'
+  if id routefly >/dev/null 2>&1; then echo 'logview ALL=(routefly) NOPASSWD: /usr/local/sbin/routefly-batchlogs-read'; fi
+} > /etc/sudoers.d/routefly-logs
 chmod 440 /etc/sudoers.d/routefly-logs
 visudo -cf /etc/sudoers.d/routefly-logs
 
