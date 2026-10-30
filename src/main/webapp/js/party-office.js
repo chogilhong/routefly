@@ -198,6 +198,18 @@
         $("bundleOff").hidden = !!b;
         $("bundleOn").hidden = !b;
         $("forget").textContent = b ? T("이 사무실을 묶음에서 빼기 (사무실은 그대로)", "Remove this office from the bundle (office stays)") : T("이 기기에서 로그아웃 (사무실은 그대로)", "Log out on this device (office stays)");
+        // 묶음이면 "🔳 묶음 QR" 을 "📋 묶음 링크 복사" 바로 옆으로(QR 도 그 아래) - 2026-10-30 홍TV님 "떨어져 있는데 옆에 같이"
+        var qb = $("qrMine"), box = $("qrBox"), home = $("qrHome");
+        if (b && qb.parentNode !== $("bundleCopy").parentNode) {
+            $("bundleCopy").after(" ", qb);
+            $("bundleCopy").parentNode.after(box);
+        } else if (!b && qb.parentNode !== home) {
+            home.appendChild(qb);
+            home.after(box);
+        }
+        if (!$("qrTip").dataset.office) $("qrTip").dataset.office = $("qrTip").textContent;
+        $("qrTip").textContent = b ? T("폰 카메라로 비추면 묶음 연결 화면이 열립니다. QR 을 가진 사람은 묶음의 모든 사무실을 열 수 있으니 우리 직원에게만 보여 주세요.",
+            "Scan with a phone camera to connect to the bundle. Anyone with the QR can open every office in the bundle - show it only to your staff.") : $("qrTip").dataset.office;
         if (b) $("bundleState").textContent = T("🔗 이 기기는 내 사무실 묶음에 연결됨 - 사무실 " + mine().length + "곳(다른 기기와 같음)", "🔗 This device is connected to the office bundle - " + mine().length + " offices (same as other devices)");
     }
 
