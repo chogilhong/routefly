@@ -1467,3 +1467,6 @@ eq("kmaLink 행정동이 있으면 동네예보, 없으면 첫 화면", [RF.kmaL
     // 다고개 끝은 막다른 끝, 떨어진 라 → 마 는 조각(그 양 끝은 안내도가 들머리로 봄)
     eq("checkPark 묶음 · 막다른 끝 · 떨어진 조각", [r.groups, r.issues.filter(function (x) { return x.kind === "dead"; }).map(function (x) { return x.seg; }), r.issues.filter(function (x) { return x.kind === "island"; }).length], [2, ["t2"], 1]);
 })();
+// 따라가기 - 자료가 끊긴 구간 알림(2026-10-30 코스 점검). 좌표는 테스트 데이터
+eq("courseGaps 250m 넘게 뛰는 곳", [RF.courseGaps({ lat: [37.6, 37.6001, 37.605, 37.6051], lon: [127, 127, 127, 127], dist: [0, 11, 555, 566] }),
+    RF.courseGaps({ lat: [37.6, 37.6001], lon: [127, 127], dist: [0, 11] })], [[{ at: 11, m: 545 }], []]);
