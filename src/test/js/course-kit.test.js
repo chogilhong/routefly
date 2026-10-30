@@ -1441,3 +1441,29 @@ eq("kmaLink 행정동이 있으면 동네예보, 없으면 첫 화면", [RF.kmaL
     eq("summitFirst 바로잡은 이름이면 이름만 정상 쪽에서 빠짐", [RF.summitFirst(rows, "북한산", peaks)[0].ele_max_m, RF.summitFirst(rows, "북한산", peaks, nm)[0].ele_max_m, nm(rows[1])],
         [494, 492, "북한산 · 백운대탐방지원센터 → 하루재 → 인수대피소"]);
 })();
+// 코스 정확도 점검(tools/course-audit, 2026-10-30 홍TV님 "코스가 끊어짐 없이"). 좌표 · 높이는 테스트 데이터
+(function () {
+    var au = require(path.join(__dirname, "../../../tools/course-audit/audit.js"));
+    var pts = function (list) { var cum = 0, o = []; list.forEach(function (p, i) { if (i) cum += RF.distM(list[i - 1][1], list[i - 1][0], p[1], p[0]); o.push([p[0], p[1], p[2] == null ? 500 : p[2], Math.round(cum)]); }); return o; };
+    var line = []; for (var i = 0; i <= 20; i++) line.push([127.0 + i * 0.0002, 37.6, 500 + i * 5]);
+    var ok = { course: { name: "산 · 가 → 나", distance_m: null }, points: pts(line), pois: [{ name: "가", dist_m: 0, off_route_m: 0 }, { name: "나", dist_m: 350, off_route_m: 0 }] };
+    ok.course.distance_m = ok.points[ok.points.length - 1][3];
+    eq("checkCourse 멀쩡한 코스는 문제 없음", au.checkCourse(ok, {}), []);
+    var gap = JSON.parse(JSON.stringify(line)); gap.splice(10, 0, [127.0 + 9 * 0.0002, 37.6 + 0.004, 545]);   // 9 번 뒤 440m 북쪽으로 튀었다 돌아옴
+    var kinds = function (j, ctx) { return au.checkCourse(j, ctx).map(function (x) { return x.kind; }).filter(function (k, n, a) { return a.indexOf(k) === n; }).sort(); };
+    eq("checkCourse 점 사이 250m 넘게 뛰면 끊김", kinds({ course: { name: "산 · 가 → 나" }, points: pts(gap), pois: [] }), ["gap"]);
+    var flip = JSON.parse(JSON.stringify(ok)); flip.pois = [{ name: "가", dist_m: ok.course.distance_m, off_route_m: 0 }, { name: "나", dist_m: 0, off_route_m: 0 }];
+    eq("checkCourse 이름과 거꾸로 그린 선", kinds(flip), ["flip"]);
+    var mid = JSON.parse(JSON.stringify(ok)); mid.course.distance_m = null; mid.pois = [{ name: "가", dist_m: 0, off_route_m: 0 }, { name: "나", dist_m: 1, off_route_m: 0 }]; mid.points = pts(line.concat(line.slice().reverse().map(function (p) { return [p[0], p[1] + 0.006, p[2]]; })));
+    eq("checkCourse 끝 이름이 끝이 아니라 처음 둘레(+ 선이 이어지지 않아 끊김)", kinds(mid), ["end", "gap"]);
+    var peaks = [{ id: "북한산", summit: "북한산백운대", lat: 37.60, lon: 127.01 }];
+    eq("checkCourse 정상 이름인데 정상 200m 안을 안 지남", kinds({ course: { name: "북한산 · 가 → 백운대" }, points: pts(line), pois: [] }, { peaks: peaks }), ["summit"]);
+    eq("checkCourse 정상을 지나면 괜찮음", kinds({ course: { name: "북한산 · 가 → 백운대" }, points: pts(line), pois: [] }, { peaks: [{ id: "북한산", summit: "북한산백운대", lat: 37.6, lon: 127.002 }] }), []);
+    // 안내도: 두 선이 이어지고 세 번째는 떨어져 있음(막다른 끝 · 따로 떨어진 조각)
+    var T = function (id, name, a, b) { return { id: id, name: name, coords: [a, [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], b], distance_m: Math.round(RF.distM(a[1], a[0], b[1], b[0])) }; };
+    var park = { trails: [T("t1", "산 · 가센터 → 나봉", [127.0, 37.6], [127.01, 37.6]), T("t2", "산 · 나봉 → 다고개", [127.01, 37.6], [127.02, 37.61]), T("t3", "산 · 라 → 마", [127.05, 37.65], [127.06, 37.65])],
+        places: [{ name: "나봉", lat: 37.6, lon: 127.01, ele_m: 500 }], heads: [{ name: "가센터", lat: 37.6, lon: 127.0 }], others: [] };
+    var r = au.checkPark(park, "산", {});
+    // 다고개 끝은 막다른 끝, 떨어진 라 → 마 는 조각(그 양 끝은 안내도가 들머리로 봄)
+    eq("checkPark 묶음 · 막다른 끝 · 떨어진 조각", [r.groups, r.issues.filter(function (x) { return x.kind === "dead"; }).map(function (x) { return x.seg; }), r.issues.filter(function (x) { return x.kind === "island"; }).length], [2, ["t2"], 1]);
+})();
