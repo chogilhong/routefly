@@ -838,12 +838,11 @@ eq("staysItem 트립닷컴 - 제휴 꼬리 두고 좌표로", [STAY && STAY.text
 eq("staysItem 아고다 · 없음", [RF.staysItem({ agoda: "https://www.agoda.com/x?lat={lat}&lon={lon}" }, "설악산", 38.1, 128.4, true).text, RF.staysItem({}, "x", 1, 2), RF.staysItem(null)], ["🏨 Stays nearby (Agoda)", null, null]);
 
 var SL = RF.stayLinks({ trip: "https://kr.trip.com/hotels/?Allianceid=1", agoda: "https://www.agoda.com/x?lat={lat}&lon={lon}", yeogi: "https://www.yeogi.com/s?k={q}&a=7", yanolja: "https://yanolja.com/noplace" }, "산청군청", 35.415, 127.873, false);
-eq("stayLinks 설정된 곳만 · 이름 · 좌표 넣기 · 카카오맵(제휴 아님)", SL.map(function (x) { return x.text + (x.sponsored ? "*" : ""); }), ["🏨 트립닷컴*", "🏨 아고다*", "🏨 여기어때*", "🏨 야놀자*", "🗺 카카오맵 숙소"]);
+eq("stayLinks 설정된 곳만 · 좌표 넣기 · 카카오맵(제휴 아님), 여기어때 · 야놀자는 설정이 있어도 뺌(2026-10-30)", SL.map(function (x) { return x.text + (x.sponsored ? "*" : ""); }), ["🏨 트립닷컴*", "🏨 아고다*", "🗺 카카오맵 숙소"]);
 eq("stayLinks 아고다 파트너스 텍스트 링크(자리 없음) 그대로 제휴", RF.stayLinks({ agoda: "https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1&hl=ko-kr" }, "산청", 35.4, 127.8, false)[0], { text: "🏨 아고다", href: "https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1&hl=ko-kr", sponsored: true });
-eq("stayLinks 여기어때 {q} · 아고다 좌표", [SL[2].href, SL[1].href], ["https://www.yeogi.com/s?k=%EC%82%B0%EC%B2%AD%EA%B5%B0%EC%B2%AD&a=7", "https://www.agoda.com/x?lat=35.41500&lon=127.87300"]);
-eq("stayLinks 제휴 설정 없음 - 여기어때 · 야놀자는 지역(산청군) 검색 결과, 아고다는 첫 화면(제휴 아님) + 카카오맵", RF.stayLinks({}, "산청군청", 35.4, 127.8, false, "산청군").map(function (x) { return x.text + (x.sponsored ? "*" : "") + " " + x.href; }),
-    ["🔎 아고다 https://www.agoda.com/ko-kr/", "🔎 여기어때 https://www.yeogi.com/domestic-accommodations?keyword=%EC%82%B0%EC%B2%AD%EA%B5%B0",
-        "🔎 야놀자 https://nol.yanolja.com/discovery/list/search/PRODUCT_CATEGORY_KOREA_ACCOMMODATION?q=%EC%82%B0%EC%B2%AD%EA%B5%B0", "🗺 카카오맵 숙소 https://map.kakao.com/link/search/%EC%82%B0%EC%B2%AD%EA%B5%B0%EC%B2%AD%20%EC%88%99%EC%86%8C"]);
+eq("stayLinks 아고다 좌표", SL[1].href, "https://www.agoda.com/x?lat=35.41500&lon=127.87300");
+eq("stayLinks 제휴 설정 없음 - 아고다는 첫 화면(제휴 아님) + 카카오맵", RF.stayLinks({}, "산청군청", 35.4, 127.8, false, "산청군").map(function (x) { return x.text + (x.sponsored ? "*" : "") + " " + x.href; }),
+    ["🔎 아고다 https://www.agoda.com/ko-kr/", "🗺 카카오맵 숙소 https://map.kakao.com/link/search/%EC%82%B0%EC%B2%AD%EA%B5%B0%EC%B2%AD%20%EC%88%99%EC%86%8C"]);
 
 // 화면 js 검사(2026-10-29 PC: mountain.js 가 뒤쪽 "var … RF = window.RF" 보다 앞에서 RF. 를 써 undefined 로 멈췄음) - 그런 줄이 없어야 함(주석 빼고)
 (function () {

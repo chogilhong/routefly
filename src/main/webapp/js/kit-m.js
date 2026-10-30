@@ -142,23 +142,21 @@
         return (afterHikeLinks({ trip: p.trip, agoda: p.agoda }, { name: name || "", lat: lat, lon: lon }, en).links || []).filter(function (x) { return x.sponsored && /🏨/.test(x.text); })[0] || null;
     }
     /**
-     * 순수 함수 - "🏨 근처 숙소 찾기"(/m/, 2026-10-29 홍TV님 "산청군청 근처 숙소") 예약 단추들: 설정된 제휴(트립닷컴 · 아고다 · 여기어때 · 야놀자 · 호텔스컴바인) + 카카오맵 숙소 검색(제휴 아님).
+     * 순수 함수 - "🏨 근처 숙소 찾기"(/m/, 2026-10-29 홍TV님 "산청군청 근처 숙소") 예약 단추들: 설정된 제휴(트립닷컴 · 아고다 · 호텔스컴바인) + 카카오맵 숙소 검색(제휴 아님). 여기어때 · 야놀자는 뺌(2026-10-30 홍TV님).
      * q - 찾은 장소 이름, lat · lon - 그 좌표. → [{text, href, sponsored}]
      */
     function stayLinks(p, q, lat, lon, en, area, agodaCity) {
         p = p || {};
-        // area - 주소의 시 · 군 · 구(예: 산청군). 여기어때 · 야놀자 검색어로(장소 이름 "산청군청" 보다 결과가 많음, 2026-10-29). 없으면 장소 이름
+        // area - 주소의 시 · 군 · 구(예: 산청군). 아고다 검색어로(장소 이름 "산청군청" 보다 결과가 많음, 2026-10-29). 없으면 장소 이름
         var kw = String(area || q || "").replace(/\s+/g, " ").trim().slice(0, 20);
         var out = [], ok = isFinite(lat) && isFinite(lon) && lat !== null && lon !== null, nm = String(q || "").replace(/\s+/g, " ").trim().slice(0, 30);
         var trip = p.trip && ok ? tripLink(p.trip, lat, lon, nm) : null;
         if (trip) out.push({ text: en ? "🏨 Trip.com" : "🏨 트립닷컴", href: trip, sponsored: true });
         function fill(u) { return u.replace(/\{q\}/g, encodeURIComponent(nm)).replace(/\{lat\}/g, ok ? (+lat).toFixed(5) : "").replace(/\{lon\}/g, ok ? (+lon).toFixed(5) : ""); }
-        // 제휴 링크가 설정되면 그것(🏨, 수수료), 아직이면 그 사이트 첫 화면(🔎, 제휴 아님 - 2026-10-29 홍TV님 "아고다 · 여기어때 · 야놀자도 보여줘").
+        // 제휴 링크가 설정되면 그것(🏨, 수수료), 아직이면 그 사이트 첫 화면(🔎, 제휴 아님 - 2026-10-29). 여기어때 · 야놀자는 뺌(2026-10-30 홍TV님 "빼줘")
         // 첫 화면 주소만 씀 - 검색 주소 모양은 확인한 뒤(지어내지 않음). 호텔스컴바인은 설정했을 때만
-        // 검색 주소는 PC 가 로그인 없이 확인한 모양(2026-10-29): 여기어때 keyword= · 야놀자(NOL) q=. 아고다는 도시 번호(city=)가 있어야 결과가 열려 첫 화면
+        // 아고다는 도시 번호(city=)가 있어야 결과가 열려, 없으면 첫 화면
         [["agoda", "아고다", "Agoda", en ? "https://www.agoda.com/" : "https://www.agoda.com/ko-kr/"],
-            ["yeogi", "여기어때", "Yeogi", kw ? "https://www.yeogi.com/domestic-accommodations?keyword=" + encodeURIComponent(kw) : "https://www.yeogi.com/"],
-            ["yanolja", "야놀자", "Yanolja", kw ? "https://nol.yanolja.com/discovery/list/search/PRODUCT_CATEGORY_KOREA_ACCOMMODATION?q=" + encodeURIComponent(kw) : "https://nol.yanolja.com/"],
             ["hotels", "호텔스컴바인", "HotelsCombined", null]].forEach(function (x) {
             var u = p[x[0]];
             // 자리({q} · {lat}) 없는 제휴 링크도 씀 - 아고다 파트너스 텍스트 링크(partnersearch.aspx?cid=…)처럼 그 사이트 검색 화면으로 가고, 거기서 예약하면 수수료(2026-10-29 홍TV님 화면)

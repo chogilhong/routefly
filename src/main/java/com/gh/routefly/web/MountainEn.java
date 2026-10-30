@@ -244,7 +244,7 @@ final class MountainEn {
                 .append("<section id=\"near\"><details class=\"fold kind\" name=\"kind\" id=\"nearFold\"><summary><span class=\"ft\">📍 Near me</span>")
                 .append("<span class=\"fs\">8 closest famous mountains</span><span class=\"fa\">▾</span></summary><div class=\"fb\"><div id=\"nearList\"></div></div></details></section>")
                 // 🏨 Find lodging near a place(한국어 /m/ 과 같게, 2026-10-29)
-                .append(MountainServlet.staySearchBox(null, true))
+                .append(MountainServlet.staySearchBox(null, true, true))   // 처음부터 펴 둠(한국어 /m/ 과 같게, 2026-10-30)
                 .append("<section id=\"weekend\" hidden></section>")   // ☀️ Good weather this weekend(js/mountain-en.js · api/weekend - 한국어 /m/ 과 같게, 2026-10-17)
                 .append("<div class=\"folds\">");
         // 접고 펴는 칸(2026-10-15 홍TV님 - /m/ 과 같게): ⛰️ Hiking(100 Famous Mountains · 백두대간) · 🥾 Walking · 🚴 Cycling

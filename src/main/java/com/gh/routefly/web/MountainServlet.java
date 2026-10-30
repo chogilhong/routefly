@@ -480,7 +480,15 @@ public class MountainServlet extends HttpServlet {
      * 누를 때만 찾음(바깥 호출을 아끼려고 저절로 찾지 않음).
      */
     static String staySearchBox(String value, boolean en) {
-        return "<section id=\"staySearch\"><details class=\"fold kind\" name=\"kind\"><summary><span class=\"ft\">" + (en ? "🏨 Find lodging near a place" : "🏨 근처 숙소 찾기") + "</span>"
+        return staySearchBox(value, en, false);
+    }
+
+    /**
+     * open - 처음부터 펴 둠(코스 모음 /m/ - 2026-10-30 홍TV님 "처음부터 이렇게 검색 가능하게 펴놓자"). 펴 둔 칸은 다른 칸을 펼 때 같이 접히지 않게
+     * 한 묶음(name="kind")에서 뺌.
+     */
+    static String staySearchBox(String value, boolean en, boolean open) {
+        return "<section id=\"staySearch\"><details class=\"fold kind\"" + (open ? " open" : " name=\"kind\"") + "><summary><span class=\"ft\">" + (en ? "🏨 Find lodging near a place" : "🏨 근처 숙소 찾기") + "</span>"
                 + "<span class=\"fs\">" + (en ? (value != null ? "Trailhead · county office · station" : "County office · station · terminal · mountain") : value != null ? "들머리 · 군청 · 역 이름으로" : "군청 · 역 · 터미널 · 산 이름으로")
                 + "</span><span class=\"fa\">▾</span></summary><div class=\"fb\">"
                 + "<form id=\"ssForm\" class=\"ssForm\" role=\"search\"><input id=\"ssQ\" type=\"search\" maxlength=\"30\"" + (value != null ? " value=\"" + esc(value) + "\"" : "")
@@ -730,7 +738,7 @@ public class MountainServlet extends HttpServlet {
                 + "<section id=\"near\"><details class=\"fold kind\" name=\"kind\" id=\"nearFold\"><summary><span class=\"ft\">📍 내 근처 100대 명산</span>"
                 + "<span class=\"fs\">지금 자리에서 가까운 8곳</span><span class=\"fa\">▾</span></summary><div class=\"fb\"><div id=\"nearList\"></div></div></details></section>"
                 // 🏨 근처 숙소 찾기(2026-10-29 홍TV님 "산청군청 근처 숙소" - 장소 이름 → 예약 단추 · 근처 숙소 목록, js/mountain.js · course-kit staySearch)
-                + staySearchBox(null, false)
+                + staySearchBox(null, false, true)
                 + "<section id=\"weekend\" hidden></section><div class=\"folds\">");   // 이번 주말 날씨 좋은 산(js/mountain.js · /api/weekend - 2026-10-15)
         boolean hasPeaks = false;
         for (JsonElement e : groups) {

@@ -85,8 +85,9 @@ public class PlaceServletTest {
         c.put("partner.yanolja.url", "https://www.yanolja.com/no-placeholder");
         c.put("partner.hotels.url", "https://evil.example/{q}");
         JsonObject b = PartnersServlet.body(c::get);
-        assertTrue("{q} 가 든 그 사이트 링크만", b.has("yeogi"));
-        assertTrue("자리 표시가 없어도 그 사이트 링크면 받음(검색 화면으로)", b.has("yanolja"));
+        assertFalse("여기어때 · 야놀자는 뺌(2026-10-30 홍TV님)", b.has("yeogi") || b.has("yanolja"));
         assertFalse("다른 사이트는 뺌", b.has("hotels"));
+        c.put("partner.hotels.url", "https://www.hotelscombined.co.kr/search?q={q}");
+        assertTrue("호텔스컴바인 주소면 받음", PartnersServlet.body(c::get).has("hotels"));
     }
 }

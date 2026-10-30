@@ -74,8 +74,6 @@ site.baseUrl=
 #partner.trip.url=
 # 나중에 제휴할 숙소 사이트(2026-10-29) - /m/ "🏨 근처 숙소 찾기" 단추. {q} 는 찾는 장소 이름, {lat} · {lon} 은 그 좌표로 바뀜(없으면 링크 그대로 - 그 사이트 검색 화면). 비우면 첫 화면 🔎(제휴 아님)
 #   아고다는 위 partner.agoda.url 하나로 - 파트너스 "도구 → 텍스트 링크" 의 링크(https://www.agoda.com/partners/partnersearch.aspx?…)를 그대로 넣어도 됨
-#partner.yeogi.url=
-#partner.yanolja.url=
 #partner.hotels.url=
 # 장소 이름 → 좌표(V-World 검색 API) 키 - 비우면 map.vworld.key 를 씀(V-World 에서 "검색 API" 활용을 함께 신청)
 #place.vworld.key=

@@ -84,7 +84,8 @@ public class MountainServletTest {
                 + "{\"key\":\"korea\",\"kind\":\"walk\",\"title\":\"코리아둘레길\",\"icon\":\"🥾\",\"series\":[{\"name\":\"DMZ 평화의 길\",\"match\":\"DMZ평화의길\"}]},"
                 + "{\"key\":\"bike\",\"kind\":\"bike\",\"title\":\"국토종주 자전거길\",\"icon\":\"🚴\",\"series\":[{\"name\":\"아라 자전거길\",\"prefix\":\"osmb-4145848-\",\"km\":21}]}]").getAsJsonArray();
         String idx = MountainServlet.indexPage(peaks, gs, "", false);
-        assertFalse("처음엔 모두 접힘", idx.contains(" open>"));
+        assertFalse("처음엔 모두 접힘(근처 숙소 찾기만 펴 둠 - 2026-10-30 홍TV님)", idx.replace("<section id=\"staySearch\"><details class=\"fold kind\" open>", "").contains(" open>"));
+        assertTrue("근처 숙소 찾기는 처음부터 펴 둠 · 다른 칸과 같이 접히지 않게 묶음 밖", idx.contains("<section id=\"staySearch\"><details class=\"fold kind\" open><summary>"));
         String opened = MountainServlet.indexPage(peaks, gs, "", true);
         assertTrue("산 페이지에서 돌아오면 등산 › 100대 명산 펼침", opened.contains("<details class=\"fold kind\" name=\"kind\" open><summary><span class=\"ft\">⛰️ 등산")
                 && opened.contains("<details class=\"fold group\" name=\"group\" open><summary><span class=\"ft\">⛰️ 100대 명산") && !opened.contains("name=\"kind\" open><summary><span class=\"ft\">🥾"));

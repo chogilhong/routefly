@@ -22,7 +22,7 @@ import com.google.gson.JsonObject;
  *   <li>{@code partner.agoda.url} - 아고다 제휴 링크(www.agoda.com). 안에 {lat} · {lon} 이 있으면 들머리 좌표로 바꿉니다.</li>
  *   <li>{@code partner.trip.url} - 트립닷컴 제휴 링크(www · kr · us.trip.com, 2026-10-21 신청 중). {lat} · {lon} 도 아고다처럼.</li>
  *   <li>{@code donate.url} - 후원(toss.me · qr.kakaopay.com 등 https 주소).</li>
- *   <li>{@code partner.yeogi.url} · {@code partner.yanolja.url} · {@code partner.hotels.url} - 여기어때 · 야놀자 · 호텔스컴바인 제휴 링크(2026-10-29 홍TV님 "나중에 연결될 것을 대비").
+ *   <li>{@code partner.hotels.url} - 호텔스컴바인 제휴 링크(2026-10-29 홍TV님 "나중에 연결될 것을 대비", 여기어때 · 야놀자는 2026-10-30 뺌).
  *       안에 {q}(찾는 장소 이름) · {lat} · {lon} 이 있으면 /m/ "🏨 근처 숙소 찾기" 가 바꿔 넣고, 없으면 링크 그대로(그 사이트 검색 화면). 비어 있으면 첫 화면 🔎(제휴 아님).</li>
  *   <li>{@code donate.en.url} - 외국 사람용 후원(PayPal 결제 링크 · paypal.me · ko-fi.com) - 영어 페이지(/en/m/)에만. 2026-10-17 홍TV님.</li>
  *   <li>{@code biz.name} · {@code biz.address} · {@code biz.phone} - 위치기반서비스 이용약관(lbs-terms.html)에 적는 상호 · 주소 · 전화(위치정보법 12조, 2026-10-26).
@@ -73,7 +73,7 @@ public class PartnersServlet extends HttpServlet {
         String trip = conf.apply("partner.trip.url");
         if (checkHost("partner.trip.url", trip, "trip.com")) out.addProperty("trip", trip);
         // 나중에 제휴할 숙소 사이트(2026-10-29) - 그 사이트 주소이고 {q} · {lat} 가 든 링크만
-        String[][] more = {{"yeogi", "yeogi.com"}, {"yanolja", "yanolja.com"}, {"hotels", "hotelscombined.co.kr"}};
+        String[][] more = {{"hotels", "hotelscombined.co.kr"}};   // 여기어때 · 야놀자는 뺌(2026-10-30 홍TV님)
         for (String[] m : more) {
             String u = conf.apply("partner." + m[0] + ".url");
             if (u != null && checkHost("partner." + m[0] + ".url", u, m[1])) out.addProperty(m[0], u);   // {q} · {lat} 가 없으면 그 사이트 검색 화면으로(제휴 꼬리만)
