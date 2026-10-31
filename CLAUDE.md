@@ -79,6 +79,8 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다 - 산악회 방 
   (2026-10-20: 백업 zip 을 찾느라 묻지 않고 E:\ · C:\GH\ · D:\ 를 이름 검색함 - 사과하고 이 줄을 넣음).
 - 배포 전용 열쇠(`C:\GH\workspace\.deploy-key`)는 홍TV님이 "배포해" 라고 할 때만 PC Claude 가 씁니다(docs/deploy-key.md - 서버 deploy 계정은 deploy · rollback · status 만, 2026-10-27).
   메인 .pem · `C:\GH\config` 는 그대로 금지입니다.
+- 서버 정기 점검(2026-10-31 홍TV님): 매일 21:00 받아 오기(routefly-pull)가 logview `health` 를 돌려 `routefly-batch\work\health\latest.txt` 에 남깁니다.
+  끝 줄이 `HEALTH WARN …` 이면 PushNotification 으로 홍TV님께 한 줄(무엇이 문제인지 쉬운 말로) - 보안 업데이트 · 재부팅은 홍TV님이 서버 터미널에서(`sudo apt upgrade` · `sudo reboot`, 사용자가 적은 새벽).
 - 로그 읽기 전용 열쇠(docs/log-key.md - 서버 logview 계정은 /opt/tomcat/logs 읽기만, 2026-10-27)는 PC Claude 가 허락 없이 써도 됩니다.
   보고 · 메모 · 커밋에 IP · 토큰 · 방 코드 · 이름 같은 개인정보는 옮기지 않습니다.
 - 읽기만 하는 명령(Get-Process, netstat 등)은 승인 없이 바로 씁니다.

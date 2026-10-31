@@ -3,6 +3,38 @@
 # 보낸 명령을 낱말로 나눠(eval 없이) root 쪽 읽기 스크립트에 넘깁니다 - 무엇을 읽을지는 그쪽이 검사합니다.
 set -euo pipefail
 read -r -a args <<< "${SSH_ORIGINAL_COMMAND:-}"
+# "health" - 서버 정기 점검(2026-10-31 홍TV님 "4. 서버 정기 점검 해줘"): 읽기만, logview 계정 그대로(누구나 볼 수 있는 상태 값만).
+#   켜진 시간 · 메모리 · 디스크 · 서비스(톰캣 · nginx · DB · 배치 타이머) · 배치 마지막 회차 · 보안 업데이트 대기 · 재부팅 필요 · 인증서 남은 날
+if [ "${args[0]:-}" = "health" ]; then
+  export LC_ALL=C
+  echo "== 시각(KST): $(TZ=Asia/Seoul date '+%F %T')"
+  echo "== 켜진 시간 · 부하: $(uptime -p) · $(cut -d' ' -f1-3 /proc/loadavg) (CPU $(nproc)개)"
+  free -m | awk 'NR==2 {printf "== 메모리: 전체 %dMB · 사용 %dMB · 남음(available) %dMB\n", $2, $3, $7} /^Swap/ {printf "== 스왑: 전체 %dMB · 사용 %dMB\n", $2, $3}'
+  df -h / | awk 'NR==2 {print "== 디스크(/): 전체 " $2 " · 사용 " $3 " (" $5 ") · 남음 " $4}'
+  for u in tomcat nginx mariadb routefly-batch.timer; do printf '== 서비스 %s: %s\n' "$u" "$(systemctl is-active "$u" 2>/dev/null || true)"; done
+  printf '== 배치 마지막 회차: %s (결과 %s)\n' "$(systemctl show routefly-batch.service -p ExecMainExitTimestamp --value 2>/dev/null)" "$(systemctl show routefly-batch.service -p Result --value 2>/dev/null)"
+  printf '== 배치 다음 회차: %s\n' "$(systemctl show routefly-batch.timer -p NextElapseUSecRealtime --value 2>/dev/null)"
+  if [ -x /usr/lib/update-notifier/apt-check ]; then
+    up=$(/usr/lib/update-notifier/apt-check 2>&1 || true); echo "== 업데이트 대기(전체;보안): ${up}"
+  else
+    echo "== 업데이트 대기: $(apt list --upgradable 2>/dev/null | grep -c upgradable || true)개"
+  fi
+  if [ -f /var/run/reboot-required ]; then echo "== 재부팅 필요: 예"; else echo "== 재부팅 필요: 아니오"; fi
+  printf '== 자동 보안 업데이트(unattended-upgrades): %s\n' "$(systemctl is-active unattended-upgrades 2>/dev/null || true)"
+  end=$(timeout 10 openssl s_client -connect 127.0.0.1:443 -servername routefly.kr </dev/null 2>/dev/null | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2 || true)
+  if [ -n "$end" ]; then days=$(( ($(date -d "$end" +%s) - $(date +%s)) / 86400 )); echo "== 인증서 남은 날: ${days}일 ($end)"; else days=-1; echo "== 인증서: 읽지 못함"; fi
+  # 마지막 줄 - 영문 한 줄 요약(PC 받아 오기 스크립트가 그대로 보여 줌): 디스크 85% 넘음 · 남은 메모리 300MB 아래 · 서비스 꺼짐 · 배치 실패 · 재부팅 필요 · 보안 업데이트 · 인증서 20일 아래
+  w=""
+  pct=$(df --output=pcent / | tail -1 | tr -dc 0-9); [ "${pct:-0}" -ge 85 ] && w="$w disk=${pct}%"
+  av=$(free -m | awk 'NR==2 {print $7}'); [ "${av:-0}" -lt 300 ] && w="$w mem=${av}MB"
+  for u in tomcat nginx mariadb routefly-batch.timer; do [ "$(systemctl is-active "$u" 2>/dev/null || true)" = "active" ] || w="$w down=$u"; done
+  [ "$(systemctl show routefly-batch.service -p Result --value 2>/dev/null || true)" = "success" ] || w="$w batch=$(systemctl show routefly-batch.service -p Result --value 2>/dev/null || true)"
+  [ -f /var/run/reboot-required ] && w="$w reboot"
+  sec=$(printf '%s' "${up:-0;0}" | cut -d';' -f2 | tr -dc 0-9); [ "${sec:-0}" -gt 0 ] && w="$w security-updates=$sec"
+  [ "$days" -ge 0 ] && [ "$days" -lt 20 ] && w="$w cert=${days}d"
+  if [ -z "$w" ]; then echo "HEALTH OK"; else echo "HEALTH WARN$w"; fi
+  exit 0
+fi
 # "batch …" 는 배치 로그(routefly 계정으로 읽음 - 2026-10-30), 그 밖은 톰캣 로그(tomcat 계정)
 if [ "${args[0]:-}" = "batch" ]; then
   exec sudo -n -u routefly /usr/local/sbin/routefly-batchlogs-read "${args[@]:1}"
