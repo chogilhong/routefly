@@ -1047,7 +1047,8 @@
             box.style.cssText = "background:#1b2430;color:#e9eef4;border-radius:14px;padding:14px;width:min(440px,100%);max-height:96vh;overflow:auto;font-size:15px";
             box.innerHTML = '<b style="font-size:17px">' + T("✂️ 앞 · 뒤 자르기", "✂️ Trim start and end") + '</b>'
                 + '<p class="tip" style="margin:6px 0">' + T("집 앞 · 주차장 · 들머리 가는 길처럼 코스가 아닌 부분을 빼 주세요. 파란 선만 올라갑니다.", "Remove parts that aren't the course (home, parking, approach). Only the blue line is uploaded.") + '</p>'
-                + '<svg viewBox="-6 -6 112 112" style="width:100%;height:auto;background:#0f1720;border-radius:10px"></svg>'
+                + (window.maplibregl && cfg ? '<div class="tmap" style="width:100%;height:min(52vh,360px);border-radius:10px;overflow:hidden"></div>' : "")
+                + '<svg viewBox="-6 -6 112 112" style="width:100%;height:auto;background:#0f1720;border-radius:10px' + (window.maplibregl && cfg ? ";display:none" : "") + '"></svg>'
                 + '<label style="display:block;margin-top:10px">' + T("앞에서 자르기", "Cut from start") + ' <b class="c0"></b><input type="range" class="r0" min="0" step="' + step + '" style="width:100%"></label>'
                 + '<label style="display:block;margin-top:6px">' + T("뒤에서 자르기", "Cut from end") + ' <b class="c1"></b><input type="range" class="r1" min="0" step="' + step + '" style="width:100%"></label>'
                 + '<p class="kept" style="margin:8px 0;font-weight:bold"></p>'
@@ -1063,7 +1064,33 @@
             function X(i) { return ((xs[i] - minX) * S + (100 - w * S) / 2).toFixed(2); }
             function Y(i) { return ((ys[i] - minY) * S + (100 - h * S) / 2).toFixed(2); }
             function path(a, b) { var d = ""; for (var i = a; i <= b; i++) d += (i > a ? "L" : "M") + X(i) + " " + Y(i); return d; }
-            var res = null;
+            var res = null, tm = null;
+            // 배경 지도(2026-10-31 홍TV님 "지도 깔아줘") - 따라가기 지도와 같은 바탕, 끌기 · 확대 됨. 못 띄우면 선 그림(svg)
+            function geo(a, b) { var c = []; for (var i = a; i <= b; i++) c.push([t[i][1], t[i][0]]); return { type: "Feature", geometry: { type: "LineString", coordinates: c } }; }
+            function pt(i, k) { return { type: "Feature", properties: { k: k }, geometry: { type: "Point", coordinates: [t[i][1], t[i][0]] } }; }
+            if (box.querySelector(".tmap")) {
+                try {
+                    var lo = t.map(function (p) { return p[1]; }), la = t.map(function (p) { return p[0]; });
+                    tm = new maplibregl.Map({ container: box.querySelector(".tmap"), style: buildStyle(cfg), attributionControl: false, dragRotate: false, pitchWithRotate: false, touchPitch: false,
+                        bounds: [[Math.min.apply(null, lo), Math.min.apply(null, la)], [Math.max.apply(null, lo), Math.max.apply(null, la)]], fitBoundsOptions: { padding: 28 } });
+                    tm.touchZoomRotate.disableRotation();
+                    tm.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
+                    tm.on("load", function () {
+                        tm.addSource("tAll", { type: "geojson", data: geo(0, t.length - 1) });
+                        tm.addSource("tKeep", { type: "geojson", data: geo(0, t.length - 1) });
+                        tm.addSource("tEnds", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+                        tm.addLayer({ id: "tAll", type: "line", source: "tAll", paint: { "line-color": "#8a95a5", "line-width": 4, "line-dasharray": [1.5, 1] } });
+                        tm.addLayer({ id: "tKeep", type: "line", source: "tKeep", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#22b8cf", "line-width": 5 } });
+                        tm.addLayer({ id: "tEnds", type: "circle", source: "tEnds", paint: { "circle-radius": 7, "circle-stroke-width": 2, "circle-stroke-color": "#fff",
+                            "circle-color": ["match", ["get", "k"], "s", "#2ecc71", "#ff4d4f"] } });
+                        draw();
+                    });
+                } catch (e) {   // 지도를 못 띄우면 선 그림으로
+                    tm = null;
+                    box.querySelector(".tmap").remove();
+                    svg.style.display = "";
+                }
+            }
             function draw() {
                 if (+r0.value + +r1.value > full.total - step) { if (this === r0) r0.value = Math.max(0, full.total - step - r1.value); else r1.value = Math.max(0, full.total - step - r0.value); }
                 res = RF.trimTrack(t, +r0.value, +r1.value);
@@ -1077,9 +1104,13 @@
                         + '<circle cx="' + X(res.to) + '" cy="' + Y(res.to) + '" r="3" fill="#ff4d4f" stroke="#fff" stroke-width=".8"/>';
                 }
                 svg.innerHTML = html;
+                if (tm && tm.getSource("tKeep")) {
+                    tm.getSource("tKeep").setData(res.track.length ? geo(res.from, res.to) : { type: "FeatureCollection", features: [] });
+                    tm.getSource("tEnds").setData({ type: "FeatureCollection", features: res.track.length ? [pt(res.from, "s"), pt(res.to, "e")] : [] });
+                }
                 box.querySelector(".go").disabled = res.track.length < 2;
             }
-            function close(v) { wrap.remove(); done(v); }
+            function close(v) { if (tm) tm.remove(); wrap.remove(); done(v); }
             r0.addEventListener("input", draw);
             r1.addEventListener("input", draw);
             box.querySelector(".no").onclick = function () { close(null); };
