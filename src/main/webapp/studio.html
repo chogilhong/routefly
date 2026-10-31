@@ -31,7 +31,9 @@ html, body { margin:0; height:100%; background:var(--bg); color:var(--tx); font-
 #mapTools { position:absolute; left:10px; top:56px; z-index:2; display:flex; flex-direction:column; gap:4px; padding:4px; border-radius:12px; background:rgba(17,22,29,0.85); border:1px solid var(--ln); }
 #mapTools button { width:40px; height:40px; border-radius:9px; border:0; background:transparent; color:var(--tx); font-size:19px; cursor:pointer; }
 #mapTools button:hover { background:rgba(56,217,234,0.18); }
-@media (max-width: 860px) { #mapTools { top:auto; bottom:34px; left:6px; right:6px; flex-direction:row; flex-wrap:wrap; justify-content:center; } #mapTools button { width:34px; height:34px; font-size:17px; } }
+/* 폰: 도구 줄은 지도 위쪽 가로(아래쪽이면 펼친 출처 글자와 겹쳤음 - 2026-10-31 PC 391px), 지도 고르기 칸은 그 아래 */
+@media (max-width: 860px) { #mapTools { top:52px; left:6px; right:52px; flex-direction:row; flex-wrap:wrap; justify-content:flex-start; } #mapTools button { width:34px; height:34px; font-size:17px; }
+  #mapMenu { top:132px; left:6px; right:6px; width:auto; } }
 #layer { position:absolute; top:10px; left:10px; z-index:2; height:38px; padding:0 12px; border-radius:19px; border:1px solid var(--ln); background:rgba(17,22,29,0.85); color:var(--tx); font-size:14px; cursor:pointer; }
 #side { width:400px; flex:0 0 400px; overflow:auto; background:var(--bg); border-left:1px solid var(--ln); padding:8px 12px calc(env(safe-area-inset-bottom) + 24px); }
 section { background:var(--panel); border:1px solid var(--ln); border-radius:12px; padding:10px 12px; margin-top:10px; }
