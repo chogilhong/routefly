@@ -134,4 +134,6 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다 - 산악회 방 
   2. `app/capacitor.config.json` 의 server.url 고치기(로컬 수정본, 커밋하지 않음)
   3. `npx cap sync android`
   4. `app\android` 에서 JAVA_HOME 을 `C:\GH\java\jdk-21` 로 두고 `gradlew installDebug` (핸드폰 USB 연결 필요). Android Studio jbr 는 2026-10 기준 JDK 25 라 Gradle 8.14 가 "Unsupported class file major version 69" 로 실패(2026-10-17 PC)
+- 앱 설치(gradlew installDebug): 홍TV님 폰은 은행 앱 때문에 USB 디버깅을 평소 꺼 둡니다(2026-10-31). 설치 때마다 홍TV님께 "USB 디버깅 켜고 허용" 을 부탁하고,
+  끝나면 "이제 꺼도 됩니다" 라고 알립니다. 웹(서버 화면)만 바뀐 경우는 앱을 다시 깔 필요가 없습니다(앱은 서버 화면을 띄움 - MainActivity · 플러그인 · capacitor 설정이 바뀔 때만).
 - 서버로 옮기는 순서는 `docs/deploy-lightsail.md`.
