@@ -46,6 +46,7 @@ def page(p):
 def kind(ua):
     if not ua or ua == "-": return "UA 없음(예전 줄 · 서버 안)"
     u = ua.lower()
+    if "routefly-check" in u: return "운영자 확인"   # PC Claude 배포 확인(2026-10-31 - 앱 통계에서도 뺌, StatsFilter.selfCheck)
     if re.search(r"googlebot|yeti|daum|bingbot|duckduckbot|applebot|naver", u): return "검색 로봇"
     if re.search(r"gptbot|chatgpt|claudebot|claude-web|perplexity|ccbot|bytespider|amazonbot|meta-externalagent|ai2bot", u): return "AI 수집"
     if re.search(r"bot|crawl|spider|slurp|scan|fetch|monitor|preview", u): return "그 밖의 로봇"
