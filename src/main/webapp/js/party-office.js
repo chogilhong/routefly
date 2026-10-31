@@ -144,7 +144,10 @@
     // 운영자 = /stats 를 연 기기(서버 쿠키 - /office/me). "일반 사용자로 보기"(rf-office-guest)를 켜면 운영자 기기도 남처럼 보임(홍TV님 "양쪽을 검토해보게")
     var GKEY = "rf-office-guest", REAL_OWNER = false, OWNER = false;
     function guest() { try { return localStorage.getItem(GKEY) === "1"; } catch (e) { return false; } }
-    var ownerP = RFParty.post("office/me", {}).then(function (j) { REAL_OWNER = !!(j && j.owner); }).catch(function () { /* 남으로 */ }).then(function () { OWNER = REAL_OWNER && !guest(); drawOwner(); });
+    var ownerP = RFParty.post("office/me", {}).then(function (j) {
+        REAL_OWNER = !!(j && j.owner);
+        try { if (REAL_OWNER) localStorage.setItem("rf-admin", "1"); else localStorage.removeItem("rf-admin"); } catch (e) { /* 표시만(코스 모음 GPX 편집 고리) */ }
+    }).catch(function () { /* 남으로 */ }).then(function () { OWNER = REAL_OWNER && !guest(); drawOwner(); });
     function drawOwner() {
         $("ownerRow").hidden = !REAL_OWNER;
         if (!REAL_OWNER) return;

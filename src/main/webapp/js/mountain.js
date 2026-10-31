@@ -399,3 +399,9 @@
         draw();
     }).catch(function () { show([sunLine(Date.now()), "날씨를 지금 받지 못했습니다."]); });
 })();
+
+// 📐 GPX 편집 고리 - 관리자 기기로 확인된 브라우저만(rf-admin, 2026-10-31 홍TV님 "일단 나만 보게"). 화면을 보일 뿐, 편집 화면이 서버로 다시 확인
+(function () {
+    var a = document.getElementById("studioLink");
+    try { if (a && localStorage.getItem("rf-admin") === "1") a.style.display = ""; } catch (e) { /* 그대로 숨김 */ }
+})();

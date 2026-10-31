@@ -15,3 +15,6 @@
     setInterval(again, 30000);
     document.addEventListener("visibilitychange", again);
 })();
+
+// 이 브라우저는 관리자 기기(통계를 연 기기) - 코스 모음의 📐 GPX 편집 고리를 보이게(2026-10-31). 표시일 뿐 권한은 서버 쿠키로
+try { localStorage.setItem("rf-admin", "1"); } catch (e) { /* 저장 못 해도 됨 */ }

@@ -796,6 +796,9 @@ public class MountainServlet extends HttpServlet {
         b.append("</div>").append(steep)
                 .append("<section id=\"gearIdx\" hidden></section>")   // 🎒 산행 시 챙길 것(js/mountain.js - 계절 기준, 산 페이지는 그 산 오르막까지 - 2026-10-18 홍TV님)
                 .append(tips()).append("<section id=\"fun\" class=\"fun\" hidden></section>")
+                // 📐 GPX 편집(관리자만, 2026-10-31 홍TV님 "코스 모음 > 산악회 방 위에 둬. 일단 나만 보게") - 모두 같은 화면(캐시)이라 숨겨 두고,
+                // 관리자 기기로 확인된 브라우저(rf-admin - 통계 · 사무실 · 내 기록에서 표시)만 js/mountain.js 가 보임. 들어가도 studio.html 이 다시 확인
+                .append("<a class=\"anbuLink partyLink\" id=\"studioLink\" style=\"display:none\" href=\"" + REL + "/studio.html\">📐 GPX 편집 <small>관리자 - GPX 열기 · 자르기 · 잇기 · 지도에 길 그리기 · 코스로 올리기</small> ›</a>")
                 .append(PartyServlet.enabled() ? "<a class=\"anbuLink partyLink\" href=\"" + REL + "/party.html?lang=ko\">🧑‍🤝‍🧑 산악회 방 <small>안내 산악회 · 인솔자 - 좌석 · 탑승 확인 · 인솔자가 회원 위치 확인 · SOS · 호차 · 차량번호</small> ›</a>" : "")   // 2026-10-20 홍TV님 - 켜졌을 때만
                 .append(PartyServlet.enabled() ? "<a class=\"anbuLink partyLink\" href=\"" + REL + "/party-office.html\">🏢 회사 사무실 <small>안내 산악회 · 여행사 - 여러 방을 한 화면에 · 회사 코드 · 승인 · 엑셀 내려받기</small> ›</a>" : "")   // 2026-10-29 홍TV님 "산악회 방 만들기 외에 더 없잖아" - 바로 가는 입구
                 .append("<a class=\"anbuLink\" href=\"").append(REL).append("/anbu.html?lang=ko\">🏠 오늘의 안부 <small>하루 한 번 '잘 지내요' · 보호자에게 문자 · 매일 알림</small> ›</a>")

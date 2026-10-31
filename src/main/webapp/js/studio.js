@@ -26,6 +26,7 @@
 
     // ---- 관리자 기기인가(/api/course-upload GET - 운영자 쿠키)
     fetch("api/course-upload", { headers: { Accept: "application/json" }, cache: "no-store" }).then(function (r) { return r.json(); }).then(function (j) {
+        try { if (j && j.owner) localStorage.setItem("rf-admin", "1"); else localStorage.removeItem("rf-admin"); } catch (e) { /* 표시만 */ }
         if (!j || !j.owner) throw new Error("not owner");
         $("gate").hidden = true;
         $("app").hidden = false;

@@ -1601,7 +1601,11 @@
     function drawRecords() {
         var box = $("recList"), list = records();
         if (upOwnerP == null) {   // 처음 열 때 한 번만 물음(관리자 기기인가) - 맞으면 단추를 넣어 다시 그림
-            upOwnerP = getJson("api/course-upload").then(function (j) { upOwner = !!j.owner; if (upOwner) drawRecords(); }).catch(function () { /* 남으로 */ });
+            upOwnerP = getJson("api/course-upload").then(function (j) {
+                upOwner = !!j.owner;
+                try { if (upOwner) localStorage.setItem("rf-admin", "1"); else localStorage.removeItem("rf-admin"); } catch (e) { /* 표시만(코스 모음 GPX 편집 고리) */ }
+                if (upOwner) drawRecords();
+            }).catch(function () { /* 남으로 */ });
         }
         box.innerHTML = "";
         if (upOwner) {   // 관리자 기기만 - GPX 편집(studio.html, 2026-10-31)
