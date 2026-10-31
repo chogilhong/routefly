@@ -648,7 +648,7 @@ rm ~/route.sql ~/route.tgz
 ```
 (PC, 손으로 한 번)  powershell -NoProfile -ExecutionPolicy Bypass -File bin\pull-from-server.ps1 -Key <키.pem>
                    → 끝에 "OK route_course <수>" 면 성공, "FAIL ..." 면 그 까닭
-(PC, 작업 스케줄러) 이름 routefly-pull, 매일 05:30(서버 DB 백업 04:00 뒤), 동작: powershell.exe
+(PC, 작업 스케줄러) 이름 routefly-pull, 매일 21:00(2026-10-31 홍TV님 - 노트북이 새벽엔 꺼져 있음. 서버 배치 · DB 백업 04:00 과 겹치지 않음), 동작: powershell.exe
                    인수 -NoProfile -ExecutionPolicy Bypass -File C:\GH\workspace\routefly-batch\bin\pull-from-server.ps1 -Key <키.pem>
                    시작 위치 C:\GH\workspace\routefly-batch
 ```
