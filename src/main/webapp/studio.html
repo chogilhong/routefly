@@ -25,6 +25,9 @@ html, body { margin:0; height:100%; background:var(--bg); color:var(--tx); font-
 #map { position:absolute; inset:0; }
 #drop { position:absolute; inset:0; display:none; align-items:center; justify-content:center; background:rgba(56,217,234,0.18); border:3px dashed var(--sky); color:#fff; font-size:22px; font-weight:bold; z-index:3; pointer-events:none; }
 #mapWrap.over #drop { display:flex; }
+#mapMenu { position:absolute; top:52px; left:62px; z-index:4; width:270px; max-height:70%; overflow:auto; padding:10px 12px; border-radius:12px; background:rgba(17,22,29,0.95); border:1px solid var(--ln); font-size:14px; }
+#mapMenu b { display:block; margin:6px 0 4px; font-size:13px; color:var(--dim); }
+#mapMenu label { display:block; padding:4px 0; cursor:pointer; }
 #mapTools { position:absolute; left:10px; top:56px; z-index:2; display:flex; flex-direction:column; gap:4px; padding:4px; border-radius:12px; background:rgba(17,22,29,0.85); border:1px solid var(--ln); }
 #mapTools button { width:40px; height:40px; border-radius:9px; border:0; background:transparent; color:var(--tx); font-size:19px; cursor:pointer; }
 #mapTools button:hover { background:rgba(56,217,234,0.18); }
@@ -82,7 +85,7 @@ label.sl input { width:100%; }
             <button type="button" data-go="#undoBtn" title="되돌리기">↶</button>
             <button type="button" data-go="#saveBtn" title="GPX 저장">💾</button>
             <button type="button" data-go="#upBtn" title="코스로 올리기">⬆</button>
-        </div><button id="layer" type="button" hidden>🗺️ 밝은 지도</button><div id="drop">여기에 GPX 를 놓으세요</div></div>
+        </div><button id="layer" type="button" hidden>🗺 지도 고르기</button><div id="mapMenu" hidden></div><div id="drop">여기에 GPX 를 놓으세요</div></div>
     <div id="side">
         <section>
             <h2>열기</h2>

@@ -12,7 +12,7 @@
     var msgTimer = 0;
     function msg(t, ms) { var m = $("msg"); m.textContent = t; m.style.display = "block"; clearTimeout(msgTimer); msgTimer = setTimeout(function () { m.style.display = "none"; }, ms || 4000); }
     var COLORS = ["#ff922b", "#a9e34b", "#f783ac", "#ffd43b", "#9775fa", "#63e6be", "#ff8787"];
-    var tracks = [], sel = -1, undo = [], map = null, mapOk = false, preview = null, hoverAt = null, basemap = "sat", hasSat = false;
+    var tracks = [], sel = -1, undo = [], map = null, mapOk = false, preview = null, hoverAt = null, hasSat = false;
     var demUrl = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png", drawing = null, dragI = null, pickedI = null, moved = false;
 
     function km(m) { return RF.km(m); }
@@ -36,21 +36,72 @@
     });
 
     // ---- 지도(따라가기와 같은 바탕: V-World 위성 · 밝은 지도 + 지형 음영, 키가 없으면 지형 음영만)
+    /**
+     * 바탕 지도 · 겹침(2026-10-31 홍TV님 "지도 넣어줘" - gpx.studio 의 Basemaps · Overlays 처럼). 시험(관리자만) 동안 공용 타일을 씀 -
+     * OpenStreetMap · OpenTopoMap 공용 타일은 이용 규칙상 많은 사람이 쓰면 안 되니 공개 전에 정리(키 있는 타일로 바꾸거나 뺌).
+     */
+    var BASES = [
+        { id: "sat", name: "🛰️ 위성사진(V-World)", vw: true },
+        { id: "base", name: "🗺️ 밝은 지도(V-World)", vw: true },
+        { id: "osm", name: "🧭 OpenStreetMap", tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"], max: 19, attr: "지도: © OpenStreetMap contributors" },
+        { id: "topo", name: "⛰️ OpenTopoMap(등고선)", tiles: ["https://a.tile.opentopomap.org/{z}/{x}/{y}.png", "https://b.tile.opentopomap.org/{z}/{x}/{y}.png", "https://c.tile.opentopomap.org/{z}/{x}/{y}.png"], max: 17, attr: "지도: © OpenTopoMap (CC-BY-SA) · © OpenStreetMap contributors" },
+        { id: "none", name: "지형 음영만" }
+    ];
+    var OVERS = [
+        { id: "hikeov", name: "🥾 등산로 노선(Waymarked Trails)", tiles: ["https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png"], attr: "등산로: © waymarkedtrails.org (CC-BY-SA) · © OpenStreetMap contributors" },
+        { id: "bikeov", name: "🚴 자전거길 노선(Waymarked Trails)", tiles: ["https://tile.waymarkedtrails.org/cycling/{z}/{x}/{y}.png"], attr: "자전거길: © waymarkedtrails.org (CC-BY-SA) · © OpenStreetMap contributors" },
+        { id: "hillshade", name: "🏔️ 지형 음영" }
+    ];
+    var MAPKEY = "rf-studio-map";
+    function mapPref() { var p = null; try { p = JSON.parse(localStorage.getItem(MAPKEY) || "null"); } catch (e) { /* 처음 */ } return p && typeof p === "object" ? p : { base: "sat", over: { hillshade: 1 } }; }
     function style(cfg) {
+        var pref = mapPref();
+        if (!cfg.vworldKey && (pref.base === "sat" || pref.base === "base")) pref.base = "topo";
         var dem = { type: "raster-dem", tiles: [cfg.demUrl], encoding: "terrarium", tileSize: 256, maxzoom: 15, attribution: "지형: Terrain Tiles (AWS Open Data)" };
-        var sources = { hillshade: dem }, layers = [{ id: "bg", type: "background", paint: { "background-color": cfg.vworldKey ? "#1b2430" : "#dcd6c6" } }];
-        if (cfg.vworldKey) {
-            var key = encodeURIComponent(cfg.vworldKey);
-            sources.sat = { type: "raster", tileSize: 256, minzoom: 6, maxzoom: 19, tiles: ["https://api.vworld.kr/req/wmts/1.0.0/" + key + "/Satellite/{z}/{y}/{x}.jpeg"], attribution: "위성사진: 국토교통부 V-World" };
-            sources.base = { type: "raster", tileSize: 256, minzoom: 6, maxzoom: 19, tiles: ["https://api.vworld.kr/req/wmts/1.0.0/" + key + "/Base/{z}/{y}/{x}.png"], attribution: "지도: 국토교통부 V-World" };
-            layers.push({ id: "sat", type: "raster", source: "sat" });
-            layers.push({ id: "base", type: "raster", source: "base", layout: { visibility: "none" } });
-            layers.push({ id: "hillshade", type: "hillshade", source: "hillshade", paint: { "hillshade-exaggeration": 0.2 } });
-        } else {
-            layers.push({ id: "hillshade", type: "hillshade", source: "hillshade", paint: { "hillshade-exaggeration": 0.65, "hillshade-shadow-color": "#3d4a3a", "hillshade-highlight-color": "#fbf7ea" } });
-        }
+        var sources = { hillshade: dem }, layers = [{ id: "bg", type: "background", paint: { "background-color": "#dcd6c6" } }];
+        var key = cfg.vworldKey ? encodeURIComponent(cfg.vworldKey) : null;
+        BASES.forEach(function (b) {
+            var src = b.vw ? (key ? { type: "raster", tileSize: 256, minzoom: 6, maxzoom: 19, tiles: ["https://api.vworld.kr/req/wmts/1.0.0/" + key + (b.id === "sat" ? "/Satellite/{z}/{y}/{x}.jpeg" : "/Base/{z}/{y}/{x}.png")],
+                attribution: b.id === "sat" ? "위성사진: 국토교통부 V-World" : "지도: 국토교통부 V-World" } : null)
+                : b.tiles ? { type: "raster", tileSize: 256, maxzoom: b.max, tiles: b.tiles, attribution: b.attr } : null;
+            if (!src) return;
+            sources[b.id] = src;
+            layers.push({ id: b.id, type: "raster", source: b.id, layout: { visibility: pref.base === b.id ? "visible" : "none" } });
+        });
+        layers.push({ id: "hillshade", type: "hillshade", source: "hillshade", layout: { visibility: pref.over && pref.over.hillshade ? "visible" : "none" },
+            paint: { "hillshade-exaggeration": 0.3, "hillshade-shadow-color": "#3d4a3a", "hillshade-highlight-color": "#fbf7ea" } });
+        OVERS.forEach(function (o) {
+            if (!o.tiles) return;
+            sources[o.id] = { type: "raster", tileSize: 256, maxzoom: 18, tiles: o.tiles, attribution: o.attr };
+            layers.push({ id: o.id, type: "raster", source: o.id, layout: { visibility: pref.over && pref.over[o.id] ? "visible" : "none" }, paint: { "raster-opacity": 0.9 } });
+        });
         return { version: 8, sources: sources, layers: layers };
     }
+    /** 🗺 지도 고르기 칸 - 바탕 하나 + 겹침 여럿, 이 기기에 기억. */
+    function mapMenu() {
+        var box = $("mapMenu"), pref = mapPref();
+        if (!cfgVw && (pref.base === "sat" || pref.base === "base")) pref.base = "topo";
+        var h = "<b>바탕 지도</b>";
+        BASES.forEach(function (b) {
+            if (b.vw && !cfgVw) return;
+            h += '<label><input type="radio" name="mb" value="' + b.id + '"' + (pref.base === b.id ? " checked" : "") + "> " + b.name + "</label>";
+        });
+        h += "<b>겹쳐 보기</b>";
+        OVERS.forEach(function (o) { h += '<label><input type="checkbox" value="' + o.id + '"' + (pref.over && pref.over[o.id] ? " checked" : "") + "> " + o.name + "</label>"; });
+        h += '<p class="tip">OpenStreetMap · OpenTopoMap · Waymarked 는 공용 타일 - 시험 동안만(공개 전에 정리).</p>';
+        box.innerHTML = h;
+        Array.prototype.forEach.call(box.querySelectorAll("input"), function (inp) {
+            inp.onchange = function () {
+                var p = mapPref();
+                p.over = p.over || {};
+                if (inp.type === "radio") p.base = inp.value; else p.over[inp.value] = inp.checked ? 1 : 0;
+                try { localStorage.setItem(MAPKEY, JSON.stringify(p)); } catch (e) { /* 이번만 */ }
+                BASES.forEach(function (b) { if (map.getLayer(b.id)) map.setLayoutProperty(b.id, "visibility", p.base === b.id ? "visible" : "none"); });
+                OVERS.forEach(function (o) { if (map.getLayer(o.id)) map.setLayoutProperty(o.id, "visibility", p.over[o.id] ? "visible" : "none"); });
+            };
+        });
+    }
+    var cfgVw = false;
     var EMPTY = { type: "FeatureCollection", features: [] };
     function startMap() {
         if (!window.maplibregl) { msg("지도를 띄우지 못했습니다(그래프 · 도구는 됩니다).", 6000); return; }
@@ -119,15 +170,13 @@
             map.on("styledata", init);
             map.on("load", init);
             init();   // 바탕을 글로 넣어 이미 준비됐을 수 있음
-            if (hasSat) {
-                $("layer").hidden = false;
-                $("layer").onclick = function () {
-                    basemap = basemap === "sat" ? "light" : "sat";
-                    map.setLayoutProperty("sat", "visibility", basemap === "sat" ? "visible" : "none");
-                    map.setLayoutProperty("base", "visibility", basemap === "light" ? "visible" : "none");
-                    $("layer").textContent = basemap === "sat" ? "🗺️ 밝은 지도" : "🛰️ 위성사진";
-                };
-            }
+            cfgVw = hasSat;
+            $("layer").hidden = false;
+            $("layer").onclick = function () {
+                var m = $("mapMenu");
+                m.hidden = !m.hidden;
+                if (!m.hidden) mapMenu();
+            };
         });
     }
     function line(t, props) { return { type: "Feature", properties: props || {}, geometry: { type: "LineString", coordinates: t.map(function (p) { return [p[1], p[0]]; }) } }; }
