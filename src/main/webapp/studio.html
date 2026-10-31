@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>routefly GPX 편집</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=2"><link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
+<meta name="theme-color" content="#11161d">
+<!-- GPX 편집(2026-10-31 홍TV님 "/routefly/studio.html · GPX 편집 - PC 가 주 무대, 폰에서도") - 관리자 기기만.
+     GPX 열기 · 내 기록 불러오기 → 지도 · 높이 그래프 · 거리 · 오르막 → 자르기 · 나누기 · 잇기 · 뒤집기 → GPX 저장 · ⬆ 코스로.
+     파일은 이 기기 안에서만 다룸(서버로는 "⬆ 코스로" 를 누를 때 선 모양만). -->
+<link rel="stylesheet" href="vendor/maplibre-gl-5.24.0/maplibre-gl.css">
+<link rel="stylesheet" href="css/course-kit.css">
+<style>
+:root { --bg:#11161d; --panel:#1a212b; --tx:#eef2f7; --dim:#9aa6b4; --ln:rgba(255,255,255,0.12); --sky:#38d9ea; --ok:#4ade80; --red:#ff6b6b; }
+* { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { margin:0; height:100%; background:var(--bg); color:var(--tx); font-family:Arial,"Malgun Gothic",sans-serif; }
+#top { display:flex; align-items:center; gap:8px; padding:calc(env(safe-area-inset-top) + 6px) 10px 6px; background:var(--panel); border-bottom:1px solid var(--ln); height:56px; }
+#top a { flex:0 0 auto; display:inline-flex; align-items:center; height:38px; padding:0 12px; border-radius:19px; text-decoration:none;
+         background:rgba(56,217,234,0.16); border:1px solid var(--sky); color:var(--sky); font-size:14px; font-weight:bold; }
+#top h1 { flex:1; margin:0; font-size:17px; }
+#app { display:flex; height:calc(100% - 56px); }
+#mapWrap { position:relative; flex:1; min-width:0; }
+#map { position:absolute; inset:0; }
+#drop { position:absolute; inset:0; display:none; align-items:center; justify-content:center; background:rgba(56,217,234,0.18); border:3px dashed var(--sky); color:#fff; font-size:22px; font-weight:bold; z-index:3; pointer-events:none; }
+#mapWrap.over #drop { display:flex; }
+#layer { position:absolute; top:10px; left:10px; z-index:2; height:38px; padding:0 12px; border-radius:19px; border:1px solid var(--ln); background:rgba(17,22,29,0.85); color:var(--tx); font-size:14px; cursor:pointer; }
+#side { width:400px; flex:0 0 400px; overflow:auto; background:var(--bg); border-left:1px solid var(--ln); padding:8px 12px calc(env(safe-area-inset-bottom) + 24px); }
+section { background:var(--panel); border:1px solid var(--ln); border-radius:12px; padding:10px 12px; margin-top:10px; }
+section h2 { margin:0 0 8px; font-size:15px; }
+button, select, input[type=text] { font:15px Arial,"Malgun Gothic",sans-serif; }
+.row { display:flex; gap:6px; flex-wrap:wrap; }
+.row > * { flex:1 1 auto; }
+.b { min-height:40px; padding:0 10px; border-radius:9px; border:1px solid var(--ln); background:rgba(255,255,255,0.07); color:var(--tx); cursor:pointer; }
+.b:hover { border-color:var(--sky); }
+.b.main { background:var(--sky); color:#062b30; font-weight:bold; border:0; }
+.b:disabled { opacity:.45; cursor:default; }
+.tip { font-size:12.5px; color:var(--dim); line-height:1.5; margin:6px 0 0; word-break:keep-all; }
+#list .it { display:flex; align-items:center; gap:8px; padding:8px; border-radius:8px; cursor:pointer; border:1px solid transparent; }
+#list .it.on { border-color:var(--sky); background:rgba(56,217,234,0.08); }
+#list .it i { flex:0 0 12px; height:12px; border-radius:6px; }
+#list .it b { flex:1; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#list .it span { font-size:12.5px; color:var(--dim); white-space:nowrap; }
+#name { width:100%; height:40px; border-radius:8px; border:1px solid var(--ln); background:#0f1720; color:var(--tx); padding:0 10px; }
+.st { width:100%; border-collapse:collapse; margin-top:8px; font-size:14px; }
+.st td { padding:4px 2px; border-top:1px solid var(--ln); }
+.st td:last-child { text-align:right; font-weight:bold; }
+#prof { width:100%; height:130px; display:block; margin-top:8px; background:#0f1720; border-radius:8px; cursor:crosshair; touch-action:none; }
+label.sl { display:block; margin-top:8px; font-size:14px; }
+label.sl input { width:100%; }
+#msg { position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom) + 18px); transform:translateX(-50%); z-index:50; max-width:92vw; padding:10px 16px; border-radius:10px; background:rgba(0,0,0,0.85); color:#fff; font-size:14px; display:none; }
+#gate { padding:30px 18px; text-align:center; }
+/* 폰: 지도 위 · 칸 아래 */
+@media (max-width: 860px) {
+  #app { display:block; height:auto; }
+  #mapWrap { height:52vh; }
+  #side { width:auto; border-left:0; }
+}
+</style>
+</head>
+<body>
+<div id="top"><a href="hike.html">‹ 따라가기</a><h1>📐 GPX 편집</h1></div>
+<div id="gate"><p>관리자 기기인지 확인하는 중…</p></div>
+<div id="app" hidden>
+    <div id="mapWrap"><div id="map"></div><button id="layer" type="button" hidden>🗺️ 밝은 지도</button><div id="drop">여기에 GPX 를 놓으세요</div></div>
+    <div id="side">
+        <section>
+            <h2>열기</h2>
+            <div class="row"><button class="b main" id="openBtn" type="button">📂 GPX 열기</button><button class="b" id="recBtn" type="button">📒 내 기록에서</button></div>
+            <input id="file" type="file" accept=".gpx,application/gpx+xml,application/xml,text/xml" multiple hidden>
+            <p class="tip">PC 는 지도 위로 GPX 파일을 끌어다 놓아도 됩니다(여러 개). 파일은 이 기기 안에서만 다룹니다.</p>
+            <div id="list"></div>
+        </section>
+        <section id="selSec" hidden>
+            <h2>고른 길</h2>
+            <input id="name" type="text" maxlength="60" aria-label="길 이름">
+            <table class="st"><tbody id="stats"></tbody></table>
+            <canvas id="prof" aria-label="높이 그래프"></canvas>
+            <p class="tip" id="profTip">그래프에 손가락 · 마우스를 대면 지도에 그 자리가 보입니다.</p>
+        </section>
+        <section id="toolSec" hidden>
+            <h2>고치기</h2>
+            <div class="row"><button class="b" data-tool="trim" type="button">✂️ 앞 · 뒤 자르기</button><button class="b" data-tool="split" type="button">✂ 나누기</button></div>
+            <div class="row" style="margin-top:6px"><button class="b" data-tool="join" type="button">🔗 잇기</button><button class="b" id="revBtn" type="button">↔ 뒤집기</button></div>
+            <div class="row" style="margin-top:6px"><button class="b" id="undoBtn" type="button" disabled>↶ 되돌리기</button><button class="b" id="delBtn" type="button">🗑 목록에서 빼기</button></div>
+            <div id="toolBox"></div>
+        </section>
+        <section id="saveSec" hidden>
+            <h2>저장 · 올리기</h2>
+            <div class="row"><button class="b" id="saveBtn" type="button">💾 GPX 저장</button></div>
+            <div class="row" style="margin-top:6px"><select id="kind" class="b" aria-label="종류"><option value="hike">⛰️ 등산</option><option value="walk">🚶 걷기</option><option value="bike">🚴 자전거</option></select><button class="b main" id="upBtn" type="button">⬆ 코스로 올리기</button></div>
+            <p class="tip">⬆ 코스로: 고른 길의 선 모양과 이름만 서버로 - 1시간 안(매시 7분)에 코스 목록에 들어갑니다. 누구나 보는 코스가 되니 집 근처 부분은 먼저 자르세요.</p>
+        </section>
+    </div>
+</div>
+<div id="msg" role="status" aria-live="polite"></div>
+<script src="vendor/maplibre-gl-5.24.0/maplibre-gl.js"></script>
+<script src="js/rf-dialog.js"></script>
+<script src="js/kit-studio.js"></script>
+<script src="js/studio.js"></script>
+<script src="js/sw-reg.js"></script>
+<script src="js/seen.js"></script>
+</body>
+</html>

@@ -15,7 +15,8 @@ var BUNDLES = [
     { out: "js/kit-m.js", users: ["js/mountain.js", "js/mountain-en.js", "js/seen.js", "../java/com/gh/routefly/web/MountainServlet.java", "../java/com/gh/routefly/web/MountainEn.java"] },
     { out: "js/kit-party.js", users: ["party.html", "js/no-kakao.js", "js/rf-dialog.js", "js/party-kit.js", "js/party.js", "js/seen.js", "js/sw-reg.js"] },
     { out: "js/kit-tools.js", users: ["tools.html", "js/tools.js", "js/sw-reg.js", "js/seen.js"] },
-    { out: "js/kit-anbu.js", users: ["anbu.html", "js/anbu.js", "js/sw-reg.js", "js/seen.js"] }
+    { out: "js/kit-anbu.js", users: ["anbu.html", "js/anbu.js", "js/sw-reg.js", "js/seen.js"] },
+    { out: "js/kit-studio.js", users: ["studio.html", "js/studio.js", "js/sw-reg.js", "js/seen.js"] }
 ];
 
 var HEAD = "/* 만든 파일 - 고치지 마세요. course-kit.js 를 고친 뒤 node tools/kit-split/split.js (이 화면이 쓰는 것만 남긴 course-kit) */\n";

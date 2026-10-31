@@ -1604,6 +1604,11 @@
             upOwnerP = getJson("api/course-upload").then(function (j) { upOwner = !!j.owner; if (upOwner) drawRecords(); }).catch(function () { /* 남으로 */ });
         }
         box.innerHTML = "";
+        if (upOwner) {   // 관리자 기기만 - GPX 편집(studio.html, 2026-10-31)
+            var se = document.createElement("p");
+            se.innerHTML = '<a href="studio.html" style="color:#38d9ea;font-weight:bold">📐 GPX 편집 열기(관리자)</a> <span class="tip">- 자르기 · 나누기 · 잇기 · 코스로 올리기, PC 에서 편함</span>';
+            box.appendChild(se);
+        }
         drawRecStats(list);
         if (!list.length) {
             box.innerHTML = T('<p class="tip">아직 기록이 없습니다. 시작했다가 "끝내기" 를 누르면 남습니다.</p>', '<p class="tip">No records yet. Start a hike and tap "Finish" to save one.</p>');

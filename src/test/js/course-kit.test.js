@@ -1559,3 +1559,22 @@ eq("favJoinExtra 제목이 없으면 지금 이름의 길", [RF.favJoinExtra("#c
     eq("trimTrack 그대로 · 앞 250m 뒤 120m · 너무 많이 자름", [r0.track.length, Math.round(r0.kept), r1.from, r1.to, r1.track.length, Math.round(r1.kept / 10), r2.track.length, r2.kept],
         [11, Math.round(r0.total), 3, 8, 6, Math.round(5 * 111.2 / 10), 0, 0]);
 })();
+// GPX 편집(studio.html, 2026-10-31 홍TV님) - 읽기 · 요약 · 나누기 · 잇기 · 쓰기. 좌표 · 시각은 테스트 데이터
+(function () {
+    var g = '<?xml version="1.0"?><gpx version="1.1"><metadata><name>메타</name></metadata><trk><name>시험 &amp; 길</name><trkseg>'
+        + '<trkpt lat="37.000" lon="127"><ele>100</ele><time>2026-10-31T03:40:00Z</time></trkpt><trkpt lon="127" lat="37.001"><ele>130</ele></trkpt></trkseg>'
+        + '<trkseg><trkpt lat="37.002" lon="127"><ele>90</ele><time>2026-10-31T04:40:00Z</time></trkpt><trkpt lat="0" lon="0"/></trkseg></trk>'
+        + '<trk><trkseg><trkpt lat="37.1" lon="127.1"/><trkpt lat="37.101" lon="127.1"/></trkseg></trk></gpx>';
+    var ts = RF.gpxTracks(g);
+    eq("gpxTracks 길 둘 · 조각 이음 · 0,0 뺌 · 이름(없으면 메타 + 번호)", [ts.length, ts[0].name, ts[0].track.length, ts[0].track[1][2], ts[0].track[2][3], ts[1].name], [2, "시험 & 길", 3, null, 90, "메타 2"]);
+    var st = RF.trackStats(ts[0].track);
+    eq("trackStats", [Math.round(st.dist), st.up, st.down, st.ms, st.n, st.hasEle], [222, 30, 40, 3600000, 3, true]);
+    var tr = []; for (var i = 0; i < 11; i++) tr.push([37 + i * 0.001, 127, null, null]);
+    var sp = RF.splitTrack(tr, 500);
+    eq("splitTrack 500m · 나눈 점 양쪽 · 첫 점 사이 · 끝 넘음", [sp[0].length, sp[1].length, sp[0][sp[0].length - 1] === sp[1][0], RF.splitTrack(tr, 5).map(function (x) { return x.length; }), RF.splitTrack(tr, 5000)], [6, 6, true, [2, 10], null]);
+    eq("joinTracks 겹친 끝점 하나", [RF.joinTracks(sp[0], sp[1]).length, RF.joinTracks([[37, 127]], [[37.1, 127]]).length], [11, 2]);
+    var back = RF.gpxTracks(RF.trackGpx("가 <나>", "hike", ts[0].track));
+    eq("trackGpx → gpxTracks 왕복", [back[0].name, back[0].track.length, back[0].track[0][2], back[0].track[0][3]], ["가 <나>", 3, Date.parse("2026-10-31T03:40:00Z"), 100]);
+    var bad = ""; try { RF.gpxTracks("<html/>"); } catch (e) { bad = e.message; }
+    eq("gpxTracks GPX 아님", bad, "GPX 파일이 아닙니다.");
+})();

@@ -3631,6 +3631,73 @@
     }
 
     /**
+     * 순수 함수 - GPX 글 → 길마다 {name, track:[[위도, 경도, 시각ms|null, 높이|null]]}(GPX 편집 studio.html, 2026-10-31 홍TV님).
+     * trk 하나가 길 하나(조각 trkseg 는 이어 붙임), trk 가 없으면 rte. 점은 솎지 않음(편집용). 브라우저 없이도 돌게 정규식으로.
+     */
+    function gpxTracks(text) {
+        var src = String(text || ""), out = [];
+        if (src.length > GPX_MAX_CHARS) throw new Error("GPX 파일이 너무 큽니다(30MB 까지).");
+        if (!/<gpx[\s>]/.test(src)) throw new Error("GPX 파일이 아닙니다.");
+        var unesc = function (x) { return String(x).replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, "\"").replace(/&apos;/g, "'").replace(/&amp;/g, "&").trim(); };
+        function pts(block, tag) {
+            var re = new RegExp("<" + tag + "\\b([^>]*?)(?:/>|>([\\s\\S]*?)</" + tag + ">)", "g"), m, a = [];
+            while ((m = re.exec(block))) {
+                var la = /\blat\s*=\s*["']([^"']+)["']/.exec(m[1]), lo = /\blon\s*=\s*["']([^"']+)["']/.exec(m[1]);
+                var lat = la ? +la[1] : NaN, lon = lo ? +lo[1] : NaN;
+                if (!isFinite(lat) || !isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180 || (lat === 0 && lon === 0)) continue;
+                var body = m[2] || "", e = /<ele>\s*([^<]+)<\/ele>/.exec(body), t = /<time>\s*([^<]+)<\/time>/.exec(body);
+                var ev = e ? +e[1] : NaN, tv = t ? Date.parse(t[1].trim()) : NaN;
+                a.push([lat, lon, isFinite(tv) ? tv : null, isFinite(ev) ? ev : null]);
+            }
+            return a;
+        }
+        function nameOf(block) { var n = /<name>([\s\S]*?)<\/name>/.exec(block.replace(/<(trkseg|rtept|trkpt)\b[\s\S]*$/, "")); return n ? unesc(n[1]) : ""; }
+        var re = /<trk\b[^>]*>([\s\S]*?)<\/trk>/g, m;
+        while ((m = re.exec(src))) { var tr = pts(m[1], "trkpt"); if (tr.length >= 2) out.push({ name: nameOf(m[1]), track: tr }); }
+        if (!out.length) { re = /<rte\b[^>]*>([\s\S]*?)<\/rte>/g; while ((m = re.exec(src))) { var rt = pts(m[1], "rtept"); if (rt.length >= 2) out.push({ name: nameOf(m[1]), track: rt }); } }
+        if (!out.length) throw new Error("GPX 에 경로 점이 2개보다 적습니다(trk · rte).");
+        var meta = /<metadata>[\s\S]*?<name>([\s\S]*?)<\/name>/.exec(src);
+        out.forEach(function (x, i) { if (!x.name) x.name = (meta ? unesc(meta[1]) : "GPX") + (out.length > 1 ? " " + (i + 1) : ""); });
+        return out;
+    }
+
+    /** 순수 함수 - 길 요약: 거리(m) · 오르막 · 내리막(10m 문턱, trackClimb) · 걸린 시간(ms, 시각이 있을 때) · 점 수. */
+    function trackStats(track) {
+        var t = track || [], d = 0;
+        for (var i = 1; i < t.length; i++) d += distM(t[i - 1][0], t[i - 1][1], t[i][0], t[i][1]);
+        var t0 = null, t1 = null;
+        t.forEach(function (p) { if (p[2] != null) { if (t0 == null) t0 = p[2]; t1 = p[2]; } });
+        return { dist: d, up: trackClimb(t), down: trackClimb(t.slice().reverse()), ms: t0 != null && t1 > t0 ? t1 - t0 : null, n: t.length,
+            hasEle: t.some(function (p) { return p[3] != null; }) };
+    }
+
+    /** 순수 함수 - atM(m) 에서 둘로 나눔(나눈 점은 양쪽에 다). 한쪽이 점 2개가 안 되면 null. */
+    function splitTrack(track, atM) {
+        var t = track || [], d = 0, k = 0;
+        for (var i = 1; i < t.length; i++) { d += distM(t[i - 1][0], t[i - 1][1], t[i][0], t[i][1]); if (d >= atM) { k = i; break; } }
+        if (k < 1 || k > t.length - 2) return null;
+        return [t.slice(0, k + 1), t.slice(k)];
+    }
+
+    /** 순수 함수 - 두 길 잇기(b 의 첫 점이 a 의 끝과 5m 안이면 겹친 점 하나 뺌). */
+    function joinTracks(a, b) {
+        var x = (a || []).slice(), y = b || [];
+        if (x.length && y.length && distM(x[x.length - 1][0], x[x.length - 1][1], y[0][0], y[0][1]) < 5) y = y.slice(1);
+        return x.concat(y);
+    }
+
+    /** 순수 함수 - 길 → GPX 1.1 글(이름 · 종류 · 점마다 높이 · 시각이 있으면). */
+    function trackGpx(name, kind, track) {
+        var esc = function (x) { return String(x).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); };
+        return '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="routefly studio" xmlns="http://www.topografix.com/GPX/1/1">\n'
+            + "<trk><name>" + esc(name || "GPX") + "</name>" + (kind ? "<type>" + esc(kind) + "</type>" : "") + "<trkseg>\n"
+            + (track || []).map(function (p) {
+                return '<trkpt lat="' + p[0] + '" lon="' + p[1] + '">' + (p[3] != null ? "<ele>" + Math.round(p[3] * 10) / 10 + "</ele>" : "")
+                    + (p[2] != null ? "<time>" + new Date(p[2]).toISOString() + "</time>" : "") + "</trkpt>";
+            }).join("\n") + "\n</trkseg></trk>\n</gpx>\n";
+    }
+
+    /**
      * 순수 함수 - 기록 점들의 앞 · 뒤를 자름(코스로 올리기 전, 2026-10-31 홍TV님 "앱 안에서 자르는 기능 - 관리자만").
      * cut0 · cut1 = 앞 · 뒤에서 뺄 거리(m). 남는 점 · 남는 길이 · 자른 자리(앞 · 뒤 점 번호). 남는 점이 2개 안 되면 track 은 빈 배열.
      */
@@ -5700,7 +5767,7 @@
 
     global.RF = {
         LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, regionNames: regionNames, stampKey: stampKey, summitName: summitName, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakGapM: peakGapM, peakCourses: peakCourses, isClosedTrail: isClosedTrail, isHiddenCourse: isHiddenCourse, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
-        nextPoi: nextPoi, snap: snap, fillTrackEle: fillTrackEle, trimTrack: trimTrack, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
+        nextPoi: nextPoi, snap: snap, fillTrackEle: fillTrackEle, trimTrack: trimTrack, gpxTracks: gpxTracks, trackStats: trackStats, splitTrack: splitTrack, joinTracks: joinTracks, trackGpx: trackGpx, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
         sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, wxCols: wxCols, wxTable: wxTable, kmaLink: kmaLink, pcpText: pcpText, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap,
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },
         cellCenter: cellCenter, warnName: warnName, safetyRows: safetyRows, safetyAlert: safetyAlert, safetyRender: safetyRender,
