@@ -537,6 +537,9 @@
         if (!drawing.snap) return Promise.resolve({ pts: [a, b], straight: true });
         var job = segQ.then(function () {
             return ourTrails(a, b).then(function (tr) {
+                // 종류 - 자전거는 자전거 코스 선만, 등산 · 걷기는 자전거 코스를 빼고(2026-10-31 홍TV님 "버튼 더" - gpx.studio 의 Activity 처럼)
+                var bike = $("kind").value === "bike";
+                tr = tr.filter(function (t) { return bike ? t.kind === "bike" : t.kind !== "bike"; });
                 var r = tr.length ? RF.osmRoute(RF.trailsToElements(tr), a, b, 150) : { error: "x" };
                 if (!r.error) return { pts: [a].concat(r.pts, [b]), via: "routefly" };
                 return overpass(a, b).then(function (el) {
@@ -558,8 +561,30 @@
         var straight = drawing.segs.filter(function (sg) { return sg && sg.straight && drawing.snap; }).length;
         box.innerHTML = '<b>✏️ 새 길 그리기</b><p class="tip">지도를 눌러 점을 찍으면 점 사이를 등산로 · 걷는 길로 잇습니다(routefly 코스 선 먼저, 없으면 OpenStreetMap). 길이 없으면 곧은 선(노란 선).</p>'
             + '<label class="sl"><input type="checkbox" class="dsnap"' + (drawing.snap ? " checked" : "") + '> 길 따라 잇기(끄면 곧은 선)</label>'
+            + '<label class="sl">종류 <select class="dkind b" style="width:100%"><option value="hike">⛰️ 등산</option><option value="walk">🚶 걷기</option><option value="bike">🚴 자전거</option></select></label>'
             + '<p class="tip" style="color:#eef2f7;font-weight:bold">점 ' + drawing.wps.length + '개 · ' + km(dist) + ' km' + (drawing.busy ? " · 길 찾는 중…" : "") + (straight ? " · 곧은 선 " + straight + "곳" : "") + '</p>'
+            + '<div class="row" style="margin-top:6px"><button class="b dhome" type="button"' + (drawing.wps.length > 1 && !drawing.busy ? "" : " disabled") + ' title="마지막 점에서 출발점까지 길로 이음">🏠 출발점으로</button>'
+            + '<button class="b dround" type="button"' + (drawing.wps.length > 1 && !drawing.busy ? "" : " disabled") + ' title="온 길을 그대로 되돌아옴">🔁 왕복</button>'
+            + '<button class="b drev" type="button"' + (drawing.wps.length > 1 && !drawing.busy ? "" : " disabled") + ' title="출발 ↔ 도착">↔ 뒤집기</button></div>'
             + '<div class="row" style="margin-top:6px"><button class="b dback" type="button"' + (drawing.wps.length ? "" : " disabled") + '>↶ 마지막 점 빼기</button><button class="b dno" type="button">그만</button><button class="b main dok" type="button"' + (drawing.wps.length > 1 && !drawing.busy ? "" : " disabled") + '>다 그림</button></div>';
+        box.querySelector(".dkind").value = $("kind").value;
+        box.querySelector(".dkind").onchange = function () { $("kind").value = this.value; };
+        box.querySelector(".dhome").onclick = function () { addWaypoint(drawing.wps[0]); };
+        box.querySelector(".dround").onclick = function () {   // 온 길을 거꾸로 이어 붙임(다시 묻지 않음)
+            var n = drawing.segs.length;
+            for (var i = n - 1; i >= 0; i--) {
+                var sg = drawing.segs[i];
+                drawing.segs.push(sg ? { pts: sg.pts.slice().reverse(), straight: sg.straight, via: sg.via } : null);
+                drawing.wps.push(drawing.wps[i]);
+            }
+            drawDraft(); drawPanel();
+            msg("왕복으로 만들었습니다(온 길 그대로 돌아옴).");
+        };
+        box.querySelector(".drev").onclick = function () {
+            drawing.wps.reverse();
+            drawing.segs = drawing.segs.reverse().map(function (sg) { return sg ? { pts: sg.pts.slice().reverse(), straight: sg.straight, via: sg.via } : null; });
+            drawDraft(); drawPanel();
+        };
         box.querySelector(".dsnap").onchange = function () { drawing.snap = this.checked; };
         box.querySelector(".dback").onclick = function () { drawing.wps.pop(); drawing.segs.pop(); drawDraft(); drawPanel(); };
         box.querySelector(".dno").onclick = function () { drawing = null; drawDraft(); drawPanel(); };
@@ -683,5 +708,23 @@
         }).catch(function (e) { msg("올리지 못했습니다: " + (e && e.message || e), 7000); });
     };
     window.addEventListener("resize", function () { if (cur()) profile(); });
+    // ‹ 뒤로 - 들어온 화면으로(코스 모음 · 내 기록), 바로 열었으면 코스 모음(2026-10-31 홍TV님 "따라가기로 하지 말고 뒤로")
+    $("backBtn").addEventListener("click", function (e) {
+        var same = false;
+        try { same = !!document.referrer && new URL(document.referrer).origin === location.origin; } catch (x) { /* 다른 곳 */ }
+        if (same && history.length > 1) { e.preventDefault(); history.back(); }
+    });
+    // 지도 왼쪽 도구 줄(gpx.studio 처럼 - 2026-10-31 홍TV님 "버튼들도 더") - 옆 칸 단추와 같은 일
+    Array.prototype.forEach.call(document.querySelectorAll("#mapTools [data-go]"), function (b) {
+        b.onclick = function () {
+            var go = b.getAttribute("data-go"), el = go.charAt(0) === "#" ? document.querySelector(go) : document.querySelector('[data-tool="' + go + '"]');
+            if (!el) return;
+            var sec = el.closest("section");
+            if (sec && sec.hidden) { msg("먼저 길을 열거나 그려서 고르세요.", 3000); return; }
+            el.click();
+            var box = $("toolBox").textContent ? $("toolBox") : $("drawBox").textContent ? $("drawBox") : null;
+            if (box && window.matchMedia("(max-width: 860px)").matches) box.scrollIntoView({ behavior: "smooth", block: "center" });
+        };
+    });
     if (/[?&]debug\b/.test(location.search)) window.routeflyStudio = { get mapOk() { return mapOk; }, get map() { return map; }, get tracks() { return tracks; } };   // 시험용
 })();

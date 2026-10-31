@@ -88,7 +88,8 @@ ul { margin:0; padding:0; list-style:none; }
 .fun small { color:var(--dim); }
 .anbuLink { display:block; margin:10px 0 4px; padding:12px 14px; border-radius:12px; background:rgba(74,222,128,0.10); border:1px solid rgba(74,222,128,0.45);
             color:var(--tx); text-decoration:none; font-weight:bold; font-size:16px; }   /* 🏠 오늘의 안부(2026-10-18) - 한마디 아래 */
-.partyLink { background:rgba(255,183,3,0.10); border-color:rgba(255,183,3,0.45); }   /* 🧑‍🤝‍🧑 산악회 방(2026-10-20) - 안부 위 */
+.partyLink { background:rgba(255,183,3,0.10); border-color:rgba(255,183,3,0.45); }
+.anbuLink.studioLink { background:rgba(151,117,250,0.14); border-color:rgba(151,117,250,0.55); }   /* 📐 GPX 편집(관리자, 2026-10-31 홍TV님 "바탕색을 다르게") */   /* 🧑‍🤝‍🧑 산악회 방(2026-10-20) - 안부 위 */
 .toolLink { background:rgba(56,217,234,0.10); border-color:rgba(56,217,234,0.45); }
 .gameLink { background:rgba(177,151,252,0.10); border-color:rgba(177,151,252,0.45); }   /* 🎮 심심풀이 게임(2026-10-21) - 별거 별거 아래 */   /* 🧰 별거 별거(2026-10-18) - 안부 아래 */
 .anbuLink small { display:block; font-weight:normal; font-size:13px; color:var(--dim); margin-top:2px; }
