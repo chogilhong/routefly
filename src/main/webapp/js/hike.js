@@ -1032,13 +1032,77 @@
 
     // 내 기록 → 코스로 올리기(관리자만, 2026-10-31 홍TV님). 서버가 점만 다시 써 올림 폴더에 두면 배치(courseImport)가 매시 :07 에 코스로
     var upOwner = false, upOwnerP = null;
-    function uploadCourse(r) {
-        hAskText(T("코스로 올릴 이름(목록에 이대로 보임)\n예: 송산 · 송산리 마을회관 → 송산 정상", "Course name as shown in the list\ne.g. Songsan · village hall → summit"), NM(r.name), { ok: T("다음", "Next") }).then(function (name) {
+    /**
+     * 올리기 전 앞 · 뒤 자르기(관리자만, 2026-10-31 홍TV님 "앱 안에서 자르는 기능 지금 만들어 줘") - 집 앞 · 주차장 가는 길 등을 뺌.
+     * 선 그림(남는 길 파랑 · 자를 길 회색, 출발 초록 · 도착 빨강)과 밀대 둘. 남은 점 [위도, 경도, 시각, 높이] 로 resolve, 취소면 null.
+     */
+    function trimSheet(r) {
+        return new Promise(function (done) {
+            var t = r.track || [], full = RF.trimTrack(t, 0, 0), step = full.total > 5000 ? 50 : 10;
+            var wrap = document.createElement("div");
+            wrap.setAttribute("role", "dialog");
+            wrap.setAttribute("aria-label", T("앞 · 뒤 자르기", "Trim start and end"));
+            wrap.style.cssText = "position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:12px";
+            var box = document.createElement("div");
+            box.style.cssText = "background:#1b2430;color:#e9eef4;border-radius:14px;padding:14px;width:min(440px,100%);max-height:96vh;overflow:auto;font-size:15px";
+            box.innerHTML = '<b style="font-size:17px">' + T("✂️ 앞 · 뒤 자르기", "✂️ Trim start and end") + '</b>'
+                + '<p class="tip" style="margin:6px 0">' + T("집 앞 · 주차장 · 들머리 가는 길처럼 코스가 아닌 부분을 빼 주세요. 파란 선만 올라갑니다.", "Remove parts that aren't the course (home, parking, approach). Only the blue line is uploaded.") + '</p>'
+                + '<svg viewBox="-6 -6 112 112" style="width:100%;height:auto;background:#0f1720;border-radius:10px"></svg>'
+                + '<label style="display:block;margin-top:10px">' + T("앞에서 자르기", "Cut from start") + ' <b class="c0"></b><input type="range" class="r0" min="0" step="' + step + '" style="width:100%"></label>'
+                + '<label style="display:block;margin-top:6px">' + T("뒤에서 자르기", "Cut from end") + ' <b class="c1"></b><input type="range" class="r1" min="0" step="' + step + '" style="width:100%"></label>'
+                + '<p class="kept" style="margin:8px 0;font-weight:bold"></p>'
+                + '<p style="display:flex;gap:8px;margin:0"><button type="button" class="no" style="flex:1">' + T("취소", "Cancel") + '</button><button type="button" class="go main" style="flex:1">' + T("다음", "Next") + '</button></p>';
+            wrap.appendChild(box);
+            document.body.appendChild(wrap);
+            var svg = box.querySelector("svg"), r0 = box.querySelector(".r0"), r1 = box.querySelector(".r1");
+            r0.max = r1.max = Math.max(0, Math.floor(full.total / step) * step);
+            r0.value = r1.value = 0;
+            var lat0 = t.reduce(function (a, p) { return a + p[0]; }, 0) / Math.max(1, t.length), kx = Math.cos(lat0 * Math.PI / 180);
+            var xs = t.map(function (p) { return p[1] * kx; }), ys = t.map(function (p) { return -p[0]; });
+            var minX = Math.min.apply(null, xs), minY = Math.min.apply(null, ys), w = Math.max(Math.max.apply(null, xs) - minX, 1e-6), h = Math.max(Math.max.apply(null, ys) - minY, 1e-6), S = 100 / Math.max(w, h);
+            function X(i) { return ((xs[i] - minX) * S + (100 - w * S) / 2).toFixed(2); }
+            function Y(i) { return ((ys[i] - minY) * S + (100 - h * S) / 2).toFixed(2); }
+            function path(a, b) { var d = ""; for (var i = a; i <= b; i++) d += (i > a ? "L" : "M") + X(i) + " " + Y(i); return d; }
+            var res = null;
+            function draw() {
+                if (+r0.value + +r1.value > full.total - step) { if (this === r0) r0.value = Math.max(0, full.total - step - r1.value); else r1.value = Math.max(0, full.total - step - r0.value); }
+                res = RF.trimTrack(t, +r0.value, +r1.value);
+                box.querySelector(".c0").textContent = km(+r0.value) + " km";
+                box.querySelector(".c1").textContent = km(+r1.value) + " km";
+                box.querySelector(".kept").textContent = T("올릴 길 ", "Kept ") + km(res.kept) + " / " + km(full.total) + " km";
+                var html = '<path d="' + path(0, t.length - 1) + '" fill="none" stroke="#5b6675" stroke-width="1.6" stroke-linejoin="round"/>';
+                if (res.track.length) {
+                    html += '<path d="' + path(res.from, res.to) + '" fill="none" stroke="#22b8cf" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>'
+                        + '<circle cx="' + X(res.from) + '" cy="' + Y(res.from) + '" r="3" fill="#2ecc71" stroke="#fff" stroke-width=".8"/>'
+                        + '<circle cx="' + X(res.to) + '" cy="' + Y(res.to) + '" r="3" fill="#ff4d4f" stroke="#fff" stroke-width=".8"/>';
+                }
+                svg.innerHTML = html;
+                box.querySelector(".go").disabled = res.track.length < 2;
+            }
+            function close(v) { wrap.remove(); done(v); }
+            r0.addEventListener("input", draw);
+            r1.addEventListener("input", draw);
+            box.querySelector(".no").onclick = function () { close(null); };
+            box.querySelector(".go").onclick = function () { close(res && res.track.length >= 2 ? res.track : null); };
+            wrap.addEventListener("keydown", function (e) { if (e.key === "Escape") close(null); });
+            draw();
+            r0.focus();
+        });
+    }
+
+    function uploadCourse(r0) {
+        var r = r0;
+        trimSheet(r0).then(function (kept) {
+            if (!kept) return;
+            r = { name: r0.name, kind: r0.kind, start: r0.start, track: kept };   // 자른 길만 · 사진 메모 없이
+            return goUpload();
+        });
+        function goUpload() { return hAskText(T("코스로 올릴 이름(목록에 이대로 보임)\n예: 송산 · 송산리 마을회관 → 송산 정상", "Course name as shown in the list\ne.g. Songsan · village hall → summit"), NM(r.name), { ok: T("다음", "Next") }).then(function (name) {
             name = String(name || "").trim();
             if (!name) return;
             var kind = /^(hike|walk|bike)$/.test(r.kind) ? r.kind : "hike";
-            return hAsk(T("\"" + name + "\" 을(를) routefly 코스로 올릴까요?\n\n누구나 보는 코스가 됩니다. 집 근처에서 시작 · 끝난 기록이면 먼저 그 부분을 잘라 주세요(gpx.studio).\n시각 · 사진 메모는 올라가지 않고 선 모양만 올라갑니다. 1시간 안(매시 7분)에 코스 목록에 들어갑니다.",
-                "Upload \"" + name + "\" as a routefly course?\n\nEveryone will see it. If it starts or ends near your home, trim that part first (gpx.studio).\nOnly the line is uploaded - no times or photo notes. It appears in the list within an hour (at :07)."), { ok: T("올리기", "Upload") }).then(function (ok) {
+            return hAsk(T("\"" + name + "\" 을(를) routefly 코스로 올릴까요?\n\n누구나 보는 코스가 됩니다. 앞 단계에서 자른 부분은 올라가지 않습니다.\n시각 · 사진 메모는 올라가지 않고 선 모양만 올라갑니다. 1시간 안(매시 7분)에 코스 목록에 들어갑니다.",
+                "Upload \"" + name + "\" as a routefly course?\n\nEveryone will see it. The parts you trimmed are not uploaded.\nOnly the line is uploaded - no times or photo notes. It appears in the list within an hour (at :07)."), { ok: T("올리기", "Upload") }).then(function (ok) {
                 if (!ok) return;
                 return fetch("api/course-upload", { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify({ name: name, kind: kind, gpx: toGpx(r) }) })
                     .then(function (res) { return res.json().catch(function () { return { success: false, message: "HTTP " + res.status }; }); })
@@ -1047,7 +1111,7 @@
                         toast(T("⬆ 올렸습니다 - 1시간 안(매시 7분)에 코스 목록에 들어갑니다. 코스 ID " + j.id, "⬆ Uploaded - it appears within an hour (at :07). Course ID " + j.id), 8000);
                     });
             });
-        }).catch(function (e) { toast(T("올리지 못했습니다: ", "Upload failed: ") + (e && e.message || e), 6000); });
+        }).catch(function (e) { toast(T("올리지 못했습니다: ", "Upload failed: ") + (e && e.message || e), 6000); }); }
     }
 
     /** 순수 함수 - 기록 → GPX 1.1 글. */

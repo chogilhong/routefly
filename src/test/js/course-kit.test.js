@@ -1552,3 +1552,10 @@ eq("favJoinExtra 제목이 없으면 지금 이름의 길", [RF.favJoinExtra("#c
     eq("fillTrackEle 빈 높이만 코스로 · 먼 점 · 있는 높이는 그대로", [Math.abs(out[0][3] - 200) <= 2, out[1][3], out[2][3], tr[0][3], out[0][2]], [true, 250, null, null, 1000]);
     eq("fillTrackEle 코스 없으면 그대로", RF.fillTrackEle(null, tr)[0][3], null);
 })();
+// 코스로 올리기 전 앞 · 뒤 자르기(2026-10-31 홍TV님 - 관리자만). 점 사이 약 111m, 좌표는 테스트 데이터
+(function () {
+    var tr = []; for (var i = 0; i < 11; i++) tr.push([37 + i * 0.001, 127, i * 1000, null]);
+    var r0 = RF.trimTrack(tr, 0, 0), r1 = RF.trimTrack(tr, 250, 120), r2 = RF.trimTrack(tr, 800, 800);
+    eq("trimTrack 그대로 · 앞 250m 뒤 120m · 너무 많이 자름", [r0.track.length, Math.round(r0.kept), r1.from, r1.to, r1.track.length, Math.round(r1.kept / 10), r2.track.length, r2.kept],
+        [11, Math.round(r0.total), 3, 8, 6, Math.round(5 * 111.2 / 10), 0, 0]);
+})();
