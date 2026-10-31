@@ -31,6 +31,14 @@ public class StatsFilter extends HttpFilter {
         Stats.save();
     }
 
+    /**
+     * 순수 함수 - PC Claude 가 배포 뒤 운영 화면을 확인할 때 쓰는 이름표(User-Agent 에 "routefly-check")인가(2026-10-31 홍TV님 "이것도 통계에서 빼줘").
+     * 비밀이 아니라 누가 붙여도 자기 방문만 빠질 뿐이라 괜찮음(권한은 주지 않음 - 통계 · 관리 기능은 쿠키로).
+     */
+    static boolean selfCheck(String ua) {
+        return ua != null && ua.contains("routefly-check");
+    }
+
     /** 운영자 기기인가(/stats 를 연 브라우저 - StatsServlet.OWNER_COOKIE). 설정 stats.key 에서 만든 값과 같아야 함. */
     static boolean owner(String cookieHeader) {
         return owner(cookieHeader, RouteflyConfig.get("stats.key"));
@@ -61,7 +69,7 @@ public class StatsFilter extends HttpFilter {
         if (page == null) return;
         String ip = SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For"));
         String ua = req.getHeader("User-Agent");
-        boolean own = owner(req.getHeader("Cookie"));
+        boolean own = owner(req.getHeader("Cookie")) || selfCheck(ua);   // 운영자 기기 · PC Claude 확인용 접속(이름표 routefly-check)은 방문 수에서 뺌
         Access.page(page, ip, ua, req.getHeader("Accept-Language"), own, System.currentTimeMillis());   // 오늘 접속 분석 - 로봇 · 운영자도 종류별로(2026-10-29)
         if (own) return;
         String bot = Stats.botKind(ua, req.getHeader("Accept-Language"));
