@@ -1615,7 +1615,7 @@
         }
         drawRecStats(list);
         if (!list.length) {
-            box.innerHTML = T('<p class="tip">아직 기록이 없습니다. 시작했다가 "끝내기" 를 누르면 남습니다.</p>', '<p class="tip">No records yet. Start a hike and tap "Finish" to save one.</p>');
+            box.insertAdjacentHTML("beforeend", T('<p class="tip">아직 기록이 없습니다. 시작했다가 "끝내기" 를 누르면 남습니다.</p>', '<p class="tip">No records yet. Start a hike and tap "Finish" to save one.</p>'));   // 위의 📐 GPX 편집 고리를 지우지 않게(2026-10-31 PC)
         }
         list.forEach(function (r, i) {
             var row = document.createElement("div");

@@ -1593,3 +1593,11 @@ eq("favJoinExtra 제목이 없으면 지금 이름의 길", [RF.favJoinExtra("#c
     eq("osmRoute 이어지지 않음", RF.osmRoute([{ type: "node", id: 1, lat: 37, lon: 127 }, { type: "node", id: 2, lat: 37.001, lon: 127 }, { type: "node", id: 3, lat: 37.0015, lon: 127 }, { type: "node", id: 4, lat: 37.002, lon: 127 },
         { type: "way", nodes: [1, 2] }, { type: "way", nodes: [3, 4] }], [37, 127], [37.002, 127]).error, "두 점을 잇는 길이 없습니다.");
 })();
+// 우리 코스 선으로 길 찾기(2026-10-31 - 공용 Overpass 가 막힐 때). 두 코스가 갈림길(10m)에서 만남, 좌표는 테스트 데이터
+(function () {
+    var tr = [{ id: "a", coords: [[127.000, 37.000], [127.000, 37.001], [127.000, 37.002]] }, { id: "b", coords: [[127.00008, 37.002], [127.001, 37.002], [127.002, 37.002]] },
+        { id: "c", coords: [[127.010, 37.010], [127.011, 37.010]] }];
+    var el = RF.trailsToElements(tr), r = RF.osmRoute(el, [37.0, 127.0], [37.002, 127.002]);
+    eq("trailsToElements 갈림길로 두 코스를 이어 길 찾기", [r.error || null, r.pts.length, r.dist > 390 && r.dist < 420], [null, 6, true]);
+    eq("trailsToElements 멀리 떨어진 코스는 안 이어짐", RF.osmRoute(el, [37.0, 127.0], [37.010, 127.011]).error, "두 점을 잇는 길이 없습니다.");
+})();

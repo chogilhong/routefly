@@ -266,7 +266,8 @@
         var n0 = tracks.length;
         Promise.all(list.map(function (f) { return f.text().then(function (txt) { return { f: f, txt: txt }; }); })).then(function (rs) {
             rs.forEach(function (r) {   // 고른 차례대로(먼저 읽힌 차례 아님)
-                try { RF.gpxTracks(r.txt).forEach(function (x) { add(x.name || r.f.name.replace(/\.gpx$/i, ""), x.track); }); }
+                // 이름이 비었거나 "GPX" 뿐이면(두루누비 - 2026-10-31 PC) 파일 이름으로
+                try { RF.gpxTracks(r.txt).forEach(function (x, k, all) { var base = r.f.name.replace(/\.gpx$/i, ""); add(!x.name || /^gpx(\s*\d+)?$/i.test(x.name.trim()) ? base + (all.length > 1 ? " " + (k + 1) : "") : x.name, x.track); }); }
                 catch (e) { msg(r.f.name + ": " + e.message, 6000); }
             });
             if (tracks.length > n0) { msg("길 " + (tracks.length - n0) + "개를 열었습니다."); draw(true); }
@@ -516,13 +517,37 @@
         osmCache[bb].catch(function () { delete osmCache[bb]; });
         return osmCache[bb];
     }
+    /** 우리 서버 코스 선(/api/trails - 공단 · 산림청 · 두루누비 · OSM 코스)을 둘레 칸으로 받아 둠. */
+    var trailCache = {};
+    function ourTrails(a, b) {
+        var pad = 0.006, r = function (v, up) { return (up ? Math.ceil(v / 0.01) : Math.floor(v / 0.01)) * 0.01; };
+        var bb = [r(Math.min(a[1], b[1]) - pad), r(Math.min(a[0], b[0]) - pad), r(Math.max(a[1], b[1]) + pad, 1), r(Math.max(a[0], b[0]) + pad, 1)];
+        if (bb[2] - bb[0] > 0.2 || bb[3] - bb[1] > 0.2) return Promise.resolve([]);   // 서버 한도(0.2°) - 너무 멀리 찍으면 OSM 으로
+        var key = bb.map(function (v) { return v.toFixed(2); }).join(",");
+        if (!trailCache[key]) trailCache[key] = fetch("api/trails?bbox=" + key, { headers: { Accept: "application/json" } }).then(function (res) { return res.json(); })
+            .then(function (j) { return (j && j.trails) || []; }).catch(function () { delete trailCache[key]; return []; });
+        return trailCache[key];
+    }
+    /**
+     * 두 점 사이 길 - ① 우리 코스 선(빠르고 막히지 않음) ② OpenStreetMap(Overpass) ③ 곧은 선.
+     * 2026-10-31 PC: 공용 Overpass 가 PC 에서도 시간 초과 · 429 였음. 여러 점을 빨리 찍어도 한 구간씩 차례로 물음(segQ).
+     */
+    var segQ = Promise.resolve();
     function segment(a, b) {
         if (!drawing.snap) return Promise.resolve({ pts: [a, b], straight: true });
-        return overpass(a, b).then(function (el) {
-            var r = RF.osmRoute(el, a, b, 200);
-            if (r.error) return { pts: [a, b], straight: true, why: r.error };
-            return { pts: [a].concat(r.pts, [b]) };
-        }, function (e) { return { pts: [a, b], straight: true, why: e.message }; });
+        var job = segQ.then(function () {
+            return ourTrails(a, b).then(function (tr) {
+                var r = tr.length ? RF.osmRoute(RF.trailsToElements(tr), a, b, 150) : { error: "x" };
+                if (!r.error) return { pts: [a].concat(r.pts, [b]), via: "routefly" };
+                return overpass(a, b).then(function (el) {
+                    var o = RF.osmRoute(el, a, b, 200);
+                    if (o.error) return { pts: [a, b], straight: true, why: o.error };
+                    return { pts: [a].concat(o.pts, [b]), via: "osm" };
+                }, function (e) { return { pts: [a, b], straight: true, why: e.message }; });
+            });
+        });
+        segQ = job.catch(function () { /* 다음 구간은 그대로 */ });
+        return job;
     }
     function drawPanel() {
         var box = $("drawBox");
@@ -531,7 +556,7 @@
         var dist = 0;
         drawing.segs.forEach(function (sg) { if (sg) dist += RF.trackStats(sg.pts.map(function (p) { return [p[0], p[1]]; })).dist; });
         var straight = drawing.segs.filter(function (sg) { return sg && sg.straight && drawing.snap; }).length;
-        box.innerHTML = '<b>✏️ 새 길 그리기</b><p class="tip">지도를 눌러 점을 찍으면 점 사이를 등산로 · 걷는 길(OpenStreetMap)로 잇습니다. 길이 없으면 곧은 선(노란 선).</p>'
+        box.innerHTML = '<b>✏️ 새 길 그리기</b><p class="tip">지도를 눌러 점을 찍으면 점 사이를 등산로 · 걷는 길로 잇습니다(routefly 코스 선 먼저, 없으면 OpenStreetMap). 길이 없으면 곧은 선(노란 선).</p>'
             + '<label class="sl"><input type="checkbox" class="dsnap"' + (drawing.snap ? " checked" : "") + '> 길 따라 잇기(끄면 곧은 선)</label>'
             + '<p class="tip" style="color:#eef2f7;font-weight:bold">점 ' + drawing.wps.length + '개 · ' + km(dist) + ' km' + (drawing.busy ? " · 길 찾는 중…" : "") + (straight ? " · 곧은 선 " + straight + "곳" : "") + '</p>'
             + '<div class="row" style="margin-top:6px"><button class="b dback" type="button"' + (drawing.wps.length ? "" : " disabled") + '>↶ 마지막 점 빼기</button><button class="b dno" type="button">그만</button><button class="b main dok" type="button"' + (drawing.wps.length > 1 && !drawing.busy ? "" : " disabled") + '>다 그림</button></div>';

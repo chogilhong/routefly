@@ -141,6 +141,37 @@
         return { a: a.length > 1 ? a : [], b: b.length > 1 ? b : [] };
     }
 
+    /**
+     * 순수 함수 - routefly 코스 선(/api/trails: [{id, coords:[[경도, 위도]…]}]) → osmRoute 가 읽는 모양(node · way).
+     * 선끼리 joinM(기본 15m) 안에 닿는 점은 이어 줌(갈림길 - 코스마다 점이 따로라). 0.0002° 칸으로 가까운 점만 견줌.
+     * 2026-10-31 PC: 공용 Overpass 가 PC 에서도 시간 초과 · 429 - 우리 서버 코스 선으로 먼저 길 찾기.
+     */
+    function trailsToElements(trails, joinM) {
+        var lim = joinM || 15, out = [], id = 1, grid = {}, cell = 0.0002;
+        (trails || []).forEach(function (t, k) {
+            var ids = [];
+            (t.coords || []).forEach(function (c) {
+                var n = { type: "node", id: id++, lat: +c[1], lon: +c[0], t: k };
+                out.push(n);
+                ids.push(n.id);
+                var g = Math.floor(n.lat / cell) + ":" + Math.floor(n.lon / cell);
+                (grid[g] = grid[g] || []).push(n);
+            });
+            if (ids.length > 1) out.push({ type: "way", id: "t" + k, nodes: ids, tags: { highway: "path" } });
+        });
+        var r = Math.ceil(lim / 20) + 1;
+        out.forEach(function (n) {
+            if (n.type !== "node") return;
+            var gy = Math.floor(n.lat / cell), gx = Math.floor(n.lon / cell);
+            for (var dy = -r; dy <= r; dy++) for (var dx = -r; dx <= r; dx++) {
+                (grid[(gy + dy) + ":" + (gx + dx)] || []).forEach(function (m) {
+                    if (m.t !== n.t && m.id > n.id && distM(n.lat, n.lon, m.lat, m.lon) <= lim) out.push({ type: "way", id: "j" + n.id + "_" + m.id, nodes: [n.id, m.id], tags: { highway: "path" } });
+                });
+            }
+        });
+        return out;
+    }
+
     /** 걸을 수 있는 OSM 길 종류(GPX 편집 길 그리기 - Overpass 질의 · 길 찾기, tools/park-gaps 와 같은 범위). */
     var WALK_WAYS = "path|footway|steps|track|bridleway|pedestrian|cycleway|residential|unclassified|service|living_street|tertiary";
 
@@ -307,6 +338,7 @@
         cutMiddle: cutMiddle,
         osmRoute: osmRoute,
         WALK_WAYS: WALK_WAYS,
+        trailsToElements: trailsToElements,
         distM: distM
     };
 })(window);
