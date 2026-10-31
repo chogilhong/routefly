@@ -1074,12 +1074,12 @@
                     tm = new maplibregl.Map({ container: box.querySelector(".tmap"), style: buildStyle(cfg), attributionControl: false, dragRotate: false, pitchWithRotate: false, touchPitch: false,
                         bounds: [[Math.min.apply(null, lo), Math.min.apply(null, la)], [Math.max.apply(null, lo), Math.max.apply(null, la)]], fitBoundsOptions: { padding: 28 } });
                     tm.touchZoomRotate.disableRotation();
-                    tm.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
+                    tm.addControl(new maplibregl.AttributionControl({ compact: true }), "top-right");   // 아래 오른쪽이면 출발점(초록)을 가렸음(2026-10-31 PC)
                     var bb = [[Math.min.apply(null, lo), Math.min.apply(null, la)], [Math.max.apply(null, lo), Math.max.apply(null, la)]];
                     tm.on("load", function () {
                         // 처음 열 때 선 전체에 맞춤 - 창이 막 붙은 때라 크기가 덜 잡혀 출발점이 밖으로 벗어나 보였음(2026-10-31 PC)
                         tm.resize();
-                        tm.fitBounds(bb, { padding: 28, duration: 0 });
+                        tm.fitBounds(bb, { padding: { top: 40, bottom: 28, left: 28, right: 40 }, duration: 0 });
                         tm.addSource("tAll", { type: "geojson", data: geo(0, t.length - 1) });
                         tm.addSource("tKeep", { type: "geojson", data: geo(0, t.length - 1) });
                         tm.addSource("tEnds", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
