@@ -51,6 +51,8 @@ label.sl { display:block; margin-top:8px; font-size:14px; }
 label.sl input { width:100%; }
 #msg { position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom) + 18px); transform:translateX(-50%); z-index:50; max-width:92vw; padding:10px 16px; border-radius:10px; background:rgba(0,0,0,0.85); color:#fff; font-size:14px; display:none; }
 #gate { padding:30px 18px; text-align:center; }
+#drawBox:not(:empty) { margin-top:8px; padding:10px; border:1px solid var(--sky); border-radius:10px; }
+#mapWrap.drawing #map canvas { cursor:crosshair; }
 /* 폰: 지도 위 · 칸 아래 */
 @media (max-width: 860px) {
   #app { display:block; height:auto; }
@@ -68,6 +70,8 @@ label.sl input { width:100%; }
         <section>
             <h2>열기</h2>
             <div class="row"><button class="b main" id="openBtn" type="button">📂 GPX 열기</button><button class="b" id="recBtn" type="button">📒 내 기록에서</button></div>
+            <div class="row" style="margin-top:6px"><button class="b" id="drawBtn" type="button">✏️ 지도에 새 길 그리기</button></div>
+            <div id="drawBox"></div>
             <input id="file" type="file" accept=".gpx,application/gpx+xml,application/xml,text/xml" multiple hidden>
             <p class="tip">PC 는 지도 위로 GPX 파일을 끌어다 놓아도 됩니다(여러 개). 파일은 이 기기 안에서만 다룹니다.</p>
             <div id="list"></div>
@@ -82,6 +86,7 @@ label.sl input { width:100%; }
         <section id="toolSec" hidden>
             <h2>고치기</h2>
             <div class="row"><button class="b" data-tool="trim" type="button">✂️ 앞 · 뒤 자르기</button><button class="b" data-tool="split" type="button">✂ 나누기</button></div>
+            <div class="row" style="margin-top:6px"><button class="b" data-tool="mid" type="button">✂ 가운데 지우기</button><button class="b" data-tool="pts" type="button">✏️ 점 고치기</button></div>
             <div class="row" style="margin-top:6px"><button class="b" data-tool="join" type="button">🔗 잇기</button><button class="b" id="revBtn" type="button">↔ 뒤집기</button></div>
             <div class="row" style="margin-top:6px"><button class="b" id="undoBtn" type="button" disabled>↶ 되돌리기</button><button class="b" id="delBtn" type="button">🗑 목록에서 빼기</button></div>
             <div id="toolBox"></div>

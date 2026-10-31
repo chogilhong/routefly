@@ -1578,3 +1578,18 @@ eq("favJoinExtra 제목이 없으면 지금 이름의 길", [RF.favJoinExtra("#c
     var bad = ""; try { RF.gpxTracks("<html/>"); } catch (e) { bad = e.message; }
     eq("gpxTracks GPX 아님", bad, "GPX 파일이 아닙니다.");
 })();
+// GPX 편집 2 · 3단계 - 가운데 지우기 · OSM 길 따라 잇기(2026-10-31). 노드 · 길은 테스트 데이터
+(function () {
+    var tr = []; for (var i = 0; i < 11; i++) tr.push([37 + i * 0.001, 127, null, null]);
+    var cm = RF.cutMiddle(tr, 300, 650);
+    eq("cutMiddle 앞 0~300m · 뒤 650m~", [cm.a.length, cm.b.length, cm.b[0][0]], [3, 5, 37.006]);
+    eq("cutMiddle 앞이 너무 짧으면 빈 토막", RF.cutMiddle(tr, 50, 650).a.length, 0);
+    var el = [{ type: "node", id: 1, lat: 37.000, lon: 127.000 }, { type: "node", id: 2, lat: 37.001, lon: 127.002 }, { type: "node", id: 3, lat: 37.002, lon: 127.000 },
+        { type: "node", id: 4, lat: 37.001, lon: 127.0 },
+        { type: "way", id: 10, nodes: [1, 2, 3], tags: { highway: "path" } }, { type: "way", id: 11, nodes: [1, 4, 3], tags: { highway: "path", access: "private" } }];
+    var r = RF.osmRoute(el, [37.0001, 127.0], [37.0019, 127.0]);
+    eq("osmRoute 출입금지 지름길 말고 2 를 지남", [r.pts.length, r.pts[1][1], r.snap], [3, 127.002, [11, 11]]);
+    eq("osmRoute 길이 멀면", /200m 안에 길이 없습니다/.test(RF.osmRoute(el, [37.01, 127], [37.002, 127]).error), true);
+    eq("osmRoute 이어지지 않음", RF.osmRoute([{ type: "node", id: 1, lat: 37, lon: 127 }, { type: "node", id: 2, lat: 37.001, lon: 127 }, { type: "node", id: 3, lat: 37.0015, lon: 127 }, { type: "node", id: 4, lat: 37.002, lon: 127 },
+        { type: "way", nodes: [1, 2] }, { type: "way", nodes: [3, 4] }], [37, 127], [37.002, 127]).error, "두 점을 잇는 길이 없습니다.");
+})();

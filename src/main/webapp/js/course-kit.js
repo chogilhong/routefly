@@ -3686,6 +3686,67 @@
         return x.concat(y);
     }
 
+    /** 순수 함수 - 가운데(d0 ~ d1 m)를 뺀 앞 · 뒤 두 토막(GPX 편집 "가운데 지우기", 2026-10-31). 한쪽이 점 2개 안 되면 그 토막은 빈 배열. */
+    function cutMiddle(track, d0, d1) {
+        var t = track || [], d = 0, a = [], b = [];
+        for (var i = 0; i < t.length; i++) {
+            if (i) d += distM(t[i - 1][0], t[i - 1][1], t[i][0], t[i][1]);
+            if (d <= d0) a.push(t[i]); else if (d >= d1) b.push(t[i]);
+        }
+        return { a: a.length > 1 ? a : [], b: b.length > 1 ? b : [] };
+    }
+
+    /** 걸을 수 있는 OSM 길 종류(GPX 편집 길 그리기 - Overpass 질의 · 길 찾기, tools/park-gaps 와 같은 범위). */
+    var WALK_WAYS = "path|footway|steps|track|bridleway|pedestrian|cycleway|residential|unclassified|service|living_street|tertiary";
+
+    /**
+     * 순수 함수 - Overpass 답(elements: way{nodes, tags} · node{id, lat, lon})에서 from → to([위도, 경도]) 가장 짧은 걷는 길(GPX 편집 3단계, 2026-10-31 홍TV님).
+     * 출입금지(access · foot = no · private)는 뺌. 처음 · 끝은 snapM(기본 200m) 안의 가장 가까운 길 점에 붙임. 다익스트라(이진 힙).
+     * → {pts:[[위도, 경도]…], dist(m, 붙는 거리 포함), snap:[처음 m, 끝 m]} 또는 {error}.
+     */
+    function osmRoute(elements, from, to, snapM) {
+        var lim = snapM || 200, nodes = {}, adj = {};
+        (elements || []).forEach(function (e) { if (e.type === "node") nodes[e.id] = [e.lat, e.lon]; });
+        (elements || []).forEach(function (w) {
+            if (w.type !== "way" || !w.nodes || w.nodes.length < 2) return;
+            var g = w.tags || {};
+            if (/^(no|private)$/.test(String(g.access || g.foot || ""))) return;
+            for (var i = 1; i < w.nodes.length; i++) {
+                var a = w.nodes[i - 1], b = w.nodes[i];
+                if (!nodes[a] || !nodes[b]) continue;
+                var m = distM(nodes[a][0], nodes[a][1], nodes[b][0], nodes[b][1]);
+                (adj[a] = adj[a] || []).push([b, m]);
+                (adj[b] = adj[b] || []).push([a, m]);
+            }
+        });
+        var ids = Object.keys(adj);
+        if (!ids.length) return { error: "둘레에 걷는 길이 없습니다." };
+        var near = function (p) { var best = null, bd = Infinity; ids.forEach(function (id) { var x = distM(p[0], p[1], nodes[id][0], nodes[id][1]); if (x < bd) { bd = x; best = id; } }); return [best, bd]; };
+        var s = near(from), t = near(to);
+        if (s[1] > lim || t[1] > lim) return { error: "찍은 자리 " + lim + "m 안에 길이 없습니다(" + Math.round(Math.max(s[1], t[1])) + "m)." };
+        var dist = {}, prev = {}, heap = [[0, s[0]]];
+        dist[s[0]] = 0;
+        var pushH = function (x) { heap.push(x); var i = heap.length - 1; while (i) { var p = (i - 1) >> 1; if (heap[p][0] <= heap[i][0]) break; var tmp = heap[p]; heap[p] = heap[i]; heap[i] = tmp; i = p; } };
+        var popH = function () {
+            var top = heap[0], last = heap.pop();
+            if (heap.length) { heap[0] = last; var i = 0; for (;;) { var l = 2 * i + 1, r = l + 1, m = i; if (l < heap.length && heap[l][0] < heap[m][0]) m = l; if (r < heap.length && heap[r][0] < heap[m][0]) m = r; if (m === i) break; var tmp = heap[m]; heap[m] = heap[i]; heap[i] = tmp; i = m; } }
+            return top;
+        };
+        while (heap.length) {
+            var cu = popH(), u = cu[1];
+            if (cu[0] > dist[u]) continue;
+            if (u === t[0]) break;
+            adj[u].forEach(function (e) {
+                var v = String(e[0]), nd = dist[u] + e[1];
+                if (dist[v] === undefined || nd < dist[v]) { dist[v] = nd; prev[v] = u; pushH([nd, v]); }
+            });
+        }
+        if (dist[t[0]] === undefined) return { error: "두 점을 잇는 길이 없습니다." };
+        var seq = [t[0]];
+        while (seq[0] !== s[0]) seq.unshift(prev[seq[0]]);
+        return { pts: seq.map(function (id) { return [nodes[id][0], nodes[id][1]]; }), dist: dist[t[0]] + s[1] + t[1], snap: [Math.round(s[1]), Math.round(t[1])] };
+    }
+
     /** 순수 함수 - 길 → GPX 1.1 글(이름 · 종류 · 점마다 높이 · 시각이 있으면). */
     function trackGpx(name, kind, track) {
         var esc = function (x) { return String(x).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); };
@@ -5767,7 +5828,7 @@
 
     global.RF = {
         LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, regionNames: regionNames, stampKey: stampKey, summitName: summitName, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakGapM: peakGapM, peakCourses: peakCourses, isClosedTrail: isClosedTrail, isHiddenCourse: isHiddenCourse, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
-        nextPoi: nextPoi, snap: snap, fillTrackEle: fillTrackEle, trimTrack: trimTrack, gpxTracks: gpxTracks, trackStats: trackStats, splitTrack: splitTrack, joinTracks: joinTracks, trackGpx: trackGpx, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
+        nextPoi: nextPoi, snap: snap, fillTrackEle: fillTrackEle, trimTrack: trimTrack, gpxTracks: gpxTracks, trackStats: trackStats, splitTrack: splitTrack, joinTracks: joinTracks, trackGpx: trackGpx, cutMiddle: cutMiddle, osmRoute: osmRoute, WALK_WAYS: WALK_WAYS, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
         sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, wxCols: wxCols, wxTable: wxTable, kmaLink: kmaLink, pcpText: pcpText, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap,
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },
         cellCenter: cellCenter, warnName: warnName, safetyRows: safetyRows, safetyAlert: safetyAlert, safetyRender: safetyRender,

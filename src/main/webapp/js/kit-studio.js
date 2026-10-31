@@ -57,6 +57,24 @@
 
     // 2026-10-09 점검: 남이 준 파일이라 크기 · 지점 수에 한도(지점마다 모든 점을 훑어서, 지점이 아주 많으면 화면이 멈춤)
     var GPX_MAX_CHARS = 30 * 1024 * 1024, GPX_MAX_WPT = 1000;
+    function indexAt(c, d) {
+        var dist = c.dist, lo = 0, hi = dist.length - 1;
+        if (d <= 0) return 0;
+        if (d >= c.total) return hi;
+        while (hi - lo > 1) {
+            var mid = (lo + hi) >> 1;
+            if (dist[mid] <= d) lo = mid; else hi = mid;
+        }
+        return lo;
+    }
+
+    /** 순수 함수 - 걸음 수 추정. 보폭 = 키 × 0.415(등산은 오르내림으로 10% 짧게). 자전거는 null. */
+    function steps(kind, cm, distM) {
+        if (kind === "bike") return null;
+        var stride = cm / 100 * 0.415 * (kind === "walk" ? 1 : 0.9);
+        return Math.round(distM / stride);
+    }
+
     /**
      * 순수 함수 - GPX 글 → 길마다 {name, track:[[위도, 경도, 시각ms|null, 높이|null]]}(GPX 편집 studio.html, 2026-10-31 홍TV님).
      * trk 하나가 길 하나(조각 trkseg 는 이어 붙임), trk 가 없으면 rte. 점은 솎지 않음(편집용). 브라우저 없이도 돌게 정규식으로.
@@ -113,6 +131,67 @@
         return x.concat(y);
     }
 
+    /** 순수 함수 - 가운데(d0 ~ d1 m)를 뺀 앞 · 뒤 두 토막(GPX 편집 "가운데 지우기", 2026-10-31). 한쪽이 점 2개 안 되면 그 토막은 빈 배열. */
+    function cutMiddle(track, d0, d1) {
+        var t = track || [], d = 0, a = [], b = [];
+        for (var i = 0; i < t.length; i++) {
+            if (i) d += distM(t[i - 1][0], t[i - 1][1], t[i][0], t[i][1]);
+            if (d <= d0) a.push(t[i]); else if (d >= d1) b.push(t[i]);
+        }
+        return { a: a.length > 1 ? a : [], b: b.length > 1 ? b : [] };
+    }
+
+    /** 걸을 수 있는 OSM 길 종류(GPX 편집 길 그리기 - Overpass 질의 · 길 찾기, tools/park-gaps 와 같은 범위). */
+    var WALK_WAYS = "path|footway|steps|track|bridleway|pedestrian|cycleway|residential|unclassified|service|living_street|tertiary";
+
+    /**
+     * 순수 함수 - Overpass 답(elements: way{nodes, tags} · node{id, lat, lon})에서 from → to([위도, 경도]) 가장 짧은 걷는 길(GPX 편집 3단계, 2026-10-31 홍TV님).
+     * 출입금지(access · foot = no · private)는 뺌. 처음 · 끝은 snapM(기본 200m) 안의 가장 가까운 길 점에 붙임. 다익스트라(이진 힙).
+     * → {pts:[[위도, 경도]…], dist(m, 붙는 거리 포함), snap:[처음 m, 끝 m]} 또는 {error}.
+     */
+    function osmRoute(elements, from, to, snapM) {
+        var lim = snapM || 200, nodes = {}, adj = {};
+        (elements || []).forEach(function (e) { if (e.type === "node") nodes[e.id] = [e.lat, e.lon]; });
+        (elements || []).forEach(function (w) {
+            if (w.type !== "way" || !w.nodes || w.nodes.length < 2) return;
+            var g = w.tags || {};
+            if (/^(no|private)$/.test(String(g.access || g.foot || ""))) return;
+            for (var i = 1; i < w.nodes.length; i++) {
+                var a = w.nodes[i - 1], b = w.nodes[i];
+                if (!nodes[a] || !nodes[b]) continue;
+                var m = distM(nodes[a][0], nodes[a][1], nodes[b][0], nodes[b][1]);
+                (adj[a] = adj[a] || []).push([b, m]);
+                (adj[b] = adj[b] || []).push([a, m]);
+            }
+        });
+        var ids = Object.keys(adj);
+        if (!ids.length) return { error: "둘레에 걷는 길이 없습니다." };
+        var near = function (p) { var best = null, bd = Infinity; ids.forEach(function (id) { var x = distM(p[0], p[1], nodes[id][0], nodes[id][1]); if (x < bd) { bd = x; best = id; } }); return [best, bd]; };
+        var s = near(from), t = near(to);
+        if (s[1] > lim || t[1] > lim) return { error: "찍은 자리 " + lim + "m 안에 길이 없습니다(" + Math.round(Math.max(s[1], t[1])) + "m)." };
+        var dist = {}, prev = {}, heap = [[0, s[0]]];
+        dist[s[0]] = 0;
+        var pushH = function (x) { heap.push(x); var i = heap.length - 1; while (i) { var p = (i - 1) >> 1; if (heap[p][0] <= heap[i][0]) break; var tmp = heap[p]; heap[p] = heap[i]; heap[i] = tmp; i = p; } };
+        var popH = function () {
+            var top = heap[0], last = heap.pop();
+            if (heap.length) { heap[0] = last; var i = 0; for (;;) { var l = 2 * i + 1, r = l + 1, m = i; if (l < heap.length && heap[l][0] < heap[m][0]) m = l; if (r < heap.length && heap[r][0] < heap[m][0]) m = r; if (m === i) break; var tmp = heap[m]; heap[m] = heap[i]; heap[i] = tmp; i = m; } }
+            return top;
+        };
+        while (heap.length) {
+            var cu = popH(), u = cu[1];
+            if (cu[0] > dist[u]) continue;
+            if (u === t[0]) break;
+            adj[u].forEach(function (e) {
+                var v = String(e[0]), nd = dist[u] + e[1];
+                if (dist[v] === undefined || nd < dist[v]) { dist[v] = nd; prev[v] = u; pushH([nd, v]); }
+            });
+        }
+        if (dist[t[0]] === undefined) return { error: "두 점을 잇는 길이 없습니다." };
+        var seq = [t[0]];
+        while (seq[0] !== s[0]) seq.unshift(prev[seq[0]]);
+        return { pts: seq.map(function (id) { return [nodes[id][0], nodes[id][1]]; }), dist: dist[t[0]] + s[1] + t[1], snap: [Math.round(s[1]), Math.round(t[1])] };
+    }
+
     /** 순수 함수 - 길 → GPX 1.1 글(이름 · 종류 · 점마다 높이 · 시각이 있으면). */
     function trackGpx(name, kind, track) {
         var esc = function (x) { return String(x).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); };
@@ -136,6 +215,44 @@
         while (b >= 0 && total - cum[b] < (cut1 || 0)) b--;
         var ok = b - a >= 1;
         return { track: ok ? t.slice(a, b + 1) : [], from: a, to: b, total: total, kept: ok ? cum[b] - cum[a] : 0 };
+    }
+
+    /**
+     * GPS 위치 → 코스 위 진행 거리 d 와 코스에서 벗어난 거리 off(m).
+     * 같은 길을 오가거나 도는 코스에서 엉뚱한 쪽에 붙지 않게, 지난 자리(prevD) 앞뒤 800m 를 먼저 보고
+     * 거기서 멀면(80m 넘게) 전체에서 다시 찾습니다.
+     */
+    function snap(c, lat, lon, prevD) {
+        var kx = 111320 * Math.cos(lat * Math.PI / 180), ky = 110540;
+        function search(i0, i1) {
+            var best = { d: 0, off: Infinity }, cands = [];
+            for (var i = Math.max(0, i0); i < Math.min(c.lon.length - 1, i1); i++) {
+                var ax = (c.lon[i] - lon) * kx, ay = (c.lat[i] - lat) * ky;
+                var bx = (c.lon[i + 1] - lon) * kx, by = (c.lat[i + 1] - lat) * ky;
+                var dx = bx - ax, dy = by - ay, len2 = dx * dx + dy * dy;
+                var t = len2 > 0 ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / len2)) : 0;
+                var px = ax + dx * t, py = ay + dy * t, off = Math.sqrt(px * px + py * py);
+                var cand = { d: c.dist[i] + (c.dist[i + 1] - c.dist[i]) * t, off: off };
+                if (off < best.off) best = cand;
+                if (prevD != null) cands.push(cand);
+            }
+            // 같은 길을 갔다가 되돌아오는 코스(갔던 길로 내려옴)에서는 두 자리가 똑같이 가깝습니다 - 지난 자리에 가까운 쪽으로
+            // (먼저 지나간 자리에 붙으면 진행 거리가 뒤로 튀어 "되돌아감" 으로 잘못 봅니다)
+            if (prevD != null) {
+                var minOff = best.off;
+                cands.forEach(function (q) {
+                    if (q.off <= minOff + 10 && Math.abs(q.d - prevD) < Math.abs(best.d - prevD)) best = q;
+                });
+            }
+            return best;
+        }
+        if (prevD != null && isFinite(prevD)) {
+            var near = search(indexAt(c, prevD - 800), indexAt(c, prevD + 800) + 1);
+            if (near.off <= 80) return near;
+            var all = search(0, c.lon.length);
+            return all.off + 30 < near.off ? all : near;
+        }
+        return search(0, c.lon.length);
     }
 
     /** 종류별 이름 · 표준 빠르기 - 예상 시간에 씁니다. 등산 · 걷기는 오르막 600m/h 를 더합니다(네이스미스). */
@@ -187,6 +304,9 @@
         splitTrack: splitTrack,
         joinTracks: joinTracks,
         trackGpx: trackGpx,
+        cutMiddle: cutMiddle,
+        osmRoute: osmRoute,
+        WALK_WAYS: WALK_WAYS,
         distM: distM
     };
 })(window);
