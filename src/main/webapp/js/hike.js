@@ -1302,6 +1302,7 @@
         rec.kcal = ef.kcal;
         rec.steps = ef.steps;
         rec.up = Math.max(ef.up, RF.trackClimb(hike.track));   // 코스 밖(새 길 · 들머리 가는 길)도 GPS 높이로(2026-10-17 송산 0m)
+        rec.track = RF.fillTrackEle(c, hike.track);   // GPX 보내기에 높이 - GPS 높이가 없는 점은 코스 지형 높이로(2026-10-31 홍TV님 gpx.studio 높이 0)
         var tip = document.querySelector("#doneSheet .tip");   // 시험 걷기는 "기록은 이 핸드폰에 남습니다" 안내를 숨김(2026-10-28 PC)
         if (tip) tip.hidden = !!sim;
         $("doneTitle").textContent = sim ? T("🧪 시험 걷기 끝 - 기록은 남기지 않습니다", "🧪 Test walk done - not saved") : T(K().act + " 기록", K().act + " record");

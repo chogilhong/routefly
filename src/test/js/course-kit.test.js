@@ -1544,3 +1544,11 @@ eq("joinHashExtra", [RF.joinHashExtra("#c=a,b&title=%EB%B0%A4&head=x&from=hike")
 })();
 eq("favJoinExtra 제목이 없으면 지금 이름의 길", [RF.favJoinExtra("#c=a,b&head=%EB%B0%A4", "북한산 · 밤골입구 → 백운대 → 밤골입구"), RF.favJoinExtra("#c=a,b&title=x&head=y", "북한산 · 가 → 나")],
     ["&head=%EB%B0%A4&title=" + encodeURIComponent("밤골입구 → 백운대 → 밤골입구"), "&title=x&head=y"]);
+// 기록 높이 채우기 - GPS 높이가 없는 점만 코스 지형 높이로, 코스에서 100m 넘게 먼 점은 그대로(2026-10-31 홍TV님 gpx.studio). 좌표는 테스트 데이터
+(function () {
+    var fc = RF.fromApi("a", { course: { name: "시험 코스" }, points: [[127, 35, 100, 0], [127, 35.01, 300, 1112]], pois: [] });
+    var tr = [[35.005, 127, 1000, null], [35.005, 127, 2000, 250], [35.005, 127.01, 3000, null]];
+    var out = RF.fillTrackEle(fc, tr);
+    eq("fillTrackEle 빈 높이만 코스로 · 먼 점 · 있는 높이는 그대로", [Math.abs(out[0][3] - 200) <= 2, out[1][3], out[2][3], tr[0][3], out[0][2]], [true, 250, null, null, 1000]);
+    eq("fillTrackEle 코스 없으면 그대로", RF.fillTrackEle(null, tr)[0][3], null);
+})();
