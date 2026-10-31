@@ -1075,10 +1075,15 @@
                         bounds: [[Math.min.apply(null, lo), Math.min.apply(null, la)], [Math.max.apply(null, lo), Math.max.apply(null, la)]], fitBoundsOptions: { padding: 28 } });
                     tm.touchZoomRotate.disableRotation();
                     tm.addControl(new maplibregl.AttributionControl({ compact: true }), "top-right");   // 아래 오른쪽이면 출발점(초록)을 가렸음(2026-10-31 PC)
+                    // 출처는 ⓘ 로 접어 둠(MapLibre 는 처음에 펼쳐 둠 - 펼친 상자가 위 오른쪽 끝점을 가릴 수 있었음, 2026-10-31 PC). 누르면 펼쳐짐
+                    var foldT = function () { var a = box.querySelector(".maplibregl-ctrl-attrib"); if (a) a.classList.remove("maplibregl-compact-show"); };
+                    foldT();
+                    tm.once("styledata", foldT);
                     var bb = [[Math.min.apply(null, lo), Math.min.apply(null, la)], [Math.max.apply(null, lo), Math.max.apply(null, la)]];
                     tm.on("load", function () {
                         // 처음 열 때 선 전체에 맞춤 - 창이 막 붙은 때라 크기가 덜 잡혀 출발점이 밖으로 벗어나 보였음(2026-10-31 PC)
                         tm.resize();
+                        foldT();
                         tm.fitBounds(bb, { padding: { top: 40, bottom: 28, left: 28, right: 40 }, duration: 0 });
                         tm.addSource("tAll", { type: "geojson", data: geo(0, t.length - 1) });
                         tm.addSource("tKeep", { type: "geojson", data: geo(0, t.length - 1) });
