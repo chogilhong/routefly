@@ -1030,6 +1030,26 @@
         });
     }
 
+    // 내 기록 → 코스로 올리기(관리자만, 2026-10-31 홍TV님). 서버가 점만 다시 써 올림 폴더에 두면 배치(courseImport)가 매시 :07 에 코스로
+    var upOwner = false, upOwnerP = null;
+    function uploadCourse(r) {
+        hAskText(T("코스로 올릴 이름(목록에 이대로 보임)\n예: 송산 · 송산리 마을회관 → 송산 정상", "Course name as shown in the list\ne.g. Songsan · village hall → summit"), NM(r.name), { ok: T("다음", "Next") }).then(function (name) {
+            name = String(name || "").trim();
+            if (!name) return;
+            var kind = /^(hike|walk|bike)$/.test(r.kind) ? r.kind : "hike";
+            return hAsk(T("\"" + name + "\" 을(를) routefly 코스로 올릴까요?\n\n누구나 보는 코스가 됩니다. 집 근처에서 시작 · 끝난 기록이면 먼저 그 부분을 잘라 주세요(gpx.studio).\n시각 · 사진 메모는 올라가지 않고 선 모양만 올라갑니다. 1시간 안(매시 7분)에 코스 목록에 들어갑니다.",
+                "Upload \"" + name + "\" as a routefly course?\n\nEveryone will see it. If it starts or ends near your home, trim that part first (gpx.studio).\nOnly the line is uploaded - no times or photo notes. It appears in the list within an hour (at :07)."), { ok: T("올리기", "Upload") }).then(function (ok) {
+                if (!ok) return;
+                return fetch("api/course-upload", { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify({ name: name, kind: kind, gpx: toGpx(r) }) })
+                    .then(function (res) { return res.json().catch(function () { return { success: false, message: "HTTP " + res.status }; }); })
+                    .then(function (j) {
+                        if (!j || j.success === false) throw new Error(j && j.message || "?");
+                        toast(T("⬆ 올렸습니다 - 1시간 안(매시 7분)에 코스 목록에 들어갑니다. 코스 ID " + j.id, "⬆ Uploaded - it appears within an hour (at :07). Course ID " + j.id), 8000);
+                    });
+            });
+        }).catch(function (e) { toast(T("올리지 못했습니다: ", "Upload failed: ") + (e && e.message || e), 6000); });
+    }
+
     /** 순수 함수 - 기록 → GPX 1.1 글. */
     function toGpx(rec) {
         var esc = function (x) { return String(x).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); };
@@ -1476,6 +1496,9 @@
 
     function drawRecords() {
         var box = $("recList"), list = records();
+        if (upOwnerP == null) {   // 처음 열 때 한 번만 물음(관리자 기기인가) - 맞으면 단추를 넣어 다시 그림
+            upOwnerP = getJson("api/course-upload").then(function (j) { upOwner = !!j.owner; if (upOwner) drawRecords(); }).catch(function () { /* 남으로 */ });
+        }
         box.innerHTML = "";
         drawRecStats(list);
         if (!list.length) {
@@ -1512,7 +1535,13 @@
                 });
             };
             if (info) row.appendChild(info);
-            row.appendChild(v); row.appendChild(g); row.appendChild(x);
+            row.appendChild(v); row.appendChild(g);
+            if (upOwner) {   // 관리자(운영자) 기기만 - 이 기록을 코스로 올리기(2026-10-31 홍TV님 "일단 나만 보이게")
+                var u = document.createElement("button"); u.textContent = T("⬆ 코스로", "⬆ Course"); u.title = T("이 기록을 routefly 코스로 올리기(관리자만)", "Upload this record as a routefly course (admin only)");
+                u.onclick = function () { uploadCourse(r); };
+                row.appendChild(u);
+            }
+            row.appendChild(x);
             box.appendChild(row);
         });
         $("recSheet").style.display = "flex";
