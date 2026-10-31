@@ -1617,7 +1617,7 @@
             sp.textContent = d.getFullYear() + "." + (d.getMonth() + 1) + "." + d.getDate() + " · " + km(RF.recDist(r)) + "km · " + hhmmss(r.end - r.start)
                 + (r.kcal != null ? " · " + num(r.kcal) + "kcal" : "") + (r.steps != null ? " · " + num(r.steps) + T("보", " steps") : "");
             info.appendChild(b); info.appendChild(sp);
-            var g = document.createElement("button"); g.textContent = canShareFiles() ? "📤 GPX" : "GPX"; g.title = T("GPX 파일 보내기 · 저장", "Send or save GPX file"); g.onclick = function () { downloadGpx(r); };
+            var g = document.createElement("button"); g.textContent = T("📤 보내기", "📤 Send"); g.title = T("이 기록 보내기 - routefly 기록(친구) · GPX 파일", "Send this record - routefly record (friend) or GPX file"); g.onclick = function () { sendSheet(r); };
             if (r.notes && r.notes.length) {
                 var nb = document.createElement("button"); nb.textContent = "📝 " + r.notes.length; nb.title = T("사진 · 메모 보기", "View photos · notes");
                 nb.onclick = function () { showNotes(r); };
@@ -1675,15 +1675,15 @@
      * 불러오기는 지금 기록에 합칩니다(같은 기록은 하나로, 최근 REC_MAX 개).
      */
     /** 백업 내용 만들기(파일 · QR 옮기기가 같이 씀). */
-    function buildBackup() {
+    function buildBackup(only) {   // only - 고른 기록만(친구에게 보내기, 2026-10-31): 도장 · 찜 · 결산 같은 내 것(ls)은 빼고 그 기록과 사진만
         return recordsReady.then(function () {
-            var recs = records(), photos = {};
+            var recs = only || records(), photos = {};
             return Promise.all(RF.photoIds(recs).map(function (id) {
                 return photoGet(id).then(function (b) { return b ? blobToBase64(b).then(function (s) { photos[id] = s; }) : null; }, function () { /* 없는 사진 */ });
             })).then(function () {
                 var ls = {};
-                RF.BACKUP_KEYS.forEach(function (k) { try { var v = localStorage.getItem(k); if (v) ls[k] = JSON.parse(v); } catch (e) { /* 깨진 값은 뺌 */ } });
-                return { app: "routefly", v: 1, at: now(), records: recs, photos: photos, ls: ls };
+                if (!only) RF.BACKUP_KEYS.forEach(function (k) { try { var v = localStorage.getItem(k); if (v) ls[k] = JSON.parse(v); } catch (e) { /* 깨진 값은 뺌 */ } });
+                return { app: "routefly", v: 1, at: now(), kind: only ? "records" : "backup", records: recs, photos: photos, ls: ls };
             });
         });
     }
@@ -1693,14 +1693,54 @@
             var name = "routefly-backup-" + d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0") + ".json";
             toast(EN ? "Backup file: " + o.records.length + " records · " + Object.keys(o.photos).length + " photos - in the share window pick where to keep it (Drive, email, your files, a chat to yourself)."
                 : "백업 파일: 기록 " + o.records.length + "개 · 사진 " + Object.keys(o.photos).length + "장 - 열리는 공유 창에서 드라이브 · 카톡 '나와의 채팅' · 메일 · 내 파일 중 둘 곳을 고르세요.", 8000);   // 2026-10-17 홍TV님: 백업 저장을 누르니 카톡이 열려 당황 - 공유 창으로 둘 곳을 고르는 것
-            if (FS && SHARE) return nativeShareFile(name, btoa(unescape(encodeURIComponent(text))), T("routefly 백업", "routefly backup"));
-            var f = null;
-            try { f = new File([text], name, { type: "application/json" }); if (!(navigator.canShare && navigator.canShare({ files: [f] }))) f = null; } catch (e) { f = null; }
-            if (f) return navigator.share({ files: [f], title: T("routefly 백업", "routefly backup") }).catch(function (e) {
-                if (!(e && e.name === "AbortError")) saveFile(text, name, "application/json");
-            });
-            saveFile(text, name, "application/json");
+            return shareJson(text, name, T("routefly 백업", "routefly backup"));
         }).catch(function (e) { toast(T("백업을 만들지 못했습니다: ", "Could not make the backup: ") + (e && e.message || e), 6000); });
+    }
+    /** JSON 파일을 공유 창으로(앱 · 핸드폰), 안 되면 내려받기. */
+    function shareJson(text, name, title) {
+        if (FS && SHARE) return nativeShareFile(name, btoa(unescape(encodeURIComponent(text))), title);
+        var f = null;
+        try { f = new File([text], name, { type: "application/json" }); if (!(navigator.canShare && navigator.canShare({ files: [f] }))) f = null; } catch (e) { f = null; }
+        if (f) return navigator.share({ files: [f], title: title }).catch(function (e) {
+            if (!(e && e.name === "AbortError")) saveFile(text, name, "application/json");
+        });
+        saveFile(text, name, "application/json");
+    }
+    /**
+     * 기록 하나를 친구에게(2026-10-31 홍TV님 "기록 하나만 보내 주기 - 해야겠는데") - 그 기록 · 사진만 든 routefly 파일.
+     * 받는 사람은 routefly → 📒 내 기록 → 📂 백업 불러오기로 넣음(자기 기록에 합쳐짐, 도장 · 찜은 건드리지 않음).
+     */
+    function shareRecord(r) {
+        buildBackup([r]).then(function (o) {
+            var d = new Date(r.start), name = "routefly-record-" + d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0") + "-" + gpxSlug(r) + ".json";
+            toast(T("기록 파일(사진 " + Object.keys(o.photos).length + "장) - 받는 사람은 routefly → 📒 내 기록 → 📂 백업 불러오기로 넣습니다.",
+                "Record file (" + Object.keys(o.photos).length + " photos) - the receiver opens routefly → 📒 My records → 📂 Restore backup."), 8000);
+            return shareJson(JSON.stringify(o), name, NM(r.name) + T(" - routefly 기록", " - routefly record"));
+        }).catch(function (e) { toast(T("기록을 보내지 못했습니다: ", "Could not send the record: ") + (e && e.message || e), 6000); });
+    }
+    /** 보내기 고르기 - routefly 기록으로(사진 포함) / GPX 파일로. */
+    function sendSheet(r) {
+        var wrap = document.createElement("div");
+        wrap.setAttribute("role", "dialog");
+        wrap.setAttribute("aria-label", T("기록 보내기", "Send record"));
+        wrap.style.cssText = "position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:12px";
+        var box = document.createElement("div");
+        box.style.cssText = "background:#1b2430;color:#e9eef4;border-radius:14px;padding:14px;width:min(420px,100%);font-size:15px";
+        var bs = "display:block;width:100%;text-align:left;margin:8px 0 0;padding:12px;line-height:1.4";
+        box.innerHTML = '<b style="font-size:17px">' + T("📤 기록 보내기", "📤 Send record") + '</b><p class="tip" style="margin:6px 0 0"></p>'
+            + '<button type="button" class="a" style="' + bs + '"><b>' + T("🎁 routefly 기록으로", "🎁 As a routefly record") + '</b><br><span class="tip">' + T("함께 간 친구에게 - 사진까지, 친구 routefly 내 기록에 그대로", "For a friend - with photos, straight into their routefly records") + '</span></button>'
+            + '<button type="button" class="g" style="' + bs + '"><b>' + T("🗺 GPX 파일로", "🗺 As a GPX file") + '</b><br><span class="tip">' + T("다른 등산 앱 · 지도(gpx.studio)에서 열기 - 선 · 시각 · 높이만", "Open in other apps or maps (gpx.studio) - line, times, elevation only") + '</span></button>'
+            + '<button type="button" class="n" style="display:block;width:100%;margin:12px 0 0">' + T("닫기", "Close") + '</button>';
+        box.querySelector("p").textContent = NM(r.name);
+        wrap.appendChild(box);
+        document.body.appendChild(wrap);
+        function close() { wrap.remove(); }
+        box.querySelector(".a").onclick = function () { close(); shareRecord(r); };
+        box.querySelector(".g").onclick = function () { close(); downloadGpx(r); };
+        box.querySelector(".n").onclick = close;
+        wrap.addEventListener("click", function (e) { if (e.target === wrap) close(); });
+        wrap.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+        box.querySelector(".a").focus();
     }
     function b64Blob(s, type) {
         var bin = atob(s), u = new Uint8Array(bin.length);
@@ -1723,7 +1763,9 @@
             var bad = RF.backupCheck(o);
             if (bad) { toast(bad, 6000); return; }
             var photos = o.photos && typeof o.photos === "object" ? o.photos : {};
-            hAsk(EN ? "Merge this backup (" + o.records.length + " records · " + Object.keys(photos).length + " photos) into this device?\nYour current records are kept (up to the latest " + REC_MAX + ")."
+            var one = o.kind === "records";   // 친구가 보낸 기록 파일
+            hAsk(one ? T("받은 기록(" + o.records.map(function (x) { return NM(x.name); }).slice(0, 3).join(", ") + " · 사진 " + Object.keys(photos).length + "장)을 내 기록에 넣을까요?\n지금 기록은 지우지 않습니다.",
+                "Add the received record (" + o.records.map(function (x) { return NM(x.name); }).slice(0, 3).join(", ") + " · " + Object.keys(photos).length + " photos) to your records?\nYour current records are kept.") : EN ? "Merge this backup (" + o.records.length + " records · " + Object.keys(photos).length + " photos) into this device?\nYour current records are kept (up to the latest " + REC_MAX + ")."
                 : "백업(기록 " + o.records.length + "개 · 사진 " + Object.keys(photos).length + "장)을 이 기기에 합칠까요?\n지금 기록은 지우지 않습니다(기록은 최근 " + REC_MAX + "개까지).", { ok: T("합치기", "Merge") }).then(function (ok) {
             if (!ok) return;
             return recordsReady.then(function () {
@@ -1741,7 +1783,7 @@
                 });
                 addLog(records().map(RF.logEntry));   // 백업의 기록도 결산에
                 drawRecords();
-                toast(T("백업을 불러왔습니다.", "Backup restored."), 4000);
+                toast(one ? T("받은 기록을 내 기록에 넣었습니다.", "Added the received record.") : T("백업을 불러왔습니다.", "Backup restored."), 4000);
             });
             }).catch(function (e) { toast(T("백업을 불러오지 못했습니다: ", "Could not restore the backup: ") + (e && e.message || e), 6000); });
         }
