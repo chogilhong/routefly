@@ -138,7 +138,50 @@ final class CourseQueries {
      */
     static JsonArray list(Connection c, double[] bbox, String kind, String q) throws Exception {
         Sql s = listSql(bbox, kind, q);
-        return Json.rows(c, s.sql(), s.params());
+        JsonArray rows = Json.rows(c, s.sql(), s.params());
+        if (q != null || bbox == null) rows = naturalSorted(rows, q);   // 지도 범위만 볼 때는 가까운 순 그대로
+        return rows;
+    }
+
+    /**
+     * 순수 함수 - 이름 안의 숫자는 숫자 크기로("해파랑길 1 · 2 · … · 9 · 10 · 50코스", 2026-10-31 홍TV님 - 예전엔 글자 순이라 1 · 10 · 11 … 4 · 49 · 5 · 50).
+     * 검색어로 시작하는 이름이 먼저(listSql 과 같은 규칙)는 그대로 둡니다.
+     */
+    static JsonArray naturalSorted(JsonArray rows, String q) {
+        List<com.google.gson.JsonElement> a = new ArrayList<>();
+        rows.forEach(a::add);
+        String head = q == null ? null : q.trim().toLowerCase(Locale.ROOT);
+        java.util.Comparator<com.google.gson.JsonElement> byHead = java.util.Comparator.comparingInt(e -> head == null || head.isEmpty() || nameOf(e).toLowerCase(Locale.ROOT).startsWith(head) ? 0 : 1);
+        a.sort(byHead.thenComparing((x, y) -> naturalCompare(nameOf(x), nameOf(y))));
+        JsonArray out = new JsonArray();
+        a.forEach(out::add);
+        return out;
+    }
+
+    private static String nameOf(com.google.gson.JsonElement e) {
+        com.google.gson.JsonElement n = e.isJsonObject() ? e.getAsJsonObject().get("name") : null;
+        return n == null || n.isJsonNull() ? "" : n.getAsString();
+    }
+
+    /** 순수 함수 - 숫자 덩어리는 수로, 나머지는 글자로 견줌("5코스" < "10코스" < "50코스"). */
+    static int naturalCompare(String a, String b) {
+        int i = 0, j = 0;
+        while (i < a.length() && j < b.length()) {
+            char ca = a.charAt(i), cb = b.charAt(j);
+            if (Character.isDigit(ca) && Character.isDigit(cb)) {
+                int si = i, sj = j;
+                while (i < a.length() && Character.isDigit(a.charAt(i))) i++;
+                while (j < b.length() && Character.isDigit(b.charAt(j))) j++;
+                String na = a.substring(si, i).replaceFirst("^0+(?=.)", ""), nb = b.substring(sj, j).replaceFirst("^0+(?=.)", "");
+                int d = na.length() != nb.length() ? Integer.compare(na.length(), nb.length()) : na.compareTo(nb);
+                if (d != 0) return d;
+            } else {
+                if (ca != cb) return Character.compare(ca, cb);
+                i++;
+                j++;
+            }
+        }
+        return Integer.compare(a.length() - i, b.length() - j);
     }
 
     /**
