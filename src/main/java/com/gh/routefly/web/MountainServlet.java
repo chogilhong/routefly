@@ -51,6 +51,15 @@ public class MountainServlet extends HttpServlet {
     private volatile JsonObject parks;
     private volatile JsonArray groups;
 
+    /** 순수 함수 - 주소 조각 풀기(산 이름 · 그림 이름 - 손님이 %EC%84%A4 처럼 두 번 감싼 것도). 잘못된 % 꼴이면 null(2026-11-01 점검: IllegalArgumentException 으로 500 이었음). */
+    static String decode(String s) {
+        try {
+            return URLDecoder.decode(s, StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         String path = req.getPathInfo();
@@ -59,7 +68,9 @@ public class MountainServlet extends HttpServlet {
             resp.sendRedirect(req.getContextPath() + (en ? "/en/m/" : "/m/"));
             return;
         }
-        String name = path == null ? "" : URLDecoder.decode(path.replaceFirst("^/", ""), StandardCharsets.UTF_8).trim();
+        String name = decode(path.replaceFirst("^/", ""));
+        if (name == null) { resp.sendError(HttpServletResponse.SC_NOT_FOUND); return; }   // 잘못된 % 꼴(2026-11-01 점검: 500 이었음)
+        name = name.trim();
         String base = ShareServlet.baseUrl(RouteflyConfig.get("site.baseUrl"), req.getScheme(), req.getServerName(), req.getServerPort(),
                 req.getContextPath(), req.getHeader("X-Forwarded-Proto"));
         resp.setContentType("text/html");

@@ -43,7 +43,8 @@ public class WxServlet extends HttpServlet {
             Json.fail(resp, HttpServletResponse.SC_BAD_REQUEST, "lat · lon 은 우리나라 안 좌표입니다.");
             return;
         }
-        JsonObject out = all(() -> WeatherServlet.forecast(at[0], at[1]), () -> MidServlet.at(at[0], at[1]), () -> AirServlet.at(at[0], at[1]));
+        String ip = SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For"));
+        JsonObject out = all(() -> WeatherServlet.forecast(at[0], at[1], ip), () -> MidServlet.at(at[0], at[1], ip), () -> AirServlet.at(at[0], at[1], ip));
         JsonObject rg = region(at[0], at[1]);   // 기상청 날씨누리 링크용 행정동(2026-10-30 홍TV님) - 못 받으면 없이
         if (rg != null) out.add("region", rg);
         if (partial(out)) Json.write(resp, HttpServletResponse.SC_OK, out, false);

@@ -42,6 +42,8 @@ public class MidServlet extends HttpServlet {
     static final String LAND_URL = "https://apis.data.go.kr/1360000/MidFcstInfoService/getMidLandFcst";
     static final String TA_URL = "https://apis.data.go.kr/1360000/MidFcstInfoService/getMidTa";
     private static final OpenApi.Cache<JsonObject> CACHE = new OpenApi.Cache<>(200, 6L * 60 * 60 * 1000);
+    /** 기억에 없어 바깥에 새로 묻는 횟수 상한 - 주소마다 한 시간 60번, 하루 2,000번(설정 quota.mid.ip · .day, 2026-11-01 점검: 못 받은 답은 기억하지 않아 매번 다시 물었음). */
+    private static final OutQuota QUOTA = OutQuota.of("mid", 60, 2000);
 
     /** 중기육상예보 구역 {코드, 이름}. */
     static final String[][] LAND = {
@@ -67,33 +69,34 @@ public class MidServlet extends HttpServlet {
             Json.fail(resp, HttpServletResponse.SC_BAD_REQUEST, "lat · lon 은 우리나라 안 좌표입니다.");
             return;
         }
-        JsonObject out = at(at[0], at[1]);
+        JsonObject out = at(at[0], at[1], SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For")));
         if (out.has("unavailable")) Json.write(resp, HttpServletResponse.SC_OK, out, false);
         else Json.ok(req, resp, out);
     }
 
-    /** 그 자리 중기예보(키가 없으면 unavailable) - api/wx 도 씀. */
-    static JsonObject at(double lat, double lon) {
+    /** 그 자리 중기예보(키가 없으면 unavailable) - api/wx 도 씀. ip - 손님 주소(상한을 셈). */
+    static JsonObject at(double lat, double lon, String ip) {
         String key = RouteflyConfig.get("weather.serviceKey");
         if (key == null) key = RouteflyConfig.get("tour.serviceKey");
-        return key == null ? unavailable() : answer(key, lat, lon);
+        return key == null ? unavailable() : answer(key, lat, lon, ip);
     }
 
-    private static JsonObject answer(String key, double lat, double lon) {
+    private static JsonObject answer(String key, double lat, double lon, String ip) {
         String land = landOf(AirServlet.regionNear(lat, lon));
         Object[] city = city(lat, lon, land);
         if (land == null) land = (String) city[4];
-        return forLand(key, land, city);
+        return forLand(key, land, city, ip);
     }
 
-    /** 그 구역 · 기온 지점의 중기예보(담아 둔 것이 있으면 그것) - 주말 추천(WeekendServlet)도 씀. 못 받으면 unavailable. */
-    static JsonObject forLand(String key, String land, Object[] city) {
+    /** 그 구역 · 기온 지점의 중기예보(담아 둔 것이 있으면 그것) - 주말 추천(WeekendServlet)도 씀(ip null - 세지 않음). 못 받으면 unavailable. */
+    static JsonObject forLand(String key, String land, Object[] city, String ip) {
         long now = System.currentTimeMillis();
         LocalDateTime t = LocalDateTime.now(WeatherServlet.KST);
         for (String tm : new String[] {tmFc(t), tmFc(t.minusHours(12))}) {   // 막 발표돼 비었으면 앞 발표
             String ck = land + "|" + city[0] + "|" + tm;
             JsonObject hit = CACHE.get(ck, now);
             if (hit != null) return hit;
+            if (ip != null && !QUOTA.allow(ip, now)) return unavailable();   // 상한 - 이 요청만 못 받음(기억하지 않음)
             String a = OpenApi.get(url(LAND_URL, key, land, tm), "MID"), b = a == null ? null : OpenApi.get(url(TA_URL, key, (String) city[0], tm), "MID");
             JsonObject days = a == null || b == null ? null : days(a, b, tm);
             if (days == null || days.size() == 0) {

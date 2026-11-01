@@ -33,6 +33,8 @@ public class TideServlet extends HttpServlet {
     static final String DEFAULT_URL = "https://apis.data.go.kr/1192136/tideFcstHghLw/GetTideFcstHghLwApiService";
     private static final OpenApi.Cache<JsonObject> CACHE = new OpenApi.Cache<>(300, 6L * 60 * 60 * 1000);
     private static final OpenApi.Cache<JsonObject> FAILED = new OpenApi.Cache<>(300, 10L * 60 * 1000);
+    /** 기억에 없어 바깥에 새로 묻는 횟수 상한 - 주소마다 한 시간 60번, 하루 2,000번(설정 quota.tide.ip · .day, 2026-11-01 점검: 아무 지점 번호나 넣어 하루 한도를 쓸 수 있었음). */
+    private static final OutQuota QUOTA = OutQuota.of("tide", 60, 2000);
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -48,8 +50,17 @@ public class TideServlet extends HttpServlet {
         JsonObject out = CACHE.get(k, now);
         if (out == null) out = FAILED.get(k, now);
         if (out == null) {
-            out = fetch(obs, d);
-            (out.has("unavailable") ? FAILED : CACHE).put(k, out, now);
+            String ip = SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For"));
+            if (QUOTA.allow(ip, now)) {
+                out = fetch(obs, d);
+                (out.has("unavailable") ? FAILED : CACHE).put(k, out, now);
+            } else {   // 상한 - 이 요청만 못 받음(기억하지 않음)
+                out = new JsonObject();
+                out.addProperty("success", true);
+                out.addProperty("obs", obs);
+                out.addProperty("date", d.toString());
+                out.addProperty("unavailable", true);
+            }
         }
         Json.ok(req, resp, out);
     }

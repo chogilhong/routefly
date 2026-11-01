@@ -1,7 +1,6 @@
 package com.gh.routefly.web;
 
 import java.io.IOException;
-import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -67,7 +66,9 @@ final class Stats {
         if (path == null) return null;
         if (path.equals("/") || path.equals("/index.html")) return "/index.html";
         if (path.startsWith("/m/")) {
-            String n = URLDecoder.decode(path.substring(3), StandardCharsets.UTF_8).trim();
+            String n = MountainServlet.decode(path.substring(3));   // 잘못된 % 꼴은 세지 않음(2026-11-01 점검)
+            if (n == null) return null;
+            n = n.trim();
             return n.isEmpty() ? "/m/" : n.length() > 40 ? null : "/m/" + n;
         }
         if (path.startsWith("/en/m/")) {   // 영어 산 페이지 - slug(영문 · 숫자 · -)만

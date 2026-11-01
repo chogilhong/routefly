@@ -48,7 +48,7 @@ public class XferServlet extends HttpServlet {
     }
 
     static final Map<String, Slot> SLOTS = new LinkedHashMap<>();
-    /** 자리 만들기 - IP 마다 1시간에 20번. */
+    /** 자리 만들기 - IP(IPv6 는 /48) 마다 1시간에 20번. */
     static final PartyServlet.Quota OPENS = new PartyServlet.Quota(20, 3600_000L);
     /** 올리는 양 - IP 마다 1시간 IP_HOUR_CHARS(조각 하나를 PART_UNIT 글자로 쳐서 셈). */
     static final int PART_UNIT = 100_000;
@@ -60,27 +60,43 @@ public class XferServlet extends HttpServlet {
         if (ct == null || !ct.toLowerCase().startsWith("application/json")) { Json.fail(resp, 415, "요청을 읽지 못했습니다."); return; }
         String path = req.getPathInfo(), ip = RateLimiter.group(SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For")));
         long now = System.currentTimeMillis();
-        if ("/open".equals(path) && OPENS.over(ip, now)) { Json.fail(resp, 429, "잠시 뒤 다시 해 주세요."); return; }
+        // 자리 만들기는 IPv6 /48 로 셈(2026-11-01 점검: /64 를 바꿔 가며 서버 전체 자리 MAX_SLOTS 를 채울 수 있었음)
+        String openKey = PartyServlet.missKey(ip);
+        // 먼저 자리 잡기 - 실패하면 돌려줌(2026-11-01 점검: over 로 보고 끝난 뒤 take 하면 한꺼번에 보낸 요청이 모두 지나갔음)
+        boolean open = "/open".equals(path);
+        if (open && !OPENS.take(openKey, now)) { Json.fail(resp, 429, "잠시 뒤 다시 해 주세요."); return; }
         if ("/put".equals(path) && PUT_UNITS.over(ip, now)) { Json.fail(resp, 429, "한 곳에서 보내는 양이 너무 많습니다. 1시간 뒤 다시 해 주세요."); return; }
         JsonObject in;
         try {
             in = body(req.getInputStream(), PART_MAX + 4096);
         } catch (Exception e) {
+            if (open) OPENS.give(openKey, now);
             Json.fail(resp, 400, "요청을 읽지 못했습니다.");
             return;
         }
+        int units = 0;   // 올린 양만큼(10만 글자마다 1) - 처리 전에 모두 잡음
+        if ("/put".equals(path)) {
+            String part = in.has("part") && in.get("part").isJsonPrimitive() ? in.get("part").getAsString() : "";
+            int want = part.length() / PART_UNIT + 1;
+            while (units < want && PUT_UNITS.take(ip, now)) units++;
+            if (units < want) {
+                for (; units > 0; units--) PUT_UNITS.give(ip, now);
+                Json.fail(resp, 429, "한 곳에서 보내는 양이 너무 많습니다. 1시간 뒤 다시 해 주세요.");
+                return;
+            }
+        }
+        boolean ok = false;
         try {
             JsonObject out = handle(path, in, now);
-            if ("/open".equals(path)) OPENS.take(ip, now);
-            if ("/put".equals(path)) {   // 올린 양만큼(10만 글자마다 1)
-                String part = in.has("part") && in.get("part").isJsonPrimitive() ? in.get("part").getAsString() : "";
-                for (int k = 0; k <= part.length() / PART_UNIT; k++) PUT_UNITS.take(ip, now);
-            }
+            ok = true;
             Json.write(resp, 200, out, false);
         } catch (IllegalArgumentException | IllegalStateException e) {
             Json.fail(resp, 400, e.getMessage());
         } catch (RuntimeException e) {
             Json.fail(resp, 400, "요청을 읽지 못했습니다.");
+        } finally {
+            if (!ok && open) OPENS.give(openKey, now);
+            if (!ok) for (; units > 0; units--) PUT_UNITS.give(ip, now);
         }
     }
 

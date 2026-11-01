@@ -73,7 +73,7 @@ public class SecurityFilter extends HttpFilter {
         // 2026-10-10 점검: 서블릿 경로(디코딩 · ;매개변수 제거 뒤) - getRequestURI 로는 /%61pi/ · /api;x/ 가 제한 · noindex 를 피했음(path 는 위 CSP 에서 구함)
         // JSON 은 검색 결과에 나와서 좋을 것이 없습니다(공유 링크 /s/ 와 화면은 그대로 색인)
         if (path.startsWith("/api/")) res.setHeader("X-Robots-Tag", "noindex");
-        if (path.startsWith("/api/") || path.startsWith("/s/") || path.startsWith("/m/") || path.startsWith("/c/") || path.equals("/stats") || path.startsWith("/check/")) {   // /stats · /check/heights - 열쇠 맞히기 막기   // /m/ 산 소개 페이지도 DB 를 씀(2026-10-14)
+        if (limited(path)) {
             String ip = clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For"));
             long now = System.currentTimeMillis();
             if (!LIMITER.allow(ip, now) || (heavy(path, req.getParameter("q"), req.getParameter("bbox")) && !HEAVY.allow(ip, now))) {
@@ -85,6 +85,15 @@ public class SecurityFilter extends HttpFilter {
         }
         chain.doFilter(req, res);
         Access.status(path, res.getStatus(), System.currentTimeMillis());   // 오늘 접속 분석 - 결과 번호 · 404 경로(2026-10-29)
+    }
+
+    /**
+     * 순수 함수 - 횟수를 세는 경로인가. /stats · /check/heights - 열쇠 맞히기 막기, /m/ 산 소개 페이지도 DB 를 씀(2026-10-14).
+     * /en/m/ 영어 산 페이지 · /og/ 공유 그림(그릴 때 무거움)도(2026-11-01 점검: 빠져 있어 마음대로 부를 수 있었음).
+     */
+    static boolean limited(String path) {
+        return path.startsWith("/api/") || path.startsWith("/s/") || path.startsWith("/m/") || path.startsWith("/en/m/") || path.startsWith("/og/")
+                || path.startsWith("/c/") || path.equals("/stats") || path.startsWith("/check/");
     }
 
     /** 순수 함수 - 무거운 요청인가: 공원 전체, 이름 검색(q), 넓은 bbox 목록. */

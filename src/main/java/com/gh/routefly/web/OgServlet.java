@@ -12,7 +12,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -52,6 +51,8 @@ public class OgServlet extends HttpServlet {
     static final String[] KO_FONTS = {"Malgun Gothic", "맑은 고딕", "NanumGothic", "나눔고딕", "NanumBarunGothic", "Noto Sans CJK KR", "Noto Sans KR", "Apple SD Gothic Neo", "UnDotum"};
 
     private final Map<String, byte[]> cache = new ConcurrentHashMap<>();
+    /** 못 그린 그림 표시(cache 의 값) - 기본 그림으로 보냄. */
+    private static final byte[] FAILED = new byte[0];
     private volatile JsonArray peaks;
     private volatile BufferedImage logo;
 
@@ -62,9 +63,9 @@ public class OgServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        String path = req.getPathInfo() == null ? "" : URLDecoder.decode(req.getPathInfo(), StandardCharsets.UTF_8);
-        boolean en = path.startsWith("/en/");
-        if (!(en || path.startsWith("/m/")) || !path.endsWith(".png")) {
+        String path = req.getPathInfo() == null ? "" : MountainServlet.decode(req.getPathInfo());   // 잘못된 % 꼴은 null → 404
+        boolean en = path != null && path.startsWith("/en/");
+        if (path == null || !(en || path.startsWith("/m/")) || !path.endsWith(".png")) {
             resp.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
@@ -81,10 +82,13 @@ public class OgServlet extends HttpServlet {
                 png = png(en ? english(peak) : korean(peak), english(peak), logo());
             } catch (Exception | Error e) {   // 글꼴 · 그래픽 장치가 없는 서버 - 기본 그림으로
                 log.warn("[OG] 그림을 못 그림 {} - {}", id, e.toString());
-                resp.sendRedirect(req.getContextPath() + "/img/og.png?v=2");
-                return;
+                png = FAILED;   // 못 그린 것도 기억(2026-11-01 점검: 요청마다 다시 그리며 경고를 남겼음) - 다시 배포하면 새로
             }
             cache.put(cacheKey, png);
+        }
+        if (png == FAILED) {
+            resp.sendRedirect(req.getContextPath() + "/img/og.png?v=2");
+            return;
         }
         resp.setContentType("image/png");
         resp.setHeader("Cache-Control", "public, max-age=86400");

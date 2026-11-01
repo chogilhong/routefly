@@ -109,6 +109,10 @@ final class Party {
         long msgAt;
         /** 인솔자 화면이 이 회원의 위치를 마지막으로 받아 간 때(제3자 제공 - 위치정보법 제19조 제3항 매회 즉시 통보, 2026-10-27 위치정보지원센터 답 · 홍TV님 (가)). */
         long providedAt;
+        /** 마지막 파기 뒤 이 회원의 확인자료 줄을 썼나(2026-11-01 점검: 그만 보내기 → 위치 → 그만 보내기를 되풀이하면 모든 달 파일을 매번 다시 썼음). 메모리 - 다시 켠 뒤에는 줄이 있을 수 있어 true. */
+        boolean logged = true;
+        /** 마지막으로 SOS 를 확인자료에 남긴 때(2026-11-01 점검: SOS 켜기 · 끄기를 되풀이하면 줄이 끝없이 늘었음 - 1분에 한 번만). 메모리. */
+        long sosLogAt = Long.MIN_VALUE / 4;
         /** 지나온 길 [위도, 경도, ms] - 메모리에만, 방이 끝나면 익명 통계(PartyTrack)로 넘기고 버림(2026-10-21 홍TV님). */
         final List<double[]> track = new ArrayList<>();
         double anchorLat, anchorLon;
@@ -535,7 +539,7 @@ final class Party {
         m.seat = "lead".equals(role) ? null : seat;
         m.stop = st;
         if (boardNow && "hiker".equals(role)) m.boarded = true;
-        memberLog.add(now, r.code, m.id, "join role=" + role);   // 위치 제공 동의
+        mlog(m, now, "join role=" + role);   // 위치 제공 동의
         save();
         return m;
     }
@@ -568,7 +572,7 @@ final class Party {
             pick.lateAt = now;
             audit.info("late claim room={} id={}", r.code, pick.id);
         }
-        memberLog.add(now, r.code, pick.id, "join role=hiker roster");   // 명단 사람 · 위치 제공 동의
+        mlog(pick, now, "join role=hiker roster");   // 명단 사람 · 위치 제공 동의
         save();
         return pick;
     }
@@ -939,7 +943,7 @@ final class Party {
             }
         }
         autoDrop(m, lat, lon, now);   // 위치로 하차 확인(2026-10-28)
-        if (sos && !m.sos) memberLog.add(now, m.room.code, m.id, "sos");
+        if (sos && !m.sos) logSos(m, now, "sos");
         m.sos = sos;
         if (sos) m.room.sosEver = true;
         return true;
@@ -960,7 +964,7 @@ final class Party {
         m.seen = now;
         if (batt != null) m.batt = Math.max(0, Math.min(100, batt));
         if (sos == null) return;
-        if (sos && !m.sos) memberLog.add(now, m.room.code, m.id, "sos noloc");
+        if (sos && !m.sos) logSos(m, now, "sos noloc");
         m.sos = sos;
         if (sos) m.room.sosEver = true;
     }
@@ -995,7 +999,7 @@ final class Party {
             if (!"hiker".equals(m.role) || m.boarded || m.cancelled) continue;
             m.cancelled = true;
             n++;
-            memberLog.add(now, r.code, m.id, "notonbus");   // 산행 시작 때 안 탐
+            mlog(m, now, "notonbus");   // 산행 시작 때 안 탐
         }
         r.stopsDone = r.stops.size();
         r.departed = true;
@@ -1040,7 +1044,7 @@ final class Party {
         if (on && m.cancelled) {
             m.cancelled = false;
             if (m.seat != null) { Member there = staff.room.atSeat(m.bus, m.seat); if (there != null && there != m) m.seat = null; }
-            memberLog.add(now, staff.room.code, m.id, "onbus");   // 안 탐 되돌림
+            mlog(m, now, "onbus");   // 안 탐 되돌림
         }
         save();
     }
@@ -1062,7 +1066,7 @@ final class Party {
         if (m == null) for (Member x : r.members.values()) if (x.seat != null && x.seat == seat && x.bus == b) m = x;   // 취소된 사람도
         if (m == null) throw new IllegalArgumentException(busName(r, b) + seat + "번 자리에 사람이 없습니다.");
         m.boarded = on;
-        if (on && m.cancelled) { m.cancelled = false; memberLog.add(now, r.code, m.id, "onbus"); }
+        if (on && m.cancelled) { m.cancelled = false; mlog(m, now, "onbus"); }
         save();
     }
 
@@ -1112,7 +1116,7 @@ final class Party {
         lead.room.trackPts -= t.track.size();
         endedWhy.put(t.token, assist ? "주 인솔자가 보조 인솔자에서 내보냈습니다." : "인솔자가 이 방에서 내보냈습니다. 잘못이면 인솔자에게 연락하세요.");
         endedAt.put(t.token, now);
-        memberLog.add(now, lead.room.code, t.id, "kick");
+        mlog(t, now, "kick");
         save();
     }
 
@@ -1129,13 +1133,38 @@ final class Party {
             m.listed = true;
             m.room.trackPts -= m.track.size();
             m.lat = null; m.lon = null; m.acc = null; m.t = 0; m.sos = false; m.track.clear();
-            memberLog.purge(m.room.code, m.id);   // 철회 - 이 회원의 확인자료 즉시 파기
+            purgeLog(m);   // 철회 - 이 회원의 확인자료 즉시 파기
             save();
             return;
         }
-        if (m.room.members.remove(m.token) != null) memberLog.purge(m.room.code, m.id);   // 철회 - 확인자료 즉시 파기
+        if (m.room.members.remove(m.token) != null) purgeLog(m);   // 철회 - 확인자료 즉시 파기
         byToken.remove(m.token);
         save();
+    }
+
+    /** 회원 확인자료 한 줄 - 파기할 줄이 생겼다고 표시. */
+    private void mlog(Member m, long now, String what) {
+        m.logged = true;
+        memberLog.add(now, m.room.code, m.id, what);
+    }
+
+    /** SOS 를 켬 - 1분에 한 번만 남김(켜기 · 끄기를 되풀이해도 줄이 끝없이 늘지 않게, 2026-11-01 점검). */
+    private void logSos(Member m, long now, String what) {
+        if (now - m.sosLogAt < SOS_LOG_MS) return;
+        m.sosLogAt = now;
+        mlog(m, now, what);
+    }
+
+    static final long SOS_LOG_MS = 60_000;
+
+    /**
+     * 철회 - 이 회원의 확인자료 파기. 마지막 파기 뒤 새로 쓴 줄이 없으면 파일을 다시 쓰지 않음(2026-11-01 점검: 열쇠가 살아 있어
+     * 위치 → 그만 보내기를 되풀이하면 모든 달 파일을 자물쇠 안에서 매번 다시 써 모든 방이 멈췄음). 지울 줄이 있으면 언제나 바로 지움(법 제24조 제4항).
+     */
+    private void purgeLog(Member m) {
+        if (!m.logged) return;
+        m.logged = false;
+        memberLog.purge(m.room.code, m.id);
     }
 
     /** 인솔자 - 방 끝내기 · 산행 취소(cancel). */

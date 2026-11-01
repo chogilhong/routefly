@@ -210,13 +210,13 @@ public class WeekendServlet extends HttpServlet {
             Object[] city = null;
             for (Object[] c : MidServlet.CITIES) if (c[4].equals(l[0])) { city = c; break; }
             if (city == null) continue;
-            JsonObject shortFc = WeatherServlet.forecast((Double) city[2], (Double) city[3]);
+            JsonObject shortFc = WeatherServlet.forecast((Double) city[2], (Double) city[3], null);
             JsonObject mid = null;
             JsonObject days = new JsonObject();
             for (LocalDate d : dates) {
                 JsonObject day = shortDay(shortFc, d.toString());
                 if (day == null) {
-                    if (mid == null) mid = MidServlet.forLand(key, l[0], city);
+                    if (mid == null) mid = MidServlet.forLand(key, l[0], city, null);
                     day = midDay(mid, d.toString());
                 }
                 if (day != null) days.add(d.toString(), day);

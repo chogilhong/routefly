@@ -67,6 +67,8 @@ public class AirServlet extends HttpServlet {
     /** 측정소 목록을 새로 받았을 때 부를 것 - 주말 추천(WeekendServlet)이 다시 만들게(2026-10-22 PC: 한도로 막힌 동안 대체 구역으로 만든 weekend.json 이 남았음). */
     static volatile Runnable onStations;
     private static final OpenApi.Cache<JsonObject> MEASURE = new OpenApi.Cache<>(800, 30L * 60 * 1000);
+    /** 측정값을 바깥에 새로 묻는 횟수 상한 - 주소마다 한 시간 90번(한 번에 측정소 셋까지 물음), 하루 3,000번(설정 quota.air.ip · .day, 2026-11-01 점검: 좌표를 바꿔 가며 부르면 측정소마다 새로 물었음). */
+    private static final OutQuota QUOTA = OutQuota.of("air", 90, 3000);
 
     private transient volatile Thread warm;
 
@@ -214,19 +216,19 @@ public class AirServlet extends HttpServlet {
             Json.fail(resp, HttpServletResponse.SC_BAD_REQUEST, "lat · lon 은 우리나라 안 좌표입니다.");
             return;
         }
-        JsonObject out = at(at[0], at[1]);
+        JsonObject out = at(at[0], at[1], SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For")));
         // 못 받았을 때는 브라우저 · 서비스워커가 담아 두지 않게(2026-10-15 PC: 뜰 때 목록을 받는 사이 10초에 unavailable) - 다음에 다시 물음
         if (out.has("unavailable")) Json.write(resp, HttpServletResponse.SC_OK, out, false);
         else Json.ok(req, resp, out);
     }
 
-    /** 그 자리 미세먼지(키가 없으면 unavailable) - api/wx 도 씀. */
-    static JsonObject at(double lat, double lon) {
+    /** 그 자리 미세먼지(키가 없으면 unavailable) - api/wx 도 씀. ip - 손님 주소(상한을 셈). */
+    static JsonObject at(double lat, double lon, String ip) {
         String key = key();
-        return key == null ? unavailable() : answer(key, lat, lon);
+        return key == null ? unavailable() : answer(key, lat, lon, ip);
     }
 
-    private static JsonObject answer(String key, double lat, double lon) {
+    private static JsonObject answer(String key, double lat, double lon, String ip) {
         long now = System.currentTimeMillis();
         Object[] st = stationList(key, now);
         if (st == null) return unavailable();
@@ -241,6 +243,7 @@ public class AirServlet extends HttpServlet {
             String station = names.get(i);
             JsonObject m = MEASURE.get(station, now);
             if (m == null) {
+                if (!QUOTA.allow(ip, now)) break;   // 상한 - 측정값 없이(기억하지 않음)
                 String text = OpenApi.get(MEASURE_URL + "?serviceKey=" + URLEncoder.encode(key, StandardCharsets.UTF_8)
                         + "&returnType=json&numOfRows=" + ROWS + "&pageNo=1&dataTerm=DAILY&ver=1.0&stationName=" + URLEncoder.encode(station, StandardCharsets.UTF_8), "AIR");
                 if (text == null) continue;   // 시간 초과 · 실패 - 담아 두지 않고 다음 측정소

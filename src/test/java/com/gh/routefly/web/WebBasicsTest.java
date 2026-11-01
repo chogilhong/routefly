@@ -111,7 +111,8 @@ public class WebBasicsTest {
     public void sharePageEscapesAndRedirects() {
         String html = ShareServlet.page("설악 <b>\"", "d", "https://x/s/a", "https://x/c/a", "https://x/img/og.png", "https://x/#c=a");
         assertTrue(html, html.contains("og:title\" content=\"설악 &lt;b&gt;&quot;\""));
-        assertTrue(html, html.contains("location.replace(\"https://x/#c=a\")"));
+        assertTrue(html, html.contains("<meta http-equiv=\"refresh\" content=\"0;url=https://x/#c=a\">"));
+        assertFalse("화면 안 스크립트는 CSP 가 막음 - meta refresh 로만", html.contains("<script"));
         assertFalse(html.contains("<b>"));
         assertEquals("5.81km · 오르막 1,460m · 최고 1,700m · 3D 로 미리 날아 보고 핸드폰으로 따라 걷기",
                 ShareServlet.describe(5810, 1460, 1700.4));

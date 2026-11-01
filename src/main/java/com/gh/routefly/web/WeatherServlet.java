@@ -39,6 +39,8 @@ public class WeatherServlet extends HttpServlet {
     static final String DEFAULT_URL = "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst";
     static final ZoneId KST = ZoneId.of("Asia/Seoul");
     private static final OpenApi.Cache<JsonObject> CACHE = new OpenApi.Cache<>(500, 3L * 60 * 60 * 1000);
+    /** 기억에 없어 바깥에 새로 묻는 횟수 상한 - 주소마다 한 시간 60번, 하루 3,000번(설정 quota.weather.ip · .day, 2026-11-01 점검: 좌표를 격자마다 바꿔 부르면 매번 기상청에 물었음). */
+    private static final OutQuota QUOTA = OutQuota.of("weather", 60, 3000);
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -47,18 +49,18 @@ public class WeatherServlet extends HttpServlet {
             Json.fail(resp, HttpServletResponse.SC_BAD_REQUEST, "lat · lon 은 우리나라 안 좌표입니다.");
             return;
         }
-        Json.ok(req, resp, forecast(at[0], at[1]));
+        Json.ok(req, resp, forecast(at[0], at[1], SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For"))));
     }
 
-    /** 그 자리 격자의 예보(담아 둔 것이 있으면 그것) - 주말 추천(WeekendServlet)도 씀. */
-    static JsonObject forecast(double lat, double lon) {
+    /** 그 자리 격자의 예보(담아 둔 것이 있으면 그것) - 주말 추천(WeekendServlet)도 씀. ip - 손님 주소(상한을 셈), null 이면 서버 안(주말 추천 - 구역 대표 지점만)이라 세지 않음. */
+    static JsonObject forecast(double lat, double lon, String ip) {
         int[] g = grid(lat, lon);
         String[] base = baseTime(LocalDateTime.now(KST));
         String key = g[0] + "," + g[1] + "@" + base[0] + base[1];
         long now = System.currentTimeMillis();
         JsonObject out = CACHE.get(key, now);
         if (out == null) {
-            out = fetch(g, base);
+            out = ip == null || QUOTA.allow(ip, now) ? fetch(g, base) : unavailable();   // 상한이면 이 요청만 못 받음(기억하지 않음)
             if (!out.has("unavailable")) CACHE.put(key, out, now);
         }
         return out;

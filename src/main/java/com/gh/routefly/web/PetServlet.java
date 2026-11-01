@@ -29,6 +29,10 @@ public class PetServlet extends HttpServlet {
     /** 한국관광공사_반려동물 동반여행 서비스(KorPetTourService2) - 국문 관광정보(KorService2)의 detailPetTour2 는 빈 응답만 왔음(2026-10-14 PC). */
     static final String DEFAULT_URL = "https://apis.data.go.kr/B551011/KorPetTourService2/detailPetTour2";
     private static final OpenApi.Cache<JsonObject> CACHE = new OpenApi.Cache<>(2000, 7L * 24 * 60 * 60 * 1000);
+    /** 빈 결과는 한 시간만 따로 기억(2026-11-01 점검: 아무 id 나 넣으면 매번 관광공사에 물어 하루 한도를 썼음 - 이레 동안 빈 채로 남지는 않게 짧게). */
+    private static final OpenApi.Cache<JsonObject> EMPTY = new OpenApi.Cache<>(2000, 3600_000L);
+    /** 기억에 없어 바깥에 새로 묻는 횟수 상한 - 주소마다 한 시간 60번, 하루 3,000번(설정 quota.pet.ip · .day, 2026-11-01 점검). */
+    private static final OutQuota QUOTA = OutQuota.of("pet", 60, 3000);
 
     /** TourAPI 칸 → 화면 이름(이 차례로). 모르는 칸은 보이지 않음. */
     static final Map<String, String> LABELS = new LinkedHashMap<>();
@@ -53,9 +57,13 @@ public class PetServlet extends HttpServlet {
         }
         long now = System.currentTimeMillis();
         JsonObject out = CACHE.get(id, now);
+        if (out == null) out = EMPTY.get(id, now);
         if (out == null) {
-            out = fetch(id);
-            if (!out.has("unavailable") && out.getAsJsonArray("pet").size() > 0) CACHE.put(id, out, now);   // 빈 결과는 담지 않음(주소를 바꿔도 이레 동안 빈 채로 남았음)
+            String ip = SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For"));
+            out = QUOTA.allow(ip, now) ? fetch(id) : unavailable();
+            if (!out.has("unavailable")) {   // 빈 결과는 짧게만(주소를 바꿔도 이레 동안 빈 채로 남았음)
+                if (out.getAsJsonArray("pet").size() > 0) CACHE.put(id, out, now); else EMPTY.put(id, out, now);
+            }
         }
         Json.ok(req, resp, out);
     }

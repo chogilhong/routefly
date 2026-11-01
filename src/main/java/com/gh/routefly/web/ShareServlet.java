@@ -91,7 +91,7 @@ public class ShareServlet extends HttpServlet {
                 + "<meta http-equiv=\"refresh\" content=\"0;url=" + g + "\">"
                 + "</head><body style=\"background:#11161d;color:#eee;font-family:sans-serif\">"
                 + "<p><a style=\"color:#38d9ea\" href=\"" + g + "\">" + t + " 열기</a></p>"
-                + "<script>location.replace(" + jsString(target) + ");</script></body></html>";
+                + "</body></html>";   // 넘어가기는 meta refresh 로(2026-11-01 점검: 화면 안 스크립트는 CSP script-src 'self' 가 늘 막았음)
     }
 
     /**
@@ -159,16 +159,5 @@ public class ShareServlet extends HttpServlet {
 
     static String esc(String s) {
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&#39;");
-    }
-
-    static String jsString(String s) {
-        StringBuilder sb = new StringBuilder("\"");
-        for (char ch : s.toCharArray()) {
-            if (ch == '"' || ch == '\\') sb.append('\\').append(ch);
-            else if (ch == '<') sb.append("\\u003c");
-            else if (ch < 0x20) sb.append(String.format("\\u%04x", (int) ch));
-            else sb.append(ch);
-        }
-        return sb.append('"').toString();
     }
 }

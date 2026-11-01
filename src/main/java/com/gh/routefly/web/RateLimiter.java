@@ -14,6 +14,8 @@ final class RateLimiter {
 
     /** 물통 수 상한 - 2026-10-10 점검: IPv6 주소를 바꿔 가며 보내면 물통이 끝없이 늘 수 있었음. */
     static final int MAX_KEYS = 100_000;
+    /** 물통이 꽉 찼을 때 새 곳이 같이 쓰는 물통 이름(주소 꼴이 아님). */
+    static final String OVERFLOW = "overflow";
 
     private final double burst, perMs;
     private final Map<String, double[]> buckets = new ConcurrentHashMap<>();   // 곳 → {남은 횟수, 마지막 시각}
@@ -27,7 +29,10 @@ final class RateLimiter {
     /** 이 곳(key)의 요청을 받아도 되는가. now 는 ms(시험에서 시간을 정해 넣으려고). */
     boolean allow(String key, long now) {
         sweep(now);
-        double[] b = buckets.computeIfAbsent(group(key), k -> new double[] {burst, now});
+        String k = group(key);
+        // 물통이 꽉 찼으면 새 곳은 넘침 물통 하나를 같이 씀(2026-11-01 점검: 예전에는 모두 비워 이미 막힌 곳까지 풀렸음)
+        if (!buckets.containsKey(k) && buckets.size() >= MAX_KEYS) k = OVERFLOW;
+        double[] b = buckets.computeIfAbsent(k, x -> new double[] {burst, now});
         synchronized (b) {
             b[0] = Math.min(burst, b[0] + (now - b[1]) * perMs);
             b[1] = now;
@@ -63,13 +68,12 @@ final class RateLimiter {
 
     private void sweep(long now) {
         long last = lastSweep.get();
-        boolean full = buckets.size() > MAX_KEYS;
-        if (!full && now - last < 60_000) return;
+        boolean full = buckets.size() >= MAX_KEYS;
+        if (now - last < (full ? 1_000 : 60_000)) return;   // 꽉 차도 1초에 한 번만 훑음(요청마다 10만 칸을 훑지 않게)
         if (!lastSweep.compareAndSet(last, now)) return;   // 다른 요청이 이미 쓸고 있음
         long idle = full ? 10_000 : 120_000;
         for (Iterator<double[]> it = buckets.values().iterator(); it.hasNext();) {
             if (now - it.next()[1] > idle) it.remove();
         }
-        if (buckets.size() > MAX_KEYS) buckets.clear();   // 그래도 넘치면(공격) 한 번 비움
     }
 }

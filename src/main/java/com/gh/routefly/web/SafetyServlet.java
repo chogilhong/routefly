@@ -41,6 +41,11 @@ public class SafetyServlet extends HttpServlet {
     static final String WARN_URL = "https://apis.data.go.kr/1360000/WthrWrnInfoService/getPwnStatus";
     private static final OpenApi.Cache<Object> CACHE = new OpenApi.Cache<>(400, 60L * 60 * 1000);
     private static final OpenApi.Cache<Object> SHORT = new OpenApi.Cache<>(50, 10L * 60 * 1000);   // 특보 · 못 받은 것
+    /**
+     * 응급실(좌표마다 다른 칸)을 바깥에 새로 묻는 횟수 상한 - 주소마다 한 시간 60번, 하루 3,000번(설정 quota.safety.ip · .day, 2026-11-01 점검:
+     * 좌표를 0.01도씩 바꿔 가며 부르면 매번 바깥에 물어 하루 한도를 쓸 수 있었음). 산불 · 특보는 전국 하나, 자외선은 시도마다라 세지 않음.
+     */
+    private static final OutQuota QUOTA = OutQuota.of("safety", 60, 3000);
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -56,7 +61,10 @@ public class SafetyServlet extends HttpServlet {
         if (key == null) { out.addProperty("unavailable", true); Json.ok(req, resp, out); return; }
         String k = URLEncoder.encode(key, StandardCharsets.UTF_8);
 
-        JsonArray er = (JsonArray) cached("er@" + String.format(Locale.ROOT, "%.2f,%.2f", at[0], at[1]), CACHE, () -> {
+        String erKey = "er@" + String.format(Locale.ROOT, "%.2f,%.2f", at[0], at[1]);
+        String ip = SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For"));
+        boolean erOk = CACHE.get(erKey, System.currentTimeMillis()) != null || QUOTA.allow(ip, System.currentTimeMillis());   // 상한이면 응급실 칸만 빠짐(기억하지 않음)
+        JsonArray er = !erOk ? null : (JsonArray) cached(erKey, CACHE, () -> {
             String t = OpenApi.get(ER_URL + "?serviceKey=" + k + String.format(Locale.ROOT, "&WGS84_LON=%.5f&WGS84_LAT=%.5f", at[1], at[0]) + "&pageNo=1&numOfRows=" + ER_ASK, "SAFETY-ER");   // 치과병원을 빼고도 ER_MAX 곳 남게 넉넉히(2026-10-18 PC: 가야산 2곳뿐)
             return t == null ? null : er(t);
         });
