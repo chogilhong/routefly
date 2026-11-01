@@ -12,6 +12,7 @@
 
     var OFF_ROUTE_M = 50;      // 이보다 멀면 "코스에서 벗어남"
     var ARRIVE_M = 30;         // 끝점까지 이 안이면 도착
+    var START_FAR_M = 1000;    // 산행 시작 때 코스에서 이보다 멀면 저절로 끝내고 출발점 길찾기(2026-11-01 홍TV님)
     var FAR_M = 3000;          // 코스에서 이보다 멀면 "벗어남" 대신 출발점(마지막 자리)까지 안내(집 · 차 안에서 시작했을 때)
     // 시험 걷기 빠르기 - 미리보기와 같게: 1× 는 미리보기 1× 비행 시간(RF.flightMs, 20 ~ 90초)에 코스를 다 걷는 빠르기,
     // 위쪽 "시험 1×" 를 누르면 2× · 4× · 0.25× · 0.5× 차례(2026-10-10 홍TV님). 시계(경과 시간 · 예상 도착)는 실제 걷는 시간으로 갑니다.
@@ -320,6 +321,7 @@
 
     // 큰 글씨 확인 창(rf-dialog.js, 2026-10-28 접근성 - 앱 안에서 "routefly.kr 의 메시지" 작은 창 대신). 없으면 브라우저 창
     function hAsk(t, o) { return window.RFDialog ? RFDialog.confirm(t, o) : Promise.resolve(confirm(t)); }
+    function hAlert(t, o) { return window.RFDialog ? RFDialog.alert(t, o) : Promise.resolve(alert(t)); }
     function hAskText(t, v, o) { return window.RFDialog ? RFDialog.prompt(t, v, o) : Promise.resolve(prompt(t, v)); }
     function askNumber(msg, cur, min, max) {
         var v = prompt(msg, String(cur));
@@ -2192,8 +2194,9 @@
     $("noteCancel").addEventListener("click", function () { $("noteSheet").style.display = "none"; });
     $("noteSave").addEventListener("click", function () {
         var f = hike.fix, text = $("noteText").value.trim();
-        if (!f) return;
-        if (!text && !noteFile) { toast(T("메모를 쓰거나 사진을 고르세요.", "Write a note or pick a photo."), 3000); return; }
+        // 알림 창으로(2026-11-01 홍TV님 "사진 없이 남기기를 누르면 반응이 없어" - 안내 글이 이 창 아래에 떠서 안 보였음)
+        if (!f) { hAlert(T("아직 위치를 받지 못했습니다. GPS 를 잡은 뒤 다시 눌러 주세요.", "No location yet. Try again once GPS has a fix.")); return; }
+        if (!text && !noteFile) { hAlert(T("메모를 쓰거나 📷 사진을 찍어(골라) 주세요.", "Write a note or take (pick) a 📷 photo.")); return; }
         // 해발: 코스 위면 코스 고도(GPS 고도는 흔들림 - README), 벗어나 있으면 GPS 고도
         var at = c && hike.off <= OFF_ROUTE_M ? RF.at(c, hike.d) : null;
         var ele = at && at.ele != null ? at.ele : f.alt;
@@ -2366,6 +2369,7 @@
         hike.passed = {};
         hike.voiceD = null;   // 지난번 음성 확인 때의 거리 - 그 사이 지나친 지점도 말함(2026-10-16 PC)
         hike.offT = 0; hike.offShown = false;
+        hike.farChecked = !!saved;   // 이어 하는 산행은 보지 않음
         hike.wasOff = false;
         hike.d0 = saved && saved.d0 != null ? saved.d0 : null;   // 첫 위치가 코스 위일 때 정합니다(코스 중간에서 시작하면 그 자리)
         hike.dMax = saved && saved.dMax != null ? saved.dMax : hike.d;
@@ -2469,6 +2473,20 @@
         if (hike.stillAsk) stillReset();   // 끝내기를 누른 것도 답 - 묻는 창 · 초 세기를 멈춤(2026-10-16 PC: endSheet 에서 망설이다 SOS 가 열릴 수 있었음)
         $("endTitle").textContent = T(K().act + "을 여기서 끝낼까요?", "Finish your " + K().act.toLowerCase() + " here?");
         $("endSheet").style.display = "flex";
+    }
+
+    /** 코스에서 먼 곳에서 시작했을 때 - 기록 없이 끝내고 출발점까지 거리 · 길찾기를 알림 창으로. */
+    function farStop() {
+        var me = hike.fix, sp = startName(), target = { lat: c.lat[0], lon: c.lon[0], name: sp || T("코스 출발점", "trail start"), head: true };
+        var away = me ? distM(me.lat, me.lon, target.lat, target.lon) : hike.off;
+        stopHike();
+        hAsk(EN ? "You are " + distText(away) + " from the trail start" + (sp ? " (" + NM(sp) + ")" : "") + ", so the hike was ended (not recorded).\nPress Start within 1 km of the trail."
+            : "코스 출발점" + (sp ? "(" + sp + ")" : "") + "까지 " + distText(away) + " 떨어져 있어 산행을 끝냈습니다(기록은 남기지 않음).\n출발점 1km 안에서 \"산행 시작\" 을 눌러 주세요.",
+            { ok: T("🚗 출발점 길찾기", "🚗 Directions"), cancel: T("닫기", "Close") }).then(function (ok) {
+            if (!ok) return;
+            hike.navTo = target;
+            openNav();
+        });
     }
 
     function stopHike() {
@@ -3066,6 +3084,12 @@
             }
             // 아직 코스에 닿기 전이고 멀면(먼 산 · 차로 가야 할 때) 출발점 길찾기 단추
             var notYet = hike.d0 == null || hike.d <= 60;
+            // 시작하자마자 코스에서 1km 넘게 멀면(집 · 차 안에서 누름) 산행을 저절로 끝내고 출발점 길찾기(2026-11-01 홍TV님 - 41km 떨어진 곳에서 시작됨).
+            // 첫 정확한 위치(±100m 안) 한 번만 봄 - 산행 중 벗어난 것은 예전처럼 "벗어남" 안내. 주차장 · 정류장은 대개 들머리 1km 안
+            if (!hike.sim && !hike.farChecked && hike.d0 == null && hike.fix.acc != null && hike.fix.acc <= 100) {
+                hike.farChecked = true;
+                if (hike.off > START_FAR_M && hike.walked < 300) { farStop(); return; }
+            }
             hike.navTo = far || (notYet && hike.off > 100)   // 주차장 · 정류장(들머리 100m 밖)부터
                 ? (notYet ? { lat: c.lat[0], lon: c.lon[0], name: startName() || T("코스 출발점", "trail start"), head: true }
                           : { lat: RF.at(c, hike.d).lat, lon: RF.at(c, hike.d).lon, name: T("코스 마지막 자리", "your last spot on the trail") })
@@ -3257,7 +3281,7 @@
             if (i === 0) navTo(t, acc, b);
         });
         box.style.display = targets.length > 1 ? "flex" : "none";
-        save();
+        if (hike.running) save();   // 산행을 끝낸 뒤(farStop)의 길찾기는 이어 할 산행을 남기지 않음
         $("navSheet").style.display = "flex";
     }
 
