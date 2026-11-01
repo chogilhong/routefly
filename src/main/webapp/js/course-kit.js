@@ -95,7 +95,12 @@
             bar.appendChild(x);
             document.body.appendChild(bar);
         }
-        sign().then(function (v) { if (v.replace(/[|;]/g, "")) first = v; }).catch(function () { /* 오프라인 · 하나라도 실패 - 확인 안 함 */ });
+        // 2026-11-01 점검: 첫 표시는 화면이 다 뜬 뒤 3초에 - 화면을 열자마자 HEAD 여러 개가 첫 화면 파일과 연결을 다퉜음
+        function base() { sign().then(function (v) { if (v.replace(/[|;]/g, "")) first = v; }).catch(function () { /* 오프라인 · 하나라도 실패 - 확인 안 함 */ }); }
+        var later = function () { setTimeout(base, 3000); };
+        if (!global.addEventListener) base();   // 창 사건이 없는 곳(node 테스트)은 바로
+        else if (document.readyState === "complete") later();
+        else global.addEventListener("load", later);
         // 서비스 워커가 신호가 늦어 받아 둔 옛 화면을 먼저 줬는데 새 파일이 왔을 때(sw.js tellUpdated - 2026-10-20 홍TV님 "폰에서 예전 버전")
         if (global.navigator && navigator.serviceWorker && navigator.serviceWorker.addEventListener) {
             navigator.serviceWorker.addEventListener("message", function (ev) {

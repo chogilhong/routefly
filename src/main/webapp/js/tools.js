@@ -895,7 +895,7 @@
         }, function () { toast(T("위치를 못 찾았습니다 - 위치 권한을 확인해 주세요", "Could not get your location - check location permission"), 4000); }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 });
     }
 
-    // ── 🌫 우리 동네 날씨 · 미세먼지(routefly api/weather · api/air - 산 페이지와 같은 것) ──
+    // ── 🌫 우리 동네 날씨 · 미세먼지(routefly api/wx - 산 페이지와 같은 것) ──
     var SKY_EN = { 1: "☀️ Sunny", 3: "⛅ Mostly cloudy", 4: "☁️ Cloudy" }, PTY_EN = { 1: "🌧 Rain", 2: "🌨 Rain/snow", 3: "❄️ Snow", 4: "🌦 Showers" };
     var AIR_EN = { "좋음": "Good", "보통": "Moderate", "나쁨": "Unhealthy", "매우나쁨": "Very unhealthy" };
     function sky(h) { return EN ? PTY_EN[+h.pty] || SKY_EN[+h.sky] || "-" : RF.weatherWord(h.sky, h.pty); }
@@ -903,7 +903,9 @@
         var q = "?lat=" + loc.lat.toFixed(4) + "&lon=" + loc.lon.toFixed(4);
         outSet("wxNow", T("날씨를 받는 중…", "Loading weather…"));
         $("wxHours").innerHTML = ""; $("wxAir").textContent = "";
-        fetch("api/weather" + q).then(function (r) { return r.json(); }).then(function (w) {
+        // 날씨 · 미세먼지를 한 요청으로(api/wx - 산 페이지와 같음, 2026-11-01 점검: 예전엔 api/weather · api/air 둘)
+        var all = fetch("api/wx" + q).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); });
+        all.then(function (x) { return x.weather || { unavailable: true }; }).then(function (w) {
             if (w.unavailable || !(w.hours || []).length) return outSet("wxNow", T("지금은 날씨를 받을 수 없습니다", "Weather is not available right now"));
             var h = w.hours[0], d = w.days && w.days[h.t.slice(0, 10)], feel = RF.windChill(h.tmp, h.wsd), di = h.tmp != null && h.reh != null && h.tmp >= 20 ? RF.discomfort(h.tmp, h.reh) : null;
             var extra = [];
@@ -922,7 +924,7 @@
                 $("wxHours").appendChild(li);
             });
         }).catch(function () { outSet("wxNow", T("날씨를 받지 못했습니다 - 인터넷을 확인해 주세요", "Could not load the weather - check your connection")); });
-        fetch("api/air" + q).then(function (r) { return r.json(); }).then(function (a) {
+        all.then(function (x) { return x.air; }).then(function (a) {
             if (!a || a.unavailable || (a.pm10 == null && a.pm25 == null)) return;
             $("wxAir").textContent = EN ? [a.pm10 != null ? "PM10 " + (AIR_EN[a.pm10Word] || a.pm10Word) + " (" + a.pm10 + ")" : "", a.pm25 != null ? "PM2.5 " + (AIR_EN[a.pm25Word] || a.pm25Word) + " (" + a.pm25 + ")" : ""]
                 .filter(Boolean).join(" · ") + " - AirKorea station" + (a.dist_km != null ? " " + a.dist_km + " km away" : "") : "😷 " + RF.airText(a);
