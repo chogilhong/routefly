@@ -60,6 +60,10 @@ label.sl { display:block; margin-top:8px; font-size:14px; }
 label.sl input { width:100%; }
 #msg { position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom) + 18px); transform:translateX(-50%); z-index:50; max-width:92vw; padding:10px 16px; border-radius:10px; background:rgba(0,0,0,0.85); color:#fff; font-size:14px; display:none; }
 #gate { padding:30px 18px; text-align:center; }
+#subList .sub { padding:8px; margin-top:6px; border-radius:8px; border:1px solid var(--ln); }
+#subList .sub > b, #subList .sub > span { display:block; font-size:13px; color:var(--dim); line-height:1.5; word-break:keep-all; }
+#subList .sub > b { font-size:14px; color:var(--tx); }
+#subList .sub .row { margin-top:6px; }
 #drawBox:not(:empty) { margin-top:8px; padding:10px; border:1px solid var(--sky); border-radius:10px; }
 #mapWrap.drawing #map canvas { cursor:crosshair; }
 /* 폰: 지도 위 · 칸 아래 */
@@ -72,7 +76,7 @@ label.sl input { width:100%; }
 </head>
 <body>
 <div id="top"><a href="m/" id="backBtn">‹ 뒤로</a><h1>📐 GPX 편집</h1></div>
-<div id="gate"><p>관리자 기기인지 확인하는 중…</p></div>
+<div id="gate"></div>
 <div id="app" hidden>
     <div id="mapWrap"><div id="map"></div>
         <div id="mapTools" role="toolbar" aria-label="편집 도구">
@@ -97,6 +101,11 @@ label.sl input { width:100%; }
             <input id="file" type="file" accept=".gpx,application/gpx+xml,application/xml,text/xml" multiple hidden>
             <p class="tip">PC 는 지도 위로 GPX 파일을 끌어다 놓아도 됩니다(여러 개). 파일은 이 기기 안에서만 다룹니다.</p>
             <div id="list"></div>
+        </section>
+        <section id="subSec" hidden>
+            <h2>📨 받은 GPX (<span id="subN">0</span>)</h2>
+            <p class="tip">등산객이 "📮 코스로 보내기" 로 보낸 길(30일 지나면 저절로 지움). 열어 점검하고 ⬆ 코스로 올리면 받은 목록에서 빠집니다.</p>
+            <div id="subList"></div>
         </section>
         <section id="selSec" hidden>
             <h2>고른 길</h2>

@@ -55,20 +55,8 @@ public class CourseUploadServlet extends HttpServlet {
         if (!PartyServlet.owner(req)) { Json.fail(resp, 403, "관리자 기기에서만 쓸 수 있습니다."); return; }
         String ct = req.getContentType();
         if (ct == null || !ct.toLowerCase(Locale.ROOT).startsWith("application/json")) { Json.fail(resp, 415, "요청을 읽지 못했습니다."); return; }
-        JsonObject in;
-        try {
-            StringBuilder sb = new StringBuilder();
-            char[] buf = new char[8192];
-            BufferedReader r = req.getReader();
-            for (int n; (n = r.read(buf)) > 0;) {
-                sb.append(buf, 0, n);
-                if (sb.length() > MAX_BODY) { Json.fail(resp, 413, "GPX 가 너무 큽니다."); return; }
-            }
-            in = JsonParser.parseString(sb.toString()).getAsJsonObject();
-        } catch (Exception e) {
-            Json.fail(resp, 400, "요청을 읽지 못했습니다.");
-            return;
-        }
+        JsonObject in = body(req, resp);
+        if (in == null) return;
         String dirName = RouteflyConfig.get("course.inboxDir");
         File dir = new File(dirName == null || dirName.isBlank() ? DEFAULT_DIR : dirName.trim());
         if (!dir.isDirectory()) { Json.fail(resp, 503, "서버에 올림 폴더가 없습니다(설정 필요)."); return; }
@@ -96,7 +84,24 @@ public class CourseUploadServlet extends HttpServlet {
         }
     }
 
-    private static void perms(java.nio.file.Path p, String rwx) {
+    /** 본문 JSON(MAX_BODY 글자까지) - 못 읽으면 실패 응답을 쓰고 null. 코스 보내기(CourseSubmitServlet)도 같이 씀(2026-11-01 홍TV님). */
+    static JsonObject body(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        try {
+            StringBuilder sb = new StringBuilder();
+            char[] buf = new char[8192];
+            BufferedReader r = req.getReader();
+            for (int n; (n = r.read(buf)) > 0;) {
+                sb.append(buf, 0, n);
+                if (sb.length() > MAX_BODY) { Json.fail(resp, 413, "GPX 가 너무 큽니다."); return null; }
+            }
+            return JsonParser.parseString(sb.toString()).getAsJsonObject();
+        } catch (Exception e) {
+            Json.fail(resp, 400, "요청을 읽지 못했습니다.");
+            return null;
+        }
+    }
+
+    static void perms(java.nio.file.Path p, String rwx) {
         try {
             Files.setPosixFilePermissions(p, java.nio.file.attribute.PosixFilePermissions.fromString(rwx));
         } catch (Exception e) {
@@ -104,7 +109,7 @@ public class CourseUploadServlet extends HttpServlet {
         }
     }
 
-    private static String str(JsonObject o, String k) {
+    static String str(JsonObject o, String k) {
         return o.has(k) && o.get(k).isJsonPrimitive() ? o.get(k).getAsString() : null;
     }
 
@@ -151,7 +156,7 @@ public class CourseUploadServlet extends HttpServlet {
         return sb.append("</trkseg></trk>\n</gpx>\n").toString();
     }
 
-    private static double distM(double[] a, double[] b) {
+    static double distM(double[] a, double[] b) {
         double kx = 111320 * Math.cos(Math.toRadians((a[0] + b[0]) / 2)), ky = 110540;
         return Math.hypot((a[1] - b[1]) * kx, (a[0] - b[0]) * ky);
     }

@@ -172,6 +172,40 @@
         return out;
     }
 
+    /**
+     * 순수 함수 - 받은 GPX 가 이미 있는 코스인지(2026-11-01 홍TV님 "없는 코스면 점검해서 올림"): track([위도, 경도, …] 점들) 가운데
+     * routefly 코스 선(/api/trails: [{coords:[[경도, 위도]…]}]) 어느 마디에서 m(기본 30m) 안에 있는 점의 몫(0~1). 점이 없으면 0.
+     * 마디는 0.002° 칸에 나눠 두고 그 점 칸과 둘레 칸의 마디만 견줌.
+     */
+    function overlapShare(track, trails, m) {
+        var lim = m || 30, cell = 0.002, grid = {}, pts = (track || []).filter(function (p) { return p && isFinite(p[0]) && isFinite(p[1]); });
+        if (!pts.length) return 0;
+        (trails || []).forEach(function (t) {
+            var c = t && t.coords || [];
+            for (var i = 1; i < c.length; i++) {
+                var a = c[i - 1], b = c[i], seg = [+a[1], +a[0], +b[1], +b[0]];
+                var y0 = Math.floor(Math.min(seg[0], seg[2]) / cell), y1 = Math.floor(Math.max(seg[0], seg[2]) / cell);
+                var x0 = Math.floor(Math.min(seg[1], seg[3]) / cell), x1 = Math.floor(Math.max(seg[1], seg[3]) / cell);
+                if ((y1 - y0 + 1) * (x1 - x0 + 1) > 400) continue;   // 이상하게 긴 마디(자료 오류)는 뺌
+                for (var y = y0; y <= y1; y++) for (var x = x0; x <= x1; x++) (grid[y + ":" + x] = grid[y + ":" + x] || []).push(seg);
+            }
+        });
+        var hit = 0;
+        pts.forEach(function (p) {
+            var ky = 110540, kx = 111320 * Math.cos(p[0] * Math.PI / 180), gy = Math.floor(p[0] / cell), gx = Math.floor(p[1] / cell), near = false;
+            for (var dy = -1; dy <= 1 && !near; dy++) for (var dx = -1; dx <= 1 && !near; dx++) {
+                (grid[(gy + dy) + ":" + (gx + dx)] || []).some(function (s) {
+                    var ax = (s[1] - p[1]) * kx, ay = (s[0] - p[0]) * ky, bx = (s[3] - p[1]) * kx, by = (s[2] - p[0]) * ky, vx = bx - ax, vy = by - ay, l2 = vx * vx + vy * vy;
+                    var u = l2 ? Math.max(0, Math.min(1, -(ax * vx + ay * vy) / l2)) : 0;
+                    near = Math.hypot(ax + u * vx, ay + u * vy) <= lim;
+                    return near;
+                });
+            }
+            if (near) hit++;
+        });
+        return hit / pts.length;
+    }
+
     /** 걸을 수 있는 OSM 길 종류(GPX 편집 길 그리기 - Overpass 질의 · 길 찾기, tools/park-gaps 와 같은 범위). */
     var WALK_WAYS = "path|footway|steps|track|bridleway|pedestrian|cycleway|residential|unclassified|service|living_street|tertiary";
 
@@ -339,6 +373,7 @@
         osmRoute: osmRoute,
         WALK_WAYS: WALK_WAYS,
         trailsToElements: trailsToElements,
+        overlapShare: overlapShare,
         distM: distM
     };
 })(window);

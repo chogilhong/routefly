@@ -150,3 +150,7 @@ site.baseUrl=
 # 내 기록 → 코스로 올리기(관리자 기기만, 2026-10-31) - 올린 GPX 를 둘 폴더. 비우면 /opt/routefly/course-inbox(없으면 올리기가 "폴더 없음" 으로 멈춤).
 # 서버 만들기: sudo install -d -o tomcat -g routefly -m 2750 /opt/routefly/course-inbox (routefly-batch courseImport 가 같은 폴더를 읽음)
 course.inboxDir=
+
+# 코스 보내기(2026-11-01) - 등산객이 보낸 GPX(점만 다시 씀) · 정보(.json)를 둘 폴더. 비우면 /opt/routefly/course-submit(없으면 보내기가 "지금은 받을 수 없음" 으로 멈춤).
+# 톰캣만 읽고 씀(GPX 편집 화면 📨 받은 GPX 가 점검 · 올리기 · 버리기, 30일 지나면 저절로 지움): sudo install -d -o tomcat -g tomcat -m 0750 /opt/routefly/course-submit
+course.submitDir=

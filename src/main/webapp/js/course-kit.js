@@ -3785,6 +3785,40 @@
         return out;
     }
 
+    /**
+     * 순수 함수 - 받은 GPX 가 이미 있는 코스인지(2026-11-01 홍TV님 "없는 코스면 점검해서 올림"): track([위도, 경도, …] 점들) 가운데
+     * routefly 코스 선(/api/trails: [{coords:[[경도, 위도]…]}]) 어느 마디에서 m(기본 30m) 안에 있는 점의 몫(0~1). 점이 없으면 0.
+     * 마디는 0.002° 칸에 나눠 두고 그 점 칸과 둘레 칸의 마디만 견줌.
+     */
+    function overlapShare(track, trails, m) {
+        var lim = m || 30, cell = 0.002, grid = {}, pts = (track || []).filter(function (p) { return p && isFinite(p[0]) && isFinite(p[1]); });
+        if (!pts.length) return 0;
+        (trails || []).forEach(function (t) {
+            var c = t && t.coords || [];
+            for (var i = 1; i < c.length; i++) {
+                var a = c[i - 1], b = c[i], seg = [+a[1], +a[0], +b[1], +b[0]];
+                var y0 = Math.floor(Math.min(seg[0], seg[2]) / cell), y1 = Math.floor(Math.max(seg[0], seg[2]) / cell);
+                var x0 = Math.floor(Math.min(seg[1], seg[3]) / cell), x1 = Math.floor(Math.max(seg[1], seg[3]) / cell);
+                if ((y1 - y0 + 1) * (x1 - x0 + 1) > 400) continue;   // 이상하게 긴 마디(자료 오류)는 뺌
+                for (var y = y0; y <= y1; y++) for (var x = x0; x <= x1; x++) (grid[y + ":" + x] = grid[y + ":" + x] || []).push(seg);
+            }
+        });
+        var hit = 0;
+        pts.forEach(function (p) {
+            var ky = 110540, kx = 111320 * Math.cos(p[0] * Math.PI / 180), gy = Math.floor(p[0] / cell), gx = Math.floor(p[1] / cell), near = false;
+            for (var dy = -1; dy <= 1 && !near; dy++) for (var dx = -1; dx <= 1 && !near; dx++) {
+                (grid[(gy + dy) + ":" + (gx + dx)] || []).some(function (s) {
+                    var ax = (s[1] - p[1]) * kx, ay = (s[0] - p[0]) * ky, bx = (s[3] - p[1]) * kx, by = (s[2] - p[0]) * ky, vx = bx - ax, vy = by - ay, l2 = vx * vx + vy * vy;
+                    var u = l2 ? Math.max(0, Math.min(1, -(ax * vx + ay * vy) / l2)) : 0;
+                    near = Math.hypot(ax + u * vx, ay + u * vy) <= lim;
+                    return near;
+                });
+            }
+            if (near) hit++;
+        });
+        return hit / pts.length;
+    }
+
     /** 걸을 수 있는 OSM 길 종류(GPX 편집 길 그리기 - Overpass 질의 · 길 찾기, tools/park-gaps 와 같은 범위). */
     var WALK_WAYS = "path|footway|steps|track|bridleway|pedestrian|cycleway|residential|unclassified|service|living_street|tertiary";
 
@@ -5962,7 +5996,7 @@
 
     global.RF = {
         LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, regionNames: regionNames, stampKey: stampKey, summitName: summitName, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakGapM: peakGapM, peakCourses: peakCourses, isClosedTrail: isClosedTrail, isHiddenCourse: isHiddenCourse, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, nearestExit: nearestExit, gpsGap: gpsGap, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
-        nextPoi: nextPoi, snap: snap, fillTrackEle: fillTrackEle, trimTrack: trimTrack, gpxTracks: gpxTracks, trackStats: trackStats, splitTrack: splitTrack, joinTracks: joinTracks, trackGpx: trackGpx, cutMiddle: cutMiddle, osmRoute: osmRoute, WALK_WAYS: WALK_WAYS, trailsToElements: trailsToElements, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
+        nextPoi: nextPoi, snap: snap, fillTrackEle: fillTrackEle, trimTrack: trimTrack, gpxTracks: gpxTracks, trackStats: trackStats, splitTrack: splitTrack, joinTracks: joinTracks, trackGpx: trackGpx, cutMiddle: cutMiddle, osmRoute: osmRoute, WALK_WAYS: WALK_WAYS, trailsToElements: trailsToElements, overlapShare: overlapShare, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
         sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, wxCols: wxCols, wxTable: wxTable, kmaLink: kmaLink, pcpText: pcpText, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap,
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },
         cellCenter: cellCenter, warnName: warnName, safetyRows: safetyRows, safetyAlert: safetyAlert, safetyRender: safetyRender,

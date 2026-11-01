@@ -1655,3 +1655,16 @@ eq("favJoinExtra 제목이 없으면 지금 이름의 길", [RF.favJoinExtra("#c
     eq("bragShare 글 · 링크", RF.bragShare(r, "시험산"), { text: "routefly 로 시험산 다녀왔어요 · 12.3km · 5시간 10분", path: "c/10001" });
     eq("bragShare 이은 코스 · GPX 는 첫 화면", [RF.bragShare({ courseId: "1,2", start: 0, end: 0 }, "가").path, RF.bragShare({ courseId: RF.gpxId("x"), start: 0, end: 0 }, "가").path], ["", ""]);
 })();
+// 받은 GPX 가 이미 있는 코스인지(2026-11-01 홍TV님 "없는 코스면 점검해서 올림") - 코스 선 30m 안 점의 몫
+(function () {
+    var trails = [{ id: "t1", coords: [[127.0, 37.0], [127.0, 37.01]] }];   // 남북 약 1.1km
+    var onLine = [], half = [];
+    for (var i = 0; i <= 10; i++) onLine.push([37.0 + i * 0.001, 127.0 + 0.0002]);   // 약 18m 옆
+    for (var j = 0; j <= 9; j++) half.push([37.0 + j * 0.001, j < 5 ? 127.0001 : 127.002]);   // 뒤 반은 약 180m 옆
+    eq("overlapShare 코스 선 옆 30m 안", RF.overlapShare(onLine, trails), 1);
+    eq("overlapShare 반만 겹침", RF.overlapShare(half, trails), 0.5);
+    eq("overlapShare 거리(m) 바꾸기 - 10m 면 18m 옆은 밖", RF.overlapShare(onLine, trails, 10), 0);
+    eq("overlapShare 끝 너머는 끝점까지 거리", RF.overlapShare([[37.0102, 127.0]], trails), 1);
+    eq("overlapShare 코스 없음 · 점 없음", [RF.overlapShare(onLine, []), RF.overlapShare([], trails), RF.overlapShare(null, null)], [0, 0, 0]);
+    eq("overlapShare 칸 경계(0.002°)를 넘는 마디", RF.overlapShare([[37.0031, 127.0039]], [{ coords: [[127.0, 37.003], [127.008, 37.003]] }]), 1);
+})();

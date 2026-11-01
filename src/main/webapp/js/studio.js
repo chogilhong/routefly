@@ -22,7 +22,7 @@
     }
     function cur() { return tracks[sel] || null; }
     /** 되돌리기 - 고치기 전 목록 전체(나누기 · 잇기로 늘거나 준 길도 함께, 점 배열은 고칠 때 새로 만들어 그대로 둬도 됨). */
-    function push() { undo.push({ sel: sel, list: tracks.map(function (x) { return { name: x.name, track: x.track, color: x.color }; }) }); if (undo.length > 30) undo.shift(); $("undoBtn").disabled = false; }
+    function push() { undo.push({ sel: sel, list: tracks.map(function (x) { return { name: x.name, track: x.track, color: x.color, sub: x.sub }; }) }); if (undo.length > 30) undo.shift(); $("undoBtn").disabled = false; }
 
     // ---- 관리자 기기인가(/api/course-upload GET - 운영자 쿠키)
     fetch("api/course-upload", { headers: { Accept: "application/json" }, cache: "no-store" }).then(function (r) { return r.json(); }).then(function (j) {
@@ -31,8 +31,11 @@
         $("gate").hidden = true;
         $("app").hidden = false;
         startMap();
+        loadSubs();
     }).catch(function () {
-        $("gate").innerHTML = "<p>GPX 편집은 지금 관리자 기기에서만 쓸 수 있습니다.</p><p class=\"tip\">관리자는 안내 화면 제목을 7번 눌러 통계를 한 번 열면 이 기기가 관리자 기기가 됩니다.</p>";
+        // 관리자 기기가 아니면 편집기를 띄우지 않고 말없이 코스 모음으로(2026-11-01 홍TV님 "GPX 편집은 나만 - 안내도 필요 없음").
+        // 서버도 올리기 · 받은 GPX 를 운영자 기기만 받음(403)
+        location.replace("m/");
     });
 
     // ---- 지도(따라가기와 같은 바탕: V-World 위성 · 밝은 지도 + 지형 음영, 키가 없으면 지형 음영만)
@@ -733,6 +736,74 @@
         });
     }
 
+    // ---- 📨 받은 GPX(2026-11-01 홍TV님 "등산객이 GPX 를 보내 주면 없는 코스면 점검해서 올림") - /api/course-submit(운영자 기기만)
+    var KIND_WORD = { hike: "⛰️ 등산", walk: "🚶 걷기", bike: "🚴 자전거" };
+    function postJson(url, body) {
+        return fetch(url, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(body) })
+            .then(function (res) { return res.json().catch(function () { return { success: false, message: "HTTP " + res.status }; }); })
+            .then(function (j) { if (!j || j.success === false) throw new Error(j && j.message || "?"); return j; });
+    }
+    function loadSubs() {
+        fetch("api/course-submit/list", { headers: { Accept: "application/json" }, cache: "no-store" }).then(function (r) { return r.json(); }).then(function (j) {
+            var items = (j && j.items) || [], box = $("subList");
+            $("subSec").hidden = false;
+            $("subN").textContent = items.length;
+            box.textContent = "";
+            if (!j || j.success === false) { box.textContent = (j && j.message) || "받은 GPX 를 읽지 못했습니다."; return; }
+            if (!items.length) { box.innerHTML = '<p class="tip">받은 GPX 가 없습니다.</p>'; return; }
+            items.forEach(function (it) {
+                var row = document.createElement("div"), d = new Date(it.at);
+                row.className = "sub";
+                var h = document.createElement("b"), sp = document.createElement("span"), nt = document.createElement("span"), ov = document.createElement("span");
+                h.textContent = (it.sender || "익명") + " · " + it.name;
+                sp.textContent = (KIND_WORD[it.kind] || it.kind) + " · " + km(it.distM) + " km · " + d.getFullYear() + "." + (d.getMonth() + 1) + "." + d.getDate() + " " + d.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+                nt.textContent = it.note || "";
+                ov.className = "ov";
+                [h, sp, nt, ov].forEach(function (e) { if (e.textContent || e === ov) row.appendChild(e); });
+                var bs = document.createElement("div"), op = document.createElement("button"), del = document.createElement("button");
+                bs.className = "row";
+                op.className = "b main"; op.type = "button"; op.textContent = "열기";
+                del.className = "b"; del.type = "button"; del.textContent = "🗑 버리기";
+                op.onclick = function () { openSub(it, ov); };
+                del.onclick = function () {
+                    ask("\"" + h.textContent + "\" 을(를) 버릴까요?\n받은 GPX 가 서버에서 지워집니다.", { ok: "버리기", danger: true }).then(function (ok) { if (ok) subDone(it.id); });
+                };
+                bs.appendChild(op); bs.appendChild(del);
+                row.appendChild(bs);
+                box.appendChild(row);
+            });
+        }).catch(function () { $("subSec").hidden = false; $("subList").textContent = "받은 GPX 를 읽지 못했습니다."; });
+    }
+    function subDone(id) {
+        postJson("api/course-submit/done", { id: id }).then(loadSubs).catch(function (e) { msg("받은 GPX 를 지우지 못했습니다: " + (e && e.message || e), 6000); });
+    }
+    /** 받은 GPX 열기 - 이름은 "보낸 사람 · 코스 이름"(⬆ 코스로 올리기에 그대로), 기존 코스와 겹침을 봄. */
+    function openSub(it, ov) {
+        fetch("api/course-submit/gpx?id=" + encodeURIComponent(it.id), { headers: { Accept: "application/json" }, cache: "no-store" }).then(function (r) { return r.json(); }).then(function (j) {
+            if (!j || j.success === false) throw new Error(j && j.message || "?");
+            var t = RF.gpxTracks(j.gpx)[0];
+            if (!t || t.track.length < 2) throw new Error("점이 없습니다");
+            add(it.sender ? it.sender + " · " + it.name : it.name, t.track);
+            tracks[sel].sub = it.id;
+            if (KIND_WORD[it.kind]) $("kind").value = it.kind;
+            draw(true);
+            ov.textContent = "기존 코스와 겹침 확인 중…";
+            return overlapOf(t.track).then(function (share) {
+                var pct = Math.round(share * 100);
+                ov.textContent = "기존 코스와 겹침 " + pct + "%" + (pct >= 70 ? " - 이미 있는 코스일 수 있음" : "");
+                ov.style.color = pct >= 70 ? "#ffd43b" : "";
+                msg(ov.textContent, 6000);
+            });
+        }).catch(function (e) { msg("받은 GPX 를 열지 못했습니다: " + (e && e.message || e), 6000); });
+    }
+    /** 길 둘레의 우리 코스 선(0.15° 칸마다 /api/trails - 둘레 · 반올림을 더해도 서버 한도 0.2° 안, 칸 12개까지)과 겹치는 몫. */
+    function overlapOf(track) {
+        var la = track.map(function (p) { return p[0]; }), lo = track.map(function (p) { return p[1]; }), S = 0.15;
+        var a0 = Math.min.apply(null, la), a1 = Math.max.apply(null, la), o0 = Math.min.apply(null, lo), o1 = Math.max.apply(null, lo), jobs = [];
+        for (var a = a0; a <= a1 && jobs.length < 12; a += S) for (var o = o0; o <= o1 && jobs.length < 12; o += S) jobs.push(ourTrails([a, o], [Math.min(a + S, a1), Math.min(o + S, o1)]));
+        return Promise.all(jobs).then(function (rs) { return RF.overlapShare(track, [].concat.apply([], rs), 30); });
+    }
+
     // ---- 저장 · 올리기
     function slug(s) { return String(s || "").replace(/[\\/:*?"<>|.\s·~,]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40) || "track"; }
     $("saveBtn").onclick = function () {
@@ -760,6 +831,7 @@
                     .then(function (j) {
                         if (!j || j.success === false) throw new Error(j && j.message || "?");
                         msg("⬆ 올렸습니다 - 1시간 안(매시 7분)에 코스 목록에 들어갑니다. 코스 ID " + j.id, 9000);
+                        if (c.sub) { var id = c.sub; delete c.sub; subDone(id); }   // 받은 GPX 를 올렸으면 받은 목록에서 지움
                     });
             });
         }).catch(function (e) { msg("올리지 못했습니다: " + (e && e.message || e), 7000); });

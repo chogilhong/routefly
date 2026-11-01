@@ -1802,6 +1802,7 @@
         box.innerHTML = '<b style="font-size:17px">' + T("📤 기록 보내기", "📤 Send record") + '</b><p class="tip" style="margin:6px 0 0"></p>'
             + '<button type="button" class="a" style="' + bs + '"><b>' + T("🎁 routefly 기록으로", "🎁 As a routefly record") + '</b><br><span class="tip">' + T("함께 간 친구에게 - 사진까지, 친구 routefly 내 기록에 그대로", "For a friend - with photos, straight into their routefly records") + '</span></button>'
             + '<button type="button" class="g" style="' + bs + '"><b>' + T("🗺 GPX 파일로", "🗺 As a GPX file") + '</b><br><span class="tip">' + T("다른 등산 앱 · 지도(gpx.studio)에서 열기 - 선 · 시각 · 높이만", "Open in other apps or maps (gpx.studio) - line, times, elevation only") + '</span></button>'
+            + (upOwner ? "" : '<button type="button" class="c" style="' + bs + '"><b>' + T("📮 routefly 에 코스로 보내기", "📮 Send to routefly as a course") + '</b><br><span class="tip">' + T("없는 코스면 점검해 공개 코스로 올립니다 - 선 모양 · 이름만", "If it's a new trail we check it and publish it - line and name only") + '</span></button>')
             + '<button type="button" class="n" style="display:block;width:100%;margin:12px 0 0">' + T("닫기", "Close") + '</button>';
         box.querySelector("p").textContent = NM(r.name);
         wrap.appendChild(box);
@@ -1809,10 +1810,72 @@
         function close() { wrap.remove(); }
         box.querySelector(".a").onclick = function () { close(); shareRecord(r); };
         box.querySelector(".g").onclick = function () { close(); downloadGpx(r); };
+        if (box.querySelector(".c")) box.querySelector(".c").onclick = function () { close(); submitSheet(r); };   // 관리자는 ⬆ 코스로 를 그대로 씀
         box.querySelector(".n").onclick = close;
         wrap.addEventListener("click", function (e) { if (e.target === wrap) close(); });
         wrap.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
         box.querySelector(".a").focus();
+    }
+    /**
+     * 📮 routefly 에 코스로 보내기(2026-11-01 홍TV님 "등산객이 GPX 를 보내 주면 없는 코스면 점검해서 올림 - 보낸 사람 이름을 코스 이름 앞에").
+     * 선 모양(시각 없이) · 코스 이름 · 보낸 사람 이름 · 메모만 /api/course-submit 으로. 사진 · 사진 메모는 보내지 않음. 보낸 사람 이름은 이 기기에 기억(rf-submit-sender).
+     */
+    var SENDER_KEY = "rf-submit-sender";
+    function submitSheet(r) {
+        var track = r.track || [], sender = "";
+        try { sender = localStorage.getItem(SENDER_KEY) || ""; } catch (e) { /* 처음 */ }
+        var wrap = document.createElement("div");
+        wrap.setAttribute("role", "dialog");
+        wrap.setAttribute("aria-label", T("코스로 보내기", "Send as a course"));
+        wrap.style.cssText = "position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:12px";
+        var box = document.createElement("div");
+        box.style.cssText = "background:#1b2430;color:#e9eef4;border-radius:14px;padding:14px;width:min(440px,100%);max-height:96vh;overflow:auto;font-size:15px";
+        var ls = "display:block;margin-top:10px", is = "display:block;width:100%;box-sizing:border-box;margin-top:4px;padding:9px;border-radius:8px;border:1px solid #3a4655;background:#0f1720;color:#e9eef4;font-size:15px";
+        box.innerHTML = '<b style="font-size:17px">' + T("📮 routefly 에 코스로 보내기", "📮 Send to routefly as a course") + '</b>'
+            + '<label style="' + ls + '">' + T("코스 이름", "Course name") + '<input type="text" class="nm" maxlength="60" style="' + is + '"></label>'
+            + '<label style="' + ls + '">' + T("보내는 사람 이름(코스 이름 앞에 붙음 · 비우면 익명)", "Your name (shown before the course name · leave empty to stay anonymous)") + '<input type="text" class="sd" maxlength="20" style="' + is + '"></label>'
+            + '<label style="' + ls + '">' + T("종류", "Type") + '<select class="kd" style="' + is + '"><option value="hike">' + T("⛰️ 등산", "⛰️ Hiking") + '</option><option value="walk">' + T("🚶 걷기", "🚶 Walking") + '</option><option value="bike">' + T("🚴 자전거", "🚴 Cycling") + '</option></select></label>'
+            + '<label style="' + ls + '">' + T("메모(골라서 - 들머리 · 주차 등)", "Note (optional - trailhead, parking, etc.)") + '<textarea class="nt" maxlength="200" rows="2" style="' + is + '"></textarea></label>'
+            + '<p class="tip" style="margin:10px 0 6px">' + T("길 모양 · 코스 이름 · 보낸 사람 이름을 routefly 가 점검해 공개 코스로 올릴 수 있습니다. 시각 · 사진 · 메모는 보내지 않습니다. 집 근처 출발 · 도착 부분은 먼저 자르세요.",
+                "routefly may review the line, course name and your name and publish them as a public course. Times, photos and photo notes are not sent. Trim the start and end near your home first.") + '</p>'
+            + '<p style="display:flex;gap:8px;align-items:center;margin:0"><button type="button" class="tr">' + T("✂ 앞 · 뒤 자르기", "✂ Trim start and end") + '</button><span class="km tip"></span></p>'
+            + '<label style="display:flex;gap:8px;align-items:flex-start;margin-top:10px"><input type="checkbox" class="ag" style="margin-top:3px"><span>' + T("위 내용을 읽었고 보내는 데 동의합니다", "I have read the above and agree to send it") + '</span></label>'
+            + '<p class="er" role="alert" style="color:#ff8787;margin:8px 0 0"></p>'
+            + '<p style="display:flex;gap:8px;margin:12px 0 0"><button type="button" class="no" style="flex:1">' + T("취소", "Cancel") + '</button><button type="button" class="go main" style="flex:1">' + T("보내기", "Send") + '</button></p>';
+        box.querySelector(".nm").value = String(r.name || "").slice(0, 60);
+        box.querySelector(".sd").value = sender;
+        box.querySelector(".kd").value = /^(hike|walk|bike)$/.test(r.kind) ? r.kind : "hike";
+        wrap.appendChild(box);
+        document.body.appendChild(wrap);
+        function shown() { box.querySelector(".km").textContent = km(RF.trackStats(track).dist) + " km" + (track !== r.track ? T(" (자름)", " (trimmed)") : ""); }
+        function close() { wrap.remove(); }
+        shown();
+        box.querySelector(".tr").onclick = function () {
+            trimSheet({ track: track }).then(function (kept) { if (kept) { track = kept; shown(); } });
+        };
+        box.querySelector(".no").onclick = close;
+        wrap.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+        var go = box.querySelector(".go"), er = box.querySelector(".er");   // 알림(toast)은 이 창 아래에 깔려 창 안에 씀
+        go.onclick = function () {
+            var name = box.querySelector(".nm").value.trim(), kind = box.querySelector(".kd").value;
+            sender = box.querySelector(".sd").value.trim();
+            if (name.length < 2) { er.textContent = T("코스 이름을 2자 이상 적어 주세요.", "Please enter a course name (2+ characters)."); return; }
+            if (!box.querySelector(".ag").checked) { er.textContent = T("안내를 읽고 동의에 체크해 주세요.", "Please read the notice and tick the box."); return; }
+            er.textContent = "";
+            try { if (sender) localStorage.setItem(SENDER_KEY, sender); else localStorage.removeItem(SENDER_KEY); } catch (e) { /* 이번만 */ }
+            go.disabled = true;
+            fetch("api/course-submit", { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" },
+                body: JSON.stringify({ name: name, sender: sender, kind: kind, note: box.querySelector(".nt").value.trim(), agree: true,
+                    gpx: RF.trackGpx(name, kind, track.map(function (p) { return [p[0], p[1], null, p[3]]; })) }) })   // 시각은 빼고 선 모양 · 높이만
+                .then(function (res) { return res.json().catch(function () { return { success: false, message: "HTTP " + res.status }; }); })
+                .then(function (j) {
+                    if (!j || j.success === false) throw new Error(j && j.message || "?");
+                    close();
+                    toast(T("보냈습니다 - 점검 뒤 코스 목록에 올라갑니다(이미 있는 코스면 올리지 않을 수 있습니다)", "Sent - after review it will appear in the course list (we may skip it if the trail already exists)"), 9000);
+                })
+                .catch(function (e) { go.disabled = false; er.textContent = T("보내지 못했습니다: ", "Could not send: ") + (e && e.message || e); });
+        };
+        box.querySelector(".nm").focus();
     }
     function b64Blob(s, type) {
         var bin = atob(s), u = new Uint8Array(bin.length);
