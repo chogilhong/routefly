@@ -1627,3 +1627,31 @@ eq("favJoinExtra 제목이 없으면 지금 이름의 길", [RF.favJoinExtra("#c
     eq("trailsToElements 갈림길로 두 코스를 이어 길 찾기", [r.error || null, r.pts.length, r.dist > 390 && r.dist < 420], [null, 6, true]);
     eq("trailsToElements 멀리 떨어진 코스는 안 이어짐", RF.osmRoute(el, [37.0, 127.0], [37.010, 127.011]).error, "두 점을 잇는 길이 없습니다.");
 })();
+// 출발 전 점검(2026-11-01) - 모르는 것은 줄을 뺌, 배터리 50% · 해 지기 30분 전 · 안전 알림
+(function () {
+    var sun = Date.UTC(2026, 10, 1, 8, 30);   // 한국 17:30
+    var a = RF.startChecks({ saved: false, battery: 0.43, charging: false, eta: sun - 1700000, sunset: sun, safety: "⛑️ 오늘의 산행 안전: 강풍주의보" });
+    eq("startChecks 모두 주의", a.map(function (r) { return r.k + (r.ok ? "+" : "-"); }), ["save-", "battery-", "sun-", "safety-"]);
+    eq("startChecks 글", [a[1].text, a[2].text.slice(0, 25), a[3].text], ["배터리 43% - 충전하거나 보조 배터리를 챙기세요", "예상 도착 17:01 · 일몰 17:30 - ", "오늘의 산행 안전: 강풍주의보"]);
+    var b = RF.startChecks({ saved: true, battery: 0.3, charging: true, eta: sun - 1900000, sunset: sun, safety: "" });
+    eq("startChecks 모두 괜찮음(충전 중이면 배터리 적어도)", b.map(function (r) { return r.ok; }), [true, true, true, true]);
+    eq("startChecks 모르는 것은 뺌", RF.startChecks({ saved: true, battery: null, eta: sun, sunset: null, safety: null }).map(function (r) { return r.k; }), ["save"]);
+    RF.setLang("en");
+    eq("startChecks 영어", RF.startChecks({ saved: true, battery: 0.8 })[1].text, "Battery 80%");
+    RF.setLang("ko");
+})();
+// 백업 알림(2026-11-01) - 백업 뒤 3번, 7일에 한 번, 나중에를 누르면 3번 더
+(function () {
+    var D = 86400000, now = 100 * D, ends = [91 * D, 92 * D, 93 * D, 94 * D];
+    eq("backupNag 백업한 적 없고 3번 넘음", RF.backupNag(ends, 0, null, now), 4);
+    eq("backupNag 백업 뒤 2번뿐", RF.backupNag(ends, 92.5 * D, null, now), 0);
+    eq("backupNag 7일 안에는 다시 안 띄움", [RF.backupNag(ends, 0, { at: now - 6 * D, n: 3 }, now), RF.backupNag(ends, 0, { at: now - 8 * D, n: 3 }, now)], [0, 4]);
+    eq("backupNag 나중에 - 3번 더 다녀와야", [RF.backupNag(ends, 0, { at: now - 30 * D, n: 3, off: true }, now), RF.backupNag(ends.concat([95 * D, 96 * D]), 0, { at: now - D, n: 3, off: true }, now)], [0, 6]);
+    eq("backupNag 알림 뒤에 백업했으면 지난 알림은 셈하지 않음", RF.backupNag(ends.concat([99 * D, 99.5 * D]), 90 * D + 1, { at: 90 * D, n: 3, off: true }, now), 6);
+})();
+// 기록 자랑(2026-11-01) - 서버 코스는 코스 소개 페이지, 내 GPX · 이은 코스는 첫 화면
+(function () {
+    var r = { courseId: "10001", start: 0, end: (5 * 60 + 10) * 60000, walked: 12340, done: 12000 };
+    eq("bragShare 글 · 링크", RF.bragShare(r, "시험산"), { text: "routefly 로 시험산 다녀왔어요 · 12.3km · 5시간 10분", path: "c/10001" });
+    eq("bragShare 이은 코스 · GPX 는 첫 화면", [RF.bragShare({ courseId: "1,2", start: 0, end: 0 }, "가").path, RF.bragShare({ courseId: RF.gpxId("x"), start: 0, end: 0 }, "가").path], ["", ""]);
+})();

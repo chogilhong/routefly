@@ -9,6 +9,7 @@
 | 음성 안내 | @capacitor-community/text-to-speech | 화면이 꺼져도 말합니다 |
 | 공유 | @capacitor/share · @capacitor/filesystem | SOS 위치 사진 · GPX 를 공유 창으로(앱 안 웹뷰는 내려받기 · navigator.share 가 안 됨) |
 | NFC 스티커 쓰기 | RfNfcPlugin(앱 안 자바, 2026-10-27) | 인솔자가 산악회 방에서 "📶 NFC 스티커에 쓰기" - 앱 웹뷰에는 크롬의 Web NFC 가 없어 앱이 직접 씀(routefly.kr 참가 주소만, 30초 기다림) |
+| 사진 갤러리 저장 | RfGalleryPlugin(앱 안 자바, 2026-11-01) | 📝 사진 · 메모에서 찍은 사진을 폰 갤러리 `Pictures/routefly` 앨범에도(MediaStore - 안드로이드 10 이상, 저장소 권한 없음). 사진 창의 "사진을 갤러리(routefly 앨범)에도 저장" 으로 끄고 켬(기본 켬). 앱을 다시 설치(`gradlew installDebug`)해야 들어가고, 옛 설치본은 그 칸이 안 보이고 아무것도 안 함 |
 | 안전 알림 | @capacitor/local-notifications | 움직임 없음("괜찮으세요?") · 긴급 신고 화면을 연 때 알림창 + 진동 · 소리(화면이 꺼지면 웹뷰 navigator.vibrate 가 막힘, 2026-10-17) |
 
 - 앱 이름 routefly, 앱 ID `kr.routefly.app`(스토어에 올린 뒤에는 바꿀 수 없습니다 - 바꾸려면 올리기 전에)
@@ -71,6 +72,7 @@ APK 파일만 만들려면 Android Studio 메뉴 Build → Build App Bundle(s) /
 - 화면을 끄고 걸어도: 갈림길 · 1km · 코스 이탈 음성이 나오는지, 다시 켰을 때 진행 거리가 늘어 있는지
 - SOS → 📷 위치 사진 보내기 → 공유 창 → 메시지(시험은 내 번호로)
 - 끝내기 → GPX → 공유 창
+- 산행 중 📝 → 📷 사진 찍기 → 남기기 → 갤러리 앱에 routefly 앨범 · 그 사진(2026-11-01 - 다시 설치한 앱에서)
 
 ## 파일
 

@@ -210,6 +210,14 @@ body.compact #statGrids { display:none; }
 .sheet .where div:last-child { border-bottom:0; }
 .sheet .where span { color:var(--dim); }
 .sheet .where b { text-align:right; font-variant-numeric:tabular-nums; }
+/* 출발 전 점검(2026-11-01 홍TV님) · 끝낸 창 백업 알림 · 사진 갤러리 저장(앱) */
+#checkList div { justify-content:flex-start; align-items:flex-start; }
+#checkList b { text-align:left; font-weight:normal; line-height:1.45; }
+#checkList .warn b { color:#ffd43b; }
+#doneBackup { margin:10px 0 0; padding:10px 12px; border-radius:10px; background:rgba(255,183,3,0.12); border:1px solid rgba(255,183,3,0.4); font-size:14px; line-height:1.5; }
+#galleryRow { display:flex; align-items:center; gap:8px; font-size:14px; padding:8px 0 0; }
+#galleryRow[hidden], #checkSave[hidden] { display:none; }
+#galleryRow input { width:20px; height:20px; }
 .sheet .tip { font-size:12.5px; color:var(--dim); line-height:1.55; margin:6px 0; }
 .sheet .sbtn { display:flex; gap:8px; margin-top:10px; }
 .sheet .sbtn button { flex:1; height:46px; border-radius:10px; border:1px solid var(--ln); background:rgba(255,255,255,0.06); color:var(--tx);
@@ -501,11 +509,17 @@ html.picking #pick { display:flex; }
     <div class="sbox">
         <h2 id="doneTitle" data-en="Hike record">산행 기록</h2>
         <div class="where" id="doneSum"></div>
+        <button type="button" class="big sms" id="doneBrag" style="width:100%;font-family:inherit;cursor:pointer" data-en="💬 Share with friends (card · link)">💬 카톡으로 자랑하기</button>
         <p class="tip" data-en="Records stay on this phone (&quot;My records&quot;). Send (📤) or save the GPX to open it in other hiking or fitness apps.">기록은 이 핸드폰에만 남습니다("내 기록"). GPX 를 보내거나(📤 - 카카오톡 · 메일 · 드라이브 등 공유 창) 저장하면 다른 등산 · 운동 앱 · 지도에서도 열 수 있습니다.</p>
         <div class="sbtn">
             <button type="button" id="doneCard" data-en-title="Share record card image" title="기록 카드 그림 공유(카카오톡 · 인스타그램 등)" data-en="🖼 Card">🖼 카드</button>
             <button type="button" id="doneGpx" data-en="Save GPX">GPX 저장</button>
             <button type="button" id="doneClose" class="main" data-en="Close">닫기</button>
+        </div>
+        <!-- 백업 알림(2026-11-01 홍TV님 - 기록은 이 폰에만 있음, RF.backupNag) -->
+        <div id="doneBackup" hidden>
+            <div id="doneBackupMsg"></div>
+            <div class="sbtn"><button type="button" id="doneBackupLater" data-en="Later">나중에</button><button type="button" id="doneBackupGo" class="main" data-en="💾 Back up">💾 백업 저장</button></div>
         </div>
         <!-- 다음은? - 날머리 맛집 · 숙소 · 무릎 보호대 · 다음 산(2026-10-28 홍TV님 추천, RF.afterHikeLinks) -->
         <div id="doneNext" hidden></div>
@@ -548,6 +562,19 @@ html.picking #pick { display:flex; }
         <p class="tip" id="sharePlanText" style="white-space:pre-line"></p>
         <p class="tip" data-en="The plan opens in your messages app - pick the recipient there (edit the start time if needed). Nothing is sent to the routefly server.">계획 문자는 내 문자 앱으로 열리고, 받는 사람은 문자 앱에서 고릅니다(출발 시각이 다르면 문자 앱에서 고쳐 보내세요). routefly 서버로는 보내지 않습니다.</p>
         <div class="sbtn"><button type="button" id="shareClose" class="main" data-en="Close">닫기</button></div>
+    </div>
+</div>
+
+<!-- 출발 전 점검(2026-11-01 홍TV님) - 새로 시작할 때 한 번(이어 하기 · 시험 걷기는 아님), js/hike.js preCheck · RF.startChecks -->
+<div id="checkSheet" class="sheet">
+    <div class="sbox">
+        <h2 data-en="Before you start">출발 전 점검</h2>
+        <div class="where" id="checkList"></div>
+        <button type="button" class="big sms" id="checkSave" style="width:100%;font-family:inherit;cursor:pointer" hidden data-en="📥 Save the map now">📥 지금 저장</button>
+        <div class="sbtn">
+            <button type="button" id="checkNo" data-en="Cancel">취소</button>
+            <button type="button" id="checkGo" class="main" data-en="Start">출발</button>
+        </div>
     </div>
 </div>
 
@@ -597,6 +624,8 @@ html.picking #pick { display:flex; }
         <textarea id="noteText" data-en-placeholder="Note (optional) - e.g. rested here, refilled water, junction: left" maxlength="500" placeholder="메모(선택) - 예: 여기서 쉼, 물 보충, 갈림길 왼쪽"></textarea>
         <button type="button" class="big photo" id="notePhotoBtn" style="margin-top:8px" data-en="📷 Take or pick a photo">📷 사진 찍기 · 고르기</button>
         <input type="file" id="notePhoto" accept="image/*" capture="environment" hidden>
+        <!-- 앱만(RfGallery - 2026-11-01): 찍은 사진을 폰 갤러리 routefly 앨범에도 -->
+        <label id="galleryRow" hidden><input type="checkbox" id="galleryChk"> <span data-en="Also save photos to the gallery (routefly album)">사진을 갤러리(routefly 앨범)에도 저장</span></label>
         <img id="notePreview" data-en-alt="Selected photo" alt="고른 사진">
         <p class="tip" data-en="Photos and notes stay on this phone (My records). Notes become waypoints when you save GPX.">사진 · 메모는 이 핸드폰에만 남습니다(내 기록). GPX 로 저장하면 메모가 지점으로 들어갑니다.</p>
         <div class="sbtn">

@@ -106,6 +106,8 @@
     try { batterySave = localStorage.getItem(BATTERY_KEY) === "1"; } catch (e) { /* 기본은 끔 */ }
     var BG = plugin("BackgroundGeolocation"), TTS = plugin("TextToSpeech"), FS = plugin("Filesystem"), SHARE = plugin("Share");
     var LN = plugin("LocalNotifications");
+    // 찍은 사진을 폰 갤러리 Pictures/routefly 에도(앱 RfGalleryPlugin - 2026-11-01 홍TV님). 옛 설치본 · 브라우저는 null 이라 아무것도 안 함
+    var GALLERY = plugin("RfGallery"), GALLERY_KEY = "rf-gallery";
     // 🏠 안부 알림을 누르면 안부 화면으로(앱은 늘 따라가기로 열림 - 2026-10-17)
     if (LN && LN.addListener) Promise.resolve(LN.addListener("localNotificationActionPerformed", function (ev) {
         if (ev && ev.notification && ev.notification.extra && ev.notification.extra.page === "anbu" && !hike.running) location.href = "anbu.html";
@@ -807,8 +809,10 @@
             var fire = RF.fireNote(Date.now()), today0 = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
             try { if (fire && localStorage.getItem("rf-fire") !== today0) { localStorage.setItem("rf-fire", today0); setTimeout(function () { toast(fire, 9000); }, 7000); } } catch (e) { /* 이번만 */ }
             // ⛑️ 오늘의 산행 안전(api/safety - 2026-10-18 홍TV님): 들머리 자리의 내 지역 특보 · 산불위험 높음 이상 · 자외선 8 이상일 때만, 그 지역(시도) 하루 한 번
+            safetyJ = null;   // 출발 전 점검이 같이 씀(새로 받지 않음)
             if (c.lat && c.lat.length) fetch("api/safety?lat=" + (+c.lat[0]).toFixed(4) + "&lon=" + (+c.lon[0]).toFixed(4)).then(function (x) { return x.json(); }).then(function (j) {
                 var msg = my === loadSeq && RF.safetyAlert(j, Date.now(), EN), k = "rf-safe-" + today0 + "-" + ((j && j.sido) || "");
+                if (my === loadSeq) safetyJ = j;
                 if (!msg || lsGet("rf-safe") === k) return;
                 try { localStorage.setItem("rf-safe", k); } catch (e) { /* 이번만 */ }
                 setTimeout(function () { if (my === loadSeq) toast(msg + T(" - 별거 별거 › 산행 안전에서 자세히", " - details in Handy tools › Hiking safety"), 10000); }, 17000);
@@ -1313,18 +1317,26 @@
     function shareCard(rec) {
         shareCanvas(recordCard(rec), "routefly-" + stamp(rec.start) + ".png", NM(rec.name) + " - routefly");
     }
-    /** 그림을 공유 창으로(기록 카드 · 결산 카드). */
-    function shareCanvas(cv, name, text) {
+    /**
+     * 카톡으로 자랑하기(2026-11-01 홍TV님) - 기록 카드 그림 + "routefly 로 ○○ 다녀왔어요 · 12.3km · 5시간 10분" + 링크(코스 소개 페이지, 내 GPX · 이은 코스는 첫 화면).
+     * 카카오 SDK 없이 공유 창으로(js/no-kakao.js) - 받을 앱은 이용자가 고름.
+     */
+    function bragCard(rec) {
+        var b = RF.bragShare(rec, NM(rec.name));
+        shareCanvas(recordCard(rec), "routefly-" + stamp(rec.start) + ".png", b.text, new URL(b.path || "./", location.href).href);
+    }
+    /** 그림을 공유 창으로(기록 카드 · 결산 카드). url - 함께 보낼 링크(자랑하기, 없으면 그림과 글만). */
+    function shareCanvas(cv, name, text, url) {
         cv.toBlob(function (blob) {
             if (!blob) { toast(T("카드를 만들지 못했습니다.", "Could not make the card."), 3000); return; }
             if (FS && SHARE) {
-                blobToBase64(blob).then(function (b64) { return nativeShareFile(name, b64, text); })
+                blobToBase64(blob).then(function (b64) { return nativeShareFile(name, b64, url ? text + "\n" + url : text); })
                     .catch(function (e) { if (!/cancel/i.test(String(e && e.message || e))) toast(T("카드를 보내지 못했습니다.", "Could not send the card."), 4000); });
                 return;
             }
             var file = new File([blob], name, { type: "image/png" });
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                navigator.share({ files: [file], text: text }).catch(function (e) {
+                navigator.share(url ? { files: [file], text: text, url: url } : { files: [file], text: text }).catch(function (e) {
                     if (e && e.name === "NotAllowedError") toast(T("카드가 준비됐습니다. 한 번 더 눌러 주세요.", "The card is ready. Tap once more."), 4000);
                 });
                 return;
@@ -1333,6 +1345,10 @@
             a.href = URL.createObjectURL(blob); a.download = name;
             document.body.appendChild(a); a.click(); a.remove();
             setTimeout(function () { URL.revokeObjectURL(a.href); }, 10000);
+            // 공유 창이 없는 브라우저(컴퓨터) - 그림은 내려받고 글 · 링크는 복사
+            if (url) (navigator.clipboard ? navigator.clipboard.writeText(text + "\n" + url) : Promise.reject()).then(function () {
+                toast(T("카드 그림을 내려받고 글 · 링크를 복사했습니다. 카톡에 그림을 올리고 붙여 넣으세요.", "Card image downloaded and text · link copied - paste it with the image."), 6000);
+            }).catch(function () { hAskText(T("카드 그림을 내려받았습니다. 글 · 링크를 길게 눌러 복사하세요.", "Card image downloaded. Long-press to copy the text and link."), text + " " + url, { ok: T("닫기", "Close") }); });
         }, "image/png");
     }
 
@@ -1462,6 +1478,7 @@
             }).then(gcPhotos).then(keepStorage);
             addLog([RF.logEntry(rec)]);   // 30개 밖으로 밀려난 기록의 사진
         }
+        backupNagShow(!sim);
         var sum = $("doneSum");
         sum.innerHTML = "";
         [[T("코스", "Trail"), NM(rec.name)], [T("걸은 거리", "Walked"), km(rec.walked) + " km"], [T("코스 진행", "Trail progress"), km(rec.done) + " / " + km(c.total) + " km"],
@@ -1477,6 +1494,8 @@
         });
         $("doneGpx").onclick = function () { downloadGpx(rec); };
         $("doneCard").onclick = function () { shareCard(rec); };
+        $("doneBrag").onclick = function () { bragCard(rec); };
+        $("doneBrag").hidden = !!sim;   // 시험 걷기는 자랑하지 않음
         $("doneGpx").textContent = canShareFiles() ? T("📤 GPX 보내기", "📤 Send GPX") : T("GPX 저장", "Save GPX");
         $("doneSheet").style.display = "flex";
         $("doneNext").hidden = true;
@@ -1485,6 +1504,25 @@
             if (/^https:\/\//.test(dn || "")) { $("doneDonate").href = dn; $("doneDonate").hidden = false; }
             doneNext(p, rec);
         }).catch(function () { doneNext({}, rec); });
+    }
+
+    /**
+     * 끝낸 창의 백업 알림(2026-11-01 홍TV님 - 기록은 이 폰에만 있음). 백업 뒤 산행이 3번 넘으면 한 번(RF.backupNag - 7일에 한 번,
+     * "나중에" 를 누르면 3번 더 다녀온 뒤). 백업 시각은 "백업 저장" 을 누를 때(backupSave) 남김. on - 실제 산행(시험 걷기는 숨김).
+     */
+    var BACKUP_AT = "rf-backup-at", BACKUP_NAG = "rf-backup-nag";
+    function backupNagShow(on) {
+        var box = $("doneBackup"), nag = null;
+        try { nag = JSON.parse(lsGet(BACKUP_NAG) || "null"); } catch (e) { nag = null; }
+        var n = on ? RF.backupNag(readLog().map(function (e) { return e.end; }), +lsGet(BACKUP_AT) || 0, nag, Date.now()) : 0;
+        box.hidden = !n;
+        if (!n) return;
+        function mark(off) { try { localStorage.setItem(BACKUP_NAG, JSON.stringify({ at: Date.now(), n: n, off: off })); } catch (e) { /* 이번만 */ } }
+        mark(false);
+        $("doneBackupMsg").textContent = T("💾 기록이 이 폰에만 있습니다(백업하지 않은 산행 " + n + "번). 폰을 바꾸거나 앱을 지우면 사라지니 백업 파일을 드라이브 · 카톡 '나와의 채팅' 등에 두세요.",
+            "💾 Your records are only on this phone (" + n + " hikes not backed up). They are lost if you change phones or delete the app - keep a backup file in Drive or email.");
+        $("doneBackupGo").onclick = function () { box.hidden = true; backupSave(); };
+        $("doneBackupLater").onclick = function () { box.hidden = true; mark(true); };
     }
 
     /** 산행을 마친 화면 "다음은?"(2026-10-28 홍TV님 추천) - 끝낸 자리(마지막 위치, 없으면 코스 끝) 근처 맛집 · 숙소 · 다음 산. */
@@ -1726,6 +1764,7 @@
             var name = "routefly-backup-" + d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0") + ".json";
             toast(EN ? "Backup file: " + o.records.length + " records · " + Object.keys(o.photos).length + " photos - in the share window pick where to keep it (Drive, email, your files, a chat to yourself)."
                 : "백업 파일: 기록 " + o.records.length + "개 · 사진 " + Object.keys(o.photos).length + "장 - 열리는 공유 창에서 드라이브 · 카톡 '나와의 채팅' · 메일 · 내 파일 중 둘 곳을 고르세요.", 8000);   // 2026-10-17 홍TV님: 백업 저장을 누르니 카톡이 열려 당황 - 공유 창으로 둘 곳을 고르는 것
+            try { localStorage.setItem(BACKUP_AT, String(Date.now())); } catch (e) { /* 다음 알림이 조금 일찍 뜰 뿐 */ }   // 백업 알림(backupNagShow)
             return shareJson(text, name, T("routefly 백업", "routefly backup"));
         }).catch(function (e) { toast(T("백업을 만들지 못했습니다: ", "Could not make the backup: ") + (e && e.message || e), 6000); });
     }
@@ -2051,8 +2090,25 @@
         });
     }
 
+    /**
+     * 앱 - 찍은 사진을 폰 갤러리(Pictures/routefly)에도(2026-11-01 홍TV님, 앱 RfGalleryPlugin · 안드로이드 10 이상, 설정 rf-gallery 기본 켬).
+     * 앱의 사진 칸은 카메라로 바로 찍어(Capacitor 파일 고르기 - capture) 갤러리에 없음. 방금 찍은 것만(10분 안) - 갤러리에서 고른 사진을 또 넣지 않게.
+     * 원본 JPEG(12MB 까지)를, 아니면 줄인 사진을. 못 넣어도(옛 앱 · 안드로이드 9 이하) 말없이 넘어감.
+     */
+    function toGallery(file, small, t) {
+        if (!GALLERY || lsGet(GALLERY_KEY) === "0" || !(Date.now() - (file.lastModified || 0) < 600000)) return;
+        var src = /jpe?g/i.test(file.type || "") && file.size <= 12e6 ? file : small;
+        blobToBase64(src).then(function (b64) { return GALLERY.save({ data: b64, name: "routefly-" + stamp(t) + ".jpg" }); })
+            .catch(function () { /* 옛 앱 · 안드로이드 9 이하 */ });
+    }
+    if (GALLERY) $("galleryChk").addEventListener("change", function () {
+        try { localStorage.setItem(GALLERY_KEY, this.checked ? "1" : "0"); } catch (e) { /* 이번만 */ }
+    });
+
     var noteFile = null;
     $("noteBtn").addEventListener("click", function () {
+        $("galleryRow").hidden = !GALLERY;   // 브라우저 · 옛 앱은 숨김
+        $("galleryChk").checked = lsGet(GALLERY_KEY) !== "0";
         var f = hike.fix;
         if (!f) { toast(T("아직 위치를 받지 못했습니다. GPS 를 잡은 뒤 다시 누르세요.", "No location yet. Try again once GPS has a fix."), 4000); return; }
         noteFile = null;
@@ -2085,6 +2141,7 @@
         btn.disabled = true;
         (noteFile ? shrinkPhoto(noteFile).then(function (blob) {
             note.photo = "p" + note.t.toString(36) + Math.random().toString(36).slice(2, 6);
+            toGallery(noteFile, blob, note.t);
             return photoPut(note.photo, blob);
         }) : Promise.resolve()).then(function () {
             hike.notes.push(note);
@@ -2153,7 +2210,37 @@
         $("safetyNo").onclick = function () { box.style.display = "none"; };
     }
 
-    function start(sim) {
+    /**
+     * 출발 전 점검(2026-11-01 홍TV님) - 새로 시작할 때 한 번 오프라인 저장 · 배터리 · 예상 도착과 일몰 · 오늘의 산행 안전을 한 창에(RF.startChecks).
+     * 안전 정보는 코스를 열 때 받아 둔 것(safetyJ)만 - 새로 부르지 않음. 저장 안 했으면 "지금 저장" 이 저장 창을 엶.
+     */
+    var safetyJ = null;
+    function preCheck(then) {
+        var bat = navigator.getBattery ? Promise.race([navigator.getBattery(), new Promise(function (r) { setTimeout(r, 1500); })]).catch(function () { return null; }) : Promise.resolve(null);
+        bat.then(function (b) {
+            if (!c || hike.running) return;
+            var t0 = Date.now(), rows = RF.startChecks({ saved: offlineIds().indexOf(c.id) >= 0, battery: b ? b.level : null, charging: !!(b && b.charging),
+                eta: t0 + RF.standardMs(c.course.kind, c.total, RF.ascentLeft(c, 0)), sunset: RF.sunset(t0, c.lat[0], c.lon[0]),
+                safety: safetyJ && RF.safetyRows(safetyJ, t0, EN).length ? RF.safetyAlert(safetyJ, t0, EN) : null });
+            var box = $("checkList"), sheet = $("checkSheet");
+            box.textContent = "";
+            rows.forEach(function (r) {
+                var row = document.createElement("div"), ic = document.createElement("span"), tx = document.createElement("b");
+                if (!r.ok) row.className = "warn";
+                ic.textContent = r.ok ? "✅" : "⚠";
+                tx.textContent = r.text;
+                row.appendChild(ic); row.appendChild(tx); box.appendChild(row);
+            });
+            $("checkSave").hidden = rows.some(function (r) { return r.k === "save" && r.ok; });
+            $("checkSave").onclick = function () { sheet.style.display = "none"; $("save").click(); };
+            $("checkGo").onclick = function () { sheet.style.display = "none"; then(); };
+            $("checkNo").onclick = function () { sheet.style.display = "none"; };
+            sheet.style.display = "flex";
+        });
+    }
+
+    /** checked - 출발 전 점검을 마침(preCheck 의 "출발"). */
+    function start(sim, checked) {
         if (!c) return;
         if (!sim && !safetyOk()) { askSafety(function () { start(false); }); return; }
         if (!sim && !BG && !navigator.geolocation) { toast(T("이 기기는 위치(GPS)를 쓸 수 없습니다.", "This device cannot use location (GPS).")); return; }
@@ -2162,6 +2249,7 @@
             return;
         }
         var saved = sim ? null : loadSaved();
+        if (!sim && !saved && !checked) { preCheck(function () { start(false, true); }); return; }   // 이어 하는 산행(새로 고침 · 이어서)은 묻지 않음
         setCompact(false);   // 시작할 때는 기록 칸을 펼쳐서(아래로 밀면 접힘)
         hike.sim = sim;
         hike.running = true;

@@ -5915,6 +5915,51 @@
         return ids;
     }
 
+    /**
+     * 순수 함수 - 출발 전 점검 줄(2026-11-01 홍TV님). o: {saved - 이 코스 오프라인 저장, battery - 0~1(모르면 null), charging,
+     * eta - 예상 도착 ms, sunset - 일몰 ms, safety - 오늘의 산행 안전 한 줄(RF.safetyAlert - 알릴 것 없으면 "", 못 받았으면 null)}.
+     * 줄마다 {k, ok, text}. 오프라인 저장 줄은 늘, 배터리 · 일몰 · 안전은 아는 것만. 예상 도착이 해 지기 30분 전보다 늦으면 주의.
+     */
+    function startChecks(o) {
+        var en = LANG === "en", out = [];
+        function hhmm(ms) { var d = new Date(ms + 9 * 3600000); return ("0" + d.getUTCHours()).slice(-2) + ":" + ("0" + d.getUTCMinutes()).slice(-2); }
+        out.push(o.saved ? { k: "save", ok: true, text: en ? "Map saved for offline use" : "오프라인 지도 저장됨" }
+            : { k: "save", ok: false, text: en ? "Map not saved for offline use - it may not show without signal" : "오프라인 지도를 저장하지 않았습니다 - 통신이 끊기면 지도가 안 보일 수 있습니다" });
+        if (o.battery != null && isFinite(o.battery)) {
+            var pct = (en ? "Battery " : "배터리 ") + Math.round(o.battery * 100) + "%";
+            out.push(o.battery < 0.5 && !o.charging ? { k: "battery", ok: false, text: pct + (en ? " - charge it or bring a power bank" : " - 충전하거나 보조 배터리를 챙기세요") }
+                : { k: "battery", ok: true, text: pct + (o.charging ? (en ? " (charging)" : " (충전 중)") : "") });
+        }
+        if (o.eta && o.sunset) {
+            var late = o.eta > o.sunset - 1800000;
+            out.push({ k: "sun", ok: !late, text: (en ? "Expected finish " : "예상 도착 ") + hhmm(o.eta) + (en ? " · sunset " : " · 일몰 ") + hhmm(o.sunset)
+                + (late ? (en ? " - later than 30 min before sunset. Start earlier or pick a shorter trail" : " - 해 지기 30분 전보다 늦습니다. 일찍 출발하거나 짧은 코스를 생각하세요") : "") });
+        }
+        if (o.safety != null) out.push(o.safety ? { k: "safety", ok: false, text: String(o.safety).replace(/^⛑️\s*/, "") }
+            : { k: "safety", ok: true, text: en ? "No weather warning, wildfire or UV alert today" : "오늘 특보 · 산불위험 · 자외선 알림 없음" });
+        return out;
+    }
+
+    /**
+     * 순수 함수 - 백업 알림을 띄울지(2026-11-01 홍TV님 - 기록은 이 폰에만 있음). ends - 끝낸 산행들의 끝 시각(결산 rf-log),
+     * last - 마지막 백업 시각(없으면 0), nag - 지난 알림 {at, n, off}(n - 그때 백업 뒤 산행 수, off - "나중에" 를 누름), now.
+     * 백업 뒤 산행이 3번 이상이고, 이번 백업 뒤 알림이 없었거나 7일 지났을 때(나중에를 눌렀으면 그 뒤 3번 더 다녀왔을 때) 그 산행 수, 아니면 0.
+     */
+    function backupNag(ends, last, nag, now) {
+        last = +last || 0;
+        var n = (ends || []).filter(function (t) { return +t > last; }).length;
+        if (n < 3) return 0;
+        if (nag && +nag.at > last && (nag.off ? n < (+nag.n || 0) + 3 : now - nag.at < 7 * 86400000)) return 0;
+        return n;
+    }
+
+    /** 순수 함수 - 기록 자랑 글과 링크 자리(2026-11-01). 서버 코스 기록은 코스 소개 페이지 "c/<코스>", 내 GPX · 이은 코스는 첫 화면(""). name - 화면 이름. */
+    function bragShare(rec, name) {
+        var en = LANG === "en", id = String(rec && rec.courseId || "");
+        return { text: (en ? "Did " + name + " with routefly" : "routefly 로 " + name + " 다녀왔어요") + " · " + num(recDist(rec) / 1000, 1) + "km · " + hm((rec.end || 0) - (rec.start || 0)),
+                 path: id && !isGpxId(id) && /^[a-z0-9][a-z0-9_-]{0,63}$/.test(id) ? "c/" + id : "" };
+    }
+
     global.RF = {
         LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, regionNames: regionNames, stampKey: stampKey, summitName: summitName, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakGapM: peakGapM, peakCourses: peakCourses, isClosedTrail: isClosedTrail, isHiddenCourse: isHiddenCourse, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, nearestExit: nearestExit, gpsGap: gpsGap, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, fillTrackEle: fillTrackEle, trimTrack: trimTrack, gpxTracks: gpxTracks, trackStats: trackStats, splitTrack: splitTrack, joinTracks: joinTracks, trackGpx: trackGpx, cutMiddle: cutMiddle, osmRoute: osmRoute, WALK_WAYS: WALK_WAYS, trailsToElements: trailsToElements, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
@@ -5922,6 +5967,7 @@
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },
         cellCenter: cellCenter, warnName: warnName, safetyRows: safetyRows, safetyAlert: safetyAlert, safetyRender: safetyRender,
         setLang: setLang, isEn: isEn, tr: tr, pageLang: pageLang, applyEn: applyEn,
-        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, cleanTrack: cleanTrack, recDist: recDist, dropLog: dropLog, recordLines: recordLines, recordHighest: recordHighest, partyAlerts: partyAlerts, afterHikeLinks: afterHikeLinks, afterHikeGear: afterHikeGear, rosterRead: rosterRead, leadSteps: leadSteps, boardingCard: boardingCard, npStampKey: npStampKey, npStampsOn: npStampsOn, npStampsDue: npStampsDue, tripLink: tripLink, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, regionEn: regionEn, weekendWordEn: weekendWordEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox, LEVELS: LEVELS, difficulty: difficulty, boardSegments: boardSegments, boardProfile: boardProfile, nameEnds: nameEnds, boardButtons: boardButtons, levelChip: levelChip, roman: roman, enName: enName, weekendText: weekendText, boardHere: boardHere, slopeBetween: slopeBetween, recentAdd: recentAdd, recentPages: recentPages, recentFold: recentFold, compareRows: compareRows, compareButtons: compareButtons, steepest: steepest, officialEleAt: officialEleAt, stampRadius: stampRadius, stillCheck: stillCheck, windChill: windChill, windNote: windNote, paceProfile: paceProfile, paceAt: paceAt, paceDistAt: paceDistAt, paceText: paceText, fortune: fortune, fortuneDay: fortuneDay, supportLine: supportLine, staysLine: staysLine, staysItem: staysItem, stayLinks: stayLinks, stayMapLink: stayMapLink, stayKindEn: stayKindEn, summitFirst: summitFirst, listBest: listBest, courseGaps: courseGaps, gapLines: gapLines, shownGaps: shownGaps, infoPartial: infoPartial, joinedCourse: joinedCourse, toApi: toApi, partBases: partBases, fixPart: fixPart, applyHead: applyHead, joinHashExtra: joinHashExtra, favJoinExtra: favJoinExtra, partAnswers: partAnswers, stayTiles: stayTiles, staySearch: staySearch, nearCity: nearCity, dayKey: dayKey, anbuPlan: anbuPlan, anbuText: anbuText, anbuSms: anbuSms, telClean: telClean, telFormat: telFormat, UNITS: UNITS, unitConv: unitConv, unitFmt: unitFmt, dayNo: dayNo, dayYmd: dayYmd, ageInfo: ageInfo, dDay: dDay, dateAdd: dateAdd, dateDiff: dateDiff, pctCalc: pctCalc, dutchPay: dutchPay, textCount: textCount, smsKind: smsKind, compassHeading: compassHeading, SOS_PATTERN: SOS_PATTERN, fxConv: fxConv, toLunar: toLunar, fromLunar: fromLunar, nextLunarBirthday: nextLunarBirthday, leapMonth: leapMonth, moonPhase: moonPhase, MOON_NAMES: MOON_NAMES, interestCalc: interestCalc, vatCalc: vatCalc, bmiInfo: bmiInfo, discomfort: discomfort, nameRoman: nameRoman, tzOffsetMin: tzOffsetMin, ladderMake: ladderMake, ladderTrace: ladderTrace, holidayRuns: holidayRuns, calcEval: calcEval, mobileOnlyUrl: mobileOnlyUrl, summitCard: summitCard, trackClimb: trackClimb
+        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, cleanTrack: cleanTrack, recDist: recDist, dropLog: dropLog, recordLines: recordLines, recordHighest: recordHighest, partyAlerts: partyAlerts, afterHikeLinks: afterHikeLinks, afterHikeGear: afterHikeGear, rosterRead: rosterRead, leadSteps: leadSteps, boardingCard: boardingCard, npStampKey: npStampKey, npStampsOn: npStampsOn, npStampsDue: npStampsDue, tripLink: tripLink, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, partnerLinks: partnerLinks, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, regionEn: regionEn, weekendWordEn: weekendWordEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox, LEVELS: LEVELS, difficulty: difficulty, boardSegments: boardSegments, boardProfile: boardProfile, nameEnds: nameEnds, boardButtons: boardButtons, levelChip: levelChip, roman: roman, enName: enName, weekendText: weekendText, boardHere: boardHere, slopeBetween: slopeBetween, recentAdd: recentAdd, recentPages: recentPages, recentFold: recentFold, compareRows: compareRows, compareButtons: compareButtons, steepest: steepest, officialEleAt: officialEleAt, stampRadius: stampRadius, stillCheck: stillCheck, windChill: windChill, windNote: windNote, paceProfile: paceProfile, paceAt: paceAt, paceDistAt: paceDistAt, paceText: paceText, fortune: fortune, fortuneDay: fortuneDay, supportLine: supportLine, staysLine: staysLine, staysItem: staysItem, stayLinks: stayLinks, stayMapLink: stayMapLink, stayKindEn: stayKindEn, summitFirst: summitFirst, listBest: listBest, courseGaps: courseGaps, gapLines: gapLines, shownGaps: shownGaps, infoPartial: infoPartial, joinedCourse: joinedCourse, toApi: toApi, partBases: partBases, fixPart: fixPart, applyHead: applyHead, joinHashExtra: joinHashExtra, favJoinExtra: favJoinExtra, partAnswers: partAnswers, stayTiles: stayTiles, staySearch: staySearch, nearCity: nearCity, dayKey: dayKey, anbuPlan: anbuPlan, anbuText: anbuText, anbuSms: anbuSms, telClean: telClean, telFormat: telFormat, UNITS: UNITS, unitConv: unitConv, unitFmt: unitFmt, dayNo: dayNo, dayYmd: dayYmd, ageInfo: ageInfo, dDay: dDay, dateAdd: dateAdd, dateDiff: dateDiff, pctCalc: pctCalc, dutchPay: dutchPay, textCount: textCount, smsKind: smsKind, compassHeading: compassHeading, SOS_PATTERN: SOS_PATTERN, fxConv: fxConv, toLunar: toLunar, fromLunar: fromLunar, nextLunarBirthday: nextLunarBirthday, leapMonth: leapMonth, moonPhase: moonPhase, MOON_NAMES: MOON_NAMES, interestCalc: interestCalc, vatCalc: vatCalc, bmiInfo: bmiInfo, discomfort: discomfort, nameRoman: nameRoman, tzOffsetMin: tzOffsetMin, ladderMake: ladderMake, ladderTrace: ladderTrace, holidayRuns: holidayRuns, calcEval: calcEval, mobileOnlyUrl: mobileOnlyUrl, summitCard: summitCard, trackClimb: trackClimb,
+        startChecks: startChecks, backupNag: backupNag, bragShare: bragShare
     };
 })(window);
