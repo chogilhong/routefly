@@ -846,6 +846,10 @@
             e.preventDefault();
             alert(T("탐방로를 선택하세요.", "Pick a trail first."));   // 탐방로를 고르기 전(2026-10-12 홍TV님)
         });
+        if (!park) {   // 이름 없이 열면 api/park 가 400 - 부르지 않고 안내(2026-11-01 PC)
+            $("msg").textContent = T("공원 이름이 없습니다 - 산 목록에서 골라 주세요.", "No park name - pick one from the list.");
+            return;
+        }
         var notesReady = showNote(park);
         Promise.all([
             getJson("api/map-config").catch(function () { return {}; }),
