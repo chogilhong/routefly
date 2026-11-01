@@ -871,9 +871,8 @@
             // 노선 안내도(지리산둘레길 · 자전거길 …)에서 들어왔으면 그 안내도로(#…&guide=route.html?…) - 이 사이트의 안내도 화면만
             var gm = /[#&]guide=([^&]*)/.exec(location.hash), guide = gm ? RF.safeDecode(gm[1]) : "";
             if (/^(route|park)\.html\?[^#<>"']*$/.test(guide)) parkHref = guide;
-            // 지도 위 🏞 는 안내도를 거치지 않고 바로 들어온 코스에만(안내도에서 왔으면 아래 "← 안내도" 가 있음 - 2026-10-13 홍TV님)
-            $("parkBtn").style.display = park && !parkHref && !/[#&]via=map(&|$)/.test(location.hash) ? "block" : "none";
-            if (park) $("parkBtn").href = "park.html?name=" + encodeURIComponent(park) + "&from=" + encodeURIComponent(id);
+            // 지도 위 🏞 탐방 안내도 단추는 뺌(2026-11-01 홍TV님 "이 화면에서 안내도 버튼 삭제" - 사진 단추로 헷갈리고, 산행 중엔 가까운 하산 지점이 있음).
+            // 안내도에서 들어온 코스는 아래 "← 안내도"(parkGo)로 그대로 돌아감
             $("parkGo").style.display = parkHref && !hike.running ? "" : "none";
             barFit();
             setKindWords();
