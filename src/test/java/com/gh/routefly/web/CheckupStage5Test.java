@@ -19,7 +19,11 @@ public class CheckupStage5Test {
     public void networkFirstHasTimeout() throws Exception {
         String sw = web("sw.js");
         assertTrue(sw.contains("var NET_WAIT = 4000;"));
-        assertTrue("늦으면 받아 둔 것, 없으면 계속 기다림", sw.contains("return hit || netOrOffline;"));
+        assertTrue("늦으면 받아 둔 것", sw.contains("if (hit) return hit;"));
+        // 2026-11-01: 받아 둔 것이 없는 화면 주소는 끝없이 기다리지 않고 STUCK_WAIT 뒤 "다시 열기"(서비스 워커를 내려놓고 새로 엶)
+        assertTrue(sw.contains("req.mode === \"navigate\" ? Promise.race([netOrOffline, stuckPage()]) : netOrOffline"));
+        assertTrue(sw.contains("x.unregister()"));
+        assertTrue("통계는 서비스 워커를 거치지 않음", sw.contains("if (/\\/stats(?:[?#]|$)/.test(url)) return;"));
         assertTrue(sw.contains("return Promise.race([netOrOffline, slow]);"));
         assertTrue("늦은 답으로도 캐시를 고침", sw.contains("e.waitUntil(caches.open(cacheName)"));
     }

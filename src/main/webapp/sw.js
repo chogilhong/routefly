@@ -6,7 +6,7 @@
  *   - 지도 타일(V-World 위성사진 · 지형): 받아 둔 것이 있으면 그것(오프라인 저장 · 본 적 있는 곳), 없으면 받아서 조금 남겨 둠
  *   - MapLibre(vendor): 바뀌지 않으므로 받아 둔 것 먼저
  */
-var SHELL = "rf-shell-v208", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
+var SHELL = "rf-shell-v209", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
 var TILE_KEEP = 1500;   // 지나가며 본 타일은 이만큼만 남깁니다(저장 공간)
 // 2026-10-09 점검: API 캐시도 한도 - 지도를 움직일 때마다 목록 주소(bbox)가 하나씩 늘어 끝없이 커졌습니다.
 // 오프라인 저장한 코스는 OFFLINE 캐시에 따로 있어 지워지지 않습니다.
@@ -125,9 +125,31 @@ function networkFirst(e, cacheName) {
         if (servedHit && cacheName === SHELL && res && res.ok && differs(servedHit, res)) return tellUpdated();
     }, function () { /* 위에서 처리 */ }));   // 먼저 캐시를 내준 뒤에도 늦은 답으로 캐시를 고칠 때까지
     var slow = new Promise(function (resolve) { setTimeout(resolve, req.mode === "navigate" ? NET_WAIT : SUB_WAIT); }).then(function () {
-        return cached(key, cacheName).then(function (hit) { servedHit = hit || null; return hit || netOrOffline; });
+        return cached(key, cacheName).then(function (hit) {
+            servedHit = hit || null;
+            if (hit) return hit;
+            // 받아 둔 화면이 없는 주소는 답을 끝까지 기다렸는데, 2026-11-01 홍TV님 PC 크롬에서 서버는 멀쩡한데 통계 화면이 하얗게 계속 돌았음
+            // (Ctrl+Shift+R - 서비스 워커를 건너뛰면 바로 열림). STUCK_WAIT 안에 답이 없으면 "다시 열기" 안내 - 누르면 서비스 워커를 내려놓고 다시 엶
+            return req.mode === "navigate" ? Promise.race([netOrOffline, stuckPage()]) : netOrOffline;
+        });
     });
     return Promise.race([netOrOffline, slow]);
+}
+
+/** 화면 주소인데 받아 둔 것도 없고 답도 없을 때(NET_WAIT + STUCK_WAIT 뒤) 보여 줄 안내. "다시 열기"는 서비스 워커를 내려놓고 새로 엶(다음 화면에서 sw-reg.js 가 다시 올림). */
+var STUCK_WAIT = 16000;
+function stuckPage() {
+    return new Promise(function (r) { setTimeout(r, STUCK_WAIT); }).then(function () {
+        return new Response('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+            + '<title>응답이 늦습니다 - routefly</title><body style="font-family:sans-serif;background:#121821;color:#e8edf3;padding:24px;line-height:1.6">'
+            + '<h2>응답이 늦습니다</h2><p>서버 답을 20초 넘게 기다렸습니다. 아래를 누르면 새로 엽니다.</p>'
+            + '<p><button id="again" style="font-size:16px;padding:10px 18px;border-radius:10px;border:1px solid #38d9ea;background:none;color:#38d9ea">다시 열기</button></p>'
+            + '<p><a href="hike.html" style="color:#38d9ea">산행 화면 열기</a></p>'
+            + '<script>document.getElementById("again").onclick=function(){var go=function(){location.reload();};'
+            + 'if(navigator.serviceWorker&&navigator.serviceWorker.getRegistrations){navigator.serviceWorker.getRegistrations()'
+            + '.then(function(rs){return Promise.all(rs.map(function(x){return x.unregister();}));}).then(go,go);}else go();};</script></body>',
+            { status: 504, headers: { "Content-Type": "text/html; charset=UTF-8", "Cache-Control": "no-store" } });
+    });
 }
 
 /** 받아 둔 것 먼저, 없으면 받아서(타일이면 조금 남겨 둠). */
@@ -157,5 +179,6 @@ self.addEventListener("fetch", function (e) {
     if (url.indexOf("/api/") >= 0) { e.respondWith(networkFirst(e, API)); return; }
     if (url.indexOf("/vendor/") >= 0) { e.respondWith(cacheFirst(req, SHELL)); return; }
     if (url.indexOf("/s/") >= 0) return;   // 공유 링크는 서버로
+    if (/\/stats(?:[?#]|$)/.test(url)) return;   // 통계(관리자)는 오프라인에 쓸 일이 없어 서버로 바로(2026-11-01 PC 크롬에서 하얗게 멈춤)
     e.respondWith(networkFirst(e, SHELL));
 });
