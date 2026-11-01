@@ -328,7 +328,7 @@ final class MountainEn {
                 + "<meta property=\"og:url\" content=\"" + esc(url) + "\"><meta property=\"og:image\" content=\"" + esc(og != null ? og : base + "/img/og.png?v=2") + "\">"
                 + "<meta property=\"og:image:width\" content=\"1200\"><meta property=\"og:image:height\" content=\"630\">"
                 + MountainServlet.icons(REL)
-                + "<link rel=\"stylesheet\" href=\"" + REL + "/css/course-kit.css\"><link rel=\"stylesheet\" href=\"" + REL + "/css/mountain.css\"></head><body>";
+                + "<link rel=\"stylesheet\" href=\"" + REL + "/" + AssetVersion.of("css/course-kit.css") + "\"><link rel=\"stylesheet\" href=\"" + REL + "/" + AssetVersion.of("css/mountain.css") + "\"></head><body>";   // ?v= 판(war 에서만, 2026-11-01)
     }
 
     /** koHref - 한국어 페이지 상대 주소(터널 https 에서 http 절대 주소가 막혔음 - 화면의 한/EN 단추도 이 링크를 씀). */
@@ -339,7 +339,7 @@ final class MountainEn {
                 + "<p class=\"support\" id=\"support\" hidden></p>"   // ☕ Support(설정 donate.en.url 이 있을 때만 mountain-en.js 가 보임)
                 + "<p class=\"brand\"><a href=\"" + REL + "/hike.html?lang=en\"><img src=\"" + REL + "/img/logo-dark.svg\" alt=\"routefly\" width=\"160\" height=\"50\"> Open app ›</a></p>"
                 + "<p class=\"copy\">© 2026 홍TV (HongTV) · routefly. Trail and map data belong to the sources above.</p></main>"
-                + "<script src=\"" + REL + "/js/kit-m.js\"></script><script src=\"" + REL + "/js/mountain-en.js\"></script><script src=\"" + REL + "/js/seen.js\"></script></body></html>";
+                + "<script src=\"" + REL + "/" + AssetVersion.of("js/kit-m.js") + "\"></script><script src=\"" + REL + "/" + AssetVersion.of("js/mountain-en.js") + "\"></script><script src=\"" + REL + "/" + AssetVersion.of("js/seen.js") + "\"></script></body></html>";
     }
 
     private static String esc(String s) {

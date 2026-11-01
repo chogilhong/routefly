@@ -29,7 +29,7 @@ final class Ads {
         if (client == null || slot == null || !CLIENT.matcher(client.trim()).matches() || !SLOT.matcher(slot.trim()).matches()) return "";
         return "<aside class=\"adBox\" aria-label=\"광고\"><p class=\"adNote\">광고</p><ins class=\"adsbygoogle\" style=\"display:block\" data-ad-client=\"" + client.trim()
                 + "\" data-ad-slot=\"" + slot.trim() + "\" data-ad-format=\"auto\" data-full-width-responsive=\"true\"></ins></aside>"
-                + "<script src=\"" + MountainServlet.REL + "/js/ads.js\" defer></script>";   // 광고 칸이 있을 때만 - 우리 파일(앱이면 칸을 지움)
+                + "<script src=\"" + MountainServlet.REL + "/" + AssetVersion.of("js/ads.js") + "\" defer></script>";   // 광고 칸이 있을 때만 - 우리 파일(앱이면 칸을 지움)
     }
 
     /**

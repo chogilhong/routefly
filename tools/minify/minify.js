@@ -5,11 +5,13 @@
  * - 원본(src/main/webapp)과 시험은 그대로 - 시험은 원본 글을 읽음.
  * - 스크립트는 모듈이 아니라 그대로 전역(window.RF · RFParty 등)을 씀: esbuild transform(묶지 않음)은 맨 바깥 이름을 바꾸지 않음.
  * - 하나라도 실패하면 그 파일은 원본 그대로 두고 끝에 알림(war 는 그대로 쓸 수 있음).
+ * - 끝에 js · css 주소에 내용 판(?v=해시)을 붙임(version.js, 2026-11-01) - esbuild 가 없어도 판은 붙임(줄이기만 건너뜀).
  */
 "use strict";
 var fs = require("fs"), path = require("path");
-var esbuild;
-try { esbuild = require("esbuild"); } catch (e) { console.log("MINIFY-SKIP esbuild 없음 - tools/minify 에서 npm ci 한 번"); process.exit(0); }
+var version = require("./version.js");
+var esbuild = null;
+try { esbuild = require("esbuild"); } catch (e) { console.log("MINIFY-SKIP esbuild 없음 - tools/minify 에서 npm ci 한 번(판 붙이기는 함)"); }
 var root = process.argv[2];
 if (!root || !fs.existsSync(path.join(root, "js"))) { console.log("MINIFY-FAIL 폴더가 이상합니다: " + root); process.exit(2); }
 var files = [];
@@ -18,7 +20,7 @@ var files = [];
 });
 if (fs.existsSync(path.join(root, "sw.js"))) files.push(path.join(root, "sw.js"));
 var before = 0, after = 0, bad = [];
-files.forEach(function (f) {
+if (esbuild) files.forEach(function (f) {
     var src = fs.readFileSync(f, "utf8");
     try {
         var out = esbuild.transformSync(src, { loader: f.endsWith(".css") ? "css" : "js", minify: true, target: f.endsWith(".css") ? "chrome80" : "es2017", charset: "utf8", legalComments: "none" }).code;
@@ -31,4 +33,6 @@ files.forEach(function (f) {
         bad.push(path.basename(f) + ": " + String(e.message || e).split("\n")[0]);
     }
 });
-console.log("MINIFY-OK " + files.length + " 파일 " + Math.round(before / 1024) + "KB → " + Math.round(after / 1024) + "KB" + (bad.length ? " / 원본 그대로: " + bad.join(" · ") : ""));
+if (esbuild) console.log("MINIFY-OK " + files.length + " 파일 " + Math.round(before / 1024) + "KB → " + Math.round(after / 1024) + "KB" + (bad.length ? " / 원본 그대로: " + bad.join(" · ") : ""));
+var v = version.run(root);
+console.log("VERSION-OK js · css " + v.files + " 개에 판, html " + v.pages + " 개 고침, WEB-INF/asset-versions.json");

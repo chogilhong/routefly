@@ -16,7 +16,11 @@ var BUNDLES = [
     { out: "js/kit-party.js", users: ["party.html", "js/no-kakao.js", "js/rf-dialog.js", "js/party-kit.js", "js/party.js", "js/seen.js", "js/sw-reg.js"] },
     { out: "js/kit-tools.js", users: ["tools.html", "js/tools.js", "js/sw-reg.js", "js/seen.js"] },
     { out: "js/kit-anbu.js", users: ["anbu.html", "js/anbu.js", "js/sw-reg.js", "js/seen.js"] },
-    { out: "js/kit-studio.js", users: ["studio.html", "js/studio.js", "js/sw-reg.js", "js/seen.js"] }
+    { out: "js/kit-studio.js", users: ["studio.html", "js/studio.js", "js/sw-reg.js", "js/seen.js"] },
+    // 2026-11-01 점검: 코스 길 · 100대 명산 시리즈 · 국립공원 화면도 제 것만(course-kit.js 전체를 받던 것)
+    { out: "js/kit-route.js", users: ["route.html", "js/route.js", "js/seen.js"] },
+    { out: "js/kit-series.js", users: ["series.html", "js/series.js", "js/seen.js"] },
+    { out: "js/kit-park.js", users: ["park.html", "js/park.js", "js/seen.js"] }
 ];
 
 var HEAD = "/* 만든 파일 - 고치지 마세요. course-kit.js 를 고친 뒤 node tools/kit-split/split.js (이 화면이 쓰는 것만 남긴 course-kit) */\n";

@@ -5,15 +5,16 @@
  *   - API(코스 · 주변 길 · 지도 설정): 위와 같음(새로 받으면 받아 둔 것도 고침)
  *   - 지도 타일(V-World 위성사진 · 지형): 받아 둔 것이 있으면 그것(오프라인 저장 · 본 적 있는 곳), 없으면 받아서 조금 남겨 둠
  *   - MapLibre(vendor): 바뀌지 않으므로 받아 둔 것 먼저
+ *   - 판 붙은 js · css(js/x.js?v=내용 해시 - war 만들 때 tools/minify/version.js 가 붙임, 2026-11-01): 내용이 바뀌면 주소가 바뀌므로 받아 둔 것 먼저
  */
-var SHELL = "rf-shell-v210", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
+var SHELL = "rf-shell-v211", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
 var TILE_KEEP = 1500;   // 지나가며 본 타일은 이만큼만 남깁니다(저장 공간)
 // 2026-10-09 점검: API 캐시도 한도 - 지도를 움직일 때마다 목록 주소(bbox)가 하나씩 늘어 끝없이 커졌습니다.
 // 오프라인 저장한 코스는 OFFLINE 캐시에 따로 있어 지워지지 않습니다.
 var API_KEEP = 300;
 
 // 회사 사무실(PC · 인터넷 있을 때 씀) 파일은 미리 담지 않음 - 앱을 고칠 때마다 모든 손님이 다시 받던 것(2026-10-29 점검). 처음 열 때 그대로 담김
-var SHELL_FILES = ["hike.html", "about.html", "about-en.html", "park.html", "js/park.js", "route.html", "js/route.js", "series.html", "js/series.js", "data/series.json", "data/mountains100.json", "data/park-notes.json", "data/np-stamps.json", "./", "css/course-kit.css", "js/course-kit.js", "js/seen.js", "js/hike.js", "js/party-kit.js", "party.html", "js/kit-party.js", "js/party.js", "js/no-kakao.js", "js/party-bar.js", "vendor/qrcode-generator-1.4.4/qrcode.js", "js/app.js", "js/early.js", "js/sw-reg.js", "js/about.js", "js/onboard.js", "js/root-go.js", "privacy.html",
+var SHELL_FILES = ["hike.html", "about.html", "about-en.html", "park.html", "js/kit-park.js", "js/park.js", "route.html", "js/kit-route.js", "js/route.js", "series.html", "js/kit-series.js", "js/series.js", "data/series.json", "data/mountains100.json", "data/park-notes.json", "data/np-stamps.json", "./", "css/course-kit.css", "js/course-kit.js", "js/seen.js", "js/hike.js", "js/party-kit.js", "party.html", "js/kit-party.js", "js/party.js", "js/no-kakao.js", "js/party-bar.js", "vendor/qrcode-generator-1.4.4/qrcode.js", "js/app.js", "js/early.js", "js/sw-reg.js", "js/about.js", "js/onboard.js", "js/root-go.js", "privacy.html",
     "vendor/maplibre-gl-5.24.0/maplibre-gl.js", "vendor/maplibre-gl-5.24.0/maplibre-gl.css", "favicon.svg", "manifest.json",
     "img/icon-192.png", "img/icon-512.png", "data/peak-elev.json", "js/rf-dialog.js"];
 
@@ -175,6 +176,32 @@ function cacheFirst(req, cacheName) {
     });
 }
 
+/**
+ * 판 붙은 js · css(?v=내용 해시, 2026-11-01 점검 - 화면을 열 때마다 파일 20여 개를 서버에 304 로 묻던 것): 받아 둔 것 먼저.
+ * 서버가 지금 판이라고 답한 것(immutable)만 그 주소로 담고, 같은 파일의 예전 판은 지움(배포마다 쌓이지 않게). ?없는 주소도 새것으로 고쳐 둠.
+ * 못 받으면(산속 오프라인) ?없는 주소로 받아 둔 것 - 미리 받은 SHELL_FILES · 산 페이지 "신호 없을 때 보기"(rf-offline)가 ?없는 주소라서.
+ */
+function versioned(e) {
+    var req = e.request, plain = req.url.split("?")[0];
+    return caches.match(req, { ignoreVary: true }).then(function (hit) {
+        if (hit) return hit;
+        return fetch(req).then(function (res) {
+            if (res && res.ok && /immutable/.test(res.headers.get("Cache-Control") || "")) {
+                var copy = res.clone(), copy2 = res.clone();
+                e.waitUntil(caches.open(SHELL).then(function (c) {
+                    return c.keys().then(function (keys) {
+                        return Promise.all(keys.filter(function (k) { return k.url !== req.url && k.url.split("?")[0] === plain && k.url.indexOf("?v=") > 0; })
+                            .map(function (k) { return c.delete(k); }));
+                    }).then(function () { return Promise.all([c.put(req, copy), c.put(plain, copy2)]); });
+                }).catch(function () { /* 저장 공간 - 이번만 */ }));
+            }
+            return res;
+        }, function (err) {
+            return caches.match(plain, { ignoreVary: true }).then(function (old) { if (old) return old; throw err; });
+        });
+    });
+}
+
 self.addEventListener("fetch", function (e) {
     var req = e.request;
     if (req.method !== "GET") return;
@@ -184,6 +211,7 @@ self.addEventListener("fetch", function (e) {
     if (url.indexOf(self.location.origin) !== 0) return;   // 그 밖의 다른 사이트는 손대지 않음
     if (url.indexOf("/api/") >= 0) { e.respondWith(networkFirst(e, API)); return; }
     if (url.indexOf("/vendor/") >= 0) { e.respondWith(cacheFirst(req, SHELL)); return; }
+    if (/\/(?:js|css)\/[^/?#]+\.(?:js|css)\?v=/.test(url)) { e.respondWith(versioned(e)); return; }
     if (url.indexOf("/s/") >= 0) return;   // 공유 링크는 서버로
     if (/\/stats(?:[?#]|$)/.test(url)) return;   // 통계(관리자)는 오프라인에 쓸 일이 없어 서버로 바로(2026-11-01 PC 크롬에서 하얗게 멈춤)
     if (url.indexOf("/check/") >= 0) return;   // 점검 화면(관리자 - 높이 점검 등)도 받아 두지 않고 서버로(2026-11-01 점검)

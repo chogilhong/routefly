@@ -870,7 +870,7 @@ public class MountainServlet extends HttpServlet {
                 + "<meta property=\"og:url\" content=\"" + esc(url) + "\"><meta property=\"og:image\" content=\"" + esc(og != null ? og : base + "/img/og.png?v=2") + "\">"
                 + "<meta property=\"og:image:width\" content=\"1200\"><meta property=\"og:image:height\" content=\"630\">"
                 + icons(REL)
-                + "<link rel=\"stylesheet\" href=\"" + REL + "/css/course-kit.css\"><link rel=\"stylesheet\" href=\"" + REL + "/css/mountain.css\"></head><body>";
+                + "<link rel=\"stylesheet\" href=\"" + REL + "/" + AssetVersion.of("css/course-kit.css") + "\"><link rel=\"stylesheet\" href=\"" + REL + "/" + AssetVersion.of("css/mountain.css") + "\"></head><body>";   // ?v= 판(war 에서만, 2026-11-01)
     }
 
     private static String foot(String base) {
@@ -891,8 +891,8 @@ public class MountainServlet extends HttpServlet {
                 + "<p class=\"support\" id=\"support\" hidden></p>"   // ☕ 후원(설정 donate.url 이 있을 때만 mountain.js 가 보임)
                 + "<p class=\"brand\"><a href=\"" + b + "/hike.html?lang=ko\"><img src=\"" + b + "/img/logo-dark.svg\" alt=\"routefly\" width=\"160\" height=\"50\"> 앱 열기 ›</a></p>"
                 + "<p class=\"copy\">© 2026 홍TV · routefly. 코스 · 지도 자료의 권리는 위 출처에 있습니다.</p></main>"   // 저작권 표시(2026-10-17 홍TV님)
-                + (scripts ? "<script src=\"" + b + "/js/kit-m.js\"></script><script src=\"" + b + "/js/mountain.js\"></script>" : "")
-                + "<script src=\"" + b + "/js/seen.js\"></script></body></html>";   // 사람 확인 신호(2026-10-22) - 코스 페이지에도
+                + (scripts ? "<script src=\"" + b + "/" + AssetVersion.of("js/kit-m.js") + "\"></script><script src=\"" + b + "/" + AssetVersion.of("js/mountain.js") + "\"></script>" : "")
+                + "<script src=\"" + b + "/" + AssetVersion.of("js/seen.js") + "\"></script></body></html>";   // 사람 확인 신호(2026-10-22) - 코스 페이지에도
     }
 
     static String enc(String s) {

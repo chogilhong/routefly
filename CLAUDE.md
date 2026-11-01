@@ -22,7 +22,7 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다 - 산악회 방 
 - 산 높이(2026-10-16 홍TV님 - 정상 높이는 정확해야 신뢰): 화면의 100대 명산 높이는 `data/peak-elev.json` 의 elev 만 씁니다.
   기준은 ① 정상석에 새겨진 값(src "stone") ② 국토지리정보원 고시값("ngii") ③ 산림청 e-book("ebook" - src 에 없으면 이것). 고칠 때는 elev · src · _fixed(전 → 후 · 근거)를 함께.
   mountains100.json 의 height 는 GPS 높이(약 25m 높음)라 도장 자리 · 정상 자리 점검(`MountainServlet.summitOk`)에만 씁니다. 지점 · 코스 높이는 `Peaks` 가 정상 자리 + 이름이 맞을 때만 공식 값으로 바꿉니다.
-- 화면 캐시: html · js · css 는 `NoStaleFilter` 가 no-cache 로 보냅니다. 서비스워커(`src/main/webapp/sw.js`)가 캐시하는 모양이 바뀌면 그 캐시 이름(rf-shell-v2 등)의 번호를 올립니다.
+- 화면 캐시: html · js · css 는 `NoStaleFilter` 가 no-cache 로 보냅니다. 단 war 를 만들 때(tools/minify/version.js) js · css 주소에 `?v=<내용 해시>` 를 붙이고 `WEB-INF/asset-versions.json` 을 남겨, 지금 판의 `?v=` 요청은 1년 immutable(2026-11-01). 서버가 만드는 화면의 script · link 는 `AssetVersion.of("js/…")` 로 씁니다(표가 없는 이클립스 개발에서는 그대로). 서비스워커(`src/main/webapp/sw.js`)가 캐시하는 모양이 바뀌면 그 캐시 이름(rf-shell-v2 등)의 번호를 올립니다.
 
 ## 3. 테스트
 
@@ -32,7 +32,7 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다 - 산악회 방 
 - 점검 단계마다 테스트 클래스를 둡니다(`CheckupStage1Test` 버그 · `CheckupStage2Test` 속도 · 호출 · `CheckupStage3Test` 화면 · 보안) - totonian 의 `VoidBulkV4435Test` 같은 방식.
 - 내 기록은 IndexedDB(`rf-records`), 사진은 IndexedDB(`rf-photos`), 걷는 중 저장분은 localStorage(`rf-hike-<코스>` · `-track` · `-notes`, 하루 지나면 지움).
 - course-kit.js 순수 함수는 `src/test/js/course-kit.test.js` 를 node 로 돌립니다(`CourseKitJsTest` 가 부름, node 가 없으면 건너뜀).
-- course-kit.js 를 고치면 `node tools/kit-split/split.js` 로 화면별 작은 파일(js/kit-m.js 산 페이지 · kit-party.js 산악회 방 · kit-tools.js 별거별거 · kit-anbu.js 안부)을 다시 만듭니다(2026-10-30).
+- course-kit.js 를 고치면 `node tools/kit-split/split.js` 로 화면별 작은 파일(js/kit-m.js 산 페이지 · kit-party.js 산악회 방 · kit-tools.js 별거별거 · kit-anbu.js 안부 · kit-studio.js GPX 편집 · kit-route.js · kit-series.js · kit-park.js)을 다시 만듭니다(2026-10-30).
   그 화면이 쓰는 RF 함수만 남긴 만든 파일이라 직접 고치지 않습니다. 안 맞으면 node 테스트가 "원본과 다름" 으로 실패합니다.
 - 테스트 데이터는 만들거나 받으면 바로 커밋합니다.
 

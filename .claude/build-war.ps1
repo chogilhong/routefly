@@ -31,12 +31,13 @@ New-Item -ItemType Directory -Force $classes, $lib | Out-Null
 Copy-Item (Join-Path $root 'src\main\webapp\*') $stage -Recurse -Force
 # 1b) 2026-10-28: minify our js/css in the stage only (esbuild, tools/minify). Sources and tests stay as they are.
 #     First time on this PC: cd tools\minify; npm ci   (without it the war is built unminified - still fine)
+#     2026-11-01: it also adds ?v=<content hash> to js/css links in the stage html + WEB-INF/asset-versions.json (tools/minify/version.js, no npm needed)
 $node = 'C:\Program Files\nodejs\node.exe'
 $mdir = Join-Path $root 'tools\minify'
-if ((Test-Path $node) -and (Test-Path (Join-Path $mdir 'node_modules\esbuild'))) {
+if (Test-Path $node) {
   & $node (Join-Path $mdir 'minify.js') $stage
   if ($LASTEXITCODE -ne 0) { Write-Output 'MINIFY-FAILED'; exit 1 }
-} else { Write-Output 'MINIFY-SKIP (once: cd tools\minify; npm ci)' }
+} else { Write-Output 'MINIFY-SKIP (no node - war without minify and ?v= versions, still fine)' }
 # 2) compiled classes (same flags as run-tests.ps1)
 $mainSrc = Get-ChildItem (Join-Path $root 'src\main\java') -Recurse -Filter *.java | ForEach-Object FullName
 & "$jdk\javac.exe" -encoding UTF-8 --release 17 -nowarn -proc:none -d $classes -cp (($libs + @($servlet)) -join ';') $mainSrc
