@@ -2341,6 +2341,8 @@
             return;
         }
         var saved = sim ? null : loadSaved();
+        if (!sim && !saved && !checked && !nearChecked) { nearCheck(function () { nearChecked = true; start(false); }); return; }
+        nearChecked = false;
         if (!sim && !saved && !checked) { preCheck(function () { start(false, true); }); return; }   // 이어 하는 산행(새로 고침 · 이어서)은 묻지 않음
         setCompact(false);   // 시작할 때는 기록 칸을 펼쳐서(아래로 밀면 접힘)
         hike.sim = sim;
@@ -2473,6 +2475,32 @@
         if (hike.stillAsk) stillReset();   // 끝내기를 누른 것도 답 - 묻는 창 · 초 세기를 멈춤(2026-10-16 PC: endSheet 에서 망설이다 SOS 가 열릴 수 있었음)
         $("endTitle").textContent = T(K().act + "을 여기서 끝낼까요?", "Finish your " + K().act.toLowerCase() + " here?");
         $("endSheet").style.display = "flex";
+    }
+
+    /**
+     * 산행 시작을 누를 때 지금 위치를 한 번 봄(2026-11-01 홍TV님 "산행을 시작하지 말고 길찾기 화면을 바로") - 코스에서 1km 넘게 멀면 시작하지 않고
+     * 출발점 길찾기 창을 바로 띄움. 위치를 못 받거나(8초) 부정확하면(±150m 넘음) 그냥 시작 - 그때는 시작 뒤 farStop 이 봄.
+     */
+    var nearChecked = false, navFrom = null, navPre = false;
+    function courseDistM(lat, lon) {
+        var best = Infinity, n = c.lat.length, step = Math.max(1, Math.floor(n / 600));
+        for (var i = 0; i < n; i += step) best = Math.min(best, distM(lat, lon, c.lat[i], c.lon[i]));
+        return Math.min(best, distM(lat, lon, c.lat[n - 1], c.lon[n - 1]));
+    }
+    function nearCheck(go) {
+        if (!navigator.geolocation) { go(); return; }
+        toast(T("지금 위치를 확인하는 중…", "Checking your location…"), 3000);
+        var done = false, timer = setTimeout(function () { if (!done) { done = true; go(); } }, 8000);
+        navigator.geolocation.getCurrentPosition(function (pos) {
+            if (done) return;
+            done = true; clearTimeout(timer);
+            var k = pos.coords, away = k.accuracy != null && k.accuracy <= 150 ? courseDistM(k.latitude, k.longitude) : 0;
+            if (!(away > START_FAR_M)) { go(); return; }
+            navFrom = { lat: k.latitude, lon: k.longitude, acc: k.accuracy };
+            navPre = true;
+            hike.navTo = { lat: c.lat[0], lon: c.lon[0], name: startName() || T("코스 출발점", "trail start"), head: true };
+            openNav();
+        }, function () { if (!done) { done = true; clearTimeout(timer); go(); } }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 });
     }
 
     /** 코스에서 먼 곳에서 시작했을 때 - 기록 없이 끝내고 출발점까지 거리 · 길찾기를 알림 창으로. */
@@ -3288,7 +3316,7 @@
     /** 길찾기 창 - 고른 목적지로 세 지도 앱 주소를 만듭니다. */
     function navTo(to, acc, btn) {
         [].forEach.call($("navTargets").children, function (x) { x.classList.toggle("on", x === btn); });
-        var me = hike.fix, far = me ? distM(me.lat, me.lon, to.lat, to.lon) > 3000 : true;
+        var me = hike.fix || navFrom, far = me ? distM(me.lat, me.lon, to.lat, to.lon) > 3000 : true;
         var nm = String(to.name).replace(/[,/?#&]/g, " ").trim(), lat = to.lat.toFixed(6), lon = to.lon.toFixed(6);
         $("navTitle").textContent = EN ? "Directions to " + NM(nm) : nm + " 길찾기";
         $("navKakao").href = "https://map.kakao.com/link/to/" + encodeURIComponent(nm) + "," + lat + "," + lon;
@@ -3302,11 +3330,21 @@
             + "&destination=" + lat + "," + lon + "&travelmode=transit";
         // 카카오톡 안 브라우저는 지도 앱으로 넘어가면 이 화면을 닫기도 합니다 - 다시 열면 이어진다고 알려 둡니다
         var h0 = RF.at(c, 0), walk = to.parking ? distM(to.lat, to.lon, h0.lat, h0.lon) : 0;
+        if (EN && navPre) {
+            $("navTip").textContent = "You are " + distText(me ? courseDistM(me.lat, me.lon) : 0) + " from the trail, so the hike was not started. Opens directions from here to " + NM(nm) + " in a map app. Press Start within 1 km of the trail start.";
+            return;
+        }
         if (EN) {
             $("navTip").textContent = "Opens directions from here to " + NM(nm) + " in a map app."
                 + (to.parking ? " From the parking lot it is about " + distText(walk) + " on foot to the trailhead - this screen guides you there." : "")
                 + (acc.buses.length ? " Nearby bus stops: " + acc.buses.map(function (b) { return NM(b.name) + " (" + distText(distM(+b.lat, +b.lon, h0.lat, h0.lon)) + " from the trailhead)"; }).join(", ") + "." : "")
                 + " Your hike is saved on this device, so it continues when you come back or reopen this screen.";
+            return;
+        }
+        if (navPre) {   // 산행 시작을 눌렀는데 코스에서 멀어 시작하지 않았을 때
+            $("navTip").textContent = "코스에서 " + distText(me ? courseDistM(me.lat, me.lon) : 0) + " 떨어져 있어 산행을 시작하지 않았습니다. 지금 위치에서 " + nm + "까지 길을 지도 앱으로 엽니다."
+                + (to.parking ? " 주차장에서 들머리까지는 약 " + distText(walk) + " 걸어서." : "")
+                + " 출발점 1km 안에서 \"산행 시작\" 을 눌러 주세요.";
             return;
         }
         $("navTip").textContent = "지금 위치에서 " + nm + "까지 길을 지도 앱으로 엽니다."
@@ -3320,7 +3358,10 @@
     }
     $("layerBtn").addEventListener("click", function () { setBasemap(basemap === "light" ? "sat" : "light"); });
     $("navBtn").addEventListener("click", openNav);
-    $("navClose").addEventListener("click", function () { $("navSheet").style.display = "none"; });
+    $("navClose").addEventListener("click", function () {
+        $("navSheet").style.display = "none";
+        if (navPre) { navPre = false; navFrom = null; if (!hike.running) hike.navTo = null; }   // 시작 전 길찾기(nearCheck)는 닫으면 끝
+    });
     ["navKakao", "navNaver", "navGoogle"].forEach(function (id) {
         $(id).addEventListener("click", function () { $("navSheet").style.display = "none"; });
     });
