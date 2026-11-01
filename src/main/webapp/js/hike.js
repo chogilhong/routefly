@@ -3612,38 +3612,22 @@
         fn.className = "msg sec fortune";
         secHead(fn, T("🔮 오늘의 산행 한마디", "🔮 Today's trail fortune"), RF.fortuneDay(td.getFullYear(), td.getMonth() + 1, td.getDate(), EN ? "en" : "ko"));
         box.appendChild(fn);
-        // 📥 오프라인 저장한 코스 - 통신이 없어도 열면 저장한 범위의 지도가 보입니다
-        var offIds = offlineIds(), names = offlineNames();
-        if (offIds.length) {
-            var oh = document.createElement("div");
-            oh.className = "msg sec";
-            secHead(oh, EN ? "📥 Saved trails " + offIds.length : "📥 저장한 코스 " + offIds.length + "개",
-                EN ? "They open without signal. Remove one with the 📥 button on its screen." : "통신이 끊겨도 열립니다. 지우기는 코스 화면 📥 버튼에서.");
-            box.appendChild(oh);
-            offIds.forEach(function (oid) {
-                var m = names[oid] || {}, it = document.createElement("div"), b = document.createElement("b"), sp = document.createElement("span");
-                it.className = "it fav";
-                RF.showName(b, String(m.name || (isGpxId(oid) ? T("내 GPX 코스", "My GPX trail") : T("코스 ", "Trail ") + oid)));
-                sp.textContent = m.dist ? km(m.dist) + T("km · ✅ 저장됨", " km · ✅ Saved") : T("✅ 저장됨", "✅ Saved");
-                it.appendChild(b);
-                it.appendChild(sp);
-                it.onclick = function () { fromList = true; location.hash = "#c=" + encodeURIComponent(oid); };
-                box.appendChild(it);
-            });
+        // 2026-11-01 홍TV님: ★ 찜한 코스를 먼저, 📥 오프라인 지도 받은 코스는 아래(산행을 시작하면 저절로 받아 계속 늘어남) - 찜한 코스는 찜 목록에만(✅ 오프라인 표시)
+        var offIds = offlineIds(), names = offlineNames(), favIds = favs.map(function (f) { return f.id; }), withPt = [];
+        if (favs.length) {
+            var h = document.createElement("div");
+            h.className = "msg sec";
+            secHead(h, EN ? "★ Favorites " + favs.length : "★ 찜한 코스 " + favs.length + "개", EN ? "Add or remove with ☆ next to the trail name." : "코스 화면 이름 옆 ☆ 로 넣고 뺍니다.");
+            box.appendChild(h);
         }
-        if (!favs.length) return;
-        var h = document.createElement("div");
-        h.className = "msg sec";
-        secHead(h, EN ? "★ Favorites " + favs.length : "★ 찜한 코스 " + favs.length + "개", EN ? "Add or remove with ☆ next to the trail name." : "코스 화면 이름 옆 ☆ 로 넣고 뺍니다.");
-        box.appendChild(h);
-        var withPt = [];
         favs.forEach(function (f) {
             var it = document.createElement("div"), b = document.createElement("b"), sp = document.createElement("span");
             it.className = "it fav";
             RF.showName(b, String(f.name || ""));
             var fchip = (f.kind || "hike") === "hike" && f.dist && RF.levelChip(f.dist, f.asc, EN, f.steep);
             if (fchip) { b.appendChild(document.createTextNode(" ")); b.appendChild(fchip); }
-            sp.textContent = (f.dist ? km(f.dist) + "km" : "") + (f.asc != null ? T(" · 오르막 ", " · climb ") + num(f.asc) + "m" : "");
+            sp.textContent = (f.dist ? km(f.dist) + "km" : "") + (f.asc != null ? T(" · 오르막 ", " · climb ") + num(f.asc) + "m" : "")
+                + (offIds.indexOf(f.id) >= 0 ? T(" · ✅ 오프라인", " · ✅ Offline") : "");
             it.appendChild(b);
             it.appendChild(sp);
             it.onclick = function () {   // 대표 코스는 이름 · 들머리도(예전에 제목 없이 찜한 것은 찜 이름의 길로)
@@ -3654,6 +3638,41 @@
             if (!isGpxId(f.id) && !RF.parseJoinId(f.id)) withPt.push([f, sp]);   // 이은 코스는 주말 날씨 묻기에서 뺌(서버가 한 코스 번호만 앎)
             box.appendChild(it);
         });
+        // 📥 오프라인 지도 받은 코스 - 통신이 없어도 열면 받은 범위의 지도가 보임. 길게 누르거나(앱 · 폰) 오른쪽 단추(PC)로 지우기
+        var offOnly = offIds.filter(function (oid) { return favIds.indexOf(oid) < 0; });
+        if (offOnly.length) {
+            var oh = document.createElement("div");
+            oh.className = "msg sec";
+            secHead(oh, EN ? "📥 Trails with offline maps " + offOnly.length : "📥 오프라인 지도 받은 코스 " + offOnly.length + "개",
+                EN ? "They open without signal. Long-press (right-click on a PC) to delete." : "통신이 끊겨도 열립니다. 지우려면 길게 누르세요(PC 는 오른쪽 단추).");
+            box.appendChild(oh);
+            offOnly.forEach(function (oid) {
+                var m = names[oid] || {}, it = document.createElement("div"), b = document.createElement("b"), sp = document.createElement("span");
+                var label = String(m.name || (isGpxId(oid) ? T("내 GPX 코스", "My GPX trail") : T("코스 ", "Trail ") + oid));
+                it.className = "it fav offIt";
+                RF.showName(b, label);
+                sp.textContent = m.dist ? km(m.dist) + T("km · ✅ 오프라인", " km · ✅ Offline") : T("✅ 오프라인", "✅ Offline");
+                it.appendChild(b);
+                it.appendChild(sp);
+                var held = false, holdT = 0;
+                function askDel() {
+                    held = true;
+                    clearTimeout(holdT);
+                    if (navigator.vibrate) navigator.vibrate(30);
+                    hAsk(EN ? "Delete the offline map of \"" + NM(label) + "\"? The trail itself stays; save it again from its screen." : "\"" + label + "\" 의 오프라인 지도를 지울까요? 코스는 그대로 있고, 다시 받으려면 코스 화면의 📥 저장을 누르세요.",
+                        { ok: T("지우기", "Delete"), danger: true }).then(function (ok) {
+                        if (!ok) return;
+                        deleteOffline(oid).then(function () { toast(T("오프라인 지도를 지웠습니다.", "Offline map deleted."), 3000); pickHome(); })
+                            .catch(function (e) { toast(T("지우지 못했습니다: ", "Could not delete: ") + (e && e.message || e), 5000); });
+                    });
+                }
+                it.addEventListener("contextmenu", function (e) { e.preventDefault(); if (!held) askDel(); });   // PC 오른쪽 단추 · 안드로이드 길게 누르기
+                it.addEventListener("touchstart", function () { held = false; clearTimeout(holdT); holdT = setTimeout(function () { if (!held) askDel(); }, 600); }, { passive: true });   // contextmenu 가 먼저 오면 한 번만
+                ["touchend", "touchmove", "touchcancel"].forEach(function (n) { it.addEventListener(n, function () { clearTimeout(holdT); }, { passive: true }); });
+                it.onclick = function () { if (held) { held = false; return; } fromList = true; location.hash = "#c=" + encodeURIComponent(oid); };
+                box.appendChild(it);
+            });
+        }
         // ☀️ 찜한 코스 주말 날씨(2026-10-16 홍TV님) - 그 코스 들머리의 중기 구역 날씨(api/weekend, 주말 추천과 같은 자료).
         // 코스 번호만 보냄(서버가 DB 에서 들머리를 찾음) - 이 기기의 위치는 보내지 않음(개인정보처리방침)
         if (withPt.length) getJson("api/weekend?ids=" + withPt.slice(0, 20).map(function (x) { return encodeURIComponent(x[0].id); }).join(",")).then(function (w) {
