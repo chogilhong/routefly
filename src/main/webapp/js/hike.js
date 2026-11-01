@@ -2295,7 +2295,8 @@
                 row.appendChild(ic); row.appendChild(tx); box.appendChild(row);
             });
             $("checkSave").hidden = rows.some(function (r) { return r.k === "save" && r.ok; });
-            $("checkSave").onclick = function () { sheet.style.display = "none"; $("save").click(); };
+            // 지금 저장 → 저장 창. 범위를 골라 저장이 끝나거나, 고르지 않고 닫으면 이 점검으로 돌아옴(2026-11-01 홍TV님: 닫은 뒤 "산행하기" 를 다시 눌러야 했음)
+            $("checkSave").onclick = function () { sheet.style.display = "none"; saveBack = function () { saveBack = null; preCheck(then); }; $("save").click(); };
             $("checkGo").onclick = function () { sheet.style.display = "none"; then(); };
             $("checkNo").onclick = function () { sheet.style.display = "none"; };
             sheet.style.display = "flex";
@@ -4289,12 +4290,19 @@
             var plan = offlinePlan(rangeBbox(x[1])), btn = $(x[0]);
             btn.disabled = !plan;
             btn.textContent = x[2] + (plan ? " · " + num(plan.urls.length) + T("장(가장 자세히 z", " tiles (detail up to z") + plan.zMax + ")" : T(" · 너무 넓습니다(지도를 확대하세요)", " · too wide (zoom in)"));
-            btn.onclick = function () { $("saveSheet").style.display = "none"; saveOffline(plan); };
+            btn.onclick = function () {
+                $("saveSheet").style.display = "none";
+                var back = saveBack;
+                saveBack = null;
+                var p = saveOffline(plan);
+                if (back) { toast(T("지도를 받는 중… 끝나면 출발 전 점검으로 돌아갑니다", "Saving the map… back to the check when done"), 4000); p.then(back, back); }
+            };
         });
         $("saveDelete").style.display = offlineIds().indexOf(c.id) >= 0 ? "" : "none";   // 저장해 둔 코스면 지우기
         $("saveSheet").style.display = "flex";
     });
-    $("saveClose").addEventListener("click", function () { $("saveSheet").style.display = "none"; });
+    var saveBack = null;   // 출발 전 점검에서 연 저장 창이면 닫을 때 점검으로
+    $("saveClose").addEventListener("click", function () { $("saveSheet").style.display = "none"; if (saveBack) saveBack(); });
 
     /*
      * 2026-10-10 점검: 저장한 코스를 지울 수 없어 rf-offline-v1 이 끝없이 커졌습니다.
@@ -4364,6 +4372,7 @@
         hAsk(T("이 코스의 오프라인 저장(지도 그림)을 지울까요? 다른 저장 코스와 겹치는 지도는 남깁니다.", "Delete this trail's offline map? Map areas shared with other saved trails are kept."), { ok: T("지우기", "Delete"), danger: true }).then(function (ok) {
             if (!ok) return;
             $("saveSheet").style.display = "none";
+            saveBack = null;   // 점검에서 연 창이어도 지우기는 돌아가지 않음
             deleteOffline(id).then(function () {
                 if (c && c.id === id) $("save").textContent = T("📥 저장", "📥 Save");
                 toast(T("오프라인 저장을 지웠습니다.", "Offline save deleted."), 3000);
@@ -4377,7 +4386,7 @@
         var urls = head.concat(plan.urls), id = c.id, meta = { name: String(c.course.name || ""), dist: Math.round(c.total || 0) };
         var btn = $("save"), done = 0, failed = 0, i = 0;
         btn.disabled = true;
-        caches.open(OFFLINE_CACHE).then(function (cache) {
+        return caches.open(OFFLINE_CACHE).then(function (cache) {
             function next() {
                 if (i >= urls.length) return Promise.resolve();
                 var u = urls[i++];
