@@ -720,6 +720,11 @@ var dd = RF.dedupePois([{ name: "쉼터", lat: 37, lon: 127, dist_m: 100 }, { na
                         { name: "쉼터", lat: 37.0005, lon: 127, dist_m: 160 }]);
 eq("dedupePois 같은 이름 먼 곳", dd.length, 2);
 
+// 올릴 코스 이름(2026-11-01 홍TV님 "[산 · 코스 이름 · 보낸이] 들머리 - 정상 - 날머리")
+eq("courseName 모두", RF.courseName({ mountain: "북한산", title: "숨은벽", sender: "시험대장", start: "밤골", top: "백운대", end: "우이동" }), "북한산 숨은벽(시험대장) · 밤골 → 백운대 → 우이동");
+eq("courseName 들머리 · 날머리를 읽음", RF.routeEnds(RF.courseName({ mountain: "북한산", sender: "시험대장", start: "밤골", top: "백운대", end: "우이동" })), { from: "밤골", to: "우이동" });
+eq("courseName 빈 칸 · 칸 안의 구분 글자", RF.courseName({ mountain: "송산", title: "a · b", start: "송산리 → 마을회관", end: "" }), "송산 a b · 송산리 마을회관");
+eq("courseName 길 없음", RF.courseName({ mountain: "북한산", sender: "(시험)" }), "북한산(시험)");
 // 2026-10-10 5차 점검: notifyDeploy - HEAD 하나라도 실패하면 처음 표시를 남기지 않음(반쪽 표시로 띠가 잘못 뜨던 것), ✕ 로 닫기
 function deployEnv(okFirst) {
     var calls = 0, listeners = {}, appended = [], ver = "a";
@@ -1543,6 +1548,7 @@ eq("joinHashExtra", [RF.joinHashExtra("#c=a,b&title=%EB%B0%A4&head=x&from=hike")
         [1, 0, 1, 0]);
 })();
 eq("favJoinExtra 제목이 없으면 지금 이름의 길", [RF.favJoinExtra("#c=a,b&head=%EB%B0%A4", "북한산 · 밤골입구 → 백운대 → 밤골입구"), RF.favJoinExtra("#c=a,b&title=x&head=y", "북한산 · 가 → 나")],
+
     ["&head=%EB%B0%A4&title=" + encodeURIComponent("밤골입구 → 백운대 → 밤골입구"), "&title=x&head=y"]);
 // 기록 높이 채우기 - GPS 높이가 없는 점만 코스 지형 높이로, 코스에서 100m 넘게 먼 점은 그대로(2026-10-31 홍TV님 gpx.studio). 좌표는 테스트 데이터
 (function () {

@@ -8,7 +8,6 @@
     var RF = window.RF, D = window.RFDialog;
     function $(id) { return document.getElementById(id); }
     function ask(t, o) { return D ? D.confirm(t, o) : Promise.resolve(confirm(t)); }
-    function askText(t, v, o) { return D ? D.prompt(t, v, o) : Promise.resolve(prompt(t, v)); }
     var msgTimer = 0;
     function msg(t, ms) { var m = $("msg"); m.textContent = t; m.style.display = "block"; clearTimeout(msgTimer); msgTimer = setTimeout(function () { m.style.display = "none"; }, ms || 4000); }
     var COLORS = ["#ff922b", "#a9e34b", "#f783ac", "#ffd43b", "#9775fa", "#63e6be", "#ff8787"];
@@ -22,7 +21,7 @@
     }
     function cur() { return tracks[sel] || null; }
     /** 되돌리기 - 고치기 전 목록 전체(나누기 · 잇기로 늘거나 준 길도 함께, 점 배열은 고칠 때 새로 만들어 그대로 둬도 됨). */
-    function push() { undo.push({ sel: sel, list: tracks.map(function (x) { return { name: x.name, track: x.track, color: x.color, sub: x.sub }; }) }); if (undo.length > 30) undo.shift(); $("undoBtn").disabled = false; }
+    function push() { undo.push({ sel: sel, list: tracks.map(function (x) { return { name: x.name, track: x.track, color: x.color, sub: x.sub, meta: x.meta }; }) }); if (undo.length > 30) undo.shift(); $("undoBtn").disabled = false; }
 
     // ---- 관리자 기기인가(/api/course-upload GET - 운영자 쿠키)
     fetch("api/course-upload", { headers: { Accept: "application/json" }, cache: "no-store" }).then(function (r) { return r.json(); }).then(function (j) {
@@ -783,8 +782,13 @@
             if (!j || j.success === false) throw new Error(j && j.message || "?");
             var t = RF.gpxTracks(j.gpx)[0];
             if (!t || t.track.length < 2) throw new Error("점이 없습니다");
-            add(it.sender ? it.sender + " · " + it.name : it.name, t.track);
+            // 보낸 이름이 "산 · 들머리 → 날머리" 꼴이면 칸마다 나눠 둠, 아니면 코스 이름 칸에 - ⬆ 코스로 올리기 이름 칸에 미리
+            var np = RF.nameParts(it.name), ws = np.route.split(" → "), meta = ws.length > 1
+                ? { mountain: np.group || "", sender: it.sender || "", start: ws[0], top: ws.length > 2 ? ws.slice(1, -1).join(" ") : "", end: ws[ws.length - 1] }
+                : { title: it.name, sender: it.sender || "" };
+            add(RF.courseName(meta), t.track);
             tracks[sel].sub = it.id;
+            tracks[sel].meta = meta;
             if (KIND_WORD[it.kind]) $("kind").value = it.kind;
             draw(true);
             ov.textContent = "기존 코스와 겹침 확인 중…";
@@ -816,10 +820,46 @@
         a.click();
         setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
     };
+    /**
+     * 올릴 코스 이름 칸(2026-11-01 홍TV님 "[산 · 코스 이름 · 보낸이] 들머리 - 정상 - 날머리") - 칸마다 넣으면 RF.courseName 꼴로 합침.
+     * 받은 GPX 는 코스 이름 · 보낸이가 미리 들어감. 그 밖은 지금 이름을 들머리 · 날머리로 나눠 미리 넣음. 취소면 "".
+     */
+    function nameForm(c) {
+        return new Promise(function (done) {
+            var m = c.meta || {}, np = RF.nameParts(c.name), ends = RF.routeEnds(c.name), mids = np.route.split(" → ");
+            var v = c.meta ? m : { mountain: np.group || "", start: ends.from || (np.group ? "" : c.name), top: mids.length > 2 ? mids[1] : "", end: ends.to || "" };
+            var ov = document.createElement("div");
+            ov.style.cssText = "position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;padding:16px";
+            var box = document.createElement("div");
+            box.style.cssText = "background:#141b24;color:#e8edf3;border:1px solid #2a3442;border-radius:14px;padding:18px;width:min(460px,100%);max-height:90vh;overflow:auto";
+            var F = [["mountain", "산", "예: 북한산"], ["title", "코스 이름(없으면 비움)", "예: 숨은벽"], ["sender", "보낸이(없으면 비움)", ""],
+                     ["start", "들머리", "예: 밤골"], ["top", "정상 · 거치는 곳(없으면 비움)", "예: 백운대"], ["end", "날머리", "예: 우이동"]];
+            var h = '<h3 style="margin:0 0 10px;font-size:17px">코스로 올릴 이름</h3>';
+            F.forEach(function (f) {
+                h += '<label style="display:block;margin:0 0 8px;font-size:13px;color:#9aa6b4">' + f[1]
+                    + '<input data-k="' + f[0] + '" placeholder="' + f[2] + '" maxlength="30" style="display:block;width:100%;box-sizing:border-box;margin-top:3px;height:38px;padding:0 10px;border-radius:8px;border:1px solid #2a3442;background:#0b1118;color:#e8edf3;font:inherit;font-size:15px"></label>';
+            });
+            h += '<p style="margin:10px 0 4px;font-size:13px;color:#9aa6b4">목록에 이대로 보입니다</p><p class="nfOut" style="margin:0 0 14px;font-weight:bold;word-break:keep-all"></p>'
+                + '<div style="display:flex;gap:8px"><button type="button" class="b nfNo" style="flex:1">취소</button><button type="button" class="b nfOk" style="flex:1;background:#38d9ea;color:#062b30;font-weight:bold">다음</button></div>';
+            box.innerHTML = h;
+            ov.appendChild(box);
+            document.body.appendChild(ov);
+            var ins = box.querySelectorAll("input[data-k]");
+            function val() { var o = {}; Array.prototype.forEach.call(ins, function (i) { o[i.getAttribute("data-k")] = i.value; }); return o; }
+            function upd() { var n = RF.courseName(val()); box.querySelector(".nfOut").textContent = n || "(이름을 넣어 주세요)"; box.querySelector(".nfOk").disabled = n.length < 2; }
+            Array.prototype.forEach.call(ins, function (i) { i.value = v[i.getAttribute("data-k")] || ""; i.oninput = upd; });
+            upd();
+            function close(r) { ov.remove(); done(r); }
+            box.querySelector(".nfNo").onclick = function () { close(""); };
+            box.querySelector(".nfOk").onclick = function () { var n = RF.courseName(val()); if (n.length >= 2) close(n.slice(0, 60)); };
+            ins[0].focus();
+        });
+    }
+
     $("upBtn").onclick = function () {
         var c = cur();
         if (!c) return;
-        askText("코스로 올릴 이름(목록에 이대로 보임)\n예: 송산 · 송산리 마을회관 → 송산 정상", c.name, { ok: "다음" }).then(function (name) {
+        nameForm(c).then(function (name) {
             name = String(name || "").trim();
             if (!name) return;
             var st = RF.trackStats(c.track);

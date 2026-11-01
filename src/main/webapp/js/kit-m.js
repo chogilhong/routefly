@@ -41,11 +41,82 @@
         return (h || withZeroHour ? h + "시간 " : "") + (m % 60) + "분";
     }
 
+    /** 화면에 쓸 장소 이름 - "설악산국립공원사무소남설악탐방지원센터" → "남설악탐방지원센터", "중청 대피소" → "중청대피소". */
+    /**
+     * 순수 함수 - "…정상" 이름 줄이기: 봉우리 이름이 있으면 그 봉 이름("지리산 천왕봉 정상" · "천왕봉정상" → 천왕봉),
+     * 없으면 "정상"("공주향교뒷산 정상" → 정상). "정상" 으로 끝나지 않으면 그대로. 2026-10-12 홍TV님.
+     */
+    var NOT_PASS = ["고수치"];
+
+    /**
+     * 순수 함수 - 노선 안내도의 구간 시작 · 끝 지명(2026-10-12 홍TV님). courses 는 그릴 차례, lines 는 {코스ID: [[경도, 위도]…]}.
+     * 이름은 코스 이름 길("복지봉 → 팔성사")의 처음과 끝. 앞 구간 끝과 다음 구간 시작처럼 nearM 안에 이미 지명이 있으면 하나만.
+     * → [{name, lon, lat, start: 이 지명에서 시작하는 courses 번호(없으면 -1)}]
+     */
+    /**
+     * 순수 함수 - 코스 이름의 출발 · 도착 이름 {from, to}(모르면 null). "가 → 나 → 다" 는 가 · 다,
+     * 화살표 없는 "창옥봉에서" · "삼각점까지"(OSM 구간 한쪽 끝 - 2026-10-12 PC: 백두대간 끝 점이 둘로 보였음),
+     * 국가숲길 "지리산둘레길 가탄-송정"(2026-10-12 홍TV님: 어디가 가탄이고 어디가 송정인지).
+     */
+    function routeEnds(name) {
+        var parts = nameParts(name).route.split(" → ");
+        if (parts.length >= 2) return { from: parts[0].trim(), to: parts[parts.length - 1].trim() };
+        var one = /^(.+?)(에서|까지)$/.exec(parts[0].trim());
+        if (one) return one[2] === "에서" ? { from: one[1], to: null } : { from: null, to: one[1] };
+        // "덕전리 순환" - 거기서 나가 거기로 돌아옴(산림청 · 등산트레킹 · 자전거 순환 코스, 2026-10-13 홍TV님: 들머리 · 날머리 이름)
+        var loop = /^(.+?)\s*순환$/.exec(parts[0].trim());
+        if (loop) return { from: loop[1], to: loop[1] };
+        var ab = /([가-힣]+)-([가-힣]+)\s*\)?\s*$/.exec(String(name || ""));
+        return ab ? { from: ab[1], to: ab[2] } : { from: null, to: null };
+    }
+
+    function summitName(name) {
+        var n = String(name || "").trim();
+        if (!/정상$/.test(n)) return n;
+        var words = n.replace(/\s*정상$/, "").trim().split(/\s+/), bong = null, last = words[words.length - 1];
+        // 봉 · 단 · 대 봉우리 이름(노고단 · 백운대 · 마천대 - 2026-10-12: 이어 걷기 이름이 "만복대 → 정상" 으로 흐렸음), 전망대는 아님
+        words.forEach(function (w) { if (/[가-힣](봉|단|대)(\(.*\))?$/.test(w) && !/(전망대|전망단)$/.test(w)) bong = w; });
+        // 고개의 "정상" 은 고갯마루 - 고개 이름을 그대로(2026-10-12 홍TV님: "진부령정상" → 진부령, 등산 · 걷기 · 자전거 모두)
+        // 고개가 아닌 것: 고수치(제주 서귀포 안덕면 고수치오름 - 2026-10-12 홍TV님 확인)
+        if (!bong && /[가-힣](령|재|고개|치|티)$/.test(last) && NOT_PASS.indexOf(last) < 0) return last;
+        return bong || "정상";
+    }
+
+    /**
+     * 코스 이름 → {group, route}. 2026-10-10 홍TV님: "[무등산 서인봉 1코스] 증심사 → 무등산" 처럼 보이게 -
+     * 첫 " · " 앞(산 · 코스 이름)을 group, 뒤(들머리 → 정상)를 route 로. " · " 가 없으면 group 없음.
+     */
+    function nameParts(name) {
+        var n = String(name || "");
+        var i = n.indexOf(" · ");
+        // 무리에 든 산 이름이 길 이름 앞에 또 붙은 봉우리는 떼어 냄("[가야산 동성봉 자락 2코스] … → 가야산칠불봉" → 칠불봉, 2026-10-14 홍TV님)
+        var mts = i > 0 ? n.slice(0, i).split(/\s+/).map(function (w) { return w.replace(/\(.*\)$/, ""); }).filter(function (w) { return /산$/.test(w); }) : [];
+        var route = (i > 0 ? n.slice(i + 3) : n).split(" → ").map(function (x) { return summitName(numberedPark(stripMountain(x, mts))); }).join(" → ");   // "→ 공주향교뒷산 정상" → "→ 정상", 문화공원11(부안공원) → 부안공원
+        return i > 0 ? { group: n.slice(0, i), route: route } : { group: null, route: route };
+    }
+
+    /** 순수 함수 - "가야산칠불봉" 처럼 산 이름(mts 가운데 하나) 바로 뒤에 봉우리 · 고개 이름이 붙었으면 봉우리 이름만. 아니면 그대로("가야산소리길" · "남산제일봉"). */
+    function stripMountain(x, mts) {
+        var t = String(x || "").trim();
+        for (var k = 0; k < (mts || []).length; k++) {
+            var m = mts[k], rest = t.indexOf(m) === 0 ? t.slice(m.length) : "";
+            // "남산제일봉" 처럼 차례 이름(제일 · 제이 …)이 붙은 봉우리는 한 이름이라 그대로
+            // 봉우리(…봉 · …대)만 - 고개("어산이재") · 전망대("무등산전망대")는 그대로(2026-10-14 PC, 배치 MountainNames.liftMountain 과 같게)
+            if (rest && !/^제[일이삼사오]/.test(rest) && !/전망대$/.test(rest) && /^[가-힣]{1,8}(봉|대)(\(.*\))?$/.test(rest)) return rest;
+        }
+        return x;
+    }
+
     function distM(lat1, lon1, lat2, lon2) {
         var r = Math.PI / 180, dLat = (lat2 - lat1) * r, dLon = (lon2 - lon1) * r;
         var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * r) * Math.cos(lat2 * r) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
         return 6371000 * 2 * Math.asin(Math.sqrt(a));
     }
+
+    var NUMBERED_PARK = /[^\s·→()\d]+\d+\s*\(([^()]+공원)\)/g;
+    // "수변공원49까지"(서해랑길 16코스) - 공원 이름 뒤 관리 번호도 뗌
+    var PARK_NO = /([가-힣](?:공원|광장))\d+(?![\d)])/g;
+    function numberedPark(name) { return name == null ? name : String(name).replace(NUMBERED_PARK, "$1").replace(PARK_NO, "$1"); }
 
     /**
      * 재미로 보는 산행 한마디(2026-10-17 홍TV님) - 정상 도장 카드 · 코스 모음 첫 화면. 안전 · 날씨에 관한 말은 넣지 않음
@@ -390,6 +461,20 @@
         if (kind === "bike") return null;
         var stride = cm / 100 * 0.415 * (kind === "walk" ? 1 : 0.9);
         return Math.round(distM / stride);
+    }
+
+    /** 순수 함수 - 길 → GPX 1.1 글(이름 · 종류 · 점마다 높이 · 시각이 있으면). */
+    /**
+     * 순수 함수 - 올릴 코스 이름 "북한산 숨은벽(보낸이) · 밤골 → 백운대 → 우이동"(2026-11-01 홍TV님 "[산 · 코스 이름 · 보낸이] 들머리 - 정상 - 날머리").
+     * 묶음(산 · 코스 이름 · 보낸이)과 길(들머리 → 정상 → 날머리)은 " · " 하나로, 길은 " → " 로 - 목록 · 따라가기가 이 꼴로 들머리 · 날머리를 읽음(nameParts · routeEnds).
+     * 칸 안의 " · " · "→" · 괄호는 지움. 빈 칸은 뺌, 길이 없으면 묶음만.
+     */
+    function courseName(o) {
+        function f(x) { return String(x || "").replace(/\s*(·|→)\s*/g, " ").replace(/[()]/g, "").replace(/\s+/g, " ").trim(); }
+        o = o || {};
+        var head = [f(o.mountain), f(o.title)].filter(Boolean).join(" ") + (f(o.sender) ? "(" + f(o.sender) + ")" : "");
+        var route = [f(o.start), f(o.top), f(o.end)].filter(Boolean).join(" → ");
+        return head && route ? head + " · " + route : head || route;
     }
 
     function el(tag, cls, text) {

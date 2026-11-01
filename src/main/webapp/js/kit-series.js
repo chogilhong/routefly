@@ -391,6 +391,20 @@
         return Math.round(distM / stride);
     }
 
+    /** 순수 함수 - 길 → GPX 1.1 글(이름 · 종류 · 점마다 높이 · 시각이 있으면). */
+    /**
+     * 순수 함수 - 올릴 코스 이름 "북한산 숨은벽(보낸이) · 밤골 → 백운대 → 우이동"(2026-11-01 홍TV님 "[산 · 코스 이름 · 보낸이] 들머리 - 정상 - 날머리").
+     * 묶음(산 · 코스 이름 · 보낸이)과 길(들머리 → 정상 → 날머리)은 " · " 하나로, 길은 " → " 로 - 목록 · 따라가기가 이 꼴로 들머리 · 날머리를 읽음(nameParts · routeEnds).
+     * 칸 안의 " · " · "→" · 괄호는 지움. 빈 칸은 뺌, 길이 없으면 묶음만.
+     */
+    function courseName(o) {
+        function f(x) { return String(x || "").replace(/\s*(·|→)\s*/g, " ").replace(/[()]/g, "").replace(/\s+/g, " ").trim(); }
+        o = o || {};
+        var head = [f(o.mountain), f(o.title)].filter(Boolean).join(" ") + (f(o.sender) ? "(" + f(o.sender) + ")" : "");
+        var route = [f(o.start), f(o.top), f(o.end)].filter(Boolean).join(" → ");
+        return head && route ? head + " · " + route : head || route;
+    }
+
     function el(tag, cls, text) {
         var e = document.createElement(tag);
         if (cls) e.className = cls;
