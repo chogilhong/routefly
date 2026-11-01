@@ -69,6 +69,23 @@
     /** 지금 코스 종류의 말 · 빠르기(등산 "산행" · 걷기 "걷기" · 자전거 "라이딩"). 코스를 고르기 전에는 고른 탭. */
     function K() { return RF.kindOf(c ? c.course.kind : kindFilter || "hike"); }
 
+    /**
+     * 산행 중에 다른 화면(코스 모음 · 안내 · 약관 …)으로 나가는 링크를 누르면 한 번 물음(2026-11-01 홍TV님) - 나가 있는 동안 이 화면의 GPS 기록 · 안내가 멈춤.
+     * 같은 화면 안(#…) · 새 창(target=_blank - 지도 앱 길찾기 등) · 시험 걷기는 묻지 않음. 돌아오면 저장해 둔 산행이 그대로 이어짐.
+     */
+    document.addEventListener("click", function (e) {
+        if (!hike.running || hike.sim || e.defaultPrevented || e.button) return;
+        var a = e.target && e.target.closest ? e.target.closest("a[href]") : null;
+        if (!a || a.target === "_blank" || a.hasAttribute("download")) return;
+        var to;
+        try { to = new URL(a.getAttribute("href"), location.href); } catch (x) { return; }
+        if (to.origin === location.origin && to.pathname === location.pathname) return;   // 같은 화면(#목록 등)
+        e.preventDefault();
+        hAsk(EN ? "Your " + K().act.toLowerCase() + " is in progress. While you are away from this screen, location recording and guidance stop. Leave?"
+            : K().act + " 중입니다. 이 화면을 떠나 있는 동안 위치 기록과 안내가 멈춥니다. 나갈까요?",
+            { ok: T("나가기", "Leave"), cancel: T("계속 " + K().act, "Keep going") }).then(function (ok) { if (ok) location.href = to.href; });
+    }, true);
+
     /** 시작 버튼 · 기록 제목을 코스 종류에 맞춥니다. */
     function setKindWords() {
         var k = K();
