@@ -721,10 +721,21 @@ var dd = RF.dedupePois([{ name: "쉼터", lat: 37, lon: 127, dist_m: 100 }, { na
 eq("dedupePois 같은 이름 먼 곳", dd.length, 2);
 
 // 올릴 코스 이름(2026-11-01 홍TV님 "[산 · 코스 이름 · 보낸이] 들머리 - 정상 - 날머리")
-eq("courseName 모두", RF.courseName({ mountain: "북한산", title: "숨은벽", sender: "시험대장", start: "밤골", top: "백운대", end: "우이동" }), "북한산 숨은벽(시험대장) · 밤골 → 백운대 → 우이동");
-eq("courseName 들머리 · 날머리를 읽음", RF.routeEnds(RF.courseName({ mountain: "북한산", sender: "시험대장", start: "밤골", top: "백운대", end: "우이동" })), { from: "밤골", to: "우이동" });
+eq("courseName 모두 - 만든 이는 이름에 넣지 않음", RF.courseName({ mountain: "북한산", title: "숨은벽", maker: "시험대장", start: "밤골", top: "백운대", end: "우이동" }), "북한산 숨은벽 · 밤골 → 백운대 → 우이동");
+eq("courseName 들머리 · 날머리를 읽음", RF.routeEnds(RF.courseName({ mountain: "북한산", start: "밤골", top: "백운대", end: "우이동" })), { from: "밤골", to: "우이동" });
 eq("courseName 빈 칸 · 칸 안의 구분 글자", RF.courseName({ mountain: "송산", title: "a · b", start: "송산리 → 마을회관", end: "" }), "송산 a b · 송산리 마을회관");
-eq("courseName 길 없음", RF.courseName({ mountain: "북한산", sender: "(시험)" }), "북한산(시험)");
+eq("courseName 길 없음 · 괄호 지움", RF.courseName({ mountain: "북한산(시험)" }), "북한산시험");
+// 출처 · 만든 이(2026-11-01 홍TV님 - CourseSource 와 같음)
+eq("courseSource 공단", RF.courseSource("knps-7-1"), { kind: "source", text: "국립공원공단", en: "Korea National Park Service", checked: false });
+eq("courseSource 앞부분마다", ["frst-1", "drnb-1", "kmp-1", "kmf-9", "osmh-7", "osmb-1", "osmgap-1"].map(function (id) { return RF.courseSource(id).text; }),
+    ["산림청", "한국관광공사 두루누비", "한국등산·트레킹지원센터", "한국등산·트레킹지원센터", "OpenStreetMap", "OpenStreetMap", "OpenStreetMap"]);
+eq("courseSource 이은 코스는 첫 구간", RF.courseSource("frst-1@0.2-0.5:가>나,knps-7~").text, "산림청");
+eq("courseSource 내 GPX", RF.courseSource(RF.gpxId("<gpx/>")).text, "내 GPX");
+eq("courseSource 올린 코스 · 모르는 앞부분은 없음", [RF.courseSource("u-20261101-120000"), RF.courseSource("abc-1"), RF.courseSource("")], [null, null, null]);
+eq("sourceText 출처", [RF.sourceText(RF.courseSource("knps-7")), RF.sourceText(RF.courseSource("knps-7"), true)], ["출처: 국립공원공단", "Source: Korea National Park Service"]);
+eq("sourceText 만든 이", [RF.sourceText({ kind: "maker", text: "시험대장", en: "시험대장", checked: true }), RF.sourceText({ kind: "maker", text: "시험대장", checked: true }, true),
+    RF.sourceText({ kind: "maker", text: "routefly", checked: false }), RF.sourceText({ kind: "maker", text: "시험산악회", partner: true }), RF.sourceText(null)],
+    ["만든 이: 시험대장 (routefly 점검)", "Made by: 시험대장 (checked by routefly)", "만든 이: routefly", "만든 이: 시험산악회 [제휴]", ""]);
 // 탐방 안내도 - 맨 앞 이은 코스(좌표 없음) 뒤에 산림청 코스가 와도 국립공원 카드 하나(2026-11-01 홍TV님 북한산 안내도 둘)
 var gmRows = [{ course_id: "knps-1-a@0-1:시험>시험~,knps-2-b@0-1:시험>시험~", name: "북한산 · 밤골입구 → 백운대 → 밤골입구" },
     { course_id: "frst-1-a", name: "고양 북한산 백운대 · 북한동 → 북한산(백운대)", start_lat: 37.645, start_lon: 126.98 },

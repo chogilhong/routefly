@@ -292,6 +292,8 @@ public class CoursePageServlet extends HttpServlet {
                 .append(peakId != null ? "/m/" + esc(MountainServlet.enc(peakId)) + "\">‹ " + esc(peakId) : "/m/?open=peaks\">‹ 코스 모음").append("</a></p>");
         b.append("<h1>").append(esc(name)).append("</h1>");
         b.append("<p class=\"lead\">").append(kl).append(" 코스").append(peakId != null ? " · 100대 명산 " + esc(peakId) : "").append("</p>");
+        String made = CourseSource.line(CourseSource.of(id), false);   // 출처 · 만든 이(2026-11-01 홍TV님 - 이름에 넣지 않고 따로 한 줄)
+        if (!made.isEmpty()) b.append("<p class=\"dim made\">").append(esc(made)).append("</p>");
 
         // 요약
         Double steep = ele == null ? null : Steep.steepest(dist, ele);

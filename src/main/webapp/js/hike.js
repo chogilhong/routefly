@@ -781,6 +781,10 @@
      * 위 제목 칸은 360px 폰에서 54px 뿐이라 칩을 넣으면 코스 이름이 통째로 가려졌음(2026-10-18 PC). 등산(hike · trek)만.
      */
     function nameLevel() {
+        // 출처 · 만든 이 한 줄(2026-11-01 홍TV님 "코스 이름은 깨끗하게, 만든 이는 따로") - 서버 답(course.source)이 먼저, 없으면(받아 둔 옛 코스 · 내 GPX) 코스 ID 앞부분으로
+        var mt = c ? RF.sourceText((c.course && c.course.source) || RF.courseSource(c.id), EN) : "";
+        $("made").textContent = mt;
+        $("made").hidden = !mt;
         var old = $("nextRow").querySelector(".nmLv");
         if (old) old.remove();
         if (!c || !c.course || (c.course.kind !== "hike" && c.course.kind !== "trek")) return;
@@ -810,6 +814,7 @@
             // 갈림길에서 자른 구간(코스ID@비율-비율:처음>끝 - 탐방 안내도)은 그 부분만
             var nc = !parts ? RF.fromApi(id, r[0]) : RF.joinedCourse(id, parts, r[0]);   // 갈림길에서 자른 구간(코스ID@비율-비율:처음>끝 - 탐방 안내도)은 그 부분만
             if (nc.lon.length < 2) throw new Error("경로 점이 없습니다.");   // 2026-10-11 점검: 확인한 뒤에 바꿈(깨진 코스로 공유 · SOS 가 돌지 않게)
+            if (parts && r[0][0] && r[0][0].course && r[0][0].course.source && nc.course) nc.course.source = r[0][0].course.source;   // 이은 코스는 첫 구간의 출처 · 만든 이
             c = nc;
             var sv = loadSaved();
             // 되돌아가는 길로 바꿔 걷던 산행을 이어 갈 때, 노선 안내도에서 거꾸로 방향을 골랐을 때(#c=…&rev=1, 2026-10-12)
@@ -1836,6 +1841,7 @@
     }
     /**
      * 📮 routefly 에 코스로 보내기(2026-11-01 홍TV님 "등산객이 GPX 를 보내 주면 없는 코스면 점검해서 올림 - 보낸 사람 이름을 코스 이름 앞에").
+     * 2026-11-01 홍TV님: 보낸 사람 이름은 코스 이름에 넣지 않고 코스 화면의 "만든 이: …" 한 줄로(CourseSource).
      * 선 모양(시각 없이) · 코스 이름 · 보낸 사람 이름 · 메모만 /api/course-submit 으로. 사진 · 사진 메모는 보내지 않음. 보낸 사람 이름은 이 기기에 기억(rf-submit-sender).
      */
     var SENDER_KEY = "rf-submit-sender";
@@ -1851,7 +1857,7 @@
         var ls = "display:block;margin-top:10px", is = "display:block;width:100%;box-sizing:border-box;margin-top:4px;padding:9px;border-radius:8px;border:1px solid #3a4655;background:#0f1720;color:#e9eef4;font-size:15px";
         box.innerHTML = '<b style="font-size:17px">' + T("📮 routefly 에 코스로 보내기", "📮 Send to routefly as a course") + '</b>'
             + '<label style="' + ls + '">' + T("코스 이름", "Course name") + '<input type="text" class="nm" maxlength="60" style="' + is + '"></label>'
-            + '<label style="' + ls + '">' + T("보내는 사람 이름(코스 이름 앞에 붙음 · 비우면 익명)", "Your name (shown before the course name · leave empty to stay anonymous)") + '<input type="text" class="sd" maxlength="20" style="' + is + '"></label>'
+            + '<label style="' + ls + '">' + T("보내는 사람 이름(올리면 코스 화면에 \"만든 이\" 로 보임 · 비우면 익명)", "Your name (shown as \"Made by\" on the course screens if published · leave empty to stay anonymous)") + '<input type="text" class="sd" maxlength="20" style="' + is + '"></label>'
             + '<label style="' + ls + '">' + T("종류", "Type") + '<select class="kd" style="' + is + '"><option value="hike">' + T("⛰️ 등산", "⛰️ Hiking") + '</option><option value="walk">' + T("🚶 걷기", "🚶 Walking") + '</option><option value="bike">' + T("🚴 자전거", "🚴 Cycling") + '</option></select></label>'
             + '<label style="' + ls + '">' + T("메모(골라서 - 들머리 · 주차 등)", "Note (optional - trailhead, parking, etc.)") + '<textarea class="nt" maxlength="200" rows="2" style="' + is + '"></textarea></label>'
             + '<p class="tip" style="margin:10px 0 6px">' + T("길 모양 · 코스 이름 · 보낸 사람 이름을 routefly 가 점검해 공개 코스로 올릴 수 있습니다. 시각 · 사진 · 메모는 보내지 않습니다. 집 근처 출발 · 도착 부분은 먼저 자르세요.",

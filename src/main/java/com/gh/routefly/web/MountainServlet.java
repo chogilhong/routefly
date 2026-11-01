@@ -641,6 +641,12 @@ public class MountainServlet extends HttpServlet {
         return (m >= 60 ? m / 60 + "시간 " : "") + m % 60 + "분";
     }
 
+    /** 코스 카드의 출처 · 만든 이 한 줄(작은 흐린 글 - 2026-11-01 홍TV님). 모르는 코스는 "". MountainEn 도 씀. */
+    static String madeLine(String id, boolean en) {
+        String t = CourseSource.line(CourseSource.of(id), en);
+        return t.isEmpty() ? "" : "<small class=\"made\">" + esc(t) + "</small>";
+    }
+
     /** 순수 함수 - 산 페이지. */
     static String page(JsonObject peak, List<JsonObject> courses, List<Object[]> nearby, Integer parking, String base) {
         String name = str(peak, "id") != null ? str(peak, "id") : str(peak, "name"), summit = str(peak, "summit");   // id = 지역 붙은 이름(백운산(광양))
@@ -686,7 +692,7 @@ public class MountainServlet extends HttpServlet {
                 b.append("<li data-id=\"").append(esc(id)).append("\" data-name=\"").append(esc(str(c, "name"))).append("\" data-dist=\"").append(dist)
                         .append(asc != null ? "\" data-asc=\"" + asc : "").append(steep != null ? "\" data-steep=\"" + steep : "")
                         .append("\"><b><a href=\"").append(REL).append("/c/").append(esc(id)).append("\">").append(esc(str(c, "name"))).append("</a> ")   // 코스 소개 페이지(2026-10-19 - 검색 로봇이 코스까지)
-                        .append(levelChip(dist, asc, steep, false)).append("</b><span>")
+                        .append(levelChip(dist, asc, steep, false)).append("</b>").append(madeLine(id, false)).append("<span>")
                         .append(String.format(Locale.ROOT, "%.2fkm", dist / 1000.0))
                         .append(asc != null ? String.format(Locale.KOREA, " · 오르막 %,dm", asc) : "")
                         .append(SteepRank.slopeText(dist, asc, steep, false))   // 각도 · 경사 · 가파른 1km - 가파른 산 순위와 같은 기준(2026-10-18 홍TV님 "통일")

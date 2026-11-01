@@ -782,10 +782,10 @@
             if (!j || j.success === false) throw new Error(j && j.message || "?");
             var t = RF.gpxTracks(j.gpx)[0];
             if (!t || t.track.length < 2) throw new Error("점이 없습니다");
-            // 보낸 이름이 "산 · 들머리 → 날머리" 꼴이면 칸마다 나눠 둠, 아니면 코스 이름 칸에 - ⬆ 코스로 올리기 이름 칸에 미리
+            // 보낸 이름이 "산 · 들머리 → 날머리" 꼴이면 칸마다 나눠 둠, 아니면 코스 이름 칸에 - ⬆ 코스로 올리기 이름 칸에 미리. 보낸 사람은 "만든 이" 칸에(이름에는 넣지 않음)
             var np = RF.nameParts(it.name), ws = np.route.split(" → "), meta = ws.length > 1
-                ? { mountain: np.group || "", sender: it.sender || "", start: ws[0], top: ws.length > 2 ? ws.slice(1, -1).join(" ") : "", end: ws[ws.length - 1] }
-                : { title: it.name, sender: it.sender || "" };
+                ? { mountain: np.group || "", maker: it.sender || "", start: ws[0], top: ws.length > 2 ? ws.slice(1, -1).join(" ") : "", end: ws[ws.length - 1] }
+                : { title: it.name, maker: it.sender || "" };
             add(RF.courseName(meta), t.track);
             tracks[sel].sub = it.id;
             tracks[sel].meta = meta;
@@ -821,8 +821,9 @@
         setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
     };
     /**
-     * 올릴 코스 이름 칸(2026-11-01 홍TV님 "[산 · 코스 이름 · 보낸이] 들머리 - 정상 - 날머리") - 칸마다 넣으면 RF.courseName 꼴로 합침.
-     * 받은 GPX 는 코스 이름 · 보낸이가 미리 들어감. 그 밖은 지금 이름을 들머리 · 날머리로 나눠 미리 넣음. 취소면 "".
+     * 올릴 코스 이름 칸(2026-11-01 홍TV님 "[산 · 코스 이름] 들머리 - 정상 - 날머리") - 칸마다 넣으면 RF.courseName 꼴로 합침.
+     * 만든 이는 이름에 넣지 않고 따로(2026-11-01 홍TV님 "코스 이름은 깨끗하게") - 코스 화면에 "만든 이: …" 한 줄, 비우면 routefly.
+     * 받은 GPX 는 코스 이름 · 만든 이(보낸 사람)가 미리 들어감. 그 밖은 지금 이름을 들머리 · 날머리로 나눠 미리 넣음. 결과 {name, maker}, 취소면 null.
      */
     function nameForm(c) {
         return new Promise(function (done) {
@@ -832,26 +833,33 @@
             ov.style.cssText = "position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;padding:16px";
             var box = document.createElement("div");
             box.style.cssText = "background:#141b24;color:#e8edf3;border:1px solid #2a3442;border-radius:14px;padding:18px;width:min(460px,100%);max-height:90vh;overflow:auto";
-            var F = [["mountain", "산", "예: 북한산"], ["title", "코스 이름(없으면 비움)", "예: 숨은벽"], ["sender", "보낸이(없으면 비움)", ""],
-                     ["start", "들머리", "예: 밤골"], ["top", "정상 · 거치는 곳(없으면 비움)", "예: 백운대"], ["end", "날머리", "예: 우이동"]];
+            var F = [["mountain", "산", "예: 북한산"], ["title", "코스 이름(없으면 비움)", "예: 숨은벽"],
+                     ["start", "들머리", "예: 밤골"], ["top", "정상 · 거치는 곳(없으면 비움)", "예: 백운대"], ["end", "날머리", "예: 우이동"],
+                     ["maker", "만든 이(코스 화면에 따로 보임 · 비우면 routefly)", "예: 보낸 사람 이름"]];
             var h = '<h3 style="margin:0 0 10px;font-size:17px">코스로 올릴 이름</h3>';
             F.forEach(function (f) {
                 h += '<label style="display:block;margin:0 0 8px;font-size:13px;color:#9aa6b4">' + f[1]
-                    + '<input data-k="' + f[0] + '" placeholder="' + f[2] + '" maxlength="30" style="display:block;width:100%;box-sizing:border-box;margin-top:3px;height:38px;padding:0 10px;border-radius:8px;border:1px solid #2a3442;background:#0b1118;color:#e8edf3;font:inherit;font-size:15px"></label>';
+                    + '<input data-k="' + f[0] + '" placeholder="' + f[2] + '" maxlength="' + (f[0] === "maker" ? 20 : 30) + '" style="display:block;width:100%;box-sizing:border-box;margin-top:3px;height:38px;padding:0 10px;border-radius:8px;border:1px solid #2a3442;background:#0b1118;color:#e8edf3;font:inherit;font-size:15px"></label>';
             });
-            h += '<p style="margin:10px 0 4px;font-size:13px;color:#9aa6b4">목록에 이대로 보입니다</p><p class="nfOut" style="margin:0 0 14px;font-weight:bold;word-break:keep-all"></p>'
+            h += '<p style="margin:10px 0 4px;font-size:13px;color:#9aa6b4">목록에 이대로 보입니다</p><p class="nfOut" style="margin:0 0 2px;font-weight:bold;word-break:keep-all"></p><p class="nfMade" style="margin:0 0 14px;font-size:12.5px;color:#9aa6b4"></p>'
                 + '<div style="display:flex;gap:8px"><button type="button" class="b nfNo" style="flex:1">취소</button><button type="button" class="b nfOk" style="flex:1;background:#38d9ea;color:#062b30;font-weight:bold">다음</button></div>';
             box.innerHTML = h;
             ov.appendChild(box);
             document.body.appendChild(ov);
             var ins = box.querySelectorAll("input[data-k]");
             function val() { var o = {}; Array.prototype.forEach.call(ins, function (i) { o[i.getAttribute("data-k")] = i.value; }); return o; }
-            function upd() { var n = RF.courseName(val()); box.querySelector(".nfOut").textContent = n || "(이름을 넣어 주세요)"; box.querySelector(".nfOk").disabled = n.length < 2; }
+            function made() { var m = String(val().maker || "").replace(/\s+/g, " ").trim(); return { kind: "maker", text: m || "routefly", checked: !!m }; }
+            function upd() {
+                var n = RF.courseName(val());
+                box.querySelector(".nfOut").textContent = n || "(이름을 넣어 주세요)";
+                box.querySelector(".nfMade").textContent = RF.sourceText(made());   // 코스 화면 · 산 페이지에 이대로(CourseSource.line)
+                box.querySelector(".nfOk").disabled = n.length < 2;
+            }
             Array.prototype.forEach.call(ins, function (i) { i.value = v[i.getAttribute("data-k")] || ""; i.oninput = upd; });
             upd();
             function close(r) { ov.remove(); done(r); }
-            box.querySelector(".nfNo").onclick = function () { close(""); };
-            box.querySelector(".nfOk").onclick = function () { var n = RF.courseName(val()); if (n.length >= 2) close(n.slice(0, 60)); };
+            box.querySelector(".nfNo").onclick = function () { close(null); };
+            box.querySelector(".nfOk").onclick = function () { var n = RF.courseName(val()); if (n.length >= 2) close({ name: n.slice(0, 60), maker: made().checked ? made().text : "" }); };
             ins[0].focus();
         });
     }
@@ -859,14 +867,14 @@
     $("upBtn").onclick = function () {
         var c = cur();
         if (!c) return;
-        nameForm(c).then(function (name) {
-            name = String(name || "").trim();
+        nameForm(c).then(function (r) {
+            var name = String((r && r.name) || "").trim();
             if (!name) return;
             var st = RF.trackStats(c.track);
-            return ask("\"" + name + "\" (" + km(st.dist) + " km) 을(를) routefly 코스로 올릴까요?\n\n누구나 보는 코스가 됩니다. 선 모양 · 이름만 올라가고 시각은 올라가지 않습니다. 1시간 안(매시 7분)에 코스 목록에 들어갑니다.", { ok: "올리기" }).then(function (ok) {
+            return ask("\"" + name + "\" (" + km(st.dist) + " km) 을(를) routefly 코스로 올릴까요?\n" + RF.sourceText({ kind: "maker", text: r.maker || "routefly", checked: !!r.maker }) + "\n\n누구나 보는 코스가 됩니다. 선 모양 · 이름 · 만든 이만 올라가고 시각은 올라가지 않습니다. 1시간 안(매시 7분)에 코스 목록에 들어갑니다.", { ok: "올리기" }).then(function (ok) {
                 if (!ok) return;
                 return fetch("api/course-upload", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
-                    body: JSON.stringify({ name: name, kind: $("kind").value, gpx: RF.trackGpx(name, $("kind").value, c.track) }) })
+                    body: JSON.stringify({ name: name, kind: $("kind").value, maker: r.maker, gpx: RF.trackGpx(name, $("kind").value, c.track) }) })
                     .then(function (res) { return res.json().catch(function () { return { success: false, message: "HTTP " + res.status }; }); })
                     .then(function (j) {
                         if (!j || j.success === false) throw new Error(j && j.message || "?");

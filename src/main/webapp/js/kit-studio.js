@@ -330,16 +330,24 @@
 
     /** 순수 함수 - 길 → GPX 1.1 글(이름 · 종류 · 점마다 높이 · 시각이 있으면). */
     /**
-     * 순수 함수 - 올릴 코스 이름 "북한산 숨은벽(보낸이) · 밤골 → 백운대 → 우이동"(2026-11-01 홍TV님 "[산 · 코스 이름 · 보낸이] 들머리 - 정상 - 날머리").
-     * 묶음(산 · 코스 이름 · 보낸이)과 길(들머리 → 정상 → 날머리)은 " · " 하나로, 길은 " → " 로 - 목록 · 따라가기가 이 꼴로 들머리 · 날머리를 읽음(nameParts · routeEnds).
-     * 칸 안의 " · " · "→" · 괄호는 지움. 빈 칸은 뺌, 길이 없으면 묶음만.
+     * 순수 함수 - 올릴 코스 이름 "북한산 숨은벽 · 밤골 → 백운대 → 우이동"(2026-11-01 홍TV님 "[산 · 코스 이름] 들머리 - 정상 - 날머리").
+     * 묶음(산 · 코스 이름)과 길(들머리 → 정상 → 날머리)은 " · " 하나로, 길은 " → " 로 - 목록 · 따라가기가 이 꼴로 들머리 · 날머리를 읽음(nameParts · routeEnds).
+     * 칸 안의 " · " · "→" · 괄호는 지움. 빈 칸은 뺌, 길이 없으면 묶음만. 보낸 사람(만든 이)은 이름에 넣지 않고 코스 화면에 따로 한 줄(2026-11-01 홍TV님 "이름은 깨끗하게").
      */
     function courseName(o) {
         function f(x) { return String(x || "").replace(/\s*(·|→)\s*/g, " ").replace(/[()]/g, "").replace(/\s+/g, " ").trim(); }
         o = o || {};
-        var head = [f(o.mountain), f(o.title)].filter(Boolean).join(" ") + (f(o.sender) ? "(" + f(o.sender) + ")" : "");
+        var head = [f(o.mountain), f(o.title)].filter(Boolean).join(" ");
         var route = [f(o.start), f(o.top), f(o.end)].filter(Boolean).join(" → ");
         return head && route ? head + " · " + route : head || route;
+    }
+
+    /** 순수 함수 - 출처 · 만든 이 글(CourseSource.line 과 같음): "출처: 국립공원공단" · "만든 이: 시험대장 (routefly 점검)" · 제휴는 "[제휴]". 없으면 "". */
+    function sourceText(s, en) {
+        if (!s || !s.text) return "";
+        var t = (en && s.en) || s.text;
+        if (s.kind !== "maker") return (en ? "Source: " : "출처: ") + t;
+        return (en ? "Made by: " : "만든 이: ") + t + (s.partner ? (en ? " [Partner]" : " [제휴]") : s.checked ? (en ? " (checked by routefly)" : " (routefly 점검)") : "");
     }
 
     function trackGpx(name, kind, track) {
@@ -455,6 +463,7 @@
         joinTracks: joinTracks,
         trackGpx: trackGpx,
         courseName: courseName,
+        sourceText: sourceText,
         cutMiddle: cutMiddle,
         osmRoute: osmRoute,
         WALK_WAYS: WALK_WAYS,

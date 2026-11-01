@@ -3876,16 +3876,39 @@
 
     /** 순수 함수 - 길 → GPX 1.1 글(이름 · 종류 · 점마다 높이 · 시각이 있으면). */
     /**
-     * 순수 함수 - 올릴 코스 이름 "북한산 숨은벽(보낸이) · 밤골 → 백운대 → 우이동"(2026-11-01 홍TV님 "[산 · 코스 이름 · 보낸이] 들머리 - 정상 - 날머리").
-     * 묶음(산 · 코스 이름 · 보낸이)과 길(들머리 → 정상 → 날머리)은 " · " 하나로, 길은 " → " 로 - 목록 · 따라가기가 이 꼴로 들머리 · 날머리를 읽음(nameParts · routeEnds).
-     * 칸 안의 " · " · "→" · 괄호는 지움. 빈 칸은 뺌, 길이 없으면 묶음만.
+     * 순수 함수 - 올릴 코스 이름 "북한산 숨은벽 · 밤골 → 백운대 → 우이동"(2026-11-01 홍TV님 "[산 · 코스 이름] 들머리 - 정상 - 날머리").
+     * 묶음(산 · 코스 이름)과 길(들머리 → 정상 → 날머리)은 " · " 하나로, 길은 " → " 로 - 목록 · 따라가기가 이 꼴로 들머리 · 날머리를 읽음(nameParts · routeEnds).
+     * 칸 안의 " · " · "→" · 괄호는 지움. 빈 칸은 뺌, 길이 없으면 묶음만. 보낸 사람(만든 이)은 이름에 넣지 않고 코스 화면에 따로 한 줄(2026-11-01 홍TV님 "이름은 깨끗하게").
      */
     function courseName(o) {
         function f(x) { return String(x || "").replace(/\s*(·|→)\s*/g, " ").replace(/[()]/g, "").replace(/\s+/g, " ").trim(); }
         o = o || {};
-        var head = [f(o.mountain), f(o.title)].filter(Boolean).join(" ") + (f(o.sender) ? "(" + f(o.sender) + ")" : "");
+        var head = [f(o.mountain), f(o.title)].filter(Boolean).join(" ");
         var route = [f(o.start), f(o.top), f(o.end)].filter(Boolean).join(" → ");
         return head && route ? head + " · " + route : head || route;
+    }
+
+    /**
+     * 순수 함수 - 코스 ID → 출처 {kind:"source", text, en, checked:false}(서버 CourseSource.of 와 같은 앞부분 - 2026-11-01 홍TV님).
+     * 서버 답의 course.source 가 먼저이고, 이것은 그 칸이 없을 때(받아 둔 옛 코스 · 내 GPX)만. 이은 코스는 첫 구간 것. 올린 코스(u-)는 만든 이를 몰라 null, 모르는 앞부분도 null.
+     */
+    function courseSource(id) {
+        var parts = parseJoinId(id), base = parts && parts.length ? parts[0].base : String(id || "");
+        var P = [["knps-", "국립공원공단", "Korea National Park Service"], ["frst-", "산림청", "Korea Forest Service"],
+                 ["drnb-", "한국관광공사 두루누비", "Korea Tourism Organization Durunubi"],
+                 ["kmp-", "한국등산·트레킹지원센터", "Korea Hiking & Trekking Support Center"], ["kmf-", "한국등산·트레킹지원센터", "Korea Hiking & Trekking Support Center"],
+                 ["osm", "OpenStreetMap", "OpenStreetMap"]];
+        if (isGpxId(base)) return { kind: "source", text: "내 GPX", en: "My GPX", checked: false };
+        for (var i = 0; i < P.length; i++) if (base.indexOf(P[i][0]) === 0) return { kind: "source", text: P[i][1], en: P[i][2], checked: false };
+        return null;
+    }
+
+    /** 순수 함수 - 출처 · 만든 이 글(CourseSource.line 과 같음): "출처: 국립공원공단" · "만든 이: 시험대장 (routefly 점검)" · 제휴는 "[제휴]". 없으면 "". */
+    function sourceText(s, en) {
+        if (!s || !s.text) return "";
+        var t = (en && s.en) || s.text;
+        if (s.kind !== "maker") return (en ? "Source: " : "출처: ") + t;
+        return (en ? "Made by: " : "만든 이: ") + t + (s.partner ? (en ? " [Partner]" : " [제휴]") : s.checked ? (en ? " (checked by routefly)" : " (routefly 점검)") : "");
     }
 
     function trackGpx(name, kind, track) {
@@ -6013,7 +6036,7 @@
 
     global.RF = {
         LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, regionNames: regionNames, stampKey: stampKey, summitName: summitName, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakGapM: peakGapM, peakCourses: peakCourses, isClosedTrail: isClosedTrail, isHiddenCourse: isHiddenCourse, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, nearestExit: nearestExit, gpsGap: gpsGap, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
-        nextPoi: nextPoi, snap: snap, fillTrackEle: fillTrackEle, trimTrack: trimTrack, gpxTracks: gpxTracks, trackStats: trackStats, splitTrack: splitTrack, joinTracks: joinTracks, trackGpx: trackGpx, courseName: courseName, cutMiddle: cutMiddle, osmRoute: osmRoute, WALK_WAYS: WALK_WAYS, trailsToElements: trailsToElements, overlapShare: overlapShare, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
+        nextPoi: nextPoi, snap: snap, fillTrackEle: fillTrackEle, trimTrack: trimTrack, gpxTracks: gpxTracks, trackStats: trackStats, splitTrack: splitTrack, joinTracks: joinTracks, trackGpx: trackGpx, courseName: courseName, courseSource: courseSource, sourceText: sourceText, cutMiddle: cutMiddle, osmRoute: osmRoute, WALK_WAYS: WALK_WAYS, trailsToElements: trailsToElements, overlapShare: overlapShare, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
         sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, wxCols: wxCols, wxTable: wxTable, kmaLink: kmaLink, pcpText: pcpText, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap,
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },
         cellCenter: cellCenter, warnName: warnName, safetyRows: safetyRows, safetyAlert: safetyAlert, safetyRender: safetyRender,

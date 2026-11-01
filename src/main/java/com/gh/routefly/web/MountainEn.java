@@ -149,7 +149,7 @@ final class MountainEn {
                 Double steep = MountainServlet.steep(c);
                 b.append("<li data-id=\"").append(esc(id)).append("\" data-name=\"").append(esc(str(c, "name"))).append("\" data-dist=\"").append(dist).append(asc != null ? "\" data-asc=\"" + asc : "")
                         .append(steep != null ? "\" data-steep=\"" + steep : "").append("\"><b>")
-                        .append(esc(courseName(str(c, "name")))).append(" ").append(MountainServlet.levelChip(dist, asc, steep, true)).append(" <small lang=\"ko\">").append(esc(str(c, "name"))).append("</small></b><span>")
+                        .append(esc(courseName(str(c, "name")))).append(" ").append(MountainServlet.levelChip(dist, asc, steep, true)).append(" <small lang=\"ko\">").append(esc(str(c, "name"))).append("</small></b>").append(MountainServlet.madeLine(id, true)).append("<span>")
                         .append(String.format(Locale.ROOT, "%.2f km", dist / 1000.0))
                         .append(asc != null ? String.format(Locale.US, " · %,d m ascent", asc) : "")
                         .append(SteepRank.slopeText(dist, asc, steep, true))   // 순위와 같은 기준(2026-10-18)

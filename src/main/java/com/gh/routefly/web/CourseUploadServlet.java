@@ -27,8 +27,8 @@ import com.google.gson.JsonParser;
  * 내 기록 → 코스로 올리기(2026-10-31 홍TV님 "이 기록을 코스로 올리기 - 일단 나만 보이게"). 운영자 기기(/stats 쿠키)만.
  * <ul>
  *   <li>GET /api/course-upload → {owner} - 화면이 단추를 보일지</li>
- *   <li>POST /api/course-upload {name, kind, gpx} → 올림 폴더(course.inboxDir, 기본 /opt/routefly/course-inbox)의 kind/u-날짜-시각.gpx
- *       - routefly-batch courseImport 가 매시 :07 에 읽어 코스로(높이는 지형 자료로 다시)</li>
+ *   <li>POST /api/course-upload {name, kind, gpx, maker} → 올림 폴더(course.inboxDir, 기본 /opt/routefly/course-inbox)의 kind/u-날짜-시각.gpx
+ *       - routefly-batch courseImport 가 매시 :07 에 읽어 코스로(높이는 지형 자료로 다시). maker(만든 이, 20자까지 · 비우면 routefly)는 CourseMakers 파일에(2026-11-01)</li>
  * </ul>
  * 받은 GPX 는 그대로 두지 않고 점(위도 · 경도 · 높이)만 다시 써 시각 · 사진 메모는 남기지 않습니다.
  */
@@ -61,19 +61,13 @@ public class CourseUploadServlet extends HttpServlet {
         File dir = new File(dirName == null || dirName.isBlank() ? DEFAULT_DIR : dirName.trim());
         if (!dir.isDirectory()) { Json.fail(resp, 503, "서버에 올림 폴더가 없습니다(설정 필요)."); return; }
         try {
-            String name = str(in, "name"), kind = str(in, "kind");
+            String name = str(in, "name"), kind = str(in, "kind"), maker = CourseSubmitServlet.clean(str(in, "maker"));
             List<double[]> pts = points(str(in, "gpx"));
             String why = check(name, kind, pts);
+            if (why == null && maker.codePointCount(0, maker.length()) > CourseSubmitServlet.SENDER_MAX) why = "만든 이는 20자 안으로 적어 주세요.";
             if (why != null) { Json.fail(resp, 400, why); return; }
-            String id = "u-" + ZonedDateTime.now(ZoneId.of("Asia/Seoul")).format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
-            File kd = new File(dir, kind);
-            if (!kd.isDirectory() && !kd.mkdir()) { Json.fail(resp, 500, "올림 폴더를 만들지 못했습니다."); return; }
-            perms(kd.toPath(), "rwxr-x---");   // 배치(routefly 묶음)가 읽게 - 묶음은 폴더의 setgid(2750)로 이어짐
-            File out = new File(kd, id + ".gpx"), tmp = new File(kd, "." + id + ".tmp");
-            if (out.exists()) { Json.fail(resp, 409, "잠시 뒤 다시 올려 주세요."); return; }
-            Files.write(tmp.toPath(), gpx(name.trim(), kind, pts).getBytes(StandardCharsets.UTF_8));
-            perms(tmp.toPath(), "rw-r-----");
-            Files.move(tmp.toPath(), out.toPath(), StandardCopyOption.ATOMIC_MOVE);
+            String id = save(dir, name.trim(), kind, pts, maker, CourseMakers.STORE, System.currentTimeMillis());
+            if (id == null) { Json.fail(resp, 409, "잠시 뒤 다시 올려 주세요."); return; }
             JsonObject o = new JsonObject();
             o.addProperty("success", true);
             o.addProperty("id", id);
@@ -82,6 +76,24 @@ public class CourseUploadServlet extends HttpServlet {
         } catch (Exception e) {
             Json.fail(resp, 500, "올리지 못했습니다.");
         }
+    }
+
+    /**
+     * 올림 폴더의 kind/u-날짜-시각.gpx 로 쓰고(임시 파일 → 옮김) 만든 이를 남김(CourseMakers - "" 이면 routefly, 2026-11-01 홍TV님 "만든 이는 이름에서 빼고 따로").
+     * 같은 번호가 있으면 null.
+     */
+    static String save(File dir, String name, String kind, List<double[]> pts, String maker, CourseMakers makers, long now) throws IOException {
+        String id = "u-" + ZonedDateTime.ofInstant(java.time.Instant.ofEpochMilli(now), ZoneId.of("Asia/Seoul")).format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
+        File kd = new File(dir, kind);
+        if (!kd.isDirectory() && !kd.mkdir()) throw new IOException("올림 폴더를 만들지 못함");
+        perms(kd.toPath(), "rwxr-x---");   // 배치(routefly 묶음)가 읽게 - 묶음은 폴더의 setgid(2750)로 이어짐
+        File out = new File(kd, id + ".gpx"), tmp = new File(kd, "." + id + ".tmp");
+        if (out.exists()) return null;
+        Files.write(tmp.toPath(), gpx(name, kind, pts).getBytes(StandardCharsets.UTF_8));
+        perms(tmp.toPath(), "rw-r-----");
+        Files.move(tmp.toPath(), out.toPath(), StandardCopyOption.ATOMIC_MOVE);
+        makers.put(id, maker, now);
+        return id;
     }
 
     /** 본문 JSON(MAX_BODY 글자까지) - 못 읽으면 실패 응답을 쓰고 null. 코스 보내기(CourseSubmitServlet)도 같이 씀(2026-11-01 홍TV님). */
