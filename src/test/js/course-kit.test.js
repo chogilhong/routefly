@@ -725,6 +725,11 @@ eq("courseName 모두", RF.courseName({ mountain: "북한산", title: "숨은벽
 eq("courseName 들머리 · 날머리를 읽음", RF.routeEnds(RF.courseName({ mountain: "북한산", sender: "시험대장", start: "밤골", top: "백운대", end: "우이동" })), { from: "밤골", to: "우이동" });
 eq("courseName 빈 칸 · 칸 안의 구분 글자", RF.courseName({ mountain: "송산", title: "a · b", start: "송산리 → 마을회관", end: "" }), "송산 a b · 송산리 마을회관");
 eq("courseName 길 없음", RF.courseName({ mountain: "북한산", sender: "(시험)" }), "북한산(시험)");
+// 탐방 안내도 - 맨 앞 이은 코스(좌표 없음) 뒤에 산림청 코스가 와도 국립공원 카드 하나(2026-11-01 홍TV님 북한산 안내도 둘)
+var gmRows = [{ course_id: "knps-1-a@0-1:시험>시험~,knps-2-b@0-1:시험>시험~", name: "북한산 · 밤골입구 → 백운대 → 밤골입구" },
+    { course_id: "frst-1-a", name: "고양 북한산 백운대 · 북한동 → 북한산(백운대)", start_lat: 37.645, start_lon: 126.98 },
+    { course_id: "knps-3-c", name: "북한산 · 우이동 → 백운대", start_lat: 37.66, start_lon: 127.01 }];
+eq("guideMaps 이은 코스가 맨 앞이어도 한 장", RF.guideMaps(gmRows, 3, "북한산").map(function (g) { return g.label + " " + g.n; }), ["북한산 3"]);
 // 2026-10-10 5차 점검: notifyDeploy - HEAD 하나라도 실패하면 처음 표시를 남기지 않음(반쪽 표시로 띠가 잘못 뜨던 것), ✕ 로 닫기
 function deployEnv(okFirst) {
     var calls = 0, listeners = {}, appended = [], ver = "a";

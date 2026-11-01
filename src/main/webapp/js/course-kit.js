@@ -1697,7 +1697,11 @@
      */
     function guideMaps(rows, max, q) {
         var order = [];
-        (rows || []).forEach(function (r) {
+        // 공단 코스(knps-)를 먼저 묶어 국립공원 카드의 출발점을 다 모은 뒤 다른 자료 코스를 견줌(2026-11-01 홍TV님 북한산 안내도 둘 -
+        // 맨 앞의 이은 코스(출발점 좌표 없음)가 국립공원 카드를 점 없이 만들어, 바로 뒤 산림청 코스가 20km 비교를 못 하고 따로 "북한산(…)" 카드가 됐음)
+        var list = (rows || []).filter(function (r) { return /^knps-/.test(String(r.course_id || "")); })
+            .concat((rows || []).filter(function (r) { return !/^knps-/.test(String(r.course_id || "")); }));
+        list.forEach(function (r) {
             // 국립공원 묶음은 공단 코스(knps-)만 이름으로 - 다른 자료의 "가야산 1코스"(광양)가 국립공원 가야산 카드에 섞여 카드 이름이 "광양 가야산"
             // 이 됐음(2026-10-14 PC). 다른 자료 코스는 아래 거리(20km) 규칙으로 같은 산인지 봄
             var park = /^knps-/.test(String(r.course_id || "")) ? parkOf(r.name) : null, n = park || parkOf(r.name) || mountainOf(r.name, r.course_id);
