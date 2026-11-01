@@ -310,6 +310,13 @@ certbot 이 위 파일에 `listen 443 ssl` 을 붙인 뒤, 그 443 server 블록
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 ```
 
+HTTP/2(2026-11-01 홍TV님 서버): 화면 하나에 파일 20여 개를 연결 하나로 함께 받게. Ubuntu nginx 1.24 라 `http2 on;` 이 아니라 listen 줄에 붙임
+(`/etc/nginx/sites-enabled/routefly` 의 443 두 줄 - 고치기 전 `~/nginx-site.bak-20261101`). 인증서 갱신은 이 줄을 건드리지 않습니다.
+
+```nginx
+    listen 443 ssl http2; # managed by Certbot
+```
+
 ### 6-2. Cloudflare 를 앞에 둘 때
 
 ```nginx
