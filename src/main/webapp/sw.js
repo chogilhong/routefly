@@ -7,7 +7,7 @@
  *   - MapLibre(vendor): 바뀌지 않으므로 받아 둔 것 먼저
  *   - 판 붙은 js · css(js/x.js?v=내용 해시 - war 만들 때 tools/minify/version.js 가 붙임, 2026-11-01): 내용이 바뀌면 주소가 바뀌므로 받아 둔 것 먼저
  */
-var SHELL = "rf-shell-v213", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
+var SHELL = "rf-shell-v214", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
 var TILE_KEEP = 1500;   // 지나가며 본 타일은 이만큼만 남깁니다(저장 공간)
 // 2026-10-09 점검: API 캐시도 한도 - 지도를 움직일 때마다 목록 주소(bbox)가 하나씩 늘어 끝없이 커졌습니다.
 // 오프라인 저장한 코스는 OFFLINE 캐시에 따로 있어 지워지지 않습니다.
@@ -159,19 +159,6 @@ function stuckPage() {
     });
 }
 
-/** 신호 없을 때 서버 화면 - 받아 둔 것(주소 그대로, 없으면 ? 뒤를 뺀 주소), 없으면 오프라인 안내. */
-function offlineNav(req) {
-    var base = req.url.split("#")[0];
-    return caches.match(base, { ignoreVary: true }).then(function (hit) { return hit || caches.match(base.split("?")[0], { ignoreVary: true }); })
-        .then(function (hit) {
-            return hit || new Response('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
-                + '<title>오프라인 - routefly</title><body style="font-family:sans-serif;background:#121821;color:#e8edf3;padding:24px;line-height:1.6">'
-                + '<h2>오프라인입니다</h2><p>인터넷이 연결되지 않았고, 이 화면은 핸드폰에 저장되어 있지 않습니다.</p>'
-                + '<p><a href="' + self.registration.scope + 'hike.html" style="color:#38d9ea">따라가기 열기</a> (저장해 둔 코스는 그곳에서 보입니다)</p></body>',
-                { status: 503, headers: { "Content-Type": "text/html; charset=UTF-8" } });
-        });
-}
-
 /** 받아 둔 것 먼저, 없으면 받아서(타일이면 조금 남겨 둠). */
 function cacheFirst(req, cacheName) {
     return caches.match(req, { ignoreVary: true }).then(function (hit) {
@@ -227,14 +214,6 @@ self.addEventListener("fetch", function (e) {
     if (url.indexOf("/vendor/") >= 0) { e.respondWith(cacheFirst(req, SHELL)); return; }
     if (/\/(?:js|css)\/[^/?#]+\.(?:js|css)\?v=/.test(url)) { e.respondWith(versioned(e)); return; }
     if (url.indexOf("/s/") >= 0) return;   // 공유 링크는 서버로
-    if (/\/stats(?:[?#]|$)/.test(url)) return;   // 통계(관리자)는 오프라인에 쓸 일이 없어 서버로 바로(2026-11-01 PC 크롬에서 하얗게 멈춤)
     if (url.indexOf("/check/") >= 0) return;   // 점검 화면(관리자 - 높이 점검 등)도 받아 두지 않고 서버로(2026-11-01 점검)
-    // 서버가 만드는 화면(코스 모음 · 산 · 영어 산 · 코스 소개)은 신호가 있으면 서비스 워커를 거치지 않음(2026-11-01 홍TV님 PC 크롬: 코스 모음이 하얗게 계속 돎 -
-    // 서버는 1초에 답하는데 서비스 워커 안의 fetch 가 멈췄음). 신호가 없을 때만 받아 둔 화면(산 페이지 "신호 없을 때 보기" · 지나며 본 것)
-    if (req.mode === "navigate" && /^\/(?:en\/)?(?:m|c)(?:\/|$)/.test(new URL(url).pathname.slice(new URL(self.registration.scope).pathname.length - 1))) {
-        if (self.navigator.onLine !== false) return;
-        e.respondWith(offlineNav(req));
-        return;
-    }
     e.respondWith(networkFirst(e, SHELL));
 });

@@ -23,7 +23,8 @@ public class CheckupStage5Test {
         // 2026-11-01: 받아 둔 것이 없는 화면 주소는 끝없이 기다리지 않고 STUCK_WAIT 뒤 "다시 열기"(서비스 워커를 내려놓고 새로 엶)
         assertTrue(sw.contains("req.mode === \"navigate\" ? Promise.race([netOrOffline, stuckPage()]) : netOrOffline"));
         assertTrue(sw.contains("x.unregister()"));
-        assertTrue("통계는 서비스 워커를 거치지 않음", sw.contains("if (/\\/stats(?:[?#]|$)/.test(url)) return;"));
+        // 2026-11-01 홍TV님: 통계도 다시 서비스 워커를 거침(PC 크롬 멈춤은 그 브라우저 저장 상태 문제로 보고 되돌림 - 받아 둔 것이 없으면 20초 뒤 "다시 열기")
+        assertFalse("통계 건너뛰기 되돌림", sw.contains("/stats(?:[?#]|$)/.test(url)) return;"));
         assertTrue(sw.contains("return Promise.race([netOrOffline, slow]);"));
         assertTrue("늦은 답으로도 캐시를 고침", sw.contains("e.waitUntil(caches.open(cacheName)"));
     }
