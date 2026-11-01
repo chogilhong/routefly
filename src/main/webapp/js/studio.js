@@ -778,6 +778,9 @@
     }
     /** 받은 GPX 열기 - 이름은 "보낸 사람 · 코스 이름"(⬆ 코스로 올리기에 그대로), 기존 코스와 겹침을 봄. */
     function openSub(it, ov) {
+        // 이미 연 받은 GPX 면 그 길을 고르기만(2026-11-01 홍TV님: "열기" 를 누를 때마다 같은 길이 목록에 또 생겼음)
+        var had = tracks.map(function (x) { return x.sub; }).indexOf(it.id);
+        if (had >= 0) { sel = had; draw(true); msg("이미 연 길입니다 - 목록에서 골랐습니다.", 3000); return; }
         fetch("api/course-submit/gpx?id=" + encodeURIComponent(it.id), { headers: { Accept: "application/json" }, cache: "no-store" }).then(function (r) { return r.json(); }).then(function (j) {
             if (!j || j.success === false) throw new Error(j && j.message || "?");
             var t = RF.gpxTracks(j.gpx)[0];
