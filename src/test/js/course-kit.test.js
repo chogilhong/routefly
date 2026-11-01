@@ -1578,6 +1578,32 @@ eq("favJoinExtra 제목이 없으면 지금 이름의 길", [RF.favJoinExtra("#c
     var bad = ""; try { RF.gpxTracks("<html/>"); } catch (e) { bad = e.message; }
     eq("gpxTracks GPX 아님", bad, "GPX 파일이 아닙니다.");
 })();
+// 가장 가까운 하산 지점 · GPS 끊김(2026-11-01). 코스 · 이름은 테스트 데이터
+(function () {
+    var j = line(11);   // 북쪽으로 약 1.1km, 고도 0 → 100m(끝이 가장 높음 - 정상까지만 가는 코스)
+    j.course.name = "시험마을 → 시험정";
+    j.pois.push({ name: "시험탐방지원센터", lat: 37.005, lon: 127.0002, ele_m: 50, dist_m: 555, off_route_m: 20 });
+    var c = RF.fromApi("x", j);
+    var a = RF.nearestExit(c, { lat: 37.002, lon: 127, d: 200 });
+    eq("nearestExit 뒤 출발점(코스 따라)", [a.name, a.kind, Math.round(a.m), a.line, a.back], ["시험마을", "start", 200, true, true]);
+    var b = RF.nearestExit(c, { lat: 37.0045, lon: 127, d: 500 });
+    eq("nearestExit 앞 들머리 이름표(+길에서 떨어진 거리)", [b.name, b.kind, Math.round(b.m), b.back], ["시험탐방지원센터", "head", 75, false]);
+    var e = RF.nearestExit(c, { lat: 37.0098, lon: 127, d: 1080 });
+    eq("nearestExit 가장 높은 끝(정상)은 하산 지점 아님", e.name, "시험탐방지원센터");
+    var f = RF.nearestExit(c, { lat: 37.0095, lon: 127.003, d: null }, [{ name: "시험2마을", lat: 37.0095, lon: 127.0035 }, { name: "시험봉", lat: 37.0095, lon: 127.0031 }]);
+    eq("nearestExit 코스 밖 - 주변 코스 끝 직선(봉우리 이름은 뺌)", [f.name, f.kind, f.line, Math.round(f.m)], ["시험2마을", "far", false, 44]);
+    var g = RF.nearestExit(c, { lat: 37.0048, lon: 127, d: 480 }, [{ name: "시험3마을", lat: 37.0048, lon: 127.0009 }]);
+    eq("nearestExit 직선은 1.4배로 견줌(79m 직선 < 95m 코스 길이지만 코스 길)", g.name, "시험탐방지원센터");
+    var flat = line(3);
+    flat.points.forEach(function (p) { p[2] = 0; });
+    flat.course.name = "시험 → 시험재";
+    var h = RF.nearestExit(RF.fromApi("y", flat), { lat: 37.0019, lon: 127, d: 210 });
+    eq("nearestExit 평지 - 끝이 고개 이름이면 처음으로", [h.kind, h.name], ["start", "시험"]);
+    eq("nearestExit 코스 없음", RF.nearestExit(null, { lat: 37, lon: 127, d: 0 }), null);
+    eq("gpsGap 첫 위치 전에는 알리지 않음", RF.gpsGap(false, 100000, 0, 30000), "");
+    eq("gpsGap 30초 지나면 끊김 한 번", [RF.gpsGap(false, 40000, 10000, 30000), RF.gpsGap(true, 50000, 10000, 30000)], ["lost", ""]);
+    eq("gpsGap 다시 잡힘 · 그대로", [RF.gpsGap(true, 50000, 49000, 30000), RF.gpsGap(false, 20000, 10000, 30000)], ["back", ""]);
+})();
 // GPX 편집 2 · 3단계 - 가운데 지우기 · OSM 길 따라 잇기(2026-10-31). 노드 · 길은 테스트 데이터
 (function () {
     var tr = []; for (var i = 0; i < 11; i++) tr.push([37 + i * 0.001, 127, null, null]);

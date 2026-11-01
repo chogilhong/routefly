@@ -2166,7 +2166,11 @@
         hike.sim = sim;
         hike.running = true;
         hike.arrived = false;
-        hike.bat20 = hike.bat10 = false;   // 배터리 알림은 산행마다 다시(2026-11-01 점검: 두 번째 산행부터 안 울렸음)
+        hike.bat20 = hike.bat10 = false;
+        hike.gpsT = 0;   // GPS 끊김 알림 - 첫 위치를 받은 뒤부터 셈(2026-11-01 홍TV님)
+        hike.gpsLost = false;
+        clearTimeout(hike.gpsBackTimer);
+        gpsBanner("");   // 배터리 알림은 산행마다 다시(2026-11-01 점검: 두 번째 산행부터 안 울렸음)
         hike.hist = [];
         hike.speed = null;
         hike.simClock = Date.now();
@@ -2325,6 +2329,9 @@
         $("gps").className = "";
         $("offroute").style.display = "none";
         stillReset();
+        clearTimeout(hike.gpsBackTimer);
+        hike.gpsLost = false;
+        gpsBanner("");
         hike.pace = null;
         paceTick();   // 글 · 흐린 점 치움
     }
@@ -2344,6 +2351,8 @@
         if (document.visibilityState === "hidden" && hike.running) flushTrack();   // 앱이 닫히기 전에 걸은 길을 남김
         if (compass.on) compassListen(document.visibilityState === "visible");   // 안 보이는 동안 나침반 센서를 놓음
         if (document.visibilityState === "visible" && hike.running && !hike.sim && !BG) keepAwake();   // 앱은 화면을 켜 두지 않음(위 start)
+        // 브라우저는 화면이 꺼진 동안 위치도 안 옴 - 다시 켰을 때 바로 "끊김" 이 뜨지 않게 그때부터 다시 셈(이미 끊김이면 그대로)
+        if (document.visibilityState === "visible" && hike.running && !BG && hike.gpsT && !hike.gpsLost) hike.gpsT = Date.now();
     });
 
     // 배터리 적음 알림(2026-10-23 홍TV님 지리산 - 하산 끝에 배터리가 다 되어 핸드폰이 꺼짐). 20% 에 한 번 알리고 10% 에 기록을 바로 남김.
@@ -2365,6 +2374,35 @@
         setInterval(check, 60000);
     }).catch(function () { /* 알려 주지 않는 브라우저 */ });
 
+    /**
+     * GPS 끊김 알림(2026-11-01 홍TV님) - 산행 중(시험 걷기 빼고) 첫 위치를 받은 뒤 GPS_LOST_MS 동안 쓸 만한 위치가 없으면
+     * 띠(role=alert) + 진동 한 번(끊길 때마다 한 번), 다시 잡히면 띠를 "다시 잡힘" 으로 잠깐 보이고 치움. render 가 1초마다 부름.
+     */
+    var GPS_LOST_MS = 30000;
+    function gpsTick() {
+        if (!hike.running || hike.sim) return;
+        var ev = RF.gpsGap(hike.gpsLost, Date.now(), hike.gpsT, GPS_LOST_MS);
+        if (ev === "lost") {
+            hike.gpsLost = true;
+            clearTimeout(hike.gpsBackTimer);
+            gpsBanner(T("GPS 신호가 끊겼습니다 - 하늘이 보이는 곳으로", "GPS signal lost - move to where you can see the sky"), "");
+            if (navigator.vibrate) navigator.vibrate([300, 150, 300]);
+        } else if (ev === "back") {
+            hike.gpsLost = false;
+            gpsBanner(T("GPS 다시 잡힘", "GPS signal back"), "back");
+            clearTimeout(hike.gpsBackTimer);
+            hike.gpsBackTimer = setTimeout(function () { gpsBanner(""); }, 3000);
+        }
+    }
+
+    /** GPS 끊김 띠 - text 가 "" 이면 치움. cls "back" 은 초록(다시 잡힘). */
+    function gpsBanner(text, cls) {
+        var b = $("gpsLost");
+        b.textContent = text;
+        b.className = cls || "";
+        b.style.display = text ? "block" : "none";
+    }
+
     function onGpsError(e) {
         $("gps").className = "bad";
         $("gps").textContent = e.code === 1 ? T("위치 권한 없음", "No location permission") : T("GPS 신호 없음", "No GPS signal");
@@ -2381,6 +2419,7 @@
         if (!c || !hike.running) return;
         var co = pos.coords, t = pos.timestamp || now();
         var acc = co.accuracy;
+        if (!hike.sim && (acc == null || acc <= 100)) hike.gpsT = Date.now();   // GPS 끊김 알림 - 쓸 만한 위치(오차 100m 안)가 온 시각(아래에서 건너뛰는 같은 자리 위치도)
         if (DEBUG && (!hike.dbgT || Date.now() - hike.dbgT > 60000)) {
             hike.dbgT = Date.now();
             console.info("[rf] fix " + new Date().toTimeString().slice(0, 8) + " acc " + Math.round(acc || 0) + " still " + (hike.still ? Math.round((now() - hike.still.t) / 1000) + "s" : "-") + " ask " + !!hike.stillAsk);
@@ -2745,6 +2784,7 @@
         var elapsed = hike.running ? now() - hike.start : 0;
         setV("sTime", hhmmss(elapsed));
         stillTick();
+        gpsTick();
         paceTick();
         setV("sAsc", num(RF.ascentLeft(c, d)), "m");
         var ef = effort(), bike = K() === RF.KINDS.bike;
@@ -2764,8 +2804,10 @@
             // 🌇 해 지기 1시간 전이면 한 번 알림(도착 예상과 상관없이 - 산은 해가 지기 전부터 어두워짐. 2026-10-18 홍TV님)
             if (sun && hike.running && !hike.sun60 && nowMs >= sun - 3600000 && nowMs < sun) {
                 hike.sun60 = true;
-                toast(EN ? "🌇 Sunset in about 1 hour (" + clock(sun) + "). It gets dark early in the mountains - get your headlamp ready and head down."
-                    : "🌇 해 지기 1시간 전입니다(일몰 " + clock(sun) + "). 산은 일찍 어두워지니 헤드랜턴을 준비하고 하산을 서두르세요.", 10000);
+                var ex = exitText(!hike.sim && hike.fix ? hike.fix : p);   // 가장 가까운 하산 지점 한 줄(2026-11-01 홍TV님)
+                toast((EN ? "🌇 Sunset in about 1 hour (" + clock(sun) + "). It gets dark early in the mountains - get your headlamp ready and head down."
+                    : "🌇 해 지기 1시간 전입니다(일몰 " + clock(sun) + "). 산은 일찍 어두워지니 헤드랜턴을 준비하고 하산을 서두르세요.")
+                    + (ex ? "\n" + T("가장 가까운 하산 지점 ", "Nearest way down: ") + ex : ""), 10000);
                 say(T("해 지기 한 시간 전입니다. 헤드랜턴을 준비하고 하산을 서두르세요.", "Sunset is in about one hour. Get your headlamp ready and head down."), { urgent: true });
                 if (navigator.vibrate) navigator.vibrate([300, 150, 300]);
             }
@@ -3679,6 +3721,34 @@
         toast(compass.up ? T("내가 보는 방향이 위로 오게 지도를 돌립니다.", "Map now turns with the way you face.") : T("북쪽이 위로 오게 되돌렸습니다.", "North is up again."), 2500);
     });
 
+    // ------------------------------------------------------------------ 가장 가까운 하산 지점(2026-11-01 홍TV님 - 일몰 알림 · SOS)
+
+    var farMemo = { trails: null, ends: [] };
+    /** 주변 코스(이미 받은 api/trails) 끝 [{name, lat, lon}] - 선이 이름과 거꾸로 그려진 코스(RF.routeFlips)는 끝 이름을 바꿔 붙임. */
+    function farEnds() {
+        if (farMemo.trails === trails) return farMemo.ends;
+        var lines = {}, ends = [];
+        trails.forEach(function (t) { var n = t.lat.length - 1; lines[t.id] = [[t.lon[0], t.lat[0]], [t.lon[n], t.lat[n]]]; });
+        var flips = RF.routeFlips(trails.map(function (t) { return { course_id: t.id, name: t.name }; }), lines);
+        trails.forEach(function (t) {
+            var e = RF.routeEnds(t.name), l = lines[t.id], a = flips[t.id] ? e.to : e.from, z = flips[t.id] ? e.from : e.to;
+            if (a) ends.push({ name: a, lat: l[0][1], lon: l[0][0] });
+            if (z) ends.push({ name: z, lat: l[1][1], lon: l[1][0] });
+        });
+        farMemo = { trails: trails, ends: ends };
+        return ends;
+    }
+
+    /** "○○ 앞으로 1.2km ↓"(코스 따라 거리, 코스 밖 · 주변 코스 끝이면 "직선"). 산행 중이 아니거나 못 찾으면 "". here = {lat, lon}. */
+    function exitText(here) {
+        if (!c || !hike.running || !here) return "";
+        var x = RF.nearestExit(c, { lat: here.lat, lon: here.lon, d: hike.off <= OFF_ROUTE_M ? hike.d : null }, farEnds());
+        if (!x) return "";
+        var nm = x.name ? NM(x.name) : x.kind === "start" ? T("출발점", "the start") : T("도착점", "the finish");
+        if (x.m < 50) return nm + T(" 바로 여기 ↓", " right here ↓");
+        return nm + " " + (x.line ? (x.back ? T("뒤로 ", "back ") : T("앞으로 ", "ahead ")) : T("직선 ", "straight-line ")) + num(x.m / 1000, 1) + T("km ↓", " km ↓");
+    }
+
     // ------------------------------------------------------------------ SOS
 
     function fillSos(f) {
@@ -3703,6 +3773,10 @@
         var helpTxt = [kit ? T("구급함 ", "First-aid box ") + Math.round(kit.m) + "m" : "", heli ? T("헬기장 ", "Helipad ") + Math.round(heli.m) + "m" : ""].filter(Boolean).join(" · ");
         $("sosHelpRow").hidden = !helpTxt;
         $("sosHelp").textContent = helpTxt || "-";
+        // 가장 가까운 하산 지점(2026-11-01 홍TV님) - 산행 중에만
+        var ex = exitText(here);
+        $("sosExitRow").hidden = !ex;
+        $("sosExit").textContent = ex || "-";
 
         // 보낼 글 - 화면에 보이는 내용 그대로(구조대가 읽기 쉽게 줄바꿈)
         // 119 문자는 영어 화면이어도 한국어 먼저(구조대가 읽음) + 아래에 영어(2026-10-17 - 외국인 산행객)

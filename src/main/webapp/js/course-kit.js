@@ -1988,6 +1988,59 @@
         return best;
     }
 
+    /** 들머리 · 날머리로 볼 이름(탐방지원센터 · 안내소 · 매표소 · 주차장 · 정류장 · 마을 · 입구 …). */
+    var EXIT_NAME = /(탐방지원센터|탐방안내소|안내소|분소|매표소|공원지킴터|주차장|정류장|정류소|터미널|마을|입구|들머리|날머리)$/;
+
+    /**
+     * 순수 함수 - 가장 가까운 하산 지점 {name(모르면 null), kind("start" · "end" · "head" · "far"), m, line, back, lat, lon}. 없으면 null.
+     * 2026-11-01 홍TV님 - 일몰 알림 · SOS 에 "가장 가까운 하산 지점 ○○ 1.2km".
+     * 후보: 코스 처음 · 끝(봉우리 · 고개 이름이거나, 100m 넘게 오르는 코스에서 가장 높은 곳 30m 안이면 뺌 - 정상까지만 가는 코스의 끝은 내려가는 곳이 아님),
+     *       코스 위 들머리 이름표(c.pois) · 공원지킴터(c.spots ranger), far(주변 코스 끝 [{name, lat, lon}] - 코스 선 밖이라 늘 직선).
+     * here = {lat, lon, d}: d 가 있으면(코스 위) 코스 위 후보는 코스 따라 거리(line true, back = 되돌아가는 쪽), 없으면 모두 직선 거리.
+     * 고를 때 직선 거리는 1.4배로 칩니다(산길은 직선보다 대개 그만큼 김 - 골짜기 건너 직선이 코스 길을 이기지 않게). m 은 그대로.
+     */
+    function nearestExit(c, here, far) {
+        if (!c || !c.lat || !c.lat.length || !here) return null;
+        var n = c.lat.length - 1, total = c.total || 0, cands = [];
+        var eles = (c.ele || []).filter(function (e) { return e != null; });
+        var top = eles.length ? Math.max.apply(null, eles) : null, climb = eles.length ? top - Math.min.apply(null, eles) >= 100 : false;
+        var endName = function (d) {
+            var q = (c.pois || []).filter(function (p) { return Math.abs(+p.dist_m - d) < 60 && !(+p.off_route_m >= 60); })[0];
+            return q ? String(q.name) : null;
+        };
+        [[0, 0, "start"], [n, total, "end"]].forEach(function (e) {
+            var nm = endName(e[1]), ele = c.ele ? c.ele[e[0]] : null;
+            if (nm && isTopName(nm)) return;
+            if (climb && ele != null && ele >= top - 30) return;
+            cands.push({ name: nm, kind: e[2], lat: c.lat[e[0]], lon: c.lon[e[0]], d: e[1], off: 0 });
+        });
+        (c.pois || []).forEach(function (p) {
+            if (EXIT_NAME.test(String(p.name || "").replace(/\s+/g, ""))) cands.push({ name: String(p.name), kind: "head", lat: +p.lat, lon: +p.lon, d: +p.dist_m, off: +p.off_route_m || 0 });
+        });
+        (c.spots || []).forEach(function (s) {
+            if (s.kind === "ranger" && s.dist_m != null) cands.push({ name: s.name, kind: "head", lat: +s.lat, lon: +s.lon, d: +s.dist_m, off: +s.off_m || 0 });
+        });
+        (far || []).forEach(function (f) { if (f && f.name && !isTopName(f.name)) cands.push({ name: f.name, kind: "far", lat: +f.lat, lon: +f.lon, d: null, off: 0 }); });
+        var best = null;
+        cands.forEach(function (k) {
+            var line = here.d != null && k.d != null, m = line ? Math.abs(k.d - here.d) + k.off : distM(here.lat, here.lon, k.lat, k.lon);
+            var rank = line ? m : m * 1.4;
+            if (!best || rank < best.rank) best = { name: k.name, kind: k.kind, m: m, line: line, back: line && k.d < here.d, lat: k.lat, lon: k.lon, rank: rank };
+        });
+        if (best) delete best.rank;
+        return best;
+    }
+
+    /**
+     * 순수 함수 - GPS 끊김 알림 차례(2026-11-01 홍TV님): "lost"(방금 끊김 - 띠 · 진동 한 번) · "back"(다시 잡힘) · ""(그대로).
+     * wasLost 는 지금 끊김 띠를 띄우고 있는지, fixT 는 마지막으로 쓸 만한 위치를 받은 시각(아직 한 번도 못 받았으면 0 - 그때는 알리지 않음).
+     */
+    function gpsGap(wasLost, t, fixT, ms) {
+        if (!fixT) return "";
+        var lost = t - fixT >= ms;
+        return lost && !wasLost ? "lost" : !lost && wasLost ? "back" : "";
+    }
+
     /**
      * 순수 함수 - "내 기록" 하나(rec.track: [[위도, 경도, 시각, 고도|null], …], rec.notes) → 고도 그래프 · 지도에 그릴 코스 모양.
      * 점은 10m 보다 가까우면 솎고(끝점은 남김), 사진 · 메모는 가장 가까운 기록 점의 거리에 이름표로 둡니다.
@@ -5863,7 +5916,7 @@
     }
 
     global.RF = {
-        LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, regionNames: regionNames, stampKey: stampKey, summitName: summitName, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakGapM: peakGapM, peakCourses: peakCourses, isClosedTrail: isClosedTrail, isHiddenCourse: isHiddenCourse, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
+        LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, parkOf: parkOf, mountainOf: mountainOf, regionNames: regionNames, stampKey: stampKey, summitName: summitName, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakGapM: peakGapM, peakCourses: peakCourses, isClosedTrail: isClosedTrail, isHiddenCourse: isHiddenCourse, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, nearestExit: nearestExit, gpsGap: gpsGap, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, fillTrackEle: fillTrackEle, trimTrack: trimTrack, gpxTracks: gpxTracks, trackStats: trackStats, splitTrack: splitTrack, joinTracks: joinTracks, trackGpx: trackGpx, cutMiddle: cutMiddle, osmRoute: osmRoute, WALK_WAYS: WALK_WAYS, trailsToElements: trailsToElements, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
         sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, wxCols: wxCols, wxTable: wxTable, kmaLink: kmaLink, pcpText: pcpText, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap,
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },
