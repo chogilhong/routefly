@@ -855,7 +855,13 @@
                 box.querySelector(".nfMade").textContent = RF.sourceText(made());   // 코스 화면 · 산 페이지에 이대로(CourseSource.line)
                 box.querySelector(".nfOk").disabled = n.length < 2;
             }
-            Array.prototype.forEach.call(ins, function (i) { i.value = v[i.getAttribute("data-k")] || ""; i.oninput = upd; });
+            // 뜻 없는 관리 코드(t_crs_mng0000004190 처럼 한글 없이 영문 · 숫자 · _ 뿐이고 숫자가 든 것 - GPX 파일 · 길 이름)는 칸에 미리 넣지 않음(2026-11-01 PC)
+            function code(x) { x = String(x || "").trim(); return /\d/.test(x) && /^[A-Za-z0-9_.\-\s]+$/.test(x); }
+            Array.prototype.forEach.call(ins, function (i) {
+                var k = i.getAttribute("data-k"), x = v[k] || "";
+                i.value = k !== "maker" && code(x) ? "" : x;
+                i.oninput = upd;
+            });
             upd();
             function close(r) { ov.remove(); done(r); }
             box.querySelector(".nfNo").onclick = function () { close(null); };
