@@ -90,6 +90,7 @@
             "Sharing your location with " + leadsText(s, false) + " · purpose: hiking safety" + (s.providedAt ? " · last shared " + clock(s.providedAt) : " · not shared yet"));
         // 내 탑승지 출발 시각 - 정각에 떠남(2026-10-27 홍TV님 "기다려 주지 않아")
         var si = (s.stops || []).indexOf(s.stop), stt = si >= 0 && s.stopTimes ? s.stopTimes[si] : "";
+        stt = esc(stt);   // 시각도 HTML 로 들어감(2026-11-01 점검)
         if (stt && !s.departed && !s.boarded && !s.cancelled) line += T(" · 🚏 " + esc(s.stop) + " " + stt + " 정각 출발 - 미리 와 계세요", " · 🚏 " + esc(s.stop) + " leaves at " + stt + " sharp - be there early");
         // 내가 탈 차 - 호차 · 차량번호(방 만들 때 넣은 것, 2026-10-27 홍TV님 "이미 있는데 그걸 이용해서 회원에게 보여주면 되지") - 탈 때까지
         var plate = (s.plates || [])[(s.bus || 1) - 1];
@@ -118,7 +119,7 @@
         if ((s.pickups || []).length && !s.cancelled && !s.aboard && !s.arrive) {   // 하산 탑승지 바꾸기(코스를 바꾸면 내려오는 곳도 바뀜)
             b.push("<select class=\"pb\" id=\"pbPick\" aria-label=\"" + T("하산 탑승지", "Return pickup") + "\">" + [""].concat(s.pickups).map(function (x) {
                 var i = s.pickups.indexOf(x), t = i >= 0 ? (s.pickupTimes || [])[i] : "";
-                return "<option value=\"" + esc(x) + "\"" + ((s.pickup || "") === x ? " selected" : "") + ">" + (x ? "🚌 " + esc(x) + (t ? " " + t : "") : T("🚌 하산 탑승 미정", "🚌 pickup unset")) + "</option>"; }).join("") + "</select>");
+                return "<option value=\"" + esc(x) + "\"" + ((s.pickup || "") === x ? " selected" : "") + ">" + (x ? "🚌 " + esc(x) + (t ? " " + esc(t) : "") : T("🚌 하산 탑승 미정", "🚌 pickup unset")) + "</option>"; }).join("") + "</select>");
         }
         if (!s.arrive && (s.drops || []).length && !s.cancelled && !s.aboard) {   // 하차 지점 바꾸기 - 아무 때나
             b.push("<select class=\"pb\" id=\"pbDrop\" aria-label=\"" + T("하차 지점", "Drop-off") + "\">" + [""].concat(s.drops, ["버스 대기"]).map(function (x) {

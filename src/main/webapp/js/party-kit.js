@@ -140,8 +140,12 @@
      */
     function ping(force) {
         var p = get();
-        if (!p || stuck()) return null;
+        if (!p) return null;
         var now = Date.now(), sos = !!p.sos;
+        if (stuck()) {   // 보내는 중 - SOS 를 켜고 끈 것은 끝난 뒤 다시(2026-11-01 점검: 위치 없을 때 누른 SOS 가 빠질 수 있었음). 위치가 이미 기다리면 그것에 실림
+            if ((force || sos !== lastSos) && !again) again = [];
+            return null;
+        }
         if (!force && sos === lastSos && now - last < EVERY_MS) return null;
         busy = true;
         busyAt = now;
@@ -155,7 +159,7 @@
     function done(my) {
         if (my !== seq) return;
         busy = false;
-        if (again) { var a = again; again = null; fix(a[0], a[1], a[2], true); }
+        if (again) { var a = again; again = null; if (a.length) fix(a[0], a[1], a[2], true); else ping(true); }   // 빈 것 - 위치 없이(ping)
     }
 
     /** SOS 켜기 · 끄기 - 다음 위치에 실어 바로 보냄. */

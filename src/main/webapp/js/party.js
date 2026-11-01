@@ -559,6 +559,7 @@
 
     function render(s) {
         if (!s) return;
+        if (state && s.code === state.code && s.now && state.now && s.now < state.now) return;   // 늦게 온 옛 답이 새 화면을 덮지 않게(2026-11-01 점검: 꺼진 SOS 가 다시 보이고 다시 울렸음)
         state = s;
         lastOk = Date.now();
         $("net").hidden = true;
@@ -873,7 +874,7 @@
         return s.pickups.map(function (x, i) {
             var all = 0, on = 0;
             (s.members || []).forEach(function (m) { if (m.role === "hiker" && !m.cancelled && m.pickup === x) { all++; if (m.aboard) on++; } });
-            return all ? esc(x) + " " + ((s.pickupTimes || [])[i] || "") + T(" 탐 ", " on ") + on + "/" + all : "";
+            return all ? esc(x) + " " + esc((s.pickupTimes || [])[i] || "") + T(" 탐 ", " on ") + on + "/" + all : "";   // 시각도 esc(2026-11-01 점검)
         }).filter(Boolean).join(" · ");
     }
     /** 하차 지점마다 몇 명 - "한계령 12 · 오색 8 · 미정 3". */

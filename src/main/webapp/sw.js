@@ -6,7 +6,7 @@
  *   - 지도 타일(V-World 위성사진 · 지형): 받아 둔 것이 있으면 그것(오프라인 저장 · 본 적 있는 곳), 없으면 받아서 조금 남겨 둠
  *   - MapLibre(vendor): 바뀌지 않으므로 받아 둔 것 먼저
  */
-var SHELL = "rf-shell-v209", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
+var SHELL = "rf-shell-v210", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
 var TILE_KEEP = 1500;   // 지나가며 본 타일은 이만큼만 남깁니다(저장 공간)
 // 2026-10-09 점검: API 캐시도 한도 - 지도를 움직일 때마다 목록 주소(bbox)가 하나씩 늘어 끝없이 커졌습니다.
 // 오프라인 저장한 코스는 OFFLINE 캐시에 따로 있어 지워지지 않습니다.
@@ -59,6 +59,11 @@ function trim(name, keep) {
 var NET_WAIT = 4000;
 /** 화면 주소가 아닌 js · css · 자료는 받아 둔 것이 있으면 1.5초만 기다림(2026-10-28 점검: 산속에서 파일마다 4초씩 기다려 첫 화면이 10초 걸렸음). */
 var SUB_WAIT = 1500;
+/**
+ * 2026-11-01 점검: API 도 1.5초 만에 받아 둔 답을 내줘, 늦은 안전 경보 · 날씨 · 대기 · 물때 · 기름값 답 대신 며칠 지난 답이 지금 것처럼 보였음.
+ * API 는 NET_WAIT 를 기다리고, 지금 값이 중요한 API(LIVE_API)는 답이 없을 때(LIVE_WAIT - 사실상 끊김)만 받아 둔 것.
+ */
+var LIVE_API = /\/api\/(?:safety|weather|air|tide|fuel|wx|mid)(?:[/?#]|$)/, LIVE_WAIT = 15000;
 /**
  * 받아 둔 것 찾기 - 이 종류의 캐시(cacheName)를 먼저, 없으면 다른 캐시. 2026-10-18 홍TV님: 그냥 caches.match 는 먼저 만든 캐시부터 보므로
  * 산 페이지 "신호 없을 때 보기"(rf-offline-v1)에 예전에 담은 화면 파일이 새 화면 파일(rf-shell)보다 먼저 나와, 지운 문구가 계속 보였을 수 있음.
@@ -124,7 +129,8 @@ function networkFirst(e, cacheName) {
     e.waitUntil(net.then(function (res) {
         if (servedHit && cacheName === SHELL && res && res.ok && differs(servedHit, res)) return tellUpdated();
     }, function () { /* 위에서 처리 */ }));   // 먼저 캐시를 내준 뒤에도 늦은 답으로 캐시를 고칠 때까지
-    var slow = new Promise(function (resolve) { setTimeout(resolve, req.mode === "navigate" ? NET_WAIT : SUB_WAIT); }).then(function () {
+    var wait = cacheName === API ? (LIVE_API.test(req.url) ? LIVE_WAIT : NET_WAIT) : req.mode === "navigate" ? NET_WAIT : SUB_WAIT;
+    var slow = new Promise(function (resolve) { setTimeout(resolve, wait); }).then(function () {
         return cached(key, cacheName).then(function (hit) {
             servedHit = hit || null;
             if (hit) return hit;
@@ -180,5 +186,6 @@ self.addEventListener("fetch", function (e) {
     if (url.indexOf("/vendor/") >= 0) { e.respondWith(cacheFirst(req, SHELL)); return; }
     if (url.indexOf("/s/") >= 0) return;   // 공유 링크는 서버로
     if (/\/stats(?:[?#]|$)/.test(url)) return;   // 통계(관리자)는 오프라인에 쓸 일이 없어 서버로 바로(2026-11-01 PC 크롬에서 하얗게 멈춤)
+    if (url.indexOf("/check/") >= 0) return;   // 점검 화면(관리자 - 높이 점검 등)도 받아 두지 않고 서버로(2026-11-01 점검)
     e.respondWith(networkFirst(e, SHELL));
 });

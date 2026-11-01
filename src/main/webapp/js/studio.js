@@ -192,8 +192,15 @@
     }
     function fit(t) {
         if (!mapOk || !t || t.length < 2) return;
-        var lo = t.map(function (p) { return p[1]; }), la = t.map(function (p) { return p[0]; });
-        map.fitBounds([[Math.min.apply(null, lo), Math.min.apply(null, la)], [Math.max.apply(null, lo), Math.max.apply(null, la)]],
+        // 2026-11-01 점검: Math.min.apply 는 점이 6만 개 남짓 넘으면 사파리에서 RangeError(인자 수 한도) - 한 번 돌며 셈
+        var w = Infinity, s = Infinity, e = -Infinity, n = -Infinity;
+        for (var i = 0; i < t.length; i++) {
+            if (t[i][1] < w) w = t[i][1];
+            if (t[i][1] > e) e = t[i][1];
+            if (t[i][0] < s) s = t[i][0];
+            if (t[i][0] > n) n = t[i][0];
+        }
+        map.fitBounds([[w, s], [e, n]],
             { padding: { top: 50, bottom: 40, left: 40, right: 50 }, duration: 400, maxZoom: 16 });
     }
 
@@ -259,7 +266,8 @@
         g.fillStyle = "#9aa6b4";
         if (!es.length) { g.fillText("이 길에는 높이가 없습니다(코스로 올리면 지형 높이로 매김)", L, H / 2); }
         else {
-            var lo = Math.min.apply(null, es), hi = Math.max.apply(null, es);
+            var lo = Infinity, hi = -Infinity;   // apply 대신 돌며 셈(긴 GPX 에서 RangeError, 2026-11-01 점검)
+            for (var k = 0; k < es.length; k++) { if (es[k] < lo) lo = es[k]; if (es[k] > hi) hi = es[k]; }
             if (hi - lo < 20) { hi += 10; lo -= 10; }
             var X = function (d) { return L + (W - L - R) * d / total; }, Y = function (e) { return T + (H - T - B) * (1 - (e - lo) / (hi - lo)); };
             g.beginPath();

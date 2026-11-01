@@ -1008,25 +1008,49 @@
         });
     }
     var recordsReady = recTx("readonly", function (st) { return st.get("list"); }).then(function (list) {
+        var ls = recLs();
+        if (Array.isArray(list) && ls.length && window.RF && RF.mergeRecords) {   // 못 읽거나 못 써서 localStorage 에만 남긴 기록을 합침(2026-11-01 점검)
+            recCache = RF.mergeRecords(list, ls, REC_MAX);
+            return recTx("readwrite", function (st) { st.put(recCache, "list"); }).then(function () {
+                try { localStorage.removeItem(REC_LS); } catch (e) { /* 다음에 다시 */ }
+            }, function () { /* 다음에 다시 */ });
+        }
         if (Array.isArray(list)) { recCache = list; return; }
-        recCache = recLs();   // 처음 - 예전 기록을 옮김
+        recCache = ls;   // 처음 - 예전 기록을 옮김
         if (!recCache.length) return;
         return recTx("readwrite", function (st) { st.put(recCache, "list"); }).then(function () {
             try { localStorage.removeItem(REC_LS); } catch (e) { /* 다음에 다시 */ }
         });
-    }).catch(function () { recCache = recLs(); });
+    }).catch(function () { recBad = true; recCache = recLs(); });
+    // 2026-11-01 점검: 읽기가 한 번 실패하면(옮긴 뒤라 localStorage 는 빈 목록) 산행을 마칠 때 IndexedDB 의 기록 30개를 [새 기록] 하나로 덮고
+    // gcPhotos 가 옛 사진까지 지웠습니다. recBad 동안은 쓰기 전에 다시 읽어 합치고, 그래도 못 읽으면 IndexedDB 를 덮지 않고(localStorage 에만) 사진도 지우지 않음
+    var recBad = false;
+    function recKey(r) { return r ? r.start + "|" + (r.courseId || "") : ""; }
 
     function records() { return recCache.slice(); }
 
     /** 기록 목록을 바꿉니다. 저장에 실패하면 알립니다(예전에는 말없이 5개만 남겼음). */
     function writeRecords(list) {
-        recCache = list.slice(0, REC_MAX);
-        return recTx("readwrite", function (st) { st.put(recCache, "list"); }).catch(function () {
-            try {
-                localStorage.setItem(REC_LS, JSON.stringify(recCache));
-            } catch (e) {
-                toast(T("핸드폰 저장 공간이 모자라 기록을 저장하지 못했습니다. 지난 기록을 GPX 로 보내 두고 지워 주세요.", "Phone storage is full, so the record could not be saved. Export old records as GPX and delete them."), 8000);
-            }
+        var seen = {};
+        recCache.forEach(function (r) { seen[recKey(r)] = 1; });   // 화면에 보였던 것 - 그중 list 에 없는 것은 지운 것
+        var reread = !recBad ? Promise.resolve() : recTx("readonly", function (st) { return st.get("list"); }).then(function (cur) {
+            recBad = false;
+            if (!Array.isArray(cur)) return;
+            var have = {};
+            list.forEach(function (r) { have[recKey(r)] = 1; });
+            cur.forEach(function (r) { var k = recKey(r); if (!have[k] && !seen[k]) { have[k] = 1; list.push(r); } });   // 못 읽어 안 보였던 기록을 되살림
+            list.sort(function (a, b) { return (b.start || 0) - (a.start || 0); });
+        }, function () { /* 아직 못 읽음 - 아래에서 IndexedDB 를 덮지 않음 */ });
+        return reread.then(function () {
+            recCache = list.slice(0, REC_MAX);
+            var save = recBad ? Promise.reject(new Error("records unreadable")) : recTx("readwrite", function (st) { st.put(recCache, "list"); });
+            return save.catch(function () {
+                try {
+                    localStorage.setItem(REC_LS, JSON.stringify(recCache));
+                } catch (e) {
+                    toast(T("핸드폰 저장 공간이 모자라 기록을 저장하지 못했습니다. 지난 기록을 GPX 로 보내 두고 지워 주세요.", "Phone storage is full, so the record could not be saved. Export old records as GPX and delete them."), 8000);
+                }
+            });
         });
     }
 
@@ -1844,7 +1868,7 @@
             .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok || j.success === false) throw new Error(j.message || ("오류 " + r.status)); return j; }); });
     }
     var xferTimer = null;
-    function xferHide() { clearInterval(xferTimer); $("xferBox").hidden = true; $("xferBox").style.display = "none"; }
+    function xferHide() { clearInterval(xferTimer); xferTimer = null; $("xferBox").hidden = true; $("xferBox").style.display = "none"; }
     $("xferClose").addEventListener("click", xferHide);
     document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !$("xferBox").hidden) xferHide(); });   // Esc 로 닫기(2026-10-28 접근성)
     /** 받기 - 이 기기에 QR · 코드를 띄우고 기다림. */
@@ -1861,10 +1885,14 @@
                 $("xferBox").style.display = "flex";
                 var until = Date.now() + 10 * 60000;
                 clearInterval(xferTimer);
-                xferTimer = setInterval(function () {
-                    if (document.hidden && Date.now() <= until) return;   // 화면을 안 볼 때는 쉼(2026-10-28 속도 점검: 3초마다 10분 = 200번)
+                var busy = false, mine;   // 2026-11-01 점검: 서버 답이 3초 넘게 걸리면 묻기가 겹쳐 "합칠까요?" 가 두 번 떴음 - 한 번에 하나만
+                mine = xferTimer = setInterval(function () {
+                    if (busy || document.hidden && Date.now() <= until) return;   // 화면을 안 볼 때는 쉼(2026-10-28 속도 점검: 3초마다 10분 = 200번)
                     if (Date.now() > until) { clearInterval(xferTimer); $("xferState").textContent = T("시간이 지났습니다. 다시 해 주세요.", "Timed out. Please try again."); return; }
+                    busy = true;
                     xferPost("take", { id: id }).then(function (j) {
+                        busy = false;
+                        if (xferTimer !== mine) return;   // 그 사이 닫았거나 새로 시작함
                         if (j.waiting) { if (j.n && $("xferState")) $("xferState").textContent = T("받는 중… ", "Receiving… ") + j.got + " / " + j.n; return; }
                         clearInterval(xferTimer);
                         var all = unb64(j.data);
@@ -1874,7 +1902,7 @@
                             $("xferBox").hidden = true; $("xferBox").style.display = "none";
                             mergeBackup(JSON.parse(new TextDecoder().decode(plain)));
                         });
-                    }).catch(function (e) { clearInterval(xferTimer); $("xferState").textContent = (e && e.message) || T("받지 못했습니다.", "Could not receive."); });
+                    }).catch(function (e) { busy = false; if (xferTimer !== mine) return; clearInterval(xferTimer); $("xferState").textContent = (e && e.message) || T("받지 못했습니다.", "Could not receive."); });
                 }, 3000);
             });
         }).catch(function (e) { toast((e && e.message) || T("옮기기를 시작하지 못했습니다.", "Could not start the transfer."), 6000); });
@@ -1975,6 +2003,7 @@
     function photoGet(id) { return photoTx("readonly", function (st) { return st.get(id); }); }
     /** 어느 기록 · 지금 산행에도 없는 사진을 지웁니다(기록을 지우거나 30개 밖으로 밀려났을 때). */
     function gcPhotos() {
+        if (recBad) return;   // 기록을 못 읽은 채로는 사진을 지우지 않음(2026-11-01 점검 - 못 읽은 기록의 사진까지 지웠음)
         var keep = {}, lists = records().concat([{ notes: hike.notes }]);
         // 2026-10-09 점검: 이어 하려고 남겨 둔 산행(rf-hike-<코스>-notes)의 사진도 남깁니다
         try {
@@ -2137,6 +2166,7 @@
         hike.sim = sim;
         hike.running = true;
         hike.arrived = false;
+        hike.bat20 = hike.bat10 = false;   // 배터리 알림은 산행마다 다시(2026-11-01 점검: 두 번째 산행부터 안 울렸음)
         hike.hist = [];
         hike.speed = null;
         hike.simClock = Date.now();
@@ -2302,7 +2332,10 @@
     /** 화면이 꺼지지 않게(지원하는 브라우저에서). 다른 앱에 갔다 오면 다시 겁니다. */
     function keepAwake() {
         if (!("wakeLock" in navigator)) return;
-        navigator.wakeLock.request("screen").then(function (w) { hike.wake = w; }).catch(function () { /* 배터리 절약 모드 등 */ });
+        navigator.wakeLock.request("screen").then(function (w) {
+            if (!hike.running) { try { w.release(); } catch (e) { /* 무시 */ } return; }   // 받기 전에 산행을 끝냈으면 바로 놓음(2026-11-01 점검: 끝낸 뒤에도 화면이 켜져 있었음)
+            hike.wake = w;
+        }).catch(function () { /* 배터리 절약 모드 등 */ });
     }
     // 2026-10-09 (카카오톡 브라우저에 며칠 전 화면이 남아 'GPX 열기' 가 안 보였음) → 2026-10-10 새로 배포되면 '새 버전' 띠만 띄우고
     // 누를 때 새로 고침(저절로 고치지 않음). 걷는 중에는 띠도 띄우지 않고 끝낸 뒤에.
@@ -3891,7 +3924,7 @@
         $("sosSheet").style.display = "flex";
         if (window.RFParty && RFParty.get()) {   // 산악회 방 - 인솔자 화면에 SOS(괜찮아요 · 닫기로 풂)
             RFParty.sos(true);
-            if (hike.fix) RFParty.fix(hike.fix.lat, hike.fix.lon, hike.fix.acc, true);
+            partySend();   // 2026-11-01 점검: 위치가 없으면(출발 전 · 신호 없음 · 골짜기) 전에는 서버로 아무것도 안 가 인솔자가 SOS 를 못 받았음 - 위치 없이 ping 으로
         }
         $("sosPhotoBox").style.display = "none";
         $("sosPhoto").textContent = PHOTO_LABEL;
@@ -3900,6 +3933,10 @@
         if (!fresh && navigator.geolocation && window.isSecureContext) {
             navigator.geolocation.getCurrentPosition(function (pos) {
                 fillSos({ lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy, alt: pos.coords.altitude, t: Date.now() });
+                if (window.RFParty && RFParty.get() && RFParty.get().sos) {   // 방금 잡은 위치도 인솔자에게(2026-11-01 점검)
+                    var r = RFParty.fix(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy, true);
+                    if (r) r.catch(function () { /* 다음 위치에 */ });
+                }
             }, function () { $("sosGrid").textContent = T("위치를 못 찾음 - 표지판 번호를 불러 주세요", "No location - read out a location sign number"); },
             { enableHighAccuracy: true, timeout: 20000, maximumAge: 30000 });
         } else if (!fresh) {
@@ -3918,7 +3955,12 @@
     function partySosOff() {
         if (!window.RFParty || !RFParty.get() || !RFParty.get().sos) return;
         RFParty.sos(false);
-        if (hike.fix) RFParty.fix(hike.fix.lat, hike.fix.lon, hike.fix.acc, true);
+        partySend();
+    }
+    /** 산악회 방 SOS 켜고 끈 것을 바로 서버로 - 위치가 있으면 위치에 싣고, 없으면 위치 없이(ping, 2026-11-01 점검). */
+    function partySend() {
+        var r = hike.fix ? RFParty.fix(hike.fix.lat, hike.fix.lon, hike.fix.acc, true) : RFParty.ping(true);
+        if (r) r.catch(function () { /* 다음 위치 · ping 에 */ });
     }
     if (window.RFParty) RFParty.onNotice = function (text) {   // 인솔자 공지 - 걷는 중에도 보이고 들리게
         toast("📢 " + text, 12000);
