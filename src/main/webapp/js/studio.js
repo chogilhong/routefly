@@ -765,7 +765,19 @@
                 del.className = "b"; del.type = "button"; del.textContent = "🗑 버리기";
                 op.onclick = function () { openSub(it, ov); };
                 del.onclick = function () {
-                    ask("\"" + h.textContent + "\" 을(를) 버릴까요?\n받은 GPX 가 서버에서 지워집니다.", { ok: "버리기", danger: true }).then(function (ok) { if (ok) subDone(it.id); });
+                    ask("\"" + h.textContent + "\" 을(를) 버릴까요?\n받은 GPX 가 서버에서 지워집니다.", { ok: "버리기", danger: true }).then(function (ok) {
+                        if (!ok) return;
+                        subDone(it.id);
+                        // 이 편집 화면에 열어 둔 그 길도 목록에서 뺌(2026-11-01 홍TV님: 버린 뒤에도 지도 · 목록에 그대로였음)
+                        if (tracks.some(function (x) { return x.sub === it.id; })) {
+                            push();
+                            var keep = cur();
+                            tracks = tracks.filter(function (x) { return x.sub !== it.id; });
+                            sel = keep && tracks.indexOf(keep) >= 0 ? tracks.indexOf(keep) : tracks.length ? 0 : -1;
+                            closeTool();
+                            draw(true);
+                        }
+                    });
                 };
                 bs.appendChild(op); bs.appendChild(del);
                 row.appendChild(bs);
