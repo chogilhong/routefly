@@ -925,7 +925,21 @@ final class Party {
         if (m.cancelled) throw new IllegalArgumentException("출발 때 탑승하지 않아 이 산행에서 빠졌습니다. 인솔자에게 연락해 주세요.");
         if (m.office) return false;   // 회사 사무실 자리는 위치를 받지 않음
         if (m.aboard) { m.sos = false; return false; }   // 하산 탑승 뒤 - 위치 받지 않음
-        if (!started(m, now)) { m.sos = false; return false; }
+        if (!started(m, now)) {
+            // 출발 전 SOS(2026-11-01 홍TV님 - 버스 · 집결지에서 누른 SOS 도 인솔자에게): 본인이 누른 동안만 그 위치를 받고, 끄면 바로 지움.
+            // SOS 가 아니면 예전대로 버림(집 위치가 인솔자에게 가지 않게 - 2026-10-27)
+            if (!sos) {
+                if (m.sos) { m.lat = null; m.lon = null; m.acc = null; m.t = 0; }
+                m.sos = false;
+                return false;
+            }
+            if (!m.sos) logSos(m, now, "sos");
+            m.lat = lat; m.lon = lon; m.acc = acc; m.t = now; m.seen = now;
+            if (batt != null) m.batt = Math.max(0, Math.min(100, batt));
+            m.sos = true;
+            m.room.sosEver = true;
+            return true;
+        }
         if (m.t == 0 || MountainServlet.distM(m.anchorLat, m.anchorLon, lat, lon) > STILL_M) {
             m.anchorLat = lat; m.anchorLon = lon; m.stillSince = now;
         }
@@ -960,7 +974,16 @@ final class Party {
     }
 
     synchronized void ping(Member m, Integer batt, Boolean sos, long now) {
-        if (m.cancelled || m.aboard || !started(m, now)) return;
+        if (m.cancelled || m.aboard) return;
+        if (!started(m, now)) {   // 출발 전 - SOS 켜고 끄기만(2026-11-01 홍TV님), 끄면 SOS 때 받은 위치도 지움
+            if (sos == null || !sos && !m.sos) return;
+            m.seen = now;
+            if (sos && !m.sos) logSos(m, now, "sos noloc");
+            if (!sos) { m.lat = null; m.lon = null; m.acc = null; m.t = 0; }
+            m.sos = sos;
+            if (sos) m.room.sosEver = true;
+            return;
+        }
         m.seen = now;
         if (batt != null) m.batt = Math.max(0, Math.min(100, batt));
         if (sos == null) return;

@@ -377,7 +377,10 @@ public class PartyTest {
         code = room.get("code").getAsString(); lead = room.get("token").getAsString();
         String h = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"조난\",\"role\":\"hiker\",\"agree\":true}", T0).get("token").getAsString();
         call(p, "/ping", "{\"token\":\"" + h + "\",\"sos\":true}", DEPART - H);
-        assertEquals("출발 전 SOS 는 받지 않음(위치는 출발할 때부터)", base + 6 * H, call(p, "/info", "{\"code\":\"" + code + "\"}", T0).get("closesAt").getAsLong());
+        // 2026-11-01 홍TV님: 출발 전(버스 · 집결지) SOS 도 받음 - 끄면 그대로 6시간
+        assertEquals("출발 전 SOS 도 받음", base + 24 * H, call(p, "/info", "{\"code\":\"" + code + "\"}", T0).get("closesAt").getAsLong());
+        call(p, "/ping", "{\"token\":\"" + h + "\",\"sos\":false}", DEPART - H + 1);
+        assertEquals("출발 전 SOS 끄기", base + 6 * H, call(p, "/info", "{\"code\":\"" + code + "\"}", T0).get("closesAt").getAsLong());
         call(p, "/ping", "{\"token\":\"" + h + "\",\"sos\":true}", DEPART);
         assertEquals("SOS 가 켜져 있으면 하산 마감 24시간 뒤까지", base + 24 * H, call(p, "/info", "{\"code\":\"" + code + "\"}", T0).get("closesAt").getAsLong());
         call(p, "/view", tok(lead), base + 7 * H);   // 6시간이 지나도 방이 남음(끝났으면 Ended)

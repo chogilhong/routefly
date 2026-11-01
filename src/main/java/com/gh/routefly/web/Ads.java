@@ -31,4 +31,19 @@ final class Ads {
                 + "\" data-ad-slot=\"" + slot.trim() + "\" data-ad-format=\"auto\" data-full-width-responsive=\"true\"></ins></aside>"
                 + "<script src=\"" + MountainServlet.REL + "/js/ads.js\" defer></script>";   // 광고 칸이 있을 때만 - 우리 파일(앱이면 칸을 지움)
     }
+
+    /**
+     * 정적 화면(도구 tools.html · 도장 series.html - 2026-11-01 홍TV님)의 광고 칸 설정 - js/ads.js 가 api/ad 로 받아 칸을 만듦.
+     * adsense.slot.<where> 가 없으면 산 페이지 칸(adsense.slot.m)을 같이 씀. 설정이 없거나 꼴이 틀리면 빈 객체(광고 없음).
+     */
+    static com.google.gson.JsonObject spot(String where, java.util.function.Function<String, String> cfg) {
+        com.google.gson.JsonObject o = new com.google.gson.JsonObject();
+        if (where == null || !where.matches("tools|series")) return o;
+        String client = cfg.apply("adsense.client"), slot = cfg.apply("adsense.slot." + where);
+        if (slot == null || slot.isBlank()) slot = cfg.apply("adsense.slot.m");
+        if (client == null || slot == null || !CLIENT.matcher(client.trim()).matches() || !SLOT.matcher(slot.trim()).matches()) return o;
+        o.addProperty("client", client.trim());
+        o.addProperty("slot", slot.trim());
+        return o;
+    }
 }
