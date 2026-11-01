@@ -44,7 +44,7 @@ button { font-family:inherit; }
 #top .rfFavBtn.on { color:#ffd43b; }
 #top .rfFavBtn[hidden] { display:none; }
 #top .nm { flex:1; min-width:0; font-size:14.5px; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-#gps { font-size:11.5px; padding:3px 7px; border-radius:10px; background:rgba(255,255,255,0.08); color:var(--dim); white-space:nowrap; }
+#gps { font-size:12px; padding:3px 7px; border-radius:10px; background:rgba(255,255,255,0.08); color:var(--dim); white-space:nowrap; }
 #gps.ok { color:#0b2b16; background:var(--ok); }
 #gps.bad { color:#fff; background:var(--warn); }
 
@@ -310,7 +310,7 @@ html.picking #pick { display:flex; }
 <div id="top">
     <a href="#" id="back" data-en="&lt;b&gt;‹&lt;/b&gt;List" data-en-title="Back to the trail list (search)" title="코스 목록(검색)으로"><b>‹</b>목록</a>
     <div class="nm" id="name" data-en="Pick a trail">코스를 고르세요</div>
-    <span id="gps" data-en="GPS off">GPS 꺼짐</span>
+    <span id="gps" role="status" aria-live="polite" data-en="GPS off">GPS 꺼짐</span>
     <a href="about.html" data-en-href="about-en.html" title="안전 · 개인정보 · 출처 안내" data-en-title="Safety · privacy · data sources" data-en-aria-label="Safety · privacy · data sources" aria-label="안전 · 개인정보 · 출처 안내" style="font-size:17px;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center">ⓘ</a>
     <button type="button" id="sos" data-en-title="Call 119 emergency · my location" title="119 긴급 신고 · 내 위치">SOS</button>
 </div>
@@ -318,7 +318,7 @@ html.picking #pick { display:flex; }
 
 <div id="mapWrap">
     <div id="map"></div>
-    <div id="offroute"><span class="arrow" id="guideArrow"><svg viewBox="0 0 24 24" width="30" height="30"><path d="M12 2 L20 20 L12 15.5 L4 20 Z" fill="#fff" stroke="#7a0000" stroke-width="1.2" stroke-linejoin="round"/></svg></span><span class="otxt"><span id="offText"></span><button type="button" id="navBtn" data-en="🚗 Directions to the start">🚗 출발점 길찾기</button></span></div>
+    <div id="offroute"><span class="arrow" id="guideArrow"><svg viewBox="0 0 24 24" width="30" height="30"><path d="M12 2 L20 20 L12 15.5 L4 20 Z" fill="#fff" stroke="#7a0000" stroke-width="1.2" stroke-linejoin="round"/></svg></span><span class="otxt"><span id="offText" role="alert"></span><button type="button" id="navBtn" data-en="🚗 Directions to the start">🚗 출발점 길찾기</button></span></div>
     <div id="turn"></div>
     <button type="button" id="compass" data-en-title="Compass - each tap: on → turn map with you → north up" data-en-aria-label="Compass" aria-label="나침반" title="나침반 - 누를 때마다: 켜기 → 내 방향으로 지도 돌리기 → 북쪽 위로"><span class="needle"><svg viewBox="0 0 16 30" width="13" height="25"><path d="M8 1 L13 15 L3 15 Z" fill="#e03131"/><path d="M3 15 L13 15 L8 29 Z" fill="#9aa3ad"/></svg></span><span class="hd" id="compassText">N</span></button>
     <div id="arrived"></div>

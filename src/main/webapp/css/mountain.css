@@ -56,7 +56,7 @@ ul { margin:0; padding:0; list-style:none; }
 .gear b { flex:0 0 auto; order:0; }
 .gear .gl { flex:0 0 auto; margin-left:auto; display:flex; gap:10px; order:1; }
 .gear span { color:var(--dim); font-size:13px; flex:1 1 100%; min-width:0; order:2; }
-.gear a { text-decoration:none; font-size:13px; white-space:nowrap; }
+.gear a { text-decoration:none; font-size:13px; white-space:nowrap; display:inline-flex; align-items:center; min-height:36px; padding:0 6px; }   /* 누르는 자리(2026-11-01 점검: 45x21) */
 /* 목록(/m/) 등산 · 걷기 · 자전거 접는 칸 - 도장 · 완주(series.html)와 같은 모양, <details>(2026-10-15 홍TV님) */
 .folds { margin-bottom:14px; }
 .fold > summary { list-style:none; display:flex; align-items:center; gap:8px; padding:12px 4px; border-bottom:1px solid var(--ln); cursor:pointer; }
@@ -168,7 +168,7 @@ ul { margin:0; padding:0; list-style:none; }
 /* 11위부터는 접어 둠(SteepRank.more - 표 안 단추 줄, 2026-10-18 홍TV님 "전체") */
 .stT:has(.stMore:not([open])) .stRest { display:none; }
 .stT tr.stMoreRow td { border-top:1px solid var(--ln); padding:8px 4px; text-align:center; }
-.stMore > summary { list-style:none; cursor:pointer; color:var(--sky); font-weight:bold; font-size:14px; }
+.stMore > summary { list-style:none; cursor:pointer; color:var(--sky); font-weight:bold; font-size:14px; padding:10px 0; }
 .stMore > summary::-webkit-details-marker { display:none; }
 .stMore > summary::after { content:" ▾"; }
 .stMore[open] > summary::after { content:" ▴"; }
@@ -192,7 +192,7 @@ ul { margin:0; padding:0; list-style:none; }
 @media (max-width:520px) { .chW { display:none; } .chN { display:block; } }
 /* 광고(2026-10-28 - 설정이 있을 때만 서버가 넣음, 앱에서는 ads.js 가 지움) */
 .adBox { margin:18px 0 6px; padding:8px 0; border-top:1px solid rgba(127,127,127,0.25); border-bottom:1px solid rgba(127,127,127,0.25); min-height:60px; }
-.adNote { margin:0 0 4px; font-size:11px; color:#8a94a0; }
+.adNote { margin:0 0 4px; font-size:12px; color:#8a94a0; }
 
 /* 🏨 근처 숙소 찾기(/m/ · /en/m/, 2026-10-29) - 손가락 크기 44px */
 .ssForm { display:flex; gap:8px; margin:4px 0 10px; }

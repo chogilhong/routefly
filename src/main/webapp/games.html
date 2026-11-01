@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>routefly 심심풀이 게임</title>
 <link rel="canonical" href="https://routefly.kr/routefly/games.html">
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=2"><link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
@@ -40,6 +40,7 @@ main { padding:8px 10px calc(env(safe-area-inset-bottom) + 20px); max-width:520p
 #bar #level.l2 { color:#ff6b6b; border-color:#ff6b6b; }
 #bar button { height:38px; padding:0 14px; border-radius:10px; border:1px solid var(--ln); background:rgba(255,255,255,0.08); color:var(--tx); font-size:14px; cursor:pointer; }
 #stage { position:relative; display:flex; justify-content:center; }
+html, body { touch-action:manipulation; }   /* 확대는 되게(저시력), 두 번 눌러 확대만 막음 - 2026-11-01 점검 */
 canvas { display:block; background:#0b0f14; border:1px solid var(--ln); border-radius:10px; touch-action:none; max-width:100%; }
 #over { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; text-align:center;
         background:rgba(11,15,20,0.78); border-radius:10px; font-size:18px; line-height:1.5; }
@@ -84,7 +85,7 @@ canvas { display:block; background:#0b0f14; border:1px solid var(--ln); border-r
             <button data-g="simon"><span class="e">🧠</span><span class="n">순서 기억</span></button>
         </div>
     </details>
-    <div id="bar"><span id="lblScore">점수</span> <b id="score">0</b><span class="sp"></span><span id="lblBest">최고</span> <b id="best">0</b><button id="level" aria-label="난이도">보통</button><button id="sound" aria-label="소리">🔊</button><button id="pause">⏸</button></div>
+    <div id="bar"><span id="lblScore">점수</span> <b id="score">0</b><span class="sp"></span><span id="lblBest">최고</span> <b id="best">0</b><button id="level" aria-label="난이도">보통</button><button id="sound" aria-label="소리">🔊</button><button id="pause" aria-label="일시정지">⏸</button></div>
     <div id="stage">
         <canvas id="cv" width="300" height="480"></canvas>
         <div id="over"><div id="overText"></div><button id="startBtn">시작</button></div>
