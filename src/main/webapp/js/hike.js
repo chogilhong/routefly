@@ -2287,20 +2287,46 @@
                 safety: safetyJ && RF.safetyRows(safetyJ, t0, EN).length ? RF.safetyAlert(safetyJ, t0, EN) : null });
             var box = $("checkList"), sheet = $("checkSheet");
             box.textContent = "";
+            var auto = null;
             rows.forEach(function (r) {
                 var row = document.createElement("div"), ic = document.createElement("span"), tx = document.createElement("b");
                 if (!r.ok) row.className = "warn";
                 ic.textContent = r.ok ? "✅" : "⚠";
                 tx.textContent = r.text;
                 row.appendChild(ic); row.appendChild(tx); box.appendChild(row);
+                if (r.k === "save" && !r.ok) auto = autoSave(row, ic, tx);
             });
-            $("checkSave").hidden = rows.some(function (r) { return r.k === "save" && r.ok; });
+            $("checkSave").hidden = !!auto || rows.some(function (r) { return r.k === "save" && r.ok; });
             // 지금 저장 → 저장 창. 범위를 골라 저장이 끝나거나, 고르지 않고 닫으면 이 점검으로 돌아옴(2026-11-01 홍TV님: 닫은 뒤 "산행하기" 를 다시 눌러야 했음)
             $("checkSave").onclick = function () { sheet.style.display = "none"; saveBack = function () { saveBack = null; preCheck(then); }; $("save").click(); };
             $("checkGo").onclick = function () { sheet.style.display = "none"; then(); };
             $("checkNo").onclick = function () { sheet.style.display = "none"; };
             sheet.style.display = "flex";
         });
+    }
+
+    /**
+     * 출발 전 점검에서 오프라인 지도를 저절로 받음(2026-11-01 홍TV님 "중요한 거니 자동으로 저장") - 넓게(코스 둘레 약 3km), 너무 넓으면 코스 둘레 500m.
+     * 점검 줄에 받는 % → "✅ 오프라인 지도 저장됨" 을 보임. "출발" 을 눌러도 뒤에서 계속 받음. https · 캐시가 안 되면 null(예전 경고 그대로).
+     */
+    var autoSaving = {};
+    function autoSave(row, ic, tx) {
+        if (!c || !("caches" in window) || !window.isSecureContext) return null;
+        var id = c.id, key = offlinePlan(rangeBbox("wide")) ? "wide" : "near", plan = offlinePlan(rangeBbox(key));
+        if (!plan) return null;
+        var label = SAVE_RANGES[key].label + " · " + num(plan.urls.length) + T("장", " tiles");
+        function show(t, ok) { ic.textContent = ok ? "✅" : "📥"; tx.textContent = t; row.className = ok ? "" : "warn"; }
+        show(T("오프라인 지도를 저절로 받는 중… ", "Saving the offline map… ") + "0%", false);
+        var p = autoSaving[id] || (autoSaving[id] = saveOffline(plan, function (pct) {
+            if (row.isConnected) show(T("오프라인 지도를 저절로 받는 중… ", "Saving the offline map… ") + pct + "% (" + label + ")" + T(" - 출발해도 계속 받습니다", " - keeps going after you start"), false);
+        }).then(function () { delete autoSaving[id]; }, function () { delete autoSaving[id]; }));
+        p.then(function () {
+            if (!row.isConnected) return;
+            if (offlineIds().indexOf(id) >= 0) show(T("오프라인 지도 저장됨(", "Offline map saved (") + label + ")", true);
+            else show(T("오프라인 지도를 받지 못했습니다 - 와이파이에서 \"지금 저장\" 을 눌러 보세요", "Could not save the offline map - try \"Save now\" on Wi-Fi"), false);
+            $("checkSave").hidden = offlineIds().indexOf(id) >= 0;
+        });
+        return p;
     }
 
     /** checked - 출발 전 점검을 마침(preCheck 의 "출발"). */
@@ -4380,7 +4406,7 @@
         });
     });
 
-    function saveOffline(plan) {
+    function saveOffline(plan, onPct) {
         // 주변 길은 화면이 부르는 그 주소(loadTrails 의 courseBbox(0.01))로 받아야 오프라인에서 서비스 워커가 내줍니다.
         var head = courseUrls(c.id).concat(["api/trails?bbox=" + courseBbox(0.01), "api/map-config"]);
         var urls = head.concat(plan.urls), id = c.id, meta = { name: String(c.course.name || ""), dist: Math.round(c.total || 0) };
@@ -4397,6 +4423,7 @@
                 }).catch(function () { failed++; }).then(function () {
                     done++;
                     btn.textContent = Math.round(done / urls.length * 100) + "%";
+                    if (onPct) onPct(Math.round(done / urls.length * 100));
                     return next();
                 });
             }
