@@ -182,6 +182,26 @@ public class StatsTest {
         assertNotEquals("보기 쿠키와 다른 값", StatsServlet.ownerToken("abcdefghijkl"), StatsServlet.seeToken("abcdefghijkl"));
         assertFalse(StatsFilter.owner(null));
         assertFalse(StatsFilter.owner("rf-owner=0; x-rf-owner=1"));
+        // 2026-11-02 홍TV님 점검: stats.ownerSalt 를 섞을 수 있음 - 비우면 예전 값, 바꾸면 옛 쿠키가 안 맞음(운영자 기기 모두 로그아웃)
+        assertEquals("salt 없음 · 빈칸은 예전 값", StatsServlet.ownerToken(k, null), StatsServlet.ownerToken(k, "  "));
+        assertNotEquals("salt 를 넣으면 다른 값", StatsServlet.ownerToken(k, null), StatsServlet.ownerToken(k, "salt-1"));
+        assertNotEquals("salt 를 바꾸면 다른 값", StatsServlet.ownerToken(k, "salt-1"), StatsServlet.ownerToken(k, "salt-2"));
+        RouteflyConfig.get("stats.key");   // 설정 표를 한 번 읽힌 뒤 시험 salt 만 넣었다 뺌
+        try {
+            java.lang.reflect.Field f = RouteflyConfig.class.getDeclaredField("props");
+            f.setAccessible(true);
+            java.util.Properties props = (java.util.Properties) f.get(null);
+            String old = StatsServlet.ownerToken(k);
+            Object before = props.setProperty("stats.ownerSalt", "salt-1");
+            try {
+                assertFalse("salt 를 바꾼 뒤 옛 쿠키는 운영자 아님", StatsFilter.owner("rf-owner=" + old, k));
+                assertTrue("새 쿠키는 운영자", StatsFilter.owner("rf-owner=" + StatsServlet.ownerToken(k, "salt-1"), k));
+            } finally {
+                if (before == null) props.remove("stats.ownerSalt"); else props.put("stats.ownerSalt", before);
+            }
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError(e);
+        }
     }
 
     /** 인기 코스 상위 20 · 영어 산 표 · 보는 법(2026-10-21 홍TV님). */

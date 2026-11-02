@@ -217,6 +217,8 @@ sudo grep -cE '^(parking\.csv|stats\.dir)=' /opt/routefly/config.properties
 echo 'parking.csv=/opt/routefly/data/parking.csv' | sudo tee -a /opt/routefly/config.properties
 echo 'stats.dir=/opt/routefly/stats' | sudo tee -a /opt/routefly/config.properties
 # 통계 열쇠 stats.key 는 홍TV님이 nano 로 직접(영문 대소문자 · 숫자만, 12자 이상 - ^ 등 기호는 톰캣이 주소를 거절해 400, 2026-10-21). 카톡 · 문자에 올리지 않음
+# (고르기) 운영자 기기 쿠키에 섞는 값 stats.ownerSalt 도 nano 로(아무 글자 20자쯤, 2026-11-02). 운영자 기기를 모두 로그아웃하려면 이 값을 바꾸고 재시작 -
+#   쓸 기기(PC 브라우저 · 폰 · 앱)에서 /stats 를 한 번씩 다시 열면 새 쿠키를 받음. 비워 두면 예전처럼 stats.key 만으로 정해짐
 sudo systemctl restart tomcat
 ```
 

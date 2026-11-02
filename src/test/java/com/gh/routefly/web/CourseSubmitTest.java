@@ -61,12 +61,12 @@ public class CourseSubmitTest {
         assertEquals("203.0.113.7", CourseSubmitServlet.quotaKey("203.0.113.7"));
         long t = 9_000_000_000_000L;   // 다른 시험과 겹치지 않는 때
         String k = CourseSubmitServlet.quotaKey("2001:db8:77:1::1");
-        for (int i = 0; i < 5; i++) assertTrue(PartyServlet.reserve(CourseSubmitServlet.SUBMITS, k, CourseSubmitServlet.SUBMITS_ALL, t));
-        assertFalse("하루 5번", PartyServlet.reserve(CourseSubmitServlet.SUBMITS, CourseSubmitServlet.quotaKey("2001:db8:77:2::1"), CourseSubmitServlet.SUBMITS_ALL, t));
+        for (int i = 0; i < 3; i++) assertTrue(PartyServlet.reserve(CourseSubmitServlet.SUBMITS, k, CourseSubmitServlet.SUBMITS_ALL, t));
+        assertFalse("하루 3번(2026-11-02 홍TV님 점검)", PartyServlet.reserve(CourseSubmitServlet.SUBMITS, CourseSubmitServlet.quotaKey("2001:db8:77:2::1"), CourseSubmitServlet.SUBMITS_ALL, t));
         CourseSubmitServlet.SUBMITS.give(k, t);
         CourseSubmitServlet.SUBMITS_ALL.give("*", t);
         assertTrue("돌려주면 다시", PartyServlet.reserve(CourseSubmitServlet.SUBMITS, k, CourseSubmitServlet.SUBMITS_ALL, t));
-        for (int i = 0; i < 5; i++) { CourseSubmitServlet.SUBMITS.give(k, t); CourseSubmitServlet.SUBMITS_ALL.give("*", t); }
+        for (int i = 0; i < 3; i++) { CourseSubmitServlet.SUBMITS.give(k, t); CourseSubmitServlet.SUBMITS_ALL.give("*", t); }
     }
 
     @Test
@@ -98,6 +98,38 @@ public class CourseSubmitTest {
             assertTrue(CourseSubmitServlet.remove(dir, b.get("id").getAsString()));
             assertFalse(CourseSubmitServlet.remove(dir, b.get("id").getAsString()));
             assertEquals(0, CourseSubmitServlet.list(dir, now).size());
+        } finally {
+            File[] fs = dir.listFiles();
+            if (fs != null) for (File f : fs) f.delete();
+            dir.delete();
+        }
+    }
+
+    /** 2026-11-02 홍TV님 점검: 5만 점 기록은 모양을 지키며 1만 점 안으로, 받은 폴더 크기를 셈. */
+    @Test
+    public void simplifyKeepsShape() throws Exception {
+        java.util.List<double[]> zig = new java.util.ArrayList<>();
+        for (int i = 0; i < 50_000; i++) zig.add(new double[] {37.5 + i * 0.00001, 127.0 + ((i / 500) % 2 == 0 ? (i % 500) : 500 - (i % 500)) * 0.00001, i});
+        java.util.List<double[]> s = CourseSubmitServlet.simplify(zig, CourseSubmitServlet.KEEP_POINTS);
+        assertTrue(s.size() + "개", s.size() <= 10_000 && s.size() >= 100);
+        assertSame("처음", zig.get(0), s.get(0));
+        assertSame("끝", zig.get(zig.size() - 1), s.get(s.size() - 1));
+        double worst = 0;   // 뺀 점마다 남은 선에서 떨어진 거리(m) - 모양을 지킴
+        for (int i = 0, j = 0; i < zig.size(); i++) {
+            while (j + 1 < s.size() && s.get(j + 1)[2] < i) j++;
+            double[] a = s.get(j), b = s.get(Math.min(j + 1, s.size() - 1)), p = zig.get(i);
+            double kx = 111_320 * Math.cos(Math.toRadians(37.5)), ax = a[1] * kx, ay = a[0] * 111_320, bx = b[1] * kx, by = b[0] * 111_320, px = p[1] * kx, py = p[0] * 111_320;
+            double len = Math.hypot(bx - ax, by - ay), d = len == 0 ? Math.hypot(px - ax, py - ay) : Math.abs((by - ay) * (px - ax) - (bx - ax) * (py - ay)) / len;
+            worst = Math.max(worst, d);
+        }
+        assertTrue("모양이 5m 넘게 어긋나지 않음 - " + worst, worst < 5);
+        java.util.List<double[]> few = pts(20);
+        assertSame("1만 점 안이면 그대로", few, CourseSubmitServlet.simplify(few, CourseSubmitServlet.KEEP_POINTS));
+        File dir = Files.createTempDirectory("rf-submit-bytes").toFile();
+        try {
+            Files.write(Path.of(dir.getPath(), "a.gpx"), new byte[1234]);
+            Files.write(Path.of(dir.getPath(), "b.json"), new byte[66]);
+            assertEquals(1300, CourseSubmitServlet.bytes(dir));
         } finally {
             File[] fs = dir.listFiles();
             if (fs != null) for (File f : fs) f.delete();

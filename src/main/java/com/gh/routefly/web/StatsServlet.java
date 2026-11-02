@@ -117,7 +117,15 @@ public class StatsServlet extends HttpServlet {
      * 산악회 방 하루 만들기 제한을 넘기는 데는 이 값이 맞아야 함(PartyServlet - 시험 많은 날).
      */
     static String ownerToken(String key) {
-        return hash("rf-owner:", key);
+        return ownerToken(key, RouteflyConfig.get("stats.ownerSalt"));
+    }
+
+    /**
+     * 순수 함수 - salt(설정 stats.ownerSalt, 비워도 됨)를 섞은 운영자 기기 쿠키 값(2026-11-02 홍TV님 점검: 열쇠만으로 정해진 값이라 한 번 새면 열쇠를 바꾸기 전까지 그대로였음).
+     * salt 를 바꾸면 모든 운영자 기기 쿠키가 안 맞게 됨(= 운영자 기기 모두 로그아웃, /stats 를 다시 열면 새 값). 비우면 예전 값 그대로.
+     */
+    static String ownerToken(String key, String salt) {
+        return hash("rf-owner:", salt == null || salt.isBlank() ? key : key + "\n" + salt.trim());
     }
 
     private static String hash(String prefix, String key) {
