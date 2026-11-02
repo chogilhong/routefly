@@ -38,7 +38,8 @@ public class CourseUploadServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
     static final int MAX_BODY = 3 * 1024 * 1024, MIN_POINTS = 10, MAX_POINTS = 50_000;
     static final String DEFAULT_DIR = "/opt/routefly/course-inbox";
-    private static final Pattern TRKPT = Pattern.compile("<trkpt\\b([^>]*)>(.*?)</trkpt>|<trkpt\\b([^>]*)/>", Pattern.DOTALL);
+    /** 점 하나의 속성 · 안쪽 글 길이 한도 - 정규식(.*?) 대신 앞으로만 훑어 큰 글도 한 번만 읽음(2026-11-02 홍TV님 점검: 닫히지 않은 "<trkpt " 8만 자에 7.8초). */
+    static final int MAX_ATTR = 1024, MAX_PT_BODY = 4096;
     private static final Pattern LAT = Pattern.compile("\\blat\\s*=\\s*\"(-?\\d{1,3}(?:\\.\\d+)?)\""), LON = Pattern.compile("\\blon\\s*=\\s*\"(-?\\d{1,3}(?:\\.\\d+)?)\"");
     private static final Pattern ELE = Pattern.compile("<ele>\\s*(-?\\d{1,5}(?:\\.\\d+)?)\\s*</ele>");
 
@@ -128,10 +129,24 @@ public class CourseUploadServlet extends HttpServlet {
     /** 순수 함수 - GPX 글 → 점 [위도, 경도, 높이(없으면 NaN)]. 속성 순서 · 높이 없는 점 · 빈 태그(<trkpt …/>)도. */
     static List<double[]> points(String gpx) {
         List<double[]> out = new ArrayList<>();
-        if (gpx == null) return out;
-        Matcher m = TRKPT.matcher(gpx);
-        while (m.find() && out.size() <= MAX_POINTS) {
-            String attrs = m.group(1) != null ? m.group(1) : m.group(3), body = m.group(2) == null ? "" : m.group(2);
+        if (gpx == null || gpx.length() > MAX_BODY) return out;
+        int i = 0, gt = -1, close = -1;   // 다음 '>' · "</trkpt>" 자리는 지나갔을 때만 다시 찾음 - 글 전체를 한 번만 훑음
+        while (out.size() <= MAX_POINTS && (i = gpx.indexOf("<trkpt", i)) >= 0) {
+            int a = i + 6;
+            i = a;
+            if (a < gpx.length() && (Character.isLetterOrDigit(gpx.charAt(a)) || gpx.charAt(a) == '_')) continue;   // <trkptx 같은 다른 태그
+            if (gt < a && (gt = gpx.indexOf('>', a)) < 0) break;
+            if (gt - a > MAX_ATTR) continue;
+            boolean empty = gt > a && gpx.charAt(gt - 1) == '/';
+            String attrs = gpx.substring(a, empty ? gt - 1 : gt), body = "";
+            if (empty) {
+                i = gt + 1;
+            } else {
+                if (close <= gt && (close = gpx.indexOf("</trkpt>", gt + 1)) < 0) close = Integer.MAX_VALUE;   // 뒤에는 빈 태그만 남음
+                if (close - gt - 1 > MAX_PT_BODY) continue;
+                body = gpx.substring(gt + 1, close);
+                i = close + 8;
+            }
             Matcher la = LAT.matcher(attrs), lo = LON.matcher(attrs);
             if (!la.find() || !lo.find()) continue;
             Matcher e = ELE.matcher(body);

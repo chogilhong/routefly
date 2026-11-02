@@ -2,6 +2,7 @@
 # root 로 도는 부분(sudoers 로 deploy 계정에 이 파일 하나만 허용). routefly-deploy 가 부릅니다.
 set -euo pipefail
 umask 022
+cd /   # 2026-11-02 홍TV님 점검: 부른 곳(deploy 홈 등)의 파일을 python 이 읽지 않게 - 아래 python3 -I 와 함께
 WAR=/opt/tomcat/webapps/routefly.war
 KEEP=/var/backups/routefly-war
 LOG=/var/log/routefly-deploy.log
@@ -16,10 +17,10 @@ put() {   # 같은 폴더의 숨김 임시 파일에 쓴 뒤 mv - 톰캣이 반�
 case "${1:-}" in
   deploy)
     src="${2:-}"
-    [[ "$src" =~ ^/tmp/rfwar\.[A-Za-z0-9]{8}$ ]] && [ -f "$src" ] || { log "거절: 받은 파일 경로가 이상함"; exit 3; }
+    [[ "$src" =~ ^/tmp/rfwar\.[A-Za-z0-9]{8}$ ]] && [ -f "$src" ] && [ ! -L "$src" ] || { log "거절: 받은 파일 경로가 이상함"; exit 3; }   # 바로 가기(링크)는 거절
     size=$(stat -c %s "$src")
     [ "$size" -ge "$MIN" ] && [ "$size" -le "$MAX" ] || { log "거절: 크기 ${size}B (1MB ~ 100MB 만)"; exit 3; }
-    python3 - "$src" <<'PY' || { log "거절: routefly war 가 아님(zip 이 아니거나 RouteflyConfig.class 없음)"; exit 3; }
+    python3 -I - "$src" <<'PY' || { log "거절: routefly war 가 아님(zip 이 아니거나 RouteflyConfig.class 없음)"; exit 3; }
 import sys, zipfile
 z = zipfile.ZipFile(sys.argv[1])
 if z.testzip() is not None or "WEB-INF/classes/com/gh/routefly/web/RouteflyConfig.class" not in z.namelist():

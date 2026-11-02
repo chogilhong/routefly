@@ -23,7 +23,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 /**
- * 높이 점검(2026-10-16 홍TV님 - "높이를 전체적으로 재점검"). {@code GET /check/heights?key=…} - 운영 통계와 같은 열쇠(stats.key), 아니면 404.
+ * 높이 점검(2026-10-16 홍TV님 - "높이를 전체적으로 재점검"). {@code GET /check/heights?key=…} - 운영 통계와 같은 열쇠(stats.key) 또는 /stats 보기 쿠키, 아니면 404.
  *
  * <p>100대 명산마다 한 줄: 공식 높이(data/peak-elev.json - 산림청) · GPS 높이(mountains100.json height) ·
  * 정상에서 가장 가까운 코스 점의 높이(DB route_course_point - 배치의 지형 자료 dem 또는 GPX 의 gpx) · 정상 300m 안 지점(이름표) 높이.
@@ -43,10 +43,7 @@ public class HeightCheckServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        if (!StatsServlet.allowed(RouteflyConfig.get("stats.key"), req.getParameter("key"))) {
-            resp.sendError(HttpServletResponse.SC_NOT_FOUND);
-            return;
-        }
+        if (!StatsServlet.seeOk(req, resp)) return;   // ?key= 또는 /stats 에서 받은 보기 쿠키 · 틀린 열쇠 셈(2026-11-02 홍TV님 점검)
         resp.setContentType("text/html");
         resp.setCharacterEncoding(StandardCharsets.UTF_8.name());
         resp.setHeader("Cache-Control", "no-store");

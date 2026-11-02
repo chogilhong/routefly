@@ -943,7 +943,8 @@ final class Party {
         if (m.t == 0 || MountainServlet.distM(m.anchorLat, m.anchorLon, lat, lon) > STILL_M) {
             m.anchorLat = lat; m.anchorLon = lon; m.stillSince = now;
         }
-        m.lat = lat; m.lon = lon; m.acc = acc; m.batt = batt == null ? null : Math.max(0, Math.min(100, batt)); m.t = now; m.seen = now;
+        m.lat = lat; m.lon = lon; m.acc = acc; m.t = now; m.seen = now;
+        if (batt != null) m.batt = Math.max(0, Math.min(100, batt));   // 없으면 앞 값 그대로(2026-11-02 홍TV님 점검: 배터리를 못 읽은 한 번에 인솔자 화면의 배터리가 지워졌음)
         if (m.room.departed && "hiker".equals(m.role) && (acc == null || acc <= 100)) {   // 출발 뒤 산행 회원만 - 집 · 집결지 길은 남기지 않음
             double[] last = m.track.isEmpty() ? null : m.track.get(m.track.size() - 1);
             if (last == null || MountainServlet.distM(last[0], last[1], lat, lon) >= TRACK_MIN_M && now - (long) last[2] >= TRACK_EVERY_MS) {
@@ -1523,12 +1524,12 @@ final class Party {
         return c;
     }
 
-    /** 주 인솔자 - 내 폰에서도 보기 코드(10분 · 한 번). */
+    /** 주 인솔자 - 내 폰에서도 보기 코드(10분 · 한 번). 맞히면 주 인솔자가 되니 보조 인솔자 코드처럼 10글자(2026-11-02 홍TV님 점검). */
     synchronized String meCode(Member lead, long now) {
         if (!lead.chief()) throw new SecurityException("주 인솔자만 씁니다.");
         Room r = lead.room;
         String c;
-        do c = newCode(); while (c.equals(r.code) || c.equals(r.leadCode));
+        do c = newCode(LEAD_CODE_LEN); while (c.equals(r.code) || c.equals(r.leadCode));
         r.meCode = c;
         r.meCodeUntil = now + ME_CODE_MS;
         return c;

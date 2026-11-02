@@ -14,7 +14,9 @@ OSMLOG=/app/routefly/batch/logs/osm-local-update.log
 MAXN=3000
 num() { if [[ "${1:-}" =~ ^[0-9]{1,4}$ ]] && [ "$1" -ge 1 ] && [ "$1" -le "$MAXN" ]; then echo "$1"; else echo 200; fi; }
 # 비밀값처럼 보이는 것은 가림(2026-10-30 점검 - 배치 로그에 DB 접속 · 열쇠가 찍혀도 이 열쇠로는 못 보게)
-clean() { cut -c1-400 | tr -d '\000-\010\013-\037\177' | sed -E 's/((pass(word)?|pwd|secret|token|service_?key|api_?key|key)[[:space:]]*[=:][[:space:]]*)[^[:space:]&,;"]+/\1***/Ig; s#(jdbc:[a-z]+://)[^[:space:]]+#\1***#Ig'; }
+# 가림: 이름=값 · 이름: 값 · JSON "이름": "값"(따옴표 안은 빈칸까지) · Authorization: KakaoAK · Bearer 값 · jdbc 주소(2026-11-02 홍TV님 점검: JSON 꼴 · 카카오 키 머리글이 그대로 보였음)
+W='pass(word)?|pwd|secret|token|service_?key|api_?key|key|authorization'
+clean() { cut -c1-400 | tr -d '\000-\010\013-\037\177' | sed -E "s/\\b(kakaoak|bearer)[[:space:]]+[^[:space:]&,;\"]+/\\1 ***/Ig; s/(($W)\"?[[:space:]]*[=:][[:space:]]*\")[^\"]*/\\1***/Ig; s/(($W)\"?[[:space:]]*[=:][[:space:]]*)[^[:space:]&,;\"]+/\\1***/Ig; s#(jdbc:[a-z]+://)[^[:space:]]+#\\1***#Ig"; }
 okfile() {
   local re='^[A-Za-z0-9][A-Za-z0-9._-]{0,80}\.log$'
   if [ "${1:-}" = osm-local-update.log ]; then F=$OSMLOG; else F="$DIR/${1:-}"; fi
@@ -30,7 +32,7 @@ case "${1:-}" in
     shopt -s nocasematch
     # Overpass 는 비밀값 낱말이 아님(2026-11-02 PC: pass 에 걸려 못 찾음)
     w="${2//[Oo][Vv][Ee][Rr][Pp][Aa][Ss][Ss]/}"
-    [[ "$w" =~ (pass|pwd|secret|token|key|jdbc) ]] && { echo "그 낱말은 찾지 않습니다(비밀값)."; exit 3; }
+    [[ "$w" =~ (pass|pwd|secret|token|key|jdbc|authorization|kakaoak|bearer) ]] && { echo "그 낱말은 찾지 않습니다(비밀값)."; exit 3; }
     shopt -u nocasematch
     n=$(num "${3:-}")
     hits=$(find "$DIR" -maxdepth 1 -type f -name '*.log' ! -name '*.[0-9]*.log' -print0 | xargs -0 -r grep -aHF -- "$2" || true)

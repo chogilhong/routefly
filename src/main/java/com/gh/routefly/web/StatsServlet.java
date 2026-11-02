@@ -32,16 +32,14 @@ public class StatsServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        if (!seeOk(req, resp)) return;
         String want = RouteflyConfig.get("stats.key");
-        boolean byKey = allowed(want, req.getParameter("key"));
-        if (!byKey && !allowed(want == null ? null : seeToken(want), cookie(req, SEE_COOKIE))) {
-            resp.sendError(HttpServletResponse.SC_NOT_FOUND);
-            return;
-        }
         String secure = req.isSecure() || "https".equalsIgnoreCase(req.getHeader("X-Forwarded-Proto")) ? "; Secure" : "";
         // 열쇠를 쿠키로 바꿈. 화면은 바로 주고 주소에서 열쇠는 js/stats.js 가 뺌 - 302 로 다시 보내면 앱(Capacitor)이 그 주소를 바깥 크롬으로 넘겨 404 였음(2026-10-21 PC)
-        if (byKey) {
-            resp.addHeader("Set-Cookie", SEE_COOKIE + "=" + seeToken(want) + "; Max-Age=" + (30 * 24 * 3600) + "; Path=" + req.getContextPath() + "/stats; HttpOnly; SameSite=Strict" + secure);
+        // 높이 점검(/check/heights)도 같은 쿠키로 열리게 그 길에도 하나 더(2026-11-02 홍TV님 점검: 그곳은 ?key= 만 받아 주소에 열쇠가 남았음)
+        if (allowed(want, req.getParameter("key"))) {
+            for (String path : new String[] {"/stats", "/check"})
+                resp.addHeader("Set-Cookie", SEE_COOKIE + "=" + seeToken(want) + "; Max-Age=" + (30 * 24 * 3600) + "; Path=" + req.getContextPath() + path + "; HttpOnly; SameSite=Strict" + secure);
             resp.setHeader("Referrer-Policy", "no-referrer");
         }
         // 운영자 기기 표시(2026-10-20 홍TV님 "우리가 접속한 것도 잡히지?") - 이 기기의 방문은 그 뒤로 세지 않음(StatsFilter). 2년.
@@ -53,6 +51,23 @@ public class StatsServlet extends HttpServlet {
         resp.setHeader("X-Robots-Tag", "noindex");
         Map<String, JsonObject> days = Stats.days();
         resp.getWriter().print(page(days, 30, courseNames(topCourses(days, 30, 20))));
+    }
+
+    /** 틀린 열쇠 · 쿠키: IP 마다 10분에 20번, 넘으면 429(2026-11-02 홍TV님 점검 - 산악회 방 코드의 PartyServlet.MISSES 처럼 하나씩 쳐 보기 막기). */
+    static final PartyServlet.Quota KEY_MISSES = new PartyServlet.Quota(20, 600_000L);
+
+    /**
+     * /stats · /check/heights 함께 - ?key= 또는 보기 쿠키(rf-stats)가 맞으면 true. 아니면 404(열쇠를 넣었는데 틀렸으면 셈), 너무 많이 틀렸으면 429 를 쓰고 false.
+     */
+    static boolean seeOk(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        String ip = PartyServlet.missKey(RateLimiter.group(SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For"))));
+        long now = System.currentTimeMillis();
+        if (KEY_MISSES.over(ip, now)) { resp.sendError(429); return false; }
+        String want = RouteflyConfig.get("stats.key"), key = req.getParameter("key"), see = cookie(req, SEE_COOKIE);
+        if (allowed(want, key) || allowed(want == null ? null : seeToken(want), see)) return true;
+        if (key != null || see != null) KEY_MISSES.take(ip, now);
+        resp.sendError(HttpServletResponse.SC_NOT_FOUND);
+        return false;
     }
 
     /** 인기 코스 이름(DB) - 못 읽으면 빈 표(번호만 보임). */
