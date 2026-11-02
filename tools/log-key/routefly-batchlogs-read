@@ -5,26 +5,32 @@
 #   batch log 이름 [N]   - 그 로그 끝 N줄(기본 200, 많아야 3000) - 이름은 foresttrail.log 처럼(폴더 · 경로 없이)
 #   batch grep 낱말 [N]  - 그 폴더 오늘 로그들(.log)에서 낱말이 든 줄 마지막 N줄
 #   batch timer          - 서버 배치 타이머 · 서비스 상태(다음 실행 · 마지막 결과)
+# 2026-11-02 홍TV님: 우리 서버 OSM 자료 갱신 로그(logs/osm-local-update.log - 매달 cron)도 같은 이름으로 읽음(files 목록에도 보임).
 # 한 줄은 400자까지 자르고 제어 글자는 지웁니다(routefly-logs-read 와 같게).
 set -euo pipefail
 cd /   # logview 집 폴더에 routefly 가 못 들어가 find 가 경고를 냄(2026-10-30 PC)
 DIR=/app/routefly/batch/logs/batch
+OSMLOG=/app/routefly/batch/logs/osm-local-update.log
 MAXN=3000
 num() { if [[ "${1:-}" =~ ^[0-9]{1,4}$ ]] && [ "$1" -ge 1 ] && [ "$1" -le "$MAXN" ]; then echo "$1"; else echo 200; fi; }
 # 비밀값처럼 보이는 것은 가림(2026-10-30 점검 - 배치 로그에 DB 접속 · 열쇠가 찍혀도 이 열쇠로는 못 보게)
 clean() { cut -c1-400 | tr -d '\000-\010\013-\037\177' | sed -E 's/((pass(word)?|pwd|secret|token|service_?key|api_?key|key)[[:space:]]*[=:][[:space:]]*)[^[:space:]&,;"]+/\1***/Ig; s#(jdbc:[a-z]+://)[^[:space:]]+#\1***#Ig'; }
 okfile() {
   local re='^[A-Za-z0-9][A-Za-z0-9._-]{0,80}\.log$'
-  [[ "${1:-}" =~ $re ]] && [ -f "$DIR/$1" ] && [ ! -L "$DIR/$1" ] || { echo "파일 이름이 이상하거나 없습니다(batch files 로 목록을 보세요)."; exit 3; }
+  if [ "${1:-}" = osm-local-update.log ]; then F=$OSMLOG; else F="$DIR/${1:-}"; fi
+  [[ "${1:-}" =~ $re ]] && [ -f "$F" ] && [ ! -L "$F" ] || { echo "파일 이름이 이상하거나 없습니다(batch files 로 목록을 보세요)."; exit 3; }
 }
 case "${1:-}" in
-  files) find "$DIR" -maxdepth 1 -type f -regextype posix-extended -regex '.*/[A-Za-z0-9][A-Za-z0-9._-]{0,80}\.(log|lastrun)' -printf '%s %TF_%TH:%TM %f\n' | sort -k3 ;;
-  log)   okfile "${2:-}"; n=$(num "${3:-}"); tail -n "$n" "$DIR/$2" | clean ;;
+  files) find "$DIR" -maxdepth 1 -type f -regextype posix-extended -regex '.*/[A-Za-z0-9][A-Za-z0-9._-]{0,80}\.(log|lastrun)' -printf '%s %TF_%TH:%TM %f\n' | sort -k3
+         [ -f "$OSMLOG" ] && [ ! -L "$OSMLOG" ] && find "$OSMLOG" -maxdepth 0 -printf '%s %TF_%TH:%TM %f\n' || true ;;
+  log)   okfile "${2:-}"; n=$(num "${3:-}"); tail -n "$n" "$F" | clean ;;
   grep)
     re='^[][A-Za-z0-9_.:=-]{2,60}$'
     [[ "${2:-}" =~ $re ]] || { echo "낱말은 영문 · 숫자 · [ ] _ . : = - 로 2~60자"; exit 3; }
     shopt -s nocasematch
-    [[ "$2" =~ (pass|pwd|secret|token|key|jdbc) ]] && { echo "그 낱말은 찾지 않습니다(비밀값)."; exit 3; }
+    # Overpass 는 비밀값 낱말이 아님(2026-11-02 PC: pass 에 걸려 못 찾음)
+    w="${2//[Oo][Vv][Ee][Rr][Pp][Aa][Ss][Ss]/}"
+    [[ "$w" =~ (pass|pwd|secret|token|key|jdbc) ]] && { echo "그 낱말은 찾지 않습니다(비밀값)."; exit 3; }
     shopt -u nocasematch
     n=$(num "${3:-}")
     hits=$(find "$DIR" -maxdepth 1 -type f -name '*.log' ! -name '*.[0-9]*.log' -print0 | xargs -0 -r grep -aHF -- "$2" || true)
