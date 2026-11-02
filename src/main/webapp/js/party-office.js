@@ -17,7 +17,7 @@
         ["placeholder", "aria-label"].forEach(function (a) {
             Array.prototype.forEach.call(document.querySelectorAll("[data-en-" + a + "]"), function (el) { el.setAttribute(a, el.getAttribute("data-en-" + a)); });
         });
-        $("backTop").href = "party.html?lang=en";
+        $("backTop").href = "en/m/";
     }
     /** 서버 글(한국어)을 영어로 - 사무실에서 나오는 것만, 모르는 글은 그대로. */
     var EN_MSG = [
@@ -481,7 +481,8 @@
             RFParty.post("office/newcode", { key: key }).then(function (j) { msg(T("새 회사 코드: " + j.code + " - 인솔자들에게 알려 주세요.", "New company code: " + j.code + " - give it to your leaders.")); load(); }).catch(function (e) { msg(em(e)); });
         });
     });
-    // ‹ 뒤로(2026-10-29 홍TV님 - 들어온 문으로): 우리 화면에서 왔으면 그 화면으로, 카톡 링크 등 처음 연 탭이면 산악회 방 화면으로
+    // ‹ 뒤로(2026-10-29 홍TV님 - 들어온 문으로): 우리 화면에서 왔으면 그 화면으로, 카톡 링크 등 처음 연 탭 · 앞이 방이면 코스 모음(m/)으로
+    // (2026-11-02 홍TV님 "m/ → 사무실 → 산악회방 → 사무실 → m/ 이게 맞지" - 산악회 방 첫 화면을 거치지 않음)
     $("backTop").addEventListener("click", function (e) {
         // 이 탭에 사무실이 연 방이 남아 있으면 지움(서버의 사무실 자리는 그대로 - 다시 "열기") - 산악회 방 첫 화면이 그 방을 다시 띄우지 않게(2026-11-02 홍TV님)
         // (RFParty.get · clear 는 party.html 에서만 탭 것을 보므로 여기서는 탭 저장소를 바로 지움 - 내가 참가한 방(localStorage)은 그대로)
