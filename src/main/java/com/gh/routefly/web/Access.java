@@ -156,7 +156,7 @@ final class Access {
         }
         b.append("</table>");
         // 경로 묶음 · 15분
-        b.append("<p class=\"dim\" style=\"margin:8px 0 4px\">경로: ").append(join(top(groups, 12))).append("</p>");
+        b.append("<p class=\"dim\" style=\"margin:8px 0 4px\">경로: ").append(ShareServlet.esc(join(top(groups, 12)))).append("</p>");   // 경로는 손님이 보낸 글 - 꺾쇠를 막음(2026-11-02 보안 점검)
         List<Map.Entry<Integer, Integer>> qs = new ArrayList<>();
         for (var e : quarters.entrySet()) qs.add(Map.entry(e.getKey(), e.getValue().values().stream().mapToInt(Integer::intValue).sum()));
         qs.sort((x, y) -> y.getValue() - x.getValue());
@@ -164,7 +164,7 @@ final class Access {
         for (var e : qs.subList(0, Math.min(8, qs.size()))) {
             String most = top(quarters.get(e.getKey()), 1).get(0).getKey();
             if (qb.length() > 0) qb.append(" · ");
-            qb.append(String.format("%02d:%02d", e.getKey() / 4, e.getKey() % 4 * 15)).append(" ").append(e.getValue()).append("(").append(most).append(")");
+            qb.append(String.format("%02d:%02d", e.getKey() / 4, e.getKey() % 4 * 15)).append(" ").append(e.getValue()).append("(").append(ShareServlet.esc(most)).append(")");
         }
         b.append("<p class=\"dim\" style=\"margin:0 0 8px\">15분별 많은 때: ").append(qb.length() == 0 ? "-" : qb).append("</p>");
         // 많이 연 곳

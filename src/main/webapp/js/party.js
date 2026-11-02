@@ -157,7 +157,8 @@
     function overText(s) {
         return "<span style=\"color:var(--red)\">" + T("하산 마감(" + when(s.endAt) + ")이 지났습니다", "Descent deadline (" + when(s.endAt) + ") has passed") + "</span>"
             + (s.closesAt ? " · " + T(when(s.closesAt) + "에 방이 저절로 끝나고 위치가 지워집니다", "the room closes and locations are deleted at " + when(s.closesAt)) : "")
-            + ((s.members || []).some(function (m) { return m.sos && !m.aboard && !m.cancelled; }) ? T(" (🆘 SOS 가 켜져 있어 하산 마감 24시간 뒤까지 남김)", " (🆘 SOS is on, so it stays until 24 hours after the deadline)") : "");
+            + (s.keptFor === "sos" ? T(" (🆘 SOS 가 켜져 있어 하산 마감 24시간 뒤까지 남김)", " (🆘 SOS is on, so it stays until 24 hours after the deadline)")
+                : s.keptFor === "notDown" ? T(" (⚠ 하산 확인이 안 된 회원이 있어 하산 마감 24시간 뒤까지 남김 - 모두 확인하면 6시간 뒤)", " (⚠ Some members aren't confirmed down, so it stays until 24 hours after the deadline - 6 hours once everyone is confirmed)") : "");   // 서버 keptFor(2026-11-02 홍TV님 점검)
     }
     /** 호차 - 차가 한 대면 빈 글(단풍철 여러 대 - 2026-10-20 홍TV님). */
     function busLabel(s, bus) { return s && s.buses > 1 ? T(bus + "호차 ", "Bus " + bus + " ") : ""; }
@@ -823,8 +824,8 @@
             + (pickCounts(s) ? " <small style=\"font-weight:normal;color:var(--dim)\">🚌 " + pickCounts(s) + "</small>" : "");   // 하산 탑승지마다 탄 사람
         if (document.activeElement && document.activeElement.classList && (document.activeElement.classList.contains("dropSel") || document.activeElement.classList.contains("pickSel"))) return;   // 하차 지점을 고르는 중 - 새로 그리면 닫힘
         $("list").innerHTML = rows.map(function (m) {
-            var cls = m.cancelled ? "aboard" : m.sos ? "sos" : m.aboard ? "aboard" : (s.departed && silent(m)) ? "old" : "";
-            var st = m.cancelled ? T("안 탐", "Not on bus") : m.sos ? "🆘 SOS" : m.aboard ? (m.apart ? T("🚶 따로 귀가", "🚶 Home separately") : T("🚌 하산 탑승", "🚌 Back on bus")) : m.role === "lead" ? (m.office ? T("🏢 사무실", "🏢 Office") : m.chief ? T("주 인솔자", "Leader") : T("보조 인솔자", "Assistant"))
+            var cls = m.sos ? "sos" : m.cancelled ? "aboard" : m.aboard ? "aboard" : (s.departed && silent(m)) ? "old" : "";   // SOS 가 먼저 - 안 탐 회원의 SOS 도(2026-11-02 점검)
+            var st = m.sos ? "🆘 SOS" + (m.cancelled ? T(" (안 탐)", " (not on bus)") : "") : m.cancelled ? T("안 탐", "Not on bus") : m.aboard ? (m.apart ? T("🚶 따로 귀가", "🚶 Home separately") : T("🚌 하산 탑승", "🚌 Back on bus")) : m.role === "lead" ? (m.office ? T("🏢 사무실", "🏢 Office") : m.chief ? T("주 인솔자", "Leader") : T("보조 인솔자", "Assistant"))
                 : s.departed ? T("🥾 산행 중", "🥾 Hiking") : m.boarded ? T("✅ 탐", "✅ On bus") : T("안 탐", "Not on bus");
             if (m.listed) st = T("📋 핸드폰 없음 · ", "📋 No phone · ") + st;   // 명단에만 - 인솔자가 눈으로 확인하고 눌러 체크(2026-10-24 홍TV님)
             if (m.role === "hiker" && !m.cancelled && s.departed)   // 하산 - 인솔자가 체크(핸드폰 없는 · 못 누른 회원, 따로 귀가는 2026-10-27)
@@ -848,7 +849,7 @@
                 + (m.stillMin != null && m.ago != null ? m.stillMin + T("분", " min") : "-") + "</td><td>" + (m.batt != null ? m.batt + "%" : "-") + "</td><td>" + st
                 + (s.role === "lead" && (m.role !== "lead" || (s.chief && !m.chief && !m.office)) ? " <button type=\"button\" class=\"kick\" data-kick=\"" + m.id + "\" title=\"" + T("방에서 내보내기", "Remove from room") + "\" aria-label=\"" + T(esc(m.nick) + " 내보내기", "Remove " + esc(m.nick)) + "\">✕</button>" : "") + "</td></tr>";
         }).join("") || "<tr><td colspan=\"6\">" + T("아직 참가한 회원이 없습니다. 참가 안내를 보내 주세요.", "No members have joined yet. Send the invite.") + "</td></tr>";
-        function rank(m) { return m.cancelled ? 6 : m.sos ? 0 : m.aboard ? 5 : (s.departed && silent(m)) ? 1 : (m.stillMin || 0) >= 15 ? 2 : 3; }
+        function rank(m) { return m.sos ? 0 : m.cancelled ? 6 : m.aboard ? 5 : (s.departed && silent(m)) ? 1 : (m.stillMin || 0) >= 15 ? 2 : 3; }
     }
 
     /** 인솔자 "지금 할 일" - 단계(출발 전 · 산행 중 · 하산)마다 할 일만(2026-10-28 홍TV님 추천 2). 사무실 자리는 안 보임. */
@@ -1049,7 +1050,7 @@
         for (var k = 1; k <= n; k++) {
             var at = seatPos(k, n), m = by[k], cls = "s", label = "";
             if (m) {
-                cls += m.cancelled ? " join" : m.sos ? " sos" : m.aboard ? " back" : m.boarded ? " board" : " join";   // join = 안 탐(2026-10-27 홍TV님 - 예약 · 인솔 · 참가 표시는 없앰, 출발 탑승이면 됨)
+                cls += m.sos ? " sos" : m.cancelled ? " join" : m.aboard ? " back" : m.boarded ? " board" : " join";   // join = 안 탐(2026-10-27 홍TV님 - 예약 · 인솔 · 참가 표시는 없앰, 출발 탑승이면 됨)
                 if (s.departed && !m.cancelled && !m.sos && !m.aboard && silent(m)) cls += " old";
                 label = "<small>" + esc(m.nick) + "</small>";
                 if (m.id === picked) cls += " pick";

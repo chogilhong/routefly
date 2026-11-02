@@ -286,6 +286,8 @@ public class PartyServlet extends HttpServlet {
         // 사무실 자리는 처음에 보기만(2026-11-02 홍TV님) - "✏️ 고치기 켜기" 뒤에만 고침. 고친 것은 인솔자 화면에 남음(Party.officeDid)
         if (m.office && OFFICE_EDIT.contains(path) && !p.officeEditing(m, now)) throw new SecurityException("사무실은 보기만 합니다. ✏️ 고치기 켜기를 먼저 누르세요.");
         if (m.office && "/aboard".equals(path)) throw new SecurityException("사무실 자리는 하산 탑승이 없습니다.");   // 하산 인원에 사무실이 들어가지 않게
+        // 출발 탑승 · 하차 답도 회원 자기 것이라 사무실 자리에는 없음(2026-11-02 보안 점검: 보기만 하는 자리가 보낼 수 있었음). SOS 는 Party.ping · loc 가 버림
+        if (m.office && ("/board".equals(path) || "/alight".equals(path))) throw new SecurityException("사무실 자리는 보기만 합니다.");
         JsonObject out;
         switch (path == null ? "" : path) {
             case "/loc" -> {
@@ -294,12 +296,16 @@ public class PartyServlet extends HttpServlet {
                         bool(in, "sos"), now);
                 out = p.view(m, now);
                 out.addProperty("locKept", kept);   // false - 출발 전이라 버림
+                out.addProperty("sosKept", !bool(in, "sos") || m.sos);   // false - 보낸 SOS 를 받지 않음(사무실 자리) - 화면이 알림(2026-11-02)
                 return out;
             }
             case "/view" -> { }
             case "/trail" -> { return p.trail(m, (int) lng(in, "id"), now); }
-            case "/ping" -> { p.via(m, bool(in, "app") || !in.has("sos")); p.ping(m, num(in, "batt") == null ? null : num(in, "batt").intValue(), in.has("sos") ? bool(in, "sos") : null, now);
-                if (!in.has("sos")) return ok(); }   // sos 가 없으면(앱 RfAlive) 그대로 - 앱으로 셈. 앱은 답을 읽지 않으니 방 전체 대신 ok 만(2026-10-28 속도 점검: 1시간 60번 × 14KB 버림)
+            case "/ping" -> { p.via(m, bool(in, "app") || !in.has("sos")); boolean sosKept = p.ping(m, num(in, "batt") == null ? null : num(in, "batt").intValue(), in.has("sos") ? bool(in, "sos") : null, now);
+                if (!in.has("sos")) return ok();
+                out = p.view(m, now);
+                out.addProperty("sosKept", sosKept);   // false - 보낸 SOS 를 받지 않음(사무실 자리, 2026-11-02)
+                return out; }   // sos 가 없으면(앱 RfAlive) 그대로 - 앱으로 셈. 앱은 답을 읽지 않으니 방 전체 대신 ok 만(2026-10-28 속도 점검: 1시간 60번 × 14KB 버림)
             case "/board" -> p.board(m);
             case "/aboard" -> p.aboard(m, on, bool(in, "apart"));   // apart - 따로 귀가
             case "/seat" -> { p.seat(m, integer(in, "id"), integer(in, "bus"), integer(in, "seat"), str(in, "stop")); p.officeDid(m, "seat", p.nickOf(m, integer(in, "id"), null, null), now); }

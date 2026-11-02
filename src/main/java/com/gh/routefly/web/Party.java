@@ -27,7 +27,8 @@ import com.google.gson.JsonParser;
  *
  * <ul>
  *   <li>방 정보(이름 · 시각 · 좌석 · 탑승지 · 별명 · 탑승 표시 · 열쇠)는 서버 파일(party.json, 600)에 - 산행 며칠 전에 만든 방이 배포 · 재시작에도 남게.
- *       위치(좌표 · 배터리 · SOS)는 메모리에만, 사람마다 마지막 하나. 방이 끝나면 파일에서도 지움.</li>
+ *       위치(좌표 · 배터리 · SOS)는 사람마다 마지막 하나 - 2026-11-02 홍TV님 점검부터 같은 파일에도 두어 배포 · 재시작 뒤에도 SOS · 마지막 위치가 이어짐(지나온 길은 메모리에만).
+ *       방이 끝나거나 나가면(그만 보내기) 파일에서도 지움.</li>
  *   <li>위치는 출발 3시간 전부터만 받음(그 전에는 보내도 버림). 인솔자만 회원 위치 · 배터리 · 그 자리에 머문 시간을 봄(회원은 자기 것과 인솔자만, 2026-10-24 · 10-28).</li>
  *   <li>위치정보법 확인자료: 참가 · 나감 · 취소 · 방 끝 · SOS 의 때만 "party" 기록에(좌표 · 별명 없음, 방 안 번호).</li>
  * </ul>
@@ -43,6 +44,15 @@ final class Party {
     static final long AFTER_END_MS = 6 * HOUR, NO_TIME_MS = 30 * HOUR, MAX_LIFE_MS = 40L * 24 * HOUR;
     /** SOS 를 켠 회원(하산 탑승 전)이 있으면 하산 마감 이만큼 뒤까지 방을 남김 - 조난자 위치를 인솔자가 계속 보게(2026-10-21 홍TV님 "조난자가 있으면 도움"). */
     static final long SOS_KEEP_MS = 24 * HOUR;
+    /**
+     * 산행을 시작한 방에 하산 확인이 안 된 회원(notDown)이 남아 있으면 SOS 처럼 하산 마감 이만큼 뒤까지 남김(2026-11-02 홍TV님 점검: 6시간에 저절로 끝나
+     * 아직 산에 있을지 모르는 회원의 마지막 위치가 사라졌음). 더 늘리지는 않음 - 인솔자 화면에 까닭을 보여 줌(about 의 keptFor).
+     */
+    static final long NOT_DOWN_KEEP_MS = 24 * HOUR;
+    /** 서버를 다시 켠 뒤 산행 중이던 방은 첫 요청부터 이만큼은 끝내지 않음(2026-11-02 점검: 꺼져 있던 사이 마감이 지난 방이 첫 요청에 바로 지워져 회원이 410 을 받았음). */
+    static final long RESTART_GRACE_MS = HOUR;
+    /** 위치만 바뀌었을 때 파일에 쓰는 간격(SOS 를 켜고 끄거나 위치를 지울 때는 바로). */
+    static final long LOC_SAVE_MS = 60_000;
     /** 하산 마감은 출발 뒤 이 안으로 - 지리산 · 설악산 1박 2일 ~ 3박 4일 종주(2026-10-21 홍TV님, 전엔 48시간). */
     static final long MAX_TRIP_MS = 5 * 24 * HOUR;
     /** 지나온 길(출발 뒤 산행 회원만, 메모리) - 이만큼 움직였을 때 한 점, 사람마다 TRACK_MAX 점까지(넘으면 하나 걸러 버림). 인솔자는 최근 TRAIL_MS 만 봄(조난 대비). */
@@ -101,12 +111,13 @@ final class Party {
         long officeEditUntil;
         /** 마지막으로 앱에서 보냈나(2026-10-28 홍TV님 "크롬 안에 있는 웹도 보내나?") - 웹은 화면을 끄면 멈추므로 "10분 소식 없음" 경고는 앱 회원만. */
         boolean app;
-        // ---- 메모리에만(파일에 안 씀)
+        // ---- 마지막 소식(2026-11-02 홍TV님 점검부터 파일에도 - 재시작 뒤 SOS · 마지막 위치가 이어지게, snapshot · load)
         Double lat, lon, acc;
         Integer batt;
         long t;                // 마지막 위치 받은 때(0 = 아직)
         long seen;             // 마지막으로 폰이 살아 있다고 알린 때(위치 · ping - 위치를 못 잡아도, 2026-10-20 PC: 화면 끈 실내)
         boolean sos;
+        // ---- 메모리에만(파일에 안 씀)
         /** 인솔자에게 한 줄(2026-10-27 홍TV님 - 공지의 반대 방향) - 메모리에만, 방이 끝나면 사라짐. */
         String msg;
         /** 출발 뒤 명단 이름으로 핸드폰이 들어온 때(2026-10-28 보안 점검) - 회원 한 줄(msg)과 따로 두어 회원이 덮어쓰지 못하게. 메모리. */
@@ -222,18 +233,28 @@ final class Party {
             return endAt > 0 ? endAt : departAt > 0 ? departAt + 24 * HOUR : created + NO_TIME_MS - AFTER_END_MS;
         }
 
-        /** 방이 저절로 끝나는 때 - 하산 마감 6시간 뒤, SOS 가 켜져 있으면 24시간 뒤. */
+        /** 방이 저절로 끝나는 때 - 하산 마감 6시간 뒤, SOS 가 켜져 있거나 하산 확인이 안 된 회원이 있으면 24시간 뒤(keptFor). */
         long closesAt() {
-            return Math.max(endBase(), homeAt(this)) + (sosOn() ? SOS_KEEP_MS : AFTER_END_MS);   // 도착 예정이 더 늦으면 그 뒤로
+            String k = keptFor();
+            return Math.max(endBase(), homeAt(this)) + ("sos".equals(k) ? SOS_KEEP_MS : k != null ? NOT_DOWN_KEEP_MS : AFTER_END_MS);   // 도착 예정이 더 늦으면 그 뒤로
         }
 
+        /** 방을 6시간보다 오래 남기는 까닭 - "sos" · "notDown"(산행 시작 뒤 하산 미확인 회원, 2026-11-02), 없으면 null. */
+        String keptFor() {
+            return sosOn() ? "sos" : departed && !notDown(this).isEmpty() ? "notDown" : null;
+        }
+
+        /** SOS 를 켠 사람이 있나 - 안 탐 · 하산 탑승이었던 회원이 다시 켠 SOS 도(2026-11-02 홍TV님 점검), 사무실 자리는 SOS 를 올리지 않음. */
         boolean sosOn() {
-            for (Member m : members.values()) if (m.sos && !m.aboard && !m.cancelled) return true;
+            for (Member m : members.values()) if (m.sos && !m.office) return true;
             return false;
         }
 
+        /** 서버를 다시 켠 뒤 이때까지는 끝내지 않음(RESTART_GRACE_MS, 메모리). */
+        long graceUntil;
+
         boolean expired(long now) {
-            return now > closesAt() || now - created > MAX_LIFE_MS;
+            return now > Math.max(closesAt(), graceUntil) || now - created > MAX_LIFE_MS;
         }
 
         /** 산행 회원(취소 빼고). */
@@ -286,19 +307,38 @@ final class Party {
 
     /** 바뀐 것이 있으면 지금 파일로(모아 쓰기 · 내려갈 때). */
     void flush() {
-        String text;
+        Snap snap;
         synchronized (this) {
             if (!dirty) return;
             dirty = false;
-            text = snapshot();
+            snap = snap();
         }
-        write(text);
+        write(snap);
     }
 
-    /** 웹앱이 내려갈 때 - 남은 것을 쓰고 멈춤(DbShutdown). */
+    /** 웹앱이 내려갈 때 - 쓰던 것이 끝나기를 잠깐 기다린 뒤 남은 것을 쓰고 멈춤(DbShutdown). 늦게 끝난 옛 글이 새 글을 덮지 않는 것은 Snap 번호가 지킴. */
     void shutdown() {
-        if (saver != null) saver.shutdownNow();
+        if (saver != null) {
+            saver.shutdown();
+            try { saver.awaitTermination(2, java.util.concurrent.TimeUnit.SECONDS); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+        }
         flush();
+    }
+
+    /**
+     * 파일에 쓸 글과 그 차례 번호(2026-11-02 점검: 모아 쓰기 · 내려갈 때 쓰기가 겹치면 먼저 만든 옛 글이 나중에 쓰여 새 글을 덮을 수 있었음).
+     * 번호는 자물쇠 안에서 매기고, 쓸 때 이미 더 새 번호를 썼으면 건너뜀.
+     */
+    static final class Snap {
+        final long seq;
+        final String text;
+        Snap(long seq, String text) { this.seq = seq; this.text = text; }
+    }
+
+    private long snapSeq, writtenSeq;
+
+    synchronized Snap snap() {
+        return new Snap(++snapSeq, snapshot());
     }
 
     /** 방 둘러보기(끝난 방 정리)는 이 간격에 한 번(요청마다 모든 방을 훑었음, 2026-10-22 점검). 자기 방이 끝났는지는 who · room 이 바로 봄. */
@@ -926,26 +966,26 @@ final class Party {
 
     // ---------------------------------------------------------------- 산행 중
 
-    /** 위치 - 출발 전이면 버림(false). 취소된 사람은 받지 않음. */
+    /** 위치 - 출발 전이면 버림(false). 취소된 사람은 받지 않음(SOS 는 받음). */
     synchronized boolean loc(Member m, Double lat, Double lon, Double acc, Integer batt, boolean sos, long now) {
         if (!okPos(lat, lon)) throw new IllegalArgumentException("위치가 올바르지 않습니다.");
-        if (m.cancelled) throw new IllegalArgumentException("출발 때 탑승하지 않아 이 산행에서 빠졌습니다. 인솔자에게 연락해 주세요.");
-        if (m.office) return false;   // 회사 사무실 자리는 위치를 받지 않음
-        if (m.aboard) { m.sos = false; return false; }   // 하산 탑승 뒤 - 위치 받지 않음
-        if (!started(m, now)) {
-            // 출발 전 SOS(2026-11-01 홍TV님 - 버스 · 집결지에서 누른 SOS 도 인솔자에게): 본인이 누른 동안만 그 위치를 받고, 끄면 바로 지움.
-            // SOS 가 아니면 예전대로 버림(집 위치가 인솔자에게 가지 않게 - 2026-10-27)
-            if (!sos) {
-                if (m.sos) { m.lat = null; m.lon = null; m.acc = null; m.t = 0; }
-                m.sos = false;
-                return false;
-            }
-            if (!m.sos) logSos(m, now, "sos");
+        if (m.office) return false;   // 회사 사무실 자리는 위치 · SOS 를 받지 않음
+        boolean was = m.sos;
+        // SOS 는 출발 전(2026-11-01 홍TV님 - 버스 · 집결지) · 안 탐 · 하산 탑승 · 따로 귀가여도 받음(2026-11-02 홍TV님 점검: 그 회원의 SOS 가 소리 없이 버려졌음).
+        // 본인이 누른 동안만 그 위치를 받고, 끄면 바로 지움
+        if (sos && (m.cancelled || m.aboard || !started(m, now))) {
+            sosOn(m, now, "sos");
+            if (m.t == 0 || MountainServlet.distM(m.anchorLat, m.anchorLon, lat, lon) > STILL_M) { m.anchorLat = lat; m.anchorLon = lon; m.stillSince = now; }
             m.lat = lat; m.lon = lon; m.acc = acc; m.t = now; m.seen = now;
             if (batt != null) m.batt = Math.max(0, Math.min(100, batt));
-            m.sos = true;
-            m.room.sosEver = true;
+            saveLoc(!was, now);
             return true;
+        }
+        // 여기부터 SOS 가 아님 - 안 탐 · 하산 탑승 · 출발 전은 위치를 받지 않음(SOS 때 받은 위치는 지움, 집 위치가 인솔자에게 가지 않게 - 2026-10-27)
+        if (m.cancelled || m.aboard || !started(m, now)) {
+            sosOff(m, now);
+            if (m.cancelled && !was) throw new IllegalArgumentException("출발 때 탑승하지 않아 이 산행에서 빠졌습니다. 인솔자에게 연락해 주세요.");
+            return false;
         }
         if (m.t == 0 || MountainServlet.distM(m.anchorLat, m.anchorLon, lat, lon) > STILL_M) {
             m.anchorLat = lat; m.anchorLon = lon; m.stillSince = now;
@@ -968,8 +1008,35 @@ final class Party {
         if (sos && !m.sos) logSos(m, now, "sos");
         m.sos = sos;
         if (sos) m.room.sosEver = true;
+        saveLoc(sos != was, now);
         return true;
     }
+
+    /** SOS 켬 - 하산 탑승 · 따로 귀가로 표시된 회원이면 그 표시를 풂(하산이 끝난 게 아니므로 하산 미확인으로, 2026-11-02 홍TV님 점검). */
+    private void sosOn(Member m, long now, String what) {
+        if (!m.sos) logSos(m, now, what);
+        m.aboard = false;
+        m.apart = false;
+        m.sos = true;
+        m.room.sosEver = true;
+    }
+
+    /** 위치를 받지 않는 회원(출발 전 · 안 탐 · 하산 탑승)의 SOS 끄기 - SOS 때 받은 위치도 바로 지움. */
+    private void sosOff(Member m, long now) {
+        if (!m.sos) return;
+        m.sos = false;
+        m.lat = null; m.lon = null; m.acc = null; m.t = 0;
+        saveLoc(true, now);
+    }
+
+    /** 마지막 위치 · SOS 를 파일에(재시작 대비, 2026-11-02 홍TV님 점검) - SOS 를 켜고 끄거나 위치를 지울 때는 바로, 위치만 바뀌면 LOC_SAVE_MS 에 한 번. */
+    private void saveLoc(boolean now0, long now) {
+        if (!now0 && now >= locSavedAt && now - locSavedAt < LOC_SAVE_MS) return;
+        locSavedAt = now;
+        save();
+    }
+
+    private long locSavedAt = Long.MIN_VALUE / 4;
 
     /**
      * 위치 없이 "폰은 켜져 있음" · 배터리 · SOS(2026-10-20 PC: 화면을 끈 실내 · 골짜기에서 GPS 를 못 잡으면 인솔자에게 소식이 끊긴 것처럼 보였고,
@@ -981,23 +1048,31 @@ final class Party {
         m.app = app;
     }
 
-    synchronized void ping(Member m, Integer batt, Boolean sos, long now) {
-        if (m.cancelled || m.aboard) return;
-        if (!started(m, now)) {   // 출발 전 - SOS 켜고 끄기만(2026-11-01 홍TV님), 끄면 SOS 때 받은 위치도 지움
-            if (sos == null || !sos && !m.sos) return;
+    /** 돌려줌: 보낸 SOS 를 받았나(false - 사무실 자리의 SOS, 화면이 알림). */
+    synchronized boolean ping(Member m, Integer batt, Boolean sos, long now) {
+        // 사무실 자리는 SOS 를 올리지 않음(2026-11-02 보안 점검: 보기만 하는 자리가 가짜 SOS 로 인솔자를 부르고 방 끝내기를 막을 수 있었음)
+        if (m.office) return !Boolean.TRUE.equals(sos);
+        boolean was = m.sos;
+        if (Boolean.TRUE.equals(sos) && (m.cancelled || m.aboard || !started(m, now))) {   // 출발 전 · 안 탐 · 하산 탑승도 SOS 는 받음(loc 와 같음)
             m.seen = now;
-            if (sos && !m.sos) logSos(m, now, "sos noloc");
-            if (!sos) { m.lat = null; m.lon = null; m.acc = null; m.t = 0; }
-            m.sos = sos;
-            if (sos) m.room.sosEver = true;
-            return;
+            if (batt != null) m.batt = Math.max(0, Math.min(100, batt));
+            sosOn(m, now, "sos noloc");
+            saveLoc(!was, now);
+            return true;
+        }
+        if (m.cancelled || m.aboard || !started(m, now)) {   // SOS 끄기만 - 끄면 SOS 때 받은 위치도 지움
+            if (Boolean.FALSE.equals(sos) && was) { m.seen = now; sosOff(m, now); }
+            return true;
         }
         m.seen = now;
         if (batt != null) m.batt = Math.max(0, Math.min(100, batt));
-        if (sos == null) return;
-        if (sos && !m.sos) logSos(m, now, "sos noloc");
-        m.sos = sos;
-        if (sos) m.room.sosEver = true;
+        if (sos != null) {
+            if (sos && !m.sos) logSos(m, now, "sos noloc");
+            m.sos = sos;
+            if (sos) m.room.sosEver = true;
+        }
+        saveLoc(m.sos != was, now);
+        return true;
     }
 
     /** 이미 참가한 폰으로 버스 안 QR · NFC 를 찍음 - 출발 탑승(2026-10-27 홍TV님 - "버스 탔어요" 단추 대신). 출발 뒤 · 취소된 사람은 그대로(인솔자가 되돌림). */
@@ -1296,7 +1371,7 @@ final class Party {
                 last = Math.max(last, Math.max(m.t, m.seen));
                 if (r.departed && m.app && !m.aboard && !m.listed && now - Math.max(Math.max(m.t, m.seen), r.departedAt) > 10 * 60_000L) silent++;   // 앱 회원만(웹은 화면을 끄면 멈춤)
             }
-            x.addProperty("sos", (int) r.members.values().stream().filter(m -> m.sos && !m.aboard && !m.cancelled).count());
+            x.addProperty("sos", (int) r.members.values().stream().filter(m -> m.sos && !m.office).count());   // 안 탐 회원의 SOS 도(2026-11-02 점검 - Room.sosOn 과 같게)
             x.addProperty("silent", silent);   // 출발 뒤 10분 넘게 소식 없는 회원
             if (last > 0) x.addProperty("lastAgo", (now - last) / 1000);
             Member c = r.chief();
@@ -1627,7 +1702,14 @@ final class Party {
         sweep(now, false);
     }
 
+    /** 파일에서 방을 읽은 뒤 아직 요청이 없음 - 첫 요청 때 산행 중인 방에 RESTART_GRACE_MS 를 줌(그때의 시각으로). */
+    private boolean freshLoad;
+
     synchronized void sweep(long now, boolean force) {
+        if (freshLoad) {
+            freshLoad = false;
+            for (Room r : rooms.values()) if (r.departed || r.sosOn()) r.graceUntil = now + RESTART_GRACE_MS;
+        }
         if (!force && now >= lastSweep && now - lastSweep < SWEEP_MS) return;
         lastSweep = now;
         boolean changed = false;
@@ -1649,12 +1731,12 @@ final class Party {
         return rooms.size();
     }
 
-    // ---------------------------------------------------------------- 파일(방 정보만 - 위치 없음)
+    // ---------------------------------------------------------------- 파일(방 정보 · 사람마다 마지막 소식 - 지나온 길은 없음)
 
     private void save() {
         if (file == null) return;
         if (lazy) { dirty = true; return; }
-        write(snapshot());
+        write(snap());
     }
 
     /** 파일에 쓸 글(자물쇠 안에서). */
@@ -1684,6 +1766,14 @@ final class Party {
                 if (m.pickup != null) x.addProperty("pickup", m.pickup);
                 if (m.dropHow != null) x.addProperty("dropHow", m.dropHow);
                 if (m.dropPlan != null) x.addProperty("dropPlan", m.dropPlan);
+                // 마지막 소식 - 재시작 뒤에도 SOS · 마지막 위치 · 배터리가 인솔자에게 이어지게(2026-11-02 홍TV님 점검). 지나온 길은 넣지 않음
+                if (m.sos) x.addProperty("sos", true);
+                if (m.t > 0 && m.lat != null) {
+                    x.addProperty("lat", m.lat); x.addProperty("lon", m.lon); if (m.acc != null) x.addProperty("acc", m.acc);
+                    x.addProperty("t", m.t); x.addProperty("still", m.stillSince);
+                }
+                if (m.seen > 0) x.addProperty("seen", m.seen);
+                if (m.batt != null) x.addProperty("batt", m.batt);
                 ms.add(x);
             }
             o.add("members", ms);
@@ -1694,9 +1784,13 @@ final class Party {
 
     private final Object fileLock = new Object();
 
-    private void write(String text) {
+    void write(Snap s) {
         if (file == null) return;
-        synchronized (fileLock) { writeLocked(text); }
+        synchronized (fileLock) {
+            if (s.seq <= writtenSeq) return;   // 더 새 글을 이미 씀
+            writtenSeq = s.seq;
+            writeLocked(s.text);
+        }
     }
 
     private void writeLocked(String text) {
@@ -1762,6 +1856,13 @@ final class Party {
                     m.bus = x.has("bus") ? x.get("bus").getAsInt() : 1;
                     m.stop = str(x, "stop"); m.boarded = boolOf(x, "boarded"); m.aboard = boolOf(x, "aboard"); m.apart = boolOf(x, "apart"); m.cancelled = boolOf(x, "cancelled");
                     m.rostered = boolOf(x, "rostered"); m.listed = boolOf(x, "listed"); m.office = boolOf(x, "office"); m.app = boolOf(x, "app"); m.drop = str(x, "drop"); m.dropHow = str(x, "dropHow"); m.dropPlan = str(x, "dropPlan"); m.pickup = str(x, "pickup");
+                    m.sos = boolOf(x, "sos") && !m.office;   // 마지막 소식(2026-11-02 - 그 전 파일에는 없음)
+                    if (num(x, "lat") != null && num(x, "lon") != null && lng(x, "t") > 0) {
+                        m.lat = num(x, "lat"); m.lon = num(x, "lon"); m.acc = num(x, "acc"); m.t = lng(x, "t");
+                        m.anchorLat = m.lat; m.anchorLon = m.lon; m.stillSince = x.has("still") ? lng(x, "still") : m.t;
+                    }
+                    m.seen = lng(x, "seen");
+                    if (num(x, "batt") != null) m.batt = num(x, "batt").intValue();
                     ms.add(m);
                     r.nextId = Math.max(r.nextId, m.id + 1);
                 }
@@ -1776,6 +1877,7 @@ final class Party {
         boolean filled = false;
         for (Room r : rooms.values()) if (r.leadCode == null) { r.leadCode = newCode(LEAD_CODE_LEN); filled = true; }   // 코드 전에 만든 방(10-21)
         if (filled) save();   // 다시 켤 때 다른 코드가 되지 않게
+        freshLoad = !rooms.isEmpty();
         log.info("[PARTY] 방 {}개 읽음{}", rooms.size(), bad > 0 ? " (" + bad + "개 건너뜀 - party.json.bad-* 에 옛 파일)" : "");
     }
 
@@ -1832,6 +1934,7 @@ final class Party {
         o.addProperty("departAt", r.departAt);
         o.addProperty("endAt", r.endAt);
         o.addProperty("closesAt", r.closesAt());   // 방이 저절로 끝나는 때(하산 마감 6시간 뒤 - 2026-10-21 홍TV님: 마감이 지난 방에 "출발까지 9시간 지남"만 보였음)
+        if (r.keptFor() != null) o.addProperty("keptFor", r.keptFor());   // 24시간까지 남기는 까닭 - sos · notDown(하산 미확인, 2026-11-02) - 인솔자 화면에
         o.addProperty("hikers", r.hikers());
         if (r.leaderName != null) o.addProperty("leaderName", r.leaderName);
         if (r.leaderPhone != null && me != null) o.addProperty("leaderPhone", r.leaderPhone);   // 참가한 사람에게만(방 코드만 아는 사람에게 연락처가 안 보이게 - 점검, 참가 안내 글에는 그대로)

@@ -13,7 +13,7 @@ import com.google.gson.JsonParser;
 
 /**
  * 산악회 방(2026-10-20 홍TV님) - 산행 전에 방 만들기 → 참가(좌석 · 탑승지) → 출발 때 버스 탔어요 · 안 탄 사람 취소 → 산행 중 서로 위치 · SOS
- * → 하산 탑승 → 끝. 방 정보는 파일로 남고(재시작) 위치는 메모리에만.
+ * → 하산 탑승 → 끝. 방 정보와 사람마다 마지막 위치 · SOS 는 파일로 남고(재시작, 2026-11-02 - 지나온 길은 메모리에만).
  */
 public class PartyTest {
 
@@ -185,7 +185,7 @@ public class PartyTest {
         call(p, "/board", "{\"token\":\"" + a + "\",\"on\":true}", DEPART - H);
         call(p, "/loc", "{\"token\":\"" + a + "\",\"lat\":38.12,\"lon\":128.47}", DEPART - H);
         String text = Files.readString(f);
-        assertFalse("좌표는 파일에 없음", text.contains("38.12"));
+        assertTrue("마지막 위치는 파일에도(2026-11-02 홍TV님 점검 - 재시작 뒤 이어짐, 600 파일)", text.contains("38.12"));
         try { assertEquals("rw-------", java.nio.file.attribute.PosixFilePermissions.toString(Files.getPosixFilePermissions(f))); } catch (UnsupportedOperationException e) { /* 윈도 */ }
 
         Party again = new Party(f);   // 재시작
@@ -193,7 +193,7 @@ public class PartyTest {
         JsonObject m = member(v, "철수");
         assertEquals(21, m.get("seat").getAsInt());
         assertTrue(m.get("boarded").getAsBoolean());
-        assertFalse("위치는 메모리에만 - 재시작하면 없음", m.has("lat"));
+        assertEquals("재시작해도 마지막 위치가 이어짐(2026-11-02)", 38.12, m.get("lat").getAsDouble(), 1e-9);
         assertEquals("설악산 공룡능선 b", v.get("name").getAsString());
         call(again, "/end", tok(lead), END);
         JsonArray left = JsonParser.parseString(Files.readString(f)).getAsJsonArray();

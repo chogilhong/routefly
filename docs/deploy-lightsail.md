@@ -939,8 +939,8 @@ party.html(+ /api/party) - 인솔자가 방을 만들고 회원 · 운전자가 
 war 에는 늘 들어 있지만 설정을 켜기 전에는 "준비 중" 화면만 나오고 API 는 404 입니다.
 
 - 켜기(신고 수리 뒤): `/opt/routefly/config.properties` 에 `party.enabled=true` 한 줄(이미 있는지 `sudo grep -c '^party.enabled=' …` 가 0 인지 먼저) → `sudo systemctl restart tomcat`
-- 끄기: 그 줄을 지우거나 false → restart. 방 · 위치는 메모리에만 있어 재시작하면 모두 지워짐
-- 방 정보 파일(2026-10-20 - 산행 며칠 전에 만든 방이 배포 · 재시작에도 남게): `party.dir`(없으면 `stats.dir` = /opt/routefly/stats)/party.json, 600.
+- 끄기: 그 줄을 지우거나 false → restart. 지나온 길은 메모리에만 있어 재시작하면 지워짐(방 정보 · 사람마다 마지막 위치 · SOS 는 party.json 에 남음 - 2026-11-02)
+- 방 정보 파일(2026-10-20 - 산행 며칠 전에 만든 방이 배포 · 재시작에도 남게): `party.dir`(없으면 `stats.dir` = /opt/routefly/stats)/party.json, 600. 2026-11-02 부터 사람마다 마지막 위치 · 배터리 · SOS 도 들어 있음(재시작 뒤 SOS 가 이어지게) - 밖으로 옮기지 않음.
 - 회사 사무실 파일(2026-10-28): 같은 폴더의 office.json(600) - 회사 이름 · 회사 코드 · 사무실 열쇠(비밀 링크)와 끝난 산행 숫자 요약(200일, 이름 · 위치 없음). 백업 대상, 열쇠가 들어 있으니 밖으로 옮기지 않음.
   별명 · 좌석 · 탑승지 · 탑승 표시 · 열쇠만(좌표 없음). 방이 끝나면 그 방을 지움. 백업 · 스냅샷에도 들어가니 서버 밖으로 옮기지 않음
 - 확인자료(위치정보 이용 · 제공 사실): `/opt/tomcat/logs/party.log`(달마다 party-YYYY-MM.log.gz, 200일 뒤 지움) - 참가 · 나감 · 방 끝 · SOS, 좌표 · 별명 없음
