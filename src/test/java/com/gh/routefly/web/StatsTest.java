@@ -121,7 +121,7 @@ public class StatsTest {
         String h = StatsServlet.page(days, 30, null);
         assertTrue("날마다 표 - 모바일 · PC 칸", h.contains("<tr><td>2026-10-20</td><td class=\"num\">5</td><td class=\"num\">3</td><td class=\"num\">2</td><td class=\"num\">12</td><td class=\"num\">1</td></tr>"));
         assertTrue("세기 전 날은 -", h.contains("<tr><td>2026-10-19</td><td class=\"num\">4</td><td class=\"num\">-</td><td class=\"num\">-</td>"));
-        assertTrue("화면 이름 칸", h.contains("<td>/hike.html</td><td>따라가기</td><td class=\"num\">14</td>"));
+        assertTrue("화면 이름 칸(이름 아래 주소 - 2026-11-02 화면별 그래프)", h.contains("<td>따라가기<br><small class=\"dim\">/hike.html</small></td><td class=\"num\">14</td>"));
         assertTrue(h.contains("<td>모바일</td><td class=\"num\">3</td>"));
     }
 
@@ -240,5 +240,23 @@ public class StatsTest {
         assertTrue("날마다 위", pg.indexOf("사람 확인") > 0 && pg.indexOf("사람 확인") < pg.indexOf("<h2>날마다"));
         assertFalse("늘 펼침", pg.contains("<summary><h2>사람 확인"));
         assertTrue("접는 칸은 하나만 펴지게", pg.contains("<details class=\"fold\" name=\"st\">") && pg.contains("<details name=\"st\">"));
+    }
+
+    /** 화면별 그래프(2026-11-02 홍TV님) - 막대 · 날마다 작은 선, 빈 날은 0, 이름 칸. */
+    @Test
+    public void pageChartHasBarsAndSparklines() {
+        TreeMap<String, JsonObject> days = new TreeMap<>();
+        days.put("2026-10-20", JsonParser.parseString("{\"pages\":{\"/hike.html\":4,\"/m/\":2},\"uniq\":2,\"bots\":0}").getAsJsonObject());
+        days.put("2026-10-22", JsonParser.parseString("{\"pages\":{\"/hike.html\":8,\"/m/가야산\":1},\"uniq\":3,\"bots\":0}").getAsJsonObject());
+        String h = StatsServlet.pageChart(days, 30, java.util.Map.of("/hike.html", 12, "/m/", 2), 20);
+        assertTrue(h.startsWith("<section><h2>화면별(3일)</h2>"));
+        assertTrue("이름 · 주소", h.contains("따라가기<br><small class=\"dim\">/hike.html</small>"));
+        assertTrue("1등 막대 100%", h.contains("width:100.0%"));
+        assertTrue("2/12 막대", h.contains("width:16.7%"));
+        assertTrue("빈 날(10-21)은 0", h.contains("<title>2026-10-21 · 0</title>"));
+        assertTrue(h.contains("<title>2026-10-22 · 8</title>"));
+        assertEquals("화면 두 줄에 선 두 개", 2, h.split("class=\"spk\"", -1).length - 1);
+        assertTrue(StatsServlet.pageChart(new TreeMap<>(), 30, java.util.Map.of(), 20).contains("아직 없음"));
+        assertTrue("통계 화면에 들어감", StatsServlet.page(days, 30, java.util.Map.of()).contains("class=\"st pgc\""));
     }
 }

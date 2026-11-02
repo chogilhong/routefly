@@ -173,6 +173,7 @@ public class StatsServlet extends HttpServlet {
                 // 칸마다 접고 펴기(2026-10-21 홍TV님) - 제목 줄을 누름, ▾ · ▸
                 + "details.fold>summary{list-style:none;cursor:pointer}details.fold>summary::-webkit-details-marker{display:none}"
                 + "details.fold>summary h2{display:inline;margin:0}details.fold>summary::before{content:'▶';display:inline-block;width:16px;color:var(--sky);font-size:11px}details.fold[open]>summary::before{content:'▼'}"
+                + ".pgc td{vertical-align:middle}.pgc td.bar{width:28%;min-width:60px}.pgc td.bar i{display:block;height:10px;border-radius:5px;background:#38d9ea;opacity:.75}.pgc .spk{display:block}"
                 + "details.fold[open]>summary{margin-bottom:6px}.statLogo{display:flex;align-items:center;gap:10px;margin:0 0 4px}.statLogo img{height:34px;width:auto}"
                 + ".statBack{display:inline-block;margin:0 0 8px;padding:8px 14px;border:1px solid var(--sky);border-radius:10px;color:var(--sky);text-decoration:none;font-size:14px}"
                 // 앱(웹뷰)은 주소창이 없어 뒤로 가기를 누르면 앱이 닫혔음(2026-10-30 홍TV님 "뒤로 가기 버튼 달아줘") - 통계는 "안내" 에서 들어오므로 그리로
@@ -183,12 +184,12 @@ public class StatsServlet extends HttpServlet {
         out.append(checkTable(days, last));   // 날마다 위 · 늘 펼침(2026-10-22 홍TV님)
         out.append(Access.section(System.currentTimeMillis()));   // 오늘 접속 분석 - 사람 확인 아래(2026-10-29 홍TV님)
         out.append("<section><h2>날마다</h2><table class=\"st\"><tr><th>날짜</th><th class=\"num\">방문자</th><th class=\"num\">모바일</th><th class=\"num\">PC</th><th class=\"num\">화면</th><th class=\"num\">로봇</th></tr>").append(rows).append("</table></section>");
-        out.append(top("모바일 · PC 방문자(" + last.size() + "일 - 10-20 부터 셈)", devs, 5, null))
-                .append(top("인기 산 페이지(" + last.size() + "일)", mountains, 20, null))
-                .append(top("인기 산 페이지 - 영어(" + last.size() + "일 - /en/m/, 외국 손님)", enMountains, 20, null))
+        out.append(top("모바일 · PC 방문자(" + last.size() + "일 - 10-20 부터 셈)", devs, 5))
+                .append(top("인기 산 페이지(" + last.size() + "일)", mountains, 20))
+                .append(top("인기 산 페이지 - 영어(" + last.size() + "일 - /en/m/, 외국 손님)", enMountains, 20))
                 .append(courseTable(courses, courseNames == null ? Map.of() : courseNames, last.size()))
-                .append(top("화면별(" + last.size() + "일)", pages, 20, StatsServlet::pageName))
-                .append(top("들어온 곳(" + last.size() + "일 - 바깥에서 처음 들어온 화면 수)", refs, 20, null))
+                .append(pageChart(days, n, pages, 20))
+                .append(top("들어온 곳(" + last.size() + "일 - 바깥에서 처음 들어온 화면 수)", refs, 20))
                 .append(botTable(bots, engines))
                 .append(GUIDE);
         out.append("<p class=\"dim\">숫자만 셉니다 - 방문자는 그 날만 쓰는 해시로 겹침만 걸러 내고 IP 는 남기지 않습니다. 이 화면을 연 기기(브라우저)는 운영자로 보고 방문 수에서 뺍니다(2년, 사이트 데이터를 지우면 다시 셈). 앱은 안내 화면 \"안내\" 제목을 7번 누르고 열쇠를 넣으면 빠집니다.</p></main><script src=\"" + AssetVersion.of("js/stats.js") + "\"></script></body></html>");
@@ -418,6 +419,61 @@ public class StatsServlet extends HttpServlet {
         return s.append("</svg></figure>").toString();
     }
 
+    /**
+     * 화면별 그래프(2026-11-02 홍TV님 "통계 화면에서 화면별 그래프도 만들어줘") - 화면별 표 상위 n 줄에 막대(기간 합의 비율)와
+     * 날마다 작은 선(그 화면만의 눈금, 빈 날 0 · 방문 추세와 같은 날짜 범위)을 붙임. 산 · 영어 산 소개는 위 표가 따로 있어 뺌(pages 그대로).
+     */
+    static String pageChart(Map<String, JsonObject> days, int n, Map<String, Integer> pages, int limit) {
+        java.util.TreeMap<String, JsonObject> sorted = new java.util.TreeMap<>(days);
+        List<String> dates = new ArrayList<>();
+        if (!sorted.isEmpty()) {
+            java.time.LocalDate first = java.time.LocalDate.parse(sorted.firstKey()), end = java.time.LocalDate.parse(sorted.lastKey());
+            if (first.isBefore(end.minusDays(n - 1))) first = end.minusDays(n - 1);
+            for (java.time.LocalDate d = first; !d.isAfter(end); d = d.plusDays(1)) dates.add(d.toString());
+        }
+        boolean live = !dates.isEmpty() && dates.get(dates.size() - 1).equals(java.time.LocalDate.now(WeatherServlet.KST).toString());
+        StringBuilder b = new StringBuilder("<section><h2>화면별(" + dates.size() + "일)</h2>");
+        if (pages.isEmpty()) return b.append("<table class=\"st\"><tr><td>아직 없음</td></tr></table></section>").toString();
+        List<Map.Entry<String, Integer>> rows = pages.entrySet().stream().sorted((x, y) -> y.getValue() - x.getValue()).limit(limit).toList();
+        int max = rows.get(0).getValue();
+        b.append("<table class=\"st pgc\"><tr><th>화면</th><th class=\"num\">수</th><th>비율</th><th>날마다</th></tr>");
+        for (Map.Entry<String, Integer> e : rows) {
+            List<Integer> v = new ArrayList<>();
+            for (String d : dates) {
+                JsonObject o = days.get(d);
+                v.add(o != null && o.has("pages") && o.getAsJsonObject("pages").has(e.getKey()) ? o.getAsJsonObject("pages").get(e.getKey()).getAsInt() : 0);
+            }
+            String name = pageName(e.getKey());
+            b.append("<tr><td>").append(ShareServlet.esc(name.isEmpty() ? e.getKey() : name)).append("<br><small class=\"dim\">").append(ShareServlet.esc(e.getKey())).append("</small></td>")
+                    .append("<td class=\"num\">").append(n(e.getValue())).append("</td>")
+                    .append(String.format(Locale.ROOT, "<td class=\"bar\"><i style=\"width:%.1f%%\"></i></td>", Math.max(1.0, 100.0 * e.getValue() / max)))
+                    .append("<td>").append(spark(name.isEmpty() ? e.getKey() : name, dates, v, live)).append("</td></tr>");
+        }
+        return b.append("</table><p class=\"dim\">막대는 1등 화면과 견준 크기, 작은 선은 그 화면의 날마다 수(화면마다 눈금이 다름 - 모양만 봄). 선에 손을 대면 날짜 · 수.")
+                .append(live ? " 마지막 점이 빈 동그라미면 오늘 - 아직 세는 중." : "").append("</p></section>").toString();
+    }
+
+    /** 순수 함수 - 작은 선 그림(120×28 SVG). 날마다 손 대는 칸(title). live - 마지막 날은 세는 중(빈 동그라미). */
+    static String spark(String name, List<String> dates, List<Integer> v, boolean live) {
+        int w = 120, h = 28, k = v.size(), top = 1;
+        if (k == 0) return "";
+        for (int x : v) top = Math.max(top, x);
+        double pad = 3, pw = w - 2 * pad, ph = h - 2 * pad, colW = k == 1 ? pw : pw / (k - 1);
+        final int tp = top;
+        java.util.function.IntFunction<Double> X = i -> k == 1 ? w / 2.0 : pad + pw * i / (k - 1);
+        java.util.function.IntFunction<Double> Y = i -> pad + ph * (1 - (double) v.get(i) / tp);
+        StringBuilder path = new StringBuilder();
+        for (int i = 0; i < k; i++) path.append(i == 0 ? "M" : "L").append(String.format(Locale.ROOT, "%.1f,%.1f", X.apply(i), Y.apply(i)));
+        StringBuilder s = new StringBuilder("<svg class=\"spk\" viewBox=\"0 0 ").append(w).append(' ').append(h).append("\" width=\"").append(w).append("\" height=\"").append(h)
+                .append("\" role=\"img\" aria-label=\"").append(ShareServlet.esc(name)).append(" 날마다 - 가장 많은 날 ").append(top).append(", 마지막 날 ").append(v.get(k - 1)).append("\">")
+                .append("<path d=\"").append(path).append("\" fill=\"none\" stroke=\"#38d9ea\" stroke-width=\"1.6\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/>")
+                .append(String.format(Locale.ROOT, "<circle cx=\"%.1f\" cy=\"%.1f\" r=\"2.4\" fill=\"%s\" stroke=\"#38d9ea\" stroke-width=\"1.4\"/>", X.apply(k - 1), Y.apply(k - 1), live ? "#1a212b" : "#38d9ea"));
+        for (int i = 0; i < k; i++)
+            s.append(String.format(Locale.ROOT, "<rect x=\"%.1f\" y=\"0\" width=\"%.1f\" height=\"%d\" fill=\"transparent\"><title>%s · %,d</title></rect>",
+                    X.apply(i) - colW / 2, colW, h, live && i == k - 1 ? dates.get(i) + "(오늘, 세는 중)" : dates.get(i), v.get(i)));
+        return s.append("</svg>").toString();
+    }
+
     /** 1 · 2 · 5 × 10ⁿ 로 올림(눈금 위끝). */
     static int nice(int max) {
         int p = 1;
@@ -426,18 +482,15 @@ public class StatsServlet extends HttpServlet {
         return 10 * p;
     }
 
-    /** names - 가운데 칸에 넣을 화면 이름(null 이면 두 칸). */
     /** 숫자 - 천 단위 쉼표(2026-10-21 홍TV님). */
     static String n(int v) {
         return String.format(Locale.KOREA, "%,d", v);
     }
 
-    private static String top(String title, Map<String, Integer> m, int n, java.util.function.Function<String, String> names) {
+    private static String top(String title, Map<String, Integer> m, int n) {
         StringBuilder b = new StringBuilder("<section><h2>").append(ShareServlet.esc(title)).append("</h2><table class=\"st\">");
-        if (names != null && !m.isEmpty()) b.append("<tr><th>주소</th><th>화면 이름</th><th>수</th></tr>");
         m.entrySet().stream().sorted((x, y) -> y.getValue() - x.getValue()).limit(n)
                 .forEach(e -> b.append("<tr><td>").append(ShareServlet.esc(e.getKey())).append("</td>")
-                        .append(names == null ? "" : "<td>" + ShareServlet.esc(names.apply(e.getKey())) + "</td>")
                         .append("<td class=\"num\">").append(n(e.getValue())).append("</td></tr>"));
         if (m.isEmpty()) b.append("<tr><td>아직 없음</td></tr>");
         return b.append("</table></section>").toString();
