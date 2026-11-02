@@ -1455,9 +1455,9 @@
         var p = RFParty.get();
         ask(T("산행을 취소할까요? 모든 회원 화면에 \"산행이 취소되었습니다\"가 뜨고 방이 닫힙니다. 되돌릴 수 없습니다.", "Cancel the hike? Every member sees \"The hike was cancelled\" and the room closes. This can't be undone."), { ok: T("산행 취소", "Cancel hike"), cancel: T("그대로 둠", "Keep"), danger: true }).then(officeSure).then(function (ok) {
             if (!ok) return;
-            // 사유 창의 "‹ 뒤로" · Esc 는 산행 취소를 멈춤(2026-10-28 PC: 큰 창의 "취소" 가 그만두기로 읽혀 사유 없이 취소됐음). 사유는 비워도 됨
+            // 사유 창의 "취소 안 함"(2026-11-02 홍TV님 - 화살표 없이) · Esc 는 산행 취소를 멈춤(2026-10-28 PC: 큰 창의 "취소" 가 그만두기로 읽혀 사유 없이 취소됐음). 사유는 비워도 됨
             return askText(T("취소 사유(회사 화면에 남음, 예: 태풍 · 인원 미달)\n비워 두고 \"산행 취소하기\"를 눌러도 됩니다.", "Reason (kept on the office screen, e.g. typhoon)\nYou may leave it empty."), "",
-                    { ok: T("산행 취소하기", "Cancel the hike"), cancel: T("‹ 뒤로", "‹ Back"), danger: true }).then(function (why) {
+                    { ok: T("산행 취소하기", "Cancel the hike"), cancel: T("취소 안 함", "Don't cancel"), danger: true }).then(function (why) {
                 if (why == null) { roomMsg(T("산행 취소를 멈췄습니다. 방은 그대로입니다.", "Stopped - the room stays as it is.")); return; }
                 endRoom({ token: p.token, cancel: true, why: why.slice(0, 60) });
             });

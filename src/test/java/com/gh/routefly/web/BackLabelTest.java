@@ -73,7 +73,7 @@ public class BackLabelTest {
         String app = Files.readString(Path.of("src/main/webapp/js/app.js"), StandardCharsets.UTF_8);
         assertTrue("3D 화면", app.contains("T(\"‹ 뒤로\", \"‹ Back\") : T(\"‹ 따라가기\", \"‹ Follow\")"));
         String party = Files.readString(Path.of("src/main/webapp/js/party.js"), StandardCharsets.UTF_8);
-        assertTrue("산행 취소 사유 창", party.contains("cancel: T(\"‹ 뒤로\", \"‹ Back\")"));
+        assertTrue("산행 취소 사유 창 - 뒤로가 아니라 \"취소 안 함\"(2026-11-02 홍TV님, 화살표 없이)", party.contains("cancel: T(\"취소 안 함\", \"Don't cancel\")"));
         for (String f : new String[] {"about.html", "privacy.html", "terms.html", "lbs-terms.html", "feedback.html", "anbu.html", "tools.html", "route.html", "studio.html", "party-office.html"})
             assertTrue(f, Files.readString(Path.of("src/main/webapp", f), StandardCharsets.UTF_8).contains(">‹ 뒤로</a>"));
     }
