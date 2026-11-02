@@ -1408,10 +1408,9 @@ final class Party {
         }
         out.add("rooms", live);
         out.add("pending", pending);   // 승인 기다리는 방(2026-10-28)
-        JsonArray ended = offices.endedOf(o, now);
-        String sig = ended.size() + ":" + (ended.size() > 0 ? ended.get(0).getAsJsonObject().get("endedAt").getAsLong() : 0);
+        String sig = offices.endedSig(o, now);   // 표시만 먼저 - 바뀌었을 때만 베낌(2026-11-02 홍TV님 속도 점검)
         out.addProperty("endedSig", sig);
-        if (!sig.equals(endedSig)) out.add("ended", ended);
+        if (!sig.equals(endedSig)) out.add("ended", offices.endedOf(o, now));
         return out;
     }
 

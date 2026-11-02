@@ -110,7 +110,8 @@
     }
     function style(cfg) {
         var pref = mapPref();
-        var dem = { type: "raster-dem", tiles: [cfg.demUrl], encoding: "terrarium", tileSize: 256, maxzoom: 15, attribution: "지형: Terrain Tiles (AWS Open Data)" };
+        // 지형 음영은 따라가기 · 안내도와 같게(2026-11-02 홍TV님 속도 점검: 열자마자 나라 전체 z7 지형 388KB 를 받았음) - 바탕 지도가 있으면 z12 까지 · z9 부터 그림
+        var dem = { type: "raster-dem", tiles: [cfg.demUrl], encoding: "terrarium", tileSize: 256, maxzoom: cfg.vworldKey ? 12 : 15, attribution: "지형: Terrain Tiles (AWS Open Data)" };
         var sources = { hillshade: dem }, layers = [{ id: "bg", type: "background", paint: { "background-color": "#dcd6c6" } }];
         var key = cfg.vworldKey ? encodeURIComponent(cfg.vworldKey) : null;
         BASES.forEach(function (b) {
@@ -122,7 +123,7 @@
             sources[b.id] = src;
             layers.push({ id: b.id, type: "raster", source: b.id, layout: { visibility: pref.base === b.id ? "visible" : "none" } });
         });
-        layers.push({ id: "hillshade", type: "hillshade", source: "hillshade", layout: { visibility: pref.over && pref.over.hillshade ? "visible" : "none" },
+        layers.push({ id: "hillshade", type: "hillshade", source: "hillshade", minzoom: cfg.vworldKey ? 9 : 0, layout: { visibility: pref.over && pref.over.hillshade ? "visible" : "none" },
             paint: { "hillshade-exaggeration": 0.3, "hillshade-shadow-color": "#3d4a3a", "hillshade-highlight-color": "#fbf7ea" } });
         OVERS.forEach(function (o) {
             if (!o.tiles || !usable(o)) return;
@@ -765,10 +766,12 @@
         msg("지도를 눌러 출발점부터 차례로 찍으세요.", 5000);
     };
     /** 높이 - 지형 타일(Terrain Tiles terrarium, 따라가기 지도와 같은 자료) 14단계를 읽어 점마다. 못 읽으면 높이 없이. */
-    var demTiles = {};
+    // 최근 64장만 기억(2026-11-02 홍TV님 점검: 끝없이 쌓여 긴 편집에 한 장 256KB 씩 늘었음) - 쓸 때마다 맨 뒤로, 넘치면 가장 오래 안 쓴 것부터 버림
+    var demTiles = new Map(), DEM_KEEP = 64;
     function demTile(z, x, y) {
-        var k = z + "/" + x + "/" + y;
-        if (!demTiles[k]) demTiles[k] = fetch(demUrl.replace("{z}", z).replace("{x}", x).replace("{y}", y)).then(function (r) { if (!r.ok) throw new Error(r.status); return r.blob(); })
+        var k = z + "/" + x + "/" + y, hit = demTiles.get(k);
+        if (hit) { demTiles.delete(k); demTiles.set(k, hit); return hit; }
+        hit = fetch(demUrl.replace("{z}", z).replace("{x}", x).replace("{y}", y)).then(function (r) { if (!r.ok) throw new Error(r.status); return r.blob(); })
             .then(function (b) { return createImageBitmap(b); }).then(function (img) {
                 var cv = document.createElement("canvas");
                 cv.width = img.width; cv.height = img.height;
@@ -776,7 +779,9 @@
                 g.drawImage(img, 0, 0);
                 return { w: img.width, d: g.getImageData(0, 0, img.width, img.height).data };
             }).catch(function () { return null; });
-        return demTiles[k];
+        demTiles.set(k, hit);
+        if (demTiles.size > DEM_KEEP) demTiles.delete(demTiles.keys().next().value);
+        return hit;
     }
     function withEle(track) {
         var Z = 14, n = Math.pow(2, Z);

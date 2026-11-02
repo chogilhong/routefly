@@ -44,13 +44,29 @@ public class WxServlet extends HttpServlet {
             return;
         }
         String ip = SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For"));
-        // 기상청 날씨누리 링크용 행정동(2026-10-30 홍TV님) - 셋과 함께 물음(2026-11-02 홍TV님 점검: 셋을 다 받은 뒤에 물어 그만큼 늦었음). 못 받으면 없이
-        CompletableFuture<JsonObject> rgF = start(() -> region(at[0], at[1], ip));
-        JsonObject out = all(() -> WeatherServlet.forecast(at[0], at[1], ip), () -> MidServlet.at(at[0], at[1], ip), () -> AirServlet.at(at[0], at[1], ip));
-        JsonObject rg = get(rgF, System.currentTimeMillis() + 1000);   // 행정동은 4초 안에 끝남 - 셋을 기다린 뒤라 거의 늘 끝나 있음
-        if (!rg.has("unavailable")) out.add("region", rg);
+        JsonObject out = answer(at[0], at[1], System.currentTimeMillis(), () -> {
+            // 기상청 날씨누리 링크용 행정동(2026-10-30 홍TV님) - 셋과 함께 물음(2026-11-02 홍TV님 점검: 셋을 다 받은 뒤에 물어 그만큼 늦었음). 못 받으면 없이
+            CompletableFuture<JsonObject> rgF = start(() -> region(at[0], at[1], ip));
+            JsonObject o = all(() -> WeatherServlet.forecast(at[0], at[1], ip), () -> MidServlet.at(at[0], at[1], ip), () -> AirServlet.at(at[0], at[1], ip));
+            JsonObject rg = get(rgF, System.currentTimeMillis() + 1000);   // 행정동은 4초 안에 끝남 - 셋을 기다린 뒤라 거의 늘 끝나 있음
+            if (!rg.has("unavailable")) o.add("region", rg);
+            return o;
+        });
         if (partial(out)) Json.write(resp, HttpServletResponse.SC_OK, out, false);
         else Json.ok(req, resp, out);
+    }
+
+    /** 다 받은 답을 자리(약 1km)마다 5분 기억(2026-11-02 홍TV님 속도 점검: 셋이 다 기억에 있어도 일꾼 넷에 넘겼다 받았음 - 이제 바로 답함). */
+    private static final OpenApi.Cache<JsonObject> ANSWERS = new OpenApi.Cache<>(2000, 5 * 60_000L);
+
+    /** 기억한 답이 있으면 그것, 없으면 fresh 로 물어 다 받았을 때만 기억. */
+    static JsonObject answer(double lat, double lon, long now, Supplier<JsonObject> fresh) {
+        String key = String.format(java.util.Locale.ROOT, "%.2f,%.2f", lat, lon);
+        JsonObject hit = ANSWERS.get(key, now);
+        if (hit != null) return hit;
+        JsonObject o = fresh.get();
+        if (!partial(o)) ANSWERS.put(key, o, now);
+        return o;
     }
 
     /** 셋을 함께 물어 {weather, mid, air}. 하나가 실패 · 20초 넘으면 그것만 {unavailable:true}. */

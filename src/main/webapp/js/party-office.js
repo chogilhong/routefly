@@ -601,15 +601,18 @@
         for (var r = 0; r < n; r++) for (var c2 = 0; c2 < n; c2++) if (q.isDark(r, c2)) g.fillRect((c2 + pad) * cell, (r + pad) * cell, cell, cell);
         cv.toBlob(cb, "image/png");
     }
+    // QR 스크립트는 처음 누를 때 받음(2026-11-02 홍TV님 속도 점검) - 복사 · 저장 단추는 QR 칸이 열린 뒤라 이미 받아 둠
     $("qrMine").addEventListener("click", function () {
-        if (!window.qrcode || !key) { noteBelow($("qrMine"), T("QR 을 만들지 못했습니다. 링크 복사를 쓰세요.", "Could not make the QR. Use Copy link.")); return; }
         var box = $("qrBox");
         if (!box.hidden && box.rfKey === shareLink()) { box.hidden = true; return; }   // 다시 누르면 닫음
-        $("qrImg").innerHTML = qrOf(shareLink()).createSvgTag({ cellSize: 6, margin: 2, scalable: true });
-        $("qrImg").setAttribute("role", "img");
-        $("qrImg").setAttribute("aria-label", T("사무실 링크 QR", "Office link QR"));
-        box.rfKey = shareLink();
-        box.hidden = false;
+        RFParty.qrLib().then(function (qr) {
+            if (!qr || !key) { noteBelow($("qrMine"), T("QR 을 만들지 못했습니다. 링크 복사를 쓰세요.", "Could not make the QR. Use Copy link.")); return; }
+            $("qrImg").innerHTML = qrOf(shareLink()).createSvgTag({ cellSize: 6, margin: 2, scalable: true });
+            $("qrImg").setAttribute("role", "img");
+            $("qrImg").setAttribute("aria-label", T("사무실 링크 QR", "Office link QR"));
+            box.rfKey = shareLink();
+            box.hidden = false;
+        });
     });
     $("qrCopy").addEventListener("click", function () {
         var btn = this;

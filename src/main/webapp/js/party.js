@@ -2,7 +2,7 @@
  * 산악회 방 화면(party.html - 2026-10-20 홍TV님). 서버는 PartyServlet · 위치 보내기는 party-kit.js(RFParty).
  * 흐름: 인솔자가 산행 전에 방을 만들고 참가 링크(카톡 · 문자) → 회원 참가(좌석 · 탑승지) → 출발 날 버스 안 QR · NFC 로 출발 탑승 → 인솔자 "출발"(안 탄 사람은 빠짐)
  * → 산행 중 인솔자(공동 인솔자 포함)가 회원 위치 · SOS · 배터리 · 머문 시간을 봄(회원 화면은 지도 없이 - 따라가기 지도로 걸음, 2026-10-24 홍TV님) → "하산 탑승" → 나가기(산 모음 /m/ 로). 인원이 모자라면 인솔자 "산행 취소".
- * 위치: 이 화면이 열린 동안 watchPosition → 30초마다(RFParty.fix, 서버는 출발할 때부터 받음). 인솔자 화면은 15초마다 새로 받음. 운전자 역할은 없음(2026-10-27 홍TV님 - 기사님에게 안전 책임이 가지 않게).
+ * 위치: 출발 뒤 이 화면이 열린 동안 watchPosition → 30초마다(RFParty.fix, 서버는 내 탑승지 출발 시각부터 받음 - 2026-11-02 부터 그 전 · 하산 탑승 뒤에는 GPS 를 켜지 않음, watchSync). 인솔자 화면은 15초마다 새로 받음. 운전자 역할은 없음(2026-10-27 홍TV님 - 기사님에게 안전 책임이 가지 않게).
  */
 (function () {
     "use strict";
@@ -463,14 +463,6 @@
         $("leaveBtn").hidden = p.role === "lead";
         startMap();
         if (first) render(first); else refresh();
-        if (navigator.geolocation && !p.office) {   // 회사 사무실 자리는 위치를 보내지 않음(2026-10-28)
-            watch = navigator.geolocation.watchPosition(function (pos) {
-                if (bgOn) return;   // 앱 - 화면 꺼도 도는 위치(BackgroundGeolocation)가 보냄, 두 번 보내지 않음(2026-10-22 점검)
-                lastPos = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy, t: Date.now() };
-                var r = RFParty.fix(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
-                if (r) r.then(render).catch(fail);
-            }, function () { roomMsg(T("위치를 받지 못하고 있습니다 - 위치 권한을 켜 주세요.", "Not getting your location - please allow location access.")); }, { enableHighAccuracy: true, maximumAge: 10000, timeout: 30000 });
-        }
         clearInterval(pollTimer);
         pollTimer = setInterval(refresh, staff ? 15000 : 30000);
         // 위치가 45초 넘게 안 오면 "폰은 켜짐" 만이라도(2026-10-20 PC: 폰 위치를 끄면 앱 위치 콜백이 아예 안 불려 ping 도 안 갔음).
@@ -482,6 +474,24 @@
             var pr = RFParty.ping();
             if (pr) pr.then(render).catch(fail);
         }, 60000);
+    }
+
+    /**
+     * 방 화면의 위치 받기(watchPosition) - 서버가 위치를 받는 때만(locOn - 내 탑승지 출발 시각 · 탄 때 · 산행 시작부터, 하산 탑승 · 취소 전, 사무실 자리 아님 · 앱 백그라운드 위치가 안 돌 때).
+     * 2026-11-02 홍TV님 점검: 방 화면이 열린 동안 늘 GPS 를 켜 출발 전 대기 · 하산 뒤에도 배터리를 썼음(party-bar 의 wantWatch 와 같은 조건).
+     * 출발 전 버스 위치 정하기 등은 here() 가 한 번만 받음.
+     */
+    function watchWant(s) { return !!(s && s.locOn === true && !s.cancelled && !s.aboard && !s.officeMe && !bgOn); }
+    function watchSync(s) {
+        if (!navigator.geolocation) return;
+        if (!watchWant(s)) { if (watch != null) { navigator.geolocation.clearWatch(watch); watch = null; } return; }
+        if (watch != null) return;
+        watch = navigator.geolocation.watchPosition(function (pos) {
+            if (bgOn) return;   // 앱 - 화면 꺼도 도는 위치(BackgroundGeolocation)가 보냄, 두 번 보내지 않음(2026-10-22 점검)
+            lastPos = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy, t: Date.now() };
+            var r = RFParty.fix(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
+            if (r) r.then(render).catch(fail);
+        }, function () { roomMsg(T("위치를 받지 못하고 있습니다 - 위치 권한을 켜 주세요.", "Not getting your location - please allow location access.")); }, { enableHighAccuracy: true, maximumAge: 10000, timeout: 30000 });
     }
 
     function refresh() {
@@ -612,6 +622,7 @@
         }
         drawMap(s);
         if (BG) bgSync(s);
+        watchSync(s);
         // 주 인솔자(방 만든 사람) · 보조 인솔자(차량 수만큼, 2026-10-28 홍TV님). 코드 · 내 폰 · 코드 바꾸기 · 방 끝내기는 주 인솔자만
         var nAssist = (s.members || []).filter(function (m) { return m.role === "lead" && !m.chief && !m.office; }).length + (s.role === "lead" && !s.chief && !s.officeMe ? 1 : 0);   // 사무실 자리는 빼고(서버 assistants() 와 같게, 10-28 PC)
         if (s.leadCode && s.chief) { $("leadCode").textContent = s.leadCode; $("assistCount").textContent = T("(보조 " + nAssist + " / " + s.assistMax + "명)", "(assistants " + nAssist + " / " + s.assistMax + ")"); }
@@ -1248,12 +1259,13 @@
         $("qrCode").textContent = code || "";
         $("qrTip").textContent = tip;
         $("qrImg").innerHTML = "";
-        if (window.qrcode) {
-            var q = qrcode(0, "M");   // 0 - 크기 저절로, M - 15% 가려져도 읽힘
+        RFParty.qrLib().then(function (qr) {   // QR 스크립트는 처음 쓸 때 받음(2026-11-02 홍TV님 속도 점검)
+            if (!qr) return;
+            var q = qr(0, "M");   // 0 - 크기 저절로, M - 15% 가려져도 읽힘
             q.addData(url);
             q.make();
             $("qrImg").innerHTML = q.createSvgTag({ cellSize: 6, margin: 4, scalable: true });
-        }
+        });
         $("qrBox").hidden = false;
     }
     $("qrBtn").addEventListener("click", function () {

@@ -249,5 +249,22 @@
         return same && !/\/party\.html$/.test(path) && histLen > 1 ? "back" : "href";
     }
 
-    g.RFParty = { officeNav: officeNav, alertsOn: alertsOn, isApp: isApp, dashes: dashes, KEY: KEY, get: get, set: set, clear: clear, post: post, fix: fix, ping: ping, sos: sos, onNotice: null, parseDay: parseDay, parseTime: parseTime };
+    /**
+     * QR 그리는 스크립트(qrcode-generator, 57KB)는 처음 QR 을 그릴 때 받음(2026-11-02 홍TV님 속도 점검: 따라가기 · 산악회 방 · 사무실이 열 때마다 받았음).
+     * 서비스 워커가 같은 주소를 담아 두어(sw.js SHELL_FILES) 신호 없을 때도 됨. 돌려줌: qrcode 함수를 주는 약속(못 받으면 null).
+     */
+    var qrWait = null;
+    function qrLib() {
+        if (g.qrcode) return Promise.resolve(g.qrcode);
+        if (!qrWait) qrWait = new Promise(function (ok) {
+            var s = document.createElement("script");
+            s.src = "vendor/qrcode-generator-1.4.4/qrcode.js";
+            s.onload = function () { ok(g.qrcode || null); };
+            s.onerror = function () { qrWait = null; ok(null); };   // 다음에 다시
+            document.head.appendChild(s);
+        });
+        return qrWait;
+    }
+
+    g.RFParty = { qrLib: qrLib, officeNav: officeNav, alertsOn: alertsOn, isApp: isApp, dashes: dashes, KEY: KEY, get: get, set: set, clear: clear, post: post, fix: fix, ping: ping, sos: sos, onNotice: null, parseDay: parseDay, parseTime: parseTime };
 })(window);

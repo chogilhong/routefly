@@ -420,7 +420,8 @@
     var basemap = "sat";
     try { if (localStorage.getItem(BASEMAP_KEY) === "light") basemap = "light"; } catch (e) { /* 기본 위성 */ }
 
-    function buildStyle(cfg) {
+    /** hold - 처음 나라 전체(z6.2)에서는 위성 · 밝은 지도 타일을 받지 않음(코스로 옮기면 startMap 이 풂). */
+    function buildStyle(cfg, hold) {
         // 위성 · 밝은 지도 위 옅은 음영(0.2)만 쓰는 지형은 z12 까지만 받고 더 가까이는 늘려 씀 - z15 까지 받던 타일이 화면마다 수십 장(2026-11-02 홍TV님 점검).
         // 오프라인 저장(offlinePlan)도 이 maxzoom 까지만. 키가 없어 음영이 바탕 전부일 때는 예전대로 z15. 3D(app.js)는 그대로
         var dem = { type: "raster-dem", tiles: [cfg.demUrl], encoding: "terrarium", tileSize: 256, maxzoom: cfg.vworldKey ? 12 : 15,
@@ -432,8 +433,8 @@
                 tiles: ["https://api.vworld.kr/req/wmts/1.0.0/" + key + "/Satellite/{z}/{y}/{x}.jpeg"], attribution: T("위성사진: 국토교통부 V-World", "Satellite: V-World (Korea MOLIT)") };
             sources.base = { type: "raster", tileSize: 256, minzoom: 6, maxzoom: 19,
                 tiles: ["https://api.vworld.kr/req/wmts/1.0.0/" + key + "/Base/{z}/{y}/{x}.png"], attribution: T("지도: 국토교통부 V-World", "Map: V-World (Korea MOLIT)") };
-            layers.push({ id: "sat", type: "raster", source: "sat", layout: { visibility: basemap === "sat" ? "visible" : "none" } });
-            layers.push({ id: "base", type: "raster", source: "base", layout: { visibility: basemap === "light" ? "visible" : "none" } });
+            layers.push({ id: "sat", type: "raster", source: "sat", minzoom: hold ? SAT_HOLD_Z : 0, layout: { visibility: basemap === "sat" ? "visible" : "none" } });
+            layers.push({ id: "base", type: "raster", source: "base", minzoom: hold ? SAT_HOLD_Z : 0, layout: { visibility: basemap === "light" ? "visible" : "none" } });
             layers.push({ id: "hillshade", type: "hillshade", source: "hillshade", minzoom: 9, paint: { "hillshade-exaggeration": 0.2 } });   // 나라 전체가 보일 때는 음영이 안 보임
             // V-World 지명 겹침은 쓰지 않습니다 - 우리 이름표와 같은 이름이 비스듬히 한 번 더 나와 겹쳐 보입니다
         } else {
@@ -472,13 +473,24 @@
         return ["step", ["line-progress"], on, p, clear];
     }
 
+    /**
+     * 주소에 코스(#c=)가 있으면 첫 나라 전체(z6.2) 화면에서 위성 · 밝은 지도 타일을 받지 않음 - 곧 코스로 옮겨 버릴 타일이었음(2026-11-02 홍TV님 속도 점검).
+     * 그 동안은 어두운 바탕 · 지형만. z7 넘게 옮기면 그때부터 예전처럼(다시 나라 전체로 줄여도 보임).
+     */
+    var SAT_HOLD_Z = 7;
     function startMap() {
+        var hold = /[#&]c=/.test(location.hash);
         // prefetchZoomDelta 1 - 나라 전체(6.2)에서 코스로 맞출 때 그 사이 단계 타일까지 미리 받던 것을 줄임(기본 4) · pixelRatio 는 2 까지(3배 화면에서
         // 타일 · 그리기가 2.25배 - 2026-11-02 홍TV님 점검)
-        map = new maplibregl.Map({ container: "map", style: buildStyle(cfg), center: [127.8, 36.3], zoom: 6.2, prefetchZoomDelta: 1,
+        map = new maplibregl.Map({ container: "map", style: buildStyle(cfg, hold), center: [127.8, 36.3], zoom: 6.2, prefetchZoomDelta: 1,
             pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
             attributionControl: false, pitchWithRotate: false, dragRotate: false, touchPitch: false });
         map.touchZoomRotate.disableRotation();   // 북쪽이 늘 위(작은 화면에서 길 잃지 않게)
+        if (hold) map.on("zoomend", function release() {
+            if (map.getZoom() < SAT_HOLD_Z) return;
+            map.off("zoomend", release);
+            ["sat", "base"].forEach(function (id) { if (map.getLayer(id)) map.setLayerZoomRange(id, 0, 24); });
+        });
         RF.spotsByZoom(map);   // 위험 · 조망 아이콘은 확대했을 때만
         map.addControl(new maplibregl.AttributionControl({ compact: true,
             customAttribution: RF.tr("등산로: 산림청 등산로정보 | 걷기길: 한국관광공사 두루누비 | 지명 · 자전거길: © OpenStreetMap contributors | <a href=\"about.html\">안내</a>",   // 영어(2026-10-22 PC: 영어 화면에 한글로 남음)
@@ -2005,7 +2017,7 @@
         xferId(code).then(function (id) {
             return xferPost("open", { id: id }).then(function () {
                 $("xferQr").innerHTML = "";
-                if (window.qrcode) { var q = qrcode(0, "M"); q.addData(url); q.make(); $("xferQr").innerHTML = q.createSvgTag({ cellSize: 6, margin: 2, scalable: true }); }
+                RFParty.qrLib().then(function (qr) { if (qr) { var q = qr(0, "M"); q.addData(url); q.make(); $("xferQr").innerHTML = q.createSvgTag({ cellSize: 6, margin: 2, scalable: true }); } });   // QR 스크립트는 처음 쓸 때 받음
                 $("xferCode").textContent = code.slice(0, 4) + "-" + code.slice(4);
                 $("xferState").textContent = T("기다리는 중… (10분)", "Waiting… (10 min)");
                 $("xferBox").hidden = false;
@@ -2953,14 +2965,28 @@
 
     // ------------------------------------------------------------------ ② 산행 기록
 
+    /**
+     * 숫자 칸 하나. 같은 값이면 다시 쓰지 않고, 화면이 숨은 동안(render 중 renderHidden)은 쓰지 않음 - 다시 보이면 바로 그림(2026-11-02 홍TV님 점검: 1초마다 칸 13개를 새로 만들었음).
+     */
+    var renderHidden = false;
     function setV(id, text, unit) {
-        $(id).innerHTML = "";
-        $(id).appendChild(document.createTextNode(text));
+        if (renderHidden) return;
+        var el = $(id), v = text + "|" + (unit || "");
+        if (el.dataset.v === v) return;
+        el.dataset.v = v;
+        el.innerHTML = "";
+        el.appendChild(document.createTextNode(text));
         if (unit) {
             var s = document.createElement("small");
             s.textContent = unit;
-            $(id).appendChild(s);
+            el.appendChild(s);
         }
+    }
+    /** 글 한 칸 - 같으면 다시 쓰지 않음, 숨은 동안은 쓰지 않음(setV 와 같음). */
+    function setText(id, text) {
+        if (renderHidden) return;
+        var el = $(id);
+        if (el.textContent !== text) el.textContent = text;
     }
 
     /**
@@ -3089,6 +3115,11 @@
 
     function render() {
         if (!c) return;
+        renderHidden = document.hidden === true;   // 알림 · 판단은 그대로 하고 화면 쓰기만 쉼
+        try { renderAll(); } finally { renderHidden = false; }
+    }
+    document.addEventListener("visibilitychange", function () { if (!document.hidden && c) render(); });   // 숨은 동안 쉰 화면을 바로
+    function renderAll() {
         var d = hike.d, p = RF.at(c, d), g = RF.grade(c, d);
         setV("sDone", km(d), "km");
         setV("sLeft", km(Math.max(0, c.total - d)), "km");
@@ -3111,8 +3142,8 @@
         setLabel("stepsK", T("걸음 ", "Steps "), body.cm + "cm ✎");
         var nowMs = hike.running ? now() : Date.now();
         var sun = RF.sunset(nowMs, c.lat[0], c.lon[0]);
-        $("sunTxt").textContent = sun ? T("· 일몰 ", "· sunset ") + clock(sun) : "";
-        $("etaBox").classList.remove("late");
+        setText("sunTxt", sun ? T("· 일몰 ", "· sunset ") + clock(sun) : "");
+        var late = false;
         if (d >= c.total - ARRIVE_M) setV("sEta", T("도착", "Arrived"));
         else {
             var rem = remainingMs(elapsed), eta = nowMs + rem;
@@ -3129,7 +3160,7 @@
             setV("sEta", clock(eta), " (" + RF.hm(rem, true) + ")");
             // 해 지기 30분 전까지 못 닿을 것 같으면 빨갛게 + 한 번 알림
             if (sun && eta > sun - 1800000) {
-                $("etaBox").classList.add("late");
+                late = true;
                 if (hike.running && !hike.sunWarned) {
                     hike.sunWarned = true;
                     toast(EN ? "⚠ Your expected finish is later than 30 minutes before sunset (" + clock(sun - 1800000) + "). Consider turning back early."
@@ -3146,19 +3177,24 @@
                 if (navigator.vibrate) navigator.vibrate([300, 150, 300, 150, 300]);
             }
         }
-        var nx = RF.nextPoi(c, d);
-        if (nx) {
+        if (!renderHidden) $("etaBox").classList.toggle("late", late);
+        var nx = RF.nextPoi(c, d), nxEl = $("next");
+        if (nx && !renderHidden) {
             var np = RF.at(c, +nx.dist_m);
             var dEle = np.ele != null && p.ele != null ? np.ele - p.ele : null;
-            $("next").innerHTML = "";
-            $("next").appendChild(document.createTextNode(T("다음 지점 ", "Next ")));
-            var b = document.createElement("b");
-            b.textContent = NM(nx.name);
-            $("next").appendChild(b);
-            $("next").appendChild(document.createTextNode(" · " + km(+nx.dist_m - d) + T("km 앞", " km")
-                + (dEle == null ? "" : " · " + (dEle >= 0 ? T("오르막 +", "up +") : T("내리막 ", "down ")) + num(dEle) + "m")));
-        } else {
-            $("next").textContent = T("다음 지점 없음 - 도착까지 ", "No more points - finish in ") + km(Math.max(0, c.total - d)) + "km";
+            var tail = " · " + km(+nx.dist_m - d) + T("km 앞", " km") + (dEle == null ? "" : " · " + (dEle >= 0 ? T("오르막 +", "up +") : T("내리막 ", "down ")) + num(dEle) + "m");
+            if (nxEl.dataset.v !== nx.name + "|" + tail) {   // 같으면 다시 쓰지 않음(2026-11-02 홍TV님 점검)
+                nxEl.dataset.v = nx.name + "|" + tail;
+                nxEl.innerHTML = "";
+                nxEl.appendChild(document.createTextNode(T("다음 지점 ", "Next ")));
+                var b = document.createElement("b");
+                b.textContent = NM(nx.name);
+                nxEl.appendChild(b);
+                nxEl.appendChild(document.createTextNode(tail));
+            }
+        } else if (!nx && !renderHidden) {
+            nxEl.dataset.v = "";
+            setText("next", T("다음 지점 없음 - 도착까지 ", "No more points - finish in ") + km(Math.max(0, c.total - d)) + "km");
         }
         // 국립공원 위험지역 - 앞 120m 에서 한 번(소리 · 진동), 조망점은 지날 때 한 번
         if (hike.running) {

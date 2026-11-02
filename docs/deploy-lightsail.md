@@ -245,6 +245,7 @@ gzip_proxied any;
 gzip_min_length 1024;
 gzip_types application/javascript text/javascript text/css image/svg+xml application/manifest+json application/json;   # application/json - data/*.json(산 안내 31KB 등, 2026-10-21 점검)
 gzip_vary on;
+gzip_comp_level 5;   # 기본 1 → 5(2026-11-02 홍TV님 속도 점검 - js · json 이 더 작게, CPU 는 조금. 이미 깐 서버는 이 줄을 더한 뒤 sudo nginx -t && sudo systemctl reload nginx)
 # 접속 기록에는 주소의 ?뒤(코스 검색어 · 지도 범위 - "내 주변 코스" 는 내 둘레 약 1km 칸)를 남기지 않음 - 개인정보처리방침(privacy.html)과 맞춤.
 # 기록은 logrotate 기본(14일)으로 지워짐
 log_format routefly_noargs '$remote_addr - [$time_local] "$request_method $uri" $status $body_bytes_sent "$http_user_agent"';

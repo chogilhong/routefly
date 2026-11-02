@@ -236,6 +236,21 @@ final class PartyOffice {
         save();
     }
 
+    /**
+     * 끝난 산행 표시 "수:가장 새 것의 끝난 때" - endedOf 와 같은 것을 베끼지 않고 셈(2026-11-02 홍TV님 속도 점검: 사무실 화면이 30초마다
+     * 500건까지 통째로 깊은 복사한 뒤 표시만 보고 버렸음). 바뀌었을 때만 endedOf 로 베낌.
+     */
+    synchronized String endedSig(Office o, long now) {
+        int n = 0;
+        long newest = 0;
+        for (JsonObject x : o.ended) {
+            long at = x.get("endedAt").getAsLong();
+            if (now - at > KEEP_MS) continue;
+            if (n++ == 0) newest = at;
+        }
+        return n + ":" + newest;
+    }
+
     synchronized JsonArray endedOf(Office o, long now) {
         JsonArray a = new JsonArray();
         for (JsonObject x : o.ended) if (now - x.get("endedAt").getAsLong() <= KEEP_MS) a.add(x.deepCopy());
