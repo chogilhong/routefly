@@ -55,7 +55,7 @@ public class AssetVersionTest {
         assertEquals("html 은 늘 묻기", "no-cache", NoStaleFilter.cacheControl("/hike.html", "0123456789"));
         assertEquals(IMMUTABLE, NoStaleFilter.cacheControl("/vendor/maplibre-gl-5.24.0/maplibre-gl.js", null));
         assertEquals("public, max-age=86400", NoStaleFilter.cacheControl("/img/icon-192.png", null));
-        assertEquals("no-cache", NoStaleFilter.cacheControl("/data/series.json", null));
+        assertEquals("자료는 10분(2026-11-02)", "public, max-age=600", NoStaleFilter.cacheControl("/data/series.json", null));
     }
 
     @Test

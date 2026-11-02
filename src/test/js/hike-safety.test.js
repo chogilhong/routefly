@@ -54,4 +54,14 @@ has("지울 목록에서 산 페이지 주소는 뺌", "urls = urls.filter(funct
 has("저장분에 said", "segT0: hike.segT0, said: ruleSaid, t: Date.now() }");
 has("이어 할 때 되살림", "ruleSaid = saved && saved.said ? saved.said : {};");
 
+// ---- 속도 · 배터리(2026-11-02 점검)
+has("코스로 맞출 때 사이 단계 타일을 덜", "prefetchZoomDelta: 1");
+has("화면 배율은 2 까지", "pixelRatio: Math.min(window.devicePixelRatio || 1, 2)");
+has("옅은 음영 지형은 z12 까지", "maxzoom: cfg.vworldKey ? 12 : 15");
+has("따라가기는 followMe", "if (hike.follow) followMe(co.latitude, co.longitude);");
+has("나침반 3° 넘을 때만 지도 돌림", "turn > 3");
+has("산행 중 표시(party-bar 가 GPS 를 따로 안 켬)", "window.rfHikeRunning = on;");
+var bar = fs.readFileSync(path.join(__dirname, "../../main/webapp/js/party-bar.js"), "utf8");
+assert(bar.indexOf("&& !window.rfHikeRunning); }") >= 0 && bar.indexOf("document.addEventListener(\"rf-hike\"") >= 0, "party-bar 가 산행 중엔 watchPosition 을 안 켬"); n++;
+
 console.log("OK " + n);

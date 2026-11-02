@@ -186,4 +186,19 @@ public class ReviewRound5Test {
     public void hikeSafetyJs() throws Exception {
         node("src/test/js/hike-safety.test.js");
     }
+
+    /** 코스 답은 ETag 를 열쇠로 담아 둠(같은 ETag 면 DB 를 다시 읽지 않음) · 날씨 대신 받은 답 · 빈 중기예보는 10분. */
+    @Test
+    public void courseDetailCached() throws Exception {
+        String tag = "W/\"test-" + System.nanoTime() + "\"";
+        assertNull(CourseServlet.DETAILS.get(tag, "-"));
+        CourseServlet.DETAILS.put(tag, "-", "{\"success\":true}", tag);
+        assertEquals("{\"success\":true}", CourseServlet.DETAILS.get(tag, "-").body());
+        String src = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/com/gh/routefly/web/CourseServlet.java"));
+        assertTrue("304 를 먼저 보고 그다음 담아 둔 답", src.indexOf("Json.notModified(req, resp, tag)) return;") < src.indexOf("DETAILS.get(tag, \"-\")"));
+        String w = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/com/gh/routefly/web/WeatherServlet.java"));
+        assertTrue(w.contains("(instead[0] ? SHORT : CACHE).put(key, out, now);"));
+        String m = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/com/gh/routefly/web/MidServlet.java"));
+        assertTrue(m.contains("if (EMPTY.get(ck, now) != null) continue;"));
+    }
 }

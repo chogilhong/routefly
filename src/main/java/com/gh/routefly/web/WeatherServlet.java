@@ -39,6 +39,8 @@ public class WeatherServlet extends HttpServlet {
     static final String DEFAULT_URL = "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst";
     static final ZoneId KST = ZoneId.of("Asia/Seoul");
     private static final OpenApi.Cache<JsonObject> CACHE = new OpenApi.Cache<>(500, 3L * 60 * 60 * 1000);
+    /** 앞 발표 · 옆 격자로 대신 받은 답은 10분만(2026-11-02 홍TV님 점검: 막 나온 발표가 몇 분 늦게 채워져 받은 앞 발표가 새 발표 이름으로 3시간 남았음). */
+    private static final OpenApi.Cache<JsonObject> SHORT = new OpenApi.Cache<>(500, 10L * 60 * 1000);
     /** 기억에 없어 바깥에 새로 묻는 횟수 상한 - 주소마다 한 시간 60번, 하루 3,000번(설정 quota.weather.ip · .day, 2026-11-01 점검: 좌표를 격자마다 바꿔 부르면 매번 기상청에 물었음). */
     private static final OutQuota QUOTA = OutQuota.of("weather", 60, 3000);
 
@@ -59,14 +61,17 @@ public class WeatherServlet extends HttpServlet {
         String key = g[0] + "," + g[1] + "@" + base[0] + base[1];
         long now = System.currentTimeMillis();
         JsonObject out = CACHE.get(key, now);
+        if (out == null) out = SHORT.get(key, now);
         if (out == null) {
-            out = ip == null || QUOTA.allow(ip, now) ? fetch(g, base) : unavailable();   // 상한이면 이 요청만 못 받음(기억하지 않음)
-            if (!out.has("unavailable")) CACHE.put(key, out, now);
+            boolean[] instead = {false};
+            out = ip == null || QUOTA.allow(ip, now) ? fetch(g, base, instead) : unavailable();   // 상한이면 이 요청만 못 받음(기억하지 않음)
+            if (!out.has("unavailable")) (instead[0] ? SHORT : CACHE).put(key, out, now);
         }
         return out;
     }
 
-    private static JsonObject fetch(int[] g, String[] base) {
+    /** instead[0] - 앞 발표 · 옆 격자로 대신 받았으면 true(짧게 기억). */
+    private static JsonObject fetch(int[] g, String[] base, boolean[] instead) {
         String serviceKey = RouteflyConfig.get("weather.serviceKey");
         if (serviceKey == null) serviceKey = RouteflyConfig.get("tour.serviceKey");
         if (serviceKey == null) return unavailable();
@@ -78,6 +83,7 @@ public class WeatherServlet extends HttpServlet {
             String[] prev = previous(base);
             String t2 = OpenApi.get(url(u != null ? u : DEFAULT_URL, serviceKey, g, prev), "WEATHER");
             out = t2 == null ? null : body(t2, prev);
+            if (out != null) instead[0] = true;
             if (out == null && t2 != null) text = t2;
         }
         // 그래도 자료 없음이면 바로 옆 격자(5km)로 - 북한산 들머리 격자(61,129)는 두 발표 모두 NO_DATA 였고 옆(60,129)은 나왔음(2026-10-14 PC)
@@ -85,7 +91,7 @@ public class WeatherServlet extends HttpServlet {
             for (int[] n : neighbors(g)) {
                 String t3 = OpenApi.get(url(u != null ? u : DEFAULT_URL, serviceKey, n, base), "WEATHER");
                 out = t3 == null ? null : body(t3, base);
-                if (out != null) { out.addProperty("near", true); break; }
+                if (out != null) { out.addProperty("near", true); instead[0] = true; break; }
             }
         }
         if (out == null && text != null) OpenApi.warn("WEATHER", text);

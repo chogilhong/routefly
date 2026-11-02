@@ -18,7 +18,8 @@
     function hide() { $("partyBar").hidden = true; document.documentElement.classList.remove("partyOn"); stopWatch(); clearInterval(timer); timer = null; }
 
     /** 위치 보내기 - 출발할 때부터(2026-10-27 홍TV님), 하산 탑승 · 취소 전까지, 화면이 보이는 동안만. 따라가기를 시작했으면 hike.js 도 보내지만 30초에 한 번으로 묶임. */
-    function wantWatch(s) { return !!(s && !s.cancelled && !s.aboard && s.locOn !== false && document.visibilityState === "visible"); }
+    // 따라가기 산행 중(window.rfHikeRunning - 시험 걷기 아님)이면 hike.js 가 위치마다 RFParty.fix 를 부르니 따로 GPS 를 하나 더 켜지 않음(2026-11-02 홍TV님 점검: 배터리)
+    function wantWatch(s) { return !!(s && !s.cancelled && !s.aboard && s.locOn !== false && document.visibilityState === "visible" && !window.rfHikeRunning); }
     function startWatch() {
         if (watch != null || !navigator.geolocation) return;
         watch = navigator.geolocation.watchPosition(function (pos) {
@@ -190,6 +191,7 @@
         if (document.visibilityState === "visible") refresh();
         else stopWatch();
     });
+    document.addEventListener("rf-hike", function () { if (state && wantWatch(state)) startWatch(); else stopWatch(); });   // 따라가기 시작 · 끝(hike.js)
 
     if (RFParty.get()) {
         refresh();

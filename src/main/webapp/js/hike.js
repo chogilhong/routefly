@@ -421,7 +421,9 @@
     try { if (localStorage.getItem(BASEMAP_KEY) === "light") basemap = "light"; } catch (e) { /* 기본 위성 */ }
 
     function buildStyle(cfg) {
-        var dem = { type: "raster-dem", tiles: [cfg.demUrl], encoding: "terrarium", tileSize: 256, maxzoom: 15,
+        // 위성 · 밝은 지도 위 옅은 음영(0.2)만 쓰는 지형은 z12 까지만 받고 더 가까이는 늘려 씀 - z15 까지 받던 타일이 화면마다 수십 장(2026-11-02 홍TV님 점검).
+        // 오프라인 저장(offlinePlan)도 이 maxzoom 까지만. 키가 없어 음영이 바탕 전부일 때는 예전대로 z15. 3D(app.js)는 그대로
+        var dem = { type: "raster-dem", tiles: [cfg.demUrl], encoding: "terrarium", tileSize: 256, maxzoom: cfg.vworldKey ? 12 : 15,
             attribution: RF.tr("지형: ", "Terrain: ") + "Terrain Tiles (AWS Open Data)" };
         var sources = { hillshade: dem }, layers = [{ id: "bg", type: "background", paint: { "background-color": cfg.vworldKey ? "#1b2430" : "#dcd6c6" } }];
         if (cfg.vworldKey) {
@@ -432,7 +434,7 @@
                 tiles: ["https://api.vworld.kr/req/wmts/1.0.0/" + key + "/Base/{z}/{y}/{x}.png"], attribution: T("지도: 국토교통부 V-World", "Map: V-World (Korea MOLIT)") };
             layers.push({ id: "sat", type: "raster", source: "sat", layout: { visibility: basemap === "sat" ? "visible" : "none" } });
             layers.push({ id: "base", type: "raster", source: "base", layout: { visibility: basemap === "light" ? "visible" : "none" } });
-            layers.push({ id: "hillshade", type: "hillshade", source: "hillshade", paint: { "hillshade-exaggeration": 0.2 } });
+            layers.push({ id: "hillshade", type: "hillshade", source: "hillshade", minzoom: 9, paint: { "hillshade-exaggeration": 0.2 } });   // 나라 전체가 보일 때는 음영이 안 보임
             // V-World 지명 겹침은 쓰지 않습니다 - 우리 이름표와 같은 이름이 비스듬히 한 번 더 나와 겹쳐 보입니다
         } else {
             layers.push({ id: "hillshade", type: "hillshade", source: "hillshade",
@@ -462,6 +464,7 @@
         if (!quiet) toast(light ? T("밝은 지도", "Light map") : T("위성사진", "Satellite"), 1500);
     }
 
+    var doneK = 0;   // 지금 지나온 길 색의 자리(0.2% 단위) - 처음 선은 progressGradient(0)
     function progressGradient(p) {
         var on = RF.LINE_COLOR, clear = "rgba(56,217,234,0)";
         if (p <= 0.0001) return ["step", ["line-progress"], clear, 1, clear];
@@ -470,7 +473,10 @@
     }
 
     function startMap() {
-        map = new maplibregl.Map({ container: "map", style: buildStyle(cfg), center: [127.8, 36.3], zoom: 6.2,
+        // prefetchZoomDelta 1 - 나라 전체(6.2)에서 코스로 맞출 때 그 사이 단계 타일까지 미리 받던 것을 줄임(기본 4) · pixelRatio 는 2 까지(3배 화면에서
+        // 타일 · 그리기가 2.25배 - 2026-11-02 홍TV님 점검)
+        map = new maplibregl.Map({ container: "map", style: buildStyle(cfg), center: [127.8, 36.3], zoom: 6.2, prefetchZoomDelta: 1,
+            pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
             attributionControl: false, pitchWithRotate: false, dragRotate: false, touchPitch: false });
         map.touchZoomRotate.disableRotation();   // 북쪽이 늘 위(작은 화면에서 길 잃지 않게)
         RF.spotsByZoom(map);   // 위험 · 조망 아이콘은 확대했을 때만
@@ -722,6 +728,20 @@
         }
     }
 
+    /**
+     * 따라가기 - 내 점을 가운데로. 화면이 꺼져 있으면 움직이지 않고(켤 때 바로 맞춤), 점이 가운데에서 조금(짧은 변의 10%)도 안 벗어났으면 그대로
+     * - 위치마다 0.6초씩 지도를 다시 그리던 것(2026-11-02 홍TV님 점검: 배터리). 벗어나면 예전처럼 부드럽게.
+     */
+    function followMe(lat, lon) {
+        if (document.hidden) return;
+        var z = map.getZoom();
+        if (z >= 15) {
+            var p = map.project([lon, lat]), m = map.project(map.getCenter()), cv = map.getCanvas();
+            var side = Math.min(cv.clientWidth || 0, cv.clientHeight || 0);
+            if (side && Math.hypot(p.x - m.x, p.y - m.y) < side * 0.1) return;
+        }
+        map.easeTo({ center: [lon, lat], zoom: Math.max(z, 15), duration: 600 });
+    }
     function setFollow(on) {
         hike.follow = on;
         $("follow").classList.toggle("on", on);
@@ -2373,6 +2393,7 @@
         if (!sim && !saved && !checked) { preCheck(function () { start(false, true); }); return; }   // 이어 하는 산행(새로 고침 · 이어서)은 묻지 않음
         setCompact(false);   // 시작할 때는 기록 칸을 펼쳐서(아래로 밀면 접힘)
         if (!sim) hike.fix = null;   // 앞 시험 걷기 위치(앞당긴 시계)가 실제 산행에 남지 않게(2026-11-02 홍TV님 점검)
+        hikeFlag(!sim);
         hike.sim = sim;
         hike.running = true;
         hike.arrived = false;
@@ -2562,6 +2583,7 @@
             finishRecord();
             clearSaved();
         } else finishRecord(true);
+        hikeFlag(false);
         if (wasSim) hike.fix = null;   // 시험 걷기 위치는 버림 - SOS · 산악회 방이 가짜 위치(앞당긴 시계라 "방금")를 쓰던 것(2026-11-02 홍TV님 점검)
         hike.sim = false;
         compassOff();   // 2026-10-10 점검: 다 걸은 뒤에도 센서를 계속 받던 것
@@ -2604,6 +2626,7 @@
         if (document.visibilityState === "hidden" && hike.running) flushTrack();   // 앱이 닫히기 전에 걸은 길을 남김
         if (compass.on) compassListen(document.visibilityState === "visible");   // 안 보이는 동안 나침반 센서를 놓음
         if (document.visibilityState === "visible" && hike.running && !hike.sim && !BG) keepAwake();   // 앱은 화면을 켜 두지 않음(위 start)
+        if (document.visibilityState === "visible" && hike.running && hike.follow && hike.fix && map) map.jumpTo({ center: [hike.fix.lon, hike.fix.lat], zoom: Math.max(map.getZoom(), 15) });   // 꺼진 동안 안 따라간 것(followMe)
         // 브라우저는 화면이 꺼진 동안 위치도 안 옴 - 다시 켰을 때 바로 "끊김" 이 뜨지 않게 그때부터 다시 셈(이미 끊김이면 그대로)
         if (document.visibilityState === "visible" && hike.running && !BG && hike.gpsT && !hike.gpsLost) hike.gpsT = Date.now();
     });
@@ -2729,7 +2752,7 @@
         }
         if (v != null) hike.speed = hike.speed == null ? v : hike.speed * 0.7 + v * 0.3;
         setMe(co.latitude, co.longitude, co.heading);
-        if (hike.follow) map.easeTo({ center: [co.longitude, co.latitude], zoom: Math.max(map.getZoom(), 15), duration: 600 });
+        if (hike.follow) followMe(co.latitude, co.longitude);
         // 코스를 따라 되돌아가면(올라가다 내려옴) 거꾸로 된 코스로 - "벗어났다" 대신 내려가는 길 안내
         // 한 번 튄 위치로 바꾸지 않게 1분 동안 계속 되돌아간 상태일 때만(2026-10-23 지리산)
         // 2026-10-23 장터목 아래로 내려가는데 서너 번 거꾸로 바뀜 - 코스 위 거리만 줄고(대피소 앞 되돌이 길 · 위치 붙는 자리) 몸은
@@ -3247,7 +3270,9 @@
         }
         if (prof) prof.set(d);
         if (boardOpenNow && Date.now() - boardDrawn > 5000) drawBoard();   // 열려 있으면 5초마다 현위치를 다시
-        if (map.getLayer("route-done")) map.setPaintProperty("route-done", "line-gradient", progressGradient(d / c.total));
+        // 지나온 길 색 - 0.2% 단위로, 같으면 다시 넣지 않음(2026-11-02 홍TV님 점검: 1초마다 선 전체 색 표를 다시 만들었음)
+        var k = Math.round(d / c.total * 500);
+        if (isFinite(k) && k !== doneK && map.getLayer("route-done")) { doneK = k; map.setPaintProperty("route-done", "line-gradient", progressGradient(k / 500)); }
     }
 
     // ------------------------------------------------------------------ 📋 안내판(2026-10-16 홍TV님) - 공단 탐방로 안내판처럼 구간 경사 + 🔴 현위치
@@ -3892,9 +3917,10 @@
         compass.heading = h;
         if (hike.guideBr != null) turnGuideArrow();   // 몸을 돌리면 화살표도 바로(GPS 를 기다리지 않고)
         setNeedle(-h);   // 빨간 끝 = 실제 북쪽(핸드폰 위쪽 기준)
-        $("compassText").textContent = Math.round(h) + "°";
-        var t = performance.now();
-        if (compass.up && t - compass.lastTurn > 120) {   // 내 방향으로 지도 돌리기(초당 8번까지)
+        var txt = Math.round(h) + "°";
+        if (compass.text !== txt) { compass.text = txt; $("compassText").textContent = txt; }   // 같은 글은 다시 쓰지 않음(2026-11-02 홍TV님 점검)
+        var t = performance.now(), turn = Math.abs(((h - map.getBearing()) % 360 + 540) % 360 - 180);
+        if (compass.up && t - compass.lastTurn > 120 && turn > 3) {   // 내 방향으로 지도 돌리기(초당 8번까지, 3° 넘게 달라졌을 때만 - 손 떨림마다 지도를 다시 그리던 것)
             compass.lastTurn = t;
             map.rotateTo(h, { duration: 100 });
         }
@@ -4327,6 +4353,11 @@
         if (!window.RFParty || !RFParty.get() || !RFParty.get().sos) return;
         RFParty.sos(false);
         partySend();
+    }
+    /** 실제 산행 중 표시 - 산악회 한 줄(party-bar.js)이 GPS 를 따로 켜지 않게(이 화면이 위치마다 방에 보냄, 2026-11-02 홍TV님 점검). */
+    function hikeFlag(on) {
+        window.rfHikeRunning = on;
+        try { document.dispatchEvent(new Event("rf-hike")); } catch (e) { /* 아주 옛 브라우저 - 다음 새로 그릴 때 */ }
     }
     /** SOS · 산악회 방에 쓸 실제 위치(1분 안) - 시험 걷기 위치는 아님(시계를 앞당겨 늘 "방금" 이었음, 2026-11-02 홍TV님 점검). 없으면 null. */
     function realFix() {

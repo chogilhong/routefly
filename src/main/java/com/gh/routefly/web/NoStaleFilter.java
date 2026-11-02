@@ -38,6 +38,9 @@ public class NoStaleFilter extends HttpFilter {
         if (v != null && path.startsWith("/") && AssetVersion.current(path.substring(1), v)) return "public, max-age=31536000, immutable";
         // img/(아이콘 · 로고 · og)는 하루 - 예전엔 머리글이 없어 화면마다 다시 물었음(2026-10-21 원스토어 전 점검). 바꾸면 하루 안에 퍼짐
         if (path.contains("/img/")) return "public, max-age=86400";
+        // data/(산 · 도장 · 안내 자료)는 10분 - 배포 때만 바뀌는데 화면마다 304 로 물었음(2026-11-02 홍TV님 점검). 정해 둔 시간이라 예전처럼 짐작으로 오래 쓰지 않음.
+        // 서비스 워커는 늘 no-cache 로 다시 물어(sw.js) 따라가기 · 설치한 앱은 그대로
+        if (path.startsWith("/data/")) return "public, max-age=600";
         return "no-cache";
     }
 }

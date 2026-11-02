@@ -44,9 +44,11 @@ public class WxServlet extends HttpServlet {
             return;
         }
         String ip = SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For"));
+        // 기상청 날씨누리 링크용 행정동(2026-10-30 홍TV님) - 셋과 함께 물음(2026-11-02 홍TV님 점검: 셋을 다 받은 뒤에 물어 그만큼 늦었음). 못 받으면 없이
+        CompletableFuture<JsonObject> rgF = start(() -> region(at[0], at[1], ip));
         JsonObject out = all(() -> WeatherServlet.forecast(at[0], at[1], ip), () -> MidServlet.at(at[0], at[1], ip), () -> AirServlet.at(at[0], at[1], ip));
-        JsonObject rg = region(at[0], at[1]);   // 기상청 날씨누리 링크용 행정동(2026-10-30 홍TV님) - 못 받으면 없이
-        if (rg != null) out.add("region", rg);
+        JsonObject rg = get(rgF, System.currentTimeMillis() + 1000);   // 행정동은 4초 안에 끝남 - 셋을 기다린 뒤라 거의 늘 끝나 있음
+        if (!rg.has("unavailable")) out.add("region", rg);
         if (partial(out)) Json.write(resp, HttpServletResponse.SC_OK, out, false);
         else Json.ok(req, resp, out);
     }
@@ -67,18 +69,20 @@ public class WxServlet extends HttpServlet {
     /** 자리(소수 둘째 자리 - 약 1km) → 행정동. 행정동은 거의 안 바뀌어 30일. 못 찾은 곳도 빈 것으로 기억(다시 묻지 않음). */
     private static final OpenApi.Cache<JsonObject> REGIONS = new OpenApi.Cache<>(5000, 30L * 86_400_000L);
     private static final JsonObject NONE = new JsonObject();
+    /** 카카오 행정동 - 기억에 없는 자리를 새로 묻는 횟수 상한(2026-11-02 홍TV님 점검: 다른 카카오 · 공공 API 처럼). */
+    private static final OutQuota QUOTA = OutQuota.of("region", 60, 3000);
 
     /**
      * 그 자리의 행정동 {code, name} - 기상청 날씨누리 동네예보 주소(#dong/행정동코드/위도/경도/…)에 씀. 카카오 좌표 → 행정구역(키 kakao.restKey).
      * 키가 없거나 못 받으면 null(화면은 날씨누리 첫 화면으로).
      */
-    static JsonObject region(double lat, double lon) {
+    static JsonObject region(double lat, double lon, String ip) {
         String key = String.format(java.util.Locale.ROOT, "%.2f,%.2f", lat, lon);
         long now = System.currentTimeMillis();
         JsonObject hit = REGIONS.get(key, now);
         if (hit != null) return hit == NONE ? null : hit;
         String kakao = RouteflyConfig.get("kakao.restKey");
-        if (kakao == null) return null;
+        if (kakao == null || !QUOTA.allow(ip, now)) return null;   // 상한 - 이번엔 없이(기억하지 않음)
         String t = OpenApi.get(REGION_URL + String.format(java.util.Locale.ROOT, "?x=%.6f&y=%.6f", lon, lat), "WX-REGION", java.time.Duration.ofSeconds(4), "Authorization", "KakaoAK " + kakao);
         if (t == null) return null;   // 연결 문제 - 기억하지 않음
         JsonObject r = parseRegion(t);

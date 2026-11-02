@@ -221,15 +221,18 @@
      */
     function declutter(items, pad) {
         var p = pad == null ? 3 : pad, kept = [];
-        items.slice().sort(function (a, b) { return a.prio - b.prio; }).forEach(function (it) {
-            var r = it.el.getBoundingClientRect();
-            if (!r.width) { it.el.classList.remove("hid"); return; }
+        // 자리를 모두 먼저 읽고 그다음 한꺼번에 숨김(2026-11-02 홍TV님 점검: 읽기 · 쓰기를 번갈아 이름표마다 화면 배치를 다시 셈).
+        // hid 는 opacity · visibility 만 바꿔 자리는 그대로라 먼저 읽어도 같음
+        var sorted = items.slice().sort(function (a, b) { return a.prio - b.prio; }), rects = sorted.map(function (it) { return it.el.getBoundingClientRect(); });
+        var hide = rects.map(function (r) {
+            if (!r.width) return false;
             var hit = kept.some(function (k) {
                 return r.left < k.right + p && r.right > k.left - p && r.top < k.bottom + p && r.bottom > k.top - p;
             });
-            it.el.classList.toggle("hid", hit);
             if (!hit) kept.push(r);
+            return hit;
         });
+        sorted.forEach(function (it, i) { it.el.classList.toggle("hid", hide[i]); });
     }
 
     var NUMBERED_PARK = /[^\s·→()\d]+\d+\s*\(([^()]+공원)\)/g;
@@ -260,7 +263,8 @@
      * c: {demUrl, vworldKey} (/api/map-config).
      */
     function baseStyle(c) {
-        var dem = { type: "raster-dem", tiles: [c.demUrl], encoding: "terrarium", tileSize: 256, maxzoom: 15, attribution: tr("지형: ", "Terrain: ") + "Terrain Tiles (AWS Open Data)" };
+        // V-World 지도 위 옅은 음영만이라 지형은 z12 까지(더 가까이는 늘려 씀 - 2026-11-02 홍TV님 점검: z15 까지 받던 타일). 키가 없어 음영이 바탕 전부면 z15
+        var dem = { type: "raster-dem", tiles: [c.demUrl], encoding: "terrarium", tileSize: 256, maxzoom: c.vworldKey ? 12 : 15, attribution: tr("지형: ", "Terrain: ") + "Terrain Tiles (AWS Open Data)" };
         var sources = { hillshade: dem }, layers = [{ id: "bg", type: "background", paint: { "background-color": c.vworldKey ? "#1b2430" : "#dcd6c6" } }];
         if (c.vworldKey) {
             var key = encodeURIComponent(c.vworldKey);
@@ -270,7 +274,7 @@
                 tiles: ["https://api.vworld.kr/req/wmts/1.0.0/" + key + "/Base/{z}/{y}/{x}.png"] };
             layers.push({ id: "sat", type: "raster", source: "sat", layout: { visibility: "none" } });
             layers.push({ id: "base", type: "raster", source: "base" });
-            layers.push({ id: "hillshade", type: "hillshade", source: "hillshade", paint: { "hillshade-exaggeration": 0.3 } });
+            layers.push({ id: "hillshade", type: "hillshade", source: "hillshade", minzoom: 9, paint: { "hillshade-exaggeration": 0.3 } });
         } else {
             layers.push({ id: "hillshade", type: "hillshade", source: "hillshade",
                 paint: { "hillshade-exaggeration": 0.65, "hillshade-shadow-color": "#3d4a3a", "hillshade-highlight-color": "#fbf7ea" } });

@@ -50,6 +50,8 @@ public class CourseServlet extends HttpServlet {
             // SHAPE - 응답 모양이 바뀌면 올림(2026-10-13 ends 추가 - 받아 둔 304 를 쓰지 않게)
             String tag = at.size() == 0 ? null : versionTag(id, at.get(0).getAsJsonObject().get("imported_at").toString() + "\n" + sideVersion(c) + "\n" + SHAPE);
             if (tag != null && Json.notModified(req, resp, tag)) return;
+            ResultCache.Entry built = tag == null ? null : DETAILS.get(tag, "-");
+            if (built != null) { Json.send(resp, built.body()); return; }   // 같은 ETag 로 만든 답 - 점 수천 개를 다시 읽지 않음
             JsonObject detail = CourseQueries.detail(c, id);
             if (detail == null) {
                 // 배치를 다시 돌려 번호가 바뀐 예전 링크 · 기록일 수 있어 같은 산 코스를 함께 줍니다(화면이 골라 보여 줌)
@@ -66,7 +68,11 @@ public class CourseServlet extends HttpServlet {
             addSource(detail, id);
             detail.addProperty("success", true);
             if (tag == null) Json.ok(req, resp, detail);
-            else Json.send(resp, detail.toString());
+            else {
+                String text = detail.toString();
+                DETAILS.put(tag, "-", text, tag);
+                Json.send(resp, text);
+            }
         } catch (Exception e) {
             log.warn("[COURSE] 조회 실패 id={} - {} (DB 접속 설정 db.url 등 · 표 routefly-batch sql/route_ddl.sql 확인)", id, e.toString());
             Json.fail(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
@@ -192,6 +198,12 @@ public class CourseServlet extends HttpServlet {
         JsonObject s = CourseSource.of(id);
         if (s != null && detail.has("course") && detail.get("course").isJsonObject()) detail.getAsJsonObject("course").add("source", s);
     }
+
+    /**
+     * 만든 코스 답(JSON 글) - ETag(넣은 시각 · 곁 표 회차 · 모양 판 · 배포 시각)가 열쇠라 자료가 바뀌면 저절로 새 열쇠. 10분 · 글자 8백만까지
+     * (2026-11-02 홍TV님 점검: 목록 API 처럼 - 인기 코스를 손님마다 DB 에서 다시 만들었음).
+     */
+    static final ResultCache DETAILS = new ResultCache(300, 8L * 1024 * 1024, ResultCache.TTL_MS, () -> "-", System::currentTimeMillis);
 
     /** 응답 모양 판 - ETag 에 넣음. */
     static final String SHAPE = "ends1-elev1-miss2-src1";   // elev1 - 정상 높이 공식 값(2026-10-16), miss1 - summit_miss(2026-10-30), src1 - course.source(2026-11-01)
