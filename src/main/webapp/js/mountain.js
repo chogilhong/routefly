@@ -298,11 +298,15 @@
         out.className = "";
     }
     show([sunLine(Date.now()), "날씨 불러오는 중…"]);
-    var tabs = document.createElement("div");
-    tabs.className = "days";
-    tabs.setAttribute("role", "group");
-    tabs.setAttribute("aria-label", "날짜 고르기");
-    out.parentNode.insertBefore(tabs, out);
+    // 날짜 줄은 서버가 자리를 미리 둠(2026-11-02 홍TV님 점검: 늦게 끼워 넣어 아래가 밀렸음 - 폰 CLS 0.098). 옛 화면이면 만들어 넣음
+    var tabs = out.parentNode.querySelector(".days");
+    if (!tabs) {
+        tabs = document.createElement("div");
+        tabs.className = "days";
+        tabs.setAttribute("role", "group");
+        tabs.setAttribute("aria-label", "날짜 고르기");
+        out.parentNode.insertBefore(tabs, out);
+    }
     // 오늘은 단추, 나머지 날은 고르는 칸(2026-10-15 홍TV님: 단추 11개가 세 줄을 차지했음)
     var todayBtn = document.createElement("button"), pick = document.createElement("select");
     todayBtn.type = "button";

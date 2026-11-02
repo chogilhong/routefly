@@ -133,7 +133,7 @@ final class MountainEn {
         if (MountainServlet.closed(peak) != null)   // 대암산 - 한국어 페이지의 ⛔ 와 같은 뜻(2026-10-18)
             b.append("<p class=\"closedNote\">⛔ The summit area is a restricted zone. Trails go only as far as the marked point below the summit (Korea Forest Service).</p>");
         b.append("<section id=\"wx\" data-lat=\"").append(peak.get("lat").getAsDouble()).append("\" data-lon=\"").append(peak.get("lon").getAsDouble())
-                .append("\"><h2>Weather · Air quality · Sunrise &amp; Sunset</h2><p class=\"dim\" id=\"wxBody\">Weather, air quality, sunrise and sunset (KMA · AirKorea) for today and the next few days appear here.</p></section>");
+                .append("\"><h2>Weather · Air quality · Sunrise &amp; Sunset</h2><div class=\"days\" role=\"group\" aria-label=\"Pick a day\"></div><p class=\"dim\" id=\"wxBody\">Weather, air quality, sunrise and sunset (KMA · AirKorea) for today and the next few days appear here.</p></section>");
         if (!courses.isEmpty()) b.append("<p class=\"jump\"><a href=\"#trails\">🥾 See the ").append(courses.size()).append(courses.size() == 1 ? " trail" : " trails").append(" ↓</a></p>");   // 한국어 페이지와 같게(2026-11-02)
         // ⛑️ Today's hiking safety(api/safety - 한국어 산 페이지와 같게, 2026-10-18) - js/mountain-en.js 가 채움
         b.append("<section id=\"safe\"><h2>⛑️ Today's hiking safety</h2><ul class=\"wl sfl\" id=\"sfList\"><li><span>Weather warnings, wildfire risk, UV and the nearest emergency room appear here.</span></li></ul>")

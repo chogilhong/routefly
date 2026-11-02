@@ -172,11 +172,15 @@
         out.className = "";
     }
     show([sunLine(Date.now()), "Loading weather…"]);
-    var tabs = document.createElement("div"), airBox = document.createElement("p"), wx = null, mid = null, air = null, today = null, picked = null;
-    tabs.className = "days";
-    tabs.setAttribute("role", "group");
-    tabs.setAttribute("aria-label", "Pick a day");
-    out.parentNode.insertBefore(tabs, out);
+    // 날짜 줄은 서버가 자리를 미리 둠(2026-11-02 홍TV님 점검: 늦게 끼워 넣어 아래가 밀렸음) - 옛 화면이면 만들어 넣음
+    var tabs = out.parentNode.querySelector(".days"), airBox = document.createElement("p"), wx = null, mid = null, air = null, today = null, picked = null;
+    if (!tabs) {
+        tabs = document.createElement("div");
+        tabs.className = "days";
+        tabs.setAttribute("role", "group");
+        tabs.setAttribute("aria-label", "Pick a day");
+        out.parentNode.insertBefore(tabs, out);
+    }
     // 오늘은 단추, 나머지 날(단기예보 ~ 10일 뒤 중기예보)은 고르는 칸 - 한국어 화면과 같은 모양
     var todayBtn = document.createElement("button"), pick = document.createElement("select"), hint = document.createElement("option");
     todayBtn.type = "button";

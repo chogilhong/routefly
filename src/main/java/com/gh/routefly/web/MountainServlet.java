@@ -709,7 +709,7 @@ public class MountainServlet extends HttpServlet {
         // 설명 바로 아래 - 날씨 칸 아래에 두었더니 화면이 그 아래 넣는 🎒 챙길 것에 밀려 첫 화면 밖으로 나갔음(점검 6차)
         if (!courses.isEmpty()) b.append("<p class=\"jump\"><a href=\"#trails\">🥾 코스 ").append(courses.size()).append("개 바로 보기 ↓</a></p>");
         b.append("<section id=\"wx\" data-lat=\"").append(peak.get("lat").getAsDouble()).append("\" data-lon=\"").append(peak.get("lon").getAsDouble())
-                .append("\"><h2>날씨 · 미세먼지 · 일출 · 일몰</h2><p class=\"dim\" id=\"wxBody\">오늘부터 며칠 뒤까지의 날씨 · 미세먼지 · 일출 · 일몰(기상청 · 에어코리아)을 이 칸에서 봅니다.</p></section>");
+                .append("\"><h2>날씨 · 미세먼지 · 일출 · 일몰</h2><div class=\"days\" role=\"group\" aria-label=\"날짜 고르기\"></div><p class=\"dim\" id=\"wxBody\">오늘부터 며칠 뒤까지의 날씨 · 미세먼지 · 일출 · 일몰(기상청 · 에어코리아)을 이 칸에서 봅니다.</p></section>");
         // ⛑️ 오늘의 산행 안전(api/safety - 2026-10-18 홍TV님: 별거 별거와 같은 것을 산 페이지에도) - 정상 자리로, 보이면 받음(js/mountain.js)
         b.append("<section id=\"safe\"><h2>⛑️ 오늘의 산행 안전</h2><ul class=\"wl sfl\" id=\"sfList\"><li><span>기상특보 · 산불위험 · 자외선 · 가까운 응급실을 이 칸에서 봅니다.</span></li></ul>")
                 .append("<h3>🏥 가까운 응급실</h3><ul class=\"wl\" id=\"sfEr\"></ul><p class=\"dim\">기상특보 · 자외선은 기상청, 산불위험은 산림청, 응급실은 국립중앙의료원 자료(지역은 가장 가까운 응급실 주소로). 위급하면 <b>119</b>.</p></section>");
