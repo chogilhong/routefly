@@ -20,11 +20,17 @@ var NOW = Date.UTC(2026, 10, 2, 3, 0);
 function realFix(hike) {
     return vm.runInNewContext("(function () {" + fn("realFix") + " return realFix(); })()", { hike: hike, Date: { now: function () { return NOW; } } });
 }
-var f = { lat: 37.5, lon: 127, acc: 5, t: NOW - 10000 };
+var f = { lat: 37.5, lon: 127, acc: 5, t: NOW - 10000, rx: NOW - 10000 };
 eq("실제 위치 10초 전 - 씀", realFix({ sim: false, fix: f }), f);
 eq("시험 걷기 중 - 안 씀", realFix({ sim: true, fix: f }), null);
-eq("1분 넘은 위치 - 안 씀", realFix({ sim: false, fix: { lat: 1, lon: 1, t: NOW - 61000 } }), null);
-eq("앞당긴 시계(시험 걷기에서 남은 위치) - 안 씀", realFix({ sim: false, fix: { lat: 1, lon: 1, t: NOW + 30 * 60000 } }), null);
+eq("1분 넘게 전에 받은 위치 - 안 씀", realFix({ sim: false, fix: { lat: 1, lon: 1, t: NOW - 61000, rx: NOW - 61000 } }), null);
+// 폰 시계가 GPS 시각과 어긋남(앱 백그라운드 위치의 t 는 GPS 시각) - 받은 시각(rx)으로 판단(2026-11-02 홍TV님 점검)
+var skew = { lat: 1, lon: 1, t: NOW + 3 * 60000, rx: NOW - 2000 };
+eq("GPS 시각이 3분 앞서도 방금 받았으면 씀", realFix({ sim: false, fix: skew }), skew);
+var behind = { lat: 1, lon: 1, t: NOW - 5 * 60000, rx: NOW - 2000 };
+eq("GPS 시각이 5분 늦어도 방금 받았으면 씀", realFix({ sim: false, fix: behind }), behind);
+eq("받은 시각이 없는 위치 - 안 씀", realFix({ sim: false, fix: { lat: 1, lon: 1, t: NOW } }), null);
+has("위치를 받을 때 받은 시각을 적음", "t: t, rx: Date.now() };");
 eq("위치 없음", realFix({ sim: false, fix: null }), null);
 has("SOS 창은 realFix", "var fresh = realFix();");
 has("방 SOS 보내기도 realFix, 없으면 ping", "var f = realFix(), r = f ? RFParty.fix(f.lat, f.lon, f.acc, true) : RFParty.ping(true);");
@@ -59,7 +65,43 @@ has("코스로 맞출 때 사이 단계 타일을 덜", "prefetchZoomDelta: 1");
 has("화면 배율은 2 까지", "pixelRatio: Math.min(window.devicePixelRatio || 1, 2)");
 has("옅은 음영 지형은 z12 까지", "maxzoom: cfg.vworldKey ? 12 : 15");
 has("따라가기는 followMe", "if (hike.follow) followMe(co.latitude, co.longitude);");
-has("나침반 3° 넘을 때만 지도 돌림", "turn > 3");
+// 점검 6차(2026-11-02 홍TV님): 글만 보던 것을 실제로 돌려 봄 - followMe 화면 가운데 10% 안이면 지도를 안 옮김
+function followRun(z, px, hidden) {
+    var eases = [];
+    var map = { getZoom: function () { return z; }, getCenter: function () { return [0, 0]; },
+        project: function (ll) { return ll[0] === 0 ? { x: 200, y: 400 } : { x: 200 + px, y: 400 }; },
+        getCanvas: function () { return { clientWidth: 400, clientHeight: 800 }; }, easeTo: function (o) { eases.push(o.zoom); } };
+    vm.runInNewContext(fn("followMe") + " followMe(37, 127);", { map: map, document: { hidden: !!hidden }, Math: Math });
+    return eases;
+}
+eq("가운데에서 39px(짧은 변 400의 10% 안) - 안 옮김", followRun(16, 39), []);
+eq("41px - 옮김(배율 그대로)", followRun(16, 41), [16]);
+eq("배율 15 밑 - 15로 옮김", followRun(13, 0), [15]);
+eq("화면이 꺼졌으면 안 옮김", followRun(16, 300, true), []);
+// 지나온 길 색 - 0.2% 단위가 같으면 다시 넣지 않음
+(function () {
+    var sets = [], ctx = { c: { total: 1000 }, doneK: 0, Math: Math, isFinite: isFinite, progressGradient: function (f) { return f; },
+        map: { getLayer: function () { return true; }, setPaintProperty: function (l, k, v) { sets.push(v); } } };
+    vm.runInNewContext("var doneK = 0;" + fn("paintDone") + " [0, 0.9, 1.1, 1.9, 500, 500.9, 1000].forEach(paintDone);", ctx);
+    eq("0.2% 단위가 바뀔 때만", sets, [0.002, 0.5, 1]);
+})();
+// 나침반 - 3° 넘을 때만 지도 돌림, 바늘 · 내 위치는 1° 넘을 때만
+function orientRun(hs, opt) {
+    opt = opt || {};
+    var needles = [], mes = [], rots = [], tt = 0, bearing = 0;
+    var compass = { listening: true, up: !!opt.up, lastTurn: -1000, text: null, raw: null };
+    var ctx = { compass: compass, hike: { fix: { lat: 1, lon: 2 }, guideBr: null }, meMarker: {}, Math: Math,
+        setNeedle: function (d) { needles.push(-d); }, setMe: function () { mes.push(1); }, turnGuideArrow: function () {},
+        $: function () { return {}; }, performance: { now: function () { return (tt += 200); } },
+        map: { getBearing: function () { return bearing; }, rotateTo: function (b) { rots.push(b); bearing = b; } } };
+    vm.runInNewContext(fn("drawOrientation") + " this.f = drawOrientation;", ctx);
+    hs.forEach(function (h) { compass.raw = h; ctx.f(); });
+    return { needles: needles, mes: mes.length, rots: rots };
+}
+var or1 = orientRun([10, 10.4, 10.9, 11.2, 359.5, 0.2], { up: true });
+eq("바늘은 1° 넘게 달라질 때만", or1.needles, [10, 11.2, 359.5]);
+eq("내 위치 화살표도 같이", or1.mes, 3);
+eq("지도는 3° 넘게 달라질 때만", or1.rots, [10, 359.5]);
 has("산행 중 표시(party-bar 가 GPS 를 따로 안 켬)", "window.rfHikeRunning = on;");
 var bar = fs.readFileSync(path.join(__dirname, "../../main/webapp/js/party-bar.js"), "utf8").replace(/\r\n/g, "\n");
 assert(bar.indexOf("&& !window.rfHikeRunning); }") >= 0 && bar.indexOf("document.addEventListener(\"rf-hike\"") >= 0, "party-bar 가 산행 중엔 watchPosition 을 안 켬"); n++;
@@ -167,5 +209,44 @@ assert(html.indexOf("id=\"sosOff\"") >= 0, "hike.html 에 SOS 끄기 단추"); n
 // 4: GPS 를 잃어도 인솔자에게 ping · SOS 를 받지 않았으면 알림
 has("GPS 오류 때 ping", "if (window.RFParty && hike.running && !hike.sim) { var pr = RFParty.ping(); if (pr) pr.catch(");
 has("sosKept false 알림", "if (j && j.sosKept === false) toast(");
+
+// ---- 점검 6차(2026-11-02 홍TV님): 갈림길 띠 - 읽어 주기 칸(aria-live)은 갈림길이 바뀔 때만 다시 씀
+function fakeEl() {
+    var e = { dataset: {}, style: {}, kids: [], attrs: {},
+        setAttribute: function (k, v) { e.attrs[k] = v; }, appendChild: function (k) { e.kids.push(k); return k; },
+        querySelector: function () { return e.kids.filter(function (k) { return k.attrs; })[0] || null; } };
+    Object.defineProperty(e, "textContent", { get: function () { return e.kids.length ? e.kids.map(function (k) { return k.textContent; }).join("") : (e._t || ""); },
+        set: function (v) { e.kids = []; e._t = v; e.writes = (e.writes || 0) + 1; } });
+    return e;
+}
+function junctionRun(en, ds) {
+    var box = fakeEl(), said = [], h = { off: 0, d: 0, alerted: {} };
+    var ctx = { hike: h, c: { junctions: [500] }, EN: en, OFF_ROUTE_M: 40, T: function (k, e) { return en ? e : k; },
+        $: function () { return box; }, navigator: {}, say: function (t) { said.push(t); }, Math: Math,
+        RF: { turnWord: function () { return en ? "right path" : "오른쪽 길"; } },
+        document: { createElement: function () { var x = fakeEl(); return x; }, createTextNode: function (t) { return { textContent: t }; } } };
+    vm.runInNewContext(fn("checkJunction") + " this.f = checkJunction;", ctx);
+    var texts = ds.map(function (d) { h.d = d; ctx.f(); return box.textContent; });
+    return { texts: texts, rebuilt: box.writes, said: said.length, hidden: box.kids[1] && box.kids[1].attrs["aria-hidden"] };
+}
+var jr = junctionRun(false, [430, 440, 460, 490]);
+eq("화면 글은 거리마다", jr.texts, ["🔀 70m 앞 갈림길 · 오른쪽 길", "🔀 60m 앞 갈림길 · 오른쪽 길", "🔀 40m 앞 갈림길 · 오른쪽 길", "🔀 갈림길 · 오른쪽 길"]);
+eq("읽어 주기 칸은 한 번만 다시 씀", jr.rebuilt, 1);
+eq("거리는 읽지 않는 칸", jr.hidden, "true");
+eq("말은 한 번", jr.said, 1);
+eq("영어", junctionRun(true, [440]).texts, ["🔀 Junction in 60 m · right path"]);
+assert(html.indexOf('<div id="turn" role="status" aria-live="polite"></div>') >= 0, "갈림길 띠는 polite"); n++;
+
+// ---- 점검 6차: GPS 끊김 30초 - 위치 권한 띠(perm)는 덮지 않음
+function gpsTickRun(cls) {
+    var b = { className: cls, textContent: "권한", style: {} }, buzz = 0;
+    var ctx = { hike: { running: true, sim: false, gpsLost: false, gpsT: 0 }, GPS_LOST_MS: 30000, Date: { now: function () { return 60000; } },
+        RF: { gpsGap: function () { return "lost"; } }, $: function () { return b; }, T: function (k) { return k; },
+        navigator: { vibrate: function () { buzz++; } }, clearTimeout: function () {} };
+    vm.runInNewContext(fn("gpsTick") + fn("gpsBanner") + " gpsTick();", ctx);
+    return [b.className, b.textContent, buzz, ctx.hike.gpsLost];
+}
+eq("권한 띠는 그대로", gpsTickRun("perm"), ["perm", "권한", 0, true]);
+eq("권한 띠가 없으면 끊김 띠", gpsTickRun(""), ["", "GPS 신호가 끊겼습니다 - 하늘이 보이는 곳으로", 1, true]);
 
 Promise.all(pending).then(function () { console.log("OK " + n); }, function (e) { console.error(e); process.exit(1); });

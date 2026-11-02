@@ -58,14 +58,22 @@ public class StatsServlet extends HttpServlet {
 
     /**
      * /stats · /check/heights 함께 - ?key= 또는 보기 쿠키(rf-stats)가 맞으면 true. 아니면 404(열쇠를 넣었는데 틀렸으면 셈), 너무 많이 틀렸으면 429 를 쓰고 false.
+     * 2026-11-02 홍TV님 점검: 열쇠를 바꾼 뒤 남은 옛 쿠키는 틀린 것으로 세지 않고 지움(Max-Age=0) - 옛 쿠키만으로 운영자 자신이 429 에 걸렸음.
+     * 맞는 보기 쿠키(열쇠의 SHA-256 - 쳐 볼 수 없음)는 429 보다 먼저 봄. ?key= 는 429 뒤에(막힌 동안 맞았는지 알려 주면 하나씩 쳐 보기를 못 막음).
      */
     static boolean seeOk(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         String ip = PartyServlet.missKey(RateLimiter.group(SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For"))));
         long now = System.currentTimeMillis();
-        if (KEY_MISSES.over(ip, now)) { resp.sendError(429); return false; }
         String want = RouteflyConfig.get("stats.key"), key = req.getParameter("key"), see = cookie(req, SEE_COOKIE);
-        if (allowed(want, key) || allowed(want == null ? null : seeToken(want), see)) return true;
-        if (key != null || see != null) KEY_MISSES.take(ip, now);
+        if (allowed(want == null ? null : seeToken(want), see)) return true;
+        if (KEY_MISSES.over(ip, now)) { resp.sendError(429); return false; }
+        if (allowed(want, key)) return true;
+        if (key != null) KEY_MISSES.take(ip, now);
+        if (see != null) {
+            String secure = req.isSecure() || "https".equalsIgnoreCase(req.getHeader("X-Forwarded-Proto")) ? "; Secure" : "";
+            for (String path : new String[] {"/stats", "/check"})
+                resp.addHeader("Set-Cookie", SEE_COOKIE + "=; Max-Age=0; Path=" + req.getContextPath() + path + "; HttpOnly; SameSite=Strict" + secure);
+        }
         resp.sendError(HttpServletResponse.SC_NOT_FOUND);
         return false;
     }
@@ -99,7 +107,6 @@ public class StatsServlet extends HttpServlet {
         return out;
     }
 
-    /** 순수 함수 - 열쇠가 설정돼 있고(12자 이상) 같을 때만(시간이 같은 견줌). */
     /** 순수 함수 - 보기 쿠키 값(열쇠 자체가 아니라 열쇠의 SHA-256 - 쿠키가 새어도 열쇠는 안 나옴). 열쇠를 바꾸면 옛 쿠키는 안 맞음. */
     static String seeToken(String key) {
         return hash("rf-stats:", key);
@@ -130,6 +137,7 @@ public class StatsServlet extends HttpServlet {
         return null;
     }
 
+    /** 순수 함수 - 열쇠가 설정돼 있고(12자 이상) 같을 때만(시간이 같은 견줌). */
     static boolean allowed(String want, String got) {
         if (want == null || want.length() < 12 || got == null) return false;
         return MessageDigest.isEqual(want.getBytes(StandardCharsets.UTF_8), got.getBytes(StandardCharsets.UTF_8));

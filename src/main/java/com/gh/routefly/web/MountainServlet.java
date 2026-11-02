@@ -296,12 +296,7 @@ public class MountainServlet extends HttpServlet {
         return html.substring(0, j + 4) + "<p class=\"fire\">" + esc(note) + "</p>" + html.substring(j + 4);
     }
 
-    /** 순수 함수 - 산불조심기간(봄 2/1 ~ 5/15 · 가을 11/1 ~ 12/15, 한국 날짜) 안내 글, 기간이 아니면 "". course-kit.js 의 fireNote(한국어)와 같은 글. */
-    static String fireNote(long ms) {
-        return fireNote(ms, false);
-    }
-
-    /** en - course-kit.js fireNote 의 영어 글. */
+    /** 순수 함수 - 산불조심기간(봄 2/1 ~ 5/15 · 가을 11/1 ~ 12/15, 한국 날짜) 안내 글, 기간이 아니면 "". course-kit.js 의 fireNote 와 같은 글(en - 영어). */
     static String fireNote(long ms, boolean en) {
         java.time.LocalDate d = java.time.Instant.ofEpochMilli(ms).atZone(java.time.ZoneOffset.ofHours(9)).toLocalDate();
         int md = d.getMonthValue() * 100 + d.getDayOfMonth();

@@ -711,7 +711,8 @@
             .concat((s.members || []).filter(function (m) { return m.lateAt && s.now - m.lateAt < 6 * 3600000; }).map(function (m) { return { id: "L" + m.id, nick: m.nick, seat: m.seat, bus: m.bus, msg: LATE, msgAt: m.lateAt }; }))
             .sort(function (a, b) { return b.msgAt - a.msgAt; });
         // 사무실이 고친 것(2026-11-02 홍TV님) - 최근 6시간, 셋까지 따로(회원 한 줄을 밀어내지 않게). 사무실 자리 자신에게는 울리지 않음
-        var os = (s.officeLog || []).filter(function (x) { return s.now - x.at < 6 * 3600000; }).map(function (x, i) { return { id: "O" + i + "_" + x.at, nick: s.office || T("사무실", "Office"), msg: officeLogText(x), msgAt: x.at, quiet: !!s.officeMe }; }).reverse().slice(0, 3);
+        // 알림 열쇠는 시각 · 무엇 · 대상(2026-11-02 홍TV님 점검) - 차례 번호로 하면 서버가 오래된 줄을 덜어 낼 때 번호가 밀려 지난 셋을 다시 울렸음
+        var os = (s.officeLog || []).filter(function (x) { return s.now - x.at < 6 * 3600000; }).map(function (x) { return { id: "O" + x.at + "_" + x.what + "_" + (x.arg == null ? "" : x.arg), nick: s.office || T("사무실", "Office"), msg: officeLogText(x), msgAt: x.at, quiet: !!s.officeMe }; }).reverse().slice(0, 3);
         var first = msgSeen === null, seen = msgSeen || {};
         ms.concat(os).forEach(function (m) {
             if (first || m.quiet || seen[m.id] === m.msgAt) return;

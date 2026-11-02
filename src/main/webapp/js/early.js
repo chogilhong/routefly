@@ -9,7 +9,8 @@ if (!/[#&]c=/.test(location.hash)) document.documentElement.className += " picki
  * 다 받은 뒤에야 돌아, 그때 물으면 느린 망(4G 약함)에서 지도 · 첫 타일이 1초 가까이 늦었음. 답은 hike.js 가 한 번 읽음(readJson).
  * 못 받으면 hike.js 가 예전처럼 기본 지형으로. 여기서는 오류 알림만 막음(.catch - 같은 약속을 hike.js 가 그대로 받음)
  */
-if (window.fetch) {
+function rfMapCfgEarly() {
+    if (!window.fetch || window.rfMapCfg) return;
     window.rfMapCfg = fetch("api/map-config", { headers: { "Accept": "application/json" } });
     window.rfMapCfg.catch(function () { /* hike.js 가 처리 */ });
 }
@@ -24,13 +25,14 @@ if (window.fetch) {
  */
 (function () {
     var root = document.documentElement;
-    function show() { root.className = root.className.replace(/\s*\brfwait\b/g, ""); }
+    // 코스 모음으로 넘길 수도 있는 동안은 지도 설정을 미리 묻지 않음 - 남으면(show) 그때 물음(2026-11-02 홍TV님 점검: 넘어갈 화면에서 헛걸음)
+    function show() { root.className = root.className.replace(/\s*\brfwait\b/g, ""); rfMapCfgEarly(); }
     try {
-        if (!window.Capacitor || sessionStorage.getItem("rf-app-opened")) return;
+        if (!window.Capacitor || sessionStorage.getItem("rf-app-opened")) return rfMapCfgEarly();
         sessionStorage.setItem("rf-app-opened", "1");
-        if (location.hash || location.search || navigator.onLine === false || !window.fetch) return;
+        if (location.hash || location.search || navigator.onLine === false || !window.fetch) return rfMapCfgEarly();
         var act = localStorage.getItem("rf-hike-active"), sv = act && JSON.parse(localStorage.getItem("rf-hike-" + act) || "null");
-        if (sv && sv.t && Date.now() - sv.t < 3 * 3600 * 1000) return;
+        if (sv && sv.t && Date.now() - sv.t < 3 * 3600 * 1000) return rfMapCfgEarly();
         root.className += " rfwait";
         var done = false, ctl = window.AbortController ? new AbortController() : null;
         var timer = setTimeout(function () { done = true; if (ctl) ctl.abort(); show(); }, 2500);

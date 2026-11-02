@@ -130,8 +130,15 @@ public class ReviewRound5Test {
             assertEquals("보기 쿠키로 열림(/check/heights 도 같은 seeOk)", 200, see(null, new Cookie[] {good}, "198.51.100.7", h));
             assertEquals(200, see(key, null, "198.51.100.7", h));
             assertEquals("열쇠 없음은 404", 404, see(null, null, "198.51.100.8", h));
-            for (int i = 0; i < 20; i++) assertEquals(404, see(i % 2 == 0 ? "wrong-key-" + i : null, i % 2 == 0 ? null : new Cookie[] {wrong}, "198.51.100.9", h));
+            for (int i = 0; i < 20; i++) assertEquals(404, see("wrong-key-" + i, null, "198.51.100.9", h));
             assertEquals("10분에 20번 틀리면 맞는 열쇠도 429", 429, see(key, null, "198.51.100.9", h));
+            assertEquals("맞는 보기 쿠키는 429 에도 열림(쳐 볼 수 없는 값)", 200, see(null, new Cookie[] {good}, "198.51.100.9", h));
+            // 2026-11-02 홍TV님 점검: 열쇠를 바꾼 뒤 남은 옛 쿠키는 세지 않고 지움
+            Map<String, List<String>> stale = new HashMap<>();
+            for (int i = 0; i < 30; i++) assertEquals(404, see(null, new Cookie[] {wrong}, "198.51.100.12", stale));
+            assertEquals("옛 쿠키는 틀린 것으로 세지 않음", 200, see(key, null, "198.51.100.12", stale));
+            assertTrue(stale.toString(), stale.get("Set-Cookie").contains("rf-stats=; Max-Age=0; Path=/routefly/stats; HttpOnly; SameSite=Strict")
+                    && stale.get("Set-Cookie").contains("rf-stats=; Max-Age=0; Path=/routefly/check; HttpOnly; SameSite=Strict"));
             assertEquals("다른 곳은 그대로", 200, see(key, null, "198.51.100.10", h));
             for (int i = 0; i < 30; i++) see(null, null, "198.51.100.11", h);
             assertEquals("열쇠 없이 연 것은 세지 않음", 200, see(key, null, "198.51.100.11", h));
@@ -206,7 +213,7 @@ public class ReviewRound5Test {
     @Test
     public void uxQuickWins() throws Exception {
         String html = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/webapp/hike.html")), js = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/webapp/js/hike.js"));
-        assertTrue(html.contains("<div id=\"turn\" role=\"status\" aria-live=\"assertive\"></div>") && html.contains("<div id=\"arrived\" role=\"status\" aria-live=\"assertive\"></div>"));
+        assertTrue(html.contains("<div id=\"turn\" role=\"status\" aria-live=\"polite\"></div>") && html.contains("<div id=\"arrived\" role=\"status\" aria-live=\"assertive\"></div>"));
         assertTrue("안내판 단추 누르는 자리 44px", html.contains("#boardOpen::after { content:\"\"; position:absolute; inset:-8px -5px; }"));
         assertTrue("안전 문구에 산악회 예외", html.contains("서버로 보내거나 저장하지 않습니다(산악회 방에 참가했을 때만 인솔자에게).") && html.contains("only if you join a hiking-club room, it goes to that room's leader"));
         assertTrue("문구를 바꿨으니 판도", js.contains("var SAFETY_KEY = \"rf-safety-ok-v2\";"));

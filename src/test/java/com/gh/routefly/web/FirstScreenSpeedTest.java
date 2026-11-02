@@ -92,17 +92,17 @@ public class FirstScreenSpeedTest {
         long autumn = java.time.ZonedDateTime.of(2026, 11, 2, 9, 0, 0, 0, java.time.ZoneOffset.ofHours(9)).toInstant().toEpochMilli();
         // course-kit.test.js 의 fireNote 와 같은 경계(한국 날짜)
         assertEquals(List.of(true, true, false, true, false, true, false), List.of(
-                !MountainServlet.fireNote(java.time.Instant.parse("2026-02-01T00:00:00Z").toEpochMilli()).isEmpty(),
-                !MountainServlet.fireNote(java.time.Instant.parse("2026-05-15T14:00:00Z").toEpochMilli()).isEmpty(),
-                !MountainServlet.fireNote(java.time.Instant.parse("2026-05-15T15:00:00Z").toEpochMilli()).isEmpty(),
-                MountainServlet.fireNote(java.time.Instant.parse("2026-11-01T00:00:00Z").toEpochMilli()).contains("가을철"),
-                !MountainServlet.fireNote(java.time.Instant.parse("2026-10-31T14:00:00Z").toEpochMilli()).isEmpty(),
-                !MountainServlet.fireNote(java.time.Instant.parse("2026-12-15T14:59:00Z").toEpochMilli()).isEmpty(),
-                !MountainServlet.fireNote(java.time.Instant.parse("2026-12-15T15:00:00Z").toEpochMilli()).isEmpty()));
+                !MountainServlet.fireNote(java.time.Instant.parse("2026-02-01T00:00:00Z").toEpochMilli(), false).isEmpty(),
+                !MountainServlet.fireNote(java.time.Instant.parse("2026-05-15T14:00:00Z").toEpochMilli(), false).isEmpty(),
+                !MountainServlet.fireNote(java.time.Instant.parse("2026-05-15T15:00:00Z").toEpochMilli(), false).isEmpty(),
+                MountainServlet.fireNote(java.time.Instant.parse("2026-11-01T00:00:00Z").toEpochMilli(), false).contains("가을철"),
+                !MountainServlet.fireNote(java.time.Instant.parse("2026-10-31T14:00:00Z").toEpochMilli(), false).isEmpty(),
+                !MountainServlet.fireNote(java.time.Instant.parse("2026-12-15T14:59:00Z").toEpochMilli(), false).isEmpty(),
+                !MountainServlet.fireNote(java.time.Instant.parse("2026-12-15T15:00:00Z").toEpochMilli(), false).isEmpty()));
         String kit = web("js/course-kit.js");
         assertTrue("글이 course-kit.js(따라가기 · 3D)와 같음", kit.contains("\"🔥 \" + season + \" 산불조심기간 - 일부 탐방로는 입산이 통제되고 산에서 불 · 담배는 금지입니다. 현지 안내판 · 공원 누리집을 확인하세요.\""));
         String html = MountainServlet.withFire("<main><h1>x</h1><p class=\"lead\">설명</p><section id=\"near\"></section><p class=\"lead\">둘째</p>", autumn);
-        assertEquals("첫 설명 바로 아래 한 번", "<main><h1>x</h1><p class=\"lead\">설명</p><p class=\"fire\">" + MountainServlet.fireNote(autumn).replace("<", "&lt;")
+        assertEquals("첫 설명 바로 아래 한 번", "<main><h1>x</h1><p class=\"lead\">설명</p><p class=\"fire\">" + MountainServlet.fireNote(autumn, false).replace("<", "&lt;")
                 + "</p><section id=\"near\"></section><p class=\"lead\">둘째</p>", html);
         assertEquals("기간이 아니면 그대로", "<p class=\"lead\">a</p>", MountainServlet.withFire("<p class=\"lead\">a</p>", java.time.Instant.parse("2026-07-01T00:00:00Z").toEpochMilli()));
         assertEquals("설명이 없는 화면은 그대로", "<p>a</p>", MountainServlet.withFire("<p>a</p>", autumn));

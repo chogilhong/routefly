@@ -81,6 +81,12 @@ var many = { now: 9000, members: [{ id: 3, nick: "철수", msg: "늦어요", msg
 var rm = alertRun([many]).bar.innerHTML;
 ok("회원 한 줄은 밀리지 않음", rm.indexOf("철수") >= 0);
 eq("사무실 줄은 셋까지", rm.split("사무실이 공지").length - 1, 3);
+// 서버는 10줄까지 남기고 오래된 것을 덜어 냄(Party.OFFICE_LOG_MAX) - 11번째 고침에 지난 줄을 다시 울리지 않음(2026-11-02 홍TV님 점검)
+var log10 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(function (i) { return { what: "notice", at: 5000 + i }; });
+var log11 = log10.slice(1).concat([{ what: "plate", arg: "2", at: 5011 }]);
+eq("11번째 고침은 한 번만 떪", alertRun([{ now: 5010, members: [], officeLog: log10 }, { now: 5020, members: [], officeLog: log11 }]).buzz, 1);
+eq("같은 시각 다른 고침은 따로 떪", alertRun([{ now: 5010, members: [], officeLog: [{ what: "board", arg: "영희", at: 5000 }] },
+    { now: 5020, members: [], officeLog: [{ what: "board", arg: "영희", at: 5000 }, { what: "board", arg: "철수", at: 5000 }] }]).buzz, 1);
 eq("6시간 지난 것은 안 보임", alertRun([{ now: 7 * 3600000, members: [], officeLog: [{ what: "notice", at: 0 }] }]).bar.hidden, true);
 
 // ---- 사무실 방 끝내기 · 산행 취소 - 한 번 더

@@ -54,6 +54,24 @@ eq("답은 window.rfMapCfg", e.has, true);
 eq("코스 없이 열면 코스 고르기(예전 그대로)", e.picking, " picking");
 eq("fetch 가 없는 브라우저는 그대로(hike.js 가 예전처럼 물음)", early(false).has, false);
 
+// 2026-11-02 홍TV님 점검: 앱을 처음 열어 코스 모음(m/)으로 넘길 때는 지도 설정을 미리 묻지 않음(넘어갈 화면에서 헛걸음)
+function appOpen(headOk) {
+    var calls = [], went = [], timers = [];
+    var ctx = {
+        Capacitor: {}, location: { hash: "", search: "", replace: function (u) { went.push(u); } },
+        document: { documentElement: { className: "" } },
+        sessionStorage: { getItem: function () { return null; }, setItem: function () {} },
+        localStorage: { getItem: function () { return null; } },
+        navigator: { onLine: true }, setTimeout: function (f) { timers.push(f); return 1; }, clearTimeout: function () {},
+        fetch: function (u, o) { calls.push(u + (o && o.method ? " " + o.method : "")); return u === "sw.js" ? Promise.resolve({ ok: headOk }) : Promise.resolve({ ok: true }); }
+    };
+    ctx.window = ctx;
+    vm.runInNewContext(fs.readFileSync(path.join(web, "js/early.js"), "utf8"), ctx);
+    var sync = calls.slice();
+    return Promise.resolve().then(function () {}).then(function () { return { sync: sync, calls: calls, went: went, cls: ctx.document.documentElement.className }; });
+}
+var appRuns = [appOpen(true), appOpen(false)];
+
 // 2026-11-02 점검: 위 가짜 fetch 답은 .json 이 없어 hike.js 가 실제로 읽는 길(readJson)을 돌려 보지 않았음 - hike.js 의 readJson 과 기본 지형 대체를 그대로 씀
 var hikeJs = fs.readFileSync(path.join(web, "js/hike.js"), "utf8").replace(/\r\n/g, "\n");   // PC(core.autocrlf)는 CRLF - 정규식이 \n 만 봄(2026-11-02 PC)
 var rj = /\n    function readJson\(r\) \{[\s\S]*?\n    \}\n/.exec(hikeJs);
@@ -65,12 +83,15 @@ function mapCfg(answer) {
     return early(answer).cfg.then(readJson).catch(function () { return { demUrl: "DEFAULT" }; }).then(function (j) { return j.demUrl; });
 }
 function res(ok, status, body) { return function () { return Promise.resolve({ ok: ok, status: status, json: function () { return typeof body === "string" ? Promise.reject(new SyntaxError(body)) : Promise.resolve(body); } }); }; }
-Promise.all([
+Promise.all(appRuns).then(function (r) {
+    eq("코스 모음으로 넘길 때 - HEAD 만, 지도 설정은 안 물음", [r[0].calls, r[0].went], [["sw.js HEAD"], ["m/"]]);
+    eq("서버가 안 닿아 남으면 그때 물음", [r[1].sync, r[1].calls, r[1].went], [["sw.js HEAD"], ["sw.js HEAD", "api/map-config"], []]);
+}).then(function () { return Promise.all([
     mapCfg(res(true, 200, { success: true, demUrl: "https://dem/{z}/{x}/{y}.png", vworldKey: null })),
     mapCfg(res(false, 500, { success: false, message: "서버 오류" })),
     mapCfg(res(false, 502, "<html>프록시</html>")),
     mapCfg(function () { return Promise.reject(new TypeError("Failed to fetch")); })
-]).then(function (r) {
+]); }).then(function (r) {
     eq("readJson - 200 이면 서버 설정", r[0], "https://dem/{z}/{x}/{y}.png");
     eq("readJson - 500 이면 기본 지형", r[1], "DEFAULT");
     eq("readJson - JSON 이 아닌 답(프록시 HTML)도 기본 지형", r[2], "DEFAULT");

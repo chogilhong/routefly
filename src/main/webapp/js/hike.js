@@ -2653,6 +2653,7 @@
         if (ev === "lost") {
             hike.gpsLost = true;
             clearTimeout(hike.gpsBackTimer);
+            if ($("gpsLost").className === "perm") return;   // 위치 권한 띠(고치는 법 · 다시 시도)를 덮지 않음(2026-11-02 홍TV님 점검)
             gpsBanner(T("GPS 신호가 끊겼습니다 - 하늘이 보이는 곳으로", "GPS signal lost - move to where you can see the sky"), "");
             if (navigator.vibrate) navigator.vibrate([300, 150, 300]);
         } else if (ev === "back") {
@@ -2737,7 +2738,8 @@
             }
             hike.jumps = 0;
         }
-        hike.fix = { lat: co.latitude, lon: co.longitude, acc: acc, alt: co.altitude, t: t };
+        // rx - 이 폰이 위치를 받은 시각(2026-11-02 홍TV님 점검): t 는 GPS 시각(앱 백그라운드 위치)이라 폰 시계와 어긋나면 SOS · 방이 실제 위치를 버렸음
+        hike.fix = { lat: co.latitude, lon: co.longitude, acc: acc, alt: co.altitude, t: t, rx: Date.now() };
         if (!hike.sim) sosTake(hike.fix);   // SOS 창이 열려 있으면 새 위치로(처음 잡았거나 더 정확해짐)
         if (!hike.sim && window.RFParty) {   // 산악회 방에 참가했을 때만 인솔자에게(party-kit.js, 30초마다)
             var pr = RFParty.fix(co.latitude, co.longitude, acc);
@@ -2902,8 +2904,20 @@
         var next = null;
         (c.junctions || []).forEach(function (jd) { if (jd > hike.d - 15 && (next == null || jd < next)) next = jd; });
         if (next == null || next - hike.d > 80) { box.style.display = "none"; return; }
-        var ahead = Math.max(0, Math.round(next - hike.d));
-        box.textContent = "🔀 " + (ahead < 15 ? T("갈림길", "Junction") : EN ? "Junction in " + ahead + " m" : ahead + "m 앞 갈림길") + " · " + RF.turnWord(c, next);
+        var ahead = Math.max(0, Math.round(next - hike.d)), w0 = RF.turnWord(c, next);
+        // 읽어 주기 칸(aria-live)은 갈림길이 바뀔 때만 다시 씀 - 남은 거리는 읽지 않는 칸에(2026-11-02 홍TV님 점검: 위치마다 화면 읽기가 되풀이)
+        var key = next + "|" + w0, dist = ahead < 15 ? "" : EN ? " in " + ahead + " m" : ahead + "m 앞 ";
+        if (box.dataset.j !== key) {
+            box.dataset.j = key;
+            box.textContent = "";
+            var dEl = document.createElement("span");
+            dEl.setAttribute("aria-hidden", "true");
+            box.appendChild(document.createTextNode(EN ? "🔀 Junction" : "🔀 "));
+            box.appendChild(dEl);
+            box.appendChild(document.createTextNode((EN ? "" : "갈림길") + " · " + w0));
+        }
+        var dSpan = box.querySelector("span");
+        if (dSpan.textContent !== dist) dSpan.textContent = dist;
         box.style.display = "block";
         if (!hike.alerted[next]) {
             hike.alerted[next] = true;
@@ -3292,7 +3306,11 @@
         }
         if (prof) prof.set(d);
         if (boardOpenNow && Date.now() - boardDrawn > 5000) drawBoard();   // 열려 있으면 5초마다 현위치를 다시
-        // 지나온 길 색 - 0.2% 단위로, 같으면 다시 넣지 않음(2026-11-02 홍TV님 점검: 1초마다 선 전체 색 표를 다시 만들었음)
+        paintDone(d);
+    }
+
+    /** 지나온 길 색 - 0.2% 단위로, 같으면 다시 넣지 않음(2026-11-02 홍TV님 점검: 1초마다 선 전체 색 표를 다시 만들었음). */
+    function paintDone(d) {
         var k = Math.round(d / c.total * 500);
         if (isFinite(k) && k !== doneK && map.getLayer("route-done")) { doneK = k; map.setPaintProperty("route-done", "line-gradient", progressGradient(k / 500)); }
     }
@@ -3938,7 +3956,9 @@
         var h = compass.raw;
         compass.heading = h;
         if (hike.guideBr != null) turnGuideArrow();   // 몸을 돌리면 화살표도 바로(GPS 를 기다리지 않고)
-        setNeedle(-h);   // 빨간 끝 = 실제 북쪽(핸드폰 위쪽 기준)
+        // 바늘 · 내 위치 화살표는 1° 넘게 달라졌을 때만(2026-11-02 홍TV님 점검: 센서가 초당 60번 - 손 떨림마다 다시 그렸음)
+        var moved = compass.drawnH == null || Math.abs(((h - compass.drawnH) % 360 + 540) % 360 - 180) >= 1;
+        if (moved) { compass.drawnH = h; setNeedle(-h); }   // 빨간 끝 = 실제 북쪽(핸드폰 위쪽 기준)
         var txt = Math.round(h) + "°";
         if (compass.text !== txt) { compass.text = txt; $("compassText").textContent = txt; }   // 같은 글은 다시 쓰지 않음(2026-11-02 홍TV님 점검)
         var t = performance.now(), turn = Math.abs(((h - map.getBearing()) % 360 + 540) % 360 - 180);
@@ -3946,7 +3966,7 @@
             compass.lastTurn = t;
             map.rotateTo(h, { duration: 100 });
         }
-        if (meMarker && hike.fix) setMe(hike.fix.lat, hike.fix.lon, null);
+        if (moved && meMarker && hike.fix) setMe(hike.fix.lat, hike.fix.lon, null);
     }
 
     /** 나침반 바늘 - 나침반이 켜져 있으면 실제 북쪽, 꺼져 있으면 지도의 북쪽. */
@@ -3958,6 +3978,7 @@
     function compassListen(on) {
         if (on === !!compass.listening) return;
         compass.listening = on;
+        compass.drawnH = null;   // 다시 켜면 첫 방위는 바로 그림
         var ev = "ondeviceorientationabsolute" in window ? "deviceorientationabsolute" : "deviceorientation";
         if (on) window.addEventListener(ev, onOrientation);
         else {
@@ -4450,7 +4471,7 @@
     /** SOS · 산악회 방에 쓸 실제 위치(1분 안) - 시험 걷기 위치는 아님(시계를 앞당겨 늘 "방금" 이었음, 2026-11-02 홍TV님 점검). 없으면 null. */
     function realFix() {
         var f = hike.fix, n = Date.now();
-        return f && !hike.sim && f.t <= n + 5000 && n - f.t < 60000 ? f : null;   // 5초 - 폰 시계와 GPS 시각이 조금 어긋나도(앞선 시각은 그만큼만)
+        return f && !hike.sim && f.rx != null && f.rx <= n && n - f.rx < 60000 ? f : null;   // 받은 시각(rx)으로 - GPS 시각(t)은 폰 시계와 어긋날 수 있음(2026-11-02 홍TV님 점검)
     }
     /** 산악회 방 SOS 켜고 끈 것을 바로 서버로 - 위치가 있으면 위치에 싣고, 없으면 위치 없이(ping, 2026-11-01 점검). */
     function partySend() {
