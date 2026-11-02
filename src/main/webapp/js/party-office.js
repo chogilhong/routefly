@@ -146,7 +146,6 @@
     function guest() { try { return localStorage.getItem(GKEY) === "1"; } catch (e) { return false; } }
     var ownerP = RFParty.post("office/me", {}).then(function (j) {
         REAL_OWNER = !!(j && j.owner);
-        try { if (REAL_OWNER) localStorage.setItem("rf-admin", "1"); else localStorage.removeItem("rf-admin"); } catch (e) { /* 표시만(코스 모음 GPX 편집 고리) */ }
     }).catch(function () { /* 남으로 */ }).then(function () { OWNER = REAL_OWNER && !guest(); drawOwner(); });
     function drawOwner() {
         $("ownerRow").hidden = !REAL_OWNER;

@@ -1697,3 +1697,22 @@ eq("favJoinExtra 제목이 없으면 지금 이름의 길", [RF.favJoinExtra("#c
     eq("overlapShare 코스 없음 · 점 없음", [RF.overlapShare(onLine, []), RF.overlapShare([], trails), RF.overlapShare(null, null)], [0, 0, 0]);
     eq("overlapShare 칸 경계(0.002°)를 넘는 마디", RF.overlapShare([[37.0031, 127.0039]], [{ coords: [[127.0, 37.003], [127.008, 37.003]] }]), 1);
 })();
+// 📮 코스 보내기 - 따라가기 · GPX 편집이 같이 쓰는 동의 글 · 본문 · 한도(2026-11-02 홍TV님 "GPX 편집을 누구나"). 좌표는 테스트 데이터
+(function () {
+    var t = [];
+    for (var i = 0; i < 12; i++) t.push([37.5 + i * 0.001, 127.0, Date.parse("2026-11-02T00:00:00Z") + i * 1000, 100 + i]);
+    eq("submitAgree 내가 직접 걸은 기록", [RF.submitAgree().indexOf("내가 직접 걸은 기록입니다(다른 앱 · 사이트에서 받은 남의 기록은 보내지 마세요)") === 0, /동의합니다$/.test(RF.submitAgree())], [true, true]);
+    RF.setLang("en");
+    var en = RF.submitAgree();
+    RF.setLang("ko");
+    eq("submitAgree 영어", en.indexOf("This is a track I walked myself") === 0, true);
+    var b = RF.submitBody("시험산 둘레길", "시험대장", "walk", "", t);
+    eq("submitBody agree · 시각 없음 · 점 그대로", [b.agree, b.kind, b.sender, /<time>/.test(b.gpx), RF.gpxTracks(b.gpx)[0].track.length, RF.gpxTracks(b.gpx)[0].track[0][3]], [true, "walk", "시험대장", false, 12, 100]);
+    eq("submitBody 원래 점은 그대로(시각 남음)", t[0][2] != null, true);
+    eq("submitProblem 보내도 됨", RF.submitProblem("시험산 둘레길", t, 2000), null);
+    var big = [];
+    for (var k = 0; k <= 50000; k++) big.push([37.5, 127.0, null, null]);
+    eq("submitProblem 서버 한도", [RF.submitProblem("가", t, 10), RF.submitProblem("시험산", t.slice(0, 9), 10), RF.submitProblem("시험산", big, 10), RF.submitProblem("시험산", t, 3 * 1024 * 1024 + 1)].map(function (x, i) { return x && x.indexOf(["2~60자", "적습니다", "5만 개까지", "3MB 까지"][i]) > 0; }),
+        [true, true, true, true]);
+    eq("submitFail 429 · 413", [RF.submitFail(429).indexOf("잦습니다") > 0, RF.submitFail(413).indexOf("너무 큽니다") > 0, RF.submitFail(502).indexOf("HTTP 502") > 0], [true, true, true]);
+})();

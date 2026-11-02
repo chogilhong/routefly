@@ -528,6 +528,7 @@ public class StatsServlet extends HttpServlet {
             case "/privacy-en.html" -> "개인정보처리방침(영어)";
             case "/lbs-terms-en.html" -> "위치기반서비스 이용약관(영어)";
             case "/feedback.html" -> "의견 보내기";
+            case "/studio.html" -> "GPX 편집";   // 2026-11-02 홍TV님 - 누구나 쓰게 됨
             case "/c/" -> "코스 소개 페이지(검색 손님)";
             case "/s/" -> "공유 링크";
             case "/m/" -> "산 모음";

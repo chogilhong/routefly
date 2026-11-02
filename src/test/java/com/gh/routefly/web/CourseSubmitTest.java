@@ -121,10 +121,11 @@ public class CourseSubmitTest {
         assertTrue(ko.contains("id=\"course-submit\"") && ko.contains("늦어도 30일"));
         assertTrue(en.contains("id=\"course-submit\"") && en.contains("30 days"));
         assertEquals("방침의 30일 = 서버", 30L * 24 * 3600_000L, CourseSubmitServlet.KEEP_MS);
-        String hike = Files.readString(Path.of("src/main/webapp/js/hike.js"), StandardCharsets.UTF_8);
-        assertTrue("시각을 빼고 보냄", hike.contains("RF.trackGpx(name, kind, track.map(function (p) { return [p[0], p[1], null, p[3]]; }))"));
+        // 2026-11-02 홍TV님 "GPX 편집을 누구나": 보내기 창은 course-kit 의 RF.submitSheet 하나(따라가기 · GPX 편집이 같이 씀)
+        String kit = Files.readString(Path.of("src/main/webapp/js/course-kit.js"), StandardCharsets.UTF_8);
+        assertTrue("시각을 빼고 보냄", kit.contains("trackGpx(name, kind, (track || []).map(function (p) { return [p[0], p[1], null, p[3]]; }))"));
         String studio = Files.readString(Path.of("src/main/webapp/js/studio.js"), StandardCharsets.UTF_8);
-        assertTrue("관리자가 아니면 편집기를 띄우지 않고 말없이 코스 모음으로", studio.contains("location.replace(\"m/\");") && !studio.contains("관리자 기기에서만"));
+        assertTrue("관리자가 아니어도 편집기를 띄움(코스 모음으로 돌려보내지 않음)", !studio.contains("location.replace(") && !studio.contains("관리자 기기에서만"));
         String page = Files.readString(Path.of("src/main/webapp/studio.html"), StandardCharsets.UTF_8);
         assertTrue("검색에 안 나오게", page.contains("<meta name=\"robots\" content=\"noindex\">") && !page.contains("관리자 기기인지"));
         assertFalse("사이트맵에 없음", Files.readString(Path.of("src/main/java/com/gh/routefly/web/SitemapServlet.java"), StandardCharsets.UTF_8).contains("studio"));

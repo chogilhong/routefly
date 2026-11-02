@@ -1,7 +1,9 @@
 /*
- * GPX 편집(studio.html, 2026-10-31 홍TV님 "/routefly/studio.html · GPX 편집 - PC 가 주 무대, 폰에서도. 작업해줘") - 관리자 기기만.
- * 길(track)은 [위도, 경도, 시각ms|null, 높이|null] 점 배열. 읽기 · 요약 · 나누기 · 잇기 · 쓰기는 course-kit(RF.gpxTracks 등 - node 시험).
- * 파일은 이 기기 안에서만 다루고, 서버로는 "⬆ 코스로" 때 선 모양 · 이름만(/api/course-upload - 운영자 기기만 받음).
+ * GPX 편집(studio.html, 2026-10-31 홍TV님 "/routefly/studio.html · GPX 편집 - PC 가 주 무대, 폰에서도. 작업해줘").
+ * 2026-11-02 홍TV님 "GPX 편집을 누구나": 열기 · 그리기 · 고치기 · 저장은 누구나. 운영자 기기만 "⬆ 코스로 올리기" · "📨 받은 GPX"(서버도 운영자 쿠키를 봄 - 403),
+ * 다른 사람은 그 자리에 "📮 routefly 에 코스 보내기"(따라가기 내 기록 보내기와 같은 RF.submitSheet · /api/course-submit).
+ * 길(track)은 [위도, 경도, 시각ms|null, 높이|null] 점 배열. 읽기 · 요약 · 나누기 · 잇기 · 쓰기는 course-kit(RF.gpxTracks 등 - node 테스트).
+ * 파일은 이 기기 안에서만 다루고, 서버로는 "⬆ 코스로 · 📮 보내기" 때 선 모양 · 이름만.
  */
 (function () {
     "use strict";
@@ -23,46 +25,73 @@
     /** 되돌리기 - 고치기 전 목록 전체(나누기 · 잇기로 늘거나 준 길도 함께, 점 배열은 고칠 때 새로 만들어 그대로 둬도 됨). */
     function push() { undo.push({ sel: sel, list: tracks.map(function (x) { return { name: x.name, track: x.track, color: x.color, sub: x.sub, meta: x.meta }; }) }); if (undo.length > 30) undo.shift(); $("undoBtn").disabled = false; }
 
-    // ---- 관리자 기기인가(/api/course-upload GET - 운영자 쿠키)
+    // ---- 관리자 기기인가(/api/course-upload GET - 운영자 쿠키). 2026-11-02 홍TV님 "누구나": 아니어도 편집기를 띄우고 올리기 대신 보내기
+    var owner = false;
     fetch("api/course-upload", { headers: { Accept: "application/json" }, cache: "no-store" }).then(function (r) { return r.json(); }).then(function (j) {
-        try { if (j && j.owner) localStorage.setItem("rf-admin", "1"); else localStorage.removeItem("rf-admin"); } catch (e) { /* 표시만 */ }
-        if (!j || !j.owner) throw new Error("not owner");
-        $("gate").hidden = true;
+        owner = !!(j && j.owner);
+    }).catch(function () { /* 못 물으면 운영자가 아닌 것으로 - 편집은 그대로 */ }).then(function () {
+        $("upBtn").hidden = $("upTip").hidden = !owner;
+        $("sendBtn").hidden = $("sendTip").hidden = owner;
+        $("upTool").setAttribute("data-go", owner ? "#upBtn" : "#sendBtn");
+        $("upTool").title = owner ? "코스로 올리기" : "routefly 에 코스 보내기";
+        $("upTool").textContent = owner ? "⬆" : "📮";
+        $("saveH").textContent = owner ? "저장 · 올리기" : "저장 · 보내기";
         $("app").hidden = false;
         startMap();
-        loadSubs();
-    }).catch(function () {
-        // 관리자 기기가 아니면 편집기를 띄우지 않고 말없이 코스 모음으로(2026-11-01 홍TV님 "GPX 편집은 나만 - 안내도 필요 없음").
-        // 서버도 올리기 · 받은 GPX 를 운영자 기기만 받음(403)
-        location.replace("m/");
+        if (owner) loadSubs();
+        pcHint();
     });
+    /** 작은 화면이면 한 번만 "PC 에서 쓰기 좋아요"(2026-11-02 홍TV님) - 이 기기에 기억. */
+    function pcHint() {
+        var k = "rf-studio-pc-hint";
+        try {
+            if (!window.matchMedia("(max-width: 860px)").matches || localStorage.getItem(k)) return;
+            localStorage.setItem(k, "1");
+        } catch (e) { return; }
+        msg("💻 GPX 편집은 PC 에서 쓰기 좋아요(큰 지도 · 마우스 · 파일 끌어 놓기). 폰에서도 됩니다.", 7000);
+    }
 
     // ---- 지도(따라가기와 같은 바탕: V-World 위성 · 밝은 지도 + 지형 음영, 키가 없으면 지형 음영만)
     /**
-     * 바탕 지도 · 겹침(2026-10-31 홍TV님 "지도 넣어줘" - gpx.studio 의 Basemaps · Overlays 처럼). 시험(관리자만) 동안 공용 타일을 씀 -
-     * OpenStreetMap · OpenTopoMap 공용 타일은 이용 규칙상 많은 사람이 쓰면 안 되니 공개 전에 정리(키 있는 타일로 바꾸거나 뺌).
+     * 바탕 지도 · 겹침(2026-10-31 홍TV님 "지도 넣어줘" - gpx.studio 의 Basemaps · Overlays 처럼).
+     * 2026-11-02 홍TV님 "GPX 편집을 누구나" - 누구나 쓰는 것(pub)은 공개 누리집에서 써도 되는 것만:
+     *   V-World(우리 키 - api/map-config, 국토교통부가 누리집에 쓰라고 내주는 키) · 지형 음영(AWS Open Data Terrain Tiles - 누구나 쓰는 공개 자료, 출처 표시).
+     * 운영자 기기만 남김: OpenStreetMap 공용 타일(tile.openstreetmap.org - OSMF 타일 이용 정책: 기부로 도는 서버라 많이 쓰는 서비스는 막을 수 있고 제 타일 서버를 쓰라고 함),
+     *   OpenTopoMap(봉사로 도는 서버 - 많이 쓰는 누리집 · 앱은 미리 묻도록 함), Waymarked Trails 겹침(개인이 돌리는 서버 - 같은 까닭).
+     *   손님이 늘어도 남의 공용 서버에 짐을 지우지 않으려고(정책 위반 · 막힘 걱정) 손님 화면에서는 아예 소스를 넣지 않음.
+     * 출처는 지도 오른쪽 아래(AttributionControl)에 소스마다 + "© OpenStreetMap contributors" 를 늘 붙임(CLAUDE.md - 숨기지 않음).
      */
     var BASES = [
-        { id: "sat", name: "🛰️ 위성사진(V-World)", vw: true },
-        { id: "base", name: "🗺️ 밝은 지도(V-World)", vw: true },
+        { id: "sat", name: "🛰️ 위성사진(V-World)", vw: true, pub: true },
+        { id: "base", name: "🗺️ 밝은 지도(V-World)", vw: true, pub: true },
         { id: "osm", name: "🧭 OpenStreetMap", tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"], max: 19, attr: "지도: © OpenStreetMap contributors" },
         { id: "topo", name: "⛰️ OpenTopoMap(등고선)", tiles: ["https://a.tile.opentopomap.org/{z}/{x}/{y}.png", "https://b.tile.opentopomap.org/{z}/{x}/{y}.png", "https://c.tile.opentopomap.org/{z}/{x}/{y}.png"], max: 17, attr: "지도: © OpenTopoMap (CC-BY-SA) · © OpenStreetMap contributors" },
-        { id: "none", name: "지형 음영만" }
+        { id: "none", name: "지형 음영만", pub: true }
     ];
     var OVERS = [
         { id: "hikeov", name: "🥾 등산로 노선(Waymarked Trails)", tiles: ["https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png"], attr: "등산로: © waymarkedtrails.org (CC-BY-SA) · © OpenStreetMap contributors" },
         { id: "bikeov", name: "🚴 자전거길 노선(Waymarked Trails)", tiles: ["https://tile.waymarkedtrails.org/cycling/{z}/{x}/{y}.png"], attr: "자전거길: © waymarkedtrails.org (CC-BY-SA) · © OpenStreetMap contributors" },
-        { id: "hillshade", name: "🏔️ 지형 음영" }
+        { id: "hillshade", name: "🏔️ 지형 음영", pub: true }
     ];
     var MAPKEY = "rf-studio-map";
-    function mapPref() { var p = null; try { p = JSON.parse(localStorage.getItem(MAPKEY) || "null"); } catch (e) { /* 처음 */ } return p && typeof p === "object" ? p : { base: "sat", over: { hillshade: 1 } }; }
+    /** 이 기기에서 고를 수 있는 바탕 · 겹침인가 - 운영자는 모두, 손님은 pub 만(위 까닭). */
+    function usable(x) { return owner || !!x.pub; }
+    /** 기억해 둔 고름 - 키가 없어 V-World 를 못 쓰거나 손님이 못 쓰는 바탕이면 운영자는 OpenTopoMap, 손님은 지형 음영만. */
+    function mapPref() {
+        var p = null;
+        try { p = JSON.parse(localStorage.getItem(MAPKEY) || "null"); } catch (e) { /* 처음 */ }
+        p = p && typeof p === "object" ? p : { base: "sat", over: { hillshade: 1 } };
+        var b = BASES.filter(function (x) { return x.id === p.base; })[0];
+        if (!b || !usable(b) || (b.vw && !cfgVw)) p.base = owner && !cfgVw ? "topo" : cfgVw ? "sat" : "none";
+        return p;
+    }
     function style(cfg) {
         var pref = mapPref();
-        if (!cfg.vworldKey && (pref.base === "sat" || pref.base === "base")) pref.base = "topo";
         var dem = { type: "raster-dem", tiles: [cfg.demUrl], encoding: "terrarium", tileSize: 256, maxzoom: 15, attribution: "지형: Terrain Tiles (AWS Open Data)" };
         var sources = { hillshade: dem }, layers = [{ id: "bg", type: "background", paint: { "background-color": "#dcd6c6" } }];
         var key = cfg.vworldKey ? encodeURIComponent(cfg.vworldKey) : null;
         BASES.forEach(function (b) {
+            if (!usable(b)) return;
             var src = b.vw ? (key ? { type: "raster", tileSize: 256, minzoom: 6, maxzoom: 19, tiles: ["https://api.vworld.kr/req/wmts/1.0.0/" + key + (b.id === "sat" ? "/Satellite/{z}/{y}/{x}.jpeg" : "/Base/{z}/{y}/{x}.png")],
                 attribution: b.id === "sat" ? "위성사진: 국토교통부 V-World" : "지도: 국토교통부 V-World" } : null)
                 : b.tiles ? { type: "raster", tileSize: 256, maxzoom: b.max, tiles: b.tiles, attribution: b.attr } : null;
@@ -73,7 +102,7 @@
         layers.push({ id: "hillshade", type: "hillshade", source: "hillshade", layout: { visibility: pref.over && pref.over.hillshade ? "visible" : "none" },
             paint: { "hillshade-exaggeration": 0.3, "hillshade-shadow-color": "#3d4a3a", "hillshade-highlight-color": "#fbf7ea" } });
         OVERS.forEach(function (o) {
-            if (!o.tiles) return;
+            if (!o.tiles || !usable(o)) return;
             sources[o.id] = { type: "raster", tileSize: 256, maxzoom: 18, tiles: o.tiles, attribution: o.attr };
             layers.push({ id: o.id, type: "raster", source: o.id, layout: { visibility: pref.over && pref.over[o.id] ? "visible" : "none" }, paint: { "raster-opacity": 0.9 } });
         });
@@ -82,15 +111,15 @@
     /** 🗺 지도 고르기 칸 - 바탕 하나 + 겹침 여럿, 이 기기에 기억. */
     function mapMenu() {
         var box = $("mapMenu"), pref = mapPref();
-        if (!cfgVw && (pref.base === "sat" || pref.base === "base")) pref.base = "topo";
         var h = "<b>바탕 지도</b>";
         BASES.forEach(function (b) {
-            if (b.vw && !cfgVw) return;
+            if ((b.vw && !cfgVw) || !usable(b)) return;
             h += '<label><input type="radio" name="mb" value="' + b.id + '"' + (pref.base === b.id ? " checked" : "") + "> " + b.name + "</label>";
         });
         h += "<b>겹쳐 보기</b>";
-        OVERS.forEach(function (o) { h += '<label><input type="checkbox" value="' + o.id + '"' + (pref.over && pref.over[o.id] ? " checked" : "") + "> " + o.name + "</label>"; });
-        h += '<p class="tip">OpenStreetMap · OpenTopoMap · Waymarked 는 공용 타일 - 시험 동안만(공개 전에 정리).</p>';
+        OVERS.forEach(function (o) { if (usable(o)) h += '<label><input type="checkbox" value="' + o.id + '"' + (pref.over && pref.over[o.id] ? " checked" : "") + "> " + o.name + "</label>"; });
+        h += owner ? '<p class="tip">OpenStreetMap · OpenTopoMap · Waymarked 는 남의 공용 타일 - 운영자 기기에만 보입니다(손님 화면에는 없음).</p>'
+            : '<p class="tip">지도: 국토교통부 V-World · 지형: AWS Terrain Tiles · © OpenStreetMap contributors</p>';
         box.innerHTML = h;
         Array.prototype.forEach.call(box.querySelectorAll("input"), function (inp) {
             inp.onchange = function () {
@@ -109,7 +138,7 @@
         if (!window.maplibregl) { msg("지도를 띄우지 못했습니다(그래프 · 도구는 됩니다).", 6000); return; }
         fetch("api/map-config", { headers: { Accept: "application/json" } }).then(function (r) { return r.json(); }).catch(function () { return {}; }).then(function (j) {
             var cfg = { demUrl: j.demUrl || "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png", vworldKey: j.vworldKey || null };
-            hasSat = !!cfg.vworldKey;
+            hasSat = cfgVw = !!cfg.vworldKey;   // 바탕 고름(mapPref)이 먼저 앎
             demUrl = cfg.demUrl;
             map = new maplibregl.Map({ container: "map", style: style(cfg), center: [127.8, 36.3], zoom: 6.2, attributionControl: false, dragRotate: false, pitchWithRotate: false });
             map.touchZoomRotate.disableRotation();
@@ -172,7 +201,6 @@
             map.on("styledata", init);
             map.on("load", init);
             init();   // 바탕을 글로 넣어 이미 준비됐을 수 있음
-            cfgVw = hasSat;
             $("layer").hidden = false;
             $("layer").onclick = function () {
                 var m = $("mapMenu");
@@ -266,7 +294,7 @@
         var L = 34, R = 6, T = 8, B = 18;
         g.font = "11px Arial";
         g.fillStyle = "#9aa6b4";
-        if (!es.length) { g.fillText("이 길에는 높이가 없습니다(코스로 올리면 지형 높이로 매김)", L, H / 2); }
+        if (!es.length) { g.fillText("이 길에는 높이가 없습니다(코스가 되면 지형 높이로 매김)", L, H / 2); }
         else {
             var lo = Infinity, hi = -Infinity;   // apply 대신 돌며 셈(긴 GPX 에서 RangeError, 2026-11-01 점검)
             for (var k = 0; k < es.length; k++) { if (es[k] < lo) lo = es[k]; if (es[k] > hi) hi = es[k]; }
@@ -730,7 +758,7 @@
             drawDraft();
             drawPanel();
             add("새 길 " + new Date().toLocaleDateString("ko-KR"), tr);
-            msg("새 길을 목록에 넣었습니다. 이름을 고치고 저장하거나 코스로 올리세요.", 6000);
+            msg("새 길을 목록에 넣었습니다. 이름을 고치고 저장하거나 " + (owner ? "코스로 올리세요." : "routefly 에 보내세요."), 6000);
             draw(true);
         });
     }
@@ -904,6 +932,13 @@
                     });
             });
         }).catch(function (e) { msg("올리지 못했습니다: " + (e && e.message || e), 7000); });
+    };
+    // 📮 routefly 에 코스 보내기(운영자가 아닌 기기, 2026-11-02 홍TV님) - 따라가기 내 기록 보내기와 같은 창 · 같은 동의(RF.submitSheet).
+    // 보내도 편집 중인 길은 그대로(창만 닫힘). 앞 · 뒤 자르기는 이 화면의 ✂ 도구로 먼저 - 창 안내에 "집 근처는 먼저 자르세요".
+    $("sendBtn").onclick = function () {
+        var c = cur();
+        if (!c) return;
+        RF.submitSheet({ name: c.name, kind: $("kind").value, track: c.track, sent: function (t) { msg("📮 " + t, 9000); } });
     };
     window.addEventListener("resize", function () { if (cur()) profile(); });
     // ‹ 뒤로 - 들어온 화면으로(코스 모음 · 내 기록), 바로 열었으면 코스 모음(2026-10-31 홍TV님 "따라가기로 하지 말고 뒤로")

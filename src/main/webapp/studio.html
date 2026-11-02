@@ -7,9 +7,9 @@
 <title>routefly GPX 편집</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=2"><link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
 <meta name="theme-color" content="#11161d">
-<!-- GPX 편집(2026-10-31 홍TV님 "/routefly/studio.html · GPX 편집 - PC 가 주 무대, 폰에서도") - 관리자 기기만.
-     GPX 열기 · 내 기록 불러오기 → 지도 · 높이 그래프 · 거리 · 오르막 → 자르기 · 나누기 · 잇기 · 뒤집기 → GPX 저장 · ⬆ 코스로.
-     파일은 이 기기 안에서만 다룸(서버로는 "⬆ 코스로" 를 누를 때 선 모양만). -->
+<!-- GPX 편집(2026-10-31 홍TV님 "/routefly/studio.html · GPX 편집 - PC 가 주 무대, 폰에서도"). 2026-11-02 홍TV님 "누구나" - 운영자 기기만 ⬆ 코스로 · 📨 받은 GPX, 손님은 📮 보내기.
+     GPX 열기 · 내 기록 불러오기 → 지도 · 높이 그래프 · 거리 · 오르막 → 자르기 · 나누기 · 잇기 · 뒤집기 → GPX 저장 · ⬆ 코스로(운영자) · 📮 보내기(손님).
+     파일은 이 기기 안에서만 다룸(서버로는 "⬆ 코스로 · 📮 보내기" 를 누를 때 선 모양만). -->
 <link rel="stylesheet" href="vendor/maplibre-gl-5.24.0/maplibre-gl.css">
 <link rel="stylesheet" href="css/course-kit.css">
 <style>
@@ -59,7 +59,6 @@ button, select, input[type=text] { font:15px Arial,"Malgun Gothic",sans-serif; }
 label.sl { display:block; margin-top:8px; font-size:14px; }
 label.sl input { width:100%; }
 #msg { position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom) + 18px); transform:translateX(-50%); z-index:50; max-width:92vw; padding:10px 16px; border-radius:10px; background:rgba(0,0,0,0.85); color:#fff; font-size:14px; display:none; }
-#gate { padding:30px 18px; text-align:center; }
 #subList .sub { padding:8px; margin-top:6px; border-radius:8px; border:1px solid var(--ln); }
 #subList .sub > b, #subList .sub > span { display:block; font-size:13px; color:var(--dim); line-height:1.5; word-break:keep-all; }
 #subList .sub > b { font-size:14px; color:var(--tx); }
@@ -76,7 +75,6 @@ label.sl input { width:100%; }
 </head>
 <body>
 <div id="top"><a href="m/" id="backBtn">‹ 뒤로</a><h1>📐 GPX 편집</h1></div>
-<div id="gate"></div>
 <div id="app" hidden>
     <div id="mapWrap"><div id="map"></div>
         <div id="mapTools" role="toolbar" aria-label="편집 도구">
@@ -90,7 +88,7 @@ label.sl input { width:100%; }
             <button type="button" data-go="#revBtn" title="뒤집기">↔</button>
             <button type="button" data-go="#undoBtn" title="되돌리기">↶</button>
             <button type="button" data-go="#saveBtn" title="GPX 저장">💾</button>
-            <button type="button" data-go="#upBtn" title="코스로 올리기">⬆</button>
+            <button type="button" id="upTool" data-go="#sendBtn" title="routefly 에 코스 보내기">📮</button>
         </div><button id="layer" type="button" hidden>🗺 지도 고르기</button><div id="mapMenu" hidden></div><div id="drop">여기에 GPX 를 놓으세요</div></div>
     <div id="side">
         <section>
@@ -123,10 +121,11 @@ label.sl input { width:100%; }
             <div id="toolBox"></div>
         </section>
         <section id="saveSec" hidden>
-            <h2>저장 · 올리기</h2>
+            <h2 id="saveH">저장 · 보내기</h2>
             <div class="row"><button class="b" id="saveBtn" type="button">💾 GPX 저장</button></div>
-            <div class="row" style="margin-top:6px"><select id="kind" class="b" aria-label="종류"><option value="hike">⛰️ 등산</option><option value="walk">🚶 걷기</option><option value="bike">🚴 자전거</option></select><button class="b main" id="upBtn" type="button">⬆ 코스로 올리기</button></div>
-            <p class="tip">⬆ 코스로: 고른 길의 선 모양과 이름만 서버로 - 1시간 안(매시 7분)에 코스 목록에 들어갑니다. 누구나 보는 코스가 되니 집 근처 부분은 먼저 자르세요.</p>
+            <div class="row" style="margin-top:6px"><select id="kind" class="b" aria-label="종류"><option value="hike">⛰️ 등산</option><option value="walk">🚶 걷기</option><option value="bike">🚴 자전거</option></select><button class="b main" id="upBtn" type="button" hidden>⬆ 코스로 올리기</button><button class="b main" id="sendBtn" type="button">📮 routefly 에 코스 보내기</button></div>
+            <p class="tip" id="sendTip">📮 보내면 운영자가 확인한 뒤 코스 목록에 넣습니다. 집 근처는 먼저 자르세요.</p>
+            <p class="tip" id="upTip" hidden>⬆ 코스로: 고른 길의 선 모양과 이름만 서버로 - 1시간 안(매시 7분)에 코스 목록에 들어갑니다. 누구나 보는 코스가 되니 집 근처 부분은 먼저 자르세요.</p>
         </section>
     </div>
 </div>
