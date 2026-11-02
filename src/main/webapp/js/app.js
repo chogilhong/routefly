@@ -1415,7 +1415,7 @@
         readSharedSearch();
         loadCourses();
         // 2026-10-09 홍TV님: 목록을 펼친 채로 시작합니다('코스' · '접기' 단추를 없애 한 단계 줄임). 핸드폰에서 코스를 고르거나
-        // 날기 시작하면 목록을 접어 지도를 넓게 쓰고, '← 뒤로' 를 누르면 다시 목록으로 돌아옵니다.
+        // 날기 시작하면 목록을 접어 지도를 넓게 쓰고, '‹ 뒤로' 를 누르면 다시 목록으로 돌아옵니다.
         setListOpen(true);
         map.on("moveend", scheduleViewLoad);
         map.on("render", declutterSoon);   // 이름표 겹침 - 지도가 움직이는 동안 0.15초마다 다시
@@ -1504,13 +1504,13 @@
     // 뒤로 - 핸드폰에서 코스를 보는 중(목록을 접음)이면 먼저 목록으로 한 단계만. 목록이 보이면 '목록' 단추로
     // 첫 화면(따라가기의 코스 목록)으로 - 공원 전체 → 미리보기로 와도 공원 화면이 아니라 첫 화면(2026-10-11 홍TV님)
     // 어느 화면에서 왔는지 - fly 링크가 hash 에 붙인 표시(&from=hike · series)를 먼저 봄. 새로 고쳐도 hash 는 남음
-    // (2026-10-14 홍TV님 앱: "새 버전" 으로 새로 고치면 referrer · 새로 고침 판단이 통하지 않아 "← 따라가기" 가 됐음)
+    // (2026-10-14 홍TV님 앱: "새 버전" 으로 새로 고치면 referrer · 새로 고침 판단이 통하지 않아 "‹ 따라가기" 가 됐음)
     var FROM_PAGES = { hike: "hike.html", series: "series.html" };
     var fromTag = (/[#&]from=([a-z]+)/.exec(location.hash) || [])[1];
     if (!FROM_PAGES[fromTag]) fromTag = null;
-    // 산 소개 페이지(/m/산)에서 왔으면 &m=산 - 그 페이지로(2026-10-14 PC: 새로 고치면 "← 따라가기" 가 됐음)
+    // 산 소개 페이지(/m/산)에서 왔으면 &m=산 - 그 페이지로(2026-10-14 PC: 새로 고치면 "‹ 따라가기" 가 됐음)
     var fromMountain = RF.safeDecode((/[#&]m=([^&]+)/.exec(location.hash) || [])[1] || "") || null;
-    // 공유 링크(s/…)는 location.replace 로 넘어와 history 에 없음 - 앞 화면이 아니라 바로 연 것으로(2026-10-14 PC: "← 뒤로" 로 나왔음)
+    // 공유 링크(s/…)는 location.replace 로 넘어와 history 에 없음 - 앞 화면이 아니라 바로 연 것으로(2026-10-14 PC: "‹ 뒤로" 로 나왔음)
     var fromRef = !!document.referrer && document.referrer.indexOf(location.origin) === 0 && document.referrer.split("#")[0] !== location.href.split("#")[0]
         && !/\/s\//.test(document.referrer.slice(location.origin.length).split(/[?#]/)[0]);
     var fromPage = !!fromTag || !!fromMountain || fromRef;
@@ -1519,7 +1519,7 @@
     var canBack = fromRef;
     try { canBack = canBack || ((!!fromTag || !!fromMountain) && sessionStorage.getItem("rf-fly-back") === "1"); } catch (e) { /* 저장소를 못 쓰면 referrer 만 */ }
     $("back").addEventListener("click", function () {
-        // 다른 화면(탐방 안내도의 "routefly(3D) ›" 등)에서 왔으면 "← 뒤로" 는 바로 그 화면으로(2026-10-13 홍TV님)
+        // 다른 화면(탐방 안내도의 "routefly(3D) ›" 등)에서 왔으면 "‹ 뒤로" 는 바로 그 화면으로(2026-10-13 홍TV님)
         // 다른 화면(도장 · 완주의 "fly")에서 왔으면 목록이 펼쳐져 있어도 그 화면으로 - 이 화면의 코스 목록은 이제 안 씀(2026-10-13 홍TV님)
         if (fromPage && canBack && history.length > 1) { stop(); history.back(); return; }
         if (fromTag) { stop(); location.href = FROM_PAGES[fromTag]; return; }
@@ -1530,9 +1530,9 @@
         if (fromHike && history.length > 1) history.back();   // 따라가기에서 왔으면 그 화면 그대로(검색 결과 포함)
         else location.href = "hike.html";
     });
-    /** 뒤로 단추 글: 다른 화면에서 왔으면 '← 뒤로'(그 화면으로), 공유 링크로 바로 열었으면 '← 따라가기'(그 코스 따라가기로). */
+    /** 뒤로 단추 글: 다른 화면에서 왔으면 '‹ 뒤로'(그 화면으로), 공유 링크로 바로 열었으면 '‹ 따라가기'(그 코스 따라가기로). */
     function setBackLabel() {
-        $("back").textContent = fromPage ? T("← 뒤로", "← Back") : T("← 따라가기", "← Follow");
+        $("back").textContent = fromPage ? T("‹ 뒤로", "‹ Back") : T("‹ 따라가기", "‹ Follow");
         $("back").title = fromPage ? T("앞 화면으로", "Back to the previous screen") : T("이 코스 따라가기로", "Follow this trail");
     }
     // 📍 내 주변 코스 · 📒 내 기록 · 📂 GPX 열기 - 따라가기 화면의 코스 고르기와 같은 세 가지

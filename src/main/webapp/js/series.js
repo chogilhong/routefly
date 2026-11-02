@@ -59,9 +59,9 @@
     /** "fly" - 그 코스를 3D 지형 위로 날아 보는 화면(index.html), 따라가기 왼쪽(2026-10-13 홍TV님: 지웠던 미리보기 자리). 그 화면의 ← 는 이 화면으로. */
     function flyBtn(row, id) {
         var a = el("a", null, "fly(3D)");
-        a.href = "index.html#c=" + encodeURIComponent(id) + "&from=series";   // 그 화면 "← 뒤로" 가 새로 고쳐도 남게(2026-10-14)
+        a.href = "index.html#c=" + encodeURIComponent(id) + "&from=series";   // 그 화면 "‹ 뒤로" 가 새로 고쳐도 남게(2026-10-14)
         a.title = T("3D 지형 위로 날아 보기", "Fly over the 3D terrain");
-        a.addEventListener("click", function () { try { sessionStorage.setItem("rf-fly-back", "1"); } catch (e) { } });   // 3D 의 "← 뒤로" 가 이 화면으로 back
+        a.addEventListener("click", function () { try { sessionStorage.setItem("rf-fly-back", "1"); } catch (e) { } });   // 3D 의 "‹ 뒤로" 가 이 화면으로 back
         row.appendChild(a);
     }
 

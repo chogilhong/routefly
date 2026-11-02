@@ -912,7 +912,7 @@
             var park = RF.parkOf(c.course.name) || RF.mountainOf(c.course.name, id)   // 국립공원, 아니면 도립 · 군립공원 · 산
                 // 둘레길("[북한산둘레길] 21구간 우이령길")도 그 공원 탐방 안내도로(🏞 만 - 통제 안내 · 지명 바꿈은 둘레길에 쓰지 않음, 2026-10-13 PC)
                 || RF.parkOf(String(c.course.name).replace(/^\[?([가-힣]+)둘레길.*$/, "$1"));
-            // 목록 카드로 연 것과 같은 첫 화면(위 "← 목록" · 아래 "따라가기") - back=list 없이 열면 "‹ 코스" 가 코스 미리보기(3D)로 갔음(2026-10-13 홍TV님)
+            // 목록 카드로 연 것과 같은 첫 화면(위 "‹ 목록" · 아래 "따라가기") - back=list 없이 열면 "‹ 코스" 가 코스 미리보기(3D)로 갔음(2026-10-13 홍TV님)
             parkHref = park ? "park.html?name=" + encodeURIComponent(park) + "&back=list" : null;
             // 탐방 안내도에서 들어온 코스(#…&via=park)만 - 검색 목록에서 바로 연 코스에는 안 보임(2026-10-13 홍TV님)
             if (!/[#&]via=park(&|$)/.test(location.hash)) parkHref = null;
@@ -920,7 +920,7 @@
             var gm = /[#&]guide=([^&]*)/.exec(location.hash), guide = gm ? RF.safeDecode(gm[1]) : "";
             if (/^(route|park)\.html\?[^#<>"']*$/.test(guide)) parkHref = guide;
             // 지도 위 🏞 탐방 안내도 단추는 뺌(2026-11-01 홍TV님 "이 화면에서 안내도 버튼 삭제" - 사진 단추로 헷갈리고, 산행 중엔 가까운 하산 지점이 있음).
-            // 안내도에서 들어온 코스는 아래 "← 안내도"(parkGo)로 그대로 돌아감
+            // 안내도에서 들어온 코스는 아래 "‹ 안내도"(parkGo)로 그대로 돌아감
             $("parkGo").style.display = parkHref && !hike.running ? "" : "none";
             barFit();
             setKindWords();
@@ -3276,7 +3276,7 @@
 
     // ------------------------------------------------------------------ 코스 고르기
 
-    // 미리보기 화면에서 '← 뒤로' 로 돌아왔을 때 브라우저가 이 화면을 그대로 살리면(bfcache) 검색어를 다시 맞춥니다
+    // 미리보기 화면에서 '‹ 뒤로' 로 돌아왔을 때 브라우저가 이 화면을 그대로 살리면(bfcache) 검색어를 다시 맞춥니다
     window.addEventListener("pageshow", function (e) {
         if (e.persisted && $("pick").style.display !== "none" && !hike.running) showPick();
     });
@@ -3578,11 +3578,11 @@
                 var fly = document.createElement("a");
                 fly.className = "fly";
                 fly.textContent = "fly(3D)";
-                fly.href = "index.html#c=" + encodeURIComponent(r.course_id) + (r.title ? "&title=" + encodeURIComponent(r.title) : "") + (r.head ? "&head=" + encodeURIComponent(r.head) : "") + "&from=hike";   // 그 화면 "← 뒤로" 가 새로 고쳐도 남게(2026-10-14)
+                fly.href = "index.html#c=" + encodeURIComponent(r.course_id) + (r.title ? "&title=" + encodeURIComponent(r.title) : "") + (r.head ? "&head=" + encodeURIComponent(r.head) : "") + "&from=hike";   // 그 화면 "‹ 뒤로" 가 새로 고쳐도 남게(2026-10-14)
                 fly.title = T("3D 지형 위로 날아 보기", "Fly over the 3D terrain");
                 fly.onclick = function (e) {
                     e.stopPropagation();
-                    try { sessionStorage.setItem("rf-pick-scroll", String(box.scrollTop)); sessionStorage.setItem("rf-fly-back", "1"); } catch (err) { }   // 3D 에서 돌아오면 목록 그 자리로, rf-fly-back: 3D 의 "← 뒤로" 가 이 화면으로 back
+                    try { sessionStorage.setItem("rf-pick-scroll", String(box.scrollTop)); sessionStorage.setItem("rf-fly-back", "1"); } catch (err) { }   // 3D 에서 돌아오면 목록 그 자리로, rf-fly-back: 3D 의 "‹ 뒤로" 가 이 화면으로 back
                 };
                 it.classList.add("hasfly");
                 it.appendChild(fly);
@@ -3593,7 +3593,7 @@
             };
             box.appendChild(it);
         });
-        // fly(3D) 에서 "← 뒤로" 로 돌아왔으면 목록을 그 자리로(2026-10-13 PC: 맨 위로 갔음) - 한 번만
+        // fly(3D) 에서 "‹ 뒤로" 로 돌아왔으면 목록을 그 자리로(2026-10-13 PC: 맨 위로 갔음) - 한 번만
         try {
             var sc = sessionStorage.getItem("rf-pick-scroll");
             if (sc != null && rows.length) {

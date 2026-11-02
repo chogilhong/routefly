@@ -333,7 +333,7 @@
             // 원점회귀 예시는 들머리 이름도(따라가기 제목 - 2026-10-13 홍TV님: "새재 원점회귀" 가 아니라 윗새재마을)
             return "hike.html#c=" + (list.length === 1 ? encodeURIComponent(list[0].id) + (list[0].rev ? "&rev=1" : "") : encodeURIComponent(RF.joinId(list)))
                 + (exHead || from ? "&head=" + encodeURIComponent(exHead || from) : "")   // 지도의 출발 이름을 따라가기 출발 이름표로(권금성 · 신흥사가 섞였음)
-                + viaTag();   // 탐방 안내도에서 들어감 - 따라가기 아래 "← 안내도" 단추는 이때만(2026-10-13 홍TV님)
+                + viaTag();   // 탐방 안내도에서 들어감 - 따라가기 아래 "‹ 안내도" 단추는 이때만(2026-10-13 홍TV님)
         };
         // 원점회귀는 어느 쪽으로 먼저 도는지 - 두 방향이 처음 갈라지는 곳의 이름(들머리에서 같은 길로 오르는 부분은 건너뜀)
         var fwdN = full.map(function (s) { return ends(s)[1]; }), bwdN = RF.reverseSel(full).map(function (s) { return ends(s)[1]; }), dv = 0;
@@ -505,9 +505,9 @@
      */
     /**
      * 따라가기 주소에 붙일 "탐방 안내도에서 왔음"(&via=park) - 따라가기의 🏞 로 연 탐방 안내도(&from=, 목록 카드 아님)에서 다시 따라가기로 가면
-     * 붙이지 않음(2026-10-13 홍TV님: 코스가 산의 어디인지 보러 왔다 돌아간 것이라 "← 안내도" 가 필요 없음).
+     * 붙이지 않음(2026-10-13 홍TV님: 코스가 산의 어디인지 보러 왔다 돌아간 것이라 "‹ 안내도" 가 필요 없음).
      */
-    // 🏞 로 연 곳에서 가면 "&via=map" - 따라가기는 "← 안내도" 도, 지도 위 🏞 도 안 보임(2026-10-13 홍TV님: 🏞 가 다시 생겼음)
+    // 🏞 로 연 곳에서 가면 "&via=map" - 따라가기는 "‹ 안내도" 도, 지도 위 🏞 도 안 보임(2026-10-13 홍TV님: 🏞 가 다시 생겼음)
     function viaTag() { return from && backTo !== "list" ? "&via=map" : "&via=park"; }
 
     function showBest(b, keepView) {
@@ -816,15 +816,15 @@
     function start() {
         $("title").textContent = EN ? (park ? NM(label || park) + " trail map" : "Trail map") : park ? (label || park) + " 탐방 안내도" : "탐방 안내도";
         $("title").classList.toggle("long", String(label || park || "").length >= 5);   // 2026-10-12 홍TV님: "전체 보기" → "탐방 안내도"
-        // 위 단추 - 기본은 "← 목록"(따라가기 첫 화면)
-        if (listMode) {   // 목록 카드에서 왔으면: 위 "← 목록" 은 따라가기 화면(검색 목록 - 검색어는 rf-search 로 남아 있음), 아래 "따라가기" 는 고른 탐방로로
-            $("back").textContent = T("← 목록", "← List");   // 2026-10-13 홍TV님: "← 뒤로" → "← 목록"
+        // 위 단추 - 기본은 "‹ 목록"(따라가기 첫 화면)
+        if (listMode) {   // 목록 카드에서 왔으면: 위 "‹ 목록" 은 따라가기 화면(검색 목록 - 검색어는 rf-search 로 남아 있음), 아래 "따라가기" 는 고른 탐방로로
+            $("back").textContent = T("‹ 목록", "‹ List");   // 2026-10-13 홍TV님: "← 뒤로" → "← 목록", 2026-11-02 홍TV님: 화살표는 ‹ 로 통일
             $("back").href = "hike.html";
             $("sheet").classList.add("listmode");
             $("sheet").innerHTML = T('<div class="tip">탐방로를 누르면 그 코스를 따라갈 수 있습니다.</div><div class="row"><a class="main" id="followNone" href="hike.html">따라가기</a></div>',
                 '<div class="tip">Tap a trail to follow it.</div><div class="row"><a class="main" id="followNone" href="hike.html">Follow</a></div>');
         }
-        // 따라가기의 🏞 로 왔어도 위 단추는 park.html 의 기본 "← 목록"(따라가기 첫 화면 - 2026-10-13 홍TV님: "‹ 따라가기" → 목록)
+        // 따라가기의 🏞 로 왔어도 위 단추는 park.html 의 기본 "‹ 목록"(따라가기 첫 화면 - 2026-10-13 홍TV님: "‹ 따라가기" → 목록)
         // 고른 탐방로가 없을 때 아래 칸(모두 빼면 다시 이것으로). 따라가기는 아래 칸에 맡겨 받음(다시 그려도 됨)
         emptySheet = $("sheet").innerHTML;
         $("sheet").addEventListener("click", function (e) {
