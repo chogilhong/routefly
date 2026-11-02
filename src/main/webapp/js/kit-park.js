@@ -714,10 +714,10 @@
      * 산의 입산 · 통제 안내(data/park-notes.json - 2026-10-12 한라산: 하절기 4~9월 · 동절기 10~3월, 코스마다 통제 지점 · 시각).
      */
 
-    /** 순수 함수 - 그날의 계절과 코스(이름들 가운데 match 가 맞는 것)의 통제 · 하산 시각. note 가 없으면 null. */
+    /** 순수 함수 - 그날의 계절과 코스(이름들 가운데 match 가 맞는 것)의 통제 · 하산 시각. note 가 없으면 null. 달은 한국 날짜로(폰 시간대와 관계없이, 2026-11-02 홍TV님 점검). */
     function parkRules(note, names, date) {
         if (!note) return null;
-        var m = date.getMonth() + 1, season = null;
+        var m = new Date(date.getTime() + 9 * 3600000).getUTCMonth() + 1, season = null;
         Object.keys(note.seasons || {}).forEach(function (k) { if (note.seasons[k].indexOf(m) >= 0) season = k; });
         var c = (note.courses || []).filter(function (x) {
             var re = new RegExp(x.match);

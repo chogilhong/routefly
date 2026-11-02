@@ -2727,10 +2727,10 @@
      * 산의 입산 · 통제 안내(data/park-notes.json - 2026-10-12 한라산: 하절기 4~9월 · 동절기 10~3월, 코스마다 통제 지점 · 시각).
      */
 
-    /** 순수 함수 - 그날의 계절과 코스(이름들 가운데 match 가 맞는 것)의 통제 · 하산 시각. note 가 없으면 null. */
+    /** 순수 함수 - 그날의 계절과 코스(이름들 가운데 match 가 맞는 것)의 통제 · 하산 시각. note 가 없으면 null. 달은 한국 날짜로(폰 시간대와 관계없이, 2026-11-02 홍TV님 점검). */
     function parkRules(note, names, date) {
         if (!note) return null;
-        var m = date.getMonth() + 1, season = null;
+        var m = new Date(date.getTime() + 9 * 3600000).getUTCMonth() + 1, season = null;
         Object.keys(note.seasons || {}).forEach(function (k) { if (note.seasons[k].indexOf(m) >= 0) season = k; });
         var c = (note.courses || []).filter(function (x) {
             var re = new RegExp(x.match);
@@ -2760,7 +2760,7 @@
 
     /**
      * 순수 함수 - 지금(now) 알릴 통제 · 하산 시각: 60 · 30 · 10분 앞과 지난 때. said 에 이미 알린 열쇠가 있으면 빼고 [{key, text}].
-     * 걷는 중에만 부름(따라가기). 시각은 그날 기준.
+     * 걷는 중에만 부름(따라가기). 시각은 그날 기준. 열쇠 앞에 한국 날짜("2026-10-12|in|…") - 여러 날 산행에서 이튿날 알림이 어제 알린 것으로 빠지지 않게(2026-11-02 홍TV님 점검).
      */
     function gateAlerts(r, now, said) {
         var out = [];
@@ -2768,15 +2768,16 @@
         // 통제 · 하산 시각은 한국 시각 - 폰 시간대가 달라도(해외 폰 · 영어 손님) 한국 날짜의 그 시각으로(fireNote 와 같이, 2026-11-02 홍TV님 점검)
         var day0 = Math.floor((now + 9 * 3600000) / 86400000) * 86400000 - 9 * 3600000;
         var at = function (hm) { var p = String(hm).split(":"); return day0 + (+p[0]) * 3600000 + (+p[1]) * 60000; };
+        var day = new Date(day0 + 9 * 3600000).toISOString().slice(0, 10);
         var check = function (g, kind) {
             var left = (at(g.time) - now) / 60000;
             [60, 30, 10].forEach(function (th) {
-                var key = kind + "|" + g.name + "|" + th;
+                var key = day + "|" + kind + "|" + g.name + "|" + th;
                 if (left <= th && left > th - 10 && !(said && said[key]))
                     out.push({ key: key, text: LANG === "en" ? th + " minutes until " + (kind === "in" ? "the trail closes at " : "the latest descent time at ") + enName(g.name) + " (" + g.time + ")."
                         : g.name + (kind === "in" ? " 입산 통제" : " 하산 시각") + "까지 " + th + "분 남았습니다(" + g.time + ")." });
             });
-            var key0 = kind + "|" + g.name + "|0";
+            var key0 = day + "|" + kind + "|" + g.name + "|0";
             if (left <= 0 && left > -15 && !(said && said[key0]))
                 out.push({ key: key0, text: LANG === "en" ? (kind === "in" ? "The trail at " + enName(g.name) + " closed at " + g.time + ". You cannot climb past it."
                     : "It is " + g.time + ", the latest descent time at " + enName(g.name) + ". Start heading down.") : g.name + (kind === "in" ? " 입산 통제 시각(" + g.time + ")이 지났습니다. 통제 지점을 지나 오를 수 없습니다."
