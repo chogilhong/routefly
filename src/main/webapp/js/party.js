@@ -1203,7 +1203,13 @@
             + T("방 코드 ", "Room code ") + p.code + T(" - 아래 링크로 들어와 예약한 이름만 넣으면 됩니다. 산행 날 따라가기 화면을 켜 두면 인솔자에게 위치가 갑니다.\n", " - open the link below and enter the name you booked with. On the day, keep the trail guide open so your leader can see where you are.\n") + inviteUrl();
     }
     function inviteMsg(t) { $("inviteMsg").textContent = t; }
-    function copyMsg(t) { $("copyMsg").textContent = t; }   // 안내 글 복사 단추 바로 아래(2026-10-27 홍TV님)
+    /** 안내 글 복사 단추 바로 아래(2026-10-27 홍TV님). "복사했습니다" 는 10초 뒤 지움(2026-11-02 홍TV님) - 못 했을 때 안내는 그대로 둠(할 일이 남음). */
+    function copyMsg(t, stay) {
+        var n = $("copyMsg");
+        n.textContent = t;
+        clearTimeout(n.rfTimer);
+        if (!stay) n.rfTimer = setTimeout(function () { n.textContent = ""; }, 10000);
+    }
     /** 안내 글 복사 - 한 길로만(2026-10-20 홍TV님 "복사하면 문구가 두 번": 복사 + 확인 창이 겹칠 수 있던 것을 없앰). */
     function copyInvite() {
         var text = inviteText();
@@ -1214,7 +1220,7 @@
             var ok = false;
             try { ok = document.execCommand("copy"); } catch (e) { /* 못 함 */ }
             document.body.removeChild(ta);
-            copyMsg(ok ? T("✅ 복사했습니다. 카톡 · 문자 창에 길게 눌러 붙여 넣으세요.", "✅ Copied. Long-press in a KakaoTalk or text message to paste.") : T("복사하지 못했습니다. 위 링크 칸을 길게 눌러 복사해 주세요.", "Couldn't copy. Long-press the link box above to copy it."));
+            copyMsg(ok ? T("✅ 복사했습니다. 카톡 · 문자 창에 길게 눌러 붙여 넣으세요.", "✅ Copied. Long-press in a KakaoTalk or text message to paste.") : T("복사하지 못했습니다. 위 링크 칸을 길게 눌러 복사해 주세요.", "Couldn't copy. Long-press the link box above to copy it."), !ok);
         }
         if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(function () { copyMsg(T("✅ 복사했습니다. 카톡 · 문자 창에 길게 눌러 붙여 넣으세요.", "✅ Copied. Long-press in a KakaoTalk or text message to paste.")); }, old);
         else old();
