@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<!-- 사이트 첫 주소(…/routefly/)의 작은 화면 - 넘기기만 합니다(js/root-go.js): 코스 모음(m/) · 영어(en/m/) · 신호 없음 · 예전 따라가기 꼬리(hike.html) · 코스를 받은 주소(#c= → 3D 화면 index.html).
+     2026-11-02 홍TV님 속도 점검: 예전엔 3D 화면(index.html)이 첫 주소라, 넘기기 전에 브라우저가 그 화면의 MapLibre(약 330KB) · app.js 를 미리 받기 시작해
+     느린 망에서 코스 모음이 1초 가까이 늦게 열렸음. 주소 / 만 이 파일(RootPageServlet), index.html 은 그대로 3D 화면 -->
+<script src="js/root-go.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>routefly 코스 미리보기</title>
+<link rel="canonical" href="https://routefly.kr/routefly/">
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=2"><link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
+<meta name="theme-color" content="#15324f">
+<!-- 카톡 · 검색 미리보기는 스크립트를 돌리지 않으므로 index.html 과 같은 설명 · 그림(예전 공유 링크 …/routefly/#c= 도 이 주소로 옴) -->
+<meta property="og:title" content="routefly - 3D로 미리 날아 보는 등산 · 걷기 · 자전거 코스">
+<meta property="og:description" content="코스를 3D 지형 위에서 미리 보고, 핸드폰으로 따라 걷기">
+<meta property="og:image" content="https://routefly.kr/routefly/img/og.png?v=2">
+<meta property="og:url" content="https://routefly.kr/routefly/">
+<meta name="description" content="등산 · 걷기 · 자전거 코스를 3D 지형 위에서 미리 날아 보고, 핸드폰으로 위치를 확인하며 따라 걷는 무료 서비스. 100대 명산 코스 · 날씨 · 안전 안내.">
+<style>
+html, body { margin:0; background:#0f141b; color:#eef2f7; font-family:Arial,"Malgun Gothic",sans-serif; }
+p { padding:24px; line-height:1.7; }
+a { color:#38d9ea; }
+</style>
+</head>
+<body>
+<noscript><p><a href="m/">⛰️ 코스 모음</a> · <a href="hike.html">따라가기</a></p></noscript>
+</body>
+</html>

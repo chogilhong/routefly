@@ -5,6 +5,16 @@
 if (!/[#&]c=/.test(location.hash)) document.documentElement.className += " picking";
 
 /*
+ * 지도 설정(api/map-config)은 여기서 미리 묻기 시작(2026-11-02 홍TV님 속도 점검) - hike.js 는 맨 아래 스크립트라 MapLibre(약 330KB)까지
+ * 다 받은 뒤에야 돌아, 그때 물으면 느린 망(4G 약함)에서 지도 · 첫 타일이 1초 가까이 늦었음. 답은 hike.js 가 한 번 읽음(readJson).
+ * 못 받으면 hike.js 가 예전처럼 기본 지형으로. 여기서는 오류 알림만 막음(.catch - 같은 약속을 hike.js 가 그대로 받음)
+ */
+if (window.fetch) {
+    window.rfMapCfg = fetch("api/map-config", { headers: { "Accept": "application/json" } });
+    window.rfMapCfg.catch(function () { /* hike.js 가 처리 */ });
+}
+
+/*
  * 앱을 처음 열면 코스 모음(m/)으로(2026-11-01 홍TV님). 앱은 이 화면(hike.html)으로 열리는데, 아래일 때만 넘김:
  *  - 앱 안(Capacitor)이고 이번 앱 실행에서 처음 연 화면(sessionStorage - 코스 모음의 "따라가기 ›" 로 온 것은 그대로)
  *  - 주소에 코스 · 꼬리(#c= · ?…)가 없고, 진행 중인 산행이 없음(rf-hike-active - 3시간 안 저장)

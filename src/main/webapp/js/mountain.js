@@ -42,8 +42,11 @@
         apply("");
     }
     // 산불조심기간(봄 2/1 ~ 5/15 · 가을 11/1 ~ 12/15) 안내 - 제목 아래(2026-10-15 홍TV님)
+    // 2026-11-02 홍TV님 속도 점검: 이제 서버가 html 에 넣음(MountainServlet.withFire - 늦게 넣어 아래 칸이 밀리던 것). 이미 있으면 그대로
     var lead = document.querySelector(".lead"), fire = window.RF && window.RF.fireNote(Date.now());
-    if (lead && fire) { var fp = document.createElement("p"); fp.className = "fire"; fp.textContent = fire; lead.parentNode.insertBefore(fp, lead.nextSibling); }
+    var fireP = document.querySelector(".fire");
+    if (fireP && window.RF && !fire) fireP.parentNode.removeChild(fireP);   // 받아 둔 옛 화면(신호 없을 때 보기)이 기간이 지났으면 뺌
+    if (lead && fire && !fireP) { var fp = document.createElement("p"); fp.className = "fire"; fp.textContent = fire; lead.parentNode.insertBefore(fp, lead.nextSibling); }
     // 🌄 일출 산행 - 코스마다 "내일 일출(6:39)을 정상에서 보려면 들머리 출발 약 4:20"(표준 소요 시간, 15분 여유). 정상 좌표로 일출
     var wxs = document.getElementById("wx");
     if (wxs && window.RF && csList) {

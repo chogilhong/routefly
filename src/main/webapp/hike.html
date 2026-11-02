@@ -23,6 +23,10 @@
      GPS 는 https(또는 localhost)에서만 켜집니다. -->
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="img/apple-icon-180.png">
+<!-- 지도 타일 곳(3D 지형 s3 · V-World 위성)에 미리 연결 - 첫 타일을 물을 때 연결(DNS · TLS)에 드는 왕복을 스크립트를 받는 동안 끝냄(2026-11-02 홍TV님 속도 점검).
+     지형 주소는 서버 설정(map.dem.url)이라 바뀌면 여기도. MapLibre 는 타일을 익명(cors)으로 받으므로 crossorigin -->
+<link rel="preconnect" href="https://s3.amazonaws.com" crossorigin>
+<link rel="preconnect" href="https://api.vworld.kr" crossorigin>
 <link rel="stylesheet" href="vendor/maplibre-gl-5.24.0/maplibre-gl.css">
 <link rel="stylesheet" href="css/course-kit.css">
 <style>

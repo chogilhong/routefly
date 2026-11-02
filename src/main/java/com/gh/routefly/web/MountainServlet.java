@@ -83,14 +83,14 @@ public class MountainServlet extends HttpServlet {
         if (name.isEmpty()) {
             resp.setHeader("Cache-Control", "public, max-age=600");   // 10분 - 1시간이면 배포한 문구가 늦게 보였음(2026-10-17 PC)
             // ?open=peaks - 산 페이지의 "‹ 코스 모음" 으로 오면 등산 › 100대 명산을 펼친 채(2026-10-15 홍TV님)
-            resp.getWriter().print(indexPage(all, seriesGroups(), base, "peaks".equals(req.getParameter("open")), SteepRank.html(steepRank(all), false, SteepRank.openOf(req.getParameter("open")))));
+            resp.getWriter().print(withFire(indexPage(all, seriesGroups(), base, "peaks".equals(req.getParameter("open")), SteepRank.html(steepRank(all), false, SteepRank.openOf(req.getParameter("open")))), System.currentTimeMillis()));
             return;
         }
         List<JsonObject> same = byName(all, name);
         JsonObject peak = find(all, name);
         if (peak == null && same.size() > 1) {   // 같은 이름 산이 여럿(백운산 광양 · 정선 · 포천) - 고르게
             resp.setHeader("Cache-Control", "public, max-age=600");   // 10분 - 1시간이면 배포한 문구가 늦게 보였음(2026-10-17 PC)
-            resp.getWriter().print(choosePage(name, same, base));
+            resp.getWriter().print(withFire(choosePage(name, same, base), System.currentTimeMillis()));
             return;
         }
         if (peak == null) {
@@ -102,7 +102,7 @@ public class MountainServlet extends HttpServlet {
         boolean failed = courses == null;
         if (failed) courses = new ArrayList<>();
         resp.setHeader("Cache-Control", failed ? "no-store" : "public, max-age=600");
-        resp.getWriter().print(page(peak, courses, nearby(all, peak, NEARBY_MAX, NEARBY_M), parking(courses), base));
+        resp.getWriter().print(withFire(page(peak, courses, nearby(all, peak, NEARBY_MAX, NEARBY_M), parking(courses), base), System.currentTimeMillis()));
     }
 
     /** 영어 페이지(/en/m/ · /en/m/seoraksan). */
@@ -277,6 +277,26 @@ public class MountainServlet extends HttpServlet {
         List<JsonObject> out = new ArrayList<>();
         for (JsonElement e : peaks) if (name.equals(str(e.getAsJsonObject(), "name"))) out.add(e.getAsJsonObject());
         return out;
+    }
+
+    /**
+     * 순수 함수 - 산불조심기간 안내를 첫 설명(.lead) 바로 아래에 넣은 html(기간이 아니면 그대로). 2026-11-02 홍TV님 속도 점검:
+     * 예전엔 mountain.js 가 kit-m.js 를 받은 뒤 넣어, 기간 중에는 코스 모음 · 산 페이지의 그 아래 칸이 통째로 한 줄(약 83px) 밀렸음(화면 밀림 CLS 0.2~0.7).
+     * mountain.js 는 이미 있으면 넣지 않음(배포 직후 받아 둔 옛 html 은 예전처럼 스크립트가 넣음).
+     */
+    static String withFire(String html, long ms) {
+        String note = fireNote(ms);
+        int i = html.indexOf("<p class=\"lead\">"), j = i < 0 ? -1 : html.indexOf("</p>", i);
+        if (note.isEmpty() || j < 0) return html;
+        return html.substring(0, j + 4) + "<p class=\"fire\">" + esc(note) + "</p>" + html.substring(j + 4);
+    }
+
+    /** 순수 함수 - 산불조심기간(봄 2/1 ~ 5/15 · 가을 11/1 ~ 12/15, 한국 날짜) 안내 글, 기간이 아니면 "". course-kit.js 의 fireNote(한국어)와 같은 글. */
+    static String fireNote(long ms) {
+        java.time.LocalDate d = java.time.Instant.ofEpochMilli(ms).atZone(java.time.ZoneOffset.ofHours(9)).toLocalDate();
+        int md = d.getMonthValue() * 100 + d.getDayOfMonth();
+        String season = md >= 201 && md <= 515 ? "봄철" : md >= 1101 && md <= 1215 ? "가을철" : "";
+        return season.isEmpty() ? "" : "🔥 " + season + " 산불조심기간 - 일부 탐방로는 입산이 통제되고 산에서 불 · 담배는 금지입니다. 현지 안내판 · 공원 누리집을 확인하세요.";
     }
 
     /** 순수 함수 - 같은 이름 산 고르기. */

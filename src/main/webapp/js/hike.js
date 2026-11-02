@@ -367,16 +367,18 @@
     }
 
     function getJson(url) {
-        return fetch(url, { headers: { "Accept": "application/json" } }).then(function (r) {
-            // 2026-10-10 점검: JSON 이 아닌 답(429 · 프록시 HTML)이면 r.json() 의 SyntaxError 대신 HTTP 번호를 알립니다(app.js 와 같음)
-            return r.json().catch(function () { return { success: false, message: "응답을 읽지 못했습니다 (HTTP " + r.status + ")" }; }).then(function (j) {
-                if (!r.ok || !j || j.success === false) {
-                    var err = new Error(j.message || ("HTTP " + r.status));
-                    err.data = j;   // 없는 코스면 같은 산 코스(similar)가 들어 있습니다
-                    throw err;
-                }
-                return j;
-            });
+        return fetch(url, { headers: { "Accept": "application/json" } }).then(readJson);
+    }
+    /** fetch 답 → JSON(실패 답이면 오류). 지도 설정은 early.js 가 미리 물어 둔 답을 이것으로 읽음(2026-11-02 홍TV님 속도 점검). */
+    function readJson(r) {
+        // 2026-10-10 점검: JSON 이 아닌 답(429 · 프록시 HTML)이면 r.json() 의 SyntaxError 대신 HTTP 번호를 알립니다(app.js 와 같음)
+        return r.json().catch(function () { return { success: false, message: "응답을 읽지 못했습니다 (HTTP " + r.status + ")" }; }).then(function (j) {
+            if (!r.ok || !j || j.success === false) {
+                var err = new Error(j.message || ("HTTP " + r.status));
+                err.data = j;   // 없는 코스면 같은 산 코스(similar)가 들어 있습니다
+                throw err;
+            }
+            return j;
         });
     }
 
@@ -4593,7 +4595,9 @@
     // 잔상처럼 보였음(2026-10-11 홍TV님). 검색 다시 하기 · 내 기록은 지도가 준비된 뒤 route() 가 그대로 합니다
     if (!/[#&]c=/.test(location.hash)) $("pick").style.display = "flex";
 
-    getJson("api/map-config").catch(function () {
+    // 지도 설정은 early.js 가 머리에서 미리 물어 둔 답(window.rfMapCfg)을 씀 - 여기는 MapLibre(약 330KB)까지 다 받은 뒤라
+    // 그때 물으면 느린 망에서 지도가 그만큼 늦게 떴음(2026-11-02 홍TV님 속도 점검). 없으면 예전처럼 지금 물음
+    (window.rfMapCfg ? window.rfMapCfg.then(readJson) : getJson("api/map-config")).catch(function () {
         return { demUrl: "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png", vworldKey: null };
     }).then(function (j) {
         cfg = { demUrl: j.demUrl || "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png", vworldKey: j.vworldKey || null };
