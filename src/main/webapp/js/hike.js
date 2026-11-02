@@ -3343,6 +3343,9 @@
         var nm = String(to.name).replace(/[,/?#&]/g, " ").trim(), lat = to.lat.toFixed(6), lon = to.lon.toFixed(6);
         $("navTitle").textContent = EN ? "Directions to " + NM(nm) : nm + " 길찾기";
         $("navKakao").href = "https://map.kakao.com/link/to/" + encodeURIComponent(nm) + "," + lat + "," + lon;
+        // 그 자리 로드뷰(카카오맵 지도 URL - 키 없음) - 처음 가는 들머리 · 주차장 입구를 미리(2026-11-02 홍TV님)
+        $("navRoad").href = "https://map.kakao.com/link/roadview/" + lat + "," + lon;
+        $("navRoad").textContent = EN ? "Street view of " + NM(nm) + " (Kakao Map)" : nm + " 로드뷰로 미리 보기";
         // 네이버 지도 앱은 출발지를 비워 두면 '출발지 입력' 으로 남습니다 - 지금 위치를 출발지로 넣습니다
         var from = me ? { lat: me.lat.toFixed(6), lon: me.lon.toFixed(6) } : null;
         $("navNaver").href = "nmap://route/" + (far ? "car" : "walk") + "?"

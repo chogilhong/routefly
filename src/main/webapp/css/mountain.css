@@ -230,3 +230,5 @@ a.kma { display:inline-block; margin-top:6px; min-height:44px; line-height:44px;
 /* 출처 · 만든 이 한 줄(2026-11-01 홍TV님) - 코스 카드는 이름 아래, 코스 소개는 부제 아래. 작고 흐리게 */
 .cs .made { flex:1 1 100%; color:var(--dim); font-size:12px; margin-top:-2px; }
 .cp .made { margin:-6px 0 12px; font-size:12.5px; }
+/* 카카오맵 로드뷰 링크 - 공식 앱 아이콘(img/kakaomap.png, 모양 · 색 그대로), 2026-11-02 홍TV님 */
+.kmap::before { content:""; display:inline-block; width:16px; height:16px; margin-right:4px; vertical-align:-3px; border-radius:4px; background:url(../img/kakaomap.png) center/contain no-repeat; }

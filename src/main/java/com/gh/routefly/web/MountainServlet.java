@@ -345,6 +345,11 @@ public class MountainServlet extends HttpServlet {
                 : new double[] {c.get("end_lat").getAsDouble(), c.get("end_lon").getAsDouble()};
     }
 
+    /** 순수 함수 - 카카오맵 로드뷰(그 좌표 가까운 도로 사진). 키 없이 쓰는 링크(지도 URL - 로드뷰 바로가기). 2026-11-02 홍TV님. */
+    static String kakaoRoad(double[] p) {
+        return "https://map.kakao.com/link/roadview/" + String.format(Locale.ROOT, "%.6f,%.6f", p[0], p[1]);
+    }
+
     /** 순수 함수 - 카카오맵 길찾기(도착 = 들머리, 출발은 카카오맵이 내 위치로). 키 없이 쓰는 링크. 2026-10-15 홍TV님. */
     static String kakaoTo(String name, double[] p) {
         return "https://map.kakao.com/link/to/" + enc(name.replace(",", " ")) + String.format(Locale.ROOT, ",%.6f,%.6f", p[0], p[1]);
@@ -704,6 +709,8 @@ public class MountainServlet extends HttpServlet {
                 double[] th = trailhead(c, peak);
                 if (th != null) b.append("<a class=\"way\" href=\"").append(esc(kakaoTo(str(peak, "name") + " 들머리", th)))
                         .append("\" target=\"_blank\" rel=\"noopener\">🚌 가는 길</a>");   // 카카오맵 길찾기(대중교통 · 차)
+                if (th != null) b.append("<a class=\"way kmap\" href=\"").append(esc(kakaoRoad(th)))
+                        .append("\" target=\"_blank\" rel=\"noopener\" title=\"들머리 근처 실제 사진(카카오맵 로드뷰) - 처음 가는 입구를 미리\">로드뷰</a>");   // 2026-11-02 홍TV님
                 b.append("</span></li>");
             }
             b.append("</ul>");

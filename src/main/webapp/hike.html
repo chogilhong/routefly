@@ -283,6 +283,8 @@ html.rfwait body { visibility:hidden; }   /* 앱을 처음 열 때 서버에 닿
                      color:var(--tx); font-size:13.5px; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:0 6px; }
 #navTargets button.on { background:var(--sky); border-color:var(--sky); color:#062b30; }
 #navSheet .big { color:var(--tx); background:rgba(255,255,255,0.08); border:1px solid var(--ln); font-size:16px; }
+/* 카카오맵으로 여는 단추 - 공식 앱 아이콘(img/kakaomap.png, 카카오맵 브랜드 리소스 그대로 - 모양 · 색 바꾸지 않음), 2026-11-02 홍TV님 */
+.kmap::before { content:""; display:inline-block; width:22px; height:22px; margin-right:8px; vertical-align:-5px; border-radius:5px; background:url(img/kakaomap.png) center/contain no-repeat; }
 #offroute .arrow { display:inline-block; font-size:26px; line-height:1; transition:transform .3s; }
 #etaBox.late { background:rgba(220,38,38,0.25); }
 #sunTxt { color:var(--dim); }
@@ -598,9 +600,10 @@ html.picking #pick { display:flex; }
         <h2 id="navTitle" data-en="Directions to the start">출발점 길찾기</h2>
         <div id="navTargets"></div>
         <p class="tip" id="navTip" data-en="Opens directions from here to the trail start in a map app. Come back to this screen afterwards and guidance continues.">지금 위치에서 산행 출발점까지 길을 지도 앱으로 엽니다. 길찾기를 마치고 이 화면으로 돌아오면 안내가 이어집니다.</p>
-        <a class="big" id="navKakao" target="_blank" rel="noopener" data-en="Kakao Map">카카오맵</a>
+        <a class="big kmap" id="navKakao" target="_blank" rel="noopener" data-en="Kakao Map">카카오맵</a>
         <a class="big" id="navNaver" target="_blank" rel="noopener" data-en="Naver Map (app)">네이버 지도 (앱)</a>
         <a class="big" id="navGoogle" target="_blank" rel="noopener" data-en="Google Maps (public transport)">구글 지도 (대중교통)</a>
+        <a class="big kmap sms" id="navRoad" target="_blank" rel="noopener" data-en="Street view of the spot (Kakao Map)">로드뷰로 미리 보기</a>
         <div class="sbtn"><button type="button" id="navClose" class="main" data-en="Close">닫기</button></div>
     </div>
 </div>
