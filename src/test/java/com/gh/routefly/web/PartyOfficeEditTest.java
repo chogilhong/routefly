@@ -84,11 +84,11 @@ public class PartyOfficeEditTest {
         call(p, "/trail", body(ot, "\"id\":" + member(cv, "철수").get("id").getAsInt()), T0);
         try { call(p, "/aboard", body(ot, "\"on\":true"), T0); fail("사무실 자리는 하산 탑승이 없음"); } catch (SecurityException x) { /* 맞음 */ }
 
-        // 켜기 - 30분, 인솔자 화면에 "고치기를 켰습니다"
+        // 켜기 - 30분, 켠 것은 인솔자 화면에 남기지 않음(고친 것만 - 2026-11-02 홍TV님)
         JsonObject on = call(p, "/office-edit", body(ot, "\"on\":true"), T0);
         assertTrue(on.get("officeEdit").getAsBoolean());
         assertEquals(T0 + Party.OFFICE_EDIT_MS, on.get("officeEditUntil").getAsLong());
-        assertEquals("edit", last(log(p, chief, T0)).get("what").getAsString());
+        assertEquals("켜기만 해서는 줄이 없음", 0, log(p, chief, T0).size());
         for (String[] e : edits(p, chief)) {
             if ("/end".equals(e[0]) || "/kick".equals(e[0])) continue;   // 끝내기 · 내보내기는 아래에서
             call(p, e[0], body(ot, e[1]), T0 + 60_000);

@@ -1410,11 +1410,10 @@ final class Party {
         return !m.office || now < m.officeEditUntil;
     }
 
-    /** 사무실 자리 - 고치기 켜기 · 끄기. 켜면 인솔자 화면에 "🏢 사무실이 고치기를 켰습니다" 가 남음. */
+    /** 사무실 자리 - 고치기 켜기 · 끄기. 켠 것은 인솔자 화면에 남기지 않음 - 고친 것만(2026-11-02 홍TV님 "고친 사항만 보여주면 되잖아"). */
     synchronized void officeEdit(Member m, boolean on, long now) {
         if (!m.office) throw new SecurityException("사무실 자리만 씁니다.");
         m.officeEditUntil = on ? now + OFFICE_EDIT_MS : 0;
-        if (on) officeDid(m, "edit", null, now);
     }
 
     /** 사무실이 고친 것을 인솔자 화면에 남김(사무실 자리가 아니면 그대로). what - 화면이 글로 바꿈(party.js officeLogText), arg - 호차 · 이름 · 수. */

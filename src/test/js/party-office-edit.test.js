@@ -26,7 +26,7 @@ function ctx(en, extra) {
 }
 
 // ---- 고친 것 한 줄
-var CODES = ["edit", "plate", "roster", "board", "boardOff", "aboard", "aboardOff", "apart", "bus", "notice", "kick", "depart", "drop", "pickup", "seat"];
+var CODES = ["plate", "roster", "board", "boardOff", "aboard", "aboardOff", "apart", "bus", "notice", "kick", "depart", "drop", "pickup", "seat"];
 function logText(en, x) { var c = ctx(en); vm.runInNewContext(fn("officeLogText") + " this.f = officeLogText;", c); return c.f(x); }
 eq("차량번호 - 홍TV님 예시 그대로", logText(false, { what: "plate", arg: "2" }), "🏢 사무실이 차량번호를 바꿨습니다(2호차)");
 eq("영어", logText(true, { what: "plate", arg: "2" }), "🏢 The office changed the plate number (bus 2)");

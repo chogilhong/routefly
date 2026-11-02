@@ -729,7 +729,6 @@
     function officeLogText(x) {
         var a = x.arg == null ? "" : String(x.arg);
         switch (x.what) {
-            case "edit": return T("🏢 사무실이 고치기를 켰습니다(30분)", "🏢 The office turned on editing (30 min)");
             case "plate": return T("🏢 사무실이 차량번호를 바꿨습니다(" + a + "호차)", "🏢 The office changed the plate number (bus " + a + ")");
             case "roster": return T("🏢 사무실이 예약 명단에 " + a + "명을 넣었습니다", "🏢 The office added " + a + " to the booking list");
             case "board": return T("🏢 사무실이 " + a + " 님을 출발 탑승으로 체크했습니다", "🏢 The office marked " + a + " as boarded");
