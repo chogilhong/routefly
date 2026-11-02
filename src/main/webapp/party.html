@@ -58,6 +58,10 @@ button.sos { background:#c92a2a; color:#fff; border-color:#c92a2a; }
 #sosBar { position:sticky; top:0; z-index:5; background:#c92a2a; color:#fff; border-radius:10px; padding:10px 12px; font-size:16px; font-weight:bold; margin-bottom:10px; line-height:1.6; }
 #msgBar { background:#1c3a4a; border:1px solid var(--sky); border-radius:10px; padding:8px 12px; margin-bottom:10px; line-height:1.6; font-size:15px; }
 #msgBar small { color:var(--dim); }
+/* 사무실 보기 · 고치기(2026-11-02 홍TV님) - 보기일 때 고치는 단추는 흐리게(누르면 안내만, 서버도 막음) */
+#officeEdit { background:#2b2a1a; border:1px solid #ffd43b; border-radius:10px; padding:8px 12px; margin-bottom:10px; line-height:1.6; font-size:15px; }
+#officeEdit .row { margin:6px 0 0; }
+#room.officeRO :is(#plateEdit, #departBtn, #cancelTripBtn, #endBtn, #busBtn, #actBoard, #actMove, #actKick, [data-kick], [data-aboard], [data-apart], [data-board], [data-undo]) { opacity:.4; }
 #sosBar button { min-height:44px; margin:4px 6px 0 0; background:#fff; color:#c92a2a; border-color:#fff; font-size:14px; }
 #net { background:rgba(255,169,77,0.14); border:1px solid rgba(255,169,77,0.55); color:#ffc078; border-radius:10px; padding:8px 12px; font-size:14.5px; margin-bottom:10px; }
 #notice { display:none; background:rgba(255,212,59,0.12); border:1px solid rgba(255,212,59,0.5); color:#ffe066; border-radius:10px; padding:10px 12px; font-size:14.5px; margin-bottom:12px; }
@@ -224,6 +228,10 @@ a.tel { color:var(--sky); }
         <div id="sosBar" role="alert" hidden></div>
         <div id="msgBar" role="status" hidden></div>   <!-- 회원 → 인솔자 한 줄(2026-10-27) -->   <!-- 인솔자 - SOS 가 켜진 동안 늘 위에(2026-10-22 점검: 맨 아래 글로만 나와 안 보였음) -->
         <div id="net" role="status" aria-live="polite" hidden></div>   <!-- 연결이 약할 때 - 마지막으로 받은 때 -->
+        <div id="officeEdit" role="status" hidden>   <!-- 사무실 자리 - 처음엔 보기만, 고치기 켜기(30분) · 끄기(2026-11-02 홍TV님) -->
+            <span id="officeEditText"></span>
+            <div class="row"><button type="button" id="officeEditBtn"></button></div>
+        </div>
         <div id="notice"></div>
         <section>
             <div id="bar"></div>

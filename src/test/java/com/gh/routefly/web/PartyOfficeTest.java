@@ -136,6 +136,7 @@ public class PartyOfficeTest {
         try { call(p, "/end", tok(chief), END - H); fail("영희 하산 미확인"); } catch (Party.NotDown e) { assertTrue(e.getMessage().contains("1명") && e.getMessage().contains("영희")); }
         // 사무실이 끝냄(force) - 요약이 남음
         String ot = call(p, "/office/enter", "{\"key\":\"" + key + "\",\"code\":\"" + code + "\"}", END - H).get("token").getAsString();
+        call(p, "/office-edit", "{\"token\":\"" + ot + "\",\"on\":true}", END - H);   // 사무실은 고치기를 켠 뒤에만 끝냄(2026-11-02 홍TV님)
         call(p, "/end", "{\"token\":\"" + ot + "\",\"force\":true}", END - H);
         JsonObject list = call(p, "/office/rooms", "{\"key\":\"" + key + "\"}", END);
         assertEquals(0, list.getAsJsonArray("rooms").size());

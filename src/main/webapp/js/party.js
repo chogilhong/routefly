@@ -41,6 +41,9 @@
         [/출발 때 탑승하지 않아/, "You weren't on the bus at departure, so you were dropped from this hike. Please contact your leader."],
         [/이미 출발한 방이라/, "This room has already departed, so you can't join. Please contact your leader."],
         [/인솔자만 지나온 길/, "Only leaders can see trails."],
+        [/사무실은 보기만 합니다/, "The office is view-only. Tap ✏️ Turn on editing first."],   // 2026-11-02 홍TV님
+        [/사무실 자리만 씁니다/, "Only the office seat can use this."],
+        [/사무실 자리는 하산 탑승이 없습니다/, "The office seat has no return boarding."],
         [/인솔자만 좌석표/, "Only leaders can edit the seat map."],
         [/인솔자만 차량번호/, "Only leaders can set the plate number."],
         [/인솔자만 버스 자리/, "Only leaders can set where the bus is."],
@@ -606,6 +609,7 @@
         else if (s.officeWait) $("officeRow").textContent = T("🏢 " + s.officeWait + " 사무실 승인 기다리는 중 - 사무실 화면에서 \"승인\" 을 누르면 함께 봅니다.", "🏢 Waiting for " + s.officeWait + " office to approve - it watches once approved.");   // 2026-10-28 승인
         $("officeLinkRow").hidden = !!s.office || !!s.officeWait || !s.chief;
         $("officeBack").hidden = !s.officeMe;
+        officeBar(s);   // 사무실 보기 · 고치기(2026-11-02 홍TV님)
         $("alertRow").hidden = !!s.officeMe || (window.Notification && Notification.permission === "granted" && !NATIVE);   // 인솔자 폰 알림(2026-10-28)
         // 내 하차 지점(인솔자도 원하는 곳에서 내려 산행 · 버스 대기, 2026-10-28 홍TV님) - 회사 사무실에 보임
         $("myDropRow").hidden = !(s.drops || []).length || !!s.officeMe;
@@ -691,20 +695,79 @@
         var ms = (s.members || []).filter(function (m) { return m.msg && m.id !== s.me && s.now - m.msgAt < 6 * 3600000; })
             .concat((s.members || []).filter(function (m) { return m.lateAt && s.now - m.lateAt < 6 * 3600000; }).map(function (m) { return { id: "L" + m.id, nick: m.nick, seat: m.seat, bus: m.bus, msg: LATE, msgAt: m.lateAt }; }))
             .sort(function (a, b) { return b.msgAt - a.msgAt; });
+        // 사무실이 고친 것(2026-11-02 홍TV님) - 최근 6시간, 셋까지 따로(회원 한 줄을 밀어내지 않게). 사무실 자리 자신에게는 울리지 않음
+        var os = (s.officeLog || []).filter(function (x) { return s.now - x.at < 6 * 3600000; }).map(function (x, i) { return { id: "O" + i + "_" + x.at, nick: s.office || T("사무실", "Office"), msg: officeLogText(x), msgAt: x.at, quiet: !!s.officeMe }; }).reverse().slice(0, 3);
         var first = msgSeen === null, seen = msgSeen || {};
-        ms.forEach(function (m) {
-            if (first || seen[m.id] === m.msgAt) return;
+        ms.concat(os).forEach(function (m) {
+            if (first || m.quiet || seen[m.id] === m.msgAt) return;
             var who = m.nick + (m.seat ? "(" + seatName(s, m.bus, m.seat) + ")" : "");
             if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
             try { var u = new SpeechSynthesisUtterance(T(who + " 님: " + m.msg, who + ": " + m.msg)); if (EN) u.lang = "en-US"; speechSynthesis.speak(u); } catch (e) { /* 없음 */ }
         });
         msgSeen = {};
-        ms.forEach(function (m) { msgSeen[m.id] = m.msgAt; });
+        ms.concat(os).forEach(function (m) { msgSeen[m.id] = m.msgAt; });
         $("msgBar").innerHTML = ms.slice(0, 3).map(function (m) {
             return "💬 <b>" + esc(m.nick) + "</b>" + (m.seat ? " (" + esc(seatName(s, m.bus, m.seat)) + ")" : "") + ": " + esc(m.msg) + " <small>" + clock(m.msgAt) + "</small>";
-        }).join("<br>");
-        $("msgBar").hidden = !ms.length;
+        }).concat(os.map(function (m) { return esc(m.msg) + " <small>" + clock(m.msgAt) + "</small>"; })).join("<br>");
+        $("msgBar").hidden = !ms.length && !os.length;
     }
+    /** 사무실이 고친 것 한 줄(서버 Party.officeDid 의 what · arg) - "🏢 사무실이 차량번호를 바꿨습니다(2호차)". */
+    function officeLogText(x) {
+        var a = x.arg == null ? "" : String(x.arg);
+        switch (x.what) {
+            case "edit": return T("🏢 사무실이 고치기를 켰습니다(30분)", "🏢 The office turned on editing (30 min)");
+            case "plate": return T("🏢 사무실이 차량번호를 바꿨습니다(" + a + "호차)", "🏢 The office changed the plate number (bus " + a + ")");
+            case "roster": return T("🏢 사무실이 예약 명단에 " + a + "명을 넣었습니다", "🏢 The office added " + a + " to the booking list");
+            case "board": return T("🏢 사무실이 " + a + " 님을 출발 탑승으로 체크했습니다", "🏢 The office marked " + a + " as boarded");
+            case "boardOff": return T("🏢 사무실이 " + a + " 님의 출발 탑승을 풀었습니다", "🏢 The office unmarked " + a + " as boarded");
+            case "aboard": return T("🏢 사무실이 " + a + " 님을 하산 탑승으로 체크했습니다", "🏢 The office marked " + a + " as back on the bus");
+            case "aboardOff": return T("🏢 사무실이 " + a + " 님의 하산 탑승을 되돌렸습니다", "🏢 The office undid " + a + "'s return boarding");
+            case "apart": return T("🏢 사무실이 " + a + " 님을 따로 귀가로 체크했습니다", "🏢 The office marked " + a + " as going home separately");
+            case "bus": return T("🏢 사무실이 버스 위치를 정했습니다(" + a + "호차)", "🏢 The office set the bus location (bus " + a + ")");
+            case "notice": return T("🏢 사무실이 공지를 보냈습니다", "🏢 The office sent a notice");
+            case "kick": return T("🏢 사무실이 " + a + " 님을 내보냈습니다", "🏢 The office removed " + a);
+            case "depart": return T("🏢 사무실이 산행을 시작했습니다(안 탐 " + a + "명)", "🏢 The office started the hike (" + a + " not on bus)");
+            case "drop": return T("🏢 사무실이 " + a + " 님의 하차 지점을 바꿨습니다", "🏢 The office changed " + a + "'s drop-off");
+            case "pickup": return T("🏢 사무실이 " + a + " 님의 하산 탑승지를 바꿨습니다", "🏢 The office changed " + a + "'s return pickup");
+            case "seat": return T("🏢 사무실이 " + a + " 님의 자리 · 탑승지를 바꿨습니다", "🏢 The office changed " + a + "'s seat · stop");
+            default: return T("🏢 사무실이 방을 고쳤습니다", "🏢 The office changed the room");
+        }
+    }
+    /** 사무실 자리 - 고치기를 안 켜서 보기만인가(2026-11-02 홍TV님). 서버도 막지만 화면에서 먼저 단추를 막음. */
+    function officeLocked(s) { return !!(s && s.officeMe && !s.officeEdit); }
+    /** 사무실 보기일 때 막는 단추 · 고르기(방을 바꾸는 것). 지도 · 지나온 길 · 안내 글 복사 · QR 은 그대로. */
+    var OFFICE_EDIT_SEL = "#plateEdit, #rosterBtn, #rosterFileBtn, #departBtn, #cancelTripBtn, #endBtn, #busBtn, #noticeBtn, #actBoard, #actMove, #actKick, #actStop,"
+        + " [data-kick], [data-aboard], [data-apart], [data-board], [data-undo], [data-step=departBtn], [data-step=endBtn], select[data-drop], select[data-pick]";
+    /** 사무실 보기 띠 · 고치기 단추 · 막은 단추 모양. render 가 부름. */
+    function officeBar(s) {
+        var lock = officeLocked(s);
+        $("officeEdit").hidden = !s.officeMe;
+        $("room").classList.toggle("officeRO", lock);
+        if (!s.officeMe) return;
+        $("officeEditText").textContent = lock ? T("🏢 사무실 보기 - 고치려면 ✏️ 고치기 켜기", "🏢 Office view - tap ✏️ Turn on editing to make changes")
+            : T("✏️ 사무실 고치기 켜짐 - " + clock(s.officeEditUntil) + " 까지(그 뒤 저절로 보기). 고친 것은 인솔자 화면에 남습니다.", "✏️ Office editing on until " + clock(s.officeEditUntil) + " (then view-only again). Changes show on the leader's screen.");
+        $("officeEditBtn").textContent = lock ? T("✏️ 고치기 켜기", "✏️ Turn on editing") : T("고치기 끄기", "Turn off editing");
+        $("rosterBox").hidden = lock;   // 보기일 때는 넣는 칸을 숨김
+        $("noticeRow").hidden = lock;
+        Array.prototype.forEach.call(document.querySelectorAll("#room select[data-drop], #room select[data-pick], #actStop"), function (x) { x.disabled = lock; });
+    }
+    $("officeEditBtn").addEventListener("click", function () {
+        if (!state || !state.officeMe) return;
+        var on = officeLocked(state);
+        (on ? ask(T("고치기를 켤까요?\n30분 동안 차량번호 · 명단 · 탑승 체크 · 공지 · 방 끝내기 등을 할 수 있습니다. 고친 것은 인솔자 화면에 \"🏢 사무실이 …\" 로 남습니다.",
+            "Turn on editing?\nFor 30 minutes you can change plates, the list, boarding checks, notices, end the room, etc. Every change shows on the leader's screen as \"🏢 The office …\"."), { ok: T("✏️ 고치기 켜기", "✏️ Turn on editing") }) : Promise.resolve(true)).then(function (ok) {
+            if (!ok) return;
+            RFParty.post("office-edit", { token: RFParty.get().token, on: on }).then(function (j) { render(j); roomMsg(on ? T("✏️ 고치기를 켰습니다(30분).", "✏️ Editing is on (30 min).") : T("고치기를 껐습니다 - 보기만 합니다.", "Editing is off - view only.")); }).catch(actFail);
+        });
+    });
+    // 보기일 때 막은 단추를 누르면 - 아무것도 보내지 않고 띠로 안내(서버도 막음)
+    $("room").addEventListener("click", function (e) {
+        if (!officeLocked(state) || !e.target.closest || !e.target.closest(OFFICE_EDIT_SEL)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        roomMsg(T("🏢 사무실은 보기만 합니다 - 위쪽 \"✏️ 고치기 켜기\"를 먼저 눌러 주세요.", "🏢 The office is view-only - tap \"✏️ Turn on editing\" at the top first."));
+        $("officeEdit").scrollIntoView({ behavior: "smooth", block: "center" });
+    }, true);
     $("sosBar").addEventListener("click", function (e) {
         var b = e.target.closest("[data-sos]");
         if (!b || !state || !isStaff()) return;   // 회원 화면에는 지도가 없음 - 이름만
@@ -757,9 +820,9 @@
                         + " <button type=\"button\" class=\"undo\" data-apart=\"" + m.id + "\">" + T("🚶 따로 귀가", "🚶 Home sep.") + "</button>";
             else if (m.listed && !s.departed)
                 st += " <button type=\"button\" class=\"undo\" data-board=\"" + m.id + "\" data-on=\"" + (m.boarded ? 0 : 1) + "\">" + (m.boarded ? T("↩ 안 탐", "↩ Not on") : T("✅ 탔음", "✅ On bus")) + "</button>";
-            var dsel = (s.drops || []).length && m.role === "hiker" && !m.cancelled ? "<br><select class=\"dropSel\" data-drop=\"" + m.id + "\" aria-label=\"" + T("하차 지점", "Drop-off") + "\">" + ["", ].concat(s.drops, ["버스 대기"]).map(function (x) { return "<option value=\"" + esc(x) + "\"" + ((m.drop || "") === x ? " selected" : "") + ">" + (x ? "⬇ " + esc(x) : T("⬇ 하차 미정", "⬇ unset")) + "</option>"; }).join("") + "</select>" : (m.drop ? "<br><small>⬇ " + esc(m.drop) + "</small>" : "");
+            var dsel = (s.drops || []).length && m.role === "hiker" && !m.cancelled ? "<br><select class=\"dropSel\" data-drop=\"" + m.id + "\"" + (officeLocked(s) ? " disabled" : "") + " aria-label=\"" + T("하차 지점", "Drop-off") + "\">" + ["", ].concat(s.drops, ["버스 대기"]).map(function (x) { return "<option value=\"" + esc(x) + "\"" + ((m.drop || "") === x ? " selected" : "") + ">" + (x ? "⬇ " + esc(x) : T("⬇ 하차 미정", "⬇ unset")) + "</option>"; }).join("") + "</select>" : (m.drop ? "<br><small>⬇ " + esc(m.drop) + "</small>" : "");
             if ((s.pickups || []).length && m.role === "hiker" && !m.cancelled)   // 하산 탑승지(2026-10-28)
-                dsel += "<br><select class=\"pickSel\" data-pick=\"" + m.id + "\" aria-label=\"" + T("하산 탑승지", "Return pickup") + "\">" + [""].concat(s.pickups).map(function (x) {
+                dsel += "<br><select class=\"pickSel\" data-pick=\"" + m.id + "\"" + (officeLocked(s) ? " disabled" : "") + " aria-label=\"" + T("하산 탑승지", "Return pickup") + "\">" + [""].concat(s.pickups).map(function (x) {
                     var i = s.pickups.indexOf(x), t = i >= 0 ? (s.pickupTimes || [])[i] : "";
                     return "<option value=\"" + esc(x) + "\"" + ((m.pickup || "") === x ? " selected" : "") + ">" + (x ? "🚌 " + esc(x) + (t ? " " + esc(t) : "") : T("🚌 하산 탑승 미정", "🚌 pickup unset")) + "</option>"; }).join("") + "</select>";
             if (m.dropHow) dsel += " <small>" + (m.dropHow === "me" ? T("✓ 여기서 내림", "✓ got off") : m.dropHow === "auto" ? T("📍 위치로 확인", "📍 by location") : m.dropHow === "edit" ? T("✏️ 회원이 바꿈", "✏️ changed by member") : T("✓ 인솔자", "✓ leader")) + "</small>";
@@ -1371,7 +1434,7 @@
 
     $("cancelTripBtn").addEventListener("click", function () {
         var p = RFParty.get();
-        ask(T("산행을 취소할까요? 모든 회원 화면에 \"산행이 취소되었습니다\"가 뜨고 방이 닫힙니다. 되돌릴 수 없습니다.", "Cancel the hike? Every member sees \"The hike was cancelled\" and the room closes. This can't be undone."), { ok: T("산행 취소", "Cancel hike"), cancel: T("그대로 둠", "Keep"), danger: true }).then(function (ok) {
+        ask(T("산행을 취소할까요? 모든 회원 화면에 \"산행이 취소되었습니다\"가 뜨고 방이 닫힙니다. 되돌릴 수 없습니다.", "Cancel the hike? Every member sees \"The hike was cancelled\" and the room closes. This can't be undone."), { ok: T("산행 취소", "Cancel hike"), cancel: T("그대로 둠", "Keep"), danger: true }).then(officeSure).then(function (ok) {
             if (!ok) return;
             // 사유 창의 "돌아가기" · Esc 는 산행 취소를 멈춤(2026-10-28 PC: 큰 창의 "취소" 가 그만두기로 읽혀 사유 없이 취소됐음). 사유는 비워도 됨
             return askText(T("취소 사유(회사 화면에 남음, 예: 태풍 · 인원 미달)\n비워 두고 \"산행 취소하기\"를 눌러도 됩니다.", "Reason (kept on the office screen, e.g. typhoon)\nYou may leave it empty."), "",
@@ -1390,10 +1453,16 @@
     });
 
     $("endBtn").addEventListener("click", function () {
-        ask(T("방을 끝낼까요? 산행이 끝난 것으로 모두의 위치가 지워지고 다시 열 수 없습니다.", "End the room? The hike is treated as finished, everyone's location is deleted, and it can't be reopened."), { ok: T("방 끝내기", "End room"), danger: true }).then(function (ok) {
+        ask(T("방을 끝낼까요? 산행이 끝난 것으로 모두의 위치가 지워지고 다시 열 수 없습니다.", "End the room? The hike is treated as finished, everyone's location is deleted, and it can't be reopened."), { ok: T("방 끝내기", "End room"), danger: true }).then(officeSure).then(function (ok) {
             if (ok) endRoom({ token: RFParty.get().token });
         });
     });
+    /** 사무실이 방 끝내기 · 산행 취소 - 한 번 더(2026-11-02 홍TV님: 인솔자와 연락이 안 될 때만 쓰게). 인솔자 · 회원 자리는 그대로 ok. */
+    function officeSure(ok) {
+        if (!ok || !state || !state.officeMe) return ok;
+        return ask(T("🏢 사무실에서 이 방을 닫습니다.\n인솔자와 모든 회원 화면에서 방이 끝나고(\"회사 사무실이 방을 끝냈습니다\" · 산행 취소), 되돌릴 수 없습니다.\n인솔자와 연락이 안 될 때만 써 주세요. 정말 닫을까요?",
+            "🏢 The office is closing this room.\nThe leader and every member will see the room end (\"The office ended the room\" · hike cancelled), and it can't be undone.\nUse this only when you can't reach the leader. Really close it?"), { ok: T("사무실에서 닫기", "Close from the office"), cancel: T("그대로 둠", "Keep"), danger: true });
+    }
     /**
      * 방 끝내기 · 산행 취소(2026-10-28): SOS 중이면 서버가 막음. 하산 확인이 안 된 회원이 있으면 한 번 더 묻고 force 로 다시 -
      * 그러면 회사 화면에 "하산 미확인 n명으로 끝냄" 이 남음.

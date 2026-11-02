@@ -94,6 +94,11 @@ final class Party {
         boolean listed;
         /** 회사 사무실이 방을 보려고 들어온 자리(2026-10-28) - 보조 자리를 쓰지 않고, 위치를 보내지 않음. */
         boolean office;
+        /**
+         * 사무실 고치기가 켜진 때까지(2026-11-02 홍TV님) - 사무실 자리는 처음에 보기만, "✏️ 고치기 켜기" 를 누르면 OFFICE_EDIT_MS 동안 고칠 수 있음.
+         * 메모리에만(파일에 안 씀 - 서버를 다시 켜면 꺼짐), 사무실 화면에서 방을 다시 열어도 꺼짐(officeEnter).
+         */
+        long officeEditUntil;
         /** 마지막으로 앱에서 보냈나(2026-10-28 홍TV님 "크롬 안에 있는 웹도 보내나?") - 웹은 화면을 끄면 멈추므로 "10분 소식 없음" 경고는 앱 회원만. */
         boolean app;
         // ---- 메모리에만(파일에 안 씀)
@@ -169,6 +174,8 @@ final class Party {
          * 사무실이 "승인" 하기 전에는 사무실 화면 "승인 기다리는 방" 에만(알림 · 열기 · 끝난 산행 요약 없음), 회원 화면에도 사무실 이름 안 보임.
          */
         boolean officePending;
+        /** 사무실이 고친 것 [무엇, 대상(호차 · 이름 · 수), 때] - 인솔자 화면 알림 줄에(2026-11-02 홍TV님), 최근 OFFICE_LOG_MAX 개. 메모리(회원 한 줄 msg 처럼). */
+        final List<Object[]> officeLog = new ArrayList<>();
         /** 산행 중 SOS 가 한 번이라도 켜졌나(끝난 산행 요약). */
         boolean sosEver;
         /** 산행 시작한 때 - 사무실 "10분 소식 없음" 은 이때부터 셈(출발 직후 위치를 아직 안 보낸 회원을 바로 세지 않게, 2026-10-28 PC). */
@@ -1386,11 +1393,49 @@ final class Party {
         Room r = code == null ? null : rooms.get(code.trim().toUpperCase());
         if (r == null || !o.code.equals(r.officeCode)) throw new IllegalArgumentException("이 회사의 방이 아니거나 이미 끝난 방입니다.");
         if (r.officePending) throw new IllegalStateException("승인 기다리는 방입니다. 우리 산악회 방이 맞으면 먼저 \"승인\" 을 눌러 주세요.");
-        for (Member m : r.members.values()) if (m.office) return m;
+        for (Member m : r.members.values()) if (m.office) { m.officeEditUntil = 0; return m; }   // 다시 열면 고치기는 꺼짐(보기부터)
         Member m = add(r, clean(o.name + " 사무실", 12) != null ? clean(o.name + " 사무실", 12) : "사무실", "lead", now);
         m.office = true;
         save();
         return m;
+    }
+
+    /** 사무실 고치기 켜 두는 시간(2026-11-02 홍TV님) - 30분 지나면 저절로 보기로(켜 둔 채 잊은 PC 가 그대로 고치지 않게). 고쳐도 늘어나지 않음. */
+    static final long OFFICE_EDIT_MS = 30 * 60_000L;
+    /** 사무실이 고친 것 - 인솔자 화면에 남기는 수. */
+    static final int OFFICE_LOG_MAX = 10;
+
+    /** 사무실 자리가 지금 고칠 수 있나. 사무실이 아닌 자리는 늘 true(이 확인과 관계없음). */
+    synchronized boolean officeEditing(Member m, long now) {
+        return !m.office || now < m.officeEditUntil;
+    }
+
+    /** 사무실 자리 - 고치기 켜기 · 끄기. 켜면 인솔자 화면에 "🏢 사무실이 고치기를 켰습니다" 가 남음. */
+    synchronized void officeEdit(Member m, boolean on, long now) {
+        if (!m.office) throw new SecurityException("사무실 자리만 씁니다.");
+        m.officeEditUntil = on ? now + OFFICE_EDIT_MS : 0;
+        if (on) officeDid(m, "edit", null, now);
+    }
+
+    /** 사무실이 고친 것을 인솔자 화면에 남김(사무실 자리가 아니면 그대로). what - 화면이 글로 바꿈(party.js officeLogText), arg - 호차 · 이름 · 수. */
+    synchronized void officeDid(Member m, String what, String arg, long now) {
+        if (!m.office) return;
+        List<Object[]> l = m.room.officeLog;
+        l.add(new Object[] {what, arg, now});
+        while (l.size() > OFFICE_LOG_MAX) l.remove(0);
+        audit.info("office edit room={} what={}", m.room.code, what);   // 이름 없이
+    }
+
+    /** 고친 대상의 이름 - 번호(id)로, 없으면 좌석(호차 · 번호)으로, 둘 다 없으면 나. 못 찾으면 null. */
+    synchronized String nickOf(Member actor, Integer id, Integer bus, Integer seat) {
+        if (id == null && seat == null) return actor.nick;
+        int b = bus == null ? 1 : bus;
+        Member hit = null;
+        for (Member x : actor.room.members.values()) {
+            boolean ok = id != null ? x.id == id : x.seat != null && x.seat.equals(seat) && x.bus == b;
+            if (ok && (hit == null || hit.cancelled)) hit = x;   // 취소된 사람보다 앉은 사람(mark 와 같게)
+        }
+        return hit == null ? null : hit.nick;
     }
 
     /** 사무실 - 이 방을 회사 화면에서 뺌(잘못 연결된 방). 사무실 자리도 지움. */
@@ -1839,6 +1884,21 @@ final class Party {
         o.addProperty("me", me.id);
         if (me.chief()) o.addProperty("chief", true);
         if (me.office) o.addProperty("officeMe", true);   // 회사 사무실 자리 - 위치를 보내지 않음, 방 끝내기 됨
+        if (me.office) {   // 사무실 고치기(2026-11-02 홍TV님) - 꺼져 있으면 화면이 고치는 단추를 막음(서버도 막음)
+            o.addProperty("officeEdit", now < me.officeEditUntil);
+            if (now < me.officeEditUntil) o.addProperty("officeEditUntil", me.officeEditUntil);
+        }
+        if (staff && !r.officeLog.isEmpty()) {   // 사무실이 고친 것 - 인솔자 화면 알림 줄
+            JsonArray ol = new JsonArray();
+            for (Object[] x : r.officeLog) {
+                JsonObject a = new JsonObject();
+                a.addProperty("what", (String) x[0]);
+                if (x[1] != null) a.addProperty("arg", (String) x[1]);
+                a.addProperty("at", (Long) x[2]);
+                ol.add(a);
+            }
+            o.add("officeLog", ol);
+        }
         if (r.officeName != null && !r.officePending) o.addProperty("office", r.officeName);   // 회원에게도 - 위치를 받는 사람(승인 뒤부터)
         if (r.officeName != null && r.officePending && me.staff()) o.addProperty("officeWait", r.officeName);   // 인솔자 - 승인 기다림
         o.addProperty("assistMax", r.buses);

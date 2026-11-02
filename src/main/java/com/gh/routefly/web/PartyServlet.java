@@ -35,6 +35,7 @@ import com.google.gson.JsonParser;
  * POST /api/party/drop   {token, id?, drop}                하차 지점(2026-10-28) - 나, 인솔자는 id 로 아무나("버스 대기" 도)
  * POST /api/party/pickup {token, id?, pickup}            하산 탑승지(곳마다 출발 시각 - 하산 마감 알림이 이 시각으로). 방 만들 때 pickups · home(도착 예정(출발지로 돌아오는 시각 - 서울만이 아님))
  * POST /api/party/arrive {token, drop, lat, lon} · /alight {token, yes}  인솔자 - 하차 지점 도착 · 회원 - 여기서 내려요(위치로도 확인)
+ * POST /api/party/office-edit {token, on}               사무실 자리 - 고치기 켜기(30분) · 끄기. 꺼져 있으면 OFFICE_EDIT 주소를 막음(2026-11-02 홍TV님)
  * POST /api/party/office/create {name} → {code, key}   회사 사무실 만들기(비밀 링크 = key)
  * POST /api/party/office/rooms {key} · /office/enter {key, code} · /office/detach {key, code}  사무실 - 방 목록(숫자) · 방 열기(인솔자 화면) · 방 빼기
  * POST /api/party/office/newkey {key} → {key} · /office/delete {key, name}  사무실 링크 바꾸기 · 사무실 없애기(회사 이름을 한 번 더)
@@ -282,6 +283,9 @@ public class PartyServlet extends HttpServlet {
         if (m == null) throw new IllegalArgumentException("방이 끝났거나 열쇠가 맞지 않습니다.");
         boolean lead = "lead".equals(m.role), staff = m.staff();
         boolean on = bool(in, "on");
+        // 사무실 자리는 처음에 보기만(2026-11-02 홍TV님) - "✏️ 고치기 켜기" 뒤에만 고침. 고친 것은 인솔자 화면에 남음(Party.officeDid)
+        if (m.office && OFFICE_EDIT.contains(path) && !p.officeEditing(m, now)) throw new SecurityException("사무실은 보기만 합니다. ✏️ 고치기 켜기를 먼저 누르세요.");
+        if (m.office && "/aboard".equals(path)) throw new SecurityException("사무실 자리는 하산 탑승이 없습니다.");   // 하산 인원에 사무실이 들어가지 않게
         JsonObject out;
         switch (path == null ? "" : path) {
             case "/loc" -> {
@@ -298,16 +302,20 @@ public class PartyServlet extends HttpServlet {
                 if (!in.has("sos")) return ok(); }   // sos 가 없으면(앱 RfAlive) 그대로 - 앱으로 셈. 앱은 답을 읽지 않으니 방 전체 대신 ok 만(2026-10-28 속도 점검: 1시간 60번 × 14KB 버림)
             case "/board" -> p.board(m);
             case "/aboard" -> p.aboard(m, on, bool(in, "apart"));   // apart - 따로 귀가
-            case "/seat" -> p.seat(m, integer(in, "id"), integer(in, "bus"), integer(in, "seat"), str(in, "stop"));
+            case "/seat" -> { p.seat(m, integer(in, "id"), integer(in, "bus"), integer(in, "seat"), str(in, "stop")); p.officeDid(m, "seat", p.nickOf(m, integer(in, "id"), null, null), now); }
             case "/mark" -> {
                 if (!staff) throw new SecurityException("인솔자만 좌석표를 고칠 수 있습니다.");
-                if (integer(in, "id") != null && ("aboard".equals(str(in, "what")) || "apart".equals(str(in, "what")))) p.aboardById(m, integer(in, "id"), on, "apart".equals(str(in, "what")));
+                String what = str(in, "what");
+                if (integer(in, "id") != null && ("aboard".equals(what) || "apart".equals(what))) p.aboardById(m, integer(in, "id"), on, "apart".equals(what));
                 else if (integer(in, "id") != null) p.boardById(m, integer(in, "id"), on, now);   // 명단에서 사람으로(핸드폰 없는 · 자리 없는 회원)
                 else p.mark(m, integer(in, "bus"), (int) lng(in, "seat"), on, now);
+                p.officeDid(m, "apart".equals(what) && on ? "apart" : ("aboard".equals(what) || "apart".equals(what) ? "aboard" : "board") + (on ? "" : "Off"),
+                        p.nickOf(m, integer(in, "id"), integer(in, "bus"), integer(in, "id") == null ? (int) lng(in, "seat") : null), now);
             }
             case "/depart" -> {
                 if (!lead) throw new SecurityException("인솔자만 출발할 수 있습니다.");
                 int n = p.depart(m, now);
+                p.officeDid(m, "depart", String.valueOf(n), now);
                 out = p.view(m, now);
                 out.addProperty("cancelledNow", n);
                 return out;
@@ -315,28 +323,38 @@ public class PartyServlet extends HttpServlet {
             case "/roster" -> {
                 if (!lead) throw new SecurityException("인솔자만 명단을 넣을 수 있습니다.");
                 int n = in.has("rows") && in.get("rows").isJsonArray() ? p.rosterRows(m, in.getAsJsonArray("rows"), now) : p.roster(m, str(in, "text"), now);
+                p.officeDid(m, "roster", String.valueOf(n), now);
                 out = p.view(m, now);
                 out.addProperty("added", n);
                 return out;
             }
             case "/say" -> p.say(m, str(in, "text"), now);   // 회원 → 인솔자 한 줄(2026-10-27)
-            case "/notice" -> { if (!lead) throw new SecurityException("인솔자만 공지할 수 있습니다."); p.notice(m, str(in, "text"), now); }
-            case "/bus" -> { if (!staff) throw new SecurityException("인솔자만 버스 자리를 정할 수 있습니다."); p.bus(m, integer(in, "bus"), num(in, "lat"), num(in, "lon")); }
-            case "/plate" -> { if (!staff) throw new SecurityException("인솔자만 차량번호를 적을 수 있습니다."); p.plate(m, integer(in, "bus"), str(in, "plate")); }
-            case "/kick" -> { if (!lead) throw new SecurityException("인솔자만 내보낼 수 있습니다."); p.kick(m, (int) lng(in, "id"), now); }
+            case "/notice" -> { if (!lead) throw new SecurityException("인솔자만 공지할 수 있습니다."); p.notice(m, str(in, "text"), now); p.officeDid(m, "notice", null, now); }
+            case "/bus" -> { if (!staff) throw new SecurityException("인솔자만 버스 자리를 정할 수 있습니다."); p.bus(m, integer(in, "bus"), num(in, "lat"), num(in, "lon")); p.officeDid(m, "bus", String.valueOf(integer(in, "bus") == null ? 1 : integer(in, "bus")), now); }
+            case "/plate" -> { if (!staff) throw new SecurityException("인솔자만 차량번호를 적을 수 있습니다."); p.plate(m, integer(in, "bus"), str(in, "plate")); p.officeDid(m, "plate", String.valueOf(integer(in, "bus") == null ? 1 : integer(in, "bus")), now); }
+            case "/kick" -> {
+                if (!lead) throw new SecurityException("인솔자만 내보낼 수 있습니다.");
+                String who = p.nickOf(m, (int) lng(in, "id"), null, null);   // 내보내기 전에
+                p.kick(m, (int) lng(in, "id"), now);
+                p.officeDid(m, "kick", who, now);
+            }
+            case "/office-edit" -> p.officeEdit(m, on, now);   // 사무실 자리 - 고치기 켜기 · 끄기(다른 자리는 403)
             case "/leave" -> { p.leave(m, now); return ok(); }
             case "/leadcode" -> { JsonObject o = ok(); o.addProperty("leadCode", p.newLeadCode(m, now)); return o; }
             case "/mecode" -> { JsonObject o = ok(); o.addProperty("code", p.meCode(m, now)); o.addProperty("min", Party.ME_CODE_MS / 60_000); return o; }
             case "/end" -> { if (!lead) throw new SecurityException("인솔자만 방을 끝낼 수 있습니다."); p.end(m, bool(in, "cancel"), str(in, "why"), bool(in, "force"), now); return ok(); }
             case "/link" -> { p.linkOffice(m, str(in, "office")); }
-            case "/drop" -> p.drop(m, integer(in, "id"), str(in, "drop"));   // 하차 지점 - 나 · 인솔자는 아무나
-            case "/pickup" -> p.pickup(m, integer(in, "id"), str(in, "pickup"));   // 하산 탑승지 - 나 · 인솔자는 아무나
+            case "/drop" -> { p.drop(m, integer(in, "id"), str(in, "drop")); p.officeDid(m, "drop", p.nickOf(m, integer(in, "id"), null, null), now); }   // 하차 지점 - 나 · 인솔자는 아무나
+            case "/pickup" -> { p.pickup(m, integer(in, "id"), str(in, "pickup")); p.officeDid(m, "pickup", p.nickOf(m, integer(in, "id"), null, null), now); }   // 하산 탑승지 - 나 · 인솔자는 아무나
             case "/arrive" -> p.arrive(m, str(in, "drop"), num(in, "lat"), num(in, "lon"), now);   // 인솔자 - 하차 지점 도착(회원 폰에 "여기서 내리세요?")
             case "/alight" -> p.alight(m, bool(in, "yes"), now);   // 회원 - 여기서 내려요 · 아니요
             default -> throw new IllegalArgumentException("없는 주소입니다.");
         }
         return p.view(m, now);
     }
+
+    /** 사무실 자리가 고치기를 켜야 하는 주소(2026-11-02 홍TV님) - 방을 바꾸는 것. 보기(/view · /trail · /ping)는 그대로, 주 인솔자만 쓰는 것 · /arrive 는 원래 막힘. */
+    static final java.util.Set<String> OFFICE_EDIT = java.util.Set.of("/plate", "/roster", "/mark", "/bus", "/notice", "/kick", "/depart", "/end", "/drop", "/pickup", "/seat");
 
     private static JsonObject withToken(JsonObject o, Party.Member m) {
         o.addProperty("token", m.token);
