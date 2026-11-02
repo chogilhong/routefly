@@ -453,7 +453,8 @@ public class StatsServlet extends HttpServlet {
     /** 화면 주소 → 이름(2026-10-20 홍TV님 "화면 이름도 칸을 만들어"). 각 html 의 title 과 같게. */
     static String pageName(String key) {
         return switch (key) {
-            case "/index.html" -> "코스 미리보기(3D, 첫 화면)";
+            case "/" -> "첫 주소(산 모음 · 3D 화면으로 넘김)";
+            case "/index.html" -> "코스 미리보기(3D)";
             case "/hike.html" -> "따라가기";
             case "/route.html" -> "노선 안내도";
             case "/park.html" -> "탐방 안내도";

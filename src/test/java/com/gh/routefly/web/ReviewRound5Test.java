@@ -17,6 +17,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import org.junit.Assume;
 import org.junit.Test;
 
 import com.google.gson.JsonObject;
@@ -163,5 +164,26 @@ public class ReviewRound5Test {
                     if ("getWriter".equals(m.getName())) return new PrintWriter(new StringWriter());
                     return null;
                 });
+    }
+
+    /** node 로 화면 JS 조각 시험(node 가 없으면 건너뜀). */
+    static void node(String script) throws Exception {
+        Process p;
+        try {
+            p = new ProcessBuilder("node", script).redirectErrorStream(true).start();
+        } catch (java.io.IOException e) {
+            Assume.assumeNoException("node 가 없어 건너뜁니다", e);
+            return;
+        }
+        String out = new String(p.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        assertTrue("node 가 끝나지 않았습니다", p.waitFor(60, java.util.concurrent.TimeUnit.SECONDS));
+        assertEquals(out, 0, p.exitValue());
+        assertTrue(out, out.contains("OK "));
+    }
+
+    /** SOS · 산악회 방이 시험 걷기 위치를 쓰지 않음 · 오프라인 저장 지우기가 산 페이지 저장을 지우지 않음 · 통제 알림 저장(hike-safety.test.js). */
+    @Test
+    public void hikeSafetyJs() throws Exception {
+        node("src/test/js/hike-safety.test.js");
     }
 }

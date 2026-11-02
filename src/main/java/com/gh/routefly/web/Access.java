@@ -66,12 +66,11 @@ final class Access {
         return "사람";
     }
 
-    /** 순수 함수 - 경로 묶음(통계 화면 이름과 같게: /m/ · /en/m/ · /c/ · /s/ · 화면.html, 첫 화면은 "/"). */
+    /** 순수 함수 - 경로 묶음(통계 화면 이름과 같게: /m/ · /en/m/ · /c/ · /s/ · 화면.html, 첫 주소 "/" 와 index.html 은 따로 - 2026-11-02). */
     static String group(String page) {
         if (page == null) return null;
         if (page.startsWith("/m/")) return "/m/";
         if (page.startsWith("/en/m/")) return "/en/m/";
-        if (page.equals("/index.html")) return "/";
         return page;
     }
 

@@ -116,7 +116,14 @@ public class FirstScreenSpeedTest {
         String src = Files.readString(Path.of("src/main/java/com/gh/routefly/web/MountainServlet.java"), StandardCharsets.UTF_8);
         for (String page : new String[] {"withFire(indexPage(", "withFire(choosePage(", "withFire(page(peak, "})
             assertTrue("코스 모음 · 같은 이름 고르기 · 산 페이지 - " + page, src.contains("resp.getWriter().print(" + page));
-        assertFalse("영어 화면(mountain-en.js)에는 산불 안내가 없음 - 그대로", src.contains("withFire(MountainEn."));
+        // 영어 화면도 서버가 넣음(2026-11-02 홍TV님 점검 - 예전엔 영어 화면에 산불 안내가 없었음)
+        assertTrue("영어 코스 모음", src.contains("resp.getWriter().print(withFire(MountainEn.indexPage("));
+        assertTrue("영어 산 페이지", src.contains("resp.getWriter().print(withFire(MountainEn.page(peak, "));
+        long autumn = java.time.Instant.parse("2026-11-02T03:00:00Z").toEpochMilli();
+        String en = MountainServlet.withFire("<p class=\"lead\">One</p>", autumn, true);
+        assertTrue(en, en.contains("<p class=\"fire\">🔥 Autumn wildfire season - some trails are closed") && !en.contains("산불"));
+        String kit = Files.readString(Path.of("src/main/webapp/js/course-kit.js"), StandardCharsets.UTF_8);
+        assertTrue("course-kit.js fireNote 영어와 같은 글", kit.contains("\" wildfire season - some trails are closed and fire or smoking on the mountain is banned. Check local signs and the park website.\""));
     }
 
     @Test

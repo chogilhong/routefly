@@ -752,11 +752,13 @@
     var rules = null, ruleSaid = {};
     setInterval(function () {
         if (!rules || !hike.running || hike.sim) return;
-        RF.gateAlerts(rules, Date.now(), ruleSaid).forEach(function (a) {
+        var said = RF.gateAlerts(rules, Date.now(), ruleSaid);
+        said.forEach(function (a) {
             ruleSaid[a.key] = true;
             toast("⏰ " + a.text, 10000);
             say(a.text);
         });
+        if (said.length) save();   // 알린 것도 산행 저장분에 - 새로 고침 · 이어서 뒤 같은 알림을 되풀이하지 않게(2026-11-02 홍TV님 점검)
     }, 30000);
 
     // 목록 이름에도 산 안내(park-notes)의 바로잡은 탐방로 이름 - 한 번 받아 둠(못 받으면 그대로)
@@ -944,7 +946,7 @@
     function save() {
         if (hike.sim) return;
         try { localStorage.setItem(saveKey(), JSON.stringify({ start: hike.start, d: hike.d, walked: hike.walked, d0: hike.d0, dMax: hike.dMax,
-                                                        base: hike.base, rev: !!c.rev, segT0: hike.segT0, t: Date.now() }));
+                                                        base: hike.base, rev: !!c.rev, segT0: hike.segT0, said: ruleSaid, t: Date.now() }));
               localStorage.setItem(ACTIVE_KEY, c.id); } catch (e) { /* 저장 못 해도 산행은 계속 */ }
     }
 
@@ -2370,6 +2372,7 @@
         nearChecked = false;
         if (!sim && !saved && !checked) { preCheck(function () { start(false, true); }); return; }   // 이어 하는 산행(새로 고침 · 이어서)은 묻지 않음
         setCompact(false);   // 시작할 때는 기록 칸을 펼쳐서(아래로 밀면 접힘)
+        if (!sim) hike.fix = null;   // 앞 시험 걷기 위치(앞당긴 시계)가 실제 산행에 남지 않게(2026-11-02 홍TV님 점검)
         hike.sim = sim;
         hike.running = true;
         hike.arrived = false;
@@ -2387,6 +2390,7 @@
         hike.notes = saved ? loadNotes() : [];
         hike.walked = saved && saved.walked ? saved.walked : 0;
         hike.alerted = {};
+        ruleSaid = saved && saved.said ? saved.said : {};   // 입산 통제 · 하산 시각 알림 - 이어 하는 산행은 알린 것 그대로
         hike.sunWarned = false;
         hike.sun60 = false;
         // 귀가 확인 - 표준 시간의 1.5배(적어도 1시간 더)가 지나도록 못 끝내면 알림, 그 뒤 한 시간마다(2026-10-14 홍TV님). 위치는 보내지 않음
@@ -2558,6 +2562,7 @@
             finishRecord();
             clearSaved();
         } else finishRecord(true);
+        if (wasSim) hike.fix = null;   // 시험 걷기 위치는 버림 - SOS · 산악회 방이 가짜 위치(앞당긴 시계라 "방금")를 쓰던 것(2026-11-02 홍TV님 점검)
         hike.sim = false;
         compassOff();   // 2026-10-10 점검: 다 걸은 뒤에도 센서를 계속 받던 것
         $("go").textContent = T(K().act + " 시작", "Start " + K().act.toLowerCase());
@@ -2689,7 +2694,10 @@
             hike.jumps = 0;
         }
         hike.fix = { lat: co.latitude, lon: co.longitude, acc: acc, alt: co.altitude, t: t };
-        if (!hike.sim && window.RFParty) RFParty.fix(co.latitude, co.longitude, acc);   // 산악회 방에 참가했을 때만 인솔자에게(party-kit.js, 30초마다)
+        if (!hike.sim && window.RFParty) {   // 산악회 방에 참가했을 때만 인솔자에게(party-kit.js, 30초마다)
+            var pr = RFParty.fix(co.latitude, co.longitude, acc);
+            if (pr) pr.catch(function () { /* 신호 없음 - 다음 위치에(2026-11-02 점검: 잡지 않은 거부가 콘솔 오류로) */ });
+        }
         addTrack(co.latitude, co.longitude, t, co.altitude);
         if (!hike.sim) stampCheck(co.latitude, co.longitude, acc);   // 국토종주 인증센터 · 100대 명산 정상 도장(실제 GPS 만)
         var s = RF.snap(c, co.latitude, co.longitude, hike.lastFix ? hike.d : null);
@@ -4291,7 +4299,7 @@
         }
         $("sosPhotoBox").style.display = "none";
         $("sosPhoto").textContent = PHOTO_LABEL;
-        var fresh = hike.fix && Date.now() - (hike.sim ? Date.now() : hike.fix.t) < 60000 ? hike.fix : null;
+        var fresh = realFix();
         fillSos(fresh);
         if (!fresh && navigator.geolocation && window.isSecureContext) {
             navigator.geolocation.getCurrentPosition(function (pos) {
@@ -4320,9 +4328,14 @@
         RFParty.sos(false);
         partySend();
     }
+    /** SOS · 산악회 방에 쓸 실제 위치(1분 안) - 시험 걷기 위치는 아님(시계를 앞당겨 늘 "방금" 이었음, 2026-11-02 홍TV님 점검). 없으면 null. */
+    function realFix() {
+        var f = hike.fix, n = Date.now();
+        return f && !hike.sim && f.t <= n + 5000 && n - f.t < 60000 ? f : null;   // 5초 - 폰 시계와 GPS 시각이 조금 어긋나도(앞선 시각은 그만큼만)
+    }
     /** 산악회 방 SOS 켜고 끈 것을 바로 서버로 - 위치가 있으면 위치에 싣고, 없으면 위치 없이(ping, 2026-11-01 점검). */
     function partySend() {
-        var r = hike.fix ? RFParty.fix(hike.fix.lat, hike.fix.lon, hike.fix.acc, true) : RFParty.ping(true);
+        var f = realFix(), r = f ? RFParty.fix(f.lat, f.lon, f.acc, true) : RFParty.ping(true);
         if (r) r.catch(function () { /* 다음 위치 · ping 에 */ });
     }
     if (window.RFParty) RFParty.onNotice = function (text) {   // 인솔자 공지 - 걷는 중에도 보이고 들리게
@@ -4471,7 +4484,18 @@
         return ids.map(function (x) { return "api/course?id=" + encodeURIComponent(x); });
     }
 
-    /** 저장 지우기 - 이 코스의 주소 중 다른 저장 코스가 쓰지 않는 것만 지웁니다. */
+    /**
+     * 산 페이지 "신호 없을 때 보기"(course-kit.js offlineBox - 같은 rf-offline-v1, 저장한 산은 localStorage "rf-offline-m")가 쓸 수 있는 주소인가.
+     * 산 페이지는 이 사이트의 화면 · css · js · api/course · api/wx 등을 담고 지도 그림(바깥 주소)은 담지 않음 - 그래서 이 사이트 주소는
+     * api/trails · api/map-config 말고는 남김(2026-11-02 홍TV님 점검: 따라가기 저장을 지우면 산 페이지가 쓰는 코스 자료나 캐시 통째가 지워졌음).
+     */
+    function mountainKeeps(u) {
+        return mountainSaved() && u.indexOf(location.origin + "/") === 0 && !/\/api\/(trails|map-config)\b/.test(u);
+    }
+    function mountainSaved() {
+        try { return Object.keys(JSON.parse(localStorage.getItem("rf-offline-m") || "{}") || {}).length > 0; } catch (e) { return true; }   // 못 읽으면 남기는 쪽으로
+    }
+    /** 저장 지우기 - 이 코스의 주소 중 다른 저장 코스 · 저장한 산 페이지가 쓰지 않는 것만 지웁니다. */
     function deleteOffline(id) {
         var others = offlineIds().filter(function (x) { return x !== id; });
         return caches.open(OFFLINE_CACHE).then(function (cache) {
@@ -4484,8 +4508,8 @@
                 } else if (mine) {
                     // 목록 없는 예전 저장 코스가 남아 있으면 겹치는지 알 수 없어 코스 자료만 지움(타일은 그대로)
                     drop = Promise.resolve(mine.filter(function (u) { return u.indexOf("/api/course?") >= 0; }));
-                } else if (!others.length) {
-                    return caches.delete(OFFLINE_CACHE);   // 예전 저장 · 남은 저장 없음 - 통째로
+                } else if (!others.length && !mountainSaved()) {
+                    return caches.delete(OFFLINE_CACHE);   // 예전 저장 · 남은 저장 없음(산 페이지 저장도 없음) - 통째로
                 } else if (!legacyOther) {
                     // 이 코스만 예전 저장 - 다른 코스 목록에 없는 것(목록 자체는 빼고)을 모두 지움
                     drop = cache.keys().then(function (ks) {
@@ -4495,6 +4519,7 @@
                     drop = Promise.resolve(courseUrls(id).map(absUrl));
                 }
                 return drop.then(function (urls) {
+                    urls = urls.filter(function (u) { return !mountainKeeps(u); });
                     return Promise.all(urls.concat([offlineIndexKey(id)]).map(function (u) { return cache.delete(u); }));
                 });
             });

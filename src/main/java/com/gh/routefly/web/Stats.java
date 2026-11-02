@@ -64,7 +64,8 @@ final class Stats {
 
     static String pageKey(String path) {
         if (path == null) return null;
-        if (path.equals("/") || path.equals("/index.html")) return "/index.html";
+        // 첫 주소 "/" 는 따로(2026-11-02 홍TV님 점검: 11-02 부터 "/" 가 산 모음 · index.html#c= 로 넘기는 작은 화면이라 #c= 링크 한 번이 "/" + index.html 두 번으로 셌음)
+        if (path.equals("/")) return "/";
         if (path.startsWith("/m/")) {
             String n = MountainServlet.decode(path.substring(3));   // 잘못된 % 꼴은 세지 않음(2026-11-01 점검)
             if (n == null) return null;

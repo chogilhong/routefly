@@ -2760,7 +2760,9 @@
     function gateAlerts(r, now, said) {
         var out = [];
         if (!r || !r.course) return out;
-        var at = function (hm) { var p = String(hm).split(":"), d = new Date(now); d.setHours(+p[0], +p[1], 0, 0); return d.getTime(); };
+        // 통제 · 하산 시각은 한국 시각 - 폰 시간대가 달라도(해외 폰 · 영어 손님) 한국 날짜의 그 시각으로(fireNote 와 같이, 2026-11-02 홍TV님 점검)
+        var day0 = Math.floor((now + 9 * 3600000) / 86400000) * 86400000 - 9 * 3600000;
+        var at = function (hm) { var p = String(hm).split(":"); return day0 + (+p[0]) * 3600000 + (+p[1]) * 60000; };
         var check = function (g, kind) {
             var left = (at(g.time) - now) / 60000;
             [60, 30, 10].forEach(function (th) {

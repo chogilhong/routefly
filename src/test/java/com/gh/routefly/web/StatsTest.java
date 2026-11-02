@@ -16,7 +16,8 @@ public class StatsTest {
     public void pageKeys() {
         assertEquals("/m/가야산", Stats.pageKey("/m/%EA%B0%80%EC%95%BC%EC%82%B0"));
         assertEquals("/m/", Stats.pageKey("/m/"));
-        assertEquals("/index.html", Stats.pageKey("/"));
+        assertEquals("첫 주소는 따로(넘기는 화면 - index.html 과 두 번 세지 않게, 2026-11-02)", "/", Stats.pageKey("/"));
+        assertEquals("/index.html", Stats.pageKey("/index.html"));
         assertEquals("/hike.html", Stats.pageKey("/hike.html"));
         assertEquals("/s/", Stats.pageKey("/s/knps-7013"));
         assertNull(Stats.pageKey("/api/courses"));

@@ -8,6 +8,9 @@
     if (fromSteep && crumbA) crumbA.href = "./?open=" + fromSteep[1] + "#steep";
     var RF = window.RF;
     if (!RF) return;
+    // 산불조심기간 안내는 서버가 html 에 넣음(MountainServlet.withFire, 2026-11-02 홍TV님 점검) - 받아 둔 옛 화면(신호 없을 때 보기)이 기간이 지났으면 뺌
+    var fireP = document.querySelector(".fire");
+    if (fireP && RF.fireNote && !RF.fireNote(Date.now())) fireP.parentNode.removeChild(fireP);
     var crumb = document.querySelector(".crumb") || document.querySelector("h1.idx + .lead") || document.querySelector("h1");   // 코스 모음은 설명 줄 오른쪽 - 제목이 한 줄에 들게(2026-10-17)
     if (crumb) {   // 오른쪽 위: 한/EN · 글자 크기(한국어 페이지와 같은 자리)
         var tools = document.createElement("span"), lt = RF.langToggle("en"), tb = RF.textButton();

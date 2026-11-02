@@ -33,7 +33,7 @@ eq("root.html 을 직접 연 주소도", go("/routefly/root.html", "", "#c=knps-
 eq("3D 화면(index.html)의 #c= 는 그대로 머묾", go("/routefly/index.html", "", "#c=knps-1"), null);
 eq("3D 화면을 코스 없이 열면 코스 모음", go("/routefly/index.html", "", ""), "m/");
 
-/** early.js 를 돌려 지도 설정을 미리 묻는지 · 몇 번 묻는지. */
+/** early.js 를 돌려 지도 설정을 미리 묻는지 · 몇 번 묻는지. withFetch - true(빈 ok 답) 또는 가짜 fetch 의 답(Promise)을 만드는 함수. */
 function early(withFetch) {
     var calls = [];
     var ctx = {
@@ -44,9 +44,9 @@ function early(withFetch) {
         navigator: { onLine: true }
     };
     ctx.window = ctx;
-    if (withFetch) ctx.fetch = function (u, o) { calls.push([u, o && o.headers && o.headers.Accept]); return Promise.resolve({ ok: true }); };
+    if (withFetch) ctx.fetch = function (u, o) { calls.push([u, o && o.headers && o.headers.Accept]); return typeof withFetch === "function" ? withFetch() : Promise.resolve({ ok: true }); };
     vm.runInNewContext(fs.readFileSync(path.join(web, "js/early.js"), "utf8"), ctx);
-    return { calls: calls, has: !!ctx.rfMapCfg, picking: ctx.document.documentElement.className };
+    return { calls: calls, has: !!ctx.rfMapCfg, picking: ctx.document.documentElement.className, cfg: ctx.rfMapCfg };
 }
 var e = early(true);
 eq("지도 설정을 한 번 미리 물음(hike.js 의 getJson 과 같은 Accept)", e.calls, [["api/map-config", "application/json"]]);
@@ -54,4 +54,26 @@ eq("답은 window.rfMapCfg", e.has, true);
 eq("코스 없이 열면 코스 고르기(예전 그대로)", e.picking, " picking");
 eq("fetch 가 없는 브라우저는 그대로(hike.js 가 예전처럼 물음)", early(false).has, false);
 
-console.log("OK " + n);
+// 2026-11-02 점검: 위 가짜 fetch 답은 .json 이 없어 hike.js 가 실제로 읽는 길(readJson)을 돌려 보지 않았음 - hike.js 의 readJson 과 기본 지형 대체를 그대로 씀
+var hikeJs = fs.readFileSync(path.join(web, "js/hike.js"), "utf8");
+var rj = /\n    function readJson\(r\) \{[\s\S]*?\n    \}\n/.exec(hikeJs);
+assert(rj, "hike.js 에서 readJson 을 찾지 못함");
+assert(hikeJs.indexOf("(window.rfMapCfg ? window.rfMapCfg.then(readJson) : getJson(\"api/map-config\")).catch(function () {") >= 0, "hike.js 가 미리 물은 답을 readJson 으로 읽음");
+var readJson = vm.runInNewContext("(function () {" + rj[0] + " return readJson; })()", {});
+/** hike.js 와 같은 길: 미리 물은 답 → readJson → 못 읽으면 기본 지형. → demUrl */
+function mapCfg(answer) {
+    return early(answer).cfg.then(readJson).catch(function () { return { demUrl: "DEFAULT" }; }).then(function (j) { return j.demUrl; });
+}
+function res(ok, status, body) { return function () { return Promise.resolve({ ok: ok, status: status, json: function () { return typeof body === "string" ? Promise.reject(new SyntaxError(body)) : Promise.resolve(body); } }); }; }
+Promise.all([
+    mapCfg(res(true, 200, { success: true, demUrl: "https://dem/{z}/{x}/{y}.png", vworldKey: null })),
+    mapCfg(res(false, 500, { success: false, message: "서버 오류" })),
+    mapCfg(res(false, 502, "<html>프록시</html>")),
+    mapCfg(function () { return Promise.reject(new TypeError("Failed to fetch")); })
+]).then(function (r) {
+    eq("readJson - 200 이면 서버 설정", r[0], "https://dem/{z}/{x}/{y}.png");
+    eq("readJson - 500 이면 기본 지형", r[1], "DEFAULT");
+    eq("readJson - JSON 이 아닌 답(프록시 HTML)도 기본 지형", r[2], "DEFAULT");
+    eq("fetch 거부(신호 없음)도 기본 지형", r[3], "DEFAULT");
+    console.log("OK " + n);
+}).catch(function (e) { console.error(e); process.exit(1); });

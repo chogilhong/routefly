@@ -44,7 +44,7 @@ public class PrivacyPolicyTest {
         // 산악회 방(2026-10-20): 참가(동의)한 때만 보냄 - party-kit 이 열쇠가 있을 때만, 서버는 설정을 켰을 때만, 확인자료는 좌표 없이 200일
         String kit = read("src/main/webapp/js/party-kit.js");
         assertTrue(kit.contains("if (!p || lat == null || lon == null) return null;"));
-        assertTrue(hike.contains("if (!hike.sim && window.RFParty) RFParty.fix(co.latitude, co.longitude, acc);"));
+        assertTrue(hike.contains("if (!hike.sim && window.RFParty) {   // 산악회 방에 참가했을 때만 인솔자에게(party-kit.js, 30초마다)\n            var pr = RFParty.fix(co.latitude, co.longitude, acc);"));   // 거부를 잡음(2026-11-02)
         assertTrue(read("src/main/java/com/gh/routefly/web/PartyServlet.java").contains("return \"true\".equalsIgnoreCase(RouteflyConfig.get(\"party.enabled\"));"));
         assertTrue(read("src/main/java/com/gh/routefly/web/PartyServlet.java").contains("위치 제공에 동의해야 참가할 수 있습니다."));
         assertTrue(policy.contains("<b>참가할 때 동의한 사람의 위치만</b>") && policy.contains("6개월 넘게(200일)"));

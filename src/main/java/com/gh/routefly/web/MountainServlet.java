@@ -109,7 +109,7 @@ public class MountainServlet extends HttpServlet {
     private void english(String key, JsonArray all, String base, HttpServletResponse resp, String open) throws IOException {
         if (key.isEmpty()) {
             resp.setHeader("Cache-Control", "public, max-age=600");   // 10분 - 1시간이면 배포한 문구가 늦게 보였음(2026-10-17 PC)
-            resp.getWriter().print(MountainEn.indexPage(all, seriesGroups(), base, SteepRank.html(steepRank(all), true, SteepRank.openOf(open))));
+            resp.getWriter().print(withFire(MountainEn.indexPage(all, seriesGroups(), base, SteepRank.html(steepRank(all), true, SteepRank.openOf(open))), System.currentTimeMillis(), true));
             return;
         }
         JsonObject peak = MountainEn.find(all, key);
@@ -122,7 +122,7 @@ public class MountainServlet extends HttpServlet {
         boolean failed = courses == null;
         if (failed) courses = new ArrayList<>();
         resp.setHeader("Cache-Control", failed ? "no-store" : "public, max-age=600");
-        resp.getWriter().print(MountainEn.page(peak, courses, nearby(all, peak, NEARBY_MAX, NEARBY_M), parking(courses), base));
+        resp.getWriter().print(withFire(MountainEn.page(peak, courses, nearby(all, peak, NEARBY_MAX, NEARBY_M), parking(courses), base), System.currentTimeMillis(), true));
     }
 
     /** 🧗 가파른 산 순위(SteepRank) - 산 98곳의 코스가 필요해 뒤에서 셈하고 6시간 담아 둠. 처음 셈하는 동안은 표 없이 보냄. */
@@ -285,7 +285,12 @@ public class MountainServlet extends HttpServlet {
      * mountain.js 는 이미 있으면 넣지 않음(배포 직후 받아 둔 옛 html 은 예전처럼 스크립트가 넣음).
      */
     static String withFire(String html, long ms) {
-        String note = fireNote(ms);
+        return withFire(html, ms, false);
+    }
+
+    /** en - 영어 산 페이지(/en/m/ - 2026-11-02 홍TV님 점검: 영어 화면에만 산불조심기간 안내가 없었음). */
+    static String withFire(String html, long ms, boolean en) {
+        String note = fireNote(ms, en);
         int i = html.indexOf("<p class=\"lead\">"), j = i < 0 ? -1 : html.indexOf("</p>", i);
         if (note.isEmpty() || j < 0) return html;
         return html.substring(0, j + 4) + "<p class=\"fire\">" + esc(note) + "</p>" + html.substring(j + 4);
@@ -293,9 +298,16 @@ public class MountainServlet extends HttpServlet {
 
     /** 순수 함수 - 산불조심기간(봄 2/1 ~ 5/15 · 가을 11/1 ~ 12/15, 한국 날짜) 안내 글, 기간이 아니면 "". course-kit.js 의 fireNote(한국어)와 같은 글. */
     static String fireNote(long ms) {
+        return fireNote(ms, false);
+    }
+
+    /** en - course-kit.js fireNote 의 영어 글. */
+    static String fireNote(long ms, boolean en) {
         java.time.LocalDate d = java.time.Instant.ofEpochMilli(ms).atZone(java.time.ZoneOffset.ofHours(9)).toLocalDate();
         int md = d.getMonthValue() * 100 + d.getDayOfMonth();
         String season = md >= 201 && md <= 515 ? "봄철" : md >= 1101 && md <= 1215 ? "가을철" : "";
+        if (en) return season.isEmpty() ? "" : "🔥 " + ("봄철".equals(season) ? "Spring" : "Autumn")
+                + " wildfire season - some trails are closed and fire or smoking on the mountain is banned. Check local signs and the park website.";
         return season.isEmpty() ? "" : "🔥 " + season + " 산불조심기간 - 일부 탐방로는 입산이 통제되고 산에서 불 · 담배는 금지입니다. 현지 안내판 · 공원 누리집을 확인하세요.";
     }
 

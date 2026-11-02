@@ -484,10 +484,17 @@ eq("parkRules 10월은 동절기 · 성판악", [hr.season, hr.course.label, hr.
 eq("parkRules 7월은 하절기 · 어리목", RF.parkRules(halla, ["한라산 · 어리목 → 윗세대피소"], new Date(2026, 6, 1)).course.gates.map(function (g) { return g.time; }), ["15:00", "14:00"]);
 eq("parkRules 다른 산 코스면 course 없음", RF.parkRules(halla, ["지리산 · 백무동 → 천왕봉"], new Date(2026, 6, 1)).course, null);
 eq("rulesText", RF.rulesText(hr), "성판악(동절기): 입산 05:00부터 · 성판악 입구 · 진달래밭통제소 11:30 입산 통제 · 동릉정상(백록담) 13:30 하산 · 진달래밭 ↔ 백록담 예약 필수");
-var ga = RF.gateAlerts(hr, new Date(2026, 9, 12, 11, 0).getTime(), {});
+var ga = RF.gateAlerts(hr, Date.UTC(2026, 9, 12, 2, 0), {});
 eq("gateAlerts 30분 앞", ga.map(function (a) { return a.text; }), ["성판악 입구 · 진달래밭통제소 입산 통제까지 30분 남았습니다(11:30)."]);
-eq("gateAlerts 이미 알린 것은 빼고", RF.gateAlerts(hr, new Date(2026, 9, 12, 11, 0).getTime(), { "in|성판악 입구 · 진달래밭통제소|30": 1 }).length, 0);
-eq("gateAlerts 지난 때", RF.gateAlerts(hr, new Date(2026, 9, 12, 13, 31).getTime(), {}).map(function (a) { return a.key; }), ["down|동릉정상(백록담)|0"]);
+eq("gateAlerts 이미 알린 것은 빼고", RF.gateAlerts(hr, Date.UTC(2026, 9, 12, 2, 0), { "in|성판악 입구 · 진달래밭통제소|30": 1 }).length, 0);
+eq("gateAlerts 지난 때", RF.gateAlerts(hr, Date.UTC(2026, 9, 12, 4, 31), {}).map(function (a) { return a.key; }), ["down|동릉정상(백록담)|0"]);
+// 2026-11-02 점검: 폰 시간대가 한국이 아니어도 한국 시각으로(예전 d.setHours 는 그 폰 시간대)
+(function () {
+    var tz = process.env.TZ;
+    process.env.TZ = "America/Los_Angeles";
+    try { eq("gateAlerts 다른 시간대 폰도 한국 11:00 기준", RF.gateAlerts(hr, Date.UTC(2026, 9, 12, 2, 0), {}).map(function (a) { return a.key; }), ["in|성판악 입구 · 진달래밭통제소|30"]); }
+    finally { if (tz === undefined) delete process.env.TZ; else process.env.TZ = tz; }
+})();
 eq("aliasName", RF.aliasName("지리산 · 중산리 → 천왕봉", { "중산리": "중산리탐방지원센터" }), "지리산 · 중산리탐방지원센터 → 천왕봉");
 eq("mergeBare 는 이름이 산 이름뿐인 조각만", RF.mergeBare([{ id: "j", name: "덕유산 · 종주코스", distance_m: 1, coords: [[127, 35], [127.01, 35]] }], []).map(function (x) { return x.id; }), ["j"]);
 // 원점회귀 모양 - 중산리(T) → 칼바위(J) → 로터리 → 천왕봉 → 장터목 → 칼바위(J)
