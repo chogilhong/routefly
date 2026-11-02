@@ -31,6 +31,8 @@
             }
             var last = i === pages.length - 1;
             next.textContent = last ? (en() ? "Get started" : "시작하기") : (en() ? "Next" : "다음");
+            // 점(●○○)은 화면 읽기가 못 읽음 - 단추 이름에 몇 장째인지(2026-11-02 홍TV님 점검)
+            next.setAttribute("aria-label", next.textContent + " (" + (i + 1) + "/" + pages.length + ")");
             skip.textContent = en() ? "Skip" : "건너뛰기";
             skip.style.visibility = last ? "hidden" : "";
         }

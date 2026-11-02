@@ -388,9 +388,10 @@
         return h + ":" + (m < 10 ? "0" : "") + m + ":" + (x < 10 ? "0" : "") + x;
     }
 
+    /** 시각 "HH:MM" - 한국 시간으로(2026-11-02 홍TV님 점검: 일몰 · 도착 예상이 폰 시간대로 나왔음 - 입산 통제 알림처럼 한국 시간). */
     function clock(ms) {
-        var d = new Date(ms);
-        return (d.getHours() < 10 ? "0" : "") + d.getHours() + ":" + (d.getMinutes() < 10 ? "0" : "") + d.getMinutes();
+        var d = new Date(ms + 9 * 3600000);
+        return (d.getUTCHours() < 10 ? "0" : "") + d.getUTCHours() + ":" + (d.getUTCMinutes() < 10 ? "0" : "") + d.getUTCMinutes();
     }
 
     function bearing(lat1, lon1, lat2, lon2) {
@@ -577,6 +578,7 @@
             var p = RF.at(c, m), e = document.createElement("div");
             e.className = "km";
             e.textContent = String(Math.round(m / 1000));
+            e.setAttribute("aria-label", Math.round(m / 1000) + " km");   // 화면 읽기에 이름(없으면 MapLibre 가 "Map marker" 로 읽음 - 2026-11-02 홍TV님 점검)
             ms.push(marker(e, [p.lon, p.lat]));
         }
         // 지점 - 아이콘 + 이름. 출발 · 도착 자리에 이름표가 없으면 "출발" · "도착".
@@ -610,6 +612,7 @@
             RF.nameNodes(lb, q.name);   // 탐방지원센터는 작은 글씨
             q.more.forEach(function (nm) { var m = document.createElement("span"); m.className = "more"; m.textContent = NM(nm); lb.appendChild(m); });
             e.querySelector(".ic").textContent = RF.poiIcon(q.name);
+            e.setAttribute("aria-label", lb.textContent);   // 화면 읽기에 이름(없으면 MapLibre 가 "Map marker" 로 읽음 - 2026-11-02 홍TV님 점검)
             drawCourse.pois.push({ el: e, d: q.d, end: q.d < 60 || q.d > c.total - 60, top: !!q.top });
             ms.push(new maplibregl.Marker({ element: e, anchor: "bottom", offset: [0, 11] }).setLngLat([q.lon, q.lat]).addTo(map));
         });
@@ -834,6 +837,7 @@
 
     function loadCourse(id) {
         var my = ++loadSeq;
+        $("loadFail").hidden = true;   // 못 열었다는 띠는 다시 열 때 치움
         $("pick").style.display = "none";
         // 이 기기에만 있는 GPX 는 링크로 보낼 수 없습니다(이은 코스는 따라가기 주소로 보냄)
         var parts = RF.parseJoinId(id);
@@ -964,8 +968,28 @@
             var similar = e.data && e.data.similar || [];
             showPick(similar.length > 0);   // 같은 산 목록을 보여 줄 때는 마지막 검색을 다시 하지 않습니다(늦게 온 검색이 덮어씀)
             if (similar.length) { pickSeq++; listCourses(similar, null, T("이 코스는 자료가 새로 바뀌어 번호가 달라졌습니다. 같은 산의 코스에서 골라 주세요.", "This trail's data was updated and its number changed. Pick it again from this mountain's trails.")); }
-            else toast(T("코스를 불러오지 못했습니다: ", "Could not load the trail: ") + e.message, 6000);
+            else loadFail(id, e.message);
         });
+    }
+
+    /**
+     * 코스를 못 열었을 때 - 사라지는 알림 대신 남는 띠: "다시 시도" · "📥 저장해 둔 코스 보기"(2026-11-02 홍TV님 점검: 산속에서 신호가 없으면 6초 알림만 보고 무엇을 할지 몰랐음).
+     * 다음에 코스를 열면(loadCourse) 치움.
+     */
+    function loadFail(id, why) {
+        var box = $("loadFail");
+        box.textContent = "";
+        var t = document.createElement("div"), row = document.createElement("div"), again = document.createElement("button"), saved = document.createElement("button");
+        t.textContent = T("⚠ 코스를 열지 못했습니다", "⚠ Could not open the trail") + (why ? " (" + why + ")" : "") + T(" - 신호가 약하면 저장해 둔 코스를 여세요.", " - with a weak signal, open a saved trail.");
+        row.style.cssText = "display:flex;flex-wrap:wrap;gap:8px;margin-top:8px";
+        [again, saved].forEach(function (b) { b.type = "button"; b.style.cssText = "min-height:44px;padding:0 14px;border-radius:10px;border:1px solid var(--ln);background:rgba(255,255,255,0.08);color:var(--tx);font-size:14px"; row.appendChild(b); });
+        again.textContent = T("🔄 다시 시도", "🔄 Try again");
+        saved.textContent = T("📥 저장해 둔 코스 보기", "📥 Show saved trails");
+        again.onclick = function () { loadCourse(id); };
+        saved.onclick = function () { $("q").value = ""; pickHome(); $("pickList").scrollTop = 0; };
+        box.appendChild(t);
+        box.appendChild(row);
+        box.hidden = false;
     }
 
     function saveKey() { return "rf-hike-" + c.id; }
@@ -1759,11 +1783,11 @@
             }).catch(function () { /* 남으로 */ });
         }
         box.innerHTML = "";
-        if (upOwner) {   // 관리자 기기만 - GPX 편집(studio.html, 2026-10-31)
-            var se = document.createElement("p");
-            se.innerHTML = '<a href="studio.html" style="color:#38d9ea;font-weight:bold">📐 GPX 편집 열기(관리자)</a> <span class="tip">- 자르기 · 나누기 · 잇기 · 코스로 올리기, PC 에서 편함</span>';
-            box.appendChild(se);
-        }
+        // GPX 편집(studio.html)은 누구나(2026-11-02 홍TV님 "GPX 편집을 누구나" - 점검 6차: 여기만 관리자에게만 보였음)
+        var se = document.createElement("p");
+        se.innerHTML = T('<a href="studio.html" style="color:#38d9ea;font-weight:bold">📐 GPX 편집 열기</a> <span class="tip">- 자르기 · 나누기 · 잇기 · ' + (upOwner ? "코스로 올리기" : "routefly 에 보내기") + ', PC 에서 편함</span>',
+            '<a href="studio.html" style="color:#38d9ea;font-weight:bold">📐 Open GPX editor</a> <span class="tip">- trim · split · join · ' + (upOwner ? "publish as a course" : "send to routefly") + ' (Korean only, easier on a PC)</span>');
+        box.appendChild(se);
         drawRecStats(list);
         if (!list.length) {
             box.insertAdjacentHTML("beforeend", T('<p class="tip">아직 기록이 없습니다. 시작했다가 "끝내기" 를 누르면 남습니다.</p>', '<p class="tip">No records yet. Start a hike and tap "Finish" to save one.</p>'));   // 위의 📐 GPX 편집 고리를 지우지 않게(2026-10-31 PC)
@@ -3503,9 +3527,45 @@
         $(id).addEventListener("click", function () { $("navSheet").style.display = "none"; });
     });
 
+    /**
+     * 아래 창(.sheet · #safety) 접근성 한 곳에서(2026-11-02 홍TV님 점검: 창 15개에 dialog 표시 · 처음 자리 · Esc · 닫은 뒤 돌아갈 자리가 없었음).
+     * 창마다 여닫는 곳(style.display)은 그대로 두고 그 바뀜을 지켜봄 - 열리면 제목으로 자리를 옮기고(단추에 두면 Enter 한 번에 119 전화 등이 눌릴 수 있음),
+     * 닫히면 연 단추로 되돌림. Esc 는 그 창의 닫기 단추를 누른 것과 같음 - SOS 창은 닫기가 인솔자 SOS 를 끌지 묻고(말없이 끄지 않음),
+     * 움직임 없음(stillSheet)은 "괜찮아요" 를 대신 누르지 않게 Esc 로 닫지 않음.
+     */
+    var SHEET_ESC = { sosSheet: "sosClose", summitSheet: "summitClose", doneSheet: "doneClose", boardSheet: "boardClose", sumSheet: "sumClose", shareSheet: "shareClose",
+        checkSheet: "checkNo", endSheet: "endNo", navSheet: "navClose", saveSheet: "saveClose", noteSheet: "noteCancel", notesSheet: "notesClose", recView: "recViewClose",
+        recSheet: "recClose", safety: "safetyNo" };
+    var sheetStack = [];   // 열린 창 [{el, back}] - 맨 뒤가 맨 위
+    function sheetSeen(el) {
+        var on = el.style.display !== "none" && el.style.display !== "", at = -1;
+        sheetStack.forEach(function (x, i) { if (x.el === el) at = i; });
+        if (on && at < 0) {
+            sheetStack.push({ el: el, back: document.activeElement });
+            var h = el.querySelector("h2");
+            if (h) { h.setAttribute("tabindex", "-1"); h.focus(); }
+        } else if (!on && at >= 0) {
+            var back = sheetStack.splice(at, 1)[0].back;
+            if (back && back.focus && document.body.contains(back) && !sheetStack.length) back.focus();
+        }
+    }
+    function sheetEsc(e) {
+        if (e.key !== "Escape" || !sheetStack.length) return;
+        var id = SHEET_ESC[sheetStack[sheetStack.length - 1].el.id];
+        if (id && $(id)) { e.preventDefault(); $(id).click(); }
+    }
+    Array.prototype.forEach.call(document.querySelectorAll(".sheet, #safety"), function (el) {
+        el.setAttribute("role", "dialog");
+        el.setAttribute("aria-modal", "true");
+        var h = el.querySelector("h2");
+        if (h) { if (!h.id) h.id = el.id + "Title"; el.setAttribute("aria-labelledby", h.id); }
+        if (window.MutationObserver) new MutationObserver(function () { sheetSeen(el); }).observe(el, { attributes: true, attributeFilter: ["style"] });
+    });
+    document.addEventListener("keydown", sheetEsc);
+
     // 글자 크기 "가+"(2026-10-14 홍TV님: 핸드폰에서 글씨가 작음) - 코스 고르기 머리 · 아래 창 제목마다. 새 단추 줄은 만들지 않음
     (function () {
-        var h1 = document.querySelector("#pick h1");
+        var h1 = document.querySelector("#pick .pickTop");   // 제목 줄(h1 밖 - 단추가 제목 글에 섞이지 않게)
         if (h1) h1.appendChild(RF.textButton());
         Array.prototype.forEach.call(document.querySelectorAll(".sheet .sbox > h2, #safety .sbox > h2"), function (h) { h.appendChild(RF.textButton()); });
     })();

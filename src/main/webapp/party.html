@@ -75,6 +75,7 @@ tr.aboard td { color:var(--dim); }
 .pm { display:flex; flex-direction:column; align-items:center; pointer-events:none; }
 .two { display:flex; gap:8px; align-items:flex-end; }   /* 글자를 키워 이름표가 두 줄이 돼도 칸은 같은 높이에(2026-10-20 홍TV님 폰 가++) */
 .two > div { flex:1; min-width:0; }
+@media (max-width:359px) { .two { flex-wrap:wrap; } .two > div { flex:1 1 calc(50% - 4px); } }   /* 320px 폰: 세 칸 줄(호차 · 좌석 · 탑승지, 이름 · 연락처 · 회사 코드)은 두 칸씩(2026-11-02 홍TV님 점검: 칸이 너무 좁아 글이 잘렸음) */
 select, input[type=number] { width:100%; height:44px; padding:0 10px; border-radius:10px; border:1px solid var(--ln); background:#0f141a; color:var(--tx); font-size:16px; }
 #seatMap { display:grid; gap:4px; padding:2px 0 6px; grid-template-columns:minmax(0, 1fr) minmax(0, 1fr) minmax(20px, .7fr) minmax(0, 1fr); max-width:360px; margin:0 auto; }   /* 세로 좌석표 - 운전석 쪽 2칸 · 통로 · 앞문 쪽 1칸(2026-10-24) */
 .s { display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:24px; height:40px; border-radius:6px; border:1px dashed var(--ln);
@@ -141,7 +142,7 @@ a.tel { color:var(--sky); }
 <body>
 <h1 class="vh" data-en="routefly hiking club room">routefly 산악회 방</h1>
 <div id="top">
-    <a id="back" href="m/">‹ 산 모음</a>
+    <a id="back" href="m/">‹ 코스 모음</a>
     <div id="title" data-en="🧑‍🤝‍🧑 Hiking club room">🧑‍🤝‍🧑 산악회 방</div>
 </div>
 <main>
@@ -154,7 +155,7 @@ a.tel { color:var(--sky); }
         <!-- 회사 사무실로 가는 길(2026-10-29 홍TV님 "링크를 넣어야 겠는데" - 주소를 알아야만 들어갔음) - 화면 맨 위 - 인솔자 코드 줄 위(2026-10-29 "그 위로"), 방 만들기 칸과 함께 숨음(party.js) -->
         <p class="tip" id="officeGo" style="text-align:center;margin:0 0 8px"><a href="party-office.html" style="color:var(--sky)" data-en-href="party-office.html?lang=en" data-en="🏢 Company office (many rooms on one screen) ›">🏢 회사 사무실 (여러 방을 한 화면에) ›</a></p>
 
-        <p id="joinShowRow" class="tip" style="text-align:center;margin:0 0 12px">   <!-- 화면 제일 위(2026-10-27 홍TV님 - 맨 아래라 안 보였음) --><a href="#" id="joinShow" style="color:var(--sky)" data-en="🧭 Enter with a leader code · join with a room code">🧭 인솔자 코드 · 방 코드로 들어가기</a></p>
+        <p id="joinShowRow" class="tip" style="text-align:center;margin:0 0 12px">   <!-- 화면 제일 위(2026-10-27 홍TV님 - 맨 아래라 안 보였음) --><a href="#" id="joinShow" style="color:var(--sky)" data-en="🧭 Enter with an assistant leader code · join with a room code">🧭 보조 인솔자 코드 · 방 코드로 들어가기</a></p>
         <p id="mkShowRow" class="tip" style="text-align:center;margin:0 0 12px" hidden>   <!-- 맨 위(2026-10-27 홍TV님) - 누르면 첫 화면(방 만들기)으로 --><a href="#" id="mkShow" style="color:var(--sky)" data-en="🧭 Are you the leader? Create a room">🧭 인솔자이신가요? 방 만들기</a></p>
         <!-- 앱으로 열기(2026-10-20 PC: 카톡 안 브라우저에서는 앱 링크가 안 걸림) - 안드로이드 · 참가 링크로 왔을 때만 -->
         <section id="appOpen" class="invite" hidden>
@@ -165,7 +166,7 @@ a.tel { color:var(--sky); }
         <section id="joinSec" hidden>   <!-- 2026-10-26 홍TV님 "참가하기가 아직도 있네" - 링크 · QR(?c=)로 온 회원 · 인솔자 코드로만. 그냥 열면 방 만들기 -->
             <div id="joinBox">   <!-- 2026-10-27 홍TV님: 접기 뺌 - 이 칸이 보일 때는 늘 펼친 채 -->
             <h2 data-en="🙋 Join">🙋 참가하기</h2>
-            <label for="joinCode" data-en="Room code (6 letters from the leader)">방 코드 (인솔자가 보낸 6글자)</label>
+            <label for="joinCode" data-en="Room code (6 letters) or assistant leader code (10 letters)">방 코드(6글자) 또는 보조 인솔자 코드(10글자)</label>   <!-- 칸은 둘 다 받음(2026-11-02 홍TV님 점검: 6글자만 적혀 보조 인솔자가 헷갈렸음) -->
             <input id="joinCode" type="text" maxlength="10" autocomplete="off" autocapitalize="characters">
             <div id="joinCard" class="card" hidden></div>
             <label for="joinNick" data-en="Name (as you booked with the club)">이름 (산악회에 예약한 이름)</label>

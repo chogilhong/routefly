@@ -13,7 +13,7 @@
     var state = null, watch = null, timer = null;
     function $(id) { return document.getElementById(id); }
     function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return "&#" + c.charCodeAt(0) + ";"; }); }
-    function clock(ms) { var d = new Date(ms); return d.getHours() + ":" + ("0" + d.getMinutes()).slice(-2); }
+    function clock(ms) { var d = new Date(ms + 9 * 3600000); return d.getUTCHours() + ":" + ("0" + d.getUTCMinutes()).slice(-2); }   // 한국 시간(2026-11-02 홍TV님 점검)
 
     function hide() { $("partyBar").hidden = true; document.documentElement.classList.remove("partyOn"); stopWatch(); aliveSync(null); clearInterval(timer); timer = null; }
 

@@ -22,7 +22,7 @@ public class PartyOfficeBackTest {
         assertTrue("방 끝 뒤에도 같은 곳(기록을 남기지 않음)", js.contains("if (office) location.replace(OFFICE_HOME);"));
         assertTrue("위 · 아래 두 고리 모두 toOffice", body.contains("addEventListener(\"click\", toOffice)") && js.contains("$(\"officeBack\").querySelector(\"a\").addEventListener(\"click\", toOffice)"));
         String html = Files.readString(Path.of("src/main/webapp/party.html"), StandardCharsets.UTF_8);
-        assertTrue("기본은 산 모음", html.contains("<a id=\"back\" href=\"m/\">‹ 산 모음</a>"));
+        assertTrue("기본은 코스 모음(2026-11-02 점검 - m/ 로 가는 단추는 모두 같은 이름)", html.contains("<a id=\"back\" href=\"m/\">‹ 코스 모음</a>"));
     }
 
     /** 사무실 → 열기 → ‹ 사무실 → ‹ 뒤로 가 방으로 돌아오지 않음(2026-11-02 PC: 끝없이 돌았음) - node 로 가짜 브라우저 기록을 따라감. */

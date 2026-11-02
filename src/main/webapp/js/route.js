@@ -66,6 +66,7 @@
                 labels.push({ el: lb, no: e.querySelector(".no"), prio: 1000 + labels.length });
                 pl.drawn = true;
             }
+            e.setAttribute("aria-label", no + " " + RF.nameText(c.name));   // 화면 읽기에 이름(없으면 MapLibre 가 "Map marker" 로 읽음 - 2026-11-02 홍TV님 점검)
             // 위쪽 기준 - 번호 동그라미 가운데가 시작점에(아래로 지명)
             new maplibregl.Marker({ element: e, anchor: "top", offset: [0, -11] }).setLngLat(line[0]).addTo(map);
             nums.push({ el: e.querySelector(".no"), prio: +no.split("-")[0] });
@@ -76,6 +77,7 @@
             e.className = "ctr end";
             e.innerHTML = '<div class="dot"></div><div class="lb"></div>';
             e.querySelector(".lb").textContent = NM(p.name);
+            e.setAttribute("aria-label", NM(p.name));   // 화면 읽기에 이름(없으면 MapLibre 가 "Map marker" 로 읽음 - 2026-11-02 홍TV님 점검)
             new maplibregl.Marker({ element: e, anchor: "top", offset: [0, -5] }).setLngLat([p.lon, p.lat]).addTo(map);
             // 노선 맨 끝(천왕봉 · 무룡고개)은 다른 지명보다 먼저 남김
             if (p.name) labels.push({ el: e.querySelector(".lb"), no: null, prio: p.last ? 999 : 1000 + labels.length });
@@ -172,6 +174,7 @@
             e.querySelector(".no").textContent = String(i + 1);
             e.querySelector(".lb").textContent = NM(n);
             e.title = EN ? NM(n) + " checkpoint" : n + " 인증센터";
+            e.setAttribute("aria-label", (i + 1) + " " + e.title);   // 화면 읽기에 이름(없으면 MapLibre 가 "Map marker" 로 읽음 - 2026-11-02 홍TV님 점검)
             new maplibregl.Marker({ element: e, anchor: "top" }).setLngLat([+at.lon, +at.lat]).addTo(map);
             nums.push({ el: e.querySelector(".no"), prio: i });
             labels.push({ el: e.querySelector(".lb"), no: e.querySelector(".no"), prio: 1000 + i });

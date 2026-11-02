@@ -65,4 +65,28 @@ public class ReviewRound6Test {
         assertEquals("다음은 기억에서", "답", SafetyServlet.cached(key, cache, () -> { calls.incrementAndGet(); return "x"; }));
         assertEquals(1, calls.get());
     }
+
+    private static double lum(String hex) {
+        double[] c = new double[3];
+        for (int i = 0; i < 3; i++) {
+            double v = Integer.parseInt(hex.substring(1 + i * 2, 3 + i * 2), 16) / 255.0;
+            c[i] = v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+        }
+        return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+    }
+
+    /** 난이도 글씨(course-kit.css .lv0 ~ .lv4)는 바탕과 4.5:1 넘게 · 13px 넘게(2026-11-02 홍TV님 점검: 흰 글씨 2.7:1). */
+    @Test
+    public void levelBadgeContrast() throws Exception {
+        String css = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/webapp/css/course-kit.css"));
+        java.util.regex.Matcher fs = java.util.regex.Pattern.compile("\\.lv \\{[^}]*font-size:(\\d+)px").matcher(css);
+        assertTrue(fs.find());
+        assertTrue("13px 넘게", Integer.parseInt(fs.group(1)) >= 13);
+        for (int i = 0; i < 5; i++) {
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\.lv" + i + " \\{ background:(#[0-9a-f]{6}); color:(#[0-9a-f]{6});").matcher(css);
+            assertTrue(".lv" + i + " 바탕 · 글씨", m.find());
+            double a = lum(m.group(1)), b = lum(m.group(2)), ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+            assertTrue(".lv" + i + " " + ratio, ratio >= 4.5);
+        }
+    }
 }

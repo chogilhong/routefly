@@ -934,8 +934,9 @@
     // ------------------------------------------------------------------ 난이도 · 안내판 고도 그래프(2026-10-15 홍TV님 - 국립공원 탐방로 안내판처럼)
 
     /** 5단계 - 색은 공단 탐방로 안내판 범례(매우쉬움 연두 · 쉬움 초록 · 보통 주황 · 어려움 자주 · 매우어려움 검정)에 맞춤. MountainServlet.LEVELS 와 같음. */
-    var LEVELS = [{ ko: "매우 쉬움", en: "Easy", color: "#a3c93a" }, { ko: "쉬움", en: "Moderate", color: "#3fae5c" }, { ko: "보통", en: "Intermediate", color: "#e8822a" },
-                  { ko: "어려움", en: "Advanced", color: "#a23a6b" }, { ko: "매우 어려움", en: "Expert", color: "#3a3f46" }];
+    // 영어는 한국어 단계 그대로(2026-11-02 홍TV님 점검: 쉬움이 "Moderate" 로 한 칸씩 밀려 보였음)
+    var LEVELS = [{ ko: "매우 쉬움", en: "Very easy", color: "#a3c93a" }, { ko: "쉬움", en: "Easy", color: "#3fae5c" }, { ko: "보통", en: "Moderate", color: "#e8822a" },
+                  { ko: "어려움", en: "Hard", color: "#a23a6b" }, { ko: "매우 어려움", en: "Very hard", color: "#3a3f46" }];
     /** 구간 경사(%) 단계 경계 - 안내판 구간 색 · 음성. 코스 난이도는 시간 · 오르막 총량(HOUR_STEPS · ASC_STEPS). MountainServlet 과 같은 값. */
     var SLOPE_STEPS = [5, 10, 18, 28], HOUR_STEPS = [1.5, 3, 5, 8], ASC_STEPS = [300, 700, 1100, 1500], STEEP_STEPS = [20, 28, 36, 46];
     function stepOf(v, steps) { var i = 0; while (i < steps.length && v >= steps[i]) i++; return i; }

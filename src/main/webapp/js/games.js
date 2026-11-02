@@ -15,7 +15,7 @@
     if (EN) {
         document.documentElement.lang = "en";
         document.title = "routefly mini games";
-        $("back").textContent = "‹ Mountains";
+        $("back").textContent = "‹ Trails";   // 코스 모음(m/) - 다른 화면의 "‹ Trails" 와 같게(2026-11-02 점검)
         $("back").href = "en/m/";
         $("ttl").textContent = "🎮 Mini games";
         $("lblScore").textContent = "Score";

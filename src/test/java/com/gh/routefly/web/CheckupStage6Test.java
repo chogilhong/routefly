@@ -46,6 +46,7 @@ public class CheckupStage6Test {
         assertArrayEquals(new double[] {300, 700, 1100, 1500}, MountainServlet.ASC_STEPS, 0);
         assertArrayEquals(new double[] {20, 28, 36, 46}, MountainServlet.STEEP_STEPS, 0);
         assertEquals("단계 이름 수", 5, MountainServlet.LEVELS.length);
+        assertEquals("영어는 한국어 단계 그대로(2026-11-02 점검 - 쉬움이 Moderate 로 밀렸음)", "[[매우 쉬움, Very easy], [쉬움, Easy], [보통, Moderate], [어려움, Hard], [매우 어려움, Very hard]]", java.util.Arrays.deepToString(MountainServlet.LEVELS));
         for (String[] lv : MountainServlet.LEVELS) assertTrue(lv[0], kit.contains("{ ko: \"" + lv[0] + "\", en: \"" + lv[1] + "\""));
     }
 

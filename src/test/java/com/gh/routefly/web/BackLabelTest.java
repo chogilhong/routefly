@@ -14,7 +14,7 @@ import org.junit.Test;
 
 /**
  * 2026-11-02 홍TV님 "어떤 건 '돌아가기' 어떤 건 '뒤로' 이런 것도 통일해줘":
- * 앞 화면으로 가는 단추 · 고리는 "‹ 뒤로"(영어 "‹ Back"), 갈 곳 이름이 붙은 단추도 같은 화살표 "‹"("‹ 산 모음" · "‹ 사무실" · "‹ 목록" …).
+ * 앞 화면으로 가는 단추 · 고리는 "‹ 뒤로"(영어 "‹ Back"), 갈 곳 이름이 붙은 단추도 같은 화살표 "‹"("‹ 코스 모음" · "‹ 사무실" · "‹ 목록" …).
  * 화면 html · js(만든 kit-*.js · vendor 빼고)와 서버가 만드는 화면(java)의 단추 글에 옛 글("돌아가기" · "Go back" · "← …")이 남으면 실패.
  * 주석과 도움말 문장("코스로 돌아가는 길" 등)은 보지 않음 - 따옴표나 > 바로 뒤에 오는 단추 글만.
  */
@@ -76,5 +76,18 @@ public class BackLabelTest {
         assertTrue("산행 취소 사유 창 - 뒤로가 아니라 \"취소 안 함\"(2026-11-02 홍TV님, 화살표 없이)", party.contains("cancel: T(\"취소 안 함\", \"Don't cancel\")"));
         for (String f : new String[] {"about.html", "privacy.html", "terms.html", "lbs-terms.html", "feedback.html", "anbu.html", "tools.html", "route.html", "studio.html", "party-office.html"})
             assertTrue(f, Files.readString(Path.of("src/main/webapp", f), StandardCharsets.UTF_8).contains(">‹ 뒤로</a>"));
+        // 2026-11-02 점검: 코스 모음(m/)으로만 가는 단추는 "‹ 코스 모음"(영어 "‹ Trails") - "‹ 산 모음" · "‹ Mountains" 가 섞였음
+        for (String f : new String[] {"party.html", "games.html"})
+            assertTrue(f, Files.readString(Path.of("src/main/webapp", f), StandardCharsets.UTF_8).contains("<a id=\"back\" href=\"m/\">‹ 코스 모음</a>"));
+        for (String f : new String[] {"js/party.js", "js/games.js"})
+            assertTrue(f, Files.readString(Path.of("src/main/webapp", f), StandardCharsets.UTF_8).contains("$(\"back\").textContent = \"‹ Trails\";"));
+        List<String> left = new ArrayList<>();
+        try (Stream<Path> st = Files.walk(Path.of("src/main/webapp"))) {
+            for (Path p : (Iterable<Path>) st.filter(x -> x.toString().matches(".*\\.(html|js)$") && !x.toString().contains("vendor"))::iterator) {
+                String t = Files.readString(p, StandardCharsets.UTF_8);
+                if (t.contains("‹ 산 모음") || t.contains("‹ Mountains")) left.add(p.toString());
+            }
+        }
+        assertTrue("옛 이름이 남음: " + left, left.isEmpty());
     }
 }

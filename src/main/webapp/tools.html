@@ -230,7 +230,7 @@ h2.grp { margin:22px 2px 0; font-size:14px; color:var(--dim); font-weight:bold; 
         <p class="tip" data-en="Estimates. Savings interest is taxed 15.4% (standard). Banks may count days and round differently.">어림값입니다. 예금 · 적금 이자에는 이자소득세 15.4%(일반과세)를 뺐습니다. 은행마다 날짜 셈 · 끝자리 처리가 조금 다를 수 있습니다.</p>
     </div></details>
     <details class="tool" id="t-text"><summary data-en="🔢 Character count">🔢 글자 수 세기</summary><div class="tb">
-        <div class="row"><textarea id="tcIn" class="f" placeholder="여기에 글을 붙여 넣으세요" data-en-placeholder="Paste your text here"></textarea></div>
+        <div class="row"><textarea id="tcIn" class="f" aria-label="글자 수를 셀 글" data-en-aria-label="Text to count" placeholder="여기에 글을 붙여 넣으세요" data-en-placeholder="Paste your text here"></textarea></div>
         <div class="out" id="tcOut"></div>
         <p class="tip" data-en="Bytes count Korean and other non-English letters as 2 and English letters, digits and spaces as 1 - a Korean SMS is up to 90 bytes, an LMS up to 2,000.">바이트는 한글 · 그 밖 글자 2, 영문 · 숫자 · 띄어쓰기 1 로 셉니다. 문자는 90바이트까지 단문(SMS), 2,000바이트까지 장문(LMS) 입니다.</p>
     </div></details>
@@ -338,7 +338,7 @@ h2.grp { margin:22px 2px 0; font-size:14px; color:var(--dim); font-weight:bold; 
         <p class="tip" data-en="Uses the back camera to make small print (medicine labels, receipts) bigger. Slide to zoom, Hold to freeze the picture. The light works only on phones whose browser supports it. Nothing is recorded or sent.">뒤쪽 카메라로 약 봉투 · 영수증 같은 작은 글씨를 크게 봅니다. 막대를 밀어 배율을 바꾸고, "멈춤" 을 누르면 그 화면에서 멈춥니다. 불빛은 지원하는 폰에서만 됩니다. 찍거나 보내지 않습니다.</p>
     </div></details>
     <details class="tool" id="t-pill"><summary data-en="💊 Medicine reminder">💊 약 먹을 시간 알림</summary><div class="tb">
-        <div class="row"><label data-en="Medicine (e.g. blood pressure)">약 이름(예: 혈압약)</label><input type="text" id="plName" class="f" maxlength="20" placeholder="혈압약" data-en-placeholder="Blood pressure"></div>
+        <div class="row"><label for="plName" data-en="Medicine (e.g. blood pressure)">약 이름(예: 혈압약)</label><input type="text" id="plName" class="f" maxlength="20" placeholder="혈압약" data-en-placeholder="Blood pressure"></div>
         <div class="row"><label data-en="Times (up to 4 a day)">먹는 시각(하루 4번까지)</label></div>
         <div class="row" id="plTimes"></div>
         <button type="button" class="btn" id="plSave" style="margin-top:12px" data-en="Save">저장</button>
@@ -351,7 +351,7 @@ h2.grp { margin:22px 2px 0; font-size:14px; color:var(--dim); font-weight:bold; 
             <select id="diceN" class="f" style="flex:0 0 76px" aria-label="주사위 개수" data-en-aria-label="Number of dice"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></div>
         <div class="out" id="cdOut" style="text-align:center;font-size:30px"></div>
         <h3 style="font-size:16px;margin:20px 0 0" data-en="🎟 Draw lots">🎟 제비뽑기</h3>
-        <div class="row"><textarea id="lotIn" class="f" style="height:90px" placeholder="이름을 쉼표나 줄바꿈으로 (예: 철수, 영희, 민수)" data-en-placeholder="Names separated by commas or lines (e.g. Amy, Ben, Chris)"></textarea></div>
+        <div class="row"><textarea id="lotIn" class="f" style="height:90px" aria-label="제비뽑기 이름" data-en-aria-label="Names for the draw" placeholder="이름을 쉼표나 줄바꿈으로 (예: 철수, 영희, 민수)" data-en-placeholder="Names separated by commas or lines (e.g. Amy, Ben, Chris)"></textarea></div>
         <div class="row"><button type="button" class="btn2" id="lotOne" data-en="Pick one">한 명 뽑기</button><button type="button" class="btn2" id="lotAll" data-en="Shuffle order">순서 정하기</button></div>
         <div class="out" id="lotOut"></div>
         <h3 style="font-size:16px;margin:20px 0 0" data-en="🎯 Ladder game">🎯 사다리 타기</h3>

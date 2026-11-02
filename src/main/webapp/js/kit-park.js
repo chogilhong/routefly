@@ -279,6 +279,10 @@
         set();
     }
 
+    /** 국립공원 이름(서버 ParkServlet.PARKS 와 같은 차례). */
+    var PARKS = ["지리산", "경주", "계룡산", "한려해상", "설악산", "속리산", "한라산", "내장산", "가야산", "덕유산", "오대산", "주왕산",
+        "태안해안", "다도해해상", "북한산", "치악산", "월악산", "소백산", "월출산", "변산반도", "무등산", "태백산", "팔공산"];
+
     /**
      * 순수 함수 - 정상(peak.lat/lon)까지 가는 코스: 끝(없으면 시작)이 nearM(기본 2km - 2026-10-12 PC: 강천산 · 선운산 등 코스 끝이 정상에서 1~1.8km) 안인 것, 가까운 차례.
      * 이름 검색(같은 이름 산이 여럿 - 백운산)에서 그 산 코스만 고릅니다. 2026-10-12 홍TV님 "100대 명산은 따라가기 버튼이 없어?"
@@ -1518,6 +1522,7 @@
         cleanName: cleanName,
         nameParts: nameParts,
         spotIcon: spotIcon,
+        PARKS: PARKS,
         baseStyle: baseStyle,
         isClosedTrail: isClosedTrail,
         isHiddenCourse: isHiddenCourse,

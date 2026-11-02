@@ -63,7 +63,7 @@
                 "<b>📂 GPX 열기</b>로 파일을 고르거나 <b>📒 내 기록에서</b> 따라가기 기록을 불러옵니다. PC 는 지도 위로 GPX 파일을 끌어다 놓아도 됩니다.",
                 "<b>✏️ 지도에 새 길 그리기</b>를 누르고 지도에 점을 찍으면, 점 사이를 등산로 · 걷는 길로 이어 줍니다."]] },
             { icon: "✂️", title: ["고치기"], body: [[
-                "<b>✂️ 앞 · 뒤 자르기</b> · <b>✂ 나누기</b> · <b>🔗 잇기</b> · <b>↔ 뒤집기</b> · <b>✏️ 점 고치기</b>. 잘못했으면 <b>↶ 되돌리기</b>.",
+                "<b>✂️ 앞 · 뒤 자르기</b> · <b>🕳️ 가운데 지우기</b> · <b>➗ 나누기</b> · <b>🔗 잇기</b> · <b>↔ 뒤집기</b> · <b>📍 점 고치기</b>. 잘못했으면 <b>↶ 되돌리기</b>.",
                 "높이 그래프에 손가락 · 마우스를 대면 지도에 그 자리가 보입니다. 다 고쳤으면 <b>💾 GPX 저장</b>."]] },
             own ? { icon: "⬆", title: ["코스로 올리기 (운영자)"], body: [[
                 "<b>⬆ 코스로 올리기</b>: 선 모양과 이름만 서버로 - 1시간 안(매시 7분)에 코스 목록에 들어갑니다. 누구나 보는 코스가 되니 집 근처는 먼저 자르세요.",
@@ -167,6 +167,13 @@
             map = new maplibregl.Map({ container: "map", style: style(cfg), center: [127.8, 36.3], zoom: 6.2, attributionControl: false, dragRotate: false, pitchWithRotate: false });
             map.touchZoomRotate.disableRotation();
             map.addControl(new maplibregl.AttributionControl({ compact: true, customAttribution: "© OpenStreetMap contributors" }), "bottom-right");
+            // 폰(600px 밑)은 출처를 ⓘ 로 접어 둠(누르면 펼쳐짐 - 따라가기 foldAttrib 와 같게, 2026-11-02 홍TV님 점검: 처음에 두 줄로 펼쳐져 지도 10% 를 가렸음). PC 는 그대로
+            if (window.matchMedia && window.matchMedia("(max-width: 599px)").matches) {
+                var foldAttrib = function () { var a = document.querySelector("#map .maplibregl-ctrl-attrib"); if (a) a.classList.remove("maplibregl-compact-show"); };
+                foldAttrib();
+                map.once("styledata", foldAttrib);
+                map.once("load", foldAttrib);
+            }
             map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
             map.addControl(new maplibregl.ScaleControl({ maxWidth: 100 }), "bottom-left");
             // 바탕 타일을 다 받기 전에(지형 타일이 늦거나 막혀도) 선부터 - "load" 는 타일까지 기다려 몇 초 늦었음
@@ -276,6 +283,7 @@
         });
         var c = cur();
         $("selSec").hidden = $("toolSec").hidden = $("saveSec").hidden = !c;
+        toolsOff(!c);
         if (c) {
             if (document.activeElement !== $("name")) $("name").value = c.name;
             var st = RF.trackStats(c.track);
@@ -1002,13 +1010,22 @@
         try { same = !!document.referrer && new URL(document.referrer).origin === location.origin; } catch (x) { /* 다른 곳 */ }
         if (same && history.length > 1) { e.preventDefault(); history.back(); }
     });
+    /** 지도 왼쪽 도구 줄 - 길이 없으면 열기 · 그리기 말고는 흐리게(누르면 무엇을 먼저 할지 알림 - 2026-11-02 홍TV님 점검). */
+    function toolsOff(off) {
+        Array.prototype.forEach.call(document.querySelectorAll("#mapTools [data-go]"), function (b) {
+            var go = b.getAttribute("data-go");
+            if (go === "#openBtn" || go === "#drawBtn") return;
+            if (off) b.setAttribute("aria-disabled", "true"); else b.removeAttribute("aria-disabled");
+        });
+    }
+    toolsOff(!cur());
     // 지도 왼쪽 도구 줄(gpx.studio 처럼 - 2026-10-31 홍TV님 "버튼들도 더") - 옆 칸 단추와 같은 일
     Array.prototype.forEach.call(document.querySelectorAll("#mapTools [data-go]"), function (b) {
         b.onclick = function () {
             var go = b.getAttribute("data-go"), el = go.charAt(0) === "#" ? document.querySelector(go) : document.querySelector('[data-tool="' + go + '"]');
             if (!el) return;
             var sec = el.closest("section");
-            if (sec && sec.hidden) { msg("먼저 길을 열거나 그려서 고르세요.", 3000); return; }
+            if (sec && sec.hidden) { msg("먼저 GPX 를 열거나 길을 그려 주세요", 3000); return; }
             el.click();
             var box = $("toolBox").textContent ? $("toolBox") : $("drawBox").textContent ? $("drawBox") : null;
             if (box && window.matchMedia("(max-width: 860px)").matches) box.scrollIntoView({ behavior: "smooth", block: "center" });

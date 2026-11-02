@@ -118,6 +118,7 @@
         var e = document.createElement("div"), a = flagAnchor(at, coords);
         e.className = "flag " + a;   // 꼬리(뾰족한 모서리)는 깃발 자리 쪽
         RF.nameNodes(e, txt);   // 탐방지원센터는 작은 글씨
+        e.setAttribute("aria-label", e.textContent);   // 화면 읽기에 이름(없으면 MapLibre 가 "Map marker" 로 읽음 - 2026-11-02 홍TV님 점검)
         var m = new maplibregl.Marker({ element: e, anchor: a }).setLngLat(at).addTo(map);
         m._keepIn = !!keepIn;
         if (keepIn) requestAnimationFrame(keepFlagsIn);
@@ -664,6 +665,7 @@
             e.className = "spot";
             e.textContent = RF.spotIcon(sp.kind);
             e.title = RF.spotText(sp);
+            e.setAttribute("aria-label", e.title);   // 화면 읽기에 이름(없으면 MapLibre 가 "Map marker" 로 읽음 - 2026-11-02 홍TV님 점검)
             // 점 아래쪽에 붙임 - 이름표는 점 위쪽(anchor bottom)이라 같은 자리(반야봉 · 헬기장)여도 늘 숨지 않게(2026-10-12 PC)
             new maplibregl.Marker({ element: e, anchor: "top" }).setLngLat([+sp.lon, +sp.lat]).addTo(map);
             spotEls.push(e);
@@ -692,6 +694,7 @@
             e.innerHTML = '<span class="ic"></span><span class="lb"></span>';
             e.querySelector(".ic").textContent = p.head ? (/(탐방지원센터|탐방안내소|분소|매표소)$/.test(p.name) ? "🏠" : "🥾") : RF.poiIcon(p.name);
             RF.nameNodes(e.querySelector(".lb"), RF.cleanName(p.name) + (p.ele_m != null && RF.isTopName(p.name) ? " " + RF.num(p.ele_m) + "m" : ""));
+            e.setAttribute("aria-label", e.querySelector(".lb").textContent);   // 화면 읽기에 이름(없으면 MapLibre 가 "Map marker" 로 읽음 - 2026-11-02 홍TV님 점검)
             new maplibregl.Marker({ element: e, anchor: "bottom" }).setLngLat([+p.lon, +p.lat]).addTo(map);
             // 들머리는 봉우리 다음으로 남김(겹치면)
             places.push({ el: e, prio: -(p.ele_m == null ? 0 : +p.ele_m) - (RF.isTopName(p.name) ? 5000 : 0) - (p.head ? 3000 : 0) });
@@ -847,7 +850,23 @@
             alert(T("탐방로를 선택하세요.", "Pick a trail first."));   // 탐방로를 고르기 전(2026-10-12 홍TV님)
         });
         if (!park) {   // 이름 없이 열면 api/park 가 400 - 부르지 않고 안내(2026-11-01 PC)
-            $("msg").textContent = T("공원 이름이 없습니다 - 산 목록에서 골라 주세요.", "No park name - pick one from the list.");
+            // 국립공원 고르기 · 코스 모음 고리(2026-11-02 홍TV님 점검: 글만 있고 갈 곳이 없었음)
+            var box = $("msg");
+            box.textContent = T("국립공원을 골라 주세요 ", "Pick a national park ");
+            var more = document.createElement("a");
+            more.href = EN ? "en/m/" : "m/";
+            more.textContent = T("(다른 산은 ‹ 코스 모음)", "(other mountains: ‹ Trails)");
+            box.appendChild(more);
+            var ul = document.createElement("div");
+            ul.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;margin-top:10px";
+            RF.PARKS.forEach(function (pk) {
+                var a = document.createElement("a");
+                a.href = "park.html?name=" + encodeURIComponent(pk) + (EN ? "&lang=en" : "");
+                a.textContent = NM(pk);
+                a.style.cssText = "display:inline-flex;align-items:center;min-height:44px;padding:0 12px;border:1px solid rgba(255,255,255,0.2);border-radius:22px;color:inherit;text-decoration:none";
+                ul.appendChild(a);
+            });
+            box.appendChild(ul);
             return;
         }
         var notesReady = showNote(park);

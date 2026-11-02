@@ -165,7 +165,7 @@ final class MountainEn {
         }
         b.append("<p class=\"dim\">Times are estimates at 4 km/h plus 1 hour per 600 m of ascent. Trail data is for reference - always follow signs and closures on site. "
                 + "The 3D and GPS screens are in English too. 🚌 Directions opens Google Maps transit directions from where you are to the trailhead. "
-                + "Difficulty (Easy to Expert) is routefly's estimate from distance and ascent, not an official grade; 📈 Elevation shows the slope of each section like the park trail boards.</p></section>");
+                + "Difficulty (Very easy to Very hard) is routefly's estimate from distance and ascent, not an official grade; 📈 Elevation shows the slope of each section like the park trail boards.</p></section>");
         List<String[]> qa = faq(peak, name, courses, parking);
         b.append("<section class=\"faq\"><h2>").append(esc(name)).append(" FAQ</h2><dl>");
         for (String[] x : qa) b.append("<dt>").append(esc(x[0])).append("</dt><dd>").append(esc(x[1])).append("</dd>");

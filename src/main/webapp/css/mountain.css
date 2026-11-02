@@ -11,6 +11,7 @@ a { color:var(--sky); }
 .lead { color:var(--dim); font-size:14px; margin:0 0 16px; }
 .dim { color:var(--dim); font-size:13px; }
 section { background:var(--panel); border:1px solid var(--ln); border-radius:12px; padding:14px 16px; margin-bottom:14px; }
+#wx { min-height:320px; }   /* 날씨 표 · 날짜 고르기 · 미세먼지가 들어올 자리를 미리(2026-11-02 홍TV님 점검: 데스크톱 CLS 0.316 - 아래 칸이 통째로 밀렸음) */
 #wxBody b { display:block; margin-bottom:4px; }
 #wxBody div { font-size:14px; }
 ul { margin:0; padding:0; list-style:none; }
@@ -30,7 +31,7 @@ ul { margin:0; padding:0; list-style:none; }
 .stays { margin:16px 0 0; }
 .stays a { display:inline-flex; align-items:center; min-height:44px; padding:0 16px; border-radius:22px; border:1px solid var(--sky); color:var(--tx); text-decoration:none; font-weight:bold; }
 .stays small { display:block; margin-top:6px; color:var(--dim); font-size:12px; }
-.support a { display:inline-block; padding:8px 14px; border-radius:10px; background:#2f9e44; color:#fff; text-decoration:none; font-weight:bold; }
+.support a { display:inline-block; padding:8px 14px; border-radius:10px; background:#237032; color:#fff; text-decoration:none; font-weight:bold; }   /* 흰 글씨와 6.1:1(#2f9e44 는 3.5:1 - 2026-11-02 홍TV님 점검) */
 .brand span { color:#ffb703; }
 /* 글자 크기(RF.textButton) */
 .rfz main { zoom: var(--rfz); }

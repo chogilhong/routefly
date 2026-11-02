@@ -21,7 +21,7 @@
         document.title = "routefly Hiking club room";
         if (window.RF && RF.applyEn) RF.applyEn(document);
         $("back").href = EXIT;
-        $("back").textContent = "‹ Mountains";
+        $("back").textContent = "‹ Trails";   // 코스 모음(m/) - 영어 목록 제목 "Hiking · Walking · Cycling", 다른 화면의 "‹ Trails" 와 같게(2026-11-02 점검)
         if ($("fbLink")) { $("fbLink").href = "feedback.html?from=/party.html&lang=en"; $("fbLink").textContent = "📮 Feedback (English OK)"; }
     }
     var OFFICE_HOME = EN ? "party-office.html?lang=en" : "party-office.html";   // 사무실 화면(열쇠는 그 탭 · 기기에 남아 있어 # 없이 열림)
@@ -145,9 +145,9 @@
         return Math.floor(s / 3600) + T("시간 ", "h ") + Math.floor(s % 3600 / 60) + T("분 전", " min ago");
     }
     function two(n) { return ("0" + n).slice(-2); }
-    function clock(ms) { var d = new Date(ms); return two(d.getHours()) + ":" + two(d.getMinutes()); }
+    function clock(ms) { var d = new Date(ms + 9 * 3600000); return two(d.getUTCHours()) + ":" + two(d.getUTCMinutes()); }   // 한국 시간(출발 · 하산 시각은 한국 시간으로 정함 - 2026-11-02 홍TV님 점검)
     /** "10/23(금) 23:20" · 영어 "Fri 10/23 23:20" */
-    function when(ms) { var d = new Date(ms); return EN ? DAYS[d.getDay()] + " " + (d.getMonth() + 1) + "/" + d.getDate() + " " + clock(ms) : (d.getMonth() + 1) + "/" + d.getDate() + "(" + DAYS[d.getDay()] + ") " + clock(ms); }
+    function when(ms) { var d = new Date(ms + 9 * 3600000); return EN ? DAYS[d.getUTCDay()] + " " + (d.getUTCMonth() + 1) + "/" + d.getUTCDate() + " " + clock(ms) : (d.getUTCMonth() + 1) + "/" + d.getUTCDate() + "(" + DAYS[d.getUTCDay()] + ") " + clock(ms); }   // 한국 날짜
     function left(ms, now) {
         var m = Math.round((ms - now) / 60000), a = Math.abs(m);
         var t = (a >= 1440 ? Math.floor(a / 1440) + T("일 ", "d ") : "") + (a >= 60 ? Math.floor(a % 1440 / 60) + T("시간 ", "h ") : "") + (a % 60) + T("분", " min");
@@ -792,8 +792,14 @@
         e.preventDefault();
         e.stopPropagation();
         roomMsg(T("🏢 사무실은 보기만 합니다 - 위쪽 \"✏️ 고치기 켜기\"를 먼저 눌러 주세요.", "🏢 The office is view-only - tap \"✏️ Turn on editing\" at the top first."));
-        $("officeEdit").scrollIntoView({ behavior: "smooth", block: "center" });
+        toEditBtn();
     }, true);
+    /** ✏️ 고치기 켜기 단추로 - 보이게 옮기고 자리(포커스)도(2026-11-02 홍TV님 점검: 안내 글만 보고 단추를 못 찾았음). 아래 안내 글을 눌러도. */
+    function toEditBtn() {
+        $("officeEdit").scrollIntoView({ behavior: "smooth", block: "center" });
+        try { $("officeEditBtn").focus({ preventScroll: true }); } catch (e) { $("officeEditBtn").focus(); }
+    }
+    $("roomMsg").addEventListener("click", function () { if (officeLocked(state)) toEditBtn(); });
     $("sosBar").addEventListener("click", function (e) {
         var b = e.target.closest("[data-sos]");
         if (!b || !state || !isStaff()) return;   // 회원 화면에는 지도가 없음 - 이름만

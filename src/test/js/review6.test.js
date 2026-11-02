@@ -11,7 +11,7 @@ var n = 0;
 function eq(name, a, b) { assert.deepStrictEqual(JSON.parse(JSON.stringify(a)), b, name); n++; }   // vm 안에서 만든 배열도 견줌
 /** js 에서 "    function 이름(" 로 시작하는 함수 하나(한 줄짜리도). */
 function fn(js, name) {
-    var m = new RegExp("\\n    function " + name + "\\([^)]*\\) \\{[^\\n]*\\}\\n").exec(js)
+    var m = new RegExp("\\n    function " + name + "\\([^)]*\\) \\{[^\\n]*\\}(   //[^\\n]*)?\\n").exec(js)   // 한 줄짜리(뒤 주석도)
         || new RegExp("\\n    function " + name + "\\([^)]*\\) \\{[\\s\\S]*?\\n    \\}\\n").exec(js);
     assert(m, name + " 를 찾지 못함");
     return m[0];
@@ -84,6 +84,46 @@ assert(/renderHidden = document\.hidden === true;[^\n]*\n\s*try \{ renderAll\(\)
     ctx.f(14, 0, 0);
     eq("버린 것은 다시 받음", asked.length, 101);
     assert(STUDIO.indexOf("var demTiles = new Map(), DEM_KEEP = 64;") >= 0, "studio.js 의 한도"); n++;
+})();
+
+// ---- D4: 아래 창 - 열리면 제목으로, 닫히면 연 단추로, Esc 는 그 창의 닫기(움직임 없음 창은 Esc 로 안 닫음)
+(function () {
+    var doc = { activeElement: null, body: { contains: function () { return true; } } };
+    function node(id) { var e = { id: id, style: { display: "none" }, attrs: {}, clicks: 0, setAttribute: function (k, v) { e.attrs[k] = v; }, focus: function () { doc.activeElement = e; }, click: function () { e.clicks++; } }; return e; }
+    var opener = node("sosBtn"), sos = node("sosSheet"), h2 = node("sosH"), still = node("stillSheet"), close = node("sosClose");
+    sos.querySelector = still.querySelector = function () { return h2; };
+    var ctx = { document: doc, $: function (id) { return id === "sosClose" ? close : null; } };
+    vm.runInNewContext("var SHEET_ESC = { sosSheet: 'sosClose' }, sheetStack = [];" + fn(HIKE, "sheetSeen") + fn(HIKE, "sheetEsc") + " this.seen = sheetSeen; this.esc = sheetEsc;", ctx);
+    opener.focus();
+    sos.style.display = "flex"; ctx.seen(sos);
+    eq("열리면 제목으로(단추가 아니라 - Enter 한 번에 119 가 눌리지 않게)", [doc.activeElement.id, h2.attrs.tabindex], ["sosH", "-1"]);
+    var ev = { key: "Escape", preventDefault: function () { ev.p = true; } };
+    ctx.esc(ev);
+    eq("Esc 는 SOS 닫기 단추(닫기가 인솔자 SOS 를 끌지 물음)", [close.clicks, !!ev.p], [1, true]);
+    sos.style.display = "none"; ctx.seen(sos);
+    eq("닫히면 연 단추로", doc.activeElement.id, "sosBtn");
+    still.style.display = "flex"; ctx.seen(still);
+    ctx.esc({ key: "Escape", preventDefault: function () {} });
+    eq("움직임 없음 창은 Esc 로 닫지 않음(괜찮아요를 대신 누르지 않게)", close.clicks, 1);
+    assert(/var SHEET_ESC = \{[^}]*sosSheet: "sosClose"/.test(HIKE) && !/stillSheet:/.test(HIKE.slice(HIKE.indexOf("var SHEET_ESC"), HIKE.indexOf("var sheetStack"))), "SOS 는 있고 움직임 없음은 없음"); n++;
+})();
+
+// ---- D14: 시각은 한국 시간(폰 시간대와 상관없이)
+var at = Date.UTC(2026, 10, 2, 8, 5);   // 한국 17:05
+eq("따라가기 일몰 · 도착 예상", vm.runInNewContext(fn(HIKE, "clock") + " clock(" + at + ");", {}), "17:05");
+eq("산악회 방", vm.runInNewContext("function two(n) { return (n < 10 ? '0' : '') + n; }" + fn(PARTY, "clock") + " clock(" + at + ");", {}), "17:05");
+eq("산악회 한 줄", vm.runInNewContext(fn(read("js/party-bar.js"), "clock") + " clock(" + at + ");", {}), "17:05");
+
+// ---- D7: GPX 편집 도구 줄 - 길이 없으면 열기 · 그리기 말고는 흐리게
+(function () {
+    var bs = ["#openBtn", "#drawBtn", "trim", "#saveBtn"].map(function (g) { var b = { attrs: { "data-go": g }, getAttribute: function (k) { return b.attrs[k]; }, setAttribute: function (k, v) { b.attrs[k] = v; }, removeAttribute: function (k) { delete b.attrs[k]; } }; return b; });
+    var ctx = { document: { querySelectorAll: function () { return bs; } }, Array: Array };
+    vm.runInNewContext(fn(STUDIO, "toolsOff") + " this.f = toolsOff;", ctx);
+    ctx.f(true);
+    eq("길이 없을 때", bs.map(function (b) { return b.attrs["aria-disabled"] || ""; }), ["", "", "true", "true"]);
+    ctx.f(false);
+    eq("길이 있으면 풂", bs.map(function (b) { return b.attrs["aria-disabled"] || ""; }), ["", "", "", ""]);
+    assert(read("studio.html").match(/<button type="button" data-go="[^"]*" title="([^"]*)" aria-label="\1">/g).length === 10, "그림 단추마다 이름"); n++;
 })();
 
 // ---- C8: QR 스크립트는 처음 쓸 때 한 번만 받음
