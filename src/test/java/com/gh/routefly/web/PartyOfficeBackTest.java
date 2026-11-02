@@ -19,8 +19,17 @@ public class PartyOfficeBackTest {
         assertTrue("사무실 자리일 때만", at > 0);
         String body = js.substring(at, js.indexOf("\n    }\n", at));
         assertTrue(body.contains("$(\"back\").href = OFFICE_HOME;") && body.contains("T(\"← 사무실\", \"← Office\")"));
-        assertTrue("방 끝 뒤에도 같은 곳", js.contains("location.href = office ? OFFICE_HOME : EXIT;"));
+        assertTrue("방 끝 뒤에도 같은 곳(기록을 남기지 않음)", js.contains("if (office) location.replace(OFFICE_HOME);"));
+        assertTrue("위 · 아래 두 고리 모두 toOffice", body.contains("addEventListener(\"click\", toOffice)") && js.contains("$(\"officeBack\").querySelector(\"a\").addEventListener(\"click\", toOffice)"));
         String html = Files.readString(Path.of("src/main/webapp/party.html"), StandardCharsets.UTF_8);
         assertTrue("기본은 산 모음", html.contains("<a id=\"back\" href=\"m/\">← 산 모음</a>"));
+    }
+
+    /** 사무실 → 열기 → ← 사무실 → ‹ 뒤로 가 방으로 돌아오지 않음(2026-11-02 PC: 끝없이 돌았음) - node 로 가짜 브라우저 기록을 따라감. */
+    @Test
+    public void officeRoomBackDoesNotLoop() throws Exception {
+        ReviewRound5Test.node("src/test/js/office-nav.test.js");
+        String office = Files.readString(Path.of("src/main/webapp/js/party-office.js"), StandardCharsets.UTF_8);
+        assertTrue("사무실 ‹ 뒤로 는 이 탭의 사무실 방을 지움", office.contains("sessionStorage.removeItem(RFParty.KEY)") && office.contains("RFParty.officeNav(\"office\""));
     }
 }

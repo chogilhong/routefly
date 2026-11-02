@@ -26,10 +26,18 @@
     }
     var OFFICE_HOME = EN ? "party-office.html?lang=en" : "party-office.html";   // 사무실 화면(열쇠는 그 탭 · 기기에 남아 있어 # 없이 열림)
     // 사무실에서 연 방이면 위쪽 "뒤로" 는 사무실 화면으로(2026-11-02 홍TV님) - 방 자리는 그대로 두고 돌아감
+    // 앞이 사무실이면 되돌아가고(방 기록을 빼서 사무실 ‹ 뒤로 가 방으로 돌아오지 않게), 아니면 이 방 기록을 사무실로 바꿈(쌓지 않음) - 아래 "← 사무실 화면으로" 도 같음
+    function toOffice(e) {
+        e.preventDefault();
+        if (RFParty.officeNav("room", document.referrer, location.origin, history.length) === "back") history.back();
+        else location.replace(OFFICE_HOME);
+    }
     if ((RFParty.get() || {}).office) {
         $("back").href = OFFICE_HOME;
         $("back").textContent = T("← 사무실", "← Office");
+        $("back").addEventListener("click", toOffice);
     }
+    if ($("officeBack")) $("officeBack").querySelector("a").addEventListener("click", toOffice);
     /** 서버 · 오류 글(한국어)을 영어로 - 영어 화면만. 모르는 글은 한국어 그대로 + " (Korean message)". */
     var EN_MSG = [
         [/^이미 끝난 방입니다 - ([\s\S]*)$/, function (x, why) { return "This room has already ended - " + enMsg(why); }],
@@ -536,7 +544,7 @@
         if (watch != null) navigator.geolocation.clearWatch(watch);
         var office = (RFParty.get() || {}).office || !!(state && state.officeMe);   // 끝난 답이 오면 party-kit 이 먼저 지워 get() 이 비어 있음 - 받아 둔 방 화면으로도(2026-10-29 점검)
         RFParty.clear();
-        (text ? say(text) : Promise.resolve()).then(function () { location.href = office ? OFFICE_HOME : EXIT; });   // 회사 사무실은 사무실 화면으로
+        (text ? say(text) : Promise.resolve()).then(function () { if (office) location.replace(OFFICE_HOME); else location.href = EXIT; });   // 사무실은 방 기록을 남기지 않음   // 회사 사무실은 사무실 화면으로
     }
 
     var leaving = false;   // 나가는 중 - 늦게 온 답(지운 열쇠)의 오류를 띄우지 않음(2026-10-20 PC)

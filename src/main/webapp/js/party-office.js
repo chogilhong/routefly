@@ -483,7 +483,10 @@
     });
     // ‹ 뒤로(2026-10-29 홍TV님 - 들어온 문으로): 우리 화면에서 왔으면 그 화면으로, 카톡 링크 등 처음 연 탭이면 산악회 방 화면으로
     $("backTop").addEventListener("click", function (e) {
-        if (document.referrer && document.referrer.indexOf(location.origin + "/") === 0 && history.length > 1) { e.preventDefault(); history.back(); }
+        // 이 탭에 사무실이 연 방이 남아 있으면 지움(서버의 사무실 자리는 그대로 - 다시 "열기") - 산악회 방 첫 화면이 그 방을 다시 띄우지 않게(2026-11-02 홍TV님)
+        // (RFParty.get · clear 는 party.html 에서만 탭 것을 보므로 여기서는 탭 저장소를 바로 지움 - 내가 참가한 방(localStorage)은 그대로)
+        try { sessionStorage.removeItem(RFParty.KEY); } catch (e2) { /* 없음 */ }
+        if (RFParty.officeNav("office", document.referrer, location.origin, history.length) === "back") { e.preventDefault(); history.back(); }
     });
     (function () {   // 글자 크기 단추(about.js · course-kit 과 같은 rf-text: 1 → 1.2 → 1.4)
         var STEPS = [1, 1.2, 1.4], b = document.createElement("button");

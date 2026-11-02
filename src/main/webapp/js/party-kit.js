@@ -205,5 +205,16 @@
         return t;
     }
 
-    g.RFParty = { alertsOn: alertsOn, isApp: isApp, dashes: dashes, KEY: KEY, get: get, set: set, clear: clear, post: post, fix: fix, ping: ping, sos: sos, onNotice: null, parseDay: parseDay, parseTime: parseTime };
+    /**
+     * 순수 함수 - 사무실 · 방 사이 "뒤로" 를 어떻게 갈지(2026-11-02 홍TV님: 사무실 → 방 → ← 사무실 → ‹ 뒤로 → 방 … 이 끝없이 돌았음).
+     * from "room"(방의 ← 사무실): 바로 앞이 사무실 화면이면 "back"(방 기록을 빼고 그 사무실로), 아니면 "replace"(방 기록을 사무실로 바꿈 - 쌓지 않음).
+     * from "office"(사무실의 ‹ 뒤로): 바로 앞이 산악회 방 화면(party.html)이면 그 방으로 되돌아가므로 "href"(들어온 문 - 산악회 방 첫 화면), 다른 우리 화면이면 "back".
+     */
+    function officeNav(from, ref, origin, histLen) {
+        var same = !!ref && ref.indexOf(origin + "/") === 0, path = same ? ref.slice(origin.length).split(/[?#]/)[0] : "";
+        if (from === "room") return same && /\/party-office\.html$/.test(path) && histLen > 1 ? "back" : "replace";
+        return same && !/\/party\.html$/.test(path) && histLen > 1 ? "back" : "href";
+    }
+
+    g.RFParty = { officeNav: officeNav, alertsOn: alertsOn, isApp: isApp, dashes: dashes, KEY: KEY, get: get, set: set, clear: clear, post: post, fix: fix, ping: ping, sos: sos, onNotice: null, parseDay: parseDay, parseTime: parseTime };
 })(window);
