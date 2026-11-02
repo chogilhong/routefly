@@ -4,7 +4,7 @@
  */
 "use strict";
 var fs = require("fs"), path = require("path"), vm = require("vm"), assert = require("assert");
-var js = fs.readFileSync(path.join(__dirname, "../../main/webapp/js/hike.js"), "utf8");
+var js = fs.readFileSync(path.join(__dirname, "../../main/webapp/js/hike.js"), "utf8").replace(/\r\n/g, "\n");   // PC(core.autocrlf)는 CRLF(2026-11-02 PC)
 var n = 0;
 function eq(name, a, b) { assert.deepStrictEqual(a, b, name); n++; }
 function has(name, s) { assert(js.indexOf(s) >= 0, name + " - hike.js 에 없음: " + s); n++; }
@@ -61,7 +61,7 @@ has("옅은 음영 지형은 z12 까지", "maxzoom: cfg.vworldKey ? 12 : 15");
 has("따라가기는 followMe", "if (hike.follow) followMe(co.latitude, co.longitude);");
 has("나침반 3° 넘을 때만 지도 돌림", "turn > 3");
 has("산행 중 표시(party-bar 가 GPS 를 따로 안 켬)", "window.rfHikeRunning = on;");
-var bar = fs.readFileSync(path.join(__dirname, "../../main/webapp/js/party-bar.js"), "utf8");
+var bar = fs.readFileSync(path.join(__dirname, "../../main/webapp/js/party-bar.js"), "utf8").replace(/\r\n/g, "\n");
 assert(bar.indexOf("&& !window.rfHikeRunning); }") >= 0 && bar.indexOf("document.addEventListener(\"rf-hike\"") >= 0, "party-bar 가 산행 중엔 watchPosition 을 안 켬"); n++;
 
 console.log("OK " + n);

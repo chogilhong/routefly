@@ -55,7 +55,7 @@ eq("코스 없이 열면 코스 고르기(예전 그대로)", e.picking, " picki
 eq("fetch 가 없는 브라우저는 그대로(hike.js 가 예전처럼 물음)", early(false).has, false);
 
 // 2026-11-02 점검: 위 가짜 fetch 답은 .json 이 없어 hike.js 가 실제로 읽는 길(readJson)을 돌려 보지 않았음 - hike.js 의 readJson 과 기본 지형 대체를 그대로 씀
-var hikeJs = fs.readFileSync(path.join(web, "js/hike.js"), "utf8");
+var hikeJs = fs.readFileSync(path.join(web, "js/hike.js"), "utf8").replace(/\r\n/g, "\n");   // PC(core.autocrlf)는 CRLF - 정규식이 \n 만 봄(2026-11-02 PC)
 var rj = /\n    function readJson\(r\) \{[\s\S]*?\n    \}\n/.exec(hikeJs);
 assert(rj, "hike.js 에서 readJson 을 찾지 못함");
 assert(hikeJs.indexOf("(window.rfMapCfg ? window.rfMapCfg.then(readJson) : getJson(\"api/map-config\")).catch(function () {") >= 0, "hike.js 가 미리 물은 답을 readJson 으로 읽음");
