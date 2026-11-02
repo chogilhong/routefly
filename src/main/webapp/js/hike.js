@@ -855,7 +855,7 @@
             favBtn.refresh();
             // 산불조심기간 안내(하루 한 번 - 2026-10-15 홍TV님)
             var fire = RF.fireNote(Date.now()), today0 = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
-            try { if (fire && localStorage.getItem("rf-fire") !== today0) { localStorage.setItem("rf-fire", today0); setTimeout(function () { toast(fire, 9000); }, 7000); } } catch (e) { /* 이번만 */ }
+            try { if (fire && localStorage.getItem("rf-fire") !== today0) { localStorage.setItem("rf-fire", today0); setTimeout(function () { toast(fire, 5000); }, 7000); } } catch (e) { /* 이번만 */ }   // 5초 - 기록 칸을 오래 가렸음(2026-11-02 홍TV님 점검, 9초)
             // ⛑️ 오늘의 산행 안전(api/safety - 2026-10-18 홍TV님): 들머리 자리의 내 지역 특보 · 산불위험 높음 이상 · 자외선 8 이상일 때만, 그 지역(시도) 하루 한 번
             safetyJ = null;   // 출발 전 점검이 같이 씀(새로 받지 않음)
             if (c.lat && c.lat.length) fetch("api/safety?lat=" + (+c.lat[0]).toFixed(4) + "&lon=" + (+c.lon[0]).toFixed(4)).then(function (x) { return x.json(); }).then(function (j) {
@@ -2302,7 +2302,7 @@
 
     // ------------------------------------------------------------------ 산행
 
-    var SAFETY_KEY = "rf-safety-ok-v1";   // 안전 · 위치 안내를 읽었는지(내용을 크게 바꾸면 v2 로)
+    var SAFETY_KEY = "rf-safety-ok-v2";   // 안전 · 위치 안내를 읽었는지(내용을 크게 바꾸면 판을 올림). v2 - 위치 줄에 "산악회 방에 참가했을 때만 인솔자에게"(2026-11-02 홍TV님 점검)
 
     function safetyOk() {
         try { return localStorage.getItem(SAFETY_KEY) === "1"; } catch (e) { return false; }
@@ -2391,7 +2391,7 @@
         if (!sim && !saved && !checked && !nearChecked) { nearCheck(function () { nearChecked = true; start(false); }); return; }
         nearChecked = false;
         if (!sim && !saved && !checked) { preCheck(function () { start(false, true); }); return; }   // 이어 하는 산행(새로 고침 · 이어서)은 묻지 않음
-        setCompact(false);   // 시작할 때는 기록 칸을 펼쳐서(아래로 밀면 접힘)
+        if (!land()) setCompact(false);   // 시작할 때는 기록 칸을 펼쳐서(아래로 밀면 접힘) - 낮은 가로 화면은 접은 그대로(단추가 가려짐)
         if (!sim) hike.fix = null;   // 앞 시험 걷기 위치(앞당긴 시계)가 실제 산행에 남지 않게(2026-11-02 홍TV님 점검)
         hikeFlag(!sim);
         hike.sim = sim;
@@ -2679,10 +2679,36 @@
         b.style.display = text ? "block" : "none";
     }
 
+    /**
+     * 위치 권한 없음 - 사라지는 알림 대신 남는 띠(GPS 끊김 띠 자리)에 고치는 법 + "다시 시도"(2026-11-02 홍TV님 점검: 7초 알림을 놓치면 왜 안 되는지 몰랐음).
+     * 앱은 설정 열기, 브라우저는 위치를 다시 물음. 위치가 오면(onFix) · 끝내면 사라짐.
+     */
+    function permBanner() {
+        var b = $("gpsLost"), r = document.createElement("button");
+        b.textContent = BG ? T("📍 위치 권한이 꺼져 있습니다 - 설정에서 routefly 의 위치를 '앱 사용 중에만 허용' 으로 바꿔 주세요. ", "📍 Location permission is off - in settings, allow location for routefly (\"While using the app\"). ")
+            : T("📍 위치 권한이 꺼져 있습니다 - 주소창 왼쪽 🔒(또는 ⋮ → 설정 → 사이트 설정 → 위치)에서 이 사이트를 '허용' 으로 바꾼 뒤 ",
+                "📍 Location permission is off - tap 🔒 left of the address bar (or ⋮ → Settings → Site settings → Location), allow this site, then ");
+        r.type = "button";
+        r.className = "retry";
+        r.textContent = BG ? T("설정 열기", "Open settings") : T("다시 시도", "Try again");
+        r.addEventListener("click", function () {
+            if (BG) { Promise.resolve(BG.openSettings()).catch(function () { /* 못 엶 */ }); return; }
+            gpsBanner("");
+            if (!hike.running || hike.sim || !navigator.geolocation) return;
+            if (hike.watch != null) navigator.geolocation.clearWatch(hike.watch);
+            $("gps").textContent = T("GPS 찾는 중…", "Finding GPS…");
+            $("gps").className = "";
+            hike.watch = navigator.geolocation.watchPosition(onFix, onGpsError, { enableHighAccuracy: true, maximumAge: 3000, timeout: 30000 });
+        });
+        b.appendChild(r);
+        b.className = "perm";
+        b.style.display = "block";
+    }
+
     function onGpsError(e) {
         $("gps").className = "bad";
         $("gps").textContent = e.code === 1 ? T("위치 권한 없음", "No location permission") : T("GPS 신호 없음", "No GPS signal");
-        if (e.code === 1) toast(T("위치 권한이 꺼져 있습니다. 브라우저 설정에서 이 사이트의 위치 권한을 허용해 주세요.", "Location permission is off. Allow location for this site in your browser settings."), 7000);
+        if (e.code === 1) permBanner();
         // 2026-10-23 홍TV님 지리산 칼바위 - 카카오톡 안 브라우저에서는 'GPS 신호 없음', 크롬으로 여니 바로 ±3m. 한 번만 알림.
         else if (/KAKAOTALK/i.test(navigator.userAgent) && !hike.kakaoGps) {
             hike.kakaoGps = true;
@@ -2695,6 +2721,7 @@
         if (!c || !hike.running) return;
         var co = pos.coords, t = pos.timestamp || now();
         var acc = co.accuracy;
+        if (!hike.sim && $("gpsLost").className === "perm") gpsBanner("");   // 위치 권한 띠 - 위치가 오면 치움
         if (!hike.sim && (acc == null || acc <= 100)) hike.gpsT = Date.now();   // GPS 끊김 알림 - 쓸 만한 위치(오차 100m 안)가 온 시각(아래에서 건너뛰는 같은 자리 위치도)
         if (DEBUG && (!hike.dbgT || Date.now() - hike.dbgT > 60000)) {
             hike.dbgT = Date.now();
@@ -4016,6 +4043,25 @@
         if (map) setTimeout(function () { map.resize(); }, 0);
     }
     try { if (localStorage.getItem("rf-compact") === "1") document.body.classList.add("compact"); } catch (e) { /* 무시 */ }
+    // 낮은 가로 화면(2026-11-02 홍TV님 점검: 기록 칸 · 그래프가 화면을 다 차지해 "산행 시작" 이 안 보였음) - 그동안만 기록 칸을 접고(저장하지 않음),
+    // 고도 그래프는 css 가 숨김. 세로로 돌리면 앞 모양으로 되돌리고 그래프를 그 폭으로 다시 그림
+    var LAND = window.matchMedia ? window.matchMedia("(orientation: landscape) and (max-height: 500px)") : null, landWas = null;
+    function land() { return !!(LAND && LAND.matches); }
+    function onLand() {
+        if (land()) {
+            if (landWas == null) landWas = document.body.classList.contains("compact");
+            document.body.classList.add("compact");
+        } else if (landWas != null) {
+            document.body.classList.toggle("compact", landWas);
+            landWas = null;
+            if (c) { prof = RF.profile($("profile"), c, { gaps: RF.shownGaps(c) }); prof.set(hike.d); }
+        }
+        if (map) setTimeout(function () { map.resize(); }, 0);
+    }
+    if (LAND) {
+        if (LAND.addEventListener) LAND.addEventListener("change", onLand); else if (LAND.addListener) LAND.addListener(onLand);
+        onLand();
+    }
     $("grip").addEventListener("click", function () { setCompact(!document.body.classList.contains("compact")); });
     var swipeY = null;
     $("stats").addEventListener("touchstart", function (e) { swipeY = e.touches.length === 1 ? e.touches[0].clientY : null; }, { passive: true });

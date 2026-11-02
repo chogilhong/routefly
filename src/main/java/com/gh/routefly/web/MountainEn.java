@@ -134,11 +134,12 @@ final class MountainEn {
             b.append("<p class=\"closedNote\">⛔ The summit area is a restricted zone. Trails go only as far as the marked point below the summit (Korea Forest Service).</p>");
         b.append("<section id=\"wx\" data-lat=\"").append(peak.get("lat").getAsDouble()).append("\" data-lon=\"").append(peak.get("lon").getAsDouble())
                 .append("\"><h2>Weather · Air quality · Sunrise &amp; Sunset</h2><p class=\"dim\" id=\"wxBody\">Weather, air quality, sunrise and sunset (KMA · AirKorea) for today and the next few days appear here.</p></section>");
+        if (!courses.isEmpty()) b.append("<p class=\"jump\"><a href=\"#trails\">🥾 See the ").append(courses.size()).append(courses.size() == 1 ? " trail" : " trails").append(" ↓</a></p>");   // 한국어 페이지와 같게(2026-11-02)
         // ⛑️ Today's hiking safety(api/safety - 한국어 산 페이지와 같게, 2026-10-18) - js/mountain-en.js 가 채움
         b.append("<section id=\"safe\"><h2>⛑️ Today's hiking safety</h2><ul class=\"wl sfl\" id=\"sfList\"><li><span>Weather warnings, wildfire risk, UV and the nearest emergency room appear here.</span></li></ul>")
                 .append("<h3>🏥 Nearest emergency rooms</h3><ul class=\"wl\" id=\"sfEr\"></ul><p class=\"dim\">Weather warnings and UV: Korea Meteorological Administration. Wildfire risk: Korea Forest Service. Emergency rooms: National Medical Center (region from the nearest ER's address). In an emergency call <b>119</b>.</p></section>");
         if (MountainServlet.overnight(peak)) b.append(MountainServlet.staysBlock(peak, true));   // 1박이 많은 산은 위로(한국어 페이지와 같게)
-        b.append("<section><h2>").append(courses.size()).append(courses.size() == 1 ? " trail" : " trails").append("</h2>");
+        b.append("<section id=\"trails\"><h2>").append(courses.size()).append(courses.size() == 1 ? " trail" : " trails").append("</h2>");
         if (courses.isEmpty()) b.append("<p class=\"dim\">No trail to the summit was found in our data.</p>");
         else {
             b.append("<ul class=\"cs\">");

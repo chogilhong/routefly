@@ -74,6 +74,8 @@ html.picking.partyOn #pick { padding-bottom:120px; box-sizing:border-box; }
 #gpsLost { position:absolute; left:66px; right:52px; top:64px; z-index:4; display:none; padding:9px 12px; border-radius:10px;
            background:rgba(217,119,6,0.95); color:#fff; font-size:14px; font-weight:bold; box-shadow:0 2px 8px rgba(0,0,0,0.5); }
 #gpsLost.back { background:rgba(22,163,74,0.95); }
+#gpsLost.perm { background:rgba(220,38,38,0.95); font-weight:normal; line-height:1.4; }   /* 위치 권한 없음(2026-11-02) - 고치는 법 + 다시 시도 */
+#gpsLost .retry { margin-left:4px; min-height:36px; padding:0 12px; border-radius:8px; border:0; background:#fff; color:#b91c1c; font-weight:bold; font-size:14px; }
 
 /* 지도 위 표시 */
 .km { width:22px; height:22px; border-radius:50%; background:rgba(0,0,0,0.65); border:1.5px solid #fff; color:#fff; font-size:11px;
@@ -123,7 +125,14 @@ body.compact #statGrids { display:none; }
 /* ① 고도 그래프 */
 #profile { flex:0 0 auto; height:92px; margin:6px 10px 4px; }
 #boardOpen { flex:0 0 auto; height:28px; width:34px; padding:0; border-radius:13px; border:1px solid var(--ln); background:rgba(255,255,255,0.06);
-             color:var(--tx); font:bold 12px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }   /* 📋 안내판 열기(2026-10-16) */
+             color:var(--tx); font:bold 12px Arial,"Malgun Gothic",sans-serif; cursor:pointer; position:relative; }   /* 📋 안내판 열기(2026-10-16) */
+#boardOpen::after { content:""; position:absolute; inset:-8px -5px; }   /* 누르는 자리는 44×44(2026-11-02 홍TV님 점검) - 보이는 크기 · 줄 높이는 그대로 */
+/* 가로 화면(높이 500px 아래, 2026-11-02 홍TV님 점검): 고도 그래프 · 교통편 · 만든 이를 숨기고 기록 칸은 접어(hike.js) 지도와 아래 단추(산행 시작)가 보이게 */
+@media (orientation:landscape) and (max-height:500px) {
+    #profile, #access, #made { display:none !important; }
+    #stats { padding-top:4px; }
+    #bar button { height:40px; }
+}
 
 /* 아래 단추 */
 #bar { flex:0 0 auto; display:flex; gap:8px; padding:6px 10px calc(env(safe-area-inset-bottom) + 8px); background:var(--panel); }
@@ -339,9 +348,9 @@ html.picking #pick { display:flex; }
 <div id="mapWrap">
     <div id="map"></div>
     <div id="offroute"><span class="arrow" id="guideArrow"><svg viewBox="0 0 24 24" width="30" height="30"><path d="M12 2 L20 20 L12 15.5 L4 20 Z" fill="#fff" stroke="#7a0000" stroke-width="1.2" stroke-linejoin="round"/></svg></span><span class="otxt"><span id="offText" role="alert"></span><button type="button" id="navBtn" data-en="🚗 Directions to the start">🚗 출발점 길찾기</button></span></div>
-    <div id="turn"></div>
+    <div id="turn" role="status" aria-live="assertive"></div>
     <button type="button" id="compass" data-en-title="Compass - each tap: on → turn map with you → north up" data-en-aria-label="Compass" aria-label="나침반" title="나침반 - 누를 때마다: 켜기 → 내 방향으로 지도 돌리기 → 북쪽 위로"><span class="needle"><svg viewBox="0 0 16 30" width="13" height="25"><path d="M8 1 L13 15 L3 15 Z" fill="#e03131"/><path d="M3 15 L13 15 L8 29 Z" fill="#9aa3ad"/></svg></span><span class="hd" id="compassText">N</span></button>
-    <div id="arrived"></div>
+    <div id="arrived" role="status" aria-live="assertive"></div>
     <div id="gpsLost" role="alert"></div>
     <button type="button" id="recClear" data-en="Clear record line ✕" data-en-title="Remove the record line from the map" title="지도에서 기록 선 지우기">기록 선 지우기 ✕</button>
     <button type="button" id="voice" data-en-title="Voice guide detailed · short · off (junctions, points, every 1 km, off-trail, arrival)" data-en-aria-label="Change voice guide" class="on" aria-label="음성 안내 바꾸기" title="음성 안내 자세히 · 짧게 · 끄기(갈림길 · 지점 · 1km 마다 · 코스 이탈 · 도착)">🔊</button>
@@ -693,7 +702,7 @@ html.picking #pick { display:flex; }
             <li data-en="&lt;b&gt;Closures&lt;/b&gt; (rest periods, wildfire season, weather warnings) are not included. &lt;b&gt;Follow local signs and rangers.&lt;/b&gt;"><b>통제 구간</b>(자연휴식년제 · 산불조심기간 · 기상 특보)은 들어 있지 않습니다. <b>현지 안내판 · 관리자 지시를 따르세요.</b></li>
             <li data-en="GPS can be off by tens of meters in forests and valleys, and the map may not load without signal. Bring a power bank.">GPS 는 숲 · 계곡에서 수십 m 틀릴 수 있고, 통신이 끊기면 지도가 안 보일 수 있습니다. 보조 배터리를 챙기세요.</li>
             <li data-en="&lt;b&gt;In an emergency call 119&lt;/b&gt; (Korea) - give the location sign or Korea grid number."><b>긴급 상황은 119</b> - 길가의 위치표지판 · 국가지점번호를 알려 주세요.</li>
-            <li data-en="📍 &lt;b&gt;Your location stays on this phone&lt;/b&gt; - used only to measure progress, never sent to a server or stored.">📍 <b>위치는 이 핸드폰 안에서만</b> 진행 거리 계산에 쓰고, 서버로 보내거나 저장하지 않습니다.</li>
+            <li data-en="📍 &lt;b&gt;Your location stays on this phone&lt;/b&gt; - used only to measure progress, never sent to a server or stored (only if you join a hiking-club room, it goes to that room's leader).">📍 <b>위치는 이 핸드폰 안에서만</b> 진행 거리 계산에 쓰고, 서버로 보내거나 저장하지 않습니다(산악회 방에 참가했을 때만 인솔자에게).</li>
         </ul>
         <label class="chk" data-en="&lt;input type=&quot;checkbox&quot; id=&quot;safetyChk&quot;&gt; I have read the above"><input type="checkbox" id="safetyChk"> 위 내용을 읽고 확인했습니다</label>
         <a href="about.html" class="more" data-en-href="about-en.html" data-en="More details ›">자세한 안내 보기 ›</a>

@@ -201,4 +201,26 @@ public class ReviewRound5Test {
         String m = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/com/gh/routefly/web/MidServlet.java"));
         assertTrue(m.contains("if (EMPTY.get(ck, now) != null) continue;"));
     }
+
+    /** 화면(2026-11-02): 안내 띠 읽어 주기 · 안전 문구 v2 · 낮은 가로 화면 · 위치 권한 띠 · 산 페이지 코스 바로 가기. */
+    @Test
+    public void uxQuickWins() throws Exception {
+        String html = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/webapp/hike.html")), js = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/webapp/js/hike.js"));
+        assertTrue(html.contains("<div id=\"turn\" role=\"status\" aria-live=\"assertive\"></div>") && html.contains("<div id=\"arrived\" role=\"status\" aria-live=\"assertive\"></div>"));
+        assertTrue("안내판 단추 누르는 자리 44px", html.contains("#boardOpen::after { content:\"\"; position:absolute; inset:-8px -5px; }"));
+        assertTrue("안전 문구에 산악회 예외", html.contains("서버로 보내거나 저장하지 않습니다(산악회 방에 참가했을 때만 인솔자에게).") && html.contains("only if you join a hiking-club room, it goes to that room's leader"));
+        assertTrue("문구를 바꿨으니 판도", js.contains("var SAFETY_KEY = \"rf-safety-ok-v2\";"));
+        assertTrue(html.contains("@media (orientation:landscape) and (max-height:500px) {") && js.contains("if (!land()) setCompact(false);"));
+        assertTrue("위치 권한은 남는 띠", js.contains("if (e.code === 1) permBanner();") && !js.contains("toast(T(\"위치 권한이 꺼져 있습니다. 브라우저 설정에서"));
+        JsonObject gaya = com.google.gson.JsonParser.parseString("{\"id\":\"가야산\",\"name\":\"가야산\",\"lat\":35.822544,\"lon\":128.122849}").getAsJsonObject();
+        JsonObject c = new JsonObject();
+        c.addProperty("course_id", "t-1");
+        c.addProperty("name", "가야산 · 해인사 → 상왕봉");
+        c.addProperty("distance_m", 5000);
+        String ko = MountainServlet.page(gaya, List.of(c), List.of(), null, ""), en = MountainEn.page(gaya, List.of(c), List.of(), null, "");
+        assertTrue(ko, ko.contains("<p class=\"jump\"><a href=\"#trails\">🥾 코스 1개 바로 보기 ↓</a></p>") && ko.contains("<section id=\"trails\"><h2>코스 1개</h2>"));
+        assertTrue(en, en.contains("<a href=\"#trails\">🥾 See the 1 trail ↓</a>") && en.contains("<section id=\"trails\"><h2>1 trail</h2>"));
+        assertTrue("날씨 칸 바로 아래", ko.indexOf("class=\"jump\"") > ko.indexOf("id=\"wx\"") && ko.indexOf("class=\"jump\"") < ko.indexOf("id=\"safe\""));
+        assertFalse("코스가 없으면 링크도 없음", MountainServlet.page(gaya, List.of(), List.of(), null, "").contains("class=\"jump\""));
+    }
 }
