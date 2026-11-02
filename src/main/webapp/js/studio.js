@@ -39,16 +39,39 @@
         $("app").hidden = false;
         startMap();
         if (owner) loadSubs();
-        pcHint();
+        guide();
     });
-    /** 작은 화면이면 한 번만 "PC 에서 쓰기 좋아요"(2026-11-02 홍TV님) - 이 기기에 기억. */
-    function pcHint() {
-        var k = "rf-studio-pc-hint";
-        try {
-            if (!window.matchMedia("(max-width: 860px)").matches || localStorage.getItem(k)) return;
-            localStorage.setItem(k, "1");
-        } catch (e) { return; }
-        msg("💻 GPX 편집은 PC 에서 쓰기 좋아요(큰 지도 · 마우스 · 파일 끌어 놓기). 폰에서도 됩니다.", 7000);
+    /**
+     * 처음 안내(2026-11-02 홍TV님 "온보딩을 studio.html 에 넣어줘") - 이 기기에서 처음 열 때 한 번 네 장(js/onboard.js), 위 '❓ 사용법' 으로 다시.
+     * 마지막 장은 손님(📮 보내기) · 운영자(⬆ 올리기 · 📨 받은 GPX)가 다름 - 그래서 운영자인지 안 뒤에 만듦.
+     * 작은 화면의 "💻 PC 에서 쓰기 좋아요"(같은 날 따로 띄우던 알림)는 첫 장에 넣음 - 창이 둘 겹치지 않게.
+     */
+    function guide() {
+        if (!window.RFOnboard) return;
+        var small = false;
+        try { small = window.matchMedia("(max-width: 860px)").matches; } catch (e) { /* 큰 화면으로 */ }
+        RFOnboard.start({ key: "rf-studio-onboard-v1", cards: studioCards(owner, small) }).auto();
+    }
+    /** 안내 네 장(GPX 편집은 한국어만). own: 운영자 기기, small: 작은 화면. ( ) 로 감싼 문단은 흐린 글. */
+    function studioCards(own, small) {
+        var first = ["GPX 파일을 열거나 지도에 새 길을 그려, <b>고치고 저장</b>하는 곳입니다.",
+            "(파일은 이 기기 안에서만 다룹니다. " + (own ? "⬆ 올릴" : "📮 보낼") + " 때만 선 모양 · 이름이 서버로 갑니다.)"];
+        if (small) first.push("💻 PC 에서 쓰기 좋아요(큰 지도 · 마우스 · 파일 끌어 놓기). 폰에서도 됩니다.");
+        return [
+            { icon: "📐", title: ["GPX 편집"], body: [first] },
+            { icon: "📂", title: ["시작하기"], body: [[
+                "<b>📂 GPX 열기</b>로 파일을 고르거나 <b>📒 내 기록에서</b> 따라가기 기록을 불러옵니다. PC 는 지도 위로 GPX 파일을 끌어다 놓아도 됩니다.",
+                "<b>✏️ 지도에 새 길 그리기</b>를 누르고 지도에 점을 찍으면, 점 사이를 등산로 · 걷는 길로 이어 줍니다."]] },
+            { icon: "✂️", title: ["고치기"], body: [[
+                "<b>✂️ 앞 · 뒤 자르기</b> · <b>✂ 나누기</b> · <b>🔗 잇기</b> · <b>↔ 뒤집기</b> · <b>✏️ 점 고치기</b>. 잘못했으면 <b>↶ 되돌리기</b>.",
+                "높이 그래프에 손가락 · 마우스를 대면 지도에 그 자리가 보입니다. 다 고쳤으면 <b>💾 GPX 저장</b>."]] },
+            own ? { icon: "⬆", title: ["코스로 올리기 (운영자)"], body: [[
+                "<b>⬆ 코스로 올리기</b>: 선 모양과 이름만 서버로 - 1시간 안(매시 7분)에 코스 목록에 들어갑니다. 누구나 보는 코스가 되니 집 근처는 먼저 자르세요.",
+                "<b>📨 받은 GPX</b>에 등산객이 보낸 길이 쌓입니다(30일 지나면 저절로 지움). 열어 점검하고 올리면 받은 목록에서 빠집니다."]] }
+                : { icon: "📮", title: ["routefly 에 보내기"], body: [[
+                "<b>📮 routefly 에 코스 보내기</b>를 누르면 운영자가 확인한 뒤 코스 목록에 넣습니다.",
+                "집 근처는 먼저 자르세요(출발 · 도착이 집이면 사는 곳이 드러납니다)."]] }
+        ];
     }
 
     // ---- 지도(따라가기와 같은 바탕: V-World 위성 · 밝은 지도 + 지형 음영, 키가 없으면 지형 음영만)
@@ -191,7 +214,7 @@
                 map.on("touchend", up);
                 map.on("mouseenter", "verts", function () { map.getCanvas().style.cursor = "grab"; });
                 map.on("mouseleave", "verts", function () { map.getCanvas().style.cursor = ""; });
-                map.on("click", function (e) { if (drawing) addWaypoint([e.lngLat.lat, e.lngLat.lng]); });
+                map.on("click", function (e) { if (drawing && !drawing.finishing) addWaypoint([e.lngLat.lat, e.lngLat.lng]); });
                 map.on("mouseenter", "others", function () { map.getCanvas().style.cursor = "pointer"; });
                 map.on("mouseleave", "others", function () { map.getCanvas().style.cursor = ""; });
                 mapOk = true;
@@ -586,7 +609,7 @@
     // ---- 지도에 새 길 그리기(3단계) - 찍은 점 사이를 OpenStreetMap 걷는 길로(이 브라우저가 Overpass 에 직접 물음 - 서버 주소가 막혀도 됨)
     var OVERPASS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter", "https://overpass.private.coffee/api/interpreter"];
     var osmCache = {};
-    function overpass(a, b) {
+    function overpass(a, b, sig) {
         var pad = 0.004, s0 = Math.min(a[0], b[0]) - pad, n0 = Math.max(a[0], b[0]) + pad, w0 = Math.min(a[1], b[1]) - pad * 1.25, e0 = Math.max(a[1], b[1]) + pad * 1.25;
         // 0.002° 칸으로 맞춰 같은 둘레는 다시 묻지 않음
         var r = function (v, up) { return (up ? Math.ceil(v / 0.002) : Math.floor(v / 0.002)) * 0.002; };
@@ -594,8 +617,10 @@
         if (osmCache[bb]) return osmCache[bb];
         var q = "[out:json][timeout:25];way[\"highway\"~\"^(" + RF.WALK_WAYS + ")$\"](" + bb + ");(._;>;);out body;";
         var tryAt = function (k) {
+            if (sig && sig.aborted) return Promise.reject(new Error("멈춤"));   // 다 그림 · 점 빼기 · 오래 걸림(segment)
             if (k >= OVERPASS.length) return Promise.reject(new Error("OpenStreetMap 서버가 응답하지 않습니다"));
             var ctl = window.AbortController ? new AbortController() : null, timer = setTimeout(function () { if (ctl) ctl.abort(); }, 25000);
+            if (sig && ctl) sig.addEventListener("abort", function () { ctl.abort(); });
             return fetch(OVERPASS[k], { method: "POST", body: "data=" + encodeURIComponent(q), headers: { "Content-Type": "application/x-www-form-urlencoded" }, signal: ctl ? ctl.signal : undefined })
                 .then(function (res) { clearTimeout(timer); if (!res.ok) throw new Error("HTTP " + res.status); return res.json(); })
                 .catch(function () { clearTimeout(timer); return tryAt(k + 1); });
@@ -606,54 +631,79 @@
     }
     /** 우리 서버 코스 선(/api/trails - 공단 · 산림청 · 두루누비 · OSM 코스)을 둘레 칸으로 받아 둠. */
     var trailCache = {};
-    function ourTrails(a, b) {
+    function ourTrails(a, b, sig) {
         var pad = 0.006, r = function (v, up) { return (up ? Math.ceil(v / 0.01) : Math.floor(v / 0.01)) * 0.01; };
         var bb = [r(Math.min(a[1], b[1]) - pad), r(Math.min(a[0], b[0]) - pad), r(Math.max(a[1], b[1]) + pad, 1), r(Math.max(a[0], b[0]) + pad, 1)];
         if (bb[2] - bb[0] > 0.2 || bb[3] - bb[1] > 0.2) return Promise.resolve([]);   // 서버 한도(0.2°) - 너무 멀리 찍으면 OSM 으로
         var key = bb.map(function (v) { return v.toFixed(2); }).join(",");
-        if (!trailCache[key]) trailCache[key] = fetch("api/trails?bbox=" + key, { headers: { Accept: "application/json" } }).then(function (res) { return res.json(); })
+        if (!trailCache[key]) trailCache[key] = fetch("api/trails?bbox=" + key, { headers: { Accept: "application/json" }, signal: sig }).then(function (res) { return res.json(); })
             .then(function (j) { return (j && j.trails) || []; }).catch(function () { delete trailCache[key]; return []; });
         return trailCache[key];
     }
     /**
      * 두 점 사이 길 - ① 우리 코스 선(빠르고 막히지 않음) ② OpenStreetMap(Overpass) ③ 곧은 선.
      * 2026-10-31 PC: 공용 Overpass 가 PC 에서도 시간 초과 · 429 였음. 여러 점을 빨리 찍어도 한 구간씩 차례로 물음(segQ).
+     * 2026-11-02 홍TV님: 수백 km 떨어진 곳을 찍으면 "길 찾는 중…" 에 멈추고 "다 그림" 이 안 눌렸음 -
+     *   곧은 거리가 SNAP_MAX_M 넘으면 묻지 않고 곧은 선, 한 구간 SNAP_WAIT_MS 넘게 걸리면 멈추고 곧은 선, 기다리는 구간은 "다 그림" · 점 빼기 · 그만으로 멈춤(ph.ctl).
+     *   SNAP_MAX_M 은 우리 코스 선 서버 한도(api/trails 둘레 0.2° ≒ 20km)에 맞춤 - 더 넓으면 Overpass 도 큰 둘레를 받아야 해 느리고 무거움.
      */
-    var segQ = Promise.resolve();
-    function segment(a, b) {
+    var segQ = Promise.resolve(), SNAP_MAX_M = 20000, SNAP_WAIT_MS = 15000;
+    function tooFar(a, b) { return RF.distM(a[0], a[1], b[0], b[1]) > SNAP_MAX_M; }
+    /** a → b 길 찾기. ph: 목록에 미리 넣은 자리(기다리는 동안 ph.ctl 로 멈춤). 답: { pts, straight?, via?, note?(알릴 글) }. */
+    function segment(a, b, ph) {
         if (!drawing.snap) return Promise.resolve({ pts: [a, b], straight: true });
+        if (tooFar(a, b)) return Promise.resolve({ pts: [a, b], straight: true, note: "멀어서 곧은 선으로 이었습니다(" + km(RF.distM(a[0], a[1], b[0], b[1])) + " km)." });
+        var ctl = ph.ctl = window.AbortController ? new AbortController() : null, sig = ctl ? ctl.signal : undefined;
         var job = segQ.then(function () {
-            return ourTrails(a, b).then(function (tr) {
-                // 종류 - 자전거는 자전거 코스 선만, 등산 · 걷기는 자전거 코스를 빼고(2026-10-31 홍TV님 "버튼 더" - gpx.studio 의 Activity 처럼)
-                var bike = $("kind").value === "bike";
-                tr = tr.filter(function (t) { return bike ? t.kind === "bike" : t.kind !== "bike"; });
-                var r = tr.length ? RF.osmRoute(RF.trailsToElements(tr), a, b, 150) : { error: "x" };
-                if (!r.error) return { pts: [a].concat(r.pts, [b]), via: "routefly" };
-                return overpass(a, b).then(function (el) {
-                    var o = RF.osmRoute(el, a, b, 200);
-                    if (o.error) return { pts: [a, b], straight: true, why: o.error };
-                    return { pts: [a].concat(o.pts, [b]), via: "osm" };
-                }, function (e) { return { pts: [a, b], straight: true, why: e.message }; });
+            if (sig && sig.aborted) return { pts: [a, b], straight: true };   // 차례를 기다리는 사이 멈춤
+            var timer = 0, late = new Promise(function (done) {
+                timer = setTimeout(function () { if (ctl) ctl.abort(); done({ pts: [a, b], straight: true, note: "길 찾기가 오래 걸려 곧은 선으로 이었습니다." }); }, SNAP_WAIT_MS);
             });
+            return Promise.race([route(a, b, sig), late]).then(function (r) { clearTimeout(timer); return r; });
         });
         segQ = job.catch(function () { /* 다음 구간은 그대로 */ });
         return job;
+    }
+    function route(a, b, sig) {
+        return ourTrails(a, b, sig).then(function (tr) {
+            // 종류 - 자전거는 자전거 코스 선만, 등산 · 걷기는 자전거 코스를 빼고(2026-10-31 홍TV님 "버튼 더" - gpx.studio 의 Activity 처럼)
+            var bike = $("kind").value === "bike";
+            tr = tr.filter(function (t) { return bike ? t.kind === "bike" : t.kind !== "bike"; });
+            var r = tr.length ? RF.osmRoute(RF.trailsToElements(tr), a, b, 150) : { error: "x" };
+            if (!r.error) return { pts: [a].concat(r.pts, [b]), via: "routefly" };
+            return overpass(a, b, sig).then(function (el) {
+                var o = RF.osmRoute(el, a, b, 200);
+                if (o.error) return { pts: [a, b], straight: true, note: "곧은 선으로 이었습니다: " + o.error };
+                return { pts: [a].concat(o.pts, [b]), via: "osm" };
+            }, function (e) { return { pts: [a, b], straight: true, note: "곧은 선으로 이었습니다: " + e.message }; });
+        });
+    }
+    /** 아직 길을 찾는 구간 수. */
+    function waiting() { return drawing ? drawing.segs.filter(function (sg) { return sg && sg.wait; }).length : 0; }
+    /** 기다리는 구간을 모두 멈춤(그 구간은 곧은 선으로 남음 - draftTrack). */
+    function stopWaiting(d) {
+        if (!d) return;
+        d.segs.forEach(function (sg, i) {
+            if (!sg || !sg.wait) return;
+            if (sg.ctl) sg.ctl.abort();
+            d.segs[i] = { pts: [d.wps[i], d.wps[i + 1]], straight: true };   // 늦게 온 답은 자리(ph)를 못 찾아 버려짐
+        });
     }
     function drawPanel() {
         var box = $("drawBox");
         if (!drawing) { box.textContent = ""; $("mapWrap").classList.remove("drawing"); return; }
         $("mapWrap").classList.add("drawing");
         var dist = 0;
-        drawing.segs.forEach(function (sg) { if (sg) dist += RF.trackStats(sg.pts.map(function (p) { return [p[0], p[1]]; })).dist; });
-        var straight = drawing.segs.filter(function (sg) { return sg && sg.straight && drawing.snap; }).length;
+        drawing.segs.forEach(function (sg) { if (sg && !sg.wait) dist += RF.trackStats(sg.pts.map(function (p) { return [p[0], p[1]]; })).dist; });
+        var straight = drawing.segs.filter(function (sg) { return sg && sg.straight && drawing.snap; }).length, busy = waiting() > 0 || drawing.finishing;
         box.innerHTML = '<b>✏️ 새 길 그리기</b><p class="tip">지도를 눌러 점을 찍으면 점 사이를 등산로 · 걷는 길로 잇습니다(routefly 코스 선 먼저, 없으면 OpenStreetMap). 길이 없으면 곧은 선(노란 선).</p>'
             + '<label class="sl"><input type="checkbox" class="dsnap"' + (drawing.snap ? " checked" : "") + '> 길 따라 잇기(끄면 곧은 선)</label>'
             + '<label class="sl">종류 <select class="dkind b" style="width:100%"><option value="hike">⛰️ 등산</option><option value="walk">🚶 걷기</option><option value="bike">🚴 자전거</option></select></label>'
-            + '<p class="tip" style="color:#eef2f7;font-weight:bold">점 ' + drawing.wps.length + '개 · ' + km(dist) + ' km' + (drawing.busy ? " · 길 찾는 중…" : "") + (straight ? " · 곧은 선 " + straight + "곳" : "") + '</p>'
-            + '<div class="row" style="margin-top:6px"><button class="b dhome" type="button"' + (drawing.wps.length > 1 && !drawing.busy ? "" : " disabled") + ' title="마지막 점에서 출발점까지 길로 이음">🏠 출발점으로</button>'
-            + '<button class="b dround" type="button"' + (drawing.wps.length > 1 && !drawing.busy ? "" : " disabled") + ' title="온 길을 그대로 되돌아옴">🔁 왕복</button>'
-            + '<button class="b drev" type="button"' + (drawing.wps.length > 1 && !drawing.busy ? "" : " disabled") + ' title="출발 ↔ 도착">↔ 뒤집기</button></div>'
-            + '<div class="row" style="margin-top:6px"><button class="b dback" type="button"' + (drawing.wps.length ? "" : " disabled") + '>↶ 마지막 점 빼기</button><button class="b dno" type="button">그만</button><button class="b main dok" type="button"' + (drawing.wps.length > 1 && !drawing.busy ? "" : " disabled") + '>다 그림</button></div>';
+            + '<p class="tip" style="color:#eef2f7;font-weight:bold">점 ' + drawing.wps.length + '개 · ' + km(dist) + ' km' + (waiting() ? " · 길 찾는 중…" : "") + (straight ? " · 곧은 선 " + straight + "곳" : "") + '</p>'
+            + '<div class="row" style="margin-top:6px"><button class="b dhome" type="button"' + (drawing.wps.length > 1 && !busy ? "" : " disabled") + ' title="마지막 점에서 출발점까지 길로 이음">🏠 출발점으로</button>'
+            + '<button class="b dround" type="button"' + (drawing.wps.length > 1 && !busy ? "" : " disabled") + ' title="온 길을 그대로 되돌아옴">🔁 왕복</button>'
+            + '<button class="b drev" type="button"' + (drawing.wps.length > 1 && !busy ? "" : " disabled") + ' title="출발 ↔ 도착">↔ 뒤집기</button></div>'
+            + '<div class="row" style="margin-top:6px"><button class="b dback" type="button"' + (drawing.wps.length && !drawing.finishing ? "" : " disabled") + '>↶ 마지막 점 빼기</button><button class="b dno" type="button">그만</button><button class="b main dok" type="button"' + (drawing.wps.length > 1 && !drawing.finishing ? "" : " disabled") + '>다 그림</button></div>';
         box.querySelector(".dkind").value = $("kind").value;
         box.querySelector(".dkind").onchange = function () { $("kind").value = this.value; };
         box.querySelector(".dhome").onclick = function () { addWaypoint(drawing.wps[0]); };
@@ -673,13 +723,13 @@
             drawDraft(); drawPanel();
         };
         box.querySelector(".dsnap").onchange = function () { drawing.snap = this.checked; };
-        box.querySelector(".dback").onclick = function () { drawing.wps.pop(); drawing.segs.pop(); drawDraft(); drawPanel(); };
-        box.querySelector(".dno").onclick = function () { drawing = null; drawDraft(); drawPanel(); };
+        box.querySelector(".dback").onclick = function () { drawing.wps.pop(); var sg = drawing.segs.pop(); if (sg && sg.wait && sg.ctl) sg.ctl.abort(); drawDraft(); drawPanel(); };
+        box.querySelector(".dno").onclick = function () { stopWaiting(drawing); drawing = null; drawDraft(); drawPanel(); };
         box.querySelector(".dok").onclick = finishDraw;
     }
     function draftTrack() {
         var out = drawing.wps.length ? [drawing.wps[0]] : [];
-        drawing.segs.forEach(function (sg, i) { out = RF.joinTracks(out, sg ? sg.pts : [drawing.wps[i], drawing.wps[i + 1]]); });
+        drawing.segs.forEach(function (sg, i) { out = RF.joinTracks(out, sg && !sg.wait ? sg.pts : [drawing.wps[i], drawing.wps[i + 1]]); });
         return out;
     }
     function drawDraft() {
@@ -693,14 +743,13 @@
         var prev = drawing.wps[drawing.wps.length - 1];
         drawing.wps.push(p);
         if (prev) {
-            var at = drawing.segs.length, d = drawing;
-            d.segs.push(null);
-            d.busy = (d.busy || 0) + 1;
-            segment(prev, p).then(function (sg) {
-                if (drawing !== d || d.segs.length <= at) return;   // 그사이 빼거나 그만둠
+            var d = drawing, ph = { wait: true };
+            d.segs.push(ph);
+            segment(prev, p, ph).then(function (sg) {
+                var at = d.segs.indexOf(ph);
+                if (drawing !== d || at < 0 || d.finishing) return;   // 그사이 빼거나 그만두거나 다 그림(자리로 찾음 - 빼고 새로 찍은 점에 옛 답이 들어가지 않게)
                 d.segs[at] = sg;
-                d.busy--;
-                if (sg.straight && d.snap && sg.why) msg("곧은 선으로 이었습니다: " + sg.why, 5000);
+                if (sg.note) msg(sg.note, 5000);
                 drawDraft();
                 drawPanel();
             });
@@ -711,7 +760,7 @@
     $("drawBtn").onclick = function () {
         if (!mapOk) { msg("지도가 아직 준비되지 않았습니다."); return; }
         if (preview) closeTool();
-        drawing = { wps: [], segs: [], snap: true, busy: 0 };
+        drawing = { wps: [], segs: [], snap: true };
         drawPanel();
         msg("지도를 눌러 출발점부터 차례로 찍으세요.", 5000);
     };
@@ -741,6 +790,7 @@
         }));
     }
     function finishDraw() {
+        if (waiting()) { stopWaiting(drawing); msg("길 찾기를 멈추고 그 구간은 곧은 선으로 이었습니다.", 5000); }
         var t = draftTrack();
         if (t.length < 2) return;
         // 점 사이가 30m 넘으면 사이에 점을 더 둠(곧은 선 · 긴 길 마디도 높이 그래프가 맞게)
@@ -751,7 +801,7 @@
             dense.push(b);
         }
         var d0 = drawing;
-        d0.busy = 1;
+        d0.finishing = true;
         drawPanel();
         withEle(dense).then(function (tr) {
             drawing = null;

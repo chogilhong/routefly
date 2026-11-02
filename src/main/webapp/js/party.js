@@ -645,6 +645,44 @@
         $("sosBar").innerHTML = bar.length ? "SOS " + bar.length + T("명", "") + "<br>" + bar.join("<br>") : "";
         $("sosBar").hidden = !bar.length;
     }
+    /**
+     * 인솔자 처음 안내(2026-11-02 홍TV님 "다른 곳에 온보딩 할 곳 있으면 추가해주고") - 방에 처음 들어온 인솔자에게 이 기기에서 한 번 네 장(js/onboard.js).
+     * SOS 가 켜져 있으면 띄우지 않고(다음 새로 고침에), 띄운 동안 SOS 가 들어오면 바로 치움(다시 보지 않기는 남기지 않음). 회사 사무실 자리는 빼고.
+     * 회원은 방 화면 없이 따라가기로 가고(enterRoom), 따라가기도 산악회 회원에게는 소개를 띄우지 않음(2026-10-24 - "버스 탔어요" 를 가렸음).
+     */
+    var guide = null;
+    function leadGuide(s) {
+        var sos = !$("sosBar").hidden;
+        if (guide) { if (sos) guide.hide(); return; }
+        if (sos || s.role !== "lead" || s.officeMe || !window.RFOnboard) return;
+        guide = RFOnboard.start({ key: "rf-party-lead-onboard-v1", cards: leadCards() });
+        guide.auto();
+    }
+    /** 인솔자 안내 네 장 [한국어, 영어]. ( ) 로 감싼 문단은 흐린 글. */
+    function leadCards() {
+        return [
+            { icon: "🧑‍🤝‍🧑", title: ["산악회 방 - 인솔자 화면", "Hiking club room - leader screen"], body: [
+                ["회원을 부르고, 출발 날 탑승을 확인하고, 산행 중 <b>회원 위치 · SOS</b> 를 보는 화면입니다.",
+                    "(회원은 이 화면 대신 따라가기 지도로 걷고, 다른 회원의 위치는 보지 않습니다.)"],
+                ["Invite members, check who boarded on the day, and see <b>members' locations and SOS</b> during the hike.",
+                    "(Members walk with the trail guide map instead of this screen, and don't see each other's locations.)"]] },
+            { icon: "📋", title: ["회원 부르기", "Invite members"], body: [
+                ["<b>📋 안내 글 복사</b>로 카톡 · 문자에 붙이거나 <b>📱 회원 방 코드 QR</b>을 보여 주세요. 회원이 링크로 들어와 이름 · 좌석 · 탑승지를 남깁니다.",
+                    "예약 명단을 붙여 넣어 두면, 같은 이름으로 들어온 회원이 그 자리가 됩니다."],
+                ["Paste the text from <b>📋 Copy invite text</b> into KakaoTalk or a text message, or show the <b>📱 Member room code QR</b>. Members open the link and leave their name, seat and pickup stop.",
+                    "If you paste your booking list, members who join with the same name take that place."]] },
+            { icon: "🚌", title: ["출발 날", "On the day"], body: [
+                ["회원이 버스 안 QR · NFC 를 찍으면 <b>출발 탑승</b>이 됩니다. 핸드폰 없는 분은 좌석표에서 직접 체크하세요.",
+                    "들머리에 도착하면 <b>🥾 산행 시작</b> - 그때 <b>안 탐</b>인 사람은 산행에서 빠집니다."],
+                ["Members who scan the bus QR · NFC become <b>Boarded</b>. Check people without a phone yourself on the seat map.",
+                    "At the trailhead tap <b>🥾 Start the hike</b> - anyone still <b>Not on bus</b> is left out of the hike."]] },
+            { icon: "🆘", title: ["산행 중", "During the hike"], body: [
+                ["SOS 를 켠 회원은 <b>맨 위 빨간 줄</b>에 뜨고 폰이 떨며 읽어 줍니다. 앱 회원이 10분 넘게 소식이 없으면 주황색이 됩니다.",
+                    "<b>🔔 폰 알림 켜기</b>를 눌러 두세요. 산행이 끝나면 주 인솔자가 <b>방 끝내기</b> - 모두의 위치를 지웁니다."],
+                ["A member who turns on SOS appears in the <b>red bar at the top</b>, and your phone vibrates and reads it out. App members with no update for over 10 minutes turn orange.",
+                    "Tap <b>🔔 Turn on phone alerts</b>. When the hike is over, the leader taps <b>End room</b> - it deletes everyone's location."]] }
+        ];
+    }
     /** 회원 → 인솔자 한 줄(2026-10-27 홍TV님) - 새로 오면 떨림 · 읽어 줌, 위쪽 줄에 최근 것(6시간 안, 셋까지). 처음 그릴 때 이미 있던 것은 읽지 않음. */
     var msgSeen = null;
     function msgAlert(s) {
@@ -698,6 +736,7 @@
     }
     function list(s) {
         sosAlert(s);
+        leadGuide(s);
         trailTick(s);
         msgAlert(s);
         var rows = (s.members || []).filter(function (m) { return m.id !== s.me; });

@@ -20,6 +20,7 @@ html, body { margin:0; height:100%; background:var(--bg); color:var(--tx); font-
 #top a { flex:0 0 auto; display:inline-flex; align-items:center; height:38px; padding:0 12px; border-radius:19px; text-decoration:none;
          background:rgba(56,217,234,0.16); border:1px solid var(--sky); color:var(--sky); font-size:14px; font-weight:bold; }
 #top h1 { flex:1; margin:0; font-size:17px; }
+#helpBtn { flex:0 0 auto; height:38px; padding:0 12px; border-radius:19px; border:1px solid var(--ln); background:transparent; color:var(--tx); font-size:14px; cursor:pointer; }   /* 처음 안내 다시(js/onboard.js, 2026-11-02 홍TV님) */
 #app { display:flex; height:calc(100% - 56px); }
 #mapWrap { position:relative; flex:1; min-width:0; }
 #map { position:absolute; inset:0; }
@@ -74,7 +75,7 @@ label.sl input { width:100%; }
 </style>
 </head>
 <body>
-<div id="top"><a href="m/" id="backBtn">‹ 뒤로</a><h1>📐 GPX 편집</h1></div>
+<div id="top"><a href="m/" id="backBtn">‹ 뒤로</a><h1>📐 GPX 편집</h1><button type="button" id="helpBtn" data-onboard title="처음 안내 다시 보기">❓ 사용법</button></div>
 <div id="app" hidden>
     <div id="mapWrap"><div id="map"></div>
         <div id="mapTools" role="toolbar" aria-label="편집 도구">
@@ -132,6 +133,7 @@ label.sl input { width:100%; }
 <div id="msg" role="status" aria-live="polite"></div>
 <script src="vendor/maplibre-gl-5.24.0/maplibre-gl.js"></script>
 <script src="js/rf-dialog.js"></script>
+<script src="js/onboard.js"></script>
 <script src="js/kit-studio.js"></script>
 <script src="js/studio.js"></script>
 <script src="js/sw-reg.js"></script>

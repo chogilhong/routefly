@@ -48,7 +48,8 @@ public class StudioPublicTest {
         assertFalse("손님을 돌려보내지 않음", js.contains("location.replace("));
         assertTrue("보내기는 따라가기와 같은 창", js.contains("RF.submitSheet({ name: c.name, kind: $(\"kind\").value, track: c.track"));
         assertTrue("GPX 편집용 작은 course-kit 에 보내기 창이 있음", read("src/main/webapp/js/kit-studio.js").contains("submitSheet: submitSheet"));
-        assertTrue(js.contains("function pcHint()") && js.contains("PC 에서 쓰기 좋아요") && js.contains("(max-width: 860px)"));
+        // 작은 화면 "PC 에서 쓰기 좋아요" 는 처음 안내 첫 장으로(2026-11-02 홍TV님 온보딩 - 창이 둘 겹치지 않게, OnboardTest)
+        assertTrue(js.contains("function guide()") && js.contains("PC 에서 쓰기 좋아요") && js.contains("(max-width: 860px)"));
     }
 
     @Test
