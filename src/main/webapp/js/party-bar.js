@@ -15,7 +15,23 @@
     function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return "&#" + c.charCodeAt(0) + ";"; }); }
     function clock(ms) { var d = new Date(ms); return d.getHours() + ":" + ("0" + d.getMinutes()).slice(-2); }
 
-    function hide() { $("partyBar").hidden = true; document.documentElement.classList.remove("partyOn"); stopWatch(); clearInterval(timer); timer = null; }
+    function hide() { $("partyBar").hidden = true; document.documentElement.classList.remove("partyOn"); stopWatch(); aliveSync(null); clearInterval(timer); timer = null; }
+
+    /**
+     * 앱이면 산행 시작 뒤 1분마다 "폰은 켜짐"(app RfAlivePlugin - 화면이 꺼져도 · GPS 를 못 잡아도). 전에는 산악회 방 화면(party.js)만 켜서,
+     * 따라가기로 오면(그 화면을 떠날 때 멈춤) 인솔자에게 "소식 없음" 이 됐음(2026-11-02 홍TV님 점검). 하산 탑승 · 안 탐 · 방 끝이면 멈춤. 옛 설치본엔 없음.
+     */
+    var CAP = window.Capacitor, ALIVE = CAP && CAP.isNativePlatform && CAP.isNativePlatform() && CAP.Plugins && CAP.Plugins.RfAlive || null, aliveOn = false;
+    function aliveSync(s) {
+        var want = !!(ALIVE && s && s.role !== "lead" && s.departed && !s.cancelled && !s.aboard && s.locOn !== false), p = RFParty.get();
+        if (want && !aliveOn && p) {
+            aliveOn = true;
+            Promise.resolve(ALIVE.start({ url: new URL("api/party/ping", location.href).href, token: p.token })).catch(function () { aliveOn = false; });
+        } else if (!want && aliveOn) {
+            aliveOn = false;
+            Promise.resolve(ALIVE.stop()).catch(function () { /* 이미 멈춤 */ });
+        }
+    }
 
     /** 위치 보내기 - 출발할 때부터(2026-10-27 홍TV님), 하산 탑승 · 취소 전까지, 화면이 보이는 동안만. 따라가기를 시작했으면 hike.js 도 보내지만 30초에 한 번으로 묶임. */
     // 따라가기 산행 중(window.rfHikeRunning - 시험 걷기 아님)이면 hike.js 가 위치마다 RFParty.fix 를 부르니 따로 GPS 를 하나 더 켜지 않음(2026-11-02 홍TV님 점검: 배터리)
@@ -139,6 +155,7 @@
         if (document.activeElement && (document.activeElement.id === "pbDrop" || document.activeElement.id === "pbPick")) return;   // 고르는 중 - 새로 그리면 닫힘
         $("pbBtns").innerHTML = b.join("");
         if (wantWatch(s)) startWatch(); else stopWatch();
+        aliveSync(s);
     }
 
     document.addEventListener("click", function (e) {

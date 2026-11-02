@@ -1,9 +1,10 @@
 /*
  * 산악회 방 - 위치 보내기(2026-10-20 홍TV님). party.html(방 화면)과 hike.html(따라가기)이 같이 씀.
  * 참가한 방이 있을 때만(이 기기 localStorage "rf-party" 에 열쇠) 보냅니다 - 참가할 때 위치 제공에 동의함.
- * 서버(PartyServlet)는 사람마다 마지막 위치 하나만 메모리에 두고 그 방 인솔자에게 보여 주며(회원에게는 자기 것만), 방이 끝나면 지웁니다.
+ * 서버(PartyServlet)는 사람마다 마지막 위치 하나만 두고(재시작 대비로 방 정보 파일에도 - 2026-11-02) 그 방 인솔자에게 보여 주며(회원에게는 자기 것만), 방이 끝나면 지웁니다.
  * 출발 전 위치는 서버가 버림(위치는 출발할 때부터, 2026-10-27 홍TV님).
  * 보내는 간격: 30초(SOS 를 켜고 끌 때는 바로). 방이 끝났다고 오면 이 기기의 방 정보도 지움.
+ * SOS(2026-11-02 홍TV님 점검): 못 보냈으면 10초 뒤 다시(전에는 보낸 것으로 쳐 다시 안 보냈음), 켜져 있는 동안 위치가 없어도 20초마다 살펴 30초 넘게 안 갔으면 ping.
  */
 (function (g) {
     var KEY = "rf-party", EVERY_MS = 30000;
@@ -11,6 +12,7 @@
     // 2026-10-20 PC: 앱 화면을 끈 직후(Doze) 4분 동안 위치가 안 갔음 - 보내기(fetch) · 배터리 읽기가 끝나지 않아 busy 가 풀리지 않은 것으로 봄.
     // 보내기는 20초, 배터리는 2초에 끊고, 25초 넘게 busy 면 풀어 다음 위치를 보냄
     var POST_MS = 20000, BATT_MS = 2000, STUCK_MS = 25000;
+    var RETRY_MS = 10000, SOS_TICK_MS = 20000, retryAt = 0, sosTimer = null;   // SOS 를 못 보냈을 때 다시 보낼 때 · 켜진 동안 살피는 간격
     function stuck() { if (busy && Date.now() - busyAt > STUCK_MS) { busy = false; again = null; } return busy; }   // again - 보내는 중에 꼭 보낼 것(SOS)이 오면 끝난 뒤 한 번 더
 
     /** 앱(Capacitor)에서 보내나 - 서버가 "10분 소식 없음" 경고를 앱 회원에게만(웹은 화면을 끄면 멈춤, 2026-10-28). */
@@ -115,7 +117,7 @@
             if (force || sos !== lastSos) again = [lat, lon, acc];
             return null;
         }
-        if (!force && sos === lastSos && now - last < EVERY_MS) return null;
+        if (!due(sos, force, now)) return null;
         busy = true;
         busyAt = now;
         last = now;
@@ -131,7 +133,20 @@
                 if (g.RFParty.onNotice) g.RFParty.onNotice(j.notice);
             }
             return j;
-        }).finally(function () { done(my); });
+        }, function (e) { failed(sos); throw e; }).finally(function () { done(my); });
+    }
+
+    /** 지금 보낼까 - force · SOS 를 켜고 끔 · 30초 지남. 못 보낸 SOS 는 RETRY_MS 뒤에 다시(위치마다 몰아 보내지 않게). */
+    function due(sos, force, now) {
+        if (force) return true;
+        if (sos !== lastSos) return !(sos && lastSos === null && now < retryAt);
+        return now - last >= EVERY_MS;
+    }
+    /** 보내기 실패 - SOS 였으면 보내지 않은 것으로 되돌림(다음 위치 · ping · 살핌이 다시 보냄, 2026-11-02 점검: 한 번 실패하면 다시 안 갔음). */
+    function failed(sos) {
+        if (!sos) return;
+        lastSos = null;
+        retryAt = Date.now() + RETRY_MS;
     }
 
     /**
@@ -146,13 +161,14 @@
             if ((force || sos !== lastSos) && !again) again = [];
             return null;
         }
-        if (!force && sos === lastSos && now - last < EVERY_MS) return null;
+        if (!due(sos, force, now)) return null;
         busy = true;
         busyAt = now;
         last = now;
         lastSos = sos;
         var my = ++seq;
         return battery().then(function (b) { return post("ping", { token: p.token, batt: b, sos: sos, app: isApp() }); })
+            .then(null, function (e) { failed(sos); throw e; })
             .finally(function () { done(my); });
     }
     /** 보내기가 끝남 - 가장 최근 보내기일 때만 busy 를 풀고, 그 사이 온 꼭 보낼 것(SOS)을 바로 보냄. */
@@ -168,7 +184,24 @@
         if (!p) return;
         p.sos = !!on;
         set(p);
+        sosKeep();
     }
+    /**
+     * SOS 가 켜진 동안 SOS_TICK_MS 마다 살펴, 30초 넘게 아무것도 못 보냈거나 못 보낸 SOS 가 있으면 위치 없이 ping(2026-11-02 홍TV님 점검:
+     * 위치가 없을 때 누른 SOS 는 한 번만 갔고, 그것이 실패하면 끝이었음). 위치가 30초마다 가면 ping 은 건너뜀. SOS 를 끄거나 방이 없으면 멈춤.
+     */
+    function sosKeep() {
+        var p = get();
+        if (!p || !p.sos) { if (sosTimer) { clearInterval(sosTimer); sosTimer = null; } return; }
+        if (sosTimer) return;
+        sosTimer = setInterval(function () {
+            var q = get();
+            if (!q || !q.sos) { sosKeep(); return; }
+            var r = ping();
+            if (r) r.catch(function () { /* 다음 살핌에 */ });
+        }, SOS_TICK_MS);
+    }
+    sosKeep();   // 다시 연 화면 - 켜 둔 SOS 가 있으면 이어서
 
     /**
      * 순수 함수 - 날짜를 숫자로(2026-10-20 홍TV님: 폰 달력 창 대신 숫자 칸). "1022" · "10-22" · "10/22" · "10.22" · "10월 22일" · "922"(9/22) → Date(그 날 0시).

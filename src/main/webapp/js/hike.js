@@ -769,9 +769,11 @@
     });
 
     // 걷는 중 입산 통제 · 하산 시각 알림(그 산 안내가 있을 때만) - 60 · 30 · 10분 앞과 지난 때, 화면 · 소리
-    var rules = null, ruleSaid = {};
+    var rules = null, ruleSaid = {}, ruleOf = null, ruleDay = null;   // ruleOf - [산 안내, 코스 이름들]: 한국 날짜가 바뀌면 다시 셈(여러 날 산행 - 계절 · 그날 시각, 2026-11-02 홍TV님 점검)
     setInterval(function () {
         if (!rules || !hike.running || hike.sim) return;
+        var day = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
+        if (ruleOf && day !== ruleDay) { ruleDay = day; rules = RF.parkRules(ruleOf[0], ruleOf[1], new Date()); }
         var said = RF.gateAlerts(rules, Date.now(), ruleSaid);
         said.forEach(function (a) {
             ruleSaid[a.key] = true;
@@ -880,7 +882,7 @@
             // 코스 이름은 받은 그대로(자르거나 이은 코스도 원래 이름 - "성판악 탐방로")
             var rawNames = (parts ? r[0] : [r[0]]).map(function (j) { return j && j.course && j.course.name; });
             var noteOf = RF.parkOf(c.course.name) || RF.mountainOf(c.course.name, id) || RF.parkOf(rawNames[0] || "") || RF.mountainOf(rawNames[0] || "", id);
-            rules = null;
+            rules = null; ruleOf = null;
             $("access").hidden = true;
             if (noteOf) jsonOnce("data/park-notes.json").then(function (d) {
                 var n = d && d.parks && d.parks[noteOf];
@@ -905,7 +907,9 @@
                 }
                 if (n.ele) (c.pois || []).forEach(function (q) { if (n.ele[q.name] != null) q.ele_m = n.ele[q.name]; });   // 바로잡은 높이(천왕봉 1,915m)
                 if (!n.short) return;
-                rules = RF.parkRules(n, rawNames.concat([c.course.name]), new Date());
+                ruleOf = [n, rawNames.concat([c.course.name])];
+                ruleDay = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
+                rules = RF.parkRules(ruleOf[0], ruleOf[1], new Date());
                 toast("⚠ " + NM(noteOf) + " " + (RF.rulesText(rules) || (EN ? "Check entry rules and closures on the park website." : n.short)), 12000);
             }).catch(function () { /* 안내 없이 */ });
             // 국립공원 코스면 공원 전체 보기(🏞) - 그 공원 공식 탐방로 전체 · 공식 안내도 바로가기
@@ -957,10 +961,19 @@
     function loadSaved() {
         try {
             var s = JSON.parse(localStorage.getItem(saveKey()) || "null");
-            return s && Date.now() - s.start < 24 * 3600 * 1000 ? s : null;   // 하루 지난 기록은 버립니다
+            return savedFresh(s) ? s : null;   // 하루 지난 기록은 버립니다
         } catch (e) {
             return null;
         }
+    }
+
+    /**
+     * 산행 저장분이 아직 이어 할 만한가 - 마지막으로 저장한 때(t, 없으면 시작 시각)에서 하루 안(2026-11-02 홍TV님 점검: 시작에서 하루로 셌더니
+     * 1박 2일 종주의 이튿날 첫날 길 · 사진 메모가 지워졌음 - 사진은 gcPhotos 가 뒤따라 지움). 걷는 동안 save() 가 t 를 새로 씀.
+     */
+    function savedFresh(v) {
+        var at = v && (v.t || v.start);
+        return !!at && Date.now() - at < 24 * 3600 * 1000;
     }
 
     function save() {
@@ -985,19 +998,21 @@
                 if (!/^rf-hike-/.test(k) || k === ACTIVE_KEY || /-(track|notes)$/.test(k)) continue;
                 var v = null;
                 try { v = JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { /* 깨진 값도 지움 */ }
-                if (!v || !(Date.now() - v.start < 24 * 3600 * 1000)) old.push(k);
+                if (!savedFresh(v)) old.push(k);   // 마지막 저장에서 하루(loadSaved 와 같음)
             }
             old.forEach(function (k) { localStorage.removeItem(k); localStorage.removeItem(k + "-track"); localStorage.removeItem(k + "-notes"); });
         } catch (e) { /* 다음에 */ }
     })();
     var RESUME_MS = 3 * 3600 * 1000;   // 마지막 위치 저장이 이보다 오래되면 저절로 이어 가지 않고 단추로
 
-    function clearSaved() {
+    /** 산행 저장분을 지움 - id 를 주면 그 코스 것(기록을 다 쓴 뒤 지울 때 그 사이 코스가 바뀌어도), 없으면 지금 코스. */
+    function clearSaved(id) {
+        var k = id ? "rf-hike-" + id : saveKey();
         try {
-            localStorage.removeItem(saveKey());
-            localStorage.removeItem(saveKey() + "-track");
-            localStorage.removeItem(saveKey() + "-notes");
-            if (localStorage.getItem(ACTIVE_KEY) === c.id) localStorage.removeItem(ACTIVE_KEY);
+            localStorage.removeItem(k);
+            localStorage.removeItem(k + "-track");
+            localStorage.removeItem(k + "-notes");
+            if (localStorage.getItem(ACTIVE_KEY) === (id || c.id)) localStorage.removeItem(ACTIVE_KEY);
         } catch (e) { /* 무시 */ }
     }
 
@@ -1080,29 +1095,41 @@
 
     function records() { return recCache.slice(); }
 
-    /** 기록 목록을 바꿉니다. 저장에 실패하면 알립니다(예전에는 말없이 5개만 남겼음). */
+    /**
+     * 기록 목록을 바꿉니다. 저장에 실패하면 알립니다(예전에는 말없이 5개만 남겼음). 돌려줌: 어디든(IndexedDB · 못 쓰면 localStorage) 저장했으면 true.
+     * 쓰기 전에 늘 다시 읽어 합침(2026-11-02 홍TV님 점검: 읽기 실패 뒤에만 다시 읽어, 탭 둘이 서로의 기록을 덮고 gcPhotos 가 그 사진을 지웠음).
+     * 이 화면에 보였는데 list 에 없는 기록만 지운 것으로 봄(mergeSeen). 다시 읽지 못하면 IndexedDB 를 덮지 않고 localStorage 에만.
+     */
     function writeRecords(list) {
-        var seen = {};
+        var seen = {}, readOk = false;
         recCache.forEach(function (r) { seen[recKey(r)] = 1; });   // 화면에 보였던 것 - 그중 list 에 없는 것은 지운 것
-        var reread = !recBad ? Promise.resolve() : recTx("readonly", function (st) { return st.get("list"); }).then(function (cur) {
+        var reread = recTx("readonly", function (st) { return st.get("list"); }).then(function (cur) {
+            readOk = true;
             recBad = false;
-            if (!Array.isArray(cur)) return;
-            var have = {};
-            list.forEach(function (r) { have[recKey(r)] = 1; });
-            cur.forEach(function (r) { var k = recKey(r); if (!have[k] && !seen[k]) { have[k] = 1; list.push(r); } });   // 못 읽어 안 보였던 기록을 되살림
-            list.sort(function (a, b) { return (b.start || 0) - (a.start || 0); });
-        }, function () { /* 아직 못 읽음 - 아래에서 IndexedDB 를 덮지 않음 */ });
+            if (Array.isArray(cur)) list = mergeSeen(list, cur, seen);
+        }, function () { /* 못 읽음 - 아래에서 IndexedDB 를 덮지 않음 */ });
         return reread.then(function () {
             recCache = list.slice(0, REC_MAX);
-            var save = recBad ? Promise.reject(new Error("records unreadable")) : recTx("readwrite", function (st) { st.put(recCache, "list"); });
-            return save.catch(function () {
+            var save = !readOk ? Promise.reject(new Error("records unreadable")) : recTx("readwrite", function (st) { st.put(recCache, "list"); });
+            return save.then(function () { return true; }, function () {
                 try {
                     localStorage.setItem(REC_LS, JSON.stringify(recCache));
+                    return true;
                 } catch (e) {
                     toast(T("핸드폰 저장 공간이 모자라 기록을 저장하지 못했습니다. 지난 기록을 GPX 로 보내 두고 지워 주세요.", "Phone storage is full, so the record could not be saved. Export old records as GPX and delete them."), 8000);
+                    return false;
                 }
             });
         });
+    }
+
+    /** 순수 함수 - 이 화면의 새 목록(list)에 저장소의 지금 목록(cur) 가운데 이 화면에 안 보였던 것(seen 에 없음 - 다른 탭 · 못 읽은 기록)을 더해 새것부터. */
+    function mergeSeen(list, cur, seen) {
+        var out = list.slice(), have = {};
+        out.forEach(function (r) { have[recKey(r)] = 1; });
+        cur.forEach(function (r) { var k = recKey(r); if (!have[k] && !seen[k]) { have[k] = 1; out.push(r); } });
+        out.sort(function (a, b) { return (b.start || 0) - (a.start || 0); });
+        return out;
     }
 
     // 내 기록 → 코스로 올리기(관리자만, 2026-10-31 홍TV님). 서버가 점만 다시 써 올림 폴더에 두면 배치(courseImport)가 매시 :07 에 코스로
@@ -1502,7 +1529,9 @@
 
     /** 산행을 끝낼 때 - 기록을 "내 기록" 에 남기고 요약을 보여 줍니다(최근 30개만). 아주 짧거나 코스와 먼 곳이면 남기지 않습니다. */
     /** sim - 시험 걷기: 기록 · 완주 · 결산에 남기지 않고 산행 기록 창만 보여 줌(2026-10-28 PC - "다음은?" 을 시험 걷기로도 확인). */
+    /** 산행 기록을 남김. 돌려줌: 기록을 쓰면 저장했는지(true/false)의 Promise, 남길 기록이 없으면 null(stopHike 가 저장분을 지울 때를 정함). */
     function finishRecord(sim) {
+        var stored = null;
         if (!sim) markDone();
         if (hike.track.length < 2) return;
         if (!sim && RF.recordSkip(hike.walked, hike.track, c)) return;   // 알림 없이(2026-10-09 홍TV님)
@@ -1518,11 +1547,12 @@
         if (tip) tip.hidden = !!sim;
         $("doneTitle").textContent = sim ? T("🧪 시험 걷기 끝 - 기록은 남기지 않습니다", "🧪 Test walk done - not saved") : T(K().act + " 기록", K().act + " record");
         if (!sim) {
-            recordsReady.then(function () {
+            stored = recordsReady.then(function () {
                 var list = records();
                 list.unshift(rec);
                 return writeRecords(list);
-            }).then(gcPhotos).then(keepStorage);
+            });
+            stored.then(function () { return gcPhotos(); }).then(keepStorage);
             addLog([RF.logEntry(rec)]);   // 30개 밖으로 밀려난 기록의 사진
         }
         backupNagShow(!sim);
@@ -1551,6 +1581,7 @@
             if (/^https:\/\//.test(dn || "")) { $("doneDonate").href = dn; $("doneDonate").hidden = false; }
             doneNext(p, rec);
         }).catch(function () { doneNext({}, rec); });
+        return stored;
     }
 
     /**
@@ -2097,22 +2128,34 @@
     }
     function photoPut(id, blob) { return photoTx("readwrite", function (st) { st.put(blob, id); }); }
     function photoGet(id) { return photoTx("readonly", function (st) { return st.get(id); }); }
-    /** 어느 기록 · 지금 산행에도 없는 사진을 지웁니다(기록을 지우거나 30개 밖으로 밀려났을 때). */
+    /**
+     * 어느 기록 · 저장해 둔 산행 · 지금 산행에도 없는 사진을 지웁니다(기록을 지우거나 30개 밖으로 밀려났을 때).
+     * 2026-11-02 홍TV님 점검: 이 탭의 기억(recCache)만 보면 다른 탭이 막 남긴 기록의 사진을 지울 수 있어, 저장소의 기록을 다시 읽어 함께 봄 - 못 읽으면 지우지 않음.
+     */
     function gcPhotos() {
         if (recBad) return;   // 기록을 못 읽은 채로는 사진을 지우지 않음(2026-11-01 점검 - 못 읽은 기록의 사진까지 지웠음)
-        var keep = {}, lists = records().concat([{ notes: hike.notes }]);
-        // 2026-10-09 점검: 이어 하려고 남겨 둔 산행(rf-hike-<코스>-notes)의 사진도 남깁니다
+        return recTx("readonly", function (st) { return st.get("list"); }).then(function (cur) {
+            var keep = photoKeep([records(), Array.isArray(cur) ? cur : [], recLs(), [{ notes: hike.notes }]]);
+            if (!keep) return;   // 못 읽으면 지우지 않습니다
+            return photoTx("readwrite", function (st) {
+                var q = st.getAllKeys();
+                q.onsuccess = function () { q.result.forEach(function (k) { if (!keep[k]) st.delete(k); }); };
+            });
+        }).catch(function () { /* 기록 · 사진 저장소를 못 열면 지우지 않음 */ });
+    }
+
+    /** 남길 사진 번호 - 기록 목록들 + 이어 하려고 남겨 둔 산행(rf-hike-<코스>-notes, 2026-10-09 점검)의 사진. localStorage 를 못 읽으면 null(지우지 않음). */
+    function photoKeep(lists) {
+        var keep = {}, all = [];
+        lists.forEach(function (l) { all = all.concat(l || []); });
         try {
             for (var i = 0; i < localStorage.length; i++) {
                 var k = localStorage.key(i);
-                if (/^rf-hike-.+-notes$/.test(k)) lists.push({ notes: JSON.parse(localStorage.getItem(k) || "[]") });
+                if (/^rf-hike-.+-notes$/.test(k)) all.push({ notes: JSON.parse(localStorage.getItem(k) || "[]") });
             }
-        } catch (e) { return; }   // 못 읽으면 지우지 않습니다
-        lists.forEach(function (r) { (r.notes || []).forEach(function (n) { if (n.photo) keep[n.photo] = 1; }); });
-        photoTx("readwrite", function (st) {
-            var q = st.getAllKeys();
-            q.onsuccess = function () { q.result.forEach(function (k) { if (!keep[k]) st.delete(k); }); };
-        }).catch(function () { /* 사진 저장소가 없으면 할 일 없음 */ });
+        } catch (e) { return null; }
+        all.forEach(function (r) { (r && r.notes || []).forEach(function (n) { if (n && n.photo) keep[n.photo] = 1; }); });
+        return keep;
     }
     /** 사진을 긴 변 PHOTO_MAX px JPEG 로 줄입니다(저장 공간). */
     var PHOTO_MAX = 1600;
@@ -2526,8 +2569,11 @@
         if (hike.wake) { try { hike.wake.release(); } catch (e) { /* 무시 */ } hike.wake = null; }
         var wasSim = hike.sim;
         if (!wasSim) {
-            finishRecord();
-            clearSaved();
+            // 산행 저장분은 기록을 다 쓴 뒤에만 지움(2026-11-02 홍TV님 점검: 쓰기 전에 지워, 저장이 실패하면 걸은 길 · 사진 메모가 통째로 사라졌음).
+            // 그 사이 같은 코스로 새 산행을 시작했으면 지우지 않음
+            var doneId = c.id, stored = finishRecord();
+            if (stored) stored.then(function (ok) { if (ok && !(hike.running && c && c.id === doneId)) clearSaved(doneId); });
+            else clearSaved(doneId);
         } else finishRecord(true);
         hikeFlag(false);
         if (wasSim) hike.fix = null;   // 시험 걷기 위치는 버림 - SOS · 산악회 방이 가짜 위치(앞당긴 시계라 "방금")를 쓰던 것(2026-11-02 홍TV님 점검)
@@ -2653,6 +2699,8 @@
 
     function onGpsError(e) {
         $("gps").className = "bad";
+        // 위치를 못 잡아도 산악회 인솔자에게 "폰은 켜짐" · 배터리 · SOS(2026-11-02 홍TV님 점검: 따라가기는 GPS 를 잃으면 아무것도 안 보냈음) - 30초에 한 번으로 묶임
+        if (window.RFParty && hike.running && !hike.sim) { var pr = RFParty.ping(); if (pr) pr.catch(function () { /* 다음에 */ }); }
         $("gps").textContent = e.code === 1 ? T("위치 권한 없음", "No location permission") : T("GPS 신호 없음", "No GPS signal");
         if (e.code === 1) permBanner();
         // 2026-10-23 홍TV님 지리산 칼바위 - 카카오톡 안 브라우저에서는 'GPS 신호 없음', 크롬으로 여니 바로 ±3m. 한 번만 알림.
@@ -2690,6 +2738,7 @@
             hike.jumps = 0;
         }
         hike.fix = { lat: co.latitude, lon: co.longitude, acc: acc, alt: co.altitude, t: t };
+        if (!hike.sim) sosTake(hike.fix);   // SOS 창이 열려 있으면 새 위치로(처음 잡았거나 더 정확해짐)
         if (!hike.sim && window.RFParty) {   // 산악회 방에 참가했을 때만 인솔자에게(party-kit.js, 30초마다)
             var pr = RFParty.fix(co.latitude, co.longitude, acc);
             if (pr) pr.catch(function () { /* 신호 없음 - 다음 위치에(2026-11-02 점검: 잡지 않은 거부가 콘솔 오류로) */ });
@@ -4067,6 +4116,7 @@
     // ------------------------------------------------------------------ SOS
 
     function fillSos(f) {
+        hike.sosFix = f || null;   // 창에 쓴 위치 - 더 나은 위치가 오면 다시 채움(sosTake)
         $("sosGrid").textContent = f ? (RF.nationalPoint(f.lat, f.lon) || T("범위 밖", "out of range")) : T("위치를 찾는 중…", "Finding location…");
         $("sosLatLon").textContent = f ? f.lat.toFixed(5) + ", " + f.lon.toFixed(5) + (f.acc ? " (±" + Math.round(f.acc) + "m)" : "") : "-";
         // 해발: 산행 중 코스 위면 코스 고도(정상 가까이는 공식 높이), 아니면 GPS 고도.
@@ -4311,7 +4361,9 @@
 
     $("sos").addEventListener("click", function () {
         $("sosSheet").style.display = "flex";
-        if (window.RFParty && RFParty.get()) {   // 산악회 방 - 인솔자 화면에 SOS(괜찮아요 · 닫기로 풂)
+        var inParty = !!(window.RFParty && RFParty.get());
+        $("sosOff").hidden = !inParty;
+        if (inParty) {   // 산악회 방 - 인솔자 화면에 SOS("괜찮아요 - 인솔자 SOS 끄기"로 풂, 닫기는 물어봄)
             RFParty.sos(true);
             partySend();   // 2026-11-01 점검: 위치가 없으면(출발 전 · 신호 없음 · 골짜기) 전에는 서버로 아무것도 안 가 인솔자가 SOS 를 못 받았음 - 위치 없이 ping 으로
         }
@@ -4319,16 +4371,30 @@
         $("sosPhoto").textContent = PHOTO_LABEL;
         var fresh = realFix();
         fillSos(fresh);
-        if (!fresh && navigator.geolocation && window.isSecureContext) {
-            navigator.geolocation.getCurrentPosition(function (pos) {
-                fillSos({ lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy, alt: pos.coords.altitude, t: Date.now() });
-                if (window.RFParty && RFParty.get() && RFParty.get().sos) {   // 방금 잡은 위치도 인솔자에게(2026-11-01 점검)
+        // 창이 열린 동안 새 위치로 고쳐 씀(2026-11-02 홍TV님 점검: 처음 한 번만 채워, 뒤에 잡힌 위치가 119 문자 · 지점번호 · 사진에 안 들어갔음).
+        // 산행 중이면 onFix 가, 아니면 여기서 위치를 계속 받음(창을 닫으면 멈춤)
+        if (!hike.running && navigator.geolocation && window.isSecureContext && hike.sosWatch == null) {
+            var first = true;
+            hike.sosWatch = navigator.geolocation.watchPosition(function (pos) {
+                var f = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy, alt: pos.coords.altitude, t: Date.now() };
+                sosTake(f);
+                if (window.RFParty && RFParty.get() && RFParty.get().sos) {   // 잡은 위치도 인솔자에게(2026-11-01 점검) - 처음은 바로, 뒤로는 30초마다
+                    var r = RFParty.fix(f.lat, f.lon, f.acc, first);
+                    if (r) r.catch(function () { /* 다음 위치에 */ });
+                }
+                first = false;
+            }, function () { if (!hike.sosFix) $("sosGrid").textContent = T("위치를 못 찾음 - 표지판 번호를 불러 주세요", "No location - read out a location sign number"); },
+            { enableHighAccuracy: true, timeout: 20000, maximumAge: 30000 });
+        } else if (!fresh && hike.running && navigator.geolocation && window.isSecureContext) {
+            navigator.geolocation.getCurrentPosition(function (pos) {   // 산행 중인데 GPS 가 아직 - 한 번 더 물음(뒤는 onFix)
+                sosTake({ lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy, alt: pos.coords.altitude, t: Date.now() });
+                if (window.RFParty && RFParty.get() && RFParty.get().sos) {
                     var r = RFParty.fix(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy, true);
                     if (r) r.catch(function () { /* 다음 위치에 */ });
                 }
-            }, function () { $("sosGrid").textContent = T("위치를 못 찾음 - 표지판 번호를 불러 주세요", "No location - read out a location sign number"); },
+            }, function () { if (!hike.sosFix) $("sosGrid").textContent = T("위치를 못 찾음 - 표지판 번호를 불러 주세요", "No location - read out a location sign number"); },
             { enableHighAccuracy: true, timeout: 20000, maximumAge: 30000 });
-        } else if (!fresh) {
+        } else if (!fresh && !(navigator.geolocation && window.isSecureContext)) {
             $("sosGrid").textContent = T("위치를 못 씀(https 필요) - 표지판 번호를 불러 주세요", "Location unavailable (needs https) - read out a location sign number");
         }
     });
@@ -4339,8 +4405,38 @@
         if (navigator.share) { navigator.share({ text: text }).catch(function () { /* 닫음 */ }); return; }
         if (navigator.clipboard) navigator.clipboard.writeText(text).then(function () { toast(T("글을 복사했습니다. 카톡 등에 붙여 넣으세요.", "Text copied. Paste it into a chat."), 4000); });
     });
-    $("sosClose").addEventListener("click", function () { $("sosSheet").style.display = "none"; hike.sosAuto = false; partySosOff(); });
-    /** 산악회 방 SOS 풀기 - 닫기 · 괜찮아요. */
+    /** SOS 창 닫기 - 창이 연 위치 받기도 멈춤. 인솔자 SOS 는 그대로(끄기는 sosOff · 괜찮아요). */
+    function sosHide() {
+        $("sosSheet").style.display = "none";
+        hike.sosAuto = false;
+        if (hike.sosWatch != null) { navigator.geolocation.clearWatch(hike.sosWatch); hike.sosWatch = null; }
+    }
+    /** 순수 함수 - SOS 창을 새 위치로 다시 채울까: 아직 없었거나, 오차가 반 넘게 줄었거나(10m 넘게), 오차보다 멀리(50m 넘게) 움직였을 때. */
+    function sosBetter(prev, f) {
+        if (!f) return false;
+        if (!prev) return true;
+        var pa = prev.acc == null ? Infinity : prev.acc, fa = f.acc == null ? Infinity : f.acc;
+        if (fa <= pa / 2 && pa - fa >= 10) return true;
+        return RF.distM(prev.lat, prev.lon, f.lat, f.lon) > Math.max(50, fa === Infinity ? 0 : fa);
+    }
+    /** SOS 창이 열려 있으면 더 나은 위치로 다시 채움(119 문자 · 국가지점번호 · 위치 사진 단추가 새 위치를 씀). */
+    function sosTake(f) {
+        if ($("sosSheet").style.display !== "flex" || !sosBetter(hike.sosFix, f)) return;
+        fillSos(f);
+    }
+    // 닫기는 창만 닫음 - 인솔자에게 SOS 가 켜져 있으면 끌지 물어봄(2026-11-02 홍TV님 점검: 닫기가 인솔자 SOS 를 말없이 껐음)
+    $("sosClose").addEventListener("click", function () {
+        var on = !!(window.RFParty && RFParty.get() && RFParty.get().sos);
+        sosHide();
+        if (!on) return;
+        hAsk(T("인솔자에게 보낸 SOS 도 끌까요?\n괜찮으면 \"SOS 끄기\", 아직 도움이 필요하면 \"켜 둠\"(창만 닫음).", "Also turn off the SOS sent to your leader?\nIf you're OK tap \"Turn off SOS\"; if you still need help tap \"Keep on\" (only closes this screen)."),
+            { ok: T("SOS 끄기", "Turn off SOS"), cancel: T("켜 둠", "Keep on") }).then(function (ok) {
+            if (ok) { partySosOff(); toast(T("인솔자 SOS 를 껐습니다.", "SOS to your leader is off."), 4000); }
+            else toast(T("🆘 인솔자에게 SOS 가 켜져 있습니다. 끄려면 SOS → \"괜찮아요 - 인솔자 SOS 끄기\".", "🆘 SOS to your leader is still on. To turn it off: SOS → \"I'm OK - turn off SOS\"."), 8000);
+        });
+    });
+    $("sosOff").addEventListener("click", function () { sosHide(); partySosOff(); toast(T("인솔자 SOS 를 껐습니다.", "SOS to your leader is off."), 4000); });
+    /** 산악회 방 SOS 풀기 - 괜찮아요 · 인솔자 SOS 끄기 · 닫기에서 끈다고 답함. */
     function partySosOff() {
         if (!window.RFParty || !RFParty.get() || !RFParty.get().sos) return;
         RFParty.sos(false);
@@ -4359,7 +4455,9 @@
     /** 산악회 방 SOS 켜고 끈 것을 바로 서버로 - 위치가 있으면 위치에 싣고, 없으면 위치 없이(ping, 2026-11-01 점검). */
     function partySend() {
         var f = realFix(), r = f ? RFParty.fix(f.lat, f.lon, f.acc, true) : RFParty.ping(true);
-        if (r) r.catch(function () { /* 다음 위치 · ping 에 */ });
+        if (r) r.then(function (j) {   // 서버가 SOS 를 받지 않았으면 알림(2026-11-02 - sosKept)
+            if (j && j.sosKept === false) toast(T("⚠ 인솔자에게 SOS 가 가지 않았습니다. 119 · 인솔자에게 직접 전화하세요.", "⚠ The SOS did not reach your leader. Call 119 or your leader directly."), 10000);
+        }).catch(function () { /* 다음 위치 · ping 에 - SOS 는 party-kit 이 10초 뒤 다시 */ });
     }
     if (window.RFParty) RFParty.onNotice = function (text) {   // 인솔자 공지 - 걷는 중에도 보이고 들리게
         toast("📢 " + text, 12000);
@@ -4367,7 +4465,7 @@
         if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
     };
     $("stillOk").addEventListener("click", function () {
-        if (hike.sosAuto) { $("sosSheet").style.display = "none"; hike.sosAuto = false; partySosOff(); }   // 저절로 열린 SOS 도 닫음 - 괜찮다고 했으니
+        if (hike.sosAuto) { sosHide(); partySosOff(); }   // 저절로 열린 SOS 도 닫음 - 괜찮다고 했으니
         stillReset(); toast(EN ? "👍 OK, still watching. If you stop for over " + STILL_MS / 60000 + " minutes I will ask again." : "👍 계속 지켜볼게요. " + STILL_MS / 60000 + "분 넘게 멈추면 다시 묻습니다.", 4000); });
     $("stillSos").addEventListener("click", function () { stillReset(); $("sos").click(); });
 

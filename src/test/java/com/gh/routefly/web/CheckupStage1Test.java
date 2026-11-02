@@ -42,7 +42,8 @@ public class CheckupStage1Test {
         String js = read("js/hike.js");
         assertTrue(js.contains("indexedDB.open(\"rf-records\""));
         assertFalse("기록을 말없이 5개로 줄이던 코드", js.contains("list.slice(0, 5)"));
-        assertTrue("사진 정리는 이어 할 산행의 메모도 봄", body(js, "function gcPhotos()").contains("-notes$/"));
+        // 2026-11-02: 남길 사진 모으기는 photoKeep 으로 나눔(gcPhotos 가 저장소 기록을 다시 읽어 함께 넘김)
+        assertTrue("사진 정리는 이어 할 산행의 메모도 봄", body(js, "function gcPhotos()").contains("photoKeep(") && body(js, "function photoKeep(").contains("-notes$/"));
     }
 
     @Test

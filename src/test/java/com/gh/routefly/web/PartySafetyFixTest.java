@@ -175,4 +175,10 @@ public class PartySafetyFixTest {
         assertFalse(h, h.contains("<b>.html") || h.contains("<img"));
         Access.reset();
     }
+
+    /** 4: 못 보낸 SOS 는 10초 뒤 다시, 켜진 동안은 위치가 없어도 살펴 ping(party-kit.js - party-sos.test.js). 따라가기 쪽(2 · 3 · 8 · 9)은 hike-safety.test.js(ReviewRound5Test). */
+    @Test
+    public void partySosJs() throws Exception {
+        ReviewRound5Test.node("src/test/js/party-sos.test.js");
+    }
 }
