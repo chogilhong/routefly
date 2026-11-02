@@ -24,6 +24,8 @@ public class WxDaysSlotTest {
             assertTrue(js + " - 있는 줄을 씀", s.contains("out.parentNode.querySelector(\".days\")") && s.contains("if (!tabs) {"));
             assertEquals(js + " - 새로 만드는 것은 없을 때만", 1, s.split("tabs = document.createElement\\(\"div\"\\)", -1).length - 1);
         }
+        String css = read("src/main/webapp/css/mountain.css");
+        assertTrue("날씨 칸 자리 - 데스크톱 · 폰(PC 측정 537 · 603)", css.contains("#wx { min-height:540px; }") && css.contains("@media (max-width:520px) { #wx { min-height:600px; } }"));
         assertTrue("빈 줄도 단추 높이", read("src/main/webapp/css/mountain.css").contains(".days { display:flex; flex-wrap:wrap; gap:6px; margin:0 0 10px; min-height:44px; }"));
     }
 }

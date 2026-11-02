@@ -11,7 +11,8 @@ a { color:var(--sky); }
 .lead { color:var(--dim); font-size:14px; margin:0 0 16px; }
 .dim { color:var(--dim); font-size:13px; }
 section { background:var(--panel); border:1px solid var(--ln); border-radius:12px; padding:14px 16px; margin-bottom:14px; }
-#wx { min-height:320px; }   /* 날씨 표 · 날짜 고르기 · 미세먼지가 들어올 자리를 미리(2026-11-02 홍TV님 점검: 데스크톱 CLS 0.316 - 아래 칸이 통째로 밀렸음) */
+#wx { min-height:540px; }   /* 날씨 표 · 날짜 고르기 · 미세먼지가 들어올 자리를 미리(2026-11-02 홍TV님 점검: 데스크톱 CLS 0.316 - 아래 칸이 통째로 밀렸음) */
+@media (max-width:520px) { #wx { min-height:600px; } }   /* 폰 - 날씨 표가 들어오면 약 600px(2026-11-02 PC 측정 390 폭 603, 데스크톱 537 - 그 전엔 320 이라 아래 🎒 챙길 것이 밀렸음 CLS 0.09) */
 #wxBody b { display:block; margin-bottom:4px; }
 #wxBody div { font-size:14px; }
 ul { margin:0; padding:0; list-style:none; }
