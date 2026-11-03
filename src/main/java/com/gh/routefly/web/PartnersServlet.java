@@ -21,6 +21,7 @@ import com.google.gson.JsonObject;
  *       화면은 링크 아래에 공정위가 정한 "수수료를 받습니다" 문구를 붙입니다.</li>
  *   <li>{@code partner.agoda.url} - 아고다 제휴 링크(www.agoda.com). 안에 {lat} · {lon} 이 있으면 들머리 좌표로 바꿉니다.</li>
  *   <li>{@code partner.trip.url} - 트립닷컴 제휴 링크(www · kr · us.trip.com, 2026-10-21 신청 중). {lat} · {lon} 도 아고다처럼.</li>
+ *   <li>{@code partner.socar.url} - 쏘카 제휴 링크(링크프라이스 click.linkprice.com, 2026-11-03). 휴대폰 앱 예약만 실적이라 산 페이지에서 휴대폰일 때만 보임.</li>
  *   <li>{@code donate.url} - 후원(toss.me · qr.kakaopay.com 등 https 주소).</li>
  *   <li>{@code partner.hotels.url} - 호텔스컴바인 제휴 링크(2026-10-29 홍TV님 "나중에 연결될 것을 대비", 여기어때 · 야놀자는 2026-10-30 뺌).
  *       안에 {q}(찾는 장소 이름) · {lat} · {lon} 이 있으면 /m/ "🏨 근처 숙소 찾기" 가 바꿔 넣고, 없으면 링크 그대로(그 사이트 검색 화면). 비어 있으면 첫 화면 🔎(제휴 아님).</li>
@@ -72,6 +73,9 @@ public class PartnersServlet extends HttpServlet {
         if (checkHost("partner.agoda.url", agoda, "agoda.com")) out.addProperty("agoda", agoda);
         String trip = conf.apply("partner.trip.url");
         if (checkHost("partner.trip.url", trip, "trip.com")) out.addProperty("trip", trip);
+        // 쏘카(링크프라이스 경유, 2026-11-03 홍TV님 승인) - 산 페이지 코스 목록 아래 "대중교통이 없는 들머리" 한 줄. 링크프라이스 대표 링크 · 딥링크만(click.linkprice.com)
+        String socar = conf.apply("partner.socar.url");
+        if (checkHost("partner.socar.url", socar, "linkprice.com")) out.addProperty("socar", socar);
         // 나중에 제휴할 숙소 사이트(2026-10-29) - 그 사이트 주소이고 {q} · {lat} 가 든 링크만
         String[][] more = {{"hotels", "hotelscombined.co.kr"}};   // 여기어때 · 야놀자는 뺌(2026-10-30 홍TV님)
         for (String[] m : more) {

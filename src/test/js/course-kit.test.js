@@ -1751,3 +1751,19 @@ eq("favJoinExtra 제목이 없으면 지금 이름의 길", [RF.favJoinExtra("#c
         [true, true, true, true]);
     eq("submitFail 429 · 413", [RF.submitFail(429).indexOf("잦습니다") > 0, RF.submitFail(413).indexOf("너무 큽니다") > 0, RF.submitFail(502).indexOf("HTTP 502") > 0], [true, true, true]);
 })();
+
+// 🚗 쏘카 한 줄(2026-11-03 홍TV님 - 링크프라이스 제휴): 쏘카는 휴대폰 앱 예약만 실적이라 휴대폰일 때만 보임
+(function () {
+    function el(tag) { return { tag: tag, kids: [], appendChild: function (c) { this.kids.push(c); }, set textContent(v) { this._t = v; this.kids = []; }, get textContent() { return this._t || ""; } }; }
+    sandbox.document = { createElement: el };
+    var box = el("p"); box.hidden = true;
+    var url = "https://click.linkprice.com/click.php?m=socar&a=TEST";
+    eq("PC 에서는 안 보임", [RF.socarLine(box, url, "Mozilla/5.0 (Windows NT 10.0)"), box.hidden], [false, true]);
+    eq("링크가 없으면 안 보임", RF.socarLine(box, undefined, "Android"), false);
+    eq("http 는 안 받음", RF.socarLine(box, "http://click.linkprice.com/x", "iPhone"), false);
+    eq("안드로이드에서 보임", [RF.socarLine(box, url, "Mozilla/5.0 (Linux; Android 14)"), box.hidden], [true, false]);
+    var a = box.kids[0];
+    eq("제휴 표시 · 새 창", [a.href, a.rel, a.target], [url, "noopener sponsored", "_blank"]);
+    eq("수수료 안내", box.kids[1].textContent.indexOf("routefly 가 수수료를 받습니다") > 0, true);
+    delete sandbox.document;
+})();

@@ -416,6 +416,21 @@
         box.hidden = false;
         return true;
     }
+    /**
+     * 산 페이지 코스 목록 아래 쏘카 한 줄(2026-11-03 홍TV님 - 링크프라이스 제휴). 쏘카는 휴대폰 앱 예약만 실적이라 휴대폰(ua)일 때만.
+     * box - 숨겨 둔 칸, url - api/partners 의 socar(서버가 linkprice.com 인지 봄). 보였으면 true.
+     */
+    function socarLine(box, url, ua) {
+        if (!box || !/^https:\/\//.test(url || "") || !/Android|iPhone|iPad|iPod/i.test(ua || "")) return false;
+        var a = document.createElement("a"), s = document.createElement("small");
+        a.href = url; a.target = "_blank"; a.rel = "noopener sponsored";
+        a.textContent = "🚗 대중교통이 없는 들머리는 쏘카 ›";
+        s.textContent = " 제휴 링크 - 쏘카 앱에서 예약하면 routefly 가 수수료를 받습니다(값은 같음).";
+        box.textContent = "";
+        box.appendChild(a); box.appendChild(s);
+        box.hidden = false;
+        return true;
+    }
     function supportLine(box, url, text, pcUrl) {
         if (!box || !/^https:\/\//.test(url || "")) return false;
         var a = document.createElement("a");
@@ -1562,6 +1577,7 @@
         fortune: fortune,
         fortuneDay: fortuneDay,
         supportLine: supportLine,
+        socarLine: socarLine,
         staysLine: staysLine,
         staySearch: staySearch
     };

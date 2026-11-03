@@ -62,4 +62,19 @@ public class PartnersServletTest {
         assertTrue(PartnersServlet.whyHost("https://eviltrip.com/x", "trip.com").startsWith("주소 이름"));
         assertNotNull(PartnersServlet.whyHost("https://trip.com@evil.kr/x", "trip.com"));
     }
+
+    /** 쏘카(링크프라이스 경유, 2026-11-03): click.linkprice.com 대표 링크만 받음 - 흉내 주소 · http 는 뺌. 산 페이지에 쏘카 칸이 있음. */
+    @Test
+    public void socarLinkpriceOnly() {
+        assertEquals("https://click.linkprice.com/click.php?m=socar&a=TEST",
+                PartnersServlet.body(Map.of("partner.socar.url", "https://click.linkprice.com/click.php?m=socar&a=TEST")::get).get("socar").getAsString());
+        assertFalse(PartnersServlet.body(Map.of("partner.socar.url", "https://click.linkprice.com.evil.example/x")::get).has("socar"));
+        assertFalse(PartnersServlet.body(Map.of("partner.socar.url", "http://click.linkprice.com/x")::get).has("socar"));
+        assertFalse("비면 없음", PartnersServlet.body(k -> null).has("socar"));
+        com.google.gson.JsonObject peak = com.google.gson.JsonParser.parseString("{\"id\":\"가야산\",\"name\":\"가야산\",\"lat\":35.8226,\"lon\":128.1229}").getAsJsonObject();
+        com.google.gson.JsonObject c = com.google.gson.JsonParser.parseString("{\"course_id\":\"k1\",\"name\":\"해인사 → 상왕봉\",\"distance_m\":4000,\"ascent_m\":600,"
+                + "\"start_lat\":35.80,\"start_lon\":128.09,\"end_lat\":35.8226,\"end_lon\":128.1229}").getAsJsonObject();
+        String page = MountainServlet.page(peak, new java.util.ArrayList<>(java.util.List.of(c)), new java.util.ArrayList<>(), null, "");
+        assertTrue("코스 목록 아래 숨긴 쏘카 칸", page.contains("<p class=\"stays\" id=\"socar\" hidden></p>"));
+    }
 }

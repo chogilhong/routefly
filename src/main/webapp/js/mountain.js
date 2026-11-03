@@ -109,6 +109,7 @@
         window.RF.supportLine(document.getElementById("support"), p.donate, "☕ routefly 후원하기 ›", p.donateEn);
         var wx = document.getElementById("wx");   // 🏨 근처 숙소(정상 좌표, 2026-10-29)
         if (wx) window.RF.staysLine(document.getElementById("stays"), p, +wx.getAttribute("data-lat"), +wx.getAttribute("data-lon"), false);
+        if (window.RF.socarLine) window.RF.socarLine(document.getElementById("socar"), p.socar, navigator.userAgent);   // 🚗 쏘카(휴대폰만, 2026-11-03)
     }).catch(function () { /* 링크 없이 */ });
     // ☀️ 이번 주말 날씨 좋은 산(코스 모음 /m/ - 2026-10-15 홍TV님): 권역마다 토 · 일 낮 날씨, 좋은 권역의 100대 명산
     var wk = document.getElementById("weekend");
