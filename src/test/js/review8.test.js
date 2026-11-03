@@ -317,5 +317,29 @@ var RF = kit();
     });
 })();
 
+// ---- P4: 산악회 방 - MapLibre 는 방 지도를 열 때 받음(대기실 · 만들기에서는 안 받음)
+(function () {
+    var P = read("js/party.js"), html = read("party.html");
+    eq("party.html 이 처음부터 부르지 않음", html.indexOf('<script src="vendor/maplibre-gl-5.24.0/maplibre-gl.js"></script>'), -1);
+    has("서비스 워커가 담아 둠(신호 없을 때)", read("sw.js"), '"vendor/maplibre-gl-5.24.0/maplibre-gl.js"');
+    var added = [], win = {};
+    var ctx = { window: win, Promise: Promise, Error: Error, document: { createElement: function () { return {}; }, head: { appendChild: function (s) { added.push(s); } } } };
+    vm.createContext(ctx);
+    vm.runInContext('var MAPLIBRE_JS = "vendor/maplibre-gl-5.24.0/maplibre-gl.js", maplibreP = null;' + fn(P, "loadMaplibre"), ctx);
+    var p1 = ctx.loadMaplibre(), p2 = ctx.loadMaplibre();
+    eq("한 번만 붙임", [added.length, added[0].src, p1 === p2], [1, "vendor/maplibre-gl-5.24.0/maplibre-gl.js", true]);
+    later.push(function () {
+        added[0].onerror();
+        return p1.then(function () { throw new Error("실패해야 함"); }, function () {
+            ctx.loadMaplibre();
+            eq("못 받으면 다음에 다시", added.length, 2);
+            added[1].onload();
+            win.maplibregl = {};
+            return ctx.loadMaplibre();
+        }).then(function () { eq("받은 뒤에는 붙이지 않음", added.length, 2); });
+    });
+    has("지도를 열 때 받음", P, "Promise.all([loadMaplibre(), fetch(\"api/map-config\")");
+})();
+
 later.reduce(function (p, f) { return p.then(f); }, Promise.resolve()).then(function () { console.log("OK " + n); })
     .catch(function (e) { console.error(e); process.exit(1); });

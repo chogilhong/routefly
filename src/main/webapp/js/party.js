@@ -1171,9 +1171,25 @@
 
     // ------------------------------------------------------------------ 지도
 
+    /** MapLibre 를 그때 받음(한 번만, 못 받으면 다음에 다시) - 대기실 · 방 만들기에서는 받지 않음(2026-11-03 홍TV님 점검 P4). */
+    var MAPLIBRE_JS = "vendor/maplibre-gl-5.24.0/maplibre-gl.js", maplibreP = null;
+    function loadMaplibre() {
+        if (window.maplibregl) return Promise.resolve();
+        return maplibreP || (maplibreP = new Promise(function (ok, no) {
+            var s = document.createElement("script");
+            s.src = MAPLIBRE_JS;
+            s.onload = ok;
+            s.onerror = function () { maplibreP = null; no(new Error("maplibre")); };
+            document.head.appendChild(s);
+        }));
+    }
+
+    var mapStarting = false;
     function startMap() {
-        if (map) return;
-        fetch("api/map-config").then(function (r) { return r.json(); }).catch(function () { return {}; }).then(function (c) {
+        if (map || mapStarting) return;
+        mapStarting = true;
+        Promise.all([loadMaplibre(), fetch("api/map-config").then(function (r) { return r.json(); }).catch(function () { return {}; })]).then(function (r) {
+            var c = r[1];
             var cfg = { demUrl: c.demUrl || "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png", vworldKey: c.vworldKey || null };
             map = new maplibregl.Map({ container: "map", style: RF.baseStyle(cfg), center: [127.8, 36.3], zoom: 6, locale: RF.mapLocale(),
                 attributionControl: false, dragRotate: false, pitchWithRotate: false, touchPitch: false });
@@ -1186,7 +1202,7 @@
                 map.addLayer({ id: "trail", type: "line", source: "trail", paint: { "line-color": "#ff922b", "line-width": 4, "line-opacity": 0.85 }, layout: { "line-cap": "round", "line-join": "round" } });
                 if (state) drawMap(state, true);
             });
-        });
+        }).catch(function () { /* 지도 없이(목록 · 좌석표는 그대로) - 다음에 방을 열 때 다시 */ }).then(function () { mapStarting = false; });
     }
 
     var fitted = false;
