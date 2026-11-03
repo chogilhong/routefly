@@ -783,7 +783,16 @@
         s.course.name = name || c.course.name;
         s.course.distance_m = Math.round(s.total);
         s.asc = cumAscent(s.ele);
-        s.course.ascent_m = Math.round(s.asc[s.asc.length - 1] || 0);
+        // 내리막 · 최고 · 최저 · 두 끝도 자른 구간 것으로(2026-11-03 코스 점검: 오르기만 하는 앞 절반에 코스 전체의 내리막 1,000m 가 남아 3D 시간 · 난이도가 틀렸음)
+        var asc = s.asc[s.asc.length - 1] || 0, rg = eleRange(s);
+        s.course.ascent_m = Math.round(asc);
+        s.course.descent_m = descentOf(s, asc);
+        s.course.ele_min_m = rg[0] == null ? null : Math.round(rg[0]);
+        s.course.ele_max_m = rg[1] == null ? null : Math.round(rg[1]);
+        s.course.start_lat = s.lat[0];
+        s.course.start_lon = s.lon[0];
+        s.course.end_lat = s.lat[s.lat.length - 1];
+        s.course.end_lon = s.lon[s.lon.length - 1];
         endPois(s);
         return s;
     }
@@ -1306,6 +1315,23 @@
     /** 순수 함수 - 고른 구간을 반대 방향으로(차례도 거꾸로, 구간마다 ~ 도 바꿈). */
     function reverseSel(sel) {
         return (sel || []).slice().reverse().map(function (s) { return { id: s.id, rev: !s.rev }; });
+    }
+
+    /**
+     * 순수 함수 - 코스(점 · 이름표)의 [가장 낮은, 가장 높은] 높이(m, 모르면 null). 이은 코스 · 자른 구간이 같이 씀.
+     * 지나는 정상의 공식 높이(서버가 이름표에 ele_official 로 붙임)도 최고에 - 이은 코스는 선 높이만 봐서 백운대 836m 가 808m 로 보였음(2026-10-30 PC).
+     */
+    function eleRange(c) {
+        var lo = null, hi = null;
+        c.ele.forEach(function (e) { if (e != null) { lo = lo == null ? e : Math.min(lo, e); hi = hi == null ? e : Math.max(hi, e); } });
+        (c.pois || []).forEach(function (q) { if (q.ele_official && q.ele_m != null && !(+q.off_route_m > 160)) hi = hi == null ? +q.ele_m : Math.max(hi, +q.ele_m); });
+        return [lo, hi];
+    }
+
+    /** 순수 함수 - 오르막 합(asc)과 두 끝 높이로 내리막(m). 끝 높이를 모르면 null. 이은 코스 · 자른 구간이 같이 씀. */
+    function descentOf(c, asc) {
+        var e0 = c.ele[0], e1 = c.ele[c.ele.length - 1];
+        return e0 == null || e1 == null ? null : Math.max(0, Math.round(asc - (e1 - e0)));
     }
 
     function indexAt(c, d) {

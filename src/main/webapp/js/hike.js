@@ -927,7 +927,7 @@
             if (sv ? sv.rev : /[#&]rev=1(&|$)/.test(location.hash)) c = RF.reverseCourse(c);
             // 탐방 안내도 대표 코스의 길 이름(#…&title=화엄사 → 노고단 → 천왕봉 → 대원사) - 이은 코스는 "N구간 이어 걷기" 가 됨
             var tm = /[#&]title=([^&]*)/.exec(location.hash), tt = tm ? RF.safeDecode(tm[1]) : "";
-            if (tt && tt.length <= 60) c.course.name = (RF.nameParts(c.course.name).group.replace(/\s*\d+구간 이어 걷기$/, "") || "") + (RF.nameParts(c.course.name).group ? " · " : "") + tt;
+            if (tt && tt.length <= 60) c.course.name = RF.titledName(c.course.name, tt);
             // 탐방 안내도 원점회귀 예시의 들머리 이름(#…&head=윗새재마을) - 구간 이름의 처음("새재")보다 정확
             var hm = /[#&]head=([^&]*)/.exec(location.hash), hn = hm ? RF.safeDecode(hm[1]) : "";
             // 들머리 이름(탐방 안내도 원점회귀 예시의 &head=) - 이름 · 이름표(RF.applyHead, 3D 와 같게)

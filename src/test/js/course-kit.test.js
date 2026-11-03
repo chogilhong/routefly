@@ -680,7 +680,22 @@ eq("dedupePlaceNames 산 이름만 더 붙은 같은 자리 이름표", RF.dedup
 var full = RF.fromApi("r", { course: { name: "산 · 가 → 라" }, points: [[127.0, 35.0, 100, 0], [127.011, 35.0, 200, 1000], [127.022, 35.0, 150, 2000], [127.033, 35.0, 300, 3000]], pois: [] });
 var sl = RF.sliceCourse(full, 1 / 3, 2 / 3, "산 · 나 → 다", "r@0.3333-0.6667:나>다");
 eq("sliceCourse 거리 · 이름표", [Math.round(sl.total), sl.pois.map(function (p) { return p.name; }).join(","), sl.course.ascent_m], [1000, "나,다", 0]);
+// 자른 구간 · 거꾸로 걷기의 요약도 그 구간 · 그 방향 것(2026-11-03 코스 점검 - 3D 시간 · 난이도가 코스 전체 · 원래 방향 값이었음)
+eq("sliceCourse 내리막 · 최고 · 최저 · 두 끝", [sl.course.descent_m, sl.course.ele_max_m, sl.course.ele_min_m, sl.course.start_lon, sl.course.end_lon], [50, 200, 150, 127.011, 127.022]);
+(function () {
+    var up = RF.fromApi("u", { course: { name: "산 · 가 → 정상", ascent_m: 1000, descent_m: 10, start_lat: 35.0, start_lon: 127.0, end_lat: 35.0, end_lon: 127.04 },
+        points: [[127.0, 35.0, 100, 0], [127.02, 35.0, 600, 1800], [127.04, 35.0, 1100, 3600]], pois: [] });
+    var r = RF.reverseCourse(up);
+    eq("reverseCourse 오르막 ↔ 내리막 · 처음 ↔ 끝", [r.course.ascent_m, r.course.descent_m, r.course.start_lon, r.course.end_lon], [10, 1000, 127.04, 127.0]);
+    var rr = RF.reverseCourse(r);
+    eq("두 번 뒤집으면 그대로", [rr.course.ascent_m, rr.course.descent_m, rr.course.start_lon, rr.course.end_lon], [1000, 10, 127.0, 127.04]);
+    var nd = RF.reverseCourse(RF.fromApi("n", { course: { name: "산 · 가 → 정상", ascent_m: 1000 }, points: [[127.0, 35.0, 100, 0], [127.04, 35.0, 1100, 3600]], pois: [] }));
+    eq("내리막을 모르면 점으로 셈한 오르막(내려가기만 - 0)", [nd.course.ascent_m, nd.course.descent_m], [0, 1000]);
+})();
 eq("parseJoinId 한 구간은 null", RF.parseJoinId("a"), null);
+// 이은 코스 길 이름(&title=) - 무리 이름이 없는 공단 코스 이름("대청봉코스(백담)")이어도 오류 없이(2026-11-03 코스 점검: 따라가기가 코스를 못 열었음)
+eq("titledName", [RF.titledName("대청봉코스(백담)", "백담사 → 대청봉"), RF.titledName("지리산 3구간 이어 걷기 · 화엄사 → 대원사", "화엄사 → 노고단 → 천왕봉")],
+    ["백담사 → 대청봉", "지리산 · 화엄사 → 노고단 → 천왕봉"]);
 var ja = RF.fromApi("k17", { course: { name: "지리산둘레길 위태-하동호", kind: "walk" }, points: [[127.82864, 35.21691, 300, 0], [127.78512, 35.16266, 200, 10880]], pois: [] });
 var jb = RF.fromApi("k21", { course: { name: "지리산둘레길 하동호-삼화실", kind: "walk" }, points: [[127.78512, 35.16266, 200, 0], [127.77048, 35.11899, 260, 9000]], pois: [] });
 var jc = RF.joinCourses([ja, jb], "k17,k21");

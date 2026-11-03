@@ -416,7 +416,7 @@
                 var rs = RF.partAnswers(parts, RF.partBases(parts), r2[0]).map(function (j, i) { return RF.fixPart(r2[1], parts[i].base, j); });   // 조각마다 산 안내로 이름 다듬기(따라가기와 같게)
                 var c = RF.joinedCourse(id, parts, rs);   // 같은 코스를 앞뒤로 쓰면 한 번만 받음
                 if (/[#&]rev=1(&|$)/.test(location.hash)) c = RF.reverseCourse(c);
-                if (joinTitle) c.course.name = (RF.nameParts(c.course.name).group || "").replace(/\s*\d+구간 이어 걷기$/, "") + (RF.nameParts(c.course.name).group ? " · " : "") + joinTitle;
+                if (joinTitle) c.course.name = RF.titledName(c.course.name, joinTitle);
                 var hm = /[#&]head=([^&]*)/.exec(location.hash);
                 RF.applyHead(c, hm ? RF.safeDecode(hm[1]) : "", joinTitle);   // 들머리 이름 · 원점회귀 이름(따라가기와 같게)
                 return RF.toApi(c);
