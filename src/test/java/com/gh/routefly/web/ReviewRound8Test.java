@@ -112,4 +112,14 @@ public class ReviewRound8Test {
         assertTrue("접힌 줄 짧게", idx.contains("<span class=\"fs\">100대 명산 · 백두대간</span>"));
         assertTrue(web("games.html").contains("<details id=\"pick\" open>") && web("js/games.js").contains("if (first) $(\"pick\").open = false;"));
     }
+
+    /** 13: 영어 약관 · 개인정보 화면의 ‹ Back · ✕ 는 앞 화면이 없으면 영어 안내(about-en)로(한국어는 about.html) · 사무실 ‹ 뒤로 는 알약 모양. */
+    @Test
+    public void englishLegalBackToAbout() throws Exception {
+        for (String f : new String[] {"privacy-en.html", "terms-en.html", "lbs-terms-en.html"}) {
+            String h = web(f);
+            assertTrue(f, h.contains("<a class=\"back\" id=\"aboutBack\" href=\"about-en.html\">‹ Back</a>") && h.contains("<a class=\"close\" id=\"aboutClose\" href=\"about-en.html\""));
+        }
+        assertTrue(web("party-office.html").contains("#top #backTop { flex:0 0 auto; height:44px;"));
+    }
 }

@@ -19,6 +19,8 @@
 html, body { margin:0; background:var(--bg); color:var(--tx); font-family:Arial,"Malgun Gothic",sans-serif; }
 #top { position:sticky; top:0; z-index:5; display:flex; align-items:center; gap:8px; padding:calc(env(safe-area-inset-top) + 8px) 12px 8px; background:var(--panel); border-bottom:1px solid var(--ln); }
 #top a { display:inline-flex; align-items:center; min-height:44px; color:var(--sky); text-decoration:none; font-weight:bold; font-size:15px; }
+/* ‹ 뒤로 - 다른 화면(공원 · 노선 · 산악회 방)과 같은 알약 모양(2026-11-03 홍TV님 점검), 누르는 자리 44px */
+#top #backTop { flex:0 0 auto; height:44px; min-height:0; padding:0 12px; border-radius:22px; background:rgba(56,217,234,0.16); border:1px solid var(--sky); font-size:14px; }
 /* 글자 크기 A · 가(2026-10-29 점검 - 회사 사장님 · 직원도 어르신이 많음, 다른 화면과 같은 rf-text 저장) */
 .rfz main { zoom: var(--rfz); }
 .rfTextBtn { flex:0 0 auto; min-width:44px; height:44px; padding:0 8px; border-radius:22px; border:1px solid var(--ln); background:rgba(255,255,255,0.06); color:var(--tx); font:bold 14px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }
