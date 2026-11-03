@@ -338,7 +338,7 @@ final class MountainEn {
                 + "AirKorea, Durunubi (data.go.kr), © OpenStreetMap contributors. Names follow the Revised Romanization of Korean. "
                 + "<a href=\"" + esc(koHref) + "\" hreflang=\"ko\" lang=\"ko\">한국어</a> · <a href=\"" + REL + "/about-en.html\">Safety · sources</a> · <a href=\"" + REL + "/terms-en.html\">Terms</a> · <a href=\"" + REL + "/privacy-en.html\">Privacy</a> · <a href=\"" + REL + "/lbs-terms-en.html\">Location terms</a></p>"
                 + "<p class=\"support\" id=\"support\" hidden></p>"   // ☕ Support(설정 donate.en.url 이 있을 때만 mountain-en.js 가 보임)
-                + "<p class=\"brand\"><a href=\"" + REL + "/hike.html?lang=en\"><img src=\"" + REL + "/img/logo-dark.svg\" alt=\"routefly\" width=\"160\" height=\"50\"> Open app ›</a></p>"
+                + "<p class=\"brand\"><a href=\"" + REL + "/hike.html?lang=en\"><img src=\"" + REL + "/img/logo-dark.svg\" alt=\"routefly\" width=\"160\" height=\"50\"> 🥾 Follow a trail ›</a></p>"   // 위쪽 단추와 같은 말(2026-11-03 홍TV님)
                 + "<p class=\"copy\">© 2026 홍TV (HongTV) · routefly. Trail and map data belong to the sources above.</p></main>"
                 + "<script src=\"" + REL + "/" + AssetVersion.of("js/kit-m.js") + "\"></script><script src=\"" + REL + "/" + AssetVersion.of("js/mountain-en.js") + "\"></script><script src=\"" + REL + "/" + AssetVersion.of("js/seen.js") + "\"></script></body></html>";
     }

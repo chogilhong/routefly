@@ -932,7 +932,7 @@ public class MountainServlet extends HttpServlet {
                 + "<a href=\"" + b + "/about.html\">안전 · 출처 안내</a> · <a href=\"" + b + "/terms.html\">이용약관</a> · <a href=\"" + b + "/privacy.html\">개인정보처리방침</a> · <a href=\"" + b + "/lbs-terms.html\">위치기반서비스 이용약관</a> · <a href=\"" + b + "/feedback.html?from=/m/\">📮 의견 보내기</a>"
                 + (en == null ? "" : " · <a href=\"" + esc(en) + "\" hreflang=\"en\" lang=\"en\">English</a>") + "</p>"
                 + "<p class=\"support\" id=\"support\" hidden></p>"   // ☕ 후원(설정 donate.url 이 있을 때만 mountain.js 가 보임)
-                + "<p class=\"brand\"><a href=\"" + b + "/hike.html?lang=ko\"><img src=\"" + b + "/img/logo-dark.svg\" alt=\"routefly\" width=\"160\" height=\"50\"> 앱 열기 ›</a></p>"
+                + "<p class=\"brand\"><a href=\"" + b + "/hike.html?lang=ko\"><img src=\"" + b + "/img/logo-dark.svg\" alt=\"routefly\" width=\"160\" height=\"50\"> 🥾 따라가기 ›</a></p>"   // 위쪽 "🥾 따라가기 ›" 와 같은 말(2026-11-03 홍TV님)
                 + "<p class=\"copy\">© 2026 홍TV · routefly. 코스 · 지도 자료의 권리는 위 출처에 있습니다.</p></main>"   // 저작권 표시(2026-10-17 홍TV님)
                 + (scripts ? "<script src=\"" + b + "/" + AssetVersion.of("js/kit-m.js") + "\"></script><script src=\"" + b + "/" + AssetVersion.of("js/mountain.js") + "\"></script>" : "")
                 + "<script src=\"" + b + "/" + AssetVersion.of("js/seen.js") + "\"></script></body></html>";   // 사람 확인 신호(2026-10-22) - 코스 페이지에도
