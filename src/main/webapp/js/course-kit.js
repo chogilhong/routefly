@@ -1526,7 +1526,7 @@
     }
     /**
      * 🎒 추천 상품 상품 하나(2026-11-03 홍TV님 "가민 택틱스 8", 챙길 것 목록은 뺌) - 쿠팡 파트너스 배너(이미지 + 텍스트) 그림을 원래 크기로, 그림 전체가 링크.
-     * 배너 안에 이름 · 로켓 · 쇼핑하기가 다 있어 우리 글은 쓰지 않음(2026-11-03 홍TV님 "1로 해줘" - 72px 로 줄이니 글이 안 읽혔음). 이름은 그림 설명(alt)으로.
+     * 그림은 줄이지 않음(2026-11-03 홍TV님 "1로 해줘" - 72px 로 줄이니 글이 안 읽혔음). 배너 안 이름은 한 줄로 잘려 그림 아래에 이름 전체를 글로(같은 날 "대부분 짤리잖아"), 그림 설명(alt)도 이름.
      * f - api/partners 의 featured {name, img, href}(서버가 쿠팡 주소인지 봄). 그림은 화면에 가까워질 때 받음(loading=lazy). 없으면 null.
      */
     /** 순수 함수 - api/partners 의 featured(여러 개, 2026-11-03 홍TV님 "5개쯤 넣어 놓고 랜덤하게")에서 하나를 고름. rnd 는 0 이상 1 미만(없으면 Math.random). 없으면 null. */
@@ -1544,6 +1544,11 @@
         img.src = f.img; img.alt = f.name; img.loading = "lazy";
         img.style.cssText = "display:block;max-width:min(100%,240px);height:auto;background:#fff";
         a.appendChild(img);
+        // 상품 이름 전체를 그림 아래 글로(2026-11-03 홍TV님 "제품 설명이 그림 안에 있으니 대부분 짤리잖아" - 배너 안 이름은 한 줄로 잘림)
+        var cap = document.createElement("span");
+        cap.textContent = f.name;
+        cap.style.cssText = "display:block;max-width:240px;padding:8px 2px 0;line-height:1.45;font-size:14px;color:inherit;text-align:center;word-break:keep-all;overflow-wrap:anywhere";
+        a.appendChild(cap);
         return a;
     }
     function supportLine(box, url, text, pcUrl) {
