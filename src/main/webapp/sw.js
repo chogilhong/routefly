@@ -7,7 +7,7 @@
  *   - MapLibre(vendor): 바뀌지 않으므로 받아 둔 것 먼저
  *   - 판 붙은 js · css(js/x.js?v=내용 해시 - war 만들 때 tools/minify/version.js 가 붙임, 2026-11-01): 내용이 바뀌면 주소가 바뀌므로 받아 둔 것 먼저
  */
-var SHELL = "rf-shell-v216", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
+var SHELL = "rf-shell-v217", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
 var TILE_KEEP = 1500;   // 지나가며 본 타일은 이만큼만 남깁니다(저장 공간)
 // 2026-10-09 점검: API 캐시도 한도 - 지도를 움직일 때마다 목록 주소(bbox)가 하나씩 늘어 끝없이 커졌습니다.
 // 오프라인 저장한 코스는 OFFLINE 캐시에 따로 있어 지워지지 않습니다.
@@ -17,13 +17,32 @@ var API_KEEP = 300;
 // 2026-11-02 홍TV님 속도 점검: 첫 주소("./")는 이제 작은 넘김 화면(root.html)이라, 예전 공유 링크(…/routefly/#c=)가 신호 없을 때도 3D 화면으로 열리게 index.html 도 담음
 var SHELL_FILES = ["hike.html", "about.html", "about-en.html", "park.html", "js/kit-park.js", "js/park.js", "route.html", "js/kit-route.js", "js/route.js", "series.html", "js/kit-series.js", "js/series.js", "data/series.json", "data/mountains100.json", "data/park-notes.json", "data/np-stamps.json", "./", "index.html", "css/course-kit.css", "js/course-kit.js", "js/seen.js", "js/hike.js", "js/party-kit.js", "party.html", "js/kit-party.js", "js/party.js", "js/no-kakao.js", "js/party-bar.js", "vendor/qrcode-generator-1.4.4/qrcode.js", "js/app.js", "js/early.js", "js/sw-reg.js", "js/about.js", "js/onboard.js", "js/root-go.js", "privacy.html",
     "vendor/maplibre-gl-5.24.0/maplibre-gl.js", "vendor/maplibre-gl-5.24.0/maplibre-gl.css", "favicon.svg", "manifest.json",
-    "img/icon-192.png", "img/kakaomap.png", "img/icon-512.png", "data/peak-elev.json", "js/rf-dialog.js"];
+    "img/icon-192.png", "img/kakaomap.png", "data/peak-elev.json", "js/rf-dialog.js"];   // icon-512(홈 화면 설치 그림)는 빼고 - 산속에서 쓰지 않음(2026-11-03 P3)
+// war 를 만들 때 tools/minify/version.js 가 위 js · css 에 ?v=<내용 해시> 를 붙임(2026-11-03 홍TV님 점검 P2) - 화면이 방금 받은 같은 판 주소라 브라우저 캐시(1년)에서 바로 오고,
+// 이미 담아 둔 판은 다시 받지 않음. ?없는 주소로도 담음(산 페이지 "신호 없을 때 보기" 와 오프라인 versioned() 가 ?없는 주소를 찾음)
+
+/** 미리 담기 하나 - 이미 있으면 건너뜀, 판 붙은 주소는 ?없는 주소로도 담고 같은 파일의 예전 판은 지움(versioned 와 같게). 못 받으면 이 파일만 다음에. */
+function shellPut(c, f) {
+    var plain = f.split("?")[0];
+    return c.match(f).then(function (hit) {
+        if (hit) return null;
+        // X-RF-Prefetch - 미리 받기라 서버 통계에서 화면 수로 세지 않게(2026-10-20 - 한 사람이 화면 9~10개 본 것으로 잡혔음, Stats.isPageView)
+        return fetch(new Request(f, { headers: { "X-RF-Prefetch": "1" } })).then(function (res) {
+            if (!res || !res.ok) return null;
+            if (f === plain) return c.put(f, res);
+            var abs = new URL(plain, self.location).href, absF = new URL(f, self.location).href;
+            return c.keys().then(function (keys) {
+                return Promise.all(keys.filter(function (k) { return k.url !== absF && k.url.split("?")[0] === abs && k.url.indexOf("?v=") > 0; })
+                    .map(function (k) { return c.delete(k); }));
+            }).then(function () { return Promise.all([c.put(f, res.clone()), c.put(plain, res)]); });
+        });
+    }).catch(function () { /* 이 파일만 다음에 */ });
+}
 
 self.addEventListener("install", function (e) {
     // 하나씩 - addAll 은 하나만 못 받아도 모두 버려 오프라인 화면이 통째로 비었음(2026-10-11 오픈 전 점검)
-    // X-RF-Prefetch - 미리 받기라 서버 통계에서 화면 수로 세지 않게(2026-10-20 - 한 사람이 화면 9~10개 본 것으로 잡혔음, Stats.isPageView)
     e.waitUntil(caches.open(SHELL).then(function (c) {
-        return Promise.all(SHELL_FILES.map(function (f) { return c.add(new Request(f, { headers: { "X-RF-Prefetch": "1" } })).catch(function () { /* 이 파일만 다음에 */ }); }));
+        return Promise.all(SHELL_FILES.map(function (f) { return shellPut(c, f); }));
     }));
     self.skipWaiting();
 });
@@ -160,11 +179,19 @@ function stuckPage() {
     });
 }
 
+/**
+ * 못 받은 지도 타일은 TILE_FAIL_MS 동안 다시 묻지 않고 바로 실패(2026-11-03 홍TV님 점검 P6: 산속 오프라인에서 지도를 움직일 때마다 같은 타일을 계속 다시 받으려 했음 - 배터리).
+ * 주소 → 못 받은 시각. TILE_FAIL_KEEP 개가 넘으면 비움.
+ */
+var TILE_FAIL_MS = 90000, TILE_FAIL_KEEP = 2000, tileFails = new Map();
 /** 받아 둔 것 먼저, 없으면 받아서(타일이면 조금 남겨 둠). */
 function cacheFirst(req, cacheName) {
     return caches.match(req, { ignoreVary: true }).then(function (hit) {
         if (hit) return hit;
+        var tile = isTile(req.url), failed = tile && tileFails.get(req.url);
+        if (failed && Date.now() - failed < TILE_FAIL_MS) return new Response("", { status: 504, statusText: "offline (recent fail)" });
         return fetch(req).then(function (res) {
+            if (tile) tileFails.delete(req.url);
             if (res && res.ok && cacheName) {
                 var copy = res.clone();
                 caches.open(cacheName).then(function (c) {
@@ -173,6 +200,12 @@ function cacheFirst(req, cacheName) {
                 });
             }
             return res;
+        }, function (err) {
+            if (tile) {
+                if (tileFails.size >= TILE_FAIL_KEEP) tileFails.clear();
+                tileFails.set(req.url, Date.now());
+            }
+            throw err;
         });
     });
 }

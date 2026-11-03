@@ -7,7 +7,7 @@ var fs = require("fs"), path = require("path"), vm = require("vm"), assert = req
 var web = path.join(__dirname, "../../main/webapp");
 function read(f) { return fs.readFileSync(path.join(web, f), "utf8").replace(/\r\n/g, "\n"); }   // PC(core.autocrlf)는 CRLF
 var HIKE = read("js/hike.js");
-var n = 0;
+var n = 0, later = [];   // later - 비동기 조각(차례대로)
 function eq(name, a, b) { assert.deepStrictEqual(JSON.parse(JSON.stringify(a)), b, name); n++; }
 function has(name, src, s) { assert(src.indexOf(s) >= 0, name + " - 없음: " + s); n++; }
 /** js 에서 "    function 이름(" 로 시작하는 함수 하나(4칸 들여쓰기 끝 "    }" 까지). */
@@ -260,4 +260,62 @@ var RF = kit();
     has("코스를 지도 설정과 같이 받음(3초까지)", APP, ".then(function (r) { start(r[0], r[1]); });");
 })();
 
-console.log("OK " + n);
+// ---- P2 · P3 · P6: 서비스 워커 - 판 붙은 미리 담기(이미 있으면 건너뜀 · ?없는 주소도) · icon-512 뺌 · 가벼운 화면은 등록 안 함 · 못 받은 타일은 잠시 다시 안 물음
+(function () {
+    var SW = read("sw.js");
+    has("SHELL 번호", SW, 'var SHELL = "rf-shell-v217"');
+    eq("icon-512 뺌", SW.indexOf('"img/icon-512.png"'), -1);
+    eq("별거 별거 · GPX 편집은 서비스 워커를 등록하지 않음", [read("tools.html").indexOf("js/sw-reg.js\""), read("studio.html").indexOf("js/sw-reg.js\"")], [-1, -1]);
+    has("따라가기는 그대로 등록", read("hike.html"), '<script src="js/sw-reg.js"></script>');
+    function fakeCache(store) {
+        return {
+            match: function (k) { return Promise.resolve(store[typeof k === "string" ? new URL(k, "https://r.kr/routefly/sw.js").href : k.url] || undefined); },
+            put: function (k, v) { store[typeof k === "string" ? new URL(k, "https://r.kr/routefly/sw.js").href : k.url] = v; return Promise.resolve(); },
+            keys: function () { return Promise.resolve(Object.keys(store).map(function (u) { return { url: u }; })); },
+            delete: function (k) { delete store[k.url]; return Promise.resolve(true); }
+        };
+    }
+    var fetched = [], store = { "https://r.kr/routefly/js/hike.js?v=old0000000": "옛 판", "https://r.kr/routefly/js/app.js?v=keep000000": "다른 파일" };
+    var res = function (body) { return { ok: true, body: body, clone: function () { return res(body); } }; };
+    var ctx = { self: { location: "https://r.kr/routefly/sw.js" }, URL: URL, Promise: Promise,
+        Request: function (u) { this.url = u; }, fetch: function (r) { fetched.push(r.url); return Promise.resolve(res("새 " + r.url)); } };
+    vm.createContext(ctx);
+    vm.runInContext(fn(SW.replace(/\n\/\*\*/g, "\n    /**").replace(/\nfunction /g, "\n    function ").replace(/\n}\n/g, "\n    }\n"), "shellPut"), ctx);
+    var c = fakeCache(store);
+    later.push(function () {
+        return ctx.shellPut(c, "js/hike.js?v=abc1234567").then(function () {
+            eq("판 주소 · ?없는 주소 둘 다 담음", [store["https://r.kr/routefly/js/hike.js?v=abc1234567"].body, store["https://r.kr/routefly/js/hike.js"].body], ["새 js/hike.js?v=abc1234567", "새 js/hike.js?v=abc1234567"]);
+            eq("같은 파일 예전 판은 지움 · 다른 파일은 그대로", [!!store["https://r.kr/routefly/js/hike.js?v=old0000000"], store["https://r.kr/routefly/js/app.js?v=keep000000"]], [false, "다른 파일"]);
+            return ctx.shellPut(c, "js/hike.js?v=abc1234567");
+        }).then(function () {
+            eq("이미 담은 판은 다시 받지 않음", fetched, ["js/hike.js?v=abc1234567"]);
+            return ctx.shellPut(c, "hike.html");
+        }).then(function () {
+            eq("판 없는 화면 파일은 그 주소만", [fetched.length, store["https://r.kr/routefly/hike.html"].body], [2, "새 hike.html"]);
+        });
+    });
+    // 못 받은 타일
+    var now = 1000000, nets = 0, down = true;
+    var tctx = { TILES: "t", TILE_KEEP: 1500, puts: 0, TILE_FAIL_MS: 90000, TILE_FAIL_KEEP: 2000, tileFails: new Map(), Date: { now: function () { return now; } }, Promise: Promise,
+        isTile: function () { return true; }, trim: function () {},
+        caches: { match: function () { return Promise.resolve(undefined); }, open: function () { return Promise.resolve({ put: function () {} }); } },
+        Response: function (b, o) { this.status = o.status; },
+        fetch: function () { nets++; return down ? Promise.reject(new TypeError("Failed to fetch")) : Promise.resolve(res("타일")); } };
+    vm.createContext(tctx);
+    vm.runInContext(fn(SW.replace(/\n\/\*\*/g, "\n    /**").replace(/\nfunction /g, "\n    function ").replace(/\n}\n/g, "\n    }\n"), "cacheFirst"), tctx);
+    var tile = { url: "https://api.vworld.kr/req/wmts/1.0.0/k/Satellite/15/1/2.jpeg" };
+    later.push(function () {
+        return tctx.cacheFirst(tile, "t").then(function () { throw new Error("실패해야 함"); }, function () {
+            return tctx.cacheFirst(tile, "t");
+        }).then(function (r) {
+            eq("90초 안에 다시 - 묻지 않고 바로 504", [r.status, nets], [504, 1]);
+            now += 91000; down = false;
+            return tctx.cacheFirst(tile, "t");
+        }).then(function (r) {
+            eq("90초 뒤 - 다시 받음 · 받으면 실패 기억 지움", [r.body, nets, tctx.tileFails.size], ["타일", 2, 0]);
+        });
+    });
+})();
+
+later.reduce(function (p, f) { return p.then(f); }, Promise.resolve()).then(function () { console.log("OK " + n); })
+    .catch(function (e) { console.error(e); process.exit(1); });
