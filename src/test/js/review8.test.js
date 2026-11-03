@@ -201,4 +201,12 @@ var RF = kit();
     has("안부 알림 글", a, '<div id="toast" role="status" aria-live="polite"></div>');
 })();
 
+// ---- 15: 도장 · 완주 아래 설명 - 세 줄 요점 + 출처는 접어 둠
+(function () {
+    var h = read("series.html");
+    eq("요점 세 줄", (h.slice(h.indexOf('<ul class="tip notes">'), h.indexOf("</ul>", h.indexOf('<ul class="tip notes">'))).match(/<li /g) || []).length, 3);
+    has("출처는 접힘", h, '<details class="tip src"><summary data-en="Sources · more">출처 · 더 보기</summary>');
+    eq("출처는 접힌 칸 안에만", h.indexOf("나무위키") > h.indexOf('<details class="tip src">'), true);
+})();
+
 console.log("OK " + n);
