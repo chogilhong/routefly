@@ -937,6 +937,13 @@ eq("windNote 자리 말", RF.windNote([{ t: "2026-10-18 20:00", wsd: 8.3 }], "20
     var c = { dist: [0, 1000, 2000], asc: [0, 300, 600], total: 2000, pois: [{ name: "a", dist_m: 1000, ele_m: 900 }, { name: "끝", dist_m: 2000 }] };
     var r = RF.scheduleRows(c, 0, "hike");
     eq("scheduleRows 끝 이름표는 빼고 시각은 늘어남", [r.rows.length, r.rows[0].name, r.rows[0].at > 0, r.end > r.rows[0].at], [1, "a", true, true]);
+    // 내리막도 시간에(2026-11-03 홍TV님): 0 → 600 → 0m, 2km 씩 - 지점까지 30분 + 오르막 1시간, 끝까지 거리 1시간 · 오르막 1시간 · 내리막 600m 20분
+    var v = { course: { kind: "hike" }, dist: [0, 2000, 4000], asc: [0, 600, 600], ele: [0, 600, 0], total: 4000, pois: [{ name: "정상", dist_m: 2000 }] };
+    var rv = RF.scheduleRows(v, 0, "hike");
+    eq("scheduleRows 내리막 300m 에 10분", [rv.rows[0].at / 60000, rv.end / 60000], [90, 140]);
+    eq("legMs 내려가는 구간만", Math.round(RF.legMs(v, 2000, 4000) / 60000), 50);
+    eq("legMs 앞뒤 바꿔도 같은 구간", RF.legMs(v, 4000, 2000), RF.legMs(v, 2000, 4000));
+    eq("standardMs 내리막 1,800m/h · 자전거는 내리막 0 · 없으면 0", [RF.standardMs("hike", 0, 0, 1800) / 60000, RF.standardMs("bike", 15000, 0, 900) / 60000, RF.standardMs("hike", 4000, 600) / 60000], [60, 60, 120]);
 })();
 (function () {
     var a = RF.sunset(Date.UTC(2026, 9, 13, 23, 0), 35.8, 128.1), b = RF.sunset(Date.UTC(2026, 9, 14, 1, 30), 35.8, 128.1);   // 한국 10-14 08:00 · 10:30
@@ -1057,6 +1064,8 @@ eq("fireNote 봄 · 가을 · 그 밖(한국 날짜)", [!!RF.fireNote(Date.UTC(2
 (function () {
     var c = { course: { kind: "hike" }, lat: [0, 0, 0], lon: [0, 0, 0], ele: [100, 700, 300], dist: [0, 4000, 8000], asc: [0, 600, 600] };
     eq("msToTop 가장 높은 점까지(4km · 600m = 2시간)", RF.msToTop(c), 2 * 3600000);
+    var dip = { course: { kind: "hike" }, lat: [0, 0, 0], lon: [0, 0, 0], ele: [500, 200, 800], dist: [0, 2000, 4000], asc: [0, 0, 600], total: 4000 };
+    eq("msToTop 가는 길 내리막 300m 도 10분 더(2026-11-03 홍TV님)", Math.round(RF.msToTop(dip) / 60000), 60 + 60 + 10);
     eq("sunriseStart 일출 - 오름 - 15분", RF.sunriseStart(10 * 3600000, 2 * 3600000), 10 * 3600000 - 2 * 3600000 - 15 * 60000);
 })();
 (function () {

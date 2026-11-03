@@ -122,10 +122,11 @@ public class ResultCacheTest {
 
     @Test
     public void listRowsOnlyFieldsScreensRead() {
-        for (String f : new String[] {"course_id", "name", "kind", "distance_m", "ascent_m", "ele_max_m", "start_lat", "start_lon", "end_lat", "end_lon"}) {
+        // descent_m - 목록의 예상 시간에 내리막도(2026-11-03 홍TV님)
+        for (String f : new String[] {"course_id", "name", "kind", "distance_m", "ascent_m", "descent_m", "ele_max_m", "start_lat", "start_lon", "end_lat", "end_lon"}) {
             assertTrue(f, CourseQueries.LIST_COLUMNS.contains(f));
         }
-        for (String f : new String[] {"descent_m", "ele_min_m", "ele_source", "point_cnt", "min_lat", "max_lon"}) {
+        for (String f : new String[] {"ele_min_m", "ele_source", "point_cnt", "min_lat", "max_lon"}) {
             assertFalse(f + " 는 목록 화면이 읽지 않음", CourseQueries.LIST_COLUMNS.contains(f));
             assertTrue(f + " 는 코스 하나에 그대로", CourseQueries.COURSE_COLUMNS.contains(f));
         }

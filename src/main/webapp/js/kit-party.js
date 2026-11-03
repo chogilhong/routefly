@@ -183,13 +183,17 @@
         return e;
     }
 
-    /** 종류별 이름 · 표준 빠르기 - 예상 시간에 씁니다. 등산 · 걷기는 오르막 600m/h 를 더합니다(네이스미스). */
+    /**
+     * 종류별 이름 · 표준 빠르기 - 예상 시간에 씁니다. 등산 · 걷기는 오르막 600m/h 를 더하고(네이스미스),
+     * 내리막도 300m 에 10분(1,800m/h)을 더합니다(2026-11-03 홍TV님 - 안전: 하산 시간이 빠져 일몰 · 귀가 어림이 짧았음.
+     * 네이스미스 규칙의 랭뮤어 보정 가운데 가파른 내리막 값 - 산길 내리막은 무릎 · 미끄럼 때문에 평지보다 느림). MountainServlet.hours 와 같은 값.
+     */
     var KINDS = {
-        hike: { label: "등산", kmh: 4, climb: 600, icon: "⛰️", act: "산행", sos: "등산 중", simKmh: 3.5, svg: "hiker" },
-        walk: { label: "걷기", kmh: 4, climb: 600, icon: "🚶", act: "걷기", sos: "걷기 중", simKmh: 4, svg: "walker" },
-        bike: { label: "자전거", kmh: 15, climb: 0, icon: "🚴", act: "라이딩", sos: "자전거 타던 중", simKmh: 15, svg: "cyclist" },
+        hike: { label: "등산", kmh: 4, climb: 600, down: 1800, icon: "⛰️", act: "산행", sos: "등산 중", simKmh: 3.5, svg: "hiker" },
+        walk: { label: "걷기", kmh: 4, climb: 600, down: 1800, icon: "🚶", act: "걷기", sos: "걷기 중", simKmh: 4, svg: "walker" },
+        bike: { label: "자전거", kmh: 15, climb: 0, down: 0, icon: "🚴", act: "라이딩", sos: "자전거 타던 중", simKmh: 15, svg: "cyclist" },
         // 2026-10-10: 등산 · 걷기가 애매한 코스(선자령순환등산로 등) - 두 탭 모두에 나오고, 따라가기는 등산과 같은 말 · 속도
-        trek: { label: "등산 · 걷기", kmh: 4, climb: 600, icon: "🥾", act: "산행", sos: "산행 중", simKmh: 3.5, svg: "hiker" }
+        trek: { label: "등산 · 걷기", kmh: 4, climb: 600, down: 1800, icon: "🥾", act: "산행", sos: "산행 중", simKmh: 3.5, svg: "hiker" }
     };
 
     var KINDS_EN = { hike: { label: "Hiking", act: "Hike", sos: "hiking" }, walk: { label: "Walking", act: "Walk", sos: "walking" },

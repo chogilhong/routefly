@@ -179,13 +179,13 @@ public class CoursePageServlet extends HttpServlet {
         };
     }
 
-    /** 순수 함수 - 예상 시간 글. 자전거는 시속 15km, 그 밖은 산 페이지와 같은 등산 표준(시속 4km · 오르막 600m 에 1시간). */
-    static String timeText(String kind, int distM, Integer ascM) {
+    /** 순수 함수 - 예상 시간 글. 자전거는 시속 15km, 그 밖은 산 페이지와 같은 등산 표준(시속 4km · 오르막 600m 에 1시간 · 내리막 300m 에 10분 - 2026-11-03 홍TV님). */
+    static String timeText(String kind, int distM, Integer ascM, Integer descM) {
         if ("bike".equals(kind)) {
             long m = Math.round(distM / 1000.0 / 15 * 60);
             return "약 " + (m >= 60 ? m / 60 + "시간 " : "") + m % 60 + "분(시속 15km 어림)";
         }
-        return "약 " + MountainServlet.hours(distM, ascM) + "(시속 4km · 오르막 600m 에 1시간 어림)";
+        return "약 " + MountainServlet.hours(distM, ascM, descM) + "(" + MountainServlet.RULE_KO + " 어림)";
     }
 
     /** 순수 함수 - 고도 그림(SVG, 스크립트 없음). 높이가 있는 점이 둘보다 적으면 "". 점은 PROFILE_MAX 개로 솎음. */
@@ -284,7 +284,7 @@ public class CoursePageServlet extends HttpServlet {
         boolean hike = "hike".equals(kind) || CourseQueries.TREK.equals(kind);
         String url = base + "/c/" + id;
         String summary = String.format(Locale.ROOT, "%.2fkm", d / 1000.0) + (asc != null ? String.format(Locale.KOREA, " · 오르막 %,dm", asc) : "")
-                + " · " + timeText(kind, d, asc).replaceFirst("\\(.*\\)$", "");
+                + " · " + timeText(kind, d, asc, desc).replaceFirst("\\(.*\\)$", "");
         String title = name + (name.endsWith("코스") ? "" : " " + kl + " 코스");
         String metaDesc = name + " - " + kl + " 코스 " + summary + ". 고도 그림 · 지나는 곳 · 가는 길, 3D 지형 위로 미리 날아 보고 핸드폰으로 따라 걷기.";
         StringBuilder b = new StringBuilder(MountainServlet.head(title, metaDesc, url, base, null, null, index));
@@ -300,7 +300,7 @@ public class CoursePageServlet extends HttpServlet {
         b.append("<dl class=\"sum\"><dt>거리</dt><dd>").append(String.format(Locale.ROOT, "%.2fkm", d / 1000.0)).append("</dd>");
         if (asc != null) b.append("<dt>오르막 · 내리막</dt><dd>").append(String.format(Locale.KOREA, "%,dm", asc)).append(desc != null ? String.format(Locale.KOREA, " · %,dm", desc) : "").append("</dd>");
         if (hi != null) b.append("<dt>높이</dt><dd>").append(lo != null ? String.format(Locale.KOREA, "%,dm ~ ", lo) : "").append(String.format(Locale.KOREA, "%,dm", hi)).append("</dd>");
-        b.append("<dt>예상 시간</dt><dd>").append(timeText(kind, d, asc)).append("</dd>");
+        b.append("<dt>예상 시간</dt><dd>").append(timeText(kind, d, asc, desc)).append("</dd>");
         if (hike) {
             String chip = MountainServlet.levelChip(d, asc, steep, false);
             if (!chip.isEmpty()) b.append("<dt>난이도</dt><dd>").append(chip).append(SteepRank.slopeText(d, asc, steep, false)).append("</dd>");

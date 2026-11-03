@@ -43,8 +43,10 @@ public class MountainEnTest {
         assertEquals("Bukhansan Baegundae", MountainEn.summitName("북한산백운대", "북한산"));
         assertEquals("Daecheongbong", MountainEn.summitName("대청봉", "설악산"));
         assertEquals("Baegunsan (Gwangyang)", MountainEn.name(JsonParser.parseString("{\"id\":\"백운산(광양)\"}").getAsJsonObject()));
-        assertEquals("2 h 18 min", MountainEn.hours(3980, 779));
-        assertEquals("45 min", MountainEn.hours(3000, null));
+        assertEquals("2 h 18 min", MountainEn.hours(3980, 779, null));
+        assertEquals("45 min", MountainEn.hours(3000, null, null));
+        // 내리막 300m 에 10분(2026-11-03 홍TV님): 3.98km · 오르막 779m · 내리막 540m → 2시간 18분 + 18분
+        assertEquals("2 h 36 min", MountainEn.hours(3980, 779, 540));
     }
 
     @Test

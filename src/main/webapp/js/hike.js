@@ -19,7 +19,7 @@
     var SIM_SPEEDS = [1, 2, 4, 0.25, 0.5];
     var SIM_SPEED = 1;   // 고른 빠르기
     var SIM_X = 1;       // 걷는 거리에 곱하는 배수 = (평지로 걷는 시간 ÷ 미리보기 1× 시간) × 고른 빠르기
-    var SIM_CLOCK = 1;   // 시계에 곱하는 배수 - 도착 때 경과 시간이 미리보기의 예상 시간(오르막 포함, RF.standardMs)과 같게
+    var SIM_CLOCK = 1;   // 시계에 곱하는 배수 - 도착 때 경과 시간이 미리보기의 예상 시간(오르막 · 내리막 포함, RF.legMs)과 같게
     var STILL_M = 40;          // 움직임 없음 - 이 안(+ GPS 오차)에서
     var STILL_MS = (+(location.search.match(/[?&]stillmin=(\d+)/) || [])[1] || +lsGet("rf-stillmin") || 20) * 60000;   //   이만큼 있으면 "괜찮으세요?"(?stillmin=1 · 앱은 localStorage rf-stillmin - 점검용)
     var DEBUG = lsGet("rf-debug") === "1";   // 점검용(2026-10-17): 화면이 꺼진 동안 스크립트가 도는지 - 1분마다 콘솔(안드로이드는 logcat Capacitor/Console)
@@ -2377,7 +2377,7 @@
         bat.then(function (b) {
             if (!c || hike.running) return;
             var t0 = Date.now(), rows = RF.startChecks({ saved: offlineIds().indexOf(c.id) >= 0, battery: b ? b.level : null, charging: !!(b && b.charging),
-                eta: t0 + RF.standardMs(c.course.kind, c.total, RF.ascentLeft(c, 0)), sunset: RF.sunset(t0, c.lat[0], c.lon[0]),
+                eta: t0 + RF.legMs(c, 0, c.total), sunset: RF.sunset(t0, c.lat[0], c.lon[0]),
                 safety: safetyJ && RF.safetyRows(safetyJ, t0, EN).length ? RF.safetyAlert(safetyJ, t0, EN) : null });
             var box = $("checkList"), sheet = $("checkSheet");
             box.textContent = "";
@@ -2460,7 +2460,7 @@
         hike.sunWarned = false;
         hike.sun60 = false;
         // 귀가 확인 - 표준 시간의 1.5배(적어도 1시간 더)가 지나도록 못 끝내면 알림, 그 뒤 한 시간마다(2026-10-14 홍TV님). 위치는 보내지 않음
-        hike.lateAt = sim ? 0 : RF.lateAt(hike.start, RF.standardMs(c.course.kind, c.total, RF.ascentLeft(c, 0)));
+        hike.lateAt = sim ? 0 : RF.lateAt(hike.start, RF.legMs(c, 0, c.total));
         hike.lateNext = hike.lateAt;
         hike.spotDone = {};
         hike.passed = {};
@@ -2481,10 +2481,10 @@
         // 시작 버튼을 누른 그 순간에 말해야 아이폰도 소리를 냅니다(사용자 동작 안에서 처음 말하기)
         if (EN) say(saved ? "Resuming guidance. " + skm(Math.max(0, c.total - hike.d)) + " kilometers to go."
             : "Starting guidance for " + spokenName(c.course.name) + ". " + skm(c.total) + " kilometers, about "
-                + spokenTime(RF.standardMs(c.course.kind, c.total, RF.ascentLeft(c, 0))) + ".", { urgent: true });
+                + spokenTime(RF.legMs(c, 0, c.total)) + ".", { urgent: true });
         else say(saved ? "이어서 안내합니다. 남은 거리 " + skm(Math.max(0, c.total - hike.d)) + "킬로미터."
             : spokenName(c.course.name) + " 안내를 시작합니다. 전체 " + skm(c.total) + "킬로미터, 예상 "
-                + spokenTime(RF.standardMs(c.course.kind, c.total, RF.ascentLeft(c, 0))) + ".", { urgent: true });
+                + spokenTime(RF.legMs(c, 0, c.total)) + ".", { urgent: true });
         $("save").style.display = "none";
         setFollow(true);
         $("go").textContent = sim ? T("시험 걷기 끝내기", "End simulation") : T(K().act + " 끝내기", "Finish " + K().act.toLowerCase());
@@ -2992,7 +2992,7 @@
     function simMul(speed) {
         var fly = RF.flightMs(c.total);
         SIM_X = Math.max(1, c.total / (K().simKmh / 3.6) * 1000 / fly) * speed;
-        SIM_CLOCK = Math.max(1, RF.standardMs(c.course.kind, c.total, RF.ascentLeft(c, 0)) / fly) * speed;
+        SIM_CLOCK = Math.max(1, RF.legMs(c, 0, c.total) / fly) * speed;
     }
 
     /** 모의 산행 - 코스를 따라 걷는 위치를 만들어 onFix 에 넣습니다(약간 흔들리게). */
@@ -3036,16 +3036,15 @@
     }
 
     /**
-     * 남은 시간(ms) - 표준 산행 시간(평지 4km/h + 오르막 600m/h, 네이스미스 규칙)에
-     * 지금까지 걸은 빠르기 비율을 곱합니다(10분 넘게 걸은 뒤부터, 0.6~2.5배).
+     * 남은 시간(ms) - 표준 산행 시간(평지 4km/h + 오르막 600m/h + 내리막 1,800m/h, 네이스미스 규칙 + 랭뮤어 보정 - RF.legMs)에
+     * 지금까지 걸은 빠르기 비율을 곱합니다(10분 넘게 걸은 뒤부터, 0.6~2.5배). 내리막은 2026-11-03 홍TV님(하산 시간이 빠졌었음).
      */
     function remainingMs(elapsed) {
-        var std = function (distM, ascM) { return RF.standardMs(c.course.kind, distM, ascM); };
-        var left = std(c.total - hike.d, RF.ascentLeft(c, hike.d));
+        var left = RF.legMs(c, hike.d, c.total);
         var factor = 1;
         // 빠르기 비율은 지금 코스에서 걸은 만큼으로(코스를 바꾼 뒤에도 맞게)
         var d0 = hike.d0 == null ? hike.d : Math.min(hike.d0, hike.d);
-        var doneStd = std(hike.d - d0, RF.ascentLeft(c, d0) - RF.ascentLeft(c, hike.d));
+        var doneStd = RF.legMs(c, d0, hike.d);
         var segEl = hike.running && hike.segT0 ? now() - hike.segT0 : elapsed;
         if (segEl > 600000 && doneStd > 300000) factor = Math.max(0.6, Math.min(2.5, segEl / doneStd));
         return left * factor;
@@ -3730,7 +3729,7 @@
             });
             box.appendChild(chips);
         }
-        var shown = rows.filter(function (r) { return RF.easyOk(easyKey, r.kind, r.distance_m, r.ascent_m); });
+        var shown = rows.filter(function (r) { return RF.easyOk(easyKey, r.kind, r.distance_m, r.ascent_m, r.descent_m); });
         if (!shown.length) {
             var em = document.createElement("div");
             em.className = "msg";
@@ -4628,7 +4627,7 @@
     // 공유 단추 → 고르기(코스 링크 · 가족에게 산행 계획 - 2026-10-15 홍TV님)
     $("share").addEventListener("click", function () {
         if (!c) return;
-        var t0 = now(), ms = RF.standardMs(c.course.kind, c.total, RF.ascentLeft(c, 0));
+        var t0 = now(), ms = RF.legMs(c, 0, c.total);
         var link = RF.parseJoinId(c.id) ? "" : new URL(EN ? "hike.html?lang=en#c=" + encodeURIComponent(c.id) : "s/" + encodeURIComponent(c.id) + "?to=hike", location.href).href;
         var text = RF.planText(c.course.name, c.total, Math.round(c.asc && c.asc.length ? c.asc[c.asc.length - 1] : 0), t0, t0 + ms, link, clock,
             RF.sunset(t0, c.lat[0], c.lon[0]));

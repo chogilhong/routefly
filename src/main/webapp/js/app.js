@@ -391,7 +391,7 @@
 
     function statLine(c) {
         var k = RF.kindOf(c.kind), parts = [(c.kind && c.kind !== "hike" ? k.icon + " " : "") + km(c.distance_m) + "km"];
-        var t = RF.standardMs(c.kind, +c.distance_m, c.ascent_m == null ? 0 : +c.ascent_m);
+        var t = RF.standardMs(c.kind, +c.distance_m, c.ascent_m == null ? 0 : +c.ascent_m, c.descent_m == null ? 0 : +c.descent_m);   // 내리막도(2026-11-03 홍TV님)
         parts.push(T("약 ", "about ") + RF.hm(t));
         if (c.ascent_m != null) parts.push(T("오르막 ", "climb ") + num(c.ascent_m) + "m");
         if (c.ele_max_m != null) parts.push(T("최고 ", "top ") + num(c.ele_max_m) + "m");

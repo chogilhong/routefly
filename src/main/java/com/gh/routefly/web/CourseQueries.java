@@ -40,9 +40,9 @@ final class CourseQueries {
 
     /**
      * 목록 줄(/api/courses · /api/group · 없는 코스의 similar). 2026-10-11 속도: 화면이 목록 줄에서 읽는 칸만
-     * (이름 · 종류 · 거리 · 오르막 · 최고 고도 · 출발점(지도 점 · 가까운 순) · 끝점(series.js geoOrder)).
+     * (이름 · 종류 · 거리 · 오르막 · 내리막(예상 시간 - 2026-11-03 홍TV님) · 최고 고도 · 출발점(지도 점 · 가까운 순) · 끝점(series.js geoOrder)).
      */
-    static final String LIST_COLUMNS = "course_id, name, kind, distance_m, ascent_m, ele_max_m, start_lat, start_lon, end_lat, end_lon";
+    static final String LIST_COLUMNS = "course_id, name, kind, distance_m, ascent_m, descent_m, ele_max_m, start_lat, start_lon, end_lat, end_lon";
 
     /** 코스 하나의 요약(/api/course) - 모든 칸(signsNear · spotsNear 가 min/max 를, 화면이 ele_source 를 씀). */
     static final String COURSE_COLUMNS = "course_id, name, kind, distance_m, ascent_m, descent_m, ele_min_m, ele_max_m,"

@@ -509,13 +509,17 @@
         return out - local * 86400000;
     }
 
-    /** 종류별 이름 · 표준 빠르기 - 예상 시간에 씁니다. 등산 · 걷기는 오르막 600m/h 를 더합니다(네이스미스). */
+    /**
+     * 종류별 이름 · 표준 빠르기 - 예상 시간에 씁니다. 등산 · 걷기는 오르막 600m/h 를 더하고(네이스미스),
+     * 내리막도 300m 에 10분(1,800m/h)을 더합니다(2026-11-03 홍TV님 - 안전: 하산 시간이 빠져 일몰 · 귀가 어림이 짧았음.
+     * 네이스미스 규칙의 랭뮤어 보정 가운데 가파른 내리막 값 - 산길 내리막은 무릎 · 미끄럼 때문에 평지보다 느림). MountainServlet.hours 와 같은 값.
+     */
     var KINDS = {
-        hike: { label: "등산", kmh: 4, climb: 600, icon: "⛰️", act: "산행", sos: "등산 중", simKmh: 3.5, svg: "hiker" },
-        walk: { label: "걷기", kmh: 4, climb: 600, icon: "🚶", act: "걷기", sos: "걷기 중", simKmh: 4, svg: "walker" },
-        bike: { label: "자전거", kmh: 15, climb: 0, icon: "🚴", act: "라이딩", sos: "자전거 타던 중", simKmh: 15, svg: "cyclist" },
+        hike: { label: "등산", kmh: 4, climb: 600, down: 1800, icon: "⛰️", act: "산행", sos: "등산 중", simKmh: 3.5, svg: "hiker" },
+        walk: { label: "걷기", kmh: 4, climb: 600, down: 1800, icon: "🚶", act: "걷기", sos: "걷기 중", simKmh: 4, svg: "walker" },
+        bike: { label: "자전거", kmh: 15, climb: 0, down: 0, icon: "🚴", act: "라이딩", sos: "자전거 타던 중", simKmh: 15, svg: "cyclist" },
         // 2026-10-10: 등산 · 걷기가 애매한 코스(선자령순환등산로 등) - 두 탭 모두에 나오고, 따라가기는 등산과 같은 말 · 속도
-        trek: { label: "등산 · 걷기", kmh: 4, climb: 600, icon: "🥾", act: "산행", sos: "산행 중", simKmh: 3.5, svg: "hiker" }
+        trek: { label: "등산 · 걷기", kmh: 4, climb: 600, down: 1800, icon: "🥾", act: "산행", sos: "산행 중", simKmh: 3.5, svg: "hiker" }
     };
 
     var KINDS_EN = { hike: { label: "Hiking", act: "Hike", sos: "hiking" }, walk: { label: "Walking", act: "Walk", sos: "walking" },
@@ -570,11 +574,11 @@
     if (global.addEventListener && global.navigator && /Android/i.test(navigator.userAgent || "") && !global.Capacitor)
         global.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); });
 
-    function standardMs(kind, distM, ascM) {
+    /** 순수 함수 - 표준 소요 시간(ms): 거리 ÷ 빠르기 + 오르막 ÷ climb + 내리막 ÷ down(KINDS). descM 이 없으면 내리막 0. */
+    function standardMs(kind, distM, ascM, descM) {
         var k = kindOf(kind);
-        return (distM / 1000 / k.kmh + (k.climb ? ascM / k.climb : 0)) * 3600000;
+        return (distM / 1000 / k.kmh + (k.climb ? (+ascM || 0) / k.climb : 0) + (k.down ? (+descM || 0) / k.down : 0)) * 3600000;
     }
-
     /** 순수 함수 - 기상청 하늘(sky 1 · 3 · 4) · 강수 형태(pty 0 ~ 4) → "☀️ 맑음" 같은 말. */
     function weatherWord(sky, pty) {
         var p = { 1: "🌧 비", 2: "🌨 비/눈", 3: "❄️ 눈", 4: "🌦 소나기" }[+pty];
@@ -728,9 +732,9 @@
     /** 쉬운 코스 거르기(2026-10-15 홍TV님) - {key, label, ms}, ms 0 은 모두. */
     var EASY = [{ key: "", label: "모두", ms: 0 }, { key: "2h", label: "2시간 이내", ms: 2 * 3600000 }, { key: "4h", label: "4시간 이내", ms: 4 * 3600000 }];
     /** 순수 함수 - 그 거르기에 드는 코스인가(표준 소요 시간). key 가 없거나 모르면 모두 듦. */
-    function easyOk(key, kind, distM, ascM) {
+    function easyOk(key, kind, distM, ascM, descM) {
         var e = EASY.filter(function (x) { return x.key === key; })[0];
-        return !e || !e.ms || standardMs(kind || "hike", +distM || 0, +ascM || 0) <= e.ms;
+        return !e || !e.ms || standardMs(kind || "hike", +distM || 0, +ascM || 0, +descM || 0) <= e.ms;
     }
 
     // ── ⛑️ 오늘의 산행 안전(api/safety - SafetyServlet) - 별거 별거 · 산 페이지 · 따라가기가 함께 씀(2026-10-18 홍TV님) ──
@@ -1174,7 +1178,7 @@
     /** 순수 함수 - 견주기 표의 줄들. a · b = {name, dist, asc}. → [[항목, a 값, b 값], …] (en - 영어). */
     function compareRows(a, b, en) {
         var row = function (o) {
-            var lv = difficulty(o.dist, o.asc, o.steep), ms = standardMs("hike", o.dist, o.asc || 0);
+            var lv = difficulty(o.dist, o.asc, o.steep), ms = standardMs("hike", o.dist, o.asc || 0, o.desc || 0);
             return [(o.dist / 1000).toFixed(2) + " km", o.asc != null ? Math.round(o.asc).toLocaleString("en-US") + " m" : "-",
                     en ? (function (m) { return (m >= 60 ? Math.floor(m / 60) + " h " : "") + m % 60 + " min"; })(Math.round(ms / 60000)) : hm(ms), lv == null ? "-" : en ? LEVELS[lv].en : LEVELS[lv].ko,
                     // 각도 · 경사 · 가파른 1km - 가파른 산 순위 · 산 페이지 코스 줄과 같은 기준(SteepRank.slopeText, 2026-10-18 홍TV님 "통일"): 1km 이상 · 오르막 있는 코스만
@@ -1195,7 +1199,8 @@
         list.parentNode.insertBefore(panel, list);
         function info(li) {
             var asc = li.getAttribute("data-asc"), st = li.getAttribute("data-steep");
-            return { id: li.getAttribute("data-id"), name: li.getAttribute("data-name"), dist: +li.getAttribute("data-dist"), asc: asc != null ? +asc : null, steep: st != null ? +st : null, li: li };
+            return { id: li.getAttribute("data-id"), name: li.getAttribute("data-name"), dist: +li.getAttribute("data-dist"), asc: asc != null ? +asc : null,
+                     desc: +li.getAttribute("data-desc") || 0, steep: st != null ? +st : null, li: li };
         }
         function draw() {
             Array.prototype.forEach.call(list.querySelectorAll(".cmpBtn"), function (b) { var on = picked.indexOf(b._li) >= 0; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false"); });
