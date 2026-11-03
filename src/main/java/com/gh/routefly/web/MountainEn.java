@@ -118,6 +118,7 @@ final class MountainEn {
 
     /** 순수 함수 - 영어 산 페이지. */
     static String page(JsonObject peak, List<JsonObject> courses, List<Object[]> nearby, Integer parking, String base) {
+        courses = MountainServlet.upward(courses, peak);   // 정상에서 시작하게 적힌 코스는 들머리부터(한국어 페이지와 같게)
         String ko = id(peak), name = name(peak), slug = Roman.slug(ko), summit = str(peak, "summit");
         String url = base + "/en/m/" + slug, koUrl = base + "/m/" + MountainServlet.enc(ko);
         Integer height = MountainServlet.elev(peak);
@@ -160,7 +161,7 @@ final class MountainEn {
                         .append(SteepRank.slopeText(dist, asc, steep, true))   // 순위와 같은 기준(2026-10-18)
                         .append(" · about ").append(hours(dist, asc, down)).append("</span><span class=\"go\">")
                         .append("<a href=\"").append(REL).append("/index.html?lang=en#c=").append(esc(id)).append("\">3D fly-through</a>")
-                        .append("<a href=\"").append(REL).append("/hike.html?lang=en#c=").append(esc(id)).append("&amp;m=").append(esc(MountainServlet.enc(id(peak)))).append("\">Follow (GPS)</a>");   // 따라가기 영어 · ‹ 는 이 페이지로
+                        .append("<a href=\"").append(REL).append("/hike.html?lang=en#c=").append(esc(id)).append(MountainServlet.revArg(c)).append("&amp;m=").append(esc(MountainServlet.enc(id(peak)))).append("\">Follow (GPS)</a>");   // 따라가기 영어 · ‹ 는 이 페이지로
                 double[] th = MountainServlet.trailhead(c, peak);
                 if (th != null) b.append("<a class=\"way\" href=\"").append(esc(googleTo(th))).append("\" target=\"_blank\" rel=\"noopener\">🚌 Directions</a>");
                 b.append("</span></li>");

@@ -12,6 +12,7 @@
 
     var OFF_ROUTE_M = 50;      // 이보다 멀면 "코스에서 벗어남"
     var ARRIVE_M = 30;         // 끝점까지 이 안이면 도착
+    var ARRIVE_GO_M = 100;     // 도착으로 치려면 출발 자리에서 코스를 따라 이만큼은 나아가야 함(짧은 코스는 절반)
     var START_FAR_M = 1000;    // 산행 시작 때 코스에서 이보다 멀면 저절로 끝내고 출발점 길찾기(2026-11-01 홍TV님)
     var FAR_M = 3000;          // 코스에서 이보다 멀면 "벗어남" 대신 출발점(마지막 자리)까지 안내(집 · 차 안에서 시작했을 때)
     // 시험 걷기 빠르기 - 미리보기와 같게: 1× 는 미리보기 1× 비행 시간(RF.flightMs, 20 ~ 90초)에 코스를 다 걷는 빠르기,
@@ -2925,7 +2926,7 @@
             s = { d: hike.d, off: hike.off };
         }
         checkBranch(co.latitude, co.longitude, s);
-        if (!hike.arrived && c.total - hike.d <= ARRIVE_M && s.off <= OFF_ROUTE_M) {
+        if (!hike.arrived && arrivedAt(c, hike, s.off)) {
             hike.arrived = true;
             pocketSet(false);
             var endPoi = c.pois.filter(function (q) { return +q.dist_m > c.total - 60 && +q.off_route_m < 60; }).pop();
@@ -3110,6 +3111,14 @@
         if (renderHidden) return;
         var el = $(id);
         if (el.textContent !== text) el.textContent = text;
+    }
+
+    /**
+     * 도착인지 - 끝점 ARRIVE_M 안 · 코스 위, 그리고 출발 자리(d0)에서 실제로 나아갔을 때만(2026-11-03 코스 점검: 정상에서 시작하게 적힌 코스를
+     * 들머리 쪽 끝에서 시작하면 걷기도 전에 "🎉 도착!" 이었음 - 되돌아 걸으면 거꾸로 된 코스로 바뀌어 그 끝에서 도착).
+     */
+    function arrivedAt(c, hike, off) {
+        return c.total - hike.d <= ARRIVE_M && off <= OFF_ROUTE_M && hike.d0 != null && (hike.dMax || 0) - hike.d0 >= Math.min(ARRIVE_GO_M, c.total / 2);
     }
 
     /**

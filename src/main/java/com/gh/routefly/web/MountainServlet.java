@@ -367,9 +367,47 @@ public class MountainServlet extends HttpServlet {
         double[] t = {peak.get("lat").getAsDouble(), peak.get("lon").getAsDouble()};
         double ds = gap(c, "start_lat", "start_lon", t), de = gap(c, "end_lat", "end_lon", t);
         if (ds == Double.POSITIVE_INFINITY && de == Double.POSITIVE_INFINITY) return null;
-        boolean start = de == Double.POSITIVE_INFINITY || (ds != Double.POSITIVE_INFINITY && ds >= de);
+        boolean start = ds != Double.POSITIVE_INFINITY && !fromTop(c, peak);   // 따라가기의 &rev=1(upward)과 같은 쪽
         return start ? new double[] {c.get("start_lat").getAsDouble(), c.get("start_lon").getAsDouble()}
                 : new double[] {c.get("end_lat").getAsDouble(), c.get("end_lon").getAsDouble()};
+    }
+
+    /** 시작이 끝보다 이만큼 넘게 정상에 가까워야 "정상에서 시작하게 적힌 코스"(원점회귀는 두 끝이 가까워 적힌 방향 그대로). */
+    static final double FROM_TOP_M = 200;
+
+    /** 순수 함수 - 정상에서 시작하게 적힌 코스인지(시작이 끝보다 정상에 FROM_TOP_M 넘게 가까움). 두 끝 좌표가 다 있어야 true. */
+    static boolean fromTop(JsonObject c, JsonObject peak) {
+        double[] t = {peak.get("lat").getAsDouble(), peak.get("lon").getAsDouble()};
+        double ds = gap(c, "start_lat", "start_lon", t), de = gap(c, "end_lat", "end_lon", t);
+        return ds != Double.POSITIVE_INFINITY && de != Double.POSITIVE_INFINITY && ds + FROM_TOP_M < de;
+    }
+
+    /**
+     * 순수 함수 - 산 페이지에 보일 코스: 정상에서 시작하게 적힌 코스는 들머리부터 오르게 뒤집어 보임 - 오르막 · 내리막을 바꾸고 rev(따라가기 링크에 &rev=1).
+     * 2026-11-03 코스 점검: 🚌 가는 길은 들머리(끝)로 가는데 따라가기는 정상에서 시작했고, 오르막 · 예상 시간 · 일출 출발 시각도 내려가는 쪽 값이었음. MountainEn 도 씀.
+     */
+    static List<JsonObject> upward(List<JsonObject> courses, JsonObject peak) {
+        List<JsonObject> out = new ArrayList<>();
+        for (JsonObject c : courses) {
+            if (!fromTop(c, peak)) {
+                out.add(c);
+                continue;
+            }
+            JsonObject r = c.deepCopy();
+            JsonElement up = c.get("ascent_m"), down = c.get("descent_m");
+            r.remove("ascent_m");
+            r.remove("descent_m");
+            if (down != null) r.add("ascent_m", down);
+            if (up != null) r.add("descent_m", up);
+            r.addProperty("rev", true);
+            out.add(r);
+        }
+        return out;
+    }
+
+    /** 따라가기 링크 hash 에 붙일 거꾸로 표시(upward 가 뒤집은 코스만). 3D(index.html)는 &rev=1 을 이은 코스에만 써서 붙이지 않음 - 3D 는 적힌 방향 그대로 날아감. */
+    static String revArg(JsonObject c) {
+        return c.has("rev") ? "&amp;rev=1" : "";
     }
 
     /** 순수 함수 - 카카오맵 로드뷰(그 좌표 가까운 도로 사진). 키 없이 쓰는 링크(지도 URL - 로드뷰 바로가기). 2026-11-02 홍TV님. */
@@ -716,6 +754,7 @@ public class MountainServlet extends HttpServlet {
 
     /** 순수 함수 - 산 페이지. */
     static String page(JsonObject peak, List<JsonObject> courses, List<Object[]> nearby, Integer parking, String base) {
+        courses = upward(courses, peak);   // 정상에서 시작하게 적힌 코스는 들머리부터(오르막 · 시간 · 문답 · 링크)
         String name = str(peak, "id") != null ? str(peak, "id") : str(peak, "name"), summit = str(peak, "summit");   // id = 지역 붙은 이름(백운산(광양))
         String url = base + "/m/" + enc(name);
         Integer top = null;
@@ -770,7 +809,7 @@ public class MountainServlet extends HttpServlet {
                         .append(str(c, "summit_miss") != null ? " · ⚠ " + esc(str(c, "summit_miss")) + " 정상 미포함" : "")   // 이름의 정상까지 안 가는 선(2026-10-30 코스 점검)
                         .append("</span><span class=\"go\">")
                         .append("<a href=\"").append(REL).append("/index.html?lang=ko#c=").append(esc(id)).append("&amp;m=").append(esc(enc(name))).append("\">fly(3D)</a>")
-                        .append("<a href=\"").append(REL).append("/hike.html?lang=ko#c=").append(esc(id)).append("&amp;m=").append(esc(enc(name))).append("\">따라가기</a>");   // m= - 따라가기의 ‹ 가 이 화면으로
+                        .append("<a href=\"").append(REL).append("/hike.html?lang=ko#c=").append(esc(id)).append(revArg(c)).append("&amp;m=").append(esc(enc(name))).append("\">따라가기</a>");   // m= - 따라가기의 ‹ 가 이 화면으로
                 double[] th = trailhead(c, peak);
                 if (th != null) b.append("<a class=\"way\" href=\"").append(esc(kakaoTo(str(peak, "name") + " 들머리", th)))
                         .append("\" target=\"_blank\" rel=\"noopener\">🚌 가는 길</a>");   // 카카오맵 길찾기(대중교통 · 차)
