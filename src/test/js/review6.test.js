@@ -71,7 +71,7 @@ vctx.hide(true); vctx.f("sDone", "1.4", "km"); vctx.hide(false);
 eq("숨은 동안은 안 씀", [cells.sDone.writes, cells.sDone.kids[0].t], [2, "1.3"]);
 vctx.f("sDone", "1.4", "km");
 eq("다시 보이면 씀", [cells.sDone.writes, cells.sDone.kids[0].t], [3, "1.4"]);
-assert(/renderHidden = document\.hidden === true;[^\n]*\n\s*try \{ renderAll\(\); \} finally \{ renderHidden = false; \}/.test(HIKE), "render 가 숨은 동안 표시만 쉬고 판단은 함"); n++;
+assert(/renderHidden = document\.hidden === true( \|\| pocket\.on)?;[^\n]*\n\s*try \{ renderAll\(\); \} finally \{ renderHidden = false; \}/.test(HIKE), "render 가 숨은 동안 표시만 쉬고 판단은 함"); n++;
 
 // ---- C6: GPX 편집 높이 타일 - 최근 64장만
 (function () {

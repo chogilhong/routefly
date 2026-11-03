@@ -278,6 +278,13 @@ html.rfwait body { visibility:hidden; }   /* 앱을 처음 열 때 서버에 닿
             font-size:20px; line-height:1; box-shadow:0 2px 8px rgba(0,0,0,0.45); display:none; }
 #noteBtn { position:absolute; left:12px; top:118px; z-index:2; width:44px; height:44px; border-radius:50%; border:0; background:#fff;
            font-size:20px; line-height:1; box-shadow:0 2px 8px rgba(0,0,0,0.45); display:none; }
+/* 🌙 주머니 모드(2026-11-03 홍TV님) - 📝 아래 단추, 누르면 화면 전체를 검게(OLED 는 거의 꺼짐). 지도 그리기만 쉬고 GPS · 기록 · 음성 · 알림 · SOS 는 그대로 */
+#pocketBtn { position:absolute; left:12px; top:170px; z-index:2; width:44px; height:44px; border-radius:50%; border:0; background:#fff;
+             font-size:20px; line-height:1; box-shadow:0 2px 8px rgba(0,0,0,0.45); display:none; }
+#pocket { position:fixed; inset:0; z-index:60; background:#000; touch-action:manipulation; user-select:none; -webkit-user-select:none; }
+#pocket[hidden] { display:none; }
+#pocketOff { position:absolute; left:50%; bottom:calc(24px + env(safe-area-inset-bottom, 0px)); transform:translateX(-50%); min-height:44px; padding:0 18px;
+             border:1px solid #222; border-radius:22px; background:#000; color:#555; font:inherit; font-size:14px; }
 #noteText { width:100%; min-height:70px; box-sizing:border-box; border-radius:10px; border:1px solid var(--ln); background:rgba(255,255,255,0.06);
             color:var(--tx); font:inherit; font-size:15px; padding:8px 10px; resize:vertical; }
 #notePreview { display:none; max-width:100%; max-height:200px; border-radius:10px; margin:8px 0 0; }
@@ -362,6 +369,7 @@ html.picking #pick { display:flex; }
     <button type="button" id="voice" data-en-title="Voice guide detailed · short · off (junctions, points, every 1 km, off-trail, arrival)" data-en-aria-label="Change voice guide" class="on" aria-label="음성 안내 바꾸기" title="음성 안내 자세히 · 짧게 · 끄기(갈림길 · 지점 · 1km 마다 · 코스 이탈 · 도착)">🔊</button>
     <button type="button" id="layerBtn" data-en-title="Light map (easier to see in sunlight)" data-en-aria-label="Switch light map · satellite" aria-label="밝은 지도 · 위성사진 바꾸기" title="밝은 지도로(햇빛 아래에서 잘 보임)">🗺️</button>
     <button type="button" id="follow" data-en-title="Follow my location" data-en-aria-label="Follow my location" class="on" aria-label="내 위치 따라가기" title="내 위치 따라가기">⌖</button>
+    <button type="button" id="pocketBtn" data-en-title="Pocket mode - black screen, map paused; GPS, recording, voice and alerts keep going" data-en-aria-label="Pocket mode" aria-label="주머니 모드" title="주머니 모드 - 화면을 검게, 지도는 쉬고 GPS · 기록 · 음성 · 알림은 그대로">🌙</button>
     <button type="button" id="noteBtn" data-en-title="Add a photo or note here (in My records and GPX)" data-en-aria-label="Add photo · note" aria-label="사진 · 메모 남기기" title="지금 자리에 사진 · 메모 남기기(내 기록 · GPX 에 함께)">📝</button>
 </div>
 
@@ -471,6 +479,8 @@ html.picking #pick { display:flex; }
 </div>
 
 <div id="toast" role="status" aria-live="polite"></div>
+<!-- 🌙 주머니 모드(2026-11-03 홍TV님) - 검은 화면을 두 번 눌러 풀기. 화면 읽기 프로그램은 아래 단추를 한 번 누르면 풂 -->
+<div id="pocket" hidden><button type="button" id="pocketOff" data-en="🔒 Tap twice to unlock" data-en-aria-label="Turn off pocket mode" aria-label="주머니 모드 풀기">🔒 두 번 눌러 풀기</button></div>
 
 <!-- SOS - 119 전화 · 문자, 내 위치(국가지점번호) -->
 <div id="sosSheet" class="sheet">

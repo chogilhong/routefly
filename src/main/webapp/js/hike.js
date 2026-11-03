@@ -95,12 +95,64 @@
     }
 
     function toast(text, ms) {
+        pocketSet(false);   // 알릴 것이 있으면 주머니 모드를 풂(2026-11-03 홍TV님)
         var t = $("toast");
         t.textContent = text;
         t.style.display = "block";
         clearTimeout(toast.timer);
         toast.timer = setTimeout(function () { t.style.display = "none"; }, ms || 3500);
     }
+
+    // ------------------------------------------------------------------ 🌙 주머니 모드(2026-11-03 홍TV님)
+
+    /**
+     * 걷는 중 화면 전체를 검게 덮고(OLED 는 거의 꺼짐) 지도 그리기 · 화면 숫자 쓰기만 쉽니다(renderHidden · onFix 의 setMe · followMe).
+     * GPS · 걸은 길 기록 · 음성 안내 · 알림 · 움직임 없음 · SOS · 산악회 방 위치 보내기는 그대로, 화면 켜 두기(wake lock)도 그대로.
+     * 검은 화면을 두 번(POCKET_TAP_MS 안) 누르면 풂 - 화면 읽기 프로그램 · 키보드는 "풀기" 단추를 한 번 누르면(포인터 없는 click) 풂.
+     * 알림(toast) · 급한 음성 안내 · SOS · 움직임 없음 · 도착 · 산행 끝이면 저절로 풂.
+     */
+    var POCKET_TAP_MS = 600;
+    var pocket = { on: false, tapT: 0, back: null, inert: [] };
+    /** 순수 함수 - 주머니 모드에서 누름 하나: pointer 가 아니면(화면 읽기 · 키보드) 바로 풂, 아니면 앞 누름(prevT)에서 0.6초 안이면 풂. → {unlock, tapT} */
+    function pocketTap(prevT, t, pointer) {
+        if (!pointer || t - prevT <= POCKET_TAP_MS) return { unlock: true, tapT: 0 };
+        return { unlock: false, tapT: t };
+    }
+    /** 주머니 모드 켜기 · 끄기. 걷는 중이 아니면 켜지 않음. */
+    function pocketSet(on) {
+        on = !!on && !!hike.running;
+        if (pocket.on === on) return;
+        pocket.on = on;
+        pocket.tapT = 0;
+        $("pocket").hidden = !on;
+        if (on) {
+            pocket.back = document.activeElement;
+            // 뒤 화면은 누르거나 Tab 으로 갈 수 없게(이미 inert 인 것은 그대로 두고 돌려놓을 때도 건드리지 않음)
+            pocket.inert = Array.prototype.filter.call(document.body.children, function (el) { return el.id !== "pocket" && el.tagName !== "SCRIPT" && !el.inert; });
+            pocket.inert.forEach(function (el) { el.inert = true; });
+            if (map) map.stop();   // 움직이던 지도(easeTo)를 멈춤
+            $("pocketOff").focus();
+            return;
+        }
+        pocket.inert.forEach(function (el) { el.inert = false; });
+        pocket.inert = [];
+        if (c) {
+            render();   // 쉬는 동안 못 쓴 숫자 · 고도 그림 · 지나온 길 색
+            if (hike.fix && map) {
+                setMe(hike.fix.lat, hike.fix.lon, null);
+                if (hike.follow) map.jumpTo({ center: [hike.fix.lon, hike.fix.lat], zoom: Math.max(map.getZoom(), 15) });
+            }
+        }
+        var b = pocket.back;
+        pocket.back = null;
+        if (b && b.focus && document.body.contains(b)) b.focus();
+    }
+    $("pocketBtn").addEventListener("click", function () { pocketSet(true); });
+    $("pocket").addEventListener("click", function (e) {
+        var r = pocketTap(pocket.tapT, Date.now(), e.detail > 0);   // detail 0 - 화면 읽기 · 키보드로 누른 click
+        pocket.tapT = r.tapT;
+        if (r.unlock) pocketSet(false);
+    });
 
     // ------------------------------------------------------------------ 앱(안드로이드 · Capacitor) 안에서만
 
@@ -178,6 +230,7 @@
      */
     function say(text, opt) {
         opt = opt || {};
+        if (opt.urgent) pocketSet(false);   // 급한 안내(코스 이탈 · 위험 · 도착 · 일몰 등)는 화면도 봐야 함 - 주머니 모드 풂(소리를 꺼 두었어도)
         if ((!voice.on && !opt.force) || !text || !TTS && !("speechSynthesis" in window)) return;
         var t = Date.now();
         if (opt.key) {
@@ -2495,6 +2548,7 @@
         barFit();
         $("arrived").style.display = "none";
         $("noteBtn").style.display = sim ? "none" : "block";   // 시험 걷기는 기록이 남지 않아 사진 · 메모도 받지 않습니다
+        $("pocketBtn").style.display = "block";
         drawNoteMarkers();
         if (sim) {
             hike.simD = 0;
@@ -2646,6 +2700,8 @@
         barFit();
         $("turn").style.display = "none";
         $("noteBtn").style.display = "none";
+        pocketSet(false);
+        $("pocketBtn").style.display = "none";
         hike.notes = [];
         drawNoteMarkers();
         map.getSource("guide").setData({ type: "FeatureCollection", features: [] });
@@ -2833,8 +2889,10 @@
             v = dt >= 10 ? distM(h0.lat, h0.lon, co.latitude, co.longitude) / dt : null;
         }
         if (v != null) hike.speed = hike.speed == null ? v : hike.speed * 0.7 + v * 0.3;
-        setMe(co.latitude, co.longitude, co.heading);
-        if (hike.follow) followMe(co.latitude, co.longitude);
+        if (!pocket.on) {   // 주머니 모드는 지도를 건드리지 않음(풀 때 맞춤)
+            setMe(co.latitude, co.longitude, co.heading);
+            if (hike.follow) followMe(co.latitude, co.longitude);
+        }
         // 코스를 따라 되돌아가면(올라가다 내려옴) 거꾸로 된 코스로 - "벗어났다" 대신 내려가는 길 안내
         // 한 번 튄 위치로 바꾸지 않게 1분 동안 계속 되돌아간 상태일 때만(2026-10-23 지리산)
         // 2026-10-23 장터목 아래로 내려가는데 서너 번 거꾸로 바뀜 - 코스 위 거리만 줄고(대피소 앞 되돌이 길 · 위치 붙는 자리) 몸은
@@ -2851,6 +2909,7 @@
         checkBranch(co.latitude, co.longitude, s);
         if (!hike.arrived && c.total - hike.d <= ARRIVE_M && s.off <= OFF_ROUTE_M) {
             hike.arrived = true;
+            pocketSet(false);
             var endPoi = c.pois.filter(function (q) { return +q.dist_m > c.total - 60 && +q.off_route_m < 60; }).pop();
             var fin = hike.paceFin = paceFinal();   // 지난번과 견준 도착 시간(2026-10-16 PC: 도착하면 옆 글이 사라져 결과를 못 봄)
             $("arrived").textContent = "🎉 " + (endPoi ? NM(endPoi.name) + " " : "") + T("도착! ", "- you made it! ") + km(c.total) + "km · " + hhmmss(now() - hike.start) + (fin ? " · " + fin : "");
@@ -3083,6 +3142,7 @@
             el.textContent = t ? "· " + t : "";
             el.className = /빠름|faster/.test(t) ? "fast" : /늦음|slower/.test(t) ? "slow" : "";
         }
+        if (pocket.on) return;   // 지도의 흐린 점은 주머니 모드를 풀 때
         var gd = diff == null ? null : RF.paceDistAt(hike.pace.prof, now() - hike.start);
         if (gd == null) { if (hike.ghost) { hike.ghost.remove(); hike.ghost = null; } return; }
         var g = RF.at(c, gd);
@@ -3123,6 +3183,7 @@
         hike.still = st.anchor;
         if (!st.due) return;
         hike.stillAsk = t;
+        pocketSet(false);   // 움직임 없음 - 묻는 창이 보이게
         $("endSheet").style.display = "none";   // 끝내기 창을 열어 둔 채 20분 - 겹치지 않게 묻는 창만(2026-10-16 PC)
         $("stillText").textContent = EN ? "No movement for " + Math.round((t - hike.still.t) / 60000) + " minutes. If you are OK, tap below." : Math.round((t - hike.still.t) / 60000) + "분째 움직임이 없습니다. 괜찮으면 아래를 눌러 주세요.";
         $("stillSheet").style.display = "flex";
@@ -3162,7 +3223,7 @@
 
     function render() {
         if (!c) return;
-        renderHidden = document.hidden === true;   // 알림 · 판단은 그대로 하고 화면 쓰기만 쉼
+        renderHidden = document.hidden === true || pocket.on;   // 알림 · 판단은 그대로 하고 화면 쓰기만 쉼(주머니 모드도)
         try { renderAll(); } finally { renderHidden = false; }
     }
     document.addEventListener("visibilitychange", function () { if (!document.hidden && c) render(); });   // 숨은 동안 쉰 화면을 바로
@@ -3387,6 +3448,7 @@
                 hike.guideShown = false;
             }
         }
+        if (pocket.on) return;   // 주머니 모드 - 고도 그림 · 지도 선 색은 풀 때
         if (prof) prof.set(d);
         if (boardOpenNow && Date.now() - boardDrawn > 5000) drawBoard();   // 열려 있으면 5초마다 현위치를 다시
         paintDone(d);
@@ -4500,6 +4562,7 @@
     });
 
     $("sos").addEventListener("click", function () {
+        pocketSet(false);
         $("sosSheet").style.display = "flex";
         var inParty = !!(window.RFParty && RFParty.get());
         if ($("sosOff")) $("sosOff").hidden = !inParty;   // 옛 hike.html(캐시)에는 없음 - 2026-11-03
