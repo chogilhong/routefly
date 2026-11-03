@@ -139,4 +139,14 @@ var RF = kit();
     has("따라가기도", HIKE, "RF.steepest(c.dist, c.ele), c.info);");
 })();
 
+// ---- 6: 3D 영어 단수 · 가로 화면 출처 ⓘ 접기
+(function () {
+    var APP = read("js/app.js");
+    var en = function (spots) { return vm.runInNewContext(fn(APP, "spotSummaryEn") + " spotSummaryEn(spots);", { spots: spots }); };
+    eq("하나는 단수", en([{ kind: "danger" }, { kind: "view" }]), "⚠️ 1 hazard spot · 🔭 1 viewpoint");
+    eq("둘은 복수", en([{ kind: "danger" }, { kind: "danger" }, { kind: "view" }, { kind: "view" }]), "⚠️ 2 hazard spots · 🔭 2 viewpoints");
+    has("가로 화면은 출처 접기", APP, 'window.matchMedia("(max-height: 500px) and (orientation: landscape)").matches');
+    has("▶ routefly 단추 글은 그대로(홍TV님 결정)", read("index.html"), "routefly");
+})();
+
 console.log("OK " + n);

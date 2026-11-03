@@ -629,7 +629,8 @@
     function spotSummaryEn(spots) {
         var n = { danger: 0, view: 0 };
         (spots || []).forEach(function (s) { if (n[s.kind] != null) n[s.kind]++; });
-        return [n.danger ? "⚠️ " + n.danger + " hazard spots" : "", n.view ? "🔭 " + n.view + " viewpoints" : ""].filter(Boolean).join(" · ");
+        // 하나면 단수(2026-11-03 홍TV님 점검: "1 hazard spots")
+        return [n.danger ? "⚠️ " + n.danger + (n.danger === 1 ? " hazard spot" : " hazard spots") : "", n.view ? "🔭 " + n.view + (n.view === 1 ? " viewpoint" : " viewpoints") : ""].filter(Boolean).join(" · ");
     }
     var DAYS_EN = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     function dayLabelL(date, today) {
@@ -1395,6 +1396,13 @@
             customAttribution: T("등산로: 산림청 등산로정보 | 걷기길: 한국관광공사 두루누비 | 봉우리 · 국가숲길: 한국등산·트레킹지원센터 | 지명 · 자전거길 · 등산 노선: ",
                 "Trails: Korea Forest Service | Walking: Korea Tourism Organization Durunubi | Peaks · forest trails: Korea Hiking & Trekking Center | Places · bike paths: ") + "<a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\" rel=\"noopener\">© OpenStreetMap contributors</a>"
                 + " | <a href=\"" + T("about.html", "about-en.html") + "\">" + T("안전 · 개인정보 · 출처 안내", "Safety · privacy · sources") + "</a>" }), "top-right");
+        // 폰 가로 화면(높이 500px 밑)은 출처를 ⓘ 로 접어 둠 - 펼친 출처가 낮은 화면의 지도를 많이 가렸음(2026-11-03 홍TV님 점검, GPX 편집과 같게). ⓘ 를 누르면 보임
+        if (window.matchMedia && window.matchMedia("(max-height: 500px) and (orientation: landscape)").matches) {
+            var foldAttrib = function () { var a = document.querySelector("#map .maplibregl-ctrl-attrib"); if (a) a.classList.remove("maplibregl-compact-show"); };
+            foldAttrib();
+            map.once("styledata", foldAttrib);
+            map.once("load", foldAttrib);
+        }
         map.on("error", function (e) {
             // 타일 한 장이 안 와도 지도는 계속 씁니다 - 콘솔에만 남깁니다.
             if (window.console) console.warn("map", e && e.error ? e.error.message : e);
