@@ -52,13 +52,6 @@ ul { margin:0; padding:0; list-style:none; }
 .rfFavBtn { background:none; border:1px solid var(--ln); border-radius:22px; color:var(--dim); font-size:17px; line-height:1; min-width:44px; min-height:44px; padding:0 10px; cursor:pointer; }
 .rfFavBtn.on { color:#ffd43b; border-color:#ffd43b; }
 .ms small { color:var(--dim); font-size:12px; }
-.gear li { border-top:1px solid var(--ln); padding:8px 0; display:flex; flex-wrap:wrap; gap:2px 10px; align-items:baseline; font-size:14px; }
-.gear li:first-child { border-top:0; }
-/* 첫 줄은 이름 + 쿠팡 링크(오른쪽), 그 아래 한 줄 전체에 설명(2026-10-15 홍TV님: 핸드폰에서 설명이 꺾이고 링크가 따로 떨어졌음) */
-.gear b { flex:0 0 auto; order:0; }
-.gear .gl { flex:0 0 auto; margin-left:auto; display:flex; gap:10px; order:1; }
-.gear span { color:var(--dim); font-size:13px; flex:1 1 100%; min-width:0; order:2; }
-.gear a { text-decoration:none; font-size:13px; white-space:nowrap; display:inline-flex; align-items:center; min-height:36px; padding:0 6px; }   /* 누르는 자리(2026-11-01 점검: 45x21) */
 /* 목록(/m/) 등산 · 걷기 · 자전거 접는 칸 - 도장 · 완주(series.html)와 같은 모양, <details>(2026-10-15 홍TV님) */
 .folds { margin-bottom:14px; }
 .fold > summary { list-style:none; display:flex; align-items:center; gap:8px; padding:12px 4px; border-bottom:1px solid var(--ln); cursor:pointer; }
@@ -179,7 +172,7 @@ ul { margin:0; padding:0; list-style:none; }
 .jump a { display:inline-flex; align-items:center; min-height:44px; padding:0 14px; border-radius:22px; border:1px solid var(--ln); background:var(--panel); color:var(--sky); text-decoration:none; font-weight:bold; font-size:14.5px; }
 #trails { scroll-margin-top:8px; }
 .closedNote { margin:8px 0 12px; padding:10px 12px; border-radius:10px; background:rgba(255,135,135,0.10); border:1px solid rgba(255,135,135,0.45); font-size:14.5px; }
-#gearIdx .fb { padding:4px 0 10px; }   /* 🎒 이번 달 산행 챙길 것(/m/ - 2026-10-18) */
+#gearIdx .fb { padding:4px 0 10px; }   /* 🎒 추천 산행 장비(/m/ - 2026-10-18, 2026-11-03 상품 하나만) */
 /* 코스 소개 페이지(/c/ - CoursePageServlet, 2026-10-19). 산 페이지 코스 이름은 그 페이지로 가는 링크 */
 .cs b a { color:inherit; text-decoration:none; }
 .cs b a:hover { text-decoration:underline; }

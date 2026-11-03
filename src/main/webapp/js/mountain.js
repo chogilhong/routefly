@@ -100,7 +100,7 @@
         fun.appendChild(h); fun.appendChild(l); fun.appendChild(sm);
         fun.hidden = false;
     }
-    // 제휴 · 후원 링크(api/partners) - 한 번만 받아 ☕ 후원 줄과 🎒 챙길 것의 쿠팡 링크가 함께 씀
+    // 제휴 · 후원 링크(api/partners) - 한 번만 받아 ☕ 후원 줄과 🎒 추천 산행 장비(쿠팡)가 함께 씀
     var partnersP = fetch("../api/partners").then(function (r) { return r.json(); });
     // window.RF 로 - 이 함수 아래쪽(날씨 칸)에 var RF 가 있어 여기서 RF 는 아직 undefined(2026-10-29 PC: 이 줄에서 멈춰 /m/ 스크립트가 모두 섰음)
     if (window.RF && window.RF.staySearch) window.RF.staySearch(document.getElementById("ssForm"), document.getElementById("ssOut"), partnersP, "../", false);   // 🏨 근처 숙소 찾기(/m/, 2026-10-29)
@@ -181,80 +181,45 @@
             return { id: li.getAttribute("data-id"), name: li.getAttribute("data-name"), kind: "hike", dist: +li.getAttribute("data-dist"), asc: asc != null ? +asc : null, steep: st != null ? +st : null };
         }), go.firstChild);
     });
-    // 🎒 챙길 것(2026-10-15) - 날씨 칸 아래. 오르막은 이 산 코스 가운데 가장 큰 값. 쿠팡 파트너스 링크는 설정에 있을 때만(+ 수수료 문구)
-    // 🎒 챙길 것 - 산 페이지(그 산 코스 오르막까지)와 목록(/m/ - 이번 달 계절 기준, 접는 칸, 2026-10-18 홍TV님)이 함께 씀
-    function gearBox(box, asc) {
-        var ul = document.createElement("ul");
-        ul.className = "gear";
-        box.appendChild(ul);
-        var items = window.RF.gearList(new Date().getMonth() + 1, asc, "hike").map(function (g) {
-            var li = document.createElement("li"), b = document.createElement("b"), sp = document.createElement("span");
-            b.textContent = g.label;
-            sp.textContent = g.why;
-            li.appendChild(b);
-            li.appendChild(sp);
-            ul.appendChild(li);
-            return [g, li];
-        });
-        partnersP.then(function (p) {
-            var any = false;
-            var feat = window.RF.featuredCard && window.RF.featuredCard(p.featured);   // 🎒 맨 위 상품 하나(그림, 2026-11-03)
-            if (feat) { box.insertBefore(feat, ul); any = true; }
-            items.forEach(function (x) {
-                var links = window.RF.partnerLinks(p.coupang && p.coupang[x[0].key]);
-                if (!links.length) return;
-                var lb = document.createElement("div");   // 링크는 한 덩어리로(좁으면 함께 다음 줄로)
-                lb.className = "gl";
-                links.forEach(function (k) {
-                    var a = document.createElement("a");
-                    a.href = k.href;
-                    a.target = "_blank";
-                    a.rel = "noopener sponsored";
-                    a.textContent = k.text;
-                    lb.appendChild(a);
-                });
-                x[1].appendChild(lb);
-                any = true;
-            });
-            if (any) { var n = document.createElement("p"); n.className = "dim"; n.textContent = window.RF.COUPANG_NOTE; box.appendChild(n); }
-        }).catch(function () { /* 링크 없이 */ });
-        return items.length;
+    // 🎒 추천 산행 장비(2026-11-03 홍TV님 - 물 · 우비 · 헤드랜턴 … 챙길 것 목록은 빼고 "챙길 것" 이름도 바꿈) - 쿠팡 파트너스 상품 하나(그림)만.
+    // 설정(partner.coupang.featured)이 없으면 칸도 없음. 산 페이지는 날씨 칸 아래, 목록(/m/)은 접는 칸. 준비물 체크는 🧰 도구(tools.js)에 그대로
+    var GEAR_TITLE = "🎒 추천 산행 장비";
+    function featBox(box, f) {
+        var feat = window.RF.featuredCard && window.RF.featuredCard(f);
+        if (!feat) return false;
+        var n = document.createElement("p");
+        n.className = "dim";
+        n.textContent = window.RF.COUPANG_NOTE;
+        box.appendChild(feat);
+        box.appendChild(n);
+        return true;
     }
-    var wx0 = document.getElementById("wx");
-    if (wx0 && window.RF) {
-        // 오르막은 이 산 코스들의 가운데 값 - 가장 큰 값은 긴 종주 코스라 "오르막 2,672m" 처럼 보였음(2026-10-15 홍TV님)
-        var ascs = Array.prototype.map.call(document.querySelectorAll(".cs li[data-asc]"), function (li) { return +li.getAttribute("data-asc") || 0; })
-            .sort(function (a, b) { return a - b; });
-        var gs = document.createElement("section"), gh = document.createElement("h2");
-        gh.textContent = "🎒 챙길 것";
-        gs.appendChild(gh);
-        gearBox(gs, ascs.length ? ascs[Math.floor(ascs.length / 2)] : 0);
-        wx0.parentNode.insertBefore(gs, wx0.nextSibling);
-    }
-    // 목록(/m/): 접는 칸 "🎒 산행 시 챙길 것" - 산을 정하기 전에도. 산마다 다른 것(스틱 · 무릎 보호대)은 산 페이지에서
-    var gi = document.getElementById("gearIdx");
-    if (gi && window.RF) {
-        var mon = new Date().getMonth() + 1;
-        var det = document.createElement("details"), sum = document.createElement("summary"), fb = document.createElement("div");
-        det.className = "fold kind";
-        det.setAttribute("name", "kind");
-        var ft = document.createElement("span"), fs = document.createElement("span"), fa = document.createElement("span");
-        ft.className = "ft"; ft.textContent = "🎒 산행 시 챙길 것";   // 2026-10-28 홍TV님 "이번 달 산행 챙길 것 10월" → (목록은 그대로 이번 달 계절 기준)
-        fs.className = "fs";
-        fs.textContent = window.RF.gearList(mon, 0, "hike").map(function (g) { return g.label.split(" · ")[0]; }).slice(0, 4).join(" · ") + " …";
-        fa.className = "fa"; fa.textContent = "▾";
-        sum.appendChild(ft); sum.appendChild(fs); sum.appendChild(fa);
-        fb.className = "fb";
-        var tip = document.createElement("p");
-        tip.className = "dim";
-        tip.textContent = "산을 고르면 그 산 코스 오르막에 맞춰 등산 스틱 · 무릎 보호대까지 알려 줍니다.";
-        gearBox(fb, 0);
-        fb.insertBefore(tip, fb.firstChild);
-        det.appendChild(sum);
-        det.appendChild(fb);
-        gi.appendChild(det);
-        gi.hidden = false;
-    }
+    var wx0 = document.getElementById("wx"), gi = document.getElementById("gearIdx");
+    if ((wx0 || gi) && window.RF) partnersP.then(function (p) {
+        if (wx0) {
+            var gs = document.createElement("section"), gh = document.createElement("h2");
+            gh.textContent = GEAR_TITLE;
+            gs.appendChild(gh);
+            if (featBox(gs, p.featured)) wx0.parentNode.insertBefore(gs, wx0.nextSibling);
+        }
+        if (gi) {
+            var det = document.createElement("details"), sum = document.createElement("summary"), fb = document.createElement("div");
+            det.className = "fold kind";
+            det.setAttribute("name", "kind");
+            var ft = document.createElement("span"), fs = document.createElement("span"), fa = document.createElement("span");
+            ft.className = "ft"; ft.textContent = GEAR_TITLE;
+            fs.className = "fs";
+            fs.textContent = p.featured && p.featured.name ? p.featured.name : "";
+            fa.className = "fa"; fa.textContent = "▾";
+            sum.appendChild(ft); sum.appendChild(fs); sum.appendChild(fa);
+            fb.className = "fb";
+            if (!featBox(fb, p.featured)) return;
+            det.appendChild(sum);
+            det.appendChild(fb);
+            gi.appendChild(det);
+            gi.hidden = false;
+        }
+    }).catch(function () { /* 칸 없이 */ });
     if (window.RF) window.RF.boardButtons("..", false);   // 📈 고도 - 공단 안내판처럼 구간별 경사(2026-10-15 홍TV님)
     if (window.RF) window.RF.compareButtons("..", false);   // ⚖️ 견주기 - 두 코스 나란히(2026-10-16 홍TV님)
     // 🕘 최근 본 산(2026-10-16 홍TV님) - 산 페이지면 넣고, 목록(/m/)이면 접는 칸. 이 핸드폰에만

@@ -69,7 +69,7 @@ public class PartnersServlet extends HttpServlet {
             if (any) names.add(g, nm);   // 주소와 같은 차례, 이름 없는 것은 ""
         }
         out.add("coupang", coupang);
-        // 🎒 챙길 것 맨 위 상품 하나(2026-11-03 홍TV님 "가민 택틱스 8") - "이름|그림 주소|링크". 링크는 쿠팡 파트너스(link.coupang.com · coupa.ng), 그림은 쿠팡 그림 서버만
+        // 🎒 추천 산행 장비 상품 하나(2026-11-03 홍TV님 "가민 택틱스 8") - "이름|그림 주소|링크". 링크는 쿠팡 파트너스(link.coupang.com · coupa.ng), 그림은 쿠팡 그림 서버만
         JsonObject featured = featured(conf.apply("partner.coupang.featured"));
         if (featured != null) out.add("featured", featured);
         out.add("coupangNames", names);

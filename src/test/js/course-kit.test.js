@@ -1054,8 +1054,6 @@ eq("gearList 여름 걷기", RF.gearList(7, 100, "walk").map(function (g) { retu
 eq("gearList 걷기는 신발 · 배낭 이름이 다름", RF.gearList(7, 100, "walk").filter(function (g) { return g.key === "shoes" || g.key === "pack"; }).map(function (g) { return g.label; }), ["걷기 편한 신발", "가벼운 배낭"]);
 eq("gearList 오르막 600m 는 스틱만(무릎 보호대는 800m 부터)", RF.gearList(10, 600, "hike").map(function (g) { return g.key; }).filter(function (k) { return k === "stick" || k === "knee"; }), ["stick"]);
 eq("gearList 자전거는 헤드랜턴 빼고", RF.gearList(5, 0, "bike").map(function (g) { return g.key; }), ["water", "rain", "battery", "firstaid", "pack", "sun"]);
-eq("partnerLinks 하나 · 여럿 · 예전 글 · 빈 것", [RF.partnerLinks(["https://a"]).map(function (k) { return k.text; }), RF.partnerLinks(["https://a", "https://b"]).map(function (k) { return k.text; }),
-    RF.partnerLinks("https://c")[0].href, RF.partnerLinks(null).length, RF.partnerLinks(["javascript:x"]).length], [["쿠팡 ›"], ["쿠팡 1 ›", "쿠팡 2 ›"], "https://c", 0, 0]);
 eq("airForecastText 그 날 예보 · 없는 날", [RF.airForecastText({ region: "경남", forecast: { "2026-10-16": { pm10: "보통", pm25: "좋음" } } }, "2026-10-16"),
     RF.airForecastText({ region: "경남", forecast: {} }, "2026-10-16"), RF.airForecastText(null, "2026-10-16")], ["미세먼지 보통 · 초미세먼지 좋음(경남 예보)", "", ""]);
 eq("dayLabel 오늘 · 내일 · 글피 · 그 뒤", [RF.dayLabel("2026-10-15", "2026-10-15"), RF.dayLabel("2026-10-16", "2026-10-15"), RF.dayLabel("2026-10-18", "2026-10-15"), RF.dayLabel("2026-11-01", "2026-10-31")],
@@ -1255,10 +1253,10 @@ eq("regionEn · weekendWordEn", [RF.regionEn("강원 영동"), RF.regionEn("제�
 })();
 (function () {   // 영어 이름 낱말 · 위치표지(2026-10-17 PC 확인 - 자전거길 · 관광안내소 · 해수욕장 · 아래 · "설악 06-01")
     RF.setLang("en");
-    var sg = RF.signText({ sign: { loc_no: "설악 06-01", place_name: "구대청대피소아래" }, m: 420 }), cp = RF.partnerLinks(["https://link.coupang.com/a/x"])[0].text;
+    var sg = RF.signText({ sign: { loc_no: "설악 06-01", place_name: "구대청대피소아래" }, m: 420 });
     RF.setLang("ko");
-    eq("영어 낱말 · 표지", [RF.enName("한강자전거길(서울)"), RF.enName("해파랑길관광안내소"), RF.enName("고래불해수욕장"), RF.enName("(1)독주골 갈림길 위 250m"), RF.enName("위봉산"), RF.enName("백운계곡"), RF.enName("[동두천 소요산] 남동쪽 들머리 → 정상"), RF.enName("송산 · 남서쪽 들머리 → 덕기봉 → 동쪽 들머리"), sg, cp, RF.partnerLinks(["https://link.coupang.com/a/x"])[0].text],
-        ["Hangang bike path (Seoul)", "Haeparanggil tourist info center", "Goraebul beach", "(1)Dokjugol junction above 250m", "Wibongsan", "Baegun valley", "[Dongducheon Soyosan] southeast trailhead → summit", "Songsan · southwest trailhead → Deokgibong → east trailhead", "Seorak 06-01 · 420 m (Gudaecheong shelter below)", "Coupang ›", "쿠팡 ›"]);
+    eq("영어 낱말 · 표지", [RF.enName("한강자전거길(서울)"), RF.enName("해파랑길관광안내소"), RF.enName("고래불해수욕장"), RF.enName("(1)독주골 갈림길 위 250m"), RF.enName("위봉산"), RF.enName("백운계곡"), RF.enName("[동두천 소요산] 남동쪽 들머리 → 정상"), RF.enName("송산 · 남서쪽 들머리 → 덕기봉 → 동쪽 들머리"), sg],
+        ["Hangang bike path (Seoul)", "Haeparanggil tourist info center", "Goraebul beach", "(1)Dokjugol junction above 250m", "Wibongsan", "Baegun valley", "[Dongducheon Soyosan] southeast trailhead → summit", "Songsan · southwest trailhead → Deokgibong → east trailhead", "Seorak 06-01 · 420 m (Gudaecheong shelter below)"]);
 })();
 eq("핸드폰에서만 열리는 송금 링크", [RF.mobileOnlyUrl("https://qr.kakaopay.com/abc"), RF.mobileOnlyUrl("https://toss.me/abc"), RF.mobileOnlyUrl(null)], [true, false, false]);
 (function () {   // 🏠 오늘의 안부 - 알림 일정(2026-10-17)

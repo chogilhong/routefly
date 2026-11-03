@@ -45,11 +45,11 @@ var ABOUT_EN = document.documentElement.lang === "en";   // 영어판(about-en �
 
 /* 제휴 · 후원(2026-10-15 홍TV님) - 설정(api/partners)에 링크가 있을 때만 '💚 routefly 응원하기' 를 보임 */
 if (document.getElementById("support")) fetch("api/partners").then(function (r) { return r.json(); }).then(function (p) {   // 응원 칸이 있는 안내 화면만(약관 · 방침 6개는 묻지 않음, 2026-10-29 점검)
-    var aff = p.agoda || p.trip || (p.coupang && Object.keys(p.coupang).length), sec = document.getElementById("support");
+    var cp = p.featured || (p.coupang && Object.keys(p.coupang).length), aff = p.agoda || p.trip || cp, sec = document.getElementById("support");
     if (!sec || !(aff || p.donate)) return;
     if (aff) {   // 설정에 있는 제휴만 적음(2026-10-15 PC: 아고다 링크가 없는데 "숙박의 아고다" 가 보였음)
         var where = [];
-        if (p.coupang && Object.keys(p.coupang).length) where.push(ABOUT_EN ? "Coupang in 🎒 gear" : "🎒 챙길 것의 쿠팡");
+        if (cp) where.push(ABOUT_EN ? "Coupang in 🎒 recommended gear" : "🎒 추천 산행 장비의 쿠팡");   // 2026-11-03 "챙길 것" → "추천 산행 장비"(상품 하나)
         if (p.agoda) where.push(ABOUT_EN ? "Agoda in lodging" : "숙박의 아고다");
         if (p.trip) where.push(ABOUT_EN ? "Trip.com in lodging" : "숙박의 트립닷컴");
         document.getElementById("supportWhere").textContent = where.join(ABOUT_EN ? ", " : " · ");

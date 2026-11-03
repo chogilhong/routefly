@@ -621,13 +621,6 @@
     }
 
     // ---- 영어 화면 도구(2026-10-17 - course-kit 의 같은 일을 하는 한국어 함수 대신)
-    var GEAR_EN = { water: ["Water · snacks", "about 500 ml of water per hour"], rain: ["Rain jacket · windbreaker", "mountain weather changes fast"],
-        headlamp: ["Headlamp", "it gets dark early in the mountains"], battery: ["Power bank", "for GPS and calling 119"],
-        firstaid: ["First aid · bandages", "blisters, scrapes, insect bites"], shoes: ["Hiking boots or sturdy shoes", "grip and ankle support"],
-        pack: ["Backpack", "keep both hands free in case you fall"], stick: ["Trekking poles", "easier on the knees"],
-        knee: ["Knee support", "helps on long descents"], sun: ["Hat · sunscreen", "ridges and summits have no shade"],
-        warm: ["Thermos · hand warmers", "you cool down fast when resting"], crampon: ["Crampons", "shady trails stay icy in winter and early spring"],
-        glove: ["Gloves", "mornings and summits are chilly"] };
     function spotSummaryEn(spots) {
         var n = { danger: 0, view: 0 };
         (spots || []).forEach(function (s) { if (n[s.kind] != null) n[s.kind]++; });
@@ -685,33 +678,15 @@
         return partnersP || (partnersP = getJson("api/partners").catch(function () { return { coupang: {} }; }));
     }
 
-    /** 🎒 챙길 것(2026-10-15 홍TV님) - 계절 · 오르막으로. 쿠팡 파트너스 링크가 설정돼 있으면 물건 옆에(+ 수수료 문구). */
-    function drawGear(box, c, kind) {
-        var asc = c.asc && c.asc.length ? c.asc[c.asc.length - 1] : 0, rows = [];
-        box.appendChild(el("div", "gDay", T("🎒 챙길 것", "🎒 What to bring")));
-        RF.gearList(new Date().getMonth() + 1, asc, kind || "hike").forEach(function (g) {
-            var ge = EN && GEAR_EN[g.key], r = gRow(ge ? ge[0] : g.label, ge ? (g.key === "stick" ? num(asc) + " m of climbing - " + ge[1] : ge[1]) : g.why);
-            box.appendChild(r);
-            rows.push([g, r]);
-        });
+    /** 🎒 추천 산행 장비(2026-11-03 홍TV님 - 챙길 것 목록은 빼고 쿠팡 파트너스 상품 하나만, 한국어 화면만). 설정이 없으면 아무것도 넣지 않음. */
+    function drawGear(box) {
+        if (EN) return;
         partners().then(function (p) {
-            var any = false;
-            var feat = !EN && RF.featuredCard && RF.featuredCard(p.featured);   // 🎒 맨 위 상품 하나(그림, 2026-11-03 - 쿠팡은 한국어 화면만)
-            if (feat && rows.length) { box.insertBefore(feat, rows[0][1]); any = true; }
-            rows.forEach(function (x) {
-                var links = RF.partnerLinks(p.coupang && p.coupang[x[0].key]);
-                if (!links.length) return;
-                var side = el("div", "gSide");
-                links.forEach(function (k, i) {
-                    var a = gLink(k.text, k.href);
-                    a.rel = "noopener sponsored";
-                    if (i) side.appendChild(document.createTextNode(" "));
-                    side.appendChild(a);
-                });
-                x[1].appendChild(side);
-                any = true;
-            });
-            if (any) box.appendChild(el("div", "gNote", RF.COUPANG_NOTE + T("", " (Coupang Partners affiliate links - routefly earns a commission.)")));
+            var feat = RF.featuredCard && RF.featuredCard(p.featured);
+            if (!feat) return;
+            box.appendChild(el("div", "gDay", "🎒 추천 산행 장비"));
+            box.appendChild(feat);
+            box.appendChild(el("div", "gNote", RF.COUPANG_NOTE));
         });
     }
 
@@ -825,7 +800,7 @@
             draw();
             var gear = el("div");
             body.appendChild(gear);
-            drawGear(gear, c, guide.kind);
+            drawGear(gear);
         } else if (kind === "weather") {
             title.textContent = T("☁️ 날씨 (들머리)", "☁️ Weather (trailhead)");
             body.appendChild(el("div", "gNote", T("불러오는 중…", "Loading…")));
