@@ -68,8 +68,8 @@ select.f { padding:0 6px; }
 textarea.f { height:140px; padding:10px; flex-basis:100%; font-family:inherit; resize:vertical; }
 .out { margin-top:12px; font-size:20px; font-weight:bold; line-height:1.45; overflow-wrap:anywhere; word-break:keep-all; }
 .out small { display:block; font-size:14px; font-weight:normal; color:var(--dim); margin-top:2px; }
-.chk2 { display:flex; gap:8px; align-items:center; font-size:14.5px; margin-top:10px; }
-.chk2 input { width:20px; height:20px; }
+.chk2 { display:flex; gap:8px; align-items:center; font-size:14.5px; margin-top:10px; min-height:44px; cursor:pointer; }   /* 줄 전체를 눌러도 됨(label) */
+.chk2 input { width:24px; height:24px; flex:none; margin:0; }   /* 24px · 줄어들지 않게(2026-11-03 홍TV님 점검) */
 .btn2 { height:50px; border-radius:12px; border:1px solid var(--sky); background:rgba(56,217,234,0.12); color:var(--sky); font:bold 16px Arial,"Malgun Gothic",sans-serif; cursor:pointer; flex:1 1 0; }
 .btn2.on { background:#ff6b6b; border-color:#ff6b6b; color:#fff; }
 #dial { width:200px; height:200px; margin:0; border-radius:50%; border:2px solid var(--ln); position:relative; transition:transform .2s; }
@@ -355,8 +355,8 @@ h2.grp { margin:22px 2px 0; font-size:14px; color:var(--dim); font-weight:bold; 
         <div class="row"><button type="button" class="btn2" id="lotOne" data-en="Pick one">한 명 뽑기</button><button type="button" class="btn2" id="lotAll" data-en="Shuffle order">순서 정하기</button></div>
         <div class="out" id="lotOut"></div>
         <h3 style="font-size:16px;margin:20px 0 0" data-en="🎯 Ladder game">🎯 사다리 타기</h3>
-        <div class="row"><label data-en="People (2-8, commas)">사람(2 ~ 8명, 쉼표로)</label><input type="text" id="ldNames" class="f" placeholder="철수, 영희, 민수" data-en-placeholder="Amy, Ben, Chris"></div>
-        <div class="row"><label data-en="Results (commas - empty: 1 win, rest blank)">결과(쉼표로 - 비우면 당첨 1 · 나머지 꽝)</label><input type="text" id="ldRes" class="f" placeholder="당첨, 꽝, 꽝" data-en-placeholder="Win, -, -"></div>
+        <div class="row"><label for="ldNames" data-en="People (2-8, commas)">사람(2 ~ 8명, 쉼표로)</label><input type="text" id="ldNames" class="f" placeholder="철수, 영희, 민수" data-en-placeholder="Amy, Ben, Chris"></div>
+        <div class="row"><label for="ldRes" data-en="Results (commas - empty: 1 win, rest blank)">결과(쉼표로 - 비우면 당첨 1 · 나머지 꽝)</label><input type="text" id="ldRes" class="f" placeholder="당첨, 꽝, 꽝" data-en-placeholder="Win, -, -"></div>
         <div class="row"><button type="button" class="btn2" id="ldMake" data-en="Make a ladder">사다리 만들기</button><button type="button" class="btn2" id="ldAll" data-en="Show all">모두 보기</button></div>
         <div id="ldBox"></div>
         <div class="out" id="ldOut"></div>
@@ -406,7 +406,7 @@ h2.grp { margin:22px 2px 0; font-size:14px; color:var(--dim); font-weight:bold; 
     </div></details>
     <div class="adSpot" data-where="tools"></div><!-- 광고 칸(설정이 있을 때만, 앱에서는 없음 - js/ads.js, 2026-11-01) -->
 </main>
-<div id="toast"></div>
+<div id="toast" role="status" aria-live="polite"></div>
 <div id="light"><button type="button" id="ltSos">SOS</button><button type="button" id="ltOff" data-en="Close">끄기</button></div>
 <script src="js/kit-tools.js"></script>
 <script src="js/tools.js"></script>

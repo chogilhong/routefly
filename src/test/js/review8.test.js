@@ -190,4 +190,15 @@ var RF = kit();
     has("노선이 없으면 고르기", R, "if (!/^(osmb|kmf|osmh)-[0-9]+-$/.test(prefix) && !trail) { pickRoute(); return; }");
 })();
 
+// ---- 12: 별거 별거 · 안부 - 칸 이름표 · 체크 상자 24px · 알림 글 읽기
+(function () {
+    var t = read("tools.html"), a = read("anbu.html");
+    has("사다리 이름표", t, '<label for="ldNames"');
+    has("사다리 결과 이름표", t, '<label for="ldRes"');
+    has("별거 체크 24px · 안 줄어듦", t, ".chk2 input { width:24px; height:24px; flex:none;");
+    has("안부 체크 24px · 안 줄어듦", a, ".chk input { width:24px; height:24px; flex:none;");
+    has("별거 알림 글", t, '<div id="toast" role="status" aria-live="polite"></div>');
+    has("안부 알림 글", a, '<div id="toast" role="status" aria-live="polite"></div>');
+})();
+
 console.log("OK " + n);
