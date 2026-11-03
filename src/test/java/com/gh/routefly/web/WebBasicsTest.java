@@ -128,9 +128,9 @@ public class WebBasicsTest {
         assertEquals(35.8, (double) view.params()[1], 1e-9);   // 가운데 위도(0 은 bbox WKT)
         assertEquals(127.75, (double) view.params()[2], 1e-9);
         CourseQueries.Sql search = CourseQueries.listSql(korea, "hike", "지리산");
-        assertTrue("검색이면 이름 순 그대로", search.sql().contains("ORDER BY CASE WHEN name LIKE ? THEN 0 ELSE 1 END, name"));
+        assertTrue("검색이면 이름 순(숫자는 크기 순에 가깝게 - 2026-11-03)", search.sql().contains("ORDER BY CASE WHEN name LIKE ? THEN 0 ELSE 1 END, " + CourseQueries.NAME_ORDER + " LIMIT"));
         assertEquals(count(search.sql()), search.params().length);
-        assertTrue(CourseQueries.listSql(null, null, null).sql().endsWith("ORDER BY name LIMIT " + (CourseQueries.LIST_LIMIT + 1)));
+        assertTrue(CourseQueries.listSql(null, null, null).sql().endsWith("ORDER BY " + CourseQueries.NAME_ORDER + " LIMIT " + (CourseQueries.LIST_LIMIT + 1)));
 
         CourseQueries.Sql g = CourseQueries.gridSql(korea, "bike");
         assertTrue(g.sql(), g.sql().contains("GROUP BY FLOOR(start_lon / ?), FLOOR(start_lat / ?)") && g.sql().contains("kind = ?"));

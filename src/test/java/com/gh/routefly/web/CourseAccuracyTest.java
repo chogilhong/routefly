@@ -71,4 +71,20 @@ public class CourseAccuracyTest {
         assertFalse("이름 검색(다른 자료 · 300개 한도)으로 세지 않음", js.contains("\"api/courses?q=\" + encodeURIComponent(s.q)"));
         assertTrue(ReviewRound8Test.web("js/route.js").contains("\"api/group?trail=\" + encodeURIComponent(trail)"));
     }
+
+    @Test
+    public void nameOrderLikeScreen() {   // 지선 "64-3" 은 64 와 65 사이(화면 trailCourses 와 같게) · 300개에서 자를 때 SQL 도 숫자 크기 순에 가깝게
+        String[] in = {"서해랑길 65코스 · 다 → 라", "서해랑길 64-3(지선3코스) · 시장순대 → 황태마을", "서해랑길 64코스 · 가 → 나", "서해랑길 3코스 · 영터 → 산소", "서해랑길 64-2코스"};
+        JsonArray rows = new JsonArray();
+        for (String n : in) {
+            JsonObject o = new JsonObject();
+            o.addProperty("name", n);
+            rows.add(o);
+        }
+        List<String> out = new ArrayList<>();
+        CourseQueries.naturalSorted(rows, "서해랑길").forEach(e -> out.add(e.getAsJsonObject().get("name").getAsString().replaceAll(" · .*", "")));
+        assertEquals(List.of("서해랑길 3코스", "서해랑길 64코스", "서해랑길 64-2코스", "서해랑길 64-3(지선3코스)", "서해랑길 65코스"), out);
+        String sql = CourseQueries.listSql(null, null, "서해랑길").sql();
+        assertTrue(sql, sql.contains("ORDER BY CASE WHEN name LIKE ? THEN 0 ELSE 1 END, REGEXP_REPLACE(name, '[0-9].*$', ''), CAST(REGEXP_SUBSTR(name, '[0-9]+') AS UNSIGNED), name LIMIT"));
+    }
 }

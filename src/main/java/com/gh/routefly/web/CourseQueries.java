@@ -163,6 +163,11 @@ final class CourseQueries {
         return n == null || n.isJsonNull() ? "" : n.getAsString();
     }
 
+    /** k 자리가 "-숫자"(지선 번호 "64-3" 의 -3)인지. */
+    private static boolean subNo(String s, int k) {
+        return k + 1 < s.length() && s.charAt(k) == '-' && Character.isDigit(s.charAt(k + 1));
+    }
+
     /** 순수 함수 - 숫자 덩어리는 수로, 나머지는 글자로 견줌("5코스" < "10코스" < "50코스"). */
     static int naturalCompare(String a, String b) {
         int i = 0, j = 0;
@@ -175,6 +180,9 @@ final class CourseQueries {
                 String na = a.substring(si, i).replaceFirst("^0+(?=.)", ""), nb = b.substring(sj, j).replaceFirst("^0+(?=.)", "");
                 int d = na.length() != nb.length() ? Integer.compare(na.length(), nb.length()) : na.compareTo(nb);
                 if (d != 0) return d;
+                // 지선 번호 "64-3" 은 64 뒤 · 65 앞(화면 RF.trailCourses 와 같게, 2026-11-03 코스 점검 - 서버는 "-" 가 글자보다 앞이라 64코스 앞이었음)
+                boolean subA = subNo(a, i), subB = subNo(b, j);
+                if (subA != subB) return subA ? 1 : -1;
             } else {
                 if (ca != cb) return Character.compare(ca, cb);
                 i++;
@@ -185,6 +193,12 @@ final class CourseQueries {
     }
 
     /**
+     * 이름 순 SQL - 숫자 크기 순(naturalSorted)에 가깝게: 첫 숫자 앞 글자 → 첫 숫자의 크기 → 이름. 300개에서 자를 때 글자 순("1 · 10 · 100 · … · 2")이면
+     * 2~9코스가 빠지고 10~19코스가 남았음(2026-11-03 코스 점검). MariaDB 10.0.5+ 의 REGEXP_*.
+     */
+    static final String NAME_ORDER = "REGEXP_REPLACE(name, '[0-9].*$', ''), CAST(REGEXP_SUBSTR(name, '[0-9]+') AS UNSIGNED), name";
+
+    /**
      * 순수 함수 - 목록 SQL. 검색어가 있으면 그 말로 시작하는 이름 먼저, 지도 범위만 있으면 범위 가운데에서 가까운 출발점 먼저
      * (2026-10-09 홍TV님 - 전국을 볼 때 이름 순 앞 300개("116고지 · 133고지 …")만 와서 코스가 엉뚱한 곳에만 보이던 것), 둘 다 없으면 이름 순.
      */
@@ -193,7 +207,7 @@ final class CourseQueries {
         StringBuilder sql = new StringBuilder("SELECT ").append(LIST_COLUMNS).append(" FROM route_course").append(where(bbox, kind, q, params));
         if (q != null) {
             // 검색어로 시작하는 이름이 먼저('송산' → 송산 · … 가 공주향교뒷산 · 송산리… 보다 앞)
-            sql.append(" ORDER BY CASE WHEN name LIKE ? THEN 0 ELSE 1 END, name");
+            sql.append(" ORDER BY CASE WHEN name LIKE ? THEN 0 ELSE 1 END, ").append(NAME_ORDER);
             params.add(likePattern(q).substring(1));
         } else if (bbox != null) {
             // 가운데에서 가까운 순 - 경도 1° 는 위도 1° 보다 짧아(cos 위도) 곱해서 맞춥니다
@@ -203,7 +217,7 @@ final class CourseQueries {
             params.add(lon);
             params.add(Math.cos(Math.toRadians(lat)));
         } else {
-            sql.append(" ORDER BY name");
+            sql.append(" ORDER BY ").append(NAME_ORDER);
         }
         sql.append(" LIMIT ").append(LIST_LIMIT + 1);
         return new Sql(sql.toString(), params.toArray());
