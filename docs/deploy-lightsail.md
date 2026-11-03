@@ -302,6 +302,7 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;   # 맨 뒤 = 실제로 접속한 IP
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header CF-Connecting-IP "";                          # 밖에서 꾸며 넣은 값을 지움
+        proxy_redirect http://$host/ https://$host/;                    # 톰캣이 http://… 로 넘기는 주소를 https 로(2026-11-03 점검 - 홍TV님이 서버에 적용)
         client_max_body_size 2m;
     }
 }
@@ -344,6 +345,7 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;   # 맨 뒤는 Cloudflare 서버 IP
         proxy_set_header X-Forwarded-Proto $scheme;
         # CF-Connecting-IP 는 지우지 않음 - Cloudflare 가 넣은 진짜 사용자 IP(SecurityFilter 가 먼저 씀)
+        proxy_redirect http://$host/ https://$host/;                    # 톰캣이 http://… 로 넘기는 주소를 https 로(2026-11-03 점검 - 홍TV님이 서버에 적용)
         client_max_body_size 2m;
     }
 }

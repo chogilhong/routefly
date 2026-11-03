@@ -39,9 +39,13 @@
     function today() { return RF.dayKey(Date.now()); }
     function checkedToday() { var l = st.log[st.log.length - 1]; return l && l.day === today() ? l : null; }
 
+    /** 마지막으로 알림을 맞춘 때 - 다시 볼 때(visibilitychange) 한 시간 넘었으면 다시 맞춤(2026-11-03). */
+    var schedAt = 0;
+
     /** 앱 알림 다시 맞춤 - 안부(7일 치). 앱이 아니면 아무것도 안 함. */
     function reschedule() {
         if (!LN) return Promise.resolve();
+        schedAt = Date.now();
         var ids = [];
         for (var i = 7100; i < 7232; i++) ids.push({ id: i });   // 7일 × 16 + 예전 늦은 귀가(7130 · 7131)
         return Promise.resolve(LN.createChannel({ id: CH, name: T("routefly 안부 확인", "routefly check-in"), importance: 5, visibility: 1, vibration: true })).catch(function () { /* 이미 있음 */ })
@@ -53,6 +57,9 @@
                     return { id: p.id, title: tx[0], body: tx[1], schedule: { at: new Date(p.at), allowWhileIdle: true }, channelId: CH, extra: { page: "anbu" } };
                 });
                 if (!list.length) return null;
+                // 맞춰 둔 알림은 7일 치 - 마지막 것에 "앱을 열어 이어 주세요"(2026-11-03 홍TV님 점검: 앱을 안 열면 7일 뒤 말없이 끊겼음)
+                var lastAt = Math.max.apply(null, plan.map(function (p) { return p.at; }));
+                list.forEach(function (x, i) { if (plan[i].at === lastAt) x.body += T(" 맞춰 둔 마지막 알림이에요 - 앱을 열어 알림을 이어 주세요.", " This is the last scheduled reminder - open the app to keep them going."); });
                 return Promise.resolve(LN.requestPermissions()).catch(function () { return null; })
                     .then(function () { return LN.schedule({ notifications: list }); });
             }).catch(function () { toast(T("알림을 맞추지 못했습니다(알림 권한을 확인하세요).", "Could not set reminders (check notification permission)."), 5000); });
@@ -159,5 +166,9 @@
     $("gTel").addEventListener("input", function () { var v = RF.telFormat(this.value); if (v !== this.value) this.value = v; });
     draw();
     reschedule();
-    document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") draw(); });   // 날이 바뀐 뒤 다시 열 때
+    document.addEventListener("visibilitychange", function () {   // 날이 바뀐 뒤 다시 열 때 - 알림도 7일 치를 다시(열어만 두고 저장하지 않아도 끊기지 않게, 2026-11-03)
+        if (document.visibilityState !== "visible") return;
+        draw();
+        if (LN && Date.now() - schedAt > 3600000) reschedule();
+    });
 })();

@@ -17,12 +17,15 @@ public class SeenServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) {
         Access.js(SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For")), System.currentTimeMillis());   // 오늘 접속 분석 - js 가 돈 곳
-        if (!StatsFilter.owner(req.getHeader("Cookie"))) {
-            String ua = req.getHeader("User-Agent");
-            if (Stats.botKind(ua, req.getHeader("Accept-Language")) == null)
-                Stats.js(SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For")), Stats.device(ua));
-        }
+        String ua = req.getHeader("User-Agent");
+        if (counted(req.getHeader("Cookie"), ua, req.getHeader("Accept-Language")))
+            Stats.js(SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For")), Stats.device(ua));
         resp.setHeader("Cache-Control", "no-store");
         resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
+    }
+
+    /** 사람 방문으로 셀까 - 운영자 기기 · PC Claude 확인용 접속(routefly-check, StatsFilter 와 같게 - 2026-11-03 홍TV님 점검) · 로봇은 뺌. */
+    static boolean counted(String cookie, String ua, String lang) {
+        return !StatsFilter.owner(cookie) && !StatsFilter.selfCheck(ua) && Stats.botKind(ua, lang) == null;
     }
 }

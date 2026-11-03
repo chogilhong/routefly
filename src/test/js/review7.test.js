@@ -8,7 +8,7 @@ var fs = require("fs"), path = require("path"), vm = require("vm"), assert = req
 var web = path.join(__dirname, "../../main/webapp");
 function read(f) { return fs.readFileSync(path.join(web, f), "utf8").replace(/\r\n/g, "\n"); }   // PC(core.autocrlf)는 CRLF
 var HIKE = read("js/hike.js"), PARTY = read("js/party.js");
-var n = 0;
+var n = 0, later = [];   // later - 비동기 조각(차례대로)
 function eq(name, a, b) { assert.deepStrictEqual(JSON.parse(JSON.stringify(a)), b, name); n++; }
 /** js 에서 "    function 이름(" 로 시작하는 함수 하나(한 줄짜리도). */
 function fn(js, name) {
@@ -103,8 +103,70 @@ assert(!/[^(]\$\("loadFail"\)\.hidden/.test(HIKE.replace(/if \(\$\("loadFail"\)\
     eq("한국 날짜", vm.runInNewContext("var d = new Date(" + NY.getTime() + " + 9 * 3600000); " + m[1], {}), "2026.11.3");
 })();
 
+// ---- 7: 방 만들기 출발 · 하산 마감은 한국 시간(이 파일은 뉴욕 시간대)
+(function () {
+    var ctx = {};
+    vm.runInNewContext("function two(n) { return (n < 10 ? '0' : '') + n; }" + fn(PARTY, "kstAt") + fn(PARTY, "clock") + " this.at = kstAt; this.clock = clock;", ctx);
+    var dep = ctx.at([2026, 11, 8], 0, [6, 30]);
+    eq("출발 11/8 06:30 한국 = 11/7 21:30 UTC", [dep, ctx.clock(dep)], [Date.UTC(2026, 10, 7, 21, 30), "06:30"]);
+    eq("1박 하산 마감 16:00", ctx.clock(ctx.at([2026, 11, 8], 1, [16, 0])), "16:00");
+    assert(/var depart = kstAt\(dp, 0, tp\)/.test(PARTY) && /endAt = kstAt\(dp, nights, ep\);\n\s*if \(endAt <= depart\) endAt \+= 86400000;/.test(PARTY), "방 만들기가 씀"); n++;
+})();
+
+// ---- 19: 별거별거 약 알림 - "먹었어요" 는 누를 때의 오늘 것을 다시 읽음(그린 때 베낀 것이면 자정 넘어 어제 것이 오늘로), 다시 보면 다시 그림 · TODAY 도 새로
+(function () {
+    var TOOLS = read("js/tools.js");
+    var m = /\n    \/\/ ── 💊[^\n]*\n    \(function \(\) \{[\s\S]*?\n    \}\)\(\);\n/.exec(TOOLS);
+    assert(m, "약 알림 조각"); n++;
+    var NOW = new Date(2026, 10, 3, 23, 50).getTime(), els = {}, vis = [], store = { "rf-pill": JSON.stringify({ name: "혈압약", times: ["08:00", "20:00", "", ""], log: {} }) };
+    function el() { var e = { kids: [], style: {}, on: {}, appendChild: function (k) { e.kids.push(k); }, add: function () {}, addEventListener: function (t, f) { e.on[t] = f; } };
+        Object.defineProperty(e, "innerHTML", { set: function () { e.kids = []; } }); return e; }
+    function FakeDate(a, b, c2, d, e2) { return arguments.length > 1 ? new Date(a, b, c2, d || 0, e2 || 0) : new Date(a === undefined ? NOW : a); }
+    FakeDate.now = function () { return NOW; };
+    var ctx = { $: function (id) { return els[id] || (els[id] = el()); }, Date: FakeDate, JSON: JSON, Object: Object, String: String, Promise: Promise, Option: function () {},
+        window: {}, T: function (k) { return k; }, EN: false, toast: function () {},
+        RF: { dayKey: function (ms) { var d = new Date(ms); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); } },
+        lsGet: function (k) { return store[k] || null; }, localStorage: { setItem: function (k, v) { store[k] = v; } },
+        document: { createElement: el, hidden: false, addEventListener: function (t, f) { if (t === "visibilitychange") vis.push(f); } } };
+    vm.runInNewContext(m[0], ctx);
+    function btn(i) { return els.plToday.kids[i || 0].kids[1]; }
+    btn().on.click();   // 23:50 먹음
+    eq("오늘 먹음", JSON.parse(store["rf-pill"]).log, { "2026-11-3": { 0: "23:50" } });
+    var stale = btn(), stale1 = btn(1);   // 이미 그려진 단추 - 자정을 넘김
+    NOW = new Date(2026, 10, 4, 8, 5).getTime();
+    stale1.on.click();   // 어제 그린 둘째 단추를 오늘 누름
+    eq("어제 먹은 것이 오늘로 옮겨지지 않음", JSON.parse(store["rf-pill"]).log, { "2026-11-4": { 1: "08:05" } });
+    vis.forEach(function (f) { f(); });   // 다시 봄 - 새 날로 다시 그림
+    assert(!btn().disabled && btn() !== stale, "다시 보면 오늘(새 날) 것으로 다시 그림"); n++;
+    btn().on.click();
+    eq("새 날 08:05", JSON.parse(store["rf-pill"]).log["2026-11-4"][0], "08:05");
+    assert(/function todayFresh\(\) \{ var t = nowYmd\(\); TODAY\[0\] = t\[0\]; TODAY\[1\] = t\[1\]; TODAY\[2\] = t\[2\]; \}\n\s*document\.addEventListener\("visibilitychange", function \(\) \{ if \(!document\.hidden\) todayFresh\(\); \}\);/.test(TOOLS), "TODAY 다시 셈"); n++;
+})();
+
+// ---- 20: 안부 앱 알림 - 마지막 것에 "앱을 열어 이어 주세요", 다시 보면(한 시간 넘으면) 다시 맞춤
+later.push(function () {
+    var ANBU = read("js/anbu.js"), RFK = kit("js/course-kit.js"), got = [];
+    var LN = { createChannel: function () {}, cancel: function () {}, requestPermissions: function () {}, schedule: function (o) { got.push(o.notifications); } };
+    var ctx = { LN: LN, CH: "rf-anbu", EN: false, T: function (k) { return k; }, RF: RFK, Promise: Promise, Date: Date, Math: Math, toast: function (t) { throw new Error(t); },
+        st: { on: true, time: "09:00", rep5: false, log: [] }, checkedToday: function () { return null; } };
+    vm.runInNewContext("var schedAt = 0;" + fn(ANBU, "reschedule") + " this.f = reschedule; this.at = function () { return schedAt; };", ctx);
+    return ctx.f().then(function () {
+        var l = got[0], last = l.reduce(function (a, x) { return +x.schedule.at > +a.schedule.at ? x : a; });
+        assert(l.length > 7, "7일 치"); n++;
+        eq("마지막 것만 이어 달라는 글", l.filter(function (x) { return /앱을 열어 알림을 이어 주세요/.test(x.body); }).map(function (x) { return x.id; }), [last.id]);
+        assert(Date.now() - ctx.at() < 5000, "맞춘 때를 남김"); n++;
+        assert(/if \(LN && Date\.now\(\) - schedAt > 3600000\) reschedule\(\);/.test(ANBU), "다시 보면 다시 맞춤"); n++;
+    });
+});
+
+// ---- 22: 의견 답장 메일 - 화면 검사가 서버(Feedback.reply)와 같음(ReviewRound7Test 가 서버 쪽 같은 값)
+(function () {
+    var ctx = {};
+    vm.runInNewContext(fn(read("js/feedback.js"), "replyOk") + " this.f = replyOk;", ctx);
+    eq("메일 모양", ["a.b+c@ex-ample.co.kr", "홍길동@naver.com", "a@b", "x@y.com ", new Array(72).join("a") + "@ex.com", new Array(80).join("a") + "@ex.com"].map(ctx.f), [true, false, false, false, true, false]);
+})();
+
 // ---- 10: 못 보낸 SOS 끄기는 다시 보냄(전에는 30초 뒤 · 위치가 없으면 영영 안 가 인솔자에게 SOS 가 남았음)
-var later = [];
 later.push(function () {
     var NOW = Date.UTC(2026, 10, 3, 3, 0), store = {}, calls = [], down = false, timers = [];
     function FakeDate(a) { return a === undefined ? new Date(NOW) : new Date(a); }

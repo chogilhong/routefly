@@ -404,6 +404,12 @@
         $(id).addEventListener("focus", digitsOnFocus);
     });
 
+    /**
+     * 한국 시간 [년, 월, 일] + days 일의 [시, 분] → ms(2026-11-03 홍TV님 점검: 폰 시간대로 셈해 해외 · 시간대가 다른 폰에서 만든 방의 출발 · 하산 마감이
+     * 화면(한국 시간 clock · when)과 어긋났음).
+     */
+    function kstAt(dp, days, hm) { return Date.UTC(+dp[0], +dp[1] - 1, +dp[2] + days, +hm[0], +hm[1]) - 9 * 3600000; }
+
     $("mkBtn").addEventListener("click", function () {
         var name = $("mkName").value.trim();
         if (!name) { msg(T("산행 이름을 적어 주세요.", "Please enter a hike name.")); return; }
@@ -412,15 +418,14 @@
         if (!day) { fieldErr($("mkDate"), DAY_ERR); $("mkDate").focus(); return; }
         if (!tp) { fieldErr($("mkTime"), TIME_ERR.mkTime); $("mkTime").focus(); return; }
         var dp = [day.getFullYear(), day.getMonth() + 1, day.getDate()];
-        var depart = new Date(+dp[0], +dp[1] - 1, +dp[2], +tp[0], +tp[1]).getTime(), endAt = 0;
+        var depart = kstAt(dp, 0, tp), endAt = 0;
         var nights = +$("mkNights").value || 0;   // 1박 2일 · 2박 3일 · 3박 4일(2026-10-21 홍TV님 - 지리산 · 설악산 종주)
         if (nights && !$("mkEnd").value.trim()) { fieldErr($("mkEnd"), T("여러 날 산행은 마지막 날 하산 마감 시각을 적어 주세요(예: 1600).", "For a multi-day hike, enter the descent deadline on the last day (e.g. 1600).")); $("mkEnd").focus(); return; }
         if ($("mkEnd").value.trim()) {   // 하산 마감 - 당일은 출발 날 그 시각(출발보다 이르면 다음 날 - 무박), 여러 날은 출발 날 + n 일 그 시각
             var ep = RFParty.parseTime($("mkEnd").value);
             if (!ep) { fieldErr($("mkEnd"), TIME_ERR.mkEnd); $("mkEnd").focus(); return; }
-            var e = new Date(+dp[0], +dp[1] - 1, +dp[2] + nights, +ep[0], +ep[1]);
-            if (e.getTime() <= depart) e.setDate(e.getDate() + 1);
-            endAt = e.getTime();
+            endAt = kstAt(dp, nights, ep);
+            if (endAt <= depart) endAt += 86400000;
         }
         var seatsIn = Array.prototype.map.call(document.querySelectorAll("#mkPlates .mkSeat"), function (x) { return Math.max(0, Math.min(60, +x.value || 0)); });
         $("mkBtn").disabled = true;

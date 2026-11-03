@@ -253,8 +253,10 @@
                 if (log[i]) { b.textContent = T("✅ 먹었어요 ", "✅ Taken ") + log[i]; b.disabled = true; }
                 else b.textContent = T("먹었어요", "Taken");
                 b.addEventListener("click", function () {
-                    var d = new Date();
-                    pl.log = {}; pl.log[dk()] = Object.assign({}, log); pl.log[dk()][i] = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");   // 오늘 것만 남김
+                    // 누를 때의 오늘 것을 다시 읽음(2026-11-03 홍TV님 점검: 그린 때의 것을 베껴 자정을 넘기면 어제 먹은 것이 오늘로 옮겨졌음)
+                    var d = new Date(), k = dk(), cur = Object.assign({}, pl.log[k] || {});
+                    cur[i] = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+                    pl.log = {}; pl.log[k] = cur;   // 오늘 것만 남김
                     keep(); draw();
                 });
                 li.appendChild(sp); li.appendChild(b);
@@ -286,6 +288,7 @@
             }).catch(function () { toast(T("알림을 맞추지 못했습니다(알림 권한을 확인하세요)", "Could not set reminders (check notification permission)"), 5000); });
         });
         draw();
+        document.addEventListener("visibilitychange", function () { if (!document.hidden) draw(); });   // 날이 바뀐 뒤 다시 보면 오늘 것으로(2026-11-03)
     })();
 
     // ── ✅ 산행 준비물 체크(RF.gearList + 늘 챙길 것). 계절은 이번 달로 고르고 바꿀 수 있음, 체크는 이 기기에(rf-gear) ──
@@ -464,6 +467,10 @@
         return function () { return [+sy.value, +sm.value, +sd.value]; };
     }
     var TODAY = nowYmd();
+    /** 오늘을 다시 셈 - 자리에서 바꿔 TODAY 를 쓰는 곳이 모두 새 날을 봄(2026-11-03 홍TV님 점검: 열어 둔 채 날이 바뀌면 어제로 셈했음). */
+    function todayFresh() { var t = nowYmd(); TODAY[0] = t[0]; TODAY[1] = t[1]; TODAY[2] = t[2]; }
+    document.addEventListener("visibilitychange", function () { if (!document.hidden) todayFresh(); });
+    setInterval(todayFresh, 60000);
 
     // ── 💱 환율(유럽중앙은행 기준 - Frankfurter, 키 없음). 받은 값은 6시간 동안 이 기기에 두고 씀(인터넷이 없을 때도 마지막 값) ──
     var CUR = [["KRW", "원", "Korean won"], ["USD", "미국 달러", "US dollar"], ["JPY", "일본 엔", "Japanese yen"], ["EUR", "유로", "Euro"], ["CNY", "중국 위안", "Chinese yuan"],

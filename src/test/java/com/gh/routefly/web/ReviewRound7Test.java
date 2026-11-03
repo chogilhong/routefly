@@ -186,4 +186,83 @@ public class ReviewRound7Test {
             assertNull(c[0], member(call(p, "/view", tok(chief), T0), "가산악회 사무실"));
         }
     }
+
+    /** 16: 일부러 꾸민 지그재그 · 소용돌이 5만 점도 1초 안에 1만 점 안으로(전에는 4만 점 지그재그에 20초 - scratchpad simp/S.java 와 같은 모양). */
+    @Test
+    public void simplifyAdversarialIsFast() {
+        for (String mode : new String[] {"zig", "spiral", "circle"}) {
+            java.util.List<double[]> p = new java.util.ArrayList<>();
+            int n = 50_000;
+            for (int i = 0; i < n; i++) {
+                double x, y;
+                if (mode.equals("spiral")) { double r = 300000 * Math.pow(0.9997, i), t = i * 0.01; x = r * Math.cos(t); y = r * Math.sin(t); }
+                else if (mode.equals("circle")) { double t = i * (2 * Math.PI * 0.999 / n); x = 200000 * Math.cos(t); y = 200000 * Math.sin(t); }
+                else { x = i; y = (i % 2 == 0 ? 0 : 1) * Math.pow(1.0003, i); }
+                p.add(new double[] {36 + y / 111320.0, 127 + x / (111320.0 * Math.cos(Math.toRadians(36))), 0});
+            }
+            long t0 = System.nanoTime();
+            java.util.List<double[]> s = CourseSubmitServlet.simplify(p, CourseSubmitServlet.KEEP_POINTS);
+            long ms = (System.nanoTime() - t0) / 1_000_000;
+            assertTrue(mode + " " + ms + "ms", ms < 1000);
+            assertTrue(mode + " " + s.size(), s.size() <= CourseSubmitServlet.KEEP_POINTS && s.size() >= 2);
+            assertSame(p.get(0), s.get(0));
+            assertSame(p.get(n - 1), s.get(s.size() - 1));
+        }
+    }
+
+    /** 21: 사람 확인 신호도 PC Claude 확인용 접속(routefly-check)은 세지 않음(StatsFilter 와 같게). */
+    @Test
+    public void seenSkipsSelfCheck() {
+        String ua = "Mozilla/5.0 (Linux; Android 14; SM-S918N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36";
+        assertTrue(SeenServlet.counted(null, ua, "ko-KR,ko;q=0.9"));
+        assertFalse(SeenServlet.counted(null, ua + " routefly-check", "ko-KR,ko;q=0.9"));
+    }
+
+    /** 22: 답장 메일 - 화면(feedback.js replyOk, review7.test.js)과 같은 값. */
+    @Test
+    public void feedbackReplySameAsScreen() {
+        String[] in = {"a.b+c@ex-ample.co.kr", "홍길동@naver.com", "a@b", "a".repeat(71) + "@ex.com", "a".repeat(79) + "@ex.com"};
+        boolean[] ok = {true, false, false, true, false};
+        for (int i = 0; i < in.length; i++) {
+            boolean got;
+            try { Feedback.reply(in[i]); got = true; } catch (IllegalArgumentException e) { got = false; }
+            assertEquals(in[i], ok[i], got);
+        }
+    }
+
+    /** 23: 없는 /api/… 는 JSON 404 - 있는 API 는 모두 정확한 주소 · 더 긴 /api/…/* 라 그대로. */
+    @Test
+    public void unknownApiIsJson404() throws Exception {
+        int[] st = {0};
+        java.io.StringWriter out = new java.io.StringWriter();
+        String[] type = {null};
+        jakarta.servlet.http.HttpServletResponse resp = (jakarta.servlet.http.HttpServletResponse) java.lang.reflect.Proxy.newProxyInstance(getClass().getClassLoader(),
+                new Class<?>[] {jakarta.servlet.http.HttpServletResponse.class}, (pr, m, a) -> {
+                    if ("setStatus".equals(m.getName())) st[0] = (Integer) a[0];
+                    if ("setContentType".equals(m.getName())) type[0] = (String) a[0];
+                    if ("getWriter".equals(m.getName())) return new java.io.PrintWriter(out, true);
+                    return null;
+                });
+        new ApiNotFoundServlet().service((jakarta.servlet.http.HttpServletRequest) null, resp);
+        assertEquals(404, st[0]);
+        assertTrue(type[0].startsWith("application/json"));
+        assertEquals("{\"success\":false,\"message\":\"없는 주소입니다.\"}", out.toString());
+        assertArrayEquals(new String[] {"/api/*"}, ApiNotFoundServlet.class.getAnnotation(jakarta.servlet.annotation.WebServlet.class).urlPatterns());
+        // 다른 서블릿에 /api/* 가 없음(겹치면 톰캣이 뜨지 않음)
+        try (var ls = Files.list(Path.of("src/main/java/com/gh/routefly/web"))) {
+            for (Path f : (Iterable<Path>) ls::iterator) {
+                String t = Files.readString(f);
+                if (!f.getFileName().toString().equals("ApiNotFoundServlet.java") && t.contains("@WebServlet")) assertFalse(f.toString(), t.contains("\"/api/*\""));
+            }
+        }
+    }
+
+    /** 24: 공유 페이지(/s/) canonical 은 검색에 내는 코스일 때만 - 아니면 넣지 않음(noindex 인 /c/ 를 가리키지 않게). */
+    @Test
+    public void shareCanonicalOnlyWhenIndexable() throws Exception {
+        assertFalse(ShareServlet.page("t", "d", "https://r.kr/s/a", null, "https://r.kr/img/og.png", "https://r.kr/#c=a").contains("canonical"));
+        assertTrue(ShareServlet.page("t", "d", "https://r.kr/s/a", "https://r.kr/c/a", "https://r.kr/img/og.png", "https://r.kr/#c=a").contains("<link rel=\"canonical\" href=\"https://r.kr/c/a\">"));
+        String src = Files.readString(Path.of("src/main/java/com/gh/routefly/web/ShareServlet.java"));
+        assertTrue("사이트맵과 같은 규칙", src.contains("CoursePageServlet.indexable(") && src.contains("index ? base + \"/c/\" + id : null"));
+    }
 }

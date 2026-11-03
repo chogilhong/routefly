@@ -228,12 +228,23 @@ public class CourseSubmitServlet extends HttpServlet {
     /**
      * 순수 함수 - 점 [위도, 경도, 높이] 를 모양을 지키며 max 개 안으로(더글러스-포이커, 처음 · 끝은 늘). 이미 max 안이면 그대로.
      * 1m 어긋남부터 두 배씩 늘려 max 안에 들 때까지(2026-11-02 홍TV님 점검 - 받은 폴더 크기).
+     * 2026-11-03 보안 점검: 일부러 꾸민 지그재그 4만 점에 20초 넘게 CPU 를 썼음 - 먼저 1m 안 점을 덜고, 그래도 max 의 두 배가 넘으면 고르게 덜어(stride)
+     * 2 × max 안으로 줄인 뒤 돌리고, 셈이 SIMPLIFY_OPS 를 넘으면 고르게 덜기로 끝냄.
      */
     static List<double[]> simplify(List<double[]> pts, int max) {
         if (pts.size() <= max) return pts;
         double lat0 = Math.toRadians(pts.get(0)[0]), ky = 111_320.0, kx = ky * Math.cos(lat0);
-        double[] xs = new double[pts.size()], ys = new double[pts.size()];
-        for (int i = 0; i < xs.length; i++) { xs[i] = pts.get(i)[1] * kx; ys[i] = pts.get(i)[0] * ky; }
+        List<double[]> in = new ArrayList<>(pts.size());   // 1m 안 점 덜기(멈춰 선 자리 · 겹친 점)
+        double lx = Double.NaN, ly = Double.NaN;
+        for (int i = 0; i < pts.size(); i++) {
+            double x = pts.get(i)[1] * kx, y = pts.get(i)[0] * ky;
+            if (i == 0 || i == pts.size() - 1 || Math.hypot(x - lx, y - ly) >= 1) { in.add(pts.get(i)); lx = x; ly = y; }
+        }
+        if (in.size() <= max) return in;
+        if (in.size() > 2 * max) in = stride(in, 2 * max);
+        double[] xs = new double[in.size()], ys = new double[in.size()];
+        for (int i = 0; i < xs.length; i++) { xs[i] = in.get(i)[1] * kx; ys[i] = in.get(i)[0] * ky; }
+        long ops = 0;
         for (double tol = 1; ; tol *= 2) {
             boolean[] keep = new boolean[xs.length];
             keep[0] = keep[xs.length - 1] = true;
@@ -244,6 +255,8 @@ public class CourseSubmitServlet extends HttpServlet {
                 int[] r = st.pop();
                 int a = r[0], b = r[1], far = -1;
                 double dx = xs[b] - xs[a], dy = ys[b] - ys[a], len = Math.hypot(dx, dy), worst = tol;
+                ops += b - a;
+                if (ops > SIMPLIFY_OPS) return stride(in, max);   // 꾸민 모양 - 고르게 덜기로
                 for (int i = a + 1; i < b; i++) {
                     double d = len == 0 ? Math.hypot(xs[i] - xs[a], ys[i] - ys[a]) : Math.abs(dy * (xs[i] - xs[a]) - dx * (ys[i] - ys[a])) / len;
                     if (d > worst) { worst = d; far = i; }
@@ -256,9 +269,22 @@ public class CourseSubmitServlet extends HttpServlet {
             }
             if (kept > max) continue;
             List<double[]> out = new ArrayList<>(kept);
-            for (int i = 0; i < keep.length; i++) if (keep[i]) out.add(pts.get(i));
+            for (int i = 0; i < keep.length; i++) if (keep[i]) out.add(in.get(i));
             return out;
         }
+    }
+
+    /** simplify 의 셈 한도(점 사이 거리 셈 수) - 보통 기록(5만 점)은 수백만, 넘으면 고르게 덜기. */
+    static final long SIMPLIFY_OPS = 40_000_000L;
+
+    /** 고르게 덜기 - 처음 · 끝을 두고 max 개 안으로. */
+    private static List<double[]> stride(List<double[]> pts, int max) {
+        int n = pts.size(), step = (n - 2 + max - 3) / (max - 2);   // 가운데 n - 2 개를 max - 2 개 안으로
+        List<double[]> out = new ArrayList<>(max);
+        out.add(pts.get(0));
+        for (int i = 1; i < n - 1; i += step) out.add(pts.get(i));
+        out.add(pts.get(n - 1));
+        return out;
     }
 
     private static int count(File dir) {

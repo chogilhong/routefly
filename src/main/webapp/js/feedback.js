@@ -24,6 +24,8 @@
         $("fbSend").textContent = "Send";
         $("fbBack").textContent = "‹ Back";
     }
+    /** 답장 메일 - 서버 Feedback.reply 와 같은 모양(영문 주소 · 80자까지, 2026-11-03 홍TV님 점검: 한글 주소 · 긴 주소가 화면은 지나고 서버에서 막혔음). */
+    function replyOk(s) { return s.length <= 80 && /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$/.test(s); }
     function msg(t, ok) { $("msg").textContent = t || ""; $("msg").className = ok ? "ok" : ""; }
     $("fbText").addEventListener("input", function () { $("fbCount").textContent = $("fbText").value.length; });
     $("fbBack").addEventListener("click", function (e) {
@@ -33,7 +35,7 @@
     $("fbSend").addEventListener("click", function () {
         var text = $("fbText").value.trim(), reply = $("fbReply").value.trim();
         if (text.length < 2) { msg(T("내용을 적어 주세요.", "Please write a message.")); return; }
-        if (reply && !/^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/.test(reply)) { msg(T("답장 받을 메일 주소를 확인해 주세요.", "Please check your email address.")); return; }
+        if (reply && !replyOk(reply)) { msg(T("답장 받을 메일 주소를 확인해 주세요 - 영문 · 숫자로 된 주소(예: name@example.com), 80자까지 받습니다.", "Please check your email address - letters and numbers only (e.g. name@example.com), up to 80 characters.")); return; }
         $("fbSend").disabled = true;
         msg(T("보내는 중…", "Sending…"));
         fetch("api/feedback", { method: "POST", headers: { "Content-Type": "application/json" }, cache: "no-store",
