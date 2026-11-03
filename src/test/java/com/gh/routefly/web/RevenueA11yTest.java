@@ -40,11 +40,12 @@ public class RevenueA11yTest {
         assertTrue(read("src/main/webapp/js/party-office.js").contains("localStorage.setItem(\"rf-text\""));
     }
 
-    /** 따라가기 첫 화면 아래 링크(사용법 ~ 의견 보내기): 줄 사이를 좁게 32px(2026-11-03 홍TV님 "폭을 줄여줘" - 44px 은 세 줄이 너무 벌어졌음), 24px 아래로는 내리지 않음. */
+    /** 따라가기 첫 화면 아래 링크(사용법 ~ 의견 보내기): 초창기 모양(2026-11-03 홍TV님 "예전처럼 · 초창기" - 44px · 32px 손가락 자리는 줄 사이가 벌어졌음). */
     @Test
     public void hikeFootIsCompact() throws Exception {
         String html = read("src/main/webapp/hike.html");
         String rule = html.substring(html.indexOf("#pickFoot a {"), html.indexOf("}", html.indexOf("#pickFoot a {")));
-        assertTrue(rule, rule.contains("min-height:32px") && !rule.contains("44px"));
+        assertTrue(rule, !rule.contains("min-height") && !rule.contains("padding"));
+        assertTrue(html.contains("#pickFoot { flex:0 0 auto; padding:8px 14px calc(env(safe-area-inset-bottom) + 8px);"));
     }
 }

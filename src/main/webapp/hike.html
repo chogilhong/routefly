@@ -168,8 +168,8 @@ body.compact #statGrids { display:none; }
 #pick .row a { display:flex; align-items:center; justify-content:center; text-decoration:none; }   /* 🏅 도장(series.html - 도장 · 완주). 두 화면 모두 한 줄에 단추 넷이라 짧은 이름으로 맞춤(2026-10-12) */
 @media (max-width:380px) { #pick .row button, #pick .row a { font-size:13px; } }
 #pickList { flex:1; overflow-y:auto; padding:4px 0; }
-#pickFoot { flex:0 0 auto; padding:4px 14px calc(4px + env(safe-area-inset-bottom)); line-height:1.2; border-top:1px solid var(--ln); font-size:12.5px; color:var(--dim); text-align:center; }
-#pickFoot a { color:var(--dim); text-decoration:none; white-space:nowrap; display:inline-flex; align-items:center; min-height:32px; padding:0 2px; vertical-align:middle; }   /* 손가락 자리 32px(WCAG 2.2 최소 24px 넘음) - 2026-11-03 홍TV님 "폭을 줄여줘": 44px 은 줄 사이가 너무 벌어졌음(2026-10-28 점검: 글 높이 14px 뿐이었음) */   /* 좁으면 링크째 다음 줄로(2026-10-15 - 코스 모음 더함) */
+#pickFoot { flex:0 0 auto; padding:8px 14px calc(env(safe-area-inset-bottom) + 8px); border-top:1px solid var(--ln); font-size:12.5px; color:var(--dim); text-align:center; }
+#pickFoot a { color:var(--dim); text-decoration:none; white-space:nowrap; }   /* 초창기 모양으로(2026-11-03 홍TV님 "예전처럼 · 초창기" - 손가락 자리 44px · 32px 은 줄 사이가 벌어졌음) */   /* 좁으면 링크째 다음 줄로(2026-10-15 - 코스 모음 더함) */
 #pickFoot a[data-onboard], #pickFoot a[href="m/"] { color:var(--sky); }
 html.rfwait body { visibility:hidden; }   /* 앱을 처음 열 때 서버에 닿는지 보는 동안(최대 2.5초, js/early.js) */
 #pickList .it { padding:12px 14px; border-bottom:1px solid var(--ln); }
