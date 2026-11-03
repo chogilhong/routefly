@@ -2,6 +2,8 @@ package com.gh.routefly.web;
 
 import static org.junit.Assert.*;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,5 +39,36 @@ public class ReviewRound8Test {
         String page = MountainServlet.page(peak, cs, new ArrayList<>(), null, "");
         assertTrue("코스 줄에 data-desc(화면 js 의 거르기 · 일출 출발이 내리막도)", page.contains("data-asc=\"600\" data-desc=\"60\""));
         assertTrue(page.contains(" · 약 2시간 2분"));
+    }
+
+    static String web(String f) throws Exception {
+        return Files.readString(Path.of("src/main/webapp", f));
+    }
+
+    /** 순수 함수 - WCAG 대비(#rrggbb 둘). */
+    static double contrast(String a, String b) {
+        double la = lum(a), lb = lum(b);
+        return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+    }
+
+    private static double lum(String h) {
+        double[] c = new double[3];
+        for (int i = 0; i < 3; i++) {
+            double v = Integer.parseInt(h.substring(1 + i * 2, 3 + i * 2), 16) / 255.0;
+            c[i] = v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+        }
+        return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+    }
+
+    /** 1: 안부 화면 119 · 보호자 전화 단추 흰 글 대비 4.5:1 이상(전에는 2.78 · 4.2). */
+    @Test
+    public void anbuButtonContrast() throws Exception {
+        String h = web("anbu.html");
+        java.util.regex.Matcher sos = java.util.regex.Pattern.compile("\\.row2 \\.sos \\{ background:(#[0-9a-f]{6});[^}]*color:#fff;").matcher(h);
+        java.util.regex.Matcher help = java.util.regex.Pattern.compile("\\.row2 #helpCall \\{ background:(#[0-9a-f]{6});[^}]*color:#fff;").matcher(h);
+        assertTrue(sos.find() && help.find());
+        assertTrue("119 " + sos.group(1), contrast(sos.group(1), "#ffffff") >= 4.5);
+        assertTrue("보호자 전화 " + help.group(1), contrast(help.group(1), "#ffffff") >= 4.5);
+        assertEquals(2.78, contrast("#ff6b6b", "#ffffff"), 0.01);
     }
 }
