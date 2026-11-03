@@ -91,13 +91,15 @@
 
     function buildStyle(cfg) {
         var demSource = {
-            type: "raster-dem", tiles: [cfg.demUrl], encoding: "terrarium", tileSize: 256, maxzoom: 15,
+            type: "raster-dem", tiles: [cfg.demUrl], encoding: "terrarium", tileSize: 256, maxzoom: 14,
             attribution: T("지형: ", "Terrain: ") + "<a href=\"https://registry.opendata.aws/terrain-tiles/\" target=\"_blank\" rel=\"noopener\">Terrain Tiles (AWS Open Data)</a>"
         };
         var sources = {
             // 지형과 음영은 출처를 따로 둡니다(MapLibre 권장 - 같은 출처를 쓰면 음영 해상도가 떨어집니다).
+            // 받는 양 줄이기(2026-11-03 홍TV님 점검 P1): 지형은 z14 까지(z15 는 3D 에서 거의 차이 없음), 음영은 z12 까지(더 확대하면 늘려 씀) -
+            // 둘의 maxzoom 이 달라 한 출처로 합칠 수 없음. 선명함은 홍TV님이 눈으로 봄
             terrain: demSource,
-            hillshade: Object.assign({}, demSource)
+            hillshade: Object.assign({}, demSource, { maxzoom: 12 })
         };
         var layers = [{ id: "bg", type: "background", paint: { "background-color": cfg.vworldKey ? "#1b2430" : "#dcd6c6" } }];
         if (cfg.vworldKey) {
@@ -112,7 +114,7 @@
                 tiles: ["https://api.vworld.kr/req/wmts/1.0.0/" + key + "/Hybrid/{z}/{y}/{x}.png"]
             };
             layers.push({ id: "sat", type: "raster", source: "sat" });
-            layers.push({ id: "hillshade", type: "hillshade", source: "hillshade",
+            layers.push({ id: "hillshade", type: "hillshade", source: "hillshade", minzoom: 9,   // 위성사진 위 옅은 음영 - 넓게 볼 때는 안 보여 받지 않음(P1)
                 paint: { "hillshade-exaggeration": 0.25, "hillshade-shadow-color": "#000000" } });
             // 지명 · 도로 겹침. 글자가 길을 따라 비스듬히 쓰여 우리 이름표와 겹치므로 비행 중에는 흐리게 숨깁니다(setMapLabels).
             layers.push({ id: "label", type: "raster", source: "label",
@@ -1381,11 +1383,24 @@
 
     // ------------------------------------------------------------------ 시작
 
-    function start(cfg) {
+    /**
+     * 순수 함수 - 코스 답(api/course 모양 - points [[lon, lat, …]])의 범위 [[서, 남], [동, 북]]. 점이 없으면 null.
+     * 공유 링크(#c=)로 열면 지도를 이 범위에서 시작(2026-11-03 홍TV님 점검 P1: 전국 z6 타일을 받고 다시 코스로 날아갔음).
+     */
+    function startBounds(j) {
+        var pts = (j && j.points) || [], w = Infinity, s = Infinity, e = -Infinity, n = -Infinity;
+        pts.forEach(function (p) { if (isFinite(p[0]) && isFinite(p[1])) { w = Math.min(w, p[0]); e = Math.max(e, p[0]); s = Math.min(s, p[1]); n = Math.max(n, p[1]); } });
+        return isFinite(w) ? [[w, s], [e, n]] : null;
+    }
+
+    function start(cfg, first) {
+        var b0 = startBounds(first);
         map = new maplibregl.Map({
             container: "map",
             style: buildStyle(cfg),
             center: [127.8, 36.3], zoom: 6.2, pitch: 0, maxPitch: 85,
+            bounds: b0 || undefined, fitBoundsOptions: { padding: 40, maxZoom: 14 },   // #c= 면 그 코스 자리에서(위 center · zoom 대신)
+            prefetchZoomDelta: 1,   // 확대 전 미리 받는 아래 단계 타일을 줄임(기본 4 - P1)
             attributionControl: false, locale: RF.mapLocale()   // 단추 글 한국어(2026-11-03)
         });
         if (/[?&]debug\b/.test(location.search)) window.routeflyDebug = { map: map, anim: anim, at: function (d) { return at(cur, d); } };   // 시험용
@@ -1641,7 +1656,11 @@
     });
 
     if (!window.maplibregl) { show(T("지도 라이브러리를 불러오지 못했습니다.", "Could not load the map library.")); return; }
-    getJson("api/map-config")
-        .catch(function () { return { demUrl: "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png", vworldKey: null }; })
-        .then(start);
+    // 공유 링크(#c=)면 코스를 지도 설정과 같이 받기 시작(courseData 가 기억 - select 가 다시 받지 않음), 3초 안에 오면 지도를 그 자리에서 시작
+    var firstId = RF.safeDecode((/[#&]c=([^&]+)/.exec(location.hash) || [])[1] || "") || null;
+    var firstData = firstId && !RF.isGpxId(firstId) ? Promise.race([courseData(firstId).catch(function () { return null; }),
+        new Promise(function (ok) { setTimeout(function () { ok(null); }, 3000); })]) : null;
+    Promise.all([getJson("api/map-config")
+        .catch(function () { return { demUrl: "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png", vworldKey: null }; }), firstData])
+        .then(function (r) { start(r[0], r[1]); });
 })();

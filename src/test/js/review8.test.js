@@ -246,4 +246,18 @@ var RF = kit();
     has("첫 화면 제목 안 잘림", read("hike.html"), "#pick .pickTop h1.ttl { flex:1 1 auto; min-width:0; margin:0; font-size:min(1em, 5.6vw); line-height:1.25; word-break:keep-all;");
 })();
 
+// ---- P1: 3D 지도 받는 양 - 지형 z14 · 음영 z12(위성 위 음영은 z9 부터) · 미리 받기 1단계 · #c= 면 코스 자리에서 시작
+(function () {
+    var APP = read("js/app.js");
+    var sb = function (j) { return vm.runInNewContext(fn(APP, "startBounds") + " startBounds(j);", { j: j, isFinite: isFinite, Infinity: Infinity, Math: Math }); };
+    eq("코스 범위", sb({ points: [[127.1, 37.5, 10, 0], [127.3, 37.4, 20, 100], [127.2, 37.7, 5, 200]] }), [[127.1, 37.4], [127.3, 37.7]]);
+    eq("점이 없으면 전국에서", [sb(null), sb({ points: [] })], [null, null]);
+    has("지형 z14", APP, 'encoding: "terrarium", tileSize: 256, maxzoom: 14,');
+    has("음영 z12", APP, "hillshade: Object.assign({}, demSource, { maxzoom: 12 })");
+    has("위성 위 음영 z9 부터", APP, 'layers.push({ id: "hillshade", type: "hillshade", source: "hillshade", minzoom: 9,');
+    has("미리 받기 1단계", APP, "prefetchZoomDelta: 1,");
+    has("#c= 면 그 범위로 시작", APP, "bounds: b0 || undefined, fitBoundsOptions: { padding: 40, maxZoom: 14 },");
+    has("코스를 지도 설정과 같이 받음(3초까지)", APP, ".then(function (r) { start(r[0], r[1]); });");
+})();
+
 console.log("OK " + n);
