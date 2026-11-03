@@ -195,17 +195,17 @@ a.tel { color:var(--sky); }
             <input id="mkName" type="text" maxlength="30" placeholder="예: 설악산 공룡능선 무박" data-en-placeholder="e.g. Seoraksan Dinosaur Ridge overnight">
             <div class="two">
                 <div><label for="mkDate" data-en="Departure date">출발 날짜</label><input id="mkDate" type="text" inputmode="numeric" maxlength="12" autocomplete="off" placeholder="예: 1022" data-en-placeholder="e.g. 1022 (MMDD)"></div>
-                <div><label for="mkTime" data-en="Departure time">출발 시각</label><input id="mkTime" type="text" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="예: 0700" data-en-placeholder="e.g. 0700"></div>
+                <div><label for="mkTime" data-en="Departure time">출발 시각</label><input id="mkTime" type="text" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="예: 07:00" data-en-placeholder="e.g. 07:00"></div>
             </div>
             <div class="two">
                 <div><label for="mkNights" data-en="Schedule">일정</label><select id="mkNights">
                     <option value="0" data-en="Day trip · overnight bus">당일 · 무박</option><option value="1" data-en="2 days, 1 night">1박 2일</option><option value="2" data-en="3 days, 2 nights">2박 3일</option><option value="3" data-en="4 days, 3 nights">3박 4일</option></select></div>
-                <div><label for="mkEnd" id="mkEndLabel" data-en="Back-down deadline">하산 마감</label><input id="mkEnd" type="text" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="예: 1600" data-en-placeholder="e.g. 1600"></div>
+                <div><label for="mkEnd" id="mkEndLabel" data-en="Back-down deadline">하산 마감</label><input id="mkEnd" type="text" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="예: 16:00" data-en-placeholder="e.g. 16:00"></div>
             </div>
             <div class="two">
-                <div><label for="mkLead" data-en="Leader name">인솔자 이름</label><input id="mkLead" type="text" maxlength="12" placeholder="예: 김대장" data-en-placeholder="e.g. Captain Kim"></div>
-                <div><label for="mkPhone" data-en="Phone (required)">연락처(필수)</label><input id="mkPhone" type="tel" maxlength="20" placeholder="010-…"></div>
-                <div><label for="mkOffice" data-en="Company code">회사 코드</label><input id="mkOffice" type="text" maxlength="6" autocapitalize="characters" placeholder="있으면" data-en-placeholder="optional"></div>
+                <div><label for="mkLead" data-en="Leader name">인솔자 이름</label><input id="mkLead" type="text" maxlength="12" autocomplete="name" placeholder="예: 김대장" data-en-placeholder="e.g. Captain Kim"></div>
+                <div><label for="mkPhone" data-en="Phone (required)">연락처(필수)</label><input id="mkPhone" type="tel" maxlength="20" autocomplete="tel" placeholder="010-…"></div>
+                <div><label for="mkOffice" data-en="Company code">회사 코드</label><input id="mkOffice" type="text" maxlength="6" autocapitalize="characters" autocomplete="off" placeholder="없으면 비움" data-en-placeholder="optional" title="회사 사무실에서 받은 코드(없으면 비움)" data-en-title="The code from your company office (leave blank if none)"></div>
             </div>
             <div class="two">
                 <div><label for="mkBuses" data-en="Number of buses">차량 수</label><input id="mkBuses" type="number" min="1" max="8" value="1" inputmode="numeric"></div>
@@ -213,12 +213,12 @@ a.tel { color:var(--sky); }
             </div>
             <div id="mkPlates" class="plates"></div>   <!-- 호차마다 좌석 수 · 차량번호(2026-10-27 홍TV님 "1호차 45인승, 2호차 28인승") -->
             <p class="tip" style="margin-top:2px" data-en="Seats: 45 · 41 · 33 · 28 · 25 · 21 etc. 31 or more is drawn 2-2, up to 30 as 2-1.">좌석: 45 · 41 · 33 · 28 · 25 · 21인승 등. 31석부터는 2-2, 30석까지는 2-1 배열로 그립니다.</p>
-            <label for="mkStops" data-en="Boarding stops (with departure times)">탑승지 (출발 시각도 함께)</label><input id="mkStops" type="text" maxlength="160" placeholder="사당 23:20, 양재 23:30, 복정 23:50" data-en-placeholder="Sadang 23:20, Yangjae 23:30, Bokjeong 23:50">
-            <label for="mkPickups" data-en="Return pickups (with departure times)">하산 탑승지 (출발 시각도 함께)</label><input id="mkPickups" type="text" maxlength="160" placeholder="설악동C지구 17:00, 용대리 17:30, 남교리 17:35" data-en-placeholder="Seoraksan C 17:00, Yongdae-ri 17:30, Namgyo-ri 17:35">
-            <label for="mkHome" data-en="Expected arrival back (where you departed)">출발지 도착 예정</label><input id="mkHome" type="text" maxlength="5" placeholder="20:30" style="max-width:8em">
+            <label for="mkStops" data-en="Boarding stops (with departure times)">탑승지 (출발 시각도 함께)</label><input id="mkStops" type="text" maxlength="160" placeholder="예: 사당 23:20, 양재 23:30, 복정 23:50" data-en-placeholder="e.g. Sadang 23:20, Yangjae 23:30, Bokjeong 23:50">
+            <label for="mkPickups" data-en="Return pickups (with departure times)">하산 탑승지 (출발 시각도 함께)</label><input id="mkPickups" type="text" maxlength="160" placeholder="예: 설악동C지구 17:00, 용대리 17:30, 남교리 17:35" data-en-placeholder="e.g. Seoraksan C 17:00, Yongdae-ri 17:30, Namgyo-ri 17:35">
+            <label for="mkHome" data-en="Expected arrival back (where you departed)">출발지 도착 예정</label><input id="mkHome" type="text" maxlength="5" placeholder="예: 20:30" data-en-placeholder="e.g. 20:30" style="max-width:8em">
             <label for="mkDrops" data-en="Drop-off points (if several)">하차 지점 (여러 곳이면)</label><input id="mkDrops" type="text" maxlength="120" placeholder="한계령, 오색, 소공원" data-en-placeholder="Hangyeryeong, Osaek, Sogongwon">
-            <p class="tip" data-en="Dates and times can be typed as numbers only (Oct 22 → 1022, 7 am → 0700, 4 pm → 1600). If the back-down deadline is earlier than the departure time, it counts as the next day (overnight). With several buses, as in autumn-leaf season, enter the number of buses and the seats of each bus (one seat map per bus). Separate boarding stops with commas. Bus plate numbers are shown to members so they can find the bus easily (leave blank if unknown and add later).
-                After creating the room, send the join link (room code · departure · leader note) to booked members by KakaoTalk or text.">날짜 · 시각은 숫자만 쳐도 됩니다(10월 22일 → 1022, 아침 7시 → 0700, 오후 4시 → 1600). 하산 마감이 출발 시각보다 이르면 다음 날로 봅니다(무박). 단풍철처럼 차가 여러 대면 차량 수와 호차마다 좌석 수를 적으세요(호차마다 좌석표). 탑승지는 쉼표로 나눠 적기. 차량번호는 회원 화면에 나가니 버스 찾기 쉽습니다(모르면 비우고 나중에 적어도 됨).
+            <p class="tip" data-en="Dates can be typed as numbers only (Oct 22 → 1022). Times work either way - 07:00 or 0700 (4 pm → 16:00 or 1600). The company code is the code from your company office (leave blank if none). If the back-down deadline is earlier than the departure time, it counts as the next day (overnight). With several buses, as in autumn-leaf season, enter the number of buses and the seats of each bus (one seat map per bus). Separate boarding stops with commas. Bus plate numbers are shown to members so they can find the bus easily (leave blank if unknown and add later).
+                After creating the room, send the join link (room code · departure · leader note) to booked members by KakaoTalk or text.">날짜는 숫자만 쳐도 됩니다(10월 22일 → 1022). 시각은 07:00 · 0700 어느 쪽이든 됩니다(오후 4시 → 16:00 또는 1600). 회사 코드는 회사 사무실에서 받은 코드(없으면 비움). 하산 마감이 출발 시각보다 이르면 다음 날로 봅니다(무박). 단풍철처럼 차가 여러 대면 차량 수와 호차마다 좌석 수를 적으세요(호차마다 좌석표). 탑승지는 쉼표로 나눠 적기. 차량번호는 회원 화면에 나가니 버스 찾기 쉽습니다(모르면 비우고 나중에 적어도 됨).
                 방을 만들면 참가 링크(방 코드 · 출발 · 인솔자 안내 글)를 카톡 · 문자로 예약한 회원에게 보내세요.</p>
             <button id="mkBtn" class="main" data-en="Create room">방 만들기</button>
         </section>

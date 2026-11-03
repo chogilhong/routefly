@@ -165,4 +165,17 @@ var RF = kit();
     has("🌐 한국어 는 ko", HIKE, 'a.lang = EN ? "ko" : "en";');
 })();
 
+// ---- 10: 산악회 방 만들기 - 시각 안내는 한 꼴 "예: 07:00"(0700 도 받음), 회사 코드 설명, 이름 · 연락처 자동 채움
+(function () {
+    var html = read("party.html"), P = read("js/party.js"), K = read("js/party-kit.js");
+    var parse = function (t) { return vm.runInNewContext(fn(K, "parseTime") + " parseTime(" + JSON.stringify(t) + ");", {}); };
+    eq("0700 · 07:00 · 7시 모두", [parse("0700"), parse("07:00"), parse("7시"), parse("23:20"), parse("2320")], [[7, 0], [7, 0], [7, 0], [23, 20], [23, 20]]);
+    eq("시각 칸 안내에 숫자만 꼴(0700 · 1600) 없음", /placeholder="예: (0700|1600)"/.test(html) || /e\.g\. (0700|1600)\b/.test(P), false);
+    has("출발 시각", html, 'placeholder="예: 07:00" data-en-placeholder="e.g. 07:00"');
+    has("하산 마감", html, 'placeholder="예: 16:00" data-en-placeholder="e.g. 16:00"');
+    has("회사 코드 설명", html, '회사 코드는 회사 사무실에서 받은 코드(없으면 비움).');
+    has("이름 자동 채움", html, 'id="mkLead" type="text" maxlength="12" autocomplete="name"');
+    has("연락처 자동 채움", html, 'id="mkPhone" type="tel" maxlength="20" autocomplete="tel"');
+})();
+
 console.log("OK " + n);

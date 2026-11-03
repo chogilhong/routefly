@@ -382,8 +382,9 @@
         return false;
     }
     var DAY_ERR = T("출발 날짜를 숫자로 적어 주세요(예: 10월 22일 → 1022).", "Enter the departure date as numbers (e.g. Oct 22 → 1022)."),
-        TIME_ERR = { mkTime: T("출발 시각을 숫자로 적어 주세요(예: 아침 7시 → 0700).", "Enter the departure time as numbers (e.g. 7 am → 0700)."),
-            mkEnd: T("하산 마감 시각을 숫자로 적어 주세요(예: 오후 4시 → 1600).", "Enter the descent deadline as numbers (e.g. 4 pm → 1600).") };
+        // 시각 안내는 한 꼴 "예: 07:00"(0700 도 받음 - 2026-11-03 홍TV님 점검: 0700 과 23:20 이 섞여 있었음)
+        TIME_ERR = { mkTime: T("출발 시각을 적어 주세요(예: 07:00).", "Enter the departure time (e.g. 07:00)."),
+            mkEnd: T("하산 마감 시각을 적어 주세요(예: 16:00).", "Enter the descent deadline (e.g. 16:00).") };
     $("mkDate").addEventListener("blur", function () { restoreOnBlur(this); var d = RFParty.parseDay(this.value, Date.now()); if (d) this.value = dayText(d); fieldErr(this, d || !this.value.trim() ? "" : DAY_ERR); });
     // 누르면 칸을 비우고 이전 값은 흐린 글씨로(2026-10-20): 글자를 골라 두면 폰이 "잘라내기 · 복사 · 붙여넣기" 를 띄웠고,
     // 숫자만 남기면(1021) 새로 친 숫자가 뒤에 붙어 10211022 가 됐음. 아무것도 안 치고 나가면 이전 값으로 돌아감(blur)
@@ -420,7 +421,7 @@
         var dp = [day.getFullYear(), day.getMonth() + 1, day.getDate()];
         var depart = kstAt(dp, 0, tp), endAt = 0;
         var nights = +$("mkNights").value || 0;   // 1박 2일 · 2박 3일 · 3박 4일(2026-10-21 홍TV님 - 지리산 · 설악산 종주)
-        if (nights && !$("mkEnd").value.trim()) { fieldErr($("mkEnd"), T("여러 날 산행은 마지막 날 하산 마감 시각을 적어 주세요(예: 1600).", "For a multi-day hike, enter the descent deadline on the last day (e.g. 1600).")); $("mkEnd").focus(); return; }
+        if (nights && !$("mkEnd").value.trim()) { fieldErr($("mkEnd"), T("여러 날 산행은 마지막 날 하산 마감 시각을 적어 주세요(예: 16:00).", "For a multi-day hike, enter the descent deadline on the last day (e.g. 16:00).")); $("mkEnd").focus(); return; }
         if ($("mkEnd").value.trim()) {   // 하산 마감 - 당일은 출발 날 그 시각(출발보다 이르면 다음 날 - 무박), 여러 날은 출발 날 + n 일 그 시각
             var ep = RFParty.parseTime($("mkEnd").value);
             if (!ep) { fieldErr($("mkEnd"), TIME_ERR.mkEnd); $("mkEnd").focus(); return; }
