@@ -77,6 +77,9 @@ public class PartnersServletTest {
         String page = MountainServlet.page(peak, new java.util.ArrayList<>(java.util.List.of(c)), new java.util.ArrayList<>(), null, "");
         int so = page.indexOf("<p class=\"stays\" id=\"socar\" hidden></p>");
         assertTrue("코스 목록 아래 숨긴 쏘카 칸 - 안내 글(찜 · 예상 시간) 아래", so > page.indexOf("</ul>") && so > page.indexOf("<p class=\"dim\">예상 시간은 "));
+        try {
+            assertTrue("아래 칸과 띄움", java.nio.file.Files.readString(java.nio.file.Path.of("src/main/webapp/css/mountain.css")).contains("#socar { margin-bottom:28px; }"));
+        } catch (java.io.IOException e) { throw new AssertionError(e); }
     }
 
     /** 호텔스컴바인(링크프라이스 경유, 2026-11-03): 대표 링크(click.linkprice.com)도, 호텔스컴바인 주소도 받음 - 흉내 주소는 뺌. */

@@ -32,6 +32,7 @@ ul { margin:0; padding:0; list-style:none; }
 .stays { margin:16px 0 0; }
 .stays a { display:inline-flex; align-items:center; min-height:44px; padding:0 16px; border-radius:22px; border:1px solid var(--sky); color:var(--tx); text-decoration:none; font-weight:bold; }
 .stays small { display:block; margin-top:6px; color:var(--dim); font-size:12px; }
+#socar { margin-bottom:28px; }   /* 🚗 쏘카 줄은 안내 글 아래 칸 밖이라 아래 📥 칸과 띄움(2026-11-03 홍TV님 "아래 공간을 조금 늘려") */
 .support a { display:inline-block; padding:8px 14px; border-radius:10px; background:#237032; color:#fff; text-decoration:none; font-weight:bold; }   /* 흰 글씨와 6.1:1(#2f9e44 는 3.5:1 - 2026-11-02 홍TV님 점검) */
 .brand span { color:#ffb703; }
 /* 글자 크기(RF.textButton) */
