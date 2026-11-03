@@ -66,7 +66,7 @@ button { font-family:inherit; }
 #pbBtns .pb { min-height:44px; padding:0 12px; border-radius:10px; border:1px solid #3b5563; background:#1d2a33; color:var(--tx); font-size:14px; display:inline-flex; align-items:center; text-decoration:none; cursor:pointer; }
 /* 코스 고르는 화면(#pick)이 위를 덮으므로 그때는 아래에 붙임 */
 html.picking.partyOn #partyBar { position:fixed; left:0; right:0; bottom:0; z-index:12; border-top:1px solid #22b8cf55; padding-bottom:calc(env(safe-area-inset-bottom) + 6px); }
-html.picking.partyOn #pick { padding-bottom:120px; box-sizing:border-box; }
+html.picking.partyOn #pick { padding-bottom:calc(var(--pbH, 120px) + 4px); box-sizing:border-box; }   /* 아래에 붙은 산악회 방 줄의 실제 높이만큼(party-bar.js fitPad - 2026-11-03 홍TV님: 120px 고정이라 의견 보내기 아래가 많이 비었음) */
 #pbBtns .pb.main { background:#22b8cf; color:#06222a; border-color:#22b8cf; font-weight:bold; }
 #map { position:absolute; inset:0; }
 #follow { position:absolute; right:10px; bottom:12px; width:44px; height:44px; border-radius:50%; border:0; z-index:2;

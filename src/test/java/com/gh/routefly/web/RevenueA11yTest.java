@@ -48,4 +48,12 @@ public class RevenueA11yTest {
         assertTrue(rule, !rule.contains("min-height") && !rule.contains("padding"));
         assertTrue(html.contains("#pickFoot { flex:0 0 auto; padding:8px 14px calc(env(safe-area-inset-bottom) + 8px);"));
     }
+
+    /** 산악회 방 줄이 아래에 붙으면 목록 아래는 그 줄 높이만큼만 비움(2026-11-03 홍TV님: 120px 고정이라 의견 보내기 아래가 많이 비었음). */
+    @Test
+    public void partyBarPadFitsBar() throws Exception {
+        String html = read("src/main/webapp/hike.html"), bar = read("src/main/webapp/js/party-bar.js");
+        assertTrue(html.contains("html.picking.partyOn #pick { padding-bottom:calc(var(--pbH, 120px) + 4px);"));
+        assertTrue(bar.contains("document.documentElement.style.setProperty(\"--pbH\", bar.offsetHeight + \"px\")") && bar.contains("requestAnimationFrame(fitPad)"));
+    }
 }

@@ -15,6 +15,12 @@
     function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return "&#" + c.charCodeAt(0) + ";"; }); }
     function clock(ms) { var d = new Date(ms + 9 * 3600000); return d.getUTCHours() + ":" + ("0" + d.getUTCMinutes()).slice(-2); }   // 한국 시간(2026-11-02 홍TV님 점검)
 
+    /** 아래에 붙은 이 줄의 높이를 CSS 변수(--pbH)로 - 따라가기 목록 아래를 그만큼만 비움(2026-11-03 홍TV님: 120px 고정이라 빈칸이 많았음). */
+    function fitPad() {
+        var bar = $("partyBar");
+        if (bar && !bar.hidden && bar.offsetHeight) document.documentElement.style.setProperty("--pbH", bar.offsetHeight + "px");
+    }
+    if (typeof window.addEventListener === "function") window.addEventListener("resize", fitPad);
     function hide() { $("partyBar").hidden = true; document.documentElement.classList.remove("partyOn"); stopWatch(); aliveSync(null); clearInterval(timer); timer = null; }
 
     /**
@@ -83,6 +89,7 @@
         var p = RFParty.get() || {}, bar = $("partyBar"), staff = s.role === "lead";
         bar.hidden = false;
         document.documentElement.classList.add("partyOn");
+        if (typeof requestAnimationFrame === "function") requestAnimationFrame(fitPad);   // 글을 다 채운 뒤 높이를 잼(아래 return 이 여럿이라)
         // 새 공지 - 따라가기에서 띄우고 읽어 줌(hike.js 의 RFParty.onNotice)
         if (s.notice && s.noticeAt && s.noticeAt !== p.noticeAt) {
             p.noticeAt = s.noticeAt;
