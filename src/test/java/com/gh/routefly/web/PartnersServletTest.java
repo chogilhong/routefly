@@ -77,4 +77,14 @@ public class PartnersServletTest {
         String page = MountainServlet.page(peak, new java.util.ArrayList<>(java.util.List.of(c)), new java.util.ArrayList<>(), null, "");
         assertTrue("코스 목록 아래 숨긴 쏘카 칸", page.contains("<p class=\"stays\" id=\"socar\" hidden></p>"));
     }
+
+    /** 호텔스컴바인(링크프라이스 경유, 2026-11-03): 대표 링크(click.linkprice.com)도, 호텔스컴바인 주소도 받음 - 흉내 주소는 뺌. */
+    @Test
+    public void hotelsViaLinkprice() {
+        assertEquals("https://click.linkprice.com/click.php?m=hcombine2&a=TEST",
+                PartnersServlet.body(Map.of("partner.hotels.url", "https://click.linkprice.com/click.php?m=hcombine2&a=TEST")::get).get("hotels").getAsString());
+        assertTrue(PartnersServlet.body(Map.of("partner.hotels.url", "https://www.hotelscombined.co.kr/?a=1")::get).has("hotels"));
+        assertFalse(PartnersServlet.body(Map.of("partner.hotels.url", "https://click.linkprice.com.evil.example/x")::get).has("hotels"));
+        assertFalse(PartnersServlet.body(Map.of("partner.hotels.url", "http://click.linkprice.com/x")::get).has("hotels"));
+    }
 }

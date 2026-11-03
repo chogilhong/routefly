@@ -80,7 +80,8 @@ public class PartnersServlet extends HttpServlet {
         String[][] more = {{"hotels", "hotelscombined.co.kr"}};   // 여기어때 · 야놀자는 뺌(2026-10-30 홍TV님)
         for (String[] m : more) {
             String u = conf.apply("partner." + m[0] + ".url");
-            if (u != null && checkHost("partner." + m[0] + ".url", u, m[1])) out.addProperty(m[0], u);   // {q} · {lat} 가 없으면 그 사이트 검색 화면으로(제휴 꼬리만)
+            // 호텔스컴바인은 링크프라이스 경유(2026-11-03 홍TV님 승인) - 대표 링크(click.linkprice.com)도 받음. 장소 번호(p22032)가 있어야 검색 결과가 열려 첫 화면으로 감
+            if (u != null && (whyHost(u, "linkprice.com") == null || checkHost("partner." + m[0] + ".url", u, m[1]))) out.addProperty(m[0], u);   // {q} · {lat} 가 없으면 그 사이트 검색 화면으로(제휴 꼬리만)
         }
         String donate = conf.apply("donate.url");
         if (allowed(donate, "https://")) out.addProperty("donate", donate);

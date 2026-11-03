@@ -1767,3 +1767,11 @@ eq("favJoinExtra 제목이 없으면 지금 이름의 길", [RF.favJoinExtra("#c
     eq("수수료 안내", box.kids[1].textContent.indexOf("routefly 가 수수료를 받습니다") > 0, true);
     delete sandbox.document;
 })();
+
+// 🏨 호텔스컴바인(링크프라이스 대표 링크, 2026-11-03): 검색어 자리가 없는 링크도 "근처 숙소 찾기" 단추로(첫 화면 - 장소 번호가 있어야 결과가 열림)
+(function () {
+    var hc = "https://click.linkprice.com/click.php?m=hcombine2&a=TEST";
+    var l = RF.stayLinks({ hotels: hc }, "속초시청", 38.207, 128.592, false).filter(function (x) { return /호텔스컴바인/.test(x.text); });
+    eq("호텔스컴바인 제휴 단추", l.map(function (x) { return [x.text, x.href, x.sponsored]; }), [["🏨 호텔스컴바인", hc, true]]);
+    eq("설정이 없으면 단추 없음", RF.stayLinks({}, "속초시청", 38.207, 128.592, false).filter(function (x) { return /호텔스컴바인/.test(x.text); }).length, 0);
+})();

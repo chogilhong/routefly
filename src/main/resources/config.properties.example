@@ -77,6 +77,9 @@ site.baseUrl=
 #partner.socar.url=
 # 나중에 제휴할 숙소 사이트(2026-10-29) - /m/ "🏨 근처 숙소 찾기" 단추. {q} 는 찾는 장소 이름, {lat} · {lon} 은 그 좌표로 바뀜(없으면 링크 그대로 - 그 사이트 검색 화면). 비우면 첫 화면 🔎(제휴 아님)
 #   아고다는 위 partner.agoda.url 하나로 - 파트너스 "도구 → 텍스트 링크" 의 링크(https://www.agoda.com/partners/partnersearch.aspx?…)를 그대로 넣어도 됨
+#   호텔스컴바인(링크프라이스 경유, 2026-11-03 승인): 링크프라이스 호텔스컴바인 화면의 "대표 링크"(click.linkprice.com)를 그대로 - 첫 화면으로 감.
+#   검색 결과로 바로 보내려면 장소 번호(예: 속초 p22032)가 있어야 해 산마다 만들 수 없음(이름 · location= 주소는 첫 화면으로 돌아감 - 2026-11-03 홍TV님 브라우저 확인).
+#   PC · 모바일 웹 예약만 실적(앱 ✗), 광고효과 인정기간 0일(누른 그 자리에서 예약해야 실적)
 #partner.hotels.url=
 # 장소 이름 → 좌표(V-World 검색 API) 키 - 비우면 map.vworld.key 를 씀(V-World 에서 "검색 API" 활용을 함께 신청)
 #place.vworld.key=
