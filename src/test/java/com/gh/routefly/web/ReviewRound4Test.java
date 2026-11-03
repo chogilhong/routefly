@@ -48,5 +48,7 @@ public class ReviewRound4Test {
         assertEquals("칸은 한 번만", ko.indexOf("id=\"ssForm\""), ko.lastIndexOf("id=\"ssForm\""));
         assertTrue("값에 꺾쇠가 있어도 그대로 나가지 않음", MountainServlet.staySearchBox("<x>", false).contains("value=\"&lt;x&gt;\""));
         assertFalse("모음(/m/) 칸은 비워 둠", MountainServlet.staySearchBox(null, false).contains("value="));
+        assertTrue("산 페이지 칸도 코스 모음처럼 펴 두고, 접어도 검색 칸은 남김", ko.contains("<section id=\"staySearch\"><details class=\"fold kind\" open data-keep=\"1\">")
+                && en.contains("<section id=\"staySearch\"><details class=\"fold kind\" open data-keep=\"1\">"));
     }
 }

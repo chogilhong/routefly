@@ -597,17 +597,11 @@ public class MountainServlet extends HttpServlet {
     /**
      * 🏨 근처 숙소 찾기 칸(js/mountain.js · mountain-en.js 가 course-kit staySearch 로 붙임). value - 미리 채울 장소(산 페이지는 대표 들머리, 2026-10-30 홍TV님 "작업해"),
      * 누를 때만 찾음(바깥 호출을 아끼려고 저절로 찾지 않음).
+     * 처음부터 펴 둠(코스 모음 /m/ - 2026-10-30 홍TV님 "처음부터 이렇게 검색 가능하게 펴놓자", 산 페이지도 2026-11-03 "코스 모음 처럼"). 펴 둔 칸은
+     * 다른 칸을 펼 때 같이 접히지 않게 한 묶음(name="kind")에서 뺌. data-keep - 접어도 검색 칸은 제목 아래에 남음(course-kit staySearch).
      */
     static String staySearchBox(String value, boolean en) {
-        return staySearchBox(value, en, false);
-    }
-
-    /**
-     * open - 처음부터 펴 둠(코스 모음 /m/ - 2026-10-30 홍TV님 "처음부터 이렇게 검색 가능하게 펴놓자"). 펴 둔 칸은 다른 칸을 펼 때 같이 접히지 않게
-     * 한 묶음(name="kind")에서 뺌. data-keep - 접어도 검색 칸은 제목 아래에 남음(course-kit staySearch).
-     */
-    static String staySearchBox(String value, boolean en, boolean open) {
-        return "<section id=\"staySearch\"><details class=\"fold kind\"" + (open ? " open data-keep=\"1\"" : " name=\"kind\"") + "><summary><span class=\"ft\">" + (en ? "🏨 Find lodging near a place" : "🏨 근처 숙소 찾기") + "</span>"
+        return "<section id=\"staySearch\"><details class=\"fold kind\" open data-keep=\"1\"><summary><span class=\"ft\">" + (en ? "🏨 Find lodging near a place" : "🏨 근처 숙소 찾기") + "</span>"
                 + "<span class=\"fs\">" + (en ? (value != null ? "Trailhead · county office · station" : "County office · station · terminal · mountain") : value != null ? "들머리 · 군청 · 역 이름으로" : "군청 · 역 · 산 이름으로")
                 + "</span><span class=\"fa\">▾</span></summary><div class=\"fb\">"
                 + "<form id=\"ssForm\" class=\"ssForm\" role=\"search\"><input id=\"ssQ\" type=\"search\" maxlength=\"30\"" + (value != null ? " value=\"" + esc(value) + "\"" : "")
@@ -637,7 +631,10 @@ public class MountainServlet extends HttpServlet {
         return m.matches() ? m.group(2) + " " + m.group(1) : id;
     }
 
-    /** 🏨 근처 숙소 찾기 칸(산 페이지). "🏨 근처 숙소(트립닷컴) ›" 한 줄은 뺌(2026-11-03 홍TV님 - 찾기 칸에 트립닷컴 · 아고다 · 호텔스컴바인이 다 있음). */
+    /**
+     * 🏨 근처 숙소 찾기 칸(산 페이지). "🏨 근처 숙소(트립닷컴) ›" 한 줄은 뺌(2026-11-03 홍TV님 - 찾기 칸에 트립닷컴 · 아고다 · 호텔스컴바인이 다 있음).
+     * 코스 모음(/m/)처럼 검색 칸을 처음부터 펴 두고, 접어도 검색 칸은 남김(2026-11-03 홍TV님 "아래 검색 창만 남겨. 코스 모음 처럼"). 산 이름(숙박 거점)은 미리 채움.
+     */
     static String staysBlock(JsonObject peak, boolean en) {
         return staySearchBox(stayPrefill(str(peak, "id") != null ? str(peak, "id") : str(peak, "name")), en);
     }
@@ -936,7 +933,7 @@ public class MountainServlet extends HttpServlet {
         }
         // 🏨 근처 숙소 찾기(2026-10-29 홍TV님 "산청군청 근처 숙소" - 펴 둔 채, js/mountain.js · course-kit staySearch) · ☀️ 이번 주말 날씨 좋은 산(/api/weekend - 2026-10-15)은
         // 산 · 길 목록 아래로(2026-11-03 홍TV님 점검: 위에 있어 목록이 첫 화면 밖으로 밀렸고, 주말 칸은 불러온 뒤 나타나 목록을 밀었음 - CLS)
-        b.append("</div>").append(staySearchBox(null, false, true)).append("<section id=\"weekend\" hidden></section>").append(steep)
+        b.append("</div>").append(staySearchBox(null, false)).append("<section id=\"weekend\" hidden></section>").append(steep)
                 .append("<section id=\"gearIdx\" hidden></section>")   // 🎒 산행 시 챙길 것(js/mountain.js - 계절 기준, 산 페이지는 그 산 오르막까지 - 2026-10-18 홍TV님)
                 .append(tips()).append("<section id=\"fun\" class=\"fun\" hidden></section>")
                 // 📐 GPX 편집(2026-10-31 홍TV님 "코스 모음 > 산악회 방 위에 둬") - 2026-11-02 홍TV님 "누구나": 모두에게 보임(전에는 rf-admin 기기만).
