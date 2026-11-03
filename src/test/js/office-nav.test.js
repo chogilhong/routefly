@@ -68,4 +68,14 @@ eq("m/ 에서: ‹ 사무실 → 사무실", shown(d), "사무실");
 officeBack(d);
 eq("m/ 에서: ‹ 뒤로 → 코스 모음(산악회 방 첫 화면을 거치지 않음)", shown(d), "코스 모음");
 
+// 방 위 "‹" 단추가 돌아갈 화면(2026-11-03 홍TV님: 따라가기 → 산악회 방 열기 → "‹ 코스 모음" 이 나왔음)
+var from = win.RFParty.roomFrom, H = O + "/routefly/hike.html?c=123";
+eq("따라가기에서 열면 그 화면", from(H, O, null), H);
+eq("3D 에서 열면 그 화면", from(O + "/routefly/index.html#c=1", O, null), O + "/routefly/index.html#c=1");
+eq("방 화면을 다시 열었으면(말 바꾸기 등) 처음 적어 둔 곳", from(O + "/routefly/party.html?lang=en", O, H), H);
+eq("적어 둔 것이 남의 사이트면 버림", from(O + "/routefly/party.html", O, "https://evil.example/x"), "");
+eq("사무실에서 왔으면 없음(사무실 단추가 따로)", from(O + "/routefly/party-office.html", O, H), "");
+eq("남의 사이트에서 왔으면 없음", from("https://evil.example/routefly/hike.html", O, H), "");
+eq("카톡 링크로 처음 연 탭", from("", O, H), "");
+
 console.log("OK " + n);

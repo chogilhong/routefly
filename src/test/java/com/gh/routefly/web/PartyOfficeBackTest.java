@@ -32,4 +32,16 @@ public class PartyOfficeBackTest {
         String office = Files.readString(Path.of("src/main/webapp/js/party-office.js"), StandardCharsets.UTF_8);
         assertTrue("사무실 ‹ 뒤로 는 이 탭의 사무실 방을 지움", office.contains("sessionStorage.removeItem(RFParty.KEY)") && office.contains("RFParty.officeNav(\"office\""));
     }
+
+    /** 2026-11-03 홍TV님: 따라가기 → "산악회 방 열기" 면 위 단추가 "‹ 코스 모음" 이 아니라 "‹ 따라가기"(다른 우리 화면은 "‹ 뒤로"). 판단은 office-nav.test.js 가 돌려 봄. */
+    @Test
+    public void roomBackReturnsToOpener() throws Exception {
+        String js = Files.readString(Path.of("src/main/webapp/js/party.js"), StandardCharsets.UTF_8).replace("\r\n", "\n");
+        int at = js.indexOf("} else {", js.indexOf("if ((RFParty.get() || {}).office) {"));
+        String body = js.substring(at, js.indexOf("\n    }\n", at));
+        assertTrue("사무실 자리가 아닐 때", body.contains("RFParty.roomFrom(document.referrer, location.origin, saved)"));
+        assertTrue(body.contains("T(\"‹ 따라가기\", \"‹ Follow\")") && body.contains("T(\"‹ 뒤로\", \"‹ Back\")"));
+        assertTrue("바로 앞이면 되돌아감", body.contains("document.referrer === from && history.length > 1"));
+        ReviewRound5Test.node("src/test/js/office-nav.test.js");
+    }
 }

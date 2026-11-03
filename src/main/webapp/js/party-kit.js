@@ -272,6 +272,18 @@
     }
 
     /**
+     * 순수 함수 - 방 위 "‹" 단추가 돌아갈 화면(2026-11-03 홍TV님: 따라가기 → "산악회 방 열기" → "‹ 코스 모음" 이 나왔음).
+     * ref(앞 화면)가 우리 화면이면 그 주소, 방 화면 자신(말 바꾸기 등으로 다시 연 것)이면 saved(처음 적어 둔 주소), 사무실 · 남의 사이트 · 없음은 "".
+     */
+    function roomFrom(ref, origin, saved) {
+        var mine = function (u) { return !!u && u.indexOf(origin + "/") === 0; };
+        if (!mine(ref)) return "";
+        var path = ref.slice(origin.length).split(/[?#]/)[0];
+        if (/\/party\.html$/.test(path)) return mine(saved) ? saved : "";
+        return /\/party-office\.html$/.test(path) ? "" : ref;
+    }
+
+    /**
      * QR 그리는 스크립트(qrcode-generator, 57KB)는 처음 QR 을 그릴 때 받음(2026-11-02 홍TV님 속도 점검: 따라가기 · 산악회 방 · 사무실이 열 때마다 받았음).
      * 서비스 워커가 같은 주소를 담아 두어(sw.js SHELL_FILES) 신호 없을 때도 됨. 돌려줌: qrcode 함수를 주는 약속(못 받으면 null).
      */
@@ -288,5 +300,5 @@
         return qrWait;
     }
 
-    g.RFParty = { qrLib: qrLib, officeNav: officeNav, alertsOn: alertsOn, isApp: isApp, dashes: dashes, KEY: KEY, get: get, set: set, clear: clear, post: post, fix: fix, ping: ping, sos: sos, onNotice: null, parseDay: parseDay, parseTime: parseTime };
+    g.RFParty = { qrLib: qrLib, officeNav: officeNav, roomFrom: roomFrom, alertsOn: alertsOn, isApp: isApp, dashes: dashes, KEY: KEY, get: get, set: set, clear: clear, post: post, fix: fix, ping: ping, sos: sos, onNotice: null, parseDay: parseDay, parseTime: parseTime };
 })(window);

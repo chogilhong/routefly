@@ -36,6 +36,19 @@
         $("back").href = OFFICE_HOME;
         $("back").textContent = T("‹ 사무실", "‹ Office");
         $("back").addEventListener("click", toOffice);
+    } else {
+        // 따라가기 · 3D 등 우리 화면에서 열었으면 그 화면으로(2026-11-03 홍TV님 - "‹ 코스 모음" 대신 "‹ 따라가기" · "‹ 뒤로")
+        var FROM_KEY = "rf-party-from", saved = null;
+        try { saved = sessionStorage.getItem(FROM_KEY); } catch (e) {}
+        var from = RFParty.roomFrom(document.referrer, location.origin, saved);
+        try { if (from) sessionStorage.setItem(FROM_KEY, from); else sessionStorage.removeItem(FROM_KEY); } catch (e) {}
+        if (from) {
+            $("back").href = from;
+            $("back").textContent = /\/hike\.html$/.test(from.split(/[?#]/)[0]) ? T("‹ 따라가기", "‹ Follow") : T("‹ 뒤로", "‹ Back");
+            $("back").addEventListener("click", function (e) {   // 바로 앞이 그 화면이면 되돌아가 기록을 쌓지 않음(따라가기 화면 자리 그대로)
+                if (document.referrer === from && history.length > 1) { e.preventDefault(); history.back(); }
+            });
+        }
     }
     if ($("officeBack")) $("officeBack").querySelector("a").addEventListener("click", toOffice);
     /** 서버 · 오류 글(한국어)을 영어로 - 영어 화면만. 모르는 글은 한국어 그대로 + " (Korean message)". */
