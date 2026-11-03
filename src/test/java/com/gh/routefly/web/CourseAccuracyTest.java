@@ -63,4 +63,12 @@ public class CourseAccuracyTest {
         // 문답 "정상까지 편도"도 오르는 쪽(1시간 + 1시간 + 2분)
         assertTrue(ko.contains("정상까지 편도 약 2시간 2분"));
     }
+
+    @Test
+    public void seriesCountsLikeRouteMap() throws Exception {   // 길 모음의 코리아둘레길 코스 수 = 노선 안내도(api/group?trail= - drnb- 만)
+        String js = ReviewRound8Test.web("js/series.js");
+        assertTrue(js.contains("\"api/group?trail=\" + encodeURIComponent(s.match || s.name) + \"&lines=0\""));
+        assertFalse("이름 검색(다른 자료 · 300개 한도)으로 세지 않음", js.contains("\"api/courses?q=\" + encodeURIComponent(s.q)"));
+        assertTrue(ReviewRound8Test.web("js/route.js").contains("\"api/group?trail=\" + encodeURIComponent(trail)"));
+    }
 }

@@ -66,9 +66,11 @@ public class GroupServletTest {
                     assertEquals("http://www.trail.or.kr/wp/?page_id=8966", o.getAsJsonObject("cert").get("url").getAsString());
                     seriesCerts++;
                 }
-                if (o.has("q")) {   // 코리아둘레길 - 이름으로 찾음(/api/courses?q=), 검색어 길이 안
+                if (o.has("q")) {   // 코리아둘레길 - 이름으로 찾음(q 는 코리아둘레길 표시, 셈은 api/group?trail=), 검색어 길이 안
                     assertTrue(o.get("q").getAsString(), o.get("q").getAsString().length() <= CourseQueries.MAX_QUERY);
                     assertTrue(o.get("name").getAsString() + " 공식 코스 수", o.has("official") && o.get("official").getAsInt() > 0);
+                    // 길 모음도 노선 안내도와 같은 api/group?trail=(match 또는 name) 으로 셈(2026-11-03 코스 점검)
+                    assertNotNull(o.get("name").getAsString(), GroupServlet.trailKey(o.has("match") ? o.get("match").getAsString() : o.get("name").getAsString()));
                     named++;
                     continue;
                 }

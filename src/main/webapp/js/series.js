@@ -421,7 +421,9 @@
             return fetch(s.summits).then(function (r) { return r.json(); }).then(function (j) { s.peaks = (j && j.peaks) || []; }, function () { s.peaks = []; });
         });
         return Promise.all(peaksReady.concat(named.map(function (s) {
-            var url = s.q ? "api/courses?q=" + encodeURIComponent(s.q) : "api/group?prefix=" + encodeURIComponent(s.prefix);
+            // 코리아둘레길은 노선 안내도(route.html)와 같은 곳(api/group?trail= - 두루누비 drnb- 만)에서 셈(2026-11-03 코스 점검: 이름 검색(api/courses 의 q)은
+            // 다른 자료의 같은 이름 코스까지 300개 안에서 섞여 길 모음 · 노선 안내도의 코스 수가 달랐음). 선은 필요 없어 lines=0
+            var url = s.q ? "api/group?trail=" + encodeURIComponent(s.match || s.name) + "&lines=0" : "api/group?prefix=" + encodeURIComponent(s.prefix);
             return getJson(url).then(function (j) { return j.courses; }, function () { return []; }).then(function (all) {
                 s.list = s.q ? RF.trailCourses(all, s.match || s.name) : all;
                 s.ids = s.list.map(function (c) { return c.course_id; });

@@ -53,7 +53,8 @@ public class GroupServlet extends HttpServlet {
             Json.fail(resp, HttpServletResponse.SC_BAD_REQUEST, "trail 은 둘레길 이름입니다(예: 해파랑길).");
             return;
         }
-        String key = ResultCache.key("trail", k), ver = ResultCache.LISTS.version();
+        boolean withLines = !"0".equals(req.getParameter("lines"));   // 길 모음(series.html)은 수 · 길이만 - lines=0 이면 선을 빼고 보냄(2026-11-03 코스 점검)
+        String key = ResultCache.key("trail", k + (withLines ? "|lines" : "")), ver = ResultCache.LISTS.version();
         if (ResultCache.LISTS.send(req, resp, key, ver)) return;
         String where = " WHERE course_id LIKE 'drnb-%' AND REPLACE(name, ' ', '') LIKE ?";
         try (Connection c = Db.open()) {
@@ -61,7 +62,7 @@ public class GroupServlet extends HttpServlet {
             out.addProperty("success", true);
             out.addProperty("trail", t);
             out.add("courses", Json.rows(c, "SELECT " + CourseQueries.LIST_COLUMNS + " FROM route_course" + where + " ORDER BY name LIMIT " + TRAIL_LIMIT, k + "%"));
-            out.add("lines", lines(c, "SELECT p.course_id, p.lon, p.lat, p.dist_m FROM route_course_point p JOIN route_course r ON r.course_id = p.course_id"
+            if (withLines) out.add("lines", lines(c, "SELECT p.course_id, p.lon, p.lat, p.dist_m FROM route_course_point p JOIN route_course r ON r.course_id = p.course_id"
                     + " WHERE r.course_id LIKE 'drnb-%' AND REPLACE(r.name, ' ', '') LIKE ? ORDER BY p.course_id, p.seq", k + "%"));
             ResultCache.LISTS.ok(req, resp, key, ver, out);
         } catch (Exception e) {
