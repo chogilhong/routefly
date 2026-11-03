@@ -902,7 +902,7 @@
                 $("official").style.display = "inline-block";
                 $("credit").style.display = "block";
             }
-            map = new maplibregl.Map({ container: "map", style: RF.baseStyle(cfg), center: [127.8, 36.3], zoom: 7,
+            map = new maplibregl.Map({ container: "map", style: RF.baseStyle(cfg), center: [127.8, 36.3], zoom: 7, locale: RF.mapLocale(),
                 attributionControl: false, dragRotate: false, pitchWithRotate: false, touchPitch: false });
             map.touchZoomRotate.disableRotation();
             RF.spotsByZoom(map);   // 위험 · 조망 아이콘은 확대했을 때만

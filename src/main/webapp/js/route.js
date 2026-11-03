@@ -300,7 +300,7 @@
             document.title = EN ? NM(name) + " route map - routefly" : name + " 노선 안내도 - routefly";
             if (!data.courses.length) { $("msg").textContent = T("아직 코스가 없습니다.", "No trails yet."); return; }
             flips = RF.routeFlips(data.courses, data.lines || {});
-            map = new maplibregl.Map({ container: "map", style: RF.baseStyle(cfg), center: [127.8, 36.3], zoom: 7,
+            map = new maplibregl.Map({ container: "map", style: RF.baseStyle(cfg), center: [127.8, 36.3], zoom: 7, locale: RF.mapLocale(),
                 attributionControl: false, dragRotate: false, pitchWithRotate: false, touchPitch: false });
             map.touchZoomRotate.disableRotation();
             map.addControl(new maplibregl.AttributionControl({ compact: true,

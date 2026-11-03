@@ -209,4 +209,19 @@ var RF = kit();
     eq("출처는 접힌 칸 안에만", h.indexOf("나무위키") > h.indexOf('<details class="tip src">'), true);
 })();
 
+// ---- 16: 지도 단추 글 한국어 · 손가락 화면 40px · 지도 글 12px 이상
+(function () {
+    eq("한국어 화면 단추 글", [RF.mapLocale()["NavigationControl.ZoomIn"], RF.mapLocale()["NavigationControl.ZoomOut"]], ["확대", "축소"]);
+    RF.setLang("en");
+    eq("영어 화면은 MapLibre 기본", RF.mapLocale() === undefined, true);
+    RF.setLang("ko");
+    ["js/hike.js", "js/app.js", "js/park.js", "js/party.js", "js/route.js", "js/studio.js"].forEach(function (f) {
+        var src = read(f), maps = (src.match(/new maplibregl\.Map\(\{/g) || []).length, loc = (src.match(/locale: RF\.mapLocale\(\)/g) || []).length;
+        eq(f + " 지도마다 locale", [maps > 0, loc], [true, maps]);
+    });
+    has("손가락 화면 40px", read("css/course-kit.css"), "@media (pointer: coarse) {\n    .maplibregl-ctrl-group button { width:40px; height:40px; }");
+    [["hike.html", ".poi .lb .more { display:block; font-size:12px; }"], ["route.html", ".ctr .lb { margin-top:2px; color:#fff; font-size:12px;"], ["index.html", ".poi .lb small { display:block; font-size:12px;"]]
+        .forEach(function (x) { has(x[0] + " 지도 글 12px", read(x[0]), x[1]); });
+})();
+
 console.log("OK " + n);

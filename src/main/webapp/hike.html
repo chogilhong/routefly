@@ -89,7 +89,7 @@ html.picking.partyOn #pick { padding-bottom:120px; box-sizing:border-box; }
 .poi { display:flex; flex-direction:column; align-items:center; pointer-events:none; }
 .poi .lb { color:#fff; font-size:12px; font-weight:bold; white-space:nowrap; text-shadow:0 0 3px #000, 0 1px 2px #000; padding-bottom:1px; }
 .poi .lb { text-align:center; }
-.poi .lb .more { display:block; font-size:11px; }
+.poi .lb .more { display:block; font-size:12px; }   /* 지도 글은 12px 이상(2026-11-03 홍TV님 점검) */
 .poi { transition:opacity .3s; }
 .poi.hid { opacity:0 !important; }   /* MapLibre 가 마커에 직접 opacity 를 넣으므로 !important */
 .poi .ic { width:22px; height:22px; border-radius:7px; background:rgba(255,255,255,0.92); display:flex; align-items:center;

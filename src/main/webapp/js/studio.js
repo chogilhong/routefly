@@ -164,7 +164,7 @@
             var cfg = { demUrl: j.demUrl || "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png", vworldKey: j.vworldKey || null };
             hasSat = cfgVw = !!cfg.vworldKey;   // 바탕 고름(mapPref)이 먼저 앎
             demUrl = cfg.demUrl;
-            map = new maplibregl.Map({ container: "map", style: style(cfg), center: [127.8, 36.3], zoom: 6.2, attributionControl: false, dragRotate: false, pitchWithRotate: false });
+            map = new maplibregl.Map({ container: "map", style: style(cfg), center: [127.8, 36.3], zoom: 6.2, locale: RF.mapLocale(), attributionControl: false, dragRotate: false, pitchWithRotate: false });
             map.touchZoomRotate.disableRotation();
             map.addControl(new maplibregl.AttributionControl({ compact: true, customAttribution: "© OpenStreetMap contributors" }), "bottom-right");
             // 폰(600px 밑)은 출처를 ⓘ 로 접어 둠(누르면 펼쳐짐 - 따라가기 foldAttrib 와 같게, 2026-11-02 홍TV님 점검: 처음에 두 줄로 펼쳐져 지도 10% 를 가렸음). PC 는 그대로

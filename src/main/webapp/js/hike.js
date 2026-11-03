@@ -537,7 +537,7 @@
         var hold = /[#&]c=/.test(location.hash);
         // prefetchZoomDelta 1 - 나라 전체(6.2)에서 코스로 맞출 때 그 사이 단계 타일까지 미리 받던 것을 줄임(기본 4) · pixelRatio 는 2 까지(3배 화면에서
         // 타일 · 그리기가 2.25배 - 2026-11-02 홍TV님 점검)
-        map = new maplibregl.Map({ container: "map", style: buildStyle(cfg, hold), center: [127.8, 36.3], zoom: 6.2, prefetchZoomDelta: 1,
+        map = new maplibregl.Map({ container: "map", style: buildStyle(cfg, hold), center: [127.8, 36.3], zoom: 6.2, prefetchZoomDelta: 1, locale: RF.mapLocale(),
             pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
             attributionControl: false, pitchWithRotate: false, dragRotate: false, touchPitch: false });
         map.touchZoomRotate.disableRotation();   // 북쪽이 늘 위(작은 화면에서 길 잃지 않게)
@@ -1286,7 +1286,7 @@
             if (box.querySelector(".tmap")) {
                 try {
                     var lo = t.map(function (p) { return p[1]; }), la = t.map(function (p) { return p[0]; });
-                    tm = new maplibregl.Map({ container: box.querySelector(".tmap"), style: buildStyle(cfg), attributionControl: false, dragRotate: false, pitchWithRotate: false, touchPitch: false,
+                    tm = new maplibregl.Map({ container: box.querySelector(".tmap"), style: buildStyle(cfg), attributionControl: false, locale: RF.mapLocale(), dragRotate: false, pitchWithRotate: false, touchPitch: false,
                         bounds: [[Math.min.apply(null, lo), Math.min.apply(null, la)], [Math.max.apply(null, lo), Math.max.apply(null, la)]], fitBoundsOptions: { padding: 28 } });
                     tm.touchZoomRotate.disableRotation();
                     tm.addControl(new maplibregl.AttributionControl({ compact: true }), "top-right");   // 아래 오른쪽이면 출발점(초록)을 가렸음(2026-10-31 PC)

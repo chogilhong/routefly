@@ -247,6 +247,20 @@
         global.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); });
 
     /**
+     * MapLibre 지도 단추 글(확대 · 축소 · 북쪽 · 출처 · 내 위치) - 한국어 화면은 한국어(2026-11-03 홍TV님 점검: 한국어 화면에 "Zoom in" 이 나왔음).
+     * 영어 화면은 undefined(MapLibre 기본 영어). new maplibregl.Map({ locale: RF.mapLocale() }).
+     */
+    function mapLocale() {
+        if (LANG === "en") return undefined;
+        return { "AttributionControl.ToggleAttribution": "출처 보기 · 접기", "AttributionControl.MapFeedback": "지도 의견",
+                 "FullscreenControl.Enter": "전체 화면", "FullscreenControl.Exit": "전체 화면 끝내기",
+                 "GeolocateControl.FindMyLocation": "내 위치 찾기", "GeolocateControl.LocationNotAvailable": "위치를 알 수 없음",
+                 "LogoControl.Title": "MapLibre 로고", "NavigationControl.ResetBearing": "끌면 지도 돌리기, 누르면 북쪽을 위로",
+                 "NavigationControl.ZoomIn": "확대", "NavigationControl.ZoomOut": "축소",
+                 "TerrainControl.Enable": "지형 켜기", "TerrainControl.Disable": "지형 끄기" };
+    }
+
+    /**
      * 순수 함수 - 트립닷컴 제휴 링크(설정 partner.trip.url)를 들머리 근처 숙소 검색으로(2026-10-28 홍TV님 "들머리 근처 숙소가 나와야").
      * PC 가 kr.trip.com 에서 확인한 꼴: /hotels/list?cityId=0&searchType=LM&searchWord=이름&searchValue=13|0*13*위도|경도|이름|0|1
      * (cityId 가 없으면 0개, lat · lon 쿼리는 무시됨). 제휴 꼬리(Allianceid · SID · trip_sub1 · curr · locale 등)는 그대로 붙임.
@@ -435,6 +449,7 @@
         applyEn: applyEn,
         partyAlerts: partyAlerts,
         rosterRead: rosterRead,
-        leadSteps: leadSteps
+        leadSteps: leadSteps,
+        mapLocale: mapLocale
     };
 })(window);

@@ -1386,7 +1386,7 @@
             container: "map",
             style: buildStyle(cfg),
             center: [127.8, 36.3], zoom: 6.2, pitch: 0, maxPitch: 85,
-            attributionControl: false
+            attributionControl: false, locale: RF.mapLocale()   // 단추 글 한국어(2026-11-03)
         });
         if (/[?&]debug\b/.test(location.search)) window.routeflyDebug = { map: map, anim: anim, at: function (d) { return at(cur, d); } };   // 시험용
         map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");

@@ -1175,7 +1175,7 @@
         if (map) return;
         fetch("api/map-config").then(function (r) { return r.json(); }).catch(function () { return {}; }).then(function (c) {
             var cfg = { demUrl: c.demUrl || "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png", vworldKey: c.vworldKey || null };
-            map = new maplibregl.Map({ container: "map", style: RF.baseStyle(cfg), center: [127.8, 36.3], zoom: 6,
+            map = new maplibregl.Map({ container: "map", style: RF.baseStyle(cfg), center: [127.8, 36.3], zoom: 6, locale: RF.mapLocale(),
                 attributionControl: false, dragRotate: false, pitchWithRotate: false, touchPitch: false });
             map.touchZoomRotate.disableRotation();
             map.addControl(new maplibregl.AttributionControl({ compact: true }), "top-right");
