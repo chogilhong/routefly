@@ -38,15 +38,19 @@
         $("back").addEventListener("click", toOffice);
     } else {
         // 따라가기 · 3D 등 우리 화면에서 열었으면 "‹ 뒤로" 로 그 화면으로(2026-11-03 홍TV님 - "‹ 코스 모음" 이 나왔음)
-        var FROM_KEY = "rf-party-from", saved = null;
-        try { saved = sessionStorage.getItem(FROM_KEY); } catch (e) {}
+        var FROM_KEY = "rf-party-from", BACK_KEY = "rf-party-from-back", saved = null, prevBack = null;
+        try { saved = sessionStorage.getItem(FROM_KEY); prevBack = sessionStorage.getItem(BACK_KEY); } catch (e) {}
         var from = RFParty.roomFrom(document.referrer, location.origin, saved);
-        try { if (from) sessionStorage.setItem(FROM_KEY, from); else sessionStorage.removeItem(FROM_KEY); } catch (e) {}
+        var backOk = RFParty.roomBackOk(document.referrer, from, saved, prevBack);
+        try {
+            if (from) { sessionStorage.setItem(FROM_KEY, from); sessionStorage.setItem(BACK_KEY, backOk ? "1" : "0"); }
+            else { sessionStorage.removeItem(FROM_KEY); sessionStorage.removeItem(BACK_KEY); }
+        } catch (e) {}
         if (from) {
             $("back").href = from;
             $("back").textContent = T("‹ 뒤로", "‹ Back");   // 이름은 늘 "‹ 뒤로" - 연 화면(따라가기 등)으로(2026-11-03 홍TV님)
             $("back").addEventListener("click", function (e) {   // 바로 앞이 그 화면이면 되돌아가 기록을 쌓지 않음(따라가기 화면 자리 그대로)
-                if (document.referrer === from && history.length > 1) { e.preventDefault(); history.back(); }
+                if (backOk && history.length > 1) { e.preventDefault(); history.back(); }
             });
         }
     }
@@ -1613,7 +1617,7 @@
     b.addEventListener("click", function () {
         var u = new URLSearchParams(location.search);   // c= · s= 등은 그대로
         u.set("lang", en ? "ko" : "en");
-        location.href = location.pathname + "?" + u.toString() + location.hash;
+        location.replace(location.pathname + "?" + u.toString() + location.hash);   // 기록을 쌓지 않음 - ‹ 뒤로 가 한 번에 연 화면으로(2026-11-03 PC 확인)
     });
     top.appendChild(b);
 })();

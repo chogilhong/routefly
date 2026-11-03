@@ -3719,7 +3719,7 @@
             e.preventDefault();
             var to = EN ? "ko" : "en";
             try { localStorage.setItem("rf-lang", to); } catch (err) { /* 주소로 */ }
-            location.href = location.pathname + "?lang=" + to + location.hash;
+            location.replace(location.pathname + "?lang=" + to + location.hash);   // 기록을 쌓지 않음(산악회 방 말 바꾸기와 같게, 2026-11-03)
         });
         foot.appendChild(document.createTextNode(" · "));
         foot.appendChild(a);

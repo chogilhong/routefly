@@ -78,4 +78,11 @@ eq("사무실에서 왔으면 없음(사무실 단추가 따로)", from(O + "/ro
 eq("남의 사이트에서 왔으면 없음", from("https://evil.example/routefly/hike.html", O, H), "");
 eq("카톡 링크로 처음 연 탭", from("", O, H), "");
 
+// 한/EN 바꾼 뒤에도 ‹ 뒤로 는 브라우저 뒤로(2026-11-03 PC: 기록이 35→36→37 로 쌓였음 - 말 바꾸기는 이제 location.replace)
+var ok = win.RFParty.roomBackOk, R = O + "/routefly/party.html";
+eq("따라가기에서 처음 열면 뒤로", ok(H, H, null, null), true);
+eq("말 바꾸기로 다시 연 뒤에도 뒤로", ok(R + "?lang=en", H, H, "1"), true);
+eq("처음에 뒤로가 안 되던 곳이면 그대로 안 됨", ok(R + "?lang=en", H, H, "0"), false);
+eq("연 화면이 없으면 아님", ok(H, "", null, null), false);
+
 console.log("OK " + n);

@@ -284,6 +284,14 @@
     }
 
     /**
+     * 순수 함수 - 방 위 "‹ 뒤로" 가 브라우저 뒤로(기록을 쌓지 않음)로 갈 수 있나 = 바로 앞 기록이 연 화면인가.
+     * 처음 열 때는 ref 로, 말 바꾸기(location.replace - 기록 자리 그대로)로 다시 연 뒤에는 앞서 적어 둔 것(saved · prevBack "1")으로(2026-11-03 PC: 한/EN 뒤 ‹ Back 이 기록을 쌓았음).
+     */
+    function roomBackOk(ref, from, saved, prevBack) {
+        return !!from && (ref === from || (from === saved && prevBack === "1"));
+    }
+
+    /**
      * QR 그리는 스크립트(qrcode-generator, 57KB)는 처음 QR 을 그릴 때 받음(2026-11-02 홍TV님 속도 점검: 따라가기 · 산악회 방 · 사무실이 열 때마다 받았음).
      * 서비스 워커가 같은 주소를 담아 두어(sw.js SHELL_FILES) 신호 없을 때도 됨. 돌려줌: qrcode 함수를 주는 약속(못 받으면 null).
      */
@@ -300,5 +308,5 @@
         return qrWait;
     }
 
-    g.RFParty = { qrLib: qrLib, officeNav: officeNav, roomFrom: roomFrom, alertsOn: alertsOn, isApp: isApp, dashes: dashes, KEY: KEY, get: get, set: set, clear: clear, post: post, fix: fix, ping: ping, sos: sos, onNotice: null, parseDay: parseDay, parseTime: parseTime };
+    g.RFParty = { qrLib: qrLib, officeNav: officeNav, roomFrom: roomFrom, roomBackOk: roomBackOk, alertsOn: alertsOn, isApp: isApp, dashes: dashes, KEY: KEY, get: get, set: set, clear: clear, post: post, fix: fix, ping: ping, sos: sos, onNotice: null, parseDay: parseDay, parseTime: parseTime };
 })(window);

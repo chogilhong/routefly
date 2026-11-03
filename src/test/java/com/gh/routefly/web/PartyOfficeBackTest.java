@@ -41,7 +41,10 @@ public class PartyOfficeBackTest {
         String body = js.substring(at, js.indexOf("\n    }\n", at));
         assertTrue("사무실 자리가 아닐 때", body.contains("RFParty.roomFrom(document.referrer, location.origin, saved)"));
         assertTrue("이름은 늘 ‹ 뒤로", body.contains("$(\"back\").textContent = T(\"‹ 뒤로\", \"‹ Back\");") && !body.contains("따라가기\", \"‹ Follow"));
-        assertTrue("바로 앞이면 되돌아감", body.contains("document.referrer === from && history.length > 1"));
+        assertTrue("바로 앞이면 되돌아감", body.contains("RFParty.roomBackOk(document.referrer, from, saved, prevBack)") && body.contains("if (backOk && history.length > 1)"));
+        assertTrue("말 바꾸기는 기록을 쌓지 않음(2026-11-03 PC)", js.contains("location.replace(location.pathname + \"?\" + u.toString() + location.hash)"));
+        String hike = Files.readString(Path.of("src/main/webapp/js/hike.js"), StandardCharsets.UTF_8);
+        assertTrue("따라가기 말 바꾸기도 같게", hike.contains("location.replace(location.pathname + \"?lang=\" + to + location.hash)"));
         ReviewRound5Test.node("src/test/js/office-nav.test.js");
     }
 }
