@@ -21,6 +21,7 @@ import com.google.gson.JsonObject;
  *       화면은 링크 아래에 공정위가 정한 "수수료를 받습니다" 문구를 붙입니다.</li>
  *   <li>{@code partner.agoda.url} - 아고다 제휴 링크(www.agoda.com). 안에 {lat} · {lon} 이 있으면 들머리 좌표로 바꿉니다.</li>
  *   <li>{@code partner.trip.url} - 트립닷컴 제휴 링크(www · kr · us.trip.com, 2026-10-21 신청 중). {lat} · {lon} 도 아고다처럼.</li>
+ *   <li>{@code partner.airalo.url} - Airalo 한국 eSIM 링크(링크프라이스 딥링크 click.linkprice.com 또는 airalo.com, 2026-11-03). 영어 산 페이지에만.</li>
  *   <li>{@code partner.socar.url} - 쏘카 제휴 링크(링크프라이스 click.linkprice.com, 2026-11-03). 휴대폰 앱 예약만 실적이라 산 페이지에서 휴대폰일 때만 보임.</li>
  *   <li>{@code donate.url} - 후원(toss.me · qr.kakaopay.com 등 https 주소).</li>
  *   <li>{@code partner.hotels.url} - 호텔스컴바인 제휴 링크(2026-10-29 홍TV님 "나중에 연결될 것을 대비", 여기어때 · 야놀자는 2026-10-30 뺌).
@@ -76,6 +77,9 @@ public class PartnersServlet extends HttpServlet {
         // 쏘카(링크프라이스 경유, 2026-11-03 홍TV님 승인) - 산 페이지 코스 목록 아래 "대중교통이 없는 들머리" 한 줄. 링크프라이스 대표 링크 · 딥링크만(click.linkprice.com)
         String socar = conf.apply("partner.socar.url");
         if (checkHost("partner.socar.url", socar, "linkprice.com")) out.addProperty("socar", socar);
+        // Airalo 한국 eSIM(링크프라이스 딥링크, 2026-11-03 홍TV님 승인) - 영어 산 페이지 한 줄. PC · 웹 · 앱 모두 실적, 인정기간 30일
+        String airalo = conf.apply("partner.airalo.url");
+        if (airalo != null && (whyHost(airalo, "linkprice.com") == null || checkHost("partner.airalo.url", airalo, "airalo.com"))) out.addProperty("airalo", airalo);
         // 나중에 제휴할 숙소 사이트(2026-10-29) - 그 사이트 주소이고 {q} · {lat} 가 든 링크만
         String[][] more = {{"hotels", "hotelscombined.co.kr"}};   // 여기어때 · 야놀자는 뺌(2026-10-30 홍TV님)
         for (String[] m : more) {

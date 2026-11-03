@@ -75,6 +75,9 @@ site.baseUrl=
 # 쏘카 제휴(링크프라이스 경유, 2026-11-03 승인): 링크프라이스 쏘카 머천트 화면의 "대표 링크"(도메인 click.linkprice.com 으로 고른 것)를 그대로.
 #   산 페이지(/m/) 코스 목록 아래 "🚗 대중교통이 없는 들머리는 쏘카" 한 줄 - 휴대폰(안드로이드 · 아이폰)에서만 보임(쏘카는 앱 예약만 실적, PC · 모바일 웹은 실적 없음). 주소 이름이 linkprice.com 아래가 아니면 받지 않음
 #partner.socar.url=
+# Airalo 한국 eSIM(링크프라이스 경유, 2026-11-03 승인): 링크프라이스 Airalo 화면의 딥링크 칸에 https://www.airalo.com/south-korea-esim 을 넣어 만든 링크(click.linkprice.com).
+#   영어 산 페이지(/en/m/) 코스 목록 아래 "📶 Korea eSIM" 한 줄 - PC · 휴대폰 모두(실적 PC · 웹 · 앱 모두, 인정기간 30일). 주소 이름이 linkprice.com · airalo.com 아래가 아니면 받지 않음
+#partner.airalo.url=
 # 나중에 제휴할 숙소 사이트(2026-10-29) - /m/ "🏨 근처 숙소 찾기" 단추. {q} 는 찾는 장소 이름, {lat} · {lon} 은 그 좌표로 바뀜(없으면 링크 그대로 - 그 사이트 검색 화면). 비우면 첫 화면 🔎(제휴 아님)
 #   아고다는 위 partner.agoda.url 하나로 - 파트너스 "도구 → 텍스트 링크" 의 링크(https://www.agoda.com/partners/partnersearch.aspx?…)를 그대로 넣어도 됨
 #   호텔스컴바인(링크프라이스 경유, 2026-11-03 승인): 링크프라이스 호텔스컴바인 화면의 "대표 링크"(click.linkprice.com)를 그대로 - 첫 화면으로 감.

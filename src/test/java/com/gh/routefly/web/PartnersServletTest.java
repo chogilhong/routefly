@@ -87,4 +87,17 @@ public class PartnersServletTest {
         assertFalse(PartnersServlet.body(Map.of("partner.hotels.url", "https://click.linkprice.com.evil.example/x")::get).has("hotels"));
         assertFalse(PartnersServlet.body(Map.of("partner.hotels.url", "http://click.linkprice.com/x")::get).has("hotels"));
     }
+
+    /** Airalo 한국 eSIM(링크프라이스 딥링크, 2026-11-03): linkprice.com · airalo.com 만, 영어 산 페이지에 eSIM 칸. */
+    @Test
+    public void airaloEsim() {
+        assertTrue(PartnersServlet.body(Map.of("partner.airalo.url", "https://click.linkprice.com/click.php?m=airalo&a=TEST&tu=x")::get).has("airalo"));
+        assertTrue(PartnersServlet.body(Map.of("partner.airalo.url", "https://www.airalo.com/south-korea-esim")::get).has("airalo"));
+        assertFalse(PartnersServlet.body(Map.of("partner.airalo.url", "https://airalo.com.evil.example/x")::get).has("airalo"));
+        com.google.gson.JsonObject peak = com.google.gson.JsonParser.parseString("{\"id\":\"가야산\",\"name\":\"가야산\",\"lat\":35.8226,\"lon\":128.1229}").getAsJsonObject();
+        com.google.gson.JsonObject c = com.google.gson.JsonParser.parseString("{\"course_id\":\"k1\",\"name\":\"해인사 → 상왕봉\",\"distance_m\":4000,\"ascent_m\":600,"
+                + "\"start_lat\":35.80,\"start_lon\":128.09,\"end_lat\":35.8226,\"end_lon\":128.1229}").getAsJsonObject();
+        String en = MountainEn.page(peak, new java.util.ArrayList<>(java.util.List.of(c)), new java.util.ArrayList<>(), null, "");
+        assertTrue("영어 산 페이지 코스 목록 아래 숨긴 eSIM 칸", en.contains("<p class=\"stays\" id=\"esim\" hidden></p>"));
+    }
 }

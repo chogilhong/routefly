@@ -431,6 +431,21 @@
         box.hidden = false;
         return true;
     }
+    /**
+     * 영어 산 페이지 코스 목록 아래 Airalo 한국 eSIM 한 줄(2026-11-03 홍TV님 - 링크프라이스 제휴, 외국인 등산객).
+     * 112 · 119 전화는 데이터 없이도 되므로 "지도 · 날씨 · 따라가기" 데이터라고만 씀. 보였으면 true.
+     */
+    function esimLine(box, url) {
+        if (!box || !/^https:\/\//.test(url || "")) return false;
+        var a = document.createElement("a"), s = document.createElement("small");
+        a.href = url; a.target = "_blank"; a.rel = "noopener sponsored";
+        a.textContent = "📶 Korea eSIM - mobile data for maps, weather and GPS follow ›";
+        s.textContent = " Affiliate link (Airalo) - routefly earns a commission if you buy (same price).";
+        box.textContent = "";
+        box.appendChild(a); box.appendChild(s);
+        box.hidden = false;
+        return true;
+    }
     function supportLine(box, url, text, pcUrl) {
         if (!box || !/^https:\/\//.test(url || "")) return false;
         var a = document.createElement("a");
@@ -1578,6 +1593,7 @@
         fortuneDay: fortuneDay,
         supportLine: supportLine,
         socarLine: socarLine,
+        esimLine: esimLine,
         staysLine: staysLine,
         staySearch: staySearch
     };

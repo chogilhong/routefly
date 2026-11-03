@@ -1775,3 +1775,17 @@ eq("favJoinExtra 제목이 없으면 지금 이름의 길", [RF.favJoinExtra("#c
     eq("호텔스컴바인 제휴 단추", l.map(function (x) { return [x.text, x.href, x.sponsored]; }), [["🏨 호텔스컴바인", hc, true]]);
     eq("설정이 없으면 단추 없음", RF.stayLinks({}, "속초시청", 38.207, 128.592, false).filter(function (x) { return /호텔스컴바인/.test(x.text); }).length, 0);
 })();
+
+// 📶 Korea eSIM(Airalo, 링크프라이스, 2026-11-03): 영어 산 페이지 한 줄 - PC · 휴대폰 모두, 제휴 표시
+(function () {
+    function el(tag) { return { tag: tag, kids: [], appendChild: function (c) { this.kids.push(c); }, set textContent(v) { this._t = v; this.kids = []; }, get textContent() { return this._t || ""; } }; }
+    sandbox.document = { createElement: el };
+    var box = el("p"); box.hidden = true;
+    var url = "https://click.linkprice.com/click.php?m=airalo&a=TEST";
+    eq("링크가 없으면 안 보임", [RF.esimLine(box, undefined), box.hidden], [false, true]);
+    eq("http 는 안 받음", RF.esimLine(box, "http://click.linkprice.com/x"), false);
+    eq("링크가 있으면 보임", [RF.esimLine(box, url), box.hidden], [true, false]);
+    eq("제휴 표시 · 새 창", [box.kids[0].href, box.kids[0].rel, box.kids[0].target], [url, "noopener sponsored", "_blank"]);
+    eq("SOS 데이터라고 하지 않음(112 · 119 는 데이터 없이도)", /SOS|emergency/i.test(box.kids[0].textContent), false);
+    delete sandbox.document;
+})();

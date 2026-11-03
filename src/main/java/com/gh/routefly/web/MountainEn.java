@@ -167,6 +167,7 @@ final class MountainEn {
                 b.append("</span></li>");
             }
             b.append("</ul>");
+            b.append("<p class=\"stays\" id=\"esim\" hidden></p>");   // 📶 Korea eSIM 한 줄(설정 partner.airalo.url 이 있을 때 mountain-en.js 가 채움, 2026-11-03)
         }
         b.append("<p class=\"dim\">Times are start-to-finish estimates at 4 km/h plus 1 hour per 600 m up and 10 min per 300 m down. Trail data is for reference - always follow signs and closures on site. "
                 + "The 3D and GPS screens are in English too. 🚌 Directions opens Google Maps transit directions from where you are to the trailhead. "
