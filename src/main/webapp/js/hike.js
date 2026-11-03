@@ -476,9 +476,10 @@
 
     /**
      * 주소에 코스(#c=)가 있으면 첫 나라 전체(z6.2) 화면에서 위성 · 밝은 지도 타일을 받지 않음 - 곧 코스로 옮겨 버릴 타일이었음(2026-11-02 홍TV님 속도 점검).
-     * 그 동안은 어두운 바탕 · 지형만. z7 넘게 옮기면 그때부터 예전처럼(다시 나라 전체로 줄여도 보임).
+     * 그 동안은 어두운 바탕 · 지형만. z7 넘게 옮기거나 코스에 맞추면(긴 코스는 z7 아래로 맞춰짐 - 2026-11-03 홍TV님 점검: 바탕 지도가 안 나왔음)
+     * 그때부터 예전처럼(다시 나라 전체로 줄여도 보임).
      */
-    var SAT_HOLD_Z = 7;
+    var SAT_HOLD_Z = 7, satRelease = null;
     function startMap() {
         var hold = /[#&]c=/.test(location.hash);
         // prefetchZoomDelta 1 - 나라 전체(6.2)에서 코스로 맞출 때 그 사이 단계 타일까지 미리 받던 것을 줄임(기본 4) · pixelRatio 는 2 까지(3배 화면에서
@@ -487,11 +488,15 @@
             pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
             attributionControl: false, pitchWithRotate: false, dragRotate: false, touchPitch: false });
         map.touchZoomRotate.disableRotation();   // 북쪽이 늘 위(작은 화면에서 길 잃지 않게)
-        if (hold) map.on("zoomend", function release() {
-            if (map.getZoom() < SAT_HOLD_Z) return;
-            map.off("zoomend", release);
-            ["sat", "base"].forEach(function (id) { if (map.getLayer(id)) map.setLayerZoomRange(id, 0, 24); });
-        });
+        if (hold) {
+            var onZoom = function () { if (map.getZoom() >= SAT_HOLD_Z && satRelease) satRelease(); };
+            satRelease = function () {
+                satRelease = null;
+                map.off("zoomend", onZoom);
+                ["sat", "base"].forEach(function (id) { if (map.getLayer(id)) map.setLayerZoomRange(id, 0, 24); });
+            };
+            map.on("zoomend", onZoom);
+        }
         RF.spotsByZoom(map);   // 위험 · 조망 아이콘은 확대했을 때만
         map.addControl(new maplibregl.AttributionControl({ compact: true,
             customAttribution: RF.tr("등산로: 산림청 등산로정보 | 걷기길: 한국관광공사 두루누비 | 지명 · 자전거길: © OpenStreetMap contributors | <a href=\"about.html\">안내</a>",   // 영어(2026-10-22 PC: 영어 화면에 한글로 남음)
@@ -635,6 +640,7 @@
             // 들머리 근처 주차장 · 버스 정류장도 처음 화면에 보이게
             c.pois.forEach(function (q) { if (RF.isAccess(q) && +q.dist_m < 300) b.extend([+q.lon, +q.lat]); });
             map.fitBounds(b, { padding: 40, duration: 0, maxZoom: 16 });
+            if (satRelease) satRelease();   // 코스에 맞춤 - 줌과 상관없이 바탕 지도를 받음
         }
         loadTrails();
     }
@@ -837,7 +843,7 @@
 
     function loadCourse(id) {
         var my = ++loadSeq;
-        $("loadFail").hidden = true;   // 못 열었다는 띠는 다시 열 때 치움
+        if ($("loadFail")) $("loadFail").hidden = true;   // 못 열었다는 띠는 다시 열 때 치움(옛 hike.html 이 캐시에 남으면 칸이 없음 - 2026-11-03)
         $("pick").style.display = "none";
         // 이 기기에만 있는 GPX 는 링크로 보낼 수 없습니다(이은 코스는 따라가기 주소로 보냄)
         var parts = RF.parseJoinId(id);
@@ -978,6 +984,7 @@
      */
     function loadFail(id, why) {
         var box = $("loadFail");
+        if (!box) { toast(T("⚠ 코스를 열지 못했습니다", "⚠ Could not open the trail") + (why ? " (" + why + ")" : ""), 5000); return; }   // 옛 hike.html(캐시) + 새 hike.js - 2026-11-03
         box.textContent = "";
         var t = document.createElement("div"), row = document.createElement("div"), again = document.createElement("button"), saved = document.createElement("button");
         t.textContent = T("⚠ 코스를 열지 못했습니다", "⚠ Could not open the trail") + (why ? " (" + why + ")" : "") + T(" - 신호가 약하면 저장해 둔 코스를 여세요.", " - with a weak signal, open a saved trail.");
@@ -997,7 +1004,7 @@
     function loadSaved() {
         try {
             var s = JSON.parse(localStorage.getItem(saveKey()) || "null");
-            return savedFresh(s) ? s : null;   // 하루 지난 기록은 버립니다
+            return savedFresh(s) && !s.ended ? s : null;   // 하루 지난 기록 · 끝낸 산행(기록을 쓰는 중 - endSaved)은 이어 하지 않음
         } catch (e) {
             return null;
         }
@@ -1040,6 +1047,19 @@
         } catch (e) { /* 다음에 */ }
     })();
     var RESUME_MS = 3 * 3600 * 1000;   // 마지막 위치 저장이 이보다 오래되면 저절로 이어 가지 않고 단추로
+
+    /**
+     * 끝낸 산행 표시(2026-11-03 홍TV님 점검: 기록을 다 쓸 때까지 rf-hike-active · 저장분이 남아, 그 사이 다시 열면 끝낸 산행이 저절로 이어졌음).
+     * 이어 하기 표시만 바로 지우고 걸은 길 · 메모(-track · -notes)는 기록을 다 쓴 뒤 clearSaved 가 지움(실패하면 하루 뒤 purgeOldHikes).
+     */
+    function endSaved(id) {
+        var k = "rf-hike-" + id;
+        try {
+            if (localStorage.getItem(ACTIVE_KEY) === id) localStorage.removeItem(ACTIVE_KEY);
+            var v = JSON.parse(localStorage.getItem(k) || "null");
+            if (v) { v.ended = true; localStorage.setItem(k, JSON.stringify(v)); }
+        } catch (e) { /* 무시 */ }
+    }
 
     /** 산행 저장분을 지움 - id 를 주면 그 코스 것(기록을 다 쓴 뒤 지울 때 그 사이 코스가 바뀌어도), 없으면 지금 코스. */
     function clearSaved(id) {
@@ -2102,9 +2122,9 @@
         var rc = RF.recordCourse(rec), sum = $("recViewSum");
         $("recViewTitle").textContent = "📈 " + NM(rec.name);
         sum.innerHTML = "";
-        var d = new Date(rec.start);
+        var d = new Date(rec.start + 9 * 3600000);   // 날짜도 시각(clock)처럼 한국 시간(2026-11-03 홍TV님 점검: 폰 날짜 + 한국 시각이 섞였음)
         var eles = rc.ele.filter(function (e) { return e != null; });
-        [[T("날짜", "Date"), d.getFullYear() + "." + (d.getMonth() + 1) + "." + d.getDate() + " " + clock(rec.start)],
+        [[T("날짜", "Date"), d.getUTCFullYear() + "." + (d.getUTCMonth() + 1) + "." + d.getUTCDate() + " " + clock(rec.start)],
          [T("거리", "Distance"), km(RF.recDist(rec)) + " km"], [T("걸린 시간", "Time"), hhmmss(rec.end - rec.start)]]   // 카드와 같은 규칙(2026-10-28 PC)
             .concat(rec.up != null ? [[T("오른 높이", "Climb"), num(rec.up) + " m"]] : [])
             .concat(eles.length ? [[T("가장 높은 곳", "Highest"), num(RF.recordHighest(rc, cardPeaks.peaks, cardPeaks.elev)) + " m"]] : [])
@@ -2607,7 +2627,9 @@
         if (!wasSim) {
             // 산행 저장분은 기록을 다 쓴 뒤에만 지움(2026-11-02 홍TV님 점검: 쓰기 전에 지워, 저장이 실패하면 걸은 길 · 사진 메모가 통째로 사라졌음).
             // 그 사이 같은 코스로 새 산행을 시작했으면 지우지 않음
-            var doneId = c.id, stored = finishRecord();
+            var doneId = c.id;
+            endSaved(doneId);   // 바로 - 기록을 쓰는 사이 다시 열어도 이어 가지 않게
+            var stored = finishRecord();
             if (stored) stored.then(function (ok) { if (ok && !(hike.running && c && c.id === doneId)) clearSaved(doneId); });
             else clearSaved(doneId);
         } else finishRecord(true);
@@ -3095,8 +3117,10 @@
         }
         // 쓸 만한 위치(오차 100m 안)가 3분 넘게 없으면 묻지 않음 - 걷는 중인데 위치가 안 들어와(숲 · 주머니 · 폰 절전) "움직임 없음" 으로
         // 잘못 물었음(2026-10-17 홍TV님 송산: 큰길 → 덕기봉이 직선 하나, 오르는 내내 "괜찮으세요?"). 위치가 다시 오면 그 자리부터 셈
-        if (!f || t - f.t > 180000) return;
-        var st = RF.stillCheck(hike.still, { lat: f.lat, lon: f.lon, acc: f.acc, t: f.t }, t, STILL_M, STILL_MS);
+        // 받은 시각(rx)으로 - GPS 시각(t)은 폰 시계와 어긋날 수 있음(2026-11-03 홍TV님 점검: realFix 와 같게, 어긋나면 묻지 않거나 바로 물었음)
+        var ft = f && (f.rx != null ? f.rx : f.t);
+        if (!f || t - ft > 180000) return;
+        var st = RF.stillCheck(hike.still, { lat: f.lat, lon: f.lon, acc: f.acc, t: ft }, t, STILL_M, STILL_MS);
         hike.still = st.anchor;
         if (!st.due) return;
         hike.stillAsk = t;
@@ -4479,7 +4503,7 @@
     $("sos").addEventListener("click", function () {
         $("sosSheet").style.display = "flex";
         var inParty = !!(window.RFParty && RFParty.get());
-        $("sosOff").hidden = !inParty;
+        if ($("sosOff")) $("sosOff").hidden = !inParty;   // 옛 hike.html(캐시)에는 없음 - 2026-11-03
         if (inParty) {   // 산악회 방 - 인솔자 화면에 SOS("괜찮아요 - 인솔자 SOS 끄기"로 풂, 닫기는 물어봄)
             RFParty.sos(true);
             partySend();   // 2026-11-01 점검: 위치가 없으면(출발 전 · 신호 없음 · 골짜기) 전에는 서버로 아무것도 안 가 인솔자가 SOS 를 못 받았음 - 위치 없이 ping 으로
@@ -4552,7 +4576,8 @@
             else toast(T("🆘 인솔자에게 SOS 가 켜져 있습니다. 끄려면 SOS → \"괜찮아요 - 인솔자 SOS 끄기\".", "🆘 SOS to your leader is still on. To turn it off: SOS → \"I'm OK - turn off SOS\"."), 8000);
         });
     });
-    $("sosOff").addEventListener("click", function () { sosHide(); partySosOff(); toast(T("인솔자 SOS 를 껐습니다.", "SOS to your leader is off."), 4000); });
+    // 옛 hike.html(캐시)에는 없음 - 없으면 아래 줄이 모두 멈췄음(2026-11-03)
+    if ($("sosOff")) $("sosOff").addEventListener("click", function () { sosHide(); partySosOff(); toast(T("인솔자 SOS 를 껐습니다.", "SOS to your leader is off."), 4000); });
     /** 산악회 방 SOS 풀기 - 괜찮아요 · 인솔자 SOS 끄기 · 닫기에서 끈다고 답함. */
     function partySosOff() {
         if (!window.RFParty || !RFParty.get() || !RFParty.get().sos) return;

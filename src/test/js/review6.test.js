@@ -3,6 +3,8 @@
  * ReviewRound6Test 가 부름(node 가 없으면 건너뜀). 사용: node src/test/js/review6.test.js
  */
 "use strict";
+// 한국이 아닌 시간대로(2026-11-03 홍TV님 점검: 한국 시간 PC 에서는 D14 가 폰 시간대를 써도 통과했음) - Date 를 쓰기 전에
+process.env.TZ = "America/New_York";
 var fs = require("fs"), path = require("path"), vm = require("vm"), assert = require("assert");
 var web = path.join(__dirname, "../../main/webapp");
 function read(f) { return fs.readFileSync(path.join(web, f), "utf8").replace(/\r\n/g, "\n"); }   // PC(core.autocrlf)는 CRLF

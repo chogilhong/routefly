@@ -114,7 +114,7 @@ eq("시작 30시간 전 · 마지막 저장 1시간 전 - 남김", fresh({ start
 eq("마지막 저장 25시간 전 - 지움", fresh({ start: NOW - 30 * 3600000, t: NOW - 25 * 3600000 }), false);
 eq("t 없는 옛 저장분은 시작으로", [fresh({ start: NOW - 3600000 }), fresh({ start: NOW - 25 * 3600000 })], [true, false]);
 eq("빈 것 · 깨진 것", [fresh(null), fresh({})], [false, false]);
-has("loadSaved 도 savedFresh", "return savedFresh(s) ? s : null;");
+has("loadSaved 도 savedFresh", "return savedFresh(s) && !s.ended ? s : null;");
 has("처음 지우기도 savedFresh", "if (!savedFresh(v)) old.push(k);");
 
 // 8: 기록 쓰기 - 늘 다시 읽어 합침(탭 둘이 서로 덮지 않게), 이 화면에 보였는데 없는 것만 지운 것

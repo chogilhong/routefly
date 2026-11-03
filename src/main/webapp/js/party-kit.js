@@ -12,7 +12,7 @@
     // 2026-10-20 PC: 앱 화면을 끈 직후(Doze) 4분 동안 위치가 안 갔음 - 보내기(fetch) · 배터리 읽기가 끝나지 않아 busy 가 풀리지 않은 것으로 봄.
     // 보내기는 20초, 배터리는 2초에 끊고, 25초 넘게 busy 면 풀어 다음 위치를 보냄
     var POST_MS = 20000, BATT_MS = 2000, STUCK_MS = 25000;
-    var RETRY_MS = 10000, SOS_TICK_MS = 20000, retryAt = 0, sosTimer = null;   // SOS 를 못 보냈을 때 다시 보낼 때 · 켜진 동안 살피는 간격
+    var RETRY_MS = 10000, SOS_TICK_MS = 20000, retryAt = 0, sosTimer = null, offPending = false;   // offPending - 못 보낸 SOS 끄기(2026-11-03)   // SOS 를 못 보냈을 때 다시 보낼 때 · 켜진 동안 살피는 간격
     function stuck() { if (busy && Date.now() - busyAt > STUCK_MS) { busy = false; again = null; } return busy; }   // again - 보내는 중에 꼭 보낼 것(SOS)이 오면 끝난 뒤 한 번 더
 
     /** 앱(Capacitor)에서 보내나 - 서버가 "10분 소식 없음" 경고를 앱 회원에게만(웹은 화면을 끄면 멈춤, 2026-10-28). */
@@ -118,6 +118,7 @@
             return null;
         }
         if (!due(sos, force, now)) return null;
+        var changed = lastSos !== null && sos !== lastSos;   // 보낸 적 있는 것에서 바뀜(처음 보내기는 아님)
         busy = true;
         busyAt = now;
         last = now;
@@ -126,6 +127,7 @@
         return battery().then(function (b) {
             return post("loc", { token: p.token, lat: +(+lat).toFixed(6), lon: +(+lon).toFixed(6), acc: acc == null ? null : Math.round(acc), batt: b, sos: sos, app: isApp() });
         }).then(function (j) {
+            if (!sos) offPending = false;
             var q = get();
             if (q && j.notice && j.noticeAt && j.noticeAt !== q.noticeAt) {   // 새 공지 - 따라가기 화면에서도 알림
                 q.noticeAt = j.noticeAt;
@@ -133,20 +135,24 @@
                 if (g.RFParty.onNotice) g.RFParty.onNotice(j.notice);
             }
             return j;
-        }, function (e) { failed(sos); throw e; }).finally(function () { done(my); });
+        }, function (e) { failed(sos, changed); throw e; }).finally(function () { done(my); });
     }
 
     /** 지금 보낼까 - force · SOS 를 켜고 끔 · 30초 지남. 못 보낸 SOS 는 RETRY_MS 뒤에 다시(위치마다 몰아 보내지 않게). */
     function due(sos, force, now) {
         if (force) return true;
-        if (sos !== lastSos) return !(sos && lastSos === null && now < retryAt);
+        if (sos !== lastSos) return !(lastSos === null && now < retryAt);
         return now - last >= EVERY_MS;
     }
-    /** 보내기 실패 - SOS 였으면 보내지 않은 것으로 되돌림(다음 위치 · ping · 살핌이 다시 보냄, 2026-11-02 점검: 한 번 실패하면 다시 안 갔음). */
-    function failed(sos) {
-        if (!sos) return;
+    /**
+     * 보내기 실패 - SOS 였거나 SOS 를 끈 것이었으면 보내지 않은 것으로 되돌림(다음 위치 · ping · 살핌이 다시 보냄, 2026-11-02 점검: 한 번 실패하면 다시 안 갔음).
+     * SOS 끄기도(2026-11-03 홍TV님 점검: 못 보낸 끄기는 30초 뒤 · 위치가 없으면 영영 안 가 인솔자에게 SOS 가 남았음) - 갈 때까지 살핌 타이머도 둠.
+     */
+    function failed(sos, changed) {
+        if (!sos && !changed) return;
         lastSos = null;
         retryAt = Date.now() + RETRY_MS;
+        if (!sos) { offPending = true; sosKeep(); }
     }
 
     /**
@@ -162,13 +168,14 @@
             return null;
         }
         if (!due(sos, force, now)) return null;
+        var changed = lastSos !== null && sos !== lastSos;   // 보낸 적 있는 것에서 바뀜(처음 보내기는 아님)
         busy = true;
         busyAt = now;
         last = now;
         lastSos = sos;
         var my = ++seq;
         return battery().then(function (b) { return post("ping", { token: p.token, batt: b, sos: sos, app: isApp() }); })
-            .then(null, function (e) { failed(sos); throw e; })
+            .then(function (j) { if (!sos) offPending = false; return j; }, function (e) { failed(sos, changed); throw e; })
             .finally(function () { done(my); });
     }
     /** 보내기가 끝남 - 가장 최근 보내기일 때만 busy 를 풀고, 그 사이 온 꼭 보낼 것(SOS)을 바로 보냄. */
@@ -192,11 +199,11 @@
      */
     function sosKeep() {
         var p = get();
-        if (!p || !p.sos) { if (sosTimer) { clearInterval(sosTimer); sosTimer = null; } return; }
+        if (!p || !p.sos && !offPending) { if (sosTimer) { clearInterval(sosTimer); sosTimer = null; } return; }
         if (sosTimer) return;
         sosTimer = setInterval(function () {
             var q = get();
-            if (!q || !q.sos) { sosKeep(); return; }
+            if (!q || !q.sos && !offPending) { sosKeep(); return; }
             var r = ping();
             if (r) r.catch(function () { /* 다음 살핌에 */ });
         }, SOS_TICK_MS);
