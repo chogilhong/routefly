@@ -224,4 +224,11 @@ var RF = kit();
         .forEach(function (x) { has(x[0] + " 지도 글 12px", read(x[0]), x[1]); });
 })();
 
+// ---- 17: 찾기 칸 초점 표시 · 주요 칸(main) 표시
+(function () {
+    has("찾기 칸 초점", read("hike.html"), "#pick input:focus-visible { outline:2px solid var(--sky);");
+    [["hike.html", '<div id="mapWrap" role="main">'], ["park.html", '<div id="mapWrap" role="main">'], ["route.html", '<div id="mapWrap" role="main">'], ["studio.html", '<div id="app" role="main" hidden>']]
+        .forEach(function (x) { var h = read(x[0]); has(x[0] + " main", h, x[1]); eq(x[0] + " main 하나", (h.match(/role="main"|<main[ >]/g) || []).length, 1); });
+})();
+
 console.log("OK " + n);
