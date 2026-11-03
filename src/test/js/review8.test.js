@@ -212,6 +212,7 @@ var RF = kit();
 // ---- 16: 지도 단추 글 한국어 · 손가락 화면 40px · 지도 글 12px 이상
 (function () {
     eq("한국어 화면 단추 글", [RF.mapLocale()["NavigationControl.ZoomIn"], RF.mapLocale()["NavigationControl.ZoomOut"]], ["확대", "축소"]);
+    eq("나침반 글도 한국어(주석에 묻히지 않음 - 2026-11-03 PC 확인)", RF.mapLocale()["NavigationControl.ResetBearing"], "끌면 지도 돌리기, 누르면 북쪽을 위로");
     RF.setLang("en");
     eq("영어 화면은 MapLibre 기본", RF.mapLocale() === undefined, true);
     RF.setLang("ko");

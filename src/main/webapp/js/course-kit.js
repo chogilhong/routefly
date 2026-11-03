@@ -5183,7 +5183,8 @@
         return { "AttributionControl.ToggleAttribution": "출처 보기 · 접기", "AttributionControl.MapFeedback": "지도 의견",
                  "FullscreenControl.Enter": "전체 화면", "FullscreenControl.Exit": "전체 화면 끝내기",
                  "GeolocateControl.FindMyLocation": "내 위치 찾기", "GeolocateControl.LocationNotAvailable": "위치를 알 수 없음",
-                 "LogoControl.Title": "MapLibre 로고", "Marker.Title": "지도 표시",   // 이름을 안 붙인 표시는 "Map marker" 대신 "NavigationControl.ResetBearing": "끌면 지도 돌리기, 누르면 북쪽을 위로",
+                 "LogoControl.Title": "MapLibre 로고", "Marker.Title": "지도 표시",   // 이름을 안 붙인 표시는 "Map marker" 대신
+                 "NavigationControl.ResetBearing": "끌면 지도 돌리기, 누르면 북쪽을 위로",
                  "NavigationControl.ZoomIn": "확대", "NavigationControl.ZoomOut": "축소",
                  "TerrainControl.Enable": "지형 켜기", "TerrainControl.Disable": "지형 끄기" };
     }
