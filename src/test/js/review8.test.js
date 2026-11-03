@@ -149,4 +149,12 @@ var RF = kit();
     has("▶ routefly 단추 글은 그대로(홍TV님 결정)", read("index.html"), "routefly");
 })();
 
+// ---- 7: 코스 자료 알림은 다음 지점 아래 한 줄(알림 글이 숫자 칸을 6 ~ 12초 가렸음) · 쉬운 말
+(function () {
+    has("칸", read("hike.html"), '<div id="courseNote" hidden></div>\n    <div id="sign" hidden ');
+    has("한 줄로 씀", HIKE, '$("courseNote").textContent = warns.join("\\n");');
+    has("쉬운 말", HIKE, '"⚠ 이 선은 " + c.course.summit_miss + " 정상 전에서 끝납니다. 정상은 현지 안내판을 따르세요."');
+    eq("알림(toast)으로 띄우지 않음", HIKE.indexOf('toast(warns.join('), -1);
+})();
+
 console.log("OK " + n);

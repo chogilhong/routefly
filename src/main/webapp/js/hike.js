@@ -943,15 +943,19 @@
                 setTimeout(function () { if (my === loadSeq) toast(msg + T(" - 별거 별거 › 산행 안전에서 자세히", " - details in Handy tools › Hiking safety"), 10000); }, 17000);
             }).catch(function () { /* 안전 정보 없이 */ });
             document.title = RF.nameText(c.course.name, true);   // 길만 - "- routefly" 를 붙이면 탭 · 최근 앱 목록에서 잘림(2026-10-12 홍TV님)
-            if ((parts ? r[0] : [r[0]]).some(function (j) { return j && j.course && RF.isClosedTrail(j.course.name); })) toast(T("⚠ 비법정탐방로(통제구역)입니다. 국립공원 지정 탐방로가 아니라 출입이 금지된 길이니 따라가지 마세요.", "⚠ Closed trail (restricted area). This is not an official national park trail and entry is banned - do not follow it."), 12000);   // 링크로 바로 연 경우(목록에는 안 나옴)
-            else {   // 정상 미포함 · 자료가 끊긴 구간 · 공단 기준 시간을 한 알림에(2026-10-30 점검: 앞 것이 뜨면 뒤 것이 가려졌음)
+            var closedT = (parts ? r[0] : [r[0]]).some(function (j) { return j && j.course && RF.isClosedTrail(j.course.name); });
+            if (closedT) toast(T("⚠ 비법정탐방로(통제구역)입니다. 국립공원 지정 탐방로가 아니라 출입이 금지된 길이니 따라가지 마세요.", "⚠ Closed trail (restricted area). This is not an official national park trail and entry is banned - do not follow it."), 12000);   // 링크로 바로 연 경우(목록에는 안 나옴)
+            $("courseNote").hidden = true;
+            if (!closedT) {
+                // 정상 미포함 · 자료가 끊긴 구간 · 공단 기준 시간 - 알림(6 ~ 12초)이 숫자 칸을 가려 다음 지점 아래 한 줄로, 쉬운 말로(2026-11-03 홍TV님 점검)
                 var warns = [], gp = RF.shownGaps(c)[0], inf = RF.infoText(c.info, c.total);
-                if (c.course && c.course.summit_miss) warns.push(T("⚠ 이 코스 선은 이름의 " + c.course.summit_miss + " 정상까지 가지 않습니다(정상 미포함 - 자료의 선 그대로). 정상은 현지 길 · 안내판을 따르세요.",
-                    "⚠ This trail line does not reach the summit (" + NM(c.course.summit_miss) + ") in its name. Follow the local signs to the top."));
-                if (gp) warns.push(T("⚠ 이 코스 자료에 " + gp.m + "m 끊긴 구간이 있습니다(" + km(gp.at) + "km 지점). 그 구간은 현지 안내판 · 길을 따르세요.",
-                    "⚠ This trail's data has a " + gp.m + " m gap (at " + km(gp.at) + " km). Follow the local signs there."));
+                if (c.course && c.course.summit_miss) warns.push(T("⚠ 이 선은 " + c.course.summit_miss + " 정상 전에서 끝납니다. 정상은 현지 안내판을 따르세요.",
+                    "⚠ This line ends before the summit (" + NM(c.course.summit_miss) + "). Follow the local signs to the top."));
+                if (gp) warns.push(T("⚠ 이 선은 " + km(gp.at) + "km 지점에서 " + gp.m + "m 끊겨 있습니다. 그곳은 현지 안내판을 따르세요.",
+                    "⚠ This line has a " + gp.m + " m gap at " + km(gp.at) + " km. Follow the local signs there."));
                 if (inf) warns.push(inf);
-                if (warns.length) toast(warns.join("\n"), warns.length > 1 || warns[0] !== inf ? 12000 : 6000);
+                $("courseNote").textContent = warns.join("\n");
+                $("courseNote").hidden = !warns.length;
             }
             // 그 산의 입산 · 통제 · 예약(data/park-notes.json - 2026-10-12 한라산: 오늘 계절 · 이 코스의 통제 지점 시각)
             // 코스 이름은 받은 그대로(자르거나 이은 코스도 원래 이름 - "성판악 탐방로")
