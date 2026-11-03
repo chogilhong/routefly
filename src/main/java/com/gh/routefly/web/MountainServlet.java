@@ -829,13 +829,14 @@ public class MountainServlet extends HttpServlet {
                 b.append("</span></li>");
             }
             b.append("</ul>");
-            b.append("<p class=\"stays\" id=\"socar\" hidden></p>");   // 🚗 쏘카 한 줄(설정 partner.socar.url 이 있고 휴대폰일 때 mountain.js 가 채움, 2026-11-03)
         }
         if (!courses.isEmpty()) b.append("<p class=\"dim\">☆ 를 누르면 그 코스를 찜(즐겨찾기)합니다(★). 찜한 코스는 따라가기 첫 화면 \"★ 찜한 코스\" 에 모여 바로 고를 수 있고, "
                 + "다시 누르면 풀립니다. 이 핸드폰에만 저장됩니다(따라가기 📒 내 기록 → 💾 백업 저장으로 옮길 수 있음). "
                 + "🚌 가는 길은 카카오맵에서 지금 자리부터 그 코스 들머리까지 대중교통 · 차 길찾기를 엽니다. "
                 + "난이도(매우 쉬움 ~ 매우 어려움)는 걸리는 시간 · 오르막 총량으로 routefly 가 어림한 것이고(공단 공식 등급이 아님), 📈 고도를 누르면 공단 안내판처럼 구간별 경사를 봅니다.</p>");   // 2026-10-15 홍TV님
         b.append("<p class=\"dim\">예상 시간은 " + RULE_KO + "(내려가는 길도 무릎 · 미끄럼 때문에 시간이 듦)으로 어림한 코스 처음부터 끝까지의 값입니다. 코스 자료는 참고용이니 현지 안내판 · 통제를 꼭 따르세요.</p></section>");
+        // 🚗 쏘카 한 줄(설정 partner.socar.url 이 있고 휴대폰일 때 mountain.js 가 채움, 2026-11-03) - 안내 글 아래(2026-11-03 홍TV님 "안내문구 아래로")
+        if (!courses.isEmpty()) b.append("<p class=\"stays\" id=\"socar\" hidden></p>");
         List<String[]> qa = faq(peak, name, courses, parking);   // 자주 묻는 질문(2026-10-15 홍TV님 - 검색 결과에 문답으로)
         if (!qa.isEmpty()) {
             b.append("<section class=\"faq\"><h2>").append(esc(name)).append(" 자주 묻는 질문</h2><dl>");
