@@ -100,4 +100,16 @@ public class ReviewRound8Test {
         String without = CoursePageServlet.page(c, null, null, null, null, new com.google.gson.JsonArray(), false, "");
         assertTrue(without.contains("<dt>난이도</dt><dd><i class=\"lv lv0\">매우 쉬움</i>"));
     }
+
+    /** 8 · 14: 코스 모음 - 숙소 찾기 · 주말 날씨 칸은 산 · 길 목록 아래(불러온 뒤 나타나 목록을 밀었음), 접힌 줄은 짧게. 게임 고르기는 html 이 펼쳐 둠. */
+    @Test
+    public void indexListsFirstAndGamesPickOpen() throws Exception {
+        com.google.gson.JsonArray peaks = JsonParser.parseString("[{\"id\":\"가산\",\"name\":\"가산\",\"lat\":37.5,\"lon\":127.0}]").getAsJsonArray();
+        com.google.gson.JsonArray gs = JsonParser.parseString("[{\"kind\":\"hike\",\"title\":\"백두대간 · 정맥\",\"icon\":\"⛰️\",\"series\":[{\"name\":\"설악\",\"prefix\":\"osmh-1-\"}]}]").getAsJsonArray();
+        String idx = MountainServlet.indexPage(peaks, gs, "", false, "");
+        int folds = idx.indexOf("<div class=\"folds\">"), stay = idx.indexOf("<section id=\"staySearch\">"), wk = idx.indexOf("<section id=\"weekend\" hidden>");
+        assertTrue(folds > 0 && stay > folds && wk > stay);
+        assertTrue("접힌 줄 짧게", idx.contains("<span class=\"fs\">100대 명산 · 백두대간</span>"));
+        assertTrue(web("games.html").contains("<details id=\"pick\" open>") && web("js/games.js").contains("if (first) $(\"pick\").open = false;"));
+    }
 }

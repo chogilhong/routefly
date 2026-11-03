@@ -1082,7 +1082,7 @@
     window.addEventListener("resize", fit);
     var first = new URLSearchParams(location.search).get("g");
     pick(first || "tetris");
-    if (!first) $("pick").open = true;   // 처음 오면 펼쳐서 고르게
+    if (first) $("pick").open = false;   // 고른 게임으로 왔으면 접음(처음 오면 html 이 펼쳐 둠 - CLS, 2026-11-03)
     fit();
     raf = requestAnimationFrame(loop);
 })();

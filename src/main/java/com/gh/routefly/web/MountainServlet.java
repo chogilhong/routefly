@@ -552,7 +552,7 @@ public class MountainServlet extends HttpServlet {
      */
     static String staySearchBox(String value, boolean en, boolean open) {
         return "<section id=\"staySearch\"><details class=\"fold kind\"" + (open ? " open data-keep=\"1\"" : " name=\"kind\"") + "><summary><span class=\"ft\">" + (en ? "🏨 Find lodging near a place" : "🏨 근처 숙소 찾기") + "</span>"
-                + "<span class=\"fs\">" + (en ? (value != null ? "Trailhead · county office · station" : "County office · station · terminal · mountain") : value != null ? "들머리 · 군청 · 역 이름으로" : "군청 · 역 · 터미널 · 산 이름으로")
+                + "<span class=\"fs\">" + (en ? (value != null ? "Trailhead · county office · station" : "County office · station · terminal · mountain") : value != null ? "들머리 · 군청 · 역 이름으로" : "군청 · 역 · 산 이름으로")
                 + "</span><span class=\"fa\">▾</span></summary><div class=\"fb\">"
                 + "<form id=\"ssForm\" class=\"ssForm\" role=\"search\"><input id=\"ssQ\" type=\"search\" maxlength=\"30\"" + (value != null ? " value=\"" + esc(value) + "\"" : "")
                 + (en ? " placeholder=\"e.g. 산청군청 (Korean name works best)\" aria-label=\"Place to find lodging near\"><button type=\"submit\">Search</button></form>"
@@ -833,9 +833,7 @@ public class MountainServlet extends HttpServlet {
                 // 📍 내 근처 - 다른 칸처럼 접고 펴기(2026-10-16 홍TV님), 펴면 위치를 찾음(js/mountain.js)
                 + "<section id=\"near\"><details class=\"fold kind\" name=\"kind\" id=\"nearFold\"><summary><span class=\"ft\">📍 내 근처 100대 명산</span>"
                 + "<span class=\"fs\">지금 자리에서 가까운 8곳</span><span class=\"fa\">▾</span></summary><div class=\"fb\"><div id=\"nearList\"></div></div></details></section>"
-                // 🏨 근처 숙소 찾기(2026-10-29 홍TV님 "산청군청 근처 숙소" - 장소 이름 → 예약 단추 · 근처 숙소 목록, js/mountain.js · course-kit staySearch)
-                + staySearchBox(null, false, true)
-                + "<section id=\"weekend\" hidden></section><div class=\"folds\">");   // 이번 주말 날씨 좋은 산(js/mountain.js · /api/weekend - 2026-10-15)
+                + "<div class=\"folds\">");
         boolean hasPeaks = false;
         for (JsonElement e : groups) {
             JsonArray sr = e.getAsJsonObject().getAsJsonArray("series");
@@ -855,7 +853,7 @@ public class MountainServlet extends HttpServlet {
             }
             if (gs.isEmpty()) continue;
             List<String> titles = new ArrayList<>();
-            for (JsonObject g : gs) titles.add(str(g, "title"));
+            for (JsonObject g : gs) titles.add(str(g, "title").replaceFirst(" · .*$", ""));   // 접힌 줄은 짧게("백두대간 · 정맥" → "백두대간" - 2026-11-03 홍TV님 점검: 폰에서 잘렸음)
             boolean openKind = openPeaks && k[0].equals("hike");
             b.append("<details class=\"fold kind\" name=\"kind\"").append(openKind ? " open" : "").append("><summary><span class=\"ft\">").append(esc(k[1])).append("</span><span class=\"fs\">")
                     .append(esc(String.join(" · ", titles))).append("</span><span class=\"fa\">▾</span></summary><div class=\"fb\">");
@@ -882,7 +880,9 @@ public class MountainServlet extends HttpServlet {
             }
             b.append("</div></details>");
         }
-        b.append("</div>").append(steep)
+        // 🏨 근처 숙소 찾기(2026-10-29 홍TV님 "산청군청 근처 숙소" - 펴 둔 채, js/mountain.js · course-kit staySearch) · ☀️ 이번 주말 날씨 좋은 산(/api/weekend - 2026-10-15)은
+        // 산 · 길 목록 아래로(2026-11-03 홍TV님 점검: 위에 있어 목록이 첫 화면 밖으로 밀렸고, 주말 칸은 불러온 뒤 나타나 목록을 밀었음 - CLS)
+        b.append("</div>").append(staySearchBox(null, false, true)).append("<section id=\"weekend\" hidden></section>").append(steep)
                 .append("<section id=\"gearIdx\" hidden></section>")   // 🎒 산행 시 챙길 것(js/mountain.js - 계절 기준, 산 페이지는 그 산 오르막까지 - 2026-10-18 홍TV님)
                 .append(tips()).append("<section id=\"fun\" class=\"fun\" hidden></section>")
                 // 📐 GPX 편집(2026-10-31 홍TV님 "코스 모음 > 산악회 방 위에 둬") - 2026-11-02 홍TV님 "누구나": 모두에게 보임(전에는 rf-admin 기기만).

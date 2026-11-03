@@ -248,9 +248,6 @@ final class MountainEn {
                 .append("<p class=\"lead\">Pick a mountain to see its trails to the summit, the weather, air quality and sunrise time - or pick a walking trail or bike path to see its route map.</p>")
                 .append("<section id=\"near\"><details class=\"fold kind\" name=\"kind\" id=\"nearFold\"><summary><span class=\"ft\">📍 Near me</span>")
                 .append("<span class=\"fs\">8 closest famous mountains</span><span class=\"fa\">▾</span></summary><div class=\"fb\"><div id=\"nearList\"></div></div></details></section>")
-                // 🏨 Find lodging near a place(한국어 /m/ 과 같게, 2026-10-29)
-                .append(MountainServlet.staySearchBox(null, true, true))   // 처음부터 펴 둠(한국어 /m/ 과 같게, 2026-10-30)
-                .append("<section id=\"weekend\" hidden></section>")   // ☀️ Good weather this weekend(js/mountain-en.js · api/weekend - 한국어 /m/ 과 같게, 2026-10-17)
                 .append("<div class=\"folds\">");
         // 접고 펴는 칸(2026-10-15 홍TV님 - /m/ 과 같게): ⛰️ Hiking(100 Famous Mountains · 백두대간) · 🥾 Walking · 🚴 Cycling
         List<JsonObject> list = new ArrayList<>();
@@ -287,7 +284,7 @@ final class MountainEn {
             }
             if (gs.isEmpty()) continue;
             List<String> titles = new ArrayList<>();
-            for (String[] g : gs) titles.add(g[3]);
+            for (String[] g : gs) titles.add(g[3].replaceFirst(" · .*$", ""));   // 접힌 줄은 짧게(한국어와 같게, 2026-11-03)
             b.append("<details class=\"fold kind\" name=\"kind\"><summary><span class=\"ft\">").append(esc(k[1])).append("</span><span class=\"fs\">")
                     .append(esc(String.join(" · ", titles))).append("</span><span class=\"fa\">▾</span></summary><div class=\"fb\">");
             for (String[] g : gs) {
@@ -296,7 +293,8 @@ final class MountainEn {
             }
             b.append("</div></details>");
         }
-        b.append("</div>").append(steep);
+        // 🏨 Find lodging near a place(펴 둔 채, 2026-10-30) · ☀️ Good weather this weekend(js/mountain-en.js · api/weekend)은 목록 아래(한국어 /m/ 과 같게, 2026-11-03 홍TV님 점검 - CLS)
+        b.append("</div>").append(MountainServlet.staySearchBox(null, true, true)).append("<section id=\"weekend\" hidden></section>").append(steep);
         b.append("<p class=\"dim\">Trail and bike path maps show every section with checkpoints; place names on the map are in Korean.</p>");
         b.append(tips());
         return b.append("<section id=\"fun\" class=\"fun\" hidden></section>")

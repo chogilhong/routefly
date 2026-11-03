@@ -58,7 +58,7 @@ canvas { display:block; background:#0b0f14; border:1px solid var(--ln); border-r
 <div id="top"><a id="back" href="m/">‹ 코스 모음</a><h1 id="ttl">🎮 심심풀이 게임</h1></div>
 <main>
     <!-- 게임 고르기 - 한 줄로 접어 두고 누르면 두 묶음(2026-10-21 홍TV님: 10개가 위를 다 차지) -->
-    <details id="pick">
+    <details id="pick" open>   <!-- 처음엔 펼친 채로 그림 - 불러온 뒤 펼치면 아래 게임판이 밀렸음(2026-11-03 홍TV님 점검, CLS). 고른 게임(?g=)으로 오면 js 가 접음 -->
         <summary><span id="pickNow">🎮 게임 고르기</span><span class="chg" id="pickChg">게임 바꾸기 ▾</span></summary>
         <h3 id="grpA">🕹️ 오락실</h3>
         <div class="grid">
