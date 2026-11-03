@@ -16,6 +16,8 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다 - 산악회 방 
 - 모르는 값을 지어내지 않습니다. 코드 · 실제 응답 · SQL 로 확인합니다.
 - 호출하는 곳이 없는 메서드는 남기지 않습니다. 고친 뒤 되돌려 확인합니다(고친 조각을 되돌리면 그 테스트가 실제로 깨지는지).
 - 지도 출처 표시를 숨기거나 지우지 않습니다. OpenStreetMap 은 ODbL 이라 "© OpenStreetMap contributors" 가 늘 보여야 합니다(README). MapLibre 는 BSD-3.
+  따라가기 · 공원 · 노선 · GPX 편집(hike · park · route · studio) 지도의 출처가 접힌 ⓘ 로 시작하는 것은 홍TV님 결정입니다(2026-11-03 홍TV님 - ⓘ 를 누르면 늘 보여 위반이 아님, 점검에서 고치지 않음).
+- 3D 화면(index.html)의 재생 단추 글 "▶ routefly" 는 일부러 그렇게 둔 것입니다(2026-11-03 홍TV님). 점검에서 바꾸자고 하지 않습니다.
 - 안전 문구(hike.js 의 `SAFETY_KEY`)를 바꾸면 키의 버전도 올립니다(README).
 - 보안 · 속도 필터: `SecurityFilter`(모든 응답에 보안 헤더, /api · /s 는 IP 마다 분당 120번 남짓 제한), `GzipFilter`(/api 응답 1KB 넘으면 gzip).
   공유 링크 주소는 `site.baseUrl` 설정이 있으면 그것을, 없으면 요청의 Host 를 씁니다(X-Forwarded-Host 는 믿지 않음). 오류 응답에 내부 사정(SQL · 예외 글)을 넣지 않습니다.
