@@ -26,6 +26,22 @@ echo "restrict,command=\"/usr/local/bin/routefly-deploy\" $pub" > /home/deploy/.
 chown deploy:deploy /home/deploy/.ssh/authorized_keys
 chmod 600 /home/deploy/.ssh/authorized_keys
 
+# 두 번째 잠금(2026-11-03 홍TV님 보안 점검 - logview 와 같게): authorized_keys 의 command= 와 별도로 sshd 설정에서도 deploy 는 이 스크립트만 · 터널 · 화면 없음.
+# 설정이 틀리면(sshd -t 실패) 파일을 지우고 그대로 둠 - ssh 가 막히지 않게. 여러 번 돌려도 같은 파일
+if [ -d /etc/ssh/sshd_config.d ]; then
+  conf=/etc/ssh/sshd_config.d/routefly-deploy.conf
+  printf '%s\n' 'Match User deploy' '    ForceCommand /usr/local/bin/routefly-deploy' '    AllowTcpForwarding no' \
+    '    AllowAgentForwarding no' '    AllowStreamLocalForwarding no' '    X11Forwarding no' '    PermitTTY no' > "$conf"
+  chmod 644 "$conf"
+  if sshd -t; then
+    systemctl reload ssh 2>/dev/null || systemctl reload sshd 2>/dev/null || true
+    echo "sshd: deploy 두 번째 잠금 켬"
+  else
+    rm -f "$conf"
+    echo "sshd 설정 검사 실패 - 두 번째 잠금 없이 그대로 둠(첫 잠금 command= 는 그대로)"
+  fi
+fi
+
 touch /var/log/routefly-deploy.log; chmod 600 /var/log/routefly-deploy.log
 install -d -m 700 /var/backups/routefly-war
 echo "배포 전용 계정 준비 끝"

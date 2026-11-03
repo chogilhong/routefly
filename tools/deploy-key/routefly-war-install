@@ -3,27 +3,76 @@
 set -euo pipefail
 umask 022
 cd /   # 2026-11-02 홍TV님 점검: 부른 곳(deploy 홈 등)의 파일을 python 이 읽지 않게 - 아래 python3 -I 와 함께
-WAR=/opt/tomcat/webapps/routefly.war
+WEBAPPS=/opt/tomcat/webapps
+WAR=$WEBAPPS/routefly.war
 KEEP=/var/backups/routefly-war
 LOG=/var/log/routefly-deploy.log
 MIN=1000000; MAX=104857600
 mkdir -p "$KEEP"; chmod 700 "$KEEP"
 log() { echo "$(date '+%F %T') $*" >> "$LOG"; echo "$*"; }
-info() { [ -f "$1" ] && echo "$(stat -c %s "$1")B $(date -r "$1" '+%F %T') $(sha256sum "$1" | cut -c1-12)" || echo "없음"; }
-put() {   # 같은 폴더의 숨김 임시 파일에 쓴 뒤 mv - 톰캣이 반쯤 쓴 war 를 읽지 않게
-  install -o tomcat -g tomcat -m 644 "$1" "/opt/tomcat/webapps/.routefly.war.new"
-  mv -f /opt/tomcat/webapps/.routefly.war.new "$WAR"
+# 2026-11-03 홍TV님 보안 점검: webapps 는 tomcat 계정 폴더라 routefly.war · 임시 파일을 바로 가기 링크로 바꿔 둘 수 있음 -
+# root 가 그 링크를 따라 다른 파일을 베끼거나 덮지 않게, 링크면 거절하고 파일은 링크를 따라가지 않고(O_NOFOLLOW) 새로(O_EXCL) 만든 뒤 이름만 바꿈.
+info() { [ -f "$1" ] && [ ! -L "$1" ] && echo "$(stat -c %s "$1")B $(date -r "$1" '+%F %T') $(sha256sum < "$1" | cut -c1-12)" || echo "없음"; }
+nolink() { [ ! -L "$1" ] || { log "거절: $1 이 바로 가기 링크임"; exit 3; }; }
+# copy <원본> <폴더> <이름> <주인> <권한>: 원본을 링크를 따라가지 않고 열어(보통 파일만) 폴더 안 새 임시 파일(O_EXCL · O_NOFOLLOW)에 쓰고
+# 주인 · 권한 · fsync 뒤 같은 폴더에서 이름만 바꿈(rename 은 그 자리가 링크여도 따라가지 않고 바꿈). 톰캣이 반쯤 쓴 war 를 읽지 않게.
+copy() {
+  python3 -I - "$@" <<'PY'
+import os, pwd, secrets, stat, sys
+src, folder, name, owner, mode = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], int(sys.argv[5], 8)
+fd = os.open(src, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+if not stat.S_ISREG(os.fstat(fd).st_mode):
+    sys.exit(1)
+d = os.open(folder, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+tmp = "." + name + ".new-" + secrets.token_hex(6)
+out = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=d)
+try:
+    with os.fdopen(fd, "rb") as f, os.fdopen(out, "wb", closefd=False) as o:
+        while True:
+            b = f.read(1 << 20)
+            if not b:
+                break
+            o.write(b)
+    u = pwd.getpwnam(owner)
+    os.fchown(out, u.pw_uid, u.pw_gid)
+    os.fchmod(out, mode)
+    os.fsync(out)
+    os.close(out)
+    os.rename(tmp, name, src_dir_fd=d, dst_dir_fd=d)
+    os.fsync(d)
+except BaseException:
+    try:
+        os.unlink(tmp, dir_fd=d)
+    except OSError:
+        pass
+    raise
+PY
+}
+# routefly war 인가(zip · RouteflyConfig.class) - 받은 것 · 되돌릴 것 모두
+check() {
+  python3 -I - "$1" <<'PY'
+import os, sys, zipfile
+try:
+    fd = os.open(sys.argv[1], os.O_RDONLY | os.O_NOFOLLOW)
+    with os.fdopen(fd, "rb") as f:
+        z = zipfile.ZipFile(f)
+        ok = z.testzip() is None and "WEB-INF/classes/com/gh/routefly/web/RouteflyConfig.class" in z.namelist()
+except Exception:
+    ok = False
+sys.exit(0 if ok else 1)
+PY
 }
 case "${1:-}" in
   deploy)
     src="${2:-}"
     [[ "$src" =~ ^/tmp/rfwar\.[A-Za-z0-9]{8}$ ]] || { log "거절: 받은 파일 경로가 이상함"; exit 3; }
+    nolink "$WAR"
     # 2026-11-02 홍TV님 점검(검사한 때와 쓰는 때 사이 바꿔치기): deploy 계정의 파일은 처음에 한 번만 열어(바로 가기 링크면 열지 않음)
     # root 만 닿는 임시 폴더로 베끼고, 그 뒤 검사 · 설치는 베낀 것만 씁니다.
     work=$(mktemp -d /var/tmp/rfwar-in.XXXXXXXX)
     trap 'rm -rf "$work"' EXIT
-    copy="$work/routefly.war"
-    python3 -I - "$src" "$copy" "$MAX" <<'PY' || { log "거절: 받은 파일이 이상함(링크 · 보통 파일 아님 · deploy 것이 아님 · 너무 큼)"; exit 3; }
+    copied="$work/routefly.war"
+    python3 -I - "$src" "$copied" "$MAX" <<'PY' || { log "거절: 받은 파일이 이상함(링크 · 보통 파일 아님 · deploy 것이 아님 · 너무 큼)"; exit 3; }
 import os, pwd, stat, sys
 src, dst, mx = sys.argv[1], sys.argv[2], int(sys.argv[3])
 fd = os.open(src, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
@@ -41,22 +90,20 @@ with os.fdopen(fd, "rb") as f, open(dst, "xb") as o:
             sys.exit(1)
         o.write(b)
 PY
-    size=$(stat -c %s "$copy")
+    size=$(stat -c %s "$copied")
     [ "$size" -ge "$MIN" ] && [ "$size" -le "$MAX" ] || { log "거절: 크기 ${size}B (1MB ~ 100MB 만)"; exit 3; }
-    python3 -I - "$copy" <<'PY' || { log "거절: routefly war 가 아님(zip 이 아니거나 RouteflyConfig.class 없음)"; exit 3; }
-import sys, zipfile
-z = zipfile.ZipFile(sys.argv[1])
-if z.testzip() is not None or "WEB-INF/classes/com/gh/routefly/web/RouteflyConfig.class" not in z.namelist():
-    sys.exit(1)
-PY
-    [ -f "$WAR" ] && cp -p "$WAR" "$KEEP/routefly.war.prev"
-    put "$copy"
+    check "$copied" || { log "거절: routefly war 가 아님(zip 이 아니거나 RouteflyConfig.class 없음)"; exit 3; }
+    if [ -e "$WAR" ]; then copy "$WAR" "$KEEP" routefly.war.prev root 600 || { log "거절: 지금 war 를 남기지 못함(보통 파일이 아님)"; exit 3; }; fi
+    copy "$copied" "$WEBAPPS" routefly.war tomcat 644
     log "배포 $(info "$WAR") (앞 것은 $KEEP/routefly.war.prev)"
     ;;
   rollback)
-    [ -f "$KEEP/routefly.war.prev" ] || { log "되돌리기 실패: 앞 war 없음"; exit 3; }
-    cp -p "$WAR" "$KEEP/routefly.war.rolledback" 2>/dev/null || true
-    put "$KEEP/routefly.war.prev"
+    prev="$KEEP/routefly.war.prev"
+    nolink "$WAR"; nolink "$prev"
+    [ -f "$prev" ] || { log "되돌리기 실패: 앞 war 없음"; exit 3; }
+    check "$prev" || { log "되돌리기 거절: 앞 war 가 routefly war 가 아님"; exit 3; }
+    if [ -e "$WAR" ]; then copy "$WAR" "$KEEP" routefly.war.rolledback root 600 || true; fi
+    copy "$prev" "$WEBAPPS" routefly.war tomcat 644
     log "되돌림 $(info "$WAR")"
     ;;
   status)
