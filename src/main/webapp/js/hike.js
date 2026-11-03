@@ -429,6 +429,7 @@
             if (!r.ok || !j || j.success === false) {
                 var err = new Error(j.message || ("HTTP " + r.status));
                 err.data = j;   // 없는 코스면 같은 산 코스(similar)가 들어 있습니다
+                err.status = r.status;   // 404 - 없어진 코스(loadFail)
                 throw err;
             }
             return j;
@@ -668,9 +669,11 @@
             e.innerHTML = '<div class="lb"></div><div class="ic"></div>';
             var lb = e.querySelector(".lb");
             RF.nameNodes(lb, q.name);   // 탐방지원센터는 작은 글씨
-            q.more.forEach(function (nm) { var m = document.createElement("span"); m.className = "more"; m.textContent = NM(nm); lb.appendChild(m); });
+            var said = [lb.textContent];
+            q.more.forEach(function (nm) { var m = document.createElement("span"); m.className = "more"; m.textContent = NM(nm); lb.appendChild(m); said.push(m.textContent); });
             e.querySelector(".ic").textContent = RF.poiIcon(q.name);
-            e.setAttribute("aria-label", lb.textContent);   // 화면 읽기에 이름(없으면 MapLibre 가 "Map marker" 로 읽음 - 2026-11-02 홍TV님 점검)
+            // 화면 읽기에 이름(없으면 MapLibre 가 "Map marker" 로 읽음 - 2026-11-02 홍TV님 점검). 같은 자리 이름들은 쉼표로(2026-11-03: "크로니 샘터길하루재" 로 붙어 읽음)
+            e.setAttribute("aria-label", said.join(", "));
             drawCourse.pois.push({ el: e, d: q.d, end: q.d < 60 || q.d > c.total - 60, top: !!q.top });
             ms.push(new maplibregl.Marker({ element: e, anchor: "bottom", offset: [0, 11] }).setLngLat([q.lon, q.lat]).addTo(map));
         });
@@ -680,6 +683,7 @@
             e.className = "spot " + sp.kind;
             e.textContent = RF.spotIcon(sp.kind);
             e.title = RF.spotText(sp);
+            e.setAttribute("aria-label", e.title);   // ⚠️ 위험 · 조망 아이콘도 화면 말로(2026-11-03 홍TV님 점검 - "Map marker" 로 읽음)
             e.addEventListener("click", function (ev) { ev.stopPropagation(); toast(RF.spotIcon(sp.kind) + " " + RF.spotText(sp), 4000); });
             ms.push(marker(e, [+sp.lon, +sp.lat]));
         });
@@ -1031,7 +1035,7 @@
             var similar = e.data && e.data.similar || [];
             showPick(similar.length > 0);   // 같은 산 목록을 보여 줄 때는 마지막 검색을 다시 하지 않습니다(늦게 온 검색이 덮어씀)
             if (similar.length) { pickSeq++; listCourses(similar, null, T("이 코스는 자료가 새로 바뀌어 번호가 달라졌습니다. 같은 산의 코스에서 골라 주세요.", "This trail's data was updated and its number changed. Pick it again from this mountain's trails.")); }
-            else loadFail(id, e.message);
+            else loadFail(id, e);
         });
     }
 
@@ -1039,14 +1043,24 @@
      * 코스를 못 열었을 때 - 사라지는 알림 대신 남는 띠: "다시 시도" · "📥 저장해 둔 코스 보기"(2026-11-02 홍TV님 점검: 산속에서 신호가 없으면 6초 알림만 보고 무엇을 할지 몰랐음).
      * 다음에 코스를 열면(loadCourse) 치움.
      */
-    function loadFail(id, why) {
+    /**
+     * 순수 함수 - 못 연 까닭 → {text, again}(2026-11-03 홍TV님 점검: "(Failed to fetch)" 같은 브라우저 글이 그대로 보였고, 없는 코스에도 "다시 시도" 가 있었음).
+     * e.status 404 - 없어진 코스(다시 해도 같음), status 없음 - 신호 없음(fetch 실패, 브라우저 글은 감춤), 그 밖 - 서버 글(우리 말).
+     */
+    function loadFailText(e) {
+        if (e && e.status === 404) return { text: T("⚠ 코스가 없어졌거나 주소가 잘못됐습니다. 목록에서 다시 골라 주세요.", "⚠ This trail is gone or the link is wrong. Pick it again from the list."), again: false };
+        var why = e && e.status && e.message ? " (" + e.message + ")" : "";
+        return { text: T("⚠ 코스를 열지 못했습니다", "⚠ Could not open the trail") + why + T(" - 신호가 약하면 저장해 둔 코스를 여세요.", " - with a weak signal, open a saved trail."), again: true };
+    }
+    function loadFail(id, e) {
+        var f = loadFailText(e);
         var box = $("loadFail");
-        if (!box) { toast(T("⚠ 코스를 열지 못했습니다", "⚠ Could not open the trail") + (why ? " (" + why + ")" : ""), 5000); return; }   // 옛 hike.html(캐시) + 새 hike.js - 2026-11-03
+        if (!box) { toast(f.text, 5000); return; }   // 옛 hike.html(캐시) + 새 hike.js - 2026-11-03
         box.textContent = "";
         var t = document.createElement("div"), row = document.createElement("div"), again = document.createElement("button"), saved = document.createElement("button");
-        t.textContent = T("⚠ 코스를 열지 못했습니다", "⚠ Could not open the trail") + (why ? " (" + why + ")" : "") + T(" - 신호가 약하면 저장해 둔 코스를 여세요.", " - with a weak signal, open a saved trail.");
+        t.textContent = f.text;
         row.style.cssText = "display:flex;flex-wrap:wrap;gap:8px;margin-top:8px";
-        [again, saved].forEach(function (b) { b.type = "button"; b.style.cssText = "min-height:44px;padding:0 14px;border-radius:10px;border:1px solid var(--ln);background:rgba(255,255,255,0.08);color:var(--tx);font-size:14px"; row.appendChild(b); });
+        (f.again ? [again, saved] : [saved]).forEach(function (b) { b.type = "button"; b.style.cssText = "min-height:44px;padding:0 14px;border-radius:10px;border:1px solid var(--ln);background:rgba(255,255,255,0.08);color:var(--tx);font-size:14px"; row.appendChild(b); });
         again.textContent = T("🔄 다시 시도", "🔄 Try again");
         saved.textContent = T("📥 저장해 둔 코스 보기", "📥 Show saved trails");
         again.onclick = function () { loadCourse(id); };

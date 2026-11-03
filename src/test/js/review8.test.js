@@ -231,4 +231,19 @@ var RF = kit();
         .forEach(function (x) { var h = read(x[0]); has(x[0] + " main", h, x[1]); eq(x[0] + " main 하나", (h.match(/role="main"|<main[ >]/g) || []).length, 1); });
 })();
 
+// ---- 18: 못 연 코스 띠 · 지도 표시 이름 · 첫 화면 제목
+(function () {
+    var T = function (k, e) { return k; };
+    var f = function (e) { return vm.runInNewContext("(function () {" + fn(HIKE, "loadFailText") + " return loadFailText(e); })()", { T: T, e: e }); };
+    var net = new TypeError("Failed to fetch");
+    eq("신호 없음 - 브라우저 글은 감춤 · 다시 시도", [f(net).text.indexOf("Failed") < 0, f(net).again], [true, true]);
+    eq("없어진 코스 - 다시 시도 없음", f({ status: 404, message: "코스가 없습니다" }), { text: "⚠ 코스가 없어졌거나 주소가 잘못됐습니다. 목록에서 다시 골라 주세요.", again: false });
+    eq("서버 글(우리 말)은 보임", f({ status: 429, message: "잠시 뒤 다시" }).text.indexOf("(잠시 뒤 다시)") > 0, true);
+    has("서버 답 번호를 오류에", HIKE, "err.status = r.status;");
+    has("지도 이름표 이름은 쉼표로", HIKE, 'e.setAttribute("aria-label", said.join(", "));');
+    has("위험 아이콘 이름", HIKE, 'e.title = RF.spotText(sp);\n            e.setAttribute("aria-label", e.title);');
+    eq("이름 없는 표시도 한국어", RF.mapLocale()["Marker.Title"], "지도 표시");
+    has("첫 화면 제목 안 잘림", read("hike.html"), "#pick .pickTop h1.ttl { flex:1 1 auto; min-width:0; margin:0; font-size:min(1em, 5.6vw); line-height:1.25; word-break:keep-all;");
+})();
+
 console.log("OK " + n);
