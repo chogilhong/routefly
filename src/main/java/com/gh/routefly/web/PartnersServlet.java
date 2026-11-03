@@ -69,7 +69,7 @@ public class PartnersServlet extends HttpServlet {
             if (any) names.add(g, nm);   // 주소와 같은 차례, 이름 없는 것은 ""
         }
         out.add("coupang", coupang);
-        // 🎒 추천 산행 장비 상품 하나(2026-11-03 홍TV님 "가민 택틱스 8") - "이름|그림 주소|링크". 링크는 쿠팡 파트너스(link.coupang.com · coupa.ng), 그림은 쿠팡 그림 서버만
+        // 🎒 추천 상품 상품 하나(2026-11-03 홍TV님 "가민 택틱스 8") - "이름|그림 주소|링크". 링크는 쿠팡 파트너스(link.coupang.com · coupa.ng), 그림은 쿠팡 그림 서버만
         // 여러 개(2026-11-03 홍TV님 "5개쯤 넣어 놓고 랜덤하게") - partner.coupang.featured 와 .2 ~ .10. 화면이 열 때마다 하나를 고름(course-kit featuredPick)
         com.google.gson.JsonArray feats = new com.google.gson.JsonArray();
         for (int i = 1; i <= FEATURED_MAX; i++) {

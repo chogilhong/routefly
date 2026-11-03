@@ -59,10 +59,10 @@ public class RevenueA11yTest {
 
     @Test
     public void gearIsOneFeaturedProduct() throws Exception {
-        // 2026-11-03 홍TV님 - 물 · 우비 · 헤드랜턴 … 챙길 것 목록은 빼고 쿠팡 상품 하나(그림)만, 이름은 "추천 산행 장비"(산 페이지 · 코스 모음 · 3D 안내)
+        // 2026-11-03 홍TV님 - 물 · 우비 · 헤드랜턴 … 챙길 것 목록은 빼고 쿠팡 상품 하나(그림)만, 이름은 "추천 상품"(산 페이지 · 코스 모음 · 3D 안내)
         String m = read("src/main/webapp/js/mountain.js"), app = read("src/main/webapp/js/app.js");
-        assertTrue("산 페이지 · 코스 모음", m.contains("\"🎒 추천 산행 장비\"") && !m.contains("RF.gearList(") && !m.contains("\"🎒 챙길 것\""));
-        assertTrue("3D 안내", app.contains("\"🎒 추천 산행 장비\"") && !app.contains("RF.gearList(") && !app.contains("What to bring"));
+        assertTrue("산 페이지 · 코스 모음", m.contains("\"🎒 추천 상품\"") && !m.contains("RF.gearList(") && !m.contains("\"🎒 챙길 것\""));
+        assertTrue("3D 안내", app.contains("\"🎒 추천 상품\"") && !app.contains("RF.gearList(") && !app.contains("What to bring"));
         assertTrue("쿠팡 표시는 그대로", m.contains("RF.COUPANG_NOTE") && app.contains("RF.COUPANG_NOTE"));
         assertTrue("준비물 체크(도구)는 그대로", read("src/main/webapp/js/tools.js").contains("RF.gearList("));
     }

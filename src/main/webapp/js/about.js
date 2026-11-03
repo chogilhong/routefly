@@ -49,7 +49,7 @@ if (document.getElementById("support")) fetch("api/partners").then(function (r) 
     if (!sec || !(aff || p.donate)) return;
     if (aff) {   // 설정에 있는 제휴만 적음(2026-10-15 PC: 아고다 링크가 없는데 "숙박의 아고다" 가 보였음)
         var where = [];
-        if (cp) where.push(ABOUT_EN ? "Coupang in 🎒 recommended gear" : "🎒 추천 산행 장비의 쿠팡");   // 2026-11-03 "챙길 것" → "추천 산행 장비"(상품 하나)
+        if (cp) where.push(ABOUT_EN ? "Coupang in 🎒 recommended products" : "🎒 추천 상품의 쿠팡");   // 2026-11-03 "챙길 것" → "추천 상품"(상품 하나)
         if (p.agoda) where.push(ABOUT_EN ? "Agoda in lodging" : "숙박의 아고다");
         if (p.trip) where.push(ABOUT_EN ? "Trip.com in lodging" : "숙박의 트립닷컴");
         document.getElementById("supportWhere").textContent = where.join(ABOUT_EN ? ", " : " · ");

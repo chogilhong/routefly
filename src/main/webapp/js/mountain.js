@@ -100,7 +100,7 @@
         fun.appendChild(h); fun.appendChild(l); fun.appendChild(sm);
         fun.hidden = false;
     }
-    // 제휴 · 후원 링크(api/partners) - 한 번만 받아 ☕ 후원 줄과 🎒 추천 산행 장비(쿠팡)가 함께 씀
+    // 제휴 · 후원 링크(api/partners) - 한 번만 받아 ☕ 후원 줄과 🎒 추천 상품(쿠팡)이 함께 씀
     var partnersP = fetch("../api/partners").then(function (r) { return r.json(); });
     // window.RF 로 - 이 함수 아래쪽(날씨 칸)에 var RF 가 있어 여기서 RF 는 아직 undefined(2026-10-29 PC: 이 줄에서 멈춰 /m/ 스크립트가 모두 섰음)
     if (window.RF && window.RF.staySearch) window.RF.staySearch(document.getElementById("ssForm"), document.getElementById("ssOut"), partnersP, "../", false);   // 🏨 근처 숙소 찾기(/m/, 2026-10-29)
@@ -181,9 +181,9 @@
             return { id: li.getAttribute("data-id"), name: li.getAttribute("data-name"), kind: "hike", dist: +li.getAttribute("data-dist"), asc: asc != null ? +asc : null, steep: st != null ? +st : null };
         }), go.firstChild);
     });
-    // 🎒 추천 산행 장비(2026-11-03 홍TV님 - 물 · 우비 · 헤드랜턴 … 챙길 것 목록은 빼고 "챙길 것" 이름도 바꿈) - 쿠팡 파트너스 상품 하나(그림)만.
+    // 🎒 추천 상품(2026-11-03 홍TV님 - 물 · 우비 · 헤드랜턴 … 챙길 것 목록은 빼고 "챙길 것" 이름도 바꿈) - 쿠팡 파트너스 상품 하나(그림)만.
     // 설정(partner.coupang.featured)이 없으면 칸도 없음. 산 페이지는 날씨 칸 아래, 목록(/m/)은 접는 칸. 준비물 체크는 🧰 도구(tools.js)에 그대로
-    var GEAR_TITLE = "🎒 추천 산행 장비";
+    var GEAR_TITLE = "🎒 추천 상품";
     function featBox(box, f) {
         var feat = window.RF.featuredCard && window.RF.featuredCard(f);
         if (!feat) return false;

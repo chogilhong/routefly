@@ -678,13 +678,13 @@
         return partnersP || (partnersP = getJson("api/partners").catch(function () { return { coupang: {} }; }));
     }
 
-    /** 🎒 추천 산행 장비(2026-11-03 홍TV님 - 챙길 것 목록은 빼고 쿠팡 파트너스 상품 하나만, 한국어 화면만). 설정이 없으면 아무것도 넣지 않음. */
+    /** 🎒 추천 상품(2026-11-03 홍TV님 - 챙길 것 목록은 빼고 쿠팡 파트너스 상품 하나만, 한국어 화면만). 설정이 없으면 아무것도 넣지 않음. */
     function drawGear(box) {
         if (EN) return;
         partners().then(function (p) {
             var feat = RF.featuredCard && RF.featuredPick && RF.featuredCard(RF.featuredPick(p.featured));   // 여러 개 가운데 하나(열 때마다 다름)
             if (!feat) return;
-            box.appendChild(el("div", "gDay", "🎒 추천 산행 장비"));
+            box.appendChild(el("div", "gDay", "🎒 추천 상품"));
             box.appendChild(feat);
             box.appendChild(el("div", "gNote", RF.COUPANG_NOTE));
         });
