@@ -240,7 +240,7 @@ public class PartyServlet extends HttpServlet {
             if (str(in, "drops") != null) p.drops(lead, Party.stops(str(in, "drops")));   // 하차 지점(2026-10-28)
             if (str(in, "pickups") != null || str(in, "home") != null) p.pickups(lead, str(in, "pickups"), str(in, "home"));   // 하산 탑승지 · 도착 예정
             if (str(in, "drop") != null && !str(in, "drop").isBlank()) p.drop(lead, null, str(in, "drop"));   // 인솔자 내 하차 지점
-            if (oc != null) p.linkOffice(lead, oc);
+            if (oc != null) p.linkOffice(lead, oc, now);
             return withToken(p.view(lead, now), lead);
         }
         if ("/info".equals(path)) return p.info(str(in, "code"), now);
@@ -252,12 +252,12 @@ public class PartyServlet extends HttpServlet {
         }
         if ("/office/rooms".equals(path)) return p.officeRooms(str(in, "key"), now, str(in, "endedSig"));
         if ("/office/enter".equals(path)) { Party.Member om = p.officeEnter(str(in, "key"), str(in, "code"), now); return withToken(p.view(om, now), om); }
-        if ("/office/detach".equals(path)) { p.officeDetach(str(in, "key"), str(in, "code")); return ok(); }
+        if ("/office/detach".equals(path)) { p.officeDetach(str(in, "key"), str(in, "code"), now); return ok(); }
         if ("/office/approve".equals(path)) { p.officeApprove(str(in, "key"), str(in, "code")); return ok(); }   // 승인 기다리는 방 승인(2026-10-28)
         if ("/office/newcode".equals(path)) { JsonObject o = ok(); o.addProperty("code", p.officeNewCode(str(in, "key"))); return o; }
         if ("/office/newkey".equals(path)) { JsonObject o = ok(); o.addProperty("key", p.officeNewKey(str(in, "key"), now)); return o; }
         if ("/office/rename".equals(path)) { JsonObject o = ok(); o.addProperty("name", p.officeRename(str(in, "key"), str(in, "name"), now)); return o; }
-        if ("/office/delete".equals(path)) { p.officeDelete(str(in, "key"), str(in, "name")); return ok(); }
+        if ("/office/delete".equals(path)) { p.officeDelete(str(in, "key"), str(in, "name"), now); return ok(); }
         // 내 사무실 묶음(2026-10-30) - PC · 폰 · 직원 기기가 같은 사무실 목록
         if ("/office/bundle/new".equals(path)) {
             java.util.List<String> ks = new java.util.ArrayList<>();
@@ -349,7 +349,7 @@ public class PartyServlet extends HttpServlet {
             case "/leadcode" -> { JsonObject o = ok(); o.addProperty("leadCode", p.newLeadCode(m, now)); return o; }
             case "/mecode" -> { JsonObject o = ok(); o.addProperty("code", p.meCode(m, now)); o.addProperty("min", Party.ME_CODE_MS / 60_000); return o; }
             case "/end" -> { if (!lead) throw new SecurityException("인솔자만 방을 끝낼 수 있습니다."); p.end(m, bool(in, "cancel"), str(in, "why"), bool(in, "force"), now); return ok(); }
-            case "/link" -> { p.linkOffice(m, str(in, "office")); }
+            case "/link" -> { p.linkOffice(m, str(in, "office"), now); }
             case "/drop" -> { p.drop(m, integer(in, "id"), str(in, "drop")); p.officeDid(m, "drop", p.nickOf(m, integer(in, "id"), null, null), now); }   // 하차 지점 - 나 · 인솔자는 아무나
             case "/pickup" -> { p.pickup(m, integer(in, "id"), str(in, "pickup")); p.officeDid(m, "pickup", p.nickOf(m, integer(in, "id"), null, null), now); }   // 하산 탑승지 - 나 · 인솔자는 아무나
             case "/arrive" -> p.arrive(m, str(in, "drop"), num(in, "lat"), num(in, "lon"), now);   // 인솔자 - 하차 지점 도착(회원 폰에 "여기서 내리세요?")

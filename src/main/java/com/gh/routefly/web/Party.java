@@ -3,7 +3,6 @@ package com.gh.routefly.web;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -51,6 +50,8 @@ final class Party {
     static final long NOT_DOWN_KEEP_MS = 24 * HOUR;
     /** 서버를 다시 켠 뒤 산행 중이던 방은 첫 요청부터 이만큼은 끝내지 않음(2026-11-02 점검: 꺼져 있던 사이 마감이 지난 방이 첫 요청에 바로 지워져 회원이 410 을 받았음). */
     static final long RESTART_GRACE_MS = HOUR;
+    /** 다시 켠 뒤 주는 시간의 끝(2026-11-03 홍TV님 점검: 다시 켤 때마다 한 시간씩 늘어 끝없이 남을 수 있었음) - 방이 끝날 때(closesAt)에서 3시간까지만. */
+    static final long RESTART_GRACE_CAP_MS = 3 * HOUR;
     /** 위치만 바뀌었을 때 파일에 쓰는 간격(SOS 를 켜고 끄거나 위치를 지울 때는 바로). */
     static final long LOC_SAVE_MS = 60_000;
     /** 하산 마감은 출발 뒤 이 안으로 - 지리산 · 설악산 1박 2일 ~ 3박 4일 종주(2026-10-21 홍TV님, 전엔 48시간). */
@@ -117,6 +118,11 @@ final class Party {
         long t;                // 마지막 위치 받은 때(0 = 아직)
         long seen;             // 마지막으로 폰이 살아 있다고 알린 때(위치 · ping - 위치를 못 잡아도, 2026-10-20 PC: 화면 끈 실내)
         boolean sos;
+        /**
+         * SOS 를 켜기 전에 하산 탑승 · 따로 귀가였나(2026-11-03 홍TV님 점검: SOS 를 켜면 그 표시가 풀리고, 끄면 되돌리지 않아
+         * 따로 귀가 회원의 집 가는 길 위치를 받고 방이 24시간 남았음) - SOS 를 끄면 되돌리고 SOS 때 받은 위치를 지움. 파일에도.
+         */
+        boolean wasAboard, wasApart;
         // ---- 메모리에만(파일에 안 씀)
         /** 인솔자에게 한 줄(2026-10-27 홍TV님 - 공지의 반대 방향) - 메모리에만, 방이 끝나면 사라짐. */
         String msg;
@@ -973,7 +979,7 @@ final class Party {
         boolean was = m.sos;
         // SOS 는 출발 전(2026-11-01 홍TV님 - 버스 · 집결지) · 안 탐 · 하산 탑승 · 따로 귀가여도 받음(2026-11-02 홍TV님 점검: 그 회원의 SOS 가 소리 없이 버려졌음).
         // 본인이 누른 동안만 그 위치를 받고, 끄면 바로 지움
-        if (sos && (m.cancelled || m.aboard || !started(m, now))) {
+        if (sos && (m.cancelled || m.aboard || m.wasAboard || !started(m, now))) {
             sosOn(m, now, "sos");
             if (m.t == 0 || MountainServlet.distM(m.anchorLat, m.anchorLon, lat, lon) > STILL_M) { m.anchorLat = lat; m.anchorLon = lon; m.stillSince = now; }
             m.lat = lat; m.lon = lon; m.acc = acc; m.t = now; m.seen = now;
@@ -982,6 +988,7 @@ final class Party {
             return true;
         }
         // 여기부터 SOS 가 아님 - 안 탐 · 하산 탑승 · 출발 전은 위치를 받지 않음(SOS 때 받은 위치는 지움, 집 위치가 인솔자에게 가지 않게 - 2026-10-27)
+        unSos(m);
         if (m.cancelled || m.aboard || !started(m, now)) {
             sosOff(m, now);
             if (m.cancelled && !was) throw new IllegalArgumentException("출발 때 탑승하지 않아 이 산행에서 빠졌습니다. 인솔자에게 연락해 주세요.");
@@ -1015,10 +1022,19 @@ final class Party {
     /** SOS 켬 - 하산 탑승 · 따로 귀가로 표시된 회원이면 그 표시를 풂(하산이 끝난 게 아니므로 하산 미확인으로, 2026-11-02 홍TV님 점검). */
     private void sosOn(Member m, long now, String what) {
         if (!m.sos) logSos(m, now, what);
+        if (m.aboard) { m.wasAboard = true; m.wasApart = m.apart; }   // 끄면 되돌림(unSos)
         m.aboard = false;
         m.apart = false;
         m.sos = true;
         m.room.sosEver = true;
+    }
+
+    /** SOS 를 끄면 켜기 전의 하산 탑승 · 따로 귀가로 되돌림(2026-11-03 홍TV님) - 뒤이어 sosOff 가 SOS 때 받은 위치를 지움. */
+    private static void unSos(Member m) {
+        if (!m.wasAboard) return;
+        m.aboard = true;
+        m.apart = m.wasApart;
+        m.wasAboard = m.wasApart = false;
     }
 
     /** 위치를 받지 않는 회원(출발 전 · 안 탐 · 하산 탑승)의 SOS 끄기 - SOS 때 받은 위치도 바로 지움. */
@@ -1053,13 +1069,14 @@ final class Party {
         // 사무실 자리는 SOS 를 올리지 않음(2026-11-02 보안 점검: 보기만 하는 자리가 가짜 SOS 로 인솔자를 부르고 방 끝내기를 막을 수 있었음)
         if (m.office) return !Boolean.TRUE.equals(sos);
         boolean was = m.sos;
-        if (Boolean.TRUE.equals(sos) && (m.cancelled || m.aboard || !started(m, now))) {   // 출발 전 · 안 탐 · 하산 탑승도 SOS 는 받음(loc 와 같음)
+        if (Boolean.TRUE.equals(sos) && (m.cancelled || m.aboard || m.wasAboard || !started(m, now))) {   // 출발 전 · 안 탐 · 하산 탑승도 SOS 는 받음(loc 와 같음)
             m.seen = now;
             if (batt != null) m.batt = Math.max(0, Math.min(100, batt));
             sosOn(m, now, "sos noloc");
             saveLoc(!was, now);
             return true;
         }
+        if (Boolean.FALSE.equals(sos)) unSos(m);
         if (m.cancelled || m.aboard || !started(m, now)) {   // SOS 끄기만 - 끄면 SOS 때 받은 위치도 지움
             if (Boolean.FALSE.equals(sos) && was) { m.seen = now; sosOff(m, now); }
             return true;
@@ -1088,6 +1105,7 @@ final class Party {
     synchronized void aboard(Member m, boolean on, boolean apart) {
         m.aboard = on;
         m.apart = on && apart;
+        m.wasAboard = m.wasApart = false;   // 새로 정함(SOS 를 꺼도 되돌릴 것 없음)
         if (on) { m.sos = false; m.lat = null; m.lon = null; m.acc = null; }
         save();
     }
@@ -1233,11 +1251,13 @@ final class Party {
     synchronized void leave(Member m, long now) {
         if (m.chief()) throw new IllegalStateException("주 인솔자는 \"방 끝내기\" 로 끝냅니다.");   // 보조 인솔자는 언제든 나감
         // 이미 그만 보낸 회원이 또 누름 - 확인자료 파기(파일 다시 쓰기)를 되풀이하지 않음(2026-10-28 보안 점검: 같은 열쇠로 /leave 를 몰아 보내 모든 방이 멈췄음)
-        if ("hiker".equals(m.role) && m.listed && m.t == 0 && m.track.isEmpty()) return;
+        // SOS 가 켜진 채면 그만 보내기로 끔(2026-11-03 홍TV님 점검: 위치 없는 SOS 는 t == 0 이라 건너뛰어 SOS 가 남았음)
+        if ("hiker".equals(m.role) && m.listed && m.t == 0 && m.track.isEmpty() && !m.sos) return;
         if ("hiker".equals(m.role)) {   // 산행 회원 - 위치만 그만 보내고 명단 · 좌석 · 탑승은 남김(인솔자 인원 확인, 2026-10-26 홍TV님 "좌석표에서도 빠지는데")
             m.rostered = true;   // 명단으로 들어오지 않았어도 이제 명단 사람(같은 이름으로 다시 참가하면 그 자리로)
             m.listed = true;
             m.room.trackPts -= m.track.size();
+            unSos(m);   // SOS 전 하산 탑승이었으면 되돌림
             m.lat = null; m.lon = null; m.acc = null; m.t = 0; m.sos = false; m.track.clear();
             purgeLog(m);   // 철회 - 이 회원의 확인자료 즉시 파기
             save();
@@ -1286,16 +1306,38 @@ final class Party {
     synchronized void end(Member lead, boolean cancel, String why, boolean force, long now) {
         if (!lead.chief() && !lead.office) throw new SecurityException("방은 주 인솔자(또는 회사 사무실)만 끝냅니다.");
         Room r = lead.room;
-        if (r.sosOn()) throw new IllegalStateException("SOS 를 켠 회원이 있어 방을 끝낼 수 없습니다. 그 회원을 찾거나 하산 탑승을 확인한 뒤 끝내 주세요.");
+        // 명단에 없는 참가자 · 안 탄 회원의 SOS 는 한 번 더 묻고 force 로 끝낼 수 있음(2026-11-03 홍TV님 보안 점검: 방 코드만 알면 가짜 SOS 로 방을 24시간 붙잡았음)
+        List<String> odd = new ArrayList<>();
+        for (Member m : r.members.values()) if (m.sos && !m.office) {
+            if (!sosOdd(r, m)) throw new IllegalStateException("SOS 를 켠 회원이 있어 방을 끝낼 수 없습니다. 그 회원을 찾거나 하산 탑승을 확인한 뒤 끝내 주세요.");
+            odd.add(m.nick);
+        }
         List<String> notDown = notDown(r);
-        if (r.departed && !notDown.isEmpty() && !force)
-            throw new NotDown("아직 하산 확인이 안 된 회원이 " + notDown.size() + "명 있습니다(" + String.join(" · ", notDown.subList(0, Math.min(5, notDown.size()))) + (notDown.size() > 5 ? " 등" : "") + ").");
+        if ((r.departed && !notDown.isEmpty() || !odd.isEmpty()) && !force)
+            throw new NotDown("아직 하산 확인이 안 된 " + (notDown.isEmpty() || !r.departed ? "SOS 가 있습니다" : "회원이 " + notDown.size() + "명 있습니다(" + names(notDown) + ")")
+                + (odd.isEmpty() ? "" : ". 명단에 없는 참가자 · 안 탄 회원의 SOS " + odd.size() + "명(" + names(odd) + ") - 진짜인지 확인해 주세요") + ".");
         r.endedBy = lead.office ? "사무실" : "주 인솔자";
         r.cancelled = cancel;
         r.cancelWhy = clean(why, 60);
         if (!cancel) keepTracks(r);
         drop(r, cancel ? "인솔자가 산행을 취소했습니다." : lead.office ? "회사 사무실이 방을 끝냈습니다." : "인솔자가 방을 끝냈습니다. 산행 수고하셨습니다.", now);
         save();
+    }
+
+    private static String names(List<String> ns) {
+        return String.join(" · ", ns.subList(0, Math.min(5, ns.size()))) + (ns.size() > 5 ? " 등" : "");
+    }
+
+    /**
+     * 명단에 없는 참가자 · 안 탄 회원의 SOS(2026-11-03 홍TV님 보안 점검) - 인솔자 화면에 따로 보이고, 방 끝내기를 한 번 더 묻고 막지 않음.
+     * 명단을 붙여 넣은 방에서 명단으로 들어오지 않은 산행 회원 · 출발 때 안 탄 회원. 명단이 없는 방의 탄 회원 SOS 는 그대로 막음.
+     */
+    static boolean sosOdd(Room r, Member m) {
+        if (!m.sos || !"hiker".equals(m.role)) return false;
+        if (m.cancelled) return true;
+        if (m.rostered) return false;
+        for (Member x : r.members.values()) if (x.rostered) return true;
+        return false;
     }
 
     /** 하산 확인이 안 된 산행 회원 이름(안 탐 · 하산 탑승 · 따로 귀가 빼고). */
@@ -1322,11 +1364,15 @@ final class Party {
     }
 
     /** 주 인솔자 - 이 방을 회사 사무실에 올림(회사 코드). 회원 화면에도 받는 사람으로 보임. */
-    synchronized void linkOffice(Member lead, String code) {
+    synchronized void linkOffice(Member lead, String code, long now) {
         if (!lead.chief()) throw new SecurityException("회사 연결은 주 인솔자만 합니다.");
         PartyOffice.Office o = offices.byCode(code);
         if (o == null) throw new IllegalArgumentException("회사 코드를 찾지 못했습니다. 회사에 다시 확인해 주세요.");
-        if (!o.code.equals(lead.room.officeCode)) lead.room.officePending = true;   // 같은 회사로 다시 넣으면 그대로
+        if (!o.code.equals(lead.room.officeCode)) {   // 같은 회사로 다시 넣으면 그대로
+            lead.room.officePending = true;
+            // 다른 회사로 바꾸면 옛 회사 사무실 자리를 뺌(2026-11-03 홍TV님 점검: 옛 사무실이 인솔자 권한 · 회원 위치를 계속 봤음)
+            dropOfficeSeats(lead.room, "회사 연결이 바뀌었습니다. 이 방은 이제 이 사무실에 없습니다.", now);
+        }
         lead.room.officeCode = o.code;
         lead.room.officeName = o.name;
         audit.info("office room={} office={} pending", lead.room.code, o.code);
@@ -1512,14 +1558,14 @@ final class Party {
     }
 
     /** 사무실 - 이 방을 회사 화면에서 뺌(잘못 연결된 방). 사무실 자리도 지움. */
-    synchronized void officeDetach(String key, String code) {
+    synchronized void officeDetach(String key, String code, long now) {
         PartyOffice.Office o = offices.byKey(key);
         Room r = code == null ? null : rooms.get(code.trim().toUpperCase());
         if (r == null || !o.code.equals(r.officeCode)) throw new IllegalArgumentException("이 회사의 방이 아닙니다.");
         r.officeCode = null;
         r.officePending = false;
         r.officeName = null;
-        for (Member m : new ArrayList<>(r.members.values())) if (m.office) { r.members.remove(m.token); byToken.remove(m.token); }
+        dropOfficeSeats(r, "사무실이 이 방을 회사 화면에서 뺐습니다.", now);
         save();
     }
 
@@ -1545,16 +1591,21 @@ final class Party {
             if (!o.code.equals(r.officeCode)) continue;
             r.officeName = n;
             // 사무실 자리 이름("○○ 사무실")은 바꿀 수 없어 자리를 뺌 - 다음 "열기" 때 새 이름으로(사무실은 위치를 보내지 않아 잃는 것 없음)
-            for (Member m : new ArrayList<>(r.members.values())) if (m.office) { r.members.remove(m.token); byToken.remove(m.token); officeGone(m.token, "회사 이름이 바뀌었습니다. 사무실 화면에서 이 방을 다시 열어 주세요.", now); }
+            dropOfficeSeats(r, "회사 이름이 바뀌었습니다. 사무실 화면에서 이 방을 다시 열어 주세요.", now);
         }
         save();
         return n;
     }
 
-    /** 빠진 사무실 자리에 까닭을 남김 - 열어 둔 탭이 "방이 끝났습니다" 대신 이 글을 봄(방은 그대로, 2026-10-29 점검). */
-    private void officeGone(String token, String why, long now) {
-        endedWhy.put(token, why);
-        endedAt.put(token, now);
+    /** 방의 사무실 자리를 빼고 까닭을 남김 - 열어 둔 탭이 "방이 끝났습니다" 대신 이 글을 봄(방은 그대로, 2026-10-29 점검 · 2026-11-03 연결 바꾸기 · 빼기 · 없애기도). */
+    private void dropOfficeSeats(Room r, String why, long now) {
+        for (Member m : new ArrayList<>(r.members.values())) {
+            if (!m.office) continue;
+            r.members.remove(m.token);
+            byToken.remove(m.token);
+            endedWhy.put(m.token, why);
+            endedAt.put(m.token, now);
+        }
     }
 
     /** 사무실 - 링크 바꾸기. 돌려줌: 새 열쇠. */
@@ -1563,7 +1614,7 @@ final class Party {
         // 옛 링크로 이미 연 방의 사무실 자리도 끊음(2026-10-28 보안 점검: 링크가 샌 뒤 바꿔도 이미 연 자리로 회원 위치를 계속 볼 수 있었음). 다음 "열기" 때 새 자리
         for (Room r : rooms.values()) {
             if (!o.code.equals(r.officeCode)) continue;
-            for (Member m : new ArrayList<>(r.members.values())) if (m.office) { r.members.remove(m.token); byToken.remove(m.token); officeGone(m.token, "사무실 링크가 바뀌었습니다. 새 사무실 링크로 들어와 이 방을 다시 열어 주세요.", now); }
+            dropOfficeSeats(r, "사무실 링크가 바뀌었습니다. 새 사무실 링크로 들어와 이 방을 다시 열어 주세요.", now);
         }
         save();
         return offices.newKey(o);
@@ -1573,7 +1624,7 @@ final class Party {
      * 사무실 없애기(탈퇴, 2026-10-28 홍TV님 "만들어") - 회사 이름을 한 번 더 적어야 함. 사무실 · 끝난 산행 요약을 지우고,
      * 진행 중인 방은 그대로 두되 회사 연결 · 사무실 자리만 뺌(회원 화면의 "○○ 사무실" 도 빠짐).
      */
-    synchronized void officeDelete(String key, String name) {
+    synchronized void officeDelete(String key, String name, long now) {
         PartyOffice.Office o = offices.byKey(key);
         if (name == null || !name.trim().equals(o.name)) throw new IllegalArgumentException("회사 이름이 맞지 않습니다. 없애려면 회사 이름을 그대로 적어 주세요.");
         for (Room r : rooms.values()) {
@@ -1581,7 +1632,7 @@ final class Party {
             r.officeCode = null;
             r.officePending = false;
             r.officeName = null;
-            for (Member m : new ArrayList<>(r.members.values())) if (m.office) { r.members.remove(m.token); byToken.remove(m.token); }
+            dropOfficeSeats(r, "회사 사무실이 없어졌습니다.", now);
         }
         offices.delete(o);
         save();
@@ -1707,7 +1758,7 @@ final class Party {
     synchronized void sweep(long now, boolean force) {
         if (freshLoad) {
             freshLoad = false;
-            for (Room r : rooms.values()) if (r.departed || r.sosOn()) r.graceUntil = now + RESTART_GRACE_MS;
+            for (Room r : rooms.values()) if (r.departed || r.sosOn()) r.graceUntil = Math.min(now + RESTART_GRACE_MS, r.closesAt() + RESTART_GRACE_CAP_MS);
         }
         if (!force && now >= lastSweep && now - lastSweep < SWEEP_MS) return;
         lastSweep = now;
@@ -1767,6 +1818,7 @@ final class Party {
                 if (m.dropPlan != null) x.addProperty("dropPlan", m.dropPlan);
                 // 마지막 소식 - 재시작 뒤에도 SOS · 마지막 위치 · 배터리가 인솔자에게 이어지게(2026-11-02 홍TV님 점검). 지나온 길은 넣지 않음
                 if (m.sos) x.addProperty("sos", true);
+                if (m.wasAboard) { x.addProperty("wasAboard", true); if (m.wasApart) x.addProperty("wasApart", true); }   // SOS 를 끄면 되돌릴 것(2026-11-03)
                 if (m.t > 0 && m.lat != null) {
                     x.addProperty("lat", m.lat); x.addProperty("lon", m.lon); if (m.acc != null) x.addProperty("acc", m.acc);
                     x.addProperty("t", m.t); x.addProperty("still", m.stillSince);
@@ -1794,21 +1846,16 @@ final class Party {
 
     private void writeLocked(String text) {
         try {
-            Files.createDirectories(file.getParent());
-            Path tmp = file.resolveSibling("party.json.tmp");
-            Files.deleteIfExists(tmp);
-            // 처음부터 600 으로 만듦(점검: 쓴 뒤 바꾸면 잠깐 남이 읽을 수 있었음 - 열쇠가 들어 있음)
-            try { Files.createFile(tmp, java.nio.file.attribute.PosixFilePermissions.asFileAttribute(java.nio.file.attribute.PosixFilePermissions.fromString("rw-------"))); }
-            catch (UnsupportedOperationException e) { /* 윈도 */ }
-            Files.writeString(tmp, text, StandardCharsets.UTF_8);
-            Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING);
+            PrivateFile.write(file, text);   // 처음부터 600 · 한 번 열어 쓰고 fsync · ATOMIC_MOVE(2026-11-03 보안 점검)
         } catch (Exception e) {
             log.warn("[PARTY] 방 파일을 쓰지 못함 - {}", e.toString());
         }
     }
 
     private void load() {
-        if (file == null || !Files.isRegularFile(file)) return;
+        if (file == null) return;
+        PrivateFile.dropOldBackups(file, System.currentTimeMillis());   // 7일 지난 party.json.bad-*(좌표가 들어 있음, 2026-11-03)
+        if (!Files.isRegularFile(file)) return;
         JsonArray all;
         try {
             all = JsonParser.parseString(Files.readString(file, StandardCharsets.UTF_8)).getAsJsonArray();
@@ -1856,6 +1903,7 @@ final class Party {
                     m.stop = str(x, "stop"); m.boarded = boolOf(x, "boarded"); m.aboard = boolOf(x, "aboard"); m.apart = boolOf(x, "apart"); m.cancelled = boolOf(x, "cancelled");
                     m.rostered = boolOf(x, "rostered"); m.listed = boolOf(x, "listed"); m.office = boolOf(x, "office"); m.app = boolOf(x, "app"); m.drop = str(x, "drop"); m.dropHow = str(x, "dropHow"); m.dropPlan = str(x, "dropPlan"); m.pickup = str(x, "pickup");
                     m.sos = boolOf(x, "sos") && !m.office;   // 마지막 소식(2026-11-02 - 그 전 파일에는 없음)
+                    m.wasAboard = m.sos && boolOf(x, "wasAboard"); m.wasApart = m.wasAboard && boolOf(x, "wasApart");
                     if (num(x, "lat") != null && num(x, "lon") != null && lng(x, "t") > 0) {
                         m.lat = num(x, "lat"); m.lon = num(x, "lon"); m.acc = num(x, "acc"); m.t = lng(x, "t");
                         m.anchorLat = m.lat; m.anchorLon = m.lon; m.stillSince = x.has("still") ? lng(x, "still") : m.t;
@@ -1880,14 +1928,10 @@ final class Party {
         log.info("[PARTY] 방 {}개 읽음{}", rooms.size(), bad > 0 ? " (" + bad + "개 건너뜀 - party.json.bad-* 에 옛 파일)" : "");
     }
 
-    /** 읽지 못한 파일을 party.json.bad-<시각> 으로 남김(600). */
+    /** 읽지 못한 파일을 party.json.bad-<시각> 으로 남김(만들 때부터 600, 7일 뒤 load 가 지움). */
     private void backup() {
         try {
-            Path b = file.resolveSibling("party.json.bad-" + System.currentTimeMillis());
-            // 만들 때부터 600(2026-10-28 보안 점검: 복사한 뒤 권한을 바꾸면 그 사이 남이 읽을 수 있음)
-            try { Files.createFile(b, java.nio.file.attribute.PosixFilePermissions.asFileAttribute(java.nio.file.attribute.PosixFilePermissions.fromString("rw-------"))); }
-            catch (UnsupportedOperationException e) { /* 윈도 */ }
-            Files.write(b, Files.readAllBytes(file));   // 만든 600 파일에 씀(copy 는 파일을 새로 만들어 원래 권한이 됐음, 2026-10-28 점검)
+            PrivateFile.backup(file, System.currentTimeMillis());
         } catch (Exception e) {
             log.warn("[PARTY] 옛 파일을 남기지 못함 - {}", e.toString());
         }
@@ -2071,6 +2115,7 @@ final class Party {
             x.addProperty("bus", m.bus);
             if (m.seat != null) x.addProperty("seat", m.seat);
             x.addProperty("sos", m.sos);
+            if (staff && sosOdd(r, m)) x.addProperty("sosOdd", true);   // 명단에 없는 참가자 · 안 탄 회원의 SOS(2026-11-03)
             x.addProperty("aboard", m.aboard);
             if (m.apart) x.addProperty("apart", true);
             // 위치는 인솔자와 자기 것만(2026-10-24 홍TV님 - 인솔자 위주, 회원은 따라가기 지도로 걷고 남의 위치는 안 봄)

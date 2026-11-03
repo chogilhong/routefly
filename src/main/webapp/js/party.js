@@ -664,7 +664,7 @@
         (s.members || []).forEach(function (m) {
             if (!m.sos || m.id === s.me) return;
             now[m.id] = 1;
-            var who = m.nick + (m.seat ? "(" + seatName(s, m.bus, m.seat) + ")" : "");
+            var who = m.nick + (m.seat ? "(" + seatName(s, m.bus, m.seat) + ")" : "") + (m.cancelled ? T(" - 안 탄 회원", " - not on bus") : m.sosOdd ? T(" - 명단에 없는 참가자", " - not on the roster") : "");   // 2026-11-03 홍TV님 - 가짜 SOS 일 수 있음
             // 위쪽 빨간 줄 - SOS 가 켜진 동안 늘(2026-10-22 점검: 맨 아래 글로만 나와 안 보였음). 누르면 지도 · 지나온 길
             bar.push("🆘 " + esc(who) + " <button type=\"button\" data-sos=\"" + m.id + "\">" + T("🗺 지도 · 지나온 길", "🗺 Map · trail") + "</button>");
             if (sosSeen[m.id]) return;
@@ -843,7 +843,7 @@
         if (document.activeElement && document.activeElement.classList && (document.activeElement.classList.contains("dropSel") || document.activeElement.classList.contains("pickSel"))) return;   // 하차 지점을 고르는 중 - 새로 그리면 닫힘
         $("list").innerHTML = rows.map(function (m) {
             var cls = m.sos ? "sos" : m.cancelled ? "aboard" : m.aboard ? "aboard" : (s.departed && silent(m)) ? "old" : "";   // SOS 가 먼저 - 안 탐 회원의 SOS 도(2026-11-02 점검)
-            var st = m.sos ? "🆘 SOS" + (m.cancelled ? T(" (안 탐)", " (not on bus)") : "") : m.cancelled ? T("안 탐", "Not on bus") : m.aboard ? (m.apart ? T("🚶 따로 귀가", "🚶 Home separately") : T("🚌 하산 탑승", "🚌 Back on bus")) : m.role === "lead" ? (m.office ? T("🏢 사무실", "🏢 Office") : m.chief ? T("주 인솔자", "Leader") : T("보조 인솔자", "Assistant"))
+            var st = m.sos ? "🆘 SOS" + (m.cancelled ? T(" (안 탐)", " (not on bus)") : m.sosOdd ? T(" (명단에 없는 참가자)", " (not on the roster)") : "") : m.cancelled ? T("안 탐", "Not on bus") : m.aboard ? (m.apart ? T("🚶 따로 귀가", "🚶 Home separately") : T("🚌 하산 탑승", "🚌 Back on bus")) : m.role === "lead" ? (m.office ? T("🏢 사무실", "🏢 Office") : m.chief ? T("주 인솔자", "Leader") : T("보조 인솔자", "Assistant"))
                 : s.departed ? T("🥾 산행 중", "🥾 Hiking") : m.boarded ? T("✅ 탐", "✅ On bus") : T("안 탐", "Not on bus");
             if (m.listed) st = T("📋 핸드폰 없음 · ", "📋 No phone · ") + st;   // 명단에만 - 인솔자가 눈으로 확인하고 눌러 체크(2026-10-24 홍TV님)
             if (m.role === "hiker" && !m.cancelled && s.departed)   // 하산 - 인솔자가 체크(핸드폰 없는 · 못 누른 회원, 따로 귀가는 2026-10-27)
@@ -1202,7 +1202,7 @@
             if (cls.indexOf("bus") >= 0) mk.getElement().querySelector(".d").textContent = "🚌";
         }
         (s.members || []).forEach(function (m) {
-            if (m.lat == null || m.cancelled) return;
+            if (m.lat == null || m.cancelled && !m.sos) return;   // 취소 회원도 SOS 면 자리를 보임(2026-11-03 홍TV님)
             var cls = m.sos ? "sos" : m.aboard ? "aboard" : m.role === "lead" ? "lead" : (m.ago > OLD_S ? "old" : "");
             put("m" + m.id, m.lon, m.lat, cls, (m.id === s.me ? T("나", "Me") : m.nick) + (m.ago > OLD_S ? " · " + agoText(m.ago) : ""));
         });

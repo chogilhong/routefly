@@ -3,7 +3,6 @@ package com.gh.routefly.web;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -269,13 +268,7 @@ final class PartyOffice {
             arr.add(x);
         }
         try {
-            Files.createDirectories(file.getParent());
-            Path tmp = file.resolveSibling("office.json.tmp");
-            Files.deleteIfExists(tmp);
-            try { Files.createFile(tmp, java.nio.file.attribute.PosixFilePermissions.asFileAttribute(java.nio.file.attribute.PosixFilePermissions.fromString("rw-------"))); }
-            catch (UnsupportedOperationException ex) { Files.createFile(tmp); }
-            Files.writeString(tmp, arr.toString(), StandardCharsets.UTF_8);
-            Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            PrivateFile.write(file, arr.toString());   // 2026-11-03 보안 점검 - 한 번 열어 쓰고 fsync · ATOMIC_MOVE
         } catch (Exception ex) {
             log.warn("[OFFICE] 사무실 파일을 쓰지 못함 - {}", ex.toString());
         }
@@ -286,7 +279,9 @@ final class PartyOffice {
      * 깨진 곳이 있으면 office.json.bad-<시각>(600)으로 옛 파일을 남김.
      */
     private void load() {
-        if (file == null || !Files.isRegularFile(file)) return;
+        if (file == null) return;
+        PrivateFile.dropOldBackups(file, System.currentTimeMillis());   // 7일 지난 office.json.bad-*(2026-11-03)
+        if (!Files.isRegularFile(file)) return;
         int bad = 0;
         try {
             for (JsonElement e : JsonParser.parseString(Files.readString(file, StandardCharsets.UTF_8)).getAsJsonArray()) {
@@ -304,7 +299,7 @@ final class PartyOffice {
             bad++;
             log.warn("[OFFICE] 사무실 파일을 읽지 못함 - {}", ex.toString());
         }
-        if (bad > 0) backup();
+        if (bad > 0) backup(file);
         log.info("[OFFICE] 사무실 {}곳 읽음{}", byCode.size(), bad > 0 ? " (" + bad + "곳 건너뜀 - office.json.bad-* 에 옛 파일)" : "");
     }
 
@@ -321,21 +316,21 @@ final class PartyOffice {
             arr.add(x);
         }
         try {
-            Files.createDirectories(bundleFile.getParent());
-            Path tmp = bundleFile.resolveSibling("office-bundle.json.tmp");
-            Files.deleteIfExists(tmp);
-            try { Files.createFile(tmp, java.nio.file.attribute.PosixFilePermissions.asFileAttribute(java.nio.file.attribute.PosixFilePermissions.fromString("rw-------"))); }
-            catch (UnsupportedOperationException ex) { Files.createFile(tmp); }
-            Files.writeString(tmp, arr.toString(), StandardCharsets.UTF_8);
-            Files.move(tmp, bundleFile, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            PrivateFile.write(bundleFile, arr.toString());
         } catch (Exception ex) {
             log.warn("[OFFICE] 묶음 파일을 쓰지 못함 - {}", ex.toString());
         }
     }
 
-    /** 묶음 읽기 - 하나씩(깨진 것은 건너뜀). */
+    /**
+     * 묶음 읽기 - 하나씩(깨진 것은 건너뜀). 깨진 곳이 있으면 office-bundle.json.bad-<시각> 으로 옛 파일을 남김(2026-11-03 홍TV님 점검:
+     * 다음 저장이 읽은 것만으로 덮어 묶음을 말없이 잃었음) - 7일 지나면 지움.
+     */
     private void loadBundles() {
-        if (bundleFile == null || !Files.isRegularFile(bundleFile)) return;
+        if (bundleFile == null) return;
+        PrivateFile.dropOldBackups(bundleFile, System.currentTimeMillis());
+        if (!Files.isRegularFile(bundleFile)) return;
+        int bad = 0;
         try {
             for (JsonElement e : JsonParser.parseString(Files.readString(bundleFile, StandardCharsets.UTF_8)).getAsJsonArray()) {
                 try {
@@ -343,19 +338,19 @@ final class PartyOffice {
                     Bundle b = new Bundle(x.get("key").getAsString(), x.get("seen").getAsLong());
                     x.getAsJsonArray("codes").forEach(c -> b.codes.add(c.getAsString()));
                     bundles.put(b.key, b);
-                } catch (RuntimeException ex) { /* 건너뜀 */ }
+                } catch (RuntimeException ex) { bad++; }
             }
         } catch (Exception ex) {
+            bad++;
             log.warn("[OFFICE] 묶음 파일을 읽지 못함 - {}", ex.toString());
         }
+        if (bad > 0) { backup(bundleFile); log.info("[OFFICE] 묶음 {}개 건너뜀 - office-bundle.json.bad-* 에 옛 파일", bad); }
     }
 
-    private void backup() {
+    /** 읽지 못한 파일을 <이름>.bad-<시각> 으로 남김(만들 때부터 600). */
+    private static void backup(Path f) {
         try {
-            Path b = file.resolveSibling("office.json.bad-" + System.currentTimeMillis());
-            try { Files.createFile(b, java.nio.file.attribute.PosixFilePermissions.asFileAttribute(java.nio.file.attribute.PosixFilePermissions.fromString("rw-------"))); }
-            catch (UnsupportedOperationException e) { /* 윈도 */ }
-            Files.write(b, Files.readAllBytes(file));   // 만든 600 파일에 씀(copy 는 파일을 새로 만들어 원래 권한이 됐음, 2026-10-28 점검)
+            PrivateFile.backup(f, System.currentTimeMillis());
         } catch (Exception e) {
             log.warn("[OFFICE] 옛 파일을 남기지 못함 - {}", e.toString());
         }

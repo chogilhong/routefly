@@ -129,7 +129,7 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
             { id: 1, role: "hiker", nick: "철수", app: true, seen: 900 }, { id: 2, role: "hiker", nick: "영희", seen: 900 },
             { id: 3, role: "hiker", nick: "민수", sos: true }, { id: 4, role: "hiker", nick: "명단", app: true, listed: true }, { id: 5, role: "hiker", nick: "탄사람", aboard: true, sos: true }] };
         var r1 = RF.partyAlerts(lead, {});
-        eq("알림 - SOS 만(산행 시작 5분 - 아직 소식 없음 안 셈, 하산 탑승한 SOS 는 빼고)", r1.msgs.join("|"), "🆘 SOS - 민수 님");
+        eq("알림 - SOS 만(산행 시작 5분 - 아직 소식 없음 안 셈, 하산 탑승 · 안 탐 회원의 SOS 도 - 2026-11-03)", r1.msgs.join("|"), "🆘 SOS - 민수 님|🆘 SOS - 탄사람 님");
         lead.now = D + 20 * 60000;
         var r2 = RF.partyAlerts(lead, r1.fired);
         eq("알림 - 앱 회원만 10분 소식 없음(웹 · 폰 없는 명단 빼고), SOS 는 다시 안 울림", r2.msgs.join("|"), "📵 철수 님 10분 넘게 소식 없음");
