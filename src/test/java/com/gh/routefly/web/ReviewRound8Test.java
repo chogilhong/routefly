@@ -71,4 +71,18 @@ public class ReviewRound8Test {
         assertTrue("보호자 전화 " + help.group(1), contrast(help.group(1), "#ffffff") >= 4.5);
         assertEquals(2.78, contrast("#ff6b6b", "#ffffff"), 0.01);
     }
+
+    /** 4: 영어 산 페이지도 "코스 바로 보기" 가 날씨 칸 위 · 한/EN · 가 자리를 미리(CLS) · 제목 낱말 안 끊음. */
+    @Test
+    public void mountainEnJumpAndCrumb() throws Exception {
+        JsonObject peak = JsonParser.parseString("{\"id\":\"가산\",\"name\":\"가산\",\"lat\":37.5,\"lon\":127.0}").getAsJsonObject();
+        List<JsonObject> cs = new ArrayList<>();
+        cs.add(JsonParser.parseString("{\"course_id\":\"a\",\"name\":\"가산 · 들머리 → 정상\",\"distance_m\":4000,\"ascent_m\":600}").getAsJsonObject());
+        String en = MountainEn.page(peak, cs, new ArrayList<>(), null, ""), ko = MountainServlet.page(peak, cs, new ArrayList<>(), null, "");
+        assertTrue(en.indexOf("<p class=\"jump\">") > 0 && en.indexOf("<p class=\"jump\">") < en.indexOf("<section id=\"wx\""));
+        assertEquals("한 번만", en.indexOf("<p class=\"jump\">"), en.lastIndexOf("<p class=\"jump\">"));
+        assertTrue(ko.indexOf("<p class=\"jump\">") < ko.indexOf("<section id=\"wx\""));
+        String css = web("css/mountain.css");
+        assertTrue(css.contains(".crumb { margin:0 0 6px; font-size:13.5px; min-height:44px; }") && css.contains("h1 { font-size:24px; margin:0 0 4px; word-break:keep-all; }"));
+    }
 }

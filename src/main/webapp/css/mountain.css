@@ -3,11 +3,11 @@
 * { box-sizing:border-box; }
 html, body { margin:0; background:var(--bg); color:var(--tx); font-family:Arial,"Malgun Gothic",sans-serif; line-height:1.6; }
 main { max-width:760px; margin:0 auto; padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 40px); }
-h1 { font-size:24px; margin:0 0 4px; }
+h1 { font-size:24px; margin:0 0 4px; word-break:keep-all; }   /* 낱말 가운데서 줄을 바꾸지 않음(2026-11-03 홍TV님 점검) */
 h1.idx { font-size:min(24px, 5.6vw); word-break:keep-all; }   /* 코스 모음 제목 - 360px 에서도 한 줄(한/EN · 가 는 설명 줄로) */
 h2 { font-size:17px; margin:0 0 8px; }
 a { color:var(--sky); }
-.crumb { margin:0 0 6px; font-size:13.5px; }
+.crumb { margin:0 0 6px; font-size:13.5px; min-height:44px; }   /* 불러온 뒤 넣는 한/EN · 가(44px)가 h1 을 밀지 않게 자리를 미리(2026-11-03 홍TV님 점검: CLS 0.22) */
 .lead { color:var(--dim); font-size:14px; margin:0 0 16px; }
 .dim { color:var(--dim); font-size:13px; }
 section { background:var(--panel); border:1px solid var(--ln); border-radius:12px; padding:14px 16px; margin-bottom:14px; }
