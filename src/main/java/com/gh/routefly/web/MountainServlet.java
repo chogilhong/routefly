@@ -464,6 +464,19 @@ public class MountainServlet extends HttpServlet {
         return lv < 0 ? "" : "<i class=\"lv lv" + lv + "\">" + LEVELS[lv][en ? 1 : 0] + "</i>";
     }
 
+    /** 순수 함수 - 공단 난이도 글("보통(2.57)") → LEVELS 차례, 모르면 -1. course-kit.js officialLevel 과 같음. */
+    static int officialLevel(String text) {
+        String t = text == null ? "" : text.replaceAll("\\(.*$", "").replaceAll("\\s+", " ").trim();
+        for (int i = 0; i < LEVELS.length; i++) if (LEVELS[i][0].equals(t)) return i;
+        return -1;
+    }
+
+    /** 순수 함수 - 공단 공식 난이도 표("공단 보통(2.57)"). 코스 페이지는 공단 난이도가 있으면 routefly 어림 대신 이것 하나(2026-11-03 홍TV님 점검). */
+    static String officialChip(String level) {
+        int k = officialLevel(level);
+        return "<i class=\"lv" + (k >= 0 ? " lv" + k : "") + "\" title=\"국립공원공단 공식 난이도\">공단 " + esc(level.trim()) + "</i>";
+    }
+
     /** 목록 줄의 steep_pct(Steep.fill) - 없으면 null. */
     static Double steep(JsonObject c) {
         return c.has("steep_pct") && !c.get("steep_pct").isJsonNull() ? c.get("steep_pct").getAsDouble() : null;

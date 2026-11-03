@@ -85,4 +85,19 @@ public class ReviewRound8Test {
         String css = web("css/mountain.css");
         assertTrue(css.contains(".crumb { margin:0 0 6px; font-size:13.5px; min-height:44px; }") && css.contains("h1 { font-size:24px; margin:0 0 4px; word-break:keep-all; }"));
     }
+
+    /** 5: 코스 페이지 난이도 - 공단 공식 난이도가 있으면 그것 하나(전에는 routefly "매우 쉬움" 과 공단 "보통" 이 함께). */
+    @Test
+    public void officialLevelWins() {
+        assertEquals(2, MountainServlet.officialLevel("보통(2.57)"));
+        assertEquals(-1, MountainServlet.officialLevel("상"));
+        JsonObject c = JsonParser.parseString("{\"course_id\":\"knps-1\",\"name\":\"가산 · 가 → 나\",\"kind\":\"hike\",\"distance_m\":1000,\"ascent_m\":20,\"descent_m\":5,"
+                + "\"start_lat\":37.5,\"start_lon\":127.0,\"end_lat\":37.51,\"end_lon\":127.0}").getAsJsonObject();
+        JsonObject info = JsonParser.parseString("{\"up_min\":30,\"level\":\"보통(2.57)\"}").getAsJsonObject();
+        String with = CoursePageServlet.page(c, null, info, null, null, new com.google.gson.JsonArray(), false, "");
+        assertTrue(with, with.contains("<dt>난이도</dt><dd><i class=\"lv lv2\" title=\"국립공원공단 공식 난이도\">공단 보통(2.57)</i>"));
+        assertFalse("routefly 어림은 빼고", with.contains("매우 쉬움"));
+        String without = CoursePageServlet.page(c, null, null, null, null, new com.google.gson.JsonArray(), false, "");
+        assertTrue(without.contains("<dt>난이도</dt><dd><i class=\"lv lv0\">매우 쉬움</i>"));
+    }
 }

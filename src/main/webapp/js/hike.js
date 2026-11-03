@@ -888,7 +888,7 @@
         var old = $("nextRow").querySelector(".nmLv");
         if (old) old.remove();
         if (!c || !c.course || (c.course.kind !== "hike" && c.course.kind !== "trek")) return;
-        var chip = RF.levelChip(c.total, c.asc && c.asc.length ? Math.round(c.asc[c.asc.length - 1]) : null, EN, RF.steepest(c.dist, c.ele));
+        var chip = RF.levelChip(c.total, c.asc && c.asc.length ? Math.round(c.asc[c.asc.length - 1]) : null, EN, RF.steepest(c.dist, c.ele), c.info);   // 공단 난이도가 있으면 그것(2026-11-03)
         if (!chip) return;
         chip.classList.add("nmLv");
         $("nextRow").insertBefore(chip, $("boardOpen"));

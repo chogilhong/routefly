@@ -117,4 +117,26 @@ var RF = kit();
     has("말", js, 'T("다른 산 보기 ›", "Other mountains ›")');
 })();
 
+// ---- 5: 난이도 하나 - 공단 공식 난이도가 있으면 그것(우리 어림 대신)
+(function () {
+    eq("officialLevel", [RF.officialLevel("보통(2.57)"), RF.officialLevel("매우 어려움"), RF.officialLevel(" 쉬움 "), RF.officialLevel("상"), RF.officialLevel(null)], [2, 4, 1, null, null]);
+    var made = [];
+    var ctx = { console: console, navigator: { language: "ko" }, localStorage: { getItem: function () { return null; }, setItem: function () {} },
+        document: { documentElement: { lang: "ko", style: { setProperty: function () {} }, classList: { add: function () {}, remove: function () {}, toggle: function () {} } },
+            createElement: function (t) { var e = { tag: t, className: "", textContent: "", title: "", appendChild: function () {} }; made.push(e); return e; },
+            getElementById: function () { return null; }, querySelectorAll: function () { return []; }, querySelector: function () { return null; }, addEventListener: function () {} },
+        location: { search: "", pathname: "/" } };
+    ctx.window = ctx;
+    vm.createContext(ctx);
+    vm.runInContext(read("js/course-kit.js"), ctx);
+    var R = ctx.RF;
+    var a = R.levelChip(1000, 10, false, null, { level: "보통(2.57)" }), b = R.levelChip(1000, 10, false, null, null), e = R.levelChip(1000, 10, true, null, { level: "보통(2.57)" });
+    eq("공단 난이도가 있으면 그것 하나", [a.className, a.textContent, a.title], ["lv lv2", "공단 보통(2.57)", "국립공원공단 공식 난이도"]);
+    eq("없으면 routefly 어림", [b.className, b.textContent], ["lv lv0", "매우 쉬움"]);
+    eq("영어", e.textContent, "Park service: Moderate (2.57)");
+    eq("영어 - 숫자 없으면", R.levelChip(1, 1, true, null, { level: "쉬움" }).textContent, "Park service: Easy");
+    has("3D 는 공단 정보를 넘김", read("js/app.js"), "RF.steepest(c.dist, c.ele), j.info);");
+    has("따라가기도", HIKE, "RF.steepest(c.dist, c.ele), c.info);");
+})();
+
 console.log("OK " + n);

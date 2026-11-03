@@ -302,7 +302,8 @@ public class CoursePageServlet extends HttpServlet {
         if (hi != null) b.append("<dt>높이</dt><dd>").append(lo != null ? String.format(Locale.KOREA, "%,dm ~ ", lo) : "").append(String.format(Locale.KOREA, "%,dm", hi)).append("</dd>");
         b.append("<dt>예상 시간</dt><dd>").append(timeText(kind, d, asc, desc)).append("</dd>");
         if (hike) {
-            String chip = MountainServlet.levelChip(d, asc, steep, false);
+            String lvOff = info != null ? str(info, "level") : null;   // 공단 난이도가 있으면 그것 하나(2026-11-03 홍TV님 점검: 두 난이도가 엇갈렸음)
+            String chip = lvOff != null && !lvOff.isBlank() ? MountainServlet.officialChip(lvOff) : MountainServlet.levelChip(d, asc, steep, false);
             if (!chip.isEmpty()) b.append("<dt>난이도</dt><dd>").append(chip).append(SteepRank.slopeText(d, asc, steep, false)).append("</dd>");
         }
         b.append("</dl>");
