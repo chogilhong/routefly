@@ -52,14 +52,16 @@ public class CourseAccuracyTest {
         assertTrue(ko, ko.contains("/hike.html?lang=ko#c=k2&amp;rev=1&amp;m="));
         assertTrue(ko.contains("/hike.html?lang=ko#c=k1&amp;m="));
         assertTrue(ko.contains("/hike.html?lang=ko#c=k3&amp;m="));
-        assertTrue("오르는 쪽 오르막 · 내리막(일출 출발 · 거르기)", ko.contains("data-id=\"k2\" data-name=\"상왕봉 → 해인사\" data-dist=\"4000\" data-asc=\"600\" data-desc=\"60\""));
+        assertTrue("오르는 쪽 오르막 · 내리막(일출 출발 · 거르기)", ko.contains("data-id=\"k2\" data-name=\"해인사 → 상왕봉\" data-dist=\"4000\" data-asc=\"600\" data-desc=\"60\""));
         assertTrue(ko.contains(" · 오르막 600m"));
         assertFalse("내려가는 쪽 오르막 60m 가 보이지 않음", ko.contains(" · 오르막 60m"));
         assertTrue("🚌 가는 길(들머리)과 같은 쪽", ko.contains("35.800000,128.090000"));
         String en = MountainEn.page(peak, cs, new ArrayList<>(), null, "");
         assertTrue(en.contains("/hike.html?lang=en#c=k2&amp;rev=1&amp;m="));
-        assertTrue(en.contains("data-id=\"k2\" data-name=\"상왕봉 → 해인사\" data-dist=\"4000\" data-asc=\"600\" data-desc=\"60\""));
+        assertTrue(en.contains("data-id=\"k2\" data-name=\"해인사 → 상왕봉\" data-dist=\"4000\" data-asc=\"600\" data-desc=\"60\""));
         assertEquals("원본 코스는 그대로", 60, down.get("ascent_m").getAsInt());
+        assertEquals("카드 이름도 오르는 쪽(따라가기 제목과 같게)", "상운산 · 덕현 → 상운산 → 쌀바위대피소", MountainServlet.reverseName("상운산 · 쌀바위대피소 → 상운산 → 덕현"));
+        assertEquals("화살표 없으면 그대로", "원점회귀", MountainServlet.reverseName("원점회귀"));
         // 문답 "정상까지 편도"도 오르는 쪽(1시간 + 1시간 + 2분)
         assertTrue(ko.contains("정상까지 편도 약 2시간 2분"));
     }

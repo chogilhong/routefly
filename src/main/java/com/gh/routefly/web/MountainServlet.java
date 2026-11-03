@@ -8,6 +8,8 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -399,10 +401,26 @@ public class MountainServlet extends HttpServlet {
             r.remove("descent_m");
             if (down != null) r.add("ascent_m", down);
             if (up != null) r.add("descent_m", up);
+            String name = str(c, "name");
+            if (name != null) r.addProperty("name", reverseName(name));   // 카드 이름도 따라가기 제목과 같은 쪽(2026-11-03 PC: 카드 "쌀바위대피소 → 상운산 → 덕현", 따라가기 "덕현 → …")
             r.addProperty("rev", true);
             out.add(r);
         }
         return out;
+    }
+
+    /**
+     * 순수 함수 - 거꾸로 걸을 때 이름: "산 · A → B → C" → "산 · C → B → A". 화살표가 없으면 그대로.
+     * 화면 course-kit.js 의 reverseName 과 " → " 규칙과 같음 - 따라가기가 &rev=1 로 열며 만드는 제목과 맞춤.
+     */
+    static String reverseName(String name) {
+        int a = name.indexOf(" → ");
+        if (a < 0) return name;
+        int dot = name.lastIndexOf(" · ", a);
+        String head = dot >= 0 ? name.substring(0, dot + 3) : "";
+        List<String> parts = new ArrayList<>(Arrays.asList(name.substring(head.length()).split(" → ", -1)));
+        Collections.reverse(parts);
+        return head + String.join(" → ", parts);
     }
 
     /** 따라가기 링크 hash 에 붙일 거꾸로 표시(upward 가 뒤집은 코스만). 3D(index.html)는 &rev=1 을 이은 코스에만 써서 붙이지 않음 - 3D 는 적힌 방향 그대로 날아감. */
