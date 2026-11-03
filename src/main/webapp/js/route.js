@@ -293,7 +293,7 @@
             if (trail) data.courses = RF.trailCourses(data.courses, trail);
             // 이름: series.json → 주소의 name → 첫 구간 이름 앞("백두대간 1구간 · …" → 백두대간)
             var name = (series && series.name) || q.get("name")
-                || (data.courses[0] && String(data.courses[0].name || "").replace(/\s*\d+(?:-\d+)?\s*(?:구간|코스).*$/, "").trim()) || "노선";
+                || (data.courses[0] && String(data.courses[0].name || "").replace(/\s*\d+(?:-\d+)?\s*(?:구간|코스|\().*$/, "").trim()) || "노선";
             var km = series && series.km ? series.km : Math.round(data.courses.reduce(function (m, c) { return m + (+c.distance_m || 0); }, 0) / 1000);
             $("title").textContent = EN ? NM(name) + " " + km + "km" + (numbered ? " · " + data.courses.length + (trail ? " courses" : " sections") + (series && series.official ? " (official " + series.official + ")" : "") : "")
                 : name + " " + km + "km" + (numbered ? " · " + data.courses.length + (trail ? "코스" : "구간") + (series && series.official ? "(공식 " + series.official + ")" : "") : "");

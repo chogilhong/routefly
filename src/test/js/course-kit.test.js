@@ -387,6 +387,15 @@ eq("courseNo", ["해파랑길 21코스(영덕 블루로드 4코스) · 영덕해
     ["21", "64-3", "3", "19-1", "46", null]);
 eq("trailCourses 지선 번호 차례", RF.trailCourses([{ name: "서해랑길 64-3(지선3코스) · 시장순대 → 황태마을" }, { name: "서해랑길 3코스 · 영터 → 산소" },
     { name: "서해랑길 64코스 · 가 → 나" }], "서해랑길").map(function (c) { return RF.courseNo(c.name); }), ["3", "64", "64-3"]);
+// 지선 "64-3(지선3코스)" 은 서해랑길 카드 하나로 · 이은 제목도 "서해랑길"(2026-11-03 코스 점검 - "서해랑길 64-3(지선" 카드가 따로 생기고 링크가 400)
+eq("routeGuides 지선은 같은 길 카드", RF.routeGuides([{ course_id: "drnb-1", name: "서해랑길 64코스 · 가 → 나" },
+    { course_id: "drnb-2", name: "서해랑길 64-3(지선3코스) · 시장순대 → 황태마을" }, { course_id: "drnb-3", name: "서해랑길 65코스 · 다 → 라" },
+    { course_id: "drnb-4", name: "해파랑길 21코스(영덕 블루로드 4코스) · 영덕해맞이공원 → 축산리" }], 5, [], "서해랑길").map(function (g) { return g.name + ":" + g.n; }),
+    ["서해랑길:3", "해파랑길:1"]);
+(function () {
+    var mk = function (name, lon0, lon1) { return RF.fromApi("x", { course: { name: name, kind: "walk" }, points: [[lon0, 37, 10, 0], [lon1, 37, 20, Math.round((lon1 - lon0) * 88800)]], pois: [] }); };
+    eq("joinCourses 지선 제목", RF.joinCourses([mk("서해랑길 64-3(지선3코스) · 시장순대 → 황태마을", 126.0, 126.01), mk("서해랑길 65코스 · 황태마을 → 라", 126.01, 126.02)], "drnb-2,drnb-3").course.name.indexOf("서해랑길 64~65코스"), 0);
+})();
 eq("다른 이름의 같은 노선", RF.routeGuides([{ course_id: "frst-457200104-4d6317", name: "금호남정맥 · 군하 → 숫마이산" },
     { course_id: "frst-1-a", name: "한북정맥 · 가 → 나" }, { course_id: "frst-2-b", name: "금남정맥안골산 · 가 → 안골산" }], 3,
     [{ name: "금남호남정맥", prefix: "osmh-18716489-", aka: ["금호남정맥"] }, { name: "한북정맥", prefix: "osmh-17461355-" }, { name: "해파랑길", q: "해파랑길" }]),
