@@ -92,4 +92,19 @@ var RF = kit();
     has("두 번 눌러도 확대되지 않게", html, "touch-action:manipulation");
 })();
 
+// ---- 2: 따라가기 아래 창 - Tab 은 창 안에서 돌고, 창 이름은 제목 글만("가" 단추 빼고)
+(function () {
+    var to = function (items, now, back) { return vm.runInNewContext("(function () {" + fn(HIKE, "sheetTabTo") + " return sheetTabTo(items, now, back); })()", { items: items, now: now, back: back }); };
+    var a = { id: "a" }, b = { id: "b" }, cc = { id: "c" }, out = { id: "밖" };
+    eq("마지막에서 Tab - 처음으로", to([a, b, cc], cc, false).id, "a");
+    eq("처음에서 Shift+Tab - 마지막으로", to([a, b, cc], a, true).id, "c");
+    eq("가운데는 그대로(브라우저가)", to([a, b, cc], b, false), null);
+    eq("제목(창 밖 자리)에서 Tab - 처음 · Shift+Tab - 마지막", [to([a, b], out, false).id, to([a, b], out, true).id], ["a", "b"]);
+    eq("누를 것이 없으면 그대로", to([], out, false), null);
+    var key = fn(HIKE, "sheetKey");
+    has("Tab 을 잡음", key, 'if (e.key === "Tab") {');
+    has("창 이름은 제목 span - h2 의 id 도 span 으로(textContent 로 바꿔도 가 단추가 남음)", HIKE, 'sp.id = h.id || el.id + "Title";\n            h.removeAttribute("id");\n            el.setAttribute("aria-labelledby", sp.id);');
+    has("가 단추는 span 을 만든 뒤 h2 에", HIKE.slice(HIKE.indexOf('el.setAttribute("aria-labelledby", sp.id);')), '".sheet .sbox > h2, #safety .sbox > h2"), function (h) { h.appendChild(RF.textButton()); }');
+})();
+
 console.log("OK " + n);

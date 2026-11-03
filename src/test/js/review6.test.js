@@ -95,7 +95,7 @@ assert(/renderHidden = document\.hidden === true( \|\| pocket\.on)?;[^\n]*\n\s*t
     var opener = node("sosBtn"), sos = node("sosSheet"), h2 = node("sosH"), still = node("stillSheet"), close = node("sosClose");
     sos.querySelector = still.querySelector = function () { return h2; };
     var ctx = { document: doc, $: function (id) { return id === "sosClose" ? close : null; } };
-    vm.runInNewContext("var SHEET_ESC = { sosSheet: 'sosClose' }, sheetStack = [];" + fn(HIKE, "sheetSeen") + fn(HIKE, "sheetEsc") + " this.seen = sheetSeen; this.esc = sheetEsc;", ctx);
+    vm.runInNewContext("var SHEET_ESC = { sosSheet: 'sosClose' }, sheetStack = [];" + fn(HIKE, "sheetSeen") + fn(HIKE, "sheetKey") + " this.seen = sheetSeen; this.esc = sheetKey;", ctx);
     opener.focus();
     sos.style.display = "flex"; ctx.seen(sos);
     eq("열리면 제목으로(단추가 아니라 - Enter 한 번에 119 가 눌리지 않게)", [doc.activeElement.id, h2.attrs.tabindex], ["sosH", "-1"]);

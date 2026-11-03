@@ -3634,19 +3634,47 @@
             if (back && back.focus && document.body.contains(back) && !sheetStack.length) back.focus();
         }
     }
-    function sheetEsc(e) {
-        if (e.key !== "Escape" || !sheetStack.length) return;
-        var id = SHEET_ESC[sheetStack[sheetStack.length - 1].el.id];
+    /** 순수 함수 - 창 안에서 Tab 이 갈 다음 자리(2026-11-03 홍TV님 점검: Tab 이 창 밖 뒤 화면으로 나갔음). items - 누를 수 있는 것들, now - 지금 자리. 넘기지 않으면 null. */
+    function sheetTabTo(items, now, back) {
+        if (!items.length) return null;
+        var i = items.indexOf(now);
+        if (i < 0) return back ? items[items.length - 1] : items[0];
+        if (back && i === 0) return items[items.length - 1];
+        if (!back && i === items.length - 1) return items[0];
+        return null;   // 창 안에서 그냥 다음 · 앞으로
+    }
+    function sheetKey(e) {
+        if (!sheetStack.length) return;
+        var top = sheetStack[sheetStack.length - 1].el;
+        if (e.key === "Tab") {
+            var items = Array.prototype.filter.call(top.querySelectorAll("a[href], button, input, select, textarea, [tabindex]"), function (x) {
+                return !x.disabled && x.tabIndex >= 0 && x.offsetParent !== null;
+            });
+            var to = sheetTabTo(items, document.activeElement, e.shiftKey);
+            if (to) { e.preventDefault(); to.focus(); }
+            return;
+        }
+        if (e.key !== "Escape") return;
+        var id = SHEET_ESC[top.id];
         if (id && $(id)) { e.preventDefault(); $(id).click(); }
     }
     Array.prototype.forEach.call(document.querySelectorAll(".sheet, #safety"), function (el) {
         el.setAttribute("role", "dialog");
         el.setAttribute("aria-modal", "true");
         var h = el.querySelector("h2");
-        if (h) { if (!h.id) h.id = el.id + "Title"; el.setAttribute("aria-labelledby", h.id); }
+        if (h) {
+            // 창 이름은 제목 글만(2026-11-03 홍TV님 점검: h2 안 "가" 글자 크기 단추까지 이름으로 읽음) - 글을 span 에 담고 h2 의 id 도 그리로
+            // (doneTitle 등은 화면이 textContent 로 바꿈 - 전에는 그때 "가" 단추가 지워졌음)
+            var sp = document.createElement("span");
+            while (h.firstChild) sp.appendChild(h.firstChild);
+            h.appendChild(sp);
+            sp.id = h.id || el.id + "Title";
+            h.removeAttribute("id");
+            el.setAttribute("aria-labelledby", sp.id);
+        }
         if (window.MutationObserver) new MutationObserver(function () { sheetSeen(el); }).observe(el, { attributes: true, attributeFilter: ["style"] });
     });
-    document.addEventListener("keydown", sheetEsc);
+    document.addEventListener("keydown", sheetKey);
 
     // 글자 크기 "가+"(2026-10-14 홍TV님: 핸드폰에서 글씨가 작음) - 코스 고르기 머리 · 아래 창 제목마다. 새 단추 줄은 만들지 않음
     (function () {
