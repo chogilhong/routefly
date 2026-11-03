@@ -886,10 +886,8 @@ tick().then(function () {
     process.exit(fails ? 1 : 0);
 });
 
-// 🏨 근처 숙소(2026-10-29) - 서버 Stays.tripLink(ReviewRound3Test)와 같은 주소
-var STAY = RF.staysItem({ trip: "https://kr.trip.com/hotels/?cityId=1&Allianceid=1&SID=2" }, "한라산", 33.361667, 126.529167, false);
-eq("staysItem 트립닷컴 - 제휴 꼬리 두고 좌표로", [STAY && STAY.text, STAY && STAY.href], ["🏨 근처 숙소(트립닷컴)", "https://kr.trip.com/hotels/list?cityId=0&searchType=LM&searchWord=%ED%95%9C%EB%9D%BC%EC%82%B0&searchValue=13%7C0*13*33.361667%7C126.529167%7C%ED%95%9C%EB%9D%BC%EC%82%B0%7C0%7C1&listFilters=17~5*17*5&Allianceid=1&SID=2"]);
-eq("staysItem 아고다 · 없음", [RF.staysItem({ agoda: "https://www.agoda.com/x?lat={lat}&lon={lon}" }, "설악산", 38.1, 128.4, true).text, RF.staysItem({}, "x", 1, 2), RF.staysItem(null)], ["🏨 Stays nearby (Agoda)", null, null]);
+// 🏨 산 페이지 "근처 숙소(트립닷컴)" 한 줄은 뺌(2026-11-03 홍TV님) - 찾기 칸(stayLinks)에 트립닷컴 · 아고다 · 호텔스컴바인. 코스 페이지(/c/)의 한 줄은 서버 Stays(ReviewRound3Test)
+eq("산 페이지 숙소 한 줄 함수는 없음", [typeof RF.staysLine, typeof RF.staysItem], ["undefined", "undefined"]);
 
 var SL = RF.stayLinks({ trip: "https://kr.trip.com/hotels/?Allianceid=1", agoda: "https://www.agoda.com/x?lat={lat}&lon={lon}", yeogi: "https://www.yeogi.com/s?k={q}&a=7", yanolja: "https://yanolja.com/noplace" }, "산청군청", 35.415, 127.873, false);
 eq("stayLinks 설정된 곳만 · 좌표 넣기 · 카카오맵(제휴 아님), 여기어때 · 야놀자는 설정이 있어도 뺌(2026-10-30)", SL.map(function (x) { return x.text + (x.sponsored ? "*" : ""); }), ["🏨 트립닷컴*", "🏨 아고다*", "🗺 카카오맵 숙소"]);

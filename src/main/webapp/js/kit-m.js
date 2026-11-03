@@ -206,12 +206,6 @@
      * 🏨 근처 숙소 줄(산 페이지 /m/ · /en/m/, 2026-10-29 점검) - 정상 좌표로 트립닷컴(없으면 아고다) 제휴 링크 + 수수료 알림. 설정이 없으면 숨김 그대로.
      * box 의 data-name(한글 산 이름)으로 찾음. 돌려줌: 보였나.
      */
-    /** 순수 함수 - 숙소 링크 하나({text, href}) 또는 null. 서버 Stays.pick 과 같은 규칙(코스 페이지 /c/ 는 서버가 그림). */
-    function staysItem(p, name, lat, lon, en) {
-        if (!p) return null;
-        // afterHikeLinks 는 {links: [...]} 를 돌려줌(2026-10-29 PC: .filter 를 바로 불러 산 페이지 숙소 줄이 안 나왔음)
-        return (afterHikeLinks({ trip: p.trip, agoda: p.agoda }, { name: name || "", lat: lat, lon: lon }, en).links || []).filter(function (x) { return x.sponsored && /🏨/.test(x.text); })[0] || null;
-    }
     /**
      * 순수 함수 - "🏨 근처 숙소 찾기"(/m/, 2026-10-29 홍TV님 "산청군청 근처 숙소") 예약 단추들: 설정된 제휴(트립닷컴 · 아고다 · 호텔스컴바인) + 카카오맵 숙소 검색(제휴 아님). 여기어때 · 야놀자는 뺌(2026-10-30 홍TV님).
      * q - 찾은 장소 이름, lat · lon - 그 좌표. → [{text, href, sponsored}]
@@ -403,18 +397,6 @@
                 show(p, pl[0], pl, r[0].partial ? T("\"" + q + "\" 을(를) 그대로는 찾지 못해 \"" + r[0].partial + "\" 근처로 보여 드립니다.", "Couldn't find \"" + q + "\" exactly - showing near \"" + r[0].partial + "\".") : "");
             }).catch(function () { if (my === seq) out.textContent = T("서버에 닿지 않습니다. 잠시 뒤 다시 해 주세요.", "Can't reach the server. Please try again shortly."); });
         });
-    }
-    function staysLine(box, p, lat, lon, en) {
-        if (!box || !p) return false;
-        var it = staysItem(p, box.getAttribute("data-name"), lat, lon, en);
-        if (!it) return false;
-        var a = document.createElement("a"), s = document.createElement("small");
-        a.href = it.href; a.target = "_blank"; a.rel = "noopener sponsored"; a.textContent = it.text + " ›";
-        s.textContent = en ? " Affiliate link - routefly earns a commission if you book (same price)." : " 제휴 링크 - 예약하면 routefly 가 수수료를 받습니다(값은 같음).";
-        box.textContent = "";
-        box.appendChild(a); box.appendChild(s);
-        box.hidden = false;
-        return true;
     }
     /**
      * 산 페이지 코스 목록 아래 쏘카 한 줄(2026-11-03 홍TV님 - 링크프라이스 제휴). 쏘카는 휴대폰 앱 예약만 실적이라 휴대폰(ua)일 때만.
@@ -1461,59 +1443,6 @@
     }
 
     /**
-     * 순수 함수 - 산행을 마친 화면의 "다음은?" 줄(2026-10-28 홍TV님 추천 - 수익: 끝난 때가 가장 반가운 때, 안전 화면에는 광고 없이).
-     * p - api/partners, end - {lat, lon, name: "설악산 오색"(날머리), up: 오른 높이 m, month: 1~12}. → {links: [{text, href, sponsored}], coupang, affiliate}.
-     * 맛집은 카카오맵 검색(제휴 아님), 숙소는 트립닷컴(날머리 좌표 검색) · 아고다({lat}{lon}), 쿠팡은 무릎 보호대 · 스틱, 다음 산은 산 모음(광고 있는 쪽).
-     */
-    /**
-     * 순수 함수 - 산행을 마친 화면의 쿠팡 물건(2026-10-28 홍TV님 "a, b"). coupang - api/partners 의 coupang, up - 오늘 오른 높이(m), month - 1~12.
-     * recovery: 산행 뒤 회복 용품 배열(설정 partner.coupang.recovery, "이름|주소" 면 이름마다 - names 는 api/partners 의 coupangNames). gear: 다음 산행에 맞는 것 하나 -
-     * 한겨울(12~2월) 아이젠 → 오늘 오르막 800m 넘으면 무릎 보호대 → 11 · 3월 보온 → 6~8월 모자 · 선크림 → 400m 넘으면 스틱 → 무릎 보호대 · 스틱. 링크가 없는 것은 건너뜀.
-     */
-    function afterHikeGear(coupang, up, month, names) {
-        var cp = coupang || {}, first = function (k) { var u = cp[k] && cp[k][0]; return /^https:\/\//.test(u || "") ? u : null; };
-        var NAMES = { crampon: "🧊 아이젠", knee: "🦵 무릎 보호대", warm: "🔥 보온병 · 핫팩", sun: "🧢 모자 · 선크림", stick: "🥢 등산 스틱" };
-        up = +up || 0; month = +month || 0;
-        var order = [];
-        if (month === 12 || month === 1 || month === 2) order.push("crampon");
-        if (up >= 800) order.push("knee");
-        if (month === 11 || month === 3 || month === 12 || month === 1 || month === 2) order.push("warm");
-        if (month >= 6 && month <= 8) order.push("sun");
-        if (up >= 400) order.push("stick");
-        order.push("knee", "stick");
-        var gear = null;
-        for (var i = 0; i < order.length && !gear; i++) if (first(order[i])) gear = { key: order[i], label: NAMES[order[i]], href: first(order[i]) };
-        // 회복 용품 - 이름이 있으면 이름마다 단추(폼롤러 · 마사지건 · 콘드로이친, 2026-10-28 홍TV님), 없으면 "산행 뒤 회복 용품" 하나
-        var recovery = [], ru = cp.recovery || [], rn = (names && names.recovery) || [];
-        for (var j = 0; j < ru.length && j < 3; j++) {
-            if (!/^https:\/\//.test(ru[j] || "")) continue;
-            if (rn[j]) recovery.push({ key: "recovery", label: "🧴 " + rn[j], href: ru[j] });
-            else if (!recovery.length) recovery.push({ key: "recovery", label: "🧴 산행 뒤 회복 용품", href: ru[j] });
-        }
-        return { recovery: recovery, gear: gear };
-    }
-
-    function afterHikeLinks(p, end, en) {
-        var T = function (ko, e) { return en ? e : ko; }, out = [], co = false, af = false;
-        p = p || {};
-        end = end || {};
-        var name = String(end.name || "").replace(/\s+/g, " ").trim().slice(0, 30), ok = isFinite(end.lat) && isFinite(end.lon) && end.lat !== null && end.lon !== null;
-        if (name) out.push({ text: T("🍜 " + name + " 맛집", "🍜 Food near " + enName(name)), href: "https://map.kakao.com/link/search/" + encodeURIComponent(name + " 맛집"), sponsored: false });
-        var trip = p.trip && ok ? tripLink(p.trip, end.lat, end.lon, name) : null;
-        if (trip) { out.push({ text: T("🏨 근처 숙소(트립닷컴)", "🏨 Stays nearby (Trip.com)"), href: trip, sponsored: true }); af = true; }
-        else if (p.agoda && ok && /\{lat\}/.test(p.agoda)) {
-            out.push({ text: T("🏨 근처 숙소(아고다)", "🏨 Stays nearby (Agoda)"), href: p.agoda.replace(/\{lat\}/g, (+end.lat).toFixed(5)).replace(/\{lon\}/g, (+end.lon).toFixed(5)), sponsored: true });
-            af = true;
-        }
-        if (!en) {   // 쿠팡(한국어만) - 회복 용품 하나 + 오늘 산행 · 계절에 맞는 것 하나(2026-10-28 홍TV님 "a, b 로 하자")
-            var pick = afterHikeGear(p.coupang, end.up, end.month, p.coupangNames);
-            pick.recovery.concat(pick.gear ? [pick.gear] : []).forEach(function (x) { out.push({ text: x.label + "(쿠팡)", href: x.href, sponsored: true }); co = true; });
-        }
-        out.push({ text: T("⛰️ 다음 산 고르기", "⛰️ Pick your next mountain"), href: en ? "en/m/" : "m/", sponsored: false });
-        return { links: out, coupang: co, affiliate: af };
-    }
-
-    /**
      * 순수 함수 - 작은 지도(지도 조각 그림을 이어 붙임 - 지도 라이브러리 없이): 가운데 c{lat,lon} 와 점들이 w × h 안에 다 들어가는 가장 큰 줌(6~16).
      * → {z, tiles:[{x, y, left, top}], pins:[[left, top]…], at:[left, top]} (조각은 256px, 왼쪽 위 기준 px).
      */
@@ -1610,7 +1539,6 @@
         featuredCard: featuredCard,
         socarLine: socarLine,
         esimLine: esimLine,
-        staysLine: staysLine,
         staySearch: staySearch
     };
 })(window);

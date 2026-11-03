@@ -20,9 +20,9 @@ public class RevenueA11yTest {
         String box = Ads.box("ca-pub-1234567890123456", "1234567");
         assertTrue(box.contains(">광고</p>"));
         String ko = read("src/main/java/com/gh/routefly/web/MountainServlet.java"), en = read("src/main/java/com/gh/routefly/web/MountainEn.java");
-        assertTrue(ko.contains("id=\\\"stays\\\" data-name=") && en.contains("MountainServlet.staysBlock(peak, true)"));   // 숙소 줄 + 근처 숙소 찾기 칸(2026-10-30)
+        assertTrue(!ko.contains("id=\\\"stays\\\" data-name=") && en.contains("MountainServlet.staysBlock(peak, true)"));   // 근처 숙소 찾기 칸만 - "근처 숙소(트립닷컴)" 한 줄은 뺌(2026-11-03 홍TV님)
         assertTrue("영어 산 페이지 · 목록에도 광고", en.split("Ads.box\\(\"m\", true\\)", -1).length - 1 == 2);
-        assertTrue(read("src/main/webapp/js/mountain.js").contains("RF.staysLine(") && read("src/main/webapp/js/mountain-en.js").contains("RF.staysLine("));
+        assertTrue(!read("src/main/webapp/js/mountain.js").contains("RF.staysLine(") && !read("src/main/webapp/js/mountain-en.js").contains("RF.staysLine("));
         String kit = read("src/main/webapp/js/course-kit.js");
         assertTrue("제휴 표시 · sponsored", kit.contains("a.rel = \"noopener sponsored\"") && kit.contains("예약하면 routefly 가 수수료를 받습니다"));
         assertTrue("영어 3D 링크", en.contains("/index.html?lang=en#c=") && !en.contains("The 3D and GPS screens are in Korean"));

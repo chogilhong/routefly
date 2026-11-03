@@ -637,13 +637,9 @@ public class MountainServlet extends HttpServlet {
         return m.matches() ? m.group(2) + " " + m.group(1) : id;
     }
 
-    /** 🏨 숙소 줄 + 근처 숙소 찾기 칸(산 페이지). */
+    /** 🏨 근처 숙소 찾기 칸(산 페이지). "🏨 근처 숙소(트립닷컴) ›" 한 줄은 뺌(2026-11-03 홍TV님 - 찾기 칸에 트립닷컴 · 아고다 · 호텔스컴바인이 다 있음). */
     static String staysBlock(JsonObject peak, boolean en) {
-        return staysP(peak) + staySearchBox(stayPrefill(str(peak, "id") != null ? str(peak, "id") : str(peak, "name")), en);
-    }
-
-    static String staysP(JsonObject peak) {
-        return "<p class=\"stays\" id=\"stays\" data-name=\"" + esc(str(peak, "id") != null ? str(peak, "id") : str(peak, "name")) + "\" hidden></p>";
+        return staySearchBox(stayPrefill(str(peak, "id") != null ? str(peak, "id") : str(peak, "name")), en);
     }
 
     /** 순수 함수 - 검색 엔진용 구조 정보(schema.org Mountain, JSON-LD). Gson 이 &lt; · &gt; 를 \u003c 로 바꿔 &lt;/script&gt; 로 끊기지 않음. */
