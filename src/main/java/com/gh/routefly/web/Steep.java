@@ -61,18 +61,18 @@ final class Steep {
     }
 
     /**
-     * 순수 함수 - 적어도 오르는 높이(m): 가장 높은 점 - 두 끝 가운데 낮은 쪽. 오르막 합은 이보다 작을 수 없음.
+     * 순수 함수 - 적어도 오르는 높이(m): 가장 높은 점 - 출발점(고도가 있는 첫 점). 오르막 합은 이보다 작을 수 없음.
      * 2026-10-16 PC: 송추 → 사패능선 3.25km 오르막 6m(최고 446m) · 한계령 → 중청대피소 오르막 438m 처럼 DB 오르막이 이상한 코스. 고도가 없으면 null.
+     * 2026-11-03 코스 점검: 예전에는 "두 끝 가운데 낮은 쪽" 이라 정상에서 내려가기만 하는 코스(1708 → 450m)의 내리막 1,258m 가 오르막으로 보였음 - 끝은 보지 않음.
      */
     static Double minClimb(Double[] ele) {
-        Double first = null, last = null, max = null;
+        Double first = null, max = null;
         for (Double e : ele) {
             if (e == null) continue;
             if (first == null) first = e;
-            last = e;
             if (max == null || e > max) max = e;
         }
-        return first == null ? null : (double) Math.round(max - Math.min(first, last));
+        return first == null ? null : (double) Math.round(max - first);
     }
 
     /** 순수 함수 - 보일 오르막: DB 값이 적어도 오르는 높이보다 작으면 그 높이(둘 다 없으면 null). */

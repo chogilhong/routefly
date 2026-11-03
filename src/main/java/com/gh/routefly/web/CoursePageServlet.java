@@ -279,7 +279,7 @@ public class CoursePageServlet extends HttpServlet {
         String id = str(c, "course_id"), name = str(c, "name"), kind = str(c, "kind"), kl = kindLabel(kind);
         String peakId = peak == null ? null : str(peak, "id") != null ? str(peak, "id") : str(peak, "name");
         int d = c.get("distance_m").getAsInt();
-        // 오르막은 산 페이지와 같게 바로잡음(DB 오르막이 최고점 - 낮은 끝보다 작으면 그 값 - Steep.fill 과 같은 규칙)
+        // 오르막은 산 페이지와 같게 바로잡음(DB 오르막이 최고점 - 출발점보다 작으면 그 값 - Steep.fill 과 같은 규칙)
         Integer asc = Steep.ascent(num(c, "ascent_m"), ele == null ? null : Steep.minClimb(ele)), desc = num(c, "descent_m"), hi = num(c, "ele_max_m"), lo = num(c, "ele_min_m");
         boolean hike = "hike".equals(kind) || CourseQueries.TREK.equals(kind);
         String url = base + "/c/" + id;

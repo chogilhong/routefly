@@ -397,7 +397,7 @@ final class Peaks {
         Double dem = course.has("ele_max_m") && !course.get("ele_max_m").isJsonNull() ? course.get("ele_max_m").getAsDouble() : null;
         Integer top = courseTop(dem, passed);
         if (top != null) course.addProperty("ele_max_m", top);
-        // 오르막이 적어도 오르는 높이(가장 높은 점 - 낮은 끝)보다 작으면 그 높이로 - 목록(Steep)과 같게(2026-10-16 PC: 오르막 6m 코스)
+        // 오르막이 적어도 오르는 높이(가장 높은 점 - 출발점)보다 작으면 그 높이로 - 목록(Steep)과 같게(2026-10-16 PC: 오르막 6m 코스)
         Double[] es = new Double[pts.size()];
         for (int i = 0; i < es.length; i++) {
             JsonElement el = pts.get(i).getAsJsonArray().get(2);
