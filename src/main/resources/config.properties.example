@@ -67,10 +67,13 @@ site.baseUrl=
 #partner.coupang.crampon=
 # 산행을 마친 화면 "다음은?" 의 회복 용품(폼롤러 · 마사지건 · 파스 등, 2026-10-28) - 없으면 그 단추만 안 나옴
 #partner.coupang.recovery=폼롤러|,마사지건|,콘드로이친|
-# 🎒 챙길 것 맨 위 상품 하나(그림 + 이름, 2026-11-03 홍TV님 "가민 택틱스 8"): "이름|그림 주소|링크" 한 줄.
+# 🎒 추천 산행 장비 상품(그림 + 이름, 2026-11-03 홍TV님 "가민 택틱스 8"): "이름|그림 주소|링크" 한 줄.
 #   쿠팡 파트너스에서 그 상품 "이미지 + 텍스트" 링크를 만들면 나오는 코드의 <img src="…"> 가 그림 주소(쿠팡 그림 서버 coupangcdn.com · coupang.com), <a href="…"> 가 링크(link.coupang.com · coupa.ng).
-#   한국어 산 페이지 · 코스 모음 · 3D 안내의 "🎒 챙길 것" 맨 위. 셋 중 하나라도 맞지 않으면 안 나옴(서버 로그에 까닭)
+#   한국어 산 페이지 · 코스 모음 · 3D 안내의 "🎒 추천 산행 장비". 셋 중 하나라도 맞지 않으면 안 나옴(서버 로그에 까닭)
 #partner.coupang.featured=가민 택틱스 8 세라코트 AMOLED|https://…coupangcdn.com/…|https://link.coupang.com/a/…
+#   여러 개(2026-11-03): .2 ~ .10 을 더 적으면 화면을 열 때마다 그 가운데 하나를 무작위로 보임(틀린 줄은 그 줄만 빠짐, 서버 로그에 그 설정 이름과 까닭)
+#partner.coupang.featured.2=
+#partner.coupang.featured.3=
 # 아고다 제휴(승인 뒤): 아고다 파트너 누리집에서 만든 링크(https://www.agoda.com/...). 안의 {lat} · {lon} 은 들머리 좌표로 바뀜.
 #partner.agoda.url=
 # 트립닷컴 제휴(승인 뒤 - 2026-10-21 신청): 트립닷컴 제휴 누리집에서 만든 숙소 링크(https://kr.trip.com… · www.trip.com… 등 trip.com 주소). {lat} · {lon} 은 들머리 좌표로.

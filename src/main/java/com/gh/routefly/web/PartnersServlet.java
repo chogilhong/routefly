@@ -70,8 +70,14 @@ public class PartnersServlet extends HttpServlet {
         }
         out.add("coupang", coupang);
         // 🎒 추천 산행 장비 상품 하나(2026-11-03 홍TV님 "가민 택틱스 8") - "이름|그림 주소|링크". 링크는 쿠팡 파트너스(link.coupang.com · coupa.ng), 그림은 쿠팡 그림 서버만
-        JsonObject featured = featured(conf.apply("partner.coupang.featured"));
-        if (featured != null) out.add("featured", featured);
+        // 여러 개(2026-11-03 홍TV님 "5개쯤 넣어 놓고 랜덤하게") - partner.coupang.featured 와 .2 ~ .10. 화면이 열 때마다 하나를 고름(course-kit featuredPick)
+        com.google.gson.JsonArray feats = new com.google.gson.JsonArray();
+        for (int i = 1; i <= FEATURED_MAX; i++) {
+            String key = "partner.coupang.featured" + (i == 1 ? "" : "." + i);
+            JsonObject f = featured(key, conf.apply(key));
+            if (f != null) feats.add(f);
+        }
+        if (feats.size() > 0) out.add("featured", feats);
         out.add("coupangNames", names);
         String agoda = conf.apply("partner.agoda.url");
         if (checkHost("partner.agoda.url", agoda, "agoda.com")) out.addProperty("agoda", agoda);
@@ -103,16 +109,19 @@ public class PartnersServlet extends HttpServlet {
         return out;
     }
 
-    /** 순수 함수 - "이름|그림 주소|링크" → {name, img, href}. 셋 중 하나라도 맞지 않으면 null(서버 로그에 까닭). */
-    static JsonObject featured(String v) {
+    /** 추천 상품 설정 줄 수(partner.coupang.featured · .2 ~ .10). */
+    static final int FEATURED_MAX = 10;
+
+    /** 순수 함수 - "이름|그림 주소|링크" → {name, img, href}. 셋 중 하나라도 맞지 않으면 null(서버 로그에 그 설정 이름 key 와 까닭). */
+    static JsonObject featured(String key, String v) {
         if (v == null || v.isBlank()) return null;
         String[] p = v.split("\\|", -1);
-        if (p.length != 3) { warnOnce("partner.coupang.featured", "\"이름|그림 주소|링크\" 세 칸이 아님"); return null; }
+        if (p.length != 3) { warnOnce(key, "\"이름|그림 주소|링크\" 세 칸이 아님"); return null; }
         String name = Party.clean(p[0].trim(), 60), img = p[1].trim(), href = p[2].trim();
-        if (name == null || name.isEmpty()) { warnOnce("partner.coupang.featured", "이름이 비었음"); return null; }
-        if (!allowed(href, "https://link.coupang.com/", "https://coupa.ng/")) { warnOnce("partner.coupang.featured", "링크가 쿠팡 파트너스 주소가 아님"); return null; }
-        if (whyHost(img, "coupangcdn.com") != null && whyHost(img, "coupang.com") != null) { warnOnce("partner.coupang.featured", "그림이 쿠팡 그림 서버(coupangcdn.com · coupang.com)가 아님"); return null; }
-        if (!allowed(img, "https://")) { warnOnce("partner.coupang.featured", "그림 주소에 빈칸 · 따옴표가 있음"); return null; }
+        if (name == null || name.isEmpty()) { warnOnce(key, "이름이 비었음"); return null; }
+        if (!allowed(href, "https://link.coupang.com/", "https://coupa.ng/")) { warnOnce(key, "링크가 쿠팡 파트너스 주소가 아님"); return null; }
+        if (whyHost(img, "coupangcdn.com") != null && whyHost(img, "coupang.com") != null) { warnOnce(key, "그림이 쿠팡 그림 서버(coupangcdn.com · coupang.com)가 아님"); return null; }
+        if (!allowed(img, "https://")) { warnOnce(key, "그림 주소에 빈칸 · 따옴표가 있음"); return null; }
         JsonObject o = new JsonObject();
         o.addProperty("name", name);
         o.addProperty("img", img);

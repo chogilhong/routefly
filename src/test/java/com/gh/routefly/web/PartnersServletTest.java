@@ -108,15 +108,26 @@ public class PartnersServletTest {
     /** 🎒 맨 위 상품 하나(2026-11-03 "가민 택틱스 8"): "이름|그림|링크" - 링크는 쿠팡 파트너스, 그림은 쿠팡 그림 서버만. */
     @Test
     public void featuredProduct() {
-        JsonObject f = PartnersServlet.body(Map.of("partner.coupang.featured", "가민 택틱스 8 세라코트 AMOLED|https://thumbnail.coupangcdn.com/x.jpg|https://link.coupang.com/a/TEST")::get).getAsJsonObject("featured");
+        JsonObject f = PartnersServlet.body(Map.of("partner.coupang.featured", "가민 택틱스 8 세라코트 AMOLED|https://thumbnail.coupangcdn.com/x.jpg|https://link.coupang.com/a/TEST")::get).getAsJsonArray("featured").get(0).getAsJsonObject();
         assertEquals("가민 택틱스 8 세라코트 AMOLED", f.get("name").getAsString());
         assertEquals("https://thumbnail.coupangcdn.com/x.jpg", f.get("img").getAsString());
         assertEquals("https://link.coupang.com/a/TEST", f.get("href").getAsString());
-        assertNull("링크가 쿠팡 파트너스가 아님", PartnersServlet.featured("시계|https://thumbnail.coupangcdn.com/x.jpg|https://www.coupang.com/vp/products/1"));
-        assertNull("그림이 다른 서버", PartnersServlet.featured("시계|https://evil.example/x.jpg|https://link.coupang.com/a/T"));
-        assertNull("그림 흉내 주소", PartnersServlet.featured("시계|https://coupangcdn.com.evil.example/x.jpg|https://link.coupang.com/a/T"));
-        assertNull("세 칸이 아님", PartnersServlet.featured("시계|https://link.coupang.com/a/T"));
-        assertNull("이름 없음", PartnersServlet.featured("|https://thumbnail.coupangcdn.com/x.jpg|https://link.coupang.com/a/T"));
+        assertNull("링크가 쿠팡 파트너스가 아님", PartnersServlet.featured("k", "시계|https://thumbnail.coupangcdn.com/x.jpg|https://www.coupang.com/vp/products/1"));
+        assertNull("그림이 다른 서버", PartnersServlet.featured("k", "시계|https://evil.example/x.jpg|https://link.coupang.com/a/T"));
+        assertNull("그림 흉내 주소", PartnersServlet.featured("k", "시계|https://coupangcdn.com.evil.example/x.jpg|https://link.coupang.com/a/T"));
+        assertNull("세 칸이 아님", PartnersServlet.featured("k", "시계|https://link.coupang.com/a/T"));
+        assertNull("이름 없음", PartnersServlet.featured("k", "|https://thumbnail.coupangcdn.com/x.jpg|https://link.coupang.com/a/T"));
         assertFalse("비면 없음", PartnersServlet.body(k -> null).has("featured"));
+        // 여러 개(2026-11-03 "5개쯤 넣어 놓고 랜덤하게"): .2 ~ .10 도 읽고, 틀린 줄만 빠짐, 차례는 설정 차례
+        Map<String, String> many = new java.util.HashMap<>();
+        many.put("partner.coupang.featured", "A|https://thumbnail.coupangcdn.com/a.jpg|https://link.coupang.com/a/A");
+        many.put("partner.coupang.featured.2", "B|https://evil.example/b.jpg|https://link.coupang.com/a/B");
+        many.put("partner.coupang.featured.3", "C|https://thumbnail.coupangcdn.com/c.jpg|https://link.coupang.com/a/C");
+        many.put("partner.coupang.featured.10", "J|https://thumbnail.coupangcdn.com/j.jpg|https://coupa.ng/J");
+        many.put("partner.coupang.featured.11", "K|https://thumbnail.coupangcdn.com/k.jpg|https://link.coupang.com/a/K");
+        com.google.gson.JsonArray fs = PartnersServlet.body(many::get).getAsJsonArray("featured");
+        assertEquals("[A, C, J]", fs.asList().stream().map(x -> x.getAsJsonObject().get("name").getAsString()).toList().toString());
+        many.remove("partner.coupang.featured");
+        assertEquals("첫 줄이 없어도 .3 · .10 은 나옴", 2, PartnersServlet.body(many::get).getAsJsonArray("featured").size());
     }
 }

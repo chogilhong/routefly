@@ -1796,6 +1796,9 @@ eq("favJoinExtra 제목이 없으면 지금 이름의 길", [RF.favJoinExtra("#c
     eq("그림 · 이름은 그림 설명 · 늦게 받기", [a.kids[0].tag, a.kids[0].src, a.kids[0].alt, a.kids[0].loading], ["img", f.img, f.name, "lazy"]);
     eq("배너 그림 하나만(우리 글 없음 - 배너 안에 이름 · 쇼핑하기가 있음, 2026-11-03 홍TV님 \"1로 해줘\")", a.kids.length, 1);
     eq("원래 크기(240px 까지) - 72px 로 줄이지 않음", /max-width:min\(100%,240px\)/.test(a.kids[0].style.cssText) && !/72px/.test(a.kids[0].style.cssText), true);
+    var three = [{ name: "A" }, { name: "B" }, { name: "C" }];
+    eq("여러 개에서 하나 고르기(2026-11-03 \"5개쯤 랜덤\") - 앞 · 가운데 · 끝, 하나짜리 옛 모양, 없음", [RF.featuredPick(three, 0).name, RF.featuredPick(three, 0.5).name, RF.featuredPick(three, 0.9999).name,
+        RF.featuredPick(f, 0.7).name, RF.featuredPick([], 0.3), RF.featuredPick(undefined)], ["A", "B", "C", f.name, null, null]);
     eq("설정이 없거나 http 면 없음", [RF.featuredCard(undefined), RF.featuredCard({ name: "x", img: "http://a/b.jpg", href: f.href })], [null, null]);
     delete sandbox.document;
 })();

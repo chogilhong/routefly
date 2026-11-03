@@ -682,7 +682,7 @@
     function drawGear(box) {
         if (EN) return;
         partners().then(function (p) {
-            var feat = RF.featuredCard && RF.featuredCard(p.featured);
+            var feat = RF.featuredCard && RF.featuredPick && RF.featuredCard(RF.featuredPick(p.featured));   // 여러 개 가운데 하나(열 때마다 다름)
             if (!feat) return;
             box.appendChild(el("div", "gDay", "🎒 추천 산행 장비"));
             box.appendChild(feat);

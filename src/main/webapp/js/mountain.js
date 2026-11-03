@@ -196,11 +196,12 @@
     }
     var wx0 = document.getElementById("wx"), gi = document.getElementById("gearIdx");
     if ((wx0 || gi) && window.RF) partnersP.then(function (p) {
+        var pick = window.RF.featuredPick && window.RF.featuredPick(p.featured);   // 여러 개 가운데 하나(열 때마다 다름)
         if (wx0) {
             var gs = document.createElement("section"), gh = document.createElement("h2");
             gh.textContent = GEAR_TITLE;
             gs.appendChild(gh);
-            if (featBox(gs, p.featured)) wx0.parentNode.insertBefore(gs, wx0.nextSibling);
+            if (featBox(gs, pick)) wx0.parentNode.insertBefore(gs, wx0.nextSibling);
         }
         if (gi) {
             var det = document.createElement("details"), sum = document.createElement("summary"), fb = document.createElement("div");
@@ -209,11 +210,11 @@
             var ft = document.createElement("span"), fs = document.createElement("span"), fa = document.createElement("span");
             ft.className = "ft"; ft.textContent = GEAR_TITLE;
             fs.className = "fs";
-            fs.textContent = p.featured && p.featured.name ? p.featured.name : "";
+            fs.textContent = pick && pick.name ? pick.name : "";
             fa.className = "fa"; fa.textContent = "▾";
             sum.appendChild(ft); sum.appendChild(fs); sum.appendChild(fa);
             fb.className = "fb";
-            if (!featBox(fb, p.featured)) return;
+            if (!featBox(fb, pick)) return;
             det.appendChild(sum);
             det.appendChild(fb);
             gi.appendChild(det);

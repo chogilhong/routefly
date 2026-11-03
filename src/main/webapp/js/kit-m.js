@@ -433,6 +433,13 @@
      * 배너 안에 이름 · 로켓 · 쇼핑하기가 다 있어 우리 글은 쓰지 않음(2026-11-03 홍TV님 "1로 해줘" - 72px 로 줄이니 글이 안 읽혔음). 이름은 그림 설명(alt)으로.
      * f - api/partners 의 featured {name, img, href}(서버가 쿠팡 주소인지 봄). 그림은 화면에 가까워질 때 받음(loading=lazy). 없으면 null.
      */
+    /** 순수 함수 - api/partners 의 featured(여러 개, 2026-11-03 홍TV님 "5개쯤 넣어 놓고 랜덤하게")에서 하나를 고름. rnd 는 0 이상 1 미만(없으면 Math.random). 없으면 null. */
+    function featuredPick(list, rnd) {
+        var l = Array.isArray(list) ? list : list ? [list] : [];
+        if (!l.length) return null;
+        var r = rnd == null ? Math.random() : rnd;
+        return l[Math.min(l.length - 1, Math.floor(r * l.length))];
+    }
     function featuredCard(f) {
         if (!f || !/^https:\/\//.test(f.href || "") || !/^https:\/\//.test(f.img || "") || !f.name) return null;
         var a = document.createElement("a"), img = document.createElement("img");
@@ -1506,6 +1513,7 @@
         fortuneDay: fortuneDay,
         supportLine: supportLine,
         featuredCard: featuredCard,
+        featuredPick: featuredPick,
         socarLine: socarLine,
         esimLine: esimLine,
         staySearch: staySearch
