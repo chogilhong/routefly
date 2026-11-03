@@ -30,6 +30,44 @@
         });
     }
 
+    /** 순수 함수 - series.json 의 노선 → [{name, href}](route.html 주소, 100대 명산 묶음은 뺌). en - 영어 화면(lang=en). */
+    function routeLinks(d, en) {
+        var out = [];
+        ((d && d.groups) || []).forEach(function (g) {
+            (g.series || []).forEach(function (s) {
+                if (s.summits != null || !s.name) return;
+                var key = s.prefix ? "prefix=" + encodeURIComponent(s.prefix) : "trail=" + encodeURIComponent(s.match || s.name);
+                out.push({ name: s.name, href: "route.html?" + key + "&name=" + encodeURIComponent(s.name) + (en ? "&lang=en" : "") });
+            });
+        });
+        return out;
+    }
+
+    /** 노선 없이 열면(주소가 잘렸거나 그냥 연 것) 노선 고르기 + 도장 · 완주 · 코스 모음(2026-11-03 홍TV님 점검: "노선을 찾지 못했습니다" 만 있고 갈 곳이 없었음). */
+    function pickRoute() {
+        var box = $("msg");
+        box.classList.add("pick");
+        box.textContent = T("노선을 골라 주세요 ", "Pick a route ");
+        [["series.html", T("도장 · 완주 ›", "Stamps ›")], [EN ? "en/m/" : "m/", T("코스 모음 ›", "Trails ›")]].forEach(function (x) {
+            var a = document.createElement("a");
+            a.className = "more";
+            a.href = x[0];
+            a.textContent = x[1];
+            box.appendChild(a);
+        });
+        fetch("data/series.json").then(function (r) { return r.json(); }).then(function (d) {
+            var ul = document.createElement("div");
+            ul.className = "rl";
+            routeLinks(d, EN).forEach(function (x) {
+                var a = document.createElement("a");
+                a.href = x.href;
+                a.textContent = x.name;
+                ul.appendChild(a);
+            });
+            box.appendChild(ul);
+        }).catch(function () { /* 링크 둘만 */ });
+    }
+
     function loadStamps() { try { return JSON.parse(localStorage.getItem("rf-stamps") || "{}") || {}; } catch (e) { return {}; } }
 
     /** series.json 에서 이 노선(prefix 가 같은 것, 둘레길은 이름이 같은 것). 없으면 null. */
@@ -242,7 +280,7 @@
             e.preventDefault();
             alert(T("구간을 선택하세요.", "Pick a section first."));
         });
-        if (!/^(osmb|kmf|osmh)-[0-9]+-$/.test(prefix) && !trail) { $("msg").textContent = T("노선을 찾지 못했습니다.", "Route not found."); return; }
+        if (!/^(osmb|kmf|osmh)-[0-9]+-$/.test(prefix) && !trail) { pickRoute(); return; }
         Promise.all([
             getJson("api/map-config").catch(function () { return {}; }),
             getJson(trail ? "api/group?trail=" + encodeURIComponent(trail) : "api/group?prefix=" + encodeURIComponent(prefix) + "&lines=1"),

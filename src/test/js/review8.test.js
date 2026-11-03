@@ -178,4 +178,16 @@ var RF = kit();
     has("연락처 자동 채움", html, 'id="mkPhone" type="tel" maxlength="20" autocomplete="tel"');
 })();
 
+// ---- 11: 노선 없이 연 노선 안내도 - 노선 고르기 + 도장 · 완주 · 코스 모음
+(function () {
+    var R = read("js/route.js"), d = JSON.parse(read("data/series.json"));
+    var links = vm.runInNewContext(fn(R, "routeLinks") + " routeLinks(d, false);", { d: d });
+    var n = 0;
+    d.groups.forEach(function (g) { g.series.forEach(function (s) { if (s.summits == null && s.name) n++; }); });
+    eq("series.json 노선 모두(100대 명산 빼고)", [links.length, links.length > 5], [n, true]);
+    eq("주소 꼴", /^route\.html\?(prefix|trail)=[^&]+&name=/.test(links[0].href), true);
+    eq("영어", vm.runInNewContext(fn(R, "routeLinks") + " routeLinks(d, true)[0].href;", { d: d }).slice(-8), "&lang=en");
+    has("노선이 없으면 고르기", R, "if (!/^(osmb|kmf|osmh)-[0-9]+-$/.test(prefix) && !trail) { pickRoute(); return; }");
+})();
+
 console.log("OK " + n);

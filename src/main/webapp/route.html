@@ -28,6 +28,11 @@ body { display:flex; flex-direction:column; height:100dvh; }
             font-size:20px; box-shadow:0 2px 8px rgba(0,0,0,0.45); display:none; }
 #msg { position:absolute; left:50%; top:40%; transform:translate(-50%,-50%); z-index:3; background:rgba(0,0,0,0.7); padding:10px 14px;
        border-radius:10px; font-size:14px; text-align:center; max-width:86%; }
+/* 노선 없이 연 화면 - 노선 고르기(2026-11-03 홍TV님 점검: 글만 있고 갈 곳이 없었음, 공원 화면과 같은 모양) */
+#msg.pick { left:10px; right:10px; top:10px; transform:none; max-width:none; max-height:calc(100% - 20px); overflow:auto; }
+#msg.pick a.more { color:var(--sky); margin:0 6px; }
+#msg.pick .rl { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; justify-content:center; }
+#msg.pick .rl a { display:inline-flex; align-items:center; min-height:44px; padding:0 12px; border:1px solid rgba(255,255,255,0.2); border-radius:22px; color:inherit; text-decoration:none; }
 #sheet { flex:0 0 auto; background:var(--panel); border-top:1px solid var(--ln); padding:10px 12px calc(env(safe-area-inset-bottom) + 10px); }
 /* 구간을 고르면 아래 칸이 90 → 152px 로 커져 지도가 밀렸음(이어 누를 때 자리가 바뀜 - 2026-10-12 PC) - 처음부터 그 높이, 내용은 아래로 */
 #sheet { box-sizing:border-box; min-height:calc(154px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; justify-content:flex-end; }
