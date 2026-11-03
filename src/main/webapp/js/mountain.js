@@ -200,6 +200,8 @@
         });
         partnersP.then(function (p) {
             var any = false;
+            var feat = window.RF.featuredCard && window.RF.featuredCard(p.featured);   // 🎒 맨 위 상품 하나(그림, 2026-11-03)
+            if (feat) { box.insertBefore(feat, ul); any = true; }
             items.forEach(function (x) {
                 var links = window.RF.partnerLinks(p.coupang && p.coupang[x[0].key]);
                 if (!links.length) return;

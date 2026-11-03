@@ -100,4 +100,19 @@ public class PartnersServletTest {
         String en = MountainEn.page(peak, new java.util.ArrayList<>(java.util.List.of(c)), new java.util.ArrayList<>(), null, "");
         assertTrue("영어 산 페이지 코스 목록 아래 숨긴 eSIM 칸", en.contains("<p class=\"stays\" id=\"esim\" hidden></p>"));
     }
+
+    /** 🎒 맨 위 상품 하나(2026-11-03 "가민 택틱스 8"): "이름|그림|링크" - 링크는 쿠팡 파트너스, 그림은 쿠팡 그림 서버만. */
+    @Test
+    public void featuredProduct() {
+        JsonObject f = PartnersServlet.body(Map.of("partner.coupang.featured", "가민 택틱스 8 세라코트 AMOLED|https://thumbnail.coupangcdn.com/x.jpg|https://link.coupang.com/a/TEST")::get).getAsJsonObject("featured");
+        assertEquals("가민 택틱스 8 세라코트 AMOLED", f.get("name").getAsString());
+        assertEquals("https://thumbnail.coupangcdn.com/x.jpg", f.get("img").getAsString());
+        assertEquals("https://link.coupang.com/a/TEST", f.get("href").getAsString());
+        assertNull("링크가 쿠팡 파트너스가 아님", PartnersServlet.featured("시계|https://thumbnail.coupangcdn.com/x.jpg|https://www.coupang.com/vp/products/1"));
+        assertNull("그림이 다른 서버", PartnersServlet.featured("시계|https://evil.example/x.jpg|https://link.coupang.com/a/T"));
+        assertNull("그림 흉내 주소", PartnersServlet.featured("시계|https://coupangcdn.com.evil.example/x.jpg|https://link.coupang.com/a/T"));
+        assertNull("세 칸이 아님", PartnersServlet.featured("시계|https://link.coupang.com/a/T"));
+        assertNull("이름 없음", PartnersServlet.featured("|https://thumbnail.coupangcdn.com/x.jpg|https://link.coupang.com/a/T"));
+        assertFalse("비면 없음", PartnersServlet.body(k -> null).has("featured"));
+    }
 }

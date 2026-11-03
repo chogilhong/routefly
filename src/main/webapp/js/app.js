@@ -696,6 +696,8 @@
         });
         partners().then(function (p) {
             var any = false;
+            var feat = !EN && RF.featuredCard && RF.featuredCard(p.featured);   // 🎒 맨 위 상품 하나(그림, 2026-11-03 - 쿠팡은 한국어 화면만)
+            if (feat && rows.length) { box.insertBefore(feat, rows[0][1]); any = true; }
             rows.forEach(function (x) {
                 var links = RF.partnerLinks(p.coupang && p.coupang[x[0].key]);
                 if (!links.length) return;

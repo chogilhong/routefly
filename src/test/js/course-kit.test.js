@@ -1789,3 +1789,16 @@ eq("favJoinExtra 제목이 없으면 지금 이름의 길", [RF.favJoinExtra("#c
     eq("SOS 데이터라고 하지 않음(112 · 119 는 데이터 없이도)", /SOS|emergency/i.test(box.kids[0].textContent), false);
     delete sandbox.document;
 })();
+
+// 🎒 챙길 것 맨 위 상품 하나(2026-11-03 홍TV님 "가민 택틱스 8"): 그림 + 이름 + 쿠팡에서 보기, 제휴 표시, 그림은 늦게 받음
+(function () {
+    function el(tag) { return { tag: tag, kids: [], style: {}, appendChild: function (c) { this.kids.push(c); }, set textContent(v) { this._t = v; }, get textContent() { return this._t || ""; } }; }
+    sandbox.document = { createElement: el };
+    var f = { name: "가민 택틱스 8 세라코트 AMOLED", img: "https://thumbnail.coupangcdn.com/test.jpg", href: "https://link.coupang.com/a/TEST" };
+    var a = RF.featuredCard(f);
+    eq("한 덩어리 링크 · 제휴 표시 · 새 창", [a.tag, a.href, a.rel, a.target], ["a", f.href, "noopener sponsored", "_blank"]);
+    eq("그림 · 이름 · 늦게 받기", [a.kids[0].tag, a.kids[0].src, a.kids[0].alt, a.kids[0].loading], ["img", f.img, f.name, "lazy"]);
+    eq("이름 · 쿠팡에서 보기", [a.kids[1].kids[0].textContent, a.kids[1].kids[1].textContent], [f.name, "쿠팡에서 보기 ›"]);
+    eq("설정이 없거나 http 면 없음", [RF.featuredCard(undefined), RF.featuredCard({ name: "x", img: "http://a/b.jpg", href: f.href })], [null, null]);
+    delete sandbox.document;
+})();

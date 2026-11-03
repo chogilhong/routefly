@@ -69,6 +69,9 @@ public class PartnersServlet extends HttpServlet {
             if (any) names.add(g, nm);   // 주소와 같은 차례, 이름 없는 것은 ""
         }
         out.add("coupang", coupang);
+        // 🎒 챙길 것 맨 위 상품 하나(2026-11-03 홍TV님 "가민 택틱스 8") - "이름|그림 주소|링크". 링크는 쿠팡 파트너스(link.coupang.com · coupa.ng), 그림은 쿠팡 그림 서버만
+        JsonObject featured = featured(conf.apply("partner.coupang.featured"));
+        if (featured != null) out.add("featured", featured);
         out.add("coupangNames", names);
         String agoda = conf.apply("partner.agoda.url");
         if (checkHost("partner.agoda.url", agoda, "agoda.com")) out.addProperty("agoda", agoda);
@@ -98,6 +101,23 @@ public class PartnersServlet extends HttpServlet {
         }
         out.add("biz", biz);
         return out;
+    }
+
+    /** 순수 함수 - "이름|그림 주소|링크" → {name, img, href}. 셋 중 하나라도 맞지 않으면 null(서버 로그에 까닭). */
+    static JsonObject featured(String v) {
+        if (v == null || v.isBlank()) return null;
+        String[] p = v.split("\\|", -1);
+        if (p.length != 3) { warnOnce("partner.coupang.featured", "\"이름|그림 주소|링크\" 세 칸이 아님"); return null; }
+        String name = Party.clean(p[0].trim(), 60), img = p[1].trim(), href = p[2].trim();
+        if (name == null || name.isEmpty()) { warnOnce("partner.coupang.featured", "이름이 비었음"); return null; }
+        if (!allowed(href, "https://link.coupang.com/", "https://coupa.ng/")) { warnOnce("partner.coupang.featured", "링크가 쿠팡 파트너스 주소가 아님"); return null; }
+        if (whyHost(img, "coupangcdn.com") != null && whyHost(img, "coupang.com") != null) { warnOnce("partner.coupang.featured", "그림이 쿠팡 그림 서버(coupangcdn.com · coupang.com)가 아님"); return null; }
+        if (!allowed(img, "https://")) { warnOnce("partner.coupang.featured", "그림 주소에 빈칸 · 따옴표가 있음"); return null; }
+        JsonObject o = new JsonObject();
+        o.addProperty("name", name);
+        o.addProperty("img", img);
+        o.addProperty("href", href);
+        return o;
     }
 
     /** 순수 함수 - 그 앞부분으로 시작하는 https 주소이고 따옴표 · 꺾쇠 · 빈칸이 없으면 true. */
@@ -143,5 +163,10 @@ public class PartnersServlet extends HttpServlet {
     }
 
     private static final java.util.Set<String> warned = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    /** 설정을 받지 않은 까닭을 한 번만 로그로(checkHost 와 같은 줄 모양). */
+    private static void warnOnce(String key, String why) {
+        if (warned.add(key + ":" + why)) org.apache.logging.log4j.LogManager.getLogger(PartnersServlet.class).warn("설정 {} 를 받지 않음: {}", key, why);
+    }
 
 }
