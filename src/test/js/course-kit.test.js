@@ -1790,15 +1790,16 @@ eq("favJoinExtra 제목이 없으면 지금 이름의 길", [RF.favJoinExtra("#c
     delete sandbox.document;
 })();
 
-// 🎒 챙길 것 맨 위 상품 하나(2026-11-03 홍TV님 "가민 택틱스 8"): 그림 + 이름 + 쿠팡에서 보기, 제휴 표시, 그림은 늦게 받음
+// 🎒 챙길 것 맨 위 상품 하나(2026-11-03 홍TV님 "가민 택틱스 8"): 쿠팡 배너 그림을 원래 크기로, 제휴 표시, 그림은 늦게 받음
 (function () {
     function el(tag) { return { tag: tag, kids: [], style: {}, appendChild: function (c) { this.kids.push(c); }, set textContent(v) { this._t = v; }, get textContent() { return this._t || ""; } }; }
     sandbox.document = { createElement: el };
     var f = { name: "가민 택틱스 8 세라코트 AMOLED", img: "https://thumbnail.coupangcdn.com/test.jpg", href: "https://link.coupang.com/a/TEST" };
     var a = RF.featuredCard(f);
     eq("한 덩어리 링크 · 제휴 표시 · 새 창", [a.tag, a.href, a.rel, a.target], ["a", f.href, "noopener sponsored", "_blank"]);
-    eq("그림 · 이름 · 늦게 받기", [a.kids[0].tag, a.kids[0].src, a.kids[0].alt, a.kids[0].loading], ["img", f.img, f.name, "lazy"]);
-    eq("이름 · 쿠팡에서 보기", [a.kids[1].kids[0].textContent, a.kids[1].kids[1].textContent], [f.name, "쿠팡에서 보기 ›"]);
+    eq("그림 · 이름은 그림 설명 · 늦게 받기", [a.kids[0].tag, a.kids[0].src, a.kids[0].alt, a.kids[0].loading], ["img", f.img, f.name, "lazy"]);
+    eq("배너 그림 하나만(우리 글 없음 - 배너 안에 이름 · 쇼핑하기가 있음, 2026-11-03 홍TV님 \"1로 해줘\")", a.kids.length, 1);
+    eq("원래 크기(240px 까지) - 72px 로 줄이지 않음", /max-width:min\(100%,240px\)/.test(a.kids[0].style.cssText) && !/72px/.test(a.kids[0].style.cssText), true);
     eq("설정이 없거나 http 면 없음", [RF.featuredCard(undefined), RF.featuredCard({ name: "x", img: "http://a/b.jpg", href: f.href })], [null, null]);
     delete sandbox.document;
 })();

@@ -447,23 +447,18 @@
         return true;
     }
     /**
-     * 🎒 챙길 것 맨 위 상품 하나(2026-11-03 홍TV님 "가민 택틱스 8") - 그림 + 이름 + "쿠팡에서 보기 ›" 한 덩어리 링크.
+     * 🎒 챙길 것 맨 위 상품 하나(2026-11-03 홍TV님 "가민 택틱스 8") - 쿠팡 파트너스 배너(이미지 + 텍스트) 그림을 원래 크기로, 그림 전체가 링크.
+     * 배너 안에 이름 · 로켓 · 쇼핑하기가 다 있어 우리 글은 쓰지 않음(2026-11-03 홍TV님 "1로 해줘" - 72px 로 줄이니 글이 안 읽혔음). 이름은 그림 설명(alt)으로.
      * f - api/partners 의 featured {name, img, href}(서버가 쿠팡 주소인지 봄). 그림은 화면에 가까워질 때 받음(loading=lazy). 없으면 null.
      */
     function featuredCard(f) {
         if (!f || !/^https:\/\//.test(f.href || "") || !/^https:\/\//.test(f.img || "") || !f.name) return null;
-        var a = document.createElement("a"), img = document.createElement("img"), t = document.createElement("span");
+        var a = document.createElement("a"), img = document.createElement("img");
         a.href = f.href; a.target = "_blank"; a.rel = "noopener sponsored"; a.className = "rfFeat";
-        a.style.cssText = "display:flex;align-items:center;gap:12px;padding:10px;margin:4px 0 10px;border:1px solid rgba(255,255,255,0.14);border-radius:12px;text-decoration:none;color:inherit";
-        img.src = f.img; img.alt = f.name; img.loading = "lazy"; img.width = 72; img.height = 72;
-        img.style.cssText = "flex:0 0 72px;width:72px;height:72px;object-fit:contain;background:#fff;border-radius:8px";
-        t.style.cssText = "display:flex;flex-direction:column;gap:4px;line-height:1.35";
-        var nm = document.createElement("b"), go = document.createElement("small");
-        nm.textContent = f.name;
-        go.textContent = "쿠팡에서 보기 ›";
-        go.style.color = "#38d9ea";
-        t.appendChild(nm); t.appendChild(go);
-        a.appendChild(img); a.appendChild(t);
+        a.style.cssText = "display:block;width:fit-content;max-width:100%;margin:4px auto 12px;border-radius:12px;overflow:hidden;line-height:0";
+        img.src = f.img; img.alt = f.name; img.loading = "lazy";
+        img.style.cssText = "display:block;max-width:min(100%,240px);height:auto;background:#fff";
+        a.appendChild(img);
         return a;
     }
     function supportLine(box, url, text, pcUrl) {
