@@ -341,5 +341,48 @@ var RF = kit();
     has("지도를 열 때 받음", P, "Promise.all([loadMaplibre(), fetch(\"api/map-config\")");
 })();
 
+// ---- P5: 산악회 방 위치 - 50m 안에 15분 넘게 머물면 90초마다, 움직이면 바로 30초 · SOS 중에는 30초
+(function () {
+    var src = read("js/party-kit.js"), NOW = Date.UTC(2026, 10, 3, 3, 0), store = {}, sent = [];
+    function FakeDate(a) { return a === undefined ? new Date(NOW) : new Date(a); }
+    FakeDate.now = function () { return NOW; };
+    var ctx = { Date: FakeDate, Promise: Promise, JSON: JSON, Math: Math, setTimeout: setTimeout, clearTimeout: clearTimeout, AbortController: AbortController, console: console,
+        setInterval: function () { return 1; }, clearInterval: function () {},
+        localStorage: { getItem: function (k) { return k in store ? store[k] : null; }, setItem: function (k, v) { store[k] = String(v); }, removeItem: function (k) { delete store[k]; } },
+        sessionStorage: { getItem: function () { return null; }, setItem: function () {}, removeItem: function () {} },
+        location: { pathname: "/routefly/hike.html", search: "" }, navigator: {}, document: { hidden: false },
+        fetch: function (url, o) { sent.push(NOW); return Promise.resolve({ ok: true, status: 200, json: function () { return Promise.resolve({ success: true }); } }); } };
+    ctx.window = ctx;
+    vm.createContext(ctx);
+    store["rf-party"] = JSON.stringify({ token: "tok", code: "ABCDEF" });
+    vm.runInContext(src, ctx);
+    var P = ctx.RFParty, lat = 37.6, lon = 127.0;
+    eq("everyMs", vm.runInNewContext(fn(src, "everyMs") + " [everyMs(false, 0), everyMs(false, 16 * 60000), everyMs(true, 60 * 60000)];", { EVERY_MS: 30000, STILL_EVERY_MS: 90000, STILL_AFTER_MS: 900000 }), [30000, 90000, 30000]);
+    var stay = function (a, la, lo, t) { return vm.runInNewContext(fn(src, "stay") + " stay(a, la, lo, t);", { a: a, la: la, lo: lo, t: t, Math: Math, STILL_NEAR_M: 50 }); };
+    var a0 = { lat: 37.6, lon: 127, t: 5 };
+    eq("40m 안 - 머문 자리 그대로", stay(a0, 37.6003, 127, 99), a0);
+    eq("60m 움직임 - 새 자리", stay(a0, 37.60054, 127, 99), { lat: 37.60054, lon: 127, t: 99 });
+    // 한자리 20분: 처음 15분은 30초마다, 그 뒤 90초마다. 그다음 움직이면 30초
+    var times = [];
+    function step(sec, la) {
+        NOW += sec * 1000;
+        var r = P.fix(la || lat, lon, 5);
+        if (r) times.push(Math.round((NOW - Date.UTC(2026, 10, 3, 3, 0)) / 1000));
+        return r ? r.then(function () {}, function () {}) : Promise.resolve();
+    }
+    later.push(function () {
+        var chain = step(0);
+        for (var i = 0; i < 40; i++) chain = chain.then(function () { return step(30); });   // 30초마다 위치 - 20분
+        return chain.then(function () {
+            var gaps = times.slice(1).map(function (t, i) { return t - times[i]; });
+            eq("15분까지 30초", gaps.slice(0, 30).every(function (g) { return g === 30; }), true);
+            eq("15분 넘게 머물면 90초", gaps.slice(30), [90, 90, 90]);
+            return step(30, 37.6010);   // 110m 움직임 - 마지막으로 보낸 지 30초가 넘었으면 바로
+        }).then(function () {
+            eq("움직이면 바로(30초 간격으로 돌아감)", times[times.length - 1] - times[times.length - 2] <= 60, true);
+        });
+    });
+})();
+
 later.reduce(function (p, f) { return p.then(f); }, Promise.resolve()).then(function () { console.log("OK " + n); })
     .catch(function (e) { console.error(e); process.exit(1); });

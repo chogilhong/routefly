@@ -3,11 +3,13 @@
  * 참가한 방이 있을 때만(이 기기 localStorage "rf-party" 에 열쇠) 보냅니다 - 참가할 때 위치 제공에 동의함.
  * 서버(PartyServlet)는 사람마다 마지막 위치 하나만 두고(재시작 대비로 방 정보 파일에도 - 2026-11-02) 그 방 인솔자에게 보여 주며(회원에게는 자기 것만), 방이 끝나면 지웁니다.
  * 출발 전 위치는 서버가 버림(위치는 출발할 때부터, 2026-10-27 홍TV님).
- * 보내는 간격: 30초(SOS 를 켜고 끌 때는 바로). 방이 끝났다고 오면 이 기기의 방 정보도 지움.
+ * 보내는 간격: 30초(SOS 를 켜고 끌 때는 바로), 50m 안에 15분 넘게 머물면 90초(움직이면 바로 30초로 - 2026-11-03 홍TV님 점검 P5). 방이 끝났다고 오면 이 기기의 방 정보도 지움.
  * SOS(2026-11-02 홍TV님 점검): 못 보냈으면 10초 뒤 다시(전에는 보낸 것으로 쳐 다시 안 보냈음), 켜져 있는 동안 위치가 없어도 20초마다 살펴 30초 넘게 안 갔으면 ping.
  */
 (function (g) {
     var KEY = "rf-party", EVERY_MS = 30000;
+    // 오래 쉴 때(정상 · 쉼터 · 버스) 간격 늘림(P5 - 배터리 · 서버): STILL_NEAR_M 안에 STILL_AFTER_MS 넘게 머물면 STILL_EVERY_MS. SOS 중에는 늘 EVERY_MS
+    var STILL_EVERY_MS = 90000, STILL_AFTER_MS = 15 * 60000, STILL_NEAR_M = 50, anchor = null;   // anchor - 머문 자리 {lat, lon, t}
     var last = 0, busy = false, busyAt = 0, lastSos = null, again = null, seq = 0;   // seq - 25초 넘어 풀린 옛 보내기가 늦게 끝나도 새 보내기의 busy 를 풀지 않게
     // 2026-10-20 PC: 앱 화면을 끈 직후(Doze) 4분 동안 위치가 안 갔음 - 보내기(fetch) · 배터리 읽기가 끝나지 않아 busy 가 풀리지 않은 것으로 봄.
     // 보내기는 20초, 배터리는 2초에 끊고, 25초 넘게 busy 면 풀어 다음 위치를 보냄
@@ -113,11 +115,12 @@
         var p = get();
         if (!p || lat == null || lon == null) return null;
         var now = Date.now(), sos = !!p.sos;
+        anchor = stay(anchor, lat, lon, now);
         if (stuck()) {   // 보내는 중 - SOS 를 켜고 끈 것 · 꼭 보낼 것은 끝난 뒤 다시(2026-10-20 시험: 위치 보내는 사이 누른 SOS 가 빠졌음)
             if (force || sos !== lastSos) again = [lat, lon, acc];
             return null;
         }
-        if (!due(sos, force, now)) return null;
+        if (!due(sos, force, now, everyMs(sos, now - anchor.t))) return null;
         var changed = lastSos !== null && sos !== lastSos;   // 보낸 적 있는 것에서 바뀜(처음 보내기는 아님)
         busy = true;
         busyAt = now;
@@ -138,11 +141,23 @@
         }, function (e) { failed(sos, changed); throw e; }).finally(function () { done(my); });
     }
 
-    /** 지금 보낼까 - force · SOS 를 켜고 끔 · 30초 지남. 못 보낸 SOS 는 RETRY_MS 뒤에 다시(위치마다 몰아 보내지 않게). */
-    function due(sos, force, now) {
+    /** 지금 보낼까 - force · SOS 를 켜고 끔 · 간격(every, 없으면 30초) 지남. 못 보낸 SOS 는 RETRY_MS 뒤에 다시(위치마다 몰아 보내지 않게). */
+    function due(sos, force, now, every) {
         if (force) return true;
         if (sos !== lastSos) return !(lastSos === null && now < retryAt);
-        return now - last >= EVERY_MS;
+        return now - last >= (every || EVERY_MS);
+    }
+    /** 순수 함수 - 위치 보내는 간격: SOS 가 아니고 한자리에 STILL_AFTER_MS 넘게 머물렀으면(stillMs) 90초, 아니면 30초. */
+    function everyMs(sos, stillMs) {
+        return !sos && stillMs > STILL_AFTER_MS ? STILL_EVERY_MS : EVERY_MS;
+    }
+    /** 순수 함수 - 머문 자리: 처음이거나 STILL_NEAR_M 넘게 움직였으면 지금 자리 · 시각으로 새로, 아니면 그대로(그 자리에 온 시각이 남음). */
+    function stay(a, lat, lon, now) {
+        if (a) {
+            var dy = (lat - a.lat) * 111320, dx = (lon - a.lon) * 111320 * Math.cos(lat * Math.PI / 180);
+            if (Math.sqrt(dx * dx + dy * dy) <= STILL_NEAR_M) return a;
+        }
+        return { lat: +lat, lon: +lon, t: now };
     }
     /**
      * 보내기 실패 - SOS 였거나 SOS 를 끈 것이었으면 보내지 않은 것으로 되돌림(다음 위치 · ping · 살핌이 다시 보냄, 2026-11-02 점검: 한 번 실패하면 다시 안 갔음).
