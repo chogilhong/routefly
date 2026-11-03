@@ -107,4 +107,14 @@ var RF = kit();
     has("가 단추는 span 을 만든 뒤 h2 에", HIKE.slice(HIKE.indexOf('el.setAttribute("aria-labelledby", sp.id);')), '".sheet .sbox > h2, #safety .sbox > h2"), function (h) { h.appendChild(RF.textButton()); }');
 })();
 
+// ---- 3: 이름 없이 연 공원 고르기 - 위에서부터 · 넘치면 상자 안에서 밀기, 링크 색, "가" 44px
+(function () {
+    var html = read("park.html"), js = read("js/park.js");
+    has("위에서부터 · 가운데 옮김 없음 · 넘치면 밀기", html, "#msg.pick { left:10px; right:10px; top:10px; transform:none; max-width:none; max-height:calc(100% - 20px); overflow:auto; }");
+    has("링크 색", html, "#msg.pick a.more { color:var(--sky); }");
+    has("가 44px", html, "#top .rfTextBtn { height:44px;");
+    has("고르기 상자 표시", js, 'box.classList.add("pick");');
+    has("말", js, 'T("다른 산 보기 ›", "Other mountains ›")');
+})();
+
 console.log("OK " + n);

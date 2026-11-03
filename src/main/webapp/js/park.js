@@ -852,10 +852,12 @@
         if (!park) {   // 이름 없이 열면 api/park 가 400 - 부르지 않고 안내(2026-11-01 PC)
             // 국립공원 고르기 · 코스 모음 고리(2026-11-02 홍TV님 점검: 글만 있고 갈 곳이 없었음)
             var box = $("msg");
+            box.classList.add("pick");   // 위에서부터 · 넘치면 밀기(2026-11-03 홍TV님 점검)
             box.textContent = T("국립공원을 골라 주세요 ", "Pick a national park ");
             var more = document.createElement("a");
+            more.className = "more";
             more.href = EN ? "en/m/" : "m/";
-            more.textContent = T("(다른 산은 ‹ 코스 모음)", "(other mountains: ‹ Trails)");
+            more.textContent = T("다른 산 보기 ›", "Other mountains ›");
             box.appendChild(more);
             var ul = document.createElement("div");
             ul.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;margin-top:10px";

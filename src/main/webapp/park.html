@@ -38,6 +38,10 @@ body { display:flex; flex-direction:column; height:100dvh; }
            border-bottom:1px solid var(--ln); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 #msg { position:absolute; left:50%; top:40%; transform:translate(-50%,-50%); z-index:3; background:rgba(0,0,0,0.7); padding:10px 14px;
        border-radius:10px; font-size:14px; text-align:center; max-width:86%; }
+/* 이름 없이 연 공원 고르기 - 가운데 띄운 상자가 폰 · 가로 화면에서 위로 넘쳤음(2026-11-03 홍TV님 점검) → 위에서부터, 넘치면 상자 안에서 밀기 */
+#msg.pick { left:10px; right:10px; top:10px; transform:none; max-width:none; max-height:calc(100% - 20px); overflow:auto; }
+#msg.pick a.more { color:var(--sky); }
+#top .rfTextBtn { height:44px; border-radius:22px; }   /* "가" 누르기 쉬운 크기 */
 #sheet { flex:0 0 auto; background:var(--panel); border-top:1px solid var(--ln); padding:10px 12px calc(env(safe-area-inset-bottom) + 10px); }
 #sheet .nm { font-size:14.5px; font-weight:bold; }
 #sheet .st { font-size:12.5px; color:var(--dim); margin:3px 0 8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }   /* 한 줄 - 아래 칸 높이가 바뀌지 않게 */
