@@ -808,7 +808,7 @@
                 a.href = "https://map.kakao.com/link/search/" + encodeURIComponent(h.addr || h.name); a.target = "_blank"; a.rel = "noopener";
                 a.textContent = h.name; a.style.color = "var(--sky)";
                 sp.appendChild(a);
-                var sm = document.createElement("small"); sm.style.display = "block"; sm.textContent = (h.km != null ? h.km + "km · " : "") + (h.kind || "");
+                var sm = document.createElement("small"); sm.style.display = "block"; sm.textContent = (h.km != null ? h.km + "km · " : "") + (en ? erKindEn(h.kind) : h.kind || "");
                 sp.appendChild(sm);
                 if (h.tel) { var t = document.createElement("a"); t.href = "tel:" + h.tel.replace(/[^0-9]/g, ""); t.textContent = "📞 " + h.tel; t.style.color = "var(--tx)"; b.appendChild(t); }
                 li.appendChild(sp); li.appendChild(b);
@@ -855,7 +855,9 @@
         a.title = lang === "en" ? "한국어로 보기" : "View in English";
         a.setAttribute("aria-label", a.title);
         ko.textContent = "한";
+        ko.lang = "ko";   // 화면 읽기가 한국어로 읽게(2026-11-03 홍TV님 점검)
         en.textContent = "EN";
+        en.lang = "en";
         (lang === "en" ? en : ko).className = "on";
         a.appendChild(ko);
         a.appendChild(en);
@@ -962,6 +964,11 @@
         var s = stepOf(+steep, STEEP_STEPS);
         return Math.max(base, Math.min(s, s >= 3 ? Math.max(base + 1, 3) : base + 1));
     }
+
+    /** 응급실 종류(국립중앙의료원 dutyDivName) 영어 - 모르는 말은 그대로(2026-11-03 홍TV님 점검: 영어 화면에 "종합병원" 이 그대로). */
+    var ER_KIND_EN = { "상급종합병원": "Tertiary hospital", "종합병원": "General hospital", "병원": "Hospital", "의원": "Clinic", "한방병원": "Korean medicine hospital",
+                       "요양병원": "Long-term care hospital", "보건소": "Public health center", "보건지소": "Public health branch", "보건진료소": "Rural health post" };
+    function erKindEn(kind) { var k = String(kind == null ? "" : kind).trim(); return ER_KIND_EN[k] || k; }
 
     /**
      * 순수 함수 - 안내판 구간: 지점(pois - 이름 · dist_m)마다 끊어 구간별 거리 · 고도 · 경사(%) · 단계. points 는 api/course 의 [경도, 위도, 고도, 누적 거리].

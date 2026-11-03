@@ -157,4 +157,12 @@ var RF = kit();
     eq("알림(toast)으로 띄우지 않음", HIKE.indexOf('toast(warns.join('), -1);
 })();
 
+// ---- 9: 영어 화면 응급실 종류 · 한/EN 단추의 말(lang)
+(function () {
+    eq("erKindEn", [RF.erKindEn("종합병원"), RF.erKindEn(" 병원 "), RF.erKindEn("모르는곳"), RF.erKindEn(null)], ["General hospital", "Hospital", "모르는곳", ""]);
+    has("safetyRender 영어는 erKindEn", read("js/course-kit.js"), '(en ? erKindEn(h.kind) : h.kind || "")');
+    has("한 은 ko", read("js/course-kit.js"), 'ko.lang = "ko";');
+    has("🌐 한국어 는 ko", HIKE, 'a.lang = EN ? "ko" : "en";');
+})();
+
 console.log("OK " + n);

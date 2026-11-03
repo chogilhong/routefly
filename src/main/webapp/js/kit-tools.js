@@ -701,7 +701,7 @@
                 a.href = "https://map.kakao.com/link/search/" + encodeURIComponent(h.addr || h.name); a.target = "_blank"; a.rel = "noopener";
                 a.textContent = h.name; a.style.color = "var(--sky)";
                 sp.appendChild(a);
-                var sm = document.createElement("small"); sm.style.display = "block"; sm.textContent = (h.km != null ? h.km + "km · " : "") + (h.kind || "");
+                var sm = document.createElement("small"); sm.style.display = "block"; sm.textContent = (h.km != null ? h.km + "km · " : "") + (en ? erKindEn(h.kind) : h.kind || "");
                 sp.appendChild(sm);
                 if (h.tel) { var t = document.createElement("a"); t.href = "tel:" + h.tel.replace(/[^0-9]/g, ""); t.textContent = "📞 " + h.tel; t.style.color = "var(--tx)"; b.appendChild(t); }
                 li.appendChild(sp); li.appendChild(b);
@@ -752,6 +752,11 @@
             return (/[A-Za-z]/.test(prev) ? " " : "") + (/\d/.test(prev) ? r : r.charAt(0).toUpperCase() + r.slice(1));
         });
     }
+    /** 응급실 종류(국립중앙의료원 dutyDivName) 영어 - 모르는 말은 그대로(2026-11-03 홍TV님 점검: 영어 화면에 "종합병원" 이 그대로). */
+    var ER_KIND_EN = { "상급종합병원": "Tertiary hospital", "종합병원": "General hospital", "병원": "Hospital", "의원": "Clinic", "한방병원": "Korean medicine hospital",
+                       "요양병원": "Long-term care hospital", "보건소": "Public health center", "보건지소": "Public health branch", "보건진료소": "Rural health post" };
+    function erKindEn(kind) { var k = String(kind == null ? "" : kind).trim(); return ER_KIND_EN[k] || k; }
+
     /** 순수 함수 - api/air 응답 → "미세먼지 보통(42) · 초미세먼지 좋음(14) - 가야면 측정소 14시". 못 받았으면 "". 2026-10-15 */
     function airText(a) {
         if (!a || a.unavailable || (a.pm10 == null && a.pm25 == null)) return "";

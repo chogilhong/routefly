@@ -3700,6 +3700,7 @@
         var foot = $("pickFoot"), a = document.createElement("a");
         a.href = "#";
         a.textContent = EN ? "🌐 한국어" : "🌐 English";
+        a.lang = EN ? "ko" : "en";   // 화면 읽기가 그 말로 읽게(2026-11-03 홍TV님 점검)
         a.addEventListener("click", function (e) {
             e.preventDefault();
             var to = EN ? "ko" : "en";
