@@ -30,15 +30,16 @@ public class ReviewRound8Test {
         List<JsonObject> cs = new ArrayList<>();
         cs.add(JsonParser.parseString("{\"course_id\":\"a\",\"name\":\"가산 · 들머리 → 정상\",\"distance_m\":4000,\"ascent_m\":600,\"descent_m\":60}").getAsJsonObject());
         String qa = MountainServlet.faq(peak, "가산", cs, null).get(1)[1];
-        // 편도: 1시간 + 1시간 + 2분, 왕복: 8km 2시간 + 오르막 660m 1시간 6분 + 내리막 660m 22분
-        assertEquals("정상까지 편도 약 2시간 2분, 같은 길로 내려오면 왕복 약 3시간 28분입니다(시속 4km · 오르막 600m 에 1시간 · 내리막 300m 에 10분으로 어림).", qa);
+        // 2026-11-04 홍TV님 "공단과 동일하게": 국립공원공단 기준 1km 34분(쉬는 시간 포함) - 편도 4km 136분, 왕복 8km 272분
+        assertEquals("정상까지 편도 약 2시간 16분, 같은 길로 내려오면 왕복 약 4시간 32분입니다(국립공원공단 기준 1km 에 34분, 쉬는 시간 포함).", qa);
         assertFalse(qa.contains("따로 더하세요"));
         String en = MountainEn.faq(peak, "Gasan", cs, null).get(1)[1];
-        assertTrue(en, en.contains("About 2 h 2 min one way to the summit, or about 3 h 28 min there and back") && en.contains("10 min per 300 m down"));
-        assertEquals("코스 페이지도 같은 기준", "약 2시간 2분(시속 4km · 오르막 600m 에 1시간 · 내리막 300m 에 10분 어림)", CoursePageServlet.timeText("hike", 4000, 600, 60, null));
+        assertTrue(en, en.contains("About 2 h 16 min one way to the summit, or about 4 h 32 min there and back") && en.contains("34 min per km, rests included"));
+        assertEquals("코스 페이지도 같은 기준", "약 2시간 16분(국립공원공단 기준 1km 에 34분, 쉬는 시간 포함)", CoursePageServlet.timeText("hike", 4000, 600, 60, null));
+        assertEquals("걷기는 예전 기준(공단 자료 밖)", "약 2시간 2분(시속 4km · 오르막 600m 에 1시간 · 내리막 300m 에 10분 어림)", CoursePageServlet.timeText("walk", 4000, 600, 60, null));
         String page = MountainServlet.page(peak, cs, new ArrayList<>(), null, "");
         assertTrue("코스 줄에 data-desc(화면 js 의 거르기 · 일출 출발이 내리막도)", page.contains("data-asc=\"600\" data-desc=\"60\""));
-        assertTrue(page.contains(" · 약 2시간 2분"));
+        assertTrue(page.contains(" · 약 2시간 16분"));
     }
 
     static String web(String f) throws Exception {

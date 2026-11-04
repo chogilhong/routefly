@@ -62,8 +62,8 @@ public class CourseAccuracyTest {
         assertEquals("원본 코스는 그대로", 60, down.get("ascent_m").getAsInt());
         assertEquals("카드 이름도 오르는 쪽(따라가기 제목과 같게)", "상운산 · 덕현 → 상운산 → 쌀바위대피소", MountainServlet.reverseName("상운산 · 쌀바위대피소 → 상운산 → 덕현"));
         assertEquals("화살표 없으면 그대로", "원점회귀", MountainServlet.reverseName("원점회귀"));
-        // 문답 "정상까지 편도"도 오르는 쪽(1시간 + 1시간 + 2분)
-        assertTrue(ko.contains("정상까지 편도 약 2시간 2분"));
+        // 문답 "정상까지 편도"도 오르는 쪽(국립공원공단 기준 4km 136분 - 2026-11-04)
+        assertTrue(ko.contains("정상까지 편도 약 2시간 16분"));
     }
 
     @Test

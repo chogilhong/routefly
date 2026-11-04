@@ -68,9 +68,9 @@ final class MountainEn {
         return null;
     }
 
-    /** 순수 함수 - 예상 시간 "2 h 18 min"(MountainServlet.hoursOf 와 같은 어림 - 내리막 포함, 2026-11-03 홍TV님). */
-    static String hours(int distanceM, Integer ascentM, Integer descentM) {
-        long m = Math.round(MountainServlet.hoursOf(distanceM, ascentM, descentM) * 60);
+    /** 순수 함수 - 예상 시간 "2 h 18 min"(MountainServlet.hoursOf 와 같은 어림 - 국립공원공단 기준 1km 34분, 2026-11-04 홍TV님). */
+    static String hours(int distanceM) {
+        long m = Math.round(MountainServlet.hoursOf(distanceM) * 60);
         return (m >= 60 ? m / 60 + " h " : "") + m % 60 + " min";
     }
 
@@ -81,14 +81,14 @@ final class MountainEn {
             JsonObject lo = null, hi = null;
             double loH = Double.MAX_VALUE, hiH = -1;
             for (JsonObject c : courses) {
-                double h = MountainServlet.hoursOf(c.get("distance_m").getAsInt(), asc(c), MountainServlet.desc(c));
+                double h = MountainServlet.hoursOf(c.get("distance_m").getAsInt());
                 if (h < loH) { loH = h; lo = c; }
                 if (h > hiH) { hiH = h; hi = c; }
             }
             out.add(new String[] {"How many hiking trails go up " + name + "?", "This page lists " + courses.size() + " trail" + (courses.size() > 1 ? "s" : "")
                     + " to the summit. The shortest is " + courseText(lo) + (courses.size() > 1 ? " and the longest is " + courseText(hi) : "") + "."});
-            out.add(new String[] {"How long does it take to hike " + name + "?", "About " + hours(lo.get("distance_m").getAsInt(), asc(lo), MountainServlet.desc(lo))
-                    + (courses.size() > 1 ? " to " + hours(hi.get("distance_m").getAsInt(), asc(hi), MountainServlet.desc(hi)) : "")
+            out.add(new String[] {"How long does it take to hike " + name + "?", "About " + hours(lo.get("distance_m").getAsInt())
+                    + (courses.size() > 1 ? " to " + hours(hi.get("distance_m").getAsInt()) : "")
                     + " one way to the summit, or about " + MountainServlet.roundTrip(lo, true) + (courses.size() > 1 ? " to " + MountainServlet.roundTrip(hi, true) : "")
                     + " there and back on the same trail (" + RULE_EN + ")."});
         }
@@ -106,7 +106,7 @@ final class MountainEn {
 
     private static String courseText(JsonObject c) {
         return courseName(str(c, "name")) + " (" + String.format(Locale.ROOT, "%.1f km", c.get("distance_m").getAsInt() / 1000.0) + ", about "
-                + hours(c.get("distance_m").getAsInt(), asc(c), MountainServlet.desc(c)) + ")";
+                + hours(c.get("distance_m").getAsInt()) + ")";
     }
 
     private static Integer asc(JsonObject c) {
@@ -114,7 +114,7 @@ final class MountainEn {
     }
 
     /** 예상 시간 어림 기준 글(MountainServlet.RULE_KO 의 영어). */
-    static final String RULE_EN = "estimated at 4 km/h plus 1 hour per 600 m up and 10 min per 300 m down";
+    static final String RULE_EN = "Korea National Park Service pace: 34 min per km, rests included";
 
     /** 순수 함수 - 영어 산 페이지. */
     static String page(JsonObject peak, List<JsonObject> courses, List<Object[]> nearby, Integer parking, String base) {
@@ -159,7 +159,7 @@ final class MountainEn {
                         .append(String.format(Locale.ROOT, "%.2f km", dist / 1000.0))
                         .append(asc != null ? String.format(Locale.US, " · %,d m ascent", asc) : "")
                         .append(SteepRank.slopeText(dist, asc, steep, true))   // 순위와 같은 기준(2026-10-18)
-                        .append(" · about ").append(hours(dist, asc, down)).append("</span><span class=\"go\">")
+                        .append(" · about ").append(hours(dist)).append("</span><span class=\"go\">")
                         .append("<a href=\"").append(REL).append("/index.html?lang=en#c=").append(esc(id)).append("\">3D fly-through</a>")
                         .append("<a href=\"").append(REL).append("/hike.html?lang=en#c=").append(esc(id)).append(MountainServlet.revArg(c)).append("&amp;m=").append(esc(MountainServlet.enc(id(peak)))).append("\">Follow (GPS)</a>");   // 따라가기 영어 · ‹ 는 이 페이지로
                 double[] th = MountainServlet.trailhead(c, peak);
@@ -169,7 +169,7 @@ final class MountainEn {
             b.append("</ul>");
             b.append("<p class=\"stays\" id=\"esim\" hidden></p>");   // 📶 Korea eSIM 한 줄(설정 partner.airalo.url 이 있을 때 mountain-en.js 가 채움, 2026-11-03)
         }
-        b.append("<p class=\"dim\">Times are start-to-finish estimates at 4 km/h plus 1 hour per 600 m up and 10 min per 300 m down. Trail data is for reference - always follow signs and closures on site. "
+        b.append("<p class=\"dim\">Times are start-to-finish estimates at the Korea National Park Service pace (34 min per km, rests included; the official time where the park service gives one). Trail data is for reference - always follow signs and closures on site. "
                 + "The 3D and GPS screens are in English too. 🚌 Directions opens Google Maps transit directions from where you are to the trailhead. "
                 + "Difficulty (Very easy to Very hard) is routefly's estimate from distance and ascent, not an official grade; 📈 Elevation shows the slope of each section like the park trail boards.</p></section>");
         List<String[]> qa = faq(peak, name, courses, parking);

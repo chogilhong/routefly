@@ -43,10 +43,9 @@ public class MountainEnTest {
         assertEquals("Bukhansan Baegundae", MountainEn.summitName("북한산백운대", "북한산"));
         assertEquals("Daecheongbong", MountainEn.summitName("대청봉", "설악산"));
         assertEquals("Baegunsan (Gwangyang)", MountainEn.name(JsonParser.parseString("{\"id\":\"백운산(광양)\"}").getAsJsonObject()));
-        assertEquals("2 h 18 min", MountainEn.hours(3980, 779, null));
-        assertEquals("45 min", MountainEn.hours(3000, null, null));
-        // 내리막 300m 에 10분(2026-11-03 홍TV님): 3.98km · 오르막 779m · 내리막 540m → 2시간 18분 + 18분
-        assertEquals("2 h 36 min", MountainEn.hours(3980, 779, 540));
+        // 국립공원공단 기준 1km 34분(쉬는 시간 포함, 2026-11-04 홍TV님): 3.98km → 135분, 3km → 102분
+        assertEquals("2 h 15 min", MountainEn.hours(3980));
+        assertEquals("1 h 42 min", MountainEn.hours(3000));
     }
 
     @Test
@@ -71,7 +70,7 @@ public class MountainEnTest {
         assertTrue(html.contains("<h1>Seoraksan Hiking Trails <small lang=\"ko\">설악산</small></h1>"));
         assertTrue(html.contains("Summit Daecheongbong <span lang=\"ko\">(대청봉)</span> 1,708 m"));
         assertTrue(html.contains("<b>Osaek visitor center - Daecheongbong <i class=\"lv lv3\">Hard</i> <small lang=\"ko\">오색탐방지원센터 - 대청봉</small></b>"));
-        assertTrue(html.contains("5.00 km · 1,300 m ascent · angle 14.6° · grade 26.0% · about 3 h 25 min"));   // 각도 · 경사(순위와 같은 기준 - 2026-10-18)
+        assertTrue(html.contains("5.00 km · 1,300 m ascent · angle 14.6° · grade 26.0% · about 2 h 50 min"));   // 각도 · 경사(순위와 같은 기준 - 2026-10-18)
         assertTrue("앱으로(두 단계 위)", html.contains("href=\"../../index.html?lang=en#c=knps-1\">3D fly-through") && html.contains("href=\"../../hike.html?lang=en#c=knps-1&amp;m="));
         assertTrue("가까운 산은 slug", html.contains("<a href=\"jeombongsan\">Jeombongsan <small>"));
         assertTrue("영어 문답 + JSON-LD", html.contains("<dt>How high is Seoraksan?</dt>") && html.contains("\"@type\":\"FAQPage\""));

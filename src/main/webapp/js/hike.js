@@ -3122,8 +3122,8 @@
     }
 
     /**
-     * 남은 시간(ms) - 표준 산행 시간(평지 4km/h + 오르막 600m/h + 내리막 1,800m/h, 네이스미스 규칙 + 랭뮤어 보정 - RF.legMs)에
-     * 지금까지 걸은 빠르기 비율을 곱합니다(10분 넘게 걸은 뒤부터, 0.6~2.5배). 내리막은 2026-11-03 홍TV님(하산 시간이 빠졌었음).
+     * 남은 시간(ms) - 표준 산행 시간(등산은 국립공원공단 기준 1km 34분 · 쉬는 시간 포함, 걷기는 4km/h + 오르막 · 내리막 - RF.legMs)에
+     * 지금까지 걸은 빠르기 비율을 곱합니다(10분 넘게 걸은 뒤부터, 0.3~2.5배 - 공단 기준은 쉬는 시간이 들어 쉬지 않고 걸으면 절반쯤이라 2026-11-04 아래를 0.6 에서 0.3 으로).
      */
     function remainingMs(elapsed) {
         var left = RF.legMs(c, hike.d, c.total);
@@ -3132,7 +3132,7 @@
         var d0 = hike.d0 == null ? hike.d : Math.min(hike.d0, hike.d);
         var doneStd = RF.legMs(c, d0, hike.d);
         var segEl = hike.running && hike.segT0 ? now() - hike.segT0 : elapsed;
-        if (segEl > 600000 && doneStd > 300000) factor = Math.max(0.6, Math.min(2.5, segEl / doneStd));
+        if (segEl > 600000 && doneStd > 300000) factor = Math.max(0.3, Math.min(2.5, segEl / doneStd));
         return left * factor;
     }
 

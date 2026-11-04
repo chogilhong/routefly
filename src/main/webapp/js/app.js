@@ -775,7 +775,8 @@
                 if (sun) out.appendChild(el("div", "gNote" + (late ? " gWarn" : ""), T("오늘 일몰 ", "Sunset today ") + clockText(sun)
                     + (late ? T(" - 해 지기 30분 전까지 못 내려올 수 있습니다. 더 일찍 떠나세요.", " - you may not be down 30 minutes before sunset. Start earlier.") : "")));
                 var official = RF.infoText(c.info, c.total);
-                out.appendChild(el("div", "gNote", T("표준 소요 시간(거리 · 오른 높이)으로 어림했습니다.", "Estimated from standard pace (distance and climb).") + (official ? " " + official + "." : "")));
+                out.appendChild(el("div", "gNote", T(/^(hike|trek)$/.test(String(c.course && c.course.kind || "hike")) ? "국립공원공단 기준(1km 34분, 쉬는 시간 포함)으로 어림했습니다." : "표준 소요 시간(거리 · 오른 높이)으로 어림했습니다.",
+                    /^(hike|trek)$/.test(String(c.course && c.course.kind || "hike")) ? "Estimated at the Korea National Park Service pace (34 min per km, rests included)." : "Estimated from standard pace (distance and climb).") + (official ? " " + official + "." : "")));
             };
             inp.addEventListener("change", draw);
             inp.addEventListener("input", draw);

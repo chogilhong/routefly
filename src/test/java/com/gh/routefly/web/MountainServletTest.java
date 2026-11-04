@@ -55,7 +55,7 @@ public class MountainServletTest {
         assertTrue(html.contains("\"../index.html?lang=ko#c=knps-7013&amp;m=%EA%B0%80%EC%95%BC%EC%82%B0\">fly(3D)") && html.contains("\"../hike.html?lang=ko#c=knps-7013&amp;m=%EA%B0%80%EC%95%BC%EC%82%B0\">따라가기"));
         assertTrue("css · js 는 상대 주소(터널 https 에서 http 절대 주소가 막혔음)", html.contains("href=\"../css/mountain.css\"") && html.contains("src=\"../js/mountain.js\""));
         assertFalse(html.contains("src=\"https://routefly.kr"));
-        assertTrue("예상 시간(4km/h + 600m/h)", html.contains("약 2시간 18분"));
+        assertTrue("예상 시간(국립공원공단 기준 1km 34분 - 3.98km 135분, 2026-11-04)", html.contains("약 2시간 15분"));
         assertTrue("코스 최고점", html.contains("코스 최고점 약 1,430m"));
         assertTrue("☆ 찜 설명", html.contains("☆ 를 누르면 그 코스를 찜(즐겨찾기)합니다"));
         assertTrue("문답 - 코스 수 · 짧은 코스", html.contains("<dt>가야산 등산코스는 몇 개인가요?</dt><dd>정상까지 가는 코스 2개를 소개합니다. 가장 짧은 코스는"));
@@ -95,8 +95,7 @@ public class MountainServletTest {
         assertTrue("길은 노선 안내도로(돌아오기 back=m)", idx.contains("href=\"../route.html?prefix=kmf-9900000006-&amp;name=%EC%A7%80%EB%A6%AC%EC%82%B0%EB%91%98%EB%A0%88%EA%B8%B8&amp;back=m&amp;lang=ko\">지리산둘레길 <small>289km</small>"));
         assertTrue("코리아둘레길은 trail=(match)", idx.contains("route.html?trail=DMZ%ED%8F%89%ED%99%94%EC%9D%98%EA%B8%B8&amp;"));
         assertTrue(MountainServlet.notFoundPage("<x>", "").contains("&lt;x&gt;"));
-        assertEquals("45분", MountainServlet.hours(3000, null, null));
-        assertEquals("내리막 900m 는 30분 더(2026-11-03 홍TV님)", "1시간 15분", MountainServlet.hours(3000, null, 900));
+        assertEquals("국립공원공단 기준 1km 34분(쉬는 시간 포함, 2026-11-04 홍TV님) - 3km 102분", "1시간 42분", MountainServlet.hours(3000));
     }
 
     @Test

@@ -196,7 +196,8 @@ public class CoursePageServlet extends HttpServlet {
 
     /**
      * 순수 함수 - 예상 시간 글. 국립공원 공식 시간(officialMin)이 있으면 그것(2026-11-04 홍TV님 - 가파른 하산은 어림이 짧음),
-     * 자전거는 시속 15km, 그 밖은 산 페이지와 같은 등산 표준(시속 4km · 오르막 600m 에 1시간 · 내리막 300m 에 10분 - 2026-11-03 홍TV님).
+     * 자전거는 시속 15km, 걷기(해안길 · 도로 둘레길 - 공단 자료 밖)는 시속 4km · 오르막 600m 에 1시간 · 내리막 300m 에 10분(WALK_RULE),
+     * 등산 · 장거리는 산 페이지와 같은 국립공원공단 기준 1km 34분(쉬는 시간 포함 - 2026-11-04 홍TV님 "공단과 동일하게").
      */
     static String timeText(String kind, int distM, Integer ascM, Integer descM, Integer officialMin) {
         if (officialMin != null && !"bike".equals(kind)) {
@@ -207,8 +208,15 @@ public class CoursePageServlet extends HttpServlet {
             long m = Math.round(distM / 1000.0 / 15 * 60);
             return "약 " + (m >= 60 ? m / 60 + "시간 " : "") + m % 60 + "분(시속 15km 어림)";
         }
-        return "약 " + MountainServlet.hours(distM, ascM, descM) + "(" + MountainServlet.RULE_KO + " 어림)";
+        if ("walk".equals(kind)) {   // course-kit.js KINDS.walk 와 같은 값
+            long m = Math.round(distM / 1000.0 / 4 * 60 + (ascM == null ? 0 : ascM / 10.0) + (descM == null ? 0 : descM / 30.0));
+            return "약 " + (m >= 60 ? m / 60 + "시간 " : "") + m % 60 + "분(" + WALK_RULE + " 어림)";
+        }
+        return "약 " + MountainServlet.hours(distM) + "(" + MountainServlet.RULE_KO + ")";
     }
+
+    /** 걷기 코스 예상 시간 기준 글(해안길 · 도로 둘레길 - 국립공원 공식 시간 자료 밖이라 예전 기준). */
+    static final String WALK_RULE = "시속 4km · 오르막 600m 에 1시간 · 내리막 300m 에 10분";
 
     /** 순수 함수 - 고도 그림(SVG, 스크립트 없음). 높이가 있는 점이 둘보다 적으면 "". 점은 PROFILE_MAX 개로 솎음. */
     static String profileSvg(double[] dist, Double[] ele) {
@@ -371,7 +379,7 @@ public class CoursePageServlet extends HttpServlet {
         String day = str(c, "imported_at");
         if (day != null && day.length() >= 10)   // 코스를 넣은 날(검색 사이트가 날짜로 읽음 - 2026-10-19 다음 문서분석 "날짜 -")
             b.append("<p class=\"dim\">코스 자료 날짜 <time datetime=\"").append(esc(day.substring(0, 10))).append("\">").append(esc(day.substring(0, 10))).append("</time></p>");
-        b.append("<p class=\"dim\">예상 시간 · 난이도는 routefly 가 거리 · 오르막으로 어림한 값입니다(공식 등급이 아님). 코스 자료는 참고용이니 현지 안내판 · 통제를 꼭 따르세요.</p>");
+        b.append("<p class=\"dim\">예상 시간은 국립공원 공식 시간이 있으면 그 시간, 없으면 위 기준으로 어림한 값이고, 난이도는 routefly 가 거리 · 오르막으로 어림한 값입니다(공식 등급이 아님). 코스 자료는 참고용이니 현지 안내판 · 통제를 꼭 따르세요.</p>");
         if (hike) b.append(MountainServlet.tips());
         String src = source(id);
         if (!src.isEmpty()) b.append("<p class=\"dim\">코스 자료: ").append(src).append("</p>");   // 이미 이스케이프 · 링크가 든 고정 글

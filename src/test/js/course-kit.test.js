@@ -965,12 +965,14 @@ eq("windNote 자리 말", RF.windNote([{ t: "2026-10-18 20:00", wsd: 8.3 }], "20
     var r = RF.scheduleRows(c, 0, "hike");
     eq("scheduleRows 끝 이름표는 빼고 시각은 늘어남", [r.rows.length, r.rows[0].name, r.rows[0].at > 0, r.end > r.rows[0].at], [1, "a", true, true]);
     // 내리막도 시간에(2026-11-03 홍TV님): 0 → 600 → 0m, 2km 씩 - 지점까지 30분 + 오르막 1시간, 끝까지 거리 1시간 · 오르막 1시간 · 내리막 600m 20분
-    var v = { course: { kind: "hike" }, dist: [0, 2000, 4000], asc: [0, 600, 600], ele: [0, 600, 0], total: 4000, pois: [{ name: "정상", dist_m: 2000 }] };
-    var rv = RF.scheduleRows(v, 0, "hike");
+    // 2026-11-04: 등산은 국립공원공단 기준 1km 34분이라 오르막 · 내리막을 따로 더하는 셈은 걷기(walk)로 봄
+    var v = { course: { kind: "walk" }, dist: [0, 2000, 4000], asc: [0, 600, 600], ele: [0, 600, 0], total: 4000, pois: [{ name: "정상", dist_m: 2000 }] };
+    var rv = RF.scheduleRows(v, 0, "walk");
     eq("scheduleRows 내리막 300m 에 10분", [rv.rows[0].at / 60000, rv.end / 60000], [90, 140]);
     eq("legMs 내려가는 구간만", Math.round(RF.legMs(v, 2000, 4000) / 60000), 50);
     eq("legMs 앞뒤 바꿔도 같은 구간", RF.legMs(v, 4000, 2000), RF.legMs(v, 2000, 4000));
-    eq("standardMs 내리막 1,800m/h · 자전거는 내리막 0 · 없으면 0", [RF.standardMs("hike", 0, 0, 1800) / 60000, RF.standardMs("bike", 15000, 0, 900) / 60000, RF.standardMs("hike", 4000, 600) / 60000], [60, 60, 120]);
+    eq("standardMs 내리막 1,800m/h · 자전거는 내리막 0 · 없으면 0", [RF.standardMs("walk", 0, 0, 1800) / 60000, RF.standardMs("bike", 15000, 0, 900) / 60000, RF.standardMs("walk", 4000, 600) / 60000], [60, 60, 120]);
+eq("standardMs 등산 · 장거리는 국립공원공단 기준 1km 34분 - 오르막 · 내리막 상관없이(2026-11-04 홍TV님)", [RF.standardMs("hike", 1000, 600, 600) / 60000, RF.standardMs("trek", 3000, 0, 0) / 60000, Math.round(RF.scheduleRows({ course: { kind: "hike" }, dist: [0, 2000, 4000], asc: [0, 600, 600], ele: [0, 600, 0], total: 4000, pois: [{ name: "정상", dist_m: 2000 }] }, 0, "hike").end / 60000)], [34, 102, 136]);
 })();
 (function () {
     var a = RF.sunset(Date.UTC(2026, 9, 13, 23, 0), 35.8, 128.1), b = RF.sunset(Date.UTC(2026, 9, 14, 1, 30), 35.8, 128.1);   // 한국 10-14 08:00 · 10:30
@@ -1087,9 +1089,10 @@ eq("centerPoints 공식 이름 · 다른 이름 · 품은 이름 · 자리 없�
 eq("fireNote 봄 · 가을 · 그 밖(한국 날짜)", [!!RF.fireNote(Date.UTC(2026, 1, 1, 0)), !!RF.fireNote(Date.UTC(2026, 4, 15, 14)), !!RF.fireNote(Date.UTC(2026, 4, 15, 15)),
     RF.fireNote(Date.UTC(2026, 10, 1, 0)).indexOf("가을철") >= 0, !!RF.fireNote(Date.UTC(2026, 9, 31, 14)), !!RF.fireNote(Date.UTC(2026, 11, 15, 14, 59))], [true, true, false, true, false, true]);
 (function () {
-    var c = { course: { kind: "hike" }, lat: [0, 0, 0], lon: [0, 0, 0], ele: [100, 700, 300], dist: [0, 4000, 8000], asc: [0, 600, 600] };
-    eq("msToTop 가장 높은 점까지(4km · 600m = 2시간)", RF.msToTop(c), 2 * 3600000);
-    var dip = { course: { kind: "hike" }, lat: [0, 0, 0], lon: [0, 0, 0], ele: [500, 200, 800], dist: [0, 2000, 4000], asc: [0, 0, 600], total: 4000 };
+    var c = { course: { kind: "walk" }, lat: [0, 0, 0], lon: [0, 0, 0], ele: [100, 700, 300], dist: [0, 4000, 8000], asc: [0, 600, 600] };
+    eq("msToTop 가장 높은 점까지(걷기 4km · 600m = 2시간)", RF.msToTop(c), 2 * 3600000);
+    eq("msToTop 등산은 공단 기준(4km = 136분)", RF.msToTop({ course: { kind: "hike" }, lat: c.lat, lon: c.lon, ele: c.ele, dist: c.dist, asc: c.asc }) / 60000, 136);
+    var dip = { course: { kind: "walk" }, lat: [0, 0, 0], lon: [0, 0, 0], ele: [500, 200, 800], dist: [0, 2000, 4000], asc: [0, 0, 600], total: 4000 };
     eq("msToTop 가는 길 내리막 300m 도 10분 더(2026-11-03 홍TV님)", Math.round(RF.msToTop(dip) / 60000), 60 + 60 + 10);
     eq("sunriseStart 일출 - 오름 - 15분", RF.sunriseStart(10 * 3600000, 2 * 3600000), 10 * 3600000 - 2 * 3600000 - 15 * 60000);
 })();
@@ -1175,10 +1178,10 @@ eq("enName", [RF.enName("오색탐방지원센터 - 대청봉"), RF.enName("설�
 eq("recentAdd 같은 주소는 앞으로 · 8개까지", RF.recentAdd([{ href: "a" }, { href: "b" }], { href: "b", name: "B" }).map(function (x) { return x.href; }), ["b", "a"]);
 eq("recentAdd 넘치면 뒤를 버림", RF.recentAdd([1, 2, 3, 4, 5, 6, 7, 8].map(function (i) { return { href: "p" + i }; }), { href: "n" }).map(function (x) { return x.href; }).join(","), "n,p1,p2,p3,p4,p5,p6,p7");
 eq("compareRows", RF.compareRows({ dist: 12900, asc: 1300 }, { dist: 5000, asc: 1300 }), [["거리", "12.90 km", "5.00 km"], ["오르막", "1,300 m", "1,300 m"],
-    ["예상 시간(편도)", "5시간 24분", "3시간 25분"], ["난이도", "어려움", "어려움"], ["각도", "5.8°", "14.6°"], ["경사", "10.1%", "26.0%"], ["가파른 1km", "-", "-"]]);
+    ["예상 시간(편도)", "7시간 19분", "2시간 50분"], ["난이도", "어려움", "어려움"], ["각도", "5.8°", "14.6°"], ["경사", "10.1%", "26.0%"], ["가파른 1km", "-", "-"]]);
 eq("compareRows 각도 · 경사 · 가파른 1km - 순위 · 코스 줄과 같은 기준(1km 미만 · 오르막 없음은 -)", RF.compareRows({ dist: 1000, asc: 300, steep: 45.04 }, { dist: 999, asc: 300, steep: 40 }).slice(4),
     [["각도", "16.7°", "-"], ["경사", "30.0%", "-"], ["가파른 1km", "45.0%", "40.0%"]]);
-eq("compareRows 영어 시간", RF.compareRows({ dist: 3000, asc: 0 }, { dist: 5000, asc: 1300 }, true)[2], ["Time (one way)", "45 min", "3 h 25 min"]);
+eq("compareRows 영어 시간", RF.compareRows({ dist: 3000, asc: 0 }, { dist: 5000, asc: 1300 }, true)[2], ["Time (one way)", "1 h 42 min", "2 h 50 min"]);
 // 가장 가파른 1km(2026-10-16) - Steep.steepest 와 같은 값(SteepTest)
 (function () {
     var d = [], e = [];

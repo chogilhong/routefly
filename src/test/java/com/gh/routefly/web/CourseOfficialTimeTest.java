@@ -25,7 +25,7 @@ public class CourseOfficialTimeTest {
         // knps-4014-29ea77ae 소공원 → 희운각대피소 1,592m 에 공단 230분 - 더 긴 공식 구간의 시간이라 쓰지 않고 어림
         JsonObject heeun = info("{\"up_min\":230,\"down_min\":160,\"level\":\"어려움(2.86)\"}");
         assertNull(CoursePageServlet.officialMin(heeun, 1592));
-        assertTrue(CoursePageServlet.timeText("hike", 1592, 426, 46, CoursePageServlet.officialMin(heeun, 1592)).endsWith("어림)"));
+        assertTrue(CoursePageServlet.timeText("hike", 1592, 426, 46, CoursePageServlet.officialMin(heeun, 1592)).endsWith("쉬는 시간 포함)"));
         assertNull("공식 정보 없음", CoursePageServlet.officialMin(null, 1492));
         assertEquals("오르는 시간이 없으면 내려오는 시간", Integer.valueOf(52), CoursePageServlet.officialMin(info("{\"down_min\":52}"), 1492));
         assertEquals("1시간 넘으면 시간 · 분", "약 1시간 10분(국립공원 공식 안내)", CoursePageServlet.timeText("hike", 3000, 300, 0, 70));
