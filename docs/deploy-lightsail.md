@@ -1016,4 +1016,7 @@ Invoke-WebRequest -UseBasicParsing -Method Post -Uri https://api.indexnow.org/in
 - 200 · 202 면 받음. 403 은 열쇠 파일을 못 읽음(배포 확인), 422 는 주소가 열쇠 위치(/routefly/) 밖.
 - 처음 한 번은 403 이 날 수 있음(열쇠를 아직 확인하기 전 - 2026-10-22 PC): `urlList` 에 주소 하나만 넣어 한 번 보내 200 을 받은 뒤 전체를 다시 보내면 200(8,854개).
 - 결과는 빙 웹마스터 도구 → IndexNow 에서 보이고, /stats 로봇 종류 "검색" 아래 "빙" 숫자가 오름.
+- 사이트맵 lastmod(2026-11-04): 산 · 코스 페이지는 `SitemapServlet.PAGE_CHANGED`(페이지 글을 크게 바꾼 날)와 코스를 넣은 날 가운데 늦은 날.
+  페이지 글(예상 시간 · 숙소 칸 등)을 크게 바꾸면 PAGE_CHANGED 를 그 날로 올리고, 배포 뒤 위 IndexNow 를 한 번 보냄. 구글은 IndexNow 를 받지 않아 사이트맵 lastmod 로 다시 읽음
+  (서치 콘솔 → 사이트맵 → sitemap.xml 다시 제출은 홍TV님, 급한 페이지 몇 개는 URL 검사 → 색인 생성 요청).
 

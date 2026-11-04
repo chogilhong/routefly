@@ -89,6 +89,12 @@ public class SitemapServlet extends HttpServlet {
         return "User-agent: *\nDisallow: " + path + "/api/\nAllow: /\nSitemap: " + base + "/sitemap.xml\n\n" + DAUM_PIN + "\n";
     }
 
+    /**
+     * 산 · 코스 페이지 모양(서버가 그리는 글)을 마지막으로 바꾼 날 - 사이트맵 lastmod 는 이 날과 코스를 넣은 날 가운데 늦은 날.
+     * 페이지 글을 크게 바꾸면 올림(2026-11-04 홍TV님: 예상 시간을 공단 기준으로 · 공식 시간 · 숙소 찾기 칸 - 구글이 10-14 의 옛 "341m · 341m · 약 56분" 을 보여 줬음).
+     */
+    static final String PAGE_CHANGED = "2026-11-04";
+
     /** 순수 함수 - 사이트맵(첫 화면 · 안내 · 도구 · 게임 · 안부(2026-11-01) · 100대 명산 목록 · 산마다, 영어 산 페이지도, 검색에 내는 코스 [ID, 넣은 날]). */
     static String sitemap(String base, List<String> mountains, List<String[]> courses) {
         StringBuilder b = new StringBuilder("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\" xmlns:xhtml=\"http://www.w3.org/1999/xhtml\">\n");
@@ -99,16 +105,16 @@ public class SitemapServlet extends HttpServlet {
             pair(b, ko, ko, en);
             pair(b, en, ko, en);
         }
-        for (String[] c : courses) {   // 코스 소개 페이지(2026-10-19 CoursePageServlet) - 넣은 날을 lastmod 로
+        for (String[] c : courses) {   // 코스 소개 페이지(2026-10-19 CoursePageServlet) - 넣은 날 · 페이지를 바꾼 날 가운데 늦은 날을 lastmod 로
             b.append("  <url><loc>").append(ShareServlet.esc(base + "/c/" + c[0])).append("</loc>");
-            if (c[1] != null) b.append("<lastmod>").append(c[1]).append("</lastmod>");
+            b.append("<lastmod>").append(c[1] != null && c[1].compareTo(PAGE_CHANGED) > 0 ? c[1] : PAGE_CHANGED).append("</lastmod>");
             b.append("</url>\n");
         }
         return b.append("</urlset>\n").toString();
     }
 
     private static void pair(StringBuilder b, String loc, String ko, String en) {
-        b.append("  <url><loc>").append(ShareServlet.esc(loc)).append("</loc>")
+        b.append("  <url><loc>").append(ShareServlet.esc(loc)).append("</loc><lastmod>").append(PAGE_CHANGED).append("</lastmod>")   // 산 페이지도 페이지를 바꾼 날
                 .append("<xhtml:link rel=\"alternate\" hreflang=\"ko\" href=\"").append(ShareServlet.esc(ko)).append("\"/>")
                 .append("<xhtml:link rel=\"alternate\" hreflang=\"en\" href=\"").append(ShareServlet.esc(en)).append("\"/>")
                 .append("<xhtml:link rel=\"alternate\" hreflang=\"x-default\" href=\"").append(ShareServlet.esc(ko)).append("\"/></url>\n");

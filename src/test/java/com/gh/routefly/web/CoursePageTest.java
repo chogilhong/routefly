@@ -139,9 +139,11 @@ public class CoursePageTest {
 
     @Test
     public void sitemapShareStatsAndMountainLinks() throws Exception {
-        String sm = SitemapServlet.sitemap("https://r.kr", List.of(), List.of(new String[] {"knps-77", "2026-10-11"}, new String[] {"drnb-1", null}));
-        assertTrue(sm.contains("<url><loc>https://r.kr/c/knps-77</loc><lastmod>2026-10-11</lastmod></url>"));
-        assertTrue(sm.contains("<url><loc>https://r.kr/c/drnb-1</loc></url>"));
+        // lastmod 는 넣은 날 · 페이지를 바꾼 날(SitemapServlet.PAGE_CHANGED - 2026-11-04 홍TV님 "검색 사이트에 알리기") 가운데 늦은 날
+        String sm = SitemapServlet.sitemap("https://r.kr", List.of(), List.of(new String[] {"knps-77", "2026-10-11"}, new String[] {"drnb-1", null}, new String[] {"frst-1-a", "2026-12-01"}));
+        assertTrue(sm.contains("<url><loc>https://r.kr/c/knps-77</loc><lastmod>2026-11-04</lastmod></url>"));
+        assertTrue(sm.contains("<url><loc>https://r.kr/c/drnb-1</loc><lastmod>2026-11-04</lastmod></url>"));
+        assertTrue("넣은 날이 늦으면 그 날", sm.contains("<url><loc>https://r.kr/c/frst-1-a</loc><lastmod>2026-12-01</lastmod></url>"));
         assertTrue("공유 링크는 코스 페이지를 canonical 로",
                 ShareServlet.page("t", "d", "https://r.kr/s/a", "https://r.kr/c/a", "https://r.kr/img/og.png", "https://r.kr/#c=a").contains("<link rel=\"canonical\" href=\"https://r.kr/c/a\">"));
         assertEquals("/c/", Stats.pageKey("/c/knps-77"));

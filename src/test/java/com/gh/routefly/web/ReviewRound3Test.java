@@ -66,7 +66,7 @@ public class ReviewRound3Test {
         assertTrue(ko.contains("\"BreadcrumbList\"") && ko.contains("\"100대 명산 코스\"") && ko.contains("\"item\":\"https://r.kr/m/\""));
         assertTrue(en.contains("\"100 famous mountains\"") && en.contains("\"item\":\"https://r.kr/en/m/\""));
         String sm = SitemapServlet.sitemap("https://r.kr", java.util.List.of("가야산"), java.util.List.of());
-        assertTrue("사이트맵 한 · 영 짝", sm.contains("xmlns:xhtml") && sm.contains("<loc>https://r.kr/en/m/gayasan</loc><xhtml:link rel=\"alternate\" hreflang=\"ko\" href=\"https://r.kr/m/%EA%B0%80%EC%95%BC%EC%82%B0\"/>"));
+        assertTrue("사이트맵 한 · 영 짝", sm.contains("xmlns:xhtml") && sm.contains("<loc>https://r.kr/en/m/gayasan</loc><lastmod>2026-11-04</lastmod><xhtml:link rel=\"alternate\" hreflang=\"ko\" href=\"https://r.kr/m/%EA%B0%80%EC%95%BC%EC%82%B0\"/>"));
     }
 
     @Test
