@@ -249,6 +249,14 @@
         });
         return best;
     }
+    /**
+     * 순수 함수 - 숙소 예약 사이트에 넘길 검색어: 찾은 말에 산 이름(…산 · …봉 낱말)이 있으면 그것, 없으면 찾은 곳 이름(place).
+     * 2026-11-04 홍TV님: "월출산 천황사" 로 찾으면 트립닷컴에 "천황사" 가 넘어가 결과가 없었음 - "월출산 만 넣어". 좌표는 찾은 곳(천황사) 그대로.
+     */
+    function stayWord(q, place) {
+        var m = /(?:^|\s)(\S{1,12}?(?:산|봉))(?=\s|$)/.exec(String(q || ""));
+        return m ? m[1] : place;
+    }
     function staySearch(form, out, partnersP, base, en) {
         if (!form || !out || form.rfBound) return;
         form.rfBound = true;
@@ -272,7 +280,7 @@
         function areaOf(a) { var m = /(?:^|\s)(\S+(?:군|구|시))(?=\s)/.exec(" " + String(a || "").replace(/^\S+(?:도|특별시|광역시|특별자치시|특별자치도)\s+/, "") + " "); return m ? m[1] : ""; }
         // 아고다 도시 번호표(tools/agoda-cities 로 만듦) - 없으면 그대로(도시 번호 없이)
         // 찾기를 누를 때 한 번 받고 기다림(2026-10-30 - 화면을 열자마자 받으면 다 받기 전에 누른 찾기는 도시 번호 없이 열렸음, 안 찾는 사람은 안 받음)
-        var cities = null, citiesP = null;
+        var cities = null, citiesP = null, lastQ = "";
         function loadCities() {
             if (!citiesP) citiesP = fetch(base + "data/agoda-cities.json").then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { cities = j && j.cities; }).catch(function () { /* 없음 - 도시 번호 없이 */ });
             return citiesP;
@@ -345,7 +353,7 @@
                 });
                 out.appendChild(alt);
             }
-            links(p, pl.name, pl.lat, pl.lon, areaOf(pl.addr), agodaCity(pl.lat, pl.lon));
+            links(p, stayWord(lastQ, pl.name), pl.lat, pl.lon, areaOf(pl.addr), agodaCity(pl.lat, pl.lon));   // 트립닷컴 · 호텔스컴바인 · 카카오맵 검색어는 산 이름(있으면)
             var list = el("ul", null, "wl ssList");
             list.appendChild(el("li", T("근처 숙소를 찾는 중…", "Finding lodging nearby…")));
             out.appendChild(list);
@@ -380,6 +388,7 @@
             e.preventDefault();
             if (det && !det.open) det.open = true;   // 결과가 보이게
             var q = String(input.value || "").trim();
+            lastQ = q;
             if (q.length < 2) { out.textContent = T("장소 이름을 두 글자 넘게 적어 주세요(예: 산청군청).", "Enter a place name (e.g. Sancheong County Office in Korean: 산청군청)."); input.focus(); return; }
             out.textContent = T("찾는 중…", "Searching…");
             var my = ++seq;

@@ -893,6 +893,11 @@ var SL = RF.stayLinks({ trip: "https://kr.trip.com/hotels/?Allianceid=1", agoda:
 eq("stayLinks 설정된 곳만 · 좌표 넣기 · 카카오맵(제휴 아님), 여기어때 · 야놀자는 설정이 있어도 뺌(2026-10-30)", SL.map(function (x) { return x.text + (x.sponsored ? "*" : ""); }), ["🏨 트립닷컴*", "🏨 아고다*", "🗺 카카오맵 숙소"]);
 eq("stayLinks 아고다 파트너스 텍스트 링크(자리 없음) 그대로 제휴", RF.stayLinks({ agoda: "https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1&hl=ko-kr" }, "산청", 35.4, 127.8, false)[0], { text: "🏨 아고다", href: "https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1&hl=ko-kr", sponsored: true });
 eq("stayLinks 아고다 좌표", SL[1].href, "https://www.agoda.com/x?lat=35.41500&lon=127.87300");
+// 2026-11-04 홍TV님 "월출산 만 넣어": 찾은 말에 산 이름이 있으면 예약 사이트 검색어는 그것, 없으면 찾은 곳 이름
+eq("stayWord 산 이름 · 없으면 찾은 곳", [RF.stayWord("월출산 천황사", "천황사"), RF.stayWord("지리산 중산리", "중산리"), RF.stayWord("월출산", "월출산"),
+    RF.stayWord("산청군청", "산청군청"), RF.stayWord("북한산우이역", "북한산우이역"), RF.stayWord("무주구천동", "구천동"), RF.stayWord("", "x")],
+    ["월출산", "지리산", "월출산", "산청군청", "북한산우이역", "구천동", "x"]);
+eq("stayLinks 트립닷컴 검색어가 월출산(좌표는 천황사)", /searchWord=%EC%9B%94%EC%B6%9C%EC%82%B0&/.test(RF.stayLinks({ trip: "https://kr.trip.com/?Allianceid=1" }, RF.stayWord("월출산 천황사", "천황사"), 34.78, 126.70, false)[0].href), true);
 eq("stayLinks 제휴 설정 없음 - 아고다는 첫 화면(제휴 아님) + 카카오맵", RF.stayLinks({}, "산청군청", 35.4, 127.8, false, "산청군").map(function (x) { return x.text + (x.sponsored ? "*" : "") + " " + x.href; }),
     ["🔎 아고다 https://www.agoda.com/ko-kr/", "🗺 카카오맵 숙소 https://map.kakao.com/link/search/%EC%82%B0%EC%B2%AD%EA%B5%B0%EC%B2%AD%20%EC%88%99%EC%86%8C"]);
 

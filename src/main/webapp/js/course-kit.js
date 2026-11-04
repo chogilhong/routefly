@@ -1345,6 +1345,14 @@
         });
         return best;
     }
+    /**
+     * 순수 함수 - 숙소 예약 사이트에 넘길 검색어: 찾은 말에 산 이름(…산 · …봉 낱말)이 있으면 그것, 없으면 찾은 곳 이름(place).
+     * 2026-11-04 홍TV님: "월출산 천황사" 로 찾으면 트립닷컴에 "천황사" 가 넘어가 결과가 없었음 - "월출산 만 넣어". 좌표는 찾은 곳(천황사) 그대로.
+     */
+    function stayWord(q, place) {
+        var m = /(?:^|\s)(\S{1,12}?(?:산|봉))(?=\s|$)/.exec(String(q || ""));
+        return m ? m[1] : place;
+    }
     function staySearch(form, out, partnersP, base, en) {
         if (!form || !out || form.rfBound) return;
         form.rfBound = true;
@@ -1368,7 +1376,7 @@
         function areaOf(a) { var m = /(?:^|\s)(\S+(?:군|구|시))(?=\s)/.exec(" " + String(a || "").replace(/^\S+(?:도|특별시|광역시|특별자치시|특별자치도)\s+/, "") + " "); return m ? m[1] : ""; }
         // 아고다 도시 번호표(tools/agoda-cities 로 만듦) - 없으면 그대로(도시 번호 없이)
         // 찾기를 누를 때 한 번 받고 기다림(2026-10-30 - 화면을 열자마자 받으면 다 받기 전에 누른 찾기는 도시 번호 없이 열렸음, 안 찾는 사람은 안 받음)
-        var cities = null, citiesP = null;
+        var cities = null, citiesP = null, lastQ = "";
         function loadCities() {
             if (!citiesP) citiesP = fetch(base + "data/agoda-cities.json").then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { cities = j && j.cities; }).catch(function () { /* 없음 - 도시 번호 없이 */ });
             return citiesP;
@@ -1441,7 +1449,7 @@
                 });
                 out.appendChild(alt);
             }
-            links(p, pl.name, pl.lat, pl.lon, areaOf(pl.addr), agodaCity(pl.lat, pl.lon));
+            links(p, stayWord(lastQ, pl.name), pl.lat, pl.lon, areaOf(pl.addr), agodaCity(pl.lat, pl.lon));   // 트립닷컴 · 호텔스컴바인 · 카카오맵 검색어는 산 이름(있으면)
             var list = el("ul", null, "wl ssList");
             list.appendChild(el("li", T("근처 숙소를 찾는 중…", "Finding lodging nearby…")));
             out.appendChild(list);
@@ -1476,6 +1484,7 @@
             e.preventDefault();
             if (det && !det.open) det.open = true;   // 결과가 보이게
             var q = String(input.value || "").trim();
+            lastQ = q;
             if (q.length < 2) { out.textContent = T("장소 이름을 두 글자 넘게 적어 주세요(예: 산청군청).", "Enter a place name (e.g. Sancheong County Office in Korean: 산청군청)."); input.focus(); return; }
             out.textContent = T("찾는 중…", "Searching…");
             var my = ++seq;
@@ -6264,7 +6273,7 @@
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },
         cellCenter: cellCenter, warnName: warnName, safetyRows: safetyRows, safetyAlert: safetyAlert, safetyRender: safetyRender,
         setLang: setLang, isEn: isEn, tr: tr, pageLang: pageLang, applyEn: applyEn,
-        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, cleanTrack: cleanTrack, recDist: recDist, dropLog: dropLog, recordLines: recordLines, recordHighest: recordHighest, partyAlerts: partyAlerts, afterHikeLinks: afterHikeLinks, afterHikeGear: afterHikeGear, rosterRead: rosterRead, leadSteps: leadSteps, boardingCard: boardingCard, npStampKey: npStampKey, npStampsOn: npStampsOn, npStampsDue: npStampsDue, tripLink: tripLink, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, regionEn: regionEn, weekendWordEn: weekendWordEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox, LEVELS: LEVELS, difficulty: difficulty, boardSegments: boardSegments, boardProfile: boardProfile, nameEnds: nameEnds, boardButtons: boardButtons, levelChip: levelChip, officialLevel: officialLevel, erKindEn: erKindEn, mapLocale: mapLocale, roman: roman, enName: enName, weekendText: weekendText, boardHere: boardHere, slopeBetween: slopeBetween, recentAdd: recentAdd, recentPages: recentPages, recentFold: recentFold, compareRows: compareRows, compareButtons: compareButtons, steepest: steepest, officialEleAt: officialEleAt, stampRadius: stampRadius, stillCheck: stillCheck, windChill: windChill, windNote: windNote, paceProfile: paceProfile, paceAt: paceAt, paceDistAt: paceDistAt, paceText: paceText, fortune: fortune, fortuneDay: fortuneDay, supportLine: supportLine, featuredCard: featuredCard, featuredPick: featuredPick, socarLine: socarLine, esimLine: esimLine, stayLinks: stayLinks, stayMapLink: stayMapLink, stayKindEn: stayKindEn, summitFirst: summitFirst, listBest: listBest, courseGaps: courseGaps, gapLines: gapLines, shownGaps: shownGaps, infoPartial: infoPartial, joinedCourse: joinedCourse, toApi: toApi, partBases: partBases, fixPart: fixPart, applyHead: applyHead, joinHashExtra: joinHashExtra, favJoinExtra: favJoinExtra, partAnswers: partAnswers, stayTiles: stayTiles, staySearch: staySearch, nearCity: nearCity, dayKey: dayKey, anbuPlan: anbuPlan, anbuText: anbuText, anbuSms: anbuSms, telClean: telClean, telFormat: telFormat, UNITS: UNITS, unitConv: unitConv, unitFmt: unitFmt, dayNo: dayNo, dayYmd: dayYmd, ageInfo: ageInfo, dDay: dDay, dateAdd: dateAdd, dateDiff: dateDiff, pctCalc: pctCalc, dutchPay: dutchPay, textCount: textCount, smsKind: smsKind, compassHeading: compassHeading, SOS_PATTERN: SOS_PATTERN, fxConv: fxConv, toLunar: toLunar, fromLunar: fromLunar, nextLunarBirthday: nextLunarBirthday, leapMonth: leapMonth, moonPhase: moonPhase, MOON_NAMES: MOON_NAMES, interestCalc: interestCalc, vatCalc: vatCalc, bmiInfo: bmiInfo, discomfort: discomfort, nameRoman: nameRoman, tzOffsetMin: tzOffsetMin, ladderMake: ladderMake, ladderTrace: ladderTrace, holidayRuns: holidayRuns, calcEval: calcEval, mobileOnlyUrl: mobileOnlyUrl, summitCard: summitCard, trackClimb: trackClimb,
+        favList: favList, isFav: isFav, favToggle: favToggle, favButton: favButton, recordStats: recordStats, BACKUP_KEYS: BACKUP_KEYS, backupCheck: backupCheck, mergeRecords: mergeRecords, mergeStore: mergeStore, photoIds: photoIds, cleanTrack: cleanTrack, recDist: recDist, dropLog: dropLog, recordLines: recordLines, recordHighest: recordHighest, partyAlerts: partyAlerts, afterHikeLinks: afterHikeLinks, afterHikeGear: afterHikeGear, rosterRead: rosterRead, leadSteps: leadSteps, boardingCard: boardingCard, npStampKey: npStampKey, npStampsOn: npStampsOn, npStampsDue: npStampsDue, tripLink: tripLink, airText: airText, gearList: gearList, COUPANG_NOTE: COUPANG_NOTE, airForecastText: airForecastText, dayLabel: dayLabel, midLines: midLines, tempRange: tempRange, planText: planText, centerPoints: centerPoints, fireNote: fireNote, msToTop: msToTop, sunriseStart: sunriseStart, logEntry: logEntry, mergeLog: mergeLog, periodStats: periodStats, EASY: EASY, easyOk: easyOk, dotMap: dotMap, langToggle: langToggle, foldOne: foldOne, wfEn: wfEn, regionEn: regionEn, weekendWordEn: weekendWordEn, peakMilestones: peakMilestones, saveOffline: saveOffline, savedPages: savedPages, offlineBox: offlineBox, LEVELS: LEVELS, difficulty: difficulty, boardSegments: boardSegments, boardProfile: boardProfile, nameEnds: nameEnds, boardButtons: boardButtons, levelChip: levelChip, officialLevel: officialLevel, erKindEn: erKindEn, mapLocale: mapLocale, roman: roman, enName: enName, weekendText: weekendText, boardHere: boardHere, slopeBetween: slopeBetween, recentAdd: recentAdd, recentPages: recentPages, recentFold: recentFold, compareRows: compareRows, compareButtons: compareButtons, steepest: steepest, officialEleAt: officialEleAt, stampRadius: stampRadius, stillCheck: stillCheck, windChill: windChill, windNote: windNote, paceProfile: paceProfile, paceAt: paceAt, paceDistAt: paceDistAt, paceText: paceText, fortune: fortune, fortuneDay: fortuneDay, supportLine: supportLine, featuredCard: featuredCard, featuredPick: featuredPick, socarLine: socarLine, esimLine: esimLine, stayLinks: stayLinks, stayMapLink: stayMapLink, stayKindEn: stayKindEn, summitFirst: summitFirst, listBest: listBest, courseGaps: courseGaps, gapLines: gapLines, shownGaps: shownGaps, infoPartial: infoPartial, joinedCourse: joinedCourse, toApi: toApi, partBases: partBases, fixPart: fixPart, applyHead: applyHead, joinHashExtra: joinHashExtra, favJoinExtra: favJoinExtra, partAnswers: partAnswers, stayTiles: stayTiles, staySearch: staySearch, stayWord: stayWord, nearCity: nearCity, dayKey: dayKey, anbuPlan: anbuPlan, anbuText: anbuText, anbuSms: anbuSms, telClean: telClean, telFormat: telFormat, UNITS: UNITS, unitConv: unitConv, unitFmt: unitFmt, dayNo: dayNo, dayYmd: dayYmd, ageInfo: ageInfo, dDay: dDay, dateAdd: dateAdd, dateDiff: dateDiff, pctCalc: pctCalc, dutchPay: dutchPay, textCount: textCount, smsKind: smsKind, compassHeading: compassHeading, SOS_PATTERN: SOS_PATTERN, fxConv: fxConv, toLunar: toLunar, fromLunar: fromLunar, nextLunarBirthday: nextLunarBirthday, leapMonth: leapMonth, moonPhase: moonPhase, MOON_NAMES: MOON_NAMES, interestCalc: interestCalc, vatCalc: vatCalc, bmiInfo: bmiInfo, discomfort: discomfort, nameRoman: nameRoman, tzOffsetMin: tzOffsetMin, ladderMake: ladderMake, ladderTrace: ladderTrace, holidayRuns: holidayRuns, calcEval: calcEval, mobileOnlyUrl: mobileOnlyUrl, summitCard: summitCard, trackClimb: trackClimb,
         startChecks: startChecks, backupNag: backupNag, bragShare: bragShare
     };
 })(window);
