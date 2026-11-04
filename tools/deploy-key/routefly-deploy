@@ -1,12 +1,19 @@
 #!/bin/bash
 # 배포 전용 열쇠(deploy 계정)로 들어오면 이 스크립트만 돕니다(authorized_keys 의 command=, docs/deploy-key.md).
-# 셸 · 파일 보기 · 터널은 막혀 있고, 보낸 명령(SSH_ORIGINAL_COMMAND)은 아래 셋만 받습니다.
+# 셸 · 파일 보기 · 터널은 막혀 있고, 보낸 명령(SSH_ORIGINAL_COMMAND)은 아래만 받습니다.
 #   deploy   - 표준 입력으로 받은 war 를 운영 routefly.war 로(바로 앞 것은 되돌리기용으로 남김)
 #   rollback - 바로 앞 war 로 되돌림
 #   status   - 지금 war 크기 · 시각 · 지문, 최근 배포 기록
+# 배치(2026-11-04 홍TV님 "폰에서 PC Claude 에게 배치 배포를 시키자" - 메인 열쇠 없이):
+#   batch-deploy                 - 표준 입력으로 받은 routefly-batch.jar 를 /app/routefly/batch/deploy/lib 로(바로 앞 것은 남김)
+#   batch-rollback               - 바로 앞 jar 로 되돌림
+#   batch-run <배치> [--force] [--allowDelete=N] - 그 배치 하나를 --once 로 뒤에서 돌림(정기 회차 · 다른 손 실행이 돌면 거절)
+#   batch-status [<배치>]        - jar 지문, 도는 중인지, 그 배치 로그 끝 줄
 set -euo pipefail
 umask 077
 MAX=104857600   # 100MB
+JMAX=52428800   # 배치 jar 50MB
+BATCH='(courseImport|forestTrail|durunubi|osmBike|osmHike|komount|knpsTrail|knpsSign|knpsSpot)'
 cmd="${SSH_ORIGINAL_COMMAND:-}"
 case "$cmd" in
   deploy)
@@ -17,5 +24,20 @@ case "$cmd" in
     ;;
   rollback) sudo -n /usr/local/sbin/routefly-war-install rollback ;;
   status)   sudo -n /usr/local/sbin/routefly-war-install status ;;
-  *) echo "이 열쇠로는 deploy · rollback · status 만 됩니다." >&2; exit 2 ;;
+  batch-deploy)
+    tmp=$(mktemp /tmp/rfjar.XXXXXXXX)
+    trap 'rm -f "$tmp"' EXIT
+    head -c "$((JMAX + 1))" > "$tmp"
+    sudo -n /usr/local/sbin/routefly-war-install batch-deploy "$tmp"
+    ;;
+  batch-rollback) sudo -n /usr/local/sbin/routefly-war-install batch-rollback ;;
+  *)
+    # 배치 이름 · 선택은 정해진 모양만(다른 글자가 끼면 거절) - 낱말로 나눠 그대로 넘김
+    if [[ "$cmd" =~ ^batch-run\ $BATCH(\ --force)?(\ --allowDelete=[0-9]{1,5})?$ ]] || [[ "$cmd" =~ ^batch-status(\ $BATCH)?$ ]]; then
+      read -r -a words <<< "$cmd"
+      sudo -n /usr/local/sbin/routefly-war-install "${words[@]}"
+    else
+      echo "이 열쇠로는 deploy · rollback · status · batch-deploy · batch-rollback · batch-run · batch-status 만 됩니다." >&2; exit 2
+    fi
+    ;;
 esac

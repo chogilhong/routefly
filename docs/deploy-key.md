@@ -7,6 +7,7 @@
 
 - 이 열쇠로 들어오면 `/usr/local/bin/routefly-deploy` 만 돕니다(authorized_keys 의 `restrict,command=`). 셸 · 파일 보기 · 터널 · scp 는 안 됩니다.
 - 받는 명령은 셋: `deploy`(표준 입력의 war 를 운영으로), `rollback`(바로 앞 war 로), `status`(지금 · 앞 war, 최근 기록 5줄).
+- 배치(2026-11-04 홍TV님 "폰에서 PC Claude 에게 배치 배포") - 아래 "배치" 장: `batch-deploy` · `batch-rollback` · `batch-run <배치> [--force] [--allowDelete=N]` · `batch-status [<배치>]`.
 - `deploy` 는 1MB ~ 100MB 이고, zip 이 온전하고, `WEB-INF/classes/com/gh/routefly/web/RouteflyConfig.class` 가 들어 있어야 받습니다.
   바꾸기 전 war 는 `/var/backups/routefly-war/routefly.war.prev` 에 남기고, 기록은 `/var/log/routefly-deploy.log`(시각 · 크기 · sha256 앞 12자, 시각은 한국 시간 - 2026-10-27 확인, 앞서 UTC 로 적은 것은 잘못).
 - root 로 도는 부분은 `/usr/local/sbin/routefly-war-install` 하나이고, sudoers 는 deploy 계정에 그 파일만 허용합니다.
@@ -48,6 +49,25 @@ cmd /c "ssh -i C:\GH\workspace\.deploy-key\routefly_deploy deploy@routefly.kr ro
 ```
 
 배포 뒤에는 늘 하던 대로 운영 파일이 저장소 판과 같은지 · sw 캐시 이름 · `/api/party/status` · 콘솔 오류를 봅니다.
+
+## 배치 (2026-11-04)
+
+메인 열쇠 없이 배치 jar 를 올리고 배치 하나를 돌립니다. PC 에서는 routefly-batch 저장소의 `bin\deploy-batch.ps1` 이 이 명령들을 부릅니다.
+
+```
+powershell -NoProfile -ExecutionPolicy Bypass -File C:\GH\workspace\routefly-batch\bin\deploy-batch.ps1 -Batches forestTrail
+  -NoUpload(돌리기만) · -Force · -AllowDelete N(홍TV님 승인 뒤, 배치 하나일 때만) · -Status forestTrail · -Rollback
+```
+
+- `batch-deploy`: 표준 입력의 jar(10KB ~ 50MB, zip 이 온전하고 `com/gh/routefly/batch/RouteflyBatch.class` 가 있어야)를
+  `/app/routefly/batch/deploy/lib/routefly-batch.jar`(root:routefly 640, 9-2 · 9-4 와 같게)로. 앞 jar 는 `/var/backups/routefly-war/routefly-batch.jar.prev`.
+  `/app/routefly/batch` 아래는 routefly 계정 것이라 폴더를 / 부터 한 칸씩 링크를 따라가지 않고 엽니다(배치가 뚫려 폴더를 링크로 바꿔 둬도 다른 곳에 쓰지 않게).
+- `batch-run`: 배치 이름은 9개만(courseImport · forestTrail · durunubi · osmBike · osmHike · komount · knpsTrail · knpsSign · knpsSpot), 선택은 `--force` · `--allowDelete=숫자` 만.
+  정기 회차(routefly-batch.service)나 다른 손 실행이 돌면 거절(끝 코드 4). 뒤에서 `routefly-once-<배치>` 단위로 돌고(ssh 는 바로 돌아옴),
+  도는 동안 정기 타이머를 멈췄다가 끝나면 다시 켭니다(bin/server-forest-force.ps1 과 같게). 배치는 routefly 계정으로.
+- `batch-status`: 지금 · 앞 jar 지문, 정기 회차 · 손 실행이 도는지, 배치를 주면 그 로그 끝 20줄(routefly 계정으로 읽음), 최근 기록 5줄.
+- 기록은 war 와 같은 `/var/log/routefly-deploy.log`("배치 jar …" · "배치 시작 …" · "배치 끝 … 끝 코드 N").
+- 처음 한 번: 위 "서버에 설치" 를 다시 하면 됩니다(같은 열쇠 그대로 - 스크립트 두 개만 바뀜).
 
 ## 없애기 (홍TV님, 메인 열쇠로)
 

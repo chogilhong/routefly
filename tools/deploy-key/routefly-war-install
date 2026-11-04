@@ -8,6 +8,12 @@ WAR=$WEBAPPS/routefly.war
 KEEP=/var/backups/routefly-war
 LOG=/var/log/routefly-deploy.log
 MIN=1000000; MAX=104857600
+# 배치(2026-11-04): jar 는 /app/routefly/batch/deploy/lib/routefly-batch.jar(root:routefly 640 - docs/deploy-lightsail.md 9-2 · 9-4 와 같게)
+BHOME=/app/routefly/batch
+BLIB=$BHOME/deploy/lib
+JAR_KEEP=$KEEP/routefly-batch.jar.prev
+JMIN=10000; JMAX=52428800
+BATCH='^(courseImport|forestTrail|durunubi|osmBike|osmHike|komount|knpsTrail|knpsSign|knpsSpot)$'
 mkdir -p "$KEEP"; chmod 700 "$KEEP"
 log() { echo "$(date '+%F %T') $*" >> "$LOG"; echo "$*"; }
 # 2026-11-03 홍TV님 보안 점검: webapps 는 tomcat 계정 폴더라 routefly.war · 임시 파일을 바로 가기 링크로 바꿔 둘 수 있음 -
@@ -47,6 +53,74 @@ except BaseException:
         pass
     raise
 PY
+}
+# jcopy <원본 경로> <대상 폴더> <이름> <주인> <무리> <권한>: copy 와 같되 원본 · 대상 폴더를 / 부터 한 칸씩 링크를 따라가지 않고 엶.
+# /app/routefly/batch 아래는 routefly 계정 것이라(배치가 뚫리면) 폴더를 바로 가기 링크로 바꿔 둘 수 있음 - root 가 다른 곳에 쓰거나 읽지 않게.
+jcopy() {
+  python3 -I - "$@" <<'PY'
+import grp, os, pwd, secrets, stat, sys
+src, folder, name, owner, group, mode = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], int(sys.argv[6], 8)
+def walk(path):
+    fd = os.open("/", os.O_RDONLY | os.O_DIRECTORY)
+    for part in [p for p in path.split("/") if p]:
+        nfd = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
+        os.close(fd)
+        fd = nfd
+    return fd
+sd = walk(os.path.dirname(src))
+fd = os.open(os.path.basename(src), os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=sd)
+if not stat.S_ISREG(os.fstat(fd).st_mode):
+    sys.exit(1)
+d = walk(folder)
+tmp = "." + name + ".new-" + secrets.token_hex(6)
+out = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=d)
+try:
+    with os.fdopen(fd, "rb") as f, os.fdopen(out, "wb", closefd=False) as o:
+        while True:
+            b = f.read(1 << 20)
+            if not b:
+                break
+            o.write(b)
+    os.fchown(out, pwd.getpwnam(owner).pw_uid, grp.getgrnam(group).gr_gid)
+    os.fchmod(out, mode)
+    os.fsync(out)
+    os.close(out)
+    os.rename(tmp, name, src_dir_fd=d, dst_dir_fd=d)
+    os.fsync(d)
+except BaseException:
+    try:
+        os.unlink(tmp, dir_fd=d)
+    except OSError:
+        pass
+    raise
+PY
+}
+# routefly-batch jar 인가(zip · RouteflyBatch.class) - 링크를 따라가지 않고 / 부터 한 칸씩
+jcheck() {
+  python3 -I - "$1" <<'PY'
+import os, sys, zipfile
+try:
+    fd = os.open("/", os.O_RDONLY | os.O_DIRECTORY)
+    parts = [p for p in sys.argv[1].split("/") if p]
+    for part in parts[:-1]:
+        nfd = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
+        os.close(fd)
+        fd = nfd
+    ffd = os.open(parts[-1], os.O_RDONLY | os.O_NOFOLLOW, dir_fd=fd)
+    with os.fdopen(ffd, "rb") as f:
+        z = zipfile.ZipFile(f)
+        ok = z.testzip() is None and "com/gh/routefly/batch/RouteflyBatch.class" in z.namelist()
+except Exception:
+    ok = False
+sys.exit(0 if ok else 1)
+PY
+}
+# 배치를 손으로 돌리는 systemd 단위 이름(배치마다 하나) - 도는 중인지 볼 때도 씀
+unit() { echo "routefly-once-$1"; }
+anyrun() {   # 정기 회차나 손 실행이 도는가
+  systemctl is-active --quiet routefly-batch.service && return 0
+  systemctl list-units --type=service --state=active --no-legend 'routefly-once-*' 2>/dev/null | grep -q . && return 0
+  return 1
 }
 # routefly war 인가(zip · RouteflyConfig.class) - 받은 것 · 되돌릴 것 모두
 check() {
@@ -109,6 +183,87 @@ PY
   status)
     echo "지금 war: $(info "$WAR")"
     echo "앞 war:   $(info "$KEEP/routefly.war.prev")"
+    echo "최근 기록:"; tail -5 "$LOG" 2>/dev/null || echo "(없음)"
+    ;;
+  batch-deploy)
+    src="${2:-}"
+    [[ "$src" =~ ^/tmp/rfjar\.[A-Za-z0-9]{8}$ ]] || { log "배치 거절: 받은 파일 경로가 이상함"; exit 3; }
+    work=$(mktemp -d /var/tmp/rfjar-in.XXXXXXXX)
+    trap 'rm -rf "$work"' EXIT
+    copied="$work/routefly-batch.jar"
+    python3 -I - "$src" "$copied" "$JMAX" <<'PY' || { log "배치 거절: 받은 파일이 이상함(링크 · 보통 파일 아님 · deploy 것이 아님 · 너무 큼)"; exit 3; }
+import os, pwd, stat, sys
+src, dst, mx = sys.argv[1], sys.argv[2], int(sys.argv[3])
+fd = os.open(src, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+st = os.fstat(fd)
+if not stat.S_ISREG(st.st_mode) or st.st_uid != pwd.getpwnam("deploy").pw_uid or st.st_nlink != 1:
+    sys.exit(1)
+n = 0
+with os.fdopen(fd, "rb") as f, open(dst, "xb") as o:
+    while True:
+        b = f.read(1 << 20)
+        if not b:
+            break
+        n += len(b)
+        if n > mx:
+            sys.exit(1)
+        o.write(b)
+PY
+    size=$(stat -c %s "$copied")
+    [ "$size" -ge "$JMIN" ] && [ "$size" -le "$JMAX" ] || { log "배치 거절: 크기 ${size}B (10KB ~ 50MB 만)"; exit 3; }
+    jcheck "$copied" || { log "배치 거절: routefly-batch jar 가 아님(zip 이 아니거나 RouteflyBatch.class 없음)"; exit 3; }
+    if jcheck "$BLIB/routefly-batch.jar"; then jcopy "$BLIB/routefly-batch.jar" "$KEEP" routefly-batch.jar.prev root root 600 || { log "배치 거절: 지금 jar 를 남기지 못함"; exit 3; }; fi
+    jcopy "$copied" "$BLIB" routefly-batch.jar root routefly 640
+    log "배치 jar $(info "$BLIB/routefly-batch.jar") (앞 것은 $JAR_KEEP, 도는 회차는 끝까지 예전 jar)"
+    ;;
+  batch-rollback)
+    nolink "$JAR_KEEP"
+    jcheck "$JAR_KEEP" || { log "배치 되돌리기 거절: 앞 jar 가 없거나 routefly-batch jar 가 아님"; exit 3; }
+    jcopy "$JAR_KEEP" "$BLIB" routefly-batch.jar root routefly 640
+    log "배치 jar 되돌림 $(info "$BLIB/routefly-batch.jar")"
+    ;;
+  batch-run)
+    name="${2:-}"
+    [[ "$name" =~ $BATCH ]] || { log "배치 거절: 배치 이름이 이상함"; exit 3; }
+    args=(--once="$name")
+    for a in "${@:3}"; do
+      [[ "$a" =~ ^(--force|--allowDelete=[0-9]{1,5})$ ]] || { log "배치 거절: 선택이 이상함"; exit 3; }
+      args+=("$a")
+    done
+    if anyrun; then log "배치 거절: 정기 회차나 다른 손 실행이 도는 중 - 끝난 뒤 다시"; exit 4; fi
+    systemctl reset-failed "$(unit "$name").service" 2>/dev/null || true
+    # 뒤에서(ssh 는 바로 돌아옴) 아래 batch-once-inner 를 root 로 - 그 안에서 정기 타이머를 멈추고 routefly 계정으로 배치를 돌린 뒤 타이머를 다시 켬
+    # (routefly-batch 의 bin/server-forest-force.ps1 과 같게 - 도는 동안 :07 정기 회차가 같은 배치를 함께 돌리지 않게). 배치는 정기 회차처럼 routefly 계정 · umask 0027
+    systemd-run --unit="$(unit "$name")" --collect --quiet \
+      -p WorkingDirectory="$BHOME" -p ProtectHome=true -p PrivateTmp=true -p UMask=0027 \
+      /usr/local/sbin/routefly-war-install batch-once-inner "${args[@]}"
+    log "배치 시작 ${args[*]} (끝났는지는 batch-status $name)"
+    ;;
+  batch-once-inner)
+    # systemd 가 부를 때만(INVOCATION_ID 는 systemd 가 넣고 sudo 는 지움 - deploy 계정이 바로 부르지 못함)
+    [ -n "${INVOCATION_ID:-}" ] || exit 2
+    [[ "${2:-}" =~ ^--once=(courseImport|forestTrail|durunubi|osmBike|osmHike|komount|knpsTrail|knpsSign|knpsSpot)$ ]] || exit 3
+    for a in "${@:3}"; do [[ "$a" =~ ^(--force|--allowDelete=[0-9]{1,5})$ ]] || exit 3; done
+    timer=0
+    if systemctl is-active --quiet routefly-batch.timer; then timer=1; systemctl stop routefly-batch.timer; fi
+    trap '[ "$timer" = 1 ] && systemctl start routefly-batch.timer' EXIT
+    rc=0
+    cd "$BHOME"   # 위의 cd / 대신 - 정기 회차(WorkingDirectory=/app/routefly/batch)와 같은 자리에서
+    runuser -u routefly -- "$BHOME/bin/routefly-batch.sh" "${@:2}" || rc=$?
+    log "배치 끝 ${*:2} 끝 코드 $rc$( [ "$timer" = 1 ] && echo ' (정기 타이머 다시 켬)' )"
+    exit "$rc"
+    ;;
+  batch-status)
+    echo "배치 jar: $(info "$BLIB/routefly-batch.jar")"
+    echo "앞 jar:   $(info "$JAR_KEEP")"
+    if systemctl is-active --quiet routefly-batch.service; then echo "정기 회차: 도는 중"; else echo "정기 회차: 쉬는 중"; fi
+    systemctl list-units --type=service --state=active --no-legend 'routefly-once-*' 2>/dev/null | awk '{print "손 실행 도는 중: " $1}'
+    name="${2:-}"
+    if [ -n "$name" ]; then
+      [[ "$name" =~ $BATCH ]] || exit 3
+      # 로그 폴더는 routefly 것이라 root 가 아니라 routefly 로 읽음(폴더를 링크로 바꿔 둬도 routefly 가 못 읽는 파일은 안 나옴)
+      echo "$name 로그 끝 20줄:"; runuser -u routefly -- tail -n 20 "$BHOME/logs/batch/${name,,}.log" 2>/dev/null || echo "(없음)"
+    fi
     echo "최근 기록:"; tail -5 "$LOG" 2>/dev/null || echo "(없음)"
     ;;
   *) exit 2 ;;
