@@ -265,7 +265,8 @@
      * 순수 함수 - 트립닷컴 제휴 링크(설정 partner.trip.url)를 들머리 근처 숙소 검색으로(2026-10-28 홍TV님 "들머리 근처 숙소가 나와야").
      * PC 가 kr.trip.com 에서 확인한 꼴: /hotels/list?cityId=0&searchType=LM&searchWord=이름&searchValue=13|0*13*위도|경도|이름|0|1
      * (cityId 가 없으면 0개, lat · lon 쿼리는 무시됨). 제휴 꼬리(Allianceid · SID · trip_sub1 · curr · locale 등)는 그대로 붙임.
-     * listFilters=17~5*17*5 - 직선거리 가까운 순(17 = 정렬, 5 = 직선거리, 2026-10-28 PC 확인 - 붙이면 둘레 숙소만 남음).
+     * listFilters=17~5*17*5(직선거리 가까운 순 - 붙이면 둘레 숙소만 남음, 2026-10-28 PC)는 뺌(2026-11-04 홍TV님: 월출산 홍계골처럼 공원 안쪽 끝은
+     * 둘레에 숙소가 없어 빈 결과 - 빼니 "월출산" 근처 숙소가 나옴).
      * trip.com 주소가 아니면 null. name 은 숙소 카드의 "{이름}에서 직선 거리" 에 나옴.
      */
     /**

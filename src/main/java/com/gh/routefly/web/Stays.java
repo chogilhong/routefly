@@ -39,7 +39,7 @@ final class Stays {
         if (nm.isEmpty()) nm = "들머리";
         String la = String.format(Locale.ROOT, "%.6f", lat), lo = String.format(Locale.ROOT, "%.6f", lon);
         List<String> parts = new ArrayList<>(List.of("cityId=0", "searchType=LM", "searchWord=" + enc(nm),
-                "searchValue=" + enc("13|0*13*" + la + "|" + lo + "|" + nm + "|0|1"), "listFilters=17~5*17*5"));
+                "searchValue=" + enc("13|0*13*" + la + "|" + lo + "|" + nm + "|0|1")));   // 가까운 순(listFilters 17~5)은 뺌 - 공원 안쪽 끝은 빈 결과(2026-11-04 홍TV님 월출산)
         parts.addAll(keep);
         return "https://" + m.group(1).toLowerCase(Locale.ROOT) + "/hotels/list?" + String.join("&", parts);
     }
