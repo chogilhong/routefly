@@ -179,8 +179,30 @@ public class CoursePageServlet extends HttpServlet {
         };
     }
 
-    /** 순수 함수 - 예상 시간 글. 자전거는 시속 15km, 그 밖은 산 페이지와 같은 등산 표준(시속 4km · 오르막 600m 에 1시간 · 내리막 300m 에 10분 - 2026-11-03 홍TV님). */
-    static String timeText(String kind, int distM, Integer ascM, Integer descM) {
+    /** 공단 오름 시간이 선 1km 에 이보다 길면 선이 공식 구간의 일부(course-kit.js INFO_PART_MIN_PER_KM 와 같음). */
+    static final int INFO_PART_MIN_PER_KM = 65;
+
+    /**
+     * 순수 함수 - 이 선의 국립공원 공식 시간(분): 오르는 시간(코스 방향), 없으면 내려오는 시간. 공식 시간이 더 긴 공식 구간 것이면
+     * (선 1km 에 65분 넘음 - course-kit infoPartial 과 같은 기준) null.
+     * 2026-11-04 홍TV님: "월출산 · 구정봉 → 홍계골" 1.49km 하산 - 어림 34분, 공단 52분, 실제 안내 45분 ~ 1시간.
+     */
+    static Integer officialMin(JsonObject info, int distM) {
+        if (info == null || distM <= 0) return null;
+        Integer up = num(info, "up_min"), down = num(info, "down_min");
+        Integer m = up != null && up > 0 ? up : down != null && down > 0 ? down : null;
+        return m == null || m / (distM / 1000.0) > INFO_PART_MIN_PER_KM ? null : m;
+    }
+
+    /**
+     * 순수 함수 - 예상 시간 글. 국립공원 공식 시간(officialMin)이 있으면 그것(2026-11-04 홍TV님 - 가파른 하산은 어림이 짧음),
+     * 자전거는 시속 15km, 그 밖은 산 페이지와 같은 등산 표준(시속 4km · 오르막 600m 에 1시간 · 내리막 300m 에 10분 - 2026-11-03 홍TV님).
+     */
+    static String timeText(String kind, int distM, Integer ascM, Integer descM, Integer officialMin) {
+        if (officialMin != null && !"bike".equals(kind)) {
+            int h = officialMin / 60, m = officialMin % 60;
+            return "약 " + (h > 0 ? h + "시간" + (m > 0 ? " " : "") : "") + (m > 0 || h == 0 ? m + "분" : "") + "(국립공원 공식 안내)";
+        }
         if ("bike".equals(kind)) {
             long m = Math.round(distM / 1000.0 / 15 * 60);
             return "약 " + (m >= 60 ? m / 60 + "시간 " : "") + m % 60 + "분(시속 15km 어림)";
@@ -284,7 +306,7 @@ public class CoursePageServlet extends HttpServlet {
         boolean hike = "hike".equals(kind) || CourseQueries.TREK.equals(kind);
         String url = base + "/c/" + id;
         String summary = String.format(Locale.ROOT, "%.2fkm", d / 1000.0) + (asc != null ? String.format(Locale.KOREA, " · 오르막 %,dm", asc) : "")
-                + " · " + timeText(kind, d, asc, desc).replaceFirst("\\(.*\\)$", "");
+                + " · " + timeText(kind, d, asc, desc, officialMin(info, d)).replaceFirst("\\(.*\\)$", "");
         String title = name + (name.endsWith("코스") ? "" : " " + kl + " 코스");
         String metaDesc = name + " - " + kl + " 코스 " + summary + ". 고도 그림 · 지나는 곳 · 가는 길, 3D 지형 위로 미리 날아 보고 핸드폰으로 따라 걷기.";
         StringBuilder b = new StringBuilder(MountainServlet.head(title, metaDesc, url, base, null, null, index));
@@ -300,7 +322,7 @@ public class CoursePageServlet extends HttpServlet {
         b.append("<dl class=\"sum\"><dt>거리</dt><dd>").append(String.format(Locale.ROOT, "%.2fkm", d / 1000.0)).append("</dd>");
         if (asc != null) b.append("<dt>오르막 · 내리막</dt><dd>").append(String.format(Locale.KOREA, "%,dm", asc)).append(desc != null ? String.format(Locale.KOREA, " · %,dm", desc) : "").append("</dd>");
         if (hi != null) b.append("<dt>높이</dt><dd>").append(lo != null ? String.format(Locale.KOREA, "%,dm ~ ", lo) : "").append(String.format(Locale.KOREA, "%,dm", hi)).append("</dd>");
-        b.append("<dt>예상 시간</dt><dd>").append(timeText(kind, d, asc, desc)).append("</dd>");
+        b.append("<dt>예상 시간</dt><dd>").append(timeText(kind, d, asc, desc, officialMin(info, d))).append("</dd>");
         if (hike) {
             String lvOff = info != null ? str(info, "level") : null;   // 공단 난이도가 있으면 그것 하나(2026-11-03 홍TV님 점검: 두 난이도가 엇갈렸음)
             String chip = lvOff != null && !lvOff.isBlank() ? MountainServlet.officialChip(lvOff) : MountainServlet.levelChip(d, asc, steep, false);

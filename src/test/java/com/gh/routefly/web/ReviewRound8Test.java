@@ -35,7 +35,7 @@ public class ReviewRound8Test {
         assertFalse(qa.contains("따로 더하세요"));
         String en = MountainEn.faq(peak, "Gasan", cs, null).get(1)[1];
         assertTrue(en, en.contains("About 2 h 2 min one way to the summit, or about 3 h 28 min there and back") && en.contains("10 min per 300 m down"));
-        assertEquals("코스 페이지도 같은 기준", "약 2시간 2분(시속 4km · 오르막 600m 에 1시간 · 내리막 300m 에 10분 어림)", CoursePageServlet.timeText("hike", 4000, 600, 60));
+        assertEquals("코스 페이지도 같은 기준", "약 2시간 2분(시속 4km · 오르막 600m 에 1시간 · 내리막 300m 에 10분 어림)", CoursePageServlet.timeText("hike", 4000, 600, 60, null));
         String page = MountainServlet.page(peak, cs, new ArrayList<>(), null, "");
         assertTrue("코스 줄에 data-desc(화면 js 의 거르기 · 일출 출발이 내리막도)", page.contains("data-asc=\"600\" data-desc=\"60\""));
         assertTrue(page.contains(" · 약 2시간 2분"));

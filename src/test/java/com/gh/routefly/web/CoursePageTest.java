@@ -111,7 +111,7 @@ public class CoursePageTest {
         assertTrue(html.contains("rel=\"canonical\" href=\"https://routefly.kr/routefly/c/knps-77\""));
         assertFalse("검색에 냄", html.contains("noindex"));
         assertTrue("산 페이지로 돌아가기", html.contains("<a href=\"../m/%EB%B6%81%ED%95%9C%EC%82%B0\">‹ 북한산</a>"));
-        assertTrue("예상 시간", html.contains("약 2시간 18분"));
+        assertTrue("예상 시간 - 공단 오르는 시간이 있으면 그것(2026-11-04 홍TV님)", html.contains("<dd>약 2시간(국립공원 공식 안내)</dd>") && !html.contains("약 2시간 18분"));
         assertTrue("오르막 · 내리막", html.contains("779m · 12m"));
         assertTrue("공식 안내", html.contains("오르는 시간 120분 · 내려오는 시간 90분") && html.contains("난이도 어려움"));
         assertTrue("3D · 따라가기", html.contains("\"../index.html?lang=ko#c=knps-77&amp;m=%EB%B6%81%ED%95%9C%EC%82%B0\"")
