@@ -9,6 +9,7 @@
 #   batch-rollback               - 바로 앞 jar 로 되돌림
 #   batch-run <배치> [--force] [--allowDelete=N] - 그 배치 하나를 --once 로 뒤에서 돌림(정기 회차 · 다른 손 실행이 돌면 거절)
 #   batch-status [<배치>]        - jar 지문, 도는 중인지, 그 배치 로그 끝 줄
+#   batch-log <배치> <낱말>      - 그 배치 오늘 로그에서 낱말이 든 줄 끝 40개(낱말은 한글 · 영문 · 숫자 · . _ - 만, 30자 안)
 set -euo pipefail
 umask 077
 MAX=104857600   # 100MB
@@ -33,11 +34,12 @@ case "$cmd" in
   batch-rollback) sudo -n /usr/local/sbin/routefly-war-install batch-rollback ;;
   *)
     # 배치 이름 · 선택은 정해진 모양만(다른 글자가 끼면 거절) - 낱말로 나눠 그대로 넘김
-    if [[ "$cmd" =~ ^batch-run\ $BATCH(\ --force)?(\ --allowDelete=[0-9]{1,5})?$ ]] || [[ "$cmd" =~ ^batch-status(\ $BATCH)?$ ]]; then
+    if [[ "$cmd" =~ ^batch-run\ $BATCH(\ --force)?(\ --allowDelete=[0-9]{1,5})?$ ]] || [[ "$cmd" =~ ^batch-status(\ $BATCH)?$ ]] \
+       || [[ "$cmd" =~ ^batch-log\ $BATCH\ [^[:space:]]+$ ]]; then
       read -r -a words <<< "$cmd"
       sudo -n /usr/local/sbin/routefly-war-install "${words[@]}"
     else
-      echo "이 열쇠로는 deploy · rollback · status · batch-deploy · batch-rollback · batch-run · batch-status 만 됩니다." >&2; exit 2
+      echo "이 열쇠로는 deploy · rollback · status · batch-deploy · batch-rollback · batch-run · batch-status · batch-log 만 됩니다." >&2; exit 2
     fi
     ;;
 esac

@@ -266,5 +266,13 @@ PY
     fi
     echo "최근 기록:"; tail -5 "$LOG" 2>/dev/null || echo "(없음)"
     ;;
+  batch-log)
+    name="${2:-}"; word="${3:-}"
+    [[ "$name" =~ $BATCH ]] || exit 3
+    # 낱말은 한글 · 영문 · 숫자 · . _ - 만(grep -F 로 글자 그대로 찾음 - 정규식 · 셸 글자 없음)
+    python3 -I -c 'import re,sys; sys.exit(0 if re.fullmatch(r"[0-9A-Za-z가-힣._-]{1,30}", sys.argv[1]) else 1)' "$word" || { echo "낱말은 한글 · 영문 · 숫자 · . _ - 30자 안"; exit 3; }
+    echo "$name 로그에서 \"$word\" 든 줄(끝 40개):"
+    runuser -u routefly -- grep -F -- "$word" "$BHOME/logs/batch/${name,,}.log" 2>/dev/null | tail -n 40 || true
+    ;;
   *) exit 2 ;;
 esac
