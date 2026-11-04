@@ -81,14 +81,14 @@ final class MountainEn {
             JsonObject lo = null, hi = null;
             double loH = Double.MAX_VALUE, hiH = -1;
             for (JsonObject c : courses) {
-                double h = MountainServlet.hoursOf(c.get("distance_m").getAsInt());
+                double h = MountainServlet.minutesOf(c);
                 if (h < loH) { loH = h; lo = c; }
                 if (h > hiH) { hiH = h; hi = c; }
             }
             out.add(new String[] {"How many hiking trails go up " + name + "?", "This page lists " + courses.size() + " trail" + (courses.size() > 1 ? "s" : "")
                     + " to the summit. The shortest is " + courseText(lo) + (courses.size() > 1 ? " and the longest is " + courseText(hi) : "") + "."});
-            out.add(new String[] {"How long does it take to hike " + name + "?", "About " + hours(lo.get("distance_m").getAsInt())
-                    + (courses.size() > 1 ? " to " + hours(hi.get("distance_m").getAsInt()) : "")
+            out.add(new String[] {"How long does it take to hike " + name + "?", "About " + MountainServlet.timeOf(lo, true)
+                    + (courses.size() > 1 ? " to " + MountainServlet.timeOf(hi, true) : "")
                     + " one way to the summit, or about " + MountainServlet.roundTrip(lo, true) + (courses.size() > 1 ? " to " + MountainServlet.roundTrip(hi, true) : "")
                     + " there and back on the same trail (" + RULE_EN + ")."});
         }
@@ -106,7 +106,7 @@ final class MountainEn {
 
     private static String courseText(JsonObject c) {
         return courseName(str(c, "name")) + " (" + String.format(Locale.ROOT, "%.1f km", c.get("distance_m").getAsInt() / 1000.0) + ", about "
-                + hours(c.get("distance_m").getAsInt()) + ")";
+                + MountainServlet.timeOf(c, true) + ")";
     }
 
     private static Integer asc(JsonObject c) {
@@ -154,12 +154,13 @@ final class MountainEn {
                 Integer asc = asc(c), down = MountainServlet.desc(c);
                 Double steep = MountainServlet.steep(c);
                 b.append("<li data-id=\"").append(esc(id)).append("\" data-name=\"").append(esc(str(c, "name"))).append("\" data-dist=\"").append(dist).append(asc != null ? "\" data-asc=\"" + asc : "")
-                        .append(down != null ? "\" data-desc=\"" + down : "").append(steep != null ? "\" data-steep=\"" + steep : "").append("\"><b>")
+                        .append(down != null ? "\" data-desc=\"" + down : "").append(steep != null ? "\" data-steep=\"" + steep : "")
+                        .append(CoursePageServlet.officialMin(c, dist) != null ? "\" data-min=\"" + CoursePageServlet.officialMin(c, dist) : "").append("\"><b>")
                         .append(esc(courseName(str(c, "name")))).append(" ").append(MountainServlet.levelChip(dist, asc, steep, true)).append(" <small lang=\"ko\">").append(esc(str(c, "name"))).append("</small></b>").append(MountainServlet.madeLine(id, true)).append("<span>")
                         .append(String.format(Locale.ROOT, "%.2f km", dist / 1000.0))
                         .append(asc != null ? String.format(Locale.US, " · %,d m ascent", asc) : "")
                         .append(SteepRank.slopeText(dist, asc, steep, true))   // 순위와 같은 기준(2026-10-18)
-                        .append(" · about ").append(hours(dist)).append("</span><span class=\"go\">")
+                        .append(" · about ").append(MountainServlet.timeOf(c, true)).append("</span><span class=\"go\">")
                         .append("<a href=\"").append(REL).append("/index.html?lang=en#c=").append(esc(id)).append("\">3D fly-through</a>")
                         .append("<a href=\"").append(REL).append("/hike.html?lang=en#c=").append(esc(id)).append(MountainServlet.revArg(c)).append("&amp;m=").append(esc(MountainServlet.enc(id(peak)))).append("\">Follow (GPS)</a>");   // 따라가기 영어 · ‹ 는 이 페이지로
                 double[] th = MountainServlet.trailhead(c, peak);

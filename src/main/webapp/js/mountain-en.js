@@ -158,7 +158,8 @@
         if (!span) return;
         var s = document.createElement("small");
         s.className = "sunrise";
-        s.textContent = "🌄 For tomorrow's sunrise (" + clock(rise) + ") at the top, start by " + clock(RF.sunriseStart(rise, RF.standardMs("hike", +li.getAttribute("data-dist") || 0, +li.getAttribute("data-asc") || 0, +li.getAttribute("data-desc") || 0)));
+        s.textContent = "🌄 For tomorrow's sunrise (" + clock(rise) + ") at the top, start by " + clock(RF.sunriseStart(rise, li.getAttribute("data-min") ? +li.getAttribute("data-min") * 60000   // park service time if any(2026-11-04)
+            : RF.standardMs("hike", +li.getAttribute("data-dist") || 0, +li.getAttribute("data-asc") || 0, +li.getAttribute("data-desc") || 0)));
         span.parentNode.insertBefore(s, span.nextSibling);
     });
     function sunLine(dayMs) {

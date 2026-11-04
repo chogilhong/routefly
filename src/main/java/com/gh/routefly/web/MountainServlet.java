@@ -188,11 +188,46 @@ public class MountainServlet extends HttpServlet {
             courses.removeIf(o -> o.has("summit_miss_m") && o.get("summit_miss_m").getAsDouble() > Peaks.HIDE_MISS_M);   // 이름만 이 산 정상인 다른 산길(2026-10-30)
             if (courses.size() > MAX_COURSES) courses = new ArrayList<>(courses.subList(0, MAX_COURSES));
             names(courses, parks());   // 앱과 같은 이름(공단 공식 이름 · 산마다 지명) · 지금은 없는 탐방로는 뺌
+            officialTimes(c, courses);   // 국립공원 공식 오름 · 내림 시간(2026-11-04 홍TV님 - 코스 목록도 공단 시간)
         } catch (Exception e) {
             log.warn("[MOUNTAIN] 코스 조회 실패 {} - {}", str(peak, "id"), e.toString());
             return null;
         }
         return courses;
+    }
+
+    /** 국립공원 코스(knps-*)의 공식 오름 · 내림 시간(route_course_info)을 코스에 up_min · down_min 으로 붙임. 표가 없으면 그대로. */
+    private static void officialTimes(Connection c, List<JsonObject> courses) {
+        List<Object> ids = new ArrayList<>();
+        for (JsonObject o : courses) if (str(o, "course_id") != null && str(o, "course_id").startsWith(CourseQueries.INFO_PREFIX)) ids.add(str(o, "course_id"));
+        if (ids.isEmpty()) return;
+        try {
+            JsonArray rows = Json.rows(c, "SELECT course_id, up_min, down_min FROM route_course_info WHERE course_id IN (" + String.join(",", java.util.Collections.nCopies(ids.size(), "?")) + ")", ids.toArray());
+            java.util.Map<String, JsonObject> by = new java.util.HashMap<>();
+            for (JsonElement e : rows) by.put(str(e.getAsJsonObject(), "course_id"), e.getAsJsonObject());
+            for (JsonObject o : courses) {
+                JsonObject r = by.get(str(o, "course_id"));
+                if (r == null) continue;
+                for (String k : new String[] {"up_min", "down_min"}) if (r.has(k) && !r.get(k).isJsonNull()) o.add(k, r.get(k));
+            }
+        } catch (Exception e) {
+            // 표 없음(DDL 전) - 어림 시간만
+        }
+    }
+
+    /** 순수 함수 - 코스 편도 분: 국립공원 공식 시간(CoursePageServlet.officialMin - 더 긴 공식 구간 것은 뺌)이 있으면 그것, 없으면 공단 기준 어림(hoursOf). */
+    static long minutesOf(JsonObject c) {
+        int d = c.get("distance_m").getAsInt();
+        Integer off = CoursePageServlet.officialMin(c, d);
+        return off != null ? off : Math.round(hoursOf(d) * 60);
+    }
+
+    /** 순수 함수 - 코스 편도 시간 글: 공식 시간이면 "52분(공단)", 아니면 "1시간 8분". en - "52 min (park service)". */
+    static String timeOf(JsonObject c, boolean en) {
+        long m = minutesOf(c);
+        boolean off = CoursePageServlet.officialMin(c, c.get("distance_m").getAsInt()) != null;
+        String t = en ? (m >= 60 ? m / 60 + " h " : "") + m % 60 + " min" : (m >= 60 ? m / 60 + "시간 " : "") + m % 60 + "분";
+        return off ? t + (en ? " (park service)" : "(공단)") : t;
     }
 
     /** 문답의 주차장 - 가장 가까운 코스 들머리 3km 안(전국주차장정보표준데이터, 파일이 없으면 null). */
@@ -681,15 +716,15 @@ public class MountainServlet extends HttpServlet {
             JsonObject lo = null, hi = null;
             double loH = Double.MAX_VALUE, hiH = -1;
             for (JsonObject c : courses) {
-                double h = hoursOf(c.get("distance_m").getAsInt());
+                double h = minutesOf(c);
                 if (h < loH) { loH = h; lo = c; }
                 if (h > hiH) { hiH = h; hi = c; }
             }
             out.add(new String[] {name + " 등산코스는 몇 개인가요?", "정상까지 가는 코스 " + courses.size() + "개를 소개합니다. 가장 짧은 코스는 " + courseText(lo)
                     + (courses.size() > 1 ? ", 가장 긴 코스는 " + courseText(hi) : "") + "입니다."});
             // 내려오는 시간도 넣음(2026-11-03 홍TV님 - 안전): 코스는 정상에서 시작하거나 끝나는 편도라 같은 길로 되돌아오면 오르막 · 내리막이 서로 바뀜
-            out.add(new String[] {name + " 등산은 몇 시간 걸리나요?", "정상까지 편도 약 " + hours(lo.get("distance_m").getAsInt())
-                    + (courses.size() > 1 ? " ~ " + hours(hi.get("distance_m").getAsInt()) : "") + ", 같은 길로 내려오면 왕복 약 " + roundTrip(lo, false)
+            out.add(new String[] {name + " 등산은 몇 시간 걸리나요?", "정상까지 편도 약 " + timeOf(lo, false)
+                    + (courses.size() > 1 ? " ~ " + timeOf(hi, false) : "") + ", 같은 길로 내려오면 왕복 약 " + roundTrip(lo, false)
                     + (courses.size() > 1 ? " ~ " + roundTrip(hi, false) : "") + "입니다(" + RULE_KO + ")."});
         }
         if (MountainServlet.elev(peak) != null)
@@ -710,14 +745,19 @@ public class MountainServlet extends HttpServlet {
         return c.has("descent_m") && !c.get("descent_m").isJsonNull() ? c.get("descent_m").getAsInt() : null;
     }
 
-    /** 순수 함수 - 같은 길로 되돌아오는 왕복 시간 글: 거리 두 번(공단 기준은 오름 · 내림 시간이 같음). en - "2 h 18 min". */
+    /** 순수 함수 - 같은 길로 되돌아오는 왕복 시간 글: 공식 오름 · 내림 시간이 둘 다 있으면 그 합, 아니면 거리 두 번(공단 기준은 오름 · 내림이 같음). en - "2 h 18 min". */
     static String roundTrip(JsonObject c, boolean en) {
         int d = c.get("distance_m").getAsInt();
+        Integer up = CoursePageServlet.officialMin(c, d), down = c.has("down_min") && !c.get("down_min").isJsonNull() && up != null ? c.get("down_min").getAsInt() : null;
+        if (up != null && down != null && down > 0) {
+            long m = up + down;
+            return en ? (m >= 60 ? m / 60 + " h " : "") + m % 60 + " min" : (m >= 60 ? m / 60 + "시간 " : "") + m % 60 + "분";
+        }
         return en ? MountainEn.hours(d * 2) : hours(d * 2);
     }
 
     private static String courseText(JsonObject c) {
-        return str(c, "name") + "(" + String.format(Locale.ROOT, "%.1fkm", c.get("distance_m").getAsInt() / 1000.0) + " · 약 " + hours(c.get("distance_m").getAsInt()) + ")";
+        return str(c, "name") + "(" + String.format(Locale.ROOT, "%.1fkm", c.get("distance_m").getAsInt() / 1000.0) + " · 약 " + timeOf(c, false) + ")";
     }
 
     /** 순수 함수 - 문답 구조 정보(schema.org FAQPage, JSON-LD). */
@@ -815,12 +855,13 @@ public class MountainServlet extends HttpServlet {
                 Double steep = steep(c);
                 b.append("<li data-id=\"").append(esc(id)).append("\" data-name=\"").append(esc(str(c, "name"))).append("\" data-dist=\"").append(dist)
                         .append(asc != null ? "\" data-asc=\"" + asc : "").append(down != null ? "\" data-desc=\"" + down : "").append(steep != null ? "\" data-steep=\"" + steep : "")
+                        .append(CoursePageServlet.officialMin(c, dist) != null ? "\" data-min=\"" + CoursePageServlet.officialMin(c, dist) : "")   // 공식 시간(일출 출발 - js/mountain.js)
                         .append("\"><b><a href=\"").append(REL).append("/c/").append(esc(id)).append("\">").append(esc(str(c, "name"))).append("</a> ")   // 코스 소개 페이지(2026-10-19 - 검색 로봇이 코스까지)
                         .append(levelChip(dist, asc, steep, false)).append("</b>").append(madeLine(id, false)).append("<span>")
                         .append(String.format(Locale.ROOT, "%.2fkm", dist / 1000.0))
                         .append(asc != null ? String.format(Locale.KOREA, " · 오르막 %,dm", asc) : "")
                         .append(SteepRank.slopeText(dist, asc, steep, false))   // 각도 · 경사 · 가파른 1km - 가파른 산 순위와 같은 기준(2026-10-18 홍TV님 "통일")
-                        .append(" · 약 ").append(hours(dist))
+                        .append(" · 약 ").append(timeOf(c, false))
                         .append(str(c, "summit_miss") != null ? " · ⚠ " + esc(str(c, "summit_miss")) + " 정상 미포함" : "")   // 이름의 정상까지 안 가는 선(2026-10-30 코스 점검)
                         .append("</span><span class=\"go\">")
                         .append("<a href=\"").append(REL).append("/index.html?lang=ko#c=").append(esc(id)).append("&amp;m=").append(esc(enc(name))).append("\">fly(3D)</a>")

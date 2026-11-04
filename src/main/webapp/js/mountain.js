@@ -55,7 +55,8 @@
         if (rise) Array.prototype.forEach.call(csList.children, function (li) {
             var span = li.querySelector("span");
             if (!span) return;
-            var up = window.RF.standardMs("hike", +li.getAttribute("data-dist") || 0, +li.getAttribute("data-asc") || 0, +li.getAttribute("data-desc") || 0);   // 코스 안 내리막도(2026-11-03 홍TV님)
+            // 국립공원 공식 시간(data-min)이 있으면 그것, 없으면 공단 기준 어림(2026-11-04 홍TV님)
+            var up = li.getAttribute("data-min") ? +li.getAttribute("data-min") * 60000 : window.RF.standardMs("hike", +li.getAttribute("data-dist") || 0, +li.getAttribute("data-asc") || 0, +li.getAttribute("data-desc") || 0);
             var s = document.createElement("small");
             s.className = "sunrise";
             s.textContent = "🌄 내일 일출(" + hhmm(rise) + ") 보려면 들머리 " + hhmm(window.RF.sunriseStart(rise, up)) + " 출발";
