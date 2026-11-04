@@ -27,10 +27,10 @@ public class MountainOfficialTimeTest {
         assertEquals("왕복은 공식 오름 + 내림", "1시간 44분", MountainServlet.roundTrip(c, false));
         List<JsonObject> cs = new ArrayList<>(List.of(c));
         String ko = MountainServlet.page(peak, cs, new ArrayList<>(), null, "");
-        assertTrue("목록", ko.contains(" · 약 52분(공단)") && ko.contains("data-min=\"52\""));
+        assertTrue("목록(코스 줄 끝 - 문답 글과 가름)", ko.contains(" · 약 52분(공단)</span><span class=\"go\">") && ko.contains("data-min=\"52\""));
         assertTrue("문답", MountainServlet.faq(peak, "월출산", cs, null).get(1)[1].startsWith("정상까지 편도 약 52분(공단), 같은 길로 내려오면 왕복 약 1시간 44분"));
         String en = MountainEn.page(peak, cs, new ArrayList<>(), null, "");
-        assertTrue("영어 목록", en.contains(" · about 52 min (park service)") && en.contains("data-min=\"52\""));
+        assertTrue("영어 목록(코스 줄 끝)", en.contains(" · about 52 min (park service)</span><span class=\"go\">") && en.contains("data-min=\"52\""));
         // 공식 시간이 없는 코스는 공단 기준 어림(1km 34분 - 1,492m 51분)
         JsonObject plain = c.deepCopy();
         plain.remove("up_min");
