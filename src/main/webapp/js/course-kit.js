@@ -1540,7 +1540,7 @@
         if (!f || !/^https:\/\//.test(f.href || "") || !/^https:\/\//.test(f.img || "") || !f.name) return null;
         var a = document.createElement("a"), img = document.createElement("img");
         a.href = f.href; a.target = "_blank"; a.rel = "noopener sponsored"; a.className = "rfFeat";
-        a.style.cssText = "display:block;width:fit-content;max-width:100%;margin:4px auto 12px;border-radius:12px;overflow:hidden;line-height:0";
+        a.style.cssText = "display:block;width:fit-content;max-width:100%;margin:4px auto 12px;border-radius:12px;overflow:hidden;line-height:0;text-decoration:none";   // 이름 글 밑줄 없음(2026-11-04 홍TV님)
         img.src = f.img; img.alt = f.name; img.loading = "lazy";
         img.style.cssText = "display:block;max-width:min(100%,240px);height:auto;background:#fff";
         a.appendChild(img);

@@ -1795,6 +1795,7 @@ eq("favJoinExtra 제목이 없으면 지금 이름의 길", [RF.favJoinExtra("#c
     eq("한 덩어리 링크 · 제휴 표시 · 새 창", [a.tag, a.href, a.rel, a.target], ["a", f.href, "noopener sponsored", "_blank"]);
     eq("그림 · 이름은 그림 설명 · 늦게 받기", [a.kids[0].tag, a.kids[0].src, a.kids[0].alt, a.kids[0].loading], ["img", f.img, f.name, "lazy"]);
     eq("배너 그림 + 그 아래 상품 이름 전체(배너 안 이름은 잘림 - 2026-11-03 홍TV님 \"대부분 짤리잖아\")", [a.kids.length, a.kids[1].tag, a.kids[1].textContent], [2, "span", f.name]);
+    eq("이름 글 밑줄 없음(2026-11-04 홍TV님)", /text-decoration:none/.test(a.style.cssText), true);
     eq("원래 크기(240px 까지) - 72px 로 줄이지 않음", /max-width:min\(100%,240px\)/.test(a.kids[0].style.cssText) && !/72px/.test(a.kids[0].style.cssText), true);
     var three = [{ name: "A" }, { name: "B" }, { name: "C" }];
     eq("여러 개에서 하나 고르기(2026-11-03 \"5개쯤 랜덤\") - 앞 · 가운데 · 끝, 하나짜리 옛 모양, 없음", [RF.featuredPick(three, 0).name, RF.featuredPick(three, 0.5).name, RF.featuredPick(three, 0.9999).name,
