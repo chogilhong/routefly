@@ -71,13 +71,7 @@ public class ReviewRound3Test {
 
     @Test
     public void staysLinkSameAsJs() {
-        com.google.gson.JsonObject p = new com.google.gson.JsonObject();
-        p.addProperty("trip", "https://kr.trip.com/hotels/?cityId=1&Allianceid=1&SID=2");
-        String[] it = Stays.pick(p, 33.361667, 126.529167, "한라산");
-        assertEquals("🏨 근처 숙소(트립닷컴)", it[0]);
-        assertEquals("course-kit.test.js staysItem 과 같은 주소", "https://kr.trip.com/hotels/list?cityId=0&searchType=LM&searchWord=%ED%95%9C%EB%9D%BC%EC%82%B0&searchValue=13%7C0*13*33.361667%7C126.529167%7C%ED%95%9C%EB%9D%BC%EC%82%B0%7C0%7C1&Allianceid=1&SID=2", it[1]);
-        assertTrue(Stays.html(p, 33.361667, 126.529167, "한라산").contains("rel=\"noopener sponsored\"") && Stays.html(p, 1, 2, "x").contains("수수료"));
-        assertEquals("설정이 없으면 없음", "", Stays.html(new com.google.gson.JsonObject(), 1, 2, "x"));
+        // 2026-11-04 홍TV님 "코스 페이지도 똑같이": 코스 페이지(/c/)의 서버 트립닷컴 한 줄(Stays)은 빼고 산 페이지처럼 숙소 찾기 칸만 - CourseStaySearchTest
         assertTrue("1박 산은 위로", MountainServlet.overnight(com.google.gson.JsonParser.parseString("{\"id\":\"한라산\"}").getAsJsonObject()));
     }
 

@@ -375,9 +375,12 @@ public class CoursePageServlet extends HttpServlet {
         if (hike) b.append(MountainServlet.tips());
         String src = source(id);
         if (!src.isEmpty()) b.append("<p class=\"dim\">코스 자료: ").append(src).append("</p>");   // 이미 이스케이프 · 링크가 든 고정 글
-        // 🏨 근처 숙소(제휴 - 설정이 있을 때만, 2026-10-29 홍TV님 "작업해": 검색으로 들어오는 코스 페이지에도). 들머리 좌표 · 산 이름(없으면 코스 이름)으로
-        if (start != null) b.append(Stays.html(PartnersServlet.body(RouteflyConfig::get), start[0], start[1], peak != null && MountainServlet.str(peak, "id") != null ? MountainServlet.str(peak, "id") : name.replaceFirst(" · .*$", "")));
+        // 🏨 근처 숙소 찾기 칸(2026-11-04 홍TV님 "코스 페이지도 똑같이" - 산 페이지처럼 펴 둔 검색 칸만, 트립닷컴 한 줄은 뺌).
+        // 미리 채울 곳은 산 페이지와 같은 숙박 거점(100대 명산), 아니면 코스 이름 앞(산 이름). js/course-page.js 가 course-kit staySearch 로 붙임
+        b.append(MountainServlet.staySearchBox(peakId != null ? MountainServlet.stayPrefill(peakId) : name.replaceFirst(" · .*$", ""), false));
         b.append(Ads.box("c"));   // 광고(설정이 있을 때만, 2026-10-28)
+        b.append("<script src=\"").append(REL).append("/").append(AssetVersion.of("js/kit-m.js")).append("\"></script><script src=\"").append(REL).append("/")
+                .append(AssetVersion.of("js/course-page.js")).append("\"></script>");   // 숙소 찾기 칸만(날씨 · 찜 칸 없음 - mountain.js 는 붙이지 않음)
         b.append(MountainServlet.foot(null, false));
         return b.toString();
     }
