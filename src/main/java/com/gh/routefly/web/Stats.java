@@ -34,7 +34,10 @@ final class Stats {
             UA_PREVIEW = java.util.regex.Pattern.compile("facebookexternalhit|kakaotalk-scrap|kakaostory-og|twitterbot|slackbot|telegrambot|discordbot|whatsapp|linkedinbot|skypeuripreview|line-poker|bandbot|naverbot-preview"),
             UA_SEARCH = java.util.regex.Pattern.compile("googlebot|google-inspectiontool|bingbot|yeti/|daum/|daumoa|duckduckbot|baiduspider|yandex|applebot|slurp|seznambot|petalbot|coccoc"),
             UA_TEST = java.util.regex.Pattern.compile("headless|python|curl|wget|playwright|node-fetch|axios|go-http|java/|okhttp|httpclient|powershell|claude/|electron/"),
-            UA_BOT = java.util.regex.Pattern.compile("bot|crawl|spider|scrap");
+            UA_BOT = java.util.regex.Pattern.compile("bot|crawl|spider|scrap"),
+            // 판 번호를 박아 둔 크롬 흉내 수집기(2026-11-06 PC 접속 기록: "Chrome/124.0.6367.207" 42곳 · 곳마다 화면 1개 · css · js 0 - 방문자만 3.7배로 부풀림,
+            // 10-29 의 "Chrome/124.0.0.0" 은 nginx 가 403). 사람 크롬은 저절로 판이 올라가 이 두 판에 머물지 않음
+            UA_FIXED_CHROME = java.util.regex.Pattern.compile("chrome/124\\.0\\.(0\\.0|6367\\.207) safari/537\\.36$");
 
     private static final Logger log = LogManager.getLogger(Stats.class);
     static final int KEEP_DAYS = 400;
@@ -89,6 +92,8 @@ final class Stats {
      */
     static String botKind(String ua, String acceptLanguage) {
         String k = botKind(ua);
+        // 판 번호를 박아 둔 크롬 흉내 수집기는 통계에서 로봇("기타")으로 - 접속 분석(Access.kind)은 botKind(ua) 를 써서 예전처럼 "오래된 크롬" 으로 따로 보임
+        if (k == null && ua != null && UA_FIXED_CHROME.matcher(ua.toLowerCase()).find()) return "기타";
         // 브라우저 이름을 대지만 언어 설정(Accept-Language)을 안 보냄 - 사람 브라우저 · 앱은 늘 보냄. 10-21 통계에서 PC 방문자 215명이 한 사람 1.3 화면이라 수상했음
         return k == null && (acceptLanguage == null || acceptLanguage.isBlank()) ? "숨은 로봇" : k;
     }

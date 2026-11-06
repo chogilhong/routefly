@@ -32,6 +32,11 @@ public class StatsTest {
         assertNotNull(Stats.botKind("Mozilla/5.0 (compatible; Yeti/1.1; +http://naver.me/spd)"));
         assertNotNull(Stats.botKind(null));
         assertNull(Stats.botKind("Mozilla/5.0 (Linux; Android 14; SM-S921N) AppleWebKit/537.36 Chrome/129.0 Mobile Safari/537.36"));
+        // 2026-11-06 PC 접속 기록: 판 번호를 박아 둔 크롬 흉내 수집기(맥 · 윈도 42곳) - 사람으로 세지 않음. 다른 판 크롬은 그대로 사람
+        assertEquals("기타", Stats.botKind("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Safari/537.36", "en-US"));
+        assertEquals("기타", Stats.botKind("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36", "ko-KR"));
+        assertNull(Stats.botKind("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.208 Safari/537.36", "ko-KR"));
+        assertNull(Stats.botKind("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36", "ko-KR"));
         // 종류(2026-10-20 홍TV님 "나눠서 세기")
         assertEquals("검색", Stats.botKind("Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"));
         String pc = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/129.0 Safari/537.36";

@@ -4,7 +4,9 @@
 #   tail [N]         - catalina.out 끝 N줄(기본 200, 많아야 3000)
 #   log 이름 [N]     - 그 로그 파일 끝 N줄(이름은 .log · .out · .txt, 폴더 · 경로 없이)
 #   grep 낱말 [N]    - catalina.out 끝 5만 줄에서 그 낱말(글자 그대로)이 든 줄 중 마지막 N줄
-#   access 날짜      - 그 날(YYYY-MM-DD) 톰캣 접속 기록 요약(2026-10-28): 화면 수 · 경로 묶음 · 15분 · 브라우저 종류 · 많이 연 곳 상위 10.
+#   access 날짜 [부터 까지] - 그 날(YYYY-MM-DD) 톰캣 접속 기록 요약(2026-10-28): 화면 수 · 경로 묶음 · 15분 · 브라우저 종류 · 많이 연 곳 상위 10.
+#                      부터 · 까지(HH:MM, 까지는 빼고)를 주면 그 시각만(2026-11-06 PC: 날마다 같은 시각끼리 견주려는데 log 이름 N 은 끝 3000줄까지라 앞 시각을 못 봄).
+#                      종류마다 곳 수 · 그중 화면 js 가 돈 곳(/api/seen 을 낸 곳), js 를 안 낸 사람 쪽 곳의 브라우저 글 상위 10(곳 수)도.
 #                      주소는 내보내지 않음 - 이번 한 번만 쓰는 무작위 값과 섞은 해시 8글자(다시 돌리면 달라져 이어 볼 수 없음)
 # 한 줄은 400자까지 자르고, 화면을 어지럽히는 제어 글자(색 바꾸기 등)는 지웁니다(2026-10-28 점검 - 접속 기록의 브라우저 글은 남이 넣는 글).
 set -euo pipefail
@@ -33,11 +35,14 @@ case "${1:-}" in
     ;;
   access)
     [[ "${2:-}" =~ ^20[0-9]{2}-[01][0-9]-[0-3][0-9]$ ]] || { echo "날짜는 YYYY-MM-DD"; exit 3; }
+    from="${3:-00:00}"; to="${4:-24:00}"
+    [[ "$from" =~ ^([01][0-9]|2[0-3]):[0-5][0-9]$ ]] && [[ "$to" =~ ^(([01][0-9]|2[0-3]):[0-5][0-9]|24:00)$ ]] || { echo "시각은 HH:MM (예: access 2026-11-06 02:00 11:00)"; exit 3; }
     f="$DIR/localhost_access_log.$2.txt"
     [ -f "$f" ] && [ ! -L "$f" ] || { echo "그 날 접속 기록이 없습니다."; exit 3; }
-    python3 -I - "$f" <<'PY'
+    python3 -I - "$f" "$from" "$to" <<'PY'
 import sys, re, os, hashlib, collections
 salt = os.urandom(16)
+T0, T1 = sys.argv[2], sys.argv[3]
 # 맨 앞 칸은 X-Forwarded-For - 손님이 보낸 값 뒤에 nginx 가 실제 주소를 붙임("가짜, 실제") → 맨 뒤 값만(2026-10-28 보안 점검)
 LINE = re.compile(r'^(.+?) \[[^:]+:(\d\d):(\d\d):\d\d [^\]]*\] "(\S+) (\S+)" (\d{3}) \S+(?: "(.*)")?$')
 def page(p):
@@ -60,18 +65,30 @@ def kind(ua):
     if m and int(m.group(1)) < 130 and "samsungbrowser" not in u and "whale" not in u: return "오래된 크롬(<130)"
     return "사람 브라우저"
 tot = 0; paths = collections.Counter(); q = collections.Counter(); kinds = collections.Counter(); who = collections.Counter(); whoKind = {}; whoPath = collections.defaultdict(collections.Counter); qk = collections.defaultdict(collections.Counter)
+seen = set(); whoUa = {}
+def safe(t): return re.sub(r"[\x00-\x1f\x7f]", "", t or "-")[:160]
 with open(sys.argv[1], encoding="utf-8", errors="replace") as fh:
     for line in fh:
         m = LINE.match(line.rstrip("\n"))
-        if not m or m.group(4) != "GET" or int(m.group(6)) >= 400: continue
+        if not m: continue
+        hm = m.group(2) + ":" + m.group(3)
+        if not (T0 <= hm < T1): continue
+        if m.group(5).startswith("/routefly/api/seen"):   # 화면 js 가 돈 신호(js/seen.js)
+            seen.add(hashlib.sha256(salt + m.group(1).split(",")[-1].strip().encode()).hexdigest()[:8]); continue
+        if m.group(4) != "GET" or int(m.group(6)) >= 400: continue
         pk = page(m.group(5))
         if not pk: continue
         tot += 1; paths[pk] += 1
         slot = "%s:%02d" % (m.group(2), int(m.group(3)) // 15 * 15); q[slot] += 1
         k = kind(m.group(7)); kinds[k] += 1; qk[slot][k] += 1
         h = hashlib.sha256(salt + m.group(1).split(",")[-1].strip().encode()).hexdigest()[:8]
-        who[h] += 1; whoKind[h] = k; whoPath[h][pk] += 1
-print("화면 합계", tot, "· 서로 다른 곳", len(who))
+        who[h] += 1; whoKind[h] = k; whoPath[h][pk] += 1; whoUa[h] = safe(m.group(7))
+print("범위 %s ~ %s · 화면 합계 %d · 서로 다른 곳 %d" % (T0, T1, tot, len(who)))
+print("\n[종류별 곳 수 · 그중 js 가 돈 곳]")
+byKind = collections.Counter(whoKind.values())
+for k, n in byKind.most_common(): print(" %5d  %5d  %s" % (n, sum(1 for h in who if whoKind[h] == k and h in seen), k))
+noJs = collections.Counter(whoUa[h] for h in who if whoKind[h] in ("사람 브라우저", "오래된 크롬(<130)") and h not in seen)
+print("\n[js 를 안 낸 사람 쪽 곳의 브라우저 글 상위 10 - 곳 수]"); [print(" %5d  %s" % (n, u)) for u, n in noJs.most_common(10)]
 print("\n[브라우저 종류]"); [print(" %6d  %s" % (n, k)) for k, n in kinds.most_common()]
 print("\n[경로 묶음 상위 15]"); [print(" %6d  %s" % (n, k)) for k, n in paths.most_common(15)]
 print("\n[15분별 - 많은 순 12, 가장 많은 종류]")
@@ -80,5 +97,5 @@ print("\n[많이 연 곳 상위 10 - 주소 대신 해시]")
 for h, n in who.most_common(10): print(" %s %5d  %s  %s" % (h, n, whoKind[h], ", ".join("%s %d" % x for x in whoPath[h].most_common(2))))
 PY
     ;;
-  *) echo "이 열쇠로는 files · tail [N] · log 이름 [N] · grep 낱말 [N] · access 날짜 만 됩니다." >&2; exit 2 ;;
+  *) echo "이 열쇠로는 files · tail [N] · log 이름 [N] · grep 낱말 [N] · access 날짜 [부터 까지] 만 됩니다." >&2; exit 2 ;;
 esac
