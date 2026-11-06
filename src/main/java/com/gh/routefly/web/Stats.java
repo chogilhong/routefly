@@ -37,7 +37,9 @@ final class Stats {
             UA_BOT = java.util.regex.Pattern.compile("bot|crawl|spider|scrap"),
             // 판 번호를 박아 둔 크롬 흉내 수집기(2026-11-06 PC 접속 기록: "Chrome/124.0.6367.207" 42곳 · 곳마다 화면 1개 · css · js 0 - 방문자만 3.7배로 부풀림,
             // 10-29 의 "Chrome/124.0.0.0" 은 nginx 가 403). 사람 크롬은 저절로 판이 올라가 이 두 판에 머물지 않음
-            UA_FIXED_CHROME = java.util.regex.Pattern.compile("chrome/124\\.0\\.(0\\.0|6367\\.207) safari/537\\.36$");
+            UA_FIXED_CHROME = java.util.regex.Pattern.compile("chrome/124\\.0\\.(0\\.0|6367\\.207) safari/537\\.36$"
+                    // 같은 꼴의 옛 아이폰 흉내(iOS 13.2.3 · Safari 13.0.3 - 2019년 판, 날마다 8 ~ 9곳 · js 0, 11-05 · 11-06 PC 접속 기록)
+                    + "|iphone os 13_2_3 like mac os x.*version/13\\.0\\.3 ");
 
     private static final Logger log = LogManager.getLogger(Stats.class);
     static final int KEEP_DAYS = 400;

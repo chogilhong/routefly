@@ -729,13 +729,23 @@ curl -s -o /dev/null -w '%{http_code}\n' https://routefly.kr/routefly/hike.html 
 ```
 
 - 2026-10-29 넓힘: 같은 수집기가 윈도 모양("Windows NT 10.0 … Chrome/124.0.0.0", 주소를 돌려 가며 몇 분 간격 · css/js 안 받음)으로 다시 와서,
-  운영체제 상관없이 크롬 판 번호 124.0.0.0 으로 막음(실제 손님 크롬은 저절로 올라가 이 판을 쓰지 않음). 지금 서버의 파일:
+  운영체제 상관없이 크롬 판 번호 124.0.0.0 으로 막음(실제 손님 크롬은 저절로 올라가 이 판을 쓰지 않음). 그때 파일(`routefly-scraper.conf.bak-20261106`):
 
 ```bash
 echo 'map $http_user_agent $rf_scraper { default 0; "~Chrome/124\.0\.0\.0 Safari/537\.36$" 1; }' | sudo tee /etc/nginx/conf.d/routefly-scraper.conf
+```
+
+- 2026-11-06 넓힘(홍TV님 "막아"): 판 번호를 "Chrome/124.0.6367.207" 로 바꾼 수집기가 맥 · 윈도 모양으로 42곳(대역 모두 다름)에서 새벽 2시부터
+  곳마다 화면 1개씩(css · js 0) - 방문자만 3.7배로 부풀었음(앱 통계는 3c634a9 부터 로봇으로 셈). 크롬 124 전 판(124.0.x.x)으로 막음. 지금 서버의 파일:
+
+```bash
+echo 'map $http_user_agent $rf_scraper { default 0; "~Chrome/124\.0\.[0-9.]+ Safari/537\.36$" 1; }' | sudo tee /etc/nginx/conf.d/routefly-scraper.conf
 sudo nginx -t && sudo systemctl reload nginx
+curl -s -o /dev/null -w '%{http_code}\n' -A 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Safari/537.36' https://routefly.kr/routefly/hike.html   # 403
 curl -s -o /dev/null -w '%{http_code}\n' -A 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36' https://routefly.kr/routefly/hike.html   # 403
 ```
+
+  2026-11-06 서버 확인: 124.0.6367.207 · 124.0.0.0 · 124.0.6367.91 은 403, 최신 크롬(152)은 200. 앞 파일 두 벌 - `.bak-20261106`(124.0.0.0 한 줄) · `.bak-20261106b`(넓힌 모양, 스크립트가 두 번 돎).
 
 - 다른 브라우저 글을 더 막으려면 `routefly-scraper.conf` 의 map 에 줄을 더하고 `sudo nginx -t && sudo systemctl reload nginx`.
 - 브라우저 글을 바꿔 다시 오면 다음은 코스 페이지(/c/)에도 한 곳당 횟수 제한(SecurityFilter 는 지금 /api · /s 만).
