@@ -32,7 +32,8 @@ final class Stats {
     // 요청마다 쓰는 글자 검사는 미리 만들어 둠(2026-10-29 점검 - 수집기가 몰릴 때 요청마다 다시 만들었음). 뜻은 예전 matches(".*(…).*") 와 같음(find)
     private static final java.util.regex.Pattern EN_SLUG = java.util.regex.Pattern.compile("[A-Za-z0-9-]{1,40}"), HTML_PAGE = java.util.regex.Pattern.compile("/[a-z]+\\.html"),
             UA_PREVIEW = java.util.regex.Pattern.compile("facebookexternalhit|kakaotalk-scrap|kakaostory-og|twitterbot|slackbot|telegrambot|discordbot|whatsapp|linkedinbot|skypeuripreview|line-poker|bandbot|naverbot-preview"),
-            UA_SEARCH = java.util.regex.Pattern.compile("googlebot|google-inspectiontool|bingbot|yeti/|daum/|daumoa|duckduckbot|baiduspider|yandex|applebot|slurp|seznambot|petalbot|coccoc"),
+            // mediapartners-google: 애드센스 광고 확인 로봇 - 이름에 bot 이 없어 사람으로 셌음(2026-11-06 한 곳이 12분에 화면 300 · js 도 돌려 /api/seen 냄)
+            UA_SEARCH = java.util.regex.Pattern.compile("googlebot|google-inspectiontool|mediapartners-google|bingbot|yeti/|daum/|daumoa|duckduckbot|baiduspider|yandex|applebot|slurp|seznambot|petalbot|coccoc"),
             UA_TEST = java.util.regex.Pattern.compile("headless|python|curl|wget|playwright|node-fetch|axios|go-http|java/|okhttp|httpclient|powershell|claude/|electron/"),
             UA_BOT = java.util.regex.Pattern.compile("bot|crawl|spider|scrap"),
             // 판 번호를 박아 둔 크롬 흉내 수집기(2026-11-06 PC 접속 기록: "Chrome/124.0.6367.207" 42곳 · 곳마다 화면 1개 · css · js 0 - 방문자만 3.7배로 부풀림,

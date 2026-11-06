@@ -29,6 +29,7 @@ public class StatsTest {
     public void bots() {
         assertNotNull(Stats.botKind("Mozilla/5.0 (compatible; Googlebot/2.1)"));
         assertNotNull(Stats.botKind("facebookexternalhit/1.1"));
+        assertEquals("애드센스 광고 확인 로봇(2026-11-06 화면 300)", "검색", Stats.botKind("Mediapartners-Google", "en-US"));
         assertNotNull(Stats.botKind("Mozilla/5.0 (compatible; Yeti/1.1; +http://naver.me/spd)"));
         assertNotNull(Stats.botKind(null));
         assertNull(Stats.botKind("Mozilla/5.0 (Linux; Android 14; SM-S921N) AppleWebKit/537.36 Chrome/129.0 Mobile Safari/537.36"));
