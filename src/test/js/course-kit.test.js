@@ -1522,6 +1522,11 @@ eq("kmaLink 행정동이 있으면 동네예보, 없으면 첫 화면", [RF.kmaL
     eq("checkCourse 이름과 거꾸로 그린 선", kinds(flip), ["flip"]);
     var mid = JSON.parse(JSON.stringify(ok)); mid.course.distance_m = null; mid.pois = [{ name: "가", dist_m: 0, off_route_m: 0 }, { name: "나", dist_m: 1, off_route_m: 0 }]; mid.points = pts(line.concat(line.slice().reverse().map(function (p) { return [p[0], p[1] + 0.006, p[2]]; })));
     eq("checkCourse 끝 이름이 끝이 아니라 처음 둘레(+ 선이 이어지지 않아 끊김)", kinds(mid), ["end", "gap"]);
+    // 2026-11-06 점검 3차: 앞부분만 같은 다른 곳(곧은재지킴터 ↔ 곧은재)은 같은 이름표로 보지 않음, 뒤에 "정상" 만 붙은 것은 같은 곳
+    var gg = JSON.parse(JSON.stringify(ok)); gg.course.name = "치악산 · 곧은재지킴터 → 곧은재"; gg.pois = [{ name: "곧은재", dist_m: ok.course.distance_m, off_route_m: 0 }];
+    eq("checkCourse 앞부분만 같은 끝 이름표는 처음 이름이 아님", kinds(gg), []);
+    var gs = JSON.parse(JSON.stringify(ok)); gs.course.name = "산 · 가 → 비로봉"; gs.pois = [{ name: "비로봉정상석", dist_m: 0, off_route_m: 0 }];
+    eq("checkCourse 뒤에 정상석만 붙은 이름표는 같은 곳(끝 이름이 처음에)", kinds(gs), ["end"]);
     var peaks = [{ id: "북한산", summit: "북한산백운대", lat: 37.60, lon: 127.01 }];
     eq("checkCourse 정상 이름인데 정상 200m 안을 안 지남", kinds({ course: { name: "북한산 · 가 → 백운대" }, points: pts(line), pois: [] }, { peaks: peaks }), ["summit"]);
     eq("checkCourse 정상을 지나면 괜찮음", kinds({ course: { name: "북한산 · 가 → 백운대" }, points: pts(line), pois: [] }, { peaks: [{ id: "북한산", summit: "북한산백운대", lat: 37.6, lon: 127.002 }] }), []);

@@ -67,7 +67,14 @@ function checkCourse(j, ctx) {
     var name = ctx.name || c.name || "", e = RF.routeEnds(name);
     var poiAt = function (nm) {
         var k2 = norm(RF.placeName ? RF.placeName(nm) : nm);
-        return named.filter(function (q) { var qn = norm(RF.placeName ? RF.placeName(q.name) : q.name); return k2 && qn && (qn === k2 || qn.indexOf(k2) === 0 || k2.indexOf(qn) === 0); });
+        return named.filter(function (q) { var qn = norm(RF.placeName ? RF.placeName(q.name) : q.name); return k2 && qn && samePlace(qn, k2); });
+    };
+    // 같은 곳인가 - 글자가 같거나, 한쪽 뒤에 "정상"(· 정상석)만 더 붙음. 2026-11-06 점검 3차: 앞부분만 같아도 같은 곳으로 봐서
+    // "곧은재지킴터"(아래 들머리)를 같은 코스 끝 "곧은재"(고개) 이름표로, "여심폭포입구" 를 752m 지점 "여심폭포" 로 읽어 처음 이름 오탐 - 국립공원 29개 중 대부분
+    var samePlace = function (a, b) {
+        if (a === b) return true;
+        var rest = a.indexOf(b) === 0 ? a.slice(b.length) : b.indexOf(a) === 0 ? b.slice(a.length) : null;
+        return rest === "정상" || rest === "정상석";
     };
     var near = function (list, at) { return list.some(function (q) { return Math.abs(+q.dist_m - at) <= END_NAME_M; }); };
     if (e.from && e.to && e.from !== e.to) {
