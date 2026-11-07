@@ -24,7 +24,8 @@ import com.google.gson.JsonParser;
  * .claude\run-tests.ps1 -Run web.MountainInfoProbe            → 설악산 검색 · 강원 지역 검색(3건) · 첫 산의 상세
  * .claude\run-tests.ps1 -Run web.MountainInfoProbe 가야산      → 그 산 이름으로
  * .claude\run-tests.ps1 -Run web.MountainInfoProbe all         → 전체를 100줄씩 받아 100대 명산과 맞춰 src/main/webapp/data/mountain-info.json 을 씀
- *                                                                 (산 페이지 "산림청 선정 이유" - 못 맞춘 산은 빼고 이름을 찍음, 지어내지 않음)
+ *                                                                 (산 페이지 "산림청 선정 이유" - 못 맞춘 산은 빼고 이름 · 비슷한 이름 후보를 찍음, 지어내지 않음)
+ *                                                                 받은 원본 쪽은 src/test/resources/mountain-info/all-&lt;쪽&gt;.xml 로도(키 지움 - 맞추기를 고칠 때 테스트 데이터)
  * </pre>
  *
  * 키: config.properties 의 mountain.serviceKey, 없으면 tour.serviceKey(공공데이터포털 개인 키는 하나 - 서비스마다 활용 신청만 따로)를 RouteflyConfig 로 읽음(화면 · 파일에 키를 쓰지 않음).
@@ -84,6 +85,7 @@ public final class MountainInfoProbe {
             }
             Matcher t = Pattern.compile("<totalCount>(\\d+)</totalCount>").matcher(text);
             if (t.find()) total = Integer.parseInt(t.group(1));
+            Files.writeString(Path.of("src", "test", "resources", "mountain-info", "all-" + page + ".xml"), PetTourProbe.scrub(text, key), StandardCharsets.UTF_8);
             List<Map<String, String>> got = items(text);
             if (got.isEmpty()) break;
             items.addAll(got);
@@ -98,6 +100,17 @@ public final class MountainInfoProbe {
         file.add("info", info);
         Files.writeString(Path.of("src/main/webapp/data/mountain-info.json"), new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create().toJson(file) + "\n", StandardCharsets.UTF_8);
         System.out.println("맞춤 " + info.size() + "곳, 못 맞춤 " + miss.size() + "곳: " + miss);
+        for (String id : miss) {   // 왜 못 맞췄는지 - 이름이 비슷한 후보(산명 · 소재지 · 높이 · 선정 이유 글자 수)
+            String base = id.replaceAll("\\(.*\\)$", "").trim(), stem = base.replaceAll("산$", "");
+            StringBuilder c = new StringBuilder();
+            for (Map<String, String> it : items) {
+                String n = String.valueOf(it.get("mntnm"));
+                if (n.contains(stem) || base.contains(n.replaceAll("\\(.*\\)$", "").trim()) && n.length() >= 2)
+                    c.append("\n    ").append(n).append(" | ").append(it.get("areanm")).append(" | ").append(it.get("mntheight")).append("m | 선정 이유 ")
+                            .append(it.get("aeatreason") == null ? "없음" : it.get("aeatreason").length() + "자");
+            }
+            System.out.println("  " + id + (c.length() == 0 ? " - 비슷한 이름 없음" : c));
+        }
     }
 
     /** 순수 함수 - 응답 XML → item 마다 {칸: 글}(글은 clean). 틀린 응답이면 빈 목록. */
