@@ -760,12 +760,15 @@ curl -s -o /dev/null -w '%{http_code}\n' -A 'Mozilla/5.0 (Windows NT 10.0; Win64
 ```bash
 sudo cp /etc/nginx/sites-available/routefly /etc/nginx/sites-available/routefly.bak-20261107
 sudo sed -i 's|location = / { return 302 /routefly/; }|location = / { return 302 /routefly/m/; }|' /etc/nginx/sites-available/routefly
-grep -n "location = /" /etc/nginx/sites-available/routefly | grep return     # server 칸마다(80 · 443) /routefly/m/ 이면 됨
+grep -n "location = /" /etc/nginx/sites-available/routefly | grep return     # https(443) 칸 한 줄이 /routefly/m/ 이면 됨(80 칸은 certbot 꼴 - https 로 301 만)
 sudo nginx -t && sudo systemctl reload nginx
 curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' -A routefly-check https://routefly.kr/      # 302 https://routefly.kr/routefly/m/
 ```
 
 되돌리기: `sudo cp /etc/nginx/sites-available/routefly.bak-20261107 /etc/nginx/sites-available/routefly && sudo nginx -t && sudo systemctl reload nginx`
+
+2026-11-07 서버 적용: 27줄 `location = / { return 302 /routefly/m/; }`, https://routefly.kr/ → 302 /routefly/m/ 확인, 예전 공유 링크 `…/routefly/#c=…` 는 그대로 3D 화면.
+PC 의 curl 로 `http://routefly.kr/`(http 뿌리만)이 끊기는 것은 PC ~ 서버 사이 문제(서버 기록에 그 요청이 없음, 바깥 클라이언트 · 브라우저는 301 → https 정상) - nginx 는 그대로.
 
 ## 11. 메모리 · CPU (4GB 요금제) - 2026-10-16
 
