@@ -27,7 +27,7 @@ public class PrivacyPolicyTest {
         String hike = read("src/main/webapp/js/hike.js"), app = read("src/main/webapp/js/app.js");
         assertTrue(hike.contains("var cells = RF.gridCells([lon - rl, lat - r, lon + rl, lat + r]);"));
         assertTrue(hike.contains("return getJson(\"api/courses?bbox=\" + bb.map(function (v) { return v.toFixed(1); })"));
-        assertTrue(app.contains("askBb = bb && list.near ? RF.snapOut(bb) : bb;"));
+        assertTrue(app.contains("askBb = bb ? RF.snapOut(bb) : null;"));
         // 그 밖에 GPS 위치(pos.coords · co.latitude 등)를 서버 주소에 넣는 곳이 없어야 함 - api/ 주소를 만드는 줄에 위도 · 경도 변수가 없는지
         for (String line : hike.split("\n")) {
             // 코스 들머리(c.lat[0] · c.lon[0] - 공개된 코스 자료)는 괜찮음: 방침 "날씨 · 안전 … 코스 들머리 좌표로"(2026-10-18 오늘의 산행 안전)

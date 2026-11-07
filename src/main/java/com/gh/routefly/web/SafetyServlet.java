@@ -100,41 +100,21 @@ public class SafetyServlet extends HttpServlet {
 
     interface Fetch { Object get(); }
 
-    /** 같은 열쇠를 지금 묻는 중인 것(2026-11-02 홍TV님 속도 점검: 기억이 빈 순간 손님 여럿이 같은 공공 API 를 따로따로 물었음 - 하나만 묻고 나머지는 그 답을 기다림). */
-    private static final java.util.concurrent.ConcurrentHashMap<String, java.util.concurrent.CompletableFuture<Object>> FLIGHT = new java.util.concurrent.ConcurrentHashMap<>();
-    /** 함께 기다리는 한도 - OpenApi 묻기 마감(20초)보다 조금 길게. */
-    static final long FLIGHT_WAIT_MS = 25_000L;
-
-    /** 받은 것은 cache 에, 못 받은 것은 10분(SHORT - 같은 실패를 되풀이하지 않게) 기억. 못 받았으면 null. 같은 열쇠는 한 번만 물음(FLIGHT). */
+    /** 받은 것은 cache 에, 못 받은 것은 10분(SHORT - 같은 실패를 되풀이하지 않게) 기억. 못 받았으면 null. 같은 열쇠는 한 번만 물음(Flight). */
     static Object cached(String key, OpenApi.Cache<Object> cache, Fetch f) {
         long now = System.currentTimeMillis();
         Object hit = cache.get(key, now);
         if (hit != null) return hit;
         if (SHORT.get("x@" + key, now) != null) return null;
-        java.util.concurrent.CompletableFuture<Object> mine = new java.util.concurrent.CompletableFuture<>(), run = FLIGHT.putIfAbsent(key, mine);
-        if (run != null) {
-            try {
-                return run.get(FLIGHT_WAIT_MS, java.util.concurrent.TimeUnit.MILLISECONDS);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return null;
-            } catch (Exception e) {
-                return null;
-            }
-        }
-        Object v = null;
-        try {
-            v = cache.get(key, System.currentTimeMillis());   // 앞 사람이 막 넣었을 수 있음
+        return Flight.once("safety|" + key, () -> {
+            Object v = cache.get(key, System.currentTimeMillis());   // 앞 사람이 막 넣었을 수 있음
             if (v == null) {
                 v = f.get();
                 if (v != null) cache.put(key, v, now);
                 else SHORT.put("x@" + key, Boolean.TRUE, now);
             }
             return v;
-        } finally {
-            FLIGHT.remove(key, mine);
-            mine.complete(v);
-        }
+        });
     }
 
     /** 태그 이름마다 한 번 만든 정규식(2026-11-02 홍TV님 속도 점검: 항목 · 칸마다 새로 만들었음). 이름은 코드에 적힌 몇 가지뿐. */

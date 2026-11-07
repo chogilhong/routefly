@@ -72,7 +72,7 @@ public class AssetVersionTest {
     @Test
     public void serviceWorkerKeepsVersionedFilesFirst() throws Exception {
         String sw = read("src/main/webapp/sw.js");
-        assertTrue("캐시 모양이 바뀌어 번호를 올림", sw.contains("var SHELL = \"rf-shell-v217\""));
+        assertTrue("캐시 모양이 바뀌어 번호를 올림", sw.contains("var SHELL = \"rf-shell-v218\""));
         assertTrue(sw.contains("if (/\\/(?:js|css)\\/[^/?#]+\\.(?:js|css)\\?v=/.test(url)) { e.respondWith(versioned(e)); return; }"));
         assertTrue("서버가 지금 판이라 한 것만 담음", sw.contains("/immutable/.test(res.headers.get(\"Cache-Control\") || \"\")"));
         assertTrue("오프라인이면 ?없는 주소로 받아 둔 것", sw.contains("return caches.match(plain, { ignoreVary: true })"));
@@ -88,7 +88,13 @@ public class AssetVersionTest {
             assertTrue(p, h.contains("<script src=\"js/kit-" + p + ".js\"></script>") && !h.contains("course-kit.js"));
             assertTrue(p + " 오프라인", sw.contains("\"js/kit-" + p + ".js\""));
         }
-        assertTrue("hike.html 은 course-kit.js 그대로", sw.contains("\"js/course-kit.js\""));
+        // 2026-11-07 전체 점검 3단계: 따라가기 · 3D 도 제 것(kit-hike · kit-app) - course-kit.js 는 원본 · 테스트용
+        for (String[] p : new String[][] {{"hike", "hike"}, {"index", "app"}}) {
+            String h = read("src/main/webapp/" + p[0] + ".html");
+            assertTrue(p[0], h.contains("<script src=\"js/kit-" + p[1] + ".js\"></script>") && !h.contains("course-kit.js"));
+            assertTrue(p[0] + " 오프라인", sw.contains("\"js/kit-" + p[1] + ".js\""));
+        }
+        assertFalse("화면이 안 쓰는 원본은 받아 두지 않음", sw.contains("\"js/course-kit.js\""));
         assertTrue(read("tools/kit-split/split.js").contains("{ out: \"js/kit-park.js\", users: [\"park.html\", \"js/park.js\", \"js/seen.js\"] }"));
     }
 

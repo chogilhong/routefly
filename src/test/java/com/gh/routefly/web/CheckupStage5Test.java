@@ -54,8 +54,8 @@ public class CheckupStage5Test {
         assertTrue("안내선은 그렸을 때만 지움", h.contains("if (hike.guideShown && map.getSource(\"guide\")) {"));
         assertTrue("검색어 없어도 종류 탭", h.contains("} else if (kindChanged) {"));
         assertEquals("IndexedDB 가 던져도 약속이 끝남", 2, count(h, "} catch (e) { db.close(); reject(e); }"));
-        assertTrue(h.contains("RF.notifyDeploy([\"hike.html\", \"js/hike.js\", \"js/course-kit.js\", \"css/course-kit.css\"]"));
-        assertTrue(web("js/app.js").contains("RF.notifyDeploy([\"index.html\", \"js/app.js\", \"js/course-kit.js\", \"css/course-kit.css\"]"));
+        assertTrue(h.contains("RF.notifyDeploy([\"hike.html\", \"js/hike.js\", \"js/kit-hike.js\", \"css/course-kit.css\"]"));
+        assertTrue(web("js/app.js").contains("RF.notifyDeploy([\"index.html\", \"js/app.js\", \"js/kit-app.js\", \"css/course-kit.css\"]"));
     }
 
     @Test

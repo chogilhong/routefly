@@ -73,6 +73,17 @@ public final class AirProbe {
                 System.out.println("예보 " + r + " (" + names.get(near.get(0)) + ") : " + AirServlet.forecastFor(fc, r));
             }
         }
+        // 시도별 실시간 측정값(getCtprvnRltmMesureDnsty, 2026-11-07 전체 점검 3단계) - 한 번에 그 시도 측정소 모두.
+        // 측정소마다 묻던 것을 시도마다 한 번으로 줄이려면 실제 응답 모양(칸 이름 · 줄 수)부터 봅니다. 가야산(대가야읍)이 든 경북
+        Thread.sleep(700);
+        String sd = OpenApi.get("https://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getCtprvnRltmMesureDnsty?serviceKey=" + enc
+                + "&returnType=json&numOfRows=200&pageNo=1&ver=1.0&sidoName=" + URLEncoder.encode("경북", StandardCharsets.UTF_8), "AIR-PROBE");
+        if (sd == null) System.out.println("시도별(경북): 받지 못함");
+        else {
+            sd = PetTourProbe.scrub(sd, key);
+            Files.writeString(dir.resolve("sido-경북.json"), sd, StandardCharsets.UTF_8);
+            System.out.println("시도별(경북): " + sd.length() + "자 - sido-경북.json");
+        }
         System.out.println("저장: " + dir.toAbsolutePath());
     }
 }

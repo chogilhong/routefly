@@ -244,12 +244,19 @@ public class AirServlet extends HttpServlet {
             JsonObject m = MEASURE.get(station, now);
             if (m == null) {
                 if (!QUOTA.allow(ip, now)) break;   // 상한 - 측정값 없이(기억하지 않음)
-                String text = OpenApi.get(MEASURE_URL + "?serviceKey=" + URLEncoder.encode(key, StandardCharsets.UTF_8)
-                        + "&returnType=json&numOfRows=" + ROWS + "&pageNo=1&dataTerm=DAILY&ver=1.0&stationName=" + URLEncoder.encode(station, StandardCharsets.UTF_8), "AIR");
-                if (text == null) continue;   // 시간 초과 · 실패 - 담아 두지 않고 다음 측정소
-                m = measure(text);
-                if (m == null) m = new JsonObject();   // 값 없음(통신장애 · 0줄)도 30분 담아 둠 - 매번 묻지 않게
-                MEASURE.put(station, m, now);
+                // 같은 측정소를 지금 묻는 중이면 그 답을 기다림(Flight, 2026-11-07 전체 점검 3단계)
+                m = Flight.once("air|" + station, () -> {
+                    JsonObject again = MEASURE.get(station, System.currentTimeMillis());
+                    if (again != null) return again;
+                    String text = OpenApi.get(MEASURE_URL + "?serviceKey=" + URLEncoder.encode(key, StandardCharsets.UTF_8)
+                            + "&returnType=json&numOfRows=" + ROWS + "&pageNo=1&dataTerm=DAILY&ver=1.0&stationName=" + URLEncoder.encode(station, StandardCharsets.UTF_8), "AIR");
+                    if (text == null) return null;   // 시간 초과 · 실패 - 담아 두지 않음
+                    JsonObject got = measure(text);
+                    if (got == null) got = new JsonObject();   // 값 없음(통신장애 · 0줄)도 30분 담아 둠 - 매번 묻지 않게
+                    MEASURE.put(station, got, now);
+                    return got;
+                });
+                if (m == null) continue;   // 못 받음 - 다음 측정소
             }
             if (m.size() == 0) continue;
             JsonObject out = m.deepCopy();

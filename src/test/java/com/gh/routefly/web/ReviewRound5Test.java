@@ -204,7 +204,7 @@ public class ReviewRound5Test {
         String src = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/com/gh/routefly/web/CourseServlet.java"));
         assertTrue("304 를 먼저 보고 그다음 담아 둔 답", src.indexOf("Json.notModified(req, resp, tag)) return;") < src.indexOf("DETAILS.get(tag, \"-\")"));
         String w = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/com/gh/routefly/web/WeatherServlet.java"));
-        assertTrue(w.contains("(instead[0] ? SHORT : CACHE).put(key, out, now);"));
+        assertTrue(w.contains("(instead[0] ? SHORT : CACHE).put(key, o, now);"));
         String m = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/com/gh/routefly/web/MidServlet.java"));
         assertTrue(m.contains("if (EMPTY.get(ck, now) != null) continue;"));
     }

@@ -2752,7 +2752,7 @@
     }
     // 2026-10-09 (카카오톡 브라우저에 며칠 전 화면이 남아 'GPX 열기' 가 안 보였음) → 2026-10-10 새로 배포되면 '새 버전' 띠만 띄우고
     // 누를 때 새로 고침(저절로 고치지 않음). 걷는 중에는 띠도 띄우지 않고 끝낸 뒤에.
-    RF.notifyDeploy(["hike.html", "js/hike.js", "js/course-kit.js", "css/course-kit.css"], function () { return !hike.running; });
+    RF.notifyDeploy(["hike.html", "js/hike.js", "js/kit-hike.js", "css/course-kit.css"], function () { return !hike.running; });
     document.addEventListener("visibilitychange", function () {
         if (document.visibilityState === "hidden" && hike.running) flushTrack();   // 앱이 닫히기 전에 걸은 길을 남김
         if (compass.on) compassListen(document.visibilityState === "visible");   // 안 보이는 동안 나침반 센서를 놓음

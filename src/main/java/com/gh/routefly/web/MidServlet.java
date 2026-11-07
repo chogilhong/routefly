@@ -100,22 +100,28 @@ public class MidServlet extends HttpServlet {
             if (hit != null) return hit;
             if (EMPTY.get(ck, now) != null) continue;
             if (ip != null && !QUOTA.allow(ip, now)) return unavailable();   // 상한 - 이 요청만 못 받음(기억하지 않음)
-            String a = OpenApi.get(url(LAND_URL, key, land, tm), "MID"), b = a == null ? null : OpenApi.get(url(TA_URL, key, (String) city[0], tm), "MID");
-            JsonObject days = a == null || b == null ? null : days(a, b, tm);
-            if (days == null || days.size() == 0) {
-                if (a != null && items(a) == null) OpenApi.warn("MID", a);
-                if (a != null && b != null) EMPTY.put(ck, Boolean.TRUE, now);   // 둘 다 답은 왔는데 빈 것(자료 없음 03 등)만 - 연결 문제는 다음에 다시
-                continue;
-            }
-            JsonObject out = new JsonObject();
-            out.addProperty("success", true);
-            out.addProperty("region", landName(land));
-            out.addProperty("city", (String) city[1]);
-            out.addProperty("tmFc", tm.substring(0, 4) + "-" + tm.substring(4, 6) + "-" + tm.substring(6, 8) + " " + tm.substring(8, 10) + ":00");
-            out.add("days", days);
-            out.addProperty("source", "기상청 중기예보");
-            CACHE.put(ck, out, now);
-            return out;
+            // 같은 구역 · 발표를 지금 묻는 중이면 그 답을 기다림(Flight, 2026-11-07 전체 점검 3단계)
+            JsonObject got = Flight.once("mid|" + ck, () -> {
+                JsonObject again = CACHE.get(ck, System.currentTimeMillis());
+                if (again != null) return again;
+                String a = OpenApi.get(url(LAND_URL, key, land, tm), "MID"), b = a == null ? null : OpenApi.get(url(TA_URL, key, (String) city[0], tm), "MID");
+                JsonObject days = a == null || b == null ? null : days(a, b, tm);
+                if (days == null || days.size() == 0) {
+                    if (a != null && items(a) == null) OpenApi.warn("MID", a);
+                    if (a != null && b != null) EMPTY.put(ck, Boolean.TRUE, now);   // 둘 다 답은 왔는데 빈 것(자료 없음 03 등)만 - 연결 문제는 다음에 다시
+                    return null;
+                }
+                JsonObject out = new JsonObject();
+                out.addProperty("success", true);
+                out.addProperty("region", landName(land));
+                out.addProperty("city", (String) city[1]);
+                out.addProperty("tmFc", tm.substring(0, 4) + "-" + tm.substring(4, 6) + "-" + tm.substring(6, 8) + " " + tm.substring(8, 10) + ":00");
+                out.add("days", days);
+                out.addProperty("source", "기상청 중기예보");
+                CACHE.put(ck, out, now);
+                return out;
+            });
+            if (got != null) return got;
         }
         return unavailable();
     }

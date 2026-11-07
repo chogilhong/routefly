@@ -43,6 +43,11 @@ public class WeatherServlet extends HttpServlet {
     private static final OpenApi.Cache<JsonObject> SHORT = new OpenApi.Cache<>(500, 10L * 60 * 1000);
     /** 기억에 없어 바깥에 새로 묻는 횟수 상한 - 주소마다 한 시간 60번, 하루 3,000번(설정 quota.weather.ip · .day, 2026-11-01 점검: 좌표를 격자마다 바꿔 부르면 매번 기상청에 물었음). */
     private static final OutQuota QUOTA = OutQuota.of("weather", 60, 3000);
+    /**
+     * 앞 발표 · 옆 격자까지 모두 자료 없음(NO_DATA)이던 격자 · 발표는 10분 다시 묻지 않음(MidServlet.EMPTY 와 같음, 2026-11-07 전체 점검 3단계:
+     * 그동안 손님마다 한 번에 최대 6번 - 이 발표 · 앞 발표 · 옆 격자 넷 - 을 다시 물었음). 연결 실패는 기억하지 않음.
+     */
+    private static final OpenApi.Cache<Boolean> EMPTY = new OpenApi.Cache<>(500, 10L * 60 * 1000);
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -62,22 +67,33 @@ public class WeatherServlet extends HttpServlet {
         long now = System.currentTimeMillis();
         JsonObject out = CACHE.get(key, now);
         if (out == null) out = SHORT.get(key, now);
-        if (out == null) {
-            boolean[] instead = {false};
-            out = ip == null || QUOTA.allow(ip, now) ? fetch(g, base, instead) : unavailable();   // 상한이면 이 요청만 못 받음(기억하지 않음)
-            if (!out.has("unavailable")) (instead[0] ? SHORT : CACHE).put(key, out, now);
-        }
-        return out;
+        if (out != null) return out;
+        if (EMPTY.get(key, now) != null) return unavailable();
+        if (ip != null && !QUOTA.allow(ip, now)) return unavailable();   // 상한이면 이 요청만 못 받음(기억하지 않음)
+        // 같은 격자 · 발표를 지금 묻는 중이면 그 답을 기다림(Flight - 2026-11-07 전체 점검 3단계: 주말 미리 받기 · 손님이 겹치면 따로따로 물었음)
+        out = Flight.once("weather|" + key, () -> {
+            long t = System.currentTimeMillis();
+            JsonObject o = CACHE.get(key, t);
+            if (o == null) o = SHORT.get(key, t);
+            if (o != null) return o;
+            boolean[] instead = {false}, empty = {false};
+            o = fetch(g, base, instead, empty);
+            if (!o.has("unavailable")) (instead[0] ? SHORT : CACHE).put(key, o, now);
+            else if (empty[0]) EMPTY.put(key, Boolean.TRUE, now);
+            return o;
+        });
+        return out != null ? out : unavailable();
     }
 
-    /** instead[0] - 앞 발표 · 옆 격자로 대신 받았으면 true(짧게 기억). */
-    private static JsonObject fetch(int[] g, String[] base, boolean[] instead) {
+    /** instead[0] - 앞 발표 · 옆 격자로 대신 받았으면 true(짧게 기억). empty[0] - 앞 발표 · 옆 격자까지 답은 왔는데 모두 자료 없음(NO_DATA)이면 true. */
+    private static JsonObject fetch(int[] g, String[] base, boolean[] instead, boolean[] empty) {
         String serviceKey = RouteflyConfig.get("weather.serviceKey");
         if (serviceKey == null) serviceKey = RouteflyConfig.get("tour.serviceKey");
         if (serviceKey == null) return unavailable();
         String u = RouteflyConfig.get("weather.url");
         String text = OpenApi.get(url(u != null ? u : DEFAULT_URL, serviceKey, g, base), "WEATHER");
         JsonObject out = text == null ? null : body(text, base);
+        boolean lost = false;
         // 막 나온 발표는 격자에 따라 몇 분 늦게 채워짐 - NO_DATA(03)면 한 발표 앞(3시간 전)으로 한 번 더(2026-10-14 PC: 북한산 61,129)
         if (out == null && text != null && noData(text)) {
             String[] prev = previous(base);
@@ -85,16 +101,21 @@ public class WeatherServlet extends HttpServlet {
             out = t2 == null ? null : body(t2, prev);
             if (out != null) instead[0] = true;
             if (out == null && t2 != null) text = t2;
+            if (t2 == null) lost = true;
         }
         // 그래도 자료 없음이면 바로 옆 격자(5km)로 - 북한산 들머리 격자(61,129)는 두 발표 모두 NO_DATA 였고 옆(60,129)은 나왔음(2026-10-14 PC)
         if (out == null && text != null && noData(text)) {
             for (int[] n : neighbors(g)) {
                 String t3 = OpenApi.get(url(u != null ? u : DEFAULT_URL, serviceKey, n, base), "WEATHER");
+                if (t3 == null) lost = true;   // 옆 격자 연결 실패 - 자료 없음으로 기억하지 않음
                 out = t3 == null ? null : body(t3, base);
                 if (out != null) { out.addProperty("near", true); instead[0] = true; break; }
             }
         }
-        if (out == null && text != null) OpenApi.warn("WEATHER", text);
+        if (out == null && text != null) {
+            OpenApi.warn("WEATHER", text);
+            empty[0] = !lost && noData(text);
+        }
         return out != null ? out : unavailable();
     }
 

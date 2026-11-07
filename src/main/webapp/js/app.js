@@ -31,7 +31,7 @@
     var cur = null;          // 지금 코스 {id, course, lon[], lat[], ele[], dist[], total, pois[], markers[]}
     var anim = { running: false, d: 0, speedIdx: 2, last: 0, bearing: 0, pitch: 70, pitchWant: 70, pitchAt: 0, raf: 0 };
     // 새로 배포되면 '새 버전' 띠(누를 때 새로 고침, 날아가는 중이 아닐 때) - 산행 화면과 같음(2026-10-10)
-    RF.notifyDeploy(["index.html", "js/app.js", "js/course-kit.js", "css/course-kit.css"], function () { return !anim.running; });
+    RF.notifyDeploy(["index.html", "js/app.js", "js/kit-app.js", "css/course-kit.css"], function () { return !anim.running; });
 
     // ------------------------------------------------------------------ 작은 도구
 
@@ -277,10 +277,13 @@
             bb = viewBbox();
             // 2026-10-11 위치기반서비스 비신고 요건 ②: '내 주변 코스' 로 내 위치에 맞춘 화면이면 그 범위가 곧 내 위치라,
             // 모든 사용자에게 같은 고정 격자(RF.snapOut, 약 10km)로 넓혀 묻고 지금 화면 안만 핸드폰에서 거릅니다
-            askBb = bb && list.near ? RF.snapOut(bb) : bb;
-            if (askBb) url += "bbox=" + askBb.map(function (v) { return v.toFixed(2); }).join(",");
+            // 2026-11-07 전체 점검 3단계: 내 주변이 아니어도 같은 격자로 - 지도를 조금씩 끌 때마다 주소가 달라 서버 캐시(ResultCache)를 못 쓰던 것.
+            // 넓힌 칸이 넘쳐 잘렸으면(붐비는 곳을 크게 확대) 내 주변이 아닐 때만 지금 화면 그대로 한 번 더 물음(아래)
+            askBb = bb ? RF.snapOut(bb) : null;
         }
-        if (kind) url += "&kind=" + kind;   // 등산 · 걷기 · 자전거
+        var bboxQ = function (b) { return "bbox=" + b.map(function (v) { return v.toFixed(2); }).join(",") + (kind ? "&kind=" + kind : ""); };
+        if (askBb) url += bboxQ(askBb);
+        else if (kind) url += "&kind=" + kind;   // 등산 · 걷기 · 자전거
         var seq = ++list.seq;
         // 2026-10-10 점검: 다 받은 범위 안이면 서버에 묻지 않고 그 목록에서 지금 범위만 거릅니다(비어서 전국을 봐야 하면 물음)
         if (bb && lastView && lastView.kind === kind && bboxInside(bb, lastView.bb)) {
@@ -293,6 +296,12 @@
             }
         }
         return getJson(url).then(function (j) {
+            if (j.truncated && askBb && !list.near && seq === list.seq && (askBb[0] < bb[0] || askBb[1] < bb[1] || askBb[2] > bb[2] || askBb[3] > bb[3])) {
+                askBb = bb;
+                return getJson("api/courses?" + bboxQ(bb));
+            }
+            return j;
+        }).then(function (j) {
             if (askBb && !j.truncated) lastView = { bb: askBb, kind: kind, courses: j.courses || [] };
             if (askBb && askBb !== bb) {   // 넓혀 물었으면 지금 화면 안만
                 j.courses = (j.courses || []).filter(function (x) {
