@@ -53,6 +53,12 @@ public class FullReviewStage2Test {
         assertTrue("따라가기가 맨 앞 주 단추", follow > 0 && fly > follow);
     }
 
+    /** 끝난 산악회 방 알림에 방 이름(2026-11-07 홍TV님 폰 - 가야산 따라가기를 열자 예전 시험 방 알림이 어느 방인지 없이 떴음). */
+    @Test
+    public void endedRoomNamed() throws Exception {
+        ReviewRound5Test.node("src/test/js/party-ended.test.js");
+    }
+
     @Test
     public void touchSizes() throws Exception {
         String css = read("src/main/webapp/css/mountain.css");

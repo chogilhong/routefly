@@ -59,7 +59,9 @@
 
     function fail(e) {
         if (e && e.ended) {   // 방이 끝남 · 내보내짐 - party-kit 이 이 기기의 방 정보를 지움
-            say(T("산악회 방이 끝났습니다. 인솔자에게 위치를 더 보내지 않습니다.", "The hiking club room has ended. Your location is no longer sent.") + (e.message ? "\n" + e.message : ""));
+            // 예전에 들어간 방이 그사이 끝났으면 따라가기를 열 때 한 번만 뜸(이 기기 방 정보는 party-kit 이 지움) - 방 이름을 붙여 어느 방인지(2026-11-07 홍TV님)
+            var nm = e.room ? T("'" + e.room + "' ", "'" + e.room + "' ") : "";
+            say(T(nm + "산악회 방이 끝났습니다. 인솔자에게 위치를 더 보내지 않습니다.", "The hiking club room " + nm + "has ended. Your location is no longer sent.") + (e.message ? "\n" + e.message : ""));
             hide();
         }
     }

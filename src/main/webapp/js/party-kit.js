@@ -89,10 +89,12 @@
                 if (!r.ok || j.success === false) {
                     var ended = r.status === 410 || (r.status === 400 && /끝났거나 열쇠/.test(j.message || ""));   // 410 - 방이 끝남(까닭이 글로 옴)
                     var mine = get();   // 지금 이 기기 방의 열쇠일 때만 지움(다른 열쇠 - 예전 방 · 들어오기 전 답 - 로 지우지 않게)
-                    if (ended && mine && body && mine.token === body.token) clear();
+                    var own = ended && mine && body && mine.token === body.token;
+                    if (own) clear();
                     var e = new Error(j.message || ("오류 " + r.status));
                     e.status = r.status;
                     e.ended = ended;
+                    if (own && mine.name) e.room = mine.name;   // 끝난 방 이름 - 따라가기를 열자마자 뜨면 어느 방인지 몰랐음(2026-11-07 홍TV님 폰: 예전 시험 방)
                     throw e;
                 }
                 if (j && j.role && j.members && !j.officeMe) { alerts(j); g.RFParty.lastView = { at: Date.now(), token: body && body.token, j: j }; }   // 따라가기 아래 줄이 방금 받은 것을 다시 묻지 않게(2026-10-29 점검)   // 사무실 자리는 알림 기억("rf-party-al")을 덮지 않게 - 같은 PC 인솔자 탭 알림이 다시 울렸음(2026-10-29 점검)   // 방 화면이 올 때마다(위치 · 켜짐 · 새로 받기 답) - 화면을 꺼도 앱이 보내는 답으로
