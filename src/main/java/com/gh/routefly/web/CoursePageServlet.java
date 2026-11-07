@@ -116,6 +116,11 @@ public class CoursePageServlet extends HttpServlet {
         JsonObject pk = parks();
         String rawName = str(course, "name");
         course.addProperty("name", ShareServlet.noteName(pk, id, rawName));   // 앱 · 공유 카드와 같은 이름
+        // 이름의 정상까지 안 가는 코스 - 산 페이지 · 따라가기와 같은 "정상 미포함"(등산만, CourseServlet 과 같게). 2026-11-07 전체 점검: 검색으로 이 페이지에 온 사람은 못 봤음
+        if (java.util.Set.of("hike", "trek").contains(str(course, "kind"))) {
+            Peaks.Miss miss = Peaks.miss(rawName, plat, plon, Peaks.named(getServletContext()));
+            if (miss != null) course.addProperty("summit_miss", miss.name());
+        }
         JsonObject peak = peakOf(peaks(), course);
         boolean index = indexable(id, rawName, str(course, "kind"), peak, pk);
         resp.setHeader("Cache-Control", "public, max-age=600");
@@ -333,6 +338,7 @@ public class CoursePageServlet extends HttpServlet {
         if (asc != null) b.append("<dt>오르막 · 내리막</dt><dd>").append(String.format(Locale.KOREA, "%,dm", asc)).append(desc != null ? String.format(Locale.KOREA, " · %,dm", desc) : "").append("</dd>");
         if (hi != null) b.append("<dt>높이</dt><dd>").append(lo != null ? String.format(Locale.KOREA, "%,dm ~ ", lo) : "").append(String.format(Locale.KOREA, "%,dm", hi)).append("</dd>");
         b.append("<dt>예상 시간</dt><dd>").append(timeText(kind, d, asc, desc, officialMin(info, d))).append("</dd>");
+        if (str(c, "summit_miss") != null) b.append("<dt>주의</dt><dd>⚠ ").append(esc(str(c, "summit_miss"))).append(" 정상 미포함 - 이 선은 이름의 정상까지 가지 않습니다</dd>");
         if (hike) {
             String lvOff = info != null ? str(info, "level") : null;   // 공단 난이도가 있으면 그것 하나(2026-11-03 홍TV님 점검: 두 난이도가 엇갈렸음)
             String chip = lvOff != null && !lvOff.isBlank() ? MountainServlet.officialChip(lvOff) : MountainServlet.levelChip(d, asc, steep, false);

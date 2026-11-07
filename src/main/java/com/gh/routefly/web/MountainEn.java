@@ -22,21 +22,28 @@ final class MountainEn {
     /** /en/m/ 아래는 두 단계 - 앱 뿌리로 가는 상대 주소. */
     static final String REL = "../..";
 
-    /** 코스 이름에서 영어로 옮길 낱말(긴 것 먼저) - 나머지 한글은 로마자. 땅이름(계곡 · 봉 · 재 …)은 로마자 그대로. */
-    private static final String[][] WORDS = {
-        {"남동쪽", "southeast"}, {"남서쪽", "southwest"}, {"북동쪽", "northeast"}, {"북서쪽", "northwest"},
-        {"동쪽", "east"}, {"서쪽", "west"}, {"남쪽", "south"}, {"북쪽", "north"}, {"들머리", "trailhead"}, {"날머리", "trail end"},
-        {"국립공원", "National Park"}, {"국림공원", "National Park"}, {"화장실", "restroom"},   // 국림 - 산림청 원자료 오타(설악산국림공원백담분소입구)
-        {"탐방지원센터", "visitor center"}, {"탐방안내소", "visitor center"}, {"공원지킴터", "ranger post"}, {"매표소", "ticket booth"},
-        {"주차장", "parking"}, {"대피소", "shelter"}, {"휴게소", "rest area"}, {"삼거리", "junction"}, {"사거리", "crossroads"},
-        {"갈림길", "junction"}, {"탐방로", "trail"}, {"등산로", "trail"}, {"입구", "entrance"}, {"정상", "summit"}, {"코스", "course"},
-        {"구간", "section"}, {"순환", "loop"}, {"왕복", "round trip"}, {"분소", "office"}};
+    /**
+     * 코스 이름에서 영어로 옮길 낱말(긴 것 먼저) - 나머지 한글은 로마자. 땅이름(봉 · 재 …)은 로마자 그대로.
+     * course-kit.js EN_WORDS 와 같은 목록 · 차례(2026-11-07 전체 점검: 화면 쪽만 위험 · 시설 낱말이 늘어 같은 코스가 /en/m/ 과 따라가기에서 다르게 나왔음 -
+     * MountainEnTest 가 두 목록이 같은지 봄). 앞에 빈칸이 붙은 값(" bike path")도 그대로 - 빈칸은 끝에서 하나로.
+     */
+    static final String[][] WORDS = {
+        {"남동쪽", "southeast"}, {"남서쪽", "southwest"}, {"북동쪽", "northeast"}, {"북서쪽", "northwest"}, {"동쪽", "east"}, {"서쪽", "west"}, {"남쪽", "south"},
+        {"북쪽", "north"}, {"들머리", "trailhead"}, {"날머리", "trail end"}, {"국립공원", "National Park"}, {"국림공원", "National Park"}, {"화장실", "restroom"},
+        {"탐방지원센터", "visitor center"}, {"탐방안내소", "visitor center"}, {"공원지킴터", "ranger post"}, {"매표소", "ticket booth"}, {"주차장", "parking"},
+        {"대피소", "shelter"}, {"휴게소", "rest area"}, {"삼거리", "junction"}, {"사거리", "crossroads"}, {"갈림길", "junction"}, {"탐방로", "trail"},
+        {"등산로", "trail"}, {"입구", "entrance"}, {"정상", "summit"}, {"코스", "course"}, {"구간", "section"}, {"순환", "loop"}, {"왕복", "round trip"},
+        {"분소", "office"}, {"급경사", "steep slope"}, {"낙석", "falling rocks"}, {"추락", "fall"}, {"미끄럼", "slippery"}, {"실족", "slip"}, {"주의", "caution"},
+        {"위험", "danger"}, {"조망점", "viewpoint"}, {"전망대", "observatory"}, {"약수터", "spring"}, {"샘터", "spring"}, {"쉼터", "rest spot"}, {"헬기장", "helipad"},
+        {"구급함", "first-aid box"}, {"정류장", "bus stop"}, {"자전거길", " bike path"}, {"관광안내소", " tourist info center"}, {"해수욕장", " beach"},
+        {"계곡", " valley"}, {"아래", " below"}};
 
     /** 순수 함수 - 코스 이름 영어로: 정해진 낱말은 영어, 나머지는 로마자("오색탐방지원센터 - 대청봉" → "Osaek visitor center - Daecheongbong"). */
     static String courseName(String ko) {
         if (ko == null) return "";
         // 붙어 쓴 산 이름 + 봉우리 · 절 · 고개는 띄움("설악산대청봉" → "Seoraksan Daecheongbong" - 2026-10-17 PC: 긴 로마자 한 낱말). "남한산성" 은 그대로
         String s = ko.replaceAll("([가-힣]+산)([가-힣]{1,4}(?:봉|대|령|재|사|암|폭포|계곡))(?![가-힣])", "$1 $2");
+        s = s.replaceAll("(^|\\s)위(?=\\s|\\d|$)", "$1above");   // 따로 쓴 '위'만("갈림길 위 250m") - course-kit.js enName 과 같음
         for (String[] w : WORDS) s = s.replace(w[0], " " + w[1] + " ");
         return Roman.of(s).replaceAll("([a-z])(\\d)", "$1 $2").replaceAll("\\s+", " ").replaceAll(" ([)\\],])", "$1").replaceAll("([(\\[]) ", "$1").trim();
     }
@@ -156,12 +163,15 @@ final class MountainEn {
                 b.append("<li data-id=\"").append(esc(id)).append("\" data-name=\"").append(esc(str(c, "name"))).append("\" data-dist=\"").append(dist).append(asc != null ? "\" data-asc=\"" + asc : "")
                         .append(down != null ? "\" data-desc=\"" + down : "").append(steep != null ? "\" data-steep=\"" + steep : "")
                         .append(CoursePageServlet.officialMin(c, dist) != null ? "\" data-min=\"" + CoursePageServlet.officialMin(c, dist) : "").append("\"><b>")
-                        .append(esc(courseName(str(c, "name")))).append(" ").append(MountainServlet.levelChip(dist, asc, steep, true)).append(" <small lang=\"ko\">").append(esc(str(c, "name"))).append("</small></b>").append(MountainServlet.madeLine(id, true)).append("<span>")
+                        .append(esc(courseName(str(c, "name")))).append(" ").append(MountainServlet.chipFor(c, dist, asc, steep, true)).append(" <small lang=\"ko\">").append(esc(str(c, "name"))).append("</small></b>").append(MountainServlet.madeLine(id, true)).append("<span>")
                         .append(String.format(Locale.ROOT, "%.2f km", dist / 1000.0))
                         .append(asc != null ? String.format(Locale.US, " · %,d m ascent", asc) : "")
                         .append(SteepRank.slopeText(dist, asc, steep, true))   // 순위와 같은 기준(2026-10-18)
-                        .append(" · about ").append(MountainServlet.timeOf(c, true)).append("</span><span class=\"go\">")
-                        .append("<a href=\"").append(REL).append("/index.html?lang=en#c=").append(esc(id)).append("\">3D fly-through</a>")
+                        .append(" · about ").append(MountainServlet.timeOf(c, true))
+                        // 이름의 정상까지 안 가는 선 - 한국어 산 페이지와 같은 경고(2026-11-07 전체 점검: 영어 페이지에만 빠져 있었음)
+                        .append(str(c, "summit_miss") != null ? " · ⚠ does not reach " + esc(courseName(str(c, "summit_miss"))) + " (" + esc(str(c, "summit_miss")) + ")" : "")
+                        .append("</span><span class=\"go\">")
+                        .append("<a href=\"").append(REL).append("/index.html?lang=en#c=").append(esc(id)).append("&amp;m=").append(esc(MountainServlet.enc(id(peak)))).append("\">3D fly-through</a>")   // m= - 3D 의 ‹ 가 이 페이지로(한국어와 같게, 2026-11-07)
                         .append("<a href=\"").append(REL).append("/hike.html?lang=en#c=").append(esc(id)).append(MountainServlet.revArg(c)).append("&amp;m=").append(esc(MountainServlet.enc(id(peak)))).append("\">Follow (GPS)</a>");   // 따라가기 영어 · ‹ 는 이 페이지로
                 double[] th = MountainServlet.trailhead(c, peak);
                 if (th != null) b.append("<a class=\"way\" href=\"").append(esc(googleTo(th))).append("\" target=\"_blank\" rel=\"noopener\">🚌 Directions</a>");

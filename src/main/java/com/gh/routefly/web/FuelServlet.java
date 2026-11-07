@@ -37,6 +37,11 @@ public class FuelServlet extends HttpServlet {
     private static final OpenApi.Cache<JsonArray> CACHE = new OpenApi.Cache<>(100, 60L * 60 * 1000);
     /** 못 받은 호출은 10분 동안 다시 묻지 않음(빈 배열로 표시 - HolidayServlet 과 같은 까닭). */
     private static final OpenApi.Cache<Boolean> FAILED = new OpenApi.Cache<>(100, 10L * 60 * 1000);
+    /**
+     * 바깥(오피넷)에 새로 묻는 수 상한 - 날씨 · 대기와 같은 OutQuota(2026-11-07 전체 점검: 이 서블릿에만 없어서 sido 00 ~ 99 를 돌려 부르면
+     * 요청마다 오피넷을 새로 불러 하루 한도를 혼자 다 쓸 수 있었음). 기억에 있는 답은 상한과 관계없이 줌. 설정 quota.fuel.ip · .day 로 바꿈.
+     */
+    private static final OutQuota QUOTA = OutQuota.of("fuel", 30, 1000);
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -50,7 +55,8 @@ public class FuelServlet extends HttpServlet {
         JsonObject out = new JsonObject();
         out.addProperty("success", true);
         if (key == null) { out.addProperty("unavailable", true); Json.ok(req, resp, out); return; }
-        JsonArray national = call("avgAllPrice.do", "", key), sidoAvg = call("avgSidoPrice.do", "&prodcd=" + prod, key);
+        String ip = SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For"));
+        JsonArray national = call("avgAllPrice.do", "", key, ip), sidoAvg = call("avgSidoPrice.do", "&prodcd=" + prod, key, ip);
         if (national == null && sidoAvg == null) { out.addProperty("unavailable", true); Json.ok(req, resp, out); return; }
         JsonArray nat = new JsonArray();
         String date = null;
@@ -75,8 +81,9 @@ public class FuelServlet extends HttpServlet {
         if (date != null) out.addProperty("date", date);
         out.add("national", nat);
         out.add("sido", sd);
-        if (sido != null && !sido.isEmpty()) {
-            JsonArray low = call("lowTop10.do", "&prodcd=" + prod + "&area=" + sido + "&cnt=10", key), lw = new JsonArray();
+        // 시도 코드는 오피넷이 준 시도 목록(SIDOCD)에 있는 것만 - 없는 코드로 최저가를 묻지 않음(2026-11-07)
+        if (sido != null && !sido.isEmpty() && knownSido(sidoAvg, sido)) {
+            JsonArray low = call("lowTop10.do", "&prodcd=" + prod + "&area=" + sido + "&cnt=10", key, ip), lw = new JsonArray();
             if (low != null) for (JsonElement e : low) {
                 JsonObject o = e.getAsJsonObject(), x = new JsonObject();
                 x.addProperty("name", s(o, "OS_NM"));
@@ -92,12 +99,20 @@ public class FuelServlet extends HttpServlet {
         Json.ok(req, resp, out);
     }
 
-    private static JsonArray call(String what, String query, String key) {
+    /** 순수 함수 - 오피넷 시도 평균 목록(SIDOCD)에 그 시도 코드가 있는가. 목록이 없으면 false. */
+    static boolean knownSido(JsonArray sidoAvg, String sido) {
+        if (sidoAvg == null) return false;
+        for (JsonElement e : sidoAvg) if (e.isJsonObject() && sido.equals(s(e.getAsJsonObject(), "SIDOCD"))) return true;
+        return false;
+    }
+
+    private static JsonArray call(String what, String query, String key, String ip) {
         String k = what + query;
         long now = System.currentTimeMillis();
         JsonArray hit = CACHE.get(k, now);
         if (hit != null) return hit;
         if (FAILED.get(k, now) != null) return null;
+        if (!QUOTA.allow(ip, now)) return null;   // 상한 - 이번엔 없이(기억하지 않음)
         String u = RouteflyConfig.get("opinet.url");
         String text = OpenApi.get(url(u != null ? u : DEFAULT_URL, what, query, key), "FUEL");
         JsonArray a = text == null ? null : oil(text);

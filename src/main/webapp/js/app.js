@@ -615,9 +615,16 @@
         guide.markT = setTimeout(function () { if (guide.mark) { guide.mark.remove(); guide.mark = null; } }, 8000);
     }
 
+    /** 시각 "H:MM" - 한국 시간으로(2026-11-07 전체 점검: 따라가기는 11-02 에 한국 시간으로 고쳤는데 3D 는 폰 시간대 그대로였음 - 해외에서 일정을 짤 때 틀림). */
     function clockText(ms) {
-        var d = new Date(ms);
-        return d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0");
+        var d = new Date(ms + 9 * 3600000);
+        return d.getUTCHours() + ":" + String(d.getUTCMinutes()).padStart(2, "0");
+    }
+
+    /** 오늘(한국 날짜) h:m(한국 시간)의 ms. */
+    function kstToday(h, m) {
+        var k = new Date(Date.now() + 9 * 3600000);
+        return Date.UTC(k.getUTCFullYear(), k.getUTCMonth(), k.getUTCDate(), h, m) - 9 * 3600000;
     }
 
     // ---- 영어 화면 도구(2026-10-17 - course-kit 의 같은 일을 하는 한국어 함수 대신)
@@ -762,8 +769,7 @@
             body.appendChild(out);
             var draw = function () {
                 out.textContent = "";
-                var hmv = String(inp.value || "08:00").split(":"), d0 = new Date();
-                d0.setHours(+hmv[0] || 0, +hmv[1] || 0, 0, 0);
+                var hmv = String(inp.value || "08:00").split(":"), d0 = new Date(kstToday(+hmv[0] || 0, +hmv[1] || 0));   // 출발 시각은 한국 시간
                 var sc = RF.scheduleRows(c, d0.getTime(), guide.kind), sun = RF.sunset(d0.getTime(), start.lat, start.lon);
                 sc.rows.forEach(function (x) {
                     out.appendChild(gRow(NM(x.name), RF.km(x.d) + "km" + (x.ele != null ? T(" · 해발 ", " · elev. ") + RF.num(x.ele) + "m" : ""), clockText(x.at)));
@@ -790,8 +796,8 @@
                 sb.href = "#";
                 sb.addEventListener("click", function (e) {
                     e.preventDefault();
-                    var s0 = new Date(RF.sunriseStart(rise, upMs));
-                    inp.value = String(s0.getHours()).padStart(2, "0") + ":" + String(s0.getMinutes()).padStart(2, "0");
+                    var s0 = new Date(RF.sunriseStart(rise, upMs) + 9 * 3600000);   // 한국 시간
+                    inp.value = String(s0.getUTCHours()).padStart(2, "0") + ":" + String(s0.getUTCMinutes()).padStart(2, "0");
                     draw();
                 });
                 body.insertBefore(sb, out);

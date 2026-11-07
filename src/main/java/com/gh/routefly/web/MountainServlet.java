@@ -196,19 +196,19 @@ public class MountainServlet extends HttpServlet {
         return courses;
     }
 
-    /** 국립공원 코스(knps-*)의 공식 오름 · 내림 시간(route_course_info)을 코스에 up_min · down_min 으로 붙임. 표가 없으면 그대로. */
+    /** 국립공원 코스(knps-*)의 공식 오름 · 내림 시간 · 난이도(route_course_info)를 코스에 up_min · down_min · level 로 붙임. 표가 없으면 그대로. */
     private static void officialTimes(Connection c, List<JsonObject> courses) {
         List<Object> ids = new ArrayList<>();
         for (JsonObject o : courses) if (str(o, "course_id") != null && str(o, "course_id").startsWith(CourseQueries.INFO_PREFIX)) ids.add(str(o, "course_id"));
         if (ids.isEmpty()) return;
         try {
-            JsonArray rows = Json.rows(c, "SELECT course_id, up_min, down_min FROM route_course_info WHERE course_id IN (" + String.join(",", java.util.Collections.nCopies(ids.size(), "?")) + ")", ids.toArray());
+            JsonArray rows = Json.rows(c, "SELECT course_id, up_min, down_min, level FROM route_course_info WHERE course_id IN (" + String.join(",", java.util.Collections.nCopies(ids.size(), "?")) + ")", ids.toArray());
             java.util.Map<String, JsonObject> by = new java.util.HashMap<>();
             for (JsonElement e : rows) by.put(str(e.getAsJsonObject(), "course_id"), e.getAsJsonObject());
             for (JsonObject o : courses) {
                 JsonObject r = by.get(str(o, "course_id"));
                 if (r == null) continue;
-                for (String k : new String[] {"up_min", "down_min"}) if (r.has(k) && !r.get(k).isJsonNull()) o.add(k, r.get(k));
+                for (String k : new String[] {"up_min", "down_min", "level"}) if (r.has(k) && !r.get(k).isJsonNull()) o.add(k, r.get(k));
             }
         } catch (Exception e) {
             // 표 없음(DDL 전) - 어림 시간만
@@ -555,6 +555,18 @@ public class MountainServlet extends HttpServlet {
         return lv < 0 ? "" : "<i class=\"lv lv" + lv + "\">" + LEVELS[lv][en ? 1 : 0] + "</i>";
     }
 
+    /**
+     * 순수 함수 - 목록 줄의 난이도 칩: 공단 난이도(level)가 있으면 그것 하나, 없으면 어림(levelChip). 코스 페이지 · 따라가기 · 3D 와 같은 차례
+     * (2026-11-07 전체 점검: 산 페이지만 어림 칩이라 같은 코스가 산 페이지 "쉬움" · 코스 페이지 "공단 보통" 으로 엇갈렸음).
+     */
+    static String chipFor(JsonObject c, int distM, Integer ascM, Double steep, boolean en) {
+        String lv = str(c, "level");
+        if (lv == null || lv.isBlank()) return levelChip(distM, ascM, steep, en);
+        if (!en) return officialChip(lv);
+        int k = officialLevel(lv);
+        return "<i class=\"lv" + (k >= 0 ? " lv" + k : "") + "\" title=\"Korea National Park Service difficulty\">KNPS " + (k >= 0 ? LEVELS[k][1] : esc(lv.trim())) + "</i>";
+    }
+
     /** 순수 함수 - 공단 난이도 글("보통(2.57)") → LEVELS 차례, 모르면 -1. course-kit.js officialLevel 과 같음. */
     static int officialLevel(String text) {
         String t = text == null ? "" : text.replaceAll("\\(.*$", "").replaceAll("\\s+", " ").trim();
@@ -857,7 +869,7 @@ public class MountainServlet extends HttpServlet {
                         .append(asc != null ? "\" data-asc=\"" + asc : "").append(down != null ? "\" data-desc=\"" + down : "").append(steep != null ? "\" data-steep=\"" + steep : "")
                         .append(CoursePageServlet.officialMin(c, dist) != null ? "\" data-min=\"" + CoursePageServlet.officialMin(c, dist) : "")   // 공식 시간(일출 출발 - js/mountain.js)
                         .append("\"><b><a href=\"").append(REL).append("/c/").append(esc(id)).append("\">").append(esc(str(c, "name"))).append("</a> ")   // 코스 소개 페이지(2026-10-19 - 검색 로봇이 코스까지)
-                        .append(levelChip(dist, asc, steep, false)).append("</b>").append(madeLine(id, false)).append("<span>")
+                        .append(chipFor(c, dist, asc, steep, false)).append("</b>").append(madeLine(id, false)).append("<span>")
                         .append(String.format(Locale.ROOT, "%.2fkm", dist / 1000.0))
                         .append(asc != null ? String.format(Locale.KOREA, " · 오르막 %,dm", asc) : "")
                         .append(SteepRank.slopeText(dist, asc, steep, false))   // 각도 · 경사 · 가파른 1km - 가파른 산 순위와 같은 기준(2026-10-18 홍TV님 "통일")
