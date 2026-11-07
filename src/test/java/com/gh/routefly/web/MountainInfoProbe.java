@@ -25,6 +25,7 @@ import com.google.gson.JsonParser;
  * .claude\run-tests.ps1 -Run web.MountainInfoProbe 가야산      → 그 산 이름으로
  * .claude\run-tests.ps1 -Run web.MountainInfoProbe all         → 전체를 100줄씩 받아 100대 명산과 맞춰 src/main/webapp/data/mountain-info.json 을 씀
  *                                                                 (산 페이지 "산림청 선정 이유" - 못 맞춘 산은 빼고 이름 · 비슷한 이름 후보를 찍음, 지어내지 않음)
+ * .claude\run-tests.ps1 -Run web.MountainInfoProbe rebuild     → 받아 둔 all-*.xml 로만 다시 만듦(키 · 네트워크 없이 - 맞추기 규칙을 고쳤을 때)
  *                                                                 받은 원본 쪽은 src/test/resources/mountain-info/all-&lt;쪽&gt;.xml 로도(키 지움 - 맞추기를 고칠 때 테스트 데이터)
  * </pre>
  *
@@ -41,6 +42,10 @@ public final class MountainInfoProbe {
     static final String BASE = "https://apis.data.go.kr/1400000/cultureInfoService";
 
     public static void main(String[] args) throws Exception {
+        if (args.length > 0 && "rebuild".equals(args[0])) {
+            rebuild();
+            return;
+        }
         String key = RouteflyConfig.get("mountain.serviceKey");
         if (key == null) key = RouteflyConfig.get("tour.serviceKey");
         if (key == null) {
@@ -91,12 +96,25 @@ public final class MountainInfoProbe {
             items.addAll(got);
         }
         System.out.println("받은 산 " + items.size() + " / " + (total == Integer.MAX_VALUE ? "?" : total));
+        write(items);
+    }
+
+    /** 받아 둔 쪽(all-*.xml)으로만 data/mountain-info.json 을 다시 만듦 - 맞추기 규칙을 고쳤을 때(네트워크 · 키 없이). */
+    private static void rebuild() throws Exception {
+        List<Map<String, String>> items = new ArrayList<>();
+        for (int page = 1; Files.exists(Path.of("src", "test", "resources", "mountain-info", "all-" + page + ".xml")); page++)
+            items.addAll(items(Files.readString(Path.of("src", "test", "resources", "mountain-info", "all-" + page + ".xml"), StandardCharsets.UTF_8)));
+        System.out.println("받아 둔 산 " + items.size());
+        write(items);
+    }
+
+    private static void write(List<Map<String, String>> items) throws Exception {
         JsonArray peaks = JsonParser.parseString(Files.readString(Path.of("src/main/webapp/data/mountains100.json"), StandardCharsets.UTF_8)).getAsJsonObject().getAsJsonArray("peaks");
         List<String> miss = new ArrayList<>();
         JsonObject info = match(peaks, items, miss);
         JsonObject file = new JsonObject();
         file.addProperty("_note", "산림청 명산등산로(공공데이터포털 15158915) - 100대 명산 선정 이유(aeatreason) · 부제(subnm) · 산코드(mntncd). "
-                + "web.MountainInfoProbe all 이 만듦(" + java.time.LocalDate.now(WeatherServlet.KST) + ", 맞춘 산 " + info.size() + "). 고치지 말고 다시 만드세요.");
+                + "web.MountainInfoProbe all · rebuild 가 만듦(" + java.time.LocalDate.now(WeatherServlet.KST) + ", 맞춘 산 " + info.size() + "). 고치지 말고 다시 만드세요.");
         file.add("info", info);
         Files.writeString(Path.of("src/main/webapp/data/mountain-info.json"), new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create().toJson(file) + "\n", StandardCharsets.UTF_8);
         System.out.println("맞춤 " + info.size() + "곳, 못 맞춤 " + miss.size() + "곳: " + miss);
@@ -138,7 +156,9 @@ public final class MountainInfoProbe {
 
     /**
      * 순수 함수 - 100대 명산(mountains100.json 의 id - "백운산(광양)" 처럼 괄호에 지역)과 산림청 목록을 맞춤 → {id: {code, reason, sub}}.
-     * 이름이 같고, 괄호가 있으면 소재지(areanm)에 그 지역이 들고, 그래도 둘 넘으면 높이가 150m 안으로 가장 가까운 것. 못 맞추면 miss 에 이름을 넣고 뺌.
+     * ① 산명(mntnm)이 id 와 똑같으면 그것("백운산(광양)" · "지리산(통영)") ② 아니면 산명의 괄호를 뗀 이름이 같은 것("덕숭산(수덕산)" · "도봉산(자운봉)" - 2026-11-07 PC all-1.xml),
+     * id 에 괄호 지역이 있으면 소재지(areanm)나 산명 괄호에 그 지역이 든 것만, 그래도 둘 넘으면 높이가 150m 안으로 가장 가까운 것.
+     * 선정 이유가 빈 산(주흘산 - 응답에 0자)과 못 맞춘 산은 miss 에 이름을 넣고 뺌(지어내지 않음).
      */
     static JsonObject match(JsonArray peaks, List<Map<String, String>> items, List<String> miss) {
         JsonObject out = new JsonObject();
@@ -148,8 +168,12 @@ public final class MountainInfoProbe {
             Matcher rg = Pattern.compile("\\((.+)\\)$").matcher(id);
             String region = rg.find() ? rg.group(1) : null;
             List<Map<String, String>> c = new ArrayList<>();
-            for (Map<String, String> it : items)
-                if (base.equals(it.get("mntnm")) && (region == null || String.valueOf(it.get("areanm")).contains(region))) c.add(it);
+            for (Map<String, String> it : items) if (id.equals(it.get("mntnm"))) c.add(it);
+            if (c.isEmpty())
+                for (Map<String, String> it : items) {
+                    String n = String.valueOf(it.get("mntnm"));
+                    if (base.equals(n.replaceAll("\\(.*\\)$", "").trim()) && (region == null || String.valueOf(it.get("areanm")).contains(region) || n.contains("(" + region + ")"))) c.add(it);
+                }
             if (c.size() > 1 && p.has("height")) {
                 double h = p.get("height").getAsDouble();
                 c.removeIf(it -> { try { return Math.abs(Double.parseDouble(it.get("mntheight")) - h) > 150; } catch (Exception x) { return true; } });

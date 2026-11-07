@@ -52,6 +52,24 @@ public class MountainInfoTest {
     }
 
     @Test
+    public void matchesAllHundredFromRealList() throws Exception {
+        List<Map<String, String>> items = MountainInfoProbe.items(read("src/test/resources/mountain-info/all-1.xml"));   // 100곳 전체(2026-11-07 PC)
+        assertEquals(100, items.size());
+        List<String> miss = new ArrayList<>();
+        JsonObject info = MountainInfoProbe.match(peaks(), items, miss);
+        assertEquals("선정 이유가 빈 주흘산만 뺌(응답에 0자)", List.of("주흘산"), miss);
+        assertEquals(99, info.size());
+        String code = null;
+        for (Map<String, String> it : items) if ("덕숭산(수덕산)".equals(it.get("mntnm"))) code = it.get("mntncd");
+        assertEquals("괄호 붙은 산명은 괄호를 떼고", code, info.getAsJsonObject("덕숭산").get("code").getAsString());
+        for (String[] p : new String[][] {{"백운산(광양)", "백운산(광양)"}, {"백운산(정선)", "백운산(정선)"}, {"백운산(포천)", "백운산(포천)"}, {"지리산(통영)", "지리산(통영)"}, {"지리산", "지리산"}}) {
+            String want = null;
+            for (Map<String, String> it : items) if (p[1].equals(it.get("mntnm"))) want = it.get("mntncd");
+            assertEquals(p[0] + " 은 제 것", want, info.getAsJsonObject(p[0]).get("code").getAsString());
+        }
+    }
+
+    @Test
     public void mountainPageShowsReasonWithSource() throws Exception {
         List<Map<String, String>> items = MountainInfoProbe.items(read("src/test/resources/mountain-info/search-설악산.xml"));
         JsonObject file = new JsonObject();
