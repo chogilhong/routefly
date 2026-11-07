@@ -248,6 +248,7 @@ public class MountainServlet extends HttpServlet {
             p = new JsonArray();
         }
         withElev(p, readElev(getServletContext()));
+        withInfo(p, readInfo(getServletContext()));
         peaks = p;
         return p;
     }
@@ -500,6 +501,37 @@ public class MountainServlet extends HttpServlet {
             o.add("elev", elev.get(id));
             o.addProperty("elev_src", src.has(id) && src.get(id).isJsonPrimitive() ? src.get(id).getAsString() : "ebook");
         }
+    }
+
+    /** data/mountain-info.json 의 info {산 id: {code, reason, sub}}(산림청 명산등산로 - web.MountainInfoProbe all 이 만듦) - 없거나 못 읽으면 빈 것. */
+    static JsonObject readInfo(jakarta.servlet.ServletContext ctx) {
+        try (InputStream in = ctx.getResourceAsStream("/data/mountain-info.json")) {
+            JsonElement e = in == null ? null : JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+            return e != null && e.isJsonObject() && e.getAsJsonObject().has("info") ? e.getAsJsonObject().getAsJsonObject("info") : new JsonObject();
+        } catch (Exception e) {
+            return new JsonObject();
+        }
+    }
+
+    /** 순수 함수 - 산마다 산림청 100대 명산 선정 이유(reason) · 부제(reason_sub)를 붙임(id 로 맞춤, 2026-11-07 전체 점검 17번 - 지어내지 않고 공공데이터로). */
+    static void withInfo(JsonArray peaks, JsonObject info) {
+        for (JsonElement e : peaks) {
+            JsonObject o = e.getAsJsonObject();
+            String id = str(o, "id") != null ? str(o, "id") : str(o, "name");
+            JsonElement v = id == null ? null : info.get(id);
+            if (v == null || !v.isJsonObject() || str(v.getAsJsonObject(), "reason") == null) continue;
+            o.addProperty("reason", str(v.getAsJsonObject(), "reason"));
+            if (str(v.getAsJsonObject(), "sub") != null) o.addProperty("reason_sub", str(v.getAsJsonObject(), "sub"));
+        }
+    }
+
+    /** 순수 함수 - 산 페이지 "산림청이 고른 까닭" 칸(선정 이유가 없으면 ""). 출처를 함께. */
+    static String reasonBlock(JsonObject peak, String name) {
+        String r = str(peak, "reason");
+        if (r == null || r.isBlank()) return "";
+        String sub = str(peak, "reason_sub");
+        return "<section class=\"why\"><h2>" + esc(name) + " - 산림청 100대 명산 선정 이유</h2>" + (sub != null ? "<p><b>" + esc(sub) + "</b></p>" : "")
+                + "<p>" + esc(r) + "</p><p class=\"dim\">출처: 산림청 「명산등산로」(공공데이터포털)</p></section>";
     }
 
     /** 순수 함수 - 높이 출처 이름(문답 · 점검 화면). en - 영어. */
@@ -899,6 +931,7 @@ public class MountainServlet extends HttpServlet {
         b.append("<p class=\"dim\">예상 시간은 " + RULE_KO + "으로 어림한 코스 처음부터 끝까지의 값입니다(공단 공식 시간이 있는 국립공원 코스는 그 시간). 코스 자료는 참고용이니 현지 안내판 · 통제를 꼭 따르세요.</p></section>");
         // 🚗 쏘카 한 줄(설정 partner.socar.url 이 있고 휴대폰일 때 mountain.js 가 채움, 2026-11-03) - 안내 글 아래(2026-11-03 홍TV님 "안내문구 아래로")
         if (!courses.isEmpty()) b.append("<p class=\"stays\" id=\"socar\" hidden></p>");
+        b.append(reasonBlock(peak, name));   // 산림청 선정 이유(data/mountain-info.json 이 있을 때만, 2026-11-07)
         // 광고 한 칸(설정이 있을 때만, 2026-10-28) - 코스 목록 다음 · 자주 묻는 질문 앞(2026-11-07 전체 점검 4단계: 맨 아래라 거의 안 보였음).
         // 코스 단추 · 따라가기와 붙지 않게 안내 글 뒤에, 한 페이지 한 칸만
         b.append(Ads.box("m"));

@@ -30,7 +30,7 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다 - 산악회 방 
 
 - 이 PC: `.claude\run-tests.ps1 [-Only web.WebBasicsTest]` (Maven 없이 javac + JUnit 4, DB 없이 돕니다). 웹(클라우드): `LC_ALL=C.UTF-8 mvn -o test`
   (routefly 는 웹소켓을 안 써서 totonian · investing 과 달리 그대로 됩니다. 한글 파일 이름 때문에 LC_ALL 이 필요합니다).
-- 전체 테스트가 모두 통과하는 것이 정상입니다(2026-11-07 기준 447건 - 점검 8차 화면 조각은 review8.test.js, 코스 정확도 점검은 CourseAccuracyTest · course-accuracy.test.js). 하나라도 실패하면 새로 깨진 것이니 고칩니다.
+- 전체 테스트가 모두 통과하는 것이 정상입니다(2026-11-07 기준 450건 - 점검 8차 화면 조각은 review8.test.js, 코스 정확도 점검은 CourseAccuracyTest · course-accuracy.test.js). 하나라도 실패하면 새로 깨진 것이니 고칩니다.
 - 점검 단계마다 테스트 클래스를 둡니다(`CheckupStage1Test` 버그 · `CheckupStage2Test` 속도 · 호출 · `CheckupStage3Test` 화면 · 보안) - totonian 의 `VoidBulkV4435Test` 같은 방식.
 - 내 기록은 IndexedDB(`rf-records`), 사진은 IndexedDB(`rf-photos`), 걷는 중 저장분은 localStorage(`rf-hike-<코스>` · `-track` · `-notes`, 하루 지나면 지움).
 - course-kit.js 순수 함수는 `src/test/js/course-kit.test.js` 를 node 로 돌립니다(`CourseKitJsTest` 가 부름, node 가 없으면 건너뜀).
@@ -111,7 +111,7 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다 - 산악회 방 
 - `target\claude-test\main` 의 class · webapp 파일을 `wtpwebapps\<앱>` 으로 복사(robocopy /XO), 리소스(src/main/resources)도 `WEB-INF\classes` 로.
 - 새 클래스만 복사하면 재로드가 안 걸립니다. 이미 로드된 설정 클래스(AppVersion · InvestingConfig · RouteflyConfig)의 시각을 바꿔 재시작을 유도합니다.
 - static final 상수가 바뀌면 그 값을 쓰는 클래스도 같이 복사합니다(예: AppVersion.VERSION → AppLifecycleListener).
-- `data/mountains100.json` · `peak-elev.json` · `series.json` · `park-notes.json` 은 MountainServlet 이 처음 읽은 뒤 기억해 둡니다. 이 파일만 바뀌어도 MountainServlet.class 를 다시 복사해 재로드합니다(2026-10-18 PC: 대암산 문구가 옛것으로 보였음).
+- `data/mountains100.json` · `peak-elev.json` · `mountain-info.json` · `series.json` · `park-notes.json` 은 MountainServlet 이 처음 읽은 뒤 기억해 둡니다. 이 파일만 바뀌어도 MountainServlet.class 를 다시 복사해 재로드합니다(2026-10-18 PC: 대암산 문구가 옛것으로 보였음).
 - 운영 서버에 배포할 때("배포해")도 로컬 톰캣(`wtpwebapps\routefly`) 복사를 함께 합니다(2026-10-30: 운영만 올려 홍TV님 localhost 에서 옛 화면이 보였음).
 - 운영 화면을 curl · 스크립트로 확인할 때는 User-Agent 에 `routefly-check` 를 붙입니다(예: `curl.exe -A "routefly-check" …`) - 통계 방문 수에서 빠짐(2026-10-31 홍TV님, StatsFilter.selfCheck).
   PC Claude 가 쓰는 브라우저(내장 브라우저 등)는 홍TV님이 그 브라우저에서 /stats 를 한 번 열어 주면 관리자 기기로 빠집니다.
