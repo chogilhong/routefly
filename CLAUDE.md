@@ -75,6 +75,8 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다 - 산악회 방 
 - 새 세션은 원격 제어(Remote Control)에 자동 연결되도록 데스크톱 앱 설정을 켜 둡니다(2026-10-11 홍TV님 요청).
 
 ### 승인 · 금지
+- 명령은 묶어 써도 됩니다(반복문 · 파이프 · ; 이음 - 2026-11-07 홍TV님 "묶어서 작업 해. 승인할게"). 승인 창은 홍TV님이 누릅니다.
+  다만 서버 배포 · push · 서버 설정 바꾸기는 따로 떼어, "배포해" 같은 허락 뒤에만 합니다.
 - 접근할 수 있는 폴더: `C:\GH\workspace`, `C:\GH\tomcat`, `D:\nginx-1.30.5\conf`, Claude 메모 폴더.
   그 밖은 guard.ps1 훅이 막습니다(`C:\GH\config`, 배치 `deploy\conf` 의 batch.properties · databases.xml, tomcat-users.xml, Temp · AppData 등). 밖이 꼭 필요할 때만 승인을 요청합니다.
   허락 받은 폴더 밖은 이름 검색(Get-ChildItem -Recurse 등)도 하지 않습니다. 필요하면 어느 폴더를 볼지 홍TV님께 먼저 묻습니다
