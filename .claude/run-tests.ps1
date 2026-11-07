@@ -2,7 +2,9 @@
 # Usage: powershell -NoProfile -ExecutionPolicy Bypass -File .claude\run-tests.ps1 [-Only web.WebBasicsTest,...]
 #        -Run package.Class [args...] : run a probe program (main) instead of tests, e.g. -Run web.PetTourProbe
 # NOTE: ASCII-only on purpose (Windows PowerShell 5.1 reads a BOM-less .ps1 as ANSI).
-param([string[]]$Only, [string]$Run, [Parameter(ValueFromRemainingArguments = $true)][string[]]$RunArgs)
+# Only args after -Run Class are positional (2026-11-07: "-Run web.AirProbe sido ..." bound "sido" to -Only and the probe ran its default mode).
+[CmdletBinding(PositionalBinding = $false)]
+param([Parameter()][string[]]$Only, [Parameter()][string]$Run, [Parameter(Position = 0, ValueFromRemainingArguments = $true)][string[]]$RunArgs)
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
