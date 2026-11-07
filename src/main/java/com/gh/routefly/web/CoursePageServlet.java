@@ -30,7 +30,7 @@ import com.google.gson.JsonParser;
  * <p>산 소개 페이지(/m/)처럼 서버가 글로 그립니다(스크립트 없음): 거리 · 오르막 · 예상 시간 · 난이도, 국립공원 공식 정보, 고도 그림(SVG),
  * 지나는 곳, 출발점 가는 길(카카오맵), 3D · 따라가기 단추, 닿는 100대 명산.
  *
- * <p>검색에 내는 코스는 {@link #indexable} 만 - 공식 · 이름 있는 코스(국립공원 · 두루누비 · 등산·트레킹지원센터)와 100대 명산 정상에 닿는 등산 코스.
+ * <p>검색에 내는 코스는 {@link #indexable} 만 - 공식 · 이름 있는 코스(국립공원 · 두루누비 · 국가숲길)와 100대 명산 정상에 닿는 등산 코스(2026-11-07 봉우리 코스 kmp 도 이쪽).
  * 나머지(산림청 등산로로 자동으로 이은 frst 1만 8천여 개 · OSM 조각)는 페이지는 열리되 noindex - 비슷한 페이지를 한꺼번에 많이 내면
  * 검색 사이트가 사이트 전체를 낮게 볼 수 있어서(2026-10-19 route_course 26,683개 - frst 18,668).
  */
@@ -42,7 +42,9 @@ public class CoursePageServlet extends HttpServlet {
     /** 화면 안 링크는 상대 주소(/c/코스 는 한 단계 아래 - 산 페이지와 같음). */
     static final String REL = MountainServlet.REL;
     /** 검색에 내는 공식 · 이름 있는 코스 ID 앞머리. */
-    static final Set<String> OFFICIAL = Set.of("knps", "drnb", "kmp", "kmf");
+    // 2026-11-07 애드센스 "가치가 별로 없는 콘텐츠": 등산·트레킹지원센터 봉우리 코스(kmp, 6,697개 - 사이트맵 8,692 가운데)는 숫자만 다른 같은 틀이라
+    // 산림청 코스처럼 100대 명산 정상에 닿는 등산 코스만(약 350개) 검색에 냄. 페이지 · 화면은 그대로
+    static final Set<String> OFFICIAL = Set.of("knps", "drnb", "kmf");
     /** 고도 그림 점 수 상한(코스 점이 수천 개라도 글이 커지지 않게). */
     static final int PROFILE_MAX = 240;
     /** 지나는 곳: 경로에서 이만큼(m) 안의 이름표만, 이만큼까지. 이보다(SIDE_M) 멀면 "길에서 ○m 옆" 을 붙임. */

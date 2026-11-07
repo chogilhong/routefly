@@ -751,6 +751,22 @@ curl -s -o /dev/null -w '%{http_code}\n' -A 'Mozilla/5.0 (Windows NT 10.0; Win64
 - 브라우저 글을 바꿔 다시 오면 다음은 코스 페이지(/c/)에도 한 곳당 횟수 제한(SecurityFilter 는 지금 /api · /s 만).
 - 되돌리기: `sudo rm /etc/nginx/conf.d/routefly-scraper.conf && sudo cp /etc/nginx/sites-available/routefly.bak-20261028 /etc/nginx/sites-available/routefly && sudo nginx -t && sudo systemctl reload nginx`
 
+### 10-3. 첫 주소(routefly.kr/)를 곧바로 코스 모음으로 (2026-11-07 애드센스 "가치가 별로 없는 콘텐츠")
+
+애드센스 심사는 등록한 사이트 주소(routefly.kr)로 들어옵니다. 지금은 `/` → `/routefly/`(작은 넘김 화면 root.html) → 스크립트로 `m/` 이라,
+스크립트를 돌리지 않는 로봇에게는 첫 화면이 빈 화면이었습니다(root.html 에 소개 글을 넣었지만, 서버에서 바로 코스 모음으로 넘기는 것이 확실).
+`/routefly/` 는 그대로 둡니다 - 예전 공유 링크(`…/routefly/#c=…`) · 영어 기기 · 신호 없음은 root-go.js 가 고름. 뿌리 `/` 만 바꿉니다(영어 기기도 코스 모음 - 맨 위 English 링크).
+
+```bash
+sudo cp /etc/nginx/sites-available/routefly /etc/nginx/sites-available/routefly.bak-20261107
+sudo sed -i 's|location = / { return 302 /routefly/; }|location = / { return 302 /routefly/m/; }|' /etc/nginx/sites-available/routefly
+grep -n "location = /" /etc/nginx/sites-available/routefly | grep return     # server 칸마다(80 · 443) /routefly/m/ 이면 됨
+sudo nginx -t && sudo systemctl reload nginx
+curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' -A routefly-check https://routefly.kr/      # 302 https://routefly.kr/routefly/m/
+```
+
+되돌리기: `sudo cp /etc/nginx/sites-available/routefly.bak-20261107 /etc/nginx/sites-available/routefly && sudo nginx -t && sudo systemctl reload nginx`
+
 ## 11. 메모리 · CPU (4GB 요금제) - 2026-10-16
 
 ### 11-1. 나눠 쓰는 모양

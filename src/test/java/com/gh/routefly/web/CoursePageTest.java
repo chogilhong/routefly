@@ -58,7 +58,10 @@ public class CoursePageTest {
         JsonObject parks = JsonParser.parseString("{\"북한산\":{\"hide\":[\"knps-9\"]}}").getAsJsonObject();
         JsonObject peak = CoursePageServlet.peakOf(peaks(), bukhan("frst-1-a", "hike"));
         assertTrue("공식 코스", CoursePageServlet.indexable("drnb-12", "해파랑길 1코스", "walk", null, parks));
-        assertTrue(CoursePageServlet.indexable("kmp-3-1", "봉우리 코스", "hike", null, parks));
+        // 2026-11-07 애드센스: 봉우리 코스(kmp)는 숫자만 다른 같은 틀 6,697개라 100대 명산에 닿는 것만
+        assertFalse("명산에 안 닿는 봉우리 코스", CoursePageServlet.indexable("kmp-3-1", "봉우리 코스", "hike", null, parks));
+        assertTrue("명산에 닿는 봉우리 코스", CoursePageServlet.indexable("kmp-3-1", "봉우리 코스", "hike", peak, parks));
+        assertTrue("국가숲길", CoursePageServlet.indexable("kmf-1-1", "국가숲길 1", "walk", null, parks));
         assertTrue("100대 명산에 닿는 등산", CoursePageServlet.indexable("frst-1-a", "북한산 · 우이동 → 백운대", "hike", peak, parks));
         assertFalse("산에 안 닿는 자동 생성 코스", CoursePageServlet.indexable("frst-1-b", "어느 산 · 마을 → 봉우리", "hike", null, parks));
         assertFalse("자전거 조각", CoursePageServlet.indexable("osmb-5-1", "국토종주 1", "bike", peak, parks));
