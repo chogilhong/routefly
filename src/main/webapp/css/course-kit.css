@@ -34,7 +34,8 @@
 /* 지도 단추(확대 · 축소 · 북쪽 · 출처 ⓘ) - 손가락 화면은 40px(MapLibre 기본 29px - 2026-11-03 홍TV님 점검) */
 @media (pointer: coarse) {
     .maplibregl-ctrl-group button { width:40px; height:40px; }
-    .maplibregl-ctrl-attrib-button { width:40px; height:40px; background-position:center; }
+    /* no-repeat · 크기 - 40px 로 키우며 ⓘ 그림이 바둑판처럼 되풀이돼 깨진 흰 조각으로 보였음(2026-11-07 전체 점검, 접어 두는 결정은 그대로) */
+    .maplibregl-ctrl-attrib-button { width:40px; height:40px; background-position:center; background-repeat:no-repeat; background-size:24px; }
     .maplibregl-ctrl-attrib.maplibregl-compact { min-height:40px; min-width:40px; }
 }
 .rfTextBtn { min-width:44px; height:34px; padding:0 8px; border-radius:17px; border:1px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06);

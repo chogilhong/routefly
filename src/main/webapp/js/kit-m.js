@@ -119,6 +119,25 @@
     function numberedPark(name) { return name == null ? name : String(name).replace(NUMBERED_PARK, "$1").replace(PARK_NO, "$1"); }
 
     /**
+     * 순수 함수 - 코스 모음 첫 화면 검색칸(2026-11-07): 검색어가 목록의 산 이름이면 그 산 페이지 주소, 아니면 null(→ 따라가기 검색).
+     * items: [{ names: ["설악산"] 또는 ["Seoraksan", "설악산"], href }]. 띄어쓰기 · 괄호(지역) · 대소문자는 보지 않고, "설악" · "Seorak" 처럼 산 · san 을 빼도 됨.
+     */
+    function peakHref(q, items) {
+        var bare = function (v) { return String(v || "").toLowerCase().replace(/[^0-9a-z\uac00-\ud7a3()]/g, ""); };
+        var norm = function (v) { return bare(v).replace(/\(.*?\)/g, "").replace(/[()]/g, ""); };
+        var qb = bare(q), k = norm(q), hit = [];
+        if (!k) return null;
+        for (var i = 0; i < (items || []).length; i++) {
+            for (var j = 0; j < items[i].names.length; j++) {
+                if (bare(items[i].names[j]) === qb) return items[i].href;   // 이름 그대로("지리산" - 지리산(통영)이 있어도 · "백운산(광양)")
+                var n = norm(items[i].names[j]);
+                if (n && (n === k || n === k + "산" || n === k + "san") && hit.indexOf(items[i].href) < 0) hit.push(items[i].href);
+            }
+        }
+        return hit.length === 1 ? hit[0] : null;   // 백운산처럼 같은 이름이 여럿이면 따라가기 검색(모두 보임)
+    }
+
+    /**
      * 재미로 보는 산행 한마디(2026-10-17 홍TV님) - 정상 도장 카드 · 코스 모음 첫 화면. 안전 · 날씨에 관한 말은 넣지 않음
      * (실제 예보 · 강풍 경고와 어긋나면 위험 - "오늘은 산에 가기 좋은 날" 같은 말 금지).
      */
@@ -1492,6 +1511,7 @@
     }
 
     global.RF = {
+        peakHref: peakHref,
         sunset: sunset,
         sunrise: sunrise,
         standardMs: standardMs,

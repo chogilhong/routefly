@@ -47,7 +47,9 @@ button { font-family:inherit; }
 #top .rfFavBtn { flex:0 0 auto; background:none; border:0; color:var(--dim); font-size:22px; line-height:1; min-width:32px; height:40px; padding:0 2px; margin-left:-6px; }
 #top .rfFavBtn.on { color:#ffd43b; }
 #top .rfFavBtn[hidden] { display:none; }
-#top .nm { flex:1; min-width:0; font-size:14.5px; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+/* 코스 이름은 두 줄까지(2026-11-07 전체 점검: 360px 폰에서 ‹ · ☆ · GPS · ⓘ · SOS 사이에 "백…" 한 글자만 보였음) */
+#top .nm { flex:1; min-width:0; font-size:13.5px; line-height:1.25; font-weight:bold; white-space:normal; word-break:keep-all; overflow:hidden;
+           display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
 #gps { font-size:12px; padding:3px 7px; border-radius:10px; background:rgba(255,255,255,0.08); color:var(--dim); white-space:nowrap; }
 #gps.ok { color:#0b2b16; background:var(--ok); }
 #gps.bad { color:#fff; background:var(--warn); }

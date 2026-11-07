@@ -181,7 +181,8 @@ ul { margin:0; padding:0; list-style:none; }
 .cp .sum dt { color:var(--dim); }
 .cp .sum dd { margin:0; min-width:0; overflow-wrap:anywhere; }
 .cp .go { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 14px; }
-.cp .go a { text-decoration:none; font-size:14px; padding:6px 12px; border:1px solid var(--ln); border-radius:16px; }
+.cp .go a { display:inline-flex; align-items:center; min-height:44px; box-sizing:border-box; text-decoration:none; font-size:14px; padding:0 14px; border:1px solid var(--ln); border-radius:22px; }   /* 44px(2026-11-07) */
+.cp .go a.main { background:var(--sky); border-color:var(--sky); color:#062b30; font-weight:bold; }   /* 할 일 - 따라가기(2026-11-07 전체 점검) */
 .cp .prof { display:block; height:auto; }
 .cp .pass { margin:0; padding-left:1.4em; }
 .cp .pass li { margin:3px 0; font-size:14px; }
@@ -231,3 +232,7 @@ a.kma { display:inline-block; margin-top:6px; min-height:44px; line-height:44px;
 .cp .made { margin:-6px 0 12px; font-size:12.5px; }
 /* 카카오맵 로드뷰 링크 - 공식 앱 아이콘(img/kakaomap.png, 모양 · 색 그대로), 2026-11-02 홍TV님. 그림은 96px 로 줄임(같은 날 속도 점검 - 600px 27KB 를 16px 로 보였음) */
 .kmap::before { content:""; display:inline-block; width:16px; height:16px; margin-right:4px; vertical-align:-3px; border-radius:4px; background:url(../img/kakaomap.png) center/contain no-repeat; }
+/* 코스 모음 첫 화면 검색칸(2026-11-07 전체 점검 2단계) - 손가락 44px, 16px 글자(아이폰이 확대하지 않게) */
+form.mSearch { display:flex; gap:8px; margin:0 0 16px; }
+form.mSearch input[type=search] { flex:1; min-width:0; min-height:44px; box-sizing:border-box; padding:0 12px; font-size:16px; color:inherit; background:var(--panel); border:1px solid var(--ln); border-radius:22px; }
+form.mSearch button { min-height:44px; padding:0 18px; font-size:15px; font-weight:bold; color:#062b30; background:var(--sky); border:0; border-radius:22px; cursor:pointer; }

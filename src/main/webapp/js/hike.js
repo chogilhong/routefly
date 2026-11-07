@@ -35,6 +35,12 @@
     // 화면 말(2026-10-17 홍TV님 - 따라가기 영어): ?lang=en(영어 산 페이지에서 올 때) · 한/EN 단추로 바꾸면 이 기기에 기억(rf-lang)
     var LANG = RF.pageLang(location.search, lsGet("rf-lang"));
     if (/[?&]lang=(en|ko)\b/.test(location.search)) { try { localStorage.setItem("rf-lang", LANG); } catch (e) { /* 이번만 */ } }
+    // 코스 모음 첫 화면 검색칸에서 왔으면(?q=, 2026-11-07) 마지막 검색으로 넣어 두고 주소에서는 뺌 - 목록 화면(showPick)이 그 말로 찾음
+    var URL_Q = RF.urlQuery(location.search);
+    if (/[?&]q=/.test(location.search)) {
+        if (URL_Q) { try { localStorage.setItem("rf-search", JSON.stringify({ q: URL_Q, kind: "" })); } catch (e) { /* 아래 showPick 에서 */ } }
+        try { history.replaceState(null, "", location.pathname + location.search.replace(/([?&])q=[^&#]*&?/, "$1").replace(/[?&]$/, "") + location.hash); } catch (e) { /* 주소만 그대로 */ }
+    }
     var EN = LANG === "en", T = RF.tr, NM = RF.nameIn;   // T("한국어", "English"), NM(한글 이름) → 영어면 로마자
     RF.setLang(LANG);
     if (EN) { document.documentElement.lang = "en"; document.title = "routefly - Follow a trail"; RF.applyEn(document); }
@@ -3527,6 +3533,8 @@
         if (!noRestore) {
             var last = null;
             try { last = JSON.parse(localStorage.getItem(SEARCH_KEY) || "null"); } catch (e) { /* 없음 */ }
+            if (URL_Q && !(last && last.q === URL_Q)) last = { q: URL_Q, kind: "" };   // 저장을 못 하는 브라우저(시크릿 등)
+            URL_Q = "";
             // 2026-10-10 점검: 검색어 없이 종류 탭만 바꾸고 왔을 때도 탭을 맞춥니다(app.js readSharedSearch 와 같음)
             var lastKind = last ? last.kind || "" : "";
             var kindChanged = last && lastKind !== (kindFilter || "");
@@ -4078,7 +4086,17 @@
                     });
                     listCourses(rows, null);
                 })
-                .catch(function (e) { if (my === pickSeq) toast(T("검색 실패: ", "Search failed: ") + e.message); });
+                .catch(function () {
+                    if (my !== pickSeq) return;
+                    // 목록 칸에 쉬운 말로(2026-11-07 전체 점검: 인터넷이 끊기면 토스트에 "검색 실패: Failed to fetch" 같은 영어 예외 글이 잠깐 떴다 사라졌음)
+                    var box = $("pickList"), m = document.createElement("div");
+                    m.className = "msg";
+                    m.textContent = navigator.onLine === false
+                        ? T("인터넷이 끊겨 찾을 수 없습니다. 📥 저장한 코스는 검색칸을 비우면 보입니다.", "You're offline, so search isn't available. Clear the search box to see your 📥 saved trails.")
+                        : T("지금은 찾을 수 없습니다. 잠시 뒤 다시 해 보세요.", "Search isn't available right now. Please try again in a moment.");
+                    box.textContent = "";
+                    box.appendChild(m);
+                });
         }, 300);
     });
 

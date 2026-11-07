@@ -356,8 +356,9 @@ public class CoursePageServlet extends HttpServlet {
         }
         // 단추
         String m = peakId != null ? "&amp;m=" + esc(MountainServlet.enc(peakId)) : "";
-        b.append("<p class=\"go\"><a href=\"").append(REL).append("/index.html?lang=ko#c=").append(esc(id)).append(m).append("\">🛩 3D 로 미리 날기</a>")
-                .append("<a href=\"").append(REL).append("/hike.html?lang=ko#c=").append(esc(id)).append(m).append("\">🥾 따라가기</a>");
+        // 따라가기를 맨 앞 주 단추로(2026-11-07 전체 점검: 세 단추가 같은 테두리라 할 일이 눈에 안 띄었음)
+        b.append("<p class=\"go\"><a class=\"main\" href=\"").append(REL).append("/hike.html?lang=ko#c=").append(esc(id)).append(m).append("\">🥾 따라가기</a>")
+                .append("<a href=\"").append(REL).append("/index.html?lang=ko#c=").append(esc(id)).append(m).append("\">🛩 3D 로 미리 날기</a>");
         double[] start = peak != null ? MountainServlet.trailhead(c, peak) : new double[] {c.get("start_lat").getAsDouble(), c.get("start_lon").getAsDouble()};
         if (start != null) b.append("<a href=\"").append(esc(MountainServlet.kakaoTo(name.replaceFirst(" · .*$", "") + " 출발점", start)))
                 .append("\" target=\"_blank\" rel=\"noopener\">🚌 출발점 가는 길</a>");

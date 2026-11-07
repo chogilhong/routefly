@@ -259,6 +259,21 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
     eq("같은 칸 안의 두 사람은 같은 요청", JSON.stringify(RF.gridCells([127.71, 35.31, 127.72, 35.32])) === JSON.stringify(RF.gridCells([127.78, 35.38, 127.79, 35.39])), true);
     eq("주소 풀기", RF.safeDecode("%EC%A7%80%EB%A6%AC%EC%82%B0"), "지리산");
     eq("깨진 주소는 null(화면이 멈추지 않게)", RF.safeDecode("%E0"), null);
+    // 코스 모음 첫 화면 검색칸(2026-11-07) - 이름은 data/mountains100.json 의 id 그대로
+    eq("주소 검색어", RF.urlQuery("?lang=ko&q=%EC%84%A4%EC%95%85+%EC%82%B0"), "설악 산");
+    eq("검색어 없음", RF.urlQuery("?lang=ko"), "");
+    eq("깨진 검색어", RF.urlQuery("?q=%E0"), "");
+    var pk = [{ names: ["설악산"], href: "m/설악산" }, { names: ["지리산"], href: "m/지리산" }, { names: ["지리산(통영)"], href: "m/지리산(통영)" },
+        { names: ["백운산(광양)"], href: "m/백운산(광양)" }, { names: ["백운산(정선)"], href: "m/백운산(정선)" },
+        { names: ["Seoraksan 설악산", "Seoraksan ", "설악산"], href: "en/seoraksan" }];
+    eq("이름 그대로", RF.peakHref("설악산", pk.slice(0, 5)), "m/설악산");
+    eq("산을 빼도", RF.peakHref(" 설악 ", pk.slice(0, 5)), "m/설악산");
+    eq("지리산(통영)이 있어도 지리산은 지리산", RF.peakHref("지리산", pk), "m/지리산");
+    eq("같은 이름이 여럿이면 따라가기 검색", RF.peakHref("백운산", pk), null);
+    eq("지역까지 쓰면 그 산", RF.peakHref("백운산(정선)", pk), "m/백운산(정선)");
+    eq("영어 이름 · 대소문자", RF.peakHref("seorak", pk.slice(5)), "en/seoraksan");
+    eq("목록에 없는 말", RF.peakHref("둘레길", pk), null);
+    eq("빈 말", RF.peakHref("  ", pk), null);
     // 코리아둘레길 - 이름으로 찾은 코스를 길마다 · 번호 순으로, 완주는 받아 온 ID 로
     var hp = [{ course_id: "drnb-a", name: "해파랑길 10코스 · 가 → 나" }, { course_id: "drnb-b", name: "해파랑길 2코스 · 다 → 라" },
               { course_id: "drnb-c", name: "남파랑길 1코스" }, { course_id: "drnb-d", name: "해파랑길 1코스 · 오륙도해맞이공원 → 해운대해수욕장" }];

@@ -928,6 +928,19 @@ public class MountainServlet extends HttpServlet {
         return indexPage(peaks, groups, base, openPeaks, "");
     }
 
+    /**
+     * 순수 함수 - 코스 모음 첫 화면 검색칸(2026-11-07 전체 점검 2단계 - 100곳 넘는 목록을 펼쳐 찾던 것을 이름으로).
+     * 스크립트 없이도 따라가기 검색(hike.html?q=)으로 가고, js/mountain.js · mountain-en.js 는 목록에 있는 산 이름이면 그 산 페이지로 보냄.
+     */
+    static String searchForm(boolean en) {
+        return "<form class=\"mSearch\" role=\"search\" action=\"" + (en ? MountainEn.REL : REL) + "/hike.html\" method=\"get\">"
+                + "<input type=\"hidden\" name=\"lang\" value=\"" + (en ? "en" : "ko") + "\">"
+                + "<input type=\"search\" name=\"q\" maxlength=\"40\" enterkeyhint=\"search\" autocomplete=\"off\" required aria-label=\""
+                + (en ? "Search mountains and trails" : "산 · 코스 이름으로 찾기") + "\" placeholder=\""
+                + (en ? "Mountain or trail (e.g. Seoraksan)" : "산 · 코스 이름(예: 설악산)") + "\">"
+                + "<button type=\"submit\">" + (en ? "Search" : "찾기") + "</button></form>";
+    }
+
     /** steep - 🧗 가파른 산 순위 칸(SteepRank.html, 없으면 ""). 접는 칸들 아래 · 안전 팁 위. */
     static String indexPage(JsonArray peaks, JsonArray groups, String base, boolean openPeaks, String steep) {
         StringBuilder b = new StringBuilder(head("100대 명산 · 둘레길 · 자전거길 코스", "산림청 100대 명산 " + peaks.size()
@@ -938,7 +951,9 @@ public class MountainServlet extends HttpServlet {
                 .append("/img/logo-dark.svg\" alt=\"routefly\" width=\"256\" height=\"80\"></a>")
                 .append("<a class=\"goHike\" href=\"").append(REL).append("/hike.html?lang=ko\" title=\"코스를 골라 핸드폰으로 따라 걷기 - GPS · 음성 안내 · SOS\">🥾 따라가기 ›</a></div>")
                 .append("<h1 class=\"idx\">등산 · 걷기 · 자전거</h1>")   // "코스" 는 뺌(2026-10-17 홍TV님 - 줄바꿈 없이 한 줄)
-                .append("<p class=\"lead\">산을 고르면 정상까지 가는 코스와 오늘 날씨 · 미세먼지 · 일출 · 일몰을, 길을 고르면 노선 안내도를 봅니다.</p>"
+                .append("<p class=\"lead\">산을 고르면 정상까지 가는 코스와 오늘 날씨 · 미세먼지 · 일출 · 일몰을, 길을 고르면 노선 안내도를 봅니다.</p>")
+                .append(searchForm(false))
+                .append(""
                 // 📍 내 근처 - 다른 칸처럼 접고 펴기(2026-10-16 홍TV님), 펴면 위치를 찾음(js/mountain.js)
                 + "<section id=\"near\"><details class=\"fold kind\" name=\"kind\" id=\"nearFold\"><summary><span class=\"ft\">📍 내 근처 100대 명산</span>"
                 + "<span class=\"fs\">지금 자리에서 가까운 8곳</span><span class=\"fa\">▾</span></summary><div class=\"fb\"><div id=\"nearList\"></div></div></details></section>"

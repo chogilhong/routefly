@@ -6,6 +6,16 @@
     // 🧗 가파른 산 순위에서 왔으면(?from=steep1 · steep2) "‹ 코스 모음" 이 그 표를 펼친 순위로(2026-10-18 홍TV님: 100대 명산 목록으로 갔음)
     var fromSteep = /[?&]from=(steep[12])(?:&|$)/.exec(location.search), crumbA = document.querySelector(".crumb > a");
     if (fromSteep && crumbA) crumbA.href = "./?open=" + fromSteep[1] + "#steep";
+    // 코스 모음 첫 화면 검색칸(2026-11-07 전체 점검 2단계): 목록에 있는 산 이름이면 그 산 페이지로, 아니면 따라가기 검색(form 그대로 - 스크립트가 없어도 감)
+    var mSearch = document.querySelector("form.mSearch");
+    if (mSearch && window.RF && window.RF.peakHref) mSearch.addEventListener("submit", function (e) {
+        var items = [].map.call(document.querySelectorAll("ul.ms a"), function (a) {
+            var sm = a.querySelector("small");
+            return { names: [a.textContent, a.firstChild && a.firstChild.nodeValue, sm && sm.textContent], href: a.href };
+        });
+        var to = window.RF.peakHref(mSearch.elements.q.value, items);
+        if (to) { e.preventDefault(); location.href = to; }
+    });
     var RF = window.RF;
     if (!RF) return;
     // 산불조심기간 안내는 서버가 html 에 넣음(MountainServlet.withFire, 2026-11-02 홍TV님 점검) - 받아 둔 옛 화면(신호 없을 때 보기)이 기간이 지났으면 뺌
