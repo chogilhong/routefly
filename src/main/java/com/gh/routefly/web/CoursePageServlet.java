@@ -277,6 +277,26 @@ public class CoursePageServlet extends HttpServlet {
         return out;
     }
 
+    /**
+     * 순수 함수 - 들머리 가는 길 [이름, 코스 선에서 m, 주차장인가]: 출발 쪽(dist_m 300 안) · 코스 선 밖(off_route_m 100 넘음 - course-kit isAccess)의
+     * 주차장 하나 · 정류장(정류장 · 정류소로 끝남) 모두, 주차장 먼저. 따라가기(hike.js accessOf)와 같은 고르기 - 고치면 함께.
+     */
+    static List<Object[]> access(JsonArray pois) {
+        List<Object[]> out = new ArrayList<>();
+        boolean parking = false;
+        if (pois == null) return out;
+        for (JsonElement e : pois) {
+            JsonObject p = e.getAsJsonObject();
+            String n = str(p, "name");
+            if (n == null || !p.has("off_route_m") || !p.has("dist_m") || p.get("off_route_m").getAsInt() <= 100 || p.get("dist_m").getAsInt() > 300) continue;
+            if (n.contains("주차장") && !parking) {
+                out.add(0, new Object[] {n, p.get("off_route_m").getAsInt(), true});
+                parking = true;
+            } else if (n.matches(".*(정류장|정류소)$")) out.add(new Object[] {n, p.get("off_route_m").getAsInt(), false});
+        }
+        return out;
+    }
+
     /** 순수 함수 - 누적 거리 at(m)에 가장 가까운 코스 점의 높이(그 점에 높이가 없거나 점이 없으면 null). dist 는 오름차순. */
     static Double eleAt(double[] dist, Double[] ele, double at) {
         if (dist == null || ele == null || dist.length == 0 || dist.length != ele.length) return null;
@@ -325,6 +345,10 @@ public class CoursePageServlet extends HttpServlet {
         String title = name + (name.endsWith("코스") ? "" : " " + kl + " 코스");
         String metaDesc = name + " - " + kl + " 코스 " + summary + ". 고도 그림 · 지나는 곳 · 가는 길, 3D 지형 위로 미리 날아 보고 핸드폰으로 따라 걷기.";
         StringBuilder b = new StringBuilder(MountainServlet.head(title, metaDesc, url, base, null, null, index));
+        // 경로 표시(검색 결과에 "routefly › 100대 명산 코스 › 산 › 코스", 2026-11-07 전체 점검 4단계) - 위 ‹ 링크와 같은 길
+        b.append(peakId != null
+                ? MountainServlet.breadcrumb(new String[][] {{"100대 명산 코스", base + "/m/"}, {peakId, base + "/m/" + MountainServlet.enc(peakId)}, {name, url}})
+                : MountainServlet.breadcrumb(new String[][] {{"코스 모음", base + "/m/"}, {name, url}}));
         b.append("<main class=\"cp\"><p class=\"crumb\"><a href=\"").append(REL)
                 .append(peakId != null ? "/m/" + esc(MountainServlet.enc(peakId)) + "\">‹ " + esc(peakId) : "/m/?open=peaks\">‹ 코스 모음").append("</a></p>");
         b.append("<h1>").append(esc(name)).append("</h1>");
@@ -363,6 +387,15 @@ public class CoursePageServlet extends HttpServlet {
         if (start != null) b.append("<a href=\"").append(esc(MountainServlet.kakaoTo(name.replaceFirst(" · .*$", "") + " 출발점", start)))
                 .append("\" target=\"_blank\" rel=\"noopener\">🚌 출발점 가는 길</a>");
         b.append("</p>");
+        // 🅿️ · 🚌 들머리 가는 길(배치가 들머리 1km 안에서 넣은 주차장 · 정류장 - 따라가기 hike.js accessOf 와 같은 고르기, 2026-11-07 전체 점검 4단계)
+        List<Object[]> acc = access(pois);
+        if (!acc.isEmpty()) {
+            b.append("<section><h2>들머리 가는 길</h2><ul class=\"tips\">");
+            for (Object[] a : acc)
+                b.append("<li>").append((Boolean) a[2] ? "🅿️ " : "🚌 ").append("<b>").append(esc((String) a[0])).append("</b> <span>출발점에서 약 ")
+                        .append(String.format(Locale.KOREA, "%,d", (Integer) a[1])).append("m</span></li>");
+            b.append("</ul><p class=\"tip\">OpenStreetMap 지명이라 바뀌었을 수 있습니다. 주차 요금 · 버스 시간은 현지 안내를 확인하세요.</p></section>");
+        }
         // 고도 그림
         String svg = profileSvg(dist, ele);
         if (!svg.isEmpty()) b.append("<section><h2>고도 그림</h2>").append(svg).append("</section>");

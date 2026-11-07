@@ -178,7 +178,8 @@ h1 { padding-right:110px; }
     <section>
         <h2>6. Cookies and visit analysis</h2>
         <p>We do not use login cookies or external analytics tools (such as Google Analytics) (for ads, see section 10). The information in section 2 is kept in this device's browser storage, not in cookies.
-            (Only the operator's own devices get a cookie marking "don't count operator visits". No cookies are created for visitors.)</p>
+            (Only the operator's own devices get a cookie marking "don't count operator visits". routefly creates no cookies for visitors;
+            on pages that show ads, Google may set ad cookies - see section 10.)</p>
         <p>To improve the service, the operator counts daily visits and visitors per screen and mountain page as numbers only. Visitors are de-duplicated by mixing the IP address with a value used only that day (discarded the next day),
             and no IP addresses or identifying information are kept in the statistics. The kinds of access that day (people, search robots, scraping programs etc.) and the most opened pages are viewed only in server memory on the operator's statistics screen (addresses as a same-day hash, browser type text),
             never written to files and deleted when the day changes (2026-10-29 - to detect and block scraping programs). Which site (Naver, Google etc.) visitors came through is counted only by site name, without referring addresses or search words.</p>
@@ -217,8 +218,8 @@ h1 { padding-right:110px; }
 
     <section>
         <h2>10. Changes</h2>
-        <p>Ads (2026-10-28; tools and stamps pages added 2026-11-01): Google AdSense ads may appear on mountain and course introduction pages and on the tools and stamps (completions) pages (not on the hike or hiking club room screens, nor in the app). Google and other ad companies may use cookies to show ads suited to this browser; routefly does not receive the contents of those cookies.
-            You can turn off personalized ads in <a href="https://adssettings.google.com" rel="noopener">Google Ad Settings</a>.</p>
+        <p>Ads (2026-10-28; tools and stamps pages added 2026-11-01): Google AdSense ads may appear on mountain and course introduction pages and on the tools and stamps (completions) pages (not on the hike or hiking club room screens, nor in the app). Google and other ad companies may use cookies to show ads based on this browser's visits to this and other sites; routefly does not receive the contents of those cookies.
+            You can turn off personalized ads in <a href="https://adssettings.google.com" rel="noopener">Google Ad Settings</a>; how Google uses cookies in advertising is explained in <a href="https://policies.google.com/technologies/ads" rel="noopener">Google's advertising policy</a>.</p>
         <p>Moving records between devices (2026-10-28, 📒 Records → QR): the sending device <b>encrypts the record backup on the device</b> and leaves it on the server in pieces; it is deleted as soon as the receiving device takes it (or after 10 minutes if not taken; memory only).
             With a QR code, the key is only inside the QR and never reaches the server. With an 8-character code, the key is made from the code, so it can only be opened by someone who learns the code within 10 minutes (the server never receives the code).
             Use QR codes and codes only between your own devices and do not send them to others.</p>

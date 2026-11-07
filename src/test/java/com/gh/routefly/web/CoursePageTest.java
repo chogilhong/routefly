@@ -129,7 +129,8 @@ public class CoursePageTest {
         assertTrue("안전 팁(등산)", html.contains("산행 안전 팁"));
         assertFalse("mountain.js 없음(산 페이지만)", html.contains("mountain.js"));
         // 스크립트는 사람 확인 신호(2026-10-22)와 🏨 숙소 찾기 칸(kit-m · course-page, 2026-11-04 홍TV님 "코스 페이지도 똑같이")만
-        assertEquals("스크립트는 사람 확인 신호 하나만(2026-10-22)", 3, html.split("<script", -1).length - 1);
+        assertEquals("스크립트는 사람 확인 신호 하나만(2026-10-22)", 3, html.split("<script src=", -1).length - 1);
+        assertEquals("그 밖에는 실행하지 않는 경로 표시(JSON-LD, 2026-11-07)뿐", 4, html.split("<script", -1).length - 1);
         assertTrue(html.contains("/js/kit-m.js\"></script>") && html.contains("/js/course-page.js\"></script>"));
         assertTrue(html.contains("/js/seen.js\"></script>"));
         String no = CoursePageServlet.page(course("osmb-1-2", "국토종주 <x>", "bike", 37.5, 127.0, 37.6, 127.1), null, null, null, null, new JsonArray(), false, "https://r.kr");

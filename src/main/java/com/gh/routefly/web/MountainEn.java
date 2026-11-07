@@ -183,6 +183,7 @@ final class MountainEn {
         b.append("<p class=\"dim\">Times are start-to-finish estimates at the Korea National Park Service pace (34 min per km, rests included; the official time where the park service gives one). Trail data is for reference - always follow signs and closures on site. "
                 + "The 3D and GPS screens are in English too. 🚌 Directions opens Google Maps transit directions from where you are to the trailhead. "
                 + "Difficulty (Very easy to Very hard) is routefly's estimate from distance and ascent, not an official grade; 📈 Elevation shows the slope of each section like the park trail boards.</p></section>");
+        b.append(Ads.box("m", true));   // 광고 - 영어 산 페이지에도(설정이 있을 때만, 2026-10-29), 한국어처럼 FAQ 앞(2026-11-07)
         List<String[]> qa = faq(peak, name, courses, parking);
         b.append("<section class=\"faq\"><h2>").append(esc(name)).append(" FAQ</h2><dl>");
         for (String[] x : qa) b.append("<dt>").append(esc(x[0])).append("</dt><dd>").append(esc(x[1])).append("</dd>");
@@ -198,7 +199,6 @@ final class MountainEn {
             b.append("</ul></section>");
         }
         if (!MountainServlet.overnight(peak)) b.append(MountainServlet.staysBlock(peak, true));   // 🏨 Stays nearby(js/mountain-en.js, 2026-10-29) - 1박 산은 위에
-        b.append(Ads.box("m", true));   // 광고 - 영어 산 페이지에도(설정이 있을 때만, 2026-10-29)
         return b.append(foot(REL + "/m/" + MountainServlet.enc(ko))).toString();
     }
 

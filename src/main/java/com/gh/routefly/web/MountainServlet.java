@@ -700,9 +700,14 @@ public class MountainServlet extends HttpServlet {
         o.add("geo", geo);
         // 경로 표시(BreadcrumbList) - 검색 결과에 "routefly › 100대 명산 코스 › 산" 으로(2026-10-29 점검)
         boolean en = url.contains("/en/m/");
+        return "<script type=\"application/ld+json\">" + new Gson().toJson(o) + "</script>"
+                + breadcrumb(new String[][] {{en ? "100 famous mountains" : "100대 명산 코스", url.substring(0, url.lastIndexOf('/') + 1)}, {name, url}});
+    }
+
+    /** 순수 함수 - 경로 표시(schema.org BreadcrumbList, JSON-LD) - steps {이름, 주소} 차례대로. 산 페이지 · 코스 페이지(2026-11-07 전체 점검 4단계)가 함께 씀. */
+    static String breadcrumb(String[][] steps) {
         JsonObject bc = new JsonObject();
         com.google.gson.JsonArray items = new com.google.gson.JsonArray();
-        String[][] steps = {{en ? "100 famous mountains" : "100대 명산 코스", url.substring(0, url.lastIndexOf('/') + 1)}, {name, url}};
         for (int i = 0; i < steps.length; i++) {
             JsonObject it = new JsonObject();
             it.addProperty("@type", "ListItem");
@@ -714,7 +719,7 @@ public class MountainServlet extends HttpServlet {
         bc.addProperty("@context", "https://schema.org");
         bc.addProperty("@type", "BreadcrumbList");
         bc.add("itemListElement", items);
-        return "<script type=\"application/ld+json\">" + new Gson().toJson(o) + "</script><script type=\"application/ld+json\">" + new Gson().toJson(bc) + "</script>";
+        return "<script type=\"application/ld+json\">" + new Gson().toJson(bc) + "</script>";
     }
 
     /**
@@ -894,6 +899,9 @@ public class MountainServlet extends HttpServlet {
         b.append("<p class=\"dim\">예상 시간은 " + RULE_KO + "으로 어림한 코스 처음부터 끝까지의 값입니다(공단 공식 시간이 있는 국립공원 코스는 그 시간). 코스 자료는 참고용이니 현지 안내판 · 통제를 꼭 따르세요.</p></section>");
         // 🚗 쏘카 한 줄(설정 partner.socar.url 이 있고 휴대폰일 때 mountain.js 가 채움, 2026-11-03) - 안내 글 아래(2026-11-03 홍TV님 "안내문구 아래로")
         if (!courses.isEmpty()) b.append("<p class=\"stays\" id=\"socar\" hidden></p>");
+        // 광고 한 칸(설정이 있을 때만, 2026-10-28) - 코스 목록 다음 · 자주 묻는 질문 앞(2026-11-07 전체 점검 4단계: 맨 아래라 거의 안 보였음).
+        // 코스 단추 · 따라가기와 붙지 않게 안내 글 뒤에, 한 페이지 한 칸만
+        b.append(Ads.box("m"));
         List<String[]> qa = faq(peak, name, courses, parking);   // 자주 묻는 질문(2026-10-15 홍TV님 - 검색 결과에 문답으로)
         if (!qa.isEmpty()) {
             b.append("<section class=\"faq\"><h2>").append(esc(name)).append(" 자주 묻는 질문</h2><dl>");
@@ -911,7 +919,6 @@ public class MountainServlet extends HttpServlet {
             b.append("</ul></section>");
         }
         if (!overnight(peak)) b.append(staysBlock(peak, false));   // 🏨 근처 숙소 - 1박 산은 위(날씨 · 안전 아래)에
-        b.append(Ads.box("m"));   // 광고(설정이 있을 때만, 2026-10-28)
         b.append(foot(base, REL + enPath));
         return b.toString();
     }
