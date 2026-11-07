@@ -14,7 +14,7 @@ import org.junit.Test;
 public class FullReviewStage3Test {
 
     private static String read(String p) throws Exception {
-        return new String(Files.readAllBytes(Paths.get(p)), StandardCharsets.UTF_8);
+        return new String(Files.readAllBytes(Paths.get(p)), StandardCharsets.UTF_8).replace("\r\n", "\n");   // PC(core.autocrlf)는 CRLF
     }
 
     @Test
@@ -60,6 +60,26 @@ public class FullReviewStage3Test {
         String w = read("src/main/java/com/gh/routefly/web/WeatherServlet.java");
         assertTrue("자료 없음이면 10분", w.contains("else if (empty[0]) EMPTY.put(key, Boolean.TRUE, now);") && w.contains("if (EMPTY.get(key, now) != null) return unavailable();"));
         assertTrue("연결 실패가 섞이면 기억하지 않음", w.contains("empty[0] = !lost && noData(text);") && w.contains("if (t2 == null) lost = true;") && w.contains("if (t3 == null) lost = true;"));
+    }
+
+    @Test
+    public void airBySidoFromRealResponse() throws Exception {
+        java.util.Map<String, com.google.gson.JsonObject> t = AirServlet.sidoRows(read("src/test/resources/air/sido-경북.json"));
+        assertEquals("경북 53곳 모두 값이 하나는 있음(2026-11-07 12시 실제 응답)", 53, t.size());
+        com.google.gson.JsonObject g = t.get("대가야읍");   // 가야산 가까운 측정소
+        assertEquals("2026-11-07 12:00", g.get("time").getAsString());
+        assertEquals(13, g.get("pm10").getAsInt());
+        assertEquals("좋음", g.get("pm10Word").getAsString());
+        assertEquals(10, g.get("pm25").getAsInt());
+        assertFalse("초미세먼지가 \"-\" 면 미세먼지만", t.get("원평동").has("pm25"));
+        assertEquals(21, t.get("원평동").get("pm10").getAsInt());
+        assertNull("틀린 응답", AirServlet.sidoRows("<OpenAPI_ServiceResponse>"));
+        assertEquals("경기", AirServlet.sido("경기 포천시 신북면"));
+        assertEquals("경기", AirServlet.sido("경기도 수원시 장안구"));
+        assertEquals("전북", AirServlet.sido("전북특별자치도 군산시 외항1길 222"));
+        assertEquals("경남", AirServlet.sido("경상남도 합천군"));
+        String src = read("src/main/java/com/gh/routefly/web/AirServlet.java");
+        assertTrue("표에 없으면 예전처럼 측정소만 따로", src.contains("if (t != null && t.containsKey(station)) {") && src.contains("Flight.once(\"air|\" + station"));
     }
 
     @Test

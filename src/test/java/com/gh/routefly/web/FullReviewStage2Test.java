@@ -17,7 +17,7 @@ import com.google.gson.JsonParser;
 public class FullReviewStage2Test {
 
     private static String read(String p) throws Exception {
-        return new String(Files.readAllBytes(Paths.get(p)), StandardCharsets.UTF_8);
+        return new String(Files.readAllBytes(Paths.get(p)), StandardCharsets.UTF_8).replace("\r\n", "\n");   // PC(core.autocrlf)는 CRLF
     }
 
     private static JsonArray peaks() {

@@ -5,7 +5,9 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -43,6 +45,8 @@ public class AirServlet extends HttpServlet {
 
     static final String STATIONS_URL = "https://apis.data.go.kr/B552584/MsrstnInfoInqireSvc/getMsrstnList";
     static final String MEASURE_URL = "https://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getMsrstnAcctoRltmMesureDnsty";
+    /** 시도별 실시간 측정값(2026-11-07 전체 점검 3단계 - 한 번에 그 시도 측정소 모두. 실제 응답 src/test/resources/air/sido-경북.json, 경북 53곳). */
+    static final String SIDO_URL = "https://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getCtprvnRltmMesureDnsty";
     static final double AIR_NEAR_M = 40000;
     /**
      * 가까운 측정소부터 몇 곳까지 물어보는가 / 측정소마다 최근 몇 줄(시간)까지 보는가.
@@ -67,6 +71,11 @@ public class AirServlet extends HttpServlet {
     /** 측정소 목록을 새로 받았을 때 부를 것 - 주말 추천(WeekendServlet)이 다시 만들게(2026-10-22 PC: 한도로 막힌 동안 대체 구역으로 만든 weekend.json 이 남았음). */
     static volatile Runnable onStations;
     private static final OpenApi.Cache<JsonObject> MEASURE = new OpenApi.Cache<>(800, 30L * 60 * 1000);
+    /**
+     * 시도 → 측정소별 지금 값(30분). 측정소마다 묻던 것을 시도마다 한 번으로(2026-11-07 전체 점검 3단계 - 산 페이지 · 주말 추천이 여러 산을 볼 때 측정소 수만큼 물었음).
+     * 표에 없는 측정소(값 "-" · 이름이 다른 시도)는 예전처럼 그 측정소만 따로 물음. 시도 이름이 틀려 빈 답이어도 빈 표로 30분 기억(그동안은 따로 물음).
+     */
+    private static final OpenApi.Cache<Map<String, JsonObject>> SIDO = new OpenApi.Cache<>(20, 30L * 60 * 1000);
     /** 측정값을 바깥에 새로 묻는 횟수 상한 - 주소마다 한 시간 90번(한 번에 측정소 셋까지 물음), 하루 3,000번(설정 quota.air.ip · .day, 2026-11-01 점검: 좌표를 바꿔 가며 부르면 측정소마다 새로 물었음). */
     private static final OutQuota QUOTA = OutQuota.of("air", 90, 3000);
 
@@ -242,6 +251,13 @@ public class AirServlet extends HttpServlet {
         for (int i : near) {
             String station = names.get(i);
             JsonObject m = MEASURE.get(station, now);
+            if (m == null) {   // 시도별 표에 있으면 그것(그 시도 첫 물음 한 번)
+                Map<String, JsonObject> t = sidoTable(key, sido(addrs.get(i)), ip, now);
+                if (t != null && t.containsKey(station)) {
+                    m = t.get(station);
+                    MEASURE.put(station, m, now);
+                }
+            }
             if (m == null) {
                 if (!QUOTA.allow(ip, now)) break;   // 상한 - 측정값 없이(기억하지 않음)
                 // 같은 측정소를 지금 묻는 중이면 그 답을 기다림(Flight, 2026-11-07 전체 점검 3단계)
@@ -268,6 +284,28 @@ public class AirServlet extends HttpServlet {
             return out;
         }
         return withForecast(unavailable(), region, fc);
+    }
+
+    /** 그 시도의 측정소별 지금 값(기억에 없으면 한 번 물음, 같은 시도를 묻는 중이면 그 답을 기다림). 못 받으면 null. */
+    private static Map<String, JsonObject> sidoTable(String key, String sido, String ip, long now) {
+        if (sido == null) return null;
+        Map<String, JsonObject> hit = SIDO.get(sido, now);
+        if (hit != null) return hit;
+        if (!QUOTA.allow(ip, now)) return null;   // 측정소별과 같은 상한(하루 · 주소마다)
+        return Flight.once("air-sido|" + sido, () -> {
+            Map<String, JsonObject> again = SIDO.get(sido, System.currentTimeMillis());
+            if (again != null) return again;
+            String text = OpenApi.get(SIDO_URL + "?serviceKey=" + URLEncoder.encode(key, StandardCharsets.UTF_8)
+                    + "&returnType=json&numOfRows=200&pageNo=1&ver=1.0&sidoName=" + URLEncoder.encode(sido, StandardCharsets.UTF_8), "AIR");
+            if (text == null) return null;   // 연결 실패 - 기억하지 않음
+            Map<String, JsonObject> t = sidoRows(text);
+            if (t == null) {
+                OpenApi.warn("AIR", text);
+                t = new HashMap<>();
+            }
+            SIDO.put(sido, t, now);
+            return t;
+        });
     }
 
     private static JsonObject withForecast(JsonObject out, String region, JsonObject fc) {
@@ -418,23 +456,48 @@ public class AirServlet extends HttpServlet {
         JsonArray list = items(text);
         if (list == null) return null;
         for (JsonElement e : list) {
-            if (!e.isJsonObject()) continue;
-            JsonObject o = e.getAsJsonObject();
-            Double p10 = num(str(o, "pm10Value")), p25 = num(str(o, "pm25Value"));
-            if (p10 == null && p25 == null) continue;
-            JsonObject out = new JsonObject();
-            out.addProperty("time", str(o, "dataTime"));
-            if (p10 != null) {
-                out.addProperty("pm10", (int) Math.round(p10));
-                out.addProperty("pm10Word", word(p10, 30, 80, 150));
-            }
-            if (p25 != null) {
-                out.addProperty("pm25", (int) Math.round(p25));
-                out.addProperty("pm25Word", word(p25, 15, 35, 75));
-            }
-            return out;
+            JsonObject out = e.isJsonObject() ? row(e.getAsJsonObject()) : null;
+            if (out != null) return out;
         }
         return null;
+    }
+
+    /** 순수 함수 - 측정값 한 줄 → {time, pm10, pm10Word, pm25, pm25Word}. 두 값 모두 없으면("-" 통신장애 등) null. 측정소별 · 시도별이 함께 씀. */
+    private static JsonObject row(JsonObject o) {
+        Double p10 = num(str(o, "pm10Value")), p25 = num(str(o, "pm25Value"));
+        if (p10 == null && p25 == null) return null;
+        JsonObject out = new JsonObject();
+        out.addProperty("time", str(o, "dataTime"));
+        if (p10 != null) {
+            out.addProperty("pm10", (int) Math.round(p10));
+            out.addProperty("pm10Word", word(p10, 30, 80, 150));
+        }
+        if (p25 != null) {
+            out.addProperty("pm25", (int) Math.round(p25));
+            out.addProperty("pm25Word", word(p25, 15, 35, 75));
+        }
+        return out;
+    }
+
+    /** 순수 함수 - 시도별 응답 → 측정소 이름 → 지금 값(값이 없는 측정소는 빠짐 - 그 측정소는 예전처럼 최근 6시간을 따로 물음). 응답이 틀리면 null. */
+    static Map<String, JsonObject> sidoRows(String text) {
+        JsonArray list = items(text);
+        if (list == null) return null;
+        Map<String, JsonObject> out = new HashMap<>();
+        for (JsonElement e : list) {
+            if (!e.isJsonObject()) continue;
+            String st = str(e.getAsJsonObject(), "stationName");
+            JsonObject r = row(e.getAsJsonObject());
+            if (st != null && r != null) out.putIfAbsent(st, r);
+        }
+        return out;
+    }
+
+    /** 순수 함수 - 측정소 주소 → 시도별 물음의 sidoName(서울 · 경기 · 강원 · 경북 …). 예보 지역(region)의 경기북부 · 남부, 영동 · 영서를 합침. */
+    static String sido(String addr) {
+        String r = region(addr);
+        if (r == null) return null;
+        return r.startsWith("경기") ? "경기" : r.equals("영동") || r.equals("영서") ? "강원" : r;
     }
 
     /** 순수 함수 - 환경부 예보 등급(좋음 · 보통 · 나쁨 · 매우나쁨). */

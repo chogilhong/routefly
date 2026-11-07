@@ -13,6 +13,7 @@ import java.util.List;
  *
  * <pre>
  * .claude\run-tests.ps1 -Run web.AirProbe
+ * .claude\run-tests.ps1 -Run web.AirProbe sido 서울 강원   → 시도별 실시간만(sido-&lt;이름&gt;.json, 다른 파일은 덮어쓰지 않음 - 2026-11-07 PC 요청)
  * </pre>
  *
  * 키는 config.properties 의 air.serviceKey(없으면 tour.serviceKey)를 RouteflyConfig 로 읽습니다(화면 · 파일에 키를 쓰지 않음).
@@ -33,6 +34,10 @@ public final class AirProbe {
         Path dir = Path.of("src", "test", "resources", "air");
         Files.createDirectories(dir);
         String enc = URLEncoder.encode(key, StandardCharsets.UTF_8);
+        if (args.length > 0 && "sido".equals(args[0])) {
+            for (int i = 1; i < Math.max(2, args.length); i++) sido(dir, enc, key, i < args.length ? args[i] : "경북");
+            return;
+        }
         String st = OpenApi.get(AirServlet.STATIONS_URL + "?serviceKey=" + enc + "&returnType=json&numOfRows=1000&pageNo=1", "AIR-PROBE", AirServlet.STATIONS_TIMEOUT);
         if (st == null) {
             System.out.println("측정소 목록: 받지 못함(로그 [AIR-PROBE] - 활용 신청 · 키 확인)");
@@ -75,15 +80,22 @@ public final class AirProbe {
         }
         // 시도별 실시간 측정값(getCtprvnRltmMesureDnsty, 2026-11-07 전체 점검 3단계) - 한 번에 그 시도 측정소 모두.
         // 측정소마다 묻던 것을 시도마다 한 번으로 줄이려면 실제 응답 모양(칸 이름 · 줄 수)부터 봅니다. 가야산(대가야읍)이 든 경북
-        Thread.sleep(700);
-        String sd = OpenApi.get("https://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getCtprvnRltmMesureDnsty?serviceKey=" + enc
-                + "&returnType=json&numOfRows=200&pageNo=1&ver=1.0&sidoName=" + URLEncoder.encode("경북", StandardCharsets.UTF_8), "AIR-PROBE");
-        if (sd == null) System.out.println("시도별(경북): 받지 못함");
-        else {
-            sd = PetTourProbe.scrub(sd, key);
-            Files.writeString(dir.resolve("sido-경북.json"), sd, StandardCharsets.UTF_8);
-            System.out.println("시도별(경북): " + sd.length() + "자 - sido-경북.json");
-        }
+        sido(dir, enc, key, "경북");
         System.out.println("저장: " + dir.toAbsolutePath());
+    }
+
+    /** 시도별 실시간 측정값 하나를 받아 sido-&lt;이름&gt;.json 으로(AirServlet 과 같은 물음). */
+    private static void sido(Path dir, String enc, String key, String name) throws Exception {
+        Thread.sleep(700);
+        String sd = OpenApi.get(AirServlet.SIDO_URL + "?serviceKey=" + enc + "&returnType=json&numOfRows=200&pageNo=1&ver=1.0&sidoName="
+                + URLEncoder.encode(name, StandardCharsets.UTF_8), "AIR-PROBE");
+        if (sd == null) {
+            System.out.println("시도별(" + name + "): 받지 못함");
+            return;
+        }
+        sd = PetTourProbe.scrub(sd, key);
+        Files.writeString(dir.resolve("sido-" + name + ".json"), sd, StandardCharsets.UTF_8);
+        java.util.Map<String, com.google.gson.JsonObject> rows = AirServlet.sidoRows(sd);
+        System.out.println("시도별(" + name + "): " + (rows == null ? "읽지 못함(이름 · 응답 확인)" : rows.size() + "곳 값 있음") + " - sido-" + name + ".json");
     }
 }
