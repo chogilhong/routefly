@@ -6,6 +6,7 @@
 #                      (2026-11-07 전체 점검: 방 코드 · 회사 코드 · 원래 IP 가 그대로 보였음 - 접속 기록은 아래 access 요약으로)
 #   grep 낱말 [N]    - catalina.out 끝 5만 줄에서 그 낱말(글자 그대로)이 든 줄 중 마지막 N줄
 #   access 날짜 [부터 까지] - 그 날(YYYY-MM-DD) 톰캣 접속 기록 요약(2026-10-28): 화면 수 · 경로 묶음 · 15분 · 브라우저 종류 · 많이 연 곳 상위 10.
+#                      2026-11-08: 넘김(3xx) · 오류(4xx · 5xx) 응답도 경로 묶음 · 상태별 수와 그중 검색 로봇 · 구글봇 수(주소 · 코스 번호 없이 - 없어진 코스 주소 301 확인용)
 #                      부터 · 까지(HH:MM, 까지는 빼고)를 주면 그 시각만(2026-11-06 PC: 날마다 같은 시각끼리 견주려는데 log 이름 N 은 끝 3000줄까지라 앞 시각을 못 봄).
 #                      종류마다 곳 수 · 그중 화면 js 가 돈 곳(/api/seen 을 낸 곳), js 를 안 낸 사람 쪽 곳의 브라우저 글 상위 10(곳 수)도.
 #                      주소는 내보내지 않음 - 이번 한 번만 쓰는 무작위 값과 섞은 해시 8글자(다시 돌리면 달라져 이어 볼 수 없음)
@@ -71,7 +72,7 @@ def kind(ua):
     if m and int(m.group(1)) < 130 and "samsungbrowser" not in u and "whale" not in u: return "오래된 크롬(<130)"
     return "사람 브라우저"
 tot = 0; paths = collections.Counter(); q = collections.Counter(); kinds = collections.Counter(); who = collections.Counter(); whoKind = {}; whoPath = collections.defaultdict(collections.Counter); qk = collections.defaultdict(collections.Counter)
-seen = set(); whoUa = {}
+seen = set(); whoUa = {}; errs = collections.Counter(); errBot = collections.Counter(); errG = collections.Counter()
 def safe(t): return re.sub(r"[\x00-\x1f\x7f]", "", t or "-")[:160]
 with open(sys.argv[1], encoding="utf-8", errors="replace") as fh:
     for line in fh:
@@ -81,7 +82,12 @@ with open(sys.argv[1], encoding="utf-8", errors="replace") as fh:
         if not (T0 <= hm < T1): continue
         if m.group(5).startswith("/routefly/api/seen"):   # 화면 js 가 돈 신호(js/seen.js)
             seen.add(hashlib.sha256(salt + m.group(1).split(",")[-1].strip().encode()).hexdigest()[:8]); continue
-        if m.group(4) != "GET" or int(m.group(6)) >= 400: continue
+        st = int(m.group(6))
+        if m.group(4) == "GET" and st >= 300 and st != 304:   # 넘김 · 오류 - 경로 묶음과 상태만(그 밖의 주소는 "그 밖" - 남이 만든 글이 요약에 나오지 않게)
+            ek = (st, page(m.group(5)) or "그 밖"); errs[ek] += 1
+            if kind(m.group(7)) == "검색 로봇": errBot[ek] += 1
+            if "googlebot" in (m.group(7) or "").lower(): errG[ek] += 1
+        if m.group(4) != "GET" or st >= 400: continue
         pk = page(m.group(5))
         if not pk: continue
         tot += 1; paths[pk] += 1
@@ -99,6 +105,9 @@ print("\n[브라우저 종류]"); [print(" %6d  %s" % (n, k)) for k, n in kinds.
 print("\n[경로 묶음 상위 15]"); [print(" %6d  %s" % (n, k)) for k, n in paths.most_common(15)]
 print("\n[15분별 - 많은 순 12, 가장 많은 종류]")
 for s, n in q.most_common(12): print(" %s %5d  %s" % (s, n, qk[s].most_common(1)[0][0]))
+print("\n[넘김 · 오류 응답 - 상태 · 경로 묶음 · 합계 · 검색 로봇 · 구글봇]")
+if not errs: print("  없음")
+for (s, k), n in sorted(errs.items(), key=lambda x: (-x[1], x[0][0])): print(" %3d  %-14s %6d  %5d  %5d" % (s, k, n, errBot[(s, k)], errG[(s, k)]))
 print("\n[많이 연 곳 상위 10 - 주소 대신 해시]")
 for h, n in who.most_common(10): print(" %s %5d  %s  %s" % (h, n, whoKind[h], ", ".join("%s %d" % x for x in whoPath[h].most_common(2))))
 PY
