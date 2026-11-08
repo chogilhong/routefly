@@ -59,6 +59,15 @@ public class FullReviewStage2Test {
         ReviewRound5Test.node("src/test/js/party-ended.test.js");
     }
 
+    /** 따라가기 길찾기 창의 티맵(2026-11-08 홍TV님 "작업해") - 링크 모양은 course-kit.test.js(tmapHref). */
+    @Test
+    public void tmapInDirections() throws Exception {
+        assertTrue(read("src/main/webapp/hike.html").contains("<a class=\"big\" id=\"navTmap\" target=\"_blank\" rel=\"noopener\" data-en=\"TMAP (app, by car)\">티맵 (앱 · 자동차)</a>"));
+        String js = read("src/main/webapp/js/hike.js");
+        assertTrue(js.contains("$(\"navTmap\").href = RF.tmapHref(nm, to.lat, to.lon);") && js.contains("[\"navKakao\", \"navNaver\", \"navTmap\", \"navGoogle\"]"));
+        assertTrue(read("src/main/webapp/js/kit-hike.js").contains("function tmapHref("));
+    }
+
     @Test
     public void touchSizes() throws Exception {
         String css = read("src/main/webapp/css/mountain.css");

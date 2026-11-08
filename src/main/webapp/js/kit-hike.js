@@ -681,6 +681,14 @@
         return m ? String(safeDecode(m[1].replace(/\+/g, " ")) || "").trim().slice(0, 40) : "";
     }
 
+    /**
+     * 순수 함수 - 티맵 앱 길안내 링크(2026-11-08 홍TV님 "작업해" - 차로 들머리 · 주차장에 가는 분이 많이 씀). 출발은 티맵이 폰의 지금 위치로 잡음(우리 서버로 위치가 가지 않음).
+     * 형식 tmap://route?rGoName=이름&rGoX=경도&rGoY=위도 - 티맵 공식 문서가 아니라 개발 블로그 · 커뮤니티 글로 확인한 것이라 폰에서 열리는지 보고 씀(X 가 경도, Y 가 위도).
+     */
+    function tmapHref(name, lat, lon) {
+        return "tmap://route?rGoName=" + encodeURIComponent(String(name || "").trim() || "목적지") + "&rGoX=" + (+lon).toFixed(6) + "&rGoY=" + (+lat).toFixed(6);
+    }
+
     function stampKey(name) { return String(name || "").replace(/\s+/g, "").replace(/인증센터$/, ""); }
 
     /**
@@ -3753,6 +3761,7 @@
         routeGuides: routeGuides,
         safeDecode: safeDecode,
         urlQuery: urlQuery,
+        tmapHref: tmapHref,
         gridCells: gridCells,
         stampsDue: stampsDue,
         peakKey: peakKey,

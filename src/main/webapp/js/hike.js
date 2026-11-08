@@ -3606,6 +3606,7 @@
         $("navNaver").href = "nmap://route/" + (far ? "car" : "walk") + "?"
             + (from ? "slat=" + from.lat + "&slng=" + from.lon + "&sname=" + encodeURIComponent("내 위치") + "&" : "")
             + "dlat=" + lat + "&dlng=" + lon + "&dname=" + encodeURIComponent(nm) + "&appname=" + encodeURIComponent(location.origin);
+        $("navTmap").href = RF.tmapHref(nm, to.lat, to.lon);   // 티맵 - 출발은 티맵이 지금 위치로(2026-11-08)
         // 구글 지도는 우리나라에서 자동차 · 걷기 길찾기를 하지 않습니다('경로를 찾을 수 없음') - 대중교통으로
         $("navGoogle").href = "https://www.google.com/maps/dir/?api=1" + (from ? "&origin=" + from.lat + "," + from.lon : "")
             + "&destination=" + lat + "," + lon + "&travelmode=transit";
@@ -3643,7 +3644,7 @@
         $("navSheet").style.display = "none";
         if (navPre) { navPre = false; navFrom = null; if (!hike.running) hike.navTo = null; }   // 시작 전 길찾기(nearCheck)는 닫으면 끝
     });
-    ["navKakao", "navNaver", "navGoogle"].forEach(function (id) {
+    ["navKakao", "navNaver", "navTmap", "navGoogle"].forEach(function (id) {
         $(id).addEventListener("click", function () { $("navSheet").style.display = "none"; });
     });
 
