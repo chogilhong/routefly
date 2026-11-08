@@ -17,6 +17,19 @@ import org.junit.Test;
  */
 public class LogKeyAccessTest {
 
+    /**
+     * 진짜 python3 가 있나 - 없거나, 윈도의 스토어 바로 가기(WindowsApps\python3.exe - 실행은 되고 "Python was not found" · 끝 코드 9009, 2026-11-08 PC)면 false.
+     */
+    static boolean pythonOk() {
+        try {
+            Process v = new ProcessBuilder("python3", "--version").redirectErrorStream(true).start();
+            String out = new String(v.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            return v.waitFor() == 0 && out.startsWith("Python 3");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     @Test
     public void countsRedirectsAndErrorsWithoutAddresses() throws Exception {
         String sh = new String(Files.readAllBytes(Path.of("tools/log-key/routefly-logs-read")), StandardCharsets.UTF_8).replace("\r\n", "\n");
@@ -32,13 +45,8 @@ public class LogKeyAccessTest {
                     "203.0.113.7 [08/Nov/2026:10:02:00 +0900] \"GET /routefly/m/%EC%97%B0%ED%99%94%EC%82%B0\" 200 9000 \"" + m + "\"",
                     "203.0.113.9 [08/Nov/2026:10:03:00 +0900] \"GET /routefly/wp-login.php\" 404 50 \"" + m + "\"",
                     "203.0.113.7 [08/Nov/2026:10:04:00 +0900] \"GET /routefly/hike.html\" 304 - \"" + m + "\"") + "\n", StandardCharsets.UTF_8);
-            Process p;
-            try {
-                p = new ProcessBuilder("python3", "-I", py.toString(), log.toString(), "00:00", "24:00").redirectErrorStream(true).start();
-            } catch (java.io.IOException e) {
-                Assume.assumeTrue("python3 없음 - 건너뜀", false);
-                return;
-            }
+            Assume.assumeTrue("python3 없음 - 건너뜀", pythonOk());
+            Process p = new ProcessBuilder("python3", "-I", py.toString(), log.toString(), "00:00", "24:00").redirectErrorStream(true).start();
             String out = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
             assertEquals(out, 0, p.waitFor());
             assertTrue(out, out.contains("[넘김 · 오류 응답 - 상태 · 경로 묶음 · 합계 · 검색 로봇 · 구글봇]"));
