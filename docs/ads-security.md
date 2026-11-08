@@ -21,3 +21,19 @@
 3. 그대로 켠다면 - 방 열쇠가 쓸모 있는 때를 짧게 둡니다(방이 끝나면 이 기기에서 지움 - 지금처럼). 사무실 열쇠는 오래 쓰니 1 · 2번을 권합니다.
 
 어느 쪽으로 할지는 홍TV님이 정합니다. 정하면 웹 Claude 에게 "광고 열쇠 분리 - 1번(또는 2번)으로" 라고 전해 주세요.
+
+## 앱 안 광고 - 웹뷰용 광고로 하기로 함(2026-11-08 홍TV님 "2번으로. 지금은 말고")
+
+지금은 하지 않습니다. 정한 것만 적어 둡니다.
+
+- 지금: 앱(Capacitor 웹뷰)이면 `js/ads.js` 가 광고 칸을 지움. 등록 없이 웹뷰에서 애드센스를 보이면 구글 정책 위반이 될 수 있어서.
+- 할 때: 구글 "WebView API for Ads" - 앱에 Google Mobile Ads SDK 를 넣고 웹뷰를 `MobileAds.registerWebView(webView)` 로 등록하면,
+  산 · 코스 페이지의 애드센스 칸이 앱 안에서도 정식으로 나오고 수익도 잡힘. 애드몹 배너(앱 코드로 따로 자리)는 쓰지 않음 - 앱은 따라가기가 대부분이라 안전 화면에 광고가 끼게 됨.
+- 언제: 애드센스 승인 뒤, 원스토어 첫 판(광고 없음)이 나간 다음 앱 판에서.
+- 그때 할 일
+  1. app/android: Mobile Ads SDK 의존성, MainActivity 에서 브리지 웹뷰 등록, 매니페스트 메타데이터(공식 문서대로 - 애드몹 앱 ID 또는 웹뷰 전용 설정). 앱 다시 빌드 · 올리기(versionCode +1).
+  2. js/ads.js: "앱이면 지움" 을 "등록된 앱이면 보임" 으로(앱이 알려 주는 표시를 보고 - 옛 앱은 그대로 지움).
+  3. 따라가기 · 산악회 방 · 사무실 · SOS 화면에는 광고를 넣지 않는 규칙 그대로(ads.js 를 그 화면에 넣지 않음).
+  4. 스토어 정보 "광고 포함" 켜기(원스토어 · 플레이), 개인정보처리방침 10번에 앱 안 광고 한 줄, 위 "무엇이 걱정인가"(같은 출처 localStorage)도 다시 봄.
+  5. 동의: 웹뷰 안 광고 동의는 웹 쪽에서 받아야 함(앱에서 받은 동의가 넘어가지 않음 - 공식 문서).
+- 출처: [Integrate the WebView API for Ads](https://developers.google.com/admob/android/browser/webview/api-for-ads) · [Ad Manager 판](https://developers.google.com/ad-manager/mobile-ads-sdk/android/browser/webview/api-for-ads)

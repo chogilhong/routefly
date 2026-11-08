@@ -31,7 +31,7 @@
 | 패키지 | kr.routefly.app |
 | 분류 | 여행 · 지역(또는 건강 · 운동) |
 | 이용 등급 | 전체 이용가(폭력 · 결제 없음, 위치는 산행 · 안전용) |
-| 가격 | 무료, 앱 안 결제 없음, 광고 없음 |
+| 가격 | 무료, 앱 안 결제 없음, 광고 없음(첫 판 - 애드센스 승인 뒤 웹뷰용 광고를 넣는 판에서 "광고 포함" 으로 바꿈, docs/ads-security.md "앱 안 광고") |
 | 개인정보처리방침 | https://routefly.kr/routefly/privacy.html |
 | 누리집 | https://routefly.kr/routefly/ |
 | 문의 | about.html 의 문의 메일(홍TV님이 개발자센터에 직접) |
