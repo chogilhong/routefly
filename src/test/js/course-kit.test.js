@@ -275,8 +275,11 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
     eq("목록에 없는 말", RF.peakHref("둘레길", pk), null);
     eq("빈 말", RF.peakHref("  ", pk), null);
     // 티맵 길안내 링크(2026-11-08) - 좌표는 운영 /api/courses?q=가야산 의 knps-7018 출발점(src/test/resources/course/courses-q-가야산.json)
-    eq("티맵 - X 경도 · Y 위도", RF.tmapHref("가야산 · 가야산소리길", 35.777352, 128.125284), "tmap://route?rGoName=%EA%B0%80%EC%95%BC%EC%82%B0%20%C2%B7%20%EA%B0%80%EC%95%BC%EC%82%B0%EC%86%8C%EB%A6%AC%EA%B8%B8&rGoX=128.125284&rGoY=35.777352");
-    eq("티맵 - 이름 없으면 목적지", RF.tmapHref(" ", "35.777352", "128.125284"), "tmap://route?rGoName=%EB%AA%A9%EC%A0%81%EC%A7%80&rGoX=128.125284&rGoY=35.777352");
+    var tgo = "%EA%B0%80%EC%95%BC%EC%82%B0%20%C2%B7%20%EA%B0%80%EC%95%BC%EC%82%B0%EC%86%8C%EB%A6%AC%EA%B8%B8";
+    eq("티맵 - 안드로이드 goal · 아이폰 rGo 둘 다, X 경도 · Y 위도", RF.tmapHref("가야산 · 가야산소리길", 35.777352, 128.125284),
+        "tmap://route?referrer=com.skt.Tmap&goalx=128.125284&goaly=35.777352&goalname=" + tgo + "&rGoName=" + tgo + "&rGoX=128.125284&rGoY=35.777352");
+    eq("티맵 - 이름 없으면 목적지", RF.tmapHref(" ", "35.777352", "128.125284"),
+        "tmap://route?referrer=com.skt.Tmap&goalx=128.125284&goaly=35.777352&goalname=%EB%AA%A9%EC%A0%81%EC%A7%80&rGoName=%EB%AA%A9%EC%A0%81%EC%A7%80&rGoX=128.125284&rGoY=35.777352");
     // 검색 표준 주소(2026-11-08 - route.html · park.html 꼬리만 다른 중복 62개). 주소 모양은 영어 코스 모음이 만드는 링크 그대로(MountainEnTest)
     var R = "https://routefly.kr/routefly/route.html";
     eq("노선 - 이름 · 돌아가기 꼬리는 뺌", RF.canonicalHref(R + "?trail=%ED%95%B4%ED%8C%8C%EB%9E%91%EA%B8%B8&name=Haeparang%20Trail&back=en", ["trail", "prefix"]), R + "?trail=%ED%95%B4%ED%8C%8C%EB%9E%91%EA%B8%B8");
