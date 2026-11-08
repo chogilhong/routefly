@@ -14,6 +14,7 @@
     RF.setLang(LANG);
     if (EN) { document.documentElement.lang = "en"; document.title = "routefly - Trail map"; RF.applyEn(document); }
     var q = new URLSearchParams(location.search), park = q.get("name") || "", from = q.get("from"), backTo = q.get("back");
+    RF.setCanonical(["name"]);   // 검색 표준 주소는 공원 이름 하나만(&from · &back · &label · &lang 은 같은 쪽, 2026-11-08)
     // 목록 카드의 지역 붙은 이름(광양 가야산 - 2026-10-14 PC) - 제목에만. 산 이름이 들어 있고 짧은 한글 · 괄호만
     var label = q.get("label") || "";
     if (!(label.length <= 24 && label.indexOf(park) >= 0 && /^[가-힣0-9 ()·]+$/.test(label))) label = "";

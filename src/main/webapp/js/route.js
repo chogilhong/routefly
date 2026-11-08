@@ -16,6 +16,7 @@
     RF.setLang(LANG);
     if (EN) { document.documentElement.lang = "en"; document.title = "routefly - Route map"; RF.applyEn(document); }
     var q = new URLSearchParams(location.search), prefix = q.get("prefix") || "", trail = q.get("trail") || "", backTo = q.get("back");
+    RF.setCanonical(["trail", "prefix"]);   // 검색 표준 주소는 노선 열쇠 하나만(&name · &back · &lang 은 같은 쪽, 2026-11-08)
     var map, data = null, series = null, nums = [], labels = [], flips = {}, sel = [], emptySheet = "";
     // 코스 · 구간 번호를 지도에 붙이는 노선(인증센터가 없는 것): 코리아둘레길 · 백두대간 · 정맥
     var numbered = !!trail || /^osmh-/.test(prefix);

@@ -240,6 +240,26 @@
     var PARK_NO = /([가-힣](?:공원|광장))\d+(?![\d)])/g;
     function numberedPark(name) { return name == null ? name : String(name).replace(NUMBERED_PARK, "$1").replace(PARK_NO, "$1"); }
 
+    /**
+     * 순수 함수 - 검색 표준 주소(canonical): 지금 주소에서 keys 가운데 처음 있는 것 하나만 남김(없으면 쪽 주소만).
+     * 노선 안내도 · 국립공원(route.html · park.html)은 같은 빈 틀에 주소 꼬리(&name= · &back= · &lang=)만 달라 구글이 "표준이 없는 중복" 62개로 봤음(2026-11-08 Search Console).
+     */
+    function canonicalHref(href, keys) {
+        var u = new URL(href), q = new URLSearchParams(u.search), out = u.origin + u.pathname;
+        for (var i = 0; i < keys.length; i++) {
+            var v = q.get(keys[i]);
+            if (v) return out + "?" + keys[i] + "=" + encodeURIComponent(v);
+        }
+        return out;
+    }
+
+    /** 화면 머리의 canonical 을 canonicalHref 로(없으면 만듦). route.js · park.js 가 부름. */
+    function setCanonical(keys) {
+        var l = document.querySelector('link[rel="canonical"]');
+        if (!l) { l = document.createElement("link"); l.rel = "canonical"; document.head.appendChild(l); }
+        l.href = canonicalHref(location.href, keys);
+    }
+
     function stampKey(name) { return String(name || "").replace(/\s+/g, "").replace(/인증센터$/, ""); }
 
     /**
@@ -569,6 +589,7 @@
         stampKey: stampKey,
         baseStyle: baseStyle,
         stampOf: stampOf,
+        setCanonical: setCanonical,
         trailCourses: trailCourses,
         nameText: nameText,
         declutter: declutter,

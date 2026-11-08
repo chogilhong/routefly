@@ -74,9 +74,10 @@ public class CoursePageServlet extends HttpServlet {
         JsonObject course = null, info = null;
         double[] dist = null, plat = null, plon = null;
         Double[] ele = null;
-        JsonArray pois = new JsonArray();
+        JsonArray pois = new JsonArray(), same = new JsonArray();
         try (Connection c = Db.open()) {
             JsonArray rows = Json.rows(c, "SELECT " + CourseQueries.COURSE_COLUMNS + ", imported_at FROM route_course WHERE course_id = ?", id);
+            if (rows.size() == 0) same = CourseQueries.sameGroup(c, id);   // 없어진 코스 - 같은 산 코스로 산 페이지를 찾음(아래)
             if (rows.size() > 0) {
                 course = rows.get(0).getAsJsonObject();
                 JsonArray pts = Json.rows(c, "SELECT dist_m, ele_m, lat, lon FROM route_course_point WHERE course_id = ? ORDER BY seq", id);
@@ -109,6 +110,15 @@ public class CoursePageServlet extends HttpServlet {
             return;
         }
         if (course == null) {
+            // 배치를 다시 돌려 코스 번호(끝 해시)가 바뀌어 없어진 주소 - 같은 산(산 코드 앞부분)의 산 페이지로 영구 이동(2026-11-08 홍TV님 "작업해":
+            // 구글이 10-24 에 색인한 연화산 코스 주소 4개 중 넷이 404 였음 - 쌓인 검색 신용과 손님을 그 산 코스 목록으로)
+            String peakId = movedPeak(peaks(), same);
+            if (peakId != null) {
+                resp.setStatus(HttpServletResponse.SC_MOVED_PERMANENTLY);
+                resp.setHeader("Location", base + "/m/" + MountainServlet.enc(peakId));
+                resp.setHeader("Cache-Control", "public, max-age=3600");
+                return;
+            }
             resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
             resp.getWriter().print(notFoundPage(base));
             return;
@@ -125,6 +135,21 @@ public class CoursePageServlet extends HttpServlet {
         boolean index = indexable(id, rawName, str(course, "kind"), peak, pk);
         resp.setHeader("Cache-Control", "public, max-age=600");
         resp.getWriter().print(page(course, peak, info, dist, ele, pois, index, base, stampsOn(npStamps(), plat, plon, dist)));
+    }
+
+    /**
+     * 순수 함수 - 없어진 코스 주소를 보낼 산(100대 명산 id). same - 같은 묶음(CourseQueries.sameGroup - 같은 산 코드 · 봉우리 · 노선) 지금 코스들.
+     * 그 가운데 산 페이지 기준(peakOf)으로 100대 명산에 닿는 코스가 있으면 그 산, 여러 산이면 가장 많이 닿는 산(같으면 먼저 나온 것). 없으면 null(404 그대로).
+     */
+    static String movedPeak(JsonArray peaks, JsonArray same) {
+        java.util.Map<String, Integer> n = new java.util.LinkedHashMap<>();
+        for (JsonElement e : same) {
+            JsonObject p = peakOf(peaks, e.getAsJsonObject());
+            if (p != null) n.merge(str(p, "id") != null ? str(p, "id") : str(p, "name"), 1, Integer::sum);
+        }
+        String best = null;
+        for (java.util.Map.Entry<String, Integer> x : n.entrySet()) if (best == null || x.getValue() > n.get(best)) best = x.getKey();
+        return best;
     }
 
     /** 순수 함수 - 코스 ID 앞머리("knps-…" → "knps"). '-' 가 없으면 ""(GPX 로 넣은 코스). */

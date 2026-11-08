@@ -6,7 +6,7 @@
 "use strict";
 var fs = require("fs"), path = require("path"), vm = require("vm");
 
-var sandbox = { window: {}, console: console };
+var sandbox = { window: {}, console: console, URL: URL, URLSearchParams: URLSearchParams };   // URL - canonicalHref(브라우저에 늘 있음)
 vm.createContext(sandbox);
 vm.runInContext(fs.readFileSync(path.join(__dirname, "../../main/webapp/js/course-kit.js"), "utf8"), sandbox);
 var RF = sandbox.window.RF;
@@ -274,6 +274,12 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
     eq("영어 이름 · 대소문자", RF.peakHref("seorak", pk.slice(5)), "en/seoraksan");
     eq("목록에 없는 말", RF.peakHref("둘레길", pk), null);
     eq("빈 말", RF.peakHref("  ", pk), null);
+    // 검색 표준 주소(2026-11-08 - route.html · park.html 꼬리만 다른 중복 62개). 주소 모양은 영어 코스 모음이 만드는 링크 그대로(MountainEnTest)
+    var R = "https://routefly.kr/routefly/route.html";
+    eq("노선 - 이름 · 돌아가기 꼬리는 뺌", RF.canonicalHref(R + "?trail=%ED%95%B4%ED%8C%8C%EB%9E%91%EA%B8%B8&name=Haeparang%20Trail&back=en", ["trail", "prefix"]), R + "?trail=%ED%95%B4%ED%8C%8C%EB%9E%91%EA%B8%B8");
+    eq("자전거길 prefix", RF.canonicalHref(R + "?prefix=osmb-1-&name=Hangang%20Bike%20Path%20%28Seoul%29&back=en", ["trail", "prefix"]), R + "?prefix=osmb-1-");
+    eq("열쇠가 없으면 쪽 주소", RF.canonicalHref(R + "?lang=en#x", ["trail", "prefix"]), R);
+    eq("국립공원 이름", RF.canonicalHref("https://routefly.kr/routefly/park.html?name=%EC%84%A4%EC%95%85%EC%82%B0&from=m&back=list&lang=en", ["name"]), "https://routefly.kr/routefly/park.html?name=%EC%84%A4%EC%95%85%EC%82%B0");
     // 코리아둘레길 - 이름으로 찾은 코스를 길마다 · 번호 순으로, 완주는 받아 온 ID 로
     var hp = [{ course_id: "drnb-a", name: "해파랑길 10코스 · 가 → 나" }, { course_id: "drnb-b", name: "해파랑길 2코스 · 다 → 라" },
               { course_id: "drnb-c", name: "남파랑길 1코스" }, { course_id: "drnb-d", name: "해파랑길 1코스 · 오륙도해맞이공원 → 해운대해수욕장" }];

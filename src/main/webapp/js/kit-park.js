@@ -284,6 +284,26 @@
         "태안해안", "다도해해상", "북한산", "치악산", "월악산", "소백산", "월출산", "변산반도", "무등산", "태백산", "팔공산"];
 
     /**
+     * 순수 함수 - 검색 표준 주소(canonical): 지금 주소에서 keys 가운데 처음 있는 것 하나만 남김(없으면 쪽 주소만).
+     * 노선 안내도 · 국립공원(route.html · park.html)은 같은 빈 틀에 주소 꼬리(&name= · &back= · &lang=)만 달라 구글이 "표준이 없는 중복" 62개로 봤음(2026-11-08 Search Console).
+     */
+    function canonicalHref(href, keys) {
+        var u = new URL(href), q = new URLSearchParams(u.search), out = u.origin + u.pathname;
+        for (var i = 0; i < keys.length; i++) {
+            var v = q.get(keys[i]);
+            if (v) return out + "?" + keys[i] + "=" + encodeURIComponent(v);
+        }
+        return out;
+    }
+
+    /** 화면 머리의 canonical 을 canonicalHref 로(없으면 만듦). route.js · park.js 가 부름. */
+    function setCanonical(keys) {
+        var l = document.querySelector('link[rel="canonical"]');
+        if (!l) { l = document.createElement("link"); l.rel = "canonical"; document.head.appendChild(l); }
+        l.href = canonicalHref(location.href, keys);
+    }
+
+    /**
      * 순수 함수 - 정상(peak.lat/lon)까지 가는 코스: 끝(없으면 시작)이 nearM(기본 2km - 2026-10-12 PC: 강천산 · 선운산 등 코스 끝이 정상에서 1~1.8km) 안인 것, 가까운 차례.
      * 이름 검색(같은 이름 산이 여럿 - 백운산)에서 그 산 코스만 고릅니다. 2026-10-12 홍TV님 "100대 명산은 따라가기 버튼이 없어?"
      */
@@ -1569,6 +1589,7 @@
         spotIcon: spotIcon,
         PARKS: PARKS,
         baseStyle: baseStyle,
+        setCanonical: setCanonical,
         isClosedTrail: isClosedTrail,
         isHiddenCourse: isHiddenCourse,
         spotText: spotText,
