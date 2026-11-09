@@ -287,4 +287,13 @@ public class StatsTest {
         assertTrue(StatsServlet.pageChart(new TreeMap<>(), 30, java.util.Map.of(), 20).contains("아직 없음"));
         assertTrue("통계 화면에 들어감", StatsServlet.page(days, 30, java.util.Map.of()).contains("class=\"st pgc\""));
     }
+
+    /** 2026-11-10 PC 접속 기록의 실제 UA(src/test/resources/ua/ua-2026-11-10.txt): 카톡 미리보기는 미리보기, 제 누리집 주소를 단 Infrawatch 는 로봇 - 서버 접속 분석(Access.kind)도 같게. */
+    @Test
+    public void uaFromAccessLog20261110() throws Exception {
+        java.util.List<String> ua = java.nio.file.Files.readAllLines(java.nio.file.Path.of("src/test/resources/ua/ua-2026-11-10.txt"), java.nio.charset.StandardCharsets.UTF_8);
+        assertEquals("미리보기", Stats.botKind(ua.get(0).trim(), "ko-KR"));
+        assertEquals("기타", Stats.botKind(ua.get(1).trim(), "en-US"));
+        assertEquals("그 밖의 로봇", Access.kind(ua.get(1).trim(), "en-US", false));
+    }
 }

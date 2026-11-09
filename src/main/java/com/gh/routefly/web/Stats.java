@@ -35,7 +35,8 @@ final class Stats {
             // mediapartners-google: 애드센스 광고 확인 로봇 - 이름에 bot 이 없어 사람으로 셌음(2026-11-06 한 곳이 12분에 화면 300 · js 도 돌려 /api/seen 냄)
             UA_SEARCH = java.util.regex.Pattern.compile("googlebot|google-inspectiontool|mediapartners-google|bingbot|yeti/|daum/|daumoa|duckduckbot|baiduspider|yandex|applebot|slurp|seznambot|petalbot|coccoc"),
             UA_TEST = java.util.regex.Pattern.compile("headless|python|curl|wget|playwright|node-fetch|axios|go-http|java/|okhttp|httpclient|powershell|claude/|electron/"),
-            UA_BOT = java.util.regex.Pattern.compile("bot|crawl|spider|scrap"),
+            // "+http(s)://" - 이름표에 제 누리집 주소를 단 수집기(사람 브라우저는 달지 않음). 2026-11-10 Infrawatch("(compatible; Infrawatch/1.0; +https://infrawat.ch/)")가 사람으로 셌음
+            UA_BOT = java.util.regex.Pattern.compile("bot|crawl|spider|scrap|\\+https?://"),
             // 판 번호를 박아 둔 크롬 흉내 수집기(2026-11-06 PC 접속 기록: "Chrome/124.0.6367.207" 42곳 · 곳마다 화면 1개 · css · js 0 - 방문자만 3.7배로 부풀림,
             // 10-29 의 "Chrome/124.0.0.0" 은 nginx 가 403). 사람 크롬은 저절로 판이 올라가 이 두 판에 머물지 않음
             UA_FIXED_CHROME = java.util.regex.Pattern.compile("chrome/124\\.0\\.(0\\.0|6367\\.207) safari/537\\.36$"

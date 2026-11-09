@@ -86,4 +86,29 @@ public class LogKeyAccessTest {
             new File(log.toString()).delete();
         }
     }
+
+    /** 2026-11-10 실제 UA(src/test/resources/ua/ua-2026-11-10.txt) - 카톡 미리보기는 "미리보기", Infrawatch 는 "그 밖의 로봇"(앱 통계 Stats 와 같게). */
+    @Test
+    public void previewAndHomepageBotsAreNotHuman() throws Exception {
+        String sh = new String(Files.readAllBytes(Path.of("tools/log-key/routefly-logs-read")), StandardCharsets.UTF_8).replace("\r\n", "\n");
+        int a = sh.indexOf("<<'PY'\n") + 7, b = sh.indexOf("\nPY\n", a);
+        java.util.List<String> ua = Files.readAllLines(Path.of("src/test/resources/ua/ua-2026-11-10.txt"), StandardCharsets.UTF_8);
+        Path py = Files.createTempFile("access", ".py"), log = Files.createTempFile("access", ".txt");
+        try {
+            Files.writeString(py, sh.substring(a, b + 1), StandardCharsets.UTF_8);
+            Files.writeString(log, String.join("\n",
+                    "203.0.113.5 [10/Nov/2026:01:00:01 +0900] \"GET /routefly/m/%EC%97%B0%ED%99%94%EC%82%B0\" 200 9000 \"" + ua.get(0).trim() + "\"",
+                    "203.0.113.7 [10/Nov/2026:01:00:02 +0900] \"GET /routefly/\" 200 9000 \"" + ua.get(1).trim() + "\"") + "\n", StandardCharsets.UTF_8);
+            Assume.assumeTrue("python3 없음 - 건너뜀", pythonOk());
+            Process p = new ProcessBuilder("python3", "-I", py.toString(), log.toString(), "00:00", "24:00").redirectErrorStream(true).start();
+            String out = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            assertEquals(out, 0, p.waitFor());
+            assertTrue(out, java.util.regex.Pattern.compile(" +1 +0 +미리보기\\n").matcher(out).find());
+            assertTrue(out, java.util.regex.Pattern.compile(" +1 +0 +그 밖의 로봇\\n").matcher(out).find());
+            assertFalse("사람 쪽 목록에 안 나옴", out.contains("사람 브라우저") || out.contains("Infrawatch") || out.contains("kakaotalk"));
+        } finally {
+            new File(py.toString()).delete();
+            new File(log.toString()).delete();
+        }
+    }
 }
