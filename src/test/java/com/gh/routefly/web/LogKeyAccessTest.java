@@ -79,6 +79,7 @@ public class LogKeyAccessTest {
             String out = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
             assertEquals(out, 0, p.waitFor());
             assertTrue(out, java.util.regex.Pattern.compile(" +1 +0 +옛 아이폰 흉내\\(iOS 13\\.2\\.3\\)\\n").matcher(out).find());
+            assertFalse("js 없는 곳 상위 목록에는 안 나옴(이미 가려냄)", out.contains("13_2_3"));
             assertTrue("요즘 브라우저는 그대로 사람", java.util.regex.Pattern.compile(" +1 +0 +사람 브라우저\\n").matcher(out).find());
         } finally {
             new File(py.toString()).delete();
