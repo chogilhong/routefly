@@ -18,6 +18,8 @@ gen/
 out/
 #  Uncomment the following line in case you need and you don't have the release build type files in your app
 # release/
+# Android Studio 가 서명한 APK · AAB 를 두는 곳(app/release/ - 2026-11-09 원스토어 첫 APK). 스토어에 올리는 파일이라 저장소에 넣지 않음
+/app/release/
 
 # Gradle files
 .gradle/

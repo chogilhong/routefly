@@ -191,6 +191,10 @@ systemctl show tomcat -p Environment     # 바뀐 값이 들어갔는지
 
 `config.properties` 만 고쳤을 때는 `daemon-reload` 없이 `sudo systemctl restart tomcat` 만 하면 됩니다.
 
+운영 `/opt/routefly/config.properties` 는 줄 끝이 CRLF 입니다(윈도에서 만들어 올림 - 2026-11-09 확인, 56줄 모두). Java Properties 는 CRLF 를 잘 읽지만,
+스크립트로 줄 끝에 값을 덧붙이면(`sed 's/$/,값/'` 등) CR 뒤에 붙어 딴 줄로 읽힙니다(2026-11-09 `app.sha256` 에 새 앱 키 지문을 더할 때 설정이 56 → 57건).
+줄 끝에 덧붙이는 스크립트는 그 줄의 CR 부터 빼고(`sed -i '/^app\.sha256=/s/\r$//'`) 붙입니다. 고치기 전에 `.bak-날짜` 백업.
+
 설정 파일은 `src/main/resources/config.properties.example` 을 바탕으로 만듭니다:
 
 ```bash
