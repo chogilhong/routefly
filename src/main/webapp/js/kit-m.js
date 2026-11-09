@@ -119,6 +119,32 @@
     function numberedPark(name) { return name == null ? name : String(name).replace(NUMBERED_PARK, "$1").replace(PARK_NO, "$1"); }
 
     /**
+     * 순수 함수 - 티맵 앱 길안내 링크(2026-11-08 홍TV님 "작업해" - 차로 들머리 · 주차장에 가는 분이 많이 씀). 출발은 티맵이 폰의 지금 위치로 잡음(우리 서버로 위치가 가지 않음).
+     * 형식은 티맵 공식 문서가 아니라 개발 글들로 찾은 것(X 가 경도, Y 가 위도):
+     * 안드로이드 tmap://route?referrer=com.skt.Tmap&goalx=경도&goaly=위도&goalname=이름(TMAP API 고객센터 안내라는 글), 아이폰 rGoName · rGoX · rGoY.
+     * 2026-11-09 PC · 홍TV님 안드로이드 폰: rGo… 만 넣었더니 티맵은 열리는데 도착 칸이 비었음 → 둘 다 넣음(읽지 않는 칸은 티맵이 버림).
+     */
+    function tmapHref(name, lat, lon) {
+        var nm = encodeURIComponent(String(name || "").trim() || "목적지"), x = (+lon).toFixed(6), y = (+lat).toFixed(6);
+        return "tmap://route?referrer=com.skt.Tmap&goalx=" + x + "&goaly=" + y + "&goalname=" + nm + "&rGoName=" + nm + "&rGoX=" + x + "&rGoY=" + y;
+    }
+
+    /**
+     * 산 · 코스 페이지의 숨긴 🚗 티맵 자리(a.tmap[data-lat] - 서버 MountainServlet.tmapA)를 휴대폰일 때만 주소를 넣고 보임(2026-11-09).
+     * tmap:// 은 PC 에서는 열리지 않아 숨긴 채로 둠. 보인 수를 돌려줌. 산 페이지 mountain.js · 코스 페이지 course-page.js 가 부름.
+     */
+    function tmapLinks(root, ua) {
+        if (!root || !/Android|iPhone|iPad|iPod/i.test(ua || "")) return 0;
+        var n = 0;
+        Array.prototype.forEach.call(root.querySelectorAll("a.tmap[data-lat][data-lon]"), function (a) {
+            a.href = tmapHref(a.getAttribute("data-name"), a.getAttribute("data-lat"), a.getAttribute("data-lon"));
+            a.hidden = false;
+            n++;
+        });
+        return n;
+    }
+
+    /**
      * 순수 함수 - 코스 모음 첫 화면 검색칸(2026-11-07): 검색어가 목록의 산 이름이면 그 산 페이지 주소, 아니면 null(→ 따라가기 검색).
      * items: [{ names: ["설악산"] 또는 ["Seoraksan", "설악산"], href }]. 띄어쓰기 · 괄호(지역) · 대소문자는 보지 않고, "설악" · "Seorak" 처럼 산 · san 을 빼도 됨.
      */
@@ -1512,6 +1538,7 @@
 
     global.RF = {
         peakHref: peakHref,
+        tmapLinks: tmapLinks,
         sunset: sunset,
         sunrise: sunrise,
         standardMs: standardMs,

@@ -92,7 +92,7 @@ public class CoursePageServlet extends HttpServlet {
                     dist[i] = p.get("dist_m").getAsDouble();
                     ele[i] = p.get("ele_m").isJsonNull() ? null : p.get("ele_m").getAsDouble();
                 }
-                pois = Json.rows(c, "SELECT name, ele_m, dist_m, off_route_m FROM route_course_poi WHERE course_id = ? ORDER BY seq", id);
+                pois = Json.rows(c, "SELECT name, ele_m, dist_m, off_route_m, lat, lon FROM route_course_poi WHERE course_id = ? ORDER BY seq", id);   // lat · lon - 주차장 🚗 티맵(2026-11-09)
                 if (id.startsWith(CourseQueries.INFO_PREFIX)) {
                     try {
                         JsonArray r = Json.rows(c, "SELECT up_min, down_min, level, notice FROM route_course_info WHERE course_id = ?", id);
@@ -303,7 +303,7 @@ public class CoursePageServlet extends HttpServlet {
     }
 
     /**
-     * 순수 함수 - 들머리 가는 길 [이름, 코스 선에서 m, 주차장인가]: 출발 쪽(dist_m 300 안) · 코스 선 밖(off_route_m 100 넘음 - course-kit isAccess)의
+     * 순수 함수 - 들머리 가는 길 [이름, 코스 선에서 m, 주차장인가, {위도, 경도}(없으면 null - 티맵 자리)]: 출발 쪽(dist_m 300 안) · 코스 선 밖(off_route_m 100 넘음 - course-kit isAccess)의
      * 주차장 하나 · 정류장(정류장 · 정류소로 끝남) 모두, 주차장 먼저. 따라가기(hike.js accessOf)와 같은 고르기 - 고치면 함께.
      */
     static List<Object[]> access(JsonArray pois) {
@@ -314,10 +314,12 @@ public class CoursePageServlet extends HttpServlet {
             JsonObject p = e.getAsJsonObject();
             String n = str(p, "name");
             if (n == null || !p.has("off_route_m") || !p.has("dist_m") || p.get("off_route_m").getAsInt() <= 100 || p.get("dist_m").getAsInt() > 300) continue;
+            double[] at = p.has("lat") && p.has("lon") && !p.get("lat").isJsonNull() && !p.get("lon").isJsonNull()
+                    ? new double[] {p.get("lat").getAsDouble(), p.get("lon").getAsDouble()} : null;
             if (n.contains("주차장") && !parking) {
-                out.add(0, new Object[] {n, p.get("off_route_m").getAsInt(), true});
+                out.add(0, new Object[] {n, p.get("off_route_m").getAsInt(), true, at});
                 parking = true;
-            } else if (n.matches(".*(정류장|정류소)$")) out.add(new Object[] {n, p.get("off_route_m").getAsInt(), false});
+            } else if (n.matches(".*(정류장|정류소)$")) out.add(new Object[] {n, p.get("off_route_m").getAsInt(), false, at});
         }
         return out;
     }
@@ -411,6 +413,7 @@ public class CoursePageServlet extends HttpServlet {
         double[] start = peak != null ? MountainServlet.trailhead(c, peak) : new double[] {c.get("start_lat").getAsDouble(), c.get("start_lon").getAsDouble()};
         if (start != null) b.append("<a href=\"").append(esc(MountainServlet.kakaoTo(name.replaceFirst(" · .*$", "") + " 출발점", start)))
                 .append("\" target=\"_blank\" rel=\"noopener\">🚌 출발점 가는 길</a>");
+        if (start != null) b.append(MountainServlet.tmapA(name.replaceFirst(" · .*$", "") + " 출발점", start, "nav"));   // 🚗 티맵(휴대폰만, 2026-11-09)
         b.append("</p>");
         // 🅿️ · 🚌 들머리 가는 길(배치가 들머리 1km 안에서 넣은 주차장 · 정류장 - 따라가기 hike.js accessOf 와 같은 고르기, 2026-11-07 전체 점검 4단계)
         List<Object[]> acc = access(pois);
@@ -418,7 +421,9 @@ public class CoursePageServlet extends HttpServlet {
             b.append("<section><h2>들머리 가는 길</h2><ul class=\"tips\">");
             for (Object[] a : acc)
                 b.append("<li>").append((Boolean) a[2] ? "🅿️ " : "🚌 ").append("<b>").append(esc((String) a[0])).append("</b> <span>출발점에서 약 ")
-                        .append(String.format(Locale.KOREA, "%,d", (Integer) a[1])).append("m</span></li>");
+                        .append(String.format(Locale.KOREA, "%,d", (Integer) a[1])).append("m</span>")
+                        .append((Boolean) a[2] && a[3] != null ? " " + MountainServlet.tmapA((String) a[0], (double[]) a[3], "pk") : "")   // 주차장으로 🚗 티맵(휴대폰만, 2026-11-09)
+                        .append("</li>");
             b.append("</ul><p class=\"tip\">OpenStreetMap 지명이라 바뀌었을 수 있습니다. 주차 요금 · 버스 시간은 현지 안내를 확인하세요.</p></section>");
         }
         // 고도 그림

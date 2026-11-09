@@ -470,6 +470,15 @@ public class MountainServlet extends HttpServlet {
     }
 
     /** 순수 함수 - 카카오맵 길찾기(도착 = 들머리, 출발은 카카오맵이 내 위치로). 키 없이 쓰는 링크. 2026-10-15 홍TV님. */
+    /**
+     * 순수 함수 - 🚗 티맵 길안내 자리(2026-11-09 홍TV님 - 따라가기에서 안드로이드 확인 뒤 산 · 코스 페이지에도). 처음엔 숨김:
+     * tmap:// 은 휴대폰(티맵 앱)에서만 열려 js(course-kit tmapLinks - 산 페이지 mountain.js · 코스 페이지 course-page.js)가 휴대폰일 때만 주소를 넣고 보임.
+     */
+    static String tmapA(String name, double[] p, String cls) {
+        return "<a class=\"" + cls + " tmap\" hidden data-name=\"" + esc(name) + "\" data-lat=\"" + String.format(Locale.ROOT, "%.6f", p[0])
+                + "\" data-lon=\"" + String.format(Locale.ROOT, "%.6f", p[1]) + "\" target=\"_blank\" rel=\"noopener\">🚗 티맵</a>";
+    }
+
     static String kakaoTo(String name, double[] p) {
         return "https://map.kakao.com/link/to/" + enc(name.replace(",", " ")) + String.format(Locale.ROOT, ",%.6f,%.6f", p[0], p[1]);
     }
@@ -918,6 +927,7 @@ public class MountainServlet extends HttpServlet {
                 double[] th = trailhead(c, peak);
                 if (th != null) b.append("<a class=\"way\" href=\"").append(esc(kakaoTo(str(peak, "name") + " 들머리", th)))
                         .append("\" target=\"_blank\" rel=\"noopener\">🚌 가는 길</a>");   // 카카오맵 길찾기(대중교통 · 차)
+                if (th != null) b.append(tmapA(str(peak, "name") + " 들머리", th, "way"));   // 🚗 티맵(휴대폰만, 2026-11-09)
                 if (th != null) b.append("<a class=\"way kmap\" href=\"").append(esc(kakaoRoad(th)))
                         .append("\" target=\"_blank\" rel=\"noopener\" title=\"들머리 근처 실제 사진(카카오맵 로드뷰) - 처음 가는 입구를 미리\">로드뷰</a>");   // 2026-11-02 홍TV님
                 b.append("</span></li>");

@@ -280,6 +280,12 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
         "tmap://route?referrer=com.skt.Tmap&goalx=128.125284&goaly=35.777352&goalname=" + tgo + "&rGoName=" + tgo + "&rGoX=128.125284&rGoY=35.777352");
     eq("티맵 - 이름 없으면 목적지", RF.tmapHref(" ", "35.777352", "128.125284"),
         "tmap://route?referrer=com.skt.Tmap&goalx=128.125284&goaly=35.777352&goalname=%EB%AA%A9%EC%A0%81%EC%A7%80&rGoName=%EB%AA%A9%EC%A0%81%EC%A7%80&rGoX=128.125284&rGoY=35.777352");
+    // 산 · 코스 페이지 🚗 티맵 자리 - 휴대폰일 때만(2026-11-09). 가짜 a 둘(서버 tmapA 와 같은 data-*)
+    var mkA = function (nm, la, lo) { var at = { "data-name": nm, "data-lat": la, "data-lon": lo }; return { hidden: true, href: "", getAttribute: function (k) { return at[k]; } }; };
+    var ta = [mkA("공영주차장", "34.964282", "127.715249"), mkA("광양 가야산 출발점", "34.964000", "127.716000")], troot = { querySelectorAll: function () { return ta; } };
+    eq("PC 는 그대로 숨김", [RF.tmapLinks(troot, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/141.0"), ta[0].hidden], [0, true]);
+    eq("안드로이드면 보임", [RF.tmapLinks(troot, "Mozilla/5.0 (Linux; Android 14) Chrome/141.0 Mobile"), ta[0].hidden, ta[1].hidden], [2, false, false]);
+    eq("주소는 tmapHref", ta[0].href, RF.tmapHref("공영주차장", "34.964282", "127.715249"));
     // 검색 표준 주소(2026-11-08 - route.html · park.html 꼬리만 다른 중복 62개). 주소 모양은 영어 코스 모음이 만드는 링크 그대로(MountainEnTest)
     var R = "https://routefly.kr/routefly/route.html";
     eq("노선 - 이름 · 돌아가기 꼬리는 뺌", RF.canonicalHref(R + "?trail=%ED%95%B4%ED%8C%8C%EB%9E%91%EA%B8%B8&name=Haeparang%20Trail&back=en", ["trail", "prefix"]), R + "?trail=%ED%95%B4%ED%8C%8C%EB%9E%91%EA%B8%B8");

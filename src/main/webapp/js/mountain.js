@@ -6,6 +6,7 @@
     // 🧗 가파른 산 순위에서 왔으면(?from=steep1 · steep2) "‹ 코스 모음" 이 그 표를 펼친 순위로(2026-10-18 홍TV님: 100대 명산 목록으로 갔음)
     var fromSteep = /[?&]from=(steep[12])(?:&|$)/.exec(location.search), crumbA = document.querySelector(".crumb > a");
     if (fromSteep && crumbA) crumbA.href = "../m/?open=" + fromSteep[1] + "#steep";
+    if (window.RF && window.RF.tmapLinks) window.RF.tmapLinks(document, navigator.userAgent);   // 코스 줄 🚗 티맵 - 휴대폰만(2026-11-09)
     // 코스 모음 첫 화면 검색칸(2026-11-07 전체 점검 2단계): 목록에 있는 산 이름이면 그 산 페이지로, 아니면 따라가기 검색(form 그대로 - 스크립트가 없어도 감)
     var mSearch = document.querySelector("form.mSearch");
     if (mSearch && window.RF && window.RF.peakHref) mSearch.addEventListener("submit", function (e) {

@@ -236,3 +236,6 @@ a.kma { display:inline-block; margin-top:6px; min-height:44px; line-height:44px;
 form.mSearch { display:flex; gap:8px; margin:0 0 16px; }
 form.mSearch input[type=search] { flex:1; min-width:0; min-height:44px; box-sizing:border-box; padding:0 12px; font-size:16px; color:inherit; background:var(--panel); border:1px solid var(--ln); border-radius:22px; }
 form.mSearch button { min-height:44px; padding:0 18px; font-size:15px; font-weight:bold; color:#062b30; background:var(--sky); border:0; border-radius:22px; cursor:pointer; }
+/* 🚗 티맵(2026-11-09) - 휴대폰에서만 js 가 hidden 을 뗌. .go a 의 display 가 hidden 을 이기지 않게 */
+a.tmap[hidden] { display:none !important; }
+.tips a.tmap.pk { margin-left:6px; font-size:14px; }
