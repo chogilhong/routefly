@@ -60,4 +60,29 @@ public class LogKeyAccessTest {
             new File(log.toString()).delete();
         }
     }
+
+    /** 옛 아이폰 흉내(iOS 13.2.3 · Safari 13.0.3 - UA 는 StatsTest 와 같은 실제 접속 기록 글)는 앱 통계(Stats.UA_FIXED_CHROME)처럼 사람으로 세지 않음(2026-11-10 PC 보고). */
+    @Test
+    public void oldIphoneLookalikeIsNotHuman() throws Exception {
+        String sh = new String(Files.readAllBytes(Path.of("tools/log-key/routefly-logs-read")), StandardCharsets.UTF_8).replace("\r\n", "\n");
+        int a = sh.indexOf("<<'PY'\n") + 7, b = sh.indexOf("\nPY\n", a);
+        Path py = Files.createTempFile("access", ".py"), log = Files.createTempFile("access", ".txt");
+        try {
+            Files.writeString(py, sh.substring(a, b + 1), StandardCharsets.UTF_8);
+            String ios = "Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1",
+                    now = "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/141.0 Mobile Safari/537.36";   // 위 시험의 안드로이드 크롬
+            Files.writeString(log, String.join("\n",
+                    "203.0.113.5 [10/Nov/2026:01:00:01 +0900] \"GET /routefly/m/%EC%97%B0%ED%99%94%EC%82%B0\" 200 9000 \"" + ios + "\"",
+                    "203.0.113.7 [10/Nov/2026:01:00:02 +0900] \"GET /routefly/hike.html\" 200 9000 \"" + now + "\"") + "\n", StandardCharsets.UTF_8);
+            Assume.assumeTrue("python3 없음 - 건너뜀", pythonOk());
+            Process p = new ProcessBuilder("python3", "-I", py.toString(), log.toString(), "00:00", "24:00").redirectErrorStream(true).start();
+            String out = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            assertEquals(out, 0, p.waitFor());
+            assertTrue(out, java.util.regex.Pattern.compile(" +1 +0 +옛 아이폰 흉내\\(iOS 13\\.2\\.3\\)\\n").matcher(out).find());
+            assertTrue("요즘 브라우저는 그대로 사람", java.util.regex.Pattern.compile(" +1 +0 +사람 브라우저\\n").matcher(out).find());
+        } finally {
+            new File(py.toString()).delete();
+            new File(log.toString()).delete();
+        }
+    }
 }

@@ -70,6 +70,7 @@ def kind(ua):
     if "headless" in u: return "Headless 브라우저"
     m = re.search(r"chrome/(\d+)", u)
     if m and int(m.group(1)) < 130 and "samsungbrowser" not in u and "whale" not in u: return "오래된 크롬(<130)"
+    if re.search(r"iphone os 13_2_3 like mac os x.*version/13\.0\.3 ", u): return "옛 아이폰 흉내(iOS 13.2.3)"   # 2019년 판 그대로 날마다 오는 수집기(js 0) - 앱 통계 Stats.UA_FIXED_CHROME 와 같게(2026-11-10 PC 보고 11-09 134곳)
     return "사람 브라우저"
 tot = 0; paths = collections.Counter(); q = collections.Counter(); kinds = collections.Counter(); who = collections.Counter(); whoKind = {}; whoPath = collections.defaultdict(collections.Counter); qk = collections.defaultdict(collections.Counter)
 seen = set(); whoUa = {}; errs = collections.Counter(); errBot = collections.Counter(); errG = collections.Counter()
@@ -99,7 +100,7 @@ print("범위 %s ~ %s · 화면 합계 %d · 서로 다른 곳 %d" % (T0, T1, to
 print("\n[종류별 곳 수 · 그중 js 가 돈 곳]")
 byKind = collections.Counter(whoKind.values())
 for k, n in byKind.most_common(): print(" %5d  %5d  %s" % (n, sum(1 for h in who if whoKind[h] == k and h in seen), k))
-noJs = collections.Counter(whoUa[h] for h in who if whoKind[h] in ("사람 브라우저", "오래된 크롬(<130)") and h not in seen)
+noJs = collections.Counter(whoUa[h] for h in who if whoKind[h] in ("사람 브라우저", "오래된 크롬(<130)", "옛 아이폰 흉내(iOS 13.2.3)") and h not in seen)
 print("\n[js 를 안 낸 사람 쪽 곳의 브라우저 글 상위 10 - 곳 수]"); [print(" %5d  %s" % (n, u)) for u, n in noJs.most_common(10)]
 print("\n[브라우저 종류]"); [print(" %6d  %s" % (n, k)) for k, n in kinds.most_common()]
 print("\n[경로 묶음 상위 15]"); [print(" %6d  %s" % (n, k)) for k, n in paths.most_common(15)]
