@@ -66,6 +66,7 @@ public class FullReviewStage2Test {
         String js = read("src/main/webapp/js/hike.js");
         assertTrue(js.contains("$(\"navTmap\").href = RF.tmapHref(nm, to.lat, to.lon);") && js.contains("[\"navKakao\", \"navNaver\", \"navTmap\", \"navGoogle\"]"));
         assertTrue(read("src/main/webapp/js/kit-hike.js").contains("function tmapHref("));
+        assertTrue("주차장 고르기는 이름표 정리 전 후보로(2026-11-09 PC 광양 가야산)", js.contains("(c ? c.access || c.pois : []).forEach(function (p) {"));
     }
 
     @Test

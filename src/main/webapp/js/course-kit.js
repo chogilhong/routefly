@@ -516,6 +516,9 @@
         // 코스 끝 이름이 탐방지원센터 같은 들머리면, 그 끝 500m 안 다른 들머리 이름표(배치가 지도용으로 받은 OSM 주차장 · 안내소)는 빼고
         // (2026-10-13 PC: 중산리 출발 이름표가 "중산리탐방안내소" + "중산리주차장" 두 줄, 그래프 처음 "중산리주차장")
         var HEADISH = /(탐방지원센터|탐방안내소|안내소|분소|매표소|주차장)$/;
+        // 길찾기의 들머리 주차장 · 정류장(hike.js accessOf)은 아래 이름표 정리 전 것으로(2026-11-09 PC: 광양 가야산 - 출발 500m 안 주차장 둘 가운데
+        // 길에 가까운 "주차장"(37m)만 남고 길 밖 "공영주차장"(255m)이 빠져, 길찾기 창에 주차장 고르기가 안 나왔음). 거꾸로 걷기는 reverseCourse 가 함께 뒤집음
+        c.access = c.pois.filter(function (q) { return isAccess(q); });
         c.pois = c.pois.filter(function (q) {
             var nm = String(q.name || "").replace(/\s+/g, "");
             if (!HEADISH.test(nm)) return true;
@@ -2506,6 +2509,7 @@
             return q;
         }).sort(function (a, b) { return a.dist_m - b.dist_m; });
         r.junctions = (c.junctions || []).map(function (d) { return T - d; }).sort(function (a, b) { return a - b; });
+        if (c.access) r.access = c.access.map(function (p) { var q = Object.assign({}, p); q.dist_m = T - (+p.dist_m); return q; });   // 길찾기 주차장 · 정류장(fromApi)
         return r;
     }
 

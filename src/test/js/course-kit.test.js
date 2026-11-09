@@ -280,6 +280,11 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
         "tmap://route?referrer=com.skt.Tmap&goalx=128.125284&goaly=35.777352&goalname=" + tgo + "&rGoName=" + tgo + "&rGoX=128.125284&rGoY=35.777352");
     eq("티맵 - 이름 없으면 목적지", RF.tmapHref(" ", "35.777352", "128.125284"),
         "tmap://route?referrer=com.skt.Tmap&goalx=128.125284&goaly=35.777352&goalname=%EB%AA%A9%EC%A0%81%EC%A7%80&rGoName=%EB%AA%A9%EC%A0%81%EC%A7%80&rGoX=128.125284&rGoY=35.777352");
+    // 길찾기 주차장 · 정류장 후보(c.access)는 이름표 정리 전 것 - 운영 api/course 실제 응답(광양 가야산, 2026-11-07 받음)
+    var gy = RF.fromApi("frst-462300101-744138", JSON.parse(require("fs").readFileSync(require("path").join(__dirname, "../resources/course/frst-462300101-744138.json"), "utf8")));
+    eq("이름표는 길에 가까운 주차장 하나(10-13 정리 그대로)", gy.pois.filter(function (p) { return /주차장/.test(p.name); }).map(function (p) { return p.name; }), ["주차장"]);
+    eq("길찾기 후보에는 길 밖 공영주차장 · 정류장", gy.access.map(function (p) { return p.name; }), ["공영주차장", "가야초교 정류장", "현대고층아파트 정류장"]);
+    eq("거꾸로 걸으면 후보도 뒤집힘(출발 쪽 아님)", RF.reverseCourse(gy).access.map(function (p) { return Math.round(p.dist_m); }), [1803, 1803, 1803]);
     // 산 · 코스 페이지 🚗 티맵 자리 - 휴대폰일 때만(2026-11-09). 가짜 a 둘(서버 tmapA 와 같은 data-*)
     var mkA = function (nm, la, lo) { var at = { "data-name": nm, "data-lat": la, "data-lon": lo }; return { hidden: true, href: "", getAttribute: function (k) { return at[k]; } }; };
     var ta = [mkA("공영주차장", "34.964282", "127.715249"), mkA("광양 가야산 출발점", "34.964000", "127.716000")], troot = { querySelectorAll: function () { return ta; } };

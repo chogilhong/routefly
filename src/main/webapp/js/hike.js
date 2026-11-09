@@ -3558,7 +3558,7 @@
     /** 들머리 가는 길 이름표(배치가 들머리 1km 안에서 넣은 주차장 하나 · 정류장 둘) - 출발 쪽 것만. 코스 페이지(CoursePageServlet.access)도 같은 고르기 - 고치면 함께. */
     function accessOf() {
         var out = { parking: null, buses: [] };
-        (c ? c.pois : []).forEach(function (p) {
+        (c ? c.access || c.pois : []).forEach(function (p) {   // c.access - 이름표 정리 전 길 밖 주차장 · 정류장(fromApi, 2026-11-09)
             if (!RF.isAccess(p) || +p.dist_m > 300) return;   // 끝(내려오는 들머리) 쪽 것은 빼고
             if (/주차장/.test(p.name) && !out.parking) out.parking = p;
             else if (/(정류장|정류소)$/.test(p.name)) out.buses.push(p);
