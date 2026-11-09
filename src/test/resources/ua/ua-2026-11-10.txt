@@ -1,0 +1,2 @@
+facebookexternalhit/1.1; kakaotalk-scrap/1.0; +https://devtalk.kakao.com/t/scrap/33984
+Mozilla/5.0 (compatible; Infrawatch/1.0; +https://infrawat.ch/)
