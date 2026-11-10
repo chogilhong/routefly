@@ -1007,7 +1007,10 @@
                 // 둘레길("[북한산둘레길] 21구간 우이령길")도 그 공원 탐방 안내도로(🏞 만 - 통제 안내 · 지명 바꿈은 둘레길에 쓰지 않음, 2026-10-13 PC)
                 || RF.parkOf(String(c.course.name).replace(/^\[?([가-힣]+)둘레길.*$/, "$1"));
             // 목록 카드로 연 것과 같은 첫 화면(위 "‹ 목록" · 아래 "따라가기") - back=list 없이 열면 "‹ 코스" 가 코스 미리보기(3D)로 갔음(2026-10-13 홍TV님)
-            parkHref = park ? "park.html?name=" + encodeURIComponent(park) + "&back=list" : null;
+            // &from=이 코스 - 국립공원이 아닌 산(가리왕산 등)은 서버가 from 으로 그 산 자리를 찾음. 빠지면 api/park 400 · 빈 지도였음
+            // (2026-11-10 원스토어 검증 "등산 > 코스 선택 > 안내도 빈 화면" - 처음 안내도는 &from= 이 있어 됐고, "‹ 안내도" 로 돌아갈 때마다 400)
+            var parkFrom = parts ? parts[0].base : isGpxId(id) ? null : id;
+            parkHref = park ? "park.html?name=" + encodeURIComponent(park) + (parkFrom ? "&from=" + encodeURIComponent(parkFrom) : "") + "&back=list" : null;
             // 탐방 안내도에서 들어온 코스(#…&via=park)만 - 검색 목록에서 바로 연 코스에는 안 보임(2026-10-13 홍TV님)
             if (!/[#&]via=park(&|$)/.test(location.hash)) parkHref = null;
             // 노선 안내도(지리산둘레길 · 자전거길 …)에서 들어왔으면 그 안내도로(#…&guide=route.html?…) - 이 사이트의 안내도 화면만
