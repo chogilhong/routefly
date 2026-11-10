@@ -1144,6 +1144,7 @@ public class MountainServlet extends HttpServlet {
                 + "<p class=\"brand\"><a href=\"" + b + "/hike.html?lang=ko\"><img src=\"" + b + "/img/logo-dark.svg\" alt=\"routefly\" width=\"160\" height=\"50\"> 🥾 따라가기 ›</a></p>"   // 위쪽 "🥾 따라가기 ›" 와 같은 말(2026-11-03 홍TV님)
                 + "<p class=\"copy\">© 2026 홍TV · routefly. 코스 · 지도 자료의 권리는 위 출처에 있습니다.</p></main>"   // 저작권 표시(2026-10-17 홍TV님)
                 + (scripts ? "<script src=\"" + b + "/" + AssetVersion.of("js/kit-m.js") + "\"></script><script src=\"" + b + "/" + AssetVersion.of("js/mountain.js") + "\"></script>" : "")
+                + "<script src=\"" + b + "/" + AssetVersion.of("js/app-perm.js") + "\"></script>"   // 앱 접근권한 사전 안내 - 앱은 처음에 이 코스 모음(m/)으로 열림(early.js), 앱 안에서만 처음 한 번(2026-11-10 원스토어 검증 의견)
                 + "<script src=\"" + b + "/" + AssetVersion.of("js/seen.js") + "\"></script></body></html>";   // 사람 확인 신호(2026-10-22) - 코스 페이지에도
     }
 
