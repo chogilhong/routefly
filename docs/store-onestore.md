@@ -191,6 +191,12 @@ routefly 는 등산 · 걷기 · 자전거 코스를 3D 지형 위로 날아가�
 |   ↳ 2026-11-10 끝남: 상품제목 "routefly(루트플라이) - 등산 · 산악회"(붙여 씀) - 검증 없이 반영 | | |
 | 앱 안 광고(웹뷰용 광고) | 애드센스 승인 뒤 | docs/ads-security.md "앱 안 광고" 순서대로. 판매정보 "광고 포함" 켜기 · 개인정보처리방침 10번 · 3장 표 "가격" 줄 고침 |
 
+다음에 APK 를 다시 올릴 때 함께 넣을 것(2026-11-10 홍TV님 "그렇게 해" - 앱이 깔린 폰의 브라우저에도 설치 띠 · 산행 시작 창이 뜸):
+1. 크롬 "설치된 관련 앱 확인"(navigator.getInstalledRelatedApps) - 사이트 manifest 의 related_applications(kr.routefly.app) + 앱 AndroidManifest 의 asset_statements(routefly.kr)를 맞추면,
+   브라우저가 앱이 깔린 것을 알아 js/app-store.js 띠 · hike.js 산행 시작 창을 숨길 수 있음.
+2. 앱 링크 넓히기 - 지금 AndroidManifest 의 https://routefly.kr 앱 링크는 /routefly/party.html · party-office.html 만. /routefly/m/ · hike.html · c/ 도 넣으면 카톡 등에서 누를 때 바로 앱이 열림
+   (assetlinks.json 은 이미 있음 - 서버 app.sha256). 넣기 전에 앱 첫 화면 흐름(early.js 의 코스 모음 넘김)과 겹치지 않는지 확인.
+
 서버 배포만으로 앱에도 바로 반영되지만, 아래가 바뀌면 APK 를 안 바꿔도 등록 정보는 고칩니다(앱이 하는 일과 등록 정보가 같아야 함 - 기준은 3장 "원스토어에 넣은 답").
 - 광고를 넣거나 뺌 → 판매정보 "광고 포함"
 - 새로 서버로 보내는 개인정보가 생김(예: 사진 올리기) → 공통정보 데이터 항목 + privacy.html
