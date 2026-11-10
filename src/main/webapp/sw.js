@@ -7,7 +7,7 @@
  *   - MapLibre(vendor): 바뀌지 않으므로 받아 둔 것 먼저
  *   - 판 붙은 js · css(js/x.js?v=내용 해시 - war 만들 때 tools/minify/version.js 가 붙임, 2026-11-01): 내용이 바뀌면 주소가 바뀌므로 받아 둔 것 먼저
  */
-var SHELL = "rf-shell-v219", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
+var SHELL = "rf-shell-v220", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
 var TILE_KEEP = 1500;   // 지나가며 본 타일은 이만큼만 남깁니다(저장 공간)
 // 2026-10-09 점검: API 캐시도 한도 - 지도를 움직일 때마다 목록 주소(bbox)가 하나씩 늘어 끝없이 커졌습니다.
 // 오프라인 저장한 코스는 OFFLINE 캐시에 따로 있어 지워지지 않습니다.
@@ -15,7 +15,7 @@ var API_KEEP = 300;
 
 // 회사 사무실(PC · 인터넷 있을 때 씀) 파일은 미리 담지 않음 - 앱을 고칠 때마다 모든 손님이 다시 받던 것(2026-10-29 점검). 처음 열 때 그대로 담김
 // 2026-11-02 홍TV님 속도 점검: 첫 주소("./")는 이제 작은 넘김 화면(root.html)이라, 예전 공유 링크(…/routefly/#c=)가 신호 없을 때도 3D 화면으로 열리게 index.html 도 담음
-var SHELL_FILES = ["hike.html", "about.html", "about-en.html", "park.html", "js/kit-park.js", "js/park.js", "route.html", "js/kit-route.js", "js/route.js", "series.html", "js/kit-series.js", "js/series.js", "data/series.json", "data/mountains100.json", "data/park-notes.json", "data/np-stamps.json", "./", "index.html", "css/course-kit.css", "js/kit-hike.js", "js/kit-app.js", "js/seen.js", "js/hike.js", "js/party-kit.js", "party.html", "js/kit-party.js", "js/party.js", "js/no-kakao.js", "js/party-bar.js", "vendor/qrcode-generator-1.4.4/qrcode.js", "js/app.js", "js/early.js", "js/sw-reg.js", "js/about.js", "js/onboard.js", "js/app-perm.js", "js/root-go.js", "privacy.html",
+var SHELL_FILES = ["hike.html", "about.html", "about-en.html", "park.html", "js/kit-park.js", "js/park.js", "route.html", "js/kit-route.js", "js/route.js", "series.html", "js/kit-series.js", "js/series.js", "data/series.json", "data/mountains100.json", "data/park-notes.json", "data/np-stamps.json", "./", "index.html", "css/course-kit.css", "js/kit-hike.js", "js/kit-app.js", "js/seen.js", "js/hike.js", "js/party-kit.js", "party.html", "js/kit-party.js", "js/party.js", "js/no-kakao.js", "js/party-bar.js", "vendor/qrcode-generator-1.4.4/qrcode.js", "js/app.js", "js/early.js", "js/sw-reg.js", "js/about.js", "js/onboard.js", "js/app-perm.js", "js/app-store.js", "js/root-go.js", "privacy.html",
     "vendor/maplibre-gl-5.24.0/maplibre-gl.js", "vendor/maplibre-gl-5.24.0/maplibre-gl.css", "favicon.svg", "manifest.json",
     "img/icon-192.png", "img/kakaomap.png", "data/peak-elev.json", "js/rf-dialog.js"];   // icon-512(홈 화면 설치 그림)는 빼고 - 산속에서 쓰지 않음(2026-11-03 P3)
 // war 를 만들 때 tools/minify/version.js 가 위 js · css 에 ?v=<내용 해시> 를 붙임(2026-11-03 홍TV님 점검 P2) - 화면이 방금 받은 같은 판 주소라 브라우저 캐시(1년)에서 바로 오고,

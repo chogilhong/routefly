@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>routefly 따라가기</title>
+<title>routefly(루트플라이) 따라가기</title>
 <link rel="canonical" href="https://routefly.kr/routefly/hike.html">
 <!-- 검색 · 카톡 미리보기(2026-10-29 점검 - 설명 · 그림이 없었음). 그림은 절대 주소여야 카톡 · 페이스북이 보임 -->
 <meta name="description" content="핸드폰으로 등산 · 걷기 · 자전거 코스를 따라가기 - 내 위치 · 남은 거리 · 코스 이탈 알림 · SOS · 신호 없을 때도 보는 지도. 위치는 내 핸드폰 안에서만 씁니다.">
@@ -442,6 +442,7 @@ html.picking #pick { display:flex; }
     <div id="pickList"><div class="msg" data-en="Search by mountain name, or tap &quot;Near me&quot; at a trailhead.">산 이름으로 찾거나, 산 입구에서 "내 주변 코스" 를 누르세요.</div></div>
     <!-- ⛰️ 코스 모음(/m/ - 2026-10-15 홍TV님) -->
     <!-- 늘 보이는 아랫줄(2026-10-11 PC: 사용법 링크가 안내 글 안에만 있어 지난 검색 목록이 떠 있으면 안 보였음) -->
+    <div data-app-store hidden></div>   <!-- 안드로이드 브라우저에만 "원스토어에서 루트플라이 받기"(js/app-store.js, 2026-11-10) -->
     <div id="pickFoot" data-en="&lt;a href=&quot;#&quot; data-onboard&gt;❓ Help&lt;/a&gt; · &lt;a href=&quot;about-en.html&quot;&gt;⚠ Safety · sources&lt;/a&gt; · &lt;a href=&quot;terms-en.html&quot;&gt;Terms&lt;/a&gt; · &lt;a href=&quot;privacy-en.html&quot;&gt;Privacy&lt;/a&gt; · &lt;a href=&quot;lbs-terms-en.html&quot;&gt;Location terms&lt;/a&gt; · &lt;a href=&quot;party.html?lang=en&quot;&gt;🧑‍🤝‍🧑 Hiking club room&lt;/a&gt; · &lt;a href=&quot;party-office.html?lang=en&quot;&gt;🏢 Company office&lt;/a&gt; · &lt;a href=&quot;feedback.html?from=/hike.html&amp;amp;lang=en&quot;&gt;📮 Feedback&lt;/a&gt;"><a href="#" data-onboard>❓ 사용법</a> · <a href="about.html" title="안전 · 출처 안내">⚠ 안전 · 출처</a> · <a href="terms.html">이용약관</a> · <a href="privacy.html">개인정보처리방침</a> · <a href="lbs-terms.html">위치기반서비스 이용약관</a> · <a href="party.html?lang=ko" title="안내 산악회 - 인솔자가 회원 위치 · SOS 를 봄(참가 · 동의한 사람만)">🧑‍🤝‍🧑 산악회 방</a> · <a href="party-office.html" title="안내 산악회 · 여행사 - 여러 방을 한 화면에">🏢 회사 사무실</a> · <a href="feedback.html?from=/hike.html">📮 의견 보내기</a></div>
 </div>
 
@@ -760,6 +761,7 @@ html.picking #pick { display:flex; }
 <script src="js/hike.js"></script>
 <script src="js/party-bar.js"></script>
 <script src="js/onboard.js"></script>
+<script src="js/app-store.js"></script>
 <script src="js/app-perm.js"></script>   <!-- 앱 접근권한 사전 안내(앱 안에서만 처음 한 번, 2026-11-10 원스토어 검증 의견) -->
 <script src="js/sw-reg.js"></script>
 <script src="js/seen.js"></script>

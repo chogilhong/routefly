@@ -129,9 +129,9 @@ public class CoursePageTest {
         assertTrue("안전 팁(등산)", html.contains("산행 안전 팁"));
         assertFalse("mountain.js 없음(산 페이지만)", html.contains("mountain.js"));
         // 스크립트는 사람 확인 신호(2026-10-22)와 🏨 숙소 찾기 칸(kit-m · course-page, 2026-11-04 홍TV님 "코스 페이지도 똑같이"),
-        // 앱 접근권한 사전 안내(app-perm - 앱 안에서만, 2026-11-10 원스토어 검증 의견)만
-        assertEquals("스크립트는 사람 확인 신호 · 숙소 칸 · 앱 권한 안내만", 4, html.split("<script src=", -1).length - 1);
-        assertEquals("그 밖에는 실행하지 않는 경로 표시(JSON-LD, 2026-11-07)뿐", 5, html.split("<script", -1).length - 1);
+        // 앱 접근권한 사전 안내(app-perm - 앱 안에서만, 2026-11-10 원스토어 검증 의견) · 앱 받기 띠(app-store - 안드로이드 브라우저만, 2026-11-10)만
+        assertEquals("스크립트는 사람 확인 신호 · 숙소 칸 · 앱 권한 안내 · 앱 받기만", 5, html.split("<script src=", -1).length - 1);
+        assertEquals("그 밖에는 실행하지 않는 경로 표시(JSON-LD, 2026-11-07)뿐", 6, html.split("<script", -1).length - 1);
         assertTrue(html.contains("/js/kit-m.js\"></script>") && html.contains("/js/course-page.js\"></script>"));
         assertTrue(html.contains("/js/seen.js\"></script>"));
         String no = CoursePageServlet.page(course("osmb-1-2", "국토종주 <x>", "bike", 37.5, 127.0, 37.6, 127.1), null, null, null, null, new JsonArray(), false, "https://r.kr");

@@ -21,7 +21,10 @@ public class StoreLinkTest {
     @Test
     public void appOpenFallsBackToOneStore() throws Exception {
         String js = read("src/main/webapp/js/party.js"), html = read("src/main/webapp/party.html");
-        assertTrue(js.contains("var STORE_URL = \"https://onesto.re/0001012263\";"));
+        // 주소는 js/app-store.js 한 곳(2026-11-10 - 사이트 곳곳의 "원스토어에서 받기" 띠와 같은 값), party.html 은 그 파일을 party.js 보다 먼저
+        assertTrue(read("src/main/webapp/js/app-store.js").contains("var URL = \"https://onesto.re/0001012263\""));
+        assertTrue(js.contains("var STORE_URL = window.RFAppStore.url;"));
+        assertTrue(html.indexOf("js/app-store.js") > 0 && html.indexOf("js/app-store.js") < html.indexOf("js/party.js"));
         assertTrue("앱이 없을 때 intent 대체 주소", js.contains("var back = STORE_URL;"));
         assertTrue("눈에 보이는 받기 링크", js.contains("$(\"appStore\").href = STORE_URL;") && html.contains("id=\"appStore\""));
         assertFalse("아직 없는 플레이스토어 주소", js.contains("play.google.com"));

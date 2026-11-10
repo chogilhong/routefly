@@ -212,8 +212,8 @@
      */
     // 앱을 플레이스토어에 올리기 전에는 크롬, 올린 뒤에는 앱으로(2026-10-24 홍TV님) - 서버 설정 app.released=true 일 때만 "앱으로" 단추
     var appReleased = false;
-    // 앱 받는 곳 - 2026-11-10 원스토어 출시(공유 주소). 플레이스토어에 올리면 그 주소로 바꿈(docs/store-onestore.md 4장)
-    var STORE_URL = "https://onesto.re/0001012263";
+    // 앱 받는 곳 - js/app-store.js 한 곳(2026-11-10 원스토어 출시, 플레이스토어에 올리면 거기만 바꿈)
+    var STORE_URL = window.RFAppStore.url;
     function canAppOpen() { return appReleased && /Android/i.test(navigator.userAgent) && !window.Capacitor && q.get("web") !== "1" && location.hostname === "routefly.kr"; }
     /** intent: 주소 - token 이 있으면 앱에 넘겨(S.rf_token → MainActivity 가 #t= 로) 같은 사람으로 이어 감(다시 참가하면 명단에 두 번). */
     function appIntent(code, token) {

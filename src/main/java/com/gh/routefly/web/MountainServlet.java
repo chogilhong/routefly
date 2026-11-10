@@ -993,7 +993,7 @@ public class MountainServlet extends HttpServlet {
 
     /** steep - 🧗 가파른 산 순위 칸(SteepRank.html, 없으면 ""). 접는 칸들 아래 · 안전 팁 위. */
     static String indexPage(JsonArray peaks, JsonArray groups, String base, boolean openPeaks, String steep) {
-        StringBuilder b = new StringBuilder(head("100대 명산 · 둘레길 · 자전거길 코스", "산림청 100대 명산 " + peaks.size()
+        StringBuilder b = new StringBuilder(head("루트플라이 100대 명산 · 둘레길 · 자전거길 코스", "routefly(루트플라이) - 산림청 100대 명산 " + peaks.size()
                 + "곳의 등산코스 · 날씨 · 일출 일몰과 백두대간 · 국가숲길 · 코리아둘레길 · 국토종주 자전거길 노선. 3D 지형 위로 미리 날아 보고 핸드폰으로 따라 걷기.", base + "/m/", base, base + "/en/m/"));
         // 맨 위 로고(img/logo-dark.svg - 2026-10-14 홍TV님), 누르면 따라가기
         // 오른쪽에 따라가기 › - 따라가기 화면 위의 "코스 모음 ›" 과 짝(2026-10-17 홍TV님)
@@ -1140,10 +1140,12 @@ public class MountainServlet extends HttpServlet {
         return "<p class=\"dim\">자료: 산림청 100대 명산 · 등산로정보, 국립공원공단 탐방로, 기상청 단기예보 · 에어코리아 대기정보 · 두루누비(공공데이터포털), © OpenStreetMap contributors. "
                 + "<a href=\"" + b + "/about.html\">안전 · 출처 안내</a> · <a href=\"" + b + "/terms.html\">이용약관</a> · <a href=\"" + b + "/privacy.html\">개인정보처리방침</a> · <a href=\"" + b + "/lbs-terms.html\">위치기반서비스 이용약관</a> · <a href=\"" + b + "/feedback.html?from=/m/\">📮 의견 보내기</a>"
                 + (en == null ? "" : " · <a href=\"" + esc(en) + "\" hreflang=\"en\" lang=\"en\">English</a>") + "</p>"
+                + "<div data-app-store hidden></div>"   // 안드로이드 브라우저에만 "원스토어에서 루트플라이 받기"(js/app-store.js, 2026-11-10)
                 + "<p class=\"support\" id=\"support\" hidden></p>"   // ☕ 후원(설정 donate.url 이 있을 때만 mountain.js 가 보임)
                 + "<p class=\"brand\"><a href=\"" + b + "/hike.html?lang=ko\"><img src=\"" + b + "/img/logo-dark.svg\" alt=\"routefly\" width=\"160\" height=\"50\"> 🥾 따라가기 ›</a></p>"   // 위쪽 "🥾 따라가기 ›" 와 같은 말(2026-11-03 홍TV님)
                 + "<p class=\"copy\">© 2026 홍TV · routefly. 코스 · 지도 자료의 권리는 위 출처에 있습니다.</p></main>"   // 저작권 표시(2026-10-17 홍TV님)
                 + (scripts ? "<script src=\"" + b + "/" + AssetVersion.of("js/kit-m.js") + "\"></script><script src=\"" + b + "/" + AssetVersion.of("js/mountain.js") + "\"></script>" : "")
+                + "<script src=\"" + b + "/" + AssetVersion.of("js/app-store.js") + "\"></script>"
                 + "<script src=\"" + b + "/" + AssetVersion.of("js/app-perm.js") + "\"></script>"   // 앱 접근권한 사전 안내 - 앱은 처음에 이 코스 모음(m/)으로 열림(early.js), 앱 안에서만 처음 한 번(2026-11-10 원스토어 검증 의견)
                 + "<script src=\"" + b + "/" + AssetVersion.of("js/seen.js") + "\"></script></body></html>";   // 사람 확인 신호(2026-10-22) - 코스 페이지에도
     }

@@ -2626,6 +2626,12 @@
             $("gps").className = "";
             hike.watch = navigator.geolocation.watchPosition(onFix, onGpsError, { enableHighAccuracy: true, maximumAge: 3000, timeout: 30000 });
             keepAwake();
+            // 안드로이드 브라우저 - 화면을 끄면 위치가 멈춤. 앱은 이어짐(2026-11-10 원스토어 출시 - 하루 한 번만)
+            var tipDay = new Date().toDateString();
+            if (!hike.sim && !EN && window.RFAppStore && RFAppStore.android() && lsGet("rf-app-tip") !== tipDay) {
+                try { localStorage.setItem("rf-app-tip", tipDay); } catch (e) { /* 이번만 */ }
+                toast("브라우저는 화면이 꺼지면 위치가 멈춰 화면을 켜 둡니다. 화면을 꺼도 이어지는 앱: 원스토어에서 '루트플라이'", 9000);
+            }
         }
         hike.timer = setInterval(render, 1000);
         render();
