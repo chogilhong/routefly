@@ -2505,6 +2505,7 @@
     }
 
     /** checked - 출발 전 점검을 마침(preCheck 의 "출발"). */
+    var appAsked = false;   // 안드로이드 브라우저 - 앱 설치를 이 화면에서 이미 물었음
     function start(sim, checked) {
         if (!c) return;
         if (!sim && !safetyOk()) { askSafety(function () { start(false); }); return; }
@@ -2514,6 +2515,15 @@
             return;
         }
         var saved = sim ? null : loadSaved();
+        // 안드로이드 브라우저로 새 산행 - 시작마다 앱 설치를 먼저 권함(2026-11-10 홍TV님 "강요하듯이 해. 앱을 설치하라고").
+        // 산에서 길 안내를 막으면 위험하니 "그래도 브라우저로" 는 남김(이 화면에서 한 번 고르면 다시 묻지 않음). 이어 하는 산행 · 시험 걷기 · 앱 · 영어는 묻지 않음
+        if (!sim && !BG && !saved && !appAsked && !EN && window.RFAppStore && RFAppStore.android()) {
+            appAsked = true;
+            hAsk("⚠ 산에서는 routefly 앱으로 하세요\n\n브라우저는 화면이 꺼지면 위치 · 길 안내 음성 · 코스 이탈 알림 · SOS 위치가 멈춥니다. "
+                + "앱은 화면을 꺼도 이어지고 배터리도 덜 씁니다.\n\n원스토어에서 '루트플라이' 를 설치한 뒤 앱에서 이 코스를 여세요.",
+                { ok: "원스토어에서 설치", cancel: "그래도 브라우저로" }).then(function (ok) { if (ok) location.href = RFAppStore.url; else start(sim, checked); });
+            return;
+        }
         if (!sim && !saved && !checked && !nearChecked) { nearCheck(function () { nearChecked = true; start(false); }); return; }
         nearChecked = false;
         if (!sim && !saved && !checked) { preCheck(function () { start(false, true); }); return; }   // 이어 하는 산행(새로 고침 · 이어서)은 묻지 않음
@@ -2626,12 +2636,6 @@
             $("gps").className = "";
             hike.watch = navigator.geolocation.watchPosition(onFix, onGpsError, { enableHighAccuracy: true, maximumAge: 3000, timeout: 30000 });
             keepAwake();
-            // 안드로이드 브라우저 - 화면을 끄면 위치가 멈춤. 앱은 이어짐(2026-11-10 원스토어 출시 - 하루 한 번만)
-            var tipDay = new Date().toDateString();
-            if (!hike.sim && !EN && window.RFAppStore && RFAppStore.android() && lsGet("rf-app-tip") !== tipDay) {
-                try { localStorage.setItem("rf-app-tip", tipDay); } catch (e) { /* 이번만 */ }
-                toast("브라우저는 화면이 꺼지면 위치가 멈춰 화면을 켜 둡니다. 화면을 꺼도 이어지는 앱: 원스토어에서 '루트플라이'", 9000);
-            }
         }
         hike.timer = setInterval(render, 1000);
         render();

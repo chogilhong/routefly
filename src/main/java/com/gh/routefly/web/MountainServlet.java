@@ -895,6 +895,7 @@ public class MountainServlet extends HttpServlet {
         // 코스 목록은 날씨 · 챙길 것 · 안전 · 숙소 칸 아래라 한 번에 내려가는 링크(2026-11-02 홍TV님 점검: 폰에서 코스를 찾느라 길게 밀었음).
         // 설명 바로 아래 - 날씨 칸 아래에 두었더니 화면이 그 아래 넣는 🎒 챙길 것에 밀려 첫 화면 밖으로 나갔음(점검 6차)
         if (!courses.isEmpty()) b.append("<p class=\"jump\"><a href=\"#trails\">🥾 코스 ").append(courses.size()).append("개 바로 보기 ↓</a></p>");
+        b.append(APP_SLOT);   // 원스토어 띠도 첫 화면에(2026-11-10 홍TV님 "제일 아래에 있네") - foot 의 칸은 js 가 맨 앞 칸 하나만 채워 두 번 안 나옴
         b.append("<section id=\"wx\" data-lat=\"").append(peak.get("lat").getAsDouble()).append("\" data-lon=\"").append(peak.get("lon").getAsDouble())
                 .append("\"><h2>날씨 · 미세먼지 · 일출 · 일몰</h2><div class=\"days\" role=\"group\" aria-label=\"날짜 고르기\"></div><p class=\"dim\" id=\"wxBody\">오늘부터 며칠 뒤까지의 날씨 · 미세먼지 · 일출 · 일몰(기상청 · 에어코리아)을 이 칸에서 봅니다.</p></section>");
         // ⛑️ 오늘의 산행 안전(api/safety - 2026-10-18 홍TV님: 별거 별거와 같은 것을 산 페이지에도) - 정상 자리로, 보이면 받음(js/mountain.js)
@@ -1003,6 +1004,7 @@ public class MountainServlet extends HttpServlet {
                 .append("<h1 class=\"idx\">등산 · 걷기 · 자전거</h1>")   // "코스" 는 뺌(2026-10-17 홍TV님 - 줄바꿈 없이 한 줄)
                 .append("<p class=\"lead\">산을 고르면 정상까지 가는 코스와 오늘 날씨 · 미세먼지 · 일출 · 일몰을, 길을 고르면 노선 안내도를 봅니다.</p>")
                 .append(searchForm(false))
+                .append(APP_SLOT)   // 안드로이드 브라우저에만 원스토어 띠 - 맨 아래(foot)에 두었더니 끝까지 내려야 보였음(2026-11-10 홍TV님 "제일 아래에 있네")
                 .append(""
                 // 📍 내 근처 - 다른 칸처럼 접고 펴기(2026-10-16 홍TV님), 펴면 위치를 찾음(js/mountain.js)
                 + "<section id=\"near\"><details class=\"fold kind\" name=\"kind\" id=\"nearFold\"><summary><span class=\"ft\">📍 내 근처 100대 명산</span>"
@@ -1135,12 +1137,15 @@ public class MountainServlet extends HttpServlet {
     }
 
     /** scripts - false 면 mountain.js 를 붙이지 않음(코스 페이지 - 날씨 · 찜 칸이 없는 스크립트 없는 글). */
+    /** 앱 받기 띠 칸(js/app-store.js 가 안드로이드 브라우저에서 맨 앞 칸 하나만 채움). */
+    static final String APP_SLOT = "<div data-app-store hidden></div>";
+
     static String foot(String en, boolean scripts) {
         String b = REL;   // 상대 주소 - 터널(https → http 톰캣)에서 http 절대 주소가 막혔음(2026-10-14)
         return "<p class=\"dim\">자료: 산림청 100대 명산 · 등산로정보, 국립공원공단 탐방로, 기상청 단기예보 · 에어코리아 대기정보 · 두루누비(공공데이터포털), © OpenStreetMap contributors. "
                 + "<a href=\"" + b + "/about.html\">안전 · 출처 안내</a> · <a href=\"" + b + "/terms.html\">이용약관</a> · <a href=\"" + b + "/privacy.html\">개인정보처리방침</a> · <a href=\"" + b + "/lbs-terms.html\">위치기반서비스 이용약관</a> · <a href=\"" + b + "/feedback.html?from=/m/\">📮 의견 보내기</a>"
                 + (en == null ? "" : " · <a href=\"" + esc(en) + "\" hreflang=\"en\" lang=\"en\">English</a>") + "</p>"
-                + "<div data-app-store hidden></div>"   // 안드로이드 브라우저에만 "원스토어에서 루트플라이 받기"(js/app-store.js, 2026-11-10)
+                + APP_SLOT   // 안드로이드 브라우저에만 "원스토어에서 루트플라이 받기"(js/app-store.js, 2026-11-10) - 위쪽 칸이 있는 화면(코스 모음 · 산 페이지)은 그쪽만
                 + "<p class=\"support\" id=\"support\" hidden></p>"   // ☕ 후원(설정 donate.url 이 있을 때만 mountain.js 가 보임)
                 + "<p class=\"brand\"><a href=\"" + b + "/hike.html?lang=ko\"><img src=\"" + b + "/img/logo-dark.svg\" alt=\"routefly\" width=\"160\" height=\"50\"> 🥾 따라가기 ›</a></p>"   // 위쪽 "🥾 따라가기 ›" 와 같은 말(2026-11-03 홍TV님)
                 + "<p class=\"copy\">© 2026 홍TV · routefly. 코스 · 지도 자료의 권리는 위 출처에 있습니다.</p></main>"   // 저작권 표시(2026-10-17 홍TV님)

@@ -1,4 +1,4 @@
-// js/app-store.js 의 wanted(띠를 보일까) - 안드로이드 브라우저만, 앱 · 아이폰 · PC · 영어 화면 · 30일 안에 닫은 기기는 안 보임(2026-11-10).
+// js/app-store.js 의 wanted(띠를 보일까) - 안드로이드 브라우저만, 앱 · 아이폰 · PC · 영어 화면 · 하루 안에 닫은 기기는 안 보임(2026-11-10, 홍TV님 "강요하듯이" - 30일 → 하루).
 // UA 글은 테스트에 이미 있는 실제 글(StatsTest · LogKeyAccessTest).
 const fs = require("fs"), vm = require("vm"), path = require("path");
 const src = fs.readFileSync(path.join(__dirname, "../../main/webapp/js/app-store.js"), "utf8");
@@ -16,7 +16,7 @@ ok(W(WV, true, "ko", null, now) === false, "routefly 앱 안");
 ok(W(IOS, false, "ko", null, now) === false, "아이폰");
 ok(W(PC, false, "ko", null, now) === false, "PC");
 ok(W(AND, false, "en", null, now) === false, "영어 화면(원스토어는 한국만)");
-ok(W(AND, false, "ko", now - 29 * D, now) === false, "닫은 지 29일");
-ok(W(AND, false, "ko", now - 31 * D, now) === true, "닫은 지 31일 - 다시");
+ok(W(AND, false, "ko", now - 23 * 3600000, now) === false, "닫은 지 23시간");
+ok(W(AND, false, "ko", now - 25 * 3600000, now) === true, "닫은 지 25시간 - 다시");
 console.log(bad ? "app-store: " + bad + " FAIL / " + n : "app-store OK " + n);
 process.exit(bad ? 1 : 0);
