@@ -1124,6 +1124,19 @@ eq("planText 일몰 뒤 하산이면 경고 한 줄", RF.planText("가", 4000, 0
 eq("centerPoints 공식 이름 · 다른 이름 · 품은 이름 · 자리 없는 것 뺌", RF.centerPoints(["영산강하구둑", "죽산보", "없는곳"], { "영산강하구둑": ["영산하구둑"] },
     [{ name: "영산하구둑인증센터", lat: 34.8, lon: 126.4 }, { name: "죽산보 인증센터(나주)", lat: 35, lon: 126.6 }, { name: "덤인증센터", lat: 1, lon: 1 }]),
     [{ name: "영산강하구둑", lat: 34.8, lon: 126.4 }, { name: "죽산보", lat: 35, lon: 126.6 }]);
+// 국립공원 산불예방 통제(2026-11-10) - data/knps-close.json 은 실제 통제이력 CSV(data.go.kr 15165806) · 공단 통제정보 목록에서 tools/knps-close/build.py 가 만든 것
+(function () {
+    var kc = JSON.parse(fs.readFileSync(path.join(__dirname, "../../main/webapp/data/knps-close.json"), "utf8"));
+    var nov = Date.UTC(2026, 10, 11, 3), oct = Date.UTC(2026, 9, 31, 3), mar = Date.UTC(2027, 2, 10, 3), dec31 = Date.UTC(2026, 11, 31, 14, 59);
+    var sr = RF.parkClose(kc, "설악산", nov, false);
+    eq("parkClose 설악산 가을 - 구간 · 단일 사무소 세부 화면", [sr.text.indexOf("설악산 가을철 산불예방 통제") >= 0, sr.text.indexOf("마등령 ~ 한계령") >= 0, sr.text.indexOf("2022년 기록") >= 0,
+        sr.url === "https://www.knps.or.kr/front/portal/safe/acsCtrDtl.do?menuNo=8000340&rstId=0008"], [true, true, true, true]);
+    eq("parkClose 계절 밖 · 없는 공원 · 구간 기록 없는 공원", [RF.parkClose(kc, "설악산", oct, false), RF.parkClose(kc, "가리왕산", nov, false), RF.parkClose(kc, "경주", nov, false)], [null, null, null]);
+    eq("parkClose 봄(달은 통제이력 그대로) · 12월 끝까지", [RF.parkClose(kc, "설악산", mar, false).text.indexOf("봄철") >= 0, !!RF.parkClose(kc, "설악산", dec31, false)], [true, true]);
+    var jr = RF.parkClose(kc, "지리산", nov, false, 5);
+    eq("parkClose 사무소 여럿(지리산 3곳)은 목록 · 5개 넘으면 외 N곳", [jr.url === kc.list, /외 20곳\. $/.test(jr.text)], [true, true]);
+    eq("parkClose 영어 - 구간 이름 빼고", [RF.parkClose(kc, "설악산", nov, true).text.indexOf("마등령") < 0, RF.parkClose(kc, "설악산", nov, true).link], [true, "Check today's status (KNPS) ›"]);
+})();
 eq("fireNote 봄 · 가을 · 그 밖(한국 날짜)", [!!RF.fireNote(Date.UTC(2026, 1, 1, 0)), !!RF.fireNote(Date.UTC(2026, 4, 15, 14)), !!RF.fireNote(Date.UTC(2026, 4, 15, 15)),
     RF.fireNote(Date.UTC(2026, 10, 1, 0)).indexOf("가을철") >= 0, !!RF.fireNote(Date.UTC(2026, 9, 31, 14)), !!RF.fireNote(Date.UTC(2026, 11, 15, 14, 59))], [true, true, false, true, false, true]);
 (function () {

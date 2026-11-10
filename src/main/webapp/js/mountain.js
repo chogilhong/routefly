@@ -58,6 +58,18 @@
     var fireP = document.querySelector(".fire");
     if (fireP && window.RF && !fire) fireP.parentNode.removeChild(fireP);   // 받아 둔 옛 화면(신호 없을 때 보기)이 기간이 지났으면 뺌
     if (lead && fire && !fireP) { var fp = document.createElement("p"); fp.className = "fire"; fp.textContent = fire; lead.parentNode.insertBefore(fp, lead.nextSibling); }
+    // 국립공원 산이면 그 계절 산불예방 통제 구간 + 공단 통제정보 링크(data/knps-close.json - 2026-11-10 홍TV님 "작업해"). 산 이름은 제목 "○○산 등산코스"
+    var h1 = document.querySelector("h1"), pkName = h1 && h1.textContent.replace(/\s*등산코스\s*$/, "").trim();
+    if (lead && pkName && window.RF && window.RF.parkClose) fetch("../data/knps-close.json").then(function (r) { return r.json(); }).then(function (d) {
+        var pc = window.RF.parkClose(d, pkName, Date.now(), false);
+        if (!pc) return;
+        var p = document.createElement("p"), a = document.createElement("a"), after = document.querySelector(".fire") || lead;
+        p.className = "fire close";
+        p.textContent = pc.text;
+        a.href = pc.url; a.target = "_blank"; a.rel = "noopener"; a.textContent = pc.link;
+        p.appendChild(a);
+        after.parentNode.insertBefore(p, after.nextSibling);
+    }).catch(function () { /* 안내 없이 */ });
     // 🌄 일출 산행 - 코스마다 "내일 일출(6:39)을 정상에서 보려면 들머리 출발 약 4:20"(표준 소요 시간, 15분 여유). 정상 좌표로 일출
     var wxs = document.getElementById("wx");
     if (wxs && window.RF && csList) {

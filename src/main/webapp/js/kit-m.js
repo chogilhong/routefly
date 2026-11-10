@@ -899,6 +899,25 @@
         return season ? "🔥 " + season + " 산불조심기간 - 일부 탐방로는 입산이 통제되고 산에서 불 · 담배는 금지입니다. 현지 안내판 · 공원 누리집을 확인하세요." : "";
     }
 
+    /**
+     * 순수 함수 - 국립공원 산불예방 통제 안내(data/knps-close.json - tools/knps-close/build.py, 2026-11-10 홍TV님 "작업해"). 그 공원 그 계절(통제이력의 달 안)이 아니면 null.
+     * 구간은 "해마다 통제되어 온"(공단 통제이력의 가장 최근 해 반복통제) - 오늘 상태가 아니라서 오늘 상황은 공단 통제정보 링크로(공단 robots.txt 가 긁기를 막음).
+     * {text, link, url} - 사무소가 하나면 그 세부 화면, 여럿(지리산 등)이면 목록. en - 영어(구간 이름은 빼고). max - 구간을 몇 개까지(없으면 모두, 넘으면 "외 N곳").
+     */
+    function parkClose(data, park, ms, en, max) {
+        var e = data && data.parks && data.parks[park];
+        if (!e) return null;
+        var m = new Date(ms + 9 * 3600000).getUTCMonth() + 1, season = null;
+        ["봄철", "가을철"].forEach(function (k) { if (e[k] && m >= e[k].from && m <= e[k].to) season = k; });
+        if (!season) return null;
+        var c = e[season], segs = c.segs.map(function (x) { return x[0] + " ~ " + x[1]; });
+        if (max && segs.length > max) segs = segs.slice(0, max).concat(["외 " + (c.segs.length - max) + "곳"]);
+        var url = e.offices && e.offices.length === 1 ? data.detail + e.offices[0][1] : data.list;
+        if (en) return { text: "⛔ Wildfire-season closures: some trails in this park have been closed in this season every year (KNPS records). ", link: "Check today's status (KNPS) ›", url: url };
+        return { text: "⛔ " + park + " " + season + " 산불예방 통제 - 해마다 이때 통제되어 온 구간(국립공원공단 " + c.year + "년 기록): " + segs.join(" · ") + ". ",
+                 link: "오늘 통제 상황 보기(국립공원공단) ›", url: url };
+    }
+
     /** 순수 함수 - 일출을 정상에서 보려면 들머리 출발 시각(ms): 일출 - 오름 시간 - 여유(분, 기본 15). */
     function sunriseStart(sunriseMs, upMs, marginMin) {
         return sunriseMs - upMs - (marginMin == null ? 15 : marginMin) * 60000;
@@ -1556,6 +1575,7 @@
         midLines: midLines,
         tempRange: tempRange,
         fireNote: fireNote,
+        parkClose: parkClose,
         sunriseStart: sunriseStart,
         EASY: EASY,
         easyOk: easyOk,

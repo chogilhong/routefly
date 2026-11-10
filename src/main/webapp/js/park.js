@@ -890,6 +890,16 @@
             }));
             // 같은 이름의 다른 산(2026-10-14 홍TV님: 나주 가야산 안내도에 국립공원 가야산 대표 코스가 나옴) - 서버가 국립공원이 아니라고 하면
             // park-notes(대표 코스 · 이름 · 숨김 · 안내)는 쓰지 않음. park-notes 는 국립공원 이름으로만 적혀 있음
+            // 산불예방 통제 - 국립공원이고 그 계절이면 해마다 통제되어 온 구간 + 공단 통제정보 링크(2026-11-10 홍TV님 "작업해")
+            if (data.national !== false) getJson("data/knps-close.json").then(function (d) {
+                var pc = RF.parkClose(d, park, Date.now(), EN, 6);   // 6개까지 - 다 넣으면 공단 링크가 칸 아래로 밀려 안 보였음(설악산 14구간)
+                if (!pc) return;
+                var box = $("closeNote"), a = document.createElement("a");
+                box.textContent = pc.text;
+                a.href = pc.url; a.target = "_blank"; a.rel = "noopener"; a.textContent = pc.link;
+                box.appendChild(a);
+                box.hidden = false;
+            }).catch(function () { /* 안내 없이 */ });
             if (data.national === false) {
                 noteSkip = true;
                 noteNames = notePass = noteEle = noteTrails = noteHeads = noteBest = noteAll = null;

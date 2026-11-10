@@ -972,6 +972,17 @@
             // 코스 이름은 받은 그대로(자르거나 이은 코스도 원래 이름 - "성판악 탐방로")
             var rawNames = (parts ? r[0] : [r[0]]).map(function (j) { return j && j.course && j.course.name; });
             var noteOf = RF.parkOf(c.course.name) || RF.mountainOf(c.course.name, id) || RF.parkOf(rawNames[0] || "") || RF.mountainOf(rawNames[0] || "", id);
+            // 국립공원 산불예방 통제 - 그 계절이면 코스 아래 안내 줄에 "해마다 통제되어 온 구간" + 공단 통제정보 링크(2026-11-10 홍TV님 "작업해", 구간은 5개까지)
+            if (noteOf && !closedT) jsonOnce("data/knps-close.json").then(function (d) {
+                var pc = my === loadSeq && RF.parkClose(d, noteOf, Date.now(), EN, 5);
+                if (!pc) return;
+                var box = $("courseNote"), a = document.createElement("a");
+                if (box.textContent) box.appendChild(document.createTextNode("\n"));
+                box.appendChild(document.createTextNode(pc.text));
+                a.href = pc.url; a.target = "_blank"; a.rel = "noopener"; a.textContent = pc.link;
+                box.appendChild(a);
+                box.hidden = false;
+            }).catch(function () { /* 안내 없이 */ });
             rules = null; ruleOf = null;
             $("access").hidden = true;
             if (noteOf) jsonOnce("data/park-notes.json").then(function (d) {
