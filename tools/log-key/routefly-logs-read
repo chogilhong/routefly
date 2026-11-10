@@ -10,6 +10,9 @@
 #                      부터 · 까지(HH:MM, 까지는 빼고)를 주면 그 시각만(2026-11-06 PC: 날마다 같은 시각끼리 견주려는데 log 이름 N 은 끝 3000줄까지라 앞 시각을 못 봄).
 #                      종류마다 곳 수 · 그중 화면 js 가 돈 곳(/api/seen 을 낸 곳), js 를 안 낸 사람 쪽 곳의 브라우저 글 상위 10(곳 수)도.
 #                      주소는 내보내지 않음 - 이번 한 번만 쓰는 무작위 값과 섞은 해시 8글자(다시 돌리면 달라져 이어 볼 수 없음)
+#   wv 날짜 [부터 까지] - 안드로이드 앱 웹뷰(UA 에 "; wv)")가 낸 요청만 시각 순으로(2026-11-10 원스토어 검증 "안내도 빈 화면" 을 찾으려고 PC 부탁):
+#                      시각(분) · 곳 해시(이번 한 번만) · 방법 · 경로 · 상태 · Android 판 · Chrome 판. IP · 쿼리는 없음(접속 기록은 ? 뒤를 남기지 않음),
+#                      경로는 남의 글이 섞이지 않게 정해진 꼴만 - 화면 · 파일 이름, /m/ · /c/ 그대로, /api/이름(/짧은 영문 낱말), /s/ · /og/ · /api/xfer 뒤는 "…"(공유 · 옮기기 번호). 많아야 3000줄
 # 한 줄은 400자까지 자르고, 화면을 어지럽히는 제어 글자(색 바꾸기 등)는 지웁니다(2026-10-28 점검 - 접속 기록의 브라우저 글은 남이 넣는 글).
 set -euo pipefail
 DIR=/opt/tomcat/logs
@@ -114,5 +117,46 @@ print("\n[많이 연 곳 상위 10 - 주소 대신 해시]")
 for h, n in who.most_common(10): print(" %s %5d  %s  %s" % (h, n, whoKind[h], ", ".join("%s %d" % x for x in whoPath[h].most_common(2))))
 PY
     ;;
-  *) echo "이 열쇠로는 files · tail [N] · log 이름 [N] · grep 낱말 [N] · access 날짜 [부터 까지] 만 됩니다." >&2; exit 2 ;;
+  wv)
+    [[ "${2:-}" =~ ^20[0-9]{2}-[01][0-9]-[0-3][0-9]$ ]] || { echo "날짜는 YYYY-MM-DD"; exit 3; }
+    from="${3:-00:00}"; to="${4:-24:00}"
+    [[ "$from" =~ ^([01][0-9]|2[0-3]):[0-5][0-9]$ ]] && [[ "$to" =~ ^(([01][0-9]|2[0-3]):[0-5][0-9]|24:00)$ ]] || { echo "시각은 HH:MM (예: wv 2026-11-10 09:00 17:00)"; exit 3; }
+    f="$DIR/localhost_access_log.$2.txt"
+    [ -f "$f" ] && [ ! -L "$f" ] || { echo "그 날 접속 기록이 없습니다."; exit 3; }
+    python3 -I - "$f" "$from" "$to" <<'WV'
+import sys, re, os, hashlib
+salt = os.urandom(16)
+T0, T1 = sys.argv[2], sys.argv[3]
+LINE = re.compile(r'^(.+?) \[[^:]+:(\d\d):(\d\d):\d\d [^\]]*\] "(\S+) (\S+)" (\d{3}) \S+(?: "(.*)")?$')
+SAFE = re.compile(r"^[A-Za-z0-9._%-]{1,80}$")
+def path(p):
+    if not p.startswith("/routefly"): return "(그 밖)"
+    q = p[len("/routefly"):] or "/"
+    for pre in ("/s/", "/og/", "/api/xfer/"):
+        if q.startswith(pre): return pre + "…"   # 공유 · 옮기기 번호는 가림
+    m = re.match(r"^/api/([a-z0-9-]{1,30})(?:/([a-z-]{1,20}))?/?$", q)
+    if m: return "/api/" + m.group(1) + ("/" + m.group(2) if m.group(2) else "")
+    if q.startswith("/api/"): return "/api/(그 밖)"
+    parts = [x for x in q.split("/") if x]
+    if q == "/" or all(SAFE.match(x) for x in parts) and len(parts) <= 4: return q[:120]
+    return "(그 밖)"
+n = 0
+with open(sys.argv[1], encoding="utf-8", errors="replace") as fh:
+    for ln in fh:
+        m = LINE.match(ln.rstrip("\n"))
+        if not m: continue
+        hm = m.group(2) + ":" + m.group(3)
+        if hm < T0 or hm >= T1: continue
+        ua = m.group(7) or ""
+        if "; wv)" not in ua: continue
+        h = hashlib.sha256(salt + m.group(1).split(",")[-1].strip().encode()).hexdigest()[:8]
+        a = re.search(r"Android (\d{1,2}(?:\.\d)?)", ua); c = re.search(r"Chrome/(\d{1,3})", ua)
+        meth = m.group(4) if re.match(r"^[A-Z]{3,7}$", m.group(4)) else "?"
+        print("%s %s %-6s %-40s %s  Android %s  Chrome %s" % (hm, h, meth, path(m.group(5)), m.group(6), a.group(1) if a else "?", c.group(1) if c else "?"))
+        n += 1
+        if n >= 3000: print("# 3000줄에서 멈춤 - 시각을 좁히세요"); break
+if n == 0: print("# 그 시각에 앱 웹뷰 요청이 없습니다")
+WV
+    ;;
+  *) echo "이 열쇠로는 files · tail [N] · log 이름 [N] · grep 낱말 [N] · access 날짜 [부터 까지] · wv 날짜 [부터 까지] 만 됩니다." >&2; exit 2 ;;
 esac

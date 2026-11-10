@@ -111,4 +111,39 @@ public class LogKeyAccessTest {
             new File(log.toString()).delete();
         }
     }
+
+    /** wv 날짜 - 앱 웹뷰(UA "; wv)") 요청만 시각 순으로, 공유 · 옮기기 번호 · 주소는 가림(2026-11-10 원스토어 "안내도 빈 화면" 찾기 - PC 부탁). UA 는 StatsTest 의 앱 웹뷰 글. */
+    @Test
+    public void webviewRequestsInOrderWithoutCodes() throws Exception {
+        String sh = new String(Files.readAllBytes(Path.of("tools/log-key/routefly-logs-read")), StandardCharsets.UTF_8).replace("\r\n", "\n");
+        int a = sh.indexOf("<<'WV'\n") + 7, b = sh.indexOf("\nWV\n", a);
+        Path py = Files.createTempFile("wv", ".py"), log = Files.createTempFile("wv", ".txt");
+        try {
+            Files.writeString(py, sh.substring(a, b + 1), StandardCharsets.UTF_8);
+            String wv = "Mozilla/5.0 (Linux; Android 14; SM-S921N; wv) AppleWebKit/537.36 Chrome/129.0 Mobile Safari/537.36",
+                    br = "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/141.0 Mobile Safari/537.36";
+            Files.writeString(log, String.join("\n",
+                    "203.0.113.5 [10/Nov/2026:10:00:01 +0900] \"GET /routefly/m/\" 200 9000 \"" + wv + "\"",
+                    "203.0.113.5 [10/Nov/2026:10:01:00 +0900] \"GET /routefly/park.html\" 200 9000 \"" + wv + "\"",
+                    "203.0.113.5 [10/Nov/2026:10:01:02 +0900] \"GET /routefly/api/park\" 404 50 \"" + wv + "\"",
+                    "203.0.113.5 [10/Nov/2026:10:02:00 +0900] \"GET /routefly/api/xfer/ABCD1234\" 200 50 \"" + wv + "\"",
+                    "203.0.113.5 [10/Nov/2026:10:03:00 +0900] \"GET /routefly/s/Zx9Qk2\" 200 50 \"" + wv + "\"",
+                    "203.0.113.7 [10/Nov/2026:10:04:00 +0900] \"GET /routefly/hike.html\" 200 9000 \"" + br + "\"",
+                    "203.0.113.5 [10/Nov/2026:12:00:00 +0900] \"GET /routefly/route.html\" 200 9000 \"" + wv + "\"") + "\n", StandardCharsets.UTF_8);
+            Assume.assumeTrue("python3 없음 - 건너뜀", pythonOk());
+            Process p = new ProcessBuilder("python3", "-I", py.toString(), log.toString(), "10:00", "11:00").redirectErrorStream(true).start();
+            String out = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            assertEquals(out, 0, p.waitFor());
+            String[] lines = out.trim().split("\n");
+            assertEquals(out, 5, lines.length);   // 브라우저 줄 · 11:00 뒤 줄은 빠짐
+            assertTrue(out, lines[0].startsWith("10:00 ") && lines[0].contains(" /m/ ") && lines[0].contains("200  Android 14  Chrome 129"));
+            assertTrue(out, lines[1].contains(" /park.html ") && lines[2].contains(" /api/park ") && lines[2].contains(" 404 "));
+            assertTrue("옮기기 · 공유 번호는 가림", lines[3].contains(" /api/xfer/… ") && lines[4].contains(" /s/… ") && !out.contains("ABCD1234") && !out.contains("Zx9Qk2"));
+            assertFalse("주소 없음", out.contains("203.0.113"));
+            assertFalse(out.contains("hike.html") || out.contains("route.html"));
+        } finally {
+            new File(py.toString()).delete();
+            new File(log.toString()).delete();
+        }
+    }
 }
