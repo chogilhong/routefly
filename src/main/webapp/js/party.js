@@ -212,10 +212,12 @@
      */
     // 앱을 플레이스토어에 올리기 전에는 크롬, 올린 뒤에는 앱으로(2026-10-24 홍TV님) - 서버 설정 app.released=true 일 때만 "앱으로" 단추
     var appReleased = false;
+    // 앱 받는 곳 - 2026-11-10 원스토어 출시(공유 주소). 플레이스토어에 올리면 그 주소로 바꿈(docs/store-onestore.md 4장)
+    var STORE_URL = "https://onesto.re/0001012263";
     function canAppOpen() { return appReleased && /Android/i.test(navigator.userAgent) && !window.Capacitor && q.get("web") !== "1" && location.hostname === "routefly.kr"; }
     /** intent: 주소 - token 이 있으면 앱에 넘겨(S.rf_token → MainActivity 가 #t= 로) 같은 사람으로 이어 감(다시 참가하면 명단에 두 번). */
     function appIntent(code, token) {
-        var back = "https://play.google.com/store/apps/details?id=kr.routefly.app";   // 앱이 없으면 설치 화면으로
+        var back = STORE_URL;   // 앱이 없으면 설치 화면으로(원스토어)
         return "intent://" + location.host + location.pathname + "?c=" + encodeURIComponent(code) + "#Intent;scheme=https;package=kr.routefly.app;"
             + (token ? "S.rf_token=" + encodeURIComponent(token) + ";" : "") + "S.browser_fallback_url=" + encodeURIComponent(back) + ";end";
     }
@@ -227,6 +229,7 @@
     function appOpen() {
         if (!canAppOpen()) return;
         $("appOpenBtn").href = appIntent(q.get("c"), null);
+        $("appStore").href = STORE_URL;
         $("appOpen").hidden = false;
     }
     /** 앱이 #t=열쇠 로 열렸으면 그 사람으로 이어 받음(MainActivity.openLink) - 주소에서 바로 지움. */
