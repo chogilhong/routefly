@@ -8,7 +8,9 @@
         if (!navigator.sendBeacon || sessionStorage.getItem("rf-seen")) return;
         var s = document.currentScript, src = s && s.src;
         if (!src) return;
-        navigator.sendBeacon(src.replace(/js\/seen\.js(\?.*)?$/, "api/seen"));
+        // routefly 앱 안이면 ?app=1 - 통계에서 앱으로 들어온 사람을 따로 셈(2026-11-11 홍TV님 "앱으로 들어온지도 알 수 있어?")
+        var app = window.Capacitor && (!window.Capacitor.isNativePlatform || window.Capacitor.isNativePlatform());
+        navigator.sendBeacon(src.replace(/js\/seen\.js(\?.*)?$/, "api/seen") + (app ? "?app=1" : ""));
         sessionStorage.setItem("rf-seen", "1");
     } catch (e) { /* 저장소가 막힌 창 등 - 그냥 넘어감 */ }
 })();

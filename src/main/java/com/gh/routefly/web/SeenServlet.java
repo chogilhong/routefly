@@ -19,7 +19,8 @@ public class SeenServlet extends HttpServlet {
         Access.js(SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For")), System.currentTimeMillis());   // 오늘 접속 분석 - js 가 돈 곳
         String ua = req.getHeader("User-Agent");
         if (counted(req.getHeader("Cookie"), ua, req.getHeader("Accept-Language")))
-            Stats.js(SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For")), Stats.device(ua));
+            Stats.js(SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For")), Stats.device(ua),
+                    "1".equals(req.getParameter("app")));   // routefly 앱 안(js/seen.js 가 window.Capacitor 를 보고 ?app=1 - 2026-11-11)
         resp.setHeader("Cache-Control", "no-store");
         resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
     }

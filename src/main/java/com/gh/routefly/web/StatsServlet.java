@@ -177,6 +177,7 @@ public class StatsServlet extends HttpServlet {
             if (d.has("engines")) for (var e : d.getAsJsonObject("engines").entrySet()) engines.merge(e.getKey(), e.getValue().getAsInt(), Integer::sum);
             if (d.has("devUniq")) for (var e : d.getAsJsonObject("devUniq").entrySet()) devs.merge(e.getKey(), e.getValue().getAsInt(), Integer::sum);
             rows.append("<tr><td>").append(last.get(i)).append("</td><td class=\"num\">").append(n(u)).append("</td><td class=\"num\">").append(dev(d, "모바일")).append("</td><td class=\"num\">").append(dev(d, "PC"))
+                    .append("</td><td class=\"num\">").append(d.has("jsApp") ? n(d.get("jsApp").getAsInt()) : "-")   // 앱으로 들어온 사람(사람 확인 중, 2026-11-11 부터)
                     .append("</td><td class=\"num\">").append(n(views)).append("</td><td class=\"num\">").append(n(b)).append("</td></tr>");
         }
         StringBuilder out = new StringBuilder("<!DOCTYPE html><html lang=\"ko\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
@@ -199,7 +200,7 @@ public class StatsServlet extends HttpServlet {
         out.append(trend(days, n));
         out.append(checkTable(days, last));   // 날마다 위 · 늘 펼침(2026-10-22 홍TV님)
         out.append(Access.section(System.currentTimeMillis()));   // 오늘 접속 분석 - 사람 확인 아래(2026-10-29 홍TV님)
-        out.append("<section><h2>날마다</h2><table class=\"st\"><tr><th>날짜</th><th class=\"num\">방문자</th><th class=\"num\">모바일</th><th class=\"num\">PC</th><th class=\"num\">화면</th><th class=\"num\">로봇</th></tr>").append(rows).append("</table></section>");
+        out.append("<section><h2>날마다</h2><table class=\"st\"><tr><th>날짜</th><th class=\"num\">방문자</th><th class=\"num\">모바일</th><th class=\"num\">PC</th><th class=\"num\">앱</th><th class=\"num\">화면</th><th class=\"num\">로봇</th></tr>").append(rows).append("</table></section>");
         out.append(top("모바일 · PC 방문자(" + last.size() + "일 - 10-20 부터 셈)", devs, 5))
                 .append(top("인기 산 페이지(" + last.size() + "일)", mountains, 20))
                 .append(top("인기 산 페이지 - 영어(" + last.size() + "일 - /en/m/, 외국 손님)", enMountains, 20))
@@ -269,7 +270,14 @@ public class StatsServlet extends HttpServlet {
      */
     static String checkTable(Map<String, JsonObject> days, List<String> keys) {
         Map<String, Integer> vis = new HashMap<>(), js = new HashMap<>(), sus = new HashMap<>();
-        int nd = 0;
+        int nd = 0, app = 0, appDays = 0, appMob = 0;   // 앱(2026-11-11 부터) - 세기 시작한 날의 모바일 사람 확인과 견줌
+        for (String k : keys) {
+            JsonObject d = days.get(k);
+            if (!d.has("jsApp")) continue;
+            appDays++;
+            app += d.get("jsApp").getAsInt();
+            if (d.has("jsUniq") && d.getAsJsonObject("jsUniq").has("모바일")) appMob += d.getAsJsonObject("jsUniq").get("모바일").getAsInt();
+        }
         for (String k : keys) {
             JsonObject d = days.get(k);
             if (!d.has("jsUniq") && !d.has("sus")) continue;
@@ -285,6 +293,10 @@ public class StatsServlet extends HttpServlet {
             int v = vis.getOrDefault(dv, 0), j = js.getOrDefault(dv, 0);
             b.append("<tr><td class=\"kd\">").append(dv).append("</td><td class=\"num\">").append(n(v)).append("</td><td class=\"num\">").append(n(j))   // 비율은 따로 칸 - 수끼리 자리가 맞게(2026-10-22 홍TV님)
                     .append("</td><td class=\"num\">").append(v > 0 ? Math.round(100.0 * j / v) + "%" : "-").append("</td><td class=\"num\">").append(n(sus.getOrDefault(dv, 0))).append("</td></tr>");
+            // 모바일 아래 - 그 가운데 routefly 앱으로 들어온 사람(앱을 센 날만, 비율은 그 날들의 모바일 사람 확인 가운데 몫)
+            if ("모바일".equals(dv) && appDays > 0)
+                b.append("<tr><td>└ 그중 앱</td><td class=\"num\">-</td><td class=\"num\">").append(n(app)).append("</td><td class=\"num\">")
+                        .append(appMob > 0 ? Math.round(100.0 * app / appMob) + "%" : "-").append("</td><td class=\"num\">-</td></tr>");
         }
         return b.append("</table><p class=\"dim\" style=\"margin:6px 0 0\">").append(nd).append("일 합. 화면 js 돎 - 방문자 가운데 화면이 열려 그 안의 프로그램이 돈 사람, 비율은 그 몫(사람 브라우저는 거의 100%). ")
                 .append("낮으면 언어 설정까지 흉내 낸 수집 프로그램이 섞였다는 뜻. 보안 머리글 빠짐 - 요즘 브라우저가 늘 보내는 표식이 없는 사람(예전 아이폰도 걸릴 수 있어 로봇으로 빼지는 않음).</p></section>").toString();

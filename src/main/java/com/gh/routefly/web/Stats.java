@@ -51,7 +51,7 @@ final class Stats {
     private static String today = "";
     private static final Set<String> seen = new HashSet<>();
     /** 그 날 화면 js 가 돈 방문자 · 보안 머리글이 빠진 방문자(사람 확인, 2026-10-22) - seen 처럼 날이 바뀌면 버림. */
-    private static final Set<String> jsSeen = new HashSet<>(), susSeen = new HashSet<>();
+    private static final Set<String> jsSeen = new HashSet<>(), susSeen = new HashSet<>(), appSeen = new HashSet<>();   // appSeen - 그 가운데 routefly 앱 안(2026-11-11)
     private static byte[] salt = new byte[16];
     private static boolean loaded = false, dirty = false;
 
@@ -125,19 +125,24 @@ final class Stats {
 
     /**
      * 화면 js 가 돌았다는 신호(js/seen.js → /api/seen). 그 날 사람으로 센 방문자(seen)에서 온 것만, 한 사람 한 번 - 아무나 보내 숫자를 부풀리지 못하게.
-     * 센 것이면 true.
+     * app - routefly 앱 안에서 보냄(seen.js 가 window.Capacitor 를 보고 ?app=1, 2026-11-11 홍TV님 "앱으로 들어온지도 알 수 있어?") - 그 날 "jsApp" 에 한 사람 한 번.
+     * 같은 날 브라우저로 먼저 왔다가 앱으로 와도 앱으로 셈(사람 확인 수는 그대로 한 번). 센 것이 있으면 true.
      */
-    static synchronized boolean js(String ip, String device) {
+    static synchronized boolean js(String ip, String device, boolean app) {
         load();
         if (!today.equals(LocalDate.now(WeatherServlet.KST).toString())) return false;
         String h = hash(ip);
-        if (!seen.contains(h) || !jsSeen.add(h)) return false;
+        if (!seen.contains(h)) return false;
         JsonObject day = DAYS.get(today);
         if (day == null) return false;
-        if (!day.has("jsUniq")) day.add("jsUniq", new JsonObject());
-        add(day.getAsJsonObject("jsUniq"), device);
-        dirty = true;
-        return true;
+        boolean first = jsSeen.add(h), inApp = app && appSeen.add(h);
+        if (first) {
+            if (!day.has("jsUniq")) day.add("jsUniq", new JsonObject());
+            add(day.getAsJsonObject("jsUniq"), device);
+        }
+        if (inApp) day.addProperty("jsApp", (day.has("jsApp") ? day.get("jsApp").getAsInt() : 0) + 1);
+        if (first || inApp) dirty = true;
+        return first || inApp;
     }
 
     /**
@@ -209,6 +214,7 @@ final class Stats {
             seen.clear();
             jsSeen.clear();
             susSeen.clear();
+            appSeen.clear();
             new SecureRandom().nextBytes(salt);
         }
         JsonObject day = DAYS.computeIfAbsent(d, k -> {

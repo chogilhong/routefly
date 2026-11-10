@@ -127,7 +127,7 @@ public class StatsTest {
         days.put("2026-10-20", JsonParser.parseString("{\"pages\":{\"/hike.html\":9,\"/c/\":3},\"uniq\":5,\"bots\":1,"
                 + "\"dev\":{\"모바일\":8,\"PC\":4},\"devUniq\":{\"모바일\":3,\"PC\":2}}").getAsJsonObject());
         String h = StatsServlet.page(days, 30, null);
-        assertTrue("날마다 표 - 모바일 · PC 칸", h.contains("<tr><td>2026-10-20</td><td class=\"num\">5</td><td class=\"num\">3</td><td class=\"num\">2</td><td class=\"num\">12</td><td class=\"num\">1</td></tr>"));
+        assertTrue("날마다 표 - 모바일 · PC 칸", h.contains("<tr><td>2026-10-20</td><td class=\"num\">5</td><td class=\"num\">3</td><td class=\"num\">2</td><td class=\"num\">-</td><td class=\"num\">12</td><td class=\"num\">1</td></tr>"));   // 앱 칸(2026-11-11 부터 셈) - 그 전 날은 -
         assertTrue("세기 전 날은 -", h.contains("<tr><td>2026-10-19</td><td class=\"num\">4</td><td class=\"num\">-</td><td class=\"num\">-</td>"));
         assertTrue("화면 이름 칸(이름 아래 주소 - 2026-11-02 화면별 그래프)", h.contains("<td>따라가기<br><small class=\"dim\">/hike.html</small></td><td class=\"num\">14</td>"));
         assertTrue(h.contains("<td>모바일</td><td class=\"num\">3</td>"));
@@ -251,10 +251,13 @@ public class StatsTest {
 
         // js 신호는 그 날 사람으로 센 방문자에서 온 것만, 한 사람 한 번
         String ip = "198.51.100." + (int) (Math.random() * 200 + 20);
-        assertFalse("아직 안 센 사람의 신호는 안 셈(아무나 부풀리지 못하게)", Stats.js(ip, "PC"));
+        assertFalse("아직 안 센 사람의 신호는 안 셈(아무나 부풀리지 못하게)", Stats.js(ip, "PC", false));
         Stats.hit("/hike.html", null, ip, null, null, null, "PC", "보안 머리글 없음");
-        assertTrue(Stats.js(ip, "PC"));
-        assertFalse("두 번째는 안 셈", Stats.js(ip, "PC"));
+        assertTrue(Stats.js(ip, "PC", false));
+        assertFalse("두 번째는 안 셈", Stats.js(ip, "PC", false));
+        // 같은 사람이 그 날 앱으로도 오면 앱으로 한 번 더 셈(사람 확인은 그대로) - 2026-11-11
+        assertTrue("앱으로 처음", Stats.js(ip, "PC", true));
+        assertFalse("앱도 한 번만", Stats.js(ip, "PC", true));
 
         TreeMap<String, JsonObject> days = new TreeMap<>();
         days.put("2026-10-21", JsonParser.parseString("{\"pages\":{},\"uniq\":50,\"bots\":0,\"devUniq\":{\"PC\":50}}").getAsJsonObject());
@@ -264,10 +267,26 @@ public class StatsTest {
         assertTrue(t, t.contains("<td class=\"num\">10</td><td class=\"num\">100%</td>"));
         assertTrue(t.contains("1일 합"));
         assertTrue(StatsServlet.checkTable(new TreeMap<>(), java.util.List.of()).contains("아직 없음"));
+        assertFalse("앱을 세기 전 날만 있으면 앱 줄 없음", t.contains("그중 앱"));
+        days.put("2026-11-11", JsonParser.parseString("{\"pages\":{},\"uniq\":40,\"bots\":0,\"devUniq\":{\"모바일\":30,\"PC\":10},\"jsUniq\":{\"모바일\":20,\"PC\":5},\"jsApp\":4}").getAsJsonObject());
+        String ta = StatsServlet.checkTable(days, new java.util.ArrayList<>(days.keySet()));
+        assertTrue("앱 4 - 그 날 모바일 사람 확인 20 의 20%", ta.contains("<tr><td>└ 그중 앱</td><td class=\"num\">-</td><td class=\"num\">4</td><td class=\"num\">20%</td>"));
+        String pa = StatsServlet.page(days, 30, null);
+        assertTrue("날마다 표 앱 칸", pa.contains("<th class=\"num\">앱</th>") && pa.contains("<td>2026-11-11</td>"));
         String pg = StatsServlet.page(days, 30, null);
         assertTrue("날마다 위", pg.indexOf("사람 확인") > 0 && pg.indexOf("사람 확인") < pg.indexOf("<h2>날마다"));
         assertFalse("늘 펼침", pg.contains("<summary><h2>사람 확인"));
         assertTrue("접는 칸은 하나만 펴지게", pg.contains("<details class=\"fold\" name=\"st\">") && pg.contains("<details name=\"st\">"));
+    }
+
+    /** 앱으로 들어온 사람(2026-11-11 홍TV님 "앱으로 들어온지도 알 수 있어?") - seen.js 가 앱(window.Capacitor)이면 ?app=1, SeenServlet 이 Stats.js 에 넘김. */
+    @Test
+    public void seenBeaconMarksApp() throws Exception {
+        String js = new String(java.nio.file.Files.readAllBytes(java.nio.file.Path.of("src/main/webapp/js/seen.js")), java.nio.charset.StandardCharsets.UTF_8);
+        assertTrue(js.contains("var app = window.Capacitor && (!window.Capacitor.isNativePlatform || window.Capacitor.isNativePlatform());"));
+        assertTrue(js.contains("+ (app ? \"?app=1\" : \"\")"));
+        String sv = new String(java.nio.file.Files.readAllBytes(java.nio.file.Path.of("src/main/java/com/gh/routefly/web/SeenServlet.java")), java.nio.charset.StandardCharsets.UTF_8);
+        assertTrue(sv.contains("\"1\".equals(req.getParameter(\"app\"))"));
     }
 
     /** 화면별 그래프(2026-11-02 홍TV님) - 막대 · 날마다 작은 선, 빈 날은 0, 이름 칸. */
