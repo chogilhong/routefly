@@ -221,6 +221,28 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
         eq("가장 높은 곳 - 한 점 튐(1,990)은 가운뎃값으로", RF.recordHighest(spikeEle, [], null), 1904);
         eq("가장 높은 곳 - 정상 200m 안이면 공식 높이", RF.recordHighest(spikeEle, [{ id: "지리산", lat: 35.3321, lon: 127.7 }], { "지리산": 1915 }), 1915);
     })();
+    // 기록에 넣을 위치(2026-11-11 홍TV님 송산 덕기봉 - 실제 기록 track/songsan-20261111.json): 오차 30m · 뛴 위치는 1분 기다림
+    (function () {
+        var T0 = 1794375527149, A = [37.481264, 126.556343, T0];
+        eq("기록 - 첫 점은 오차 30m 안만", [RF.trackTake(null, A, 31, false).take, RF.trackTake(null, A, 30, false).take, RF.trackTake(null, A, null, false).take].join(), "false,true,true");
+        var B = [37.481353, 126.556287, T0 + 13000];   // 11m · 13초
+        eq("기록 - 30m 넘으면 버림", RF.trackTake(A, B, 40, false).take, false);
+        eq("기록 - 1분 넘게 못 찍었으면 50m 까지", [RF.trackTake(A, [B[0], B[1], T0 + 61000], 50, false).take, RF.trackTake(A, [B[0], B[1], T0 + 61000], 51, false).take].join(), "true,false");
+        eq("기록 - 걸은 점은 넣고 거리에", RF.trackTake(A, B, 10, false).walk > 10, true);
+        var rec = JSON.parse(require("fs").readFileSync(require("path").join(__dirname, "../resources/track/songsan-20261111.json"), "utf8")).records[0], tr = rec.track;
+        eq("송산 - 59초에 426m 뛴 점(23번째)", Math.round(RF.distM(tr[22][0], tr[22][1], tr[23][0], tr[23][1])) + "m/" + Math.round((tr[23][2] - tr[22][2]) / 1000) + "s", "426m/59s");
+        eq("송산 - 뛴 점은 1분이 지날 때까지 안 넣음", RF.trackTake(tr[22], tr[23], null, false).take, false);
+        var t24 = RF.trackTake(tr[22], tr[24], null, false);
+        eq("송산 - 1분 지나면 넣되 걸은 거리에는 빼고", [t24.take, t24.walk].join(), "true,0");
+        eq("자전거는 25m/s 까지", RF.trackTake(tr[22], tr[23], null, true).take, true);
+        // 새 규칙으로 다시 기록(오차는 이 기록에 없어 null) - 뛴 곳이 1분 넘는 끊긴 구간이 되어 카드 · 지도에서 점선, 걸은 거리에서 빠짐
+        var kept = [], walked = 0;
+        tr.forEach(function (p) { var r = RF.trackTake(kept[kept.length - 1] || null, p, null, false); if (r.take) { kept.push(p); walked += r.walk; } });
+        var rc = RF.recordCourse({ name: rec.name, kind: "hike", track: kept });
+        eq("송산 - 카드 · 지도에서 뛴 곳은 점선(끊긴 구간)", rc.gap.filter(Boolean).length, 1);
+        eq("송산 - 뛴 거리는 걸은 거리에서 빠짐", walked < rec.walked, true);
+        eq("송산 - 마지막 2분(실제 걸은 길)은 남음", rc.lat[rc.lat.length - 1] + "," + rc.lon[rc.lon.length - 1], "37.481249,126.555359");
+    })();
     // 합계도 같은 거리(2026-10-28 PC): 걸은 거리와 코스 진행 가운데 큰 값, 옛 요약은 합칠 때 큰 값으로
     eq("거리 - 큰 값", RF.recDist({ walked: 3000, done: 5800 }), 5800);
     eq("합계 - 큰 값으로 더함", RF.recordStats([{ start: 1, end: 2, walked: 3000, done: 5800 }, { start: 3, end: 4, walked: 3000 }]).walked, 8800);

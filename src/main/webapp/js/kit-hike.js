@@ -1191,6 +1191,25 @@
     }
 
     /**
+     * 순수 함수 - 따라가기 기록(걸은 길)에 이 위치를 넣을까(2026-11-11 홍TV님 송산 덕기봉: GPS 를 잡기 전 어림 위치가 덕기봉 반대쪽 490m 까지
+     * 길처럼 남았고, 59초에 425m 를 뛰어 긴 직선 - 1분이 안 돼 점선도 아니었음. src/test/resources/track/songsan-20261111.json).
+     * last: 마지막 기록 점([위도, 경도, ms, …], 없으면 null), p: [위도, 경도, ms], acc: 오차 m(모르면 null), bike: 자전거.
+     * - 첫 점은 오차 REC_ACC(30m) 안일 때만. 그 뒤도 30m 넘으면 버림 - 단 1분 넘게 못 찍었으면 50m 까지(골짜기)
+     * - 8m 안 · 1분 안이면 버림(배터리 · 저장 공간). 앞 점에서 걷기 5 · 자전거 25 m/s 넘게 뛰었으면 1분이 지날 때까지 기다림(그 뒤는 끊긴 구간 - 점선 · 거리 빼고)
+     * → {take: 넣을까, walk: 걸은 거리에 더할 m(300m 넘게 뛰었고 걷기 3 · 자전거 25 m/s 를 넘으면 0)}.
+     * 화면의 내 위치 · 코스 이탈 안내는 이 규칙과 상관없이 onFix 가 그대로 씀.
+     */
+    var REC_ACC = 30, REC_ACC_LATE = 50, REC_WAIT_MS = 60000;
+    function trackTake(last, p, acc, bike) {
+        var no = { take: false, walk: 0 };
+        if (!last) return acc == null || acc <= REC_ACC ? { take: true, walk: 0 } : no;
+        var ms = p[2] - last[2], d = distM(last[0], last[1], p[0], p[1]), v = ms > 0 ? d / (ms / 1000) : Infinity;
+        if (acc != null && acc > (ms >= REC_WAIT_MS ? REC_ACC_LATE : REC_ACC)) return no;
+        if (ms < REC_WAIT_MS && (d < 8 || v > (bike ? 25 : 5))) return no;
+        return { take: true, walk: d < 300 || v <= (bike ? 25 : 3) ? d : 0 };
+    }
+
+    /**
      * 순수 함수 - 기록 선을 지도용 GeoJSON 으로(2026-10-28 홍TV님 "지도도 점선으로"): 이어 걸은 곳은 properties.gap false(실선),
      * 위치가 끊긴 구간(rc.gap)은 gap true(점선 - 지도 층에서 거름). rc = recordCourse 결과.
      */
@@ -3881,6 +3900,7 @@
         mergeRecords: mergeRecords,
         mergeStore: mergeStore,
         photoIds: photoIds,
+        trackTake: trackTake,
         recDist: recDist,
         dropLog: dropLog,
         recordLines: recordLines,

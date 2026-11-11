@@ -52,7 +52,7 @@
     var hike = { running: false, sim: false, start: 0, d: 0, off: 0, watch: null, timer: 0, simTimer: 0, simClock: 0,
                  simLast: 0, simD: 0, speed: null, hist: [], wake: null, follow: true, arrived: false, lastFix: 0,
                  fix: null,            // 마지막 위치 {lat, lon, acc, alt, t} - SOS 에 씁니다
-                 track: [],            // 걸은 자리 [[위도, 경도, 시각, 고도]] - 기록 · GPX
+                 track: [],            // 걸은 자리 [[위도, 경도, 시각, 고도, 오차m(2026-11-11 부터)]] - 기록 · GPX
                  notes: [],            // 사진 · 메모 [{t, lat, lon, ele, text, photo}] - 기록 · GPX(wpt). 사진은 IndexedDB(photo = 열쇠)
                  walked: 0,            // 걸은 거리(m)
                  alerted: {},          // 이미 알린 갈림길(진행 거리)
@@ -1170,18 +1170,14 @@
         try { return JSON.parse(localStorage.getItem(saveKey() + "-track") || "[]"); } catch (e) { return []; }
     }
 
-    /** 걸은 자리 하나 - 8m 넘게 움직였거나 1분 지났을 때만(배터리 · 저장 공간 아끼게). */
-    function addTrack(lat, lon, t, alt) {
-        var last = hike.track[hike.track.length - 1];
-        if (last) {
-            var d = RF.distM(last[0], last[1], lat, lon);
-            if (d < 8 && t - last[2] < 60000) return;
-            // GPS 튐(한 번에 300m 넘게)은 거리에 넣지 않습니다. 단 걸어서 갈 만한 빠르기면 넣음 - 2026-10-23 지리산: 크롬은 화면이 꺼지면
-            // 위치가 끊겨 점 사이가 수 km 벌어졌고, 그것을 모두 빼 12km 산행이 2.02km 로 나왔음(튄 위치는 onFix 에서 먼저 버림)
-            var dt = (t - last[2]) / 1000;
-            if (d < 300 || (dt > 0 && d / dt <= (K() === RF.KINDS.bike ? 25 : 3))) hike.walked += d;
-        }
-        hike.track.push([Math.round(lat * 1e6) / 1e6, Math.round(lon * 1e6) / 1e6, Math.round(t), alt == null ? null : Math.round(alt)]);
+    /** 걸은 자리 하나 - 넣을지는 RF.trackTake(첫 점 오차 30m 안 · 8m 넘게 움직였거나 1분 · 뛴 위치는 1분 기다림, 2026-11-11 송산 덕기봉). acc 도 함께 저장(다음에 원인을 바로 보게). */
+    function addTrack(lat, lon, t, alt, acc) {
+        // GPS 튐(한 번에 300m 넘게)은 거리에 넣지 않습니다. 단 걸어서 갈 만한 빠르기면 넣음 - 2026-10-23 지리산: 크롬은 화면이 꺼지면
+        // 위치가 끊겨 점 사이가 수 km 벌어졌고, 그것을 모두 빼 12km 산행이 2.02km 로 나왔음(튄 위치는 onFix 에서 먼저 버림)
+        var r = RF.trackTake(hike.track[hike.track.length - 1] || null, [lat, lon, t], acc == null ? null : acc, K() === RF.KINDS.bike);
+        if (!r.take) return;
+        hike.walked += r.walk;
+        hike.track.push([Math.round(lat * 1e6) / 1e6, Math.round(lon * 1e6) / 1e6, Math.round(t), alt == null ? null : Math.round(alt), acc == null ? null : Math.round(acc)]);
         // 2026-10-09 점검: 점마다 기록 전체를 다시 쓰면 긴 산행에서 점점 무거워집니다(점 n 개면 n² 글자) -
         // 10점 또는 30초마다, 그리고 화면이 가려질 때(flushTrack) 씁니다. 잃어도 마지막 30초 남짓입니다.
         if (hike.track.length % 10 === 0 || t - (hike.trackSavedT || 0) > 30000) flushTrack();
@@ -2908,7 +2904,7 @@
             var pr = RFParty.fix(co.latitude, co.longitude, acc);
             if (pr) pr.catch(function () { /* 신호 없음 - 다음 위치에(2026-11-02 점검: 잡지 않은 거부가 콘솔 오류로) */ });
         }
-        addTrack(co.latitude, co.longitude, t, co.altitude);
+        addTrack(co.latitude, co.longitude, t, co.altitude, hike.sim ? null : acc);
         if (!hike.sim) stampCheck(co.latitude, co.longitude, acc);   // 국토종주 인증센터 · 100대 명산 정상 도장(실제 GPS 만)
         var s = RF.snap(c, co.latitude, co.longitude, hike.lastFix ? hike.d : null);
         var dtFix = hike.lastFix ? Math.max(0, t - hike.lastFix) / 1000 : null;
