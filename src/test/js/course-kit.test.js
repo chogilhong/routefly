@@ -138,6 +138,23 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
         eq("알림 - 풀리면 지움(다시 울릴 수 있게)", [r3.msgs.length, !!r3.fired.sos3, !!r3.fired.quiet1].join(), "0,false,false");
         lead.members[2].sos = true;
         eq("알림 - 다시 SOS 면 다시", RF.partyAlerts(lead, r3.fired).msgs.join("|"), "🆘 SOS - 민수 님");
+        // 📵 연락 끊긴 회원 단계 경보(2026-11-11) - 10분 → 30분(전화) → 60분 🚨, 늦게 처음 보면 가장 높은 단계 하나만, 소식이 오면 풀림
+        var Q = { role: "lead", now: D + 2 * 3600000, departed: true, departedAt: D, endAt: E, members: [{ id: 8, role: "hiker", nick: "새벽", app: true, seen: 700, batt: 40 }] };
+        var q1 = RF.partyAlerts(Q, {});
+        eq("끊김 10분", q1.msgs.join("|"), "📵 새벽 님 10분 넘게 소식 없음");
+        Q.members[0].seen = 1900;
+        var q2 = RF.partyAlerts(Q, q1.fired);
+        eq("끊김 30분 - 전화 · 배터리", q2.msgs.join("|"), "📵 새벽 님 30분 넘게 소식 없음 - 전화해 보세요(마지막 배터리 40%)");
+        Q.members[0].seen = 3700;
+        var q3 = RF.partyAlerts(Q, q2.fired);
+        eq("끊김 60분 - 마지막 위치", q3.msgs.join("|"), "🚨 새벽 님 1시간 넘게 소식 없음 - 마지막 위치를 확인하세요(회원 줄을 누르면 지나온 길)(마지막 배터리 40%)");
+        eq("끊김 - 같은 단계는 다시 안 울림", RF.partyAlerts(Q, q3.fired).msgs.length, 0);
+        eq("끊김 - 늦게 처음 보면 60분 것 하나만", RF.partyAlerts(Q, {}).msgs.join("|").split("|").length + "/" + RF.partyAlerts(Q, {}).msgs[0].slice(0, 2), "1/🚨");
+        Q.members[0].seen = 20;
+        var q4 = RF.partyAlerts(Q, q3.fired);
+        eq("끊김 - 소식 오면 모두 풀림", [q4.msgs.length, !!q4.fired.quiet8, !!q4.fired.quiet30_8, !!q4.fired.quiet60_8].join(), "0,false,false,false");
+        Q.members[0].seen = 1900; delete Q.members[0].batt;
+        eq("끊김 - 배터리 모르면 빼고", RF.partyAlerts(Q, q4.fired).msgs.join("|"), "📵 새벽 님 30분 넘게 소식 없음 - 전화해 보세요");
         // 🐢 하산 늦을 회원(2026-11-11) - 인솔자 · 회원 자기, 30분 더 늦어지면 다시
         var L = { role: "lead", now: D + 3600000, departed: true, departedAt: D, endAt: E, members: [{ id: 7, role: "hiker", nick: "느림", seen: 10, late: 40, arr: E + 40 * 60000 }] };
         var l1 = RF.partyAlerts(L, {});

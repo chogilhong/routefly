@@ -3491,7 +3491,7 @@
     /**
      * 산악회 방 알림(2026-10-28 홍TV님 - 인솔자도 혼자 산행하느라 화면을 못 봄). 순수 함수: 방 화면(view) s · 이미 울린 것 fired({키: true}) →
      * {msgs: 새로 울릴 글, fired: 새 fired}. 풀린 것(SOS 해제 · 소식 옴)은 지워 다시 울릴 수 있게.
-     * 인솔자(사무실 자리 빼고): 🆘 SOS · 📵 앱 회원 10분 소식 없음(산행 시작 10분 뒤부터, 폰 없는 명단 빼고) · ⏰ 하산 마감 60 · 30분 전 미하산 인원.
+     * 인솔자(사무실 자리 빼고): 🆘 SOS · 📵 앱 회원 소식 없음 10분 → 30분(전화) → 🚨 60분(마지막 위치)(산행 시작 10분 뒤부터, 폰 없는 명단 빼고) · ⏰ 하산 마감 60 · 30분 전 미하산 인원.
      * 회원: ⏰ 하산 마감 60 · 30분 전(하산 탑승 · 안 탐이면 없음).
      */
     function partyAlerts(s, fired) {
@@ -3514,7 +3514,15 @@
                     : "🐢 " + m.nick + " 님 하산 탑승보다 약 " + m.late + "분 늦을 예상(도착 예상 " + hm(m.arr) + ")");
                 if (m.app && !m.listed && s.departedAt && !m.sos) {
                     var a = m.seen != null ? m.seen : m.ago, eff = Math.min(a == null ? Infinity : a, (now - s.departedAt) / 1000);
-                    if (eff > 600) hit("quiet" + m.id, en ? "📵 No update from " + m.nick + " for over 10 min" : "📵 " + m.nick + " 님 10분 넘게 소식 없음");
+                    // 단계 경보(2026-11-11 홍TV님 - 무박 새벽 산행): 10분 📵 → 30분 📵 전화 → 60분 🚨 마지막 위치. 늦게 처음 보면 가장 높은 단계 하나만
+                    if (eff > 600) {
+                        var qs = eff > 3600 ? 60 : eff > 1800 ? 30 : 10, bt = m.batt != null ? (en ? " (last battery " + m.batt + "%)" : "(마지막 배터리 " + m.batt + "%)") : "";
+                        [10, 30].forEach(function (w) { if (w < qs) f[w === 10 ? "quiet" + m.id : "quiet" + w + "_" + m.id] = true; });   // 낮은 단계는 울린 셈
+                        if (qs === 10) hit("quiet" + m.id, en ? "📵 No update from " + m.nick + " for over 10 min" : "📵 " + m.nick + " 님 10분 넘게 소식 없음");
+                        else if (qs === 30) hit("quiet30_" + m.id, en ? "📵 No update from " + m.nick + " for over 30 min - please call" + bt : "📵 " + m.nick + " 님 30분 넘게 소식 없음 - 전화해 보세요" + bt);
+                        else hit("quiet60_" + m.id, en ? "🚨 No update from " + m.nick + " for over 1 hour - check the last position (tap the row for the trail)" + bt
+                            : "🚨 " + m.nick + " 님 1시간 넘게 소식 없음 - 마지막 위치를 확인하세요(회원 줄을 누르면 지나온 길)" + bt);
+                    }
                 }
             });
             Object.keys(groups).forEach(function (gk) {   // 하산 탑승지마다(2026-10-28 홍TV님 일정표 - 설악동 17:00 · 남교리 17:35)
