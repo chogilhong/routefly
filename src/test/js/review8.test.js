@@ -81,6 +81,8 @@ var RF = kit();
     var off = 0, sctx = { pocketSet: function (on) { if (!on) off++; }, voice: { on: false }, TTS: null, window: {}, Date: Date };
     vm.runInNewContext(fn(HIKE, "say") + " say('코스에서 벗어났습니다.', { urgent: true }); say('1킬로미터 지났습니다.');", sctx);
     eq("급한 음성 안내만 풂(소리를 꺼 두었어도)", off, 1);
+    // 2026-11-11 홍TV님: 앱에서 GPX 를 카톡 나와의 채팅으로 보내면 말없이 안 들어감(메일은 들어감) - 단추 설명에 알림
+    has("GPX 보내기 - 카톡 안 됨 안내", HIKE, "카카오톡은 GPX 를 받지 못해 메일 · 드라이브 · 내 파일로");
     has("알림 글(toast)이면 풂", fn(HIKE, "toast"), "pocketSet(false);");
     has("SOS 를 열면 풂", HIKE, '$("sos").addEventListener("click", function () {\n        pocketSet(false);');
     has("움직임 없음 물을 때 풂", HIKE, "hike.stillAsk = t;\n        pocketSet(false);");
@@ -266,7 +268,7 @@ var RF = kit();
 // ---- P2 · P3 · P6: 서비스 워커 - 판 붙은 미리 담기(이미 있으면 건너뜀 · ?없는 주소도) · icon-512 뺌 · 가벼운 화면은 등록 안 함 · 못 받은 타일은 잠시 다시 안 물음
 (function () {
     var SW = read("sw.js");
-    has("SHELL 번호", SW, 'var SHELL = "rf-shell-v223"');
+    has("SHELL 번호", SW, 'var SHELL = "rf-shell-v224"');
     eq("icon-512 뺌", SW.indexOf('"img/icon-512.png"'), -1);
     eq("별거 별거 · GPX 편집은 서비스 워커를 등록하지 않음", [read("tools.html").indexOf("js/sw-reg.js\""), read("studio.html").indexOf("js/sw-reg.js\"")], [-1, -1]);
     has("따라가기는 그대로 등록", read("hike.html"), '<script src="js/sw-reg.js"></script>');

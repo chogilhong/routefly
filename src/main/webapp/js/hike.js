@@ -2022,7 +2022,7 @@
         var bs = "display:block;width:100%;text-align:left;margin:8px 0 0;padding:12px;line-height:1.4";
         box.innerHTML = '<b style="font-size:17px">' + T("📤 기록 보내기", "📤 Send record") + '</b><p class="tip" style="margin:6px 0 0"></p>'
             + '<button type="button" class="a" style="' + bs + '"><b>' + T("🎁 routefly 기록으로", "🎁 As a routefly record") + '</b><br><span class="tip">' + T("함께 간 친구에게 - 사진까지, 친구 routefly 내 기록에 그대로", "For a friend - with photos, straight into their routefly records") + '</span></button>'
-            + '<button type="button" class="g" style="' + bs + '"><b>' + T("🗺 GPX 파일로", "🗺 As a GPX file") + '</b><br><span class="tip">' + T("다른 등산 앱 · 지도(gpx.studio)에서 열기 - 선 · 시각 · 높이만", "Open in other apps or maps (gpx.studio) - line, times, elevation only") + '</span></button>'
+            + '<button type="button" class="g" style="' + bs + '"><b>' + T("🗺 GPX 파일로", "🗺 As a GPX file") + '</b><br><span class="tip">' + T("다른 등산 앱 · 지도(gpx.studio)에서 열기 - 선 · 시각 · 높이만. 카카오톡은 GPX 를 받지 못해 메일 · 드라이브 · 내 파일로", "Open in other apps or maps (gpx.studio) - line, times, elevation only. KakaoTalk does not accept GPX - use email, Drive or Files") + '</span></button>'
             + (upOwner ? "" : '<button type="button" class="c" style="' + bs + '"><b>' + T("📮 routefly 에 코스로 보내기", "📮 Send to routefly as a course") + '</b><br><span class="tip">' + T("없는 코스면 점검해 공개 코스로 올립니다 - 선 모양 · 이름만", "If it's a new trail we check it and publish it - line and name only") + '</span></button>')
             + '<button type="button" class="n" style="display:block;width:100%;margin:12px 0 0">' + T("닫기", "Close") + '</button>';
         box.querySelector("p").textContent = NM(r.name);

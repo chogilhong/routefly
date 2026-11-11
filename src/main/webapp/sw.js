@@ -7,7 +7,7 @@
  *   - MapLibre(vendor): 바뀌지 않으므로 받아 둔 것 먼저
  *   - 판 붙은 js · css(js/x.js?v=내용 해시 - war 만들 때 tools/minify/version.js 가 붙임, 2026-11-01): 내용이 바뀌면 주소가 바뀌므로 받아 둔 것 먼저
  */
-var SHELL = "rf-shell-v223", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
+var SHELL = "rf-shell-v224", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
 var TILE_KEEP = 1500;   // 지나가며 본 타일은 이만큼만 남깁니다(저장 공간)
 // 2026-10-09 점검: API 캐시도 한도 - 지도를 움직일 때마다 목록 주소(bbox)가 하나씩 늘어 끝없이 커졌습니다.
 // 오프라인 저장한 코스는 OFFLINE 캐시에 따로 있어 지워지지 않습니다.
