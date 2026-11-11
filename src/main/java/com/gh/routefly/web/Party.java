@@ -483,6 +483,8 @@ final class Party {
         if (text == null) return out;
         List<String> names = new ArrayList<>();
         for (String t : text.split("[,\n·]")) {
+            // 자정 넘은 "24:00 · 24:15 · 2415" 는 다음 날 00:MM(2026-11-11 반더룽 설악산 일정표 - 사당 23:50 · 양재 24:00 · 복정 24:15). 시각 꼴만 - "24시간" 같은 글은 그대로
+            t = t.replaceAll("(?<!\\d)24([:.][0-5]\\d)(?!\\d)", "00$1").replaceAll("(?<![\\d가-힣A-Za-z])24([0-5]\\d)(?![\\d가-힣A-Za-z])", "00$1");
             String time = "";
             java.util.regex.Matcher m = STOP_TIME.matcher(t);
             boolean hit = m.find();
