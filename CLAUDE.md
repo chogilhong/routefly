@@ -120,6 +120,7 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다 - 산악회 방 
 - 운영 화면을 curl · 스크립트로 확인할 때는 User-Agent 에 `routefly-check` 를 붙입니다(예: `curl.exe -A "routefly-check" …`) - 통계 방문 수에서 빠짐(2026-10-31 홍TV님, StatsFilter.selfCheck).
   PC Claude 가 쓰는 브라우저(내장 브라우저 등)는 홍TV님이 그 브라우저에서 /stats 를 한 번 열어 주면 관리자 기기로 빠집니다.
 - 배포 뒤 기동 로그(버전 줄 · 설정 줄)로 확인합니다. 이클립스가 동시에 반영 중이면 복사가 막힐 수 있으니 홍TV님께 Tomcat Restart 를 부탁합니다.
+- 복사 배포 뒤 api 만 404 이고 화면 파일은 200 이면, 이클립스 자동 빌드가 class 를 다시 써 재로드가 멈춘 것입니다(2026-11-11: 16:27 복사 뒤 17:23 Party*.class 를 다시 씀, 기동 로그 없음). 설정 클래스를 다시 건드려도 풀리지 않으니 홍TV님께 Tomcat Restart 를 부탁합니다.
 - 되돌려 확인을 자바 파일 `git checkout` 으로 하면 이클립스 자동 배포로 웹앱이 내려갑니다. target 아래 복사본으로 하거나 컴파일 실패로 갈음합니다.
   JS 문법은 `wtpwebapps\ROOT` 임시 폴더 + `new Function` 으로 보고 지웁니다.
 
