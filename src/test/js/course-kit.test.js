@@ -138,6 +138,18 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
         eq("알림 - 풀리면 지움(다시 울릴 수 있게)", [r3.msgs.length, !!r3.fired.sos3, !!r3.fired.quiet1].join(), "0,false,false");
         lead.members[2].sos = true;
         eq("알림 - 다시 SOS 면 다시", RF.partyAlerts(lead, r3.fired).msgs.join("|"), "🆘 SOS - 민수 님");
+        // 🐢 하산 늦을 회원(2026-11-11) - 인솔자 · 회원 자기, 30분 더 늦어지면 다시
+        var L = { role: "lead", now: D + 3600000, departed: true, departedAt: D, endAt: E, members: [{ id: 7, role: "hiker", nick: "느림", seen: 10, late: 40, arr: E + 40 * 60000 }] };
+        var l1 = RF.partyAlerts(L, {});
+        eq("늦음 - 인솔자", l1.msgs.join("|"), "🐢 느림 님 하산 탑승보다 약 40분 늦을 예상(도착 예상 " + new Date(E + 40 * 60000 + 9 * 3600000).toISOString().slice(11, 16) + ")");
+        L.members[0].late = 50;
+        eq("늦음 - 조금 더 늦어도 다시 안 울림", RF.partyAlerts(L, l1.fired).msgs.length, 0);
+        L.members[0].late = 70;
+        eq("늦음 - 30분 단위로 더 늦어지면 다시", RF.partyAlerts(L, l1.fired).msgs.length, 1);
+        var Hk = { role: "hiker", me: 7, now: D + 3600000, departed: true, endAt: E, members: [{ id: 7, role: "hiker", nick: "느림", late: 25, arr: E + 25 * 60000 }] };
+        eq("늦음 - 회원 자기", /^🐢 지금 속도로는 하산 탑승에 약 25분 늦습니다/.test(RF.partyAlerts(Hk, {}).msgs.join("|")), true);
+        Hk.aboard = true;
+        eq("늦음 - 하산 탑승했으면 안 울림", RF.partyAlerts(Hk, {}).msgs.length, 0);
         lead.now = E - 50 * 60000;
         eq("알림 - 하산 마감 60분 전 미하산 인원(사무실 자리 · 탄 사람 빼고)", RF.partyAlerts(lead, r3.fired).msgs.filter(function (m) { return m.indexOf("⏰") === 0; }).join("|"), "⏰ 하산 마감 01:53 (50분 남음) - 아직 4명 하산 전");
         eq("알림 - 사무실 자리는 울리지 않음", RF.partyAlerts({ role: "lead", officeMe: true, now: lead.now, departed: true, endAt: E, members: lead.members }, {}).msgs.length, 0);

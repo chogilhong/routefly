@@ -3278,6 +3278,18 @@
         }).then(function () { if (g !== safetyGen) safetyCancel(); }).catch(function () { /* 알림 권한 없음 - 음성 · 화면으로만 */ });
     }
 
+    /**
+     * 산악회 방 하산 예상(2026-11-11 홍TV님 "작업해" - 늦을 회원 미리 경보): 실제 산행으로 코스를 따라가는 중이면 코스 끝 도착 예상 · 남은 거리 · 코스 끝 자리.
+     * 위치를 보낼 때 party-kit 이 부름(RFParty.etaNow). 시험 걷기 · 산행 전 · 도착 뒤는 null.
+     */
+    function partyEta() {
+        if (!c || !hike.running || hike.sim || !c.lat || !c.lat.length) return null;
+        var d = hike.d, n = c.lat.length - 1;
+        if (d >= c.total - ARRIVE_M) return null;
+        return { eta: Date.now() + remainingMs(now() - hike.start), left: Math.max(0, c.total - d), endLat: c.lat[n], endLon: c.lon[n] };
+    }
+    if (window.RFParty) RFParty.etaNow = partyEta;
+
     function render() {
         if (!c) return;
         renderHidden = document.hidden === true || pocket.on;   // 알림 · 판단은 그대로 하고 화면 쓰기만 쉼(주머니 모드도)

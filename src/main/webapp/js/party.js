@@ -888,12 +888,14 @@
             var via = m.role === "hiker" && !m.listed && (m.app || m.ago != null || m.seen != null) ? (m.app ? " <small title=\"" + T("앱 - 화면을 꺼도 보냄", "app - sends with screen off") + "\">📱</small>" : " <small title=\"" + T("웹 - 화면을 끄면 멈춤", "web - stops when screen off") + "\">🌐</small>") : "";
             return "<tr class=\"" + cls + "\" data-id=\"" + m.id + "\"><td>" + (m.role === "lead" ? "-" : seatText(s, m)) + "</td><td>" + esc(m.nick) + via
                 + dsel + (m.msg ? "<br><small>💬 " + esc(m.msg) + " (" + clock(m.msgAt) + ")</small>" : "")
+                + (m.arr && !m.aboard && !m.cancelled ? "<br><small style=\"color:" + (m.late > 0 ? "#ff8787" : "var(--dim)") + "\">⏱ " + T("하산 예상 ", "ETA ") + clock(m.arr)
+                    + (m.late > 0 ? T(" · ⚠ 탑승보다 약 " + m.late + "분 늦음", " · ⚠ about " + m.late + " min late") : "") + "</small>" : "")   // 하산 예상(따라가기 코스로, 2026-11-11)
                 + (m.lateAt ? "<br><small style=\"color:#ffd43b\">" + T("📱 출발 뒤 들어옴 - 본인 확인", "📱 Joined after departure - check") + " (" + clock(m.lateAt) + ")</small>" : "")
                 + (m.cancelled && m.role === "hiker" ? " <button type=\"button\" class=\"undo\" data-undo=\"" + m.id + "\" title=\"" + T("늦게 온 회원", "Late member") + "\">" + T("✅ 탔음", "✅ On bus") + "</button>" : "") + "</td><td>" + (m.aboard ? "-" : newsText(m)) + "</td><td>"
                 + (m.stillMin != null && m.ago != null ? m.stillMin + T("분", " min") : "-") + "</td><td>" + (m.batt != null ? m.batt + "%" : "-") + "</td><td>" + st
                 + (s.role === "lead" && (m.role !== "lead" || (s.chief && !m.chief && !m.office)) ? " <button type=\"button\" class=\"kick\" data-kick=\"" + m.id + "\" title=\"" + T("방에서 내보내기", "Remove from room") + "\" aria-label=\"" + T(esc(m.nick) + " 내보내기", "Remove " + esc(m.nick)) + "\">✕</button>" : "") + "</td></tr>";
         }).join("") || "<tr><td colspan=\"6\">" + T("아직 참가한 회원이 없습니다. 참가 안내를 보내 주세요.", "No members have joined yet. Send the invite.") + "</td></tr>";
-        function rank(m) { return m.sos ? 0 : m.cancelled ? 6 : m.aboard ? 5 : (s.departed && silent(m)) ? 1 : (m.stillMin || 0) >= 15 ? 2 : 3; }
+        function rank(m) { return m.sos ? 0 : m.cancelled ? 6 : m.aboard ? 5 : (s.departed && silent(m)) ? 1 : (m.late > 0 || (m.stillMin || 0) >= 15) ? 2 : 3; }   // 하산 늦을 회원도 위로(2026-11-11)
     }
 
     /** 인솔자 "지금 할 일" - 단계(출발 전 · 산행 중 · 하산)마다 할 일만(2026-10-28 홍TV님 추천 2). 사무실 자리는 안 보임. */

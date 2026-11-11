@@ -296,6 +296,9 @@
                 if (m.cancelled || m.aboard) return;
                 var at = m.pickup && s.pickupAt && s.pickupAt[m.pickup] || s.endAt;
                 if (at) { var gk = m.pickup && s.pickupAt && s.pickupAt[m.pickup] ? m.pickup : ""; groups[gk] = groups[gk] || { at: at, n: 0 }; groups[gk].n++; }
+                // 🐢 하산이 늦을 회원(2026-11-11) - 코스 도착 예상(+버스까지)이 그 회원 하산 탑승 시각보다 늦음. 30분 더 늦어질 때마다 다시
+                if (m.late > 0 && s.departed) hit("late" + m.id + "_" + Math.floor(m.late / 30), en ? "🐢 " + m.nick + " may be about " + m.late + " min late for the bus (ETA " + hm(m.arr) + ")"
+                    : "🐢 " + m.nick + " 님 하산 탑승보다 약 " + m.late + "분 늦을 예상(도착 예상 " + hm(m.arr) + ")");
                 if (m.app && !m.listed && s.departedAt && !m.sos) {
                     var a = m.seen != null ? m.seen : m.ago, eff = Math.min(a == null ? Infinity : a, (now - s.departedAt) / 1000);
                     if (eff > 600) hit("quiet" + m.id, en ? "📵 No update from " + m.nick + " for over 10 min" : "📵 " + m.nick + " 님 10분 넘게 소식 없음");
@@ -313,6 +316,11 @@
             // 하차 안내(인솔자 "⬇ 한계령 도착") - 버스 안 회원
             if (s.arrive && !s.aboard && !s.cancelled) hit("arr" + s.arrive.at, en ? "⬇ We're at " + s.arrive.drop + ". If you get off here, tap \"I'm getting off here\"." : "⬇ 지금 " + s.arrive.drop + "입니다. 여기서 내리시면 \"여기서 내려요\"를 눌러 주세요.");
             var mine = s.myEndAt || s.endAt, pk = s.pickup && s.pickupAt && s.pickupAt[s.pickup] ? s.pickup : "";   // 내 하산 탑승지 시각(없으면 방 하산 마감)
+            // 🐢 지금 속도로는 하산 탑승에 늦음(2026-11-11) - 내 줄(members 의 나)의 late. 30분 더 늦어질 때마다 다시
+            var me = (s.members || []).filter(function (x) { return x.id === s.me; })[0];
+            if (me && me.late > 0 && s.departed && !s.aboard && !s.cancelled)
+                hit("mylate" + Math.floor(me.late / 30), en ? "🐢 At this pace you may be about " + me.late + " min late for the bus (ETA " + hm(me.arr) + "). Hurry or tell the leader."
+                    : "🐢 지금 속도로는 하산 탑승에 약 " + me.late + "분 늦습니다(도착 예상 " + hm(me.arr) + "). 서두르거나 인솔자에게 알려 주세요.");
             if (s.departed && mine && !s.aboard && !s.cancelled) {
                 var mleft = Math.ceil((mine - now) / 60000);
                 [60, 30].forEach(function (w) {

@@ -124,6 +124,13 @@ final class Party {
          */
         boolean wasAboard, wasApart;
         // ---- 메모리에만(파일에 안 씀)
+        /**
+         * 하산 예상(2026-11-11 홍TV님 "작업해" - 늦을 회원 미리 경보): 회원 폰 따라가기 코스의 도착 예상 시각(eta) · 남은 거리(left, m) · 코스 끝(endLat · endLon).
+         * 위치를 보낼 때 함께 옴(코스를 따라가는 중일 때만), etaAt 은 받은 때. 메모리에만.
+         */
+        long eta, etaAt;
+        Integer left;
+        Double endLat, endLon;
         /** 인솔자에게 한 줄(2026-10-27 홍TV님 - 공지의 반대 방향) - 메모리에만, 방이 끝나면 사라짐. */
         String msg;
         /** 출발 뒤 명단 이름으로 핸드폰이 들어온 때(2026-10-28 보안 점검) - 회원 한 줄(msg)과 따로 두어 회원이 덮어쓰지 못하게. 메모리. */
@@ -1059,6 +1066,47 @@ final class Party {
      * 위치가 없으면 SOS 도 못 보냈음). 출발 전 · 취소 · 하산 탑승이면 받지 않음.
      */
     /** sos - null 이면 그대로 둠(앱의 "폰 켜짐" 신호 RfAlive 는 sos 를 안 보냄 - 전에는 1분마다 SOS 가 꺼져 인솔자에게 "새 SOS" 가 되풀이됐음, 2026-10-22 점검). */
+    /** 하산 예상 - 받은 지 이만큼 지나면 안 씀(위치는 30초 · 머물면 90초마다라 넉넉히). */
+    static final long ETA_FRESH_MS = 10 * 60 * 1000L;
+    /** 코스 끝에서 버스까지 걸어갈 때 - 직선의 1.3배 길을 시속 4km(평지)로. 3km 넘게 떨어진 버스는 다른 곳(하차 지점 등)에 선 것으로 보고 더하지 않음. */
+    static final double BUS_WALK_MPS = 4000.0 / 3600, BUS_WALK_ROAD = 1.3, BUS_WALK_MAX_M = 3000;
+
+    /**
+     * 하산 예상 받기(위치와 함께) - 따라가는 코스가 없거나 값이 이상하면 지움. eta 는 폰이 계산한 코스 끝 도착 시각(hike.js remainingMs).
+     */
+    synchronized void eta(Member m, Long eta, Integer left, Double endLat, Double endLon, long now) {
+        if (eta == null || left == null || eta < now - HOUR || eta > now + 48 * HOUR || left < 0 || left > 300000) {
+            m.eta = 0; m.left = null; m.endLat = m.endLon = null;
+            return;
+        }
+        m.eta = eta; m.etaAt = now; m.left = left;
+        boolean ok = endLat != null && endLon != null && okPos(endLat, endLon);
+        m.endLat = ok ? endLat : null; m.endLon = ok ? endLon : null;
+    }
+
+    /**
+     * 순수 함수 - 하산 탑승지(버스)에 닿을 예상 시각, 모르면 null. 산행 회원이 코스를 따라가는 중이고 하산 예상이 새로울 때만.
+     * 코스 끝 도착 예상 + 그 호차 "버스 세운 자리" 까지 걸음(3km 안일 때).
+     */
+    static Long busArrive(Member m, long now) {
+        if (m.eta <= 0 || now - m.etaAt > ETA_FRESH_MS || !"hiker".equals(m.role) || m.aboard || m.apart || m.cancelled) return null;
+        double[] bus = m.room.busAt.get(m.bus);
+        long walk = 0;
+        if (bus != null && m.endLat != null) {
+            double d = MountainServlet.distM(m.endLat, m.endLon, bus[0], bus[1]);
+            if (d <= BUS_WALK_MAX_M) walk = Math.round(d * BUS_WALK_ROAD / BUS_WALK_MPS * 1000);
+        }
+        return Math.max(m.eta, now) + walk;
+    }
+
+    /** 순수 함수 - 하산 탑승(그 회원 탑승지 출발 시각, 없으면 방 하산 마감)보다 몇 분 늦게 닿을 예상인지. 늦지 않거나 모르면 0. */
+    static int lateMin(Member m, long now) {
+        Long arr = busArrive(m, now);
+        long dl = deadline(m);
+        if (arr == null || dl <= 0 || arr <= dl) return 0;
+        return (int) Math.ceil((arr - dl) / 60000.0);
+    }
+
     /** 앱 · 웹 어디서 보냈나(loc · ping 마다). */
     synchronized void via(Member m, boolean app) {
         m.app = app;
@@ -2126,6 +2174,15 @@ final class Party {
                 x.addProperty("ago", (now - m.t) / 1000);
             }
             if (m.msg != null && (staff || m == me)) { x.addProperty("msg", m.msg); x.addProperty("msgAt", m.msgAt); }
+            if (staff || m == me) {   // 하산 예상(2026-11-11) - 인솔자는 모두, 회원은 자기 것. late - 하산 탑승보다 몇 분 늦을 예상(0 이면 안 보냄)
+                Long busArr = busArrive(m, now);
+                if (busArr != null) {
+                    x.addProperty("arr", busArr);
+                    if (m.left != null) x.addProperty("left", m.left);
+                    int late = lateMin(m, now);
+                    if (late > 0) x.addProperty("late", late);
+                }
+            }
             if (staff && m.lateAt > 0) x.addProperty("lateAt", m.lateAt);   // 출발 뒤 명단 이름으로 들어옴 - 인솔자 화면에 "본인 확인"   // 인솔자에게 한 줄
             if (staff) {
                 if (m.app) x.addProperty("app", true);   // 📱 앱(화면을 꺼도 보냄) · 아니면 🌐 웹
