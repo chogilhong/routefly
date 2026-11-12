@@ -268,7 +268,7 @@ var RF = kit();
 // ---- P2 · P3 · P6: 서비스 워커 - 판 붙은 미리 담기(이미 있으면 건너뜀 · ?없는 주소도) · icon-512 뺌 · 가벼운 화면은 등록 안 함 · 못 받은 타일은 잠시 다시 안 물음
 (function () {
     var SW = read("sw.js");
-    has("SHELL 번호", SW, 'var SHELL = "rf-shell-v226"');
+    has("SHELL 번호", SW, 'var SHELL = "rf-shell-v227"');
     eq("icon-512 뺌", SW.indexOf('"img/icon-512.png"'), -1);
     eq("별거 별거 · GPX 편집은 서비스 워커를 등록하지 않음", [read("tools.html").indexOf("js/sw-reg.js\""), read("studio.html").indexOf("js/sw-reg.js\"")], [-1, -1]);
     has("따라가기는 그대로 등록", read("hike.html"), '<script src="js/sw-reg.js"></script>');

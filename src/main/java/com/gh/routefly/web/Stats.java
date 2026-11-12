@@ -138,6 +138,26 @@ final class Stats {
         dirty = true;
     }
 
+    /**
+     * 앱 신호가 걸러진 까닭을 그 날 숫자로(2026-11-12 PC 제안: "그중 앱" 0 - 신호는 왔는데 관리자 · 숨은 로봇 · 방문 없음 가운데 어디서 빠지는지).
+     * why - "관리자" · "확인용" · 로봇 종류(숨은 로봇 등) · "방문 없음" · "이미 셈" · "셈". 숫자만.
+     */
+    static synchronized void appWhy(String why) {
+        load();
+        if (why == null || !today.equals(LocalDate.now(WeatherServlet.KST).toString())) return;
+        JsonObject day = DAYS.get(today);
+        if (day == null) return;
+        if (!day.has("appWhy")) day.add("appWhy", new JsonObject());
+        add(day.getAsJsonObject("appWhy"), why);
+        dirty = true;
+    }
+
+    /** 그 날 화면 방문으로 센 사람인가(앱 신호 까닭 가르기). */
+    static synchronized boolean seenToday(String ip) {
+        load();
+        return today.equals(LocalDate.now(WeatherServlet.KST).toString()) && seen.contains(hash(ip));
+    }
+
     static synchronized boolean js(String ip, String device, boolean app) {
         load();
         if (!today.equals(LocalDate.now(WeatherServlet.KST).toString())) return false;

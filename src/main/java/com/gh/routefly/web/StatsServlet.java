@@ -270,10 +270,12 @@ public class StatsServlet extends HttpServlet {
      */
     static String checkTable(Map<String, JsonObject> days, List<String> keys) {
         Map<String, Integer> vis = new HashMap<>(), js = new HashMap<>(), sus = new HashMap<>();
+        Map<String, Integer> appWhy = new java.util.TreeMap<>();   // 앱 신호가 걸러진 까닭(2026-11-12)
         int nd = 0, app = 0, appDays = 0, appMob = 0, appSig = 0;   // 앱(2026-11-11 부터) - 세기 시작한 날의 모바일 사람 확인과 견줌. appSig - 걸러내기 전 받은 신호(2026-11-12)
         for (String k : keys) {
             JsonObject d = days.get(k);
             if (d.has("appSig")) appSig += d.get("appSig").getAsInt();
+            if (d.has("appWhy")) for (var e : d.getAsJsonObject("appWhy").entrySet()) appWhy.merge(e.getKey(), e.getValue().getAsInt(), Integer::sum);
             if (!d.has("jsApp")) continue;
             appDays++;
             app += d.get("jsApp").getAsInt();
@@ -298,6 +300,11 @@ public class StatsServlet extends HttpServlet {
             if ("모바일".equals(dv) && appDays > 0)
                 b.append("<tr><td>└ 그중 앱</td><td class=\"num\" title=\"앱이 보낸 신호(걸러내기 전)\">").append(appSig > 0 ? "신호 " + n(appSig) : "-").append("</td><td class=\"num\">").append(n(app)).append("</td><td class=\"num\">")
                         .append(appMob > 0 ? Math.round(100.0 * app / appMob) + "%" : "-").append("</td><td class=\"num\">-</td></tr>");
+            if ("모바일".equals(dv) && !appWhy.isEmpty()) {   // 앱 신호 까닭(관리자 · 숨은 로봇 · 방문 없음 · 이미 셈 · 셈) - "그중 앱" 이 낮을 때 어디서 빠지는지
+                StringBuilder w = new StringBuilder();
+                for (var e : appWhy.entrySet()) w.append(w.length() > 0 ? " · " : "").append(ShareServlet.esc(e.getKey())).append(" ").append(n(e.getValue()));
+                b.append("<tr><td colspan=\"5\" class=\"dim\" style=\"font-size:12px\">　앱 신호: ").append(w).append("</td></tr>");
+            }
         }
         return b.append("</table><p class=\"dim\" style=\"margin:6px 0 0\">").append(nd).append("일 합. 화면 js 돎 - 방문자 가운데 화면이 열려 그 안의 프로그램이 돈 사람, 비율은 그 몫(사람 브라우저는 거의 100%). ")
                 .append("낮으면 언어 설정까지 흉내 낸 수집 프로그램이 섞였다는 뜻. 보안 머리글 빠짐 - 요즘 브라우저가 늘 보내는 표식이 없는 사람(예전 아이폰도 걸릴 수 있어 로봇으로 빼지는 않음).</p></section>").toString();

@@ -277,6 +277,12 @@ public class StatsTest {
         // 걸러내기 전 받은 앱 신호 수(2026-11-12 - "그중 앱" 이 0 일 때 신호가 안 왔는지 걸러졌는지)
         days.put("2026-11-12", JsonParser.parseString("{\"pages\":{},\"uniq\":10,\"bots\":0,\"devUniq\":{\"모바일\":10},\"jsUniq\":{\"모바일\":8},\"jsApp\":0,\"appSig\":3}").getAsJsonObject());
         assertTrue("신호 3", StatsServlet.checkTable(days, new java.util.ArrayList<>(days.keySet())).contains("title=\"앱이 보낸 신호(걸러내기 전)\">신호 3</td>"));
+        // 앱 신호가 걸러진 까닭(2026-11-12 - 15:51 홍TV님 앱: 화면 요청 · 신호 둘 다 왔는데 그중 앱 0)
+        days.get("2026-11-12").add("appWhy", JsonParser.parseString("{\"숨은 로봇\":2,\"셈\":1}"));
+        assertTrue("까닭 줄", StatsServlet.checkTable(days, new java.util.ArrayList<>(days.keySet())).contains("　앱 신호: 셈 1 · 숨은 로봇 2</td>"));
+        assertEquals("언어 머리글 없는 신호는 숨은 로봇으로(앱 웹뷰가 이렇게 오는지 까닭 숫자로 봄)", "숨은 로봇", SeenServlet.why(null, chrome, null));
+        assertNull("사람", SeenServlet.why(null, chrome, "ko-KR,ko;q=0.9"));
+        assertEquals("확인용", SeenServlet.why(null, chrome + " routefly-check", "ko-KR"));
         String pa = StatsServlet.page(days, 30, null);
         assertTrue("날마다 표 앱 칸", pa.contains("<th class=\"num\">앱</th>") && pa.contains("<td>2026-11-11</td>"));
         String pg = StatsServlet.page(days, 30, null);
@@ -293,7 +299,9 @@ public class StatsTest {
         assertTrue(js.contains("+ (app ? \"?app=1\" : \"\")"));
         String sv = new String(java.nio.file.Files.readAllBytes(java.nio.file.Path.of("src/main/java/com/gh/routefly/web/SeenServlet.java")), java.nio.charset.StandardCharsets.UTF_8);
         assertTrue(sv.contains("\"1\".equals(req.getParameter(\"app\"))"));
-        assertTrue("걸러내기 전 신호도 셈", sv.contains("if (\"1\".equals(req.getParameter(\"app\"))) Stats.appSignal();"));
+        assertTrue("걸러내기 전 신호도 셈 · 까닭 숫자", sv.contains("if (app) Stats.appSignal();") && sv.contains("if (app) Stats.appWhy(got ? \"셈\" : \"이미 셈\");")
+            && sv.contains("} else if (app) Stats.appWhy(why);"));
+        assertTrue("신호는 하루에 한 번(앱은 웹뷰가 살아 있어 sessionStorage 가 남음)", js.contains("sessionStorage.getItem(\"rf-seen\") === day"));
         assertTrue("앱 판별은 화면이 다 열린 뒤(원격 화면에 앱 연결이 늦게 들어올 수 있음)", js.contains("if (document.readyState === \"complete\") go(); else window.addEventListener(\"load\", go);"));
     }
 

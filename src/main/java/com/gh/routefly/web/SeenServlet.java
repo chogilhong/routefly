@@ -16,18 +16,28 @@ public class SeenServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) {
-        Access.js(SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For")), System.currentTimeMillis());   // 오늘 접속 분석 - js 가 돈 곳
+        String ip = SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For"));
+        Access.js(ip, System.currentTimeMillis());   // 오늘 접속 분석 - js 가 돈 곳
         String ua = req.getHeader("User-Agent");
-        if ("1".equals(req.getParameter("app"))) Stats.appSignal();   // 걸러내기 전 앱 신호 수(2026-11-12 - "그중 앱" 이 0 일 때 어디서 빠지는지)
-        if (counted(req.getHeader("Cookie"), ua, req.getHeader("Accept-Language")))
-            Stats.js(SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For")), Stats.device(ua),
-                    "1".equals(req.getParameter("app")));   // routefly 앱 안(js/seen.js 가 window.Capacitor 를 보고 ?app=1 - 2026-11-11)
+        boolean app = "1".equals(req.getParameter("app"));   // routefly 앱 안(js/seen.js 가 window.Capacitor 를 보고 ?app=1 - 2026-11-11)
+        if (app) Stats.appSignal();   // 걸러내기 전 앱 신호 수(2026-11-12 - "그중 앱" 이 0 일 때 어디서 빠지는지)
+        String why = why(req.getHeader("Cookie"), ua, req.getHeader("Accept-Language"));
+        if (why == null && !Stats.seenToday(ip)) why = "방문 없음";
+        if (why == null) {
+            boolean got = Stats.js(ip, Stats.device(ua), app);
+            if (app) Stats.appWhy(got ? "셈" : "이미 셈");
+        } else if (app) Stats.appWhy(why);
         resp.setHeader("Cache-Control", "no-store");
         resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
     }
 
     /** 사람 방문으로 셀까 - 운영자 기기 · PC Claude 확인용 접속(routefly-check, StatsFilter 와 같게 - 2026-11-03 홍TV님 점검) · 로봇은 뺌. */
     static boolean counted(String cookie, String ua, String lang) {
-        return !StatsFilter.owner(cookie) && !StatsFilter.selfCheck(ua) && Stats.botKind(ua, lang) == null;
+        return why(cookie, ua, lang) == null;
+    }
+
+    /** 순수 함수 - 세지 않는 까닭("관리자" · "확인용" · 로봇 종류), 셀 것이면 null(2026-11-12 - 앱 신호 까닭 숫자). */
+    static String why(String cookie, String ua, String lang) {
+        return StatsFilter.owner(cookie) ? "관리자" : StatsFilter.selfCheck(ua) ? "확인용" : Stats.botKind(ua, lang);
     }
 }
