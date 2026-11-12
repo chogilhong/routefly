@@ -1470,8 +1470,13 @@
      */
     /** 카드의 "가장 높은 곳" 을 정상 공식 높이로(100대 명산 자리 · 공식 높이 - 처음 한 번 받아 둠). */
     var cardPeaks = { peaks: null, elev: null };
-    jsonOnce("data/mountains100.json").then(function (d) { cardPeaks.peaks = (d && d.peaks) || []; }, function () { /* 없으면 GPS 높이 */ });
-    jsonOnce("data/peak-elev.json").then(function (d) { cardPeaks.elev = (d && d.elev) || null; }, function () { /* 없으면 GPS 높이 */ });
+    /** 카드 · 기록 보기를 열 때 받음(2026-11-12 점검: 따라가기를 열 때마다 받던 것 - 기록 목록 · 끝난 화면에서 부름, 받기 전이면 GPS 높이). */
+    function cardPeaksLoad() {
+        if (cardPeaks.asked) return;
+        cardPeaks.asked = true;
+        jsonOnce("data/mountains100.json").then(function (d) { cardPeaks.peaks = (d && d.peaks) || []; }, function () { /* 없으면 GPS 높이 */ });
+        jsonOnce("data/peak-elev.json").then(function (d) { cardPeaks.elev = (d && d.elev) || null; }, function () { /* 없으면 GPS 높이 */ });
+    }
     function recordCard(rec) {
         var rc = RF.recordCourse(rec), W = 1080, H = 1350, P = 72;
         var cv = document.createElement("canvas");
@@ -1717,6 +1722,7 @@
             row.appendChild(a); row.appendChild(b); sum.appendChild(row);
         });
         $("doneGpx").onclick = function () { downloadGpx(rec); };
+        cardPeaksLoad();
         $("doneCard").onclick = function () { shareCard(rec); };
         $("doneBrag").onclick = function () { bragCard(rec); };
         $("doneBrag").hidden = !!sim;   // 시험 걷기는 자랑하지 않음
@@ -1886,6 +1892,7 @@
     }
 
     function drawRecords() {
+        cardPeaksLoad();
         var box = $("recList"), list = records();
         if (upOwnerP == null) {   // 처음 열 때 한 번만 물음(관리자 기기인가) - 맞으면 단추를 넣어 다시 그림
             upOwnerP = getJson("api/course-upload").then(function (j) {

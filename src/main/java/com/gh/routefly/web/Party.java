@@ -784,7 +784,7 @@ final class Party {
         int i = stop == null ? -1 : r.stops.indexOf(stop);
         if (i < 0 || r.stopTimes.isEmpty() || r.stopTimes.get(i).isEmpty() || r.departAt == 0) return 0;
         String[] hm = r.stopTimes.get(i).split(":");
-        java.time.ZonedDateTime d = java.time.Instant.ofEpochMilli(r.departAt).atZone(java.time.ZoneId.of("Asia/Seoul"))
+        java.time.ZonedDateTime d = java.time.Instant.ofEpochMilli(r.departAt).atZone(WeatherServlet.KST)
                 .withHour(Integer.parseInt(hm[0])).withMinute(Integer.parseInt(hm[1])).withSecond(0).withNano(0);
         long t = d.toInstant().toEpochMilli();
         // 앞뒤 12시간 안으로(2026-10-28 버그 점검: 출발 00:10 · 사당 23:40 이면 다음 날 밤으로 갔음)
@@ -794,7 +794,7 @@ final class Party {
     /** 그 시각 "HH:MM" 을 base 날(서울 시각)에 놓은 ms. */
     private static long onDay(long base, String hhmm) {
         String[] hm = hhmm.split(":");
-        return java.time.Instant.ofEpochMilli(base).atZone(java.time.ZoneId.of("Asia/Seoul"))
+        return java.time.Instant.ofEpochMilli(base).atZone(WeatherServlet.KST)
                 .withHour(Integer.parseInt(hm[0])).withMinute(Integer.parseInt(hm[1])).withSecond(0).withNano(0).toInstant().toEpochMilli();
     }
 
@@ -1110,9 +1110,8 @@ final class Party {
         return Math.max(m.eta, now) + walk;
     }
 
-    /** 순수 함수 - 하산 탑승(그 회원 탑승지 출발 시각, 없으면 방 하산 마감)보다 몇 분 늦게 닿을 예상인지. 늦지 않거나 모르면 0. */
-    static int lateMin(Member m, long now) {
-        Long arr = busArrive(m, now);
+    /** 순수 함수 - 하산 탑승(그 회원 탑승지 출발 시각, 없으면 방 하산 마감)보다 몇 분 늦게 닿을 예상인지. arr - busArrive 값(view 가 한 번 셈, 2026-11-12 점검). 늦지 않거나 모르면 0. */
+    static int lateMin(Member m, Long arr) {
         long dl = deadline(m);
         if (arr == null || dl <= 0 || arr <= dl) return 0;
         return (int) Math.ceil((arr - dl) / 60000.0);
@@ -2123,7 +2122,8 @@ final class Party {
         if (me.stop != null) o.addProperty("stop", me.stop);
         if (me.drop != null) o.addProperty("drop", me.drop);
         if (me.pickup != null) o.addProperty("pickup", me.pickup);
-        if (deadline(me) > 0) o.addProperty("myEndAt", deadline(me));   // 내 하산 마감 = 내 하산 탑승지 시각
+        long myEnd = deadline(me);   // 한 번만 셈(2026-11-12 점검)
+        if (myEnd > 0) o.addProperty("myEndAt", myEnd);   // 내 하산 마감 = 내 하산 탑승지 시각
         Object[] arr = r.lastArrival();   // 하차 안내 - 버스 안 회원에게 15분(답했으면 안 띄움)
         if (arr != null && now - (Long) arr[1] <= ARRIVE_MS && "hiker".equals(me.role) && !me.cancelled && !me.aboard && me.arrAns != (Long) arr[1]) {
             JsonObject a = new JsonObject();
@@ -2194,7 +2194,7 @@ final class Party {
                 Long busArr = busArrive(m, now);
                 if (busArr != null) {
                     x.addProperty("arr", busArr);
-                    int late = lateMin(m, now);
+                    int late = lateMin(m, busArr);
                     if (late > 0) x.addProperty("late", late);
                 }
             }

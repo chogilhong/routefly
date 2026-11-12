@@ -198,6 +198,8 @@ routefly 는 등산 · 걷기 · 자전거 코스를 3D 지형 위로 날아가�
    브라우저가 앱이 깔린 것을 알아 js/app-store.js 띠 · hike.js 산행 시작 창을 숨길 수 있음.
 2. 앱 링크 넓히기 - 지금 AndroidManifest 의 https://routefly.kr 앱 링크는 /routefly/party.html · party-office.html 만. /routefly/m/ · hike.html · c/ 도 넣으면 카톡 등에서 누를 때 바로 앱이 열림
    (assetlinks.json 은 이미 있음 - 서버 app.sha256). 넣기 전에 앱 첫 화면 흐름(early.js 의 코스 모음 넘김)과 겹치지 않는지 확인.
+3. 앱 "폰 켜짐" 신호(RfAlivePlugin.EVERY_MS 60초) - 웹이 30초마다 위치를 보내는 동안에도 1분마다 따로 보냄(2026-11-12 점검: 45명 방이면 1분에 45번 더).
+   웹이 60초 안에 보냈으면 그 차례는 건너뛰게(시각을 start() 로 넘기거나 SharedPreferences). 이것만으로 APK 를 새로 올릴 만하지는 않음.
 
 서버 배포만으로 앱에도 바로 반영되지만, 아래가 바뀌면 APK 를 안 바꿔도 등록 정보는 고칩니다(앱이 하는 일과 등록 정보가 같아야 함 - 기준은 3장 "원스토어에 넣은 답").
 - 광고를 넣거나 뺌 → 판매정보 "광고 포함"
