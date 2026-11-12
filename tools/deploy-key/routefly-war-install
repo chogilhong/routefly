@@ -13,6 +13,10 @@ BHOME=/app/routefly/batch
 BLIB=$BHOME/deploy/lib
 JAR_KEEP=$KEEP/routefly-batch.jar.prev
 JMIN=10000; JMAX=52428800
+# 쿼리 XML(2026-11-12): deploy/conf/sql/<영역>/<이름>.xml(root:routefly 640), 앞 것은 $KEEP/batch-sql/<영역>.<이름>.prev(root 600)
+BSQL=$BHOME/deploy/conf/sql
+SQL_KEEP=$KEEP/batch-sql
+SMAX=2097152
 BATCH='^(courseImport|forestTrail|durunubi|osmBike|osmHike|komount|knpsTrail|knpsSign|knpsSpot)$'
 mkdir -p "$KEEP"; chmod 700 "$KEEP"
 log() { echo "$(date '+%F %T') $*" >> "$LOG"; echo "$*"; }
@@ -215,6 +219,68 @@ PY
     if jcheck "$BLIB/routefly-batch.jar"; then jcopy "$BLIB/routefly-batch.jar" "$KEEP" routefly-batch.jar.prev root root 600 || { log "배치 거절: 지금 jar 를 남기지 못함"; exit 3; }; fi
     jcopy "$copied" "$BLIB" routefly-batch.jar root routefly 640
     log "배치 jar $(info "$BLIB/routefly-batch.jar") (앞 것은 $JAR_KEEP, 도는 회차는 끝까지 예전 jar)"
+    ;;
+  batch-sql)
+    # 받은 zip 안의 sql/<영역>/<이름>.xml 만(그 밖 이름 · 폴더 · 링크 · DOCTYPE · ENTITY 가 하나라도 있으면 통째로 거절), 파일마다 1MB · 50개까지.
+    # 받은 파일은 batch-deploy 처럼 한 번만 열어 root 만 닿는 임시 폴더로 베끼고, 검사 · 설치는 베낀 것만. 영역 폴더가 없으면 root:routefly 750 으로 만듦
+    src="${2:-}"
+    [[ "$src" =~ ^/tmp/rfsql\.[A-Za-z0-9]{8}$ ]] || { log "쿼리 거절: 받은 파일 경로가 이상함"; exit 3; }
+    work=$(mktemp -d /var/tmp/rfsql-in.XXXXXXXX)
+    trap 'rm -rf "$work"' EXIT
+    python3 -I - "$src" "$work" "$SMAX" <<'PY' > "$work/list" 2>/dev/null || { log "쿼리 거절: 받은 파일이 이상함(링크 · deploy 것이 아님 · zip 아님 · sql/<영역>/<이름>.xml 아닌 것 · DOCTYPE · 잘못된 XML · 너무 큼)"; exit 3; }
+import io, os, pwd, re, stat, sys, zipfile
+import xml.etree.ElementTree as ET
+src, work, mx = sys.argv[1], sys.argv[2], int(sys.argv[3])
+fd = os.open(src, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+st = os.fstat(fd)
+if not stat.S_ISREG(st.st_mode) or st.st_uid != pwd.getpwnam("deploy").pw_uid or st.st_nlink != 1:
+    sys.exit(1)
+with os.fdopen(fd, "rb") as f:
+    data = f.read(mx + 1)
+if len(data) > mx:
+    sys.exit(1)
+z = zipfile.ZipFile(io.BytesIO(data))
+infos = z.infolist()
+if not 1 <= len(infos) <= 50:
+    sys.exit(1)
+seen = set()
+for i in infos:
+    m = re.fullmatch(r"sql/([A-Za-z0-9_-]{1,40})/([A-Za-z0-9_-]{1,60})\.xml", i.filename)
+    if not m or i.is_dir() or i.file_size > 1048576 or (i.external_attr >> 16) & 0o170000 == 0o120000 or i.filename in seen:
+        sys.exit(1)
+    seen.add(i.filename)
+    b = z.read(i)
+    t = b.decode("utf-8")
+    if "<!DOCTYPE" in t.upper() or "<!ENTITY" in t.upper():
+        sys.exit(1)
+    ET.fromstring(b)   # 모양이 맞는 XML 인지(DTD 없음을 위에서 봄)
+    out = os.path.join(work, m.group(1) + "." + m.group(2) + ".xml")
+    with open(out, "xb") as o:
+        o.write(b)
+    print(m.group(1), m.group(2))
+PY
+    install -d -m 700 "$SQL_KEEP"
+    while read -r area name; do
+      python3 -I - "$BSQL" "$area" <<'PY' 2>/dev/null || { log "쿼리 거절: $BSQL 폴더가 없거나 링크임"; exit 3; }
+import grp, os, sys
+fd = os.open("/", os.O_RDONLY | os.O_DIRECTORY)
+for part in [p for p in sys.argv[1].split("/") if p]:
+    nfd = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
+    os.close(fd)
+    fd = nfd
+try:
+    os.mkdir(sys.argv[2], 0o750, dir_fd=fd)
+    d = os.open(sys.argv[2], os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
+    os.fchown(d, 0, grp.getgrnam("routefly").gr_gid)
+    os.fchmod(d, 0o750)
+except FileExistsError:
+    os.close(os.open(sys.argv[2], os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd))   # 있는 것이 링크면 여기서 실패
+PY
+      kept="새 파일"
+      if [ -e "$BSQL/$area/$name.xml" ]; then jcopy "$BSQL/$area/$name.xml" "$SQL_KEEP" "$area.$name.prev" root root 600 || { log "쿼리 거절: 지금 $area/$name.xml 을 남기지 못함"; exit 3; }; kept="앞 것은 $SQL_KEEP/$area.$name.prev"; fi
+      jcopy "$work/$area.$name.xml" "$BSQL/$area" "$name.xml" root routefly 640
+      log "쿼리 $area/$name.xml $(info "$BSQL/$area/$name.xml") ($kept)"
+    done < "$work/list"
     ;;
   batch-rollback)
     nolink "$JAR_KEEP"

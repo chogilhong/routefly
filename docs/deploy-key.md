@@ -7,7 +7,7 @@
 
 - 이 열쇠로 들어오면 `/usr/local/bin/routefly-deploy` 만 돕니다(authorized_keys 의 `restrict,command=`). 셸 · 파일 보기 · 터널 · scp 는 안 됩니다.
 - 받는 명령은 셋: `deploy`(표준 입력의 war 를 운영으로), `rollback`(바로 앞 war 로), `status`(지금 · 앞 war, 최근 기록 5줄).
-- 배치(2026-11-04 홍TV님 "폰에서 PC Claude 에게 배치 배포") - 아래 "배치" 장: `batch-deploy` · `batch-rollback` · `batch-run <배치> [--force] [--allowDelete=N]` · `batch-status [<배치>]` · `batch-log <배치> <낱말>`.
+- 배치(2026-11-04 홍TV님 "폰에서 PC Claude 에게 배치 배포") - 아래 "배치" 장: `batch-deploy` · `batch-rollback` · `batch-sql` · `batch-run <배치> [--force] [--allowDelete=N]` · `batch-status [<배치>]` · `batch-log <배치> <낱말>`.
 - `deploy` 는 1MB ~ 100MB 이고, zip 이 온전하고, `WEB-INF/classes/com/gh/routefly/web/RouteflyConfig.class` 가 들어 있어야 받습니다.
   바꾸기 전 war 는 `/var/backups/routefly-war/routefly.war.prev` 에 남기고, 기록은 `/var/log/routefly-deploy.log`(시각 · 크기 · sha256 앞 12자, 시각은 한국 시간 - 2026-10-27 확인, 앞서 UTC 로 적은 것은 잘못).
 - root 로 도는 부분은 `/usr/local/sbin/routefly-war-install` 하나이고, sudoers 는 deploy 계정에 그 파일만 허용합니다.
@@ -62,6 +62,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File C:\GH\workspace\routefly-bat
 - `batch-deploy`: 표준 입력의 jar(10KB ~ 50MB, zip 이 온전하고 `com/gh/routefly/batch/RouteflyBatch.class` 가 있어야)를
   `/app/routefly/batch/deploy/lib/routefly-batch.jar`(root:routefly 640, 9-2 · 9-4 와 같게)로. 앞 jar 는 `/var/backups/routefly-war/routefly-batch.jar.prev`.
   `/app/routefly/batch` 아래는 routefly 계정 것이라 폴더를 / 부터 한 칸씩 링크를 따라가지 않고 엽니다(배치가 뚫려 폴더를 링크로 바꿔 둬도 다른 곳에 쓰지 않게).
+- `batch-sql`(2026-11-12 - jar 만 올라가고 서버 쿼리 XML 이 옛것이라 forestTrail 이 26분 뒤 `QID(SELECT_COURSE_ENDS_LIKE) NOT FOUND` 로 실패):
+  표준 입력의 zip(2MB 안) 안 `sql/<영역>/<이름>.xml` 만 `/app/routefly/batch/deploy/conf/sql/<영역>/<이름>.xml`(root:routefly 640)로.
+  다른 이름 · `..` · 링크 · DOCTYPE · ENTITY · 깨진 XML · 1MB 넘는 파일이 하나라도 있으면 통째로 거절(끝 코드 3). 영역 폴더가 없으면 root:routefly 750 으로 만들고,
+  있는 폴더가 링크면 거절. 앞 파일은 `/var/backups/routefly-war/batch-sql/<영역>.<이름>.prev`(root 600). jar 처럼 실행되는 것을 이미 올리는 열쇠라 할 수 있는 일이 늘지는 않음.
+  `deploy-batch.ps1` 은 jar 를 올리기 전에 이것부터 올림(새 XML 은 쿼리를 더하기만 해 옛 jar 와도 돎). 이 명령이 없는 서버면 끝 코드 2 - 아래 "처음 한 번" 처럼 다시 설치.
 - `batch-run`: 배치 이름은 9개만(courseImport · forestTrail · durunubi · osmBike · osmHike · komount · knpsTrail · knpsSign · knpsSpot), 선택은 `--force` · `--allowDelete=숫자` 만.
   정기 회차(routefly-batch.service)나 다른 손 실행이 돌면 거절(끝 코드 4). 뒤에서 `routefly-once-<배치>` 단위로 돌고(ssh 는 바로 돌아옴),
   도는 동안 정기 타이머를 멈췄다가 끝나면 다시 켭니다(bin/server-forest-force.ps1 과 같게). 배치는 routefly 계정으로.

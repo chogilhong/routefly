@@ -7,6 +7,8 @@
 # 배치(2026-11-04 홍TV님 "폰에서 PC Claude 에게 배치 배포를 시키자" - 메인 열쇠 없이):
 #   batch-deploy                 - 표준 입력으로 받은 routefly-batch.jar 를 /app/routefly/batch/deploy/lib 로(바로 앞 것은 남김)
 #   batch-rollback               - 바로 앞 jar 로 되돌림
+#   batch-sql                    - 표준 입력으로 받은 zip 의 쿼리 XML(sql/<영역>/<이름>.xml)을 deploy/conf/sql 로(바로 앞 것은 남김)
+#                                  (2026-11-12 PC: jar 만 올라가고 서버 XML 이 옛것이라 forestTrail 이 QID NOT FOUND 로 26분 뒤 실패)
 #   batch-run <배치> [--force] [--allowDelete=N] - 그 배치 하나를 --once 로 뒤에서 돌림(정기 회차 · 다른 손 실행이 돌면 거절)
 #   batch-status [<배치>]        - jar 지문, 도는 중인지, 그 배치 로그 끝 줄
 #   batch-log <배치> <낱말>      - 그 배치 오늘 로그에서 낱말이 든 줄 끝 40개(낱말은 한글 · 영문 · 숫자 · . _ - 만, 30자 안)
@@ -14,6 +16,7 @@ set -euo pipefail
 umask 077
 MAX=104857600   # 100MB
 JMAX=52428800   # 배치 jar 50MB
+SMAX=2097152    # 쿼리 XML zip 2MB
 BATCH='(courseImport|forestTrail|durunubi|osmBike|osmHike|komount|knpsTrail|knpsSign|knpsSpot)'
 cmd="${SSH_ORIGINAL_COMMAND:-}"
 case "$cmd" in
@@ -32,6 +35,12 @@ case "$cmd" in
     sudo -n /usr/local/sbin/routefly-war-install batch-deploy "$tmp"
     ;;
   batch-rollback) sudo -n /usr/local/sbin/routefly-war-install batch-rollback ;;
+  batch-sql)
+    tmp=$(mktemp /tmp/rfsql.XXXXXXXX)
+    trap 'rm -f "$tmp"' EXIT
+    head -c "$((SMAX + 1))" > "$tmp"
+    sudo -n /usr/local/sbin/routefly-war-install batch-sql "$tmp"
+    ;;
   *)
     # 배치 이름 · 선택은 정해진 모양만(다른 글자가 끼면 거절) - 낱말로 나눠 그대로 넘김
     if [[ "$cmd" =~ ^batch-run\ $BATCH(\ --force)?(\ --allowDelete=[0-9]{1,5})?$ ]] || [[ "$cmd" =~ ^batch-status(\ $BATCH)?$ ]] \
@@ -39,7 +48,7 @@ case "$cmd" in
       read -r -a words <<< "$cmd"
       sudo -n /usr/local/sbin/routefly-war-install "${words[@]}"
     else
-      echo "이 열쇠로는 deploy · rollback · status · batch-deploy · batch-rollback · batch-run · batch-status · batch-log 만 됩니다." >&2; exit 2
+      echo "이 열쇠로는 deploy · rollback · status · batch-deploy · batch-rollback · batch-sql · batch-run · batch-status · batch-log 만 됩니다." >&2; exit 2
     fi
     ;;
 esac
