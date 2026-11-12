@@ -87,6 +87,33 @@ public class LogKeyAccessTest {
         }
     }
 
+    /** 판 고정 Firefox · Safari(2026-11-13 PC 접속 기록 - src/test/resources/ua/ua-2026-11-13-fixed.txt 실제 글)는 앱 통계(Stats.UA_FIXED_CHROME)처럼 사람으로 세지 않음. */
+    @Test
+    public void fixedFirefoxSafariIsNotHuman() throws Exception {
+        String sh = new String(Files.readAllBytes(Path.of("tools/log-key/routefly-logs-read")), StandardCharsets.UTF_8).replace("\r\n", "\n");
+        int a = sh.indexOf("<<'PY'\n") + 7, b = sh.indexOf("\nPY\n", a);
+        Path py = Files.createTempFile("access", ".py"), log = Files.createTempFile("access", ".txt");
+        try {
+            Files.writeString(py, sh.substring(a, b + 1), StandardCharsets.UTF_8);
+            java.util.List<String> uas = Files.readAllLines(Path.of("src/test/resources/ua/ua-2026-11-13-fixed.txt"), StandardCharsets.UTF_8);
+            StringBuilder lines = new StringBuilder();
+            int i = 0;
+            for (String ua : uas) if (!ua.isBlank()) lines.append("203.0.113.").append(10 + i++).append(" [13/Nov/2026:03:00:0").append(i % 10).append(" +0900] \"GET /routefly/c/x\" 200 9000 \"").append(ua).append("\"\n");
+            String now = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:145.0) Gecko/20100101 Firefox/145.0";
+            lines.append("203.0.113.99 [13/Nov/2026:03:00:09 +0900] \"GET /routefly/hike.html\" 200 9000 \"").append(now).append("\"\n");
+            Files.writeString(log, lines.toString(), StandardCharsets.UTF_8);
+            Assume.assumeTrue("python3 없음 - 건너뜀", pythonOk());
+            Process p = new ProcessBuilder("python3", "-I", py.toString(), log.toString(), "00:00", "24:00").redirectErrorStream(true).start();
+            String out = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            assertEquals(out, 0, p.waitFor());
+            assertTrue(out, java.util.regex.Pattern.compile(" +8 +0 +판 고정 Firefox · Safari\\n").matcher(out).find());
+            assertTrue("다른 판 Firefox 는 그대로 사람", java.util.regex.Pattern.compile(" +1 +0 +사람 브라우저\\n").matcher(out).find());
+        } finally {
+            new File(py.toString()).delete();
+            new File(log.toString()).delete();
+        }
+    }
+
     /** 2026-11-10 실제 UA(src/test/resources/ua/ua-2026-11-10.txt) - 카톡 미리보기는 "미리보기", Infrawatch 는 "그 밖의 로봇"(앱 통계 Stats 와 같게). */
     @Test
     public void previewAndHomepageBotsAreNotHuman() throws Exception {

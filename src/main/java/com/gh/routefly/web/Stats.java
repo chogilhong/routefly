@@ -41,7 +41,10 @@ final class Stats {
             // 10-29 의 "Chrome/124.0.0.0" 은 nginx 가 403). 사람 크롬은 저절로 판이 올라가 이 두 판에 머물지 않음
             UA_FIXED_CHROME = java.util.regex.Pattern.compile("chrome/124\\.0\\.(0\\.0|6367\\.207) safari/537\\.36$"
                     // 같은 꼴의 옛 아이폰 흉내(iOS 13.2.3 · Safari 13.0.3 - 2019년 판, 날마다 8 ~ 9곳 · js 0, 11-05 · 11-06 PC 접속 기록)
-                    + "|iphone os 13_2_3 like mac os x.*version/13\\.0\\.3 ");
+                    + "|iphone os 13_2_3 like mac os x.*version/13\\.0\\.3 "
+                    // 판 고정 Firefox 120 · 133 · 135(맥 · 윈도) · 맥 Safari 15.6.1 · 16.0 - 11-06 부터 날마다 js 0, 11-12 부터 급증(11-12 62곳 · 11-13 아침 40곳, PC 접속 기록 - src/test/resources/ua/ua-2026-11-13-fixed.txt)
+                    + "|; rv:(120|133|135)\\.0\\) gecko/20100101 firefox/(120|133|135)\\.0$"
+                    + "|intel mac os x 10_15_7\\) applewebkit/605\\.1\\.15 \\(khtml, like gecko\\) version/(15\\.6\\.1|16\\.0) safari/605\\.1\\.15$");
 
     private static final Logger log = LogManager.getLogger(Stats.class);
     static final int KEEP_DAYS = 400;

@@ -74,7 +74,8 @@ def kind(ua):
     if "headless" in u: return "Headless 브라우저"
     m = re.search(r"chrome/(\d+)", u)
     if m and int(m.group(1)) < 130 and "samsungbrowser" not in u and "whale" not in u: return "오래된 크롬(<130)"
-    if re.search(r"iphone os 13_2_3 like mac os x.*version/13\.0\.3 ", u): return "옛 아이폰 흉내(iOS 13.2.3)"   # 2019년 판 그대로 날마다 오는 수집기(js 0) - 앱 통계 Stats.UA_FIXED_CHROME 와 같게(2026-11-10 PC 보고 11-09 134곳)
+    if re.search(r"iphone os 13_2_3 like mac os x.*version/13\.0\.3 ", u): return "옛 아이폰 흉내(iOS 13.2.3)"
+    if re.search(r"; rv:(120|133|135)\.0\) gecko/20100101 firefox/(120|133|135)\.0$|intel mac os x 10_15_7\) applewebkit/605\.1\.15 \(khtml, like gecko\) version/(15\.6\.1|16\.0) safari/605\.1\.15$", u): return "판 고정 Firefox · Safari"   # 11-06 부터 날마다 js 0, 11-12 급증 - Stats.UA_FIXED_CHROME 와 같게(2026-11-13)   # 2019년 판 그대로 날마다 오는 수집기(js 0) - 앱 통계 Stats.UA_FIXED_CHROME 와 같게(2026-11-10 PC 보고 11-09 134곳)
     return "사람 브라우저"
 tot = 0; paths = collections.Counter(); q = collections.Counter(); kinds = collections.Counter(); who = collections.Counter(); whoKind = {}; whoPath = collections.defaultdict(collections.Counter); qk = collections.defaultdict(collections.Counter)
 seen = set(); whoUa = {}; errs = collections.Counter(); errBot = collections.Counter(); errG = collections.Counter()

@@ -40,6 +40,13 @@ public class StatsTest {
         assertNull(Stats.botKind("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36", "ko-KR"));
         assertEquals("기타", Stats.botKind("Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1", "en-US"));
         assertNull(Stats.botKind("Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Mobile/15E148 Safari/604.1", "ko-KR"));
+        // 2026-11-13 PC 접속 기록: 판 고정 Firefox 120 · 133 · 135 · 맥 Safari 15.6.1 · 16.0(11-06 부터 날마다 js 0, 11-12 급증) - 실제 글 그대로
+        try {
+            for (String ua : java.nio.file.Files.readAllLines(java.nio.file.Path.of("src/test/resources/ua/ua-2026-11-13-fixed.txt"), java.nio.charset.StandardCharsets.UTF_8))
+                if (!ua.isBlank()) assertEquals(ua, "기타", Stats.botKind(ua, "ko-KR"));
+        } catch (java.io.IOException e) { throw new AssertionError(e); }
+        assertNull("다른 판 Firefox 는 사람", Stats.botKind("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:145.0) Gecko/20100101 Firefox/145.0", "ko-KR"));
+        assertNull("다른 판 맥 Safari 는 사람", Stats.botKind("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Safari/605.1.15", "ko-KR"));
         // 종류(2026-10-20 홍TV님 "나눠서 세기")
         assertEquals("검색", Stats.botKind("Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"));
         String pc = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/129.0 Safari/537.36";
