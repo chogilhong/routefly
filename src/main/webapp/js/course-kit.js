@@ -5122,8 +5122,8 @@
         var c = e[season], segs = c.segs.map(function (x) { return x[0] + " ~ " + x[1]; });
         if (max && segs.length > max) segs = segs.slice(0, max).concat(["외 " + (c.segs.length - max) + "곳"]);
         var url = e.offices && e.offices.length === 1 ? data.detail + e.offices[0][1] : data.list;
-        if (en) return { text: "⛔ Wildfire-season closures: some trails in this park have been closed in this season every year (KNPS records). ", link: "Check today's status (KNPS) ›", url: url };
-        return { text: "⛔ " + park + " " + season + " 산불예방 통제 - 해마다 이때 통제되어 온 구간(국립공원공단 " + c.year + "년 기록): " + segs.join(" · ") + ". ",
+        if (en) return { text: "⚠ Wildfire-season closures: some trails in this park have been closed in this season every year (KNPS records). ", link: "Check today's status (KNPS) ›", url: url };
+        return { text: "⚠ " + park + " " + season + " 산불예방 통제 - 해마다 이때 통제되어 온 구간(국립공원공단 " + c.year + "년 기록): " + segs.join(" · ") + ". ",
                  link: "오늘 통제 상황 보기(국립공원공단) ›", url: url };
     }
 

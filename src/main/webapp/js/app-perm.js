@@ -96,7 +96,7 @@
         var a = document.createElement("a");
         a.href = here(en() ? "privacy-en.html" : "privacy.html");
         a.textContent = t.privacy + " ›";
-        a.style.cssText = "display:inline-block;margin:0 0 12px;font-size:13px;color:#38d9ea";
+        a.style.cssText = "display:inline-flex;align-items:center;min-height:44px;margin:0 0 4px;font-size:13px;color:#38d9ea";   // 손가락 크기(2026-11-12 점검: 18px 높이였음)
         box.appendChild(a);
         var ok = document.createElement("button");
         ok.type = "button";
@@ -105,10 +105,17 @@
         ok.addEventListener("click", function () {
             try { localStorage.setItem(KEY, "1"); } catch (e) { /* 다음에 또 알림 */ }
             back.remove();
+            hidden.forEach(function (el) { el.inert = false; });
+            document.body.style.overflow = bodyOv;
             if (before && before.focus) try { before.focus(); } catch (e) { /* 그대로 */ }
         });
         box.appendChild(ok);
         back.appendChild(box);
+        // 뒤 화면은 못 누르고 안 움직이게(2026-11-12 점검 - 창이 떠 있는 동안 뒤가 스크롤되고 화면 읽기가 뒤로 갔음)
+        var hidden = Array.prototype.filter.call(document.body.children, function (el) { return !el.inert; });
+        hidden.forEach(function (el) { el.inert = true; });
+        var bodyOv = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
         document.body.appendChild(back);
         try { ok.focus({ preventScroll: true }); } catch (e) { ok.focus(); }   // 확인에 포커스, 글은 맨 위부터 보이게(제목이 위로 밀렸음)
         box.scrollTop = 0;

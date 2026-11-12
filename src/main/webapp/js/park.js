@@ -899,6 +899,17 @@
                 a.href = pc.url; a.target = "_blank"; a.rel = "noopener"; a.textContent = pc.link;
                 box.appendChild(a);
                 box.hidden = false;
+                // 한 줄로 접어 두고 누르면 펼침(2026-11-12 점검 - 위 #note 와 같게). 펼친 뒤 공단 링크는 그대로 눌림
+                box.setAttribute("role", "button"); box.tabIndex = 0; box.setAttribute("aria-expanded", "false");
+                var flip = function (e) {
+                    if (e.target === a) return;
+                    var open = !box.classList.contains("open");
+                    box.classList.toggle("open", open);
+                    box.setAttribute("aria-expanded", open ? "true" : "false");
+                    setTimeout(function () { if (map) map.resize(); }, 0);
+                };
+                box.addEventListener("click", flip);
+                box.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); flip(e); } });
             }).catch(function () { /* 안내 없이 */ });
             if (data.national === false) {
                 noteSkip = true;

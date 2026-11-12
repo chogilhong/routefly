@@ -19,10 +19,10 @@
     function fill(box) {
         box.textContent = "";
         box.className = (box.className + " rfAppGet").trim();
-        box.style.cssText = "position:relative;margin:" + (box.getAttribute("data-app-store") || "12px 0") + ";padding:14px 44px 14px 14px;border:2px solid #ffa94d;border-radius:14px;background:rgba(255,169,77,0.12);"
-            + "font-size:15px;line-height:1.45";
+        box.style.cssText = "position:relative;margin:" + (box.getAttribute("data-app-store") || "12px 0") + ";padding:14px;border:2px solid #ffa94d;border-radius:14px;background:rgba(255,169,77,0.12);"
+            + "font-size:15px;line-height:1.45;word-break:keep-all";   // 낱말 가운데서 안 꺾이게(2026-11-12 점검)
         var t = document.createElement("p");
-        t.style.cssText = "margin:0 0 10px";
+        t.style.cssText = "margin:0 0 10px;padding-right:30px";   // ✕ 자리는 글에만 - 설치 단추는 띠 너비 그대로(2026-11-12 점검: 단추가 오른쪽 46px 비어 두 줄로 꺾였음)
         t.innerHTML = "⚠ <b>산에서는 routefly 앱을 설치해 쓰세요.</b><br>브라우저는 화면이 꺼지면 위치 · 길 안내 음성 · 코스 이탈 알림 · SOS 위치가 멈춥니다. 앱은 화면을 꺼도 이어집니다.";
         var a = document.createElement("a");
         a.href = URL;

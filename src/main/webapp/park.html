@@ -34,7 +34,9 @@ body { display:flex; flex-direction:column; height:100dvh; }
 #note.open { white-space:normal; max-height:38vh; overflow-y:auto; }   /* 펼쳐도 지도가 너무 좁아지지 않게(375px 에서 224px 이었음) */
 #note small { color:#c9a97a; }
 /* 반려견 동반 가능 구간(국립공원 시범사업, park-notes pet - 2026-10-14 홍TV님) */
-#closeNote { flex:0 0 auto; margin:0; font-size:12.5px; line-height:1.45; padding:6px 12px; background:#3a1616; color:#ffc9c9; max-height:22vh; overflow-y:auto; }
+#closeNote { flex:0 0 auto; margin:0; font-size:12.5px; line-height:1.45; padding:6px 12px; background:#3a1616; color:#ffc9c9; cursor:pointer;
+             white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }   /* 한 줄, 누르면 펼침(2026-11-12 점검: 320px 에서 다섯 줄이 지도 위를 늘 차지 - #note 와 같게) */
+#closeNote.open { white-space:normal; max-height:22vh; overflow-y:auto; }
 #closeNote a { color:#ffd8a8; font-weight:bold; }
 #petNote { display:none; flex:0 0 auto; font-size:12.5px; line-height:1.45; padding:6px 12px; background:#1d3324; color:#b8f0c8; text-decoration:none;
            border-bottom:1px solid var(--ln); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }

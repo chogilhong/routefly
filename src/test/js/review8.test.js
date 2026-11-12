@@ -82,7 +82,7 @@ var RF = kit();
     vm.runInNewContext(fn(HIKE, "say") + " say('코스에서 벗어났습니다.', { urgent: true }); say('1킬로미터 지났습니다.');", sctx);
     eq("급한 음성 안내만 풂(소리를 꺼 두었어도)", off, 1);
     // 2026-11-11 홍TV님: 앱에서 GPX 를 카톡 나와의 채팅으로 보내면 말없이 안 들어감(메일은 들어감) - 단추 설명에 알림
-    has("GPX 보내기 - 카톡 안 됨 안내", HIKE, "카카오톡은 GPX 를 받지 못해 메일 · 드라이브 · 내 파일로");
+    has("GPX 보내기 - 카톡 안 됨 안내", HIKE, "카카오톡으로는 보낼 수 없습니다. 메일 · 드라이브 · 내 파일로 보내세요");
     has("알림 글(toast)이면 풂", fn(HIKE, "toast"), "pocketSet(false);");
     has("SOS 를 열면 풂", HIKE, '$("sos").addEventListener("click", function () {\n        pocketSet(false);');
     has("움직임 없음 물을 때 풂", HIKE, "hike.stillAsk = t;\n        pocketSet(false);");

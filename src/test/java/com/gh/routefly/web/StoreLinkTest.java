@@ -28,6 +28,6 @@ public class StoreLinkTest {
         assertTrue("앱이 없을 때 intent 대체 주소", js.contains("var back = STORE_URL;"));
         assertTrue("눈에 보이는 받기 링크", js.contains("$(\"appStore\").href = STORE_URL;") && html.contains("id=\"appStore\""));
         assertFalse("아직 없는 플레이스토어 주소", js.contains("play.google.com"));
-        assertTrue(html.contains("앱이 없으면 원스토어 설치 화면으로 갑니다"));
+        assertTrue(html.contains("설치 없이 웹으로 참가하려면 아래에서 그대로 참가하세요."));   // 2026-11-12 점검: "앱이 없으면 원스토어로" 와 "아래에서 참가" 가 엇갈려 한 줄로
     }
 }
