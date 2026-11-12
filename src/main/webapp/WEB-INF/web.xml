@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 2026-11-12 점검 9차: 없는 주소는 톰캣 기본 404 대신 산 모음 · 영어 · 따라가기 링크가 있는 화면(NotFoundServlet).
+     서블릿 · 필터는 그대로 어노테이션(metadata-complete="false"). 화면이 직접 404 를 쓰는 곳(산 · 코스 페이지)은 그대로 그 화면 -->
+<web-app xmlns="https://jakarta.ee/xml/ns/jakartaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_6_1.xsd"
+         version="6.1" metadata-complete="false">
+    <error-page>
+        <error-code>404</error-code>
+        <location>/notfound</location>
+    </error-page>
+</web-app>

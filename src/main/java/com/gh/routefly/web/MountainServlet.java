@@ -1002,7 +1002,7 @@ public class MountainServlet extends HttpServlet {
                 .append("/img/logo-dark.svg\" alt=\"routefly\" width=\"256\" height=\"80\"></a>")
                 .append("<a class=\"goHike\" href=\"").append(REL).append("/hike.html?lang=ko\" title=\"코스를 골라 핸드폰으로 따라 걷기 - GPS · 음성 안내 · SOS\">🥾 따라가기 ›</a></div>")
                 .append("<h1 class=\"idx\">등산 · 걷기 · 자전거</h1>")   // "코스" 는 뺌(2026-10-17 홍TV님 - 줄바꿈 없이 한 줄)
-                .append("<p class=\"lead\">산을 고르면 정상까지 가는 코스와 오늘 날씨 · 미세먼지 · 일출 · 일몰을, 길을 고르면 노선 안내도를 봅니다.</p>")
+                .append("<p class=\"lead\">코스를 3D 지형 위로 미리 날아 보고, 핸드폰 GPS 로 따라 걷는 무료 서비스(회원 가입 없음). 산을 고르면 정상까지 가는 코스와 오늘 날씨 · 미세먼지 · 일출 · 일몰을, 길을 고르면 노선 안내도를 봅니다.</p>")   // 처음 온 사람이 무엇을 하는 곳인지(2026-11-12 점검 - root.html 첫 글과 같은 사실만)
                 .append(searchForm(false))
                 .append(APP_SLOT)   // 안드로이드 브라우저에만 원스토어 띠 - 맨 아래(foot)에 두었더니 끝까지 내려야 보였음(2026-11-10 홍TV님 "제일 아래에 있네")
                 .append(""

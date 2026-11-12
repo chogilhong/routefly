@@ -40,8 +40,13 @@
             try { localStorage.setItem(OFF, String(Date.now())); } catch (e) { /* 이번만 */ }
             box.hidden = true;
         });
+        // 원스토어 앱이 없는 폰(자급제 등)은 원스토어부터 깔아야 함 - 사실만 한 줄(2026-11-12 점검: 링크가 원스토어 웹 상세로만 가 손님이 멈췄음)
+        var w = document.createElement("p");
+        w.style.cssText = "margin:8px 0 0;font-size:12.5px;color:#aab4c0";
+        w.textContent = "원스토어 앱이 있어야 설치됩니다 · 구글 플레이는 준비 중";
         box.appendChild(t);
         box.appendChild(a);
+        box.appendChild(w);
         box.appendChild(x);
         box.hidden = false;
     }

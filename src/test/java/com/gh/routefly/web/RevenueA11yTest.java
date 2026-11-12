@@ -61,9 +61,12 @@ public class RevenueA11yTest {
     public void gearIsOneFeaturedProduct() throws Exception {
         // 2026-11-03 홍TV님 - 물 · 우비 · 헤드랜턴 … 챙길 것 목록은 빼고 쿠팡 상품 하나(그림)만, 이름은 "추천 상품"(산 페이지 · 코스 모음 · 3D 안내)
         String m = read("src/main/webapp/js/mountain.js"), app = read("src/main/webapp/js/app.js");
-        assertTrue("산 페이지 · 코스 모음", m.contains("\"🎒 추천 상품\"") && !m.contains("RF.gearList(") && !m.contains("\"🎒 챙길 것\""));
-        assertTrue("3D 안내", app.contains("\"🎒 추천 상품\"") && !app.contains("RF.gearList(") && !app.contains("What to bring"));
+        assertTrue("산 페이지 · 코스 모음", m.contains("\"🎒 추천 상품 · 광고\"") && !m.contains("RF.gearList(") && !m.contains("\"🎒 챙길 것\""));
+        assertTrue("3D 안내", app.contains("\"🎒 추천 상품 · 광고\"") && !app.contains("RF.gearList(") && !app.contains("What to bring"));
         assertTrue("쿠팡 표시는 그대로", m.contains("RF.COUPANG_NOTE") && app.contains("RF.COUPANG_NOTE"));
+        // 2026-11-12 점검: 광고 표시는 상품 앞에(공정위 추천 · 보증 심사지침 - 처음에 · 가까이)
+        assertTrue("산 페이지 - 문구 다음 상품", m.contains("box.appendChild(n);\n        box.appendChild(feat);"));
+        assertTrue("3D - 문구 다음 상품", app.contains("box.appendChild(el(\"div\", \"gNote\", RF.COUPANG_NOTE));\n            box.appendChild(feat);"));
         assertTrue("준비물 체크(도구)는 그대로", read("src/main/webapp/js/tools.js").contains("RF.gearList("));
     }
 }

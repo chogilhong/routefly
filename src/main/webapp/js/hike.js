@@ -1776,12 +1776,13 @@
             if (/^https:/.test(x.href)) { a.target = "_blank"; a.rel = x.sponsored ? "noopener sponsored" : "noopener"; }
             nx.appendChild(a);
         });
-        box.appendChild(b); box.appendChild(nx);
-        if (r.affiliate || r.coupang) {
+        box.appendChild(b);
+        if (r.affiliate || r.coupang) {   // 제휴 표시는 링크 앞에(2026-11-12 점검 - 공정위 심사지침 "처음에")
             var sm = document.createElement("small");
             sm.textContent = (r.affiliate ? T("숙소는 제휴 링크 - 예약하면 routefly 가 수수료를 받습니다. ", "Stay links are affiliate links - routefly earns a commission if you book. ") : "") + (r.coupang ? RF.COUPANG_NOTE : "");
             box.appendChild(sm);
         }
+        box.appendChild(nx);
         box.hidden = false;
     }
 
@@ -2654,6 +2655,9 @@
             $("gps").className = "";
             hike.watch = navigator.geolocation.watchPosition(onFix, onGpsError, { enableHighAccuracy: true, maximumAge: 3000, timeout: 30000 });
             keepAwake();
+            // 브라우저(아이폰 · "그래도 브라우저로")에도 화면을 켜 두라고 한 번(2026-11-12 점검: 앱 안내에만 있어 브라우저 손님은 화면이 꺼지면 멈추는 줄 몰랐음)
+            toast(T("브라우저에서는 화면을 켜 두세요 - 화면이 꺼지면 위치 · 음성 안내 · SOS 위치가 멈춥니다.",
+                "Keep the screen on in the browser - location, voice alerts and the SOS position stop when it turns off."), 7000);
         }
         hike.timer = setInterval(render, 1000);
         render();

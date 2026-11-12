@@ -44,12 +44,15 @@ public class ShareServlet extends HttpServlet {
         }
         String title = "routefly 코스", desc = "3D 지형 위에서 미리 날아 보고, 핸드폰으로 따라 걷는 코스";
         boolean failed = false, index = false;
+        String ogPeak = null;   // 100대 명산 정상에 닿는 코스면 그 산(공유 그림)
         try (Connection c = Db.open()) {
             JsonArray rows = Json.rows(c, "SELECT name, kind, distance_m, ascent_m, ele_max_m, start_lat, start_lon, end_lat, end_lon FROM route_course WHERE course_id = ?", id);
             if (rows.size() > 0) {
                 JsonObject r = rows.get(0).getAsJsonObject();
                 // 검색에 내는 코스일 때만 소개 페이지(/c/)를 canonical 로(2026-11-03 홍TV님 점검: noindex 인 /c/ 를 가리켰음) - 사이트맵과 같은 규칙
-                index = CoursePageServlet.indexable(id, r.get("name").getAsString(), r.get("kind").getAsString(), CoursePageServlet.peakOf(peaks(), r), notes());
+                JsonObject pk = CoursePageServlet.peakOf(peaks(), r);
+                index = CoursePageServlet.indexable(id, r.get("name").getAsString(), r.get("kind").getAsString(), pk, notes());
+                if (pk != null) ogPeak = pk.has("id") && !pk.get("id").isJsonNull() ? pk.get("id").getAsString() : pk.get("name").getAsString();   // 그 산의 공유 그림(2026-11-12 점검)
                 title = noteName(notes(), id, r.get("name").getAsString());   // 앱과 같은 이름(park-notes 로 바로잡은 탐방로 · 산마다 다른 지명)
                 desc = describe(r.get("distance_m").getAsInt(), r.get("ascent_m").isJsonNull() ? null : r.get("ascent_m").getAsInt(),
                         r.get("ele_max_m").isJsonNull() ? null : r.get("ele_max_m").getAsDouble());
@@ -66,7 +69,7 @@ public class ShareServlet extends HttpServlet {
         resp.setCharacterEncoding(StandardCharsets.UTF_8.name());
         resp.setHeader("Cache-Control", failed ? "no-store" : "public, max-age=300");   // DB 실패 때의 빈 미리 보기는 캐시하지 않음
         PrintWriter w = resp.getWriter();
-        w.print(page(title, desc, base + "/s/" + id, index ? base + "/c/" + id : null, base + "/img/og.png?v=2", target));   // canonical - 검색에는 코스 소개 페이지(2026-10-19)   // v=2: 새 로고(2026-10-14) - 카카오톡 등이 예전 그림을 담아 둔 것을 피함
+        w.print(page(title, desc, base + "/s/" + id, index ? base + "/c/" + id : null, ogPeak != null ? base + "/og/m/" + MountainServlet.enc(ogPeak) + ".png" : base + "/img/og.png?v=2", target));   // canonical - 검색에는 코스 소개 페이지(2026-10-19)   // v=2: 새 로고(2026-10-14) - 카카오톡 등이 예전 그림을 담아 둔 것을 피함
     }
 
     /** 순수 함수 - "5.81km · 오르막 1,460m · 최고 1,700m · 3D 미리 보기". */

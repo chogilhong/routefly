@@ -339,8 +339,8 @@
                 row.appendChild(a);
                 spon = spon || x.sponsored;
             });
+            if (spon) out.appendChild(el("p", T("🏨 표시는 제휴 링크 - 예약하면 routefly 가 수수료를 받습니다(값은 같음).", "🏨 links are affiliate links - routefly earns a commission if you book (same price)."), "dim"));   // 제휴 표시는 링크 앞에(2026-11-12 점검 - 공정위 심사지침 "처음에")
             out.appendChild(row);
-            if (spon) out.appendChild(el("p", T("🏨 표시는 제휴 링크 - 예약하면 routefly 가 수수료를 받습니다(값은 같음).", "🏨 links are affiliate links - routefly earns a commission if you book (same price)."), "dim"));
         }
         // 작은 지도 - 찾은 곳(📍)과 숙소 번호 핀. V-World 지도 키(api/map-config)가 없으면 그리지 않음
         var mapKeyP = null;

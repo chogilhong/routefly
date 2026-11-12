@@ -371,7 +371,8 @@ public class CoursePageServlet extends HttpServlet {
                 + " · " + timeText(kind, d, asc, desc, officialMin(info, d)).replaceFirst("\\(.*\\)$", "");
         String title = name + (name.endsWith("코스") ? "" : " " + kl + " 코스");
         String metaDesc = name + " - " + kl + " 코스 " + summary + ". 고도 그림 · 지나는 곳 · 가는 길, 3D 지형 위로 미리 날아 보고 핸드폰으로 따라 걷기.";
-        StringBuilder b = new StringBuilder(MountainServlet.head(title, metaDesc, url, base, null, null, index));
+        // 100대 명산 정상에 닿는 코스는 그 산의 공유 그림(OgServlet /og/m/산.png - 2026-11-12 점검: 코스 공유가 모두 같은 og.png 였음)
+        StringBuilder b = new StringBuilder(MountainServlet.head(title, metaDesc, url, base, null, peakId != null ? base + "/og/m/" + MountainServlet.enc(peakId) + ".png" : null, index));
         // 경로 표시(검색 결과에 "routefly › 100대 명산 코스 › 산 › 코스", 2026-11-07 전체 점검 4단계) - 위 ‹ 링크와 같은 길
         b.append(peakId != null
                 ? MountainServlet.breadcrumb(new String[][] {{"100대 명산 코스", base + "/m/"}, {peakId, base + "/m/" + MountainServlet.enc(peakId)}, {name, url}})

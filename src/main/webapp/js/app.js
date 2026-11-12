@@ -700,9 +700,9 @@
         partners().then(function (p) {
             var feat = RF.featuredCard && RF.featuredPick && RF.featuredCard(RF.featuredPick(p.featured));   // 여러 개 가운데 하나(열 때마다 다름)
             if (!feat) return;
-            box.appendChild(el("div", "gDay", "🎒 추천 상품"));
-            box.appendChild(feat);
+            box.appendChild(el("div", "gDay", "🎒 추천 상품 · 광고"));   // 광고 표시는 처음에(2026-11-12 점검 - mountain.js 와 같게)
             box.appendChild(el("div", "gNote", RF.COUPANG_NOTE));
+            box.appendChild(feat);
         });
     }
 

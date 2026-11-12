@@ -207,15 +207,16 @@
     });
     // 🎒 추천 상품(2026-11-03 홍TV님 - 물 · 우비 · 헤드랜턴 … 챙길 것 목록은 빼고 "챙길 것" 이름도 바꿈) - 쿠팡 파트너스 상품 하나(그림)만.
     // 설정(partner.coupang.featured)이 없으면 칸도 없음. 산 페이지는 날씨 칸 아래, 목록(/m/)은 접는 칸. 준비물 체크는 🧰 도구(tools.js)에 그대로
-    var GEAR_TITLE = "🎒 추천 상품";
+    // 제목에 "광고", 쿠팡 파트너스 문구는 상품 앞에(2026-11-12 점검 - 공정위 추천 · 보증 심사지침: 처음에 · 가까이, /m/ 접는 칸은 펼쳐야 보였음)
+    var GEAR_TITLE = "🎒 추천 상품 · 광고";
     function featBox(box, f) {
         var feat = window.RF.featuredCard && window.RF.featuredCard(f);
         if (!feat) return false;
         var n = document.createElement("p");
         n.className = "dim";
         n.textContent = window.RF.COUPANG_NOTE;
-        box.appendChild(feat);
         box.appendChild(n);
+        box.appendChild(feat);
         return true;
     }
     var wx0 = document.getElementById("wx"), gi = document.getElementById("gearIdx");
