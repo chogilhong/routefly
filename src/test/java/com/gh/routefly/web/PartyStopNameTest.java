@@ -29,4 +29,15 @@ public class PartyStopNameTest {
         assertEquals(List.of("사당", "양재", "복정"), Party.stops("사당 17:00, 양재 17시20분, 복정"));
         assertEquals("한 낱말이 길면 12자 그대로", "가나다라마바사아자차카타", Party.stopName("가나다라마바사아자차카타파하"));
     }
+
+    @Test
+    public void longSpacesStayFast() {
+        // 2026-11-12 보안 점검: 공백 1,500개 한 칸에 3.9초(공백 4,000개면 수십 초) - 서버 전체 잠금을 쥔 채로 멈출 수 있었음
+        long t0 = System.nanoTime();
+        Party.stops(" ".repeat(4000) + "x");
+        Party.stops(". ".repeat(2000) + "x");
+        Party.stopName(" ".repeat(4000) + "x");
+        long ms = (System.nanoTime() - t0) / 1_000_000;
+        org.junit.Assert.assertTrue("느림 " + ms + "ms", ms < 500);
+    }
 }

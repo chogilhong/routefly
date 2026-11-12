@@ -483,6 +483,8 @@ final class Party {
         if (text == null) return out;
         List<String> names = new ArrayList<>();
         for (String t : text.split("[,\n·]")) {
+            // 한 칸 120자까지 먼저(2026-11-12 보안 점검: 공백 수천 개 한 칸에 아래 정규식이 수십 초 - 방 만들기 · 하산 탑승지 고치기는 전체 잠금을 쥐고 부름)
+            if (t.length() > 120) t = t.substring(0, 120);
             // 자정 넘은 "24:00 · 24:15 · 2415" 는 다음 날 00:MM(2026-11-11 반더룽 설악산 일정표 - 사당 23:50 · 양재 24:00 · 복정 24:15). 시각 꼴만 - "24시간" 같은 글은 그대로
             t = t.replaceAll("(?<!\\d)24([:.][0-5]\\d)(?!\\d)", "00$1").replaceAll("(?<![\\d가-힣A-Za-z])24([0-5]\\d)(?![\\d가-힣A-Za-z])", "00$1");
             String time = "";
@@ -505,7 +507,7 @@ final class Party {
      * 12자를 넘으면 낱말 경계에서 자름(앞 낱말이 4자보다 짧으면 그대로 12자).
      */
     static String stopName(String t) {
-        String c = clean(t == null ? null : t.replaceAll("\\([^)]*\\)?", " ").replaceAll("[\\s.]*(출발|도착)?[\\s.]*$", ""), 60);
+        String c = clean(t == null ? null : t.replaceAll("\\([^)]*\\)?", " ").replaceAll("[\\s.]*+(?:출발|도착)?[\\s.]*+$", ""), 60);
         if (c == null || c.codePointCount(0, c.length()) <= 12) return c;
         String head = c.substring(0, c.offsetByCodePoints(0, 12));
         int sp = head.lastIndexOf(' ');
