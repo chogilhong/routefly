@@ -493,10 +493,23 @@ final class Party {
                 time = String.format("%02d:%s", Integer.parseInt(m.group(1)), m.group(2) == null ? "00" : m.group(2));
                 t = t.substring(0, m.start()) + t.substring(m.end());
             }
-            String c = clean(t, 12);
+            String c = stopName(t);
             if (c != null && !names.contains(c) && out.size() < MAX_STOPS) { names.add(c); out.add(new String[] {c, time}); }
         }
         return out;
+    }
+
+    /**
+     * 순수 함수 - 탑승지 이름 12자(2026-11-12 반더룽 지리산 일정표: "양재역 12번출구 50m 서초구청 …(3호선)" 이 "양재역 12번출구 50",
+     * "중산리 거북이식당 주차장 출발. (경남 …)" 이 "중산리 거북이식당 주차" 로 낱말 가운데가 잘렸음). 괄호 안 · 끝의 출발 · 도착 · 마침표는 빼고,
+     * 12자를 넘으면 낱말 경계에서 자름(앞 낱말이 4자보다 짧으면 그대로 12자).
+     */
+    static String stopName(String t) {
+        String c = clean(t == null ? null : t.replaceAll("\\([^)]*\\)?", " ").replaceAll("[\\s.]*(출발|도착)?[\\s.]*$", ""), 60);
+        if (c == null || c.codePointCount(0, c.length()) <= 12) return c;
+        String head = c.substring(0, c.offsetByCodePoints(0, 12));
+        int sp = head.lastIndexOf(' ');
+        return c.charAt(head.length()) == ' ' || sp < 4 ? head.trim() : head.substring(0, sp).trim();
     }
 
     /** 방 만들 때 탑승지 시각(PartyServlet - create 다음). 이름 수와 다르면 버림. */
