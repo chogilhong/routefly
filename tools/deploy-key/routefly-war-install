@@ -223,8 +223,15 @@ PY
   batch-sql)
     # 받은 zip 안의 sql/<영역>/<이름>.xml 만(그 밖 이름 · 폴더 · 링크 · DOCTYPE · ENTITY 가 하나라도 있으면 통째로 거절), 파일마다 1MB · 50개까지.
     # 받은 파일은 batch-deploy 처럼 한 번만 열어 root 만 닿는 임시 폴더로 베끼고, 검사 · 설치는 베낀 것만. 영역 폴더가 없으면 root:routefly 750 으로 만듦
+    # 2026-11-12 보안 점검: 반쯤 바뀐 XML 묶음(QID NOT FOUND)을 남기지 않게 모두 되거나 하나도 안 되게, 배치가 도는 중이면 거절, 두 번 겹쳐 올리기는 잠금으로 막음
     src="${2:-}"
     [[ "$src" =~ ^/tmp/rfsql\.[A-Za-z0-9]{8}$ ]] || { log "쿼리 거절: 받은 파일 경로가 이상함"; exit 3; }
+    # 잠금 파일은 root 만 닿는 $KEEP 안(700) - 다른 올리기가 잡고 있으면 기다리지 않고 바로 거절
+    nolink "$KEEP/batch-sql.lock"
+    exec 9>>"$KEEP/batch-sql.lock"
+    flock -n 9 || { log "쿼리 거절: 다른 쿼리 올리기가 도는 중 - 끝난 뒤 다시"; exit 4; }
+    # 도는 배치가 파일을 읽는 중에 바꾸지 않게(batch-run 과 같은 끝 코드 4)
+    if anyrun; then log "쿼리 거절: 정기 회차나 손 실행이 도는 중 - 끝난 뒤 다시"; exit 4; fi
     work=$(mktemp -d /var/tmp/rfsql-in.XXXXXXXX)
     trap 'rm -rf "$work"' EXIT
     python3 -I - "$src" "$work" "$SMAX" <<'PY' > "$work/list" 2>/dev/null || { log "쿼리 거절: 받은 파일이 이상함(링크 · deploy 것이 아님 · zip 아님 · sql/<영역>/<이름>.xml 아닌 것 · DOCTYPE · 잘못된 XML · 너무 큼)"; exit 3; }
@@ -260,27 +267,120 @@ for i in infos:
     print(m.group(1), m.group(2))
 PY
     install -d -m 700 "$SQL_KEEP"
-    while read -r area name; do
-      python3 -I - "$BSQL" "$area" <<'PY' 2>/dev/null || { log "쿼리 거절: $BSQL 폴더가 없거나 링크임"; exit 3; }
-import grp, os, sys
-fd = os.open("/", os.O_RDONLY | os.O_DIRECTORY)
-for part in [p for p in sys.argv[1].split("/") if p]:
-    nfd = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
-    os.close(fd)
-    fd = nfd
+    # 설치는 한 번에(python 하나): ① 모든 영역 폴더 확인 · 만들기(링크면 실패) ② 지금 파일을 링크를 따라가지 않고 열어 앞 것 임시 파일 · 새 것 임시 파일을
+    # 모두 쓰고(O_EXCL · O_NOFOLLOW, 주인 · 권한 · fsync) ③ 다 된 뒤에야 이름만 바꿈. ③ 전에 하나라도 실패하면 임시 파일 · 만든 폴더를 지우고 끝 코드 3(바뀐 것 없음).
+    # 기록의 크기 · 시각 · 지문은 설치한 경로를 다시 열지 않고(바꿔치기 막기) 쓴 내용 그대로에서.
+    rc=0
+    python3 -I - "$BSQL" "$SQL_KEEP" "$work" > "$work/out" 2>/dev/null <<'PY' || rc=$?
+import grp, hashlib, os, secrets, stat, sys, time
+bsql, keep, work = sys.argv[1], sys.argv[2], sys.argv[3]
+items = [l.split() for l in open(os.path.join(work, "list"), encoding="utf-8") if l.strip()]
+gid = grp.getgrnam("routefly").gr_gid
+def walk(path):
+    fd = os.open("/", os.O_RDONLY | os.O_DIRECTORY)
+    for part in [p for p in path.split("/") if p]:
+        nfd = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
+        os.close(fd)
+        fd = nfd
+    return fd
+def tmpwrite(d, name, data, uid, g, mode):   # 폴더 안 새 임시 파일에 쓰고 그 이름을 돌려줌(이름 바꾸기는 나중에)
+    tmp = "." + name + ".new-" + secrets.token_hex(6)
+    out = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=d)
+    temps.append((d, tmp))
+    try:
+        mv = memoryview(data)
+        while mv:
+            mv = mv[os.write(out, mv):]
+        os.fchown(out, uid, g)
+        os.fchmod(out, mode)
+        os.fsync(out)
+    finally:
+        os.close(out)
+    return tmp
+temps, made, plan = [], [], []
 try:
-    os.mkdir(sys.argv[2], 0o750, dir_fd=fd)
-    d = os.open(sys.argv[2], os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
-    os.fchown(d, 0, grp.getgrnam("routefly").gr_gid)
-    os.fchmod(d, 0o750)
-except FileExistsError:
-    os.close(os.open(sys.argv[2], os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd))   # 있는 것이 링크면 여기서 실패
+    base = walk(bsql)
+    kd = walk(keep)
+    dirs = {}
+    for area, name in items:
+        if area not in dirs:
+            try:
+                os.mkdir(area, 0o750, dir_fd=base)
+                made.append(area)
+                d = os.open(area, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=base)
+                os.fchown(d, 0, gid)
+                os.fchmod(d, 0o750)
+            except FileExistsError:
+                d = os.open(area, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=base)   # 있는 것이 링크면 여기서 실패
+            dirs[area] = d
+        d = dirs[area]
+        with open(os.path.join(work, area + "." + name + ".xml"), "rb") as f:
+            new = f.read()
+        old = None
+        try:
+            fd = os.open(name + ".xml", os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=d)
+        except FileNotFoundError:
+            fd = None
+        if fd is not None:
+            with os.fdopen(fd, "rb") as f:
+                st = os.fstat(f.fileno())
+                if not stat.S_ISREG(st.st_mode) or st.st_nlink != 1:   # 링크 · 보통 파일 아님 · 다른 파일과 이어진 것이면 실패
+                    sys.exit(1)
+                old = f.read(4194305)
+                if len(old) > 4194304:   # 이상하게 큰 지금 파일은 남기지 못하니 실패
+                    sys.exit(1)
+        ktmp = tmpwrite(kd, area + "." + name + ".prev", old, 0, 0, 0o600) if old is not None else None
+        ntmp = tmpwrite(d, name + ".xml", new, 0, gid, 0o640)
+        plan.append((area, name, d, ntmp, ktmp, old, new))
+except BaseException:
+    for d, tmp in temps:
+        try:
+            os.unlink(tmp, dir_fd=d)
+        except OSError:
+            pass
+    for area in reversed(made):
+        try:
+            os.rmdir(area, dir_fd=base)
+        except OSError:
+            pass
+    sys.exit(3)
+# 여기부터 이름만 바꿈(앞 것 먼저 - 새 것이 실패해도 해가 없음). 드물게 중간에 실패하면 이미 바꾼 것을 앞 내용으로 되돌려 봄
+done = []
+try:
+    for area, name, d, ntmp, ktmp, old, new in plan:
+        if ktmp:
+            os.rename(ktmp, area + "." + name + ".prev", src_dir_fd=kd, dst_dir_fd=kd)
+    for area, name, d, ntmp, ktmp, old, new in plan:
+        os.rename(ntmp, name + ".xml", src_dir_fd=d, dst_dir_fd=d)
+        done.append((area, name, d, old))
+    for d in set(dirs.values()) | {kd}:
+        os.fsync(d)
+except BaseException:
+    for area, name, d, old in done:
+        try:
+            if old is None:
+                os.unlink(name + ".xml", dir_fd=d)
+            else:
+                os.rename(tmpwrite(d, name + ".xml", old, 0, gid, 0o640), name + ".xml", src_dir_fd=d, dst_dir_fd=d)
+        except BaseException:
+            print("되돌리지 못함 " + area + "/" + name + ".xml")
+    for d, tmp in temps:
+        try:
+            os.unlink(tmp, dir_fd=d)
+        except OSError:
+            pass
+    sys.exit(5)
+now = time.strftime("%Y-%m-%d %H:%M:%S")
+for area, name, d, ntmp, ktmp, old, new in plan:
+    kept = ("앞 것은 " + keep + "/" + area + "." + name + ".prev") if old is not None else "새 파일"
+    print("쿼리 %s/%s.xml %dB %s %s (%s)" % (area, name, len(new), now, hashlib.sha256(new).hexdigest()[:12], kept))
 PY
-      kept="새 파일"
-      if [ -e "$BSQL/$area/$name.xml" ]; then jcopy "$BSQL/$area/$name.xml" "$SQL_KEEP" "$area.$name.prev" root root 600 || { log "쿼리 거절: 지금 $area/$name.xml 을 남기지 못함"; exit 3; }; kept="앞 것은 $SQL_KEEP/$area.$name.prev"; fi
-      jcopy "$work/$area.$name.xml" "$BSQL/$area" "$name.xml" root routefly 640
-      log "쿼리 $area/$name.xml $(info "$BSQL/$area/$name.xml") ($kept)"
-    done < "$work/list"
+    if [ "$rc" = 3 ]; then log "쿼리 거절: 설치 전 확인 실패(영역 폴더가 링크 · 지금 파일이 링크나 보통 파일이 아님 등) - 아무것도 바꾸지 않음"; exit 3; fi
+    if [ "$rc" != 0 ]; then
+      while IFS= read -r line; do log "$line"; done < "$work/out"
+      log "쿼리 실패: 이름 바꾸는 중 실패(끝 코드 $rc) - 바꾼 것은 앞 내용으로 되돌려 봄, batch-status · 서버에서 확인"; exit 5
+    fi
+    while IFS= read -r line; do log "$line"; done < "$work/out"
     ;;
   batch-rollback)
     nolink "$JAR_KEEP"

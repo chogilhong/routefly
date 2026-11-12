@@ -66,6 +66,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File C:\GH\workspace\routefly-bat
   표준 입력의 zip(2MB 안) 안 `sql/<영역>/<이름>.xml` 만 `/app/routefly/batch/deploy/conf/sql/<영역>/<이름>.xml`(root:routefly 640)로.
   다른 이름 · `..` · 링크 · DOCTYPE · ENTITY · 깨진 XML · 1MB 넘는 파일이 하나라도 있으면 통째로 거절(끝 코드 3). 영역 폴더가 없으면 root:routefly 750 으로 만들고,
   있는 폴더가 링크면 거절. 앞 파일은 `/var/backups/routefly-war/batch-sql/<영역>.<이름>.prev`(root 600). jar 처럼 실행되는 것을 이미 올리는 열쇠라 할 수 있는 일이 늘지는 않음.
+  모두 되거나 하나도 안 됨(2026-11-12 보안 점검 - 반쯤 바뀐 XML 묶음이 QID NOT FOUND 를 다시 내지 않게): 모든 영역 폴더 확인 · 앞 것 · 새 것을 같은 폴더 임시 파일에 다 쓴 뒤에야
+  이름만 한꺼번에 바꾸고, 그 전에 하나라도 실패하면 임시 파일 · 새로 만든 폴더를 지우고 끝 코드 3(아무것도 안 바뀜, 앞 것 .prev 도 그대로). 이름 바꾸는 중 드물게 실패하면 끝 코드 5(바꾼 것은 앞 내용으로 되돌려 봄).
+  정기 회차나 손 실행이 돌면 거절(끝 코드 4, batch-run 과 같음). 두 번 겹쳐 올리면 뒤의 것은 기다리지 않고 거절(끝 코드 4, `/var/backups/routefly-war/batch-sql.lock` 잠금).
+  기록의 크기 · 지문은 설치한 경로를 다시 열지 않고 쓴 내용에서 냄(root 가 routefly 폴더의 바꿔치기 링크를 따라 읽지 않게).
   `deploy-batch.ps1` 은 jar 를 올리기 전에 이것부터 올림(새 XML 은 쿼리를 더하기만 해 옛 jar 와도 돎). 이 명령이 없는 서버면 끝 코드 2 - 아래 "처음 한 번" 처럼 다시 설치.
 - `batch-run`: 배치 이름은 9개만(courseImport · forestTrail · durunubi · osmBike · osmHike · komount · knpsTrail · knpsSign · knpsSpot), 선택은 `--force` · `--allowDelete=숫자` 만.
   정기 회차(routefly-batch.service)나 다른 손 실행이 돌면 거절(끝 코드 4). 뒤에서 `routefly-once-<배치>` 단위로 돌고(ssh 는 바로 돌아옴),
