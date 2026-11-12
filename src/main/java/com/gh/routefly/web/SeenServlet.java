@@ -18,6 +18,7 @@ public class SeenServlet extends HttpServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) {
         Access.js(SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For")), System.currentTimeMillis());   // 오늘 접속 분석 - js 가 돈 곳
         String ua = req.getHeader("User-Agent");
+        if ("1".equals(req.getParameter("app"))) Stats.appSignal();   // 걸러내기 전 앱 신호 수(2026-11-12 - "그중 앱" 이 0 일 때 어디서 빠지는지)
         if (counted(req.getHeader("Cookie"), ua, req.getHeader("Accept-Language")))
             Stats.js(SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For")), Stats.device(ua),
                     "1".equals(req.getParameter("app")));   // routefly 앱 안(js/seen.js 가 window.Capacitor 를 보고 ?app=1 - 2026-11-11)

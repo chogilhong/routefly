@@ -8,9 +8,16 @@
         if (!navigator.sendBeacon || sessionStorage.getItem("rf-seen")) return;
         var s = document.currentScript, src = s && s.src;
         if (!src) return;
-        // routefly 앱 안이면 ?app=1 - 통계에서 앱으로 들어온 사람을 따로 셈(2026-11-11 홍TV님 "앱으로 들어온지도 알 수 있어?")
-        var app = window.Capacitor && (!window.Capacitor.isNativePlatform || window.Capacitor.isNativePlatform());
-        navigator.sendBeacon(src.replace(/js\/seen\.js(\?.*)?$/, "api/seen") + (app ? "?app=1" : ""));
-        sessionStorage.setItem("rf-seen", "1");
+        // routefly 앱 안이면 ?app=1 - 통계에서 앱으로 들어온 사람을 따로 셈(2026-11-11 홍TV님 "앱으로 들어온지도 알 수 있어?").
+        // 앱 판별은 화면이 다 열린 뒤(2026-11-12: "그중 앱" 이 0 - 원격 화면에는 앱 연결(window.Capacitor)이 이 스크립트보다 늦게 들어올 수 있음)
+        var go = function () {
+            try {
+                if (sessionStorage.getItem("rf-seen")) return;
+                var app = window.Capacitor && (!window.Capacitor.isNativePlatform || window.Capacitor.isNativePlatform());
+                navigator.sendBeacon(src.replace(/js\/seen\.js(\?.*)?$/, "api/seen") + (app ? "?app=1" : ""));
+                sessionStorage.setItem("rf-seen", "1");
+            } catch (e) { /* 저장소가 막힌 창 등 */ }
+        };
+        if (document.readyState === "complete") go(); else window.addEventListener("load", go);
     } catch (e) { /* 저장소가 막힌 창 등 - 그냥 넘어감 */ }
 })();

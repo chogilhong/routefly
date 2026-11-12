@@ -273,7 +273,10 @@ public class StatsTest {
         assertFalse("앱을 세기 전 날만 있으면 앱 줄 없음", t.contains("그중 앱"));
         days.put("2026-11-11", JsonParser.parseString("{\"pages\":{},\"uniq\":40,\"bots\":0,\"devUniq\":{\"모바일\":30,\"PC\":10},\"jsUniq\":{\"모바일\":20,\"PC\":5},\"jsApp\":4}").getAsJsonObject());
         String ta = StatsServlet.checkTable(days, new java.util.ArrayList<>(days.keySet()));
-        assertTrue("앱 4 - 그 날 모바일 사람 확인 20 의 20%", ta.contains("<tr><td>└ 그중 앱</td><td class=\"num\">-</td><td class=\"num\">4</td><td class=\"num\">20%</td>"));
+        assertTrue("앱 4 - 그 날 모바일 사람 확인 20 의 20%", ta.contains("<tr><td>└ 그중 앱</td><td class=\"num\" title=\"앱이 보낸 신호(걸러내기 전)\">-</td><td class=\"num\">4</td><td class=\"num\">20%</td>"));
+        // 걸러내기 전 받은 앱 신호 수(2026-11-12 - "그중 앱" 이 0 일 때 신호가 안 왔는지 걸러졌는지)
+        days.put("2026-11-12", JsonParser.parseString("{\"pages\":{},\"uniq\":10,\"bots\":0,\"devUniq\":{\"모바일\":10},\"jsUniq\":{\"모바일\":8},\"jsApp\":0,\"appSig\":3}").getAsJsonObject());
+        assertTrue("신호 3", StatsServlet.checkTable(days, new java.util.ArrayList<>(days.keySet())).contains("title=\"앱이 보낸 신호(걸러내기 전)\">신호 3</td>"));
         String pa = StatsServlet.page(days, 30, null);
         assertTrue("날마다 표 앱 칸", pa.contains("<th class=\"num\">앱</th>") && pa.contains("<td>2026-11-11</td>"));
         String pg = StatsServlet.page(days, 30, null);
@@ -290,6 +293,8 @@ public class StatsTest {
         assertTrue(js.contains("+ (app ? \"?app=1\" : \"\")"));
         String sv = new String(java.nio.file.Files.readAllBytes(java.nio.file.Path.of("src/main/java/com/gh/routefly/web/SeenServlet.java")), java.nio.charset.StandardCharsets.UTF_8);
         assertTrue(sv.contains("\"1\".equals(req.getParameter(\"app\"))"));
+        assertTrue("걸러내기 전 신호도 셈", sv.contains("if (\"1\".equals(req.getParameter(\"app\"))) Stats.appSignal();"));
+        assertTrue("앱 판별은 화면이 다 열린 뒤(원격 화면에 앱 연결이 늦게 들어올 수 있음)", js.contains("if (document.readyState === \"complete\") go(); else window.addEventListener(\"load\", go);"));
     }
 
     /** 화면별 그래프(2026-11-02 홍TV님) - 막대 · 날마다 작은 선, 빈 날은 0, 이름 칸. */

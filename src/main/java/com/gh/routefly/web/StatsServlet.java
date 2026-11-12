@@ -270,9 +270,10 @@ public class StatsServlet extends HttpServlet {
      */
     static String checkTable(Map<String, JsonObject> days, List<String> keys) {
         Map<String, Integer> vis = new HashMap<>(), js = new HashMap<>(), sus = new HashMap<>();
-        int nd = 0, app = 0, appDays = 0, appMob = 0;   // 앱(2026-11-11 부터) - 세기 시작한 날의 모바일 사람 확인과 견줌
+        int nd = 0, app = 0, appDays = 0, appMob = 0, appSig = 0;   // 앱(2026-11-11 부터) - 세기 시작한 날의 모바일 사람 확인과 견줌. appSig - 걸러내기 전 받은 신호(2026-11-12)
         for (String k : keys) {
             JsonObject d = days.get(k);
+            if (d.has("appSig")) appSig += d.get("appSig").getAsInt();
             if (!d.has("jsApp")) continue;
             appDays++;
             app += d.get("jsApp").getAsInt();
@@ -295,7 +296,7 @@ public class StatsServlet extends HttpServlet {
                     .append("</td><td class=\"num\">").append(v > 0 ? Math.round(100.0 * j / v) + "%" : "-").append("</td><td class=\"num\">").append(n(sus.getOrDefault(dv, 0))).append("</td></tr>");
             // 모바일 아래 - 그 가운데 routefly 앱으로 들어온 사람(앱을 센 날만, 비율은 그 날들의 모바일 사람 확인 가운데 몫)
             if ("모바일".equals(dv) && appDays > 0)
-                b.append("<tr><td>└ 그중 앱</td><td class=\"num\">-</td><td class=\"num\">").append(n(app)).append("</td><td class=\"num\">")
+                b.append("<tr><td>└ 그중 앱</td><td class=\"num\" title=\"앱이 보낸 신호(걸러내기 전)\">").append(appSig > 0 ? "신호 " + n(appSig) : "-").append("</td><td class=\"num\">").append(n(app)).append("</td><td class=\"num\">")
                         .append(appMob > 0 ? Math.round(100.0 * app / appMob) + "%" : "-").append("</td><td class=\"num\">-</td></tr>");
         }
         return b.append("</table><p class=\"dim\" style=\"margin:6px 0 0\">").append(nd).append("일 합. 화면 js 돎 - 방문자 가운데 화면이 열려 그 안의 프로그램이 돈 사람, 비율은 그 몫(사람 브라우저는 거의 100%). ")

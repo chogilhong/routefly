@@ -128,6 +128,16 @@ final class Stats {
      * app - routefly 앱 안에서 보냄(seen.js 가 window.Capacitor 를 보고 ?app=1, 2026-11-11 홍TV님 "앱으로 들어온지도 알 수 있어?") - 그 날 "jsApp" 에 한 사람 한 번.
      * 같은 날 브라우저로 먼저 왔다가 앱으로 와도 앱으로 셈(사람 확인 수는 그대로 한 번). 센 것이 있으면 true.
      */
+    /** 앱 신호(?app=1)를 받은 수 - 운영자 · 로봇 · 사람 확인 걸러내기 전, 숫자만(2026-11-12 PC 제안: "그중 앱" 이 0 이면 신호가 안 온 것인지 걸러진 것인지 가름). */
+    static synchronized void appSignal() {
+        load();
+        if (!today.equals(LocalDate.now(WeatherServlet.KST).toString())) return;
+        JsonObject day = DAYS.get(today);
+        if (day == null) return;
+        day.addProperty("appSig", (day.has("appSig") ? day.get("appSig").getAsInt() : 0) + 1);
+        dirty = true;
+    }
+
     static synchronized boolean js(String ip, String device, boolean app) {
         load();
         if (!today.equals(LocalDate.now(WeatherServlet.KST).toString())) return false;
