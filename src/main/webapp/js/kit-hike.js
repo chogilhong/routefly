@@ -1193,16 +1193,17 @@
     /**
      * 순수 함수 - 따라가기 기록(걸은 길)에 이 위치를 넣을까(2026-11-11 홍TV님 송산 덕기봉: GPS 를 잡기 전 어림 위치가 덕기봉 반대쪽 490m 까지
      * 길처럼 남았고, 59초에 425m 를 뛰어 긴 직선 - 1분이 안 돼 점선도 아니었음. src/test/resources/track/songsan-20261111.json).
-     * last: 마지막 기록 점([위도, 경도, ms, …], 없으면 null), p: [위도, 경도, ms], acc: 오차 m(모르면 null), bike: 자전거.
+     * last: 마지막 기록 점([위도, 경도, ms, …], 없으면 null), p: [위도, 경도, ms], acc: 오차 m(모르면 null), bike: 자전거, start: 따라가기를 켠 때(ms, 첫 점에만 씀).
      * - 첫 점은 오차 REC_ACC(30m) 안일 때만. 그 뒤도 30m 넘으면 버림 - 단 1분 넘게 못 찍었으면 50m 까지(골짜기)
      * - 8m 안 · 1분 안이면 버림(배터리 · 저장 공간). 앞 점에서 걷기 5 · 자전거 25 m/s 넘게 뛰었으면 1분이 지날 때까지 기다림(그 뒤는 끊긴 구간 - 점선 · 거리 빼고)
      * → {take: 넣을까, walk: 걸은 거리에 더할 m(300m 넘게 뛰었고 걷기 3 · 자전거 25 m/s 를 넘으면 0)}.
      * 화면의 내 위치 · 코스 이탈 안내는 이 규칙과 상관없이 onFix 가 그대로 씀.
      */
     var REC_ACC = 30, REC_ACC_LATE = 50, REC_WAIT_MS = 60000;
-    function trackTake(last, p, acc, bike) {
+    function trackTake(last, p, acc, bike, start) {
         var no = { take: false, walk: 0 };
-        if (!last) return acc == null || acc <= REC_ACC ? { take: true, walk: 0 } : no;
+        // 첫 점 - 30m 안, 따라가기를 켠 지(start) 1분이 지났으면 50m 까지(2026-11-12 점검: 숲 · 골짜기에서 내내 31 ~ 50m 면 기록이 아예 시작되지 않았음)
+        if (!last) return acc == null || acc <= (start != null && p[2] - start >= REC_WAIT_MS ? REC_ACC_LATE : REC_ACC) ? { take: true, walk: 0 } : no;
         var ms = p[2] - last[2], d = distM(last[0], last[1], p[0], p[1]), v = ms > 0 ? d / (ms / 1000) : Infinity;
         if (acc != null && acc > (ms >= REC_WAIT_MS ? REC_ACC_LATE : REC_ACC)) return no;
         if (ms < REC_WAIT_MS && (d < 8 || v > (bike ? 25 : 5))) return no;
@@ -1862,6 +1863,10 @@
         s.course.end_lat = s.lat[s.lat.length - 1];
         s.course.end_lon = s.lon[s.lon.length - 1];
         endPois(s);
+        // 길찾기 주차장 · 정류장(fromApi 의 c.access)도 같은 구간으로 - endPois 가 정리된 이름표로 덮은 뒤에(2026-11-12 점검: 자른 코스에서는 길 밖 "공영주차장" 이 빠졌음)
+        if (c.access) s.access = c.access.filter(function (p) { return +p.dist_m >= base - 1 && +p.dist_m <= base + s.total + 1; }).map(function (p) {
+            var q = Object.assign({}, p); q.dist_m = +p.dist_m - base; return q;
+        });
         return s;
     }
 
@@ -2087,6 +2092,7 @@
             (p.junctions || []).forEach(function (d) { c.junctions.push(off + d); });
             c.signs = c.signs.concat(p.signs || []);
             c.spots = c.spots.concat(p.spots || []);
+            if (k === 0 && p.access) c.access = p.access.map(function (q) { return Object.assign({}, q); });   // 길찾기는 들머리 쪽(첫 구간) 것만(2026-11-12 점검)
         });
         c.total = c.dist.length ? c.dist[c.dist.length - 1] : 0;
         c.asc = cumAscent(c.ele);
@@ -2964,6 +2970,18 @@
     }
 
     /**
+     * 순수 함수 - 국립공원 통제 안내를 붙일 공원 이름(2026-11-12 점검: "광양 가야산 · …" 처럼 이름만 같은 산에도 가야산 국립공원 통제가 떴음).
+     * 공원 이름으로 시작하는 코스(park - RF.parkOf)는 그대로, 산 이름으로만 맞으면(mnt - RF.mountainOf, "[합천 가야산] …" 꼴)
+     * 코스 시작이 그 산(data/mountains100.json 의 정상 자리) 15km 안일 때만. 없으면 null.
+     */
+    function closeName(park, mnt, peaks, lat, lon) {
+        if (park) return park;
+        if (!mnt || lat == null || lon == null) return null;
+        var p = (peaks || []).filter(function (x) { return x && x.id === mnt; })[0];
+        return p && distM(+lat, +lon, p.lat, p.lon) <= 15000 ? mnt : null;
+    }
+
+    /**
      * 순수 함수 - 국립공원 산불예방 통제 안내(data/knps-close.json - tools/knps-close/build.py, 2026-11-10 홍TV님 "작업해"). 그 공원 그 계절(통제이력의 달 안)이 아니면 null.
      * 구간은 "해마다 통제되어 온"(공단 통제이력의 가장 최근 해 반복통제) - 오늘 상태가 아니라서 오늘 상황은 공단 통제정보 링크로(공단 robots.txt 가 긁기를 막음).
      * {text, link, url} - 사무소가 하나면 그 세부 화면, 여럿(지리산 등)이면 목록. en - 영어(구간 이름은 빼고). max - 구간을 몇 개까지(없으면 모두, 넘으면 "외 N곳").
@@ -3529,7 +3547,11 @@
                 var at = m.pickup && s.pickupAt && s.pickupAt[m.pickup] || s.endAt;
                 if (at) { var gk = m.pickup && s.pickupAt && s.pickupAt[m.pickup] ? m.pickup : ""; groups[gk] = groups[gk] || { at: at, n: 0 }; groups[gk].n++; }
                 // 🐢 하산이 늦을 회원(2026-11-11) - 코스 도착 예상(+버스까지)이 그 회원 하산 탑승 시각보다 늦음. 30분 더 늦어질 때마다 다시
-                if (m.late > 0 && s.departed) hit("late" + m.id + "_" + Math.floor(m.late / 30), en ? "🐢 " + m.nick + " may be about " + m.late + " min late for the bus (ETA " + hm(m.arr) + ")"
+                // 한 번 울린 단계는 탈 때까지 기억(2026-11-12 점검: 예상이 기준 근처에서 오르내리면 5 → 0 → 7 처럼 다시 울렸음) - 더 늦어질 때만 다시
+                Object.keys(old).forEach(function (k) { if (k.indexOf("late" + m.id + "_") === 0) f[k] = true; });
+                var lb = m.late > 0 ? Math.floor(m.late / 30) : -1;
+                for (var lk = 0; lk < lb; lk++) f["late" + m.id + "_" + lk] = true;
+                if (m.late > 0 && s.departed) hit("late" + m.id + "_" + lb, en ? "🐢 " + m.nick + " may be about " + m.late + " min late for the bus (ETA " + hm(m.arr) + ")"
                     : "🐢 " + m.nick + " 님 하산 탑승보다 약 " + m.late + "분 늦을 예상(도착 예상 " + hm(m.arr) + ")");
                 if (m.app && !m.listed && s.departedAt && !m.sos) {
                     var a = m.seen != null ? m.seen : m.ago, eff = Math.min(a == null ? Infinity : a, (now - s.departedAt) / 1000);
@@ -3558,8 +3580,11 @@
             var mine = s.myEndAt || s.endAt, pk = s.pickup && s.pickupAt && s.pickupAt[s.pickup] ? s.pickup : "";   // 내 하산 탑승지 시각(없으면 방 하산 마감)
             // 🐢 지금 속도로는 하산 탑승에 늦음(2026-11-11) - 내 줄(members 의 나)의 late. 30분 더 늦어질 때마다 다시
             var me = (s.members || []).filter(function (x) { return x.id === s.me; })[0];
+            if (!s.aboard && !s.cancelled) Object.keys(old).forEach(function (k) { if (/^mylate\d+$/.test(k)) f[k] = true; });   // 울린 단계는 탈 때까지 기억(위 인솔자 것과 같게)
+            var mb = me && me.late > 0 ? Math.floor(me.late / 30) : -1;
+            for (var mk = 0; mk < mb; mk++) f["mylate" + mk] = true;
             if (me && me.late > 0 && s.departed && !s.aboard && !s.cancelled)
-                hit("mylate" + Math.floor(me.late / 30), en ? "🐢 At this pace you may be about " + me.late + " min late for the bus (ETA " + hm(me.arr) + "). Hurry or tell the leader."
+                hit("mylate" + mb, en ? "🐢 At this pace you may be about " + me.late + " min late for the bus (ETA " + hm(me.arr) + "). Hurry or tell the leader."
                     : "🐢 지금 속도로는 하산 탑승에 약 " + me.late + "분 늦습니다(도착 예상 " + hm(me.arr) + "). 서두르거나 인솔자에게 알려 주세요.");
             if (s.departed && mine && !s.aboard && !s.cancelled) {
                 var mleft = Math.ceil((mine - now) / 60000);
@@ -3915,6 +3940,7 @@
         planText: planText,
         fireNote: fireNote,
         parkClose: parkClose,
+        closeName: closeName,
         logEntry: logEntry,
         mergeLog: mergeLog,
         periodStats: periodStats,

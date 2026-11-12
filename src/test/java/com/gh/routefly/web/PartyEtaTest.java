@@ -20,7 +20,7 @@ public class PartyEtaTest {
     static final double END_LAT = 38.1720, END_LON = 128.4900, BUS_LAT = 38.1700, BUS_LON = 128.4900;   // 코스 끝 · 버스(약 222m)
 
     static String loc(String t, long eta, int left, double endLat) {
-        return "{\"token\":\"" + t + "\",\"lat\":38.15,\"lon\":128.45,\"acc\":10,\"sos\":false" + (eta > 0 ? ",\"eta\":" + eta + ",\"left\":" + left + ",\"endLat\":" + endLat + ",\"endLon\":" + END_LON : "") + "}";
+        return "{\"token\":\"" + t + "\",\"lat\":38.15,\"lon\":128.45,\"acc\":10,\"sos\":false" + (eta > 0 ? ",\"eta\":" + eta + ",\"endLat\":" + endLat + ",\"endLon\":" + END_LON : "") + "}";
     }
 
     @Test
@@ -43,7 +43,7 @@ public class PartyEtaTest {
         JsonObject lv = call(p, "/view", tok(lead), now), ma = member(lv, "늦음"), mb = member(lv, "빠름");
         assertEquals("코스 끝 도착 + 버스까지 걸음", seorak + 30 * 60_000L + walk, ma.get("arr").getAsLong());
         assertEquals("탑승보다 늦는 분(올림)", (int) Math.ceil((30 * 60_000L + walk) / 60000.0), ma.get("late").getAsInt());
-        assertEquals(3200, ma.get("left").getAsInt());
+        assertFalse("남은 거리는 받지도 보내지도 않음(2026-11-12 점검 - 아무도 안 읽음)", ma.has("left"));
         assertTrue("일찍 오는 회원 - 예상만, 늦음 없음", mb.has("arr") && !mb.has("late"));
         JsonObject av = call(p, "/view", tok(a), now);
         assertTrue("회원은 자기 것", member(av, "늦음").get("late").getAsInt() > 30);
@@ -69,13 +69,13 @@ public class PartyEtaTest {
     @Test
     public void phoneSendsCourseEta() throws Exception {
         String kit = new String(Files.readAllBytes(Path.of("src/main/webapp/js/party-kit.js")), StandardCharsets.UTF_8).replace("\r\n", "\n");
-        assertTrue(kit.contains("e = g.RFParty.etaNow ? g.RFParty.etaNow() : null;") && kit.contains("body.eta = Math.round(e.eta); body.left = Math.round(e.left);"));
+        assertTrue(kit.contains("e = g.RFParty.etaNow ? g.RFParty.etaNow() : null;") && kit.contains("body.eta = Math.round(e.eta);") && !kit.contains("body.left"));
         String hike = new String(Files.readAllBytes(Path.of("src/main/webapp/js/hike.js")), StandardCharsets.UTF_8).replace("\r\n", "\n");
         assertTrue("실제 산행 · 코스 따라가는 중만", hike.contains("if (!c || !hike.running || hike.sim || !c.lat || !c.lat.length) return null;"));
-        assertTrue(hike.contains("return { eta: Date.now() + remainingMs(now() - hike.start), left: Math.max(0, c.total - d), endLat: c.lat[n], endLon: c.lon[n] };"));
+        assertTrue(hike.contains("return { eta: Date.now() + remainingMs(now() - hike.start), endLat: c.lat[n], endLon: c.lon[n] };"));
         assertTrue(hike.contains("if (window.RFParty) RFParty.etaNow = partyEta;"));
         assertTrue("인솔자 회원 줄", new String(Files.readAllBytes(Path.of("src/main/webapp/js/party.js")), StandardCharsets.UTF_8).contains("T(\"하산 예상 \", \"ETA \") + clock(m.arr)"));
         String pv = new String(Files.readAllBytes(Path.of("src/main/webapp/privacy.html")), StandardCharsets.UTF_8);
-        assertTrue("개인정보처리방침 받는 것", pv.contains("그 코스의 도착 예상 시각 · 남은 거리 · 코스 끝 자리"));
+        assertTrue("개인정보처리방침 받는 것", pv.contains("그 코스의 도착 예상 시각 · 코스 끝 자리(하산 예상 - 인솔자 · 회사 사무실 화면에"));
     }
 }

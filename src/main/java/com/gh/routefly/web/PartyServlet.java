@@ -19,7 +19,7 @@ import com.google.gson.JsonParser;
  * POST /api/party/create {name, departAt, endAt, leaderName, leaderPhone, buses, seats, plates, stops}  인솔자 → 방 + 열쇠(buses 차량 수 · seats 한 대 좌석 · plates 호차별 차량번호)
  * POST /api/party/info   {code}                            참가 전 방 소개(이름 · 출발 · 인솔자 · 인원 · 좌석 수 · 탑승지 · 찬 좌석)
  * POST /api/party/join   {code, nick, role, bus, seat, stop, agree} 방 코드 → 회원(hiker), 공동 인솔자 코드 → 인솔자(lead) · 열쇠(role 은 코드가 정함) - agree(위치 제공 동의)가 true 여야
- * POST /api/party/loc    {token, lat, lon, acc, batt, sos, eta?, left?, endLat?, endLon?} 내 위치(출발할 때부터 받음, eta · left · end - 따라가기 코스의 도착 예상 · 남은 m · 코스 끝, 2026-11-11) → 방 화면
+ * POST /api/party/loc    {token, lat, lon, acc, batt, sos, eta?, endLat?, endLon?} 내 위치(출발할 때부터 받음, eta · end - 따라가기 코스의 도착 예상 · 코스 끝, 2026-11-11. 남은 m(left)는 아무도 안 읽어 2026-11-12 뺌) → 방 화면
  * POST /api/party/ping   {token, batt, sos}               위치를 못 잡을 때 - 폰은 켜짐 · 배터리 · SOS(위치 없이)
  * POST /api/party/view   {token}                           방 화면
  * POST /api/party/board  {token}                           회원 - 이미 참가한 폰으로 버스 QR · NFC 를 찍음 = 출발 탑승
@@ -295,7 +295,7 @@ public class PartyServlet extends HttpServlet {
                 boolean kept = p.loc(m, num(in, "lat"), num(in, "lon"), num(in, "acc"), num(in, "batt") == null ? null : num(in, "batt").intValue(),
                         bool(in, "sos"), now);
                 // 하산 예상(2026-11-11) - 따라가기 코스의 도착 예상 · 남은 거리 · 코스 끝. 없으면 지움(코스 없이 걷거나 웹 방 화면)
-                p.eta(m, num(in, "eta") == null ? null : num(in, "eta").longValue(), num(in, "left") == null ? null : num(in, "left").intValue(), num(in, "endLat"), num(in, "endLon"), now);
+                p.eta(m, num(in, "eta") == null ? null : num(in, "eta").longValue(), num(in, "endLat"), num(in, "endLon"), now);
                 out = p.view(m, now);
                 out.addProperty("locKept", kept);   // false - 출발 전이라 버림
                 out.addProperty("sosKept", !bool(in, "sos") || m.sos);   // false - 보낸 SOS 를 받지 않음(사무실 자리) - 화면이 알림(2026-11-02)

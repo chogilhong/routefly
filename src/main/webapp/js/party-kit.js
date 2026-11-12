@@ -134,7 +134,7 @@
             // 하산 예상(2026-11-11) - 따라가기가 코스를 따라가는 중이면 도착 예상 · 남은 거리 · 코스 끝을 함께(인솔자가 늦을 회원을 미리 봄). 없으면 안 보냄
             var e = null;
             try { e = g.RFParty.etaNow ? g.RFParty.etaNow() : null; } catch (x) { e = null; }
-            if (e && e.eta > 0) { body.eta = Math.round(e.eta); body.left = Math.round(e.left); if (e.endLat != null) { body.endLat = +(+e.endLat).toFixed(5); body.endLon = +(+e.endLon).toFixed(5); } }
+            if (e && e.eta > 0) { body.eta = Math.round(e.eta); if (e.endLat != null) { body.endLat = +(+e.endLat).toFixed(5); body.endLon = +(+e.endLon).toFixed(5); } }
             return post("loc", body);
         }).then(function (j) {
             if (!sos) offPending = false;

@@ -167,6 +167,15 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
         eq("늦음 - 회원 자기", /^🐢 지금 속도로는 하산 탑승에 약 25분 늦습니다/.test(RF.partyAlerts(Hk, {}).msgs.join("|")), true);
         Hk.aboard = true;
         eq("늦음 - 하산 탑승했으면 안 울림", RF.partyAlerts(Hk, {}).msgs.length, 0);
+        // 예상이 기준 근처에서 오르내려도 다시 안 울림(2026-11-12 점검: 5 → 0 → 7 → 0 → 29 → 31 → 29 에 5번 울렸음) - 30분 단계가 올라갈 때만
+        var O = { role: "lead", now: D + 3600000, departed: true, departedAt: D, endAt: E, members: [{ id: 9, role: "hiker", nick: "오락", seen: 10, arr: E }] }, of = {}, on = 0;
+        [5, 0, 7, 0, 29, 31, 29, 0, 31].forEach(function (v) { O.members[0].late = v; var r = RF.partyAlerts(O, of); of = r.fired; on += r.msgs.length; });
+        eq("늦음 - 오르내려도 단계마다 한 번(5 · 31)", on, 2);
+        O.members[0].aboard = true; of = RF.partyAlerts(O, of).fired;
+        eq("늦음 - 하산 탑승하면 잊음", Object.keys(of).filter(function (k) { return k.indexOf("late9_") === 0; }).length, 0);
+        var Hm = { role: "hiker", me: 7, now: D + 3600000, departed: true, endAt: E, members: [{ id: 7, role: "hiker", nick: "느림", arr: E }] }, hf = {}, hn = 0;
+        [10, 0, 12, 0, 40, 20].forEach(function (v) { Hm.members[0].late = v; var r = RF.partyAlerts(Hm, hf); hf = r.fired; hn += r.msgs.length; });
+        eq("늦음 - 회원 자기도 오르내려도 단계마다 한 번(10 · 40)", hn, 2);
         lead.now = E - 50 * 60000;
         eq("알림 - 하산 마감 60분 전 미하산 인원(사무실 자리 · 탄 사람 빼고)", RF.partyAlerts(lead, r3.fired).msgs.filter(function (m) { return m.indexOf("⏰") === 0; }).join("|"), "⏰ 하산 마감 01:53 (50분 남음) - 아직 4명 하산 전");
         eq("알림 - 사무실 자리는 울리지 않음", RF.partyAlerts({ role: "lead", officeMe: true, now: lead.now, departed: true, endAt: E, members: lead.members }, {}).msgs.length, 0);
@@ -225,6 +234,7 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
     (function () {
         var T0 = 1794375527149, A = [37.481264, 126.556343, T0];
         eq("기록 - 첫 점은 오차 30m 안만", [RF.trackTake(null, A, 31, false).take, RF.trackTake(null, A, 30, false).take, RF.trackTake(null, A, null, false).take].join(), "false,true,true");
+        eq("기록 - 첫 점: 켠 지 1분이 지나면 50m 까지(숲 · 골짜기)", [RF.trackTake(null, A, 45, false, T0 - 30000).take, RF.trackTake(null, A, 45, false, T0 - 60000).take, RF.trackTake(null, A, 51, false, T0 - 60000).take].join(), "false,true,false");
         var B = [37.481353, 126.556287, T0 + 13000];   // 11m · 13초
         eq("기록 - 30m 넘으면 버림", RF.trackTake(A, B, 40, false).take, false);
         eq("기록 - 1분 넘게 못 찍었으면 50m 까지", [RF.trackTake(A, [B[0], B[1], T0 + 61000], 50, false).take, RF.trackTake(A, [B[0], B[1], T0 + 61000], 51, false).take].join(), "true,false");
@@ -242,6 +252,15 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
         eq("송산 - 카드 · 지도에서 뛴 곳은 점선(끊긴 구간)", rc.gap.filter(Boolean).length, 1);
         eq("송산 - 뛴 거리는 걸은 거리에서 빠짐", walked < rec.walked, true);
         eq("송산 - 마지막 2분(실제 걸은 길)은 남음", rc.lat[rc.lat.length - 1] + "," + rc.lon[rc.lon.length - 1], "37.481249,126.555359");
+    })();
+    // 통제 안내를 붙일 공원(2026-11-12 점검) - 산 이름으로만 맞으면 정상 15km 안만(정상 자리는 data/mountains100.json 그대로)
+    (function () {
+        var pk = JSON.parse(require("fs").readFileSync(require("path").join(__dirname, "../../main/webapp/data/mountains100.json"), "utf8")).peaks;
+        var gy = pk.filter(function (x) { return x.id === "가야산"; })[0], jr = pk.filter(function (x) { return x.id === "지리산"; })[0];
+        eq("통제 - 공원 이름으로 시작하면 그대로", RF.closeName("설악산", "설악산", pk, null, null), "설악산");
+        eq("통제 - [합천 가야산] 상왕봉 자리는 가야산", RF.closeName(RF.parkOf("[합천 가야산] 남쪽 들머리 → 정상"), RF.mountainOf("[합천 가야산] 남쪽 들머리 → 정상", "frst-1"), pk, gy.alt[0].lat, gy.alt[0].lon), "가야산");
+        eq("통제 - 이름만 가야산이고 먼 곳(지리산 자리)이면 없음", RF.closeName(RF.parkOf("광양 가야산 · 동쪽 들머리 → 정상"), RF.mountainOf("광양 가야산 · 동쪽 들머리 → 정상", "frst-1"), pk, jr.lat, jr.lon), null);
+        eq("통제 - 자리를 모르면 없음", RF.closeName(null, "가야산", pk, null, null), null);
     })();
     // 합계도 같은 거리(2026-10-28 PC): 걸은 거리와 코스 진행 가운데 큰 값, 옛 요약은 합칠 때 큰 값으로
     eq("거리 - 큰 값", RF.recDist({ walked: 3000, done: 5800 }), 5800);
@@ -336,6 +355,10 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
     eq("이름표는 길에 가까운 주차장 하나(10-13 정리 그대로)", gy.pois.filter(function (p) { return /주차장/.test(p.name); }).map(function (p) { return p.name; }), ["주차장"]);
     eq("길찾기 후보에는 길 밖 공영주차장 · 정류장", gy.access.map(function (p) { return p.name; }), ["공영주차장", "가야초교 정류장", "현대고층아파트 정류장"]);
     eq("거꾸로 걸으면 후보도 뒤집힘(출발 쪽 아님)", RF.reverseCourse(gy).access.map(function (p) { return Math.round(p.dist_m); }), [1803, 1803, 1803]);
+    // 자르거나 이은 코스도 후보를 함께(2026-11-12 점검 - 한쪽만 고침)
+    eq("자른 코스(앞 절반)도 길찾기 후보", RF.sliceCourse(gy, 0, 0.5, null, "x").access.map(function (p) { return p.name; }), ["공영주차장", "가야초교 정류장", "현대고층아파트 정류장"]);
+    eq("자른 코스(뒤 절반)에는 출발 쪽 후보 없음", RF.sliceCourse(gy, 0.5, 1, null, "x").access.length, 0);
+    eq("이은 코스는 첫 구간 후보", RF.joinCourses([gy, gy], "a~b").access.length, 3);
     // 산 · 코스 페이지 🚗 티맵 자리 - 휴대폰일 때만(2026-11-09). 가짜 a 둘(서버 tmapA 와 같은 data-*)
     var mkA = function (nm, la, lo) { var at = { "data-name": nm, "data-lat": la, "data-lon": lo }; return { hidden: true, href: "", getAttribute: function (k) { return at[k]; } }; };
     var ta = [mkA("공영주차장", "34.964282", "127.715249"), mkA("광양 가야산 출발점", "34.964000", "127.716000")], troot = { querySelectorAll: function () { return ta; } };

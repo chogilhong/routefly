@@ -949,6 +949,10 @@
         s.course.end_lat = s.lat[s.lat.length - 1];
         s.course.end_lon = s.lon[s.lon.length - 1];
         endPois(s);
+        // 길찾기 주차장 · 정류장(fromApi 의 c.access)도 같은 구간으로 - endPois 가 정리된 이름표로 덮은 뒤에(2026-11-12 점검: 자른 코스에서는 길 밖 "공영주차장" 이 빠졌음)
+        if (c.access) s.access = c.access.filter(function (p) { return +p.dist_m >= base - 1 && +p.dist_m <= base + s.total + 1; }).map(function (p) {
+            var q = Object.assign({}, p); q.dist_m = +p.dist_m - base; return q;
+        });
         return s;
     }
 

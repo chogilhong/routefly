@@ -12,7 +12,8 @@ var WEB = path.join(__dirname, "../../src/main/webapp");
 
 /** 만들 파일과 그 화면에서 RF 를 쓰는 파일들(웹앱 기준, .java 는 그 화면을 만드는 서버 코드). */
 var BUNDLES = [
-    { out: "js/kit-m.js", users: ["js/mountain.js", "js/mountain-en.js", "js/seen.js", "../java/com/gh/routefly/web/MountainServlet.java", "../java/com/gh/routefly/web/MountainEn.java"] },
+    { out: "js/kit-m.js", users: ["js/mountain.js", "js/mountain-en.js", "js/seen.js", "../java/com/gh/routefly/web/MountainServlet.java", "../java/com/gh/routefly/web/MountainEn.java",
+        "js/course-page.js", "../java/com/gh/routefly/web/CoursePageServlet.java"] },   // 코스 페이지(/c/)도 kit-m.js 를 받음(2026-11-12 점검 - 빠져 있었음)
     { out: "js/kit-party.js", users: ["party.html", "js/no-kakao.js", "js/rf-dialog.js", "js/party-kit.js", "js/party.js", "js/seen.js", "js/sw-reg.js"] },
     { out: "js/kit-tools.js", users: ["tools.html", "js/tools.js", "js/sw-reg.js", "js/seen.js"] },
     { out: "js/kit-anbu.js", users: ["anbu.html", "js/anbu.js", "js/sw-reg.js", "js/seen.js"] },

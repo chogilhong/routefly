@@ -33,6 +33,9 @@ public class AppPermNoticeTest {
     public void appOnlyOnceAndListsPermissions() throws Exception {
         String js = read("src/main/webapp/js/app-perm.js");
         assertTrue("앱 안에서만", js.contains("if (isApp() && !seen())"));
+        // 2026-11-12 점검: 앱 첫 화면(/m/ · /en/m/ · /c/)에서 상대 주소 "privacy.html" 이 404 - 스크립트 자리 기준으로
+        assertTrue("방침 링크는 스크립트 자리 기준", js.contains("a.href = here(en() ? \"privacy-en.html\" : \"privacy.html\");")
+            && js.contains("SRC.replace(/js\\/app-perm\\.js(\\?.*)?$/, file)"));
         assertTrue("확인하면 다시 안 뜸", js.contains("localStorage.setItem(KEY, \"1\")"));
         for (String w : new String[] {"위치(정확한 · 대략적인 위치)", "화면이 꺼진 동안 위치", "알림", "정한 시각 알림", "NFC", "선택 접근권한", "설정 → 애플리케이션 → routefly → 권한"})
             assertTrue(w, js.contains(w));

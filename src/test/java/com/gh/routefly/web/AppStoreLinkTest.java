@@ -53,7 +53,7 @@ public class AppStoreLinkTest {
         assertTrue(read("src/main/webapp/about.html").contains("routefly(루트플라이)는"));
         String js = read("src/main/webapp/js/hike.js");
         // 2026-11-10 홍TV님 "강요하듯이 해. 앱을 설치하라고" - 새 산행을 시작할 때마다 확인 창(이 화면에서 한 번), "그래도 브라우저로" 는 남김(산에서 길 안내를 막지 않음)
-        assertTrue(js.contains("if (!sim && !BG && !saved && !appAsked && !EN && window.RFAppStore && RFAppStore.android()) {"));
+        assertTrue(js.contains("if (!sim && !NATIVE && !saved && !appAsked && !EN && window.RFAppStore && RFAppStore.android()) {"));   // 앱 판별은 NATIVE(Capacitor) - BG 플러그인이 없는 앱에서도 설치를 권했음(2026-11-12 점검)
         assertTrue(js.contains("{ ok: \"원스토어에서 설치\", cancel: \"그래도 브라우저로\" }).then(function (ok) { if (ok) location.href = RFAppStore.url; else start(sim, checked); });"));
         assertFalse("하루 한 번 알림은 확인 창으로 바뀜", js.contains("rf-app-tip"));
         String as = read("src/main/webapp/js/app-store.js");

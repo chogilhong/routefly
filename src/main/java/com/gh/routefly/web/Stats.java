@@ -135,10 +135,12 @@ final class Stats {
         if (!seen.contains(h)) return false;
         JsonObject day = DAYS.get(today);
         if (day == null) return false;
-        boolean first = jsSeen.add(h), inApp = app && appSeen.add(h);
+        // 앱은 모바일만(2026-11-12 점검: ?app=1 은 화면이 보내는 값이라 PC 도 섞이면 "그중 앱" 이 모바일의 100% 를 넘을 수 있었음)
+        boolean first = jsSeen.add(h), inApp = app && "모바일".equals(device) && appSeen.add(h);
         if (first) {
             if (!day.has("jsUniq")) day.add("jsUniq", new JsonObject());
             add(day.getAsJsonObject("jsUniq"), device);
+            if (!day.has("jsApp")) day.addProperty("jsApp", 0);   // 앱 손님이 없는 날도 0 으로(빈칸 "-" 이면 그 날이 빠져 비율이 부풀었음, 2026-11-12 점검)
         }
         if (inApp) day.addProperty("jsApp", (day.has("jsApp") ? day.get("jsApp").getAsInt() : 0) + 1);
         if (first || inApp) dirty = true;

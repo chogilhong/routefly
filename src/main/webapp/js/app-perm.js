@@ -8,6 +8,9 @@
  */
 (function (g) {
     var KEY = "rf-app-perm-1";
+    // 개인정보처리방침 주소는 이 스크립트 자리 기준(2026-11-12 점검: 앱 첫 화면 /m/ · /en/m/ · /c/ 에서 "privacy.html" 상대 주소가 404 - seen.js 와 같은 방식)
+    var SRC = (document.currentScript && document.currentScript.src) || "";
+    function here(file) { return SRC ? SRC.replace(/js\/app-perm\.js(\?.*)?$/, file) : file; }
 
     function isApp() { return !!(g.Capacitor && (!g.Capacitor.isNativePlatform || g.Capacitor.isNativePlatform())); }
     function seen() {
@@ -91,7 +94,7 @@
             box.appendChild(p);
         });
         var a = document.createElement("a");
-        a.href = en() ? "privacy-en.html" : "privacy.html";
+        a.href = here(en() ? "privacy-en.html" : "privacy.html");
         a.textContent = t.privacy + " ›";
         a.style.cssText = "display:inline-block;margin:0 0 12px;font-size:13px;color:#38d9ea";
         box.appendChild(a);

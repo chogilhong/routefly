@@ -125,11 +125,10 @@ final class Party {
         boolean wasAboard, wasApart;
         // ---- 메모리에만(파일에 안 씀)
         /**
-         * 하산 예상(2026-11-11 홍TV님 "작업해" - 늦을 회원 미리 경보): 회원 폰 따라가기 코스의 도착 예상 시각(eta) · 남은 거리(left, m) · 코스 끝(endLat · endLon).
+         * 하산 예상(2026-11-11 홍TV님 "작업해" - 늦을 회원 미리 경보): 회원 폰 따라가기 코스의 도착 예상 시각(eta) · 코스 끝(endLat · endLon) - 남은 거리는 아무도 안 읽어 받지 않음(2026-11-12 점검).
          * 위치를 보낼 때 함께 옴(코스를 따라가는 중일 때만), etaAt 은 받은 때. 메모리에만.
          */
         long eta, etaAt;
-        Integer left;
         Double endLat, endLon;
         /** 인솔자에게 한 줄(2026-10-27 홍TV님 - 공지의 반대 방향) - 메모리에만, 방이 끝나면 사라짐. */
         String msg;
@@ -1078,11 +1077,6 @@ final class Party {
 
     private long locSavedAt = Long.MIN_VALUE / 4;
 
-    /**
-     * 위치 없이 "폰은 켜져 있음" · 배터리 · SOS(2026-10-20 PC: 화면을 끈 실내 · 골짜기에서 GPS 를 못 잡으면 인솔자에게 소식이 끊긴 것처럼 보였고,
-     * 위치가 없으면 SOS 도 못 보냈음). 출발 전 · 취소 · 하산 탑승이면 받지 않음.
-     */
-    /** sos - null 이면 그대로 둠(앱의 "폰 켜짐" 신호 RfAlive 는 sos 를 안 보냄 - 전에는 1분마다 SOS 가 꺼져 인솔자에게 "새 SOS" 가 되풀이됐음, 2026-10-22 점검). */
     /** 하산 예상 - 받은 지 이만큼 지나면 안 씀(위치는 30초 · 머물면 90초마다라 넉넉히). */
     static final long ETA_FRESH_MS = 10 * 60 * 1000L;
     /** 코스 끝에서 버스까지 걸어갈 때 - 직선의 1.3배 길을 시속 4km(평지)로. 3km 넘게 떨어진 버스는 다른 곳(하차 지점 등)에 선 것으로 보고 더하지 않음. */
@@ -1091,12 +1085,12 @@ final class Party {
     /**
      * 하산 예상 받기(위치와 함께) - 따라가는 코스가 없거나 값이 이상하면 지움. eta 는 폰이 계산한 코스 끝 도착 시각(hike.js remainingMs).
      */
-    synchronized void eta(Member m, Long eta, Integer left, Double endLat, Double endLon, long now) {
-        if (eta == null || left == null || eta < now - HOUR || eta > now + 48 * HOUR || left < 0 || left > 300000) {
-            m.eta = 0; m.left = null; m.endLat = m.endLon = null;
+    synchronized void eta(Member m, Long eta, Double endLat, Double endLon, long now) {
+        if (eta == null || eta < now - HOUR || eta > now + 48 * HOUR) {
+            m.eta = 0; m.endLat = m.endLon = null;
             return;
         }
-        m.eta = eta; m.etaAt = now; m.left = left;
+        m.eta = eta; m.etaAt = now;
         boolean ok = endLat != null && endLon != null && okPos(endLat, endLon);
         m.endLat = ok ? endLat : null; m.endLon = ok ? endLon : null;
     }
@@ -1129,6 +1123,11 @@ final class Party {
         m.app = app;
     }
 
+    /**
+     * 위치 없이 "폰은 켜져 있음" · 배터리 · SOS(2026-10-20 PC: 화면을 끈 실내 · 골짜기에서 GPS 를 못 잡으면 인솔자에게 소식이 끊긴 것처럼 보였고,
+     * 위치가 없으면 SOS 도 못 보냈음). 출발 전 · 취소 · 하산 탑승이면 받지 않음.
+     */
+    /** sos - null 이면 그대로 둠(앱의 "폰 켜짐" 신호 RfAlive 는 sos 를 안 보냄 - 전에는 1분마다 SOS 가 꺼져 인솔자에게 "새 SOS" 가 되풀이됐음, 2026-10-22 점검). */
     /** 돌려줌: 보낸 SOS 를 받았나(false - 사무실 자리의 SOS, 화면이 알림). */
     synchronized boolean ping(Member m, Integer batt, Boolean sos, long now) {
         // 사무실 자리는 SOS 를 올리지 않음(2026-11-02 보안 점검: 보기만 하는 자리가 가짜 SOS 로 인솔자를 부르고 방 끝내기를 막을 수 있었음)
@@ -2195,7 +2194,6 @@ final class Party {
                 Long busArr = busArrive(m, now);
                 if (busArr != null) {
                     x.addProperty("arr", busArr);
-                    if (m.left != null) x.addProperty("left", m.left);
                     int late = lateMin(m, now);
                     if (late > 0) x.addProperty("late", late);
                 }

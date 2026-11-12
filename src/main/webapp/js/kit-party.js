@@ -297,7 +297,11 @@
                 var at = m.pickup && s.pickupAt && s.pickupAt[m.pickup] || s.endAt;
                 if (at) { var gk = m.pickup && s.pickupAt && s.pickupAt[m.pickup] ? m.pickup : ""; groups[gk] = groups[gk] || { at: at, n: 0 }; groups[gk].n++; }
                 // 🐢 하산이 늦을 회원(2026-11-11) - 코스 도착 예상(+버스까지)이 그 회원 하산 탑승 시각보다 늦음. 30분 더 늦어질 때마다 다시
-                if (m.late > 0 && s.departed) hit("late" + m.id + "_" + Math.floor(m.late / 30), en ? "🐢 " + m.nick + " may be about " + m.late + " min late for the bus (ETA " + hm(m.arr) + ")"
+                // 한 번 울린 단계는 탈 때까지 기억(2026-11-12 점검: 예상이 기준 근처에서 오르내리면 5 → 0 → 7 처럼 다시 울렸음) - 더 늦어질 때만 다시
+                Object.keys(old).forEach(function (k) { if (k.indexOf("late" + m.id + "_") === 0) f[k] = true; });
+                var lb = m.late > 0 ? Math.floor(m.late / 30) : -1;
+                for (var lk = 0; lk < lb; lk++) f["late" + m.id + "_" + lk] = true;
+                if (m.late > 0 && s.departed) hit("late" + m.id + "_" + lb, en ? "🐢 " + m.nick + " may be about " + m.late + " min late for the bus (ETA " + hm(m.arr) + ")"
                     : "🐢 " + m.nick + " 님 하산 탑승보다 약 " + m.late + "분 늦을 예상(도착 예상 " + hm(m.arr) + ")");
                 if (m.app && !m.listed && s.departedAt && !m.sos) {
                     var a = m.seen != null ? m.seen : m.ago, eff = Math.min(a == null ? Infinity : a, (now - s.departedAt) / 1000);
@@ -326,8 +330,11 @@
             var mine = s.myEndAt || s.endAt, pk = s.pickup && s.pickupAt && s.pickupAt[s.pickup] ? s.pickup : "";   // 내 하산 탑승지 시각(없으면 방 하산 마감)
             // 🐢 지금 속도로는 하산 탑승에 늦음(2026-11-11) - 내 줄(members 의 나)의 late. 30분 더 늦어질 때마다 다시
             var me = (s.members || []).filter(function (x) { return x.id === s.me; })[0];
+            if (!s.aboard && !s.cancelled) Object.keys(old).forEach(function (k) { if (/^mylate\d+$/.test(k)) f[k] = true; });   // 울린 단계는 탈 때까지 기억(위 인솔자 것과 같게)
+            var mb = me && me.late > 0 ? Math.floor(me.late / 30) : -1;
+            for (var mk = 0; mk < mb; mk++) f["mylate" + mk] = true;
             if (me && me.late > 0 && s.departed && !s.aboard && !s.cancelled)
-                hit("mylate" + Math.floor(me.late / 30), en ? "🐢 At this pace you may be about " + me.late + " min late for the bus (ETA " + hm(me.arr) + "). Hurry or tell the leader."
+                hit("mylate" + mb, en ? "🐢 At this pace you may be about " + me.late + " min late for the bus (ETA " + hm(me.arr) + "). Hurry or tell the leader."
                     : "🐢 지금 속도로는 하산 탑승에 약 " + me.late + "분 늦습니다(도착 예상 " + hm(me.arr) + "). 서두르거나 인솔자에게 알려 주세요.");
             if (s.departed && mine && !s.aboard && !s.cancelled) {
                 var mleft = Math.ceil((mine - now) / 60000);

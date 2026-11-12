@@ -889,7 +889,7 @@
             return "<tr class=\"" + cls + "\" data-id=\"" + m.id + "\"><td>" + (m.role === "lead" ? "-" : seatText(s, m)) + "</td><td>" + esc(m.nick) + via
                 + dsel + (m.msg ? "<br><small>💬 " + esc(m.msg) + " (" + clock(m.msgAt) + ")</small>" : "")
                 + (m.arr && !m.aboard && !m.cancelled ? "<br><small style=\"color:" + (m.late > 0 ? "#ff8787" : "var(--dim)") + "\">⏱ " + T("하산 예상 ", "ETA ") + clock(m.arr)
-                    + (m.late > 0 ? T(" · ⚠ 탑승보다 약 " + m.late + "분 늦음", " · ⚠ about " + m.late + " min late") : "") + "</small>" : "")   // 하산 예상(따라가기 코스로, 2026-11-11)
+                    + (m.late > 0 ? T(" · ⚠ 하산 탑승에 약 " + m.late + "분 늦을 듯", " · ⚠ ~" + m.late + " min late for the bus") : "") + "</small>" : "")   // 하산 예상(따라가기 코스로, 2026-11-11)
                 + (m.lateAt ? "<br><small style=\"color:#ffd43b\">" + T("📱 출발 뒤 들어옴 - 본인 확인", "📱 Joined after departure - check") + " (" + clock(m.lateAt) + ")</small>" : "")
                 + (m.cancelled && m.role === "hiker" ? " <button type=\"button\" class=\"undo\" data-undo=\"" + m.id + "\" title=\"" + T("늦게 온 회원", "Late member") + "\">" + T("✅ 탔음", "✅ On bus") + "</button>" : "") + "</td><td>" + (m.aboard ? "-" : newsText(m)) + "</td><td>"
                 + (m.stillMin != null && m.ago != null ? m.stillMin + T("분", " min") : "-") + "</td><td>" + (m.batt != null ? m.batt + "%" : "-") + "</td><td>" + st

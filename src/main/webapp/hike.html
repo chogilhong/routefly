@@ -118,6 +118,7 @@ body.compact #statGrids { display:none; }
 /* 코스 자료 알림(정상 전에서 끝남 · 끊긴 구간 · 공단 기준 시간) - 6 ~ 12초 알림이 숫자 칸을 가렸음(2026-11-03 홍TV님 점검) → 다음 지점 아래 한 줄 */
 #courseNote { font-size:12.5px; line-height:1.45; color:#ffd8a8; margin:-2px 0 6px; white-space:pre-line; }
 #courseNote[hidden] { display:none; }
+#courseNote a { color:#ffd8a8; font-weight:bold; }   /* 국립공원 통제 링크(2026-11-12 점검: 기본 파랑이 어두운 바탕에 1.7:1 - park.html #closeNote 와 같게) */
 #accessCar { flex:1; min-width:0; overflow:hidden; word-break:keep-all; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }   /* 좁은 폰은 두 줄(375px 에서 잘렸음) */
 #accessLink { flex:none; color:var(--sky); text-decoration:none; }
 #accessLink[hidden] { display:none; }

@@ -973,8 +973,11 @@
             var rawNames = (parts ? r[0] : [r[0]]).map(function (j) { return j && j.course && j.course.name; });
             var noteOf = RF.parkOf(c.course.name) || RF.mountainOf(c.course.name, id) || RF.parkOf(rawNames[0] || "") || RF.mountainOf(rawNames[0] || "", id);
             // 국립공원 산불예방 통제 - 그 계절이면 코스 아래 안내 줄에 "해마다 통제되어 온 구간" + 공단 통제정보 링크(2026-11-10 홍TV님 "작업해", 구간은 5개까지)
-            if (noteOf && !closedT) jsonOnce("data/knps-close.json").then(function (d) {
-                var pc = my === loadSeq && RF.parkClose(d, noteOf, Date.now(), EN, 5);
+            // 공원 이름으로 시작하지 않으면(산 이름으로만 맞음) 코스 시작이 그 산 정상 15km 안일 때만(2026-11-12 점검: 광양 · 나주 가야산에도 가야산 통제가 떴음)
+            var closePark = RF.parkOf(c.course.name) || RF.parkOf(rawNames[0] || "");
+            if (noteOf && !closedT) Promise.all([jsonOnce("data/knps-close.json"), closePark ? null : jsonOnce("data/mountains100.json")]).then(function (v) {
+                var nm = RF.closeName(closePark, noteOf, v[1] && v[1].peaks, c.lat && c.lat[0], c.lon && c.lon[0]);
+                var pc = my === loadSeq && nm && RF.parkClose(v[0], nm, Date.now(), EN, 5);
                 if (!pc) return;
                 var box = $("courseNote"), a = document.createElement("a");
                 if (box.textContent) box.appendChild(document.createTextNode("\n"));
@@ -1174,7 +1177,7 @@
     function addTrack(lat, lon, t, alt, acc) {
         // GPS 튐(한 번에 300m 넘게)은 거리에 넣지 않습니다. 단 걸어서 갈 만한 빠르기면 넣음 - 2026-10-23 지리산: 크롬은 화면이 꺼지면
         // 위치가 끊겨 점 사이가 수 km 벌어졌고, 그것을 모두 빼 12km 산행이 2.02km 로 나왔음(튄 위치는 onFix 에서 먼저 버림)
-        var r = RF.trackTake(hike.track[hike.track.length - 1] || null, [lat, lon, t], acc == null ? null : acc, K() === RF.KINDS.bike);
+        var r = RF.trackTake(hike.track[hike.track.length - 1] || null, [lat, lon, t], acc == null ? null : acc, K() === RF.KINDS.bike, hike.start);
         if (!r.take) return;
         hike.walked += r.walk;
         hike.track.push([Math.round(lat * 1e6) / 1e6, Math.round(lon * 1e6) / 1e6, Math.round(t), alt == null ? null : Math.round(alt), acc == null ? null : Math.round(acc)]);
@@ -2524,7 +2527,8 @@
         var saved = sim ? null : loadSaved();
         // 안드로이드 브라우저로 새 산행 - 시작마다 앱 설치를 먼저 권함(2026-11-10 홍TV님 "강요하듯이 해. 앱을 설치하라고").
         // 산에서 길 안내를 막으면 위험하니 "그래도 브라우저로" 는 남김(이 화면에서 한 번 고르면 다시 묻지 않음). 이어 하는 산행 · 시험 걷기 · 앱 · 영어는 묻지 않음
-        if (!sim && !BG && !saved && !appAsked && !EN && window.RFAppStore && RFAppStore.android()) {
+        // 앱 판별은 NATIVE(Capacitor) - BG 플러그인만 보면 그 플러그인이 없는 앱 안에서도 "원스토어에서 설치" 를 권했음(2026-11-12 점검)
+        if (!sim && !NATIVE && !saved && !appAsked && !EN && window.RFAppStore && RFAppStore.android()) {
             appAsked = true;
             hAsk("⚠ 산에서는 routefly 앱으로 하세요\n\n브라우저는 화면이 꺼지면 위치 · 길 안내 음성 · 코스 이탈 알림 · SOS 위치가 멈춥니다. "
                 + "앱은 화면을 꺼도 이어지고 배터리도 덜 씁니다.\n\n원스토어에서 '루트플라이' 를 설치한 뒤 앱에서 이 코스를 여세요.",
@@ -3282,7 +3286,7 @@
         if (!c || !hike.running || hike.sim || !c.lat || !c.lat.length) return null;
         var d = hike.d, n = c.lat.length - 1;
         if (d >= c.total - ARRIVE_M) return null;
-        return { eta: Date.now() + remainingMs(now() - hike.start), left: Math.max(0, c.total - d), endLat: c.lat[n], endLon: c.lon[n] };
+        return { eta: Date.now() + remainingMs(now() - hike.start), endLat: c.lat[n], endLon: c.lon[n] };
     }
     if (window.RFParty) RFParty.etaNow = partyEta;
 

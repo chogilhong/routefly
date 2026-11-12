@@ -69,6 +69,7 @@ table { width:100%; border-collapse:collapse; font-size:15px; }
 th, td { text-align:left; padding:7px 4px; border-top:1px solid var(--ln); vertical-align:middle; }
 th { color:var(--dim); font-weight:normal; white-space:nowrap; font-size:12.5px; }   /* 좁은 폰에서 머리글 · 이름이 한 글자씩 꺾였음(2026-10-27 홍TV님) */
 #list td:nth-child(2) { white-space:nowrap; }
+#list td:nth-child(2) small { white-space:normal; }   /* 하산 예상 · 메시지 줄은 줄바꿈(2026-11-12 점검: 390px 폰에서 표가 536px - 배터리 · 내보내기 칸이 화면 밖) */
 tr.sos td { color:var(--red); font-weight:bold; }
 tr.old td { color:#ffa94d; }
 tr.aboard td { color:var(--dim); }

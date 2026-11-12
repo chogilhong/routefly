@@ -256,8 +256,11 @@ public class StatsTest {
         assertTrue(Stats.js(ip, "PC", false));
         assertFalse("두 번째는 안 셈", Stats.js(ip, "PC", false));
         // 같은 사람이 그 날 앱으로도 오면 앱으로 한 번 더 셈(사람 확인은 그대로) - 2026-11-11
-        assertTrue("앱으로 처음", Stats.js(ip, "PC", true));
-        assertFalse("앱도 한 번만", Stats.js(ip, "PC", true));
+        assertFalse("PC 는 앱으로 안 셈(2026-11-12 점검 - ?app=1 은 화면이 보내는 값)", Stats.js(ip, "PC", true));
+        String mip = "198.51.100." + (int) (Math.random() * 10 + 5);
+        Stats.hit("/hike.html", null, mip, null, null, null, "모바일", null);
+        assertTrue("모바일 앱으로 처음", Stats.js(mip, "모바일", true));
+        assertFalse("앱도 한 번만", Stats.js(mip, "모바일", true));
 
         TreeMap<String, JsonObject> days = new TreeMap<>();
         days.put("2026-10-21", JsonParser.parseString("{\"pages\":{},\"uniq\":50,\"bots\":0,\"devUniq\":{\"PC\":50}}").getAsJsonObject());

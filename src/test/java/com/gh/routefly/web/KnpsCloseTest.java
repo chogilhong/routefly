@@ -37,7 +37,7 @@ public class KnpsCloseTest {
         assertTrue(read("src/main/webapp/park.html").contains("<p id=\"closeNote\" hidden></p>"));
         assertTrue(read("src/main/webapp/js/park.js").contains("var pc = RF.parkClose(d, park, Date.now(), EN, 6);"));
         assertTrue(read("src/main/webapp/js/mountain.js").contains("var pc = window.RF.parkClose(d, pkName, Date.now(), false);"));
-        assertTrue(read("src/main/webapp/js/hike.js").contains("var pc = my === loadSeq && RF.parkClose(d, noteOf, Date.now(), EN, 5);"));
+        assertTrue(read("src/main/webapp/js/hike.js").contains("var pc = my === loadSeq && nm && RF.parkClose(v[0], nm, Date.now(), EN, 5);"));   // 이름만 같은 산은 빼고(2026-11-12 점검 - RF.closeName)
         for (String kit : new String[] {"kit-park", "kit-m", "kit-hike"})
             assertTrue(kit, read("src/main/webapp/js/" + kit + ".js").contains("function parkClose("));
         assertTrue("신호 없을 때도", read("src/main/webapp/sw.js").contains("\"data/knps-close.json\""));
