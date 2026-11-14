@@ -190,13 +190,17 @@ public class SeasonTest {
         JsonArray all = seasoned();
         String d1112 = MountainServlet.seasonFold(all, season(), java.time.LocalDate.of(2026, 11, 12));
         String d1113 = MountainServlet.seasonFold(all, season(), java.time.LocalDate.of(2026, 11, 13));
-        String d1130 = MountainServlet.seasonFold(all, season(), java.time.LocalDate.of(2026, 11, 30));
+        String d1119 = MountainServlet.seasonFold(all, season(), java.time.LocalDate.of(2026, 11, 19));
         assertTrue("마지막 절정일(11월 12일 - 금오산 · 두륜산 · 월출산 · 팔공산)까지 펼침", d1112.contains("<details class=\"fold kind\" open>"));
         assertTrue("그다음 날부터 접힌 채", d1113.contains("<details class=\"fold kind\"><summary>"));
-        assertTrue("11월 30일까지 칸은 있음", d1130.contains("🍁 단풍 때") && !d1130.contains(" open>"));
-        assertEquals("12월 1일 사라짐", "", MountainServlet.seasonFold(all, season(), java.time.LocalDate.of(2026, 12, 1)));
+        assertTrue("1주(11월 19일)까지 접힌 채로 있음", d1119.contains("🍁 단풍 때") && !d1119.contains(" open>"));
+        assertEquals("11월 20일 사라짐(철 끝 전이라도)", "", MountainServlet.seasonFold(all, season(), java.time.LocalDate.of(2026, 11, 20)));
+        assertEquals("", MountainServlet.seasonFold(all, season(), java.time.LocalDate.of(2026, 11, 30)));
+        assertEquals("12월 1일 없음", "", MountainServlet.seasonFold(all, season(), java.time.LocalDate.of(2026, 12, 1)));
         assertTrue("봄: 철쭉 마지막 절정(5월 31일 한라산)까지 펼침", MountainServlet.seasonFold(all, season(), java.time.LocalDate.of(2026, 5, 31)).contains(" open>"));
-        assertFalse(MountainServlet.seasonFold(all, season(), java.time.LocalDate.of(2026, 6, 1)).contains(" open>"));
+        String d0607 = MountainServlet.seasonFold(all, season(), java.time.LocalDate.of(2026, 6, 7));
+        assertTrue(d0607.contains("🌺 철쭉 때") && !d0607.contains(" open>"));
+        assertEquals("6월 8일 사라짐", "", MountainServlet.seasonFold(all, season(), java.time.LocalDate.of(2026, 6, 8)));
         assertTrue("4월 10일 - 벚꽃 · 진달래는 끝났어도 철쭉이 남아 펼침", MountainServlet.seasonFold(all, season(), java.time.LocalDate.of(2026, 4, 10)).contains(" open>"));
     }
 }

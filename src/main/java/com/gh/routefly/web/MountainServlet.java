@@ -662,8 +662,12 @@ public class MountainServlet extends HttpServlet {
     /**
      * 순수 함수 - 코스 모음(/m/) 위쪽 칸: 지금 철인 것만(벚꽃 3 ~ 4월 · 철쭉 4 ~ 6월 · 단풍 9 ~ 11월), 지난 관측의 절정이 이른 차례.
      * 벚꽃은 기상청 13곳(도시 포함) 모두, 산과 이어지는 곳만 산 페이지로. 철이 아니면 "".
-     * 펼친 채로 보이는 것은 지난 관측의 마지막 절정일(달 · 날)까지 - 그 뒤 철 끝까지는 접힌 제목 한 줄(2026-11-14 홍TV님 "마지막 절정일이 지나면 접힌 채로").
+     * 펼친 채로 보이는 것은 지난 관측의 마지막 절정일(달 · 날)까지, 그 뒤 1주는 접힌 제목 한 줄, 그다음은 칸이 없음(철 끝 전이라도)
+     * (2026-11-14 홍TV님 "1주일동안은 닫히고 1주일 후에는 사라지고" - 단풍은 11월 12일까지 펼침 · 19일까지 접힘 · 20일 사라짐).
      */
+    /** 마지막 절정일 뒤 접힌 채로 두는 날 수. */
+    static final int FOLD_KEEP_DAYS = 7;
+
     static String seasonFold(JsonArray peaks, JsonObject season, java.time.LocalDate today) {
         int month = today.getMonthValue();
         String mmdd = String.format("%02d-%02d", month, today.getDayOfMonth()), last = null;
@@ -700,6 +704,8 @@ public class MountainServlet extends HttpServlet {
             title += (title.isEmpty() ? "" : " · ") + k[1] + " " + k[2];
         }
         if (b.length() == 0) return "";
+        java.time.LocalDate lastDay = java.time.LocalDate.of(today.getYear(), Integer.parseInt(last.substring(0, 2)), Integer.parseInt(last.substring(3)));
+        if (today.isAfter(lastDay.plusDays(FOLD_KEEP_DAYS))) return "";
         return "<section id=\"season\"><details class=\"fold kind\"" + (mmdd.compareTo(last) <= 0 ? " open" : "") + "><summary><span class=\"ft\">" + title + " 때</span>"
                 + "<span class=\"fs\">지금 철 - 지난해 절정 차례</span><span class=\"fa\">▾</span></summary><div class=\"fb\">" + b
                 + "<p class=\"dim\">가장 최근 기상청 관측(올해 예측이 아님) - 해마다 며칠씩 다릅니다."
