@@ -51,13 +51,27 @@ public final class KmaSeasonProbe {
         save(dir.resolve("kma-stn-sfc.txt"), BASE + "stn_inf.php?inf=SFC&help=1" + k, key);
     }
 
-    /** 받아서 키를 지우고 저장 - 글자 집합은 머리글대로, 없으면 EUC-KR(API허브 typ01 텍스트) 로 읽고 UTF-8 로 씀. */
+    /** 받아서 키를 지우고 저장(UTF-8 로) - 글자 집합은 text() 로 고름. */
     static void save(Path to, String url, String key) throws Exception {
         HttpClient c = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(20)).build();
         HttpResponse<byte[]> r = c.send(HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(60)).GET().build(), HttpResponse.BodyHandlers.ofByteArray());
-        String cs = r.headers().firstValue("Content-Type").map(t -> t.replaceFirst("(?i).*charset=([^;]+).*", "$1")).filter(t -> !t.contains("/")).orElse("EUC-KR");
-        String body = new String(r.body(), Charset.isSupported(cs.trim()) ? Charset.forName(cs.trim()) : Charset.forName("EUC-KR")).replace(key, "{KEY}");
+        String body = text(r.body(), r.headers().firstValue("Content-Type").orElse("")).replace(key, "{KEY}");
         Files.writeString(to, body, StandardCharsets.UTF_8);
         System.out.println(to + " ← HTTP " + r.statusCode() + ", " + body.length() + "자, 첫 줄: " + body.lines().findFirst().orElse(""));
+    }
+
+    /**
+     * 순수 함수 - 응답 글자. 머리글에 charset 이 있으면 그것, 없으면 UTF-8 로 깨짐 없이 읽히면 UTF-8(API허브 JSON 오류 - 2026-11-14 PC: 403 안내문이 EUC-KR 로 읽혀 깨졌음),
+     * 아니면 EUC-KR(typ01 텍스트로 알려진 것 - 실제 응답으로 아직 확인 전).
+     */
+    static String text(byte[] b, String contentType) {
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("(?i)charset=\"?([A-Za-z0-9._-]+)").matcher(contentType == null ? "" : contentType);
+        if (m.find() && Charset.isSupported(m.group(1))) return new String(b, Charset.forName(m.group(1)));
+        try {
+            return StandardCharsets.UTF_8.newDecoder().onMalformedInput(java.nio.charset.CodingErrorAction.REPORT)
+                    .onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT).decode(java.nio.ByteBuffer.wrap(b)).toString();
+        } catch (java.nio.charset.CharacterCodingException e) {
+            return new String(b, Charset.forName("EUC-KR"));
+        }
     }
 }

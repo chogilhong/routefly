@@ -145,4 +145,12 @@ public class SeasonTest {
         assertFalse("벚꽃은 mountain 이 있을 때만 산에", g.has("cherry_peak"));
         assertEquals("단풍 절정 2025년 11월 5일", MountainServlet.seasonLine(g, MountainServlet.SEASONS[2]));
     }
+
+    @Test
+    public void probeReadsUtf8AndEucKr() throws Exception {
+        String ko = "{\"result\":{\"status\":403,\"message\":\"활용신청\"}}";
+        assertEquals("charset 없는 UTF-8 JSON(API허브 403)", ko, KmaSeasonProbe.text(ko.getBytes(StandardCharsets.UTF_8), "application/json"));
+        assertEquals("UTF-8 로 안 읽히면 EUC-KR", "진달래", KmaSeasonProbe.text("진달래".getBytes("EUC-KR"), ""));
+        assertEquals("머리글 charset 이 먼저", "진달래", KmaSeasonProbe.text("진달래".getBytes("EUC-KR"), "text/plain; charset=euc-kr"));
+    }
 }
