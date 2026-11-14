@@ -1497,6 +1497,16 @@ eq("calcEval 계산기", ["12+3×4", "10−4−3", "-3÷2", "50%", "200×15%", "
         ["비 없음 · 13:50 기준", ""]);
     eq("rainRow 따라가기 알림", RF.safetyAlert({ rain: halla }, noon, false), "⛑️ 오늘의 산행 안전: 레이더 비구름(15km 안) 4곳 · 가까운 곳 북쪽 10km · 가장 센 곳 약한 비(시간당 2.6mm) · 13:50 기준");
     eq("rainRow 비 줄만 넓게(이름 아래 값)", [RF.safetyRows({ rain: halla }, noon, false)[0].wide, !!RF.safetyRows({ rain: { tm: "13:50", count: 0, rain: [] } }, noon, false)[0].wide], [true, false]);
+    // 🌧 걷는 중 비구름 알림(rainNews) - 새로 생김 · 더 셈 · 5km 안으로 들어옴만
+    var dry = { tm: "15:00", seen: 7, count: 0, max: 0, rain: [] };
+    var n1 = RF.rainNews(null, halla, false);
+    eq("rainNews 처음 비", [n1.text, n1.voice, n1.strong], ["🌧 레이더 비구름(15km 안) - 4곳 · 가까운 곳 북쪽 10km · 가장 센 곳 약한 비(시간당 2.6mm) · 13:50 기준. 비옷을 준비하고 하산 길을 확인하세요.",
+        "주변에 비구름이 있습니다. 가까운 곳 북쪽 10킬로미터, 약한 비입니다. 비옷을 준비하세요.", false]);
+    eq("rainNews 마른 뒤 비 · 같은 비 되풀이 없음 · 비 없음 · 모름", [!!RF.rainNews(dry, halla, false), RF.rainNews(halla, halla, false), RF.rainNews(halla, dry, false), RF.rainNews(halla, null, false)], [true, null, null, null]);
+    var closer = { tm: "15:10", count: 4, max: 2.6, rain: [{ km: 4.2, dir: "북", mmh: 1.1 }] }, harder = { tm: "15:10", count: 5, max: 6.3, rain: [{ km: 9, dir: "북", mmh: 6.3 }] };
+    eq("rainNews 5km 안으로 · 보통 비로", [RF.rainNews(halla, closer, false).voice, RF.rainNews(halla, harder, false).strong, RF.rainNews(closer, closer, false)],
+        ["주변에 비구름이 있습니다. 가까운 곳 북쪽 4.2킬로미터, 약한 비입니다. 비옷을 준비하세요.", true, null]);
+    eq("rainNews 영어", RF.rainNews(null, halla, true).voice, "Rain on the radar nearby, nearest N 10 km. Get your rain gear ready.");
     eq("rainRow 공공데이터 키 없어도 레이더는", RF.safetyRows({ unavailable: true, rain: halla }, noon, false).length, 1);
     eq("warnName", [RF.warnName("호우경보", true), RF.warnName("호우경보", false), RF.warnName("이상한주의보", true)], ["Heavy rain warning", "호우경보", "이상한주의보"]);
 })();

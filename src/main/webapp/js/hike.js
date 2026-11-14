@@ -2569,6 +2569,8 @@
         ruleSaid = saved && saved.said ? saved.said : {};   // 입산 통제 · 하산 시각 알림 - 이어 하는 산행은 알린 것 그대로
         hike.sunWarned = false;
         hike.sun60 = false;
+        hike.rainT = 0;          // 🌧 걷는 중 비구름 - 마지막으로 물은 시각 · 앞서 본 것(2026-11-14 홍TV님 "작업해줘")
+        hike.rainLast = null;
         // 귀가 확인 - 표준 시간의 1.5배(적어도 1시간 더)가 지나도록 못 끝내면 알림, 그 뒤 한 시간마다(2026-10-14 홍TV님). 위치는 보내지 않음
         hike.lateAt = sim ? 0 : RF.lateAt(hike.start, RF.legMs(c, 0, c.total));
         hike.lateNext = hike.lateAt;
@@ -2886,6 +2888,27 @@
     }
 
     /** 위치 한 번 - 코스에 맞추고 화면을 고칩니다. */
+    /**
+     * 🌧 걷는 중 비구름(2026-11-14 홍TV님 "작업해줘") - 기록 중 10분마다 /api/rain(서버가 미리 받아 둔 기상청 레이더 지점값, 15km 안 - 5km 칸 가운데 기준이라 거리는 어림).
+     * 비가 새로 생기거나 · 더 세지거나 · 5km 안으로 들어오면 알림 + 음성(RF.rainNews). 같은 것은 되풀이하지 않음. 못 받으면 조용히 다음 차례.
+     */
+    var RAIN_EVERY_MS = 600000;
+    function rainCheck(lat, lon) {
+        var t = Date.now();
+        if (t - (hike.rainT || 0) < RAIN_EVERY_MS) return;
+        hike.rainT = t;
+        var my = loadSeq, cc = RF.cellCenter(lat, lon);   // 내 위치 대신 약 5km 고정 칸 가운데만 서버로(개인정보처리방침 - 별거 별거 "내 위치로" 와 같음)
+        fetch("api/rain?lat=" + cc[0].toFixed(4) + "&lon=" + cc[1].toFixed(4)).then(function (x) { return x.json(); }).then(function (j) {
+            if (my !== loadSeq || !hike.running || !j || !j.success) return;
+            var news = RF.rainNews(hike.rainLast, j.rain, EN);
+            if (j.rain) hike.rainLast = j.rain;   // 모름(rain 없음)이면 앞서 본 것 그대로
+            if (!news) return;
+            toast(news.text, 10000);
+            say(news.voice, { key: "rain", gap: RAIN_EVERY_MS, urgent: news.strong });
+            if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+        }).catch(function () { /* 신호 없음 - 다음 차례에 */ });
+    }
+
     function onFix(pos) {
         if (!c || !hike.running) return;
         var co = pos.coords, t = pos.timestamp || now();
@@ -2920,7 +2943,8 @@
             if (pr) pr.catch(function () { /* 신호 없음 - 다음 위치에(2026-11-02 점검: 잡지 않은 거부가 콘솔 오류로) */ });
         }
         addTrack(co.latitude, co.longitude, t, co.altitude, hike.sim ? null : acc);
-        if (!hike.sim) stampCheck(co.latitude, co.longitude, acc);   // 국토종주 인증센터 · 100대 명산 정상 도장(실제 GPS 만)
+        if (!hike.sim) stampCheck(co.latitude, co.longitude, acc);
+        if (!hike.sim) rainCheck(co.latitude, co.longitude);   // 🌧 10분마다 지금 자리 둘레 비구름(위치가 올 때 - 화면이 꺼져도 앱은 위치가 옴)   // 국토종주 인증센터 · 100대 명산 정상 도장(실제 GPS 만)
         var s = RF.snap(c, co.latitude, co.longitude, hike.lastFix ? hike.d : null);
         var dtFix = hike.lastFix ? Math.max(0, t - hike.lastFix) / 1000 : null;
         hike.lastFix = t;

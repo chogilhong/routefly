@@ -64,9 +64,14 @@ final class Radar {
         return s;
     }
 
-    /** 물을 시각 - 20분 전을 10분 단위로 내림(합성은 10분마다, 늦게 나올 수 있어 여유). KST yyyyMMddHHmm. RadarProbe 도 씀. */
+    /** 물을 시각 - 20분 전을 10분 단위로 내림(합성은 10분마다, 늦게 나올 수 있어 여유). KST yyyyMMddHHmm. RadarProbe · fresh 기준. */
     static String slot(LocalDateTime now) {
-        LocalDateTime t = now.minusMinutes(20);
+        return slot(now, 20);
+    }
+
+    /** back 분 전을 10분 단위로 내림. 미리 받기는 10분 전을 먼저 묻고, 아직 없으면 20분 전(2026-11-14 홍TV님 "작업해줘" - 자료를 10분 더 최신으로). */
+    static String slot(LocalDateTime now, int back) {
+        LocalDateTime t = now.minusMinutes(back);
         return t.withMinute(t.getMinute() / 10 * 10).format(DateTimeFormatter.ofPattern("yyyyMMddHHmm"));
     }
 
@@ -190,17 +195,26 @@ final class Radar {
         pump = null;
     }
 
-    /** 한 번 미리 받기 - 새 시각의 지점값만. 실패하면 다음 차례(1분 뒤)에, 옛 것은 STALE_MIN 까지 그대로. */
+    /**
+     * 한 번 미리 받기 - 새 시각의 지점값만(10분 전 → 없으면 20분 전, 탭 이름을 따로 두어 한쪽 실패 쉼이 다른 쪽을 막지 않게).
+     * 실패하면 다음 차례(1분 뒤)에, 옛 것은 STALE_MIN 까지 그대로.
+     */
     static void refresh() {
         try {
             String key = RouteflyConfig.get("kma.apihub.key");
             if (key == null) return;
-            String tm = slot(LocalDateTime.now(WeatherServlet.KST));
-            Object[] l = latest;
-            if (l != null && tm.equals(l[0])) return;
-            Map<Integer, Double> e = echoes(OpenApi.get(BASE + "cgi-bin/url/nph-rdr_cmp_aws_all_pt_data?tm=" + tm + "&qcd=EXT&cmp=HSP&authKey="
-                    + URLEncoder.encode(key, StandardCharsets.UTF_8), "RADAR", TIMEOUT));
-            if (!e.isEmpty()) latest = new Object[] {tm, e};
+            String k = "&qcd=EXT&cmp=HSP&authKey=" + URLEncoder.encode(key, StandardCharsets.UTF_8);
+            LocalDateTime now = LocalDateTime.now(WeatherServlet.KST);
+            for (int back : new int[] {10, 20}) {   // 10분 전이 아직 안 나왔으면 20분 전 - 이미 가진 것보다 새것만
+                String tm = slot(now, back);
+                Object[] l = latest;
+                if (l != null && tm.compareTo((String) l[0]) <= 0) return;
+                Map<Integer, Double> e = echoes(OpenApi.get(BASE + "cgi-bin/url/nph-rdr_cmp_aws_all_pt_data?tm=" + tm + k, back == 10 ? "RADAR" : "RADAR-20", TIMEOUT));
+                if (!e.isEmpty()) {
+                    latest = new Object[] {tm, e};
+                    return;
+                }
+            }
         } catch (RuntimeException ex) {
             // 다음 차례에(스레드가 멈추지 않게)
         }

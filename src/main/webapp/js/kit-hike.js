@@ -659,6 +659,14 @@
         return [down(bb[0]), down(bb[1]), up(bb[2]), up(bb[3])];
     }
 
+    /**
+     * 순수 함수 - 서버에 묻는 자리(날씨 · 안전): 내 위치 대신 0.05도(약 5km) 고정 칸의 가운데 [lat, lon] - 그 칸 안 모든 사람이 같음.
+     * 개인정보처리방침 "GPS 위치는 서버로 보내지 않음"(2026-10-18 점검: 별거 별거 "내 위치로" 가 GPS 그대로 보냈음).
+     */
+    function cellCenter(lat, lon) {
+        var c = 0.05, k = 1e6, f = function (v) { return Math.round((Math.floor(v / c + 1e-9) * c + c / 2) * k) / k; };
+        return [f(lat), f(lon)];
+    }
     /** 순수 함수 - 범위와 겹치는 고정 격자 칸들([서, 남, 동, 북] 목록, 칸마다 한 번 물으면 칸마다 목록 한도까지 받음). */
     function gridCells(bb, cell) {
         cell = cell || GRID_DEG;
@@ -2971,6 +2979,24 @@
             val: en ? r.count + " spots · nearest " + where + " · strongest " + rainWord(r.max, true) + " (" + r.max + " mm/h) · as of " + r.tm
                 : r.count + "곳 · 가까운 곳 " + where + " · 가장 센 곳 " + rainWord(r.max, false) + "(시간당 " + r.max + "mm) · " + r.tm + " 기준" };
     }
+    /** 비의 세기 단계(0 약한 · 1 보통 · 2 강한 - rainWord 와 같은 기상청 강수강도). */
+    function rainLevel(mmh) { return mmh >= 15 ? 2 : mmh >= 3 ? 1 : 0; }
+    /**
+     * 순수 함수 - 걷는 중 비구름 알림(2026-11-14 홍TV님 "작업해줘"): 앞서 본 것(prev)과 지금(cur - /api/rain 의 rain)을 견줘 새로 알릴 때만 {text, voice}, 아니면 null.
+     * 알릴 때: 둘레에 비가 새로 생김 · 더 센 단계가 됨 · 가까운 비가 처음 5km 안으로 들어옴. 비가 그친 것은 알리지 않음(조용히).
+     */
+    function rainNews(prev, cur, en) {
+        if (!cur || !cur.tm || !cur.count || !cur.rain || !cur.rain.length) return null;
+        var n = cur.rain[0], wasWet = !!(prev && prev.count && prev.rain && prev.rain.length);
+        var lv = rainLevel(cur.max), close = n.km <= 5;
+        if (wasWet && lv <= rainLevel(prev.max) && !(close && prev.rain[0].km > 5)) return null;
+        var row = rainRow(cur, en);
+        var where = n.dir ? (en ? (RAIN_DIR_EN[n.dir] || n.dir) + " " + n.km + " km" : n.dir + "쪽 " + n.km + "킬로미터") : (en ? "right around you" : "바로 이 근처");
+        return { text: row.icon + " " + row.label + " - " + row.val + (en ? ". Get your rain gear ready and check the way down." : ". 비옷을 준비하고 하산 길을 확인하세요."),
+            voice: en ? "Rain on the radar nearby, nearest " + where + ". Get your rain gear ready."
+                : "주변에 비구름이 있습니다. 가까운 곳 " + where + ", " + rainWord(cur.max, false) + "입니다. 비옷을 준비하세요.",
+            strong: lv >= 1 };
+    }
     /** 순수 함수 - 따라가기에서 알릴 것만 한 줄로(내 지역 특보 · 산불위험 높음 이상 · 오늘 남은 시간 자외선 8 이상). 없으면 "". */
     function safetyAlert(j, now, en) {
         var a = safetyRows(j, now, en).filter(function (r) { return r.alert; });
@@ -3930,8 +3956,10 @@
         poiIcon: poiIcon,
         profile: profile,
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },
+        cellCenter: cellCenter,
         safetyRows: safetyRows,
         safetyAlert: safetyAlert,
+        rainNews: rainNews,
         setLang: setLang,
         tr: tr,
         pageLang: pageLang,

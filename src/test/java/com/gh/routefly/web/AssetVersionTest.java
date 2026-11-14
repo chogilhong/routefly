@@ -72,7 +72,7 @@ public class AssetVersionTest {
     @Test
     public void serviceWorkerKeepsVersionedFilesFirst() throws Exception {
         String sw = read("src/main/webapp/sw.js");
-        assertTrue("캐시 모양이 바뀌어 번호를 올림", sw.contains("var SHELL = \"rf-shell-v229\""));
+        assertTrue("캐시 모양이 바뀌어 번호를 올림", sw.contains("var SHELL = \"rf-shell-v230\""));
         assertTrue(sw.contains("if (/\\/(?:js|css)\\/[^/?#]+\\.(?:js|css)\\?v=/.test(url)) { e.respondWith(versioned(e)); return; }"));
         assertTrue("서버가 지금 판이라 한 것만 담음", sw.contains("/immutable/.test(res.headers.get(\"Cache-Control\") || \"\")"));
         assertTrue("오프라인이면 ?없는 주소로 받아 둔 것", sw.contains("return caches.match(plain, { ignoreVary: true })"));
