@@ -1496,6 +1496,7 @@ eq("calcEval 계산기", ["12+3×4", "10−4−3", "-3÷2", "50%", "200×15%", "
     eq("rainRow 비 없음 · 따라가기 알림 없음", [RF.safetyRows({ rain: { tm: "13:50", seen: 7, count: 0, max: 0, rain: [] } }, noon, false)[0].val, RF.safetyAlert({ rain: { tm: "13:50", count: 0, rain: [] } }, noon, false)],
         ["비 없음 · 13:50 기준", ""]);
     eq("rainRow 따라가기 알림", RF.safetyAlert({ rain: halla }, noon, false), "⛑️ 오늘의 산행 안전: 레이더 비구름(15km 안) 4곳 · 가까운 곳 북쪽 10km · 가장 센 곳 약한 비(시간당 2.6mm) · 13:50 기준");
+    eq("rainRow 비 줄만 넓게(이름 아래 값)", [RF.safetyRows({ rain: halla }, noon, false)[0].wide, !!RF.safetyRows({ rain: { tm: "13:50", count: 0, rain: [] } }, noon, false)[0].wide], [true, false]);
     eq("rainRow 공공데이터 키 없어도 레이더는", RF.safetyRows({ unavailable: true, rain: halla }, noon, false).length, 1);
     eq("warnName", [RF.warnName("호우경보", true), RF.warnName("호우경보", false), RF.warnName("이상한주의보", true)], ["Heavy rain warning", "호우경보", "이상한주의보"]);
 })();

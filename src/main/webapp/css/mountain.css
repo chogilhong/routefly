@@ -158,6 +158,7 @@ ul { margin:0; padding:0; list-style:none; }
 #safe .wl li small { color:var(--dim); }
 #safe .sfl li span { flex:0 1 auto; min-width:4.6em; word-break:keep-all; }   /* 이름은 낱말 단위로만 줄바꿈(가++ 에서 값이 세로로 깨졌음 - 2026-10-18) */
 #safe .sfl li b { flex:1 1 0; min-width:4.6em; white-space:normal; word-break:keep-all; overflow-wrap:anywhere; text-align:right; }
+#safe .sfl li.wide { flex-wrap:wrap; } #safe .sfl li.wide b { flex:1 1 100%; text-align:left; }   /* 🌧 레이더 비구름처럼 긴 값은 이름 아래 한 줄(2026-11-14) */
 #safe .sfl li.bad span { color:#ff8787; font-weight:bold; }
 #safe .sfl li.mid span { color:#ffd43b; }
 #safe h3 { font-size:15px; margin:14px 0 0; }

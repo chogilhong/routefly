@@ -5058,7 +5058,7 @@
         var label = en ? "Rain radar (within 15 km)" : "레이더 비구름(15km 안)";
         if (!r.count || !r.rain || !r.rain.length) return { icon: "☁", label: label, val: en ? "No rain · as of " + r.tm : "비 없음 · " + r.tm + " 기준", cls: "" };
         var n = r.rain[0], where = n.dir ? (en ? (RAIN_DIR_EN[n.dir] || n.dir) + " " : n.dir + "쪽 ") + n.km + "km" : (en ? "right here" : "바로 이 근처");
-        return { icon: "🌧", label: label, cls: r.max >= 15 ? "bad" : "mid", alert: true,
+        return { icon: "🌧", label: label, cls: r.max >= 15 ? "bad" : "mid", alert: true, wide: true,   // 값이 길어 이름 아래 한 줄로(2026-11-14 홍TV님 폰: 좁은 칸에 6줄로 접힘)
             val: en ? r.count + " spots · nearest " + where + " · strongest " + rainWord(r.max, true) + " (" + r.max + " mm/h) · as of " + r.tm
                 : r.count + "곳 · 가까운 곳 " + where + " · 가장 센 곳 " + rainWord(r.max, false) + "(시간당 " + r.max + "mm) · " + r.tm + " 기준" };
     }
@@ -5078,7 +5078,7 @@
         rows.forEach(function (r) {
             var li = document.createElement("li"), sp = document.createElement("span"), b = document.createElement("b");
             sp.textContent = r.icon + " " + r.label; b.textContent = r.val;
-            if (r.cls) li.className = r.cls;
+            if (r.cls || r.wide) li.className = ((r.cls || "") + (r.wide ? " wide" : "")).trim();
             li.appendChild(sp); li.appendChild(b);
             ul.appendChild(li);
         });
