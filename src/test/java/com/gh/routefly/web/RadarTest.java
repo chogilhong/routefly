@@ -64,4 +64,19 @@ public class RadarTest {
         JsonObject here = Radar.near(echo(), stn(), 34.74476, 126.41220, "202611141350");   // 삼호 지점 바로 위
         assertEquals("1km 안은 방향 없음", "", here.getAsJsonArray("rain").get(0).getAsJsonObject().get("dir").getAsString());
     }
+
+    @Test
+    public void staleDataIsNotShown() {
+        assertTrue("같은 시각", Radar.fresh("202611141410", "202611141410"));
+        assertTrue("30분 늦은 것까지", Radar.fresh("202611141340", "202611141410"));
+        assertFalse("40분 늦은 것은 안 보임(미리 받기가 계속 실패)", Radar.fresh("202611141330", "202611141410"));
+        assertFalse("자정 넘어", Radar.fresh("202611142320", "202611150000"));
+    }
+
+    @Test
+    public void secondRealSlotAlsoReads() throws Exception {
+        Map<Integer, Double> e = Radar.echoes(read("src/test/resources/radar/rdr-aws-all-202611141410.txt"));   // PC 0d58824 - 비 373곳 · 최대 10.73
+        assertEquals(10.73, e.values().stream().mapToDouble(Double::doubleValue).max().getAsDouble(), 1e-9);
+        assertEquals(373, e.values().stream().filter(v -> v > 0).count());
+    }
 }
