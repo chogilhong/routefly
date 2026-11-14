@@ -6,3 +6,11 @@
 - 나무종류 코드: 1 벚꽃(13곳) · 2 철쭉(3곳) · 4 단풍(21곳). 파일에 코드 뜻은 없고, 포털 설명(벚꽃 13 · 철쭉 3 · 단풍 21곳)과 지점 수 · 관측 달로 맞췄습니다.
 - 단풍의 "개화 / 만발" 칸은 단풍 시작 / 절정입니다(설명: 단풍 전 · 단풍 시작 · 단풍 절정 사진).
 - src/main/webapp/data/season.json 은 web.SeasonProbe 가 이 파일로 만듭니다(고치지 말고 다시 만드세요).
+
+## 기상청 API허브 계절관측(2026-11-14, web.KmaSeasonProbe - PC 가 받음)
+
+- kma-ssn-2024-2026.txt(전 지점 계절관측) · kma-ssn-norm.txt(평년값 tmst=2021 = 1991~2020) · kma-stn-sfc.txt(지상 지점 위경도) · kma-ssn-help.txt
+- kma-SSN_ID.pdf · kma-SSN_MD.pdf: API허브 계절관측 페이지 "참고자료"(getAttachFile.do?fileName=SSN_ID.pdf · SSN_MD.pdf, 로그인 없이 받힘 - 웹 Claude 2026-11-14)
+  SSN_ID 203 개나리 · 204 진달래 · 205 벚나무 · 302 단풍나무 · 501 유명산 단풍 · 503 군락단지
+  SSN_MD 201 발아 · 202 꽃 핌(개화) · 203 활짝 핌(만발) · 301 단풍 시작 · 302 단풍 절정
+- 진달래(204)는 관측소가 모두 도시(23곳)라, 명산에서 15km 안 관측소만 그 산에 "가까운 관측소 기준" 으로 붙입니다(SeasonProbe.azaleaNear).
