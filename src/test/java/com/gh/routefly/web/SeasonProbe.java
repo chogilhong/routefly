@@ -23,12 +23,16 @@ import com.google.gson.JsonParser;
  *
  * 해마다 새 파일(다음 등록 예정 2027-09-10)이 오면 포털에서 받아 src/test/resources/season/ 의 csv 를 바꾸고 이것을 다시 돌립니다.
  * 나무종류 코드(1 벚꽃 · 2 철쭉 · 4 단풍)는 파일에 뜻이 없어 포털 설명(벚꽃 13 · 철쭉 3 · 단풍 21곳)과 지점 수 · 관측 달로 맞춘 것입니다(season/README.md).
- * 관측장소가 100대 명산 id 와 똑같은 곳만 씁니다(벚꽃 지점은 도시라 뺌). 지어내지 않습니다 - 날짜가 빈 칸이면 그 값을 넣지 않습니다.
+ * 단풍 · 철쭉은 관측장소가 100대 명산 id 와 똑같은 곳만 씁니다. 벚꽃(2026-11-14 홍TV님 "1,2 번 해주고")은 13곳 모두 이름 그대로 두고,
+ * 산과 이어지는 곳만 mountain 을 붙입니다(CHERRY_MOUNTAIN - 관측장소 세부로 확인한 것만). 지어내지 않습니다 - 날짜가 빈 칸이면 그 값을 넣지 않습니다.
  */
 public final class SeasonProbe {
 
     private SeasonProbe() {
     }
+
+    /** 벚꽃 관측장소 → 100대 명산 id. 공주 계룡산: 세부 "계룡산 국립공원 치안센터 맞은편 벚나무 3그루"(동학사 들머리). 나머지 12곳은 도시라 없음. */
+    static final java.util.Map<String, String> CHERRY_MOUNTAIN = java.util.Map.of("공주 계룡산", "계룡산");
 
     static final Path CSV = Path.of("src", "test", "resources", "season", "tb_flower_summary.csv");
     static final Path OUT = Path.of("src", "main", "webapp", "data", "season.json");
@@ -46,7 +50,7 @@ public final class SeasonProbe {
         return new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create().toJson(o) + "\n";
     }
 
-    /** 순수 함수 - csv 글자 → {_note, foliage: {산 id: {start, peak}}, azalea: {...}}. 산 id 순서. */
+    /** 순수 함수 - csv 글자 → {_note, cherry: {관측장소: {start, peak, mountain?}}, azalea · foliage: {산 id: {start, peak}}}. 이름 순서. */
     static JsonObject build(String csvText, JsonArray peaks) {
         List<String> ids = new ArrayList<>();
         for (JsonElement e : peaks) {
@@ -57,25 +61,29 @@ public final class SeasonProbe {
         List<String> h = rows.get(0);
         int type = h.indexOf("나무종류"), place = h.indexOf("관측장소"), start = h.indexOf("개화 촬영날짜"), peak = h.indexOf("만발 촬영날짜");
         if (type < 0 || place < 0 || start < 0 || peak < 0) throw new IllegalArgumentException("머리줄이 다릅니다: " + h);
-        TreeMap<String, JsonObject> foliage = new TreeMap<>(), azalea = new TreeMap<>();
+        TreeMap<String, JsonObject> foliage = new TreeMap<>(), azalea = new TreeMap<>(), cherry = new TreeMap<>();
         for (List<String> r : rows.subList(1, rows.size())) {
             if (r.size() <= Math.max(peak, start)) continue;
             String t = r.get(type).trim(), at = r.get(place).trim();
-            TreeMap<String, JsonObject> to = "4".equals(t) ? foliage : "2".equals(t) ? azalea : null;
-            if (to == null || !ids.contains(at)) continue;
+            TreeMap<String, JsonObject> to = "4".equals(t) ? foliage : "2".equals(t) ? azalea : "1".equals(t) ? cherry : null;
+            if (to == null || (to != cherry && !ids.contains(at))) continue;
             JsonObject v = new JsonObject();
             if (day(r.get(start)) != null) v.addProperty("start", day(r.get(start)));
             if (day(r.get(peak)) != null) v.addProperty("peak", day(r.get(peak)));
-            if (v.size() > 0) to.put(at, v);
+            if (v.size() == 0) continue;
+            if (to == cherry && CHERRY_MOUNTAIN.containsKey(at) && ids.contains(CHERRY_MOUNTAIN.get(at))) v.addProperty("mountain", CHERRY_MOUNTAIN.get(at));
+            to.put(at, v);
         }
         JsonObject o = new JsonObject();
         o.addProperty("_note", "기상청 날씨누리 봄꽃 개화현황 · 유명산 단풍현황(공공데이터포털 15150373, 공공저작물 출처표시) - 단풍(나무종류 4)은 start 단풍 시작 · peak 절정, "
-                + "철쭉(2)은 start 꽃 핌 · peak 활짝. 관측장소가 100대 명산 id 와 같은 곳만. web.SeasonProbe 가 src/test/resources/season/tb_flower_summary.csv 로 만듦 - 고치지 말고 다시 만드세요.");
-        JsonObject f = new JsonObject(), a = new JsonObject();
+                + "철쭉(2) · 벚꽃(1)은 start 꽃 핌 · peak 활짝. 단풍 · 철쭉은 관측장소가 100대 명산 id 와 같은 곳만, 벚꽃은 13곳 모두(산과 이어지면 mountain). web.SeasonProbe 가 src/test/resources/season/tb_flower_summary.csv 로 만듦 - 고치지 말고 다시 만드세요.");
+        JsonObject f = new JsonObject(), a = new JsonObject(), c = new JsonObject();
         foliage.forEach(f::add);
         azalea.forEach(a::add);
-        o.add("foliage", f);
+        cherry.forEach(c::add);
+        o.add("cherry", c);
         o.add("azalea", a);
+        o.add("foliage", f);
         return o;
     }
 
