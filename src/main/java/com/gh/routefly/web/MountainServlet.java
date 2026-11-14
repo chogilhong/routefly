@@ -87,7 +87,7 @@ public class MountainServlet extends HttpServlet {
             resp.setHeader("Cache-Control", "public, max-age=600");   // 10분 - 1시간이면 배포한 문구가 늦게 보였음(2026-10-17 PC)
             // ?open=peaks - 산 페이지의 "‹ 코스 모음" 으로 오면 등산 › 100대 명산을 펼친 채(2026-10-15 홍TV님)
             resp.getWriter().print(withFire(indexPage(all, seriesGroups(), base, "peaks".equals(req.getParameter("open")), SteepRank.html(steepRank(all), false, SteepRank.openOf(req.getParameter("open"))),
-                    seasonFold(all, season, monthNow())), System.currentTimeMillis()));
+                    seasonFold(all, season, java.time.LocalDate.now(WeatherServlet.KST))), System.currentTimeMillis()));
             return;
         }
         List<JsonObject> same = byName(all, name);
@@ -662,8 +662,11 @@ public class MountainServlet extends HttpServlet {
     /**
      * 순수 함수 - 코스 모음(/m/) 위쪽 칸: 지금 철인 것만(벚꽃 3 ~ 4월 · 철쭉 4 ~ 6월 · 단풍 9 ~ 11월), 지난 관측의 절정이 이른 차례.
      * 벚꽃은 기상청 13곳(도시 포함) 모두, 산과 이어지는 곳만 산 페이지로. 철이 아니면 "".
+     * 펼친 채로 보이는 것은 지난 관측의 마지막 절정일(달 · 날)까지 - 그 뒤 철 끝까지는 접힌 제목 한 줄(2026-11-14 홍TV님 "마지막 절정일이 지나면 접힌 채로").
      */
-    static String seasonFold(JsonArray peaks, JsonObject season, int month) {
+    static String seasonFold(JsonArray peaks, JsonObject season, java.time.LocalDate today) {
+        int month = today.getMonthValue();
+        String mmdd = String.format("%02d-%02d", month, today.getDayOfMonth()), last = null;
         StringBuilder b = new StringBuilder();
         String title = "";
         for (String[] k : SEASONS) {
@@ -686,6 +689,8 @@ public class MountainServlet extends HttpServlet {
             rows.sort(Comparator.comparing((String[] r) -> r[1].substring(5)).thenComparing(r -> r[0]));   // 달 · 날로(진달래는 관측소마다 가장 최근 해가 다를 수 있음)
             String year = null;
             for (String[] r : rows) if (year == null || r[1].substring(0, 4).compareTo(year) > 0) year = r[1].substring(0, 4);
+            String end = rows.get(rows.size() - 1)[1].substring(5);   // 달 · 날 차례의 끝 = 이 철의 마지막 절정일
+            if (last == null || end.compareTo(last) > 0) last = end;
             b.append("<h3>").append(k[1]).append(" ").append(k[2]).append(" ").append(k[4]).append(" 차례 <small>(").append(year).append("년 관측)</small></h3><ol class=\"ms season\">");
             for (String[] r : rows) {
                 String label = esc(r[0]) + " <small>" + (r[1].startsWith(year) ? koMonthDay(r[1]) : koDay(r[1])) + "</small>";   // 다른 해 관측은 해를 붙임
@@ -695,7 +700,7 @@ public class MountainServlet extends HttpServlet {
             title += (title.isEmpty() ? "" : " · ") + k[1] + " " + k[2];
         }
         if (b.length() == 0) return "";
-        return "<section id=\"season\"><details class=\"fold kind\" open><summary><span class=\"ft\">" + title + " 때</span>"
+        return "<section id=\"season\"><details class=\"fold kind\"" + (mmdd.compareTo(last) <= 0 ? " open" : "") + "><summary><span class=\"ft\">" + title + " 때</span>"
                 + "<span class=\"fs\">지금 철 - 지난해 절정 차례</span><span class=\"fa\">▾</span></summary><div class=\"fb\">" + b
                 + "<p class=\"dim\">가장 최근 기상청 관측(올해 예측이 아님) - 해마다 며칠씩 다릅니다."
                 + (b.indexOf("진달래") >= 0 ? " 진달래는 산에서 15km 안 도시 관측소 기준이라 산 위는 보통 더 늦습니다." : "")

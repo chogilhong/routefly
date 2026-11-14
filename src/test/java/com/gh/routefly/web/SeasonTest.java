@@ -109,14 +109,14 @@ public class SeasonTest {
     public void indexShowsOnlyWhatIsInSeason() throws Exception {
         JsonArray all = seasoned();
         JsonObject sea = season();
-        String nov = MountainServlet.seasonFold(all, sea, 11);
+        String nov = MountainServlet.seasonFold(all, sea, java.time.LocalDate.of(2026, 11, 1));
         assertTrue(nov.contains("<span class=\"ft\">🍁 단풍 때</span>"));
         assertTrue(nov.contains("🍁 단풍 절정 차례 <small>(2025년 관측)</small>"));
         assertTrue("가장 이른 오대산이 설악산보다 앞", nov.indexOf("오대산 <small>10월 16일") < nov.indexOf("설악산 <small>10월 24일"));
         assertTrue(nov.indexOf("설악산 <small>") < nov.indexOf("내장산 <small>11월 11일"));
         assertFalse("11월에 벚꽃 · 철쭉 없음", nov.contains("벚꽃") || nov.contains("철쭉"));
 
-        String apr = MountainServlet.seasonFold(all, sea, 4);
+        String apr = MountainServlet.seasonFold(all, sea, java.time.LocalDate.of(2026, 4, 1));
         assertTrue("4월은 벚꽃 · 진달래 · 철쭉", apr.contains("<span class=\"ft\">🌸 벚꽃 · 🌷 진달래 · 🌺 철쭉 때</span>"));
         assertTrue("진해가 가장 이름", apr.indexOf("진해 여좌천 <small>3월 30일") < apr.indexOf("여의도 윤중로 <small>4월 1일"));
         assertTrue("산과 이어지는 벚꽃은 산 페이지로", apr.contains("<a href=\"../m/%EA%B3%84%EB%A3%A1%EC%82%B0\">공주 계룡산 <small>4월 3일</small></a>"));
@@ -124,15 +124,15 @@ public class SeasonTest {
         assertTrue(apr.contains("지리산 <small>4월 29일"));
         assertFalse(apr.contains("단풍"));
 
-        assertEquals("1월 · 7월은 칸 없음", "", MountainServlet.seasonFold(all, sea, 1));
-        assertEquals("", MountainServlet.seasonFold(all, sea, 7));
+        assertEquals("1월 · 7월은 칸 없음", "", MountainServlet.seasonFold(all, sea, java.time.LocalDate.of(2026, 1, 1)));
+        assertEquals("", MountainServlet.seasonFold(all, sea, java.time.LocalDate.of(2026, 7, 1)));
 
         String idx = MountainServlet.indexPage(all, new JsonArray(), BASE, false, "", nov);
         assertTrue("검색칸 아래 · 내 근처 위", idx.indexOf("<section id=\"season\">") > idx.indexOf("class=\"mSearch\"") && idx.indexOf("<section id=\"season\">") < idx.indexOf("<section id=\"near\">"));
         assertFalse(MountainServlet.indexPage(all, new JsonArray(), BASE, false).contains("id=\"season\""));
 
         JsonArray bare = peaks();
-        assertEquals("season.json 이 없으면 칸도 없음", "", MountainServlet.seasonFold(bare, new JsonObject(), 10));
+        assertEquals("season.json 이 없으면 칸도 없음", "", MountainServlet.seasonFold(bare, new JsonObject(), java.time.LocalDate.of(2026, 10, 1)));
         assertEquals("", MountainServlet.seasonBlock(peak(bare, "가야산"), "가야산", 10));
     }
 
@@ -176,12 +176,27 @@ public class SeasonTest {
         assertTrue(html.contains("<dt>북한산 진달래는 언제 피나요?</dt>"));
         assertTrue(MountainServlet.page(peak(all, "북한산"), new ArrayList<>(), new ArrayList<>(), null, BASE, 4).contains("평년 꽃 핌 3월 28일 <b class=\"now\">지금 철</b>"));
 
-        String mar = MountainServlet.seasonFold(all, season(), 3);
+        String mar = MountainServlet.seasonFold(all, season(), java.time.LocalDate.of(2026, 3, 1));
         assertTrue(mar.contains("🌸 벚꽃 · 🌷 진달래 때"));
         assertTrue("다른 해 관측은 해를 붙임", mar.contains("성인봉 <small>2024년 4월 6일</small>"));
         assertTrue("달 · 날 차례 - 무학산(3월 21일)이 서울 쪽(3월 26일)보다 앞", mar.indexOf("무학산 <small>3월 21일") < mar.indexOf("북한산 <small>3월 26일"));
         assertTrue(mar.contains("🌷 진달래 활짝 차례 <small>(2026년 관측)</small>"));
         assertTrue(mar.contains("15km 안 도시 관측소 기준"));
-        assertFalse("단풍 칸에는 진달래 말 없음", MountainServlet.seasonFold(all, season(), 10).contains("진달래"));
+        assertFalse("단풍 칸에는 진달래 말 없음", MountainServlet.seasonFold(all, season(), java.time.LocalDate.of(2026, 10, 1)).contains("진달래"));
+    }
+
+    @Test
+    public void foldClosesAfterLastPeak() throws Exception {
+        JsonArray all = seasoned();
+        String d1112 = MountainServlet.seasonFold(all, season(), java.time.LocalDate.of(2026, 11, 12));
+        String d1113 = MountainServlet.seasonFold(all, season(), java.time.LocalDate.of(2026, 11, 13));
+        String d1130 = MountainServlet.seasonFold(all, season(), java.time.LocalDate.of(2026, 11, 30));
+        assertTrue("마지막 절정일(11월 12일 - 금오산 · 두륜산 · 월출산 · 팔공산)까지 펼침", d1112.contains("<details class=\"fold kind\" open>"));
+        assertTrue("그다음 날부터 접힌 채", d1113.contains("<details class=\"fold kind\"><summary>"));
+        assertTrue("11월 30일까지 칸은 있음", d1130.contains("🍁 단풍 때") && !d1130.contains(" open>"));
+        assertEquals("12월 1일 사라짐", "", MountainServlet.seasonFold(all, season(), java.time.LocalDate.of(2026, 12, 1)));
+        assertTrue("봄: 철쭉 마지막 절정(5월 31일 한라산)까지 펼침", MountainServlet.seasonFold(all, season(), java.time.LocalDate.of(2026, 5, 31)).contains(" open>"));
+        assertFalse(MountainServlet.seasonFold(all, season(), java.time.LocalDate.of(2026, 6, 1)).contains(" open>"));
+        assertTrue("4월 10일 - 벚꽃 · 진달래는 끝났어도 철쭉이 남아 펼침", MountainServlet.seasonFold(all, season(), java.time.LocalDate.of(2026, 4, 10)).contains(" open>"));
     }
 }
