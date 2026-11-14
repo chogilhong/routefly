@@ -828,7 +828,7 @@
         if (!j.unavailable && j.warn && j.warn.lines) {
             var mine = j.warn.lines.filter(function (l) { return l.mine; }), all = j.warn.lines.map(function (l) { return warnName(l.type, en); });
             if (mine.length) mine.forEach(function (l) { out.push({ icon: "⚠", label: warnName(l.type, en), val: t("내 지역 발효 중", "in effect here"), cls: "bad", alert: true }); });
-            else out.push({ icon: "✅", label: t("기상특보", "Weather warnings"), val: t("내 지역 없음", "None here"), cls: "" });
+            else out.push({ icon: "✅", label: t("기상특보", "Weather warnings"), val: t("발효 중인 특보 없음", "None in effect"), cls: "" });   // "내 지역 없음" 은 비가 안 온다는 뜻으로 읽혔음(2026-11-14 홍TV님)
             if (all.length) out.push({ icon: "🗺", label: t("전국 특보", "Nationwide"), val: all.join(" · "), cls: "" });
         }
         var rr = rainRow(j.rain, en);   // 🌧 레이더 비구름(2026-11-14 홍TV님) - 특보 다음

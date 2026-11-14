@@ -1485,7 +1485,8 @@ eq("calcEval 계산기", ["12+3×4", "10−4−3", "-3÷2", "50%", "200×15%", "
     var calm = { warn: { lines: [{ type: "건조경보", mine: false }] }, fire: { level: 1 }, uv: { date: "2026101806", hours: [{ h: 6, v: 4 }] } };
     eq("safetyAlert 별일 없으면 빈 글", [RF.safetyAlert(calm, noon, false), RF.safetyAlert(null, noon, false), RF.safetyAlert({ unavailable: true }, noon, false)], ["", "", ""]);
     eq("safetyRows 내 지역 특보 없음 · 산불 다소 높음", RF.safetyRows(calm, noon, false).slice(0, 3).map(function (x) { return x.label + "=" + x.val + "/" + x.cls; }),
-        ["기상특보=내 지역 없음/", "전국 특보=건조경보/", "산불위험=다소 높음/mid"]);
+        ["기상특보=발효 중인 특보 없음/", "전국 특보=건조경보/", "산불위험=다소 높음/mid"]);
+    eq("특보 없음 영어", RF.safetyRows(calm, noon, true)[0].val, "None in effect");
     // 🌧 레이더 비구름(2026-11-14) - 값은 RadarTest 의 실제 응답(13:50) 한라산 · 비 없는 경우
     var halla = { tm: "13:50", seen: 4, count: 4, max: 2.6, rain: [{ km: 10, dir: "북", mmh: 2.6 }, { km: 12.9, dir: "남서", mmh: 2.1 }, { km: 13.1, dir: "남", mmh: 1.4 }] };
     eq("rainRow 비", RF.safetyRows({ warn: j.warn, rain: halla }, noon, false).map(function (x) { return x.icon + x.label + "=" + x.val + "/" + x.cls; })[2],
