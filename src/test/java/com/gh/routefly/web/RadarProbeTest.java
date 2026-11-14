@@ -11,7 +11,7 @@ public class RadarProbeTest {
 
     @Test
     public void tenMinuteSlotTwentyMinutesBack() {
-        assertEquals("202611141320", RadarProbe.tenMinutesAgo(LocalDateTime.of(2026, 11, 14, 13, 47)));
-        assertEquals("202611142350", RadarProbe.tenMinutesAgo(LocalDateTime.of(2026, 11, 15, 0, 10)));
+        assertEquals("202611141320", Radar.slot(LocalDateTime.of(2026, 11, 14, 13, 47)));
+        assertEquals("202611142350", Radar.slot(LocalDateTime.of(2026, 11, 15, 0, 10)));
     }
 }

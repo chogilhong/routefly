@@ -4,7 +4,6 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 
 /**
  * 기상청 API허브 레이더(2026-11-14 홍TV님 "레이더 비구름 추가해줘") 실제 응답을 받아 보는 확인용 프로그램(테스트가 아님 - 네트워크 · 키를 씀).
@@ -29,7 +28,7 @@ public final class RadarProbe {
     private RadarProbe() {
     }
 
-    static final String BASE = "https://apihub.kma.go.kr/api/typ01/";
+    static final String BASE = Radar.BASE;
 
     public static void main(String[] args) throws Exception {
         String key = RouteflyConfig.get("kma.apihub.key");
@@ -37,16 +36,11 @@ public final class RadarProbe {
             System.out.println("kma.apihub.key 가 비어 있습니다.");
             return;
         }
-        String tm = args.length > 0 ? args[0] : tenMinutesAgo(LocalDateTime.now(WeatherServlet.KST));
+        String tm = args.length > 0 ? args[0] : Radar.slot(LocalDateTime.now(WeatherServlet.KST));
         String k = "&authKey=" + URLEncoder.encode(key, StandardCharsets.UTF_8);
         Path dir = Path.of("src", "test", "resources", "radar");
         KmaSeasonProbe.save(dir.resolve("rdr-aws-all-" + tm + ".txt"), BASE + "cgi-bin/url/nph-rdr_cmp_aws_all_pt_data?tm=" + tm + "&qcd=EXT&cmp=HSP&help=1" + k, key);
         KmaSeasonProbe.save(dir.resolve("stn-aws.txt"), BASE + "url/stn_inf.php?inf=AWS&help=1" + k, key);
     }
 
-    /** 20분 전을 10분 단위로 내림(레이더 합성은 10분마다, 늦게 나올 수 있어 여유). */
-    static String tenMinutesAgo(LocalDateTime now) {
-        LocalDateTime t = now.minusMinutes(20);
-        return t.withMinute(t.getMinute() / 10 * 10).format(DateTimeFormatter.ofPattern("yyyyMMddHHmm"));
-    }
 }

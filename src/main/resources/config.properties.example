@@ -37,7 +37,8 @@ tour.serviceKey=
 weather.serviceKey=
 
 # 기상청 API허브(apihub.kma.go.kr) 인증키(authKey) - 공공데이터포털 키와 다름(API허브 가입 · 활용 신청 따로, 2026-11-14).
-# 지금은 확인용 프로그램 web.KmaSeasonProbe(진달래 · 개나리 계절관측 받아 보기)만 씁니다. 화면은 안 씀.
+# 🌧 레이더 비구름(/api/safety 의 rain - 레이더 AWS지점별 합성자료값 · 지상관측 지점정보, 2026-11-14)이 씁니다 - 운영 서버에도 넣어야 보입니다(비우면 그 줄만 안 보임).
+# 확인용 프로그램 web.KmaSeasonProbe · web.RadarProbe 도 씀. API허브는 API마다 활용신청이 따로입니다.
 #kma.apihub.key=
 
 # ---------------------------------------------------------------- 공유 링크(2026-10-09 보안)

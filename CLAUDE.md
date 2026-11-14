@@ -23,6 +23,8 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다 - 산악회 방 
   예외(2026-11-14 홍TV님 "자료부터 확인하고 만들어 보자" · "1,2 번 해주고"): 🌸 벚꽃 · 🌺 철쭉 · 🍁 단풍 때 - 기상청 날씨누리 관측(공공데이터 15150373)을 `data/season.json`(web.SeasonProbe 가 만듦)으로 산 페이지 · 코스 모음에.
   산 페이지 칸은 늘 보이고 그 철(벚꽃 3 ~ 4월 · 철쭉 4 ~ 6월 · 단풍 9 ~ 11월)에는 날씨 칸 위로, 코스 모음 칸은 그 철에만. 🌷 진달래(3 ~ 4월)는 기상청 API허브 계절관측(web.KmaSeasonProbe 가 받음, 키 kma.apihub.key)에서 산에서 15km 안 도시 관측소만(12개 산, 관측소 이름 · 거리 · 평년 함께).
   해마다 새 파일(다음 2027-09 무렵)이 오면 src/test/resources/season/ 의 csv 를 바꾸고 SeasonProbe 를 다시 돌립니다. 올해 예측이 아니라 지난 관측이라고 늘 밝힙니다.
+  예외(2026-11-14 홍TV님 "레이더 비구름 추가해줘" - 안전): `Radar` - 기상청 API허브 레이더 AWS 지점별 강우강도(10분, 서버가 한 번 받아 나눠 씀)로 내 둘레 15km 비 오는 지점을
+  /api/safety 의 rain 으로(별거 별거 · 산 페이지 · 따라가기 안전 줄, course-kit rainRow). 키 kma.apihub.key 는 운영 서버 설정에도 있어야 함. 응답은 RadarProbe → src/test/resources/radar/.
   산악회 예약 · 모집 · 입금 화면(카페 산악회용 등)은 만들지 않습니다(2026-11-12 홍TV님 "우리는 우리 일만 하자. 현재대로") - 예약은 산악회 쪽, routefly 는 출발 당일부터.
 - 안전 문구(hike.js 의 `SAFETY_KEY`)를 바꾸면 키의 버전도 올립니다(README).
 - 보안 · 속도 필터: `SecurityFilter`(모든 응답에 보안 헤더, /api · /s 는 IP 마다 분당 120번 남짓 제한), `GzipFilter`(/api 응답 1KB 넘으면 gzip).

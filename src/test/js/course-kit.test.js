@@ -1486,6 +1486,17 @@ eq("calcEval 계산기", ["12+3×4", "10−4−3", "-3÷2", "50%", "200×15%", "
     eq("safetyAlert 별일 없으면 빈 글", [RF.safetyAlert(calm, noon, false), RF.safetyAlert(null, noon, false), RF.safetyAlert({ unavailable: true }, noon, false)], ["", "", ""]);
     eq("safetyRows 내 지역 특보 없음 · 산불 다소 높음", RF.safetyRows(calm, noon, false).slice(0, 3).map(function (x) { return x.label + "=" + x.val + "/" + x.cls; }),
         ["기상특보=내 지역 없음/", "전국 특보=건조경보/", "산불위험=다소 높음/mid"]);
+    // 🌧 레이더 비구름(2026-11-14) - 값은 RadarTest 의 실제 응답(13:50) 한라산 · 비 없는 경우
+    var halla = { tm: "13:50", seen: 4, count: 4, max: 2.6, rain: [{ km: 10, dir: "북", mmh: 2.6 }, { km: 12.9, dir: "남서", mmh: 2.1 }, { km: 13.1, dir: "남", mmh: 1.4 }] };
+    eq("rainRow 비", RF.safetyRows({ warn: j.warn, rain: halla }, noon, false).map(function (x) { return x.icon + x.label + "=" + x.val + "/" + x.cls; })[2],
+        "🌧레이더 비구름(15km 안)=4곳 · 가까운 곳 북쪽 10km · 가장 센 곳 약한 비(시간당 2.6mm) · 13:50 기준/mid");
+    eq("rainRow 영어", RF.safetyRows({ rain: halla }, noon, true)[0].val, "4 spots · nearest N 10km · strongest light rain (2.6 mm/h) · as of 13:50");
+    eq("rainRow 강한 비는 빨강 · 바로 이 근처", RF.safetyRows({ rain: { tm: "15:10", count: 1, max: 16.2, rain: [{ km: 0.4, dir: "", mmh: 16.2 }] } }, noon, false)[0].val + "/" + RF.safetyRows({ rain: { tm: "15:10", count: 1, max: 16.2, rain: [{ km: 0.4, dir: "", mmh: 16.2 }] } }, noon, false)[0].cls,
+        "1곳 · 가까운 곳 바로 이 근처 · 가장 센 곳 강한 비(시간당 16.2mm) · 15:10 기준/bad");
+    eq("rainRow 비 없음 · 따라가기 알림 없음", [RF.safetyRows({ rain: { tm: "13:50", seen: 7, count: 0, max: 0, rain: [] } }, noon, false)[0].val, RF.safetyAlert({ rain: { tm: "13:50", count: 0, rain: [] } }, noon, false)],
+        ["비 없음 · 13:50 기준", ""]);
+    eq("rainRow 따라가기 알림", RF.safetyAlert({ rain: halla }, noon, false), "⛑️ 오늘의 산행 안전: 레이더 비구름(15km 안) 4곳 · 가까운 곳 북쪽 10km · 가장 센 곳 약한 비(시간당 2.6mm) · 13:50 기준");
+    eq("rainRow 공공데이터 키 없어도 레이더는", RF.safetyRows({ unavailable: true, rain: halla }, noon, false).length, 1);
     eq("warnName", [RF.warnName("호우경보", true), RF.warnName("호우경보", false), RF.warnName("이상한주의보", true)], ["Heavy rain warning", "호우경보", "이상한주의보"]);
 })();
 eq("cellCenter 고정 5km 칸 가운데(서버에 내 위치 대신)", [RF.cellCenter(37.5663, 126.9779), RF.cellCenter(37.5501, 126.9999), RF.cellCenter(35.0, 129.0), RF.cellCenter(33.4999, 126.53)],

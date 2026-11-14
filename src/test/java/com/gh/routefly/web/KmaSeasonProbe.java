@@ -56,6 +56,7 @@ public final class KmaSeasonProbe {
         HttpClient c = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(20)).build();
         HttpResponse<byte[]> r = c.send(HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(60)).GET().build(), HttpResponse.BodyHandlers.ofByteArray());
         String body = text(r.body(), r.headers().firstValue("Content-Type").orElse("")).replace(key, "{KEY}");
+        Files.createDirectories(to.getParent());   // 처음 받는 폴더(2026-11-14 PC: radar 폴더가 없어 NoSuchFileException)
         Files.writeString(to, body, StandardCharsets.UTF_8);
         System.out.println(to + " ← HTTP " + r.statusCode() + ", " + body.length() + "자, 첫 줄: " + body.lines().findFirst().orElse(""));
     }

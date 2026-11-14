@@ -28,7 +28,8 @@ import com.google.gson.JsonParser;
  *   <li>기상특보 - 기상청 WthrWrnInfoService getPwnStatus(t6 = 지금 발효 중인 특보 "o 강풍주의보 : 강원도(…), 인천 …" 줄들).</li>
  * </ul>
  * 키는 safety.serviceKey(없으면 tour.serviceKey - 같은 개인 키, 서비스마다 활용 신청). 실제 응답 모양은 SafetyApiProbe → src/test/resources/safety/(2026-10-18).
- * 부분마다 못 받으면 그 칸만 빠짐. → {@code {success, sido, er:[…], fire:{…}, uv:{…}, warn:{tm, lines:[{type, mine}]}}}
+ * 🌧 레이더 비구름(Radar - 기상청 API허브, 키 kma.apihub.key, 2026-11-14) → rain:{tm, seen, count, max, rain:[{km, dir, mmh}]}.
+ * 부분마다 못 받으면 그 칸만 빠짐. → {@code {success, sido, er:[…], fire:{…}, uv:{…}, warn:{tm, lines:[{type, mine}]}, rain:{…}}}
  */
 @WebServlet(urlPatterns = {"/api/safety"})
 public class SafetyServlet extends HttpServlet {
@@ -58,6 +59,8 @@ public class SafetyServlet extends HttpServlet {
         if (key == null) key = RouteflyConfig.get("tour.serviceKey");
         JsonObject out = new JsonObject();
         out.addProperty("success", true);
+        JsonObject rain = Radar.at(at[0], at[1]);   // 🌧 레이더 비구름(기상청 API허브 - 키가 따로라 공공데이터 키가 없어도, 2026-11-14)
+        if (rain != null) out.add("rain", rain);
         if (key == null) { out.addProperty("unavailable", true); Json.ok(req, resp, out); return; }
         String k = URLEncoder.encode(key, StandardCharsets.UTF_8);
 

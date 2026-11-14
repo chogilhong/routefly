@@ -824,13 +824,16 @@
      */
     function safetyRows(j, now, en) {
         var out = [], t = function (ko, e) { return en ? e : ko; };
-        if (!j || j.unavailable) return out;
-        if (j.warn && j.warn.lines) {
+        if (!j) return out;
+        if (!j.unavailable && j.warn && j.warn.lines) {
             var mine = j.warn.lines.filter(function (l) { return l.mine; }), all = j.warn.lines.map(function (l) { return warnName(l.type, en); });
             if (mine.length) mine.forEach(function (l) { out.push({ icon: "⚠", label: warnName(l.type, en), val: t("내 지역 발효 중", "in effect here"), cls: "bad", alert: true }); });
             else out.push({ icon: "✅", label: t("기상특보", "Weather warnings"), val: t("내 지역 없음", "None here"), cls: "" });
             if (all.length) out.push({ icon: "🗺", label: t("전국 특보", "Nationwide"), val: all.join(" · "), cls: "" });
         }
+        var rr = rainRow(j.rain, en);   // 🌧 레이더 비구름(2026-11-14 홍TV님) - 특보 다음
+        if (rr) out.push(rr);
+        if (j.unavailable) return out;   // 공공데이터 키가 없어도 레이더(API허브 키)는 보임
         if (j.fire) {
             var lv = Math.max(0, Math.min(3, j.fire.level || 0));
             out.push({ icon: "🔥", label: t("산불위험", "Wildfire risk"), val: FIRE_WORD[lv][en ? 1 : 0] + (j.fire.meanavg != null ? " (" + Math.round(j.fire.meanavg) + ")" : ""),
@@ -851,6 +854,22 @@
                 cls: max >= 8 ? "bad" : max >= 6 ? "mid" : "", alert: max >= 8 && restToday });
         }
         return out;
+    }
+    var RAIN_DIR_EN = { "북": "N", "북동": "NE", "동": "E", "남동": "SE", "남": "S", "남서": "SW", "서": "W", "북서": "NW" };
+    /** 순수 함수 - 비의 세기 말(기상청 강수강도: 약한 비 3mm/h 미만 · 보통 비 3 ~ 15 · 강한 비 15 이상). */
+    function rainWord(mmh, en) { return mmh >= 15 ? (en ? "heavy rain" : "강한 비") : mmh >= 3 ? (en ? "moderate rain" : "보통 비") : (en ? "light rain" : "약한 비"); }
+    /**
+     * 순수 함수 - api/safety 의 rain(Radar - 기상청 레이더 AWS 지점값, 15km 안) → 줄 하나. 비 오는 곳이 있으면 알림(따라가기), 강한 비면 빨강. 모르면(rain 없음) null.
+     * 지점 값이라 "비구름이 없다" 가 아니라 "둘레 관측 지점에 비가 없다" - 시각을 함께 보임.
+     */
+    function rainRow(r, en) {
+        if (!r || !r.tm) return null;
+        var label = en ? "Rain radar (within 15 km)" : "레이더 비구름(15km 안)";
+        if (!r.count || !r.rain || !r.rain.length) return { icon: "☁", label: label, val: en ? "No rain · as of " + r.tm : "비 없음 · " + r.tm + " 기준", cls: "" };
+        var n = r.rain[0], where = n.dir ? (en ? (RAIN_DIR_EN[n.dir] || n.dir) + " " : n.dir + "쪽 ") + n.km + "km" : (en ? "right here" : "바로 이 근처");
+        return { icon: "🌧", label: label, cls: r.max >= 15 ? "bad" : "mid", alert: true,
+            val: en ? r.count + " spots · nearest " + where + " · strongest " + rainWord(r.max, true) + " (" + r.max + " mm/h) · as of " + r.tm
+                : r.count + "곳 · 가까운 곳 " + where + " · 가장 센 곳 " + rainWord(r.max, false) + "(시간당 " + r.max + "mm) · " + r.tm + " 기준" };
     }
     /**
      * api/safety 응답을 목록으로(ul - 줄, er - 가까운 응급실 ul, 없으면 null). erMax - 응급실 몇 곳(없으면 모두). 받은 줄 수를 돌려줌.
