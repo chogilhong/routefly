@@ -3,8 +3,8 @@
      서블릿 · 필터는 그대로 어노테이션(metadata-complete="false"). 화면이 직접 404 를 쓰는 곳(산 · 코스 페이지)은 그대로 그 화면 -->
 <web-app xmlns="https://jakarta.ee/xml/ns/jakartaee"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_6_1.xsd"
-         version="6.1" metadata-complete="false">
+         xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_6_0.xsd"
+         version="6.0" metadata-complete="false">
     <error-page>
         <error-code>404</error-code>
         <location>/notfound</location>
