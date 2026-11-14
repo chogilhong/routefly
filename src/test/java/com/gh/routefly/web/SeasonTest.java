@@ -44,6 +44,7 @@ public class SeasonTest {
     @Test
     public void committedJsonIsRebuiltFromRealFile() throws Exception {
         JsonObject built = SeasonProbe.build(read(SeasonProbe.CSV.toString()), peaks());
+        built.add("azaleaNear", SeasonProbe.azaleaNear(read(SeasonProbe.SSN.toString()), read(SeasonProbe.STN.toString()), read(SeasonProbe.NORM.toString()), peaks()));
         assertEquals("season.json 은 SeasonProbe 로 다시 만든 것과 같아야 함", SeasonProbe.json(built), read("src/main/webapp/data/season.json"));
         assertEquals("단풍 21곳(포털 설명)", 21, built.getAsJsonObject("foliage").size());
         assertEquals("철쭉 3곳", 3, built.getAsJsonObject("azalea").size());
@@ -116,7 +117,7 @@ public class SeasonTest {
         assertFalse("11월에 벚꽃 · 철쭉 없음", nov.contains("벚꽃") || nov.contains("철쭉"));
 
         String apr = MountainServlet.seasonFold(all, sea, 4);
-        assertTrue("4월은 벚꽃 · 철쭉 둘 다", apr.contains("<span class=\"ft\">🌸 벚꽃 · 🌺 철쭉 때</span>"));
+        assertTrue("4월은 벚꽃 · 진달래 · 철쭉", apr.contains("<span class=\"ft\">🌸 벚꽃 · 🌷 진달래 · 🌺 철쭉 때</span>"));
         assertTrue("진해가 가장 이름", apr.indexOf("진해 여좌천 <small>3월 30일") < apr.indexOf("여의도 윤중로 <small>4월 1일"));
         assertTrue("산과 이어지는 벚꽃은 산 페이지로", apr.contains("<a href=\"../m/%EA%B3%84%EB%A3%A1%EC%82%B0\">공주 계룡산 <small>4월 3일</small></a>"));
         assertTrue("도시는 글만", apr.contains("<span>여의도 윤중로 <small>4월 1일</small></span>"));
@@ -143,7 +144,7 @@ public class SeasonTest {
         JsonObject g = peak(p, "가야산");
         assertFalse(g.has("foliage_start"));
         assertFalse("벚꽃은 mountain 이 있을 때만 산에", g.has("cherry_peak"));
-        assertEquals("단풍 절정 2025년 11월 5일", MountainServlet.seasonLine(g, MountainServlet.SEASONS[2]));
+        assertEquals("단풍 절정 2025년 11월 5일", MountainServlet.seasonLine(g, MountainServlet.SEASONS[3]));
     }
 
     @Test
@@ -152,5 +153,35 @@ public class SeasonTest {
         assertEquals("charset 없는 UTF-8 JSON(API허브 403)", ko, KmaSeasonProbe.text(ko.getBytes(StandardCharsets.UTF_8), "application/json"));
         assertEquals("UTF-8 로 안 읽히면 EUC-KR", "진달래", KmaSeasonProbe.text("진달래".getBytes("EUC-KR"), ""));
         assertEquals("머리글 charset 이 먼저", "진달래", KmaSeasonProbe.text("진달래".getBytes("EUC-KR"), "text/plain; charset=euc-kr"));
+    }
+
+    @Test
+    public void azaleaFromNearCityStation() throws Exception {
+        JsonObject az = SeasonProbe.azaleaNear(read(SeasonProbe.SSN.toString()), read(SeasonProbe.STN.toString()), read(SeasonProbe.NORM.toString()), peaks());
+        assertEquals("15km 안 12개 산", 12, az.size());
+        JsonObject bh = az.getAsJsonObject("북한산");
+        assertEquals("서울", bh.get("stn").getAsString());
+        assertEquals(9.8, bh.get("km").getAsDouble(), 0.001);
+        assertEquals("서울(108) 2026 진달래 꽃 핌(202)", "2026-03-23", bh.get("start").getAsString());
+        assertEquals("활짝(203)", "2026-03-26", bh.get("peak").getAsString());
+        assertEquals("평년(1991~2020) 꽃 핌 3월 28일", "03-28", bh.get("norm").getAsString());
+        assertEquals("울릉도는 2024 가 가장 최근", 2024, az.getAsJsonObject("성인봉").get("year").getAsInt());
+        assertFalse("홍성은 평년값 없음", az.getAsJsonObject("덕숭산").has("norm"));
+        assertFalse("서울에서 16km 넘는 산은 안 붙임", az.has("수락산"));
+
+        JsonArray all = seasoned();
+        String html = MountainServlet.page(peak(all, "북한산"), new ArrayList<>(), new ArrayList<>(), null, BASE, 1);
+        assertTrue(html.contains("🌷 진달래(서울 관측소 · 산에서 약 10km) 꽃 핌 2026년 3월 23일 · 활짝 3월 26일 · 평년 꽃 핌 3월 28일</li>"));
+        assertTrue(html.contains("진달래는 산 아래 도시 관측소 기준입니다"));
+        assertTrue(html.contains("<dt>북한산 진달래는 언제 피나요?</dt>"));
+        assertTrue(MountainServlet.page(peak(all, "북한산"), new ArrayList<>(), new ArrayList<>(), null, BASE, 4).contains("평년 꽃 핌 3월 28일 <b class=\"now\">지금 철</b>"));
+
+        String mar = MountainServlet.seasonFold(all, season(), 3);
+        assertTrue(mar.contains("🌸 벚꽃 · 🌷 진달래 때"));
+        assertTrue("다른 해 관측은 해를 붙임", mar.contains("성인봉 <small>2024년 4월 6일</small>"));
+        assertTrue("달 · 날 차례 - 무학산(3월 21일)이 서울 쪽(3월 26일)보다 앞", mar.indexOf("무학산 <small>3월 21일") < mar.indexOf("북한산 <small>3월 26일"));
+        assertTrue(mar.contains("🌷 진달래 활짝 차례 <small>(2026년 관측)</small>"));
+        assertTrue(mar.contains("15km 안 도시 관측소 기준"));
+        assertFalse("단풍 칸에는 진달래 말 없음", MountainServlet.seasonFold(all, season(), 10).contains("진달래"));
     }
 }

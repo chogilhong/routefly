@@ -560,10 +560,12 @@ public class MountainServlet extends HttpServlet {
 
     /**
      * 철마다(2026-11-14 홍TV님 "1,2 번 해주고 … 제철에 보여주는 거야?"): season.json 의 칸 이름, 그림, 낱말, 두 날짜 이름, 자주 묻는 질문, 그 철의 달(처음 · 끝).
-     * 벚꽃 3 ~ 4월 · 철쭉 4 ~ 6월(지리산 바래봉 4월 말 ~ 소백산 · 한라산 5월 말 관측) · 단풍 9 ~ 11월(설악산 시작 10월 초 ~ 두륜산 절정 11월 중순 관측).
+     * 진달래(azaleaNear)는 날씨누리가 아니라 API허브 계절관측 - 산에서 15km 안 도시 관측소 기준(web.SeasonProbe.azaleaNear), 관측소 이름 · 거리 · 평년 꽃 핌을 함께.
+     * 벚꽃 · 진달래 3 ~ 4월(관측 3월 중순 ~ 4월 초) · 철쭉 4 ~ 6월(지리산 바래봉 4월 말 ~ 소백산 · 한라산 5월 말 관측) · 단풍 9 ~ 11월(설악산 시작 10월 초 ~ 두륜산 절정 11월 중순 관측).
      */
     static final String[][] SEASONS = {
             {"cherry", "🌸", "벚꽃", "꽃 핌", "활짝", "벚꽃은 언제 피나요?", "3", "4"},
+            {"azaleaNear", "🌷", "진달래", "꽃 핌", "활짝", "진달래는 언제 피나요?", "3", "4"},
             {"azalea", "🌺", "철쭉", "꽃 핌", "활짝", "철쭉은 언제 피나요?", "4", "6"},
             {"foliage", "🍁", "단풍", "시작", "절정", "단풍 절정은 언제인가요?", "9", "11"}};
 
@@ -593,6 +595,11 @@ public class MountainServlet extends HttpServlet {
                 JsonObject o = id == null ? null : byId(peaks, id);
                 if (o == null) continue;
                 for (String f : new String[] {"start", "peak"}) if (isDay(str(v, f))) o.addProperty(k[0] + "_" + f, str(v, f));
+                if (str(v, "stn") != null && v.has("km") && v.get("km").isJsonPrimitive()) {   // 진달래 - 관측소 이름 · 거리 · 평년(MM-DD)
+                    o.addProperty(k[0] + "_stn", str(v, "stn"));
+                    o.addProperty(k[0] + "_km", v.get("km").getAsDouble());
+                    if (str(v, "norm") != null && str(v, "norm").matches("\\d{2}-\\d{2}")) o.addProperty(k[0] + "_norm", str(v, "norm"));
+                }
             }
         }
     }
@@ -619,9 +626,11 @@ public class MountainServlet extends HttpServlet {
     static String seasonLine(JsonObject peak, String[] k) {
         String a = str(peak, k[0] + "_start"), z = str(peak, k[0] + "_peak");
         if (a == null && z == null) return null;
-        if (a == null) return k[2] + " " + k[4] + " " + koDay(z);
-        if (z == null) return k[2] + " " + k[3] + " " + koDay(a);
-        return k[2] + " " + k[3] + " " + koDay(a) + " · " + k[4] + " " + (a.substring(0, 4).equals(z.substring(0, 4)) ? koMonthDay(z) : koDay(z));
+        String stn = str(peak, k[0] + "_stn"), norm = str(peak, k[0] + "_norm");
+        String word = k[2] + (stn != null ? "(" + stn + " 관측소 · 산에서 약 " + Math.round(peak.get(k[0] + "_km").getAsDouble()) + "km)" : "");
+        String days = a == null ? k[4] + " " + koDay(z) : z == null ? k[3] + " " + koDay(a)
+                : k[3] + " " + koDay(a) + " · " + k[4] + " " + (a.substring(0, 4).equals(z.substring(0, 4)) ? koMonthDay(z) : koDay(z));
+        return word + " " + days + (norm != null ? " · 평년 꽃 핌 " + Integer.parseInt(norm.substring(0, 2)) + "월 " + Integer.parseInt(norm.substring(3)) + "일" : "");
     }
 
     /** 순수 함수 - 그 산에 지금 철인 관측이 있나(있으면 산 페이지에서 칸을 위로 올림). */
@@ -645,8 +654,9 @@ public class MountainServlet extends HttpServlet {
         }
         if (li.length() == 0) return "";
         return "<section class=\"season\"><h2>" + esc(name) + " " + title + " 시기</h2><ul class=\"wl\">" + li + "</ul>"
-                + "<p class=\"dim\">가장 최근 기상청 관측입니다(올해 예측이 아님). 해마다 며칠씩 앞뒤로 달라지고, 관측 자리(탐방로 입구 · 중턱 등)보다 높은 곳은 보통 더 이릅니다. "
-                + "출처: 기상청 날씨누리 「봄꽃 개화현황 · 유명산 단풍현황」(공공데이터포털)</p></section>";
+                + "<p class=\"dim\">가장 최근 기상청 관측입니다(올해 예측이 아님). 해마다 며칠씩 앞뒤로 달라지고, 관측 자리(탐방로 입구 · 중턱 등)보다 높은 곳은 보통 단풍이 더 이르고 꽃은 더 늦습니다. "
+                + (str(peak, "azaleaNear_stn") != null ? "진달래는 산 아래 도시 관측소 기준입니다(평년은 1991 ~ 2020년). " : "")
+                + "출처: 기상청 날씨누리 「봄꽃 개화현황 · 유명산 단풍현황」(공공데이터포털)" + (str(peak, "azaleaNear_stn") != null ? " · 기상청 API허브 계절관측" : "") + "</p></section>";
     }
 
     /**
@@ -673,10 +683,12 @@ public class MountainServlet extends HttpServlet {
                 }
             }
             if (rows.isEmpty()) continue;
-            rows.sort(Comparator.comparing((String[] r) -> r[1]).thenComparing(r -> r[0]));
-            b.append("<h3>").append(k[1]).append(" ").append(k[2]).append(" ").append(k[4]).append(" 차례 <small>(").append(rows.get(rows.size() - 1)[1], 0, 4).append("년 관측)</small></h3><ol class=\"ms season\">");
+            rows.sort(Comparator.comparing((String[] r) -> r[1].substring(5)).thenComparing(r -> r[0]));   // 달 · 날로(진달래는 관측소마다 가장 최근 해가 다를 수 있음)
+            String year = null;
+            for (String[] r : rows) if (year == null || r[1].substring(0, 4).compareTo(year) > 0) year = r[1].substring(0, 4);
+            b.append("<h3>").append(k[1]).append(" ").append(k[2]).append(" ").append(k[4]).append(" 차례 <small>(").append(year).append("년 관측)</small></h3><ol class=\"ms season\">");
             for (String[] r : rows) {
-                String label = esc(r[0]) + " <small>" + koMonthDay(r[1]) + "</small>";
+                String label = esc(r[0]) + " <small>" + (r[1].startsWith(year) ? koMonthDay(r[1]) : koDay(r[1])) + "</small>";   // 다른 해 관측은 해를 붙임
                 b.append("<li>").append(r[2] != null ? "<a href=\"" + REL + "/m/" + esc(enc(r[2])) + "\">" + label + "</a>" : "<span>" + label + "</span>").append("</li>");
             }
             b.append("</ol>");
@@ -685,7 +697,9 @@ public class MountainServlet extends HttpServlet {
         if (b.length() == 0) return "";
         return "<section id=\"season\"><details class=\"fold kind\" open><summary><span class=\"ft\">" + title + " 때</span>"
                 + "<span class=\"fs\">지금 철 - 지난해 절정 차례</span><span class=\"fa\">▾</span></summary><div class=\"fb\">" + b
-                + "<p class=\"dim\">가장 최근 기상청 관측(올해 예측이 아님) - 해마다 며칠씩 다릅니다. 출처: 기상청 날씨누리(공공데이터포털)</p></div></details></section>";
+                + "<p class=\"dim\">가장 최근 기상청 관측(올해 예측이 아님) - 해마다 며칠씩 다릅니다."
+                + (b.indexOf("진달래") >= 0 ? " 진달래는 산에서 15km 안 도시 관측소 기준이라 산 위는 보통 더 늦습니다." : "")
+                + " 출처: 기상청 날씨누리(공공데이터포털)" + (b.indexOf("진달래") >= 0 ? " · 기상청 API허브 계절관측" : "") + "</p></div></details></section>";
     }
 
     /** 순수 함수 - 높이 출처 이름(문답 · 점검 화면). en - 영어. */
