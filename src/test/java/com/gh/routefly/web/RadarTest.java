@@ -99,4 +99,15 @@ public class RadarTest {
         assertEquals(10.73, e.values().stream().mapToDouble(Double::doubleValue).max().getAsDouble(), 1e-9);
         assertEquals(373, e.values().stream().filter(v -> v > 0).count());
     }
+
+    @Test
+    public void sameSlotFetchedOnceMoreAfterThreeMinutes() {
+        long t0 = 1_000_000L;
+        Object[] first = {"202611141520", new java.util.HashMap<Integer, Double>(), t0, Boolean.FALSE};
+        assertFalse("받은 지 2분 - 아직", Radar.again(first, t0 + 2 * 60_000L));
+        assertTrue("3분 지나면 한 번 더", Radar.again(first, t0 + 3 * 60_000L));
+        Object[] done = {"202611141520", new java.util.HashMap<Integer, Double>(), t0, Boolean.TRUE};
+        assertFalse("다시 받았으면 그만", Radar.again(done, t0 + 9 * 60_000L));
+        assertFalse(Radar.again(null, t0));
+    }
 }

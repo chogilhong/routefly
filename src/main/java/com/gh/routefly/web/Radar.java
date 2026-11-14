@@ -152,9 +152,17 @@ final class Radar {
     static final int PUMP_MIN = 1, STALE_MIN = 30;   // 1분마다 보되 새 시각일 때만 물음 - 실패하면 1분 뒤 다시(OpenApi 가 연달아 실패하면 5 · 15분 쉼)
     static final Duration TIMEOUT = Duration.ofSeconds(60);   // 2026-11-14 PC: API허브가 8초 · 30초도 넘겨(HttpTimeoutException) rain 이 빠졌음 - 화면은 안 기다리니 넉넉히
 
-    /** 가장 최근에 받은 것 {자료 시각 tm, Map 지점 → mm/h}. */
+    /** 가장 최근에 받은 것 {자료 시각 tm, Map 지점 → mm/h, 받은 때 ms, 같은 시각을 다시 받았나}. */
     private static volatile Object[] latest;
     private static java.util.concurrent.ScheduledExecutorService pump;
+
+    /** 같은 시각을 다시 받기까지(분) - 막 나온 자료는 늦게 채워지는 지점이 있어(2026-11-14 PC: 같은 15:20 인데 운영 3곳 · 로컬 4곳) 한 번만 다시. */
+    static final int AGAIN_MIN = 3;
+
+    /** 순수 함수 - latest 를 같은 시각으로 한 번 더 받을 때인가(아직 안 했고, 받은 지 AGAIN_MIN 분 지남). */
+    static boolean again(Object[] l, long nowMs) {
+        return l != null && l.length >= 4 && !Boolean.TRUE.equals(l[3]) && nowMs - (Long) l[2] >= AGAIN_MIN * 60_000L;
+    }
 
     /**
      * 순수 함수 - 자료 시각 tm 이 지금 물을 시각(slot)보다 STALE_MIN 분 넘게 늦지 않았나(yyyyMMddHHmm). 미리 받기가 계속 실패하면 옛 비를 지금 비처럼 보이지 않게.
@@ -208,10 +216,15 @@ final class Radar {
             for (int back : new int[] {10, 20}) {   // 10분 전이 아직 안 나왔으면 20분 전 - 이미 가진 것보다 새것만
                 String tm = slot(now, back);
                 Object[] l = latest;
-                if (l != null && tm.compareTo((String) l[0]) <= 0) return;
+                boolean again = l != null && tm.equals(l[0]) && again(l, System.currentTimeMillis());
+                if (l != null && tm.compareTo((String) l[0]) <= 0 && !again) return;
                 Map<Integer, Double> e = echoes(OpenApi.get(BASE + "cgi-bin/url/nph-rdr_cmp_aws_all_pt_data?tm=" + tm + k, back == 10 ? "RADAR" : "RADAR-20", TIMEOUT));
+                if (again) {   // 같은 시각을 한 번 더 - 더 많이 채워진 쪽을 씀(이번 것이 적어도 다시 묻지 않음)
+                    latest = e.size() > ((Map<?, ?>) l[1]).size() ? new Object[] {tm, e, l[2], Boolean.TRUE} : new Object[] {l[0], l[1], l[2], Boolean.TRUE};
+                    return;
+                }
                 if (!e.isEmpty()) {
-                    latest = new Object[] {tm, e};
+                    latest = new Object[] {tm, e, System.currentTimeMillis(), Boolean.FALSE};
                     return;
                 }
             }
