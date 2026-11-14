@@ -249,6 +249,7 @@ public class MountainServlet extends HttpServlet {
         }
         withElev(p, readElev(getServletContext()));
         withInfo(p, readInfo(getServletContext()));
+        withSeason(p, readSeason(getServletContext()));
         peaks = p;
         return p;
     }
@@ -543,6 +544,95 @@ public class MountainServlet extends HttpServlet {
                 + "<p>" + esc(r) + "</p><p class=\"dim\">출처: 산림청 「명산등산로」(공공데이터포털)</p></section>";
     }
 
+    /** data/season.json(기상청 날씨누리 단풍 · 철쭉 관측 - web.SeasonProbe 가 만듦, 2026-11-14) - 없거나 못 읽으면 빈 것. */
+    static JsonObject readSeason(jakarta.servlet.ServletContext ctx) {
+        try (InputStream in = ctx.getResourceAsStream("/data/season.json")) {
+            JsonElement e = in == null ? null : JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+            return e != null && e.isJsonObject() ? e.getAsJsonObject() : new JsonObject();
+        } catch (Exception e) {
+            return new JsonObject();
+        }
+    }
+
+    /** 단풍(foliage: 시작 · 절정) · 철쭉(azalea: 꽃 핌 · 활짝) - season.json 의 칸 이름, 화면 낱말, 두 날짜 이름, 자주 묻는 질문. */
+    static final String[][] SEASONS = {{"foliage", "🍁 단풍", "시작", "절정", "단풍 절정은 언제인가요?"}, {"azalea", "🌸 철쭉", "꽃 핌", "활짝", "철쭉은 언제 피나요?"}};
+
+    /** 순수 함수 - 산마다 기상청 관측 날짜를 붙임(id 로 맞춤): foliage_start · foliage_peak · azalea_start · azalea_peak. */
+    static void withSeason(JsonArray peaks, JsonObject season) {
+        for (String[] k : SEASONS) {
+            JsonObject m = season.has(k[0]) && season.get(k[0]).isJsonObject() ? season.getAsJsonObject(k[0]) : new JsonObject();
+            for (JsonElement e : peaks) {
+                JsonObject o = e.getAsJsonObject();
+                String id = str(o, "id") != null ? str(o, "id") : str(o, "name");
+                JsonElement v = id == null ? null : m.get(id);
+                if (v == null || !v.isJsonObject()) continue;
+                for (String f : new String[] {"start", "peak"}) {
+                    String d = str(v.getAsJsonObject(), f);
+                    if (d != null && d.matches("\\d{4}-\\d{2}-\\d{2}")) o.addProperty(k[0] + "_" + f, d);
+                }
+            }
+        }
+    }
+
+    /** "2025-10-23" → "2025년 10월 23일"(withSeason 이 꼴을 확인한 값만 옴). */
+    static String koDay(String d) {
+        return d.substring(0, 4) + "년 " + Integer.parseInt(d.substring(5, 7)) + "월 " + Integer.parseInt(d.substring(8, 10)) + "일";
+    }
+
+    /** "2025-10-23" → "10월 23일". */
+    static String koMonthDay(String d) {
+        return Integer.parseInt(d.substring(5, 7)) + "월 " + Integer.parseInt(d.substring(8, 10)) + "일";
+    }
+
+    /** 순수 함수 - 한 철의 한 줄(예: "단풍 시작 2025년 10월 23일 · 절정 11월 5일"), 관측이 없으면 null. */
+    static String seasonLine(JsonObject peak, String[] k) {
+        String a = str(peak, k[0] + "_start"), z = str(peak, k[0] + "_peak");
+        if (a == null && z == null) return null;
+        String word = k[1].substring(k[1].indexOf(' ') + 1);
+        if (a == null) return word + " " + k[3] + " " + koDay(z);
+        if (z == null) return word + " " + k[2] + " " + koDay(a);
+        return word + " " + k[2] + " " + koDay(a) + " · " + k[3] + " " + (a.substring(0, 4).equals(z.substring(0, 4)) ? koMonthDay(z) : koDay(z));
+    }
+
+    /** 순수 함수 - 산 페이지 "단풍 · 철쭉 때" 칸(기상청 관측이 없는 산은 ""). 지난 관측이라고 분명히 적음 - 올해 예측이 아님. */
+    static String seasonBlock(JsonObject peak, String name) {
+        StringBuilder li = new StringBuilder();
+        String title = "";
+        for (String[] k : SEASONS) {
+            String line = seasonLine(peak, k);
+            if (line == null) continue;
+            li.append("<li>").append(k[1].substring(0, k[1].indexOf(' '))).append(" ").append(esc(line)).append("</li>");
+            title += (title.isEmpty() ? "" : " · ") + k[1].substring(k[1].indexOf(' ') + 1);
+        }
+        if (li.length() == 0) return "";
+        return "<section class=\"season\"><h2>" + esc(name) + " " + title + " 시기</h2><ul class=\"wl\">" + li + "</ul>"
+                + "<p class=\"dim\">가장 최근 기상청 관측입니다(올해 예측이 아님). 해마다 며칠씩 앞뒤로 달라지고, 관측 자리(탐방로 입구 · 중턱 등)보다 높은 곳은 보통 더 이릅니다. "
+                + "출처: 기상청 날씨누리 「유명산 단풍현황 · 봄꽃 개화현황」(공공데이터포털)</p></section>";
+    }
+
+    /** 순수 함수 - 코스 모음(/m/)의 접는 칸: 기상청이 관측하는 산을 절정이 이른 차례로(단풍 · 철쭉 따로). 관측이 하나도 없으면 "". */
+    static String seasonFold(JsonArray peaks) {
+        StringBuilder b = new StringBuilder();
+        for (String[] k : SEASONS) {
+            List<JsonObject> rows = new ArrayList<>();
+            for (JsonElement e : peaks) if (str(e.getAsJsonObject(), k[0] + "_peak") != null) rows.add(e.getAsJsonObject());
+            if (rows.isEmpty()) continue;
+            rows.sort(Comparator.comparing((JsonObject o) -> str(o, k[0] + "_peak")).thenComparing(o -> str(o, "id") != null ? str(o, "id") : str(o, "name")));
+            String last = str(rows.get(rows.size() - 1), k[0] + "_peak");
+            b.append("<h3>").append(k[1]).append(" ").append(k[3]).append(" 차례 <small>(").append(last, 0, 4).append("년 관측)</small></h3><ol class=\"ms season\">");
+            for (JsonObject o : rows) {
+                String id = str(o, "id") != null ? str(o, "id") : str(o, "name");
+                b.append("<li><a href=\"").append(REL).append("/m/").append(esc(enc(id))).append("\">").append(esc(id))
+                        .append(" <small>").append(koMonthDay(str(o, k[0] + "_peak"))).append("</small></a></li>");
+            }
+            b.append("</ol>");
+        }
+        if (b.length() == 0) return "";
+        return "<section id=\"season\"><details class=\"fold kind\"><summary><span class=\"ft\">🍁 단풍 · 🌸 철쭉 때</span>"
+                + "<span class=\"fs\">기상청이 보는 명산의 지난 절정일</span><span class=\"fa\">▾</span></summary><div class=\"fb\">" + b
+                + "<p class=\"dim\">가장 최근 기상청 관측(올해 예측이 아님) - 해마다 며칠씩 다릅니다. 출처: 기상청 날씨누리(공공데이터포털)</p></div></details></section>";
+    }
+
     /** 순수 함수 - 높이 출처 이름(문답 · 점검 화면). en - 영어. */
     static String elevSource(JsonObject peak, boolean en) {
         String s = str(peak, "elev_src");
@@ -790,6 +880,11 @@ public class MountainServlet extends HttpServlet {
         if (parking != null)
             out.add(new String[] {name + " 주차장이 있나요?", parking > 0 ? "가장 가까운 코스 들머리 3km 안에 주차장 " + parking + "곳이 있습니다(전국주차장정보표준데이터). 요금 · 운영 시간은 현지에서 확인하세요."
                     : "가장 가까운 코스 들머리 3km 안에 등록된 주차장이 없습니다. 대중교통이나 더 먼 주차장을 알아보세요."});
+        for (String[] k : SEASONS) {   // "가야산 단풍 절정은 언제인가요?" - 기상청 관측이 있는 산만(2026-11-14)
+            String line = str(peak, k[0] + "_peak") != null ? seasonLine(peak, k) : null;
+            if (line != null) out.add(new String[] {name + " " + k[4],
+                    "가장 최근 기상청 관측은 " + line + "입니다. 해마다 며칠씩 달라지니 가기 전 날씨누리 현황을 확인하세요."});
+        }
         out.add(new String[] {name + " 날씨와 일출 시간은?", "이 페이지의 '날씨 · 미세먼지 · 일출 · 일몰' 칸에서 오늘부터 10일 뒤까지의 날씨와 그 날 일출 · 일몰 시각을 볼 수 있습니다(기상청 · 에어코리아)."});
         return out;
     }
@@ -942,6 +1037,7 @@ public class MountainServlet extends HttpServlet {
         b.append("<p class=\"dim\">예상 시간은 " + RULE_KO + "으로 어림한 코스 처음부터 끝까지의 값입니다(공단 공식 시간이 있는 국립공원 코스는 그 시간). 코스 자료는 참고용이니 현지 안내판 · 통제를 꼭 따르세요.</p></section>");
         // 🚗 쏘카 한 줄(설정 partner.socar.url 이 있고 휴대폰일 때 mountain.js 가 채움, 2026-11-03) - 안내 글 아래(2026-11-03 홍TV님 "안내문구 아래로")
         if (!courses.isEmpty()) b.append("<p class=\"stays\" id=\"socar\" hidden></p>");
+        b.append(seasonBlock(peak, name));   // 🍁 단풍 · 🌸 철쭉 시기(기상청 관측이 있는 21곳, 2026-11-14 홍TV님 "만들어 보자")
         b.append(reasonBlock(peak, name));   // 산림청 선정 이유(data/mountain-info.json 이 있을 때만, 2026-11-07)
         // 광고 한 칸(설정이 있을 때만, 2026-10-28) - 코스 목록 다음 · 자주 묻는 질문 앞(2026-11-07 전체 점검 4단계: 맨 아래라 거의 안 보였음).
         // 코스 단추 · 따라가기와 붙지 않게 안내 글 뒤에, 한 페이지 한 칸만
@@ -1058,7 +1154,7 @@ public class MountainServlet extends HttpServlet {
         }
         // 🏨 근처 숙소 찾기(2026-10-29 홍TV님 "산청군청 근처 숙소" - 펴 둔 채, js/mountain.js · course-kit staySearch) · ☀️ 이번 주말 날씨 좋은 산(/api/weekend - 2026-10-15)은
         // 산 · 길 목록 아래로(2026-11-03 홍TV님 점검: 위에 있어 목록이 첫 화면 밖으로 밀렸고, 주말 칸은 불러온 뒤 나타나 목록을 밀었음 - CLS)
-        b.append("</div>").append(staySearchBox(null, false)).append("<section id=\"weekend\" hidden></section>").append(steep)
+        b.append("</div>").append(seasonFold(peaks)).append(staySearchBox(null, false)).append("<section id=\"weekend\" hidden></section>").append(steep)
                 .append("<section id=\"gearIdx\" hidden></section>")   // 🎒 산행 시 챙길 것(js/mountain.js - 계절 기준, 산 페이지는 그 산 오르막까지 - 2026-10-18 홍TV님)
                 .append(tips()).append("<section id=\"fun\" class=\"fun\" hidden></section>")
                 // 📐 GPX 편집(2026-10-31 홍TV님 "코스 모음 > 산악회 방 위에 둬") - 2026-11-02 홍TV님 "누구나": 모두에게 보임(전에는 rf-admin 기기만).

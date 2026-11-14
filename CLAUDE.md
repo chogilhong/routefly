@@ -20,6 +20,8 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다 - 산악회 방 
 - 3D 화면(index.html)의 재생 단추 글 "▶ routefly" 는 일부러 그렇게 둔 것입니다(2026-11-03 홍TV님). 점검에서 바꾸자고 하지 않습니다.
 - 기능 넣기 멈춤(2026-11-11 홍TV님 "그렇게 하자"): 새 기능은 실제 산악회 인솔자 · 회원 · 손님이 요청한 것만 넣습니다. 먼저 새 기능을 권하지 않습니다.
   지금 할 일은 실제 산악회 시험 사용 · 구글 플레이 출시 · 알리기 · 통계 보기. 버그 · 안전 문제 · 스토어 심사 지적은 지금처럼 바로 고칩니다.
+  예외(2026-11-14 홍TV님 "자료부터 확인하고 만들어 보자"): 🍁 단풍 · 🌸 철쭉 때 - 기상청 날씨누리 관측(공공데이터 15150373)을 `data/season.json`(web.SeasonProbe 가 만듦)으로 산 페이지 · 코스 모음에.
+  해마다 새 파일(다음 2027-09 무렵)이 오면 src/test/resources/season/ 의 csv 를 바꾸고 SeasonProbe 를 다시 돌립니다. 올해 예측이 아니라 지난 관측이라고 늘 밝힙니다.
   산악회 예약 · 모집 · 입금 화면(카페 산악회용 등)은 만들지 않습니다(2026-11-12 홍TV님 "우리는 우리 일만 하자. 현재대로") - 예약은 산악회 쪽, routefly 는 출발 당일부터.
 - 안전 문구(hike.js 의 `SAFETY_KEY`)를 바꾸면 키의 버전도 올립니다(README).
 - 보안 · 속도 필터: `SecurityFilter`(모든 응답에 보안 헤더, /api · /s 는 IP 마다 분당 120번 남짓 제한), `GzipFilter`(/api 응답 1KB 넘으면 gzip).
@@ -116,7 +118,7 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다 - 산악회 방 
 - `target\claude-test\main` 의 class · webapp 파일을 `wtpwebapps\<앱>` 으로 복사(robocopy /XO), 리소스(src/main/resources)도 `WEB-INF\classes` 로.
 - 새 클래스만 복사하면 재로드가 안 걸립니다. 이미 로드된 설정 클래스(AppVersion · InvestingConfig · RouteflyConfig)의 시각을 바꿔 재시작을 유도합니다.
 - static final 상수가 바뀌면 그 값을 쓰는 클래스도 같이 복사합니다(예: AppVersion.VERSION → AppLifecycleListener).
-- `data/mountains100.json` · `peak-elev.json` · `mountain-info.json` · `series.json` · `park-notes.json` 은 MountainServlet 이 처음 읽은 뒤 기억해 둡니다. 이 파일만 바뀌어도 MountainServlet.class 를 다시 복사해 재로드합니다(2026-10-18 PC: 대암산 문구가 옛것으로 보였음).
+- `data/mountains100.json` · `peak-elev.json` · `mountain-info.json` · `series.json` · `park-notes.json` · `season.json` 은 MountainServlet 이 처음 읽은 뒤 기억해 둡니다. 이 파일만 바뀌어도 MountainServlet.class 를 다시 복사해 재로드합니다(2026-10-18 PC: 대암산 문구가 옛것으로 보였음).
 - 운영 서버에 배포할 때("배포해")도 로컬 톰캣(`wtpwebapps\routefly`) 복사를 함께 합니다(2026-10-30: 운영만 올려 홍TV님 localhost 에서 옛 화면이 보였음).
 - 운영 화면을 curl · 스크립트로 확인할 때는 User-Agent 에 `routefly-check` 를 붙입니다(예: `curl.exe -A "routefly-check" …`) - 통계 방문 수에서 빠짐(2026-10-31 홍TV님, StatsFilter.selfCheck).
   PC Claude 가 쓰는 브라우저(내장 브라우저 등)는 홍TV님이 그 브라우저에서 /stats 를 한 번 열어 주면 관리자 기기로 빠집니다.

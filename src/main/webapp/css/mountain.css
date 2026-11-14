@@ -239,3 +239,8 @@ form.mSearch button { min-height:44px; padding:0 18px; font-size:15px; font-weig
 /* 🚗 티맵(2026-11-09) - 휴대폰에서만 js 가 hidden 을 뗌. .go a 의 display 가 hidden 을 이기지 않게 */
 a.tmap[hidden] { display:none !important; }
 .tips a.tmap.pk { margin-left:6px; font-size:14px; }
+/* 🍁 단풍 · 🌸 철쭉 때(기상청 관측 - 2026-11-14) */
+ol.ms { margin:0; padding:0; list-style:none; }
+#season h3 { font-size:15px; margin:14px 0 8px; }
+.season .wl { list-style:none; margin:6px 0 0; padding:0; font-size:15px; }
+.season .wl li { margin:4px 0; }
