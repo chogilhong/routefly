@@ -22,8 +22,28 @@ public class RadarTest {
         return Radar.echoes(read("src/test/resources/radar/rdr-aws-all-202611141350.txt"));
     }
 
+    /** 서버가 쓰는 지점 위경도(저장소에 담은 csv). */
     private static Map<Integer, double[]> stn() throws Exception {
-        return Radar.stations(read("src/test/resources/radar/stn-aws.txt"));
+        return Radar.bundled(read("src/main/resources/radar/kma-aws-stn.csv"));
+    }
+
+    /** API허브 stn_inf(AWS) 원본 글 → 지점번호 → {위도, 경도}(칸: STN LON LAT … 빈칸으로 나눔). */
+    private static Map<Integer, double[]> probeFile() throws Exception {
+        Map<Integer, double[]> out = new java.util.HashMap<>();
+        for (String l : read("src/test/resources/radar/stn-aws.txt").split("\\R")) {
+            if (l.startsWith("#") || l.isBlank()) continue;
+            String[] f = l.trim().split("\\s+");
+            if (f.length >= 3 && f[0].matches("\\d+")) out.put(Integer.parseInt(f[0]), new double[] {Double.parseDouble(f[2]), Double.parseDouble(f[1])});
+        }
+        return out;
+    }
+
+    @Test
+    public void bundledStationsMatchProbeFile() throws Exception {
+        Map<Integer, double[]> a = stn(), b = probeFile();
+        assertEquals("745곳", 745, a.size());
+        assertEquals(b.keySet(), a.keySet());
+        for (Integer k : b.keySet()) assertArrayEquals("지점 " + k, b.get(k), a.get(k), 0);
     }
 
     @Test

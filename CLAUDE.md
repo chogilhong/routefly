@@ -25,6 +25,7 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다 - 산악회 방 
   해마다 새 파일(다음 2027-09 무렵)이 오면 src/test/resources/season/ 의 csv 를 바꾸고 SeasonProbe 를 다시 돌립니다. 올해 예측이 아니라 지난 관측이라고 늘 밝힙니다.
   예외(2026-11-14 홍TV님 "레이더 비구름 추가해줘" - 안전): `Radar` - 기상청 API허브 레이더 AWS 지점별 강우강도(10분, 서버가 한 번 받아 나눠 씀)로 내 둘레 15km 비 오는 지점을
   /api/safety 의 rain 으로(별거 별거 · 산 페이지 · 따라가기 안전 줄, course-kit rainRow). 키 kma.apihub.key 는 운영 서버 설정에도 있어야 함. 응답은 RadarProbe → src/test/resources/radar/.
+  웹앱이 뜰 때부터 1분마다 새 시각만 받음(기다림 60초, 화면은 안 기다림). AWS 지점 위경도는 src/main/resources/radar/kma-aws-stn.csv(지점이 바뀌면 RadarProbe 로 받아 옮김 - RadarTest 가 같은지 봄).
   산악회 예약 · 모집 · 입금 화면(카페 산악회용 등)은 만들지 않습니다(2026-11-12 홍TV님 "우리는 우리 일만 하자. 현재대로") - 예약은 산악회 쪽, routefly 는 출발 당일부터.
 - 안전 문구(hike.js 의 `SAFETY_KEY`)를 바꾸면 키의 버전도 올립니다(README).
 - `WEB-INF/web.xml` 은 version="6.0"(web-app_6_0.xsd)으로 둡니다. PC 의 Eclipse WTP 가 6.1 을 몰라 "Loading descriptor" 오류가 났음(2026-11-14 PC, 2950077) - 톰캣 11 은 6.0 도 읽음.
