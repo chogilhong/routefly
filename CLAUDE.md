@@ -27,6 +27,7 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다 - 산악회 방 
   /api/safety 의 rain 으로(별거 별거 · 산 페이지 · 따라가기 안전 줄, course-kit rainRow). 키 kma.apihub.key 는 운영 서버 설정에도 있어야 함. 응답은 RadarProbe → src/test/resources/radar/.
   산악회 예약 · 모집 · 입금 화면(카페 산악회용 등)은 만들지 않습니다(2026-11-12 홍TV님 "우리는 우리 일만 하자. 현재대로") - 예약은 산악회 쪽, routefly 는 출발 당일부터.
 - 안전 문구(hike.js 의 `SAFETY_KEY`)를 바꾸면 키의 버전도 올립니다(README).
+- `WEB-INF/web.xml` 은 version="6.0"(web-app_6_0.xsd)으로 둡니다. PC 의 Eclipse WTP 가 6.1 을 몰라 "Loading descriptor" 오류가 났음(2026-11-14 PC, 2950077) - 톰캣 11 은 6.0 도 읽음.
 - 보안 · 속도 필터: `SecurityFilter`(모든 응답에 보안 헤더, /api · /s 는 IP 마다 분당 120번 남짓 제한), `GzipFilter`(/api 응답 1KB 넘으면 gzip).
   공유 링크 주소는 `site.baseUrl` 설정이 있으면 그것을, 없으면 요청의 Host 를 씁니다(X-Forwarded-Host 는 믿지 않음). 오류 응답에 내부 사정(SQL · 예외 글)을 넣지 않습니다.
 - 산 높이(2026-10-16 홍TV님 - 정상 높이는 정확해야 신뢰): 화면의 100대 명산 높이는 `data/peak-elev.json` 의 elev 만 씁니다.
