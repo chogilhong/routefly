@@ -452,14 +452,21 @@ public final class TideflyServlet extends HttpServlet {
         return k != null ? k : com.gh.routefly.web.RouteflyConfig.get("tour.serviceKey");
     }
 
-    /** 물때 파일 폴더: 설정 tidefly.cacheDir → 톰캣 폴더(catalina.base)/routefly-tidefly-cache → 임시 폴더/…, 그 아래 tide. */
     static java.nio.file.Path cacheDir() {
-        String dir = com.gh.routefly.web.RouteflyConfig.get("tidefly.cacheDir");
-        if (dir == null) {
-            String base = System.getProperty("catalina.base");
-            dir = (base != null ? base : System.getProperty("java.io.tmpdir")) + java.io.File.separator + "routefly-tidefly-cache";
-        }
-        return java.nio.file.Path.of(dir, "tide");
+        return cacheDir(com.gh.routefly.web.RouteflyConfig.get("tidefly.cacheDir"), com.gh.routefly.web.RouteflyConfig.get("stats.dir"),
+                System.getProperty("catalina.base"), System.getProperty("java.io.tmpdir"));
+    }
+
+    /**
+     * 순수 함수 - 물때 파일 폴더: 설정 tidefly.cacheDir → stats.dir/tidefly-cache → 톰캣 폴더(catalina.base)/routefly-tidefly-cache → 임시 폴더/…, 그 아래 tide.
+     * stats.dir 다음으로 둔 까닭(2026-11-15 PC): 운영 /opt/tomcat 은 톰캣이 쓸 수 없어 AccessDenied - 다시 뜰 때마다 15일치를 처음부터 받았음.
+     * 통계(10-19) · 의견(Feedback) 처럼 쓸 수 있는 stats.dir 아래로.
+     */
+    static java.nio.file.Path cacheDir(String cfg, String statsDir, String catalinaBase, String tmp) {
+        String dir = cfg;
+        if (dir == null || dir.isBlank()) dir = statsDir != null && !statsDir.isBlank() ? statsDir + java.io.File.separator + "tidefly-cache"
+                : (catalinaBase != null ? catalinaBase : tmp) + java.io.File.separator + "routefly-tidefly-cache";
+        return java.nio.file.Path.of(dir.trim(), "tide");
     }
 
     /** 받은 물때를 파일로(지점-날짜.json, 임시 파일에 쓰고 한 번에 옮김). 자료가 빈 날은 남기지 않음. 실패해도 조용히(기억만 씀). */

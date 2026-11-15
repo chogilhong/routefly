@@ -186,5 +186,6 @@ course.submitDir=
 
 # ---------------------------------------------------------------- 🎣 타이드플라이(tidefly.html, 2026-11-15)
 # 키는 위의 것을 그대로 씁니다: 물때 tide.serviceKey(없으면 tour.serviceKey) - 조석예보(고, 저조) 15156018 활용신청, 바다 예측 · 특보 kma.apihub.key - API허브 해구별 예측 · 기상특보 활용신청.
-# 받은 물때(예측은 바뀌지 않음)를 남길 폴더. 비우면 톰캣 폴더(catalina.base)/routefly-tidefly-cache. 운영 서버는 /opt/routefly/tidefly-cache 처럼 톰캣 밖에.
+# 받은 물때(예측은 바뀌지 않음)를 남길 폴더. 비우면 stats.dir/tidefly-cache, stats.dir 도 비면 톰캣 폴더(catalina.base)/routefly-tidefly-cache.
+# 톰캣이 쓸 수 있는 폴더여야 함(2026-11-15 운영 /opt/tomcat 은 AccessDenied - 다시 뜰 때마다 15일치를 처음부터 받았음).
 #tidefly.cacheDir=
