@@ -155,7 +155,7 @@ public class CoursePageTest {
         assertTrue("다음 웹마스터도구 확인 줄은 robots.txt 맨 아래", SitemapServlet.robots("https://r.kr/routefly")
                 .endsWith("\n#DaumWebMasterTool:e657a6d3b5a3bc76c259c18ecd78af8ae7d569dcaca333f0644af9989bc4ec56:1T0ZRs6bn/unEVfM5aXupg==\n"));
         JsonObject gaya = JsonParser.parseString("{\"id\":\"가야산\",\"name\":\"가야산\",\"lat\":35.822544,\"lon\":128.122849}").getAsJsonObject();
-        String m = MountainServlet.page(gaya, List.of(course("knps-7013", "가야산 · 해인사 → 상왕봉", "hike", 35.80, 128.09, 35.8233, 128.1204)), List.of(), null, "https://r.kr");
+        String m = MountainServlet.page(gaya, List.of(course("knps-7013", "가야산 · 해인사 → 상왕봉", "hike", 35.80, 128.09, 35.8233, 128.1204)), List.of(), null, "https://r.kr", java.time.LocalDate.now(WeatherServlet.KST).getMonthValue());
         assertTrue("산 페이지 코스 이름 → 코스 페이지", m.contains("<b><a href=\"../c/knps-7013\">가야산 · 해인사 → 상왕봉</a> "));
         assertTrue("스크립트가 채울 칸은 '불러오는 중' 대신 무슨 칸인지(검색 본문)", m.contains("id=\"wxBody\">오늘부터 며칠 뒤까지의 날씨") && !m.contains("불러오는 중"));
         String en = MountainEn.page(gaya, List.of(), List.of(), null, "https://r.kr");

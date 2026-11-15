@@ -162,7 +162,7 @@
         if (!sec || !ul || !window.RF.safetyRender) return;
         var go = function () {
             fetch("../../api/safety?lat=" + lat.toFixed(4) + "&lon=" + lon.toFixed(4)).then(function (r) { return r.json(); }).then(function (j) {
-                if (!j || j.unavailable) { sec.hidden = true; return; }
+                if (!j || j.unavailable && !j.rain) { sec.hidden = true; return; }   // rain row even without the public key (review 10 A12)
                 window.RF.safetyRender(ul, er, j, true, 3);
                 if (!er.children.length) er.previousElementSibling.hidden = true;
             }).catch(function () { ul.innerHTML = ""; var li = document.createElement("li"); li.textContent = "Could not load safety info right now."; ul.appendChild(li); });

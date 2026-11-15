@@ -106,7 +106,8 @@ public class MountainServlet extends HttpServlet {
         boolean failed = courses == null;
         if (failed) courses = new ArrayList<>();
         resp.setHeader("Cache-Control", failed ? "no-store" : "public, max-age=600");
-        resp.getWriter().print(withFire(page(peak, courses, nearby(all, peak, NEARBY_MAX, NEARBY_M), parking(courses), base), System.currentTimeMillis()));
+        resp.getWriter().print(withFire(page(peak, courses, nearby(all, peak, NEARBY_MAX, NEARBY_M), parking(courses), base,
+                seasonMonth(all, season, java.time.LocalDate.now(WeatherServlet.KST))), System.currentTimeMillis()));
     }
 
     /** 영어 페이지(/en/m/ · /en/m/seoraksan). */
@@ -569,9 +570,12 @@ public class MountainServlet extends HttpServlet {
             {"azalea", "🌺", "철쭉", "꽃 핌", "활짝", "철쭉은 언제 피나요?", "4", "6"},
             {"foliage", "🍁", "단풍", "시작", "절정", "단풍 절정은 언제인가요?", "9", "11"}};
 
-    /** 지금 달(한국 시각). */
-    static int monthNow() {
-        return java.time.LocalDate.now(WeatherServlet.KST).getMonthValue();
+    /**
+     * 순수 함수 - 산 페이지가 쓸 달: 코스 모음 철 칸(seasonFold)이 없으면 0(철 아님) - 산 페이지 "지금 철" 도 같은 날짜 규칙으로
+     * (점검 10차 A8: 산 페이지는 달로만 봐 11월 20 ~ 30일에 코스 모음은 단풍 칸이 사라졌는데 산 페이지는 "지금 철" 로 날씨 위에 있었음).
+     */
+    static int seasonMonth(JsonArray peaks, JsonObject season, java.time.LocalDate today) {
+        return seasonFold(peaks, season, today).isEmpty() ? 0 : today.getMonthValue();
     }
 
     static boolean inSeason(String[] k, int month) {
@@ -1040,12 +1044,7 @@ public class MountainServlet extends HttpServlet {
         return t.isEmpty() ? "" : "<small class=\"made\">" + esc(t) + "</small>";
     }
 
-    /** 순수 함수 - 산 페이지. */
-    static String page(JsonObject peak, List<JsonObject> courses, List<Object[]> nearby, Integer parking, String base) {
-        return page(peak, courses, nearby, parking, base, monthNow());
-    }
-
-    /** month - 지금 달(벚꽃 · 철쭉 · 단풍 칸을 지금 철이면 위로, 2026-11-14). */
+    /** 순수 함수 - 산 페이지. month - 지금 달(벚꽃 · 철쭉 · 단풍 칸을 지금 철이면 위로, 2026-11-14) - 철이 끝났으면 0({@link #seasonMonth}). */
     static String page(JsonObject peak, List<JsonObject> courses, List<Object[]> nearby, Integer parking, String base, int month) {
         courses = upward(courses, peak);   // 정상에서 시작하게 적힌 코스는 들머리부터(오르막 · 시간 · 문답 · 링크)
         String name = str(peak, "id") != null ? str(peak, "id") : str(peak, "name"), summit = str(peak, "summit");   // id = 지역 붙은 이름(백운산(광양))
@@ -1164,15 +1163,6 @@ public class MountainServlet extends HttpServlet {
     static final String[][] KINDS = {{"hike", "⛰️ 등산"}, {"walk", "🥾 걷기"}, {"bike", "🚴 자전거"}};
 
     /**
-     * 순수 함수 - 목록(/m/). 2026-10-15 홍TV님: 도장 · 완주(series.html)처럼 등산 · 걷기 · 자전거 접는 칸, 걷기 · 자전거도.
-     * 등산 › 100대 명산은 산 페이지로, 그 밖(백두대간 · 정맥 · 국가숲길 · 코리아둘레길 · 국토종주 자전거길)은 노선 안내도(route.html)로.
-     * 접는 칸은 &lt;details&gt; - 스크립트 없이 열리고 검색 엔진도 안을 읽음. groups 는 data/series.json 의 groups(못 읽으면 빈 것).
-     */
-    static String indexPage(JsonArray peaks, JsonArray groups, String base, boolean openPeaks) {
-        return indexPage(peaks, groups, base, openPeaks, "");
-    }
-
-    /**
      * 순수 함수 - 코스 모음 첫 화면 검색칸(2026-11-07 전체 점검 2단계 - 100곳 넘는 목록을 펼쳐 찾던 것을 이름으로).
      * 스크립트 없이도 따라가기 검색(hike.html?q=)으로 가고, js/mountain.js · mountain-en.js 는 목록에 있는 산 이름이면 그 산 페이지로 보냄.
      */
@@ -1186,12 +1176,14 @@ public class MountainServlet extends HttpServlet {
                 + "<button type=\"submit\">" + (en ? "Search" : "찾기") + "</button></form>";
     }
 
-    /** steep - 🧗 가파른 산 순위 칸(SteepRank.html, 없으면 ""). 접는 칸들 아래 · 안전 팁 위. */
-    static String indexPage(JsonArray peaks, JsonArray groups, String base, boolean openPeaks, String steep) {
-        return indexPage(peaks, groups, base, openPeaks, steep, "");
-    }
-
-    /** seasonHtml - 지금 철 칸(seasonFold, 철이 아니면 ""). 검색칸 바로 아래 - 철에만 나와 첫 화면에(2026-11-14). */
+    /**
+     * 순수 함수 - 목록(/m/). 2026-10-15 홍TV님: 도장 · 완주(series.html)처럼 등산 · 걷기 · 자전거 접는 칸, 걷기 · 자전거도.
+     * 등산 › 100대 명산은 산 페이지로, 그 밖(백두대간 · 정맥 · 국가숲길 · 코리아둘레길 · 국토종주 자전거길)은 노선 안내도(route.html)로.
+     * 접는 칸은 &lt;details&gt; - 스크립트 없이 열리고 검색 엔진도 안을 읽음. groups 는 data/series.json 의 groups(못 읽으면 빈 것).
+     * steep - 🧗 가파른 산 순위 칸(SteepRank.html, 없으면 ""). 접는 칸들 아래 · 안전 팁 위.
+     * seasonHtml - 지금 철 칸(seasonFold, 철이 아니면 ""). 검색칸 바로 아래 - 철에만 나와 첫 화면에(2026-11-14).
+     * (인자가 적은 겹 메서드는 테스트만 불러 지움 - 점검 10차 G1)
+     */
     static String indexPage(JsonArray peaks, JsonArray groups, String base, boolean openPeaks, String steep, String seasonHtml) {
         StringBuilder b = new StringBuilder(head("루트플라이 100대 명산 · 둘레길 · 자전거길 코스", "routefly(루트플라이) - 산림청 100대 명산 " + peaks.size()
                 + "곳의 등산코스 · 날씨 · 일출 일몰과 백두대간 · 국가숲길 · 코리아둘레길 · 국토종주 자전거길 노선. 3D 지형 위로 미리 날아 보고 핸드폰으로 따라 걷기.", base + "/m/", base, base + "/en/m/"));

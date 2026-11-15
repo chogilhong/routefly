@@ -37,7 +37,7 @@ public class ReviewRound8Test {
         assertTrue(en, en.contains("About 2 h 16 min one way to the summit, or about 4 h 32 min there and back") && en.contains("34 min per km, rests included"));
         assertEquals("코스 페이지도 같은 기준", "약 2시간 16분(국립공원공단 기준 1km 에 34분, 쉬는 시간 포함)", CoursePageServlet.timeText("hike", 4000, 600, 60, null));
         assertEquals("걷기는 예전 기준(공단 자료 밖)", "약 2시간 2분(시속 4km · 오르막 600m 에 1시간 · 내리막 300m 에 10분 어림)", CoursePageServlet.timeText("walk", 4000, 600, 60, null));
-        String page = MountainServlet.page(peak, cs, new ArrayList<>(), null, "");
+        String page = MountainServlet.page(peak, cs, new ArrayList<>(), null, "", java.time.LocalDate.now(WeatherServlet.KST).getMonthValue());
         assertTrue("코스 줄에 data-desc(화면 js 의 거르기 · 일출 출발이 내리막도)", page.contains("data-asc=\"600\" data-desc=\"60\""));
         assertTrue(page.contains(" · 약 2시간 16분"));
     }
@@ -79,7 +79,7 @@ public class ReviewRound8Test {
         JsonObject peak = JsonParser.parseString("{\"id\":\"가산\",\"name\":\"가산\",\"lat\":37.5,\"lon\":127.0}").getAsJsonObject();
         List<JsonObject> cs = new ArrayList<>();
         cs.add(JsonParser.parseString("{\"course_id\":\"a\",\"name\":\"가산 · 들머리 → 정상\",\"distance_m\":4000,\"ascent_m\":600}").getAsJsonObject());
-        String en = MountainEn.page(peak, cs, new ArrayList<>(), null, ""), ko = MountainServlet.page(peak, cs, new ArrayList<>(), null, "");
+        String en = MountainEn.page(peak, cs, new ArrayList<>(), null, ""), ko = MountainServlet.page(peak, cs, new ArrayList<>(), null, "", java.time.LocalDate.now(WeatherServlet.KST).getMonthValue());
         assertTrue(en.indexOf("<p class=\"jump\">") > 0 && en.indexOf("<p class=\"jump\">") < en.indexOf("<section id=\"wx\""));
         assertEquals("한 번만", en.indexOf("<p class=\"jump\">"), en.lastIndexOf("<p class=\"jump\">"));
         assertTrue(ko.indexOf("<p class=\"jump\">") < ko.indexOf("<section id=\"wx\""));
@@ -107,7 +107,7 @@ public class ReviewRound8Test {
     public void indexListsFirstAndGamesPickOpen() throws Exception {
         com.google.gson.JsonArray peaks = JsonParser.parseString("[{\"id\":\"가산\",\"name\":\"가산\",\"lat\":37.5,\"lon\":127.0}]").getAsJsonArray();
         com.google.gson.JsonArray gs = JsonParser.parseString("[{\"kind\":\"hike\",\"title\":\"백두대간 · 정맥\",\"icon\":\"⛰️\",\"series\":[{\"name\":\"설악\",\"prefix\":\"osmh-1-\"}]}]").getAsJsonArray();
-        String idx = MountainServlet.indexPage(peaks, gs, "", false, "");
+        String idx = MountainServlet.indexPage(peaks, gs, "", false, "", "");
         int folds = idx.indexOf("<div class=\"folds\">"), stay = idx.indexOf("<section id=\"staySearch\">"), wk = idx.indexOf("<section id=\"weekend\" hidden>");
         assertTrue(folds > 0 && stay > folds && wk > stay);
         assertTrue("접힌 줄 짧게", idx.contains("<span class=\"fs\">100대 명산 · 백두대간</span>"));

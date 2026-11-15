@@ -110,4 +110,20 @@ public class RadarTest {
         assertFalse("다시 받았으면 그만", Radar.again(done, t0 + 9 * 60_000L));
         assertFalse(Radar.again(null, t0));
     }
+
+    /** 점검 10차 A10 · C10 · G2(2026-11-15) - 같은 시각 다시 받기는 같거나 많으면 새것, 비면 앞의 것 · 30분 아무도 안 물으면 쉼. */
+    @Test
+    public void againKeepsFilledAndIdlePauses() throws Exception {
+        Map<Integer, Double> a = echo(), b = Radar.echoes(read("src/test/resources/radar/rdr-aws-all-202611141350.txt"));
+        Object[] l = {"202611141350", a, 5L, Boolean.FALSE};
+        Object[] same = Radar.merged(l, "202611141350", b);
+        assertSame("개수가 같으면 새로 받은 것(늦게 채워진 값)", b, same[1]);
+        assertEquals(Boolean.TRUE, same[3]);
+        Object[] empty = Radar.merged(l, "202611141350", new java.util.HashMap<>());
+        assertSame("비었으면 앞의 것", a, empty[1]);
+        assertEquals(5L, empty[2]);
+        long t = 10_000_000L;
+        assertFalse(Radar.idle(t, t + 30 * 60_000L));
+        assertTrue(Radar.idle(t, t + 31 * 60_000L));
+    }
 }

@@ -47,7 +47,8 @@ public class SpotsTest {
             if (s.get("boat").getAsBoolean()) boats++;
         }
         assertEquals(329, boats);
-        assertEquals("앞바다 경계선 바깥 · 3km 안이라 먼바다를 더한 자리", 91, extra);
+        // 점검 10차 A4: 기준 포인트(가거도 · 목포북항서측 · 상왕등도 · 연도)에 먼바다 짝을 더해 그 둘레 자리 28곳은 더할 것이 없어짐(91 → 63)
+        assertEquals("앞바다 경계선 바깥 · 3km 안이라 먼바다를 더한 자리", 63, extra);
     }
 
     /** 공간정보(UTM-K) → 위경도가 같은 줄 도분초 칸과 맞는지 - 4곳은 도분초 칸 오타(위도 35 ↔ 34 · 경도 28 ↔ 128 등). */
@@ -112,6 +113,24 @@ public class SpotsTest {
         assertEquals("갑오징어", TideflyServlet.find("갑오징어", names));
         assertNull("자리 자료에 없는 고기는 아님(공식 자료만)", TideflyServlet.find("갈치", names));
         assertEquals("방포항", TideflyServlet.find("방포", names));
+    }
+
+    /** 점검 10차 A6 · B1(2026-11-15) - 섬 · 고장 이름만 치면 등산 코스 찾기 그대로, "낚시" 같은 말이 붙으면 tidefly. 40자 넘는 말은 바로 끝. */
+    @Test
+    public void 섬_고장_이름은_낚시_말이_붙을_때만() throws Exception {
+        JsonArray spots = JsonParser.parseString(Files.readString(SpotsBuild.OUT, StandardCharsets.UTF_8)).getAsJsonArray();
+        List<String> points = new java.util.ArrayList<>();
+        for (var e : JsonParser.parseString(Files.readString(PointsBuild.OUT, StandardCharsets.UTF_8)).getAsJsonArray()) points.add(e.getAsJsonObject().get("name").getAsString());
+        Set<String> names = TideflyServlet.names(points, spots);
+        for (String island : new String[] {"사량도", "금오도", "청산도", "추자도", "포항", "울산"}) {
+            assertNull(island + " - 등산 · 걷기 코스 찾기를 가로채지 않음", TideflyServlet.find(island, names));
+        }
+        assertEquals("추자도", TideflyServlet.find("추자도 낚시", names));
+        assertEquals("사량도", TideflyServlet.find("사량도 갯바위", names));
+        assertEquals("항구 이름은 그대로", "방포항", TideflyServlet.find("방포", names));
+        assertEquals("고기 이름도 그대로", "주꾸미", TideflyServlet.find("주꾸미", names));
+        assertNull("40자 넘는 말", TideflyServlet.find("(".repeat(8000) + "방포항", names));
+        assertNull(TideflyServlet.find("방포항" + "가".repeat(40), names));
     }
 
     @Test

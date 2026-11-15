@@ -1554,7 +1554,7 @@
                     list.appendChild(li);
                 });
                 var kk = /카카오/.test(j.source || "");
-                out.appendChild(el("p", T("숙소 목록: " + (kk ? "카카오 · " : "") + "한국관광공사(TourAPI) · 위치: " + (src || "국토교통부 V-World") + ". 요금 · 빈방은 예약 사이트에서 확인하세요.", "Lodging list: " + (kk ? "Kakao · " : "") + "Korea Tourism Organization · location: " + (src === "카카오" ? "Kakao" : "V-World") + ". Check prices and rooms on the booking sites."), "dim"));
+                out.appendChild(el("p", T("숙소 목록: " + (kk ? "카카오 · " : "") + "한국관광공사(TourAPI) · 위치: " + (src || "국토교통부 V-World") + ". 요금 · 빈방은 예약 사이트에서 확인하세요.", "Lodging list: " + (kk ? "Kakao · " : "") + "Korea Tourism Organization · location: " + (src === "카카오" ? "Kakao" : !src || /V-World/.test(src) ? "V-World" : src) + ". Check prices and rooms on the booking sites."), "dim"));
             }).catch(function () { if (my !== seq) return; list.textContent = ""; list.appendChild(el("li", T("숙소 목록을 받지 못했습니다.", "Couldn't load the lodging list."))); });
         }
         if (form) form.addEventListener("submit", function (e) {

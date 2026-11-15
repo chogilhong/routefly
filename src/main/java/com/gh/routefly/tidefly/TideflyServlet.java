@@ -65,11 +65,18 @@ public final class TideflyServlet extends HttpServlet {
     /** 자세히 보기의 날 수 · 예측 시간. */
     static final int DETAIL_DAYS = 15;   // 물때표(2026-11-15 홍TV님) - 미리 받아 두는 TIDE_DAYS 와 같음
     static final int HOURLY_HOURS = 72;
-    private static final java.util.concurrent.ExecutorService DETAIL_POOL = Executors.newFixedThreadPool(4, r -> {
-        Thread t = new Thread(r, "tidefly-detail");
-        t.setDaemon(true);
-        return t;
-    });
+    /** 3일 예보 일꾼 - 줄 길이에 한도(넘치면 그 시각은 빠짐, 점검 10차 B2: 전에는 줄이 끝없이 길어질 수 있었음). */
+    static final int DETAIL_QUEUE = 64;
+    private static final java.util.concurrent.ThreadPoolExecutor DETAIL_POOL = new java.util.concurrent.ThreadPoolExecutor(4, 4, 0, TimeUnit.MILLISECONDS,
+            new java.util.concurrent.ArrayBlockingQueue<>(DETAIL_QUEUE), r -> {
+                Thread t = new Thread(r, "tidefly-detail");
+                t.setDaemon(true);
+                return t;
+            }, new java.util.concurrent.ThreadPoolExecutor.AbortPolicy());
+    /** 3일 예보를 기다리는 전체 시간(밀리초) - 시각마다 20초씩 차례로 기다리지 않게. 넘으면 남은 것은 취소. */
+    static final long HOURLY_WAIT_MS = 20_000;
+    /** 3일 예보 한 칸 기억 - 열쇠에 발표 시각이 있어 다음 발표(12시간 뒤)까지는 바뀌지 않음(점검 10차 C4 - 전에는 6시간마다 같은 것을 다시 물었음). */
+    static final long HOURLY_TTL = 13 * 60 * 60_000L;
     static final String TIDE_URL = "https://apis.data.go.kr/1192136/tideFcstHghLw/GetTideFcstHghLwApiService";
     private static final java.time.ZoneId KST = java.time.ZoneId.of("Asia/Seoul");
 
@@ -104,7 +111,7 @@ public final class TideflyServlet extends HttpServlet {
         wrnTimer.scheduleWithFixedDelay(() -> {
             try {
                 String key = com.gh.routefly.web.RouteflyConfig.get("kma.apihub.key");
-                if (key != null) warnings(key, System.currentTimeMillis(), true);
+                if (key != null) warnings(key, System.currentTimeMillis());
             } catch (RuntimeException e) {
                 log.warn("[TIDEFLY-WRN] 특보 받기 실패 - {}", e.toString());
             }
@@ -191,6 +198,8 @@ public final class TideflyServlet extends HttpServlet {
         } catch (RuntimeException e) {
             log.warn("[TIDEFLY-SEA] 미리 받기 실패 - {}", e.toString());
         } finally {
+            int gone = purge(CACHE, System.currentTimeMillis());
+            if (gone > 0) log.debug("[TIDEFLY-SEA] 기억에서 지난 것 {}개 지움", gone);
             lastWarmEnd = System.currentTimeMillis();
             firstWarm = false;
             warming.set(false);
@@ -211,29 +220,6 @@ public final class TideflyServlet extends HttpServlet {
             JsonObject out = new JsonObject();
             out.addProperty("hit", hit != null);
             if (hit != null) out.addProperty("q", hit);
-            resp.getWriter().write(out.toString());
-            return;
-        }
-        if ("1".equals(req.getParameter("spots"))) {
-            List<SeaWarning> wrn = cachedWarnings(now);
-            JsonObject marks = new JsonObject();
-            Gson gson = new Gson();
-            for (JsonElement e : spots()) {
-                JsonObject s = e.getAsJsonObject();
-                JsonObject b = points().get(s.get("base").getAsString());
-                if (!s.has("extra") || b == null) continue;
-                List<String> ids = regIds(regs(), b.get("name").getAsString());
-                List<String> all = new ArrayList<>(ids == null ? List.of() : ids);
-                for (JsonElement z : s.getAsJsonArray("extra")) all.add(z.getAsString());
-                Verdict v = Verdict.judge(s.get("boat").getAsBoolean(), ids == null ? null : all, wrn, cachedSea(b.get("lzone").getAsInt(), b.get("szone").getAsInt(), nowUtc));
-                JsonObject m = new JsonObject();
-                m.addProperty("mark", v.mark());
-                m.add("reasons", gson.toJsonTree(v.reasons()));
-                marks.add(s.get("id").getAsString(), m);
-            }
-            JsonObject out = new JsonObject();
-            out.add("spots", spots());
-            out.add("marks", marks);
             resp.getWriter().write(out.toString());
             return;
         }
@@ -258,6 +244,8 @@ public final class TideflyServlet extends HttpServlet {
             JsonObject out = head();
             out.addProperty("warming", missing);
             out.add("items", items);
+            // 갯바위 · 선상 자리 판단도 같은 특보 · 예측으로 함께(2026-11-15 점검 10차 A1 - 전에는 화면이 ?spots=1 로 처음 한 번만 받아, 그 뒤 특보가 나와도 먼바다 자리가 ○ 로 남았음)
+            out.add("marks", spotMarks(wrn, nowUtc));
             resp.getWriter().write(out.toString());
             return;
         }
@@ -267,12 +255,13 @@ public final class TideflyServlet extends HttpServlet {
             resp.getWriter().write("{\"error\":\"없는 포인트\"}");
             return;
         }
-        SeaForecast sea = key == null ? null : sea(key, p.get("lzone").getAsInt(), p.get("szone").getAsInt(), nowUtc, now);
-        List<SeaWarning> wrn = key == null ? null : warnings(key, now, false);
-        String pkey = portalKey();
+        // 자세히 보기도 미리 받아 둔 것만(점검 10차 B2 - 전에는 요청 스레드에서 물때를 최대 17번 차례로 물어, 포털이 느리면 톰캣 스레드가 차 산악회 방 · SOS 까지 멈출 수 있었음).
+        // 빈 것은 미리 받기가 채움(화면은 받는 중으로 보임)
+        SeaForecast sea = cachedSea(p.get("lzone").getAsInt(), p.get("szone").getAsInt(), nowUtc);
+        List<SeaWarning> wrn = cachedWarnings(now);
         java.time.LocalDate today = java.time.LocalDate.now(KST);
-        Tide t0 = pkey == null ? null : tide(pkey, p.get("tide").getAsString(), today);
-        Tide tide = t0 == null ? null : Tide.join(t0, tide(pkey, p.get("tide").getAsString(), today.plusDays(1)));
+        Tide t0 = cachedTide(p.get("tide").getAsString(), today);
+        Tide tide = t0 == null ? null : Tide.join(t0, cachedTide(p.get("tide").getAsString(), today.plusDays(1)));
         JsonObject out = head();
         for (Map.Entry<String, JsonElement> e : result(p, wrn, sea, tide).entrySet()) out.add(e.getKey(), e.getValue());
         if ("1".equals(req.getParameter("detail"))) {
@@ -280,7 +269,7 @@ public final class TideflyServlet extends HttpServlet {
             JsonArray days = new JsonArray();
             for (int i = 0; i < DETAIL_DAYS; i++) {
                 java.time.LocalDate day = today.plusDays(i);
-                Tide t = pkey == null ? null : tide(pkey, p.get("tide").getAsString(), day);
+                Tide t = cachedTide(p.get("tide").getAsString(), day);
                 JsonObject d = dayInfo(p, day);
                 if (t != null) {
                     d.add("events", gson.toJsonTree(t.events()));
@@ -297,6 +286,29 @@ public final class TideflyServlet extends HttpServlet {
         resp.getWriter().write(out.toString());
     }
 
+    /**
+     * 갯바위 · 선상 자리 판단 {id: {mark, reasons}} - extra(그 자리만 더 걸리는 먼바다)가 있는 자리만(약 90곳). 나머지는 화면이 base 포인트 판단을 그대로 씀.
+     * 자리 목록 자체는 화면이 data/tidefly-spots.json 으로 받음(nginx 압축 · 10분 캐시 - 전에는 요청마다 330KB 를 새로 만들었음, 점검 10차 B6).
+     */
+    private JsonObject spotMarks(List<SeaWarning> wrn, ZonedDateTime nowUtc) {
+        JsonObject marks = new JsonObject();
+        Gson gson = new Gson();
+        for (JsonElement e : spots()) {
+            JsonObject s = e.getAsJsonObject();
+            JsonObject b = points().get(s.get("base").getAsString());
+            if (!s.has("extra") || b == null) continue;
+            List<String> ids = regIds(regs(), b.get("name").getAsString());
+            List<String> all = new ArrayList<>(ids == null ? List.of() : ids);
+            for (JsonElement z : s.getAsJsonArray("extra")) all.add(z.getAsString());
+            Verdict v = Verdict.judge(s.get("boat").getAsBoolean(), ids == null ? null : all, wrn, cachedSea(b.get("lzone").getAsInt(), b.get("szone").getAsInt(), nowUtc));
+            JsonObject m = new JsonObject();
+            m.addProperty("mark", v.mark());
+            m.add("reasons", gson.toJsonTree(v.reasons()));
+            marks.add(s.get("id").getAsString(), m);
+        }
+        return marks;
+    }
+
     /** 그날 해 · 음력 · 물때 이름(계산, 바깥 호출 없음). 서해 포인트는 서해 셈(Astro.mulddae). */
     private JsonObject dayInfo(JsonObject p, java.time.LocalDate day) {
         int[] sun = Astro.sun(p.get("lat").getAsDouble(), p.get("lon").getAsDouble(), day);
@@ -309,6 +321,16 @@ public final class TideflyServlet extends HttpServlet {
         d.addProperty("mulddae", Astro.mulddae(ld, west(regIds(regs(), p.get("name").getAsString()))));
         d.addProperty("sari", Astro.sari(ld));
         return d;
+    }
+
+    /** 기억을 이만큼(밀리초) 넘게 둔 것은 지움 - 가장 오래 쓰는 3일 예보(HOURLY_TTL 13시간)보다 넉넉히. */
+    static final long KEEP_MS = 26 * 60 * 60_000L;
+
+    /** 순수 함수(넘긴 기억을 고침) - KEEP_MS 넘게 묵은 것을 지우고 지운 수(점검 10차 B3: 발효 시각 · 날짜가 열쇠라 하루 수천 칸이 쌓이기만 했음). */
+    static int purge(Map<String, Object[]> cache, long now) {
+        int before = cache.size();
+        cache.values().removeIf(v -> now - (Long) v[0] > KEEP_MS);
+        return before - cache.size();
     }
 
     /** 순수 함수 - 화면 묶음 이름: 첫 해상 특보구역이 S11 동해 · S12 서해 · S1323 · S1324 · S133 제주 · 그 밖 S13 남해. 짝이 없으면 "그 밖". */
@@ -327,27 +349,38 @@ public final class TideflyServlet extends HttpServlet {
         return regIds != null && !regIds.isEmpty() && regIds.get(0).startsWith("S12");
     }
 
-    /** 앞으로 72시간 3시간 간격 소해구 예측 - 같은 발표의 발효 시각마다 한 번씩(4개씩 함께), 6시간 기억. 못 받은 시각은 빠짐. */
+    /** 앞으로 72시간 3시간 간격 소해구 예측 - 같은 발표의 발효 시각마다 한 번씩(4개씩 함께), 다음 발표까지 기억. 못 받은 시각 · 줄이 넘친 시각은 빠짐. */
     private static List<SeaForecast> hourly(String key, int lzone, int szone, String fc, ZonedDateTime nowUtc) {
         List<java.util.concurrent.Future<SeaForecast>> jobs = new ArrayList<>();
         for (String ef : hourlyTimes(fc, nowUtc)) {
-            jobs.add(DETAIL_POOL.submit(() -> {
-                String id = "seaf:" + lzone + ":" + szone + ":" + fc + ":" + ef;
-                Object[] hit = CACHE.get(id);
-                if (hit != null && System.currentTimeMillis() - (Long) hit[0] < 6 * 60 * 60_000L) return (SeaForecast) hit[1];
-                SeaForecast f = SeaForecast.parse(get(BASE + "typ06/url/marine_small_zone.php?tma_fc=" + fc + "&tma_ef=" + ef
-                        + "&Lzone=" + lzone + "&Szone=" + szone + "&disp=0&help=1", key, "SEA"));
-                if (f != null) CACHE.put(id, new Object[] {System.currentTimeMillis(), f});
-                return f;
-            }));
+            String id = "seaf:" + lzone + ":" + szone + ":" + fc + ":" + ef;
+            Object[] hit = CACHE.get(id);
+            if (hit != null && System.currentTimeMillis() - (Long) hit[0] < HOURLY_TTL) {
+                jobs.add(java.util.concurrent.CompletableFuture.completedFuture((SeaForecast) hit[1]));
+                continue;
+            }
+            try {
+                jobs.add(DETAIL_POOL.submit(() -> {
+                    SeaForecast f = SeaForecast.parse(get(BASE + "typ06/url/marine_small_zone.php?tma_fc=" + fc + "&tma_ef=" + ef
+                            + "&Lzone=" + lzone + "&Szone=" + szone + "&disp=0&help=1", key, "SEA"));
+                    if (f != null) CACHE.put(id, new Object[] {System.currentTimeMillis(), f});
+                    return f;
+                }));
+            } catch (java.util.concurrent.RejectedExecutionException e) {
+                // 줄이 꽉 참 - 그 시각만 빠짐(다른 손님 요청이 몰린 때)
+            }
         }
         List<SeaForecast> out = new ArrayList<>();
+        long until = System.currentTimeMillis() + HOURLY_WAIT_MS;
         for (var j : jobs) {
             try {
-                SeaForecast f = j.get(20, TimeUnit.SECONDS);
+                SeaForecast f = j.get(Math.max(0, until - System.currentTimeMillis()), TimeUnit.MILLISECONDS);
                 if (f != null) out.add(f);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                j.cancel(true);
             } catch (Exception e) {
-                // 그 시각만 빠짐
+                j.cancel(true);   // 시간이 다 됨 - 남은 것은 취소(그 시각만 빠짐)
             }
         }
         return out;
@@ -574,14 +607,8 @@ public final class TideflyServlet extends HttpServlet {
         return w;
     }
 
-    /** 특보 - 10분 안에 받은 것이 있으면 그것(force 면 늘 새로). */
-    private static List<SeaWarning> warnings(String key, long now, boolean force) {
-        Object[] hit = CACHE.get("wrn");
-        if (!force && hit != null && now - (Long) hit[0] < WRN_TTL) {
-            @SuppressWarnings("unchecked")
-            List<SeaWarning> w = (List<SeaWarning>) hit[1];
-            return w;
-        }
+    /** 특보 받기(wrnTimer 가 10분마다) - 받으면 기억에 둠. 화면 요청은 기억만 씀(cachedWarnings). */
+    private static List<SeaWarning> warnings(String key, long now) {
         List<SeaWarning> w = SeaWarning.parse(get(BASE + "typ01/url/wrn_now_data.php?fe=f&tm=&disp=0&help=1", key, "WRN"));
         if (w != null) CACHE.put("wrn", new Object[] {now, w});
         return w;
@@ -677,24 +704,45 @@ public final class TideflyServlet extends HttpServlet {
     }
 
     /**
-     * 순수 함수 - 찾기 이름: 포인트 · 자리 이름과 그 괄호 뺀 것, 자리 이름의 " · " 앞(지역) · 뒤(자리), 자리 대상어의 고기 이름과 같은 고기 다른 이름(FISH_SAME) - 모두 {@link #bare} 로.
+     * 순수 함수 - 찾기 이름: 포인트 · 자리 이름과 그 괄호 뺀 것, 자리 이름의 " · " 뒤(자리), 자리 대상어의 고기 이름과 같은 고기 다른 이름(FISH_SAME) - 모두 {@link #bare} 로.
      * 고기 이름은 2026-11-15 홍TV님 "어종으로 찾기" - 코스 모음 찾기에 "주꾸미" 를 치면 tidefly 로.
+     * 섬 · 고장 이름(항으로 끝나지 않는 포인트 이름 "추자도" · "포항" · "울산", 자리 이름의 " · " 앞 지역 "사량도" · "청산도")은 앞에 {@link #WEAK} 를 붙여 따로 -
+     * 끝에 "낚시" · "갯바위" 같은 말이 있을 때만 맞음(점검 10차 A6: 사량도 · 청산도 · 추자도를 치면 등산 코스 대신 tidefly 로 갔음).
      */
     static java.util.Set<String> names(java.util.Collection<String> pointNames, JsonArray spots) {
         java.util.Set<String> out = new java.util.HashSet<>();
-        List<String> all = new ArrayList<>(pointNames);
         for (JsonElement e : spots) {
             JsonObject s = e.getAsJsonObject();
-            all.add(s.get("name").getAsString());
             if (s.has("fish")) for (String f : s.get("fish").getAsString().split(" · ")) if (bare(f).length() >= 2) out.add(bare(f));
         }
         for (String[] g : FISH_SAME) for (String f : g) if (out.contains(f)) for (String o : g) out.add(o);
-        for (String n : all) {
+        for (String n : pointNames) {
+            String b = bare(n);
+            out.add(port(b) ? b : WEAK + b);
+        }
+        for (JsonElement e : spots) {
+            String n = e.getAsJsonObject().get("name").getAsString();
             out.add(bare(n));
-            for (String part : n.replaceAll("\\s*\\(.*?\\)", "").split(" · ")) if (bare(part).length() >= 2) out.add(bare(part));
+            String[] parts = n.replaceAll("\\s*\\(.*?\\)", "").split(" · ");
+            for (int i = 0; i < parts.length; i++) {
+                String b = bare(parts[i]);
+                if (b.length() < 2) continue;
+                out.add(i > 0 || port(b) ? b : WEAK + b);   // 앞 부분은 지역(섬 · 고장) 이름
+            }
         }
         return out;
     }
+
+    /** 항구 이름인가 - "…항" 이고 세 글자 이상(두 글자 "포항" 은 도시 이름). */
+    private static boolean port(String bare) {
+        return bare.endsWith("항") && bare.length() > 2;
+    }
+
+    /** 섬 · 고장 이름 앞에 붙이는 표(bare 꼴에는 없는 글자). */
+    static final String WEAK = "~";
+
+    /** 찾기 말 최대 길이(화면 ?q= 도 40자에서 자름). */
+    static final int FIND_MAX = 40;
 
     /** 같은 고기의 다른 이름 - js/tidefly.js 의 FISH_SAME 과 같음(둘 다 고침). */
     static final String[][] FISH_SAME = {{"넙치", "광어"}, {"주꾸미", "쭈꾸미", "쭈꼸미"}, {"우럭", "조피볼락"}, {"노래미", "쥐노래미"}, {"망둥어", "망둑어"}, {"학공치", "학꽁치"}, {"쏨뱅이", "쏨벵이"}};
@@ -709,13 +757,23 @@ public final class TideflyServlet extends HttpServlet {
      * 이름과 똑같거나, 뒤에 "항" 을 붙이면 같거나("방포" → 방포항), 끝의 "낚시" · "포인트" · "갯바위" · "방파제" 를 떼면 같을 때만 - 산 · 코스 찾기를 가로채지 않게 들어 있기(포함)로는 보지 않음.
      */
     static String find(String q, java.util.Set<String> names) {
+        // 40자 넘는 말은 이름이 아님 - 바로 끝(점검 10차 B1: 괄호 수천 개 글로 bare 의 정규식이 요청마다 CPU 를 오래 썼음)
+        if (q == null || q.length() > FIND_MAX) return null;
         String k = bare(q);
-        for (int i = 0; i < 2; i++) {
-            if (k.length() < 2) return null;
-            if (names.contains(k)) return k;
-            if (names.contains(k + "항")) return k + "항";
-            k = k.replaceAll("(낚시터|낚시|포인트|갯바위|방파제)+$", "");
-        }
+        if (k.length() < 2) return null;
+        String hit = exact(k, names, false);
+        if (hit != null) return hit;
+        String s = k.replaceAll("(낚시터|낚시|포인트|갯바위|방파제)+$", "");
+        if (s.equals(k) || s.length() < 2) return null;
+        hit = exact(s, names, true);
+        if (hit != null) return hit;
+        return names.contains(WEAK + s) ? s : null;   // "추자도 낚시" 처럼 낚시 말이 붙었을 때만 섬 · 고장 이름
+    }
+
+    /** 이름과 같거나 뒤에 "항" 을 붙이면 같은 것. 섬 이름(…도)에 항을 붙이는 것은 낚시 말이 있을 때만(island) - "청산도" → 청산도항 이 되지 않게. */
+    private static String exact(String k, java.util.Set<String> names, boolean island) {
+        if (names.contains(k)) return k;
+        if ((island || !k.endsWith("도")) && names.contains(k + "항")) return k + "항";
         return null;
     }
 

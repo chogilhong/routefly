@@ -233,5 +233,19 @@ assert.strictEqual(TF.alarmText(plan[1], '김녕', { sun: 60 }), '해 지기 60�
   assert.ok(TF.closedText([{ area: '해운대해수욕장 APEC 기념 등표', notice: '부산해양경찰서 공고 제2018 - 102호', m: 0 }]).startsWith('⛔ 출입통제구역 안: '));
 }
 
+// 점검 10차 A1 · A3(2026-11-15) - 자리 판단은 목록과 함께 오는 marks, 기준 포인트가 더 나쁘면 그것 · 너울 없으면 판단 전
+{
+  TF.setLang('ko');
+  assert.strictEqual(TF.worseMark('○', '✕'), '✕');
+  assert.strictEqual(TF.worseMark('△', '○'), '△');
+  assert.strictEqual(TF.worseMark('✕', null), null);
+  const s = { id: 'r1', name: '가 · 나', base: '다수항', fish: '' };
+  const base = { point: { name: '다수항' }, mark: '✕', reasons: ['전남중부서해앞바다 풍랑 주의보'] };
+  assert.strictEqual(TF.spotItem(s, base, { r1: { mark: '○', reasons: [] } }).mark, '✕');
+  TF.setLang('en');
+  assert.strictEqual(TF.reason('너울 예측을 받지 못함 - 판단하지 않음'), 'Not judged - swell forecast not available');
+  TF.setLang('ko');
+}
+
 console.log('tidefly.test.js OK');
 

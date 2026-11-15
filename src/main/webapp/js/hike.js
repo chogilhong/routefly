@@ -947,7 +947,8 @@
             // ⛑️ 오늘의 산행 안전(api/safety - 2026-10-18 홍TV님): 들머리 자리의 내 지역 특보 · 산불위험 높음 이상 · 자외선 8 이상일 때만, 그 지역(시도) 하루 한 번
             safetyJ = null;   // 출발 전 점검이 같이 씀(새로 받지 않음)
             if (c.lat && c.lat.length) fetch("api/safety?lat=" + (+c.lat[0]).toFixed(4) + "&lon=" + (+c.lon[0]).toFixed(4)).then(function (x) { return x.json(); }).then(function (j) {
-                var msg = my === loadSeq && RF.safetyAlert(j, Date.now(), EN), k = "rf-safe-" + today0 + "-" + ((j && j.sido) || "");
+                // 비 줄은 뺌 - 비는 걷기 시작하면 rainCheck 가 따로 알림(점검 10차 A9: 비 알림이 두 번 나고, 비만으로 그날 열쇠를 써 뒤의 특보 · 산불 알림이 막혔음)
+                var msg = my === loadSeq && j && RF.safetyAlert(Object.assign({}, j, { rain: null }), Date.now(), EN), k = "rf-safe-" + today0 + "-" + ((j && j.sido) || "");
                 if (my === loadSeq) safetyJ = j;
                 if (!msg || lsGet("rf-safe") === k) return;
                 try { localStorage.setItem("rf-safe", k); } catch (e) { /* 이번만 */ }
@@ -2903,7 +2904,6 @@
         }
     }
 
-    /** 위치 한 번 - 코스에 맞추고 화면을 고칩니다. */
     /**
      * 🌧 걷는 중 비구름(2026-11-14 홍TV님 "작업해줘") - 기록 중 10분마다 /api/rain(서버가 미리 받아 둔 기상청 레이더 지점값, 15km 안 - 5km 칸 가운데 기준이라 거리는 어림).
      * 비가 새로 생기거나 · 더 세지거나 · 5km 안으로 들어오면 알림 + 음성(RF.rainNews). 같은 것은 되풀이하지 않음. 못 받으면 조용히 다음 차례.
@@ -2925,6 +2925,7 @@
         }).catch(function () { /* 신호 없음 - 다음 차례에 */ });
     }
 
+    /** 위치 한 번 - 코스에 맞추고 화면을 고칩니다. */
     function onFix(pos) {
         if (!c || !hike.running) return;
         var co = pos.coords, t = pos.timestamp || now();

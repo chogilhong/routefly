@@ -54,7 +54,7 @@ final class Stats {
     private static String today = "";
     private static final Set<String> seen = new HashSet<>();
     /** 그 날 화면 js 가 돈 방문자 · 보안 머리글이 빠진 방문자(사람 확인, 2026-10-22) - seen 처럼 날이 바뀌면 버림. */
-    private static final Set<String> jsSeen = new HashSet<>(), susSeen = new HashSet<>(), appSeen = new HashSet<>();   // appSeen - 그 가운데 routefly 앱 안(2026-11-11)
+    private static final Set<String> jsSeen = new HashSet<>(), susSeen = new HashSet<>(), appSeen = new HashSet<>(), appSigSeen = new HashSet<>();   // appSeen - 그 가운데 routefly 앱 안(2026-11-11)
     private static byte[] salt = new byte[16];
     private static boolean loaded = false, dirty = false;
 
@@ -131,14 +131,18 @@ final class Stats {
      * app - routefly 앱 안에서 보냄(seen.js 가 window.Capacitor 를 보고 ?app=1, 2026-11-11 홍TV님 "앱으로 들어온지도 알 수 있어?") - 그 날 "jsApp" 에 한 사람 한 번.
      * 같은 날 브라우저로 먼저 왔다가 앱으로 와도 앱으로 셈(사람 확인 수는 그대로 한 번). 센 것이 있으면 true.
      */
-    /** 앱 신호(?app=1)를 받은 수 - 운영자 · 로봇 · 사람 확인 걸러내기 전, 숫자만(2026-11-12 PC 제안: "그중 앱" 이 0 이면 신호가 안 온 것인지 걸러진 것인지 가름). */
-    static synchronized void appSignal() {
+    /**
+     * 앱 신호(?app=1)를 받은 수 - 운영자 · 로봇 · 사람 확인 걸러내기 전, 숫자만(2026-11-12 PC 제안: "그중 앱" 이 0 이면 신호가 안 온 것인지 걸러진 것인지 가름).
+     * 같은 주소(소금 친 해시)는 하루 한 번만 - 그 날 처음이면 true(점검 10차 B4: 아무나 ?app=1 을 되풀이해 숫자 · 로그를 부풀릴 수 있었음).
+     */
+    static synchronized boolean appSignal(String ip) {
         load();
-        if (!today.equals(LocalDate.now(WeatherServlet.KST).toString())) return;
+        if (!today.equals(LocalDate.now(WeatherServlet.KST).toString())) return false;
         JsonObject day = DAYS.get(today);
-        if (day == null) return;
+        if (day == null || !appSigSeen.add(hash(ip))) return false;
         day.addProperty("appSig", (day.has("appSig") ? day.get("appSig").getAsInt() : 0) + 1);
         dirty = true;
+        return true;
     }
 
     /**
@@ -250,6 +254,7 @@ final class Stats {
             jsSeen.clear();
             susSeen.clear();
             appSeen.clear();
+            appSigSeen.clear();
             new SecureRandom().nextBytes(salt);
         }
         JsonObject day = DAYS.computeIfAbsent(d, k -> {

@@ -273,7 +273,7 @@
         if (!sec || !ul || !window.RF.safetyRender) return;
         var go = function () {
             fetch("../api/safety?lat=" + lat.toFixed(4) + "&lon=" + lon.toFixed(4)).then(function (r) { return r.json(); }).then(function (j) {
-                if (!j || j.unavailable) { sec.hidden = true; return; }
+                if (!j || j.unavailable && !j.rain) { sec.hidden = true; return; }   // 공공 키가 없어도 레이더 비(rain)가 있으면 보임(점검 10차 A12 - 세 화면 같게)
                 window.RF.safetyRender(ul, er, j, false, 3);
                 if (!er.children.length) er.previousElementSibling.hidden = true;
             }).catch(function () { ul.innerHTML = ""; var li = document.createElement("li"); li.textContent = "안전 정보를 지금 받지 못했습니다."; ul.appendChild(li); });

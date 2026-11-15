@@ -95,7 +95,7 @@ public class MountainEnTest {
     @Test
     public void koreanPageLinksEnglish() {
         JsonObject gaya = JsonParser.parseString("{\"id\":\"가야산\",\"name\":\"가야산\",\"lat\":35.82,\"lon\":128.12}").getAsJsonObject();
-        String html = MountainServlet.page(gaya, new ArrayList<>(), new ArrayList<>(), null, "https://routefly.kr/routefly");
+        String html = MountainServlet.page(gaya, new ArrayList<>(), new ArrayList<>(), null, "https://routefly.kr/routefly", java.time.LocalDate.now(WeatherServlet.KST).getMonthValue());
         assertTrue(html.contains("<link rel=\"alternate\" hreflang=\"en\" href=\"https://routefly.kr/routefly/en/m/gayasan\">"));
         assertTrue(html.contains("<a href=\"../en/m/gayasan\" hreflang=\"en\" lang=\"en\">English</a>"));
         assertTrue(SitemapServlet.sitemap("https://r.kr", List.of("가야산"), List.of()).contains("<loc>https://r.kr/en/m/gayasan</loc>"));
@@ -129,7 +129,7 @@ public class MountainEnTest {
         up.addProperty("course_id", "k1");
         up.addProperty("name", "해인사 - 상왕봉");
         up.addProperty("distance_m", 4000);
-        String ko = MountainServlet.page(peak, new ArrayList<>(List.of(up)), new ArrayList<>(), null, "https://r.kr");
+        String ko = MountainServlet.page(peak, new ArrayList<>(List.of(up)), new ArrayList<>(), null, "https://r.kr", java.time.LocalDate.now(WeatherServlet.KST).getMonthValue());
         assertTrue(ko.contains("<a class=\"way\" href=\"https://map.kakao.com/link/to/%EA%B0%80%EC%95%BC%EC%82%B0%20%EB%93%A4%EB%A8%B8%EB%A6%AC,35.800000,128.090000\" target=\"_blank\" rel=\"noopener\">🚌 가는 길</a>"));
         String en = MountainEn.page(peak, new ArrayList<>(List.of(up)), new ArrayList<>(), null, "https://r.kr");
         assertTrue(en.contains("href=\"https://www.google.com/maps/dir/?api=1&amp;destination=35.800000,128.090000&amp;travelmode=transit\" target=\"_blank\" rel=\"noopener\">🚌 Directions</a>"));

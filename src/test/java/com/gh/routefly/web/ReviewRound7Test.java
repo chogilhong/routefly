@@ -214,8 +214,8 @@ public class ReviewRound7Test {
     @Test
     public void seenSkipsSelfCheck() {
         String ua = "Mozilla/5.0 (Linux; Android 14; SM-S918N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36";
-        assertTrue(SeenServlet.counted(null, ua, "ko-KR,ko;q=0.9"));
-        assertFalse(SeenServlet.counted(null, ua + " routefly-check", "ko-KR,ko;q=0.9"));
+        assertEquals(null, SeenServlet.why(null, ua, "ko-KR,ko;q=0.9"));   // 셀 것(counted 는 화면이 부르지 않아 지움 - 점검 10차 G1)
+        assertEquals("확인용", SeenServlet.why(null, ua + " routefly-check", "ko-KR,ko;q=0.9"));
     }
 
     /** 22: 답장 메일 - 화면(feedback.js replyOk, review7.test.js)과 같은 값. */

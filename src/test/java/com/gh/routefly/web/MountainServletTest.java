@@ -44,7 +44,7 @@ public class MountainServletTest {
         List<Object[]> nb = MountainServlet.nearby(peaks, gaya, 6, MountainServlet.NEARBY_M);
         assertEquals("자기 빼고 60km 안, 가까운 차례", Arrays.asList("덕유산", "비슬산"), nb.stream().map(o -> ((JsonObject) o[0]).get("id").getAsString()).toList());
         gaya.addProperty("elev", 1433);   // 공식 높이(height 는 GPS 라 화면에 안 씀 - 2026-10-15)
-        String html = MountainServlet.page(gaya, out, nb, 7, "https://routefly.kr/routefly");
+        String html = MountainServlet.page(gaya, out, nb, 7, "https://routefly.kr/routefly", java.time.LocalDate.now(WeatherServlet.KST).getMonthValue());
         assertTrue("가까운 산 링크", html.contains("<a href=\"../m/%EB%8D%95%EC%9C%A0%EC%82%B0\">덕유산 <small>34km</small></a>"));
         assertTrue("정상 높이", html.contains("정상 칠불봉 1,433m"));
         assertTrue("찜 단추용 코스 정보", html.contains("<li data-id=\"knps-7013\" data-name=\"가야산 · 해인사 → 상왕봉(우두봉)\" data-dist=\"3980\" data-asc=\"779\">"));
@@ -66,10 +66,10 @@ public class MountainServletTest {
         assertTrue("날씨 칸 좌표", html.contains("data-lat=\"35.822544\""));
         assertFalse("스크립트는 파일로만(CSP)", html.matches("(?s).*<script>.*"));
         assertTrue("산행 안전 팁(영어판과 짝 - 2026-10-18)", html.contains("<h2>⚠ 산행 안전 팁</h2>") && html.contains("다목적위치표지판(국가지점번호)") && html.contains("📨 가족에게 산행 계획 알리기"));
-        assertTrue("목록에도 안전 팁", MountainServlet.indexPage(peaks, new JsonArray(), "", false).contains("<h2>⚠ 산행 안전 팁</h2>"));
-        assertTrue("안부 링크는 한국어로(영어를 쓴 적 있어도 - 2026-10-18)", MountainServlet.indexPage(peaks, new JsonArray(), "", false).contains("/anbu.html?lang=ko\">🏠 오늘의 안부"));
-        assertTrue("🧰 별거 별거 링크", MountainServlet.indexPage(peaks, new JsonArray(), "", false).contains("/tools.html?lang=ko\">🧰 별거 별거"));
-        String ix = MountainServlet.indexPage(peaks, new JsonArray(), "", false);
+        assertTrue("목록에도 안전 팁", MountainServlet.indexPage(peaks, new JsonArray(), "", false, "", "").contains("<h2>⚠ 산행 안전 팁</h2>"));
+        assertTrue("안부 링크는 한국어로(영어를 쓴 적 있어도 - 2026-10-18)", MountainServlet.indexPage(peaks, new JsonArray(), "", false, "", "").contains("/anbu.html?lang=ko\">🏠 오늘의 안부"));
+        assertTrue("🧰 별거 별거 링크", MountainServlet.indexPage(peaks, new JsonArray(), "", false, "", "").contains("/tools.html?lang=ko\">🧰 별거 별거"));
+        String ix = MountainServlet.indexPage(peaks, new JsonArray(), "", false, "", "");
         assertTrue("🎮 게임은 별거 별거 아래(2026-10-21)", ix.indexOf("/games.html?lang=ko\">🎮 심심풀이 게임") > ix.indexOf("/tools.html?lang=ko"));
     }
 
@@ -78,15 +78,15 @@ public class MountainServletTest {
         JsonArray peaks = JsonParser.parseString("[{\"id\":\"a<b\",\"name\":\"a<b\",\"lat\":37,\"lon\":127}]").getAsJsonArray();
         assertNotNull(MountainServlet.find(peaks, "a<b"));
         assertNull(MountainServlet.find(peaks, "없는산"));
-        assertTrue("series.json 을 못 읽어도 100대 명산", MountainServlet.indexPage(peaks, new JsonArray(), "", false).contains(">a&lt;b</a>"));
+        assertTrue("series.json 을 못 읽어도 100대 명산", MountainServlet.indexPage(peaks, new JsonArray(), "", false, "", "").contains(">a&lt;b</a>"));
         JsonArray gs = JsonParser.parseString("[{\"key\":\"peaks\",\"kind\":\"hike\",\"title\":\"100대 명산\",\"icon\":\"⛰️\",\"series\":[{\"summits\":\"x\"}]},"
                 + "{\"key\":\"forest\",\"kind\":\"walk\",\"title\":\"국가숲길\",\"icon\":\"🌲\",\"series\":[{\"name\":\"지리산둘레길\",\"prefix\":\"kmf-9900000006-\",\"km\":289}]},"
                 + "{\"key\":\"korea\",\"kind\":\"walk\",\"title\":\"코리아둘레길\",\"icon\":\"🥾\",\"series\":[{\"name\":\"DMZ 평화의 길\",\"match\":\"DMZ평화의길\"}]},"
                 + "{\"key\":\"bike\",\"kind\":\"bike\",\"title\":\"국토종주 자전거길\",\"icon\":\"🚴\",\"series\":[{\"name\":\"아라 자전거길\",\"prefix\":\"osmb-4145848-\",\"km\":21}]}]").getAsJsonArray();
-        String idx = MountainServlet.indexPage(peaks, gs, "", false);
+        String idx = MountainServlet.indexPage(peaks, gs, "", false, "", "");
         assertFalse("처음엔 모두 접힘(근처 숙소 찾기만 펴 둠 - 2026-10-30 홍TV님)", idx.replace("<section id=\"staySearch\"><details class=\"fold kind\" open data-keep=\"1\">", "").contains(" open>"));
         assertTrue("근처 숙소 찾기는 처음부터 펴 둠 · 다른 칸과 같이 접히지 않게 묶음 밖", idx.contains("<section id=\"staySearch\"><details class=\"fold kind\" open data-keep=\"1\"><summary>"));
-        String opened = MountainServlet.indexPage(peaks, gs, "", true);
+        String opened = MountainServlet.indexPage(peaks, gs, "", true, "", "");
         assertTrue("산 페이지에서 돌아오면 등산 › 100대 명산 펼침", opened.contains("<details class=\"fold kind\" name=\"kind\" open><summary><span class=\"ft\">⛰️ 등산")
                 && opened.contains("<details class=\"fold group\" name=\"group\" open><summary><span class=\"ft\">⛰️ 100대 명산") && !opened.contains("name=\"kind\" open><summary><span class=\"ft\">🥾"));
         assertTrue("100대 명산은 산 페이지로", idx.contains(">a&lt;b</a>"));
@@ -126,8 +126,8 @@ public class MountainServletTest {
         assertEquals("가리산", MountainServlet.find(peaks, "가리산").get("id").getAsString());
         String ch = MountainServlet.choosePage("백운산", MountainServlet.byName(peaks, "백운산"), "");
         assertTrue(ch.contains(">백운산(광양)</a>") && ch.contains(">백운산(포천)</a>"));
-        assertTrue(MountainServlet.indexPage(peaks, JsonParser.parseString("[{\"kind\":\"hike\",\"title\":\"100대 명산\",\"icon\":\"⛰️\",\"series\":[{\"summits\":\"x\"}]}]").getAsJsonArray(), "", false)
+        assertTrue(MountainServlet.indexPage(peaks, JsonParser.parseString("[{\"kind\":\"hike\",\"title\":\"100대 명산\",\"icon\":\"⛰️\",\"series\":[{\"summits\":\"x\"}]}]").getAsJsonArray(), "", false, "", "")
                 .contains(">백운산(광양)</a>"));
-        assertTrue(MountainServlet.page(peaks.get(1).getAsJsonObject(), List.of(), List.of(), null, "").contains("<h1>백운산(포천) 등산코스</h1>"));
+        assertTrue(MountainServlet.page(peaks.get(1).getAsJsonObject(), List.of(), List.of(), null, "", java.time.LocalDate.now(WeatherServlet.KST).getMonthValue()).contains("<h1>백운산(포천) 등산코스</h1>"));
     }
 }

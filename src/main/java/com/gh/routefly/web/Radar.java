@@ -155,6 +155,11 @@ final class Radar {
     /** 가장 최근에 받은 것 {자료 시각 tm, Map 지점 → mm/h, 받은 때 ms, 같은 시각을 다시 받았나}. */
     private static volatile Object[] latest;
     private static java.util.concurrent.ScheduledExecutorService pump;
+    /** 웹앱이 내려가는 중 - 그 뒤 들어온 요청이 미리 받기를 다시 켜지 않게(점검 10차 A11: 옛 클래스로더를 잡는 스레드가 남을 수 있었음). */
+    private static boolean stopped;
+    /** 마지막으로 화면이 물은 때(밀리초) - IDLE_MIN 분 넘게 아무도 안 물으면 미리 받기를 쉼(점검 10차 C10). 뜬 때부터 셈. */
+    private static volatile long lastAsk = System.currentTimeMillis();
+    static final int IDLE_MIN = 30;
 
     /** 같은 시각을 다시 받기까지(분) - 막 나온 자료는 늦게 채워지는 지점이 있어(2026-11-14 PC: 같은 15:20 인데 운영 3곳 · 로컬 4곳) 한 번만 다시. */
     static final int AGAIN_MIN = 3;
@@ -180,6 +185,10 @@ final class Radar {
     static JsonObject at(double lat, double lon) {
         if (RouteflyConfig.get("kma.apihub.key") == null) return null;
         start();
+        long now = System.currentTimeMillis();
+        boolean slept = idle(lastAsk, now);
+        lastAsk = now;
+        if (slept) wake();   // 쉬던 중이면 바로 한 번(이번 요청은 기다리지 않음)
         Object[] l = latest;
         Map<Integer, double[]> stn = stn();
         if (l == null || stn.isEmpty() || !fresh((String) l[0], slot(LocalDateTime.now(WeatherServlet.KST)))) return null;
@@ -188,7 +197,7 @@ final class Radar {
 
     /** 미리 받기 시작(키가 없으면 하지 않음). */
     static synchronized void start() {
-        if (pump != null || RouteflyConfig.get("kma.apihub.key") == null) return;
+        if (stopped || pump != null || RouteflyConfig.get("kma.apihub.key") == null) return;
         pump = java.util.concurrent.Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, "radar-pump");
             t.setDaemon(true);
@@ -199,8 +208,26 @@ final class Radar {
 
     /** 웹앱이 내려갈 때(DbShutdown) - 미리 받기 스레드를 멈춤. */
     static synchronized void shutdown() {
+        stopped = true;
         if (pump != null) pump.shutdownNow();
         pump = null;
+    }
+
+    private static synchronized void wake() {
+        if (pump != null) pump.execute(Radar::refresh);
+    }
+
+    /** 순수 함수 - 마지막 물음에서 IDLE_MIN 분 넘게 지났나(쓰는 사람이 없을 때 1분마다 기상청을 부르지 않게). */
+    static boolean idle(long lastAskMs, long nowMs) {
+        return nowMs - lastAskMs > IDLE_MIN * 60_000L;
+    }
+
+    /**
+     * 순수 함수 - 같은 시각을 한 번 더 받은 뒤 쓸 것: 이번 것이 같거나 더 많이 채워졌으면 이번 것(늦게 채워진 비 값 - 점검 10차 A10: 개수가 같으면 옛 것을 두었음),
+     * 비었거나 적으면 앞의 것. 어느 쪽이든 다시 받음 표(Boolean.TRUE)를 붙여 또 묻지 않음.
+     */
+    static Object[] merged(Object[] l, String tm, Map<Integer, Double> e) {
+        return !e.isEmpty() && e.size() >= ((Map<?, ?>) l[1]).size() ? new Object[] {tm, e, l[2], Boolean.TRUE} : new Object[] {l[0], l[1], l[2], Boolean.TRUE};
     }
 
     /**
@@ -210,7 +237,7 @@ final class Radar {
     static void refresh() {
         try {
             String key = RouteflyConfig.get("kma.apihub.key");
-            if (key == null) return;
+            if (key == null || idle(lastAsk, System.currentTimeMillis())) return;
             String k = "&qcd=EXT&cmp=HSP&authKey=" + URLEncoder.encode(key, StandardCharsets.UTF_8);
             LocalDateTime now = LocalDateTime.now(WeatherServlet.KST);
             for (int back : new int[] {10, 20}) {   // 10분 전이 아직 안 나왔으면 20분 전 - 이미 가진 것보다 새것만
@@ -220,7 +247,7 @@ final class Radar {
                 if (l != null && tm.compareTo((String) l[0]) <= 0 && !again) return;
                 Map<Integer, Double> e = echoes(OpenApi.get(BASE + "cgi-bin/url/nph-rdr_cmp_aws_all_pt_data?tm=" + tm + k, back == 10 ? "RADAR" : "RADAR-20", TIMEOUT));
                 if (again) {   // 같은 시각을 한 번 더 - 더 많이 채워진 쪽을 씀(이번 것이 적어도 다시 묻지 않음)
-                    latest = e.size() > ((Map<?, ?>) l[1]).size() ? new Object[] {tm, e, l[2], Boolean.TRUE} : new Object[] {l[0], l[1], l[2], Boolean.TRUE};
+                    latest = merged(l, tm, e);
                     return;
                 }
                 if (!e.isEmpty()) {

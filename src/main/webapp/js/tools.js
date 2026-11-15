@@ -1071,7 +1071,7 @@
         outSet("sfHead", T("안전 정보를 받는 중…", "Loading safety info…"));
         $("sfList").innerHTML = ""; $("sfEr").innerHTML = "";
         fetch("api/safety?lat=" + loc.lat.toFixed(4) + "&lon=" + loc.lon.toFixed(4)).then(function (r) { return r.json(); }).then(function (j) {
-            if (!j || j.unavailable) return outSet("sfHead", T("지금은 안전 정보를 받을 수 없습니다", "Safety info is not available right now"));
+            if (!j || j.unavailable && !j.rain) return outSet("sfHead", T("지금은 안전 정보를 받을 수 없습니다", "Safety info is not available right now"));   // 레이더 비는 보임(점검 10차 A12)
             outSet("sfHead", loc.name + (j.sido ? " · " + j.sido : ""), T("지역은 가장 가까운 응급실 주소로 정했습니다", "Region from the nearest emergency room's address"));
             RF.safetyRender($("sfList"), $("sfEr"), j, EN);
         }).catch(function () { outSet("sfHead", T("안전 정보를 받지 못했습니다 - 인터넷을 확인해 주세요", "Could not load safety info - check your connection")); });

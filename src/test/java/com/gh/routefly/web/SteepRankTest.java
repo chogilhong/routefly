@@ -129,7 +129,7 @@ public class SteepRankTest {
         assertTrue("영어 이름 · slug 링크", en.contains("href=\"" + Roman.slug("백운산(정선)") + "?from=steep1\">" + MountainEn.name(peaks.get(0).getAsJsonObject()) + "</a>"));
         assertTrue(en.contains("884m · 1 trail"));
         assertFalse("영어판에 한국어 설명 없음", en.contains("정상 해발"));
-        assertTrue("목록에 끼움", MountainServlet.indexPage(peaks, new JsonArray(), "", false, ko).contains(ko + "<section id=\"gearIdx\" hidden></section><section><h2>⚠ 산행 안전 팁"));
+        assertTrue("목록에 끼움", MountainServlet.indexPage(peaks, new JsonArray(), "", false, ko, "").contains(ko + "<section id=\"gearIdx\" hidden></section><section><h2>⚠ 산행 안전 팁"));
         assertTrue(MountainEn.indexPage(peaks, new JsonArray(), "", en).contains(en));
     }
 
@@ -143,7 +143,7 @@ public class SteepRankTest {
         JsonObject p = peak("가산", 900);
         JsonObject c = course("A코스", 2180, 485, 41.0);
         c.addProperty("course_id", "x-1");
-        String ko = MountainServlet.page(p, List.of(c), new ArrayList<>(), null, ""), en = MountainEn.page(p, List.of(c), new ArrayList<>(), null, "");
+        String ko = MountainServlet.page(p, List.of(c), new ArrayList<>(), null, "", java.time.LocalDate.now(WeatherServlet.KST).getMonthValue()), en = MountainEn.page(p, List.of(c), new ArrayList<>(), null, "");
         assertTrue("산 페이지 코스 줄", ko.contains("2.18km · 오르막 485m · 각도 12.5° · 경사 22.2% · 가파른 1km 41.0% · 약 "));
         assertTrue(en.contains("2.18 km · 485 m ascent · angle 12.5° · grade 22.2% · steepest 1 km 41.0% · about "));
         assertTrue("난이도도 어려움", ko.contains("<i class=\"lv lv3\">어려움</i>"));

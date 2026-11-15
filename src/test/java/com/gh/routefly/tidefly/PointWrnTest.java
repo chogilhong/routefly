@@ -77,11 +77,33 @@ public class PointWrnTest {
                 }
             }
         }
-        assertEquals("기존 11 + 국가어항 섬 · 경계 · 울릉 14 + 지방어항 13(2026-11-15)", 38, n);
+        assertEquals("기존 11 + 국가어항 섬 · 경계 · 울릉 14 + 지방어항 13(2026-11-15) + 점검 10차 가거도 · 목포북항서측 · 상왕등도 3", 41, n);
         List<SeaWarning> w = SeaWarning.parse(Files.readString(PointsBuild.RES.resolve("apihub/wrn-now.txt"), StandardCharsets.UTF_8));
         SeaForecast calm = new SeaForecast("2026111400", "2026111415", 163, 8, 0.6, 4.2, 319.2, 7.0, 28.5, 13300.0, 0.0, 16.3, 1);
         Verdict v = Verdict.judge(true, TideflyServlet.regIds(regs, "안흥항서측(40km)"), w, calm);
         assertEquals(Verdict.CARE, v.mark());
         assertEquals(List.of("서해중부바깥먼바다 풍랑 예비특보", "출항은 선사에 확인"), v.reasons());
+    }
+
+    /**
+     * 점검 10차 A4(2026-11-15) - 서해 · 남해 포인트가 별표 5 앞바다 경계선 바깥이거나 3km 안이면 그 바다 먼바다 짝이 다 있음(어항 · 자리와 같은 규칙).
+     * 전에는 처음 49곳이 이 규칙을 거치지 않아 상왕등도(경계선 7.7km 바깥) · 가거도 · 연도 · 목포북항서측이 먼바다 특보에 걸리지 않았음.
+     */
+    @Test
+    public void 경계선_바깥_가까운_서해_남해_포인트는_먼바다_짝() throws Exception {
+        JsonObject regs = regs();
+        int checked = 0;
+        for (var e : JsonParser.parseString(Files.readString(PointsBuild.OUT, StandardCharsets.UTF_8)).getAsJsonArray()) {
+            JsonObject p = e.getAsJsonObject();
+            String name = p.get("name").getAsString();
+            double lat = p.get("lat").getAsDouble(), lon = p.get("lon").getAsDouble();
+            List<String> ids = TideflyServlet.regIds(regs, name);
+            String first = ids.get(0);
+            boolean westSouth = first.startsWith("S12") || first.startsWith("S131") || first.startsWith("S132") && !first.startsWith("S1323");
+            if (!westSouth || !(PortsBuild.seaward(lat, lon) || PortsBuild.lineKm(lat, lon) < PortsBuild.NEAR_LINE_KM)) continue;
+            for (String z : PortsBuild.offshore(first, lat, lon)) assertTrue(name + " " + z, ids.contains(z));
+            checked++;
+        }
+        assertTrue("규칙에 걸리는 포인트가 있음: " + checked, checked > 30);
     }
 }

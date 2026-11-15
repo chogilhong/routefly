@@ -42,7 +42,7 @@ public class ReviewRound4Test {
     public void mountainPagesHaveBox() {
         JsonObject gaya = JsonParser.parseString("{\"id\":\"가야산\",\"name\":\"가야산\",\"lat\":35.822544,\"lon\":128.122849}").getAsJsonObject();
         List<JsonObject> cs = List.of(c("가야산 · 해인사 → 상왕봉"));
-        String ko = MountainServlet.page(gaya, cs, List.of(), null, ""), en = MountainEn.page(gaya, cs, List.of(), null, "");
+        String ko = MountainServlet.page(gaya, cs, List.of(), null, "", java.time.LocalDate.now(WeatherServlet.KST).getMonthValue()), en = MountainEn.page(gaya, cs, List.of(), null, "");
         assertTrue(ko, ko.contains("id=\"ssForm\"") && ko.contains("value=\"가야산 해인사\"") && ko.contains("들머리 · 군청 · 역 이름으로"));
         assertTrue(en.contains("id=\"ssForm\"") && en.contains("value=\"가야산 해인사\"") && en.contains(">Search</button>"));
         assertEquals("칸은 한 번만", ko.indexOf("id=\"ssForm\""), ko.lastIndexOf("id=\"ssForm\""));

@@ -78,12 +78,12 @@ public class MountainInfoTest {
         MountainServlet.withInfo(ps, file.getAsJsonObject("info"));
         JsonObject seorak = null;
         for (var e : ps) if ("설악산".equals(e.getAsJsonObject().get("id").getAsString())) seorak = e.getAsJsonObject();
-        String page = MountainServlet.page(seorak, new ArrayList<>(), new ArrayList<>(), null, "https://routefly.kr/routefly");
+        String page = MountainServlet.page(seorak, new ArrayList<>(), new ArrayList<>(), null, "https://routefly.kr/routefly", java.time.LocalDate.now(WeatherServlet.KST).getMonthValue());
         assertTrue(page.contains("<section class=\"why\"><h2>설악산 - 산림청 100대 명산 선정 이유</h2><p><b>섬세한 비경 두루 갖춘 팔방미인</b></p><p>남한에서 세 번째로"));
         assertTrue(page.contains("출처: 산림청 「명산등산로」(공공데이터포털)"));
         JsonObject gaya = null;
         for (var e : ps) if ("가야산".equals(e.getAsJsonObject().get("id").getAsString())) gaya = e.getAsJsonObject();
         assertTrue("산 자료를 읽을 때 붙임", read("src/main/java/com/gh/routefly/web/MountainServlet.java").contains("withInfo(p, readInfo(getServletContext()));"));
-        assertFalse("자료가 없는 산은 칸 없음", MountainServlet.page(gaya, new ArrayList<>(), new ArrayList<>(), null, "").contains("class=\"why\""));
+        assertFalse("자료가 없는 산은 칸 없음", MountainServlet.page(gaya, new ArrayList<>(), new ArrayList<>(), null, "", java.time.LocalDate.now(WeatherServlet.KST).getMonthValue()).contains("class=\"why\""));
     }
 }

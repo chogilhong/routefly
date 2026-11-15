@@ -224,10 +224,10 @@ public class ReviewRound5Test {
         c.addProperty("course_id", "t-1");
         c.addProperty("name", "가야산 · 해인사 → 상왕봉");
         c.addProperty("distance_m", 5000);
-        String ko = MountainServlet.page(gaya, List.of(c), List.of(), null, ""), en = MountainEn.page(gaya, List.of(c), List.of(), null, "");
+        String ko = MountainServlet.page(gaya, List.of(c), List.of(), null, "", java.time.LocalDate.now(WeatherServlet.KST).getMonthValue()), en = MountainEn.page(gaya, List.of(c), List.of(), null, "");
         assertTrue(ko, ko.contains("<p class=\"jump\"><a href=\"#trails\">🥾 코스 1개 바로 보기 ↓</a></p>") && ko.contains("<section id=\"trails\"><h2>코스 1개</h2>"));
         assertTrue(en, en.contains("<a href=\"#trails\">🥾 See the 1 trail ↓</a>") && en.contains("<section id=\"trails\"><h2>1 trail</h2>"));
         assertTrue("설명 바로 아래 · 날씨 칸 위(챙길 것은 날씨 칸 뒤에 들어가 밀지 않음 - 2026-11-02 점검 6차)", ko.indexOf("class=\"jump\"") > ko.indexOf("class=\"lead\"") && ko.indexOf("class=\"jump\"") < ko.indexOf("id=\"wx\""));
-        assertFalse("코스가 없으면 링크도 없음", MountainServlet.page(gaya, List.of(), List.of(), null, "").contains("class=\"jump\""));
+        assertFalse("코스가 없으면 링크도 없음", MountainServlet.page(gaya, List.of(), List.of(), null, "", java.time.LocalDate.now(WeatherServlet.KST).getMonthValue()).contains("class=\"jump\""));
     }
 }

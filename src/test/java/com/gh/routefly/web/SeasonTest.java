@@ -129,11 +129,24 @@ public class SeasonTest {
 
         String idx = MountainServlet.indexPage(all, new JsonArray(), BASE, false, "", nov);
         assertTrue("검색칸 아래 · 내 근처 위", idx.indexOf("<section id=\"season\">") > idx.indexOf("class=\"mSearch\"") && idx.indexOf("<section id=\"season\">") < idx.indexOf("<section id=\"near\">"));
-        assertFalse(MountainServlet.indexPage(all, new JsonArray(), BASE, false).contains("id=\"season\""));
+        assertFalse(MountainServlet.indexPage(all, new JsonArray(), BASE, false, "", "").contains("id=\"season\""));
 
         JsonArray bare = peaks();
         assertEquals("season.json 이 없으면 칸도 없음", "", MountainServlet.seasonFold(bare, new JsonObject(), java.time.LocalDate.of(2026, 10, 1)));
         assertEquals("", MountainServlet.seasonBlock(peak(bare, "가야산"), "가야산", 10));
+    }
+
+    /** 점검 10차 A8(2026-11-15) - 산 페이지 "지금 철" 도 코스 모음 칸과 같은 날짜 규칙(마지막 절정 + 7일 뒤에는 철 아님). */
+    @Test
+    public void mountainPageFollowsIndexSeasonEnd() throws Exception {
+        JsonArray all = seasoned();
+        JsonObject sea = season();
+        assertEquals(11, MountainServlet.seasonMonth(all, sea, java.time.LocalDate.of(2026, 11, 1)));
+        assertEquals("접힌 채 남는 마지막 날", 11, MountainServlet.seasonMonth(all, sea, java.time.LocalDate.of(2026, 11, 18)));
+        assertEquals("코스 모음 칸이 사라진 뒤", 0, MountainServlet.seasonMonth(all, sea, java.time.LocalDate.of(2026, 11, 25)));
+        String late = MountainServlet.page(peak(all, "설악산"), new ArrayList<>(), new ArrayList<>(), null, BASE, MountainServlet.seasonMonth(all, sea, java.time.LocalDate.of(2026, 11, 25)));
+        assertFalse("11월 25일에는 지금 철 표시 없음", late.contains("지금 철"));
+        assertTrue("날씨 칸 아래로", late.indexOf("class=\"season\"") > late.indexOf("id=\"wx\""));
     }
 
     @Test

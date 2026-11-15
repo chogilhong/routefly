@@ -10,7 +10,7 @@ import java.util.List;
  *   <li>✕: 그 포인트의 해상 특보구역에 특보(예비특보 빼고), 또는 기상청 너울 위험예측 3(경계) · 4(위험)</li>
  *   <li>△: 예비특보, 또는 너울 2(주의)</li>
  *   <li>○: 그 밖</li>
- *   <li>판단하지 않음(mark null): 특보구역 짝이 확인 전이거나, 예측을 받지 못했을 때 - 특보를 놓쳐 ○ 를 주지 않으려고</li>
+ *   <li>판단하지 않음(mark null): 특보구역 짝이 확인 전이거나, 예측 · 너울 값을 받지 못했을 때 - 특보 · 너울을 놓쳐 ○ 를 주지 않으려고</li>
  * </ul>
  * 선상 자리에는 늘 "출항은 선사에 확인" 을 덧붙입니다.
  */
@@ -34,6 +34,8 @@ record Verdict(String mark, List<String> reasons) {
         if (regIds == null || regIds.isEmpty()) why.add("특보구역 연결 확인 전 - 판단하지 않음");
         else if (warnings == null) why.add("특보를 받지 못함 - 판단하지 않음");
         else if (sea == null) why.add("파고 예측을 받지 못함 - 판단하지 않음");
+        // 너울 칸이 빈 응답(2026-07-01 앞 자료 모양, 17칸)은 ○ 를 주지 않음(점검 10차 A3 - 자료가 없으면 판단 전)
+        else if (sea.swell() == null) why.add("너울 예측을 받지 못함 - 판단하지 않음");
         else {
             mark = OK;
             for (SeaWarning w : warnings) {
@@ -46,11 +48,11 @@ record Verdict(String mark, List<String> reasons) {
                     why.add(w.regKo() + " " + w.kind() + (w.level() == null || w.level().isEmpty() ? "" : " " + w.level()));
                 }
             }
-            Integer s = sea.swell();
-            if (s != null && s >= 3) {
+            int s = sea.swell();
+            if (s >= 3) {
                 mark = NO;
                 why.add(s == 3 ? "너울 경계" : "너울 위험");
-            } else if (s != null && s == 2) {
+            } else if (s == 2) {
                 mark = worse(mark, CARE);
                 why.add("너울 주의");
             }

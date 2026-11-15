@@ -374,6 +374,7 @@
       '특보구역 연결 확인 전 - 판단하지 않음': 'Not judged - warning zone not linked yet',
       '특보를 받지 못함 - 판단하지 않음': 'Not judged - warnings not available',
       '파고 예측을 받지 못함 - 판단하지 않음': 'Not judged - wave forecast not available',
+      '너울 예측을 받지 못함 - 판단하지 않음': 'Not judged - swell forecast not available',
       '너울 주의': 'Swell caution', '너울 경계': 'Swell alert', '너울 위험': 'Swell danger'
     };
     if (fixed[r]) return fixed[r];
@@ -398,9 +399,9 @@
   }
 
   /**
-   * 순수 함수 - 갯바위 · 선상 자리(api/tidefly?spots=1 의 spots 한 줄)를 카드 한 장 꼴로(2026-11-15 홍TV님 "2번으로" - 📍 내 근처 · 찾기에서만).
-   * 바다 예측 · 물때 · 해 · 판단은 base 포인트 것을 그대로, 그 자리만 먼바다가 더 걸리면(extra) 서버가 센 marks[id] 판단을 씀.
-   * base 포인트가 목록에 없으면 판단하지 않음.
+   * 순수 함수 - 갯바위 · 선상 자리(data/tidefly-spots.json 한 줄)를 카드 한 장 꼴로(2026-11-15 홍TV님 "2번으로" - 📍 내 근처 · 찾기에서만).
+   * 바다 예측 · 물때 · 해 · 판단은 base 포인트 것을 그대로, 그 자리만 먼바다가 더 걸리면(extra) 서버가 목록과 함께 보낸 marks[id] 판단을 씀
+   * (기준 포인트가 더 나쁘면 그것 - 점검 10차 A1). base 포인트가 목록에 없으면 판단하지 않음.
    */
   /** 순수 함수 - 찾기 견줄 꼴: 괄호 안 · 빈칸 · 문장 부호를 뺌. TideflyServlet.bare 와 같은 셈(둘 다 고침). */
   function bare(s) {
@@ -462,13 +463,20 @@
     });
   }
 
+  /** 순수 함수 - 둘 중 나쁜 표시(✕ > △ > ○). 하나라도 판단 전(null)이면 판단 전. */
+  function worseMark(a, b) {
+    if (!a || !b) return null;
+    var rank = { '○': 0, '△': 1, '✕': 2 };
+    return rank[a] >= rank[b] ? a : b;
+  }
+
   function spotItem(s, baseItem, marks) {
     var b = baseItem || {}, bp = b.point || {}, m = (marks || {})[s.id];
     var p = { name: s.name, lat: s.lat, lon: s.lon, boat: !!s.boat, spot: true, id: s.id, sido: s.sido, depth: s.depth, bottom: s.bottom, tideTime: s.tideTime, fish: s.fish,
       base: s.base, baseKm: s.baseKm, tideName: bp.tideName, tideKm: bp.tideKm };
     var out = { point: p, area: b.area, sea: b.sea, tides: b.tides, today: b.today, warnings: b.warnings };
     if (!baseItem) { out.mark = null; out.reasons = ['가까운 포인트 자료 없음 - 판단하지 않음']; }
-    else if (m) { out.mark = m.mark; out.reasons = m.reasons; }
+    else if (m) { out.mark = worseMark(m.mark, b.mark); out.reasons = m.reasons; }
     else { out.mark = b.mark; out.reasons = (b.reasons || []).filter(function (r) { return r !== '출항은 선사에 확인'; }).concat(s.boat ? ['출항은 선사에 확인'] : []); }
     return out;
   }
@@ -497,7 +505,7 @@
   var TF = { kst: kst, dir16: dir16, swell: swell, nums: nums, markOf: markOf, markWord: markWord, nowKst: nowKst, dayName: dayName,
     tideTable: tideTable, goodDays: goodDays, moon: moon, sunSpan: sunSpan, hourLine: hourLine, untilText: untilText, nextTide: nextTide, curve: curve, nextSize: nextSize, isDark: isDark,
     setLang: setLang, roman: roman, placeName: placeName, zoneName: zoneName, reason: reason, mul: mul,
-    alarmPlan: alarmPlan, alarmText: alarmText, nearest: nearest, spotItem: spotItem, bare: bare, fishHit: fishHit, stayRows: stayRows, lawFor: lawFor, inSeason: inSeason, closedText: closedText };
+    alarmPlan: alarmPlan, alarmText: alarmText, nearest: nearest, spotItem: spotItem, worseMark: worseMark, bare: bare, fishHit: fishHit, stayRows: stayRows, lawFor: lawFor, inSeason: inSeason, closedText: closedText };
   if (typeof module !== 'undefined' && module.exports) module.exports = TF;
   if (typeof document === 'undefined') return;
 
@@ -511,7 +519,8 @@
   var kind = 'all';            // 전체 · 갯바위(boat 아님) · 선상
   var nearAt = null, NEAR_N = 10;   // 📍 내 근처 - 폰이 준 위치(이 화면 안에서만, 저장 · 전송 안 함)
   var open = {}, detail = {};
-  var spots = null, spotMarks = {}, spotsWait = false;   // 갯바위 · 선상 자리 - 📍 내 근처 · 찾기 때 처음 한 번 받음(api/tidefly?spots=1)
+  // 갯바위 · 선상 자리 - 📍 내 근처 · 찾기 때 처음 한 번 받음(data/tidefly-spots.json). 판단(marks)은 목록과 함께 10분마다 새로(점검 10차 A1)
+  var spots = null, spotMarks = {}, spotsWait = false, spotsFailAt = 0, SPOTS_RETRY_MS = 60000;
   var stays = {}, STAY_N = 10;   // 근처 숙소 · 식당 {열쇠: 'loading' | 'error' | 응답} - 포인트 좌표로만 물음(내 위치 안 보냄)
   var law = {};                                             // 금어기 · 금지 체장 - data/tidefly-law.json(수산자원관리법 시행령 별표 1 · 2)
   var closed = {};                                          // 출입통제구역 경고 {포인트 · 자리 이름: [...]} - data/tidefly-closed.json
@@ -607,8 +616,12 @@
     return out.join(' · ') || (sea ? '' : tr('받는 중…', 'Loading…'));
   }
 
+  // 지금 그리는 묶음(find · near · area) - 같은 카드가 두 묶음에 있을 때 숙소 칸이 누른 카드에 붙게(점검 10차 A7)
+  var curSec = 'area';
+
   function card(it, now) {
     var p = it.point || {};
+    var sec = curSec;
     var m = markOf(it.mark);
     var isOpen = !!openCard[p.name] || !!open[p.name];
     var li = el('li', 'card ' + m[1] + (isOpen ? '' : ' folded'));
@@ -705,14 +718,14 @@
       var sunsetLeft = untilText(now, now.slice(0, 10) + ' ' + t.sunset);
       var soon = sunsetLeft && /^(곧|soon|\d+분|in \d+ min)/.test(sunsetLeft);
       row.appendChild(chip('☀', tr('해 ', 'Sun ') + t.sunrise + ' ~ ' + t.sunset
-        + (sunsetLeft ? tr(' (해 지기 ' + sunsetLeft.replace(' 뒤', '') + ' 전)', ' (sunset ' + sunsetLeft + ')') : ''), soon ? 'warn' : ''));
+        + (sunsetLeft ? tr(sunsetLeft === '곧' ? ' (곧 해 짐)' : ' (해 지기 ' + sunsetLeft.replace(' 뒤', '') + ' 전)', ' (sunset ' + sunsetLeft + ')') : ''), soon ? 'warn' : ''));   // "해 지기 곧 전" 이 되던 것(점검 10차)
       li.appendChild(row);
       if (t.sari && !p.boat) li.appendChild(el('p', 'alert', tr('⚠ 사리 무렵 - 물이 가장 많이 들고 빠집니다. 갯바위 · 방파제는 들물 때 고립 · 너울에 조심하세요.',
         '⚠ Spring tide - the biggest rise and fall. On rocks and breakwaters, watch out for being cut off by the rising tide and for swells.')));
     }
     if (p.boat) li.appendChild(el('p', 'dim small', tr('⛴ 출항은 선사에 확인하세요.', '⛴ Check sailing with the boat operator.')));
     li.appendChild(alarmBox(it, now));
-    if (typeof p.lat === 'number' && typeof p.lon === 'number') li.appendChild(stayBox(p));
+    if (typeof p.lat === 'number' && typeof p.lon === 'number') li.appendChild(stayBox(p, sec));
 
     var more = el('button', 'more', open[p.name] ? tr('접기 ▴', 'Close ▴') : tr('15일 물때표 · 3일 예보 ▾', '15-day tide table · 3-day forecast ▾'));
     more.type = 'button';
@@ -777,7 +790,12 @@
   function checkAlarms() {
     var now = nowKst(Date.now());
     var nowMin = toMin(now);
-    items.forEach(function (it) {
+    // 갯바위 · 선상 자리에 맞춘 알림도 울림(점검 10차 A5 - 전에는 포인트만 돌아 자리 알림은 "다음 알림" 만 보이고 안 울렸음).
+    // 자리 목록을 아직 안 받았는데 자리 알림이 있으면 받아 둠
+    var known = {};
+    items.forEach(function (it) { if (it.point) known[it.point.name] = true; });
+    if (!spots && Object.keys(alarms).some(function (n) { return !known[n]; })) loadSpots();
+    items.concat(spotItems()).forEach(function (it) {
       var p = it.point || {}, cfg = alarms[p.name];
       if (!cfg) return;
       // 지나간 2분 안의 것만 울림(화면을 오래 닫았다 열었을 때 지난 알림을 한꺼번에 울리지 않게)
@@ -796,13 +814,14 @@
   }
 
   function loadSpots() {
-    if (spots || spotsWait) return;
+    // 실패한 뒤 1분은 다시 묻지 않음(점검 10차 C8 - 찾기 칸에 칠 때마다 다시 물었음)
+    if (spots || spotsWait || Date.now() - spotsFailAt < SPOTS_RETRY_MS) return;
     spotsWait = true;
-    fetch('api/tidefly?spots=1').then(function (r) {
+    fetch('data/tidefly-spots.json').then(function (r) {
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.json();
-    }).then(function (d) { spots = d.spots || []; spotMarks = d.marks || {}; spotsWait = false; draw(); })
-      .catch(function () { spotsWait = false; });
+    }).then(function (d) { spots = Array.isArray(d) ? d : []; spotsWait = false; draw(); })
+      .catch(function () { spotsWait = false; spotsFailAt = Date.now(); });
   }
 
   /** 받아 둔 자리를 카드 꼴로(base 포인트는 지금 목록 items 에서). */
@@ -846,6 +865,7 @@
           fs.appendChild(lw);
         }
         var ful = el('ul', 'cards');
+        curSec = 'find';
         found.slice(0, SPOT_FIND_N).forEach(function (it) { ful.appendChild(card(it, now)); });
         fs.appendChild(ful);
         listEl.appendChild(fs);
@@ -856,6 +876,7 @@
       var ns = el('section', 'area near');
       ns.appendChild(el('h2', 'near-title', tr('📍 내 근처 ' + NEAR_N + '곳', '📍 Nearest ' + NEAR_N + ' spots')));
       var nul = el('ul', 'cards');
+      curSec = 'near';
       nearest(items.concat(spotItems()).filter(fits), nearAt.lat, nearAt.lon, NEAR_N).forEach(function (x) {
         var c = Object.create(x.it);
         c.km = x.km;
@@ -895,6 +916,7 @@
       shown += group.length;
       if (isOpen) {
         var ul = el('ul', 'cards');
+        curSec = 'area';
         group.forEach(function (it) { ul.appendChild(card(it, now)); });
         sec.appendChild(ul);
       }
@@ -1027,35 +1049,36 @@
    * 식당은 짧은 목록(stayRows). 숙소 칸은 다시 그려도 받은 것이 남게 포인트마다 한 번 만든 칸을 옮겨 붙임.
    */
   var stayOut = {}, partnersP = null;
-  function stayBox(p) {
+  function stayBox(p, sec) {
     var box = el('div', 'stays');
+    var sk = sec + '|' + p.name;   // 묶음마다 따로(같은 카드가 내 근처 · 지역에 함께 있을 때 - 전에는 아래 카드로 옮겨 붙었음)
     var row = el('div', 'stay-btns');
     var openKind = null;
     [['', tr('🏨 근처 숙소', '🏨 Lodging nearby')], ['food', tr('🍽 근처 식당', '🍽 Food nearby')]].forEach(function (k) {
-      var on = stays.open === p.name + '|' + k[0];
+      var on = stays.open === sk + '|' + k[0];
       if (on) openKind = k[0];
       var b = el('button', 'stay-btn', k[1] + (on ? ' ▴' : ' ▾'));
       b.type = 'button';
       b.setAttribute('aria-expanded', on ? 'true' : 'false');
       b.addEventListener('click', function () {
-        stays.open = on ? null : p.name + '|' + k[0];
-        if (!on && !k[0]) lodging(p);
+        stays.open = on ? null : sk + '|' + k[0];
+        if (!on && !k[0]) lodging(p, sk);
         if (!on && k[0]) food(p);
         draw();
       });
       row.appendChild(b);
     });
     box.appendChild(row);
-    if (openKind === '' && stayOut[p.name]) box.appendChild(stayOut[p.name]);
+    if (openKind === '' && stayOut[sk]) box.appendChild(stayOut[sk]);
     if (openKind === 'food') box.appendChild(foodEl(stays['food:' + p.lat.toFixed(4) + ',' + p.lon.toFixed(4)]));
     return box;
   }
 
   /** 숙소 - 처음 열 때 한 번 RF.staySearch(form 없이)로 그 자리를 보임. kit-tidefly.js 가 없으면 식당과 같은 짧은 목록으로. */
-  function lodging(p) {
-    if (stayOut[p.name]) return;
+  function lodging(p, sk) {
+    if (stayOut[sk]) return;
     var out = el('div', 'ssOut');
-    stayOut[p.name] = out;
+    stayOut[sk] = out;
     var RF = window.RF;
     if (!RF || !RF.staySearch) { out.textContent = tr('숙소 화면을 불러오지 못했습니다.', 'Could not load the lodging view.'); return; }
     if (!partnersP) partnersP = fetch('api/partners').then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; });
@@ -1121,6 +1144,7 @@
         lastText = text;
         lastData = data;
         items = data.items || [];
+        spotMarks = data.marks || {};
         draw();
       }
       // 서버가 아직 받는 중이면 10초 뒤, 아니면 10분 뒤 다시(남은 시간 글은 1분마다 새로)
@@ -1147,10 +1171,15 @@
     fixed.forEach(function (f) { f[0].innerHTML = lang === 'en' ? f[0].getAttribute('data-en') : f[1]; });
     phs.forEach(function (f) { f[0].setAttribute('placeholder', lang === 'en' ? f[0].getAttribute('data-en-ph') : f[1]); });
     Array.prototype.forEach.call(langBtns, function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-lang') === lang ? 'true' : 'false'); });
+    paintToday();
+    paintOptions();
+  }
+
+  /** 머리의 오늘 날짜 - 1분마다 다시(자정을 넘겨 열어 둔 화면이 어제 날짜로 남던 것, 점검 10차). */
+  function paintToday() {
     var today = new Date(Date.now() + 9 * 3600 * 1000);
     document.getElementById('today').textContent = '· ' + tr((today.getUTCMonth() + 1) + '월 ' + today.getUTCDate() + '일 ' + WEEK[today.getUTCDay()] + '요일',
       WEEK_EN[today.getUTCDay()] + ', ' + MONTH_EN[today.getUTCMonth()] + ' ' + today.getUTCDate());
-    paintOptions();
   }
 
   // 다크 · 밝은 모드, 글자 크기 단추(2026-11-15 홍TV님) - 고른 것은 이 기기에 기억(tf-theme · tf-size · tf-lang)
@@ -1180,6 +1209,8 @@
     b.addEventListener('click', function () {
       setLang(b.getAttribute('data-lang'));
       save('tf-lang', lang);
+      stayOut = {};   // 숙소 칸은 만든 때의 말로 남아 있어 새로 만듦(점검 10차 - 말을 바꿔도 숙소 칸은 그대로였음)
+      stays.open = null;
       paintFixed();
       draw();
     });
@@ -1219,7 +1250,7 @@
   var savedLang = loadText('tf-lang');
   setLang(urlLang || savedLang || (/^ko\b/i.test(navigator.language || 'ko') ? 'ko' : 'en'));
   paintFixed();
-  setInterval(function () { if (!document.hidden) draw(); }, 60000);
+  setInterval(function () { if (!document.hidden) { paintToday(); draw(); } }, 60000);
   setInterval(checkAlarms, 30000);
   document.getElementById('alarm').addEventListener('click', function () { this.hidden = true; });
   fetch('data/tidefly-law.json').then(function (r) { return r.ok ? r.json() : {}; }).then(function (d) { law = d || {}; draw(); }).catch(function () { /* 금어기 글 없이 */ });

@@ -29,6 +29,8 @@ public class RainServlet extends HttpServlet {
         out.addProperty("success", true);
         JsonObject rain = Radar.at(at[0], at[1]);
         if (rain != null) out.add("rain", rain);
-        Json.ok(req, resp, out);
+        // 걷는 중 위치 칸(5km)이 주소에 있어 공용 캐시(5분 public)에 남기지 않음 - 늘 새로(점검 10차 B5)
+        resp.setHeader("Cache-Control", "no-store");
+        Json.send(resp, out.toString());
     }
 }

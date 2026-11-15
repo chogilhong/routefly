@@ -268,6 +268,10 @@ public class StatsTest {
         Stats.hit("/hike.html", null, mip, null, null, null, "모바일", null);
         assertTrue("모바일 앱으로 처음", Stats.js(mip, "모바일", true));
         assertFalse("앱도 한 번만", Stats.js(mip, "모바일", true));
+        // 앱 신호 수(걸러내기 전)도 주소마다 하루 한 번(점검 10차 B4)
+        String sip = "203.0.113." + (int) (Math.random() * 200 + 20);
+        assertTrue("처음 신호", Stats.appSignal(sip));
+        assertFalse("같은 주소 되풀이는 안 셈", Stats.appSignal(sip));
 
         TreeMap<String, JsonObject> days = new TreeMap<>();
         days.put("2026-10-21", JsonParser.parseString("{\"pages\":{},\"uniq\":50,\"bots\":0,\"devUniq\":{\"PC\":50}}").getAsJsonObject());
@@ -307,7 +311,7 @@ public class StatsTest {
         // PC(Windows) 는 git 이 CRLF 로 풀어 아래 "\n" 비교가 깨졌음(2026-11-15 PC) - 줄 끝만 맞춤
         String sv = new String(java.nio.file.Files.readAllBytes(java.nio.file.Path.of("src/main/java/com/gh/routefly/web/SeenServlet.java")), java.nio.charset.StandardCharsets.UTF_8).replace("\r\n", "\n");
         assertTrue(sv.contains("\"1\".equals(req.getParameter(\"app\"))"));
-        assertTrue("걸러내기 전 신호도 셈 · 까닭 숫자", sv.contains("if (app) Stats.appSignal();") && sv.contains("if (app) Stats.appWhy(got ? \"셈\" : \"이미 셈\");")
+        assertTrue("걸러내기 전 신호도 셈(주소마다 하루 한 번 - 점검 10차 B4) · 까닭 숫자", sv.contains("boolean app = \"1\".equals(req.getParameter(\"app\")) && Stats.appSignal(ip);") && sv.contains("if (app) Stats.appWhy(got ? \"셈\" : \"이미 셈\");")
             && sv.contains("} else if (app) {\n            Stats.appWhy(why);"));
         assertTrue("앱 신호는 화면 경로만 로그에(2026-11-15 - ? 뒤 · IP 없이)", sv.contains("log.info(\"[SEEN] 앱 신호 {} - {}\", why, page(req.getHeader(\"Referer\")));"));
         assertTrue("신호는 하루에 한 번(앱은 웹뷰가 살아 있어 sessionStorage 가 남음)", js.contains("sessionStorage.getItem(\"rf-seen\") === day"));

@@ -35,7 +35,7 @@ public class FullReviewStage1Test {
         String en = MountainEn.page(peak, new ArrayList<>(List.of(c)), new ArrayList<>(), null, "https://r.kr");
         assertTrue("영어 산 페이지에도 정상 미포함", en.contains("⚠ does not reach") && en.contains("(상왕봉)"));
         assertTrue("영어 3D 링크도 m= (‹ 가 산 페이지로)", en.contains("/index.html?lang=en#c=frst-1-a&amp;m="));
-        String ko = MountainServlet.page(peak, new ArrayList<>(List.of(c)), new ArrayList<>(), null, "https://r.kr");
+        String ko = MountainServlet.page(peak, new ArrayList<>(List.of(c)), new ArrayList<>(), null, "https://r.kr", java.time.LocalDate.now(WeatherServlet.KST).getMonthValue());
         assertTrue(ko.contains("⚠ 상왕봉 정상 미포함"));
         String page = CoursePageServlet.page(c, null, null, null, null, new JsonArray(), true, "https://r.kr", List.of());
         assertTrue("코스 페이지에도", page.contains("<dt>주의</dt><dd>⚠ 상왕봉 정상 미포함"));

@@ -61,7 +61,7 @@ public class FullReviewStage4Test {
         JsonObject c = null;
         for (var e : JsonParser.parseString(read("src/test/resources/course/courses-q-연화산.json")).getAsJsonObject().getAsJsonArray("courses"))
             if ("frst-488205101-f3e4e9".equals(e.getAsJsonObject().get("course_id").getAsString())) c = e.getAsJsonObject();
-        String page = MountainServlet.page(peak, new java.util.ArrayList<>(List.of(c)), new java.util.ArrayList<>(), null, "https://routefly.kr/routefly");
+        String page = MountainServlet.page(peak, new java.util.ArrayList<>(List.of(c)), new java.util.ArrayList<>(), null, "https://routefly.kr/routefly", java.time.LocalDate.now(WeatherServlet.KST).getMonthValue());
         assertTrue("🚌 가는 길 옆, 처음엔 숨김", page.contains("🚌 가는 길</a><a class=\"way tmap\" hidden data-name=\"연화산 들머리\" data-lat="));
         assertTrue(read("src/main/webapp/js/mountain.js").contains("window.RF.tmapLinks(document, navigator.userAgent);")
                 && read("src/main/webapp/js/course-page.js").contains("window.RF.tmapLinks(document, navigator.userAgent);"));

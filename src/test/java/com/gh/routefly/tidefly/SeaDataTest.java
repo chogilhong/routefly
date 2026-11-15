@@ -93,7 +93,11 @@ public class SeaDataTest {
         assertEquals(Verdict.CARE, v.mark());
         assertEquals(List.of("서해중부바깥먼바다 풍랑 예비특보"), v.reasons());
         // 상위 구역 코드로 짝을 지어도 걸림
-        assertEquals(Verdict.CARE, Verdict.judge(false, List.of("S1250000"), w, sea(null)).mark());
+        assertEquals(Verdict.CARE, Verdict.judge(false, List.of("S1250000"), w, sea(1)).mark());
+        // 너울 값이 빈 응답은 판단하지 않음(점검 10차 A3 - 전에는 ○ "특보 없음")
+        Verdict noSwell = Verdict.judge(false, other, w, sea(null));
+        assertEquals(null, noSwell.mark());
+        assertEquals(List.of("너울 예측을 받지 못함 - 판단하지 않음"), noSwell.reasons());
 
         assertEquals(Verdict.CARE, Verdict.judge(false, other, w, sea(2)).mark());
         assertEquals(Verdict.NO, Verdict.judge(false, other, w, sea(3)).mark());

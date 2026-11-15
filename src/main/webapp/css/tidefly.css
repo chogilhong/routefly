@@ -20,8 +20,7 @@
 /* 글자 크기(가 단추): 보통 · 크게 · 아주 크게 */
 :root[data-size="l"] { font-size: 112.5%; }
 :root[data-size="xl"] { font-size: 125%; }
-}
-* { box-sizing: border-box; }
+* { box-sizing: border-box; }   /* 앞에 짝 없는 } 가 있어 이 줄이 버려졌었음(점검 10차 A13) */
 body { margin: 0; background: var(--bg); color: var(--ink); font-family: system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; line-height: 1.5; word-break: keep-all; overflow-wrap: anywhere; }
 .wrap { max-width: 40rem; margin: 0 auto; padding-left: 16px; padding-right: 16px; }
 .top { background: linear-gradient(135deg, var(--top1), var(--top2)); color: #fff; padding: 18px 0 16px; }

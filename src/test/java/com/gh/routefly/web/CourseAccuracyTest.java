@@ -48,7 +48,7 @@ public class CourseAccuracyTest {
         assertFalse(MountainServlet.fromTop(up, peak));
         assertFalse("원점회귀는 적힌 방향 그대로", MountainServlet.fromTop(loop, peak));
         List<JsonObject> cs = new ArrayList<>(List.of(down, up, loop));
-        String ko = MountainServlet.page(peak, cs, new ArrayList<>(), null, "");
+        String ko = MountainServlet.page(peak, cs, new ArrayList<>(), null, "", java.time.LocalDate.now(WeatherServlet.KST).getMonthValue());
         assertTrue(ko, ko.contains("/hike.html?lang=ko#c=k2&amp;rev=1&amp;m="));
         assertTrue(ko.contains("/hike.html?lang=ko#c=k1&amp;m="));
         assertTrue(ko.contains("/hike.html?lang=ko#c=k3&amp;m="));

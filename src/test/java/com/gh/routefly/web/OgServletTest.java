@@ -40,7 +40,7 @@ public class OgServletTest {
 
     @Test
     public void pagesPointToIt() {
-        String ko = MountainServlet.page(SEORAK, new java.util.ArrayList<>(), new java.util.ArrayList<>(), null, "https://r.kr");
+        String ko = MountainServlet.page(SEORAK, new java.util.ArrayList<>(), new java.util.ArrayList<>(), null, "https://r.kr", java.time.LocalDate.now(WeatherServlet.KST).getMonthValue());
         assertTrue(ko.contains("<meta property=\"og:image\" content=\"https://r.kr/og/m/%EC%84%A4%EC%95%85%EC%82%B0.png\">"));
         String en = MountainEn.page(SEORAK, new java.util.ArrayList<>(), new java.util.ArrayList<>(), null, "https://r.kr");
         assertTrue(en.contains("<meta property=\"og:image\" content=\"https://r.kr/og/en/seoraksan.png\">"));

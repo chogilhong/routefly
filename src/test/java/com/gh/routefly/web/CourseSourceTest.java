@@ -136,7 +136,7 @@ public class CourseSourceTest {
         assertTrue(html.indexOf("class=\"dim made\"") > html.indexOf("class=\"lead\""));
         JsonObject gaya = made("{\"id\":\"가야산\",\"name\":\"가야산\",\"lat\":35.822544,\"lon\":128.122849}");
         k.addProperty("course_id", "knps-7013");
-        assertTrue("산 페이지 코스 카드", MountainServlet.page(gaya, List.of(k), List.of(), null, "https://r.kr").contains("<small class=\"made\">출처: 국립공원공단</small>"));
+        assertTrue("산 페이지 코스 카드", MountainServlet.page(gaya, List.of(k), List.of(), null, "https://r.kr", java.time.LocalDate.now(WeatherServlet.KST).getMonthValue()).contains("<small class=\"made\">출처: 국립공원공단</small>"));
         assertTrue("영어 산 페이지", MountainEn.page(gaya, List.of(k), List.of(), null, "https://r.kr").contains("<small class=\"made\">Source: Korea National Park Service</small>"));
     }
 }

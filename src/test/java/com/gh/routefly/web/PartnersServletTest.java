@@ -74,7 +74,7 @@ public class PartnersServletTest {
         com.google.gson.JsonObject peak = com.google.gson.JsonParser.parseString("{\"id\":\"가야산\",\"name\":\"가야산\",\"lat\":35.8226,\"lon\":128.1229}").getAsJsonObject();
         com.google.gson.JsonObject c = com.google.gson.JsonParser.parseString("{\"course_id\":\"k1\",\"name\":\"해인사 → 상왕봉\",\"distance_m\":4000,\"ascent_m\":600,"
                 + "\"start_lat\":35.80,\"start_lon\":128.09,\"end_lat\":35.8226,\"end_lon\":128.1229}").getAsJsonObject();
-        String page = MountainServlet.page(peak, new java.util.ArrayList<>(java.util.List.of(c)), new java.util.ArrayList<>(), null, "");
+        String page = MountainServlet.page(peak, new java.util.ArrayList<>(java.util.List.of(c)), new java.util.ArrayList<>(), null, "", java.time.LocalDate.now(WeatherServlet.KST).getMonthValue());
         int so = page.indexOf("<p class=\"stays\" id=\"socar\" hidden></p>");
         assertTrue("코스 목록 아래 숨긴 쏘카 칸 - 안내 글(찜 · 예상 시간) 아래", so > page.indexOf("</ul>") && so > page.indexOf("<p class=\"dim\">예상 시간은 "));
         try {

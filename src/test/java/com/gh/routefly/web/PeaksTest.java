@@ -98,7 +98,7 @@ public class PeaksTest {
         both.add(seorak);
         both.add(jeombong);
         assertEquals("꼭대기가 아닌 자리는 공식 높이를 붙이지 않음", 1, Peaks.tops(both).size());
-        String html = MountainServlet.page(jeombong, new java.util.ArrayList<>(), new java.util.ArrayList<>(), null, "https://r.kr");
+        String html = MountainServlet.page(jeombong, new java.util.ArrayList<>(), new java.util.ArrayList<>(), null, "https://r.kr", java.time.LocalDate.now(WeatherServlet.KST).getMonthValue());
         assertTrue(html.contains("산림청 100대 명산 · 해발 1,426m · 도장 자리 곰배령"));
         assertFalse("곰배령에 산 높이를 붙이지 않음", html.contains("정상 곰배령"));
         assertTrue(html.contains("점봉산은 해발 약 1,426m"));
