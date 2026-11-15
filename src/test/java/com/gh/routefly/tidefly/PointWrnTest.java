@@ -39,8 +39,8 @@ public class PointWrnTest {
             for (String id : ids) assertTrue(name + " " + id, id.startsWith("S") && known.contains(id));
             n++;
         }
-        assertEquals("바다낚시지수 49 + 국가어항 103(2026-11-15)", 152, n);
-        assertEquals(152, regs.size());
+        assertEquals("바다낚시지수 49 + 국가어항 103 + 지방어항 232(2026-11-15)", 384, n);
+        assertEquals(384, regs.size());
     }
 
     @Test
@@ -77,7 +77,7 @@ public class PointWrnTest {
                 }
             }
         }
-        assertEquals("기존 11 + 국가어항 섬 · 경계 · 울릉(2026-11-15)", 25, n);
+        assertEquals("기존 11 + 국가어항 섬 · 경계 · 울릉 14 + 지방어항 13(2026-11-15)", 38, n);
         List<SeaWarning> w = SeaWarning.parse(Files.readString(PointsBuild.RES.resolve("apihub/wrn-now.txt"), StandardCharsets.UTF_8));
         SeaForecast calm = new SeaForecast("2026111400", "2026111415", 163, 8, 0.6, 4.2, 319.2, 7.0, 28.5, 13300.0, 0.0, 16.3, 1);
         Verdict v = Verdict.judge(true, TideflyServlet.regIds(regs, "안흥항서측(40km)"), w, calm);

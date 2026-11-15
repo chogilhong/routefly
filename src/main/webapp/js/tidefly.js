@@ -472,7 +472,7 @@
     var title = el('div', 'title');
     title.appendChild(el('h3', 'name', placeName(p.name)));
     if (lang === 'en') title.appendChild(el('span', 'kind', p.name + ' · '));
-    title.appendChild(el('span', 'kind', p.boat ? tr('선상', 'Boat fishing') : p.port ? tr('항구 · 방파제(국가어항)', 'Fishing port · breakwater') : tr('갯바위 · 방파제', 'Rocks · breakwater')));
+    title.appendChild(el('span', 'kind', p.boat ? tr('선상', 'Boat fishing') : p.port ? (p.local ? tr('항구 · 방파제(지방어항)', 'Fishing port · breakwater') : tr('항구 · 방파제(국가어항)', 'Fishing port · breakwater')) : tr('갯바위 · 방파제', 'Rocks · breakwater')));
     if (typeof it.km === 'number') title.appendChild(el('span', 'kind', tr(' · 약 ' + it.km + 'km', ' · about ' + it.km + ' km')));   // 📍 내 근처에서 온 카드
     head.appendChild(title);
     head.appendChild(el('span', 'chev', isOpen ? '▴' : '▾'));

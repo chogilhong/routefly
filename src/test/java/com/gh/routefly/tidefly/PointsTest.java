@@ -22,7 +22,8 @@ public class PointsTest {
         String large = Files.readString(PointsBuild.RES.resolve("apihub/marine-large-all.txt"), StandardCharsets.UTF_8), tide = Files.readString(PointsBuild.TIDE_STATIONS, StandardCharsets.UTF_8);
         // 2026-11-15 국가어항을 더함 - 바다낚시지수 49곳(build) 뒤에 PortsBuild.withPorts
         String rebuilt = PortsBuild.withPorts(PointsBuild.build(PointsBuild.fishingPages(), large, tide),
-                new String(Files.readAllBytes(PortsBuild.CSV), java.nio.charset.Charset.forName("MS949")), large, tide);
+                new String(Files.readAllBytes(PortsBuild.CSV), java.nio.charset.Charset.forName("MS949")),
+                new String(Files.readAllBytes(PortsBuild.LOCAL_CSV), java.nio.charset.Charset.forName("MS949")), large, tide);   // 지방어항(2026-11-15 2단계)
         // PC 는 git core.autocrlf=true 라 체크아웃한 파일이 CRLF(2026-11-14 PC) - 줄 끝만 맞춰 비교
         assertEquals("응답이 바뀌었으면 tidefly.PortsBuild 를 다시 돌려 커밋", rebuilt, Files.readString(PointsBuild.OUT, StandardCharsets.UTF_8).replace("\r\n", "\n"));
     }
@@ -30,17 +31,19 @@ public class PointsTest {
     @Test
     public void 포인트_49곳_모두_대해구_안_선상_15곳() throws Exception {
         JsonArray a = JsonParser.parseString(Files.readString(PointsBuild.OUT, StandardCharsets.UTF_8)).getAsJsonArray();
-        assertEquals("바다낚시지수 49 + 국가어항 103(2026-11-15)", 152, a.size());
-        int boat = 0, port = 0;
+        assertEquals("바다낚시지수 49 + 국가어항 103 + 지방어항 232(2026-11-15)", 384, a.size());
+        int boat = 0, port = 0, local = 0;
         for (var e : a) {
             if (e.getAsJsonObject().has("port") && e.getAsJsonObject().get("port").getAsBoolean()) port++;
+            if (e.getAsJsonObject().has("local") && e.getAsJsonObject().get("local").getAsBoolean()) local++;
             assertTrue(e.toString(), e.getAsJsonObject().get("lzone").getAsInt() > 0);
             int sz = e.getAsJsonObject().get("szone").getAsInt();
             assertTrue(e.toString(), sz >= 1 && sz <= 9);
             if (e.getAsJsonObject().get("boat").getAsBoolean()) boat++;
         }
         assertEquals(15, boat);
-        assertEquals(103, port);
+        assertEquals(335, port);
+        assertEquals(232, local);
     }
 
     @Test

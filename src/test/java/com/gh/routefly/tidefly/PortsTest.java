@@ -21,6 +21,10 @@ public class PortsTest {
         return new String(Files.readAllBytes(PortsBuild.CSV), Charset.forName("MS949"));
     }
 
+    private static String local() throws Exception {
+        return new String(Files.readAllBytes(PortsBuild.LOCAL_CSV), Charset.forName("MS949"));
+    }
+
     private static String base() throws Exception {
         return PointsBuild.build(PointsBuild.fishingPages(), Files.readString(PointsBuild.RES.resolve("apihub/marine-large-all.txt"), StandardCharsets.UTF_8),
                 Files.readString(PointsBuild.TIDE_STATIONS, StandardCharsets.UTF_8));
@@ -29,7 +33,7 @@ public class PortsTest {
     @Test
     public void 짝_json_은_규정으로_다시_만든_것과_같음() throws Exception {
         String now = Files.readString(PortsBuild.WRN, StandardCharsets.UTF_8).replace("\r\n", "\n");
-        assertEquals("어항 짝은 PortsBuild.zones 그대로, 바다낚시지수 49곳은 손본 그대로", PortsBuild.withPortZones(now, base(), csv()), now);
+        assertEquals("어항 짝은 PortsBuild.zones 그대로, 바다낚시지수 49곳은 손본 그대로", PortsBuild.withPortZones(now, base(), csv(), local()), now);
     }
 
     @Test
@@ -41,6 +45,24 @@ public class PortsTest {
         assertFalse("원본에 사동항과 주소 · 위경도가 같게 잘못 들어 있음", names.contains("소안항"));
         assertTrue(names.contains("사동항(전남)") || names.contains("사동항"));
         assertTrue("삼척 대진항 포인트와 이름이 겹쳐 시도를 붙임", names.contains("대진항(경북)") && !names.contains("대진항"));
+    }
+
+    @Test
+    public void 지방어항은_위치_없는_곳_가까운_곳을_빼고_이름은_겹치지_않게() throws Exception {
+        List<String[]> national = PortsBuild.ports(base(), csv());
+        List<String> names = new ArrayList<>();
+        for (String[] p : PortsBuild.localPorts(base(), national, local())) {
+            names.add(p[0]);
+            assertEquals("지방", p[4]);
+        }
+        assertEquals("242곳 - 위치 빈 창후항 1 - 1.5km 안 9", 232, names.size());
+        assertFalse("공간정보가 빈 줄", names.contains("창후항"));
+        for (String same : new String[] {"초곡항", "관포항", "은점항", "만리포항", "어사항", "무녀도항", "식도항", "어불항", "원평항"}) assertFalse(same, names.contains(same));
+        assertTrue("파일 안에서 겹친 이름은 시도", names.containsAll(List.of("신암항(부산)", "신암항(울산)", "동백항(부산)", "동백항(전남)", "송포항(경남)", "송포항(전북)")));
+        assertTrue("바다낚시지수 방포항과 같은 동네", names.contains("방포항(어항)"));
+        assertTrue("국가어항 금진항(강원)과 겹침", names.contains("금진항(전남)"));
+        assertEquals(List.of("S1311100"), PortsBuild.zones("부산광역시 해운대구 송정동", "송정항", 35.18, 129.20));
+        assertEquals("동만 있는 서귀포 주소", List.of("S1323300"), PortsBuild.zones("제주특별자치도 서귀포시 법환동", "법환항", 33.24, 126.51));
     }
 
     @Test

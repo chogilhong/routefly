@@ -36,18 +36,21 @@ public final class PortsBuild {
     }
 
     static final Path CSV = PointsBuild.RES.resolve("points/fishing-ports-3083027.csv");
+    /** 해양수산부_공동활용체계_지방어항(공공데이터 15147449, 242곳 - 국립해양조사원 소형선항만안내도 2017 · 고시 2020, 위치 POINT(경도 위도)). 2026-11-15 2단계. */
+    static final Path LOCAL_CSV = PointsBuild.RES.resolve("points/15147449-지방어항_20211230.csv");
     static final Path WRN = Path.of("src", "main", "webapp", "data", "tidefly-point-wrn.json");
 
     public static void main(String[] args) throws Exception {
         String base = PointsBuild.build(PointsBuild.fishingPages(), Files.readString(PointsBuild.RES.resolve("apihub/marine-large-all.txt"), StandardCharsets.UTF_8),
                 Files.readString(PointsBuild.TIDE_STATIONS, StandardCharsets.UTF_8));
         String csv = new String(Files.readAllBytes(CSV), Charset.forName("MS949"));
+        String local = new String(Files.readAllBytes(LOCAL_CSV), Charset.forName("MS949"));
         String large = Files.readString(PointsBuild.RES.resolve("apihub/marine-large-all.txt"), StandardCharsets.UTF_8);
         String tide = Files.readString(PointsBuild.TIDE_STATIONS, StandardCharsets.UTF_8);
-        Files.writeString(PointsBuild.OUT, withPorts(base, csv, large, tide), StandardCharsets.UTF_8);
-        Files.writeString(WRN, withPortZones(Files.readString(WRN, StandardCharsets.UTF_8), base, csv), StandardCharsets.UTF_8);
+        Files.writeString(PointsBuild.OUT, withPorts(base, csv, local, large, tide), StandardCharsets.UTF_8);
+        Files.writeString(WRN, withPortZones(Files.readString(WRN, StandardCharsets.UTF_8), base, csv, local), StandardCharsets.UTF_8);
         System.out.println("→ " + PointsBuild.OUT.toAbsolutePath() + " · " + WRN.toAbsolutePath());
-        for (String[] r : ports(base, csv)) System.out.println("| " + r[0] + " | " + r[2] + " | " + r[3] + " | " + zoneText(zones(r[1], r[0], Double.parseDouble(r[2]), Double.parseDouble(r[3]))) + " | " + r[1] + " |");
+        for (String[] r : all(base, csv, local)) System.out.println("| " + r[0] + " | " + r[4] + " | " + r[2] + " | " + r[3] + " | " + zoneText(zones(r[1], r[0], Double.parseDouble(r[2]), Double.parseDouble(r[3]))) + " | " + r[1] + " |");
     }
 
     /** 순수 함수 - 짝 코드들 → 문서 표 글("강원북부앞바다(S1151100) · …"). */
@@ -57,7 +60,7 @@ public final class PortsBuild {
         return b.toString();
     }
 
-    /** 순수 함수 - 기존 points 글 + 어항 csv → 더할 어항 [이름, 주소, 위도, 경도](이름 차례). */
+    /** 순수 함수 - 기존 points 글 + 어항 csv → 더할 국가어항 [이름, 주소, 위도, 경도, "국가"](이름 차례). */
     static List<String[]> ports(String basePoints, String csv) {
         JsonArray base = JsonParser.parseString(basePoints).getAsJsonArray();
         Set<String> names = new java.util.HashSet<>();
@@ -81,19 +84,68 @@ public final class PortsBuild {
             }
             if (same) continue;
             if (names.contains(name)) name = name + "(" + sidoShort(addr) + ")";
-            out.put(name, new String[] {name, addr, r.get(iLat).trim(), r.get(iLon).trim()});
+            out.put(name, new String[] {name, addr, r.get(iLat).trim(), r.get(iLon).trim(), "국가"});
         }
         return new ArrayList<>(out.values());
     }
 
+    /**
+     * 순수 함수 - 더할 지방어항 [이름, 주소, 위도, 경도, "지방"](이름 차례). 위치가 빈 줄(창후항)은 뺌.
+     * 기존 포인트 · 국가어항에서 SAME_KM 안이면 같은 곳으로 보고 뺌. 이름이 바다낚시지수 포인트와 겹치면 "(어항)", 국가어항과 겹치거나 파일 안에서 겹치면(신암항 · 동백항 · 송포항) "(시도)" 를 붙임.
+     */
+    static List<String[]> localPorts(String basePoints, List<String[]> national, String localCsv) {
+        List<double[]> near = new ArrayList<>();
+        Set<String> names = new java.util.HashSet<>(), baseNames = new java.util.HashSet<>();
+        for (JsonElement e : JsonParser.parseString(basePoints).getAsJsonArray()) {
+            JsonObject p = e.getAsJsonObject();
+            near.add(new double[] {p.get("lat").getAsDouble(), p.get("lon").getAsDouble()});
+            names.add(p.get("name").getAsString());
+            baseNames.add(p.get("name").getAsString());
+        }
+        for (String[] n : national) {
+            near.add(new double[] {Double.parseDouble(n[2]), Double.parseDouble(n[3])});
+            names.add(n[0]);
+            names.add(n[0].replaceAll("\\(.*\\)$", ""));
+        }
+        List<List<String>> rows = csv(localCsv);
+        List<String> h = rows.get(0);
+        int iName = h.indexOf("어항명"), iAddr = h.indexOf("항구지번주소"), iGeo = h.indexOf("공간정보");
+        java.util.Map<String, Integer> inFile = new java.util.HashMap<>();
+        for (List<String> r : rows.subList(1, rows.size())) if (r.size() > iName) inFile.merge(r.get(iName).trim(), 1, Integer::sum);
+        TreeMap<String, String[]> out = new TreeMap<>();
+        for (List<String> r : rows.subList(1, rows.size())) {
+            if (r.size() <= iGeo) continue;
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("POINT \\(([0-9.]+) ([0-9.]+)\\)").matcher(r.get(iGeo).trim());
+            if (!m.matches()) continue;
+            double lon = Double.parseDouble(m.group(1)), lat = Double.parseDouble(m.group(2));
+            boolean same = false;
+            for (double[] q : near) if (PointsBuild.km(lat, lon, q[0], q[1]) < SAME_KM) same = true;
+            if (same) continue;
+            String name = r.get(iName).trim(), addr = r.get(iAddr).trim();
+            if (baseNames.contains(name)) name = name + "(어항)";   // 같은 이름 바다낚시지수 포인트(방포항)와 같은 동네 - 시도로는 못 가름
+            else if (names.contains(name) || inFile.get(name) > 1) name = name + "(" + sidoShort(addr) + ")";
+            if (out.containsKey(name)) throw new IllegalStateException("이름 겹침: " + name);
+            out.put(name, new String[] {name, addr, String.format(Locale.ROOT, "%.5f", lat), String.format(Locale.ROOT, "%.5f", lon), "지방"});
+        }
+        return new ArrayList<>(out.values());
+    }
+
+    /** 순수 함수 - 더할 어항 모두(국가어항 뒤 지방어항). */
+    static List<String[]> all(String basePoints, String csv, String localCsv) {
+        List<String[]> national = ports(basePoints, csv);
+        List<String[]> out = new ArrayList<>(national);
+        out.addAll(localPorts(basePoints, national, localCsv));
+        return out;
+    }
+
     /** 순수 함수 - 짝 json 글에서 어항 아닌 줄(바다낚시지수 49곳 - 문서 표로 손본 것)은 그대로, 어항 줄은 zones 로 다시(이름 차례). */
-    static String withPortZones(String wrnJson, String basePoints, String csv) {
+    static String withPortZones(String wrnJson, String basePoints, String csv, String localCsv) {
         TreeMap<String, String> rows = new TreeMap<>();
         Set<String> baseNames = new java.util.HashSet<>();
         for (JsonElement e : JsonParser.parseString(basePoints).getAsJsonArray()) baseNames.add(e.getAsJsonObject().get("name").getAsString());
         JsonObject old = JsonParser.parseString(wrnJson).getAsJsonObject();
         for (String k : old.keySet()) if (baseNames.contains(k)) rows.put(k, line(k, gsonList(old.getAsJsonArray(k))));
-        for (String[] p : ports(basePoints, csv)) rows.put(p[0], line(p[0], zones(p[1], p[0], Double.parseDouble(p[2]), Double.parseDouble(p[3]))));
+        for (String[] p : all(basePoints, csv, localCsv)) rows.put(p[0], line(p[0], zones(p[1], p[0], Double.parseDouble(p[2]), Double.parseDouble(p[3]))));
         return "{\n" + String.join(",\n", rows.values()) + "\n}\n";
     }
 
@@ -113,7 +165,7 @@ public final class PortsBuild {
     static final double SAME_KM = 1.5;
 
     /** 순수 함수 - 기존 points 글에 어항을 더한 글(PointsBuild 와 같은 줄 모양 + "port":true, 이름 차례로 다시 섞음). */
-    static String withPorts(String basePoints, String csv, String largeZones, String tideStations) {
+    static String withPorts(String basePoints, String csv, String localCsv, String largeZones, String tideStations) {
         List<double[]> zones = PointsBuild.largeZones(largeZones);
         JsonArray stations = JsonParser.parseString(tideStations).getAsJsonArray();
         TreeMap<String, String> rows = new TreeMap<>();
@@ -122,13 +174,13 @@ public final class PortsBuild {
             String l = line.endsWith(",") ? line.substring(0, line.length() - 1) : line;
             rows.put(JsonParser.parseString(l).getAsJsonObject().get("name").getAsString(), l);
         }
-        for (String[] p : ports(basePoints, csv)) {
+        for (String[] p : all(basePoints, csv, localCsv)) {
             double lat = Double.parseDouble(p[2]), lon = Double.parseDouble(p[3]);
             double[] z = PointsBuild.zone(zones, lat, lon);
             JsonObject st = PointsBuild.nearest(stations, lat, lon);
             double km = PointsBuild.km(lat, lon, st.get("lat").getAsDouble(), st.get("lon").getAsDouble());
-            rows.put(p[0], String.format(Locale.ROOT, "{\"name\":\"%s\",\"lat\":%.5f,\"lon\":%.5f,\"boat\":false,\"port\":true,\"lzone\":%d,\"szone\":%d,\"tide\":\"%s\",\"tideName\":\"%s\",\"tideKm\":%.1f}",
-                    p[0], lat, lon, z == null ? 0 : (int) z[0], z == null ? 0 : PointsBuild.szone(z, lat, lon),
+            rows.put(p[0], String.format(Locale.ROOT, "{\"name\":\"%s\",\"lat\":%.5f,\"lon\":%.5f,\"boat\":false,\"port\":true,%s\"lzone\":%d,\"szone\":%d,\"tide\":\"%s\",\"tideName\":\"%s\",\"tideKm\":%.1f}",
+                    p[0], lat, lon, "지방".equals(p[4]) ? "\"local\":true," : "", z == null ? 0 : (int) z[0], z == null ? 0 : PointsBuild.szone(z, lat, lon),
                     st.get("code").getAsString(), st.get("name").getAsString().replace("\"", ""), km));
         }
         return "[\n" + String.join(",\n", rows.values()) + "\n]\n";
