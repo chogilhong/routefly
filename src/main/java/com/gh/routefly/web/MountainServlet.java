@@ -1155,7 +1155,8 @@ public class MountainServlet extends HttpServlet {
      * 접는 칸이 아니라 누르면 tidefly.html 로 감(?lang= 으로 화면 말을 맞춤).
      */
     static String tideflyRow(boolean en) {
-        return "<a class=\"kindLink\" href=\"" + REL + "/tidefly.html?lang=" + (en ? "en" : "ko") + "\"><span class=\"ft\">🎣 tidefly(" + (en ? "fishing trips" : "출조")
+        // 영어 /en/m/ 은 한 칸 더 깊어 MountainEn.REL("../..") - 2026-11-15 PC: "../tidefly.html" 이 /routefly/en/tidefly.html 로 가 404
+        return "<a class=\"kindLink\" href=\"" + (en ? MountainEn.REL : REL) + "/tidefly.html?lang=" + (en ? "en" : "ko") + "\"><span class=\"ft\">🎣 tidefly(" + (en ? "fishing trips" : "출조")
                 + ")</span><span class=\"fs\">" + (en ? "Sea fishing tides · wind · waves · warnings" : "바다낚시 물때 · 바람 · 파고 · 특보") + "</span><span class=\"fa\">›</span></a>";
     }
 

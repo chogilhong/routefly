@@ -20,7 +20,8 @@ public class TideflyEntryTest {
         int bike = h.indexOf("🚴 자전거"), tf = h.indexOf("🎣 tidefly(출조)"), stay = h.indexOf("</div>", tf);
         assertTrue(h, bike > 0 && tf > bike);
         assertTrue("자전거 칸이 닫힌 바로 뒤", h.contains("</div></details>" + MountainServlet.tideflyRow(false)));
-        assertTrue(h.contains("href=\"" + MountainServlet.REL + "/tidefly.html?lang=ko\""));
+        String href = h.replaceFirst("(?s).*<a class=\"kindLink\" href=\"([^\"]+)\".*", "$1");
+        assertTrue(href, java.net.URI.create("https://r.kr/routefly/m/").resolve(href).toString().equals("https://r.kr/routefly/tidefly.html?lang=ko"));
         assertTrue("접는 칸들(.folds) 안", stay > tf);
     }
 
@@ -29,6 +30,8 @@ public class TideflyEntryTest {
         String h = MountainEn.indexPage(new JsonArray(), GROUPS, "https://r.kr/routefly");
         int tf = h.indexOf("🎣 tidefly(fishing trips)");
         assertTrue(h, tf > h.indexOf("🚴"));
-        assertTrue(h.contains("/tidefly.html?lang=en\""));
+        // /routefly/en/m/ 에서 이 주소를 풀면 /routefly/tidefly.html 이어야 함(2026-11-15 PC: ../ 하나라 /routefly/en/tidefly.html 404)
+        String href = h.replaceFirst("(?s).*<a class=\"kindLink\" href=\"([^\"]+)\".*", "$1");
+        assertTrue(href, java.net.URI.create("https://r.kr/routefly/en/m/").resolve(href).toString().equals("https://r.kr/routefly/tidefly.html?lang=en"));
     }
 }

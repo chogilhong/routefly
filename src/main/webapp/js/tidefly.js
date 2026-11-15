@@ -444,7 +444,8 @@
     head.type = 'button';
     head.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
     head.addEventListener('click', function () {
-      if (openCard[p.name]) { delete openCard[p.name]; delete open[p.name]; } else openCard[p.name] = true;
+      // 2026-11-15 홍TV님 "다른 곳 펴기를 하면 기존 것은 접혀줘" - 카드는 하나만 펼침
+      if (openCard[p.name]) { delete openCard[p.name]; delete open[p.name]; } else { openCard = {}; open = {}; openCard[p.name] = true; }
       draw();
     });
     var badge = el('div', 'mark ' + m[1]);
@@ -612,7 +613,8 @@
       btn.appendChild(el('span', 'count', group.length + tr('곳', group.length === 1 ? ' spot' : ' spots') + (counts.no ? ' · ✕ ' + counts.no : '') + (counts.care ? ' · △ ' + counts.care : '')));
       btn.appendChild(el('span', 'arrow', isOpen ? tr('접기 ▴', 'Hide ▴') : tr('펴기 ▾', 'Show ▾')));
       btn.addEventListener('click', function () {
-        if (openAreas[area]) delete openAreas[area]; else openAreas[area] = true;
+        // 묶음도 하나만 펼침(2026-11-15 홍TV님) - 다른 묶음을 펴면 앞의 것은 접힘
+        if (openAreas[area]) delete openAreas[area]; else { openAreas = {}; openAreas[area] = true; }
         save('tf-open-areas', openAreas);
         draw();
       });
