@@ -1430,12 +1430,13 @@
         return m ? m[1] : place;
     }
     function staySearch(form, out, partnersP, base, en) {
-        if (!form || !out || form.rfBound) return;
-        form.rfBound = true;
-        var T = function (ko, e) { return en ? e : ko; }, input = form.querySelector("input");
+        // form 없이도(2026-11-15 홍TV님 tidefly 카드 "이런식으로 해줘") - 돌려준 함수 showAt(장소, 찾은 말)이 그 자리 숙소를 같은 모양(예약 단추 · 번호 지도 · 목록)으로
+        if (!out || (form && form.rfBound)) return null;
+        if (form) form.rfBound = true;
+        var T = function (ko, e) { return en ? e : ko; }, input = form ? form.querySelector("input") : null;
         // 접어도 검색 칸은 보이게(/m/ 처음부터 펴 둔 칸, data-keep - 2026-10-30 홍TV님 "접으면? 그래도 검색창은 보이게 해"):
         // 접으면 검색 칸을 칸 밖(제목 바로 아래)으로 옮기고 결과 · 지도만 접힘, 펴면 제자리로. 접힌 채로 찾으면 다시 폄
-        var det = form.closest ? form.closest("details[data-keep]") : null, home = form.parentNode;
+        var det = form && form.closest ? form.closest("details[data-keep]") : null, home = form ? form.parentNode : null;
         // 마우스로 제목을 누르면 브라우저가 먼저 초점을 제목으로 옮김 - 누르는 순간에 입력 칸이었는지 기억(2026-10-30 PC 확인)
         var wasIn = false, sum = det && det.querySelector("summary");
         if (sum) sum.addEventListener("pointerdown", function () { wasIn = document.activeElement === input; });
@@ -1556,7 +1557,7 @@
                 out.appendChild(el("p", T("숙소 목록: " + (kk ? "카카오 · " : "") + "한국관광공사(TourAPI) · 위치: " + (src || "국토교통부 V-World") + ". 요금 · 빈방은 예약 사이트에서 확인하세요.", "Lodging list: " + (kk ? "Kakao · " : "") + "Korea Tourism Organization · location: " + (src === "카카오" ? "Kakao" : "V-World") + ". Check prices and rooms on the booking sites."), "dim"));
             }).catch(function () { if (my !== seq) return; list.textContent = ""; list.appendChild(el("li", T("숙소 목록을 받지 못했습니다.", "Couldn't load the lodging list."))); });
         }
-        form.addEventListener("submit", function (e) {
+        if (form) form.addEventListener("submit", function (e) {
             e.preventDefault();
             if (det && !det.open) det.open = true;   // 결과가 보이게
             var q = String(input.value || "").trim();
@@ -1578,6 +1579,16 @@
                 show(p, pl[0], pl, r[0].partial ? T("\"" + q + "\" 을(를) 그대로는 찾지 못해 \"" + r[0].partial + "\" 근처로 보여 드립니다.", "Couldn't find \"" + q + "\" exactly - showing near \"" + r[0].partial + "\".") : "");
             }).catch(function () { if (my === seq) out.textContent = T("서버에 닿지 않습니다. 잠시 뒤 다시 해 주세요.", "Can't reach the server. Please try again shortly."); });
         });
+        /** 이름으로 찾지 않고 이 자리(pl = {name, addr, lat, lon})로 바로 - 예약 단추 검색어는 q(산 이름 · 포인트 이름), where 는 위치 자료 출처(아래 글). */
+        return function showAt(pl, q, where) {
+            lastQ = q || pl.name;
+            src = where || "";
+            var my = ++seq;
+            Promise.all([partnersP.catch(function () { return {}; }), loadCities()]).then(function (r) {
+                if (my !== seq) return;
+                show(r[0] || {}, pl, [pl], "");
+            });
+        };
     }
     /**
      * 산 페이지 코스 목록 아래 쏘카 한 줄(2026-11-03 홍TV님 - 링크프라이스 제휴). 쏘카는 휴대폰 앱 예약만 실적이라 휴대폰(ua)일 때만.

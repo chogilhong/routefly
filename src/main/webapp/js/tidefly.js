@@ -464,7 +464,7 @@
 
   function spotItem(s, baseItem, marks) {
     var b = baseItem || {}, bp = b.point || {}, m = (marks || {})[s.id];
-    var p = { name: s.name, lat: s.lat, lon: s.lon, boat: !!s.boat, spot: true, id: s.id, depth: s.depth, bottom: s.bottom, tideTime: s.tideTime, fish: s.fish,
+    var p = { name: s.name, lat: s.lat, lon: s.lon, boat: !!s.boat, spot: true, id: s.id, sido: s.sido, depth: s.depth, bottom: s.bottom, tideTime: s.tideTime, fish: s.fish,
       base: s.base, baseKm: s.baseKm, tideName: bp.tideName, tideKm: bp.tideKm };
     var out = { point: p, area: b.area, sea: b.sea, tides: b.tides, today: b.today, warnings: b.warnings };
     if (!baseItem) { out.mark = null; out.reasons = ['가까운 포인트 자료 없음 - 판단하지 않음']; }
@@ -1021,50 +1021,77 @@
     return wrap;
   }
 
-  /** 🏨 근처 숙소 · 🍽 식당 - 누르면 그 포인트 둘레(서버 반경)를 물음. 한 카드 안에서 하나만 펼침. */
+  /**
+   * 🏨 근처 숙소 · 🍽 식당 - 누르면 그 포인트 둘레를 물음(내 위치는 안 보냄). 한 카드 안에서 하나만 펼침.
+   * 숙소는 코스 모음 "🏨 근처 숙소 찾기" 와 같은 화면(RF.staySearch - 예약 단추 · 번호 지도 · 번호 목록, 2026-11-15 홍TV님 "이런식으로 해줘"),
+   * 식당은 짧은 목록(stayRows). 숙소 칸은 다시 그려도 받은 것이 남게 포인트마다 한 번 만든 칸을 옮겨 붙임.
+   */
+  var stayOut = {}, partnersP = null;
   function stayBox(p) {
     var box = el('div', 'stays');
     var row = el('div', 'stay-btns');
+    var openKind = null;
     [['', tr('🏨 근처 숙소', '🏨 Lodging nearby')], ['food', tr('🍽 근처 식당', '🍽 Food nearby')]].forEach(function (k) {
-      var key = k[0] + ':' + p.lat.toFixed(4) + ',' + p.lon.toFixed(4), on = stays.open === p.name + '|' + k[0];
+      var on = stays.open === p.name + '|' + k[0];
+      if (on) openKind = k[0];
       var b = el('button', 'stay-btn', k[1] + (on ? ' ▴' : ' ▾'));
       b.type = 'button';
       b.setAttribute('aria-expanded', on ? 'true' : 'false');
       b.addEventListener('click', function () {
         stays.open = on ? null : p.name + '|' + k[0];
-        if (!on && !stays[key]) {
-          stays[key] = 'loading';
-          fetch('api/stays?lat=' + p.lat.toFixed(4) + '&lon=' + p.lon.toFixed(4) + (k[0] ? '&kind=' + k[0] : '')).then(function (r) {
-            if (!r.ok) throw new Error('HTTP ' + r.status);
-            return r.json();
-          }).then(function (j) { stays[key] = j; draw(); }).catch(function () { stays[key] = 'error'; draw(); });
-        }
+        if (!on && !k[0]) lodging(p);
+        if (!on && k[0]) food(p);
         draw();
       });
       row.appendChild(b);
-      if (on) box.dataset.key = key;
     });
     box.appendChild(row);
-    var d = box.dataset.key ? stays[box.dataset.key] : null;
-    if (d === 'loading') box.appendChild(el('p', 'dim small', tr('받는 중…', 'Loading…')));
-    else if (d === 'error') { box.appendChild(el('p', 'dim small', tr('받지 못했습니다. 다시 눌러 보세요.', 'Could not load. Please tap again.'))); delete stays[box.dataset.key]; }
-    else if (d) {
-      var list = stayRows(d, STAY_N);
-      if (!list.length) box.appendChild(el('p', 'dim small', d.unavailable ? tr('지금은 숙소 · 식당 자료를 받을 수 없습니다.', 'Lodging and food data are unavailable now.') : tr('가까운 곳이 없습니다.', 'Nothing nearby.')));
-      var ul = el('ul', 'stay-list');
-      list.forEach(function (s) {
-        var li2 = el('li');
-        var nm = s.url ? el('a', null, s.name) : el('strong', null, s.name);
-        if (s.url) { nm.href = s.url; nm.target = '_blank'; nm.rel = 'noopener'; }
-        li2.appendChild(nm);
-        li2.appendChild(el('span', 'dim', ' ' + [s.kind, s.km != null ? s.km + 'km' : ''].filter(Boolean).join(' · ')));
-        if (s.addr) li2.appendChild(el('div', 'dim small', s.addr));
-        if (s.tel) { var t = el('a', 'tel', '☎ ' + s.tel); t.href = 'tel:' + s.tel.replace(/[^0-9+]/g, ''); li2.appendChild(t); }
-        ul.appendChild(li2);
-      });
-      box.appendChild(ul);
-      box.appendChild(el('p', 'dim small', tr('자료: ' + (d.source || '') + ' · 이 포인트에서 ' + (d.radius_km || '') + 'km 안, 가까운 차례', 'Source: ' + (d.source || '') + ' · within ' + (d.radius_km || '') + ' km of this spot')));
-    }
+    if (openKind === '' && stayOut[p.name]) box.appendChild(stayOut[p.name]);
+    if (openKind === 'food') box.appendChild(foodEl(stays['food:' + p.lat.toFixed(4) + ',' + p.lon.toFixed(4)]));
+    return box;
+  }
+
+  /** 숙소 - 처음 열 때 한 번 RF.staySearch(form 없이)로 그 자리를 보임. kit-tidefly.js 가 없으면 식당과 같은 짧은 목록으로. */
+  function lodging(p) {
+    if (stayOut[p.name]) return;
+    var out = el('div', 'ssOut');
+    stayOut[p.name] = out;
+    var RF = window.RF;
+    if (!RF || !RF.staySearch) { out.textContent = tr('숙소 화면을 불러오지 못했습니다.', 'Could not load the lodging view.'); return; }
+    if (!partnersP) partnersP = fetch('api/partners').then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; });
+    var show = RF.staySearch(null, out, partnersP, '', lang === 'en');
+    show({ name: p.name, addr: p.sido || '', lat: p.lat, lon: p.lon }, p.name, tr('tidefly 포인트', 'tidefly spot'));
+  }
+
+  function food(p) {
+    var key = 'food:' + p.lat.toFixed(4) + ',' + p.lon.toFixed(4);
+    if (stays[key]) return;
+    stays[key] = 'loading';
+    fetch('api/stays?lat=' + p.lat.toFixed(4) + '&lon=' + p.lon.toFixed(4) + '&kind=food').then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(function (j) { stays[key] = j; draw(); }).catch(function () { stays[key] = 'error'; draw(); });
+  }
+
+  function foodEl(d) {
+    var box = el('div');
+    if (d === 'loading' || !d) { box.appendChild(el('p', 'dim small', tr('받는 중…', 'Loading…'))); return box; }
+    if (d === 'error') { box.appendChild(el('p', 'dim small', tr('받지 못했습니다. 다시 눌러 보세요.', 'Could not load. Please tap again.'))); return box; }
+    var list = stayRows(d, STAY_N);
+    if (!list.length) box.appendChild(el('p', 'dim small', d.unavailable ? tr('지금은 식당 자료를 받을 수 없습니다.', 'Food data is unavailable now.') : tr('가까운 곳이 없습니다.', 'Nothing nearby.')));
+    var ul = el('ul', 'stay-list');
+    list.forEach(function (s) {
+      var li2 = el('li');
+      var nm = s.url ? el('a', null, s.name) : el('strong', null, s.name);
+      if (s.url) { nm.href = s.url; nm.target = '_blank'; nm.rel = 'noopener'; }
+      li2.appendChild(nm);
+      li2.appendChild(el('span', 'dim', ' ' + [s.kind, s.km != null ? s.km + 'km' : ''].filter(Boolean).join(' · ')));
+      if (s.addr) li2.appendChild(el('div', 'dim small', s.addr));
+      if (s.tel) { var t = el('a', 'tel', '☎ ' + s.tel); t.href = 'tel:' + s.tel.replace(/[^0-9+]/g, ''); li2.appendChild(t); }
+      ul.appendChild(li2);
+    });
+    box.appendChild(ul);
+    box.appendChild(el('p', 'dim small', tr('자료: ' + (d.source || '') + ' · 이 포인트에서 ' + (d.radius_km || '') + 'km 안, 가까운 차례', 'Source: ' + (d.source || '') + ' · within ' + (d.radius_km || '') + ' km of this spot')));
     return box;
   }
 
