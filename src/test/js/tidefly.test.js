@@ -78,6 +78,11 @@ assert.strictEqual(TF.dayName('2026-11-16'), '16일(월)');
   const max = Math.max.apply(null, days.map(d => d.rangeCm || 0));
   assert.strictEqual(rows[0].pct, Math.round(days[0].rangeCm / max * 100));
   assert.ok(rows.some(r => r.pct === 100));
+  // 월령: 음력 1 삭 · 8 상현 · 15 보름 · 23 하현 · 29 그믐달(course-kit moonPhase 와 같은 셈)
+  assert.deepStrictEqual([1, 4, 8, 12, 15, 19, 23, 27, 30].map(d => TF.moon(d)[0]).join(''), '🌑🌒🌓🌔🌕🌖🌗🌘🌑');
+  assert.deepStrictEqual(TF.moon(15), ['🌕', '보름달']);
+  assert.strictEqual(TF.moon(null), null);
+  assert.deepStrictEqual(rows[0].moon, ['🌓', '상현달']);   // 15일 음력 7일
   assert.strictEqual(TF.sunSpan(rows), '☀ 15일 07:11~17:26 → ' + +days[days.length - 1].date.slice(8) + '일 ' + days[days.length - 1].sunrise + '~' + days[days.length - 1].sunset);
   TF.setLang('en');
   assert.ok(TF.sunSpan(rows).startsWith('☀ 15: 07:11~17:26 → '), '영어 "Sun Sun 15" 겹침 없음');
@@ -88,7 +93,7 @@ assert.strictEqual(TF.dayName('2026-11-16'), '16일(월)');
   TF.setLang('ko');
   rows.forEach((r, k) => assert.strictEqual(r.cls, days[k].sari ? 'sari' : (days[k].mulddae === '조금' || days[k].mulddae === '무시') ? 'neap' : ''));
   assert.deepStrictEqual(TF.tideTable([{ date: '2026-11-16', lunarDay: 8, mulddae: '조금', sunrise: '07:05', sunset: '17:29' }])[0],
-    { date: '2026-11-16', day: '16일(월)', lunar: 8, mul: '조금', cls: 'neap', pct: null, highs: [], lows: [], sun: '07:05 ~ 17:29' });
+    { date: '2026-11-16', day: '16일(월)', lunar: 8, moon: ['🌓', '상현달'], mul: '조금', cls: 'neap', pct: null, highs: [], lows: [], sun: '07:05 ~ 17:29' });
 }
 assert.strictEqual(TF.hourLine({ tmEf: '2026111500', waveM: 0.4, windMs: 4.9, windDir: 318.6, swell: 1 }), '15일 09시 파고 0.4m · 바람 4.9m/s 북서풍 · 너울 관심');
 // 글자 크기 · 화면 모드

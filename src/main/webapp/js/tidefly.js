@@ -80,11 +80,23 @@
    * 줄마다 날짜 · 음력 · 물때(사리 'sari' · 조금 · 무시 'neap') · 물 세기 %(그 기간 가장 큰 높이 차 대비) · 만조 · 간조(시각 · 높이 cm · 앞 물때와 높이 차) · 해.
    * 높이 차는 앞 만조 · 간조(전날 마지막 것 포함)와의 차이 - 첫 날 첫 물때는 앞이 없어 null.
    */
+  /**
+   * 순수 함수 - 월령(달 모양) 음력 날로(2026-11-15 홍TV님 "월령 이라고 있네"): 달 나이 ≈ 음력 날 - 1, 8가지 모양은 course-kit.js moonPhase · MOON_NAMES 와 같은 셈 · 이름(둘 다 고침).
+   * → [그림, 이름]. 음력 날이 없으면 null.
+   */
+  var MOON = [['🌑', '삭', 'New moon'], ['🌒', '초승달', 'Waxing crescent'], ['🌓', '상현달', 'First quarter'], ['🌔', '보름 앞 달', 'Waxing gibbous'],
+    ['🌕', '보름달', 'Full moon'], ['🌖', '보름 지난 달', 'Waning gibbous'], ['🌗', '하현달', 'Last quarter'], ['🌘', '그믐달', 'Waning crescent']];
+  function moon(lunarDay) {
+    if (!(lunarDay >= 1 && lunarDay <= 30)) return null;
+    var m = MOON[Math.floor(((lunarDay - 1) / 29.530588853 * 8) + 0.5) % 8];
+    return [m[0], tr(m[1], m[2])];
+  }
+
   function tideTable(days) {
     var max = 0, prev = null;
     (days || []).forEach(function (d) { if (typeof d.rangeCm === 'number' && d.rangeCm > max) max = d.rangeCm; });
     return (days || []).map(function (d) {
-      var row = { date: d.date, day: dayName(d.date), lunar: d.lunarDay, mul: mul(d.mulddae),
+      var row = { date: d.date, day: dayName(d.date), lunar: d.lunarDay, moon: moon(d.lunarDay), mul: mul(d.mulddae),
         cls: d.sari ? 'sari' : (d.mulddae === '조금' || d.mulddae === '무시') ? 'neap' : '',
         pct: max > 0 && typeof d.rangeCm === 'number' ? Math.round(d.rangeCm / max * 100) : null,
         highs: [], lows: [], sun: d.sunrise + ' ~ ' + d.sunset };
@@ -393,7 +405,7 @@
   }
 
   var TF = { kst: kst, dir16: dir16, swell: swell, nums: nums, markOf: markOf, markWord: markWord, nowKst: nowKst, dayName: dayName,
-    tideTable: tideTable, sunSpan: sunSpan, hourLine: hourLine, untilText: untilText, nextTide: nextTide, curve: curve, nextSize: nextSize, isDark: isDark,
+    tideTable: tideTable, moon: moon, sunSpan: sunSpan, hourLine: hourLine, untilText: untilText, nextTide: nextTide, curve: curve, nextSize: nextSize, isDark: isDark,
     setLang: setLang, roman: roman, placeName: placeName, zoneName: zoneName, reason: reason, mul: mul,
     alarmPlan: alarmPlan, alarmText: alarmText, nearest: nearest, spotItem: spotItem, bare: bare, closedText: closedText };
   if (typeof module !== 'undefined' && module.exports) module.exports = TF;
@@ -814,11 +826,12 @@
       var c = el('div', 'tday ' + r.cls);
       c.appendChild(el('span', 'd', r.day));
       c.appendChild(el('span', 'm', r.mul));
+      if (r.moon) { var mo = el('span', 'moon', r.moon[0]); mo.title = r.moon[1]; c.appendChild(mo); }
       strip.appendChild(c);
     });
     wrap.appendChild(strip);
-    wrap.appendChild(el('p', 'dim small', tr('주황 사리(물 많이 들고 빠짐 · 흐름 셈) · 보라 조금 · 무시(흐름 약함). 시각 뒤 높이 cm, ▲▼ 앞 물때와 차이.',
-      'Orange: spring tide (big range, strong flow) · purple: neap (weak flow). Height in cm, ▲▼ change from the previous tide.')));
+    wrap.appendChild(el('p', 'dim small', tr('주황 사리(물 많이 들고 빠짐 · 흐름 셈) · 보라 조금 · 무시(흐름 약함). 시각 뒤 높이 cm, ▲▼ 앞 물때와 차이. 🌕 달 모양(월령) - 음력 날로 셈.',
+      'Orange: spring tide (big range, strong flow) · purple: neap (weak flow). Height in cm, ▲▼ change from the previous tide. 🌕 moon phase from the lunar day.')));
     // 해는 날마다 1 ~ 2분씩만 바뀌어 표 칸 대신 첫날 · 끝날 한 줄(2026-11-15 홍TV님 "날짜 등 줄일 수 있잖아" - 폰에서 간조 · 해 칸이 잘렸음)
     if (rows.length) wrap.appendChild(el('p', 'dim small', sunSpan(rows)));
     var table = el('table', 'ttable'), head = el('tr');
@@ -851,7 +864,9 @@
       }
       tr_.appendChild(d0);
       var m0 = el('td', 'mul');
-      m0.appendChild(el('div', null, r.mul));
+      var mn = el('div', null, r.mul.replace(' (neap)', ''));   // 영어 "Jogeum (neap)" 은 칸에서 잘려 - 보라색이 조금 · 무시 뜻
+      if (r.moon) { var mi = el('span', 'moon', ' ' + r.moon[0]); mi.title = r.moon[1]; mn.appendChild(mi); }   // 월령 - 날짜 칸은 좁아 물때 이름 옆에
+      m0.appendChild(mn);
       if (r.pct != null) {
         var bar = el('div', 'bar'), fill = el('span');
         fill.style.width = r.pct + '%';

@@ -159,3 +159,4 @@ main { padding-top: 14px; padding-bottom: 24px; }
 .ttable .lo .diff { color: var(--sea); }
 .ttable .bar { height: 6px; margin-top: 4px; border-radius: 3px; background: var(--line); overflow: hidden; }
 .ttable .bar span { display: block; height: 100%; background: var(--ok); }
+.tday .moon { display: block; font-size: .9rem; line-height: 1.2; }
