@@ -216,15 +216,16 @@ public class SeaDataTest {
         TideflyServlet.saveTide(dir, "DT_0018", d, t);
         assertEquals(t, TideflyServlet.readTide(dir, "DT_0018", d));                 // F5 뒤에도 같은 물때
         assertNull(TideflyServlet.readTide(dir, "DT_0018", d.plusDays(1)));
-        TideflyServlet.saveTide(dir, "DT_0018", d.plusDays(1), new Tide("군산", List.of()));   // 빈 날은 남기지 않음
-        assertNull(TideflyServlet.readTide(dir, "DT_0018", d.plusDays(1)));
+        TideflyServlet.saveTide(dir, "DT_0018", d.plusDays(1), new Tide("군산", List.of()));   // 빈 날도 남김(하루만 믿음 - 점검 10차 C11)
+        assertEquals(List.of(), TideflyServlet.readTide(dir, "DT_0018", d.plusDays(1)).events());
         try (var f = Files.list(dir)) {
-            assertEquals(1, f.count());                                            // 빈 날 파일은 생기지 않음
+            assertEquals(2, f.count());
         }
         TideflyServlet.saveTide(dir, "../x", d, t);                                    // 이상한 지점 이름은 쓰지 않음
         assertNull(TideflyServlet.readTide(dir, "../x", d));
         assertEquals(0, TideflyServlet.dropOldTides(dir, d.plusDays(1)));               // 어제 것은 남김
         assertEquals(1, TideflyServlet.dropOldTides(dir, d.plusDays(2)));
+        assertEquals(1, TideflyServlet.dropOldTides(dir, d.plusDays(3)));
         assertNull(TideflyServlet.readTide(dir, "DT_0018", d));
     }
 }

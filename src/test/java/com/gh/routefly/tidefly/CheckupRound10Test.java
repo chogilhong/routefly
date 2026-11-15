@@ -92,4 +92,53 @@ public class CheckupRound10Test {
             assertTrue("A12 " + f, read("src/main/webapp/js/" + f).contains("j.unavailable && !j.rain"));
         }
     }
+
+    /** C2 - 최신 발표로 받은 예측은 발효 시각이 바뀔 때까지, 앞 발표로 받은 것은 1시간. 앞 발효 시각은 3시간 전. */
+    @Test
+    public void 같은_발표는_다시_묻지_않음() {
+        SeaForecast latest = new SeaForecast("2026111500", "2026111506", 1, 1, 0.5, 4.0, 100.0, 5.0, 90.0, null, null, null, 1);
+        SeaForecast older = new SeaForecast("2026111412", "2026111506", 1, 1, 0.5, 4.0, 100.0, 5.0, 90.0, null, null, null, 1);
+        long got = 1_000_000L, twoHours = 2 * 60 * 60_000L;
+        assertTrue(TideflyServlet.fresh(latest, got, "2026111500", got + twoHours));
+        assertFalse("앞 발표는 1시간 뒤 최신을 다시 물음", TideflyServlet.fresh(older, got, "2026111500", got + twoHours));
+        assertTrue(TideflyServlet.fresh(older, got, "2026111500", got + 30 * 60_000L));
+        assertEquals("2026111421", TideflyServlet.prevEf("2026111500"));
+    }
+
+    /** C11 - 빈 날(자료 없음)도 파일로 남기되 하루만 믿음. */
+    @Test
+    public void 빈_날은_하루만() throws Exception {
+        Path dir = Files.createTempDirectory("tf-empty");
+        java.time.LocalDate day = java.time.LocalDate.of(2026, 11, 20);
+        TideflyServlet.saveTide(dir, "DT_0001", day, new Tide(null, java.util.List.of()));
+        Path f = dir.resolve("DT_0001-2026-11-20.json");
+        assertTrue("빈 날도 남김", Files.isRegularFile(f));
+        assertTrue(TideflyServlet.readTide(dir, "DT_0001", day).events().isEmpty());
+        Files.setLastModifiedTime(f, java.nio.file.attribute.FileTime.fromMillis(System.currentTimeMillis() - TideflyServlet.EMPTY_KEEP_MS - 60_000));
+        assertEquals("하루 지난 빈 날은 다시 물음", null, TideflyServlet.readTide(dir, "DT_0001", day));
+        Files.delete(f);
+        Files.delete(dir);
+    }
+
+    /** C1 · C5 · C6 - 칸마다 한 번 · 실패 쉼, 쉬는 것은 받는 중이 아님, 키 없어도 물때. */
+    @Test
+    public void 미리_받기는_칸마다_한_번() throws Exception {
+        String sv = read("src/main/java/com/gh/routefly/tidefly/TideflyServlet.java");
+        assertTrue(sv.contains("if (!tried.add(lz + \":\" + sz) || exactSea(lz, sz, nowUtc) != null || seaFailing(lz, sz)) continue;"));
+        assertTrue(sv.contains("CACHE.put(\"seafail:\" + lzone + \":\" + szone, new Object[] {now, null});"));
+        assertTrue(sv.contains("if (key != null) for (JsonObject p : points().values()) {"));
+        assertFalse("키가 없다고 바퀴를 끝내지 않음", sv.contains("if (key == null) return;\n            ZonedDateTime nowUtc"));
+        assertTrue(sv.contains("&& !seaFailing(p.get(\"lzone\").getAsInt(), p.get(\"szone\").getAsInt()))") && sv.contains("now >= portalRestUntil && (t0 == null"));
+    }
+
+    /** C5 · C7 · C9 - 화면은 받는 중에 10 → 30 → 60초 · 숨은 탭은 멈춤, 찾기는 0.2초 뒤 한 번, 숙소 기억 2500. */
+    @Test
+    public void 화면_호출_줄이기() throws Exception {
+        String js = read("src/main/webapp/js/tidefly.js");
+        assertTrue(js.contains("WARM_WAIT = [10000, 30000, 60000]") && js.contains("later(data.warming ? WARM_WAIT[Math.min(warmTries, WARM_WAIT.length) - 1] : 600000);"));
+        assertTrue(js.contains("if (document.hidden) { waitHidden = true; return; }"));
+        assertFalse("10초마다 끝없이 하던 것", js.contains("timer = setTimeout(load, data.warming ? 10000 : 600000);"));
+        assertTrue(js.contains("typing = setTimeout(draw, 200);"));
+        assertTrue(read("src/main/java/com/gh/routefly/web/StaysServlet.java").contains("CACHE_MAX = 2500;"));
+    }
 }

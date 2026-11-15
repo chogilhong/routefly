@@ -35,7 +35,7 @@ public class StaysServlet extends HttpServlet {
     static final String DEFAULT_URL = "https://apis.data.go.kr/B551011/KorService2/locationBasedList2";
     /** pet=1 - 반려동물 동반여행 서비스의 위치 검색(나오는 곳이 모두 반려동물 동반 가능한 곳, 2026-10-14 홍TV님). */
     static final String PET_URL = "https://apis.data.go.kr/B551011/KorPetTourService2/locationBasedList2";
-    static final int RADIUS_M = 5000, PET_WIDE_M = 20000, ROWS = 20, CACHE_MAX = 500;
+    static final int RADIUS_M = 5000, PET_WIDE_M = 20000, ROWS = 20, CACHE_MAX = 2500;   // 500 → 2500(점검 10차 C9 - 산 페이지 · tidefly 포인트 384 · 자리가 함께 써 자주 밀려 다시 물었음)
     static final long CACHE_MS = 24L * 60 * 60 * 1000;
 
     private static final OpenApi.Cache<JsonObject> CACHE = new OpenApi.Cache<>(CACHE_MAX, CACHE_MS);

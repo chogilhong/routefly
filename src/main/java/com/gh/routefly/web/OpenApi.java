@@ -17,7 +17,7 @@ import org.apache.logging.log4j.Logger;
  * 모든 API(tag 마다)에 같은 차단기: 하루 한도 초과면 자정까지, 연달아 실패하면 몇 분 쉼(2026-10-21).
  * 인증키는 요청 주소에만 들어가고 로그에는 주소를 적지 않습니다(응답 앞부분만).
  */
-final class OpenApi {
+public final class OpenApi {
 
     private static final Logger log = LogManager.getLogger(OpenApi.class);
     private static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
@@ -117,7 +117,7 @@ final class OpenApi {
     }
 
     /** 순수 함수 - 공공데이터포털 하루 한도 초과(HTTP 429, 또는 200 이어도 본문에 LIMITED_NUMBER_OF_SERVICE_REQUESTS · returnReasonCode 22). */
-    static boolean limitHit(int status, String body) {
+    public static boolean limitHit(int status, String body) {
         if (status == 429) return true;
         if (body == null || body.length() > 4000) return false;   // 정상 자료는 길고, 오류 응답은 짧음
         return body.contains("LIMITED_NUMBER_OF_SERVICE_REQUESTS") || body.matches("(?s).*returnReasonCode\\W{0,3}22\\D.*");
@@ -129,7 +129,7 @@ final class OpenApi {
     }
 
     /** 순수 함수 - now 다음 우리 시간 자정(공공데이터포털 하루 한도가 다시 차는 때). */
-    static long kstMidnightAfter(long now) {
+    public static long kstMidnightAfter(long now) {
         java.time.ZoneId kst = java.time.ZoneId.of("Asia/Seoul");
         return java.time.Instant.ofEpochMilli(now).atZone(kst).toLocalDate().plusDays(1).atStartOfDay(kst).toInstant().toEpochMilli();
     }

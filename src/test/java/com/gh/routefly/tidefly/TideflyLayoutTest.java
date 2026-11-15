@@ -25,9 +25,15 @@ public class TideflyLayoutTest {
     /** 2026-11-15 PC: 포털 429 뒤에도 화면 요청이 연달아 물었음 - 429 면 30분 쉼. */
     @Test
     public void 포털_429_면_30분_쉼() {
-        org.junit.Assert.assertEquals(1_000 + 30 * 60_000L, TideflyServlet.restUntil(429, 1_000));
-        org.junit.Assert.assertEquals(0, TideflyServlet.restUntil(503, 1_000));
-        org.junit.Assert.assertEquals(0, TideflyServlet.restUntil(500, 1_000));
+        org.junit.Assert.assertEquals(1_000 + 30 * 60_000L, TideflyServlet.restUntil(429, null, 1_000));
+        org.junit.Assert.assertEquals(0, TideflyServlet.restUntil(503, null, 1_000));
+        org.junit.Assert.assertEquals(0, TideflyServlet.restUntil(500, "<html>", 1_000));
+        // 200 이어도 하루 한도 본문이면 우리 시간 자정까지(점검 10차 C3 - 본문은 OpenApiLimitTest 와 같은 공공데이터포털 꼴)
+        long t = java.time.ZonedDateTime.of(2026, 11, 15, 21, 0, 0, 0, java.time.ZoneId.of("Asia/Seoul")).toInstant().toEpochMilli();
+        org.junit.Assert.assertEquals(java.time.ZonedDateTime.of(2026, 11, 16, 0, 0, 0, 0, java.time.ZoneId.of("Asia/Seoul")).toInstant().toEpochMilli(),
+                TideflyServlet.restUntil(200, "<OpenAPI_ServiceResponse><cmmMsgHeader><errMsg>SERVICE ERROR</errMsg><returnAuthMsg>LIMITED_NUMBER_OF_SERVICE_REQUESTS_EXCEEDS_ERROR</returnAuthMsg>"
+                        + "<returnReasonCode>22</returnReasonCode></cmmMsgHeader></OpenAPI_ServiceResponse>", t));
+        org.junit.Assert.assertEquals("정상 자료는 쉬지 않음", 0, TideflyServlet.restUntil(200, "{\"response\":{\"header\":{\"resultCode\":\"00\"}}}", t));
     }
 
     /** 2026-11-15 PC: 배포 뒤 첫 손님 전까지 [TIDEFLY] 줄 0 - 서블릿이 첫 요청 때에야 떠서 미리 받기가 늦었음. */

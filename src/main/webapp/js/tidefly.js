@@ -1132,6 +1132,20 @@
     return box;
   }
 
+  var warmTries = 0, WARM_WAIT = [10000, 30000, 60000], waitHidden = false;
+
+  /** ms 뒤 다시 받기 - 숨은 탭이면 다시 보일 때(점검 10차 C5 - 숨은 탭도 계속 물었음). */
+  function later(ms) {
+    clearTimeout(timer);
+    timer = setTimeout(function () {
+      if (document.hidden) { waitHidden = true; return; }
+      load();
+    }, ms);
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && waitHidden) { waitHidden = false; load(); }
+  });
+
   function load() {
     clearTimeout(timer);
     fetch('api/tidefly', { cache: 'no-store' }).then(function (r) {
@@ -1147,11 +1161,12 @@
         spotMarks = data.marks || {};
         draw();
       }
-      // 서버가 아직 받는 중이면 10초 뒤, 아니면 10분 뒤 다시(남은 시간 글은 1분마다 새로)
-      timer = setTimeout(load, data.warming ? 10000 : 600000);
+      // 서버가 아직 받는 중이면 10 → 30 → 60초 뒤, 아니면 10분 뒤 다시(남은 시간 글은 1분마다 새로) - 점검 10차 C5: 전에는 10초마다 끝없이
+      warmTries = data.warming ? warmTries + 1 : 0;
+      later(data.warming ? WARM_WAIT[Math.min(warmTries, WARM_WAIT.length) - 1] : 600000);
     }).catch(function () {
       stateEl.textContent = tr('불러오지 못했습니다. 잠시 뒤 다시 시도합니다.', 'Could not load. Retrying shortly.');
-      timer = setTimeout(load, 60000);
+      later(60000);
     });
   }
 
@@ -1215,7 +1230,9 @@
       draw();
     });
   });
-  qEl.addEventListener('input', draw);
+  // 찾기는 치기를 멈추고 0.2초 뒤 한 번 그림(점검 10차 C7 - 한 글자마다 카드 수백 장을 다시 그려 폰에서 0.4 ~ 0.6초씩 걸렸음)
+  var typing = null;
+  qEl.addEventListener('input', function () { clearTimeout(typing); typing = setTimeout(draw, 200); });
   // 코스 모음 찾기에서 낚시 이름으로 왔으면(?q=, 2026-11-15 홍TV님 "찾기에도 찾아질 수 있도록") 그 말로 찾아 둠
   var urlQ = /[?&]q=([^&#]*)/.exec(location.search);
   if (urlQ) { try { qEl.value = decodeURIComponent(urlQ[1].replace(/\+/g, ' ')).slice(0, 40); } catch (e) { /* 깨진 주소는 비워 둠 */ } }

@@ -131,12 +131,14 @@ public final class TideflyServlet extends HttpServlet {
         if (!warming.compareAndSet(false, true)) return;
         try {
             String key = com.gh.routefly.web.RouteflyConfig.get("kma.apihub.key");
-            if (key == null) return;
             ZonedDateTime nowUtc = ZonedDateTime.now(ZoneOffset.UTC);
             int asked = 0, failed = 0;
-            for (JsonObject p : points().values()) {
+            // 기상청 키가 없어도 물때는 받음(점검 10차 C6 - 전에는 여기서 끝나 물때도 안 받았음)
+            // 같은 칸은 한 바퀴에 한 번, 실패한 칸은 SEA_FAIL_MS 동안 묻지 않음(점검 10차 C1 - 전에는 실패한 칸을 포인트마다 2번씩 다시 물었음)
+            java.util.Set<String> tried = new java.util.HashSet<>();
+            if (key != null) for (JsonObject p : points().values()) {
                 int lz = p.get("lzone").getAsInt(), sz = p.get("szone").getAsInt();
-                if (cachedSea(lz, sz, nowUtc) != null) continue;
+                if (!tried.add(lz + ":" + sz) || exactSea(lz, sz, nowUtc) != null || seaFailing(lz, sz)) continue;
                 asked++;
                 if (sea(key, lz, sz, nowUtc, System.currentTimeMillis()) == null) failed++;
                 Thread.sleep(300);
@@ -235,7 +237,9 @@ public final class TideflyServlet extends HttpServlet {
                 String code = p.get("tide").getAsString();
                 Tide t0 = cachedTide(code, today), t1 = cachedTide(code, today.plusDays(1));
                 // 2026-11-14 PC: 바다만 보고 물때 빈 칸은 보지 않아 화면이 다시 묻지 않았음 - 물때도 셈
-                missing |= (key != null && sea == null) || (tideOn && (t0 == null || t1 == null));
+                // 받지 못해 쉬는 칸 · 포털 쉼은 "받는 중" 으로 치지 않음(점검 10차 C5 - 화면이 10초마다 끝없이 다시 물었음)
+                missing |= (key != null && sea == null && !seaFailing(p.get("lzone").getAsInt(), p.get("szone").getAsInt()))
+                        || (tideOn && now >= portalRestUntil && (t0 == null || t1 == null));
                 // 2026-11-15 PC: 오늘 것을 못 받았는데 내일 것만 보내 "다음 만조 내일 …" 로 오늘 물때를 건너뜀 - 오늘이 없으면 보내지 않음(화면은 받는 중)
                 items.add(result(p, wrn, sea, t0 == null ? null : Tide.join(t0, t1)));
             }
@@ -453,18 +457,52 @@ public final class TideflyServlet extends HttpServlet {
         return out;
     }
 
-    /** 기억에 있는 소해구 예측(지금 발효 시각 것, 부르지 않음). 없으면 null. */
+    /**
+     * 기억에 있는 소해구 예측(부르지 않음) - 지금 발효 시각 것, 없으면 바로 앞 발효 시각(3시간 전) 것을 새로 받는 동안만(점검 10차 C2 - 3시간마다 158칸이 함께 바뀌어
+     * 목록이 "받는 중" 으로 비었음). 없으면 null.
+     */
     private static SeaForecast cachedSea(int lzone, int szone, ZonedDateTime nowUtc) {
-        Object[] hit = CACHE.get("sea:" + lzone + ":" + szone + ":" + times(nowUtc).get(0)[1]);
-        return hit == null || System.currentTimeMillis() - (Long) hit[0] >= SEA_TTL ? null : (SeaForecast) hit[1];
+        SeaForecast f = exactSea(lzone, szone, nowUtc);
+        if (f != null) return f;
+        Object[] hit = CACHE.get("sea:" + lzone + ":" + szone + ":" + prevEf(times(nowUtc).get(0)[1]));
+        return hit == null || System.currentTimeMillis() - (Long) hit[0] >= PREV_KEEP_MS ? null : (SeaForecast) hit[1];
     }
+
+    /** 앞 발효 시각 것을 쓰는 한도 - 새로 받기가 계속 실패하면 옛 예측을 오래 쓰지 않게. */
+    static final long PREV_KEEP_MS = 4 * 60 * 60_000L;
+
+    /** 기억에 있는 지금 발효 시각 예측 - 최신 발표로 받은 것은 발효 시각이 바뀔 때까지, 앞 발표로 받은 것은 SEA_TTL(1시간) 뒤 최신 발표를 다시 물음. */
+    private static SeaForecast exactSea(int lzone, int szone, ZonedDateTime nowUtc) {
+        List<String[]> t = times(nowUtc);
+        Object[] hit = CACHE.get("sea:" + lzone + ":" + szone + ":" + t.get(0)[1]);
+        return hit != null && fresh((SeaForecast) hit[1], (Long) hit[0], t.get(0)[0], System.currentTimeMillis()) ? (SeaForecast) hit[1] : null;
+    }
+
+    /**
+     * 순수 함수 - 받아 둔 예측을 그대로 써도 되나: 최신 발표(latestFc)로 받은 것은 늘(같은 발표 · 같은 발효 시각은 바뀌지 않음 - 하루 약 2,500번 줄임),
+     * 앞 발표로 받은 것은 받은 지 SEA_TTL 안만.
+     */
+    static boolean fresh(SeaForecast f, long gotMs, String latestFc, long nowMs) {
+        return latestFc.equals(f.tmFc()) || nowMs - gotMs < SEA_TTL;
+    }
+
+    /** 순수 함수 - 발효 시각(UTC yyyyMMddHH) 3시간 앞. */
+    static String prevEf(String ef) {
+        return java.time.LocalDateTime.parse(ef, HOUR).minusHours(3).format(HOUR);
+    }
+
+    /** 이 칸이 실패해 쉬는 중인가(SEA_FAIL_MS). */
+    private static boolean seaFailing(int lzone, int szone) {
+        Object[] f = CACHE.get("seafail:" + lzone + ":" + szone);
+        return f != null && System.currentTimeMillis() - (Long) f[0] < SEA_FAIL_MS;
+    }
+
+    static final long SEA_FAIL_MS = 10 * 60_000L;
 
     /** 소해구 예측 - 가장 최근 발표부터, 받지 못하면 하나 앞 발표로(발표 뒤 언제 올라오는지 아직 모름). */
     private static SeaForecast sea(String key, int lzone, int szone, ZonedDateTime nowUtc, long now) {
         for (String[] t : times(nowUtc)) {
             String id = "sea:" + lzone + ":" + szone + ":" + t[1];
-            Object[] hit = CACHE.get(id);
-            if (hit != null && now - (Long) hit[0] < SEA_TTL) return (SeaForecast) hit[1];
             SeaForecast f = SeaForecast.parse(get(BASE + "typ06/url/marine_small_zone.php?tma_fc=" + t[0] + "&tma_ef=" + t[1]
                     + "&Lzone=" + lzone + "&Szone=" + szone + "&disp=0&help=1", key, "SEA"));
             if (f != null) {
@@ -472,6 +510,7 @@ public final class TideflyServlet extends HttpServlet {
                 return f;
             }
         }
+        CACHE.put("seafail:" + lzone + ":" + szone, new Object[] {now, null});
         return null;
     }
 
@@ -510,9 +549,12 @@ public final class TideflyServlet extends HttpServlet {
         return java.nio.file.Path.of(dir.trim(), "tide");
     }
 
-    /** 받은 물때를 파일로(지점-날짜.json, 임시 파일에 쓰고 한 번에 옮김). 자료가 빈 날은 남기지 않음. 실패해도 조용히(기억만 씀). */
+    /**
+     * 받은 물때를 파일로(지점-날짜.json, 임시 파일에 쓰고 한 번에 옮김). 실패해도 조용히(기억만 씀).
+     * 자료가 빈 날(포털 resultCode 3 등)도 남김 - 읽을 때 EMPTY_KEEP_MS 안만 씀(점검 10차 C11: 빈 날은 6시간마다 · 배포마다 다시 물었음, 잠깐 빈 응답이 굳지 않게 하루만).
+     */
     static void saveTide(java.nio.file.Path dir, String code, java.time.LocalDate day, Tide t) {
-        if (t == null || t.events().isEmpty() || !code.matches("[A-Z]{2}_[0-9]{4}")) return;
+        if (t == null || t.events() == null || !code.matches("[A-Z]{2}_[0-9]{4}")) return;
         try {
             java.nio.file.Files.createDirectories(dir);
             java.nio.file.Path tmp = java.nio.file.Files.createTempFile(dir, code, ".tmp");
@@ -538,14 +580,19 @@ public final class TideflyServlet extends HttpServlet {
         }
     }
 
-    /** 파일의 물때. 없거나 읽지 못하면 null. */
+    /** 빈 날 파일을 믿는 시간 - 그 뒤에는 다시 물음. */
+    static final long EMPTY_KEEP_MS = 24 * 60 * 60_000L;
+
+    /** 파일의 물때(빈 날은 EMPTY_KEEP_MS 안에 쓴 것만). 없거나 읽지 못하면 null. */
     static Tide readTide(java.nio.file.Path dir, String code, java.time.LocalDate day) {
         if (!code.matches("[A-Z]{2}_[0-9]{4}")) return null;
         java.nio.file.Path f = dir.resolve(code + "-" + day + ".json");
         if (!java.nio.file.Files.isRegularFile(f)) return null;
         try {
             Tide t = new Gson().fromJson(java.nio.file.Files.readString(f, StandardCharsets.UTF_8), Tide.class);
-            return t == null || t.events() == null || t.events().isEmpty() ? null : t;
+            if (t == null || t.events() == null) return null;
+            if (t.events().isEmpty() && System.currentTimeMillis() - java.nio.file.Files.getLastModifiedTime(f).toMillis() > EMPTY_KEEP_MS) return null;
+            return t;
         } catch (Exception e) {
             return null;
         }
@@ -570,9 +617,13 @@ public final class TideflyServlet extends HttpServlet {
     private static volatile long portalRestUntil;
     static final long PORTAL_REST_MS = 30 * 60_000L;
 
-    /** 순수 함수 - 응답 코드가 429(요청 한도)면 지금부터 PORTAL_REST_MS 뒤까지 쉼, 아니면 0. */
-    static long restUntil(int status, long now) {
-        return status == 429 ? now + PORTAL_REST_MS : 0;
+    /**
+     * 순수 함수 - 쉬는 때까지: 429(요청 한도)면 지금부터 PORTAL_REST_MS 뒤, 200 이어도 본문이 하루 한도 초과(LIMITED_NUMBER… · returnReasonCode 22 - OpenApi.limitHit)면
+     * 우리 시간 자정까지(점검 10차 C3 - 전에는 429 만 봐 하루 한도 본문을 못 알아채 같은 날 되풀이해 물었음), 아니면 0.
+     */
+    static long restUntil(int status, String body, long now) {
+        if (status == 429) return now + PORTAL_REST_MS;
+        return com.gh.routefly.web.OpenApi.limitHit(status, body) ? com.gh.routefly.web.OpenApi.kstMidnightAfter(now) : 0;
     }
 
     /** 그날 물때 - 기억에 있으면 그것, 없으면 받아서. 못 받으면 null. 포털 한도(429)로 쉬는 동안은 부르지 않음. */
@@ -644,11 +695,11 @@ public final class TideflyServlet extends HttpServlet {
             HttpRequest r = HttpRequest.newBuilder(URI.create(url + "&serviceKey=" + URLEncoder.encode(key, StandardCharsets.UTF_8)))
                     .timeout(Duration.ofSeconds(8)).GET().build();
             HttpResponse<String> res = HTTP.send(r, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-            if (res.statusCode() == 200) return res.body();
-            long until = restUntil(res.statusCode(), System.currentTimeMillis());
+            long now = System.currentTimeMillis(), until = restUntil(res.statusCode(), res.body(), now);
+            if (res.statusCode() == 200 && until == 0) return res.body();
             if (until > portalRestUntil) {
                 portalRestUntil = until;
-                log.warn("[TIDEFLY-TIDE] HTTP {} - 포털 한도로 보고 {}분 쉼(미리 받기 · 화면 요청 모두)", res.statusCode(), PORTAL_REST_MS / 60_000);
+                log.warn("[TIDEFLY-TIDE] HTTP {} - 포털 한도로 보고 {}분 쉼(미리 받기)", res.statusCode(), (until - now) / 60_000);
             } else {
                 log.warn("[TIDEFLY-TIDE] HTTP {}", res.statusCode());
             }
