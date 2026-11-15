@@ -48,7 +48,7 @@ public class TideflyLayoutTest {
     public void 카드_칸은_minmax_0_이라_물때표_띠가_화면을_넓히지_않음() throws Exception {
         String css = Files.readString(Path.of("src/main/webapp/css/tidefly.css"), StandardCharsets.UTF_8).replace("\r\n", "\n");
         assertTrue(css.contains(".cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr);"));
-        assertTrue("날짜 띠는 안에서 옆으로 밀림", css.contains(".tstrip { display: flex; gap: 4px; overflow-x: auto;"));
+        assertTrue("날짜 띠는 안에서 옆으로 밀림", css.contains(".tstrip { position: relative; display: flex; gap: 4px; overflow-x: auto;"));
         String html = Files.readString(Path.of("src/main/webapp/tidefly.html"), StandardCharsets.UTF_8);
         assertTrue("찾기 칸 안내 - 360px 폰에 들게 짧게(2026-11-15 PC: 앞 판은 1px · 영어 4px 넘침)", html.contains("placeholder=\"🔍 예: 김녕, 쭈꾸미, 광어\" data-en-ph=\"🔍 Spot or fish (e.g. Gimnyeong)\""));
         assertTrue("근처 숙소는 코스 모음 숙소 찾기를 그대로(kit-tidefly.js → tidefly.js 차례)", html.indexOf("js/kit-tidefly.js\"></script>") > 0

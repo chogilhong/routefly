@@ -189,4 +189,12 @@ public class CheckupRound10Test {
         assertTrue(hk.contains("full = RF.trimTrack(t, 0, 0), step = 10;") && hk.contains("nudgeRow(T(\"앞에서 자르기\"") && hk.contains("box.querySelectorAll(\".nud\")"));
         assertFalse("50m 칸은 없음", st.contains("total > 5000 ? 50 : 10") || hk.contains("full.total > 5000 ? 50 : 10"));
     }
+
+    /** 2026-11-15 PC: 폰 375px 에서 15일 물때표를 펴면 문서 폭 686px - 띠 안 숨은 글(.sr, absolute)이 띠 밖으로 빠졌음. 띠는 relative, 숨은 글은 왼쪽 위에. */
+    @Test
+    public void 숨은_글이_띠_밖으로_빠지지_않음() throws Exception {
+        String css = read("src/main/webapp/css/tidefly.css");
+        assertTrue(css.contains(".tstrip { position: relative; display: flex;"));
+        assertTrue(css.contains(".sr { position: absolute; left: 0; top: 0;"));
+    }
 }
