@@ -138,3 +138,4 @@ main { padding-top: 14px; padding-bottom: 24px; }
 .area.near .near-title { margin: 14px 0 8px; font-size: 1.05rem; }
 /* 갯바위 · 선상 자리 정보(2026-11-15) */
 .spot-info { margin: 6px 0; font-size: .9rem; line-height: 1.5; }
+.alert.closed { margin: 6px 0; }

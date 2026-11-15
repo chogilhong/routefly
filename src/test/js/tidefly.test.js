@@ -148,5 +148,14 @@ assert.strictEqual(TF.alarmText(plan[1], '김녕', { sun: 60 }), '해 지기 60�
   assert.strictEqual(TF.bare('가의도 · 남측(갯바위)'), '가의도남측');   // TideflyServlet.bare 와 같은 셈
 }
 
+// 연안 출입통제구역 경고(2026-11-15) - data/tidefly-closed.json 실제 줄
+{
+  TF.setLang('ko');
+  assert.strictEqual(TF.closedText(null), '');
+  assert.strictEqual(TF.closedText([{ area: '위도항 방파제 테트라포드 일원', type: '방파제', notice: '부안해양경찰서 공고 제2017 - 03호', m: 90 }]),
+    '⛔ 약 90m 앞 출입통제구역: 위도항 방파제 테트라포드 일원 (부안해양경찰서 공고 제2017 - 03호 - 해양경찰청 2023 자료, 현지 공고를 확인하세요)');
+  assert.ok(TF.closedText([{ area: '해운대해수욕장 APEC 기념 등표', notice: '부산해양경찰서 공고 제2018 - 102호', m: 0 }]).startsWith('⛔ 출입통제구역 안: '));
+}
+
 console.log('tidefly.test.js OK');
 

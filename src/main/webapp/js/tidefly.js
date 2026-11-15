@@ -362,10 +362,22 @@
     return out;
   }
 
+  /**
+   * 순수 함수 - 연안 출입통제구역 경고 한 줄(data/tidefly-closed.json 의 한 포인트 목록, 2026-11-15 안전). 없으면 ''.
+   * 해양경찰청 2023 자료라 지금 공고와 다를 수 있어 늘 "현지 공고 확인" 을 붙임.
+   */
+  function closedText(list) {
+    if (!list || !list.length) return '';
+    var first = list[0];
+    var where = first.m === 0 ? tr('출입통제구역 안', 'inside a no-entry zone') : tr('약 ' + first.m + 'm 앞 출입통제구역', 'no-entry zone about ' + first.m + ' m away');
+    var names = list.map(function (c) { return c.area; }).join(' · ');
+    return '⛔ ' + where + ': ' + names + ' (' + first.notice + tr(' - 해양경찰청 2023 자료, 현지 공고를 확인하세요)', ' - Korea Coast Guard 2023 data; check local notices)');
+  }
+
   var TF = { kst: kst, dir16: dir16, swell: swell, nums: nums, markOf: markOf, markWord: markWord, nowKst: nowKst, dayName: dayName,
     dayLine: dayLine, hourLine: hourLine, untilText: untilText, nextTide: nextTide, curve: curve, nextSize: nextSize, isDark: isDark,
     setLang: setLang, roman: roman, placeName: placeName, zoneName: zoneName, reason: reason, mul: mul,
-    alarmPlan: alarmPlan, alarmText: alarmText, nearest: nearest, spotItem: spotItem, bare: bare };
+    alarmPlan: alarmPlan, alarmText: alarmText, nearest: nearest, spotItem: spotItem, bare: bare, closedText: closedText };
   if (typeof module !== 'undefined' && module.exports) module.exports = TF;
   if (typeof document === 'undefined') return;
 
@@ -380,6 +392,7 @@
   var nearAt = null, NEAR_N = 10;   // 📍 내 근처 - 폰이 준 위치(이 화면 안에서만, 저장 · 전송 안 함)
   var open = {}, detail = {};
   var spots = null, spotMarks = {}, spotsWait = false;   // 갯바위 · 선상 자리 - 📍 내 근처 · 찾기 때 처음 한 번 받음(api/tidefly?spots=1)
+  var closed = {};                                          // 출입통제구역 경고 {포인트 · 자리 이름: [...]} - data/tidefly-closed.json
   var SPOT_FIND_N = 30;                                     // 찾기에서 보일 자리 수
   // 2026-11-15 홍TV님 "처음에는 전부 접혀줘" - 펼친 지역 묶음만 기억 { 동해: true }(전에는 접은 것을 기억 tf-folded)
   var openAreas = loadPref('tf-open-areas', {});
@@ -501,6 +514,8 @@
     head.appendChild(el('span', 'chev', isOpen ? '▴' : '▾'));
     li.appendChild(head);
 
+    var shut = closedText(closed[p.name]);
+    if (shut) li.appendChild(el('p', 'alert closed', shut));   // 접혀 있어도 보임(안전)
     var why = (it.reasons || []).filter(function (r) { return r !== '출항은 선사에 확인'; }).map(reason);
     if (why.length) li.appendChild(el('p', 'why ' + m[1], why.join(' · ')));
     if (!isOpen) {
@@ -897,5 +912,6 @@
   setInterval(function () { if (!document.hidden) draw(); }, 60000);
   setInterval(checkAlarms, 30000);
   document.getElementById('alarm').addEventListener('click', function () { this.hidden = true; });
+  fetch('data/tidefly-closed.json').then(function (r) { return r.ok ? r.json() : {}; }).then(function (d) { closed = d || {}; draw(); }).catch(function () { /* 경고 없이 */ });
   load();
 })();
