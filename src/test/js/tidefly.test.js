@@ -63,10 +63,25 @@ assert.strictEqual(TF.markWord(null), '판단 전');
 // 오늘 줄 · 자세히 보기(서버 dayInfo 모양)
 assert.strictEqual(TF.dayName('2026-11-15'), '15일(일)');
 assert.strictEqual(TF.dayName('2026-11-16'), '16일(월)');
-assert.strictEqual(TF.dayLine({ date: '2026-11-15', lunarDay: 7, mulddae: '14물', sunrise: '07:04', sunset: '17:30', rangeCm: 139,
-  events: [{ t: '2026-11-15 01:10', cm: 190, high: true }, { t: '2026-11-15 07:49', cm: 93, high: false }, { t: '2026-11-15 14:49', cm: 232, high: true }, { t: '2026-11-15 21:32', cm: 143, high: false }] }),
-  '15일(일) 음력 7일 14물 · 만조 01:10(190) · 14:49(232) · 간조 07:49(93) · 21:32(143) · 높이 차 1.4m · 해 07:04 ~ 17:30');
-assert.strictEqual(TF.dayLine({ date: '2026-11-16', lunarDay: 8, mulddae: '조금', sunrise: '07:05', sunset: '17:29' }), '16일(월) 음력 8일 조금 · 물때 받지 못함 · 해 07:05 ~ 17:29');
+// 물때표(2026-11-15 홍TV님) - 운영 서버 방포항 자세히 보기 실제 응답(src/test/resources/tidefly/detail-bangpo-20261115.json)
+{
+  const days = JSON.parse(require('fs').readFileSync(require('path').join(__dirname, '../resources/tidefly/detail-bangpo-20261115.json'), 'utf8')).days;
+  const rows = TF.tideTable(days);
+  assert.strictEqual(rows.length, days.length);
+  assert.deepStrictEqual([rows[0].day, rows[0].lunar, rows[0].mul, rows[0].sun], ['15일(일)', 7, '13물', '07:11 ~ 17:26']);
+  assert.deepStrictEqual(rows[0].lows[0], { t: '00:59', cm: 218, diff: null });    // 첫 물때는 앞이 없음
+  assert.deepStrictEqual(rows[0].highs[0], { t: '06:23', cm: 549, diff: 331 });    // 549 - 218
+  assert.deepStrictEqual(rows[0].lows[1], { t: '12:43', cm: 153, diff: -396 });
+  const last0 = days[0].events[days[0].events.length - 1], first1 = days[1].events[0];
+  const r1 = (first1.high ? rows[1].highs : rows[1].lows)[0];
+  assert.strictEqual(r1.diff, Math.round(first1.cm) - Math.round(last0.cm), '날을 넘어 앞 물때와 비교');
+  const max = Math.max.apply(null, days.map(d => d.rangeCm || 0));
+  assert.strictEqual(rows[0].pct, Math.round(days[0].rangeCm / max * 100));
+  assert.ok(rows.some(r => r.pct === 100));
+  rows.forEach((r, k) => assert.strictEqual(r.cls, days[k].sari ? 'sari' : (days[k].mulddae === '조금' || days[k].mulddae === '무시') ? 'neap' : ''));
+  assert.deepStrictEqual(TF.tideTable([{ date: '2026-11-16', lunarDay: 8, mulddae: '조금', sunrise: '07:05', sunset: '17:29' }])[0],
+    { date: '2026-11-16', day: '16일(월)', lunar: 8, mul: '조금', cls: 'neap', pct: null, highs: [], lows: [], sun: '07:05 ~ 17:29' });
+}
 assert.strictEqual(TF.hourLine({ tmEf: '2026111500', waveM: 0.4, windMs: 4.9, windDir: 318.6, swell: 1 }), '15일 09시 파고 0.4m · 바람 4.9m/s 북서풍 · 너울 관심');
 // 글자 크기 · 화면 모드
 assert.strictEqual(TF.nextSize('m'), 'l');

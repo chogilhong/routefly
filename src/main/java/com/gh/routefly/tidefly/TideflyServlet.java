@@ -37,7 +37,7 @@ import jakarta.servlet.http.HttpServletResponse;
 /**
  * 타이드플라이(tidefly.html - 2026-11-15 홍TV님 "tidefly 를 routefly 앱 안의 기능으로 전부 옮겨줘", 예전 chogilhong/tidefly 저장소 v0.10.1).
  * GET /api/tidefly?name=&lt;포인트 이름&gt; → 그 포인트의 지금 바다(소해구 예측 · 해상 특보)와 ○ / △ / ✕ (Verdict).
- * GET /api/tidefly?name=…&amp;detail=1 → 위에 더해 7일(물때 · 높이 차 · 일출몰 · 음력 · 물때 이름)과 앞으로 72시간 3시간 간격 바다 예측(hourly - 그때 받음, 6시간 기억).
+ * GET /api/tidefly?name=…&amp;detail=1 → 위에 더해 15일 물때표(물때 · 높이 차 · 일출몰 · 음력 · 물때 이름)과 앞으로 72시간 3시간 간격 바다 예측(hourly - 그때 받음, 6시간 기억).
  * GET /api/tidefly?spots=1 → 갯바위 · 선상 자리(data/tidefly-spots.json, 1,405곳 - 📍 내 근처 · 찾기에서만 보임, 2026-11-15 홍TV님 "2번으로")와
  *   marks {id: {mark, reasons}} - extra(그 자리만 더 걸리는 먼바다)가 있는 자리만. 나머지는 화면이 base 포인트 판단을 그대로 씀. 위치는 받지 않음(화면이 폰 안에서 셈).
  * GET /api/tidefly?find=이름 → {"hit": true, "q": 맞은 이름(bare 꼴)} 또는 {"hit": false} - 코스 모음 찾기(js/mountain.js)가 산 이름이 아닐 때 낚시 포인트 · 자리 이름인지 물음({@link #find}).
@@ -62,7 +62,7 @@ public final class TideflyServlet extends HttpServlet {
     /** 물때를 받아 두는 날 수(오늘 포함) - 물 세기 %(15일 중 가장 센 날 대비)에 씀. 물때는 대략 15일 주기. */
     static final int TIDE_DAYS = 15;
     /** 자세히 보기의 날 수 · 예측 시간. */
-    static final int DETAIL_DAYS = 7;
+    static final int DETAIL_DAYS = 15;   // 물때표(2026-11-15 홍TV님) - 미리 받아 두는 TIDE_DAYS 와 같음
     static final int HOURLY_HOURS = 72;
     private static final java.util.concurrent.ExecutorService DETAIL_POOL = Executors.newFixedThreadPool(4, r -> {
         Thread t = new Thread(r, "tidefly-detail");

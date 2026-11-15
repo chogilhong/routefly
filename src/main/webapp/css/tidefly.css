@@ -2,7 +2,7 @@
   --bg: #eef4f7; --card: #ffffff; --ink: #10222c; --dim: #5d707b; --line: #d8e3ea; --soft: #f4f8fa;
   --top1: #0a5a7a; --top2: #0e7c8f;
   --ok: #1e8e57; --ok-bg: #e5f5ec; --care: #c27a12; --care-bg: #fdf1dc; --no: #c43a2f; --no-bg: #fbe5e2; --none: #8a979f; --none-bg: #eef1f3;
-  --sea: #2b8fc2; --sea-bg: rgba(43, 143, 194, .16); --now: #e5603f; --link: #0b6e8a;
+  --sea: #2b8fc2; --sea-bg: rgba(43, 143, 194, .16); --now: #e5603f; --link: #0b6e8a; --neap: #7a45c4;
   color-scheme: light dark;
 }
 /* 어두운 화면: 기본은 다크(tidefly-early.js 가 data-theme="dark" - 2026-11-15 홍TV님 "기본으로 다크모드 로 해"), 밝은 모드를 고르면 light. 아래 기기 설정 줄은 스크립트가 막힌 때만 */
@@ -10,12 +10,12 @@
   :root:not([data-theme="light"]) { --bg: #0c161c; --card: #142229; --ink: #e3edf2; --dim: #95a8b3; --line: #233540; --soft: #1a2b33;
           --top1: #08394d; --top2: #0b5361;
           --ok: #45c07f; --ok-bg: #173527; --care: #e7a845; --care-bg: #3a2d14; --no: #ef6a5c; --no-bg: #3d1f1c; --none: #7f8d95; --none-bg: #1f2c33;
-          --sea: #5cb6e6; --sea-bg: rgba(92, 182, 230, .18); --now: #ff8a6a; --link: #8fd3f0; color-scheme: dark; }
+          --sea: #5cb6e6; --sea-bg: rgba(92, 182, 230, .18); --now: #ff8a6a; --link: #8fd3f0; --neap: #b48cf0; color-scheme: dark; }
 }
 :root[data-theme="dark"] { --bg: #0c161c; --card: #142229; --ink: #e3edf2; --dim: #95a8b3; --line: #233540; --soft: #1a2b33;
           --top1: #08394d; --top2: #0b5361;
           --ok: #45c07f; --ok-bg: #173527; --care: #e7a845; --care-bg: #3a2d14; --no: #ef6a5c; --no-bg: #3d1f1c; --none: #7f8d95; --none-bg: #1f2c33;
-          --sea: #5cb6e6; --sea-bg: rgba(92, 182, 230, .18); --now: #ff8a6a; --link: #8fd3f0; color-scheme: dark; }
+          --sea: #5cb6e6; --sea-bg: rgba(92, 182, 230, .18); --now: #ff8a6a; --link: #8fd3f0; --neap: #b48cf0; color-scheme: dark; }
 :root[data-theme="light"] { color-scheme: light; }
 /* 글자 크기(가 단추): 보통 · 크게 · 아주 크게 */
 :root[data-size="l"] { font-size: 112.5%; }
@@ -139,3 +139,19 @@ main { padding-top: 14px; padding-bottom: 24px; }
 /* 갯바위 · 선상 자리 정보(2026-11-15) */
 .spot-info { margin: 6px 0; font-size: .9rem; line-height: 1.5; }
 .alert.closed { margin: 6px 0; }
+/* 물때표(2026-11-15 홍TV님) - 날짜 띠 + 표, 사리 주황 · 조금 · 무시 보라 */
+.tstrip { display: flex; gap: 4px; overflow-x: auto; padding: 2px 0 6px; -webkit-overflow-scrolling: touch; }
+.tday { flex: 0 0 auto; min-width: 52px; padding: 5px 4px; border-radius: 8px; background: var(--soft); border: 1px solid var(--line); text-align: center; line-height: 1.3; }
+.tday .d { display: block; font-size: .72rem; color: var(--dim); }
+.tday .m { display: block; font-weight: 700; color: var(--sea); }
+.tday.sari .m, .ttable tr.sari .mul { color: var(--care); }
+.tday.neap .m, .ttable tr.neap .mul { color: var(--neap); }
+.ttable { width: 100%; border-collapse: collapse; font-size: .78rem; font-variant-numeric: tabular-nums; }
+.ttable th, .ttable td { border-bottom: 1px solid var(--line); padding: 5px 3px; text-align: left; vertical-align: top; }
+.ttable th { color: var(--dim); font-weight: 600; }
+.ttable td.mul { font-weight: 700; color: var(--sea); min-width: 3.4em; }
+.ttable td.sun { white-space: pre-line; color: var(--dim); }
+.ttable .hi .diff { color: var(--no); }
+.ttable .lo .diff { color: var(--sea); }
+.ttable .bar { height: 6px; margin-top: 4px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.ttable .bar span { display: block; height: 100%; background: var(--ok); }

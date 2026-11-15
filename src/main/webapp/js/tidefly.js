@@ -75,21 +75,26 @@
     return { '조금': 'Jogeum (neap)', '무시': 'Musi (neap)' }[name] || name;
   }
 
-  /** 순수 함수 - 자세히 보기 하루 줄: "15일(일) 음력 7일 14물 · 만조 01:10(190) … · 높이 차 1.4m · 해 07:04 ~ 17:30". */
-  function dayLine(d) {
-    var out = [dayName(d.date) + tr(' 음력 ' + d.lunarDay + '일 ', ' · lunar day ' + d.lunarDay + ' · ') + mul(d.mulddae)];
-    var ev = d.events || [];
-    var hi = [], lo = [];
-    ev.forEach(function (e) {
-      var hm = String(e.t).slice(11, 16) + (typeof e.cm === 'number' ? '(' + Math.round(e.cm) + ')' : '');
-      (e.high ? hi : lo).push(hm);
+  /**
+   * 순수 함수 - 물때표(2026-11-15 홍TV님 "이런 식으로 만들어주면 보기좋잖아" - 날짜 띠 + 표). days = api detail 의 days(차례대로).
+   * 줄마다 날짜 · 음력 · 물때(사리 'sari' · 조금 · 무시 'neap') · 물 세기 %(그 기간 가장 큰 높이 차 대비) · 만조 · 간조(시각 · 높이 cm · 앞 물때와 높이 차) · 해.
+   * 높이 차는 앞 만조 · 간조(전날 마지막 것 포함)와의 차이 - 첫 날 첫 물때는 앞이 없어 null.
+   */
+  function tideTable(days) {
+    var max = 0, prev = null;
+    (days || []).forEach(function (d) { if (typeof d.rangeCm === 'number' && d.rangeCm > max) max = d.rangeCm; });
+    return (days || []).map(function (d) {
+      var row = { date: d.date, day: dayName(d.date), lunar: d.lunarDay, mul: mul(d.mulddae),
+        cls: d.sari ? 'sari' : (d.mulddae === '조금' || d.mulddae === '무시') ? 'neap' : '',
+        pct: max > 0 && typeof d.rangeCm === 'number' ? Math.round(d.rangeCm / max * 100) : null,
+        highs: [], lows: [], sun: d.sunrise + ' ~ ' + d.sunset };
+      (d.events || []).forEach(function (e) {
+        var cm = typeof e.cm === 'number' ? Math.round(e.cm) : null;
+        (e.high ? row.highs : row.lows).push({ t: String(e.t).slice(11, 16), cm: cm, diff: cm != null && prev != null ? cm - prev : null });
+        prev = cm;
+      });
+      return row;
     });
-    if (hi.length) out.push(tr('만조 ', 'High ') + hi.join(' · '));
-    if (lo.length) out.push(tr('간조 ', 'Low ') + lo.join(' · '));
-    if (!ev.length) out.push(tr('물때 받지 못함', 'Tide not available'));
-    if (typeof d.rangeCm === 'number' && d.rangeCm > 0) out.push(tr('높이 차 ', 'Range ') + (d.rangeCm / 100).toFixed(1) + 'm');
-    out.push(tr('해 ', 'Sun ') + d.sunrise + ' ~ ' + d.sunset);
-    return out.join(' · ');
   }
 
   /** 순수 함수 - 3시간 예보 한 줄: "15일 09시 파고 0.4m · 바람 4.9m/s 북서풍 · 너울 관심". */
@@ -375,7 +380,7 @@
   }
 
   var TF = { kst: kst, dir16: dir16, swell: swell, nums: nums, markOf: markOf, markWord: markWord, nowKst: nowKst, dayName: dayName,
-    dayLine: dayLine, hourLine: hourLine, untilText: untilText, nextTide: nextTide, curve: curve, nextSize: nextSize, isDark: isDark,
+    tideTable: tideTable, hourLine: hourLine, untilText: untilText, nextTide: nextTide, curve: curve, nextSize: nextSize, isDark: isDark,
     setLang: setLang, roman: roman, placeName: placeName, zoneName: zoneName, reason: reason, mul: mul,
     alarmPlan: alarmPlan, alarmText: alarmText, nearest: nearest, spotItem: spotItem, bare: bare, closedText: closedText };
   if (typeof module !== 'undefined' && module.exports) module.exports = TF;
@@ -569,10 +574,10 @@
     if (p.boat) li.appendChild(el('p', 'dim small', tr('⛴ 출항은 선사에 확인하세요.', '⛴ Check sailing with the boat operator.')));
     li.appendChild(alarmBox(it, now));
 
-    var more = el('button', 'more', open[p.name] ? tr('접기 ▴', 'Close ▴') : tr('7일 물때 · 3일 예보 ▾', '7-day tides · 3-day forecast ▾'));
+    var more = el('button', 'more', open[p.name] ? tr('접기 ▴', 'Close ▴') : tr('15일 물때표 · 3일 예보 ▾', '15-day tide table · 3-day forecast ▾'));
     more.type = 'button';
     more.setAttribute('aria-expanded', open[p.name] ? 'true' : 'false');
-    more.addEventListener('click', function () { toggle(p.name, p.base || p.name); });   // 자리는 base 포인트의 7일 물때 · 3일 예보
+    more.addEventListener('click', function () { toggle(p.name, p.base || p.name); });   // 자리는 base 포인트의 물때표 · 3일 예보
     li.appendChild(more);
     if (open[p.name]) li.appendChild(detailEl(p.base || p.name));
     return li;
@@ -787,15 +792,68 @@
     draw();
   }
 
+  /** 물때표 - 위에 날짜 띠(옆으로 밀어 봄), 아래 표. */
+  function tideTableEl(days) {
+    var rows = tideTable(days), wrap = el('div', 'ttable-wrap');
+    wrap.appendChild(el('h4', null, tr('물때표 (' + rows.length + '일)', 'Tide table (' + rows.length + ' days)')));
+    var strip = el('div', 'tstrip');
+    rows.forEach(function (r) {
+      var c = el('div', 'tday ' + r.cls);
+      c.appendChild(el('span', 'd', r.day));
+      c.appendChild(el('span', 'm', r.mul));
+      strip.appendChild(c);
+    });
+    wrap.appendChild(strip);
+    wrap.appendChild(el('p', 'dim small', tr('주황 사리 - 물이 많이 들고 빠지고 흐름이 셈 · 보라 조금 · 무시 - 흐름이 약함. 높이 cm, ▲▼ 앞 물때와 높이 차.',
+      'Orange: spring tide (big range, strong flow) · purple: neap (weak flow). Heights in cm, ▲▼ change from the previous tide.')));
+    var table = el('table', 'ttable'), head = el('tr');
+    [tr('날짜', 'Date'), tr('물때', 'Tide'), tr('만조', 'High'), tr('간조', 'Low'), tr('해', 'Sun')].forEach(function (h) { head.appendChild(el('th', null, h)); });
+    var thead = el('thead');
+    thead.appendChild(head);
+    table.appendChild(thead);
+    var tb = el('tbody');
+    function evs(list, up) {
+      var td = el('td', up ? 'hi' : 'lo');
+      if (!list.length) td.textContent = '-';
+      list.forEach(function (e) {
+        var line = el('div', null, e.t + (e.cm != null ? ' (' + e.cm + ')' : ''));
+        if (e.diff != null) line.appendChild(el('span', 'diff', ' ' + (e.diff >= 0 ? '▲' : '▼') + Math.abs(e.diff)));
+        td.appendChild(line);
+      });
+      return td;
+    }
+    rows.forEach(function (r) {
+      var tr_ = el('tr', r.cls);
+      var d0 = el('td', 'date');
+      d0.appendChild(el('div', null, r.day));
+      d0.appendChild(el('div', 'dim', tr('음 ' + r.lunar, 'L' + r.lunar)));
+      tr_.appendChild(d0);
+      var m0 = el('td', 'mul');
+      m0.appendChild(el('div', null, r.mul));
+      if (r.pct != null) {
+        var bar = el('div', 'bar'), fill = el('span');
+        fill.style.width = r.pct + '%';
+        bar.appendChild(fill);
+        bar.title = tr('물 세기 ', 'Range ') + r.pct + '%';
+        m0.appendChild(bar);
+      }
+      tr_.appendChild(m0);
+      tr_.appendChild(evs(r.highs, true));
+      tr_.appendChild(evs(r.lows, false));
+      tr_.appendChild(el('td', 'sun', r.sun.replace(' ~ ', '\n')));
+      tb.appendChild(tr_);
+    });
+    table.appendChild(tb);
+    wrap.appendChild(table);
+    return wrap;
+  }
+
   function detailEl(name) {
     var box = el('div', 'detail');
     var d = detail[name];
-    if (d === 'loading' || !d) { box.appendChild(el('p', 'dim', tr('7일 물때 · 3일 예보를 받는 중…', 'Loading 7-day tides and 3-day forecast…'))); return box; }
+    if (d === 'loading' || !d) { box.appendChild(el('p', 'dim', tr('15일 물때표 · 3일 예보를 받는 중…', 'Loading the 15-day tide table and 3-day forecast…'))); return box; }
     if (d === 'error') { box.appendChild(el('p', 'dim', tr('받지 못했습니다. 다시 눌러 보세요.', 'Could not load. Please tap again.'))); delete detail[name]; return box; }
-    box.appendChild(el('h4', null, tr('7일 물때', '7-day tides')));
-    var ul = el('ul', 'lines');
-    (d.days || []).forEach(function (x) { ul.appendChild(el('li', x.sari ? 'sari' : null, dayLine(x))); });
-    box.appendChild(ul);
+    box.appendChild(tideTableEl(d.days));
     box.appendChild(el('h4', null, tr('3일 바다 예측 (3시간 간격)', '3-day sea forecast (every 3 hours, KST)')));
     var hl = el('ul', 'lines');
     (d.hourly || []).forEach(function (f) { hl.appendChild(el('li', f.swell >= 2 ? 'sari' : null, hourLine(f))); });

@@ -252,6 +252,13 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
         eq("송산 - 카드 · 지도에서 뛴 곳은 점선(끊긴 구간)", rc.gap.filter(Boolean).length, 1);
         eq("송산 - 뛴 거리는 걸은 거리에서 빠짐", walked < rec.walked, true);
         eq("송산 - 마지막 2분(실제 걸은 길)은 남음", rc.lat[rc.lat.length - 1] + "," + rc.lon[rc.lon.length - 1], "37.481249,126.555359");
+        // 2026-11-15 홍TV님 앱 기록(화면 끔): 6분 공백 뒤 218m 앞 한 점 - 300m 가 안 돼 숲을 가로지르는 실선이었음 → 1분 · 100m 넘으면 점선
+        var gpx = require("fs").readFileSync(require("path").join(__dirname, "../resources/track/deokgibong-20261115.gpx"), "utf8"), dk = [], m, re = /<trkpt lat="([\d.]+)" lon="([\d.]+)"><ele>([\d.]+)<\/ele><time>([^<]+)<\/time>/g;
+        while ((m = re.exec(gpx))) dk.push([+m[1], +m[2], Date.parse(m[4]), +m[3]]);
+        var dc = RF.recordCourse({ name: "덕기봉", kind: "hike", track: dk });
+        eq("덕기봉 - 10점, 마지막 구간 218m · 370초", dk.length + ":" + Math.round(RF.distM(dk[8][0], dk[8][1], dk[9][0], dk[9][1])) + "m/" + Math.round((dk[9][2] - dk[8][2]) / 1000) + "s", "10:218m/370s");
+        eq("덕기봉 - 화면 꺼진 6분은 점선(끊긴 구간), 앞은 실선", dc.gap.filter(Boolean).length + ":" + dc.gap[dc.gap.length - 1], "1:true");
+        eq("덕기봉 - 지도 실선 + 점선", RF.recordLines(dc).features.map(function (f) { return f.properties.gap ? "점선" : "실선"; }).join(","), "실선,점선");
     })();
     // 통제 안내를 붙일 공원(2026-11-12 점검) - 산 이름으로만 맞으면 정상 15km 안만(정상 자리는 data/mountains100.json 그대로)
     (function () {

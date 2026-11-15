@@ -2245,8 +2245,11 @@
         return { type: "FeatureCollection", features: feats };
     }
 
-    /** 위치가 끊긴 구간(크롬 화면 꺼짐 등) - 이만큼 넘게 벌어지면 카드 · 지도에서 점선. */
-    var GAP_MS = 60000, GAP_M = 300;
+    /**
+     * 위치가 끊긴 구간(크롬 화면 꺼짐 등) - 이만큼 넘게 벌어지면 카드 · 지도에서 점선.
+     * 2026-11-15 홍TV님 덕기봉 앱 기록(화면 끔): 6분 공백 뒤 218m 앞 한 점이 300m 가 안 돼 숲을 가로지르는 실선 → 100m. 쉬느라 서 있던 공백은 거의 안 움직여 실선 그대로.
+     */
+    var GAP_MS = 60000, GAP_M = 100;
 
     function recordCourse(rec) {
         var c = { id: "rec", course: { name: rec.name, kind: rec.kind }, lon: [], lat: [], ele: [], dist: [], gap: [], markers: [], pois: [], junctions: [] };
