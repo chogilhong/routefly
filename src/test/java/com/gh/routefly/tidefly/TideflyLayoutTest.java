@@ -30,6 +30,14 @@ public class TideflyLayoutTest {
         org.junit.Assert.assertEquals(0, TideflyServlet.restUntil(500, 1_000));
     }
 
+    /** 2026-11-15 PC: 배포 뒤 첫 손님 전까지 [TIDEFLY] 줄 0 - 서블릿이 첫 요청 때에야 떠서 미리 받기가 늦었음. */
+    @Test
+    public void 웹앱이_뜰_때_미리_받기_시작() {
+        jakarta.servlet.annotation.WebServlet w = TideflyServlet.class.getAnnotation(jakarta.servlet.annotation.WebServlet.class);
+        org.junit.Assert.assertTrue(java.util.Arrays.asList(w.urlPatterns()).contains("/api/tidefly"));
+        org.junit.Assert.assertTrue("loadOnStartup 이 있어야 뜰 때 init", w.loadOnStartup() >= 0);
+    }
+
     @Test
     public void 카드_칸은_minmax_0_이라_물때표_띠가_화면을_넓히지_않음() throws Exception {
         String css = Files.readString(Path.of("src/main/webapp/css/tidefly.css"), StandardCharsets.UTF_8).replace("\r\n", "\n");

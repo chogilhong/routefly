@@ -47,7 +47,8 @@ import jakarta.servlet.http.HttpServletResponse;
  * 포인트는 data/tidefly-points.json(바다낚시지수 49곳), 특보구역 짝은 data/tidefly-point-wrn.json({이름: [S 코드, …]} - 홍TV님 확인 뒤 채움, 비면 판단하지 않음).
  * 기상청 API허브(키 kma.apihub.key)는 서버가 부르고 잠시 기억합니다: 소해구 예측은 칸마다 1시간, 특보는 전체 한 번에 10분.
  */
-@WebServlet("/api/tidefly")
+// loadOnStartup: 웹앱이 뜰 때 init(미리 받기 시작) - 2026-11-15 PC: 없으면 첫 손님이 올 때까지 바다 · 물때 · 특보를 안 받았음(AirServlet · WeekendServlet 과 같게)
+@WebServlet(urlPatterns = {"/api/tidefly"}, loadOnStartup = 2)
 public final class TideflyServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
