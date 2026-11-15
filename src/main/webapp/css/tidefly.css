@@ -1,8 +1,9 @@
 :root {
   --bg: #eef4f7; --card: #ffffff; --ink: #10222c; --dim: #5d707b; --line: #d8e3ea; --soft: #f4f8fa;
   --top1: #0a5a7a; --top2: #0e7c8f;
-  --ok: #1e8e57; --ok-bg: #e5f5ec; --care: #c27a12; --care-bg: #fdf1dc; --no: #c43a2f; --no-bg: #fbe5e2; --none: #8a979f; --none-bg: #eef1f3;
-  --sea: #2b8fc2; --sea-bg: rgba(43, 143, 194, .16); --now: #e5603f; --link: #0b6e8a; --neap: #7a45c4;
+  /* 밝은 모드 글자 대비 4.5 이상(점검 10차 D2 - △ 3.09 · 판단 전 2.64 · ○ 3.68 · 바다색 3.26 이었음) */
+  --ok: #17744a; --ok-bg: #e5f5ec; --care: #9a5d00; --care-bg: #fdf1dc; --no: #c43a2f; --no-bg: #fbe5e2; --none: #5f6c74; --none-bg: #eef1f3;
+  --sea: #1d6f99; --sea-bg: rgba(43, 143, 194, .16); --now: #e5603f; --link: #0b6e8a; --neap: #7a45c4;
   color-scheme: light dark;
 }
 /* 어두운 화면: 기본은 다크(tidefly-early.js 가 data-theme="dark" - 2026-11-15 홍TV님 "기본으로 다크모드 로 해"), 밝은 모드를 고르면 light. 아래 기기 설정 줄은 스크립트가 막힌 때만 */
@@ -29,11 +30,11 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: system-
 .top .back:hover, .top .back:focus-visible { opacity: 1; text-decoration: underline; }
 .top h1 { margin: 0; font-size: 1.45rem; letter-spacing: -.01em; white-space: nowrap; }
 .top .opts { display: flex; align-items: center; gap: 5px; margin-left: auto; }
-.top .opt { display: inline-flex; align-items: center; gap: 3px; min-height: 34px; padding: 4px 9px; border: 1px solid rgba(255, 255, 255, .45);
+.top .opt { display: inline-flex; align-items: center; gap: 3px; min-height: 44px; min-width: 44px; justify-content: center; padding: 4px 9px; border: 1px solid rgba(255, 255, 255, .45);
             border-radius: 999px; background: rgba(255, 255, 255, .12); color: #fff; font-size: .78rem; cursor: pointer; white-space: nowrap; }
 .top .opt:focus-visible, .area-toggle:focus-visible, .more:focus-visible, .tabs button:focus-visible { outline: 3px solid var(--now); outline-offset: 2px; }
 .lang { display: inline-flex; border: 1px solid rgba(255, 255, 255, .45); border-radius: 999px; overflow: hidden; }
-.lang button { min-height: 32px; min-width: 32px; padding: 0 8px; border: 0; background: transparent; color: #fff; font-size: .8rem; font-weight: 600; cursor: pointer; }
+.lang button { min-height: 44px; min-width: 44px; padding: 0 8px; border: 0; background: transparent; color: #fff; font-size: .8rem; font-weight: 600; cursor: pointer; }
 .lang button[aria-pressed="true"] { background: #fff; color: var(--top1); }
 .lang button:focus-visible { outline: 3px solid var(--now); outline-offset: -3px; }
 .top .opt.size { width: 34px; justify-content: center; padding: 0; font-weight: 700; }
@@ -64,13 +65,13 @@ main { padding-top: 14px; padding-bottom: 24px; }
 .tools { margin: 14px 0 4px; display: grid; gap: 8px; }
 .find input { width: 100%; font-size: 1rem; padding: 11px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink); }
 .tabs { display: flex; gap: 6px; }
-.tabs button { flex: 1 1 auto; white-space: nowrap; padding: 8px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--ink); font-size: .88rem; cursor: pointer; }
+.tabs button { flex: 1 1 auto; white-space: nowrap; min-height: 44px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--ink); font-size: .88rem; cursor: pointer; }
 .tabs button[aria-pressed="true"] { background: var(--top1); border-color: var(--top1); color: #fff; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .state { margin: 6px 2px; font-size: .85rem; color: var(--dim); min-height: 1em; }
 
 .area h2 { margin: 18px 0 6px; font-size: 1.05rem; }
-.area-toggle { width: 100%; display: flex; align-items: baseline; gap: 8px; padding: 4px 2px; border: 0; background: none; color: var(--ink); font: inherit; font-weight: 700; text-align: left; cursor: pointer; }
+.area-toggle { width: 100%; min-height: 44px; display: flex; align-items: baseline; gap: 8px; padding: 10px 2px; border: 0; background: none; color: var(--ink); font: inherit; font-weight: 700; text-align: left; cursor: pointer; }
 .area-toggle .arrow { margin-left: auto; color: var(--dim); font-size: .85rem; font-weight: 400; }
 .area .count { font-size: .8rem; font-weight: 400; color: var(--dim); }
 .cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }   /* minmax(0, …): 물때표 날짜 띠(옆 밀림)가 카드 · 화면을 넓히지 않게(2026-11-15 PC: 375px 에서 문서 폭 1036px) */
@@ -81,12 +82,13 @@ main { padding-top: 14px; padding-bottom: 24px; }
 .head .chev { margin-left: auto; color: var(--dim); font-size: .9rem; }
 .card.folded { padding-top: 10px; padding-bottom: 10px; }
 .sum { margin: 6px 0 0; font-size: .86rem; color: var(--dim); }
-.mark { flex: none; width: 4.2rem; padding: 4px 0; border-radius: 12px; text-align: center; background: var(--none-bg); color: var(--none); line-height: 1.1; }
+.mark { display: block; flex: none; width: 4.2rem; padding: 4px 0; border-radius: 12px; text-align: center; background: var(--none-bg); color: var(--none); line-height: 1.1; }
 .mark .sym { display: block; font-size: 1.5rem; font-weight: 700; }
 .mark .word { display: block; font-size: .7rem; font-weight: 600; }
 .mark.ok { background: var(--ok-bg); color: var(--ok); } .mark.care { background: var(--care-bg); color: var(--care); } .mark.no { background: var(--no-bg); color: var(--no); }
-.title { min-width: 0; }
-.name { margin: 0; font-size: 1.1rem; }
+.card-h { margin: 0; font-size: inherit; font-weight: inherit; }   /* 제목 안에 단추(점검 10차 D5) */
+.title { display: block; min-width: 0; }
+.name { display: block; margin: 0; font-size: 1.1rem; font-weight: 700; }
 .kind { font-size: .75rem; color: var(--dim); }
 .why { margin: 8px 0 0; font-size: .88rem; font-weight: 600; }
 .why.care { color: var(--care); } .why.no { color: var(--no); } .why.none { color: var(--dim); font-weight: 400; }
@@ -103,19 +105,22 @@ main { padding-top: 14px; padding-bottom: 24px; }
 .chart .area { fill: var(--sea-bg); }
 .chart .line { fill: none; stroke: var(--sea); stroke-width: 2; }
 .chart .grid { stroke: var(--line); stroke-width: 1; }
-.chart .axis { fill: var(--dim); font-size: 9px; }
-.chart .hi, .chart .lo { fill: var(--ink); font-size: 9px; font-weight: 600; }
+.chart .axis { fill: var(--dim); font-size: .62rem; }   /* 글자 크기 단추를 따라 커지게(점검 10차 D6 - 9px 고정이었음) */
+.chart .hi, .chart .lo { fill: var(--ink); font-size: .62rem; font-weight: 600; }
 .chart .now { stroke: var(--now); stroke-width: 2; stroke-dasharray: 3 2; }
 .small { font-size: .78rem; margin: 2px 0 0; }
 .dim { color: var(--dim); }
 .alert { margin: 8px 0 0; padding: 6px 10px; border-radius: 10px; background: var(--care-bg); color: var(--care); font-size: .84rem; font-weight: 600; }
 
-.more { margin-top: 10px; width: 100%; padding: 9px; border: 1px solid var(--line); border-radius: 10px; background: var(--soft); color: var(--link); font-size: .9rem; font-weight: 600; cursor: pointer; }
+.more { margin-top: 10px; width: 100%; min-height: 44px; padding: 9px; border: 1px solid var(--line); border-radius: 10px; background: var(--soft); color: var(--link); font-size: .9rem; font-weight: 600; cursor: pointer; }
 .detail { margin-top: 8px; font-size: .84rem; }
 .detail h4 { margin: 10px 0 4px; font-size: .9rem; }
-.detail .lines { margin: 0; padding-left: 1.1rem; }
-.detail .lines li { margin: 3px 0; }
-.detail .lines li.sari { color: var(--care); }
+/* 3일 예보 표(점검 10차 E4 - 24줄 글 대신 날짜별 작은 표) */
+.htable { width: 100%; border-collapse: collapse; font-size: .8rem; font-variant-numeric: tabular-nums; }
+.htable th, .htable td { padding: 4px 3px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+.htable thead th { color: var(--dim); font-weight: 600; }
+.htable tr.hday th { padding-top: 8px; background: var(--soft); font-weight: 700; }
+.htable tr.warn td { color: var(--care); font-weight: 700; }
 
 .foot { padding-top: 4px; padding-bottom: 28px; font-size: .76rem; color: var(--dim); }
 .foot p { margin: 4px 0; }
@@ -124,14 +129,18 @@ main { padding-top: 14px; padding-bottom: 24px; }
 .alarms { margin-top: 10px; padding: 8px 10px; border-radius: 12px; border: 1px dashed var(--line); }
 .alarms .label { margin: 0 0 4px; font-size: .75rem; color: var(--dim); }
 .pick { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 4px 0; font-size: .86rem; }
-.pick select { font: inherit; padding: 4px 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink); }
-.alarm { position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 10; padding: 12px 14px; border-radius: 14px; background: var(--no); color: #fff;
-         font-weight: 600; box-shadow: 0 6px 24px rgba(0, 0, 0, .3); cursor: pointer; }
+.pick select { font: inherit; min-height: 44px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink); }
+/* 알림 띠 - 안전 문구라 두 모드 모두 진한 고정색(점검 10차 D2 - 다크 모드 흰 글자 대비 3.05 였음), 닫기 단추(D7) */
+.alarm { position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 10; display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 14px; border-radius: 14px;
+         background: #b3261e; color: #fff; font-weight: 600; box-shadow: 0 6px 24px rgba(0, 0, 0, .3); cursor: pointer; }
+.alarm[hidden] { display: none; }
+.alarm .msg { flex: 1 1 auto; }
+.alarm .x { flex: 0 0 auto; min-width: 44px; min-height: 44px; border: 0; border-radius: 10px; background: rgba(255, 255, 255, .18); color: #fff; font-size: 1.1rem; cursor: pointer; }
 
 /* 펴기 · 카드를 펴면 맨 위로 옮길 때 위에 조금 여백(2026-11-15) */
 .area, .card { scroll-margin-top: 8px; }
 /* 📍 내 근처(2026-11-15) */
-.near-btn { width: 100%; padding: 9px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--ink); font-size: .9rem; cursor: pointer; }
+.near-btn { width: 100%; min-height: 44px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--ink); font-size: .9rem; cursor: pointer; }
 .near-btn[aria-pressed="true"] { background: var(--top1); border-color: var(--top1); color: #fff; }
 .near-btn:focus-visible { outline: 3px solid var(--now); outline-offset: 2px; }
 .area.near .near-title { margin: 14px 0 8px; font-size: 1.05rem; }
@@ -145,9 +154,9 @@ main { padding-top: 14px; padding-bottom: 24px; }
 .tday .m { display: block; font-weight: 700; color: var(--sea); }
 .tday.sari .m, .ttable tr.sari .mul { color: var(--care); }
 .tday.neap .m, .ttable tr.neap .mul { color: var(--neap); }
-.ttable { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: .76rem; font-variant-numeric: tabular-nums; }
+.ttable { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: .8rem; font-variant-numeric: tabular-nums; }
 .ttable th, .ttable td { border-bottom: 1px solid var(--line); padding: 5px 2px; text-align: left; vertical-align: top; white-space: nowrap; overflow: hidden; }
-.ttable .c-date { width: 3em; }
+.ttable .c-date { width: 3.3em; }   /* 표 글자 .76 → .8rem(점검 10차 D6) 뒤 "15(일)" 이 잘리지 않게 3 → 3.3em - 360 · 375px 에서 만조 · 간조 칸도 안 잘림 */
 .ttable .c-mul { width: 28%; }   /* 물때 칸 넓게 · 만조 · 간조는 남은 폭을 반씩(2026-11-15 홍TV님 "물때를 늘리고 만조, 간조를 줄여" · "물때를 더 넓혀") - 375px 서해 3자리 높이(방포항 "06:23 549▲331")에서 글 오른쪽이 6px 넘게 남는 데까지(32% 는 PC 폰에서 3px 넘침) */
 .ttable .cm { color: var(--dim); }
 .ttable .diff { font-size: .86em; letter-spacing: -.03em; margin-left: 1px; }
@@ -169,11 +178,11 @@ main { padding-top: 14px; padding-bottom: 24px; }
 .law p { margin: 3px 0; }
 .law .label { color: var(--dim); font-size: .78rem; }
 .law .law-now { color: var(--no); font-weight: 700; }
-.law .law-src { display: inline-block; margin-top: 4px; color: var(--link); font-size: .8rem; }
+.law .law-src { display: inline-flex; align-items: center; min-height: 44px; margin-top: 2px; color: var(--link); font-size: .84rem; }
 /* 근처 숙소 · 식당(2026-11-15 홍TV님) */
 .stays { margin-top: 8px; }
 .stay-btns { display: flex; gap: 6px; }
-.stay-btn { flex: 1; padding: 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--soft); color: var(--ink); font-size: .86rem; cursor: pointer; }
+.stay-btn { flex: 1; min-height: 44px; padding: 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--soft); color: var(--ink); font-size: .86rem; cursor: pointer; }
 .stay-list { list-style: none; margin: 8px 0 4px; padding: 0; font-size: .86rem; }
 .stay-list li { padding: 6px 0; border-bottom: 1px solid var(--line); }
 .stay-list a { color: var(--link); }

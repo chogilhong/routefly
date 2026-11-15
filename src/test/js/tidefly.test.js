@@ -78,6 +78,9 @@ assert.strictEqual(TF.dayName('2026-11-16'), '16일(월)');
   const max = Math.max.apply(null, days.map(d => d.rangeCm || 0));
   assert.strictEqual(rows[0].pct, Math.round(days[0].rangeCm / max * 100));
   assert.ok(rows.some(r => r.pct === 100));
+  // 물 세기 % 는 날이 빠짐없을 때만(점검 10차 D9 - 서버 flowPct 처럼)
+  const gap = days.map((d, k) => (k === 3 ? Object.assign({}, d, { rangeCm: undefined }) : d));
+  assert.ok(TF.tideTable(gap).every(r => r.pct === null));
   // 이 자리 좋은 물때(2026-11-15 홍TV님 "표시해 줘") - 실제 자리 자료의 말들, 방포항 7일(13물 · 조금 · 무시 · 1물 · 2물 · 3물 · 4물, 사리 없음)
   const g = t => TF.goodDays(t, days).map(b => (b ? 1 : 0)).join('');
   assert.strictEqual(g('조금 전·후'), '1111000');                  // 조금 · 무시와 그 앞뒤 하루
@@ -113,7 +116,16 @@ assert.strictEqual(TF.dayName('2026-11-16'), '16일(월)');
   assert.deepStrictEqual(TF.tideTable([{ date: '2026-11-16', lunarDay: 8, mulddae: '조금', sunrise: '07:05', sunset: '17:29' }])[0],
     { date: '2026-11-16', day: '16일(월)', lunar: 8, moon: ['🌓', '상현달'], mul: '조금', cls: 'neap', pct: null, highs: [], lows: [], sun: '07:05 ~ 17:29' });
 }
-assert.strictEqual(TF.hourLine({ tmEf: '2026111500', waveM: 0.4, windMs: 4.9, windDir: 318.6, swell: 1 }), '15일 09시 파고 0.4m · 바람 4.9m/s 북서풍 · 너울 관심');
+// 3일 예보 표 한 줄(점검 10차 E4) - 앞 hourLine 과 같은 실제 값
+assert.deepStrictEqual(TF.hourRow({ tmEf: '2026111500', waveM: 0.4, wavePeriod: 4.9, windMs: 4.9, windDir: 318.6, swell: 1 }),
+  { day: '15일(일)', warn: false, cells: ['09시', '0.4m', '5초', '4.9 북서', '관심'] });
+assert.deepStrictEqual(TF.hourRow({ tmEf: '2026111515', swell: 2 }).cells, ['00시', '-', '-', '-', '주의']);
+assert.strictEqual(TF.hourRow({ tmEf: '2026111515', swell: 2 }).day, '16일(월)');
+// 특보의 때(점검 10차 E1) - wrn-now.txt 의 실제 줄(서해중부바깥먼바다 풍랑 예비, TM_EF 202611151758 = 머리말 표 "17:58 오후")
+assert.strictEqual(TF.wrnWhen({ tmEf: '202611151758', level: '예비' }), '15일 오후 예상');
+assert.strictEqual(TF.wrnWhen({ tmEf: '202611151758', level: '주의보' }), '15일 17:58 발효');
+assert.strictEqual(TF.wrnWhen({ tmEf: '202611151730', level: '예비' }), '', '표에 없는 예비 시각은 보이지 않음');
+assert.strictEqual(TF.wrnWhen({}), '');
 // 글자 크기 · 화면 모드
 assert.strictEqual(TF.nextSize('m'), 'l');
 assert.strictEqual(TF.nextSize('l'), 'xl');

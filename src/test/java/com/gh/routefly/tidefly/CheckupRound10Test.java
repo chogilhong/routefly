@@ -68,7 +68,7 @@ public class CheckupRound10Test {
         assertTrue("자리 알림도 돎", js.contains("items.concat(spotItems()).forEach(function (it) {"));
         assertTrue("숙소 칸은 묶음마다", js.contains("var sk = sec + '|' + p.name;") && js.contains("if (openKind === '' && stayOut[sk])"));
         assertTrue(js.contains("sunsetLeft === '곧' ? ' (곧 해 짐)'"));
-        assertTrue("자정 넘으면 날짜 다시", js.contains("if (!document.hidden) { paintToday(); draw(); }"));
+        assertTrue("자정 넘으면 날짜 다시", js.contains("if (document.hidden) return;\n    paintToday();"));
         assertTrue("말을 바꾸면 숙소 칸 새로", js.contains("stayOut = {};"));
         String css = read("src/main/webapp/css/tidefly.css");
         int open = 0;
@@ -140,5 +140,20 @@ public class CheckupRound10Test {
         assertFalse("10초마다 끝없이 하던 것", js.contains("timer = setTimeout(load, data.warming ? 10000 : 600000);"));
         assertTrue(js.contains("typing = setTimeout(draw, 200);"));
         assertTrue(read("src/main/java/com/gh/routefly/web/StaysServlet.java").contains("CACHE_MAX = 2500;"));
+    }
+
+    /** D1 · D2 · D3 · D4 · D5 · D7 · D8 - 초점 되살리기 · 대비 · 모드 단추 · 44px · 제목 안 단추 · 알림 닫기 · 물때표 단추 자리. */
+    @Test
+    public void 화면_접근성() throws Exception {
+        String js = read("src/main/webapp/js/tidefly.js"), css = read("src/main/webapp/css/tidefly.css"), html = read("src/main/webapp/tidefly.html");
+        assertTrue("D1", js.contains("var fa = document.activeElement, fk = fa && listEl.contains(fa) && fa.getAttribute && fa.getAttribute('data-fk');"));
+        assertTrue("D2 밝은 모드 색", css.contains("--ok: #17744a;") && css.contains("--care: #9a5d00;") && css.contains("--none: #5f6c74;") && css.contains("background: #b3261e;"));
+        assertFalse("D3", html.contains("id=\"theme\" aria-pressed") || js.contains("themeBtn.setAttribute('aria-pressed'"));
+        for (String sel : new String[] {".lang button { min-height: 44px", ".top .opt { display: inline-flex; align-items: center; gap: 3px; min-height: 44px", ".pick select { font: inherit; min-height: 44px", ".stay-btn { flex: 1; min-height: 44px"}) {
+            assertTrue("D4 " + sel, css.contains(sel));
+        }
+        assertTrue("D5", js.contains("var hh = el('h3', 'card-h');") && !js.contains("el('h3', 'name'") && js.contains("sym.setAttribute('aria-hidden', 'true');"));
+        assertTrue("D7", html.contains("<button type=\"button\" class=\"x\"") && js.contains("e.key === 'Escape'"));
+        assertTrue("D8 물때표 단추가 숙소 칸 앞", js.indexOf("li.appendChild(more);") < js.indexOf("li.appendChild(stayBox(p, sec));"));
     }
 }

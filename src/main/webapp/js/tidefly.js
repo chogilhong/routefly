@@ -129,7 +129,9 @@
 
   function tideTable(days) {
     var max = 0, prev = null;
-    (days || []).forEach(function (d) { if (typeof d.rangeCm === 'number' && d.rangeCm > max) max = d.rangeCm; });
+    // 물 세기 % 는 받은 날이 빠짐없을 때만(서버 Tide.flowPct 처럼 - 점검 10차 D9: 빠진 날이 있으면 받은 날 중 최대로 셈해 카드의 % 와 달랐음)
+    var whole = (days || []).every(function (d) { return typeof d.rangeCm === 'number'; });
+    if (whole) (days || []).forEach(function (d) { if (d.rangeCm > max) max = d.rangeCm; });
     return (days || []).map(function (d) {
       var row = { date: d.date, day: dayName(d.date), lunar: d.lunarDay, moon: moon(d.lunarDay), mul: mul(d.mulddae),
         cls: d.sari ? 'sari' : (d.mulddae === '조금' || d.mulddae === '무시') ? 'neap' : '',
@@ -144,9 +146,43 @@
     });
   }
 
-  /** 순수 함수 - 3시간 예보 한 줄: "15일 09시 파고 0.4m · 바람 4.9m/s 북서풍 · 너울 관심". */
-  function hourLine(f) {
-    return kst(f.tmEf) + ' ' + nums(f);
+  /**
+   * 순수 함수 - 3일 예보 표 한 줄(점검 10차 E4 - 24줄 글을 날짜별 작은 표로): {day: "15일(토)" 묶음 이름, cells: [시각, 파고, 주기, 바람, 너울], warn: 너울 주의 이상}.
+   * 값이 없으면 "-". 시각은 우리 시간.
+   */
+  function hourRow(f) {
+    var m = /^(\d{4})(\d{2})(\d{2})(\d{2})$/.exec(f.tmEf || '');
+    var d = m ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4]) + 9 * 3600 * 1000) : null;
+    var two = function (n) { return (n < 10 ? '0' : '') + n; };
+    var day = d ? dayName(d.getUTCFullYear() + '-' + two(d.getUTCMonth() + 1) + '-' + two(d.getUTCDate())) : '';
+    return { day: day, warn: f.swell >= 2, cells: [d ? two(d.getUTCHours()) + tr('시', ':00') : '-',
+      typeof f.waveM === 'number' ? f.waveM.toFixed(1) + 'm' : '-',
+      typeof f.wavePeriod === 'number' ? Math.round(f.wavePeriod) + tr('초', 's') : '-',
+      typeof f.windMs === 'number' ? f.windMs.toFixed(1) + (dir16(f.windDir) ? ' ' + dir16(f.windDir) : '') : '-',
+      swell(f.swell) || '-'] };
+  }
+
+  /**
+   * 기상청 예비특보 발효 시각 뜻(API허브 wrn_now_data 머리말 그대로 - src/test/resources/tidefly/apihub/wrn-now.txt): "HHmm" → [때, 영어].
+   * 예비특보는 정한 시각이 아니라 때(아침 · 오후 …)를 이 값으로 적어 보냄. 표에 없는 값은 보이지 않음(지어내지 않음).
+   */
+  var PRELIM_WHEN = { '0259': ['새벽', 'early morning'], '0559': ['새벽', 'early morning'], '0859': ['아침', 'morning'], '1159': ['오전', 'late morning'],
+    '1459': ['낮', 'early afternoon'], '1759': ['늦은 오후', 'late afternoon'], '2059': ['저녁', 'evening'], '2359': ['밤', 'night'], '1158': ['오전', 'morning'],
+    '1758': ['오후', 'afternoon'], '0558': ['새벽', 'early morning'], '2358': ['밤', 'night'], '1458': ['오후', 'afternoon'] };
+
+  /**
+   * 순수 함수 - 특보 한 줄의 때(점검 10차 E1): 특보는 "16일 03:00 발효", 예비특보는 "15일 오후 예상"(PRELIM_WHEN). w = 응답의 warnings 한 줄(tmEf 우리 시간 yyyyMMddHHmm, level).
+   * 모양이 다르거나 예비의 때가 표에 없으면 "".
+   */
+  function wrnWhen(w) {
+    var m = /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})$/.exec((w && w.tmEf) || '');
+    if (!m) return '';
+    var dd = +m[3], mon = MONTH_EN[+m[2] - 1];
+    if (w.level === '예비') {
+      var p = PRELIM_WHEN[m[4] + m[5]];
+      return p ? tr(dd + '일 ' + p[0] + ' 예상', 'expected ' + mon + ' ' + dd + ' ' + p[1]) : '';
+    }
+    return tr(dd + '일 ' + m[4] + ':' + m[5] + ' 발효', 'from ' + mon + ' ' + dd + ' ' + m[4] + ':' + m[5]);
   }
 
   /** 순수 함수 - 표시 → [글자, 칸 이름]. 판단하지 않은 곳은 "-". */
@@ -503,7 +539,7 @@
   }
 
   var TF = { kst: kst, dir16: dir16, swell: swell, nums: nums, markOf: markOf, markWord: markWord, nowKst: nowKst, dayName: dayName,
-    tideTable: tideTable, goodDays: goodDays, moon: moon, sunSpan: sunSpan, hourLine: hourLine, untilText: untilText, nextTide: nextTide, curve: curve, nextSize: nextSize, isDark: isDark,
+    tideTable: tideTable, goodDays: goodDays, moon: moon, sunSpan: sunSpan, hourRow: hourRow, wrnWhen: wrnWhen, untilText: untilText, nextTide: nextTide, curve: curve, nextSize: nextSize, isDark: isDark,
     setLang: setLang, roman: roman, placeName: placeName, zoneName: zoneName, reason: reason, mul: mul,
     alarmPlan: alarmPlan, alarmText: alarmText, nearest: nearest, spotItem: spotItem, worseMark: worseMark, bare: bare, fishHit: fishHit, stayRows: stayRows, lawFor: lawFor, inSeason: inSeason, closedText: closedText };
   if (typeof module !== 'undefined' && module.exports) module.exports = TF;
@@ -524,7 +560,8 @@
   var stays = {}, STAY_N = 10;   // 근처 숙소 · 식당 {열쇠: 'loading' | 'error' | 응답} - 포인트 좌표로만 물음(내 위치 안 보냄)
   var law = {};                                             // 금어기 · 금지 체장 - data/tidefly-law.json(수산자원관리법 시행령 별표 1 · 2)
   var closed = {};                                          // 출입통제구역 경고 {포인트 · 자리 이름: [...]} - data/tidefly-closed.json
-  var SPOT_FIND_N = 30;                                     // 찾기에서 보일 자리 수
+  var SPOT_FIND_N = 30;
+  var FAR_TIDE_KM = 30;                                     // 이보다 먼 예보지점은 카드에 밝힘                                     // 찾기에서 보일 자리 수
   // 2026-11-15 홍TV님 "처음에는 전부 접혀줘" - 펼친 지역 묶음만 기억 { 동해: true }(전에는 접은 것을 기억 tf-folded)
   var openAreas = loadPref('tf-open-areas', {});
   var openCard = {};                          // 펼친 카드(이 화면에서만)
@@ -613,6 +650,8 @@
     if (sea && sea.swell >= 2) out.push(tr('너울 ', 'Swell ') + swell(sea.swell));
     var nt = it.tides && it.tides.events ? nextTide(it.tides.events, now) : null;
     if (nt) out.push(tr('다음 ' + nt.what + ' ' + nt.at, 'Next ' + nt.what + ' ' + nt.at));
+    var tn = it.point && it.point.tideName;   // 어느 물때 예보지점인지(점검 10차 E2 - 150장 속에서 어디인지 짐작)
+    if (nt && tn) out.push(tr(tn + ' 물때', placeName(tn) + ' tide'));
     return out.join(' · ') || (sea ? '' : tr('받는 중…', 'Loading…'));
   }
 
@@ -628,6 +667,7 @@
     var head = el('button', 'head');
     head.type = 'button';
     head.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    head.setAttribute('data-fk', 'head|' + curSec + '|' + p.name);   // 다시 그린 뒤 같은 단추로 초점(D1)
     li.setAttribute('data-card', p.name);
     head.addEventListener('click', function () {
       // 2026-11-15 홍TV님 "다른 곳 펴기를 하면 기존 것은 접혀줘" - 카드는 하나만 펼침
@@ -636,18 +676,24 @@
       draw();
       if (opening) bringTop('data-card', p.name);   // 위의 카드가 접혀 자리가 밀리므로 편 카드 맨 위로(2026-11-15 홍TV님)
     });
-    var badge = el('div', 'mark ' + m[1]);
-    badge.appendChild(el('span', 'sym', m[0]));
+    var badge = el('span', 'mark ' + m[1]);
+    var sym = el('span', 'sym', m[0]);
+    sym.setAttribute('aria-hidden', 'true');   // ✕ 를 "곱하기" 로 읽지 않게 - 뜻은 옆 낱말(D5)
+    badge.appendChild(sym);
     badge.appendChild(el('span', 'word', markWord(it.mark)));
     head.appendChild(badge);
-    var title = el('div', 'title');
-    title.appendChild(el('h3', 'name', placeName(p.name)));
+    var title = el('span', 'title');
+    title.appendChild(el('span', 'name', placeName(p.name)));
     if (lang === 'en') title.appendChild(el('span', 'kind', p.name + ' · '));
     title.appendChild(el('span', 'kind', p.spot ? (p.boat ? tr('선상 자리', 'Boat spot') : tr('갯바위 자리', 'Rock spot')) : p.boat ? tr('선상', 'Boat fishing') : p.port ? (p.local ? tr('항구 · 방파제(지방어항)', 'Fishing port · breakwater') : tr('항구 · 방파제(국가어항)', 'Fishing port · breakwater')) : tr('갯바위 · 방파제', 'Rocks · breakwater')));
     if (typeof it.km === 'number') title.appendChild(el('span', 'kind', tr(' · 약 ' + it.km + 'km', ' · about ' + it.km + ' km')));   // 📍 내 근처에서 온 카드
     head.appendChild(title);
-    head.appendChild(el('span', 'chev', isOpen ? '▴' : '▾'));
-    li.appendChild(head);
+    var chev = el('span', 'chev', isOpen ? '▴' : '▾');
+    chev.setAttribute('aria-hidden', 'true');
+    head.appendChild(chev);
+    var hh = el('h3', 'card-h');   // 제목 안에 단추(전에는 단추 안에 h3 - 점검 10차 D5)
+    hh.appendChild(head);
+    li.appendChild(hh);
 
     var shut = closedText(closed[p.name]);
     if (shut) li.appendChild(el('p', 'alert closed', shut));   // 접혀 있어도 보임(안전)
@@ -658,6 +704,12 @@
     }).join(' / ')));
     var why = (it.reasons || []).filter(function (r) { return r !== '출항은 선사에 확인'; }).map(reason);
     if (why.length) li.appendChild(el('p', 'why ' + m[1], why.join(' · ')));
+    // 특보 · 예비특보의 때(점검 10차 E1) - 받은 특보의 발효 시각 그대로
+    var whens = (it.warnings || []).map(function (w) {
+      var t = wrnWhen(w);
+      return t ? (lang === 'en' ? zoneName(w.regKo) : w.regKo) + ' ' + (lang === 'en' ? (KIND_EN[w.kind] || w.kind) : w.kind) + ': ' + t : '';
+    }).filter(Boolean);
+    if (whens.length) li.appendChild(el('p', 'dim small', '⏱ ' + whens.join(' · ')));
     if (!isOpen) {
       li.appendChild(el('p', 'sum', summary(it, now)));
       return li;
@@ -694,6 +746,10 @@
     var tbox = el('div', 'tide');
     var km = typeof p.tideKm === 'number' ? ' ' + p.tideKm.toFixed(0) + 'km' : '';
     tbox.appendChild(el('p', 'label', tr('물때 · ' + (p.tideName || '') + ' 예보지점' + km, 'Tide · ' + placeName(p.tideName || '') + ' station' + km)));
+    if (typeof p.tideKm === 'number' && p.tideKm > FAR_TIDE_KM) {   // 예보지점이 먼 곳(점검 10차 E3 - 전에는 화면 맨 아래 글에만)
+      tbox.appendChild(el('p', 'dim small', tr('⚠ 예보지점이 ' + p.tideKm.toFixed(0) + 'km 떨어져 있어 이 자리와 시각 · 높이가 다를 수 있습니다.',
+        '⚠ The tide station is ' + p.tideKm.toFixed(0) + ' km away, so times and heights here may differ.')));
+    }
     var ev = it.tides && it.tides.events;
     var nt = ev ? nextTide(ev, now) : null;
     var chart = ev ? tideChart(ev, now) : null;
@@ -708,6 +764,14 @@
       tbox.appendChild(el('p', 'dim small', it.tides ? tr('오늘 물때 자료 없음', 'No tide data for today') : tr('물때를 받는 중…', 'Loading tides…')));
     }
     li.appendChild(tbox);
+    // 15일 물때표 단추는 물때 칸 바로 아래(점검 10차 D8 - 숙소 · 식당 아래에 묻혀 있었음)
+    var more = el('button', 'more', open[p.name] ? tr('접기 ▴', 'Close ▴') : tr('15일 물때표 · 3일 예보 ▾', '15-day tide table · 3-day forecast ▾'));
+    more.type = 'button';
+    more.setAttribute('aria-expanded', open[p.name] ? 'true' : 'false');
+    more.setAttribute('data-fk', 'more|' + curSec + '|' + p.name);
+    more.addEventListener('click', function () { toggle(p.name, p.base || p.name); });   // 자리는 base 포인트의 물때표 · 3일 예보
+    li.appendChild(more);
+    if (open[p.name]) li.appendChild(detailEl(p.base || p.name, p.spot ? p.tideTime : null));
 
     // 오늘: 음력 · 물때 이름 · 해
     var t = it.today;
@@ -726,13 +790,6 @@
     if (p.boat) li.appendChild(el('p', 'dim small', tr('⛴ 출항은 선사에 확인하세요.', '⛴ Check sailing with the boat operator.')));
     li.appendChild(alarmBox(it, now));
     if (typeof p.lat === 'number' && typeof p.lon === 'number') li.appendChild(stayBox(p, sec));
-
-    var more = el('button', 'more', open[p.name] ? tr('접기 ▴', 'Close ▴') : tr('15일 물때표 · 3일 예보 ▾', '15-day tide table · 3-day forecast ▾'));
-    more.type = 'button';
-    more.setAttribute('aria-expanded', open[p.name] ? 'true' : 'false');
-    more.addEventListener('click', function () { toggle(p.name, p.base || p.name); });   // 자리는 base 포인트의 물때표 · 3일 예보
-    li.appendChild(more);
-    if (open[p.name]) li.appendChild(detailEl(p.base || p.name, p.spot ? p.tideTime : null));
     return li;
   }
 
@@ -805,7 +862,7 @@
         fired[id] = true;
         var text = alarmText(a, placeName(p.name), cfg);
         var bar = document.getElementById('alarm');
-        bar.textContent = '🔔 ' + text;
+        bar.querySelector('.msg').textContent = '🔔 ' + text;
         bar.hidden = false;
         if (navigator.vibrate) { try { navigator.vibrate([300, 150, 300]); } catch (e) { /* 없어도 됨 */ } }
         if (window.Notification && Notification.permission === 'granted') { try { new Notification(tr('타이드플라이', 'Tidefly'), { body: text }); } catch (e) { /* 화면 띠는 보임 */ } }
@@ -833,6 +890,16 @@
   }
 
   function draw() {
+    // 다시 그려도 키보드 초점은 같은 단추에(점검 10차 D1 - 펴기 · 접기를 누르면 초점이 사라졌음)
+    var fa = document.activeElement, fk = fa && listEl.contains(fa) && fa.getAttribute && fa.getAttribute('data-fk');
+    drawList();
+    if (fk) {
+      var all = listEl.querySelectorAll('[data-fk]');
+      for (var i = 0; i < all.length; i++) if (all[i].getAttribute('data-fk') === fk) { try { all[i].focus({ preventScroll: true }); } catch (e) { all[i].focus(); } break; }
+    }
+  }
+
+  function drawList() {
     var q = (qEl.value || '').trim();
     var ql = q.toLowerCase(), qb = bare(q);   // qb - 빈칸 · 괄호를 뺀 꼴("가의도남측" 이 "가의도 · 남측 해변" 에 맞게)
     var now = nowKst(Date.now());
@@ -900,7 +967,19 @@
       var isOpen = !!openAreas[area] || !!q;   // 찾을 때는 접힌 묶음도 펼쳐 보임
       btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
       btn.appendChild(document.createTextNode(tr(area, AREA_EN[area] || area)));
-      btn.appendChild(el('span', 'count', group.length + tr('곳', group.length === 1 ? ' spot' : ' spots') + (counts.no ? ' · ✕ ' + counts.no : '') + (counts.care ? ' · △ ' + counts.care : '')));
+      btn.setAttribute('data-fk', 'area|' + area);
+      var cnt = el('span', 'count', group.length + tr('곳', group.length === 1 ? ' spot' : ' spots'));
+      // ✕ · △ 기호는 읽지 않고 뜻을 읽음(점검 10차 D5 - "곱하기 14")
+      [[counts.no, '✕', markWord('✕')], [counts.care, '△', markWord('△')]].forEach(function (c) {
+        if (!c[0]) return;
+        cnt.appendChild(document.createTextNode(' · '));
+        var s0 = el('span', null, c[1] + ' ');
+        s0.setAttribute('aria-hidden', 'true');
+        cnt.appendChild(s0);
+        cnt.appendChild(el('span', 'sr', c[2] + ' '));
+        cnt.appendChild(document.createTextNode(String(c[0])));
+      });
+      btn.appendChild(cnt);
       btn.appendChild(el('span', 'arrow', isOpen ? tr('접기 ▴', 'Hide ▴') : tr('펴기 ▾', 'Show ▾')));
       sec.setAttribute('data-area', area);
       btn.addEventListener('click', function () {
@@ -978,6 +1057,9 @@
       var c = el('div', 'tday ' + r.cls + (ok[k] ? ' good' : ''));
       c.appendChild(el('span', 'd', r.day));
       c.appendChild(el('span', 'm', r.mul));
+      // 색으로만 보이던 뜻을 글로도(점검 10차 D6 - 화면 읽기)
+      var said = [r.cls === 'sari' ? tr('사리', 'spring tide') : r.cls === 'neap' ? tr('물 약함', 'neap') : '', ok[k] ? tr('좋은 물때', 'good tide here') : ''].filter(Boolean).join(', ');
+      if (said) c.appendChild(el('span', 'sr', ' ' + said));
       if (r.moon) { var mo = el('span', 'moon', r.moon[0]); mo.title = r.moon[1]; c.appendChild(mo); }
       strip.appendChild(c);
     });
@@ -1013,6 +1095,7 @@
     rows.forEach(function (r, k) {
       var tr_ = el('tr', r.cls + (ok[k] ? ' good' : ''));
       var d0 = el('td', 'date');
+      if (ok[k]) d0.appendChild(el('span', 'sr', tr('좋은 물때 ', 'Good tide ')));
       if (lang === 'en') {   // "Sun 15" 은 좁은 칸에서 잘려 날 · 요일 · 음력을 세 줄로(2026-11-15)
         d0.appendChild(el('div', null, String(+String(r.date).slice(8))));
         d0.appendChild(el('div', 'dim', r.day.split(' ')[0]));
@@ -1031,6 +1114,8 @@
         fill.style.width = r.pct + '%';
         bar.appendChild(fill);
         bar.title = tr('물 세기 ', 'Range ') + r.pct + '%';
+        bar.setAttribute('role', 'img');
+        bar.setAttribute('aria-label', bar.title);
         m0.appendChild(bar);
       }
       tr_.appendChild(m0);
@@ -1059,6 +1144,7 @@
       if (on) openKind = k[0];
       var b = el('button', 'stay-btn', k[1] + (on ? ' ▴' : ' ▾'));
       b.type = 'button';
+      b.setAttribute('data-fk', 'stay|' + sk + '|' + k[0]);
       b.setAttribute('aria-expanded', on ? 'true' : 'false');
       b.addEventListener('click', function () {
         stays.open = on ? null : sk + '|' + k[0];
@@ -1125,10 +1211,30 @@
     if (d === 'error') { box.appendChild(el('p', 'dim', tr('받지 못했습니다. 다시 눌러 보세요.', 'Could not load. Please tap again.'))); delete detail[name]; return box; }
     box.appendChild(tideTableEl(d.days, good));
     box.appendChild(el('h4', null, tr('3일 바다 예측 (3시간 간격)', '3-day sea forecast (every 3 hours, KST)')));
-    var hl = el('ul', 'lines');
-    (d.hourly || []).forEach(function (f) { hl.appendChild(el('li', f.swell >= 2 ? 'sari' : null, hourLine(f))); });
-    if (!(d.hourly || []).length) hl.appendChild(el('li', 'dim', tr('예측을 받지 못했습니다.', 'Forecast not available.')));
-    box.appendChild(hl);
+    if (!(d.hourly || []).length) box.appendChild(el('p', 'dim', tr('예측을 받지 못했습니다.', 'Forecast not available.')));
+    else {
+      var ht = el('table', 'htable'), hh0 = el('tr'), hb = el('tbody'), lastDay = null;
+      [tr('시각', 'Time'), tr('파고', 'Waves'), tr('주기', 'Period'), tr('바람 m/s', 'Wind m/s'), tr('너울', 'Swell')].forEach(function (h) { hh0.appendChild(el('th', null, h)); });
+      var hth = el('thead');
+      hth.appendChild(hh0);
+      ht.appendChild(hth);
+      d.hourly.forEach(function (f) {
+        var r = hourRow(f);
+        if (r.day !== lastDay) {   // 날짜가 바뀌면 묶음 줄
+          lastDay = r.day;
+          var dr = el('tr', 'hday'), dc = el('th', null, r.day);
+          dc.colSpan = 5;
+          dc.scope = 'colgroup';
+          dr.appendChild(dc);
+          hb.appendChild(dr);
+        }
+        var row = el('tr', r.warn ? 'warn' : null);
+        r.cells.forEach(function (c) { row.appendChild(el('td', null, c)); });
+        hb.appendChild(row);
+      });
+      ht.appendChild(hb);
+      box.appendChild(ht);
+    }
     return box;
   }
 
@@ -1201,7 +1307,6 @@
   function paintOptions() {
     var dark = isDark(root.getAttribute('data-theme'));
     themeBtn.textContent = dark ? tr('☀ 밝은 모드', '☀ Light') : tr('🌙 다크모드', '🌙 Dark');
-    themeBtn.setAttribute('aria-pressed', dark ? 'true' : 'false');
     var cur = root.getAttribute('data-size') || 'm', nx = nextSize(cur), li = lang === 'en' ? 1 : 0;
     sizeBtn.textContent = tr('가', 'A');
     sizeBtn.setAttribute('aria-label', tr('글자 크기: ' + SIZE_NAME[cur][0] + ' (누르면 ' + SIZE_NAME[nx][0] + ')', 'Text size: ' + SIZE_NAME[cur][li] + ' (tap for ' + SIZE_NAME[nx][li] + ')'));
@@ -1267,9 +1372,18 @@
   var savedLang = loadText('tf-lang');
   setLang(urlLang || savedLang || (/^ko\b/i.test(navigator.language || 'ko') ? 'ko' : 'en'));
   paintFixed();
-  setInterval(function () { if (!document.hidden) { paintToday(); draw(); } }, 60000);
+  // 1분마다 남은 시간 글 새로 - 목록 안에서 고르는 중(알림 선택 등)이면 건너뜀(점검 10차 D1)
+  setInterval(function () {
+    if (document.hidden) return;
+    paintToday();
+    var fa = document.activeElement;
+    if (!(fa && listEl.contains(fa) && fa.tagName === 'SELECT')) draw();
+  }, 60000);
   setInterval(checkAlarms, 30000);
-  document.getElementById('alarm').addEventListener('click', function () { this.hidden = true; });
+  // 알림 띠는 누르거나 ✕ 단추 · Esc 로 닫음(점검 10차 D7 - 키보드로 닫을 수 없었음)
+  var alarmEl = document.getElementById('alarm');
+  alarmEl.addEventListener('click', function () { alarmEl.hidden = true; });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !alarmEl.hidden) alarmEl.hidden = true; });
   fetch('data/tidefly-law.json').then(function (r) { return r.ok ? r.json() : {}; }).then(function (d) { law = d || {}; draw(); }).catch(function () { /* 금어기 글 없이 */ });
   fetch('data/tidefly-closed.json').then(function (r) { return r.ok ? r.json() : {}; }).then(function (d) { closed = d || {}; draw(); }).catch(function () { /* 경고 없이 */ });
   load();
