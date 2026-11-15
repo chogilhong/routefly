@@ -129,3 +129,6 @@ main { padding-top: 14px; padding-bottom: 24px; }
 .pick select { font: inherit; padding: 4px 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink); }
 .alarm { position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 10; padding: 12px 14px; border-radius: 14px; background: var(--no); color: #fff;
          font-weight: 600; box-shadow: 0 6px 24px rgba(0, 0, 0, .3); cursor: pointer; }
+
+/* 펴기 · 카드를 펴면 맨 위로 옮길 때 위에 조금 여백(2026-11-15) */
+.area, .card { scroll-margin-top: 8px; }

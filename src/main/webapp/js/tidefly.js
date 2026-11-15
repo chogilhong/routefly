@@ -443,10 +443,13 @@
     var head = el('button', 'head');
     head.type = 'button';
     head.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    li.setAttribute('data-card', p.name);
     head.addEventListener('click', function () {
       // 2026-11-15 홍TV님 "다른 곳 펴기를 하면 기존 것은 접혀줘" - 카드는 하나만 펼침
+      var opening = !openCard[p.name];
       if (openCard[p.name]) { delete openCard[p.name]; delete open[p.name]; } else { openCard = {}; open = {}; openCard[p.name] = true; }
       draw();
+      if (opening) bringTop('data-card', p.name);   // 위의 카드가 접혀 자리가 밀리므로 편 카드 맨 위로(2026-11-15 홍TV님)
     });
     var badge = el('div', 'mark ' + m[1]);
     badge.appendChild(el('span', 'sym', m[0]));
@@ -612,11 +615,14 @@
       btn.appendChild(document.createTextNode(tr(area, AREA_EN[area] || area)));
       btn.appendChild(el('span', 'count', group.length + tr('곳', group.length === 1 ? ' spot' : ' spots') + (counts.no ? ' · ✕ ' + counts.no : '') + (counts.care ? ' · △ ' + counts.care : '')));
       btn.appendChild(el('span', 'arrow', isOpen ? tr('접기 ▴', 'Hide ▴') : tr('펴기 ▾', 'Show ▾')));
+      sec.setAttribute('data-area', area);
       btn.addEventListener('click', function () {
         // 묶음도 하나만 펼침(2026-11-15 홍TV님) - 다른 묶음을 펴면 앞의 것은 접힘
+        var opening = !openAreas[area];
         if (openAreas[area]) delete openAreas[area]; else { openAreas = {}; openAreas[area] = true; }
         save('tf-open-areas', openAreas);
         draw();
+        if (opening) bringTop('data-area', area);   // "펴기를 누르면 펴지고 제일 상단 데이터로 스크롤"(2026-11-15 홍TV님)
       });
       h.appendChild(btn);
       sec.appendChild(h);
@@ -631,6 +637,15 @@
     stateEl.textContent = shown ? '' : (q ? tr('찾는 포인트가 없습니다.', 'No matching spots.') : tr('포인트가 없습니다.', 'No spots.'));
     if (lastData && lastData.warming) stateEl.textContent = tr('서버가 바다 예측 · 물때를 받는 중입니다. 곧 채워집니다.', 'The server is still loading forecasts and tides. They will fill in shortly.');
     paintWhen();
+  }
+
+  /** 방금 편 묶음 · 카드(attr 값이 key 인 것)를 화면 맨 위로 - 움직임 줄이기 설정이면 바로 옮김. */
+  function bringTop(attr, key) {
+    var all = listEl.querySelectorAll('[' + attr + ']'), node = null;
+    for (var i = 0; i < all.length; i++) if (all[i].getAttribute(attr) === key) { node = all[i]; break; }
+    if (!node || !node.scrollIntoView) return;
+    var calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    node.scrollIntoView({ block: 'start', behavior: calm ? 'auto' : 'smooth' });
   }
 
   function paintWhen() {
