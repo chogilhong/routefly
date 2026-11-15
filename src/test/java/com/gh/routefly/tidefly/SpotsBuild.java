@@ -72,12 +72,12 @@ public final class SpotsBuild {
         return m.matches() ? new double[] {Double.parseDouble(m.group(1)), Double.parseDouble(m.group(2))} : null;
     }
 
-    /** 순수 함수 - "▶참돔 - 부력/ 잠수▶농어 - 루어/ 릴찌" → "참돔 · 농어"(물고기 이름만, 차례 그대로, 겹친 것 뺌). */
+    /** 순수 함수 - "▶참돔 - 부력/ 잠수▶농어 - 루어/ 릴찌" · "▶황어-릴찌/ 루어" → "참돔 · 농어" · "황어"(물고기 이름만, 차례 그대로, 겹친 것 뺌). */
     static String fish(String s) {
         Set<String> out = new LinkedHashSet<>();
         for (String part : (s == null ? "" : s).split("▶")) {
-            String f = part.split(" - ")[0].trim();
-            if (!f.isEmpty()) out.add(f);
+            String f = part.split("\\s*-\\s*")[0].trim();   // "황어-릴찌/ 루어" 처럼 빈칸 없이 붙은 줄도(2026-11-15 - 방법까지 이름에 들어갔었음)
+            for (String one : f.split("/")) if (!one.isBlank()) out.add(one.trim());   // "농어/  삼치 - 루어" 처럼 두 고기를 한 줄에
         }
         return String.join(" · ", out);
     }

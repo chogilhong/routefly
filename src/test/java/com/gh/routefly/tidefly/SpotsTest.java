@@ -77,6 +77,8 @@ public class SpotsTest {
     @Test
     public void 작은_순수_함수() {
         assertEquals("참돔 · 농어 · 노래미", SpotsBuild.fish("▶참돔 - 부력/ 잠수▶농어 - 루어/ 릴찌 ▶노래미 - 루어/ 릴찌▶참돔 - 부력"));
+        assertEquals("빈칸 없이 붙은 줄(원본 그대로)", "황어 · 무늬오징어", SpotsBuild.fish("▶황어-릴찌/ 루어▶무늬오징어-릴찌/  루어"));
+        assertEquals("두 고기를 한 줄에", "농어 · 삼치 · 감성돔", SpotsBuild.fish("▶농어/  삼치 - 루어▶감성돔 - 릴찌"));
         assertEquals(34 + 39 / 60.0 + 41.6 / 3600, SpotsBuild.dms("34-39-41.6N"), 1e-9);
         assertEquals("원본 \"21.8.\" 같은 점 하나 더", 35 + 4 / 60.0 + 21.8 / 3600, SpotsBuild.dms("35-04-21.8.N"), 1e-9);
         assertNull(SpotsBuild.dms(""));
