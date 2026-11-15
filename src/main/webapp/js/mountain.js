@@ -15,7 +15,16 @@
             return { names: [a.textContent, a.firstChild && a.firstChild.nodeValue, sm && sm.textContent], href: a.href };
         });
         var to = window.RF.peakHref(mSearch.elements.q.value, items);
-        if (to) { e.preventDefault(); location.href = to; }
+        if (to) { e.preventDefault(); location.href = to; return; }
+        // 산이 아니면 낚시 포인트 · 자리 이름인지 서버에 물음(2026-11-15 홍TV님 "찾기에도 찾아질 수 있도록") - 맞으면 tidefly 찾기로, 아니면(못 물어도) 따라가기 검색 그대로.
+        // mountain.js · mountain-en.js 같은 셈(둘 다 고침)
+        e.preventDefault();
+        var base = mSearch.action.replace(/hike\.html.*$/, ""), q = mSearch.elements.q.value;
+        var go = function () { mSearch.submit(); };
+        if (!window.fetch) return go();
+        fetch(base + "api/tidefly?find=" + encodeURIComponent(q)).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+            if (d && d.hit) location.href = base + "tidefly.html?lang=ko&q=" + encodeURIComponent(d.q); else go();
+        }).catch(go);
     });
     // fly(3D) · 따라가기로 갈 때 적어 둠 - 그 화면의 ‹ 뒤로가 새로 고친 뒤에도 history.back() 으로 이 화면 · 스크롤 자리로(2026-10-14 PC)
     document.addEventListener("click", function (e) {

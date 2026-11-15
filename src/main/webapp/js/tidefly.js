@@ -341,10 +341,31 @@
     }).sort(function (a, b) { return a.km - b.km; }).slice(0, n);
   }
 
+  /**
+   * 순수 함수 - 갯바위 · 선상 자리(api/tidefly?spots=1 의 spots 한 줄)를 카드 한 장 꼴로(2026-11-15 홍TV님 "2번으로" - 📍 내 근처 · 찾기에서만).
+   * 바다 예측 · 물때 · 해 · 판단은 base 포인트 것을 그대로, 그 자리만 먼바다가 더 걸리면(extra) 서버가 센 marks[id] 판단을 씀.
+   * base 포인트가 목록에 없으면 판단하지 않음.
+   */
+  /** 순수 함수 - 찾기 견줄 꼴: 괄호 안 · 빈칸 · 문장 부호를 뺌. TideflyServlet.bare 와 같은 셈(둘 다 고침). */
+  function bare(s) {
+    return String(s == null ? '' : s).replace(/\(.*?\)/g, '').replace(/[^0-9A-Za-z\uac00-\ud7a3]/g, '');
+  }
+
+  function spotItem(s, baseItem, marks) {
+    var b = baseItem || {}, bp = b.point || {}, m = (marks || {})[s.id];
+    var p = { name: s.name, lat: s.lat, lon: s.lon, boat: !!s.boat, spot: true, id: s.id, depth: s.depth, bottom: s.bottom, tideTime: s.tideTime, fish: s.fish,
+      base: s.base, baseKm: s.baseKm, tideName: bp.tideName, tideKm: bp.tideKm };
+    var out = { point: p, area: b.area, sea: b.sea, tides: b.tides, today: b.today, warnings: b.warnings };
+    if (!baseItem) { out.mark = null; out.reasons = ['가까운 포인트 자료 없음 - 판단하지 않음']; }
+    else if (m) { out.mark = m.mark; out.reasons = m.reasons; }
+    else { out.mark = b.mark; out.reasons = (b.reasons || []).filter(function (r) { return r !== '출항은 선사에 확인'; }).concat(s.boat ? ['출항은 선사에 확인'] : []); }
+    return out;
+  }
+
   var TF = { kst: kst, dir16: dir16, swell: swell, nums: nums, markOf: markOf, markWord: markWord, nowKst: nowKst, dayName: dayName,
     dayLine: dayLine, hourLine: hourLine, untilText: untilText, nextTide: nextTide, curve: curve, nextSize: nextSize, isDark: isDark,
     setLang: setLang, roman: roman, placeName: placeName, zoneName: zoneName, reason: reason, mul: mul,
-    alarmPlan: alarmPlan, alarmText: alarmText, nearest: nearest };
+    alarmPlan: alarmPlan, alarmText: alarmText, nearest: nearest, spotItem: spotItem, bare: bare };
   if (typeof module !== 'undefined' && module.exports) module.exports = TF;
   if (typeof document === 'undefined') return;
 
@@ -358,6 +379,8 @@
   var kind = 'all';            // 전체 · 갯바위(boat 아님) · 선상
   var nearAt = null, NEAR_N = 10;   // 📍 내 근처 - 폰이 준 위치(이 화면 안에서만, 저장 · 전송 안 함)
   var open = {}, detail = {};
+  var spots = null, spotMarks = {}, spotsWait = false;   // 갯바위 · 선상 자리 - 📍 내 근처 · 찾기 때 처음 한 번 받음(api/tidefly?spots=1)
+  var SPOT_FIND_N = 30;                                     // 찾기에서 보일 자리 수
   // 2026-11-15 홍TV님 "처음에는 전부 접혀줘" - 펼친 지역 묶음만 기억 { 동해: true }(전에는 접은 것을 기억 tf-folded)
   var openAreas = loadPref('tf-open-areas', {});
   var openCard = {};                          // 펼친 카드(이 화면에서만)
@@ -472,7 +495,7 @@
     var title = el('div', 'title');
     title.appendChild(el('h3', 'name', placeName(p.name)));
     if (lang === 'en') title.appendChild(el('span', 'kind', p.name + ' · '));
-    title.appendChild(el('span', 'kind', p.boat ? tr('선상', 'Boat fishing') : p.port ? (p.local ? tr('항구 · 방파제(지방어항)', 'Fishing port · breakwater') : tr('항구 · 방파제(국가어항)', 'Fishing port · breakwater')) : tr('갯바위 · 방파제', 'Rocks · breakwater')));
+    title.appendChild(el('span', 'kind', p.spot ? (p.boat ? tr('선상 자리', 'Boat spot') : tr('갯바위 자리', 'Rock spot')) : p.boat ? tr('선상', 'Boat fishing') : p.port ? (p.local ? tr('항구 · 방파제(지방어항)', 'Fishing port · breakwater') : tr('항구 · 방파제(국가어항)', 'Fishing port · breakwater')) : tr('갯바위 · 방파제', 'Rocks · breakwater')));
     if (typeof it.km === 'number') title.appendChild(el('span', 'kind', tr(' · 약 ' + it.km + 'km', ' · about ' + it.km + ' km')));   // 📍 내 근처에서 온 카드
     head.appendChild(title);
     head.appendChild(el('span', 'chev', isOpen ? '▴' : '▾'));
@@ -483,6 +506,15 @@
     if (!isOpen) {
       li.appendChild(el('p', 'sum', summary(it, now)));
       return li;
+    }
+    if (p.spot) {   // 해양수산부 자리 정보 · 어느 포인트 기준인지
+      var info = [];
+      if (p.depth) info.push(tr('수심 ' + p.depth + (/m$/.test(p.depth) ? '' : 'm'), 'Depth ' + p.depth + (/m$/.test(p.depth) ? '' : ' m')));
+      if (p.bottom) info.push(tr('바닥 ', 'Bottom ') + p.bottom);
+      if (p.tideTime) info.push(tr('좋은 물때 ', 'Best tide ') + p.tideTime);
+      if (p.fish) info.push(tr('대상어 ', 'Fish ') + p.fish);
+      if (info.length) li.appendChild(el('p', 'spot-info', info.join(' · ')));
+      li.appendChild(el('p', 'dim small', tr('바다 예측 · 물때 · 해 · 판단은 가까운 ' + p.base + '(' + p.baseKm + 'km) 기준', 'Forecast, tides, sun and verdict are from nearby ' + placeName(p.base) + ' (' + p.baseKm + ' km)')));
     }
     li.appendChild(seaChips(it.sea));
 
@@ -525,9 +557,9 @@
     var more = el('button', 'more', open[p.name] ? tr('접기 ▴', 'Close ▴') : tr('7일 물때 · 3일 예보 ▾', '7-day tides · 3-day forecast ▾'));
     more.type = 'button';
     more.setAttribute('aria-expanded', open[p.name] ? 'true' : 'false');
-    more.addEventListener('click', function () { toggle(p.name); });
+    more.addEventListener('click', function () { toggle(p.name, p.base || p.name); });   // 자리는 base 포인트의 7일 물때 · 3일 예보
     li.appendChild(more);
-    if (open[p.name]) li.appendChild(detailEl(p.name));
+    if (open[p.name]) li.appendChild(detailEl(p.base || p.name));
     return li;
   }
 
@@ -603,24 +635,56 @@
     });
   }
 
+  function loadSpots() {
+    if (spots || spotsWait) return;
+    spotsWait = true;
+    fetch('api/tidefly?spots=1').then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(function (d) { spots = d.spots || []; spotMarks = d.marks || {}; spotsWait = false; draw(); })
+      .catch(function () { spotsWait = false; });
+  }
+
+  /** 받아 둔 자리를 카드 꼴로(base 포인트는 지금 목록 items 에서). */
+  function spotItems() {
+    if (!spots) return [];
+    var by = {};
+    items.forEach(function (it) { if (it.point) by[it.point.name] = it; });
+    return spots.map(function (s) { return spotItem(s, by[s.base], spotMarks); });
+  }
+
   function draw() {
     var q = (qEl.value || '').trim();
-    var ql = q.toLowerCase();
+    var ql = q.toLowerCase(), qb = bare(q);   // qb - 빈칸 · 괄호를 뺀 꼴("가의도남측" 이 "가의도 · 남측 해변" 에 맞게)
     var now = nowKst(Date.now());
     listEl.textContent = '';
     var shown = 0;
     function fits(it) {
       var p = it.point || {};
-      if (q && String(p.name).indexOf(q) < 0 && placeName(p.name).toLowerCase().indexOf(ql) < 0) return false;
+      if (q && String(p.name).indexOf(q) < 0 && placeName(p.name).toLowerCase().indexOf(ql) < 0 && (!qb || bare(p.name).indexOf(qb) < 0)) return false;
       if (kind === 'shore' && p.boat) return false;
       if (kind === 'boat' && !p.boat) return false;
       return true;
     }
-    if (nearAt) {   // 📍 내 근처 - 지역 묶음 위에 가까운 차례로(2026-11-15)
+    if (nearAt || q) loadSpots();
+    if (q && spots) {   // 찾기 - 갯바위 · 선상 자리 중 이름이 맞는 것(지역 묶음 위, 2026-11-15)
+      var found = spotItems().filter(fits);
+      if (found.length) {
+        var fs = el('section', 'area near');
+        fs.appendChild(el('h2', 'near-title', tr('🎣 갯바위 · 선상 자리 ' + found.length + '곳', '🎣 Rock and boat spots: ' + found.length)
+          + (found.length > SPOT_FIND_N ? tr(' (앞 ' + SPOT_FIND_N + '곳)', ' (first ' + SPOT_FIND_N + ')') : '')));
+        var ful = el('ul', 'cards');
+        found.slice(0, SPOT_FIND_N).forEach(function (it) { ful.appendChild(card(it, now)); });
+        fs.appendChild(ful);
+        listEl.appendChild(fs);
+        shown += found.length;
+      }
+    }
+    if (nearAt) {   // 📍 내 근처 - 지역 묶음 위에 가까운 차례로(2026-11-15), 갯바위 · 선상 자리도 함께(받은 뒤)
       var ns = el('section', 'area near');
       ns.appendChild(el('h2', 'near-title', tr('📍 내 근처 ' + NEAR_N + '곳', '📍 Nearest ' + NEAR_N + ' spots')));
       var nul = el('ul', 'cards');
-      nearest(items.filter(fits), nearAt.lat, nearAt.lon, NEAR_N).forEach(function (x) {
+      nearest(items.concat(spotItems()).filter(fits), nearAt.lat, nearAt.lon, NEAR_N).forEach(function (x) {
         var c = Object.create(x.it);
         c.km = x.km;
         nul.appendChild(card(c, now));
@@ -686,9 +750,9 @@
       : '';
   }
 
-  function toggle(name) {
-    open[name] = !open[name];
-    if (open[name] && !detail[name]) {
+  function toggle(key, name) {
+    open[key] = !open[key];
+    if (open[key] && !detail[name]) {
       detail[name] = 'loading';
       fetch('api/tidefly?detail=1&name=' + encodeURIComponent(name), { cache: 'no-store' }).then(function (r) {
         if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -796,6 +860,9 @@
     });
   });
   qEl.addEventListener('input', draw);
+  // 코스 모음 찾기에서 낚시 이름으로 왔으면(?q=, 2026-11-15 홍TV님 "찾기에도 찾아질 수 있도록") 그 말로 찾아 둠
+  var urlQ = /[?&]q=([^&#]*)/.exec(location.search);
+  if (urlQ) { try { qEl.value = decodeURIComponent(urlQ[1].replace(/\+/g, ' ')).slice(0, 40); } catch (e) { /* 깨진 주소는 비워 둠 */ } }
   var nearBtn = document.getElementById('near');
   if (nearBtn) nearBtn.addEventListener('click', function () {
     if (nearAt) { nearAt = null; nearBtn.setAttribute('aria-pressed', 'false'); draw(); return; }

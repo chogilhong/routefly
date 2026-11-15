@@ -14,7 +14,16 @@
             return { names: [a.textContent, a.firstChild && a.firstChild.nodeValue, sm && sm.textContent], href: a.href };
         });
         var to = window.RF.peakHref(mSearch.elements.q.value, items);
-        if (to) { e.preventDefault(); location.href = to; }
+        if (to) { e.preventDefault(); location.href = to; return; }
+        // 산이 아니면 낚시 포인트 · 자리 이름인지 서버에 물음(2026-11-15 홍TV님 "찾기에도 찾아질 수 있도록") - 맞으면 tidefly 찾기로, 아니면(못 물어도) 따라가기 검색 그대로.
+        // mountain.js · mountain-en.js 같은 셈(둘 다 고침)
+        e.preventDefault();
+        var base = mSearch.action.replace(/hike\.html.*$/, ""), q = mSearch.elements.q.value;
+        var go = function () { mSearch.submit(); };
+        if (!window.fetch) return go();
+        fetch(base + "api/tidefly?find=" + encodeURIComponent(q)).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+            if (d && d.hit) location.href = base + "tidefly.html?lang=en&q=" + encodeURIComponent(d.q); else go();
+        }).catch(go);
     });
     var RF = window.RF;
     if (!RF) return;

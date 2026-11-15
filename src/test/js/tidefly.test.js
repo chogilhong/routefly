@@ -128,5 +128,25 @@ assert.strictEqual(TF.alarmText(plan[1], '김녕', { sun: 60 }), '해 지기 60�
   assert.strictEqual(TF.nearest(list, 35.1, 129.0, 10).length, 3, '위경도 없는 것은 뺌');
 }
 
+// 갯바위 · 선상 자리(2026-11-15) - base 포인트 판단 · 바다 · 물때를 그대로, extra 가 있으면 서버 marks
+{
+  const s = { id: 'r300', name: '장산도 · 차돌이', boat: false, lat: 34.66156, lon: 126.18858, depth: '2.1~5.0', bottom: '암', tideTime: '조금 전후', fish: '감성돔 · 농어', base: '다수항', baseKm: 6.0 };
+  const base = { point: { name: '다수항', tideName: '목포', tideKm: 30 }, area: '서해', mark: '△', reasons: ['서해남부북쪽안쪽먼바다 풍랑 예비특보'], sea: { waveM: 1 }, tides: { events: [] } };
+  const a = TF.spotItem(s, base, {});
+  assert.strictEqual(a.mark, '△');
+  assert.deepStrictEqual(a.reasons, ['서해남부북쪽안쪽먼바다 풍랑 예비특보']);
+  assert.strictEqual(a.area, '서해');
+  assert.strictEqual(a.sea, base.sea);
+  assert.strictEqual(a.point.spot, true);
+  assert.strictEqual(a.point.tideName, '목포');
+  const b = TF.spotItem(Object.assign({}, s, { boat: true }), base, {});
+  assert.deepStrictEqual(b.reasons, ['서해남부북쪽안쪽먼바다 풍랑 예비특보', '출항은 선사에 확인']);
+  const c = TF.spotItem(s, base, { r300: { mark: '✕', reasons: ['서해남부북쪽바깥먼바다 풍랑 주의보'] } });
+  assert.strictEqual(c.mark, '✕');
+  const d = TF.spotItem(s, null, {});
+  assert.strictEqual(d.mark, null);
+  assert.strictEqual(TF.bare('가의도 · 남측(갯바위)'), '가의도남측');   // TideflyServlet.bare 와 같은 셈
+}
+
 console.log('tidefly.test.js OK');
 

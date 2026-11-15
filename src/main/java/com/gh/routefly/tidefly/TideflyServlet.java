@@ -38,6 +38,9 @@ import jakarta.servlet.http.HttpServletResponse;
  * 타이드플라이(tidefly.html - 2026-11-15 홍TV님 "tidefly 를 routefly 앱 안의 기능으로 전부 옮겨줘", 예전 chogilhong/tidefly 저장소 v0.10.1).
  * GET /api/tidefly?name=&lt;포인트 이름&gt; → 그 포인트의 지금 바다(소해구 예측 · 해상 특보)와 ○ / △ / ✕ (Verdict).
  * GET /api/tidefly?name=…&amp;detail=1 → 위에 더해 7일(물때 · 높이 차 · 일출몰 · 음력 · 물때 이름)과 앞으로 72시간 3시간 간격 바다 예측(hourly - 그때 받음, 6시간 기억).
+ * GET /api/tidefly?spots=1 → 갯바위 · 선상 자리(data/tidefly-spots.json, 1,405곳 - 📍 내 근처 · 찾기에서만 보임, 2026-11-15 홍TV님 "2번으로")와
+ *   marks {id: {mark, reasons}} - extra(그 자리만 더 걸리는 먼바다)가 있는 자리만. 나머지는 화면이 base 포인트 판단을 그대로 씀. 위치는 받지 않음(화면이 폰 안에서 셈).
+ * GET /api/tidefly?find=이름 → {"hit": true, "q": 맞은 이름(bare 꼴)} 또는 {"hit": false} - 코스 모음 찾기(js/mountain.js)가 산 이름이 아닐 때 낚시 포인트 · 자리 이름인지 물음({@link #find}).
  * GET /api/tidefly → 모든 포인트(화면 목록용). 서버가 미리 받아 둔 것만 써서 바로 답합니다(받는 중인 곳은 sea 없이 "받는 중").
  * 물때: 포인트마다 가장 가까운 조석 예보지점(points.json 의 tide)의 오늘 · 내일(우리 날짜) 만조 · 간조(응답 칸 tides - 밤에도 다음 물때를 보이려고) - 국립해양조사원 조석예보(고, 저조), 키 portal.serviceKey, 지점 · 날짜마다 6시간 기억.
  * 미리 받기: 웹앱이 뜬 뒤 1초부터 10분마다 특보 · 모든 포인트 소해구 예측 · 물때(기억이 있으면 부르지 않음 - 칸마다 1시간, 3시간마다 발효 시각이 바뀌면 새로).
@@ -193,6 +196,38 @@ public final class TideflyServlet extends HttpServlet {
         String key = com.gh.routefly.web.RouteflyConfig.get("kma.apihub.key");
         long now = System.currentTimeMillis();
         ZonedDateTime nowUtc = ZonedDateTime.now(ZoneOffset.UTC);
+        String find = req.getParameter("find");
+        if (find != null) {
+            String hit = find(find, names());
+            JsonObject out = new JsonObject();
+            out.addProperty("hit", hit != null);
+            if (hit != null) out.addProperty("q", hit);
+            resp.getWriter().write(out.toString());
+            return;
+        }
+        if ("1".equals(req.getParameter("spots"))) {
+            List<SeaWarning> wrn = cachedWarnings(now);
+            JsonObject marks = new JsonObject();
+            Gson gson = new Gson();
+            for (JsonElement e : spots()) {
+                JsonObject s = e.getAsJsonObject();
+                JsonObject b = points().get(s.get("base").getAsString());
+                if (!s.has("extra") || b == null) continue;
+                List<String> ids = regIds(regs(), b.get("name").getAsString());
+                List<String> all = new ArrayList<>(ids == null ? List.of() : ids);
+                for (JsonElement z : s.getAsJsonArray("extra")) all.add(z.getAsString());
+                Verdict v = Verdict.judge(s.get("boat").getAsBoolean(), ids == null ? null : all, wrn, cachedSea(b.get("lzone").getAsInt(), b.get("szone").getAsInt(), nowUtc));
+                JsonObject m = new JsonObject();
+                m.addProperty("mark", v.mark());
+                m.add("reasons", gson.toJsonTree(v.reasons()));
+                marks.add(s.get("id").getAsString(), m);
+            }
+            JsonObject out = new JsonObject();
+            out.add("spots", spots());
+            out.add("marks", marks);
+            resp.getWriter().write(out.toString());
+            return;
+        }
         if (name == null) {
             // 목록 - 미리 받아 둔 것만(손님을 기다리게 하지 않음)
             List<SeaWarning> wrn = cachedWarnings(now);
@@ -576,6 +611,52 @@ public final class TideflyServlet extends HttpServlet {
             points = m;
         }
         return points;
+    }
+
+    private volatile JsonArray spots;
+    private volatile java.util.Set<String> names;
+
+    private JsonArray spots() {
+        if (spots == null) {
+            JsonElement root = readData("/data/tidefly-spots.json");
+            spots = root != null && root.isJsonArray() ? root.getAsJsonArray() : new JsonArray();
+        }
+        return spots;
+    }
+
+    /** 찾기 이름: 포인트 · 자리 이름과 그 괄호 뺀 것, 자리 이름의 " · " 앞(지역) · 뒤(자리) - 모두 {@link #bare} 로. */
+    private java.util.Set<String> names() {
+        if (names == null) {
+            java.util.Set<String> out = new java.util.HashSet<>();
+            List<String> all = new ArrayList<>(points().keySet());
+            for (JsonElement e : spots()) all.add(e.getAsJsonObject().get("name").getAsString());
+            for (String n : all) {
+                out.add(bare(n));
+                for (String part : n.replaceAll("\\s*\\(.*?\\)", "").split(" · ")) if (bare(part).length() >= 2) out.add(bare(part));
+            }
+            names = out;
+        }
+        return names;
+    }
+
+    /** 순수 함수 - 찾기 말을 견줄 꼴로: 괄호 안 · 빈칸 · 문장 부호를 뺌("신암항(부산)" → "신암항", "가의도 · 남측" → "가의도남측"). js/tidefly.js 의 bare 와 같은 셈(둘 다 고침). */
+    static String bare(String s) {
+        return s == null ? "" : s.replaceAll("\\(.*?\\)", "").replaceAll("[^0-9A-Za-z가-힣]", "");
+    }
+
+    /**
+     * 순수 함수 - 찾기 말이 낚시 포인트 · 자리 이름이면 맞은 이름(bare 꼴 - 화면 tidefly.js 의 bare 와 같은 셈으로 찾음), 아니면 null(2026-11-15 홍TV님 "찾기에도 찾아질 수 있도록").
+     * 이름과 똑같거나, 뒤에 "항" 을 붙이면 같거나("방포" → 방포항), 끝의 "낚시" · "포인트" · "갯바위" · "방파제" 를 떼면 같을 때만 - 산 · 코스 찾기를 가로채지 않게 들어 있기(포함)로는 보지 않음.
+     */
+    static String find(String q, java.util.Set<String> names) {
+        String k = bare(q);
+        for (int i = 0; i < 2; i++) {
+            if (k.length() < 2) return null;
+            if (names.contains(k)) return k;
+            if (names.contains(k + "항")) return k + "항";
+            k = k.replaceAll("(낚시터|낚시|포인트|갯바위|방파제)+$", "");
+        }
+        return null;
     }
 
     private JsonObject regs() {
