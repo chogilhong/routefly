@@ -43,6 +43,8 @@ public class TideflyLayoutTest {
         String css = Files.readString(Path.of("src/main/webapp/css/tidefly.css"), StandardCharsets.UTF_8).replace("\r\n", "\n");
         assertTrue(css.contains(".cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr);"));
         assertTrue("날짜 띠는 안에서 옆으로 밀림", css.contains(".tstrip { display: flex; gap: 4px; overflow-x: auto;"));
+        String html = Files.readString(Path.of("src/main/webapp/tidefly.html"), StandardCharsets.UTF_8);
+        assertTrue("찾기 칸 안내 - 360px 폰에 들게 짧게(2026-11-15 PC: 앞 판은 1px · 영어 4px 넘침)", html.contains("placeholder=\"🔍 예: 김녕, 쭈꾸미, 광어\" data-en-ph=\"🔍 Spot or fish (e.g. Gimnyeong)\""));
         String js = Files.readString(Path.of("src/main/webapp/js/tidefly.js"), StandardCharsets.UTF_8).replace("\r\n", "\n");
         assertTrue("자리를 받는 중에는 \"없습니다\" 대신 기다림(2026-11-15 홍TV님 쭈꾸미)", js.contains("q && !spots ? tr('갯바위 · 선상 자리까지 찾는 중…'"));
     }
