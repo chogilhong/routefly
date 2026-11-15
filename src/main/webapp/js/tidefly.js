@@ -887,7 +887,9 @@
       }
       listEl.appendChild(sec);
     });
-    stateEl.textContent = shown ? '' : (q ? tr('찾는 포인트가 없습니다.', 'No matching spots.') : tr('포인트가 없습니다.', 'No spots.'));
+    // 자리(갯바위 · 선상, 어종 찾기)를 아직 받는 중이면 "없습니다" 대신 기다림(2026-11-15 홍TV님 "쭈꾸미" - 데이터가 없어서 그런가?)
+    stateEl.textContent = shown ? '' : (q && !spots ? tr('갯바위 · 선상 자리까지 찾는 중…', 'Searching rock and boat spots too…')
+      : q ? tr('찾는 포인트가 없습니다.', 'No matching spots.') : tr('포인트가 없습니다.', 'No spots.'));
     if (lastData && lastData.warming) stateEl.textContent = tr('서버가 바다 예측 · 물때를 받는 중입니다. 곧 채워집니다.', 'The server is still loading forecasts and tides. They will fill in shortly.');
     paintWhen();
   }
