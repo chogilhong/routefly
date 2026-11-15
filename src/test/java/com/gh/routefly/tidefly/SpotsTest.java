@@ -106,6 +106,7 @@ public class SpotsTest {
         Set<String> names = TideflyServlet.names(List.of("방포항"), spots);
         assertEquals("주꾸미", TideflyServlet.find("주꾸미", names));
         assertEquals("흔히 쓰는 표기", "쭈꾸미", TideflyServlet.find("쭈꾸미 낚시", names));
+        assertEquals("흔한 틀린 말(2026-11-15 PC)", "쭈꼸미", TideflyServlet.find("쭈꼸미 낚시", names));
         assertEquals("넙치", TideflyServlet.find("넙치", names));
         assertEquals("광어", TideflyServlet.find("광어", names));
         assertEquals("갑오징어", TideflyServlet.find("갑오징어", names));

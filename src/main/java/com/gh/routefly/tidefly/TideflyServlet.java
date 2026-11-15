@@ -697,7 +697,7 @@ public final class TideflyServlet extends HttpServlet {
     }
 
     /** 같은 고기의 다른 이름 - js/tidefly.js 의 FISH_SAME 과 같음(둘 다 고침). */
-    static final String[][] FISH_SAME = {{"넙치", "광어"}, {"주꾸미", "쭈꾸미"}, {"우럭", "조피볼락"}, {"노래미", "쥐노래미"}, {"망둥어", "망둑어"}, {"학공치", "학꽁치"}, {"쏨뱅이", "쏨벵이"}};
+    static final String[][] FISH_SAME = {{"넙치", "광어"}, {"주꾸미", "쭈꾸미", "쭈꼸미"}, {"우럭", "조피볼락"}, {"노래미", "쥐노래미"}, {"망둥어", "망둑어"}, {"학공치", "학꽁치"}, {"쏨뱅이", "쏨벵이"}};
 
     /** 순수 함수 - 찾기 말을 견줄 꼴로: 괄호 안 · 빈칸 · 문장 부호를 뺌("신암항(부산)" → "신암항", "가의도 · 남측" → "가의도남측"). js/tidefly.js 의 bare 와 같은 셈(둘 다 고침). */
     static String bare(String s) {
