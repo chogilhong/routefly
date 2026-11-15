@@ -63,6 +63,7 @@
       <button type="button" data-kind="shore" aria-pressed="false" data-en="Rocks · breakwater">갯바위 · 방파제</button>
       <button type="button" data-kind="boat" aria-pressed="false" data-en="Boat">선상</button>
     </div>
+    <button type="button" id="near" class="near-btn" aria-pressed="false" title="위치는 이 폰 안에서만 씁니다(서버로 보내지 않음)" data-en="📍 Near me">📍 내 근처</button>
   </div>
   <p id="state" class="state" role="status">불러오는 중…</p>
   <div id="list"></div>
@@ -70,7 +71,7 @@
 <footer class="foot wrap">
   <p id="when"></p>
   <p data-en="Marks: ✕ a marine warning or swell alert or above, △ a preliminary warning or swell caution, ○ otherwise (KMA warnings and swell risk forecast). Wave and wind numbers alone are not used for the marks.">판단 기준: ✕ 특보 · 너울 경계 이상, △ 예비특보 · 너울 주의, ○ 그 밖(기상청 특보 · 너울 위험예측). 파고 · 바람 숫자로는 판단하지 않습니다.</p>
-  <p data-en="Data: KMA API Hub (sea-area forecasts, marine warnings), KHOA tide predictions and sea-fishing index (tides, spots; KOGL Type 1). Tides are from the nearest prediction station, so times and heights can differ at the spot. Sunrise/sunset, lunar dates and mul names are calculated. Times are Korea time (KST). Spot names are romanized from Korean.">자료: 기상청 API허브(해구별 예측 · 기상특보), 국립해양조사원 조석예보 · 바다낚시지수(물때 · 포인트, 공공누리 제1유형). 물때는 가장 가까운 예보지점 값이라 포인트와 시각 · 높이가 다를 수 있습니다. 일출몰 · 음력 · 물때 이름은 계산값입니다.</p>
+  <p data-en="Data: KMA API Hub (sea-area forecasts, marine warnings), KHOA tide predictions and sea-fishing index (tides, spots; KOGL Type 1), MOF fishing port list (national fishing ports - port reference points, about 1 km). Tides are from the nearest prediction station, so times and heights can differ at the spot. Sunrise/sunset, lunar dates and mul names are calculated. Times are Korea time (KST). Spot names are romanized from Korean.">자료: 기상청 API허브(해구별 예측 · 기상특보), 국립해양조사원 조석예보 · 바다낚시지수(물때 · 포인트, 공공누리 제1유형), 해양수산부 어항정보(국가어항 - 위치는 어항 대표 좌표, 약 1km 단위). 물때는 가장 가까운 예보지점 값이라 포인트와 시각 · 높이가 다를 수 있습니다. 일출몰 · 음력 · 물때 이름은 계산값입니다.</p>
 </footer>
 <div id="alarm" class="alarm" role="alert" hidden></div>
 <script src="js/tidefly.js"></script>

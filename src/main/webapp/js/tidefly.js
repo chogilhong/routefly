@@ -328,10 +328,23 @@
     return r;
   }
 
+  /**
+   * 순수 함수 - 내 자리에서 가까운 포인트 n 곳(곧은 거리 km, 소수 한 자리 · 가까운 차례). 위치는 폰 안에서만 셈(서버로 보내지 않음, 2026-11-15 홍TV님 "바로 시작해").
+   * list - [{point:{lat, lon}}]
+   */
+  function nearest(list, lat, lon, n) {
+    var r = Math.PI / 180;
+    return list.filter(function (it) { return it.point && typeof it.point.lat === 'number' && typeof it.point.lon === 'number'; }).map(function (it) {
+      var dp = (it.point.lat - lat) * r, dl = (it.point.lon - lon) * r;
+      var a = Math.sin(dp / 2) * Math.sin(dp / 2) + Math.cos(lat * r) * Math.cos(it.point.lat * r) * Math.sin(dl / 2) * Math.sin(dl / 2);
+      return { it: it, km: Math.round(6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 10) / 10 };
+    }).sort(function (a, b) { return a.km - b.km; }).slice(0, n);
+  }
+
   var TF = { kst: kst, dir16: dir16, swell: swell, nums: nums, markOf: markOf, markWord: markWord, nowKst: nowKst, dayName: dayName,
     dayLine: dayLine, hourLine: hourLine, untilText: untilText, nextTide: nextTide, curve: curve, nextSize: nextSize, isDark: isDark,
     setLang: setLang, roman: roman, placeName: placeName, zoneName: zoneName, reason: reason, mul: mul,
-    alarmPlan: alarmPlan, alarmText: alarmText };
+    alarmPlan: alarmPlan, alarmText: alarmText, nearest: nearest };
   if (typeof module !== 'undefined' && module.exports) module.exports = TF;
   if (typeof document === 'undefined') return;
 
@@ -343,6 +356,7 @@
   var qEl = document.getElementById('q');
   var timer = null;
   var kind = 'all';            // 전체 · 갯바위(boat 아님) · 선상
+  var nearAt = null, NEAR_N = 10;   // 📍 내 근처 - 폰이 준 위치(이 화면 안에서만, 저장 · 전송 안 함)
   var open = {}, detail = {};
   // 2026-11-15 홍TV님 "처음에는 전부 접혀줘" - 펼친 지역 묶음만 기억 { 동해: true }(전에는 접은 것을 기억 tf-folded)
   var openAreas = loadPref('tf-open-areas', {});
@@ -458,7 +472,8 @@
     var title = el('div', 'title');
     title.appendChild(el('h3', 'name', placeName(p.name)));
     if (lang === 'en') title.appendChild(el('span', 'kind', p.name + ' · '));
-    title.appendChild(el('span', 'kind', p.boat ? tr('선상', 'Boat fishing') : tr('갯바위 · 방파제', 'Rocks · breakwater')));
+    title.appendChild(el('span', 'kind', p.boat ? tr('선상', 'Boat fishing') : p.port ? tr('항구 · 방파제(국가어항)', 'Fishing port · breakwater') : tr('갯바위 · 방파제', 'Rocks · breakwater')));
+    if (typeof it.km === 'number') title.appendChild(el('span', 'kind', tr(' · 약 ' + it.km + 'km', ' · about ' + it.km + ' km')));   // 📍 내 근처에서 온 카드
     head.appendChild(title);
     head.appendChild(el('span', 'chev', isOpen ? '▴' : '▾'));
     li.appendChild(head);
@@ -594,14 +609,29 @@
     var now = nowKst(Date.now());
     listEl.textContent = '';
     var shown = 0;
+    function fits(it) {
+      var p = it.point || {};
+      if (q && String(p.name).indexOf(q) < 0 && placeName(p.name).toLowerCase().indexOf(ql) < 0) return false;
+      if (kind === 'shore' && p.boat) return false;
+      if (kind === 'boat' && !p.boat) return false;
+      return true;
+    }
+    if (nearAt) {   // 📍 내 근처 - 지역 묶음 위에 가까운 차례로(2026-11-15)
+      var ns = el('section', 'area near');
+      ns.appendChild(el('h2', 'near-title', tr('📍 내 근처 ' + NEAR_N + '곳', '📍 Nearest ' + NEAR_N + ' spots')));
+      var nul = el('ul', 'cards');
+      nearest(items.filter(fits), nearAt.lat, nearAt.lon, NEAR_N).forEach(function (x) {
+        var c = Object.create(x.it);
+        c.km = x.km;
+        nul.appendChild(card(c, now));
+      });
+      ns.appendChild(nul);
+      listEl.appendChild(ns);
+    }
     AREAS.forEach(function (area) {
       var group = items.filter(function (it) {
-        var p = it.point || {};
         if ((it.area || '그 밖') !== area) return false;
-        if (q && String(p.name).indexOf(q) < 0 && placeName(p.name).toLowerCase().indexOf(ql) < 0) return false;
-        if (kind === 'shore' && p.boat) return false;
-        if (kind === 'boat' && !p.boat) return false;
-        return true;
+        return fits(it);
       });
       if (!group.length) return;
       var sec = el('section', 'area');
@@ -766,6 +796,23 @@
     });
   });
   qEl.addEventListener('input', draw);
+  var nearBtn = document.getElementById('near');
+  if (nearBtn) nearBtn.addEventListener('click', function () {
+    if (nearAt) { nearAt = null; nearBtn.setAttribute('aria-pressed', 'false'); draw(); return; }
+    if (!navigator.geolocation) { stateEl.textContent = tr('이 브라우저는 위치를 알 수 없습니다.', 'This browser cannot tell your location.'); return; }
+    nearBtn.disabled = true;
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      nearBtn.disabled = false;
+      nearAt = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+      nearBtn.setAttribute('aria-pressed', 'true');
+      draw();
+      window.scrollTo({ top: listEl.getBoundingClientRect().top + window.scrollY - 8, behavior: 'smooth' });
+    }, function () {
+      nearBtn.disabled = false;
+      stateEl.textContent = tr('위치를 받지 못했습니다 - 위치 권한을 확인해 주세요.', 'Could not get your location - check the location permission.');
+    }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 });
+  });
+
   Array.prototype.forEach.call(document.querySelectorAll('.tabs button'), function (b) {
     b.addEventListener('click', function () {
       kind = b.getAttribute('data-kind');

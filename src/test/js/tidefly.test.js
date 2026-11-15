@@ -118,4 +118,15 @@ assert.strictEqual(TF.alarmPlan(gunsan.events, '17:30', '2026-11-14 12:20', { eb
 assert.deepStrictEqual(TF.alarmPlan(jeju, '17:30', '2026-11-14 23:00', { ebb: 0, sun: 30 }), []);       // 오늘 해도 졌고 간조도 지남(내일 첫 물때는 만조)
 assert.strictEqual(TF.alarmText(plan[0], '신시도', { ebb: 30 }), '물이 들어오기 시작합니다(간조 11:45 + 30분). 갯바위 · 방파제는 철수하세요 - 신시도');
 assert.strictEqual(TF.alarmText(plan[1], '김녕', { sun: 60 }), '해 지기 60분 전입니다(일몰 17:30) - 김녕');
+// 📍 내 근처(2026-11-15) - 폰 안에서 곧은 거리로 가까운 차례
+{
+  const list = [{ point: { name: '김녕', lat: 33.5609, lon: 126.74018 } }, { point: { name: '부산남부', lat: 35.0438, lon: 129.0774 } }, { point: { name: '이름만' } }, { point: { name: '서귀포', lat: 33.24, lon: 126.56 } }];
+  const r = TF.nearest(list, 33.4996, 126.5312, 2);   // 제주시청 부근
+  assert.deepStrictEqual(r.map(x => x.it.point.name), ['김녕', '서귀포']);
+  assert.ok(r[0].km > 19 && r[0].km < 22, '김녕 약 20km: ' + r[0].km);
+  assert.ok(r[1].km > 28 && r[1].km < 31, '서귀포 약 29km: ' + r[1].km);
+  assert.strictEqual(TF.nearest(list, 35.1, 129.0, 10).length, 3, '위경도 없는 것은 뺌');
+}
+
 console.log('tidefly.test.js OK');
+

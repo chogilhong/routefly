@@ -131,3 +131,8 @@ main { padding-top: 14px; padding-bottom: 24px; }
 
 /* 펴기 · 카드를 펴면 맨 위로 옮길 때 위에 조금 여백(2026-11-15) */
 .area, .card { scroll-margin-top: 8px; }
+/* 📍 내 근처(2026-11-15) */
+.near-btn { width: 100%; padding: 9px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--ink); font-size: .9rem; cursor: pointer; }
+.near-btn[aria-pressed="true"] { background: var(--top1); border-color: var(--top1); color: #fff; }
+.near-btn:focus-visible { outline: 3px solid var(--now); outline-offset: 2px; }
+.area.near .near-title { margin: 14px 0 8px; font-size: 1.05rem; }
