@@ -841,8 +841,14 @@
     rows.forEach(function (r) {
       var tr_ = el('tr', r.cls);
       var d0 = el('td', 'date');
-      d0.appendChild(el('div', null, r.day.replace('일(', '(')));   // "15(일)"
-      d0.appendChild(el('div', 'dim', tr('음' + r.lunar, 'L' + r.lunar)));
+      if (lang === 'en') {   // "Sun 15" 은 좁은 칸에서 잘려 날 · 요일 · 음력을 세 줄로(2026-11-15)
+        d0.appendChild(el('div', null, String(+String(r.date).slice(8))));
+        d0.appendChild(el('div', 'dim', r.day.split(' ')[0]));
+        d0.appendChild(el('div', 'dim', 'L' + r.lunar));
+      } else {
+        d0.appendChild(el('div', null, r.day.replace('일(', '(')));   // "15(일)"
+        d0.appendChild(el('div', 'dim', '음' + r.lunar));
+      }
       tr_.appendChild(d0);
       var m0 = el('td', 'mul');
       m0.appendChild(el('div', null, r.mul));
