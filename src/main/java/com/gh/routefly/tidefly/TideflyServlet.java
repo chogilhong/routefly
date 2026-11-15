@@ -135,7 +135,9 @@ public final class TideflyServlet extends HttpServlet {
             }
             if (asked > 0) log.info("[TIDEFLY-SEA] 미리 받기 - 새로 물은 칸 {} · 못 받은 칸 {}", asked, failed);
             String pkey = portalKey();
-            if (pkey != null) {
+            if (pkey != null && System.currentTimeMillis() < portalRestUntil) {
+                log.info("[TIDEFLY-TIDE] 포털 한도(429)로 쉬는 중 - 이번 바퀴 물때는 건너뜀");
+            } else if (pkey != null) {
                 java.time.LocalDate today = java.time.LocalDate.now(KST);
                 int dropped = dropOldTides(cacheDir(), today);
                 if (firstWarm) log.info("[TIDEFLY-TIDE] 물때 파일 폴더 {} - 파일 {}개(지난 것 {}개 지움)", cacheDir(), tideFiles(cacheDir()), dropped);
@@ -525,10 +527,20 @@ public final class TideflyServlet extends HttpServlet {
         return n;
     }
 
-    /** 그날 물때 - 기억에 있으면 그것, 없으면 받아서. 못 받으면 null. */
+    /** 포털이 429(요청 한도)를 준 뒤 쉬는 때까지(밀리초) - 2026-11-15 PC: 429 뒤에도 화면 요청이 9ms 간격으로 13번 물었음. */
+    private static volatile long portalRestUntil;
+    static final long PORTAL_REST_MS = 30 * 60_000L;
+
+    /** 순수 함수 - 응답 코드가 429(요청 한도)면 지금부터 PORTAL_REST_MS 뒤까지 쉼, 아니면 0. */
+    static long restUntil(int status, long now) {
+        return status == 429 ? now + PORTAL_REST_MS : 0;
+    }
+
+    /** 그날 물때 - 기억에 있으면 그것, 없으면 받아서. 못 받으면 null. 포털 한도(429)로 쉬는 동안은 부르지 않음. */
     private static Tide tide(String key, String code, java.time.LocalDate day) {
         Tide hit = cachedTide(code, day);
         if (hit != null) return hit;
+        if (System.currentTimeMillis() < portalRestUntil) return null;
         // 2026-11-15 PC: 포털이 503 · 시간 초과를 내는 동안 같은 지점을 거듭 물었음 - 실패한 지점 · 날은 5분 쉼
         Object[] failed = CACHE.get("tidefail:" + code + ":" + day);
         if (failed != null && System.currentTimeMillis() - (Long) failed[0] < 5 * 60_000L) return null;
@@ -600,7 +612,13 @@ public final class TideflyServlet extends HttpServlet {
                     .timeout(Duration.ofSeconds(8)).GET().build();
             HttpResponse<String> res = HTTP.send(r, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
             if (res.statusCode() == 200) return res.body();
-            log.warn("[TIDEFLY-TIDE] HTTP {}", res.statusCode());
+            long until = restUntil(res.statusCode(), System.currentTimeMillis());
+            if (until > portalRestUntil) {
+                portalRestUntil = until;
+                log.warn("[TIDEFLY-TIDE] HTTP {} - 포털 한도로 보고 {}분 쉼(미리 받기 · 화면 요청 모두)", res.statusCode(), PORTAL_REST_MS / 60_000);
+            } else {
+                log.warn("[TIDEFLY-TIDE] HTTP {}", res.statusCode());
+            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         } catch (Exception e) {

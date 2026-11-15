@@ -22,6 +22,14 @@ public class TideflyLayoutTest {
         org.junit.Assert.assertEquals(Path.of("/tmp" + sep + "routefly-tidefly-cache", "tide"), TideflyServlet.cacheDir(null, "", null, "/tmp"));
     }
 
+    /** 2026-11-15 PC: 포털 429 뒤에도 화면 요청이 연달아 물었음 - 429 면 30분 쉼. */
+    @Test
+    public void 포털_429_면_30분_쉼() {
+        org.junit.Assert.assertEquals(1_000 + 30 * 60_000L, TideflyServlet.restUntil(429, 1_000));
+        org.junit.Assert.assertEquals(0, TideflyServlet.restUntil(503, 1_000));
+        org.junit.Assert.assertEquals(0, TideflyServlet.restUntil(500, 1_000));
+    }
+
     @Test
     public void 카드_칸은_minmax_0_이라_물때표_띠가_화면을_넓히지_않음() throws Exception {
         String css = Files.readString(Path.of("src/main/webapp/css/tidefly.css"), StandardCharsets.UTF_8).replace("\r\n", "\n");
