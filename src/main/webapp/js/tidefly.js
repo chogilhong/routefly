@@ -565,7 +565,7 @@
   // 2026-11-15 홍TV님 "처음에는 전부 접혀줘" - 펼친 지역 묶음만 기억 { 동해: true }(전에는 접은 것을 기억 tf-folded)
   var openAreas = loadPref('tf-open-areas', {});
   var openCard = {};                          // 펼친 카드(이 화면에서만)
-  var lastData = null, lastText = null;
+  var lastData = null, lastText = null, urlOpen = null;
 
   function loadPref(k, dflt) {
     try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : dflt; } catch (e) { return dflt; }
@@ -790,6 +790,12 @@
     if (p.boat) li.appendChild(el('p', 'dim small', tr('⛴ 출항은 선사에 확인하세요.', '⛴ Check sailing with the boat operator.')));
     li.appendChild(alarmBox(it, now));
     if (typeof p.lat === 'number' && typeof p.lon === 'number') li.appendChild(stayBox(p, sec));
+    if (!p.boat && lang === 'ko') {   // 🚗 쏘카(휴대폰만 - 앱 예약만 실적, 제휴 안내가 링크 앞) - 항구 · 갯바위 카드, 점검 10차 F1
+      var sc = el('p', 'socar small');
+      sc.hidden = true;
+      li.appendChild(sc);
+      partners().then(function (pp) { if (window.RF && window.RF.socarLine) window.RF.socarLine(sc, pp && pp.socar, navigator.userAgent, '🚗 포인트까지 대중교통이 없으면 쏘카 ›'); });
+    }
     return li;
   }
 
@@ -1167,9 +1173,14 @@
     stayOut[sk] = out;
     var RF = window.RF;
     if (!RF || !RF.staySearch) { out.textContent = tr('숙소 화면을 불러오지 못했습니다.', 'Could not load the lodging view.'); return; }
-    if (!partnersP) partnersP = fetch('api/partners').then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; });
-    var show = RF.staySearch(null, out, partnersP, '', lang === 'en');
+    var show = RF.staySearch(null, out, partners(), '', lang === 'en');
     show({ name: p.name, addr: p.sido || '', lat: p.lat, lon: p.lon }, p.name, tr('tidefly 포인트', 'tidefly spot'));
+  }
+
+  /** 제휴 링크 설정(api/partners) - 처음 한 번만 받음(숙소 · 쏘카가 함께 씀). */
+  function partners() {
+    if (!partnersP) partnersP = fetch('api/partners').then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; });
+    return partnersP;
   }
 
   function food(p) {
@@ -1264,6 +1275,11 @@
         lastText = text;
         lastData = data;
         items = data.items || [];
+        // ?q= 가 포인트 이름과 딱 맞으면 그 카드를 펴서 엶(점검 10차 E5 - 산 페이지 · 코스 모음 찾기에서 온 때), 처음 한 번만
+        if (urlOpen) {
+          items.forEach(function (it) { if (it.point && bare(it.point.name) === bare(urlOpen)) { openCard = {}; openCard[it.point.name] = true; } });
+          urlOpen = null;
+        }
         spotMarks = data.marks || {};
         draw();
       }
@@ -1340,7 +1356,7 @@
   qEl.addEventListener('input', function () { clearTimeout(typing); typing = setTimeout(draw, 200); });
   // 코스 모음 찾기에서 낚시 이름으로 왔으면(?q=, 2026-11-15 홍TV님 "찾기에도 찾아질 수 있도록") 그 말로 찾아 둠
   var urlQ = /[?&]q=([^&#]*)/.exec(location.search);
-  if (urlQ) { try { qEl.value = decodeURIComponent(urlQ[1].replace(/\+/g, ' ')).slice(0, 40); } catch (e) { /* 깨진 주소는 비워 둠 */ } }
+  if (urlQ) { try { qEl.value = decodeURIComponent(urlQ[1].replace(/\+/g, ' ')).slice(0, 40); urlOpen = qEl.value; } catch (e) { /* 깨진 주소는 비워 둠 */ } }
   var nearBtn = document.getElementById('near');
   if (nearBtn) nearBtn.addEventListener('click', function () {
     if (nearAt) { nearAt = null; nearBtn.setAttribute('aria-pressed', 'false'); draw(); return; }

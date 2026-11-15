@@ -1928,9 +1928,11 @@ eq("favJoinExtra 제목이 없으면 지금 이름의 길", [RF.favJoinExtra("#c
     eq("링크가 없으면 안 보임", RF.socarLine(box, undefined, "Android"), false);
     eq("http 는 안 받음", RF.socarLine(box, "http://click.linkprice.com/x", "iPhone"), false);
     eq("안드로이드에서 보임", [RF.socarLine(box, url, "Mozilla/5.0 (Linux; Android 14)"), box.hidden], [true, false]);
-    var a = box.kids[0];
+    var a = box.kids[1];
     eq("제휴 표시 · 새 창", [a.href, a.rel, a.target], [url, "noopener sponsored", "_blank"]);
-    eq("수수료 안내", box.kids[1].textContent.indexOf("routefly 가 수수료를 받습니다") > 0, true);
+    eq("수수료 안내는 링크 앞(점검 10차 F1)", [box.kids[0].tag, box.kids[0].textContent.indexOf("[제휴]") === 0, box.kids[0].textContent.indexOf("routefly 가 수수료를 받습니다") > 0], ["small", true, true]);
+    RF.socarLine(box, url, "iPhone", "🚗 포인트까지 대중교통이 없으면 쏘카 ›");
+    eq("글을 바꿀 수 있음(tidefly)", box.kids[1].textContent, "🚗 포인트까지 대중교통이 없으면 쏘카 ›");
     delete sandbox.document;
 })();
 
@@ -1951,8 +1953,9 @@ eq("favJoinExtra 제목이 없으면 지금 이름의 길", [RF.favJoinExtra("#c
     eq("링크가 없으면 안 보임", [RF.esimLine(box, undefined), box.hidden], [false, true]);
     eq("http 는 안 받음", RF.esimLine(box, "http://click.linkprice.com/x"), false);
     eq("링크가 있으면 보임", [RF.esimLine(box, url), box.hidden], [true, false]);
-    eq("제휴 표시 · 새 창", [box.kids[0].href, box.kids[0].rel, box.kids[0].target], [url, "noopener sponsored", "_blank"]);
-    eq("SOS 데이터라고 하지 않음(112 · 119 는 데이터 없이도)", /SOS|emergency/i.test(box.kids[0].textContent), false);
+    eq("제휴 표시 · 새 창", [box.kids[1].href, box.kids[1].rel, box.kids[1].target], [url, "noopener sponsored", "_blank"]);
+    eq("SOS 데이터라고 하지 않음(112 · 119 는 데이터 없이도)", /SOS|emergency/i.test(box.kids[1].textContent), false);
+    eq("제휴 안내는 링크 앞(점검 10차 F1)", [box.kids[0].tag, box.kids[0].textContent.indexOf("[Affiliate]")], ["small", 0]);
     delete sandbox.document;
 })();
 

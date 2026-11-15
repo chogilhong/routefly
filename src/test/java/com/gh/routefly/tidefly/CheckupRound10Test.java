@@ -156,4 +156,27 @@ public class CheckupRound10Test {
         assertTrue("D7", html.contains("<button type=\"button\" class=\"x\"") && js.contains("e.key === 'Escape'"));
         assertTrue("D8 물때표 단추가 숙소 칸 앞", js.indexOf("li.appendChild(more);") < js.indexOf("li.appendChild(stayBox(p, sec));"));
     }
+
+    /** E5 · E6 · E7 · F1 · G3 - ?q= 카드 열기 · 별거 별거 링크, 방침에 tidefly(코드가 쓰는 tf-* 열쇠 모두), og 태그, 쏘카, 찾기 기다림 한도. */
+    @Test
+    public void 잇기_방침_미리보기_제휴_기다림() throws Exception {
+        String js = read("src/main/webapp/js/tidefly.js");
+        assertTrue("E5", js.contains("if (it.point && bare(it.point.name) === bare(urlOpen))") && read("src/main/webapp/tools.html").contains("<a href=\"tidefly.html?lang=ko\" data-en-href=\"tidefly.html?lang=en\""));
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("'(tf-[a-z-]+)'").matcher(js + read("src/main/webapp/js/tidefly-early.js"));
+        java.util.Set<String> keys = new java.util.TreeSet<>();
+        while (m.find()) keys.add(m.group(1));
+        assertTrue(keys.size() >= 5);
+        for (String page : new String[] {"privacy.html", "privacy-en.html"}) {
+            String pol = read("src/main/webapp/" + page);
+            for (String k : keys) assertTrue("E6 " + page + " " + k, pol.contains(k));
+            assertTrue("E6 " + page, pol.contains("<h2>🎣 tidefly"));
+        }
+        String html = read("src/main/webapp/tidefly.html");
+        assertTrue("E7", html.contains("<meta property=\"og:title\"") && html.contains("<meta property=\"og:url\" content=\"https://routefly.kr/routefly/tidefly.html\">") && html.contains("noindex"));
+        assertTrue("F1", js.contains("window.RF.socarLine(sc, pp && pp.socar, navigator.userAgent,") && read("src/main/webapp/js/kit-tidefly.js").contains("function socarLine("));
+        for (String f : new String[] {"mountain.js", "mountain-en.js"}) {
+            String mj = read("src/main/webapp/js/" + f);
+            assertTrue("G3 " + f, mj.contains("FIND_WAIT_MS = 3000") && mj.contains("setTimeout(once(function () { if (ctl) ctl.abort(); go(); }), FIND_WAIT_MS);"));
+        }
+    }
 }

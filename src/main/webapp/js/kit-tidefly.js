@@ -250,6 +250,37 @@
             });
         };
     }
+    /**
+     * 산 페이지 코스 목록 아래 쏘카 한 줄(2026-11-03 홍TV님 - 링크프라이스 제휴). 쏘카는 휴대폰 앱 예약만 실적이라 휴대폰(ua)일 때만.
+     * box - 숨겨 둔 칸, url - api/partners 의 socar(서버가 linkprice.com 인지 봄), label - 링크 글(없으면 등산 들머리 글, tidefly 는 포인트 글). 보였으면 true.
+     * 제휴 안내는 링크 앞(점검 10차 F1 - 규칙: 안내가 먼저, 전에는 링크 뒤였음). esimLine 도 같게.
+     */
+    function socarLine(box, url, ua, label) {
+        if (!box || !/^https:\/\//.test(url || "") || !/Android|iPhone|iPad|iPod/i.test(ua || "")) return false;
+        var a = document.createElement("a"), s = document.createElement("small");
+        a.href = url; a.target = "_blank"; a.rel = "noopener sponsored";
+        a.textContent = label || "🚗 대중교통이 없는 들머리는 쏘카 ›";
+        s.textContent = "[제휴] 쏘카 앱에서 예약하면 routefly 가 수수료를 받습니다(값은 같음). ";
+        box.textContent = "";
+        box.appendChild(s); box.appendChild(a);
+        box.hidden = false;
+        return true;
+    }
+    /**
+     * 영어 산 페이지 코스 목록 아래 Airalo 한국 eSIM 한 줄(2026-11-03 홍TV님 - 링크프라이스 제휴, 외국인 등산객).
+     * 112 · 119 전화는 데이터 없이도 되므로 "지도 · 날씨 · 따라가기" 데이터라고만 씀. 보였으면 true.
+     */
+    function esimLine(box, url) {
+        if (!box || !/^https:\/\//.test(url || "")) return false;
+        var a = document.createElement("a"), s = document.createElement("small");
+        a.href = url; a.target = "_blank"; a.rel = "noopener sponsored";
+        a.textContent = "📶 Korea eSIM - mobile data for maps, weather and GPS follow ›";
+        s.textContent = "[Affiliate] Airalo - routefly earns a commission if you buy (same price). ";
+        box.textContent = "";
+        box.appendChild(s); box.appendChild(a);
+        box.hidden = false;
+        return true;
+    }
     function indexAt(c, d) {
         var dist = c.dist, lo = 0, hi = dist.length - 1;
         if (d <= 0) return 0;
@@ -385,6 +416,7 @@
     }
 
     global.RF = {
+        socarLine: socarLine,
         staySearch: staySearch
     };
 })(window);

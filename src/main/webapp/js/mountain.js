@@ -8,7 +8,7 @@
     if (fromSteep && crumbA) crumbA.href = "../m/?open=" + fromSteep[1] + "#steep";
     if (window.RF && window.RF.tmapLinks) window.RF.tmapLinks(document, navigator.userAgent);   // 코스 줄 🚗 티맵 - 휴대폰만(2026-11-09)
     // 코스 모음 첫 화면 검색칸(2026-11-07 전체 점검 2단계): 목록에 있는 산 이름이면 그 산 페이지로, 아니면 따라가기 검색(form 그대로 - 스크립트가 없어도 감)
-    var mSearch = document.querySelector("form.mSearch");
+    var mSearch = document.querySelector("form.mSearch"), FIND_WAIT_MS = 3000;
     if (mSearch && window.RF && window.RF.peakHref) mSearch.addEventListener("submit", function (e) {
         var items = [].map.call(document.querySelectorAll("ul.ms a"), function (a) {
             var sm = a.querySelector("small");
@@ -22,9 +22,13 @@
         var base = mSearch.action.replace(/hike\.html.*$/, ""), q = mSearch.elements.q.value;
         var go = function () { mSearch.submit(); };
         if (!window.fetch) return go();
-        fetch(base + "api/tidefly?find=" + encodeURIComponent(q)).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+        // 3초 넘게 답이 없으면(산속 통신) 기다리지 않고 코스 찾기로(점검 10차 G3 - 전에는 응답이 멈추면 검색이 안 됐음)
+        var done = false, once = function (f) { return function (x) { if (!done) { done = true; f(x); } }; };
+        var ctl = window.AbortController ? new AbortController() : null;
+        setTimeout(once(function () { if (ctl) ctl.abort(); go(); }), FIND_WAIT_MS);
+        fetch(base + "api/tidefly?find=" + encodeURIComponent(q), ctl ? { signal: ctl.signal } : {}).then(function (r) { return r.ok ? r.json() : null; }).then(once(function (d) {
             if (d && d.hit) location.href = base + "tidefly.html?lang=ko&q=" + encodeURIComponent(d.q); else go();
-        }).catch(go);
+        })).catch(once(go));
     });
     // fly(3D) · 따라가기로 갈 때 적어 둠 - 그 화면의 ‹ 뒤로가 새로 고친 뒤에도 history.back() 으로 이 화면 · 스크롤 자리로(2026-10-14 PC)
     document.addEventListener("click", function (e) {

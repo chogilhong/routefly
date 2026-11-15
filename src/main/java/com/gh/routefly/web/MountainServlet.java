@@ -254,9 +254,55 @@ public class MountainServlet extends HttpServlet {
         withInfo(p, readInfo(getServletContext()));
         JsonObject sea = readSeason(getServletContext());
         withSeason(p, sea);
+        withFishing(p, readArray(getServletContext(), "/data/tidefly-points.json"));
         season = sea;
         peaks = p;
         return p;
+    }
+
+    /** 웹앱 안 json 배열(없거나 못 읽으면 빈 것). */
+    private static JsonArray readArray(jakarta.servlet.ServletContext ctx, String path) {
+        try (InputStream in = ctx.getResourceAsStream(path)) {
+            JsonElement e = in == null ? null : JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+            return e != null && e.isJsonArray() ? e.getAsJsonArray() : new JsonArray();
+        } catch (Exception e) {
+            log.warn("[MOUNTAIN] {} 못 읽음 - {}", path, e.toString());
+            return new JsonArray();
+        }
+    }
+
+    /** 바다 낚시 포인트가 이만큼(km, 정상에서 곧은 거리) 안이면 산 페이지에 잇는 줄. */
+    static final double FISH_KM = 10;
+
+    /**
+     * 순수 함수(넘긴 산을 고침) - 정상에서 FISH_KM 안 가장 가까운 tidefly 포인트(data/tidefly-points.json)를 fish_near · fish_km 로(점검 10차 E5 -
+     * 금산 · 미륵산 · 마니산 · 성인봉 등 바다 가까운 명산에서 tidefly 로).
+     */
+    static void withFishing(JsonArray peaks, JsonArray points) {
+        for (JsonElement e : peaks) {
+            JsonObject pk = e.getAsJsonObject();
+            if (!pk.has("lat") || !pk.has("lon")) continue;
+            String best = null;
+            double bm = FISH_KM * 1000;
+            for (JsonElement q : points) {
+                JsonObject pt = q.getAsJsonObject();
+                double m = distM(pk.get("lat").getAsDouble(), pk.get("lon").getAsDouble(), pt.get("lat").getAsDouble(), pt.get("lon").getAsDouble());
+                if (m <= bm) { bm = m; best = pt.get("name").getAsString(); }
+            }
+            if (best != null) {
+                pk.addProperty("fish_near", best);
+                pk.addProperty("fish_km", Math.round(bm / 100) / 10.0);
+            }
+        }
+    }
+
+    /** 순수 함수 - 산 페이지 "🎣 가까운 낚시 포인트" 줄(없으면 ""). en - 영어 페이지. */
+    static String fishLine(JsonObject peak, boolean en) {
+        String n = str(peak, "fish_near");
+        if (n == null) return "";
+        String km = String.valueOf(peak.get("fish_km").getAsDouble());
+        return "<p class=\"fishNear\">🎣 " + (en ? "Sea fishing nearby: " : "가까운 낚시 포인트 ") + "<a href=\"" + (en ? MountainEn.REL : REL) + "/tidefly.html?lang=" + (en ? "en" : "ko")
+                + "&amp;q=" + esc(enc(n)) + "\">" + esc(n) + "</a> " + (en ? "· about " + km + " km - tides, wind and waves (tidefly)" : "· 약 " + km + "km - 물때 · 바람 · 파고(tidefly)") + "</p>";
     }
 
     /** data/series.json 의 groups(걷기 · 자전거 노선 - 목록 /m/) - 못 읽으면 빈 것. */
@@ -1083,6 +1129,7 @@ public class MountainServlet extends HttpServlet {
         b.append("<section id=\"safe\"><h2>⛑️ 오늘의 산행 안전</h2><ul class=\"wl sfl\" id=\"sfList\"><li><span>기상특보 · 레이더 비구름 · 산불위험 · 자외선 · 가까운 응급실을 이 칸에서 봅니다.</span></li></ul>")
                 .append("<h3>🏥 가까운 응급실</h3><ul class=\"wl\" id=\"sfEr\"></ul><p class=\"dim\">기상특보 · 레이더 비구름(15km 안 관측 지점, 10분마다) · 자외선은 기상청, 산불위험은 산림청, 응급실은 국립중앙의료원 자료(지역은 가장 가까운 응급실 주소로). 위급하면 <b>119</b>.</p></section>");
         if (overnight(peak)) b.append(staysBlock(peak, false));   // 1박이 많은 산은 숙소 줄을 위로(2026-10-29 홍TV님 "작업해")
+        b.append(fishLine(peak, false));   // 바다 가까운 산 → tidefly(점검 10차 E5)
         b.append("<section id=\"trails\"><h2>코스 ").append(courses.size()).append("개</h2>");
         if (courses.isEmpty()) b.append("<p class=\"dim\">정상까지 가는 코스를 찾지 못했습니다. <a href=\"").append(REL)
                 .append("/hike.html?lang=ko\">따라가기에서 산 이름으로 찾아보세요</a>.</p>");

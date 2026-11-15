@@ -55,7 +55,7 @@ public class TideflyLayoutTest {
                 && html.indexOf("js/kit-tidefly.js") < html.indexOf("js/tidefly.js\""));
         assertTrue(Files.readString(Path.of("src/main/webapp/js/kit-tidefly.js"), StandardCharsets.UTF_8).contains("return function showAt(pl, q, where) {"));
         String js = Files.readString(Path.of("src/main/webapp/js/tidefly.js"), StandardCharsets.UTF_8).replace("\r\n", "\n");
-        assertTrue("숙소는 RF.staySearch(form 없이)", js.contains("var show = RF.staySearch(null, out, partnersP, '', lang === 'en');"));
+        assertTrue("숙소는 RF.staySearch(form 없이)", js.contains("var show = RF.staySearch(null, out, partners(), '', lang === 'en');"));
         assertTrue("목록이 그대로면 다시 그리지 않음(2026-11-15 PC: 10초마다 다시 그려 단추 누름이 사라졌음)", js.contains("if (text !== lastText) {"));
         assertTrue("자리를 받는 중에는 \"없습니다\" 대신 기다림(2026-11-15 홍TV님 쭈꾸미)", js.contains("q && !spots ? tr('갯바위 · 선상 자리까지 찾는 중…'"));
     }
