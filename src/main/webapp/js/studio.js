@@ -459,8 +459,26 @@
         el.textContent = "점 " + RF.num(c.track.length) + "개 · " + km(RF.trackStats(c.track).dist) + " km" + (pickedI != null ? " · 고른 점 " + (pickedI + 1) + "번째" : "");
         box.querySelector(".pdel").disabled = pickedI == null;
     }
+    /**
+     * 거리 밀대 - 양옆 − · ＋ 단추는 한 칸(step, 10m)씩(2026-11-15 홍TV님 "미세하게 조정이 안 돼네" - 36km 길은 밀대 1px 이 100m 넘어 원하는 자리에 못 맞췄음).
+     * 단추는 밀대에 input 을 보내 미리 보기가 그대로 따라옴(nudgeWire).
+     */
     function slider(label, max, step, cls) {
-        return '<label class="sl">' + label + ' <b class="' + cls + 'v"></b><input type="range" class="' + cls + '" min="0" max="' + max + '" step="' + step + '" value="0"></label>';
+        return '<label class="sl">' + label + ' <b class="' + cls + 'v"></b><span class="slrow">'
+            + '<button type="button" class="b nud" data-for="' + cls + '" data-d="-1" aria-label="' + label + ' ' + step + 'm 줄이기">−</button>'
+            + '<input type="range" class="' + cls + '" min="0" max="' + max + '" step="' + step + '" value="0">'
+            + '<button type="button" class="b nud" data-for="' + cls + '" data-d="1" aria-label="' + label + ' ' + step + 'm 늘리기">＋</button></span></label>';
+    }
+    function nudgeWire(box) {
+        Array.prototype.forEach.call(box.querySelectorAll(".nud"), function (b) {
+            b.onclick = function (e) {
+                e.preventDefault();
+                var inp = box.querySelector("input." + b.getAttribute("data-for"));
+                if (!inp) return;
+                inp.value = Math.min(+inp.max, Math.max(0, +inp.value + +b.getAttribute("data-d") * +inp.step));
+                inp.dispatchEvent(new Event("input"));
+            };
+        });
     }
     function toolButtons(okText) {
         return '<div class="row" style="margin-top:8px"><button class="b tno" type="button">취소</button><button class="b main tok" type="button">' + okText + '</button></div>';
@@ -468,7 +486,7 @@
     function openTool(kind) {
         var c = cur();
         if (!c) return;
-        var box = $("toolBox"), st = RF.trackStats(c.track), total = st.dist, step = total > 5000 ? 50 : 10, max = Math.max(0, Math.floor(total / step) * step);
+        var box = $("toolBox"), st = RF.trackStats(c.track), total = st.dist, step = 10, max = Math.max(0, Math.floor(total / step) * step);
         preview = null;
         if (kind === "pts") {
             pickedI = null;
@@ -588,6 +606,7 @@
                 draw(true);
             };
         }
+        nudgeWire(box);
         box.querySelector(".tno").onclick = closeTool;
     }
     Array.prototype.forEach.call(document.querySelectorAll("[data-tool]"), function (b) { b.onclick = function () { openTool(b.getAttribute("data-tool")); }; });

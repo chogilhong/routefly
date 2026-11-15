@@ -1286,9 +1286,18 @@
      * 올리기 전 앞 · 뒤 자르기(관리자만, 2026-10-31 홍TV님 "앱 안에서 자르는 기능 지금 만들어 줘") - 집 앞 · 주차장 가는 길 등을 뺌.
      * 선 그림(남는 길 파랑 · 자를 길 회색, 출발 초록 · 도착 빨강)과 밀대 둘. 남은 점 [위도, 경도, 시각, 높이] 로 resolve, 취소면 null.
      */
+    /** 자르기 밀대 한 줄 - 양옆 − · ＋ 는 10m 씩(밀대만으로는 긴 길에서 1px 이 100m 넘음). k - "0" 앞 · "1" 뒤. */
+    function nudgeRow(label, k, top) {
+        var bs = 'style="flex:0 0 auto;min-width:44px;min-height:40px;font-size:18px"';
+        return '<label style="display:block;margin-top:' + top + '">' + label + ' <b class="c' + k + '"></b><span style="display:flex;align-items:center;gap:6px;margin-top:4px">'
+            + '<button type="button" class="nud" data-r="' + k + '" data-d="-1" ' + bs + ' aria-label="' + label + ' 10m −">−</button>'
+            + '<input type="range" class="r' + k + '" min="0" step="10" style="flex:1 1 auto;min-width:0">'
+            + '<button type="button" class="nud" data-r="' + k + '" data-d="1" ' + bs + ' aria-label="' + label + ' 10m +">＋</button></span></label>';
+    }
+
     function trimSheet(r) {
         return new Promise(function (done) {
-            var t = r.track || [], full = RF.trimTrack(t, 0, 0), step = full.total > 5000 ? 50 : 10;
+            var t = r.track || [], full = RF.trimTrack(t, 0, 0), step = 10;   // 10m 칸 + 양옆 − · ＋ 단추(2026-11-15 홍TV님 "미세하게 조정이 안 돼네" - GPX 편집 studio.js slider 와 같게)
             var wrap = document.createElement("div");
             wrap.setAttribute("role", "dialog");
             wrap.setAttribute("aria-label", T("앞 · 뒤 자르기", "Trim start and end"));
@@ -1299,13 +1308,20 @@
                 + '<p class="tip" style="margin:6px 0">' + T("집 앞 · 주차장 · 들머리 가는 길처럼 코스가 아닌 부분을 빼 주세요. 파란 선만 올라갑니다.", "Remove parts that aren't the course (home, parking, approach). Only the blue line is uploaded.") + '</p>'
                 + (window.maplibregl && cfg ? '<div class="tmap" style="width:100%;height:min(52vh,360px);border-radius:10px;overflow:hidden"></div>' : "")
                 + '<svg viewBox="-6 -6 112 112" style="width:100%;height:auto;background:#0f1720;border-radius:10px' + (window.maplibregl && cfg ? ";display:none" : "") + '"></svg>'
-                + '<label style="display:block;margin-top:10px">' + T("앞에서 자르기", "Cut from start") + ' <b class="c0"></b><input type="range" class="r0" min="0" step="' + step + '" style="width:100%"></label>'
-                + '<label style="display:block;margin-top:6px">' + T("뒤에서 자르기", "Cut from end") + ' <b class="c1"></b><input type="range" class="r1" min="0" step="' + step + '" style="width:100%"></label>'
+                + nudgeRow(T("앞에서 자르기", "Cut from start"), "0", "10px") + nudgeRow(T("뒤에서 자르기", "Cut from end"), "1", "6px")
                 + '<p class="kept" style="margin:8px 0;font-weight:bold"></p>'
                 + '<p style="display:flex;gap:8px;margin:0"><button type="button" class="no" style="flex:1">' + T("취소", "Cancel") + '</button><button type="button" class="go main" style="flex:1">' + T("다음", "Next") + '</button></p>';
             wrap.appendChild(box);
             document.body.appendChild(wrap);
             var svg = box.querySelector("svg"), r0 = box.querySelector(".r0"), r1 = box.querySelector(".r1");
+            Array.prototype.forEach.call(box.querySelectorAll(".nud"), function (b) {
+                b.addEventListener("click", function (e) {
+                    e.preventDefault();
+                    var inp = box.querySelector(".r" + b.getAttribute("data-r"));
+                    inp.value = Math.min(+inp.max, Math.max(0, +inp.value + +b.getAttribute("data-d") * step));
+                    inp.dispatchEvent(new Event("input"));
+                });
+            });
             r0.max = r1.max = Math.max(0, Math.floor(full.total / step) * step);
             r0.value = r1.value = 0;
             var lat0 = t.reduce(function (a, p) { return a + p[0]; }, 0) / Math.max(1, t.length), kx = Math.cos(lat0 * Math.PI / 180);

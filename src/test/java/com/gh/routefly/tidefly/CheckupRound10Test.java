@@ -179,4 +179,14 @@ public class CheckupRound10Test {
             assertTrue("G3 " + f, mj.contains("FIND_WAIT_MS = 3000") && mj.contains("setTimeout(once(function () { if (ctl) ctl.abort(); go(); }), FIND_WAIT_MS);"));
         }
     }
+
+    /** 2026-11-15 홍TV님 "미세하게 조정이 안 돼네" - 자르기 · 가운데 지우기 · 나누기 밀대는 10m 칸 + 양옆 − · ＋(GPX 편집 · 따라가기 올리기 전 자르기 두 벌). */
+    @Test
+    public void 자르기_밀대는_10m_단추() throws Exception {
+        String st = read("src/main/webapp/js/studio.js"), hk = read("src/main/webapp/js/hike.js");
+        assertTrue(st.contains("step = 10, max") && st.contains("class=\"b nud\"") && st.contains("        nudgeWire(box);\n        box.querySelector(\".tno\").onclick = closeTool;"));
+        assertTrue(st.contains("inp.dispatchEvent(new Event(\"input\"));"));
+        assertTrue(hk.contains("full = RF.trimTrack(t, 0, 0), step = 10;") && hk.contains("nudgeRow(T(\"앞에서 자르기\"") && hk.contains("box.querySelectorAll(\".nud\")"));
+        assertFalse("50m 칸은 없음", st.contains("total > 5000 ? 50 : 10") || hk.contains("full.total > 5000 ? 50 : 10"));
+    }
 }
