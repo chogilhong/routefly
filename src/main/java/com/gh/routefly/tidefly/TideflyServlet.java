@@ -146,6 +146,7 @@ public final class TideflyServlet extends HttpServlet {
                 for (String code : new java.util.TreeSet<>(points().values().stream().map(p -> p.get("tide").getAsString()).toList())) {
                     for (java.time.LocalDate day : List.of(today, today.plusDays(1))) {
                         if (cachedTide(code, day) != null) continue;
+                        if (System.currentTimeMillis() < portalRestUntil) break;   // 429 로 쉬는 동안은 묻지도 세지도 않음(2026-11-15 PC: 쉰 것을 실패로 셌음)
                         tAsked++;
                         boolean ok = tide(pkey, code, day) != null;
                         if (!ok) tFailed++;
@@ -163,6 +164,10 @@ public final class TideflyServlet extends HttpServlet {
                     for (int i = 2; i < TIDE_DAYS; i++) {
                         java.time.LocalDate day = today.plusDays(i);
                         if (cachedTide(code, day) != null) continue;
+                        if (System.currentTimeMillis() < portalRestUntil) {
+                            log.info("[TIDEFLY-TIDE] 포털 한도(429)로 쉬는 중 - 남은 날은 쉰 뒤에");
+                            break late;
+                        }
                         tAsked++;
                         boolean ok = tide(pkey, code, day) != null;
                         if (!ok) {
