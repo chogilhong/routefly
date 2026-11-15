@@ -78,6 +78,24 @@ assert.strictEqual(TF.dayName('2026-11-16'), '16일(월)');
   const max = Math.max.apply(null, days.map(d => d.rangeCm || 0));
   assert.strictEqual(rows[0].pct, Math.round(days[0].rangeCm / max * 100));
   assert.ok(rows.some(r => r.pct === 100));
+  // 이 자리 좋은 물때(2026-11-15 홍TV님 "표시해 줘") - 실제 자리 자료의 말들, 방포항 7일(13물 · 조금 · 무시 · 1물 · 2물 · 3물 · 4물, 사리 없음)
+  const g = t => TF.goodDays(t, days).map(b => (b ? 1 : 0)).join('');
+  assert.strictEqual(g('조금 전·후'), '1111000');                  // 조금 · 무시와 그 앞뒤 하루
+  assert.strictEqual(g('조금전후'), '1111000');
+  assert.strictEqual(g('조금'), '0110000');
+  assert.strictEqual(g('11물~5물/ 정조전후'), '1111111');          // 돌아가며 11 … 13 · 조금 · 무시 · 1 … 5
+  assert.strictEqual(g('13물-4물/ 초들물'), '1111111');
+  assert.strictEqual(g('10물~13물'), '1000000');
+  assert.strictEqual(g('1~3물/ 조금 전·후'), '1111110');
+  assert.strictEqual(g('사리를 피한 물때/ 1~3물/ 9~13물'), '1001110');  // "피한" 은 표시하지 않고 범위만
+  assert.strictEqual(g('조금~4물'), '0111111');
+  assert.strictEqual(g('5 물~11물'), '0000000');
+  assert.strictEqual(g('초들물~중날물'), '0000000');               // 하루 안의 때는 날로 표시하지 않음
+  assert.strictEqual(g('사리 전후'), '0000000');                   // 이 7일엔 사리 날이 없음
+  assert.strictEqual(g('4물~사리'), '0000000');                     // 사리 날이 없으면 끝을 모름 - 표시하지 않음
+  const sari = [{ mulddae: '6물' }, { mulddae: '7물', sari: true }, { mulddae: '8물', sari: true }, { mulddae: '9물', sari: true }, { mulddae: '10물' }, { mulddae: '11물' }];
+  assert.strictEqual(TF.goodDays('사리 전·후', sari).map(b => (b ? 1 : 0)).join(''), '111110');
+  assert.strictEqual(TF.goodDays('4물~사리', sari).map(b => (b ? 1 : 0)).join(''), '111100');
   // 월령: 음력 1 삭 · 8 상현 · 15 보름 · 23 하현 · 29 그믐달(course-kit moonPhase 와 같은 셈)
   assert.deepStrictEqual([1, 4, 8, 12, 15, 19, 23, 27, 30].map(d => TF.moon(d)[0]).join(''), '🌑🌒🌓🌔🌕🌖🌗🌘🌑');
   assert.deepStrictEqual(TF.moon(15), ['🌕', '보름달']);

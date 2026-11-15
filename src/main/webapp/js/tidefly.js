@@ -92,6 +92,41 @@
     return [m[0], tr(m[1], m[2])];
   }
 
+  /**
+   * 순수 함수 - 자리의 "좋은 물때"(해양수산부 조수물때내용, 예 "조금 전·후" · "11물~5물/ 정조전후" · "사리 전후/ 10~5물")에 맞는 날(2026-11-15 홍TV님 "표시해 줘").
+   * days = 물때표 날들(차례대로, mulddae · sari). → 날마다 true/false. 날 단위만 봄 - 초들물 · 만조 같은 하루 안의 때는 글로만 보임.
+   * - "사리 전후" · "조금 전후": 사리 날(sari) · 조금 · 무시 날과 그 앞뒤 하루. "조금" 만 있으면 조금 · 무시 날
+   * - "a물~b물" · "a~b물" · "a물-b물": 물때 차례 1물 … 13(14)물 → 조금 → 무시 를 돌아가며(11물~5물 = 11 … 조금 · 무시 … 5). 끝이 "사리" 면 그 기간 사리 날의 가장 큰 물
+   * - "사리를 피한" · "사리 이외" · "조금 이후" 처럼 빼거나 흐린 말은 표시하지 않음(지어내지 않으려고)
+   */
+  function goodDays(text, days) {
+    days = days || [];
+    var ord = days.map(function (d) {
+      var m = /^(\d+)물$/.exec(d.mulddae || '');
+      return m ? +m[1] : d.mulddae === '조금' ? 100 : d.mulddae === '무시' ? 101 : null;
+    });
+    var sariTop = null;
+    days.forEach(function (d, i) { if (d.sari && ord[i] != null && ord[i] < 100) sariTop = Math.max(sariTop || 0, ord[i]); });
+    var out = days.map(function () { return false; });
+    function near(test) { days.forEach(function (d, i) { if (test(d, i)) for (var k = i - 1; k <= i + 1; k++) if (k >= 0 && k < out.length) out[k] = true; }); }
+    String(text || '').split('/').forEach(function (raw) {
+      var t = raw.replace(/\s+/g, '');
+      if (!t || /피한|이외|이후/.test(t)) return;
+      var r = /(조금|사리|\d+)물?[~\-](조금|사리|\d+)/.exec(t);
+      if (r) {
+        var end = function (v) { return v === '조금' ? 100 : v === '사리' ? sariTop : +v; };
+        var a = end(r[1]), b = end(r[2]);
+        if (a == null || b == null) return;
+        ord.forEach(function (o, i) { if (o != null && (a <= b ? o >= a && o <= b : o >= a || o <= b)) out[i] = true; });
+        return;
+      }
+      if (/^사리전[·]?후/.test(t)) near(function (d) { return d.sari; });
+      else if (/^조금전[·]?후/.test(t)) near(function (d) { return d.mulddae === '조금' || d.mulddae === '무시'; });
+      else if (t === '조금') days.forEach(function (d, i) { if (d.mulddae === '조금' || d.mulddae === '무시') out[i] = true; });
+    });
+    return out;
+  }
+
   function tideTable(days) {
     var max = 0, prev = null;
     (days || []).forEach(function (d) { if (typeof d.rangeCm === 'number' && d.rangeCm > max) max = d.rangeCm; });
@@ -405,7 +440,7 @@
   }
 
   var TF = { kst: kst, dir16: dir16, swell: swell, nums: nums, markOf: markOf, markWord: markWord, nowKst: nowKst, dayName: dayName,
-    tideTable: tideTable, moon: moon, sunSpan: sunSpan, hourLine: hourLine, untilText: untilText, nextTide: nextTide, curve: curve, nextSize: nextSize, isDark: isDark,
+    tideTable: tideTable, goodDays: goodDays, moon: moon, sunSpan: sunSpan, hourLine: hourLine, untilText: untilText, nextTide: nextTide, curve: curve, nextSize: nextSize, isDark: isDark,
     setLang: setLang, roman: roman, placeName: placeName, zoneName: zoneName, reason: reason, mul: mul,
     alarmPlan: alarmPlan, alarmText: alarmText, nearest: nearest, spotItem: spotItem, bare: bare, closedText: closedText };
   if (typeof module !== 'undefined' && module.exports) module.exports = TF;
@@ -604,7 +639,7 @@
     more.setAttribute('aria-expanded', open[p.name] ? 'true' : 'false');
     more.addEventListener('click', function () { toggle(p.name, p.base || p.name); });   // 자리는 base 포인트의 물때표 · 3일 예보
     li.appendChild(more);
-    if (open[p.name]) li.appendChild(detailEl(p.base || p.name));
+    if (open[p.name]) li.appendChild(detailEl(p.base || p.name, p.spot ? p.tideTime : null));
     return li;
   }
 
@@ -818,18 +853,26 @@
   }
 
   /** 물때표 - 위에 날짜 띠(옆으로 밀어 봄), 아래 표. */
-  function tideTableEl(days) {
+  function tideTableEl(days, good) {
     var rows = tideTable(days), wrap = el('div', 'ttable-wrap');
+    var ok = good ? goodDays(good, days) : [];
     wrap.appendChild(el('h4', null, tr('물때표 (' + rows.length + '일)', 'Tide table (' + rows.length + ' days)')));
     var strip = el('div', 'tstrip');
-    rows.forEach(function (r) {
-      var c = el('div', 'tday ' + r.cls);
+    rows.forEach(function (r, k) {
+      var c = el('div', 'tday ' + r.cls + (ok[k] ? ' good' : ''));
       c.appendChild(el('span', 'd', r.day));
       c.appendChild(el('span', 'm', r.mul));
       if (r.moon) { var mo = el('span', 'moon', r.moon[0]); mo.title = r.moon[1]; c.appendChild(mo); }
       strip.appendChild(c);
     });
     wrap.appendChild(strip);
+    if (good) {   // 이 자리 좋은 물때(해양수산부) - 맞는 날은 띠 테두리 · 표 줄 바탕을 초록으로
+      var g = el('p', 'good-line');
+      g.appendChild(el('strong', null, tr('★ 이 자리 좋은 물때(초록 칸): ', '★ Good tides here (green): ')));   // 날짜 칸은 좁아 ★ 대신 줄 바탕 · 띠 테두리로
+      g.appendChild(document.createTextNode(good + (ok.some(Boolean) ? '' : tr(' (표에 날로 표시할 수 없는 말)', ' (cannot be marked by day)'))));
+      g.appendChild(el('span', 'dim', tr(' - 해양수산부 자료', ' - MOF data')));
+      wrap.appendChild(g);
+    }
     wrap.appendChild(el('p', 'dim small', tr('주황 사리(물 많이 들고 빠짐 · 흐름 셈) · 보라 조금 · 무시(흐름 약함). 시각 뒤 높이 cm, ▲▼ 앞 물때와 차이. 🌕 달 모양(월령) - 음력 날로 셈.',
       'Orange: spring tide (big range, strong flow) · purple: neap (weak flow). Height in cm, ▲▼ change from the previous tide. 🌕 moon phase from the lunar day.')));
     // 해는 날마다 1 ~ 2분씩만 바뀌어 표 칸 대신 첫날 · 끝날 한 줄(2026-11-15 홍TV님 "날짜 등 줄일 수 있잖아" - 폰에서 간조 · 해 칸이 잘렸음)
@@ -851,8 +894,8 @@
       });
       return td;
     }
-    rows.forEach(function (r) {
-      var tr_ = el('tr', r.cls);
+    rows.forEach(function (r, k) {
+      var tr_ = el('tr', r.cls + (ok[k] ? ' good' : ''));
       var d0 = el('td', 'date');
       if (lang === 'en') {   // "Sun 15" 은 좁은 칸에서 잘려 날 · 요일 · 음력을 세 줄로(2026-11-15)
         d0.appendChild(el('div', null, String(+String(r.date).slice(8))));
@@ -884,12 +927,12 @@
     return wrap;
   }
 
-  function detailEl(name) {
+  function detailEl(name, good) {
     var box = el('div', 'detail');
     var d = detail[name];
     if (d === 'loading' || !d) { box.appendChild(el('p', 'dim', tr('15일 물때표 · 3일 예보를 받는 중…', 'Loading the 15-day tide table and 3-day forecast…'))); return box; }
     if (d === 'error') { box.appendChild(el('p', 'dim', tr('받지 못했습니다. 다시 눌러 보세요.', 'Could not load. Please tap again.'))); delete detail[name]; return box; }
-    box.appendChild(tideTableEl(d.days));
+    box.appendChild(tideTableEl(d.days, good));
     box.appendChild(el('h4', null, tr('3일 바다 예측 (3시간 간격)', '3-day sea forecast (every 3 hours, KST)')));
     var hl = el('ul', 'lines');
     (d.hourly || []).forEach(function (f) { hl.appendChild(el('li', f.swell >= 2 ? 'sari' : null, hourLine(f))); });

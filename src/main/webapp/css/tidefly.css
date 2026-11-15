@@ -160,3 +160,8 @@ main { padding-top: 14px; padding-bottom: 24px; }
 .ttable .bar { height: 6px; margin-top: 4px; border-radius: 3px; background: var(--line); overflow: hidden; }
 .ttable .bar span { display: block; height: 100%; background: var(--ok); }
 .tday .moon { display: block; font-size: .9rem; line-height: 1.2; }
+/* 이 자리 좋은 물때(2026-11-15 홍TV님 "표시해 줘") */
+.tday.good { border-color: var(--ok); box-shadow: inset 0 0 0 1px var(--ok); }
+.ttable tr.good td { background: var(--ok-bg); }
+.good-line { margin: 4px 0 6px; font-size: .84rem; }
+.good-line strong { color: var(--ok); }
