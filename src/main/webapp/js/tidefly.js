@@ -804,10 +804,12 @@
       strip.appendChild(c);
     });
     wrap.appendChild(strip);
-    wrap.appendChild(el('p', 'dim small', tr('주황 사리 - 물이 많이 들고 빠지고 흐름이 셈 · 보라 조금 · 무시 - 흐름이 약함. 높이 cm, ▲▼ 앞 물때와 높이 차.',
-      'Orange: spring tide (big range, strong flow) · purple: neap (weak flow). Heights in cm, ▲▼ change from the previous tide.')));
+    wrap.appendChild(el('p', 'dim small', tr('주황 사리(물 많이 들고 빠짐 · 흐름 셈) · 보라 조금 · 무시(흐름 약함). 시각 뒤 높이 cm, ▲▼ 앞 물때와 차이.',
+      'Orange: spring tide (big range, strong flow) · purple: neap (weak flow). Height in cm, ▲▼ change from the previous tide.')));
+    // 해는 날마다 1 ~ 2분씩만 바뀌어 표 칸 대신 첫날 · 끝날 한 줄(2026-11-15 홍TV님 "날짜 등 줄일 수 있잖아" - 폰에서 간조 · 해 칸이 잘렸음)
+    if (rows.length) wrap.appendChild(el('p', 'dim small', tr('해 ', 'Sun ') + rows[0].day + ' ' + rows[0].sun + (rows.length > 1 ? ' → ' + rows[rows.length - 1].day + ' ' + rows[rows.length - 1].sun : '')));
     var table = el('table', 'ttable'), head = el('tr');
-    [tr('날짜', 'Date'), tr('물때', 'Tide'), tr('만조', 'High'), tr('간조', 'Low'), tr('해', 'Sun')].forEach(function (h) { head.appendChild(el('th', null, h)); });
+    [[tr('날짜', 'Date'), 'c-date'], [tr('물때', 'Tide'), 'c-mul'], [tr('만조', 'High'), null], [tr('간조', 'Low'), null]].forEach(function (h) { head.appendChild(el('th', h[1], h[0])); });
     var thead = el('thead');
     thead.appendChild(head);
     table.appendChild(thead);
@@ -816,8 +818,9 @@
       var td = el('td', up ? 'hi' : 'lo');
       if (!list.length) td.textContent = '-';
       list.forEach(function (e) {
-        var line = el('div', null, e.t + (e.cm != null ? ' (' + e.cm + ')' : ''));
-        if (e.diff != null) line.appendChild(el('span', 'diff', ' ' + (e.diff >= 0 ? '▲' : '▼') + Math.abs(e.diff)));
+        var line = el('div', null, e.t);
+        if (e.cm != null) line.appendChild(el('span', 'cm', ' ' + e.cm));
+        if (e.diff != null) line.appendChild(el('span', 'diff', (e.diff >= 0 ? '▲' : '▼') + Math.abs(e.diff)));
         td.appendChild(line);
       });
       return td;
@@ -825,8 +828,8 @@
     rows.forEach(function (r) {
       var tr_ = el('tr', r.cls);
       var d0 = el('td', 'date');
-      d0.appendChild(el('div', null, r.day));
-      d0.appendChild(el('div', 'dim', tr('음 ' + r.lunar, 'L' + r.lunar)));
+      d0.appendChild(el('div', null, r.day.replace('일(', '(')));   // "15(일)"
+      d0.appendChild(el('div', 'dim', tr('음' + r.lunar, 'L' + r.lunar)));
       tr_.appendChild(d0);
       var m0 = el('td', 'mul');
       m0.appendChild(el('div', null, r.mul));
@@ -840,7 +843,6 @@
       tr_.appendChild(m0);
       tr_.appendChild(evs(r.highs, true));
       tr_.appendChild(evs(r.lows, false));
-      tr_.appendChild(el('td', 'sun', r.sun.replace(' ~ ', '\n')));
       tb.appendChild(tr_);
     });
     table.appendChild(tb);

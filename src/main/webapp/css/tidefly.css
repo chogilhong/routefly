@@ -146,11 +146,14 @@ main { padding-top: 14px; padding-bottom: 24px; }
 .tday .m { display: block; font-weight: 700; color: var(--sea); }
 .tday.sari .m, .ttable tr.sari .mul { color: var(--care); }
 .tday.neap .m, .ttable tr.neap .mul { color: var(--neap); }
-.ttable { width: 100%; border-collapse: collapse; font-size: .78rem; font-variant-numeric: tabular-nums; }
-.ttable th, .ttable td { border-bottom: 1px solid var(--line); padding: 5px 3px; text-align: left; vertical-align: top; }
+.ttable { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: .76rem; font-variant-numeric: tabular-nums; }
+.ttable th, .ttable td { border-bottom: 1px solid var(--line); padding: 5px 2px; text-align: left; vertical-align: top; white-space: nowrap; overflow: hidden; }
+.ttable .c-date { width: 3.4em; }
+.ttable .c-mul { width: 3.3em; }
+.ttable .cm { color: var(--dim); }
+.ttable .diff { font-size: .9em; }
 .ttable th { color: var(--dim); font-weight: 600; }
 .ttable td.mul { font-weight: 700; color: var(--sea); min-width: 3.4em; }
-.ttable td.sun { white-space: pre-line; color: var(--dim); }
 .ttable .hi .diff { color: var(--no); }
 .ttable .lo .diff { color: var(--sea); }
 .ttable .bar { height: 6px; margin-top: 4px; border-radius: 3px; background: var(--line); overflow: hidden; }
