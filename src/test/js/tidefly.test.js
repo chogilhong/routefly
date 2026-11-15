@@ -199,6 +199,15 @@ assert.strictEqual(TF.alarmText(plan[1], '김녕', { sun: 60 }), '해 지기 60�
   assert.strictEqual(TF.fishHit('감성돔 · 넙치', '갈치'), false);
   assert.strictEqual(TF.fishHit('감성돔', '돔'), false);                        // 한 글자는 안 봄
   assert.strictEqual(TF.fishHit('', '주꾸미'), false);
+  // 근처 숙소 · 식당(2026-11-15 홍TV님) - 운영 /api/stays 방포항 실제 응답
+  const st = n => JSON.parse(require('fs').readFileSync(require('path').join(__dirname, '../resources/tidefly/stays/' + n + '.json'), 'utf8'));
+  const sr = TF.stayRows(st('bangpo'), 10);
+  assert.strictEqual(sr.length, 10);
+  assert.deepStrictEqual(sr[0], { name: '마린오토캠핑장', kind: '야영,캠핑장', km: 0.2, addr: '충남 태안군 안면읍 방포항길 91', url: 'https://place.map.kakao.com/951253707', tel: '' });
+  const fr = TF.stayRows(st('bangpo-food'), 10);
+  assert.deepStrictEqual([fr[0].name, fr[0].kind, fr[0].km, fr[0].url], ['방포수산', '', 0.3, '']);
+  assert.deepStrictEqual(TF.stayRows({ stays: [{ name: 'x', url: 'javascript:alert(1)' }] }, 5)[0].url, '');   // https 만
+  assert.deepStrictEqual(TF.stayRows(null, 5), []);
   // 금어기 · 금지 체장(2026-11-15 홍TV님 "공식 자료로만") - data/tidefly-law.json(시행령 별표 1 · 2 원문, LawTest 가 원문과 같은지 봄)
   const law = JSON.parse(require('fs').readFileSync(require('path').join(__dirname, '../../main/webapp/data/tidefly-law.json'), 'utf8'));
   const L = TF.lawFor('감성돔 · 우럭 · 주꾸미 · 문어 · 학꽁치', law, '05-20');

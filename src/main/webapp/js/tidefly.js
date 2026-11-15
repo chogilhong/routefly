@@ -451,6 +451,17 @@
     return out;
   }
 
+  /**
+   * 순수 함수 - 근처 숙소 · 식당(api/stays - routefly 산 페이지와 같은 서버, 2026-11-15 홍TV님 "숙박 등도 넣고 싶은데" → tidefly 카드) 응답 → 보일 줄 n 개.
+   * [{name, kind, km, addr, url(https 만), tel}] - 주소 · 전화가 없으면 빈 글.
+   */
+  function stayRows(j, n) {
+    return ((j && j.stays) || []).slice(0, n).map(function (s) {
+      return { name: s.name || '', kind: s.kind || '', km: typeof s.dist_m === 'number' ? Math.round(s.dist_m / 100) / 10 : null,
+        addr: s.addr || '', url: /^https:\/\//.test(s.url || '') ? s.url : '', tel: s.tel || '' };
+    });
+  }
+
   function spotItem(s, baseItem, marks) {
     var b = baseItem || {}, bp = b.point || {}, m = (marks || {})[s.id];
     var p = { name: s.name, lat: s.lat, lon: s.lon, boat: !!s.boat, spot: true, id: s.id, depth: s.depth, bottom: s.bottom, tideTime: s.tideTime, fish: s.fish,
@@ -486,7 +497,7 @@
   var TF = { kst: kst, dir16: dir16, swell: swell, nums: nums, markOf: markOf, markWord: markWord, nowKst: nowKst, dayName: dayName,
     tideTable: tideTable, goodDays: goodDays, moon: moon, sunSpan: sunSpan, hourLine: hourLine, untilText: untilText, nextTide: nextTide, curve: curve, nextSize: nextSize, isDark: isDark,
     setLang: setLang, roman: roman, placeName: placeName, zoneName: zoneName, reason: reason, mul: mul,
-    alarmPlan: alarmPlan, alarmText: alarmText, nearest: nearest, spotItem: spotItem, bare: bare, fishHit: fishHit, lawFor: lawFor, inSeason: inSeason, closedText: closedText };
+    alarmPlan: alarmPlan, alarmText: alarmText, nearest: nearest, spotItem: spotItem, bare: bare, fishHit: fishHit, stayRows: stayRows, lawFor: lawFor, inSeason: inSeason, closedText: closedText };
   if (typeof module !== 'undefined' && module.exports) module.exports = TF;
   if (typeof document === 'undefined') return;
 
@@ -501,6 +512,7 @@
   var nearAt = null, NEAR_N = 10;   // 📍 내 근처 - 폰이 준 위치(이 화면 안에서만, 저장 · 전송 안 함)
   var open = {}, detail = {};
   var spots = null, spotMarks = {}, spotsWait = false;   // 갯바위 · 선상 자리 - 📍 내 근처 · 찾기 때 처음 한 번 받음(api/tidefly?spots=1)
+  var stays = {}, STAY_N = 10;   // 근처 숙소 · 식당 {열쇠: 'loading' | 'error' | 응답} - 포인트 좌표로만 물음(내 위치 안 보냄)
   var law = {};                                             // 금어기 · 금지 체장 - data/tidefly-law.json(수산자원관리법 시행령 별표 1 · 2)
   var closed = {};                                          // 출입통제구역 경고 {포인트 · 자리 이름: [...]} - data/tidefly-closed.json
   var SPOT_FIND_N = 30;                                     // 찾기에서 보일 자리 수
@@ -700,6 +712,7 @@
     }
     if (p.boat) li.appendChild(el('p', 'dim small', tr('⛴ 출항은 선사에 확인하세요.', '⛴ Check sailing with the boat operator.')));
     li.appendChild(alarmBox(it, now));
+    if (typeof p.lat === 'number' && typeof p.lon === 'number') li.appendChild(stayBox(p));
 
     var more = el('button', 'more', open[p.name] ? tr('접기 ▴', 'Close ▴') : tr('15일 물때표 · 3일 예보 ▾', '15-day tide table · 3-day forecast ▾'));
     more.type = 'button';
@@ -1006,6 +1019,53 @@
     table.appendChild(tb);
     wrap.appendChild(table);
     return wrap;
+  }
+
+  /** 🏨 근처 숙소 · 🍽 식당 - 누르면 그 포인트 둘레(서버 반경)를 물음. 한 카드 안에서 하나만 펼침. */
+  function stayBox(p) {
+    var box = el('div', 'stays');
+    var row = el('div', 'stay-btns');
+    [['', tr('🏨 근처 숙소', '🏨 Lodging nearby')], ['food', tr('🍽 근처 식당', '🍽 Food nearby')]].forEach(function (k) {
+      var key = k[0] + ':' + p.lat.toFixed(4) + ',' + p.lon.toFixed(4), on = stays.open === p.name + '|' + k[0];
+      var b = el('button', 'stay-btn', k[1] + (on ? ' ▴' : ' ▾'));
+      b.type = 'button';
+      b.setAttribute('aria-expanded', on ? 'true' : 'false');
+      b.addEventListener('click', function () {
+        stays.open = on ? null : p.name + '|' + k[0];
+        if (!on && !stays[key]) {
+          stays[key] = 'loading';
+          fetch('api/stays?lat=' + p.lat.toFixed(4) + '&lon=' + p.lon.toFixed(4) + (k[0] ? '&kind=' + k[0] : '')).then(function (r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+          }).then(function (j) { stays[key] = j; draw(); }).catch(function () { stays[key] = 'error'; draw(); });
+        }
+        draw();
+      });
+      row.appendChild(b);
+      if (on) box.dataset.key = key;
+    });
+    box.appendChild(row);
+    var d = box.dataset.key ? stays[box.dataset.key] : null;
+    if (d === 'loading') box.appendChild(el('p', 'dim small', tr('받는 중…', 'Loading…')));
+    else if (d === 'error') { box.appendChild(el('p', 'dim small', tr('받지 못했습니다. 다시 눌러 보세요.', 'Could not load. Please tap again.'))); delete stays[box.dataset.key]; }
+    else if (d) {
+      var list = stayRows(d, STAY_N);
+      if (!list.length) box.appendChild(el('p', 'dim small', d.unavailable ? tr('지금은 숙소 · 식당 자료를 받을 수 없습니다.', 'Lodging and food data are unavailable now.') : tr('가까운 곳이 없습니다.', 'Nothing nearby.')));
+      var ul = el('ul', 'stay-list');
+      list.forEach(function (s) {
+        var li2 = el('li');
+        var nm = s.url ? el('a', null, s.name) : el('strong', null, s.name);
+        if (s.url) { nm.href = s.url; nm.target = '_blank'; nm.rel = 'noopener'; }
+        li2.appendChild(nm);
+        li2.appendChild(el('span', 'dim', ' ' + [s.kind, s.km != null ? s.km + 'km' : ''].filter(Boolean).join(' · ')));
+        if (s.addr) li2.appendChild(el('div', 'dim small', s.addr));
+        if (s.tel) { var t = el('a', 'tel', '☎ ' + s.tel); t.href = 'tel:' + s.tel.replace(/[^0-9+]/g, ''); li2.appendChild(t); }
+        ul.appendChild(li2);
+      });
+      box.appendChild(ul);
+      box.appendChild(el('p', 'dim small', tr('자료: ' + (d.source || '') + ' · 이 포인트에서 ' + (d.radius_km || '') + 'km 안, 가까운 차례', 'Source: ' + (d.source || '') + ' · within ' + (d.radius_km || '') + ' km of this spot')));
+    }
+    return box;
   }
 
   function detailEl(name, good) {
