@@ -1728,6 +1728,10 @@
         $("doneBrag").hidden = !!sim;   // 시험 걷기는 자랑하지 않음
         $("doneGpx").textContent = canShareFiles() ? T("📤 GPX 보내기", "📤 Send GPX") : T("GPX 저장", "Save GPX");
         $("doneSheet").style.display = "flex";
+        if (!sim && BG) {   // 앱인데 기록이 끊겼으면 배터리 안내를 다시(2026-11-15 덕기봉)
+            var gapMin = RF.trackGapMin(rec.track, rec.kind === "bike");
+            if (gapMin >= 1) setTimeout(function () { batteryGuide(gapMin); }, 800);
+        }
         $("doneNext").hidden = true;
         getJson("api/partners").then(function (p) {   // 후원 링크(설정에 있을 때만 - 2026-10-15)
             var dn = EN ? p && p.donateEn : p && p.donate;   // 영어 화면은 PayPal(donate.en.url)
@@ -2669,12 +2673,24 @@
      * 앱 - 처음 한 번, 폰 절전이 화면 꺼진 동안 위치를 끊지 않게 배터리 "제한 없음" 을 안내(2026-10-17 PC: 배터리 최적화 대상이었음,
      * 홍TV님 송산에서 오르는 동안 기록이 끊긴 것으로 보임). 앱 설정 화면을 열어 줌(BG.openSettings).
      */
-    function batteryGuide() {
-        if (lsGet("rf-batt-asked") === "1") return;
-        try { localStorage.setItem("rf-batt-asked", "1"); } catch (e) { /* 이번만 */ }
-        hAsk(EN ? "So recording does not stop with the phone in your pocket, set routefly's battery use to \"Unrestricted\".\n\nOpen settings? (App info → Battery → Unrestricted)"
+    /**
+     * 배터리 '제한 없음' 안내 - 앱 첫 시작 때 한 번. gapMin(분)이 있으면 기록이 실제로 끊긴 것이라 다시(하루 한 번까지, 2026-11-15 덕기봉: 배터리 "최적화" 로
+     * 화면을 끄자 6분 끊김 - 처음 안내는 이미 지나간 뒤였음). 배터리 최적화 해제 요청(REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)은 구글 플레이 정책상 쓰지 않고 설정 화면을 엶.
+     */
+    function batteryGuide(gapMin) {
+        if (gapMin) {
+            var today = RF.dayKey(Date.now());
+            if (lsGet("rf-batt-gap") === today) return;
+            try { localStorage.setItem("rf-batt-gap", today); } catch (e) { /* 이번만 */ }
+        } else {
+            if (lsGet("rf-batt-asked") === "1") return;
+            try { localStorage.setItem("rf-batt-asked", "1"); } catch (e) { /* 이번만 */ }
+        }
+        hAsk((gapMin ? T("이번 기록에서 위치가 약 " + gapMin + "분 끊겼습니다. 화면이 꺼진 동안 폰이 앱을 재웠을 수 있습니다.\n\n",
+                    "Your location stopped for about " + gapMin + " min on this record. The phone may have put the app to sleep with the screen off.\n\n") : "")
+                + (EN ? "So recording does not stop with the phone in your pocket, set routefly's battery use to \"Unrestricted\".\n\nOpen settings? (App info → Battery → Unrestricted)"
                 : "화면을 끄고 주머니에 넣어도 위치 기록이 끊기지 않게, routefly 배터리 사용을 '제한 없음' 으로 바꿔 주세요.\n\n"
-                + "설정을 열까요? (애플리케이션 정보 → 배터리 → 제한 없음)", { ok: T("설정 열기", "Open settings") }).then(function (ok) {
+                + "설정을 열까요? (애플리케이션 정보 → 배터리 → 제한 없음)"), { ok: T("설정 열기", "Open settings") }).then(function (ok) {
             if (ok) Promise.resolve(BG.openSettings()).catch(function () { /* 설정 못 엶 */ });
         });
     }

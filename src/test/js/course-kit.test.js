@@ -258,6 +258,8 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
         var dc = RF.recordCourse({ name: "덕기봉", kind: "hike", track: dk });
         eq("덕기봉 - 10점, 마지막 구간 218m · 370초", dk.length + ":" + Math.round(RF.distM(dk[8][0], dk[8][1], dk[9][0], dk[9][1])) + "m/" + Math.round((dk[9][2] - dk[8][2]) / 1000) + "s", "10:218m/370s");
         eq("덕기봉 - 화면 꺼진 6분은 점선(끊긴 구간), 앞은 실선", dc.gap.filter(Boolean).length + ":" + dc.gap[dc.gap.length - 1], "1:true");
+        eq("덕기봉 - 끊긴 시간 6분(370초)", RF.trackGapMin(dk, false), 6);
+        eq("덕기봉 - 끊김 없으면 0", RF.trackGapMin(dk.slice(0, 9), false), 0);
         eq("덕기봉 - 지도 실선 + 점선", RF.recordLines(dc).features.map(function (f) { return f.properties.gap ? "점선" : "실선"; }).join(","), "실선,점선");
     })();
     // 통제 안내를 붙일 공원(2026-11-12 점검) - 산 이름으로만 맞으면 정상 15km 안만(정상 자리는 data/mountains100.json 그대로)

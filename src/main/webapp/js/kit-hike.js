@@ -794,6 +794,14 @@
         return list[order[pos]];
     }
 
+    // ------------------------------------------------------------------ 🏠 오늘의 안부(2026-10-17 홍TV님 - 혼자 사는 분, 서버 없이 가볍게. 늦은 귀가 안심은 2026-10-18 뺌)
+
+    /** 순수 함수 - 이 기기 시각의 날짜 "2026-10-17". */
+    function dayKey(ms) {
+        var d = new Date(ms);
+        return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    }
+
     /** 순수 함수 - 정상 도장 카드: 제목(⛰️ 산 이름 · 정상 이름)과 그날의 한마디, 공유 글. day 는 "2026-10-17". */
     function summitCard(name, summit, day) {
         var title = "⛰️ " + name + (summit && summit !== name ? " " + summit : "");
@@ -1242,6 +1250,19 @@
      * 2026-11-15 홍TV님 덕기봉 앱 기록(화면 끔): 6분 공백 뒤 218m 앞 한 점이 300m 가 안 돼 숲을 가로지르는 실선 → 100m. 쉬느라 서 있던 공백은 거의 안 움직여 실선 그대로.
      */
     var GAP_MS = 60000, GAP_M = 100;
+
+    /**
+     * 순수 함수 - 기록에서 위치가 끊긴 시간(분, 반올림) - recordCourse 의 점선과 같은 셈(튐을 거른 뒤 1분 넘게 비고 GAP_M 넘게 떨어진 구간).
+     * 2026-11-15 덕기봉: 앱인데 배터리 "최적화" 라 화면을 끄자 안드로이드가 앱을 재워 6분 끊김 - 끝낼 때 이 값이 있으면 배터리 안내를 다시(hike.js batteryGuide).
+     */
+    function trackGapMin(track, bike) {
+        var tr = cleanTrack(track, bike), ms = 0;
+        for (var i = 1; i < tr.length; i++) {
+            var dt = tr[i][2] - tr[i - 1][2];
+            if (dt > GAP_MS && distM(tr[i - 1][0], tr[i - 1][1], tr[i][0], tr[i][1]) > GAP_M) ms += dt;
+        }
+        return Math.round(ms / 60000);
+    }
 
     function recordCourse(rec) {
         var c = { id: "rec", course: { name: rec.name, kind: rec.kind }, lon: [], lat: [], ele: [], dist: [], gap: [], markers: [], pois: [], junctions: [] };
@@ -3979,6 +4000,7 @@
         recDist: recDist,
         dropLog: dropLog,
         recordLines: recordLines,
+        trackGapMin: trackGapMin,
         recordHighest: recordHighest,
         partyAlerts: partyAlerts,
         afterHikeLinks: afterHikeLinks,
@@ -4025,6 +4047,7 @@
         applyHead: applyHead,
         favJoinExtra: favJoinExtra,
         partAnswers: partAnswers,
+        dayKey: dayKey,
         summitCard: summitCard,
         trackClimb: trackClimb,
         startChecks: startChecks,
