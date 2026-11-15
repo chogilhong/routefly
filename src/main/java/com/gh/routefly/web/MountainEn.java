@@ -307,6 +307,7 @@ final class MountainEn {
             }
             b.append("</div></details>");
         }
+        b.append(MountainServlet.tideflyRow(true));   // 🎣 tidefly - 자전거 아래(한국어 /m/ 과 같게, 2026-11-15)
         // 🏨 Find lodging near a place(펴 둔 채, 2026-10-30) · ☀️ Good weather this weekend(js/mountain-en.js · api/weekend)은 목록 아래(한국어 /m/ 과 같게, 2026-11-03 홍TV님 점검 - CLS)
         b.append("</div>").append(MountainServlet.staySearchBox(null, true)).append("<section id=\"weekend\" hidden></section>").append(steep);
         b.append("<p class=\"dim\">Trail and bike path maps show every section with checkpoints; place names on the map are in Korean.</p>");

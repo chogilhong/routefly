@@ -1150,6 +1150,15 @@ public class MountainServlet extends HttpServlet {
         return b.toString();
     }
 
+    /**
+     * 순수 함수 - 🎣 타이드플라이(바다낚시 출조) 줄. 코스 모음의 등산 · 걷기 · 자전거 접는 칸 바로 아래에 같은 모양으로(2026-11-15 홍TV님 "자전거 아래에 위치하게 해. tidefly(출조) 로 하고").
+     * 접는 칸이 아니라 누르면 tidefly.html 로 감(?lang= 으로 화면 말을 맞춤).
+     */
+    static String tideflyRow(boolean en) {
+        return "<a class=\"kindLink\" href=\"" + REL + "/tidefly.html?lang=" + (en ? "en" : "ko") + "\"><span class=\"ft\">🎣 tidefly(" + (en ? "fishing trips" : "출조")
+                + ")</span><span class=\"fs\">" + (en ? "Sea fishing tides · wind · waves · warnings" : "바다낚시 물때 · 바람 · 파고 · 특보") + "</span><span class=\"fa\">›</span></a>";
+    }
+
     /** 첫 단계(등산 · 걷기 · 자전거) - series.js KINDS 와 같음. */
     static final String[][] KINDS = {{"hike", "⛰️ 등산"}, {"walk", "🥾 걷기"}, {"bike", "🚴 자전거"}};
 
@@ -1245,6 +1254,7 @@ public class MountainServlet extends HttpServlet {
             }
             b.append("</div></details>");
         }
+        b.append(tideflyRow(false));
         // 🏨 근처 숙소 찾기(2026-10-29 홍TV님 "산청군청 근처 숙소" - 펴 둔 채, js/mountain.js · course-kit staySearch) · ☀️ 이번 주말 날씨 좋은 산(/api/weekend - 2026-10-15)은
         // 산 · 길 목록 아래로(2026-11-03 홍TV님 점검: 위에 있어 목록이 첫 화면 밖으로 밀렸고, 주말 칸은 불러온 뒤 나타나 목록을 밀었음 - CLS)
         b.append("</div>").append(staySearchBox(null, false)).append("<section id=\"weekend\" hidden></section>").append(steep)

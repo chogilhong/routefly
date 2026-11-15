@@ -30,6 +30,7 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다 - 산악회 방 
   예외(2026-11-15 홍TV님 "tidefly 를 routefly 앱 안의 기능으로 전부 옮겨줘" · "/routefly/tidefly.html 로 해"): 🎣 타이드플라이(바다낚시 물때 · 바람 · 파고) -
   `tidefly.html` · `js/tidefly.js`(+ tidefly-early.js) · `css/tidefly.css` · `/api/tidefly`(`com.gh.routefly.tidefly`). 규칙 · 자료는 `docs/tidefly/README.md` 를 따릅니다
   (○ △ ✕ 는 기상청 특보 · 너울만, 숫자 기준 지어내지 않음 · 받은 응답 확인 전 화면 없음 · 특보구역 짝은 docs/tidefly/points-wrn-draft.md 표와 json 을 함께).
+  입구: 코스 모음(/m/ · /en/m/) 등산 · 걷기 · 자전거 아래 "🎣 tidefly(출조)" 줄(`MountainServlet.tideflyRow`, 2026-11-15 홍TV님 "자전거 아래에 위치하게 해").
 - 안전 문구(hike.js 의 `SAFETY_KEY`)를 바꾸면 키의 버전도 올립니다(README).
 - `WEB-INF/web.xml` 은 version="6.0"(web-app_6_0.xsd)으로 둡니다. PC 의 Eclipse WTP 가 6.1 을 몰라 "Loading descriptor" 오류가 났음(2026-11-14 PC, 2950077) - 톰캣 11 은 6.0 도 읽음.
 - 보안 · 속도 필터: `SecurityFilter`(모든 응답에 보안 헤더, /api · /s 는 IP 마다 분당 120번 남짓 제한), `GzipFilter`(/api 응답 1KB 넘으면 gzip).
@@ -43,7 +44,7 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다 - 산악회 방 
 
 - 이 PC: `.claude\run-tests.ps1 [-Only web.WebBasicsTest]` (Maven 없이 javac + JUnit 4, DB 없이 돕니다). 웹(클라우드): `LC_ALL=C.UTF-8 mvn -o test`
   (routefly 는 웹소켓을 안 써서 totonian · investing 과 달리 그대로 됩니다. 한글 파일 이름 때문에 LC_ALL 이 필요합니다).
-- 전체 테스트가 모두 통과하는 것이 정상입니다(2026-11-15 기준 537건 - 타이드플라이 35건 포함(tidefly 패키지 · tidefly.test.js), 2026-11-13 기준 484건 - 점검 8차 화면 조각은 review8.test.js, 코스 정확도 점검은 CourseAccuracyTest · course-accuracy.test.js). 하나라도 실패하면 새로 깨진 것이니 고칩니다.
+- 전체 테스트가 모두 통과하는 것이 정상입니다(2026-11-15 기준 540건 - 타이드플라이 35건 · 코스 모음 입구 2건 포함(tidefly 패키지 · tidefly.test.js), 2026-11-13 기준 484건 - 점검 8차 화면 조각은 review8.test.js, 코스 정확도 점검은 CourseAccuracyTest · course-accuracy.test.js). 하나라도 실패하면 새로 깨진 것이니 고칩니다.
 - 점검 단계마다 테스트 클래스를 둡니다(`CheckupStage1Test` 버그 · `CheckupStage2Test` 속도 · 호출 · `CheckupStage3Test` 화면 · 보안) - totonian 의 `VoidBulkV4435Test` 같은 방식.
 - 내 기록은 IndexedDB(`rf-records`), 사진은 IndexedDB(`rf-photos`), 걷는 중 저장분은 localStorage(`rf-hike-<코스>` · `-track` · `-notes`, 하루 지나면 지움).
 - course-kit.js 순수 함수는 `src/test/js/course-kit.test.js` 를 node 로 돌립니다(`CourseKitJsTest` 가 부름, node 가 없으면 건너뜀).

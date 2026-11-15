@@ -759,8 +759,10 @@
   });
 
   // 처음 말: 고른 것(tf-lang) → 없으면 브라우저 말(한국어가 아니면 영어)
+  // 코스 모음(/m/ · /en/m/)의 🎣 tidefly 줄은 ?lang=ko|en 으로 옴(2026-11-15) - 주소의 말이 먼저, 다음 고른 것(tf-lang), 없으면 브라우저 말
+  var urlLang = (/[?&]lang=(ko|en)\b/.exec(location.search) || [])[1];
   var savedLang = loadText('tf-lang');
-  setLang(savedLang || (/^ko\b/i.test(navigator.language || 'ko') ? 'ko' : 'en'));
+  setLang(urlLang || savedLang || (/^ko\b/i.test(navigator.language || 'ko') ? 'ko' : 'en'));
   paintFixed();
   setInterval(function () { if (!document.hidden) draw(); }, 60000);
   setInterval(checkAlarms, 30000);
