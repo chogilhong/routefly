@@ -29,6 +29,7 @@ public class FullReviewStage2Test {
         String ko = MountainServlet.indexPage(peaks(), new JsonArray(), "", false);
         assertTrue("코스 모음 설명 줄 바로 아래 검색칸", ko.contains("일몰을, 길을 고르면 노선 안내도를 봅니다.</p><form class=\"mSearch\" role=\"search\" action=\"../hike.html\" method=\"get\">"));
         assertTrue(ko.contains("<input type=\"hidden\" name=\"lang\" value=\"ko\"><input type=\"search\" name=\"q\""));
+        assertTrue("낚시(tidefly) 찾기도 되어 예에 고기 이름(2026-11-15 홍TV님)", ko.contains("placeholder=\"예: 설악산, 쭈꾸미, 광어\""));
         String en = MountainEn.indexPage(peaks(), new JsonArray(), "", "");
         assertTrue("영어는 두 단계 위", en.contains("route map.</p><form class=\"mSearch\" role=\"search\" action=\"../../hike.html\" method=\"get\"><input type=\"hidden\" name=\"lang\" value=\"en\">"));
         assertTrue(en.contains("placeholder=\"Mountain or trail (e.g. Seoraksan)\""));

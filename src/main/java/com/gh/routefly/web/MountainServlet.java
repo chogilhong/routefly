@@ -1180,8 +1180,9 @@ public class MountainServlet extends HttpServlet {
         return "<form class=\"mSearch\" role=\"search\" action=\"" + (en ? MountainEn.REL : REL) + "/hike.html\" method=\"get\">"
                 + "<input type=\"hidden\" name=\"lang\" value=\"" + (en ? "en" : "ko") + "\">"
                 + "<input type=\"search\" name=\"q\" maxlength=\"40\" enterkeyhint=\"search\" autocomplete=\"off\" required aria-label=\""
-                + (en ? "Search mountains and trails" : "산 · 코스 이름으로 찾기") + "\" placeholder=\""
-                + (en ? "Mountain or trail (e.g. Seoraksan)" : "산 · 코스 이름(예: 설악산)") + "\">"
+                + (en ? "Search mountains and trails" : "산 · 코스 · 낚시 포인트 · 고기 이름으로 찾기") + "\" placeholder=\""
+                // 2026-11-15 홍TV님 "여기는 어떻게 넣지?" - 낚시(tidefly) 찾기도 되어 예에 고기 이름. 360px 폰 칸(228px)에 들게 짧게(171px)
+                + (en ? "Mountain or trail (e.g. Seoraksan)" : "예: 설악산, 쭈꾸미, 광어") + "\">"
                 + "<button type=\"submit\">" + (en ? "Search" : "찾기") + "</button></form>";
     }
 
