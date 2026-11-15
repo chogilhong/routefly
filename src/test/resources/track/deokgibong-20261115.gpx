@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="routefly" xmlns="http://www.topografix.com/GPX/1/1">
+<metadata><name>송산 · 동쪽 들머리 → 덕기봉</name><time>2026-11-15T06:11:28.762Z</time></metadata>
+<trk><name>송산 · 동쪽 들머리 → 덕기봉</name><type>hike</type><trkseg>
+<trkpt lat="37.483151" lon="126.55723"><ele>33</ele><time>2026-11-15T06:11:30.039Z</time></trkpt>
+<trkpt lat="37.483092" lon="126.557151"><ele>36</ele><time>2026-11-15T06:11:52.258Z</time></trkpt>
+<trkpt lat="37.483049" lon="126.557067"><ele>37</ele><time>2026-11-15T06:12:06.302Z</time></trkpt>
+<trkpt lat="37.482965" lon="126.557061"><ele>39</ele><time>2026-11-15T06:12:14.761Z</time></trkpt>
+<trkpt lat="37.482869" lon="126.557051"><ele>41</ele><time>2026-11-15T06:12:24.302Z</time></trkpt>
+<trkpt lat="37.48285" lon="126.556956"><ele>43</ele><time>2026-11-15T06:12:33.742Z</time></trkpt>
+<trkpt lat="37.482894" lon="126.556852"><ele>45</ele><time>2026-11-15T06:12:42.019Z</time></trkpt>
+<trkpt lat="37.482887" lon="126.556756"><ele>46</ele><time>2026-11-15T06:12:49.285Z</time></trkpt>
+<trkpt lat="37.482799" lon="126.556748"><ele>48</ele><time>2026-11-15T06:12:54.662Z</time></trkpt>
+<trkpt lat="37.481203" lon="126.555306"><ele>111</ele><time>2026-11-15T06:19:05.112Z</time></trkpt>
+</trkseg></trk>
+</gpx>
