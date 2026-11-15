@@ -81,7 +81,9 @@ assert.strictEqual(TF.dayName('2026-11-16'), '16일(월)');
   assert.strictEqual(TF.sunSpan(rows), '☀ 15일 07:11~17:26 → ' + +days[days.length - 1].date.slice(8) + '일 ' + days[days.length - 1].sunrise + '~' + days[days.length - 1].sunset);
   TF.setLang('en');
   assert.ok(TF.sunSpan(rows).startsWith('☀ 15: 07:11~17:26 → '), '영어 "Sun Sun 15" 겹침 없음');
-  assert.strictEqual(TF.placeName('안면도 북부 · 방포항방파제앞해상'), 'Anmyeondo (north) · Bangpohangbangpajeaphaesang');   // 2026-11-15 PC: "Anmyeondo bukbu · bangpo…"
+  assert.strictEqual(TF.placeName('안면도 북부 · 방포항방파제앞해상'), 'Anmyeondo (north) · Bangpohang bangpajeap haesang');   // 2026-11-15 PC: "Anmyeondo bukbu · bangpo…"
+  assert.strictEqual(TF.placeName('방포항(어항)'), 'Bangpo Port (fishing port)');   // PC: "Bangpohang(eohang)"
+  assert.strictEqual(TF.placeName('대진항(경북)'), 'Daejin Port (Gyeongbuk)');
   assert.strictEqual(TF.placeName('가의도 · 남측 해변 동측 갯바위'), 'Gauido · Namcheuk haebyeon dongcheuk gaetbawi');
   TF.setLang('ko');
   rows.forEach((r, k) => assert.strictEqual(r.cls, days[k].sari ? 'sari' : (days[k].mulddae === '조금' || days[k].mulddae === '무시') ? 'neap' : ''));

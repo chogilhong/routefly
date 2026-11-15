@@ -282,11 +282,14 @@
     m = /^(.+?)\s*(북부|남부|동부|서부)$/.exec(name);   // "안면도 북부" 처럼 빈칸이 있어도(자리 이름)
     if (m) return cap(roman(m[1])) + ' (' + { '북부': 'north', '남부': 'south', '동부': 'east', '서부': 'west' }[m[2]] + ')';
     if (/항$/.test(name)) return portName(name);
+    m = /^(.+)\((.+)\)$/.exec(name);   // 겹친 이름 "방포항(어항)" · "대진항(경북)" (2026-11-15 PC: "Bangpohang(eohang)")
+    if (m) return placeName(m[1]) + ' (' + (m[2] === '어항' ? 'fishing port' : cap(roman(m[2]))) + ')';
     if (name.indexOf(' · ') > 0) return name.split(' · ').map(placeName).join(' · ');   // 갯바위 · 선상 자리 "안면도 북부 · 방포항방파제앞해상"(2026-11-15 PC: 뒤가 소문자 한 덩어리)
     var w = name.split(' ');
     // "울진 후정" - 군 · 시 이름이 앞에 오면 영어는 "Hujeong, Uljin"(2026-11-15 PC)
     if (w.length === 2) return cap(roman(w[1])) + ', ' + cap(roman(w[0]));
-    return cap(roman(name));
+    // 붙여 쓴 자리 이름 "방포항방파제앞해상" - 방파제 · 해상 · 갯바위 · 부근 · 인근 · 등대 앞에서 띄어 소리 덩어리를 나눔(2026-11-15 PC)
+    return cap(roman(name.replace(/([가-힣])(방파제|해상|갯바위|부근|인근|등대)/g, '$1 $2')));
   }
 
   /** 순수 함수 - "…항" 이름: 한 글자 + 항(포항)은 도시 이름 그대로 "Pohang", "…북항" 은 "… North Port", 그 밖 "… Port"(2026-11-15 PC: "Po Port" · "Mokpobuk Port"). */

@@ -137,7 +137,8 @@ public final class TideflyServlet extends HttpServlet {
             String pkey = portalKey();
             if (pkey != null) {
                 java.time.LocalDate today = java.time.LocalDate.now(KST);
-                dropOldTides(cacheDir(), today);
+                int dropped = dropOldTides(cacheDir(), today);
+                if (firstWarm) log.info("[TIDEFLY-TIDE] 물때 파일 폴더 {} - 파일 {}개(지난 것 {}개 지움)", cacheDir(), tideFiles(cacheDir()), dropped);
                 int tAsked = 0, tFailed = 0;
                 for (String code : new java.util.TreeSet<>(points().values().stream().map(p -> p.get("tide").getAsString()).toList())) {
                     for (java.time.LocalDate day : List.of(today, today.plusDays(1))) {
@@ -471,7 +472,21 @@ public final class TideflyServlet extends HttpServlet {
             java.nio.file.Files.move(tmp, dir.resolve(code + "-" + day + ".json"), java.nio.file.StandardCopyOption.REPLACE_EXISTING,
                     java.nio.file.StandardCopyOption.ATOMIC_MOVE);
         } catch (Exception e) {
-            log.debug("[TIDEFLY-TIDE] 파일로 남기지 못함 - {}", e.toString());
+            // 2026-11-15 PC: 다시 뜰 때마다 오늘 · 내일 114건을 새로 물음 - 파일이 안 남는 듯해 첫 실패 한 번은 warn 으로(폴더 권한 등)
+            if (SAVE_WARNED.compareAndSet(false, true)) log.warn("[TIDEFLY-TIDE] 물때를 파일로 남기지 못함({}) - {}", dir, e.toString());
+            else log.debug("[TIDEFLY-TIDE] 파일로 남기지 못함 - {}", e.toString());
+        }
+    }
+
+    private static final java.util.concurrent.atomic.AtomicBoolean SAVE_WARNED = new java.util.concurrent.atomic.AtomicBoolean();
+
+    /** 폴더 안 물때 파일 수(없으면 0) - 뜬 뒤 첫 바퀴 로그용. */
+    static int tideFiles(java.nio.file.Path dir) {
+        if (!java.nio.file.Files.isDirectory(dir)) return 0;
+        try (var files = java.nio.file.Files.list(dir)) {
+            return (int) files.filter(f -> f.getFileName().toString().endsWith(".json")).count();
+        } catch (Exception e) {
+            return 0;
         }
     }
 
