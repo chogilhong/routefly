@@ -183,3 +183,8 @@ course.inboxDir=
 # 코스 보내기(2026-11-01) - 등산객이 보낸 GPX(점만 다시 씀) · 정보(.json)를 둘 폴더. 비우면 /opt/routefly/course-submit(없으면 보내기가 "지금은 받을 수 없음" 으로 멈춤).
 # 톰캣만 읽고 씀(GPX 편집 화면 📨 받은 GPX 가 점검 · 올리기 · 버리기, 30일 지나면 저절로 지움): sudo install -d -o tomcat -g tomcat -m 0750 /opt/routefly/course-submit
 course.submitDir=
+
+# ---------------------------------------------------------------- 🎣 타이드플라이(tidefly.html, 2026-11-15)
+# 키는 위의 것을 그대로 씁니다: 물때 tide.serviceKey(없으면 tour.serviceKey) - 조석예보(고, 저조) 15156018 활용신청, 바다 예측 · 특보 kma.apihub.key - API허브 해구별 예측 · 기상특보 활용신청.
+# 받은 물때(예측은 바뀌지 않음)를 남길 폴더. 비우면 톰캣 폴더(catalina.base)/routefly-tidefly-cache. 운영 서버는 /opt/routefly/tidefly-cache 처럼 톰캣 밖에.
+#tidefly.cacheDir=

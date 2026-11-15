@@ -27,6 +27,9 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다 - 산악회 방 
   /api/safety 의 rain 으로(별거 별거 · 산 페이지 · 따라가기 안전 줄, course-kit rainRow). 키 kma.apihub.key 는 운영 서버 설정에도 있어야 함. 응답은 RadarProbe → src/test/resources/radar/.
   웹앱이 뜰 때부터 1분마다 새 시각만 받음(10분 전 → 없으면 20분 전, 기다림 60초, 화면은 안 기다림). 따라가기는 기록 중 10분마다 /api/rain(RainServlet)으로 약 5km 칸 가운데 좌표만 보내 다시 봄(RF.rainNews - 새 비 · 더 셈 · 5km 안일 때만 알림 + 음성, 개인정보처리방침에 적음). AWS 지점 위경도는 src/main/resources/radar/kma-aws-stn.csv(지점이 바뀌면 RadarProbe 로 받아 옮김 - RadarTest 가 같은지 봄).
   산악회 예약 · 모집 · 입금 화면(카페 산악회용 등)은 만들지 않습니다(2026-11-12 홍TV님 "우리는 우리 일만 하자. 현재대로") - 예약은 산악회 쪽, routefly 는 출발 당일부터.
+  예외(2026-11-15 홍TV님 "tidefly 를 routefly 앱 안의 기능으로 전부 옮겨줘" · "/routefly/tidefly.html 로 해"): 🎣 타이드플라이(바다낚시 물때 · 바람 · 파고) -
+  `tidefly.html` · `js/tidefly.js`(+ tidefly-early.js) · `css/tidefly.css` · `/api/tidefly`(`com.gh.routefly.tidefly`). 규칙 · 자료는 `docs/tidefly/README.md` 를 따릅니다
+  (○ △ ✕ 는 기상청 특보 · 너울만, 숫자 기준 지어내지 않음 · 받은 응답 확인 전 화면 없음 · 특보구역 짝은 docs/tidefly/points-wrn-draft.md 표와 json 을 함께).
 - 안전 문구(hike.js 의 `SAFETY_KEY`)를 바꾸면 키의 버전도 올립니다(README).
 - `WEB-INF/web.xml` 은 version="6.0"(web-app_6_0.xsd)으로 둡니다. PC 의 Eclipse WTP 가 6.1 을 몰라 "Loading descriptor" 오류가 났음(2026-11-14 PC, 2950077) - 톰캣 11 은 6.0 도 읽음.
 - 보안 · 속도 필터: `SecurityFilter`(모든 응답에 보안 헤더, /api · /s 는 IP 마다 분당 120번 남짓 제한), `GzipFilter`(/api 응답 1KB 넘으면 gzip).
@@ -40,7 +43,7 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다 - 산악회 방 
 
 - 이 PC: `.claude\run-tests.ps1 [-Only web.WebBasicsTest]` (Maven 없이 javac + JUnit 4, DB 없이 돕니다). 웹(클라우드): `LC_ALL=C.UTF-8 mvn -o test`
   (routefly 는 웹소켓을 안 써서 totonian · investing 과 달리 그대로 됩니다. 한글 파일 이름 때문에 LC_ALL 이 필요합니다).
-- 전체 테스트가 모두 통과하는 것이 정상입니다(2026-11-13 기준 484건 - 점검 8차 화면 조각은 review8.test.js, 코스 정확도 점검은 CourseAccuracyTest · course-accuracy.test.js). 하나라도 실패하면 새로 깨진 것이니 고칩니다.
+- 전체 테스트가 모두 통과하는 것이 정상입니다(2026-11-15 기준 537건 - 타이드플라이 35건 포함(tidefly 패키지 · tidefly.test.js), 2026-11-13 기준 484건 - 점검 8차 화면 조각은 review8.test.js, 코스 정확도 점검은 CourseAccuracyTest · course-accuracy.test.js). 하나라도 실패하면 새로 깨진 것이니 고칩니다.
 - 점검 단계마다 테스트 클래스를 둡니다(`CheckupStage1Test` 버그 · `CheckupStage2Test` 속도 · 호출 · `CheckupStage3Test` 화면 · 보안) - totonian 의 `VoidBulkV4435Test` 같은 방식.
 - 내 기록은 IndexedDB(`rf-records`), 사진은 IndexedDB(`rf-photos`), 걷는 중 저장분은 localStorage(`rf-hike-<코스>` · `-track` · `-notes`, 하루 지나면 지움).
 - course-kit.js 순수 함수는 `src/test/js/course-kit.test.js` 를 node 로 돌립니다(`CourseKitJsTest` 가 부름, node 가 없으면 건너뜀).

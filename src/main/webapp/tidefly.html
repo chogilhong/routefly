@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0a5a7a">
+<title>타이드플라이 - 바다낚시 물때 · 바람 · 파고</title>
+<script src="js/tidefly-early.js"></script>
+<link rel="stylesheet" href="css/tidefly.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="bar">
+      <h1 data-en="Tidefly">타이드플라이</h1>
+      <div class="opts">
+        <button type="button" class="opt" id="theme" aria-pressed="false">🌙 다크모드</button>
+      <div class="lang" role="group" aria-label="언어 / Language">
+        <button type="button" data-lang="ko" aria-pressed="true">한</button><button type="button" data-lang="en" aria-pressed="false">EN</button>
+      </div>
+      <button type="button" class="opt size" id="size" aria-label="글자 크기: 보통 (누르면 크게)">가</button>
+      </div>
+    </div>
+    <p class="sub"><span data-en="Tides, wind and waves for sea fishing">바다낚시 물때 · 바람 · 파고</span> <span id="today"></span></p>
+  </div>
+</header>
+<main class="wrap">
+  <section class="legend" aria-label="표시 뜻">
+    <div class="lg ok"><b>○</b><span data-en="No warning<br><small>Swell is low</small>">특보 없음<br><small>너울도 약함</small></span></div>
+    <div class="lg care"><b>△</b><span data-en="Caution<br><small>Preliminary warning · swell caution</small>">주의<br><small>예비특보 · 너울 주의</small></span></div>
+    <div class="lg no"><b>✕</b><span data-en="Stay ashore<br><small>Warning · swell alert or above</small>">출조 자제<br><small>특보 · 너울 경계 이상</small></span></div>
+  </section>
+  <p class="warn" data-en="For reference only. Always check the official KMA marine warnings and the conditions on site before you go.">참고용입니다. 출조 전 기상청 특보와 현장 상황을 꼭 확인하세요.</p>
+
+  <details class="help">
+    <summary data-en="New to tides? Words explained">물때가 처음이세요? 낱말 풀이</summary>
+    <dl>
+      <dt data-en="High tide ▲ · Low tide ▼">만조 ▲ · 간조 ▼</dt><dd data-en="When the sea is at its highest and at its lowest. Each usually comes twice a day, one after the other.">바닷물이 가장 높이 찬 때와 가장 많이 빠진 때입니다. 하루에 보통 두 번씩 번갈아 옵니다.</dd>
+      <dt data-en="Rising · falling tide">들물 · 날물</dt><dd data-en="Water comes in from low to high tide (rising) and goes out from high to low tide (falling). On rocks, the way back can go under water while the tide is rising.">간조에서 만조로 물이 들어오는 때(들물), 만조에서 간조로 빠지는 때(날물)입니다. 갯바위는 들물 때 길이 물에 잠길 수 있습니다.</dd>
+      <dt data-en="Slack water">정조(물 흐름이 약한 때)</dt><dd data-en="About an hour either side of high and low tide, the water barely moves.">만조 · 간조 앞뒤 1시간쯤은 물 흐름이 거의 없습니다.</dd>
+      <dt data-en="Mul (tide day) names">물때 이름</dt><dd data-en="Korean anglers count the tide strength by the lunar date. Around the spring tide (7 to 9-mul) the water rises and falls the most and currents are strong; Jogeum and Musi (neap) are the weakest. The West Sea counts a little differently from the South and East Seas.">음력 날짜로 센 물 세기 차례입니다. 사리(7 ~ 9물 무렵)는 물이 가장 많이 들고 빠져 물살이 세고, 조금 · 무시는 가장 약합니다. 서해와 남해 · 동해는 세는 법이 조금 다릅니다.</dd>
+      <dt data-en="Tidal range %">물 세기 %</dt><dd data-en="Today's difference between high and low tide, compared with the biggest difference in the next 15 days (Tidefly's own measure).">오늘 만조와 간조의 높이 차를, 앞으로 15일 중 높이 차가 가장 큰 날과 견준 값입니다(타이드플라이 셈).</dd>
+      <dt data-en="Waves">파고</dt><dd data-en="Wave height (KMA significant wave height - the average of the highest third of waves).">파도 높이입니다(기상청 유의파고 - 높은 파도 3분의 1의 평균).</dd>
+      <dt data-en="Swell">너울</dt><dd data-en="Large waves rolling in from far out at sea. They can suddenly wash over rocks even when the wind is light, so KMA rates them as watch, caution, alert or danger.">먼바다에서 밀려오는 큰 물결입니다. 바람이 약해도 갑자기 갯바위를 덮칠 수 있어 기상청이 관심 · 주의 · 경계 · 위험으로 알립니다.</dd>
+      <dt data-en="Warnings · preliminary warnings">특보 · 예비특보</dt><dd data-en="Wind-wave and storm-surge advisories and warnings. A preliminary warning means one may be issued soon.">풍랑 · 폭풍해일 주의보 · 경보입니다. 예비특보는 곧 특보가 나올 수 있다는 예고입니다.</dd>
+    </dl>
+  </details>
+
+  <div class="tools">
+    <label class="find">
+      <span class="sr">포인트 찾기</span>
+      <input id="q" type="search" placeholder="🔍 포인트 찾기 (예: 김녕, 거문도)" data-en-ph="🔍 Find a spot (e.g. Gimnyeong)" autocomplete="off">
+    </label>
+    <div class="tabs" role="group" aria-label="자리 고르기">
+      <button type="button" data-kind="all" aria-pressed="true" data-en="All">전체</button>
+      <button type="button" data-kind="shore" aria-pressed="false" data-en="Rocks · breakwater">갯바위 · 방파제</button>
+      <button type="button" data-kind="boat" aria-pressed="false" data-en="Boat">선상</button>
+    </div>
+  </div>
+  <p id="state" class="state" role="status">불러오는 중…</p>
+  <div id="list"></div>
+</main>
+<footer class="foot wrap">
+  <p id="when"></p>
+  <p data-en="Marks: ✕ a marine warning or swell alert or above, △ a preliminary warning or swell caution, ○ otherwise (KMA warnings and swell risk forecast). Wave and wind numbers alone are not used for the marks.">판단 기준: ✕ 특보 · 너울 경계 이상, △ 예비특보 · 너울 주의, ○ 그 밖(기상청 특보 · 너울 위험예측). 파고 · 바람 숫자로는 판단하지 않습니다.</p>
+  <p data-en="Data: KMA API Hub (sea-area forecasts, marine warnings), KHOA tide predictions and sea-fishing index (tides, spots; KOGL Type 1). Tides are from the nearest prediction station, so times and heights can differ at the spot. Sunrise/sunset, lunar dates and mul names are calculated. Times are Korea time (KST). Spot names are romanized from Korean.">자료: 기상청 API허브(해구별 예측 · 기상특보), 국립해양조사원 조석예보 · 바다낚시지수(물때 · 포인트, 공공누리 제1유형). 물때는 가장 가까운 예보지점 값이라 포인트와 시각 · 높이가 다를 수 있습니다. 일출몰 · 음력 · 물때 이름은 계산값입니다.</p>
+</footer>
+<div id="alarm" class="alarm" role="alert" hidden></div>
+<script src="js/tidefly.js"></script>
+</body>
+</html>

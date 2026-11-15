@@ -1,0 +1,121 @@
+// js/tidefly.js 의 순수 함수(타이드플라이) - TideflyJsTest 가 node 로 돌림(node 가 없으면 건너뜀)
+'use strict';
+const assert = require('assert');
+const TF = require('../../main/webapp/js/tidefly.js');
+
+assert.strictEqual(TF.kst('2026111415'), '15일 00시');   // 14일 15시 UTC = 15일 0시 우리 시간
+assert.strictEqual(TF.kst('2026111400'), '14일 09시');
+assert.strictEqual(TF.kst('2026113015'), '1일 00시');    // 달 넘김
+assert.strictEqual(TF.kst('bad'), '');
+
+assert.strictEqual(TF.dir16(0), '북');
+assert.strictEqual(TF.dir16(298.3), '서북서');
+assert.strictEqual(TF.dir16(319.0), '북서');
+assert.strictEqual(TF.dir16(355), '북');
+assert.strictEqual(TF.dir16(null), '');
+
+assert.strictEqual(TF.swell(1), '관심');
+assert.strictEqual(TF.swell(4), '위험');
+assert.strictEqual(TF.swell(null), '');
+
+// 2026-11-14 PC 가 받은 김녕 응답의 sea
+assert.strictEqual(TF.nums({ waveM: 0.1, windMs: 3.2, windDir: 298.3, swell: 1, waterC: 19.1 }), '파고 0.1m · 바람 3.2m/s 서북서풍 · 너울 관심 · 수온 19.1℃');
+// 강릉항북동(2km) - 수온 없음
+assert.strictEqual(TF.nums({ waveM: 0.4, windMs: 4.9, windDir: 318.6, swell: 1 }), '파고 0.4m · 바람 4.9m/s 북서풍 · 너울 관심');
+assert.strictEqual(TF.nums(null), '바다 예측을 받는 중');
+// 남애항(L62-S2) - 파고 · 바람이 -999 라 서버가 뺀 응답(2026-11-14 PC)
+assert.strictEqual(TF.nums({ visM: 20000.0, rainMm: 1.0, waterC: 18.0, swell: 1 }), '이 바다 칸은 파고 · 바람 예측 없음 · 너울 관심 · 수온 18.0℃');
+
+assert.deepStrictEqual(TF.markOf('○'), ['○', 'ok']);
+assert.deepStrictEqual(TF.markOf('✕'), ['✕', 'no']);
+assert.deepStrictEqual(TF.markOf(null), ['-', 'none']);
+// 다음 물때 - 2026-11-14 받은 군산(DT_0018) 응답을 Tide.parse 가 만든 모양으로
+const gunsan = { station: '군산', events: [
+  { t: '2026-11-14 00:00', cm: 176, high: false }, { t: '2026-11-14 05:30', cm: 539, high: true },
+  { t: '2026-11-14 11:45', cm: 111, high: false }, { t: '2026-11-14 18:02', cm: 612, high: true }] };
+assert.deepStrictEqual(TF.nextTide(gunsan.events, '2026-11-14 12:00'), { what: '만조', at: '18:02', left: '6시간 2분 뒤', slack: '17:02 ~ 19:02' });
+assert.deepStrictEqual(TF.nextTide(gunsan.events, '2026-11-14 05:00'), { what: '만조', at: '05:30', left: '30분 뒤', slack: '04:30 ~ 06:30' });
+assert.strictEqual(TF.nextTide(gunsan.events, '2026-11-14 11:00').what, '간조');
+assert.strictEqual(TF.nextTide(gunsan.events, '2026-11-14 23:00'), null);
+// 밤 - 서버가 오늘 · 내일을 함께 줌(2026-11-14 PC 김녕 23:59)
+const jeju = [{ t: '2026-11-14 00:28', cm: 198, high: true }, { t: '2026-11-14 07:05', cm: 80, high: false },
+  { t: '2026-11-14 13:53', cm: 242, high: true }, { t: '2026-11-14 20:31', cm: 139, high: false }, { t: '2026-11-15 01:10', cm: 200, high: true }];
+assert.deepStrictEqual(TF.nextTide(jeju, '2026-11-14 23:59'), { what: '만조', at: '내일 01:10', left: '1시간 11분 뒤', slack: '00:10 ~ 02:10' });
+// 오늘 것 없이 내일 것만 있으면 "다음" 을 보이지 않음(2026-11-15 PC 김녕)
+assert.strictEqual(TF.nextTide([{ t: '2026-11-16 02:06', cm: 181, high: true }], '2026-11-15 00:39'), null);
+assert.strictEqual(TF.untilText('2026-11-14 12:00', '2026-11-14 12:03'), '곧');
+assert.strictEqual(TF.untilText('2026-11-14 12:00', '2026-11-14 14:00'), '2시간 뒤');
+assert.strictEqual(TF.untilText('2026-11-14 12:00', '2026-11-14 11:00'), '');
+assert.strictEqual(TF.nowKst(Date.UTC(2026, 10, 14, 14, 5)), '2026-11-14 23:05');
+assert.strictEqual(TF.nowKst(Date.UTC(2026, 10, 14, 15, 0)), '2026-11-15 00:00');
+// 물 높이 곡선 - 만조 · 간조 시각에는 그 높이, 가운데는 평균(코사인), 그날 첫 물때 앞은 그리지 않음
+const cv = TF.curve(gunsan.events, '2026-11-14');
+assert.deepStrictEqual(cv[0], [0, 176]);
+assert.strictEqual(cv.find(p => p[0] === 330)[1], 539);            // 05:30 만조
+const mid = cv.find(p => p[0] === 170);                               // 00:00 → 05:30 사이 가운데(02:45 근처 02:50)
+assert.ok(mid[1] > 340 && mid[1] < 380, String(mid));
+assert.strictEqual(cv[cv.length - 1][0], 1080);                       // 받은 마지막 물때(18:02) 앞까지 - 그 뒤는 그리지 않음
+assert.deepStrictEqual(TF.curve([], '2026-11-14'), []);
+assert.strictEqual(TF.markWord('○'), '특보 없음');
+assert.strictEqual(TF.markWord('✕'), '출조 자제');
+assert.strictEqual(TF.markWord(null), '판단 전');
+
+// 오늘 줄 · 자세히 보기(서버 dayInfo 모양)
+assert.strictEqual(TF.dayName('2026-11-15'), '15일(일)');
+assert.strictEqual(TF.dayName('2026-11-16'), '16일(월)');
+assert.strictEqual(TF.dayLine({ date: '2026-11-15', lunarDay: 7, mulddae: '14물', sunrise: '07:04', sunset: '17:30', rangeCm: 139,
+  events: [{ t: '2026-11-15 01:10', cm: 190, high: true }, { t: '2026-11-15 07:49', cm: 93, high: false }, { t: '2026-11-15 14:49', cm: 232, high: true }, { t: '2026-11-15 21:32', cm: 143, high: false }] }),
+  '15일(일) 음력 7일 14물 · 만조 01:10(190) · 14:49(232) · 간조 07:49(93) · 21:32(143) · 높이 차 1.4m · 해 07:04 ~ 17:30');
+assert.strictEqual(TF.dayLine({ date: '2026-11-16', lunarDay: 8, mulddae: '조금', sunrise: '07:05', sunset: '17:29' }), '16일(월) 음력 8일 조금 · 물때 받지 못함 · 해 07:05 ~ 17:29');
+assert.strictEqual(TF.hourLine({ tmEf: '2026111500', waveM: 0.4, windMs: 4.9, windDir: 318.6, swell: 1 }), '15일 09시 파고 0.4m · 바람 4.9m/s 북서풍 · 너울 관심');
+// 글자 크기 · 화면 모드
+assert.strictEqual(TF.nextSize('m'), 'l');
+assert.strictEqual(TF.nextSize('l'), 'xl');
+assert.strictEqual(TF.nextSize('xl'), 'm');
+assert.strictEqual(TF.nextSize(null), 'l');
+assert.strictEqual(TF.isDark('dark', false), true);
+assert.strictEqual(TF.isDark('light', true), false);
+assert.strictEqual(TF.isDark(null, true), true);
+assert.strictEqual(TF.isDark(null, false), false);
+// 영어 화면(2026-11-15 홍TV님 "영어화면도 만들어줘")
+TF.setLang('en');
+assert.strictEqual(TF.roman('김녕'), 'gimnyeong');
+assert.strictEqual(TF.roman('울릉도'), 'ulleungdo');       // ㄹㄹ → ll
+assert.strictEqual(TF.roman('강릉'), 'gangneung');         // ㅇ + ㄹ → n
+assert.strictEqual(TF.roman('남애'), 'namae');             // 연음
+assert.strictEqual(TF.roman('서귀포'), 'seogwipo');
+assert.strictEqual(TF.placeName('강릉항북동(2km)'), '2 km NE of Gangneung Port');
+assert.strictEqual(TF.placeName('부산남부'), 'Busan (south)');
+assert.strictEqual(TF.placeName('울진 후정'), 'Hujeong, Uljin');
+assert.strictEqual(TF.placeName('포항'), 'Pohang');                                // 2026-11-15 PC: "Po Port"
+assert.strictEqual(TF.placeName('목포북항서측(53km)'), '53 km W of Mokpo North Port'); // 2026-11-15 PC: "Mokpobuk Port"
+assert.strictEqual(TF.placeName('후포'), 'Hupo');
+assert.strictEqual(TF.placeName('남애항'), 'Namae Port');
+assert.strictEqual(TF.reason('서해중부바깥먼바다 풍랑 예비특보'), 'West Sea central outer offshore waters: wind-wave warning expected (preliminary)');
+assert.strictEqual(TF.reason('강원북부앞바다 풍랑 주의보'), 'Gangwon northern coastal waters: wind-wave advisory');
+assert.strictEqual(TF.reason('너울 주의'), 'Swell caution');
+assert.strictEqual(TF.reason('특보를 받지 못함 - 판단하지 않음'), 'Not judged - warnings not available');
+assert.strictEqual(TF.reason('처음 보는 까닭'), '처음 보는 까닭');
+assert.strictEqual(TF.mul('7물'), '7-mul');
+assert.strictEqual(TF.mul('조금'), 'Jogeum (neap)');
+assert.strictEqual(TF.markWord('✕'), 'Stay ashore');
+assert.strictEqual(TF.untilText('2026-11-14 12:00', '2026-11-14 14:10'), 'in 2 h 10 min');
+assert.strictEqual(TF.untilText('2026-11-14 12:00', '2026-11-14 12:35'), 'in 35 min');
+assert.strictEqual(TF.kst('2026111415'), 'Nov 15 00:00');
+assert.strictEqual(TF.dayName('2026-11-15'), 'Sun 15');
+assert.strictEqual(TF.nums({ waveM: 0.4, windMs: 4.9, windDir: 318.6, swell: 1 }), 'Waves 0.4m · Wind 4.9m/s NW · Swell watch');
+assert.deepStrictEqual(TF.nextTide(jeju, '2026-11-14 23:59'), { what: 'high tide', at: 'tomorrow 01:10', left: 'in 1 h 11 min', slack: '00:10 ~ 02:10' });
+assert.strictEqual(TF.placeName('김녕'), 'Gimnyeong');
+TF.setLang('ko');
+assert.strictEqual(TF.placeName('김녕'), '김녕');
+assert.strictEqual(TF.reason('너울 주의'), '너울 주의');
+// 알림 계획 - 기준은 사용자가 고른 값(cfg)
+TF.setLang('ko');
+const plan = TF.alarmPlan(gunsan.events, '17:30', '2026-11-14 10:00', { ebb: 30, sun: 60 });
+assert.deepStrictEqual(plan, [{ at: '2026-11-14 12:15', kind: 'ebb', base: '11:45' }, { at: '2026-11-14 16:30', kind: 'sun', base: '17:30' }]);
+assert.deepStrictEqual(TF.alarmPlan(gunsan.events, '17:30', '2026-11-14 10:00', {}), []);                 // 끔
+assert.strictEqual(TF.alarmPlan(gunsan.events, '17:30', '2026-11-14 12:20', { ebb: 30 }).length, 0);     // 지난 것은 빼고
+assert.deepStrictEqual(TF.alarmPlan(jeju, '17:30', '2026-11-14 23:00', { ebb: 0, sun: 30 }), []);       // 오늘 해도 졌고 간조도 지남(내일 첫 물때는 만조)
+assert.strictEqual(TF.alarmText(plan[0], '신시도', { ebb: 30 }), '물이 들어오기 시작합니다(간조 11:45 + 30분). 갯바위 · 방파제는 철수하세요 - 신시도');
+assert.strictEqual(TF.alarmText(plan[1], '김녕', { sun: 60 }), '해 지기 60분 전입니다(일몰 17:30) - 김녕');
+console.log('tidefly.test.js OK');

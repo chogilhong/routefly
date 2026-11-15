@@ -1,0 +1,23 @@
+#START7777
+#--------------------------------------------------------------------------------------------------
+#   1. TMA_FC    : 발표시각(UTC)
+#   2. TMA_EF    : 발효시각(UTC)
+#   3. LZONE     : 대해구번호
+#   4. LAT_LB    : 대해구 좌하단 위도 (degree) 
+#   5. LON_LB    : 대해구 좌하단 경도 (degree) 
+#   6. LAT_LT    : 대해구 좌상단 위도 (degree) 
+#   7. LON_LT    : 대해구 좌상단 경도 (degree) 
+#   8. LAT_RT    : 대해구 우상단 위도 (degree) 
+#   9. LON_RT    : 대해구 우상단 경도 (degree) 
+#  10. LAT_RB    : 대해구 우하단 위도 (degree) 
+#  11. LON_RB    : 대해구 우하단 경도 (degree) 
+#  12. WH_SIG    : 유의파고 (m) 
+#  13. WVPRD_MAX : 최대파주기 (sec) 
+#  14. WVDR      : 파향 (degree) 
+#  15. WS        : 풍속 (m/s) 
+#  16. WD        : 풍향 (degree) 
+#--------------------------------------------------------------------------------------------------
+#   TMA_FC     TMA_EF LZONE LAT_LB  LON_LB  LAT_LT  LON_LT  LAT_RT  LON_RT  LAT_RB  LON_RB       WH_SIG     WVPRD_MAX          WVDR            WS            WD 
+#      UTC        UTC          deg     deg     deg     deg     deg     deg     deg     deg            m           sec        degree           m/s        degree 
+2026111400 2026111500     1   42.5   131.5    43.0   131.5    43.0   132.0    42.5   132.0          0.8           5.1         100.8           7.4          21.7
+#7777END

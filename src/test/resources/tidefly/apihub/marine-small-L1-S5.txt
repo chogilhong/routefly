@@ -1,0 +1,29 @@
+#START7777
+#--------------------------------------------------------------------------------------------------
+#   1. TMA_FC    : 발표시각(UTC)
+#   2. TMA_EF    : 발효시각(UTC)
+#   3. LZONE     : 대해구번호
+#   4. SZONE     : 소해구번호
+#   5. LAT_LB    : 소해구 좌하단 위도 (degree) 
+#   6. LON_LB    : 소해구 좌하단 경도 (degree) 
+#   7. LAT_LT    : 소해구 좌상단 위도 (degree) 
+#   8. LON_LT    : 소해구 좌상단 경도 (degree) 
+#   9. LAT_RT    : 소해구 우상단 위도 (degree) 
+#  10. LON_RT    : 소해구 우상단 경도 (degree) 
+#  11. LAT_RB    : 소해구 우하단 위도 (degree) 
+#  12. LON_RB    : 소해구 우하단 경도 (degree) 
+#  13. WH_SIG    : 유의파고 (m) 
+#  14. WVPRD_MAX : 최대파주기 (sec) 
+#  15. WVDR      : 파향 (degree) 
+#  16. WS        : 풍속 (m/s) 
+#  17. WD        : 풍향 (degree) 
+#  18. VS        : 시정 (m)  
+#  19. RAIN      : 예상강수량 (mm)  
+#  20. TW        : 수온 (℃)  
+#  21. SWELL     : 너울 위험예측정보 (1-관심, 2-주의, 3-경계, 4-위험, -999-자료없음)   
+#  18~21번 요소는 2026년 7월 1일 00UTC 자료부터 제공됩니다   
+#--------------------------------------------------------------------------------------------------
+#   TMA_FC     TMA_EF LZONE SZONE   LAT_LB    LON_LB    LAT_LT    LON_LT    LAT_RT    LON_RT    LAT_RB    LON_RB       WH_SIG     WVPRD_MAX          WVDR            WS            WD            VS          RAIN            TW         SWELL
+#      UTC        UTC                  deg       deg       deg       deg       deg       deg       deg       deg            m           sec        degree           m/s        degree             m            mm            ℃              
+2026111400 2026111500     1     5   42.667   131.667    42.833   131.667    42.833   131.833    42.667   131.833          0.8           5.1          84.6           8.0          20.6       10240.0           0.1           8.1             1
+#7777END
