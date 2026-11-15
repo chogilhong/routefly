@@ -1,5 +1,8 @@
 package com.gh.routefly.web;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,6 +16,7 @@ import jakarta.servlet.http.HttpServletResponse;
 public class SeenServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
+    private static final Logger log = LogManager.getLogger(SeenServlet.class);
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) {
@@ -26,9 +30,27 @@ public class SeenServlet extends HttpServlet {
         if (why == null) {
             boolean got = Stats.js(ip, Stats.device(ua), app);
             if (app) Stats.appWhy(got ? "셈" : "이미 셈");
-        } else if (app) Stats.appWhy(why);
+            if (app) log.info("[SEEN] 앱 신호 {} - {}", got ? "셈" : "이미 셈", page(req.getHeader("Referer")));
+        } else if (app) {
+            Stats.appWhy(why);
+            log.info("[SEEN] 앱 신호 {} - {}", why, page(req.getHeader("Referer")));
+        }
         resp.setHeader("Cache-Control", "no-store");
         resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
+    }
+
+    /**
+     * 순수 함수 - 앱 신호를 보낸 화면의 경로만(? · # 뒤는 버림 - 산악회 방 코드 · 열쇠가 남지 않게, IP 도 안 남김). 2026-11-15 PC: 접속 기록만으로는 "셈" 이 누구 앱인지 가려지지 않았음.
+     */
+    static String page(String referer) {
+        if (referer == null || referer.isBlank()) return "-";
+        try {
+            String path = java.net.URI.create(referer.trim()).getRawPath();
+            if (path == null || path.isEmpty()) return "-";
+            return path.length() > 80 ? path.substring(0, 80) : path;
+        } catch (IllegalArgumentException e) {
+            return "-";
+        }
     }
 
     /** 사람 방문으로 셀까 - 운영자 기기 · PC Claude 확인용 접속(routefly-check, StatsFilter 와 같게 - 2026-11-03 홍TV님 점검) · 로봇은 뺌. */

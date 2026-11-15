@@ -307,7 +307,8 @@ public class StatsTest {
         String sv = new String(java.nio.file.Files.readAllBytes(java.nio.file.Path.of("src/main/java/com/gh/routefly/web/SeenServlet.java")), java.nio.charset.StandardCharsets.UTF_8);
         assertTrue(sv.contains("\"1\".equals(req.getParameter(\"app\"))"));
         assertTrue("걸러내기 전 신호도 셈 · 까닭 숫자", sv.contains("if (app) Stats.appSignal();") && sv.contains("if (app) Stats.appWhy(got ? \"셈\" : \"이미 셈\");")
-            && sv.contains("} else if (app) Stats.appWhy(why);"));
+            && sv.contains("} else if (app) {\n            Stats.appWhy(why);"));
+        assertTrue("앱 신호는 화면 경로만 로그에(2026-11-15 - ? 뒤 · IP 없이)", sv.contains("log.info(\"[SEEN] 앱 신호 {} - {}\", why, page(req.getHeader(\"Referer\")));"));
         assertTrue("신호는 하루에 한 번(앱은 웹뷰가 살아 있어 sessionStorage 가 남음)", js.contains("sessionStorage.getItem(\"rf-seen\") === day"));
         assertTrue("앱 판별은 화면이 다 열린 뒤(원격 화면에 앱 연결이 늦게 들어올 수 있음)", js.contains("if (document.readyState === \"complete\") go(); else window.addEventListener(\"load\", go);"));
     }
