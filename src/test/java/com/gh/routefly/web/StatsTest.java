@@ -304,7 +304,8 @@ public class StatsTest {
         String js = new String(java.nio.file.Files.readAllBytes(java.nio.file.Path.of("src/main/webapp/js/seen.js")), java.nio.charset.StandardCharsets.UTF_8);
         assertTrue(js.contains("var app = window.Capacitor && (!window.Capacitor.isNativePlatform || window.Capacitor.isNativePlatform());"));
         assertTrue(js.contains("+ (app ? \"?app=1\" : \"\")"));
-        String sv = new String(java.nio.file.Files.readAllBytes(java.nio.file.Path.of("src/main/java/com/gh/routefly/web/SeenServlet.java")), java.nio.charset.StandardCharsets.UTF_8);
+        // PC(Windows) 는 git 이 CRLF 로 풀어 아래 "\n" 비교가 깨졌음(2026-11-15 PC) - 줄 끝만 맞춤
+        String sv = new String(java.nio.file.Files.readAllBytes(java.nio.file.Path.of("src/main/java/com/gh/routefly/web/SeenServlet.java")), java.nio.charset.StandardCharsets.UTF_8).replace("\r\n", "\n");
         assertTrue(sv.contains("\"1\".equals(req.getParameter(\"app\"))"));
         assertTrue("걸러내기 전 신호도 셈 · 까닭 숫자", sv.contains("if (app) Stats.appSignal();") && sv.contains("if (app) Stats.appWhy(got ? \"셈\" : \"이미 셈\");")
             && sv.contains("} else if (app) {\n            Stats.appWhy(why);"));
