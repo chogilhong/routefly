@@ -199,6 +199,18 @@ assert.strictEqual(TF.alarmText(plan[1], '김녕', { sun: 60 }), '해 지기 60�
   assert.strictEqual(TF.fishHit('감성돔 · 넙치', '갈치'), false);
   assert.strictEqual(TF.fishHit('감성돔', '돔'), false);                        // 한 글자는 안 봄
   assert.strictEqual(TF.fishHit('', '주꾸미'), false);
+  // 금어기 · 금지 체장(2026-11-15 홍TV님 "공식 자료로만") - data/tidefly-law.json(시행령 별표 1 · 2 원문, LawTest 가 원문과 같은지 봄)
+  const law = JSON.parse(require('fs').readFileSync(require('path').join(__dirname, '../../main/webapp/data/tidefly-law.json'), 'utf8'));
+  const L = TF.lawFor('감성돔 · 우럭 · 주꾸미 · 문어 · 학꽁치', law, '05-20');
+  assert.deepStrictEqual(L.map(x => x.species), ['감성돔', '조피볼락', '주꾸미', '참문어', '대문어']);
+  assert.deepStrictEqual(L.map(x => x.now), ['now', '', 'now', 'maybe', '']);   // 5월 20일: 감성돔 · 주꾸미 금어기, 참문어는 단서(시·도 고시)
+  assert.strictEqual(L[0].size, '25센티미터 이하');
+  assert.strictEqual(L[1].closed, null);                                          // 조피볼락은 금지 체장만
+  assert.strictEqual(TF.lawFor('주꾸미', law, '11-15')[0].now, '');
+  assert.strictEqual(TF.lawFor('쭈꾸미', law, '06-01')[0].species, '주꾸미');
+  assert.strictEqual(TF.lawFor('노래미', law, '11-15')[0].now, 'maybe');          // 쥐노래미 11월 1일부터 12월 31일까지. 다만 주3) 해역은 11월 15일부터
+  assert.strictEqual(TF.lawFor('갈치', law, '07-10')[0].now, '');                 // 구역 한정 글은 날짜로 읽지 않음 - 글만
+  assert.ok(TF.inSeason('01-15', '10-01', '01-31') && !TF.inSeason('02-01', '10-01', '01-31'));   // 톳 - 해를 넘음
 }
 
 // 연안 출입통제구역 경고(2026-11-15) - data/tidefly-closed.json 실제 줄

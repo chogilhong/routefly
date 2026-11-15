@@ -421,6 +421,36 @@
     return String(fish).split(' · ').some(function (f) { return keys.some(function (x) { return f.indexOf(x) >= 0; }); });
   }
 
+  /** 자리 대상어 → 법령(수산자원관리법 시행령 별표 1 · 2)의 종 이름. 같은 이름은 그대로, 다른 것만(문어는 참문어 · 대문어 둘 다). */
+  /** 법령 원문 - 단서(주3) 해역 · 시·도 고시 등)는 여기서 확인. */
+  var LAW_URL = 'https://www.law.go.kr/법령/수산자원관리법시행령';
+  var LAW_NAME = { '우럭': ['조피볼락'], '노래미': ['쥐노래미'], '문어': ['참문어', '대문어'], '광어': ['넙치'], '쭈꾸미': ['주꾸미'], '망둑어': [], '학꽁치': [] };
+
+  /** 순수 함수 - "MM-DD" 가 from ~ to 안인가(해를 넘는 10-01 ~ 01-31 도). */
+  function inSeason(mmdd, from, to) {
+    if (!mmdd || !from || !to) return false;
+    return from <= to ? mmdd >= from && mmdd <= to : mmdd >= from || mmdd <= to;
+  }
+
+  /**
+   * 순수 함수 - 금어기 · 금지 체장(2026-11-15 홍TV님 "공식 자료로만"). fish = 자리 대상어 "감성돔 · 주꾸미", law = data/tidefly-law.json, mmdd = 오늘 "MM-DD".
+   * → [{fish, species, closed, size, now}] - now: 'now' 단서 없는 기간 안 · 'maybe' 단서(다만 · 지역 · 고시)가 있는 기간 안 · '' 그 밖. 법령에 없는 고기는 뺌.
+   */
+  function lawFor(fish, law, mmdd) {
+    var out = [], seen = {};
+    String(fish || '').split(' · ').forEach(function (f) {
+      f = f.trim();
+      (LAW_NAME[f] || [f]).forEach(function (sp) {
+        var e = law && law[sp];
+        if (!e || seen[sp]) return;
+        seen[sp] = true;
+        out.push({ fish: f, species: sp, closed: e.closed || null, size: e.size || null,
+          now: inSeason(mmdd, e.from, e.to) ? (e.plain ? 'now' : 'maybe') : '' });
+      });
+    });
+    return out;
+  }
+
   function spotItem(s, baseItem, marks) {
     var b = baseItem || {}, bp = b.point || {}, m = (marks || {})[s.id];
     var p = { name: s.name, lat: s.lat, lon: s.lon, boat: !!s.boat, spot: true, id: s.id, depth: s.depth, bottom: s.bottom, tideTime: s.tideTime, fish: s.fish,
@@ -456,7 +486,7 @@
   var TF = { kst: kst, dir16: dir16, swell: swell, nums: nums, markOf: markOf, markWord: markWord, nowKst: nowKst, dayName: dayName,
     tideTable: tideTable, goodDays: goodDays, moon: moon, sunSpan: sunSpan, hourLine: hourLine, untilText: untilText, nextTide: nextTide, curve: curve, nextSize: nextSize, isDark: isDark,
     setLang: setLang, roman: roman, placeName: placeName, zoneName: zoneName, reason: reason, mul: mul,
-    alarmPlan: alarmPlan, alarmText: alarmText, nearest: nearest, spotItem: spotItem, bare: bare, fishHit: fishHit, closedText: closedText };
+    alarmPlan: alarmPlan, alarmText: alarmText, nearest: nearest, spotItem: spotItem, bare: bare, fishHit: fishHit, lawFor: lawFor, inSeason: inSeason, closedText: closedText };
   if (typeof module !== 'undefined' && module.exports) module.exports = TF;
   if (typeof document === 'undefined') return;
 
@@ -471,6 +501,7 @@
   var nearAt = null, NEAR_N = 10;   // 📍 내 근처 - 폰이 준 위치(이 화면 안에서만, 저장 · 전송 안 함)
   var open = {}, detail = {};
   var spots = null, spotMarks = {}, spotsWait = false;   // 갯바위 · 선상 자리 - 📍 내 근처 · 찾기 때 처음 한 번 받음(api/tidefly?spots=1)
+  var law = {};                                             // 금어기 · 금지 체장 - data/tidefly-law.json(수산자원관리법 시행령 별표 1 · 2)
   var closed = {};                                          // 출입통제구역 경고 {포인트 · 자리 이름: [...]} - data/tidefly-closed.json
   var SPOT_FIND_N = 30;                                     // 찾기에서 보일 자리 수
   // 2026-11-15 홍TV님 "처음에는 전부 접혀줘" - 펼친 지역 묶음만 기억 { 동해: true }(전에는 접은 것을 기억 tf-folded)
@@ -595,6 +626,11 @@
 
     var shut = closedText(closed[p.name]);
     if (shut) li.appendChild(el('p', 'alert closed', shut));   // 접혀 있어도 보임(안전)
+    var laws = p.spot ? lawFor(p.fish, law, now.slice(5, 10)) : [];
+    var nowBan = laws.filter(function (x) { return x.now; });
+    if (nowBan.length) li.appendChild(el('p', 'alert closed', nowBan.map(function (x) {   // 금어기 - 접혀 있어도 보임
+      return (x.now === 'now' ? tr('⛔ 지금 금어기: ', '⛔ Closed season now: ') : tr('⚠ 금어기일 수 있음(단서 있음 - 원문 확인): ', '⚠ May be closed season (conditions apply - see the law): ')) + x.species + ' ' + x.closed;
+    }).join(' / ')));
     var why = (it.reasons || []).filter(function (r) { return r !== '출항은 선사에 확인'; }).map(reason);
     if (why.length) li.appendChild(el('p', 'why ' + m[1], why.join(' · ')));
     if (!isOpen) {
@@ -608,6 +644,23 @@
       if (p.tideTime) info.push(tr('좋은 물때 ', 'Best tide ') + p.tideTime);
       if (p.fish) info.push(tr('대상어 ', 'Fish ') + p.fish);
       if (info.length) li.appendChild(el('p', 'spot-info', info.join(' · ')));
+      if (laws.length) {   // 금어기 · 금지 체장(원문 그대로)
+        var lb = el('div', 'law');
+        lb.appendChild(el('p', 'label', tr('⚖ 금어기 · 금지 체장 - 수산자원관리법 시행령 별표 1 · 2(2026. 7. 1. 시행) 원문', '⚖ Closed seasons and minimum sizes - Korean Fishery Resources Management Act decree, tables 1 and 2 (Korean text)')));
+        laws.forEach(function (x) {
+          var t = x.species + (x.species !== x.fish ? '(' + x.fish + ')' : '') + ': ';
+          var parts = [];
+          if (x.closed) parts.push(tr('금어기 ', 'closed ') + x.closed);
+          if (x.size) parts.push(tr('금지 체장 ', 'min. size ban ') + x.size);
+          lb.appendChild(el('p', x.now ? 'law-now' : null, t + parts.join(' · ')));
+        });
+        var src = el('a', 'law-src', tr('법령 원문 보기(국가법령정보센터) ›', 'Read the law (Korean) ›'));
+        src.href = LAW_URL;
+        src.target = '_blank';
+        src.rel = 'noopener';
+        lb.appendChild(src);
+        li.appendChild(lb);
+      }
       li.appendChild(el('p', 'dim small', tr('바다 예측 · 물때 · 해 · 판단은 가까운 ' + p.base + '(' + p.baseKm + 'km) 기준', 'Forecast, tides, sun and verdict are from nearby ' + placeName(p.base) + ' (' + p.baseKm + ' km)')));
     }
     li.appendChild(seaChips(it.sea));
@@ -767,6 +820,18 @@
         var fs = el('section', 'area near');
         fs.appendChild(el('h2', 'near-title', tr('🎣 갯바위 · 선상 자리 ' + found.length + '곳', '🎣 Rock and boat spots: ' + found.length)
           + (found.length > SPOT_FIND_N ? tr(' (앞 ' + SPOT_FIND_N + '곳)', ' (first ' + SPOT_FIND_N + ')') : '')));
+        var ql2 = lawFor(q.replace(/\s*(낚시|포인트)$/, ''), law, now.slice(5, 10));   // 고기 이름으로 찾으면 그 고기 금어기 · 금지 체장을 맨 위에
+        if (ql2.length) {
+          var lw = el('div', 'law');
+          ql2.forEach(function (x) {
+            var parts = [];
+            if (x.closed) parts.push(tr('금어기 ', 'closed ') + x.closed + (x.now === 'now' ? tr(' - 지금 금어기', ' - closed now') : x.now === 'maybe' ? tr(' - 지금일 수 있음(단서 확인)', ' - may be closed now') : ''));
+            if (x.size) parts.push(tr('금지 체장 ', 'min. size ban ') + x.size);
+            lw.appendChild(el('p', x.now ? 'law-now' : null, '⚖ ' + x.species + ': ' + parts.join(' · ')));
+          });
+          lw.appendChild(el('p', 'dim small', tr('수산자원관리법 시행령 별표 1 · 2(2026. 7. 1. 시행) 원문', 'Korean Fishery Resources Management Act decree, tables 1 and 2 (Korean text)')));
+          fs.appendChild(lw);
+        }
         var ful = el('ul', 'cards');
         found.slice(0, SPOT_FIND_N).forEach(function (it) { ful.appendChild(card(it, now)); });
         fs.appendChild(ful);
@@ -1063,6 +1128,7 @@
   setInterval(function () { if (!document.hidden) draw(); }, 60000);
   setInterval(checkAlarms, 30000);
   document.getElementById('alarm').addEventListener('click', function () { this.hidden = true; });
+  fetch('data/tidefly-law.json').then(function (r) { return r.ok ? r.json() : {}; }).then(function (d) { law = d || {}; draw(); }).catch(function () { /* 금어기 글 없이 */ });
   fetch('data/tidefly-closed.json').then(function (r) { return r.ok ? r.json() : {}; }).then(function (d) { closed = d || {}; draw(); }).catch(function () { /* 경고 없이 */ });
   load();
 })();

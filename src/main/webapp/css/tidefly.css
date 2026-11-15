@@ -165,3 +165,9 @@ main { padding-top: 14px; padding-bottom: 24px; }
 .ttable tr.good td { background: var(--ok-bg); }
 .good-line { margin: 4px 0 6px; font-size: .84rem; }
 .good-line strong { color: var(--ok); }
+/* 금어기 · 금지 체장(2026-11-15) */
+.law { margin: 6px 0; padding: 6px 8px; border-radius: 8px; background: var(--soft); border: 1px solid var(--line); font-size: .84rem; }
+.law p { margin: 3px 0; }
+.law .label { color: var(--dim); font-size: .78rem; }
+.law .law-now { color: var(--no); font-weight: 700; }
+.law .law-src { display: inline-block; margin-top: 4px; color: var(--link); font-size: .8rem; }
