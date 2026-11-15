@@ -34,4 +34,14 @@ public class TideflyEntryTest {
         String href = h.replaceFirst("(?s).*<a class=\"kindLink\" href=\"([^\"]+)\".*", "$1");
         assertTrue(href, java.net.URI.create("https://r.kr/routefly/en/m/").resolve(href).toString().equals("https://r.kr/routefly/tidefly.html?lang=en"));
     }
+
+    /** routefly 화면 모양 그대로(2026-11-15 홍TV님 "루트플라이 대로 해야지" - 탭에 routefly 아이콘이 없었음): 제목 · 아이콘 · 앱 정보 · 코스 모음으로. */
+    @Test
+    public void 타이드플라이_머리는_routefly_모양() throws Exception {
+        String h = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/webapp/tidefly.html"), java.nio.charset.StandardCharsets.UTF_8);
+        assertTrue(h.contains("<title>routefly tidefly(출조)</title>"));
+        assertTrue(h.contains("<link rel=\"icon\" type=\"image/svg+xml\" href=\"favicon.svg?v=2\"><link rel=\"icon\" type=\"image/png\" sizes=\"32x32\" href=\"img/favicon-32.png\">"));
+        assertTrue(h.contains("<link rel=\"manifest\" href=\"manifest.json\">") && h.contains("<link rel=\"apple-touch-icon\" href=\"img/apple-icon-180.png\">"));
+        assertTrue(h.contains("<a id=\"back\" class=\"back\" href=\"m/\" data-en=\"‹ Trails\">‹ 코스 모음</a>"));
+    }
 }

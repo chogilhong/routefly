@@ -709,7 +709,8 @@
 
   function paintFixed() {
     root.setAttribute('lang', lang);
-    document.title = tr('타이드플라이 - 바다낚시 물때 · 바람 · 파고', 'Tidefly - tides, wind and waves for sea fishing');
+    document.title = tr('routefly tidefly(출조)', 'routefly tidefly (fishing trips)');
+    document.getElementById('back').setAttribute('href', lang === 'en' ? 'en/m/' : 'm/');   // 코스 모음 - 영어는 /en/m/
     fixed.forEach(function (f) { f[0].innerHTML = lang === 'en' ? f[0].getAttribute('data-en') : f[1]; });
     phs.forEach(function (f) { f[0].setAttribute('placeholder', lang === 'en' ? f[0].getAttribute('data-en-ph') : f[1]); });
     Array.prototype.forEach.call(langBtns, function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-lang') === lang ? 'true' : 'false'); });
