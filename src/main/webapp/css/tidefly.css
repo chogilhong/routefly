@@ -5,7 +5,7 @@
   --sea: #2b8fc2; --sea-bg: rgba(43, 143, 194, .16); --now: #e5603f; --link: #0b6e8a;
   color-scheme: light dark;
 }
-/* 어두운 화면: 기기 설정을 따르되, 화면의 단추로 고르면(data-theme) 그것을 따름(2026-11-15 홍TV님 "다크모드, 화이트 모드") */
+/* 어두운 화면: 기본은 다크(tidefly-early.js 가 data-theme="dark" - 2026-11-15 홍TV님 "기본으로 다크모드 로 해"), 밝은 모드를 고르면 light. 아래 기기 설정 줄은 스크립트가 막힌 때만 */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) { --bg: #0c161c; --card: #142229; --ink: #e3edf2; --dim: #95a8b3; --line: #233540; --soft: #1a2b33;
           --top1: #08394d; --top2: #0b5361;
@@ -25,11 +25,10 @@
 body { margin: 0; background: var(--bg); color: var(--ink); font-family: system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; line-height: 1.5; word-break: keep-all; overflow-wrap: anywhere; }
 .wrap { max-width: 40rem; margin: 0 auto; padding-left: 16px; padding-right: 16px; }
 .top { background: linear-gradient(135deg, var(--top1), var(--top2)); color: #fff; padding: 18px 0 16px; }
-.top .bar { display: flex; align-items: center; gap: 8px; }
-.top .back { display: inline-block; margin: -4px 0 6px; color: #fff; opacity: .85; font-size: .85rem; text-decoration: none; }
+.top .crumb { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: -6px 0 8px; flex-wrap: wrap; }   /* 코스 모음 · 모드 · 언어 · 글자 한 줄(2026-11-15) */
+.top .back { display: inline-block; margin: 0; color: #fff; opacity: .85; font-size: .85rem; text-decoration: none; }
 .top .back:hover, .top .back:focus-visible { opacity: 1; text-decoration: underline; }
-.top h1 { margin: 0 auto 0 0; font-size: 1.45rem; letter-spacing: -.01em; white-space: nowrap; }
-.top .bar { flex-wrap: wrap; }
+.top h1 { margin: 0; font-size: 1.45rem; letter-spacing: -.01em; white-space: nowrap; }
 .top .opts { display: flex; align-items: center; gap: 5px; margin-left: auto; }
 .top .opt { display: inline-flex; align-items: center; gap: 3px; min-height: 34px; padding: 4px 9px; border: 1px solid rgba(255, 255, 255, .45);
             border-radius: 999px; background: rgba(255, 255, 255, .12); color: #fff; font-size: .78rem; cursor: pointer; white-space: nowrap; }

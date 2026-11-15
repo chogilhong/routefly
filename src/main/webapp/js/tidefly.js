@@ -222,9 +222,9 @@
     return SIZES[(i < 0 ? 1 : i + 1) % SIZES.length];   // 모르는 값은 보통으로 보고 그다음(크게)
   }
 
-  /** 순수 함수 - 지금 화면이 어두운지: 고른 것(dark · light)이 먼저, 없으면 기기 설정. */
-  function isDark(chosen, systemDark) {
-    return chosen === 'dark' || (chosen !== 'light' && !!systemDark);
+  /** 순수 함수 - 지금 화면이 어두운지: 밝은 모드를 고른 때만 밝게, 그 밖에는 늘 다크(2026-11-15 홍TV님 "기본으로 다크모드 로 해"). */
+  function isDark(chosen) {
+    return chosen !== 'light';
   }
 
   // ---------------------------------------------------------------- 영어 화면: 이름 · 까닭 옮기기
@@ -719,7 +719,6 @@
   var root = document.documentElement;
   var themeBtn = document.getElementById('theme'), sizeBtn = document.getElementById('size');
   var langBtns = document.querySelectorAll('.lang button');
-  var media = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
   var SIZE_NAME = { m: ['보통', 'normal'], l: ['크게', 'large'], xl: ['아주 크게', 'extra large'] };
 
   function paintFixed() {
@@ -737,7 +736,7 @@
 
   // 다크 · 밝은 모드, 글자 크기 단추(2026-11-15 홍TV님) - 고른 것은 이 기기에 기억(tf-theme · tf-size · tf-lang)
   function paintOptions() {
-    var dark = isDark(root.getAttribute('data-theme'), media && media.matches);
+    var dark = isDark(root.getAttribute('data-theme'));
     themeBtn.textContent = dark ? tr('☀ 밝은 모드', '☀ Light') : tr('🌙 다크모드', '🌙 Dark');
     themeBtn.setAttribute('aria-pressed', dark ? 'true' : 'false');
     var cur = root.getAttribute('data-size') || 'm', nx = nextSize(cur), li = lang === 'en' ? 1 : 0;
@@ -747,7 +746,7 @@
   }
 
   themeBtn.addEventListener('click', function () {
-    var next = isDark(root.getAttribute('data-theme'), media && media.matches) ? 'light' : 'dark';
+    var next = isDark(root.getAttribute('data-theme')) ? 'light' : 'dark';
     root.setAttribute('data-theme', next);
     save('tf-theme', next);
     paintOptions();
@@ -766,7 +765,6 @@
       draw();
     });
   });
-  if (media && media.addEventListener) media.addEventListener('change', paintOptions);
   qEl.addEventListener('input', draw);
   Array.prototype.forEach.call(document.querySelectorAll('.tabs button'), function (b) {
     b.addEventListener('click', function () {

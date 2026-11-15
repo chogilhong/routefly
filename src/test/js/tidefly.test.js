@@ -73,10 +73,10 @@ assert.strictEqual(TF.nextSize('m'), 'l');
 assert.strictEqual(TF.nextSize('l'), 'xl');
 assert.strictEqual(TF.nextSize('xl'), 'm');
 assert.strictEqual(TF.nextSize(null), 'l');
-assert.strictEqual(TF.isDark('dark', false), true);
-assert.strictEqual(TF.isDark('light', true), false);
-assert.strictEqual(TF.isDark(null, true), true);
-assert.strictEqual(TF.isDark(null, false), false);
+assert.strictEqual(TF.isDark('dark'), true);
+assert.strictEqual(TF.isDark('light'), false);
+assert.strictEqual(TF.isDark(null), true);   // 기본은 다크(2026-11-15 홍TV님) - 기기가 밝은 모드여도
+assert.strictEqual(TF.isDark(undefined), true);
 // 영어 화면(2026-11-15 홍TV님 "영어화면도 만들어줘")
 TF.setLang('en');
 assert.strictEqual(TF.roman('김녕'), 'gimnyeong');
