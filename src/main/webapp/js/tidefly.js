@@ -519,7 +519,7 @@
   // 2026-11-15 홍TV님 "처음에는 전부 접혀줘" - 펼친 지역 묶음만 기억 { 동해: true }(전에는 접은 것을 기억 tf-folded)
   var openAreas = loadPref('tf-open-areas', {});
   var openCard = {};                          // 펼친 카드(이 화면에서만)
-  var lastData = null;
+  var lastData = null, lastText = null;
 
   function loadPref(k, dflt) {
     try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : dflt; } catch (e) { return dflt; }
@@ -1086,11 +1086,16 @@
     clearTimeout(timer);
     fetch('api/tidefly', { cache: 'no-store' }).then(function (r) {
       if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.json();
-    }).then(function (data) {
-      lastData = data;
-      items = data.items || [];
-      draw();
+      return r.text();
+    }).then(function (text) {
+      var data = JSON.parse(text);
+      // 받은 것이 그대로면 다시 그리지 않음(2026-11-15 PC: 서버가 받는 중이면 10초마다 다시 그려, 그때 누른 단추가 한 번씩 안 먹었음)
+      if (text !== lastText) {
+        lastText = text;
+        lastData = data;
+        items = data.items || [];
+        draw();
+      }
       // 서버가 아직 받는 중이면 10초 뒤, 아니면 10분 뒤 다시(남은 시간 글은 1분마다 새로)
       timer = setTimeout(load, data.warming ? 10000 : 600000);
     }).catch(function () {
