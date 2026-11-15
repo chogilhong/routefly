@@ -670,20 +670,34 @@ public final class TideflyServlet extends HttpServlet {
         return spots;
     }
 
-    /** 찾기 이름: 포인트 · 자리 이름과 그 괄호 뺀 것, 자리 이름의 " · " 앞(지역) · 뒤(자리) - 모두 {@link #bare} 로. */
+    /** 찾기 이름(처음 한 번 만들어 기억) - {@link #names(java.util.Collection, JsonArray)}. */
     private java.util.Set<String> names() {
-        if (names == null) {
-            java.util.Set<String> out = new java.util.HashSet<>();
-            List<String> all = new ArrayList<>(points().keySet());
-            for (JsonElement e : spots()) all.add(e.getAsJsonObject().get("name").getAsString());
-            for (String n : all) {
-                out.add(bare(n));
-                for (String part : n.replaceAll("\\s*\\(.*?\\)", "").split(" · ")) if (bare(part).length() >= 2) out.add(bare(part));
-            }
-            names = out;
-        }
+        if (names == null) names = names(points().keySet(), spots());
         return names;
     }
+
+    /**
+     * 순수 함수 - 찾기 이름: 포인트 · 자리 이름과 그 괄호 뺀 것, 자리 이름의 " · " 앞(지역) · 뒤(자리), 자리 대상어의 고기 이름과 같은 고기 다른 이름(FISH_SAME) - 모두 {@link #bare} 로.
+     * 고기 이름은 2026-11-15 홍TV님 "어종으로 찾기" - 코스 모음 찾기에 "주꾸미" 를 치면 tidefly 로.
+     */
+    static java.util.Set<String> names(java.util.Collection<String> pointNames, JsonArray spots) {
+        java.util.Set<String> out = new java.util.HashSet<>();
+        List<String> all = new ArrayList<>(pointNames);
+        for (JsonElement e : spots) {
+            JsonObject s = e.getAsJsonObject();
+            all.add(s.get("name").getAsString());
+            if (s.has("fish")) for (String f : s.get("fish").getAsString().split(" · ")) if (bare(f).length() >= 2) out.add(bare(f));
+        }
+        for (String[] g : FISH_SAME) for (String f : g) if (out.contains(f)) for (String o : g) out.add(o);
+        for (String n : all) {
+            out.add(bare(n));
+            for (String part : n.replaceAll("\\s*\\(.*?\\)", "").split(" · ")) if (bare(part).length() >= 2) out.add(bare(part));
+        }
+        return out;
+    }
+
+    /** 같은 고기의 다른 이름 - js/tidefly.js 의 FISH_SAME 과 같음(둘 다 고침). */
+    static final String[][] FISH_SAME = {{"넙치", "광어"}, {"주꾸미", "쭈꾸미"}, {"우럭", "조피볼락"}, {"노래미", "쥐노래미"}, {"망둥어", "망둑어"}, {"학공치", "학꽁치"}, {"쏨뱅이", "쏨벵이"}};
 
     /** 순수 함수 - 찾기 말을 견줄 꼴로: 괄호 안 · 빈칸 · 문장 부호를 뺌("신암항(부산)" → "신암항", "가의도 · 남측" → "가의도남측"). js/tidefly.js 의 bare 와 같은 셈(둘 다 고침). */
     static String bare(String s) {

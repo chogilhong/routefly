@@ -192,6 +192,13 @@ assert.strictEqual(TF.alarmText(plan[1], '김녕', { sun: 60 }), '해 지기 60�
   const d = TF.spotItem(s, null, {});
   assert.strictEqual(d.mark, null);
   assert.strictEqual(TF.bare('가의도 · 남측(갯바위)'), '가의도남측');   // TideflyServlet.bare 와 같은 셈
+  // 어종으로 찾기(2026-11-15 홍TV님) - 자리 대상어
+  assert.strictEqual(TF.fishHit('감성돔 · 넙치 · 주꾸미', '주꾸미'), true);
+  assert.strictEqual(TF.fishHit('감성돔 · 넙치 · 주꾸미', '쭈꾸미'), true);    // 흔히 쓰는 표기
+  assert.strictEqual(TF.fishHit('감성돔 · 넙치', '광어'), true);               // 같은 고기 다른 이름
+  assert.strictEqual(TF.fishHit('감성돔 · 넙치', '갈치'), false);
+  assert.strictEqual(TF.fishHit('감성돔', '돔'), false);                        // 한 글자는 안 봄
+  assert.strictEqual(TF.fishHit('', '주꾸미'), false);
 }
 
 // 연안 출입통제구역 경고(2026-11-15) - data/tidefly-closed.json 실제 줄

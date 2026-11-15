@@ -99,6 +99,20 @@ public class SpotsTest {
         assertEquals("가의도남측", TideflyServlet.bare("가의도 · 남측(갯바위)"));
     }
 
+    /** 어종으로 찾기(2026-11-15 홍TV님) - 실제 자리 파일의 대상어로 코스 모음 찾기가 tidefly 로 감. */
+    @Test
+    public void 찾기는_자리_대상어_고기_이름도() throws Exception {
+        JsonArray spots = JsonParser.parseString(Files.readString(SpotsBuild.OUT, StandardCharsets.UTF_8)).getAsJsonArray();
+        Set<String> names = TideflyServlet.names(List.of("방포항"), spots);
+        assertEquals("주꾸미", TideflyServlet.find("주꾸미", names));
+        assertEquals("흔히 쓰는 표기", "쭈꾸미", TideflyServlet.find("쭈꾸미 낚시", names));
+        assertEquals("넙치", TideflyServlet.find("넙치", names));
+        assertEquals("광어", TideflyServlet.find("광어", names));
+        assertEquals("갑오징어", TideflyServlet.find("갑오징어", names));
+        assertNull("자리 자료에 없는 고기는 아님(공식 자료만)", TideflyServlet.find("갈치", names));
+        assertEquals("방포항", TideflyServlet.find("방포", names));
+    }
+
     @Test
     public void 코스_모음_찾기는_두_벌_모두_낚시_이름을_물음() throws Exception {
         for (String f : new String[] {"mountain.js", "mountain-en.js"}) {

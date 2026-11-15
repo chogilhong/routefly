@@ -407,6 +407,20 @@
     return String(s == null ? '' : s).replace(/\(.*?\)/g, '').replace(/[^0-9A-Za-z\uac00-\ud7a3]/g, '');
   }
 
+  /**
+   * 같은 고기의 다른 이름(2026-11-15 홍TV님 "어종으로 찾기") - 해양수산부 자리 자료에 둘 다 나오는 것 · 흔히 쓰는 표기. TideflyServlet.FISH_SAME 과 같음(둘 다 고침).
+   */
+  var FISH_SAME = [['넙치', '광어'], ['주꾸미', '쭈꾸미'], ['우럭', '조피볼락'], ['노래미', '쥐노래미'], ['망둥어', '망둑어'], ['학공치', '학꽁치'], ['쏨뱅이', '쏨벵이']];
+
+  /** 순수 함수 - 자리 대상어("감성돔 · 넙치 · 주꾸미")에 찾는 말(q)이 드는가. 다른 이름도(광어 → 넙치). q 는 두 글자 넘게. */
+  function fishHit(fish, q) {
+    var k = bare(q);
+    if (k.length < 2 || !fish) return false;
+    var keys = [k];
+    FISH_SAME.forEach(function (g) { if (g.indexOf(k) >= 0) keys = keys.concat(g); });
+    return String(fish).split(' · ').some(function (f) { return keys.some(function (x) { return f.indexOf(x) >= 0; }); });
+  }
+
   function spotItem(s, baseItem, marks) {
     var b = baseItem || {}, bp = b.point || {}, m = (marks || {})[s.id];
     var p = { name: s.name, lat: s.lat, lon: s.lon, boat: !!s.boat, spot: true, id: s.id, depth: s.depth, bottom: s.bottom, tideTime: s.tideTime, fish: s.fish,
@@ -442,7 +456,7 @@
   var TF = { kst: kst, dir16: dir16, swell: swell, nums: nums, markOf: markOf, markWord: markWord, nowKst: nowKst, dayName: dayName,
     tideTable: tideTable, goodDays: goodDays, moon: moon, sunSpan: sunSpan, hourLine: hourLine, untilText: untilText, nextTide: nextTide, curve: curve, nextSize: nextSize, isDark: isDark,
     setLang: setLang, roman: roman, placeName: placeName, zoneName: zoneName, reason: reason, mul: mul,
-    alarmPlan: alarmPlan, alarmText: alarmText, nearest: nearest, spotItem: spotItem, bare: bare, closedText: closedText };
+    alarmPlan: alarmPlan, alarmText: alarmText, nearest: nearest, spotItem: spotItem, bare: bare, fishHit: fishHit, closedText: closedText };
   if (typeof module !== 'undefined' && module.exports) module.exports = TF;
   if (typeof document === 'undefined') return;
 
@@ -741,7 +755,7 @@
     var shown = 0;
     function fits(it) {
       var p = it.point || {};
-      if (q && String(p.name).indexOf(q) < 0 && placeName(p.name).toLowerCase().indexOf(ql) < 0 && (!qb || bare(p.name).indexOf(qb) < 0)) return false;
+      if (q && String(p.name).indexOf(q) < 0 && placeName(p.name).toLowerCase().indexOf(ql) < 0 && (!qb || bare(p.name).indexOf(qb) < 0) && !(p.spot && fishHit(p.fish, q))) return false;   // 자리는 대상어로도(어종 찾기)
       if (kind === 'shore' && p.boat) return false;
       if (kind === 'boat' && !p.boat) return false;
       return true;
