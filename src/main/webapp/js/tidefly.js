@@ -279,9 +279,10 @@
     if (lang !== 'en' || !name) return name || '';
     var m = /^(.+?항)([북남동서]+)측?\((\d+)km\)$/.exec(name);
     if (m) return m[3] + ' km ' + Array.from(m[2]).map(function (c) { return COMPASS[c]; }).join('') + ' of ' + portName(m[1]);
-    m = /^(.+)(북부|남부|동부|서부)$/.exec(name);
+    m = /^(.+?)\s*(북부|남부|동부|서부)$/.exec(name);   // "안면도 북부" 처럼 빈칸이 있어도(자리 이름)
     if (m) return cap(roman(m[1])) + ' (' + { '북부': 'north', '남부': 'south', '동부': 'east', '서부': 'west' }[m[2]] + ')';
     if (/항$/.test(name)) return portName(name);
+    if (name.indexOf(' · ') > 0) return name.split(' · ').map(placeName).join(' · ');   // 갯바위 · 선상 자리 "안면도 북부 · 방포항방파제앞해상"(2026-11-15 PC: 뒤가 소문자 한 덩어리)
     var w = name.split(' ');
     // "울진 후정" - 군 · 시 이름이 앞에 오면 영어는 "Hujeong, Uljin"(2026-11-15 PC)
     if (w.length === 2) return cap(roman(w[1])) + ', ' + cap(roman(w[0]));
@@ -379,8 +380,17 @@
     return '⛔ ' + where + ': ' + names + ' (' + first.notice + tr(' - 해양경찰청 2023 자료, 현지 공고를 확인하세요)', ' - Korea Coast Guard 2023 data; check local notices)');
   }
 
+  /**
+   * 순수 함수 - 물때표 위 해 한 줄(첫날 → 끝날): "☀ 15일 07:11~17:26 → 29일 07:25~17:20". 폰 한 줄에 들게 짧게(2026-11-15 PC: 두 줄 · 영어 "Sun Sun 15").
+   */
+  function sunSpan(rows) {
+    if (!rows || !rows.length) return '';
+    var one = function (r) { return +String(r.date).slice(8) + tr('일 ', ': ') + String(r.sun).replace(' ~ ', '~'); };
+    return '☀ ' + one(rows[0]) + (rows.length > 1 ? ' → ' + one(rows[rows.length - 1]) : '');
+  }
+
   var TF = { kst: kst, dir16: dir16, swell: swell, nums: nums, markOf: markOf, markWord: markWord, nowKst: nowKst, dayName: dayName,
-    tideTable: tideTable, hourLine: hourLine, untilText: untilText, nextTide: nextTide, curve: curve, nextSize: nextSize, isDark: isDark,
+    tideTable: tideTable, sunSpan: sunSpan, hourLine: hourLine, untilText: untilText, nextTide: nextTide, curve: curve, nextSize: nextSize, isDark: isDark,
     setLang: setLang, roman: roman, placeName: placeName, zoneName: zoneName, reason: reason, mul: mul,
     alarmPlan: alarmPlan, alarmText: alarmText, nearest: nearest, spotItem: spotItem, bare: bare, closedText: closedText };
   if (typeof module !== 'undefined' && module.exports) module.exports = TF;
@@ -807,7 +817,7 @@
     wrap.appendChild(el('p', 'dim small', tr('주황 사리(물 많이 들고 빠짐 · 흐름 셈) · 보라 조금 · 무시(흐름 약함). 시각 뒤 높이 cm, ▲▼ 앞 물때와 차이.',
       'Orange: spring tide (big range, strong flow) · purple: neap (weak flow). Height in cm, ▲▼ change from the previous tide.')));
     // 해는 날마다 1 ~ 2분씩만 바뀌어 표 칸 대신 첫날 · 끝날 한 줄(2026-11-15 홍TV님 "날짜 등 줄일 수 있잖아" - 폰에서 간조 · 해 칸이 잘렸음)
-    if (rows.length) wrap.appendChild(el('p', 'dim small', tr('해 ', 'Sun ') + rows[0].day + ' ' + rows[0].sun + (rows.length > 1 ? ' → ' + rows[rows.length - 1].day + ' ' + rows[rows.length - 1].sun : '')));
+    if (rows.length) wrap.appendChild(el('p', 'dim small', sunSpan(rows)));
     var table = el('table', 'ttable'), head = el('tr');
     [[tr('날짜', 'Date'), 'c-date'], [tr('물때', 'Tide'), 'c-mul'], [tr('만조', 'High'), null], [tr('간조', 'Low'), null]].forEach(function (h) { head.appendChild(el('th', h[1], h[0])); });
     var thead = el('thead');
