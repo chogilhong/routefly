@@ -1,0 +1,1620 @@
+{
+ "top": [
+  "",
+  ""
+ ],
+ "tables": [
+  {
+   "cells": [
+    {
+     "row": 0,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 4,
+     "paras": [
+      "■ 수산자원관리법 시행령 [별표 2] <개정 2024. 6. 4.>"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 1,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 4,
+     "paras": [
+      "수산자원의 포획·채취금지 체장 또는 체중(제6조제2항 관련)"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 2,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 2,
+     "paras": [
+      "수산동식물"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 2,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "학명"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 2,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "포획·채취 금지 체장 또는 체중"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 3,
+     "col": 0,
+     "rowspan": 22,
+     "colspan": 1,
+     "paras": [
+      "1.",
+      "어류"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 3,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "가. 삭제 <2023. 11. 7.>"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 3,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 3,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 4,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "나. 문치가자미"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 4,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Pleuronectes yokohamae"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 4,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "20센티미터 이하. 다만, 2024년 6월 1일부터 2024년 12월 31일까지는 17센티미터 이하로 한다."
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 5,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "다. 참가자미"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 5,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Pleuronectes herzensteini"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 5,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "20센티미터 이하. 다만, 2024년 6월 1일부터 2024년 12월 31일까지는 17센티미터 이하로 한다."
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 6,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "라. 감성돔"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 6,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Acanthopagrus schlegelii"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 6,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "25센티미터 이하"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 7,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "마. 돌돔"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 7,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Oplegnathus fasciatus"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 7,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "24센티미터 이하"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 8,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "바. 참돔"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 8,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Pagrus major"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 8,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "24센티미터 이하"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 9,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "사. 삭제 <2023. 11. 7.>"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 9,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 9,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 10,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "아. 넙치"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 10,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Paralichthys olivaceus"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 10,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "35센티미터 이하"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 11,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "자. 농어"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 11,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Lateolabrax japonicus"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 11,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "30센티미터 이하"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 12,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "차. 대구"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 12,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Gadus macrocephalus"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 12,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "35센티미터 이하"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 13,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "카. 도루묵"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 13,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Arctoscopus japonicus"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 13,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "11센티미터 이하"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 14,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "타. 삭제 <2019. 1. 22.>"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 14,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 14,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 15,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "파. 민어"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 15,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Miichthys miiuy "
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 15,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "33센티미터 이하"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 16,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "하. 방어"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 16,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Seriola quinqueradiata"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 16,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "30센티미터 이하"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 17,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "거. 볼락"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 17,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Sebastes inermis"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 17,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "15센티미터 이하"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 18,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "너. 붕장어"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 18,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Conger myriaster"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 18,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "35센티미터 이하"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 19,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "더. 조피볼락"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 19,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Sebastes schlegelii"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 19,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "23센티미터 이하"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 20,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "러. 쥐노래미"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 20,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Hexagrammos otakii"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 20,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "20센티미터 이하"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 21,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "머. 삭제 <2023. 11. 7.>"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 21,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 21,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 22,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "버. 참홍어"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 22,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Raja pulchra"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 22,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "체반폭 42센티미터 이하"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 23,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "서. 갈치"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 23,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Trichiurus lepturus"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 23,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "항문장 18센티미터 이하. 다만, 갈치 어획량 중 해당 체장의 갈치를 20퍼센트 미만으로 포획·채취하는 경우는 제외한다."
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 24,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "어. 고등어"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 24,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Scomber japonicus"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 24,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "21센티미터 이하. 다만, 고등어 어획량 중 해당 체장의 고등어를 20퍼센트 미만으로 포획·채취하는 경우는 제외한다."
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 25,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 25,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "저. 참조기"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 25,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Larimichthys polyactis "
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 25,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "15센티미터 이하. 다만, 참조기 어획량 중 해당 체장의 참조기를 20퍼센트 미만으로 포획·채취하는 경우는 제외한다."
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 26,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 26,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "처. 말쥐치"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 26,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Thamnaconus modestus"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 26,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "18센티미터 이하"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 27,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 27,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "커. 갯장어"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 27,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Muraenesox cinereus"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 27,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "40센터미터 이하"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 28,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 28,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "터. 미거지"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 28,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Liparis ochotensis"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 28,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "40센티미터 이하"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 29,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 29,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "퍼. 용가자미"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 29,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Hippoglossoides pinetorum"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 29,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "20센티미터 이하. 다만, 2024년 6월 1일부터 2024년 12월 31일까지는 17센티미터 이하로 한다."
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 30,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 30,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "허. 기름가자미"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 30,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Glyptocephalus stelleri"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 30,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "20센티미터 이하. 다만, 2024년 6월 1일부터 2024년 12월 31일까지는 17센티미터 이하로 한다."
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 31,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 31,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "고. 청어"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 31,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Clupea pallasii"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 31,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "20센티미터 이하"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 32,
+     "col": 0,
+     "rowspan": 5,
+     "colspan": 1,
+     "paras": [
+      "2.",
+      "갑각류"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 32,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "가. 꽃게"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 32,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Portunus trituberculatus"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 32,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "6.4센티미터 이하"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 33,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "나. 대게"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 33,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Chionoecetes opilio"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 33,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "9센티미터 이하"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 34,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "다. 삭제 <2023. 11. 7.>"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 34,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 34,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 35,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "라. 삭제 <2023. 11. 7.>"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 35,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 35,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 36,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "마. 삭제 <2023. 11. 7.>"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 36,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 36,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 37,
+     "col": 0,
+     "rowspan": 6,
+     "colspan": 1,
+     "paras": [
+      "3.",
+      "패류"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 37,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "가. 삭제 <2023. 11. 7.>"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 37,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 37,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 38,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "나. 소라"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 38,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Batillus cornutus"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 38,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "각고 5센티미터. 이하",
+      "다만, 제주특별자치도 및 경상북도 울릉도·독도산은 각고 7센티미터 이하로 한다."
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 39,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "다. 마대오분자기    오분자기"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 39,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Sulculus diversicolor",
+      "diversicolor",
+      "Sulculus",
+      "diversicolor aquatilis"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 39,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "제주특별자치도산에 한정하여 각장 4센티미터 이하"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 40,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "라. 전복류"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 40,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Haliotis spp."
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 40,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "각장 7센티미터 이하 ",
+      "다만, 제주특별자치도산은 각장 10센티미터 이하로 한다."
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 41,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "마. 기수재첩"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 41,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Corbicula japonica"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 41,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "각장 1.5센티미터 이하"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 42,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "바. 키조개"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 42,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Atrina pectinata"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 42,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "부산광역시, 울산광역시, 강원특별자치도, 경상북도 및 경상남도산에 한정하여 각장 18센티미터 이하"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 43,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 43,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 43,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 43,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 44,
+     "col": 0,
+     "rowspan": 2,
+     "colspan": 1,
+     "paras": [
+      "4. ",
+      "기타"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 44,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "가. 대문어"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 44,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Octopus dofleini"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 44,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "600그램 이하"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 45,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "나. 살오징어"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 45,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Todarodes pacificus"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 45,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "외투장 15센티미터 이하. 다만, 살오징어 어획량 중 해당 체장의 살오징어를 20퍼센트 미만으로 포획·채취하는 경우는 제외한다."
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 46,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 46,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 46,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 46,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 47,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 4,
+     "paras": [
+      "비고",
+      "1. 수산동물의 종류별 체장은 부도와 같이 \"가\"와 \"나\" 사이의 직선거리를 잰 값으로 한다.",
+      "2. 수산동물의 종류별 체장 계측은 다음 각 목에 따른다.",
+      "  가. 어류: 전장(주둥이에서 꼬리지느러미 끝까지의 길이를 말한다), 체반폭(양쪽 가슴지느러미 사이의 너비를 말한다) 또는 항문장(주둥이에서 항문까지의 길이를 말한다)",
+      "  나. 갑각류: 두흉갑장(머리·가슴의 껍데기의 길이를 말한다)",
+      "  다. 패류: 각장(껍데기의 길이를 말한다) 또는 각고(껍데기의 높이를 말한다)",
+      "  라. 성게: 각경(몸체의 지름을 말한다)",
+      "  마. 오징어류: 외투장(외투막의 길이를 말한다)"
+     ],
+     "lvl": 2
+    }
+   ]
+  },
+  {
+   "cells": [
+    {
+     "row": 0,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 3,
+     "paras": [
+      "[부도] <개정 2016.2.3.>"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 1,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 3,
+     "paras": [
+      "수산동물의 종류별 체장 계측도"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 2,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 3,
+     "paras": [
+      "[ 어류 ]"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 3,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      ""
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 3,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 2,
+     "paras": [
+      ""
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 4,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 3,
+     "paras": [
+      ""
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 5,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 3,
+     "paras": [
+      "[ 갑각류 ]"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 6,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 3,
+     "paras": [
+      ""
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 7,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 3,
+     "paras": [
+      "[ 패류 ]"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 8,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 3,
+     "paras": [
+      ""
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 9,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 2,
+     "paras": [
+      "[ 성게 ]"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 9,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "[ 오징어류 ]"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 10,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 2,
+     "paras": [
+      ""
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 10,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      ""
+     ],
+     "lvl": 2
+    }
+   ]
+  }
+ ]
+}

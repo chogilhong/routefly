@@ -1,0 +1,1533 @@
+{
+ "top": [
+  "",
+  "[부도 2] 삭제 <2012.1.13>",
+  ""
+ ],
+ "tables": [
+  {
+   "cells": [
+    {
+     "row": 0,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 4,
+     "paras": [
+      "■ 수산자원관리법 시행령 [별표 1] <개정 2026. 6. 23.>"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 1,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 4,
+     "paras": [
+      "수산자원의 포획·채취 금지 기간·구역 및 수심(제6조제1항 관련)"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 2,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 2,
+     "paras": [
+      "수산자원"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 2,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "학명"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 2,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "포획·채취 금지 기간·구역 및 수심"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 3,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 2,
+     "paras": [
+      "1. 삭제 <2023. 11. 7.>"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 3,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 3,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 4,
+     "col": 0,
+     "rowspan": 9,
+     "colspan": 1,
+     "paras": [
+      "2.",
+      "어류"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 4,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "가. 삭제 <2023. 11. 7.>"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 4,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 4,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 5,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "나. 대구"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 5,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Gadus macrocephalus"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 5,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "1월 16일부터 2월 15일까지"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 6,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "다. 문치가자미"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 6,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Pleuronectes",
+      "yokohamae"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 6,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "12월 1일부터 다음 해 1월 31일까지"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 7,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "라. 연어"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 7,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Oncorhynchus keta"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 7,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "10월 1일부터 11월 30일까지"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 8,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "마. 전어"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 8,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Konosirus punctatus"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 8,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "5월 1일부터 7월 15일까지. 다만, 강원특별자치도 및 경상북도는 제외한다."
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 9,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "바. 쥐노래미"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 9,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Hexagrammos otakii"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 9,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "11월 1일부터 12월 31일까지. ",
+      "다만, 주3)의 해역에서는 11월 15일부터 12월 14일까지로 한다."
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 10,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "사. 참홍어"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 10,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Raja pulchra"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 10,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "6월 1일부터 7월 15일까지"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 11,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "아. 참조기"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 11,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Larimichthys polyactis"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 11,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "7월 1일부터 7월 31일까지(근해자망어업 중 유자망(유동성그물)을 사용하는 경우에는 4월 22일부터 8월 10일까지). 다만, 해당 기간 중 참조기를 어획량의 10퍼센트 미만으로 포획·채취하는 경우는 제외한다."
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 12,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "자. 갈치"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 12,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Trichiurus lepturus"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 12,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "북위 33도00분00초 이북(以北) 해역에 한정하여 7월 1일부터 7월 31일까지(근해채낚기어업 및 연안복합어업은 제외한다). 다만, 해당 구역에서 해당 기간 중 갈치를 어획량의 10퍼센트 미만으로 포획·채취하는 경우는 제외한다."
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 13,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 13,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "차. 고등어"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 13,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Scomber japonicus"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 13,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "4월 1일부터 6월 30일까지의 기간 중 1개월의 범위에서 해양수산부장관이 정하여 고시하는 기간. 다만, 해당 기간 중 고등어를 어획량의 10퍼센트 미만으로 포획·채취하는 경우는 제외한다."
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 14,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 14,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "카. 말쥐치"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 14,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Thamnaconus modestus"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 14,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "5월 1일부터 7월 31일까지. 다만, 정치망어업, 연안어업 및 구획어업은 6월 1일부터 7월 31일까지로 한다."
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 15,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 15,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "타. 옥돔"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 15,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Branchiostegus japonicus"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 15,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "7월 21일부터 8월 20일까지"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 16,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 16,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "파. 삭제 <2020. 9. 22.>"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 16,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 16,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 17,
+     "col": 0,
+     "rowspan": 3,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 17,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "하. 명태"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 17,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Theragra",
+      "chalcogramma"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 17,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "1월 1일부터 12월 31일까지"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 18,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "거. 삼치"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 18,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Scomberomorus niphonius"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 18,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "5월 1일부터 5월 31일까지"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 19,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "너. 감성돔"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 19,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Acanthopagrus schlegelii"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 19,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "5월 1일부터 5월 31일까지"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 20,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "3. ",
+      "갑각류"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 20,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "가. 꽃게"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 20,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Portunus",
+      "trituberculatus"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 20,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "6월 1일부터 9월 30일까지의 기간 중 2개월 이내의 범위에서 해양수산부장관이 정하여 고시한 기간.",
+      "해당 기간 중에 꽃게를 어획량의 5퍼센트 이상 포획·채취하지 않는 경우에는 외끌이대형저인망어업, 쌍끌이대형저인망어업, 동해구외끌이중형저인망어업, 서남해구외끌이중형저인망어업, 서남해구쌍끌이중형저인망어업, 대형트롤어업 및 근해안강망어업은 제외한다."
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 21,
+     "col": 0,
+     "rowspan": 2,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 21,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "나. 대게류(붉은 대게는 제외한다)"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 21,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Chionoecetes spp."
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 21,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "1) 6월 1일부터 11월 30일까지. ",
+      "  다만, 동경131도30분 이동수역은 6월 1일부터 10월 31일까지로 하고, 북위38도34분09.68초와 강원특별자치도 고성군 현내면 지경리 해안선의 교점, 북위38도34분09.69초와 동경128도30분06.89초의 교점, 북위38도33분09.69초와 동경128도30분06.89초의 교점, 북위38도33분09.69초와 강원특별자치도 고성군 현내면 저진리 해안선의 교점을 차례대로 연결한 선 안의 해역에서는 4월 1일부터 7월 20일까지, 10월 1일부터 11월 30일까지로 한다.",
+      "2) 주5) 및 주6)의 해역에서 3월 1일부터 4월 30일까지"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 22,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "다. 붉은대게"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 22,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Chionoecetes japonicus"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 22,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "7월 10일부터 8월 25일까지. ",
+      "다만, 강원특별자치도 연안자망어업은 6월 1일부터 7월 10일까지로 한다."
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 23,
+     "col": 0,
+     "rowspan": 2,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 23,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "라. 삭제 <2023. 11. 7.>"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 23,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 23,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 24,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "마. 삭제 <2023. 11. 7.>"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 24,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 24,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 25,
+     "col": 0,
+     "rowspan": 2,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 25,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "바. 대하"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 25,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Penaeus orientalis"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 25,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "5월 1일부터 6월 30일까지"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 26,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "사. 삭제 <2023. 11. 7.>"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 26,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 26,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 27,
+     "col": 0,
+     "rowspan": 3,
+     "colspan": 1,
+     "paras": [
+      "4.",
+      "패류"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 27,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "가. 삭제 <2023. 11. 7.>"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 27,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 27,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 28,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "나. 새조개"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 28,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Fulvia mutica"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 28,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "6월 16일부터 9월 30일까지. ",
+      "다만, 부산광역시, 울산광역시, 경상남도, 전남광주통합특별시(무안군과 영광군은 제외한다) 및 제주특별자치도는 6월 1일부터 9월 30일까지로 한다."
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 29,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "다. 소라"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 29,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Batillus cornutus"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 29,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "전남광주통합특별시 여수시 삼산면은 6월 1일부터 6월 30일까지, 제주특별자치도(제주특별자치도 제주시 추자면 추자도는 제외한다)는 6월 1일부터 8월 31일까지, 제주특별자치도 제주시 추자면 추자도는 7월 1일부터 8월 31일까지, 경상북도 울릉군 울릉도와 독도는 6월 1일부터 7월 31일까지"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 30,
+     "col": 0,
+     "rowspan": 4,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 30,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "라. 전복류"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 30,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Haliotis spp."
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 30,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "9월 1일부터 10월 31일까지. ",
+      "다만, 제주특별자치도는 10월 1일부터 12월 31일까지로 한다."
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 31,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "마. 코끼리조개"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 31,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Panopea japonica"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 31,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "강원특별자치도와 경상북도에 한정하여 5월 1일부터 6월 30일까지"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 32,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "바. 키조개"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 32,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Atrina pectinata"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 32,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "7월 1일부터 8월 31일까지"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 33,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "사. 가리비"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 33,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Patinopecten",
+      "yessoensis"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 33,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "주7)의 해역에서 3월 1일부터 6월 30일까지"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 34,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 34,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "아. 오분자기"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 34,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Sulculus diversicolor"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 34,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "제주특별자치도에 한정하여 7월 1일부터 8월 31일까지"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 35,
+     "col": 0,
+     "rowspan": 3,
+     "colspan": 1,
+     "paras": [
+      "5.",
+      "해조류"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 35,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "가. 넓미역"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 35,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Undariopsis peterseniana"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 35,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "제주특별자치도에 한정하여 9월 1일부터 11월 30일까지. 다만, 제주특별자치도지사가 5월 1일부터 11월 30일까지의 기간 중 3개월 이상의 기간을 따로 정하여 고시하는 경우에는 해당 기간으로 한다."
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 36,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "나. 우뭇가사리"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 36,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Gelidium amansii"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 36,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "11월 1일부터 다음 해 3월 31일까지"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 37,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "다. 톳"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 37,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Hizikia fusiformis"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 37,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "10월 1일부터 다음 해 1월 31일까지"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 38,
+     "col": 0,
+     "rowspan": 3,
+     "colspan": 1,
+     "paras": [
+      "6. 그 밖의 수산자원"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 38,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "가. 해삼"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 38,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Stichopus japonicus"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 38,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "7월 1일부터 7월 31일까지"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 39,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "나. 살오징어"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 39,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Todarodes pacificus"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 39,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "4월 1일부터 5월 31일까지(근해채낚기어업과 연안복합어업 및 정치망어업은 4월 1일부터 4월 30일까지) "
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 40,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "다. 낙지"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 40,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Octopus minor"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 40,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "6월 1일부터 6월 30일까지. 다만, 시·도지사가 4월 1일부터 9월 30일까지의 기간 중 1개월 이상의 기간을 지역별로 따로 정하여 고시하는 경우에는 해당 기간으로 한다."
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 41,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 41,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "라. 주꾸미"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 41,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Amphioctopus fangsiao"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 41,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "5월 11일부터 8월 31일까지"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 42,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 42,
+     "col": 1,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "마. 참문어"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 42,
+     "col": 2,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "Octopus vulgaris"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 42,
+     "col": 3,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "5월 16일부터 6월 30일까지. 다만, 시·도지사가 5월 1일부터 9월 15일까지의 기간 중 46일 이상의 기간을 지역별로 따로 정하여 고시하는 경우에는 해당 기간으로 한다."
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 43,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 4,
+     "paras": [],
+     "lvl": 2
+    },
+    {
+     "row": 44,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 4,
+     "paras": [
+      "주1) 삭제 <2023. 11. 7.>",
+      "주2) 삭제 <2023. 11. 7.>",
+      "주3) 다음 좌표를 차례대로 연결한 선 안의 해역(부도 1 참조)",
+      " 가. 북위37도59분39.84초, 동경124도35분53.20초",
+      " 나. 북위37도59분39.84초, 동경124도39분53.18초",
+      " 다. 북위37도59분09.84초, 동경124도39분53.18초",
+      " 라. 북위37도59분09.84초, 동경124도39분53.18초에서 백령도 동쪽 끝 정동해상 800미터의 점에 이르는 백령도 북동쪽 해안선으로부터 800미터의 선",
+      " 마. 소청도의 동쪽 끝 정동해상 1마일의 점",
+      " 바. 북위37도43분09.96초, 동경124도47분17.15초",
+      " 사. 북위37도35분10.01초, 동경124도47분17.15초",
+      " 아. 북위37도35분10.00초, 동경124도19분53.30초",
+      " 자. 북위37도40분09.97초, 동경124도19분53.30초",
+      " 차. 북위37도40분09.97초, 동경124도09분53.36초",
+      " 카. 북위37도55분09.86초, 동경124도09분53.35초",
+      " 타. 북위37도55분09.87초, 동경124도24분53.27초",
+      " 파. 북위37도58분29.84초, 동경124도24분53.27초",
+      " 하. 북위37도58분29.85초, 동경124도35분53.20초",
+      " 거. 북위37도59분39.84초, 동경124도35분53.20초",
+      "주4) 삭제 <2012.1.13>",
+      "주5) 다음 좌표를 차례대로 연결한 선 안의 해역(부도 3 참조)",
+      " 가. 북위36도44분, 동경129도48분",
+      " 나. 북위36도44분, 동경129도51분",
+      " 다. 북위36도41분, 동경129도48분",
+      " 라. 북위36도41분, 동경129도51분",
+      "주6) 다음 좌표를 차례대로 연결한 선 안의 해역(부도 3 참조)",
+      " 가. 북위36도29분, 동경129도48분",
+      " 나. 북위36도29분, 동경129도51분",
+      " 다. 북위36도26분, 동경129도48분",
+      " 라. 북위36도26분, 동경129도51분",
+      "주7) 다음 좌표를 차례대로 연결한 선 안의 해역",
+      " 가. 북위36도04분10.74초, 동경129도24분51.72초",
+      " 나. 북위36도04분10.75초, 동경129도34분51.66초",
+      " 다. 북위36도09분10.71초, 동경129도24분51.71초",
+      " 라. 북위36도09분10.71초, 동경129도34분51.66초"
+     ],
+     "lvl": 2
+    },
+    {
+     "row": 45,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 4,
+     "paras": [
+      ""
+     ],
+     "lvl": 2
+    }
+   ]
+  },
+  {
+   "cells": [
+    {
+     "row": 0,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "[부도 1]"
+     ],
+     "lvl": 4
+    },
+    {
+     "row": 1,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      ""
+     ],
+     "lvl": 4
+    },
+    {
+     "row": 283,
+     "col": 283,
+     "rowspan": 283,
+     "colspan": 283,
+     "paras": [
+      "거."
+     ],
+     "lvl": 8
+    }
+   ]
+  },
+  {
+   "cells": [
+    {
+     "row": 0,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "[부도 3]"
+     ],
+     "lvl": 4
+    },
+    {
+     "row": 1,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      "대게포획 금지구역도"
+     ],
+     "lvl": 4
+    },
+    {
+     "row": 2,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [
+      ""
+     ],
+     "lvl": 4
+    },
+    {
+     "row": 3,
+     "col": 0,
+     "rowspan": 1,
+     "colspan": 1,
+     "paras": [],
+     "lvl": 4
+    }
+   ]
+  }
+ ]
+}
