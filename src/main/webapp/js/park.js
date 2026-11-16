@@ -964,7 +964,7 @@
         ownerP.then(function (own) {
             if (!own || !row.isConnected) return;   // 그 사이 다른 길을 골라 칸이 바뀌었으면 넣지 않음
             var p = document.createElement("div"), a = document.createElement("a");
-            p.className = "tip";
+            p.className = "tip studio";
             a.href = "studio.html" + followHref.slice(followHref.indexOf("#"));
             a.textContent = "📐 이 길을 GPX 편집으로 - 다듬어 코스로 올리기";
             p.appendChild(a);
