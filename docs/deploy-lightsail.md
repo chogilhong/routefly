@@ -608,6 +608,16 @@ sudo systemctl enable --now routefly-course.timer
 systemctl list-timers 'routefly-*'               # 두 타이머(:07 · :37)
 ```
 
+PC PowerShell 에서 ssh 로 한 번에(2026-11-16 이렇게 켬). 바깥은 작은따옴표, 안쪽 작은따옴표는 `''` 두 개로 적습니다.
+ssh 로 보내는 한글은 깨져서 Description 은 영문으로 둡니다.
+
+```powershell
+$k = "<키.pem>"; $h = "ubuntu@<고정 IP>"
+ssh -i $k $h 'sudo sed -e ''s/--once$/--once=courseImport/'' -e ''s/^Description=.*/Description=routefly-batch courseImport only/'' /etc/systemd/system/routefly-batch.service | sudo tee /etc/systemd/system/routefly-course.service >/dev/null && grep -n ExecStart /etc/systemd/system/routefly-course.service'
+ssh -i $k $h 'printf ''[Unit]\nDescription=routefly-batch courseImport at :37\n\n[Timer]\nOnCalendar=*-*-* *:37:00\nPersistent=true\n\n[Install]\nWantedBy=timers.target\n'' | sudo tee /etc/systemd/system/routefly-course.timer >/dev/null'
+ssh -i $k $h 'sudo systemctl daemon-reload && sudo systemctl enable --now routefly-course.timer && systemctl list-timers ''routefly-*'''
+```
+
 ### 9-4. 배치를 고쳤을 때
 
 ```
