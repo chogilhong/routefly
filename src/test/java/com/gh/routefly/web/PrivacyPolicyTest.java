@@ -33,7 +33,8 @@ public class PrivacyPolicyTest {
             // 코스 들머리(c.lat[0] · c.lon[0] - 공개된 코스 자료)는 괜찮음: 방침 "날씨 · 안전 … 코스 들머리 좌표로"(2026-10-18 오늘의 산행 안전)
             if (line.contains("\"api/") && line.matches(".*\\b(lat|lon|coords|latitude|longitude)\\b.*") && !line.contains("bb.map")
                     && !line.contains("(+c.lat[0]).toFixed(4) + \"&lon=\" + (+c.lon[0]).toFixed(4)")
-                    && !line.contains("fetch(\"api/rain?lat=\" + cc[0].toFixed(4) + \"&lon=\" + cc[1].toFixed(4))")) {   // 걷는 중 비구름 - 5km 칸 가운데(아래에서 확인, 2026-11-14)
+                    && !line.contains("fetch(\"api/rain?lat=\" + cc[0].toFixed(4) + \"&lon=\" + cc[1].toFixed(4))")
+                    && !line.contains("fetch(\"api/safety?lat=\" + cc[0].toFixed(4) + \"&lon=\" + cc[1].toFixed(4))")) {   // 걷는 중 90분마다 특보 · 산불 - 같은 5km 칸 가운데(2026-11-16 점검 11차 E2)   // 걷는 중 비구름 - 5km 칸 가운데(아래에서 확인, 2026-11-14)
                 fail("hike.js 가 위치를 api 주소에 넣는 것 같음: " + line.trim());
             }
         }

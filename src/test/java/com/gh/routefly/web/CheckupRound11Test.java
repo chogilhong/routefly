@@ -229,4 +229,15 @@ public class CheckupRound11Test {
         assertTrue("잇기는 멀면 막음", st.contains("box.querySelector(\".tok\").disabled = far;") && st.contains("if (!preview || preview.far) return;"));
         assertTrue("올리기 전 확인", st.contains("if (jump.m > RF.JOIN_GAP_M) {"));
     }
+
+    /** E1 · E3 · E4 - 저장 지키기 부탁 · 하산 시각 알림 강제 · 무사히 문자(E2 · E5 는 review11.test.js). */
+    @Test
+    public void 따라가기_제안_E() throws Exception {
+        String js = read("src/main/webapp/js/hike.js");
+        assertTrue("E1", js.contains("navigator.storage.persist().then(function (kept) {"));
+        assertTrue("E3", js.contains("say(a.text, { urgent: true, force: true });"));
+        assertTrue("E4", js.contains("safe.className = \"safeSms\";") && !js.substring(js.indexOf("safe.href = "), js.indexOf("safe.textContent")).contains("lat"));
+        assertTrue("E2 · E5 부름", js.contains("safetyRecheck(co.latitude, co.longitude); mapSavedCheck(co.latitude, co.longitude);"));
+        assertTrue("E2 방침", read("src/main/webapp/privacy.html").contains("90분마다 다시 보는 특보 · 산불위험도 같은 칸 가운데로"));
+    }
 }

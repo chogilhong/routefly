@@ -865,7 +865,8 @@
         said.forEach(function (a) {
             ruleSaid[a.key] = true;
             toast("⏰ " + a.text, 10000);
-            say(a.text);
+            say(a.text, { urgent: true, force: true });   // 하산 시각 · 입산 통제는 음성을 꺼 두었어도 · 다른 말을 끊고(점검 11차 E3)
+            if (navigator.vibrate) navigator.vibrate([300, 150, 300]);
         });
         if (said.length) save();   // 알린 것도 산행 저장분에 - 새로 고침 · 이어서 뒤 같은 알림을 되풀이하지 않게(2026-11-02 홍TV님 점검)
     }, 30000);
@@ -2597,6 +2598,8 @@
         hike.sun60 = false;
         hike.rainT = 0;          // 🌧 걷는 중 비구름 - 마지막으로 물은 시각 · 앞서 본 것(2026-11-14 홍TV님 "작업해줘")
         hike.rainLast = null;
+        hike.safeT = 0; hike.safeLast = null;   // 산행 중 안전 다시 보기(E2)
+        hike.mapSavedT = 0;
         // 귀가 확인 - 표준 시간의 1.5배(적어도 1시간 더)가 지나도록 못 끝내면 알림, 그 뒤 한 시간마다(2026-10-14 홍TV님). 위치는 보내지 않음
         hike.lateAt = sim ? 0 : RF.lateAt(hike.start, RF.legMs(c, 0, c.total));
         hike.lateNext = hike.lateAt;
@@ -2770,6 +2773,7 @@
     function stopHike() {
         if (!hike.running) return;
         hike.running = false;
+        $("mapSaved").hidden = true;
         stopTalking();
         if (hike.watch != null) navigator.geolocation.clearWatch(hike.watch);
         if (hike.bgWatch != null && BG) Promise.resolve(BG.removeWatcher({ id: hike.bgWatch })).catch(function () { /* 이미 멈춤 */ });
@@ -2947,6 +2951,53 @@
         }).catch(function () { /* 신호 없음 - 다음 차례에 */ });
     }
 
+    /**
+     * 긴 산행 중 특보 · 산불위험 다시 보기(2026-11-16 홍TV님 "전부 작업해" - 점검 11차 E2): 코스를 열 때 한 번만 봤음.
+     * 90분마다 약 5km 고정 칸 가운데(rainCheck 와 같음 - 내 위치는 보내지 않음)로 api/safety, 새로 생긴 경고만 알림 · 음성 · 진동.
+     */
+    var SAFE_EVERY_MS = 90 * 60000;
+    function safetyRecheck(lat, lon) {
+        var t = Date.now();
+        if (!hike.safeT) { hike.safeT = t; return; }   // 출발 때는 코스를 열며 이미 봄 - 90분 뒤부터
+        if (t - hike.safeT < SAFE_EVERY_MS) return;
+        hike.safeT = t;
+        var my = loadSeq, cc = RF.cellCenter(lat, lon);
+        fetch("api/safety?lat=" + cc[0].toFixed(4) + "&lon=" + cc[1].toFixed(4)).then(function (x) { return x.json(); }).then(function (j) {
+            if (my !== loadSeq || !hike.running || !j || !j.success) return;
+            var msg = RF.safetyAlert(Object.assign({}, j, { rain: null, uv: null }), Date.now(), EN);   // 비는 rainCheck, 자외선은 산행 중 알림까지는 아님
+            if (!msg || msg === hike.safeLast) return;
+            hike.safeLast = msg;
+            toast(msg, 12000);
+            say(EN ? "Safety update. " + msg.replace(/^⛑️ /, "") : "산행 안전 알림입니다. " + msg.replace(/^⛑️ /, ""), { urgent: true });
+            if (navigator.vibrate) navigator.vibrate([300, 150, 300]);
+        }).catch(function () { /* 신호 없음 - 다음 차례에 */ });
+    }
+
+    /**
+     * 걷는 중 "이 자리 지도 저장됨 / 안 됨"(점검 11차 E5, 2026-11-16 홍TV님 "전부 작업해") - 오프라인 저장한 코스일 때만, 2분마다
+     * 지금 자리의 z12 지도 칸(저장 범위는 늘 z12 까지 담음 - offlinePlan)이 저장소에 있는지 봄. 서버에 묻지 않음.
+     */
+    var MAP_SAVED_EVERY_MS = 120000;
+    function mapSavedCheck(lat, lon) {
+        var t = Date.now(), el = $("mapSaved");
+        if (t - (hike.mapSavedT || 0) < MAP_SAVED_EVERY_MS || !map || !("caches" in window)) return;
+        hike.mapSavedT = t;
+        if (offlineIds().indexOf(c.id) < 0) { el.hidden = true; return; }
+        var style = map.getStyle(), urls = [];
+        Object.keys(style.sources).forEach(function (k) {
+            var src = style.sources[k], used = style.layers.filter(function (l) { return l.source === k; });
+            if (!src.tiles || !src.tiles[0] || src.type !== "raster" || (used.length && used.every(function (l) { return l.layout && l.layout.visibility === "none"; }))) return;
+            urls = urls.concat(tileUrls(src.tiles[0], 12, 12, [lon, lat, lon, lat]));
+        });
+        if (!urls.length) return;
+        caches.open(OFFLINE_CACHE).then(function (cache) { return Promise.all(urls.map(function (u) { return cache.match(u); })); }).then(function (hits) {
+            var ok = hits.every(Boolean);
+            el.className = ok ? "" : "no";
+            el.textContent = ok ? T("📥 이 자리 지도 저장됨", "📥 Map saved here") : T("⚠️ 이 자리 지도는 저장 안 됨", "⚠️ Map not saved here");
+            el.hidden = false;
+        }).catch(function () { /* 모름 - 그대로 */ });
+    }
+
     // GPS 칸은 누르는 단추이기도 함(배터리 절약 · 시험 빠르기) - 키보드로도(점검 11차 D4)
     $("gps").addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); this.click(); } });
     /** GPS 칸 - 화면 읽기(role=status)는 좋음 · 약함이 바뀔 때만, ±m 숫자는 읽지 않는 칸에(점검 11차 D3: 위치마다 "GPS ±7m" 를 되풀이해 읽었음). */
@@ -3002,7 +3053,7 @@
         }
         addTrack(co.latitude, co.longitude, t, co.altitude, hike.sim ? null : acc);
         if (!hike.sim) stampCheck(co.latitude, co.longitude, acc);
-        if (!hike.sim) rainCheck(co.latitude, co.longitude);   // 🌧 10분마다 지금 자리 둘레 비구름(위치가 올 때 - 화면이 꺼져도 앱은 위치가 옴)   // 국토종주 인증센터 · 100대 명산 정상 도장(실제 GPS 만)
+        if (!hike.sim) { rainCheck(co.latitude, co.longitude); safetyRecheck(co.latitude, co.longitude); mapSavedCheck(co.latitude, co.longitude); }   // 🌧 10분마다 지금 자리 둘레 비구름(위치가 올 때 - 화면이 꺼져도 앱은 위치가 옴)   // 국토종주 인증센터 · 100대 명산 정상 도장(실제 GPS 만)
         var s = RF.snap(c, co.latitude, co.longitude, hike.lastFix ? hike.d : null);
         var dtFix = hike.lastFix ? Math.max(0, t - hike.lastFix) / 1000 : null;
         hike.lastFix = t;
@@ -3055,6 +3106,15 @@
             var endPoi = c.pois.filter(function (q) { return +q.dist_m > c.total - 60 && +q.off_route_m < 60; }).pop();
             var fin = hike.paceFin = paceFinal();   // 지난번과 견준 도착 시간(2026-10-16 PC: 도착하면 옆 글이 사라져 결과를 못 봄)
             $("arrived").textContent = "🎉 " + (endPoi ? NM(endPoi.name) + " " : "") + T("도착! ", "- you made it! ") + km(c.total) + "km · " + hhmmss(now() - hike.start) + (fin ? " · " + fin : "");
+            // 가족에게 "무사히 내려왔어요" 한 번 누르기(점검 11차 E4, 2026-11-16 홍TV님 "전부 작업해") - 문자 앱만 열고 보내기는 내가, 위치는 넣지 않음
+            var safe = document.createElement("a"), done = clock(now());
+            safe.className = "safeSms";
+            safe.href = "sms:" + (/iPhone|iPad/.test(navigator.userAgent) ? "&" : "?") + "body=" + encodeURIComponent(EN
+                ? "[routefly] Finished my hike safely - " + NM(c.course.name) + " (" + km(c.total) + " km, " + done + ")."
+                : "[routefly] 산행을 무사히 마쳤습니다 - " + c.course.name + "(" + km(c.total) + "km, " + done + ").");
+            safe.textContent = T("📱 가족에게 \"무사히 내려왔어요\" 문자", "📱 Text family \"I'm down safely\"");
+            $("arrived").appendChild(document.createElement("br"));
+            $("arrived").appendChild(safe);
             $("arrived").style.display = "block";
             if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
             if (EN) say("You have arrived" + (endPoi ? " at " + NM(endPoi.name) : "") + ". " + skm(c.total) + " kilometers, " + spokenTime(now() - hike.start)
@@ -5119,6 +5179,13 @@
                 return;
             }
             btn.textContent = T("✅ 저장됨", "✅ Saved");
+            // 브라우저가 저장 공간이 모자랄 때 지우지 않게 부탁(점검 11차 E1) - 안 들어주면 아이폰 사파리는 7일 넘게 안 열면 지울 수 있어 한 번 알림
+            if (navigator.storage && navigator.storage.persist) navigator.storage.persist().then(function (kept) {
+                if (kept || !/iPhone|iPad/.test(navigator.userAgent) || lsGet("rf-ios-keep")) return;
+                try { localStorage.setItem("rf-ios-keep", "1"); } catch (e) { /* 이번만 */ }
+                setTimeout(function () { toast(T("아이폰 사파리는 이 사이트를 7일 넘게 열지 않으면 저장한 지도를 지울 수 있습니다. 산행 전날 한 번 열어 확인해 주세요(홈 화면에 추가하면 덜 지웁니다).",
+                    "Safari on iPhone may delete saved maps if this site is not opened for 7 days. Open it once the day before your hike (adding it to the Home Screen helps)."), 10000); }, 6500);
+            }).catch(function () { /* 모름 */ });
             var saved = offlineIds();
             if (saved.indexOf(id) < 0) { saved.push(id); setOfflineIds(saved); }
             setOfflineName(id, meta);

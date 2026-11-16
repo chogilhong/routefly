@@ -19,7 +19,7 @@ public class RainWalkTest {
     public void hikeChecksRainWhileRecording() throws Exception {
         String js = read("src/main/webapp/js/hike.js");
         int onFix = js.indexOf("    function onFix(pos) {");
-        assertTrue("위치가 올 때(실제 GPS 만)", js.indexOf("if (!hike.sim) rainCheck(co.latitude, co.longitude);", onFix) > onFix);
+        assertTrue("위치가 올 때(실제 GPS 만)", js.indexOf("if (!hike.sim) { rainCheck(co.latitude, co.longitude);", onFix) > onFix);
         assertTrue("10분 간격 · 가벼운 /api/rain", js.contains("var RAIN_EVERY_MS = 600000;") && js.contains("fetch(\"api/rain?lat=\""));
         assertTrue("산행마다 처음부터", js.contains("hike.rainT = 0;") && js.contains("hike.rainLast = null;"));
         assertTrue("알림 · 음성", js.contains("RF.rainNews(hike.rainLast, j.rain, EN)") && js.contains("say(news.voice, { key: \"rain\""));

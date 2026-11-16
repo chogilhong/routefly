@@ -310,6 +310,9 @@ html.rfwait body { visibility:hidden; }   /* 앱을 처음 열 때 서버에 닿
 .noteRow .nt { flex:1; min-width:0; font-size:14px; line-height:1.5; white-space:pre-wrap; word-break:break-word; }
 .noteRow .nt small { display:block; color:var(--dim); font-size:12px; }
 #notesSheet { z-index:31; }
+#mapSaved { position:absolute; left:10px; bottom:12px; z-index:2; padding:4px 10px; border-radius:12px; background:rgba(17,22,29,0.85); color:#d0d7de; font-size:12px; pointer-events:none; }
+#mapSaved.no { color:#ffd8a8; }
+#arrived .safeSms { display:inline-flex; align-items:center; min-height:44px; margin-top:6px; color:#fff; font-weight:bold; text-decoration:underline; }   /* 가족에게 무사히 문자(점검 11차 E4) */
 /* 동작 줄이기 설정(점검 11차 D4) - 나침반 · 화살표 · 이름표 움직임 없이 */
 @media (prefers-reduced-motion: reduce) { #compass .needle, #offroute .arrow, .poi { transition:none !important; } }
 /* 화면 읽기에만(점검 11차 D3) - 벗어난 순간 한 번 · GPS 상태가 바뀔 때만 읽고, 1초마다 바뀌는 거리 · ±m 는 읽지 않음 */
@@ -382,6 +385,7 @@ html.picking #pick { display:flex; }
 <div id="partyBar" role="region" aria-label="산악회 방" data-en-aria-label="Hiking club room" hidden><div id="pbText"></div><div id="pbBtns"></div></div>
 
 <div id="mapWrap" role="main">   <!-- 주요 칸 표시(2026-11-03 홍TV님 점검 - 화면 읽기의 "주요 내용으로") -->
+    <div id="mapSaved" hidden></div><!-- 이 자리 지도 오프라인 저장됨 · 안 됨(점검 11차 E5) -->
     <div id="map"></div>
     <div id="offroute"><span class="arrow" id="guideArrow"><svg viewBox="0 0 24 24" width="30" height="30"><path d="M12 2 L20 20 L12 15.5 L4 20 Z" fill="#fff" stroke="#7a0000" stroke-width="1.2" stroke-linejoin="round"/></svg></span><span class="otxt"><span id="offText"></span><span id="offLive" class="vh" role="alert"></span><button type="button" id="navBtn" data-en="🚗 Directions to the start">🚗 출발점 길찾기</button></span></div>
     <div id="turn" role="status" aria-live="polite"></div>
