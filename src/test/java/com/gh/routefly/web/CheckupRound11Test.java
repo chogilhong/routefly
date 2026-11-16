@@ -228,6 +228,7 @@ public class CheckupRound11Test {
         String st = read("src/main/webapp/js/studio.js");
         assertTrue("잇기는 멀면 막음", st.contains("box.querySelector(\".tok\").disabled = far;") && st.contains("if (!preview || preview.far) return;"));
         assertTrue("올리기 전 확인", st.contains("if (jump.m > RF.JOIN_GAP_M) {"));
+        assertTrue("길이 없으면 이름 칸 비움", st.contains("if (!c) $(\"name\").value = \"\";"));
         assertTrue("가까운 끝끼리 저절로(뒤집기 · 앞에)", st.contains("var pl = RF.joinPlan(c.track, tracks[+jw.value].track), far = pl.gap > RF.JOIN_GAP_M;") && !st.contains("붙일 길을 뒤집어서(끝 → 처음)"));
     }
 

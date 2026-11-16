@@ -336,6 +336,7 @@
         var c = cur();
         $("selSec").hidden = $("toolSec").hidden = $("saveSec").hidden = !c;
         toolsOff(!c);
+        if (!c) $("name").value = "";   // 마지막 길을 뺀 뒤 이름이 남지 않게(2026-11-16 PC 확인)
         if (c) {
             if (document.activeElement !== $("name")) $("name").value = c.name;
             var st = RF.trackStats(c.track);
