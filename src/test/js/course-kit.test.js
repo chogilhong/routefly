@@ -2025,3 +2025,12 @@ eq("favJoinExtra 제목이 없으면 지금 이름의 길", [RF.favJoinExtra("#c
         [true, undefined, true, Infinity]);
     eq("점 · 선분 거리(px)", [RF.pxToLine({ x: 5, y: 3 }, [{ x: 0, y: 0 }, { x: 10, y: 0 }]), RF.pxToLine({ x: 13, y: 4 }, [{ x: 0, y: 0 }, { x: 10, y: 0 }]), RF.pxToLine({ x: 1, y: 1 }, [{ x: 1, y: 2 }])], [3, 5, 1]);
 })();
+
+// 지리산 안내도에서 뺀 다른 자료 코스(2026-11-16 홍TV님 "지리산 안내도에서 빼") - 제석봉 1코스(유암폭포 → 천왕봉 아래, 공단 탐방로에 없는 길)
+(function () {
+    var fs = require("fs"), path = require("path");
+    var notes = JSON.parse(fs.readFileSync(path.join(__dirname, "../../main/webapp/data/park-notes.json"), "utf8")).parks;
+    eq("park-notes hide - 제석봉 1코스만(2코스 · 공단 탐방로는 그대로)", [RF.isHiddenCourse(notes, "kmp-5383010669-1"), RF.isHiddenCourse(notes, "kmp-5383010669-2"), RF.isHiddenCourse(notes, "knps-1014-d8b5dbc7")], [true, false, false]);
+    var park = fs.readFileSync(path.join(__dirname, "../../main/webapp/js/park.js"), "utf8");
+    eq("안내도는 다른 자료 코스도 hide 를 보고 메움(gapFill) 전에 뺌", /data\.others = \(data\.others \|\| \[\]\)\.filter\(function \(o\) \{ return !RF\.isHiddenCourse\(noteAll, o\.id\); \}\);\s*\n\s*var extras = RF\.gapFill\(/.test(park), true);
+})();

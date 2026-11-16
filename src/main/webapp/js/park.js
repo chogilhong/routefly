@@ -633,6 +633,8 @@
         // 갈림길에서 자른 작은 구간(주능선 노고단고개 → 천왕봉을 장터목 · 세석 · 벽소령 … 에서) - 고르기 · 그리기는 이것으로
         // 이름 없는 탐방로 조각(무등산)은 갈림길 사이로 이어 이름을 붙인 뒤 자름
         // 공단 자료에 빠진 길(설악산 소공원 → 비선대 → 천불동 …)은 다른 자료 등산 코스로 메움(옅은 색) - 공단 탐방로를 자르는 데도 씀
+        // 다른 자료 코스도 park-notes hide 면 빼고 메움 · 들머리에 씀(2026-11-16 홍TV님 "지리산 안내도에서 빼": 제석봉 1코스의 유암폭포 → 천왕봉 아래 - 공단 탐방로에 없는 길)
+        data.others = (data.others || []).filter(function (o) { return !RF.isHiddenCourse(noteAll, o.id); });
         var extras = RF.gapFill(data.trails, data.others, data.places, data.heads, park);
         extras.forEach(function (t) { lines[t.id] = t.coords; });
         segs = RF.splitTrails(RF.mergeBare(data.trails, data.places).concat(extras), flips, null, poiNames);
