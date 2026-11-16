@@ -125,7 +125,7 @@ eq("산악회 한 줄", vm.runInNewContext(fn(read("js/party-bar.js"), "clock") 
     eq("길이 없을 때", bs.map(function (b) { return b.attrs["aria-disabled"] || ""; }), ["", "", "true", "true"]);
     ctx.f(false);
     eq("길이 있으면 풂", bs.map(function (b) { return b.attrs["aria-disabled"] || ""; }), ["", "", "", ""]);
-    assert(read("studio.html").match(/<button type="button" data-go="[^"]*" title="([^"]*)" aria-label="\1">/g).length === 10, "그림 단추마다 이름"); n++;
+    assert(read("studio.html").match(/<button type="button" data-go="[^"]*" title="([^"]*)" aria-label="\1">/g).length === 11, "그림 단추마다 이름(⭕ 원점회귀로 2026-11-16)"); n++;
 })();
 
 // ---- C8: QR 스크립트는 처음 쓸 때 한 번만 받음

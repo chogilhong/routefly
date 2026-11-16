@@ -98,6 +98,7 @@ label.sl .nud { flex:0 0 auto; min-width:44px; min-height:40px; padding:0; font-
             <button type="button" data-go="join" title="잇기" aria-label="잇기">🔗</button>
             <button type="button" data-go="pts" title="점 고치기" aria-label="점 고치기">📍</button>
             <button type="button" data-go="#revBtn" title="뒤집기" aria-label="뒤집기">↔</button>
+            <button type="button" data-go="#loopBtn" title="원점회귀로" aria-label="원점회귀로">⭕</button>
             <button type="button" data-go="#undoBtn" title="되돌리기" aria-label="되돌리기">↶</button>
             <button type="button" data-go="#saveBtn" title="GPX 저장" aria-label="GPX 저장">💾</button>
             <button type="button" id="upTool" data-go="#sendBtn" title="routefly 에 코스 보내기" aria-label="routefly 에 코스 보내기">📮</button>
@@ -131,6 +132,7 @@ label.sl .nud { flex:0 0 auto; min-width:44px; min-height:40px; padding:0; font-
             <div class="row"><button class="b" data-tool="trim" type="button">✂️ 앞 · 뒤 자르기</button><button class="b" data-tool="split" type="button">➗ 나누기</button></div>
             <div class="row" style="margin-top:6px"><button class="b" data-tool="mid" type="button">🕳️ 가운데 지우기</button><button class="b" data-tool="pts" type="button">📍 점 고치기</button></div>
             <div class="row" style="margin-top:6px"><button class="b" data-tool="join" type="button">🔗 잇기</button><button class="b" id="revBtn" type="button">↔ 뒤집기</button></div>
+            <div class="row" style="margin-top:6px"><button class="b" id="loopBtn" type="button" title="출발 · 도착 한쪽이 지나온 길 위면 그 사이를 같은 길로 더 걸어 출발 = 도착">⭕ 원점회귀로</button></div>
             <div class="row" style="margin-top:6px"><button class="b" id="undoBtn" type="button" disabled>↶ 되돌리기</button><button class="b" id="delBtn" type="button">🗑 목록에서 빼기</button></div>
             <div id="toolBox"></div>
         </section>

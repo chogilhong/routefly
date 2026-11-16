@@ -2012,5 +2012,16 @@ eq("favJoinExtra 제목이 없으면 지금 이름의 길", [RF.favJoinExtra("#c
     eq("첫 구간을 거꾸로 걸었으면 갈림길 → 끝 조각을 앞으로", [rv.length, rv[2] && rv[2].id.replace(/:.*$/, ""), rv[2] && rv[2].rev], [3, "a@0.7500-1.0000", false]);
     eq("이미 들머리로 돌아왔거나 첫 구간에 안 닿으면 그대로", [RF.closeLoop([{ id: A.id, rev: false }, { id: A.id, rev: true }], lines, "x").length,
         RF.closeLoop([{ id: B.id, rev: false }, { id: A.id, rev: true }], lines, "x").length, RF.closeLoop([{ id: A.id, rev: false }], lines, "x").length], [2, 2, 1]);
+    // GPX 편집 "⭕ 원점회귀로" - 홍TV님 화면처럼 법계교 → 순두류 → 법계사 → 칼바위 → 중산리탐방지원센터(1016 앞으로 + 1015 법계사부터 거꾸로)
+    var bg = A.coords.reduce(function (b, q, k) { var d = RF.distM(q[1], q[0], B.coords[B.coords.length - 1][1], B.coords[B.coords.length - 1][0]); return d < b.d ? { d: d, k: k } : b; }, { d: Infinity, k: -1 });
+    var pt = function (q) { return [q[1], q[0], null, null]; };
+    var trk = B.coords.map(pt).concat(A.coords.slice(0, bg.k + 1).reverse().map(pt));
+    var lt = RF.loopTrack(trk), lt2 = RF.loopTrack(trk.slice().reverse());
+    var same = function (p, q) { return RF.distM(p[0], p[1], q[0], q[1]) < 1; }, ctr = pt(A.coords[0]);
+    eq("출발(법계교)이 뒷부분 길 위 - 도착(탐방지원센터)에서 법계교까지 앞에 더해 탐방지원센터 출발 · 도착", [lt.at, lt.addM > 240 && lt.addM < 290, same(lt.track[0], ctr), same(lt.track[lt.track.length - 1], ctr),
+        lt.track[0][2] === null && lt.track.length > trk.length], ["start", true, true, true, true]);
+    eq("거꾸로(도착 법계교가 앞부분 길 위) - 법계교에서 출발 자리까지 뒤에 더함", [lt2.at, lt2.addM > 240 && lt2.addM < 290, same(lt2.track[0], ctr), same(lt2.track[lt2.track.length - 1], ctr)], ["end", true, true, true]);
+    eq("이미 원점회귀 · 끝이 길에서 멀면 못 함(가장 가까운 거리)", [RF.loopTrack(lt.track).same, RF.loopTrack(B.coords.map(pt)).track, RF.loopTrack(B.coords.map(pt)).nearM > 50, RF.loopTrack([]).nearM],
+        [true, undefined, true, Infinity]);
     eq("점 · 선분 거리(px)", [RF.pxToLine({ x: 5, y: 3 }, [{ x: 0, y: 0 }, { x: 10, y: 0 }]), RF.pxToLine({ x: 13, y: 4 }, [{ x: 0, y: 0 }, { x: 10, y: 0 }]), RF.pxToLine({ x: 1, y: 1 }, [{ x: 1, y: 2 }])], [3, 5, 1]);
 })();

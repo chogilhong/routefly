@@ -64,7 +64,7 @@
                 "<b>📂 GPX 열기</b>로 파일을 고르거나 <b>📒 내 기록에서</b> 따라가기 기록을 불러옵니다. PC 는 지도 위로 GPX 파일을 끌어다 놓아도 됩니다.",
                 "<b>✏️ 지도에 새 길 그리기</b>를 누르고 지도에 점을 찍으면, 점 사이를 등산로 · 걷는 길로 이어 줍니다."]] },
             { icon: "✂️", title: ["고치기"], body: [[
-                "<b>✂️ 앞 · 뒤 자르기</b> · <b>🕳️ 가운데 지우기</b> · <b>➗ 나누기</b> · <b>🔗 잇기</b> · <b>↔ 뒤집기</b> · <b>📍 점 고치기</b>. 잘못했으면 <b>↶ 되돌리기</b>.",
+                "<b>✂️ 앞 · 뒤 자르기</b> · <b>🕳️ 가운데 지우기</b> · <b>➗ 나누기</b> · <b>🔗 잇기</b> · <b>↔ 뒤집기</b> · <b>⭕ 원점회귀로</b> · <b>📍 점 고치기</b>. 잘못했으면 <b>↶ 되돌리기</b>.",
                 "높이 그래프에 손가락 · 마우스를 대면 지도에 그 자리가 보입니다. 다 고쳤으면 <b>💾 GPX 저장</b>."]] },
             own ? { icon: "⬆", title: ["코스로 올리기 (운영자)"], body: [[
                 "<b>⬆ 코스로 올리기</b>: 선 모양과 이름만 서버로 - 1시간 안(매시 7분)에 코스 목록에 들어갑니다. 누구나 보는 코스가 되니 집 근처는 먼저 자르세요.",
@@ -611,6 +611,22 @@
         box.querySelector(".tno").onclick = closeTool;
     }
     Array.prototype.forEach.call(document.querySelectorAll("[data-tool]"), function (b) { b.onclick = function () { openTool(b.getAttribute("data-tool")); }; });
+    // 원점회귀로(2026-11-16 홍TV님: "이 화면에서도 원점 회귀할 수 있도록") - 출발 · 도착 한쪽이 지나온 길 위면 그 사이를 같은 길로 더 걸음(RF.loopTrack)
+    $("loopBtn").onclick = function () {
+        var c = cur(); if (!c) return;
+        var r = RF.loopTrack(c.track);
+        if (r.same) { msg("이미 출발과 도착이 같은 자리입니다(원점회귀)."); return; }
+        if (!r.track) {
+            msg("출발 · 도착이 지나온 길 위에 있지 않아 원점회귀로 만들 수 없습니다" + (isFinite(r.nearM) ? "(가장 가까운 곳 " + (r.nearM < 1000 ? r.nearM + " m" : km(r.nearM) + " km") + ")" : "")
+                + ". 🔗 잇기나 ✏️ 그리기로 이어 주세요.", 7000);
+            return;
+        }
+        push();
+        c.track = r.track;
+        closeTool();
+        msg((r.at === "start" ? "도착 자리에서 출발하도록 앞에 " : "출발 자리로 돌아오도록 뒤에 ") + (r.addM < 1000 ? r.addM + " m" : km(r.addM) + " km") + " 를 같은 길로 더했습니다. 잘못이면 ↶ 되돌리기.", 7000);
+        draw(true);
+    };
     $("revBtn").onclick = function () { var c = cur(); if (!c) return; push(); c.track = c.track.slice().reverse(); closeTool(); msg("뒤집었습니다(출발 ↔ 도착)."); draw(false); };
     $("undoBtn").onclick = function () {
         var u = undo.pop();

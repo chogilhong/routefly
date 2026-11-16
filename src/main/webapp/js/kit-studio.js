@@ -1096,6 +1096,42 @@
         return x.concat(y);
     }
 
+    /**
+     * 순수 함수 - GPX 편집 "⭕ 원점회귀로"(2026-11-16 홍TV님: 안내도에서 연 지리산 고리가 법계교에서 시작해 탐방지원센터에서 끝났음).
+     * 출발 · 도착 한쪽이 지나온 길 위(touchM 안)에 있으면 그 사이를 같은 길로 한 번 더 걸어 출발 = 도착으로 만듦.
+     * - 도착이 앞부분 길 위: 그 자리 → 출발을 거꾸로 뒤에 붙임(출발은 그대로)
+     * - 출발이 뒷부분 길 위: 도착 → 그 자리를 거꾸로 앞에 붙임(도착이 새 출발 - 들머리에서 갈림길까지 올라갔다 고리를 돌고 내려옴)
+     * 둘 다 되면 더하는 길이 짧은 쪽. 더한 점은 시각을 비움(같은 시각 두 번 없게). track: [[위도, 경도, 시각, 높이]…].
+     * 돌려줌: {track, addM, at: "end"|"start"} · 이미 원점회귀면 {same: true} · 안 되면 {nearM: 지나온 길과 가장 가까운 거리}.
+     */
+    var LOOP_SAME_M = 30;
+    function loopTrack(track, touchM) {
+        var t = track || [], n = t.length, lim = touchM || 50;
+        if (n < 3) return { nearM: Infinity };
+        var s = t[0], e = t[n - 1];
+        if (distM(s[0], s[1], e[0], e[1]) < LOOP_SAME_M) return { same: true };
+        var cum = [0];
+        for (var i = 1; i < n; i++) cum.push(cum[i - 1] + distM(t[i - 1][0], t[i - 1][1], t[i][0], t[i][1]));
+        var total = cum[n - 1], nearE = { d: Infinity }, nearS = { d: Infinity };
+        var bare = function (p) { return [p[0], p[1], null, p.length > 3 ? p[3] : null]; };
+        // 도착이 앞쪽 절반 길 위(출발에서 30m 넘게 간 곳) - 그 자리 j 에서 출발까지 거꾸로
+        for (var j = 1; j < n && cum[j] <= total / 2; j++) {
+            var dj = distM(e[0], e[1], t[j][0], t[j][1]);
+            if (cum[j] >= LOOP_SAME_M && dj < nearE.d) nearE = { d: dj, k: j, addM: cum[j], at: "end" };
+        }
+        // 출발이 뒤쪽 절반 길 위(도착에서 30m 넘게 떨어진 곳) - 도착에서 그 자리 k 까지 거꾸로 앞에
+        for (var k = n - 2; k > 0 && cum[k] >= total / 2; k--) {
+            var dk = distM(s[0], s[1], t[k][0], t[k][1]), back = total - cum[k];
+            if (back >= LOOP_SAME_M && dk < nearS.d) nearS = { d: dk, k: k, addM: back, at: "start" };
+        }
+        // 각 쪽에서 가장 가까운 점(갈림길 자리)으로 - 둘 다 닿으면 더하는 길이 짧은 쪽
+        var ok = [nearE, nearS].filter(function (x) { return x.d < lim; }).sort(function (a, b) { return a.addM - b.addM; }), best = ok[0];
+        if (!best) return { nearM: Math.round(Math.min(nearE.d, nearS.d)) };
+        var out = best.at === "end" ? t.concat(t.slice(0, best.k).reverse().map(bare))
+            : t.slice(best.k + 1).reverse().map(bare).concat(t);
+        return { track: out, addM: Math.round(best.addM), at: best.at };
+    }
+
     /** 순수 함수 - 가운데(d0 ~ d1 m)를 뺀 앞 · 뒤 두 토막(GPX 편집 "가운데 지우기", 2026-10-31). 한쪽이 점 2개 안 되면 그 토막은 빈 배열. */
     function cutMiddle(track, d0, d1) {
         var t = track || [], d = 0, a = [], b = [];
@@ -1545,6 +1581,7 @@
         overlapShare: overlapShare,
         routeEnds: routeEnds,
         parseJoinId: parseJoinId,
+        loopTrack: loopTrack,
         distM: distM,
         mapLocale: mapLocale,
         joinedCourse: joinedCourse,
