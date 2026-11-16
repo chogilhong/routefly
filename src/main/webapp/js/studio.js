@@ -641,19 +641,24 @@
                 }).join("") + '</select></label><p class="jgap tip"></p>' + toolButtons("잇기");
             var jw = box.querySelector(".jw");
             var HOW = { "ab": "고른 길 뒤에", "ab~": "붙일 길을 뒤집어 고른 길 뒤에", "ba": "고른 길 앞에", "b~a": "붙일 길을 뒤집어 고른 길 앞에" };
+            var farText = function (g) {
+                return "이을 수 없습니다 - 두 길의 가장 가까운 끝끼리도 " + gapText(g) + " 떨어져 있습니다(끝끼리 " + RF.JOIN_GAP_M + "m 안이어야 이음, 곧은 선이 산을 가로지르지 않게). "
+                    + "붙일 길이 고른 길 가운데에 닿으면 ÷ 나누기를 먼저 하거나 ✏️ 지도에 새 길 그리기로 사이 길을 그린 뒤 이어 주세요.";
+            };
             var upd3 = function () {
                 var pl = RF.joinPlan(c.track, tracks[+jw.value].track), far = pl.gap > RF.JOIN_GAP_M;   // 멀면 잇지 않음(2026-11-16 홍TV님 "이런 코스는 만들면 안 돼잖아" - 2km 곧은 선)
-                box.querySelector(".jgap").textContent = far
-                    ? "가장 가까운 끝끼리도 " + gapText(pl.gap) + " - 멀어서 이을 수 없습니다. 끝끼리만 이을 수 있어, 붙일 길이 고른 길 가운데에 닿으면 ÷ 나누기를 먼저 하거나 ✏️ 지도에 새 길 그리기로 사이 길을 그린 뒤 이어 주세요."
-                    : HOW[pl.how] + " 잇습니다(두 끝 사이 " + gapText(pl.gap) + ").";
-                box.querySelector(".tok").disabled = far;
-                preview = { keep: pl.track, res: tracks[+jw.value].track, far: far };
+                var gp = box.querySelector(".jgap");
+                gp.textContent = far ? "⚠ " + farText(pl.gap) : HOW[pl.how] + " 잇습니다(두 끝 사이 " + gapText(pl.gap) + ").";
+                gp.style.color = far ? "#ffb3b3" : "";
+                if (far) msg(farText(pl.gap), 9000);   // 고르는 순간에도 분명히(2026-11-16 홍TV님 "잇기가 안된다고 알림을 줘야지")
+                preview = { keep: pl.track, res: tracks[+jw.value].track, far: far, gap: pl.gap };
                 draw(false);
             };
             jw.onchange = upd3;
             upd3();
             box.querySelector(".tok").onclick = function () {
-                if (!preview || preview.far) return;
+                if (!preview) return;
+                if (preview.far) { msg(farText(preview.gap), 9000); return; }   // 단추는 눌리게 두고 왜 안 되는지 알림(꺼진 단추는 눌러도 반응이 없었음)
                 push();
                 var oi = +jw.value;
                 c.track = preview.keep;
