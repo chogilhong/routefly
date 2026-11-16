@@ -109,7 +109,7 @@ public class CheckupRound11Test {
         assertTrue("A11 고칠 때 · 열 때 저장 예약", js.contains("$(\"undoBtn\").disabled = false; markWork(); }") && js.contains("sel = tracks.length - 1;\n        markWork();"));
         assertTrue("A11 되살린 뒤 안내도 길", js.contains("restoreWork().then(openFromGuide);") && js.contains("indexedDB.open(\"rf-studio\", 1)"));
         assertTrue("A12", js.contains("(!parts || parts.length === 1) && get(\"rev\") === \"1\""));
-        assertTrue("A15", js.contains("c.track = RF.reverseTrack(c.track);") && js.contains("RF.reverseTrack(o.track)"));
+        assertTrue("A15", js.contains("c.track = RF.reverseTrack(c.track);") && read("src/main/webapp/js/course-kit.js").contains("? reverseTrack(b) : b;"));   // 잇기의 뒤집기는 RF.joinPlan 안(2026-11-16)
     }
 
     /** B3 - U+2028 · U+0085 뒤의 꺾쇠도 막음(예전 matches 는 . 이 그 글자를 못 넘어 통과). */
@@ -228,6 +228,7 @@ public class CheckupRound11Test {
         String st = read("src/main/webapp/js/studio.js");
         assertTrue("잇기는 멀면 막음", st.contains("box.querySelector(\".tok\").disabled = far;") && st.contains("if (!preview || preview.far) return;"));
         assertTrue("올리기 전 확인", st.contains("if (jump.m > RF.JOIN_GAP_M) {"));
+        assertTrue("가까운 끝끼리 저절로(뒤집기 · 앞에)", st.contains("var pl = RF.joinPlan(c.track, tracks[+jw.value].track), far = pl.gap > RF.JOIN_GAP_M;") && !st.contains("붙일 길을 뒤집어서(끝 → 처음)"));
     }
 
     /** E1 · E3 · E4 - 저장 지키기 부탁 · 하산 시각 알림 강제 · 무사히 문자(E2 · E5 는 review11.test.js). */

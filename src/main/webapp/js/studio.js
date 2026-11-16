@@ -629,23 +629,27 @@
                 draw(true);
             };
         } else if (kind === "join") {
-            var others = tracks.map(function (x, i) { return i === sel ? null : '<option value="' + i + '">' + x.name.replace(/[<&]/g, "") + "</option>"; }).filter(Boolean);
-            if (!others.length) { box.innerHTML = '<p class="tip">이을 다른 길이 없습니다. GPX 를 하나 더 열어 주세요.</p>'; return; }
-            box.innerHTML = '<p class="tip">고른 길 뒤에 다른 길을 이어 붙입니다(이은 길은 목록에서 빠짐). 두 끝이 ' + RF.JOIN_GAP_M + 'm 안이어야 이을 수 있습니다(곧은 선이 산을 가로지르지 않게).</p>'
-                + '<label class="sl">뒤에 붙일 길 <select class="jw b" style="width:100%">' + others.join("") + '</select></label>'
-                + '<label class="sl"><input type="checkbox" class="jr"> 붙일 길을 뒤집어서(끝 → 처음)</label><p class="jgap tip"></p>' + toolButtons("잇기");
-            var jw = box.querySelector(".jw"), jr = box.querySelector(".jr");
+            // 네 가지 끝 짝 가운데 가까운 쪽으로 저절로(RF.joinPlan - 2026-11-16 홍TV님 "잇기가 되는 것이 있고 안 되는 것이 있어"), 가까운 길이 맨 위
+            var plans = tracks.map(function (x, i) { return i === sel ? null : { i: i, p: RF.joinPlan(c.track, x.track) }; }).filter(Boolean)
+                .sort(function (x, y) { return x.p.gap - y.p.gap; });
+            if (!plans.length) { box.innerHTML = '<p class="tip">이을 다른 길이 없습니다. GPX 를 하나 더 열어 주세요.</p>'; return; }
+            var gapText = function (g) { return g < 1000 ? Math.round(g) + " m" : km(g) + " km"; };
+            box.innerHTML = '<p class="tip">고른 길에 다른 길을 이어 붙입니다(이은 길은 목록에서 빠짐). 가까운 끝끼리 저절로 맞추고(필요하면 붙일 길을 뒤집거나 앞에), 두 끝이 ' + RF.JOIN_GAP_M + 'm 안이어야 이을 수 있습니다(곧은 선이 산을 가로지르지 않게).</p>'
+                + '<label class="sl">붙일 길 <select class="jw b" style="width:100%">' + plans.map(function (x) {
+                    return '<option value="' + x.i + '">' + tracks[x.i].name.replace(/[<&]/g, "") + " (" + gapText(x.p.gap) + (x.p.gap > RF.JOIN_GAP_M ? " - 멀어서 안 됨" : "") + ")</option>";
+                }).join("") + '</select></label><p class="jgap tip"></p>' + toolButtons("잇기");
+            var jw = box.querySelector(".jw");
+            var HOW = { "ab": "고른 길 뒤에", "ab~": "붙일 길을 뒤집어 고른 길 뒤에", "ba": "고른 길 앞에", "b~a": "붙일 길을 뒤집어 고른 길 앞에" };
             var upd3 = function () {
-                var o = tracks[+jw.value], b = jr.checked ? RF.reverseTrack(o.track) : o.track, a = c.track;
-                var gap = RF.distM(a[a.length - 1][0], a[a.length - 1][1], b[0][0], b[0][1]);
-                var far = gap > RF.JOIN_GAP_M;   // 멀면 잇지 않음(2026-11-16 홍TV님 "이런 코스는 만들면 안 돼잖아" - 2km 곧은 선)
-                box.querySelector(".jgap").textContent = "두 끝 사이 " + (gap < 1000 ? Math.round(gap) + " m" : km(gap) + " km")
-                    + (far ? " - 멀어서 이을 수 없습니다. \"붙일 길을 뒤집어서\" 를 바꿔 보거나, 고른 길을 ↔ 뒤집거나, ✏️ 지도에 새 길 그리기로 사이 길을 그린 뒤 이어 주세요." : "");
+                var pl = RF.joinPlan(c.track, tracks[+jw.value].track), far = pl.gap > RF.JOIN_GAP_M;   // 멀면 잇지 않음(2026-11-16 홍TV님 "이런 코스는 만들면 안 돼잖아" - 2km 곧은 선)
+                box.querySelector(".jgap").textContent = far
+                    ? "가장 가까운 끝끼리도 " + gapText(pl.gap) + " - 멀어서 이을 수 없습니다. 끝끼리만 이을 수 있어, 붙일 길이 고른 길 가운데에 닿으면 ÷ 나누기를 먼저 하거나 ✏️ 지도에 새 길 그리기로 사이 길을 그린 뒤 이어 주세요."
+                    : HOW[pl.how] + " 잇습니다(두 끝 사이 " + gapText(pl.gap) + ").";
                 box.querySelector(".tok").disabled = far;
-                preview = { keep: RF.joinTracks(a, b), res: b, far: far };
+                preview = { keep: pl.track, res: tracks[+jw.value].track, far: far };
                 draw(false);
             };
-            jw.onchange = jr.onchange = upd3;
+            jw.onchange = upd3;
             upd3();
             box.querySelector(".tok").onclick = function () {
                 if (!preview || preview.far) return;

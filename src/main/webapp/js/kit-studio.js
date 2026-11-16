@@ -1121,6 +1121,23 @@
     }
 
     /**
+     * 순수 함수 - 두 길을 어느 끝끼리 이을지(2026-11-16 홍TV님 "잇기가 되는 것이 있고 안 되는 것이 있어": 예전에는 고른 길 끝 → 붙일 길 처음만 재서
+     * 방향이 반대인 길은 손으로 뒤집어야 했고, 붙일 길이 고른 길 앞에 닿으면 아예 못 이었음). 네 가지 끝 짝 가운데 가장 가까운 것.
+     * 고른 길 a 의 방향은 그대로 두고 b 를 뒤집거나 앞에 붙임. 같은 거리면 아래 차례(뒤에 그대로가 먼저).
+     * 돌려줌 {gap(m), how: "ab" 뒤에 · "ab~" 뒤집어 뒤에 · "ba" 앞에 · "b~a" 뒤집어 앞에, track: 이은 길}.
+     */
+    function joinPlan(a, b) {
+        var A0 = a[0], A1 = a[a.length - 1], B0 = b[0], B1 = b[b.length - 1];
+        var d = function (p, q) { return distM(p[0], p[1], q[0], q[1]); };
+        var ps = [{ gap: d(A1, B0), how: "ab" }, { gap: d(A1, B1), how: "ab~" }, { gap: d(B1, A0), how: "ba" }, { gap: d(B0, A0), how: "b~a" }];
+        var best = ps[0];
+        for (var i = 1; i < ps.length; i++) if (ps[i].gap < best.gap) best = ps[i];
+        var rb = best.how.indexOf("~") >= 0 ? reverseTrack(b) : b;
+        best.track = best.how.charAt(0) === "a" ? joinTracks(a, rb) : joinTracks(rb, a);
+        return best;
+    }
+
+    /**
      * 순수 함수 - 이웃 두 점 사이가 가장 먼 곳 {m, at(그 앞까지 거리 m)} - 곧은 선(산을 가로지르는 선)이 든 길을 코스로 만들지 않게(2026-11-16 홍TV님
      * "이런 코스는 만들면 안 돼잖아": 🔗 잇기가 2km 떨어진 두 끝을 곧은 선으로 이었음). track: [[위도, 경도, …]…]. 점이 둘 안 되면 {m: 0, at: 0}.
      */
@@ -1654,6 +1671,7 @@
         trackStats: trackStats,
         splitTrack: splitTrack,
         joinTracks: joinTracks,
+        joinPlan: joinPlan,
         trackGpx: trackGpx,
         submitSheet: submitSheet,
         courseName: courseName,
