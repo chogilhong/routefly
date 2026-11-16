@@ -40,6 +40,8 @@ public class CourseUploadServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
     static final int MAX_BODY = 3 * 1024 * 1024, MIN_POINTS = 10, MAX_POINTS = 50_000;
+    /** 이웃 두 점 사이 한도(m) - js/course-kit.js JOIN_GAP_M 과 같게. */
+    static final double JUMP_MAX_M = 200;
     static final String DEFAULT_DIR = "/opt/routefly/course-inbox";
     /** 점 하나의 속성 · 안쪽 글 길이 한도 - 정규식(.*?) 대신 앞으로만 훑어 큰 글도 한 번만 읽음(2026-11-02 홍TV님 점검: 닫히지 않은 "<trkpt " 8만 자에 7.8초). */
     static final int MAX_ATTR = 1024, MAX_PT_BODY = 4096;
@@ -182,7 +184,12 @@ public class CourseUploadServlet extends HttpServlet {
         for (int i = 0; i < pts.size(); i++) {
             double[] p = pts.get(i);
             if (p[0] < 33 || p[0] > 39 || p[1] < 124 || p[1] > 132) return "한국 밖 점이 있습니다.";
-            if (i > 0) len += distM(pts.get(i - 1), p);
+            if (i > 0) {
+                double g = distM(pts.get(i - 1), p);
+                // 곧은 선(이웃 점 사이 JUMP_MAX_M 넘게) - 산을 가로지르는 선은 코스로 받지 않음(2026-11-16 홍TV님 "이런 코스는 만들면 안 돼잖아", 화면 RF.JOIN_GAP_M 과 같게)
+                if (g > JUMP_MAX_M) return String.format(java.util.Locale.ROOT, "%.1fkm 지점에 %dm 곧은 선이 있습니다. 그 사이를 고친 뒤 올려 주세요.", len / 1000, Math.round(g));
+                len += g;
+            }
         }
         return len < 300 ? "기록이 너무 짧습니다(300m 미만)." : null;
     }

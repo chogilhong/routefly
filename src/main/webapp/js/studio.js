@@ -629,21 +629,24 @@
         } else if (kind === "join") {
             var others = tracks.map(function (x, i) { return i === sel ? null : '<option value="' + i + '">' + x.name.replace(/[<&]/g, "") + "</option>"; }).filter(Boolean);
             if (!others.length) { box.innerHTML = '<p class="tip">이을 다른 길이 없습니다. GPX 를 하나 더 열어 주세요.</p>'; return; }
-            box.innerHTML = '<p class="tip">고른 길 뒤에 다른 길을 이어 붙입니다(이은 길은 목록에서 빠짐). 끝이 서로 멀면 곧은 선으로 이어집니다.</p>'
+            box.innerHTML = '<p class="tip">고른 길 뒤에 다른 길을 이어 붙입니다(이은 길은 목록에서 빠짐). 두 끝이 ' + RF.JOIN_GAP_M + 'm 안이어야 이을 수 있습니다(곧은 선이 산을 가로지르지 않게).</p>'
                 + '<label class="sl">뒤에 붙일 길 <select class="jw b" style="width:100%">' + others.join("") + '</select></label>'
                 + '<label class="sl"><input type="checkbox" class="jr"> 붙일 길을 뒤집어서(끝 → 처음)</label><p class="jgap tip"></p>' + toolButtons("잇기");
             var jw = box.querySelector(".jw"), jr = box.querySelector(".jr");
             var upd3 = function () {
                 var o = tracks[+jw.value], b = jr.checked ? RF.reverseTrack(o.track) : o.track, a = c.track;
                 var gap = RF.distM(a[a.length - 1][0], a[a.length - 1][1], b[0][0], b[0][1]);
-                box.querySelector(".jgap").textContent = "두 끝 사이 " + (gap < 1000 ? Math.round(gap) + " m" : km(gap) + " km") + (gap > 200 ? " - 멀어서 곧은 선으로 이어집니다. 뒤집기를 바꿔 보세요." : "");
-                preview = { keep: RF.joinTracks(a, b), res: b };
+                var far = gap > RF.JOIN_GAP_M;   // 멀면 잇지 않음(2026-11-16 홍TV님 "이런 코스는 만들면 안 돼잖아" - 2km 곧은 선)
+                box.querySelector(".jgap").textContent = "두 끝 사이 " + (gap < 1000 ? Math.round(gap) + " m" : km(gap) + " km")
+                    + (far ? " - 멀어서 이을 수 없습니다. \"붙일 길을 뒤집어서\" 를 바꿔 보거나, 고른 길을 ↔ 뒤집거나, ✏️ 지도에 새 길 그리기로 사이 길을 그린 뒤 이어 주세요." : "");
+                box.querySelector(".tok").disabled = far;
+                preview = { keep: RF.joinTracks(a, b), res: b, far: far };
                 draw(false);
             };
             jw.onchange = jr.onchange = upd3;
             upd3();
             box.querySelector(".tok").onclick = function () {
-                if (!preview) return;
+                if (!preview || preview.far) return;
                 push();
                 var oi = +jw.value;
                 c.track = preview.keep;
@@ -1063,6 +1066,9 @@
     $("upBtn").onclick = function () {
         var c = cur();
         if (!c) return;
+        // 곧은 선(이웃 점 사이 JOIN_GAP_M 넘게)이 든 길은 코스로 올리지 않음(2026-11-16 홍TV님) - 서버(CourseUploadServlet.check)도 같은 한도
+        var jump = RF.longestJump(c.track);
+        if (jump.m > RF.JOIN_GAP_M) { msg(km(jump.at) + " km 지점에 " + (jump.m < 1000 ? Math.round(jump.m) + " m" : km(jump.m) + " km") + " 곧은 선이 있어 코스로 올릴 수 없습니다. ✂ 자르기 · 📍 점 고치기 · ✏️ 그리기로 그 사이를 고쳐 주세요.", 9000); return; }
         nameForm(c).then(function (r) {
             var name = String((r && r.name) || "").trim();
             if (!name) return;

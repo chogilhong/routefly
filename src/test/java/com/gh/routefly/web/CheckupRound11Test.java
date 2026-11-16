@@ -215,4 +215,18 @@ public class CheckupRound11Test {
         String svg = CoursePageServlet.profileSvg(new double[] {0, 100, 200, 300}, new Double[] {10.0, 55.0, 30.0, 12.0});
         assertTrue("D10 높이 범위는 모든 점으로", svg.contains("높이 10m ~ 55m"));
     }
+
+    /** 2026-11-16 홍TV님 "이런 코스는 만들면 안 돼잖아" - 이웃 두 점 200m 넘는 곧은 선은 코스로 받지 않음(화면 잇기 · 올리기도). */
+    @Test
+    public void 곧은_선_코스는_받지_않음() throws Exception {
+        java.util.List<double[]> pts = new java.util.ArrayList<>();
+        for (int i = 0; i < 12; i++) pts.add(new double[] {37.0 + i * 0.0005, 127.0});   // 55m 간격 · 600m 남짓
+        org.junit.Assert.assertNull(CourseUploadServlet.check("시험 길", "hike", pts));
+        pts.add(new double[] {37.03, 127.0});   // 2.4km 곧은 선
+        String e = CourseUploadServlet.check("시험 길", "hike", pts);
+        assertTrue(e, e != null && e.contains("곧은 선"));
+        String st = read("src/main/webapp/js/studio.js");
+        assertTrue("잇기는 멀면 막음", st.contains("box.querySelector(\".tok\").disabled = far;") && st.contains("if (!preview || preview.far) return;"));
+        assertTrue("올리기 전 확인", st.contains("if (jump.m > RF.JOIN_GAP_M) {"));
+    }
 }

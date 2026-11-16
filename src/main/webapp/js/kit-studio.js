@@ -1121,6 +1121,21 @@
     }
 
     /**
+     * 순수 함수 - 이웃 두 점 사이가 가장 먼 곳 {m, at(그 앞까지 거리 m)} - 곧은 선(산을 가로지르는 선)이 든 길을 코스로 만들지 않게(2026-11-16 홍TV님
+     * "이런 코스는 만들면 안 돼잖아": 🔗 잇기가 2km 떨어진 두 끝을 곧은 선으로 이었음). track: [[위도, 경도, …]…]. 점이 둘 안 되면 {m: 0, at: 0}.
+     */
+    var JOIN_GAP_M = 200;
+    function longestJump(track) {
+        var t = track || [], best = { m: 0, at: 0 }, d = 0;
+        for (var i = 1; i < t.length; i++) {
+            var g = distM(t[i - 1][0], t[i - 1][1], t[i][0], t[i][1]);
+            if (g > best.m) best = { m: g, at: d };
+            d += g;
+        }
+        return best;
+    }
+
+    /**
      * 순수 함수 - 길을 거꾸로(끝 → 처음). 시각은 걸린 시간 그대로 앞으로 가게 비춤(t0 + t1 - t) - 그대로 뒤집으면 GPX 시각이 줄어드는 차례가 되어
      * 다른 앱이 이상하게 읽고 "걸린 시간" 이 없어졌음(점검 11차 A15, 2026-11-16). 점: [위도, 경도, 시각, 높이].
      */
@@ -1622,6 +1637,8 @@
         parseJoinId: parseJoinId,
         loopTrack: loopTrack,
         reverseTrack: reverseTrack,
+        longestJump: longestJump,
+        JOIN_GAP_M: JOIN_GAP_M,
         distM: distM,
         mapLocale: mapLocale,
         joinedCourse: joinedCourse,
