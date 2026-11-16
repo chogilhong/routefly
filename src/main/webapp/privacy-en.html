@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>routefly Privacy Policy</title>
+<meta name="description" content="routefly Privacy Policy - what the server receives and why, what stays only on your device, retention periods, what is shared, and your rights."><!-- 점검 11차 D9 -->
 <link rel="canonical" href="https://routefly.kr/routefly/privacy-en.html">
 <link rel="alternate" hreflang="ko" href="https://routefly.kr/routefly/privacy.html">
 <link rel="alternate" hreflang="en" href="https://routefly.kr/routefly/privacy-en.html">
@@ -32,9 +33,9 @@ table { width:100%; border-collapse:collapse; font-size:13.5px; }
 td, th { border-top:1px solid var(--ln); padding:7px 4px; vertical-align:top; text-align:left; }
 th { color:var(--dim); font-weight:normal; width:30%; }
 .key { background:rgba(56,217,234,0.10); border:1px solid rgba(56,217,234,0.35); border-radius:10px; padding:10px 12px; font-size:14.5px; }
-.back { display:inline-block; margin-top:6px; }
+.back { display:inline-flex; align-items:center; min-height:44px; margin-top:6px; }   /* 누르는 자리 44px(점검 11차 D6) */
 /* 오른쪽 위 닫기 - 아래 '‹ 뒤로' 와 같음(앞 화면으로, about.html 과 같은 모양 - 2026-10-14 홍TV님) */
-.close { position:fixed; top:calc(env(safe-area-inset-top) + 10px); right:12px; z-index:5; width:40px; height:40px; border-radius:50%;
+.close { position:fixed; top:calc(env(safe-area-inset-top) + 10px); right:12px; z-index:5; width:44px; height:44px; border-radius:50%;
          display:flex; align-items:center; justify-content:center; font-size:20px; text-decoration:none; color:var(--tx);
          background:var(--panel); border:1px solid var(--ln); box-shadow:0 2px 6px rgba(0,0,0,0.4); }
 h1 { padding-right:46px; }   /* 제목이 닫기 단추 밑으로 들어가지 않게 */
@@ -136,6 +137,8 @@ h1 { padding-right:110px; }
             <li>Weight and height for calorie and step estimates (if entered), certification center and 100 famous mountains summit stamps, completion marks, saved courses, last search words</li>
             <li>Courses and map images saved for offline use</li>
             <li>tidefly alert choices, opened regions, display mode, text size and language (tf-alarms · tf-open-areas · tf-theme · tf-size · tf-lang)</li>
+            <li>Tracks open in the GPX editor and your edits (restored when you come back - removed when you take them all off the list)</li>
+            <li>Settings and recent items for Handy tools, games and mountain pages (exchange rate, fuel and tool settings, best game scores, recently viewed mountains), your hiking club nickname and company office keys, the sender name for sending a course, and the name on completion certificates</li>
         </ul>
         <p class="dim">How to delete: delete records in "📒 Records" on the hike screen, or delete site data in your browser settings (app: App info → Storage → Clear data, or uninstall).
             The app does not include this information in phone backups. To keep your records, download a backup file (records, photos, stamps, saved courses) with "📒 Records → 💾 Save backup",
@@ -169,6 +172,10 @@ h1 { padding-right:110px; }
             <li><b>Weather, fine dust, hiking safety, lodging, restaurants and pet information:</b> the operator's server asks the Korea Meteorological Administration, Korea Environment Corporation (AirKorea),
                 Korea Forest Service, National Medical Center and Korea Tourism Organization using the coordinates of the course trailhead (the summit on mountain pages). To build the link to the KMA weather site, the same coordinates are used to ask Kakao for the neighborhood (administrative dong) name and code. When you tap "Use my location" in Tools, the center of the <b>fixed cell of about 5 km</b> around you (the same for everyone in that cell) is used instead of your location. The rain-radar check every 10 minutes while recording a hike uses the same <b>fixed cell of about 5 km</b> center.
                 Your location and IP address are not passed on.</li>
+            <li><b>Only when you use that tool, your browser asks these services directly</b> (not through the operator's server - they see your IP address):
+                the Handy tools "postcode · English address" sends the address you type to the Kakao (Daum) postcode service,
+                "exchange rates" asks Frankfurter (a public European Central Bank rate service on overseas servers) with the base currency only,
+                and the GPX editor's "draw a new path" sends only the map area around the two points you tapped to public OpenStreetMap Overpass servers (Germany and other countries) when the operator's server has no path there.</li><!-- review 11 D2 (2026-11-16) -->
             <li><b>Affiliate links:</b> tapping a Coupang Partners, Agoda, Trip.com, SOCAR, HotelsCombined or Airalo (LinkPrice) affiliate link takes you to that company's site, where its cookies and privacy policy apply.
                 The operator earns a commission when you buy or book, but no personal information such as who bought what reaches the operator.</li>
         </ul>
@@ -238,6 +245,7 @@ h1 { padding-right:110px; }
         <p>If this policy changes, we announce it on this screen from 7 days before it takes effect.</p>
         <p>Revised October 28, 2026: in hiking club rooms, the people who see member locations are limited to the chief leader and as many assistant leaders as there are buses, and all their names are shown on members' screens.
             Added the company office screen where a hiking club company watches several rooms together - the office is shown on members' screens as a recipient; when a room ends, locations are deleted and the office keeps only a numeric summary without names or locations (head count, descent check, whether SOS occurred) for 200 days. When the company uses "Delete office" on the office screen, the office and its summaries are all deleted immediately.</p>
+        <p>Revised November 16, 2026: the services your browser asks directly (Kakao postcode · Frankfurter exchange rates · OpenStreetMap Overpass) and what stays only on your device (GPX editor work, tool settings and so on) are now listed in full (no new information is collected).</p>
     </section>
 
     <a class="back" id="aboutBack" href="about-en.html">‹ Back</a>

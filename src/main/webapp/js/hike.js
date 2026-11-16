@@ -21,6 +21,7 @@
     var SIM_SPEED = 1;   // 고른 빠르기
     var SIM_X = 1;       // 걷는 거리에 곱하는 배수 = (평지로 걷는 시간 ÷ 미리보기 1× 시간) × 고른 빠르기
     var SIM_CLOCK = 1;   // 시계에 곱하는 배수 - 도착 때 경과 시간이 미리보기의 예상 시간(오르막 · 내리막 포함, RF.legMs)과 같게
+    var REDUCED = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);   // 동작 줄이기 설정(점검 11차 D4) - 지도를 미끄러뜨리지 않음
     var STILL_M = 40;          // 움직임 없음 - 이 안(+ GPS 오차)에서
     var ARRIVED_STILL_M = 300; // 도착 뒤 끝 자리에서 이만큼 떨어지면 움직임 없음 확인을 다시(stillTick - 점검 11차 A5)
     var STILL_MS = (+(location.search.match(/[?&]stillmin=(\d+)/) || [])[1] || +lsGet("rf-stillmin") || 20) * 60000;   //   이만큼 있으면 "괜찮으세요?"(?stillmin=1 · 앱은 localStorage rf-stillmin - 점검용)
@@ -826,7 +827,7 @@
             var side = Math.min(cv.clientWidth || 0, cv.clientHeight || 0);
             if (side && Math.hypot(p.x - m.x, p.y - m.y) < side * 0.1) return;
         }
-        map.easeTo({ center: [lon, lat], zoom: Math.max(z, 15), duration: 600 });
+        map.easeTo({ center: [lon, lat], zoom: Math.max(z, 15), duration: REDUCED ? 0 : 600 });
     }
     function setFollow(on) {
         hike.follow = on;
@@ -2607,6 +2608,7 @@
         hike.wasOff = false;
         hike.d0 = saved && saved.d0 != null ? saved.d0 : null;   // 첫 위치가 코스 위일 때 정합니다(코스 중간에서 시작하면 그 자리)
         hike.dMax = saved && saved.dMax != null ? saved.dMax : hike.d;
+        hike.lastFix = null; hike.dMaxAt = null; hike.trackFull = false;   // 시험 걷기 뒤 남은 값(앞선 시각 · 자리 · 저장 공간 알림)을 비움(점검 11차 D4)
         hike.base = saved && saved.base ? saved.base : null;
         hike.segT0 = saved && saved.segT0 ? saved.segT0 : hike.start;
         hike.branch = null;
@@ -2945,6 +2947,26 @@
         }).catch(function () { /* 신호 없음 - 다음 차례에 */ });
     }
 
+    // GPS 칸은 누르는 단추이기도 함(배터리 절약 · 시험 빠르기) - 키보드로도(점검 11차 D4)
+    $("gps").addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); this.click(); } });
+    /** GPS 칸 - 화면 읽기(role=status)는 좋음 · 약함이 바뀔 때만, ±m 숫자는 읽지 않는 칸에(점검 11차 D3: 위치마다 "GPS ±7m" 를 되풀이해 읽었음). */
+    function gpsAcc(acc) {
+        var g = $("gps"), ok = acc != null && acc <= 30, key = ok ? "ok" : "weak";
+        g.className = ok ? "ok" : "";
+        if (g.dataset.s !== key || !g.querySelector("span")) {
+            g.dataset.s = key;
+            g.textContent = "";
+            var sr = document.createElement("span"), n = document.createElement("span");
+            sr.className = "vh";
+            sr.textContent = ok ? T("GPS 잘 잡힘", "GPS good") : T("GPS 약함", "GPS weak");
+            n.setAttribute("aria-hidden", "true");
+            g.appendChild(sr);
+            g.appendChild(n);
+        }
+        var num = g.querySelector("span[aria-hidden]"), txt = "GPS ±" + (acc == null ? "?" : Math.round(acc)) + "m";
+        if (num.textContent !== txt) num.textContent = txt;
+    }
+
     /** 위치 한 번 - 코스에 맞추고 화면을 고칩니다. */
     function onFix(pos) {
         if (!c || !hike.running) return;
@@ -2960,8 +2982,7 @@
         // 앞 위치에서 3m(배터리 절약 10m)도 안 움직였고 10초 안이면 나머지는 건너뜀(distanceFilter 0 이라 멈춰 있을 때도 1초마다 옴 - 배터리 · 계산)
         if (!hike.sim && hike.fix && t - hike.fix.t < 10000 && RF.distM(hike.fix.lat, hike.fix.lon, co.latitude, co.longitude) < (batterySave ? 10 : 3)) return;   // 배터리 절약은 10m
         if (!hike.sim) {
-            $("gps").className = acc != null && acc <= 30 ? "ok" : "";
-            $("gps").textContent = "GPS ±" + (acc == null ? "?" : Math.round(acc)) + "m";
+            gpsAcc(acc);
             if (acc != null && acc > 100) return;   // 너무 부정확한 위치는 쓰지 않습니다(실내 · 계곡 첫 신호)
             // 2026-10-23 홍TV님 천왕봉 아래: 위치 하나가 멀리 튀어 "코스에서 벗어났습니다" → 곧바로 "돌아왔습니다", 속도 132.7km/h.
             // 걷거나 자전거로 갈 수 없는 빠르기로 뛴 위치는 버립니다. 3번 잇따르거나 20초 넘게 버렸으면(차를 탔음 등) 그대로 받습니다.
@@ -3578,6 +3599,7 @@
             hike.guideBr = br;
             turnGuideArrow();
             $("offroute").style.display = "flex";
+            if (!hike.wasOff) $("offLive").textContent = $("offText").textContent;   // 화면 읽기는 벗어난 순간 한 번(점검 11차 D3 - 1초마다 거리를 읽었음)
             hike.wasOff = true;
             hike.guideShown = true;
             map.getSource("guide").setData({ type: "Feature", properties: {},

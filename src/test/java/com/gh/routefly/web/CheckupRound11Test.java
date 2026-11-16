@@ -190,4 +190,29 @@ public class CheckupRound11Test {
         String hk = read("src/main/webapp/js/hike.js");
         assertTrue("C11", hk.contains("if (hike.arrived || Date.now() - (hike.savedAt || 0) >= SAVE_EVERY_MS) save();") && hk.contains("{ flushTrack(); save(); }"));
     }
+
+    /** D1 ~ D10 - 검색 · 방침 · 접근성 · 코스 페이지. */
+    @Test
+    public void 검색_방침_접근성() throws Exception {
+        String w = "src/main/webapp/";
+        for (String f : new String[] {"park.html", "route.html"}) assertTrue("D1 " + f, read(w + f).contains("<meta name=\"robots\" content=\"noindex, follow\">"));
+        String pk = read(w + "privacy.html"), pe = read(w + "privacy-en.html");
+        assertTrue("D2", pk.contains("카카오(다음) 우편번호") && pk.contains("Frankfurter") && pk.contains("Overpass") && pk.contains("GPX 편집에서 열어 둔 길"));
+        assertTrue("D2 영어", pe.contains("Kakao (Daum) postcode") && pe.contains("Frankfurter") && pe.contains("Overpass") && pe.contains("Tracks open in the GPX editor"));
+        String hk = read(w + "js/hike.js"), hh = read(w + "hike.html");
+        assertTrue("D3", hh.contains("<span id=\"offText\"></span><span id=\"offLive\" class=\"vh\" role=\"alert\"></span>") && hk.contains("function gpsAcc(acc) {"));
+        assertTrue("D4", hk.contains("hike.lastFix = null; hike.dMaxAt = null; hike.trackFull = false;") && hh.contains(".spot::after { content:\"\"; position:absolute; inset:-14px; }")
+                && hh.contains("prefers-reduced-motion: reduce") && hh.contains("tabindex=\"0\" data-en=\"GPS off\""));
+        assertTrue("D5", read(w + "js/park.js").contains("px.x + w > W - 8 - RIGHT_CTRL"));
+        assertTrue("D6", read(w + "studio.html").contains(".b { min-height:44px;") && read(w + "about.html").contains(".back { display:inline-flex; align-items:center; min-height:44px;"));
+        assertTrue("D7", read(w + "tools.html").contains(".tip a { color:#38d9ea; }"));
+        assertTrue("D8", read(w + "js/games.js").contains("\"Rotate · Up\"") && read(w + "games.html").contains("<h2 id=\"grpA\">") && read(w + "js/tools.js").contains("\"⌫\": [\"한 글자 지우기\", \"Backspace\"]"));
+        for (String f : new String[] {"about", "about-en", "privacy", "privacy-en", "terms", "terms-en", "lbs-terms", "lbs-terms-en"})
+            assertTrue("D9 " + f, read(w + f + ".html").contains("<meta name=\"description\" content=\""));
+        assertTrue("D10 광고는 검색에 내는 코스만", read("src/main/java/com/gh/routefly/web/CoursePageServlet.java").contains("if (index) b.append(Ads.box(\"c\"));"));
+        org.junit.Assert.assertEquals(0, CoursePageServlet.shownEle(-3.6));
+        org.junit.Assert.assertEquals(44, CoursePageServlet.shownEle(43.6));
+        String svg = CoursePageServlet.profileSvg(new double[] {0, 100, 200, 300}, new Double[] {10.0, 55.0, 30.0, 12.0});
+        assertTrue("D10 높이 범위는 모든 점으로", svg.contains("높이 10m ~ 55m"));
+    }
 }

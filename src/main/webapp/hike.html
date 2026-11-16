@@ -123,6 +123,7 @@ body.compact #statGrids { display:none; }
 #accessLink { flex:none; color:var(--sky); text-decoration:none; }
 #accessLink[hidden] { display:none; }
 .spot { font-size:15px; line-height:1; filter:drop-shadow(0 0 2px #000); cursor:pointer; }
+.spot::after { content:""; position:absolute; inset:-14px; }   /* 누르는 자리 44px 남짓(점검 11차 D4 - 아이콘은 16px) */
 .far .spot { display:none; }   /* 넓게 볼 때는 숨김(RF.spotsByZoom) - 확대하면 보임 */
 .spot.aid, .spot.heli, .spot.ranger { font-size:13px; opacity:.9; }
 .grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:4px 6px; }
@@ -299,7 +300,7 @@ html.rfwait body { visibility:hidden; }   /* 앱을 처음 열 때 서버에 닿
 #pocket { position:fixed; inset:0; z-index:60; background:#000; touch-action:manipulation; user-select:none; -webkit-user-select:none; }
 #pocket[hidden] { display:none; }
 #pocketOff { position:absolute; left:50%; bottom:calc(24px + env(safe-area-inset-bottom, 0px)); transform:translateX(-50%); min-height:44px; padding:0 18px;
-             border:1px solid #222; border-radius:22px; background:#000; color:#555; font:inherit; font-size:14px; }
+             border:1px solid #222; border-radius:22px; background:#000; color:#8a8a8a; font:inherit; font-size:14px; }   /* 글자 #555 → #8a8a8a(대비 2.8 → 5.6, 점검 11차 D4) - 주머니 모드라 밝지 않게 */
 #noteText { width:100%; min-height:70px; box-sizing:border-box; border-radius:10px; border:1px solid var(--ln); background:rgba(255,255,255,0.06);
             color:var(--tx); font:inherit; font-size:15px; padding:8px 10px; resize:vertical; }
 #notePreview { display:none; max-width:100%; max-height:200px; border-radius:10px; margin:8px 0 0; }
@@ -309,6 +310,10 @@ html.rfwait body { visibility:hidden; }   /* 앱을 처음 열 때 서버에 닿
 .noteRow .nt { flex:1; min-width:0; font-size:14px; line-height:1.5; white-space:pre-wrap; word-break:break-word; }
 .noteRow .nt small { display:block; color:var(--dim); font-size:12px; }
 #notesSheet { z-index:31; }
+/* 동작 줄이기 설정(점검 11차 D4) - 나침반 · 화살표 · 이름표 움직임 없이 */
+@media (prefers-reduced-motion: reduce) { #compass .needle, #offroute .arrow, .poi { transition:none !important; } }
+/* 화면 읽기에만(점검 11차 D3) - 벗어난 순간 한 번 · GPS 상태가 바뀔 때만 읽고, 1초마다 바뀌는 거리 · ±m 는 읽지 않음 */
+.vh { position:absolute !important; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
 /* "괜찮으세요?" · 긴급 신고는 늘 맨 위(점검 11차 A4, 2026-11-16) - 정상 도착 카드 · 안내판 · 길 안내 칸(30, DOM 뒤쪽)과 확인 창(rf-dialog 9999)이 가렸음 */
 #stillSheet, #sosSheet { z-index:10000; }
 #recView { z-index:31; }
@@ -370,7 +375,7 @@ html.picking #pick { display:flex; }
 <div id="top">
     <a href="#" id="back" data-en="&lt;b&gt;‹&lt;/b&gt;List" data-en-title="Back to the trail list (search)" title="코스 목록(검색)으로"><b>‹</b>목록</a>
     <div class="nm" id="name" data-en="Pick a trail">코스를 고르세요</div>
-    <span id="gps" role="status" aria-live="polite" data-en="GPS off">GPS 꺼짐</span>
+    <span id="gps" role="status" aria-live="polite" tabindex="0" data-en="GPS off">GPS 꺼짐</span>
     <a href="about.html" data-en-href="about-en.html" title="안전 · 개인정보 · 출처 안내" data-en-title="Safety · privacy · data sources" data-en-aria-label="Safety · privacy · data sources" aria-label="안전 · 개인정보 · 출처 안내" style="font-size:17px;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center">ⓘ</a>
     <button type="button" id="sos" data-en-title="Call 119 emergency · my location" title="119 긴급 신고 · 내 위치">SOS</button>
 </div>
@@ -378,7 +383,7 @@ html.picking #pick { display:flex; }
 
 <div id="mapWrap" role="main">   <!-- 주요 칸 표시(2026-11-03 홍TV님 점검 - 화면 읽기의 "주요 내용으로") -->
     <div id="map"></div>
-    <div id="offroute"><span class="arrow" id="guideArrow"><svg viewBox="0 0 24 24" width="30" height="30"><path d="M12 2 L20 20 L12 15.5 L4 20 Z" fill="#fff" stroke="#7a0000" stroke-width="1.2" stroke-linejoin="round"/></svg></span><span class="otxt"><span id="offText" role="alert"></span><button type="button" id="navBtn" data-en="🚗 Directions to the start">🚗 출발점 길찾기</button></span></div>
+    <div id="offroute"><span class="arrow" id="guideArrow"><svg viewBox="0 0 24 24" width="30" height="30"><path d="M12 2 L20 20 L12 15.5 L4 20 Z" fill="#fff" stroke="#7a0000" stroke-width="1.2" stroke-linejoin="round"/></svg></span><span class="otxt"><span id="offText"></span><span id="offLive" class="vh" role="alert"></span><button type="button" id="navBtn" data-en="🚗 Directions to the start">🚗 출발점 길찾기</button></span></div>
     <div id="turn" role="status" aria-live="polite"></div>
     <button type="button" id="compass" data-en-title="Compass - each tap: on → turn map with you → north up" data-en-aria-label="Compass" aria-label="나침반" title="나침반 - 누를 때마다: 켜기 → 내 방향으로 지도 돌리기 → 북쪽 위로"><span class="needle"><svg viewBox="0 0 16 30" width="13" height="25"><path d="M8 1 L13 15 L3 15 Z" fill="#e03131"/><path d="M3 15 L13 15 L8 29 Z" fill="#9aa3ad"/></svg></span><span class="hd" id="compassText">N</span></button>
     <div id="arrived" role="status" aria-live="assertive"></div>

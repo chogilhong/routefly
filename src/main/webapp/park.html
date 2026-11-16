@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, follow"><!-- 점검 11차 D1(2026-11-16) - 지도 스크립트뿐인 화면(산 페이지에서 주소 ~64개) - 애드센스 "가치가 별로 없는 콘텐츠" 막기, series.html 과 같게 -->
 <title>routefly 탐방 안내도</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=2"><link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
 <meta name="theme-color" content="#11161d">
@@ -19,7 +20,7 @@ html, body { margin:0; height:100%; background:var(--bg); color:var(--tx); font-
 body { display:flex; flex-direction:column; height:100dvh; }
 #top { display:flex; align-items:center; gap:8px; padding:calc(env(safe-area-inset-top) + 8px) 10px 8px; background:var(--panel);
        border-bottom:1px solid var(--ln); flex:0 0 auto; }
-#back { flex:0 0 auto; display:inline-flex; align-items:center; height:40px; padding:0 12px; border-radius:20px; text-decoration:none;
+#back { flex:0 0 auto; display:inline-flex; align-items:center; height:44px; padding:0 12px; border-radius:20px; text-decoration:none;
         background:rgba(56,217,234,0.16); border:1px solid var(--sky); color:var(--sky); font-size:14px; font-weight:bold; }
 #title { flex:1; min-width:0; margin:0; font-size:15px; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 #official { flex:0 0 auto; display:none; height:40px; line-height:40px; padding:0 12px; border-radius:20px; text-decoration:none;

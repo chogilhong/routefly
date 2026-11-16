@@ -261,9 +261,10 @@ public class CoursePageServlet extends HttpServlet {
         }
         if (pts.size() < 2) return "";
         double maxD = pts.get(pts.size() - 1)[0], lo = Double.MAX_VALUE, hi = -Double.MAX_VALUE;
-        for (double[] p : pts) {
-            lo = Math.min(lo, p[1]);
-            hi = Math.max(hi, p[1]);
+        for (Double e : ele) {   // 높이 범위는 솎기 전 모든 점으로(점검 11차 D10 - 위 "높이" 칸과 1m 달랐음)
+            if (e == null) continue;
+            lo = Math.min(lo, e);
+            hi = Math.max(hi, e);
         }
         if (maxD <= 0) return "";
         double span = Math.max(hi - lo, 50);   // 평지도 선이 납작하게만(위아래 50m 는 늘 보임)
@@ -275,12 +276,17 @@ public class CoursePageServlet extends HttpServlet {
         }
         String l = line.toString().trim();
         StringBuilder b = new StringBuilder("<svg class=\"prof\" viewBox=\"0 0 " + W + " " + H + "\" width=\"100%\" role=\"img\" aria-label=\"고도 그림: 최저 "
-                + Math.round(lo) + "m, 최고 " + Math.round(hi) + "m, 거리 " + String.format(Locale.ROOT, "%.1f", maxD / 1000) + "km\">");
+                + shownEle(lo) + "m, 최고 " + shownEle(hi) + "m, 거리 " + String.format(Locale.ROOT, "%.1f", maxD / 1000) + "km\">");
         b.append(String.format(Locale.ROOT, "<polygon points=\"%.1f,%d %s %.1f,%d\" fill=\"rgba(77,163,255,0.18)\"/>", (double) L, B, l, (double) R, B));
         b.append("<polyline points=\"").append(l).append("\" fill=\"none\" stroke=\"#4da3ff\" stroke-width=\"2\" stroke-linejoin=\"round\"/>");
         // 눈금 글자는 그림 밖 한 줄로(2026-10-19 다음 문서분석: 그림 안 글자가 본문에 "712m192m01.8km" 처럼 붙어 읽혔음)
         b.append("</svg>");
-        return b.append(String.format(Locale.KOREA, "<p class=\"dim profCap\">출발 0km → 도착 %.1fkm · 높이 %,dm ~ %,dm</p>", maxD / 1000, Math.round(lo), Math.round(hi))).toString();
+        return b.append(String.format(Locale.KOREA, "<p class=\"dim profCap\">출발 0km → 도착 %.1fkm · 높이 %,dm ~ %,dm</p>", maxD / 1000, shownEle(lo), shownEle(hi))).toString();
+    }
+
+    /** 순수 함수 - 보여 줄 높이(m) - 바닷가 지형 자료의 0 아래(-4m)는 0 으로(점검 11차 D10). */
+    static long shownEle(double v) {
+        return Math.max(0, Math.round(v));
     }
 
     /**
@@ -388,7 +394,7 @@ public class CoursePageServlet extends HttpServlet {
         Double steep = ele == null ? null : Steep.steepest(dist, ele);
         b.append("<dl class=\"sum\"><dt>거리</dt><dd>").append(String.format(Locale.ROOT, "%.2fkm", d / 1000.0)).append("</dd>");
         if (asc != null) b.append("<dt>오르막 · 내리막</dt><dd>").append(String.format(Locale.KOREA, "%,dm", asc)).append(desc != null ? String.format(Locale.KOREA, " · %,dm", desc) : "").append("</dd>");
-        if (hi != null) b.append("<dt>높이</dt><dd>").append(lo != null ? String.format(Locale.KOREA, "%,dm ~ ", lo) : "").append(String.format(Locale.KOREA, "%,dm", hi)).append("</dd>");
+        if (hi != null) b.append("<dt>높이</dt><dd>").append(lo != null ? String.format(Locale.KOREA, "%,dm ~ ", shownEle(lo)) : "").append(String.format(Locale.KOREA, "%,dm", shownEle(hi))).append("</dd>");
         b.append("<dt>예상 시간</dt><dd>").append(timeText(kind, d, asc, desc, officialMin(info, d))).append("</dd>");
         if (str(c, "summit_miss") != null) b.append("<dt>주의</dt><dd>⚠ ").append(esc(str(c, "summit_miss"))).append(" 정상 미포함 - 이 선은 이름의 정상까지 가지 않습니다</dd>");
         if (hike) {
@@ -460,7 +466,7 @@ public class CoursePageServlet extends HttpServlet {
         // 미리 채울 곳은 산 이름만(100대 명산이면 그 산, 아니면 코스 이름 앞) - 산 페이지의 숙박 거점(월출산 → 천황사)은 그 산 대표 들머리라
         // 다른 쪽 코스(구정봉 → 홍계골 - 도갑사 쪽)에 맞지 않음(2026-11-04 홍TV님 "거긴데 왜 천황사를"). js/course-page.js 가 course-kit staySearch 로 붙임
         b.append(MountainServlet.staySearchBox(peakId != null ? peakId : name.replaceFirst(" · .*$", ""), false));
-        b.append(Ads.box("c"));   // 광고(설정이 있을 때만, 2026-10-28)
+        if (index) b.append(Ads.box("c"));   // 광고(설정이 있을 때만, 2026-10-28) - 검색에 내는 코스만(점검 11차 D10: noindex 틀 글 페이지에 광고가 붙으면 "가치 낮은 콘텐츠" 심사 위험)
         b.append("<script src=\"").append(REL).append("/").append(AssetVersion.of("js/kit-m.js")).append("\"></script><script src=\"").append(REL).append("/")
                 .append(AssetVersion.of("js/course-page.js")).append("\"></script>");   // 숙소 찾기 칸만(날씨 · 찜 칸 없음 - mountain.js 는 붙이지 않음)
         b.append(MountainServlet.foot(null, false));

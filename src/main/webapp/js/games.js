@@ -18,6 +18,10 @@
         $("back").textContent = "‹ Trails";   // 코스 모음(m/) - 다른 화면의 "‹ Trails" 와 같게(2026-11-02 점검)
         $("back").href = "en/m/";
         $("ttl").textContent = "🎮 Mini games";
+        // 화면 읽기 이름도 영어로(점검 11차 D8 - 글은 영어인데 aria-label 이 한국어로 남았음)
+        [["level", "Difficulty"], ["sound", "Sound"], ["pause", "Pause"]].forEach(function (x) { if ($(x[0])) $(x[0]).setAttribute("aria-label", x[1]); });
+        var KEYS_EN = { left: "Left", down: "Down", up: "Rotate · Up", right: "Right" };
+        Array.prototype.forEach.call(document.querySelectorAll("[data-k]"), function (b) { if (KEYS_EN[b.getAttribute("data-k")]) b.setAttribute("aria-label", KEYS_EN[b.getAttribute("data-k")]); });
         $("lblScore").textContent = "Score";
         $("lblBest").textContent = "Best";
         $("note").textContent = "Runs only on this screen - no install, no login. Best scores stay on this device. Save your battery on the trail 🙂";

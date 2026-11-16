@@ -130,6 +130,7 @@
      * 지도를 다시 맞추지 않는 깃발(지도에서 구간을 직접 고름 · 예시 · 되살리기)이 화면 밖으로 나가면 안쪽으로 뒤집음
      * (2026-10-13 PC: 곰배령 "도착 강선리" 가 오른쪽 끝에서 잘림, 되살린 예시 깃발이 x 398 까지). 지도가 멈출 때마다 다시 잼.
      */
+    var RIGHT_CTRL = 52;   // 오른쪽 지도 단추 칸 너비(44px + 여백)
     function keepFlagsIn() {
         var W = map.getContainer().clientWidth;
         var fix = function (m) {
@@ -137,7 +138,8 @@
             var e = m.getElement(), a = (e.className.match(/(top|bottom)-(left|right)/) || [])[0], w = e.offsetWidth;
             if (!a || !w) return m;
             var px = map.project(m.getLngLat()), right = /-left$/.test(a);
-            var out = right ? px.x + w > W - 8 : px.x - w < 8, room = right ? px.x - w >= 8 : px.x + w <= W - 8;
+            // 오른쪽은 지도 단추 줄(🛰 · ⌖ 44px)만큼 더 안쪽 - 360px 에서 "출발 · 도착 중산리탐방지원센터" 가 🛰 밑에 깔렸음(점검 11차 D5)
+            var out = right ? px.x + w > W - 8 - RIGHT_CTRL : px.x - w < 8, room = right ? px.x - w >= 8 : px.x + w <= W - 8 - RIGHT_CTRL;
             if (!out || !room) return m;   // 반대쪽도 모자라면 그대로
             var b = a.replace(/-(left|right)$/, right ? "-right" : "-left"), ll = m.getLngLat();
             e.className = e.className.replace(a, b);

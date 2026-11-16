@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>routefly 개인정보처리방침</title>
+<meta name="description" content="routefly 개인정보처리방침 - 서버가 받는 정보와 쓰는 곳, 기기 안에만 두는 정보, 보관 기간, 다른 곳에 주는 정보, 이용자의 권리."><!-- 점검 11차 D9 -->
 <link rel="canonical" href="https://routefly.kr/routefly/privacy.html">
 <link rel="alternate" hreflang="ko" href="https://routefly.kr/routefly/privacy.html">
 <link rel="alternate" hreflang="en" href="https://routefly.kr/routefly/privacy-en.html">
@@ -32,9 +33,9 @@ table { width:100%; border-collapse:collapse; font-size:13.5px; }
 td, th { border-top:1px solid var(--ln); padding:7px 4px; vertical-align:top; text-align:left; }
 th { color:var(--dim); font-weight:normal; width:30%; }
 .key { background:rgba(56,217,234,0.10); border:1px solid rgba(56,217,234,0.35); border-radius:10px; padding:10px 12px; font-size:14.5px; }
-.back { display:inline-block; margin-top:6px; }
+.back { display:inline-flex; align-items:center; min-height:44px; margin-top:6px; }   /* 누르는 자리 44px(점검 11차 D6) */
 /* 오른쪽 위 닫기 - 아래 '‹ 뒤로' 와 같음(앞 화면으로, about.html 과 같은 모양 - 2026-10-14 홍TV님) */
-.close { position:fixed; top:calc(env(safe-area-inset-top) + 10px); right:12px; z-index:5; width:40px; height:40px; border-radius:50%;
+.close { position:fixed; top:calc(env(safe-area-inset-top) + 10px); right:12px; z-index:5; width:44px; height:44px; border-radius:50%;
          display:flex; align-items:center; justify-content:center; font-size:20px; text-decoration:none; color:var(--tx);
          background:var(--panel); border:1px solid var(--ln); box-shadow:0 2px 6px rgba(0,0,0,0.4); }
 h1 { padding-right:46px; }   /* 제목이 닫기 단추 밑으로 들어가지 않게 */
@@ -137,6 +138,8 @@ h1 { padding-right:110px; }
             <li>칼로리 · 걸음 수 계산용 몸무게 · 키(넣은 경우), 인증센터 · 100대 명산 정상 도장, 완주 표시, 찜한 코스, 마지막 검색어</li>
             <li>오프라인으로 저장한 코스와 지도 그림</li>
             <li>tidefly 의 알림 기준 · 펼친 지역 · 화면 모드 · 글자 크기 · 말(tf-alarms · tf-open-areas · tf-theme · tf-size · tf-lang)</li>
+            <li>GPX 편집에서 열어 둔 길 · 고친 것(다시 열 때 되살리기 - 목록에서 모두 빼면 지움)</li>
+            <li>별거 별거 · 게임 · 산 소개의 설정과 최근 본 것(환율 · 유가 · 도구 설정, 게임 최고 점수, 최근 본 산), 산악회 별명 · 회사 사무실 열쇠, 코스 보내기 보낸 사람 이름, 완주 인증서 이름</li>
         </ul>
         <p class="dim">지우는 방법: 따라가기 화면 "📒 내 기록" 에서 기록 지우기, 또는 브라우저 설정의 사이트 데이터 삭제(앱은 앱 정보 → 저장공간 → 데이터 삭제 · 앱 지우기).
             앱은 핸드폰 백업에 이 정보를 넣지 않습니다. 기록을 남기려면 "📒 내 기록 → 💾 백업 저장" 으로 백업 파일(기록 · 사진 · 도장 · 찜)을 받거나
@@ -170,6 +173,10 @@ h1 { padding-right:110px; }
             <li><b>날씨 · 미세먼지 · 산행 안전 · 숙박 · 식당 · 반려동물 정보:</b> 운영자의 서버가 코스 들머리(산 소개 페이지는 정상) 좌표로 기상청 · 한국환경공단(에어코리아) ·
                 산림청 · 국립중앙의료원 · 한국관광공사에 묻습니다. 기상청 날씨누리 링크를 만들려고 같은 좌표의 행정동 이름 · 번호를 카카오에 묻습니다. 별거 별거에서 "내 위치로" 를 누르면 내 위치 대신 그 둘레 <b>약 5km 고정 칸의 가운데</b>(그 칸 안 모든 사람이 같음)로 묻습니다. 따라가기 기록 중 10분마다 보는 둘레 비구름(기상청 레이더)도 같은 <b>약 5km 고정 칸의 가운데</b>로 묻습니다.
                 내 위치 · IP 주소는 넘기지 않습니다.</li>
+            <li><b>내가 그 도구를 쓸 때만 내 브라우저가 바로 묻는 곳</b>(운영자 서버를 거치지 않음 - 그 서버에 내 IP 주소가 보임):
+                별거 별거 "우편번호 · 영문 주소" 는 카카오(다음) 우편번호 서비스에 내가 적은 주소를,
+                "환율" 은 Frankfurter(유럽중앙은행 환율 공개 서비스, 해외 서버)에 기준 통화만,
+                GPX 편집 "지도에 새 길 그리기" 는 운영자 서버에 길이 없을 때 OpenStreetMap Overpass 공개 서버(독일 등 해외)에 찍은 두 점 둘레 지도 범위만 보냅니다.</li><!-- 점검 11차 D2(2026-11-16) -->
             <li><b>제휴 링크:</b> 쿠팡 파트너스 · 아고다 · 트립닷컴 · 쏘카 · 호텔스컴바인 · Airalo(링크프라이스) 제휴 링크를 누르면 그 회사 누리집으로 넘어가고, 그곳의 쿠키 · 개인정보처리방침이 적용됩니다.
                 구매 · 예약하면 운영자가 수수료를 받지만, 누가 무엇을 샀는지 같은 개인정보는 운영자에게 오지 않습니다.</li>
         </ul>
@@ -239,6 +246,7 @@ h1 { padding-right:110px; }
         <p>이 방침이 바뀌면 시행 7일 전부터 이 화면에 알립니다.</p>
         <p>2026년 10월 28일 고침: 산악회 방에서 회원 위치를 보는 사람을 주 인솔자와 차량 수만큼의 보조 인솔자로 줄이고, 회원 화면에 이름을 모두 표시합니다.
             산악회 회사가 여러 방을 함께 지켜보는 회사 사무실 화면을 더했습니다 - 사무실은 회원 화면에 받는 사람으로 표시되고, 방이 끝나면 위치는 지우며 사무실에는 이름 · 위치 없는 숫자 요약(인원 · 하산 확인 · SOS 여부)만 200일 남깁니다. 회사가 사무실 화면에서 "사무실 없애기"를 하면 사무실과 요약을 바로 모두 지웁니다.</p>
+        <p>2026년 11월 16일 고침: 내 브라우저가 바로 묻는 곳(카카오 우편번호 · Frankfurter 환율 · OpenStreetMap Overpass)과 기기 안에만 두는 것(GPX 편집 작업 · 도구 설정 등)을 빠짐없이 적었습니다(새로 모으는 정보는 없음).</p>
     </section>
 
     <a class="back" id="aboutBack" href="about.html">‹ 뒤로</a>

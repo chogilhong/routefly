@@ -247,7 +247,7 @@ a.tmap[hidden] { display:none !important; }
 .tips a.tmap.pk { margin-left:6px; font-size:14px; }
 /* 🍁 단풍 · 🌸 철쭉 때(기상청 관측 - 2026-11-14) */
 ol.ms { margin:0; padding:0; list-style:none; }
-#season h3 { font-size:15px; margin:14px 0 8px; }
+#season h3, #season h2 { font-size:15px; margin:14px 0 8px; }
 .season .wl { list-style:none; margin:6px 0 0; padding:0; font-size:15px; }
 .season .wl li { margin:4px 0; }
 .season .now, #season .now { color:var(--sky); font-size:13px; }

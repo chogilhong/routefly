@@ -159,9 +159,11 @@
             $("ccVal").className = div0 ? "msg" : "";
             $("ccVal").textContent = expr === "" ? (last != null ? RF.unitFmt(last) : "0") : r == null ? (div0 ? T("0으로 나눌 수 없어요", "Can't divide by 0") : "…") : RF.unitFmt(r);
         }
+        var KEY_NAMES = { "C": ["모두 지우기", "Clear"], "⌫": ["한 글자 지우기", "Backspace"], "%": ["퍼센트", "Percent"], "÷": ["나누기", "Divide"], "×": ["곱하기", "Multiply"], "−": ["빼기", "Minus"], "+": ["더하기", "Plus"], "=": ["계산", "Equals"] };
         KEYS.forEach(function (k) {
             var b = document.createElement("button");
             b.type = "button"; b.textContent = k[0]; if (k[1]) b.className = k[1];
+            if (KEY_NAMES[k[0]]) b.setAttribute("aria-label", T(KEY_NAMES[k[0]][0], KEY_NAMES[k[0]][1]));   // 기호 단추 이름(점검 11차 D8 - 화면 읽기가 ⌫ · ÷ 를 못 읽었음)
             b.addEventListener("click", function () {
                 var key = k[0];
                 if (key === "C") { expr = ""; last = null; }

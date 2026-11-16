@@ -745,7 +745,8 @@ public class MountainServlet extends HttpServlet {
             for (String[] r : rows) if (year == null || r[1].substring(0, 4).compareTo(year) > 0) year = r[1].substring(0, 4);
             String end = rows.get(rows.size() - 1)[1].substring(5);   // 달 · 날 차례의 끝 = 이 철의 마지막 절정일
             if (last == null || end.compareTo(last) > 0) last = end;
-            b.append("<h3>").append(k[1]).append(" ").append(k[2]).append(" ").append(k[4]).append(" 차례 <small>(").append(year).append("년 관측)</small></h3><ol class=\"ms season\">");
+            // h2 - 코스 모음은 h1 바로 아래라 h3 이면 제목 단계를 건너뜀(점검 11차 D8)
+            b.append("<h2>").append(k[1]).append(" ").append(k[2]).append(" ").append(k[4]).append(" 차례 <small>(").append(year).append("년 관측)</small></h2><ol class=\"ms season\">");
             for (String[] r : rows) {
                 String label = esc(r[0]) + " <small>" + (r[1].startsWith(year) ? koMonthDay(r[1]) : koDay(r[1])) + "</small>";   // 다른 해 관측은 해를 붙임
                 b.append("<li>").append(r[2] != null ? "<a href=\"" + REL + "/m/" + esc(enc(r[2])) + "\">" + label + "</a>" : "<span>" + label + "</span>").append("</li>");

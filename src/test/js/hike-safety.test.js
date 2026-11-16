@@ -71,7 +71,7 @@ function followRun(z, px, hidden) {
     var map = { getZoom: function () { return z; }, getCenter: function () { return [0, 0]; },
         project: function (ll) { return ll[0] === 0 ? { x: 200, y: 400 } : { x: 200 + px, y: 400 }; },
         getCanvas: function () { return { clientWidth: 400, clientHeight: 800 }; }, easeTo: function (o) { eases.push(o.zoom); } };
-    vm.runInNewContext(fn("followMe") + " followMe(37, 127);", { map: map, document: { hidden: !!hidden }, Math: Math });
+    vm.runInNewContext(fn("followMe") + " followMe(37, 127);", { map: map, document: { hidden: !!hidden }, Math: Math, REDUCED: false });
     return eases;
 }
 eq("가운데에서 39px(짧은 변 400의 10% 안) - 안 옮김", followRun(16, 39), []);

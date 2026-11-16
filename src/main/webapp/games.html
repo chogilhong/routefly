@@ -26,7 +26,7 @@ main { padding:8px 10px calc(env(safe-area-inset-bottom) + 20px); max-width:520p
 #pick summary #pickNow { flex:1; }
 #pick summary .chg { font-size:13px; font-weight:normal; color:var(--sky); border:1px solid var(--sky); border-radius:14px; padding:4px 10px; }
 #pick[open] summary .chg { opacity:0.7; }
-#pick h3 { margin:4px 14px 6px; font-size:13px; color:var(--dim); font-weight:normal; }
+#pick h2 { margin:4px 14px 6px; font-size:13px; color:var(--dim); font-weight:normal; }   /* h3 → h2(점검 11차 D8 - 제목 단계 건너뜀) */
 #pick .grid { display:grid; grid-template-columns:repeat(5, 1fr); gap:6px; padding:0 10px 10px; }
 #pick .grid button { height:62px; border-radius:12px; border:1px solid var(--ln); background:rgba(255,255,255,0.06); color:var(--tx); cursor:pointer;
                      display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:0 2px; }
@@ -61,7 +61,7 @@ canvas { display:block; background:#0b0f14; border:1px solid var(--ln); border-r
     <!-- 게임 고르기 - 한 줄로 접어 두고 누르면 두 묶음(2026-10-21 홍TV님: 10개가 위를 다 차지) -->
     <details id="pick" open>   <!-- 처음엔 펼친 채로 그림 - 불러온 뒤 펼치면 아래 게임판이 밀렸음(2026-11-03 홍TV님 점검, CLS). 고른 게임(?g=)으로 오면 js 가 접음 -->
         <summary><span id="pickNow">🎮 게임 고르기</span><span class="chg" id="pickChg">게임 바꾸기 ▾</span></summary>
-        <h3 id="grpA">🕹️ 오락실</h3>
+        <h2 id="grpA">🕹️ 오락실</h2>
         <div class="grid">
             <button data-g="tetris"><span class="e">🧱</span><span class="n">블록 쌓기</span></button>
             <button data-g="shooter"><span class="e">🚀</span><span class="n">비행기 쏘기</span></button>
@@ -69,7 +69,7 @@ canvas { display:block; background:#0b0f14; border:1px solid var(--ln); border-r
             <button data-g="g2048"><span class="e">🔢</span><span class="n">2048</span></button>
             <button data-g="breakout"><span class="e">🏓</span><span class="n">벽돌깨기</span></button>
         </div>
-        <h3 id="grpB">👆 누르기</h3>
+        <h2 id="grpB">👆 누르기</h2>
         <div class="grid">
             <button data-g="mines"><span class="e">💣</span><span class="n">지뢰찾기</span></button>
             <button data-g="runner"><span class="e">🏔️</span><span class="n">산 뛰어넘기</span></button>
@@ -77,7 +77,7 @@ canvas { display:block; background:#0b0f14; border:1px solid var(--ln); border-r
             <button data-g="memory"><span class="e">🃏</span><span class="n">짝 맞추기</span></button>
             <button data-g="flappy"><span class="e">🐦</span><span class="n">날아라 새</span></button>
         </div>
-        <h3 id="grpC">🧠 두뇌</h3>
+        <h2 id="grpC">🧠 두뇌</h2>
         <div class="grid">
             <button data-g="sudoku"><span class="e">🧩</span><span class="n">스도쿠</span></button>
             <button data-g="slide15"><span class="e">🔢</span><span class="n">숫자 퍼즐</span></button>
