@@ -580,6 +580,34 @@ journalctl -u routefly-batch -f                  # 진행 보기(배치별은 su
   courseImport · komount · durunubi · knps* 는 `data/` 의 파일을 읽으므로 9-2 에서 `data` 를 꼭 올립니다.
 - 서버가 한 바퀴 잘 돌면 PC 작업 스케줄러의 routefly-batch 작업을 "사용 안 함" 으로 바꾸고, 9-6 의 받아 오기 작업을 만듭니다(두 곳에서 같이 돌리지 않음).
 
+#### courseImport 만 따로(점검 11차 A16, 홍TV님 · PC 가 서버에서 할 것)
+
+위 타이머는 배치를 하나씩 차례로 돌려, 주 1회 forestTrail 이 몇 시간 도는 동안 사용자가 올린 GPX(courseImport)가 그 뒤로 밀립니다.
+courseImport 만 매시 37분에 따로 돌립니다. 배치마다 `.running` 잠금이 있어(2026-10-30) 위 타이머가 같은 때 courseImport 를 잡으면
+늦게 온 쪽이 "다른 실행이 돌리는 중" 으로 건너뜁니다 - 같은 표를 둘이 고치지 않습니다.
+
+```bash
+sudo sed -e 's/--once$/--once=courseImport/' -e 's/^Description=.*/Description=routefly-batch courseImport 만(올린 GPX 를 forestTrail 뒤로 밀리지 않게)/' \
+  /etc/systemd/system/routefly-batch.service | sudo tee /etc/systemd/system/routefly-course.service >/dev/null
+grep -n "ExecStart" /etc/systemd/system/routefly-course.service   # ... --once=courseImport 인지 확인
+
+sudo tee /etc/systemd/system/routefly-course.timer >/dev/null <<'UNIT'
+[Unit]
+Description=routefly-batch courseImport 매시 37분
+
+[Timer]
+OnCalendar=*-*-* *:37:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+UNIT
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now routefly-course.timer
+systemctl list-timers 'routefly-*'               # 두 타이머(:07 · :37)
+```
+
 ### 9-4. 배치를 고쳤을 때
 
 ```
