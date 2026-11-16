@@ -1984,3 +1984,20 @@ eq("favJoinExtra 제목이 없으면 지금 이름의 길", [RF.favJoinExtra("#c
     eq("설정이 없거나 http 면 없음", [RF.featuredCard(undefined), RF.featuredCard({ name: "x", img: "http://a/b.jpg", href: f.href })], [null, null]);
     delete sandbox.document;
 })();
+
+// 안내도 누르기(2026-11-16 홍TV님: 지리산 "고르는 순간 기존에 고른 코스가 사라져") - 운영 /api/park?name=지리산 의 중산리 → 천왕봉(knps-1015) · 법계교 → 순두류 → 법계사(knps-1016)
+(function () {
+    var tr = JSON.parse(require("fs").readFileSync(require("path").join(__dirname, "../resources/course/park-jirisan-jungsanri.json"), "utf8")).trails;
+    var byId = {}; tr.forEach(function (t) { byId[t.id] = t; });
+    var Z = 14.5, W = 256 * Math.pow(2, Z);   // 지도와 같은 웹 메르카토르 화면 좌표
+    var proj = function (q) { var y = Math.log(Math.tan(Math.PI / 4 + q[1] * Math.PI / 360)); return { x: (q[0] + 180) / 360 * W, y: (1 - y / Math.PI) / 2 * W }; };
+    var A = byId["knps-1015-0fc7081a"], B = byId["knps-1016-1b2f4d5e"], tap = proj(B.coords[0]);   // 법계교(1016 시작)를 누름 - 1015 선과 16m
+    var cands = [A, B].map(function (t, k) { return { px: RF.pxToLine(tap, t.coords.map(proj)), inSel: k === 0, joins: k === 1, len: t.distance_m }; });
+    eq("법계교 옆 - 두 선 모두 누르는 칸 안(고른 1015 는 몇 px)", [cands[0].px > 0 && cands[0].px < 6, cands[1].px], [true, 0]);
+    eq("갈림길 옆을 누르면 이미 고른 선을 빼지 않고 이어지는 선을 더함", RF.tapPick(cands), 1);
+    eq("고른 선 한가운데를 누르면(이어지는 선이 멀면) 고른 선을 뺌", RF.tapPick([{ px: 0, inSel: true, joins: false, len: 5000 }, { px: 10, inSel: false, joins: true, len: 100 }]), 0);
+    eq("이어지는 것이 없으면 누른 점에 가까운 선 - 법계교 끝을 누르면 1016(아직 안 이어짐)을 고르고 1015 는 그대로", RF.tapPick(cands.map(function (c) { return { px: c.px, inSel: c.inSel, joins: false, len: c.len }; })), 1);
+    eq("겹친 선(같은 거리)이면 고른 것(빼기) → 짧은 것, 없으면 -1", [RF.tapPick([{ px: 1.2, inSel: false, joins: false, len: 10 }, { px: 0.9, inSel: true, joins: false, len: 9000 }]),
+        RF.tapPick([{ px: 0.4, inSel: false, joins: false, len: 900 }, { px: 0, inSel: false, joins: false, len: 100 }]), RF.tapPick([])], [1, 1, -1]);
+    eq("점 · 선분 거리(px)", [RF.pxToLine({ x: 5, y: 3 }, [{ x: 0, y: 0 }, { x: 10, y: 0 }]), RF.pxToLine({ x: 13, y: 4 }, [{ x: 0, y: 0 }, { x: 10, y: 0 }]), RF.pxToLine({ x: 1, y: 1 }, [{ x: 1, y: 2 }])], [3, 5, 1]);
+})();

@@ -590,14 +590,15 @@
     var planHeads = null;
     function planOf(ids) { return RF.planWalk(ids, lines, { heads: planHeads || data.heads, first: ids[0], start: exStart }); }
 
-    function bestHit(fs) {
+    // 누른 자리에 걸린 선 가운데 - 누른 점에 가장 가까운 선들 중 이어지는 것, 그다음 고른 것(빼기), 짧은 것(RF.tapPick - route.js 와 같게)
+    function bestHit(fs, pt) {
         var ids = fs.map(function (f) { return f.properties.i; }).filter(function (i, k, a) { return a.indexOf(i) === k; });
-        var score = function (i) {
+        var cands = ids.map(function (i) {
             var s = segs[i], inSel = chosen.indexOf(s.id) >= 0;
-            var joins = !inSel && chosen.length && planOf(chosen.concat([s.id])).ok;
-            return (inSel ? 0 : joins ? 1 : 2) * 1e7 + (+s.distance_m || 0);
-        };
-        return ids.sort(function (a, b) { return score(a) - score(b); })[0];
+            return { px: RF.pxToLine(pt, s.coords.map(function (q) { return map.project(q); })), inSel: inSel,
+                joins: !inSel && chosen.length > 0 && planOf(chosen.concat([s.id])).ok, len: +s.distance_m || 0 };
+        });
+        return ids[RF.tapPick(cands)];
     }
 
     function draw() {
@@ -654,7 +655,7 @@
         map.on("moveend", keepFlagsIn);   // 지도를 맞추거나 옮긴 뒤 깃발이 화면 밖이면 안쪽으로
         map.on("click", "trails-hit", function (e) {
             var f = e.features && e.features[0];
-            if (f) pick(segs[bestHit(e.features)]);
+            if (f) pick(segs[bestHit(e.features, e.point)]);
         });
         map.on("mouseenter", "trails-hit", function () { map.getCanvas().style.cursor = "pointer"; });
         map.on("mouseleave", "trails-hit", function () { map.getCanvas().style.cursor = ""; });

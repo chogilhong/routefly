@@ -239,14 +239,14 @@
         map.on("click", "route-hit", function (e) {
             var f = e.features && e.features[0];
             if (!f) return;
-            // 누른 자리에 선이 여럿이면 고른 것에 이어지는 것, 그다음 짧은 것(park.js bestHit 과 같게)
+            // 누른 자리에 선이 여럿이면 누른 점에 가장 가까운 선들 중 이어지는 것, 그다음 고른 것(빼기), 짧은 것(RF.tapPick - park.js bestHit 과 같게)
             var ii = e.features.map(function (x) { return x.properties.i; }).filter(function (v, k, a) { return a.indexOf(v) === k; });
-            var score = function (i) {
+            var cands = ii.map(function (i) {
                 var c = data.courses[i], inSel = sel.some(function (x) { return x.id === c.course_id; });
-                var joins = !inSel && sel.length && RF.chainPick(sel, c.course_id, data.lines).length > sel.length;
-                return (inSel ? 0 : joins ? 1 : 2) * 1e8 + (+c.distance_m || 0);
-            };
-            pick(data.courses[ii.sort(function (a, b) { return score(a) - score(b); })[0]]);
+                return { px: RF.pxToLine(e.point, (data.lines[c.course_id] || []).map(function (q) { return map.project(q); })), inSel: inSel,
+                    joins: !inSel && sel.length > 0 && RF.chainPick(sel, c.course_id, data.lines).length > sel.length, len: +c.distance_m || 0 };
+            });
+            pick(data.courses[ii[RF.tapPick(cands)]]);
         });
         map.on("mouseenter", "route-hit", function () { map.getCanvas().style.cursor = "pointer"; });
         map.on("mouseleave", "route-hit", function () { map.getCanvas().style.cursor = ""; });
