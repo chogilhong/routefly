@@ -40,13 +40,12 @@
 
 ### 심사 안내(앱 액세스 권한)
 
+Play 칸은 영어 · 500자 안(2026-11-16 - 긴 글 1128자가 막혀 줄임, 412자). 이름 `No login - group room test`, 아이디 · 비밀번호 비움, "전체 액세스 권한 제공" 체크.
+
 ```
-로그인 · 계정이 없습니다(아이디 · 비밀번호 필요 없음). 모든 기능은 앱 안에서 바로 쓸 수 있습니다.
-- 코스 보기: 위 "⛰️ 코스 모음" → 산 하나 → 코스 → 3D 보기
-- 따라가기: 코스 고르기 → "시험 걷기"(실제 GPS 없이 코스를 따라 움직여 봄)
-- 산악회 방(인솔자): 아래 "🧑‍🤝‍🧑 산악회 방" → 방 만들기(아무 산행 이름 · 날짜 1022 · 시각 0700 · 연락처 010-0000-0000). 방 코드와 참가 링크 · QR 이 나옵니다.
-- 산악회 방(회원): 다른 폰이나 PC 브라우저에서 그 참가 링크를 열거나 방 코드를 넣어 참가합니다. 인솔자 화면에 회원 위치 · SOS 가 보입니다.
-No login or account is needed. To test the group room, create a room in "🧑‍🤝‍🧑 산악회 방" (any name, date 1022, time 0700, phone 010-0000-0000), then open the join link or enter the room code on a second device or browser.
+No login or password. All features work at launch.
+Test walk: pick a course, tap "시험 걷기" (no GPS needed).
+Group room (2 devices): Device 1 taps "산악회 방", creates a room (any name, date 1022, time 0700, phone 010-0000-0000) and gets a 6-letter room code and join link. Device 2 (or a browser at routefly.kr/routefly/party.html) opens the link or enters the code. The leader then sees the member's location and SOS.
 ```
 
 ## 3. 데이터 보안(Play) - 원스토어 답을 Play 칸으로
