@@ -86,12 +86,14 @@ public class CourseUploadServlet extends HttpServlet {
     static String save(File dir, String name, String kind, List<double[]> pts, String maker, CourseMakers makers, long now) throws IOException {
         String id = "u-" + ZonedDateTime.ofInstant(java.time.Instant.ofEpochMilli(now), ZoneId.of("Asia/Seoul")).format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
         File kd = new File(dir, kind);
+        // kind 폴더는 만들기만 하고 권한은 손대지 않음 - setPosixFilePermissions 가 setgid(2750)를 지워, 새 파일 묶음이 tomcat 이 되어
+        // 배치(routefly 묶음)가 AccessDenied 로 못 읽었음(2026-11-16 PC: 종주 5개가 11-15 부터 코스 목록에 안 들어감). 새 폴더는 부모의 setgid · 묶음을 이어받음
         if (!kd.isDirectory() && !kd.mkdir()) throw new IOException("올림 폴더를 만들지 못함");
-        perms(kd.toPath(), "rwxr-x---");   // 배치(routefly 묶음)가 읽게 - 묶음은 폴더의 setgid(2750)로 이어짐
         File out = new File(kd, id + ".gpx"), tmp = new File(kd, "." + id + ".tmp");
         if (out.exists()) return null;
         Files.write(tmp.toPath(), gpx(name, kind, pts).getBytes(StandardCharsets.UTF_8));
         perms(tmp.toPath(), "rw-r-----");
+        sameGroup(tmp.toPath(), kd.toPath());   // setgid 가 없어도 파일 묶음을 폴더 묶음으로(톰캣이 그 묶음 소속일 때만 됨)
         Files.move(tmp.toPath(), out.toPath(), StandardCopyOption.ATOMIC_MOVE);
         makers.put(id, maker, now);
         return id;
@@ -111,6 +113,16 @@ public class CourseUploadServlet extends HttpServlet {
         } catch (Exception e) {
             Json.fail(resp, 400, "요청을 읽지 못했습니다.");
             return null;
+        }
+    }
+
+    /** 파일 묶음(group)을 폴더 묶음으로 - 이미 같거나, 바꿀 수 없으면(윈도우 · 그 묶음 소속이 아님) 그대로. */
+    static void sameGroup(java.nio.file.Path file, java.nio.file.Path dir) {
+        try {
+            Object g = Files.getAttribute(dir, "posix:group");
+            if (!g.equals(Files.getAttribute(file, "posix:group"))) Files.setAttribute(file, "posix:group", g);
+        } catch (Exception e) {
+            // 윈도우(PC 개발) · 바꿀 권한 없음 - 폴더 setgid 에 맡김
         }
     }
 
