@@ -186,13 +186,18 @@ public class CourseUploadServlet extends HttpServlet {
     /** 순수 함수 - 점만 다시 쓴 GPX(시각 · 사진 메모 없음). */
     static String gpx(String name, String kind, List<double[]> pts) {
         StringBuilder sb = new StringBuilder("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<gpx version=\"1.1\" creator=\"routefly upload\" xmlns=\"http://www.topografix.com/GPX/1/1\">\n<trk><name>")
-                .append(name).append("</name><type>").append(kind).append("</type><trkseg>\n");
+                .append(xml(name)).append("</name><type>").append(kind).append("</type><trkseg>\n");   // 이름의 & < > 는 글자로(2026-11-16 - 그대로 넣으면 배치가 GPX 를 못 읽음)
         for (double[] p : pts) {
             sb.append("<trkpt lat=\"").append(p[0]).append("\" lon=\"").append(p[1]).append("\">");
             if (!Double.isNaN(p[2])) sb.append("<ele>").append(Math.round(p[2])).append("</ele>");
             sb.append("</trkpt>\n");
         }
         return sb.append("</trkseg></trk>\n</gpx>\n").toString();
+    }
+
+    /** 순수 함수 - XML 글 칸에 넣을 꼴(& < > "). */
+    static String xml(String s) {
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
     }
 
     static double distM(double[] a, double[] b) {

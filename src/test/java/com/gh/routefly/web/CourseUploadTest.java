@@ -31,6 +31,8 @@ public class CourseUploadTest {
         assertFalse("사진 · 메모 자리도", out.contains("<wpt"));
         assertTrue(out.contains("<name>송산 · 마을회관 → 정상</name><type>hike</type>"));
         assertEquals(20, CourseUploadServlet.points(out).size());
+        // 이름의 & < > 는 글자로(2026-11-16 - 그대로면 "<name>A & B</name>" 가 XML 로 안 읽힘)
+        assertTrue(CourseUploadServlet.gpx("불암산 & 수락산 <연계>", "hike", p).contains("<name>불암산 &amp; 수락산 &lt;연계&gt;</name>"));
     }
 
     @Test
