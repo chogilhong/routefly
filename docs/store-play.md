@@ -10,6 +10,9 @@
 
 1. 대시보드 "앱 설정 → 할 일 보기" 의 칸을 2장 표대로 채움(홍TV님 화면, 웹 Claude 가 칸마다 안내).
 2. PC Claude: AAB 빌드(versionCode 는 원스토어 다음 번호) - 서명은 원스토어 APK 와 같은 키.
+   - 2026-11-17 PC 확인: build.gradle versionCode 1 · versionName "1.0"(원스토어 APK 도 1) → Play 첫 AAB 는 versionCode 2 · versionName "1.0.1"(두 스토어 번호를 한 줄로 - 다음 원스토어 판도 2 이상).
+   - build.gradle 에 signingConfig 없음 → Android Studio "Generate Signed App Bundle" 로 서명(키 비밀번호는 홍TV님). 서명 키 파일은 .app-key 에 있음.
+   - 원스토어 APK 는 v2 전용 서명이라 keytool -printcert 로 지문을 못 읽음 - 지문은 키 파일에서(keytool -list -v, 비밀번호 홍TV님) 또는 Play 앱 무결성 화면에서.
 3. 테스트 → 내부 테스트 트랙에 첫 AAB. 이때 "Play 앱 서명" 은 "다른 키 사용 → 원스토어와 같은 키를 내보내 올리기"(PEPK).
    - 같은 키여야 산악회 방 앱 링크(서버 `app.sha256`)가 그대로 맞고, 2027 안드로이드 개발자 인증도 한 키로 끝남.
    - 구글이 새 키를 만들게 두면 Play 에서 받은 앱 지문을 `app.sha256` 에 쉼표로 더해야 함(Play Console → 테스트 및 출시 → 앱 무결성 → 앱 서명 키 인증서 SHA-256).
@@ -69,6 +72,12 @@ Group room (2 devices): Device 1 taps "산악회 방", creates a room (any name,
 - 독립 보안 검토: 아니요.
 - 국외 이전 메모(store-onestore.md): 서버는 서울. 의견 보내기 글이 가는 운영자 Gmail - Play 양식에는 국외 이전 칸이 없어 따로 적지 않음.
 
-## 4. 심사에서 지적받으면
+## 4. 지원 이메일(routefly.kr 주소로 바꿀 때)
+
+2026-11-17 PC 확인: routefly.kr DNS 는 가비아(NS ns/ns1.gabia.co.kr · ns.gabia.net), MX 없음(메일 받는 곳 없음), TXT 에 google-site-verification 있음(지우지 않음).
+Cloudflare Email Routing 은 네임서버를 Cloudflare 로 옮겨야 해서 지금은 맞지 않음. 가비아 관리 화면의 메일 포워딩(있으면) 또는 가비아 DNS 에 MX 를 넣는 무료 포워딩 서비스로
+help@routefly.kr → 홍TV님 gmail. MX · SPF TXT 를 더해도 google-site-verification TXT 는 그대로 둠.
+
+## 5. 심사에서 지적받으면
 
 - 후원 링크: 앱 안(window.Capacitor)에서만 후원 단추를 숨김 - 서버만 고침(2026-11-16 홍TV님 "먼저 올리고 지적받으면").
