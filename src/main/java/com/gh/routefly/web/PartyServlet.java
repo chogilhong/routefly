@@ -236,11 +236,16 @@ public class PartyServlet extends HttpServlet {
             if (oc != null && p.offices.byCode(oc) == null) throw new IllegalArgumentException("회사 코드를 찾지 못했습니다. 회사에 다시 확인해 주세요.");
             Party.Member lead = p.create(str(in, "name"), lng(in, "departAt"), lng(in, "endAt"), Math.max(1, (int) lng(in, "buses")), (int) lng(in, "seats"), ints(in, "busSeats"),
                     Party.stops(str(in, "stops")), str(in, "leaderName"), str(in, "leaderPhone"), strs(in, "plates"), now);
-            p.stopTimes(lead, Party.stopTimes(str(in, "stops")));   // 탑승지마다 출발 시각(2026-10-27)
-            if (str(in, "drops") != null) p.drops(lead, Party.stops(str(in, "drops")));   // 하차 지점(2026-10-28)
-            if (str(in, "pickups") != null || str(in, "home") != null) p.pickups(lead, str(in, "pickups"), str(in, "home"));   // 하산 탑승지 · 도착 예정
-            if (str(in, "drop") != null && !str(in, "drop").isBlank()) p.drop(lead, null, str(in, "drop"));   // 인솔자 내 하차 지점
-            if (oc != null) p.linkOffice(lead, oc, now);
+            try {   // 뒤 단계가 실패하면 방을 지움(점검 11차 B1 - 방은 남고 횟수만 돌려받던 틈)
+                p.stopTimes(lead, Party.stopTimes(str(in, "stops")));   // 탑승지마다 출발 시각(2026-10-27)
+                if (str(in, "drops") != null) p.drops(lead, Party.stops(str(in, "drops")));   // 하차 지점(2026-10-28)
+                if (str(in, "pickups") != null || str(in, "home") != null) p.pickups(lead, str(in, "pickups"), str(in, "home"));   // 하산 탑승지 · 도착 예정
+                if (str(in, "drop") != null && !str(in, "drop").isBlank()) p.drop(lead, null, str(in, "drop"));   // 인솔자 내 하차 지점
+                if (oc != null) p.linkOffice(lead, oc, now);
+            } catch (RuntimeException e) {
+                p.undoCreate(lead);
+                throw e;
+            }
             return withToken(p.view(lead, now), lead);
         }
         if ("/info".equals(path)) return p.info(str(in, "code"), now);

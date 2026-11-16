@@ -319,21 +319,45 @@ public class AirServlet extends HttpServlet {
     static final String FORECAST_URL = "https://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getMinuDustFrcstDspth";
     /** 발표일(KST) → 응답 글. 하루 네 번(5 · 11 · 17 · 23시) 발표 - 1시간 담아 둠. */
     private static final OpenApi.Cache<String> FORECAST = new OpenApi.Cache<>(4, 60L * 60 * 1000);
+    /** 그 발표일에 아직 발표가 없거나(빈 답 · NODATA) 못 읽은 답 - 10분만 담아 요청마다 다시 부르지 않게(점검 11차 A7). */
+    private static final OpenApi.Cache<String> FORECAST_EMPTY = new OpenApi.Cache<>(4, 10L * 60 * 1000);
 
     /** 그 지역의 날짜별 예보 {"2026-10-16":{"pm10":"보통","pm25":"좋음"}} - 못 받으면 null. */
     private static JsonObject forecast(String key, String region, long now) {
-        String day = java.time.LocalDate.now(WeatherServlet.KST).toString();
-        String text = FORECAST.get(day, now);
-        if (text == null) {
-            text = OpenApi.get(FORECAST_URL + "?serviceKey=" + URLEncoder.encode(key, StandardCharsets.UTF_8)
-                    + "&returnType=json&numOfRows=100&pageNo=1&ver=1.1&searchDate=" + day, "AIR");
-            if (text == null || items(text) == null) {
-                if (text != null) OpenApi.warn("AIR", text);
-                return null;
-            }
-            FORECAST.put(day, text, now);
+        java.time.LocalDate d = java.time.LocalDate.now(WeatherServlet.KST);
+        String today = dayText(key, d.toString(), now);
+        JsonObject out = today == null ? null : forecastFor(today, region);
+        // 0 ~ 5시(오늘 첫 발표 전)는 어제 23시 발표가 오늘 · 내일 예보(점검 11차 A7, 2026-11-16 - 예전에는 새벽에 예보 칸이 비었음)
+        if (out == null || !out.has(d.toString())) {
+            String yest = dayText(key, d.minusDays(1).toString(), now);
+            if (yest != null) out = mergeForecast(out, forecastFor(yest, region));
         }
-        return forecastFor(text, region);
+        return out;
+    }
+
+    /** 발표일 하나의 응답 글 - 발표가 있는 답만 1시간, 빈 답 · 못 읽은 답은 10분 담음. 없으면 null. */
+    private static String dayText(String key, String day, long now) {
+        String text = FORECAST.get(day, now);
+        if (text != null) return text;
+        if (FORECAST_EMPTY.get(day, now) != null) return null;
+        text = OpenApi.get(FORECAST_URL + "?serviceKey=" + URLEncoder.encode(key, StandardCharsets.UTF_8)
+                + "&returnType=json&numOfRows=100&pageNo=1&ver=1.1&searchDate=" + day, "AIR");
+        JsonArray list = text == null ? null : items(text);
+        if (list == null || list.isEmpty()) {
+            if (text != null && list == null) OpenApi.warn("AIR", text);
+            if (text != null) FORECAST_EMPTY.put(day, "", now);   // 망 실패(null)는 담지 않음 - 다음 요청이 다시
+            return null;
+        }
+        FORECAST.put(day, text, now);
+        return text;
+    }
+
+    /** 순수 함수 - 오늘 발표 예보(a, 없으면 null)에 어제 발표(b)의 날짜 중 a 에 없는 것을 더함. 둘 다 없으면 null. */
+    static JsonObject mergeForecast(JsonObject a, JsonObject b) {
+        if (b == null) return a;
+        JsonObject out = a == null ? new JsonObject() : a.deepCopy();
+        for (String k : b.keySet()) if (!out.has(k)) out.add(k, b.get(k));
+        return out;
     }
 
     /**

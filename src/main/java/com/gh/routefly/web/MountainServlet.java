@@ -830,8 +830,9 @@ public class MountainServlet extends HttpServlet {
 
     /** 순수 함수 - 공단 난이도 글("보통(2.57)") → LEVELS 차례, 모르면 -1. course-kit.js officialLevel 과 같음. */
     static int officialLevel(String text) {
-        String t = text == null ? "" : text.replaceAll("\\(.*$", "").replaceAll("\\s+", " ").trim();
-        for (int i = 0; i < LEVELS.length; i++) if (LEVELS[i][0].equals(t)) return i;
+        // 띄어쓰기는 모두 빼고 견줌 - 공단은 "매우어려움" 으로 보냄(점검 11차 A8, 2026-11-16: 칩 색이 없고 영어 페이지에 한글이 나왔음)
+        String t = text == null ? "" : text.replaceAll("\\(.*$", "").replaceAll("\\s+", "");
+        for (int i = 0; i < LEVELS.length; i++) if (LEVELS[i][0].replace(" ", "").equals(t)) return i;
         return -1;
     }
 

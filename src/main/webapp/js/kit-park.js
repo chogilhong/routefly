@@ -985,6 +985,7 @@
     function closeLoop(walk, lines, endName) {
         if (!walk || walk.length < 2) return walk;
         var f = walk[0], last = walk[walk.length - 1], L = lines[f.id], Z = lines[last.id];
+        if (f.id.indexOf(",") >= 0) return walk;   // 이은 조각(무등산 mergeBare)은 비율이 앞 조각 것이 아님 - 붙이지 않음(점검 11차 A13)
         if (!L || L.length < 2 || !Z || !Z.length) return walk;
         var pts = f.rev ? L.slice().reverse() : L, end = last.rev ? Z[0] : Z[Z.length - 1], st = pts[0];
         if (distM(end[1], end[0], st[1], st[0]) < LOOP_GAP_M) return walk;

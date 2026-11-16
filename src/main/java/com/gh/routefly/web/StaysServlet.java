@@ -39,6 +39,8 @@ public class StaysServlet extends HttpServlet {
     static final long CACHE_MS = 24L * 60 * 60 * 1000;
 
     private static final OpenApi.Cache<JsonObject> CACHE = new OpenApi.Cache<>(CACHE_MAX, CACHE_MS);
+    /** 관광공사 · 카카오 한쪽이 실패한 반쪽 답 - 10분만(점검 11차 A10). */
+    private static final OpenApi.Cache<JsonObject> PARTIAL = new OpenApi.Cache<>(200, 10L * 60 * 1000);
     /** 기억에 없어 바깥에 새로 묻는 횟수 상한 - 주소마다 한 시간 40번, 하루 3,000번(설정 quota.stays.ip · .day, 2026-10-30). */
     private static final OutQuota QUOTA = OutQuota.of("stays", 40, 3000);
 
@@ -54,10 +56,13 @@ public class StaysServlet extends HttpServlet {
         String key = (pet ? "pet" : "") + type + "@" + cacheKey(at[0], at[1]);
         long now = System.currentTimeMillis();
         JsonObject out = CACHE.get(key, now);
+        if (out == null) out = PARTIAL.get(key, now);
         if (out == null) {
             String ip = SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For"));
             out = QUOTA.allow(ip, now) ? fetch(at[0], at[1], type, pet) : unavailable();
-            if (!out.has("unavailable")) CACHE.put(key, out, now);
+            // 관광공사 · 카카오 한쪽이 실패한 반쪽 답은 10분만(점검 11차 A10, 2026-11-16 - 하루 동안 숙소 절반이 빠졌음)
+            if (out.remove("partial") != null) PARTIAL.put(key, out, now);
+            else if (!out.has("unavailable")) CACHE.put(key, out, now);
         }
         Json.ok(req, resp, out);
     }
@@ -72,12 +77,13 @@ public class StaysServlet extends HttpServlet {
         // 카카오는 20km 로 한 번만 묻고(가까운 순 15곳) 반경마다 거리로 자름 - 넓혀 볼 때 다시 묻지 않음(2026-10-30 호출 줄이기)
         JsonArray kAll = kakao == null ? null : kakaoFetch(kakao, lat, lon);
         JsonObject out = gather(base, serviceKey, kAll, lat, lon, type, RADIUS_M, pet);
+        if (out != null && kakao != null && kAll == null) out.addProperty("partial", true);   // 카카오를 못 받음 - 짧게만 담음
         // 반려동물 동반 가능한 곳은 드묾 - 5km 안에 없으면 20km 까지 넓혀 한 번 더(2026-10-14 PC: 가야산 · 북한산 5km 안 0곳)
         // 숙박도 5km 안에 없으면 20km 까지(2026-10-29 홍TV님 - PC: 설악산 소공원 5km 안 0곳, 관광공사에 설악동 숙소가 없고 속초 시내가 7~8km)
         int wideM = wideRadius(pet, type);
         if (wideM > 0 && out != null && out.getAsJsonArray("stays").size() == 0) {
             JsonObject wide = gather(base, serviceKey, kAll, lat, lon, type, wideM, pet);
-            if (wide != null) out = wide;
+            if (wide != null) { if (out.has("partial")) wide.addProperty("partial", true); out = wide; }
         }
         return out != null ? out : unavailable();
     }
@@ -98,6 +104,7 @@ public class StaysServlet extends HttpServlet {
         if (kAll == null) return tour;
         JsonObject out = merge(within(kAll, radius), tour == null ? new JsonArray() : tour.getAsJsonArray("stays"));
         out.addProperty("radius_km", radius / 1000);
+        if (serviceKey != null && tour == null) out.addProperty("partial", true);   // 관광공사를 못 받음 - 짧게만 담음
         return out;
     }
 

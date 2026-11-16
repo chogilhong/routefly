@@ -2051,3 +2051,29 @@ eq("favJoinExtra 제목이 없으면 지금 이름의 길", [RF.favJoinExtra("#c
     var front = RF.sliceCourse(c, 0, 0.3, "앞"), jn = RF.joinCourses([front, c], "a,b"), off = jn.dist[front.lon.length];   // 뒤 구간 첫 점의 거리
     eq("이은 코스 - 뒤 구간 자리는 그 구간이 시작하는 거리만큼 밀림", Math.abs(jn.spots.filter(function (s) { return s.kind === "danger" && s.dist_m != null; })[0].dist_m - (off + 3529)) < 1, true);
 })();
+eq("점검 11차 A8 - 공단 난이도 띄어쓰기 없음(운영 설악산 \"매우어려움(3.16)\")", [RF.officialLevel("매우어려움(3.16)"), RF.officialLevel("매우 어려움"), RF.officialLevel("보통(2.57)"), RF.officialLevel("상")], [4, 4, 2, null]);
+
+// 점검 11차 A13 · A14(2026-11-16)
+(function () {
+    // A14 - 들머리 → 6km 막대 → 3.6km 고리 → 막대 위 갈림길에서 끝(예전: 앞쪽 절반만 찾아 "만들 수 없음")
+    var pts = [], k;
+    for (k = 0; k <= 60; k++) pts.push([37 + k * 0.0009, 127, null, 100 + k]);              // 막대 북쪽 6km 남짓
+    var J = pts[pts.length - 1];
+    [[0.0081, 0], [0.0081, 0.0102], [0, 0.0102], [0, 0]].forEach(function (dv) {               // 고리(가로 · 세로 각 900m)
+        var last = pts[pts.length - 1], tgt = [J[0] + dv[0], J[1] + dv[1]];
+        for (var i = 1; i <= 9; i++) pts.push([last[0] + (tgt[0] - last[0]) * i / 9, last[1] + (tgt[1] - last[1]) * i / 9, null, 160]);
+    });
+    var r = RF.loopTrack(pts);
+    eq("막대가 고리보다 긴 모양 - 갈림길에서 들머리까지 거꾸로 붙임", [r.at, r.addM > 5900 && r.addM < 6100, RF.distM(r.track[r.track.length - 1][0], r.track[r.track.length - 1][1], 37, 127) < 1], ["end", true, true]);
+    // A13 - 첫 구간이 이은 조각(ID 에 , )이면 closeLoop 은 붙이지 않음
+    var lines = { "a@0-1:가>나,b@0-1:나>다": [[127, 37], [127.01, 37]], z: [[127.01, 37], [127.005, 37.0001]] };
+    eq("이은 조각 첫 구간 - 그대로", RF.closeLoop([{ id: "a@0-1:가>나,b@0-1:나>다", rev: false }, { id: "z", rev: false }], lines, "x").length, 2);
+})();
+// 점검 11차 A15 - 뒤집은 길 · 이은 길의 GPX 시각이 뒤로 가지 않게
+(function () {
+    var tr = [[37, 127, 1000, 10], [37.001, 127, 2000, 20], [37.002, 127, 4000, 30]], rv = RF.reverseTrack(tr);
+    eq("뒤집기 - 점은 거꾸로, 시각은 앞으로(걸린 시간 그대로)", rv, [[37.002, 127, 1000, 30], [37.001, 127, 3000, 20], [37, 127, 4000, 10]]);
+    eq("시각 없는 길은 그대로 뒤집기만", RF.reverseTrack([[1, 2, null, 3], [4, 5, null, 6]]), [[4, 5, null, 6], [1, 2, null, 3]]);
+    eq("이은 길 - 붙일 길이 앞 길보다 이르면 그 시각은 비움", RF.joinTracks([[37, 127, 5000, 1]], [[37.1, 127, 100, 2]]), [[37, 127, 5000, 1], [37.1, 127, null, 2]]);
+    eq("늦으면 그대로", RF.joinTracks([[37, 127, 5000, 1]], [[37.1, 127, 9000, 2]]), [[37, 127, 5000, 1], [37.1, 127, 9000, 2]]);
+})();

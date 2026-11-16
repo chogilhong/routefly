@@ -291,7 +291,7 @@ final class MountainEn {
                             : "trail=" + MountainServlet.enc(str(sr, "match") != null ? str(sr, "match") : str(sr, "name"));
                     String en = routeName(str(sr, "name"));
                     ul.append("<li><a href=\"").append(REL).append("/route.html?").append(esc(q)).append("&amp;name=").append(esc(MountainServlet.enc(en)))
-                            .append("&amp;back=en\">").append(esc(en)).append(sr.has("km") ? " <small>" + sr.get("km").getAsInt() + " km</small>" : "")
+                            .append("&amp;back=en&amp;lang=en\">").append(esc(en)).append(sr.has("km") ? " <small>" + sr.get("km").getAsInt() + " km</small>" : "")
                             .append(" <small lang=\"ko\">").append(esc(str(sr, "name"))).append("</small></a></li>");
                     n++;
                 }

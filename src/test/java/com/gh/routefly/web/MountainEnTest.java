@@ -81,9 +81,9 @@ public class MountainEnTest {
         String idx = MountainEn.indexPage(peaks, groups, "https://routefly.kr/routefly");
         assertTrue("🧰 Handy tools 링크", idx.contains("/tools.html?lang=en\">🧰 Handy tools"));
         assertTrue("🎮 Mini games 는 Handy tools 아래", idx.indexOf("/games.html?lang=en\">🎮 Mini games") > idx.indexOf("/tools.html?lang=en"));
-        assertTrue(idx.contains("<a href=\"../../route.html?trail=%ED%95%B4%ED%8C%8C%EB%9E%91%EA%B8%B8&amp;name=Haeparang%20Trail&amp;back=en\">Haeparang Trail <small lang=\"ko\">해파랑길</small></a>"));
+        assertTrue(idx.contains("<a href=\"../../route.html?trail=%ED%95%B4%ED%8C%8C%EB%9E%91%EA%B8%B8&amp;name=Haeparang%20Trail&amp;back=en&amp;lang=en\">Haeparang Trail <small lang=\"ko\">해파랑길</small></a>"));
         assertTrue(idx.contains(">Jirisan Dulle-gil <small>289 km</small>"));
-        assertTrue(idx.contains("route.html?prefix=osmb-1-&amp;name=Hangang%20Bike%20Path%20%28Seoul%29&amp;back=en\">Hangang Bike Path (Seoul)"));
+        assertTrue(idx.contains("route.html?prefix=osmb-1-&amp;name=Hangang%20Bike%20Path%20%28Seoul%29&amp;back=en&amp;lang=en\">Hangang Bike Path (Seoul)"));
         assertFalse("100대 명산 칸은 길 목록에서 뺌", idx.contains("Baekdudaegan ridge"));
         assertTrue("/m/ 처럼 접는 칸", idx.contains("<details class=\"fold kind\" name=\"kind\"><summary><span class=\"ft\">⛰️ Hiking</span><span class=\"fs\">100 Famous Mountains</span>"));
         assertTrue(idx.contains("<span class=\"ft\">🥾 Walking</span><span class=\"fs\">Korea Dulle-gil</span>") && idx.contains("<span class=\"ft\">Korea Dulle-gil</span><span class=\"fs\">2</span>"));

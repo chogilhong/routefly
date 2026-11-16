@@ -139,7 +139,7 @@ final class Stats {
         load();
         if (!today.equals(LocalDate.now(WeatherServlet.KST).toString())) return false;
         JsonObject day = DAYS.get(today);
-        if (day == null || !appSigSeen.add(hash(ip))) return false;
+        if (day == null || appSigSeen.size() >= SEEN_MAX || !appSigSeen.add(hash(ip))) return false;   // 한도(점검 11차 B7 - IPv6 돌려 쓰기)
         day.addProperty("appSig", (day.has("appSig") ? day.get("appSig").getAsInt() : 0) + 1);
         dirty = true;
         return true;
@@ -173,7 +173,7 @@ final class Stats {
         JsonObject day = DAYS.get(today);
         if (day == null) return false;
         // 앱은 모바일만(2026-11-12 점검: ?app=1 은 화면이 보내는 값이라 PC 도 섞이면 "그중 앱" 이 모바일의 100% 를 넘을 수 있었음)
-        boolean first = jsSeen.add(h), inApp = app && "모바일".equals(device) && appSeen.add(h);
+        boolean first = jsSeen.size() < SEEN_MAX && jsSeen.add(h), inApp = app && "모바일".equals(device) && appSeen.size() < SEEN_MAX && appSeen.add(h);   // 한도(점검 11차 B7)
         if (first) {
             if (!day.has("jsUniq")) day.add("jsUniq", new JsonObject());
             add(day.getAsJsonObject("jsUniq"), device);
@@ -278,7 +278,7 @@ final class Stats {
             String h = hash(ip);
             // 하루 방문자 칸 한도(2026-10-28 보안 점검: 화면은 횟수 제한이 없어 IPv6 주소를 바꿔 가며 수백만 칸을 채울 수 있었음) - 넘으면 방문자 수만 더 세지 않음
             boolean first = seen.size() < SEEN_MAX && seen.add(h);
-            if (sus != null && device != null && susSeen.add(h)) {   // 의심 방문자 - 기기마다(10-22 부터), 한 사람 한 번
+            if (sus != null && device != null && susSeen.size() < SEEN_MAX && susSeen.add(h)) {   // 의심 방문자 - 기기마다(10-22 부터), 한 사람 한 번
                 if (!day.has("sus")) day.add("sus", new JsonObject());
                 add(day.getAsJsonObject("sus"), device);
             }
@@ -290,7 +290,8 @@ final class Stats {
             }
             if (course != null) {   // 코스 소개 페이지 - 코스마다(10-21 부터)
                 if (!day.has("courses")) day.add("courses", new JsonObject());
-                add(day.getAsJsonObject("courses"), course);
+                JsonObject cs = day.getAsJsonObject("courses");
+                if (cs.has(course) || cs.size() < COURSES_MAX) add(cs, course);   // 하루 칸 한도(점검 11차 B2 - 400일 보관 · /stats 가 느려지지 않게)
             }
             if (src != null) {
                 if (!day.has("refs")) day.add("refs", new JsonObject());
@@ -307,6 +308,7 @@ final class Stats {
     }
 
     static final int SEEN_MAX = 200_000;
+    static final int COURSES_MAX = 5_000;   // 하루 코스 칸 한도(점검 11차 B2 - 2026-11 하루 칸 45 ~ 138)
 
     /** IPv6 는 /64 로 묶어 셈(한 집 · 한 폰의 주소 바꾸기를 한 사람으로, RateLimiter.group). */
     private static String hash(String ip) {

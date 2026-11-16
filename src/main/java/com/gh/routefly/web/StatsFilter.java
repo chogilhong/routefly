@@ -72,8 +72,9 @@ public class StatsFilter extends HttpFilter {
         boolean own = owner(req.getHeader("Cookie")) || selfCheck(ua);   // 운영자 기기 · PC Claude 확인용 접속(이름표 routefly-check)은 방문 수에서 뺌
         Access.page(page, ip, ua, req.getHeader("Accept-Language"), own, System.currentTimeMillis());   // 오늘 접속 분석 - 로봇 · 운영자도 종류별로(2026-10-29)
         if (own) return;
+        // 코스 칸은 실제로 연 코스 페이지(200)만 - 없는 코스 주소(301)에 아무 글자나 붙여 칸을 끝없이 늘릴 수 있었음(점검 11차 B2, 2026-11-16)
         String bot = Stats.botKind(ua, req.getHeader("Accept-Language"));
-        Stats.hit(page, Stats.courseKey(path), ip, bot, "검색".equals(bot) ? Stats.searchEngine(ua) : null, Stats.source(req.getHeader("Referer"), req.getServerName()), Stats.device(ua),
+        Stats.hit(page, res.getStatus() == 200 ? Stats.courseKey(path) : null, ip, bot, "검색".equals(bot) ? Stats.searchEngine(ua) : null, Stats.source(req.getHeader("Referer"), req.getServerName()), Stats.device(ua),
                 bot == null ? Stats.suspect(ua, req.getHeader("Sec-Fetch-Mode"), req.getHeader("sec-ch-ua")) : null);
     }
 }

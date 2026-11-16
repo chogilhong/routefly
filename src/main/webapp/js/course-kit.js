@@ -3051,6 +3051,7 @@
     function closeLoop(walk, lines, endName) {
         if (!walk || walk.length < 2) return walk;
         var f = walk[0], last = walk[walk.length - 1], L = lines[f.id], Z = lines[last.id];
+        if (f.id.indexOf(",") >= 0) return walk;   // 이은 조각(무등산 mergeBare)은 비율이 앞 조각 것이 아님 - 붙이지 않음(점검 11차 A13)
         if (!L || L.length < 2 || !Z || !Z.length) return walk;
         var pts = f.rev ? L.slice().reverse() : L, end = last.rev ? Z[0] : Z[Z.length - 1], st = pts[0];
         if (distM(end[1], end[0], st[1], st[0]) < LOOP_GAP_M) return walk;
@@ -4060,7 +4061,24 @@
     function joinTracks(a, b) {
         var x = (a || []).slice(), y = b || [];
         if (x.length && y.length && distM(x[x.length - 1][0], x[x.length - 1][1], y[0][0], y[0][1]) < 5) y = y.slice(1);
+        // 붙일 길의 시각이 앞 길 끝보다 이르면(다른 날 · 뒤집은 길) 그 시각은 비움 - GPX 시각이 뒤로 가지 않게(점검 11차 A15)
+        var lastT = null;
+        for (var i = x.length - 1; i >= 0 && lastT == null; i--) if (typeof x[i][2] === "number") lastT = x[i][2];
+        var firstT = null;
+        for (var k = 0; k < y.length && firstT == null; k++) if (typeof y[k][2] === "number") firstT = y[k][2];
+        if (lastT != null && firstT != null && firstT < lastT) y = y.map(function (p) { return [p[0], p[1], null].concat(p.slice(3)); });
         return x.concat(y);
+    }
+
+    /**
+     * 순수 함수 - 길을 거꾸로(끝 → 처음). 시각은 걸린 시간 그대로 앞으로 가게 비춤(t0 + t1 - t) - 그대로 뒤집으면 GPX 시각이 줄어드는 차례가 되어
+     * 다른 앱이 이상하게 읽고 "걸린 시간" 이 없어졌음(점검 11차 A15, 2026-11-16). 점: [위도, 경도, 시각, 높이].
+     */
+    function reverseTrack(track) {
+        var t = (track || []).slice().reverse(), ts = t.map(function (p) { return p[2]; }).filter(function (v) { return typeof v === "number"; });
+        if (!ts.length) return t;
+        var sum = Math.min.apply(null, ts) + Math.max.apply(null, ts);
+        return t.map(function (p) { return typeof p[2] === "number" ? [p[0], p[1], sum - p[2]].concat(p.slice(3)) : p; });
     }
 
     /**
@@ -4081,13 +4099,17 @@
         for (var i = 1; i < n; i++) cum.push(cum[i - 1] + distM(t[i - 1][0], t[i - 1][1], t[i][0], t[i][1]));
         var total = cum[n - 1], nearE = { d: Infinity }, nearS = { d: Infinity };
         var bare = function (p) { return [p[0], p[1], null, p.length > 3 ? p[3] : null]; };
-        // 도착이 앞쪽 절반 길 위(출발에서 30m 넘게 간 곳) - 그 자리 j 에서 출발까지 거꾸로
-        for (var j = 1; j < n && cum[j] <= total / 2; j++) {
+        // 도착이 지나온 길 위(출발에서 30m 넘게 간 곳) - 그 자리 j 에서 출발까지 거꾸로.
+        // 도착 바로 앞(도착에서 touchM 안으로 이어진 끝 꼬리)만 빼고 찾음 - 예전에는 앞쪽 절반만 봐서 들머리 → 고리가 고리보다 길면 못 했음(점검 11차 A14)
+        var tail = n - 1, head = 0;
+        while (tail > 0 && distM(e[0], e[1], t[tail][0], t[tail][1]) < lim) tail--;
+        while (head < n - 1 && distM(s[0], s[1], t[head][0], t[head][1]) < lim) head++;
+        for (var j = 1; j <= tail; j++) {
             var dj = distM(e[0], e[1], t[j][0], t[j][1]);
             if (cum[j] >= LOOP_SAME_M && dj < nearE.d) nearE = { d: dj, k: j, addM: cum[j], at: "end" };
         }
-        // 출발이 뒤쪽 절반 길 위(도착에서 30m 넘게 떨어진 곳) - 도착에서 그 자리 k 까지 거꾸로 앞에
-        for (var k = n - 2; k > 0 && cum[k] >= total / 2; k--) {
+        // 출발이 지나온 길 위(도착에서 30m 넘게 떨어진 곳, 출발 바로 뒤 머리는 빼고) - 도착에서 그 자리 k 까지 거꾸로 앞에
+        for (var k = n - 2; k >= head && k > 0; k--) {
             var dk = distM(s[0], s[1], t[k][0], t[k][1]), back = total - cum[k];
             if (back >= LOOP_SAME_M && dk < nearS.d) nearS = { d: dk, k: k, addM: back, at: "start" };
         }
@@ -5607,8 +5629,9 @@
 
     /** 순수 함수 - 공단 난이도 글("보통(2.57)" · "매우 어려움") → LEVELS 차례(0 ~ 4). 모르는 말이면 null. MountainServlet.officialLevel 과 같음. */
     function officialLevel(text) {
-        var t = String(text == null ? "" : text).replace(/\(.*$/, "").replace(/\s+/g, " ").trim();
-        for (var i = 0; i < LEVELS.length; i++) if (t === LEVELS[i].ko) return i;
+        // 띄어쓰기는 모두 빼고 견줌 - 공단은 "매우어려움" 으로 보냄(점검 11차 A8, MountainServlet.officialLevel 과 같게)
+        var t = String(text == null ? "" : text).replace(/\(.*$/, "").replace(/\s+/g, "");
+        for (var i = 0; i < LEVELS.length; i++) if (t === LEVELS[i].ko.replace(/ /g, "")) return i;
         return null;
     }
 
@@ -6617,7 +6640,7 @@
     global.RF = {
         LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, PARKS: PARKS, parkOf: parkOf, mountainOf: mountainOf, regionNames: regionNames, stampKey: stampKey, summitName: summitName, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, urlQuery: urlQuery, peakHref: peakHref, canonicalHref: canonicalHref, tmapHref: tmapHref, tmapLinks: tmapLinks, setCanonical: setCanonical, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakGapM: peakGapM, peakCourses: peakCourses, isClosedTrail: isClosedTrail, isHiddenCourse: isHiddenCourse, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, nearestExit: nearestExit, gpsGap: gpsGap, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, fillTrackEle: fillTrackEle, trimTrack: trimTrack, gpxTracks: gpxTracks, trackStats: trackStats, splitTrack: splitTrack, joinTracks: joinTracks, trackGpx: trackGpx, submitAgree: submitAgree, submitBody: submitBody, submitProblem: submitProblem, submitFail: submitFail, submitSheet: submitSheet, courseName: courseName, courseSource: courseSource, sourceText: sourceText, cutMiddle: cutMiddle, osmRoute: osmRoute, WALK_WAYS: WALK_WAYS, trailsToElements: trailsToElements, overlapShare: overlapShare, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
-        sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, titledName: titledName, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, tapPick: tapPick, closeLoop: closeLoop, loopTrack: loopTrack, pxToLine: pxToLine, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, legMs: legMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, wxCols: wxCols, wxTable: wxTable, kmaLink: kmaLink, pcpText: pcpText, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap,
+        sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, titledName: titledName, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, tapPick: tapPick, closeLoop: closeLoop, loopTrack: loopTrack, reverseTrack: reverseTrack, pxToLine: pxToLine, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, legMs: legMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, wxCols: wxCols, wxTable: wxTable, kmaLink: kmaLink, pcpText: pcpText, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap,
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },
         cellCenter: cellCenter, warnName: warnName, safetyRows: safetyRows, safetyAlert: safetyAlert, safetyRender: safetyRender, rainNews: rainNews,
         setLang: setLang, isEn: isEn, tr: tr, pageLang: pageLang, applyEn: applyEn,

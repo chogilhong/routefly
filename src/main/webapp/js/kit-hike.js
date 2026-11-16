@@ -3315,8 +3315,9 @@
 
     /** 순수 함수 - 공단 난이도 글("보통(2.57)" · "매우 어려움") → LEVELS 차례(0 ~ 4). 모르는 말이면 null. MountainServlet.officialLevel 과 같음. */
     function officialLevel(text) {
-        var t = String(text == null ? "" : text).replace(/\(.*$/, "").replace(/\s+/g, " ").trim();
-        for (var i = 0; i < LEVELS.length; i++) if (t === LEVELS[i].ko) return i;
+        // 띄어쓰기는 모두 빼고 견줌 - 공단은 "매우어려움" 으로 보냄(점검 11차 A8, MountainServlet.officialLevel 과 같게)
+        var t = String(text == null ? "" : text).replace(/\(.*$/, "").replace(/\s+/g, "");
+        for (var i = 0; i < LEVELS.length; i++) if (t === LEVELS[i].ko.replace(/ /g, "")) return i;
         return null;
     }
 

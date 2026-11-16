@@ -562,6 +562,20 @@ final class Party {
         return m;
     }
 
+    /**
+     * 방 만들기 뒤 단계(탑승지 시각 · 하차 · 회사 연결)가 실패하면 그 방을 없던 것으로(점검 11차 B1, 2026-11-16).
+     * 예전에는 방이 남고 하루 만들기 횟수는 돌려줘서, 틀린 하차 지점을 되풀이해 방 2,000개를 채울 수 있었음.
+     */
+    synchronized void undoCreate(Member lead) {
+        Room r = lead == null ? null : lead.room;
+        if (r == null || rooms.get(r.code) != r) return;
+        rooms.remove(r.code);
+        for (String t : r.members.keySet()) byToken.remove(t);
+        r.members.clear();
+        audit.info("create undone room={}", r.code);
+        save();
+    }
+
     /** 방 코드(또는 공동 인솔자 코드)로 찾기. 없으면 IllegalArgumentException. */
     synchronized Room room(String code, long now) {
         sweep(now);

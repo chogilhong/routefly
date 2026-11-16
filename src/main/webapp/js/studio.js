@@ -23,7 +23,47 @@
     }
     function cur() { return tracks[sel] || null; }
     /** 되돌리기 - 고치기 전 목록 전체(나누기 · 잇기로 늘거나 준 길도 함께, 점 배열은 고칠 때 새로 만들어 그대로 둬도 됨). */
-    function push() { undo.push({ sel: sel, list: tracks.map(function (x) { return { name: x.name, track: x.track, color: x.color, sub: x.sub, meta: x.meta }; }) }); if (undo.length > 30) undo.shift(); $("undoBtn").disabled = false; }
+    function push() { undo.push({ sel: sel, list: tracks.map(function (x) { return { name: x.name, track: x.track, color: x.color, sub: x.sub, meta: x.meta }; }) }); if (undo.length > 30) undo.shift(); $("undoBtn").disabled = false; markWork(); }
+
+    // ---- 작업 목록 저절로 저장(이 기기 IndexedDB rf-studio, 점검 11차 A11 - 2026-11-16): "🗺 안내도에서 고르기" 로 갔다 오거나 탭이 닫혀도
+    // 열어 둔 길 · 고친 것이 남음. 고칠 때(push) · 열 때(add) · 이름 · 되돌리기 뒤 1.5초에 한 번. 목록을 다 빼면 지움.
+    var workDirty = false, workTimer = 0;
+    function workDb() {
+        return new Promise(function (resolve, reject) {
+            if (!window.indexedDB) { reject(new Error("no idb")); return; }
+            var r = indexedDB.open("rf-studio", 1);
+            r.onupgradeneeded = function () { r.result.createObjectStore("work"); };
+            r.onsuccess = function () { resolve(r.result); };
+            r.onerror = function () { reject(r.error); };
+        });
+    }
+    function markWork() { workDirty = true; clearTimeout(workTimer); workTimer = setTimeout(saveWork, 1500); }
+    function saveWork() {
+        if (!workDirty) return;
+        workDirty = false;
+        var list = tracks.map(function (x) { return { name: x.name, track: x.track, color: x.color, sub: x.sub || null, meta: x.meta || null }; });
+        workDb().then(function (db) {
+            var tx = db.transaction("work", "readwrite"), st = tx.objectStore("work");
+            if (list.length) st.put({ tracks: list, sel: sel, at: Date.now() }, "now"); else st.delete("now");
+        }).catch(function () { /* 저장 못 함(사생활 창 등) - 편집은 그대로 */ });
+    }
+    /** 지난 작업 되살리기 - 목록이 비었을 때만(이미 연 길이 있으면 그대로). */
+    function restoreWork() {
+        return workDb().then(function (db) {
+            return new Promise(function (resolve) {
+                var g = db.transaction("work", "readonly").objectStore("work").get("now");
+                g.onsuccess = function () { resolve(g.result || null); };
+                g.onerror = function () { resolve(null); };
+            });
+        }).then(function (w) {
+            if (!w || !w.tracks || !w.tracks.length || tracks.length) return;
+            tracks = w.tracks.filter(function (x) { return x && x.track && x.track.length > 1; });
+            sel = Math.min(Math.max(0, w.sel | 0), tracks.length - 1);
+            if (!tracks.length) return;
+            draw(true);
+            msg("지난번 작업한 길 " + tracks.length + "개를 되살렸습니다(이 기기에만 저장 - 필요 없으면 🗑 목록에서 빼기).", 6000);
+        }).catch(function () { /* 되살리지 못함 */ });
+    }
 
     // ---- 관리자 기기인가(/api/course-upload GET - 운영자 쿠키). 2026-11-02 홍TV님 "누구나": 아니어도 편집기를 띄우고 올리기 대신 보내기
     var owner = false;
@@ -377,6 +417,7 @@
     function add(name, track) {
         tracks.push({ name: String(name || "GPX").slice(0, 60), track: track, color: COLORS[tracks.length % COLORS.length] });
         sel = tracks.length - 1;
+        markWork();
     }
 
     // ---- 열기: 파일 · 끌어다 놓기 · 내 기록(IndexedDB rf-records - 따라가기와 같은 저장소)
@@ -451,7 +492,7 @@
 
     // ---- 고치기
     $("name").addEventListener("input", function () { var c = cur(); if (c) { c.name = this.value.slice(0, 60); var it = $("list").children[sel]; if (it) it.querySelector("b").textContent = c.name; } });
-    $("name").addEventListener("change", function () { draw(false); });
+    $("name").addEventListener("change", function () { draw(false); markWork(); });
 
     function closeTool() { preview = null; pickedI = null; dragI = null; if (mapOk) map.dragPan.enable(); $("toolBox").textContent = ""; draw(false); }
     function ptsInfo() {
@@ -587,7 +628,7 @@
                 + '<label class="sl"><input type="checkbox" class="jr"> 붙일 길을 뒤집어서(끝 → 처음)</label><p class="jgap tip"></p>' + toolButtons("잇기");
             var jw = box.querySelector(".jw"), jr = box.querySelector(".jr");
             var upd3 = function () {
-                var o = tracks[+jw.value], b = jr.checked ? o.track.slice().reverse() : o.track, a = c.track;
+                var o = tracks[+jw.value], b = jr.checked ? RF.reverseTrack(o.track) : o.track, a = c.track;
                 var gap = RF.distM(a[a.length - 1][0], a[a.length - 1][1], b[0][0], b[0][1]);
                 box.querySelector(".jgap").textContent = "두 끝 사이 " + (gap < 1000 ? Math.round(gap) + " m" : km(gap) + " km") + (gap > 200 ? " - 멀어서 곧은 선으로 이어집니다. 뒤집기를 바꿔 보세요." : "");
                 preview = { keep: RF.joinTracks(a, b), res: b };
@@ -627,13 +668,14 @@
         msg((r.at === "start" ? "도착 자리에서 출발하도록 앞에 " : "출발 자리로 돌아오도록 뒤에 ") + (r.addM < 1000 ? r.addM + " m" : km(r.addM) + " km") + " 를 같은 길로 더했습니다. 잘못이면 ↶ 되돌리기.", 7000);
         draw(true);
     };
-    $("revBtn").onclick = function () { var c = cur(); if (!c) return; push(); c.track = c.track.slice().reverse(); closeTool(); msg("뒤집었습니다(출발 ↔ 도착)."); draw(false); };
+    $("revBtn").onclick = function () { var c = cur(); if (!c) return; push(); c.track = RF.reverseTrack(c.track); closeTool(); msg("뒤집었습니다(출발 ↔ 도착)."); draw(false); };
     $("undoBtn").onclick = function () {
         var u = undo.pop();
         if (!u) { $("undoBtn").disabled = true; return; }
         tracks = u.list;
         sel = u.sel;
         $("undoBtn").disabled = !undo.length;
+        markWork();
         closeTool();
         draw(true);
     };
@@ -1155,7 +1197,8 @@
         msg("안내도에서 고른 길을 받는 중…", 8000);
         got.then(function (r) {
             var c = parts ? RF.joinedCourse(id, parts, r) : RF.fromApi(id, r);
-            var t = RF.courseTrack(c, !parts && get("rev") === "1");
+            // 자른 구간 하나(@ 가 든 ID)도 &rev=1 이면 거꾸로 - park.js link() 가 보냄(점검 11차 A12, 2026-11-16: 따라가기는 맞고 GPX 편집만 반대 방향이었음)
+            var t = RF.courseTrack(c, (!parts || parts.length === 1) && get("rev") === "1");
             if (t.length < 2) throw new Error("선이 없습니다");
             var title = get("title"), name = title || (c.course && c.course.name) || "안내도 길";
             add(RF.nameText ? RF.nameText(name) : name, t);
@@ -1164,6 +1207,6 @@
             try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* 주소는 그대로 */ }   // 새로 고침 때 또 넣지 않게
         }).catch(function (e) { msg("안내도 길을 받지 못했습니다: " + (e && e.message || e), 7000); });
     }
-    openFromGuide();
+    restoreWork().then(openFromGuide);   // 지난 작업을 먼저 되살린 뒤 안내도에서 가져온 길을 그 뒤에
     if (/[?&]debug\b/.test(location.search)) window.routeflyStudio = { get mapOk() { return mapOk; }, get map() { return map; }, get tracks() { return tracks; } };   // 시험용
 })();
