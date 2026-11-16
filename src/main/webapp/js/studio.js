@@ -1050,5 +1050,30 @@
             if (box && window.matchMedia("(max-width: 860px)").matches) box.scrollIntoView({ behavior: "smooth", block: "center" });
         };
     });
+    /**
+     * 안내도(탐방 · 노선)에서 이어 고른 길(#c=코스ID 또는 이은 ID, &rev=1, &title=) - 따라가기와 같은 방법으로 받아 하나의 길로 목록에 넣음
+     * (2026-11-16 홍TV님 "gpx 편집에 안내도를 열고 거기서 코스를 연결해서 새 코스를 만들고 싶은데"). 점은 코스 자료 그대로(시각 없음).
+     */
+    function openFromGuide() {
+        var h = location.hash.replace(/^#/, ""), get = function (k) { var m = new RegExp("(?:^|&)" + k + "=([^&]*)").exec(h); return m ? RF.safeDecode(m[1]) : ""; };
+        var id = get("c");
+        if (!id) return;
+        var parts = RF.parseJoinId(id), json = function (u) { return fetch(u, { headers: { Accept: "application/json" } }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }); };
+        var bases = parts ? RF.partBases(parts) : null;
+        var got = parts ? Promise.all(bases.map(function (b) { return json("api/course?id=" + encodeURIComponent(b)); })).then(function (rs) { return RF.partAnswers(parts, bases, rs); })
+            : json("api/course?id=" + encodeURIComponent(id));
+        msg("안내도에서 고른 길을 받는 중…", 8000);
+        got.then(function (r) {
+            var c = parts ? RF.joinedCourse(id, parts, r) : RF.fromApi(id, r);
+            var t = RF.courseTrack(c, !parts && get("rev") === "1");
+            if (t.length < 2) throw new Error("선이 없습니다");
+            var title = get("title"), name = title || (c.course && c.course.name) || "안내도 길";
+            add(RF.nameText ? RF.nameText(name) : name, t);
+            draw(true);
+            msg("안내도에서 고른 길을 열었습니다(" + km(RF.trackStats(t).dist) + " km). 이름을 정해 " + (owner ? "코스로 올리세요." : "routefly 에 보내세요."), 7000);
+            try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* 주소는 그대로 */ }   // 새로 고침 때 또 넣지 않게
+        }).catch(function (e) { msg("안내도 길을 받지 못했습니다: " + (e && e.message || e), 7000); });
+    }
+    openFromGuide();
     if (/[?&]debug\b/.test(location.search)) window.routeflyStudio = { get mapOk() { return mapOk; }, get map() { return map; }, get tracks() { return tracks; } };   // 시험용
 })();

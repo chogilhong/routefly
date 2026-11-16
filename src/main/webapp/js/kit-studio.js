@@ -58,6 +58,54 @@
         return ab ? { from: ab[1], to: ab[2] } : { from: null, to: null };
     }
 
+    /**
+     * 순수 함수 - 선이 이름과 거꾸로 그려진 코스({코스ID: true}). 2026-10-12: 국가숲길 지리산둘레길 GPX 가운데 "금계-동강" ·
+     * "성심원-운리" 들은 선이 이름 뒤쪽(동강 · 운리)에서 시작함. 같은 이름이 여러 코스 끝에 나오면 그 끝들이 모이는 점이
+     * 그 곳 - 그 점이 이름 앞쪽(from)인데 선 끝에 있으면 거꾸로. 모르면 이름 차례 그대로.
+     */
+    function routeFlips(courses, lines, nearM) {
+        var near = nearM == null ? 300 : nearM, cands = {}, at = {}, out = {};
+        function key(n) { return String(n || "").replace(/\s+/g, ""); }
+        (courses || []).forEach(function (c) {
+            var l = lines && lines[c.course_id], e = routeEnds(c.name);
+            if (!l || l.length < 2) return;
+            [e.from, e.to].forEach(function (n) {
+                if (!n) return;
+                (cands[key(n)] = cands[key(n)] || []).push(l[0], l[l.length - 1]);
+            });
+        });
+        Object.keys(cands).forEach(function (k) {
+            var best = null, bn = 1;
+            cands[k].forEach(function (p) {
+                var n = cands[k].filter(function (q) { return distM(p[1], p[0], q[1], q[0]) < near; }).length;
+                if (n > bn) { bn = n; best = p; }
+            });
+            if (best) at[k] = best;
+        });
+        (courses || []).forEach(function (c) {
+            var l = lines && lines[c.course_id], e = routeEnds(c.name);
+            if (!l || l.length < 2) return;
+            var a = l[0], z = l[l.length - 1], f = e.from && at[key(e.from)], t = e.to && at[key(e.to)];
+            var d = function (p, q) { return distM(p[1], p[0], q[1], q[0]); };
+            if ((f && d(f, z) < near && d(f, a) >= near) || (t && d(t, a) < near && d(t, z) >= near)) out[c.course_id] = true;
+        });
+        return out;
+    }
+
+    // 지명으로 다듬기(2026-10-12 PC: 해파랑길 · 백두대간 지명에 가게 · 창고 이름, 긴 괄호)
+    // 가게 · 시설 이름은 빼고, 긴 괄호("(경상북도기념물제39호)")와 뒤 숫자("솔잎공원267")는 떼고, "660 봉" 은 붙이고,
+    // 탐방지원센터 · 휴게소는 앞 지명만("죽령탐방지원센터" → 죽령, "제3관문휴게소" → 제3관문)
+    function placeName(raw) {
+        var n = cleanName(raw || "").replace(/\(([^)]*)\)/g, function (m, x) { return x.length > 6 || /[0-9]/.test(x) ? "" : m; })
+            .replace(/([0-9]+)\s+(봉|고지)$/, "$1$2").replace(/([가-힣])[0-9]+$/, "$1").trim();
+        // 마을 이름 뒤 민박 · 펜션 · 식당은 마을 이름으로("가탄마을민박" → 가탄마을 - 2026-10-12 홍TV님: 지리산둘레길 끝 지명이 없었음)
+        var vil = /^(.+(마을|리|동))(민박|펜션|식당|슈퍼|가게)$/.exec(n);
+        if (vil) n = vil[1];
+        if (/(본점|해변점|역점|항점|샵|민박|낚시점|창고|쉼터|관리본부|식당|카페|펜션|모텔|마트|편의점)$|^(씨유|GS25|세븐일레븐)/.test(n)) return "";
+        var cut = n.replace(/(탐방지원센터|휴게소)$/, "");
+        return cut.length >= 2 ? cut : n;
+    }
+
     function summitName(name) {
         var n = String(name || "").trim();
         if (!/정상$/.test(n)) return n;
@@ -68,6 +116,15 @@
         // 고개가 아닌 것: 고수치(제주 서귀포 안덕면 고수치오름 - 2026-10-12 홍TV님 확인)
         if (!bong && /[가-힣](령|재|고개|치|티)$/.test(last) && NOT_PASS.indexOf(last) < 0) return last;
         return bong || "정상";
+    }
+
+    function cleanName(name) {
+        var n = summitName(String(name || "").trim().replace(/\s+/g, " "));
+        // 한글 이름 뒤 영어 이름은 뺌("피아골 대피소 Piagol Shelter" - OSM, 2026-10-12 지리산 전체 보기 글자 겹침)
+        if (/[가-힣]/.test(n)) n = n.replace(/\s*\([A-Za-z0-9 '.\-]*\)\s*$/, "").replace(/\s+[A-Za-z][A-Za-z0-9 '.\-]*$/, "");   // 괄호 안 영어도("안부1 (Anbu 1)")
+        var cut = n.replace(/^\S{0,12}?(국립공원(관리)?(공단|사무소)?|도립공원(관리)?사무소|군립공원(관리)?사무소|관리사무소)\s*(?=\S*(탐방지원센터|탐방안내소|안내소|안내센터|분소|매표소))/, "").trim();
+        if (cut.length < 2) cut = n;
+        return cut.replace(/\s+(탐방지원센터|탐방안내소|안내소|분소|매표소|대피소|휴게소|주차장|폭포)$/, "$1");
     }
 
     /**
@@ -95,16 +152,173 @@
         return x;
     }
 
+    /** 길만 - "가 → 나", 국가숲길 "지리산둘레길 가탄-송정" 은 "가탄 → 송정"(2026-10-12 PC: 머리글 117px 를 넘어 잘림). */
+    function routeOnly(name) {
+        var p = nameParts(name);
+        if (p.route.indexOf(" → ") >= 0) return p.route;
+        var e = routeEnds(name);
+        // "덕전리 순환" 은 그대로("덕전리 → 덕전리" 가 됐음 - 2026-10-13 PC)
+        return e.from && e.to && e.from !== e.to ? e.from + " → " + e.to : p.route;
+    }
+
+    /** 글로만 쓸 곳(창 제목 등) - "[무리] 길", routeFirst 면 길만(따라가기 탭 제목 - 머리글과 같게). */
+    function nameText(name, routeFirst) {
+        if (LANG === "en") { var en = LANG; LANG = "ko"; var t = nameText(name, routeFirst); LANG = en; return enName(t); }
+        var p = nameParts(name);
+        if (routeFirst) return routeOnly(name);
+        return p.group ? "[" + p.group + "] " + p.route : p.route;
+    }
+
     function distM(lat1, lon1, lat2, lon2) {
         var r = Math.PI / 180, dLat = (lat2 - lat1) * r, dLon = (lon2 - lon1) * r;
         var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * r) * Math.cos(lat2 * r) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
         return 6371000 * 2 * Math.asin(Math.sqrt(a));
     }
 
+    /**
+     * 이름표 정리 - 이름을 다듬고, 같은 곳이 여러 이름으로 들어온 것을 하나만 남깁니다
+     * (이름이 서로 들어 있고 200m 안, 또는 40m 안이면 같은 곳). 경로 순서 · 짧은 이름 먼저.
+     */
+    function dedupePois(pois) {
+        var key = function (s) { return s.replace(/[\s()·]/g, ""); };
+        var list = (pois || []).map(function (p) { return Object.assign({}, p, { name: cleanName(p.name) }); })
+            .sort(function (a, b) { return Math.round(+a.dist_m / 20) - Math.round(+b.dist_m / 20) || a.name.length - b.name.length; });
+        var kept = [];
+        list.forEach(function (p) {
+            var k = key(p.name);
+            var dup = kept.some(function (w) {
+                var d = distM(+w.lat, +w.lon, +p.lat, +p.lon), wk = key(w.name);
+                // 이름이 다르면 가까워도 남깁니다 - 같은 자리 이름표는 groupPois 가 한 이름표로 묶습니다
+                // 2026-10-09 점검: 같은 이름도 200m 안일 때만 - 3km 떨어진 두 "쉼터" · "약수터" 는 다른 곳입니다
+                return (wk === k || wk.indexOf(k) >= 0 || k.indexOf(wk) >= 0) && d < 200;
+            });
+            if (!dup) kept.push(p);
+        });
+        return kept;
+    }
+
+    /**
+     * 순수 함수 - 같은 자리(radiusM 안) 이름표를 한 묶음으로. 코스에 가장 가까운 것이 대표(그림 · 고도), 나머지는 이름만 덧붙입니다
+     * (예: 로타리대피소 / 법계사 / 로타리대피소샘터). [{lead, names[], pois[]}] - 대표의 진행 거리 순.
+     */
+    function groupPois(pois, radiusM) {
+        var r = radiusM || 80, groups = [];
+        (pois || []).slice().sort(function (a, b) { return (+a.off_route_m || 0) - (+b.off_route_m || 0); }).forEach(function (p) {
+            var g = null;
+            for (var i = 0; i < groups.length && !g; i++) {
+                if (distM(+groups[i].lead.lat, +groups[i].lead.lon, +p.lat, +p.lon) <= r) g = groups[i];
+            }
+            // 같은 이름은 한 번만(원점회귀는 출발 · 도착 이름표가 같은 자리 같은 이름 - 2026-10-13 홍TV님: 윗새재마을이 두 줄)
+            if (g) { g.pois.push(p); if (g.names.indexOf(p.name) < 0) g.names.push(p.name); } else groups.push({ lead: p, names: [p.name], pois: [p] });
+        });
+        return groups.sort(function (a, b) { return +a.lead.dist_m - +b.lead.dist_m; });
+    }
+
+    var JUNCTION = "갈림길";   // routefly-batch 가 넣는 갈림길 이름표 - 지도 글자 대신 산행 화면 미리 알림에 씁니다
+
+    /** 코스 자료(api/course 응답) → 계산하기 쉬운 모양. 갈림길은 이름표와 따로 c.junctions(진행 거리 목록). */
+    /** 두루누비 사진 지점 이름("49코스 (거진항~통일안보 공원)_12.3km-0") - 지점 이름표로 쓰지 않음(2026-10-13 PC: 해파랑길 처음 · 끝 이름표). */
+    var PHOTO_POI = /_[\d.]+\s*km(-\d+)?$/;
+    /** 기계가 붙인 번호 이름("GPX-726" · "WPT012") - 이름표가 아님(2026-10-13 홍TV님: 서해랑길 20코스 지점 730개가 GPX-n. 배치 GpxReader.autoName 과 같게). */
+    var AUTO_POI = /^(gpx|wpt|wp|waypoint|point|pt)[-_ ]?\d+$/i;
+
     var NUMBERED_PARK = /[^\s·→()\d]+\d+\s*\(([^()]+공원)\)/g;
     // "수변공원49까지"(서해랑길 16코스) - 공원 이름 뒤 관리 번호도 뗌
     var PARK_NO = /([가-힣](?:공원|광장))\d+(?![\d)])/g;
     function numberedPark(name) { return name == null ? name : String(name).replace(NUMBERED_PARK, "$1").replace(PARK_NO, "$1"); }
+
+    function fromApi(id, j) {
+        var raw = j.pois || [];
+        // 사진 지점 이름의 "(가~나)" 는 코스 이름에 출발 · 도착이 없을 때 들머리 · 날머리 이름으로
+        var photoEnds = null;
+        raw.forEach(function (p) {
+            var m = PHOTO_POI.test(String(p.name || "")) && /\(([^~()]+)~([^~()]+)\)/.exec(p.name);
+            if (m && !photoEnds) photoEnds = { start: m[1].trim(), end: m[2].trim() };
+        });
+        var all = raw.filter(function (p) { var n = String(p.name || ""); return !PHOTO_POI.test(n) && !AUTO_POI.test(n.trim()); });
+        // OSM 의 띄어 쓴 "남벽분 기점" → 남벽분기점(배치 tidyEnd 와 같게 - 이름표는 배치를 다시 돌리기 전 것도 있음)
+        all.forEach(function (p) { if (/\s+기점$/.test(String(p.name || ""))) p.name = String(p.name).replace(/\s+기점$/, "기점"); });
+        // 관리 번호가 붙은 공원 이름은 괄호 안 공원 이름으로(서해랑길 50코스 "문화공원11(부안공원)" → 부안공원, 배치 EndNames.firstName 과 같게)
+        all.forEach(function (p) { p.name = numberedPark(p.name); });
+        // "931 봉" → 931봉(배치 EndNames.firstName 과 같게 - 덕유산 육십령, 2026-10-13 PC)
+        all.forEach(function (p) { p.name = String(p.name || "").replace(/^(\d+)\s+(봉|고지)$/, "$1$2"); });
+        // 이름 없는 안부에 붙은 번호("안부1")는 뗌 - 번호는 자료가 붙인 것이라 현장에서 알 수 없음
+        all.forEach(function (p) { p.name = String(p.name || "").replace(/^안부\s*\d+(\s*\([^()]*\))?$/, "안부"); });   // 실제 이름은 "안부1 (Anbu 1)"
+        // 같은 번호가 뒤에 한 번 더 붙은 이름("551계단 551" - 화대종주, 2026-10-13 PC)
+        all.forEach(function (p) { p.name = String(p.name || "").replace(/^(\d+)(\S+)\s+\1(\s+[A-Za-z][A-Za-z ]*)?$/, "$1$2"); });   // 실제 이름은 "551계단 551 Stairs"(PC 확인)
+        if (j.course && j.course.name) j.course.name = numberedPark(j.course.name);
+        var se = j.ends || {};
+        // 코스 자기 자료("(거진항~통일안보 공원)")가 서버가 찾은 둘레 이름(고성군관광안내소)보다 먼저(2026-10-13 PC)
+        var ends = photoEnds || se.start || se.end ? { start: (photoEnds && photoEnds.start) || se.start, end: (photoEnds && photoEnds.end) || se.end } : null;
+        var c = { id: id, course: j.course, info: j.info || null, ends: ends, signs: j.signs || [], spots: j.spots || [], lon: [], lat: [], ele: [], dist: [], markers: [],
+                  pois: dedupePois(all.filter(function (p) { return p.name !== JUNCTION; })),
+                  junctions: all.filter(function (p) { return p.name === JUNCTION; }).map(function (p) { return +p.dist_m; })
+                      .sort(function (a, b) { return a - b; }) };
+        (j.points || []).forEach(function (p) {
+            c.lon.push(+p[0]); c.lat.push(+p[1]); c.ele.push(p[2] == null ? null : +p[2]); c.dist.push(+p[3]);
+        });
+        c.total = c.dist.length ? c.dist[c.dist.length - 1] : 0;
+        c.asc = cumAscent(c.ele);
+        endPois(c);
+        return c;
+    }
+
+    /**
+     * 출발 · 도착 자리에 이름표가 없으면 코스 이름의 출발 · 도착 이름으로 하나씩(지도 · 고도 그래프 이름표).
+     * 2026-10-12 PC: 국가숲길(kmf) 코스는 이름표가 없어 그래프 이름 0개 · 지도 "출발 · 도착" 만 - "지리산둘레길 가탄-송정" 이면 가탄 · 송정.
+     */
+    function endPois(c) {
+        var n = c.lon.length - 1, e = routeEnds(c.course && c.course.name);
+        if (n < 1) return;
+        // 이름에 출발 · 도착이 없으면 서버가 찾은 둘레 다른 코스 끝 이름(api/course ends - 2026-10-13 홍TV님: 모든 산 · 걷기 · 자전거 "출발" 대신 들머리 이름)
+        e = { from: e.from || (c.ends && c.ends.start) || null, to: e.to || (c.ends && c.ends.end) || null };
+        // 코스 끝 이름이 탐방지원센터 같은 들머리면, 그 끝 500m 안 다른 들머리 이름표(배치가 지도용으로 받은 OSM 주차장 · 안내소)는 빼고
+        // (2026-10-13 PC: 중산리 출발 이름표가 "중산리탐방안내소" + "중산리주차장" 두 줄, 그래프 처음 "중산리주차장")
+        var HEADISH = /(탐방지원센터|탐방안내소|안내소|분소|매표소|주차장)$/;
+        // 길찾기의 들머리 주차장 · 정류장(hike.js accessOf)은 아래 이름표 정리 전 것으로(2026-11-09 PC: 광양 가야산 - 출발 500m 안 주차장 둘 가운데
+        // 길에 가까운 "주차장"(37m)만 남고 길 밖 "공영주차장"(255m)이 빠져, 길찾기 창에 주차장 고르기가 안 나왔음). 거꾸로 걷기는 reverseCourse 가 함께 뒤집음
+        c.access = c.pois.filter(function (q) { return isAccess(q); });
+        c.pois = c.pois.filter(function (q) {
+            var nm = String(q.name || "").replace(/\s+/g, "");
+            if (!HEADISH.test(nm)) return true;
+            if (e.from && HEADISH.test(e.from) && +q.dist_m < 500 && nm !== e.from.replace(/\s+/g, "")) return false;
+            if (e.to && HEADISH.test(e.to) && +q.dist_m > c.total - 500 && nm !== e.to.replace(/\s+/g, "")) return false;
+            return true;
+        });
+        // 끝 이름이 "중산리" 처럼 짧으면, 그 끝 500m 안 들머리 이름표(주차장 · 안내소) 가운데 그 낱말이 든 것 하나만(없으면 길에 가장 가까운 것)
+        // (2026-10-13 PC: 중산리 → 천왕봉 그래프 처음이 "중산리주차장", 지도에 "대원사집단시설지구주차장" 까지)
+        [[e.from, function (q) { return +q.dist_m < 500; }], [e.to, function (q) { return +q.dist_m > c.total - 500; }]].forEach(function (w) {
+            if (!w[0] || HEADISH.test(w[0])) return;
+            var key = w[0].replace(/\s+/g, "");
+            var hs = c.pois.filter(function (q) { return HEADISH.test(String(q.name || "").replace(/\s+/g, "")) && w[1](q); });
+            if (hs.length < 2) return;
+            var byOff = hs.slice().sort(function (a, b) { return +a.off_route_m - +b.off_route_m; });
+            var keep = byOff.filter(function (q) { return String(q.name).replace(/\s+/g, "").indexOf(key) >= 0; }).concat(byOff)[0];
+            c.pois = c.pois.filter(function (q) { return hs.indexOf(q) < 0 || q === keep; });
+        });
+        var near = function (d) { return c.pois.some(function (q) { return Math.abs(+q.dist_m - d) < 60 && +q.off_route_m < 60; }); };
+        // 같은 이름 이름표가 그 끝 300m 안에 있으면 더 붙이지 않음(2026-10-12 PC: 중산리 → 천왕봉 은 천왕봉 이름표가 끝 123m 앞 - 두 번 나왔음)
+        // 같은 이름이 길에서 떨어져 있으면(설악산 백담사 이름표 - 길에서 117m) 그 이름표를 들머리 · 날머리 자리로 옮김 - "출발" 로 남았었음(2026-10-13 홍TV님)
+        var same = function (nm, d) {
+            var q = c.pois.filter(function (x) { return x.name === nm && Math.abs(+x.dist_m - d) < 300; })[0];
+            if (q && +q.off_route_m >= 60) {
+                var k = d ? n : 0;
+                q.lat = c.lat[k]; q.lon = c.lon[k]; q.ele_m = c.ele[k]; q.dist_m = d; q.off_route_m = 0; q.end = true;
+            }
+            return !!q;
+        };
+        if (e.from && !near(0) && !same(e.from, 0)) c.pois.unshift({ name: e.from, lat: c.lat[0], lon: c.lon[0], ele_m: c.ele[0], dist_m: 0, off_route_m: 0, end: true });
+        // 원점회귀(처음 · 끝 이름 같고 300m 안)는 끝 둘레 다른 이름표가 있어도 끝 이름을 붙임(탄금호 순환 그래프 끝이 "루암리" 였음)
+        var back = e.from && e.from === e.to && distM(c.lat[0], c.lon[0], c.lat[n], c.lon[n]) < 300;
+        // again - 순환 코스 끝(출발과 같은 이름 · 같은 자리)은 그래프에만, 지도에는 출발 이름표 하나(9px 차이로 둘 다 보였음)
+        var atEnd = function (nm) { return c.pois.some(function (q) { return q.name === nm && +q.dist_m > c.total - 60; }); };
+        if (back ? !atEnd(e.to) : e.to && !near(c.total) && !same(e.to, c.total)) c.pois.push({ name: e.to, lat: c.lat[n], lon: c.lon[n], ele_m: c.ele[n], dist_m: c.total, off_route_m: 0, end: true, again: back });
+    }
+
+    /** 순수 함수 - 주소의 % 글자 풀기. 깨진 값(#c=%E0)이면 예외 대신 null - 화면이 멈추지 않게(2026-10-11 오픈 전 점검). */
+    function safeDecode(s) {
+        try { return decodeURIComponent(s); } catch (e) { return null; }
+    }
 
     /**
      * 순수 함수 - 도장 인식 거리(m): GPS 오차 + 20m, 40m 보다 좁히지 않고 max(정상 150 · 인증센터 100)를 넘지 않음. 오차를 모르면 max.
@@ -126,8 +340,552 @@
         return Math.round(up);
     }
 
+    /**
+     * 순수 함수 - 코스 목록에 든 노선(국토종주 자전거길 osmb- · 국가숲길 kmf- · 코리아둘레길 drnb-)의 노선 안내도(route.html) 카드.
+     * [{prefix 또는 trail, name, kind, n}],
+     * 코스가 많은 노선 먼저. 이름은 "국토종주 섬진강 자전거길 1구간 · …" → 섬진강 자전거길, "지리산둘레길 주천-운봉" → 지리산둘레길.
+     * 2026-10-12 홍TV님: 국토종주 자전거길 지도(나무위키 노선도)처럼 노선 전체를 한 장으로.
+     */
+    function routeGuides(rows, max, series, q) {
+        var by = {}, order = [];
+        // 다른 자료의 같은 노선(산림청 "금호남정맥 · …" = OSM 금남호남정맥) - series.json 의 이름 · aka 와 무리 이름이 같으면 그 노선(2026-10-12 PC)
+        var named = {};
+        (series || []).forEach(function (s) {
+            if (!s.prefix) return;
+            [s.name].concat(s.aka || []).forEach(function (n) { named[String(n).replace(/\s+/g, "")] = s; });
+        });
+        (rows || []).forEach(function (r) {
+            var id = String(r.course_id || ""), m = /^((osmb|kmf|osmh)-[0-9]+-)/.exec(id);
+            var alias = !m && named[String(nameParts(r.name).group || "").replace(/\s+/g, "")];
+            if (alias) {
+                var ak = /^((osmb|kmf|osmh)-[0-9]+-)/.exec(alias.prefix);
+                if (!ak) return;
+                if (!by[ak[1]]) { by[ak[1]] = { prefix: ak[1], name: alias.name, kind: ak[2] === "osmb" ? "bike" : ak[2] === "osmh" ? "ridge" : "walk", n: 0 }; order.push(by[ak[1]]); }
+                by[ak[1]].n++;
+                return;
+            }
+            // 코리아둘레길(두루누비 drnb-) - 코스 ID 에 노선 묶음이 없어 이름("해파랑길 1코스 · …")으로 묶음, trail 로 찾음
+            if (!m && /^drnb-/.test(id)) {
+                var tn = (nameParts(r.name).group || String(r.name || "")).replace(/\s*\d+(?:-\d+)?\s*(?:코스|\().*$/, "").trim();   // "64-3(지선3코스)" 도 번호에서 뗌(2026-11-03 코스 점검 - "서해랑길 64-3(지선" 카드가 따로 생겼음)
+                if (!tn || tn === String(r.name || "").trim()) return;
+                var tk = "trail:" + tn.replace(/\s+/g, "");
+                if (!by[tk]) { by[tk] = { trail: tn, name: tn, kind: "walk", n: 0 }; order.push(by[tk]); }
+                by[tk].n++;
+                return;
+            }
+            if (!m) return;
+            if (!by[m[1]]) {
+                var g = nameParts(r.name).group, nm = g ? g : String(r.name || "").split(/\s+/)[0];
+                nm = nm.replace(/^국토종주\s*/, "").replace(/\s*[0-9]+구간$/, "").trim();
+                // ⛰ 는 백두대간 · 정맥만(OSM 등산 · 걷기 노선에는 둘레길 한 구간도 있음 - "지리산둘레길 (가탄-송정)")
+                by[m[1]] = { prefix: m[1], name: nm, kind: m[2] === "osmb" ? "bike" : m[2] === "osmh" && /대간|정맥/.test(nm) ? "ridge" : "walk", n: 0 };
+                order.push(by[m[1]]);
+            }
+            by[m[1]].n++;
+        });
+        // 다른 자료의 같은 길 한 구간(OSM "지리산둘레길 (가탄-송정)" ⊂ 국가숲길 지리산둘레길)은 그 길 카드에 맡김 - 2026-10-12 홍TV님
+        var key = function (s) { return String(s || "").replace(/\s+/g, ""); };
+        order = order.filter(function (g) {
+            return !order.some(function (h) { return h !== g && key(h.name) !== key(g.name) && key(g.name).indexOf(key(h.name) + "(") === 0; });   // "백두대간트레일" 은 다른 길
+        });
+        // 검색어와 이름이 같은 노선을 맨 앞에(2026-10-12 PC: "호남정맥" 에 금남호남정맥(33) 이 호남정맥(32) 보다 위)
+        var qk = key(q), same = function (g) { return qk && key(g.name) === qk ? 1 : 0; };
+        return order.map(function (g, i) { return { g: g, i: i }; }).sort(function (a, b) { return same(b.g) - same(a.g) || b.g.n - a.g.n || a.i - b.i; })
+            .slice(0, max || 3).map(function (x) { return x.g; });
+    }
+
+    /**
+     * 순수 함수 - 이름 검색 결과에서 그 길 코스만(이름이 길 이름으로 시작 - "해파랑길 1코스 · …"), "n코스" 번호 순.
+     * 길 이름의 띄어쓰기는 무시("DMZ 평화의 길" · "DMZ평화의길"). 2026-10-11 코리아둘레길 완주.
+     */
+    /**
+     * 순수 함수 - 코스 · 구간 번호("해파랑길 19-1코스 · …" → "19-1", "백두대간 46구간" → "46"). 없으면 null.
+     * 이름 앞(" · " 앞)의 첫 번호 - 2026-10-12 PC: "서해랑길 64-3(지선3코스)" 가 괄호 안 3 으로 읽혀 3코스와 겹쳤음.
+     */
+    function courseNo(name) {
+        var head = String(name || "").split(" · ")[0];
+        if (!/코스|구간/.test(head)) return null;
+        var m = /(\d+(?:-\d+)?)/.exec(head);
+        return m ? m[1] : null;
+    }
+
     // 2026-10-09 점검: 남이 준 파일이라 크기 · 지점 수에 한도(지점마다 모든 점을 훑어서, 지점이 아주 많으면 화면이 멈춤)
     var GPX_MAX_CHARS = 30 * 1024 * 1024, GPX_MAX_WPT = 1000;
+    /**
+     * 누적 오르막(m) - 남은 오르막을 빨리 구하려고 미리 셉니다. 배치(CourseMath.elevation, course.ascentThresholdM 5m)와 같게
+     * 5m 넘게 바뀔 때만 셉니다 - 2026-10-12 PC: 노선 안내도 "오르막 1,012m"(DB) · 따라가기 "남은 오르막 1,191m"(잔 오르내림까지 더함)이 달랐음.
+     */
+    var ASCENT_STEP_M = 5;
+    function cumAscent(ele) {
+        var asc = [0], ref = null, up = 0;
+        for (var i = 0; i < ele.length; i++) {
+            var e = ele[i];
+            if (e != null) {
+                if (ref == null) ref = e;
+                else if (e - ref >= ASCENT_STEP_M) { up += e - ref; ref = e; }
+                else if (ref - e >= ASCENT_STEP_M) ref = e;
+            }
+            if (i > 0) asc.push(up);
+        }
+        return asc;
+    }
+
+    /** 순수 함수 - 코스 이름을 거꾸로: "송산 · 들머리 → 정상" → "송산 · 정상 → 들머리". 화살표가 없으면 "(거꾸로)" 를 붙입니다. */
+    function reverseName(name) {
+        name = name || "";
+        var a = name.indexOf(" → ");
+        // "무등산 · 가에서" ↔ "무등산 · 가까지"(이은 구간의 첫 · 끝 조각 이름 - 거꾸로 이어도 처음 · 끝 이름이 남게)
+        var one = a < 0 && /^(.*?)(\S+?)(에서|까지)$/.exec(name);
+        if (one) return one[1] + one[2] + (one[3] === "에서" ? "까지" : "에서");
+        // 국가숲길 "지리산둘레길 가탄-송정" → "지리산둘레길 송정-가탄"(2026-10-12 PC: "(거꾸로)" 대신)
+        var ab = a < 0 && /^(.*?)([가-힣]+)-([가-힣]+)(\s*\)?\s*)$/.exec(name);
+        if (ab) return ab[1] + ab[3] + "-" + ab[2] + ab[4];
+        // 2026-10-23 지리산: 두 번 뒤집으면 "(거꾸로) (거꾸로)" 가 붙었음 - 떼어 원래 이름으로
+        if (a < 0) return / \(거꾸로\)$/.test(name) ? name.slice(0, -6) : name + " (거꾸로)";
+        var dot = name.lastIndexOf(" · ", a);
+        var head = dot >= 0 ? name.slice(0, dot + 3) : "";
+        return head + name.slice(head.length).split(" → ").reverse().join(" → ");
+    }
+
+    /**
+     * 코스를 거꾸로(끝 → 처음) - 올라가다 되돌아 내려올 때 그 길로 안내하려고. 이름표 · 갈림길 거리도 뒤집습니다.
+     * c.rev 는 원래 방향인지(저장한 산행을 이어 갈 때 다시 뒤집으려고).
+     */
+    function reverseCourse(c) {
+        // 위치표지 · 위험지역 · 공식 정보는 자리(좌표)로 쓰므로 그대로 - 예전에는 빠져 거꾸로 걸으면 가까운 위치표지가 안 나왔음
+        var T = c.total, r = { id: c.id, rev: !c.rev, markers: [], lon: c.lon.slice().reverse(), lat: c.lat.slice().reverse(),
+                               ele: c.ele.slice().reverse(), total: T, signs: c.signs || [], spots: c.spots || [], info: c.info || null, parts: c.parts };
+        r.course = {};
+        for (var k in c.course) if (Object.prototype.hasOwnProperty.call(c.course, k)) r.course[k] = c.course[k];
+        r.course.name = reverseName(c.course.name);
+        // 거꾸로 걸으면 오르막 ↔ 내리막, 처음 ↔ 끝(2026-11-03 코스 점검: 3D 시간 · 난이도가 원래 방향 값이었음). 내리막을 모르면 점으로 셈한 오르막
+        r.asc = cumAscent(r.ele);
+        var up = c.course.ascent_m;
+        r.course.ascent_m = c.course.descent_m != null ? c.course.descent_m : Math.round(r.asc[r.asc.length - 1] || 0);
+        r.course.descent_m = up;
+        if (c.course.start_lat != null || c.course.end_lat != null) {
+            r.course.start_lat = c.course.end_lat; r.course.start_lon = c.course.end_lon;
+            r.course.end_lat = c.course.start_lat; r.course.end_lon = c.course.start_lon;
+        }
+        r.dist = c.dist.map(function (d) { return T - d; }).reverse();
+        r.pois = c.pois.map(function (p) {
+            var q = {};
+            for (var k2 in p) if (Object.prototype.hasOwnProperty.call(p, k2)) q[k2] = p[k2];
+            q.dist_m = T - (+p.dist_m);
+            return q;
+        }).sort(function (a, b) { return a.dist_m - b.dist_m; });
+        r.junctions = (c.junctions || []).map(function (d) { return T - d; }).sort(function (a, b) { return a - b; });
+        if (c.access) r.access = c.access.map(function (p) { var q = Object.assign({}, p); q.dist_m = T - (+p.dist_m); return q; });   // 길찾기 주차장 · 정류장(fromApi)
+        return r;
+    }
+
+    /*
+     * 여러 구간 이어 걷기(2026-10-12 홍TV님: 지리산둘레길 위태-하동호에 덕산-위태 · 하동호-삼화실을 이어서).
+     * 이은 코스 ID 는 "구간ID,구간ID~,…"(~ 는 그 구간을 거꾸로). 한 구간이면 예전처럼 그 ID 하나.
+     */
+
+    /** 순수 함수 - [{id, rev}] → 이은 코스 ID. */
+    function joinId(sel) {
+        return (sel || []).map(function (s) { return s.id + (s.rev ? "~" : ""); }).join(",");
+    }
+
+    /**
+     * 순수 함수 - 이은 코스 ID → [{id, rev, base, r0, r1, from, to}]. 이은 것도 자른 것도 아니면 null.
+     * 구간 하나는 "코스ID" 또는 자른 구간 "코스ID@0.1234-0.5678:노고단고개>장터목"(코스 길이의 비율 · 끝 이름 - splitTrails),
+     * 뒤의 ~ 는 거꾸로. 자른 구간은 base 코스를 받아 sliceCourse 로 자름.
+     */
+    function parseJoinId(id) {
+        id = String(id || "");
+        if (id.indexOf(",") < 0 && id.indexOf("@") < 0) return null;
+        return id.split(",").filter(Boolean).map(function (s) {
+            var rev = /~$/.test(s), one = rev ? s.slice(0, -1) : s;
+            var m = /^([^@]+)@([0-9.]+)-([0-9.]+)(?::([^>]*)>(.*))?$/.exec(one);
+            return m ? { id: one, rev: rev, base: m[1], r0: +m[2], r1: +m[3], from: m[4] || null, to: m[5] || null }
+                : { id: one, rev: rev, base: one, r0: null, r1: null, from: null, to: null };
+        });
+    }
+
+    /**
+     * 순수 함수 - 탐방로를 다른 탐방로 끝이 닿는 곳(갈림길)에서 잘라 작은 구간으로(2026-10-12 홍TV님: 주능선 노고단고개 → 천왕봉 25km 를
+     * 장터목 · 세석에서 갈라지는 탐방로와 이어 고를 수 있게). trails: [{id, name, coords, distance_m, ascent_m}], flips: routeFlips.
+     * 끝에서 150m 안 · 갈림길끼리 150m 안은 자르지 않음. 자른 구간 id 는 "코스ID@비율-비율:처음>끝", 이름은 "무리 · 처음 → 끝", 오르막은 모름(null).
+     */
+    /**
+     * 순수 함수 - 이 이름을 붙여도 되는 거리(m). 봉우리 · 정상은 한 점이라 120m, 그 밖(고개 · 대피소 · 마을)은 제한 없음(부르는 쪽 한도).
+     * 2026-10-13 홍TV님: 정상 291m 아래(산림청 제석봉 코스 조각 끝)가 "천왕봉" 이 되어 깃발이 "도착 천왕봉" 이었음.
+     */
+    function peakNearM(name) {
+        var n = String(name || "").replace(/\s+/g, "").replace(/\(.*\)$/, "");   // "남대봉 (망경봉)"
+        if (/(전망대|쉼터)$/.test(n)) return Infinity;
+        // 성문 · 바위문(통천문 · 개천문 · 대남문)도 한 점 - 지리산 정상 아래 갈림길이 263m 떨어진 "통천문" 이 됐음
+        return /(봉|정상|오름|대)$/.test(n) ? 120 : /문$/.test(n) ? 150 : Infinity;
+    }
+
+    function splitTrails(trails, flips, nearM, poiNames) {
+        // near 150m - 대피소가 능선에서 조금 떨어짐(음정 → 벽소령 끝 129m). MIN_M 300m - 짧은 조각은 처음 화면에서 10px 도 안 돼
+        // 누를 수 없었음(2026-10-12 PC: 북한산 300m 안 34개) - 끝에서 · 갈림길끼리 이만큼 안은 자르지 않음
+        // 갈림길끼리는 JOIN_M(100m) 안만 하나로 - 300m 로 합치면 북한산 대동문 · 보국문처럼 가까운 두 갈림길이 하나가 되어 길이 끊겼음(2026-10-12)
+        var near = nearM == null ? 150 : nearM, MIN_M = 300, JOIN_M = 100, out = [];
+        var ends = (trails || []).map(function (t) {
+            var e = routeEnds(t.name), f = flips && flips[t.id];
+            // 국립공원 "성판악 탐방로" · "관음사 탐방로" 는 들머리 이름(2026-10-12 홍TV님: 성판악탐방안내소 → … → 백록담)
+            var head = !e.from && !e.to && /^(.+?)\s*탐방로$/.exec(nameParts(t.name).route);
+            if (head) e = { from: head[1], to: null };
+            return { a: t.coords[0], z: t.coords[t.coords.length - 1], an: f ? e.to : e.from, zn: f ? e.from : e.to };
+        });
+        (trails || []).forEach(function (t, ti) {
+            var c = t.coords, cum = [0];
+            for (var i = 1; i < c.length; i++) cum.push(cum[i - 1] + distM(c[i - 1][1], c[i - 1][0], c[i][1], c[i][0]));
+            var total = cum[cum.length - 1], cuts = [];
+            ends.forEach(function (u, ui) {
+                if (ui === ti || trails[ui].id === t.id) return;
+                [[u.a, u.an], [u.z, u.zn]].forEach(function (pn) {
+                    var best = -1, bd = near;
+                    for (var k = 0; k < c.length; k++) {
+                        var d = distM(pn[0][1], pn[0][0], c[k][1], c[k][0]);
+                        if (d < bd) { bd = d; best = k; }
+                    }
+                    if (best < 0 || cum[best] < MIN_M || cum[best] > total - MIN_M) return;
+                    cuts.push({ k: best, name: pn[1] });
+                });
+            });
+            cuts.sort(function (x, y) { return x.k - y.k; });
+            var kept = [];
+            cuts.forEach(function (x) {
+                var prev = kept[kept.length - 1];
+                if (prev && cum[x.k] - cum[prev.k] < JOIN_M) { if (!prev.name) prev.name = x.name; return; }
+                kept.push(x);
+            });
+            if (!kept.length || !total || t.merged || t.nocut) { out.push(t); return; }   // 이은 구간(mergeBare)은 자르지 않음 - 따라가기가 자를 수 없음
+            var e = ends[ti], g = nameParts(t.name).group || "", title = nameParts(t.name).route;
+            // 갈림길 이름을 모르면("동엽령코스" · "성판악 탐방로" 처럼 이름에 출발 · 도착이 없는 탐방로 끝) 300m 안 다른 탐방로의 이름 있는 끝에서
+            var named = function (k) {
+                var best = null, bd = 300;
+                ends.forEach(function (u) {
+                    [[u.a, u.an], [u.z, u.zn]].forEach(function (pn) {
+                        // "삼거리" · "갈림길" 은 어디인지 모름(2026-10-12 PC: 지리산 "대원교 → 삼거리")
+                        if (!pn[1] || /^(삼거리|갈림길|사거리|정상)$/.test(pn[1])) return;
+                        var d = distM(pn[0][1], pn[0][0], c[k][1], c[k][0]);
+                        if (d < bd) { bd = d; best = d > peakNearM(pn[1]) ? null : pn[1]; }
+                    });
+                });
+                return best;
+            };
+            // 그 탐방로 자신의 이름표(api/course 의 pois - 이름에 출발 · 도착이 없는 "종주코스" · "성판악 탐방로" 만 받아 옴, 2026-10-12 홍TV님:
+            // 덕유산 종주코스 향적봉 · 중봉 · 백암봉 · 동엽령 …, 성판악 속밭대피소 · 진달래밭대피소 …) - 갈림길은 300m, 탐방로 끝은 700m 안
+            var own = function (k, lim, end) {
+                var pn = poiNames && poiNames[t.id];
+                if (!pn || !pn.total) return null;
+                var want = cum[k] / total * pn.total, best = null, bd = lim;
+                (pn.pois || []).forEach(function (q) {
+                    var nm = placeName(q.name);
+                    // 탐방로 끝의 "정상" 은 그 산 정상("한라산동능정상" → 한라산 정상)
+                    if (end && nm === "정상" && g) nm = g.replace(/^\S+\s+(?=\S+$)/, "") + " 정상";
+                    if (!nm || /^(삼각점|정상|안부\s*\d*|갈림길|삼거리|사거리|헬기장|이정표)$/.test(nm)) return;
+                    var d = Math.abs(+q.dist_m - want);
+                    // 탐방로 끝에서 700m 까지는 봉우리 · 정상만(산 위 끝), 그 밖 이름은 200m 안(2026-10-13 PC: 북한산 "비매칭코스" 끝 229m 앞 청봉사가 끝 이름 · 들머리가 됐음)
+                    if (end && d > 200 && !isTopName(nm) && !/(정상|오름|악)$/.test(nm)) return;
+                    if (d < bd) { bd = d; best = nm; }
+                });
+                return best;
+            };
+            var bounds = [{ k: 0, name: e.an, end: true }].concat(kept, [{ k: c.length - 1, name: e.zn, end: true }]);
+            bounds.forEach(function (x) { if (!x.name) x.name = x.end ? own(x.k, 700, true) || named(x.k) : named(x.k) || own(x.k, 300); });
+            for (var b = 0; b < bounds.length - 1; b++) {
+                var s0 = bounds[b], s1 = bounds[b + 1], r0 = cum[s0.k] / total, r1 = cum[s1.k] / total;
+                var from = s0.name || "", to = s1.name || "";
+                // 한쪽만 아는 갈림길(탐방로 끝이 아닌 자른 자리)은 "갈림길" - "월하탄 → 갈림길"
+                // 모르는 갈림길은 "갈림길", 모르는 탐방로 끝은 원래 탐방로 이름("대청봉코스(백담) → 황장폭포") - 한 탐방로 안에서 이름 방식이
+                // 섞이지 않게("(1/4)" 조각 이름은 뺐음, 2026-10-12 PC)
+                // "낙타봉까지" · "선정암에서" · "장불재 부근" 같은 이름은 탐방로 이름으로 쓰지 않음("낙타봉까지 → 안양산" 이 됐음 - 2026-10-13 PC)
+                var plain = /(에서|까지|부근)$/.test(title) ? null : title;
+                if (!from) from = s0.end ? plain || "탐방로 끝" : "갈림길";
+                if (!to) to = s1.end ? plain || "탐방로 끝" : "갈림길";
+                out.push({ id: t.id + "@" + r0.toFixed(4) + "-" + r1.toFixed(4) + ":" + from + ">" + to, base: t.id,
+                           name: (g ? g + " · " : "") + endsText(from, to), coords: c.slice(s0.k, s1.k + 1),
+                           distance_m: Math.round((cum[s1.k] - cum[s0.k]) * (+t.distance_m || total) / total), ascent_m: null });
+            }
+        });
+        return dedupeSegs(out);
+    }
+
+    /**
+     * 순수 함수 - 같은 길이 여러 벌(산림청 코스는 같은 길을 지나는 코스가 많음 · 백무동 탐방로와 주능선의 장터목 → 천왕봉)이면 하나만.
+     * 처음 · 끝이 서로 150m 안(같은 방향이든 거꾸로든)이고 길이가 25% 안이면 같은 것 - 먼저 나온 것(자르지 않은 것 먼저)을 남김.
+     * 2026-10-12 PC: 겹친 선을 누르면 다른 것이 잡혔음.
+     */
+    function dedupeSegs(segs) {
+        var keep = [], d = function (p, q) { return distM(p[1], p[0], q[1], q[0]); };
+        segs.slice().sort(function (x, y) { return (x.base ? 1 : 0) - (y.base ? 1 : 0); }).forEach(function (s) {
+            var a = s.coords[0], z = s.coords[s.coords.length - 1], L = +s.distance_m || 0;
+            var same = keep.some(function (k) {
+                var ka = k.coords[0], kz = k.coords[k.coords.length - 1], kl = +k.distance_m || 0;
+                // 150m - 자른 자리가 탐방로마다 조금 다름(장터목 → 천왕봉 1,361m · 1,464m 가 하나로 안 됐음 - 2026-10-12 PC)
+                var ends = (d(a, ka) < 150 && d(z, kz) < 150) || (d(a, kz) < 150 && d(z, ka) < 150);
+                return ends && Math.abs(L - kl) <= 0.25 * Math.max(L, kl, 1);   // 25% - 같은 길 두 벌(설악산 중청봉 → 대청봉 550 · 436m)
+            });
+            if (!same) keep.push(s);
+        });
+        // 원래 차례대로(그리는 차례 · 테스트가 보는 차례)
+        return segs.filter(function (s) { return keep.indexOf(s) >= 0; });
+    }
+
+    /**
+     * 순수 함수 - 이름 없는 탐방로 조각(무등산 knps-pg… 103개가 모두 "무등산" - 2026-10-12 홍TV님: 무등산도 확인)을 갈림길 사이 한 구간으로 잇고
+     * 이름을 붙입니다. 두 조각만 만나는 점(갈림길이 아님)은 지나서 이음. 끝 이름은 places(탐방 안내도 지명) 가운데 가까운 것
+     * (갈림길 300m · 막다른 끝 600m), 없으면 "갈림길" · "탐방로 끝". 이은 구간 id 는 이은 코스 ID(첫 조각에 처음 이름, 끝 조각에 끝 이름 -
+     * 따라가기 제목), 하나뿐이면 "코스ID@0.0000-1.0000:처음>끝". 이름 있는 탐방로는 그대로.
+     */
+    function mergeBare(trails, places) {
+        var bare = [], out = [], d = function (p, q) { return distM(p[1], p[0], q[1], q[0]); };
+        (trails || []).forEach(function (t) {
+            // 이름이 산 이름뿐인 조각만(무등산 knps-pg "무등산") - "덕유산 · 종주코스" 같은 공식 탐방로까지 잇던 것(2026-10-12 PC)
+            // 공단 2017 자료의 이름 없는 조각(knps-pg…)은 배치가 끝 이름을 붙여도("무등산 · 군왕봉까지") 조각이라 이어 붙임(2026-10-13 PC)
+            var piece = /^knps-pg/.test(String(t.id));
+            if ((String(t.name || "").indexOf(" · ") >= 0 && !piece) || !t.coords || t.coords.length < 2) out.push(t); else bare.push(t);
+        });
+        if (!bare.length) return out;
+        var nodes = [], node = function (p) {
+            for (var i = 0; i < nodes.length; i++) if (d(p, nodes[i].p) < 30) return i;
+            nodes.push({ p: p, inc: [] });
+            return nodes.length - 1;
+        };
+        bare.forEach(function (t, i) {
+            t._a = node(t.coords[0]); t._z = node(t.coords[t.coords.length - 1]);
+            nodes[t._a].inc.push(i); nodes[t._z].inc.push(i);
+        });
+        var nameAt = function (n) {
+            var deg = nodes[n].inc.length, best = null, bd = Infinity;
+            (places || []).forEach(function (pl) {
+                var nm = placeName(pl.name);
+                if (!nm || /^(삼각점|정상|갈림길|삼거리|사거리|헬기장|이정표)$/.test(nm)) return;
+                var x = d([+pl.lon, +pl.lat], nodes[n].p);
+                if (x < bd) { bd = x; best = nm; }
+            });
+            if (best && bd < (deg === 1 ? 600 : 300)) return best;
+            // 가까이 없으면 1.5km 안 지명 쪽("큰암산 쪽 갈림길") - "갈림길 → 갈림길" 만으로는 어디인지 모름
+            var kind = deg === 1 ? "끝" : "갈림길";
+            return best && bd < 1500 ? best + " 쪽 " + kind : (deg === 1 ? "탐방로 끝" : "갈림길");
+        };
+        var used = {}, chains = [];
+        var walk = function (n, i) {
+            var parts = [], cur = n;
+            while (i != null && !used[i]) {
+                used[i] = true;
+                var t = bare[i], rev = t._a !== cur;
+                parts.push({ t: t, rev: rev });
+                cur = rev ? t._a : t._z;
+                var inc = nodes[cur].inc;
+                i = inc.length === 2 ? (inc[0] === bare.indexOf(t) && inc[1] !== inc[0] ? inc[1] : inc[0]) : null;
+            }
+            chains.push({ parts: parts, a: n, z: cur });
+        };
+        nodes.forEach(function (nd, n) { if (nd.inc.length !== 2) nd.inc.forEach(function (i) { if (!used[i]) walk(n, i); }); });
+        bare.forEach(function (t, i) { if (!used[i]) walk(t._a, i); });   // 갈림길 없는 고리
+        chains.forEach(function (ch) {
+            // 끝 이름: 그 조각 이름의 처음 · 끝(배치가 붙인 이름 - 무등산 · 군왕봉까지) 먼저, 없으면 지명
+            var own = function (p, atStart) {
+                var e = routeEnds(p.t.name);
+                return atStart ? (p.rev ? e.to : e.from) : (p.rev ? e.from : e.to);
+            };
+            var fp = ch.parts[0], lp = ch.parts[ch.parts.length - 1];
+            var A = own(fp, true) || nameAt(ch.a), B = own(lp, false) || nameAt(ch.z), g = nameParts(bare[0].name).group || bare[0].name, coords = [], L = 0;
+            ch.parts.forEach(function (p) {
+                var c = p.rev ? p.t.coords.slice().reverse() : p.t.coords;
+                coords = coords.concat(coords.length ? c.slice(1) : c);
+                L += +p.t.distance_m || 0;
+            });
+            var id;
+            if (ch.parts.length === 1) {
+                var one = ch.parts[0];
+                id = one.t.id + "@0.0000-1.0000:" + (one.rev ? B + ">" + A : A + ">" + B);
+                coords = one.t.coords;   // 하나면 원래 방향 그대로(이름도 그 방향으로)
+                if (one.rev) { var x = A; A = B; B = x; }
+            } else {
+                // 이름은 그 조각 선이 그려진 방향으로 적음(선 처음 = 에서, 선 끝 = 까지) - 거꾸로 걷는 조각은 뒤집으면 맞게 바뀜
+                id = joinId(ch.parts.map(function (p, k) {
+                    var at = function (nm, walkStart) { return walkStart !== p.rev ? nm + ">" : ">" + nm; };
+                    var lab = k === 0 ? "@0.0000-1.0000:" + at(A, true) : k === ch.parts.length - 1 ? "@0.0000-1.0000:" + at(B, false) : "";
+                    return { id: p.t.id + lab, rev: p.rev };
+                }));
+            }
+            out.push({ id: id, name: g + " · " + endsText(A, B), coords: coords, distance_m: Math.round(L), ascent_m: ch.parts.length === 1 ? ch.parts[0].t.ascent_m : null, merged: true });
+        });
+        bare.forEach(function (t) { delete t._a; delete t._z; });
+        return out;
+    }
+
+    /** 순수 함수 - 처음 · 끝 이름 → "가 → 나"(같으면 "가 부근", 한쪽만이면 "가에서" · "나까지", 둘 다 없으면 ""). */
+    function endsText(from, to) {
+        // 같은 곳이면 "가 부근"(갈림길 · 끝처럼 어디인지 모르는 이름은 그대로 둘)
+        if (LANG === "en") return from && to ? (from === to && !/(갈림길|끝)$/.test(from) ? "around " + from : from + " → " + to) : from ? "from " + from : to ? "to " + to : "";
+        if (from && to) return from === to && !/(갈림길|끝)$/.test(from) ? from + " 부근" : from + " → " + to;
+        if (from) return from + "에서";
+        if (to) return to + "까지";
+        return "";
+    }
+
+    /**
+     * 순수 함수 - 코스의 r0 ~ r1(길이 비율) 부분만. 이름표 · 갈림길은 그 안의 것만 거리를 당겨서, 위치표지 · 위험지역은 그대로(자리로 씀).
+     * name 은 새 이름("지리산 · 노고단고개 → 장터목") - 끝 이름표는 endPois 가 이 이름으로.
+     */
+    function sliceCourse(c, r0, r1, name, id) {
+        var d0 = Math.max(0, r0) * c.total, d1 = Math.min(1, r1) * c.total;
+        // 끝은 d1 에 닿는 첫 점(점 바로 위에서 자르면 그 점까지)
+        var i0 = indexAt(c, d0), j1 = indexAt(c, d1), i1 = Math.min(c.lon.length - 1, c.dist[j1] >= d1 - 0.5 ? j1 : j1 + 1), base = c.dist[i0];
+        var s = { id: id || c.id, rev: false, markers: [], lon: c.lon.slice(i0, i1 + 1), lat: c.lat.slice(i0, i1 + 1), ele: c.ele.slice(i0, i1 + 1),
+                  signs: c.signs || [], spots: c.spots || [], info: null };
+        s.dist = c.dist.slice(i0, i1 + 1).map(function (d) { return d - base; });
+        s.total = s.dist[s.dist.length - 1];
+        s.pois = (c.pois || []).filter(function (p) { return !p.end && +p.dist_m >= base - 1 && +p.dist_m <= base + s.total + 1; }).map(function (p) {
+            var q = {};
+            for (var k in p) if (Object.prototype.hasOwnProperty.call(p, k)) q[k] = p[k];
+            q.dist_m = +p.dist_m - base;
+            return q;
+        });
+        s.junctions = (c.junctions || []).filter(function (d) { return d >= base && d <= base + s.total; }).map(function (d) { return d - base; });
+        s.course = {};
+        for (var k2 in c.course) if (Object.prototype.hasOwnProperty.call(c.course, k2)) s.course[k2] = c.course[k2];
+        s.course.name = name || c.course.name;
+        s.course.distance_m = Math.round(s.total);
+        s.asc = cumAscent(s.ele);
+        // 내리막 · 최고 · 최저 · 두 끝도 자른 구간 것으로(2026-11-03 코스 점검: 오르기만 하는 앞 절반에 코스 전체의 내리막 1,000m 가 남아 3D 시간 · 난이도가 틀렸음)
+        var asc = s.asc[s.asc.length - 1] || 0, rg = eleRange(s);
+        s.course.ascent_m = Math.round(asc);
+        s.course.descent_m = descentOf(s, asc);
+        s.course.ele_min_m = rg[0] == null ? null : Math.round(rg[0]);
+        s.course.ele_max_m = rg[1] == null ? null : Math.round(rg[1]);
+        s.course.start_lat = s.lat[0];
+        s.course.start_lon = s.lon[0];
+        s.course.end_lat = s.lat[s.lat.length - 1];
+        s.course.end_lon = s.lon[s.lon.length - 1];
+        endPois(s);
+        // 길찾기 주차장 · 정류장(fromApi 의 c.access)도 같은 구간으로 - endPois 가 정리된 이름표로 덮은 뒤에(2026-11-12 점검: 자른 코스에서는 길 밖 "공영주차장" 이 빠졌음)
+        if (c.access) s.access = c.access.filter(function (p) { return +p.dist_m >= base - 1 && +p.dist_m <= base + s.total + 1; }).map(function (p) {
+            var q = Object.assign({}, p); q.dist_m = +p.dist_m - base; return q;
+        });
+        return s;
+    }
+
+    /**
+     * 순수 함수 - 이은 코스 ID(parseJoinId 조각들)와 조각마다 받은 /api/course 답 → 하나로 이은 코스(fromApi 모양). 따라가기 · fly(3D) 가 함께 씀
+     * (2026-10-30 홍TV님 "fly(3D) 가 없는데 - 우리가 그 코스를 만들면 되잖아": 대표 코스 숨은벽 · 백운대(밤골)). 조각 하나(갈림길에서 자른 것)도.
+     */
+    function joinedCourse(id, parts, jsons) {
+        var one = function (p, j) {
+            var x = fromApi(p.base, j);
+            if (x.lon.length < 2) throw new Error("코스 조각 " + p.base + " 의 선이 없습니다");   // 이을 수 없음(2026-10-30 점검: NaN 거리로 그렸음)
+            if (p.r0 != null) {
+                var g = nameParts(x.course.name).group;
+                var label = endsText(p.from, p.to);   // 이은 구간의 첫 조각은 "가에서", 끝 조각은 "나까지"(mergeBare)
+                x = sliceCourse(x, p.r0, p.r1, label ? (g || x.course.name) + " · " + label : x.course.name, p.id);
+            }
+            return x;
+        };
+        return parts.length === 1 ? one(parts[0], jsons[0])   // 자른 구간 하나 - 거꾸로는 &rev=1 로
+            : joinCourses(jsons.map(function (j, i) { var x = one(parts[i], j); return parts[i].rev ? reverseCourse(x) : x; }), id);
+    }
+
+    /** 순수 함수 - 이은 코스 조각들의 서로 다른 코스 ID(같은 코스를 앞뒤로 쓰면 한 번만 받게 - 2026-10-30 점검: 밤골 8조각 · 4코스). */
+    /**
+     * 순수 함수 - 코스(fromApi · joinedCourse 꼴 {lat, lon, ele})를 GPX 편집의 길 점 [위도, 경도, 시각(없음), 높이]로. rev 면 거꾸로.
+     * 안내도에서 이어 고른 길을 GPX 편집으로 가져와 새 코스로 만들 때(2026-11-16 홍TV님 "안내도에서 여러개를 이어서 … 코스를 만들려고").
+     */
+    function courseTrack(c, rev) {
+        var out = [];
+        for (var i = 0; c && c.lat && i < c.lat.length; i++) {
+            var e = c.ele && typeof c.ele[i] === "number" && isFinite(c.ele[i]) ? Math.round(c.ele[i]) : null;
+            out.push([c.lat[i], c.lon[i], null, e]);
+        }
+        return rev ? out.reverse() : out;
+    }
+
+    function partBases(parts) {
+        var out = [];
+        (parts || []).forEach(function (p) { if (out.indexOf(p.base) < 0) out.push(p.base); });
+        return out;
+    }
+
+    /** 순수 함수 - partBases 차례로 받은 답들 → 조각 차례 답(조각마다 따로 고치므로 복사). */
+    function partAnswers(parts, bases, answers) {
+        return parts.map(function (p) { return JSON.parse(JSON.stringify(answers[bases.indexOf(p.base)])); });
+    }
+
+    /**
+     * 순수 함수 - 코스 여러 개(이미 걷는 방향으로 돌린 것)를 하나로 잇습니다. 끝과 다음 처음이 떨어져 있으면 그 거리만큼 더함.
+     * 이름은 "무리 N구간 · 처음 → 끝", 이름표 · 갈림길 · 위치표지 · 위험지역은 거리를 밀어 모두. id 는 이은 코스 ID, parts 는 [{id, rev}].
+     */
+    function joinCourses(list, id) {
+        var c = { id: id, rev: false, markers: [], lon: [], lat: [], ele: [], dist: [], pois: [], junctions: [], signs: [], spots: [], info: null,
+                  parts: parseJoinId(id) || [] };
+        list.forEach(function (p, k) {
+            var off = 0, skip = 0;
+            if (c.lon.length) {
+                var n = c.lon.length - 1, gap = distM(c.lat[n], c.lon[n], p.lat[0], p.lon[0]);
+                off = c.dist[n] + gap;
+                if (gap < 1) { skip = 1; off = c.dist[n]; }
+            }
+            for (var i = skip; i < p.lon.length; i++) {
+                c.lon.push(p.lon[i]); c.lat.push(p.lat[i]); c.ele.push(p.ele[i]); c.dist.push(off + p.dist[i]);
+            }
+            (p.pois || []).forEach(function (q) {
+                var r = {};
+                for (var key in q) if (Object.prototype.hasOwnProperty.call(q, key)) r[key] = q[key];
+                r.dist_m = off + (+q.dist_m);
+                // 이은 곳의 끝 이름표는 하나만(앞 구간 도착 = 다음 구간 출발)
+                // 이름표가 끝 이름이든 지점 이름표든(2026-10-12 PC: 원점회귀 그래프에 천왕봉이 바로 붙어 두 번)
+                // 이은 곳 둘레 300m 안(2026-10-12 PC: 중산리 → 천왕봉 선은 천왕봉 이름표 123m 뒤에서 끝나고, 다음 구간 끝과도 115m 떨어짐)
+                if (k > 0 && +q.dist_m < 150 && c.pois.some(function (o) { return o.name === q.name && Math.abs(+o.dist_m - r.dist_m) < 300; })) return;
+                c.pois.push(r);
+            });
+            (p.junctions || []).forEach(function (d) { c.junctions.push(off + d); });
+            c.signs = c.signs.concat(p.signs || []);
+            c.spots = c.spots.concat(p.spots || []);
+            if (k === 0 && p.access) c.access = p.access.map(function (q) { return Object.assign({}, q); });   // 길찾기는 들머리 쪽(첫 구간) 것만(2026-11-12 점검)
+        });
+        c.total = c.dist.length ? c.dist[c.dist.length - 1] : 0;
+        c.asc = cumAscent(c.ele);
+        var first = list[0].course || {}, last = list[list.length - 1].course || {}, g = nameParts(first.name).group;
+        // 무리 이름: "지리산둘레길 가탄-송정" 처럼 · 가 없으면 끝의 "가-나" 를 뗀 것, "N구간 · N코스" 도 뗌
+        g = String(g || String(first.name || "").replace(/\s*\(?[가-힣]+-[가-힣]+\)?\s*$/, "")).replace(/\s*\d+(?:-\d+)?\s*(?:구간|코스|\().*$/, "").trim();   // "64-3(지선3코스)" 도(routeGuides 와 같게)
+        // 자전거길은 "인증센터" 를 뗌(제목이 길어 잘림 - 2026-10-12 PC)
+        var short = function (x) { return x ? String(x).replace(/인증센터/g, "") : x; };
+        var from = short(routeEnds(first.name).from), to = short(routeEnds(last.name).to);
+        // "[백두대간 3구간]" 이 3구간째로 읽혀 헷갈림(2026-10-12 PC) - 번호가 있으면 "2~4구간", 없으면 "3구간 이어 걷기"
+        var nos = list.map(function (p) { return courseNo(p.course && p.course.name); });
+        var nums = nos.every(Boolean) ? nos.map(function (x) { return +String(x).split("-")[0]; }) : null;
+        var unit = /코스/.test(String(first.name || "")) ? "코스" : "구간";
+        var span = nums ? Math.min.apply(null, nums) + "~" + Math.max.apply(null, nums) + unit : list.length + "구간 이어 걷기";
+        var asc = c.asc[c.asc.length - 1] || 0, down = descentOf(c, asc), rg = eleRange(c), lo = rg[0], hi = rg[1];
+        // 처음 자리로 돌아오면 "중산리탐방지원센터 원점회귀"(2026-10-12 홍TV님 - 지리산 대표 원점회귀 코스)
+        var back = c.lat.length > 1 && distM(c.lat[0], c.lon[0], c.lat[c.lat.length - 1], c.lon[c.lon.length - 1]) < 600;   // 끝이 출발 600m 안(중산리 ↔ 법계교 257m)
+        var route = from && (from === to || back) ? from + " 원점회귀" : endsText(from, to);
+        // 등산 조각이 하나라도 있으면 등산(2026-10-30 밤골 대표 코스: 매표소 → 효자길(둘레길 walk) 로 시작해 걷기가 됐음 - 난이도 · 시간이 빠짐)
+        var kinds = list.map(function (p) { return p.course && p.course.kind; });
+        c.course = { name: g + " " + span + (route ? " · " + route : ""), kind: kinds.indexOf("hike") >= 0 ? "hike" : kinds.indexOf("trek") >= 0 ? "trek" : first.kind,
+                     distance_m: Math.round(c.total), ascent_m: Math.round(asc), descent_m: down,
+                     ele_min_m: lo == null ? null : Math.round(lo), ele_max_m: hi == null ? null : Math.round(hi),
+                     start_lat: c.lat[0], start_lon: c.lon[0], end_lat: c.lat[c.lat.length - 1], end_lon: c.lon[c.lon.length - 1] };
+        return c;
+    }
+
+    /**
+     * 순수 함수 - 코스(점 · 이름표)의 [가장 낮은, 가장 높은] 높이(m, 모르면 null). 이은 코스 · 자른 구간이 같이 씀.
+     * 지나는 정상의 공식 높이(서버가 이름표에 ele_official 로 붙임)도 최고에 - 이은 코스는 선 높이만 봐서 백운대 836m 가 808m 로 보였음(2026-10-30 PC).
+     */
+    function eleRange(c) {
+        var lo = null, hi = null;
+        c.ele.forEach(function (e) { if (e != null) { lo = lo == null ? e : Math.min(lo, e); hi = hi == null ? e : Math.max(hi, e); } });
+        (c.pois || []).forEach(function (q) { if (q.ele_official && q.ele_m != null && !(+q.off_route_m > 160)) hi = hi == null ? +q.ele_m : Math.max(hi, +q.ele_m); });
+        return [lo, hi];
+    }
+
+    /** 순수 함수 - 오르막 합(asc)과 두 끝 높이로 내리막(m). 끝 높이를 모르면 null. 이은 코스 · 자른 구간이 같이 씀. */
+    function descentOf(c, asc) {
+        var e0 = c.ele[0], e1 = c.ele[c.ele.length - 1];
+        return e0 == null || e1 == null ? null : Math.max(0, Math.round(asc - (e1 - e0)));
+    }
+
     function indexAt(c, d) {
         var dist = c.dist, lo = 0, hi = dist.length - 1;
         if (d <= 0) return 0;
@@ -139,12 +897,40 @@
         return lo;
     }
 
+    /** 진행 거리 d(m)의 위치 · 고도. 누적 거리 배열에서 이분 탐색 후 선형 보간. */
+    function at(c, d) {
+        var n = c.dist.length;
+        if (d <= 0) return { lon: c.lon[0], lat: c.lat[0], ele: c.ele[0] };
+        if (d >= c.total) return { lon: c.lon[n - 1], lat: c.lat[n - 1], ele: c.ele[n - 1] };
+        var lo = indexAt(c, d), hi = lo + 1;
+        var span = c.dist[hi] - c.dist[lo], t = span > 0 ? (d - c.dist[lo]) / span : 0;
+        var e0 = c.ele[lo], e1 = c.ele[hi];
+        return {
+            lon: c.lon[lo] + (c.lon[hi] - c.lon[lo]) * t,
+            lat: c.lat[lo] + (c.lat[hi] - c.lat[lo]) * t,
+            ele: e0 == null || e1 == null ? null : e0 + (e1 - e0) * t
+        };
+    }
+
     /** 순수 함수 - 걸음 수 추정. 보폭 = 키 × 0.415(등산은 오르내림으로 10% 짧게). 자전거는 null. */
     function steps(kind, cm, distM) {
         if (kind === "bike") return null;
         var stride = cm / 100 * 0.415 * (kind === "walk" ? 1 : 0.9);
         return Math.round(distM / stride);
     }
+
+    /** d 다음의 이름표(출발 자리 것은 빼고). 없으면 null. */
+    /**
+     * 경로 밖 이름표(들머리 가는 길의 주차장 · 버스 정류장 - routefly-batch 가 들머리 1km 안에서 넣음).
+     * 지도에는 보이되 '다음 지점' · 음성 · 그래프 이름 · 비행 자막에는 쓰지 않습니다.
+     */
+    function isAccess(p) { return +p.off_route_m > (isTopName(p.name) ? 160 : 100); }
+
+    /**
+     * 봉우리 · 고개 이름인가 - 능선 길이 꼭대기를 비켜 가 경로에서 조금 멀어도(배치는 150m 까지 넣음) 경로 위 지점으로 봅니다.
+     * 2026-10-10 PC: 상재봉 1코스 소지봉(경로에서 95m)이 지도 · 그래프에 안 보였음.
+     */
+    function isTopName(name) { return /(봉|산|령|재|고개|峰|정상)(\s*\(.*\))?$/.test(String(name || "").trim()); }
 
     /**
      * 순수 함수 - GPX 글 → 길마다 {name, track:[[위도, 경도, 시각ms|null, 높이|null]]}(GPX 편집 studio.html, 2026-10-31 홍TV님).
@@ -549,6 +1335,67 @@
     if (global.addEventListener && global.navigator && /Android/i.test(navigator.userAgent || "") && !global.Capacitor)
         global.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); });
 
+    // ------------------------------------------------------------------ 로마자(Roman.java 를 옮김 - 영어 화면의 지점 이름, 2026-10-16)
+    var RO_INI = ["g", "kk", "n", "d", "tt", "r", "m", "b", "pp", "s", "ss", "", "j", "jj", "ch", "k", "t", "p", "h"];
+    var RO_VOW = ["a", "ae", "ya", "yae", "eo", "e", "yeo", "ye", "o", "wa", "wae", "oe", "yo", "u", "wo", "we", "wi", "yu", "eu", "ui", "i"];
+    var RO_FS = [0, 1, 1, 1, 2, 2, 2, 3, 4, 1, 5, 4, 4, 4, 6, 4, 5, 6, 6, 3, 3, 7, 3, 3, 1, 3, 6, 3];
+    var RO_LINK = ["", "g", "kk", "ks", "n", "nj", "n", "d", "r", "lg", "lm", "lb", "ls", "lt", "lp", "r", "m", "b", "ps", "s", "ss", "ng", "j", "ch", "k", "t", "p", ""];
+    var RO_SND = ["", "k", "n", "t", "l", "m", "p", "ng"];
+    function roNasal(s) { return s === 1 ? 7 : s === 3 ? 2 : s === 6 ? 5 : s; }
+    function roFirst(link) { return { k: 1, n: 4, l: 8 }[link.charAt(0)] || 17; }
+    function roWord(w) {
+        var ini = [], vow = [], fin = [], b = "", carry = null, len = w.length;
+        for (var k = 0; k < len; k++) { var code = w.charCodeAt(k) - 0xAC00; ini.push(Math.floor(code / 588)); vow.push(Math.floor(code % 588 / 28)); fin.push(code % 28); }
+        for (k = 0; k < len; k++) {
+            b += (carry != null ? carry : RO_INI[ini[k]]) + RO_VOW[vow[k]];
+            carry = null;
+            if (!fin[k]) continue;
+            if (k === len - 1) { b += RO_SND[RO_FS[fin[k]]]; continue; }
+            var next = ini[k + 1], snd = RO_FS[fin[k]];
+            if (k === len - 2 && w.charAt(k + 1) === "리") { b += RO_SND[snd] + "-"; continue; }
+            if (next === 11) {
+                var link = RO_LINK[fin[k]];
+                if (fin[k] === 21) b += "ng";
+                else if (link.length === 2 && ["kk", "ss", "ng", "ch"].indexOf(link) < 0) { b += RO_SND[RO_FS[roFirst(link)]]; carry = link.slice(1); }
+                else carry = link;
+                continue;
+            }
+            if (snd === 4 && (next === 5 || next === 2)) { b += "l"; carry = "l"; }
+            else if (snd === 2 && next === 5) { b += "l"; carry = "l"; }
+            else if (next === 5) { b += RO_SND[roNasal(snd)]; carry = "n"; }
+            else if (next === 2 || next === 6) b += RO_SND[roNasal(snd)];
+            else b += RO_SND[snd];
+        }
+        return b;
+    }
+    /** 순수 함수 - 한글 로마자(국어의 로마자 표기법 - Roman.of 와 같은 결과). "설악산" → "Seoraksan". */
+    function roman(s) {
+        s = String(s == null ? "" : s);
+        return s.replace(/[가-힣]+/g, function (w, i) {
+            var r = roWord(w), prev = i > 0 ? s.charAt(i - 1) : "";
+            return (/[A-Za-z]/.test(prev) ? " " : "") + (/\d/.test(prev) ? r : r.charAt(0).toUpperCase() + r.slice(1));
+        });
+    }
+    /** 영어로 옮길 낱말(MountainEn.WORDS 와 같은 목록 · 차례 - MountainEnTest 가 봄, 2026-11-07) - 나머지는 로마자. */
+    var EN_WORDS = [["남동쪽", "southeast"], ["남서쪽", "southwest"], ["북동쪽", "northeast"], ["북서쪽", "northwest"],
+        ["동쪽", "east"], ["서쪽", "west"], ["남쪽", "south"], ["북쪽", "north"], ["들머리", "trailhead"], ["날머리", "trail end"],   // 2026-10-18 PC: 남동쪽 들머리
+        ["국립공원", "National Park"], ["국림공원", "National Park"], ["화장실", "restroom"], ["탐방지원센터", "visitor center"], ["탐방안내소", "visitor center"], ["공원지킴터", "ranger post"], ["매표소", "ticket booth"], ["주차장", "parking"],
+        ["대피소", "shelter"], ["휴게소", "rest area"], ["삼거리", "junction"], ["사거리", "crossroads"], ["갈림길", "junction"], ["탐방로", "trail"], ["등산로", "trail"],
+        ["입구", "entrance"], ["정상", "summit"], ["코스", "course"], ["구간", "section"], ["순환", "loop"], ["왕복", "round trip"], ["분소", "office"],
+        // 따라가기 영어(2026-10-17) - 위험지역 · 시설 이름
+        ["급경사", "steep slope"], ["낙석", "falling rocks"], ["추락", "fall"], ["미끄럼", "slippery"], ["실족", "slip"], ["주의", "caution"], ["위험", "danger"],
+        ["조망점", "viewpoint"], ["전망대", "observatory"], ["약수터", "spring"], ["샘터", "spring"], ["쉼터", "rest spot"], ["헬기장", "helipad"],
+        ["구급함", "first-aid box"], ["정류장", "bus stop"],
+        ["자전거길", " bike path"], ["관광안내소", " tourist info center"], ["해수욕장", " beach"], ["계곡", " valley"], ["아래", " below"]];
+    /** 순수 함수 - 지점 · 코스 이름 영어로(MountainEn.courseName 과 같음). "수렴동대피소" → "Suryeomdong shelter". */
+    function enName(ko) {
+        // 붙어 쓴 산 이름 + 봉우리 · 고개 · 절은 띄움("설악산대청봉" → "Seoraksan Daecheongbong", MountainEn.courseName 과 같음)
+        var s = String(ko == null ? "" : ko).replace(/([가-힣]+산)([가-힣]{1,4}(?:봉|대|령|재|사|암|폭포|계곡))(?![가-힣])/g, "$1 $2");
+        s = s.replace(/(^|\s)위(?=\s|\d|$)/g, "$1above");   // 따로 쓴 '위'만("갈림길 위 250m") - 위봉 · 위례 같은 이름은 그대로(2026-10-17 PC)
+        EN_WORDS.forEach(function (w) { s = s.split(w[0]).join(" " + w[1] + " "); });
+        return roman(s).replace(/([a-z])(\d)/g, "$1 $2").replace(/\s+/g, " ").replace(/ ([)\],])/g, "$1").replace(/([(\[]) /g, "$1").trim();
+    }
+
     /**
      * MapLibre 지도 단추 글(확대 · 축소 · 북쪽 · 출처 · 내 위치) - 한국어 화면은 한국어(2026-11-03 홍TV님 점검: 한국어 화면에 "Zoom in" 이 나왔음).
      * 영어 화면은 undefined(MapLibre 기본 영어). new maplibregl.Map({ locale: RF.mapLocale() }).
@@ -567,7 +1414,10 @@
     global.RF = {
         num: num,
         km: km,
+        fromApi: fromApi,
         nameParts: nameParts,
+        safeDecode: safeDecode,
+        nameText: nameText,
         trimTrack: trimTrack,
         gpxTracks: gpxTracks,
         trackStats: trackStats,
@@ -583,7 +1433,12 @@
         trailsToElements: trailsToElements,
         overlapShare: overlapShare,
         routeEnds: routeEnds,
+        parseJoinId: parseJoinId,
         distM: distM,
-        mapLocale: mapLocale
+        mapLocale: mapLocale,
+        joinedCourse: joinedCourse,
+        partBases: partBases,
+        courseTrack: courseTrack,
+        partAnswers: partAnswers
     };
 })(window);

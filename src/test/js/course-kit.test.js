@@ -1944,6 +1944,14 @@ eq("favJoinExtra 제목이 없으면 지금 이름의 길", [RF.favJoinExtra("#c
     eq("설정이 없으면 단추 없음", RF.stayLinks({}, "속초시청", 38.207, 128.592, false).filter(function (x) { return /호텔스컴바인/.test(x.text); }).length, 0);
 })();
 
+// 📐 안내도에서 고른 길을 GPX 편집으로(2026-11-16 홍TV님) - 코스 점 → [위도, 경도, 시각 없음, 높이], 거꾸로
+(function () {
+    var c = { lat: [37.5, 37.51, 37.52], lon: [127, 127.01, 127.02], ele: [100.4, NaN, 120.6] };
+    eq("courseTrack 차례 · 높이 반올림 · 없는 높이 null", RF.courseTrack(c), [[37.5, 127, null, 100], [37.51, 127.01, null, null], [37.52, 127.02, null, 121]]);
+    eq("courseTrack 거꾸로", RF.courseTrack(c, true)[0], [37.52, 127.02, null, 121]);
+    eq("courseTrack 빈 코스", RF.courseTrack(null), []);
+})();
+
 // 📶 Korea eSIM(Airalo, 링크프라이스, 2026-11-03): 영어 산 페이지 한 줄 - PC · 휴대폰 모두, 제휴 표시
 (function () {
     function el(tag) { return { tag: tag, kids: [], appendChild: function (c) { this.kids.push(c); }, set textContent(v) { this._t = v; this.kids = []; }, get textContent() { return this._t || ""; } }; }

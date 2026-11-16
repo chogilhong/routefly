@@ -387,6 +387,7 @@
         $("sheet").appendChild(st);
         $("sheet").appendChild(tip);
         $("sheet").appendChild(row);
+        studioLink(row, link(full));   // 관리자 기기만 - 이 길을 GPX 편집으로(코스 만들기)
     }
 
     /**
@@ -955,4 +956,22 @@
 })();
 
 // 글자 크기 "가+" - 위 줄 오른쪽(2026-10-14 홍TV님, 같은 설정이 모든 화면에)
-(function () { var top = document.getElementById("top"); if (top && window.RF && RF.textButton) top.appendChild(RF.textButton()); })();
+(function () { var top = document.getElementById("top"); if (top && window.RF && RF.textButton) top.appendChild(RF.textButton());     /**
+     * 📐 고른 길을 GPX 편집으로(2026-11-16 홍TV님 "안내도에서 여러개를 이어서 … 코스를 만들려고") - 관리자 기기(/api/course-upload 의 owner)에만.
+     * 따라가기 주소(hike.html#c=…)의 # 뒤를 그대로 GPX 편집(studio.html)에 넘김. park.js · route.js 같은 셈(둘 다 고침).
+     */
+    var ownerP = null;
+    function studioLink(row, followHref) {
+        if (!ownerP) ownerP = fetch("api/course-upload", { headers: { Accept: "application/json" }, cache: "no-store" }).then(function (r) { return r.ok ? r.json() : {}; })
+            .then(function (j) { return !!(j && j.owner); }).catch(function () { return false; });
+        ownerP.then(function (own) {
+            if (!own || !row.isConnected) return;   // 그 사이 다른 길을 골라 칸이 바뀌었으면 넣지 않음
+            var p = document.createElement("div"), a = document.createElement("a");
+            p.className = "tip";
+            a.href = "studio.html" + followHref.slice(followHref.indexOf("#"));
+            a.textContent = "📐 이 길을 GPX 편집으로 - 다듬어 코스로 올리기";
+            p.appendChild(a);
+            row.parentNode.insertBefore(p, row.nextSibling);
+        });
+    }
+})();

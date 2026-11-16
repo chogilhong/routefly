@@ -2082,7 +2082,6 @@
         return out;
     }
 
-    /** 순수 함수 - 이은 코스 조각들의 서로 다른 코스 ID(같은 코스를 앞뒤로 쓰면 한 번만 받게 - 2026-10-30 점검: 밤골 8조각 · 4코스). */
     function partBases(parts) {
         var out = [];
         (parts || []).forEach(function (p) { if (out.indexOf(p.base) < 0) out.push(p.base); });

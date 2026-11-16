@@ -197,4 +197,17 @@ public class CheckupRound10Test {
         assertTrue(css.contains(".tstrip { position: relative; display: flex;"));
         assertTrue(css.contains(".sr { position: absolute; left: 0; top: 0;"));
     }
+
+    /** 2026-11-16 홍TV님 "안내도에서 여러개를 이어서 … 코스를 만들려고" - 안내도(탐방 · 노선, 두 벌)는 관리자 기기에 GPX 편집 단추, GPX 편집은 #c= 를 따라가기처럼 받아 한 길로. */
+    @Test
+    public void 안내도_길을_GPX_편집으로() throws Exception {
+        for (String f : new String[] {"park.js", "route.js"}) {
+            String js = read("src/main/webapp/js/" + f);
+            assertTrue(f, js.contains("studioLink(row, link(") && js.contains("a.href = \"studio.html\" + followHref.slice(followHref.indexOf(\"#\"));")
+                    && js.contains("return !!(j && j.owner);"));
+        }
+        String st = read("src/main/webapp/js/studio.js");
+        assertTrue(st.contains("var parts = RF.parseJoinId(id)") && st.contains("RF.joinedCourse(id, parts, r)") && st.contains("RF.courseTrack(c,") && st.contains("    openFromGuide();\n"));
+        assertTrue("kit-studio 에 courseTrack", read("src/main/webapp/js/kit-studio.js").contains("function courseTrack("));
+    }
 }
