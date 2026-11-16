@@ -1999,5 +1999,18 @@ eq("favJoinExtra 제목이 없으면 지금 이름의 길", [RF.favJoinExtra("#c
     eq("이어지는 것이 없으면 누른 점에 가까운 선 - 법계교 끝을 누르면 1016(아직 안 이어짐)을 고르고 1015 는 그대로", RF.tapPick(cands.map(function (c) { return { px: c.px, inSel: c.inSel, joins: false, len: c.len }; })), 1);
     eq("겹친 선(같은 거리)이면 고른 것(빼기) → 짧은 것, 없으면 -1", [RF.tapPick([{ px: 1.2, inSel: false, joins: false, len: 10 }, { px: 0.9, inSel: true, joins: false, len: 9000 }]),
         RF.tapPick([{ px: 0.4, inSel: false, joins: false, len: 900 }, { px: 0, inSel: false, joins: false, len: 100 }]), RF.tapPick([])], [1, 1, -1]);
+    // 원점회귀 끝이 첫 구간 중간(법계교 - 1015 의 261m 자리)이면 법계교 → 들머리 조각을 더 붙임(2026-11-16 홍TV님: GPX 편집 출발 · 도착이 어긋났음)
+    var lines = {}; lines[A.id] = A.coords; lines[B.id] = B.coords;
+    var cl = RF.closeLoop([{ id: A.id, rev: false }, { id: B.id, rev: true }], lines, "법계교"), last = cl[cl.length - 1], pj = RF.parseJoinId(RF.joinId(cl));
+    eq("법계교에서 끝난 고리 - 1015 앞 조각을 거꾸로 더함(이은 ID 로 읽힘)", [cl.length, /^knps-1015-0fc7081a@0\.0000-0\.05\d\d:>법계교$/.test(last.id), last.rev, last.m > 240 && last.m < 280,
+        pj[2].base, pj[2].r0, pj[2].r1 > 0.05 && pj[2].r1 < 0.06, pj[2].rev], [3, true, true, true, "knps-1015-0fc7081a", 0, true, true]);
+    var cut = RF.closeLoop([{ id: A.id + "@0.0000-0.2982:중산리탐방지원센터>칼바위", rev: false }, { id: B.id, rev: true }],
+        (function () { var o = {}; o[A.id + "@0.0000-0.2982:중산리탐방지원센터>칼바위"] = A.coords.slice(0, 60); o[B.id] = B.coords; return o; })(), "법계교");
+    eq("자른 구간이 첫 구간이면 그 비율 안에서 - 들머리 이름 · 갈림길 이름", [cut.length, /^knps-1015-0fc7081a@0\.0000-0\.0\d{3}:중산리탐방지원센터>법계교$/.test(cut[2].id), cut[2].rev], [3, true, true]);
+    var sq = { a: [[127, 37], [127.001, 37], [127.002, 37], [127.003, 37], [127.004, 37]], b: [[127.004, 37], [127.004, 37.002], [127.001, 37.0002]] };
+    var rv = RF.closeLoop([{ id: "a", rev: true }, { id: "b", rev: true }], { a: sq.a.slice().reverse(), b: sq.b.slice().reverse() }, "");
+    eq("첫 구간을 거꾸로 걸었으면 갈림길 → 끝 조각을 앞으로", [rv.length, rv[2] && rv[2].id.replace(/:.*$/, ""), rv[2] && rv[2].rev], [3, "a@0.7500-1.0000", false]);
+    eq("이미 들머리로 돌아왔거나 첫 구간에 안 닿으면 그대로", [RF.closeLoop([{ id: A.id, rev: false }, { id: A.id, rev: true }], lines, "x").length,
+        RF.closeLoop([{ id: B.id, rev: false }, { id: A.id, rev: true }], lines, "x").length, RF.closeLoop([{ id: A.id, rev: false }], lines, "x").length], [2, 2, 1]);
     eq("점 · 선분 거리(px)", [RF.pxToLine({ x: 5, y: 3 }, [{ x: 0, y: 0 }, { x: 10, y: 0 }]), RF.pxToLine({ x: 13, y: 4 }, [{ x: 0, y: 0 }, { x: 10, y: 0 }]), RF.pxToLine({ x: 1, y: 1 }, [{ x: 1, y: 2 }])], [3, 5, 1]);
 })();

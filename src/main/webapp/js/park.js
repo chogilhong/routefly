@@ -283,6 +283,8 @@
             return s.rev ? [b, a] : [a, b];
         };
         var round = plan.loop, full = sel;
+        // 원점회귀 끝이 첫 구간 중간 갈림길이면 그 자리 → 들머리를 더 붙여 따라가기 · GPX 편집 길도 들머리에서 끝나게(지리산 위령비 → 법계교 - RF.closeLoop)
+        var closed = round ? RF.closeLoop(full, lines, ends(full[full.length - 1])[1]) : full, closeM = closed.length > full.length ? closed[closed.length - 1].m : 0;
         // 이름에 출발 · 도착이 없는 탐방로("설악산 · 대청봉코스")는 그 자리 지명(300m, 봉우리는 120m)으로
         var nearName = function (p) {
             var best = null, bd = 300;
@@ -315,7 +317,7 @@
         };
         startMk = flag((round ? T("🚩 출발 · 도착 ", "🚩 Start · finish ") : T("🚩 출발 ", "🚩 Start ")) + (from || ""), at(from, plan.start));
         if (!round) endMk = flag(T("🏁 도착 ", "🏁 Finish ") + (to || ""), at(to, plan.end));
-        var meters = full.reduce(function (m, s) { return m + (+byId[s.id].distance_m || 0); }, 0);
+        var meters = full.reduce(function (m, s) { return m + (+byId[s.id].distance_m || 0); }, closeM);
         $("sheet").innerHTML = "";
         var nm = document.createElement("div");
         nm.className = "nm";
@@ -357,7 +359,7 @@
             : from && to ? [from + " → " + to, to + " → " + from] : ["Follow", "Follow reversed"])
             : round ? [(k1 || "이 방향") + " 쪽으로 먼저", k2 ? k2 + " 쪽으로 먼저" : k1 ? k1 + " 나중에" : "반대 방향으로"]
             : from && to ? [from + " → " + to, to + " → " + from] : ["따라가기", "거꾸로 따라가기"];
-        var second = RF.reverseSel(full);
+        var second = RF.reverseSel(closed);
         // 들머리에서 정상 같은 막다른 곳까지면 "왕복"(올랐다 같은 길로 들머리) - 한라산 성판악 ↔ 백록담처럼 고리가 없는 산의 원점회귀(2026-10-13 홍TV님)
         var headNear = function (p) { return (planHeads || data.heads || []).some(function (h) { return RF.distM(p[1], p[0], +h.lat, +h.lon) < 500; }); };
         // 들머리 자료가 적은 산(한라산은 어리목탐방안내소 하나)은 끝 이름이 정상 · 봉 · 오름 · 대피소 · 분기점이면
@@ -366,7 +368,7 @@
             labels = EN ? [NM(from || "") + " → " + NM(to || "") + " one way", (to ? NM(to) : "Summit") + " out and back"] : [(from || "") + " → " + (to || "") + " 편도", (to || "정상") + " 왕복"];
             second = full.concat(RF.reverseSel(full));
         }
-        [[labels[0], full], [labels[1], second]].forEach(function (d, k) {
+        [[labels[0], closed], [labels[1], second]].forEach(function (d, k) {
             var a = document.createElement("a");
             if (k === 0) a.className = "main";
             a.href = link(d[1]);
@@ -387,7 +389,7 @@
         $("sheet").appendChild(st);
         $("sheet").appendChild(tip);
         $("sheet").appendChild(row);
-        studioLink(row, link(full));   // 관리자 기기만 - 이 길을 GPX 편집으로(코스 만들기)
+        studioLink(row, link(closed));   // 관리자 기기만 - 이 길을 GPX 편집으로(코스 만들기)
     }
 
     /**
