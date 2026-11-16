@@ -16,6 +16,11 @@
 3. 테스트 → 내부 테스트 트랙에 첫 AAB. 이때 "Play 앱 서명" 은 "다른 키 사용 → 원스토어와 같은 키를 내보내 올리기"(PEPK).
    - 같은 키여야 산악회 방 앱 링크(서버 `app.sha256`)가 그대로 맞고, 2027 안드로이드 개발자 인증도 한 키로 끝남.
    - 구글이 새 키를 만들게 두면 Play 에서 받은 앱 지문을 `app.sha256` 에 쉼표로 더해야 함(Play Console → 테스트 및 출시 → 앱 무결성 → 앱 서명 키 인증서 SHA-256).
+   - 2026-11-17 실제로 한 것: "Java Keystore의 키 내보내기 및 업로드" → pepk.jar · encryption_public_key.pem 을 app/android/app/release/pepk/(.gitignore)에.
+     JDK 21 로 그냥 돌리면 "Cannot find any provider supporting RSA/NONE/OAEPWithSHA1AndMGF1Padding" - pepk.jar 안 BouncyCastle 이 JCE 서명이 없어서(OpenJDK 계열 jbr 도 같음).
+     해결: Maven Central 의 서명된 bcprov-jdk18on-1.78.1.jar(sha1 대조)를 같은 폴더에 두고, bc.security(security.provider.13=…BouncyCastleProvider)를
+     `java "-Djava.security.properties=bc.security" -cp "bcprov-jdk18on-1.78.1.jar;pepk.jar" com.google.wireless.android.vending.developer.signing.tools.extern.export.ExportEncryptedPrivateKeyTool --keystore=… --alias=… --output=pepk-out.zip --include-cert --rsa-aes-encryption --encryption-key-path=encryption_public_key.pem`
+     (bcprov 를 앞에, 비밀번호는 홍TV님 직접). zip 안 certificate.pem 지문 = 원스토어 지문(app/README.md) 확인.
 4. 내부 테스트로 홍TV님 폰에서 Play 판 설치 · 따라가기 · 산악회 방 확인.
 5. 프로덕션 출시 요청(심사). 조직 계정이라 개인 계정의 "테스터 12명 · 14일 비공개 테스트" 는 없는 것으로 앎 - 화면에서 확인.
 
