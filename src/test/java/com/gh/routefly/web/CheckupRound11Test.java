@@ -274,4 +274,14 @@ public class CheckupRound11Test {
         assertTrue("E9 영어 링크", read("src/main/java/com/gh/routefly/web/MountainServlet.java").contains("Trails in English ›"));
         assertTrue("E9 움직임", read("src/main/webapp/index.html").contains("@media (prefers-reduced-motion: reduce) { .spotRing { animation:none; } }"));
     }
+
+    /** Play 데이터 보안 "데이터 삭제 요청" 주소(privacy.html#delete) - 앱 이름 · 요청 단계 · 보관 기간(3번 표), 단추 이름은 화면과 같게(2026-11-17). */
+    @Test
+    public void 데이터_삭제_요청_안내() throws Exception {
+        String ko = read("src/main/webapp/privacy.html"), en = read("src/main/webapp/privacy-en.html");
+        assertTrue(ko.contains("<h2 id=\"delete\">") && ko.contains("routefly 데이터 삭제 요청") && en.contains("<h2 id=\"delete\">") && en.contains("routefly data deletion request"));
+        assertTrue("단추 이름", read("src/main/webapp/js/party-bar.js").contains("T(\"그만 보내기\", \"Stop sending\")") && ko.contains("\"그만 보내기\"") && en.contains("\"Stop sending\"")
+                && read("src/main/webapp/party.html").contains("data-en=\"Leave room\">방 나가기<") && ko.contains("\"방 나가기\"") && en.contains("\"Leave room\""));
+        assertFalse("예전 틀린 말", ko.contains("서버에는 이름 · 연락처처럼 개인을 알아볼 정보가 없어"));
+    }
 }

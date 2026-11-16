@@ -64,7 +64,7 @@ Group room (2 devices): Device 1 taps "산악회 방", creates a room (any name,
 | 금융 · 건강 · 사진 · 오디오 · 파일 · 연락처 · 캘린더 · 웹 기록 · 앱 정보와 성능 | 아니요 | | | store-onestore.md 표 |
 
 - 전송 중 암호화: 예(HTTPS 만).
-- 데이터 삭제 요청: 예 - 산악회 방은 끝나면 위치를 모두 지움, 그 밖은 문의 메일(privacy.html).
+- 데이터 삭제 요청: 예 - 주소 `https://routefly.kr/routefly/privacy.html#delete`(7번에 앱 이름 · 요청 단계 · 3번 보관 기간, 2026-11-17). "90일 안 자동 삭제" 는 아님(산악회 방 확인자료 200일).
 - 수집이 필수인지: 위치는 산악회 방을 쓸 때만, 나머지는 선택 - "사용자가 선택 가능" 으로.
 - 독립 보안 검토: 아니요.
 - 국외 이전 메모(store-onestore.md): 서버는 서울. 의견 보내기 글이 가는 운영자 Gmail - Play 양식에는 국외 이전 칸이 없어 따로 적지 않음.
