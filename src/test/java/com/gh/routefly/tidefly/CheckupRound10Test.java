@@ -205,6 +205,9 @@ public class CheckupRound10Test {
             String js = read("src/main/webapp/js/" + f);
             assertTrue(f, js.contains("studioLink(row, link(") && js.contains("a.href = \"studio.html\" + followHref.slice(followHref.indexOf(\"#\"));")
                     && js.contains("return !!(j && j.owner);"));
+            // 부르는 곳과 함수가 같은 본 묶음(첫 (function () { … })();) 안에 - 2026-11-16 PC: 뒤의 "가+" 묶음에 넣어 탐방로를 누르면 ReferenceError
+            String main = js.substring(js.indexOf("(function () {"), js.indexOf("\n})();"));
+            assertTrue(f + " studioLink 는 본 묶음 안", main.contains("function studioLink(") && main.contains("studioLink(row, link("));
         }
         String st = read("src/main/webapp/js/studio.js");
         assertTrue(st.contains("var parts = RF.parseJoinId(id)") && st.contains("RF.joinedCourse(id, parts, r)") && st.contains("RF.courseTrack(c,") && st.contains("    openFromGuide();\n"));
