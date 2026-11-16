@@ -31,6 +31,7 @@
         owner = !!(j && j.owner);
     }).catch(function () { /* 못 물으면 운영자가 아닌 것으로 - 편집은 그대로 */ }).then(function () {
         $("upBtn").hidden = $("upTip").hidden = !owner;
+        $("guideBtn").hidden = !owner;   // 안내도의 "📐 GPX 편집으로" 도 관리자 기기에만 보여 짝을 맞춤
         $("sendBtn").hidden = $("sendTip").hidden = owner;
         $("upTool").setAttribute("data-go", owner ? "#upBtn" : "#sendBtn");
         $("upTool").title = owner ? "코스로 올리기" : "routefly 에 코스 보내기";
@@ -1054,6 +1055,80 @@
      * 안내도(탐방 · 노선)에서 이어 고른 길(#c=코스ID 또는 이은 ID, &rev=1, &title=) - 따라가기와 같은 방법으로 받아 하나의 길로 목록에 넣음
      * (2026-11-16 홍TV님 "gpx 편집에 안내도를 열고 거기서 코스를 연결해서 새 코스를 만들고 싶은데"). 점은 코스 자료 그대로(시각 없음).
      */
+    /**
+     * 🗺 안내도에서 고르기(2026-11-16 홍TV님) - 산 · 국립공원 이름으로 탐방 안내도(park.html?name=), 백두대간 · 둘레길 · 자전거길은 노선 안내도 목록(series.html).
+     * 안내도에서 길을 이어 고르고 "📐 이 길을 GPX 편집으로" 를 누르면 이 화면으로 돌아와 그 길이 목록에 들어감(openFromGuide).
+     */
+    $("guideBtn").onclick = function () {
+        var box = $("guideBox");
+        if (!box.hidden) { box.hidden = true; return; }
+        box.textContent = "";
+        var form = document.createElement("form"), inp = document.createElement("input"), go = document.createElement("button");
+        form.className = "row";
+        form.style.marginTop = "6px";
+        inp.className = "b";
+        inp.style.flex = "1 1 auto";
+        inp.placeholder = "산 · 국립공원 이름(예: 청계산)";
+        inp.maxLength = 30;
+        inp.setAttribute("aria-label", "안내도를 열 산 · 국립공원 이름");
+        go.className = "b main";
+        go.type = "submit";
+        go.textContent = "열기";
+        form.appendChild(inp);
+        form.appendChild(go);
+        var found = document.createElement("div");
+        // 따라가기 찾기와 같은 방법(RF.routeGuides · guideMaps)으로 - 국립공원이 아닌 산은 같은 이름이 여러 곳이라 코스 ID(from)가 있어야 안내도가 열림
+        form.onsubmit = function (e) {
+            e.preventDefault();
+            var n = inp.value.trim();
+            if (!n) return;
+            found.textContent = "찾는 중…";
+            fetch("api/courses?q=" + encodeURIComponent(n), { headers: { Accept: "application/json" } }).then(function (r) { return r.json(); }).then(function (j) {
+                var rows = (j && j.courses) || [], links = [];
+                RF.routeGuides(rows, 2, [], n).forEach(function (g) {
+                    links.push(["🌲 " + g.name + " 노선 안내도", "route.html?" + (g.trail ? "trail=" + encodeURIComponent(g.trail) : "prefix=" + encodeURIComponent(g.prefix)) + "&name=" + encodeURIComponent(g.name)]);
+                });
+                RF.guideMaps(rows, 3, n).forEach(function (g) {
+                    links.push(["🏞 " + g.label + " 탐방 안내도", "park.html?name=" + encodeURIComponent(g.name) + "&from=" + encodeURIComponent(g.from) + (g.label !== g.name ? "&label=" + encodeURIComponent(g.label) : "")]);
+                });
+                found.textContent = "";
+                if (!links.length) { found.textContent = "찾은 안내도가 없습니다. 다른 이름으로 찾아 보세요."; return; }
+                links.forEach(function (x) {
+                    var pa = document.createElement("p"), a = document.createElement("a");
+                    pa.className = "tip";
+                    a.href = x[1];
+                    a.textContent = x[0];
+                    pa.appendChild(a);
+                    found.appendChild(pa);
+                });
+            }).catch(function () { found.textContent = "찾지 못했습니다(인터넷 확인)."; });
+        };
+        box.appendChild(form);
+        box.appendChild(found);
+        var chips = document.createElement("p");
+        chips.className = "tip";
+        chips.appendChild(document.createTextNode("국립공원: "));
+        RF.PARKS.forEach(function (n, i) {
+            var a = document.createElement("a");
+            a.href = guideHref(n);
+            a.textContent = n;
+            if (i) chips.appendChild(document.createTextNode(" · "));
+            chips.appendChild(a);
+        });
+        box.appendChild(chips);
+        var more = document.createElement("p"), ra = document.createElement("a");
+        more.className = "tip";
+        ra.href = "series.html";
+        ra.textContent = "백두대간 · 정맥 · 둘레길 · 자전거길 - 노선 안내도 목록 ›";
+        more.appendChild(ra);
+        more.appendChild(document.createTextNode(" 안내도에서 길을 이어 고른 뒤 \"📐 이 길을 GPX 편집으로\" 를 누르면 여기로 돌아옵니다."));
+        box.appendChild(more);
+        box.hidden = false;
+        inp.focus();
+    };
+    /** 산 · 공원 이름의 탐방 안내도 주소. */
+    function guideHref(name) { return "park.html?name=" + encodeURIComponent(name); }
+
     function openFromGuide() {
         var h = location.hash.replace(/^#/, ""), get = function (k) { var m = new RegExp("(?:^|&)" + k + "=([^&]*)").exec(h); return m ? RF.safeDecode(m[1]) : ""; };
         var id = get("c");

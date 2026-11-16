@@ -315,6 +315,49 @@
         if (back ? !atEnd(e.to) : e.to && !near(c.total) && !same(e.to, c.total)) c.pois.push({ name: e.to, lat: c.lat[n], lon: c.lon[n], ele_m: c.ele[n], dist_m: c.total, off_route_m: 0, end: true, again: back });
     }
 
+    /** 국립공원 이름(서버 ParkServlet.PARKS 와 같은 차례). */
+    var PARKS = ["지리산", "경주", "계룡산", "한려해상", "설악산", "속리산", "한라산", "내장산", "가야산", "덕유산", "오대산", "주왕산",
+        "태안해안", "다도해해상", "북한산", "치악산", "월악산", "소백산", "월출산", "변산반도", "무등산", "태백산", "팔공산"];
+
+    /**
+     * 순수 함수 - 코스 이름이 국립공원 이름으로 시작하면 그 공원("지리산 · 백무동 → 천왕봉" · "지리산 자락 21코스" · "지리산(천왕봉) 1코스" → 지리산).
+     * 아니면 null. 2026-10-10 홍TV님: 공원 전체 보기 · 공식 안내도 바로가기.
+     */
+    function parkOf(name) {
+        var n = String(name || "").replace(/^\[|\]/g, "").trim();
+        for (var i = 0; i < PARKS.length; i++) {
+            var p = PARKS[i];
+            if (n.indexOf(p) === 0 && (n.length === p.length || /[\s·(]/.test(n.charAt(p.length)))) return p;
+        }
+        return null;
+    }
+
+    /**
+     * 순수 함수 - 코스 이름 맨 앞의 산 이름("모악산 · 화율봉 → 모악산" · "마이산 자락 2코스" · "대둔산(마천대) 1코스" → 모악산 · 마이산 · 대둔산).
+     * id 가 산림청 코스(frst-)면 앞의 시 · 군 낱말을 건너뜀.
+     * 도립 · 군립공원과 다른 산의 전체 보기용(2026-10-11 홍TV님). 국립공원이면 parkOf 가 먼저. 산 이름이 아니면 null.
+     */
+    /** 산 이름 낱말 - (숫자) + 한글 + 산 · 봉 · 악 · 령 · 대 · 오름 · 고지. 서버 ParkServlet.MOUNTAIN 과 같은 규칙. */
+    var MOUNTAIN_WORD = /^(?:[0-9]{1,4}[가-힣]{0,12}|[가-힣]{1,12})(?:산|봉|악|령|대|오름|고지)(?:\(.*\))?$/;
+    var MOUNTAIN_HEAD = /^((?:[0-9]{1,4}[가-힣]{0,12}|[가-힣]{1,12})(?:산|봉|악|령|대|오름|고지))(?=[\s·(]|$)/;
+
+    function mountainOf(name, id) {
+        var n = String(name || "").replace(/^\[|\]/g, "").trim();
+        // 산림청 코스(frst-)는 앞에 시 · 군 - "김제 모악산 · …", "논산 대둔산 마천대 · …" 는 둘째 낱말(2026-10-11 PC)
+        // 낱말이 여럿이면 "…산" 으로 끝나는 마지막 낱말("서산 덕산 가야산" → 가야산, "논산 대둔산 마천대" → 대둔산), 없으면 둘째 낱말
+        // 2026-10-12 PC(전국 등산 25,809개 중 카드 없음 1,939): 앞에 시 · 구가 둘 이상("인천 영종 국사봉", "전남광주통합 동구 깃대봉"),
+        // …오름(제주) · …고지(100고지)도 산으로 봄. 정맥 · 대간 · 숲길은 산이 아니라 그대로 null
+        if (/^frst-/.test(id || "")) {
+            var head = n.split(" · ")[0].split(/\s+/), pick = -1;
+            for (var i = 1; i < head.length; i++) if (MOUNTAIN_WORD.test(head[i]) && /(산|오름|고지)(\(.*\))?$/.test(head[i])) pick = i;
+            for (var j = 1; pick < 0 && j < head.length; j++) if (MOUNTAIN_WORD.test(head[j])) pick = j;   // …봉 · 악 · 령 · 대 - 앞에서 첫 것
+            if (pick > 0) n = head.slice(pick).join(" ");
+        }
+        // 숫자로 시작하는 산 이름도("157고지우송대뒷산" - 2026-10-12 PC: 전체 보기 단추가 없었음)
+        var m = MOUNTAIN_HEAD.exec(n);
+        return m ? m[1] : null;
+    }
+
     /** 순수 함수 - 주소의 % 글자 풀기. 깨진 값(#c=%E0)이면 예외 대신 null - 화면이 멈추지 않게(2026-10-11 오픈 전 점검). */
     function safeDecode(s) {
         try { return decodeURIComponent(s); } catch (e) { return null; }
@@ -338,6 +381,65 @@
             if (a - ref >= step) { up += a - ref; ref = a; } else if (ref - a >= step) ref = a;
         });
         return Math.round(up);
+    }
+
+    /**
+     * 순수 함수 - 코스 목록에 든 공원 · 산의 탐방 안내도(코스 목록 맨 위 카드). [{name, label, from(그 산 첫 코스 ID), n(코스 수)}].
+     * 같은 이름 다른 산(광양 · 정선 · 포천 백운산)은 출발점 거리(20km)로 갈라 따로, 이름은 코스 무리 글("광양 백운산")이 있으면 그것.
+     * q(검색어)가 이름에 든 산이 있으면 그 산들만. 코스가 많은 산 먼저, 같으면 목록에 먼저 나온 산.
+     * 2026-10-12 홍TV님: 산에 가면 먼저 보는 것이 탐방 안내도 - 첫 화면에서 바로.
+     */
+    function guideMaps(rows, max, q) {
+        var order = [];
+        // 공단 코스(knps-)를 먼저 묶어 국립공원 카드의 출발점을 다 모은 뒤 다른 자료 코스를 견줌(2026-11-01 홍TV님 북한산 안내도 둘 -
+        // 맨 앞의 이은 코스(출발점 좌표 없음)가 국립공원 카드를 점 없이 만들어, 바로 뒤 산림청 코스가 20km 비교를 못 하고 따로 "북한산(…)" 카드가 됐음)
+        var list = (rows || []).filter(function (r) { return /^knps-/.test(String(r.course_id || "")); })
+            .concat((rows || []).filter(function (r) { return !/^knps-/.test(String(r.course_id || "")); }));
+        list.forEach(function (r) {
+            // 국립공원 묶음은 공단 코스(knps-)만 이름으로 - 다른 자료의 "가야산 1코스"(광양)가 국립공원 가야산 카드에 섞여 카드 이름이 "광양 가야산"
+            // 이 됐음(2026-10-14 PC). 다른 자료 코스는 아래 거리(20km) 규칙으로 같은 산인지 봄
+            var park = /^knps-/.test(String(r.course_id || "")) ? parkOf(r.name) : null, n = park || parkOf(r.name) || mountainOf(r.name, r.course_id);
+            if (!n) return;
+            // 백두대간 · 정맥 무리("백두대간건의령고적대")는 산이 아님 - 노선 안내도(routeGuides)로(2026-10-12 PC)
+            // 다만 "금남정맥안골산" 처럼 뒤에 산 이름이 붙으면 그 산(안골산 - 2026-10-12 PC)
+            var tail = !park && /(?:대간|정맥)([가-힣]{1,12}(?:산|봉|악|오름))$/.exec(n), own = false;
+            if (tail) { n = tail[1]; own = true; }
+            else if (!park && /대간|정맥/.test(nameParts(r.name).group || String(r.name || ""))) return;
+            var lat = +r.start_lat, lon = +r.start_lon, has = r.start_lat != null && isFinite(lat) && isFinite(lon);
+            // 국립공원 코스는 이름으로 한 장. 그 밖은 같은 이름이고 그 묶음 어느 코스 출발점과 20km 안이면 같은 산
+            // (산림청 지리산 코스 → 지리산 국립공원), 멀면 다른 산(광양 · 정선 백운산, 통영 지리산)
+            // 이름이 같거나 한쪽이 다른 쪽으로 끝나면(사량도지리산 · 지리산 - 통영 사량도) 같은 이름으로 봄
+            var same = function (o) { return o.name === n || (o.name.length > n.length ? o.name.slice(-n.length) === n : n.slice(-o.name.length) === o.name); };
+            var g = order.filter(function (o) {
+                if (!same(o)) return false;
+                if (park && o.park) return true;
+                return has ? o.pts.some(function (q) { return distM(lat, lon, q[0], q[1]) < 20000; }) : !o.pts.length;
+            })[0];
+            if (!g) {
+                var grp = nameParts(r.name).group || "";
+                g = { name: n, label: !own && grp.indexOf(n) > 0 && grp.length <= n.length + 6 ? grp : n, from: r.course_id, n: 0, park: !!park, pts: [] };
+                order.push(g);
+            }
+            if (park && !g.park) { g.park = true; g.label = n; g.from = r.course_id; }   // 국립공원 코스가 있으면 그 이름 · 그 코스로
+            else if (g.label === g.name && !own) {   // 지역이 붙은 무리 이름("포천 백운산")이 뒤에 나오면 그것으로
+                var grp2 = nameParts(r.name).group || "";
+                if (grp2.indexOf(n) > 0 && grp2.length <= n.length + 6) g.label = grp2;
+            }
+            if (!g.start) g.start = firstPlace(r.name);
+            if (has) g.pts.push([lat, lon]);
+            g.n++;
+        });
+        var key = String(q || "").replace(/\s+/g, "");
+        var hit = key ? order.filter(function (g) { return g.label.replace(/\s+/g, "").indexOf(key) >= 0; }) : [];
+        var ranked = (hit.length ? hit : order).map(function (g, i) { return { g: g, i: i }; })
+            .sort(function (a, b) { return b.g.n - a.g.n || a.i - b.i; }).map(function (x) { return x.g; });
+        // 국립공원 카드는 코스 수와 상관없이 맨 앞, 장 수(max)에도 세지 않음(2026-10-14 PC: "가야산" 에서 서산 40 · 나주 18 · 광양 13 에 밀려
+        // 국립공원 카드가 빠졌고, 앞에 두니 광양이 빠졌음 - 같은 이름 산이 셋이면 셋 다)
+        var out = ranked.filter(function (g) { return g.park; }).concat(ranked.filter(function (g) { return !g.park; }).slice(0, max || 3));
+        // 그래도 같은 이름표가 둘 이상이면(지역 없는 백운산 둘) 첫 코스 들머리로 가름: "백운산(오두재)"
+        var dup = out.map(function (g) { return out.filter(function (o) { return o.label === g.label; }).length > 1; });
+        out.forEach(function (g, i) { if (dup[i] && g.start) g.label += "(" + g.start + ")"; });
+        return out.map(function (g) { return { name: g.name, label: g.label, from: g.from, n: g.n }; });
     }
 
     /**
@@ -392,6 +494,12 @@
         var qk = key(q), same = function (g) { return qk && key(g.name) === qk ? 1 : 0; };
         return order.map(function (g, i) { return { g: g, i: i }; }).sort(function (a, b) { return same(b.g) - same(a.g) || b.g.n - a.g.n || a.i - b.i; })
             .slice(0, max || 3).map(function (x) { return x.g; });
+    }
+
+    /** 순수 함수 - 코스 이름의 들머리("백운산 · 오두재 → 백운산" → 오두재). 없으면 null. */
+    function firstPlace(name) {
+        var r = nameParts(name).route.split(" → ")[0].trim();
+        return r && r !== nameParts(name).route ? r : null;
     }
 
     /**
@@ -1416,6 +1524,9 @@
         km: km,
         fromApi: fromApi,
         nameParts: nameParts,
+        PARKS: PARKS,
+        guideMaps: guideMaps,
+        routeGuides: routeGuides,
         safeDecode: safeDecode,
         nameText: nameText,
         trimTrack: trimTrack,

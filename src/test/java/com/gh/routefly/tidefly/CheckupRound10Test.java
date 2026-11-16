@@ -212,5 +212,9 @@ public class CheckupRound10Test {
         String st = read("src/main/webapp/js/studio.js");
         assertTrue(st.contains("var parts = RF.parseJoinId(id)") && st.contains("RF.joinedCourse(id, parts, r)") && st.contains("RF.courseTrack(c,") && st.contains("    openFromGuide();\n"));
         assertTrue("kit-studio 에 courseTrack", read("src/main/webapp/js/kit-studio.js").contains("function courseTrack("));
+        // 🗺 안내도에서 고르기(관리자만) - 이름 찾기는 따라가기와 같은 RF.routeGuides · guideMaps(국립공원이 아닌 산은 from 이 있어야 안내도가 열림)
+        assertTrue(read("src/main/webapp/studio.html").contains("<button class=\"b\" id=\"guideBtn\" type=\"button\" hidden>🗺 안내도에서 고르기</button>"));
+        assertTrue(st.contains("$(\"guideBtn\").hidden = !owner;") && st.contains("RF.guideMaps(rows, 3, n)") && st.contains("\"&from=\" + encodeURIComponent(g.from)"));
+        assertTrue(read("src/main/webapp/js/kit-studio.js").contains("function guideMaps("));
     }
 }
