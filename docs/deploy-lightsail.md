@@ -609,7 +609,7 @@ systemctl list-timers 'routefly-*'               # 두 타이머(:07 · :37)
 ```
 
 PC PowerShell 에서 ssh 로 한 번에(2026-11-16 이렇게 켬). 바깥은 작은따옴표, 안쪽 작은따옴표는 `''` 두 개로 적습니다.
-ssh 로 보내는 한글은 깨져서 Description 은 영문으로 둡니다.
+Description 은 영문으로 적었지만 한글도 됩니다(2026-11-16 PC PowerShell 5.1 → Windows OpenSSH 로 보낸 한글이 서버에 그대로 들어감 - 232줄의 한글 grep 깨짐과는 다른 경우).
 
 ```powershell
 $k = "<키.pem>"; $h = "ubuntu@<고정 IP>"
