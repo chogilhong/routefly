@@ -7,7 +7,11 @@ android {
         applicationId "kr.routefly.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
+<<<<<<< Updated upstream
         versionCode 2   // 2026-11-17 Play 첫 판(원스토어는 1) - 두 스토어 번호를 한 줄로, 올릴 때마다 +1
+=======
+        versionCode 2
+>>>>>>> Stashed changes
         versionName "1.0.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
