@@ -22,6 +22,7 @@
     var SIM_X = 1;       // 걷는 거리에 곱하는 배수 = (평지로 걷는 시간 ÷ 미리보기 1× 시간) × 고른 빠르기
     var SIM_CLOCK = 1;   // 시계에 곱하는 배수 - 도착 때 경과 시간이 미리보기의 예상 시간(오르막 · 내리막 포함, RF.legMs)과 같게
     var STILL_M = 40;          // 움직임 없음 - 이 안(+ GPS 오차)에서
+    var ARRIVED_STILL_M = 300; // 도착 뒤 끝 자리에서 이만큼 떨어지면 움직임 없음 확인을 다시(stillTick - 점검 11차 A5)
     var STILL_MS = (+(location.search.match(/[?&]stillmin=(\d+)/) || [])[1] || +lsGet("rf-stillmin") || 20) * 60000;   //   이만큼 있으면 "괜찮으세요?"(?stillmin=1 · 앱은 localStorage rf-stillmin - 점검용)
     var DEBUG = lsGet("rf-debug") === "1";   // 점검용(2026-10-17): 화면이 꺼진 동안 스크립트가 도는지 - 1분마다 콘솔(안드로이드는 logcat Capacitor/Console)
     function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
@@ -958,6 +959,7 @@
             var closedT = (parts ? r[0] : [r[0]]).some(function (j) { return j && j.course && RF.isClosedTrail(j.course.name); });
             if (closedT) toast(T("⚠ 비법정탐방로(통제구역)입니다. 국립공원 지정 탐방로가 아니라 출입이 금지된 길이니 따라가지 마세요.", "⚠ Closed trail (restricted area). This is not an official national park trail and entry is banned - do not follow it."), 12000);   // 링크로 바로 연 경우(목록에는 안 나옴)
             $("courseNote").hidden = true;
+            $("courseNote").classList.remove("open");   // 낮은 화면은 두 줄까지(점검 11차 A3) - 누르면 펼침
             if (!closedT) {
                 // 정상 미포함 · 자료가 끊긴 구간 · 공단 기준 시간 - 알림(6 ~ 12초)이 숫자 칸을 가려 다음 지점 아래 한 줄로, 쉬운 말로(2026-11-03 홍TV님 점검)
                 var warns = [], gp = RF.shownGaps(c)[0], inf = RF.infoText(c.info, c.total);
@@ -3101,6 +3103,7 @@
         hike.passed = {};
         hike.voiceD = null;
         hike.alerted = {};
+        hike.spotDone = {};   // 하산길(뒤집은 코스)에서도 위험 · 조망을 다시 알림(점검 11차 A1)
         hike.arrived = false;
         hike.branch = null;
         hike.wasOff = false;
@@ -3284,8 +3287,10 @@
      * 문자 · 전화는 저절로 보내지 않습니다(사람이 눌러야). 정상에서 쉬다가 "괜찮아요" 를 누르면 다시 20분.
      */
     function stillTick() {
-        if (!hike.running || hike.sim || hike.arrived) return;
+        if (!hike.running || hike.sim) return;
         var t = now(), f = hike.fix;
+        // 도착 뒤에는 끝 자리 300m 안에서만 쉼(점검 11차 A5, 2026-11-16) - 정상에서 끝나는 코스를 자료에 없는 길로 내려가면 움직임 없음 확인이 끝까지 꺼져 있었음
+        if (hike.arrived && (!f || RF.distM(f.lat, f.lon, c.lat[c.lat.length - 1], c.lon[c.lon.length - 1]) < ARRIVED_STILL_M)) { hike.still = null; return; }
         if (hike.stillAsk) {
             var left = Math.ceil((hike.stillAsk + STILL_ANSWER_MS - t) / 1000);
             if (left > 0) { $("stillLeft").textContent = EN ? "If there is no answer in " + left + " s, the emergency screen opens." : left + "초 안에 답이 없으면 긴급 신고 화면을 엽니다."; return; }
@@ -3389,19 +3394,27 @@
         var sun = RF.sunset(nowMs, c.lat[0], c.lon[0]);
         setText("sunTxt", sun ? T("· 일몰 ", "· sunset ") + clock(sun) : "");
         var late = false;
+        // 해 지기 · 귀가 예정 알림은 도착 판정과 상관없이(점검 11차 A5, 2026-11-16 - 정상에서 끝나는 코스는 도착 뒤 하산 내내 꺼져 있었음)
+        // 🌇 해 지기 1시간 전이면 한 번 알림(도착 예상과 상관없이 - 산은 해가 지기 전부터 어두워짐. 2026-10-18 홍TV님)
+        if (sun && hike.running && !hike.sun60 && nowMs >= sun - 3600000 && nowMs < sun) {
+            hike.sun60 = true;
+            var ex = exitText(!hike.sim && hike.fix ? hike.fix : p);   // 가장 가까운 하산 지점 한 줄(2026-11-01 홍TV님)
+            toast((EN ? "🌇 Sunset in about 1 hour (" + clock(sun) + "). It gets dark early in the mountains - get your headlamp ready and head down."
+                : "🌇 해 지기 1시간 전입니다(일몰 " + clock(sun) + "). 산은 일찍 어두워지니 헤드랜턴을 준비하고 하산을 서두르세요.")
+                + (ex ? "\n" + T("가장 가까운 하산 지점 ", "Nearest way down: ") + ex : ""), 10000);
+            say(T("해 지기 한 시간 전입니다. 헤드랜턴을 준비하고 하산을 서두르세요.", "Sunset is in about one hour. Get your headlamp ready and head down."), { urgent: true });
+            if (navigator.vibrate) navigator.vibrate([300, 150, 300]);
+        }
+        if (hike.running && hike.lateNext && nowMs > hike.lateNext) {
+            hike.lateNext += 3600000;
+            toast(EN ? "⏰ You are past your planned return time (" + clock(hike.lateAt) + "). If you are fine, let your family know - SOS at the top can text your location."
+                : "⏰ 귀가 예정(" + clock(hike.lateAt) + ")보다 늦어지고 있습니다. 괜찮다면 가족에게 알려 주세요 - 위쪽 SOS 에서 위치 문자를 보낼 수 있습니다.", 12000);
+            say(T("귀가 예정 시각이 지났습니다. 괜찮다면 가족에게 알려 주세요.", "You are past your planned return time. If you are fine, let your family know."), { urgent: true });
+            if (navigator.vibrate) navigator.vibrate([300, 150, 300, 150, 300]);
+        }
         if (d >= c.total - ARRIVE_M) setV("sEta", T("도착", "Arrived"));
         else {
             var rem = remainingMs(elapsed), eta = nowMs + rem;
-            // 🌇 해 지기 1시간 전이면 한 번 알림(도착 예상과 상관없이 - 산은 해가 지기 전부터 어두워짐. 2026-10-18 홍TV님)
-            if (sun && hike.running && !hike.sun60 && nowMs >= sun - 3600000 && nowMs < sun) {
-                hike.sun60 = true;
-                var ex = exitText(!hike.sim && hike.fix ? hike.fix : p);   // 가장 가까운 하산 지점 한 줄(2026-11-01 홍TV님)
-                toast((EN ? "🌇 Sunset in about 1 hour (" + clock(sun) + "). It gets dark early in the mountains - get your headlamp ready and head down."
-                    : "🌇 해 지기 1시간 전입니다(일몰 " + clock(sun) + "). 산은 일찍 어두워지니 헤드랜턴을 준비하고 하산을 서두르세요.")
-                    + (ex ? "\n" + T("가장 가까운 하산 지점 ", "Nearest way down: ") + ex : ""), 10000);
-                say(T("해 지기 한 시간 전입니다. 헤드랜턴을 준비하고 하산을 서두르세요.", "Sunset is in about one hour. Get your headlamp ready and head down."), { urgent: true });
-                if (navigator.vibrate) navigator.vibrate([300, 150, 300]);
-            }
             setV("sEta", clock(eta), " (" + RF.hm(rem, true) + ")");
             // 해 지기 30분 전까지 못 닿을 것 같으면 빨갛게 + 한 번 알림
             if (sun && eta > sun - 1800000) {
@@ -3413,13 +3426,6 @@
                     say(T("주의하세요. 예상 도착이 해 지기 30분 전보다 늦습니다. 일찍 돌아서는 것도 생각하세요.", "Caution. You are expected to finish less than 30 minutes before sunset. Consider turning back early."), { urgent: true });
                     if (navigator.vibrate) navigator.vibrate([300, 150, 300]);
                 }
-            }
-            if (hike.running && hike.lateNext && nowMs > hike.lateNext) {
-                hike.lateNext += 3600000;
-                toast(EN ? "⏰ You are past your planned return time (" + clock(hike.lateAt) + "). If you are fine, let your family know - SOS at the top can text your location."
-                    : "⏰ 귀가 예정(" + clock(hike.lateAt) + ")보다 늦어지고 있습니다. 괜찮다면 가족에게 알려 주세요 - 위쪽 SOS 에서 위치 문자를 보낼 수 있습니다.", 12000);
-                say(T("귀가 예정 시각이 지났습니다. 괜찮다면 가족에게 알려 주세요.", "You are past your planned return time. If you are fine, let your family know."), { urgent: true });
-                if (navigator.vibrate) navigator.vibrate([300, 150, 300, 150, 300]);
             }
         }
         if (!renderHidden) $("etaBox").classList.toggle("late", late);
@@ -3560,7 +3566,9 @@
                     // 벗어난 순간 한 번, 계속 벗어나 있으면 2분마다
                     say(EN ? "You are off the trail. " + (nt.course ? "The trail is " : "The nearest path is ") + distSpoken(nt.off) + " " + dirWord(br) + "."
                         : "코스에서 벗어났습니다. " + (nt.course ? "코스는 " : "가장 가까운 길은 ") + dirWord(br) + " " + distSpoken(nt.off) + "입니다.",
-                        { key: "off", gap: hike.wasOff ? 120000 : 0, urgent: !hike.wasOff });
+                        { key: "off", gap: hike.wasOff ? 120000 : 0, urgent: !hike.wasOff, force: !hike.wasOff });   // 처음 벗어날 때는 음성을 꺼 두었어도
+                    // 진동(점검 11차 A6, 2026-11-16) - 갈림길 · 위험지역 · GPS 끊김은 떨리는데 벗어남만 소리뿐이라 주머니 속에서는 몰랐음
+                    if (!hike.wasOff && !hike.sim && navigator.vibrate) navigator.vibrate([400, 150, 400]);
                 }
             }
             // 화살표: 나침반이 있으면 핸드폰 위쪽 기준(그쪽으로 몸을 돌려 걷게), 없으면 지도(북쪽 위) 기준
@@ -5050,17 +5058,18 @@
         // 주변 길은 화면이 부르는 그 주소(loadTrails 의 courseBbox(0.01))로 받아야 오프라인에서 서비스 워커가 내줍니다.
         var head = courseUrls(c.id).concat(["api/trails?bbox=" + courseBbox(0.01), "api/map-config"]);
         var urls = head.concat(plan.urls), id = c.id, meta = { name: String(c.course.name || ""), dist: Math.round(c.total || 0) };
-        var btn = $("save"), done = 0, failed = 0, i = 0;
+        var btn = $("save"), done = 0, failed = 0, i = 0, headFail = false;
         btn.disabled = true;
         return caches.open(OFFLINE_CACHE).then(function (cache) {
             function next() {
                 if (i >= urls.length) return Promise.resolve();
-                var u = urls[i++];
+                var k = i++, u = urls[k];
+                var miss = function () { failed++; if (k < head.length) headFail = true; };   // 코스 자료 · 주변 길 · 지도 설정을 못 받으면 저장 실패
                 // 지도 타일은 no-store 로 - 서비스 워커가 이것을 보고 지나가며 본 타일 캐시에 두 번 넣지 않습니다(sw.js)
                 return fetch(u, { mode: "cors", cache: /^https?:/.test(u) ? "no-store" : "default" }).then(function (r) {
-                    if (r.ok) return cache.put(u, r);
-                    failed++;
-                }).catch(function () { failed++; }).then(function () {
+                    if (r.ok) return cache.put(u, r);   // 저장 공간이 차면(QuotaExceeded) 아래 catch
+                    miss();
+                }).catch(miss).then(function () {
                     done++;
                     btn.textContent = Math.round(done / urls.length * 100) + "%";
                     if (onPct) onPct(Math.round(done / urls.length * 100));
@@ -5077,6 +5086,13 @@
             });
         }).then(function () {
             btn.disabled = false;
+            // 점검 11차 A2(2026-11-16): 망이 끊기거나 저장 공간이 차도 "✅ 저장됨" 이었음 - 코스 자료를 못 받았거나 지도 10% 넘게 못 받으면 저장 안 된 것으로
+            if (headFail || failed > Math.max(1, plan.urls.length * 0.1)) {
+                btn.textContent = T("⚠️ 일부만", "⚠️ Partial");
+                toast(EN ? "Offline save incomplete - " + failed + " of " + num(urls.length) + " failed" + (headFail ? " (trail data missing)" : "") + ". Try again on Wi-Fi; this trail is not marked as saved."
+                    : "오프라인 저장이 덜 됐습니다 - " + num(urls.length) + "개 중 " + failed + "개 못 받음" + (headFail ? "(코스 자료 없음)" : "") + ". 와이파이에서 다시 저장해 주세요(저장된 코스로 치지 않음).", 8000);
+                return;
+            }
             btn.textContent = T("✅ 저장됨", "✅ Saved");
             var saved = offlineIds();
             if (saved.indexOf(id) < 0) { saved.push(id); setOfflineIds(saved); }
@@ -5091,6 +5107,7 @@
     }
 
     $("go").addEventListener("click", function () { if (hike.running) askStop(); else start(false); });
+    $("courseNote").addEventListener("click", function (e) { if (!(e.target && e.target.tagName === "A")) this.classList.toggle("open"); });   // 낮은 화면에서 두 줄로 접힌 안내 줄 펼치기 · 접기
     $("endNo").addEventListener("click", function () { $("endSheet").style.display = "none"; stillReset(); });   // 계속하기도 답 - 여기서부터 다시 20분
     $("endYes").addEventListener("click", function () { $("endSheet").style.display = "none"; stopHike(); });
     $("sim").addEventListener("click", function () { start(true); });

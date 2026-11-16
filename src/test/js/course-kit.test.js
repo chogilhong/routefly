@@ -2034,3 +2034,20 @@ eq("favJoinExtra 제목이 없으면 지금 이름의 길", [RF.favJoinExtra("#c
     var park = fs.readFileSync(path.join(__dirname, "../../main/webapp/js/park.js"), "utf8");
     eq("안내도는 다른 자료 코스도 hide 를 보고 메움(gapFill) 전에 뺌", /data\.others = \(data\.others \|\| \[\]\)\.filter\(function \(o\) \{ return !RF\.isHiddenCourse\(noteAll, o\.id\); \}\);\s*\n\s*var extras = RF\.gapFill\(/.test(park), true);
 })();
+
+// 점검 11차 A1(2026-11-16): 거꾸로 · 자른 · 이은 코스의 위험 · 조망 알림 자리 - 운영 /api/course?id=knps-150195-bb702e0d(북한산 우이령길, 낙석주의 3529m)
+(function () {
+    var j = JSON.parse(require("fs").readFileSync(require("path").join(__dirname, "../resources/course/knps-150195-bb702e0d.json"), "utf8"));
+    var c = RF.fromApi("knps-150195-bb702e0d", j), T = c.total, rv = RF.reverseCourse(c);
+    var dz = c.spots.filter(function (s) { return s.kind === "danger"; })[0], real = RF.snap(rv, +dz.lat, +dz.lon, null).d;
+    var hit = function (cc, d) { var s = RF.dangerAhead(cc, d, 120, {}, 0); return s ? s.name : null; };
+    eq("거꾸로 - 낙석주의 120m 앞에서 알림, 지나 234m 에서는 안 울림(예전: 반대)", [hit(rv, real - 100), hit(rv, real + 234 > T ? T : real + 234) === null || RF.dangerAhead(rv, real + 234, 120, {}, real + 234 - 20) === null,
+        Math.abs(rv.spots.filter(function (s) { return s.kind === "danger"; })[0].dist_m - (T - 3529)) < 1], ["낙석주의", true, true]);
+    eq("두 번 뒤집으면 원래 거리", RF.reverseCourse(rv).spots.map(function (s) { return s.dist_m; }), c.spots.map(function (s) { return +s.dist_m; }));
+    var sl = RF.sliceCourse(c, 0.5, 1, "뒤 절반"), base = T * 0.5;
+    var sd = sl.spots.filter(function (s) { return s.kind === "danger"; })[0];
+    eq("자른 코스 - 거리를 당김, 앞 절반 밖 자리는 null(알림에 안 씀)", [Math.abs(sd.dist_m - (3529 - base)) < 15, RF.sliceCourse(c, 0, 0.3, "앞").spots.every(function (s) { return s.dist_m == null; }),
+        hit(RF.sliceCourse(c, 0, 0.3, "앞"), 10)], [true, true, null]);
+    var front = RF.sliceCourse(c, 0, 0.3, "앞"), jn = RF.joinCourses([front, c], "a,b"), off = jn.dist[front.lon.length];   // 뒤 구간 첫 점의 거리
+    eq("이은 코스 - 뒤 구간 자리는 그 구간이 시작하는 거리만큼 밀림", Math.abs(jn.spots.filter(function (s) { return s.kind === "danger" && s.dist_m != null; })[0].dist_m - (off + 3529)) < 1, true);
+})();

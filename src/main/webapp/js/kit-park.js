@@ -459,6 +459,22 @@
     }
 
     /**
+     * 순수 함수 - 위험지역 · 조망점의 길 위 거리(dist_m)를 거꾸로 · 자른 · 이은 코스에 맞게 옮긴 새 배열(2026-11-16 점검 11차 A1).
+     * 예전에는 원래 코스 거리 그대로라 왕복 하산길 · &rev=1 · 이은 ★ 대표 코스에서 낙석주의가 그 자리 234m 지나 울렸음(knps-150195 거꾸로).
+     * f(거리) → 새 거리, 범위 [lo, hi] 밖이면 dist_m 을 null(알림에 안 씀, 자리 아이콘은 그대로).
+     */
+    function shiftSpots(spots, f, lo, hi) {
+        return (spots || []).map(function (s) {
+            var q = {};
+            for (var k in s) if (Object.prototype.hasOwnProperty.call(s, k)) q[k] = s[k];
+            if (s.dist_m == null) return q;
+            var d = f(+s.dist_m);
+            q.dist_m = d >= lo - 1 && d <= hi + 1 ? d : null;
+            return q;
+        });
+    }
+
+    /**
      * 누적 오르막(m) - 남은 오르막을 빨리 구하려고 미리 셉니다. 배치(CourseMath.elevation, course.ascentThresholdM 5m)와 같게
      * 5m 넘게 바뀔 때만 셉니다 - 2026-10-12 PC: 노선 안내도 "오르막 1,012m"(DB) · 따라가기 "남은 오르막 1,191m"(잔 오르내림까지 더함)이 달랐음.
      */
@@ -499,9 +515,10 @@
      * c.rev 는 원래 방향인지(저장한 산행을 이어 갈 때 다시 뒤집으려고).
      */
     function reverseCourse(c) {
-        // 위치표지 · 위험지역 · 공식 정보는 자리(좌표)로 쓰므로 그대로 - 예전에는 빠져 거꾸로 걸으면 가까운 위치표지가 안 나왔음
+        // 위치표지 · 공식 정보는 자리(좌표)로 쓰므로 그대로, 위험지역 · 조망점은 길 위 거리를 뒤집음(shiftSpots - 알림이 그 거리로 울림)
         var T = c.total, r = { id: c.id, rev: !c.rev, markers: [], lon: c.lon.slice().reverse(), lat: c.lat.slice().reverse(),
-                               ele: c.ele.slice().reverse(), total: T, signs: c.signs || [], spots: c.spots || [], info: c.info || null, parts: c.parts };
+                               ele: c.ele.slice().reverse(), total: T, signs: c.signs || [],
+                               spots: shiftSpots(c.spots, function (d) { return T - d; }, 0, T), info: c.info || null, parts: c.parts };
         r.course = {};
         for (var k in c.course) if (Object.prototype.hasOwnProperty.call(c.course, k)) r.course[k] = c.course[k];
         r.course.name = reverseName(c.course.name);
@@ -915,7 +932,7 @@
     }
 
     /**
-     * 순수 함수 - 코스의 r0 ~ r1(길이 비율) 부분만. 이름표 · 갈림길은 그 안의 것만 거리를 당겨서, 위치표지 · 위험지역은 그대로(자리로 씀).
+     * 순수 함수 - 코스의 r0 ~ r1(길이 비율) 부분만. 이름표 · 갈림길 · 위험지역은 그 안의 것만 거리를 당겨서(밖 위험지역은 dist_m null), 위치표지는 그대로(자리로 씀).
      * name 은 새 이름("지리산 · 노고단고개 → 장터목") - 끝 이름표는 endPois 가 이 이름으로.
      */
     function sliceCourse(c, r0, r1, name, id) {
@@ -923,9 +940,10 @@
         // 끝은 d1 에 닿는 첫 점(점 바로 위에서 자르면 그 점까지)
         var i0 = indexAt(c, d0), j1 = indexAt(c, d1), i1 = Math.min(c.lon.length - 1, c.dist[j1] >= d1 - 0.5 ? j1 : j1 + 1), base = c.dist[i0];
         var s = { id: id || c.id, rev: false, markers: [], lon: c.lon.slice(i0, i1 + 1), lat: c.lat.slice(i0, i1 + 1), ele: c.ele.slice(i0, i1 + 1),
-                  signs: c.signs || [], spots: c.spots || [], info: null };
+                  signs: c.signs || [], info: null };
         s.dist = c.dist.slice(i0, i1 + 1).map(function (d) { return d - base; });
         s.total = s.dist[s.dist.length - 1];
+        s.spots = shiftSpots(c.spots, function (d) { return d - base; }, 0, s.total);
         s.pois = (c.pois || []).filter(function (p) { return !p.end && +p.dist_m >= base - 1 && +p.dist_m <= base + s.total + 1; }).map(function (p) {
             var q = {};
             for (var k in p) if (Object.prototype.hasOwnProperty.call(p, k)) q[k] = p[k];
