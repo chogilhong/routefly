@@ -370,6 +370,11 @@ Origin Certificate 는 Cloudflare 만 믿는 인증서라 Cloudflare 를 빼면 
 
 ### 6-3. 검색 등록 - 소유 확인 파일 (2026-10-19)
 
+2026-11-16 Play Console 조직 웹사이트 인증: Search Console 의 routefly.kr(도메인 속성)은 도메인 DNS 의 구글 확인 TXT 기록으로 확인되어 있고,
+URL 접두어 속성 `https://routefly.kr/` 도 그 기록으로 "도메인 이름 공급업체" 방식 자동 확인. Play 개발자 계정(조직)은 이 속성과 연결해 웹사이트를 인증함.
+DNS 의 `google-site-verification=` TXT 기록은 지우지 않습니다 - 지우면 Search Console 과 Play 의 웹사이트 인증이 함께 풀립니다(DNS 업체를 옮길 때도 그대로 옮김).
+Search Console 의 routefly.kr 소유 계정과 Play 계정은 다른 구글 계정입니다(승인 메일 링크가 브라우저 기본 계정으로 열리면 "액세스할 수 없음" - 소유 계정으로 바꿔 승인).
+
 네이버 서치어드바이저 · 구글 서치 콘솔은 `https://routefly.kr` 을 확인합니다. 첫 화면이 `/routefly/` 로 넘어가(302) 메타 태그 방식은 못 믿으므로
 그들이 주는 HTML 확인 파일을 사이트 뿌리에 그대로 둡니다(앱 · 톰캣은 건드리지 않음 - 위 nginx 의 `location ~ ^/(naver|google)…`).
 
