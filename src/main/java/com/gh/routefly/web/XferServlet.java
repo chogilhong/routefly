@@ -41,11 +41,15 @@ public class XferServlet extends HttpServlet {
 
     static final class Slot {
         final long created;
+        String owner;   // 자리를 연 곳(IPv6 /48) - 한 곳이 동시에 PER_KEY_SLOTS 개까지(점검 11차 B8)
         String[] parts;
         int got;
         long chars;
         Slot(long created) { this.created = created; }
     }
+
+    /** 한 곳(IP · IPv6 /48)이 동시에 열어 둘 수 있는 자리 - 15곳이 300자리를 다 채워 10분 동안 아무도 못 옮겼음(점검 11차 B8, 2026-11-16). */
+    static final int PER_KEY_SLOTS = 3;
 
     static final Map<String, Slot> SLOTS = new LinkedHashMap<>();
     /** 자리 만들기 - IP(IPv6 는 /48) 마다 1시간에 20번. */
@@ -87,7 +91,7 @@ public class XferServlet extends HttpServlet {
         }
         boolean ok = false;
         try {
-            JsonObject out = handle(path, in, now);
+            JsonObject out = handle(path, in, now, openKey);
             ok = true;
             Json.write(resp, 200, out, false);
         } catch (IllegalArgumentException | IllegalStateException e) {
@@ -102,6 +106,11 @@ public class XferServlet extends HttpServlet {
 
     /** 처리(시험이 시각을 넣음). */
     static JsonObject handle(String path, JsonObject in, long now) {
+        return handle(path, in, now, null);
+    }
+
+    /** owner - 자리를 여는 곳(같은 곳은 동시에 PER_KEY_SLOTS 개까지, null 이면 세지 않음). */
+    static JsonObject handle(String path, JsonObject in, long now, String owner) {
         String id = str(in, "id");
         if (id == null || !ID.matcher(id).matches()) throw new IllegalArgumentException("코드가 올바르지 않습니다.");
         JsonObject out = new JsonObject();
@@ -112,7 +121,11 @@ public class XferServlet extends HttpServlet {
             switch (path == null ? "" : path) {
                 case "/open" -> {
                     if (SLOTS.size() >= MAX_SLOTS) throw new IllegalStateException("지금은 옮기기가 많습니다. 잠시 뒤 다시 해 주세요.");
-                    Slot old = SLOTS.put(id, new Slot(now));
+                    if (owner != null && SLOTS.entrySet().stream().filter(x -> !x.getKey().equals(id) && owner.equals(x.getValue().owner)).count() >= PER_KEY_SLOTS)
+                        throw new IllegalStateException("한 곳에서 동시에 여는 옮기기가 많습니다. 앞의 것이 끝나거나 10분 뒤 다시 해 주세요.");
+                    Slot ns = new Slot(now);
+                    ns.owner = owner;
+                    Slot old = SLOTS.put(id, ns);
                     if (old != null) totalChars -= old.chars;
                     out.addProperty("ttl", TTL_MS / 1000);
                 }

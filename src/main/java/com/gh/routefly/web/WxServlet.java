@@ -53,7 +53,7 @@ public class WxServlet extends HttpServlet {
             return o;
         });
         if (partial(out)) Json.write(resp, HttpServletResponse.SC_OK, out, false);
-        else Json.ok(req, resp, out);
+        else Json.okPrivate(req, resp, out);   // 내 자리 답(점검 11차 B4)
     }
 
     /** 다 받은 답을 자리(약 1km)마다 5분 기억(2026-11-02 홍TV님 속도 점검: 셋이 다 기억에 있어도 일꾼 넷에 넘겼다 받았음 - 이제 바로 답함). */

@@ -79,7 +79,8 @@ final class Party {
 
     static final class Member {
         final int id;
-        final String token, nick, role;   // role: lead(인솔자 · 공동 인솔자) · hiker
+        final String nick, role;   // role: lead(인솔자 · 공동 인솔자) · hiker
+        String token;   // 명단 자리를 다른 폰이 이어받으면 새로(점검 11차 B9 - Party.rekey)
         final Room room;
         final long joinedAt;
         int bus = 1;           // 몇 호차(단풍철 - 한 인솔자가 차 두세 대, 2026-10-20 홍TV님)
@@ -639,6 +640,19 @@ final class Party {
         return s == null ? "" : s.replace(" ", "");
     }
 
+    /** 명단 자리의 열쇠를 새로 - 예전 열쇠(있던 폰)는 끝남(410), 명단 차례는 그대로. */
+    private void rekey(Room r, Member m, long now) {
+        String old = m.token, nt = token();
+        Map<String, Member> copy = new LinkedHashMap<>(r.members);
+        r.members.clear();
+        for (Map.Entry<String, Member> e : copy.entrySet()) r.members.put(e.getKey().equals(old) ? nt : e.getKey(), e.getValue());
+        byToken.remove(old);
+        m.token = nt;
+        byToken.put(nt, m);
+        endedWhy.put(old, "같은 이름으로 다른 기기에서 다시 들어와 이 기기의 참여는 끝났습니다.");
+        endedAt.put(old, now);
+    }
+
     /** 명단에 있는 사람이면 그 사람으로(아직 핸드폰이 안 들어온 사람만). 없으면 null. */
     private Member claim(Room r, String n, Integer bus, Integer seat, String stop, boolean boardNow, long now) {
         List<Member> same = new ArrayList<>();
@@ -657,6 +671,7 @@ final class Party {
         String st = checkStop(r, stop);
         if (st != null) pick.stop = st;
         pick.listed = false;
+        rekey(r, pick, now);   // 새 열쇠 - "그만 보내기" 한 회원 자리를 같은 별명으로 이어받으면 예전 폰과 같은 열쇠를 받았음(점검 11차 B9)
         if (boardNow) pick.boarded = true;
         if (r.departed) {   // 출발 뒤 명단 이름으로 들어옴 - 다른 폰이 이름만 대고 가로챌 수 있어 인솔자에게 알림(2026-10-28 보안 점검)
             pick.lateAt = now;
@@ -1325,24 +1340,33 @@ final class Party {
      * 그만 보내기 · 나가기 = 위치 제공 동의 철회. 위치정보지원센터 답(2026-10-27): 법 제24조 제4항에 따라 그 회원의 확인자료를 즉시 파기(PartyLog.purge).
      * 인솔자(인솔자 코드로 들어온 사람)가 나가도 같음.
      */
-    synchronized void leave(Member m, long now) {
+    void leave(Member m, long now) {
+        // 확인자료 파기(달 파일 다시 쓰기)는 방 자물쇠 밖에서(점검 11차 B10, 2026-11-16 - SOS 뒤 나가기를 되풀이하면 자물쇠 안에서 파일을 다시 써
+        // 모든 방 · SOS 가 잠깐씩 멈췄음). PartyLog 는 따로 자물쇠를 가짐. 이 요청이 끝나기 전에 지우므로 "즉시 파기" 는 그대로
+        Member gone = leaveLocked(m, now);
+        if (gone != null) memberLog.purge(gone.room.code, gone.id);
+    }
+
+    /** 방 자물쇠 안 - 지울 확인자료가 있으면 그 회원(아니면 null). */
+    private synchronized Member leaveLocked(Member m, long now) {
         if (m.chief()) throw new IllegalStateException("주 인솔자는 \"방 끝내기\" 로 끝냅니다.");   // 보조 인솔자는 언제든 나감
         // 이미 그만 보낸 회원이 또 누름 - 확인자료 파기(파일 다시 쓰기)를 되풀이하지 않음(2026-10-28 보안 점검: 같은 열쇠로 /leave 를 몰아 보내 모든 방이 멈췄음)
         // SOS 가 켜진 채면 그만 보내기로 끔(2026-11-03 홍TV님 점검: 위치 없는 SOS 는 t == 0 이라 건너뛰어 SOS 가 남았음)
-        if ("hiker".equals(m.role) && m.listed && m.t == 0 && m.track.isEmpty() && !m.sos) return;
+        if ("hiker".equals(m.role) && m.listed && m.t == 0 && m.track.isEmpty() && !m.sos) return null;
         if ("hiker".equals(m.role)) {   // 산행 회원 - 위치만 그만 보내고 명단 · 좌석 · 탑승은 남김(인솔자 인원 확인, 2026-10-26 홍TV님 "좌석표에서도 빠지는데")
             m.rostered = true;   // 명단으로 들어오지 않았어도 이제 명단 사람(같은 이름으로 다시 참가하면 그 자리로)
             m.listed = true;
             m.room.trackPts -= m.track.size();
             unSos(m);   // SOS 전 하산 탑승이었으면 되돌림
             m.lat = null; m.lon = null; m.acc = null; m.t = 0; m.sos = false; m.track.clear();
-            purgeLog(m);   // 철회 - 이 회원의 확인자료 즉시 파기
+            Member out = purgeDue(m);   // 철회 - 이 회원의 확인자료 즉시 파기(자물쇠 밖에서)
             save();
-            return;
+            return out;
         }
-        if (m.room.members.remove(m.token) != null) purgeLog(m);   // 철회 - 확인자료 즉시 파기
+        Member out = m.room.members.remove(m.token) != null ? purgeDue(m) : null;   // 철회 - 확인자료 즉시 파기
         byToken.remove(m.token);
         save();
+        return out;
     }
 
     /** 회원 확인자료 한 줄 - 파기할 줄이 생겼다고 표시. */
@@ -1364,10 +1388,11 @@ final class Party {
      * 철회 - 이 회원의 확인자료 파기. 마지막 파기 뒤 새로 쓴 줄이 없으면 파일을 다시 쓰지 않음(2026-11-01 점검: 열쇠가 살아 있어
      * 위치 → 그만 보내기를 되풀이하면 모든 달 파일을 자물쇠 안에서 매번 다시 써 모든 방이 멈췄음). 지울 줄이 있으면 언제나 바로 지움(법 제24조 제4항).
      */
-    private void purgeLog(Member m) {
-        if (!m.logged) return;
+    /** 지울 줄이 있으면 표시를 내리고 그 회원(파기는 부르는 쪽이), 없으면 null. */
+    private Member purgeDue(Member m) {
+        if (!m.logged) return null;
         m.logged = false;
-        memberLog.purge(m.room.code, m.id);
+        return m;
     }
 
     /** 인솔자 - 방 끝내기 · 산행 취소(cancel). */

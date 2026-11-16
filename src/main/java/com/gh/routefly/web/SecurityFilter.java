@@ -97,7 +97,8 @@ public class SecurityFilter extends HttpFilter {
      */
     static boolean limited(String path) {
         return path.startsWith("/api/") || path.startsWith("/s/") || path.startsWith("/m/") || path.startsWith("/en/m/") || path.startsWith("/og/")
-                || path.startsWith("/c/") || path.equals("/stats") || path.startsWith("/check/");
+                || path.startsWith("/c/") || path.equals("/stats") || path.startsWith("/check/")
+                || path.equals("/sitemap.xml");   // 점검 11차 B6 - 코스 2만여 줄을 읽어 만드는 큰 글
     }
 
     /** 순수 함수 - 무거운 요청인가: 공원 전체, 이름 검색(q), 넓은 bbox 목록. */

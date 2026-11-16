@@ -69,8 +69,19 @@ final class Json {
      * gzip 으로 바뀌어 나갈 수 있어 약한 ETag(W/) 입니다.
      */
     static void ok(HttpServletRequest req, HttpServletResponse resp, JsonObject body) throws IOException {
+        if (body.has("unavailable")) { write(resp, HttpServletResponse.SC_OK, body, false); return; }   // 장애 · 한도 답은 남기지 않음(점검 11차 B5)
         String text = body.toString();
         ok(req, resp, text, etag(text));
+    }
+
+    /** 내 자리(lat · lon)로 묻는 답 - 이 브라우저만 1분(공용 캐시에 위치별 답이 남지 않게, 점검 11차 B4 2026-11-16). 장애 답은 남기지 않음. */
+    static final String PRIVATE_CACHE = "private, max-age=60";
+
+    static void okPrivate(HttpServletRequest req, HttpServletResponse resp, JsonObject body) throws IOException {
+        if (body.has("unavailable")) { write(resp, HttpServletResponse.SC_OK, body, false); return; }
+        String text = body.toString(), tag = etag(text);
+        if (notModified(req, resp, tag, PRIVATE_CACHE)) return;
+        send(resp, text);
     }
 
     /** 다 만든 JSON 글과 그 ETag 로 보냄(ResultCache 가 담아 둔 것도 같은 길로). */
@@ -81,8 +92,12 @@ final class Json {
 
     /** ETag · 캐시 머리글을 붙이고, 같은 ETag 로 물었으면 304 로 끝냅니다(true). 본문을 만들기 전에 판정할 수 있는 곳(코스 하나)에서 씁니다. */
     static boolean notModified(HttpServletRequest req, HttpServletResponse resp, String tag) {
+        return notModified(req, resp, tag, "public, max-age=300");
+    }
+
+    static boolean notModified(HttpServletRequest req, HttpServletResponse resp, String tag, String cacheControl) {
         resp.setHeader("ETag", tag);
-        resp.setHeader("Cache-Control", "public, max-age=300");
+        resp.setHeader("Cache-Control", cacheControl);
         if (!matches(req.getHeader("If-None-Match"), tag)) return false;
         resp.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
         return true;

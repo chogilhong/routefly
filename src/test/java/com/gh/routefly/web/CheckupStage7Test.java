@@ -106,6 +106,7 @@ public class CheckupStage7Test {
         for (int i = 0; i < 20; i++) {
             Map<String, Object> out = post(s, "2001:db8:77:" + Integer.toHexString(i) + "::1", "/open", "{\"id\":\"" + String.format("%032x", i + 77_000) + "\"}");
             assertEquals("open " + i, 200, out.get("status"));
+            synchronized (XferServlet.SLOTS) { XferServlet.SLOTS.remove(String.format("%032x", i + 77_000)); }   // 옮기기가 끝남 - 한 곳 동시 3자리(점검 11차 B8)에 걸리지 않게
         }
         assertEquals(429, post(s, "2001:db8:77:ff::1", "/open", "{\"id\":\"" + String.format("%032x", 77_999) + "\"}").get("status"));
         // 실패(틀린 id)는 돌려줌 - 다른 /48 에서 21번 틀려도 막히지 않음

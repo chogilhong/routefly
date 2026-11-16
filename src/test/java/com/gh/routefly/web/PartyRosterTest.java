@@ -106,8 +106,12 @@ public class PartyRosterTest {
         assertTrue(guest.get("listed").getAsBoolean());
         assertTrue("탑승 표시도 그대로", guest.get("boarded").getAsBoolean());
         JsonObject back = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"현장손님\",\"agree\":true}", DEPART + H);
-        assertEquals("다시 참가하면 같은 사람 · 같은 자리", zt, back.get("token").getAsString());
+        assertEquals("다시 참가하면 같은 사람 · 같은 자리", guest.get("id").getAsInt(), back.get("me").getAsInt());
         assertTrue(back.get("boarded").getAsBoolean());
+        // 열쇠는 새로 - 같은 별명을 대는 다른 폰이 예전 폰과 같은 열쇠를 받지 않게(점검 11차 B9), 예전 열쇠는 끝남(410)
+        assertNotEquals(zt, back.get("token").getAsString());
+        try { call(p, "/view", tok(zt), DEPART + H); fail("예전 열쇠"); }
+        catch (Party.Ended e) { assertTrue(e.getMessage().contains("다른 기기")); }
 
         // 회원은 명단을 넣을 수 없음
         try { call(p, "/roster", "{\"token\":\"" + a.get("token").getAsString() + "\",\"text\":\"x\"}", T0); fail(); }

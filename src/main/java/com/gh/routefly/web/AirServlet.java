@@ -228,7 +228,7 @@ public class AirServlet extends HttpServlet {
         JsonObject out = at(at[0], at[1], SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For")));
         // 못 받았을 때는 브라우저 · 서비스워커가 담아 두지 않게(2026-10-15 PC: 뜰 때 목록을 받는 사이 10초에 unavailable) - 다음에 다시 물음
         if (out.has("unavailable")) Json.write(resp, HttpServletResponse.SC_OK, out, false);
-        else Json.ok(req, resp, out);
+        else Json.okPrivate(req, resp, out);   // 내 자리 답(점검 11차 B4)
     }
 
     /** 그 자리 미세먼지(키가 없으면 unavailable) - api/wx 도 씀. ip - 손님 주소(상한을 셈). */

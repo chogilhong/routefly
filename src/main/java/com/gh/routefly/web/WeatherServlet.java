@@ -56,7 +56,7 @@ public class WeatherServlet extends HttpServlet {
             Json.fail(resp, HttpServletResponse.SC_BAD_REQUEST, "lat · lon 은 우리나라 안 좌표입니다.");
             return;
         }
-        Json.ok(req, resp, forecast(at[0], at[1], SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For"))));
+        Json.okPrivate(req, resp, forecast(at[0], at[1], SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For"))));
     }
 
     /** 그 자리 격자의 예보(담아 둔 것이 있으면 그것) - 주말 추천(WeekendServlet)도 씀. ip - 손님 주소(상한을 셈), null 이면 서버 안(주말 추천 - 구역 대표 지점만)이라 세지 않음. */

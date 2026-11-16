@@ -35,6 +35,9 @@ import com.google.gson.JsonParser;
 @WebServlet(urlPatterns = {"/api/course-upload"})
 public class CourseUploadServlet extends HttpServlet {
 
+    /** 이름에 쓸 수 없는 글자 - 꺾쇠 · & · 제어(C0 · C1) · 줄 · 문단 나눔(U+2028 · U+2029). CourseSubmitServlet.clean 과 같은 무리. */
+    static final java.util.regex.Pattern BAD_NAME = java.util.regex.Pattern.compile("[<>&\\p{Cc}\\p{Zl}\\p{Zp}]");
+
     private static final long serialVersionUID = 1L;
     static final int MAX_BODY = 3 * 1024 * 1024, MIN_POINTS = 10, MAX_POINTS = 50_000;
     static final String DEFAULT_DIR = "/opt/routefly/course-inbox";
@@ -170,7 +173,8 @@ public class CourseUploadServlet extends HttpServlet {
     /** 순수 함수 - 받을지(받으면 null, 아니면 까닭). 이름 2~60자 · 종류 hike/walk/bike · 점 10개 이상 · 한국 안 · 300m 이상. */
     static String check(String name, String kind, List<double[]> pts) {
         if (name == null || name.trim().length() < 2 || name.trim().length() > 60) return "코스 이름은 2~60자로 적어 주세요.";
-        if (name.matches(".*[<>&\\p{Cntrl}].*")) return "코스 이름에 쓸 수 없는 글자가 있습니다.";
+        // find 로(점검 11차 B3 - matches 의 . 은 U+2028 · U+0085 를 못 넘어 그 뒤 < 가 통과했음), C1 제어 · 줄 · 문단 나눔 글자도
+        if (BAD_NAME.matcher(name).find()) return "코스 이름에 쓸 수 없는 글자가 있습니다.";
         if (kind == null || !kind.matches("hike|walk|bike")) return "종류가 맞지 않습니다.";
         if (pts.size() < MIN_POINTS) return "기록 점이 너무 적습니다.";
         if (pts.size() > MAX_POINTS) return "기록 점이 너무 많습니다.";

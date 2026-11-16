@@ -111,4 +111,52 @@ public class CheckupRound11Test {
         assertTrue("A12", js.contains("(!parts || parts.length === 1) && get(\"rev\") === \"1\""));
         assertTrue("A15", js.contains("c.track = RF.reverseTrack(c.track);") && js.contains("RF.reverseTrack(o.track)"));
     }
+
+    /** B3 - U+2028 · U+0085 뒤의 꺾쇠도 막음(예전 matches 는 . 이 그 글자를 못 넘어 통과). */
+    @Test
+    public void 이름_검사_줄_나눔_글자() {
+        java.util.List<double[]> none = java.util.List.of();
+        org.junit.Assert.assertEquals("코스 이름에 쓸 수 없는 글자가 있습니다.", CourseUploadServlet.check("a\u2028<img src=x onerror=1>", "hike", none));
+        org.junit.Assert.assertEquals("코스 이름에 쓸 수 없는 글자가 있습니다.", CourseUploadServlet.check("가나\u0085다", "hike", none));
+        org.junit.Assert.assertEquals("기록 점이 너무 적습니다.", CourseUploadServlet.check("북한산 둘레", "hike", none));
+        String c = CourseSubmitServlet.clean("홍\u2029<b>\u0085길");
+        assertFalse(c, c.contains("<") || c.contains("\u2029") || c.contains("\u0085"));
+    }
+
+    /** B8 - 한 곳은 동시에 옮기기 자리 3개까지(다른 곳은 그대로). */
+    @Test
+    public void 옮기기_자리는_한_곳에_셋() {
+        long now = System.currentTimeMillis();
+        java.util.List<String> ids = new java.util.ArrayList<>();
+        try {
+            for (int i = 0; i < 3; i++) { String id = String.format("%032x", 0xB8000L + i); ids.add(id); XferServlet.handle("/open", PartyTest.j("{\"id\":\"" + id + "\"}"), now, "k11"); }
+            String id4 = String.format("%032x", 0xB8010L);
+            try { XferServlet.handle("/open", PartyTest.j("{\"id\":\"" + id4 + "\"}"), now, "k11"); org.junit.Assert.fail("넷째"); }
+            catch (IllegalStateException e) { assertTrue(e.getMessage().contains("한 곳에서")); }
+            String other = String.format("%032x", 0xB8020L);
+            ids.add(other);
+            XferServlet.handle("/open", PartyTest.j("{\"id\":\"" + other + "\"}"), now, "k12");
+            XferServlet.handle("/open", PartyTest.j("{\"id\":\"" + ids.get(0) + "\"}"), now, "k11");   // 같은 자리 다시 열기는 됨
+        } finally {
+            synchronized (XferServlet.SLOTS) { ids.forEach(XferServlet.SLOTS::remove); }
+        }
+    }
+
+    /** B4 · B5 · B6 · B10 - 위치 답 private 1분 · 안전 no-store · 장애 답 no-store · 사이트맵 제한 · 파기는 방 자물쇠 밖. */
+    @Test
+    public void 캐시_머리글_사이트맵_파기() throws Exception {
+        String json = read("src/main/java/com/gh/routefly/web/Json.java");
+        assertTrue("B5", json.contains("if (body.has(\"unavailable\")) { write(resp, HttpServletResponse.SC_OK, body, false); return; }"));
+        assertTrue("B4", json.contains("static final String PRIVATE_CACHE = \"private, max-age=60\";"));
+        for (String f : new String[] {"WxServlet", "AirServlet", "StaysServlet", "ParkingServlet", "MidServlet", "WeatherServlet"})
+            assertTrue(f, read("src/main/java/com/gh/routefly/web/" + f + ".java").contains("Json.okPrivate(req, resp, "));
+        assertTrue("안전은 남기지 않음", read("src/main/java/com/gh/routefly/web/SafetyServlet.java").contains("Json.write(resp, HttpServletResponse.SC_OK, out, false);   // 내 자리"));
+        assertTrue("B6", SecurityFilter.limited("/sitemap.xml"));
+        String sm = read("src/main/java/com/gh/routefly/web/SitemapServlet.java");
+        assertTrue(sm.contains("private synchronized List<String[]> courses(") && sm.contains("if (System.currentTimeMillis() - failedAt < 60_000L) return null;"));
+        String party = read("src/main/java/com/gh/routefly/web/Party.java");
+        String leave = party.substring(party.indexOf("    void leave(Member m, long now) {"), party.indexOf("private synchronized Member leaveLocked("));
+        assertFalse("B10 leave 는 방 자물쇠를 잡지 않음", leave.contains("synchronized"));
+        assertTrue(leave.contains("memberLog.purge(gone.room.code, gone.id);"));
+    }
 }

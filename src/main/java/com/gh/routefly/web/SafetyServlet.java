@@ -98,7 +98,7 @@ public class SafetyServlet extends HttpServlet {
         });
         if (warn != null) out.add("warn", mark(warn, sido));
         out.addProperty("source", "국립중앙의료원 · 산림청 · 기상청");
-        Json.ok(req, resp, out);
+        Json.write(resp, HttpServletResponse.SC_OK, out, false);   // 내 자리 · 10분 비구름 · 특보 - 남기지 않음(점검 11차 B4)
     }
 
     interface Fetch { Object get(); }

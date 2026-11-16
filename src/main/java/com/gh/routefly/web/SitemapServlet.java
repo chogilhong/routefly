@@ -49,17 +49,29 @@ public class SitemapServlet extends HttpServlet {
         List<String[]> courses = courses(peaks);
         if (courses == null) resp.setHeader("Cache-Control", "no-store");   // DB 가 안 되면 코스 없이 - 담아 두지 않음
         resp.setContentType("application/xml");
-        resp.getWriter().print(sitemap(base, names, courses == null ? List.of() : courses));
+        // 만든 글을 코스 목록과 함께 담아 둠(점검 11차 B6 - 요청마다 산 200 · 코스 수천 줄을 새로 이어 붙였음)
+        Object[] pg = page, cs = cached;
+        String xml;
+        if (courses != null && pg != null && cs != null && pg[0] == cs[0] && base.equals(pg[1])) xml = (String) pg[2];
+        else {
+            xml = sitemap(base, names, courses == null ? List.of() : courses);
+            if (courses != null && cs != null) page = new Object[] {cs[0], base, xml};
+        }
+        resp.getWriter().print(xml);
     }
 
     /** 검색에 내는 코스 [코스 ID, 넣은 날 YYYY-MM-DD] - 1시간 담아 둠(2만여 줄을 읽고 산마다 거리를 셈). */
     private static final long COURSES_TTL_MS = 60 * 60 * 1000;
     private static volatile Object[] cached;   // [시각, List<String[]>]
+    private static volatile Object[] page;     // [cached 의 시각(같은 Long), base, 만든 xml]
+    private static volatile long failedAt;     // DB 조회가 실패한 때 - 1분 동안 다시 묻지 않음(점검 11차 B6)
 
+    /** 한 번에 하나만 DB 를 읽음(시간이 지난 순간 여러 요청이 함께 2만여 줄을 읽지 않게, 점검 11차 B6). */
     @SuppressWarnings("unchecked")
-    private List<String[]> courses(JsonArray peaks) {
+    private synchronized List<String[]> courses(JsonArray peaks) {
         Object[] c = cached;
         if (c != null && System.currentTimeMillis() - (Long) c[0] < COURSES_TTL_MS) return (List<String[]>) c[1];
+        if (System.currentTimeMillis() - failedAt < 60_000L) return null;
         JsonObject parks = CoursePageServlet.readParks(getServletContext());
         List<String[]> out = new ArrayList<>();
         try (Connection con = Db.open()) {
@@ -71,9 +83,10 @@ public class SitemapServlet extends HttpServlet {
             }
         } catch (Exception e) {
             log.warn("[SITEMAP] 코스 조회 실패 - {}", e.toString());
+            failedAt = System.currentTimeMillis();
             return null;
         }
-        cached = new Object[] {System.currentTimeMillis(), out};
+        cached = new Object[] {Long.valueOf(System.currentTimeMillis()), out};
         return out;
     }
 

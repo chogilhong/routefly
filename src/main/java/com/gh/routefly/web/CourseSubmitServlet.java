@@ -141,7 +141,7 @@ public class CourseSubmitServlet extends HttpServlet {
 
     /** 순수 함수 - 보낸 사람 이름 · 메모 다듬기: 꺾쇠 · 따옴표 · &amp; · 제어 글자를 빼고 빈칸을 하나로. null 이면 "". */
     static String clean(String s) {
-        return s == null ? "" : s.replaceAll("[<>\"'`&\\p{Cntrl}]", " ").replaceAll("\\s+", " ").trim();
+        return s == null ? "" : s.replaceAll("[<>\"'`&\\p{Cc}\\p{Zl}\\p{Zp}]", " ").replaceAll("\\s+", " ").trim();   // C1 제어 · U+2028 · U+2029 도(점검 11차 B3)
     }
 
     /** 순수 함수 - 다듬은 보낸 사람 이름(비우면 익명, 20자까지) · 메모(200자까지)를 받을지(받으면 null). */

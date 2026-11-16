@@ -64,7 +64,7 @@ public class StaysServlet extends HttpServlet {
             if (out.remove("partial") != null) PARTIAL.put(key, out, now);
             else if (!out.has("unavailable")) CACHE.put(key, out, now);
         }
-        Json.ok(req, resp, out);
+        Json.okPrivate(req, resp, out);   // 내 자리 답(점검 11차 B4)
     }
 
     private static JsonObject fetch(double lat, double lon, String type, boolean pet) {

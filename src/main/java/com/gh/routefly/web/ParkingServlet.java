@@ -77,7 +77,7 @@ public class ParkingServlet extends HttpServlet {
             out.addProperty("radius_km", (int) (r / 1000));
             out.addProperty("source", "전국주차장정보표준데이터");
         }
-        Json.ok(req, resp, out);
+        Json.okPrivate(req, resp, out);   // 내 자리 답(점검 11차 B4)
     }
 
     /** 그 자리 radiusM 안 주차장 수(같은 곳은 하나로, 50곳까지) - 산 페이지 문답(MountainServlet). 파일이 없으면 -1. */

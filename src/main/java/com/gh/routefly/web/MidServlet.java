@@ -73,7 +73,7 @@ public class MidServlet extends HttpServlet {
         }
         JsonObject out = at(at[0], at[1], SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For")));
         if (out.has("unavailable")) Json.write(resp, HttpServletResponse.SC_OK, out, false);
-        else Json.ok(req, resp, out);
+        else Json.okPrivate(req, resp, out);   // 내 자리 답(점검 11차 B4)
     }
 
     /** 그 자리 중기예보(키가 없으면 unavailable) - api/wx 도 씀. ip - 손님 주소(상한을 셈). */
