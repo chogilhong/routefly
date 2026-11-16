@@ -47,6 +47,11 @@ button, select, input[type=text] { font:15px Arial,"Malgun Gothic",sans-serif; }
 .b { min-height:40px; padding:0 10px; border-radius:9px; border:1px solid var(--ln); background:rgba(255,255,255,0.07); color:var(--tx); cursor:pointer; }
 .b:hover { border-color:var(--sky); }
 .b.main { background:var(--sky); color:#062b30; font-weight:bold; border:0; }
+/* 🗺 안내도에서 고르기 - 어두운 바탕에서 보이게(2026-11-16 홍TV님 "색이 안 보여" - 브라우저 기본 파랑이었음), 국립공원은 누르기 쉬운 알약 */
+#guideBox a { color:var(--sky); }
+#guideBox .parks { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+#guideBox .parks a { display:inline-flex; align-items:center; min-height:36px; padding:0 12px; border:1px solid var(--ln); border-radius:999px; background:rgba(56,217,234,0.08); text-decoration:none; font-size:14px; }
+#guideBox .parks a:hover { border-color:var(--sky); }
 .b:disabled { opacity:.45; cursor:default; }
 .tip { font-size:12.5px; color:var(--dim); line-height:1.5; margin:6px 0 0; word-break:keep-all; }
 #list .it { display:flex; align-items:center; gap:8px; padding:8px; border-radius:8px; cursor:pointer; border:1px solid transparent; }

@@ -1106,13 +1106,12 @@
         box.appendChild(form);
         box.appendChild(found);
         var chips = document.createElement("p");
-        chips.className = "tip";
-        chips.appendChild(document.createTextNode("국립공원: "));
-        RF.PARKS.forEach(function (n, i) {
+        chips.className = "tip parks";
+        chips.appendChild(document.createTextNode("국립공원"));
+        RF.PARKS.forEach(function (n) {
             var a = document.createElement("a");
             a.href = guideHref(n);
             a.textContent = n;
-            if (i) chips.appendChild(document.createTextNode(" · "));
             chips.appendChild(a);
         });
         box.appendChild(chips);
