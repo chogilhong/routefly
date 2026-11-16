@@ -38,6 +38,7 @@
 | 자세한 설명(4000자) | store-onestore.md "자세한 소개" 그대로 | |
 | 아이콘 | 512×512 png - `src/main/webapp/img/icon-512.png` | |
 | 그래픽 이미지(Play 만) | 1024×500 png - `docs/store/play-feature-1024x500.png`(2026-11-17, img/og.jpg 를 가로 1024 로 줄이고 위아래 여백 19px 씩 자름) | |
+| AI 애셋 선언 | "AI 로 생성 또는 수정" - 앱 아이콘 · 그래픽 이미지(로고는 Claude 가 만듦, 2026-11-17 홍TV님). 화면 사진은 실제 화면이라 라벨 없음 | |
 | 휴대전화 스크린샷 | 2~8장, 원스토어 화면 사진(9:16) 그대로 쓸 수 있음 | |
 | 포그라운드 서비스 권한(Play 만, 화면에 나오면) | 위치(FOREGROUND_SERVICE_LOCATION): 따라가기 · 산악회 방을 켠 동안 화면이 꺼져도 코스 이탈 안내 · 인솔자에게 위치. 알림창에 "따라가는 중" · "산악회 방". 사용자가 시작하고 끝냄. 동영상 링크를 요구하면 화면 녹화(따라가기 시작 → 알림창 → 화면 끔 → 끝내기)를 올림 | store-onestore.md 권한 설명. ACCESS_BACKGROUND_LOCATION 은 없음 |
 | 정확한 알람 권한(화면에 나오면) | SCHEDULE_EXACT_ALARM: 사용자가 정한 안부 · 약 알림을 그 시각에(@capacitor/local-notifications) | |
