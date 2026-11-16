@@ -185,8 +185,8 @@ final class Steep {
                         miss(cur, names.get(cur), las, los, named);
                     }
                 }
-                for (String id : part) {   // 점이 없는 코스 - 다시 묻지 않게
-                    CACHE.putIfAbsent(id, new double[] {Double.NaN, now, Double.NaN, Double.NaN});
+                for (String id : part) {   // 점이 없는 코스 - 다시 묻지 않게(시각도 새로 - 점검 11차 C8: putIfAbsent 라 하루 지난 뒤로는 요청마다 다시 물었음)
+                    CACHE.compute(id, (k, v) -> v == null || v[1] < now ? new double[] {Double.NaN, now, Double.NaN, Double.NaN} : v);
                     MISS.putIfAbsent(id, NONE);
                 }
             } catch (Exception e) {

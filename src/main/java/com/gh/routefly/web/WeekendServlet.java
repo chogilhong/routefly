@@ -116,9 +116,16 @@ public class WeekendServlet extends HttpServlet {
         long now = System.currentTimeMillis();
         JsonObject out = refresh ? null : CACHE.get(ck, now);
         if (out == null && key != null) {
-            out = build(key, dates, peaks());
-            if (out.getAsJsonArray("regions").size() > 0) { CACHE.put(ck, out, now); toFile(ck, out, now); }
-            else if (refresh) out = CACHE.get(ck, now);   // 새로 못 만들면 담아 둔 것 그대로
+            // 같은 주말을 지금 만드는 중이면 그 답을 기다림(점검 11차 C6 - 일 · 월 0시 열쇠가 바뀐 뒤 함께 온 요청이 저마다 만들었음)
+            final String k = key;
+            out = Flight.once("weekend|" + ck + (refresh ? "|r" : ""), () -> {
+                JsonObject again = refresh ? null : CACHE.get(ck, System.currentTimeMillis());
+                if (again != null) return again;
+                JsonObject b = build(k, dates, peaks());
+                if (b.getAsJsonArray("regions").size() > 0) { CACHE.put(ck, b, now); toFile(ck, b, now); }
+                else if (refresh) { JsonObject old = CACHE.get(ck, now); if (old != null) return old; }   // 새로 못 만들면 담아 둔 것 그대로
+                return b;
+            });
         }
         return out;
     }
@@ -206,6 +213,13 @@ public class WeekendServlet extends HttpServlet {
         dates.forEach(d -> ds.add(d.toString()));
         out.add("dates", ds);
         JsonArray regions = new JsonArray();
+        // 산마다 구역은 한 번만(점검 11차 C6 - 구역 10 × 산 100 번 측정소 672곳 거리를 셌음)
+        List<String[]> peakLand = new java.util.ArrayList<>();
+        for (JsonElement e : peaks) {
+            JsonObject p = e.getAsJsonObject();
+            if (!p.has("lat") || !p.has("lon")) continue;
+            peakLand.add(new String[] {p.has("id") ? p.get("id").getAsString() : p.get("name").getAsString(), landOfPeak(p.get("lat").getAsDouble(), p.get("lon").getAsDouble())});
+        }
         for (String[] l : MidServlet.LAND) {
             Object[] city = null;
             for (Object[] c : MidServlet.CITIES) if (c[4].equals(l[0])) { city = c; break; }
@@ -227,11 +241,7 @@ public class WeekendServlet extends HttpServlet {
             r.addProperty("name", l[1]);
             r.add("days", days);
             JsonArray ps = new JsonArray();
-            for (JsonElement e : peaks) {
-                JsonObject p = e.getAsJsonObject();
-                if (!p.has("lat") || !p.has("lon")) continue;
-                if (l[0].equals(landOfPeak(p.get("lat").getAsDouble(), p.get("lon").getAsDouble()))) ps.add(p.has("id") ? p.get("id").getAsString() : p.get("name").getAsString());
-            }
+            for (String[] pl : peakLand) if (l[0].equals(pl[1])) ps.add(pl[0]);
             r.add("peaks", ps);
             regions.add(r);
         }

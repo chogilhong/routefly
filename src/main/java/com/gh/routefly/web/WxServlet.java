@@ -127,7 +127,11 @@ public class WxServlet extends HttpServlet {
 
     /** 하나라도 못 받았나. */
     static boolean partial(JsonObject out) {
-        for (String k : new String[] {"weather", "mid", "air"}) if (!out.has(k) || out.getAsJsonObject(k).has("unavailable")) return true;
+        for (String k : new String[] {"weather", "mid", "air"}) {
+            if (!out.has(k)) return true;
+            JsonObject o = out.getAsJsonObject(k);
+            if (o.has("unavailable") && !o.has("settled")) return true;   // 정해진 "없음"(측정소가 멀거나 키 없음)은 다 받은 것(점검 11차 C7)
+        }
         return false;
     }
 

@@ -234,7 +234,7 @@ public class AirServlet extends HttpServlet {
     /** 그 자리 미세먼지(키가 없으면 unavailable) - api/wx 도 씀. ip - 손님 주소(상한을 셈). */
     static JsonObject at(double lat, double lon, String ip) {
         String key = key();
-        return key == null ? unavailable() : answer(key, lat, lon, ip);
+        return key == null ? settled(unavailable()) : answer(key, lat, lon, ip);
     }
 
     private static JsonObject answer(String key, double lat, double lon, String ip) {
@@ -283,7 +283,14 @@ public class AirServlet extends HttpServlet {
             withForecast(out, region, fc);
             return out;
         }
-        return withForecast(unavailable(), region, fc);
+        // 40km 안에 측정소가 없으면 다시 물어도 같음 - 실패가 아니라 정해진 답(점검 11차 C7, api/wx 가 5분 담기를 못 했음)
+        return withForecast(near.isEmpty() ? settled(unavailable()) : unavailable(), region, fc);
+    }
+
+    /** 다시 물어도 같은 "없음"(키가 없음 · 가까운 측정소 없음) 표시 - WxServlet.partial 이 실패로 세지 않음. */
+    private static JsonObject settled(JsonObject o) {
+        o.addProperty("settled", true);
+        return o;
     }
 
     /** 그 시도의 측정소별 지금 값(기억에 없으면 한 번 물음, 같은 시도를 묻는 중이면 그 답을 기다림). 못 받으면 null. */

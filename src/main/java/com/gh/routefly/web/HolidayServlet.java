@@ -29,7 +29,8 @@ public class HolidayServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
 
     static final String DEFAULT_URL = "https://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getRestDeInfo";
-    private static final OpenApi.Cache<JsonObject> CACHE = new OpenApi.Cache<>(20, 12L * 60 * 60 * 1000);
+    // 공휴일은 해마다 미리 정해지고 바뀌는 일은 드묾(대체 · 임시 공휴일도 며칠 앞) - 하루 담음(점검 11차 C3: 12시간 · 해마다 12번씩 하루 최대 ~96번)
+    private static final OpenApi.Cache<JsonObject> CACHE = new OpenApi.Cache<>(20, 24L * 60 * 60 * 1000);
     /** 못 받았을 때 10분 동안 다시 묻지 않음(2026-10-18 PC: 활용 신청 전에는 칸을 열 때마다 12번 · WARN 12줄). */
     private static final OpenApi.Cache<JsonObject> FAILED = new OpenApi.Cache<>(20, 10L * 60 * 1000);
 
@@ -49,8 +50,14 @@ public class HolidayServlet extends HttpServlet {
         JsonObject out = CACHE.get(String.valueOf(y), now);
         if (out == null) out = FAILED.get(String.valueOf(y), now);
         if (out == null) {
-            out = fetch(y);
-            (out.has("unavailable") ? FAILED : CACHE).put(String.valueOf(y), out, now);
+            // 같은 해를 지금 묻는 중이면 그 답을 기다림(점검 11차 C3 - 처음 몇 사람이 함께 열면 저마다 12번씩 물었음)
+            out = Flight.once("holiday|" + y, () -> {
+                JsonObject again = CACHE.get(String.valueOf(y), System.currentTimeMillis());
+                if (again != null) return again;
+                JsonObject got = fetch(y);
+                (got.has("unavailable") ? FAILED : CACHE).put(String.valueOf(y), got, now);
+                return got;
+            });
         }
         return out;
     }

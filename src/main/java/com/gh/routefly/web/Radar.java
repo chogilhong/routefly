@@ -230,6 +230,17 @@ final class Radar {
         return !e.isEmpty() && e.size() >= ((Map<?, ?>) l[1]).size() ? new Object[] {tm, e, l[2], Boolean.TRUE} : new Object[] {l[0], l[1], l[2], Boolean.TRUE};
     }
 
+    /** 빈 답이 온 시각(아직 안 나옴) → 그때 - EMPTY_RETRY_MS 동안 그 시각은 다시 묻지 않음(점검 11차 C5: 늦게 나오는 동안 1분마다 RADAR · RADAR-20 을 물었음). */
+    static final long EMPTY_RETRY_MS = 3 * 60_000L;
+    static final Map<String, Long> EMPTY_AT = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** 이 시각이 최근 EMPTY_RETRY_MS 안에 빈 답이었나. 오래된 표시는 지움. */
+    static boolean emptyRecently(String tm, long now) {
+        EMPTY_AT.values().removeIf(t -> now - t > 30 * 60_000L);
+        Long at = EMPTY_AT.get(tm);
+        return at != null && now - at < EMPTY_RETRY_MS;
+    }
+
     /**
      * 한 번 미리 받기 - 새 시각의 지점값만(10분 전 → 없으면 20분 전, 탭 이름을 따로 두어 한쪽 실패 쉼이 다른 쪽을 막지 않게).
      * 실패하면 다음 차례(1분 뒤)에, 옛 것은 STALE_MIN 까지 그대로.
@@ -245,6 +256,7 @@ final class Radar {
                 Object[] l = latest;
                 boolean again = l != null && tm.equals(l[0]) && again(l, System.currentTimeMillis());
                 if (l != null && tm.compareTo((String) l[0]) <= 0 && !again) return;
+                if (!again && emptyRecently(tm, System.currentTimeMillis())) continue;   // 아직 안 나온 시각 - 3분 뒤에 다시(점검 11차 C5)
                 Map<Integer, Double> e = echoes(OpenApi.get(BASE + "cgi-bin/url/nph-rdr_cmp_aws_all_pt_data?tm=" + tm + k, back == 10 ? "RADAR" : "RADAR-20", TIMEOUT));
                 if (again) {   // 같은 시각을 한 번 더 - 더 많이 채워진 쪽을 씀(이번 것이 적어도 다시 묻지 않음)
                     latest = merged(l, tm, e);
@@ -254,6 +266,7 @@ final class Radar {
                     latest = new Object[] {tm, e, System.currentTimeMillis(), Boolean.FALSE};
                     return;
                 }
+                EMPTY_AT.put(tm, System.currentTimeMillis());
             }
         } catch (RuntimeException ex) {
             // 다음 차례에(스레드가 멈추지 않게)

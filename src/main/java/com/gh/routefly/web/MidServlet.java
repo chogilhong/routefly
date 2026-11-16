@@ -41,7 +41,10 @@ public class MidServlet extends HttpServlet {
 
     static final String LAND_URL = "https://apis.data.go.kr/1360000/MidFcstInfoService/getMidLandFcst";
     static final String TA_URL = "https://apis.data.go.kr/1360000/MidFcstInfoService/getMidTa";
-    private static final OpenApi.Cache<JsonObject> CACHE = new OpenApi.Cache<>(200, 6L * 60 * 60 * 1000);
+    // 열쇠에 발표 시각이 들어 있고 발표는 12시간마다 - 13시간 담음(점검 11차 C1, 2026-11-16: 6시간이라 같은 발표를 두 번 물었음)
+    private static final OpenApi.Cache<JsonObject> CACHE = new OpenApi.Cache<>(200, 13L * 60 * 60 * 1000);
+    /** 육상예보 글은 구역 · 발표마다, 기온 글은 지점 · 발표마다 따로 - 같은 구역의 기온 지점마다 육상예보를 또 물었음(21번 → 10번, 점검 11차 C1). */
+    private static final OpenApi.Cache<String> LAND_TEXT = new OpenApi.Cache<>(40, 13L * 60 * 60 * 1000), TA_TEXT = new OpenApi.Cache<>(60, 13L * 60 * 60 * 1000);
     /** 받았는데 비어 있던 발표(막 발표돼 아직 안 채워짐)는 10분 다시 묻지 않음(2026-11-02 홍TV님 점검: 그동안 손님마다 그 발표를 다시 물었음). */
     private static final OpenApi.Cache<Boolean> EMPTY = new OpenApi.Cache<>(200, 10L * 60 * 1000);
     /** 기억에 없어 바깥에 새로 묻는 횟수 상한 - 주소마다 한 시간 60번, 하루 2,000번(설정 quota.mid.ip · .day, 2026-11-01 점검: 못 받은 답은 기억하지 않아 매번 다시 물었음). */
@@ -104,7 +107,7 @@ public class MidServlet extends HttpServlet {
             JsonObject got = Flight.once("mid|" + ck, () -> {
                 JsonObject again = CACHE.get(ck, System.currentTimeMillis());
                 if (again != null) return again;
-                String a = OpenApi.get(url(LAND_URL, key, land, tm), "MID"), b = a == null ? null : OpenApi.get(url(TA_URL, key, (String) city[0], tm), "MID");
+                String a = text(LAND_TEXT, land + "|" + tm, url(LAND_URL, key, land, tm)), b = a == null ? null : text(TA_TEXT, city[0] + "|" + tm, url(TA_URL, key, (String) city[0], tm));
                 JsonObject days = a == null || b == null ? null : days(a, b, tm);
                 if (days == null || days.size() == 0) {
                     if (a != null && items(a) == null) OpenApi.warn("MID", a);
@@ -124,6 +127,16 @@ public class MidServlet extends HttpServlet {
             if (got != null) return got;
         }
         return unavailable();
+    }
+
+    /** 담아 둔 글, 없으면 받아서(읽히는 답만 담음). 못 받으면 null. */
+    private static String text(OpenApi.Cache<String> cache, String k, String u) {
+        long now = System.currentTimeMillis();
+        String t = cache.get(k, now);
+        if (t != null) return t;
+        t = OpenApi.get(u, "MID");
+        if (t != null && items(t) != null) cache.put(k, t, now);
+        return t;
     }
 
     private static JsonObject unavailable() {

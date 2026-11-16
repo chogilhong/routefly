@@ -31,7 +31,8 @@ public class TideServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
 
     static final String DEFAULT_URL = "https://apis.data.go.kr/1192136/tideFcstHghLw/GetTideFcstHghLwApiService";
-    private static final OpenApi.Cache<JsonObject> CACHE = new OpenApi.Cache<>(300, 6L * 60 * 60 * 1000);
+    // 그 날짜 물때 예측은 바뀌지 않음(열쇠에 날짜) - 3일 담음(점검 11차 C4: 6시간이라 지점 · 날마다 하루 4번 물었음)
+    private static final OpenApi.Cache<JsonObject> CACHE = new OpenApi.Cache<>(300, 72L * 60 * 60 * 1000);
     private static final OpenApi.Cache<JsonObject> FAILED = new OpenApi.Cache<>(300, 10L * 60 * 1000);
     /** 기억에 없어 바깥에 새로 묻는 횟수 상한 - 주소마다 한 시간 60번, 하루 2,000번(설정 quota.tide.ip · .day, 2026-11-01 점검: 아무 지점 번호나 넣어 하루 한도를 쓸 수 있었음). */
     private static final OutQuota QUOTA = OutQuota.of("tide", 60, 2000);

@@ -1117,8 +1117,10 @@
         return !!at && Date.now() - at < 24 * 3600 * 1000;
     }
 
+    var SAVE_EVERY_MS = 10000;   // 걷는 중 저장 간격(onFix - 점검 11차 C11)
     function save() {
         if (hike.sim) return;
+        hike.savedAt = Date.now();
         try { localStorage.setItem(saveKey(), JSON.stringify({ start: hike.start, d: hike.d, walked: hike.walked, d0: hike.d0, dMax: hike.dMax,
                                                         base: hike.base, rev: !!c.rev, segT0: hike.segT0, said: ruleSaid, t: Date.now() }));
               localStorage.setItem(ACTIVE_KEY, c.id); } catch (e) { /* 저장 못 해도 산행은 계속 */ }
@@ -2826,7 +2828,7 @@
     // 누를 때 새로 고침(저절로 고치지 않음). 걷는 중에는 띠도 띄우지 않고 끝낸 뒤에.
     RF.notifyDeploy(["hike.html", "js/hike.js", "js/kit-hike.js", "css/course-kit.css"], function () { return !hike.running; });
     document.addEventListener("visibilitychange", function () {
-        if (document.visibilityState === "hidden" && hike.running) flushTrack();   // 앱이 닫히기 전에 걸은 길을 남김
+        if (document.visibilityState === "hidden" && hike.running) { flushTrack(); save(); }   // 앱이 닫히기 전에 걸은 길 · 자리를 남김(save 는 10초마다라 - 점검 11차 C11)
         if (compass.on) compassListen(document.visibilityState === "visible");   // 안 보이는 동안 나침반 센서를 놓음
         if (document.visibilityState === "visible" && hike.running && !hike.sim && !BG) keepAwake();   // 앱은 화면을 켜 두지 않음(위 start)
         if (document.visibilityState === "visible" && hike.running && hike.follow && hike.fix && map) map.jumpTo({ center: [hike.fix.lon, hike.fix.lat], zoom: Math.max(map.getZoom(), 15) });   // 꺼진 동안 안 따라간 것(followMe)
@@ -3042,7 +3044,8 @@
         }
         checkJunction();
         voiceProgress();
-        save();
+        // 위치마다 localStorage 두 줄을 쓰던 것을 10초에 한 번(점검 11차 C11 - 배터리), 도착하면 바로
+        if (hike.arrived || Date.now() - (hike.savedAt || 0) >= SAVE_EVERY_MS) save();
         render();
     }
 

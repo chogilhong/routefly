@@ -41,7 +41,11 @@ public class SafetyServlet extends HttpServlet {
     static final String UV_URL = "https://apis.data.go.kr/1360000/LivingWthrIdxServiceV5/getUVIdxV5";
     static final String WARN_URL = "https://apis.data.go.kr/1360000/WthrWrnInfoService/getPwnStatus";
     private static final OpenApi.Cache<Object> CACHE = new OpenApi.Cache<>(400, 60L * 60 * 1000);
-    private static final OpenApi.Cache<Object> SHORT = new OpenApi.Cache<>(50, 10L * 60 * 1000);   // 특보 · 못 받은 것
+    private static final OpenApi.Cache<Object> SHORT = new OpenApi.Cache<>(50, 10L * 60 * 1000);   // 특보
+    /** 못 받은 것 표시는 따로(점검 11차 C2 - 응급실 장애 때 좌표마다 표시가 특보를 밀어내 특보를 더 자주 물었음). */
+    private static final OpenApi.Cache<Object> FAIL = new OpenApi.Cache<>(400, 10L * 60 * 1000);
+    /** 응급실 목록(병원 자리 - 하루에 거의 안 바뀜)은 24시간, 자외선(하루 두 번 06 · 18시 발표, 열쇠에 발표 시각)은 13시간(점검 11차 C2 - 둘 다 1시간이었음). */
+    private static final OpenApi.Cache<Object> ER_CACHE = new OpenApi.Cache<>(400, 24L * 60 * 60 * 1000), UV_CACHE = new OpenApi.Cache<>(40, 13L * 60 * 60 * 1000);
     /**
      * 응급실(좌표마다 다른 칸)을 바깥에 새로 묻는 횟수 상한 - 주소마다 한 시간 60번, 하루 3,000번(설정 quota.safety.ip · .day, 2026-11-01 점검:
      * 좌표를 0.01도씩 바꿔 가며 부르면 매번 바깥에 물어 하루 한도를 쓸 수 있었음). 산불 · 특보는 전국 하나, 자외선은 시도마다라 세지 않음.
@@ -66,8 +70,8 @@ public class SafetyServlet extends HttpServlet {
 
         String erKey = "er@" + String.format(Locale.ROOT, "%.2f,%.2f", at[0], at[1]);
         String ip = SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For"));
-        boolean erOk = CACHE.get(erKey, System.currentTimeMillis()) != null || QUOTA.allow(ip, System.currentTimeMillis());   // 상한이면 응급실 칸만 빠짐(기억하지 않음)
-        JsonArray er = !erOk ? null : (JsonArray) cached(erKey, CACHE, () -> {
+        boolean erOk = ER_CACHE.get(erKey, System.currentTimeMillis()) != null || QUOTA.allow(ip, System.currentTimeMillis());   // 상한이면 응급실 칸만 빠짐(기억하지 않음)
+        JsonArray er = !erOk ? null : (JsonArray) cached(erKey, ER_CACHE, () -> {
             String t = OpenApi.get(ER_URL + "?serviceKey=" + k + String.format(Locale.ROOT, "&WGS84_LON=%.5f&WGS84_LAT=%.5f", at[1], at[0]) + "&pageNo=1&numOfRows=" + ER_ASK, "SAFETY-ER");   // 치과병원을 빼고도 ER_MAX 곳 남게 넉넉히(2026-10-18 PC: 가야산 2곳뿐)
             return t == null ? null : er(t);
         });
@@ -85,7 +89,7 @@ public class SafetyServlet extends HttpServlet {
         if (f != null && f.has("code")) {
             String area = f.get("code").getAsString() + "00000000";
             String[] tm = uvTime(LocalDateTime.now(WeatherServlet.KST));
-            JsonObject uv = (JsonObject) cached("uv@" + area + tm[0], CACHE, () -> {
+            JsonObject uv = (JsonObject) cached("uv@" + area + tm[0], UV_CACHE, () -> {
                 String t = OpenApi.get(UV_URL + "?serviceKey=" + k + "&pageNo=1&numOfRows=10&dataType=JSON&areaNo=" + area + "&time=" + tm[0], "SAFETY-UV");
                 return t == null ? null : uv(t);
             });
@@ -103,18 +107,18 @@ public class SafetyServlet extends HttpServlet {
 
     interface Fetch { Object get(); }
 
-    /** 받은 것은 cache 에, 못 받은 것은 10분(SHORT - 같은 실패를 되풀이하지 않게) 기억. 못 받았으면 null. 같은 열쇠는 한 번만 물음(Flight). */
+    /** 받은 것은 cache 에, 못 받은 것은 10분(FAIL - 같은 실패를 되풀이하지 않게) 기억. 못 받았으면 null. 같은 열쇠는 한 번만 물음(Flight). */
     static Object cached(String key, OpenApi.Cache<Object> cache, Fetch f) {
         long now = System.currentTimeMillis();
         Object hit = cache.get(key, now);
         if (hit != null) return hit;
-        if (SHORT.get("x@" + key, now) != null) return null;
+        if (FAIL.get("x@" + key, now) != null) return null;
         return Flight.once("safety|" + key, () -> {
             Object v = cache.get(key, System.currentTimeMillis());   // 앞 사람이 막 넣었을 수 있음
             if (v == null) {
                 v = f.get();
                 if (v != null) cache.put(key, v, now);
-                else SHORT.put("x@" + key, Boolean.TRUE, now);
+                else FAIL.put("x@" + key, Boolean.TRUE, now);
             }
             return v;
         });

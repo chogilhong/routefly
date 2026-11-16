@@ -307,6 +307,15 @@
     }
 
     // ---- 그리기(목록 · 지도 · 요약 · 그래프)
+    /** 처음 · 끝 · 표시 · 그래프 손가락 자리 점만 다시 - 그래프 위에서 손가락을 움직일 때는 이것만(점검 11차 C10: 모든 길 통계 · 선을 다시 만들었음). */
+    function drawPts() {
+        if (!mapOk) return;
+        var c = cur(), keep = c ? (preview ? preview.keep : c.track) : null, fs = [];
+        if (keep && keep.length) { fs.push(point(keep[0], "s")); fs.push(point(keep[keep.length - 1], "e")); }
+        if (preview && preview.mark) fs.push(point(preview.mark, "m"));
+        if (hoverAt) fs.push(point(hoverAt, "h"));
+        map.getSource("pts").setData({ type: "FeatureCollection", features: fs });
+    }
     function draw(refit) {
         var box = $("list");
         box.textContent = "";
@@ -341,11 +350,7 @@
             var keep = c ? (preview ? preview.keep : c.track) : null;
             map.getSource("sel").setData(keep && keep.length > 1 ? line(keep) : EMPTY);
             map.getSource("cut").setData(preview && preview.cut ? { type: "FeatureCollection", features: preview.cut.filter(function (t) { return t.length > 1; }).map(function (t) { return line(t); }) } : EMPTY);
-            var fs = [];
-            if (keep && keep.length) { fs.push(point(keep[0], "s")); fs.push(point(keep[keep.length - 1], "e")); }
-            if (preview && preview.mark) fs.push(point(preview.mark, "m"));
-            if (hoverAt) fs.push(point(hoverAt, "h"));
-            map.getSource("pts").setData({ type: "FeatureCollection", features: fs });
+            drawPts();
             map.getSource("verts").setData(preview && preview.pts && c ? verts(c.track) : EMPTY);
             if (refit && c) fit(c.track);
         }
@@ -400,13 +405,13 @@
         var d = Math.max(0, Math.min(1, (x - L) / (r.width - L - R))) * profPts.total, k = 0;
         while (k < profPts.cum.length - 1 && profPts.cum[k] < d) k++;
         hoverAt = c.track[k];
-        draw(false);
+        drawPts();
         var p = c.track[k];
         $("profTip").textContent = km(profPts.cum[k]) + " km" + (p[3] != null ? " · 높이 " + Math.round(p[3]) + " m" : "") + (p[2] != null ? " · " + new Date(p[2]).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }) : "");
     }
     $("prof").addEventListener("mousemove", profHover);
     $("prof").addEventListener("touchmove", function (e) { profHover(e); e.preventDefault(); }, { passive: false });
-    $("prof").addEventListener("mouseleave", function () { hoverAt = null; draw(false); });
+    $("prof").addEventListener("mouseleave", function () { hoverAt = null; drawPts(); });
 
     function pick(i, refit) {
         if (preview) closeTool();
@@ -559,7 +564,8 @@
                 var r = RF.cutMiddle(c.track, +m0.value, +m1.value), joinIt = box.querySelector(".mj").checked;
                 box.querySelector(".m0v").textContent = km(+m0.value) + " km";
                 box.querySelector(".m1v").textContent = km(+m1.value) + " km";
-                var midTrack = c.track.filter(function (p, i) { return r.a.indexOf(p) < 0 && r.b.indexOf(p) < 0; });
+                // 앞 · 뒤 토막은 차례대로 이어진 머리 · 꼬리(cutMiddle) - 가운데는 그 사이 조각(점검 11차 C9: indexOf 로 걸러 점 수의 제곱, 5만 점에 0.5초)
+                var midTrack = c.track.slice(r.a.length, c.track.length - r.b.length);
                 var keep = joinIt ? r.a.concat(r.b) : r.a.length ? r.a : r.b;
                 box.querySelector(".mkept").textContent = (joinIt ? "남는 길 " + km(RF.trackStats(keep).dist) + " km" : "앞 " + km(RF.trackStats(r.a).dist) + " km · 뒤 " + km(RF.trackStats(r.b).dist) + " km");
                 preview = { keep: keep, cut: [midTrack.length ? [r.a[r.a.length - 1] || midTrack[0]].concat(midTrack, [r.b[0] || midTrack[midTrack.length - 1]]) : []].concat(joinIt ? [] : [r.b]),

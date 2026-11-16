@@ -159,4 +159,35 @@ public class CheckupRound11Test {
         assertFalse("B10 leave 는 방 자물쇠를 잡지 않음", leave.contains("synchronized"));
         assertTrue(leave.contains("memberLog.purge(gone.room.code, gone.id);"));
     }
+
+    /** C1 ~ C11 - 호출 · 속도. */
+    @Test
+    public void 호출_줄이기() throws Exception {
+        String mid = read("src/main/java/com/gh/routefly/web/MidServlet.java");
+        assertTrue("C1 육상 · 기온 글 따로, 13시간", mid.contains("text(LAND_TEXT, land + \"|\" + tm,") && mid.contains("new OpenApi.Cache<>(200, 13L * 60 * 60 * 1000)"));
+        String sf = read("src/main/java/com/gh/routefly/web/SafetyServlet.java");
+        assertTrue("C2 응급실 24시간 · 자외선 13시간 · 실패 표시 따로", sf.contains("cached(erKey, ER_CACHE,") && sf.contains("UV_CACHE, () ->") && sf.contains("FAIL.put(\"x@\" + key"));
+        String hd = read("src/main/java/com/gh/routefly/web/HolidayServlet.java");
+        assertTrue("C3", hd.contains("Flight.once(\"holiday|\" + y,") && hd.contains("24L * 60 * 60 * 1000"));
+        assertTrue("C4", read("src/main/java/com/gh/routefly/web/TideServlet.java").contains("new OpenApi.Cache<>(300, 72L * 60 * 60 * 1000)"));
+        long t = 1_000_000L;
+        Radar.EMPTY_AT.clear();
+        Radar.EMPTY_AT.put("202611161230", t);
+        assertTrue("C5 빈 시각은 3분 쉼", Radar.emptyRecently("202611161230", t + 60_000));
+        assertFalse(Radar.emptyRecently("202611161230", t + Radar.EMPTY_RETRY_MS + 1));
+        assertFalse(Radar.emptyRecently("202611161240", t));
+        Radar.EMPTY_AT.clear();
+        String wk = read("src/main/java/com/gh/routefly/web/WeekendServlet.java");
+        assertTrue("C6", wk.contains("Flight.once(\"weekend|\" + ck") && wk.contains("for (String[] pl : peakLand) if (l[0].equals(pl[1])) ps.add(pl[0]);"));
+        com.google.gson.JsonObject o = com.google.gson.JsonParser.parseString("{\"weather\":{\"success\":true},\"mid\":{\"success\":true},\"air\":{\"unavailable\":true,\"settled\":true}}").getAsJsonObject();
+        assertFalse("C7 측정소가 먼 곳은 다 받은 것", WxServlet.partial(o));
+        o.getAsJsonObject("air").remove("settled");
+        assertTrue("C7 실패는 그대로 부분", WxServlet.partial(o));
+        assertTrue("C8", read("src/main/java/com/gh/routefly/web/Steep.java").contains("CACHE.compute(id, (k, v) -> v == null || v[1] < now ?"));
+        String st = read("src/main/webapp/js/studio.js");
+        assertTrue("C9", st.contains("var midTrack = c.track.slice(r.a.length, c.track.length - r.b.length);"));
+        assertTrue("C10", st.contains("hoverAt = c.track[k];\n        drawPts();"));
+        String hk = read("src/main/webapp/js/hike.js");
+        assertTrue("C11", hk.contains("if (hike.arrived || Date.now() - (hike.savedAt || 0) >= SAVE_EVERY_MS) save();") && hk.contains("{ flushTrack(); save(); }"));
+    }
 }
