@@ -9,6 +9,7 @@ h2 { font-size:17px; margin:0 0 8px; }
 a { color:var(--sky); }
 .crumb { margin:0 0 6px; font-size:13.5px; min-height:44px; }   /* 불러온 뒤 넣는 한/EN · 가(44px)가 h1 을 밀지 않게 자리를 미리(2026-11-03 홍TV님 점검: CLS 0.22) */
 .lead { color:var(--dim); font-size:14px; margin:0 0 16px; }
+.lead a { color:#38d9ea; white-space:nowrap; }   /* 영어 산 목록 링크(점검 11차 E9) */
 .dim { color:var(--dim); font-size:13px; }
 section { background:var(--panel); border:1px solid var(--ln); border-radius:12px; padding:14px 16px; margin-bottom:14px; }
 #wx { min-height:540px; }   /* 날씨 표 · 날짜 고르기 · 미세먼지가 들어올 자리를 미리(2026-11-02 홍TV님 점검: 데스크톱 CLS 0.316 - 아래 칸이 통째로 밀렸음) */

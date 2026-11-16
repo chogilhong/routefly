@@ -51,6 +51,13 @@ body { display:flex; flex-direction:column; height:100dvh; }
 #sheet .nm { font-size:14.5px; font-weight:bold; }
 #sheet .st { font-size:12.5px; color:var(--dim); margin:3px 0 8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }   /* 한 줄 - 아래 칸 높이가 바뀌지 않게 */
 #sheet .row { display:flex; gap:8px; }
+#sheet .row button[data-undo] { flex:1; min-height:44px; margin-top:6px; border-radius:10px; border:1px solid var(--ln); background:rgba(255,255,255,0.06); color:var(--tx); font-size:14px; }
+/* 구간 목록(점검 11차 E7) - 지도를 누르지 않고 고르기 */
+#sheet .segList { margin-top:8px; }
+#sheet .segList summary { min-height:44px; display:flex; align-items:center; cursor:pointer; color:var(--dim); font-size:13.5px; }
+#sheet .segList ul { list-style:none; margin:0; padding:0; max-height:220px; overflow-y:auto; }
+#sheet .segList button { width:100%; min-height:44px; margin:2px 0; text-align:left; padding:0 10px; border-radius:8px; border:1px solid var(--ln); background:rgba(255,255,255,0.04); color:var(--tx); font-size:14px; }
+#sheet .segList button[aria-pressed="true"] { border-color:#38d9ea; color:#38d9ea; }
 #sheet .row a { flex:1; text-align:center; height:40px; line-height:40px; border-radius:10px; text-decoration:none; font-size:14px; font-weight:bold;
                 background:rgba(255,255,255,0.08); color:var(--tx); border:1px solid var(--ln); }
 #sheet .row a.main { background:var(--sky); color:#062026; border-color:var(--sky); }

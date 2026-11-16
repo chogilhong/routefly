@@ -333,7 +333,7 @@ final class MountainEn {
         return head(title, desc, url, koUrl, base, null);
     }
 
-    /** og - 공유 그림 주소(산마다 OgServlet, null 이면 기본 img/og.png). */
+    /** og - 공유 그림 주소(산마다 OgServlet, null 이면 기본 img/og.jpg). */
     private static String head(String title, String desc, String url, String koUrl, String base, String og) {
         String t = esc(title) + " - routefly", d = esc(desc);
         return "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\">"
@@ -344,7 +344,7 @@ final class MountainEn {
                 + "<link rel=\"alternate\" hreflang=\"x-default\" href=\"" + esc(koUrl) + "\">"
                 + "<meta property=\"og:type\" content=\"website\"><meta property=\"og:site_name\" content=\"routefly\"><meta property=\"og:locale\" content=\"en_US\">"
                 + "<meta property=\"og:title\" content=\"" + t + "\"><meta property=\"og:description\" content=\"" + d + "\">"
-                + "<meta property=\"og:url\" content=\"" + esc(url) + "\"><meta property=\"og:image\" content=\"" + esc(og != null ? og : base + "/img/og.png?v=2") + "\">"
+                + "<meta property=\"og:url\" content=\"" + esc(url) + "\"><meta property=\"og:image\" content=\"" + esc(og != null ? og : base + "/img/og.jpg?v=3") + "\">"
                 + "<meta property=\"og:image:width\" content=\"1200\"><meta property=\"og:image:height\" content=\"630\">"
                 + MountainServlet.icons(REL)
                 + "<link rel=\"stylesheet\" href=\"" + REL + "/" + AssetVersion.of("css/course-kit.css") + "\"><link rel=\"stylesheet\" href=\"" + REL + "/" + AssetVersion.of("css/mountain.css") + "\"></head><body>";   // ?v= 판(war 에서만, 2026-11-01)

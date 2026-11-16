@@ -392,6 +392,7 @@
         $("sheet").appendChild(tip);
         $("sheet").appendChild(row);
         studioLink(row, link(closed));   // 관리자 기기만 - 이 길을 GPX 편집으로(코스 만들기)
+        $("sheet").insertAdjacentHTML("beforeend", '<div class="row"><button type="button" data-undo="1">' + T("↶ 마지막 구간 빼기", "↶ Remove last section") + '</button></div>' + segList());
     }
 
     /**
@@ -463,6 +464,7 @@
         var tip = $("sheet").querySelector(".tip");
         if (tip) tip.parentNode.removeChild(tip);   // 목록에서 온 화면도(두 줄 단추로 높이가 165px 이 됐음)
         $("sheet").insertBefore(box, $("sheet").firstChild);
+        $("sheet").insertAdjacentHTML("beforeend", segList());
         emptySheet = $("sheet").innerHTML;
         restoreBest();
     }
@@ -595,6 +597,23 @@
     function planOf(ids) { return RF.planWalk(ids, lines, { heads: planHeads || data.heads, first: ids[0], start: exStart }); }
 
     // 누른 자리에 걸린 선 가운데 - 누른 점에 가장 가까운 선들 중 이어지는 것, 그다음 고른 것(빼기), 짧은 것(RF.tapPick - route.js 와 같게)
+    /**
+     * 구간 목록(점검 11차 E7, 2026-11-16 홍TV님 "전부 작업해") - 지도를 누르지 않고도(키보드 · 화면 읽기) 탐방로 조각을 이름 · 길이로 골라 더하고 빼기.
+     * 고른 조각은 ✓, 단추는 pick 과 같은 일(sheet 클릭에서 data-seg).
+     */
+    function segList() {
+        var esc = function (x) { return String(x).replace(/[&<>"]/g, function (ch) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[ch]; }); };
+        var items = segs.map(function (t, i) { return { i: i, t: t }; }).filter(function (x) { return x.t && x.t.name; })
+            .sort(function (a, b) { return String(a.t.name).localeCompare(String(b.t.name), "ko"); });
+        if (!items.length) return "";
+        return '<details class="segList"><summary>' + T("📋 구간 목록에서 고르기(" + items.length + "개)", "📋 Pick from the section list (" + items.length + ")") + '</summary><ul>'
+            + items.map(function (x) {
+                var on = chosen.indexOf(x.t.id) >= 0;
+                return '<li><button type="button" data-seg="' + x.i + '" aria-pressed="' + on + '">' + (on ? "✓ " : "") + esc(NM(x.t.name))
+                    + ' <small>' + RF.km(+x.t.distance_m || 0) + 'km</small></button></li>';
+            }).join("") + "</ul></details>";
+    }
+
     function bestHit(fs, pt) {
         var ids = fs.map(function (f) { return f.properties.i; }).filter(function (i, k, a) { return a.indexOf(i) === k; });
         var cands = ids.map(function (i) {
@@ -840,6 +859,11 @@
         // 고른 탐방로가 없을 때 아래 칸(모두 빼면 다시 이것으로). 따라가기는 아래 칸에 맡겨 받음(다시 그려도 됨)
         emptySheet = $("sheet").innerHTML;
         $("sheet").addEventListener("click", function (e) {
+            // 구간 목록 단추 · 마지막 구간 빼기(점검 11차 E7 - 키보드 · 화면 읽기로도 고르고, 잘못 누른 것을 되돌림)
+            var sg = e.target && e.target.closest ? e.target.closest("[data-seg]") : null;
+            if (sg) { e.preventDefault(); if (segs[+sg.getAttribute("data-seg")]) pick(segs[+sg.getAttribute("data-seg")]); return; }
+            var un = e.target && e.target.closest ? e.target.closest("[data-undo]") : null;
+            if (un) { e.preventDefault(); if (chosen.length && byId[chosen[chosen.length - 1]]) pick(byId[chosen[chosen.length - 1]]); return; }
             var bt = e.target && e.target.closest ? e.target.closest("[data-best]") : null;
             if (bt) {
                 e.preventDefault();

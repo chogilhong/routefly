@@ -240,4 +240,36 @@ public class CheckupRound11Test {
         assertTrue("E2 · E5 부름", js.contains("safetyRecheck(co.latitude, co.longitude); mapSavedCheck(co.latitude, co.longitude);"));
         assertTrue("E2 방침", read("src/main/webapp/privacy.html").contains("90분마다 다시 보는 특보 · 산불위험도 같은 칸 가운데로"));
     }
+
+    /** E8 - 내보낸 기기(IPv6 /64)는 2시간 그 방에 다시 못 들어옴, IPv4(_net 없음)는 막지 않음. SOS 알림은 확인 전까지 되풀이. */
+    @Test
+    public void 내보낸_기기는_2시간() throws Exception {
+        Party p = new Party();
+        com.google.gson.JsonObject room = PartyTest.call(p, "/create", "{\"name\":\"단풍\",\"leaderPhone\":\"010-1234-5678\",\"departAt\":" + PartyTest.DEPART + "}", PartyTest.T0);
+        String code = room.get("code").getAsString(), lead = room.get("token").getAsString();
+        com.google.gson.JsonObject x = PartyTest.call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"낯선이\",\"agree\":true,\"_net\":\"2001:db8:5:6::/64\"}", PartyTest.T0);
+        PartyTest.call(p, "/kick", "{\"token\":\"" + lead + "\",\"id\":" + x.get("me").getAsInt() + "}", PartyTest.T0);
+        try { PartyTest.call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"다른이름\",\"agree\":true,\"_net\":\"2001:db8:5:6::/64\"}", PartyTest.T0 + 60_000); org.junit.Assert.fail("같은 망"); }
+        catch (IllegalArgumentException e) { assertTrue(e.getMessage().contains("내보낸 기기")); }
+        PartyTest.call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"회원\",\"agree\":true,\"_net\":\"2001:db8:5:7::/64\"}", PartyTest.T0 + 60_000);   // 다른 망은 됨
+        PartyTest.call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"버스와이파이\",\"agree\":true}", PartyTest.T0 + 60_000);   // IPv4 - 막지 않음
+        PartyTest.call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"두시간뒤\",\"agree\":true,\"_net\":\"2001:db8:5:6::/64\"}", PartyTest.T0 + Party.KICK_BLOCK_MS + 1);
+        assertTrue("서버가 _net 을 넣음(보낸 값은 버림)", read("src/main/java/com/gh/routefly/web/PartyServlet.java").contains("in.remove(\"_net\");"));
+        String js = read("src/main/webapp/js/party.js");
+        assertTrue("SOS 되풀이 · 확인", js.contains("var SOS_REPEAT_MS = 45000;") && js.contains("if (seen.ack || t - seen.t < SOS_REPEAT_MS) return;") && js.contains("data-sack"));
+    }
+
+    /** E6 · E7 · E9 - 점 줄이기 · 높이 채우기 · 출발/정상/도착 표시, 안내도 구간 목록 · 되돌리기, og.jpg · 영어 산 목록 링크 · 움직임 줄이기. */
+    @Test
+    public void 남은_제안_E6_E7_E9() throws Exception {
+        String st = read("src/main/webapp/js/studio.js"), kit = read("src/main/webapp/js/course-kit.js");
+        assertTrue("E6 점 줄이기 · 높이", st.contains("$(\"simpBtn\").onclick") && st.contains("$(\"eleBtn\").onclick") && kit.contains("simplifyTrack: simplifyTrack"));
+        assertTrue("E6 wpt", st.contains("c.track, { wpt: true })"));
+        String pk = read("src/main/webapp/js/park.js");
+        assertTrue("E7", pk.contains("function segList() {") && pk.contains("closest(\"[data-undo]\")") && pk.contains("data-seg"));
+        assertTrue("E9 og.jpg", Files.exists(Path.of("src/main/webapp/img/og.jpg")) && read("src/main/webapp/hike.html").contains("img/og.jpg?v=3"));
+        assertFalse("E9 og.png 남음", read("src/main/webapp/hike.html").contains("og.png"));
+        assertTrue("E9 영어 링크", read("src/main/java/com/gh/routefly/web/MountainServlet.java").contains("Trails in English ›"));
+        assertTrue("E9 움직임", read("src/main/webapp/index.html").contains("@media (prefers-reduced-motion: reduce) { .spotRing { animation:none; } }"));
+    }
 }

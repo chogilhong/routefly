@@ -106,6 +106,8 @@ public class PartyServlet extends HttpServlet {
             Json.fail(resp, 400, "요청을 읽지 못했습니다.");
             return;
         }
+        in.remove("_net");   // 서버가 넣는 칸 - 보낸 값은 버림
+        if (join && ip.indexOf(':') >= 0) in.addProperty("_net", ip);   // IPv6 /64 만(IPv4 는 버스 와이파이 · 통신사 NAT 로 여럿이 같은 주소)
         try {
             JsonObject out = handle(Party.STORE, path, in, now);
             ok = true;   // 만든 것만 셈(점검: 날짜를 틀린 것도 세어 하루 막혔음) - 실패하면 아래 finally 가 돌려줌
@@ -279,7 +281,9 @@ public class PartyServlet extends HttpServlet {
             if (dropIn) p.checkDrop(str(in, "code"), str(in, "drop"), now);   // 틀린 하차 지점이면 들어가기 전에 막음
             boolean pickIn = str(in, "pickup") != null && !str(in, "pickup").isBlank();
             if (pickIn) p.checkPickup(str(in, "code"), str(in, "pickup"), now);
+            p.checkKicked(str(in, "code"), str(in, "_net"), now);   // 내보낸 기기(IPv6 /64)는 2시간(점검 11차 E8)
             Party.Member m = p.join(str(in, "code"), str(in, "nick"), str(in, "role"), integer(in, "bus"), integer(in, "seat"), str(in, "stop"), bool(in, "onBus"), now);
+            p.net(m, str(in, "_net"));
             if (str(in, "drop") != null && !str(in, "drop").isBlank()) p.drop(m, null, str(in, "drop"));   // 하차 지점(2026-10-28)
             if (pickIn) p.pickup(m, null, str(in, "pickup"));   // 하산 탑승지
             return withToken(p.view(m, now), m);

@@ -4075,6 +4075,27 @@
      * "이런 코스는 만들면 안 돼잖아": 🔗 잇기가 2km 떨어진 두 끝을 곧은 선으로 이었음). track: [[위도, 경도, …]…]. 점이 둘 안 되면 {m: 0, at: 0}.
      */
     var JOIN_GAP_M = 200;
+    /**
+     * 순수 함수 - 점 줄이기(더글러스-퓨커, tolM 미터 안에서 모양이 같게 - 점검 11차 E6). 처음 · 끝은 늘 남기고 남긴 점의 시각 · 높이는 그대로.
+     * 올리기 전 큰 GPX(점 몇 만 개)를 가볍게. track: [[위도, 경도, 시각, 높이]…].
+     */
+    function simplifyTrack(track, tolM) {
+        var t = track || [], n = t.length;
+        if (n < 3) return t.slice();
+        var lat0 = t[0][0] * Math.PI / 180, kx = 111320 * Math.cos(lat0), ky = 110540;
+        var xy = t.map(function (p) { return [p[1] * kx, p[0] * ky]; }), keep = new Array(n), stack = [[0, n - 1]];
+        keep[0] = keep[n - 1] = true;
+        while (stack.length) {
+            var se = stack.pop(), a = se[0], b = se[1], ax = xy[a][0], ay = xy[a][1], dx = xy[b][0] - ax, dy = xy[b][1] - ay, L = dx * dx + dy * dy, far = -1, fd = tolM;
+            for (var i = a + 1; i < b; i++) {
+                var px = xy[i][0] - ax, py = xy[i][1] - ay, u = L ? Math.max(0, Math.min(1, (px * dx + py * dy) / L)) : 0, d = Math.hypot(px - u * dx, py - u * dy);
+                if (d > fd) { fd = d; far = i; }
+            }
+            if (far > 0) { keep[far] = true; stack.push([a, far], [far, b]); }
+        }
+        return t.filter(function (p, i) { return keep[i]; });
+    }
+
     function longestJump(track) {
         var t = track || [], best = { m: 0, at: 0 }, d = 0;
         for (var i = 1; i < t.length; i++) {
@@ -4299,9 +4320,18 @@
         return (en ? "Made by: " : "만든 이: ") + t + (s.partner ? (en ? " [Partner]" : " [제휴]") : s.checked ? (en ? " (checked by routefly)" : " (routefly 점검)") : "");
     }
 
-    function trackGpx(name, kind, track) {
+    function trackGpx(name, kind, track, opt) {
         var esc = function (x) { return String(x).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); };
-        return '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="routefly studio" xmlns="http://www.topografix.com/GPX/1/1">\n'
+        var t = track || [], first = t[0] && t[0][2], wpts = "", meta = "";
+        // 💾 저장 파일에는 출발 · 정상(가장 높은 점) · 도착 표시와 만든 때(점검 11차 E6, 2026-11-16 홍TV님 "전부 작업해") - 올리기 · 보내기는 점만(서버가 trkpt 만 읽음)
+        if (opt && opt.wpt && t.length > 1) {
+            var hi = -1;
+            t.forEach(function (p, i) { if (p[3] != null && (hi < 0 || p[3] > t[hi][3])) hi = i; });
+            var w = function (p, nm) { return '<wpt lat="' + p[0] + '" lon="' + p[1] + '">' + (p[3] != null ? "<ele>" + Math.round(p[3] * 10) / 10 + "</ele>" : "") + "<name>" + esc(nm) + "</name></wpt>\n"; };
+            wpts = w(t[0], opt.en ? "Start" : "출발") + (hi > 0 && hi < t.length - 1 ? w(t[hi], opt.en ? "Highest point" : "가장 높은 곳") : "") + w(t[t.length - 1], opt.en ? "Finish" : "도착");
+            meta = "<metadata><name>" + esc(name || "GPX") + "</name>" + (typeof first === "number" ? "<time>" + new Date(first).toISOString() + "</time>" : "") + "</metadata>\n";
+        }
+        return '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="routefly studio" xmlns="http://www.topografix.com/GPX/1/1">\n' + meta + wpts
             + "<trk><name>" + esc(name || "GPX") + "</name>" + (kind ? "<type>" + esc(kind) + "</type>" : "") + "<trkseg>\n"
             + (track || []).map(function (p) {
                 return '<trkpt lat="' + p[0] + '" lon="' + p[1] + '">' + (p[3] != null ? "<ele>" + Math.round(p[3] * 10) / 10 + "</ele>" : "")
@@ -6655,7 +6685,7 @@
     global.RF = {
         LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, PARKS: PARKS, parkOf: parkOf, mountainOf: mountainOf, regionNames: regionNames, stampKey: stampKey, summitName: summitName, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, urlQuery: urlQuery, peakHref: peakHref, canonicalHref: canonicalHref, tmapHref: tmapHref, tmapLinks: tmapLinks, setCanonical: setCanonical, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakGapM: peakGapM, peakCourses: peakCourses, isClosedTrail: isClosedTrail, isHiddenCourse: isHiddenCourse, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, nearestExit: nearestExit, gpsGap: gpsGap, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, fillTrackEle: fillTrackEle, trimTrack: trimTrack, gpxTracks: gpxTracks, trackStats: trackStats, splitTrack: splitTrack, joinTracks: joinTracks, trackGpx: trackGpx, submitAgree: submitAgree, submitBody: submitBody, submitProblem: submitProblem, submitFail: submitFail, submitSheet: submitSheet, courseName: courseName, courseSource: courseSource, sourceText: sourceText, cutMiddle: cutMiddle, osmRoute: osmRoute, WALK_WAYS: WALK_WAYS, trailsToElements: trailsToElements, overlapShare: overlapShare, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
-        sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, titledName: titledName, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, tapPick: tapPick, closeLoop: closeLoop, loopTrack: loopTrack, reverseTrack: reverseTrack, longestJump: longestJump, JOIN_GAP_M: JOIN_GAP_M, pxToLine: pxToLine, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, legMs: legMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, wxCols: wxCols, wxTable: wxTable, kmaLink: kmaLink, pcpText: pcpText, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap,
+        sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, titledName: titledName, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, tapPick: tapPick, closeLoop: closeLoop, loopTrack: loopTrack, reverseTrack: reverseTrack, longestJump: longestJump, simplifyTrack: simplifyTrack, JOIN_GAP_M: JOIN_GAP_M, pxToLine: pxToLine, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, legMs: legMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, wxCols: wxCols, wxTable: wxTable, kmaLink: kmaLink, pcpText: pcpText, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap,
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },
         cellCenter: cellCenter, warnName: warnName, safetyRows: safetyRows, safetyAlert: safetyAlert, safetyRender: safetyRender, rainNews: rainNews,
         setLang: setLang, isEn: isEn, tr: tr, pageLang: pageLang, applyEn: applyEn,

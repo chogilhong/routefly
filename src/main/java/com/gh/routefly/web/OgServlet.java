@@ -87,7 +87,7 @@ public class OgServlet extends HttpServlet {
             cache.put(cacheKey, png);
         }
         if (png == FAILED) {
-            resp.sendRedirect(req.getContextPath() + "/img/og.png?v=2");
+            resp.sendRedirect(req.getContextPath() + "/img/og.jpg?v=3");
             return;
         }
         resp.setContentType("image/png");

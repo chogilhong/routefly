@@ -69,7 +69,7 @@ public class ShareServlet extends HttpServlet {
         resp.setCharacterEncoding(StandardCharsets.UTF_8.name());
         resp.setHeader("Cache-Control", failed ? "no-store" : "public, max-age=300");   // DB 실패 때의 빈 미리 보기는 캐시하지 않음
         PrintWriter w = resp.getWriter();
-        w.print(page(title, desc, base + "/s/" + id, index ? base + "/c/" + id : null, ogPeak != null ? base + "/og/m/" + MountainServlet.enc(ogPeak) + ".png" : base + "/img/og.png?v=2", target));   // canonical - 검색에는 코스 소개 페이지(2026-10-19)   // v=2: 새 로고(2026-10-14) - 카카오톡 등이 예전 그림을 담아 둔 것을 피함
+        w.print(page(title, desc, base + "/s/" + id, index ? base + "/c/" + id : null, ogPeak != null ? base + "/og/m/" + MountainServlet.enc(ogPeak) + ".png" : base + "/img/og.jpg?v=3", target));   // canonical - 검색에는 코스 소개 페이지(2026-10-19)   // v=2: 새 로고(2026-10-14) - 카카오톡 등이 예전 그림을 담아 둔 것을 피함
     }
 
     /** 순수 함수 - "5.81km · 오르막 1,460m · 최고 1,700m · 3D 미리 보기". */

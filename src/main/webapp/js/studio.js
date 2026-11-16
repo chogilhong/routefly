@@ -267,6 +267,8 @@
                 map.on("mouseenter", "others", function () { map.getCanvas().style.cursor = "pointer"; });
                 map.on("mouseleave", "others", function () { map.getCanvas().style.cursor = ""; });
                 mapOk = true;
+                // 점이 4,000 넘는 길은 점 고치기 점을 화면 안 것만 그려서, 지도를 옮기면 그 자리 점을 새로(점검 11차 - 옮긴 곳에서 점을 못 잡았음)
+                if (!map._vertsMove) { map._vertsMove = true; map.on("moveend", function () { var c = cur(); if (preview && preview.pts && c && c.track.length > 4000) map.getSource("verts").setData(verts(c.track)); }); }
                 draw(true);
             };
             map.on("style.load", init);
@@ -677,6 +679,34 @@
         msg((r.at === "start" ? "도착 자리에서 출발하도록 앞에 " : "출발 자리로 돌아오도록 뒤에 ") + (r.addM < 1000 ? r.addM + " m" : km(r.addM) + " km") + " 를 같은 길로 더했습니다. 잘못이면 ↶ 되돌리기.", 7000);
         draw(true);
     };
+    // ✨ 점 줄이기(5m 안 모양 그대로) · ⛰ 높이 채우기(높이 없는 점에 지형 높이) - 올리기 전 다듬기(점검 11차 E6, 2026-11-16 홍TV님 "전부 작업해")
+    $("simpBtn").onclick = function () {
+        var c = cur(); if (!c) return;
+        var t = RF.simplifyTrack(c.track, 5);
+        if (t.length >= c.track.length) { msg("더 줄일 점이 없습니다(5m 안에서 모양이 같은 점이 없음)."); return; }
+        push();
+        var before = c.track.length;
+        c.track = t;
+        closeTool();
+        msg("점을 " + RF.num(before) + "개 → " + RF.num(t.length) + "개로 줄였습니다(5m 안 모양 그대로). 잘못이면 ↶ 되돌리기.", 7000);
+        draw(false);
+    };
+    $("eleBtn").onclick = function () {
+        var c = cur(); if (!c) return;
+        var miss = c.track.filter(function (p) { return p[3] == null; }).length;
+        if (!miss) { msg("모든 점에 높이가 있습니다."); return; }
+        var src = c, btn = $("eleBtn");
+        btn.disabled = true;
+        msg("지형 높이를 받는 중…", 20000);
+        withEle(c.track).then(function (tr) {
+            if (cur() !== src) return;
+            var filled = src.track.map(function (p, i) { return p[3] != null ? p : [p[0], p[1], p[2], tr[i][3]]; });   // 시각 · 있던 높이는 그대로
+            push();
+            src.track = filled;
+            msg("높이 없는 점 " + RF.num(miss) + "개에 지형 높이를 넣었습니다(AWS Terrain Tiles).", 6000);
+            draw(false);
+        }).catch(function (e) { msg("높이를 받지 못했습니다: " + (e && e.message || e), 6000); }).then(function () { btn.disabled = false; });
+    };
     $("revBtn").onclick = function () { var c = cur(); if (!c) return; push(); c.track = RF.reverseTrack(c.track); closeTool(); msg("뒤집었습니다(출발 ↔ 도착)."); draw(false); };
     $("undoBtn").onclick = function () {
         var u = undo.pop();
@@ -1007,7 +1037,7 @@
         var c = cur();
         if (!c) return;
         var a = document.createElement("a");
-        a.href = URL.createObjectURL(new Blob([RF.trackGpx(c.name, $("kind").value, c.track)], { type: "application/gpx+xml" }));
+        a.href = URL.createObjectURL(new Blob([RF.trackGpx(c.name, $("kind").value, c.track, { wpt: true })], { type: "application/gpx+xml" }));   // 출발 · 정상 · 도착 표시(E6)
         a.download = "routefly-" + slug(c.name) + ".gpx";
         document.body.appendChild(a);
         a.click();

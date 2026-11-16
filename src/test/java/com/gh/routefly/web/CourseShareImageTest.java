@@ -27,8 +27,8 @@ public class CourseShareImageTest {
         String withPeak = CoursePageServlet.page(c, jiri, null, null, null, new JsonArray(), true, "https://routefly.kr/routefly", List.of());
         assertTrue(withPeak.contains("<meta property=\"og:image\" content=\"https://routefly.kr/routefly/og/m/" + MountainServlet.enc("지리산") + ".png\">"));
         String noPeak = CoursePageServlet.page(c, null, null, null, null, new JsonArray(), true, "https://routefly.kr/routefly", List.of());
-        assertTrue("정상에 안 닿으면 기본 그림", noPeak.contains("<meta property=\"og:image\" content=\"https://routefly.kr/routefly/img/og.png"));
+        assertTrue("정상에 안 닿으면 기본 그림", noPeak.contains("<meta property=\"og:image\" content=\"https://routefly.kr/routefly/img/og.jpg?v=3\""));
         String share = read("src/main/java/com/gh/routefly/web/ShareServlet.java");
-        assertTrue("공유 링크(/s/)도 같은 규칙", share.contains("ogPeak != null ? base + \"/og/m/\" + MountainServlet.enc(ogPeak) + \".png\" : base + \"/img/og.png?v=2\""));
+        assertTrue("공유 링크(/s/)도 같은 규칙", share.contains("ogPeak != null ? base + \"/og/m/\" + MountainServlet.enc(ogPeak) + \".png\" : base + \"/img/og.jpg?v=3\""));
     }
 }

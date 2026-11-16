@@ -15,7 +15,7 @@
 <link rel="apple-touch-icon" href="img/apple-icon-180.png">
 <meta property="og:title" content="routefly - 3D로 미리 날아 보는 등산 · 걷기 · 자전거 코스">
 <meta property="og:description" content="코스를 3D 지형 위에서 미리 보고, 핸드폰으로 따라 걷기">
-<meta property="og:image" content="https://routefly.kr/routefly/img/og.png?v=2">
+<meta property="og:image" content="https://routefly.kr/routefly/img/og.jpg?v=3">
 <meta property="og:url" content="https://routefly.kr/routefly/">
 <meta name="description" content="등산 · 걷기 · 자전거 코스를 3D 지형 위에서 미리 날아 보고, 핸드폰으로 위치를 확인하며 따라 걷는 무료 서비스. 100대 명산 코스 · 날씨 · 안전 안내.">
 <!-- 지도 타일 곳(3D 지형 s3 · V-World 위성)에 미리 연결 - 첫 타일을 물을 때 연결(DNS · TLS)에 드는 왕복을 스크립트를 받는 동안 끝냄(2026-11-02 홍TV님 속도 점검).
@@ -131,6 +131,7 @@ html, body { margin:0; height:100%; background:#0f141b; color:var(--tx); font-fa
 .spotRing { width:46px; height:46px; border-radius:50%; border:3px solid var(--route); box-shadow:0 0 0 3px rgba(0,0,0,0.45), 0 0 14px rgba(255,183,3,0.8);
             pointer-events:none; animation:spotPulse 1.2s ease-in-out infinite; }
 @keyframes spotPulse { 0%, 100% { transform:scale(0.85); opacity:1; } 50% { transform:scale(1.15); opacity:0.7; } }
+@media (prefers-reduced-motion: reduce) { .spotRing { animation:none; } }   /* 움직임 줄이기 설정 존중(점검 11차 E9) */
 #guideBody input[type=time] { font-size:16px; padding:4px 8px; border-radius:7px; border:1px solid var(--ln); background:rgba(255,255,255,0.08); color:var(--tx); }
 
 /* 지도 위 이름표 - 아이콘 + 흰 글씨(상자 없이). 아이콘 자리가 그 지점입니다. */

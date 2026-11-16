@@ -685,15 +685,19 @@
 
     var sosSeen = {};
     /** 새로 SOS 를 켠 사람이 있으면 떨고 읽어 줌. */
+    // SOS 알림은 인솔자가 "✓ 확인" 을 누를 때까지 SOS_REPEAT_MS 마다 다시 떨림 · 말함(점검 11차 E8, 2026-11-16 홍TV님 "전부 작업해" - 한 번만 울려 주머니 속에서 놓쳤을 수 있음)
+    var SOS_REPEAT_MS = 45000;
     function sosAlert(s) {
-        var now = {}, bar = [];
+        var now = {}, bar = [], t = Date.now();
         (s.members || []).forEach(function (m) {
             if (!m.sos || m.id === s.me) return;
-            now[m.id] = 1;
+            var seen = now[m.id] = sosSeen[m.id] || { t: 0, ack: false };
             var who = m.nick + (m.seat ? "(" + seatName(s, m.bus, m.seat) + ")" : "") + (m.cancelled ? T(" - 안 탄 회원", " - not on bus") : m.sosOdd ? T(" - 명단에 없는 참가자", " - not on the roster") : "");   // 2026-11-03 홍TV님 - 가짜 SOS 일 수 있음
             // 위쪽 빨간 줄 - SOS 가 켜진 동안 늘(2026-10-22 점검: 맨 아래 글로만 나와 안 보였음). 누르면 지도 · 지나온 길
-            bar.push("🆘 " + esc(who) + " <button type=\"button\" data-sos=\"" + m.id + "\">" + T("🗺 지도 · 지나온 길", "🗺 Map · trail") + "</button>");
-            if (sosSeen[m.id]) return;
+            bar.push("🆘 " + esc(who) + " <button type=\"button\" data-sos=\"" + m.id + "\">" + T("🗺 지도 · 지나온 길", "🗺 Map · trail") + "</button>"
+                + (seen.ack ? "" : " <button type=\"button\" data-sack=\"" + m.id + "\">" + T("✓ 확인(알림 멈춤)", "✓ Got it (stop alert)") + "</button>"));
+            if (seen.ack || t - seen.t < SOS_REPEAT_MS) return;
+            seen.t = t;
             if (navigator.vibrate) navigator.vibrate([400, 150, 400, 150, 400]);
             try { var u = new SpeechSynthesisUtterance(T(who + " 님이 에스오에스를 보냈습니다", who + " sent an SOS")); if (EN) u.lang = "en-US"; speechSynthesis.speak(u); } catch (e) { /* 없음 */ }
         });
@@ -827,6 +831,13 @@
     }
     $("roomMsg").addEventListener("click", function () { if (officeLocked(state)) toEditBtn(); });
     $("sosBar").addEventListener("click", function (e) {
+        var ack = e.target.closest("[data-sack]");
+        if (ack) {   // 확인 - 이 기기에서 그 SOS 알림 되풀이를 멈춤(빨간 줄은 SOS 가 꺼질 때까지 그대로)
+            var id = ack.getAttribute("data-sack");
+            if (sosSeen[id]) sosSeen[id].ack = true;
+            ack.remove();
+            return;
+        }
         var b = e.target.closest("[data-sos]");
         if (!b || !state || !isStaff()) return;   // 회원 화면에는 지도가 없음 - 이름만
         var m = (state.members || []).filter(function (x) { return String(x.id) === b.getAttribute("data-sos"); })[0];

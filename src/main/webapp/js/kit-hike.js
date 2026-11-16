@@ -2332,9 +2332,18 @@
         return (en ? "Made by: " : "만든 이: ") + t + (s.partner ? (en ? " [Partner]" : " [제휴]") : s.checked ? (en ? " (checked by routefly)" : " (routefly 점검)") : "");
     }
 
-    function trackGpx(name, kind, track) {
+    function trackGpx(name, kind, track, opt) {
         var esc = function (x) { return String(x).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); };
-        return '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="routefly studio" xmlns="http://www.topografix.com/GPX/1/1">\n'
+        var t = track || [], first = t[0] && t[0][2], wpts = "", meta = "";
+        // 💾 저장 파일에는 출발 · 정상(가장 높은 점) · 도착 표시와 만든 때(점검 11차 E6, 2026-11-16 홍TV님 "전부 작업해") - 올리기 · 보내기는 점만(서버가 trkpt 만 읽음)
+        if (opt && opt.wpt && t.length > 1) {
+            var hi = -1;
+            t.forEach(function (p, i) { if (p[3] != null && (hi < 0 || p[3] > t[hi][3])) hi = i; });
+            var w = function (p, nm) { return '<wpt lat="' + p[0] + '" lon="' + p[1] + '">' + (p[3] != null ? "<ele>" + Math.round(p[3] * 10) / 10 + "</ele>" : "") + "<name>" + esc(nm) + "</name></wpt>\n"; };
+            wpts = w(t[0], opt.en ? "Start" : "출발") + (hi > 0 && hi < t.length - 1 ? w(t[hi], opt.en ? "Highest point" : "가장 높은 곳") : "") + w(t[t.length - 1], opt.en ? "Finish" : "도착");
+            meta = "<metadata><name>" + esc(name || "GPX") + "</name>" + (typeof first === "number" ? "<time>" + new Date(first).toISOString() + "</time>" : "") + "</metadata>\n";
+        }
+        return '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="routefly studio" xmlns="http://www.topografix.com/GPX/1/1">\n' + meta + wpts
             + "<trk><name>" + esc(name || "GPX") + "</name>" + (kind ? "<type>" + esc(kind) + "</type>" : "") + "<trkseg>\n"
             + (track || []).map(function (p) {
                 return '<trkpt lat="' + p[0] + '" lon="' + p[1] + '">' + (p[3] != null ? "<ele>" + Math.round(p[3] * 10) / 10 + "</ele>" : "")

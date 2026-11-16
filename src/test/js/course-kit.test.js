@@ -2083,3 +2083,15 @@ eq("점검 11차 A8 - 공단 난이도 띄어쓰기 없음(운영 설악산 \"�
     eq("가장 먼 이웃 두 점 - 2.17km(55m 지난 곳)", [Math.round(j.m), Math.round(j.at)], [2168, 56]);
     eq("한도 200m · 짧은 길", [RF.JOIN_GAP_M, RF.longestJump([[37, 127]]).m], [200, 0]);
 })();
+// 점검 11차 E6 - 점 줄이기(5m) · GPX 저장 표시
+(function () {
+    var line = [];
+    for (var i = 0; i <= 100; i++) line.push([37 + i * 0.0001, 127 + (i % 2 ? 0.00001 : 0), 1000 + i, 100 + i]);   // 곧은 선 + 1m 떨림
+    var s5 = RF.simplifyTrack(line, 5);
+    eq("곧은 선의 1m 떨림은 처음 · 끝만 남김(시각 · 높이 그대로)", [s5.length, s5[0], s5[1]], [2, [37, 127, 1000, 100], line[100]]);
+    var bend = [[37, 127, null, 1], [37.001, 127, null, 2], [37.001, 127.001, null, 3]];
+    eq("꺾인 곳(80m 넘게 벗어남)은 남김", RF.simplifyTrack(bend, 5).length, 3);
+    var g = RF.trackGpx("시험 <길>", "hike", [[37, 127, Date.UTC(2026, 10, 16, 0, 0, 0), 10], [37.001, 127, null, 50], [37.002, 127, null, 20]], { wpt: true });
+    eq("출발 · 가장 높은 곳 · 도착 wpt + metadata, 이름 꺾쇠는 바꿈", [/<wpt lat="37" lon="127"><ele>10<\/ele><name>출발<\/name>/.test(g), /<name>가장 높은 곳<\/name>/.test(g), /<name>도착<\/name>/.test(g),
+        /<metadata><name>시험 &lt;길&gt;<\/name><time>2026-11-16T00:00:00.000Z<\/time><\/metadata>/.test(g), /<wpt/.test(RF.trackGpx("x", "hike", [[37, 127, null, 1], [37.1, 127, null, 1]]))], [true, true, true, true, false]);
+})();

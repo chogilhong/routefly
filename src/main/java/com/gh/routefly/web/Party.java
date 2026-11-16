@@ -81,6 +81,7 @@ final class Party {
         final int id;
         final String nick, role;   // role: lead(인솔자 · 공동 인솔자) · hiker
         String token;   // 명단 자리를 다른 폰이 이어받으면 새로(점검 11차 B9 - Party.rekey)
+        String net;     // 참가한 IPv6 /64(메모리만 - 내보내면 그 방에 2시간 다시 못 들어옴, IPv4 는 여럿이 같은 주소라 null)
         final Room room;
         final long joinedAt;
         int bus = 1;           // 몇 호차(단풍철 - 한 인솔자가 차 두세 대, 2026-10-20 홍TV님)
@@ -165,6 +166,8 @@ final class Party {
         final List<String> stops;
         final String leaderName, leaderPhone;
         final Map<String, Member> members = new LinkedHashMap<>();
+        /** 인솔자가 내보낸 사람의 IPv6 /64 → 내보낸 때(메모리만, KICK_BLOCK_MS 동안 다시 참가 막기 - 점검 11차 E8). */
+        final Map<String, Long> kickedNets = new HashMap<>();
         String notice;
         long noticeAt;
         /** 탑승지마다 출발 시각 "HH:MM"(없으면 "") - stops 와 같은 차례(2026-10-27 홍TV님 "정각에 출발, 기다려 주지 않아"). */
@@ -1318,6 +1321,20 @@ final class Party {
     }
 
     /** 인솔자 - 회원 내보내기(2026-10-20 홍TV님 - 모르는 사람이 들어왔을 때). 그 폰에는 410 + 까닭. 인솔자 자신은 못 내보냄. */
+    static final long KICK_BLOCK_MS = 2 * HOUR;
+
+    /** 내보낸 사람이 같은 망(IPv6 /64)으로 바로 다른 별명으로 다시 들어오지 못하게(점검 11차 E8). net 이 null(IPv4 · 모름)이면 막지 않음. */
+    synchronized void checkKicked(String code, String net, long now) {
+        if (net == null) return;
+        Room r = room(code, now);
+        r.kickedNets.values().removeIf(t -> now - t > KICK_BLOCK_MS);
+        if (r.kickedNets.containsKey(net)) throw new IllegalArgumentException("인솔자가 이 방에서 내보낸 기기라 2시간 동안 다시 들어올 수 없습니다. 잘못이면 인솔자에게 연락하세요.");
+    }
+
+    synchronized void net(Member m, String net) {
+        m.net = net;
+    }
+
     synchronized void kick(Member lead, int id, long now) {
         Member t = null;
         for (Member x : lead.room.members.values()) if (x.id == id) t = x;
@@ -1330,6 +1347,7 @@ final class Party {
         lead.room.members.remove(t.token);
         byToken.remove(t.token);
         lead.room.trackPts -= t.track.size();
+        if (t.net != null && !assist) lead.room.kickedNets.put(t.net, now);   // 같은 망에서 바로 다시 들어오지 못하게(E8)
         endedWhy.put(t.token, assist ? "주 인솔자가 보조 인솔자에서 내보냈습니다." : "인솔자가 이 방에서 내보냈습니다. 잘못이면 인솔자에게 연락하세요.");
         endedAt.put(t.token, now);
         mlog(t, now, "kick");
