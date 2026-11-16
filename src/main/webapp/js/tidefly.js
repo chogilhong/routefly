@@ -1324,9 +1324,9 @@
     var dark = isDark(root.getAttribute('data-theme'));
     themeBtn.textContent = dark ? tr('☀ 밝은 모드', '☀ Light') : tr('🌙 다크모드', '🌙 Dark');
     var cur = root.getAttribute('data-size') || 'm', nx = nextSize(cur), li = lang === 'en' ? 1 : 0;
-    sizeBtn.textContent = tr('가', 'A');
+    // 가 · 가+ · 가++ - routefly 다른 화면 글자 단추와 같게(2026-11-16 홍TV님 "'+' '++' 로 통일해 줘", 예전에는 늘 "가" 에 글자만 조금 커짐)
+    sizeBtn.textContent = tr('가', 'A') + (cur === 'xl' ? '++' : cur === 'l' ? '+' : '');
     sizeBtn.setAttribute('aria-label', tr('글자 크기: ' + SIZE_NAME[cur][0] + ' (누르면 ' + SIZE_NAME[nx][0] + ')', 'Text size: ' + SIZE_NAME[cur][li] + ' (tap for ' + SIZE_NAME[nx][li] + ')'));
-    sizeBtn.style.fontSize = cur === 'm' ? '' : cur === 'l' ? '1.05rem' : '1.15rem';
   }
 
   themeBtn.addEventListener('click', function () {
