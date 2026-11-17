@@ -184,6 +184,17 @@
     var BATTERY_KEY = "rf-battery", batterySave = false;
     try { batterySave = localStorage.getItem(BATTERY_KEY) === "1"; } catch (e) { /* 기본은 끔 */ }
     var BG = plugin("BackgroundGeolocation"), TTS = plugin("TextToSpeech"), FS = plugin("Filesystem"), SHARE = plugin("Share");
+    // 위치 감시 번호를 이 기기에도 적어 둠(2026-11-17 홍TV님: 산행을 끝냈는데 "산행 중" 알림이 남음) - 산행 중 따라가기 화면을 벗어나면(산악회 방 · 새로고침)
+    // 화면은 번호를 잊지만 폰의 감시 · 알림은 남아, 돌아와 끝내도 새 감시만 꺼졌음. 시작 · 끝 · 화면을 열 때(산행 중이 아니면) 남은 번호를 모두 끔
+    var BG_KEY = "rf-bg-watch";
+    function bgIds() { try { var a = JSON.parse(localStorage.getItem(BG_KEY) || "[]"); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+    function bgSave(ids) { try { if (ids.length) localStorage.setItem(BG_KEY, JSON.stringify(ids)); else localStorage.removeItem(BG_KEY); } catch (e) { /* 이번만 */ } }
+    function bgStopAll() {
+        if (!BG) return;
+        bgIds().forEach(function (id) { Promise.resolve(BG.removeWatcher({ id: id })).catch(function () { /* 이미 멈춤 */ }); });
+        bgSave([]);
+    }
+    bgStopAll();   // 화면이 막 열림 = 이 화면에서 도는 산행 없음 - 전 화면이 남긴 감시 · 알림을 끔(이어 걷기면 시작할 때 새로 켬)
     var LN = plugin("LocalNotifications");
     // 찍은 사진을 폰 갤러리 Pictures/routefly 에도(앱 RfGalleryPlugin - 2026-11-01 홍TV님). 옛 설치본 · 브라우저는 null 이라 아무것도 안 함
     var GALLERY = plugin("RfGallery"), GALLERY_KEY = "rf-gallery";
@@ -2656,6 +2667,7 @@
             $("gps").className = "";
             // 2026-10-11 점검: 시작 → 끝 → 다시 시작이 첫 addWatcher 답보다 빠르면 첫 감시가 남아 위치가 두 번씩 · 알림이 안 사라졌음 - 이번 시작 번호로만
             var bgGen = hike.bgGen = (hike.bgGen || 0) + 1;
+            bgStopAll();   // 전에 남은 감시(화면을 벗어났다 온 산행) - 알림이 둘 남지 않게
             // 2026-10-17 PC: Capacitor.Plugins 로 받은 BG 의 addWatcher(콜백 방식)는 Promise 가 아니라 감시 번호를 바로 돌려줌 -
             // .then 에서 TypeError 로 bgWatch 가 저장되지 않아 끝내도 "산행 중" 알림 · 감시가 남았음. 둘 다 받게 Promise.resolve 로 감쌈
             Promise.resolve(BG.addWatcher({ backgroundTitle: T("routefly - " + K().act + " 중", "routefly - " + K().act.toLowerCase() + " in progress"),
@@ -2672,7 +2684,7 @@
                     if (loc) onFix({ timestamp: loc.time, coords: { latitude: loc.latitude, longitude: loc.longitude, accuracy: loc.accuracy,
                                                                 altitude: loc.altitude, speed: loc.speed, heading: loc.bearing } });
                 })).then(function (id) {
-                    if (hike.running && !hike.sim && bgGen === hike.bgGen) hike.bgWatch = id;
+                    if (hike.running && !hike.sim && bgGen === hike.bgGen) { hike.bgWatch = id; bgSave([id]); }
                     else Promise.resolve(BG.removeWatcher({ id: id })).catch(function () { /* 이미 멈춤 */ });   // 그 사이 끝냈거나 다시 시작했으면
                 }).catch(function () { onGpsError({ code: 2 }); });
             // 2026-10-08 (홍TV님 - 배터리): 앱은 화면을 꺼도 위치 · 음성 안내가 이어지므로 화면을 켜 두지 않습니다(Wake Lock 안 함).
@@ -2778,6 +2790,7 @@
         if (hike.watch != null) navigator.geolocation.clearWatch(hike.watch);
         if (hike.bgWatch != null && BG) Promise.resolve(BG.removeWatcher({ id: hike.bgWatch })).catch(function () { /* 이미 멈춤 */ });
         hike.bgWatch = null;
+        bgStopAll();   // 화면을 벗어났다 온 산행의 옛 감시 · 알림도
         hike.watch = null;
         clearInterval(hike.timer);
         clearInterval(hike.simTimer);

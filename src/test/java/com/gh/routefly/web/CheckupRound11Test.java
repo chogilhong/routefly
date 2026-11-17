@@ -284,4 +284,15 @@ public class CheckupRound11Test {
                 && read("src/main/webapp/party.html").contains("data-en=\"Leave room\">방 나가기<") && ko.contains("\"방 나가기\"") && en.contains("\"Leave room\""));
         assertFalse("예전 틀린 말", ko.contains("서버에는 이름 · 연락처처럼 개인을 알아볼 정보가 없어"));
     }
+
+    /** 산행을 끝냈는데 "산행 중" 알림이 남음(2026-11-17 홍TV님) - 감시 번호를 기기에 적어 화면을 열 때 · 시작 · 끝에 남은 것까지 끔. */
+    @Test
+    public void 끝낸_산행_알림_남지_않게() throws Exception {
+        String js = read("src/main/webapp/js/hike.js");
+        int stop = js.indexOf("function stopHike() {"), start = js.indexOf("var bgGen = hike.bgGen = (hike.bgGen || 0) + 1;");
+        assertTrue("화면을 열 때", js.contains("    bgStopAll();   // 화면이 막 열림"));
+        assertTrue("시작 전", js.indexOf("bgStopAll();", start) > start && js.indexOf("bgStopAll();", start) < js.indexOf("BG.addWatcher(", start));
+        assertTrue("번호 적기", js.contains("{ hike.bgWatch = id; bgSave([id]); }"));
+        assertTrue("끝낼 때", js.indexOf("bgStopAll();", stop) > stop && js.indexOf("bgStopAll();", stop) < js.indexOf("hikeFlag(false);", stop));
+    }
 }
