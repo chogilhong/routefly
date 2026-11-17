@@ -130,6 +130,8 @@ ul { margin:0; padding:0; list-style:none; }
 .cs li .board { flex-basis:100%; width:100%; margin-top:8px; }   /* 모양은 course-kit.css .rfBoardBox · .rf-board · .lv(산 페이지도 읽음 - 2026-10-16 겹침 정리) */
 /* 🕘 최근 본 산 · ⚖️ 코스 견주기(2026-10-16) */
 #recent { padding:4px 16px; }
+#season { padding:4px 16px; }   /* 🍁 단풍 때 등 철 칸 - 다른 접는 칸과 같은 높이(2026-11-17 홍TV님: 기본 section 14px 이라 위아래가 넓었음) */
+#season .fb { padding:4px 0 10px; }
 #recent .fb { padding:4px 0 10px; }
 .cs .go button.cmpBtn { min-height:44px; font-size:14.5px; padding:0 12px; border:1px solid var(--ln); border-radius:22px; background:none; color:var(--tx); cursor:pointer; }
 .cs .go button.cmpBtn.on { border-color:#ffb703; background:rgba(255,183,3,0.15); }

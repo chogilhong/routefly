@@ -309,6 +309,7 @@ public class CheckupRound11Test {
     @Test
     public void 타이드플라이_지역_순서() throws Exception {
         assertTrue(read("src/main/webapp/js/tidefly.js").contains("var AREAS = ['서해', '남해', '동해', '제주', '그 밖'];"));
+        assertTrue("철 칸 높이", read("src/main/webapp/css/mountain.css").contains("#season { padding:4px 16px; }"));
         assertTrue("머리 fly 연두(한 · 영)", read("src/main/webapp/tidefly.html").contains("🎣 tide<span class=\"fly\">fly</span>(출조)</h1>") && read("src/main/webapp/tidefly.html").contains("tide&lt;span class=&quot;fly&quot;&gt;fly&lt;/span&gt; (fishing trips)")
                 && read("src/main/webapp/css/tidefly.css").contains(".top h1 .fly { color: #8edc29; }"));
         assertTrue(read("src/main/java/com/gh/routefly/tidefly/TideflyServlet.java").contains("out.sort((a, b) -> Double.compare(b.get(\"lat\").getAsDouble(), a.get(\"lat\").getAsDouble()));"));
