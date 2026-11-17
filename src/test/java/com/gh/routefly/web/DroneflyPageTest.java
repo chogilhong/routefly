@@ -46,4 +46,14 @@ public class DroneflyPageTest {
         assertTrue("모드 · 한/EN · 가 차례", theme > 0 && lang > theme && size > lang);
         assertTrue(h.contains("<h1 data-en=\"Before you fly\">드론 비행 전 확인</h1>") && js.contains("save('tf-lang', lang)") && js.contains("save('tf-size', next)"));
     }
+
+    /** 허용구역 줄: 🗺 지도 · 🧭 길찾기(카카오맵) · 휴대폰이면 🚗 티맵 - 산 페이지와 같은 RF.tmapHref(2026-11-17 홍TV님 "길찾기, 티맵 연결해줘"). */
+    @Test
+    public void 허용구역_길찾기_티맵() throws Exception {
+        String h = read("src/main/webapp/dronefly.html"), js = read("src/main/webapp/js/dronefly.js");
+        assertTrue("kit-dronefly.js → dronefly.js 차례", h.indexOf("js/kit-dronefly.js\"></script>") > 0 && h.indexOf("js/kit-dronefly.js") < h.indexOf("js/dronefly.js\""));
+        assertTrue(read("src/main/webapp/js/kit-dronefly.js").contains("function tmapHref(name, lat, lon) {"));
+        assertTrue(js.contains("'https://map.kakao.com/link/to/' + nm + at") && js.contains("if (mobile && window.RF && window.RF.tmapHref) out.push([tr('🚗 티맵', '🚗 TMAP'), window.RF.tmapHref(u.name, u.lat, u.lon), false]);"));
+        assertTrue("테두리 잘 보이게", read("src/main/webapp/css/dronefly.css").contains(".uaList a { display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border: 1.5px solid #0b8fa0;"));
+    }
 }

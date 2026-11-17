@@ -25,7 +25,9 @@
 .notes { color: var(--dim); }
 .uaList { margin: 6px 0 0; padding-left: 22px; }
 .uaList li { margin: 6px 0; }
-.uaList a { display: inline-block; padding: 2px 8px; border: 1px solid var(--line); border-radius: 999px; text-decoration: none; color: var(--ink); font-size: .85rem; }
+.uaList .go { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 0; }
+.uaList a { display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border: 1.5px solid #0b8fa0; border-radius: 999px; background: rgba(56, 217, 234, .10); text-decoration: none; color: #0b6f7c; font-size: .85rem; font-weight: 700; }   /* 테두리가 잘 안 보였음(2026-11-17 홍TV님) - 하늘색 테두리 · 옅은 바탕 */
+:root:not([data-theme="light"]) .uaList a { border-color: #38d9ea; color: #38d9ea; }
 .dim { color: var(--dim); }
 .small { font-size: .85rem; margin: 0 0 8px; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }

@@ -166,6 +166,16 @@
     return { photo: $('photo').checked, heavy: $('heavy').checked, high: +$('alt').value >= 150 };
   }
 
+  var phone = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+
+  /** 허용구역 줄의 고리 [글, 주소, 새 창] - 지도 · 길찾기(카카오맵), 휴대폰이면 🚗 티맵(코스 모음 산 페이지와 같은 RF.tmapHref - 2026-11-17 홍TV님 "길찾기, 티맵 연결해줘"). 도착은 그 공역 경계의 가장 가까운 점. */
+  function uaLinks(u, mobile) {
+    var nm = encodeURIComponent(String(u.name).replace(/[,/?#&]/g, ' ').trim()), at = ',' + u.lat.toFixed(6) + ',' + u.lon.toFixed(6);
+    var out = [[tr('🗺 지도', '🗺 Map'), 'https://map.kakao.com/link/map/' + nm + at, true], [tr('🧭 길찾기', '🧭 Directions'), 'https://map.kakao.com/link/to/' + nm + at, true]];
+    if (mobile && window.RF && window.RF.tmapHref) out.push([tr('🚗 티맵', '🚗 TMAP'), window.RF.tmapHref(u.name, u.lat, u.lon), false]);
+    return out;
+  }
+
   function draw() {
     if (!data || !here) return;
     var zones = zonesAt(data, here.lat, here.lon), v = verdict(zones, opts());
@@ -178,7 +188,7 @@
     $('ua').hidden = false;
     $('uaList').innerHTML = nearUa(data, here.lat, here.lon, 5).map(function (u) {
       return '<li><b>' + esc(u.name) + '</b> <span class="dim">' + esc(tr(u.top + ' 까지', 'up to ' + u.top)) + '</span> · ' + (u.m === 0 ? tr('지금 안', 'you are in it') : dist(u.m))
-        + ' <a href="https://map.kakao.com/link/map/' + encodeURIComponent(u.name) + ',' + u.lat.toFixed(5) + ',' + u.lon.toFixed(5) + '" target="_blank" rel="noopener">' + tr('지도', 'Map') + '</a></li>';
+        + '<span class="go">' + uaLinks(u, phone).map(function (g) { return '<a href="' + esc(g[1]) + '"' + (g[2] ? ' target="_blank" rel="noopener"' : '') + '>' + g[0] + '</a>'; }).join('') + '</span></li>';
     }).join('');
     $('apply').hidden = false;
     $('applyOut').value = applyText({

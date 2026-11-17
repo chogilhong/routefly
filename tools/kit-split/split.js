@@ -26,7 +26,9 @@ var BUNDLES = [
     { out: "js/kit-hike.js", users: ["hike.html", "js/no-kakao.js", "js/early.js", "js/rf-dialog.js", "js/party-kit.js", "js/hike.js", "js/party-bar.js", "js/onboard.js", "js/sw-reg.js", "js/seen.js"] },
     { out: "js/kit-app.js", users: ["index.html", "js/root-go.js", "js/app.js", "js/sw-reg.js", "js/seen.js"] },
     // 2026-11-15 홍TV님 tidefly 카드 근처 숙소 "이런식으로 해줘" - 코스 모음 숙소 찾기(staySearch)를 그대로
-    { out: "js/kit-tidefly.js", users: ["tidefly.html", "js/tidefly.js"] }
+    { out: "js/kit-tidefly.js", users: ["tidefly.html", "js/tidefly.js"] },
+    // 2026-11-17 홍TV님 dronefly 허용구역 "길찾기, 티맵 연결해줘" - 티맵 고리(RF.tmapHref)를 그대로
+    { out: "js/kit-dronefly.js", users: ["dronefly.html", "js/dronefly.js"] }
 ];
 
 var HEAD = "/* 만든 파일 - 고치지 마세요. course-kit.js 를 고친 뒤 node tools/kit-split/split.js (이 화면이 쓰는 것만 남긴 course-kit) */\n";
