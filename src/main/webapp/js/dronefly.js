@@ -90,7 +90,7 @@
     if (zones.some(function (z) { return z.k === 'res'; })) notes.push(tr('단, 일부 비행제한구역은 25kg 이하 · 150m 미만 기체에 한해 예외가 적용될 수 있으니 드론원스톱에서 해당 구역의 세부 고시를 확인하세요.',
       'Note: some restricted areas allow an exception for aircraft of 25 kg or less below 150 m - check that area\'s details on Drone One-stop.'));
     // 항공촬영은 2022. 12. 1. 부터 "허가" 가 아니라 "사전 신청" - 지역책임부대가 촬영금지시설 유무를 알려 줌(2026-11-17 홍TV님이 보낸 드론원스톱 항공촬영 신청 안내)
-    if (o.photo) notes.push(tr('카메라로 찍으려면 항공촬영 사전 신청(평일 4일)을 따로 하세요(비행승인과 별개). 지역책임부대가 촬영금지시설 유무를 알려 주고, 그런 시설이 없는 개활지는 자유롭게 찍을 수 있습니다. 촬영금지시설이 찍힌 책임은 촬영한 사람에게 있습니다.',
+    if (o.photo) notes.push(tr('카메라로 찍으려면 항공촬영 사전 신청(근무일 기준 4일)을 따로 하세요(비행승인과 별개). 지역책임부대가 촬영금지시설 유무를 알려 주고, 그런 시설이 없는 개활지는 자유롭게 찍을 수 있습니다. 촬영금지시설이 찍힌 책임은 촬영한 사람에게 있습니다.',
       'To film, submit an aerial photography pre-application (4 working days) separately from flight approval. The local military unit tells you whether restricted facilities are there; open land without them can be filmed freely. You are responsible if restricted facilities are filmed.'));
     // P518 · R73 · R75 는 비행승인 신청 전 드론원스톱 공지사항을 보라고 함(같은 안내)
     if (zones.some(function (z) { return /^(RK )?P518|^R73$|^R75$/.test(z.l[0] || ''); })) notes.push(tr('P518 · R73 · R75 공역은 비행승인 신청 전 드론원스톱 공지사항을 확인하세요.', 'For P518 · R73 · R75, check the Drone One-stop notices before applying.'));
@@ -199,9 +199,9 @@
   function dueText(today, day, need, photo) {
     var n = workdays(today, day);
     if (n == null || (!need && !photo)) return null;
-    var want = photo ? 4 : 3, what = photo ? tr('항공촬영 사전 신청(평일 4일)', 'aerial photography pre-application (4 working days)') : tr('비행승인(평일 3일)', 'flight approval (3 working days)');
-    return n >= want ? { ok: true, text: tr('비행 날까지 평일 ' + n + '일 - ' + what + ' 처리 기간 안입니다. 공휴일은 따로 빼 보세요.', n + ' working days until the flight - within the ' + what + ' processing time. Public holidays are not counted out.') }
-      : { ok: false, text: tr('비행 날까지 평일 ' + n + '일 - ' + what + ' 처리에 모자랄 수 있습니다. 날짜를 늦추거나 바로 신청하세요.', 'Only ' + n + ' working days until the flight - may be too short for ' + what + '. Move the date or apply now.') };
+    var want = photo ? 4 : 3, what = photo ? tr('항공촬영 사전 신청(근무일 기준 4일)', 'aerial photography pre-application (4 working days)') : tr('비행승인(근무일 기준 3일)', 'flight approval (3 working days)');
+    return n >= want ? { ok: true, text: tr('비행 날까지 근무일 ' + n + '일 - ' + what + ' 처리 기간 안입니다. 토 · 일만 뺀 셈이라 공휴일은 따로 빼 보세요.', n + ' working days until the flight - within the ' + what + ' processing time. Public holidays are not counted out.') }
+      : { ok: false, text: tr('비행 날까지 근무일 ' + n + '일 - ' + what + ' 처리에 모자랄 수 있습니다. 날짜를 늦추거나 바로 신청하세요.', 'Only ' + n + ' working days until the flight - may be too short for ' + what + '. Move the date or apply now.') };
   }
 
   var SIZES = ['m', 'l', 'xl'];

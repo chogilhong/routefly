@@ -73,7 +73,9 @@ public class DroneflyPageTest {
     public void 드론원스톱_안내와_신청_기한() throws Exception {
         String h = read("src/main/webapp/dronefly.html"), js = read("src/main/webapp/js/dronefly.js");
         assertTrue(h.contains("과태료 150만원(1차 위반)") && h.contains("href=\"tel:111\"") && h.contains("href=\"tel:112\"") && h.contains("href=\"tel:1338\""));
-        assertTrue(h.contains("<th>비행승인</th><td data-en=\"3 days\">3일</td>") || h.contains("<th data-en=\"Flight approval\">비행승인</th><td data-en=\"3 days\">3일</td>"));
+        // 처리 기간은 "근무일 기준" 으로 표시(2026-11-17 홍TV님 "근무일 기준 이라고 표시 해줘")
+        assertTrue(h.contains("<th data-en=\"Flight approval\">비행승인</th><td data-en=\"3 days\">근무일 기준 3일</td>") && h.contains("근무일 기준 30일</td>") && !h.contains("평일"));
+        assertTrue(js.contains("tr('비행 날까지 근무일 ' + n + '일 - '") && !js.contains("tr('비행 날까지 평일"));
         assertTrue(js.contains("var want = photo ? 4 : 3"));
         assertTrue("이미 승인 필요 안이면 가장 가까운 공역 줄 뺌", js.contains("var ns = LEVEL[v.level] < LEVEL.need ? nearStrict(data, here.lat, here.lon) : null;"));
     }
