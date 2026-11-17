@@ -159,6 +159,17 @@
     ].join('\n');
   }
 
+  /** 순수 함수 - 공역 파일 → 지도용 GeoJSON(속성 kind: prh · res · ctr · tca · moa · ua, name). 위에 그릴 것이 나중에 오게 moa → ua → ctr · tca → res → prh. */
+  function toGeoJSON(data) {
+    var feats = [];
+    ['moa', 'ua', 'ctr', 'res', 'prh'].forEach(function (k) {
+      (data[k] || []).forEach(function (z) {
+        feats.push({ type: 'Feature', properties: { kind: k === 'ctr' && isTca(z.l[0]) ? 'tca' : k, name: z.l[0] }, geometry: { type: 'MultiPolygon', coordinates: z.g } });
+      });
+    });
+    return { type: 'FeatureCollection', features: feats };
+  }
+
   var SIZES = ['m', 'l', 'xl'];
   /** 순수 함수 - 글자 크기 다음 단계(보통 → 크게 → 아주 크게 → 보통) - 타이드플라이와 같음. */
   function nextSize(cur) {
@@ -166,7 +177,7 @@
     return SIZES[(i < 0 ? 1 : i + 1) % SIZES.length];
   }
 
-  var api = { nearStrict: nearStrict, setLang: setLang, nextSize: nextSize, inRing: inRing, inGeom: inGeom, isTca: isTca, zonesAt: zonesAt, levelOf: levelOf, zoneLine: zoneLine, verdict: verdict, meters: meters, nearest: nearest, nearUa: nearUa, dist: dist, applyText: applyText };
+  var api = { toGeoJSON: toGeoJSON, nearStrict: nearStrict, setLang: setLang, nextSize: nextSize, inRing: inRing, inGeom: inGeom, isTca: isTca, zonesAt: zonesAt, levelOf: levelOf, zoneLine: zoneLine, verdict: verdict, meters: meters, nearest: nearest, nearUa: nearUa, dist: dist, applyText: applyText };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
   root.DF = api;
 
@@ -215,8 +226,52 @@
     }, zones);
   }
 
-  function setHere(p) {
+  // ---- 지도(2026-11-17 홍TV님 "이 지도 좋은데" - 드론원스톱처럼 공역을 지도에, 누르면 그 자리 판정) ----
+  var map = null, mark = null, mapReady = false;
+  var COLOR = { prh: '#d93025', res: '#e8710a', ctr: '#5b8c6b', tca: '#5b8c6b', moa: '#c9a400', ua: '#e0559a' };
+  function colorExpr() {
+    var e = ['match', ['get', 'kind']];
+    Object.keys(COLOR).forEach(function (k) { e.push(k, COLOR[k]); });
+    e.push('#888');
+    return e;
+  }
+  function addAirspace() {
+    if (!map || !mapReady || !data || map.getSource('air')) return;
+    map.addSource('air', { type: 'geojson', data: toGeoJSON(data), attribution: tr('공역: 국토교통부 V-World', 'Airspace: V-World (Korea MOLIT)') });
+    map.addLayer({ id: 'air-fill', type: 'fill', source: 'air', paint: { 'fill-color': colorExpr(), 'fill-opacity': ['match', ['get', 'kind'], 'prh', 0.35, 'ua', 0.35, 'ctr', 0.22, 'tca', 0.08, 'res', 0.18, 0.06] } });
+    map.addLayer({ id: 'air-line', type: 'line', source: 'air', paint: { 'line-color': colorExpr(), 'line-width': ['match', ['get', 'kind'], 'prh', 2, 'ua', 2, 1.2],
+      'line-dasharray': ['match', ['get', 'kind'], 'moa', ['literal', [3, 2]], 'tca', ['literal', [2, 2]], ['literal', [1, 0]]] } });
+  }
+  function showOnMap(p, fly) {
+    if (!map) return;
+    if (!mark) {
+      var el = document.createElement('div');
+      el.className = 'here-dot';
+      mark = new maplibregl.Marker({ element: el }).setLngLat([p.lon, p.lat]).addTo(map);
+    } else mark.setLngLat([p.lon, p.lat]);
+    if (fly) map.flyTo({ center: [p.lon, p.lat], zoom: Math.max(map.getZoom(), 11) });
+  }
+  function initMap() {
+    if (!window.maplibregl || !window.RF || !window.RF.baseStyle) return;
+    fetch('api/map-config').then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; }).then(function (cfg) {
+      map = new maplibregl.Map({ container: 'map', style: window.RF.baseStyle(cfg || {}), center: [127.8, 36.3], zoom: 6, locale: window.RF.mapLocale(),
+        attributionControl: false, dragRotate: false, pitchWithRotate: false, touchPitch: false });
+      map.touchZoomRotate.disableRotation();
+      map.addControl(new maplibregl.AttributionControl({ compact: true }), 'top-right');
+      // 출처는 ⓘ 로 접어 둠(공원 · 따라가기 지도와 같게 - 지도를 가리지 않게, 누르면 늘 보임)
+      var fold = function () { var a = document.querySelector('.maplibregl-ctrl-attrib'); if (a) a.classList.remove('maplibregl-compact-show'); };
+      fold();
+      map.once('load', fold);
+      map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-left');
+      map.addControl(new maplibregl.ScaleControl({ maxWidth: 90 }), 'bottom-left');
+      map.once('load', function () { mapReady = true; addAirspace(); if (here) showOnMap(here, true); });
+      map.on('click', function (e) { setHere({ lat: e.lngLat.lat, lon: e.lngLat.lng }, true); });
+    });
+  }
+
+  function setHere(p, fromMap) {
     here = p;
+    showOnMap(p, !fromMap);
     $('state').textContent = '';
     if (!data) { $('state').textContent = tr('공역 자료를 받는 중…', 'Loading airspace data…'); return; }
     draw();
@@ -224,10 +279,12 @@
 
   function init() {
     // 기본 날짜는 내일(우리 시간) - 오늘로 두면 밤에 열었을 때 이미 지난 10:00 ~ 12:00 이 들어갔음(2026-11-17 PC)
+    initMap();
     $('date').value = new Date(Date.now() + 9 * 3600000 + 86400000).toISOString().slice(0, 10);
     fetch('data/drone-airspace.json').then(function (r) { return r.json(); }).then(function (d) {
       data = d;
       paintSrc();
+      addAirspace();
       if (here) draw();
     }).catch(function () { $('state').textContent = tr('공역 자료를 받지 못했습니다. 잠시 뒤 다시 열어 주세요.', 'Could not load the airspace data. Please reopen in a moment.'); });
 

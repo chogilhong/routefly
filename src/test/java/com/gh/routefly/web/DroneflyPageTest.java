@@ -56,4 +56,14 @@ public class DroneflyPageTest {
         assertTrue(js.contains("'https://map.kakao.com/link/to/' + nm + at") && js.contains("if (mobile && window.RF && window.RF.tmapHref) out.push([tr('🚗 티맵', '🚗 TMAP'), window.RF.tmapHref(u.name, u.lat, u.lon), false]);"));
         assertTrue("테두리 잘 보이게", read("src/main/webapp/css/dronefly.css").contains(".uaList a { display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border: 1.5px solid #0b8fa0;"));
     }
+
+    /** 공역 지도(2026-11-17 홍TV님 "이 지도 좋은데" → 3 · 4번): 우리 지도에 공역을 그리고 누르면 판정, 공식 지도로 한 번 더. */
+    @Test
+    public void 공역_지도와_공식_지도() throws Exception {
+        String h = read("src/main/webapp/dronefly.html"), js = read("src/main/webapp/js/dronefly.js");
+        assertTrue(h.contains("<div id=\"map\" class=\"dmap\"") && h.indexOf("vendor/maplibre-gl-5.24.0/maplibre-gl.js") < h.indexOf("js/dronefly.js\""));
+        assertTrue("4번 - 공식 지도", h.contains(">드론원스톱 공식 지도로 한 번 더 ›</a>"));
+        assertTrue("지도를 누르면 그 자리 판정", js.contains("map.on('click', function (e) { setHere({ lat: e.lngLat.lat, lon: e.lngLat.lng }, true); });"));
+        assertTrue("공역 출처", js.contains("tr('공역: 국토교통부 V-World', 'Airspace: V-World (Korea MOLIT)')"));
+    }
 }

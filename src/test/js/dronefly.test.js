@@ -63,6 +63,13 @@ const ns = DF.nearStrict(data, 37.49, 126.55);
 assert.deepStrictEqual([ns.z.k, ns.z.l[0], DF.dist(ns.m)], ['ctr', 'INCHEON', '1.0km']);
 assert.deepStrictEqual(DF.zonesAt(data, 37.49, 126.52).map(z => z.l[0]), ['INCHEON']);   // 하늘도시 서쪽(126.52)은 관제권 안
 
+// 지도용 GeoJSON - 공역 275개(금지 15 · 제한 84 · 관제권 53 · 군작전 75 · UA 48), 위에 그릴 금지가 맨 뒤, TCA 는 따로
+const gj = DF.toGeoJSON(data);
+assert.strictEqual(gj.features.length, 15 + 84 + 53 + 75 + 48);
+assert.strictEqual(gj.features[0].properties.kind, 'moa');
+assert.strictEqual(gj.features[gj.features.length - 1].properties.kind, 'prh');
+assert.strictEqual(gj.features.find(f => f.properties.name === 'POHANG TCA AREA A').properties.kind, 'tca');
+
 // 영어 화면(2026-11-17 홍TV님 "한/영, 가 도 넣어줘") - 신청 정리는 드론원스톱 한국어 칸용이라 늘 한국어
 DF.setLang('en');
 assert.strictEqual(DF.verdict(city, {}).head, 'Prohibited area - no flying without approval');

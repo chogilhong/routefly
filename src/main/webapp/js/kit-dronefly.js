@@ -27,6 +27,8 @@
             o.label = w.label; o.act = w.act; o.sos = w.sos;
         });
     }
+    /** 지금 말로 고르기 - tr("출발", "Start"). */
+    function tr(ko, en) { return LANG === "en" ? en : ko; }
     /**
      * 순수 함수 - 티맵 앱 길안내 링크(2026-11-08 홍TV님 "작업해" - 차로 들머리 · 주차장에 가는 분이 많이 씀). 출발은 티맵이 폰의 지금 위치로 잡음(우리 서버로 위치가 가지 않음).
      * 형식은 티맵 공식 문서가 아니라 개발 글들로 찾은 것(X 가 경도, Y 가 위도):
@@ -36,6 +38,30 @@
     function tmapHref(name, lat, lon) {
         var nm = encodeURIComponent(String(name || "").trim() || "목적지"), x = (+lon).toFixed(6), y = (+lat).toFixed(6);
         return "tmap://route?referrer=com.skt.Tmap&goalx=" + x + "&goaly=" + y + "&goalname=" + nm + "&rGoName=" + nm + "&rGoX=" + x + "&rGoY=" + y;
+    }
+
+    /**
+     * 안내도(탐방 안내도 park.html · 노선 안내도 route.html) 바탕 지도 - V-World 지도(위성은 숨겨 둠) + 지형 음영, 키가 없으면 음영만.
+     * c: {demUrl, vworldKey} (/api/map-config).
+     */
+    function baseStyle(c) {
+        // V-World 지도 위 옅은 음영만이라 지형은 z12 까지(더 가까이는 늘려 씀 - 2026-11-02 홍TV님 점검: z15 까지 받던 타일). 키가 없어 음영이 바탕 전부면 z15
+        var dem = { type: "raster-dem", tiles: [c.demUrl], encoding: "terrarium", tileSize: 256, maxzoom: c.vworldKey ? 12 : 15, attribution: tr("지형: ", "Terrain: ") + "Terrain Tiles (AWS Open Data)" };
+        var sources = { hillshade: dem }, layers = [{ id: "bg", type: "background", paint: { "background-color": c.vworldKey ? "#1b2430" : "#dcd6c6" } }];
+        if (c.vworldKey) {
+            var key = encodeURIComponent(c.vworldKey);
+            sources.sat = { type: "raster", tileSize: 256, minzoom: 6, maxzoom: 19, attribution: tr("위성사진: 국토교통부 V-World", "Satellite: V-World (Korea MOLIT)"),
+                tiles: ["https://api.vworld.kr/req/wmts/1.0.0/" + key + "/Satellite/{z}/{y}/{x}.jpeg"] };
+            sources.base = { type: "raster", tileSize: 256, minzoom: 6, maxzoom: 19, attribution: tr("지도: 국토교통부 V-World", "Map: V-World (Korea MOLIT)"),
+                tiles: ["https://api.vworld.kr/req/wmts/1.0.0/" + key + "/Base/{z}/{y}/{x}.png"] };
+            layers.push({ id: "sat", type: "raster", source: "sat", layout: { visibility: "none" } });
+            layers.push({ id: "base", type: "raster", source: "base" });
+            layers.push({ id: "hillshade", type: "hillshade", source: "hillshade", minzoom: 9, paint: { "hillshade-exaggeration": 0.3 } });
+        } else {
+            layers.push({ id: "hillshade", type: "hillshade", source: "hillshade",
+                paint: { "hillshade-exaggeration": 0.65, "hillshade-shadow-color": "#3d4a3a", "hillshade-highlight-color": "#fbf7ea" } });
+        }
+        return { version: 8, sources: sources, layers: layers };
     }
 
     /**
@@ -82,7 +108,24 @@
     if (global.addEventListener && global.navigator && /Android/i.test(navigator.userAgent || "") && !global.Capacitor)
         global.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); });
 
+    /**
+     * MapLibre 지도 단추 글(확대 · 축소 · 북쪽 · 출처 · 내 위치) - 한국어 화면은 한국어(2026-11-03 홍TV님 점검: 한국어 화면에 "Zoom in" 이 나왔음).
+     * 영어 화면은 undefined(MapLibre 기본 영어). new maplibregl.Map({ locale: RF.mapLocale() }).
+     */
+    function mapLocale() {
+        if (LANG === "en") return undefined;
+        return { "AttributionControl.ToggleAttribution": "출처 보기 · 접기", "AttributionControl.MapFeedback": "지도 의견",
+                 "FullscreenControl.Enter": "전체 화면", "FullscreenControl.Exit": "전체 화면 끝내기",
+                 "GeolocateControl.FindMyLocation": "내 위치 찾기", "GeolocateControl.LocationNotAvailable": "위치를 알 수 없음",
+                 "LogoControl.Title": "MapLibre 로고", "Marker.Title": "지도 표시",   // 이름을 안 붙인 표시는 "Map marker" 대신
+                 "NavigationControl.ResetBearing": "끌면 지도 돌리기, 누르면 북쪽을 위로",
+                 "NavigationControl.ZoomIn": "확대", "NavigationControl.ZoomOut": "축소",
+                 "TerrainControl.Enable": "지형 켜기", "TerrainControl.Disable": "지형 끄기" };
+    }
+
     global.RF = {
-        tmapHref: tmapHref
+        baseStyle: baseStyle,
+        tmapHref: tmapHref,
+        mapLocale: mapLocale
     };
 })(window);

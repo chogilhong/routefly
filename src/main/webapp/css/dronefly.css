@@ -39,6 +39,16 @@
 .btn { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--ink); font-size: .95rem; text-decoration: none; cursor: pointer; }
 .btn.go { border: 2px dashed #38d9ea; color: #0b8fa0; font-weight: 700; }
 :root:not([data-theme="light"]) .btn.go { color: #38d9ea; }
+.dmap { height: 340px; margin: -2px -4px 8px; border-radius: 10px; overflow: hidden; background: #1b2430; }
+.legend2 { display: flex; flex-wrap: wrap; gap: 4px 12px; list-style: none; margin: 0 0 6px; padding: 0; font-size: .85rem; }
+.legend2 li { display: inline-flex; align-items: center; gap: 5px; }
+.sw { display: inline-block; width: 14px; height: 14px; border-radius: 3px; border: 2px solid; }
+.sw.prh { border-color: #d93025; background: rgba(217, 48, 37, .35); }
+.sw.res { border-color: #e8710a; background: rgba(232, 113, 10, .25); }
+.sw.ctr { border-color: #5b8c6b; background: rgba(91, 140, 107, .30); }
+.sw.moa { border-color: #c9a400; background: rgba(201, 164, 0, .12); border-style: dashed; }
+.sw.ua { border-color: #e0559a; background: rgba(224, 85, 154, .35); }
+.here-dot { width: 18px; height: 18px; border-radius: 50%; background: #38d9ea; border: 3px solid #fff; box-shadow: 0 0 0 2px #0b8fa0; }
 .foot { margin: 16px auto 24px; font-size: .8rem; color: var(--dim); }
 .foot a { color: inherit; }
 .top .tfLogo .ic .dIc { display: block; width: 2.6rem; height: 2.6rem; }   /* 쿼드콥터 그림(드론 이모지가 없어 img/dronefly.svg) */
