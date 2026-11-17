@@ -315,4 +315,11 @@ public class CheckupRound11Test {
                 && read("src/main/webapp/css/tidefly.css").contains("background: linear-gradient(135deg, #65c926, #078b4a); -webkit-background-clip: text;"));
         assertTrue(read("src/main/java/com/gh/routefly/tidefly/TideflyServlet.java").contains("out.sort((a, b) -> Double.compare(b.get(\"lat\").getAsDouble(), a.get(\"lat\").getAsDouble()));"));
     }
+
+    /** 타이드플라이 찾기(2026-11-17 홍TV님 "찾기 단추 있고 없고 차이는" → "그렇게 해줘"): 단추 없이, 폰 자판 검색(Enter)이면 바로 그리고 자판을 내림. */
+    @Test
+    public void 타이드플라이_찾기_엔터면_자판_내림() throws Exception {
+        assertTrue(read("src/main/webapp/tidefly.html").contains("autocomplete=\"off\" enterkeyhint=\"search\">"));
+        assertTrue(read("src/main/webapp/js/tidefly.js").contains("if (e.key !== 'Enter' || e.isComposing) return;\n    e.preventDefault(); clearTimeout(typing); draw(); qEl.blur();"));
+    }
 }
