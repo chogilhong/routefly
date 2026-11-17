@@ -42,11 +42,18 @@ public final class DroneProbe {
             String k = RouteflyConfig.get(name);
             if (k == null || k.isBlank()) { System.out.println(name + " - 비어 있음"); continue; }
             // 서비스 URL 이 "https://routefly.kr" 로 등록돼 있어(2026-11-17 홍TV님 화면) 도메인을 https:// 붙여서도 해 봄
-            for (String d : domain == null ? new String[] {null} : new String[] {domain, "https://" + domain, null}) {
+            // 2026-11-17 PC: site.baseUrl 에서 호스트를 못 얻어 domain 을 한 번도 안 보냈음 - 브이월드에 등록한 서비스 URL(https://routefly.kr)을 고정으로도 해 봄
+            java.util.LinkedHashSet<String> ds = new java.util.LinkedHashSet<>();
+            if (domain != null) { ds.add(domain); ds.add("https://" + domain); }
+            ds.add("routefly.kr");
+            ds.add("https://routefly.kr");
+            ds.add("");
+            for (String d0 : ds) {
+                String d = d0.isEmpty() ? null : d0;
                 String a = "&key=" + URLEncoder.encode(k, StandardCharsets.UTF_8) + (d != null ? "&domain=" + URLEncoder.encode(d, StandardCharsets.UTF_8) : "");
-                Path to = dir.resolve("try-" + name.replace('.', '_') + "-" + (d == null ? "nodomain" : d.startsWith("https://") ? "httpsdomain" : "domain") + ".json");
+                Path to = dir.resolve("try-" + name.replace('.', '_') + "-" + (d == null ? "nodomain" : d.replace("https://", "https_").replace('.', '_')) + ".json");
                 KmaSeasonProbe.save(to, data("lt_c_aisprhc", "POINT(126.9780 37.5665)") + a, k);
-                if (auth == null && !java.nio.file.Files.readString(to).contains("\"status\":\"ERROR\"")) { key = k; auth = a; }
+                if (auth == null && ok(java.nio.file.Files.readString(to))) { key = k; auth = a; System.out.println("  → 되는 짝: " + name + " · domain=" + d); }
             }
         }
         if (auth == null) {
@@ -62,6 +69,11 @@ public final class DroneProbe {
                 KmaSeasonProbe.save(dir.resolve("data-" + layer + "-pt-" + p[0] + "_" + p[1] + ".json"), data(layer, "POINT(" + p[0] + " " + p[1] + ")") + auth, key);
         KmaSeasonProbe.save(dir.resolve("wfs-lt_c_aisprhc-kr.json"), "https://api.vworld.kr/req/wfs?service=WFS&version=1.1.0&request=GetFeature&typename=lt_c_aisprhc"
                 + "&bbox=33.0,124.0,39.0,132.0&srsname=EPSG:4326&output=application/json" + auth, key);
+    }
+
+    /** 순수 함수 - 받은 글이 정상인가: status 가 OK 일 때만(2026-11-17 PC: V-World 는 "status" : "ERROR" 처럼 콜론 앞뒤에 빈칸 - 빈칸 무시). */
+    static boolean ok(String body) {
+        return java.util.regex.Pattern.compile("\"status\"\\s*:\\s*\"OK\"").matcher(body).find();
     }
 
     /** 순수 함수 - 2D 데이터 API 주소(키 · 도메인 빼고). geom - BOX(…) 또는 POINT(경도 위도). */
