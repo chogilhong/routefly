@@ -247,6 +247,25 @@
       : { ok: false, text: tr('비행 날까지 근무일 ' + n + '일 - ' + what + ' 처리에 모자랄 수 있습니다. 날짜를 늦추거나 바로 신청하세요.', 'Only ' + n + ' working days until the flight - may be too short for ' + what + '. Move the date or apply now.') };
   }
 
+  /** 순수 함수 - 자리가 든 고정 격자 칸 [서, 남, 동, 북](0.1°, 약 10km - /api/heritage 가 받는 칸, 모든 사용자에게 같은 칸). */
+  function heritageCell(lat, lon) {
+    var w = Math.floor(lon * 10 + 1e-9) / 10, s = Math.floor(lat * 10 + 1e-9) / 10;
+    return [w, s, Math.round((w + 0.1) * 10) / 10, Math.round((s + 0.1) * 10) / 10];
+  }
+
+  /** 순수 함수 - 문화재보호구역 안내 줄들(판정에는 넣지 않음 - 드론원스톱과 같게). her - /api/heritage 답. */
+  function heritageNotes(her, lat, lon) {
+    if (!her || !her.zones) return [];
+    var hits = her.zones.filter(function (z) { return inGeom(lon, lat, z.g); }), out = [];
+    if (hits.length) {
+      var z = hits[0].l;
+      out.push(tr('문화재보호구역(' + [z[0], z[1], z[2]].filter(Boolean).join(' · ') + ') 안입니다 - 문화유산법 제35조에 따라 관리자와 사전 협의하세요(비행승인과 별개).',
+        'Inside a cultural heritage protection zone (' + [z[0], z[1], z[2]].filter(Boolean).join(' · ') + ') - consult the manager in advance under the Cultural Heritage Act art. 35 (apart from flight approval).'));
+    }
+    if (her.partial) out.push(tr('이 둘레는 문화재 구역이 많아 일부만 확인했습니다. 드론원스톱 지도로 한 번 더 보세요.', 'There are many heritage zones around here and only some were checked. Check again on the Drone One-stop map.'));
+    return out;
+  }
+
   var SIZES = ['m', 'l', 'xl'];
   /** 순수 함수 - 글자 크기 다음 단계(보통 → 크게 → 아주 크게 → 보통) - 타이드플라이와 같음. */
   function nextSize(cur) {
@@ -254,7 +273,7 @@
     return SIZES[(i < 0 ? 1 : i + 1) % SIZES.length];
   }
 
-  var api = { shootText: shootText, tmpState: tmpState, firstDay: firstDay, workdays: workdays, dueText: dueText, toGeoJSON: toGeoJSON, nearStrict: nearStrict, setLang: setLang, nextSize: nextSize, inRing: inRing, inGeom: inGeom, isTca: isTca, zonesAt: zonesAt, levelOf: levelOf, zoneLine: zoneLine, verdict: verdict, meters: meters, nearest: nearest, nearUa: nearUa, dist: dist, applyText: applyText };
+  var api = { heritageCell: heritageCell, heritageNotes: heritageNotes, shootText: shootText, tmpState: tmpState, firstDay: firstDay, workdays: workdays, dueText: dueText, toGeoJSON: toGeoJSON, nearStrict: nearStrict, setLang: setLang, nextSize: nextSize, inRing: inRing, inGeom: inGeom, isTca: isTca, zonesAt: zonesAt, levelOf: levelOf, zoneLine: zoneLine, verdict: verdict, meters: meters, nearest: nearest, nearUa: nearUa, dist: dist, applyText: applyText };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
   root.DF = api;
 
@@ -291,6 +310,8 @@
     // 이미 승인 필요 · 금지 안이면 다른 공역 거리는 헷갈려 뺌(2026-11-17 PC: P73A 안인데 "김포 관제권 6.5km" 줄)
     var ns = LEVEL[v.level] < LEVEL.need ? nearStrict(data, here.lat, here.lon) : null;
     if (ns) $('zones').insertAdjacentHTML('beforeend', '<li class="near">' + esc(tr('가장 가까운 승인 필요 공역: ' + zoneLine(ns.z) + ' - 경계까지 ' + dist(ns.m), 'Nearest airspace needing approval: ' + zoneLine(ns.z) + ' - ' + dist(ns.m) + ' to its edge')) + '</li>');
+    var her = heritageFor(here.lat, here.lon);
+    heritageNotes(her, here.lat, here.lon).forEach(function (n) { v.notes.unshift(n); });
     $('notes').innerHTML = v.notes.map(function (l) { return '<li>' + esc(l) + '</li>'; }).join('');
     $('ua').hidden = false;
     $('uaList').innerHTML = nearUa(data, here.lat, here.lon, 5).map(function (u) {
@@ -314,6 +335,34 @@
     $('shootDue').hidden = !sd;
     if (sd) { $('shootDue').textContent = sd.text; $('shootDue').className = 'due' + (sd.ok ? ' ok' : ''); }
     $('shootOut').value = shootText(f, zones);
+  }
+
+  // ---- 문화재보호구역(2026-11-17 홍TV님 "문화재보호구역도 넣어줘") - 약 10km 고정 칸마다 서버(/api/heritage)에 묻고 칸 안 셈은 폰이 ----
+  var herCache = {}, herWait = {};
+  function heritageFor(lat, lon) {
+    var c = heritageCell(lat, lon), key = c.join(',');
+    if (herCache[key]) return herCache[key];
+    if (!herWait[key]) {
+      herWait[key] = true;
+      fetch('api/heritage?w=' + c[0] + '&s=' + c[1] + '&e=' + c[2] + '&n=' + c[3]).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+        herWait[key] = false;
+        if (!d || d.unavailable) return;
+        herCache[key] = d;
+        showHeritage();
+        if (here && heritageCell(here.lat, here.lon).join(',') === key) draw();
+      }).catch(function () { herWait[key] = false; });
+    }
+    return null;
+  }
+  function showHeritage() {
+    if (!map || !mapReady) return;
+    var feats = [];
+    Object.keys(herCache).forEach(function (k) { (herCache[k].zones || []).forEach(function (z) { feats.push({ type: 'Feature', properties: {}, geometry: { type: 'MultiPolygon', coordinates: z.g } }); }); });
+    var fc = { type: 'FeatureCollection', features: feats };
+    if (map.getSource('her')) { map.getSource('her').setData(fc); return; }
+    map.addSource('her', { type: 'geojson', data: fc, attribution: tr('문화재보호구역: 국토교통부 V-World', 'Heritage zones: V-World (Korea MOLIT)') });
+    map.addLayer({ id: 'her-fill', type: 'fill', source: 'her', paint: { 'fill-color': '#2e9e44', 'fill-opacity': 0.18 } });
+    map.addLayer({ id: 'her-line', type: 'line', source: 'her', paint: { 'line-color': '#2e9e44', 'line-width': 1.5 } });
   }
 
   // ---- 지도(2026-11-17 홍TV님 "이 지도 좋은데" - 드론원스톱처럼 공역을 지도에, 누르면 그 자리 판정) ----
@@ -354,7 +403,7 @@
       map.once('load', fold);
       map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-left');
       map.addControl(new maplibregl.ScaleControl({ maxWidth: 90 }), 'bottom-left');
-      map.once('load', function () { mapReady = true; addAirspace(); if (here) showOnMap(here, true); });
+      map.once('load', function () { mapReady = true; addAirspace(); showHeritage(); if (here) showOnMap(here, true); });
       map.on('click', function (e) { setHere({ lat: e.lngLat.lat, lon: e.lngLat.lng }, true); });
     });
   }

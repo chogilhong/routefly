@@ -57,6 +57,7 @@ details.fold > summary h2 { margin: 0; }
 .sw { display: inline-block; width: 14px; height: 14px; border-radius: 3px; border: 2px solid; }
 .sw.tmp { border-color: #8e24aa; background: rgba(142, 36, 170, .35); }
 .sw.port { border-color: #b3261e; background: rgba(179, 38, 30, .3); }
+.sw.her { border-color: #2e9e44; background: rgba(46, 158, 68, .18); }
 .sw.prh { border-color: #d93025; background: rgba(217, 48, 37, .35); }
 .sw.res { border-color: #e8710a; background: rgba(232, 113, 10, .25); }
 .sw.ctr { border-color: #5b8c6b; background: rgba(91, 140, 107, .30); }

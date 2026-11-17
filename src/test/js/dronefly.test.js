@@ -116,6 +116,18 @@ const st = DF.shootText({ place: '서울시청', lat: 37.5665, lon: 126.978, rad
 assert.ok(st.startsWith('[항공촬영 사전 신청 정리 - dronefly]\n촬영구역: 서울시청 (위도 37.56650, 경도 126.97800) 반경 500m\n촬영 고도: 100m') && st.includes('촬영 대상: 도심 풍경') && st.includes('※ 사전 신청(허가 아님)'));
 assert.ok(DF.shootText({ place: 'x', lat: 37, lon: 127, radius: '1', alt: '1', date: 'd', from: 'a', to: 'b', purpose: 'p', weight: 'w', what: ' ' }, []).includes('촬영 대상: (적어 넣기)'));
 
+// 문화재보호구역 - 고정 칸(0.1°)과 안내 줄(2026-11-17 PC 가 받은 lt_c_uo301 WFS 1000곳)
+assert.deepStrictEqual(DF.heritageCell(37.5665, 126.978), [126.9, 37.5, 127, 37.6]);
+assert.deepStrictEqual(DF.heritageCell(37.5, 126.9), [126.9, 37.5, 127, 37.6]);
+const uo = JSON.parse(fs.readFileSync(__dirname + '/../resources/drone/wfs-lt_c_uo301-kr.json', 'utf8'));
+const her = { zones: uo.features.map(f => ({ l: [f.properties.uname, f.properties.sido_name, f.properties.sigg_name], g: f.geometry.coordinates })) };
+const hz = her.zones[0], hr = hz.g[0][0], hc = hr.reduce((a, p) => [a[0] + p[0] / hr.length, a[1] + p[1] / hr.length], [0, 0]);
+const hn = DF.heritageNotes(her, hc[1], hc[0]);
+assert.ok(hn.length >= 1 && hn[0].startsWith('문화재보호구역(') && hn[0].includes('문화유산법 제35조'), hn.join('|'));
+assert.deepStrictEqual(DF.heritageNotes(her, 37.5665, 126.978), []);   // 받은 1000곳은 대부분 전북 - 서울시청은 없음
+assert.ok(DF.heritageNotes({ zones: [], partial: true }, 37, 127)[0].startsWith('이 둘레는 문화재 구역이 많아 일부만'));
+assert.deepStrictEqual(DF.heritageNotes(null, 37, 127), []);
+
 // 영어 화면(2026-11-17 홍TV님 "한/영, 가 도 넣어줘") - 신청 정리는 드론원스톱 한국어 칸용이라 늘 한국어
 DF.setLang('en');
 assert.strictEqual(DF.verdict(city, {}).head, 'Prohibited area - no flying without approval');
