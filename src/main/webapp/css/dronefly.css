@@ -23,6 +23,7 @@
 .result.ok .head::before { content: "🟢 "; }
 .zones, .notes { margin: 4px 0 0; padding-left: 20px; font-size: .92rem; }
 .notes { color: var(--dim); }
+.zones .near { color: #e8710a; font-weight: 700; }   /* 경계 바로 밖에서 초록만 보이지 않게(2026-11-17 영종도) */
 .uaList { margin: 6px 0 0; padding-left: 22px; }
 .uaList li { margin: 6px 0; }
 .uaList .go { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 0; }

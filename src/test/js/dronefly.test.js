@@ -57,6 +57,12 @@ assert.strictEqual(DF.dist(2345), '2.3km');
 assert.ok(Math.abs(DF.meters(37.5, 127, 37.5, 127.01) - 883) < 5);
 const t = DF.applyText({ place: '서울시청', lat: 37.5665, lon: 126.978, radius: '500', alt: '100', date: '2026-11-20', from: '10:00', to: '12:00', purpose: '취미 · 레저', photo: true, weight: '25kg 이하' }, city);
 assert.ok(t.includes('비행 장소: 서울시청 (위도 37.56650, 경도 126.97800)') && t.includes('항공촬영 있음') && t.includes('걸린 공역: 비행금지구역 RK P73A (GND ~ UNL) / 비행제한구역 R75 (SFC ~ 10 000 AMSL)'));
+// 영종 하늘도시 쪽(경도 126.55) - 인천 관제권(공항에서 약 9.2km 원) 바로 밖: 걸린 공역 없음, 가장 가까운 승인 필요 공역은 인천 관제권 경계 약 1.0km(2026-11-17 홍TV님)
+assert.deepStrictEqual(DF.zonesAt(data, 37.49, 126.55), []);
+const ns = DF.nearStrict(data, 37.49, 126.55);
+assert.deepStrictEqual([ns.z.k, ns.z.l[0], DF.dist(ns.m)], ['ctr', 'INCHEON', '1.0km']);
+assert.deepStrictEqual(DF.zonesAt(data, 37.49, 126.52).map(z => z.l[0]), ['INCHEON']);   // 하늘도시 서쪽(126.52)은 관제권 안
+
 // 영어 화면(2026-11-17 홍TV님 "한/영, 가 도 넣어줘") - 신청 정리는 드론원스톱 한국어 칸용이라 늘 한국어
 DF.setLang('en');
 assert.strictEqual(DF.verdict(city, {}).head, 'Prohibited area - no flying without approval');

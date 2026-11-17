@@ -125,6 +125,22 @@
     }).sort(function (a, b) { return a.m - b.m; }).slice(0, n);
   }
 
+  /**
+   * 순수 함수 - 지금 자리 밖의 가장 가까운 "승인이 필요한" 공역(비행금지 · 비행제한 · 관제권, TCA 빼고) {z: {k, l}, m} 또는 null.
+   * 2026-11-17 홍TV님 "영종도 내 위치가 비행장이 있어서 금지구역 아니야?" - 인천 관제권 경계(공항에서 약 9.2km) 바로 밖에서 초록만 떠 헷갈렸음.
+   */
+  function nearStrict(data, lat, lon) {
+    var best = null;
+    ['prh', 'res', 'ctr'].forEach(function (k) {
+      (data[k] || []).forEach(function (z) {
+        if (k === 'ctr' && isTca(z.l[0])) return;
+        var p = nearest(lat, lon, z.g);
+        if (p.m > 0 && (!best || p.m < best.m)) best = { z: { k: k, l: z.l }, m: p.m };
+      });
+    });
+    return best;
+  }
+
   /** 순수 함수 - 거리 글 "850m" · "12.3km". */
   function dist(m) {
     return m < 1000 ? Math.round(m) + 'm' : (m / 1000).toFixed(m < 10000 ? 1 : 0) + 'km';
@@ -150,7 +166,7 @@
     return SIZES[(i < 0 ? 1 : i + 1) % SIZES.length];
   }
 
-  var api = { setLang: setLang, nextSize: nextSize, inRing: inRing, inGeom: inGeom, isTca: isTca, zonesAt: zonesAt, levelOf: levelOf, zoneLine: zoneLine, verdict: verdict, meters: meters, nearest: nearest, nearUa: nearUa, dist: dist, applyText: applyText };
+  var api = { nearStrict: nearStrict, setLang: setLang, nextSize: nextSize, inRing: inRing, inGeom: inGeom, isTca: isTca, zonesAt: zonesAt, levelOf: levelOf, zoneLine: zoneLine, verdict: verdict, meters: meters, nearest: nearest, nearUa: nearUa, dist: dist, applyText: applyText };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
   root.DF = api;
 
@@ -184,6 +200,8 @@
     $('place').textContent = here.me ? tr('📍 내 위치', '📍 My location') : here.name || (tr('위도 ', 'lat ') + here.lat.toFixed(5) + tr(', 경도 ', ', lon ') + here.lon.toFixed(5));
     $('head').textContent = v.head;
     $('zones').innerHTML = v.lines.length ? v.lines.map(function (l) { return '<li>' + esc(l) + '</li>'; }).join('') : '<li>' + tr('걸린 공역 없음(비행금지 · 제한 · 관제권 · 군작전 · UA 밖)', 'No listed airspace here (outside prohibited · restricted · control zone · MOA · UA)') + '</li>';
+    var ns = nearStrict(data, here.lat, here.lon);
+    if (ns) $('zones').insertAdjacentHTML('beforeend', '<li class="near">' + esc(tr('가장 가까운 승인 필요 공역: ' + zoneLine(ns.z) + ' - 경계까지 ' + dist(ns.m), 'Nearest airspace needing approval: ' + zoneLine(ns.z) + ' - ' + dist(ns.m) + ' to its edge')) + '</li>');
     $('notes').innerHTML = v.notes.map(function (l) { return '<li>' + esc(l) + '</li>'; }).join('');
     $('ua').hidden = false;
     $('uaList').innerHTML = nearUa(data, here.lat, here.lon, 5).map(function (u) {
