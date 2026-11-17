@@ -1,0 +1,1 @@
+{"response" : {"service" : {"name" : "data", "version" : "2.0", "operation" : "GetFeature", "time" : "1(ms)"}, "status" : "ERROR", "error" : {"level" : "2", "code" : "INCORRECT_KEY", "text" : "인증키 정보가 올바르지 않습니다."}}}
