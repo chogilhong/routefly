@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><!-- dronefly 쿼드콥터(2026-11-17 홍TV님 "헬리콥터잖아. 드론으로") - 웹 Claude 가 그림 -->
+<g stroke="#9aa6b4" stroke-width="4" stroke-linecap="round"><line x1="22" y1="26" x2="11" y2="15"/><line x1="42" y1="26" x2="53" y2="15"/><line x1="22" y1="38" x2="11" y2="49"/><line x1="42" y1="38" x2="53" y2="49"/></g>
+<g fill="#38d9ea" fill-opacity=".35" stroke="#38d9ea" stroke-width="2"><ellipse cx="11" cy="15" rx="10" ry="3.5"/><ellipse cx="53" cy="15" rx="10" ry="3.5"/><ellipse cx="11" cy="49" rx="10" ry="3.5"/><ellipse cx="53" cy="49" rx="10" ry="3.5"/></g>
+<g fill="#e9eef4"><circle cx="11" cy="15" r="2.5"/><circle cx="53" cy="15" r="2.5"/><circle cx="11" cy="49" r="2.5"/><circle cx="53" cy="49" r="2.5"/></g>
+<rect x="20" y="23" width="24" height="18" rx="6" fill="#e9eef4"/>
+<rect x="26" y="28" width="12" height="8" rx="3" fill="#65c926"/>
+<circle cx="32" cy="45" r="4" fill="#2b3440" stroke="#e9eef4" stroke-width="2"/>
+</svg>

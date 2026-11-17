@@ -1,5 +1,5 @@
 /*
- * 🚁 dronefly(드론) - 2026-11-17 홍TV님 "타이드플라이 바로 아래에 드론을 넣고 드론 관련 정보를"(홍TV님은 드론 교관 자격).
+ * dronefly(드론) - 2026-11-17 홍TV님 "타이드플라이 바로 아래에 드론을 넣고 드론 관련 정보를"(홍TV님은 드론 교관 자격).
  * 규칙 · 자료는 docs/dronefly/README.md. 공역은 data/drone-airspace.json(브이월드 항공 레이어)을 받아 폰 안에서만 셈 - 위치를 서버로 보내지 않음.
  * 순수 함수는 src/test/js/dronefly.test.js 가 node 로 돌림(DroneflyJsTest).
  */
@@ -178,8 +178,8 @@
   }
 
   function init() {
-    var today = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
-    $('date').value = today;
+    // 기본 날짜는 내일(우리 시간) - 오늘로 두면 밤에 열었을 때 이미 지난 10:00 ~ 12:00 이 들어갔음(2026-11-17 PC)
+    $('date').value = new Date(Date.now() + 9 * 3600000 + 86400000).toISOString().slice(0, 10);
     fetch('data/drone-airspace.json').then(function (r) { return r.json(); }).then(function (d) {
       data = d;
       $('srcDate').textContent = d.src + ', ' + d.date + ' 받음';

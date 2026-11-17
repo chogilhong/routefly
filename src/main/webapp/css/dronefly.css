@@ -1,4 +1,4 @@
-/* 🚁 dronefly(2026-11-17) - 바탕 · 머리는 tidefly.css 를 같이 씀 */
+/* dronefly(2026-11-17) - 바탕 · 머리는 tidefly.css 를 같이 씀 */
 .dcard { margin: 12px 0 0; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
 .dcard h2 { margin: 0 0 4px; font-size: 1.05rem; }
 .dpick .near-btn { display: flex; justify-content: center; width: 100%; }
@@ -38,3 +38,4 @@
 :root:not([data-theme="light"]) .btn.go { color: #38d9ea; }
 .foot { margin: 16px auto 24px; font-size: .8rem; color: var(--dim); }
 .foot a { color: inherit; }
+.top .tfLogo .ic .dIc { display: block; width: 2.6rem; height: 2.6rem; }   /* 쿼드콥터 그림(드론 이모지가 없어 img/dronefly.svg) */

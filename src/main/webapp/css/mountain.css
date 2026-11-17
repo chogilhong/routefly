@@ -261,3 +261,5 @@ ol.ms { margin:0; padding:0; list-style:none; }
 .season .wl li { margin:4px 0; }
 .season .now, #season .now { color:var(--sky); font-size:13px; }
 #season ol.ms span { display:inline-block; font-size:14px; padding:6px 11px; border:1px dashed var(--ln); border-radius:16px; }
+/* dronefly 줄의 쿼드콥터 그림(2026-11-17 - 🚁 는 헬리콥터) */
+.kindLink .dIc { width:1.25em; height:1.25em; vertical-align:-0.22em; }

@@ -1208,9 +1208,9 @@ public class MountainServlet extends HttpServlet {
                 + ")</span><span class=\"fs\">" + (en ? "Sea fishing tides · wind · waves · warnings" : "바다낚시 물때 · 바람 · 파고 · 특보") + "</span><span class=\"fa\">›</span></a>";
     }
 
-    /** 순수 함수 - 🚁 dronefly(드론) 줄(2026-11-17 홍TV님 "타이드플라이 바로 아래에 드론을"). 화면은 한국어만이라 /m/ 에만. */
+    /** 순수 함수 - dronefly(드론) 줄(쿼드콥터 그림 img/dronefly.svg - 🚁 는 헬리콥터라 안 씀)(2026-11-17 홍TV님 "타이드플라이 바로 아래에 드론을"). 화면은 한국어만이라 /m/ 에만. */
     static String droneflyRow() {
-        return "<a class=\"kindLink\" href=\"" + REL + "/dronefly.html\"><span class=\"ft\">🚁 drone<span class=\"fly\">fly</span>(드론)</span><span class=\"fs\">비행금지 · 허용구역(UA) · 비행승인 요청</span><span class=\"fa\">›</span></a>";
+        return "<a class=\"kindLink\" href=\"" + REL + "/dronefly.html\"><span class=\"ft\"><img class=\"dIc\" src=\"" + REL + "/img/dronefly.svg\" width=\"20\" height=\"20\" alt=\"\"> drone<span class=\"fly\">fly</span>(드론)</span><span class=\"fs\">비행금지 · 허용구역(UA) · 비행승인 요청</span><span class=\"fa\">›</span></a>";
     }
 
     /** 첫 단계(등산 · 걷기 · 자전거) - series.js KINDS 와 같음. */

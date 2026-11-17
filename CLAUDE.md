@@ -31,10 +31,10 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다 - 산악회 방 
   `tidefly.html` · `js/tidefly.js`(+ tidefly-early.js) · `css/tidefly.css` · `/api/tidefly`(`com.gh.routefly.tidefly`). 규칙 · 자료는 `docs/tidefly/README.md` 를 따릅니다
   (○ △ ✕ 는 기상청 특보 · 너울만, 숫자 기준 지어내지 않음 · 받은 응답 확인 전 화면 없음 · 특보구역 짝은 docs/tidefly/points-wrn-draft.md 표와 json 을 함께).
   입구: 코스 모음(/m/ · /en/m/) 등산 · 걷기 · 자전거 아래 "🎣 tidefly(출조)" 줄(`MountainServlet.tideflyRow`, 2026-11-15 홍TV님 "자전거 아래에 위치하게 해").
-  예외(2026-11-17 홍TV님 "타이드플라이 바로 아래에 드론을 넣고 드론 관련 정보를" - 홍TV님은 드론 교관 자격): 🚁 드론 공역 · 비행 정보. 지금은 자료 확인 단계 -
+  예외(2026-11-17 홍TV님 "타이드플라이 바로 아래에 드론을 넣고 드론 관련 정보를" - 홍TV님은 드론 교관 자격): 드론 공역 · 비행 정보. 지금은 자료 확인 단계 -
   web.DroneProbe 가 V-World 항공 레이어(비행금지 · 제한 · 관제권 · 군작전 · UA 공역 · 임시 · 시범구역) 응답을 src/test/resources/drone/ 에 받음. 받은 응답 확인 전 화면 없음(타이드플라이와 같은 규칙).
   비행승인 신청을 대신 보내는 공개 API 는 찾지 못함(드론원스톱 Open-API 는 기관끼리) - 확인되기 전에는 "신청할 값 정리 + 드론원스톱 열기" 까지만.
-  이름 "🚁 dronefly(드론)"(2026-11-17 홍TV님 "좋아"), 꼭 넣을 것: 비행금지구역 · 허용구역(UA 초경량비행장치공역) · 비행승인 요청.
+  이름 "dronefly(드론)"(2026-11-17 홍TV님 "좋아"), 꼭 넣을 것: 비행금지구역 · 허용구역(UA 초경량비행장치공역) · 비행승인 요청.
   첫 판(2026-11-17, 법 원문 docs/dronefly/law/): `dronefly.html` · `js/dronefly.js` · `css/dronefly.css`(바탕 · 머리는 tidefly.css) · `data/drone-airspace.json`(web.DroneAirspace 가 받은 응답에서 만듦, DroneAirspaceTest).
   입구는 /m/ 타이드플라이 줄 바로 아래(`MountainServlet.droneflyRow`, 한국어 화면만). 판정 표 · 자료는 `docs/dronefly/README.md`. 위치는 폰 안에서만 셈(서버 api 없음).
 - 안전 문구(hike.js 의 `SAFETY_KEY`)를 바꾸면 키의 버전도 올립니다(README).
@@ -50,7 +50,7 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다 - 산악회 방 
 
 - 이 PC: `.claude\run-tests.ps1 [-Only web.WebBasicsTest]` (Maven 없이 javac + JUnit 4, DB 없이 돕니다). 웹(클라우드): `LC_ALL=C.UTF-8 mvn -o test`
   (routefly 는 웹소켓을 안 써서 totonian · investing 과 달리 그대로 됩니다. 한글 파일 이름 때문에 LC_ALL 이 필요합니다).
-- 전체 테스트가 모두 통과하는 것이 정상입니다(2026-11-17 기준 613건 - dronefly DroneAirspaceTest 1 · DroneflyJsTest 1(dronefly.test.js) · DroneflyPageTest 2건, 609건 - 드론 V-World 오류 판별 DroneProbeTest 1건, 608건 - 모드 단추 아이콘만 1건, 607건 - 한/EN 모양 1건, 606건 - tidefly 찾기 Enter 1건, 605건 - tidefly 지역 순서 1건, 604건 - 산악회 줄 덮음 1건, 603건 - 끝낸 산행 알림 1건, 602건 - 데이터 삭제 요청 안내 1건, 601건 - 남은 제안 E · 곧은 선 막기 4건, 597건 - 점검 11차 CheckupRound11Test 13건(review11.test.js 포함), 584건 - 안내도 길 → GPX 편집 1건, 583건 - 올림 폴더 권한 CourseUploadPermTest 1건, 582건 - 물때표 띠 숨은 글 1건, 581건 - 자르기 밀대 10m 단추 1건, 580건 - 점검 10차 E · F · G 3건(FishNearTest 2 · CheckupRound10Test 1) · D 1건 · C 4건 · A · B CheckupRound10Test 5건 · 섬 이름 찾기 · 먼바다 규칙 · 철 날짜 · 레이더 다시 받기 4건 더함, 563건 - 금어기 LawTest 2건 · 어종 찾기 SpotsTest 1건 · 물때표 폭 · 물때 폴더 · 포털 429 · 뜰 때 시작 TideflyLayoutTest 4건 · 국가어항 PortsTest 5건 · 지방어항 1건 · 갯바위 · 선상 SpotsTest 5건 · 출입통제 ClosedTest 2건 더함, 541건 - 타이드플라이 35건 · 입구 · 머리 3건 포함(tidefly 패키지 · tidefly.test.js), 2026-11-13 기준 484건 - 점검 8차 화면 조각은 review8.test.js, 코스 정확도 점검은 CourseAccuracyTest · course-accuracy.test.js). 하나라도 실패하면 새로 깨진 것이니 고칩니다.
+- 전체 테스트가 모두 통과하는 것이 정상입니다(2026-11-17 기준 614건 - dronefly 그림 1건, 613건 - dronefly DroneAirspaceTest 1 · DroneflyJsTest 1(dronefly.test.js) · DroneflyPageTest 2건, 609건 - 드론 V-World 오류 판별 DroneProbeTest 1건, 608건 - 모드 단추 아이콘만 1건, 607건 - 한/EN 모양 1건, 606건 - tidefly 찾기 Enter 1건, 605건 - tidefly 지역 순서 1건, 604건 - 산악회 줄 덮음 1건, 603건 - 끝낸 산행 알림 1건, 602건 - 데이터 삭제 요청 안내 1건, 601건 - 남은 제안 E · 곧은 선 막기 4건, 597건 - 점검 11차 CheckupRound11Test 13건(review11.test.js 포함), 584건 - 안내도 길 → GPX 편집 1건, 583건 - 올림 폴더 권한 CourseUploadPermTest 1건, 582건 - 물때표 띠 숨은 글 1건, 581건 - 자르기 밀대 10m 단추 1건, 580건 - 점검 10차 E · F · G 3건(FishNearTest 2 · CheckupRound10Test 1) · D 1건 · C 4건 · A · B CheckupRound10Test 5건 · 섬 이름 찾기 · 먼바다 규칙 · 철 날짜 · 레이더 다시 받기 4건 더함, 563건 - 금어기 LawTest 2건 · 어종 찾기 SpotsTest 1건 · 물때표 폭 · 물때 폴더 · 포털 429 · 뜰 때 시작 TideflyLayoutTest 4건 · 국가어항 PortsTest 5건 · 지방어항 1건 · 갯바위 · 선상 SpotsTest 5건 · 출입통제 ClosedTest 2건 더함, 541건 - 타이드플라이 35건 · 입구 · 머리 3건 포함(tidefly 패키지 · tidefly.test.js), 2026-11-13 기준 484건 - 점검 8차 화면 조각은 review8.test.js, 코스 정확도 점검은 CourseAccuracyTest · course-accuracy.test.js). 하나라도 실패하면 새로 깨진 것이니 고칩니다.
 - 점검 단계마다 테스트 클래스를 둡니다(`CheckupStage1Test` 버그 · `CheckupStage2Test` 속도 · 호출 · `CheckupStage3Test` 화면 · 보안) - totonian 의 `VoidBulkV4435Test` 같은 방식.
 - 내 기록은 IndexedDB(`rf-records`), 사진은 IndexedDB(`rf-photos`), 걷는 중 저장분은 localStorage(`rf-hike-<코스>` · `-track` · `-notes`, 하루 지나면 지움).
 - course-kit.js 순수 함수는 `src/test/js/course-kit.test.js` 를 node 로 돌립니다(`CourseKitJsTest` 가 부름, node 가 없으면 건너뜀).

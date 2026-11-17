@@ -20,7 +20,7 @@ public class TideflyEntryTest {
         int bike = h.indexOf("🚴 자전거"), tf = h.indexOf("🎣 tide<span class=\"fly\">fly</span>(출조)"), stay = h.indexOf("</div>", tf);
         assertTrue(h, bike > 0 && tf > bike);
         assertTrue("자전거 칸이 닫힌 바로 뒤", h.contains("</div></details>" + MountainServlet.tideflyRow(false)));
-        // 첫 kindLink(타이드플라이) - 그 뒤에 🚁 dronefly 줄이 붙어(2026-11-17) 마지막 것을 잡던 셈을 바꿈
+        // 첫 kindLink(타이드플라이) - 그 뒤에 dronefly 줄이 붙어(2026-11-17) 마지막 것을 잡던 셈을 바꿈
         java.util.regex.Matcher m = java.util.regex.Pattern.compile("<a class=\"kindLink\" href=\"([^\"]+)\"").matcher(h);
         String href = m.find() ? m.group(1) : "";
         assertTrue("드론플라이는 타이드플라이 바로 아래", h.contains(MountainServlet.tideflyRow(false) + MountainServlet.droneflyRow()));
@@ -34,7 +34,7 @@ public class TideflyEntryTest {
         int tf = h.indexOf("🎣 tide<span class=\"fly\">fly</span>(fishing trips)");
         assertTrue(h, tf > h.indexOf("🚴"));
         // /routefly/en/m/ 에서 이 주소를 풀면 /routefly/tidefly.html 이어야 함(2026-11-15 PC: ../ 하나라 /routefly/en/tidefly.html 404)
-        // 첫 kindLink(타이드플라이) - 그 뒤에 🚁 dronefly 줄이 붙어(2026-11-17) 마지막 것을 잡던 셈을 바꿈
+        // 첫 kindLink(타이드플라이) - 그 뒤에 dronefly 줄이 붙어(2026-11-17) 마지막 것을 잡던 셈을 바꿈
         java.util.regex.Matcher m = java.util.regex.Pattern.compile("<a class=\"kindLink\" href=\"([^\"]+)\"").matcher(h);
         String href = m.find() ? m.group(1) : "";
         assertTrue("영어 화면에는 드론플라이 줄 없음(한국어 화면만)", !h.contains("dronefly.html"));
