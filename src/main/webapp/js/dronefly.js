@@ -113,7 +113,8 @@
     if (zones.some(function (z) { return z.k === 'port'; })) notes.push(tr('항만시설은 항공 비행승인과 별도로 관할기관(항만) 승인이 필요합니다. 위 문의 전화로 먼저 확인하세요.', 'Harbour facilities need separate approval from the port authority, apart from flight approval. Call the contacts above first.'));
     if (o.high) notes.push(tr('150m 이상은 어디서나 비행승인이 필요합니다.', '150 m or higher needs flight approval anywhere.'));
     // 비행제한구역은 실무대로 "승인 필요"(2026-11-17 홍TV님 1안), 법 원문(시행규칙 제310조 ① 3호 나목)의 예외는 덧붙임으로
-    if (zones.some(function (z) { return z.k === 'res'; })) notes.push(tr('단, 일부 비행제한구역은 25kg 이하 · 150m 미만 기체에 한해 예외가 적용될 수 있으니 드론원스톱에서 해당 구역의 세부 고시를 확인하세요.',
+    // 예외는 25kg 이하 · 150m 미만만 - 25kg 초과 · 150m 이상을 고르면 뺌(2026-11-17 PC)
+    if (!o.heavy && !o.high && zones.some(function (z) { return z.k === 'res'; })) notes.push(tr('단, 일부 비행제한구역은 25kg 이하 · 150m 미만 기체에 한해 예외가 적용될 수 있으니 드론원스톱에서 해당 구역의 세부 고시를 확인하세요.',
       'Note: some restricted areas allow an exception for aircraft of 25 kg or less below 150 m - check that area\'s details on Drone One-stop.'));
     // 항공촬영은 2022. 12. 1. 부터 "허가" 가 아니라 "사전 신청" - 지역책임부대가 촬영금지시설 유무를 알려 줌(2026-11-17 홍TV님이 보낸 드론원스톱 항공촬영 신청 안내)
     if (o.photo) notes.push(tr('카메라로 찍으려면 항공촬영 사전 신청(근무일 기준 4일)을 따로 하세요(비행승인과 별개). 지역책임부대가 촬영금지시설 유무를 알려 주고, 그런 시설이 없는 개활지는 자유롭게 찍을 수 있습니다. 촬영금지시설이 찍힌 책임은 촬영한 사람에게 있습니다.',

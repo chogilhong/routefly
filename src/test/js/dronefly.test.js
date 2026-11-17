@@ -19,6 +19,8 @@ assert.ok(DF.verdict(city, {}).notes.includes('P518 · R73 · R75 공역은 비�
 assert.strictEqual(DF.verdict([{ k: 'res', l: ['R75', '10 000 AMSL', 'SFC'] }], {}).level, 'need');
 assert.ok(v.notes[0].startsWith('단, 일부 비행제한구역은 25kg 이하 · 150m 미만 기체에 한해 예외가 적용될 수 있으니'));
 assert.ok(!DF.verdict([], {}).notes.some(n => n.startsWith('단, 일부 비행제한구역')));
+assert.ok(!DF.verdict(city, { heavy: true }).notes.some(n => n.startsWith('단, 일부 비행제한구역')));   // 25kg 초과면 예외 줄 없음
+assert.ok(!DF.verdict(city, { high: true }).notes.some(n => n.startsWith('단, 일부 비행제한구역')));    // 150m 이상도
 
 // UA 2 구성산 - 경계 점들의 가운데(원 모양 공역)
 const ua2 = data.ua.find(z => z.l[0] === '(UA 2) GUSEONGSAN'), ring = ua2.g[0][0];
