@@ -60,13 +60,15 @@
   <section class="dcard mapCard" aria-label="공역 지도"><!-- 2026-11-17 홍TV님 "이 지도 좋은데"(드론원스톱 지도) → 3 · 4번: 우리 지도에 공역을 그리고, 공식 지도로 한 번 더 -->
     <div id="map" class="dmap" role="application" aria-label="공역 지도 - 누르면 그 자리를 판정"></div>
     <ul class="legend2">
+      <li><i class="sw tmp"></i><span data-en="Temporary prohibited">임시 비행금지</span></li>
       <li><i class="sw prh"></i><span data-en="Prohibited">비행금지</span></li>
+      <li><i class="sw port"></i><span data-en="Harbour">항만시설</span></li>
       <li><i class="sw res"></i><span data-en="Restricted">비행제한</span></li>
       <li><i class="sw ctr"></i><span data-en="Control zone">관제권</span></li>
       <li><i class="sw moa"></i><span data-en="MOA">군작전</span></li>
       <li><i class="sw ua"></i><span data-en="UA (allowed)">허용구역(UA)</span></li>
     </ul>
-    <p class="dim small" data-en="Tap the map to check that spot. Harbour facilities and cultural heritage zones are not on this map yet.">지도를 누르면 그 자리를 판정합니다. 항만시설 · 문화재보호구역은 아직 이 지도에 없습니다.</p>
+    <p class="dim small" data-en="Tap the map to check that spot. Cultural heritage zones are not on this map yet.">지도를 누르면 그 자리를 판정합니다. 문화재보호구역은 아직 이 지도에 없습니다.</p>
     <a class="btn go" href="https://drone.onestop.go.kr/" target="_blank" rel="noopener" data-en="Check on the official Drone One-stop map ›">드론원스톱 공식 지도로 한 번 더 ›</a>
   </section>
 
@@ -128,6 +130,8 @@
   <details class="help">
     <summary data-en="How we judge">판정 기준</summary>
     <dl>
+      <dt data-en="🔴 Temporary prohibited area">🔴 임시 비행금지구역</dt><dd data-en="Read from the NOTAM period: active now → no flying; period passed → left out; no period given → shown as needing approval, check on Drone One-stop.">NOTAM 기간을 읽어 지금 유효하면 금지, 기간이 지났으면 뺍니다. 기간 정보가 없으면 승인 필요로 보이고 드론원스톱에서 확인하라고 알립니다.</dd>
+      <dt data-en="🟠 Harbour facility">🟠 항만시설</dt><dd data-en="Separate approval from the port authority is needed (Drone One-stop: harbour facilities need separate approval). Contacts are shown.">항공 비행승인과 별도로 관할기관(항만) 승인이 필요합니다(드론원스톱 "항만시설 별도 승인 필요"). 문의 전화를 함께 보여 줍니다.</dd>
       <dt data-en="🔴 Prohibited area">🔴 비행금지구역</dt><dd data-en="No flying without approval (P-73 central Seoul · P-518 near the DMZ · around nuclear plants, etc.).">승인 없이 날 수 없습니다(P-73 서울 도심 · P-518 휴전선 · 원전 주변 등).</dd>
       <dt data-en="🟠 Restricted area · control zone">🟠 비행제한구역 · 관제권</dt><dd data-en="Flight approval needed. In a control zone, regardless of weight or height.">비행승인이 필요합니다. 관제권은 무게 · 고도와 상관없습니다.</dd>
       <dt data-en="🟡 Military operations area">🟡 군작전구역</dt><dd data-en="If no other airspace overlaps, 25 kg or less · below 150 m · daytime needs no approval, but check with the controlling unit.">다른 공역과 겹치지 않으면 25kg 이하 · 150m 아래 · 낮은 승인 없이 날 수 있지만, 관할 부대를 확인하세요.</dd>
@@ -137,7 +141,7 @@
   </details>
 </main>
 <footer class="wrap foot">
-  <p><span data-en="Data:">자료:</span> <span id="srcDate">브이월드 항공 레이어(국토교통부)</span>. <span data-en="The judgement follows Aviation Safety Act art. 127 and its enforcement rule art. 308 · 310 (in force Nov 13, 2026), MOLIT guidance and a drone instructor's check. Temporary prohibited areas are not included yet.">판정은 항공안전법 제127조 · 시행규칙 제308조 · 제310조(2026. 11. 13. 시행)와 국토교통부 안내 · 드론 교관 확인을 바탕으로 했습니다. 임시 비행금지구역은 아직 없습니다.</span></p>
+  <p><span data-en="Data:">자료:</span> <span id="srcDate">브이월드 항공 레이어(국토교통부)</span>. <span data-en="The judgement follows Aviation Safety Act art. 127 and its enforcement rule art. 308 · 310 (in force Nov 13, 2026), MOLIT guidance and a drone instructor's check. Harbour facilities and temporary prohibited areas come from the V-World WFS layers Drone One-stop uses.">판정은 항공안전법 제127조 · 시행규칙 제308조 · 제310조(2026. 11. 13. 시행)와 국토교통부 안내 · 드론 교관 확인을 바탕으로 했습니다. 항만시설 · 임시 비행금지구역은 드론원스톱 지도가 쓰는 브이월드 WFS 레이어입니다.</span></p>
   <p data-en="&lt;a href=&quot;privacy-en.html&quot;&gt;Privacy policy&lt;/a&gt; · &lt;a href=&quot;en/m/&quot;&gt;routefly trails&lt;/a&gt;"><a href="privacy.html">개인정보처리방침</a> · <a href="m/">routefly 코스 모음</a></p>
 </footer>
 <script src="vendor/maplibre-gl-5.24.0/maplibre-gl.js"></script>

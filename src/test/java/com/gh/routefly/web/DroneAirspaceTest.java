@@ -26,6 +26,10 @@ public class DroneAirspaceTest {
         assertEquals(53, o.getAsJsonArray("ctr").size());
         assertEquals(75, o.getAsJsonArray("moa").size());
         assertEquals(48, o.getAsJsonArray("ua").size());
+        assertEquals(243, o.getAsJsonArray("port").size());   // WFS(2026-11-17 8634745)
+        assertEquals(3, o.getAsJsonArray("tmp").size());
+        assertTrue(built.contains("[\"군산항 6부두(61,62선석)\",\"UNL\",\"GND\",\"선광㈜\",\"063-450-4306\",\"군산지방해양수산청\",\"063-441-2259\"]"));
+        assertTrue(built.contains("\"A)RKRR B)2501311500 C)2504301459\""));
         assertTrue(built.contains("[\"RK P73A\",\"GND\",\"UNL\",\"비행금지구역\"]") && built.contains("[\"(UA 2) GUSEONGSAN\",\"500FT HEI\",\"SFC\"]"));
     }
 }

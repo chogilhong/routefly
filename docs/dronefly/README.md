@@ -7,7 +7,9 @@
 - 공역: 브이월드 2D 데이터 API 항공 레이어(국토교통부). `web.DroneProbe` 가 받아 `src/test/resources/drone/` 에 두고,
   `web.DroneAirspace` 가 칸을 줄여 `src/main/webapp/data/drone-airspace.json` 을 만듭니다(DroneAirspaceTest 가 둘이 같은지 봄).
   - lt_c_aisprhc 비행금지구역 15 · lt_c_aisresc 비행제한구역 84 · lt_c_aisctrc 관제권 레이어 53(CTR · CTLZ · TCA AREA 섞임) · lt_c_aismoac 군작전구역 75 · lt_c_aisuac 초경량비행장치공역(UA) 48 (2026-11-17 받음)
-  - lt_c_aistemp · lt_c_aisdronezone 은 INVALID_RANGE(그런 레이어 없음) - 임시 비행금지는 아직 없음.
+  - lt_c_aistemp · lt_c_aisdronezone 은 req/data 로는 INVALID_RANGE, 드론원스톱 지도처럼 req/wfs 로는 받아짐(2026-11-17 8634745, DroneProbe WFS_LAYERS).
+  - 2026-11-17 홍TV님 "항만시설이랑 임시 비행금지도 넣어줘": lt_c_aisport 항만시설 243(🟠 관할기관 승인 + 문의 전화) · lt_c_aistemp 임시 비행금지 3
+    (notam B) · C) 세계시 기간을 화면이 읽어 지금 유효 🔴, 지난 것 뺌, 기간 없음(D3554/25) 🟠 "드론원스톱에서 확인" - 받은 날 2개는 2025 년에 끝남).
   - 키: map.vworld.key + domain=routefly.kr(도메인을 빼면 INCORRECT_KEY).
 - 위치는 폰 안에서만 비교합니다(공역 파일을 받아 폰이 셈 - 서버로 보내지 않음). 장소 찾기는 /api/place(이름만).
 

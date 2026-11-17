@@ -6,12 +6,13 @@ const DF = require('../../main/webapp/js/dronefly.js');
 const data = JSON.parse(fs.readFileSync(__dirname + '/../../main/webapp/data/drone-airspace.json', 'utf8'));
 
 // 서울시청 - 2026-11-17 PC 가 브이월드에 한 점으로 물은 답: aisprhc RK P73A · aisresc R75, 관제권 · 군작전 · UA 는 NOT_FOUND
+// + 임시 비행금지 D3554/25(WFS, 2NM 원 - 373523N 1265832E, 기간 칸 없음 → tmpq)
 const city = DF.zonesAt(data, 37.5665, 126.9780);
-assert.deepStrictEqual(city.map(z => z.l[0]).sort(), ['R75', 'RK P73A']);
+assert.deepStrictEqual(city.map(z => [z.k, z.l[0]]), [['tmpq', 'D3554/25'], ['prh', 'RK P73A'], ['res', 'R75']]);
 const v = DF.verdict(city, {});
 assert.strictEqual(v.level, 'no');
 assert.strictEqual(v.head, '비행금지구역 - 승인 없이 날 수 없습니다');
-assert.deepStrictEqual(v.lines, ['비행금지구역 RK P73A (GND ~ UNL)', '비행제한구역 R75 (SFC ~ 10 000 AMSL)']);
+assert.deepStrictEqual(v.lines, ['임시 비행금지구역 D3554/25 (SFC ~ UND) - 기간 정보 없음, 드론원스톱에서 지금 유효한지 확인', '비행금지구역 RK P73A (GND ~ UNL)', '비행제한구역 R75 (SFC ~ 10 000 AMSL)']);
 assert.ok(DF.verdict(city, { photo: true }).head.endsWith(' + 촬영 사전 신청'));
 assert.ok(DF.verdict(city, {}).notes.includes('P518 · R73 · R75 공역은 비행승인 신청 전 드론원스톱 공지사항을 확인하세요.'));   // R75
 // 비행제한구역 - 실무대로 승인 필요 + 법 원문 예외 덧붙임(2026-11-17 홍TV님 1안)
@@ -57,7 +58,7 @@ assert.strictEqual(DF.dist(12345), '12km');
 assert.strictEqual(DF.dist(2345), '2.3km');
 assert.ok(Math.abs(DF.meters(37.5, 127, 37.5, 127.01) - 883) < 5);
 const t = DF.applyText({ place: '서울시청', lat: 37.5665, lon: 126.978, radius: '500', alt: '100', date: '2026-11-20', from: '10:00', to: '12:00', purpose: '취미 · 레저', photo: true, weight: '25kg 이하' }, city);
-assert.ok(t.includes('비행 장소: 서울시청 (위도 37.56650, 경도 126.97800)') && t.includes('항공촬영 있음') && t.includes('걸린 공역: 비행금지구역 RK P73A (GND ~ UNL) / 비행제한구역 R75 (SFC ~ 10 000 AMSL)'));
+assert.ok(t.includes('비행 장소: 서울시청 (위도 37.56650, 경도 126.97800)') && t.includes('항공촬영 있음') && t.includes('걸린 공역: 임시 비행금지구역 D3554/25 (SFC ~ UND) - 기간 정보 없음, 드론원스톱에서 지금 유효한지 확인 / 비행금지구역 RK P73A (GND ~ UNL) / 비행제한구역 R75 (SFC ~ 10 000 AMSL)'));
 // 영종 하늘도시 쪽(경도 126.55) - 인천 관제권(공항에서 약 9.2km 원) 바로 밖: 걸린 공역 없음, 가장 가까운 승인 필요 공역은 인천 관제권 경계 약 1.0km(2026-11-17 홍TV님)
 assert.deepStrictEqual(DF.zonesAt(data, 37.49, 126.55), []);
 const ns = DF.nearStrict(data, 37.49, 126.55);
@@ -65,10 +66,10 @@ assert.deepStrictEqual([ns.z.k, ns.z.l[0], DF.dist(ns.m)], ['ctr', 'INCHEON', '1
 assert.deepStrictEqual(DF.zonesAt(data, 37.49, 126.52).map(z => z.l[0]), ['INCHEON']);   // 하늘도시 서쪽(126.52)은 관제권 안
 
 // 지도용 GeoJSON - 공역 275개(금지 15 · 제한 84 · 관제권 53 · 군작전 75 · UA 48), 위에 그릴 금지가 맨 뒤, TCA 는 따로
-const gj = DF.toGeoJSON(data);
-assert.strictEqual(gj.features.length, 15 + 84 + 53 + 75 + 48);
+const gj = DF.toGeoJSON(data, Date.UTC(2026, 10, 17));
+assert.strictEqual(DF.toGeoJSON(data, Date.UTC(2025, 2, 1)).features.length, 15 + 84 + 53 + 75 + 48 + 243 + 2);   // 2025-03 에는 임시 2개(하나는 기간 모름)
 assert.strictEqual(gj.features[0].properties.kind, 'moa');
-assert.strictEqual(gj.features[gj.features.length - 1].properties.kind, 'prh');
+assert.strictEqual(gj.features[gj.features.length - 1].properties.kind, 'tmpq');   // 임시 비행금지가 맨 위
 assert.strictEqual(gj.features.find(f => f.properties.name === 'POHANG TCA AREA A').properties.kind, 'tca');
 
 // 신청 기한 - 드론원스톱 처리 기간(비행승인 평일 3일 · 항공촬영 4일). 2026-11-17 은 화요일
@@ -82,13 +83,39 @@ assert.strictEqual(DF.dueText('2026-11-17', '2026-11-21', true, false).ok, true)
 assert.strictEqual(DF.dueText('2026-11-17', '2026-11-21', false, true).ok, false);   // 촬영은 4일
 assert.strictEqual(DF.dueText('2026-11-17', '2026-11-21', false, false), null);   // 승인 · 촬영 둘 다 필요 없으면 안내 없음
 
+// 임시 비행금지 기간(NOTAM B · C, 세계시) - 2026-11-17 받은 것: 2025-04-30 · 2025-10-30 에 끝난 2개는 지금 빠짐
+const T = Date.UTC(2026, 10, 17);
+assert.strictEqual(DF.tmpState('A)RKRR B)2501311500 C)2504301459', T), 'off');
+assert.strictEqual(DF.tmpState('A)RKRR B)2501311500 C)2504301459', Date.UTC(2025, 2, 1)), 'on');
+assert.strictEqual(DF.tmpState('D3554/25 E)TEMPO PROHIBITED AREA ACT AS FLW A CIRCLE RADIUS 2NM CENTERED ON 373523N1265832E', T), '?');
+const tz = data.tmp.find(z => z.l[3].indexOf('B)2501311500') >= 0), tr0 = tz.g[0][0];
+const tcen = tr0.reduce((a, p) => [a[0] + p[0] / tr0.length, a[1] + p[1] / tr0.length], [0, 0]);
+assert.ok(!DF.zonesAt(data, tcen[1], tcen[0], T).some(z => z.k === 'tmp'));   // 지난 것은 판정에서 빠짐
+assert.ok(DF.zonesAt(data, tcen[1], tcen[0], Date.UTC(2025, 2, 1)).some(z => z.k === 'tmp'));   // 기간 안이면 🔴
+assert.strictEqual(DF.levelOf('tmp'), 'no');
+assert.strictEqual(DF.levelOf('tmpq'), 'need');
+
+// 항만시설 - 군산항 6부두(WFS 243곳): 승인 필요 + 문의 전화 + 별도 승인 줄
+const gz = data.port.find(z => z.l[0] === '군산항 6부두(61,62선석)'), gr = gz.g[0][0];
+const gc = gr.reduce((a, p) => [a[0] + p[0] / gr.length, a[1] + p[1] / gr.length], [0, 0]);
+const atPort = DF.zonesAt(data, gc[1], gc[0], T).filter(z => z.k === 'port');
+assert.strictEqual(atPort.length, 1);
+{
+  const pv = DF.verdict(atPort, {});
+  assert.strictEqual(pv.level, 'need');
+  assert.strictEqual(pv.lines[0], '항만시설 군산항 6부두(61,62선석) - 문의 선광㈜ 063-450-4306 · 군산지방해양수산청 063-441-2259');
+  assert.ok(pv.notes.some(n => n.startsWith('항만시설은 항공 비행승인과 별도로 관할기관(항만) 승인이 필요합니다.')));
+}
+assert.strictEqual(DF.levelOf('port'), 'need');
+assert.strictEqual(DF.toGeoJSON(data, T).features.length, 15 + 84 + 53 + 75 + 48 + 243 + 1);   // 임시는 기간 모르는 1개만
+
 // 영어 화면(2026-11-17 홍TV님 "한/영, 가 도 넣어줘") - 신청 정리는 드론원스톱 한국어 칸용이라 늘 한국어
 DF.setLang('en');
 assert.strictEqual(DF.verdict(city, {}).head, 'Prohibited area - no flying without approval');
-assert.deepStrictEqual(DF.verdict(city, {}).lines, ['Prohibited area RK P73A (GND ~ UNL)', 'Restricted area R75 (SFC ~ 10 000 AMSL)']);
+assert.deepStrictEqual(DF.verdict(city, {}).lines.slice(1), ['Prohibited area RK P73A (GND ~ UNL)', 'Restricted area R75 (SFC ~ 10 000 AMSL)']);
 assert.strictEqual(DF.verdict(inUa, { photo: true }).head, 'UA airspace - no approval needed up to 500FT HEI in daytime + filming pre-application');
 assert.ok(DF.applyText({ place: 'x', lat: 37.5665, lon: 126.978, radius: '500', alt: '100', date: '2026-11-20', from: '10:00', to: '12:00', purpose: '취미 · 레저', photo: false, weight: '25kg 이하' }, city)
-  .includes('걸린 공역: 비행금지구역 RK P73A (GND ~ UNL) / 비행제한구역 R75 (SFC ~ 10 000 AMSL)'));
+  .includes(' / 비행금지구역 RK P73A (GND ~ UNL) / 비행제한구역 R75 (SFC ~ 10 000 AMSL)'));
 DF.setLang('ko');
 assert.strictEqual(DF.nextSize('m'), 'l');
 assert.strictEqual(DF.nextSize('l'), 'xl');

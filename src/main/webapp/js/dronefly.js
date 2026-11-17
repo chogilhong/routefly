@@ -7,8 +7,8 @@
   'use strict';
 
   var LEVEL = { ok: 0, care: 1, need: 2, no: 3 };
-  var KIND_NAME = { prh: '비행금지구역', res: '비행제한구역', ctr: '관제권', tca: '접근관제구역', moa: '군작전구역', ua: '초경량비행장치공역(UA)' };
-  var KIND_EN = { prh: 'Prohibited area', res: 'Restricted area', ctr: 'Control zone', tca: 'Terminal control area', moa: 'Military operations area', ua: 'UA airspace' };
+  var KIND_NAME = { port: '항만시설', tmp: '임시 비행금지구역', tmpq: '임시 비행금지구역', prh: '비행금지구역', res: '비행제한구역', ctr: '관제권', tca: '접근관제구역', moa: '군작전구역', ua: '초경량비행장치공역(UA)' };
+  var KIND_EN = { port: 'Harbour facility', tmp: 'Temporary prohibited area', tmpq: 'Temporary prohibited area', prh: 'Prohibited area', res: 'Restricted area', ctr: 'Control zone', tca: 'Terminal control area', moa: 'Military operations area', ua: 'UA airspace' };
   // 화면 말(2026-11-17 홍TV님 "한/영, 가 도 넣어줘"). 비행승인 신청 정리(applyText)는 드론원스톱 한국어 칸에 붙이므로 늘 한국어
   var lang = 'ko';
   function setLang(l) { lang = l === 'en' ? 'en' : 'ko'; }
@@ -41,12 +41,31 @@
     return /\bTCA\b/i.test(name || '');
   }
 
-  /** 순수 함수 - 그 자리가 걸린 공역들 [{k, l}]. k 는 prh · res · ctr · tca · moa · ua. */
-  function zonesAt(data, lat, lon) {
-    var out = [];
-    ['prh', 'res', 'ctr', 'moa', 'ua'].forEach(function (k) {
+  /**
+   * 순수 함수 - 임시 비행금지 NOTAM 기간(B) 시작 · C) 끝, YYMMDDhhmm 세계시)으로 지금 상태: 'on' 지금 유효 · 'off' 기간 지남(또는 아직) · '?' 기간 정보 없음.
+   * 2026-11-17 받은 3개 중 2개는 기간이 지났고(2025-04-30 · 2025-10-30 끝), 1개(D3554/25)는 기간 칸이 없음.
+   */
+  function tmpState(notam, nowMs) {
+    var b = /B\)\s*(\d{10})/.exec(notam || ''), c = /C\)\s*(\d{10})/.exec(notam || '');
+    if (!b || !c) return '?';
+    var t = function (s) { return Date.UTC(2000 + +s.slice(0, 2), +s.slice(2, 4) - 1, +s.slice(4, 6), +s.slice(6, 8), +s.slice(8, 10)); };
+    return nowMs >= t(b[1]) && nowMs <= t(c[1]) ? 'on' : 'off';
+  }
+
+  /** 순수 함수 - 화면에 쓰는 종류: 관제권 중 TCA 는 tca, 임시 비행금지는 지금 유효 tmp · 기간 모름 tmpq · 지난 것 null(뺌). */
+  function kindOf(k, z, nowMs) {
+    if (k === 'ctr' && isTca(z.l[0])) return 'tca';
+    if (k === 'tmp') { var st = tmpState(z.l[3], nowMs); return st === 'on' ? 'tmp' : st === '?' ? 'tmpq' : null; }
+    return k;
+  }
+
+  /** 순수 함수 - 그 자리가 걸린 공역들 [{k, l}]. k 는 tmp · tmpq · prh · port · res · ctr · tca · moa · ua. nowMs - 임시 비행금지 기간을 볼 때(없으면 지금). */
+  function zonesAt(data, lat, lon, nowMs) {
+    var out = [], now = nowMs == null ? Date.now() : nowMs;
+    ['tmp', 'prh', 'port', 'res', 'ctr', 'moa', 'ua'].forEach(function (k) {
       (data[k] || []).forEach(function (z) {
-        if (inGeom(lon, lat, z.g)) out.push({ k: k === 'ctr' && isTca(z.l[0]) ? 'tca' : k, l: z.l });
+        var kk = kindOf(k, z, now);
+        if (kk && inGeom(lon, lat, z.g)) out.push({ k: kk, l: z.l });
       });
     });
     return out;
@@ -54,7 +73,7 @@
 
   /** 순수 함수 - 공역 하나의 판정 단계. */
   function levelOf(k) {
-    return k === 'prh' ? 'no' : k === 'res' || k === 'ctr' ? 'need' : k === 'moa' ? 'care' : 'ok';
+    return k === 'prh' || k === 'tmp' ? 'no' : k === 'res' || k === 'ctr' || k === 'port' || k === 'tmpq' ? 'need' : k === 'moa' ? 'care' : 'ok';
   }
 
   /** 순수 함수 - 공역 하나의 이름 · 높이 한 줄. */
@@ -62,6 +81,11 @@
     var l = z.l || [], name = function (k) { return ko ? KIND_NAME[k] : kindName(k); };
     if (z.k === 'prh') return ((ko || lang !== 'en') && l[3] ? l[3] : name('prh')) + ' ' + l[0] + ' (' + l[1] + ' ~ ' + l[2] + ')';
     if (z.k === 'ctr' || z.k === 'tca') return name(z.k) + ' ' + l[0];
+    // 항만: [이름, 위, 아래, 운영사, 전화, 관리청, 전화] - 드론원스톱 "※ 항만시설 별도 승인 필요"
+    if (z.k === 'port') return name('port') + ' ' + l[0] + tr(' - 문의 ', ' - contact ') + [l[3] + ' ' + l[4], l[5] + ' ' + l[6]].filter(function (x) { return x.trim(); }).join(' · ');
+    // 임시 비행금지: [이름, 위, 아래, NOTAM]
+    if (z.k === 'tmp' || z.k === 'tmpq') return name(z.k) + ' ' + (l[0] || 'NOTAM') + ' (' + (l[2] || '?') + ' ~ ' + (l[1] || '?') + ')'
+      + (z.k === 'tmpq' ? tr(' - 기간 정보 없음, 드론원스톱에서 지금 유효한지 확인', ' - no period given, check on Drone One-stop whether it is active') : '');
     // res · moa · ua: [이름, 위 높이, 아래 높이]
     var hi = l[1] || '', lo = l[2] || '';
     return name(z.k) + ' ' + l[0] + (hi || lo ? ' (' + (lo || '?') + ' ~ ' + (hi || '?') + ')' : '');
@@ -84,7 +108,9 @@
       : ua ? tr('허용구역(UA) - 낮에 ' + ua.l[1] + ' 까지 승인 없이', 'UA airspace - no approval needed up to ' + ua.l[1] + ' in daytime')
       : tr('25kg 이하 · 150m 아래 · 낮 · 눈으로 보이는 곳이면 승인 없이 | 국토부 안내', '25 kg or less · below 150 m · daytime · within sight: no approval needed | MOLIT guidance');
     var notes = [];
-    if (o.heavy) notes.push(tr('25kg 넘는 기체는 어디서나 비행승인이 필요합니다.', 'Aircraft over 25 kg need flight approval anywhere.'));
+    if (o.heavy) notes.push(tr('25kg 넘는 기체는 고도와 상관없이 모든 비행에 비행승인이 필요합니다. 참고: 항공안전기술원 안전성인증 · 기체 신고 · 1종 조종자 증명도 필요합니다(드론원스톱 · 한국교통안전공단 안내).',
+      'Aircraft over 25 kg need flight approval for every flight regardless of height. For reference: a safety certificate (KIAST), device registration and a class 1 pilot certificate are also required.'));
+    if (zones.some(function (z) { return z.k === 'port'; })) notes.push(tr('항만시설은 항공 비행승인과 별도로 관할기관(항만) 승인이 필요합니다. 위 문의 전화로 먼저 확인하세요.', 'Harbour facilities need separate approval from the port authority, apart from flight approval. Call the contacts above first.'));
     if (o.high) notes.push(tr('150m 이상은 어디서나 비행승인이 필요합니다.', '150 m or higher needs flight approval anywhere.'));
     // 비행제한구역은 실무대로 "승인 필요"(2026-11-17 홍TV님 1안), 법 원문(시행규칙 제310조 ① 3호 나목)의 예외는 덧붙임으로
     if (zones.some(function (z) { return z.k === 'res'; })) notes.push(tr('단, 일부 비행제한구역은 25kg 이하 · 150m 미만 기체에 한해 예외가 적용될 수 있으니 드론원스톱에서 해당 구역의 세부 고시를 확인하세요.',
@@ -135,7 +161,7 @@
    */
   function nearStrict(data, lat, lon) {
     var best = null;
-    ['prh', 'res', 'ctr'].forEach(function (k) {
+    ['prh', 'port', 'res', 'ctr'].forEach(function (k) {
       (data[k] || []).forEach(function (z) {
         if (k === 'ctr' && isTca(z.l[0])) return;
         var p = nearest(lat, lon, z.g);
@@ -164,11 +190,12 @@
   }
 
   /** 순수 함수 - 공역 파일 → 지도용 GeoJSON(속성 kind: prh · res · ctr · tca · moa · ua, name). 위에 그릴 것이 나중에 오게 moa → ua → ctr · tca → res → prh. */
-  function toGeoJSON(data) {
-    var feats = [];
-    ['moa', 'ua', 'ctr', 'res', 'prh'].forEach(function (k) {
+  function toGeoJSON(data, nowMs) {
+    var feats = [], now = nowMs == null ? Date.now() : nowMs;
+    ['moa', 'ua', 'ctr', 'res', 'port', 'prh', 'tmp'].forEach(function (k) {
       (data[k] || []).forEach(function (z) {
-        feats.push({ type: 'Feature', properties: { kind: k === 'ctr' && isTca(z.l[0]) ? 'tca' : k, name: z.l[0] }, geometry: { type: 'MultiPolygon', coordinates: z.g } });
+        var kk = kindOf(k, z, now);
+        if (kk) feats.push({ type: 'Feature', properties: { kind: kk, name: z.l[0] }, geometry: { type: 'MultiPolygon', coordinates: z.g } });
       });
     });
     return { type: 'FeatureCollection', features: feats };
@@ -211,7 +238,7 @@
     return SIZES[(i < 0 ? 1 : i + 1) % SIZES.length];
   }
 
-  var api = { firstDay: firstDay, workdays: workdays, dueText: dueText, toGeoJSON: toGeoJSON, nearStrict: nearStrict, setLang: setLang, nextSize: nextSize, inRing: inRing, inGeom: inGeom, isTca: isTca, zonesAt: zonesAt, levelOf: levelOf, zoneLine: zoneLine, verdict: verdict, meters: meters, nearest: nearest, nearUa: nearUa, dist: dist, applyText: applyText };
+  var api = { tmpState: tmpState, firstDay: firstDay, workdays: workdays, dueText: dueText, toGeoJSON: toGeoJSON, nearStrict: nearStrict, setLang: setLang, nextSize: nextSize, inRing: inRing, inGeom: inGeom, isTca: isTca, zonesAt: zonesAt, levelOf: levelOf, zoneLine: zoneLine, verdict: verdict, meters: meters, nearest: nearest, nearUa: nearUa, dist: dist, applyText: applyText };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
   root.DF = api;
 
@@ -266,7 +293,7 @@
 
   // ---- 지도(2026-11-17 홍TV님 "이 지도 좋은데" - 드론원스톱처럼 공역을 지도에, 누르면 그 자리 판정) ----
   var map = null, mark = null, mapReady = false;
-  var COLOR = { prh: '#d93025', res: '#e8710a', ctr: '#5b8c6b', tca: '#5b8c6b', moa: '#c9a400', ua: '#e0559a' };
+  var COLOR = { tmp: '#8e24aa', tmpq: '#8e24aa', port: '#b3261e', prh: '#d93025', res: '#e8710a', ctr: '#5b8c6b', tca: '#5b8c6b', moa: '#c9a400', ua: '#e0559a' };
   function colorExpr() {
     var e = ['match', ['get', 'kind']];
     Object.keys(COLOR).forEach(function (k) { e.push(k, COLOR[k]); });
@@ -276,9 +303,9 @@
   function addAirspace() {
     if (!map || !mapReady || !data || map.getSource('air')) return;
     map.addSource('air', { type: 'geojson', data: toGeoJSON(data), attribution: tr('공역: 국토교통부 V-World', 'Airspace: V-World (Korea MOLIT)') });
-    map.addLayer({ id: 'air-fill', type: 'fill', source: 'air', paint: { 'fill-color': colorExpr(), 'fill-opacity': ['match', ['get', 'kind'], 'prh', 0.35, 'ua', 0.35, 'ctr', 0.22, 'tca', 0.08, 'res', 0.18, 0.06] } });
+    map.addLayer({ id: 'air-fill', type: 'fill', source: 'air', paint: { 'fill-color': colorExpr(), 'fill-opacity': ['match', ['get', 'kind'], 'tmp', 0.35, 'tmpq', 0.15, 'port', 0.3, 'prh', 0.35, 'ua', 0.35, 'ctr', 0.22, 'tca', 0.08, 'res', 0.18, 0.06] } });
     map.addLayer({ id: 'air-line', type: 'line', source: 'air', paint: { 'line-color': colorExpr(), 'line-width': ['match', ['get', 'kind'], 'prh', 2, 'ua', 2, 1.2],
-      'line-dasharray': ['match', ['get', 'kind'], 'moa', ['literal', [3, 2]], 'tca', ['literal', [2, 2]], ['literal', [1, 0]]] } });
+      'line-dasharray': ['match', ['get', 'kind'], 'moa', ['literal', [3, 2]], 'tca', ['literal', [2, 2]], 'tmpq', ['literal', [2, 2]], ['literal', [1, 0]]] } });
   }
   function showOnMap(p, fly) {
     if (!map) return;
