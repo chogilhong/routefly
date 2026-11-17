@@ -13,6 +13,10 @@ assert.strictEqual(v.level, 'no');
 assert.strictEqual(v.head, '비행금지구역 - 승인 없이 날 수 없습니다');
 assert.deepStrictEqual(v.lines, ['비행금지구역 RK P73A (GND ~ UNL)', '비행제한구역 R75 (SFC ~ 10 000 AMSL)']);
 assert.ok(DF.verdict(city, { photo: true }).head.endsWith(' + 촬영 허가'));
+// 비행제한구역 - 실무대로 승인 필요 + 법 원문 예외 덧붙임(2026-11-17 홍TV님 1안)
+assert.strictEqual(DF.verdict([{ k: 'res', l: ['R75', '10 000 AMSL', 'SFC'] }], {}).level, 'need');
+assert.ok(v.notes[0].startsWith('단, 일부 비행제한구역은 25kg 이하 · 150m 미만 기체에 한해 예외가 적용될 수 있으니'));
+assert.ok(!DF.verdict([], {}).notes.some(n => n.startsWith('단, 일부 비행제한구역')));
 
 // UA 2 구성산 - 경계 점들의 가운데(원 모양 공역)
 const ua2 = data.ua.find(z => z.l[0] === '(UA 2) GUSEONGSAN'), ring = ua2.g[0][0];
@@ -53,4 +57,15 @@ assert.strictEqual(DF.dist(2345), '2.3km');
 assert.ok(Math.abs(DF.meters(37.5, 127, 37.5, 127.01) - 883) < 5);
 const t = DF.applyText({ place: '서울시청', lat: 37.5665, lon: 126.978, radius: '500', alt: '100', date: '2026-11-20', from: '10:00', to: '12:00', purpose: '취미 · 레저', photo: true, weight: '25kg 이하' }, city);
 assert.ok(t.includes('비행 장소: 서울시청 (위도 37.56650, 경도 126.97800)') && t.includes('항공촬영 있음') && t.includes('걸린 공역: 비행금지구역 RK P73A (GND ~ UNL) / 비행제한구역 R75 (SFC ~ 10 000 AMSL)'));
+// 영어 화면(2026-11-17 홍TV님 "한/영, 가 도 넣어줘") - 신청 정리는 드론원스톱 한국어 칸용이라 늘 한국어
+DF.setLang('en');
+assert.strictEqual(DF.verdict(city, {}).head, 'Prohibited area - no flying without approval');
+assert.deepStrictEqual(DF.verdict(city, {}).lines, ['Prohibited area RK P73A (GND ~ UNL)', 'Restricted area R75 (SFC ~ 10 000 AMSL)']);
+assert.strictEqual(DF.verdict(inUa, { photo: true }).head, 'UA airspace - no approval needed up to 500FT HEI in daytime + filming permit');
+assert.ok(DF.applyText({ place: 'x', lat: 37.5665, lon: 126.978, radius: '500', alt: '100', date: '2026-11-20', from: '10:00', to: '12:00', purpose: '취미 · 레저', photo: false, weight: '25kg 이하' }, city)
+  .includes('걸린 공역: 비행금지구역 RK P73A (GND ~ UNL) / 비행제한구역 R75 (SFC ~ 10 000 AMSL)'));
+DF.setLang('ko');
+assert.strictEqual(DF.nextSize('m'), 'l');
+assert.strictEqual(DF.nextSize('l'), 'xl');
+assert.strictEqual(DF.nextSize('xl'), 'm');
 console.log('dronefly.test.js OK');

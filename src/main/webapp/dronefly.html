@@ -25,29 +25,33 @@
   <div class="wrap">
     <div class="logoRow">
       <a class="tfLogo" href="dronefly.html" aria-label="dronefly"><span class="ic"><img class="dIc" src="img/dronefly.svg" width="40" height="40" alt="" aria-hidden="true"></span><!-- 드론 이모지가 없어 그린 쿼드콥터(헬리콥터 이모지 대신 - 2026-11-17 홍TV님) --><span class="wm">drone<span class="fly">fly</span></span></a>
-      <a id="back" class="back" href="m/">⛰️ 코스 모음 ›</a>
+      <a id="back" class="back" href="m/" data-en="⛰️ Trails ›">⛰️ 코스 모음 ›</a>
     </div>
     <div class="crumb">
-      <h1>드론 비행 전 확인</h1>
+      <h1 data-en="Before you fly">드론 비행 전 확인</h1>
       <div class="opts">
         <button type="button" class="opt" id="theme" aria-label="밝은 모드로" title="밝은 모드로">☀️</button>
+        <div class="lang" role="group" aria-label="언어 / Language"><!-- 한/EN · 가(2026-11-17 홍TV님 "한/영, 가 도 넣어줘") - 타이드플라이와 같은 단추 -->
+          <button type="button" data-lang="ko" aria-pressed="true">한</button><button type="button" data-lang="en" aria-pressed="false">EN</button>
+        </div>
+        <button type="button" class="opt size" id="size" aria-label="글자 크기: 보통 (누르면 크게)">가</button>
       </div>
     </div>
-    <p class="sub">비행금지 · 허용구역(UA) · 비행승인</p>
+    <p class="sub" data-en="Prohibited areas · UA airspace · flight approval">비행금지 · 허용구역(UA) · 비행승인</p>
   </div>
 </header>
 <main class="wrap">
-  <p class="warn">참고용입니다. 공역은 바뀔 수 있으니 비행 전 <a href="https://drone.onestop.go.kr/" target="_blank" rel="noopener">드론원스톱</a>에서 꼭 다시 확인하세요.</p>
+  <p class="warn" data-en="For reference only. Airspace can change, so always check again on &lt;a href=&quot;https://drone.onestop.go.kr/&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Drone One-stop&lt;/a&gt; before you fly.">참고용입니다. 공역은 바뀔 수 있으니 비행 전 <a href="https://drone.onestop.go.kr/" target="_blank" rel="noopener">드론원스톱</a>에서 꼭 다시 확인하세요.</p>
 
   <section class="dcard dpick" aria-label="자리 고르기">
-    <button type="button" id="me" class="near-btn" title="위치는 이 폰 안에서만 씁니다(서버로 보내지 않음)">📍 내 위치로 보기</button>
+    <button type="button" id="me" class="near-btn" title="위치는 이 폰 안에서만 씁니다(서버로 보내지 않음)" data-en="📍 Check my location">📍 내 위치로 보기</button>
     <form id="findForm" class="find" role="search">
-      <input id="q" type="search" aria-label="장소 이름으로 찾기" placeholder="🔍 장소 찾기 (예: 한강공원, 구성산)" autocomplete="off" enterkeyhint="search" maxlength="30">
+      <input id="q" type="search" aria-label="장소 이름으로 찾기" placeholder="🔍 장소 찾기 (예: 한강공원, 구성산)" data-en-ph="🔍 Find a place (Korean names work best)" autocomplete="off" enterkeyhint="search" maxlength="30">
     </form>
     <ul id="found" class="found"></ul>
     <div class="conds">
-      <label><input type="checkbox" id="photo"> 카메라로 촬영</label>
-      <label><input type="checkbox" id="heavy"> 25kg 넘는 기체</label>
+      <label><input type="checkbox" id="photo"> <span data-en="Filming with a camera">카메라로 촬영</span></label>
+      <label><input type="checkbox" id="heavy"> <span data-en="Over 25 kg">25kg 넘는 기체</span></label>
     </div>
     <p id="state" class="state" role="status"></p>
   </section>
@@ -60,43 +64,43 @@
   </section>
 
   <section id="ua" class="dcard" hidden>
-    <h2>🟢 가까운 허용구역(UA)</h2>
-    <p class="dim small">초경량비행장치공역 - 낮에 표시된 높이까지 승인 없이 날 수 있는 곳(HEI 는 지면에서, ALT 는 해수면에서 높이).</p>
+    <h2 data-en="🟢 Nearby UA airspace">🟢 가까운 허용구역(UA)</h2>
+    <p class="dim small" data-en="Ultralight vehicle airspace - you can fly without approval in daytime up to the height shown (HEI from the ground, ALT from sea level).">초경량비행장치공역 - 낮에 표시된 높이까지 승인 없이 날 수 있는 곳(HEI 는 지면에서, ALT 는 해수면에서 높이).</p>
     <ol id="uaList" class="uaList"></ol>
   </section>
 
   <section id="apply" class="dcard" hidden>
-    <h2>📝 비행승인 요청</h2>
-    <p class="dim small">앱이 대신 신청할 수 있는 공개 방법은 없습니다. 아래 값을 정리해 복사한 뒤 드론원스톱에서 신청하세요(보통 비행 3 ~ 4일 전).</p>
+    <h2 data-en="📝 Flight approval request">📝 비행승인 요청</h2>
+    <p class="dim small" data-en="There is no public way for an app to apply for you. Copy the summary below and apply on Drone One-stop (usually 3 to 4 days before the flight). The summary stays in Korean for the Korean form.">앱이 대신 신청할 수 있는 공개 방법은 없습니다. 아래 값을 정리해 복사한 뒤 드론원스톱에서 신청하세요(보통 비행 3 ~ 4일 전).</p>
     <div class="grid">
-      <label>날짜 <input type="date" id="date"></label>
-      <label>시작 <input type="time" id="from" value="10:00"></label>
-      <label>끝 <input type="time" id="to" value="12:00"></label>
-      <label>고도(m) <input type="number" id="alt" value="100" min="1" max="1000" inputmode="numeric"></label>
-      <label>반경(m) <input type="number" id="radius" value="500" min="10" max="10000" inputmode="numeric"></label>
-      <label>목적 <select id="purpose"><option>취미 · 레저</option><option>교육 · 훈련</option><option>사업(촬영 · 방제 등)</option><option>기타</option></select></label>
+      <label><span data-en="Date">날짜</span> <input type="date" id="date"></label>
+      <label><span data-en="Start">시작</span> <input type="time" id="from" value="10:00"></label>
+      <label><span data-en="End">끝</span> <input type="time" id="to" value="12:00"></label>
+      <label><span data-en="Altitude (m)">고도(m)</span> <input type="number" id="alt" value="100" min="1" max="1000" inputmode="numeric"></label>
+      <label><span data-en="Radius (m)">반경(m)</span> <input type="number" id="radius" value="500" min="10" max="10000" inputmode="numeric"></label>
+      <label><span data-en="Purpose">목적</span> <select id="purpose"><option>취미 · 레저</option><option>교육 · 훈련</option><option>사업(촬영 · 방제 등)</option><option>기타</option></select></label>
     </div>
     <textarea id="applyOut" rows="8" readonly aria-label="신청할 값 정리"></textarea>
     <div class="row">
-      <button type="button" id="copy" class="btn">📋 복사</button>
-      <a class="btn go" href="https://drone.onestop.go.kr/" target="_blank" rel="noopener">드론원스톱 열기 ›</a>
+      <button type="button" id="copy" class="btn" data-en="📋 Copy">📋 복사</button>
+      <a class="btn go" href="https://drone.onestop.go.kr/" target="_blank" rel="noopener" data-en="Open Drone One-stop ›">드론원스톱 열기 ›</a>
     </div>
   </section>
 
   <details class="help">
-    <summary>판정 기준</summary>
+    <summary data-en="How we judge">판정 기준</summary>
     <dl>
-      <dt>🔴 비행금지구역</dt><dd>승인 없이 날 수 없습니다(P-73 서울 도심 · P-518 휴전선 · 원전 주변 등).</dd>
-      <dt>🟠 비행제한구역 · 관제권</dt><dd>비행승인이 필요합니다. 관제권은 무게 · 고도와 상관없습니다.</dd>
-      <dt>🟡 군작전구역</dt><dd>다른 공역과 겹치지 않으면 25kg 이하 · 150m 아래 · 낮은 승인 없이 날 수 있지만, 관할 부대를 확인하세요.</dd>
-      <dt>🟢 허용구역(UA) · 그 밖</dt><dd>25kg 이하 · 150m 아래 · 낮 · 눈으로 보이는 곳이면 승인 없이(국토부 안내). 접근관제구역(TCA)도 같습니다.</dd>
-      <dt>늘 함께</dt><dd>150m 이상 · 25kg 초과는 어디서나 승인, 야간은 특별비행승인, 카메라 촬영은 국방부 항공촬영 허가가 따로 필요합니다. 여러 공역이 겹치면 가장 엄한 것으로 봅니다.</dd>
+      <dt data-en="🔴 Prohibited area">🔴 비행금지구역</dt><dd data-en="No flying without approval (P-73 central Seoul · P-518 near the DMZ · around nuclear plants, etc.).">승인 없이 날 수 없습니다(P-73 서울 도심 · P-518 휴전선 · 원전 주변 등).</dd>
+      <dt data-en="🟠 Restricted area · control zone">🟠 비행제한구역 · 관제권</dt><dd data-en="Flight approval needed. In a control zone, regardless of weight or height.">비행승인이 필요합니다. 관제권은 무게 · 고도와 상관없습니다.</dd>
+      <dt data-en="🟡 Military operations area">🟡 군작전구역</dt><dd data-en="If no other airspace overlaps, 25 kg or less · below 150 m · daytime needs no approval, but check with the controlling unit.">다른 공역과 겹치지 않으면 25kg 이하 · 150m 아래 · 낮은 승인 없이 날 수 있지만, 관할 부대를 확인하세요.</dd>
+      <dt data-en="🟢 UA airspace · elsewhere">🟢 허용구역(UA) · 그 밖</dt><dd data-en="25 kg or less · below 150 m · daytime · within sight: no approval needed (MOLIT guidance). Terminal control areas (TCA) are the same.">25kg 이하 · 150m 아래 · 낮 · 눈으로 보이는 곳이면 승인 없이(국토부 안내). 접근관제구역(TCA)도 같습니다.</dd>
+      <dt data-en="Always">늘 함께</dt><dd data-en="150 m or higher and over 25 kg need approval anywhere, night flights need a special flight approval, and filming needs a separate aerial photography permit from the Ministry of National Defense. Where airspaces overlap, the strictest one applies.">150m 이상 · 25kg 초과는 어디서나 승인, 야간은 특별비행승인, 카메라 촬영은 국방부 항공촬영 허가가 따로 필요합니다. 여러 공역이 겹치면 가장 엄한 것으로 봅니다.</dd>
     </dl>
   </details>
 </main>
 <footer class="wrap foot">
-  <p>자료: <span id="srcDate">브이월드 항공 레이어(국토교통부)</span>. 판정은 항공안전법 제127조 · 시행규칙 제308조 · 제310조(2026. 11. 13. 시행)와 국토교통부 안내 · 드론 교관 확인을 바탕으로 했습니다. 임시 비행금지구역은 아직 없습니다.</p>
-  <p><a href="privacy.html">개인정보처리방침</a> · <a href="m/">routefly 코스 모음</a></p>
+  <p><span data-en="Data:">자료:</span> <span id="srcDate">브이월드 항공 레이어(국토교통부)</span>. <span data-en="The judgement follows Aviation Safety Act art. 127 and its enforcement rule art. 308 · 310 (in force Nov 13, 2026), MOLIT guidance and a drone instructor's check. Temporary prohibited areas are not included yet.">판정은 항공안전법 제127조 · 시행규칙 제308조 · 제310조(2026. 11. 13. 시행)와 국토교통부 안내 · 드론 교관 확인을 바탕으로 했습니다. 임시 비행금지구역은 아직 없습니다.</span></p>
+  <p data-en="&lt;a href=&quot;privacy-en.html&quot;&gt;Privacy policy&lt;/a&gt; · &lt;a href=&quot;en/m/&quot;&gt;routefly trails&lt;/a&gt;"><a href="privacy.html">개인정보처리방침</a> · <a href="m/">routefly 코스 모음</a></p>
 </footer>
 <script src="js/dronefly.js"></script>
 </body>

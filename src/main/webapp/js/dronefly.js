@@ -8,6 +8,12 @@
 
   var LEVEL = { ok: 0, care: 1, need: 2, no: 3 };
   var KIND_NAME = { prh: '비행금지구역', res: '비행제한구역', ctr: '관제권', tca: '접근관제구역', moa: '군작전구역', ua: '초경량비행장치공역(UA)' };
+  var KIND_EN = { prh: 'Prohibited area', res: 'Restricted area', ctr: 'Control zone', tca: 'Terminal control area', moa: 'Military operations area', ua: 'UA airspace' };
+  // 화면 말(2026-11-17 홍TV님 "한/영, 가 도 넣어줘"). 비행승인 신청 정리(applyText)는 드론원스톱 한국어 칸에 붙이므로 늘 한국어
+  var lang = 'ko';
+  function setLang(l) { lang = l === 'en' ? 'en' : 'ko'; }
+  function tr(ko, en) { return lang === 'en' ? en : ko; }
+  function kindName(k) { return tr(KIND_NAME[k], KIND_EN[k]); }
 
   /** 순수 함수 - 점(lon, lat)이 고리(첫 점 = 끝 점일 수 있음) 안인가(반직선 셈). */
   function inRing(lon, lat, ring) {
@@ -52,13 +58,13 @@
   }
 
   /** 순수 함수 - 공역 하나의 이름 · 높이 한 줄. */
-  function zoneLine(z) {
-    var l = z.l || [];
-    if (z.k === 'prh') return (l[3] || KIND_NAME.prh) + ' ' + l[0] + ' (' + l[1] + ' ~ ' + l[2] + ')';
-    if (z.k === 'ctr' || z.k === 'tca') return KIND_NAME[z.k] + ' ' + l[0];
+  function zoneLine(z, ko) {
+    var l = z.l || [], name = function (k) { return ko ? KIND_NAME[k] : kindName(k); };
+    if (z.k === 'prh') return ((ko || lang !== 'en') && l[3] ? l[3] : name('prh')) + ' ' + l[0] + ' (' + l[1] + ' ~ ' + l[2] + ')';
+    if (z.k === 'ctr' || z.k === 'tca') return name(z.k) + ' ' + l[0];
     // res · moa · ua: [이름, 위 높이, 아래 높이]
     var hi = l[1] || '', lo = l[2] || '';
-    return KIND_NAME[z.k] + ' ' + l[0] + (hi || lo ? ' (' + (lo || '?') + ' ~ ' + (hi || '?') + ')' : '');
+    return name(z.k) + ' ' + l[0] + (hi || lo ? ' (' + (lo || '?') + ' ~ ' + (hi || '?') + ')' : '');
   }
 
   /**
@@ -71,17 +77,21 @@
     zones.forEach(function (z) { if (LEVEL[levelOf(z.k)] > LEVEL[level]) level = levelOf(z.k); });
     if ((o.heavy || o.high) && LEVEL[level] < LEVEL.need) level = 'need';
     var ua = zones.filter(function (z) { return z.k === 'ua'; })[0];
-    var head = level === 'no' ? '비행금지구역 - 승인 없이 날 수 없습니다'
-      : level === 'need' ? '비행승인이 필요합니다'
-      : level === 'care' ? '군작전구역 - 다른 공역과 겹치지 않으면 25kg 이하 · 150m 아래 · 낮은 승인 없이, 관할 부대 확인'
-      : ua ? '허용구역(UA) - 낮에 ' + ua.l[1] + ' 까지 승인 없이'
-      : '25kg 이하 · 150m 아래 · 낮 · 눈으로 보이는 곳이면 승인 없이 | 국토부 안내';
+    var head = level === 'no' ? tr('비행금지구역 - 승인 없이 날 수 없습니다', 'Prohibited area - no flying without approval')
+      : level === 'need' ? tr('비행승인이 필요합니다', 'Flight approval required')
+      : level === 'care' ? tr('군작전구역 - 다른 공역과 겹치지 않으면 25kg 이하 · 150m 아래 · 낮은 승인 없이, 관할 부대 확인',
+        'Military operations area - if no other airspace overlaps, 25 kg or less · below 150 m · daytime needs no approval; check with the controlling unit')
+      : ua ? tr('허용구역(UA) - 낮에 ' + ua.l[1] + ' 까지 승인 없이', 'UA airspace - no approval needed up to ' + ua.l[1] + ' in daytime')
+      : tr('25kg 이하 · 150m 아래 · 낮 · 눈으로 보이는 곳이면 승인 없이 | 국토부 안내', '25 kg or less · below 150 m · daytime · within sight: no approval needed | MOLIT guidance');
     var notes = [];
-    if (o.heavy) notes.push('25kg 넘는 기체는 어디서나 비행승인이 필요합니다.');
-    if (o.high) notes.push('150m 이상은 어디서나 비행승인이 필요합니다.');
-    if (o.photo) notes.push('카메라로 찍으면 국방부 항공촬영 허가가 따로 필요합니다(비행승인과 별개).');
-    notes.push('야간(일몰 후 ~ 일출 전)은 어디서나 특별비행승인이 필요합니다.');
-    return { level: level, head: head + (o.photo ? ' + 촬영 허가' : ''), lines: zones.map(zoneLine), notes: notes };
+    if (o.heavy) notes.push(tr('25kg 넘는 기체는 어디서나 비행승인이 필요합니다.', 'Aircraft over 25 kg need flight approval anywhere.'));
+    if (o.high) notes.push(tr('150m 이상은 어디서나 비행승인이 필요합니다.', '150 m or higher needs flight approval anywhere.'));
+    // 비행제한구역은 실무대로 "승인 필요"(2026-11-17 홍TV님 1안), 법 원문(시행규칙 제310조 ① 3호 나목)의 예외는 덧붙임으로
+    if (zones.some(function (z) { return z.k === 'res'; })) notes.push(tr('단, 일부 비행제한구역은 25kg 이하 · 150m 미만 기체에 한해 예외가 적용될 수 있으니 드론원스톱에서 해당 구역의 세부 고시를 확인하세요.',
+      'Note: some restricted areas allow an exception for aircraft of 25 kg or less below 150 m - check that area\'s details on Drone One-stop.'));
+    if (o.photo) notes.push(tr('카메라로 찍으면 국방부 항공촬영 허가가 따로 필요합니다(비행승인과 별개).', 'Filming needs a separate aerial photography permit from the Ministry of National Defense (apart from flight approval).'));
+    notes.push(tr('야간(일몰 후 ~ 일출 전)은 어디서나 특별비행승인이 필요합니다.', 'Night flights (sunset to sunrise) need a special flight approval anywhere.'));
+    return { level: level, head: head + (o.photo ? tr(' + 촬영 허가', ' + filming permit') : ''), lines: zones.map(function (z) { return zoneLine(z); }), notes: notes };
   }
 
   /** 순수 함수 - 두 점 거리(m, 짧은 거리용 평면 셈). */
@@ -129,11 +139,18 @@
       '일시: ' + f.date + ' ' + f.from + ' ~ ' + f.to,
       '목적: ' + f.purpose + (f.photo ? ' · 항공촬영 있음(국방부 촬영 허가 함께)' : ''),
       '기체: 최대이륙중량 ' + f.weight,
-      '걸린 공역: ' + (zones.length ? zones.map(zoneLine).join(' / ') : '없음')
+      '걸린 공역: ' + (zones.length ? zones.map(function (z) { return zoneLine(z, true); }).join(' / ') : '없음')
     ].join('\n');
   }
 
-  var api = { inRing: inRing, inGeom: inGeom, isTca: isTca, zonesAt: zonesAt, levelOf: levelOf, zoneLine: zoneLine, verdict: verdict, meters: meters, nearest: nearest, nearUa: nearUa, dist: dist, applyText: applyText };
+  var SIZES = ['m', 'l', 'xl'];
+  /** 순수 함수 - 글자 크기 다음 단계(보통 → 크게 → 아주 크게 → 보통) - 타이드플라이와 같음. */
+  function nextSize(cur) {
+    var i = SIZES.indexOf(cur);
+    return SIZES[(i < 0 ? 1 : i + 1) % SIZES.length];
+  }
+
+  var api = { setLang: setLang, nextSize: nextSize, inRing: inRing, inGeom: inGeom, isTca: isTca, zonesAt: zonesAt, levelOf: levelOf, zoneLine: zoneLine, verdict: verdict, meters: meters, nearest: nearest, nearUa: nearUa, dist: dist, applyText: applyText };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
   root.DF = api;
 
@@ -154,18 +171,18 @@
     var zones = zonesAt(data, here.lat, here.lon), v = verdict(zones, opts());
     $('result').hidden = false;
     $('result').className = 'dcard result ' + v.level;
-    $('place').textContent = here.name || ('위도 ' + here.lat.toFixed(5) + ', 경도 ' + here.lon.toFixed(5));
+    $('place').textContent = here.me ? tr('📍 내 위치', '📍 My location') : here.name || (tr('위도 ', 'lat ') + here.lat.toFixed(5) + tr(', 경도 ', ', lon ') + here.lon.toFixed(5));
     $('head').textContent = v.head;
-    $('zones').innerHTML = v.lines.length ? v.lines.map(function (l) { return '<li>' + esc(l) + '</li>'; }).join('') : '<li>걸린 공역 없음(비행금지 · 제한 · 관제권 · 군작전 · UA 밖)</li>';
+    $('zones').innerHTML = v.lines.length ? v.lines.map(function (l) { return '<li>' + esc(l) + '</li>'; }).join('') : '<li>' + tr('걸린 공역 없음(비행금지 · 제한 · 관제권 · 군작전 · UA 밖)', 'No listed airspace here (outside prohibited · restricted · control zone · MOA · UA)') + '</li>';
     $('notes').innerHTML = v.notes.map(function (l) { return '<li>' + esc(l) + '</li>'; }).join('');
     $('ua').hidden = false;
     $('uaList').innerHTML = nearUa(data, here.lat, here.lon, 5).map(function (u) {
-      return '<li><b>' + esc(u.name) + '</b> <span class="dim">' + esc(u.top) + ' 까지</span> · ' + (u.m === 0 ? '지금 안' : dist(u.m))
-        + ' <a href="https://map.kakao.com/link/map/' + encodeURIComponent(u.name) + ',' + u.lat.toFixed(5) + ',' + u.lon.toFixed(5) + '" target="_blank" rel="noopener">지도</a></li>';
+      return '<li><b>' + esc(u.name) + '</b> <span class="dim">' + esc(tr(u.top + ' 까지', 'up to ' + u.top)) + '</span> · ' + (u.m === 0 ? tr('지금 안', 'you are in it') : dist(u.m))
+        + ' <a href="https://map.kakao.com/link/map/' + encodeURIComponent(u.name) + ',' + u.lat.toFixed(5) + ',' + u.lon.toFixed(5) + '" target="_blank" rel="noopener">' + tr('지도', 'Map') + '</a></li>';
     }).join('');
     $('apply').hidden = false;
     $('applyOut').value = applyText({
-      place: here.name || '', lat: here.lat, lon: here.lon, radius: $('radius').value, alt: $('alt').value,
+      place: here.me ? '내 위치' : here.name || '', lat: here.lat, lon: here.lon, radius: $('radius').value, alt: $('alt').value,
       date: $('date').value, from: $('from').value, to: $('to').value, purpose: $('purpose').value, photo: $('photo').checked, weight: $('heavy').checked ? '25kg 초과' : '25kg 이하'
     }, zones);
   }
@@ -173,7 +190,7 @@
   function setHere(p) {
     here = p;
     $('state').textContent = '';
-    if (!data) { $('state').textContent = '공역 자료를 받는 중…'; return; }
+    if (!data) { $('state').textContent = tr('공역 자료를 받는 중…', 'Loading airspace data…'); return; }
     draw();
   }
 
@@ -182,26 +199,26 @@
     $('date').value = new Date(Date.now() + 9 * 3600000 + 86400000).toISOString().slice(0, 10);
     fetch('data/drone-airspace.json').then(function (r) { return r.json(); }).then(function (d) {
       data = d;
-      $('srcDate').textContent = d.src + ', ' + d.date + ' 받음';
+      paintSrc();
       if (here) draw();
-    }).catch(function () { $('state').textContent = '공역 자료를 받지 못했습니다. 잠시 뒤 다시 열어 주세요.'; });
+    }).catch(function () { $('state').textContent = tr('공역 자료를 받지 못했습니다. 잠시 뒤 다시 열어 주세요.', 'Could not load the airspace data. Please reopen in a moment.'); });
 
     $('me').addEventListener('click', function () {
-      if (!navigator.geolocation) { $('state').textContent = '이 브라우저는 위치를 쓸 수 없습니다.'; return; }
-      $('state').textContent = '위치를 찾는 중…';
+      if (!navigator.geolocation) { $('state').textContent = tr('이 브라우저는 위치를 쓸 수 없습니다.', 'This browser cannot use location.'); return; }
+      $('state').textContent = tr('위치를 찾는 중…', 'Finding your location…');
       navigator.geolocation.getCurrentPosition(function (pos) {
-        setHere({ lat: pos.coords.latitude, lon: pos.coords.longitude, name: '📍 내 위치' });
-      }, function () { $('state').textContent = '위치를 쓸 수 없습니다. 위치 권한을 확인하거나 장소를 찾아 주세요.'; }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+        setHere({ lat: pos.coords.latitude, lon: pos.coords.longitude, me: true });
+      }, function () { $('state').textContent = tr('위치를 쓸 수 없습니다. 위치 권한을 확인하거나 장소를 찾아 주세요.', 'Location is not available. Check the permission or search for a place.'); }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
     });
 
     function find() {
       var q = $('q').value.trim();
       if (q.length < 2) return;
-      $('state').textContent = '찾는 중…';
+      $('state').textContent = tr('찾는 중…', 'Searching…');
       $('q').blur();
       fetch('api/place?q=' + encodeURIComponent(q)).then(function (r) { return r.json(); }).then(function (d) {
         var ps = (d && d.places) || [];
-        $('state').textContent = ps.length ? '' : '찾지 못했습니다. 다른 이름으로 찾아 주세요.';
+        $('state').textContent = ps.length ? '' : tr('찾지 못했습니다. 다른 이름으로 찾아 주세요.', 'Nothing found. Try another name.');
         $('found').innerHTML = ps.map(function (p, i) { return '<li><button type="button" data-i="' + i + '">' + esc(p.name) + (p.addr ? ' <small>' + esc(p.addr) + '</small>' : '') + '</button></li>'; }).join('');
         $('found').onclick = function (e) {
           var b = e.target.closest('button');
@@ -210,31 +227,67 @@
           $('found').innerHTML = '';
           setHere({ lat: p.lat, lon: p.lon, name: p.name });
         };
-      }).catch(function () { $('state').textContent = '찾기를 하지 못했습니다. 잠시 뒤 다시 해 주세요.'; });
+      }).catch(function () { $('state').textContent = tr('찾기를 하지 못했습니다. 잠시 뒤 다시 해 주세요.', 'Search failed. Please try again in a moment.'); });
     }
     $('findForm').addEventListener('submit', function (e) { e.preventDefault(); find(); });
 
     ['photo', 'heavy', 'alt', 'radius', 'date', 'from', 'to', 'purpose'].forEach(function (id) { $(id).addEventListener('change', draw); });
     $('copy').addEventListener('click', function () {
-      var t = $('applyOut').value, done = function () { $('copy').textContent = '✓ 복사함'; setTimeout(function () { $('copy').textContent = '📋 복사'; }, 2000); };
+      var t = $('applyOut').value, done = function () { $('copy').textContent = tr('✓ 복사함', '✓ Copied'); setTimeout(function () { $('copy').textContent = tr('📋 복사', '📋 Copy'); }, 2000); };
       if (navigator.clipboard) navigator.clipboard.writeText(t).then(done, function () { $('applyOut').select(); });
       else { $('applyOut').select(); }
     });
 
-    var themeBtn = $('theme'), rootEl = document.documentElement;
+    var themeBtn = $('theme'), sizeBtn = $('size'), rootEl = document.documentElement;
+    var SIZE_NAME = { m: ['보통', 'normal'], l: ['크게', 'large'], xl: ['아주 크게', 'extra large'] };
+    function save(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* 기억 못 해도 지금 화면은 바뀜 */ } }
     function paintTheme() {
       var dark = rootEl.getAttribute('data-theme') !== 'light';
       themeBtn.textContent = dark ? '☀️' : '🌙';
-      themeBtn.setAttribute('aria-label', dark ? '밝은 모드로' : '다크모드로');
+      themeBtn.setAttribute('aria-label', dark ? tr('밝은 모드로', 'Light mode') : tr('다크모드로', 'Dark mode'));
       themeBtn.title = themeBtn.getAttribute('aria-label');
+      var cur = rootEl.getAttribute('data-size') || 'm', nx = nextSize(cur), li = lang === 'en' ? 1 : 0;
+      sizeBtn.textContent = tr('가', 'A') + (cur === 'xl' ? '++' : cur === 'l' ? '+' : '');
+      sizeBtn.setAttribute('aria-label', tr('글자 크기: ' + SIZE_NAME[cur][0] + ' (누르면 ' + SIZE_NAME[nx][0] + ')', 'Text size: ' + SIZE_NAME[cur][li] + ' (tap for ' + SIZE_NAME[nx][li] + ')'));
     }
+    sizeBtn.addEventListener('click', function () {
+      var next = nextSize(rootEl.getAttribute('data-size') || 'm');
+      if (next === 'm') rootEl.removeAttribute('data-size'); else rootEl.setAttribute('data-size', next);
+      save('tf-size', next);
+      paintTheme();
+    });
+    // 고정 글: data-en 에 영어, 처음 한국어는 기억(타이드플라이와 같은 방식)
+    var fixed = Array.prototype.map.call(document.querySelectorAll('[data-en]'), function (e) { return [e, e.innerHTML]; });
+    var phs = Array.prototype.map.call(document.querySelectorAll('[data-en-ph]'), function (e) { return [e, e.getAttribute('placeholder')]; });
+    var langBtns = document.querySelectorAll('.lang button');
+    function paintSrc() {
+      if (data) $('srcDate').textContent = tr(data.src + ', ' + data.date + ' 받음', 'V-World aviation layers (MOLIT), received ' + data.date);
+    }
+    function paintLang() {
+      rootEl.setAttribute('lang', lang);
+      document.title = tr('드론플라이 비행금지 · 허용구역 · 비행승인 - dronefly', 'dronefly - drone no-fly zones, UA airspace and flight approval');
+      $('back').setAttribute('href', lang === 'en' ? 'en/m/' : 'm/');
+      fixed.forEach(function (f) { f[0].innerHTML = lang === 'en' ? f[0].getAttribute('data-en') : f[1]; });
+      phs.forEach(function (f) { f[0].setAttribute('placeholder', lang === 'en' ? f[0].getAttribute('data-en-ph') : f[1]); });
+      Array.prototype.forEach.call(langBtns, function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-lang') === lang ? 'true' : 'false'); });
+      paintSrc();
+      paintTheme();
+      draw();
+    }
+    Array.prototype.forEach.call(langBtns, function (b) {
+      b.addEventListener('click', function () { setLang(b.getAttribute('data-lang')); save('tf-lang', lang); paintLang(); });
+    });
     themeBtn.addEventListener('click', function () {
       var next = rootEl.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
       rootEl.setAttribute('data-theme', next);
-      try { localStorage.setItem('tf-theme', next); } catch (e) { /* 기억 못 해도 지금 화면은 바뀜 */ }
+      save('tf-theme', next);
       paintTheme();
     });
-    paintTheme();
+    // 처음 말: 주소(?lang=) → 고른 것(tf-lang, 타이드플라이와 같이 씀) → 브라우저 말
+    var saved = null;
+    try { saved = localStorage.getItem('tf-lang'); } catch (e) { /* 저장이 막힌 브라우저 */ }
+    setLang((/[?&]lang=(ko|en)\b/.exec(location.search) || [])[1] || saved || (/^ko\b/i.test(navigator.language || 'ko') ? 'ko' : 'en'));
+    paintLang();
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
