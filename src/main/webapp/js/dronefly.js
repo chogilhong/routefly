@@ -359,11 +359,16 @@
     });
   }
 
+  /** 기다리는 동안 도는 표시 + 글(2026-11-17 홍TV님 "작업중이라는 화면 돌아가는 것들") - 다음 글(textContent)이 들어오면 저절로 사라짐. */
+  function busy(text) {
+    $('state').innerHTML = '<span class="spin" aria-hidden="true"></span>' + esc(text);
+  }
+
   function setHere(p, fromMap) {
     here = p;
     showOnMap(p, !fromMap);
     $('state').textContent = '';
-    if (!data) { $('state').textContent = tr('공역 자료를 받는 중…', 'Loading airspace data…'); return; }
+    if (!data) { busy(tr('공역 자료를 받는 중…', 'Loading airspace data…')); return; }
     draw();
   }
 
@@ -375,12 +380,12 @@
       data = d;
       paintSrc();
       addAirspace();
-      if (here) draw();
+      if (here) { $('state').textContent = ''; draw(); }   // 받는 중 표시를 지움
     }).catch(function () { $('state').textContent = tr('공역 자료를 받지 못했습니다. 잠시 뒤 다시 열어 주세요.', 'Could not load the airspace data. Please reopen in a moment.'); });
 
     $('me').addEventListener('click', function () {
       if (!navigator.geolocation) { $('state').textContent = tr('이 브라우저는 위치를 쓸 수 없습니다.', 'This browser cannot use location.'); return; }
-      $('state').textContent = tr('위치를 찾는 중…', 'Finding your location…');
+      busy(tr('위치를 찾는 중…', 'Finding your location…'));
       navigator.geolocation.getCurrentPosition(function (pos) {
         setHere({ lat: pos.coords.latitude, lon: pos.coords.longitude, me: true });
       }, function () { $('state').textContent = tr('위치를 쓸 수 없습니다. 위치 권한을 확인하거나 장소를 찾아 주세요.', 'Location is not available. Check the permission or search for a place.'); }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
@@ -389,7 +394,7 @@
     function find() {
       var q = $('q').value.trim();
       if (q.length < 2) return;
-      $('state').textContent = tr('찾는 중…', 'Searching…');
+      busy(tr('찾는 중…', 'Searching…'));
       $('q').blur();
       fetch('api/place?q=' + encodeURIComponent(q)).then(function (r) { return r.json(); }).then(function (d) {
         var ps = (d && d.places) || [];

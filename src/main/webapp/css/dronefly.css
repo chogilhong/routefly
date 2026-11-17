@@ -46,6 +46,11 @@ details.fold > summary h2 { margin: 0; }
 :root:not([data-theme="light"]) .btn.go { color: #38d9ea; }
 .grid .wide { grid-column: 1 / -1; }
 #shootOut { width: 100%; box-sizing: border-box; margin: 10px 0 0; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--soft); color: var(--ink); font: .85rem/1.5 ui-monospace, monospace; }
+.spin { display: inline-block; width: 16px; height: 16px; margin-right: 8px; vertical-align: -3px; border: 2.5px solid rgba(56, 217, 234, .25); border-top-color: #38d9ea; border-radius: 50%; animation: dspin .8s linear infinite; }
+@keyframes dspin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spin { animation-duration: 2.4s; } }
+.dpick .state { min-height: 0; margin: 6px 2px 0; font-size: .95rem; color: var(--ink); }
+.dpick .state:empty { display: none; }
 .dmap { height: 340px; margin: -2px -4px 8px; border-radius: 10px; overflow: hidden; background: #1b2430; }
 .legend2 { display: flex; flex-wrap: wrap; gap: 4px 12px; list-style: none; margin: 0 0 6px; padding: 0; font-size: .85rem; }
 .legend2 li { display: inline-flex; align-items: center; gap: 5px; }

@@ -91,4 +91,12 @@ public class DroneflyPageTest {
                 && js.contains("$('apply').hidden = LEVEL[v.level] < LEVEL.need;") && js.contains("$('shoot').hidden = !$('photo').checked;"));
         assertTrue(h.contains("<summary><h2 data-en=\"📝 Flight approval request\">📝 비행승인 요청</h2></summary>") && h.contains("<details id=\"ua\" class=\"dcard fold\" open hidden>"));
     }
+
+    /** 기다리는 동안 도는 표시(2026-11-17 홍TV님 "위치 찾는 중 … 작업중이라는 화면 돌아가는 것들"). */
+    @Test
+    public void 찾는_중_도는_표시() throws Exception {
+        String js = read("src/main/webapp/js/dronefly.js"), css = read("src/main/webapp/css/dronefly.css");
+        assertTrue(js.contains("busy(tr('위치를 찾는 중…', 'Finding your location…'));") && js.contains("busy(tr('찾는 중…', 'Searching…'));") && js.contains("busy(tr('공역 자료를 받는 중…', 'Loading airspace data…'));"));
+        assertTrue(css.contains("animation: dspin .8s linear infinite;") && css.contains("@keyframes dspin"));
+    }
 }
