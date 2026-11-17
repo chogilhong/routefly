@@ -331,4 +331,12 @@ public class CheckupRound11Test {
         assertTrue(m.contains(".rfLang { display:inline-flex; height:44px; border:1px solid rgba(255,255,255,0.45);")
                 && m.contains("min-width:44px; padding:0 8px; box-sizing:border-box; color:#fff; background:transparent; }") && m.contains(".rfLang span.on { color:#08394d; background:#fff; }"));
     }
+
+    /** 타이드플라이 모드 단추는 아이콘만(2026-11-17 홍TV님 "밝은 모드, 다크모드 이름을 빼고 아이콘만 남겨") - 이름은 aria-label · title 로. */
+    @Test
+    public void 타이드플라이_모드_단추_아이콘만() throws Exception {
+        assertTrue(read("src/main/webapp/tidefly.html").contains("id=\"theme\" aria-label=\"밝은 모드로\" title=\"밝은 모드로\">☀️</button>"));
+        String js = read("src/main/webapp/js/tidefly.js");
+        assertTrue(js.contains("themeBtn.textContent = dark ? '☀️' : '🌙';") && js.contains("themeBtn.setAttribute('aria-label', themeName);") && !js.contains("'☀ 밝은 모드'"));
+    }
 }

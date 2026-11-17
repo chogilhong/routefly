@@ -1322,7 +1322,11 @@
   // 다크 · 밝은 모드, 글자 크기 단추(2026-11-15 홍TV님) - 고른 것은 이 기기에 기억(tf-theme · tf-size · tf-lang)
   function paintOptions() {
     var dark = isDark(root.getAttribute('data-theme'));
-    themeBtn.textContent = dark ? tr('☀ 밝은 모드', '☀ Light') : tr('🌙 다크모드', '🌙 Dark');
+    // 글은 빼고 아이콘만(2026-11-17 홍TV님) - 이름은 화면 읽기 · 길게 누름(title)으로
+    var themeName = dark ? tr('밝은 모드로', 'Light mode') : tr('다크모드로', 'Dark mode');
+    themeBtn.textContent = dark ? '☀️' : '🌙';
+    themeBtn.setAttribute('aria-label', themeName);
+    themeBtn.title = themeName;
     var cur = root.getAttribute('data-size') || 'm', nx = nextSize(cur), li = lang === 'en' ? 1 : 0;
     // 가 · 가+ · 가++ - routefly 다른 화면 글자 단추와 같게(2026-11-16 홍TV님 "'+' '++' 로 통일해 줘", 예전에는 늘 "가" 에 글자만 조금 커짐)
     sizeBtn.textContent = tr('가', 'A') + (cur === 'xl' ? '++' : cur === 'l' ? '+' : '');
