@@ -79,16 +79,14 @@
     <ul id="notes" class="notes"></ul>
   </section>
 
-  <section id="ua" class="dcard" hidden>
-    <h2 data-en="🟢 Nearby UA airspace">🟢 가까운 허용구역(UA)</h2>
+  <details id="ua" class="dcard fold" open hidden><!-- 펴고 접기(2026-11-17 홍TV님) -->
+    <summary><h2 data-en="🟢 Nearby UA airspace">🟢 가까운 허용구역(UA)</h2></summary>
     <p class="dim small" data-en="Ultralight vehicle airspace - you can fly without approval in daytime up to the height shown (HEI from the ground, ALT from sea level).">초경량비행장치공역 - 낮에 표시된 높이까지 승인 없이 날 수 있는 곳(HEI 는 지면에서, ALT 는 해수면에서 높이).</p>
     <ol id="uaList" class="uaList"></ol>
-  </section>
+  </details>
 
-  <section id="apply" class="dcard" hidden>
-    <h2 data-en="📝 Flight approval request">📝 비행승인 요청</h2>
-    <p class="dim small" data-en="There is no public way for an app to apply for you. Copy the summary below and apply on Drone One-stop (processing: approval 3 working days, aerial photography 4, special flight 30 - Drone One-stop). The summary stays in Korean for the Korean form.">앱이 대신 신청할 수 있는 공개 방법은 없습니다. 아래 값을 정리해 복사한 뒤 드론원스톱에서 신청하세요(처리 기간: 근무일 기준 비행승인 3일 · 항공촬영 4일 · 특별비행 30일 - 드론원스톱 안내).</p>
-    <p id="due" class="due" hidden role="status"></p>
+  <details id="plan" class="dcard fold" open hidden><!-- 비행 계획(날짜 · 시각 · 고도 · 반경 · 목적) - 자리를 고르면 늘 보임. 고도 150m 이상이면 판정이 승인 필요로(2026-11-17 홍TV님 "승인이 필요할 때만" 으로 신청 칸과 나눔) -->
+    <summary><h2 data-en="🗓 Flight plan">🗓 비행 계획</h2></summary>
     <div class="grid">
       <label><span data-en="Date">날짜</span> <input type="date" id="date"></label>
       <label><span data-en="Start">시작</span> <input type="time" id="from" value="10:00"></label>
@@ -97,30 +95,36 @@
       <label><span data-en="Radius (m)">반경(m)</span> <input type="number" id="radius" value="500" min="10" max="10000" inputmode="numeric"></label>
       <label><span data-en="Purpose">목적</span> <select id="purpose"><option>취미 · 레저</option><option>교육 · 훈련</option><option>사업(촬영 · 방제 등)</option><option>기타</option></select></label>
     </div>
+  </details>
+
+  <details id="apply" class="dcard fold" open hidden><!-- 승인이 필요한 자리일 때만 보임 · 펴고 접기(2026-11-17 홍TV님 "승인이 필요할 때만") -->
+    <summary><h2 data-en="📝 Flight approval request">📝 비행승인 요청</h2></summary>
+    <p class="dim small" data-en="There is no public way for an app to apply for you. Copy the summary below and apply on Drone One-stop (processing: approval 3 working days, aerial photography 4, special flight 30 - Drone One-stop). The summary stays in Korean for the Korean form.">앱이 대신 신청할 수 있는 공개 방법은 없습니다. 아래 값을 정리해 복사한 뒤 드론원스톱에서 신청하세요(처리 기간: 근무일 기준 비행승인 3일 · 항공촬영 4일 · 특별비행 30일 - 드론원스톱 안내).</p>
+    <p id="due" class="due" hidden role="status"></p>
     <textarea id="applyOut" rows="8" readonly aria-label="신청할 값 정리"></textarea>
     <div class="row">
       <button type="button" id="copy" class="btn" data-en="📋 Copy">📋 복사</button>
       <a class="btn go" href="https://drone.onestop.go.kr/" target="_blank" rel="noopener" data-en="Open Drone One-stop ›">드론원스톱 열기 ›</a>
     </div>
-  </section>
+  </details>
 
-  <section id="shoot" class="dcard" hidden><!-- 2026-11-17 홍TV님 "비행승인 요청처럼 항공촬영도 해줘" - 드론원스톱 항공촬영 신청 안내(홍TV님이 보낸 화면) 그대로 -->
-    <h2 data-en="📷 Aerial photography pre-application">📷 항공촬영 사전 신청</h2>
+  <details id="shoot" class="dcard fold" open hidden><!-- "카메라로 촬영" 을 고른 때만 보임(2026-11-17 홍TV님 "항공촬영은 안 하는데 보여줄 필요 없잖아") - 드론원스톱 항공촬영 신청 안내 그대로 -->
+    <summary><h2 data-en="📷 Aerial photography pre-application">📷 항공촬영 사전 신청</h2></summary>
     <p class="dim small" data-en="Since Dec 1, 2022 aerial photography is a pre-application, not a permit, and is separate from flight approval (4 working days). The local military unit only tells you whether restricted facilities are in the area; open land without them can be filmed freely, and you are responsible if restricted facilities are filmed. The summary stays in Korean for the Korean form.">2022. 12. 1. 부터 항공촬영은 허가가 아니라 사전 신청이고, 비행승인과 별개입니다(근무일 기준 4일). 지역책임부대는 촬영금지시설 유무만 알려 주며, 그런 시설이 없는 개활지는 자유롭게 찍을 수 있습니다. 촬영금지시설이 찍힌 법적 책임은 촬영한 개인 · 업체 · 기관에 있습니다.</p>
     <p id="shootDue" class="due" hidden role="status"></p>
     <div class="grid">
       <label class="wide"><span data-en="What you will film">촬영 대상</span> <input type="text" id="shootWhat" maxlength="60" placeholder="예: 해안 풍경, 행사, 시설 점검" data-en-ph="e.g. coastline, event, inspection"></label>
     </div>
-    <p class="dim small" data-en="Place, date, time, altitude and radius are taken from the flight approval box above.">장소 · 날짜 · 시각 · 고도 · 반경은 위 비행승인 요청 칸 값을 씁니다.</p>
+    <p class="dim small" data-en="Place, date, time, altitude and radius are taken from the flight plan above.">장소 · 날짜 · 시각 · 고도 · 반경은 위 비행 계획 칸 값을 씁니다.</p>
     <textarea id="shootOut" rows="8" readonly aria-label="항공촬영 신청할 값 정리"></textarea>
     <div class="row">
       <button type="button" id="copyShoot" class="btn" data-en="📋 Copy">📋 복사</button>
       <a class="btn go" href="https://drone.onestop.go.kr/" target="_blank" rel="noopener" data-en="Open Drone One-stop ›">드론원스톱 열기 ›</a>
     </div>
-  </section>
+  </details>
 
-  <section class="dcard notice" aria-label="드론원스톱 안내"><!-- 2026-11-17 홍TV님 "이런 내용도 좀 공지 해 주고" - 드론원스톱 첫 화면(2026-11-17 본 것) 그대로 -->
-    <h2 data-en="📢 Drone One-stop notices">📢 드론원스톱 안내</h2>
+  <details class="dcard fold notice" aria-label="드론원스톱 안내" open><!-- 2026-11-17 홍TV님 "이런 내용도 좀 공지 해 주고" - 드론원스톱 첫 화면(2026-11-17 본 것) 그대로 -->
+    <summary><h2 data-en="📢 Drone One-stop notices">📢 드론원스톱 안내</h2></summary>
     <ul class="notes2">
       <li data-en="Flying in a prohibited area without the authority's prior approval, or illegal use of an ultralight vehicle, is punishable under the Aviation Safety Act.">비행금지구역에서 관할 기관의 사전 승인 없이 비행하거나, 초경량비행장치를 불법 사용하면 항공안전법 처벌 대상입니다.</li>
       <li data-en="Flying in an approval-required area without approval: fine of 1.5 million won (first offence).">비행승인 대상지역에서 승인을 받지 않고 비행하면 과태료 150만원(1차 위반)이 부과됩니다.</li>
@@ -140,7 +144,7 @@
       <tr><th data-en="Aerial photography">항공촬영</th><td data-en="4 days">근무일 기준 4일</td></tr>
     </table>
     <p class="dim small" data-en="Enquiries: device registration 054-459-7942~5 · business registration 054-459-7946~9 · flight approval and aerial photography by local office (see Drone One-stop).">문의: 장치신고 054-459-7942~5 · 사업등록 054-459-7946~9 · 비행승인 · 항공촬영은 부서별(드론원스톱 "각 부서 연락처 안내").</p>
-  </section>
+  </details>
 
   <details class="help">
     <summary data-en="How we judge">판정 기준</summary>

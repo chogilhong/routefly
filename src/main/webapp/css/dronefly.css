@@ -1,5 +1,10 @@
 /* dronefly(2026-11-17) - 바탕 · 머리는 tidefly.css 를 같이 씀 */
 .dcard { margin: 12px 0 0; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+details.fold > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; }
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary::after { content: "▾"; color: var(--dim); font-size: 1rem; transition: transform .15s; }
+details.fold:not([open]) > summary::after { transform: rotate(-90deg); }
+details.fold > summary h2 { margin: 0; }
 .dcard h2 { margin: 0 0 4px; font-size: 1.05rem; }
 .dpick .near-btn { display: flex; justify-content: center; width: 100%; }
 .dpick .find { display: block; width: 100%; margin: 8px 0 0; flex: none; }

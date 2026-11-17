@@ -84,7 +84,11 @@ public class DroneflyPageTest {
     @Test
     public void 항공촬영_사전_신청_칸() throws Exception {
         String h = read("src/main/webapp/dronefly.html"), js = read("src/main/webapp/js/dronefly.js");
-        assertTrue(h.indexOf("<section id=\"apply\"") < h.indexOf("<section id=\"shoot\"") && h.contains(">📷 항공촬영 사전 신청</h2>") && h.contains("id=\"copyShoot\""));
+        assertTrue(h.indexOf("<details id=\"apply\" class=\"dcard fold\" open hidden>") < h.indexOf("<details id=\"shoot\" class=\"dcard fold\" open hidden>") && h.contains(">📷 항공촬영 사전 신청</h2>") && h.contains("id=\"copyShoot\""));
         assertTrue(js.contains("$('shootOut').value = shootText(f, zones);") && js.contains("var sd = dueText(today, $('date').value, false, true);"));
+        // 승인이 필요할 때만 · 촬영을 고른 때만, 펴고 접기(2026-11-17 홍TV님)
+        assertTrue(js.contains("$('plan').hidden = false;") && h.indexOf("<details id=\"plan\"") < h.indexOf("<details id=\"apply\"") && h.indexOf("id=\"date\"") > h.indexOf("<details id=\"plan\"") && h.indexOf("id=\"date\"") < h.indexOf("<details id=\"apply\"")
+                && js.contains("$('apply').hidden = LEVEL[v.level] < LEVEL.need;") && js.contains("$('shoot').hidden = !$('photo').checked;"));
+        assertTrue(h.contains("<summary><h2 data-en=\"📝 Flight approval request\">📝 비행승인 요청</h2></summary>") && h.contains("<details id=\"ua\" class=\"dcard fold\" open hidden>"));
     }
 }

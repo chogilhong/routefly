@@ -297,7 +297,9 @@
       return '<li><b>' + esc(u.name) + '</b> <span class="dim">' + esc(tr(u.top + ' 까지', 'up to ' + u.top)) + '</span> · ' + (u.m === 0 ? tr('지금 안', 'you are in it') : dist(u.m))
         + '<span class="go">' + uaLinks(u, phone).map(function (g) { return '<a href="' + esc(g[1]) + '"' + (g[2] ? ' target="_blank" rel="noopener"' : '') + '>' + g[0] + '</a>'; }).join('') + '</span></li>';
     }).join('');
-    $('apply').hidden = false;
+    $('plan').hidden = false;
+    // 비행승인 요청은 승인이 필요한 자리(🟠 · 🔴, 25kg 초과 · 150m 이상 포함)일 때만(2026-11-17 홍TV님 "승인이 필요할 때만 정보 보여줘")
+    $('apply').hidden = LEVEL[v.level] < LEVEL.need;
     // 비행승인 기한은 비행승인(근무일 3일)만 - 항공촬영은 아래 칸이 따로 셈(2026-11-17 홍TV님 "비행승인 요청처럼 항공촬영도")
     var today = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
     var due = dueText(today, $('date').value, LEVEL[v.level] >= LEVEL.need, false);
@@ -307,7 +309,7 @@
       date: $('date').value, from: $('from').value, to: $('to').value, purpose: $('purpose').value, photo: $('photo').checked, weight: $('heavy').checked ? '25kg 초과' : '25kg 이하',
       what: $('shootWhat').value };
     $('applyOut').value = applyText(f, zones);
-    $('shoot').hidden = false;
+    $('shoot').hidden = !$('photo').checked;   // 촬영을 고른 때만
     var sd = dueText(today, $('date').value, false, true);
     $('shootDue').hidden = !sd;
     if (sd) { $('shootDue').textContent = sd.text; $('shootDue').className = 'due' + (sd.ok ? ' ok' : ''); }
