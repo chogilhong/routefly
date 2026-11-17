@@ -66,6 +66,10 @@ ul { margin:0; padding:0; list-style:none; }
 /* 🎣 tidefly(출조) - 접는 칸(.fold.kind > summary)과 같은 줄 모양, 누르면 tidefly.html(2026-11-15 홍TV님) */
 .kindLink { display:flex; align-items:center; gap:8px; padding:12px 4px; border-bottom:1px solid var(--ln); color:inherit; text-decoration:none; }
 .kindLink .ft { flex:0 1 auto; min-width:0; font-weight:bold; font-size:17px; word-break:keep-all; overflow-wrap:anywhere; }
+.kindLink .fly { color:#65c926; }   /* tidefly 의 fly - 로고(img/logo-dark.svg flyGradient)와 같은 초록(2026-11-17 홍TV님) */
+@supports ((-webkit-background-clip:text) or (background-clip:text)) {
+    .kindLink .fly { background:linear-gradient(135deg, #65c926, #078b4a); -webkit-background-clip:text; background-clip:text; color:transparent; }
+}
 .kindLink .fs { flex:1; min-width:0; font-size:12.5px; color:var(--dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .kindLink .fa { flex:0 0 auto; color:var(--dim); }
 .fold.kind > .fb { margin-left:10px; padding-left:12px; border-left:2px solid rgba(56,217,234,0.35); }
