@@ -35,7 +35,7 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다 - 산악회 방 
   web.DroneProbe 가 V-World 항공 레이어(비행금지 · 제한 · 관제권 · 군작전 · UA 공역 · 임시 · 시범구역) 응답을 src/test/resources/drone/ 에 받음. 받은 응답 확인 전 화면 없음(타이드플라이와 같은 규칙).
   비행승인 신청을 대신 보내는 공개 API 는 찾지 못함(드론원스톱 Open-API 는 기관끼리) - 확인되기 전에는 "신청할 값 정리 + 드론원스톱 열기" 까지만.
   이름 "🚁 dronefly(드론)"(2026-11-17 홍TV님 "좋아"), 꼭 넣을 것: 비행금지구역 · 허용구역(UA 초경량비행장치공역) · 비행승인 요청.
-  첫 판(2026-11-17): `dronefly.html` · `js/dronefly.js` · `css/dronefly.css`(바탕 · 머리는 tidefly.css) · `data/drone-airspace.json`(web.DroneAirspace 가 받은 응답에서 만듦, DroneAirspaceTest).
+  첫 판(2026-11-17, 법 원문 docs/dronefly/law/): `dronefly.html` · `js/dronefly.js` · `css/dronefly.css`(바탕 · 머리는 tidefly.css) · `data/drone-airspace.json`(web.DroneAirspace 가 받은 응답에서 만듦, DroneAirspaceTest).
   입구는 /m/ 타이드플라이 줄 바로 아래(`MountainServlet.droneflyRow`, 한국어 화면만). 판정 표 · 자료는 `docs/dronefly/README.md`. 위치는 폰 안에서만 셈(서버 api 없음).
 - 안전 문구(hike.js 의 `SAFETY_KEY`)를 바꾸면 키의 버전도 올립니다(README).
 - `WEB-INF/web.xml` 은 version="6.0"(web-app_6_0.xsd)으로 둡니다. PC 의 Eclipse WTP 가 6.1 을 몰라 "Loading descriptor" 오류가 났음(2026-11-14 PC, 2950077) - 톰캣 11 은 6.0 도 읽음.
