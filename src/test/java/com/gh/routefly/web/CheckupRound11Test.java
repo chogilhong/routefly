@@ -322,4 +322,13 @@ public class CheckupRound11Test {
         assertTrue(read("src/main/webapp/tidefly.html").contains("autocomplete=\"off\" enterkeyhint=\"search\">"));
         assertTrue(read("src/main/webapp/js/tidefly.js").contains("if (e.key !== 'Enter' || e.isComposing) return;\n    e.preventDefault(); clearTimeout(typing); draw(); qEl.blur();"));
     }
+
+    /** 코스 모음 · 산 페이지 한/EN 을 타이드플라이 머리 것과 같게(2026-11-17 홍TV님 "첫번째 한/en 을 두번째 걸로 동일하게"). */
+    @Test
+    public void 한_EN_단추_타이드플라이와_같게() throws Exception {
+        String m = read("src/main/webapp/css/mountain.css"), t = read("src/main/webapp/css/tidefly.css");
+        assertTrue(t.contains(".lang { display: inline-flex; border: 1px solid rgba(255, 255, 255, .45);") && t.contains(".lang button[aria-pressed=\"true\"] { background: #fff;"));
+        assertTrue(m.contains(".rfLang { display:inline-flex; height:44px; border:1px solid rgba(255,255,255,0.45);")
+                && m.contains("min-width:44px; padding:0 8px; box-sizing:border-box; color:#fff; background:transparent; }") && m.contains(".rfLang span.on { color:#08394d; background:#fff; }"));
+    }
 }
