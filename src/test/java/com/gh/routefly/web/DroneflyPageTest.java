@@ -79,4 +79,12 @@ public class DroneflyPageTest {
         assertTrue(js.contains("var want = photo ? 4 : 3"));
         assertTrue("이미 승인 필요 안이면 가장 가까운 공역 줄 뺌", js.contains("var ns = LEVEL[v.level] < LEVEL.need ? nearStrict(data, here.lat, here.lon) : null;"));
     }
+
+    /** 항공촬영 사전 신청 칸(2026-11-17 홍TV님 "비행승인 요청처럼 항공촬영도 해줘") - 정리 · 복사 · 드론원스톱, 기한은 근무일 4일. */
+    @Test
+    public void 항공촬영_사전_신청_칸() throws Exception {
+        String h = read("src/main/webapp/dronefly.html"), js = read("src/main/webapp/js/dronefly.js");
+        assertTrue(h.indexOf("<section id=\"apply\"") < h.indexOf("<section id=\"shoot\"") && h.contains(">📷 항공촬영 사전 신청</h2>") && h.contains("id=\"copyShoot\""));
+        assertTrue(js.contains("$('shootOut').value = shootText(f, zones);") && js.contains("var sd = dueText(today, $('date').value, false, true);"));
+    }
 }

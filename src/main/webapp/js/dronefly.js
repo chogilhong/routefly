@@ -190,6 +190,21 @@
     ].join('\n');
   }
 
+  /** 순수 함수 - 드론원스톱 항공촬영 사전 신청에 옮길 값 정리(복사용 글, 늘 한국어). f - applyText 와 같은 값 + what(촬영 대상). */
+  function shootText(f, zones) {
+    return [
+      '[항공촬영 사전 신청 정리 - dronefly]',
+      '촬영구역: ' + (f.place || '') + ' (위도 ' + f.lat.toFixed(5) + ', 경도 ' + f.lon.toFixed(5) + ') 반경 ' + f.radius + 'm',
+      '촬영 고도: ' + f.alt + 'm',
+      '일시: ' + f.date + ' ' + f.from + ' ~ ' + f.to,
+      '목적: ' + f.purpose,
+      '촬영 대상: ' + (String(f.what || '').trim() || '(적어 넣기)'),
+      '기체: 최대이륙중량 ' + f.weight,
+      '걸린 공역: ' + (zones.length ? zones.map(function (z) { return zoneLine(z, true); }).join(' / ') : '없음'),
+      '※ 사전 신청(허가 아님) - 지역책임부대가 촬영금지시설 유무를 알려 줌. 비행승인은 따로.'
+    ].join('\n');
+  }
+
   /** 순수 함수 - 공역 파일 → 지도용 GeoJSON(속성 kind: prh · res · ctr · tca · moa · ua, name). 위에 그릴 것이 나중에 오게 moa → ua → ctr · tca → res → prh. */
   function toGeoJSON(data, nowMs) {
     var feats = [], now = nowMs == null ? Date.now() : nowMs;
@@ -239,7 +254,7 @@
     return SIZES[(i < 0 ? 1 : i + 1) % SIZES.length];
   }
 
-  var api = { tmpState: tmpState, firstDay: firstDay, workdays: workdays, dueText: dueText, toGeoJSON: toGeoJSON, nearStrict: nearStrict, setLang: setLang, nextSize: nextSize, inRing: inRing, inGeom: inGeom, isTca: isTca, zonesAt: zonesAt, levelOf: levelOf, zoneLine: zoneLine, verdict: verdict, meters: meters, nearest: nearest, nearUa: nearUa, dist: dist, applyText: applyText };
+  var api = { shootText: shootText, tmpState: tmpState, firstDay: firstDay, workdays: workdays, dueText: dueText, toGeoJSON: toGeoJSON, nearStrict: nearStrict, setLang: setLang, nextSize: nextSize, inRing: inRing, inGeom: inGeom, isTca: isTca, zonesAt: zonesAt, levelOf: levelOf, zoneLine: zoneLine, verdict: verdict, meters: meters, nearest: nearest, nearUa: nearUa, dist: dist, applyText: applyText };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
   root.DF = api;
 
@@ -283,13 +298,20 @@
         + '<span class="go">' + uaLinks(u, phone).map(function (g) { return '<a href="' + esc(g[1]) + '"' + (g[2] ? ' target="_blank" rel="noopener"' : '') + '>' + g[0] + '</a>'; }).join('') + '</span></li>';
     }).join('');
     $('apply').hidden = false;
-    var due = dueText(new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10), $('date').value, LEVEL[v.level] >= LEVEL.need, $('photo').checked);
+    // 비행승인 기한은 비행승인(근무일 3일)만 - 항공촬영은 아래 칸이 따로 셈(2026-11-17 홍TV님 "비행승인 요청처럼 항공촬영도")
+    var today = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
+    var due = dueText(today, $('date').value, LEVEL[v.level] >= LEVEL.need, false);
     $('due').hidden = !due;
     if (due) { $('due').textContent = due.text; $('due').className = 'due' + (due.ok ? ' ok' : ''); }
-    $('applyOut').value = applyText({
-      place: here.me ? '내 위치' : here.name || '', lat: here.lat, lon: here.lon, radius: $('radius').value, alt: $('alt').value,
-      date: $('date').value, from: $('from').value, to: $('to').value, purpose: $('purpose').value, photo: $('photo').checked, weight: $('heavy').checked ? '25kg 초과' : '25kg 이하'
-    }, zones);
+    var f = { place: here.me ? '내 위치' : here.name || '', lat: here.lat, lon: here.lon, radius: $('radius').value, alt: $('alt').value,
+      date: $('date').value, from: $('from').value, to: $('to').value, purpose: $('purpose').value, photo: $('photo').checked, weight: $('heavy').checked ? '25kg 초과' : '25kg 이하',
+      what: $('shootWhat').value };
+    $('applyOut').value = applyText(f, zones);
+    $('shoot').hidden = false;
+    var sd = dueText(today, $('date').value, false, true);
+    $('shootDue').hidden = !sd;
+    if (sd) { $('shootDue').textContent = sd.text; $('shootDue').className = 'due' + (sd.ok ? ' ok' : ''); }
+    $('shootOut').value = shootText(f, zones);
   }
 
   // ---- 지도(2026-11-17 홍TV님 "이 지도 좋은데" - 드론원스톱처럼 공역을 지도에, 누르면 그 자리 판정) ----
@@ -382,11 +404,14 @@
     }
     $('findForm').addEventListener('submit', function (e) { e.preventDefault(); find(); });
 
-    ['photo', 'heavy', 'alt', 'radius', 'date', 'from', 'to', 'purpose'].forEach(function (id) { $(id).addEventListener('change', draw); });
-    $('copy').addEventListener('click', function () {
-      var t = $('applyOut').value, done = function () { $('copy').textContent = tr('✓ 복사함', '✓ Copied'); setTimeout(function () { $('copy').textContent = tr('📋 복사', '📋 Copy'); }, 2000); };
-      if (navigator.clipboard) navigator.clipboard.writeText(t).then(done, function () { $('applyOut').select(); });
-      else { $('applyOut').select(); }
+    ['photo', 'heavy', 'alt', 'radius', 'date', 'from', 'to', 'purpose', 'shootWhat'].forEach(function (id) { $(id).addEventListener('change', draw); });
+    // 복사 단추 둘(비행승인 · 항공촬영) - 같은 셈
+    [['copy', 'applyOut'], ['copyShoot', 'shootOut']].forEach(function (c) {
+      $(c[0]).addEventListener('click', function () {
+        var b = $(c[0]), out = $(c[1]), done = function () { b.textContent = tr('✓ 복사함', '✓ Copied'); setTimeout(function () { b.textContent = tr('📋 복사', '📋 Copy'); }, 2000); };
+        if (navigator.clipboard) navigator.clipboard.writeText(out.value).then(done, function () { out.select(); });
+        else out.select();
+      });
     });
 
     var themeBtn = $('theme'), sizeBtn = $('size'), rootEl = document.documentElement;

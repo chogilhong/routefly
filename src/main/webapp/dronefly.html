@@ -104,6 +104,21 @@
     </div>
   </section>
 
+  <section id="shoot" class="dcard" hidden><!-- 2026-11-17 홍TV님 "비행승인 요청처럼 항공촬영도 해줘" - 드론원스톱 항공촬영 신청 안내(홍TV님이 보낸 화면) 그대로 -->
+    <h2 data-en="📷 Aerial photography pre-application">📷 항공촬영 사전 신청</h2>
+    <p class="dim small" data-en="Since Dec 1, 2022 aerial photography is a pre-application, not a permit, and is separate from flight approval (4 working days). The local military unit only tells you whether restricted facilities are in the area; open land without them can be filmed freely, and you are responsible if restricted facilities are filmed. The summary stays in Korean for the Korean form.">2022. 12. 1. 부터 항공촬영은 허가가 아니라 사전 신청이고, 비행승인과 별개입니다(근무일 기준 4일). 지역책임부대는 촬영금지시설 유무만 알려 주며, 그런 시설이 없는 개활지는 자유롭게 찍을 수 있습니다. 촬영금지시설이 찍힌 법적 책임은 촬영한 개인 · 업체 · 기관에 있습니다.</p>
+    <p id="shootDue" class="due" hidden role="status"></p>
+    <div class="grid">
+      <label class="wide"><span data-en="What you will film">촬영 대상</span> <input type="text" id="shootWhat" maxlength="60" placeholder="예: 해안 풍경, 행사, 시설 점검" data-en-ph="e.g. coastline, event, inspection"></label>
+    </div>
+    <p class="dim small" data-en="Place, date, time, altitude and radius are taken from the flight approval box above.">장소 · 날짜 · 시각 · 고도 · 반경은 위 비행승인 요청 칸 값을 씁니다.</p>
+    <textarea id="shootOut" rows="8" readonly aria-label="항공촬영 신청할 값 정리"></textarea>
+    <div class="row">
+      <button type="button" id="copyShoot" class="btn" data-en="📋 Copy">📋 복사</button>
+      <a class="btn go" href="https://drone.onestop.go.kr/" target="_blank" rel="noopener" data-en="Open Drone One-stop ›">드론원스톱 열기 ›</a>
+    </div>
+  </section>
+
   <section class="dcard notice" aria-label="드론원스톱 안내"><!-- 2026-11-17 홍TV님 "이런 내용도 좀 공지 해 주고" - 드론원스톱 첫 화면(2026-11-17 본 것) 그대로 -->
     <h2 data-en="📢 Drone One-stop notices">📢 드론원스톱 안내</h2>
     <ul class="notes2">

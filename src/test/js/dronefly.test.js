@@ -111,6 +111,11 @@ assert.strictEqual(atPort.length, 1);
 assert.strictEqual(DF.levelOf('port'), 'need');
 assert.strictEqual(DF.toGeoJSON(data, T).features.length, 15 + 84 + 53 + 75 + 48 + 243 + 1);   // 임시는 기간 모르는 1개만
 
+// 항공촬영 사전 신청 정리(2026-11-17 홍TV님 "비행승인 요청처럼 항공촬영도")
+const st = DF.shootText({ place: '서울시청', lat: 37.5665, lon: 126.978, radius: '500', alt: '100', date: '2026-11-24', from: '10:00', to: '12:00', purpose: '취미 · 레저', weight: '25kg 이하', what: '도심 풍경' }, city);
+assert.ok(st.startsWith('[항공촬영 사전 신청 정리 - dronefly]\n촬영구역: 서울시청 (위도 37.56650, 경도 126.97800) 반경 500m\n촬영 고도: 100m') && st.includes('촬영 대상: 도심 풍경') && st.includes('※ 사전 신청(허가 아님)'));
+assert.ok(DF.shootText({ place: 'x', lat: 37, lon: 127, radius: '1', alt: '1', date: 'd', from: 'a', to: 'b', purpose: 'p', weight: 'w', what: ' ' }, []).includes('촬영 대상: (적어 넣기)'));
+
 // 영어 화면(2026-11-17 홍TV님 "한/영, 가 도 넣어줘") - 신청 정리는 드론원스톱 한국어 칸용이라 늘 한국어
 DF.setLang('en');
 assert.strictEqual(DF.verdict(city, {}).head, 'Prohibited area - no flying without approval');
