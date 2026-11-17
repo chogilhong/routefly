@@ -922,7 +922,7 @@
     function loadCourse(id) {
         var my = ++loadSeq;
         if ($("loadFail")) $("loadFail").hidden = true;   // 못 열었다는 띠는 다시 열 때 치움(옛 hike.html 이 캐시에 남으면 칸이 없음 - 2026-11-03)
-        $("pick").style.display = "none";
+        hidePick();
         // 이 기기에만 있는 GPX 는 링크로 보낼 수 없습니다(이은 코스는 따라가기 주소로 보냄)
         var parts = RF.parseJoinId(id);
         $("share").style.display = isGpxId(id) ? "none" : "";
@@ -2291,7 +2291,7 @@
             });
             $("recView").style.display = "none";
             $("recSheet").style.display = "none";
-            $("pick").style.display = "none";   // 코스를 고르기 전(내 기록으로 바로 온 때)에도 지도가 보이게
+            hidePick();   // 코스를 고르기 전(내 기록으로 바로 온 때)에도 지도가 보이게
         };
         $("recViewClose").onclick = function () { $("recView").style.display = "none"; };
     }
@@ -3736,8 +3736,17 @@
         if (e.persisted && $("pick").style.display !== "none" && !hike.running) showPick();
     });
 
+    /**
+     * 목록 화면 닫기 - html.picking 도 뗌(2026-11-17 홍TV님: 목록에서 코스로 들어가도 picking 이 남아, 산악회 방 줄이 아래에 붙은 채로
+     * "산행 시작" 줄(#bar)을 덮었음 - hike.html 의 html.picking.partyOn #partyBar 고정은 목록 화면에서만).
+     */
+    function hidePick() {
+        $("pick").style.display = "none";
+        document.documentElement.classList.remove("picking");
+    }
     function showPick(noRestore) {
         $("pick").style.display = "flex";
+        document.documentElement.classList.add("picking");   // 산악회 방 줄은 목록 화면에서만 아래에 붙음
         document.title = T("routefly 따라가기", "routefly - Follow a trail");   // 코스에서 목록으로 와도 탭 제목이 코스 이름으로 남았음(2026-10-17 PC)
         // 목록이 비었거나(이 화면을 새로 열었을 때) 미리보기 화면에서 다른 말로 찾고 왔으면 마지막 검색을 다시
         if (!noRestore) {

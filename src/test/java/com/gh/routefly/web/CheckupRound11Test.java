@@ -295,4 +295,13 @@ public class CheckupRound11Test {
         assertTrue("번호 적기", js.contains("{ hike.bgWatch = id; bgSave([id]); }"));
         assertTrue("끝낼 때", js.indexOf("bgStopAll();", stop) > stop && js.indexOf("bgStopAll();", stop) < js.indexOf("hikeFlag(false);", stop));
     }
+
+    /** 코스 화면에서 산악회 방 줄이 "산행 시작" 줄을 덮음(2026-11-17 홍TV님) - html.picking 은 목록 화면에서만(줄 고정은 html.picking.partyOn). */
+    @Test
+    public void 코스_화면_산악회_줄이_시작_단추를_덮지_않게() throws Exception {
+        String js = read("src/main/webapp/js/hike.js");
+        assertTrue(js.contains("document.documentElement.classList.remove(\"picking\");") && js.contains("document.documentElement.classList.add(\"picking\");"));
+        assertFalse("목록 닫기는 hidePick 하나로", js.replace("    function hidePick() {\n        $(\"pick\").style.display = \"none\";", "").contains("$(\"pick\").style.display = \"none\""));
+        assertTrue(read("src/main/webapp/hike.html").contains("html.picking.partyOn #partyBar { position:fixed;"));
+    }
 }
