@@ -18,7 +18,7 @@ public class DroneflyPageTest {
     @Test
     public void 타이드플라이_바로_아래_입구() {
         String r = MountainServlet.droneflyRow();
-        assertTrue(r.contains("href=\"../dronefly.html\"") && r.contains("<img class=\"dIc\" src=\"../img/dronefly.svg\" width=\"20\" height=\"20\" alt=\"\"> drone<span class=\"fly\">fly</span>(드론)") && !r.contains("🚁"));
+        assertTrue(r.contains("href=\"../dronefly.html?lang=ko\"") && r.contains("<img class=\"dIc\" src=\"../img/dronefly.svg\" width=\"20\" height=\"20\" alt=\"\"> drone<span class=\"fly\">fly</span>(드론)") && !r.contains("🚁"));
     }
 
     @Test
