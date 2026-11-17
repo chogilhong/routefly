@@ -85,7 +85,8 @@
 
   <section id="apply" class="dcard" hidden>
     <h2 data-en="📝 Flight approval request">📝 비행승인 요청</h2>
-    <p class="dim small" data-en="There is no public way for an app to apply for you. Copy the summary below and apply on Drone One-stop (usually 3 to 4 days before the flight). The summary stays in Korean for the Korean form.">앱이 대신 신청할 수 있는 공개 방법은 없습니다. 아래 값을 정리해 복사한 뒤 드론원스톱에서 신청하세요(보통 비행 3 ~ 4일 전).</p>
+    <p class="dim small" data-en="There is no public way for an app to apply for you. Copy the summary below and apply on Drone One-stop (processing: approval 3 working days, aerial photography 4, special flight 30 - Drone One-stop). The summary stays in Korean for the Korean form.">앱이 대신 신청할 수 있는 공개 방법은 없습니다. 아래 값을 정리해 복사한 뒤 드론원스톱에서 신청하세요(처리 기간: 비행승인 평일 3일 · 항공촬영 4일 · 특별비행 30일 - 드론원스톱 안내).</p>
+    <p id="due" class="due" hidden role="status"></p>
     <div class="grid">
       <label><span data-en="Date">날짜</span> <input type="date" id="date"></label>
       <label><span data-en="Start">시작</span> <input type="time" id="from" value="10:00"></label>
@@ -99,6 +100,29 @@
       <button type="button" id="copy" class="btn" data-en="📋 Copy">📋 복사</button>
       <a class="btn go" href="https://drone.onestop.go.kr/" target="_blank" rel="noopener" data-en="Open Drone One-stop ›">드론원스톱 열기 ›</a>
     </div>
+  </section>
+
+  <section class="dcard notice" aria-label="드론원스톱 안내"><!-- 2026-11-17 홍TV님 "이런 내용도 좀 공지 해 주고" - 드론원스톱 첫 화면(2026-11-17 본 것) 그대로 -->
+    <h2 data-en="📢 Drone One-stop notices">📢 드론원스톱 안내</h2>
+    <ul class="notes2">
+      <li data-en="Flying in a prohibited area without the authority's prior approval, or illegal use of an ultralight vehicle, is punishable under the Aviation Safety Act.">비행금지구역에서 관할 기관의 사전 승인 없이 비행하거나, 초경량비행장치를 불법 사용하면 항공안전법 처벌 대상입니다.</li>
+      <li data-en="Flying in an approval-required area without approval: fine of 1.5 million won (first offence).">비행승인 대상지역에서 승인을 받지 않고 비행하면 과태료 150만원(1차 위반)이 부과됩니다.</li>
+      <li data-en="If you find a crashed drone or a suspicious illegal flight, report it:">추락한 무인기나 불법 운용이 의심되는 비행 장치를 보면 신고해 주세요:</li>
+    </ul>
+    <div class="row calls">
+      <a class="btn" href="tel:111" data-en="📞 NIS 111">📞 국가정보원 111</a>
+      <a class="btn" href="tel:112" data-en="📞 Police 112">📞 경찰 112</a>
+      <a class="btn" href="tel:1338" data-en="📞 Military 1338">📞 군 부대 1338</a>
+    </div>
+    <table class="days">
+      <caption data-en="Processing time (working days, Drone One-stop)">처리 기간(평일 기준, 드론원스톱)</caption>
+      <tr><th data-en="Device registration">비행장치 신고</th><td data-en="7 days">7일</td></tr>
+      <tr><th data-en="Business registration">사업 등록</th><td data-en="14 days">14일</td></tr>
+      <tr><th data-en="Flight approval">비행승인</th><td data-en="3 days">3일</td></tr>
+      <tr><th data-en="Special flight approval (night etc.)">특별비행 승인(야간 등)</th><td data-en="30 days">30일</td></tr>
+      <tr><th data-en="Aerial photography">항공촬영</th><td data-en="4 days">4일</td></tr>
+    </table>
+    <p class="dim small" data-en="Enquiries: device registration 054-459-7942~5 · business registration 054-459-7946~9 · flight approval and aerial photography by local office (see Drone One-stop).">문의: 장치신고 054-459-7942~5 · 사업등록 054-459-7946~9 · 비행승인 · 항공촬영은 부서별(드론원스톱 "각 부서 연락처 안내").</p>
   </section>
 
   <details class="help">

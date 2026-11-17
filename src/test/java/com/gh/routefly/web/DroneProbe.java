@@ -28,6 +28,9 @@ public final class DroneProbe {
     private DroneProbe() {
     }
 
+    static final String[] WFS_LAYERS = {"lt_c_aisport", "lt_c_uo301", "lt_c_wgisnpgug", "lt_c_aistemp", "lt_c_aisdronezone", "lt_c_aisaltc", "lt_c_aisatzc",
+        "lt_c_aisfldc", "lt_c_ademd", "lt_c_aisdngc", "lt_c_aispca", "lt_c_aisobls"};
+
     static final String[] LAYERS = {"lt_c_aisprhc", "lt_c_aisresc", "lt_c_aisctrc", "lt_c_aismoac", "lt_c_aisuac", "lt_c_aistemp", "lt_c_aisdronezone"};
 
     public static void main(String[] args) throws Exception {
@@ -67,13 +70,21 @@ public final class DroneProbe {
         for (String[] p : pts)
             for (String layer : LAYERS)
                 KmaSeasonProbe.save(dir.resolve("data-" + layer + "-pt-" + p[0] + "_" + p[1] + ".json"), data(layer, "POINT(" + p[0] + " " + p[1] + ")") + auth, key);
-        KmaSeasonProbe.save(dir.resolve("wfs-lt_c_aisprhc-kr.json"), "https://api.vworld.kr/req/wfs?service=WFS&version=1.1.0&request=GetFeature&typename=lt_c_aisprhc"
-                + "&bbox=33.0,124.0,39.0,132.0&srsname=EPSG:4326&output=application/json" + auth, key);
+        // 2026-11-17 PC: 드론원스톱 지도(/common/flightArea)가 api.vworld.kr/req/wfs 로 부르는 레이어 - 우리 req/data 에 없던 것(aistemp · aisdronezone 은 INVALID_RANGE 였음)
+        //   lt_c_aisport 항만시설 · lt_c_uo301 문화재보호도 · lt_c_wgisnpgug 국립자연공원(PC 가 그쪽 소스에서 본 이름), 나머지는 뜻을 응답으로 확인
+        for (String layer : WFS_LAYERS)
+            KmaSeasonProbe.save(dir.resolve("wfs-" + layer + "-kr.json"), wfs(layer, "33.0,124.0,39.0,132.0") + auth, key);
+        KmaSeasonProbe.save(dir.resolve("wfs-lt_c_aisprhc-kr.json"), wfs("lt_c_aisprhc", "33.0,124.0,39.0,132.0") + auth, key);
     }
 
     /** 순수 함수 - 받은 글이 정상인가: status 가 OK 일 때만(2026-11-17 PC: V-World 는 "status" : "ERROR" 처럼 콜론 앞뒤에 빈칸 - 빈칸 무시). */
     static boolean ok(String body) {
         return java.util.regex.Pattern.compile("\"status\"\\s*:\\s*\"OK\"").matcher(body).find();
+    }
+
+    /** 순수 함수 - WFS 주소(키 · 도메인 빼고, 경계 상자는 위도,경도 차례 - 2026-11-17 aisprhc 로 받아 봄). */
+    static String wfs(String layer, String bbox) {
+        return "https://api.vworld.kr/req/wfs?service=WFS&version=1.1.0&request=GetFeature&typename=" + layer + "&bbox=" + bbox + "&srsname=EPSG:4326&output=application/json";
     }
 
     /** 순수 함수 - 2D 데이터 API 주소(키 · 도메인 빼고). geom - BOX(…) 또는 POINT(경도 위도). */

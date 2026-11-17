@@ -170,6 +170,36 @@
     return { type: 'FeatureCollection', features: feats };
   }
 
+  /** 순수 함수 - 오늘(YYYY-MM-DD) 다음 날부터 비행 날 전날까지 평일 수(토 · 일만 뺌 - 공휴일은 모름). */
+  function workdays(today, day) {
+    var t = Date.UTC(+today.slice(0, 4), +today.slice(5, 7) - 1, +today.slice(8, 10)), d = Date.UTC(+day.slice(0, 4), +day.slice(5, 7) - 1, +day.slice(8, 10)), n = 0;
+    if (isNaN(t) || isNaN(d)) return null;
+    for (var x = t + 86400000; x < d; x += 86400000) { var w = new Date(x).getUTCDay(); if (w !== 0 && w !== 6) n++; }
+    return n;
+  }
+
+  /** 순수 함수 - 오늘부터 사이 평일이 n 일 이상인 첫 날(YYYY-MM-DD). */
+  function firstDay(today, n) {
+    var t = Date.UTC(+today.slice(0, 4), +today.slice(5, 7) - 1, +today.slice(8, 10));
+    for (var k = 1; k < 30; k++) {
+      var d = new Date(t + k * 86400000).toISOString().slice(0, 10);
+      if (workdays(today, d) >= n) return d;
+    }
+    return today;
+  }
+
+  /**
+   * 순수 함수 - 신청 기한 안내(드론원스톱 첫 화면의 처리 기간: 비행승인 평일 3일 · 항공촬영 4일 - 2026-11-17 홍TV님 "우리가 할 수 있는 것이 있으면").
+   * → {ok, text}. need - 승인이 필요한 판정인가, photo - 촬영.
+   */
+  function dueText(today, day, need, photo) {
+    var n = workdays(today, day);
+    if (n == null || (!need && !photo)) return null;
+    var want = photo ? 4 : 3, what = photo ? tr('항공촬영 허가(평일 4일)', 'aerial photography permit (4 working days)') : tr('비행승인(평일 3일)', 'flight approval (3 working days)');
+    return n >= want ? { ok: true, text: tr('비행 날까지 평일 ' + n + '일 - ' + what + ' 처리 기간 안입니다. 공휴일은 따로 빼 보세요.', n + ' working days until the flight - within the ' + what + ' processing time. Public holidays are not counted out.') }
+      : { ok: false, text: tr('비행 날까지 평일 ' + n + '일 - ' + what + ' 처리에 모자랄 수 있습니다. 날짜를 늦추거나 바로 신청하세요.', 'Only ' + n + ' working days until the flight - may be too short for ' + what + '. Move the date or apply now.') };
+  }
+
   var SIZES = ['m', 'l', 'xl'];
   /** 순수 함수 - 글자 크기 다음 단계(보통 → 크게 → 아주 크게 → 보통) - 타이드플라이와 같음. */
   function nextSize(cur) {
@@ -177,7 +207,7 @@
     return SIZES[(i < 0 ? 1 : i + 1) % SIZES.length];
   }
 
-  var api = { toGeoJSON: toGeoJSON, nearStrict: nearStrict, setLang: setLang, nextSize: nextSize, inRing: inRing, inGeom: inGeom, isTca: isTca, zonesAt: zonesAt, levelOf: levelOf, zoneLine: zoneLine, verdict: verdict, meters: meters, nearest: nearest, nearUa: nearUa, dist: dist, applyText: applyText };
+  var api = { firstDay: firstDay, workdays: workdays, dueText: dueText, toGeoJSON: toGeoJSON, nearStrict: nearStrict, setLang: setLang, nextSize: nextSize, inRing: inRing, inGeom: inGeom, isTca: isTca, zonesAt: zonesAt, levelOf: levelOf, zoneLine: zoneLine, verdict: verdict, meters: meters, nearest: nearest, nearUa: nearUa, dist: dist, applyText: applyText };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
   root.DF = api;
 
@@ -211,7 +241,8 @@
     $('place').textContent = here.me ? tr('📍 내 위치', '📍 My location') : here.name || (tr('위도 ', 'lat ') + here.lat.toFixed(5) + tr(', 경도 ', ', lon ') + here.lon.toFixed(5));
     $('head').textContent = v.head;
     $('zones').innerHTML = v.lines.length ? v.lines.map(function (l) { return '<li>' + esc(l) + '</li>'; }).join('') : '<li>' + tr('걸린 공역 없음(비행금지 · 제한 · 관제권 · 군작전 · UA 밖)', 'No listed airspace here (outside prohibited · restricted · control zone · MOA · UA)') + '</li>';
-    var ns = nearStrict(data, here.lat, here.lon);
+    // 이미 승인 필요 · 금지 안이면 다른 공역 거리는 헷갈려 뺌(2026-11-17 PC: P73A 안인데 "김포 관제권 6.5km" 줄)
+    var ns = LEVEL[v.level] < LEVEL.need ? nearStrict(data, here.lat, here.lon) : null;
     if (ns) $('zones').insertAdjacentHTML('beforeend', '<li class="near">' + esc(tr('가장 가까운 승인 필요 공역: ' + zoneLine(ns.z) + ' - 경계까지 ' + dist(ns.m), 'Nearest airspace needing approval: ' + zoneLine(ns.z) + ' - ' + dist(ns.m) + ' to its edge')) + '</li>');
     $('notes').innerHTML = v.notes.map(function (l) { return '<li>' + esc(l) + '</li>'; }).join('');
     $('ua').hidden = false;
@@ -220,6 +251,9 @@
         + '<span class="go">' + uaLinks(u, phone).map(function (g) { return '<a href="' + esc(g[1]) + '"' + (g[2] ? ' target="_blank" rel="noopener"' : '') + '>' + g[0] + '</a>'; }).join('') + '</span></li>';
     }).join('');
     $('apply').hidden = false;
+    var due = dueText(new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10), $('date').value, LEVEL[v.level] >= LEVEL.need, $('photo').checked);
+    $('due').hidden = !due;
+    if (due) { $('due').textContent = due.text; $('due').className = 'due' + (due.ok ? ' ok' : ''); }
     $('applyOut').value = applyText({
       place: here.me ? '내 위치' : here.name || '', lat: here.lat, lon: here.lon, radius: $('radius').value, alt: $('alt').value,
       date: $('date').value, from: $('from').value, to: $('to').value, purpose: $('purpose').value, photo: $('photo').checked, weight: $('heavy').checked ? '25kg 초과' : '25kg 이하'
@@ -278,9 +312,8 @@
   }
 
   function init() {
-    // 기본 날짜는 내일(우리 시간) - 오늘로 두면 밤에 열었을 때 이미 지난 10:00 ~ 12:00 이 들어갔음(2026-11-17 PC)
-    initMap();
-    $('date').value = new Date(Date.now() + 9 * 3600000 + 86400000).toISOString().slice(0, 10);
+    // 기본 날짜는 처리 기간(항공촬영 평일 4일)을 넘긴 첫날 - 내일로 두면 승인 필요 자리마다 "모자랄 수 있습니다" 가 먼저 떴음(2026-11-17)
+    $('date').value = firstDay(new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10), 4);
     fetch('data/drone-airspace.json').then(function (r) { return r.json(); }).then(function (d) {
       data = d;
       paintSrc();

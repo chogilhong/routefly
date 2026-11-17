@@ -66,4 +66,14 @@ public class DroneflyPageTest {
         assertTrue("지도를 누르면 그 자리 판정", js.contains("map.on('click', function (e) { setHere({ lat: e.lngLat.lat, lon: e.lngLat.lng }, true); });"));
         assertTrue("공역 출처", js.contains("tr('공역: 국토교통부 V-World', 'Airspace: V-World (Korea MOLIT)')"));
     }
+
+    /** 드론원스톱 안내(2026-11-17 홍TV님 "이런 내용도 좀 공지 해 주고") - 첫 화면 글 그대로 · 신고 전화 · 처리 기간, 신청 날짜가 처리 기간보다 짧으면 알림. */
+    @Test
+    public void 드론원스톱_안내와_신청_기한() throws Exception {
+        String h = read("src/main/webapp/dronefly.html"), js = read("src/main/webapp/js/dronefly.js");
+        assertTrue(h.contains("과태료 150만원(1차 위반)") && h.contains("href=\"tel:111\"") && h.contains("href=\"tel:112\"") && h.contains("href=\"tel:1338\""));
+        assertTrue(h.contains("<th>비행승인</th><td data-en=\"3 days\">3일</td>") || h.contains("<th data-en=\"Flight approval\">비행승인</th><td data-en=\"3 days\">3일</td>"));
+        assertTrue(js.contains("var want = photo ? 4 : 3"));
+        assertTrue("이미 승인 필요 안이면 가장 가까운 공역 줄 뺌", js.contains("var ns = LEVEL[v.level] < LEVEL.need ? nearStrict(data, here.lat, here.lon) : null;"));
+    }
 }

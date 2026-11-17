@@ -70,6 +70,17 @@ assert.strictEqual(gj.features[0].properties.kind, 'moa');
 assert.strictEqual(gj.features[gj.features.length - 1].properties.kind, 'prh');
 assert.strictEqual(gj.features.find(f => f.properties.name === 'POHANG TCA AREA A').properties.kind, 'tca');
 
+// 신청 기한 - 드론원스톱 처리 기간(비행승인 평일 3일 · 항공촬영 4일). 2026-11-17 은 화요일
+assert.strictEqual(DF.workdays('2026-11-17', '2026-11-18'), 0);
+assert.strictEqual(DF.workdays('2026-11-17', '2026-11-21'), 3);   // 수 · 목 · 금
+assert.strictEqual(DF.workdays('2026-11-20', '2026-11-24'), 1);   // 금 → 화: 토 · 일 빼고 월
+assert.strictEqual(DF.dueText('2026-11-17', '2026-11-18', true, false).ok, false);
+assert.strictEqual(DF.firstDay('2026-11-17', 4), '2026-11-24');   // 화 → 수목금월(4일) 지난 화요일
+assert.strictEqual(DF.firstDay('2026-11-20', 4), '2026-11-27');   // 금 → 월화수목 지난 금요일
+assert.strictEqual(DF.dueText('2026-11-17', '2026-11-21', true, false).ok, true);
+assert.strictEqual(DF.dueText('2026-11-17', '2026-11-21', false, true).ok, false);   // 촬영은 4일
+assert.strictEqual(DF.dueText('2026-11-17', '2026-11-21', false, false), null);   // 승인 · 촬영 둘 다 필요 없으면 안내 없음
+
 // 영어 화면(2026-11-17 홍TV님 "한/영, 가 도 넣어줘") - 신청 정리는 드론원스톱 한국어 칸용이라 늘 한국어
 DF.setLang('en');
 assert.strictEqual(DF.verdict(city, {}).head, 'Prohibited area - no flying without approval');
