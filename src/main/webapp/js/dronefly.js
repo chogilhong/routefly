@@ -312,6 +312,7 @@
   }
 
   function init() {
+    initMap();
     // 기본 날짜는 처리 기간(항공촬영 평일 4일)을 넘긴 첫날 - 내일로 두면 승인 필요 자리마다 "모자랄 수 있습니다" 가 먼저 떴음(2026-11-17)
     $('date').value = firstDay(new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10), 4);
     fetch('data/drone-airspace.json').then(function (r) { return r.json(); }).then(function (d) {
