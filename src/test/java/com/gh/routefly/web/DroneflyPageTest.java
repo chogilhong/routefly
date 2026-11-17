@@ -12,7 +12,7 @@ import org.junit.Test;
 public class DroneflyPageTest {
 
     private static String read(String p) throws Exception {
-        return Files.readString(Path.of(p), StandardCharsets.UTF_8);
+        return Files.readString(Path.of(p), StandardCharsets.UTF_8).replace("\r\n", "\n");   // PC 는 autocrlf 로 CRLF(2026-11-17 PC: "\\n" 이 안 맞아 실패)
     }
 
     @Test
