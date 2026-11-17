@@ -63,6 +63,7 @@ public class DroneflyPageTest {
         String h = read("src/main/webapp/dronefly.html"), js = read("src/main/webapp/js/dronefly.js");
         assertTrue(h.contains("<div id=\"map\" class=\"dmap\"") && h.indexOf("vendor/maplibre-gl-5.24.0/maplibre-gl.js") < h.indexOf("js/dronefly.js\""));
         assertTrue("4번 - 공식 지도", h.contains(">드론원스톱 공식 지도로 한 번 더 ›</a>"));
+        assertTrue("처음 열 때 지도를 만듦(6b9f14c 에서 initMap() 이 빠져 운영 지도가 빈 칸이었음)", js.contains("function init() {\n    initMap();"));
         assertTrue("지도를 누르면 그 자리 판정", js.contains("map.on('click', function (e) { setHere({ lat: e.lngLat.lat, lon: e.lngLat.lng }, true); });"));
         assertTrue("공역 출처", js.contains("tr('공역: 국토교통부 V-World', 'Airspace: V-World (Korea MOLIT)')"));
     }

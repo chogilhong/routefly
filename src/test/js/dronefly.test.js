@@ -12,7 +12,8 @@ const v = DF.verdict(city, {});
 assert.strictEqual(v.level, 'no');
 assert.strictEqual(v.head, '비행금지구역 - 승인 없이 날 수 없습니다');
 assert.deepStrictEqual(v.lines, ['비행금지구역 RK P73A (GND ~ UNL)', '비행제한구역 R75 (SFC ~ 10 000 AMSL)']);
-assert.ok(DF.verdict(city, { photo: true }).head.endsWith(' + 촬영 허가'));
+assert.ok(DF.verdict(city, { photo: true }).head.endsWith(' + 촬영 사전 신청'));
+assert.ok(DF.verdict(city, {}).notes.includes('P518 · R73 · R75 공역은 비행승인 신청 전 드론원스톱 공지사항을 확인하세요.'));   // R75
 // 비행제한구역 - 실무대로 승인 필요 + 법 원문 예외 덧붙임(2026-11-17 홍TV님 1안)
 assert.strictEqual(DF.verdict([{ k: 'res', l: ['R75', '10 000 AMSL', 'SFC'] }], {}).level, 'need');
 assert.ok(v.notes[0].startsWith('단, 일부 비행제한구역은 25kg 이하 · 150m 미만 기체에 한해 예외가 적용될 수 있으니'));
@@ -85,7 +86,7 @@ assert.strictEqual(DF.dueText('2026-11-17', '2026-11-21', false, false), null); 
 DF.setLang('en');
 assert.strictEqual(DF.verdict(city, {}).head, 'Prohibited area - no flying without approval');
 assert.deepStrictEqual(DF.verdict(city, {}).lines, ['Prohibited area RK P73A (GND ~ UNL)', 'Restricted area R75 (SFC ~ 10 000 AMSL)']);
-assert.strictEqual(DF.verdict(inUa, { photo: true }).head, 'UA airspace - no approval needed up to 500FT HEI in daytime + filming permit');
+assert.strictEqual(DF.verdict(inUa, { photo: true }).head, 'UA airspace - no approval needed up to 500FT HEI in daytime + filming pre-application');
 assert.ok(DF.applyText({ place: 'x', lat: 37.5665, lon: 126.978, radius: '500', alt: '100', date: '2026-11-20', from: '10:00', to: '12:00', purpose: '취미 · 레저', photo: false, weight: '25kg 이하' }, city)
   .includes('걸린 공역: 비행금지구역 RK P73A (GND ~ UNL) / 비행제한구역 R75 (SFC ~ 10 000 AMSL)'));
 DF.setLang('ko');
