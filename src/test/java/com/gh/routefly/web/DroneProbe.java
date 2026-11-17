@@ -41,9 +41,10 @@ public final class DroneProbe {
         for (String name : new String[] {"drone.vworld.key", "map.vworld.key", "place.vworld.key"}) {
             String k = RouteflyConfig.get(name);
             if (k == null || k.isBlank()) { System.out.println(name + " - 비어 있음"); continue; }
-            for (String d : domain == null ? new String[] {null} : new String[] {domain, null}) {
+            // 서비스 URL 이 "https://routefly.kr" 로 등록돼 있어(2026-11-17 홍TV님 화면) 도메인을 https:// 붙여서도 해 봄
+            for (String d : domain == null ? new String[] {null} : new String[] {domain, "https://" + domain, null}) {
                 String a = "&key=" + URLEncoder.encode(k, StandardCharsets.UTF_8) + (d != null ? "&domain=" + URLEncoder.encode(d, StandardCharsets.UTF_8) : "");
-                Path to = dir.resolve("try-" + name.replace('.', '_') + "-" + (d != null ? "domain" : "nodomain") + ".json");
+                Path to = dir.resolve("try-" + name.replace('.', '_') + "-" + (d == null ? "nodomain" : d.startsWith("https://") ? "httpsdomain" : "domain") + ".json");
                 KmaSeasonProbe.save(to, data("lt_c_aisprhc", "POINT(126.9780 37.5665)") + a, k);
                 if (auth == null && !java.nio.file.Files.readString(to).contains("\"status\":\"ERROR\"")) { key = k; auth = a; }
             }
