@@ -576,7 +576,7 @@
   function loadText(k) {
     try { return localStorage.getItem(k); } catch (e) { return null; }
   }
-  var AREAS = ['동해', '남해', '제주', '서해', '그 밖'];
+  var AREAS = ['서해', '남해', '동해', '제주', '그 밖'];   // 기상청 해상예보 읽는 차례(서해중부 → 서해남부 → 남해 → 동해 → 제주도, 2026-11-17 홍TV님) - 묶음 안은 서버가 북쪽부터(서해중부 → 남부)
 
   function el(tag, cls, text) {
     var e = document.createElement(tag);

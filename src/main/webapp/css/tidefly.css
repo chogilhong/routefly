@@ -26,6 +26,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: system-
 .wrap { max-width: 40rem; margin: 0 auto; padding-left: 16px; padding-right: 16px; }
 .top { background: linear-gradient(135deg, var(--top1), var(--top2)); color: #fff; padding: 18px 0 16px; }
 .top .crumb { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: -6px 0 8px; flex-wrap: wrap; }   /* 코스 모음 · 모드 · 언어 · 글자 한 줄(2026-11-15) */
+.top h1 .fly { color: #8edc29; }   /* 로고 초록(img/logo.svg)의 밝은 연두 - 청록 머리 위에서 대비 4.5(밝은 모드) · 7.3(다크), 2026-11-17 홍TV님 */
 .top .back { display: inline-block; margin: 0; color: #fff; opacity: .85; font-size: .85rem; text-decoration: none; }
 .top .back:hover, .top .back:focus-visible { opacity: 1; text-decoration: underline; }
 .top h1 { margin: 0; font-size: 1.45rem; letter-spacing: -.01em; white-space: nowrap; }

@@ -304,4 +304,13 @@ public class CheckupRound11Test {
         assertFalse("목록 닫기는 hidePick 하나로", js.replace("    function hidePick() {\n        $(\"pick\").style.display = \"none\";", "").contains("$(\"pick\").style.display = \"none\""));
         assertTrue(read("src/main/webapp/hike.html").contains("html.picking.partyOn #partyBar { position:fixed;"));
     }
+
+    /** tidefly 지역 묶음 순서 = 기상청 해상예보 읽는 차례(2026-11-17 홍TV님), 묶음 안은 서버가 북쪽부터(서해중부 → 서해남부). */
+    @Test
+    public void 타이드플라이_지역_순서() throws Exception {
+        assertTrue(read("src/main/webapp/js/tidefly.js").contains("var AREAS = ['서해', '남해', '동해', '제주', '그 밖'];"));
+        assertTrue("머리 fly 연두(한 · 영)", read("src/main/webapp/tidefly.html").contains("🎣 tide<span class=\"fly\">fly</span>(출조)</h1>") && read("src/main/webapp/tidefly.html").contains("tide&lt;span class=&quot;fly&quot;&gt;fly&lt;/span&gt; (fishing trips)")
+                && read("src/main/webapp/css/tidefly.css").contains(".top h1 .fly { color: #8edc29; }"));
+        assertTrue(read("src/main/java/com/gh/routefly/tidefly/TideflyServlet.java").contains("out.sort((a, b) -> Double.compare(b.get(\"lat\").getAsDouble(), a.get(\"lat\").getAsDouble()));"));
+    }
 }
