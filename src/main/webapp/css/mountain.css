@@ -46,8 +46,10 @@ ul { margin:0; padding:0; list-style:none; }
 .logoRow { display:flex; align-items:center; justify-content:space-between; gap:8px; }   /* 로고 + 따라가기 ›(2026-10-17) */
 .logoRow .logo { flex:0 1 auto; min-width:0; }   /* 따라가기 › 자리를 먼저 - 로고가 줄어듦(글자 140% 에서 넘쳤음, 2026-10-17 PC) */
 .logoRow .logo img { display:block; max-width:100%; height:auto; }
-.goHike { flex:0 0 auto; display:inline-flex; align-items:center; height:44px; padding:0 14px; border-radius:22px; box-sizing:border-box;
-          border:1px dashed rgba(255,255,255,0.35); color:var(--tx); font-size:14px; text-decoration:none; white-space:nowrap; }
+.goHike { flex:0 0 auto; display:inline-flex; align-items:center; height:44px; padding:0 16px; border-radius:22px; box-sizing:border-box;
+          border:0; background:var(--sky); color:#062b30; font-size:15px; font-weight:bold; text-decoration:none; white-space:nowrap;
+          box-shadow:0 2px 10px rgba(56,217,234,0.35); }   /* 눈에 띄게 - "찾기" 단추와 같은 하늘색 채움(2026-11-17 홍TV님, 전에는 점선 테두리) */
+.goHike:active { transform:translateY(1px); box-shadow:none; }
 .brand a { display:inline-flex; align-items:center; gap:6px; text-decoration:none; }
 .brand img { width:160px; height:auto; }
 /* ☆ 찜 · 가까운 산 거리(2026-10-15) */
