@@ -20,7 +20,8 @@ import java.nio.file.Path;
  * lt_c_aismoac 군작전구역 · lt_c_aisuac 초경량비행장치공역(UA) · lt_c_aistemp 임시비행금지 · lt_c_aisdronezone 드론 시범사업구역
  * (2026-11-17 웹 Claude 가 검색 · 공개 저장소에서 모음 - 클라우드에서 vworld.kr 에 닿지 않아 원문 확인은 이 응답으로).
  * 요청 주소 · 인자(req/data 의 data · geomFilter · crs · size, req/wfs 의 typename · bbox · output)도 아직 실제 응답으로 확인 전 - 오류면 받은 글 그대로 보고.
- * 키: map.vworld.key(V-World 에서 "2D 데이터 API" · "WMS/WFS" 활용을 함께 신청해야 함), 도메인은 site.baseUrl 의 호스트. 저장 글에서 키를 지움.
+ * 키: drone.vworld.key → map.vworld.key → place.vworld.key 차례로 domain(site.baseUrl 호스트) 있음 · 없음을 한 점으로 해 보고 되는 짝으로(2026-11-17 PC: map 키 + domain 은 INCORRECT_KEY).
+ * V-World 에서 "2D 데이터 API" · "WMS/WFS" 활용을 함께 신청해야 함. 저장 글에서 키를 지움.
  */
 public final class DroneProbe {
 
@@ -30,15 +31,27 @@ public final class DroneProbe {
     static final String[] LAYERS = {"lt_c_aisprhc", "lt_c_aisresc", "lt_c_aisctrc", "lt_c_aismoac", "lt_c_aisuac", "lt_c_aistemp", "lt_c_aisdronezone"};
 
     public static void main(String[] args) throws Exception {
-        String key = RouteflyConfig.get("map.vworld.key");
-        if (key == null || key.isBlank()) {
-            System.out.println("map.vworld.key 가 비어 있습니다.");
-            return;
-        }
         String base = RouteflyConfig.get("site.baseUrl");
         java.util.regex.Matcher m = java.util.regex.Pattern.compile("^https?://([^/:]+)").matcher(base == null ? "" : base);
-        String auth = "&key=" + URLEncoder.encode(key, StandardCharsets.UTF_8) + (m.find() ? "&domain=" + URLEncoder.encode(m.group(1), StandardCharsets.UTF_8) : "");
+        String domain = m.find() ? m.group(1) : null;
         Path dir = Path.of("src", "test", "resources", "drone");
+        // 2026-11-17 PC: map.vworld.key + domain=routefly.kr 로 15개 모두 INCORRECT_KEY. 어느 키 · 도메인 짝이 되는지 한 점(서울시청 비행금지)으로 먼저 봄
+        //   try-<키 이름>-<domain 있음|없음>.json - 되는 짝이 나오면 그 짝으로 아래 전부를 받음(drone.vworld.key 가 있으면 그것을 먼저)
+        String key = null, auth = null;
+        for (String name : new String[] {"drone.vworld.key", "map.vworld.key", "place.vworld.key"}) {
+            String k = RouteflyConfig.get(name);
+            if (k == null || k.isBlank()) { System.out.println(name + " - 비어 있음"); continue; }
+            for (String d : domain == null ? new String[] {null} : new String[] {domain, null}) {
+                String a = "&key=" + URLEncoder.encode(k, StandardCharsets.UTF_8) + (d != null ? "&domain=" + URLEncoder.encode(d, StandardCharsets.UTF_8) : "");
+                Path to = dir.resolve("try-" + name.replace('.', '_') + "-" + (d != null ? "domain" : "nodomain") + ".json");
+                KmaSeasonProbe.save(to, data("lt_c_aisprhc", "POINT(126.9780 37.5665)") + a, k);
+                if (auth == null && !java.nio.file.Files.readString(to).contains("\"status\":\"ERROR\"")) { key = k; auth = a; }
+            }
+        }
+        if (auth == null) {
+            System.out.println("되는 키 · 도메인 짝이 없습니다 - vworld.kr 마이페이지 인증키의 활용 API(2D 데이터 API · WMS/WFS)와 서비스 URL 을 확인해 주세요.");
+            return;
+        }
         String box = "BOX(124.0,33.0,132.0,39.0)";
         for (String layer : LAYERS)
             KmaSeasonProbe.save(dir.resolve("data-" + layer + "-kr.json"), data(layer, box) + auth, key);

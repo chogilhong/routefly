@@ -98,6 +98,8 @@ site.baseUrl=
 #partner.hotels.url=
 # 장소 이름 → 좌표(V-World 검색 API) 키 - 비우면 map.vworld.key 를 씀(V-World 에서 "검색 API" 활용을 함께 신청)
 #place.vworld.key=
+# 드론 공역(dronefly - V-World 2D 데이터 API · WMS/WFS) 키 - 비우면 map.vworld.key 를 씀. 지금은 web.DroneProbe 만 읽음(2026-11-17)
+#drone.vworld.key=
 # 장소 찾기 - 카카오 로컬(키워드) 먼저(들머리 · 관광지 이름을 잘 찾음). 카카오 개발자 앱 → 앱 키 → REST API 키. 서버에서만 씀(화면 · 저장소로 나가지 않음). 비우면 V-World 만
 #kakao.restKey=
 # 바깥 API 에 새로 묻는 횟수 상한(서버 기억에 없을 때만 셈, 2026-10-30). 비우면 기본값
