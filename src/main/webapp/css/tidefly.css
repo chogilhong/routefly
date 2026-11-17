@@ -24,12 +24,21 @@
 * { box-sizing: border-box; }   /* 앞에 짝 없는 } 가 있어 이 줄이 버려졌었음(점검 10차 A13) */
 body { margin: 0; background: var(--bg); color: var(--ink); font-family: system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; line-height: 1.5; word-break: keep-all; overflow-wrap: anywhere; }
 .wrap { max-width: 40rem; margin: 0 auto; padding-left: 16px; padding-right: 16px; }
-.top { background: linear-gradient(135deg, var(--top1), var(--top2)); color: #fff; padding: 18px 0 16px; }
-.top .crumb { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: -6px 0 8px; flex-wrap: wrap; }   /* 코스 모음 · 모드 · 언어 · 글자 한 줄(2026-11-15) */
-.top h1 .fly { color: #8edc29; }   /* 로고 초록(img/logo.svg)의 밝은 연두 - 청록 머리 위에서 대비 4.5(밝은 모드) · 7.3(다크), 2026-11-17 홍TV님 */
-.top .back { display: inline-block; margin: 0; color: #fff; opacity: .85; font-size: .85rem; text-decoration: none; }
-.top .back:hover, .top .back:focus-visible { opacity: 1; text-decoration: underline; }
-.top h1 { margin: 0; font-size: 1.45rem; letter-spacing: -.01em; white-space: nowrap; }
+.top { background: #11161d; color: #fff; padding: 14px 0 14px; border-bottom: 1px solid rgba(255, 255, 255, .08); }   /* 코스 모음(/m/)과 같은 어두운 바탕(2026-11-17 홍TV님 "루트플라이처럼") - 밝은 모드에서도 머리는 같게 */
+.top .logoRow { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 10px; }
+.top .tfLogo { display: inline-flex; align-items: center; gap: 8px; min-width: 0; color: #e9eef4; text-decoration: none; }
+.top .tfLogo .ic { font-size: 2.4rem; line-height: 1; }
+.top .tfLogo .wm { font: 800 2.1rem/1 Inter, Lato, Arial, sans-serif; letter-spacing: -.04em; white-space: nowrap; }   /* img/logo-dark.svg 의 route 글자와 같은 글꼴 · 굵기 */
+.top .crumb { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 6px; flex-wrap: wrap; }   /* 제목 · 모드 · 언어 · 글자 한 줄 */
+.top .fly { color: #65c926; }   /* 로고 fly(img/logo-dark.svg flyGradient)와 같은 초록 */
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .top .fly { background: linear-gradient(135deg, #65c926, #078b4a); -webkit-background-clip: text; background-clip: text; color: transparent; }
+}
+.top .back { flex: 0 0 auto; display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 22px; box-sizing: border-box;
+             border: 2px dashed #38d9ea; background: rgba(56, 217, 234, .12); color: #38d9ea; font-size: .9rem; font-weight: 700; text-decoration: none; white-space: nowrap;
+             box-shadow: 0 0 12px rgba(56, 217, 234, .30); }   /* 코스 모음 "🥾 따라가기 ›" 와 같은 하늘색 점선 단추 */
+.top .back:hover, .top .back:focus-visible { background: rgba(56, 217, 234, .22); }
+.top h1 { margin: 0; font-size: 1.35rem; letter-spacing: -.01em; white-space: nowrap; }
 .top .opts { display: flex; align-items: center; gap: 5px; margin-left: auto; }
 .top .opt { display: inline-flex; align-items: center; gap: 3px; min-height: 44px; min-width: 44px; justify-content: center; padding: 4px 9px; border: 1px solid rgba(255, 255, 255, .45);
             border-radius: 999px; background: rgba(255, 255, 255, .12); color: #fff; font-size: .78rem; cursor: pointer; white-space: nowrap; }

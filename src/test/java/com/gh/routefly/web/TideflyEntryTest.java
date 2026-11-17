@@ -39,9 +39,9 @@ public class TideflyEntryTest {
     @Test
     public void 타이드플라이_머리는_routefly_모양() throws Exception {
         String h = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/webapp/tidefly.html"), java.nio.charset.StandardCharsets.UTF_8);
-        assertTrue(h.contains("<title>routefly tidefly(출조)</title>"));
+        assertTrue("탭 제목은 코스 모음 \"루트플라이 … - routefly\" 모양(2026-11-17)", h.contains("<title>타이드플라이 바다낚시 물때 · 바람 · 파고 - tidefly</title>"));
         assertTrue(h.contains("<link rel=\"icon\" type=\"image/svg+xml\" href=\"favicon.svg?v=2\"><link rel=\"icon\" type=\"image/png\" sizes=\"32x32\" href=\"img/favicon-32.png\">"));
         assertTrue(h.contains("<link rel=\"manifest\" href=\"manifest.json\">") && h.contains("<link rel=\"apple-touch-icon\" href=\"img/apple-icon-180.png\">"));
-        assertTrue(h.contains("<a id=\"back\" class=\"back\" href=\"m/\" data-en=\"‹ Trails\">‹ 코스 모음</a>"));
+        assertTrue("로고 줄 오른쪽 하늘색 점선 단추(따라가기 › 모양, 2026-11-17)", h.contains("<a id=\"back\" class=\"back\" href=\"m/\" data-en=\"⛰️ Trails ›\">⛰️ 코스 모음 ›</a>"));
     }
 }

@@ -1303,7 +1303,7 @@
 
   function paintFixed() {
     root.setAttribute('lang', lang);
-    document.title = tr('routefly tidefly(출조)', 'routefly tidefly (fishing trips)');
+    document.title = tr('타이드플라이 바다낚시 물때 · 바람 · 파고 - tidefly', 'tidefly - sea fishing tides, wind and waves');   // 코스 모음 "루트플라이 … - routefly" 와 같은 모양(2026-11-17 홍TV님)
     document.getElementById('back').setAttribute('href', lang === 'en' ? 'en/m/' : 'm/');   // 코스 모음 - 영어는 /en/m/
     fixed.forEach(function (f) { f[0].innerHTML = lang === 'en' ? f[0].getAttribute('data-en') : f[1]; });
     phs.forEach(function (f) { f[0].setAttribute('placeholder', lang === 'en' ? f[0].getAttribute('data-en-ph') : f[1]); });
