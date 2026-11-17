@@ -1,0 +1,40 @@
+/* 🚁 dronefly(2026-11-17) - 바탕 · 머리는 tidefly.css 를 같이 씀 */
+.dcard { margin: 12px 0 0; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.dcard h2 { margin: 0 0 4px; font-size: 1.05rem; }
+.dpick .near-btn { display: flex; justify-content: center; width: 100%; }
+.dpick .find { display: block; width: 100%; margin: 8px 0 0; flex: none; }
+.dpick .find input { box-sizing: border-box; width: 100%; }
+.found { list-style: none; margin: 6px 0 0; padding: 0; }
+.found button { width: 100%; text-align: left; min-height: 44px; padding: 8px 12px; margin: 4px 0 0; border: 1px solid var(--line); border-radius: 10px; background: var(--soft); color: var(--ink); font-size: .95rem; cursor: pointer; }
+.found small { color: var(--dim); }
+.conds { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 10px 2px 0; font-size: .95rem; }
+.conds label { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; }
+.conds input { width: 20px; height: 20px; }
+.result { border-width: 2px; }
+.result.no { border-color: #d93025; }
+.result.need { border-color: #e8710a; }
+.result.care { border-color: #c9a400; }
+.result.ok { border-color: #1e8e3e; }
+.result .place { margin: 0; color: var(--dim); font-size: .88rem; }
+.result .head { margin: 4px 0 6px; font-size: 1.15rem; font-weight: 800; }
+.result.no .head::before { content: "🔴 "; }
+.result.need .head::before { content: "🟠 "; }
+.result.care .head::before { content: "🟡 "; }
+.result.ok .head::before { content: "🟢 "; }
+.zones, .notes { margin: 4px 0 0; padding-left: 20px; font-size: .92rem; }
+.notes { color: var(--dim); }
+.uaList { margin: 6px 0 0; padding-left: 22px; }
+.uaList li { margin: 6px 0; }
+.uaList a { display: inline-block; padding: 2px 8px; border: 1px solid var(--line); border-radius: 999px; text-decoration: none; color: var(--ink); font-size: .85rem; }
+.dim { color: var(--dim); }
+.small { font-size: .85rem; margin: 0 0 8px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.grid label { display: flex; flex-direction: column; gap: 2px; font-size: .85rem; color: var(--dim); }
+.grid input, .grid select { min-height: 44px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--soft); color: var(--ink); font-size: 1rem; box-sizing: border-box; width: 100%; }
+#applyOut { width: 100%; box-sizing: border-box; margin: 10px 0 0; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--soft); color: var(--ink); font: .85rem/1.5 ui-monospace, monospace; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 0; }
+.btn { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--ink); font-size: .95rem; text-decoration: none; cursor: pointer; }
+.btn.go { border: 2px dashed #38d9ea; color: #0b8fa0; font-weight: 700; }
+:root:not([data-theme="light"]) .btn.go { color: #38d9ea; }
+.foot { margin: 16px auto 24px; font-size: .8rem; color: var(--dim); }
+.foot a { color: inherit; }

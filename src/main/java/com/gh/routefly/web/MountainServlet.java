@@ -1208,6 +1208,11 @@ public class MountainServlet extends HttpServlet {
                 + ")</span><span class=\"fs\">" + (en ? "Sea fishing tides · wind · waves · warnings" : "바다낚시 물때 · 바람 · 파고 · 특보") + "</span><span class=\"fa\">›</span></a>";
     }
 
+    /** 순수 함수 - 🚁 dronefly(드론) 줄(2026-11-17 홍TV님 "타이드플라이 바로 아래에 드론을"). 화면은 한국어만이라 /m/ 에만. */
+    static String droneflyRow() {
+        return "<a class=\"kindLink\" href=\"" + REL + "/dronefly.html\"><span class=\"ft\">🚁 drone<span class=\"fly\">fly</span>(드론)</span><span class=\"fs\">비행금지 · 허용구역(UA) · 비행승인 요청</span><span class=\"fa\">›</span></a>";
+    }
+
     /** 첫 단계(등산 · 걷기 · 자전거) - series.js KINDS 와 같음. */
     static final String[][] KINDS = {{"hike", "⛰️ 등산"}, {"walk", "🥾 걷기"}, {"bike", "🚴 자전거"}};
 
@@ -1297,7 +1302,7 @@ public class MountainServlet extends HttpServlet {
             }
             b.append("</div></details>");
         }
-        b.append(tideflyRow(false));
+        b.append(tideflyRow(false)).append(droneflyRow());
         // 🏨 근처 숙소 찾기(2026-10-29 홍TV님 "산청군청 근처 숙소" - 펴 둔 채, js/mountain.js · course-kit staySearch) · ☀️ 이번 주말 날씨 좋은 산(/api/weekend - 2026-10-15)은
         // 산 · 길 목록 아래로(2026-11-03 홍TV님 점검: 위에 있어 목록이 첫 화면 밖으로 밀렸고, 주말 칸은 불러온 뒤 나타나 목록을 밀었음 - CLS)
         b.append("</div>").append(staySearchBox(null, false)).append("<section id=\"weekend\" hidden></section>").append(steep)

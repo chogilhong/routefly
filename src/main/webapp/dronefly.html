@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, follow"><!-- 2026-11-17 첫 판 - 판정을 드론 교관(홍TV님)이 먼저 써 본 뒤 검색에 냄 -->
+<title>드론플라이 비행금지 · 허용구역 · 비행승인 - dronefly</title>
+<link rel="canonical" href="https://routefly.kr/routefly/dronefly.html">
+<meta name="description" content="드론 날리기 전에 - 내 위치가 비행금지 · 비행제한 · 관제권 · 군작전 · 허용구역(UA) 안인지, 가까운 허용구역, 비행승인 신청할 값 정리 - routefly">
+<meta property="og:type" content="website">
+<meta property="og:title" content="드론플라이(dronefly) - 비행금지 · 허용구역 · 비행승인">
+<meta property="og:description" content="내 위치가 어느 공역 안인지, 승인이 필요한지, 가까운 허용구역(UA)까지.">
+<meta property="og:image" content="https://routefly.kr/routefly/img/og.jpg?v=3">
+<meta property="og:url" content="https://routefly.kr/routefly/dronefly.html">
+<link rel="icon" type="image/png" sizes="32x32" href="img/dronefly-32.png"><link rel="icon" type="image/png" sizes="192x192" href="img/dronefly-192.png"><!-- 머리의 🚁 - Noto Color Emoji(OFL 1.1)로 그린 png -->
+<meta name="theme-color" content="#11161d">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="img/dronefly-180.png">
+<script src="js/tidefly-early.js"></script><!-- 모드 · 글자 크기 기억은 타이드플라이와 같이(tf-theme · tf-size) -->
+<link rel="stylesheet" href="css/tidefly.css">
+<link rel="stylesheet" href="css/dronefly.css">
+</head>
+<body>
+<header class="top"><!-- 타이드플라이 머리와 같은 모양 -->
+  <div class="wrap">
+    <div class="logoRow">
+      <a class="tfLogo" href="dronefly.html" aria-label="dronefly"><span class="ic" aria-hidden="true">🚁</span><span class="wm">drone<span class="fly">fly</span></span></a>
+      <a id="back" class="back" href="m/">⛰️ 코스 모음 ›</a>
+    </div>
+    <div class="crumb">
+      <h1>드론 비행 전 확인</h1>
+      <div class="opts">
+        <button type="button" class="opt" id="theme" aria-label="밝은 모드로" title="밝은 모드로">☀️</button>
+      </div>
+    </div>
+    <p class="sub">비행금지 · 허용구역(UA) · 비행승인</p>
+  </div>
+</header>
+<main class="wrap">
+  <p class="warn">참고용입니다. 공역은 바뀔 수 있으니 비행 전 <a href="https://drone.onestop.go.kr/" target="_blank" rel="noopener">드론원스톱</a>에서 꼭 다시 확인하세요.</p>
+
+  <section class="dcard dpick" aria-label="자리 고르기">
+    <button type="button" id="me" class="near-btn" title="위치는 이 폰 안에서만 씁니다(서버로 보내지 않음)">📍 내 위치로 보기</button>
+    <form id="findForm" class="find" role="search">
+      <input id="q" type="search" aria-label="장소 이름으로 찾기" placeholder="🔍 장소 찾기 (예: 한강공원, 구성산)" autocomplete="off" enterkeyhint="search" maxlength="30">
+    </form>
+    <ul id="found" class="found"></ul>
+    <div class="conds">
+      <label><input type="checkbox" id="photo"> 카메라로 촬영</label>
+      <label><input type="checkbox" id="heavy"> 25kg 넘는 기체</label>
+    </div>
+    <p id="state" class="state" role="status"></p>
+  </section>
+
+  <section id="result" class="dcard result" hidden aria-live="polite">
+    <p id="place" class="place"></p>
+    <p id="head" class="head"></p>
+    <ul id="zones" class="zones"></ul>
+    <ul id="notes" class="notes"></ul>
+  </section>
+
+  <section id="ua" class="dcard" hidden>
+    <h2>🟢 가까운 허용구역(UA)</h2>
+    <p class="dim small">초경량비행장치공역 - 낮에 표시된 높이까지 승인 없이 날 수 있는 곳(HEI 는 지면에서, ALT 는 해수면에서 높이).</p>
+    <ol id="uaList" class="uaList"></ol>
+  </section>
+
+  <section id="apply" class="dcard" hidden>
+    <h2>📝 비행승인 요청</h2>
+    <p class="dim small">앱이 대신 신청할 수 있는 공개 방법은 없습니다. 아래 값을 정리해 복사한 뒤 드론원스톱에서 신청하세요(보통 비행 3 ~ 4일 전).</p>
+    <div class="grid">
+      <label>날짜 <input type="date" id="date"></label>
+      <label>시작 <input type="time" id="from" value="10:00"></label>
+      <label>끝 <input type="time" id="to" value="12:00"></label>
+      <label>고도(m) <input type="number" id="alt" value="100" min="1" max="1000" inputmode="numeric"></label>
+      <label>반경(m) <input type="number" id="radius" value="500" min="10" max="10000" inputmode="numeric"></label>
+      <label>목적 <select id="purpose"><option>취미 · 레저</option><option>교육 · 훈련</option><option>사업(촬영 · 방제 등)</option><option>기타</option></select></label>
+    </div>
+    <textarea id="applyOut" rows="8" readonly aria-label="신청할 값 정리"></textarea>
+    <div class="row">
+      <button type="button" id="copy" class="btn">📋 복사</button>
+      <a class="btn go" href="https://drone.onestop.go.kr/" target="_blank" rel="noopener">드론원스톱 열기 ›</a>
+    </div>
+  </section>
+
+  <details class="help">
+    <summary>판정 기준</summary>
+    <dl>
+      <dt>🔴 비행금지구역</dt><dd>승인 없이 날 수 없습니다(P-73 서울 도심 · P-518 휴전선 · 원전 주변 등).</dd>
+      <dt>🟠 비행제한구역 · 관제권</dt><dd>비행승인이 필요합니다. 관제권은 무게 · 고도와 상관없습니다.</dd>
+      <dt>🟡 군작전구역</dt><dd>다른 공역과 겹치지 않으면 25kg 이하 · 150m 아래 · 낮은 승인 없이 날 수 있지만, 관할 부대를 확인하세요.</dd>
+      <dt>🟢 허용구역(UA) · 그 밖</dt><dd>25kg 이하 · 150m 아래 · 낮 · 눈으로 보이는 곳이면 승인 없이(국토부 안내). 접근관제구역(TCA)도 같습니다.</dd>
+      <dt>늘 함께</dt><dd>150m 이상 · 25kg 초과는 어디서나 승인, 야간은 특별비행승인, 카메라 촬영은 국방부 항공촬영 허가가 따로 필요합니다. 여러 공역이 겹치면 가장 엄한 것으로 봅니다.</dd>
+    </dl>
+  </details>
+</main>
+<footer class="wrap foot">
+  <p>자료: <span id="srcDate">브이월드 항공 레이어(국토교통부)</span>. 판정은 국토교통부 안내와 드론 교관 확인을 바탕으로 했고, 법 원문(항공안전법 시행규칙 제308조 · 제310조)과 다시 맞춰 볼 예정입니다. 임시 비행금지구역은 아직 없습니다.</p>
+  <p><a href="privacy.html">개인정보처리방침</a> · <a href="m/">routefly 코스 모음</a></p>
+</footer>
+<script src="js/dronefly.js"></script>
+</body>
+</html>
