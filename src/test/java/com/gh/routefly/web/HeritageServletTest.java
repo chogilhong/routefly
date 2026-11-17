@@ -40,6 +40,9 @@ public class HeritageServletTest {
         assertEquals(1000, o.getAsJsonArray("zones").size());
         assertTrue("1000곳에서 잘림을 알림", o.get("partial").getAsBoolean());
         assertEquals("[\"역사문화환경보존지역\",\"전북특별자치도\",\"전주시\"]", o.getAsJsonArray("zones").get(0).getAsJsonObject().get("l").toString());
+        // 줄이기(약 2m) - 받은 글보다 훨씬 작게(2026-11-17 PC: 서울 칸 5.7MB 로 메모리 걱정, 운영 톰캣 768MB)
+        String raw = Files.readString(Path.of("src/test/resources/drone/wfs-lt_c_uo301-kr.json"), StandardCharsets.UTF_8);
+        assertTrue(o.toString().length() + " / " + raw.length(), o.toString().length() * 3 < raw.length());
         assertNull("오류 XML 은 null", HeritageServlet.parse(Files.readString(Path.of("src/test/resources/drone/err-incorrect-key.json"), StandardCharsets.UTF_8).replace("{", "<")));
     }
 }

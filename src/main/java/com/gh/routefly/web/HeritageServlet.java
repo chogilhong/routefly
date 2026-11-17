@@ -30,7 +30,13 @@ public class HeritageServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
     static final double CELL = 0.1;
-    private static final OpenApi.Cache<JsonObject> CACHE = new OpenApi.Cache<>(3000, 24L * 3600_000L);
+    /**
+     * 칸 답(글)을 하루 담아 둠 - 40칸까지(2026-11-17 PC: 서울 칸 하나가 줄이기 전 5.7MB 라 3,000칸이면 톰캣 768MB 를 넘음).
+     * JsonObject 나무가 아니라 다 만든 글로(나무는 글보다 몇 배 큼).
+     */
+    private static final OpenApi.Cache<String> CACHE = new OpenApi.Cache<>(40, 24L * 3600_000L);
+    /** 경계 줄이기 허용 오차(도) - 약 2m. 판정이 아니라 사전 협의 안내라 이 정도면 충분. */
+    static final double TOL = 0.00002;
     /** 기억에 없어 V-World 에 새로 묻는 횟수 상한 - 주소마다 한 시간 60번, 하루 5,000번(설정 quota.heritage.ip · .day). */
     private static final OutQuota QUOTA = OutQuota.of("heritage", 60, 5000);
 
@@ -43,13 +49,15 @@ public class HeritageServlet extends HttpServlet {
         }
         String key = key(c);
         long now = System.currentTimeMillis();
-        JsonObject out = CACHE.get(key, now);
-        if (out == null) {
+        String text = CACHE.get(key, now);
+        if (text == null) {
             String ip = SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For"));
-            out = QUOTA.allow(ip, now) ? fetch(c) : unavailable();
-            if (!out.has("unavailable")) CACHE.put(key, out, now);
+            JsonObject out = QUOTA.allow(ip, now) ? fetch(c) : unavailable();
+            if (out.has("unavailable")) { Json.ok(req, resp, out); return; }
+            text = out.toString();
+            CACHE.put(key, text, now);
         }
-        Json.ok(req, resp, out);
+        Json.ok(req, resp, text, Json.etag(text));
     }
 
     /** 순수 함수 - 격자 칸 한 개 [서, 남, 동, 북](0.1° 배수, 한 칸 크기, 우리나라 안). 아니면 null. */
@@ -100,7 +108,9 @@ public class HeritageServlet extends HttpServlet {
                 JsonArray l = new JsonArray();
                 for (String k : new String[] {"uname", "sido_name", "sigg_name"}) l.add(p.has(k) && !p.get(k).isJsonNull() ? p.get(k).getAsString().trim() : "");
                 z.add("l", l);
-                z.add("g", round(f.getAsJsonObject("geometry").getAsJsonArray("coordinates")));
+                JsonArray g = simplifyMulti(f.getAsJsonObject("geometry").getAsJsonArray("coordinates"));
+                if (g.size() == 0) continue;
+                z.add("g", g);
                 zones.add(z);
             }
             JsonObject out = new JsonObject();
@@ -114,12 +124,48 @@ public class HeritageServlet extends HttpServlet {
         }
     }
 
-    private static JsonElement round(JsonArray a) {
-        JsonArray o = new JsonArray();
-        for (JsonElement e : a)
-            if (e.isJsonArray()) o.add(round(e.getAsJsonArray()));
-            else o.add(Math.round(e.getAsDouble() * 1e5) / 1e5);
-        return o;
+    /** MultiPolygon 좌표 → 고리마다 줄이고(Douglas-Peucker, TOL) 소수 5자리로. 줄여서 점 4개가 못 되면 줄이지 않은 고리를 씀. */
+    static JsonArray simplifyMulti(JsonArray multi) {
+        JsonArray out = new JsonArray();
+        for (JsonElement pe : multi) {
+            JsonArray poly = new JsonArray();
+            for (JsonElement re : pe.getAsJsonArray()) {
+                JsonArray ring = re.getAsJsonArray();
+                double[][] pts = new double[ring.size()][];
+                for (int i = 0; i < pts.length; i++) {
+                    JsonArray p = ring.get(i).getAsJsonArray();
+                    pts[i] = new double[] {p.get(0).getAsDouble(), p.get(1).getAsDouble()};
+                }
+                boolean[] keep = new boolean[pts.length];
+                if (pts.length > 0) { keep[0] = true; keep[pts.length - 1] = true; }
+                dp(pts, 0, pts.length - 1, keep);
+                JsonArray r = new JsonArray();
+                for (int i = 0; i < pts.length; i++)
+                    if (keep[i]) { JsonArray p = new JsonArray(); p.add(Math.round(pts[i][0] * 1e5) / 1e5); p.add(Math.round(pts[i][1] * 1e5) / 1e5); r.add(p); }
+                // 작은 구역(비석 하나 같은 몇 m)은 줄이면 선이 되어 사라짐 - 그런 고리는 줄이지 않고 그대로(소수 5자리)
+                if (r.size() < 4) {
+                    r = new JsonArray();
+                    for (double[] q : pts) { JsonArray p = new JsonArray(); p.add(Math.round(q[0] * 1e5) / 1e5); p.add(Math.round(q[1] * 1e5) / 1e5); r.add(p); }
+                }
+                if (r.size() >= 4) poly.add(r);
+                else if (poly.size() == 0) break;   // 원래부터 점 4개가 못 되는 바깥 고리는 다각형째 뺌
+            }
+            if (poly.size() > 0) out.add(poly);
+        }
+        return out;
+    }
+
+    private static void dp(double[][] p, int a, int b, boolean[] keep) {
+        if (b <= a + 1) return;
+        double ax = p[a][0], ay = p[a][1], dx = p[b][0] - ax, dy = p[b][1] - ay, len2 = dx * dx + dy * dy, best = -1;
+        int at = -1;
+        for (int i = a + 1; i < b; i++) {
+            double px = p[i][0] - ax, py = p[i][1] - ay, d;
+            if (len2 == 0) d = Math.hypot(px, py);
+            else { double t = Math.max(0, Math.min(1, (px * dx + py * dy) / len2)); d = Math.hypot(px - t * dx, py - t * dy); }
+            if (d > best) { best = d; at = i; }
+        }
+        if (best > TOL) { keep[at] = true; dp(p, a, at, keep); dp(p, at, b, keep); }
     }
 
     private static JsonObject unavailable() {
