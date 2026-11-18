@@ -38,6 +38,7 @@ public class PartyStopNameTest {
         Party.stops(". ".repeat(2000) + "x");
         Party.stopName(" ".repeat(4000) + "x");
         long ms = (System.nanoTime() - t0) / 1_000_000;
-        org.junit.Assert.assertTrue("느림 " + ms + "ms", ms < 500);
+        // 기준 2초(2026-11-18 PC: 500ms 는 처음 도는 JVM 에서 504 · 594ms 로 가끔 넘음) - 고치기 전 정규식은 2분 넘게 걸려 여전히 확실히 잡힘
+        org.junit.Assert.assertTrue("느림 " + ms + "ms", ms < 2000);
     }
 }
