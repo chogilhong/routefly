@@ -105,8 +105,8 @@ public class CheckupRound12Test {
     @Test
     public void 코스모음_접는칸_간격() throws Exception {
         String css = read("src/main/webapp/css/mountain.css");
-        assertTrue(css.contains("#season, #near, #recent, #weekend, #staySearch { margin-bottom:8px; padding-top:0; padding-bottom:0; }"));
-        assertTrue("10 + 글 + 10 = 44px 이상", css.contains("#staySearch > .fold > summary { padding-top:10px; padding-bottom:10px; }"));
-        assertTrue("접혔을 때 아래 줄 감춤", css.contains("#staySearch > .fold:not([open]) > summary { border-bottom-color:transparent; }"));
+        assertTrue(css.contains("#season, #near, #recent, #weekend, #staySearch, #steep, #gearIdx { margin-bottom:8px; padding-top:0; padding-bottom:0; }"));
+        assertTrue("10 + 글 + 10 = 44px 이상", css.contains("#gearIdx > .fold > summary { padding-top:10px; padding-bottom:10px; }"));
+        assertTrue("접혔을 때 아래 줄 감춤", css.contains("#gearIdx > .fold:not([open]) > summary { border-bottom-color:transparent; }"));
     }
 }
