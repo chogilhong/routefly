@@ -539,6 +539,7 @@
     var CAP = window.Capacitor, NATIVE = !!(CAP && CAP.isNativePlatform && CAP.isNativePlatform());
     var BG = NATIVE ? (CAP.registerPlugin ? CAP.registerPlugin("BackgroundGeolocation") : (CAP.Plugins && CAP.Plugins.BackgroundGeolocation) || null) : null;
     var bgOn = false, bgId = null, bgGen = 0;
+    RFParty.bgStopAll(BG);   // 화면이 막 열림 - 전 화면 · 죽은 앱이 남긴 감시 · 알림을 끔(점검 12차 A6, 따라가기와 같이 rf-bg-watch)
     // 앱이 직접 1분마다 "폰은 켜짐"(app RfAlivePlugin - 화면이 꺼지면 이 화면의 타이머가 멈춰서, 2026-10-21 PC). 옛 설치본엔 없음(null)
     var ALIVE = NATIVE ? (CAP.Plugins && CAP.Plugins.RfAlive) || null : null;
     function aliveStart() {
@@ -552,6 +553,7 @@
         aliveStop();
         bgOn = false; bgGen++;
         if (bgId != null) { Promise.resolve(BG.removeWatcher({ id: bgId })).catch(function () { /* 이미 멈춤 */ }); bgId = null; }
+        RFParty.bgSave([]);
     }
     function bgSync(s) {
         var want = bgWant(s);
@@ -568,7 +570,7 @@
             var r = RFParty.fix(loc.latitude, loc.longitude, loc.accuracy);
             if (r) r.then(render).catch(fail);
         })).then(function (id) {
-            if (bgOn && gen === bgGen) bgId = id;
+            if (bgOn && gen === bgGen) { bgId = id; RFParty.bgSave([id]); }
             else Promise.resolve(BG.removeWatcher({ id: id })).catch(function () { /* 이미 멈춤 */ });   // 그 사이 멈췄으면
         }).catch(function () { bgOn = false; });
     }

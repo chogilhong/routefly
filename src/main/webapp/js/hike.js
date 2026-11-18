@@ -186,14 +186,9 @@
     var BG = plugin("BackgroundGeolocation"), TTS = plugin("TextToSpeech"), FS = plugin("Filesystem"), SHARE = plugin("Share");
     // 위치 감시 번호를 이 기기에도 적어 둠(2026-11-17 홍TV님: 산행을 끝냈는데 "산행 중" 알림이 남음) - 산행 중 따라가기 화면을 벗어나면(산악회 방 · 새로고침)
     // 화면은 번호를 잊지만 폰의 감시 · 알림은 남아, 돌아와 끝내도 새 감시만 꺼졌음. 시작 · 끝 · 화면을 열 때(산행 중이 아니면) 남은 번호를 모두 끔
-    var BG_KEY = "rf-bg-watch";
-    function bgIds() { try { var a = JSON.parse(localStorage.getItem(BG_KEY) || "[]"); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
-    function bgSave(ids) { try { if (ids.length) localStorage.setItem(BG_KEY, JSON.stringify(ids)); else localStorage.removeItem(BG_KEY); } catch (e) { /* 이번만 */ } }
-    function bgStopAll() {
-        if (!BG) return;
-        bgIds().forEach(function (id) { Promise.resolve(BG.removeWatcher({ id: id })).catch(function () { /* 이미 멈춤 */ }); });
-        bgSave([]);
-    }
+    // 감시 번호 기억(rf-bg-watch)은 산악회 방과 같이 - party-kit.js(점검 12차 A6)
+    var bgSave = RFParty.bgSave;
+    function bgStopAll() { RFParty.bgStopAll(BG); }
     bgStopAll();   // 화면이 막 열림 = 이 화면에서 도는 산행 없음 - 전 화면이 남긴 감시 · 알림을 끔(이어 걷기면 시작할 때 새로 켬)
     var LN = plugin("LocalNotifications");
     // 찍은 사진을 폰 갤러리 Pictures/routefly 에도(앱 RfGalleryPlugin - 2026-11-01 홍TV님). 옛 설치본 · 브라우저는 null 이라 아무것도 안 함

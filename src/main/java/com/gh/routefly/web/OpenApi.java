@@ -78,8 +78,16 @@ public final class OpenApi {
         return get(url, tag, timeout, new String[0]);
     }
 
+    /** 바깥 응답 크기 상한(점검 12차 B1 2026-11-18) - 크기 제한 없이 통째로 받다가 큰 응답이 몰리면 톰캣 768MB 가 바닥남(2026-11-17 운영 멈춤). */
+    static final int MAX_BYTES = 32 << 20;
+
     /** 머리글을 붙여 GET(카카오 로컬 API 의 Authorization: KakaoAK … 등, 2026-10-29). headers - 이름, 값, 이름, 값 … */
     static String get(String url, String tag, Duration timeout, String... headers) {
+        return get(url, tag, timeout, MAX_BYTES, headers);
+    }
+
+    /** 크기 상한(maxBytes)을 넘는 응답은 받다가 끊고 null(그 API 는 실패로 셈). */
+    static String get(String url, String tag, Duration timeout, int maxBytes, String... headers) {
         long now = System.currentTimeMillis();
         long[] b = BLOCK.get(tag);
         if (b != null && now < b[0]) return null;
@@ -87,27 +95,50 @@ public final class OpenApi {
             HttpRequest.Builder rb = HttpRequest.newBuilder(URI.create(url)).timeout(timeout).GET();
             for (int i = 0; i + 1 < headers.length; i += 2) rb.header(headers[i], headers[i + 1]);
             HttpRequest r = rb.build();
-            HttpResponse<String> res = HTTP.send(r, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-            if (limitHit(res.statusCode(), res.body())) {
+            HttpResponse<java.io.InputStream> raw = HTTP.send(r, HttpResponse.BodyHandlers.ofInputStream());
+            String text;
+            try (java.io.InputStream in = raw.body()) {
+                text = readCapped(in, maxBytes);
+            }
+            if (text == null) {
+                log.warn("[{}] 응답이 {}MB 를 넘어 끊음", tag, maxBytes >> 20);
+                throw new java.io.IOException("too large");
+            }
+            final String body = text;
+            final int code = raw.statusCode();
+            if (limitHit(code, body)) {
                 long until = kstMidnightAfter(now);
                 BLOCK.put(tag, new long[] {until, 0});
                 saveLimits(now);
                 log.warn("[{}] DAILY_LIMIT 하루 호출 한도를 넘음 - 오늘 자정(우리 시간)까지 부르지 않음({}분)", tag, (until - now) / 60000);
                 return null;
             }
-            if (res.statusCode() == 200) { BLOCK.remove(tag); return res.body(); }
-            log.warn("[{}] HTTP {} {}", tag, res.statusCode(), head(res.body()));
+            if (code == 200) { BLOCK.remove(tag); return body; }
+            log.warn("[{}] HTTP {} {}", tag, code, head(body));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return null;
         } catch (Exception e) {
-            log.warn("[{}] 호출 실패 - {}", tag, e.toString());
+            log.warn("[{}] 호출 실패 - {}", tag, e.getClass().getSimpleName());   // e.toString() 은 주소(키 포함)를 담을 수 있어 이름만(점검 12차 B7)
         }
         int fails = (b == null ? 0 : (int) b[1]) + 1;
         long rest = restMs(fails);
         BLOCK.put(tag, new long[] {now + rest, fails});
         if (rest > 0) log.warn("[{}] {}번 연달아 실패 - {}분 쉼", tag, fails, rest / 60000);
         return null;
+    }
+
+    /** 순수 함수 - 스트림을 UTF-8 글로, maxBytes 를 넘으면 null. */
+    static String readCapped(java.io.InputStream in, int maxBytes) throws java.io.IOException {
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream(8192);
+        byte[] buf = new byte[8192];
+        int n, total = 0;
+        while ((n = in.read(buf)) > 0) {
+            total += n;
+            if (total > maxBytes) return null;
+            out.write(buf, 0, n);
+        }
+        return out.toString(StandardCharsets.UTF_8);
     }
 
     /** 그 API 를 다시 부를 수 있는 때(막혀 있지 않으면 0). */

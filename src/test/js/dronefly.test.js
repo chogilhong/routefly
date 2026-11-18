@@ -128,6 +128,18 @@ assert.deepStrictEqual(DF.heritageNotes(her, 37.5665, 126.978), []);   // 받은
 assert.ok(DF.heritageNotes({ zones: [], partial: true }, 37, 127)[0].startsWith('이 둘레는 문화재 구역이 많아 일부만'));
 assert.deepStrictEqual(DF.heritageNotes(null, 37, 127), []);
 
+// 점검 12차 A1: 비행 계획 날에 시작할 임시 비행금지도 잡음(지금부터 비행 끝까지)
+const N = Date.UTC(2026, 10, 18), future = 'A)RKRR B)2612010000 C)2612310000';
+assert.strictEqual(DF.tmpState(future, N), 'off');   // 지금 하나만 보면 빠짐(예전 셈)
+assert.strictEqual(DF.tmpState(future, [N, Date.UTC(2026, 11, 5)]), 'on');   // 12-05 비행이면 걸림
+assert.strictEqual(DF.tmpState(future, [N, Date.UTC(2026, 10, 25)]), 'off');
+assert.deepStrictEqual(DF.planWindow(N, '2026-12-05', '12:00'), [N, Date.UTC(2026, 11, 5, 3, 0)]);   // 우리 시간 12시 = 세계시 3시
+assert.deepStrictEqual(DF.planWindow(N, '', '12:00'), [N, N]);
+assert.deepStrictEqual(DF.planWindow(N, '2026-11-01', '12:00'), [N, N]);   // 지난 날은 지금만
+// 점검 12차 A2: 빈 날짜는 0일이 아니라 모름
+assert.strictEqual(DF.workdays('2026-11-18', ''), null);
+assert.strictEqual(DF.dueText('2026-11-18', '', true, false), null);
+
 // 영어 화면(2026-11-17 홍TV님 "한/영, 가 도 넣어줘") - 신청 정리는 드론원스톱 한국어 칸용이라 늘 한국어
 DF.setLang('en');
 assert.strictEqual(DF.verdict(city, {}).head, 'Prohibited area - no flying without approval');

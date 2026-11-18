@@ -70,7 +70,7 @@ public class DroneflyPageTest {
         assertTrue("4번 - 공식 지도", h.contains(">드론원스톱 공식 지도로 한 번 더 ›</a>"));
         assertTrue("처음 열 때 지도를 만듦(6b9f14c 에서 initMap() 이 빠져 운영 지도가 빈 칸이었음)", js.contains("function init() {\n    initMap();"));
         assertTrue("지도를 누르면 그 자리 판정", js.contains("map.on('click', function (e) { setHere({ lat: e.lngLat.lat, lon: e.lngLat.lng }, true); });"));
-        assertTrue("공역 출처", js.contains("tr('공역: 국토교통부 V-World', 'Airspace: V-World (Korea MOLIT)')"));
+        assertTrue("공역 출처(말과 상관없는 한 글 - 점검 12차 A7)", js.contains("attribution: '공역 Airspace: V-World (국토교통부 MOLIT)'"));
     }
 
     /** 드론원스톱 안내(2026-11-17 홍TV님 "이런 내용도 좀 공지 해 주고") - 첫 화면 글 그대로 · 신고 전화 · 처리 기간, 신청 날짜가 처리 기간보다 짧으면 알림. */

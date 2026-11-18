@@ -45,11 +45,21 @@
    * 순수 함수 - 임시 비행금지 NOTAM 기간(B) 시작 · C) 끝, YYMMDDhhmm 세계시)으로 지금 상태: 'on' 지금 유효 · 'off' 기간 지남(또는 아직) · '?' 기간 정보 없음.
    * 2026-11-17 받은 3개 중 2개는 기간이 지났고(2025-04-30 · 2025-10-30 끝), 1개(D3554/25)는 기간 칸이 없음.
    */
-  function tmpState(notam, nowMs) {
+  function tmpState(notam, when) {
     var b = /B\)\s*(\d{10})/.exec(notam || ''), c = /C\)\s*(\d{10})/.exec(notam || '');
     if (!b || !c) return '?';
     var t = function (s) { return Date.UTC(2000 + +s.slice(0, 2), +s.slice(2, 4) - 1, +s.slice(4, 6), +s.slice(6, 8), +s.slice(8, 10)); };
-    return nowMs >= t(b[1]) && nowMs <= t(c[1]) ? 'on' : 'off';
+    // when - 시각 하나 또는 [처음, 끝](점검 12차 A1: 지금부터 비행 계획 끝까지 - 비행 날에 시작할 NOTAM 도 잡음)
+    var a = Array.isArray(when) ? when[0] : when, z = Array.isArray(when) ? when[1] : when;
+    return t(b[1]) <= z && t(c[1]) >= a ? 'on' : 'off';
+  }
+
+  /** 순수 함수 - 볼 때(세계시 ms) [지금, 비행 계획 끝]. date "YYYY-MM-DD" · to "HH:MM"(우리 시간)이 맞지 않거나 지난 때면 [지금, 지금]. */
+  function planWindow(nowMs, date, to) {
+    var d = /^(\d{4})-(\d\d)-(\d\d)$/.exec(date || ''), h = /^(\d\d):(\d\d)$/.exec(to || '23:59');
+    if (!d || !h) return [nowMs, nowMs];
+    var end = Date.UTC(+d[1], +d[2] - 1, +d[3], +h[1], +h[2]) - 9 * 3600000;
+    return [nowMs, Math.max(nowMs, end)];
   }
 
   /** 순수 함수 - 화면에 쓰는 종류: 관제권 중 TCA 는 tca, 임시 비행금지는 지금 유효 tmp · 기간 모름 tmpq · 지난 것 null(뺌). */
@@ -219,6 +229,7 @@
 
   /** 순수 함수 - 오늘(YYYY-MM-DD) 다음 날부터 비행 날 전날까지 평일 수(토 · 일만 뺌 - 공휴일은 모름). */
   function workdays(today, day) {
+    if (!/^\d{4}-\d\d-\d\d$/.test(today || '') || !/^\d{4}-\d\d-\d\d$/.test(day || '')) return null;   // 빈 날짜를 0일로 셈(점검 12차 A2)
     var t = Date.UTC(+today.slice(0, 4), +today.slice(5, 7) - 1, +today.slice(8, 10)), d = Date.UTC(+day.slice(0, 4), +day.slice(5, 7) - 1, +day.slice(8, 10)), n = 0;
     if (isNaN(t) || isNaN(d)) return null;
     for (var x = t + 86400000; x < d; x += 86400000) { var w = new Date(x).getUTCDay(); if (w !== 0 && w !== 6) n++; }
@@ -273,7 +284,7 @@
     return SIZES[(i < 0 ? 1 : i + 1) % SIZES.length];
   }
 
-  var api = { heritageCell: heritageCell, heritageNotes: heritageNotes, shootText: shootText, tmpState: tmpState, firstDay: firstDay, workdays: workdays, dueText: dueText, toGeoJSON: toGeoJSON, nearStrict: nearStrict, setLang: setLang, nextSize: nextSize, inRing: inRing, inGeom: inGeom, isTca: isTca, zonesAt: zonesAt, levelOf: levelOf, zoneLine: zoneLine, verdict: verdict, meters: meters, nearest: nearest, nearUa: nearUa, dist: dist, applyText: applyText };
+  var api = { planWindow: planWindow, heritageCell: heritageCell, heritageNotes: heritageNotes, shootText: shootText, tmpState: tmpState, firstDay: firstDay, workdays: workdays, dueText: dueText, toGeoJSON: toGeoJSON, nearStrict: nearStrict, setLang: setLang, nextSize: nextSize, inRing: inRing, inGeom: inGeom, isTca: isTca, zonesAt: zonesAt, levelOf: levelOf, zoneLine: zoneLine, verdict: verdict, meters: meters, nearest: nearest, nearUa: nearUa, dist: dist, applyText: applyText };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
   root.DF = api;
 
@@ -301,7 +312,9 @@
 
   function draw() {
     if (!data || !here) return;
-    var zones = zonesAt(data, here.lat, here.lon), v = verdict(zones, opts());
+    var when = planWindow(Date.now(), $('date').value, $('to').value);
+    var zones = zonesAt(data, here.lat, here.lon, when), v = verdict(zones, opts());
+    refreshAir(when);
     $('result').hidden = false;
     $('result').className = 'dcard result ' + v.level;
     $('place').textContent = here.me ? tr('📍 내 위치', '📍 My location') : here.name || (tr('위도 ', 'lat ') + here.lat.toFixed(5) + tr(', 경도 ', ', lon ') + here.lon.toFixed(5));
@@ -338,19 +351,20 @@
   }
 
   // ---- 문화재보호구역(2026-11-17 홍TV님 "문화재보호구역도 넣어줘") - 약 10km 고정 칸마다 서버(/api/heritage)에 묻고 칸 안 셈은 폰이 ----
-  var herCache = {}, herWait = {};
+  var herCache = {}, herWait = {};   // herWait[칸] - 묻는 중 true, 못 받은 때(ms) - 2분 동안 다시 묻지 않음(점검 12차 A3)
   function heritageFor(lat, lon) {
     var c = heritageCell(lat, lon), key = c.join(',');
     if (herCache[key]) return herCache[key];
-    if (!herWait[key]) {
+    var w = herWait[key];
+    if (!w || (w !== true && Date.now() - w > 120000)) {
       herWait[key] = true;
       fetch('api/heritage?w=' + c[0] + '&s=' + c[1] + '&e=' + c[2] + '&n=' + c[3]).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+        if (!d || d.unavailable) { herWait[key] = Date.now(); return; }
         herWait[key] = false;
-        if (!d || d.unavailable) return;
         herCache[key] = d;
         showHeritage();
         if (here && heritageCell(here.lat, here.lon).join(',') === key) draw();
-      }).catch(function () { herWait[key] = false; });
+      }).catch(function () { herWait[key] = Date.now(); });
     }
     return null;
   }
@@ -360,7 +374,7 @@
     Object.keys(herCache).forEach(function (k) { (herCache[k].zones || []).forEach(function (z) { feats.push({ type: 'Feature', properties: {}, geometry: { type: 'MultiPolygon', coordinates: z.g } }); }); });
     var fc = { type: 'FeatureCollection', features: feats };
     if (map.getSource('her')) { map.getSource('her').setData(fc); return; }
-    map.addSource('her', { type: 'geojson', data: fc, attribution: tr('문화재보호구역: 국토교통부 V-World', 'Heritage zones: V-World (Korea MOLIT)') });
+    map.addSource('her', { type: 'geojson', data: fc, attribution: '문화재보호구역 Heritage: V-World (국토교통부 MOLIT)' });
     map.addLayer({ id: 'her-fill', type: 'fill', source: 'her', paint: { 'fill-color': '#2e9e44', 'fill-opacity': 0.18 } });
     map.addLayer({ id: 'her-line', type: 'line', source: 'her', paint: { 'line-color': '#2e9e44', 'line-width': 1.5 } });
   }
@@ -374,12 +388,23 @@
     e.push('#888');
     return e;
   }
+  // 지도의 임시 비행금지도 판정과 같은 때로(점검 12차 A7 - 처음 한 번만 셈해 열어 둔 채 기간이 지나도 그대로였음). 같은 날이면 다시 넣지 않음
+  var airKey = '';
+  function refreshAir(when) {
+    var k = new Date(when[0]).toISOString().slice(0, 13) + '|' + new Date(when[1]).toISOString().slice(0, 13);
+    if (!map || !map.getSource('air') || k === airKey) return;
+    airKey = k;
+    map.getSource('air').setData(toGeoJSON(data, when));
+  }
   function addAirspace() {
     if (!map || !mapReady || !data || map.getSource('air')) return;
-    map.addSource('air', { type: 'geojson', data: toGeoJSON(data), attribution: tr('공역: 국토교통부 V-World', 'Airspace: V-World (Korea MOLIT)') });
-    map.addLayer({ id: 'air-fill', type: 'fill', source: 'air', paint: { 'fill-color': colorExpr(), 'fill-opacity': ['match', ['get', 'kind'], 'tmp', 0.35, 'tmpq', 0.15, 'port', 0.3, 'prh', 0.35, 'ua', 0.35, 'ctr', 0.22, 'tca', 0.08, 'res', 0.18, 0.06] } });
+    // 출처는 말과 상관없이 한 글로(점검 12차 A7 - 한/EN 을 바꿔도 처음 말로 남았음)
+    map.addSource('air', { type: 'geojson', data: toGeoJSON(data), attribution: '공역 Airspace: V-World (국토교통부 MOLIT)' });
+    // 문화재 칸이 먼저 그려졌으면 그 아래로(점검 12차 A8 - 초록 칸이 공역 색에 가렸음)
+    var before = map.getLayer('her-fill') ? 'her-fill' : undefined;
+    map.addLayer({ id: 'air-fill', type: 'fill', source: 'air', paint: { 'fill-color': colorExpr(), 'fill-opacity': ['match', ['get', 'kind'], 'tmp', 0.35, 'tmpq', 0.15, 'port', 0.3, 'prh', 0.35, 'ua', 0.35, 'ctr', 0.22, 'tca', 0.08, 'res', 0.18, 0.06] } }, before);
     map.addLayer({ id: 'air-line', type: 'line', source: 'air', paint: { 'line-color': colorExpr(), 'line-width': ['match', ['get', 'kind'], 'prh', 2, 'ua', 2, 1.2],
-      'line-dasharray': ['match', ['get', 'kind'], 'moa', ['literal', [3, 2]], 'tca', ['literal', [2, 2]], 'tmpq', ['literal', [2, 2]], ['literal', [1, 0]]] } });
+      'line-dasharray': ['match', ['get', 'kind'], 'moa', ['literal', [3, 2]], 'tca', ['literal', [2, 2]], 'tmpq', ['literal', [2, 2]], ['literal', [1, 0]]] } }, before);
   }
   function showOnMap(p, fly) {
     if (!map) return;
@@ -413,7 +438,9 @@
     $('state').innerHTML = '<span class="spin" aria-hidden="true"></span>' + esc(text);
   }
 
+  var ask = 0;   // 자리 묻기 차례(점검 12차 A4 - 늦게 온 위치 · 찾기 답이 나중에 고른 자리를 덮었음)
   function setHere(p, fromMap) {
+    ask++;
     here = p;
     showOnMap(p, !fromMap);
     $('state').textContent = '';
@@ -435,9 +462,11 @@
     $('me').addEventListener('click', function () {
       if (!navigator.geolocation) { $('state').textContent = tr('이 브라우저는 위치를 쓸 수 없습니다.', 'This browser cannot use location.'); return; }
       busy(tr('위치를 찾는 중…', 'Finding your location…'));
+      var my = ++ask;
       navigator.geolocation.getCurrentPosition(function (pos) {
+        if (my !== ask) return;
         setHere({ lat: pos.coords.latitude, lon: pos.coords.longitude, me: true });
-      }, function () { $('state').textContent = tr('위치를 쓸 수 없습니다. 위치 권한을 확인하거나 장소를 찾아 주세요.', 'Location is not available. Check the permission or search for a place.'); }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+      }, function () { if (my !== ask) return; $('state').textContent = tr('위치를 쓸 수 없습니다. 위치 권한을 확인하거나 장소를 찾아 주세요.', 'Location is not available. Check the permission or search for a place.'); }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
     });
 
     function find() {
@@ -445,7 +474,9 @@
       if (q.length < 2) return;
       busy(tr('찾는 중…', 'Searching…'));
       $('q').blur();
+      var my = ++ask;
       fetch('api/place?q=' + encodeURIComponent(q)).then(function (r) { return r.json(); }).then(function (d) {
+        if (my !== ask) return;
         var ps = (d && d.places) || [];
         $('state').textContent = ps.length ? '' : tr('찾지 못했습니다. 다른 이름으로 찾아 주세요.', 'Nothing found. Try another name.');
         $('found').innerHTML = ps.map(function (p, i) { return '<li><button type="button" data-i="' + i + '">' + esc(p.name) + (p.addr ? ' <small>' + esc(p.addr) + '</small>' : '') + '</button></li>'; }).join('');
@@ -456,11 +487,14 @@
           $('found').innerHTML = '';
           setHere({ lat: p.lat, lon: p.lon, name: p.name });
         };
-      }).catch(function () { $('state').textContent = tr('찾기를 하지 못했습니다. 잠시 뒤 다시 해 주세요.', 'Search failed. Please try again in a moment.'); });
+      }).catch(function () { if (my !== ask) return; $('state').textContent = tr('찾기를 하지 못했습니다. 잠시 뒤 다시 해 주세요.', 'Search failed. Please try again in a moment.'); });
     }
     $('findForm').addEventListener('submit', function (e) { e.preventDefault(); find(); });
 
     ['photo', 'heavy', 'alt', 'radius', 'date', 'from', 'to', 'purpose', 'shootWhat'].forEach(function (id) { $(id).addEventListener('change', draw); });
+    // 치는 동안에도(0.3초 쉬면) - 고도 200 을 쳐도 칸을 벗어날 때까지 판정이 그대로였음(점검 12차 A5)
+    var typing = null;
+    ['alt', 'radius', 'shootWhat'].forEach(function (id) { $(id).addEventListener('input', function () { clearTimeout(typing); typing = setTimeout(draw, 300); }); });
     // 복사 단추 둘(비행승인 · 항공촬영) - 같은 셈
     [['copy', 'applyOut'], ['copyShoot', 'shootOut']].forEach(function (c) {
       $(c[0]).addEventListener('click', function () {

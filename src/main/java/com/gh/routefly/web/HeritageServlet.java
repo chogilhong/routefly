@@ -34,11 +34,19 @@ public class HeritageServlet extends HttpServlet {
      * 칸 답(글)을 하루 담아 둠 - 40칸까지(2026-11-17 PC: 서울 칸 하나가 줄이기 전 5.7MB 라 3,000칸이면 톰캣 768MB 를 넘음).
      * JsonObject 나무가 아니라 다 만든 글로(나무는 글보다 몇 배 큼).
      */
-    private static final OpenApi.Cache<String> CACHE = new OpenApi.Cache<>(40, 24L * 3600_000L);
+    /** 점검 12차 B2(2026-11-18): UTF-8 바이트로 담아(글의 약 절반) 80칸 - 줄인 서울 칸 약 0.5MB × 80 = 40MB 안쪽. */
+    static final int CACHE_CELLS = 80;
+    private static final OpenApi.Cache<byte[]> CACHE = new OpenApi.Cache<>(CACHE_CELLS, 24L * 3600_000L);
+    /** V-World 응답 상한 8MB(줄이기 전 서울 칸 5.7MB) - 넘으면 끊음(점검 12차 B1). */
+    static final int MAX_BYTES = 8 << 20;
+    /** V-World 에 동시에 묻는 수 - 2개(서로 다른 칸 수십 개를 한꺼번에 불러 메모리를 바닥내는 것 막기, 점검 12차 B1). */
+    private static final java.util.concurrent.Semaphore OUT = new java.util.concurrent.Semaphore(2);
+    /** 같은 칸을 동시에 물으면 한 번만 받고 나눔. */
+    private static final java.util.concurrent.ConcurrentHashMap<String, java.util.concurrent.CompletableFuture<byte[]>> FLIGHT = new java.util.concurrent.ConcurrentHashMap<>();
     /** 경계 줄이기 허용 오차(도) - 약 2m. 판정이 아니라 사전 협의 안내라 이 정도면 충분. */
     static final double TOL = 0.00002;
-    /** 기억에 없어 V-World 에 새로 묻는 횟수 상한 - 주소마다 한 시간 60번, 하루 5,000번(설정 quota.heritage.ip · .day). */
-    private static final OutQuota QUOTA = OutQuota.of("heritage", 60, 5000);
+    /** 기억에 없어 V-World 에 새로 묻는 횟수 상한 - 주소마다 한 시간 20번(점검 12차 B2 - 60번은 칸 밀어내기에 넉넉), 하루 5,000번(설정 quota.heritage.ip · .day). */
+    private static final OutQuota QUOTA = OutQuota.of("heritage", 20, 5000);
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -49,14 +57,14 @@ public class HeritageServlet extends HttpServlet {
         }
         String key = key(c);
         long now = System.currentTimeMillis();
-        String text = CACHE.get(key, now);
-        if (text == null) {
+        byte[] bytes = CACHE.get(key, now);
+        if (bytes == null) {
             String ip = SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For"));
-            JsonObject out = QUOTA.allow(ip, now) ? fetch(c) : unavailable();
-            if (out.has("unavailable")) { Json.ok(req, resp, out); return; }
-            text = out.toString();
-            CACHE.put(key, text, now);
+            if (!QUOTA.allow(ip, now)) { Json.ok(req, resp, unavailable()); return; }
+            bytes = once(key, c);
+            if (bytes == null) { Json.ok(req, resp, unavailable()); return; }
         }
+        String text = new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
         Json.ok(req, resp, text, Json.etag(text));
     }
 
@@ -77,10 +85,38 @@ public class HeritageServlet extends HttpServlet {
         return Math.round(c[0] * 10) + "," + Math.round(c[1] * 10);
     }
 
+    /** 같은 칸은 한 번만, 바깥은 동시에 2개까지 받아 기억에 담음. 못 받으면 null. */
+    private static byte[] once(String key, double[] c) {
+        java.util.concurrent.CompletableFuture<byte[]> mine = new java.util.concurrent.CompletableFuture<>(), f = FLIGHT.putIfAbsent(key, mine);
+        if (f != null) {
+            try { return f.get(15, java.util.concurrent.TimeUnit.SECONDS); } catch (Exception e) { return null; }
+        }
+        byte[] out = null;
+        try {
+            if (OUT.tryAcquire(5, java.util.concurrent.TimeUnit.SECONDS)) {
+                try {
+                    JsonObject o = fetch(c);
+                    if (!o.has("unavailable")) {
+                        out = o.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                        CACHE.put(key, out, System.currentTimeMillis());
+                    }
+                } finally {
+                    OUT.release();
+                }
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } finally {
+            mine.complete(out);
+            FLIGHT.remove(key, mine);
+        }
+        return out;
+    }
+
     private static JsonObject fetch(double[] c) {
         String key = RouteflyConfig.get("map.vworld.key");
         if (key == null || key.isBlank()) return unavailable();
-        String text = OpenApi.get(url(key, domain(RouteflyConfig.get("site.baseUrl")), c), "HERITAGE", Duration.ofSeconds(10));
+        String text = OpenApi.get(url(key, domain(RouteflyConfig.get("site.baseUrl")), c), "HERITAGE", Duration.ofSeconds(10), MAX_BYTES);
         JsonObject out = text == null ? null : parse(text);
         return out == null ? unavailable() : out;
     }

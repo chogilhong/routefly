@@ -315,5 +315,18 @@
         return qrWait;
     }
 
-    g.RFParty = { qrLib: qrLib, officeNav: officeNav, roomFrom: roomFrom, roomBackOk: roomBackOk, alertsOn: alertsOn, isApp: isApp, dashes: dashes, KEY: KEY, get: get, set: set, clear: clear, post: post, fix: fix, ping: ping, sos: sos, onNotice: null, parseDay: parseDay, parseTime: parseTime };
+    /**
+     * 백그라운드 위치 감시 번호를 기기에 적어 둠(rf-bg-watch) - 따라가기(hike.js)와 산악회 방(party.js)이 같이 씀(점검 12차 A6 - 따라가기에만 있어
+     * 앱이 죽거나 웹뷰가 다시 뜨면 "산악회 방" 알림 · 감시가 남았음). 화면이 막 열리면 전 화면이 남긴 번호를 모두 끔(이어서 쓸 화면이 새로 켬).
+     */
+    var BG_KEY = "rf-bg-watch";
+    function bgIds() { try { var a = JSON.parse(localStorage.getItem(BG_KEY) || "[]"); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+    function bgSave(ids) { try { if (ids.length) localStorage.setItem(BG_KEY, JSON.stringify(ids)); else localStorage.removeItem(BG_KEY); } catch (e) { /* 이번만 */ } }
+    function bgStopAll(BG) {
+        if (!BG) return;
+        bgIds().forEach(function (id) { Promise.resolve(BG.removeWatcher({ id: id })).catch(function () { /* 이미 멈춤 */ }); });
+        bgSave([]);
+    }
+
+    g.RFParty = { bgIds: bgIds, bgSave: bgSave, bgStopAll: bgStopAll, qrLib: qrLib, officeNav: officeNav, roomFrom: roomFrom, roomBackOk: roomBackOk, alertsOn: alertsOn, isApp: isApp, dashes: dashes, KEY: KEY, get: get, set: set, clear: clear, post: post, fix: fix, ping: ping, sos: sos, onNotice: null, parseDay: parseDay, parseTime: parseTime };
 })(window);
