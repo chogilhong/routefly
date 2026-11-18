@@ -288,4 +288,16 @@ assert.strictEqual(DF.quizLabel('1-관련'), '1번 관련 문제)');
   assert.deepStrictEqual(s2.map(r => [r.id, r.n]), [[7, 20], [1, 5]]);
   assert.strictEqual(DF.quizScoreText({ d: '2026-11-18', mode: 'mix', n: 20, ok: 15 }), '11-18 섞어서 · 15/20 (75%)');
 }
+// 유튜브 영상 만들기(tools/drone-quiz/video.js, 2026-11-18 홍TV님 "c로 하고 목소리 없음") - 시간 셈 · 장면 · 설명 글
+{
+  const V = require('../../../tools/drone-quiz/video.js');
+  const D = require('../../../tools/drone-quiz/build.js').build(), c1 = D.sets[1];
+  assert.strictEqual(V.thinkSec(c1.qs[0], 'short'), 5);
+  c1.qs.forEach(q => { const t = V.thinkSec(q, 'long'), a = V.answerSec(q); assert.ok(t >= 10 && t <= 20 && a >= 6 && a <= 12, q.no); });
+  assert.strictEqual(V.label('1-관련'), '1번 관련');
+  const sc = V.scenes(c1, c1.qs.slice(0, 2), 'long');
+  assert.strictEqual(sc.length, 1 + V.thinkSec(c1.qs[0], 'long') + 1 + V.thinkSec(c1.qs[1], 'long') + 1 + 1);   // 첫 장 · 초 세기 · 정답 · 끝 장
+  const m = V.meta(c1, c1.qs.slice(0, 20), 'long');
+  assert.ok(m.startsWith('드론 1종 학과 연습 1번 ~ 20번 정답 · 해설 (100문항 중)') && m.includes('https://routefly.kr/routefly/dronefly.html#quiz-c1') && m.includes('실제 시험 문제가 아님'));
+}
 console.log('dronefly.test.js OK');

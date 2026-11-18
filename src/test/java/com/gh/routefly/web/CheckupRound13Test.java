@@ -25,7 +25,7 @@ public class CheckupRound13Test {
         assertTrue(tj.contains("var old = catchList(), m = RF.mergeRows(old, add,") && tj.contains("catchGone(old, m.list).forEach("));
         // 2 · 3 점수는 같은 풀이를 바꿔 씀 · 링크로 연 풀이는 이어 자리를 바꾸지 않음
         assertTrue(dj.contains("run = { id: Date.now(),") && dj.contains("{ id: run.id, d: todayKst()") && !dj.contains("run.kept"));
-        assertTrue(dj.contains("if (run.mode === 'all' && !run.jump) {"));
+        assertTrue(dj.contains("if (run.mode === 'all' && !run.jump) {") && dj.contains("if (!run || !run.n || run.jump) return;"));
         // 6 · 8 CSV 저장 · 읽기는 RF.saveCsvFile · RF.readCsvFile 하나로(앱은 공유 창, 2MB · EUC-KR), 저장한 날은 끝까지 간 때만
         assertTrue(dj.contains("RF.saveCsvFile(") && tj.contains("RF.saveCsvFile(") && dj.contains("RF.readCsvFile(f)") && tj.contains("RF.readCsvFile(f)"));
         assertTrue(dj.contains("if (done && !who) { save('df-log-saved'") && tj.contains("if (done) { save('tf-catch-saved', day);"));

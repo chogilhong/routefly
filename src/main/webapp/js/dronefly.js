@@ -899,7 +899,7 @@
   }
   /** 이번에 푼 것을 점수 기록에 한 번만(다 풀었을 때 · 다른 시험으로 바꾸거나 새로 시작할 때 · 화면을 떠날 때). */
   function keepScore() {
-    if (!run || !run.n) return;
+    if (!run || !run.n || run.jump) return;   // 문항 페이지 링크로 한두 문항 본 것은 점수로 남기지 않음(2026-11-18 PC - "차례대로 · 0/1" 이 남았음)
     save('df-quiz-score', JSON.stringify(quizScoreAdd(load('df-quiz-score'), { id: run.id, d: todayKst(), set: run.set.id, mode: run.mode, n: run.n, ok: run.ok })));
   }
   var quizWait = null;
