@@ -88,8 +88,12 @@ function read(list) {
 /** 문항 묶음들 - 문항 열쇠(no)는 글(묶음 안)에서 하나, 화면은 "묶음:번호" 로 틀린 것을 기억. */
 function build() {
   const c4 = parse(read(C4)).map(q => Object.assign(q, { no: String(q.no) }));
+  // 1종 학과 연습(2026-11-18 홍TV님 "드론 1급 문항이 인터넷에 있는 지 찾아 보고 100문항 정도 만들어줘") - 남의 문제집을 옮기지 않고
+  // 법 원문(law.go.kr 시행 2026-11-13) · 기상 · 비행이론 일반 사실로 새로 쓴 것, 출처는 c1.json 의 sources(화면 파일에는 넣지 않음)
+  const c1 = JSON.parse(fs.readFileSync(path.join(__dirname, 'c1.json'), 'utf8'));
   return { date: '2026-11-18', sets: [
     { id: 'c4', name: '4종(무인멀티콥터) 평가시험', en: 'Class 4 (multicopter) test', qs: c4 },
+    { id: c1.id, name: c1.name, en: c1.en, qs: c1.qs },
     { id: 'inst', name: '조종교육 교관 과정 필기시험', en: 'Flight instructor course test', qs: parseInst(read(INST)) }
   ] };
 }

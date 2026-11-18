@@ -210,9 +210,16 @@ assert.strictEqual(DF.minText(120), '2시간');
   const D = require('../../../tools/drone-quiz/build.js').build();
   const saved = JSON.parse(fs.readFileSync(__dirname + '/../../main/webapp/data/drone-quiz.json', 'utf8'));
   assert.deepStrictEqual(saved, D, 'data/drone-quiz.json 이 원문과 다름 - node tools/drone-quiz/build.js');
-  assert.deepStrictEqual(D.sets.map(s => [s.id, s.qs.length]), [['c4', 95], ['inst', 65]]);
+  assert.deepStrictEqual(D.sets.map(s => [s.id, s.qs.length]), [['c4', 95], ['c1', 100], ['inst', 65]]);
+  // 1종 학과 연습(2026-11-18 새로 씀) - 번호 차례 · 보기 4개 서로 다름 · 질문 겹침 없음 · 근거 칸 · 정답 자리 고루
+  const C1 = D.sets[1].qs;
+  assert.deepStrictEqual(C1.map(q => q.no), Array.from({ length: 100 }, (_, i) => String(i + 1)));
+  assert.ok(C1.every(q => new Set(q.c).size === 4 && q.basis && q.ex && !q.post));
+  assert.strictEqual(new Set(C1.map(q => q.q)).size, 100);
+  assert.deepStrictEqual([1, 2, 3, 4].map(a => C1.filter(q => q.ans === a).length), [25, 25, 25, 25]);
+  assert.deepStrictEqual([C1[29].ans, C1[29].c[2]], [3, '0.02% 이상']);   // 혈중알코올농도 - 법 제57조 ⑤(제131조 준용)
   D.sets.forEach(s => assert.ok(s.qs.every(q => q.c.length === 4 && q.ans >= 1 && q.ans <= 4 && q.q.length > 5 && !/728x90|반응형/.test(q.ex)), s.id));
-  const Q = D.sets[0].qs, I = D.sets[1].qs;
+  const Q = D.sets[0].qs, I = D.sets[2].qs;
   assert.deepStrictEqual(Q.map(q => q.no), Array.from({ length: 95 }, (_, i) => String(i + 1)));
   assert.deepStrictEqual([Q[0].ans, Q[0].post, Q[0].q], [2, 145, '다음중 초경량비행장치 사용사업 등록 결격 사유로 옳지 않은 것은?']);
   assert.strictEqual(Q[88].c[0], '약함: <4.1(knot/100feet)');   // 부등호가 태그로 지워지지 않게
