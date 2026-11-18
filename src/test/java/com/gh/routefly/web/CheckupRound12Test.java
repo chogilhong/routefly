@@ -70,4 +70,17 @@ public class CheckupRound12Test {
         assertEquals("overflow", RateLimiter.overflowKey("1.2.3.4"));
         assertTrue("E1", read("src/test/java/com/gh/routefly/web/DroneProbe.java").contains("return HeritageServlet.wfs(layer, bbox);"));
     }
+
+    /** 3단계: C1 공역 자료 먼저 받기 · C2 지형 음영 빼기 · C3 문화재 하루 · C4 tidefly 목록 1분 담기 + 304, 이름 찾기 한 시간. */
+    @Test
+    public void 단계3_속도() throws Exception {
+        assertTrue("C1", read("src/main/webapp/dronefly.html").contains("<link rel=\"preload\" href=\"data/drone-airspace.json\" as=\"fetch\" crossorigin>"));
+        assertTrue("C2", read("src/main/webapp/js/dronefly.js").contains("if (cfg && cfg.vworldKey) { st.layers = st.layers.filter(function (l) { return l.id !== 'hillshade'; }); delete st.sources.hillshade; }"));
+        assertTrue("C3", read("src/main/java/com/gh/routefly/web/HeritageServlet.java").contains("Json.notModified(req, resp, tag, \"public, max-age=86400\")"));
+        String tf = read("src/main/java/com/gh/routefly/tidefly/TideflyServlet.java");
+        assertTrue("C4", tf.contains("if (cached != null && now - listAt < 60_000) { sendList(req, resp, cached); return; }") && tf.contains("if (!missing) { listCache = text; listAt = now; } else listCache = null;")
+                && tf.contains("resp.setHeader(\"Cache-Control\", \"private, max-age=3600\");"));
+        String t = com.gh.routefly.tidefly.TideflyServlet.etag("{}");
+        assertTrue(t, t.matches("W/\"[0-9a-f]{16}\"") && t.equals(com.gh.routefly.tidefly.TideflyServlet.etag("{}")) && !t.equals(com.gh.routefly.tidefly.TideflyServlet.etag("{ }")));
+    }
 }

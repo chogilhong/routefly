@@ -418,7 +418,10 @@
   function initMap() {
     if (!window.maplibregl || !window.RF || !window.RF.baseStyle) return;
     fetch('api/map-config').then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; }).then(function (cfg) {
-      map = new maplibregl.Map({ container: 'map', style: window.RF.baseStyle(cfg || {}), center: [127.8, 36.3], zoom: 6, locale: window.RF.mapLocale(),
+      var st = window.RF.baseStyle(cfg || {});
+      // 2D 공역 지도라 지형 음영은 장식 - 바탕 지도(V-World)가 있으면 빼서 타일 요청을 줄임(점검 12차 C2)
+      if (cfg && cfg.vworldKey) { st.layers = st.layers.filter(function (l) { return l.id !== 'hillshade'; }); delete st.sources.hillshade; }
+      map = new maplibregl.Map({ container: 'map', style: st, center: [127.8, 36.3], zoom: 6, locale: window.RF.mapLocale(),
         attributionControl: false, dragRotate: false, pitchWithRotate: false, touchPitch: false });
       map.touchZoomRotate.disableRotation();
       map.addControl(new maplibregl.AttributionControl({ compact: true }), 'top-right');

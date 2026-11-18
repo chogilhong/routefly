@@ -208,6 +208,30 @@ public final class TideflyServlet extends HttpServlet {
         }
     }
 
+    private volatile String listCache;
+    private volatile long listAt;
+
+    /** 목록 보내기 - 약한 ETag 로 바뀐 것이 없으면 304(브라우저가 늘 다시 묻게 no-cache). */
+    private static void sendList(HttpServletRequest req, HttpServletResponse resp, String text) throws IOException {
+        String tag = etag(text);
+        resp.setHeader("Cache-Control", "no-cache");
+        resp.setHeader("ETag", tag);
+        if (tag.equals(req.getHeader("If-None-Match"))) { resp.setStatus(304); return; }
+        resp.getWriter().write(text);
+    }
+
+    /** 순수 함수 - 약한 ETag(글의 SHA-256 앞 16자). */
+    public static String etag(String text) {
+        try {
+            byte[] h = java.security.MessageDigest.getInstance("SHA-256").digest(text.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder("W/\"");
+            for (int i = 0; i < 8; i++) sb.append(String.format("%02x", h[i]));
+            return sb.append('"').toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            return "W/\"" + text.hashCode() + "\"";
+        }
+    }
+
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         resp.setContentType("application/json; charset=UTF-8");
@@ -218,6 +242,7 @@ public final class TideflyServlet extends HttpServlet {
         ZonedDateTime nowUtc = ZonedDateTime.now(ZoneOffset.UTC);
         String find = req.getParameter("find");
         if (find != null) {
+            resp.setHeader("Cache-Control", "private, max-age=3600");   // 이름 찾기 답은 포인트 목록만 보고 정함 - 한 시간(점검 12차 C4)
             String hit = find(find, names());
             JsonObject out = new JsonObject();
             out.addProperty("hit", hit != null);
@@ -226,7 +251,9 @@ public final class TideflyServlet extends HttpServlet {
             return;
         }
         if (name == null) {
-            // 목록 - 미리 받아 둔 것만(손님을 기다리게 하지 않음)
+            // 점검 12차 C4(2026-11-18): 다 만든 목록을 1분 담아 두고 ETag 로 304 - 384곳 · 갯바위 1,405곳을 요청마다 새로 셌음. 받는 중(warming)이면 담지 않음
+            String cached = listCache;
+            if (cached != null && now - listAt < 60_000) { sendList(req, resp, cached); return; }
             List<SeaWarning> wrn = cachedWarnings(now);
             JsonArray items = new JsonArray();
             boolean tideOn = portalKey() != null;
@@ -250,7 +277,9 @@ public final class TideflyServlet extends HttpServlet {
             out.add("items", items);
             // 갯바위 · 선상 자리 판단도 같은 특보 · 예측으로 함께(2026-11-15 점검 10차 A1 - 전에는 화면이 ?spots=1 로 처음 한 번만 받아, 그 뒤 특보가 나와도 먼바다 자리가 ○ 로 남았음)
             out.add("marks", spotMarks(wrn, nowUtc));
-            resp.getWriter().write(out.toString());
+            String text = out.toString();
+            if (!missing) { listCache = text; listAt = now; } else listCache = null;
+            sendList(req, resp, text);
             return;
         }
         JsonObject p = points().get(name.trim());

@@ -64,8 +64,10 @@ public class HeritageServlet extends HttpServlet {
             bytes = once(key, c);
             if (bytes == null) { Json.ok(req, resp, unavailable()); return; }
         }
-        String text = new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
-        Json.ok(req, resp, text, Json.etag(text));
+        String text = new String(bytes, java.nio.charset.StandardCharsets.UTF_8), tag = Json.etag(text);
+        // 서버가 하루 담아 두는 답이라 브라우저도 하루(점검 12차 C3 - 5분이면 다시 열 때마다 0.5MB 를 다시 물었음). 칸은 모든 사용자에게 같아 public
+        if (Json.notModified(req, resp, tag, "public, max-age=86400")) return;
+        Json.send(resp, text);
     }
 
     /** 순수 함수 - 격자 칸 한 개 [서, 남, 동, 북](0.1° 배수, 한 칸 크기, 우리나라 안). 아니면 null. */
