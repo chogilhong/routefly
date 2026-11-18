@@ -278,5 +278,22 @@ assert.strictEqual(TF.favToggle(Array.from({ length: 30 }, (_, i) => 'p' + i), '
 }
 assert.strictEqual(TF.catchCsv([{ d: '2026-11-18', name: '방포항', mul: '1물', fish: '감성돔 2', note: '크릴, 새벽' }]),
   '\ufeff날짜,자리,물때,고기,메모\r\n2026-11-18,방포항,1물,감성돔 2,"크릴, 새벽"\r\n');
+// 앱 알림(2026-11-18 - 화면을 닫아도): 방포항 실제 응답의 물때로 철수(간조 30분 뒤) · 해 지기 1시간 전
+{
+  TF.setLang('ko');
+  const det = JSON.parse(require('fs').readFileSync(require('path').join(__dirname, '../resources/tidefly/detail-bangpo-20261115.json'), 'utf8'));
+  const row = { name: '방포항', label: '방포항', events: det.tides.events, sunset: det.today.sunset, cfg: { ebb: 30, sun: 60 } };
+  const now = det.today.date ? det.today.date + ' 06:00' : '2026-11-15 06:00';
+  const n = TF.appNotes([row], now);
+  assert.ok(n.length >= 2);
+  assert.deepStrictEqual(n.map(x => x.id), n.map((_, i) => 9100 + i));   // 산악회 방 알림(7400 부터)과 겹치지 않게
+  assert.ok(n.every((x, i) => i === 0 || x.at >= n[i - 1].at), '이른 차례');
+  assert.ok(n.every(x => x.at > Date.UTC(2026, 10, 14, 21, 0) && x.at <= Date.UTC(2026, 10, 14, 21, 0) + 36 * 3600000), '36시간 안');
+  const sun = n.find(x => x.body.startsWith('해 지기 60분 전'));
+  assert.ok(sun && sun.body.endsWith(' - 방포항'));
+  assert.strictEqual(new Date(sun.at + 9 * 3600000).toISOString().slice(11, 16), (h => { const [a, b] = det.today.sunset.split(':').map(Number); const m = a * 60 + b - 60; return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); })());
+  assert.ok(n.some(x => x.body.startsWith('물이 들어오기 시작합니다(간조 ') && x.body.includes(' + 30분)')));
+  assert.deepStrictEqual(TF.appNotes([Object.assign({}, row, { cfg: {} })], now), []);   // 고른 알림이 없으면 없음
+}
 console.log('tidefly.test.js OK');
 

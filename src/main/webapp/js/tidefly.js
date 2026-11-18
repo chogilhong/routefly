@@ -302,6 +302,23 @@
     return tr('해 지기 ' + cfg.sun + '분 전입니다(일몰 ' + a.base + ') - ' + name, cfg.sun + ' min to sunset (' + a.base + ') - ' + name);
   }
 
+  /**
+   * 순수 함수 - 앱 알림으로 맞출 것(2026-11-18 홍TV님 "모두 해 줘" 6 - 앱은 화면을 닫아도 울리게). rows [{name, label, events, sunset, cfg}],
+   * now "YYYY-MM-DD HH:MM"(우리 시간) → [{id, at(세계시 ms), title, body}] 이른 차례 · 36시간 안 · 100개까지, id 9100 ~ 9199(따라가기 7001 · 안부 7100대 · 약 7300대 · 산악회 방 7400 부터 늘어남과 겹치지 않게).
+   */
+  function appNotes(rows, now) {
+    var end = fmtDate(toMin(now) + 36 * 60), all = [];
+    (rows || []).forEach(function (r) {
+      alarmPlan(r.events, r.sunset, now, r.cfg).forEach(function (a) {
+        if (a.at <= end) all.push({ a: a, r: r });
+      });
+    });
+    all.sort(function (x, y) { return x.a.at < y.a.at ? -1 : x.a.at > y.a.at ? 1 : 0; });
+    return all.slice(0, 100).map(function (x, i) {
+      return { id: 9100 + i, at: toMin(x.a.at) * 60000 - 9 * 3600000, title: tr('🎣 타이드플라이', '🎣 Tidefly'), body: alarmText(x.a, x.r.label, x.r.cfg) };
+    });
+  }
+
   var SIZES = ['m', 'l', 'xl'];
 
   /** 순수 함수 - 글자 크기 다음 단계(보통 → 크게 → 아주 크게 → 보통). */
@@ -569,7 +586,7 @@
     return '\ufeff' + rows.map(function (r) { return r.map(q).join(','); }).join('\r\n') + '\r\n';
   }
 
-  var TF = { favToggle: favToggle, weekGood: weekGood, catchCsv: catchCsv, kst: kst, dir16: dir16, swell: swell, nums: nums, markOf: markOf, markWord: markWord, nowKst: nowKst, dayName: dayName,
+  var TF = { appNotes: appNotes, favToggle: favToggle, weekGood: weekGood, catchCsv: catchCsv, kst: kst, dir16: dir16, swell: swell, nums: nums, markOf: markOf, markWord: markWord, nowKst: nowKst, dayName: dayName,
     tideTable: tideTable, goodDays: goodDays, moon: moon, sunSpan: sunSpan, hourRow: hourRow, wrnWhen: wrnWhen, untilText: untilText, nextTide: nextTide, curve: curve, nextSize: nextSize, isDark: isDark,
     setLang: setLang, roman: roman, placeName: placeName, zoneName: zoneName, reason: reason, mul: mul,
     alarmPlan: alarmPlan, alarmText: alarmText, nearest: nearest, spotItem: spotItem, worseMark: worseMark, bare: bare, fishHit: fishHit, stayRows: stayRows, lawFor: lawFor, inSeason: inSeason, closedText: closedText };
@@ -865,12 +882,14 @@
     var p = it.point || {};
     var cfg = alarms[p.name] || {};
     var box = el('div', 'alarms');
-    box.appendChild(el('p', 'label', tr('🔔 알림 - 이 화면을 열어 둔 동안 · 기준은 직접 고르세요', '🔔 Alerts - while this page is open · choose your own timing')));
+    box.appendChild(el('p', 'label', LN ? tr('🔔 알림 - 앱은 화면을 닫아도 울립니다 · 기준은 직접 고르세요', '🔔 Alerts - the app rings even with the screen closed · choose your own timing')
+      : tr('🔔 알림 - 이 화면을 열어 둔 동안 · 기준은 직접 고르세요', '🔔 Alerts - while this page is open · choose your own timing')));
     function set(k, v) {
       var c = alarms[p.name] || {};
       if (v == null) delete c[k]; else c[k] = v;
       if (Object.keys(c).length) alarms[p.name] = c; else delete alarms[p.name];
       save('tf-alarms', alarms);
+      appSchedule();   // 앱이면 폰 알림도 다시 맞춤
       if (v != null && window.Notification && Notification.permission === 'default') { try { Notification.requestPermission(); } catch (e) { /* 막혀도 화면 띠로 알림 */ } }
       draw();
     }
@@ -890,6 +909,28 @@
     var plan = alarmPlan(it.tides && it.tides.events, it.today && it.today.sunset, now, cfg);
     if (plan.length) box.appendChild(el('p', 'dim small', tr('다음 알림 ', 'Next alert ') + (plan[0].at.slice(0, 10) === now.slice(0, 10) ? '' : tr('내일 ', 'tomorrow ')) + plan[0].at.slice(11)));
     return box;
+  }
+
+  // 앱(안드로이드)은 고른 알림을 폰에 맞춰 둠 - 화면을 닫아도 울림(2026-11-18). 서버 주소를 띄우는 앱이라 Plugins 에서(안부 · 약 알림과 같게)
+  var CAP = window.Capacitor, NATIVE = !!(CAP && CAP.isNativePlatform && CAP.isNativePlatform());
+  var LN = NATIVE && (!CAP.isPluginAvailable || CAP.isPluginAvailable('LocalNotifications')) && CAP.Plugins && CAP.Plugins.LocalNotifications || null;
+  function appSchedule() {
+    if (!LN) return;
+    var rows = [];
+    items.concat(spotItems()).forEach(function (it) {
+      var p = it.point || {}, cfg = alarms[p.name];
+      if (cfg && !rows.some(function (r) { return r.name === p.name; })) rows.push({ name: p.name, label: placeName(p.name), events: it.tides && it.tides.events, sunset: it.today && it.today.sunset, cfg: cfg });
+    });
+    var list = appNotes(rows, nowKst(Date.now())), ids = [];
+    for (var i = 9100; i < 9200; i++) ids.push({ id: i });
+    Promise.resolve(LN.createChannel({ id: 'rf-tidefly', name: tr('타이드플라이 출조 알림', 'Tidefly alerts'), importance: 5, visibility: 1, vibration: true })).catch(function () { /* 이미 있음 */ })
+      .then(function () { return Promise.resolve(LN.cancel({ notifications: ids })).catch(function () { /* 없음 */ }); })
+      .then(function () {
+        if (!list.length) return null;
+        return Promise.resolve(LN.requestPermissions()).catch(function () { return null; }).then(function () {
+          return LN.schedule({ notifications: list.map(function (n) { return { id: n.id, title: n.title, body: n.body, schedule: { at: new Date(n.at), allowWhileIdle: true }, channelId: 'rf-tidefly', extra: { page: 'tidefly' } }; }) });
+        });
+      }).catch(function () { /* 권한이 없으면 화면 띠로만 */ });
   }
 
   function checkAlarms() {
@@ -925,7 +966,7 @@
     fetch('data/tidefly-spots.json').then(function (r) {
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.json();
-    }).then(function (d) { spots = Array.isArray(d) ? d : []; spotsWait = false; draw(); })
+    }).then(function (d) { spots = Array.isArray(d) ? d : []; spotsWait = false; draw(); appSchedule(); })
       .catch(function () { spotsWait = false; spotsFailAt = Date.now(); });
   }
 
@@ -1408,6 +1449,7 @@
         }
         spotMarks = data.marks || {};
         draw();
+        appSchedule();   // 새 물때 · 해 시각으로 앱 알림 다시 맞춤(앱이 아니면 아무것도 안 함)
       }
       // 서버가 아직 받는 중이면 10 → 30 → 60초 뒤, 아니면 10분 뒤 다시(남은 시간 글은 1분마다 새로) - 점검 10차 C5: 전에는 10초마다 끝없이
       warmTries = data.warming ? warmTries + 1 : 0;

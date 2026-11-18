@@ -67,6 +67,10 @@ public class FlyExtrasTest {
         assertTrue("이번 주는 물때로만 - 바람 · 파고 숫자로 좋은 날을 정하지 않음", js.contains("box.appendChild(weekEl(d.days, good));") && js.contains("물때로만 고른 날입니다."));
         assertTrue("조과 기록 칸에 치는 중에는 1분 다시 그리기를 건너뜀", js.contains("(fa.tagName === 'SELECT' || fa.tagName === 'INPUT')"));
         keysInPolicy(js, "tf-");
+        // 출조 알림을 앱은 화면을 닫아도(2026-11-18 "모두 해 줘" 6) - 앱에 이미 있는 LocalNotifications, 고를 때 · 새 물때를 받을 때 다시 맞춤, 방침과 같게
+        assertTrue(js.contains("LN.schedule({ notifications: list.map(") && js.contains("appSchedule();   // 앱이면 폰 알림도 다시 맞춤") && js.contains("appSchedule();   // 새 물때 · 해 시각으로 앱 알림 다시 맞춤"));
+        assertTrue(read("src/main/webapp/privacy.html").contains("앱에서는 그 시각을 핸드폰 알림으로 맞춰 두어 화면을 닫아도 울립니다"));
+        assertTrue("앱에 알림 플러그인", read("app/package.json").contains("\"@capacitor/local-notifications\""));
         // 저장 안내는 쉬운 말로 - 드론 기록장과 같은 글(2026-11-18 홍TV님 "바꿔")
         for (String page : new String[] {"tidefly.html", "dronefly.html"}) {
             String ph = read("src/main/webapp/" + page);
