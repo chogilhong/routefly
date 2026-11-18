@@ -189,26 +189,40 @@ DF.setLang('ko');
 assert.strictEqual(DF.minText(65), '1시간 5분');
 assert.strictEqual(DF.minText(40), '40분');
 assert.strictEqual(DF.minText(120), '2시간');
-// 📝 4종 필기 연습(2026-11-18 홍TV님 블로그 95문항) - 원문(src/test/resources/drone/quiz)에서 다시 만든 것과 data/drone-quiz.json 이 같아야 함
+// 📝 필기 연습(2026-11-18 홍TV님 블로그 - 4종 95문항 · 교관 과정 50 + 관련 15) - 원문(src/test/resources/drone/quiz)에서 다시 만든 것과 data/drone-quiz.json 이 같아야 함
 {
-  const Q = require('../../../tools/drone-quiz/build.js').build();
+  const D = require('../../../tools/drone-quiz/build.js').build();
   const saved = JSON.parse(fs.readFileSync(__dirname + '/../../main/webapp/data/drone-quiz.json', 'utf8'));
-  assert.deepStrictEqual(saved, Q, 'data/drone-quiz.json 이 원문과 다름 - node tools/drone-quiz/build.js');
-  assert.deepStrictEqual(Q.qs.map(q => q.no), Array.from({ length: 95 }, (_, i) => i + 1));
-  assert.ok(Q.qs.every(q => q.c.length === 4 && q.ans >= 1 && q.ans <= 4 && q.q.length > 5));
-  assert.ok(Q.qs.every(q => !/728x90|반응형/.test(q.ex)), '블로그 광고 자리 글이 섞이면 안 됨');
-  assert.deepStrictEqual([Q.qs[0].ans, Q.qs[0].post, Q.qs[0].q], [2, 145, '다음중 초경량비행장치 사용사업 등록 결격 사유로 옳지 않은 것은?']);
-  assert.strictEqual(Q.qs[88].c[0], '약함: <4.1(knot/100feet)');   // 부등호가 태그로 지워지지 않게
-  assert.strictEqual(Q.qs[88].c[3], '아주 강함: ≥12(knot/100feet)');
-  assert.ok(Q.qs[6].ex.includes('cm/s²)'));
-  assert.deepStrictEqual(Q.qs.filter(q => q.post === 149).map(q => q.no)[0], 81);
+  assert.deepStrictEqual(saved, D, 'data/drone-quiz.json 이 원문과 다름 - node tools/drone-quiz/build.js');
+  assert.deepStrictEqual(D.sets.map(s => [s.id, s.qs.length]), [['c4', 95], ['inst', 65]]);
+  D.sets.forEach(s => assert.ok(s.qs.every(q => q.c.length === 4 && q.ans >= 1 && q.ans <= 4 && q.q.length > 5 && !/728x90|반응형/.test(q.ex)), s.id));
+  const Q = D.sets[0].qs, I = D.sets[1].qs;
+  assert.deepStrictEqual(Q.map(q => q.no), Array.from({ length: 95 }, (_, i) => String(i + 1)));
+  assert.deepStrictEqual([Q[0].ans, Q[0].post, Q[0].q], [2, 145, '다음중 초경량비행장치 사용사업 등록 결격 사유로 옳지 않은 것은?']);
+  assert.strictEqual(Q[88].c[0], '약함: <4.1(knot/100feet)');   // 부등호가 태그로 지워지지 않게
+  assert.strictEqual(Q[88].c[3], '아주 강함: ≥12(knot/100feet)');
+  assert.ok(Q[6].ex.includes('cm/s²)'));
+  // 교관 과정 - 1 ~ 50 + "관련 문제" 15, 글 끝의 다른 글 제목("문제1) … 비행교수법")은 문항 아님
+  assert.deepStrictEqual(I.filter(q => /^\d+$/.test(q.no)).map(q => q.no), Array.from({ length: 50 }, (_, i) => String(i + 1)));
+  assert.strictEqual(I.filter(q => q.no.endsWith('-관련')).length, 15);
+  const i1 = I[0], r1 = I.find(q => q.no === '1-관련'), i10 = I.find(q => q.no === '10');
+  assert.deepStrictEqual([i1.q, i1.ans, i1.post], ['시카고 협약에 관련사항으로 틀린 것은?', 2, 85]);
+  assert.ok(i1.ex.startsWith('② 우리나라는 1952년 12월 11일 에 가입했다.'));   // 맞는 보기를 다시 쓴 줄이 정답 · 해설 첫 줄
+  assert.deepStrictEqual([r1.q, r1.ans], ['국제민간항공협약은 언제 제정되었나요?', 3]);
+  assert.strictEqual(i10.c[3], 'Liveware (인간) : 성격, 의사소통, 리더쉽');   // 원문 ④ 가 "4." 로 적힘
+  assert.strictEqual(i10.ans, 2);
 }
-assert.deepStrictEqual(DF.quizOrder([1, 2, 3], 'all', [], null), [1, 2, 3]);
-assert.deepStrictEqual(DF.quizOrder([1, 2, 3, 4], 'wrong', [4, 2, 9], null), [2, 4]);
-const mix = DF.quizOrder(Array.from({ length: 95 }, (_, i) => i + 1), 'mix', [], () => 0.5);
+assert.deepStrictEqual(DF.quizOrder(['1', '2', '3'], 'all', [], null), ['1', '2', '3']);
+assert.deepStrictEqual(DF.quizOrder(['1', '1-관련', '2', '4'], 'wrong', ['4', '1-관련', '9'], null), ['1-관련', '4']);
+const mix = DF.quizOrder(Array.from({ length: 95 }, (_, i) => String(i + 1)), 'mix', [], () => 0.5);
 assert.strictEqual(mix.length, 20);
 assert.strictEqual(new Set(mix).size, 20);
-assert.deepStrictEqual(DF.quizMark([3, 7], 5, false), [3, 5, 7]);
-assert.deepStrictEqual(DF.quizMark([3, 5, 7], 5, true), [3, 7]);
-assert.deepStrictEqual(DF.quizMark(null, 2, true), []);
+assert.deepStrictEqual(DF.quizMark(['c4:3', 'c4:10'], 'c4:5', false), ['c4:3', 'c4:5', 'c4:10']);   // 숫자 차례
+assert.deepStrictEqual(DF.quizMark(['c4:3', 'c4:5'], 'c4:5', true), ['c4:3']);
+assert.deepStrictEqual(DF.quizMark([1, 7], 'inst:1-관련', false), ['c4:1', 'c4:7', 'inst:1-관련']);   // 옛 숫자(4종만 있던 때)는 c4: 로
+assert.deepStrictEqual(DF.quizMark(null, 'c4:2', true), []);
+assert.deepStrictEqual(DF.quizKeys([3, 'inst:2', 'x', null]), ['c4:3', 'inst:2']);
+DF.setLang('ko');
+assert.strictEqual(DF.quizLabel('7'), '7.');
+assert.strictEqual(DF.quizLabel('1-관련'), '1번 관련 문제)');
 console.log('dronefly.test.js OK');

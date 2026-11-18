@@ -51,7 +51,8 @@ public class FlyExtrasTest {
         assertTrue(h.contains("id=\"quiz\"") && js.contains("fetch('data/drone-quiz.json')"));
         assertFalse("칸 아래 출처 줄은 뺌(2026-11-18 홍TV님 \"출처는 빼줘\") - 문항마다 블로그 글 링크만", h.contains("홍TV 블로그 - 무인동력비행장치 4종 평가시험 95문항 ›"));
         assertTrue(js.contains("'<p class=\"small\"><a href=\"https://hongtv.tistory.com/' + q.post"));
-        for (int n = 145; n <= 149; n++) assertTrue("원문 " + n, Files.exists(Path.of("src/test/resources/drone/quiz/" + n + ".html")));
+        for (int n : new int[] {145, 146, 147, 148, 149, 85, 89, 92, 93, 95, 97, 98, 99, 100, 101}) assertTrue("원문 " + n, Files.exists(Path.of("src/test/resources/drone/quiz/" + n + ".html")));
+        assertTrue("시험 고르기(2026-11-18 \"교관과정도 4종처럼\")", h.contains("<option value=\"inst\""));
         // △ 는 "비행 자제 권장"(2026-11-18 홍TV님 "가 로해") - ✕ 로 올리지 않음
         assertTrue(js.contains("var care = r.level === 'care' ? tr('비행 자제 권장(돌풍 여유 없음) - '") && h.contains("△ 최대 풍속의 70% 넘음 - 비행 자제 권장"));
     }

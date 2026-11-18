@@ -381,14 +381,29 @@
     return a.slice(0, 20);
   }
 
-  /** 순수 함수 - 틀린 문항 목록 고치기: 틀리면 넣고(차례대로), 맞히면 뺌. */
-  function quizMark(wrong, no, ok) {
-    var w = (Array.isArray(wrong) ? wrong : []).filter(function (n) { return n !== no && typeof n === 'number'; });
-    if (!ok) w.push(no);
-    return w.sort(function (a, b) { return a - b; });
+  /**
+   * 순수 함수 - 틀린 문항 열쇠 목록 고치기: 틀리면 넣고, 맞히면 뺌. 열쇠는 "묶음:번호"(c4:7 · inst:1-관련), 옛 숫자(4종만 있던 때)는 c4: 로 옮김.
+   * 차례는 묶음 · 번호 순(숫자는 숫자로).
+   */
+  function quizMark(wrong, key, ok) {
+    var w = quizKeys(wrong).filter(function (k) { return k !== key; });
+    if (!ok) w.push(key);
+    return w.sort(function (a, b) { return a.localeCompare(b, 'ko', { numeric: true }); });
   }
 
-  var api = { quizOrder: quizOrder, quizMark: quizMark, wxCell: wxCell, flyWx: flyWx, ptyWord: ptyWord, kstHm: kstHm, dayWindow: dayWindow, CHECKS: CHECKS, checksToday: checksToday, logSum: logSum, logCsv: logCsv, minText: minText, planWindow: planWindow, heritageCell: heritageCell, heritageNotes: heritageNotes, shootText: shootText, tmpState: tmpState, firstDay: firstDay, workdays: workdays, dueText: dueText, toGeoJSON: toGeoJSON, nearStrict: nearStrict, setLang: setLang, nextSize: nextSize, inRing: inRing, inGeom: inGeom, isTca: isTca, zonesAt: zonesAt, levelOf: levelOf, zoneLine: zoneLine, verdict: verdict, meters: meters, nearest: nearest, nearUa: nearUa, dist: dist, applyText: applyText };
+  /** 순수 함수 - 저장한 틀린 목록을 열쇠 꼴로(옛 숫자 7 → "c4:7", 꼴이 틀린 값은 버림). */
+  function quizKeys(wrong) {
+    return (Array.isArray(wrong) ? wrong : []).map(function (k) { return typeof k === 'number' ? 'c4:' + k : k; })
+      .filter(function (k) { return typeof k === 'string' && /^[a-z0-9]+:./.test(k); });
+  }
+
+  /** 순수 함수 - 문항 번호 글: "7" → "7.", "1-관련" → "1번 관련 문제)". */
+  function quizLabel(no) {
+    var m = /^(\d+)-관련$/.exec(no);
+    return m ? tr(m[1] + '번 관련 문제)', 'Related to no. ' + m[1] + ')') : no + '.';
+  }
+
+  var api = { quizOrder: quizOrder, quizMark: quizMark, quizKeys: quizKeys, quizLabel: quizLabel, wxCell: wxCell, flyWx: flyWx, ptyWord: ptyWord, kstHm: kstHm, dayWindow: dayWindow, CHECKS: CHECKS, checksToday: checksToday, logSum: logSum, logCsv: logCsv, minText: minText, planWindow: planWindow, heritageCell: heritageCell, heritageNotes: heritageNotes, shootText: shootText, tmpState: tmpState, firstDay: firstDay, workdays: workdays, dueText: dueText, toGeoJSON: toGeoJSON, nearStrict: nearStrict, setLang: setLang, nextSize: nextSize, inRing: inRing, inGeom: inGeom, isTca: isTca, zonesAt: zonesAt, levelOf: levelOf, zoneLine: zoneLine, verdict: verdict, meters: meters, nearest: nearest, nearUa: nearUa, dist: dist, applyText: applyText };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
   root.DF = api;
 
@@ -692,11 +707,13 @@
     });
   }
 
-  // ---- 📝 4종 필기 연습 화면 - 칸을 처음 펼 때 data/drone-quiz.json 을 받음, 틀린 문항은 이 폰에(df-quiz) ----
+  // ---- 📝 필기 연습 화면(4종 · 교관 과정) - 칸을 처음 펼 때 data/drone-quiz.json 을 받음, 틀린 문항은 이 폰에(df-quiz, "묶음:번호") ----
   var quiz = null, run = null;
-  function wrongList() { var w = load('df-quiz'); return Array.isArray(w) ? w : []; }
+  function wrongList() { return quizKeys(load('df-quiz')); }
+  function curSet() { return quiz ? quiz.sets.filter(function (s) { return s.id === $('quizSet').value; })[0] || quiz.sets[0] : null; }
+  function setId() { return $('quizSet').value || 'c4'; }
   function paintWrongBtn() {
-    var n = wrongList().length;
+    var pre = setId() + ':', n = wrongList().filter(function (k) { return k.indexOf(pre) === 0; }).length;
     $('quizWrong').textContent = tr('틀린 것만 (' + n + ')', 'Wrong ones (' + n + ')');
     $('quizWrong').disabled = !n;
   }
@@ -709,18 +726,19 @@
   }
   function startQuiz(mode) {
     if (!quiz) { loadQuiz(function () { startQuiz(mode); }); return; }
-    var nos = quiz.qs.map(function (q) { return q.no; });
-    run = { list: quizOrder(nos, mode, wrongList()), i: 0, ok: 0 };
+    var set = curSet(), pre = set.id + ':';
+    var wrong = wrongList().filter(function (k) { return k.indexOf(pre) === 0; }).map(function (k) { return k.slice(pre.length); });
+    run = { set: set, list: quizOrder(set.qs.map(function (q) { return q.no; }), mode, wrong), i: 0, ok: 0 };
     if (!run.list.length) return;
     showQ();
     try { $('quizBox').scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { /* 옛 브라우저 */ }
   }
-  function qOf(no) { return quiz.qs.filter(function (q) { return q.no === no; })[0]; }
+  function qOf(no) { return run.set.qs.filter(function (q) { return q.no === no; })[0]; }
   function showQ() {
     var box = $('quizBox'), q = qOf(run.list[run.i]);
     box.hidden = false;
-    box.innerHTML = '<p class="qProg">' + esc((run.i + 1) + ' / ' + run.list.length + tr(' · 맞음 ', ' · right ') + run.ok) + '</p>'
-      + '<p class="qText">' + esc(q.no + '. ' + q.q) + '</p>'
+    box.innerHTML = '<p class="qProg">' + esc(tr(run.set.name, run.set.en) + ' · ' + (run.i + 1) + ' / ' + run.list.length + tr(' · 맞음 ', ' · right ') + run.ok) + '</p>'
+      + '<p class="qText">' + esc(quizLabel(q.no) + ' ' + q.q) + '</p>'
       + '<ol class="qChoices">' + q.c.map(function (c, i) { return '<li><button type="button" data-a="' + (i + 1) + '">' + esc('①②③④'.charAt(i) + ' ' + c) + '</button></li>'; }).join('') + '</ol>'
       + '<div class="qAfter" hidden></div>';
   }
@@ -733,7 +751,7 @@
       else if (n === a) b.className = 'wrong';
     });
     if (ok) run.ok++;
-    save('df-quiz', JSON.stringify(quizMark(wrongList(), q.no, ok)));
+    save('df-quiz', JSON.stringify(quizMark(wrongList(), run.set.id + ':' + q.no, ok)));
     paintWrongBtn();
     var last = run.i + 1 >= run.list.length, after = box.querySelector('.qAfter');
     after.hidden = false;
@@ -749,6 +767,7 @@
     $('quizAll').addEventListener('click', function () { startQuiz('all'); });
     $('quizMix').addEventListener('click', function () { startQuiz('mix'); });
     $('quizWrong').addEventListener('click', function () { startQuiz('wrong'); });
+    $('quizSet').addEventListener('change', function () { run = null; $('quizBox').hidden = true; paintWrongBtn(); });   // 시험을 바꾸면 풀던 것은 닫음
     $('quizBox').addEventListener('click', function (e) {
       var b = e.target.closest('button');
       if (!b || !run) return;
