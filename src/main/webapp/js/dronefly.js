@@ -883,11 +883,15 @@
     var typing = null;
     ['alt', 'radius', 'shootWhat'].forEach(function (id) { $(id).addEventListener('input', function () { clearTimeout(typing); typing = setTimeout(draw, 300); }); });
     // 💬 보내기 둘(2026-11-18 홍TV님 "1~4 해줘" 2) - 폰 공유 창(카톡 · 문자 · 메일)으로 정리 글을 그대로. 공유가 없는 브라우저(PC 등)는 복사만
+    // 앱(안드로이드) 웹뷰에는 navigator.share 가 없어 앱의 Share 플러그인으로(2026-11-18 PC - 앱에서 단추가 숨어 있었음, hike.js SOS 공유와 같게)
+    var CAP = window.Capacitor, NATIVE = !!(CAP && CAP.isNativePlatform && CAP.isNativePlatform());
+    var SH = NATIVE && (!CAP.isPluginAvailable || CAP.isPluginAvailable('Share')) && CAP.Plugins && CAP.Plugins.Share || null;
     [['share', 'applyOut', '드론 비행승인 신청 정리'], ['shareShoot', 'shootOut', '항공촬영 사전 신청 정리']].forEach(function (c) {
-      if (!navigator.share) return;
+      if (!SH && !navigator.share) return;
       $(c[0]).hidden = false;
       $(c[0]).addEventListener('click', function () {
-        Promise.resolve(navigator.share({ title: c[2], text: $(c[1]).value })).catch(function () { /* 닫음 · 막힘 - 복사 단추가 있음 */ });
+        var text = $(c[1]).value;
+        Promise.resolve(SH ? SH.share({ title: c[2], text: text, dialogTitle: c[2] }) : navigator.share({ title: c[2], text: text })).catch(function () { /* 닫음 · 막힘 - 복사 단추가 있음 */ });
       });
     });
     // 복사 단추 둘(비행승인 · 항공촬영) - 같은 셈
