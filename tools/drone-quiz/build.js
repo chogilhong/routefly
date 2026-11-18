@@ -92,16 +92,40 @@ function read(list) {
   return posts;
 }
 
+/**
+ * 현행 법령과 다른 블로그 해설에 덧붙이는 줄(2026-11-18 홍TV님 "그렇게 해" - 정답은 블로그 그대로, 해설만).
+ * law.go.kr 항공안전법 · 시행규칙 [시행 2026. 11. 13.] 원문 · 별표 44의2 PDF 로 확인. fix: [옛 글, 새 글] 바꾸기, add: 끝에 붙일 줄.
+ */
+const LAW = '(2026. 11. 18. 현행 법령 확인)';
+const NOTES = {
+  c4: { '22': { fix: [' 또는 면허취소', ''], add: '※ 시행규칙 별표 44의2: 0.09% 이상은 효력 정지 180일(취소는 측정 거부 · 효력정지 중 비행) ' + LAW } },
+  inst: {
+    '4': { fix: [' 또는 면허취소', ''], add: '※ 시행규칙 별표 44의2: 0.09% 이상은 효력 정지 180일(취소는 측정 거부 · 효력정지 중 비행) ' + LAW },
+    '34': { add: '※ 지금은 다름: 시행규칙 제308조 ③(2023. 9. 12. 개정) - 같은 곳 반복 비행 승인은 무인비행장치 12개월(25kg 초과도 같음), 그 밖의 초경량비행장치 6개월 ' + LAW },
+    '37': { add: '※ 법 제34조 ② 2호의 "취소일부터 2년" 은 항공종사자 자격증명 기준. 드론(초경량비행장치) 조종자 증명은 법 · 시행규칙에 따로 정한 재취득 제한 조문이 없음 ' + LAW }
+  }
+};
+function withNotes(id, qs) {
+  const n = NOTES[id] || {};
+  return qs.map(q => {
+    const x = n[q.no];
+    if (!x) return q;
+    let ex = q.ex;
+    if (x.fix) { if (ex.indexOf(x.fix[0]) < 0) throw new Error(id + ':' + q.no + ' 고칠 글이 없음'); ex = ex.split(x.fix[0]).join(x.fix[1]); }
+    return Object.assign({}, q, { ex: ex + '\n' + x.add });
+  });
+}
+
 /** 문항 묶음들 - 문항 열쇠(no)는 글(묶음 안)에서 하나, 화면은 "묶음:번호" 로 틀린 것을 기억. */
 function build() {
-  const c4 = parse(read(C4)).map(q => Object.assign(q, { no: String(q.no) }));
+  const c4 = withNotes('c4', parse(read(C4)).map(q => Object.assign(q, { no: String(q.no) })));
   // 1종 학과 연습(2026-11-18 홍TV님 "드론 1급 문항이 인터넷에 있는 지 찾아 보고 100문항 정도 만들어줘") - 남의 문제집을 옮기지 않고
   // 법 원문(law.go.kr 시행 2026-11-13) · 기상 · 비행이론 일반 사실로 새로 쓴 것, 출처는 c1.json 의 sources(화면 파일에는 넣지 않음)
   const c1 = JSON.parse(fs.readFileSync(path.join(__dirname, 'c1.json'), 'utf8'));
   return { date: '2026-11-18', sets: [
     { id: 'c4', name: '4종(무인멀티콥터) 평가시험', en: 'Class 4 (multicopter) test', qs: c4 },
     { id: c1.id, name: c1.name, en: c1.en, qs: c1.qs },
-    { id: 'inst', name: '조종교육 교관 과정 필기시험', en: 'Flight instructor course test', qs: parseInst(read(INST)) }
+    { id: 'inst', name: '조종교육 교관 과정 필기시험', en: 'Flight instructor course test', qs: withNotes('inst', parseInst(read(INST))) }
   ] };
 }
 
