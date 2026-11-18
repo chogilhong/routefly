@@ -61,6 +61,13 @@ public class FlyExtrasTest {
         assertTrue("조과 기록 칸에 치는 중에는 1분 다시 그리기를 건너뜀", js.contains("(fa.tagName === 'SELECT' || fa.tagName === 'INPUT')"));
         keysInPolicy(js, "tf-");
         // 저장 안내는 쉬운 말로 - 드론 기록장과 같은 글(2026-11-18 홍TV님 "바꿔")
-        for (String page : new String[] {"tidefly.html", "dronefly.html"}) assertTrue(page, read("src/main/webapp/" + page).contains("인터넷 기록을 지우거나 폰을 바꾸면 사라지니"));
+        for (String page : new String[] {"tidefly.html", "dronefly.html"}) {
+            String ph = read("src/main/webapp/" + page);
+            assertTrue(page, ph.contains("인터넷 기록을 지우거나 폰을 바꾸면 사라지니"));
+            // 2026-11-18 PC: 영어 글 안 큰따옴표가 data-en 속성을 닫아 "… now and then with " 에서 끊겼음 - 속성 안은 “ ” 로
+            assertTrue(page, ph.contains("so save a file now and then with “⬇ Save as CSV”.\""));
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("data-en(?:-ph|-aria)?=\"([^\"]*)\"([^\\s>/])").matcher(ph);
+            assertFalse(page + " data-en 속성 뒤에 바로 글자가 붙음(속성 안 큰따옴표): " + (m.find() ? m.group() : ""), m.reset().find());
+        }
     }
 }
