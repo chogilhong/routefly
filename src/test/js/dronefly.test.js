@@ -309,6 +309,9 @@ assert.strictEqual(DF.quizLabel('1-관련'), '1번 관련 문제)');
   assert.deepStrictEqual(V.exPages('a\nb\nc', 100, 2), ['a\nb', 'c']);   // 짧은 줄이 많아도 줄 수로 나눔
   const i37 = D.sets[2].qs.find(q => q.no === '37'), pg = V.exPages(i37.ex, 220);
   assert.ok(pg.length > 1 && pg.join('\n') === i37.ex && pg[pg.length - 1].includes('항공종사자 자격증명 기준'));
+  // 쇼츠는 해설 첫 장만 - 3분을 넘지 않게(교관 4번 해설이 길어 4분 가까이 되었음)
+  const sh = V.scenes(D.sets[2], ['4', '17', '1-관련'].map(no => D.sets[2].qs.find(q => q.no === no)), 'short');
+  assert.ok(sh.reduce((a, x) => a + x.sec, 0) <= 90);
   const m = V.meta(c1, c1.qs.slice(0, 20), 'long');
   assert.ok(m.startsWith('드론 1종 학과 연습 1번 ~ 20번 정답 · 해설 (100문항 중)') && m.includes('https://routefly.kr/routefly/dronefly.html#quiz-c1') && m.includes('실제 시험 문제가 아님'));
 }

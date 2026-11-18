@@ -91,7 +91,9 @@ function scenes(set, qs, kind) {
     const t = thinkSec(q, kind);
     for (let s = t; s >= 1; s--) out.push({ page: qPage(set, q, 'q', s, t, kind), sec: 1 });
     // 해설은 화면에 들어가는 만큼씩(가로 220자 · 세로 160자 - 글자 크기 기준), 장마다 그 글 길이로 시간
-    const parts = exPages(q.ex, kind === 'short' ? 160 : 220, kind === 'short' ? 8 : 7);
+    let parts = exPages(q.ex, kind === 'short' ? 160 : 220, kind === 'short' ? 8 : 7);
+    // 쇼츠는 해설 첫 장만(긴 해설을 다 넣으면 4분 가까이 - 쇼츠는 3분까지), 나머지는 앱에서
+    if (kind === 'short' && parts.length > 1) parts = [parts[0] + '\n… 전체 해설은 routefly 에서'];
     parts.forEach((ex, i) => out.push({ page: qPage(set, q, 'ans', 0, 0, kind, { ex: ex, i: i + 1, n: parts.length }), sec: answerSec({ ex: ex }), fit: true }));
   });
   out.push({ page: card(kind, '전체 문항 풀어 보기', ['routefly.kr → 코스 모음 → dronefly(드론)', '📝 필기 연습 · 틀린 것만 다시 풀기', '4종 95 · 1종 100 · 교관 과정 65문항']), sec: kind === 'short' ? 4 : 6 });
