@@ -168,10 +168,11 @@ Type=forking
 User=tomcat
 Environment=JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
 Environment=CATALINA_HOME=/opt/tomcat
-Environment="CATALINA_OPTS=-Xms256m -Xmx768m -Duser.timezone=Asia/Seoul -Dfile.encoding=UTF-8 -Droutefly.config=/opt/routefly/config.properties"
+Environment="CATALINA_OPTS=-Xms256m -Xmx768m -XX:+ExitOnOutOfMemoryError -Duser.timezone=Asia/Seoul -Dfile.encoding=UTF-8 -Droutefly.config=/opt/routefly/config.properties"
 ExecStart=/opt/tomcat/bin/startup.sh
 ExecStop=/opt/tomcat/bin/shutdown.sh
 Restart=on-failure
+RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
@@ -252,6 +253,14 @@ gzip_vary on;
 gzip_comp_level 5;   # 기본 1 → 5(2026-11-02 홍TV님 속도 점검 - js · json 이 더 작게, CPU 는 조금. 이미 깐 서버는 이 줄을 더한 뒤 sudo nginx -t && sudo systemctl reload nginx)
 # 접속 기록에는 주소의 ?뒤(코스 검색어 · 지도 범위 - "내 주변 코스" 는 내 둘레 약 1km 칸)를 남기지 않음 - 개인정보처리방침(privacy.html)과 맞춤.
 # 기록은 logrotate 기본(14일)으로 지워짐
+# 점검 12차 B10(2026-11-18): /routefly/api/ 의 IP 당 횟수 · 동시 연결(6-1 의 location /routefly/api/ 에서 씀). 넘으면 429
+limit_req_zone $binary_remote_addr zone=rfapi:10m rate=30r/s;
+limit_conn_zone $binary_remote_addr zone=rfconn:10m;
+limit_req_status 429;
+limit_conn_status 429;
+# 느리게 보내며 연결을 붙잡는 요청 끊기(기본 60초 → 15초). proxy_read_timeout 은 기본 60초 그대로 - 비 레이더(Radar)가 60초까지 기다림
+client_header_timeout 15s;
+client_body_timeout 15s;
 log_format routefly_noargs '$remote_addr - [$time_local] "$request_method $uri" $status $body_bytes_sent "$http_user_agent"';
 access_log /var/log/nginx/access.log routefly_noargs;
 ```
@@ -297,8 +306,22 @@ server {
     # 검색 엔진용(산 소개 페이지 /routefly/m/… - 2026-10-14 SitemapServlet). 사이트 뿌리에 있어야 해서 앱으로 넘김
     # 검색 사이트 소유 확인 파일(네이버 naver….html · 구글 google….html, 2026-10-19) - 받은 파일 그대로 /var/www/site-verify 에(6-3)
     location ~ ^/(naver|google)[0-9a-f]+\.html$ { root /var/www/site-verify; }
-    location = /robots.txt  { proxy_pass http://127.0.0.1:8080/routefly/robots.txt;  proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto $scheme; }
-    location = /sitemap.xml { proxy_pass http://127.0.0.1:8080/routefly/sitemap.xml; proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto $scheme; }
+    # 점검 12차 B4(2026-11-18): 이 두 줄도 아래 location / 처럼 IP 머리글을 넘김 - 빠지면 모두 127.0.0.1 한 사람으로 세어지고 꾸민 CF-Connecting-IP 가 그대로 넘어감
+    location = /robots.txt  { proxy_pass http://127.0.0.1:8080/routefly/robots.txt;  proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto $scheme; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_set_header CF-Connecting-IP ""; }
+    location = /sitemap.xml { proxy_pass http://127.0.0.1:8080/routefly/sitemap.xml; proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto $scheme; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_set_header CF-Connecting-IP ""; }
+
+    # 점검 12차 B10: /api 만 nginx 에서 한 번 더 거름(IP 당 초당 30 · 몰림 120 · 동시 연결 30 - 톰캣 SecurityFilter 분당 제한의 바깥 울타리, 6-4)
+    location /routefly/api/ {
+        limit_req zone=rfapi burst=120 nodelay;
+        limit_conn rfconn 30;
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header CF-Connecting-IP "";
+        proxy_redirect http://$host/ https://$host/;
+        client_max_body_size 2m;
+    }
 
     location / {
         proxy_pass http://127.0.0.1:8080;
@@ -340,8 +363,8 @@ server {
     # 검색 엔진용(산 소개 페이지 /routefly/m/… - 2026-10-14 SitemapServlet). 사이트 뿌리에 있어야 해서 앱으로 넘김
     # 검색 사이트 소유 확인 파일(네이버 naver….html · 구글 google….html, 2026-10-19) - 받은 파일 그대로 /var/www/site-verify 에(6-3)
     location ~ ^/(naver|google)[0-9a-f]+\.html$ { root /var/www/site-verify; }
-    location = /robots.txt  { proxy_pass http://127.0.0.1:8080/routefly/robots.txt;  proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto $scheme; }
-    location = /sitemap.xml { proxy_pass http://127.0.0.1:8080/routefly/sitemap.xml; proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto $scheme; }
+    location = /robots.txt  { proxy_pass http://127.0.0.1:8080/routefly/robots.txt;  proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto $scheme; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; }   # CF-Connecting-IP 는 그대로(점검 12차 B4)
+    location = /sitemap.xml { proxy_pass http://127.0.0.1:8080/routefly/sitemap.xml; proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto $scheme; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; }
 
     location / {
         proxy_pass http://127.0.0.1:8080;
@@ -393,6 +416,63 @@ curl -s https://routefly.kr/$(ls /var/www/site-verify | head -1)                
 
 그다음 검색 사이트에서 [소유확인] → 사이트맵 제출 `https://routefly.kr/sitemap.xml`(산 소개 페이지 등 200여 개, SitemapServlet).
 확인 파일은 지우지 않습니다(검색 사이트가 가끔 다시 확인함).
+
+### 6-4. 점검 12차 서버 설정 (2026-11-18, 이미 깐 서버에 더하기)
+
+B4 · B10 · C6 - 위 6-1 · 5장(tomcat.service)에 이미 반영한 것을 지금 서버에 넣는 차례입니다. 고치기 전에 백업부터:
+
+```bash
+d=$(date +%Y%m%d)
+sudo cp /etc/nginx/conf.d/routefly-common.conf ~/routefly-common.conf.bak-$d
+sudo cp /etc/nginx/sites-available/routefly ~/nginx-site.bak-$d
+sudo cp /etc/systemd/system/tomcat.service ~/tomcat.service.bak-$d
+```
+
+1) B10 nginx 횟수 · 연결 제한 - `routefly-common.conf` 의 `log_format` 줄 위에 6장의 `limit_req_zone` ~ `client_body_timeout` 7줄을 넣고,
+`sites-available/routefly` 의 443 server 블록(certbot 이 만든 것) 안 `location / {` 바로 위에 6-1 의 `location /routefly/api/ { … }` 블록을 넣습니다.
+
+2) B4 robots · sitemap - 같은 443 블록의 `location = /robots.txt` · `location = /sitemap.xml` 두 줄을 6-1 의 새 두 줄로 바꿉니다.
+
+```bash
+sudo nano /etc/nginx/conf.d/routefly-common.conf
+sudo nano /etc/nginx/sites-available/routefly
+sudo nginx -t && sudo systemctl reload nginx
+# 확인: 200 이 나오고, 짧은 시간 많이 불러도 첫 120번 남짓은 200
+curl -s -o /dev/null -w '%{http_code}\n' https://routefly.kr/robots.txt
+curl -s -o /dev/null -w '%{http_code}\n' https://routefly.kr/routefly/api/holiday
+```
+
+3) B10 톰캣 메모리가 모자라면 바로 끄고 다시 켜기 - OutOfMemoryError 뒤에 반쯤 죽은 채로 남지 않게(2026-11-17 같은 일). 5장 `tomcat.service` 처럼
+`-XX:+ExitOnOutOfMemoryError` 와 `RestartSec=10` 을 넣습니다:
+
+```bash
+sudo sed -i 's|-Xmx768m -Duser.timezone|-Xmx768m -XX:+ExitOnOutOfMemoryError -Duser.timezone|' /etc/systemd/system/tomcat.service
+grep -q '^RestartSec=' /etc/systemd/system/tomcat.service || sudo sed -i 's|^Restart=on-failure$|Restart=on-failure\nRestartSec=10|' /etc/systemd/system/tomcat.service
+grep -n 'ExitOnOutOfMemoryError\|^Restart' /etc/systemd/system/tomcat.service   # 두 줄 · 세 곳이 보여야 함
+sudo systemctl daemon-reload && sudo systemctl restart tomcat && sleep 20 && systemctl is-active tomcat
+```
+
+4) C6 brotli(고르기) - gzip 보다 js · css 가 15~20% 더 작습니다. 먼저 꾸러미가 있는지 봅니다:
+
+```bash
+apt-cache policy libnginx-mod-http-brotli-filter | head -3
+```
+
+"Candidate:" 에 판 번호가 나오면 깔고, `routefly-common.conf` 맨 끝에 넣습니다. "(none)" 이면 하지 않습니다(gzip 으로 충분, 직접 빌드는 하지 않음).
+
+```bash
+sudo apt -y install libnginx-mod-http-brotli-filter
+sudo tee -a /etc/nginx/conf.d/routefly-common.conf >/dev/null <<'NGX'
+# 점검 12차 C6: brotli - 받는 쪽이 br 을 알면 gzip 대신(모르면 gzip 그대로)
+brotli on;
+brotli_comp_level 5;
+brotli_types application/javascript text/javascript text/css image/svg+xml application/manifest+json application/json application/xml;
+NGX
+sudo nginx -t && sudo systemctl reload nginx
+curl -s -o /dev/null -D - -H 'Accept-Encoding: br' https://routefly.kr/routefly/js/dronefly.js | grep -i content-encoding   # br
+```
+
+되돌리기: 위 백업을 제자리로 복사한 뒤 `sudo nginx -t && sudo systemctl reload nginx`, 톰캣은 `sudo systemctl daemon-reload && sudo systemctl restart tomcat`.
 
 ## 7. 배포 (버전업할 때마다)
 
