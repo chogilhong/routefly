@@ -33,6 +33,9 @@
                 <data android:scheme="https" android:host="routefly.kr" android:pathPrefix="/routefly/party-office.html" />
             </intent-filter>
 
+            <!-- 앱 아이콘 길게 누르기 바로가기(2026-11-18) - 따라가기 · 코스 모음 · 출조 · 드론 -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
+
         </activity>
 
         <provider

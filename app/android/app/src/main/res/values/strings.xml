@@ -8,4 +8,13 @@
     <string name="capacitor_background_geolocation_notification_channel_name">routefly 따라가기(위치 기록)</string>
     <string name="capacitor_background_geolocation_notification_icon">drawable/ic_tracking</string>
     <string name="capacitor_background_geolocation_notification_color">#38D9EA</string>
+    <!-- 앱 아이콘 길게 누르기 바로가기(xml/shortcuts.xml, 2026-11-18) -->
+    <string name="sc_hike">따라가기</string>
+    <string name="sc_hike_long">🥾 따라가기 (GPS 산행)</string>
+    <string name="sc_trails">코스 모음</string>
+    <string name="sc_trails_long">⛰️ 코스 모음 (100대 명산)</string>
+    <string name="sc_tidefly">출조</string>
+    <string name="sc_tidefly_long">🎣 tidefly 출조 (물때 · 바람)</string>
+    <string name="sc_dronefly">드론</string>
+    <string name="sc_dronefly_long">🚁 dronefly 드론 (공역 · 비행승인)</string>
 </resources>

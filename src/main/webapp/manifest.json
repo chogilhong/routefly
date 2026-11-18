@@ -12,5 +12,11 @@
   "icons": [
     { "src": "img/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
     { "src": "img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    { "name": "🥾 따라가기 (GPS 산행)", "short_name": "따라가기", "url": "hike.html", "icons": [{ "src": "img/icon-192.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "⛰️ 코스 모음 (100대 명산)", "short_name": "코스 모음", "url": "m/", "icons": [{ "src": "img/icon-192.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "🎣 tidefly 출조 (물때 · 바람)", "short_name": "출조", "url": "tidefly.html", "icons": [{ "src": "img/tidefly-192.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "🚁 dronefly 드론 (공역 · 비행승인)", "short_name": "드론", "url": "dronefly.html", "icons": [{ "src": "img/dronefly-192.png", "sizes": "192x192", "type": "image/png" }] }
   ]
 }

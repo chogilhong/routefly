@@ -77,4 +77,22 @@ public class FlyExtrasTest {
             assertFalse(page + " data-en 속성 뒤에 바로 글자가 붙음(속성 안 큰따옴표): " + (m.find() ? m.group() : ""), m.reset().find());
         }
     }
+
+    /** 앱 아이콘 길게 누르기 바로가기(2026-11-18) - 웹앱 manifest · 안드로이드 shortcuts.xml · MainActivity 허용 목록 세 곳이 같은 넷. */
+    @Test
+    public void 바로가기_세_곳이_같음() throws Exception {
+        String[] pages = {"hike.html", "m/", "tidefly.html", "dronefly.html"};
+        com.google.gson.JsonArray sc = com.google.gson.JsonParser.parseString(read("src/main/webapp/manifest.json")).getAsJsonObject().getAsJsonArray("shortcuts");
+        assertEquals(pages.length, sc.size());
+        String xml = read("app/android/app/src/main/res/xml/shortcuts.xml"), act = read("app/android/app/src/main/java/kr/routefly/app/MainActivity.java");
+        for (int i = 0; i < pages.length; i++) {
+            assertEquals(pages[i], sc.get(i).getAsJsonObject().get("url").getAsString());
+            assertTrue("shortcuts.xml " + pages[i], xml.contains("android:data=\"https://routefly.kr/routefly/" + pages[i] + "\""));
+            assertTrue("MainActivity " + pages[i], act.contains("\"/routefly/" + pages[i] + "\""));
+        }
+        assertEquals("shortcuts.xml 은 넷만", pages.length, xml.split("<shortcut ").length - 1);
+        assertTrue(read("app/android/app/src/main/AndroidManifest.xml").contains("<meta-data android:name=\"android.app.shortcuts\" android:resource=\"@xml/shortcuts\" />"));
+        assertTrue("바로가기는 산악회 방 열쇠 처리 앞에서 따로", act.contains("if (isShortcutLink(u)) { final String s = u.toString();"));
+        for (String d : new String[] {"sc_routefly", "sc_tidefly", "sc_dronefly"}) assertTrue(d, Files.exists(Path.of("app/android/app/src/main/res/drawable-nodpi/" + d + ".png")));
+    }
 }

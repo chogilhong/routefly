@@ -68,6 +68,8 @@ public class MainActivity extends BridgeActivity {
      */
     private void openLink(Intent intent) {
         Uri u = intent == null ? null : intent.getData();
+        // 앱 아이콘 길게 누르기 바로가기(res/xml/shortcuts.xml, 2026-11-18) - 정해 둔 routefly 화면만 웹뷰로
+        if (isShortcutLink(u)) { final String s = u.toString(); bridge.getWebView().post(() -> bridge.getWebView().loadUrl(s)); return; }
         if (!isPartyLink(u)) return;
         // 브라우저(카톡 등)에서 이미 참가한 사람의 열쇠 - 주소 # 뒤로 넘김(서버로 가지 않음, party.js takeToken 이 받아 바로 지움)
         String t = intent.getStringExtra("rf_token");
@@ -94,6 +96,14 @@ public class MainActivity extends BridgeActivity {
         if (k.length() <= 700 && k.matches("[A-Za-z0-9_-]{20,64}(\\.[A-Za-z0-9_-]{20,64}){1,9}")) return "#ks=" + k;
         return "";
     }
+
+    /** 바로가기 주소(res/xml/shortcuts.xml 과 같은 넷)만 - https routefly.kr 의 따라가기 · 코스 모음 · 출조 · 드론, ? · # 없이. */
+    static boolean isShortcutLink(Uri u) {
+        return u != null && "https".equals(u.getScheme()) && "routefly.kr".equals(u.getHost()) && u.getQuery() == null && u.getFragment() == null
+                && SHORTCUTS.contains(u.getPath());
+    }
+
+    static final java.util.List<String> SHORTCUTS = java.util.Arrays.asList("/routefly/hike.html", "/routefly/m/", "/routefly/tidefly.html", "/routefly/dronefly.html");
 
     /** routefly.kr 의 https 산악회 방 · 회사 사무실(2026-10-29) 주소만(다른 주소로 웹뷰를 돌리지 않음). 사무실 링크의 #k= 는 u.toString() 에 그대로 실림. */
     static boolean isPartyLink(Uri u) {
