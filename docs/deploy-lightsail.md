@@ -421,6 +421,10 @@ curl -s https://routefly.kr/$(ls /var/www/site-verify | head -1)                
 
 B4 · B10 · C6 - 위 6-1 · 5장(tomcat.service)에 이미 반영한 것을 지금 서버에 넣는 차례입니다. 고치기 전에 백업부터:
 
+2026-11-18 11:40 ~ 11:50 홍TV님이 운영 서버에 1 ~ 4 모두 적용(robots · /api 200, 톰캣 java 줄에 ExitOnOutOfMemoryError, brotli 1.0.0~rc-5build1 - br · gzip 둘 다 확인), 이어서 새 커널로 재부팅.
+운영 사이트 파일에는 문서에 없는 줄(ads.txt · assetlinks.json · `$rf_scraper`)이 더 있어 robots · sitemap 두 줄만 바꾸고 나머지는 그대로 둠.
+붙여 넣다 줄 끝에 `+` 가 붙거나 긴 curl 이 두 줄로 잘린 적이 있음 - 확인 명령은 짧게(`u=…; curl -sI -H 'Accept-Encoding: br' $u | grep -i encoding`).
+
 ```bash
 d=$(date +%Y%m%d)
 sudo cp /etc/nginx/conf.d/routefly-common.conf ~/routefly-common.conf.bak-$d
