@@ -303,6 +303,12 @@ assert.strictEqual(DF.quizLabel('1-관련'), '1번 관련 문제)');
   assert.strictEqual(V.label('1-관련'), '1번 관련');
   const sc = V.scenes(c1, c1.qs.slice(0, 2), 'long');
   assert.strictEqual(sc.length, 1 + V.thinkSec(c1.qs[0], 'long') + 1 + V.thinkSec(c1.qs[1], 'long') + 1 + 1);   // 첫 장 · 초 세기 · 정답 · 끝 장
+  // 긴 해설은 여러 장(화면 아래가 잘렸음) - 줄 단위, 한 장 max 글자
+  assert.deepStrictEqual(V.exPages('가\n나나\n다', 4), ['가\n나나', '다']);
+  assert.deepStrictEqual(V.exPages('', 260), ['']);
+  assert.deepStrictEqual(V.exPages('a\nb\nc', 100, 2), ['a\nb', 'c']);   // 짧은 줄이 많아도 줄 수로 나눔
+  const i37 = D.sets[2].qs.find(q => q.no === '37'), pg = V.exPages(i37.ex, 220);
+  assert.ok(pg.length > 1 && pg.join('\n') === i37.ex && pg[pg.length - 1].includes('항공종사자 자격증명 기준'));
   const m = V.meta(c1, c1.qs.slice(0, 20), 'long');
   assert.ok(m.startsWith('드론 1종 학과 연습 1번 ~ 20번 정답 · 해설 (100문항 중)') && m.includes('https://routefly.kr/routefly/dronefly.html#quiz-c1') && m.includes('실제 시험 문제가 아님'));
 }

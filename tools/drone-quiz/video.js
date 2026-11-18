@@ -26,6 +26,21 @@ function answerSec(q) {
   return Math.max(6, Math.min(12, Math.round(String(q.ex || '').length / 15)));
 }
 
+/**
+ * 순수 함수 - 긴 해설을 화면 여러 장으로(2026-11-18 - 교관 과정 법 조문 해설 등 43문항이 화면 아래로 잘렸음).
+ * 줄 단위로 max 글자 · maxLines 줄까지 묶음(짧은 줄이 많아도 넘침, 한 줄이 max 보다 길면 그 줄만 한 장). 빈 해설은 [''].
+ */
+function exPages(ex, max, maxLines) {
+  const lines = String(ex || '').split('\n'), out = [];
+  let cur = '', n = 0;
+  lines.forEach(l => {
+    if (cur && ((cur + '\n' + l).length > max || n >= (maxLines || 1e9))) { out.push(cur); cur = l; n = 1; }
+    else { cur = cur ? cur + '\n' + l : l; n++; }
+  });
+  out.push(cur);
+  return out;
+}
+
 /** 순수 함수 - 문항 번호 글("1-관련" → "1번 관련"). */
 function label(no) { return /-관련$/.test(no) ? no.replace(/-관련$/, '번 관련') : no + '번'; }
 
@@ -50,12 +65,12 @@ function css(w, h) {
 .card{margin:auto;text-align:center}.card h1{font-size:${tall ? 84 : 76}px;margin:0 0 30px}.card p{font-size:${tall ? 44 : 38}px;color:#cbd5e1;line-height:1.6;margin:0}`;
 }
 
-function qPage(set, q, mode, left, total, kind) {
+function qPage(set, q, mode, left, total, kind, part) {
   const W = kind === 'short' ? [1080, 1920] : [1920, 1080];
   const head = `<div class="top">🚁 ${esc(NAMES[set.id])}<span>${esc(label(q.no))} / ${set.qs.length}문항</span></div><div class="q">${esc(q.q)}</div>`;
   const cs = '<div class="cs">' + q.c.map((c, i) => `<div class="c ${mode === 'ans' ? (i + 1 === q.ans ? 'ok' : 'dim') : ''}">${NUM[i]} ${esc(c)}</div>`).join('') + '</div>';
   const tail = mode === 'ans'
-    ? `<div class="ans">✅ 정답 ${NUM[q.ans - 1]}</div>${q.ex ? `<div class="ex">${esc(q.ex)}</div>` : ''}<div class="foot">routefly.kr · dronefly 에서 직접 풀어 보기</div>`
+    ? `<div class="ans">✅ 정답 ${NUM[q.ans - 1]}${part && part.n > 1 ? ` <span style="color:#94a3b8;font-weight:500">· 해설 ${part.i}/${part.n}</span>` : ''}</div>${part && part.ex ? `<div class="ex">${esc(part.ex)}</div>` : ''}<div class="foot">routefly.kr · dronefly 에서 직접 풀어 보기</div>`
     : kind === 'short'
       ? `<div class="t">${left}</div><div class="bar"><i style="width:${Math.round(left / total * 100)}%"></i></div><div class="hint">⏸ 멈춰 놓고 풀어 보세요</div>`
       : `<div class="timer"><div class="hint">⏸ 멈춰 놓고 풀어 보세요</div><div class="bar"><i style="width:${Math.round(left / total * 100)}%"></i></div><div class="t">${left}</div></div>`;
@@ -75,10 +90,28 @@ function scenes(set, qs, kind) {
   qs.forEach(q => {
     const t = thinkSec(q, kind);
     for (let s = t; s >= 1; s--) out.push({ page: qPage(set, q, 'q', s, t, kind), sec: 1 });
-    out.push({ page: qPage(set, q, 'ans', 0, 0, kind), sec: answerSec(q) });
+    // 해설은 화면에 들어가는 만큼씩(가로 220자 · 세로 160자 - 글자 크기 기준), 장마다 그 글 길이로 시간
+    const parts = exPages(q.ex, kind === 'short' ? 160 : 220, kind === 'short' ? 8 : 7);
+    parts.forEach((ex, i) => out.push({ page: qPage(set, q, 'ans', 0, 0, kind, { ex: ex, i: i + 1, n: parts.length }), sec: answerSec({ ex: ex }), fit: true }));
   });
   out.push({ page: card(kind, '전체 문항 풀어 보기', ['routefly.kr → 코스 모음 → dronefly(드론)', '📝 필기 연습 · 틀린 것만 다시 풀기', '4종 95 · 1종 100 · 교관 과정 65문항']), sec: kind === 'short' ? 4 : 6 });
   return out;
+}
+
+/**
+ * 정답 화면 맞춤(브라우저 안에서): 해설 글자를 80% 까지 줄이고 → 그래도 넘치면 틀린 보기 셋을 숨기고(정답 보기만) → 60% 까지 더 줄임.
+ * 넘침이 남으면 true(scenes 가 해설을 더 잘게 나눔 - 테스트가 봄).
+ */
+function FIT() {
+  const e = document.querySelector('.ex');
+  if (!e) return false;
+  const over = () => e.scrollHeight > e.clientHeight + 2;
+  const base = parseFloat(getComputedStyle(e).fontSize);
+  let z = base;
+  while (over() && z > base * 0.8) { z -= 1; e.style.fontSize = z + 'px'; }
+  if (over()) document.querySelectorAll('.c.dim').forEach(c => { c.style.display = 'none'; });
+  while (over() && z > base * 0.6) { z -= 1; e.style.fontSize = z + 'px'; }
+  return over();
 }
 
 async function render(list, file) {
@@ -92,6 +125,8 @@ async function render(list, file) {
     if (!f) {
       f = path.join(tmp, String(i).padStart(5, '0') + '.png');
       await p.setContent(s.page.html);
+      // 그래도 넘치면 맞춤(FIT) - 잘린 채로 나가지 않게
+      if (s.fit) await p.evaluate(FIT);
       await p.screenshot({ path: f });
       seen.set(s.page.html, f);
     }
@@ -139,5 +174,5 @@ async function main() {
   console.log(path.join(OUT, name + '.mp4'));
 }
 
-module.exports = { thinkSec, answerSec, label, scenes, meta };
+module.exports = { thinkSec, answerSec, exPages, label, scenes, meta, FIT };
 if (require.main === module) main().catch(e => { console.error(e); process.exit(1); });
