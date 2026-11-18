@@ -134,6 +134,11 @@ ul { margin:0; padding:0; list-style:none; }
 #season { padding:4px 16px; }   /* 🍁 단풍 때 등 철 칸 - 다른 접는 칸과 같은 높이(2026-11-17 홍TV님: 기본 section 14px 이라 위아래가 넓었음) */
 #season .fb { padding:4px 0 10px; }
 #recent .fb { padding:4px 0 10px; }
+/* 접는 칸끼리 사이 · 위아래를 좁게(2026-11-18 홍TV님 "각 사이, 그리고 위아래 폭을 조금 좁혀줘") - 🍁 철 · 📍 내 근처 · 🕘 최근 본 산 · 주말 · 숙소 찾기.
+   줄 높이는 손가락 44px(10 + 글 24 + 10), 접혀 있을 때는 아래 줄(경계선)을 감춤 - 칸 아래에 빈 줄처럼 보였음 */
+#season, #near, #recent, #weekend, #staySearch { margin-bottom:8px; padding-top:0; padding-bottom:0; }
+#season > .fold > summary, #near > .fold > summary, #recent > .fold > summary, #weekend > .fold > summary, #staySearch > .fold > summary { padding-top:10px; padding-bottom:10px; }
+#season > .fold:not([open]) > summary, #near > .fold:not([open]) > summary, #recent > .fold:not([open]) > summary, #weekend > .fold:not([open]) > summary, #staySearch > .fold:not([open]) > summary { border-bottom-color:transparent; }
 .cs .go button.cmpBtn { min-height:44px; font-size:14.5px; padding:0 12px; border:1px solid var(--ln); border-radius:22px; background:none; color:var(--tx); cursor:pointer; }
 .cs .go button.cmpBtn.on { border-color:#ffb703; background:rgba(255,183,3,0.15); }
 .cmp { margin:8px 0 12px; padding:10px; border:1px solid #ffb703; border-radius:12px; background:rgba(255,183,3,0.06); }

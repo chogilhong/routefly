@@ -100,4 +100,13 @@ public class CheckupRound12Test {
         assertTrue("D8", h.contains("<option value=\"취미 · 레저\" data-en=\"Hobby · leisure\">") && js.contains("f[0].setAttribute('aria-label', lang === 'en' ? f[0].getAttribute('data-en-aria') : f[1]);"));
         assertTrue("D9", js.contains("150m 아래 · 낮에는 승인 없이, 관할 부대 확인") && !js.contains("낮은 승인"));
     }
+
+    /** 코스 모음 접는 칸 사이 · 위아래를 좁게(2026-11-18 홍TV님 "각 사이, 그리고 위아래 폭을 조금 좁혀줘") - 줄 높이는 손가락 44px 이상. */
+    @Test
+    public void 코스모음_접는칸_간격() throws Exception {
+        String css = read("src/main/webapp/css/mountain.css");
+        assertTrue(css.contains("#season, #near, #recent, #weekend, #staySearch { margin-bottom:8px; padding-top:0; padding-bottom:0; }"));
+        assertTrue("10 + 글 + 10 = 44px 이상", css.contains("#staySearch > .fold > summary { padding-top:10px; padding-bottom:10px; }"));
+        assertTrue("접혔을 때 아래 줄 감춤", css.contains("#staySearch > .fold:not([open]) > summary { border-bottom-color:transparent; }"));
+    }
 }
