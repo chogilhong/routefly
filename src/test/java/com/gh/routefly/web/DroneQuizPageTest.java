@@ -55,5 +55,8 @@ public class DroneQuizPageTest {
         int[] pics = new int[3];
         for (int i = 0; i < 3; i++) for (com.google.gson.JsonElement q : d.getAsJsonArray("sets").get(i).getAsJsonObject().getAsJsonArray("qs")) if (q.getAsJsonObject().has("pic")) pics[i]++;
         assertArrayEquals(new int[] {28, 0, 8}, pics);
+        // 필기 칸 링크 글도 페이지 모양대로(2026-11-18 PC: 정답이 없는데 "문항 · 정답 · 해설" 이라 적혀 있었음)
+        String h = new String(Files.readAllBytes(Path.of("src/main/webapp/dronefly.html")), StandardCharsets.UTF_8);
+        assertTrue(h.contains(">문항 모두 한 페이지로 보기 ›</a>") && !h.contains("정답 · 해설 한 페이지"));
     }
 }
