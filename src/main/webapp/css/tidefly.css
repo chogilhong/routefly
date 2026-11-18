@@ -75,6 +75,8 @@ main { padding-top: 14px; padding-bottom: 24px; }
 
 .tools { margin: 14px 0 4px; display: grid; gap: 8px; }
 .find input { width: 100%; font-size: 1rem; padding: 11px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink); }
+:root[data-theme="dark"] .find input { background: #2a3f49; border-color: #4f6b78; }   /* 다크에서 카드 · 바탕과 구분되게 조금 밝게(2026-11-18 홍TV님 "조금 더 하얗게") - 드론플라이 찾기 칸도 이것 */
+:root[data-theme="dark"] .find input::placeholder { color: #a9bcc6; }
 .tabs { display: flex; gap: 6px; }
 .tabs button { flex: 1 1 auto; white-space: nowrap; min-height: 44px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--ink); font-size: .88rem; cursor: pointer; }
 .tabs button[aria-pressed="true"] { background: var(--top1); border-color: var(--top1); color: #fff; }

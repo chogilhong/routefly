@@ -23,7 +23,7 @@ public class TideflyEntryTest {
         // 첫 kindLink(타이드플라이) - 그 뒤에 dronefly 줄이 붙어(2026-11-17) 마지막 것을 잡던 셈을 바꿈
         java.util.regex.Matcher m = java.util.regex.Pattern.compile("<a class=\"kindLink\" href=\"([^\"]+)\"").matcher(h);
         String href = m.find() ? m.group(1) : "";
-        assertTrue("드론플라이는 타이드플라이 바로 아래", h.contains(MountainServlet.tideflyRow(false) + MountainServlet.droneflyRow()));
+        assertTrue("드론플라이는 타이드플라이 바로 아래", h.contains(MountainServlet.tideflyRow(false) + MountainServlet.droneflyRow(false)));
         assertTrue(href, java.net.URI.create("https://r.kr/routefly/m/").resolve(href).toString().equals("https://r.kr/routefly/tidefly.html?lang=ko"));
         assertTrue("접는 칸들(.folds) 안", stay > tf);
     }
@@ -37,7 +37,7 @@ public class TideflyEntryTest {
         // 첫 kindLink(타이드플라이) - 그 뒤에 dronefly 줄이 붙어(2026-11-17) 마지막 것을 잡던 셈을 바꿈
         java.util.regex.Matcher m = java.util.regex.Pattern.compile("<a class=\"kindLink\" href=\"([^\"]+)\"").matcher(h);
         String href = m.find() ? m.group(1) : "";
-        assertTrue("영어 화면에는 드론플라이 줄 없음(한국어 화면만)", !h.contains("dronefly.html"));
+        assertTrue("영어 화면도 타이드플라이 바로 아래 드론플라이(2026-11-18 홍TV님)", h.contains(MountainServlet.tideflyRow(true) + MountainServlet.droneflyRow(true)));
         assertTrue(href, java.net.URI.create("https://r.kr/routefly/en/m/").resolve(href).toString().equals("https://r.kr/routefly/tidefly.html?lang=en"));
     }
 

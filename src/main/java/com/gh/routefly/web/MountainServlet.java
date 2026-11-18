@@ -1208,9 +1208,12 @@ public class MountainServlet extends HttpServlet {
                 + ")</span><span class=\"fs\">" + (en ? "Sea fishing tides · wind · waves · warnings" : "바다낚시 물때 · 바람 · 파고 · 특보") + "</span><span class=\"fa\">›</span></a>";
     }
 
-    /** 순수 함수 - dronefly(드론) 줄(쿼드콥터 그림 img/dronefly.svg - 🚁 는 헬리콥터라 안 씀)(2026-11-17 홍TV님 "타이드플라이 바로 아래에 드론을"). 화면은 한국어만이라 /m/ 에만. */
-    static String droneflyRow() {
-        return "<a class=\"kindLink\" href=\"" + REL + "/dronefly.html?lang=ko\"><span class=\"ft\"><img class=\"dIc\" src=\"" + REL + "/img/dronefly.svg\" width=\"20\" height=\"20\" alt=\"\"> drone<span class=\"fly\">fly</span>(드론)</span><span class=\"fs\">비행금지 · 허용구역(UA) · 비행승인 요청</span><span class=\"fa\">›</span></a>";
+    /** 순수 함수 - dronefly(드론) 줄(쿼드콥터 그림 img/dronefly.svg - 🚁 는 헬리콥터라 안 씀)(2026-11-17 홍TV님 "타이드플라이 바로 아래에 드론을"). /m/ · /en/m/ 타이드플라이 줄 바로 아래(영어는 2026-11-18). */
+    static String droneflyRow(boolean en) {
+        // 영어 /en/m/ 은 한 칸 더 깊어 MountainEn.REL(../..) - tideflyRow 와 같게(2026-11-18 홍TV님 "dronefly 가 영어에는 없네. 넣어주고")
+        String rel = en ? MountainEn.REL : REL;
+        return "<a class=\"kindLink\" href=\"" + rel + "/dronefly.html?lang=" + (en ? "en" : "ko") + "\"><span class=\"ft\"><img class=\"dIc\" src=\"" + rel + "/img/dronefly.svg\" width=\"20\" height=\"20\" alt=\"\"> drone<span class=\"fly\">fly</span>("
+                + (en ? "drones" : "드론") + ")</span><span class=\"fs\">" + (en ? "No-fly zones · UA airspace · flight approval" : "비행금지 · 허용구역(UA) · 비행승인 요청") + "</span><span class=\"fa\">›</span></a>";
     }
 
     /** 첫 단계(등산 · 걷기 · 자전거) - series.js KINDS 와 같음. */
@@ -1302,7 +1305,7 @@ public class MountainServlet extends HttpServlet {
             }
             b.append("</div></details>");
         }
-        b.append(tideflyRow(false)).append(droneflyRow());
+        b.append(tideflyRow(false)).append(droneflyRow(false));
         // 🏨 근처 숙소 찾기(2026-10-29 홍TV님 "산청군청 근처 숙소" - 펴 둔 채, js/mountain.js · course-kit staySearch) · ☀️ 이번 주말 날씨 좋은 산(/api/weekend - 2026-10-15)은
         // 산 · 길 목록 아래로(2026-11-03 홍TV님 점검: 위에 있어 목록이 첫 화면 밖으로 밀렸고, 주말 칸은 불러온 뒤 나타나 목록을 밀었음 - CLS)
         b.append("</div>").append(staySearchBox(null, false)).append("<section id=\"weekend\" hidden></section>").append(steep)
