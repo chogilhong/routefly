@@ -113,7 +113,8 @@ public class SitemapServlet extends HttpServlet {
         StringBuilder b = new StringBuilder("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\" xmlns:xhtml=\"http://www.w3.org/1999/xhtml\">\n");
         // 2026-11-07 애드센스 "가치가 별로 없는 콘텐츠": 내용이 화면 스크립트로만 생기는 도장(series) · 게임 · 안부는 빼고(noindex), 첫 주소는 코스 모음(m/)으로 넘기기만 해 뺌
         for (String p : new String[] {"/hike.html", "/tools.html", "/about.html", "/about-en.html", "/terms.html", "/privacy.html", "/lbs-terms.html", "/terms-en.html", "/privacy-en.html", "/lbs-terms-en.html", "/m/", "/en/m/",
-            "/tidefly.html", "/dronefly.html"}) url(b, base + p);   // 2026-11-18 홍TV님 "새로 만든 것도 넣었어?" - 바다낚시 · 드론(noindex 풀고 넣음)
+            "/tidefly.html", "/dronefly.html",
+            "/series.html", "/games.html", "/anbu.html"}) url(b, base + p);   // 2026-11-18 홍TV님 "도장 · 게임 · 안부 도 넣어줘" - 11-07 애드센스로 뺐던 것을 되돌림   // 2026-11-18 홍TV님 "새로 만든 것도 넣었어?" - 바다낚시 · 드론(noindex 풀고 넣음)
         // 한국어 · 영어 산 페이지는 서로 짝(hreflang)으로 - 페이지 머리의 짝과 같음, 검색 엔진이 100쌍을 빨리 묶게(2026-10-29 점검)
         for (String m : mountains) {
             String ko = base + "/m/" + URLEncoder.encode(m, StandardCharsets.UTF_8).replace("+", "%20"), en = base + "/en/m/" + Roman.slug(m);

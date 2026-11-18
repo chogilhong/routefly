@@ -33,7 +33,7 @@ public class AdSpotTest {
         String sm = SitemapServlet.sitemap("https://r.kr", List.of(), List.of());
         assertTrue(sm.contains("<loc>https://r.kr/tools.html</loc>"));
         // 2026-11-18 홍TV님 "새로 만든 것도 넣었어?" - tidefly · dronefly 는 사이트맵에 넣고 noindex 없음
-        for (String p : new String[] {"tidefly.html", "dronefly.html"}) {
+        for (String p : new String[] {"tidefly.html", "dronefly.html", "series.html", "games.html", "anbu.html"}) {   // 도장 · 게임 · 안부도 2026-11-18 "넣어줘"
             assertTrue(p, sm.contains("<loc>https://r.kr/" + p + "</loc>"));
             try {
                 assertFalse(p, new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("src/main/webapp", p)), java.nio.charset.StandardCharsets.UTF_8).contains("noindex"));
@@ -42,20 +42,14 @@ public class AdSpotTest {
             }
         }
         // 2026-11-07 애드센스 "가치가 별로 없는 콘텐츠": 스크립트로만 내용이 생기는 게임 · 안부 · 도장과 넘기기만 하는 첫 주소는 사이트맵에서 빼고 noindex
-        for (String p : new String[] {"/games.html", "/anbu.html", "/series.html", "/"}) assertFalse(p, sm.contains("<loc>https://r.kr" + p + "</loc>"));
+        // 2026-11-18 도장 · 게임 · 안부는 다시 넣음(위), 첫 주소는 nginx 가 m/ 로 넘기므로 계속 뺌
+        assertFalse(sm.contains("<loc>https://r.kr/</loc>"));
         try {
             String root = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("src/main/webapp/root.html")), java.nio.charset.StandardCharsets.UTF_8);
             String body = root.substring(root.indexOf("<body>")).replaceAll("(?s)<!--.*?-->", "").replaceAll("<[^>]+>", " ").replaceAll("\\s+", " ").trim();
             assertTrue("첫 주소는 스크립트 없이도 소개 글 · 링크가 보임: " + body.length(), body.length() > 400 && root.contains("<a href=\"m/\">코스 모음</a>"));
         } catch (java.io.IOException e) {
             throw new AssertionError(e);
-        }
-        for (String p : new String[] {"games.html", "anbu.html", "series.html"}) {
-            try {
-                assertTrue(p, new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("src/main/webapp", p)), java.nio.charset.StandardCharsets.UTF_8).contains("<meta name=\"robots\" content=\"noindex, follow\">"));
-            } catch (java.io.IOException e) {
-                throw new AssertionError(e);
-            }
         }
     }
 }
