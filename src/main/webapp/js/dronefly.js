@@ -370,7 +370,25 @@
     return (h ? h + '시간' : '') + (r || !h ? (h ? ' ' : '') + r + '분' : '');
   }
 
-  var api = { wxCell: wxCell, flyWx: flyWx, ptyWord: ptyWord, kstHm: kstHm, dayWindow: dayWindow, CHECKS: CHECKS, checksToday: checksToday, logSum: logSum, logCsv: logCsv, minText: minText, planWindow: planWindow, heritageCell: heritageCell, heritageNotes: heritageNotes, shootText: shootText, tmpState: tmpState, firstDay: firstDay, workdays: workdays, dueText: dueText, toGeoJSON: toGeoJSON, nearStrict: nearStrict, setLang: setLang, nextSize: nextSize, inRing: inRing, inGeom: inGeom, isTca: isTca, zonesAt: zonesAt, levelOf: levelOf, zoneLine: zoneLine, verdict: verdict, meters: meters, nearest: nearest, nearUa: nearUa, dist: dist, applyText: applyText };
+  // ---- 📝 4종 필기 연습(2026-11-18 홍TV님 블로그 95문항 "참조해") ----
+
+  /** 순수 함수 - 풀 차례(문항 번호들). mode: all 1번부터 · mix 섞어 20 · wrong 틀린 것만. rnd - 0 ~ 1 을 주는 함수(테스트는 고정값). */
+  function quizOrder(nos, mode, wrong, rnd) {
+    if (mode === 'wrong') return nos.filter(function (n) { return (wrong || []).indexOf(n) >= 0; });
+    if (mode !== 'mix') return nos.slice();
+    var a = nos.slice(), r = rnd || Math.random;
+    for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(r() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
+    return a.slice(0, 20);
+  }
+
+  /** 순수 함수 - 틀린 문항 목록 고치기: 틀리면 넣고(차례대로), 맞히면 뺌. */
+  function quizMark(wrong, no, ok) {
+    var w = (Array.isArray(wrong) ? wrong : []).filter(function (n) { return n !== no && typeof n === 'number'; });
+    if (!ok) w.push(no);
+    return w.sort(function (a, b) { return a - b; });
+  }
+
+  var api = { quizOrder: quizOrder, quizMark: quizMark, wxCell: wxCell, flyWx: flyWx, ptyWord: ptyWord, kstHm: kstHm, dayWindow: dayWindow, CHECKS: CHECKS, checksToday: checksToday, logSum: logSum, logCsv: logCsv, minText: minText, planWindow: planWindow, heritageCell: heritageCell, heritageNotes: heritageNotes, shootText: shootText, tmpState: tmpState, firstDay: firstDay, workdays: workdays, dueText: dueText, toGeoJSON: toGeoJSON, nearStrict: nearStrict, setLang: setLang, nextSize: nextSize, inRing: inRing, inGeom: inGeom, isTca: isTca, zonesAt: zonesAt, levelOf: levelOf, zoneLine: zoneLine, verdict: verdict, meters: meters, nearest: nearest, nearUa: nearUa, dist: dist, applyText: applyText };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
   root.DF = api;
 
@@ -674,6 +692,71 @@
     });
   }
 
+  // ---- 📝 4종 필기 연습 화면 - 칸을 처음 펼 때 data/drone-quiz.json 을 받음, 틀린 문항은 이 폰에(df-quiz) ----
+  var quiz = null, run = null;
+  function wrongList() { var w = load('df-quiz'); return Array.isArray(w) ? w : []; }
+  function paintWrongBtn() {
+    var n = wrongList().length;
+    $('quizWrong').textContent = tr('틀린 것만 (' + n + ')', 'Wrong ones (' + n + ')');
+    $('quizWrong').disabled = !n;
+  }
+  var quizWait = null;
+  function loadQuiz(then) {
+    if (quiz) { if (then) then(); return; }
+    if (!quizWait) quizWait = fetch('data/drone-quiz.json').then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (d) { quiz = d; })
+      .catch(function () { quizWait = null; $('quizBox').hidden = false; $('quizBox').textContent = tr('문항을 받지 못했습니다. 잠시 뒤 다시 눌러 주세요.', 'Could not load the questions. Please try again in a moment.'); });
+    quizWait.then(function () { if (quiz && then) then(); });
+  }
+  function startQuiz(mode) {
+    if (!quiz) { loadQuiz(function () { startQuiz(mode); }); return; }
+    var nos = quiz.qs.map(function (q) { return q.no; });
+    run = { list: quizOrder(nos, mode, wrongList()), i: 0, ok: 0 };
+    if (!run.list.length) return;
+    showQ();
+    try { $('quizBox').scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { /* 옛 브라우저 */ }
+  }
+  function qOf(no) { return quiz.qs.filter(function (q) { return q.no === no; })[0]; }
+  function showQ() {
+    var box = $('quizBox'), q = qOf(run.list[run.i]);
+    box.hidden = false;
+    box.innerHTML = '<p class="qProg">' + esc((run.i + 1) + ' / ' + run.list.length + tr(' · 맞음 ', ' · right ') + run.ok) + '</p>'
+      + '<p class="qText">' + esc(q.no + '. ' + q.q) + '</p>'
+      + '<ol class="qChoices">' + q.c.map(function (c, i) { return '<li><button type="button" data-a="' + (i + 1) + '">' + esc('①②③④'.charAt(i) + ' ' + c) + '</button></li>'; }).join('') + '</ol>'
+      + '<div class="qAfter" hidden></div>';
+  }
+  function answer(a) {
+    var q = qOf(run.list[run.i]), ok = a === q.ans, box = $('quizBox');
+    Array.prototype.forEach.call(box.querySelectorAll('.qChoices button'), function (b) {
+      var n = +b.getAttribute('data-a');
+      b.disabled = true;
+      if (n === q.ans) b.className = 'right';
+      else if (n === a) b.className = 'wrong';
+    });
+    if (ok) run.ok++;
+    save('df-quiz', JSON.stringify(quizMark(wrongList(), q.no, ok)));
+    paintWrongBtn();
+    var last = run.i + 1 >= run.list.length, after = box.querySelector('.qAfter');
+    after.hidden = false;
+    after.innerHTML = '<p class="qRes ' + (ok ? 'ok' : 'no') + '">' + esc(ok ? tr('⭕ 맞았습니다', '⭕ Right') : tr('❌ 틀렸습니다 - 정답 ', '❌ Wrong - answer ') + '①②③④'.charAt(q.ans - 1)) + '</p>'
+      + (q.ex ? '<p class="qEx">' + esc(q.ex) + '</p>' : '')
+      + '<p class="small"><a href="https://hongtv.tistory.com/' + q.post + '" target="_blank" rel="noopener">' + esc(tr('블로그 글에서 그림과 함께 보기 ›', 'See it on the blog with pictures ›')) + '</a></p>'
+      + (last ? '<p class="qEnd">' + esc(tr(run.list.length + '문항 중 ' + run.ok + '문항 맞음 (' + Math.round(run.ok / run.list.length * 100) + '%)', run.ok + ' of ' + run.list.length + ' right (' + Math.round(run.ok / run.list.length * 100) + '%)')) + '</p>'
+        : '<div class="row"><button type="button" class="btn go qNext">' + esc(tr('다음 문항 ›', 'Next ›')) + '</button></div>');
+  }
+  function initQuiz() {
+    paintWrongBtn();
+    $('quiz').addEventListener('toggle', function () { if ($('quiz').open) loadQuiz(); });   // 칸을 펼 때 미리 받음
+    $('quizAll').addEventListener('click', function () { startQuiz('all'); });
+    $('quizMix').addEventListener('click', function () { startQuiz('mix'); });
+    $('quizWrong').addEventListener('click', function () { startQuiz('wrong'); });
+    $('quizBox').addEventListener('click', function (e) {
+      var b = e.target.closest('button');
+      if (!b || !run) return;
+      if (b.hasAttribute('data-a')) answer(+b.getAttribute('data-a'));
+      else if (b.classList.contains('qNext')) { run.i++; showQ(); }
+    });
+  }
+
   function init() {
     initMap();
     // 기본 날짜는 처리 기간(항공촬영 평일 4일)을 넘긴 첫날 - 내일로 두면 승인 필요 자리마다 "모자랄 수 있습니다" 가 먼저 떴음(2026-11-17)
@@ -735,6 +818,7 @@
     $('windMax').addEventListener('input', function () { save('df-wind', $('windMax').value); drawWx(); });
     initCheck();
     initLog();
+    initQuiz();
 
     var themeBtn = $('theme'), sizeBtn = $('size'), rootEl = document.documentElement;
     var SIZE_NAME = { m: ['보통', 'normal'], l: ['크게', 'large'], xl: ['아주 크게', 'extra large'] };
@@ -773,6 +857,7 @@
       paintTheme();
       paintCheck();
       paintLog();
+      paintWrongBtn();
       draw();
     }
     Array.prototype.forEach.call(langBtns, function (b) {

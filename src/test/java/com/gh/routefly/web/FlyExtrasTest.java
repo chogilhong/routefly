@@ -47,6 +47,9 @@ public class FlyExtrasTest {
         String kit = read("src/main/webapp/js/kit-dronefly.js");
         assertTrue(kit.contains("function sunrise(") && kit.contains("function sunset("));
         assertTrue("야간 근거 조문", js.contains("시행규칙 제310조 ① 6호"));
+        // 📝 4종 필기 연습(2026-11-18 홍TV님 블로그 95문항) - 문항 파일 · 출처 링크 · 원문 테스트 데이터
+        assertTrue(h.contains("id=\"quiz\"") && h.contains("href=\"https://hongtv.tistory.com/145\"") && js.contains("fetch('data/drone-quiz.json')"));
+        for (int n = 145; n <= 149; n++) assertTrue("원문 " + n, Files.exists(Path.of("src/test/resources/drone/quiz/" + n + ".html")));
         // △ 는 "비행 자제 권장"(2026-11-18 홍TV님 "가 로해") - ✕ 로 올리지 않음
         assertTrue(js.contains("var care = r.level === 'care' ? tr('비행 자제 권장(돌풍 여유 없음) - '") && h.contains("△ 최대 풍속의 70% 넘음 - 비행 자제 권장"));
     }

@@ -189,4 +189,26 @@ DF.setLang('ko');
 assert.strictEqual(DF.minText(65), '1시간 5분');
 assert.strictEqual(DF.minText(40), '40분');
 assert.strictEqual(DF.minText(120), '2시간');
+// 📝 4종 필기 연습(2026-11-18 홍TV님 블로그 95문항) - 원문(src/test/resources/drone/quiz)에서 다시 만든 것과 data/drone-quiz.json 이 같아야 함
+{
+  const Q = require('../../../tools/drone-quiz/build.js').build();
+  const saved = JSON.parse(fs.readFileSync(__dirname + '/../../main/webapp/data/drone-quiz.json', 'utf8'));
+  assert.deepStrictEqual(saved, Q, 'data/drone-quiz.json 이 원문과 다름 - node tools/drone-quiz/build.js');
+  assert.deepStrictEqual(Q.qs.map(q => q.no), Array.from({ length: 95 }, (_, i) => i + 1));
+  assert.ok(Q.qs.every(q => q.c.length === 4 && q.ans >= 1 && q.ans <= 4 && q.q.length > 5));
+  assert.ok(Q.qs.every(q => !/728x90|반응형/.test(q.ex)), '블로그 광고 자리 글이 섞이면 안 됨');
+  assert.deepStrictEqual([Q.qs[0].ans, Q.qs[0].post, Q.qs[0].q], [2, 145, '다음중 초경량비행장치 사용사업 등록 결격 사유로 옳지 않은 것은?']);
+  assert.strictEqual(Q.qs[88].c[0], '약함: <4.1(knot/100feet)');   // 부등호가 태그로 지워지지 않게
+  assert.strictEqual(Q.qs[88].c[3], '아주 강함: ≥12(knot/100feet)');
+  assert.ok(Q.qs[6].ex.includes('cm/s²)'));
+  assert.deepStrictEqual(Q.qs.filter(q => q.post === 149).map(q => q.no)[0], 81);
+}
+assert.deepStrictEqual(DF.quizOrder([1, 2, 3], 'all', [], null), [1, 2, 3]);
+assert.deepStrictEqual(DF.quizOrder([1, 2, 3, 4], 'wrong', [4, 2, 9], null), [2, 4]);
+const mix = DF.quizOrder(Array.from({ length: 95 }, (_, i) => i + 1), 'mix', [], () => 0.5);
+assert.strictEqual(mix.length, 20);
+assert.strictEqual(new Set(mix).size, 20);
+assert.deepStrictEqual(DF.quizMark([3, 7], 5, false), [3, 5, 7]);
+assert.deepStrictEqual(DF.quizMark([3, 5, 7], 5, true), [3, 7]);
+assert.deepStrictEqual(DF.quizMark(null, 2, true), []);
 console.log('dronefly.test.js OK');

@@ -92,3 +92,17 @@ details.fold > summary h2 { margin: 0; }
 .logList { margin: 0; padding-left: 22px; font-size: .9rem; }
 .logList li { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; border-top: 1px solid var(--line); }
 .logList .del { flex: 0 0 auto; min-width: 44px; min-height: 44px; border: 0; background: none; color: var(--dim); font-size: 1rem; cursor: pointer; }
+/* 📝 4종 필기 연습(2026-11-18 홍TV님 블로그 95문항) */
+.quizBox { margin: 10px 0 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--soft); }
+.qProg { margin: 0 0 6px; color: var(--dim); font-size: .85rem; }
+.qText { margin: 0 0 8px; font-weight: 700; line-height: 1.5; }
+.qChoices { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.qChoices button { width: 100%; min-height: 44px; padding: 8px 12px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); font-size: .95rem; line-height: 1.45; cursor: pointer; }
+.qChoices button.right { border: 2px solid var(--ok); color: var(--ok); font-weight: 700; }
+.qChoices button.wrong { border: 2px solid #d93025; color: #d93025; }
+.qChoices button:disabled { cursor: default; opacity: 1; }
+.qRes { margin: 10px 0 4px; font-weight: 800; }
+.qRes.ok { color: var(--ok); }
+.qRes.no { color: #d93025; }
+.qEx { margin: 4px 0 6px; white-space: pre-wrap; font-size: .9rem; line-height: 1.55; color: var(--ink); }
+.qEnd { margin: 10px 0 0; font-weight: 800; font-size: 1.05rem; }

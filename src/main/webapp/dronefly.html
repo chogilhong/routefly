@@ -159,6 +159,18 @@
     <p class="dim small" data-en="This log stays only on this phone and is not sent to the server. Clearing your browsing data or changing phones deletes it, so save a file now and then with “⬇ Save as CSV”.">이 기록은 이 폰에만 남고 서버로 보내지 않습니다. 인터넷 기록을 지우거나 폰을 바꾸면 사라지니, 가끔 "⬇ CSV 로 저장" 으로 파일을 받아 두세요.</p>
   </details>
 
+  <details id="quiz" class="dcard fold"><!-- 2026-11-18 홍TV님 "[드론] 무인동력비행장치 4종(무인멀티콥터) 평가시험 95문항 … 참조해" - data/drone-quiz.json(tools/drone-quiz/build.js) -->
+    <summary><h2 data-en="📝 Class 4 written test practice (Korean)">📝 4종 필기 연습 (95문항)</h2></summary>
+    <p class="dim small" data-en="The 95 questions of the class 4 unmanned multicopter test from the instructor's blog (Korean only). Tap an answer to see right/wrong and the explanation. Questions you get wrong are kept on this phone.">드론 교관 블로그의 무인동력비행장치 4종(무인멀티콥터) 평가시험 95문항입니다. 답을 누르면 바로 맞고 틀림과 해설이 나옵니다. 틀린 문항은 이 폰에 남겨 다시 풀 수 있습니다.</p>
+    <div class="row">
+      <button type="button" id="quizAll" class="btn go" data-en="From no. 1">1번부터</button>
+      <button type="button" id="quizMix" class="btn" data-en="Random 20">섞어서 20문항</button>
+      <button type="button" id="quizWrong" class="btn" disabled></button>
+    </div>
+    <div id="quizBox" class="quizBox" hidden aria-live="polite"></div>
+    <p class="dim small"><span data-en="Source:">출처:</span> <a href="https://hongtv.tistory.com/145" target="_blank" rel="noopener">홍TV 블로그 - 무인동력비행장치 4종 평가시험 95문항 ›</a></p>
+  </details>
+
   <details class="dcard fold notice" aria-label="드론원스톱 안내" open><!-- 2026-11-17 홍TV님 "이런 내용도 좀 공지 해 주고" - 드론원스톱 첫 화면(2026-11-17 본 것) 그대로 -->
     <summary><h2 data-en="📢 Drone One-stop notices">📢 드론원스톱 안내</h2></summary>
     <ul class="notes2">
