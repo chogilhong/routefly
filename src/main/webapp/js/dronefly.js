@@ -363,6 +363,17 @@
     return '\ufeff' + rows.map(function (r) { return r.map(q).join(','); }).join('\r\n') + '\r\n';
   }
 
+  /**
+   * 순수 함수 - 비행 계획 → 기록장 칸 값 {d, min, place}(2026-11-18 "비행 계획 → 기록장 한 번에").
+   * 장소는 고른 이름 · "내 위치" · 위경도, 시간은 계획 시작 ~ 끝(분, 맞지 않으면 빈칸 - 실제 비행 시간은 사람이 고침).
+   */
+  function planToLog(p) {
+    var a = /^(\d\d):(\d\d)$/.exec(p.from || ''), b = /^(\d\d):(\d\d)$/.exec(p.to || '');
+    var min = a && b ? (+b[1] * 60 + +b[2]) - (+a[1] * 60 + +a[2]) : 0;
+    var place = p.name || (p.me ? tr('내 위치', 'My location') : typeof p.lat === 'number' ? p.lat.toFixed(4) + ', ' + p.lon.toFixed(4) : '');
+    return { d: /^\d{4}-\d\d-\d\d$/.test(p.date || '') ? p.date : '', min: min > 0 ? String(min) : '', place: place };
+  }
+
   /** 순수 함수 - 분 → "1시간 25분" · "40분". */
   function minText(m) {
     var h = Math.floor(m / 60), r = m % 60;
@@ -403,7 +414,7 @@
     return m ? tr(m[1] + '번 관련 문제)', 'Related to no. ' + m[1] + ')') : no + '.';
   }
 
-  var api = { quizOrder: quizOrder, quizMark: quizMark, quizKeys: quizKeys, quizLabel: quizLabel, wxCell: wxCell, flyWx: flyWx, ptyWord: ptyWord, kstHm: kstHm, dayWindow: dayWindow, CHECKS: CHECKS, checksToday: checksToday, logSum: logSum, logCsv: logCsv, minText: minText, planWindow: planWindow, heritageCell: heritageCell, heritageNotes: heritageNotes, shootText: shootText, tmpState: tmpState, firstDay: firstDay, workdays: workdays, dueText: dueText, toGeoJSON: toGeoJSON, nearStrict: nearStrict, setLang: setLang, nextSize: nextSize, inRing: inRing, inGeom: inGeom, isTca: isTca, zonesAt: zonesAt, levelOf: levelOf, zoneLine: zoneLine, verdict: verdict, meters: meters, nearest: nearest, nearUa: nearUa, dist: dist, applyText: applyText };
+  var api = { planToLog: planToLog, quizOrder: quizOrder, quizMark: quizMark, quizKeys: quizKeys, quizLabel: quizLabel, wxCell: wxCell, flyWx: flyWx, ptyWord: ptyWord, kstHm: kstHm, dayWindow: dayWindow, CHECKS: CHECKS, checksToday: checksToday, logSum: logSum, logCsv: logCsv, minText: minText, planWindow: planWindow, heritageCell: heritageCell, heritageNotes: heritageNotes, shootText: shootText, tmpState: tmpState, firstDay: firstDay, workdays: workdays, dueText: dueText, toGeoJSON: toGeoJSON, nearStrict: nearStrict, setLang: setLang, nextSize: nextSize, inRing: inRing, inGeom: inGeom, isTca: isTca, zonesAt: zonesAt, levelOf: levelOf, zoneLine: zoneLine, verdict: verdict, meters: meters, nearest: nearest, nearUa: nearUa, dist: dist, applyText: applyText };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
   root.DF = api;
 
@@ -696,6 +707,16 @@
       list.splice(+b.getAttribute('data-i'), 1);
       save('df-log', JSON.stringify(list));
       paintLog();
+    });
+    // 📒 이 비행을 기록장에 - 비행 계획의 날짜 · 장소 · 시작 ~ 끝 시간을 기록장 칸에 채우고 그리로(더하기는 사람이 확인하고 누름)
+    $('toLog').addEventListener('click', function () {
+      var v = planToLog({ name: here && here.name, me: here && here.me, lat: here && here.lat, lon: here && here.lon, date: $('date').value, from: $('from').value, to: $('to').value });
+      if (v.d) $('logDate').value = v.d;
+      $('logPlace').value = v.place;
+      $('logMin').value = v.min;
+      $('log').open = true;
+      try { $('log').scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { $('log').scrollIntoView(); }
+      $('logMin').focus({ preventScroll: true });
     });
     $('logCsv').addEventListener('click', function () {
       var a = document.createElement('a');

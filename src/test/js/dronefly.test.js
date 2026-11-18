@@ -187,6 +187,10 @@ assert.deepStrictEqual(DF.logSum(lg), { n: 2, min: 65 });
 assert.strictEqual(DF.logCsv(lg), '\ufeff날짜,비행 시간(분),장소,기체,메모\r\n2026-11-18,25,"구성산, UA2","Mini ""4""",\r\n2026-11-17,40,,,연습\r\n');
 DF.setLang('ko');
 assert.strictEqual(DF.minText(65), '1시간 5분');
+// 비행 계획 → 기록장(2026-11-18)
+assert.deepStrictEqual(DF.planToLog({ name: '구성산', date: '2026-11-25', from: '10:00', to: '11:30' }), { d: '2026-11-25', min: '90', place: '구성산' });
+assert.deepStrictEqual(DF.planToLog({ me: true, date: '', from: '12:00', to: '10:00' }), { d: '', min: '', place: '내 위치' });
+assert.deepStrictEqual(DF.planToLog({ lat: 37.12341, lon: 127.98766, date: '2026-11-25', from: 'x', to: '11:00' }), { d: '2026-11-25', min: '', place: '37.1234, 127.9877' });
 assert.strictEqual(DF.minText(40), '40분');
 assert.strictEqual(DF.minText(120), '2시간');
 // 📝 필기 연습(2026-11-18 홍TV님 블로그 - 4종 95문항 · 교관 과정 50 + 관련 15) - 원문(src/test/resources/drone/quiz)에서 다시 만든 것과 data/drone-quiz.json 이 같아야 함

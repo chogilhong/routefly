@@ -47,6 +47,7 @@ public class FlyExtrasTest {
         String kit = read("src/main/webapp/js/kit-dronefly.js");
         assertTrue(kit.contains("function sunrise(") && kit.contains("function sunset("));
         assertTrue("야간 근거 조문", js.contains("시행규칙 제310조 ① 6호"));
+        assertTrue("비행 계획 → 기록장(2026-11-18)", h.contains("id=\"toLog\"") && js.contains("var v = planToLog({ name: here && here.name"));
         // 📝 4종 필기 연습(2026-11-18 홍TV님 블로그 95문항) - 문항 파일 · 출처 링크 · 원문 테스트 데이터
         assertTrue(h.contains("id=\"quiz\"") && js.contains("fetch('data/drone-quiz.json')"));
         assertFalse("칸 아래 출처 줄은 뺌(2026-11-18 홍TV님 \"출처는 빼줘\") - 문항마다 블로그 글 링크만", h.contains("홍TV 블로그 - 무인동력비행장치 4종 평가시험 95문항 ›"));
