@@ -32,6 +32,15 @@ public class AdSpotTest {
     public void sitemapHasToolsGamesAnbu() {
         String sm = SitemapServlet.sitemap("https://r.kr", List.of(), List.of());
         assertTrue(sm.contains("<loc>https://r.kr/tools.html</loc>"));
+        // 2026-11-18 홍TV님 "새로 만든 것도 넣었어?" - tidefly · dronefly 는 사이트맵에 넣고 noindex 없음
+        for (String p : new String[] {"tidefly.html", "dronefly.html"}) {
+            assertTrue(p, sm.contains("<loc>https://r.kr/" + p + "</loc>"));
+            try {
+                assertFalse(p, new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("src/main/webapp", p)), java.nio.charset.StandardCharsets.UTF_8).contains("noindex"));
+            } catch (java.io.IOException e) {
+                throw new AssertionError(e);
+            }
+        }
         // 2026-11-07 애드센스 "가치가 별로 없는 콘텐츠": 스크립트로만 내용이 생기는 게임 · 안부 · 도장과 넘기기만 하는 첫 주소는 사이트맵에서 빼고 noindex
         for (String p : new String[] {"/games.html", "/anbu.html", "/series.html", "/"}) assertFalse(p, sm.contains("<loc>https://r.kr" + p + "</loc>"));
         try {

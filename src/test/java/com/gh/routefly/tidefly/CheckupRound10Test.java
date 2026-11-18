@@ -172,7 +172,7 @@ public class CheckupRound10Test {
             assertTrue("E6 " + page, pol.contains("<h2>🎣 tidefly"));
         }
         String html = read("src/main/webapp/tidefly.html");
-        assertTrue("E7", html.contains("<meta property=\"og:title\"") && html.contains("<meta property=\"og:url\" content=\"https://routefly.kr/routefly/tidefly.html\">") && html.contains("noindex"));
+        assertTrue("E7", html.contains("<meta property=\"og:title\"") && html.contains("<meta property=\"og:url\" content=\"https://routefly.kr/routefly/tidefly.html\">") && !html.contains("noindex"));   // 2026-11-18 검색에 냄(사이트맵에도)
         assertTrue("F1", js.contains("window.RF.socarLine(sc, pp && pp.socar, navigator.userAgent,") && read("src/main/webapp/js/kit-tidefly.js").contains("function socarLine("));
         for (String f : new String[] {"mountain.js", "mountain-en.js"}) {
             String mj = read("src/main/webapp/js/" + f);
