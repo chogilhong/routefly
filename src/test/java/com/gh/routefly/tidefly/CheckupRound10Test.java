@@ -126,7 +126,7 @@ public class CheckupRound10Test {
         String sv = read("src/main/java/com/gh/routefly/tidefly/TideflyServlet.java");
         assertTrue(sv.contains("if (!tried.add(lz + \":\" + sz) || exactSea(lz, sz, nowUtc) != null || seaFailing(lz, sz)) continue;"));
         assertTrue(sv.contains("CACHE.put(\"seafail:\" + lzone + \":\" + szone, new Object[] {now, null});"));
-        assertTrue(sv.contains("if (key != null) for (JsonObject p : points().values()) {"));
+        assertTrue(sv.contains("if (key != null && !firstWarm) for (JsonObject p : points().values()) {"));
         assertFalse("키가 없다고 바퀴를 끝내지 않음", sv.contains("if (key == null) return;\n            ZonedDateTime nowUtc"));
         assertTrue(sv.contains("&& !seaFailing(p.get(\"lzone\").getAsInt(), p.get(\"szone\").getAsInt()))") && sv.contains("now >= portalRestUntil && (t0 == null"));
     }

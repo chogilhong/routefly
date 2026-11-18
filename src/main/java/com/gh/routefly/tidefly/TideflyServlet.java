@@ -136,7 +136,9 @@ public final class TideflyServlet extends HttpServlet {
             // 기상청 키가 없어도 물때는 받음(점검 10차 C6 - 전에는 여기서 끝나 물때도 안 받았음)
             // 같은 칸은 한 바퀴에 한 번, 실패한 칸은 SEA_FAIL_MS 동안 묻지 않음(점검 10차 C1 - 전에는 실패한 칸을 포인트마다 2번씩 다시 물었음)
             java.util.Set<String> tried = new java.util.HashSet<>();
-            if (key != null) for (JsonObject p : points().values()) {
+            // 톰캣이 뜬 첫 바퀴는 소해구 예측을 묻지 않음(배포마다 158칸을 한꺼번에 물었음 - 2026-11-18 PC) - 보는 사람이 펼친 칸은 그때 묻고, 나머지는 10분 뒤 바퀴에서
+            if (key != null && !firstWarm) for (JsonObject p : points().values()) {
+                if (System.currentTimeMillis() < kmaRestUntil) { log.info("[TIDEFLY-SEA] 기상청 API허브 쉬는 중 - 이번 바퀴 예측은 여기까지"); break; }
                 int lz = p.get("lzone").getAsInt(), sz = p.get("szone").getAsInt();
                 if (!tried.add(lz + ":" + sz) || exactSea(lz, sz, nowUtc) != null || seaFailing(lz, sz)) continue;
                 asked++;
@@ -740,18 +742,47 @@ public final class TideflyServlet extends HttpServlet {
         return null;
     }
 
+    /**
+     * 기상청 API허브 쉬기(2026-11-18 PC 운영 로그: 배포 직후 [SEA] 158칸 → HTTP 403 150줄 → 그 뒤 연결이 막혀 5초마다 연결 시간 초과 2,600줄).
+     * 403 · 401(키 · 한도 · 막힘)이면 60분, 연결 실패가 연달아 5번이면 15분 동안 이 화면의 기상청 호출(소해구 예측 · 특보)을 하지 않음.
+     */
+    private static volatile long kmaRestUntil;
+    private static int kmaFailRow;
+
+    /** 순수 함수 - 기상청 응답 뒤 쉴 때(0 이면 안 쉼). status 는 HTTP 상태(연결 실패는 -1), failRow 는 이것까지 센 연달은 연결 실패 수. */
+    static long kmaRest(int status, int failRow, long now) {
+        if (status == 403 || status == 401) return now + 60 * 60_000L;
+        if (status < 0 && failRow >= 5) return now + 15 * 60_000L;
+        return 0;
+    }
+
+    private static void kmaSeen(int status, String tag) {
+        long now = System.currentTimeMillis();
+        synchronized (TideflyServlet.class) {
+            kmaFailRow = status < 0 ? kmaFailRow + 1 : 0;
+            long until = kmaRest(status, kmaFailRow, now);
+            if (until > kmaRestUntil) {
+                kmaRestUntil = until;
+                log.warn("[{}] {} - 기상청 API허브 호출을 {}분 쉼", tag, status < 0 ? "연결 실패 " + kmaFailRow + "번 연달아" : "HTTP " + status, (until - now) / 60_000);
+            }
+        }
+    }
+
     private static String get(String url, String key, String tag) {
+        if (System.currentTimeMillis() < kmaRestUntil) return null;   // 쉬는 동안은 묻지도 로그도 남기지 않음
         try {
             HttpRequest r = HttpRequest.newBuilder(URI.create(url + "&authKey=" + URLEncoder.encode(key, StandardCharsets.UTF_8)))
                     .timeout(Duration.ofSeconds(8)).GET().build();
             HttpResponse<byte[]> res = HTTP.send(r, HttpResponse.BodyHandlers.ofByteArray());
             String body = KmaText.text(res.body(), res.headers().firstValue("Content-Type").orElse(""));
+            kmaSeen(res.statusCode(), tag);
             if (res.statusCode() == 200) return body;
-            log.warn("[{}] HTTP {}", tag, res.statusCode());   // 주소에 키가 있어 주소는 적지 않음
+            if (res.statusCode() != 403 && res.statusCode() != 401) log.warn("[{}] HTTP {}", tag, res.statusCode());   // 주소에 키가 있어 주소는 적지 않음(403 · 401 은 kmaSeen 이 한 번만)
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         } catch (Exception e) {
-            log.warn("[{}] 호출 실패 - {}", tag, e.getClass().getSimpleName());
+            kmaSeen(-1, tag);
+            if (System.currentTimeMillis() >= kmaRestUntil) log.warn("[{}] 호출 실패 - {}", tag, e.getClass().getSimpleName());
         }
         return null;
     }

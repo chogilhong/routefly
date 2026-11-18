@@ -59,3 +59,10 @@
 .claude\run-tests.ps1 -Run tidefly.ApiHubProbe <이름> "<요청 예시 주소>" → src/test/resources/tidefly/apihub/
 .claude\run-tests.ps1 -Run tidefly.PointsBuild                      → data/tidefly-points.json 다시 만들기(PointsTest 가 봄)
 ```
+
+## 기상청 API허브 쉬기(2026-11-18)
+
+- 운영 로그: 배포 직후 첫 바퀴가 소해구 예측 158칸을 한꺼번에 물음 → HTTP 403 150줄 → 그 뒤 apihub.kma.go.kr 연결이 막혀 5초마다 연결 시간 초과(그날 [SEA] 2,647줄).
+- 이제 TideflyServlet.get 이 403 · 401 이면 60분, 연결 실패 5번 연달아면 15분 동안 기상청 호출(소해구 예측 · 특보)을 하지 않음(kmaRest · KmaRestTest), 쉬는 동안은 로그도 남기지 않음.
+- 톰캣이 뜬 첫 바퀴는 소해구 예측을 묻지 않음(물때만) - 보는 사람이 펼친 칸은 그때 묻고, 나머지는 10분 뒤 바퀴에서.
+- 레이더(Radar)는 원래부터 연달아 실패하면 15분 쉼. PC 로컬 톰캣은 홍TV님 로컬 설정에서 kma.apihub.key 를 빼면 기상청을 묻지 않음(운영 키 한도를 같이 쓰지 않게).
