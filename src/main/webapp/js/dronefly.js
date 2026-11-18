@@ -953,6 +953,16 @@
     var lastSet = load('df-quiz-set');
     if (typeof lastSet === 'string' && Array.prototype.some.call($('quizSet').options, function (o) { return o.value === lastSet; })) $('quizSet').value = lastSet;
     paintWrongBtn();
+    // 문항 페이지(/drone-quiz/c1 등)의 "📝 풀어 보기" → dronefly.html#quiz-c1: 그 시험을 골라 칸을 펴고 그리로
+    var hq = /^#quiz-([a-z0-9]+)$/.exec(location.hash);
+    if (hq && Array.prototype.some.call($('quizSet').options, function (o) { return o.value === hq[1]; })) {
+      $('quizSet').value = hq[1];
+      save('df-quiz-set', JSON.stringify(hq[1]));
+      paintWrongBtn();
+      $('quiz').open = true;
+      loadQuiz();
+      setTimeout(function () { try { $('quiz').scrollIntoView({ block: 'start' }); } catch (e) { /* 옛 브라우저 */ } }, 300);
+    }
     $('quiz').addEventListener('toggle', function () { if ($('quiz').open) loadQuiz(); });   // 칸을 펼 때 미리 받음
     $('quizAll').addEventListener('click', function () { startQuiz('all'); });
     $('quizRestart').addEventListener('click', function () { startQuiz('all', true); });
@@ -960,7 +970,8 @@
     document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') keepScore(); });
     $('quizMix').addEventListener('click', function () { startQuiz('mix'); });
     $('quizWrong').addEventListener('click', function () { startQuiz('wrong'); });
-    $('quizSet').addEventListener('change', function () { keepScore(); run = null; $('quizBox').hidden = true; save('df-quiz-set', JSON.stringify($('quizSet').value)); paintWrongBtn(); });   // 시험을 바꾸면 풀던 것은 닫음
+    $('quizSet').addEventListener('change', function () { keepScore(); run = null; $('quizBox').hidden = true; save('df-quiz-set', JSON.stringify($('quizSet').value)); paintWrongBtn(); $('quizPage').href = 'drone-quiz/' + $('quizSet').value; });
+    $('quizPage').href = 'drone-quiz/' + $('quizSet').value;   // 시험을 바꾸면 풀던 것은 닫음
     $('quizBox').addEventListener('click', function (e) {
       var b = e.target.closest('button');
       if (!b || !run) return;
