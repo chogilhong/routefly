@@ -783,6 +783,11 @@
       return '<li><span>' + esc(e.d + ' · ' + minText(+e.min || 0) + (e.place ? ' · ' + e.place : '') + (e.drone ? ' · ' + e.drone : '') + (e.pilot ? ' · 👤 ' + e.pilot : '') + (e.note ? ' · ' + e.note : '')) + '</span> <button type="button" class="del" data-i="' + i + '" aria-label="' + esc(tr('이 기록 지우기', 'Delete this entry')) + '">✕</button></li>';
     }).join('');
     $('logCsv').hidden = !list.length;
+    // CSV 저장 권유(2026-11-18 "1, 5" 5) - 5개 이상인데 저장한 적 없거나 30일 넘음(df-log-saved: 마지막으로 저장한 날)
+    var due = RF.backupDue(list.length, load('df-log-saved'), todayKst());
+    $('logNudge').hidden = !due;
+    $('logNudge').textContent = due ? tr('💾 기록이 ' + list.length + '개입니다. ' + (due.days == null ? '아직 한 번도 저장하지 않았습니다' : '마지막 저장이 ' + due.days + '일 전입니다') + ' - 폰을 바꾸면 사라지니 "⬇ CSV 로 저장" 으로 받아 두세요.',
+      '💾 ' + list.length + ' entries. ' + (due.days == null ? 'Never saved yet' : 'Last saved ' + due.days + ' days ago') + ' - save a CSV with “⬇ Save as CSV” so they survive a phone change.') : '';
     // 조종자가 둘 이상 적혀 있으면 CSV 에 넣을 사람을 고름(처음은 모두)
     var who = $('logWho'), was = who.value;
     who.hidden = !list.length || !bp.length;
@@ -826,6 +831,7 @@
       var who = $('logWho').value;
       a.href = URL.createObjectURL(new Blob([logCsv(logOf(logList(), who))], { type: 'text/csv;charset=utf-8' }));
       a.download = 'dronefly-log-' + (who ? who.replace(/[\\/:*?"<>|\s]+/g, '_') + '-' : '') + todayKst() + '.csv';
+      if (!who) { save('df-log-saved', JSON.stringify(todayKst())); paintLog(); }   // 모두 저장한 날만(한 사람 것은 되살리기용이 아님)
       document.body.appendChild(a);
       a.click();
       setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);

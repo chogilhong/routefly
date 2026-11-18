@@ -59,6 +59,20 @@
     }
 
     /**
+     * 순수 함수 - CSV 저장 권유(2026-11-18 홍TV님 "1, 5 작업해주고" 5 - 드론 기록장 · 조과 일지는 폰에만 있음).
+     * 기록이 5개 이상인데 한 번도 저장하지 않았거나 마지막 저장이 30일 넘었으면 {days}(저장한 지 며칠, 없으면 null), 아니면 null.
+     * saved · today 는 "YYYY-MM-DD"(KST 날짜).
+     */
+    function backupDue(n, saved, today) {
+        if (!(n >= 5)) return null;
+        var ok = /^\d{4}-\d\d-\d\d$/;
+        if (!saved || !ok.test(saved)) return { days: null };
+        if (!ok.test(today || "")) return null;
+        var days = Math.round((Date.parse(today + "T00:00:00Z") - Date.parse(saved + "T00:00:00Z")) / 86400000);
+        return days >= 30 ? { days: days } : null;
+    }
+
+    /**
      * 순수 함수 - 불러온 기록 합치기(드론 기록장 · 조과 일지 같이 씀): fields 칸이 모두 같은 기록은 건너뜀,
      * 날짜(d) 새 것이 위(같은 날은 있던 차례 - 있던 것 먼저), max 개까지. {list, added}.
      */
@@ -457,6 +471,7 @@
     global.RF = {
         csvRows: csvRows,
         mergeRows: mergeRows,
+        backupDue: backupDue,
         socarLine: socarLine,
         staySearch: staySearch
     };

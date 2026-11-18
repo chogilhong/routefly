@@ -363,6 +363,12 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
     eq("CSV 읽기", JSON.stringify(RF.csvRows("\ufeff날짜,장소\r\n2026-11-18,\"구성산, UA2\"\r\n\r\n2026-11-17,\"Mini \"\"4\"\"\"\r\n")),
         JSON.stringify([["날짜", "장소"], ["2026-11-18", "구성산, UA2"], ["2026-11-17", "Mini \"4\""]]));
     eq("CSV 읽기 - 칸 안 줄바꿈 · 끝 줄바꿈 없음 · 빈 칸", JSON.stringify(RF.csvRows("a,\"x\ny\",\nb,,c")), JSON.stringify([["a", "x\ny", ""], ["b", "", "c"]]));
+    // CSV 저장 권유(2026-11-18): 5개부터, 저장한 적 없거나 30일 넘음
+    eq("권유 - 4개는 아직", RF.backupDue(4, null, "2026-11-18"), null);
+    eq("권유 - 저장한 적 없음", JSON.stringify(RF.backupDue(5, null, "2026-11-18")), JSON.stringify({ days: null }));
+    eq("권유 - 29일은 아직", RF.backupDue(9, "2026-10-20", "2026-11-18"), null);
+    eq("권유 - 30일", JSON.stringify(RF.backupDue(9, "2026-10-19", "2026-11-18")), JSON.stringify({ days: 30 }));
+    eq("권유 - 이상한 저장 날짜는 없음으로", JSON.stringify(RF.backupDue(5, "x", "2026-11-18")), JSON.stringify({ days: null }));
     // 기록 합치기(2026-11-18): 같은 기록은 건너뜀 · 날짜 새 것이 위 · 같은 날은 있던 것 먼저 · max
     var mr = RF.mergeRows([{ d: "2026-11-10", a: "x" }, { d: "2026-11-18", a: "y" }], [{ d: "2026-11-18", a: "y" }, { d: "2026-11-18", a: "z" }, { d: "2026-11-01", a: "w" }], ["d", "a"], 3);
     eq("합치기", JSON.stringify(mr), JSON.stringify({ list: [{ d: "2026-11-18", a: "y" }, { d: "2026-11-18", a: "z" }, { d: "2026-11-10", a: "x" }], added: 2 }));

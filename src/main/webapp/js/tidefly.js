@@ -1464,6 +1464,11 @@
       ul.appendChild(li);
     });
     document.getElementById('catchCsv').hidden = !list.length;
+    // CSV 저장 권유(2026-11-18 "1, 5" 5) - 드론 기록장과 같은 RF.backupDue(tf-catch-saved: 마지막으로 저장한 날)
+    var due = RF.backupDue(list.length, loadText('tf-catch-saved'), nowKst(Date.now()).slice(0, 10)), nudge = document.getElementById('catchNudge');
+    nudge.hidden = !due;
+    nudge.textContent = due ? tr('💾 기록이 ' + list.length + '개입니다. ' + (due.days == null ? '아직 한 번도 저장하지 않았습니다' : '마지막 저장이 ' + due.days + '일 전입니다') + ' - 폰을 바꾸면 사라지니 "⬇ CSV 로 저장" 으로 받아 두세요(사진은 빠짐).',
+      '💾 ' + list.length + ' entries. ' + (due.days == null ? 'Never saved yet' : 'Last saved ' + due.days + ' days ago') + ' - save a CSV with “⬇ Save as CSV” so they survive a phone change (photos not included).') : '';
   }
 
   function detailEl(name, good) {
@@ -1674,6 +1679,8 @@
     var a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([catchCsv(catchList())], { type: 'text/csv;charset=utf-8' }));
     a.download = 'tidefly-catch-' + nowKst(Date.now()).slice(0, 10) + '.csv';
+    save('tf-catch-saved', nowKst(Date.now()).slice(0, 10));
+    paintCatch();
     document.body.appendChild(a);
     a.click();
     setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);

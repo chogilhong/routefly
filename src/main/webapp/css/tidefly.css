@@ -246,6 +246,8 @@ main { padding-top: 14px; padding-bottom: 24px; }
 .catchList li { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; border-top: 1px solid var(--line); }
 .catchList .del { flex: 0 0 auto; min-width: 44px; min-height: 44px; border: 0; background: none; color: var(--dim); cursor: pointer; }
 .catchSum { margin: 8px 0 4px; font-weight: 700; }
+/* CSV 저장 권유(드론 기록장 · 조과 일지 같이 - dronefly 도 이 css 를 받음, 2026-11-18) */
+.nudge { margin: 8px 0; padding: 8px 10px; border-radius: 8px; background: rgba(250, 204, 21, 0.14); line-height: 1.5; font-size: 0.92rem; }
 /* 📷 조과 사진(2026-11-18) */
 .catchPic { display: flex; flex-direction: column; gap: 4px; font-size: .85rem; color: var(--dim); }
 .catchPic input { min-height: 44px; font-size: .9rem; color: var(--ink); }

@@ -118,6 +118,11 @@ public class FlyExtrasTest {
         // 4 비행 날 아침 알림 - 앱에서만, 누르면 dronefly 로(hike.js 가 받음)
         assertTrue(h.contains("id=\"flyAlarm\" class=\"btn\" data-en=\"🔔 Flight-day morning alert\" hidden") && js.contains("channelId: 'rf-dronefly', extra: { page: 'dronefly' }"));
         assertTrue(read("src/main/webapp/js/hike.js").contains("/^(tidefly|dronefly)$/.test(ev.notification.extra.page)"));
+        // CSV 저장 권유(2026-11-18 "1, 5" 5) - 두 화면 같은 RF.backupDue, 모두 저장했을 때만 날짜를 남김
+        assertTrue(h.contains("id=\"logNudge\"") && js.contains("var due = RF.backupDue(list.length, load('df-log-saved'), todayKst());") && js.contains("if (!who) { save('df-log-saved'"));
+        assertTrue(th.contains("id=\"catchNudge\"") && tj.contains("RF.backupDue(list.length, loadText('tf-catch-saved')") && tj.contains("save('tf-catch-saved', nowKst(Date.now()).slice(0, 10));"));
+        for (String kit : new String[] {"kit-dronefly.js", "kit-tidefly.js"}) assertTrue(kit, read("src/main/webapp/js/" + kit).contains("function backupDue("));
+        assertTrue(read("src/main/webapp/css/tidefly.css").contains(".nudge {"));
         // 5 조종자별 CSV
         assertTrue(h.contains("id=\"logWho\"") && js.contains("logCsv(logOf(logList(), who))"));
         // 홍TV님은 교관 자격만(교관 일은 안 함, 2026-11-18) - 화면에 "교관 블로그" 로 쓰지 않음
