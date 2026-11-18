@@ -197,6 +197,8 @@
     if (LN && LN.addListener) Promise.resolve(LN.addListener("localNotificationActionPerformed", function (ev) {
         if (ev && ev.notification && ev.notification.extra && ev.notification.extra.page === "anbu" && !hike.running) location.href = "anbu.html";
         if (ev && ev.notification && ev.notification.extra && ev.notification.extra.page === "pill" && !hike.running) location.href = "tools.html?open=t-pill";   // 💊 약 알림(2026-10-18)
+        // 🎣 출조 · 🚁 비행 날 알림(2026-11-18) - 앱은 hike.html 로 뜨니 그 화면으로
+        if (ev && ev.notification && ev.notification.extra && /^(tidefly|dronefly)$/.test(ev.notification.extra.page) && !hike.running) location.href = ev.notification.extra.page + ".html";
     })).catch(function () { /* 옛 설치본 */ });   // 안전 알림 진동 · 소리(2026-10-17 홍TV님 폰: 화면이 꺼지면 웹뷰 navigator.vibrate 가 막힘) - 없는 옛 설치본이면 null
 
     /** 앱 - 파일을 앱 임시 폴더에 쓰고 공유 창으로(문자 · 카카오톡 · 파일 저장 …). */

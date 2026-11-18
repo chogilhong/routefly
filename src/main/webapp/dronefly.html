@@ -109,7 +109,9 @@
       <label><span data-en="Radius (m)">반경(m)</span> <input type="number" id="radius" value="500" min="10" max="10000" inputmode="numeric"></label>
       <label><span data-en="Purpose">목적</span> <select id="purpose"><option value="취미 · 레저" data-en="Hobby · leisure">취미 · 레저</option><option value="교육 · 훈련" data-en="Education · training">교육 · 훈련</option><option value="사업(촬영 · 방제 등)" data-en="Business (filming, spraying …)">사업(촬영 · 방제 등)</option><option value="기타" data-en="Other">기타</option></select><!-- value 는 한국어 - 신청 정리 글은 늘 한국어(점검 12차 D8) --></label>
     </div>
-    <div class="row"><button type="button" id="toLog" class="btn" data-en="📒 Put this flight in the log">📒 이 비행을 기록장에</button></div><!-- 2026-11-18 홍TV님 - 날짜 · 장소를 기록장 칸으로, 비행 시간만 적으면 됨 -->
+    <div class="row"><button type="button" id="toLog" class="btn" data-en="📒 Put this flight in the log">📒 이 비행을 기록장에</button>
+      <button type="button" id="flyAlarm" class="btn" data-en="🔔 Flight-day morning alert" hidden>🔔 비행 날 아침 알림</button></div><!-- 앱에서만(2026-11-18 "1~5" 4) -->
+    <p id="flyAlarmMsg" class="dim small" hidden aria-live="polite"></p><!-- 2026-11-18 홍TV님 - 날짜 · 장소를 기록장 칸으로, 비행 시간만 적으면 됨 -->
   </details>
 
   <details id="apply" class="dcard fold" open hidden><!-- 승인이 필요한 자리일 때만 보임 · 펴고 접기(2026-11-17 홍TV님 "승인이 필요할 때만") -->
@@ -161,19 +163,23 @@
     <p id="logSum" class="logSum"></p>
     <p id="logPilots" class="dim small" hidden></p>
     <ol id="logList" class="logList"></ol>
-    <div class="row"><button type="button" id="logCsv" class="btn" data-en="⬇ Save as CSV">⬇ CSV 로 저장</button></div>
-    <p class="dim small" data-en="This log stays only on this phone and is not sent to the server. Clearing your browsing data or changing phones deletes it, so save a file now and then with “⬇ Save as CSV”.">이 기록은 이 폰에만 남고 서버로 보내지 않습니다. 인터넷 기록을 지우거나 폰을 바꾸면 사라지니, 가끔 "⬇ CSV 로 저장" 으로 파일을 받아 두세요.</p>
+    <div class="row"><select id="logWho" aria-label="CSV 에 넣을 조종자" data-en-aria="Pilot to save in the CSV" hidden></select><!-- 조종자별 CSV(2026-11-18 "1~5" 5) --><button type="button" id="logCsv" class="btn" data-en="⬇ Save as CSV">⬇ CSV 로 저장</button>
+      <button type="button" id="logLoad" class="btn" data-en="⬆ Load a CSV">⬆ CSV 불러오기</button><input type="file" id="logFile" accept=".csv,text/csv,text/plain" hidden></div><!-- 되살리기(2026-11-18 "1~5" 1) -->
+    <p id="logLoaded" class="dim small" hidden aria-live="polite"></p>
+    <p class="dim small" data-en="This log stays only on this phone and is not sent to the server. Clearing your browsing data or changing phones deletes it, so save a file now and then with “⬇ Save as CSV”. “⬆ Load a CSV” adds a saved file back (entries already here are skipped).">이 기록은 이 폰에만 남고 서버로 보내지 않습니다. 인터넷 기록을 지우거나 폰을 바꾸면 사라지니, 가끔 "⬇ CSV 로 저장" 으로 파일을 받아 두세요. "⬆ CSV 불러오기" 로 받아 둔 파일을 다시 넣을 수 있습니다(이미 있는 기록은 건너뜀).</p>
   </details>
 
   <details id="quiz" class="dcard fold"><!-- 2026-11-18 홍TV님 "[드론] 무인동력비행장치 4종(무인멀티콥터) 평가시험 95문항 … 참조해" - data/drone-quiz.json(tools/drone-quiz/build.js) -->
     <summary><h2 data-en="📝 Written test practice (Korean)">📝 필기 연습 (4종 · 교관 과정)</h2></summary>
-    <p class="dim small" data-en="Questions from the instructor's blog (Korean only): the class 4 unmanned multicopter test (95) and the flight instructor course test (50 + 15 related). Tap an answer to see right/wrong and the explanation. Questions you get wrong are kept on this phone.">드론 교관 블로그의 평가시험 문항입니다 - 무인동력비행장치 4종(무인멀티콥터) 95문항, 조종교육 교관 과정 필기시험 50문항 + 관련 문제 15문항. 답을 누르면 바로 맞고 틀림과 해설이 나옵니다. 틀린 문항은 이 폰에 남겨 다시 풀 수 있습니다.</p>
+    <p class="dim small" data-en="Questions from the hongtv.tistory.com blog (Korean only): the class 4 unmanned multicopter test (95) and the flight instructor course test (50 + 15 related). Tap an answer to see right/wrong and the explanation. “From no. 1” continues where you stopped. Wrong answers and scores are kept on this phone.">블로그(hongtv.tistory.com)의 평가시험 문항입니다 - 무인동력비행장치 4종(무인멀티콥터) 95문항, 조종교육 교관 과정 필기시험 50문항 + 관련 문제 15문항. 답을 누르면 바로 맞고 틀림과 해설이 나옵니다. "1번부터" 는 지난번 멈춘 다음 문항부터 이어 풉니다. 틀린 문항과 점수는 이 폰에 남습니다.</p>
     <label class="quizPick"><span data-en="Test">시험</span> <select id="quizSet"><option value="c4" data-en="Class 4 (multicopter) - 95">4종(무인멀티콥터) 평가시험 - 95문항</option><option value="inst" data-en="Flight instructor course - 65">조종교육 교관 과정 필기시험 - 65문항</option></select></label>
     <div class="row">
       <button type="button" id="quizAll" class="btn go" data-en="From no. 1">1번부터</button>
       <button type="button" id="quizMix" class="btn" data-en="Random 20">섞어서 20문항</button>
       <button type="button" id="quizWrong" class="btn" disabled></button>
+      <button type="button" id="quizRestart" class="btn" data-en="From no. 1 again" hidden>처음부터</button><!-- 이어 풀기(2026-11-18 홍TV님 "3번문항까지 풀면 그다음 4번문항") -->
     </div>
+    <p id="quizScores" class="dim small" hidden></p><!-- 점수 기록(df-quiz-score, 2026-11-18 "1~5" 3) -->
     <div id="quizBox" class="quizBox" hidden aria-live="polite"></div>
   </details>
 
@@ -214,7 +220,7 @@
   </details>
 </main>
 <footer class="wrap foot">
-  <p><span data-en="Data:">자료:</span> <span id="srcDate">브이월드 항공 레이어(국토교통부)</span>. <span data-en="The judgement follows Aviation Safety Act art. 127 and its enforcement rule art. 308 · 310 (in force Nov 13, 2026), MOLIT guidance and a drone instructor's check. Harbour facilities and temporary prohibited areas come from the V-World WFS layers Drone One-stop uses.">판정은 항공안전법 제127조 · 시행규칙 제308조 · 제310조(2026. 11. 13. 시행)와 국토교통부 안내 · 드론 교관 확인을 바탕으로 했습니다. 항만시설 · 임시 비행금지구역은 드론원스톱 지도가 쓰는 브이월드 WFS 레이어입니다.</span></p>
+  <p><span data-en="Data:">자료:</span> <span id="srcDate">브이월드 항공 레이어(국토교통부)</span>. <span data-en="The judgement follows Aviation Safety Act art. 127 and its enforcement rule art. 308 · 310 (in force Nov 13, 2026), MOLIT guidance and a check by a certified drone instructor. Harbour facilities and temporary prohibited areas come from the V-World WFS layers Drone One-stop uses.">판정은 항공안전법 제127조 · 시행규칙 제308조 · 제310조(2026. 11. 13. 시행)와 국토교통부 안내 · 드론 교관 자격자 확인을 바탕으로 했습니다. 항만시설 · 임시 비행금지구역은 드론원스톱 지도가 쓰는 브이월드 WFS 레이어입니다.</span></p>
   <p data-en="&lt;a href=&quot;privacy-en.html&quot;&gt;Privacy policy&lt;/a&gt; · &lt;a href=&quot;en/m/&quot;&gt;routefly trails&lt;/a&gt;"><a href="privacy.html">개인정보처리방침</a> · <a href="m/">routefly 코스 모음</a></p>
 </footer>
 <script src="vendor/maplibre-gl-5.24.0/maplibre-gl.js"></script>

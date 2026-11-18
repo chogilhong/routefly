@@ -33,6 +33,45 @@
         return 6371000 * 2 * Math.asin(Math.sqrt(a));
     }
 
+    /**
+     * 순수 함수 - CSV 글 → 줄마다 칸 배열(2026-11-18 홍TV님 "1~5 번까지" 1 - 드론 기록장 · 조과 일지를 저장한 CSV 로 되살리기).
+     * 맨 앞 BOM 을 떼고, 따옴표로 감싼 칸의 쉼표 · 줄바꿈 · "" 를 읽음(우리 logCsv · catchCsv 가 쓰는 모양). 빈 줄은 버림.
+     */
+    function csvRows(text) {
+        var s = String(text || "").replace(/^\ufeff/, ""), rows = [], row = [], cell = "", q = false;
+        for (var i = 0; i < s.length; i++) {
+            var ch = s.charAt(i);
+            if (q) {
+                if (ch === '"') { if (s.charAt(i + 1) === '"') { cell += '"'; i++; } else q = false; }
+                else cell += ch;
+            } else if (ch === '"') q = true;
+            else if (ch === ",") { row.push(cell); cell = ""; }
+            else if (ch === "\n" || ch === "\r") {
+                if (ch === "\r" && s.charAt(i + 1) === "\n") i++;
+                row.push(cell); cell = "";
+                if (row.join("") !== "") rows.push(row);
+                row = [];
+            } else cell += ch;
+        }
+        row.push(cell);
+        if (row.join("") !== "") rows.push(row);
+        return rows;
+    }
+
+    /**
+     * 순수 함수 - 불러온 기록 합치기(드론 기록장 · 조과 일지 같이 씀): fields 칸이 모두 같은 기록은 건너뜀,
+     * 날짜(d) 새 것이 위(같은 날은 있던 차례 - 있던 것 먼저), max 개까지. {list, added}.
+     */
+    function mergeRows(list, add, fields, max) {
+        var key = function (e) { return fields.map(function (f) { return String(e[f] == null ? "" : e[f]); }).join("\u0001"); };
+        var seen = {}, out = (list || []).slice(), added = 0;
+        out.forEach(function (e) { seen[key(e)] = 1; });
+        (add || []).forEach(function (e) { if (!seen[key(e)]) { seen[key(e)] = 1; out.push(e); added++; } });
+        out = out.map(function (e, i) { return { e: e, i: i }; })
+            .sort(function (a, b) { return a.e.d < b.e.d ? 1 : a.e.d > b.e.d ? -1 : a.i - b.i; }).map(function (x) { return x.e; });
+        return { list: out.slice(0, max), added: added };
+    }
+
     /** 산 페이지 맨 아래 ☕ 후원 줄(2026-10-17 홍TV님) - https 주소일 때만 보임. 한국어 donate.url · 영어 donate.en.url(PayPal). */
     /**
      * 🏨 근처 숙소 줄(산 페이지 /m/ · /en/m/, 2026-10-29 점검) - 정상 좌표로 트립닷컴(없으면 아고다) 제휴 링크 + 수수료 알림. 설정이 없으면 숨김 그대로.
@@ -416,6 +455,8 @@
     }
 
     global.RF = {
+        csvRows: csvRows,
+        mergeRows: mergeRows,
         socarLine: socarLine,
         staySearch: staySearch
     };

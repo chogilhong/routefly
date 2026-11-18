@@ -295,5 +295,16 @@ assert.strictEqual(TF.catchCsv([{ d: '2026-11-18', name: '방포항', mul: '1물
   assert.ok(n.some(x => x.body.startsWith('물이 들어오기 시작합니다(간조 ') && x.body.includes(' + 30분)')));
   assert.deepStrictEqual(TF.appNotes([Object.assign({}, row, { cfg: {} })], now), []);   // 고른 알림이 없으면 없음
 }
+// 조과 일지 CSV 되살리기(2026-11-18 "1~5" 1) - catchCsv 가 쓴 것을 그대로 되읽음, 다른 파일은 null, 날짜 · 자리 없는 줄은 버림
+{
+  const vm = require('vm'), box = { window: {}, console: console, URL: URL, URLSearchParams: URLSearchParams };   // course-kit.js 는 window.RF 로 - course-kit.test.js 와 같게
+  vm.createContext(box);
+  vm.runInContext(require('fs').readFileSync(__dirname + '/../../main/webapp/js/course-kit.js', 'utf8'), box);
+  const RF = box.window.RF;
+  const one = [{ d: '2026-11-18', name: '방포항', mul: '1물', fish: '감성돔 2', note: '크릴, 새벽' }];
+  assert.deepStrictEqual(TF.catchFromCsv(RF.csvRows(TF.catchCsv(one))), one);
+  assert.strictEqual(TF.catchFromCsv([['날짜', '비행 시간(분)']]), null);
+  assert.deepStrictEqual(TF.catchFromCsv([['날짜', '자리', '물때', '고기', '메모'], ['2026-11-18', ''], ['어제', '방포항']]), []);
+}
 console.log('tidefly.test.js OK');
 

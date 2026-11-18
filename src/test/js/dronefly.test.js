@@ -241,4 +241,37 @@ assert.deepStrictEqual(DF.quizKeys([3, 'inst:2', 'x', null]), ['c4:3', 'inst:2']
 DF.setLang('ko');
 assert.strictEqual(DF.quizLabel('7'), '7.');
 assert.strictEqual(DF.quizLabel('1-관련'), '1번 관련 문제)');
+// 2026-11-18 홍TV님 "1~5 번까지" - CSV 되살리기(1) · 조종자별 CSV(5) · 비행 날 아침 알림(4) · 이어 풀기 · 점수(3)
+{
+  const vm = require('vm'), box = { window: {}, console: console, URL: URL, URLSearchParams: URLSearchParams };   // course-kit.js 는 window.RF 로 - course-kit.test.js 와 같게
+  vm.createContext(box);
+  vm.runInContext(fs.readFileSync(__dirname + '/../../main/webapp/js/course-kit.js', 'utf8'), box);
+  const RF = box.window.RF;
+  const back = DF.logFromCsv(RF.csvRows(DF.logCsv(lg)));   // 우리가 저장한 CSV 를 그대로 되읽음
+  assert.deepStrictEqual(back, [{ d: '2026-11-18', min: 25, place: '구성산, UA2', drone: 'Mini "4"', pilot: '', note: '' }, { d: '2026-11-17', min: 40, place: '', drone: '', pilot: '', note: '연습' }]);
+  // 조종자 칸이 없던 옛 CSV · 틀린 줄(날짜 · 분) · 다른 파일
+  assert.deepStrictEqual(DF.logFromCsv([['날짜', '비행 시간(분)', '장소', '기체', '메모'], ['2026-11-01', '30', 'A', 'B', 'C'], ['11/02', '30'], ['2026-11-03', '0'], ['2026-11-04', '601']]),
+    [{ d: '2026-11-01', min: 30, place: 'A', drone: 'B', pilot: '', note: 'C' }]);
+  assert.strictEqual(DF.logFromCsv([['날짜', '자리', '물때', '고기', '메모']]), null);
+  assert.deepStrictEqual(DF.logOf([{ pilot: '김' }, { pilot: ' 김 ' }, { pilot: '이' }, {}], '김').length, 2);
+  assert.strictEqual(DF.logOf([{ pilot: '김' }, {}], ' ').length, 2);
+  // 아침 알림: 07:00 KST(= 전날 22:00 UTC), 08:00 앞 시작이면 1시간 전, 지난 시각 · 01:00 앞 · 빈칸은 null
+  const now = Date.UTC(2026, 10, 18, 3, 0);   // 11-18 12:00 KST
+  const n1 = DF.flyMorning({ date: '2026-11-20', from: '10:00', place: '구성산' }, now);
+  assert.deepStrictEqual([n1.id, new Date(n1.at).toISOString(), n1.body], [9200, '2026-11-19T22:00:00.000Z', '오늘 10:00 비행 계획 · 구성산 - 떠나기 전에 바람 · 비 · 공역을 다시 보세요.']);
+  assert.strictEqual(new Date(DF.flyMorning({ date: '2026-11-20', from: '06:30' }, now).at).toISOString(), '2026-11-19T20:30:00.000Z');
+  assert.strictEqual(DF.flyMorning({ date: '2026-11-18', from: '14:00' }, now), null);
+  assert.strictEqual(DF.flyMorning({ date: '2026-11-20', from: '00:30' }, now), null);
+  assert.strictEqual(DF.flyMorning({ date: '', from: '10:00' }, now), null);
+  // 이어 풀기: 3번까지 풀면 4번(자리 3), 마지막 · 없는 번호 · 처음은 0
+  const nos = ['1', '2', '3', '4', '5'];
+  assert.deepStrictEqual([DF.quizResume(nos, '3'), DF.quizResume(nos, '5'), DF.quizResume(nos, '9'), DF.quizResume(nos, undefined)], [3, 0, 0, 0]);
+  assert.strictEqual(DF.quizResume(['1', '1-관련', '2'], '1-관련'), 2);
+  // 점수: 맨 앞에 · 30개까지 · 0문항은 넣지 않음
+  let sc = [];
+  for (let i = 0; i < 32; i++) sc = DF.quizScoreAdd(sc, { d: '2026-11-18', set: 'c4', mode: 'mix', n: 20, ok: i });
+  assert.deepStrictEqual([sc.length, sc[0].ok], [30, 31]);
+  assert.strictEqual(DF.quizScoreAdd(null, { n: 0, ok: 0 }).length, 0);
+  assert.strictEqual(DF.quizScoreText({ d: '2026-11-18', mode: 'mix', n: 20, ok: 15 }), '11-18 섞어서 · 15/20 (75%)');
+}
 console.log('dronefly.test.js OK');

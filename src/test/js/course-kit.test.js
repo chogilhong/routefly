@@ -359,6 +359,13 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
         "tmap://route?referrer=com.skt.Tmap&goalx=128.125284&goaly=35.777352&goalname=" + tgo + "&rGoName=" + tgo + "&rGoX=128.125284&rGoY=35.777352");
     eq("티맵 - 이름 없으면 목적지", RF.tmapHref(" ", "35.777352", "128.125284"),
         "tmap://route?referrer=com.skt.Tmap&goalx=128.125284&goaly=35.777352&goalname=%EB%AA%A9%EC%A0%81%EC%A7%80&rGoName=%EB%AA%A9%EC%A0%81%EC%A7%80&rGoX=128.125284&rGoY=35.777352");
+    // CSV 읽기(2026-11-18 - 기록장 · 조과 일지 되살리기): 우리 logCsv 가 쓴 모양(BOM · CRLF · "" · 칸 안 쉼표)
+    eq("CSV 읽기", JSON.stringify(RF.csvRows("\ufeff날짜,장소\r\n2026-11-18,\"구성산, UA2\"\r\n\r\n2026-11-17,\"Mini \"\"4\"\"\"\r\n")),
+        JSON.stringify([["날짜", "장소"], ["2026-11-18", "구성산, UA2"], ["2026-11-17", "Mini \"4\""]]));
+    eq("CSV 읽기 - 칸 안 줄바꿈 · 끝 줄바꿈 없음 · 빈 칸", JSON.stringify(RF.csvRows("a,\"x\ny\",\nb,,c")), JSON.stringify([["a", "x\ny", ""], ["b", "", "c"]]));
+    // 기록 합치기(2026-11-18): 같은 기록은 건너뜀 · 날짜 새 것이 위 · 같은 날은 있던 것 먼저 · max
+    var mr = RF.mergeRows([{ d: "2026-11-10", a: "x" }, { d: "2026-11-18", a: "y" }], [{ d: "2026-11-18", a: "y" }, { d: "2026-11-18", a: "z" }, { d: "2026-11-01", a: "w" }], ["d", "a"], 3);
+    eq("합치기", JSON.stringify(mr), JSON.stringify({ list: [{ d: "2026-11-18", a: "y" }, { d: "2026-11-18", a: "z" }, { d: "2026-11-10", a: "x" }], added: 2 }));
     // 길찾기 주차장 · 정류장 후보(c.access)는 이름표 정리 전 것 - 운영 api/course 실제 응답(광양 가야산, 2026-11-07 받음)
     var gy = RF.fromApi("frst-462300101-744138", JSON.parse(require("fs").readFileSync(require("path").join(__dirname, "../resources/course/frst-462300101-744138.json"), "utf8")));
     eq("이름표는 길에 가까운 주차장 하나(10-13 정리 그대로)", gy.pois.filter(function (p) { return /주차장/.test(p.name); }).map(function (p) { return p.name; }), ["주차장"]);

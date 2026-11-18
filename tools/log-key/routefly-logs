@@ -22,8 +22,11 @@ if [ "${args[0]:-}" = "health" ]; then
   if [ -f /var/run/reboot-required ]; then echo "== 재부팅 필요: 예"; else echo "== 재부팅 필요: 아니오"; fi
   printf '== 자동 보안 업데이트(unattended-upgrades): %s\n' "$(systemctl is-active unattended-upgrades 2>/dev/null || true)"
   end=$(timeout 10 openssl s_client -connect 127.0.0.1:443 -servername routefly.kr </dev/null 2>/dev/null | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2 || true)
+  # 드론 공역(2026-11-18 홍TV님 "1~5" 2): 서버가 하루 한 번 브이월드에서 새로 받음(AirspaceServlet) - 받은 날짜만 봄(앞 100자의 "date")
+  asd=$(curl -s -m 15 -A routefly-check http://127.0.0.1:8080/routefly/api/airspace 2>/dev/null | head -c 100 | grep -o '"date":"[0-9-]*"' | tr -dc '0-9-' || true)
+  if [ -n "$asd" ]; then aage=$(( ($(date +%s) - $(date -d "$asd" +%s)) / 86400 )); echo "== 드론 공역 자료: ${asd} 받음 (${aage}일 전)"; else aage=-1; echo "== 드론 공역 자료: 서버가 아직 새로 받지 못함(화면은 고정 파일)"; fi
   if [ -n "$end" ]; then days=$(( ($(date -d "$end" +%s) - $(date +%s)) / 86400 )); echo "== 인증서 남은 날: ${days}일 ($end)"; else days=-1; echo "== 인증서: 읽지 못함"; fi
-  # 마지막 줄 - 영문 한 줄 요약(PC 받아 오기 스크립트가 그대로 보여 줌): 디스크 85% 넘음 · 남은 메모리 300MB 아래 · 서비스 꺼짐 · 배치 실패 · 재부팅 필요 · 보안 업데이트 · 인증서 20일 아래
+  # 마지막 줄 - 영문 한 줄 요약(PC 받아 오기 스크립트가 그대로 보여 줌): 디스크 85% 넘음 · 남은 메모리 300MB 아래 · 서비스 꺼짐 · 배치 실패 · 재부팅 필요 · 보안 업데이트 · 인증서 20일 아래 · 드론 공역 3일 넘게 옛것
   w=""
   pct=$(df --output=pcent / | tail -1 | tr -dc 0-9); [ "${pct:-0}" -ge 85 ] && w="$w disk=${pct}%"
   av=$(free -m | awk 'NR==2 {print $7}'); [ "${av:-0}" -lt 300 ] && w="$w mem=${av}MB"
@@ -32,6 +35,8 @@ if [ "${args[0]:-}" = "health" ]; then
   [ -f /var/run/reboot-required ] && w="$w reboot"
   sec=$(printf '%s' "${up:-0;0}" | cut -d';' -f2 | tr -dc 0-9); [ "${sec:-0}" -gt 0 ] && w="$w security-updates=$sec"
   [ "$days" -ge 0 ] && [ "$days" -lt 20 ] && w="$w cert=${days}d"
+  # 하루마다 받으니 3일 넘게 옛것이면 두 번 넘게 실패(브이월드 · 키 · 공역 수 검사) - 로그 [AIRSPACE] 를 봄
+  if [ "$aage" -lt 0 ]; then w="$w airspace=none"; elif [ "$aage" -ge 3 ]; then w="$w airspace=${aage}d"; fi
   if [ -z "$w" ]; then echo "HEALTH OK"; else echo "HEALTH WARN$w"; fi
   exit 0
 fi

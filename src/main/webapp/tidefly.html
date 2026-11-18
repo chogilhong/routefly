@@ -79,8 +79,10 @@
     <summary data-en="📝 Catch log">📝 조과 일지</summary>
     <p id="catchSum" class="catchSum"></p>
     <ol id="catchList" class="catchList"></ol>
-    <p><button type="button" id="catchCsv" class="more" data-en="⬇ Save as CSV">⬇ CSV 로 저장</button></p>
-    <p class="dim small" data-en="This log stays only on this phone and is not sent to the server. Clearing your browsing data or changing phones deletes it, so save a file now and then with “⬇ Save as CSV”.">이 기록은 이 폰에만 남고 서버로 보내지 않습니다. 인터넷 기록을 지우거나 폰을 바꾸면 사라지니, 가끔 "⬇ CSV 로 저장" 으로 파일을 받아 두세요.</p>
+    <p><button type="button" id="catchCsv" class="more" data-en="⬇ Save as CSV">⬇ CSV 로 저장</button>
+      <button type="button" id="catchLoad" class="more" data-en="⬆ Load a CSV">⬆ CSV 불러오기</button><input type="file" id="catchFile" accept=".csv,text/csv,text/plain" hidden></p><!-- 되살리기(2026-11-18 "1~5" 1, 사진은 빼고 글만) -->
+    <p id="catchLoaded" class="dim" hidden aria-live="polite"></p>
+    <p class="dim small" data-en="This log stays only on this phone and is not sent to the server. Clearing your browsing data or changing phones deletes it, so save a file now and then with “⬇ Save as CSV”. “⬆ Load a CSV” adds a saved file back (text only, not photos; entries already here are skipped).">이 기록은 이 폰에만 남고 서버로 보내지 않습니다. 인터넷 기록을 지우거나 폰을 바꾸면 사라지니, 가끔 "⬇ CSV 로 저장" 으로 파일을 받아 두세요. "⬆ CSV 불러오기" 로 받아 둔 파일을 다시 넣을 수 있습니다(글만 - 사진은 빠짐, 이미 있는 기록은 건너뜀).</p>
   </details>
 </main>
 <footer class="foot wrap">

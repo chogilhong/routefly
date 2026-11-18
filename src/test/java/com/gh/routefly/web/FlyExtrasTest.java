@@ -84,13 +84,43 @@ public class FlyExtrasTest {
             String ph = read("src/main/webapp/" + page);
             assertTrue(page, ph.contains("인터넷 기록을 지우거나 폰을 바꾸면 사라지니"));
             // 2026-11-18 PC: 영어 글 안 큰따옴표가 data-en 속성을 닫아 "… now and then with " 에서 끊겼음 - 속성 안은 “ ” 로
-            assertTrue(page, ph.contains("so save a file now and then with “⬇ Save as CSV”.\""));
+            // 2026-11-18 "1~5" 1: 뒤에 불러오기 안내가 붙음 - 영어 글이 그 끝(… skipped).)까지 이어져야 함
+            assertTrue(page, ph.contains("so save a file now and then with “⬇ Save as CSV”. “⬆ Load a CSV” adds a saved file back") && ph.contains("already here are skipped).\">"));
             java.util.regex.Matcher m = java.util.regex.Pattern.compile("data-en(?:-ph|-aria)?=\"([^\"]*)\"([^\\s>/])").matcher(ph);
             assertFalse(page + " data-en 속성 뒤에 바로 글자가 붙음(속성 안 큰따옴표): " + (m.find() ? m.group() : ""), m.reset().find());
         }
     }
 
     /** 앱 아이콘 길게 누르기 바로가기(2026-11-18) - 웹앱 manifest · 안드로이드 shortcuts.xml · MainActivity 허용 목록 세 곳이 같은 넷. */
+    /** 2026-11-18 홍TV님 "1~5 번까지" - CSV 되살리기 · 서버 점검 공역 · 점수 · 비행 날 아침 알림 · 조종자별 CSV + "3번까지 풀면 그다음 4번". 순수 함수는 node 테스트. */
+    @Test
+    public void 되살리기_점검_점수_아침알림_이어풀기() throws Exception {
+        String h = read("src/main/webapp/dronefly.html"), js = read("src/main/webapp/js/dronefly.js");
+        String th = read("src/main/webapp/tidefly.html"), tj = read("src/main/webapp/js/tidefly.js");
+        // 1 CSV 불러오기 - 두 화면 모두 같은 RF.csvRows · RF.mergeRows(만든 파일에 들어 있어야 함)
+        assertTrue(h.contains("id=\"logLoad\"") && h.contains("id=\"logFile\"") && js.contains("var add = logFromCsv(RF.csvRows(r.result));") && js.contains("RF.mergeRows(logList(), add"));
+        assertTrue(th.contains("id=\"catchLoad\"") && th.contains("id=\"catchFile\"") && tj.contains("var add = catchFromCsv(RF.csvRows(r.result));") && tj.contains("RF.mergeRows(catchList(), add"));
+        for (String kit : new String[] {"kit-dronefly.js", "kit-tidefly.js"}) {
+            String k = read("src/main/webapp/js/" + kit);
+            assertTrue(kit, k.contains("function csvRows(") && k.contains("function mergeRows("));
+        }
+        // 2 서버 정기 점검에 공역 받은 날
+        String hl = read("tools/log-key/routefly-logs");
+        assertTrue(hl.contains("http://127.0.0.1:8080/routefly/api/airspace") && hl.contains("w=\"$w airspace=${aage}d\"") && hl.contains("w=\"$w airspace=none\""));
+        // 3 점수 · 이어 풀기
+        assertTrue(h.contains("id=\"quizScores\"") && h.contains("id=\"quizRestart\""));
+        assertTrue(js.contains("if (mode === 'all' && !fresh) run.i = quizResume(run.list, quizAt()[set.id]);"));
+        assertTrue(js.contains("if (run.mode === 'all') { var at = quizAt(); at[run.set.id] = q.no; save('df-quiz-at', JSON.stringify(at)); }"));
+        assertTrue(js.contains("if (last) keepScore();"));
+        // 4 비행 날 아침 알림 - 앱에서만, 누르면 dronefly 로(hike.js 가 받음)
+        assertTrue(h.contains("id=\"flyAlarm\" class=\"btn\" data-en=\"🔔 Flight-day morning alert\" hidden") && js.contains("channelId: 'rf-dronefly', extra: { page: 'dronefly' }"));
+        assertTrue(read("src/main/webapp/js/hike.js").contains("/^(tidefly|dronefly)$/.test(ev.notification.extra.page)"));
+        // 5 조종자별 CSV
+        assertTrue(h.contains("id=\"logWho\"") && js.contains("logCsv(logOf(logList(), who))"));
+        // 홍TV님은 교관 자격만(교관 일은 안 함, 2026-11-18) - 화면에 "교관 블로그" 로 쓰지 않음
+        assertFalse(h.contains("드론 교관 블로그") || h.contains("instructor's blog"));
+    }
+
     @Test
     public void 바로가기_세_곳이_같음() throws Exception {
         // 차례가 뜻이 있음 - 크롬 웹앱은 "사이트 설정" 이 한 칸을 써 앞의 셋만 보임(2026-11-18 홍TV님 폰: 드론이 빠졌음) → 코스 모음을 맨 뒤로

@@ -392,6 +392,47 @@
   }
 
   /**
+   * 순수 함수 - 저장한 기록장 CSV 줄(RF.csvRows) → 기록 [{d, min, place, drone, pilot, note}](2026-11-18 홍TV님 "1~5 번까지" 1 - 폰을 바꿔도 되살리기).
+   * 머리 줄은 logCsv 것(조종자 칸이 없던 11-18 앞 CSV 도 읽음). 날짜(YYYY-MM-DD) · 분(1 ~ 600)이 맞지 않는 줄은 버림. 머리가 다르면 null(다른 파일).
+   */
+  function logFromCsv(rows) {
+    var head = (rows && rows[0] || []).map(function (h) { return String(h).trim(); });
+    if (head[0] !== '날짜' || head[1] !== '비행 시간(분)') return null;
+    var col = function (name) { return head.indexOf(name); }, ci = { place: col('장소'), drone: col('기체'), pilot: col('조종자'), note: col('메모') };
+    var out = [];
+    rows.slice(1).forEach(function (r) {
+      var d = String(r[0] || '').trim(), min = parseInt(r[1], 10);
+      if (!/^\d{4}-\d\d-\d\d$/.test(d) || !(min > 0 && min <= 600)) return;
+      var e = { d: d, min: min };
+      ['place', 'drone', 'pilot', 'note'].forEach(function (k) { e[k] = ci[k] >= 0 ? String(r[ci[k]] || '').trim() : ''; });
+      out.push(e);
+    });
+    return out;
+  }
+
+  /**
+   * 순수 함수 - 비행 날 아침 앱 알림(2026-11-18 홍TV님 "1~5" 4): 그날 07:00(KST), 시작이 08:00 앞이면 시작 1시간 전.
+   * 날씨 숫자는 알림을 맞출 때 것이 낡으므로 넣지 않고 "다시 보세요" 만. 이미 지난 시각이거나 날짜 · 시각이 맞지 않으면 null. id 9200(출조 9100 ~ 9199 다음).
+   */
+  function flyMorning(p, now) {
+    var d = /^(\d{4})-(\d\d)-(\d\d)$/.exec(p.date || ''), f = /^(\d\d):(\d\d)$/.exec(p.from || '');
+    if (!d || !f) return null;
+    var min = Math.min(7 * 60, +f[1] * 60 + +f[2] - 60);
+    if (min < 0) return null;   // 01:00 앞 시작 - 전날 밤 알림은 하지 않음
+    var at = Date.UTC(+d[1], +d[2] - 1, +d[3], 0, min) - 9 * 3600000;
+    if (!(at > now)) return null;
+    var pl = p.place ? ' · ' + p.place : '';
+    return { id: 9200, at: at, title: tr('🚁 드론플라이', '🚁 Dronefly'),
+      body: tr('오늘 ' + p.from + ' 비행 계획' + pl + ' - 떠나기 전에 바람 · 비 · 공역을 다시 보세요.', 'Flight planned today at ' + p.from + pl + ' - check wind, rain and airspace again before you go.') };
+  }
+
+  /** 순수 함수 - 한 조종자 기록만(2026-11-18 "1~5" 5 - 조종자별 CSV). 이름 앞뒤 빈칸은 무시, 빈 이름이면 모두. */
+  function logOf(list, pilot) {
+    var p = String(pilot || '').trim();
+    return (list || []).filter(function (e) { return !p || String(e.pilot || '').trim() === p; });
+  }
+
+  /**
    * 순수 함수 - 비행 계획 → 기록장 칸 값 {d, min, place}(2026-11-18 "비행 계획 → 기록장 한 번에").
    * 장소는 고른 이름 · "내 위치" · 위경도, 시간은 계획 시작 ~ 끝(분, 맞지 않으면 빈칸 - 실제 비행 시간은 사람이 고침).
    */
@@ -436,13 +477,35 @@
       .filter(function (k) { return typeof k === 'string' && /^[a-z0-9]+:./.test(k); });
   }
 
+  /**
+   * 순수 함수 - "1번부터" 를 이어서(2026-11-18 홍TV님 "3번문항까지 풀면 그다음 4번문항을 풀어야 해"): 마지막으로 푼 번호 다음 자리(0 부터).
+   * 푼 것이 없거나, 마지막 문항까지 풀었거나, 그 번호가 없으면(문항이 바뀜) 0 - 처음부터.
+   */
+  function quizResume(nos, last) {
+    var i = (nos || []).indexOf(last);
+    return i >= 0 && i + 1 < nos.length ? i + 1 : 0;
+  }
+
+  /** 순수 함수 - 점수 기록 더하기(2026-11-18 "1~5" 3): {d, set, mode, n, ok} 를 맨 앞에, 30개까지. 한 문항도 안 푼 것은 넣지 않음. */
+  function quizScoreAdd(log, rec) {
+    var l = Array.isArray(log) ? log.slice() : [];
+    if (rec && rec.n > 0) l.unshift(rec);
+    return l.slice(0, 30);
+  }
+
+  /** 순수 함수 - 점수 한 줄: "11-18 섞어서 · 15/20 (75%)". */
+  function quizScoreText(r) {
+    var mode = { all: tr('차례대로', 'In order'), mix: tr('섞어서', 'Random'), wrong: tr('틀린 것', 'Wrong ones') }[r.mode] || '';
+    return String(r.d || '').slice(5) + ' ' + mode + ' · ' + r.ok + '/' + r.n + ' (' + Math.round(r.ok / r.n * 100) + '%)';
+  }
+
   /** 순수 함수 - 문항 번호 글: "7" → "7.", "1-관련" → "1번 관련 문제)". */
   function quizLabel(no) {
     var m = /^(\d+)-관련$/.exec(no);
     return m ? tr(m[1] + '번 관련 문제)', 'Related to no. ' + m[1] + ')') : no + '.';
   }
 
-  var api = { logByPilot: logByPilot, specialDue: specialDue, planToLog: planToLog, quizOrder: quizOrder, quizMark: quizMark, quizKeys: quizKeys, quizLabel: quizLabel, wxCell: wxCell, flyWx: flyWx, ptyWord: ptyWord, kstHm: kstHm, dayWindow: dayWindow, CHECKS: CHECKS, checksToday: checksToday, logSum: logSum, logCsv: logCsv, minText: minText, planWindow: planWindow, heritageCell: heritageCell, heritageNotes: heritageNotes, shootText: shootText, tmpState: tmpState, firstDay: firstDay, workdays: workdays, dueText: dueText, toGeoJSON: toGeoJSON, nearStrict: nearStrict, setLang: setLang, nextSize: nextSize, inRing: inRing, inGeom: inGeom, isTca: isTca, zonesAt: zonesAt, levelOf: levelOf, zoneLine: zoneLine, verdict: verdict, meters: meters, nearest: nearest, nearUa: nearUa, dist: dist, applyText: applyText };
+  var api = { flyMorning: flyMorning, logFromCsv: logFromCsv, logOf: logOf, quizResume: quizResume, quizScoreAdd: quizScoreAdd, quizScoreText: quizScoreText, logByPilot: logByPilot, specialDue: specialDue, planToLog: planToLog, quizOrder: quizOrder, quizMark: quizMark, quizKeys: quizKeys, quizLabel: quizLabel, wxCell: wxCell, flyWx: flyWx, ptyWord: ptyWord, kstHm: kstHm, dayWindow: dayWindow, CHECKS: CHECKS, checksToday: checksToday, logSum: logSum, logCsv: logCsv, minText: minText, planWindow: planWindow, heritageCell: heritageCell, heritageNotes: heritageNotes, shootText: shootText, tmpState: tmpState, firstDay: firstDay, workdays: workdays, dueText: dueText, toGeoJSON: toGeoJSON, nearStrict: nearStrict, setLang: setLang, nextSize: nextSize, inRing: inRing, inGeom: inGeom, isTca: isTca, zonesAt: zonesAt, levelOf: levelOf, zoneLine: zoneLine, verdict: verdict, meters: meters, nearest: nearest, nearUa: nearUa, dist: dist, applyText: applyText };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
   root.DF = api;
 
@@ -720,6 +783,11 @@
       return '<li><span>' + esc(e.d + ' · ' + minText(+e.min || 0) + (e.place ? ' · ' + e.place : '') + (e.drone ? ' · ' + e.drone : '') + (e.pilot ? ' · 👤 ' + e.pilot : '') + (e.note ? ' · ' + e.note : '')) + '</span> <button type="button" class="del" data-i="' + i + '" aria-label="' + esc(tr('이 기록 지우기', 'Delete this entry')) + '">✕</button></li>';
     }).join('');
     $('logCsv').hidden = !list.length;
+    // 조종자가 둘 이상 적혀 있으면 CSV 에 넣을 사람을 고름(처음은 모두)
+    var who = $('logWho'), was = who.value;
+    who.hidden = !list.length || !bp.length;
+    who.innerHTML = '<option value="">' + esc(tr('모든 조종자', 'All pilots')) + '</option>' + bp.map(function (x) { return '<option>' + esc(x.pilot) + '</option>'; }).join('');
+    who.value = bp.some(function (x) { return x.pilot === was; }) ? was : '';
   }
   function initLog() {
     $('logDate').value = todayKst();
@@ -752,13 +820,55 @@
       try { $('log').scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { $('log').scrollIntoView(); }
       $('logMin').focus({ preventScroll: true });
     });
+    initFlyAlarm();
     $('logCsv').addEventListener('click', function () {
       var a = document.createElement('a');
-      a.href = URL.createObjectURL(new Blob([logCsv(logList())], { type: 'text/csv;charset=utf-8' }));
-      a.download = 'dronefly-log-' + todayKst() + '.csv';
+      var who = $('logWho').value;
+      a.href = URL.createObjectURL(new Blob([logCsv(logOf(logList(), who))], { type: 'text/csv;charset=utf-8' }));
+      a.download = 'dronefly-log-' + (who ? who.replace(/[\\/:*?"<>|\s]+/g, '_') + '-' : '') + todayKst() + '.csv';
       document.body.appendChild(a);
       a.click();
       setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    });
+    // ⬆ CSV 불러오기 - 받아 둔 기록장 CSV 를 합침(같은 기록은 건너뜀). 파일은 폰 안에서만 읽고 서버로 보내지 않음
+    $('logLoad').addEventListener('click', function () { $('logFile').value = ''; $('logFile').click(); });
+    $('logFile').addEventListener('change', function () {
+      var f = $('logFile').files && $('logFile').files[0], out = $('logLoaded');
+      if (!f) return;
+      var r = new FileReader();
+      r.onload = function () {
+        var add = logFromCsv(RF.csvRows(r.result));
+        out.hidden = false;
+        if (!add) { out.textContent = tr('비행 기록장 CSV 가 아닙니다("⬇ CSV 로 저장" 으로 받은 파일을 고르세요).', 'This is not a flight-log CSV (pick a file saved with “⬇ Save as CSV”).'); return; }
+        var m = RF.mergeRows(logList(), add.map(function (e) { e.min = String(e.min); return e; }), ['d', 'min', 'place', 'drone', 'pilot', 'note'], 500);
+        save('df-log', JSON.stringify(m.list));
+        paintLog();
+        out.textContent = tr(add.length + '줄 가운데 ' + m.added + '개를 더했습니다(이미 있던 ' + (add.length - m.added) + '개는 건너뜀).', 'Added ' + m.added + ' of ' + add.length + ' rows (' + (add.length - m.added) + ' already here).');
+      };
+      r.onerror = function () { out.hidden = false; out.textContent = tr('파일을 읽지 못했습니다.', 'Could not read the file.'); };
+      r.readAsText(f, 'utf-8');
+    });
+  }
+
+  // 🔔 비행 날 아침 알림 - 앱(안드로이드)에서만, 화면을 닫아도 울림(출조 알림과 같은 LocalNotifications). 브라우저는 단추를 숨김
+  function initFlyAlarm() {
+    var CAP = window.Capacitor, NATIVE = !!(CAP && CAP.isNativePlatform && CAP.isNativePlatform());
+    var LN = NATIVE && (!CAP.isPluginAvailable || CAP.isPluginAvailable('LocalNotifications')) && CAP.Plugins && CAP.Plugins.LocalNotifications || null;
+    if (!LN) return;
+    var msg = $('flyAlarmMsg'), show = function (t) { msg.hidden = false; msg.textContent = t; };
+    $('flyAlarm').hidden = false;
+    $('flyAlarm').addEventListener('click', function () {
+      var n = flyMorning({ date: $('date').value, from: $('from').value, place: planToLog({ name: here && here.name, me: here && here.me, lat: here && here.lat, lon: here && here.lon }).place }, Date.now());
+      if (!n) { show(tr('비행 날짜 · 시작 시각이 이미 지났거나 비어 있습니다.', 'The flight date and start time are empty or already past.')); return; }
+      Promise.resolve(LN.createChannel({ id: 'rf-dronefly', name: tr('드론플라이 비행 알림', 'Dronefly alerts'), importance: 4, visibility: 1, vibration: true })).catch(function () { /* 이미 있음 */ })
+        .then(function () { return Promise.resolve(LN.cancel({ notifications: [{ id: n.id }] })).catch(function () { /* 없음 */ }); })
+        .then(function () { return Promise.resolve(LN.requestPermissions()).catch(function () { return null; }); })
+        .then(function (perm) {
+          if (perm && perm.display && perm.display !== 'granted') throw new Error('denied');
+          return LN.schedule({ notifications: [{ id: n.id, title: n.title, body: n.body, schedule: { at: new Date(n.at), allowWhileIdle: true }, channelId: 'rf-dronefly', extra: { page: 'dronefly' } }] });
+        })
+        .then(function () { var when = $('date').value.slice(5) + ' ' + kstHm(n.at); show(tr(when + ' 에 알립니다(한 번에 한 비행만 - 다시 누르면 바뀜).', 'You will be alerted at ' + when + ' (one flight at a time - tapping again replaces it).')); })
+        .catch(function () { show(tr('알림을 맞추지 못했습니다. 폰 설정에서 routefly 알림을 켜 주세요.', 'Could not set the alert. Please allow notifications for routefly in phone settings.')); });
     });
   }
 
@@ -767,23 +877,41 @@
   function wrongList() { return quizKeys(load('df-quiz')); }
   function curSet() { return quiz ? quiz.sets.filter(function (s) { return s.id === $('quizSet').value; })[0] || quiz.sets[0] : null; }
   function setId() { return $('quizSet').value || 'c4'; }
+  // 이어 풀기 자리(df-quiz-at {묶음: 마지막으로 푼 번호}) · 점수 기록(df-quiz-score, 30개) - 2026-11-18 홍TV님 "1~5" 3 · "3번문항까지 풀면 그다음 4번"
+  function quizAt() { var a = load('df-quiz-at'); return a && typeof a === 'object' && !Array.isArray(a) ? a : {}; }
   function paintWrongBtn() {
     var pre = setId() + ':', n = wrongList().filter(function (k) { return k.indexOf(pre) === 0; }).length;
     $('quizWrong').textContent = tr('틀린 것만 (' + n + ')', 'Wrong ones (' + n + ')');
     $('quizWrong').disabled = !n;
+    // "1번부터" → 푼 자리가 있으면 "4번부터 이어서" + "처음부터"(문항 목록을 받기 전에는 번호만 보고 둠)
+    var set = curSet(), last = quizAt()[setId()], nos = set ? set.qs.map(function (q) { return q.no; }) : [];
+    var i = set ? quizResume(nos, last) : 0;
+    $('quizAll').textContent = i ? tr(quizLabel(nos[i]).replace(/\.$/, '번').replace(/\)$/, '') + '부터 이어서', 'Continue from no. ' + nos[i]) : tr('1번부터', 'From no. 1');
+    $('quizRestart').hidden = !i;
+    var sc = (load('df-quiz-score') || []).filter(function (r) { return r && r.set === setId() && r.n > 0; }).slice(0, 3);
+    $('quizScores').hidden = !sc.length;
+    $('quizScores').textContent = sc.length ? tr('지난 점수: ', 'Recent scores: ') + sc.map(quizScoreText).join(' / ') : '';
+  }
+  /** 이번에 푼 것을 점수 기록에 한 번만(다 풀었을 때 · 다른 시험으로 바꾸거나 새로 시작할 때 · 화면을 떠날 때). */
+  function keepScore() {
+    if (!run || run.kept || !run.n) return;
+    run.kept = true;
+    save('df-quiz-score', JSON.stringify(quizScoreAdd(load('df-quiz-score'), { d: todayKst(), set: run.set.id, mode: run.mode, n: run.n, ok: run.ok })));
   }
   var quizWait = null;
   function loadQuiz(then) {
     if (quiz) { if (then) then(); return; }
     if (!quizWait) quizWait = fetch('data/drone-quiz.json').then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (d) { quiz = d; })
       .catch(function () { quizWait = null; $('quizBox').hidden = false; $('quizBox').textContent = tr('문항을 받지 못했습니다. 잠시 뒤 다시 눌러 주세요.', 'Could not load the questions. Please try again in a moment.'); });
-    quizWait.then(function () { if (quiz && then) then(); });
+    quizWait.then(function () { if (quiz) paintWrongBtn(); if (quiz && then) then(); });
   }
-  function startQuiz(mode) {
-    if (!quiz) { loadQuiz(function () { startQuiz(mode); }); return; }
+  function startQuiz(mode, fresh) {
+    if (!quiz) { loadQuiz(function () { startQuiz(mode, fresh); }); return; }
+    keepScore();
     var set = curSet(), pre = set.id + ':';
     var wrong = wrongList().filter(function (k) { return k.indexOf(pre) === 0; }).map(function (k) { return k.slice(pre.length); });
-    run = { set: set, list: quizOrder(set.qs.map(function (q) { return q.no; }), mode, wrong), i: 0, ok: 0 };
+    run = { set: set, mode: mode, list: quizOrder(set.qs.map(function (q) { return q.no; }), mode, wrong), i: 0, ok: 0, n: 0 };
+    if (mode === 'all' && !fresh) run.i = quizResume(run.list, quizAt()[set.id]);
     if (!run.list.length) return;
     showQ();
     try { $('quizBox').scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { /* 옛 브라우저 */ }
@@ -806,23 +934,30 @@
       else if (n === a) b.className = 'wrong';
     });
     if (ok) run.ok++;
+    run.n++;
     save('df-quiz', JSON.stringify(quizMark(wrongList(), run.set.id + ':' + q.no, ok)));
-    paintWrongBtn();
     var last = run.i + 1 >= run.list.length, after = box.querySelector('.qAfter');
+    if (run.mode === 'all') { var at = quizAt(); at[run.set.id] = q.no; save('df-quiz-at', JSON.stringify(at)); }
+    if (last) keepScore();
+    paintWrongBtn();
     after.hidden = false;
     after.innerHTML = '<p class="qRes ' + (ok ? 'ok' : 'no') + '">' + esc(ok ? tr('⭕ 맞았습니다', '⭕ Right') : tr('❌ 틀렸습니다 - 정답 ', '❌ Wrong - answer ') + '①②③④'.charAt(q.ans - 1)) + '</p>'
       + (q.ex ? '<p class="qEx">' + esc(q.ex) + '</p>' : '')
-      + '<p class="small"><a href="https://hongtv.tistory.com/' + q.post + '" target="_blank" rel="noopener">' + esc(tr('블로그 글에서 그림과 함께 보기 ›', 'See it on the blog with pictures ›')) + '</a></p>'
-      + (last ? '<p class="qEnd">' + esc(tr(run.list.length + '문항 중 ' + run.ok + '문항 맞음 (' + Math.round(run.ok / run.list.length * 100) + '%)', run.ok + ' of ' + run.list.length + ' right (' + Math.round(run.ok / run.list.length * 100) + '%)')) + '</p>'
+      + (q.post ? '<p class="small"><a href="https://hongtv.tistory.com/' + q.post + '" target="_blank" rel="noopener">' + esc(tr('블로그 글에서 그림과 함께 보기 ›', 'See it on the blog with pictures ›')) + '</a></p>' : '')
+      + (q.basis ? '<p class="small dim">' + esc(tr('근거: ', 'Basis: ') + q.basis) + '</p>' : '')
+      + (last ? '<p class="qEnd">' + esc(tr('이번에 ' + run.n + '문항 중 ' + run.ok + '문항 맞음 (' + Math.round(run.ok / run.n * 100) + '%)', run.ok + ' of ' + run.n + ' right this time (' + Math.round(run.ok / run.n * 100) + '%)')) + '</p>'
         : '<div class="row"><button type="button" class="btn go qNext">' + esc(tr('다음 문항 ›', 'Next ›')) + '</button></div>');
   }
   function initQuiz() {
     paintWrongBtn();
     $('quiz').addEventListener('toggle', function () { if ($('quiz').open) loadQuiz(); });   // 칸을 펼 때 미리 받음
     $('quizAll').addEventListener('click', function () { startQuiz('all'); });
+    $('quizRestart').addEventListener('click', function () { startQuiz('all', true); });
+    // 화면을 떠나면 그때까지 푼 것을 점수로(이어 풀기 자리는 문항마다 저장됨)
+    document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') keepScore(); });
     $('quizMix').addEventListener('click', function () { startQuiz('mix'); });
     $('quizWrong').addEventListener('click', function () { startQuiz('wrong'); });
-    $('quizSet').addEventListener('change', function () { run = null; $('quizBox').hidden = true; paintWrongBtn(); });   // 시험을 바꾸면 풀던 것은 닫음
+    $('quizSet').addEventListener('change', function () { keepScore(); run = null; $('quizBox').hidden = true; paintWrongBtn(); });   // 시험을 바꾸면 풀던 것은 닫음
     $('quizBox').addEventListener('click', function (e) {
       var b = e.target.closest('button');
       if (!b || !run) return;

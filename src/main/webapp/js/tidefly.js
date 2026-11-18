@@ -586,7 +586,22 @@
     return '\ufeff' + rows.map(function (r) { return r.map(q).join(','); }).join('\r\n') + '\r\n';
   }
 
-  var TF = { appNotes: appNotes, favToggle: favToggle, weekGood: weekGood, catchCsv: catchCsv, kst: kst, dir16: dir16, swell: swell, nums: nums, markOf: markOf, markWord: markWord, nowKst: nowKst, dayName: dayName,
+  /**
+   * 순수 함수 - 저장한 조과 일지 CSV 줄(RF.csvRows) → 기록 [{d, name, mul, fish, note}](2026-11-18 홍TV님 "1~5 번까지" 1 - 폰을 바꿔도 되살리기, 사진은 CSV 에 없음).
+   * 머리 줄이 catchCsv 것이 아니면 null(다른 파일). 날짜(YYYY-MM-DD) · 자리가 없는 줄은 버림.
+   */
+  function catchFromCsv(rows) {
+    var head = (rows && rows[0] || []).map(function (h) { return String(h).trim(); });
+    if (head.join(',') !== '날짜,자리,물때,고기,메모') return null;
+    var out = [];
+    rows.slice(1).forEach(function (r) {
+      var e = { d: String(r[0] || '').trim(), name: String(r[1] || '').trim(), mul: String(r[2] || '').trim(), fish: String(r[3] || '').trim(), note: String(r[4] || '').trim() };
+      if (/^\d{4}-\d\d-\d\d$/.test(e.d) && e.name) out.push(e);
+    });
+    return out;
+  }
+
+  var TF = { catchFromCsv: catchFromCsv, appNotes: appNotes, favToggle: favToggle, weekGood: weekGood, catchCsv: catchCsv, kst: kst, dir16: dir16, swell: swell, nums: nums, markOf: markOf, markWord: markWord, nowKst: nowKst, dayName: dayName,
     tideTable: tideTable, goodDays: goodDays, moon: moon, sunSpan: sunSpan, hourRow: hourRow, wrnWhen: wrnWhen, untilText: untilText, nextTide: nextTide, curve: curve, nextSize: nextSize, isDark: isDark,
     setLang: setLang, roman: roman, placeName: placeName, zoneName: zoneName, reason: reason, mul: mul,
     alarmPlan: alarmPlan, alarmText: alarmText, nearest: nearest, spotItem: spotItem, worseMark: worseMark, bare: bare, fishHit: fishHit, stayRows: stayRows, lawFor: lawFor, inSeason: inSeason, closedText: closedText };
@@ -1662,6 +1677,25 @@
     document.body.appendChild(a);
     a.click();
     setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  });
+  // ⬆ CSV 불러오기 - 받아 둔 조과 일지 CSV 를 합침(같은 기록은 건너뜀, 사진은 CSV 에 없어 글만). 파일은 폰 안에서만 읽음
+  document.getElementById('catchLoad').addEventListener('click', function () { var f = document.getElementById('catchFile'); f.value = ''; f.click(); });
+  document.getElementById('catchFile').addEventListener('change', function () {
+    var f = this.files && this.files[0], out = document.getElementById('catchLoaded');
+    if (!f) return;
+    var r = new FileReader();
+    r.onload = function () {
+      var add = catchFromCsv(RF.csvRows(r.result));
+      out.hidden = false;
+      if (!add) { out.textContent = tr('조과 일지 CSV 가 아닙니다("⬇ CSV 로 저장" 으로 받은 파일을 고르세요).', 'This is not a catch-log CSV (pick a file saved with “⬇ Save as CSV”).'); return; }
+      var m = RF.mergeRows(catchList(), add, ['d', 'name', 'mul', 'fish', 'note'], 500);
+      catchList().forEach(function (x) { if (x.photo && m.list.indexOf(x) < 0) pdo('readwrite', function (s) { s.delete(x.photo); }).catch(function () { /* 없음 */ }); });   // 500개를 넘겨 빠진 기록의 사진
+      save('tf-catch', m.list);
+      paintCatch();
+      out.textContent = tr(add.length + '줄 가운데 ' + m.added + '개를 더했습니다(이미 있던 ' + (add.length - m.added) + '개는 건너뜀).', 'Added ' + m.added + ' of ' + add.length + ' rows (' + (add.length - m.added) + ' already here).');
+    };
+    r.onerror = function () { out.hidden = false; out.textContent = tr('파일을 읽지 못했습니다.', 'Could not read the file.'); };
+    r.readAsText(f, 'utf-8');
   });
   // 알림 띠는 누르거나 ✕ 단추 · Esc 로 닫음(점검 10차 D7 - 키보드로 닫을 수 없었음)
   var alarmEl = document.getElementById('alarm');
