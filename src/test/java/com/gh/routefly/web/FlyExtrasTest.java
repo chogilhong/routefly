@@ -48,4 +48,15 @@ public class FlyExtrasTest {
         assertTrue(kit.contains("function sunrise(") && kit.contains("function sunset("));
         assertTrue("야간 근거 조문", js.contains("시행규칙 제310조 ① 6호"));
     }
+
+    @Test
+    public void 출조_자주_가는_곳_이번_주_조과_일지() throws Exception {
+        String h = read("src/main/webapp/tidefly.html"), js = read("src/main/webapp/js/tidefly.js");
+        for (String id : new String[] {"id=\"catchLog\"", "id=\"catchList\"", "id=\"catchCsv\"", "id=\"catchSum\""}) assertTrue(id, h.contains(id));
+        assertTrue("★ 단추는 펼침 단추 밖(단추 안에 단추 없음)", js.contains("hh.appendChild(head);") && js.contains("hh.appendChild(fv);"));
+        assertTrue("★ 자주 가는 곳 묶음", js.contains("tr('★ 자주 가는 곳 ' + fl.length + '곳'"));
+        assertTrue("이번 주는 물때로만 - 바람 · 파고 숫자로 좋은 날을 정하지 않음", js.contains("box.appendChild(weekEl(d.days, good));") && js.contains("물때로만 고른 날입니다."));
+        assertTrue("조과 기록 칸에 치는 중에는 1분 다시 그리기를 건너뜀", js.contains("(fa.tagName === 'SELECT' || fa.tagName === 'INPUT')"));
+        keysInPolicy(js, "tf-");
+    }
 }

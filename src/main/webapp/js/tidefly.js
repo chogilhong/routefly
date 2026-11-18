@@ -538,7 +538,38 @@
     return '☀ ' + one(rows[0]) + (rows.length > 1 ? ' → ' + one(rows[rows.length - 1]) : '');
   }
 
-  var TF = { kst: kst, dir16: dir16, swell: swell, nums: nums, markOf: markOf, markWord: markWord, nowKst: nowKst, dayName: dayName,
+  // ---- 2026-11-18 홍TV님 "1~8 전부": 5 ★ 자주 가는 곳 · 6 이번 주 좋은 날 · 7 조과 일지 ----
+
+  /** 순수 함수 - 자주 가는 곳 목록에서 넣기 · 빼기(맨 앞에 넣음, 30곳까지). */
+  function favToggle(list, name) {
+    list = Array.isArray(list) ? list.filter(function (x) { return typeof x === 'string'; }) : [];
+    var i = list.indexOf(name);
+    if (i >= 0) { list.splice(i, 1); return list; }
+    return [name].concat(list).slice(0, 30);
+  }
+
+  /**
+   * 순수 함수 - 물때표 날들(차례대로)에서 오늘부터 7일 [{date, day, mul, good, sari, neap}].
+   * good - 자리의 좋은 물때(해양수산부 조수물때내용)가 있으면 goodDays 로 true/false, 없으면 null. 바람 · 파고로 "좋은 날" 을 정하지 않음(숫자 기준 없음 - docs/tidefly/README.md).
+   */
+  function weekGood(days, goodText, today) {
+    var all = days || [], idx = -1;
+    for (var i = 0; i < all.length; i++) if (String(all[i].date) >= today) { idx = i; break; }
+    if (idx < 0) return [];
+    var g = goodText ? goodDays(goodText, all) : null;
+    return all.slice(idx, idx + 7).map(function (d, k) {
+      return { date: d.date, day: dayName(d.date), mul: mul(d.mulddae), good: g ? g[idx + k] : null, sari: !!d.sari, neap: d.mulddae === '조금' || d.mulddae === '무시' };
+    });
+  }
+
+  /** 순수 함수 - 조과 일지 CSV(엑셀이 한글을 읽게 BOM, 쉼표 · 따옴표 · 줄바꿈은 따옴표로 감쌈 - 드론 기록장 DF.logCsv 와 같은 꼴). */
+  function catchCsv(list) {
+    var q = function (v) { v = String(v == null ? '' : v); return /[",\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+    var rows = [['날짜', '자리', '물때', '고기', '메모']].concat((list || []).map(function (e) { return [e.d, e.name, e.mul, e.fish, e.note]; }));
+    return '\ufeff' + rows.map(function (r) { return r.map(q).join(','); }).join('\r\n') + '\r\n';
+  }
+
+  var TF = { favToggle: favToggle, weekGood: weekGood, catchCsv: catchCsv, kst: kst, dir16: dir16, swell: swell, nums: nums, markOf: markOf, markWord: markWord, nowKst: nowKst, dayName: dayName,
     tideTable: tideTable, goodDays: goodDays, moon: moon, sunSpan: sunSpan, hourRow: hourRow, wrnWhen: wrnWhen, untilText: untilText, nextTide: nextTide, curve: curve, nextSize: nextSize, isDark: isDark,
     setLang: setLang, roman: roman, placeName: placeName, zoneName: zoneName, reason: reason, mul: mul,
     alarmPlan: alarmPlan, alarmText: alarmText, nearest: nearest, spotItem: spotItem, worseMark: worseMark, bare: bare, fishHit: fishHit, stayRows: stayRows, lawFor: lawFor, inSeason: inSeason, closedText: closedText };
@@ -565,6 +596,8 @@
   // 2026-11-15 홍TV님 "처음에는 전부 접혀줘" - 펼친 지역 묶음만 기억 { 동해: true }(전에는 접은 것을 기억 tf-folded)
   var openAreas = loadPref('tf-open-areas', {});
   var openCard = {};                          // 펼친 카드(이 화면에서만)
+  var favs = loadPref('tf-favs', []);   // ★ 자주 가는 곳(포인트 · 자리 이름, 2026-11-18) - 꼴이 틀린 값은 버림
+  favs = Array.isArray(favs) ? favs.filter(function (x) { return typeof x === 'string' && x; }).slice(0, 30) : [];
   var lastData = null, lastText = null, urlOpen = null;
 
   function loadPref(k, dflt) {
@@ -693,6 +726,14 @@
     head.appendChild(chev);
     var hh = el('h3', 'card-h');   // 제목 안에 단추(전에는 단추 안에 h3 - 점검 10차 D5)
     hh.appendChild(head);
+    // ★ 자주 가는 곳(2026-11-18 홍TV님 "1~8 전부" 5) - 펼침 단추 옆 따로 단추(단추 안에 단추를 두지 않음)
+    var isFav = favs.indexOf(p.name) >= 0, fv = el('button', 'fav' + (isFav ? ' on' : ''), isFav ? '★' : '☆');
+    fv.type = 'button';
+    fv.setAttribute('aria-pressed', isFav ? 'true' : 'false');
+    fv.setAttribute('aria-label', tr('자주 가는 곳: ', 'Favourite: ') + placeName(p.name));
+    fv.setAttribute('data-fk', 'fav|' + curSec + '|' + p.name);
+    fv.addEventListener('click', function () { favs = favToggle(favs, p.name); save('tf-favs', favs); draw(); });
+    hh.appendChild(fv);
     li.appendChild(hh);
 
     var shut = closedText(closed[p.name]);
@@ -765,7 +806,7 @@
     }
     li.appendChild(tbox);
     // 15일 물때표 단추는 물때 칸 바로 아래(점검 10차 D8 - 숙소 · 식당 아래에 묻혀 있었음)
-    var more = el('button', 'more', open[p.name] ? tr('접기 ▴', 'Close ▴') : tr('15일 물때표 · 3일 예보 ▾', '15-day tide table · 3-day forecast ▾'));
+    var more = el('button', 'more', open[p.name] ? tr('접기 ▴', 'Close ▴') : tr('📅 이번 주 좋은 날 · 15일 물때표 · 3일 예보 ▾', '📅 This week · 15-day tide table · 3-day forecast ▾'));
     more.type = 'button';
     more.setAttribute('aria-expanded', open[p.name] ? 'true' : 'false');
     more.setAttribute('data-fk', 'more|' + curSec + '|' + p.name);
@@ -789,6 +830,7 @@
     }
     if (p.boat) li.appendChild(el('p', 'dim small', tr('⛴ 출항은 선사에 확인하세요.', '⛴ Check sailing with the boat operator.')));
     li.appendChild(alarmBox(it, now));
+    li.appendChild(catchBox(it, now));
     if (typeof p.lat === 'number' && typeof p.lon === 'number') li.appendChild(stayBox(p, sec));
     if (!p.boat && lang === 'ko') {   // 🚗 쏘카(휴대폰만 - 앱 예약만 실적, 제휴 안내가 링크 앞) - 항구 · 갯바위 카드, 점검 10차 F1
       var sc = el('p', 'socar small');
@@ -943,6 +985,22 @@
         fs.appendChild(ful);
         listEl.appendChild(fs);
         shown += found.length;
+      }
+    }
+    // ★ 자주 가는 곳 - 지역 묶음 위에 고른 차례로(2026-11-18). 갯바위 · 선상 자리가 들어 있으면 자리 자료를 받음
+    if (favs.length) {
+      var pool = {};
+      items.concat(spotItems()).forEach(function (it) { if (it.point && !pool[it.point.name]) pool[it.point.name] = it; });
+      if (favs.some(function (n) { return !pool[n]; })) loadSpots();
+      var fl = favs.map(function (n) { return pool[n]; }).filter(function (it) { return it && fits(it); });
+      if (fl.length) {
+        var fsx = el('section', 'area near fav');
+        fsx.appendChild(el('h2', 'near-title', tr('★ 자주 가는 곳 ' + fl.length + '곳', '★ Favourites: ' + fl.length)));
+        var fux = el('ul', 'cards');
+        curSec = 'fav';
+        fl.forEach(function (it) { fux.appendChild(card(it, now)); });
+        fsx.appendChild(fux);
+        listEl.appendChild(fsx);
       }
     }
     if (nearAt) {   // 📍 내 근처 - 지역 묶음 위에 가까운 차례로(2026-11-15), 갯바위 · 선상 자리도 함께(받은 뒤)
@@ -1215,11 +1273,79 @@
     return box;
   }
 
+  /** 📅 이번 주 좋은 날(2026-11-18 홍TV님 "1~8 전부" 6) - 물때로만: 자리 좋은 물때에 맞는 날, 없으면 사리 · 조금 날. 바람 · 파고는 아래 예보 · ○ △ ✕ 로. */
+  function weekEl(days, good) {
+    var box = el('div', 'week'), w = weekGood(days, good, nowKst(Date.now()).slice(0, 10));
+    if (!w.length) return box;
+    box.appendChild(el('h4', null, tr('📅 이번 주 (' + w.length + '일)', '📅 This week (' + w.length + ' days)')));
+    var row = el('ul', 'weekRow');
+    w.forEach(function (x) {
+      var c = el('li', (x.good ? 'good ' : '') + (x.sari ? 'sari' : x.neap ? 'neap' : ''), x.day + ' ' + x.mul);
+      if (x.good) c.setAttribute('aria-label', x.day + ' ' + x.mul + tr(' - 좋은 물때', ' - good tide'));
+      row.appendChild(c);
+    });
+    box.appendChild(row);
+    var names = function (f) { return w.filter(f).map(function (x) { return x.day; }).join(' · '); };
+    if (good) {
+      var g = names(function (x) { return x.good; });
+      box.appendChild(el('p', g ? 'weekLine good' : 'weekLine', g ? tr('이 자리 좋은 물때(' + good + ')에 맞는 날: ' + g, 'Days matching this spot\'s best tide (' + good + '): ' + g)
+        : tr('이번 주에는 이 자리 좋은 물때(' + good + ')에 맞는 날이 없습니다.', 'No day this week matches this spot\'s best tide (' + good + ').')));
+    } else {
+      var s = names(function (x) { return x.sari; }), n = names(function (x) { return x.neap; });
+      if (s) box.appendChild(el('p', 'weekLine', tr('사리(물 많이 듦): ', 'Spring tide: ') + s));
+      if (n) box.appendChild(el('p', 'weekLine', tr('조금 · 무시(물 적게 듦): ', 'Neap tide: ') + n));
+    }
+    box.appendChild(el('p', 'dim small', tr('물때로만 고른 날입니다. 바람 · 파고는 아래 3일 예보와 카드의 ○ △ ✕(기상청 특보 · 너울)로 보세요.', 'Picked by tide only. For wind and waves see the 3-day forecast below and the ○ △ ✕ marks (KMA warnings and swell).')));
+    return box;
+  }
+
+  // ---- 📝 조과 일지(2026-11-18 홍TV님 "1~8 전부" 7) - 이 폰에만(tf-catch), 새 것이 위, 500개까지 ----
+  function catchList() { var l = loadPref('tf-catch', []); return Array.isArray(l) ? l : []; }
+  function catchBox(it, now) {
+    var p = it.point || {}, box = el('form', 'catchBox');
+    box.appendChild(el('p', 'label', tr('📝 조과 기록', '📝 Log a catch')));
+    var fish = el('input'), note = el('input'), b = el('button', 'more', tr('+ 일지에 남기기', '+ Add to log'));
+    fish.type = 'text'; fish.maxLength = 30; fish.placeholder = tr('고기 (예: 감성돔 2)', 'Fish (e.g. black porgy 2)');
+    fish.setAttribute('aria-label', tr('잡은 고기', 'Fish caught'));
+    note.type = 'text'; note.maxLength = 80; note.placeholder = tr('메모 (미끼 · 시각 등)', 'Note (bait, time …)');
+    note.setAttribute('aria-label', tr('메모', 'Note'));
+    b.type = 'submit';
+    box.appendChild(fish); box.appendChild(note); box.appendChild(b);
+    box.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (!fish.value.trim() && !note.value.trim()) { fish.focus(); return; }
+      var list = catchList();
+      list.unshift({ d: now.slice(0, 10), name: p.name, mul: it.today ? it.today.mulddae || '' : '', fish: fish.value.trim(), note: note.value.trim() });
+      save('tf-catch', list.slice(0, 500));
+      fish.value = ''; note.value = '';
+      b.textContent = tr('✓ 남김', '✓ Added');
+      paintCatch();
+    });
+    return box;
+  }
+  function paintCatch() {
+    var list = catchList(), ul = document.getElementById('catchList');
+    if (!ul) return;
+    document.getElementById('catchSum').textContent = list.length ? tr('모두 ' + list.length + '번', list.length + ' entries') : tr('아직 기록이 없습니다. 카드를 펴서 "📝 조과 기록" 으로 남기세요.', 'Nothing yet. Open a card and use "📝 Log a catch".');
+    ul.textContent = '';
+    list.forEach(function (e, i) {
+      var li = el('li'), x = el('button', 'del', '✕');
+      li.appendChild(el('span', null, e.d + ' · ' + placeName(e.name) + (e.mul ? ' · ' + mul(e.mul) : '') + (e.fish ? ' · ' + e.fish : '') + (e.note ? ' · ' + e.note : '')));
+      x.type = 'button';
+      x.setAttribute('data-i', i);
+      x.setAttribute('aria-label', tr('이 기록 지우기', 'Delete this entry'));
+      li.appendChild(x);
+      ul.appendChild(li);
+    });
+    document.getElementById('catchCsv').hidden = !list.length;
+  }
+
   function detailEl(name, good) {
     var box = el('div', 'detail');
     var d = detail[name];
     if (d === 'loading' || !d) { box.appendChild(el('p', 'dim', tr('15일 물때표 · 3일 예보를 받는 중…', 'Loading the 15-day tide table and 3-day forecast…'))); return box; }
     if (d === 'error') { box.appendChild(el('p', 'dim', tr('받지 못했습니다. 다시 눌러 보세요.', 'Could not load. Please tap again.'))); delete detail[name]; return box; }
+    box.appendChild(weekEl(d.days, good));
     box.appendChild(tideTableEl(d.days, good));
     box.appendChild(el('h4', null, tr('3일 바다 예측 (3시간 간격)', '3-day sea forecast (every 3 hours, KST)')));
     if (!(d.hourly || []).length) box.appendChild(el('p', 'dim', tr('예측을 받지 못했습니다.', 'Forecast not available.')));
@@ -1310,6 +1436,7 @@
     Array.prototype.forEach.call(langBtns, function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-lang') === lang ? 'true' : 'false'); });
     paintToday();
     paintOptions();
+    paintCatch();   // 조과 일지 글도 말을 따라
   }
 
   /** 머리의 오늘 날짜 - 1분마다 다시(자정을 넘겨 열어 둔 화면이 어제 날짜로 남던 것, 점검 10차). */
@@ -1404,9 +1531,26 @@
     paintToday();
     if (!listEl.querySelector('.cards')) return;
     var fa = document.activeElement;
-    if (!(fa && listEl.contains(fa) && fa.tagName === 'SELECT')) draw();
+    if (!(fa && listEl.contains(fa) && (fa.tagName === 'SELECT' || fa.tagName === 'INPUT'))) draw();   // 조과 기록 칸에 치는 중에도(2026-11-18)
   }, 60000);
   setInterval(checkAlarms, 30000);
+  // 📝 조과 일지 칸 - 지우기 · CSV(2026-11-18), 글은 paintFixed 가 그림
+  document.getElementById('catchList').addEventListener('click', function (e) {
+    var b = e.target.closest('button.del');
+    if (!b || !window.confirm(tr('이 기록을 지울까요?', 'Delete this entry?'))) return;
+    var list = catchList();
+    list.splice(+b.getAttribute('data-i'), 1);
+    save('tf-catch', list);
+    paintCatch();
+  });
+  document.getElementById('catchCsv').addEventListener('click', function () {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([catchCsv(catchList())], { type: 'text/csv;charset=utf-8' }));
+    a.download = 'tidefly-catch-' + nowKst(Date.now()).slice(0, 10) + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  });
   // 알림 띠는 누르거나 ✕ 단추 · Esc 로 닫음(점검 10차 D7 - 키보드로 닫을 수 없었음)
   var alarmEl = document.getElementById('alarm');
   alarmEl.addEventListener('click', function () { alarmEl.hidden = true; });

@@ -224,3 +224,23 @@ main { padding-top: 14px; padding-bottom: 24px; }
 .ssMap .ssPin::after { content: ""; position: absolute; inset: -10px; }
 .ssMap .ssHere { position: absolute; transform: translate(-50%, -100%); font-size: 24px; line-height: 1; }
 .ssMap .ssAttr { position: absolute; right: 4px; bottom: 2px; padding: 0 4px; font-size: 10px; color: #333; background: rgba(255, 255, 255, .75); border-radius: 3px; }
+/* ★ 자주 가는 곳 · 📅 이번 주 · 📝 조과 일지(2026-11-18 홍TV님 "1~8 전부") */
+.card-h { display: flex; align-items: center; gap: 4px; }
+.card-h .head { flex: 1; min-width: 0; }
+.fav { flex: 0 0 auto; min-width: 44px; min-height: 44px; border: 0; background: none; color: var(--dim); font-size: 1.35rem; line-height: 1; cursor: pointer; }
+.fav.on { color: #f5b301; }
+.week { margin: 0 0 10px; }
+.weekRow { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 6px 0; padding: 0; }
+.weekRow li { padding: 4px 8px; border: 1px solid var(--line); border-radius: 999px; font-size: .85rem; }
+.weekRow li.sari { border-color: #e8710a; }
+.weekRow li.neap { border-color: #8e7cc3; }
+.weekRow li.good { border: 2px solid var(--ok); color: var(--ok); font-weight: 700; }
+.weekLine { margin: 4px 0; font-size: .92rem; }
+.weekLine.good { color: var(--ok); font-weight: 700; }
+.catchBox { display: grid; grid-template-columns: 1fr; gap: 6px; margin: 10px 0 0; }
+.catchBox .label { margin: 0; }
+.catchBox input { min-height: 44px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); font-size: 1rem; box-sizing: border-box; width: 100%; }
+.catchList { margin: 6px 0; padding-left: 22px; font-size: .9rem; }
+.catchList li { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; border-top: 1px solid var(--line); }
+.catchList .del { flex: 0 0 auto; min-width: 44px; min-height: 44px; border: 0; background: none; color: var(--dim); cursor: pointer; }
+.catchSum { margin: 8px 0 4px; font-weight: 700; }

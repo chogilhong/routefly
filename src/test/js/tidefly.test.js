@@ -259,5 +259,24 @@ assert.strictEqual(TF.alarmText(plan[1], '김녕', { sun: 60 }), '해 지기 60�
   TF.setLang('ko');
 }
 
+// 2026-11-18 홍TV님 "1~8 전부" - ★ 자주 가는 곳 · 📅 이번 주 · 📝 조과 일지
+assert.deepStrictEqual(TF.favToggle(['a', 'b'], 'c'), ['c', 'a', 'b']);   // 맨 앞에
+assert.deepStrictEqual(TF.favToggle(['a', 'b'], 'a'), ['b']);             // 다시 누르면 뺌
+assert.deepStrictEqual(TF.favToggle(null, 'a'), ['a']);
+assert.strictEqual(TF.favToggle(Array.from({ length: 30 }, (_, i) => 'p' + i), 'new').length, 30);
+{
+  // 방포항 실제 응답(13물 · 조금 · 무시 · 1물 … 4물) - 오늘이 11-16 이면 그날부터
+  TF.setLang('ko');
+  const days = JSON.parse(require('fs').readFileSync(require('path').join(__dirname, '../resources/tidefly/detail-bangpo-20261115.json'), 'utf8')).days;
+  const w = TF.weekGood(days, '조금 전·후', '2026-11-16');
+  assert.deepStrictEqual(w.map(x => x.date), ['2026-11-16', '2026-11-17', '2026-11-18', '2026-11-19', '2026-11-20', '2026-11-21']);
+  assert.deepStrictEqual(w.map(x => x.good), [true, true, true, false, false, false]);   // 조금 · 무시와 앞뒤 하루
+  assert.deepStrictEqual([w[0].day, w[0].mul, w[0].neap, w[1].neap, w[2].neap], ['16일(월)', '조금', true, true, false]);
+  assert.ok(TF.weekGood(days, null, '2026-11-16').every(x => x.good === null));   // 자리 좋은 물때가 없으면 판단 안 함
+  assert.deepStrictEqual(TF.weekGood(days, null, '2026-12-01'), []);
+  assert.strictEqual(TF.weekGood(days, '1물~3물', '2026-11-15').filter(x => x.good).map(x => x.mul).join(','), '1물,2물,3물');
+}
+assert.strictEqual(TF.catchCsv([{ d: '2026-11-18', name: '방포항', mul: '1물', fish: '감성돔 2', note: '크릴, 새벽' }]),
+  '\ufeff날짜,자리,물때,고기,메모\r\n2026-11-18,방포항,1물,감성돔 2,"크릴, 새벽"\r\n');
 console.log('tidefly.test.js OK');
 
