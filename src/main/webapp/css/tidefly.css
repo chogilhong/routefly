@@ -74,6 +74,10 @@ main { padding-top: 14px; padding-bottom: 24px; }
 .help dd { margin: 2px 0 0; color: var(--dim); }
 
 .tools { margin: 14px 0 4px; display: grid; gap: 8px; }
+/* 찾기 칸 + 단추 - 드론플라이(점검 12차 D6)와 타이드플라이(2026-11-18 홍TV님 "출조에도 넣어줘") 함께 */
+.dfind { display: flex !important; gap: 8px; }
+.dfind input { flex: 1; min-width: 0; }
+.findBtn { flex: 0 0 auto; min-height: 44px; padding: 0 16px; border-radius: 22px; border: 1px solid #38d9ea; background: rgba(56, 217, 234, .12); color: var(--ink); font-weight: 700; font-size: 1rem; cursor: pointer; }
 .find input { width: 100%; font-size: 1rem; padding: 11px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink); }
 :root[data-theme="dark"] .find input { background: #2a3f49; border-color: #4f6b78; }   /* 다크에서 카드 · 바탕과 구분되게 조금 밝게(2026-11-18 홍TV님 "조금 더 하얗게") - 드론플라이 찾기 칸도 이것 */
 :root[data-theme="dark"] .find input::placeholder { color: #a9bcc6; }

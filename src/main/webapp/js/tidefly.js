@@ -1358,9 +1358,8 @@
   // 찾기는 치기를 멈추고 0.2초 뒤 한 번 그림(점검 10차 C7 - 한 글자마다 카드 수백 장을 다시 그려 폰에서 0.4 ~ 0.6초씩 걸렸음)
   var typing = null;
   qEl.addEventListener('input', function () { clearTimeout(typing); typing = setTimeout(draw, 200); });
-  // 자판의 검색(Enter)을 누르면 바로 그리고 자판을 내림 - 걸러진 목록이 가리지 않게(2026-11-17 홍TV님, 찾기 단추 대신). 한글 조합 중 Enter 는 넘김
-  qEl.addEventListener('keydown', function (e) {
-    if (e.key !== 'Enter' || e.isComposing) return;
+  // 찾기 단추 · 자판의 검색(Enter)이면 바로 그리고 자판을 내림 - 걸러진 목록이 가리지 않게(2026-11-17 Enter, 2026-11-18 홍TV님 "출조에도 넣어줘" 로 단추)
+  document.getElementById('tfFind').addEventListener('submit', function (e) {
     e.preventDefault(); clearTimeout(typing); draw(); qEl.blur();
   });
   // 코스 모음 찾기에서 낚시 이름으로 왔으면(?q=, 2026-11-15 홍TV님 "찾기에도 찾아질 수 있도록") 그 말로 찾아 둠

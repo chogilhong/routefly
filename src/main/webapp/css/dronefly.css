@@ -75,7 +75,4 @@ details.fold > summary h2 { margin: 0; }
 .foot { margin: 16px auto 24px; font-size: .8rem; color: var(--dim); }
 .foot a { color: inherit; }
 .top .tfLogo .ic .dIc { display: block; width: 2.6rem; height: 2.6rem; }   /* 쿼드콥터 그림(드론 이모지가 없어 img/dronefly.svg) */
-.dfind { display: flex !important; gap: 8px; }   /* 찾기 칸 + 단추(점검 12차 D6) */
-.dfind input { flex: 1; min-width: 0; }
-.findBtn { flex: 0 0 auto; min-height: 44px; padding: 0 16px; border-radius: 22px; border: 1px solid #38d9ea; background: rgba(56, 217, 234, .12); color: var(--ink); font-weight: 700; font-size: 1rem; cursor: pointer; }
 .top .tfLogo .ic .dIc { width: min(2.6rem, 11vw); height: min(2.6rem, 11vw); }   /* 큰 글자에서 코스 모음 단추와 겹치지 않게(점검 12차 D2) */

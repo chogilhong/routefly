@@ -320,7 +320,11 @@ public class CheckupRound11Test {
     @Test
     public void 타이드플라이_찾기_엔터면_자판_내림() throws Exception {
         assertTrue(read("src/main/webapp/tidefly.html").contains("autocomplete=\"off\" enterkeyhint=\"search\">"));
-        assertTrue(read("src/main/webapp/js/tidefly.js").contains("if (e.key !== 'Enter' || e.isComposing) return;\n    e.preventDefault(); clearTimeout(typing); draw(); qEl.blur();"));
+        // 2026-11-18 홍TV님 "출조에도 넣어줘" - 찾기 단추가 생겨 Enter 도 form submit 으로(단추 · Enter 같은 동작)
+        String h = read("src/main/webapp/tidefly.html");
+        assertTrue(h.contains("<form id=\"tfFind\" class=\"find dfind\" role=\"search\">") && h.contains("<button type=\"submit\" class=\"findBtn\" data-en=\"Search\">찾기</button>"));
+        assertTrue(read("src/main/webapp/js/tidefly.js").contains("document.getElementById('tfFind').addEventListener('submit', function (e) {\n    e.preventDefault(); clearTimeout(typing); draw(); qEl.blur();"));
+        assertTrue("단추 모양 한 벌", read("src/main/webapp/css/tidefly.css").contains(".findBtn { flex: 0 0 auto; min-height: 44px;") && !read("src/main/webapp/css/dronefly.css").contains(".findBtn"));
     }
 
     /** 코스 모음 · 산 페이지 한/EN 을 타이드플라이 머리 것과 같게(2026-11-17 홍TV님 "첫번째 한/en 을 두번째 걸로 동일하게"). */
