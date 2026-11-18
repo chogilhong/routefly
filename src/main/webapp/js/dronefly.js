@@ -113,7 +113,7 @@
     var ua = zones.filter(function (z) { return z.k === 'ua'; })[0];
     var head = level === 'no' ? tr('비행금지구역 - 승인 없이 날 수 없습니다', 'Prohibited area - no flying without approval')
       : level === 'need' ? tr('비행승인이 필요합니다', 'Flight approval required')
-      : level === 'care' ? tr('군작전구역 - 다른 공역과 겹치지 않으면 25kg 이하 · 150m 아래 · 낮은 승인 없이, 관할 부대 확인',
+      : level === 'care' ? tr('군작전구역 - 다른 공역과 겹치지 않으면 25kg 이하 · 150m 아래 · 낮에는 승인 없이, 관할 부대 확인',
         'Military operations area - if no other airspace overlaps, 25 kg or less · below 150 m · daytime needs no approval; check with the controlling unit')
       : ua ? tr('허용구역(UA) - 낮에 ' + ua.l[1] + ' 까지 승인 없이', 'UA airspace - no approval needed up to ' + ua.l[1] + ' in daytime')
       : tr('25kg 이하 · 150m 아래 · 낮 · 눈으로 보이는 곳이면 승인 없이 | 국토부 안내', '25 kg or less · below 150 m · daytime · within sight: no approval needed | MOLIT guidance');
@@ -447,8 +447,15 @@
     here = p;
     showOnMap(p, !fromMap);
     $('state').textContent = '';
-    if (!data) { busy(tr('공역 자료를 받는 중…', 'Loading airspace data…')); return; }
+    if (!data) { busy(tr('공역 자료를 받는 중…', 'Loading airspace data…')); pendingScroll = !fromMap; return; }
     draw();
+    if (!fromMap) showResult();
+  }
+  // 📍 · 찾기로 고른 자리는 판정 칸으로 내려가 보여 줌(점검 12차 D1 - 결과가 화면 아래에 나와 "안 된 줄" 알았음). 지도를 누른 때는 지도를 보던 중이라 그대로
+  var pendingScroll = false;
+  function showResult() {
+    pendingScroll = false;
+    try { $('result').scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { $('result').scrollIntoView(); }
   }
 
   function init() {
@@ -459,7 +466,7 @@
       data = d;
       paintSrc();
       addAirspace();
-      if (here) { $('state').textContent = ''; draw(); }   // 받는 중 표시를 지움
+      if (here) { $('state').textContent = ''; draw(); if (pendingScroll) showResult(); }   // 받는 중 표시를 지움
     }).catch(function () { $('state').textContent = tr('공역 자료를 받지 못했습니다. 잠시 뒤 다시 열어 주세요.', 'Could not load the airspace data. Please reopen in a moment.'); });
 
     $('me').addEventListener('click', function () {
@@ -474,7 +481,7 @@
 
     function find() {
       var q = $('q').value.trim();
-      if (q.length < 2) return;
+      if (q.length < 2) { $('state').textContent = tr('두 글자 이상 적어 주세요.', 'Type at least two letters.'); return; }   // 말없이 무시했음(점검 12차 D6)
       busy(tr('찾는 중…', 'Searching…'));
       $('q').blur();
       var my = ++ask;
@@ -528,6 +535,7 @@
     // 고정 글: data-en 에 영어, 처음 한국어는 기억(타이드플라이와 같은 방식)
     var fixed = Array.prototype.map.call(document.querySelectorAll('[data-en]'), function (e) { return [e, e.innerHTML]; });
     var phs = Array.prototype.map.call(document.querySelectorAll('[data-en-ph]'), function (e) { return [e, e.getAttribute('placeholder')]; });
+    var arias = Array.prototype.map.call(document.querySelectorAll('[data-en-aria]'), function (e) { return [e, e.getAttribute('aria-label')]; });
     var langBtns = document.querySelectorAll('.lang button');
     function paintSrc() {
       if (data) $('srcDate').textContent = tr(data.src + ', ' + data.date + ' 받음', 'V-World aviation layers (MOLIT), received ' + data.date);
@@ -538,6 +546,7 @@
       $('back').setAttribute('href', lang === 'en' ? 'en/m/' : 'm/');
       fixed.forEach(function (f) { f[0].innerHTML = lang === 'en' ? f[0].getAttribute('data-en') : f[1]; });
       phs.forEach(function (f) { f[0].setAttribute('placeholder', lang === 'en' ? f[0].getAttribute('data-en-ph') : f[1]); });
+      arias.forEach(function (f) { f[0].setAttribute('aria-label', lang === 'en' ? f[0].getAttribute('data-en-aria') : f[1]); });   // 화면 읽기 이름도(점검 12차 D8)
       Array.prototype.forEach.call(langBtns, function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-lang') === lang ? 'true' : 'false'); });
       paintSrc();
       paintTheme();

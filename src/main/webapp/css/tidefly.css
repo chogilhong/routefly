@@ -27,8 +27,8 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: system-
 .top { background: #11161d; color: #fff; padding: 14px 0 14px; border-bottom: 1px solid rgba(255, 255, 255, .08); }   /* 코스 모음(/m/)과 같은 어두운 바탕(2026-11-17 홍TV님 "루트플라이처럼") - 밝은 모드에서도 머리는 같게 */
 .top .logoRow { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 10px; }
 .top .tfLogo { display: inline-flex; align-items: center; gap: 8px; min-width: 0; color: #e9eef4; text-decoration: none; }
-.top .tfLogo .ic { font-size: 2.4rem; line-height: 1; }
-.top .tfLogo .wm { font: 800 2.1rem/1 Inter, Lato, Arial, sans-serif; letter-spacing: -.04em; white-space: nowrap; }   /* img/logo-dark.svg 의 route 글자와 같은 글꼴 · 굵기 */
+.top .tfLogo .ic { font-size: min(2.4rem, 10vw); line-height: 1; }   /* 큰 글자(가+ · 가++)에서 로고가 "코스 모음 ›" 단추를 덮지 않게(점검 12차 D2) */
+.top .tfLogo .wm { font: 800 min(2.1rem, 9vw)/1 Inter, Lato, Arial, sans-serif; letter-spacing: -.04em; white-space: nowrap; }   /* img/logo-dark.svg 의 route 글자와 같은 글꼴 · 굵기 */
 .top .crumb { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 6px; flex-wrap: wrap; }   /* 제목 · 모드 · 언어 · 글자 한 줄 */
 .top .fly { color: #65c926; }   /* 로고 fly(img/logo-dark.svg flyGradient)와 같은 초록 */
 @supports ((-webkit-background-clip: text) or (background-clip: text)) {
@@ -68,7 +68,7 @@ main { padding-top: 14px; padding-bottom: 24px; }
 .warn { margin: 8px 2px 0; font-size: .82rem; color: var(--dim); }
 
 .help { margin: 10px 0 0; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: .88rem; }
-.help summary { cursor: pointer; font-weight: 600; }
+.help summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; }   /* 누르기 쉽게(점검 12차 D4) */
 .help dl { margin: 8px 0 0; }
 .help dt { font-weight: 600; margin-top: 8px; }
 .help dd { margin: 2px 0 0; color: var(--dim); }

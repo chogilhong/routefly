@@ -73,7 +73,7 @@ public class CheckupStage5Test {
         String index = web("index.html"), hike = web("hike.html");
         assertTrue("아이폰 확대 막기", index.contains("color:var(--tx); font-size:16px; outline:none; }"));
         assertTrue("뒤로 · 목록 단추 40px(공원 전체 ‹ 코스 모양)", index.contains("#back { margin-left:auto; display:inline-flex; align-items:center; height:40px;"));
-        assertTrue(hike.contains("height:40px; padding:0 11px 0 7px;"));
+        assertTrue("점검 12차 D7: 따라가기 머리 단추 44px", hike.contains("height:44px; padding:0 11px 0 7px;"));
         assertTrue(hike.contains(".tabs button { flex:0 0 auto; height:44px;"));   // 2026-10-28 점검: 40 → 44px
         for (String s : new String[] { index, hike }) {
             assertTrue(s.contains("id=\"q\" aria-label="));

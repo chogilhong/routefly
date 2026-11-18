@@ -83,4 +83,19 @@ public class CheckupRound12Test {
         String t = com.gh.routefly.tidefly.TideflyServlet.etag("{}");
         assertTrue(t, t.matches("W/\"[0-9a-f]{16}\"") && t.equals(com.gh.routefly.tidefly.TideflyServlet.etag("{}")) && !t.equals(com.gh.routefly.tidefly.TideflyServlet.etag("{ }")));
     }
+
+    /** 4단계: 화면 · 접근성 D1 ~ D9. */
+    @Test
+    public void 단계4_화면() throws Exception {
+        String js = read("src/main/webapp/js/dronefly.js"), h = read("src/main/webapp/dronefly.html"), css = read("src/main/webapp/css/dronefly.css"), tf = read("src/main/webapp/css/tidefly.css");
+        assertTrue("D1", js.contains("if (!fromMap) showResult();") && js.contains("$('result').scrollIntoView({ behavior: 'smooth', block: 'start' })"));
+        assertTrue("D2", tf.contains(".top .tfLogo .wm { font: 800 min(2.1rem, 9vw)/1") && css.contains(".top .tfLogo .ic .dIc { width: min(2.6rem, 11vw);"));
+        assertTrue("D3", css.contains("color: var(--care);") && css.contains(".due.ok { background: rgba(30, 142, 62, .12); color: var(--ok); }") && css.contains(".btn.go { border: 2px dashed #38d9ea; color: #0b6f7c;"));
+        assertTrue("D4", tf.contains(".help summary { cursor: pointer; font-weight: 600; min-height: 44px;"));
+        assertTrue("D5", read("src/main/webapp/css/mountain.css").contains(".kindLink .fs { flex:1; min-width:0; font-size:12.5px; color:var(--dim); overflow:hidden; line-height:1.35; }"));
+        assertTrue("D6", h.contains("<button type=\"submit\" class=\"findBtn\" data-en=\"Search\">찾기</button>") && js.contains("tr('두 글자 이상 적어 주세요.'"));
+        assertTrue("D7", read("src/main/webapp/hike.html").contains("height:44px; padding:0 13px; border-radius:22px;") && read("src/main/webapp/css/course-kit.css").contains("#pick .pickTop .rfTextBtn { flex:0 0 auto; height:44px;"));
+        assertTrue("D8", h.contains("<option value=\"취미 · 레저\" data-en=\"Hobby · leisure\">") && js.contains("f[0].setAttribute('aria-label', lang === 'en' ? f[0].getAttribute('data-en-aria') : f[1]);"));
+        assertTrue("D9", js.contains("150m 아래 · 낮에는 승인 없이, 관할 부대 확인") && !js.contains("낮은 승인"));
+    }
 }

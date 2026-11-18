@@ -28,11 +28,11 @@ details.fold > summary h2 { margin: 0; }
 .result.ok .head::before { content: "🟢 "; }
 .zones, .notes { margin: 4px 0 0; padding-left: 20px; font-size: .92rem; }
 .notes { color: var(--dim); }
-.zones .near { color: #e8710a; font-weight: 700; }   /* 경계 바로 밖에서 초록만 보이지 않게(2026-11-17 영종도) */
+.zones .near { color: var(--care); font-weight: 700; }   /* 경계 바로 밖에서 초록만 보이지 않게(2026-11-17 영종도) */
 .uaList { margin: 6px 0 0; padding-left: 22px; }
 .uaList li { margin: 6px 0; }
 .uaList .go { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 0; }
-.uaList a { display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border: 1.5px solid #0b8fa0; border-radius: 999px; background: rgba(56, 217, 234, .10); text-decoration: none; color: #0b6f7c; font-size: .85rem; font-weight: 700; }   /* 테두리가 잘 안 보였음(2026-11-17 홍TV님) - 하늘색 테두리 · 옅은 바탕 */
+.uaList a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; border: 1.5px solid #0b8fa0; border-radius: 999px; background: rgba(56, 217, 234, .10); text-decoration: none; color: #0b6f7c; font-size: .85rem; font-weight: 700; }   /* 테두리가 잘 안 보였음(2026-11-17 홍TV님) - 하늘색 테두리 · 옅은 바탕 */
 :root:not([data-theme="light"]) .uaList a { border-color: #38d9ea; color: #38d9ea; }
 .dim { color: var(--dim); }
 .small { font-size: .85rem; margin: 0 0 8px; }
@@ -42,7 +42,7 @@ details.fold > summary h2 { margin: 0; }
 #applyOut { width: 100%; box-sizing: border-box; margin: 10px 0 0; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--soft); color: var(--ink); font: .85rem/1.5 ui-monospace, monospace; }
 .row { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 0; }
 .btn { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--ink); font-size: .95rem; text-decoration: none; cursor: pointer; }
-.btn.go { border: 2px dashed #38d9ea; color: #0b8fa0; font-weight: 700; }
+.btn.go { border: 2px dashed #38d9ea; color: #0b6f7c; font-weight: 700; }
 :root:not([data-theme="light"]) .btn.go { color: #38d9ea; }
 .grid .wide { grid-column: 1 / -1; }
 #shootOut { width: 100%; box-sizing: border-box; margin: 10px 0 0; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--soft); color: var(--ink); font: .85rem/1.5 ui-monospace, monospace; }
@@ -70,8 +70,12 @@ details.fold > summary h2 { margin: 0; }
 .days caption { text-align: left; color: var(--dim); font-size: .85rem; padding: 0 0 4px; }
 .days th, .days td { padding: 6px 4px; border-top: 1px solid var(--line); text-align: left; font-weight: normal; }
 .days td { text-align: right; font-weight: 700; }
-.due { margin: 6px 0 0; padding: 8px 10px; border-radius: 8px; background: rgba(232, 113, 10, .15); color: #e8710a; font-weight: 700; font-size: .9rem; }
-.due.ok { background: rgba(30, 142, 62, .12); color: #1e8e3e; }
+.due { margin: 6px 0 0; padding: 8px 10px; border-radius: 8px; background: rgba(232, 113, 10, .15); color: var(--care); font-weight: 700; font-size: .9rem; }
+.due.ok { background: rgba(30, 142, 62, .12); color: var(--ok); }   /* 밝은 · 다크 모두 대비 4.5 넘게 tidefly 색으로(점검 12차 D3) */
 .foot { margin: 16px auto 24px; font-size: .8rem; color: var(--dim); }
 .foot a { color: inherit; }
 .top .tfLogo .ic .dIc { display: block; width: 2.6rem; height: 2.6rem; }   /* 쿼드콥터 그림(드론 이모지가 없어 img/dronefly.svg) */
+.dfind { display: flex !important; gap: 8px; }   /* 찾기 칸 + 단추(점검 12차 D6) */
+.dfind input { flex: 1; min-width: 0; }
+.findBtn { flex: 0 0 auto; min-height: 44px; padding: 0 16px; border-radius: 22px; border: 1px solid #38d9ea; background: rgba(56, 217, 234, .12); color: var(--ink); font-weight: 700; font-size: 1rem; cursor: pointer; }
+.top .tfLogo .ic .dIc { width: min(2.6rem, 11vw); height: min(2.6rem, 11vw); }   /* 큰 글자에서 코스 모음 단추와 겹치지 않게(점검 12차 D2) */

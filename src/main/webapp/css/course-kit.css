@@ -41,7 +41,7 @@
 .rfTextBtn { min-width:44px; height:34px; padding:0 8px; border-radius:17px; border:1px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06);
              color:#e9eef4; font:bold 13px Arial,"Malgun Gothic",sans-serif; cursor:pointer; white-space:nowrap; }
 .sheet h2 .rfTextBtn { float:right; margin:-4px 0 0 8px; }
-#pick .pickTop .rfTextBtn { flex:0 0 auto; }   /* 제목 줄이 flex(2026-10-17 - 코스 모음 옆, 2026-11-02 h1 밖 .pickTop 으로) */
+#pick .pickTop .rfTextBtn { flex:0 0 auto; height:44px; border-radius:22px; }   /* 점검 12차 D7: 따라가기 머리 "가" 도 44px */   /* 제목 줄이 flex(2026-10-17 - 코스 모음 옆, 2026-11-02 h1 밖 .pickTop 으로) */
 /* 난이도(공단 탐방로 안내판 5단계 색 - 2026-10-15) */
 /* 난이도 글씨는 13px · 바탕과 4.5:1 넘게(2026-11-02 홍TV님 점검: 흰 글씨가 연두 · 초록 · 주황 위에서 2.7:1) - 밝은 셋은 어두운 글씨, 어두운 둘은 흰 글씨 */
 .lv { display:inline-block; font-style:normal; font-size:13px; font-weight:bold; line-height:1; padding:3px 6px; border-radius:9px; color:#fff; vertical-align:1px; white-space:nowrap; }

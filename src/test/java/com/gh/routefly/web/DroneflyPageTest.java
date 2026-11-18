@@ -59,7 +59,7 @@ public class DroneflyPageTest {
         assertTrue("kit-dronefly.js → dronefly.js 차례", h.indexOf("js/kit-dronefly.js\"></script>") > 0 && h.indexOf("js/kit-dronefly.js") < h.indexOf("js/dronefly.js\""));
         assertTrue(read("src/main/webapp/js/kit-dronefly.js").contains("function tmapHref(name, lat, lon) {"));
         assertTrue(js.contains("'https://map.kakao.com/link/to/' + nm + at") && js.contains("if (mobile && window.RF && window.RF.tmapHref) out.push([tr('🚗 티맵', '🚗 TMAP'), window.RF.tmapHref(u.name, u.lat, u.lon), false]);"));
-        assertTrue("테두리 잘 보이게", read("src/main/webapp/css/dronefly.css").contains(".uaList a { display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border: 1.5px solid #0b8fa0;"));
+        assertTrue("테두리 잘 보이게", read("src/main/webapp/css/dronefly.css").contains(".uaList a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; border: 1.5px solid #0b8fa0;"));
     }
 
     /** 공역 지도(2026-11-17 홍TV님 "이 지도 좋은데" → 3 · 4번): 우리 지도에 공역을 그리고 누르면 판정, 공식 지도로 한 번 더. */
