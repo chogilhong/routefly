@@ -123,9 +123,13 @@ public class HeritageServlet extends HttpServlet {
 
     /** 순수 함수 - WFS 주소(경계 상자는 위도,경도 차례 - DroneProbe 로 받아 봄). */
     static String url(String key, String domain, double[] c) {
-        return "https://api.vworld.kr/req/wfs?service=WFS&version=1.1.0&request=GetFeature&typename=lt_c_uo301&srsname=EPSG:4326&output=application/json"
-                + "&bbox=" + c[1] + "," + c[0] + "," + c[3] + "," + c[2]
+        return wfs("lt_c_uo301", c[1] + "," + c[0] + "," + c[3] + "," + c[2])
                 + "&key=" + URLEncoder.encode(key, StandardCharsets.UTF_8) + "&domain=" + URLEncoder.encode(domain, StandardCharsets.UTF_8);
+    }
+
+    /** 순수 함수 - V-World WFS 주소(키 · 도메인 빼고, bbox 는 위도,경도 차례). web.DroneProbe 도 이것을 씀(점검 12차 E1 - 두 벌이었음). */
+    static String wfs(String layer, String bbox) {
+        return "https://api.vworld.kr/req/wfs?service=WFS&version=1.1.0&request=GetFeature&typename=" + layer + "&srsname=EPSG:4326&output=application/json&bbox=" + bbox;
     }
 
     /** 순수 함수 - 브이월드에 보낼 도메인: site.baseUrl 의 호스트, 없으면 routefly.kr. */

@@ -34,9 +34,7 @@ public final class DroneProbe {
     static final String[] LAYERS = {"lt_c_aisprhc", "lt_c_aisresc", "lt_c_aisctrc", "lt_c_aismoac", "lt_c_aisuac", "lt_c_aistemp", "lt_c_aisdronezone"};
 
     public static void main(String[] args) throws Exception {
-        String base = RouteflyConfig.get("site.baseUrl");
-        java.util.regex.Matcher m = java.util.regex.Pattern.compile("^https?://([^/:]+)").matcher(base == null ? "" : base);
-        String domain = m.find() ? m.group(1) : null;
+        String domain = HeritageServlet.domain(RouteflyConfig.get("site.baseUrl"));   // 서버와 같은 셈(점검 12차 E1)
         Path dir = Path.of("src", "test", "resources", "drone");
         // 2026-11-17 PC: map.vworld.key + domain=routefly.kr 로 15개 모두 INCORRECT_KEY. 어느 키 · 도메인 짝이 되는지 한 점(서울시청 비행금지)으로 먼저 봄
         //   try-<키 이름>-<domain 있음|없음>.json - 되는 짝이 나오면 그 짝으로 아래 전부를 받음(drone.vworld.key 가 있으면 그것을 먼저)
@@ -84,7 +82,7 @@ public final class DroneProbe {
 
     /** 순수 함수 - WFS 주소(키 · 도메인 빼고, 경계 상자는 위도,경도 차례 - 2026-11-17 aisprhc 로 받아 봄). */
     static String wfs(String layer, String bbox) {
-        return "https://api.vworld.kr/req/wfs?service=WFS&version=1.1.0&request=GetFeature&typename=" + layer + "&bbox=" + bbox + "&srsname=EPSG:4326&output=application/json";
+        return HeritageServlet.wfs(layer, bbox);
     }
 
     /** 순수 함수 - 2D 데이터 API 주소(키 · 도메인 빼고). geom - BOX(…) 또는 POINT(경도 위도). */

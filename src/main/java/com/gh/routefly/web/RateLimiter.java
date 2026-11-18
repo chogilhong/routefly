@@ -31,7 +31,7 @@ final class RateLimiter {
         sweep(now);
         String k = group(key);
         // 물통이 꽉 찼으면 새 곳은 넘침 물통 하나를 같이 씀(2026-11-01 점검: 예전에는 모두 비워 이미 막힌 곳까지 풀렸음)
-        if (!buckets.containsKey(k) && buckets.size() >= MAX_KEYS) k = OVERFLOW;
+        if (!buckets.containsKey(k) && buckets.size() >= MAX_KEYS) k = overflowKey(k);
         double[] b = buckets.computeIfAbsent(k, x -> new double[] {burst, now});
         synchronized (b) {
             b[0] = Math.min(burst, b[0] + (now - b[1]) * perMs);
@@ -40,6 +40,18 @@ final class RateLimiter {
             b[0] -= 1;
             return true;
         }
+    }
+
+    /**
+     * 순수 함수 - 넘침 물통 이름. IPv6 는 /48 마다 따로(점검 12차 B9 2026-11-18: /48 하나로 /64 물통 10만 개를 채우면 그 뒤 모든 새 손님이 넘침 물통 하나를 같이 써 바로 429 였음).
+     * k 는 group() 을 거친 값("a:b:c:d::/64" 또는 IPv4).
+     */
+    static String overflowKey(String k) {
+        if (k != null && k.endsWith("::/64")) {
+            String[] g = k.split(":");
+            if (g.length >= 3) return OVERFLOW + ":" + g[0] + ":" + g[1] + ":" + g[2] + "::/48";
+        }
+        return OVERFLOW;
     }
 
     int size() {

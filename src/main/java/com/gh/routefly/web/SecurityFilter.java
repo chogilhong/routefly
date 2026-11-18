@@ -38,7 +38,7 @@ public class SecurityFilter extends HttpFilter {
      * 이미지 · 지도 타일 · 지형(connect) 출처는 설정마다 달라 막지 않습니다.
      */
     static final String CSP = "default-src 'self' https: data: blob:; script-src 'self'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https:; "
-            + "img-src 'self' https: http: data: blob:; connect-src 'self' https: http: data: blob:; frame-ancestors 'self'; base-uri 'self'; object-src 'none'; form-action 'self'";
+            + "img-src 'self' https: data: blob:; connect-src 'self' https: data: blob:; frame-ancestors 'self'; base-uri 'self'; object-src 'none'; form-action 'self'";
 
     /**
      * 🧰 별거 별거(tools.html - 2026-10-18 홍TV님)만 카카오(다음) 우편번호 스크립트(*.daumcdn.net)를 더 허용. 다른 화면은 {@link #CSP} 그대로.

@@ -129,7 +129,7 @@
     // 항공촬영은 2022. 12. 1. 부터 "허가" 가 아니라 "사전 신청" - 지역책임부대가 촬영금지시설 유무를 알려 줌(2026-11-17 홍TV님이 보낸 드론원스톱 항공촬영 신청 안내)
     if (o.photo) notes.push(tr('카메라로 찍으려면 항공촬영 사전 신청(근무일 기준 4일)을 따로 하세요(비행승인과 별개). 지역책임부대가 촬영금지시설 유무를 알려 주고, 그런 시설이 없는 개활지는 자유롭게 찍을 수 있습니다. 촬영금지시설이 찍힌 책임은 촬영한 사람에게 있습니다.',
       'To film, submit an aerial photography pre-application (4 working days) separately from flight approval. The local military unit tells you whether restricted facilities are there; open land without them can be filmed freely. You are responsible if restricted facilities are filmed.'));
-    // P518 · R73 · R75 는 비행승인 신청 전 드론원스톱 공지사항을 보라고 함(같은 안내)
+    // P518 · R73 · R75 는 비행승인 신청 전 드론원스톱 공지사항을 보라고 함(같은 안내). R73 은 2026-11-17 받은 공역 자료에 없음(안내 글대로 둠 - 점검 12차 E2)
     if (zones.some(function (z) { return /^(RK )?P518|^R73$|^R75$/.test(z.l[0] || ''); })) notes.push(tr('P518 · R73 · R75 공역은 비행승인 신청 전 드론원스톱 공지사항을 확인하세요.', 'For P518 · R73 · R75, check the Drone One-stop notices before applying.'));
     notes.push(tr('야간(일몰 후 ~ 일출 전)은 어디서나 특별비행승인이 필요합니다.', 'Night flights (sunset to sunrise) need a special flight approval anywhere.'));
     return { level: level, head: head + (o.photo ? tr(' + 촬영 사전 신청', ' + filming pre-application') : ''), lines: zones.map(function (z) { return zoneLine(z); }), notes: notes };

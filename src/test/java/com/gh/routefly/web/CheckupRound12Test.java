@@ -57,4 +57,17 @@ public class CheckupRound12Test {
         assertTrue(hike.contains("function bgStopAll() { RFParty.bgStopAll(BG); }"));
         assertTrue(party.contains("RFParty.bgStopAll(BG);   // 화면이 막 열림") && party.contains("{ bgId = id; RFParty.bgSave([id]); }") && party.contains("bgId = null; }\n        RFParty.bgSave([]);"));
     }
+
+    /** 2단계: B3 서버 전체 길 점 한도 · B6 검색어 답 공용 캐시 안 함 · B8 http: 빼기 · B9 넘침 물통 /48 · E1 WFS 주소 한 벌. */
+    @Test
+    public void 단계2_보안과_정리() throws Exception {
+        String party = read("src/main/java/com/gh/routefly/web/Party.java");
+        assertTrue("B3", party.contains("static final int ALL_TRACK_MAX = 1_000_000;") && party.contains("(m.room.trackPts >= ROOM_TRACK_MAX || allPts >= ALL_TRACK_MAX) && m.track.size() > 100")
+                && party.split("allPts -= r.trackPts;", -1).length == 3);
+        assertTrue("B6", read("src/main/java/com/gh/routefly/web/PlaceServlet.java").contains("Json.okPrivate(req, resp, out);"));
+        assertTrue("B8", !SecurityFilter.CSP.contains(" http: ") && SecurityFilter.CSP.contains("connect-src 'self' https: data: blob:;"));
+        assertEquals("B9 IPv6 는 /48 마다", "overflow:2001:db8:1::/48", RateLimiter.overflowKey(RateLimiter.group("2001:db8:1:2::5")));
+        assertEquals("overflow", RateLimiter.overflowKey("1.2.3.4"));
+        assertTrue("E1", read("src/test/java/com/gh/routefly/web/DroneProbe.java").contains("return HeritageServlet.wfs(layer, bbox);"));
+    }
 }

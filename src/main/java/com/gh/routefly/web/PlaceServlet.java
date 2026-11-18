@@ -48,7 +48,7 @@ public class PlaceServlet extends HttpServlet {
             out = QUOTA.allow(ip, now) ? fetch(q) : empty(true);
             if (!out.has("unavailable")) CACHE.put(q, out, now);
         }
-        Json.ok(req, resp, out);
+        Json.okPrivate(req, resp, out);   // 사람이 친 검색어의 답 - 공용 캐시에 남기지 않음(점검 12차 B6)
     }
 
     /** 순수 함수 - 찾는 말(2~30자, 꺾쇠 · 따옴표 · 숨은 글자 빼고). 틀리면 null. */

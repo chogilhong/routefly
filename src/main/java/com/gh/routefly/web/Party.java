@@ -65,6 +65,10 @@ final class Party {
      */
     static final long TRACK_EVERY_MS = 10_000L;
     static final int ROOM_TRACK_MAX = 150_000;
+    /** 서버 전체 지나온 길 점 한도(점검 12차 B3 2026-11-18) - 방마다 15만 점 × 방 수백 개면 톰캣 768MB 를 넘을 수 있었음. 넘으면 그 사람 길을 하나 걸러 줄임. */
+    static final int ALL_TRACK_MAX = 1_000_000;
+    /** 모든 방의 trackPts 합(같은 잠금 안에서만 바꿈). */
+    int allPts;
     static final long TRAIL_MS = 2 * HOUR;
     /** 끝난 방의 열쇠로 오면 왜 끝났는지 알려 줌(이만큼 동안). */
     static final long ENDED_KEEP_MS = 48 * HOUR;
@@ -574,6 +578,7 @@ final class Party {
         Room r = lead == null ? null : lead.room;
         if (r == null || rooms.get(r.code) != r) return;
         rooms.remove(r.code);
+        allPts -= r.trackPts;
         for (String t : r.members.keySet()) byToken.remove(t);
         r.members.clear();
         audit.info("create undone room={}", r.code);
@@ -1057,13 +1062,15 @@ final class Party {
         if (m.room.departed && "hiker".equals(m.role) && (acc == null || acc <= 100)) {   // 출발 뒤 산행 회원만 - 집 · 집결지 길은 남기지 않음
             double[] last = m.track.isEmpty() ? null : m.track.get(m.track.size() - 1);
             if (last == null || MountainServlet.distM(last[0], last[1], lat, lon) >= TRACK_MIN_M && now - (long) last[2] >= TRACK_EVERY_MS) {
-                if (m.track.size() >= TRACK_MAX || m.room.trackPts >= ROOM_TRACK_MAX && m.track.size() > 100) {
+                if (m.track.size() >= TRACK_MAX || (m.room.trackPts >= ROOM_TRACK_MAX || allPts >= ALL_TRACK_MAX) && m.track.size() > 100) {
                     int before = m.track.size();
                     for (int i = m.track.size() - 1; i > 0; i -= 2) m.track.remove(i);
                     m.room.trackPts -= before - m.track.size();
+                    allPts -= before - m.track.size();
                 }
                 m.track.add(new double[] {lat, lon, now});
                 m.room.trackPts++;
+                allPts++;
             }
         }
         autoDrop(m, lat, lon, now);   // 위치로 하차 확인(2026-10-28)
@@ -1347,6 +1354,7 @@ final class Party {
         lead.room.members.remove(t.token);
         byToken.remove(t.token);
         lead.room.trackPts -= t.track.size();
+        allPts -= t.track.size();
         if (t.net != null && !assist) lead.room.kickedNets.put(t.net, now);   // 같은 망에서 바로 다시 들어오지 못하게(E8)
         endedWhy.put(t.token, assist ? "주 인솔자가 보조 인솔자에서 내보냈습니다." : "인솔자가 이 방에서 내보냈습니다. 잘못이면 인솔자에게 연락하세요.");
         endedAt.put(t.token, now);
@@ -1375,6 +1383,7 @@ final class Party {
             m.rostered = true;   // 명단으로 들어오지 않았어도 이제 명단 사람(같은 이름으로 다시 참가하면 그 자리로)
             m.listed = true;
             m.room.trackPts -= m.track.size();
+            allPts -= m.track.size();
             unSos(m);   // SOS 전 하산 탑승이었으면 되돌림
             m.lat = null; m.lon = null; m.acc = null; m.t = 0; m.sos = false; m.track.clear();
             Member out = purgeDue(m);   // 철회 - 이 회원의 확인자료 즉시 파기(자물쇠 밖에서)
@@ -1856,6 +1865,7 @@ final class Party {
             offices.ended(r.officeCode, x, now);
         }
         rooms.remove(r.code);
+        allPts -= r.trackPts;
         for (String t : r.members.keySet()) {
             byToken.remove(t);
             endedWhy.put(t, why);
