@@ -239,7 +239,7 @@
   /** 순수 함수 - 오늘부터 사이 평일이 n 일 이상인 첫 날(YYYY-MM-DD). */
   function firstDay(today, n) {
     var t = Date.UTC(+today.slice(0, 4), +today.slice(5, 7) - 1, +today.slice(8, 10));
-    for (var k = 1; k < 30; k++) {
+    for (var k = 1; k < 120; k++) {   // 근무일 30일(특별비행)은 달력으로 40일 남짓 - 전에는 30일까지만 봐 오늘을 돌려줬음(2026-11-18)
       var d = new Date(t + k * 86400000).toISOString().slice(0, 10);
       if (workdays(today, d) >= n) return d;
     }
@@ -256,6 +256,20 @@
     var want = photo ? 4 : 3, what = photo ? tr('항공촬영 사전 신청(근무일 기준 4일)', 'aerial photography pre-application (4 working days)') : tr('비행승인(근무일 기준 3일)', 'flight approval (3 working days)');
     return n >= want ? { ok: true, text: tr('비행 날까지 근무일 ' + n + '일 - ' + what + ' 처리 기간 안입니다. 토 · 일만 뺀 셈이라 공휴일은 따로 빼 보세요.', n + ' working days until the flight - within the ' + what + ' processing time. Public holidays are not counted out.') }
       : { ok: false, text: tr('비행 날까지 근무일 ' + n + '일 - ' + what + ' 처리에 모자랄 수 있습니다. 날짜를 늦추거나 바로 신청하세요.', 'Only ' + n + ' working days until the flight - may be too short for ' + what + '. Move the date or apply now.') };
+  }
+
+  /**
+   * 순수 함수 - 야간 비행의 특별비행승인 기한(2026-11-18 홍TV님 "1~4 해줘" 1). 처리 기간 근무일 30일(드론원스톱 - 화면의 처리 기간 표).
+   * → null(날짜가 맞지 않음) 또는 {ok, text}. 모자라면 가장 이른 비행 날(firstDay)도 알려 줌.
+   */
+  function specialDue(today, day) {
+    var n = workdays(today, day);
+    if (n == null) return null;
+    if (n >= 30) return { ok: true, text: tr('야간 비행은 특별비행승인(근무일 기준 30일)이 필요합니다. 비행 날까지 근무일 ' + n + '일 - 처리 기간 안입니다. 토 · 일만 뺀 셈이라 공휴일은 따로 빼 보세요.',
+      'Night flight needs a special flight approval (30 working days). ' + n + ' working days until the flight - within the processing time. Public holidays are not counted out.') };
+    var f = firstDay(today, 30);
+    return { ok: false, text: tr('야간 비행은 특별비행승인(근무일 기준 30일)이 필요합니다. 비행 날까지 근무일 ' + n + '일 - 모자랄 수 있습니다. 지금 신청하면 가장 이른 비행 날은 ' + f + ' 무렵입니다(공휴일 빼고 셈하면 더 늦음).',
+      'Night flight needs a special flight approval (30 working days). Only ' + n + ' working days until the flight - may be too short. Applying now, the earliest flight day is around ' + f + ' (later with public holidays).') };
   }
 
   /** 순수 함수 - 자리가 든 고정 격자 칸 [서, 남, 동, 북](0.1°, 약 10km - /api/heritage 가 받는 칸, 모든 사용자에게 같은 칸). */
@@ -328,7 +342,9 @@
     if (riseMs == null || setMs == null) return null;
     var rise = kstHm(riseMs), set = kstHm(setMs);
     var ok = /^\d\d:\d\d$/;
-    return { rise: rise, set: set, night: ok.test(from || '') && ok.test(to || '') && (from < rise || to > set) };
+    // 시작 · 끝 어느 쪽이든 일출 전 · 일몰 뒤면 야간(2026-11-18 - 시작 18:30 · 끝 12:00 처럼 끝을 안 고친 때도)
+    var out = function (t) { return ok.test(t || '') && (t < rise || t > set); };
+    return { rise: rise, set: set, night: out(from) || out(to) };
   }
 
   // 비행 전 점검표 [id, 한국어, 영어] - 법 원문(docs/dronefly/law)에 있는 것은 조문을 붙임
@@ -356,10 +372,22 @@
     return (list || []).reduce(function (a, e) { return { n: a.n + 1, min: a.min + (+e.min || 0) }; }, { n: 0, min: 0 });
   }
 
-  /** 순수 함수 - 기록장 CSV(엑셀이 한글을 읽게 BOM, 쉼표 · 따옴표 · 줄바꿈은 따옴표로 감쌈). */
+  /** 순수 함수 - 조종자별 합계 [{pilot, n, min}](2026-11-18 - 교관 · 교육생 여럿), 비행 시간이 긴 차례. 조종자를 적은 기록이 없으면 []. */
+  function logByPilot(list) {
+    var by = {}, out = [];
+    (list || []).forEach(function (e) {
+      var p = String(e.pilot || '').trim();
+      if (!p) return;
+      if (!by[p]) out.push(by[p] = { pilot: p, n: 0, min: 0 });
+      by[p].n++; by[p].min += +e.min || 0;
+    });
+    return out.sort(function (a, b) { return b.min - a.min; });
+  }
+
+  /** 순수 함수 - 기록장 CSV(엑셀이 한글을 읽게 BOM, 쉼표 · 따옴표 · 줄바꿈은 따옴표로 감쌈). 조종자 칸은 2026-11-18 부터(옛 기록은 빈칸). */
   function logCsv(list) {
     var q = function (v) { v = String(v == null ? '' : v); return /[",\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
-    var rows = [['날짜', '비행 시간(분)', '장소', '기체', '메모']].concat((list || []).map(function (e) { return [e.d, e.min, e.place, e.drone, e.note]; }));
+    var rows = [['날짜', '비행 시간(분)', '장소', '기체', '조종자', '메모']].concat((list || []).map(function (e) { return [e.d, e.min, e.place, e.drone, e.pilot, e.note]; }));
     return '\ufeff' + rows.map(function (r) { return r.map(q).join(','); }).join('\r\n') + '\r\n';
   }
 
@@ -414,7 +442,7 @@
     return m ? tr(m[1] + '번 관련 문제)', 'Related to no. ' + m[1] + ')') : no + '.';
   }
 
-  var api = { planToLog: planToLog, quizOrder: quizOrder, quizMark: quizMark, quizKeys: quizKeys, quizLabel: quizLabel, wxCell: wxCell, flyWx: flyWx, ptyWord: ptyWord, kstHm: kstHm, dayWindow: dayWindow, CHECKS: CHECKS, checksToday: checksToday, logSum: logSum, logCsv: logCsv, minText: minText, planWindow: planWindow, heritageCell: heritageCell, heritageNotes: heritageNotes, shootText: shootText, tmpState: tmpState, firstDay: firstDay, workdays: workdays, dueText: dueText, toGeoJSON: toGeoJSON, nearStrict: nearStrict, setLang: setLang, nextSize: nextSize, inRing: inRing, inGeom: inGeom, isTca: isTca, zonesAt: zonesAt, levelOf: levelOf, zoneLine: zoneLine, verdict: verdict, meters: meters, nearest: nearest, nearUa: nearUa, dist: dist, applyText: applyText };
+  var api = { logByPilot: logByPilot, specialDue: specialDue, planToLog: planToLog, quizOrder: quizOrder, quizMark: quizMark, quizKeys: quizKeys, quizLabel: quizLabel, wxCell: wxCell, flyWx: flyWx, ptyWord: ptyWord, kstHm: kstHm, dayWindow: dayWindow, CHECKS: CHECKS, checksToday: checksToday, logSum: logSum, logCsv: logCsv, minText: minText, planWindow: planWindow, heritageCell: heritageCell, heritageNotes: heritageNotes, shootText: shootText, tmpState: tmpState, firstDay: firstDay, workdays: workdays, dueText: dueText, toGeoJSON: toGeoJSON, nearStrict: nearStrict, setLang: setLang, nextSize: nextSize, inRing: inRing, inGeom: inGeom, isTca: isTca, zonesAt: zonesAt, levelOf: levelOf, zoneLine: zoneLine, verdict: verdict, meters: meters, nearest: nearest, nearUa: nearUa, dist: dist, applyText: applyText };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
   root.DF = api;
 
@@ -518,6 +546,9 @@
     $('sun').textContent = win ? tr('☀ ' + dayLabel(date) + ' 날 수 있는 때 ' + win.rise + ' ~ ' + win.set + ' (일출 ~ 일몰)', '☀ ' + dayLabel(date) + ' daylight flying ' + win.rise + ' – ' + win.set + ' (sunrise to sunset)')
       + (win.night ? tr(' - ⚠ 계획 ' + from + ' ~ ' + to + ' 이 야간에 걸립니다. 야간은 특별비행승인이 필요합니다.', ' - ⚠ your plan ' + from + '–' + to + ' runs into the night, which needs a special flight approval.') : '') : '';
     $('sun').className = 'sunLine' + (win && win.night ? ' night' : '');
+    var nd = win && win.night ? specialDue(today, date) : null;   // 야간이면 특별비행승인 기한(근무일 30일)
+    $('nightDue').hidden = !nd;
+    if (nd) { $('nightDue').textContent = nd.text; $('nightDue').className = 'due' + (nd.ok ? ' ok' : ''); }
     var d = wxFor(here.lat, here.lon), lim = windLimit();
     if (!d) {
       var w = wxWait[wxCell(here.lat, here.lon).join(',')];
@@ -682,8 +713,11 @@
   function paintLog() {
     var list = logList(), s = logSum(list);
     $('logSum').textContent = s.n ? tr('모두 ' + s.n + '번 · ' + minText(s.min), s.n + ' flights · ' + minText(s.min)) : tr('아직 기록이 없습니다.', 'No flights logged yet.');
+    var bp = logByPilot(list);
+    $('logPilots').hidden = !bp.length;
+    $('logPilots').textContent = bp.length ? tr('조종자별: ', 'By pilot: ') + bp.map(function (x) { return x.pilot + ' ' + tr(x.n + '번 ', x.n + ' · ') + minText(x.min); }).join(' / ') : '';
     $('logList').innerHTML = list.map(function (e, i) {
-      return '<li><span>' + esc(e.d + ' · ' + minText(+e.min || 0) + (e.place ? ' · ' + e.place : '') + (e.drone ? ' · ' + e.drone : '') + (e.note ? ' · ' + e.note : '')) + '</span> <button type="button" class="del" data-i="' + i + '" aria-label="' + esc(tr('이 기록 지우기', 'Delete this entry')) + '">✕</button></li>';
+      return '<li><span>' + esc(e.d + ' · ' + minText(+e.min || 0) + (e.place ? ' · ' + e.place : '') + (e.drone ? ' · ' + e.drone : '') + (e.pilot ? ' · 👤 ' + e.pilot : '') + (e.note ? ' · ' + e.note : '')) + '</span> <button type="button" class="del" data-i="' + i + '" aria-label="' + esc(tr('이 기록 지우기', 'Delete this entry')) + '">✕</button></li>';
     }).join('');
     $('logCsv').hidden = !list.length;
   }
@@ -695,7 +729,7 @@
       var min = parseInt($('logMin').value, 10);
       if (!(min > 0) || !$('logDate').value) return;
       var list = logList();
-      list.unshift({ d: $('logDate').value, min: min, place: $('logPlace').value.trim() || (here && here.name) || '', drone: $('logDrone').value.trim(), note: $('logNote').value.trim() });
+      list.unshift({ d: $('logDate').value, min: min, place: $('logPlace').value.trim() || (here && here.name) || '', drone: $('logDrone').value.trim(), pilot: $('logPilot').value.trim(), note: $('logNote').value.trim() });
       save('df-log', JSON.stringify(list.slice(0, 500)));
       $('logMin').value = ''; $('logNote').value = '';
       paintLog();
@@ -848,6 +882,14 @@
     // 치는 동안에도(0.3초 쉬면) - 고도 200 을 쳐도 칸을 벗어날 때까지 판정이 그대로였음(점검 12차 A5)
     var typing = null;
     ['alt', 'radius', 'shootWhat'].forEach(function (id) { $(id).addEventListener('input', function () { clearTimeout(typing); typing = setTimeout(draw, 300); }); });
+    // 💬 보내기 둘(2026-11-18 홍TV님 "1~4 해줘" 2) - 폰 공유 창(카톡 · 문자 · 메일)으로 정리 글을 그대로. 공유가 없는 브라우저(PC 등)는 복사만
+    [['share', 'applyOut', '드론 비행승인 신청 정리'], ['shareShoot', 'shootOut', '항공촬영 사전 신청 정리']].forEach(function (c) {
+      if (!navigator.share) return;
+      $(c[0]).hidden = false;
+      $(c[0]).addEventListener('click', function () {
+        Promise.resolve(navigator.share({ title: c[2], text: $(c[1]).value })).catch(function () { /* 닫음 · 막힘 - 복사 단추가 있음 */ });
+      });
+    });
     // 복사 단추 둘(비행승인 · 항공촬영) - 같은 셈
     [['copy', 'applyOut'], ['copyShoot', 'shootOut']].forEach(function (c) {
       $(c[0]).addEventListener('click', function () {

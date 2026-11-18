@@ -176,6 +176,8 @@ const rise = Date.UTC(2026, 10, 19, 22, 13), set = Date.UTC(2026, 10, 20, 8, 16)
 assert.deepStrictEqual(DF.dayWindow(rise, set, '10:00', '12:00'), { rise: '07:13', set: '17:16', night: false });
 assert.strictEqual(DF.dayWindow(rise, set, '06:30', '08:00').night, true);   // 일출 전
 assert.strictEqual(DF.dayWindow(rise, set, '16:00', '17:30').night, true);   // 일몰 뒤
+assert.strictEqual(DF.dayWindow(rise, set, '18:30', '12:00').night, true);   // 시작이 일몰 뒤(끝을 안 고침)
+assert.strictEqual(DF.dayWindow(rise, set, '', '12:00').night, false);
 assert.strictEqual(DF.dayWindow(null, set, '10:00', '12:00'), null);
 // 점검표 - 날이 바뀌면 비움, 모르는 칸은 버림
 assert.deepStrictEqual(DF.checksToday({ d: '2026-11-18', on: ['bat', 'x', 'alc'] }, '2026-11-18'), ['bat', 'alc']);
@@ -184,9 +186,19 @@ assert.ok(DF.CHECKS.some(c => c[0] === 'day' && c[1].includes('제310조 ① 6�
 // 기록장 - 합계 · CSV(BOM, 쉼표 · 따옴표는 감쌈)
 const lg = [{ d: '2026-11-18', min: 25, place: '구성산, UA2', drone: 'Mini "4"', note: '' }, { d: '2026-11-17', min: 40, place: '', drone: '', note: '연습' }];
 assert.deepStrictEqual(DF.logSum(lg), { n: 2, min: 65 });
-assert.strictEqual(DF.logCsv(lg), '\ufeff날짜,비행 시간(분),장소,기체,메모\r\n2026-11-18,25,"구성산, UA2","Mini ""4""",\r\n2026-11-17,40,,,연습\r\n');
+assert.strictEqual(DF.logCsv(lg), '﻿날짜,비행 시간(분),장소,기체,조종자,메모\r\n2026-11-18,25,"구성산, UA2","Mini ""4""",,\r\n2026-11-17,40,,,,연습\r\n');   // 조종자 칸(2026-11-18) - 옛 기록은 빈칸
+assert.deepStrictEqual(DF.logByPilot(lg), []);
+assert.deepStrictEqual(DF.logByPilot([{ min: 20, pilot: '김' }, { min: 50, pilot: '이' }, { min: 15, pilot: ' 김 ' }, { min: 5 }]), [{ pilot: '이', n: 1, min: 50 }, { pilot: '김', n: 2, min: 35 }]);
 DF.setLang('ko');
 assert.strictEqual(DF.minText(65), '1시간 5분');
+// 야간 특별비행승인 기한(근무일 30일, 2026-11-18)
+DF.setLang('ko');
+assert.strictEqual(DF.specialDue('2026-11-18', ''), null);
+const sd1 = DF.specialDue('2026-11-18', '2026-11-25');
+assert.strictEqual(sd1.ok, false);
+assert.ok(sd1.text.includes('근무일 4일') && sd1.text.includes('가장 이른 비행 날은 ' + DF.firstDay('2026-11-18', 30)));
+assert.strictEqual(DF.workdays('2026-11-18', DF.firstDay('2026-11-18', 30)), 30);
+assert.strictEqual(DF.specialDue('2026-11-18', DF.firstDay('2026-11-18', 30)).ok, true);
 // 비행 계획 → 기록장(2026-11-18)
 assert.deepStrictEqual(DF.planToLog({ name: '구성산', date: '2026-11-25', from: '10:00', to: '11:30' }), { d: '2026-11-25', min: '90', place: '구성산' });
 assert.deepStrictEqual(DF.planToLog({ me: true, date: '', from: '12:00', to: '10:00' }), { d: '', min: '', place: '내 위치' });

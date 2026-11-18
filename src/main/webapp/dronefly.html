@@ -84,6 +84,7 @@
   <details id="wx" class="dcard fold" open hidden><!-- 2026-11-18 홍TV님 "1~8 전부" - 1 비행 날씨 ○△✕ · 2 날 수 있는 시간(일출 ~ 일몰, 시행규칙 제310조 ① 6호) -->
     <summary><h2 data-en="🌤 Flying weather · daylight">🌤 비행 날씨 · 날 수 있는 시간</h2></summary>
     <p id="sun" class="sunLine"></p>
+    <p id="nightDue" class="due" hidden role="status"></p><!-- 계획이 야간에 걸리면 특별비행승인 처리 기간(근무일 30일, 아래 처리 기간 표) - 2026-11-18 -->
     <p id="wxHead" class="wxHead" role="status"></p>
     <ul id="wxRows" class="wxRows"></ul>
     <div class="grid">
@@ -118,6 +119,7 @@
     <textarea id="applyOut" rows="8" readonly aria-label="신청할 값 정리" data-en-aria="Summary to apply with"></textarea>
     <div class="row">
       <button type="button" id="copy" class="btn" data-en="📋 Copy">📋 복사</button>
+      <button type="button" id="share" class="btn" hidden data-en="💬 Send">💬 보내기</button><!-- 카톡 · 문자 등 폰 공유(2026-11-18) - 공유가 없는 브라우저는 숨김 -->
       <a class="btn go" href="https://drone.onestop.go.kr/" target="_blank" rel="noopener" data-en="Open Drone One-stop ›">드론원스톱 열기 ›</a>
     </div>
   </details>
@@ -133,6 +135,7 @@
     <textarea id="shootOut" rows="8" readonly aria-label="항공촬영 신청할 값 정리" data-en-aria="Aerial photography summary"></textarea>
     <div class="row">
       <button type="button" id="copyShoot" class="btn" data-en="📋 Copy">📋 복사</button>
+      <button type="button" id="shareShoot" class="btn" hidden data-en="💬 Send">💬 보내기</button>
       <a class="btn go" href="https://drone.onestop.go.kr/" target="_blank" rel="noopener" data-en="Open Drone One-stop ›">드론원스톱 열기 ›</a>
     </div>
   </details>
@@ -151,10 +154,12 @@
       <label><span data-en="Minutes flown">비행 시간(분)</span> <input type="number" id="logMin" min="1" max="600" inputmode="numeric" required></label>
       <label class="wide"><span data-en="Place">장소</span> <input type="text" id="logPlace" maxlength="60"></label>
       <label><span data-en="Drone">기체</span> <input type="text" id="logDrone" maxlength="40"></label>
+      <label><span data-en="Pilot">조종자</span> <input type="text" id="logPilot" maxlength="20"></label><!-- 교관 · 교육생 여럿(2026-11-18) -->
       <label><span data-en="Note">메모</span> <input type="text" id="logNote" maxlength="80"></label>
       <div class="row wide"><button type="submit" class="btn go" data-en="+ Add">+ 기록 더하기</button></div>
     </form>
     <p id="logSum" class="logSum"></p>
+    <p id="logPilots" class="dim small" hidden></p>
     <ol id="logList" class="logList"></ol>
     <div class="row"><button type="button" id="logCsv" class="btn" data-en="⬇ Save as CSV">⬇ CSV 로 저장</button></div>
     <p class="dim small" data-en="This log stays only on this phone and is not sent to the server. Clearing your browsing data or changing phones deletes it, so save a file now and then with “⬇ Save as CSV”.">이 기록은 이 폰에만 남고 서버로 보내지 않습니다. 인터넷 기록을 지우거나 폰을 바꾸면 사라지니, 가끔 "⬇ CSV 로 저장" 으로 파일을 받아 두세요.</p>
