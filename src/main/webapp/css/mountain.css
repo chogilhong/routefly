@@ -211,7 +211,8 @@ ul { margin:0; padding:0; list-style:none; }
 /* 🏨 근처 숙소 찾기(/m/ · /en/m/, 2026-10-29) - 손가락 크기 44px */
 .ssForm { display:flex; gap:8px; margin:4px 0 10px; }
 .ssForm.ssOutside { margin:4px 0 10px 24px; }   /* 칸을 접어도 남는 검색 칸 - 펼친 칸 안(.fb)과 같은 들여쓰기 */
-.ssForm input { flex:1; min-width:0; min-height:44px; padding:0 12px; border-radius:12px; border:1px solid var(--ln); background:#0f141a; color:var(--tx); font-size:16px; }
+.ssForm input { flex:1; min-width:0; min-height:44px; padding:0 12px; border-radius:12px; border:1px solid rgba(255,255,255,0.32); background:#2b3747; color:var(--tx); font-size:16px; }   /* 코스 모음 찾기 칸과 같게 밝게(2026-11-18 PC: 숙소 찾기만 바탕 그대로) */
+.ssForm input::placeholder { color:#aab6c4; }
 .ssForm button, .ssAlt { min-height:44px; padding:0 16px; border-radius:22px; border:1px solid var(--sky); background:rgba(56,217,234,0.12); color:var(--tx); font:bold 15px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }
 .ssAlt { margin:4px 6px 0 0; font-weight:normal; }
 .ssAt { font-weight:bold; margin:6px 0; }
