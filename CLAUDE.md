@@ -31,7 +31,7 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다 - 산악회 방 
   `tidefly.html` · `js/tidefly.js`(+ tidefly-early.js) · `css/tidefly.css` · `/api/tidefly`(`com.gh.routefly.tidefly`). 규칙 · 자료는 `docs/tidefly/README.md` 를 따릅니다
   (○ △ ✕ 는 기상청 특보 · 너울만, 숫자 기준 지어내지 않음 · 받은 응답 확인 전 화면 없음 · 특보구역 짝은 docs/tidefly/points-wrn-draft.md 표와 json 을 함께).
   입구: 코스 모음(/m/ · /en/m/) 등산 · 걷기 · 자전거 아래 "🎣 tidefly(출조)" 줄(`MountainServlet.tideflyRow`, 2026-11-15 홍TV님 "자전거 아래에 위치하게 해").
-  예외(2026-11-17 홍TV님 "타이드플라이 바로 아래에 드론을 넣고 드론 관련 정보를" - 홍TV님은 드론 교관 자격): 드론 공역 · 비행 정보. 지금은 자료 확인 단계 -
+  예외(2026-11-17 홍TV님 "타이드플라이 바로 아래에 드론을 넣고 드론 관련 정보를" - 홍TV님은 드론 교관 자격만 있고 교관 일은 하지 않음, 직업 아님(2026-11-18 홍TV님) - 글 · 화면에 "교관으로 일하는" 처럼 쓰지 않음): 드론 공역 · 비행 정보. 지금은 자료 확인 단계 -
   web.DroneProbe 가 V-World 항공 레이어(비행금지 · 제한 · 관제권 · 군작전 · UA 공역 · 임시 · 시범구역) 응답을 src/test/resources/drone/ 에 받음. 받은 응답 확인 전 화면 없음(타이드플라이와 같은 규칙).
   비행승인 신청을 대신 보내는 공개 API 는 찾지 못함(드론원스톱 Open-API 는 기관끼리) - 확인되기 전에는 "신청할 값 정리 + 드론원스톱 열기" 까지만.
   이름 "dronefly(드론)"(2026-11-17 홍TV님 "좋아"), 꼭 넣을 것: 비행금지구역 · 허용구역(UA 초경량비행장치공역) · 비행승인 요청.
