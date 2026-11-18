@@ -918,10 +918,11 @@
     try { $('quizBox').scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { /* 옛 브라우저 */ }
   }
   function qOf(no) { return run.set.qs.filter(function (q) { return q.no === no; })[0]; }
+  function progText() { return tr(run.set.name, run.set.en) + ' · ' + (run.i + 1) + ' / ' + run.list.length + tr(' · 맞음 ', ' · right ') + run.ok; }
   function showQ() {
     var box = $('quizBox'), q = qOf(run.list[run.i]);
     box.hidden = false;
-    box.innerHTML = '<p class="qProg">' + esc(tr(run.set.name, run.set.en) + ' · ' + (run.i + 1) + ' / ' + run.list.length + tr(' · 맞음 ', ' · right ') + run.ok) + '</p>'
+    box.innerHTML = '<p class="qProg">' + esc(progText()) + '</p>'
       + '<p class="qText">' + esc(quizLabel(q.no) + ' ' + q.q) + '</p>'
       + '<ol class="qChoices">' + q.c.map(function (c, i) { return '<li><button type="button" data-a="' + (i + 1) + '">' + esc('①②③④'.charAt(i) + ' ' + c) + '</button></li>'; }).join('') + '</ol>'
       + '<div class="qAfter" hidden></div>';
@@ -936,6 +937,7 @@
     });
     if (ok) run.ok++;
     run.n++;
+    box.querySelector('.qProg').textContent = progText();   // 맞음 수는 답한 바로 그때(2026-11-18 홍TV님 - 다음 문항으로 가야 바뀌었음)
     save('df-quiz', JSON.stringify(quizMark(wrongList(), run.set.id + ':' + q.no, ok)));
     var last = run.i + 1 >= run.list.length, after = box.querySelector('.qAfter');
     if (run.mode === 'all') { var at = quizAt(); at[run.set.id] = q.no; save('df-quiz-at', JSON.stringify(at)); }

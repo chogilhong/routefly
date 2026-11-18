@@ -57,6 +57,7 @@ public class DroneQuizPageTest {
         assertArrayEquals(new int[] {28, 0, 8}, pics);
         // 필기 칸 링크 글도 페이지 모양대로(2026-11-18 PC: 정답이 없는데 "문항 · 정답 · 해설" 이라 적혀 있었음)
         String h = new String(Files.readAllBytes(Path.of("src/main/webapp/dronefly.html")), StandardCharsets.UTF_8);
-        assertTrue(h.contains(">문항 모두 한 페이지로 보기 ›</a>") && !h.contains("정답 · 해설 한 페이지"));
+        assertTrue(h.contains(">모든 문항 한 페이지로 훑어보기 ›</a>") && !h.contains("정답 · 해설 한 페이지"));   // 2026-11-18 홍TV님 "훑어보기" 로
+        assertTrue("맞음 수는 답한 바로 그때", js.contains("box.querySelector('.qProg').textContent = progText();"));
     }
 }
