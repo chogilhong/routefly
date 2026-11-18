@@ -76,3 +76,19 @@ details.fold > summary h2 { margin: 0; }
 .foot a { color: inherit; }
 .top .tfLogo .ic .dIc { display: block; width: 2.6rem; height: 2.6rem; }   /* 쿼드콥터 그림(드론 이모지가 없어 img/dronefly.svg) */
 .top .tfLogo .ic .dIc { width: min(2.6rem, 11vw); height: min(2.6rem, 11vw); }   /* 큰 글자에서 코스 모음 단추와 겹치지 않게(점검 12차 D2) */
+/* 비행 날씨 · 날 수 있는 시간 · 점검표 · 기록장(2026-11-18 홍TV님 "1~8 전부") */
+.sunLine { margin: 6px 0; font-weight: 700; }
+.sunLine.night { color: var(--care); }
+.wxHead { margin: 6px 0; padding: 8px 10px; border-radius: 8px; background: var(--soft); font-weight: 700; }
+.wxHead.no { background: rgba(217, 48, 37, .14); }
+.wxHead.care { background: rgba(232, 113, 10, .15); color: var(--care); }
+.wxHead.ok { background: rgba(30, 142, 62, .12); color: var(--ok); }
+.wxRows { margin: 4px 0 8px; padding-left: 20px; font-size: .9rem; color: var(--dim); }
+.checkList { list-style: none; margin: 6px 0 0; padding: 0; }
+.checkList label { display: flex; align-items: flex-start; gap: 10px; min-height: 44px; padding: 6px 0; font-size: .95rem; border-top: 1px solid var(--line); }
+.checkList input { flex: 0 0 auto; width: 22px; height: 22px; margin: 2px 0 0; }
+#check summary h2[data-count]::after { content: " " attr(data-count); color: var(--dim); font-weight: 400; font-size: .9rem; }
+.logSum { margin: 10px 0 4px; font-weight: 700; }
+.logList { margin: 0; padding-left: 22px; font-size: .9rem; }
+.logList li { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; border-top: 1px solid var(--line); }
+.logList .del { flex: 0 0 auto; min-width: 44px; min-height: 44px; border: 0; background: none; color: var(--dim); font-size: 1rem; cursor: pointer; }

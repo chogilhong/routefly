@@ -1,0 +1,51 @@
+package com.gh.routefly.web;
+
+import static org.junit.Assert.*;
+
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.junit.Test;
+
+/**
+ * 2026-11-18 홍TV님 "1~8 전부" - 드론(비행 날씨 · 날 수 있는 시간 · 점검표 · 기록장)과 출조(★ 포인트 · 이번 주 좋은 날 · 조과 일지).
+ * 순수 함수는 dronefly.test.js · tidefly.test.js 가 봄. 여기는 화면 자리 · 서버로 나가는 값 · 개인정보처리방침이 코드와 맞는지.
+ */
+public class FlyExtrasTest {
+
+    private static String read(String p) throws Exception {
+        return new String(Files.readAllBytes(Path.of(p)), StandardCharsets.UTF_8).replace("\r\n", "\n");
+    }
+
+    /** 코드가 쓰는 저장 열쇠(prefix 로 시작하는 '…' 글)가 개인정보처리방침 한 · 영 둘 다에 있어야 함. */
+    private static void keysInPolicy(String js, String prefix) throws Exception {
+        Matcher m = Pattern.compile("'(" + prefix + "[a-z-]+)'").matcher(js);
+        TreeSet<String> keys = new TreeSet<>();
+        while (m.find()) keys.add(m.group(1));
+        assertFalse(prefix + " 열쇠가 하나도 없음", keys.isEmpty());
+        for (String page : new String[] {"privacy.html", "privacy-en.html"}) {
+            String pol = read("src/main/webapp/" + page);
+            for (String k : keys) assertTrue(page + " 에 " + k, pol.contains(k));
+        }
+    }
+
+    @Test
+    public void 드론_날씨_시간_점검표_기록장() throws Exception {
+        String h = read("src/main/webapp/dronefly.html"), js = read("src/main/webapp/js/dronefly.js");
+        for (String id : new String[] {"id=\"wx\"", "id=\"sun\"", "id=\"wxHead\"", "id=\"windMax\"", "id=\"check\"", "id=\"checkList\"", "id=\"log\"", "id=\"logForm\"", "id=\"logCsv\""}) assertTrue(id, h.contains(id));
+        // 날씨는 내 위치 그대로가 아니라 약 5km 고정 칸 가운데로만 묻음(개인정보처리방침 dronefly 줄과 같음)
+        assertTrue(js.contains("var c = wxCell(lat, lon), key = c.join(',');") && js.contains("fetch('api/weather?lat=' + c[0] + '&lon=' + c[1])"));
+        assertFalse("날씨에 내 위치 그대로를 보내지 않음", js.contains("api/weather?lat=' + lat") || js.contains("api/weather?lat=' + here.lat"));
+        assertTrue(read("src/main/webapp/privacy.html").contains("비행 날씨도 내 위치가 아니라 그 자리가 든 약 5km 고정 칸"));
+        assertTrue(read("src/main/webapp/privacy-en.html").contains("Flying weather is also looked up by the operator's server"));
+        keysInPolicy(js, "df-");
+        // 해 뜨고 지는 시각은 산 페이지와 같은 RF.sunrise · RF.sunset - 만든 파일(kit-dronefly.js)에 있어야 함
+        String kit = read("src/main/webapp/js/kit-dronefly.js");
+        assertTrue(kit.contains("function sunrise(") && kit.contains("function sunset("));
+        assertTrue("야간 근거 조문", js.contains("시행규칙 제310조 ① 6호"));
+    }
+}

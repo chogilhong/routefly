@@ -284,7 +284,93 @@
     return SIZES[(i < 0 ? 1 : i + 1) % SIZES.length];
   }
 
-  var api = { planWindow: planWindow, heritageCell: heritageCell, heritageNotes: heritageNotes, shootText: shootText, tmpState: tmpState, firstDay: firstDay, workdays: workdays, dueText: dueText, toGeoJSON: toGeoJSON, nearStrict: nearStrict, setLang: setLang, nextSize: nextSize, inRing: inRing, inGeom: inGeom, isTca: isTca, zonesAt: zonesAt, levelOf: levelOf, zoneLine: zoneLine, verdict: verdict, meters: meters, nearest: nearest, nearUa: nearUa, dist: dist, applyText: applyText };
+  // ---- 2026-11-18 홍TV님 "1~8 전부": 1 비행 날씨 · 2 날 수 있는 시간 · 3 점검표 · 4 기록장 ----
+
+  /** 순수 함수 - 날씨를 물을 고정 칸(0.05°, 약 5km - 모든 사용자에게 같은 칸, 내 위치 그대로는 보내지 않음). */
+  function wxCell(lat, lon) {
+    return [Math.round(lat * 20) / 20, Math.round(lon * 20) / 20];
+  }
+
+  /**
+   * 순수 함수 - 그 날 · 시각(from ~ to, "HH:MM")의 기상청 단기예보 시간 칸(/api/weather 의 hours: t "YYYY-MM-DD HH:00", wsd 풍속 m/s, pty 강수형태, pop 강수확률, tmp 기온)으로 판정.
+   * limit - 기체 최대 풍속(설명서, m/s, 없으면 null). → null(그 날 예보 없음) 또는 {rows, wind, rain, pop, tmin, level: no|care|ok|null}.
+   * ✕ no: 비 · 눈(pty > 0) 또는 풍속 ≥ limit, △ care: 풍속 > limit 의 70%(돌풍 여유 - routefly 기준), ○ ok: 그 아래. limit 이 없으면 비 · 눈만 ✕, 나머지는 숫자만(level null).
+   */
+  function flyWx(hours, date, from, to, limit) {
+    var day = (hours || []).filter(function (h) { return String(h.t || '').slice(0, 10) === date; });
+    if (!day.length) return null;
+    var fh = parseInt(String(from || '').slice(0, 2), 10), th = parseInt(String(to || '').slice(0, 2), 10);
+    if (isNaN(fh) || isNaN(th) || th < fh) { fh = 0; th = 23; }
+    var rows = day.filter(function (h) { var hh = +String(h.t).slice(11, 13); return hh >= fh && hh <= th; });
+    if (!rows.length) rows = day.filter(function (h) { return +String(h.t).slice(11, 13) >= fh; }).slice(0, 1);
+    if (!rows.length) rows = day.slice(-1);
+    var num = function (k) { return rows.map(function (h) { return h[k]; }).filter(function (v) { return typeof v === 'number'; }); };
+    var ws = num('wsd'), ps = num('pop'), ts = num('tmp');
+    var wind = ws.length ? Math.max.apply(null, ws) : null, pop = ps.length ? Math.max.apply(null, ps) : null, tmin = ts.length ? Math.min.apply(null, ts) : null;
+    var rain = rows.some(function (h) { return h.pty > 0; });
+    var lim = typeof limit === 'number' && limit > 0 ? limit : null;
+    var level = rain || (lim && wind != null && wind >= lim) ? 'no' : !lim || wind == null ? null : wind > lim * 0.7 ? 'care' : 'ok';
+    return { rows: rows, wind: wind, rain: rain, pop: pop, tmin: tmin, level: level };
+  }
+
+  /** 순수 함수 - 강수형태(기상청 PTY) 낱말. */
+  function ptyWord(n) {
+    return [null, tr('비', 'rain'), tr('비/눈', 'rain/snow'), tr('눈', 'snow'), tr('소나기', 'shower')][n] || null;
+  }
+
+  /** 순수 함수 - ms → 우리 시간 "HH:MM". */
+  function kstHm(ms) {
+    return new Date(ms + 9 * 3600000).toISOString().slice(11, 16);
+  }
+
+  /** 순수 함수 - 그 날 해 뜨고 지는 때(ms)와 계획 시각("HH:MM")으로 {rise, set, night}. night - 계획이 일출 전 · 일몰 뒤에 걸림(시행규칙 제310조 ① 6호). */
+  function dayWindow(riseMs, setMs, from, to) {
+    if (riseMs == null || setMs == null) return null;
+    var rise = kstHm(riseMs), set = kstHm(setMs);
+    var ok = /^\d\d:\d\d$/;
+    return { rise: rise, set: set, night: ok.test(from || '') && ok.test(to || '') && (from < rise || to > set) };
+  }
+
+  // 비행 전 점검표 [id, 한국어, 영어] - 법 원문(docs/dronefly/law)에 있는 것은 조문을 붙임
+  var CHECKS = [
+    ['zone', '공역 판정대로 비행승인 · 항공촬영 신청을 했다(필요한 자리만)', 'Flight approval / filming application done if this spot needs it'],
+    ['wx', '날씨 · 바람이 기체 한계 안이다(위 🌤 칸)', 'Weather and wind are within the drone\'s limits (🌤 above)'],
+    ['day', '일출 ~ 일몰 사이다(야간은 특별비행승인 - 시행규칙 제310조 ① 6호)', 'Between sunrise and sunset (night needs a special flight approval)'],
+    ['reg', '기체 신고 · 조종자 증명이 필요한 기체면 갖췄다', 'Registration and pilot certificate, if the drone needs them'],
+    ['bat', '배터리(기체 · 조종기 · 예비)를 충전했다', 'Batteries charged (drone, controller, spares)'],
+    ['prop', '프로펠러 · 기체에 금 · 헐거움이 없다', 'No cracks or loose parts on propellers and frame'],
+    ['gps', '펌웨어 · 앱을 확인하고 GPS · 나침반이 잡혔다', 'Firmware/app checked, GPS and compass ready'],
+    ['rth', '자동 귀환(RTH) 높이 · 귀환 지점을 맞췄다', 'Return-to-home height and home point set'],
+    ['vlos', '눈으로 보이는 곳에서만, 사람이 많은 곳 위로는 날지 않는다(제310조 ① 2호 · ④)', 'Keep it in sight and stay away from crowds (art. 310)'],
+    ['alc', '술 · 약 기운 없이 조종한다(제310조 ① 7호)', 'No alcohol or drugs (art. 310)'],
+    ['ins', '보험(사업 목적이면 꼭)을 확인했다', 'Insurance checked (required for business use)']
+  ];
+
+  /** 순수 함수 - 저장한 점검 상태({d, on})에서 오늘 고른 것만(날이 바뀌면 비움). */
+  function checksToday(saved, today) {
+    return saved && saved.d === today && Array.isArray(saved.on) ? saved.on.filter(function (id) { return CHECKS.some(function (c) { return c[0] === id; }); }) : [];
+  }
+
+  /** 순수 함수 - 기록장 합계 {n 번, min 분}. */
+  function logSum(list) {
+    return (list || []).reduce(function (a, e) { return { n: a.n + 1, min: a.min + (+e.min || 0) }; }, { n: 0, min: 0 });
+  }
+
+  /** 순수 함수 - 기록장 CSV(엑셀이 한글을 읽게 BOM, 쉼표 · 따옴표 · 줄바꿈은 따옴표로 감쌈). */
+  function logCsv(list) {
+    var q = function (v) { v = String(v == null ? '' : v); return /[",\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+    var rows = [['날짜', '비행 시간(분)', '장소', '기체', '메모']].concat((list || []).map(function (e) { return [e.d, e.min, e.place, e.drone, e.note]; }));
+    return '\ufeff' + rows.map(function (r) { return r.map(q).join(','); }).join('\r\n') + '\r\n';
+  }
+
+  /** 순수 함수 - 분 → "1시간 25분" · "40분". */
+  function minText(m) {
+    var h = Math.floor(m / 60), r = m % 60;
+    if (lang === 'en') return (h ? h + ' h' : '') + (r || !h ? (h ? ' ' : '') + r + ' min' : '');
+    return (h ? h + '시간' : '') + (r || !h ? (h ? ' ' : '') + r + '분' : '');
+  }
+
+  var api = { wxCell: wxCell, flyWx: flyWx, ptyWord: ptyWord, kstHm: kstHm, dayWindow: dayWindow, CHECKS: CHECKS, checksToday: checksToday, logSum: logSum, logCsv: logCsv, minText: minText, planWindow: planWindow, heritageCell: heritageCell, heritageNotes: heritageNotes, shootText: shootText, tmpState: tmpState, firstDay: firstDay, workdays: workdays, dueText: dueText, toGeoJSON: toGeoJSON, nearStrict: nearStrict, setLang: setLang, nextSize: nextSize, inRing: inRing, inGeom: inGeom, isTca: isTca, zonesAt: zonesAt, levelOf: levelOf, zoneLine: zoneLine, verdict: verdict, meters: meters, nearest: nearest, nearUa: nearUa, dist: dist, applyText: applyText };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
   root.DF = api;
 
@@ -348,6 +434,71 @@
     $('shootDue').hidden = !sd;
     if (sd) { $('shootDue').textContent = sd.text; $('shootDue').className = 'due' + (sd.ok ? ' ok' : ''); }
     $('shootOut').value = shootText(f, zones);
+    drawWx();
+  }
+
+  // ---- 비행 날씨 · 날 수 있는 시간(2026-11-18) - 약 5km 고정 칸 가운데로 /api/weather(기상청 단기예보, 산 페이지와 같은 것)를 묻고 판정은 폰이 ----
+  var wxCache = {}, wxWait = {};   // wxWait[칸] - 묻는 중 true, 못 받은 때(ms) - 2분 동안 다시 묻지 않음(문화재 칸과 같게)
+  function wxFor(lat, lon) {
+    var c = wxCell(lat, lon), key = c.join(',');
+    if (wxCache[key]) return wxCache[key];
+    var w = wxWait[key];
+    if (!w || (w !== true && Date.now() - w > 120000)) {
+      wxWait[key] = true;
+      fetch('api/weather?lat=' + c[0] + '&lon=' + c[1]).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+        if (!d || d.unavailable || !d.hours) { wxWait[key] = Date.now(); drawWx(); return; }
+        wxWait[key] = false;
+        wxCache[key] = d;
+        if (here && wxCell(here.lat, here.lon).join(',') === key) drawWx();
+      }).catch(function () { wxWait[key] = Date.now(); drawWx(); });
+    }
+    return null;
+  }
+  function windLimit() {
+    var v = parseFloat($('windMax').value);
+    return v > 0 ? v : null;
+  }
+  function dayLabel(date) {
+    var d = new Date(date + 'T00:00:00Z');
+    if (isNaN(d)) return date;
+    return (d.getUTCMonth() + 1) + '/' + d.getUTCDate() + '(' + tr('일월화수목금토'.charAt(d.getUTCDay()), ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getUTCDay()]) + ')';
+  }
+  function drawWx() {
+    if (!here) return;
+    $('wx').hidden = false;
+    var date = $('date').value, from = $('from').value, to = $('to').value;
+    var today = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
+    // 날 수 있는 때 - 해 뜨고 지는 시각은 폰이 셈(코스 모음 산 페이지와 같은 RF.sunrise · RF.sunset)
+    var dms = /^\d{4}-\d\d-\d\d$/.test(date) ? Date.parse(date + 'T03:00:00Z') : NaN;
+    var win = !isNaN(dms) && window.RF && window.RF.sunrise ? dayWindow(window.RF.sunrise(dms, here.lat, here.lon), window.RF.sunset(dms, here.lat, here.lon), from, to) : null;
+    $('sun').textContent = win ? tr('☀ ' + dayLabel(date) + ' 날 수 있는 때 ' + win.rise + ' ~ ' + win.set + ' (일출 ~ 일몰)', '☀ ' + dayLabel(date) + ' daylight flying ' + win.rise + ' – ' + win.set + ' (sunrise to sunset)')
+      + (win.night ? tr(' - ⚠ 계획 ' + from + ' ~ ' + to + ' 이 야간에 걸립니다. 야간은 특별비행승인이 필요합니다.', ' - ⚠ your plan ' + from + '–' + to + ' runs into the night, which needs a special flight approval.') : '') : '';
+    $('sun').className = 'sunLine' + (win && win.night ? ' night' : '');
+    var d = wxFor(here.lat, here.lon), lim = windLimit();
+    if (!d) {
+      var w = wxWait[wxCell(here.lat, here.lon).join(',')];
+      $('wxHead').className = 'wxHead';
+      $('wxHead').textContent = w === true ? tr('기상청 예보를 받는 중…', 'Loading the KMA forecast…') : tr('예보를 받지 못했습니다. 잠시 뒤 다시 골라 주세요.', 'Could not load the forecast. Please pick the spot again in a moment.');
+      $('wxRows').innerHTML = '';
+      return;
+    }
+    var r = flyWx(d.hours, date, from, to, lim), on = date;
+    // 비행 날이 단기예보 밖이면(기본 날짜는 신청 기간 뒤라 흔함) 오늘 남은 때를 대신 보임
+    if (!r) { on = today; r = flyWx(d.hours.filter(function (h) { return String(h.t) >= new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 13).replace('T', ' '); }), today, '00:00', '23:59', lim); }
+    var mark = r && r.level ? { no: '✕', care: '△', ok: '○' }[r.level] : '';
+    $('wxHead').className = 'wxHead ' + (r && r.level ? r.level : '');
+    if (!r) { $('wxHead').textContent = tr('이 날은 아직 기상청 단기예보 밖입니다(모레 · 글피까지 나옴).', 'This day is beyond the KMA short-range forecast (about 3 days).'); $('wxRows').innerHTML = ''; return; }
+    var lead = on !== date ? tr(dayLabel(date) + ' 은 아직 예보 밖이라 오늘 ' + dayLabel(on) + ' 남은 때: ', dayLabel(date) + ' is beyond the forecast, so today ' + dayLabel(on) + ': ') : tr(dayLabel(on) + ' ' + from + ' ~ ' + to + ': ', dayLabel(on) + ' ' + from + '–' + to + ': ');
+    var bits = [];
+    if (r.wind != null) bits.push(tr('바람 최대 ', 'wind up to ') + r.wind + 'm/s' + (lim ? tr(' (기체 ' + lim + 'm/s)', ' (limit ' + lim + ' m/s)') : ''));
+    if (r.rain) bits.push(tr('비 · 눈 예보', 'rain/snow forecast'));
+    else if (r.pop != null) bits.push(tr('강수확률 ', 'chance of rain ') + r.pop + '%');
+    if (r.tmin != null) bits.push(tr('최저 ', 'low ') + r.tmin + '℃');
+    $('wxHead').textContent = (mark ? mark + ' ' : '') + lead + bits.join(' · ') + (lim ? '' : tr(' - 아래에 기체 최대 풍속을 넣으면 ○ △ ✕ 로 봅니다.', ' - enter your drone\'s max wind below to get ○ △ ✕.'));
+    $('wxRows').innerHTML = r.rows.map(function (h) {
+      var p = ptyWord(h.pty);
+      return '<li>' + esc(String(h.t).slice(11, 13) + tr('시', ':00') + ' · ' + tr('바람 ', 'wind ') + (h.wsd != null ? h.wsd + 'm/s' : '-') + ' · ' + (p ? p : tr('강수 ', 'rain ') + (h.pop != null ? h.pop + '%' : '-')) + ' · ' + (h.tmp != null ? h.tmp + '℃' : '')) + '</li>';
+    }).join('');
   }
 
   // ---- 문화재보호구역(2026-11-17 홍TV님 "문화재보호구역도 넣어줘") - 약 10km 고정 칸마다 서버(/api/heritage)에 묻고 칸 안 셈은 폰이 ----
@@ -458,6 +609,69 @@
     try { $('result').scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { $('result').scrollIntoView(); }
   }
 
+  function load(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
+  function save(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* 기억 못 해도 지금 화면은 바뀜 */ } }
+  function todayKst() { return new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10); }
+
+  // ---- 비행 전 점검표(2026-11-18) - 고른 것은 그날만(df-check) ----
+  function paintCheck() {
+    var on = checksToday(load('df-check'), todayKst());
+    $('checkList').innerHTML = CHECKS.map(function (c) {
+      return '<li><label><input type="checkbox" data-c="' + c[0] + '"' + (on.indexOf(c[0]) >= 0 ? ' checked' : '') + '> <span>' + esc(tr(c[1], c[2])) + '</span></label></li>';
+    }).join('');
+    $('check').querySelector('summary h2').setAttribute('data-count', on.length + '/' + CHECKS.length);
+  }
+  function initCheck() {
+    paintCheck();
+    $('checkList').addEventListener('change', function () {
+      var on = Array.prototype.map.call($('checkList').querySelectorAll('input:checked'), function (x) { return x.getAttribute('data-c'); });
+      save('df-check', JSON.stringify({ d: todayKst(), on: on }));
+      $('check').querySelector('summary h2').setAttribute('data-count', on.length + '/' + CHECKS.length);
+    });
+    $('checkClear').addEventListener('click', function () { save('df-check', JSON.stringify({ d: todayKst(), on: [] })); paintCheck(); });
+  }
+
+  // ---- 비행 기록장(2026-11-18) - 이 폰에만(df-log), 새 것이 위, 500개까지 ----
+  function logList() { var l = load('df-log'); return Array.isArray(l) ? l : []; }
+  function paintLog() {
+    var list = logList(), s = logSum(list);
+    $('logSum').textContent = s.n ? tr('모두 ' + s.n + '번 · ' + minText(s.min), s.n + ' flights · ' + minText(s.min)) : tr('아직 기록이 없습니다.', 'No flights logged yet.');
+    $('logList').innerHTML = list.map(function (e, i) {
+      return '<li><span>' + esc(e.d + ' · ' + minText(+e.min || 0) + (e.place ? ' · ' + e.place : '') + (e.drone ? ' · ' + e.drone : '') + (e.note ? ' · ' + e.note : '')) + '</span> <button type="button" class="del" data-i="' + i + '" aria-label="' + esc(tr('이 기록 지우기', 'Delete this entry')) + '">✕</button></li>';
+    }).join('');
+    $('logCsv').hidden = !list.length;
+  }
+  function initLog() {
+    $('logDate').value = todayKst();
+    paintLog();
+    $('logForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var min = parseInt($('logMin').value, 10);
+      if (!(min > 0) || !$('logDate').value) return;
+      var list = logList();
+      list.unshift({ d: $('logDate').value, min: min, place: $('logPlace').value.trim() || (here && here.name) || '', drone: $('logDrone').value.trim(), note: $('logNote').value.trim() });
+      save('df-log', JSON.stringify(list.slice(0, 500)));
+      $('logMin').value = ''; $('logNote').value = '';
+      paintLog();
+    });
+    $('logList').addEventListener('click', function (e) {
+      var b = e.target.closest('button.del');
+      if (!b || !window.confirm(tr('이 기록을 지울까요?', 'Delete this entry?'))) return;
+      var list = logList();
+      list.splice(+b.getAttribute('data-i'), 1);
+      save('df-log', JSON.stringify(list));
+      paintLog();
+    });
+    $('logCsv').addEventListener('click', function () {
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([logCsv(logList())], { type: 'text/csv;charset=utf-8' }));
+      a.download = 'dronefly-log-' + todayKst() + '.csv';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    });
+  }
+
   function init() {
     initMap();
     // 기본 날짜는 처리 기간(항공촬영 평일 4일)을 넘긴 첫날 - 내일로 두면 승인 필요 자리마다 "모자랄 수 있습니다" 가 먼저 떴음(2026-11-17)
@@ -514,9 +728,14 @@
       });
     });
 
+    // 기체 최대 풍속 - 이 폰에만(df-wind)
+    try { var wm = localStorage.getItem('df-wind'); if (wm) $('windMax').value = wm; } catch (e) { /* 저장이 막힌 브라우저 */ }
+    $('windMax').addEventListener('input', function () { save('df-wind', $('windMax').value); drawWx(); });
+    initCheck();
+    initLog();
+
     var themeBtn = $('theme'), sizeBtn = $('size'), rootEl = document.documentElement;
     var SIZE_NAME = { m: ['보통', 'normal'], l: ['크게', 'large'], xl: ['아주 크게', 'extra large'] };
-    function save(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* 기억 못 해도 지금 화면은 바뀜 */ } }
     function paintTheme() {
       var dark = rootEl.getAttribute('data-theme') !== 'light';
       themeBtn.textContent = dark ? '☀️' : '🌙';
@@ -550,6 +769,8 @@
       Array.prototype.forEach.call(langBtns, function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-lang') === lang ? 'true' : 'false'); });
       paintSrc();
       paintTheme();
+      paintCheck();
+      paintLog();
       draw();
     }
     Array.prototype.forEach.call(langBtns, function (b) {

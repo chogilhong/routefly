@@ -151,4 +151,42 @@ DF.setLang('ko');
 assert.strictEqual(DF.nextSize('m'), 'l');
 assert.strictEqual(DF.nextSize('l'), 'xl');
 assert.strictEqual(DF.nextSize('xl'), 'm');
+// 2026-11-18 홍TV님 "1~8 전부" - 비행 날씨(/api/weather 의 hours 모양 - WeatherServlet.body: t · tmp · pop · wsd · pty) · 날 수 있는 때 · 점검표 · 기록장
+assert.deepStrictEqual(DF.wxCell(37.5665, 126.978), [37.55, 127]);   // 약 5km 고정 칸 - 내 위치 그대로는 보내지 않음
+const hrs = [
+  { t: '2026-11-20 09:00', wsd: 2.1, pop: 10, pty: 0, tmp: 3 }, { t: '2026-11-20 10:00', wsd: 4.0, pop: 20, pty: 0, tmp: 5 },
+  { t: '2026-11-20 11:00', wsd: 7.5, pop: 30, pty: 0, tmp: 6 }, { t: '2026-11-20 12:00', wsd: 6.0, pop: 30, pty: 0, tmp: 7 },
+  { t: '2026-11-20 13:00', wsd: 3.0, pop: 60, pty: 1, tmp: 7 }, { t: '2026-11-21 10:00', wsd: 1.0, pop: 0, pty: 0, tmp: -2 }];
+let w = DF.flyWx(hrs, '2026-11-20', '10:00', '12:00', 10);
+assert.deepStrictEqual(w.rows.map(h => h.t.slice(11, 13)), ['10', '11', '12']);
+assert.strictEqual(w.wind, 7.5);
+assert.strictEqual(w.level, 'care');   // 7.5 > 10 의 70%
+assert.strictEqual(DF.flyWx(hrs, '2026-11-20', '10:00', '12:00', 12).level, 'ok');
+assert.strictEqual(DF.flyWx(hrs, '2026-11-20', '10:00', '12:00', 7.5).level, 'no');   // 한계와 같으면 ✕
+assert.strictEqual(DF.flyWx(hrs, '2026-11-20', '12:00', '13:00', 12).level, 'no');    // 13시 비
+assert.strictEqual(DF.flyWx(hrs, '2026-11-20', '10:00', '12:00', null).level, null);  // 한계 없으면 숫자만
+assert.strictEqual(DF.flyWx(hrs, '2026-11-20', '13:00', '13:00', null).level, 'no');  // 비는 한계 없어도 ✕
+assert.strictEqual(DF.flyWx(hrs, '2026-11-25', '10:00', '12:00', 10), null);          // 예보 밖
+assert.strictEqual(DF.flyWx(hrs, '2026-11-21', '10:00', '12:00', 10).tmin, -2);
+assert.deepStrictEqual(DF.flyWx(hrs, '2026-11-20', '10:30', '10:40', 10).rows.map(h => h.t), ['2026-11-20 10:00']);
+assert.strictEqual(DF.ptyWord(3), '눈');
+assert.strictEqual(DF.ptyWord(0), null);
+// 날 수 있는 때 - 2026-11-20 서울 근처: 일출 07:13 · 일몰 17:16 쯤(ms 는 우리 시간으로 보임)
+const rise = Date.UTC(2026, 10, 19, 22, 13), set = Date.UTC(2026, 10, 20, 8, 16);
+assert.deepStrictEqual(DF.dayWindow(rise, set, '10:00', '12:00'), { rise: '07:13', set: '17:16', night: false });
+assert.strictEqual(DF.dayWindow(rise, set, '06:30', '08:00').night, true);   // 일출 전
+assert.strictEqual(DF.dayWindow(rise, set, '16:00', '17:30').night, true);   // 일몰 뒤
+assert.strictEqual(DF.dayWindow(null, set, '10:00', '12:00'), null);
+// 점검표 - 날이 바뀌면 비움, 모르는 칸은 버림
+assert.deepStrictEqual(DF.checksToday({ d: '2026-11-18', on: ['bat', 'x', 'alc'] }, '2026-11-18'), ['bat', 'alc']);
+assert.deepStrictEqual(DF.checksToday({ d: '2026-11-17', on: ['bat'] }, '2026-11-18'), []);
+assert.ok(DF.CHECKS.some(c => c[0] === 'day' && c[1].includes('제310조 ① 6호')));
+// 기록장 - 합계 · CSV(BOM, 쉼표 · 따옴표는 감쌈)
+const lg = [{ d: '2026-11-18', min: 25, place: '구성산, UA2', drone: 'Mini "4"', note: '' }, { d: '2026-11-17', min: 40, place: '', drone: '', note: '연습' }];
+assert.deepStrictEqual(DF.logSum(lg), { n: 2, min: 65 });
+assert.strictEqual(DF.logCsv(lg), '\ufeff날짜,비행 시간(분),장소,기체,메모\r\n2026-11-18,25,"구성산, UA2","Mini ""4""",\r\n2026-11-17,40,,,연습\r\n');
+DF.setLang('ko');
+assert.strictEqual(DF.minText(65), '1시간 5분');
+assert.strictEqual(DF.minText(40), '40분');
+assert.strictEqual(DF.minText(120), '2시간');
 console.log('dronefly.test.js OK');

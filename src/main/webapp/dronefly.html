@@ -81,6 +81,17 @@
     <ul id="notes" class="notes"></ul>
   </section>
 
+  <details id="wx" class="dcard fold" open hidden><!-- 2026-11-18 홍TV님 "1~8 전부" - 1 비행 날씨 ○△✕ · 2 날 수 있는 시간(일출 ~ 일몰, 시행규칙 제310조 ① 6호) -->
+    <summary><h2 data-en="🌤 Flying weather · daylight">🌤 비행 날씨 · 날 수 있는 시간</h2></summary>
+    <p id="sun" class="sunLine"></p>
+    <p id="wxHead" class="wxHead" role="status"></p>
+    <ul id="wxRows" class="wxRows"></ul>
+    <div class="grid">
+      <label><span data-en="Max wind of your drone (m/s, from the manual)">기체 최대 풍속(m/s, 설명서 값)</span> <input type="number" id="windMax" min="1" max="40" step="0.1" inputmode="decimal" placeholder="예: 10" data-en-ph="e.g. 10"></label>
+    </div>
+    <p class="dim small" data-en="KMA short-range forecast for the about 5 km fixed cell around the spot (about 3 days ahead). Wind is the 10 m mean - gusts and wind higher up are stronger. ✕: rain/snow or wind at or over your drone's limit, △: wind over 70% of the limit (routefly rule, little margin for gusts), ○: below that. The limit is kept only on this phone.">기상청 단기예보(그 자리가 든 약 5km 고정 칸, 모레 · 글피까지). 바람은 지상 10m 평균이라 돌풍 · 높은 곳은 더 셉니다. ✕ 비 · 눈이 오거나 바람이 기체 최대 풍속 이상, △ 최대 풍속의 70% 넘음(돌풍 여유가 적음 - routefly 기준), ○ 그 아래. 최대 풍속은 이 폰에만 저장합니다.</p>
+  </details>
+
   <details id="ua" class="dcard fold" open hidden><!-- 펴고 접기(2026-11-17 홍TV님) -->
     <summary><h2 data-en="🟢 Nearby UA airspace">🟢 가까운 허용구역(UA)</h2></summary>
     <p class="dim small" data-en="Ultralight vehicle airspace - you can fly without approval in daytime up to the height shown (HEI from the ground, ALT from sea level).">초경량비행장치공역 - 낮에 표시된 높이까지 승인 없이 날 수 있는 곳(HEI 는 지면에서, ALT 는 해수면에서 높이).</p>
@@ -123,6 +134,29 @@
       <button type="button" id="copyShoot" class="btn" data-en="📋 Copy">📋 복사</button>
       <a class="btn go" href="https://drone.onestop.go.kr/" target="_blank" rel="noopener" data-en="Open Drone One-stop ›">드론원스톱 열기 ›</a>
     </div>
+  </details>
+
+  <details id="check" class="dcard fold"><!-- 3 비행 전 점검표(2026-11-18) - 고른 것은 그날만 이 폰에 -->
+    <summary><h2 data-en="✅ Pre-flight checklist">✅ 비행 전 점검</h2></summary>
+    <ul id="checkList" class="checkList"></ul>
+    <div class="row"><button type="button" id="checkClear" class="btn" data-en="Clear all">모두 지우기</button></div>
+    <p class="dim small" data-en="Ticks are kept on this phone for today only. Rules: Aviation Safety Act enforcement rule art. 310 (night, alcohol, crowds, line of sight).">고른 것은 오늘만 이 폰에 남습니다. 근거: 항공안전법 시행규칙 제310조(야간 · 음주 · 사람 많은 곳 · 눈으로 보이는 곳).</p>
+  </details>
+
+  <details id="log" class="dcard fold"><!-- 4 비행 기록장(2026-11-18) - 이 폰에만, CSV 로 내보내기 -->
+    <summary><h2 data-en="📒 Flight log">📒 비행 기록장</h2></summary>
+    <form id="logForm" class="grid">
+      <label><span data-en="Date">날짜</span> <input type="date" id="logDate" required></label>
+      <label><span data-en="Minutes flown">비행 시간(분)</span> <input type="number" id="logMin" min="1" max="600" inputmode="numeric" required></label>
+      <label class="wide"><span data-en="Place">장소</span> <input type="text" id="logPlace" maxlength="60"></label>
+      <label><span data-en="Drone">기체</span> <input type="text" id="logDrone" maxlength="40"></label>
+      <label><span data-en="Note">메모</span> <input type="text" id="logNote" maxlength="80"></label>
+      <div class="row wide"><button type="submit" class="btn go" data-en="+ Add">+ 기록 더하기</button></div>
+    </form>
+    <p id="logSum" class="logSum"></p>
+    <ol id="logList" class="logList"></ol>
+    <div class="row"><button type="button" id="logCsv" class="btn" data-en="⬇ Save as CSV">⬇ CSV 로 저장</button></div>
+    <p class="dim small" data-en="Kept only on this phone (not sent to the server). Deleting site data deletes the log - save a CSV from time to time.">이 폰에만 저장합니다(서버로 보내지 않음). 사이트 데이터를 지우면 함께 지워지니 가끔 CSV 로 저장해 두세요.</p>
   </details>
 
   <details class="dcard fold notice" aria-label="드론원스톱 안내" open><!-- 2026-11-17 홍TV님 "이런 내용도 좀 공지 해 주고" - 드론원스톱 첫 화면(2026-11-17 본 것) 그대로 -->
