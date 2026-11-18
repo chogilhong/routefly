@@ -48,6 +48,7 @@ public class FlyExtrasTest {
         assertTrue(kit.contains("function sunrise(") && kit.contains("function sunset("));
         assertTrue("야간 근거 조문", js.contains("시행규칙 제310조 ① 6호"));
         assertTrue("야간 특별비행 기한(2026-11-18)", h.contains("id=\"nightDue\"") && js.contains("var nd = win && win.night ? specialDue(today, date) : null;"));
+        assertTrue("hidden 이 .btn 의 display 에 덮이지 않게(2026-11-18 PC: PC 에서 숨긴 보내기 단추가 보였음)", read("src/main/webapp/css/tidefly.css").contains("[hidden] { display: none !important; }"));
         assertTrue("신청 정리 보내기(2026-11-18)", h.contains("id=\"share\" class=\"btn\" hidden") && h.contains("id=\"shareShoot\"") && js.contains("navigator.share({ title: c[2], text: $(c[1]).value })"));
         assertTrue("기록장 조종자(2026-11-18)", h.contains("id=\"logPilot\"") && h.contains("id=\"logPilots\"") && js.contains("pilot: $('logPilot').value.trim()"));
         assertTrue("비행 계획 → 기록장(2026-11-18)", h.contains("id=\"toLog\"") && js.contains("var v = planToLog({ name: here && here.name"));
