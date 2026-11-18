@@ -905,13 +905,14 @@
       .catch(function () { quizWait = null; $('quizBox').hidden = false; $('quizBox').textContent = tr('문항을 받지 못했습니다. 잠시 뒤 다시 눌러 주세요.', 'Could not load the questions. Please try again in a moment.'); });
     quizWait.then(function () { if (quiz) paintWrongBtn(); if (quiz && then) then(); });
   }
-  function startQuiz(mode, fresh) {
-    if (!quiz) { loadQuiz(function () { startQuiz(mode, fresh); }); return; }
+  function startQuiz(mode, fresh, at) {
+    if (!quiz) { loadQuiz(function () { startQuiz(mode, fresh, at); }); return; }
     keepScore();
     var set = curSet(), pre = set.id + ':';
     var wrong = wrongList().filter(function (k) { return k.indexOf(pre) === 0; }).map(function (k) { return k.slice(pre.length); });
     run = { set: set, mode: mode, list: quizOrder(set.qs.map(function (q) { return q.no; }), mode, wrong), i: 0, ok: 0, n: 0 };
     if (mode === 'all' && !fresh) run.i = quizResume(run.list, quizAt()[set.id]);
+    if (at != null && run.list.indexOf(at) >= 0) run.i = run.list.indexOf(at);   // 문항 페이지의 "✏️ 풀고 정답 보기" - 그 문항부터
     if (!run.list.length) return;
     showQ();
     try { $('quizBox').scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { /* 옛 브라우저 */ }
@@ -943,25 +944,28 @@
     after.hidden = false;
     after.innerHTML = '<p class="qRes ' + (ok ? 'ok' : 'no') + '">' + esc(ok ? tr('⭕ 맞았습니다', '⭕ Right') : tr('❌ 틀렸습니다 - 정답 ', '❌ Wrong - answer ') + '①②③④'.charAt(q.ans - 1)) + '</p>'
       + (q.ex ? '<p class="qEx">' + esc(q.ex) + '</p>' : '')
-      + (q.post ? '<p class="small"><a href="https://hongtv.tistory.com/' + q.post + '" target="_blank" rel="noopener">' + esc(tr('블로그 글에서 그림과 함께 보기 ›', 'See it on the blog with pictures ›')) + '</a></p>' : '')
+      // 그림 해설은 블로그 글에만(그림을 옮기지 않음) - 그림이 있는 문항에만 링크(2026-11-18 홍TV님 "1번으로" - 그림 없는 문항은 헛걸음이었음)
+      + (q.post && q.pic ? '<p class="small"><a href="https://hongtv.tistory.com/' + q.post + '" target="_blank" rel="noopener">' + esc(tr('📷 그림 해설 보기(블로그) ›', '📷 Picture explanation (blog) ›')) + '</a></p>' : '')
       + (q.basis ? '<p class="small dim">' + esc(tr('근거: ', 'Basis: ') + q.basis) + '</p>' : '')
       + (last ? '<p class="qEnd">' + esc(tr('이번에 ' + run.n + '문항 중 ' + run.ok + '문항 맞음 (' + Math.round(run.ok / run.n * 100) + '%)', run.ok + ' of ' + run.n + ' right this time (' + Math.round(run.ok / run.n * 100) + '%)')) + '</p>'
         : '<div class="row"><button type="button" class="btn go qNext">' + esc(tr('다음 문항 ›', 'Next ›')) + '</button></div>');
   }
+  function quizHash() { try { return decodeURIComponent(location.hash); } catch (e) { return ''; } }
   function initQuiz() {
     // 마지막으로 고른 시험(df-quiz-set) - 1종만 풀던 사람이 새로 열 때마다 4종으로 돌아가 "1번부터" 가 보였음(2026-11-18 PC)
     var lastSet = load('df-quiz-set');
     if (typeof lastSet === 'string' && Array.prototype.some.call($('quizSet').options, function (o) { return o.value === lastSet; })) $('quizSet').value = lastSet;
     paintWrongBtn();
     // 문항 페이지(/drone-quiz/c1 등)의 "📝 풀어 보기" → dronefly.html#quiz-c1: 그 시험을 골라 칸을 펴고 그리로
-    var hq = /^#quiz-([a-z0-9]+)$/.exec(location.hash);
+    // 문항 하나(#quiz-c1-17 · #quiz-inst-1-관련)면 그 문항부터 바로 풂
+    var hq = /^#quiz-([a-z0-9]+)(?:-(.+))?$/.exec(quizHash());
     if (hq && Array.prototype.some.call($('quizSet').options, function (o) { return o.value === hq[1]; })) {
       $('quizSet').value = hq[1];
       save('df-quiz-set', JSON.stringify(hq[1]));
       paintWrongBtn();
       $('quiz').open = true;
-      loadQuiz();
-      setTimeout(function () { try { $('quiz').scrollIntoView({ block: 'start' }); } catch (e) { /* 옛 브라우저 */ } }, 300);
+      if (hq[2]) startQuiz('all', true, hq[2]); else loadQuiz();
+      if (!hq[2]) setTimeout(function () { try { $('quiz').scrollIntoView({ block: 'start' }); } catch (e) { /* 옛 브라우저 */ } }, 300);
     }
     $('quiz').addEventListener('toggle', function () { if ($('quiz').open) loadQuiz(); });   // 칸을 펼 때 미리 받음
     $('quizAll').addEventListener('click', function () { startQuiz('all'); });

@@ -270,12 +270,11 @@ ol.ms { margin:0; padding:0; list-style:none; }
 #season ol.ms span { display:inline-block; font-size:14px; padding:6px 11px; border:1px dashed var(--ln); border-radius:16px; }
 /* dronefly 줄의 쿼드콥터 그림(2026-11-17 - 🚁 는 헬리콥터) */
 .kindLink .dIc { width:1.25em; height:1.25em; vertical-align:-0.22em; }
-/* 드론 필기 문항 페이지(/drone-quiz/…, 2026-11-18) - 문항마다 칸, 정답 · 해설은 접어 둠 */
+/* 드론 필기 문항 페이지(/drone-quiz/…, 2026-11-18) - 문제 · 보기만, 문항마다 "풀고 정답 보기" (정답은 dronefly 에서) */
 .cp .dq { padding-left: 1.4em; margin: 14px 0; }
 .cp .dq > li { margin: 0 0 16px; list-style: none; margin-left: -1.4em; }
 .cp .dqQ { font-weight: 600; margin: 0 0 6px; line-height: 1.5; }
 .cp .dqC { margin: 0 0 6px; padding-left: 0.6em; }
 .cp .dqC li { list-style: none; margin: 2px 0; line-height: 1.5; }
-.cp .dq details { font-size: 0.94rem; }
-.cp .dq summary { cursor: pointer; color: var(--dim); }
-.cp .dqEx { white-space: pre-line; line-height: 1.55; }
+.cp .dqGo { margin: 4px 0 0; font-size: 0.94rem; }
+.cp .dqNote { margin: 10px 0; padding: 10px 12px; border-radius: 10px; background: rgba(56, 189, 248, 0.12); line-height: 1.55; }

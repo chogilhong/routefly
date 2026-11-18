@@ -234,6 +234,9 @@ assert.strictEqual(DF.minText(120), '2시간');
   assert.deepStrictEqual([r1.q, r1.ans], ['국제민간항공협약은 언제 제정되었나요?', 3]);
   assert.strictEqual(i10.c[3], 'Liveware (인간) : 성격, 의사소통, 리더쉽');   // 원문 ④ 가 "4." 로 적힘
   assert.strictEqual(i10.ans, 2);
+  // 해설 속 그림(블로그 글에만) - 그림 바로 앞 문항에 pic(2026-11-18 "1번으로"), 글 머리 그림 · new_ico 는 아님
+  assert.deepStrictEqual(Q.filter(q => q.pic).map(q => q.no).join(','), '9,11,12,13,31,42,43,45,47,52,53,59,63,65,70,71,74,80,81,82,84,87,89,91,92,93,94,95');
+  assert.deepStrictEqual(I.filter(q => q.pic).map(q => q.no).join(','), '3-관련,10-관련,24,27-관련,28-관련,35,36,41');
 }
 assert.deepStrictEqual(DF.quizOrder(['1', '2', '3'], 'all', [], null), ['1', '2', '3']);
 assert.deepStrictEqual(DF.quizOrder(['1', '1-관련', '2', '4'], 'wrong', ['4', '1-관련', '9'], null), ['1-관련', '4']);

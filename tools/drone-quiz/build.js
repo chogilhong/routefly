@@ -16,12 +16,17 @@ function unescape(s) {
 }
 
 /** 글 본문 → 줄들(태그를 먼저 지우고 글자 표시를 풂 - "&lt;4.1" 이 태그로 지워지지 않게). 블로그 광고 자리 글(728x90 · 반응형)은 뺌. */
+/** 해설 속 그림 자리(2026-11-18 홍TV님 "그럼 그림은?" → "1번으로") - 그림은 옮기지 않고, 그림이 있는 문항만 화면에 "📷 그림 해설 보기(블로그)". */
+const PIC = '\u0001그림';
+
 function lines(html) {
   const m = /<div[^>]*class="[^"]*(tt_article_useless_p_margin|contents_style)[^"]*"[^>]*>([\s\S]*)/.exec(html);
   let body = m ? m[2] : html;
   const end = body.indexOf('<div class="container_postbtn');
   if (end > 0) body = body.slice(0, end);
   body = body.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, '');
+  // 그림 → 표시 줄(블로그 "새 글" 아이콘 new_ico 는 그림이 아님 - 글 머리 그림 · 광고 그림은 첫 문항 앞이라 붙지 않음)
+  body = body.replace(/<img\b[^>]*>/g, t => /new_ico/.test(t) ? '' : '\n' + PIC + '\n');
   const t = unescape(body.replace(/<br\s*\/?>|<\/p>|<\/li>|<\/div>|<\/h\d>|<\/tr>/g, '\n').replace(/<[^>]+>/g, ''))
     .replace(/​/g, '').replace(/ /g, ' ').replace(/　/g, ' ');
   return t.split('\n').map(l => l.trim()).filter(l => l && l !== '728x90' && l !== '반응형');
@@ -33,6 +38,7 @@ function parse(posts) {
   Object.keys(posts).forEach(n => {
     let cur = null;
     lines(posts[n]).forEach(l => {
+      if (l === PIC) { if (cur) cur.pic = true; return; }
       const m = /^(\d{1,3})\.\s*(.+)$/.exec(l);
       if (m && (!cur || +m[1] === cur.no + 1 || (cur.ans && +m[1] > cur.no))) {
         cur = { no: +m[1], q: m[2].trim(), c: [], ans: null, ex: [], post: +n };
@@ -63,6 +69,7 @@ function parseInst(posts) {
   Object.keys(posts).forEach(n => {
     let cur = null;
     lines(posts[n]).forEach(l => {
+      if (l === PIC) { if (cur) cur.pic = true; return; }
       const m = /^문제\s+(\d+)\)\s*(.+)$/.exec(l), r = /^관련\s*문제\)\s*(.+)$/.exec(l);
       if (m) { cur = { no: m[1], q: m[2].trim(), c: [], ans: null, ex: [], post: +n }; out.push(cur); return; }
       if (r && cur) { cur = { no: cur.no.split('-')[0] + '-관련', q: r[1].trim(), c: [], ans: null, ex: [], post: +n }; out.push(cur); return; }
