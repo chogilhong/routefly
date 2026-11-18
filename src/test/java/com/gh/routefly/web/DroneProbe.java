@@ -85,9 +85,8 @@ public final class DroneProbe {
         return HeritageServlet.wfs(layer, bbox);
     }
 
-    /** 순수 함수 - 2D 데이터 API 주소(키 · 도메인 빼고). geom - BOX(…) 또는 POINT(경도 위도). */
+    /** 순수 함수 - 2D 데이터 API 주소(키 · 도메인 빼고) - 서버(AirspaceServlet.data)와 한 벌. */
     static String data(String layer, String geom) {
-        return "https://api.vworld.kr/req/data?service=data&version=2.0&request=GetFeature&format=json&errorformat=json&size=1000&page=1&crs=EPSG:4326&geometry=true&attribute=true"
-                + "&data=" + layer.toUpperCase(java.util.Locale.ROOT) + "&geomFilter=" + URLEncoder.encode(geom, StandardCharsets.UTF_8);
+        return AirspaceServlet.data(layer, geom);
     }
 }

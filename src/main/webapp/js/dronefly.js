@@ -801,7 +801,11 @@
     initMap();
     // 기본 날짜는 처리 기간(항공촬영 평일 4일)을 넘긴 첫날 - 내일로 두면 승인 필요 자리마다 "모자랄 수 있습니다" 가 먼저 떴음(2026-11-17)
     $('date').value = firstDay(new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10), 4);
-    fetch('data/drone-airspace.json').then(function (r) { return r.json(); }).then(function (d) {
+    // 공역: 서버가 하루 한 번 새로 받은 것(/api/airspace, 2026-11-18 - 임시 비행금지가 수시로 바뀜) → 아직 없거나 못 받으면 고정 파일(11-17 받음)
+    var good = function (d) { return d && Array.isArray(d.prh) && Array.isArray(d.ua) ? d : null; };
+    fetch('api/airspace').then(function (r) { return r.ok ? r.json() : null; }).then(good).catch(function () { return null; }).then(function (d) {
+      return d || fetch('data/drone-airspace.json').then(function (r) { return r.json(); });
+    }).then(function (d) {
       data = d;
       paintSrc();
       addAirspace();

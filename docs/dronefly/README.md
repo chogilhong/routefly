@@ -60,3 +60,11 @@
 - 칸 아래 출처 줄은 2026-11-18 홍TV님 "출처는 빼줘" 로 뺌(문항마다 "블로그 글에서 그림과 함께 보기 ›" 는 둠).
 - 화면: 1번부터 · 섞어서 20문항 · 틀린 것만(틀린 번호는 이 폰에 df-quiz, 맞히면 빠짐). 칸을 처음 펼 때 문항 파일을 받음. 한국어만(영어 화면은 칸 제목에 Korean).
 - 클라우드에서 받으려고 2026-11-18 웹 환경 허용 주소에 hongtv.tistory.com 을 더함.
+
+## 공역 하루 한 번 새로 받기 (2026-11-18 홍TV님 "모두 해 줘" 1)
+
+- `/api/airspace`(AirspaceServlet): 톰캣이 뜨고 2분 뒤, 그 뒤 24시간마다 브이월드 2D 데이터 API(prh · res · ctr · moa · ua, 전국 상자) + WFS(port · tmp)를 받아
+  data/drone-airspace.json 과 같은 꼴로 만듦(셈은 PC 의 web.DroneAirspace 와 한 벌 - `AirspaceServlet.build`). 키는 map.vworld.key, 도메인은 site.baseUrl 호스트(HeritageServlet 과 같음).
+- 하나라도 못 받거나 오류 응답이면, 또는 고정 공역 다섯 · 항만이 비거나 고정 파일 수의 절반 아래로 줄면 바꾸지 않고 앞의 것 그대로(임시 비행금지는 0곳일 수 있어 수를 보지 않음).
+  잘 받은 것은 통계 폴더 옆 airspace.json 에 남겨 재시작 뒤에도 씀. 로그 `[AIRSPACE] 새로 받음 {prh=…}` · `앞의 것 그대로`.
+- 화면: `api/airspace` 먼저(브라우저 1시간), 503 이거나 꼴이 틀리면 고정 파일 data/drone-airspace.json. 출처 줄의 "○○ 받음" 날짜로 어느 것인지 보임.

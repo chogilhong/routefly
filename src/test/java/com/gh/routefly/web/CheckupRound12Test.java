@@ -74,7 +74,7 @@ public class CheckupRound12Test {
     /** 3단계: C1 공역 자료 먼저 받기 · C2 지형 음영 빼기 · C3 문화재 하루 · C4 tidefly 목록 1분 담기 + 304, 이름 찾기 한 시간. */
     @Test
     public void 단계3_속도() throws Exception {
-        assertTrue("C1", read("src/main/webapp/dronefly.html").contains("<link rel=\"preload\" href=\"data/drone-airspace.json\" as=\"fetch\" crossorigin>"));
+        assertTrue("C1 (2026-11-18 부터 /api/airspace)", read("src/main/webapp/dronefly.html").contains("<link rel=\"preload\" href=\"api/airspace\" as=\"fetch\" crossorigin>"));
         assertTrue("C2", read("src/main/webapp/js/dronefly.js").contains("if (cfg && cfg.vworldKey) { st.layers = st.layers.filter(function (l) { return l.id !== 'hillshade'; }); delete st.sources.hillshade; }"));
         assertTrue("C3", read("src/main/java/com/gh/routefly/web/HeritageServlet.java").contains("Json.notModified(req, resp, tag, \"public, max-age=86400\")"));
         String tf = read("src/main/java/com/gh/routefly/tidefly/TideflyServlet.java");

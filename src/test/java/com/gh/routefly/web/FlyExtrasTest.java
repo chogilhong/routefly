@@ -95,4 +95,31 @@ public class FlyExtrasTest {
         assertTrue("바로가기는 산악회 방 열쇠 처리 앞에서 따로", act.contains("if (isShortcutLink(u)) { final String s = u.toString();"));
         for (String d : new String[] {"sc_routefly", "sc_tidefly", "sc_dronefly"}) assertTrue(d, Files.exists(Path.of("app/android/app/src/main/res/drawable-nodpi/" + d + ".png")));
     }
+
+    /** 드론 공역을 서버가 하루 한 번 새로 받음(2026-11-18 홍TV님 "모두 해 줘" 1) - 받은 응답이 이상하면 앞의 것 그대로, 화면은 못 받으면 고정 파일. */
+    @Test
+    public void 공역_새로_받기() throws Exception {
+        String fixed = read("src/main/webapp/data/drone-airspace.json");
+        java.util.Map<String, Integer> base = AirspaceServlet.counts(fixed);
+        assertEquals("{prh=15, res=84, ctr=53, moa=75, ua=48, port=243, tmp=3}", base.toString());
+        assertTrue("고정 파일 자체는 믿을 만함", AirspaceServlet.sane(fixed, base));
+        com.google.gson.JsonObject o = com.google.gson.JsonParser.parseString(fixed).getAsJsonObject();
+        o.add("tmp", new com.google.gson.JsonArray());
+        assertTrue("임시 비행금지는 0곳일 수도 있음", AirspaceServlet.sane(o.toString(), base));
+        o.add("prh", new com.google.gson.JsonArray());
+        assertFalse("비행금지가 비면 바꾸지 않음", AirspaceServlet.sane(o.toString(), base));
+        com.google.gson.JsonObject half = com.google.gson.JsonParser.parseString(fixed).getAsJsonObject();
+        com.google.gson.JsonArray res = new com.google.gson.JsonArray();
+        for (int i = 0; i < 41; i++) res.add(half.getAsJsonArray("res").get(i));
+        half.add("res", res);
+        assertFalse("84 → 41 처럼 절반 아래로 줄면 바꾸지 않음", AirspaceServlet.sane(half.toString(), base));
+        assertFalse("꼴이 틀린 글", AirspaceServlet.sane("<html>", base));
+        // 받은 응답이 오류면 만들지 않음(브이월드 INCORRECT_KEY 실제 응답 - DroneProbeTest 와 같은 파일)
+        java.util.Map<String, String> data = new java.util.LinkedHashMap<>(), wfs = new java.util.LinkedHashMap<>();
+        for (String[] k : AirspaceServlet.KINDS) data.put(k[1], read("src/test/resources/drone/err-incorrect-key.json"));
+        try { AirspaceServlet.build(data, wfs, "2026-11-18"); fail("오류 응답으로 만들면 안 됨"); } catch (RuntimeException expected) { /* 앞의 것 그대로 */ }
+        assertTrue(AirspaceServlet.data("lt_c_aisprhc", AirspaceServlet.BOX).startsWith("https://api.vworld.kr/req/data?service=data&version=2.0&request=GetFeature&format=json&errorformat=json&size=1000"));
+        String js = read("src/main/webapp/js/dronefly.js");
+        assertTrue("화면은 /api/airspace 먼저, 못 받으면 고정 파일", js.contains("fetch('api/airspace')") && js.contains("return d || fetch('data/drone-airspace.json')"));
+    }
 }

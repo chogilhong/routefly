@@ -16,7 +16,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="img/dronefly-180.png">
 <script src="js/tidefly-early.js"></script><!-- 모드 · 글자 크기 기억은 타이드플라이와 같이(tf-theme · tf-size) -->
-<link rel="preload" href="data/drone-airspace.json" as="fetch" crossorigin><!-- 판정에 쓰는 공역 자료를 지도 프로그램(1MB)과 함께 받기 시작(점검 12차 C1) -->
+<link rel="preload" href="api/airspace" as="fetch" crossorigin><!-- 판정에 쓰는 공역 자료를 지도 프로그램(1MB)과 함께 받기 시작(점검 12차 C1) - 2026-11-18 부터 서버가 하루 한 번 새로 받은 것(없으면 화면이 data/drone-airspace.json) -->
 <link rel="stylesheet" href="vendor/maplibre-gl-5.24.0/maplibre-gl.css">
 <link rel="stylesheet" href="css/tidefly.css">
 <link rel="stylesheet" href="css/dronefly.css">
