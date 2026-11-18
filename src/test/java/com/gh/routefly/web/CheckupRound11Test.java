@@ -271,7 +271,8 @@ public class CheckupRound11Test {
         assertTrue("E7", pk.contains("function segList() {") && pk.contains("closest(\"[data-undo]\")") && pk.contains("data-seg"));
         assertTrue("E9 og.jpg", Files.exists(Path.of("src/main/webapp/img/og.jpg")) && read("src/main/webapp/hike.html").contains("img/og.jpg?v=3"));
         assertFalse("E9 og.png 남음", read("src/main/webapp/hike.html").contains("og.png"));
-        assertTrue("E9 영어 링크", read("src/main/java/com/gh/routefly/web/MountainServlet.java").contains("Trails in English ›"));
+        // E9 영어 링크는 2026-11-18 홍TV님 "이제는 필요없잖아" 로 뺌 - 한/EN 단추로 감
+        assertFalse("E9 영어 링크 뺌", read("src/main/java/com/gh/routefly/web/MountainServlet.java").contains("Trails in English ›"));
         assertTrue("E9 움직임", read("src/main/webapp/index.html").contains("@media (prefers-reduced-motion: reduce) { .spotRing { animation:none; } }"));
     }
 
