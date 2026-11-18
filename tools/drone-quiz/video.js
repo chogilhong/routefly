@@ -40,8 +40,10 @@ function css(w, h) {
 .c{font-size:${tall ? 48 : 38}px;line-height:1.4;padding:${tall ? '24px 32px' : '18px 26px'};border:3px solid #334155;border-radius:24px;margin:0 0 ${tall ? 24 : 0}px}
 .ok{border-color:#22c55e;color:#4ade80;font-weight:800;background:rgba(34,197,94,.08)}.dim{opacity:.45}
 .bar{margin-top:auto;height:22px;border-radius:11px;background:#1e293b;overflow:hidden}.bar i{display:block;height:100%;background:#facc15}
-.t{font-size:${tall ? 110 : 64}px;font-weight:900;color:#facc15;text-align:center;margin-top:${tall ? 'auto' : '18px'}}
-.hint{font-size:${tall ? 38 : 30}px;color:#94a3b8;text-align:center;margin-top:10px}
+.t{font-size:${tall ? 110 : 46}px;font-weight:900;color:#facc15;text-align:center;margin-top:${tall ? 'auto' : '0'}}
+.hint{font-size:${tall ? 38 : 28}px;color:#94a3b8;text-align:center;margin-top:10px}
+/* 가로(긴 영상)는 초 세기를 문항에서 떨어진 맨 아래 한 줄로(2026-11-18 홍TV님 - 보기 바로 아래라 푸는 데 방해) */
+.timer{margin-top:auto;display:flex;align-items:center;gap:22px}.timer .bar{flex:1;margin:0;height:14px}.timer .hint{margin:0;white-space:nowrap}
 .ex{font-size:${tall ? 42 : 34}px;line-height:1.55;color:#cbd5e1;white-space:pre-line;margin-top:${tall ? 26 : 22}px;overflow:hidden}
 .ans{font-size:${tall ? 50 : 40}px;color:#4ade80;font-weight:800;margin-top:${tall ? 30 : 22}px}
 .foot{margin-top:auto;font-size:${tall ? 38 : 30}px;color:#94a3b8;text-align:center}
@@ -54,7 +56,9 @@ function qPage(set, q, mode, left, total, kind) {
   const cs = '<div class="cs">' + q.c.map((c, i) => `<div class="c ${mode === 'ans' ? (i + 1 === q.ans ? 'ok' : 'dim') : ''}">${NUM[i]} ${esc(c)}</div>`).join('') + '</div>';
   const tail = mode === 'ans'
     ? `<div class="ans">✅ 정답 ${NUM[q.ans - 1]}</div>${q.ex ? `<div class="ex">${esc(q.ex)}</div>` : ''}<div class="foot">routefly.kr · dronefly 에서 직접 풀어 보기</div>`
-    : `<div class="t">${left}</div><div class="bar"><i style="width:${Math.round(left / total * 100)}%"></i></div><div class="hint">⏸ 멈춰 놓고 풀어 보세요</div>`;
+    : kind === 'short'
+      ? `<div class="t">${left}</div><div class="bar"><i style="width:${Math.round(left / total * 100)}%"></i></div><div class="hint">⏸ 멈춰 놓고 풀어 보세요</div>`
+      : `<div class="timer"><div class="hint">⏸ 멈춰 놓고 풀어 보세요</div><div class="bar"><i style="width:${Math.round(left / total * 100)}%"></i></div><div class="t">${left}</div></div>`;
   return { w: W[0], h: W[1], html: `<html><head><meta charset="utf-8"><style>${css(W[0], W[1])}</style></head><body>${head}${cs}${tail}</body></html>` };
 }
 
