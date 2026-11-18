@@ -1342,36 +1342,106 @@
 
   // ---- 📝 조과 일지(2026-11-18 홍TV님 "1~8 전부" 7) - 이 폰에만(tf-catch), 새 것이 위, 500개까지 ----
   function catchList() { var l = loadPref('tf-catch', []); return Array.isArray(l) ? l : []; }
+
+  // 조과 사진(2026-11-18 홍TV님 "1~4 해줘" 4) - 한 장을 긴 변 1024px JPEG 로 줄여 이 폰의 IndexedDB(tf-photos)에만. 서버로 보내지 않음
+  var PDB = null;
+  function pdb() {
+    if (!PDB) {
+      PDB = new Promise(function (res, rej) {
+        if (!window.indexedDB) { rej(new Error('no idb')); return; }
+        var r = indexedDB.open('tf-photos', 1);
+        r.onupgradeneeded = function () { r.result.createObjectStore('p'); };
+        r.onsuccess = function () { res(r.result); };
+        r.onerror = function () { rej(r.error); };
+      });
+      PDB.catch(function () { PDB = null; });
+    }
+    return PDB;
+  }
+  function pdo(mode, fn) {
+    return pdb().then(function (db) {
+      return new Promise(function (res, rej) {
+        var t = db.transaction('p', mode), q = fn(t.objectStore('p'));
+        t.oncomplete = function () { res(q && q.result); };
+        t.onerror = function () { rej(t.error); };
+      });
+    });
+  }
+  function shrink(file) {
+    return new Promise(function (res, rej) {
+      var img = new Image(), u = URL.createObjectURL(file);
+      img.onload = function () {
+        var k = Math.min(1, 1024 / Math.max(img.width, img.height)), c = document.createElement('canvas');
+        c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(u);
+        c.toBlob(function (b) { if (b) res(b); else rej(new Error('toBlob')); }, 'image/jpeg', 0.8);
+      };
+      img.onerror = function () { URL.revokeObjectURL(u); rej(new Error('image')); };
+      img.src = u;
+    });
+  }
   function catchBox(it, now) {
     var p = it.point || {}, box = el('form', 'catchBox');
     box.appendChild(el('p', 'label', tr('📝 조과 기록', '📝 Log a catch')));
     var fish = el('input'), note = el('input'), b = el('button', 'more', tr('+ 일지에 남기기', '+ Add to log'));
+    var pic = el('input'), picL = el('label', 'catchPic');
+    pic.type = 'file'; pic.accept = 'image/*';
+    picL.appendChild(el('span', null, tr('📷 사진 한 장(고르기)', '📷 One photo (optional)')));
+    picL.appendChild(pic);
     fish.type = 'text'; fish.maxLength = 30; fish.placeholder = tr('고기 (예: 감성돔 2)', 'Fish (e.g. black porgy 2)');
     fish.setAttribute('aria-label', tr('잡은 고기', 'Fish caught'));
     note.type = 'text'; note.maxLength = 80; note.placeholder = tr('메모 (미끼 · 시각 등)', 'Note (bait, time …)');
     note.setAttribute('aria-label', tr('메모', 'Note'));
     b.type = 'submit';
-    box.appendChild(fish); box.appendChild(note); box.appendChild(b);
+    box.appendChild(fish); box.appendChild(note); box.appendChild(picL); box.appendChild(b);
     box.addEventListener('submit', function (e) {
       e.preventDefault();
-      if (!fish.value.trim() && !note.value.trim()) { fish.focus(); return; }
-      var list = catchList();
-      list.unshift({ d: now.slice(0, 10), name: p.name, mul: it.today ? it.today.mulddae || '' : '', fish: fish.value.trim(), note: note.value.trim() });
-      save('tf-catch', list.slice(0, 500));
-      fish.value = ''; note.value = '';
-      b.textContent = tr('✓ 남김', '✓ Added');
-      paintCatch();
+      var file = pic.files && pic.files[0];
+      if (!fish.value.trim() && !note.value.trim() && !file) { fish.focus(); return; }
+      var entry = { d: now.slice(0, 10), name: p.name, mul: it.today ? it.today.mulddae || '' : '', fish: fish.value.trim(), note: note.value.trim() };
+      var done = function () {
+        var list = catchList();
+        list.unshift(entry);
+        // 500개를 넘겨 빠지는 기록의 사진도 지움
+        list.slice(500).forEach(function (x) { if (x.photo) pdo('readwrite', function (s) { s.delete(x.photo); }).catch(function () { /* 없음 */ }); });
+        save('tf-catch', list.slice(0, 500));
+        fish.value = ''; note.value = ''; pic.value = '';
+        b.textContent = tr('✓ 남김', '✓ Added');
+        paintCatch();
+      };
+      if (!file) { done(); return; }
+      b.textContent = tr('사진 줄이는 중…', 'Saving photo…');
+      var id = 'c' + Date.now();
+      shrink(file).then(function (blob) { return pdo('readwrite', function (s) { s.put(blob, id); }); })
+        .then(function () { entry.photo = id; done(); })
+        .catch(function () { done(); b.textContent = tr('✓ 남김(사진은 저장하지 못함)', '✓ Added (photo not saved)'); });
     });
     return box;
   }
+  var photoUrls = [];
   function paintCatch() {
     var list = catchList(), ul = document.getElementById('catchList');
     if (!ul) return;
+    photoUrls.forEach(function (u) { URL.revokeObjectURL(u); });
+    photoUrls = [];
     document.getElementById('catchSum').textContent = list.length ? tr('모두 ' + list.length + '번', list.length + ' entries') : tr('아직 기록이 없습니다. 카드를 펴서 "📝 조과 기록" 으로 남기세요.', 'Nothing yet. Open a card and use "📝 Log a catch".');
     ul.textContent = '';
     list.forEach(function (e, i) {
       var li = el('li'), x = el('button', 'del', '✕');
       li.appendChild(el('span', null, e.d + ' · ' + placeName(e.name) + (e.mul ? ' · ' + mul(e.mul) : '') + (e.fish ? ' · ' + e.fish : '') + (e.note ? ' · ' + e.note : '')));
+      if (e.photo) {   // 사진은 작게, 누르면 크게
+        var im = el('img', 'catchImg');
+        im.alt = tr('조과 사진', 'Catch photo');
+        im.addEventListener('click', function () { im.classList.toggle('big'); });
+        li.appendChild(im);
+        pdo('readonly', function (s) { return s.get(e.photo); }).then(function (blob) {
+          if (!blob) { im.remove(); return; }
+          var u = URL.createObjectURL(blob);
+          photoUrls.push(u);
+          im.src = u;
+        }).catch(function () { im.remove(); });
+      }
       x.type = 'button';
       x.setAttribute('data-i', i);
       x.setAttribute('aria-label', tr('이 기록 지우기', 'Delete this entry'));
@@ -1580,8 +1650,8 @@
   document.getElementById('catchList').addEventListener('click', function (e) {
     var b = e.target.closest('button.del');
     if (!b || !window.confirm(tr('이 기록을 지울까요?', 'Delete this entry?'))) return;
-    var list = catchList();
-    list.splice(+b.getAttribute('data-i'), 1);
+    var list = catchList(), gone = list.splice(+b.getAttribute('data-i'), 1)[0];
+    if (gone && gone.photo) pdo('readwrite', function (s) { s.delete(gone.photo); }).catch(function () { /* 없음 */ });   // 사진도 함께 지움
     save('tf-catch', list);
     paintCatch();
   });

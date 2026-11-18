@@ -69,7 +69,8 @@ public class FlyExtrasTest {
         assertTrue("★ 자주 가는 곳 묶음", js.contains("tr('★ 자주 가는 곳 ' + fl.length + '곳'"));
         assertTrue("이번 주는 물때로만 - 바람 · 파고 숫자로 좋은 날을 정하지 않음", js.contains("box.appendChild(weekEl(d.days, good));") && js.contains("물때로만 고른 날입니다."));
         assertTrue("조과 기록 칸에 치는 중에는 1분 다시 그리기를 건너뜀", js.contains("(fa.tagName === 'SELECT' || fa.tagName === 'INPUT')"));
-        keysInPolicy(js, "tf-");
+        keysInPolicy(js, "tf-");   // tf-photos(조과 사진 IndexedDB, 2026-11-18) 포함
+        assertTrue("조과 사진은 줄여서 이 폰에만, 기록을 지우면 사진도", js.contains("var k = Math.min(1, 1024 / Math.max(img.width, img.height))") && js.contains("if (gone && gone.photo) pdo('readwrite', function (s) { s.delete(gone.photo); })"));
         // 출조 알림을 앱은 화면을 닫아도(2026-11-18 "모두 해 줘" 6) - 앱에 이미 있는 LocalNotifications, 고를 때 · 새 물때를 받을 때 다시 맞춤, 방침과 같게
         assertTrue(js.contains("LN.schedule({ notifications: list.map(") && js.contains("appSchedule();   // 앱이면 폰 알림도 다시 맞춤") && js.contains("appSchedule();   // 새 물때 · 해 시각으로 앱 알림 다시 맞춤"));
         assertTrue(read("src/main/webapp/privacy.html").contains("앱에서는 그 시각을 핸드폰 알림으로 맞춰 두어 화면을 닫아도 울립니다"));
