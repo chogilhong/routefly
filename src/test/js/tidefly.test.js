@@ -305,6 +305,12 @@ assert.strictEqual(TF.catchCsv([{ d: '2026-11-18', name: '방포항', mul: '1물
   assert.deepStrictEqual(TF.catchFromCsv(RF.csvRows(TF.catchCsv(one))), one);
   assert.strictEqual(TF.catchFromCsv([['날짜', '비행 시간(분)']]), null);
   assert.deepStrictEqual(TF.catchFromCsv([['날짜', '자리', '물때', '고기', '메모'], ['2026-11-18', ''], ['어제', '방포항']]), []);
+  // 합친 뒤 지울 사진은 정말 빠진 기록 것만(점검 13차 1: 다시 읽은 객체로 견줘 사진이 모두 지워졌음)
+  const old = [{ d: '2026-11-18', name: 'a', photo: 'p1' }, { d: '2026-11-17', name: 'b', photo: 'p2' }, { d: '2026-11-16', name: 'c' }];
+  const m = RF.mergeRows(old, [{ d: '2026-11-10', name: 'z' }], ['d', 'name', 'mul', 'fish', 'note'], 500);
+  assert.deepStrictEqual(TF.catchGone(old, m.list), []);
+  const m2 = RF.mergeRows(old, [{ d: '2026-11-19', name: 'n' }], ['d', 'name', 'mul', 'fish', 'note'], 2);
+  assert.deepStrictEqual(TF.catchGone(old, m2.list).map(x => x.photo), ['p2']);
 }
 console.log('tidefly.test.js OK');
 

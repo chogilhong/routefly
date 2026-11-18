@@ -69,7 +69,15 @@ public class MainActivity extends BridgeActivity {
     private void openLink(Intent intent) {
         Uri u = intent == null ? null : intent.getData();
         // 앱 아이콘 길게 누르기 바로가기(res/xml/shortcuts.xml, 2026-11-18) - 정해 둔 routefly 화면만 웹뷰로
-        if (isShortcutLink(u)) { final String s = u.toString(); bridge.getWebView().post(() -> bridge.getWebView().loadUrl(s)); return; }
+        // 따라가기 기록 · 산악회 방 위치 보내기 중이면 옮기지 않음(점검 13차 7: 바로가기로 화면이 바뀌면 기록이 끊길 수 있었음) - 화면의 window.rfBusy() 로 물음
+        if (isShortcutLink(u)) {
+            final String s = u.toString();
+            bridge.getWebView().post(() -> bridge.getWebView().evaluateJavascript("(window.rfBusy && window.rfBusy()) ? 1 : 0", v -> {
+                if ("1".equals(v)) android.widget.Toast.makeText(this, "기록 중이라 화면을 바꾸지 않았습니다. 기록을 끝낸 뒤 다시 눌러 주세요.", android.widget.Toast.LENGTH_LONG).show();
+                else bridge.getWebView().loadUrl(s);
+            }));
+            return;
+        }
         if (!isPartyLink(u)) return;
         // 브라우저(카톡 등)에서 이미 참가한 사람의 열쇠 - 주소 # 뒤로 넘김(서버로 가지 않음, party.js takeToken 이 받아 바로 지움)
         String t = intent.getStringExtra("rf_token");

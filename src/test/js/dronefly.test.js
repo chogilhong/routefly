@@ -282,6 +282,10 @@ assert.strictEqual(DF.quizLabel('1-관련'), '1번 관련 문제)');
   for (let i = 0; i < 32; i++) sc = DF.quizScoreAdd(sc, { d: '2026-11-18', set: 'c4', mode: 'mix', n: 20, ok: i });
   assert.deepStrictEqual([sc.length, sc[0].ok], [30, 31]);
   assert.strictEqual(DF.quizScoreAdd(null, { n: 0, ok: 0 }).length, 0);
+  // 같은 풀이(id)는 바꿔 씀 - 화면을 떠났다 와서 이어 풀어도 마지막 점수(점검 13차 2)
+  let s2 = DF.quizScoreAdd([{ id: 1, n: 5, ok: 5 }], { id: 7, n: 3, ok: 3 });
+  s2 = DF.quizScoreAdd(s2, { id: 7, n: 20, ok: 17 });
+  assert.deepStrictEqual(s2.map(r => [r.id, r.n]), [[7, 20], [1, 5]]);
   assert.strictEqual(DF.quizScoreText({ d: '2026-11-18', mode: 'mix', n: 20, ok: 15 }), '11-18 섞어서 · 15/20 (75%)');
 }
 console.log('dronefly.test.js OK');

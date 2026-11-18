@@ -51,6 +51,8 @@
     var c = null;              // 지금 코스
     var prof = null;           // ① 고도 그래프
     var meMarker = null;
+    // 앱 바로가기(MainActivity)가 화면을 바꾸기 전에 물음 - 기록 중이면 바꾸지 않음(점검 13차 7)
+    window.rfBusy = function () { return !!hike.running; };
     var hike = { running: false, sim: false, start: 0, d: 0, off: 0, watch: null, timer: 0, simTimer: 0, simClock: 0,
                  simLast: 0, simD: 0, speed: null, hist: [], wake: null, follow: true, arrived: false, lastFix: 0,
                  fix: null,            // 마지막 위치 {lat, lon, acc, alt, t} - SOS 에 씁니다

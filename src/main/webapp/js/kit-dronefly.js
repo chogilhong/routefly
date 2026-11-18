@@ -85,12 +85,49 @@
      */
     function mergeRows(list, add, fields, max) {
         var key = function (e) { return fields.map(function (f) { return String(e[f] == null ? "" : e[f]); }).join("\u0001"); };
-        var seen = {}, out = (list || []).slice(), added = 0;
+        var seen = {}, out = (list || []).slice(), n0 = out.length;
         out.forEach(function (e) { seen[key(e)] = 1; });
-        (add || []).forEach(function (e) { if (!seen[key(e)]) { seen[key(e)] = 1; out.push(e); added++; } });
-        out = out.map(function (e, i) { return { e: e, i: i }; })
-            .sort(function (a, b) { return a.e.d < b.e.d ? 1 : a.e.d > b.e.d ? -1 : a.i - b.i; }).map(function (x) { return x.e; });
-        return { list: out.slice(0, max), added: added };
+        (add || []).forEach(function (e) { if (!seen[key(e)]) { seen[key(e)] = 1; out.push(e); } });
+        var kept = out.map(function (e, i) { return { e: e, i: i }; })
+            .sort(function (a, b) { return a.e.d < b.e.d ? 1 : a.e.d > b.e.d ? -1 : a.i - b.i; }).slice(0, max);
+        // 더한 수는 max 로 자른 뒤 남은 새 기록만(점검 13차 4: 500개가 찬 뒤 옛 CSV 는 모두 잘리는데 "100개를 더했습니다" 라 했음)
+        return { list: kept.map(function (x) { return x.e; }), added: kept.filter(function (x) { return x.i >= n0; }).length };
+    }
+
+    /**
+     * CSV 파일 받기(드론 기록장 · 조과 일지 같이, 점검 13차 6) - 앱(안드로이드 웹뷰)은 a.download 가 되지 않아 따라가기 GPX 처럼 Filesystem + Share 로.
+     * 끝나면 true(앱은 공유 창을 닫거나 막히면 false - 저장한 날을 적지 않게), 브라우저는 내려받기를 맡기고 true.
+     */
+    function saveCsvFile(name, text) {
+        var CAP = window.Capacitor, P = CAP && CAP.isNativePlatform && CAP.isNativePlatform() && CAP.Plugins || null;
+        if (P && P.Filesystem && P.Share) {
+            return Promise.resolve(P.Filesystem.writeFile({ path: name, data: text, directory: "CACHE", encoding: "utf8" }))
+                .then(function (r) { return P.Share.share({ title: name, files: [r.uri], dialogTitle: name }); })
+                .then(function () { return true; }, function () { return false; });
+        }
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob([text], { type: "text/csv;charset=utf-8" }));
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+        return Promise.resolve(true);
+    }
+
+    /**
+     * 고른 CSV 파일을 글로(점검 13차 8): 2MB 넘으면 거절(null), UTF-8 로 읽고 깨지면 EUC-KR(엑셀이 한국 윈도에서 다시 저장한 CSV).
+     */
+    function readCsvFile(f) {
+        if (!f || f.size > 2 * 1024 * 1024) return Promise.resolve(null);
+        return new Promise(function (ok, no) {
+            var r = new FileReader();
+            r.onload = function () {
+                try { ok(new TextDecoder("utf-8", { fatal: true }).decode(r.result)); }
+                catch (e) { try { ok(new TextDecoder("euc-kr").decode(r.result)); } catch (e2) { no(e2); } }
+            };
+            r.onerror = no;
+            r.readAsArrayBuffer(f);
+        });
     }
 
     /**
@@ -207,6 +244,8 @@
         csvRows: csvRows,
         mergeRows: mergeRows,
         backupDue: backupDue,
+        saveCsvFile: saveCsvFile,
+        readCsvFile: readCsvFile,
         sunset: sunset,
         sunrise: sunrise,
         mapLocale: mapLocale

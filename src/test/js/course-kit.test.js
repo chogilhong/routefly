@@ -369,9 +369,10 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
     eq("권유 - 29일은 아직", RF.backupDue(9, "2026-10-20", "2026-11-18"), null);
     eq("권유 - 30일", JSON.stringify(RF.backupDue(9, "2026-10-19", "2026-11-18")), JSON.stringify({ days: 30 }));
     eq("권유 - 이상한 저장 날짜는 없음으로", JSON.stringify(RF.backupDue(5, "x", "2026-11-18")), JSON.stringify({ days: null }));
-    // 기록 합치기(2026-11-18): 같은 기록은 건너뜀 · 날짜 새 것이 위 · 같은 날은 있던 것 먼저 · max
+    // 기록 합치기(2026-11-18): 같은 기록은 건너뜀 · 날짜 새 것이 위 · 같은 날은 있던 것 먼저 · max - 더한 수는 잘린 뒤 남은 것만(점검 13차 4: w 는 잘려 1)
     var mr = RF.mergeRows([{ d: "2026-11-10", a: "x" }, { d: "2026-11-18", a: "y" }], [{ d: "2026-11-18", a: "y" }, { d: "2026-11-18", a: "z" }, { d: "2026-11-01", a: "w" }], ["d", "a"], 3);
-    eq("합치기", JSON.stringify(mr), JSON.stringify({ list: [{ d: "2026-11-18", a: "y" }, { d: "2026-11-18", a: "z" }, { d: "2026-11-10", a: "x" }], added: 2 }));
+    eq("합치기", JSON.stringify(mr), JSON.stringify({ list: [{ d: "2026-11-18", a: "y" }, { d: "2026-11-18", a: "z" }, { d: "2026-11-10", a: "x" }], added: 1 }));
+    eq("합치기 - 가득 찼으면 옛 것은 0", RF.mergeRows([{ d: "2026-11-18" }, { d: "2026-11-17" }], [{ d: "2026-01-01" }], ["d"], 2).added, 0);
     // 길찾기 주차장 · 정류장 후보(c.access)는 이름표 정리 전 것 - 운영 api/course 실제 응답(광양 가야산, 2026-11-07 받음)
     var gy = RF.fromApi("frst-462300101-744138", JSON.parse(require("fs").readFileSync(require("path").join(__dirname, "../resources/course/frst-462300101-744138.json"), "utf8")));
     eq("이름표는 길에 가까운 주차장 하나(10-13 정리 그대로)", gy.pois.filter(function (p) { return /주차장/.test(p.name); }).map(function (p) { return p.name; }), ["주차장"]);

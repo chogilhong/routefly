@@ -38,13 +38,15 @@ public class DroneQuizServlet extends HttpServlet {
         String base = ShareServlet.baseUrl(RouteflyConfig.get("site.baseUrl"), req.getScheme(), req.getServerName(), req.getServerPort(),
                 req.getContextPath(), req.getHeader("X-Forwarded-Proto"));
         String id = req.getPathInfo() == null ? "" : req.getPathInfo().replaceFirst("^/", "");
+        if (id.isEmpty()) { resp.sendRedirect(base + "/drone-quiz/c4"); return; }   // /drone-quiz · /drone-quiz/ - 첫 묶음으로(상대 주소가 어긋나지 않게)
         JsonObject set = set(data(), id);
         resp.setCharacterEncoding(StandardCharsets.UTF_8.name());
         resp.setContentType("text/html");
         if (set == null) {
             resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
             resp.getWriter().print(MountainServlet.head("문항을 찾지 못했습니다", "dronefly 드론 필기 연습", base + "/dronefly.html", base, null, null, false)
-                    + "<main><h1>문항을 찾지 못했습니다</h1><p><a href=\"" + REL + "/dronefly.html#quiz\">📝 dronefly 필기 연습</a></p>" + foot());
+                    // 절대 주소(점검 13차 11: 끝에 / 없는 /drone-quiz 에서는 ".." 가 앱 밖을 가리켰음), #quiz-c4 꼴이어야 필기 칸이 펴짐
+                    + "<main><h1>문항을 찾지 못했습니다</h1><p><a href=\"" + esc(base) + "/dronefly.html#quiz-c4\">📝 dronefly 필기 연습</a> · <a href=\"" + esc(base) + "/drone-quiz/c1\">1종 100문항</a></p>" + foot());
             return;
         }
         resp.setHeader("Cache-Control", "public, max-age=3600");

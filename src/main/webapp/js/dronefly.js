@@ -486,9 +486,12 @@
     return i >= 0 && i + 1 < nos.length ? i + 1 : 0;
   }
 
-  /** 순수 함수 - 점수 기록 더하기(2026-11-18 "1~5" 3): {d, set, mode, n, ok} 를 맨 앞에, 30개까지. 한 문항도 안 푼 것은 넣지 않음. */
+  /**
+   * 순수 함수 - 점수 기록 더하기(2026-11-18 "1~5" 3): {id, d, set, mode, n, ok} 를 맨 앞에, 30개까지. 한 문항도 안 푼 것은 넣지 않음.
+   * 같은 id(한 번 풀기)는 바꿔 씀 - 화면을 잠깐 떠났다 와서 이어 풀어도 마지막 점수로(점검 13차 2: 떠날 때 3/3 만 남고 그 뒤는 기록되지 않았음).
+   */
   function quizScoreAdd(log, rec) {
-    var l = Array.isArray(log) ? log.slice() : [];
+    var l = Array.isArray(log) ? log.filter(function (r) { return !(rec && rec.id != null && r && r.id === rec.id); }) : [];
     if (rec && rec.n > 0) l.unshift(rec);
     return l.slice(0, 30);
   }
@@ -827,32 +830,28 @@
     });
     initFlyAlarm();
     $('logCsv').addEventListener('click', function () {
-      var a = document.createElement('a');
       var who = $('logWho').value;
-      a.href = URL.createObjectURL(new Blob([logCsv(logOf(logList(), who))], { type: 'text/csv;charset=utf-8' }));
-      a.download = 'dronefly-log-' + (who ? who.replace(/[\\/:*?"<>|\s]+/g, '_') + '-' : '') + todayKst() + '.csv';
-      if (!who) { save('df-log-saved', JSON.stringify(todayKst())); paintLog(); }   // 모두 저장한 날만(한 사람 것은 되살리기용이 아님)
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+      // 앱은 공유 창으로(점검 13차 6 - 웹뷰는 내려받기가 안 됨), 끝까지 간 때만 저장한 날을 적음 · 모두 저장한 때만(한 사람 것은 되살리기용이 아님)
+      RF.saveCsvFile('dronefly-log-' + (who ? who.replace(/[\\/:*?"<>|\s]+/g, '_') + '-' : '') + todayKst() + '.csv', logCsv(logOf(logList(), who))).then(function (done) {
+        if (done && !who) { save('df-log-saved', JSON.stringify(todayKst())); paintLog(); }
+      });
     });
     // ⬆ CSV 불러오기 - 받아 둔 기록장 CSV 를 합침(같은 기록은 건너뜀). 파일은 폰 안에서만 읽고 서버로 보내지 않음
     $('logLoad').addEventListener('click', function () { $('logFile').value = ''; $('logFile').click(); });
     $('logFile').addEventListener('change', function () {
       var f = $('logFile').files && $('logFile').files[0], out = $('logLoaded');
       if (!f) return;
-      var r = new FileReader();
-      r.onload = function () {
-        var add = logFromCsv(RF.csvRows(r.result));
+      // 2MB 한도 · UTF-8 이 깨지면 EUC-KR(엑셀에서 다시 저장한 CSV) - RF.readCsvFile(점검 13차 8)
+      RF.readCsvFile(f).then(function (text) {
         out.hidden = false;
+        if (text == null) { out.textContent = tr('파일을 읽지 못했습니다(2MB 넘는 파일은 받지 않음).', 'Could not read the file (files over 2 MB are not accepted).'); return; }
+        var add = logFromCsv(RF.csvRows(text));
         if (!add) { out.textContent = tr('비행 기록장 CSV 가 아닙니다("⬇ CSV 로 저장" 으로 받은 파일을 고르세요).', 'This is not a flight-log CSV (pick a file saved with “⬇ Save as CSV”).'); return; }
         var m = RF.mergeRows(logList(), add.map(function (e) { e.min = String(e.min); return e; }), ['d', 'min', 'place', 'drone', 'pilot', 'note'], 500);
         save('df-log', JSON.stringify(m.list));
         paintLog();
-        out.textContent = tr(add.length + '줄 가운데 ' + m.added + '개를 더했습니다(이미 있던 ' + (add.length - m.added) + '개는 건너뜀).', 'Added ' + m.added + ' of ' + add.length + ' rows (' + (add.length - m.added) + ' already here).');
-      };
-      r.onerror = function () { out.hidden = false; out.textContent = tr('파일을 읽지 못했습니다.', 'Could not read the file.'); };
-      r.readAsText(f, 'utf-8');
+        out.textContent = tr(add.length + '줄 가운데 ' + m.added + '개를 더했습니다(나머지 ' + (add.length - m.added) + '개는 이미 있던 기록' + (m.list.length >= 500 ? ' · 500개를 넘은 옛 기록' : '') + ').', 'Added ' + m.added + ' of ' + add.length + ' rows (the other ' + (add.length - m.added) + ' were already here' + (m.list.length >= 500 ? ' or older than the 500 kept' : '') + ').');
+      }).catch(function () { out.hidden = false; out.textContent = tr('파일을 읽지 못했습니다.', 'Could not read the file.'); });
     });
   }
 
@@ -892,7 +891,7 @@
     // "1번부터" → 푼 자리가 있으면 "4번부터 이어서" + "처음부터"(문항 목록을 받기 전에는 번호만 보고 둠)
     var set = curSet(), last = quizAt()[setId()], nos = set ? set.qs.map(function (q) { return q.no; }) : [];
     var i = set ? quizResume(nos, last) : 0, early = !set && last != null;   // 문항을 받기 전(칸을 펴기 전) - 번호는 몰라도 이어 풀 자리가 있음(2026-11-18 PC)
-    $('quizAll').textContent = i ? tr(quizLabel(nos[i]).replace(/\.$/, '번').replace(/\)$/, '') + '부터 이어서', 'Continue from no. ' + nos[i]) : early ? tr('이어서 풀기', 'Continue') : tr('1번부터', 'From no. 1');
+    $('quizAll').textContent = i ? tr(quizLabel(nos[i]).replace(/\.$/, '번').replace(/\)$/, '') + '부터 이어서', 'Continue from no. ' + nos[i].replace(/-관련$/, ' (related)')) : early ? tr('이어서 풀기', 'Continue') : tr('1번부터', 'From no. 1');
     $('quizRestart').hidden = !i && !early;
     var sc = (load('df-quiz-score') || []).filter(function (r) { return r && r.set === setId() && r.n > 0; }).slice(0, 3);
     $('quizScores').hidden = !sc.length;
@@ -900,9 +899,8 @@
   }
   /** 이번에 푼 것을 점수 기록에 한 번만(다 풀었을 때 · 다른 시험으로 바꾸거나 새로 시작할 때 · 화면을 떠날 때). */
   function keepScore() {
-    if (!run || run.kept || !run.n) return;
-    run.kept = true;
-    save('df-quiz-score', JSON.stringify(quizScoreAdd(load('df-quiz-score'), { d: todayKst(), set: run.set.id, mode: run.mode, n: run.n, ok: run.ok })));
+    if (!run || !run.n) return;
+    save('df-quiz-score', JSON.stringify(quizScoreAdd(load('df-quiz-score'), { id: run.id, d: todayKst(), set: run.set.id, mode: run.mode, n: run.n, ok: run.ok })));
   }
   var quizWait = null;
   function loadQuiz(then) {
@@ -916,7 +914,7 @@
     keepScore();
     var set = curSet(), pre = set.id + ':';
     var wrong = wrongList().filter(function (k) { return k.indexOf(pre) === 0; }).map(function (k) { return k.slice(pre.length); });
-    run = { set: set, mode: mode, list: quizOrder(set.qs.map(function (q) { return q.no; }), mode, wrong), i: 0, ok: 0, n: 0 };
+    run = { id: Date.now(), set: set, mode: mode, list: quizOrder(set.qs.map(function (q) { return q.no; }), mode, wrong), i: 0, ok: 0, n: 0, jump: at != null };
     if (mode === 'all' && !fresh) run.i = quizResume(run.list, quizAt()[set.id]);
     if (at != null && run.list.indexOf(at) >= 0) run.i = run.list.indexOf(at);   // 문항 페이지의 "✏️ 풀고 정답 보기" - 그 문항부터
     if (!run.list.length) return;
@@ -932,6 +930,9 @@
       + '<p class="qText">' + esc(quizLabel(q.no) + ' ' + q.q) + '</p>'
       + '<ol class="qChoices">' + q.c.map(function (c, i) { return '<li><button type="button" data-a="' + (i + 1) + '">' + esc('①②③④'.charAt(i) + ' ' + c) + '</button></li>'; }).join('') + '</ol>'
       + '<div class="qAfter" hidden></div>';
+    var qt = box.querySelector('.qText');   // 새 문항으로 초점(점검 13차 10 - 다음 문항을 누르면 초점이 사라졌음)
+    qt.tabIndex = -1;
+    if (run.i > 0 || run.jump) try { qt.focus({ preventScroll: true }); } catch (e) { /* 옛 브라우저 */ }
   }
   function answer(a) {
     var q = qOf(run.list[run.i]), ok = a === q.ans, box = $('quizBox');
@@ -946,7 +947,8 @@
     box.querySelector('.qProg').textContent = progText();   // 맞음 수는 답한 바로 그때(2026-11-18 홍TV님 - 다음 문항으로 가야 바뀌었음)
     save('df-quiz', JSON.stringify(quizMark(wrongList(), run.set.id + ':' + q.no, ok)));
     var last = run.i + 1 >= run.list.length, after = box.querySelector('.qAfter');
-    if (run.mode === 'all') { var at = quizAt(); at[run.set.id] = q.no; save('df-quiz-at', JSON.stringify(at)); }
+    // 문항 페이지 링크로 한 문항을 연 풀이(jump)는 이어 풀 자리를 바꾸지 않음(점검 13차 3: 50번까지 풀던 자리가 "4번부터" 로 바뀌었음)
+    if (run.mode === 'all' && !run.jump) { var at = quizAt(); at[run.set.id] = q.no; save('df-quiz-at', JSON.stringify(at)); }
     if (last) keepScore();
     paintWrongBtn();
     after.hidden = false;
@@ -957,6 +959,9 @@
       + (q.basis ? '<p class="small dim">' + esc(tr('근거: ', 'Basis: ') + q.basis) + '</p>' : '')
       + (last ? '<p class="qEnd">' + esc(tr('이번에 ' + run.n + '문항 중 ' + run.ok + '문항 맞음 (' + Math.round(run.ok / run.n * 100) + '%)', run.ok + ' of ' + run.n + ' right this time (' + Math.round(run.ok / run.n * 100) + '%)')) + '</p>'
         : '<div class="row"><button type="button" class="btn go qNext">' + esc(tr('다음 문항 ›', 'Next ›')) + '</button></div>');
+    var nx = after.querySelector('.qNext');   // 답한 단추는 막히니 초점을 "다음 문항" 으로(점검 13차 10), 마지막 문항은 결과 칸으로
+    if (!nx) after.tabIndex = -1;
+    try { (nx || after).focus({ preventScroll: true }); } catch (e) { /* 옛 브라우저 */ }
   }
   function quizHash() { try { return decodeURIComponent(location.hash); } catch (e) { return ''; } }
   function initQuiz() {

@@ -601,7 +601,12 @@
     return out;
   }
 
-  var TF = { catchFromCsv: catchFromCsv, appNotes: appNotes, favToggle: favToggle, weekGood: weekGood, catchCsv: catchCsv, kst: kst, dir16: dir16, swell: swell, nums: nums, markOf: markOf, markWord: markWord, nowKst: nowKst, dayName: dayName,
+  /** 순수 함수 - 합친 뒤 빠진(500개를 넘김) 기록 가운데 사진이 있는 것 - 같은 배열의 객체로 견줌(점검 13차 1). */
+  function catchGone(old, kept) {
+    return (old || []).filter(function (x) { return x && x.photo && (kept || []).indexOf(x) < 0; });
+  }
+
+  var TF = { catchGone: catchGone, catchFromCsv: catchFromCsv, appNotes: appNotes, favToggle: favToggle, weekGood: weekGood, catchCsv: catchCsv, kst: kst, dir16: dir16, swell: swell, nums: nums, markOf: markOf, markWord: markWord, nowKst: nowKst, dayName: dayName,
     tideTable: tideTable, goodDays: goodDays, moon: moon, sunSpan: sunSpan, hourRow: hourRow, wrnWhen: wrnWhen, untilText: untilText, nextTide: nextTide, curve: curve, nextSize: nextSize, isDark: isDark,
     setLang: setLang, roman: roman, placeName: placeName, zoneName: zoneName, reason: reason, mul: mul,
     alarmPlan: alarmPlan, alarmText: alarmText, nearest: nearest, spotItem: spotItem, worseMark: worseMark, bare: bare, fishHit: fishHit, stayRows: stayRows, lawFor: lawFor, inSeason: inSeason, closedText: closedText };
@@ -1676,33 +1681,29 @@
     paintCatch();
   });
   document.getElementById('catchCsv').addEventListener('click', function () {
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([catchCsv(catchList())], { type: 'text/csv;charset=utf-8' }));
-    a.download = 'tidefly-catch-' + nowKst(Date.now()).slice(0, 10) + '.csv';
-    save('tf-catch-saved', nowKst(Date.now()).slice(0, 10));
-    paintCatch();
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    // 앱은 공유 창으로(점검 13차 6), 끝까지 간 때만 저장한 날을 적음
+    var day = nowKst(Date.now()).slice(0, 10);
+    RF.saveCsvFile('tidefly-catch-' + day + '.csv', catchCsv(catchList())).then(function (done) {
+      if (done) { save('tf-catch-saved', day); paintCatch(); }
+    });
   });
   // ⬆ CSV 불러오기 - 받아 둔 조과 일지 CSV 를 합침(같은 기록은 건너뜀, 사진은 CSV 에 없어 글만). 파일은 폰 안에서만 읽음
   document.getElementById('catchLoad').addEventListener('click', function () { var f = document.getElementById('catchFile'); f.value = ''; f.click(); });
   document.getElementById('catchFile').addEventListener('change', function () {
     var f = this.files && this.files[0], out = document.getElementById('catchLoaded');
     if (!f) return;
-    var r = new FileReader();
-    r.onload = function () {
-      var add = catchFromCsv(RF.csvRows(r.result));
+    RF.readCsvFile(f).then(function (text) {   // 2MB 한도 · EUC-KR 도(점검 13차 8)
       out.hidden = false;
+      if (text == null) { out.textContent = tr('파일을 읽지 못했습니다(2MB 넘는 파일은 받지 않음).', 'Could not read the file (files over 2 MB are not accepted).'); return; }
+      var add = catchFromCsv(RF.csvRows(text));
       if (!add) { out.textContent = tr('조과 일지 CSV 가 아닙니다("⬇ CSV 로 저장" 으로 받은 파일을 고르세요).', 'This is not a catch-log CSV (pick a file saved with “⬇ Save as CSV”).'); return; }
-      var m = RF.mergeRows(catchList(), add, ['d', 'name', 'mul', 'fish', 'note'], 500);
-      catchList().forEach(function (x) { if (x.photo && m.list.indexOf(x) < 0) pdo('readwrite', function (s) { s.delete(x.photo); }).catch(function () { /* 없음 */ }); });   // 500개를 넘겨 빠진 기록의 사진
+      // 같은 배열로 견줌(점검 13차 1: catchList() 를 다시 부르면 새 객체라 indexOf 가 늘 -1 → 사진이 모두 지워졌음)
+      var old = catchList(), m = RF.mergeRows(old, add, ['d', 'name', 'mul', 'fish', 'note'], 500);
+      catchGone(old, m.list).forEach(function (x) { pdo('readwrite', function (s) { s.delete(x.photo); }).catch(function () { /* 없음 */ }); });   // 500개를 넘겨 빠진 기록의 사진
       save('tf-catch', m.list);
       paintCatch();
-      out.textContent = tr(add.length + '줄 가운데 ' + m.added + '개를 더했습니다(이미 있던 ' + (add.length - m.added) + '개는 건너뜀).', 'Added ' + m.added + ' of ' + add.length + ' rows (' + (add.length - m.added) + ' already here).');
-    };
-    r.onerror = function () { out.hidden = false; out.textContent = tr('파일을 읽지 못했습니다.', 'Could not read the file.'); };
-    r.readAsText(f, 'utf-8');
+      out.textContent = tr(add.length + '줄 가운데 ' + m.added + '개를 더했습니다(나머지 ' + (add.length - m.added) + '개는 이미 있던 기록' + (m.list.length >= 500 ? ' · 500개를 넘은 옛 기록' : '') + ').', 'Added ' + m.added + ' of ' + add.length + ' rows (the other ' + (add.length - m.added) + ' were already here' + (m.list.length >= 500 ? ' or older than the 500 kept' : '') + ').');
+    }).catch(function () { out.hidden = false; out.textContent = tr('파일을 읽지 못했습니다.', 'Could not read the file.'); });
   });
   // 알림 띠는 누르거나 ✕ 단추 · Esc 로 닫음(점검 10차 D7 - 키보드로 닫을 수 없었음)
   var alarmEl = document.getElementById('alarm');

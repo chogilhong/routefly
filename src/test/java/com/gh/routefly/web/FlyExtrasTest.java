@@ -98,8 +98,8 @@ public class FlyExtrasTest {
         String h = read("src/main/webapp/dronefly.html"), js = read("src/main/webapp/js/dronefly.js");
         String th = read("src/main/webapp/tidefly.html"), tj = read("src/main/webapp/js/tidefly.js");
         // 1 CSV 불러오기 - 두 화면 모두 같은 RF.csvRows · RF.mergeRows(만든 파일에 들어 있어야 함)
-        assertTrue(h.contains("id=\"logLoad\"") && h.contains("id=\"logFile\"") && js.contains("var add = logFromCsv(RF.csvRows(r.result));") && js.contains("RF.mergeRows(logList(), add"));
-        assertTrue(th.contains("id=\"catchLoad\"") && th.contains("id=\"catchFile\"") && tj.contains("var add = catchFromCsv(RF.csvRows(r.result));") && tj.contains("RF.mergeRows(catchList(), add"));
+        assertTrue(h.contains("id=\"logLoad\"") && h.contains("id=\"logFile\"") && js.contains("var add = logFromCsv(RF.csvRows(text));") && js.contains("RF.mergeRows(logList(), add"));
+        assertTrue(th.contains("id=\"catchLoad\"") && th.contains("id=\"catchFile\"") && tj.contains("var add = catchFromCsv(RF.csvRows(text));") && tj.contains("RF.mergeRows(old, add"));
         for (String kit : new String[] {"kit-dronefly.js", "kit-tidefly.js"}) {
             String k = read("src/main/webapp/js/" + kit);
             assertTrue(kit, k.contains("function csvRows(") && k.contains("function mergeRows("));
@@ -110,7 +110,7 @@ public class FlyExtrasTest {
         // 3 점수 · 이어 풀기
         assertTrue(h.contains("id=\"quizScores\"") && h.contains("id=\"quizRestart\""));
         assertTrue(js.contains("if (mode === 'all' && !fresh) run.i = quizResume(run.list, quizAt()[set.id]);"));
-        assertTrue(js.contains("if (run.mode === 'all') { var at = quizAt(); at[run.set.id] = q.no; save('df-quiz-at', JSON.stringify(at)); }"));
+        assertTrue(js.contains("if (run.mode === 'all' && !run.jump) { var at = quizAt(); at[run.set.id] = q.no; save('df-quiz-at', JSON.stringify(at)); }"));
         assertTrue(js.contains("if (last) keepScore();"));
         // 칸을 펴기 전(문항을 받기 전)에도 이어 풀 자리가 있으면 "이어서 풀기"(2026-11-18 PC: "1번부터" 로 보였음)
         assertTrue("마지막으로 고른 시험(2026-11-18 PC)", js.contains("save('df-quiz-set', JSON.stringify($('quizSet').value));") && js.contains("var lastSet = load('df-quiz-set');"));
@@ -119,8 +119,8 @@ public class FlyExtrasTest {
         assertTrue(h.contains("id=\"flyAlarm\" class=\"btn\" data-en=\"🔔 Flight-day morning alert\" hidden") && js.contains("channelId: 'rf-dronefly', extra: { page: 'dronefly' }"));
         assertTrue(read("src/main/webapp/js/hike.js").contains("/^(tidefly|dronefly)$/.test(ev.notification.extra.page)"));
         // CSV 저장 권유(2026-11-18 "1, 5" 5) - 두 화면 같은 RF.backupDue, 모두 저장했을 때만 날짜를 남김
-        assertTrue(h.contains("id=\"logNudge\"") && js.contains("var due = RF.backupDue(list.length, load('df-log-saved'), todayKst());") && js.contains("if (!who) { save('df-log-saved'"));
-        assertTrue(th.contains("id=\"catchNudge\"") && tj.contains("RF.backupDue(list.length, loadText('tf-catch-saved')") && tj.contains("save('tf-catch-saved', nowKst(Date.now()).slice(0, 10));"));
+        assertTrue(h.contains("id=\"logNudge\"") && js.contains("var due = RF.backupDue(list.length, load('df-log-saved'), todayKst());") && js.contains("if (done && !who) { save('df-log-saved'"));
+        assertTrue(th.contains("id=\"catchNudge\"") && tj.contains("RF.backupDue(list.length, loadText('tf-catch-saved')") && tj.contains("if (done) { save('tf-catch-saved', day); paintCatch(); }"));
         for (String kit : new String[] {"kit-dronefly.js", "kit-tidefly.js"}) assertTrue(kit, read("src/main/webapp/js/" + kit).contains("function backupDue("));
         assertTrue(read("src/main/webapp/css/tidefly.css").contains(".nudge {"));
         // 5 조종자별 CSV
@@ -144,7 +144,7 @@ public class FlyExtrasTest {
         }
         assertEquals("shortcuts.xml 은 넷만", pages.length, xml.split("<shortcut ").length - 1);
         assertTrue(read("app/android/app/src/main/AndroidManifest.xml").contains("<meta-data android:name=\"android.app.shortcuts\" android:resource=\"@xml/shortcuts\" />"));
-        assertTrue("바로가기는 산악회 방 열쇠 처리 앞에서 따로", act.contains("if (isShortcutLink(u)) { final String s = u.toString();"));
+        assertTrue("바로가기는 산악회 방 열쇠 처리 앞에서 따로", act.contains("if (isShortcutLink(u)) {\n            final String s = u.toString();"));
         for (String d : new String[] {"sc_routefly", "sc_tidefly", "sc_dronefly"}) assertTrue(d, Files.exists(Path.of("app/android/app/src/main/res/drawable-nodpi/" + d + ".png")));
     }
 

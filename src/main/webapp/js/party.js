@@ -539,6 +539,8 @@
     var CAP = window.Capacitor, NATIVE = !!(CAP && CAP.isNativePlatform && CAP.isNativePlatform());
     var BG = NATIVE ? (CAP.registerPlugin ? CAP.registerPlugin("BackgroundGeolocation") : (CAP.Plugins && CAP.Plugins.BackgroundGeolocation) || null) : null;
     var bgOn = false, bgId = null, bgGen = 0;
+    // 앱 바로가기(MainActivity)가 화면을 바꾸기 전에 물음 - 위치를 보내는 중이면 바꾸지 않음(점검 13차 7)
+    window.rfBusy = function () { return bgOn || watch != null; };
     RFParty.bgStopAll(BG);   // 화면이 막 열림 - 전 화면 · 죽은 앱이 남긴 감시 · 알림을 끔(점검 12차 A6, 따라가기와 같이 rf-bg-watch)
     // 앱이 직접 1분마다 "폰은 켜짐"(app RfAlivePlugin - 화면이 꺼지면 이 화면의 타이머가 멈춰서, 2026-10-21 PC). 옛 설치본엔 없음(null)
     var ALIVE = NATIVE ? (CAP.Plugins && CAP.Plugins.RfAlive) || null : null;
