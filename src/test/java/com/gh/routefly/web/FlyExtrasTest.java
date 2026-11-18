@@ -85,13 +85,15 @@ public class FlyExtrasTest {
     /** 앱 아이콘 길게 누르기 바로가기(2026-11-18) - 웹앱 manifest · 안드로이드 shortcuts.xml · MainActivity 허용 목록 세 곳이 같은 넷. */
     @Test
     public void 바로가기_세_곳이_같음() throws Exception {
-        String[] pages = {"hike.html", "m/", "tidefly.html", "dronefly.html"};
+        // 차례가 뜻이 있음 - 크롬 웹앱은 "사이트 설정" 이 한 칸을 써 앞의 셋만 보임(2026-11-18 홍TV님 폰: 드론이 빠졌음) → 코스 모음을 맨 뒤로
+        String[] pages = {"hike.html", "tidefly.html", "dronefly.html", "m/"};
         com.google.gson.JsonArray sc = com.google.gson.JsonParser.parseString(read("src/main/webapp/manifest.json")).getAsJsonObject().getAsJsonArray("shortcuts");
         assertEquals(pages.length, sc.size());
         String xml = read("app/android/app/src/main/res/xml/shortcuts.xml"), act = read("app/android/app/src/main/java/kr/routefly/app/MainActivity.java");
         for (int i = 0; i < pages.length; i++) {
             assertEquals(pages[i], sc.get(i).getAsJsonObject().get("url").getAsString());
             assertTrue("shortcuts.xml " + pages[i], xml.contains("android:data=\"https://routefly.kr/routefly/" + pages[i] + "\""));
+            if (i > 0) assertTrue("shortcuts.xml 차례 " + pages[i], xml.indexOf("/routefly/" + pages[i - 1] + "\"") < xml.indexOf("/routefly/" + pages[i] + "\""));
             assertTrue("MainActivity " + pages[i], act.contains("\"/routefly/" + pages[i] + "\""));
         }
         assertEquals("shortcuts.xml 은 넷만", pages.length, xml.split("<shortcut ").length - 1);

@@ -103,7 +103,7 @@ public class MainActivity extends BridgeActivity {
                 && SHORTCUTS.contains(u.getPath());
     }
 
-    static final java.util.List<String> SHORTCUTS = java.util.Arrays.asList("/routefly/hike.html", "/routefly/m/", "/routefly/tidefly.html", "/routefly/dronefly.html");
+    static final java.util.List<String> SHORTCUTS = java.util.Arrays.asList("/routefly/hike.html", "/routefly/tidefly.html", "/routefly/dronefly.html", "/routefly/m/");
 
     /** routefly.kr 의 https 산악회 방 · 회사 사무실(2026-10-29) 주소만(다른 주소로 웹뷰를 돌리지 않음). 사무실 링크의 #k= 는 u.toString() 에 그대로 실림. */
     static boolean isPartyLink(Uri u) {

@@ -1,16 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 앱 아이콘을 길게 누르면 뜨는 바로가기(2026-11-18 홍TV님 "모두 해 줘" 5) - routefly.kr 화면을 앱 안에서 엶(MainActivity.isShortcutLink).
+<!-- 앱 아이콘을 길게 누르면 뜨는 바로가기(2026-11-18 홍TV님 "모두 해 줘" 5). 차례: 따라가기 · 출조 · 드론 · 코스 모음 - 크롬 웹앱은 "사이트 설정" 이 한 칸을 써 앞의 셋만 보임(같은 날 홍TV님 폰: 드론이 빠졌음) - routefly.kr 화면을 앱 안에서 엶(MainActivity.isShortcutLink).
      웹앱(크롬 "홈 화면에 추가")은 manifest.json 의 shortcuts 가 같은 일을 함 - 둘을 함께 고침 -->
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
     <shortcut android:shortcutId="hike" android:enabled="true" android:icon="@drawable/sc_routefly"
         android:shortcutShortLabel="@string/sc_hike" android:shortcutLongLabel="@string/sc_hike_long">
         <intent android:action="android.intent.action.VIEW" android:targetPackage="kr.routefly.app" android:targetClass="kr.routefly.app.MainActivity"
             android:data="https://routefly.kr/routefly/hike.html" />
-    </shortcut>
-    <shortcut android:shortcutId="trails" android:enabled="true" android:icon="@drawable/sc_routefly"
-        android:shortcutShortLabel="@string/sc_trails" android:shortcutLongLabel="@string/sc_trails_long">
-        <intent android:action="android.intent.action.VIEW" android:targetPackage="kr.routefly.app" android:targetClass="kr.routefly.app.MainActivity"
-            android:data="https://routefly.kr/routefly/m/" />
     </shortcut>
     <shortcut android:shortcutId="tidefly" android:enabled="true" android:icon="@drawable/sc_tidefly"
         android:shortcutShortLabel="@string/sc_tidefly" android:shortcutLongLabel="@string/sc_tidefly_long">
@@ -21,5 +16,10 @@
         android:shortcutShortLabel="@string/sc_dronefly" android:shortcutLongLabel="@string/sc_dronefly_long">
         <intent android:action="android.intent.action.VIEW" android:targetPackage="kr.routefly.app" android:targetClass="kr.routefly.app.MainActivity"
             android:data="https://routefly.kr/routefly/dronefly.html" />
+    </shortcut>
+    <shortcut android:shortcutId="trails" android:enabled="true" android:icon="@drawable/sc_routefly"
+        android:shortcutShortLabel="@string/sc_trails" android:shortcutLongLabel="@string/sc_trails_long">
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="kr.routefly.app" android:targetClass="kr.routefly.app.MainActivity"
+            android:data="https://routefly.kr/routefly/m/" />
     </shortcut>
 </shortcuts>
