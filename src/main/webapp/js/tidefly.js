@@ -1397,9 +1397,12 @@
   setLang(urlLang || savedLang || (/^ko\b/i.test(navigator.language || 'ko') ? 'ko' : 'en'));
   paintFixed();
   // 1분마다 남은 시간 글 새로 - 목록 안에서 고르는 중(알림 선택 등)이면 건너뜀(점검 10차 D1)
+  // 시각에 따라 바뀌는 글("2시간 10분 뒤" · 물때 그림의 지금 선 · 다음 알림)은 펼친 카드(.cards)에만 있음 - 묶음을 모두 접어 두면
+  // 같은 목록을 1분마다 새로 만들던 것을 건너뜀(점검 12차 C5, 2026-11-18). 묶음 머리의 ○ △ ✕ 는 서버 자료로만 바뀌고 load() 가 그림
   setInterval(function () {
     if (document.hidden) return;
     paintToday();
+    if (!listEl.querySelector('.cards')) return;
     var fa = document.activeElement;
     if (!(fa && listEl.contains(fa) && fa.tagName === 'SELECT')) draw();
   }, 60000);

@@ -81,6 +81,8 @@ public class CheckupRound12Test {
         assertTrue("C4", tf.contains("if (cached != null && now - listAt < 60_000) { sendList(req, resp, cached); return; }") && tf.contains("if (!missing) { listCache = text; listAt = now; } else listCache = null;")
                 && tf.contains("resp.setHeader(\"Cache-Control\", \"private, max-age=3600\");"));
         String t = com.gh.routefly.tidefly.TideflyServlet.etag("{}");
+        // C5(2026-11-18 홍TV님 "2,3 번 작업 진행해"): 펼친 카드가 없으면 1분마다 다시 그리지 않음
+        assertTrue("C5", read("src/main/webapp/js/tidefly.js").contains("    paintToday();\n    if (!listEl.querySelector('.cards')) return;\n    var fa = document.activeElement;"));
         assertTrue(t, t.matches("W/\"[0-9a-f]{16}\"") && t.equals(com.gh.routefly.tidefly.TideflyServlet.etag("{}")) && !t.equals(com.gh.routefly.tidefly.TideflyServlet.etag("{ }")));
     }
 
