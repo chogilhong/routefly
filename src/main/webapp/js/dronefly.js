@@ -494,7 +494,9 @@
     if (r.rain) bits.push(tr('비 · 눈 예보', 'rain/snow forecast'));
     else if (r.pop != null) bits.push(tr('강수확률 ', 'chance of rain ') + r.pop + '%');
     if (r.tmin != null) bits.push(tr('최저 ', 'low ') + r.tmin + '℃');
-    $('wxHead').textContent = (mark ? mark + ' ' : '') + lead + bits.join(' · ') + (lim ? '' : tr(' - 아래에 기체 최대 풍속을 넣으면 ○ △ ✕ 로 봅니다.', ' - enter your drone\'s max wind below to get ○ △ ✕.'));
+    // △ 는 "비행 자제 권장"(2026-11-18 홍TV님 "가 로해" - 70% 를 실질 비행 상한으로 보는 운용 기준, 판단은 조종자)
+    var care = r.level === 'care' ? tr('비행 자제 권장(돌풍 여유 없음) - ', 'Better not to fly (no margin for gusts) - ') : '';
+    $('wxHead').textContent = (mark ? mark + ' ' : '') + care + lead + bits.join(' · ') + (lim ? '' : tr(' - 아래에 기체 최대 풍속을 넣으면 ○ △ ✕ 로 봅니다.', ' - enter your drone\'s max wind below to get ○ △ ✕.'));
     $('wxRows').innerHTML = r.rows.map(function (h) {
       var p = ptyWord(h.pty);
       return '<li>' + esc(String(h.t).slice(11, 13) + tr('시', ':00') + ' · ' + tr('바람 ', 'wind ') + (h.wsd != null ? h.wsd + 'm/s' : '-') + ' · ' + (p ? p : tr('강수 ', 'rain ') + (h.pop != null ? h.pop + '%' : '-')) + ' · ' + (h.tmp != null ? h.tmp + '℃' : '')) + '</li>';

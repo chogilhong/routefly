@@ -47,6 +47,8 @@ public class FlyExtrasTest {
         String kit = read("src/main/webapp/js/kit-dronefly.js");
         assertTrue(kit.contains("function sunrise(") && kit.contains("function sunset("));
         assertTrue("야간 근거 조문", js.contains("시행규칙 제310조 ① 6호"));
+        // △ 는 "비행 자제 권장"(2026-11-18 홍TV님 "가 로해") - ✕ 로 올리지 않음
+        assertTrue(js.contains("var care = r.level === 'care' ? tr('비행 자제 권장(돌풍 여유 없음) - '") && h.contains("△ 최대 풍속의 70% 넘음 - 비행 자제 권장"));
     }
 
     @Test
