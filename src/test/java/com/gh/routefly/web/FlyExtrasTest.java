@@ -60,5 +60,7 @@ public class FlyExtrasTest {
         assertTrue("이번 주는 물때로만 - 바람 · 파고 숫자로 좋은 날을 정하지 않음", js.contains("box.appendChild(weekEl(d.days, good));") && js.contains("물때로만 고른 날입니다."));
         assertTrue("조과 기록 칸에 치는 중에는 1분 다시 그리기를 건너뜀", js.contains("(fa.tagName === 'SELECT' || fa.tagName === 'INPUT')"));
         keysInPolicy(js, "tf-");
+        // 저장 안내는 쉬운 말로 - 드론 기록장과 같은 글(2026-11-18 홍TV님 "바꿔")
+        for (String page : new String[] {"tidefly.html", "dronefly.html"}) assertTrue(page, read("src/main/webapp/" + page).contains("인터넷 기록을 지우거나 폰을 바꾸면 사라지니"));
     }
 }
