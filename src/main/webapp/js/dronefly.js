@@ -885,9 +885,9 @@
     $('quizWrong').disabled = !n;
     // "1번부터" → 푼 자리가 있으면 "4번부터 이어서" + "처음부터"(문항 목록을 받기 전에는 번호만 보고 둠)
     var set = curSet(), last = quizAt()[setId()], nos = set ? set.qs.map(function (q) { return q.no; }) : [];
-    var i = set ? quizResume(nos, last) : 0;
-    $('quizAll').textContent = i ? tr(quizLabel(nos[i]).replace(/\.$/, '번').replace(/\)$/, '') + '부터 이어서', 'Continue from no. ' + nos[i]) : tr('1번부터', 'From no. 1');
-    $('quizRestart').hidden = !i;
+    var i = set ? quizResume(nos, last) : 0, early = !set && last != null;   // 문항을 받기 전(칸을 펴기 전) - 번호는 몰라도 이어 풀 자리가 있음(2026-11-18 PC)
+    $('quizAll').textContent = i ? tr(quizLabel(nos[i]).replace(/\.$/, '번').replace(/\)$/, '') + '부터 이어서', 'Continue from no. ' + nos[i]) : early ? tr('이어서 풀기', 'Continue') : tr('1번부터', 'From no. 1');
+    $('quizRestart').hidden = !i && !early;
     var sc = (load('df-quiz-score') || []).filter(function (r) { return r && r.set === setId() && r.n > 0; }).slice(0, 3);
     $('quizScores').hidden = !sc.length;
     $('quizScores').textContent = sc.length ? tr('지난 점수: ', 'Recent scores: ') + sc.map(quizScoreText).join(' / ') : '';

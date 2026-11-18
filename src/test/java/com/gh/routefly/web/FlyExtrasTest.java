@@ -112,6 +112,8 @@ public class FlyExtrasTest {
         assertTrue(js.contains("if (mode === 'all' && !fresh) run.i = quizResume(run.list, quizAt()[set.id]);"));
         assertTrue(js.contains("if (run.mode === 'all') { var at = quizAt(); at[run.set.id] = q.no; save('df-quiz-at', JSON.stringify(at)); }"));
         assertTrue(js.contains("if (last) keepScore();"));
+        // 칸을 펴기 전(문항을 받기 전)에도 이어 풀 자리가 있으면 "이어서 풀기"(2026-11-18 PC: "1번부터" 로 보였음)
+        assertTrue(js.contains("early = !set && last != null;") && js.contains(": early ? tr('이어서 풀기', 'Continue')") && js.contains("$('quizRestart').hidden = !i && !early;"));
         // 4 비행 날 아침 알림 - 앱에서만, 누르면 dronefly 로(hike.js 가 받음)
         assertTrue(h.contains("id=\"flyAlarm\" class=\"btn\" data-en=\"🔔 Flight-day morning alert\" hidden") && js.contains("channelId: 'rf-dronefly', extra: { page: 'dronefly' }"));
         assertTrue(read("src/main/webapp/js/hike.js").contains("/^(tidefly|dronefly)$/.test(ev.notification.extra.page)"));
