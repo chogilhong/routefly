@@ -949,6 +949,9 @@
         : '<div class="row"><button type="button" class="btn go qNext">' + esc(tr('다음 문항 ›', 'Next ›')) + '</button></div>');
   }
   function initQuiz() {
+    // 마지막으로 고른 시험(df-quiz-set) - 1종만 풀던 사람이 새로 열 때마다 4종으로 돌아가 "1번부터" 가 보였음(2026-11-18 PC)
+    var lastSet = load('df-quiz-set');
+    if (typeof lastSet === 'string' && Array.prototype.some.call($('quizSet').options, function (o) { return o.value === lastSet; })) $('quizSet').value = lastSet;
     paintWrongBtn();
     $('quiz').addEventListener('toggle', function () { if ($('quiz').open) loadQuiz(); });   // 칸을 펼 때 미리 받음
     $('quizAll').addEventListener('click', function () { startQuiz('all'); });
@@ -957,7 +960,7 @@
     document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') keepScore(); });
     $('quizMix').addEventListener('click', function () { startQuiz('mix'); });
     $('quizWrong').addEventListener('click', function () { startQuiz('wrong'); });
-    $('quizSet').addEventListener('change', function () { keepScore(); run = null; $('quizBox').hidden = true; paintWrongBtn(); });   // 시험을 바꾸면 풀던 것은 닫음
+    $('quizSet').addEventListener('change', function () { keepScore(); run = null; $('quizBox').hidden = true; save('df-quiz-set', JSON.stringify($('quizSet').value)); paintWrongBtn(); });   // 시험을 바꾸면 풀던 것은 닫음
     $('quizBox').addEventListener('click', function (e) {
       var b = e.target.closest('button');
       if (!b || !run) return;
