@@ -251,7 +251,7 @@ a.kma { display:inline-block; margin-top:6px; min-height:44px; line-height:44px;
 form.mSearch { display:flex; gap:8px; margin:0 0 16px; }
 form.mSearch input[type=search] { flex:1; min-width:0; min-height:44px; box-sizing:border-box; padding:0 12px; font-size:16px; color:inherit; background:#2b3747; border:1px solid rgba(255,255,255,0.32); border-radius:22px; }   /* 바탕과 구분되게 조금 밝게(2026-11-18 홍TV님 "조금 더 하얗게") */
 form.mSearch input[type=search]::placeholder { color:#aab6c4; }
-form.mSearch button { min-height:44px; padding:0 18px; font-size:15px; font-weight:bold; color:#062b30; background:var(--sky); border:0; border-radius:22px; cursor:pointer; }
+form.mSearch button { min-height:44px; padding:0 16px; border-radius:22px; border:1px solid var(--sky); background:rgba(56,217,234,0.12); color:var(--tx); font:bold 15px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }   /* 아래 숙소 찾기 단추(.ssForm button)와 같게(2026-11-18 홍TV님 "버튼도 아래로 통일해 줘") */
 @media (max-width:420px) { form.mSearch input[type=search]::placeholder { font-size:13px; } }   /* 예시 5개(지리산 · 설악산 · 대진항 · 쭈꾸미 · 광어)가 360px 칸(230px)에 다 보이게 - 16px 은 265px 로 잘렸음(2026-11-16 PC). 친 글은 16px 그대로(아이폰 확대 막음) */
 /* 🚗 티맵(2026-11-09) - 휴대폰에서만 js 가 hidden 을 뗌. .go a 의 display 가 hidden 을 이기지 않게 */
 a.tmap[hidden] { display:none !important; }

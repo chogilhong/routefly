@@ -19,6 +19,9 @@ public class DroneflyPageTest {
     public void 타이드플라이_바로_아래_입구() throws Exception {
         String r = MountainServlet.droneflyRow(false), en = MountainServlet.droneflyRow(true);
         assertTrue("영어 /en/m/ 은 한 칸 더 깊음", en.contains("href=\"../../dronefly.html?lang=en\"") && en.contains("src=\"../../img/dronefly.svg\"") && en.contains("fly</span>(drones)"));
+        String mc = read("src/main/webapp/css/mountain.css");
+        assertTrue("코스 모음 찾기 단추는 숙소 찾기 단추와 같게(2026-11-18)", mc.contains("form.mSearch button { min-height:44px; padding:0 16px; border-radius:22px; border:1px solid var(--sky); background:rgba(56,217,234,0.12); color:var(--tx);")
+                && mc.contains(".ssForm input { flex:1; min-width:0; min-height:44px; padding:0 12px; border-radius:12px; border:1px solid rgba(255,255,255,0.32); background:#2b3747;"));
         assertTrue("찾기 칸을 바탕과 구분되게(2026-11-18)", read("src/main/webapp/css/mountain.css").contains("background:#2b3747; border:1px solid rgba(255,255,255,0.32);") && read("src/main/webapp/css/tidefly.css").contains(":root[data-theme=\"dark\"] .find input { background: #2a3f49;"));
         assertTrue(r.contains("href=\"../dronefly.html?lang=ko\"") && r.contains("<img class=\"dIc\" src=\"../img/dronefly.svg\" width=\"20\" height=\"20\" alt=\"\"> drone<span class=\"fly\">fly</span>(드론)") && !r.contains("🚁"));
     }
