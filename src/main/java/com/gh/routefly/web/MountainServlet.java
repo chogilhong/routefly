@@ -254,6 +254,7 @@ public class MountainServlet extends HttpServlet {
         }
         withElev(p, readElev(getServletContext()));
         withInfo(p, readInfo(getServletContext()));
+        withShorts(p, readShorts(getServletContext()));
         JsonObject sea = readSeason(getServletContext());
         withSeason(p, sea);
         withFishing(p, readArray(getServletContext(), "/data/tidefly-points.json"));
@@ -586,6 +587,42 @@ public class MountainServlet extends HttpServlet {
             o.addProperty("reason", str(v.getAsJsonObject(), "reason"));
             if (str(v.getAsJsonObject(), "sub") != null) o.addProperty("reason_sub", str(v.getAsJsonObject(), "sub"));
         }
+    }
+
+    /** data/shorts.json 의 videos {산 id: [{id, title}]}(홍TV님이 올린 유튜브 쇼츠, 2026-11-19) - 없거나 못 읽으면 빈 것. */
+    static JsonObject readShorts(jakarta.servlet.ServletContext ctx) {
+        try (InputStream in = ctx.getResourceAsStream("/data/shorts.json")) {
+            JsonElement e = in == null ? null : JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+            return e != null && e.isJsonObject() && e.getAsJsonObject().has("videos") ? e.getAsJsonObject().getAsJsonObject("videos") : new JsonObject();
+        } catch (Exception e) {
+            return new JsonObject();
+        }
+    }
+
+    /** 순수 함수 - 산마다 쇼츠 목록(shorts)을 붙임(id 로 맞춤 - withInfo 와 같게). */
+    static void withShorts(JsonArray peaks, JsonObject videos) {
+        for (JsonElement e : peaks) {
+            JsonObject o = e.getAsJsonObject();
+            String id = str(o, "id") != null ? str(o, "id") : str(o, "name");
+            JsonElement v = id == null ? null : videos.get(id);
+            if (v != null && v.isJsonArray() && v.getAsJsonArray().size() > 0) o.add("shorts", v.getAsJsonArray());
+        }
+    }
+
+    /**
+     * 순수 함수 - "▶ 이 산 이야기" 칸(쇼츠가 없으면 ""). 유튜브로 가는 링크만(새 창 - 페이지에 영상을 심지 않음: 첫 화면이 무거워지고 바깥 스크립트가 붙음).
+     * 2026-11-19 홍TV님 "산 페이지에 영상 링크 달고". 영어 페이지는 한국어 영상이라고 적음.
+     */
+    static String shortsBlock(JsonObject peak, boolean en) {
+        if (!peak.has("shorts") || !peak.get("shorts").isJsonArray()) return "";
+        StringBuilder b = new StringBuilder("<section class=\"shorts\"><h2>").append(en ? "▶ Story of this mountain (YouTube Shorts, in Korean)" : "▶ 이 산 이야기(유튜브 쇼츠)").append("</h2><ul class=\"tips\">");
+        for (JsonElement e : peak.getAsJsonArray("shorts")) {
+            JsonObject v = e.getAsJsonObject();
+            String vid = str(v, "id");
+            if (vid == null || !vid.matches("[A-Za-z0-9_-]{6,20}")) continue;
+            b.append("<li><a href=\"https://www.youtube.com/shorts/").append(vid).append("\" target=\"_blank\" rel=\"noopener\">").append(esc(str(v, "title"))).append(" ›</a></li>");
+        }
+        return b.append("</ul></section>").toString();
     }
 
     /** 순수 함수 - 산 페이지 "산림청이 고른 까닭" 칸(선정 이유가 없으면 ""). 출처를 함께. */
@@ -1177,6 +1214,7 @@ public class MountainServlet extends HttpServlet {
         if (!courses.isEmpty()) b.append("<p class=\"stays\" id=\"socar\" hidden></p>");
         if (!seasonUp) b.append(seasonBlock(peak, name, month));   // 🌸 벚꽃 · 🌺 철쭉 · 🍁 단풍 시기 - 철이 아니면 여기(기상청 관측이 있는 산만, 2026-11-14 홍TV님 "만들어 보자")
         b.append(reasonBlock(peak, name));   // 산림청 선정 이유(data/mountain-info.json 이 있을 때만, 2026-11-07)
+        b.append(shortsBlock(peak, false));   // ▶ 이 산 이야기(유튜브 쇼츠, data/shorts.json - 2026-11-19 홍TV님)
         // 광고 한 칸(설정이 있을 때만, 2026-10-28) - 코스 목록 다음 · 자주 묻는 질문 앞(2026-11-07 전체 점검 4단계: 맨 아래라 거의 안 보였음).
         // 코스 단추 · 따라가기와 붙지 않게 안내 글 뒤에, 한 페이지 한 칸만
         b.append(Ads.box("m"));

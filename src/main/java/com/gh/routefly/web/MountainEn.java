@@ -200,6 +200,7 @@ final class MountainEn {
             }
             b.append("</ul></section>");
         }
+        b.append(MountainServlet.shortsBlock(peak, true));   // ▶ 이 산 이야기(한국어 쇼츠 - 한국어 페이지와 같은 자료, 2026-11-19)
         if (!MountainServlet.overnight(peak)) b.append(MountainServlet.staysBlock(peak, true));   // 🏨 Stays nearby(js/mountain-en.js, 2026-10-29) - 1박 산은 위에
         return b.append(foot(REL + "/m/" + MountainServlet.enc(ko))).toString();
     }
