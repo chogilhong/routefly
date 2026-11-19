@@ -21,6 +21,12 @@ public class ShelterSearchTest {
         // 바인드 차례: kind 둘 · 이름 · 지점 이름 · 정렬(이름으로 시작 → 이름에 듦 → 지나기만) - 2026-11-19 PC: 이름에 든 코스가 5번째 밖이었음
         assertTrue(s.sql().contains("ORDER BY CASE WHEN name LIKE ? THEN 0 WHEN name LIKE ? THEN 1 ELSE 2 END"));
         assertEquals(Arrays.asList("hike", CourseQueries.TREK, "%소청대피소%", "%소청대피소%", "소청대피소%", "%소청대피소%"), Arrays.asList(s.params()));
+        // 서버가 SQL 결과를 이름 순(naturalSorted)으로 다시 줄 세울 때도 같은 규칙(2026-11-19 PC 운영: 이 단계에서 "이름에 듦" 이 지워졌음)
+        // 이름은 운영 /api/courses?q=소청대피소 응답(2026-11-19 PC)에서
+        com.google.gson.JsonArray rows = com.google.gson.JsonParser.parseString("[{\"name\":\"설악산 · 백담사 → 소청봉\"},{\"name\":\"설악산(대청봉) 1코스 · 남설악탐방지원센터 → 소청대피소\"},{\"name\":\"설악산 · 마등령 → 한계령\"}]").getAsJsonArray();
+        com.google.gson.JsonArray sorted = CourseQueries.naturalSorted(rows, "소청대피소");
+        assertEquals("설악산(대청봉) 1코스 · 남설악탐방지원센터 → 소청대피소", sorted.get(0).getAsJsonObject().get("name").getAsString());
+        assertEquals("다른 검색은 예전처럼 이름 순", "설악산 · 마등령 → 한계령", CourseQueries.naturalSorted(rows, "설악산").get(0).getAsJsonObject().get("name").getAsString());
         // 산 이름 검색은 그대로
         CourseQueries.Sql m = CourseQueries.listSql(null, null, "설악산");
         assertFalse(m.sql().contains("route_course_poi"));

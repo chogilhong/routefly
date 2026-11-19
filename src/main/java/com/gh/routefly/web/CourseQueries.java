@@ -145,13 +145,19 @@ final class CourseQueries {
 
     /**
      * 순수 함수 - 이름 안의 숫자는 숫자 크기로("해파랑길 1 · 2 · … · 9 · 10 · 50코스", 2026-10-31 홍TV님 - 예전엔 글자 순이라 1 · 10 · 11 … 4 · 49 · 5 · 50).
-     * 검색어로 시작하는 이름이 먼저(listSql 과 같은 규칙)는 그대로 둡니다.
+     * 검색어로 시작하는 이름이 먼저(listSql 과 같은 규칙)는 그대로 둡니다. 대피소 검색이면 이름에 든 코스가 그다음(listSql 과 같은 규칙).
      */
     static JsonArray naturalSorted(JsonArray rows, String q) {
         List<com.google.gson.JsonElement> a = new ArrayList<>();
         rows.forEach(a::add);
         String head = q == null ? null : q.trim().toLowerCase(Locale.ROOT);
-        java.util.Comparator<com.google.gson.JsonElement> byHead = java.util.Comparator.comparingInt(e -> head == null || head.isEmpty() || nameOf(e).toLowerCase(Locale.ROOT).startsWith(head) ? 0 : 1);
+        // 대피소 검색은 listSql 과 같게 이름으로 시작 0 → 이름에 듦 1 → 지나기만 2(2026-11-19 PC: 여기서 다시 줄 세워 listSql 의 "이름에 듦" 칸이 지워졌음 - 두 벌 함께)
+        boolean via = viaPoi(q);
+        java.util.Comparator<com.google.gson.JsonElement> byHead = java.util.Comparator.comparingInt(e -> {
+            String nm = nameOf(e).toLowerCase(Locale.ROOT);
+            if (head == null || head.isEmpty() || nm.startsWith(head)) return 0;
+            return via && nm.contains(head) ? 1 : 2;
+        });
         a.sort(byHead.thenComparing((x, y) -> naturalCompare(nameOf(x), nameOf(y))));
         JsonArray out = new JsonArray();
         a.forEach(out::add);
