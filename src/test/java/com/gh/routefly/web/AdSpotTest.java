@@ -24,7 +24,7 @@ public class AdSpotTest {
     public void cspAllowsAdsOnToolsAndSeries() {
         assertTrue(SecurityFilter.cspFor("/series.html").contains("pagead2.googlesyndication.com"));
         String tools = SecurityFilter.cspFor("/tools.html");
-        assertTrue(tools.contains("daumcdn.net") && tools.contains("pagead2.googlesyndication.com"));
+        assertTrue(tools.contains("kakaocdn.net") && tools.contains("pagead2.googlesyndication.com"));
         assertFalse("따라가기 화면에는 광고 곳 없음", SecurityFilter.cspFor("/hike.html").contains("googlesyndication"));
     }
 

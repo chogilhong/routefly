@@ -49,7 +49,8 @@ public class SecurityFilter extends HttpFilter {
             + "https://*.doubleclick.net https://*.google.com https://*.googleadservices.com https://*.googletagservices.com https://*.gstatic.com https://*.adtrafficquality.google";
 
     // 도구 화면 맨 아래 광고 칸(2026-11-01 홍TV님)이 있어 애드센스 곳도 더함
-    static final String CSP_TOOLS = CSP.replace("script-src 'self';", "script-src 'self' https://*.daumcdn.net " + ADS_SRC + "; "
+    // *.kakaocdn.net - 스크립트 주소가 t1.kakaocdn.net 으로 바뀜(카카오 공지 2026-11-30 daumcdn 종료). 스크립트가 안에서 부르는 곳이 아직 daumcdn 일 수 있어 둘 다
+    static final String CSP_TOOLS = CSP.replace("script-src 'self';", "script-src 'self' https://*.kakaocdn.net https://*.daumcdn.net " + ADS_SRC + "; "
             // postcode.v2.js 가 창 주소를 "//postcode.map.kakao.com" 처럼 써서 http(PC localhost)에서는 창도 http - 그 두 곳만 더(2026-10-18 PC). https 서버 · 앱은 https
             + "frame-src 'self' https: http://postcode.map.kakao.com http://postcode.map.daum.net;");
 

@@ -18,7 +18,7 @@ import org.junit.Test;
 public class LaunchSecurityTest {
 
     @Test
-    public void cspAllowsOnlyOwnScripts() {
+    public void cspAllowsOnlyOwnScripts() throws Exception {
         assertTrue(SecurityFilter.CSP.contains("script-src 'self';"));
         assertFalse("inline · eval 허용 없음", SecurityFilter.CSP.matches(".*script-src[^;]*'unsafe-(inline|eval)'.*"));
         assertTrue("지도 일꾼(blob)", SecurityFilter.CSP.contains("worker-src 'self' blob:"));
@@ -26,7 +26,9 @@ public class LaunchSecurityTest {
         assertTrue(SecurityFilter.CSP.contains("object-src 'none'"));
         // 🧰 별거 별거만 카카오 우편번호 스크립트 더 허용(2026-10-18)
         // 2026-11-01: 도구 화면 맨 아래 광고 칸 - 애드센스 곳도(SecurityFilter.ADS_SRC)
-        assertTrue(SecurityFilter.cspFor("/tools.html").contains("script-src 'self' https://*.daumcdn.net " + SecurityFilter.ADS_SRC + ";"));
+        assertTrue(SecurityFilter.cspFor("/tools.html").contains("script-src 'self' https://*.kakaocdn.net https://*.daumcdn.net " + SecurityFilter.ADS_SRC + ";"));
+        // 2026-11-19 카카오 공지(t1.daumcdn.net 2026-11-30 종료) - 스크립트는 t1.kakaocdn.net 에서
+        assertTrue(java.nio.file.Files.readString(java.nio.file.Paths.get("src/main/webapp/js/tools.js")).contains("var PC_JS = \"https://t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js\";"));
         assertTrue("PC http 에서도 우편번호 창", SecurityFilter.cspFor("/tools.html").contains("frame-src 'self' https: http://postcode.map.kakao.com http://postcode.map.daum.net;"));
         assertFalse(SecurityFilter.CSP.contains("frame-src"));
         assertEquals("다른 화면은 그대로", SecurityFilter.CSP, SecurityFilter.cspFor("/hike.html"));

@@ -41,7 +41,7 @@
     }
 
     // ── 📮 우편번호 · 영문 주소 ──
-    var PC_JS = "https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
+    var PC_JS = "https://t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";   // 카카오 공지: t1.daumcdn.net 은 2026-11-30 종료 → t1.kakaocdn.net(2026-11-19 홍TV님 화면)
     function loadPostcode(cb) {
         if (window.daum && window.daum.Postcode) return cb();
         var s = document.createElement("script");
