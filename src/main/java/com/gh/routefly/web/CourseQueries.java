@@ -270,11 +270,25 @@ final class CourseQueries {
             where.add("kind = ?");
             params.add(kind);
         }
-        if (q != null) {
+        if (q != null && viaPoi(q)) {
+            // 대피소 이름이면 이름에 없어도 그 대피소를 지나는 코스까지(2026-11-19 홍TV님 "대피소를 거치는 코스를 모두 보여주면") -
+            // 코스 지점(route_course_poi, 배치가 경로 둘레 이름표를 담음 - 예: 남설악 → 소청대피소 코스에 중청 · 소청 · 희운각대피소)이 경로에서 POI_NEAR_M 안
+            where.add("(name LIKE ? OR course_id IN (SELECT course_id FROM route_course_poi WHERE name LIKE ? AND off_route_m <= " + POI_NEAR_M + "))");
+            params.add(likePattern(q));
+            params.add(likePattern(q));
+        } else if (q != null) {
             where.add("name LIKE ?");
             params.add(likePattern(q));
         }
         return where.isEmpty() ? "" : " WHERE " + String.join(" AND ", where);
+    }
+
+    /** 대피소가 경로에서 이 거리(m) 안이면 "지나는 코스"(운영 코스 kmp-2322010401-1: 희운각대피소 37m · 중청대피소 24m, 다른 봉우리는 101m). */
+    static final int POI_NEAR_M = 100;
+
+    /** 순수 함수 - 지점 이름으로도 찾을 검색어인지: "…대피소" · "…산장"(두 글자 이상 이름). "대피소" 하나만은 아님(민방위대피소까지 수백 개). */
+    static boolean viaPoi(String q) {
+        return q != null && q.matches(".{2,}(대피소|산장)");
     }
 
     /**
