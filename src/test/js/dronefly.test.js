@@ -313,6 +313,8 @@ assert.strictEqual(DF.quizLabel('1-관련'), '1번 관련 문제)');
   const sh = V.scenes(D.sets[2], ['4', '17', '1-관련'].map(no => D.sets[2].qs.find(q => q.no === no)), 'short');
   assert.ok(sh.reduce((a, x) => a + x.sec, 0) <= 90);
   const m = V.meta(c1, c1.qs.slice(0, 20), 'long');
+  const th = V.thumbHtml(c1, c1.qs.slice(0, 20));   // 썸네일(2026-11-19) - 범위 · 문항 수 · 묶음 색
+  assert.ok(th.includes('1번 ~ 20번') && th.includes('100문항 중 20문항') && th.includes('#facc15'));
   assert.ok(m.startsWith('드론 1종 학과 연습 1번 ~ 20번 정답 · 해설 (100문항 중)') && m.includes('https://routefly.kr/routefly/dronefly.html#quiz-c1') && m.includes('실제 시험 문제가 아님'));
 }
 console.log('dronefly.test.js OK');

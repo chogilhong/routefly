@@ -163,8 +163,44 @@ function meta(set, qs, kind) {
   return title + '\n\n' + desc + '\n';
 }
 
+/**
+ * 순수 함수 - 유튜브 썸네일(1280x720) 화면(2026-11-19 홍TV님 "유튜브 영상 썸네일 만들어 줘").
+ * 시험 이름 · 문항 범위를 크게, 묶음마다 색을 달리(4종 하늘 · 1종 노랑 · 교관 초록) - 재생목록에서 한눈에 갈리게.
+ */
+const COLORS = { c4: '#38bdf8', c1: '#facc15', inst: '#4ade80' };
+const SHORT_NAMES = { c4: '드론 4종', c1: '드론 1종', inst: '드론 교관' };
+function thumbHtml(set, qs) {
+  const col = COLORS[set.id], first = label(qs[0].no), last = label(qs[qs.length - 1].no);
+  const sub = set.id === 'c4' ? '평가시험' : set.id === 'c1' ? '학과 연습' : '교관 과정 필기';
+  return `<html><head><meta charset="utf-8"><style>*{box-sizing:border-box}body{margin:0;width:1280px;height:720px;background:radial-gradient(circle at 80% 20%,#1e3a5f 0,#0f172a 60%);color:#f8fafc;font-family:'Noto Sans CJK KR','Noto Sans KR',sans-serif;padding:56px 70px;display:flex;flex-direction:column;position:relative;overflow:hidden}
+.k{font-size:46px;font-weight:800;color:${col}}.t{font-size:132px;font-weight:900;line-height:1.05;margin:10px 0 0;letter-spacing:-2px}.t span{color:${col}}
+.r{font-size:96px;font-weight:900;margin-top:18px}.b{margin-top:auto;display:flex;gap:18px}.b i{font-style:normal;font-size:40px;font-weight:800;padding:12px 26px;border-radius:999px;background:${col};color:#0f172a}.b i.o{background:transparent;color:#e2e8f0;border:4px solid #475569}
+.d{position:absolute;right:60px;top:150px;font-size:230px;transform:rotate(-8deg);filter:drop-shadow(0 12px 24px rgba(0,0,0,.5))}.n{position:absolute;right:70px;bottom:56px;font-size:34px;color:#94a3b8}</style></head>
+<body><div class="k">🚁 ${esc(sub)}</div><div class="t">${esc(SHORT_NAMES[set.id])} <span>필기</span></div><div class="r">${esc(first)} ~ ${esc(last)}</div>
+<div class="b"><i>정답 · 해설</i><i class="o">${set.qs.length}문항 중 ${qs.length}문항</i></div><div class="d">🚁</div><div class="n">routefly.kr</div></body></html>`;
+}
+
+async function thumbs(list) {
+  const { chromium } = require('playwright');
+  const b = await chromium.launch(), p = await b.newPage({ viewport: { width: 1280, height: 720 } });
+  for (const [set, qs, name] of list) {
+    await p.setContent(thumbHtml(set, qs));
+    await p.screenshot({ path: path.join(OUT, name + '.png') });
+    console.log(path.join(OUT, name + '.png'));
+  }
+  await b.close();
+}
+
 async function main() {
   const [kind, id, a, b] = process.argv.slice(2);
+  // thumb <묶음> <처음> <끝> - 긴 영상과 같은 이름의 .png(유튜브 썸네일 1280x720)
+  if (kind === 'thumb') {
+    const set = D.sets.find(s => s.id === id), qs = set ? set.qs.slice(+a - 1, +b) : [];
+    if (!qs.length) { console.error('node tools/drone-quiz/video.js thumb <c4|c1|inst> <처음 순번> <끝 순번>'); process.exit(1); }
+    fs.mkdirSync(OUT, { recursive: true });
+    await thumbs([[set, qs, `${id}-${String(a).padStart(3, '0')}-${String(b).padStart(3, '0')}`]]);
+    return;
+  }
   const set = D.sets.find(s => s.id === id);
   if (!set || !/^(long|short)$/.test(kind)) { console.error('node tools/drone-quiz/video.js long <c4|c1|inst> <처음 순번> <끝 순번> | short <묶음> <번호,번호,번호>'); process.exit(1); }
   const qs = kind === 'long' ? set.qs.slice(+a - 1, +b) : String(a).split(',').map(n => set.qs.find(q => q.no === n)).filter(Boolean);
@@ -176,5 +212,5 @@ async function main() {
   console.log(path.join(OUT, name + '.mp4'));
 }
 
-module.exports = { thinkSec, answerSec, exPages, label, scenes, meta, FIT };
+module.exports = { thinkSec, answerSec, exPages, label, scenes, meta, FIT, thumbHtml };
 if (require.main === module) main().catch(e => { console.error(e); process.exit(1); });
