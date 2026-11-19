@@ -92,8 +92,7 @@ async function main() {
   const m = { name: name, id: name, height: height, src: srcOf(id) };
   fs.mkdirSync(OUT, { recursive: true });
   const tmp = fs.mkdtempSync(path.join(OUT, 'e-'));
-  const { chromium } = require('playwright');
-  const b = await chromium.launch(), p = await b.newPage({ viewport: { width: 1080, height: 1920 } });
+  const b = await require('../lib/browser.js').launch(), p = await b.newPage({ viewport: { width: 1080, height: 1920 } });
   const n = FPS * DRAW;
   for (let i = 0; i <= n; i++) {
     await p.setContent(frame(m, d.course, pts, i / n));

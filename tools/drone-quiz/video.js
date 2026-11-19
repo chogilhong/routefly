@@ -117,9 +117,8 @@ function FIT() {
 }
 
 async function render(list, file) {
-  const { chromium } = require('playwright');
   const tmp = fs.mkdtempSync(path.join(OUT, 'f-'));
-  const b = await chromium.launch(), seen = new Map(), concat = [];
+  const b = await require('../lib/browser.js').launch(), seen = new Map(), concat = [];
   const p = await b.newPage({ viewport: { width: list[0].page.w, height: list[0].page.h } });
   for (let i = 0; i < list.length; i++) {
     const s = list[i];
@@ -181,8 +180,7 @@ function thumbHtml(set, qs) {
 }
 
 async function thumbs(list) {
-  const { chromium } = require('playwright');
-  const b = await chromium.launch(), p = await b.newPage({ viewport: { width: 1280, height: 720 } });
+  const b = await require('../lib/browser.js').launch(), p = await b.newPage({ viewport: { width: 1280, height: 720 } });
   for (const [set, qs, name] of list) {
     await p.setContent(thumbHtml(set, qs));
     await p.screenshot({ path: path.join(OUT, name + '.png') });
