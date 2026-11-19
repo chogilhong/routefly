@@ -4066,6 +4066,7 @@
         levelChip: levelChip,
         mapLocale: mapLocale,
         roman: roman,
+        enName: enName,
         weekendText: weekendText,
         slopeBetween: slopeBetween,
         steepest: steepest,

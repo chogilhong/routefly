@@ -48,6 +48,8 @@ public class ShelterLinkTest {
         String en = Shelters.block(d, sorak, "../..", true);
         assertTrue(en.contains("../../hike.html?lang=en&amp;q="));
         assertTrue(en.contains(">Book ›</a>"));
+        assertTrue("영어 이름 + 한글", en.contains(">Socheong shelter <small lang=\"ko\">소청대피소</small></a>"));
+        assertEquals("화면 enName 과 같은 값(course-kit.test.js)", "Je 2yeonhwabong shelter", MountainEn.courseName("제2연화봉대피소"));
     }
 
     @Test
@@ -87,5 +89,6 @@ public class ShelterLinkTest {
         String hike = new String(Files.readAllBytes(Paths.get("src/main/webapp/js/hike.js")), StandardCharsets.UTF_8);
         assertTrue(hike.contains("var sh = from ? null : RF.shelterOf(shelterData, lastQ);"));
         assertTrue(hike.contains("if (sh && sh.reserve && shelterData.reserveUrl) {"));
+        assertTrue("영어 카드도 같은 이름 규칙", hike.contains("EN ? RF.enName(sh.name) + \" (\" + sh.name + \")\" : sh.name"));
     }
 }

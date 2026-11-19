@@ -1022,6 +1022,7 @@ tick().then(function () {
     eq("knps-shelters.json = tools/shelters/build.js 결과", JSON.stringify(SH), JSON.stringify(require("../../../tools/shelters/build.js").build()));
     eq("대피소 이름 검색(띄어쓰기 무시) · 아니면 null", [RF.shelterOf(SH, "소청 대피소").park, RF.shelterOf(SH, "소청대피소").reserve, RF.shelterOf(SH, "중청대피소").reserve,
         RF.shelterOf(SH, "설악산"), RF.shelterOf(SH, ""), RF.shelterOf(null, "소청대피소")], ["설악산", true, false, null, null, null]);
+    eq("대피소 영어 이름 - 서버 Shelters(MountainEn.courseName)와 같게", ["소청대피소", "치밭목대피소", "제2연화봉대피소"].map(RF.enName), ["Socheong shelter", "Chibanmok shelter", "Je 2yeonhwabong shelter"]);
     console.log((fails ? "FAILED " : "OK ") + (runs - fails) + "/" + runs);
     process.exit(fails ? 1 : 0);
 });

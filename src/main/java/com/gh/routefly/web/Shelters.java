@@ -78,7 +78,7 @@ final class Shelters {
         for (JsonObject s : list) {
             String nm = s.get("name").getAsString();
             b.append("<li><a href=\"").append(rel).append("/hike.html?lang=").append(en ? "en" : "ko").append("&amp;q=").append(MountainServlet.enc(nm)).append("\">")
-                    .append(ShareServlet.esc(nm)).append("</a>");
+                    .append(en ? ShareServlet.esc(MountainEn.courseName(nm)) + " <small lang=\"ko\">" + ShareServlet.esc(nm) + "</small>" : ShareServlet.esc(nm)).append("</a>");   // 영어 - 코스 이름과 같은 규칙(대피소 → shelter, 나머지 로마자, 2026-11-19 PC)
             if (url != null && s.get("reserve").getAsBoolean()) b.append(" · <a href=\"").append(ShareServlet.esc(url)).append("\" target=\"_blank\" rel=\"noopener\">").append(en ? "Book ›" : "예약 ›").append("</a>");
             b.append("</li>");
         }

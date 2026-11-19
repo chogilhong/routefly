@@ -4048,7 +4048,7 @@
             sa.target = "_blank";
             sa.rel = "noopener";
             var sb = document.createElement("b");
-            sb.textContent = "🏠 " + sh.name + T(" 예약(국립공원공단)", " booking (KNPS)");
+            sb.textContent = "🏠 " + (EN ? RF.enName(sh.name) + " (" + sh.name + ")" : sh.name) + T(" 예약(국립공원공단)", " booking (KNPS)");   // 영어 - 산 · 코스 페이지와 같은 규칙(enName = MountainEn.courseName)
             var ss = document.createElement("span");
             ss.textContent = T(sh.park + " · 요금 · 예약 가능 날짜는 공단 예약 화면에서 · 아래는 이 대피소를 지나는 코스", sh.park + " · fees and open dates on the KNPS page · trails below pass this shelter");
             sa.appendChild(sb);
