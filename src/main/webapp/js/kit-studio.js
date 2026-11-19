@@ -1052,10 +1052,6 @@
      */
     function isAccess(p) { return +p.off_route_m > (isTopName(p.name) ? 160 : 100); }
 
-    /**
-     * 봉우리 · 고개 이름인가 - 능선 길이 꼭대기를 비켜 가 경로에서 조금 멀어도(배치는 150m 까지 넣음) 경로 위 지점으로 봅니다.
-     * 2026-10-10 PC: 상재봉 1코스 소지봉(경로에서 95m)이 지도 · 그래프에 안 보였음.
-     */
     function isTopName(name) { return /(봉|산|령|재|고개|峰|정상)(\s*\(.*\))?$/.test(String(name || "").trim()); }
 
     /**

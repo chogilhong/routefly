@@ -3119,12 +3119,13 @@
             var fin = hike.paceFin = paceFinal();   // 지난번과 견준 도착 시간(2026-10-16 PC: 도착하면 옆 글이 사라져 결과를 못 봄)
             $("arrived").textContent = "🎉 " + (endPoi ? NM(endPoi.name) + " " : "") + T("도착! ", "- you made it! ") + km(c.total) + "km · " + hhmmss(now() - hike.start) + (fin ? " · " + fin : "");
             // 가족에게 "무사히 내려왔어요" 한 번 누르기(점검 11차 E4, 2026-11-16 홍TV님 "전부 작업해") - 문자 앱만 열고 보내기는 내가, 위치는 넣지 않음
-            var safe = document.createElement("a"), done = clock(now());
+            // 높은 곳에서 끝나는 코스(정상 · 대피소까지)는 "도착했어요" - 아직 내려오지 않았음(2026-11-19 홍TV님 "조금 어색한데")
+            var safe = document.createElement("a"), done = clock(now()), up = RF.endsHigh(c.ele), endNm = endPoi ? endPoi.name : "";
             safe.className = "safeSms";
             safe.href = "sms:" + (/iPhone|iPad/.test(navigator.userAgent) ? "&" : "?") + "body=" + encodeURIComponent(EN
-                ? "[routefly] Finished my hike safely - " + NM(c.course.name) + " (" + km(c.total) + " km, " + done + ")."
-                : "[routefly] 산행을 무사히 마쳤습니다 - " + c.course.name + "(" + km(c.total) + "km, " + done + ").");
-            safe.textContent = T("📱 가족에게 \"무사히 내려왔어요\" 문자", "📱 Text family \"I'm down safely\"");
+                ? "[routefly] " + (up ? "Reached " + (endNm ? NM(endNm) : "my destination") + " safely" : "Finished my hike safely") + " - " + NM(c.course.name) + " (" + km(c.total) + " km, " + done + ")."
+                : "[routefly] " + (up ? (endNm || "목적지") + "에 무사히 도착했습니다" : "산행을 무사히 마쳤습니다") + " - " + c.course.name + "(" + km(c.total) + "km, " + done + ").");
+            safe.textContent = up ? T("📱 가족에게 \"무사히 도착했어요\" 문자", "📱 Text family \"I made it safely\"") : T("📱 가족에게 \"무사히 내려왔어요\" 문자", "📱 Text family \"I'm down safely\"");
             $("arrived").appendChild(document.createElement("br"));
             $("arrived").appendChild(safe);
             $("arrived").style.display = "block";

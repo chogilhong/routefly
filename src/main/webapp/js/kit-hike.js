@@ -2284,6 +2284,15 @@
      * 봉우리 · 고개 이름인가 - 능선 길이 꼭대기를 비켜 가 경로에서 조금 멀어도(배치는 150m 까지 넣음) 경로 위 지점으로 봅니다.
      * 2026-10-10 PC: 상재봉 1코스 소지봉(경로에서 95m)이 지도 · 그래프에 안 보였음.
      */
+    /**
+     * 순수 함수 - 출발보다 100m 넘게 높은 곳에서 끝나는 코스(백담사 → 소청봉 같은 오르기만 하는 코스)인지. 높이(ele, null 섞임)를 모르면 false.
+     * 도착 문자 "무사히 내려왔어요" 가 정상에서 어색함(2026-11-19 홍TV님) - 이런 코스는 "무사히 도착했어요".
+     */
+    function endsHigh(ele) {
+        var e = (ele || []).filter(function (v) { return v != null; });
+        return e.length > 1 && e[e.length - 1] - e[0] >= 100;
+    }
+
     function isTopName(name) { return /(봉|산|령|재|고개|峰|정상)(\s*\(.*\))?$/.test(String(name || "").trim()); }
 
     function nextPoi(c, d) {
@@ -3942,6 +3951,7 @@
         storedGpx: storedGpx,
         isAccess: isAccess,
         isTopName: isTopName,
+        endsHigh: endsHigh,
         reverseCourse: reverseCourse,
         infoText: infoText,
         nearSign: nearSign,
