@@ -205,7 +205,13 @@ final class CourseQueries {
     static Sql listSql(double[] bbox, String kind, String q) {
         List<Object> params = new ArrayList<>();
         StringBuilder sql = new StringBuilder("SELECT ").append(LIST_COLUMNS).append(" FROM route_course").append(where(bbox, kind, q, params));
-        if (q != null) {
+        if (q != null && viaPoi(q)) {
+            // 대피소: 이름으로 시작 → 이름에 든 것(설악산(대청봉) 1코스 · 남설악 → 소청대피소) → 지나기만 하는 코스
+            // (2026-11-19 PC 운영 확인: 이름에 든 코스가 지나기만 하는 코스들 뒤 5번째 밖이었음 - 이름이 "설악산 …" 으로 시작해 앞 칸에 걸리지 않았음)
+            sql.append(" ORDER BY CASE WHEN name LIKE ? THEN 0 WHEN name LIKE ? THEN 1 ELSE 2 END, ").append(NAME_ORDER);
+            params.add(likePattern(q).substring(1));
+            params.add(likePattern(q));
+        } else if (q != null) {
             // 검색어로 시작하는 이름이 먼저('송산' → 송산 · … 가 공주향교뒷산 · 송산리… 보다 앞)
             sql.append(" ORDER BY CASE WHEN name LIKE ? THEN 0 ELSE 1 END, ").append(NAME_ORDER);
             params.add(likePattern(q).substring(1));
