@@ -317,4 +317,16 @@ assert.strictEqual(DF.quizLabel('1-관련'), '1번 관련 문제)');
   assert.ok(th.includes('1번 ~ 20번') && th.includes('100문항 중 20문항') && th.includes('#facc15'));
   assert.ok(m.startsWith('드론 1종 학과 연습 1번 ~ 20번 정답 · 해설 (100문항 중)') && m.includes('https://routefly.kr/routefly/dronefly.html#quiz-c1') && m.includes('실제 시험 문제가 아님'));
 }
+// 쇼츠 끝 장면(tools/youtube/endcard.js, 2026-11-19) - 코스 고르기 · 출처 · 그림 경로
+{
+  const E = require('../../../tools/youtube/endcard.js');
+  const cs = [{ course_id: 'a', kind: 'hike', ele_max_m: 700, distance_m: 5000 }, { course_id: 'b', kind: 'hike', ele_max_m: 840, distance_m: 1500 }, { course_id: 'c', kind: 'hike', ele_max_m: 830, distance_m: 6000 }, { course_id: 'd', kind: 'bike', ele_max_m: 846, distance_m: 6000 }];
+  assert.strictEqual(E.pickCourse(cs, 846.5).course_id, 'c');   // 정상 높이에 가깝고 너무 짧지 않은 등산 코스
+  assert.strictEqual(E.pickCourse([], 800), null);
+  assert.deepStrictEqual([E.srcOf('knps-1'), E.srcOf('frst-1'), E.srcOf('kmp-1')], ['국립공원공단 탐방로(공공데이터)', '산림청 등산로(공공데이터)', '산림청 등산로(공공데이터)']);
+  const pts = [[127, 36, 100, 0], [127.01, 36.01, 300, 1000], [127.02, 36, 200, 2000]];
+  const r = E.routePath(pts, { x: 0, y: 0, w: 100, h: 100 });
+  assert.ok(r.d.startsWith('M') && r.topEle === 300);
+  assert.ok(E.profilePath(pts, { x: 0, y: 0, w: 100, h: 50 }).endsWith('Z'));
+}
 console.log('dronefly.test.js OK');
