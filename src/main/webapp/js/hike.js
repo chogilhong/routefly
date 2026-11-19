@@ -4011,7 +4011,15 @@
         if (lastList && lastList.seq === pickSeq) listCourses.apply(null, lastList.args);
     }).catch(function () { /* 없이 */ });
 
+    // 국립공원 대피소(data/knps-shelters.json) - 대피소 이름으로 찾으면 맨 위에 공단 예약 카드. 받기 전에 그린 목록은 받은 뒤 한 번 다시 그림
+    var shelterData = null, lastShelterList = null;
+    jsonOnce("data/knps-shelters.json").then(function (d) {
+        shelterData = d;
+        if (lastShelterList && lastShelterList.seq === pickSeq) listCourses.apply(null, lastShelterList.args);
+    }).catch(function () { /* 없이 */ });
+
     function listCourses(rows, from, note) {
+        lastShelterList = shelterData ? null : { args: [rows, from, note], seq: pickSeq };
         rows = (rows || []).filter(function (r) { return !RF.isClosedTrail(r.name) && !RF.isHiddenCourse(listNotes, r.course_id); });   // 지금은 없는 탐방로(park-notes hide - 가야산3코스)도   // 비법정탐방로(비매칭코스)는 목록에서 뺌(2026-10-13 홍TV님)
         lastList = seriesFlat.length ? null : { args: [rows, from, note], seq: pickSeq };
         var box = $("pickList");
@@ -4031,6 +4039,22 @@
         }
         // 탐방 안내도 먼저 - 산에 가면 탐방 안내도부터 보고 갈 코스를 고르듯(2026-10-12 홍TV님). 안내도에서 탐방로를 누르면 미리보기 · 산행하기
         // 노선 안내도 - 국토종주 자전거길 · 국가숲길 구간 코스가 있으면 그 노선 전체 지도(2026-10-12 홍TV님)
+        // 🏠 대피소 예약 카드(예약 받는 대피소만 - 요금 · 날짜는 공단 화면에서, 2026-11-19 홍TV님)
+        var sh = from ? null : RF.shelterOf(shelterData, lastQ);
+        if (sh && sh.reserve && shelterData.reserveUrl) {
+            var sa = document.createElement("a");
+            sa.className = "it guide";
+            sa.href = shelterData.reserveUrl;
+            sa.target = "_blank";
+            sa.rel = "noopener";
+            var sb = document.createElement("b");
+            sb.textContent = "🏠 " + sh.name + T(" 예약(국립공원공단)", " booking (KNPS)");
+            var ss = document.createElement("span");
+            ss.textContent = T(sh.park + " · 요금 · 예약 가능 날짜는 공단 예약 화면에서 · 아래는 이 대피소를 지나는 코스", sh.park + " · fees and open dates on the KNPS page · trails below pass this shelter");
+            sa.appendChild(sb);
+            sa.appendChild(ss);
+            box.appendChild(sa);
+        }
         var routes = RF.routeGuides(rows, 2, seriesFlat, from ? "" : lastQ);
         routes.forEach(function (g) {
             var a = document.createElement("a");

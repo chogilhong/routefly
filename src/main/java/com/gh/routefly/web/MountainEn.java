@@ -150,6 +150,7 @@ final class MountainEn {
         // ⛑️ Today's hiking safety(api/safety - 한국어 산 페이지와 같게, 2026-10-18) - js/mountain-en.js 가 채움
         b.append("<section id=\"safe\"><h2>⛑️ Today's hiking safety</h2><ul class=\"wl sfl\" id=\"sfList\"><li><span>Weather warnings, wildfire risk, UV and the nearest emergency room appear here.</span></li></ul>")
                 .append("<h3>🏥 Nearest emergency rooms</h3><ul class=\"wl\" id=\"sfEr\"></ul><p class=\"dim\">Weather warnings and UV: Korea Meteorological Administration. Wildfire risk: Korea Forest Service. Emergency rooms: National Medical Center (region from the nearest ER's address). In an emergency call <b>119</b>.</p></section>");
+        b.append(Shelters.block(Shelters.current(), Shelters.ofPark(Shelters.current(), ko), REL, true));   // 🏠 국립공원 대피소(한국어 페이지와 같게, 2026-11-19)
         if (MountainServlet.overnight(peak)) b.append(MountainServlet.staysBlock(peak, true));   // 1박이 많은 산은 위로(한국어 페이지와 같게)
         b.append(MountainServlet.fishLine(peak, true));   // 바다 가까운 산 → tidefly(점검 10차 E5, 한국어와 같게)
         b.append("<section id=\"trails\"><h2>").append(courses.size()).append(courses.size() == 1 ? " trail" : " trails").append("</h2>");

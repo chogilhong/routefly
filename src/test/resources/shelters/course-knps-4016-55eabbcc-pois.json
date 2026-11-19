@@ -1,0 +1,95 @@
+{
+ "_note": "운영 /api/course?id=knps-4016-55eabbcc 응답의 course · pois (2026-11-19)",
+ "course": {
+  "course_id": "knps-4016-55eabbcc",
+  "name": "설악산 · 백담사 → 소청봉",
+  "kind": "hike",
+  "distance_m": 11474,
+  "ascent_m": 1298,
+  "descent_m": 216,
+  "ele_min_m": 469.4,
+  "ele_max_m": 1559.0,
+  "ele_source": "dem",
+  "point_cnt": 1024,
+  "start_lat": 38.164957,
+  "start_lon": 128.376162,
+  "end_lat": 38.125601,
+  "end_lon": 128.456716,
+  "min_lat": 38.125591,
+  "min_lon": 128.373601,
+  "max_lat": 38.164957,
+  "max_lon": 128.456716,
+  "imported_at": "2026-11-03 15:17:14",
+  "source": {
+   "kind": "source",
+   "text": "국립공원공단",
+   "en": "Korea National Park Service",
+   "checked": false
+  }
+ },
+ "pois": [
+  {
+   "seq": 0,
+   "name": "백담사",
+   "lat": 38.164907,
+   "lon": 128.374062,
+   "ele_m": 480.0,
+   "dist_m": 104,
+   "off_route_m": 117
+  },
+  {
+   "seq": 1,
+   "name": "수렴동대피소",
+   "lat": 38.146491,
+   "lon": 128.414319,
+   "ele_m": 592.0,
+   "dist_m": 5599,
+   "off_route_m": 7
+  },
+  {
+   "seq": 2,
+   "name": "관음폭포",
+   "lat": 38.132275,
+   "lon": 128.427812,
+   "ele_m": 782.0,
+   "dist_m": 8156,
+   "off_route_m": 13
+  },
+  {
+   "seq": 3,
+   "name": "쌍용폭포",
+   "lat": 38.131047,
+   "lon": 128.433577,
+   "ele_m": 884.5,
+   "dist_m": 8789,
+   "off_route_m": 22
+  },
+  {
+   "seq": 4,
+   "name": "해탈고개",
+   "lat": 38.127483,
+   "lon": 128.443855,
+   "ele_m": 1070.8,
+   "dist_m": 9982,
+   "off_route_m": 9
+  },
+  {
+   "seq": 5,
+   "name": "소청대피소",
+   "lat": 38.126719,
+   "lon": 128.453558,
+   "ele_m": 1456.0,
+   "dist_m": 11158,
+   "off_route_m": 15
+  },
+  {
+   "seq": 6,
+   "name": "소청봉",
+   "lat": 38.124904,
+   "lon": 128.45667,
+   "ele_m": 1550.0,
+   "dist_m": 11465,
+   "off_route_m": 77
+  }
+ ]
+}

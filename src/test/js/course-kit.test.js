@@ -1017,6 +1017,11 @@ tick().then(function () {
     eq("끝낸 사람 영어", ["주 인솔자", "사무실", "자동(하산 마감이 지남)", "모름"].map(function (b) { return cs.window.RFOfficeCsv.byText(b, true); }).concat([cs.window.RFOfficeCsv.byText("주 인솔자", false)]),
         ["Chief leader", "Office", "Auto (descent deadline passed)", "모름", "주 인솔자"]);
     eq("CSV 영어 - 머리 줄 · 취소 · SOS", [csvEn[0].slice(1).split(",")[0], csvEn[0].split(",").length, csvEn[1]], ["Ended date", 14, "2026-10-28,09:00,취소 산행,,Cancelled,태풍,시험대장,10,0,0,,,,Yes"]);
+    // 🏠 국립공원 대피소(2026-11-19 홍TV님 "2번으로 해줘") - 앱 자료는 원본(dbf)에서 build.js 로 만든 그대로, 검색어 → 대피소
+    var SH = JSON.parse(fs.readFileSync(path.join(__dirname, "../../main/webapp/data/knps-shelters.json"), "utf8"));
+    eq("knps-shelters.json = tools/shelters/build.js 결과", JSON.stringify(SH), JSON.stringify(require("../../../tools/shelters/build.js").build()));
+    eq("대피소 이름 검색(띄어쓰기 무시) · 아니면 null", [RF.shelterOf(SH, "소청 대피소").park, RF.shelterOf(SH, "소청대피소").reserve, RF.shelterOf(SH, "중청대피소").reserve,
+        RF.shelterOf(SH, "설악산"), RF.shelterOf(SH, ""), RF.shelterOf(null, "소청대피소")], ["설악산", true, false, null, null, null]);
     console.log((fails ? "FAILED " : "OK ") + (runs - fails) + "/" + runs);
     process.exit(fails ? 1 : 0);
 });

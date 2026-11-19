@@ -135,6 +135,7 @@ public class CoursePageServlet extends HttpServlet {
         JsonObject peak = peakOf(peaks(), course);
         boolean index = indexable(id, rawName, str(course, "kind"), peak, pk);
         resp.setHeader("Cache-Control", "public, max-age=600");
+        Shelters.load(getServletContext());   // 🏠 대피소 칸(page 가 Shelters.current 로)
         resp.getWriter().print(page(course, peak, info, dist, ele, pois, index, base, stampsOn(npStamps(), plat, plon, dist)));
     }
 
@@ -445,6 +446,8 @@ public class CoursePageServlet extends HttpServlet {
                         .append((Integer) s[2] > 50 ? " · 길에서 " + s[2] + "m" : "").append("</span></li>");
             b.append("</ul><p class=\"tip\">따라가기로 가까이 가면 다녀감이 남습니다(이 핸드폰). 실제 스탬프는 현장 스탬프북 · 국립공원공단 앱으로 받으세요.</p></section>");
         }
+        // 🏠 이 코스가 지나는 국립공원 대피소 · 예약(2026-11-19 홍TV님 "2번으로 해줘") - 검색과 같은 거리(POI_NEAR_M) 안만
+        b.append(Shelters.block(Shelters.current(), Shelters.onCourse(Shelters.current(), pois), REL, false));
         // 지나는 곳
         List<Object[]> ps = passes(pois, dist, ele);
         if (!ps.isEmpty()) {

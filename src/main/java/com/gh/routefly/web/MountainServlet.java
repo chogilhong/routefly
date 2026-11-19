@@ -105,6 +105,7 @@ public class MountainServlet extends HttpServlet {
         List<JsonObject> courses = courses(peak);
         boolean failed = courses == null;
         if (failed) courses = new ArrayList<>();
+        Shelters.load(getServletContext());   // 🏠 대피소 칸(page 가 Shelters.current 로)
         resp.setHeader("Cache-Control", failed ? "no-store" : "public, max-age=600");
         resp.getWriter().print(withFire(page(peak, courses, nearby(all, peak, NEARBY_MAX, NEARBY_M), parking(courses), base,
                 seasonMonth(all, season, java.time.LocalDate.now(WeatherServlet.KST))), System.currentTimeMillis()));
@@ -126,6 +127,7 @@ public class MountainServlet extends HttpServlet {
         List<JsonObject> courses = courses(peak);
         boolean failed = courses == null;
         if (failed) courses = new ArrayList<>();
+        Shelters.load(getServletContext());   // 🏠 Shelters 칸(MountainEn.page 가 Shelters.current 로)
         resp.setHeader("Cache-Control", failed ? "no-store" : "public, max-age=600");
         resp.getWriter().print(withFire(MountainEn.page(peak, courses, nearby(all, peak, NEARBY_MAX, NEARBY_M), parking(courses), base), System.currentTimeMillis(), true));
     }
@@ -1130,6 +1132,7 @@ public class MountainServlet extends HttpServlet {
         // ⛑️ 오늘의 산행 안전(api/safety - 2026-10-18 홍TV님: 별거 별거와 같은 것을 산 페이지에도) - 정상 자리로, 보이면 받음(js/mountain.js)
         b.append("<section id=\"safe\"><h2>⛑️ 오늘의 산행 안전</h2><ul class=\"wl sfl\" id=\"sfList\"><li><span>기상특보 · 레이더 비구름 · 산불위험 · 자외선 · 가까운 응급실을 이 칸에서 봅니다.</span></li></ul>")
                 .append("<h3>🏥 가까운 응급실</h3><ul class=\"wl\" id=\"sfEr\"></ul><p class=\"dim\">기상특보 · 레이더 비구름(15km 안 관측 지점, 10분마다) · 자외선은 기상청, 산불위험은 산림청, 응급실은 국립중앙의료원 자료(지역은 가장 가까운 응급실 주소로). 위급하면 <b>119</b>.</p></section>");
+        b.append(Shelters.block(Shelters.current(), Shelters.ofPark(Shelters.current(), name), REL, false));   // 🏠 국립공원 대피소 · 예약(2026-11-19 홍TV님) - 대피소가 있는 산만
         if (overnight(peak)) b.append(staysBlock(peak, false));   // 1박이 많은 산은 숙소 줄을 위로(2026-10-29 홍TV님 "작업해")
         b.append(fishLine(peak, false));   // 바다 가까운 산 → tidefly(점검 10차 E5)
         b.append("<section id=\"trails\"><h2>코스 ").append(courses.size()).append("개</h2>");

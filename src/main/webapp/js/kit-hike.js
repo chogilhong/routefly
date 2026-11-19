@@ -924,6 +924,17 @@
     }
 
     /**
+     * 순수 함수 - 검색어가 국립공원 대피소 이름(data/knps-shelters.json, 띄어쓰기 무시)이면 그 대피소 {name, park, reserve ...}, 아니면 null.
+     * 따라가기 검색 맨 위 "🏠 예약" 카드(2026-11-19 홍TV님 "2번으로 해줘") - 서버 산 · 코스 페이지의 Shelters 와 같은 자료.
+     */
+    function shelterOf(d, q) {
+        var k = String(q || "").replace(/\s+/g, "");
+        if (!k || !d || !d.shelters) return null;
+        for (var i = 0; i < d.shelters.length; i++) if (d.shelters[i].name.replace(/\s+/g, "") === k) return d.shelters[i];
+        return null;
+    }
+
+    /**
      * 순수 함수 - 코스 목록에 든 공원 · 산의 탐방 안내도(코스 목록 맨 위 카드). [{name, label, from(그 산 첫 코스 ID), n(코스 수)}].
      * 같은 이름 다른 산(광양 · 정선 · 포천 백운산)은 출발점 거리(20km)로 갈라 따로, 이름은 코스 무리 글("광양 백운산")이 있으면 그것.
      * q(검색어)가 이름에 든 산이 있으면 그 산들만. 코스가 많은 산 먼저, 같으면 목록에 먼저 나온 산.
@@ -3940,6 +3951,7 @@
         mountainOf: mountainOf,
         regionNames: regionNames,
         stampKey: stampKey,
+        shelterOf: shelterOf,
         guideMaps: guideMaps,
         routeGuides: routeGuides,
         safeDecode: safeDecode,
