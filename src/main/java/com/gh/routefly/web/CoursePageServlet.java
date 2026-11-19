@@ -93,7 +93,8 @@ public class CoursePageServlet extends HttpServlet {
                     dist[i] = p.get("dist_m").getAsDouble();
                     ele[i] = p.get("ele_m").isJsonNull() ? null : p.get("ele_m").getAsDouble();
                 }
-                pois = Json.rows(c, "SELECT name, ele_m, dist_m, off_route_m, lat, lon FROM route_course_poi WHERE course_id = ? ORDER BY seq", id);   // lat · lon - 주차장 🚗 티맵(2026-11-09)
+                pois = Shelters.fixPois(Shelters.load(getServletContext()),   // 잘못 놓인 대피소 이름은 공단 좌표로(api/course 와 같게, 2026-11-19)
+                        Json.rows(c, "SELECT name, ele_m, dist_m, off_route_m, lat, lon FROM route_course_poi WHERE course_id = ? ORDER BY seq", id));   // lat · lon - 주차장 🚗 티맵(2026-11-09)
                 if (id.startsWith(CourseQueries.INFO_PREFIX)) {
                     try {
                         JsonArray r = Json.rows(c, "SELECT up_min, down_min, level, notice FROM route_course_info WHERE course_id = ?", id);
@@ -135,7 +136,7 @@ public class CoursePageServlet extends HttpServlet {
         JsonObject peak = peakOf(peaks(), course);
         boolean index = indexable(id, rawName, str(course, "kind"), peak, pk);
         resp.setHeader("Cache-Control", "public, max-age=600");
-        Shelters.load(getServletContext());   // 🏠 대피소 칸(page 가 Shelters.current 로)
+        Shelters.load(getServletContext());   // 🏠 대피소 칸(page 가 Shelters.current 로) - 코스가 없을 때도
         resp.getWriter().print(page(course, peak, info, dist, ele, pois, index, base, stampsOn(npStamps(), plat, plon, dist)));
     }
 

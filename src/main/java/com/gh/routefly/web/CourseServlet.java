@@ -52,6 +52,7 @@ public class CourseServlet extends HttpServlet {
             if (tag != null && Json.notModified(req, resp, tag)) return;
             ResultCache.Entry built = tag == null ? null : DETAILS.get(tag, "-");
             if (built != null) { Json.send(resp, built.body()); return; }   // 같은 ETag 로 만든 답 - 점 수천 개를 다시 읽지 않음
+            Shelters.load(getServletContext());   // detail 이 Shelters.current 로 대피소 이름을 바로잡음
             JsonObject detail = CourseQueries.detail(c, id);
             if (detail == null) {
                 // 배치를 다시 돌려 번호가 바뀐 예전 링크 · 기록일 수 있어 같은 산 코스를 함께 줍니다(화면이 골라 보여 줌)
@@ -206,7 +207,7 @@ public class CourseServlet extends HttpServlet {
     static final ResultCache DETAILS = new ResultCache(300, 8L * 1024 * 1024, ResultCache.TTL_MS, () -> "-", System::currentTimeMillis);
 
     /** 응답 모양 판 - ETag 에 넣음. */
-    static final String SHAPE = "ends1-elev1-miss2-src1";   // elev1 - 정상 높이 공식 값(2026-10-16), miss1 - summit_miss(2026-10-30), src1 - course.source(2026-11-01)
+    static final String SHAPE = "ends1-elev1-miss2-src1-shel1";   // shel1 - 잘못 놓인 대피소 이름 바로잡음(Shelters.fixPois, 2026-11-19)   // elev1 - 정상 높이 공식 값(2026-10-16), miss1 - summit_miss(2026-10-30), src1 - course.source(2026-11-01)
 
     /** 2026-10-11 오픈 전 점검: 코스를 열 때마다(304 포함) 두 표를 훑었음 - 1분 동안은 받아 둔 값(배치는 몇 시간 · 며칠마다). */
     static final long SIDE_TTL_MS = 60_000;

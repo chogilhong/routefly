@@ -1,0 +1,96 @@
+{
+ "_note": "운영 /api/course?id=kmp-2322010401-1 응답의 course · pois (2026-11-19)",
+ "course": {
+  "course_id": "kmp-2322010401-1",
+  "name": "설악산(대청봉) 1코스 · 남설악탐방지원센터 → 소청대피소",
+  "kind": "hike",
+  "distance_m": 7095,
+  "ascent_m": 1330,
+  "descent_m": 693,
+  "ele_min_m": 435.3,
+  "ele_max_m": 1708,
+  "ele_source": "dem",
+  "point_cnt": 540,
+  "start_lat": 38.084742,
+  "start_lon": 128.448977,
+  "end_lat": 38.132552,
+  "end_lon": 128.4648,
+  "min_lat": 38.084742,
+  "min_lon": 128.448543,
+  "max_lat": 38.13265,
+  "max_lon": 128.465799,
+  "imported_at": "2026-11-03 15:04:06",
+  "source": {
+   "kind": "source",
+   "text": "한국등산·트레킹지원센터",
+   "en": "Korea Hiking & Trekking Support Center",
+   "checked": false
+  }
+ },
+ "pois": [
+  {
+   "seq": 0,
+   "name": "남설악탐방지원센터",
+   "lat": 38.084742,
+   "lon": 128.448977,
+   "ele_m": 435.6,
+   "dist_m": 0,
+   "off_route_m": 0
+  },
+  {
+   "seq": 1,
+   "name": "대청봉",
+   "lat": 38.119173,
+   "lon": 128.465308,
+   "ele_m": 1708,
+   "dist_m": 4760,
+   "off_route_m": 8,
+   "ele_official": true
+  },
+  {
+   "seq": 2,
+   "name": "중청대피소",
+   "lat": 38.121094,
+   "lon": 128.460392,
+   "ele_m": 1605.0,
+   "dist_m": 5284,
+   "off_route_m": 24
+  },
+  {
+   "seq": 3,
+   "name": "중청봉",
+   "lat": 38.121394,
+   "lon": 128.457653,
+   "ele_m": 1664.0,
+   "dist_m": 5497,
+   "off_route_m": 101
+  },
+  {
+   "seq": 4,
+   "name": "소청봉",
+   "lat": 38.124904,
+   "lon": 128.45667,
+   "ele_m": 1550.0,
+   "dist_m": 5870,
+   "off_route_m": 7
+  },
+  {
+   "seq": 5,
+   "name": "소청대피소",
+   "lat": 38.132552,
+   "lon": 128.4648,
+   "ele_m": 1073.3,
+   "dist_m": 7095,
+   "off_route_m": 0
+  },
+  {
+   "seq": 6,
+   "name": "희운각대피소",
+   "lat": 38.132814,
+   "lon": 128.465065,
+   "ele_m": 1082.0,
+   "dist_m": 7095,
+   "off_route_m": 37
+  }
+ ]
+}

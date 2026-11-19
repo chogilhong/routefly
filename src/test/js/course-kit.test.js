@@ -1027,6 +1027,9 @@ tick().then(function () {
         ["Bukhansan", "Deogyusan", "Dobongsan", "Jirisan", "Odaesan", "Seoraksan", "Sobaeksan"]);
     // 도착 문자 - 높은 곳에서 끝나는 코스는 "도착했어요"(2026-11-19 홍TV님). 높이는 운영 /api/course?id=knps-4016-55eabbcc 의 백담사 480 · 소청봉 1550(지점 ele_m)
     eq("오르기만 하는 코스 · 내려온 코스 · 높이 모름", [RF.endsHigh([480, null, 1200, 1550]), RF.endsHigh([480, 1550, 520]), RF.endsHigh([null, null]), RF.endsHigh(null), RF.endsHigh([480, 579])], [true, false, false, false, false]);
+    // 끝 이름이 틀린 산림청 코스(2026-11-19 홍TV님 "소청대피소와 희운각대피소는 다른데") - 화면도 서버 ShareServlet.noteName 과 같은 이름
+    var PN = JSON.parse(fs.readFileSync(path.join(__dirname, "../../main/webapp/data/park-notes.json"), "utf8")).parks;
+    eq("남설악 → 희운각대피소", RF.noteTrailName(PN, "kmp-2322010401-1", "설악산(대청봉) 1코스 · 남설악탐방지원센터 → 소청대피소"), "설악산(대청봉) 1코스 · 남설악탐방지원센터 → 희운각대피소");
     console.log((fails ? "FAILED " : "OK ") + (runs - fails) + "/" + runs);
     process.exit(fails ? 1 : 0);
 });

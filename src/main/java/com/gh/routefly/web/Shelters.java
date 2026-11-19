@@ -67,6 +67,53 @@ final class Shelters {
         return out;
     }
 
+    /** 공단 좌표에서 이만큼(m) 넘게 떨어진 "○○대피소" 지점은 잘못 놓인 이름 - 운영 점검(2026-11-19): 잘못된 것은 1.1 ~ 3.4km, 맞는 것도 공단 좌표와 300 ~ 600m 차이(노고단 · 양폭). */
+    static final int WRONG_M = 1000;
+    /** 잘못 놓인 이름 자리에서 이 거리(m) 안에 다른 공단 대피소가 있으면 그 이름으로(소청대피소 → 희운각대피소 26m). */
+    static final int SAME_M = 100;
+
+    /**
+     * 순수 함수 - 코스 지점(pois: name · lat · lon)의 대피소 이름을 공단 좌표로 바로잡음(2026-11-19 홍TV님 "소청대피소와 희운각대피소는 다른데").
+     * 배치가 끝점에 붙인 지명(V-World · 산림청)이 틀린 곳이 있음 - 남설악 → "소청대피소" 코스 끝은 희운각대피소 26m 옆(소청대피소는 1,137m),
+     * 설악동 쪽 산림청 코스 17개의 "양폭대피소" 는 실제 양폭대피소에서 3.2km. 공단 대피소 이름인데 WRONG_M 넘게 떨어졌으면 SAME_M 안의
+     * 공단 대피소 이름으로, 없으면 뺌. 같은 이름이 둘이 되면 앞 것만. 좌표가 없는 지점 · 대피소가 아닌 이름은 그대로.
+     */
+    static JsonArray fixPois(JsonObject d, JsonArray pois) {
+        if (d == null || !d.has("shelters") || pois == null) return pois;
+        JsonArray out = new JsonArray();
+        List<String> names = new ArrayList<>();
+        for (JsonElement e : pois) {
+            JsonObject p = e.getAsJsonObject();
+            String nm = p.has("name") && !p.get("name").isJsonNull() ? p.get("name").getAsString() : null;
+            JsonObject own = nm == null ? null : byName(d, nm);
+            if (own != null && p.has("lat") && !p.get("lat").isJsonNull() && p.has("lon") && !p.get("lon").isJsonNull()) {
+                double lat = p.get("lat").getAsDouble(), lon = p.get("lon").getAsDouble();
+                if (far(own, lat, lon) > WRONG_M) {
+                    JsonObject near = null;
+                    for (JsonElement s : d.getAsJsonArray("shelters"))
+                        if (far(s.getAsJsonObject(), lat, lon) <= SAME_M) near = s.getAsJsonObject();
+                    if (near == null) continue;
+                    p = p.deepCopy();
+                    p.addProperty("name", near.get("name").getAsString());
+                }
+            }
+            String fixed = p.has("name") && !p.get("name").isJsonNull() ? p.get("name").getAsString() : null;
+            if (fixed != null && byName(d, fixed) != null && names.contains(fixed)) continue;
+            if (fixed != null) names.add(fixed);
+            out.add(p);
+        }
+        return out;
+    }
+
+    private static JsonObject byName(JsonObject d, String name) {
+        for (JsonElement s : d.getAsJsonArray("shelters")) if (s.getAsJsonObject().get("name").getAsString().equals(name)) return s.getAsJsonObject();
+        return null;
+    }
+
+    private static double far(JsonObject s, double lat, double lon) {
+        return MountainServlet.distM(s.get("lat").getAsDouble(), s.get("lon").getAsDouble(), lat, lon);
+    }
+
     /**
      * 순수 함수 - "🏠 대피소" 칸. 이름은 따라가기 검색(그 대피소를 지나는 코스)으로, 예약 받는 곳은 "예약 ›"(새 창).
      * rel - 앱 안 상대 주소 앞부분(".." 등). 없으면 빈 글.

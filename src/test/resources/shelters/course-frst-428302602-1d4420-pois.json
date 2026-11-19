@@ -1,0 +1,213 @@
+{
+ "_note": "운영 /api/course?id=frst-428302602-1d4420 응답의 course · pois (2026-11-19)",
+ "course": {
+  "course_id": "frst-428302602-1d4420",
+  "name": "설악산 대청봉 · 권금성 → 대청봉",
+  "kind": "hike",
+  "distance_m": 9763,
+  "ascent_m": 1691,
+  "descent_m": 205,
+  "ele_min_m": 212.7,
+  "ele_max_m": 1708,
+  "ele_source": "dem",
+  "point_cnt": 456,
+  "start_lat": 38.174047,
+  "start_lon": 128.486626,
+  "end_lat": 38.11927,
+  "end_lon": 128.465147,
+  "min_lat": 38.11927,
+  "min_lon": 128.456515,
+  "max_lat": 38.174325,
+  "max_lon": 128.486626,
+  "imported_at": "2026-11-04 18:35:48",
+  "source": {
+   "kind": "source",
+   "text": "산림청",
+   "en": "Korea Forest Service",
+   "checked": false
+  }
+ },
+ "pois": [
+  {
+   "seq": 0,
+   "name": "권금성",
+   "lat": 38.174047,
+   "lon": 128.486626,
+   "ele_m": 213.5,
+   "dist_m": 0,
+   "off_route_m": 0
+  },
+  {
+   "seq": 1,
+   "name": "소공원주차장화장실",
+   "lat": 38.17249,
+   "lon": 128.4944,
+   "ele_m": 213.5,
+   "dist_m": 0,
+   "off_route_m": 701
+  },
+  {
+   "seq": 2,
+   "name": "설악산소공원 정류장",
+   "lat": 38.172811,
+   "lon": 128.495927,
+   "ele_m": 213.5,
+   "dist_m": 0,
+   "off_route_m": 825
+  },
+  {
+   "seq": 3,
+   "name": "갈림길",
+   "lat": 38.170888,
+   "lon": 128.473459,
+   "ele_m": 248.0,
+   "dist_m": 1369,
+   "off_route_m": 0
+  },
+  {
+   "seq": 4,
+   "name": "양폭대피소",
+   "lat": 38.167362,
+   "lon": 128.471638,
+   "ele_m": 284.1,
+   "dist_m": 1814,
+   "off_route_m": 19
+  },
+  {
+   "seq": 5,
+   "name": "비선대",
+   "lat": 38.163629,
+   "lon": 128.466914,
+   "ele_m": 320.9,
+   "dist_m": 2438,
+   "off_route_m": 35
+  },
+  {
+   "seq": 6,
+   "name": "갈림길",
+   "lat": 38.162697,
+   "lon": 128.466523,
+   "ele_m": 341.8,
+   "dist_m": 2547,
+   "off_route_m": 0
+  },
+  {
+   "seq": 7,
+   "name": "귀면암",
+   "lat": 38.15215,
+   "lon": 128.46964,
+   "ele_m": 487.2,
+   "dist_m": 3960,
+   "off_route_m": 32
+  },
+  {
+   "seq": 8,
+   "name": "오련폭포",
+   "lat": 38.143573,
+   "lon": 128.473728,
+   "ele_m": 655.8,
+   "dist_m": 5236,
+   "off_route_m": 15
+  },
+  {
+   "seq": 9,
+   "name": "양폭포",
+   "lat": 38.139573,
+   "lon": 128.475005,
+   "ele_m": 718.8,
+   "dist_m": 5719,
+   "off_route_m": 12
+  },
+  {
+   "seq": 10,
+   "name": "천당폭포",
+   "lat": 38.13851,
+   "lon": 128.474839,
+   "ele_m": 760.1,
+   "dist_m": 5859,
+   "off_route_m": 15
+  },
+  {
+   "seq": 11,
+   "name": "무너미고개",
+   "lat": 38.134521,
+   "lon": 128.464407,
+   "ele_m": 1061.2,
+   "dist_m": 7200,
+   "off_route_m": 9
+  },
+  {
+   "seq": 12,
+   "name": "갈림길",
+   "lat": 38.134448,
+   "lon": 128.464456,
+   "ele_m": 1061.2,
+   "dist_m": 7200,
+   "off_route_m": 0
+  },
+  {
+   "seq": 13,
+   "name": "희운각대피소",
+   "lat": 38.132805,
+   "lon": 128.465031,
+   "ele_m": 1071.9,
+   "dist_m": 7391,
+   "off_route_m": 12
+  },
+  {
+   "seq": 14,
+   "name": "갈림길",
+   "lat": 38.132686,
+   "lon": 128.464736,
+   "ele_m": 1072.1,
+   "dist_m": 7421,
+   "off_route_m": 0
+  },
+  {
+   "seq": 15,
+   "name": "갈림길",
+   "lat": 38.125643,
+   "lon": 128.456711,
+   "ele_m": 1559.0,
+   "dist_m": 8596,
+   "off_route_m": 0
+  },
+  {
+   "seq": 16,
+   "name": "소청봉",
+   "lat": 38.124904,
+   "lon": 128.45667,
+   "ele_m": 1566.7,
+   "dist_m": 8686,
+   "off_route_m": 9
+  },
+  {
+   "seq": 17,
+   "name": "갈림길",
+   "lat": 38.121559,
+   "lon": 128.459358,
+   "ele_m": 1610.0,
+   "dist_m": 9158,
+   "off_route_m": 0
+  },
+  {
+   "seq": 18,
+   "name": "중청대피소",
+   "lat": 38.121094,
+   "lon": 128.460392,
+   "ele_m": 1591.5,
+   "dist_m": 9273,
+   "off_route_m": 31
+  },
+  {
+   "seq": 19,
+   "name": "대청봉",
+   "lat": 38.11927,
+   "lon": 128.465147,
+   "ele_m": 1708,
+   "dist_m": 9763,
+   "off_route_m": 0,
+   "ele_official": true
+  }
+ ]
+}

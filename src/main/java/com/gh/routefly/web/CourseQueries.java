@@ -349,9 +349,9 @@ final class CourseQueries {
         JsonObject out = new JsonObject();
         out.add("course", course.get(0));
         out.add("points", points);
-        out.add("pois", Json.rows(c,
+        out.add("pois", Shelters.fixPois(Shelters.current(), Json.rows(c,   // 잘못 놓인 대피소 이름은 공단 좌표로(2026-11-19 - 코스 페이지와 같게)
                 "SELECT seq, name, lat, lon, ele_m, dist_m, off_route_m FROM route_course_poi WHERE course_id = ? ORDER BY seq",
-                id));
+                id)));
         // 2026-10-13 홍TV님: "출발" · "도착" 보다 들머리 · 날머리 이름 - 이름에 출발 · 도착이 없는 코스("대청봉코스")는 둘레 다른 코스 끝 이름(화면이 고름)
         try {
             JsonObject ends = endNames(c, id, course.get(0).getAsJsonObject());
