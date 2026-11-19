@@ -323,6 +323,11 @@ assert.strictEqual(DF.quizLabel('1-관련'), '1번 관련 문제)');
   const cs = [{ course_id: 'a', kind: 'hike', ele_max_m: 700, distance_m: 5000 }, { course_id: 'b', kind: 'hike', ele_max_m: 840, distance_m: 1500 }, { course_id: 'c', kind: 'hike', ele_max_m: 830, distance_m: 6000 }, { course_id: 'd', kind: 'bike', ele_max_m: 846, distance_m: 6000 }];
   assert.strictEqual(E.pickCourse(cs, 846.5).course_id, 'c');   // 정상 높이에 가깝고 너무 짧지 않은 등산 코스
   assert.strictEqual(E.pickCourse([], 800), null);
+  // 정상에서 시작하는 내리막은 뒤로 - 운영 /api/courses?q=강천산 (2026-11-19) 의 두 코스(최고 587.6m · 6.6km 로 같음)
+  const kc = [{ course_id: 'frst-457700101-cf47b0', name: '강천산 왕자봉 · 강천산왕자봉 → 연대봉 → 관광안내소', kind: 'hike', ele_max_m: 587.6, distance_m: 6616 },
+    { course_id: 'frst-457700101-f4e0ca', name: '강천산 왕자봉 · 관광안내소 → 연대봉 → 강천산왕자봉', kind: 'hike', ele_max_m: 587.6, distance_m: 6604 }];
+  assert.strictEqual(E.pickCourse(kc, 585.8, '강천산').course_id, 'frst-457700101-f4e0ca');
+  assert.strictEqual(E.pickCourse(kc, 585.8).course_id, 'frst-457700101-cf47b0');   // 산 이름을 안 주면 예전처럼
   assert.deepStrictEqual([E.srcOf('knps-1'), E.srcOf('frst-1'), E.srcOf('kmp-1')], ['국립공원공단 탐방로(공공데이터)', '산림청 등산로(공공데이터)', '산림청 등산로(공공데이터)']);
   const pts = [[127, 36, 100, 0], [127.01, 36.01, 300, 1000], [127.02, 36, 200, 2000]];
   const r = E.routePath(pts, { x: 0, y: 0, w: 100, h: 100 });

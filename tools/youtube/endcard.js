@@ -14,10 +14,14 @@ const FPS = 20, DRAW = 3, HOLD = 2;              // 3초 동안 그리고 2초 �
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
-/** 순수 함수 - 코스 고르기: 정상 높이(official)에 가장 가까운 최고 높이, 같으면 2 ~ 10km 에 가까운 것. 등산 코스만. */
-function pickCourse(courses, official) {
+/**
+ * 순수 함수 - 코스 고르기: 정상 높이(official)에 가장 가까운 최고 높이, 같으면 2 ~ 10km 에 가까운 것. 등산 코스만.
+ * 출발 이름에 산 이름이 든 코스(정상에서 시작해 내려가는 코스 - "강천산왕자봉 → 연대봉 → 관광안내소")는 뒤로(2026-11-19 PC 끝 장면).
+ */
+function pickCourse(courses, official, mountain) {
   const ok = (courses || []).filter(c => c.kind === 'hike' && c.ele_max_m != null);
-  const off = c => Math.abs(c.ele_max_m - official) + (c.distance_m < 2000 ? 50 : c.distance_m > 10000 ? 30 : 0);
+  const startsTop = c => !!mountain && String(c.name || '').replace(/^.*? · /, '').split(' → ')[0].indexOf(mountain) >= 0 && / → /.test(c.name || '');
+  const off = c => Math.abs(c.ele_max_m - official) + (c.distance_m < 2000 ? 50 : c.distance_m > 10000 ? 30 : 0) + (startsTop(c) ? 100 : 0);
   return ok.sort((a, b) => off(a) - off(b))[0] || null;
 }
 
@@ -83,7 +87,7 @@ async function main() {
   let id = cid;
   if (!id) {
     const list = await getJson(API + 'courses?q=' + encodeURIComponent(name));
-    const c = pickCourse(list.courses, height);
+    const c = pickCourse(list.courses, height, name);
     if (!c) { console.error('코스를 찾지 못함'); process.exit(1); }
     id = c.course_id;
   }
