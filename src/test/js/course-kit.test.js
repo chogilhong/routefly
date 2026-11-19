@@ -1023,6 +1023,8 @@ tick().then(function () {
     eq("대피소 이름 검색(띄어쓰기 무시) · 아니면 null", [RF.shelterOf(SH, "소청 대피소").park, RF.shelterOf(SH, "소청대피소").reserve, RF.shelterOf(SH, "중청대피소").reserve,
         RF.shelterOf(SH, "설악산"), RF.shelterOf(SH, ""), RF.shelterOf(null, "소청대피소")], ["설악산", true, false, null, null, null]);
     eq("대피소 영어 이름 - 서버 Shelters(MountainEn.courseName)와 같게", ["소청대피소", "치밭목대피소", "제2연화봉대피소"].map(RF.enName), ["Socheong shelter", "Chibanmok shelter", "Je 2yeonhwabong shelter"]);
+    eq("대피소 공원 이름 영어 - 영어 산 페이지 주소와 같은 로마자", SH.shelters.map(function (s) { return s.park; }).filter(function (p, i, a) { return a.indexOf(p) === i; }).map(RF.enName).sort(),
+        ["Bukhansan", "Deogyusan", "Dobongsan", "Jirisan", "Odaesan", "Seoraksan", "Sobaeksan"]);
     // 도착 문자 - 높은 곳에서 끝나는 코스는 "도착했어요"(2026-11-19 홍TV님). 높이는 운영 /api/course?id=knps-4016-55eabbcc 의 백담사 480 · 소청봉 1550(지점 ele_m)
     eq("오르기만 하는 코스 · 내려온 코스 · 높이 모름", [RF.endsHigh([480, null, 1200, 1550]), RF.endsHigh([480, 1550, 520]), RF.endsHigh([null, null]), RF.endsHigh(null), RF.endsHigh([480, 579])], [true, false, false, false, false]);
     console.log((fails ? "FAILED " : "OK ") + (runs - fails) + "/" + runs);

@@ -89,6 +89,7 @@ public class ShelterLinkTest {
         String hike = new String(Files.readAllBytes(Paths.get("src/main/webapp/js/hike.js")), StandardCharsets.UTF_8);
         assertTrue(hike.contains("var sh = from ? null : RF.shelterOf(shelterData, lastQ);"));
         assertTrue(hike.contains("if (sh && sh.reserve && shelterData.reserveUrl) {"));
+        assertTrue("영어 카드 공원 이름도 영어", hike.contains("RF.enName(sh.park) + \" · fees and open dates"));
         assertTrue("영어 카드도 같은 이름 규칙", hike.contains("EN ? RF.enName(sh.name) + \" (\" + sh.name + \")\" : sh.name"));
     }
 }
