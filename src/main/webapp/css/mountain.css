@@ -193,7 +193,7 @@ ul { margin:0; padding:0; list-style:none; }
 .stMore[open] > summary::after { content:" ▴"; }
 /* ⛔ 정상 통제(대암산 - mountains100.json closed, 2026-10-18) */
 .jump { margin:-4px 0 14px; }   /* 🥾 코스 N개 바로 보기(2026-11-02) */
-.jump a { display:inline-flex; align-items:center; min-height:44px; padding:0 14px; border-radius:22px; border:1px solid var(--ln); background:var(--panel); color:var(--sky); text-decoration:none; font-weight:bold; font-size:14.5px; }
+.jump a { display:inline-flex; align-items:center; min-height:44px; padding:0 14px; border-radius:22px; border:1px solid rgba(101,201,38,0.45); background:rgba(101,201,38,0.10); color:#65c926; text-decoration:none; font-weight:bold; font-size:14.5px; }   /* 로고 fly 초록(2026-11-20 홍TV님 "파란색이 많이 보이는 것 같아" - 전에는 하늘색 --sky) */
 #trails { scroll-margin-top:8px; }
 .closedNote { margin:8px 0 12px; padding:10px 12px; border-radius:10px; background:rgba(255,135,135,0.10); border:1px solid rgba(255,135,135,0.45); font-size:14.5px; }
 #gearIdx .fb { padding:4px 0 10px; }   /* 🎒 추천 상품(/m/ - 2026-10-18, 2026-11-03 상품 하나만) */
