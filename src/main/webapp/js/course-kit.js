@@ -4108,7 +4108,7 @@
 
     /**
      * 순수 함수 - 3D 화면 영상 모드(?video=1, 2026-11-20 홍TV님 "마무리에 3D 비행") 설정. 아니면 null.
-     * sat=1 일 때만 위성사진(V-World 약관에 방송 · 복제는 사전 승낙 문구가 있어 기본은 지형만 - docs/youtube/name-stories-v2.md),
+     * sat=1 일 때만 위성사진(V-World 약관에 방송 · 복제는 사전 승낙 문구가 있어 기본은 지형만 - docs/youtube/v2/README.md),
      * secs - from ~ to 구간을 날아갈 초(3 ~ 120), from · to - 코스의 몇 분의 몇(0 ~ 1)부터 어디까지(잘못되면 처음부터 끝까지).
      */
     function videoOpts(search) {
