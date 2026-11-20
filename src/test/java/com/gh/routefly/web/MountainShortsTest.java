@@ -31,8 +31,9 @@ public class MountainShortsTest {
             for (JsonElement e : peaks) found |= id.equals(e.getAsJsonObject().get("id").getAsString());
             assertTrue(id, found);
         }
-        // 2판으로 다시 올린 영상(2026-11-20 - docs/youtube/v2/): 계룡산 oftiEyZDf34(아래) · 공작산 GrhlAiWi5SA
-        assertEquals("GrhlAiWi5SA", videos.getAsJsonArray("공작산").get(0).getAsJsonObject().get("id").getAsString());
+        // 2판(Vrew · 밝은 판)으로 다시 올린 영상(2026-11-20 - docs/youtube/v2/): 계룡산 Elzwl8pQ8vQ(아래) · 공작산 dHGzzqRUsCE · 금산 eWfqp97Uwco
+        assertEquals("dHGzzqRUsCE", videos.getAsJsonArray("공작산").get(0).getAsJsonObject().get("id").getAsString());
+        assertEquals("eWfqp97Uwco", videos.getAsJsonArray("금산").get(0).getAsJsonObject().get("id").getAsString());
         MountainServlet.withShorts(peaks, videos);
         JsonObject gyeryong = null, gaya = null;
         for (JsonElement e : peaks) {
@@ -41,13 +42,13 @@ public class MountainShortsTest {
             if (id.equals("가야산")) gaya = e.getAsJsonObject();
         }
         String ko = MountainServlet.shortsBlock(gyeryong, false);
-        assertEquals("<section class=\"shorts\"><h2>▶ 이 산 이야기</h2><ul class=\"tips\"><li><a href=\"https://www.youtube.com/shorts/oftiEyZDf34\" target=\"_blank\" rel=\"noopener\">"
-                + "계룡산 이야기 - 닭과 용의 산, 무학대사의 금계포란형 ›</a></li></ul></section>", ko);
+        assertEquals("<section class=\"shorts\"><h2>▶ 이 산 이야기</h2><ul class=\"tips\"><li><a href=\"https://www.youtube.com/shorts/Elzwl8pQ8vQ\" target=\"_blank\" rel=\"noopener\">"
+                + "닭볏 쓴 용이 사는 산? 계룡산 이야기 ›</a></li></ul></section>", ko);
         assertTrue(MountainServlet.shortsBlock(gyeryong, true).contains("▶ Story of this mountain (in Korean)"));
         assertEquals("영상이 없는 산은 칸 없음", "", MountainServlet.shortsBlock(gaya, false));
         // 페이지에 실제로 붙음(한국어 · 영어)
-        assertTrue(MountainServlet.page(gyeryong, new ArrayList<>(), new ArrayList<>(), null, "", 11).contains("youtube.com/shorts/oftiEyZDf34"));
-        assertTrue(MountainEn.page(gyeryong, new ArrayList<>(), new ArrayList<>(), null, "https://r.kr").contains("youtube.com/shorts/oftiEyZDf34"));
+        assertTrue(MountainServlet.page(gyeryong, new ArrayList<>(), new ArrayList<>(), null, "", 11).contains("youtube.com/shorts/Elzwl8pQ8vQ"));
+        assertTrue(MountainEn.page(gyeryong, new ArrayList<>(), new ArrayList<>(), null, "https://r.kr").contains("youtube.com/shorts/Elzwl8pQ8vQ"));
         assertFalse(MountainServlet.page(gaya, new ArrayList<>(), new ArrayList<>(), null, "", 11).contains("class=\"shorts\""));
         // 자리: "코스 n개 바로 보기" 바로 위(2026-11-20 홍TV님) - 코스가 있을 때 쇼츠 칸 끝 바로 뒤가 바로 보기 줄
         JsonObject c = new JsonObject();

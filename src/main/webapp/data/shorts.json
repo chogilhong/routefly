@@ -1,22 +1,22 @@
 {
- "_note": "산 페이지 ▶ 이 산 이야기(유튜브 쇼츠) - 홍TV님이 올린 영상(2026-11-19 1차 docs/youtube/v1/name-stories-1.md, 2026-11-20 2차 name-stories-2.md · 3차 name-stories-3.md · 4차 name-stories-4.md, 2판 다시 만든 영상은 docs/youtube/v2/ - 계룡산 · 공작산 2026-11-20). 산 id(mountains100.json) → [{id: 유튜브 영상 ID, title}]. 새 영상을 올리면 여기에 더합니다.",
+ "_note": "산 페이지 ▶ 이 산 이야기(유튜브 쇼츠) - 홍TV님이 올린 영상(2026-11-19 1차 docs/youtube/v1/name-stories-1.md, 2026-11-20 2차 name-stories-2.md · 3차 name-stories-3.md · 4차 name-stories-4.md, 2판 다시 만든 영상은 docs/youtube/v2/ - 계룡산 · 공작산 · 금산 2026-11-20, Vrew · 밝은 판). 산 id(mountains100.json) → [{id: 유튜브 영상 ID, title}]. 새 영상을 올리면 여기에 더합니다.",
  "videos": {
   "계룡산": [
    {
-    "id": "oftiEyZDf34",
-    "title": "계룡산 이야기 - 닭과 용의 산, 무학대사의 금계포란형"
+    "id": "Elzwl8pQ8vQ",
+    "title": "닭볏 쓴 용이 사는 산? 계룡산 이야기"
    }
   ],
   "공작산": [
    {
-    "id": "GrhlAiWi5SA",
-    "title": "공작산 이야기 - 날개를 편 공작, 호랑이를 피해 옮긴 절 수타사"
+    "id": "dHGzzqRUsCE",
+    "title": "호랑이 때문에 이사 온 절? 공작산 이야기"
    }
   ],
   "금산": [
    {
-    "id": "Kg3r2ZWm9pA",
-    "title": "이성계가 비단으로 덮겠다던 산? 남해 금산 이름 이야기"
+    "id": "eWfqp97Uwco",
+    "title": "이성계가 비단으로 덮겠다던 산? 남해 금산 이야기"
    }
   ],
   "가리왕산": [
