@@ -1,5 +1,5 @@
 {
- "_note": "산 페이지 ▶ 이 산 이야기(유튜브 쇼츠) - 홍TV님이 올린 영상(2026-11-19 1차 docs/youtube/v1/name-stories-1.md, 2026-11-20 2차 name-stories-2.md · 3차 name-stories-3.md · 4차 name-stories-4.md, 2판 다시 만든 영상은 docs/youtube/v2/ - 계룡산 · 공작산 · 금산 · 가리왕산 · 명성산 · 용문산 · 강천산 · 오봉산 · 칠갑산 · 오대산 · 적상산 2026-11-20, Vrew · 밝은 판). 산 id(mountains100.json) → [{id: 유튜브 영상 ID, title}]. 새 영상을 올리면 여기에 더합니다.",
+ "_note": "산 페이지 ▶ 이 산 이야기(유튜브 쇼츠) - 홍TV님이 올린 영상(2026-11-19 1차 docs/youtube/v1/name-stories-1.md, 2026-11-20 2차 name-stories-2.md · 3차 name-stories-3.md · 4차 name-stories-4.md, 2판 다시 만든 영상은 docs/youtube/v2/ - 계룡산 · 공작산 · 금산 · 가리왕산 · 명성산 · 용문산 · 강천산 · 오봉산 · 칠갑산 · 오대산 · 적상산 · 지리산 2026-11-20, Vrew · 밝은 판 - 12곳 모두). 산 id(mountains100.json) → [{id: 유튜브 영상 ID, title}]. 새 영상을 올리면 여기에 더합니다.",
  "videos": {
   "계룡산": [
    {
@@ -57,8 +57,8 @@
   ],
   "지리산": [
    {
-    "id": "_MSO7LUwR9A",
-    "title": "머물면 지혜로워지는 산? 지리산 이름 이야기"
+    "id": "s9D8pcz0RvY",
+    "title": "머물면 지혜로워지는 산? 지리산 이야기"
    }
   ],
   "적상산": [
