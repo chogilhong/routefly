@@ -5637,11 +5637,17 @@
         doc.addEventListener("toggle", function (e) {
             var d = e.target;
             if (!d || d.tagName !== "DETAILS" || !d.open) return;
-            var cls = d.classList.contains("kind") ? "kind" : d.classList.contains("group") ? "group" : null;
+            var cls = d.classList.contains("kind") ? "kind" : d.classList.contains("group") ? "group" : d.classList.contains("sec") ? "sec" : null;   // sec - 산 페이지 칸(코스 · 문답 · 안전 팁 …, 2026-11-20 - name="msec" 를 모르는 옛 브라우저도)
             if (!cls) return;
             // 처음부터 펴 둔 /m/ 근처 숙소 찾기(data-keep)만 같이 접지 않음 - 나중에 붙인 주말 칸(name 없음)은 그대로 접음(2026-10-30 점검)
             Array.prototype.forEach.call(doc.querySelectorAll("details." + cls + "[open]:not([data-keep])"), function (o) { if (o !== d) o.open = false; });
         }, true);
+        // "코스 n개 바로 보기 ↓"(#trails) 처럼 접는 칸으로 가는 링크 - 접혀 있으면 펴고 감(2026-11-20)
+        doc.addEventListener("click", function (e) {
+            var a = e.target && e.target.closest ? e.target.closest("a[href^='#']") : null, t = a && doc.getElementById(a.getAttribute("href").slice(1));
+            var d = t && t.querySelector("details.sec");
+            if (d && !d.open) d.open = true;
+        });
     }
 
     /**

@@ -1770,9 +1770,22 @@ eq("islands 차도 3km 넘으면 뺌", (function (I) { return [!!I.rejectReason(
 (function () {
     var mk = function (keep, open) { return { tagName: "DETAILS", open: open, keep: keep, classList: { contains: function (c) { return c === "kind"; } } }; };
     var stay = mk(true, true), a = mk(false, false), b = mk(false, true), wk = mk(false, true), all = [stay, a, b, wk], fn = null;
-    RF.foldOne({ addEventListener: function (t, f) { fn = f; }, querySelectorAll: function (q) { return all.filter(function (o) { return o.open && (q.indexOf(":not([data-keep])") < 0 || !o.keep); }); } });
+    RF.foldOne({ addEventListener: function (t, f) { if (t === "toggle") fn = f; }, querySelectorAll: function (q) { return all.filter(function (o) { return o.open && (q.indexOf(":not([data-keep])") < 0 || !o.keep); }); } });
     a.open = true; fn({ target: a });
     eq("foldOne 숙소 칸(data-keep)만 펴 두고 나머지(나중에 붙인 주말 칸 포함)는 접음", [stay.open, a.open, b.open, wk.open], [true, true, false, false]);
+})();
+// 산 페이지 칸(sec - 코스 · 문답 · 안전 팁 …, 2026-11-20 홍TV님 "서로 토글") - 하나를 펴면 다른 sec 은 접힘, kind 칸은 그대로. #trails 링크는 접힌 코스 칸을 폄
+(function () {
+    var mk = function (cls, open) { return { tagName: "DETAILS", open: open, cls: cls, classList: { contains: function (c) { return c === cls; } } }; };
+    var trails = mk("sec", true), faq = mk("sec", false), tips = mk("sec", false), stay = mk("kind", true), all = [trails, faq, tips, stay], fn = null, click = null;
+    var doc = { addEventListener: function (t, f) { if (t === "toggle") fn = f; else if (t === "click") click = f; },
+        querySelectorAll: function (q) { return all.filter(function (o) { return o.open && q.indexOf("details." + o.cls) === 0; }); },
+        getElementById: function (id) { return id === "trails" ? { querySelector: function (q) { return q === "details.sec" ? trails : null; } } : null; } };
+    RF.foldOne(doc);
+    faq.open = true; fn({ target: faq });
+    eq("산 페이지 칸 - 문답을 펴면 코스 칸은 접히고 숙소 칸(kind)은 그대로", [trails.open, faq.open, tips.open, stay.open], [false, true, false, true]);
+    click({ target: { closest: function () { return { getAttribute: function () { return "#trails"; } }; } } });
+    eq("코스 n개 바로 보기(#trails) - 접힌 코스 칸을 폄", trails.open, true);
 })();
 // 공단 시간이 선보다 긴 공식 구간 것(2026-10-30 점검: 설악산 소공원 → 희운각 1.47km 에 오름 230분)
 eq("infoPartial", [RF.infoPartial({ up_min: 230 }, 1467), RF.infoPartial({ up_min: 150 }, 2670), RF.infoPartial({ up_min: 230 }, null), RF.infoPartial(null, 1000)], [true, false, false, false]);

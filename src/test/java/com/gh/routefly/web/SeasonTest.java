@@ -71,19 +71,19 @@ public class SeasonTest {
     public void mountainPageShowsLastObservation() throws Exception {
         JsonArray all = seasoned();
         String html = MountainServlet.page(peak(all, "가야산"), new ArrayList<>(), new ArrayList<>(), null, BASE, 1);
-        assertTrue(html.contains("<section class=\"season\"><h2>가야산 단풍 시기</h2>"));
+        assertTrue(html.contains("<section class=\"season\"><details class=\"fold sec\" name=\"msec\"><summary><h2 class=\"ft\">가야산 단풍 시기</h2>"));   // 2026-11-20 접는 칸
         assertTrue(html.contains("🍁 단풍 시작 2025년 10월 23일 · 절정 11월 5일</li>"));
         assertTrue("예측이 아니라고 밝힘", html.contains("올해 예측이 아님"));
         assertTrue("출처", html.contains("기상청 날씨누리"));
         assertTrue("자주 묻는 질문", html.contains("<dt>가야산 단풍 절정은 언제인가요?</dt>"));
 
         String sb = MountainServlet.page(peak(all, "소백산"), new ArrayList<>(), new ArrayList<>(), null, BASE, 1);
-        assertTrue(sb.contains("<h2>소백산 철쭉 · 단풍 시기</h2>"));
+        assertTrue(sb.contains("<h2 class=\"ft\">소백산 철쭉 · 단풍 시기</h2>"));
         assertTrue(sb.contains("🌺 철쭉 꽃 핌 2026년 5월 20일 · 활짝 5월 29일"));
         assertTrue(sb.contains("<dt>소백산 철쭉은 언제 피나요?</dt>"));
 
         String gr = MountainServlet.page(peak(all, "계룡산"), new ArrayList<>(), new ArrayList<>(), null, BASE, 1);
-        assertTrue(gr.contains("<h2>계룡산 벚꽃 · 단풍 시기</h2>"));
+        assertTrue(gr.contains("<h2 class=\"ft\">계룡산 벚꽃 · 단풍 시기</h2>"));
         assertTrue(gr.contains("🌸 벚꽃 꽃 핌 2026년 3월 31일 · 활짝 4월 3일"));
         assertTrue(gr.contains("<dt>계룡산 벚꽃은 언제 피나요?</dt>"));
 

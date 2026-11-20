@@ -154,6 +154,7 @@ final class MountainEn {
         b.append(Shelters.block(Shelters.current(), Shelters.ofPark(Shelters.current(), ko), REL, true));   // 🏠 국립공원 대피소(한국어 페이지와 같게, 2026-11-19)
         if (MountainServlet.overnight(peak)) b.append(MountainServlet.staysBlock(peak, true));   // 1박이 많은 산은 위로(한국어 페이지와 같게)
         b.append(MountainServlet.fishLine(peak, true));   // 바다 가까운 산 → tidefly(점검 10차 E5, 한국어와 같게)
+        int trails0 = b.length();   // 코스 칸 접기 - 한국어 페이지와 같게(MountainServlet.foldSec, 2026-11-20)
         b.append("<section id=\"trails\"><h2>").append(courses.size()).append(courses.size() == 1 ? " trail" : " trails").append("</h2>");
         if (courses.isEmpty()) b.append("<p class=\"dim\">No trail to the summit was found in our data.</p>");
         else {
@@ -187,12 +188,15 @@ final class MountainEn {
         b.append("<p class=\"dim\">Times are start-to-finish estimates at the Korea National Park Service pace (34 min per km, rests included; the official time where the park service gives one). Trail data is for reference - always follow signs and closures on site. "
                 + "The 3D and GPS screens are in English too. 🚌 Directions opens Google Maps transit directions from where you are to the trailhead. "
                 + "Difficulty (Very easy to Very hard) is routefly's estimate from distance and ascent, not an official grade; 📈 Elevation shows the slope of each section like the park trail boards.</p></section>");
+        String trails = b.substring(trails0);
+        b.setLength(trails0);
+        b.append(MountainServlet.foldSec(trails, true));
         b.append(Ads.box("m", true));   // 광고 - 영어 산 페이지에도(설정이 있을 때만, 2026-10-29), 한국어처럼 FAQ 앞(2026-11-07)
         List<String[]> qa = faq(peak, name, courses, parking);
-        b.append("<section class=\"faq\"><h2>").append(esc(name)).append(" FAQ</h2><dl>");
-        for (String[] x : qa) b.append("<dt>").append(esc(x[0])).append("</dt><dd>").append(esc(x[1])).append("</dd>");
-        b.append("</dl></section>").append(MountainServlet.faqLd(qa));
-        b.append(tips());
+        StringBuilder f = new StringBuilder("<section class=\"faq\"><h2>").append(esc(name)).append(" FAQ</h2><dl>");
+        for (String[] x : qa) f.append("<dt>").append(esc(x[0])).append("</dt><dd>").append(esc(x[1])).append("</dd>");
+        b.append(MountainServlet.foldSec(f.append("</dl></section>").toString(), false)).append(MountainServlet.faqLd(qa));
+        b.append(MountainServlet.foldSec(tips(), false));
         if (!nearby.isEmpty()) {
             b.append("<section><h2>Nearby famous mountains</h2><ul class=\"ms\">");
             for (Object[] n : nearby) {

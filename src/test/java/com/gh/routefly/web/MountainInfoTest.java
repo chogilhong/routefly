@@ -79,7 +79,7 @@ public class MountainInfoTest {
         JsonObject seorak = null;
         for (var e : ps) if ("설악산".equals(e.getAsJsonObject().get("id").getAsString())) seorak = e.getAsJsonObject();
         String page = MountainServlet.page(seorak, new ArrayList<>(), new ArrayList<>(), null, "https://routefly.kr/routefly", java.time.LocalDate.now(WeatherServlet.KST).getMonthValue());
-        assertTrue(page.contains("<section class=\"why\"><h2>설악산 - 산림청 100대 명산 선정 이유</h2><p><b>섬세한 비경 두루 갖춘 팔방미인</b></p><p>남한에서 세 번째로"));
+        assertTrue(page.contains("<section class=\"why\"><details class=\"fold sec\" name=\"msec\"><summary><h2 class=\"ft\">설악산 - 산림청 100대 명산 선정 이유</h2><span class=\"fa\">▾</span></summary><div class=\"fb\"><p><b>섬세한 비경 두루 갖춘 팔방미인</b></p><p>남한에서 세 번째로"));   // 2026-11-20 접는 칸
         assertTrue(page.contains("출처: 산림청 「명산등산로」(공공데이터포털)"));
         JsonObject gaya = null;
         for (var e : ps) if ("가야산".equals(e.getAsJsonObject().get("id").getAsString())) gaya = e.getAsJsonObject();

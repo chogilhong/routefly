@@ -644,6 +644,18 @@ public class MountainServlet extends HttpServlet {
         return b.append("</ul></section>").toString();
     }
 
+    /**
+     * 순수 함수 - 산 페이지 칸("<section …><h2>제목</h2>내용</section>")을 접는 칸으로: 제목을 누르면 펴고 접음, 같은 무리(name="msec" · class sec)는 하나만 펴짐
+     * (2026-11-20 홍TV님 "좁혔다 펼 수 있게 해줘. 이들끼리는 서로 토글 되게" - 코스 · 벚꽃 · 단풍 시기 · 선정 이유 · 자주 묻는 질문 · 산행 안전 팁).
+     * 접혀도 글은 페이지에 그대로(검색 로봇이 읽음). 이 꼴이 아니면 그대로 돌려줌. open - 처음에 펴 둠(코스만).
+     */
+    static String foldSec(String html, boolean open) {
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("^<section([^>]*)><h2>(.*?)</h2>(.*)</section>$", java.util.regex.Pattern.DOTALL).matcher(html == null ? "" : html);
+        if (!m.matches()) return html == null ? "" : html;
+        return "<section" + m.group(1) + "><details class=\"fold sec\" name=\"msec\"" + (open ? " open" : "") + "><summary><h2 class=\"ft\">" + m.group(2)
+                + "</h2><span class=\"fa\">▾</span></summary><div class=\"fb\">" + m.group(3) + "</div></details></section>";
+    }
+
     /** 순수 함수 - 산 페이지 "산림청이 고른 까닭" 칸(선정 이유가 없으면 ""). 출처를 함께. */
     static String reasonBlock(JsonObject peak, String name) {
         String r = str(peak, "reason");
@@ -1183,7 +1195,7 @@ public class MountainServlet extends HttpServlet {
         if (!courses.isEmpty()) b.append("<p class=\"jump\"><a href=\"#trails\">🥾 코스 ").append(courses.size()).append("개 바로 보기 ↓</a></p>");
         b.append(APP_SLOT);   // 원스토어 띠도 첫 화면에(2026-11-10 홍TV님 "제일 아래에 있네") - foot 의 칸은 js 가 맨 앞 칸 하나만 채워 두 번 안 나옴
         boolean seasonUp = seasonNow(peak, month);   // 지금 철(그 산에 관측이 있는 벚꽃 · 철쭉 · 단풍)이면 칸을 첫 화면(날씨 칸 위)으로(2026-11-14 홍TV님 "제철에 보여주는 거야?")
-        if (seasonUp) b.append(seasonBlock(peak, name, month));
+        if (seasonUp) b.append(foldSec(seasonBlock(peak, name, month), false));   // 철에도 접는 칸(제목은 위에 보임, 2026-11-20 "서로 토글")
         b.append("<section id=\"wx\" data-lat=\"").append(peak.get("lat").getAsDouble()).append("\" data-lon=\"").append(peak.get("lon").getAsDouble())
                 .append("\"><h2>날씨 · 미세먼지 · 일출 · 일몰</h2><div class=\"days\" role=\"group\" aria-label=\"날짜 고르기\"></div><p class=\"dim\" id=\"wxBody\">오늘부터 며칠 뒤까지의 날씨 · 미세먼지 · 일출 · 일몰(기상청 · 에어코리아)을 이 칸에서 봅니다.</p></section>");
         // ⛑️ 오늘의 산행 안전(api/safety - 2026-10-18 홍TV님: 별거 별거와 같은 것을 산 페이지에도) - 정상 자리로, 보이면 받음(js/mountain.js)
@@ -1192,6 +1204,7 @@ public class MountainServlet extends HttpServlet {
         b.append(Shelters.block(Shelters.current(), Shelters.ofPark(Shelters.current(), name), REL, false));   // 🏠 국립공원 대피소 · 예약(2026-11-19 홍TV님) - 대피소가 있는 산만
         if (overnight(peak)) b.append(staysBlock(peak, false));   // 1박이 많은 산은 숙소 줄을 위로(2026-10-29 홍TV님 "작업해")
         b.append(fishLine(peak, false));   // 바다 가까운 산 → tidefly(점검 10차 E5)
+        int trails0 = b.length();   // 코스 칸 - 아래 안내 글까지 한 칸으로 접음(foldSec, 처음에는 펴 둠)
         b.append("<section id=\"trails\"><h2>코스 ").append(courses.size()).append("개</h2>");
         if (courses.isEmpty()) b.append("<p class=\"dim\">정상까지 가는 코스를 찾지 못했습니다. <a href=\"").append(REL)
                 .append("/hike.html?lang=ko\">따라가기에서 산 이름으로 찾아보세요</a>.</p>");
@@ -1231,20 +1244,23 @@ public class MountainServlet extends HttpServlet {
                 + "🚌 가는 길은 카카오맵에서 지금 자리부터 그 코스 들머리까지 대중교통 · 차 길찾기를 엽니다. "
                 + "난이도(매우 쉬움 ~ 매우 어려움)는 걸리는 시간 · 오르막 총량으로 routefly 가 어림한 것이고(공단 공식 등급이 아님), 📈 고도를 누르면 공단 안내판처럼 구간별 경사를 봅니다.</p>");   // 2026-10-15 홍TV님
         b.append("<p class=\"dim\">예상 시간은 " + RULE_KO + "으로 어림한 코스 처음부터 끝까지의 값입니다(공단 공식 시간이 있는 국립공원 코스는 그 시간). 코스 자료는 참고용이니 현지 안내판 · 통제를 꼭 따르세요.</p></section>");
+        String trails = b.substring(trails0);
+        b.setLength(trails0);
+        b.append(foldSec(trails, true));
         // 🚗 쏘카 한 줄(설정 partner.socar.url 이 있고 휴대폰일 때 mountain.js 가 채움, 2026-11-03) - 안내 글 아래(2026-11-03 홍TV님 "안내문구 아래로")
         if (!courses.isEmpty()) b.append("<p class=\"stays\" id=\"socar\" hidden></p>");
-        if (!seasonUp) b.append(seasonBlock(peak, name, month));   // 🌸 벚꽃 · 🌺 철쭉 · 🍁 단풍 시기 - 철이 아니면 여기(기상청 관측이 있는 산만, 2026-11-14 홍TV님 "만들어 보자")
-        b.append(reasonBlock(peak, name));   // 산림청 선정 이유(data/mountain-info.json 이 있을 때만, 2026-11-07)
+        if (!seasonUp) b.append(foldSec(seasonBlock(peak, name, month), false));   // 🌸 벚꽃 · 🌺 철쭉 · 🍁 단풍 시기 - 철이 아니면 여기(기상청 관측이 있는 산만, 2026-11-14 홍TV님 "만들어 보자")
+        b.append(foldSec(reasonBlock(peak, name), false));   // 산림청 선정 이유(data/mountain-info.json 이 있을 때만, 2026-11-07)
         // 광고 한 칸(설정이 있을 때만, 2026-10-28) - 코스 목록 다음 · 자주 묻는 질문 앞(2026-11-07 전체 점검 4단계: 맨 아래라 거의 안 보였음).
         // 코스 단추 · 따라가기와 붙지 않게 안내 글 뒤에, 한 페이지 한 칸만
         b.append(Ads.box("m"));
         List<String[]> qa = faq(peak, name, courses, parking);   // 자주 묻는 질문(2026-10-15 홍TV님 - 검색 결과에 문답으로)
         if (!qa.isEmpty()) {
-            b.append("<section class=\"faq\"><h2>").append(esc(name)).append(" 자주 묻는 질문</h2><dl>");
-            for (String[] x : qa) b.append("<dt>").append(esc(x[0])).append("</dt><dd>").append(esc(x[1])).append("</dd>");
-            b.append("</dl></section>").append(faqLd(qa));
+            StringBuilder f = new StringBuilder("<section class=\"faq\"><h2>").append(esc(name)).append(" 자주 묻는 질문</h2><dl>");
+            for (String[] x : qa) f.append("<dt>").append(esc(x[0])).append("</dt><dd>").append(esc(x[1])).append("</dd>");
+            b.append(foldSec(f.append("</dl></section>").toString(), false)).append(faqLd(qa));
         }
-        b.append(tips());
+        b.append(foldSec(tips(), false));
         if (!nearby.isEmpty()) {   // 가까운 100대 명산(2026-10-15) - 다음 산행 고르기 · 산 페이지끼리 잇기
             b.append("<section><h2>가까운 100대 명산</h2><ul class=\"ms\">");
             for (Object[] n : nearby) {
