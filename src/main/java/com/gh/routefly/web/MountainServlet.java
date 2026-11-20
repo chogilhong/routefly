@@ -191,6 +191,7 @@ public class MountainServlet extends HttpServlet {
             courses.forEach(picked::add);
             Steep.fill(c, picked, Peaks.tops(getServletContext()), Peaks.named(getServletContext()));   // 가장 가파른 1km(난이도) · 정상을 지나면 최고 높이는 공식 값(2026-10-16)
             courses.removeIf(o -> o.has("summit_miss_m") && o.get("summit_miss_m").getAsDouble() > Peaks.HIDE_MISS_M);   // 이름만 이 산 정상인 다른 산길(2026-10-30)
+            courses = markOff(courses, peak);   // 이 산 정상에 안 가는 코스는 표시 · 뒤로(2026-11-20)
             if (courses.size() > MAX_COURSES) courses = new ArrayList<>(courses.subList(0, MAX_COURSES));
             names(courses, parks());   // 앱과 같은 이름(공단 공식 이름 · 산마다 지명) · 지금은 없는 탐방로는 뺌
             officialTimes(c, courses);   // 국립공원 공식 오름 · 내림 시간(2026-11-04 홍TV님 - 코스 목록도 공단 시간)
@@ -199,6 +200,24 @@ public class MountainServlet extends HttpServlet {
             return null;
         }
         return courses;
+    }
+
+    /**
+     * 순수 함수 - 선이 이 산 정상(정상 · alt, Peaks.PASS_M 안)을 안 지나는 코스에 summit_off = 산 이름을 붙이고 뒤로(차례는 그대로).
+     * 들머리 · 끝이 정상 2km 안이면 산 페이지에 들어오는데(near), 옆 봉우리로 가는 코스도 섞임 - /m/백운산(정선) 의 "백룡동굴 → 푯대봉" 은 정상에서 1,065m
+     * (2026-11-20 홍TV님 "고쳐 줘"). passes(Steep.fill - 선이 지나는 산 id)가 없으면(점을 못 읽음) 그대로. 이름의 정상을 안 가는 summit_miss 는 이미 따로 표시.
+     */
+    static List<JsonObject> markOff(List<JsonObject> courses, JsonObject peak) {
+        String id = MountainEn.id(peak), name = str(peak, "name");
+        List<JsonObject> on = new ArrayList<>(), off = new ArrayList<>();
+        for (JsonObject o : courses) {
+            boolean miss = o.has("passes") && o.get("passes").isJsonArray() && !o.getAsJsonArray("passes").contains(new com.google.gson.JsonPrimitive(id))
+                    && str(o, "summit_miss") == null;
+            if (miss) o.addProperty("summit_off", name != null ? name : id);
+            (miss ? off : on).add(o);
+        }
+        on.addAll(off);
+        return on;
     }
 
     /** 국립공원 코스(knps-*)의 공식 오름 · 내림 시간 · 난이도(route_course_info)를 코스에 up_min · down_min · level 로 붙임. 표가 없으면 그대로. */
@@ -1192,6 +1211,7 @@ public class MountainServlet extends HttpServlet {
                         .append(SteepRank.slopeText(dist, asc, steep, false))   // 각도 · 경사 · 가파른 1km - 가파른 산 순위와 같은 기준(2026-10-18 홍TV님 "통일")
                         .append(" · 약 ").append(timeOf(c, false))
                         .append(str(c, "summit_miss") != null ? " · ⚠ " + esc(str(c, "summit_miss")) + " 정상 미포함" : "")   // 이름의 정상까지 안 가는 선(2026-10-30 코스 점검)
+                        .append(str(c, "summit_off") != null ? " · ⚠ " + esc(str(c, "summit_off")) + " 정상에 안 감" : "")   // 이 산 정상을 안 지나는 옆 봉우리 코스(2026-11-20, markOff)
                         .append("</span><span class=\"go\">")
                         .append("<a href=\"").append(REL).append("/index.html?lang=ko#c=").append(esc(id)).append("&amp;m=").append(esc(enc(name))).append("\">fly(3D)</a>")
                         .append("<a href=\"").append(REL).append("/hike.html?lang=ko#c=").append(esc(id)).append(revArg(c)).append("&amp;m=").append(esc(enc(name))).append("\">따라가기</a>");   // m= - 따라가기의 ‹ 가 이 화면으로

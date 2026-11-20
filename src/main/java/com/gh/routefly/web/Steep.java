@@ -99,6 +99,7 @@ final class Steep {
     }
 
     private static final Map<String, Peaks.Miss> MISS = new ConcurrentHashMap<>();   // 문제 없는 코스는 NONE
+    private static final Map<String, java.util.Set<String>> PASSED = new ConcurrentHashMap<>();   // 선이 지나는 100대 명산 id(Peaks.passed) - 산 페이지 "정상에 안 감"
 
     /** named - "정상 미포함" 을 볼 정상 자리(Peaks.named), 비면 보지 않음. */
     static void fill(Connection c, JsonArray rows, List<Peaks.Top> tops, List<Peaks.Top> named) {
@@ -127,6 +128,12 @@ final class Steep {
                 o.addProperty("summit_miss", miss.name());
                 o.addProperty("summit_miss_m", Math.round(miss.m()));
             }
+            java.util.Set<String> passes = PASSED.get(str(o, "course_id"));
+            if (passes != null) {
+                JsonArray pa = new JsonArray();
+                passes.stream().sorted().forEach(pa::add);
+                o.add("passes", pa);
+            }
             if (!Double.isNaN(hit[0])) o.addProperty("steep_pct", hit[0]);
             if (hit.length > 3 && !Double.isNaN(hit[3])) {   // 오르막이 적어도 오르는 높이보다 작으면 그 높이로(난이도 · 화면)
                 Integer db = o.has("ascent_m") && !o.get("ascent_m").isJsonNull() ? o.get("ascent_m").getAsInt() : null;
@@ -145,6 +152,7 @@ final class Steep {
         if (CACHE.size() > MAX_ENTRIES) {
             CACHE.clear();
             MISS.clear();
+            PASSED.clear();
         }
         for (int from = 0; from < ids.size(); from += 100) {   // IN 이 너무 길지 않게 100개씩
             List<String> part = ids.subList(from, Math.min(ids.size(), from + 100));
@@ -197,6 +205,12 @@ final class Steep {
 
     private static void miss(String id, String name, List<Double> las, List<Double> los, List<Peaks.Top> named) {
         if (named == null || named.isEmpty()) return;
+        double[] pa = new double[las.size()], pb = new double[los.size()];
+        for (int i = 0; i < pa.length; i++) {
+            pa[i] = las.get(i);
+            pb[i] = los.get(i);
+        }
+        PASSED.put(id, Peaks.passed(pa, pb, named));
         if (name == null) {   // 이름 없음 - 다시 묻지 않게(2026-10-30 점검)
             MISS.put(id, NONE);
             return;

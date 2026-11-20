@@ -1,0 +1,93 @@
+package com.gh.routefly.web;
+
+import static org.junit.Assert.*;
+
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import org.junit.Test;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
+/**
+ * 산 페이지 - 그 산 정상을 안 지나는 옆 봉우리 코스에 "⚠ ○○ 정상에 안 감"(2026-11-20 홍TV님 "고쳐 줘").
+ * 코스 선은 운영 /api/course 응답(src/test/resources/course/summit-off): /m/백운산(정선) 의 유일한 코스 "푯대봉 1코스 · 백룡동굴 → 푯대봉"(정상에서 1,065m)
+ * · /m/칠갑산 의 "칠갑산 · 천장 → 칠갑산"(정상까지).
+ */
+public class SummitOffTest {
+
+    private static JsonObject json(String path) throws Exception {
+        return JsonParser.parseString(new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8)).getAsJsonObject();
+    }
+
+    private static Set<String> passed(String id, List<Peaks.Top> tops) throws Exception {
+        JsonArray pts = json("src/test/resources/course/summit-off/" + id + ".json").getAsJsonArray("points");
+        double[] lat = new double[pts.size()], lon = new double[pts.size()];
+        for (int i = 0; i < lat.length; i++) {
+            lon[i] = pts.get(i).getAsJsonArray().get(0).getAsDouble();
+            lat[i] = pts.get(i).getAsJsonArray().get(1).getAsDouble();
+        }
+        return Peaks.passed(lat, lon, tops);
+    }
+
+    private static JsonObject peak(JsonArray peaks, String id) {
+        for (JsonElement e : peaks) if (id.equals(e.getAsJsonObject().get("id").getAsString())) return e.getAsJsonObject();
+        throw new AssertionError(id);
+    }
+
+    @Test
+    public void 정상에_안_가는_코스() throws Exception {
+        JsonArray peaks = json("src/main/webapp/data/mountains100.json").getAsJsonArray("peaks");
+        List<Peaks.Top> tops = Peaks.named(peaks);
+        assertFalse("푯대봉 코스는 백운산(정선) 정상을 안 지남", passed("kmp-2322010655-1", tops).contains("백운산(정선)"));
+        assertTrue("천장 → 칠갑산 은 칠갑산 정상을 지남", passed("frst-447902001-0c83ce", tops).contains("칠갑산"));
+        assertTrue(Peaks.passed(null, null, tops).isEmpty());
+
+        // 산 페이지 표시: passes 에 그 산이 없으면 summit_off = 산 이름, 뒤로. passes 가 없으면(점을 못 읽음) · 이미 summit_miss 면 그대로
+        JsonObject baek = peak(peaks, "백운산(정선)");
+        JsonObject off = new JsonObject(), on = new JsonObject(), unknown = new JsonObject(), miss = new JsonObject();
+        off.addProperty("name", "푯대봉 1코스 · 백룡동굴 → 푯대봉");
+        JsonArray pa = new JsonArray();
+        passed("kmp-2322010655-1", tops).forEach(pa::add);
+        off.add("passes", pa);
+        on.addProperty("name", "가");
+        JsonArray pb = new JsonArray();
+        pb.add("백운산(정선)");
+        on.add("passes", pb);
+        unknown.addProperty("name", "나");
+        miss.addProperty("name", "다");
+        miss.add("passes", new JsonArray());
+        miss.addProperty("summit_miss", "백운산");
+        List<JsonObject> got = MountainServlet.markOff(new ArrayList<>(List.of(off, on, unknown, miss)), baek);
+        assertEquals("백운산", off.get("summit_off").getAsString());
+        assertFalse(on.has("summit_off") || unknown.has("summit_off") || miss.has("summit_off"));
+        assertEquals("정상에 가는 코스가 앞", List.of(on, unknown, miss, off), got);
+
+        // 페이지 글(한국어 · 영어)
+        assertTrue(MountainServlet.page(baek, new ArrayList<>(List.of(courseRow(off))), new ArrayList<>(), null, "", 11).contains(" · ⚠ 백운산 정상에 안 감"));
+        assertTrue(MountainEn.page(baek, new ArrayList<>(List.of(courseRow(off))), new ArrayList<>(), null, "https://r.kr").contains(" · ⚠ does not reach the summit of Baegunsan"));
+    }
+
+    /** DB 를 읽는 곳(산 페이지 load · Steep.fill)이 실제로 잇는지 - DB 없이 돌리는 테스트라 글로 봄. */
+    @Test
+    public void 이어짐() throws Exception {
+        String m = new String(Files.readAllBytes(Paths.get("src/main/java/com/gh/routefly/web/MountainServlet.java")), StandardCharsets.UTF_8);
+        String s = new String(Files.readAllBytes(Paths.get("src/main/java/com/gh/routefly/web/Steep.java")), StandardCharsets.UTF_8);
+        assertTrue(m.contains("courses = markOff(courses, peak);"));
+        assertTrue(s.contains("PASSED.put(id, Peaks.passed(pa, pb, named));") && s.contains("o.add(\"passes\", pa);"));
+    }
+
+    /** 페이지가 그리는 데 필요한 칸 - 운영 응답의 course 그대로에 summit_off 만 더함. */
+    private static JsonObject courseRow(JsonObject marked) throws Exception {
+        JsonObject c = json("src/test/resources/course/summit-off/kmp-2322010655-1.json").getAsJsonObject("course");
+        c.add("summit_off", marked.get("summit_off"));
+        return c;
+    }
+}

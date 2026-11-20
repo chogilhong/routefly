@@ -172,6 +172,7 @@ final class MountainEn {
                         .append(" · about ").append(MountainServlet.timeOf(c, true))
                         // 이름의 정상까지 안 가는 선 - 한국어 산 페이지와 같은 경고(2026-11-07 전체 점검: 영어 페이지에만 빠져 있었음)
                         .append(str(c, "summit_miss") != null ? " · ⚠ does not reach " + esc(courseName(str(c, "summit_miss"))) + " (" + esc(str(c, "summit_miss")) + ")" : "")
+                        .append(str(c, "summit_off") != null ? " · ⚠ does not reach the summit of " + esc(name) : "")   // 한국어 "정상에 안 감" 과 같게(2026-11-20)
                         .append("</span><span class=\"go\">")
                         .append("<a href=\"").append(REL).append("/index.html?lang=en#c=").append(esc(id)).append("&amp;m=").append(esc(MountainServlet.enc(id(peak)))).append("\">3D fly-through</a>")   // m= - 3D 의 ‹ 가 이 페이지로(한국어와 같게, 2026-11-07)
                         .append("<a href=\"").append(REL).append("/hike.html?lang=en#c=").append(esc(id)).append(MountainServlet.revArg(c)).append("&amp;m=").append(esc(MountainServlet.enc(id(peak)))).append("\">Follow (GPS)</a>");   // 따라가기 영어 · ‹ 는 이 페이지로

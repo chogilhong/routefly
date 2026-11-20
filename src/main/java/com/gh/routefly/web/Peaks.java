@@ -323,6 +323,26 @@ final class Peaks {
         return new Miss(core(bestTop), best);   // 거리와 이름이 같은 정상(2026-10-30 점검)
     }
 
+    /**
+     * 순수 함수 - 선이 PASS_M 안으로 지나는 정상들의 산 id(Top.name). lat · lon 은 코스 점 차례대로.
+     * 산 페이지가 "그 산 정상에 안 가는 코스" 를 가림(2026-11-20 홍TV님 "고쳐 줘" - /m/백운산(정선) 의 유일한 코스 "백룡동굴 → 푯대봉" 이 정상에서 1km 넘게).
+     */
+    static java.util.Set<String> passed(double[] lat, double[] lon, List<Top> tops) {
+        java.util.Set<String> out = new java.util.HashSet<>();
+        if (lat == null || lat.length == 0 || tops == null) return out;
+        for (Top t : tops) {
+            if (out.contains(t.name())) continue;
+            for (int i = 0; i < lat.length; i++) {
+                int j = Math.max(0, i - 1);
+                if (segM(t, lat[j], lon[j], lat[i], lon[i]) <= PASS_M) {
+                    out.add(t.name());
+                    break;
+                }
+            }
+        }
+        return out;
+    }
+
     /** 순수 함수 - /api/course 답에 course.summit_miss(이름의 정상까지 안 가면 그 정상 이름). points 는 [경도, 위도, …]. */
     static void markMiss(JsonObject detail, List<Top> named) {
         if (detail == null || !detail.has("course") || !detail.get("course").isJsonObject() || !detail.has("points") || !detail.get("points").isJsonArray()) return;
