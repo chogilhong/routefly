@@ -1030,6 +1030,9 @@ tick().then(function () {
     // 끝 이름이 틀린 산림청 코스(2026-11-19 홍TV님 "소청대피소와 희운각대피소는 다른데") - 화면도 서버 ShareServlet.noteName 과 같은 이름
     var PN = JSON.parse(fs.readFileSync(path.join(__dirname, "../../main/webapp/data/park-notes.json"), "utf8")).parks;
     eq("남설악 → 희운각대피소", RF.noteTrailName(PN, "kmp-2322010401-1", "설악산(대청봉) 1코스 · 남설악탐방지원센터 → 소청대피소"), "설악산(대청봉) 1코스 · 남설악탐방지원센터 → 희운각대피소");
+    // 3D 영상 모드(?video=1 - 쇼츠 마무리 3D 비행, 2026-11-20 홍TV님)
+    eq("영상 모드 설정", [RF.videoOpts("?lang=ko"), RF.videoOpts("?video=1"), RF.videoOpts("?video=1&secs=15&from=0.5&to=0.9&sat=1"), RF.videoOpts("?video=1&secs=999&from=0.8&to=0.2"), RF.videoOpts("?video=10")],
+        [null, { sat: false, secs: null, from: 0, to: 1 }, { sat: true, secs: 15, from: 0.5, to: 0.9 }, { sat: false, secs: 120, from: 0, to: 1 }, null]);
     console.log((fails ? "FAILED " : "OK ") + (runs - fails) + "/" + runs);
     process.exit(fails ? 1 : 0);
 });

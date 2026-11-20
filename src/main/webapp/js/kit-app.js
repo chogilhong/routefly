@@ -1527,6 +1527,20 @@
      */
     function isAccess(p) { return +p.off_route_m > (isTopName(p.name) ? 160 : 100); }
 
+    /**
+     * 순수 함수 - 3D 화면 영상 모드(?video=1, 2026-11-20 홍TV님 "마무리에 3D 비행") 설정. 아니면 null.
+     * sat=1 일 때만 위성사진(V-World 약관에 방송 · 복제는 사전 승낙 문구가 있어 기본은 지형만 - docs/youtube/name-stories-v2.md),
+     * secs - from ~ to 구간을 날아갈 초(3 ~ 120), from · to - 코스의 몇 분의 몇(0 ~ 1)부터 어디까지(잘못되면 처음부터 끝까지).
+     */
+    function videoOpts(search) {
+        var q = String(search || "");
+        if (!/[?&]video=1(&|$)/.test(q)) return null;
+        function num(k) { var m = new RegExp("[?&]" + k + "=([0-9.]+)").exec(q), v = m ? parseFloat(m[1]) : NaN; return isFinite(v) ? v : null; }
+        var from = Math.min(Math.max(num("from") || 0, 0), 1), to = num("to") == null ? 1 : Math.min(Math.max(num("to"), 0), 1), secs = num("secs");
+        if (to <= from) { from = 0; to = 1; }
+        return { sat: /[?&]sat=1(&|$)/.test(q), secs: secs == null ? null : Math.min(Math.max(secs, 3), 120), from: from, to: to };
+    }
+
     function isTopName(name) { return /(봉|산|령|재|고개|峰|정상)(\s*\(.*\))?$/.test(String(name || "").trim()); }
 
     /** 순수 함수 - 길 → GPX 1.1 글(이름 · 종류 · 점마다 높이 · 시각이 있으면). */
@@ -2343,6 +2357,7 @@
         storeGpx: storeGpx,
         storedGpx: storedGpx,
         isAccess: isAccess,
+        videoOpts: videoOpts,
         reverseCourse: reverseCourse,
         infoText: infoText,
         parkOf: parkOf,

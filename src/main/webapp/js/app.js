@@ -19,6 +19,7 @@
     // 화면 말(2026-10-17 홍TV님 - 3D 영어): ?lang=en · 따라가기에서 고른 말(rf-lang)을 그대로
     var LANG = (function () { var s = null; try { s = localStorage.getItem("rf-lang"); } catch (e) { /* 없음 */ } return RF.pageLang(location.search, s); })();
     if (/[?&]lang=(en|ko)\b/.test(location.search)) { try { localStorage.setItem("rf-lang", LANG); } catch (e) { /* 이번만 */ } }
+    var VIDEO = RF.videoOpts(location.search);   // 영상 모드(?video=1 - 쇼츠 마무리 3D 비행 녹화용, 2026-11-20): 단추 · 칸 숨김, 출처 늘 보임, 기본 위성 없음, 저절로 날기
     var EN = LANG === "en", T = RF.tr, NM = RF.nameIn;
     RF.setLang(LANG);
     if (EN) { document.documentElement.lang = "en"; document.title = "routefly - 3D trail preview"; RF.applyEn(document); }
@@ -505,6 +506,7 @@
             updateHud(0);
             renderList();
             overview(true);
+            if (VIDEO) videoRun(c);
         }).catch(function (e) {
             if (my !== selectSeq) return;
             // 배치를 다시 돌려 코스 번호가 바뀐 예전 링크 - 같은 산 코스를 목록에
@@ -1286,6 +1288,12 @@
         var dt = Math.min(now - anim.last, 100);   // 탭이 뒤로 갔다 오면 한 번에 건너뛰지 않게
         anim.last = now;
         anim.d = Math.min(cur.total, anim.d + cur.total / cur.plan.durationMs * dt * SPEEDS[anim.speedIdx]);
+        if (VIDEO && anim.d >= VIDEO.to * cur.total) {   // 영상 모드: to 에서 멈춤(멀리 보기로 돌아가지 않음)
+            frameAt(VIDEO.to * cur.total, true, dt);
+            stop();
+            window.routeflyVideo.done = Date.now();
+            return;
+        }
         frameAt(anim.d, true, dt);
         stepCaptions(anim.d);
         map.setPaintProperty("head-halo", "circle-radius", 13 + 5 * Math.sin(now / 260));
@@ -1358,6 +1366,26 @@
         });
     }
 
+    // 코스 자료 출처(지도 출처 표시 · 영상 모드 출처 줄이 함께 씀)
+    var ATTR_TRAILS = T("등산로: 산림청 등산로정보 | 걷기길: 한국관광공사 두루누비 | 봉우리 · 국가숲길: 한국등산·트레킹지원센터 | 지명 · 자전거길 · 등산 노선: ",
+        "Trails: Korea Forest Service | Walking: Korea Tourism Organization Durunubi | Peaks · forest trails: Korea Hiking & Trekking Center | Places · bike paths: ");
+
+    /** 영상 모드 - 출처 줄을 늘 보이고(지도 출처 단추는 숨김), 지도가 다 그려지면 from 부터 to 까지 secs 초에 날고 끝나면 window.routeflyVideo.done. */
+    function videoRun(c) {
+        if (VIDEO.secs) c.plan.durationMs = VIDEO.secs * 1000 / (VIDEO.to - VIDEO.from);
+        anim.speedIdx = SPEEDS.indexOf(1);
+        var credit = $("videoCredit");
+        credit.hidden = false;
+        credit.textContent = (VIDEO.sat ? T("위성사진: 국토교통부 V-World | ", "Satellite: MOLIT V-World | ") : "") + T("지형: ", "Terrain: ") + "Terrain Tiles (AWS Open Data) | "
+            + ATTR_TRAILS + "© OpenStreetMap contributors";
+        window.routeflyVideo = { ready: false, done: 0 };
+        map.once("idle", function () {
+            anim.d = VIDEO.from * c.total;
+            play();
+            window.routeflyVideo.ready = true;
+        });
+    }
+
     function stop() {
         if (anim.running && map) {
             setStartsVisible(true);
@@ -1388,6 +1416,10 @@
 
     function start(cfg, first) {
         var b0 = startBounds(first);
+        if (VIDEO) {
+            if (!VIDEO.sat) cfg = Object.assign({}, cfg, { vworldKey: null });   // 위성 없이 지형 음영만(buildStyle 의 키 없는 그림)
+            document.documentElement.classList.add("video");
+        }
         map = new maplibregl.Map({
             container: "map",
             style: buildStyle(cfg),
@@ -1401,8 +1433,7 @@
         // 출처 표시(지형 · 위성사진 이용 조건)는 아래 판에 가리지 않게 확대 버튼 아래에 둡니다.
         // 코스 · 지점 이름은 routefly-batch 가 OpenStreetMap 지명(ODbL)으로 붙입니다 - 출처를 같이 표시합니다.
         map.addControl(new maplibregl.AttributionControl({ compact: true,
-            customAttribution: T("등산로: 산림청 등산로정보 | 걷기길: 한국관광공사 두루누비 | 봉우리 · 국가숲길: 한국등산·트레킹지원센터 | 지명 · 자전거길 · 등산 노선: ",
-                "Trails: Korea Forest Service | Walking: Korea Tourism Organization Durunubi | Peaks · forest trails: Korea Hiking & Trekking Center | Places · bike paths: ") + "<a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\" rel=\"noopener\">© OpenStreetMap contributors</a>"
+            customAttribution: ATTR_TRAILS + "<a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\" rel=\"noopener\">© OpenStreetMap contributors</a>"
                 + " | <a href=\"" + T("about.html", "about-en.html") + "\">" + T("안전 · 개인정보 · 출처 안내", "Safety · privacy · sources") + "</a>" }), "top-right");
         // 폰 가로 화면(높이 500px 밑)은 출처를 ⓘ 로 접어 둠 - 펼친 출처가 낮은 화면의 지도를 많이 가렸음(2026-11-03 홍TV님 점검, GPX 편집과 같게). ⓘ 를 누르면 보임
         if (window.matchMedia && window.matchMedia("(max-height: 500px) and (orientation: landscape)").matches) {
