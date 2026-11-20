@@ -31,6 +31,8 @@ public class MountainShortsTest {
             for (JsonElement e : peaks) found |= id.equals(e.getAsJsonObject().get("id").getAsString());
             assertTrue(id, found);
         }
+        // 2판으로 다시 올린 영상(2026-11-20 - docs/youtube/v2/): 계룡산 oftiEyZDf34(아래) · 공작산 GrhlAiWi5SA
+        assertEquals("GrhlAiWi5SA", videos.getAsJsonArray("공작산").get(0).getAsJsonObject().get("id").getAsString());
         MountainServlet.withShorts(peaks, videos);
         JsonObject gyeryong = null, gaya = null;
         for (JsonElement e : peaks) {
