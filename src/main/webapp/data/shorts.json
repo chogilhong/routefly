@@ -1,5 +1,5 @@
 {
- "_note": "산 페이지 ▶ 이 산 이야기(유튜브 쇼츠) - 홍TV님이 올린 영상(2026-11-19 1차 docs/youtube/v1/name-stories-1.md, 2026-11-20 2차 name-stories-2.md · 3차 name-stories-3.md · 4차 name-stories-4.md, 2판 다시 만든 영상은 docs/youtube/v2/ - 계룡산 · 공작산 · 금산 · 가리왕산 · 명성산 · 용문산 2026-11-20, Vrew · 밝은 판). 산 id(mountains100.json) → [{id: 유튜브 영상 ID, title}]. 새 영상을 올리면 여기에 더합니다.",
+ "_note": "산 페이지 ▶ 이 산 이야기(유튜브 쇼츠) - 홍TV님이 올린 영상(2026-11-19 1차 docs/youtube/v1/name-stories-1.md, 2026-11-20 2차 name-stories-2.md · 3차 name-stories-3.md · 4차 name-stories-4.md, 2판 다시 만든 영상은 docs/youtube/v2/ - 계룡산 · 공작산 · 금산 · 가리왕산 · 명성산 · 용문산 · 강천산 2026-11-20, Vrew · 밝은 판). 산 id(mountains100.json) → [{id: 유튜브 영상 ID, title}]. 새 영상을 올리면 여기에 더합니다.",
  "videos": {
   "계룡산": [
    {
@@ -33,8 +33,8 @@
   ],
   "강천산": [
    {
-    "id": "se6UhREKlko",
-    "title": "절 이름을 받은 산? 국내 최초 군립공원 강천산"
+    "id": "icz6CCy-hBE",
+    "title": "비구니 절에 구름다리까지? 강천산 이야기"
    }
   ],
   "용문산": [
