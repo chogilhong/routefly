@@ -473,7 +473,7 @@
         var a = document.createElement("a"), s = document.createElement("small");
         a.href = url; a.target = "_blank"; a.rel = "noopener sponsored";
         a.textContent = label || "🚗 대중교통이 없는 들머리는 쏘카 ›";
-        s.textContent = "[제휴] 쏘카 앱에서 예약하면 routefly 가 수수료를 받습니다(값은 같음). ";
+        s.textContent = "[제휴] 쏘카 앱에서 예약하면 routefly 가 수수료를 받습니다. ";   // "(값은 같음)" 은 뺌(2026-11-20 홍TV님 "빼도 됨")
         box.textContent = "";
         box.appendChild(s); box.appendChild(a);
         box.hidden = false;

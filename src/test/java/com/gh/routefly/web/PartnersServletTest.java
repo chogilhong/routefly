@@ -80,7 +80,8 @@ public class PartnersServletTest {
                 so > 0 && page.startsWith("<p class=\"stays\" id=\"socar\"", page.indexOf("<div id=\"ssOut\" aria-live=\"polite\"></div></div></details></section>") + "<div id=\"ssOut\" aria-live=\"polite\"></div></div></details></section>".length()));
         assertEquals("한 번만", so, page.lastIndexOf("<p class=\"stays\" id=\"socar\""));
         try {
-            assertTrue("아래 칸과 띄움", java.nio.file.Files.readString(java.nio.file.Path.of("src/main/webapp/css/mountain.css")).contains("#socar { margin-bottom:28px; }"));
+            String css = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/webapp/css/mountain.css"));
+            assertTrue("숙소 찾기처럼 상자에(2026-11-20 홍TV님)", css.contains("#socar { margin:0 0 14px; background:var(--panel); border:1px solid var(--ln); border-radius:12px; padding:14px 16px; }"));
         } catch (java.io.IOException e) { throw new AssertionError(e); }
     }
 

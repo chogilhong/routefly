@@ -1984,6 +1984,7 @@ eq("favJoinExtra 제목이 없으면 지금 이름의 길", [RF.favJoinExtra("#c
     var a = box.kids[1];
     eq("제휴 표시 · 새 창", [a.href, a.rel, a.target], [url, "noopener sponsored", "_blank"]);
     eq("수수료 안내는 링크 앞(점검 10차 F1)", [box.kids[0].tag, box.kids[0].textContent.indexOf("[제휴]") === 0, box.kids[0].textContent.indexOf("routefly 가 수수료를 받습니다") > 0], ["small", true, true]);
+    eq("\"(값은 같음)\" 은 뺌(2026-11-20 홍TV님 \"빼도 됨\")", box.kids[0].textContent, "[제휴] 쏘카 앱에서 예약하면 routefly 가 수수료를 받습니다. ");
     RF.socarLine(box, url, "iPhone", "🚗 포인트까지 대중교통이 없으면 쏘카 ›");
     eq("글을 바꿀 수 있음(tidefly)", box.kids[1].textContent, "🚗 포인트까지 대중교통이 없으면 쏘카 ›");
     delete sandbox.document;
