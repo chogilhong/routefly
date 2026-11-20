@@ -822,6 +822,7 @@
     // ── ⛑️ 오늘의 산행 안전(api/safety - SafetyServlet) - 별거 별거 · 산 페이지 · 따라가기가 함께 씀(2026-10-18 홍TV님) ──
     var UV_WORD = [[2, "낮음", "Low"], [5, "보통", "Moderate"], [7, "높음", "High"], [10, "매우 높음", "Very high"], [99, "위험", "Extreme"]];
     var WARN_EN = { "강풍": "Strong wind", "호우": "Heavy rain", "한파": "Cold wave", "건조": "Dry air", "폭풍해일": "Storm surge", "풍랑": "High seas", "태풍": "Typhoon", "대설": "Heavy snow", "황사": "Yellow dust", "폭염": "Heat wave" };
+    var WARN_URL = "https://www.weather.go.kr/w/special-report/overall.do";   // 기상청 날씨누리 특보 현황(지도 · 지역)
     var FIRE_WORD = [["낮음", "Low"], ["다소 높음", "Moderate"], ["높음", "High"], ["매우 높음", "Very high"]];
     /** 순수 함수 - 특보 이름(영어 화면은 "강풍주의보" → "Strong wind advisory", 모르는 것은 그대로). */
     function warnName(t, en) {
@@ -841,7 +842,7 @@
             var mine = j.warn.lines.filter(function (l) { return l.mine; }), all = j.warn.lines.map(function (l) { return warnName(l.type, en); });
             if (mine.length) mine.forEach(function (l) { out.push({ icon: "⚠", label: warnName(l.type, en), val: t("내 지역 발효 중", "in effect here"), cls: "bad", alert: true }); });
             else out.push({ icon: "✅", label: t("기상특보", "Weather warnings"), val: t("발효 중인 특보 없음", "None in effect"), cls: "" });   // "내 지역 없음" 은 비가 안 온다는 뜻으로 읽혔음(2026-11-14 홍TV님)
-            if (all.length) out.push({ icon: "🗺", label: t("전국 특보", "Nationwide"), val: all.join(" · "), cls: "" });
+            if (all.length) out.push({ icon: "🗺", label: t("전국 특보", "Nationwide"), val: all.join(" · "), cls: "", href: WARN_URL });   // 누르면 기상청 특보 화면(지역은 늘어놓지 않음, 2026-11-20 홍TV님)
         }
         var rr = rainRow(j.rain, en);   // 🌧 레이더 비구름(2026-11-14 홍TV님) - 특보 다음
         if (rr) out.push(rr);
@@ -892,7 +893,9 @@
         var rows = safetyRows(j, Date.now(), en);
         rows.forEach(function (r) {
             var li = document.createElement("li"), sp = document.createElement("span"), b = document.createElement("b");
-            sp.textContent = r.icon + " " + r.label; b.textContent = r.val;
+            sp.textContent = r.icon + " " + r.label;
+            if (r.href) { var ln = document.createElement("a"); ln.href = r.href; ln.target = "_blank"; ln.rel = "noopener"; ln.textContent = r.val + " ↗"; ln.style.color = "var(--sky)"; b.appendChild(ln); }
+            else b.textContent = r.val;
             if (r.cls || r.wide) li.className = ((r.cls || "") + (r.wide ? " wide" : "")).trim();
             li.appendChild(sp); li.appendChild(b);
             ul.appendChild(li);

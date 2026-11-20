@@ -1516,6 +1516,7 @@ eq("calcEval 계산기", ["12+3×4", "10−4−3", "-3÷2", "50%", "200×15%", "
     var r = RF.safetyRows(j, noon, false);
     eq("safetyRows 줄", r.map(function (x) { return x.icon + x.label + "=" + x.val + "/" + x.cls; }),
         ["⚠강풍주의보=내 지역 발효 중/bad", "🗺전국 특보=강풍주의보 · 건조경보/", "🔥산불위험=높음 (61)/bad", "☀자외선(오늘 가장 높을 때)=8 매우 높음 · 지금 5/bad"]);
+    eq("전국 특보 줄만 기상청 특보 화면 링크", r.map(function (x) { return x.href || ""; }), ["", "https://www.weather.go.kr/w/special-report/overall.do", "", ""]);
     eq("safetyRows 저녁은 내일 자외선", RF.safetyRows(j, eve, false).pop().label + " " + RF.safetyRows(j, eve, false).pop().val, "자외선(내일 가장 높을 때) 6 높음");
     eq("safetyRows 영어", RF.safetyRows(j, noon, true).slice(0, 3).map(function (x) { return x.label + "=" + x.val; }),
         ["Strong wind advisory=in effect here", "Nationwide=Strong wind advisory · Dry air warning", "Wildfire risk=High (61)"]);
@@ -1987,6 +1988,18 @@ eq("favJoinExtra 제목이 없으면 지금 이름의 길", [RF.favJoinExtra("#c
     eq("\"(값은 같음)\" 은 뺌(2026-11-20 홍TV님 \"빼도 됨\")", box.kids[0].textContent, "[제휴] 쏘카 앱에서 예약하면 routefly 가 수수료를 받습니다. ");
     RF.socarLine(box, url, "iPhone", "🚗 포인트까지 대중교통이 없으면 쏘카 ›");
     eq("글을 바꿀 수 있음(tidefly)", box.kids[1].textContent, "🚗 포인트까지 대중교통이 없으면 쏘카 ›");
+    delete sandbox.document;
+})();
+
+// 🗺 전국 특보 줄을 누르면 기상청 특보 화면(2026-11-20 홍TV님 - 지역은 늘어놓지 않고 링크 하나)
+(function () {
+    function el(tag) { return { tag: tag, kids: [], appendChild: function (c) { this.kids.push(c); }, style: {}, set textContent(v) { this._t = v; this.kids = []; }, get textContent() { return this._t || ""; }, set innerHTML(v) { this.kids = []; } }; }
+    sandbox.document = { createElement: el };
+    var ul = el("ul");
+    RF.safetyRender(ul, null, { warn: { lines: [{ type: "대설주의보", areas: "제주도(제주도산지)", mine: true }, { type: "건조주의보", areas: "경상북도(울진평지)", mine: false }] } }, false);
+    var mine = ul.kids[0].kids[1], all = ul.kids[1].kids[1], a = all.kids[0];
+    eq("내 지역 줄은 글만", [mine.textContent, mine.kids.length], ["내 지역 발효 중", 0]);
+    eq("전국 특보 줄은 새 창 링크", [a && a.tag, a && a.href, a && a.target, a && a.rel, a && a.textContent], ["a", "https://www.weather.go.kr/w/special-report/overall.do", "_blank", "noopener", "대설주의보 · 건조주의보 ↗"]);
     delete sandbox.document;
 })();
 
