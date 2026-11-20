@@ -190,13 +190,13 @@ final class MountainEn {
                 + "Difficulty (Very easy to Very hard) is routefly's estimate from distance and ascent, not an official grade; 📈 Elevation shows the slope of each section like the park trail boards.</p></section>");
         String trails = b.substring(trails0);
         b.setLength(trails0);
-        b.append(MountainServlet.foldSec(trails, true));
+        b.append(MountainServlet.foldSec(trails));
         b.append(Ads.box("m", true));   // 광고 - 영어 산 페이지에도(설정이 있을 때만, 2026-10-29), 한국어처럼 FAQ 앞(2026-11-07)
         List<String[]> qa = faq(peak, name, courses, parking);
         StringBuilder f = new StringBuilder("<section class=\"faq\"><h2>").append(esc(name)).append(" FAQ</h2><dl>");
         for (String[] x : qa) f.append("<dt>").append(esc(x[0])).append("</dt><dd>").append(esc(x[1])).append("</dd>");
-        b.append(MountainServlet.foldSec(f.append("</dl></section>").toString(), false)).append(MountainServlet.faqLd(qa));
-        b.append(MountainServlet.foldSec(tips(), false));
+        b.append(MountainServlet.foldSec(f.append("</dl></section>").toString())).append(MountainServlet.faqLd(qa));
+        b.append(MountainServlet.foldSec(tips()));
         if (!nearby.isEmpty()) {
             b.append("<section><h2>Nearby famous mountains</h2><ul class=\"ms\">");
             for (Object[] n : nearby) {

@@ -1000,6 +1000,9 @@
             var d = t && t.querySelector("details.sec");
             if (d && !d.open) d.open = true;
         });
+        // 주소에 #trails 가 붙어 들어와도(공유 · 뒤로 가기) 접힌 그 칸을 펴고 그 자리로(2026-11-20 - 코스 칸도 처음에는 접어 둠)
+        var h = doc.location && doc.location.hash, t = h && h.length > 1 ? doc.getElementById(h.slice(1)) : null, d = t && t.querySelector("details.sec");
+        if (d && !d.open) { d.open = true; if (t.scrollIntoView) t.scrollIntoView(); }
     }
 
     // ------------------------------------------------------------------ 로마자(Roman.java 를 옮김 - 영어 화면의 지점 이름, 2026-10-16)

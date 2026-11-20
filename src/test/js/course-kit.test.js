@@ -1787,6 +1787,16 @@ eq("islands 차도 3km 넘으면 뺌", (function (I) { return [!!I.rejectReason(
     click({ target: { closest: function () { return { getAttribute: function () { return "#trails"; } }; } } });
     eq("코스 n개 바로 보기(#trails) - 접힌 코스 칸을 폄", trails.open, true);
 })();
+// 주소에 #trails 를 달고 들어오면 접힌 코스 칸을 펴고 그 자리로(2026-11-20 - 코스 칸도 처음에는 접어 둠)
+(function () {
+    var trails = { open: false }, went = false, sec = { querySelector: function (q) { return q === "details.sec" ? trails : null; }, scrollIntoView: function () { went = true; } };
+    RF.foldOne({ addEventListener: function () {}, location: { hash: "#trails" }, getElementById: function (id) { return id === "trails" ? sec : null; } });
+    eq("주소 #trails - 코스 칸을 펴고 그 자리로", [trails.open, went], [true, true]);
+    var other = { open: false };
+    RF.foldOne({ addEventListener: function () {}, location: { hash: "#c=k1" }, getElementById: function () { return null; } });
+    RF.foldOne({ addEventListener: function () {}, location: { hash: "" }, getElementById: function () { return { querySelector: function () { return other; } }; } });
+    eq("다른 주소 · 빈 주소는 그대로", other.open, false);
+})();
 // 공단 시간이 선보다 긴 공식 구간 것(2026-10-30 점검: 설악산 소공원 → 희운각 1.47km 에 오름 230분)
 eq("infoPartial", [RF.infoPartial({ up_min: 230 }, 1467), RF.infoPartial({ up_min: 150 }, 2670), RF.infoPartial({ up_min: 230 }, null), RF.infoPartial(null, 1000)], [true, false, false, false]);
 eq("infoText 일부면 덧붙임", [/전체 구간 기준/.test(RF.infoText({ up_min: 230, down_min: 160 }, 1467)), /전체 구간 기준/.test(RF.infoText({ up_min: 150 }, 2670))], [true, false]);
