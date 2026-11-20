@@ -76,7 +76,9 @@ public class PartnersServletTest {
                 + "\"start_lat\":35.80,\"start_lon\":128.09,\"end_lat\":35.8226,\"end_lon\":128.1229}").getAsJsonObject();
         String page = MountainServlet.page(peak, new java.util.ArrayList<>(java.util.List.of(c)), new java.util.ArrayList<>(), null, "", java.time.LocalDate.now(WeatherServlet.KST).getMonthValue());
         int so = page.indexOf("<p class=\"stays\" id=\"socar\" hidden></p>");
-        assertTrue("코스 목록 아래 숨긴 쏘카 칸 - 안내 글(찜 · 예상 시간) 아래", so > page.indexOf("</ul>") && so > page.indexOf("<p class=\"dim\">예상 시간은 "));
+        assertTrue("숨긴 쏘카 칸 - 🏨 근처 숙소 찾기 칸 바로 아래(2026-11-20 홍TV님 \"제일 하단 근처 숙소 찾기 아래로\")",
+                so > 0 && page.startsWith("<p class=\"stays\" id=\"socar\"", page.indexOf("<div id=\"ssOut\" aria-live=\"polite\"></div></div></details></section>") + "<div id=\"ssOut\" aria-live=\"polite\"></div></div></details></section>".length()));
+        assertEquals("한 번만", so, page.lastIndexOf("<p class=\"stays\" id=\"socar\""));
         try {
             assertTrue("아래 칸과 띄움", java.nio.file.Files.readString(java.nio.file.Path.of("src/main/webapp/css/mountain.css")).contains("#socar { margin-bottom:28px; }"));
         } catch (java.io.IOException e) { throw new AssertionError(e); }

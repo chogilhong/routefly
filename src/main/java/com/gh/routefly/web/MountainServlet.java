@@ -634,7 +634,7 @@ public class MountainServlet extends HttpServlet {
      */
     static String shortsBlock(JsonObject peak, boolean en) {
         if (!peak.has("shorts") || !peak.get("shorts").isJsonArray()) return "";
-        StringBuilder b = new StringBuilder("<section class=\"shorts\"><h2>").append(en ? "▶ Story of this mountain (YouTube Shorts, in Korean)" : "▶ 이 산 이야기(유튜브 쇼츠)").append("</h2><ul class=\"tips\">");
+        StringBuilder b = new StringBuilder("<section class=\"shorts\"><h2>").append(en ? "▶ Story of this mountain (in Korean)" : "▶ 이 산 이야기").append("</h2><ul class=\"tips\">");
         for (JsonElement e : peak.getAsJsonArray("shorts")) {
             JsonObject v = e.getAsJsonObject();
             String vid = str(v, "id");
@@ -1015,6 +1015,12 @@ public class MountainServlet extends HttpServlet {
      * 🏨 근처 숙소 찾기 칸(산 페이지). "🏨 근처 숙소(트립닷컴) ›" 한 줄은 뺌(2026-11-03 홍TV님 - 찾기 칸에 트립닷컴 · 아고다 · 호텔스컴바인이 다 있음).
      * 코스 모음(/m/)처럼 검색 칸을 처음부터 펴 두고, 접어도 검색 칸은 남김(2026-11-03 홍TV님 "아래 검색 창만 남겨. 코스 모음 처럼"). 산 이름(숙박 거점)은 미리 채움.
      */
+    /**
+     * 🚗 쏘카 한 줄 자리(설정 partner.socar.url 이 있고 휴대폰일 때 mountain.js 가 채움, 2026-11-03) - 🏨 근처 숙소 찾기 칸 바로 아래
+     * (2026-11-20 홍TV님 "쏘카는 제일 하단 근처 숙소 찾기 아래로", 전에는 코스 안내 글 아래). 코스가 있는 산만.
+     */
+    static final String SOCAR = "<p class=\"stays\" id=\"socar\" hidden></p>";
+
     static String staysBlock(JsonObject peak, boolean en) {
         return staySearchBox(stayPrefill(str(peak, "id") != null ? str(peak, "id") : str(peak, "name")), en);
     }
@@ -1202,7 +1208,7 @@ public class MountainServlet extends HttpServlet {
         b.append("<section id=\"safe\"><h2>⛑️ 오늘의 산행 안전</h2><ul class=\"wl sfl\" id=\"sfList\"><li><span>기상특보 · 레이더 비구름 · 산불위험 · 자외선 · 가까운 응급실을 이 칸에서 봅니다.</span></li></ul>")
                 .append("<h3>🏥 가까운 응급실</h3><ul class=\"wl\" id=\"sfEr\"></ul><p class=\"dim\">기상특보 · 레이더 비구름(15km 안 관측 지점, 10분마다) · 자외선은 기상청, 산불위험은 산림청, 응급실은 국립중앙의료원 자료(지역은 가장 가까운 응급실 주소로). 위급하면 <b>119</b>.</p></section>");
         b.append(Shelters.block(Shelters.current(), Shelters.ofPark(Shelters.current(), name), REL, false));   // 🏠 국립공원 대피소 · 예약(2026-11-19 홍TV님) - 대피소가 있는 산만
-        if (overnight(peak)) b.append(staysBlock(peak, false));   // 1박이 많은 산은 숙소 줄을 위로(2026-10-29 홍TV님 "작업해")
+        if (overnight(peak)) b.append(staysBlock(peak, false)).append(courses.isEmpty() ? "" : SOCAR);   // 1박이 많은 산은 숙소 줄을 위로(2026-10-29 홍TV님 "작업해")
         b.append(fishLine(peak, false));   // 바다 가까운 산 → tidefly(점검 10차 E5)
         int trails0 = b.length();   // 코스 칸 - 아래 안내 글까지 한 칸으로 접음(foldSec, 처음에는 펴 둠)
         b.append("<section id=\"trails\"><h2>코스 ").append(courses.size()).append("개</h2>");
@@ -1247,8 +1253,6 @@ public class MountainServlet extends HttpServlet {
         String trails = b.substring(trails0);
         b.setLength(trails0);
         b.append(foldSec(trails, true));
-        // 🚗 쏘카 한 줄(설정 partner.socar.url 이 있고 휴대폰일 때 mountain.js 가 채움, 2026-11-03) - 안내 글 아래(2026-11-03 홍TV님 "안내문구 아래로")
-        if (!courses.isEmpty()) b.append("<p class=\"stays\" id=\"socar\" hidden></p>");
         if (!seasonUp) b.append(foldSec(seasonBlock(peak, name, month), false));   // 🌸 벚꽃 · 🌺 철쭉 · 🍁 단풍 시기 - 철이 아니면 여기(기상청 관측이 있는 산만, 2026-11-14 홍TV님 "만들어 보자")
         b.append(foldSec(reasonBlock(peak, name), false));   // 산림청 선정 이유(data/mountain-info.json 이 있을 때만, 2026-11-07)
         // 광고 한 칸(설정이 있을 때만, 2026-10-28) - 코스 목록 다음 · 자주 묻는 질문 앞(2026-11-07 전체 점검 4단계: 맨 아래라 거의 안 보였음).
@@ -1270,7 +1274,7 @@ public class MountainServlet extends HttpServlet {
             }
             b.append("</ul></section>");
         }
-        if (!overnight(peak)) b.append(staysBlock(peak, false));   // 🏨 근처 숙소 - 1박 산은 위(날씨 · 안전 아래)에
+        if (!overnight(peak)) b.append(staysBlock(peak, false)).append(courses.isEmpty() ? "" : SOCAR);   // 🏨 근처 숙소 - 1박 산은 위(날씨 · 안전 아래)에
         b.append(foot(base, REL + enPath));
         return b.toString();
     }
