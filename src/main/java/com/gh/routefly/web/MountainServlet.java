@@ -1179,6 +1179,7 @@ public class MountainServlet extends HttpServlet {
         if (closed(peak) != null) b.append("<p class=\"closedNote\">⛔ ").append(esc(closed(peak))).append("</p>");
         // 코스 목록은 날씨 · 챙길 것 · 안전 · 숙소 칸 아래라 한 번에 내려가는 링크(2026-11-02 홍TV님 점검: 폰에서 코스를 찾느라 길게 밀었음).
         // 설명 바로 아래 - 날씨 칸 아래에 두었더니 화면이 그 아래 넣는 🎒 챙길 것에 밀려 첫 화면 밖으로 나갔음(점검 6차)
+        b.append(shortsBlock(peak, false));   // ▶ 이 산 이야기(유튜브 쇼츠, data/shorts.json) - "코스 n개 바로 보기" 바로 위(2026-11-20 홍TV님 "바로 위로 옮겨줘", 전에는 선정 이유 아래)
         if (!courses.isEmpty()) b.append("<p class=\"jump\"><a href=\"#trails\">🥾 코스 ").append(courses.size()).append("개 바로 보기 ↓</a></p>");
         b.append(APP_SLOT);   // 원스토어 띠도 첫 화면에(2026-11-10 홍TV님 "제일 아래에 있네") - foot 의 칸은 js 가 맨 앞 칸 하나만 채워 두 번 안 나옴
         boolean seasonUp = seasonNow(peak, month);   // 지금 철(그 산에 관측이 있는 벚꽃 · 철쭉 · 단풍)이면 칸을 첫 화면(날씨 칸 위)으로(2026-11-14 홍TV님 "제철에 보여주는 거야?")
@@ -1234,7 +1235,6 @@ public class MountainServlet extends HttpServlet {
         if (!courses.isEmpty()) b.append("<p class=\"stays\" id=\"socar\" hidden></p>");
         if (!seasonUp) b.append(seasonBlock(peak, name, month));   // 🌸 벚꽃 · 🌺 철쭉 · 🍁 단풍 시기 - 철이 아니면 여기(기상청 관측이 있는 산만, 2026-11-14 홍TV님 "만들어 보자")
         b.append(reasonBlock(peak, name));   // 산림청 선정 이유(data/mountain-info.json 이 있을 때만, 2026-11-07)
-        b.append(shortsBlock(peak, false));   // ▶ 이 산 이야기(유튜브 쇼츠, data/shorts.json - 2026-11-19 홍TV님)
         // 광고 한 칸(설정이 있을 때만, 2026-10-28) - 코스 목록 다음 · 자주 묻는 질문 앞(2026-11-07 전체 점검 4단계: 맨 아래라 거의 안 보였음).
         // 코스 단추 · 따라가기와 붙지 않게 안내 글 뒤에, 한 페이지 한 칸만
         b.append(Ads.box("m"));

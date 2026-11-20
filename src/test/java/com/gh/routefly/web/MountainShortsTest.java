@@ -47,6 +47,14 @@ public class MountainShortsTest {
         assertTrue(MountainServlet.page(gyeryong, new ArrayList<>(), new ArrayList<>(), null, "", 11).contains("youtube.com/shorts/2k---SG4jbU"));
         assertTrue(MountainEn.page(gyeryong, new ArrayList<>(), new ArrayList<>(), null, "https://r.kr").contains("youtube.com/shorts/2k---SG4jbU"));
         assertFalse(MountainServlet.page(gaya, new ArrayList<>(), new ArrayList<>(), null, "", 11).contains("class=\"shorts\""));
+        // 자리: "코스 n개 바로 보기" 바로 위(2026-11-20 홍TV님) - 코스가 있을 때 쇼츠 칸 끝 바로 뒤가 바로 보기 줄
+        JsonObject c = new JsonObject();
+        c.addProperty("course_id", "knps-2016-e8499de1");
+        c.addProperty("name", "계룡산 · 삼불봉 → 관음봉");
+        c.addProperty("distance_m", 1820);
+        String withCourse = MountainServlet.page(gyeryong, new ArrayList<>(java.util.List.of(c)), new ArrayList<>(), null, "", 11);
+        assertTrue(withCourse.contains("</ul></section><p class=\"jump\"><a href=\"#trails\">🥾 코스 1개 바로 보기 ↓</a></p>"));
+        assertTrue(MountainEn.page(gyeryong, new ArrayList<>(java.util.List.of(c)), new ArrayList<>(), null, "https://r.kr").contains("</ul></section><p class=\"jump\"><a href=\"#trails\">🥾 See the 1 trail"));
         // 이상한 영상 ID 는 링크로 만들지 않음
         JsonObject bad = JsonParser.parseString("{\"shorts\":[{\"id\":\"x\\\" onclick=\\\"y\",\"title\":\"t\"}]}").getAsJsonObject();
         assertFalse(MountainServlet.shortsBlock(bad, false).contains("<li>"));

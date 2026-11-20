@@ -144,6 +144,7 @@ final class MountainEn {
         if (MountainServlet.closed(peak) != null)   // 대암산 - 한국어 페이지의 ⛔ 와 같은 뜻(2026-10-18)
             b.append("<p class=\"closedNote\">⛔ The summit area is a restricted zone. Trails go only as far as the marked point below the summit (Korea Forest Service).</p>");
         // 설명 바로 아래 - 날씨 칸 위(한국어 페이지와 같은 자리, 2026-11-03 홍TV님 점검: 날씨 칸 뒤라 첫 화면 밖이었음)
+        b.append(MountainServlet.shortsBlock(peak, true));   // ▶ 이 산 이야기(한국어 쇼츠) - 한국어 페이지와 같게 "See the n trails" 바로 위(2026-11-20)
         if (!courses.isEmpty()) b.append("<p class=\"jump\"><a href=\"#trails\">🥾 See the ").append(courses.size()).append(courses.size() == 1 ? " trail" : " trails").append(" ↓</a></p>");
         b.append("<section id=\"wx\" data-lat=\"").append(peak.get("lat").getAsDouble()).append("\" data-lon=\"").append(peak.get("lon").getAsDouble())
                 .append("\"><h2>Weather · Air quality · Sunrise &amp; Sunset</h2><div class=\"days\" role=\"group\" aria-label=\"Pick a day\"></div><p class=\"dim\" id=\"wxBody\">Weather, air quality, sunrise and sunset (KMA · AirKorea) for today and the next few days appear here.</p></section>");
@@ -201,7 +202,6 @@ final class MountainEn {
             }
             b.append("</ul></section>");
         }
-        b.append(MountainServlet.shortsBlock(peak, true));   // ▶ 이 산 이야기(한국어 쇼츠 - 한국어 페이지와 같은 자료, 2026-11-19)
         if (!MountainServlet.overnight(peak)) b.append(MountainServlet.staysBlock(peak, true));   // 🏨 Stays nearby(js/mountain-en.js, 2026-10-29) - 1박 산은 위에
         return b.append(foot(REL + "/m/" + MountainServlet.enc(ko))).toString();
     }
