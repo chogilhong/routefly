@@ -72,7 +72,21 @@ public class ReviewRound3Test {
     @Test
     public void staysLinkSameAsJs() {
         // 2026-11-04 홍TV님 "코스 페이지도 똑같이": 코스 페이지(/c/)의 서버 트립닷컴 한 줄(Stays)은 빼고 산 페이지처럼 숙소 찾기 칸만 - CourseStaySearchTest
-        assertTrue("1박 산은 위로", MountainServlet.overnight(com.google.gson.JsonParser.parseString("{\"id\":\"한라산\"}").getAsJsonObject()));
+        // 2026-11-21 홍TV님 "다른 산들도 한라산 처럼 위로": 1박 산만 위였던 숙소 칸 · 쏘카를 모든 산에서 안전 칸 아래 · 코스 칸 위로(한국어 · 영어)
+        com.google.gson.JsonObject gaya = null;
+        try (java.io.Reader r = java.nio.file.Files.newBufferedReader(java.nio.file.Path.of("src/main/webapp/data/mountains100.json"))) {
+            for (com.google.gson.JsonElement e : com.google.gson.JsonParser.parseReader(r).getAsJsonObject().getAsJsonArray("peaks"))
+                if ("가야산".equals(e.getAsJsonObject().get("id").getAsString())) gaya = e.getAsJsonObject();
+        } catch (java.io.IOException e) {
+            fail(e.toString());
+        }
+        String ko = MountainServlet.page(gaya, new java.util.ArrayList<>(), new java.util.ArrayList<>(), null, "", 11);
+        int safe = ko.indexOf("id=\"safe\""), stay = ko.indexOf("id=\"staySearch\""), trails = ko.indexOf("id=\"trails\"");
+        assertTrue(ko.indexOf("id=\"staySearch\"", stay + 1) < 0);
+        assertTrue("숙소 칸은 안전 아래 · 코스 위", safe > 0 && safe < stay && stay < trails);
+        String en = MountainEn.page(gaya, new java.util.ArrayList<>(), new java.util.ArrayList<>(), null, "https://r.kr");
+        int eSafe = en.indexOf("id=\"safe\""), eStay = en.indexOf("id=\"staySearch\""), eTrails = en.indexOf("id=\"trails\"");
+        assertTrue("영어도", eSafe > 0 && eSafe < eStay && eStay < eTrails);
     }
 
     @Test
