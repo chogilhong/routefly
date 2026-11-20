@@ -17,8 +17,8 @@ public class MountainFoldTest {
         assertEquals("꼴이 다르면 그대로", "<p>x</p>", MountainServlet.foldSec("<p>x</p>", false));
         // 안전 팁 함수 자체는 그대로(코스 페이지 · 목록이 펼친 채 씀) - 산 페이지에서만 접음
         assertTrue(MountainServlet.tips().startsWith("<section><h2>⚠ 산행 안전 팁</h2>"));
-        // 🥾 코스 n개 바로 보기는 로고 초록(2026-11-20 홍TV님 "파란색이 많이 보이는 것 같아")
+        // 🥾 코스 n개 바로 보기는 빨강 계열(2026-11-20 홍TV님 "빨강색 계통으로")
         String css = java.nio.file.Files.readString(java.nio.file.Path.of("src/main/webapp/css/mountain.css"));
-        assertTrue(css.contains(".jump a { display:inline-flex; align-items:center; min-height:44px; padding:0 14px; border-radius:22px; border:1px solid rgba(101,201,38,0.45); background:rgba(101,201,38,0.10); color:#65c926;"));
+        assertTrue(css.contains(".jump a { display:inline-flex; align-items:center; min-height:44px; padding:0 14px; border-radius:22px; border:1px solid rgba(255,135,135,0.5); background:rgba(232,80,91,0.12); color:#ff8787;"));
     }
 }
