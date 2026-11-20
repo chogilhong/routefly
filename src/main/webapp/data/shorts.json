@@ -1,5 +1,5 @@
 {
- "_note": "산 페이지 ▶ 이 산 이야기(유튜브 쇼츠) - 홍TV님이 올린 영상(2026-11-19 1차 docs/youtube/name-stories-1.md, 2026-11-20 2차 name-stories-2.md · 3차 name-stories-3.md). 산 id(mountains100.json) → [{id: 유튜브 영상 ID, title}]. 새 영상을 올리면 여기에 더합니다.",
+ "_note": "산 페이지 ▶ 이 산 이야기(유튜브 쇼츠) - 홍TV님이 올린 영상(2026-11-19 1차 docs/youtube/name-stories-1.md, 2026-11-20 2차 name-stories-2.md · 3차 name-stories-3.md · 4차 name-stories-4.md). 산 id(mountains100.json) → [{id: 유튜브 영상 ID, title}]. 새 영상을 올리면 여기에 더합니다.",
  "videos": {
   "계룡산": [
    {
@@ -53,6 +53,24 @@
    {
     "id": "YqF5uYwjozc",
     "title": "칠갑산의 \"칠\" 은 무슨 뜻? 일곱 명당의 산"
+   }
+  ],
+  "지리산": [
+   {
+    "id": "_MSO7LUwR9A",
+    "title": "머물면 지혜로워지는 산? 지리산 이름 이야기"
+   }
+  ],
+  "적상산": [
+   {
+    "id": "BhXpOKC9Ii4",
+    "title": "가을이면 빨간 치마를 입는 산? 적상산 이름 이야기"
+   }
+  ],
+  "오대산": [
+   {
+    "id": "PylJsavPMAM",
+    "title": "연꽃처럼 둘러선 다섯 봉우리, 오대산 이름 이야기"
    }
   ]
  }
