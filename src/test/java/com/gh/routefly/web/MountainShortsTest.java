@@ -31,13 +31,14 @@ public class MountainShortsTest {
             for (JsonElement e : peaks) found |= id.equals(e.getAsJsonObject().get("id").getAsString());
             assertTrue(id, found);
         }
-        // 2판(Vrew · 밝은 판)으로 다시 올린 영상(2026-11-20 - docs/youtube/v2/): 계룡산 Elzwl8pQ8vQ(아래) · 공작산 dHGzzqRUsCE · 금산 eWfqp97Uwco · 가리왕산 bFC_tTjoaFA · 명성산 Vq2UPp31dtM · 용문산 wyo-8TdOXsQ · 강천산 icz6CCy-hBE
+        // 2판(Vrew · 밝은 판)으로 다시 올린 영상(2026-11-20 - docs/youtube/v2/): 계룡산 Elzwl8pQ8vQ(아래) · 공작산 dHGzzqRUsCE · 금산 eWfqp97Uwco · 가리왕산 bFC_tTjoaFA · 명성산 Vq2UPp31dtM · 용문산 wyo-8TdOXsQ · 강천산 icz6CCy-hBE · 오봉산 VwPdgUtgg0g
         assertEquals("dHGzzqRUsCE", videos.getAsJsonArray("공작산").get(0).getAsJsonObject().get("id").getAsString());
         assertEquals("eWfqp97Uwco", videos.getAsJsonArray("금산").get(0).getAsJsonObject().get("id").getAsString());
         assertEquals("bFC_tTjoaFA", videos.getAsJsonArray("가리왕산").get(0).getAsJsonObject().get("id").getAsString());
         assertEquals("Vq2UPp31dtM", videos.getAsJsonArray("명성산").get(0).getAsJsonObject().get("id").getAsString());
         assertEquals("wyo-8TdOXsQ", videos.getAsJsonArray("용문산").get(0).getAsJsonObject().get("id").getAsString());
         assertEquals("icz6CCy-hBE", videos.getAsJsonArray("강천산").get(0).getAsJsonObject().get("id").getAsString());
+        assertEquals("VwPdgUtgg0g", videos.getAsJsonArray("오봉산").get(0).getAsJsonObject().get("id").getAsString());
         MountainServlet.withShorts(peaks, videos);
         JsonObject gyeryong = null, gaya = null;
         for (JsonElement e : peaks) {
