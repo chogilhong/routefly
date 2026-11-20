@@ -191,3 +191,9 @@ course.submitDir=
 # 받은 물때(예측은 바뀌지 않음)를 남길 폴더. 비우면 stats.dir/tidefly-cache, stats.dir 도 비면 톰캣 폴더(catalina.base)/routefly-tidefly-cache.
 # 톰캣이 쓸 수 있는 폴더여야 함(2026-11-15 운영 /opt/tomcat 은 AccessDenied - 다시 뜰 때마다 15일치를 처음부터 받았음).
 #tidefly.cacheDir=
+
+# ---------------------------------------------------------------- 🎙 목소리 만들기(/check/voice, 운영자만 - stats.key 열쇠 · /stats 보기 쿠키, 2026-11-21)
+# 산 이야기 해설 목소리(Vrew 대신). Microsoft Azure 음성(Speech) 리소스 - 무료 등급(F0)은 한 달 신경망 목소리 50만 자, 넘으면 멈춤(돈이 나가지 않음).
+# 키와 지역(리소스를 만든 곳, 예: koreacentral)은 Azure 포털 "키 및 엔드포인트" 에서. 값은 운영 서버 · PC 설정에만(저장소 · 대화에 적지 않음). 비우면 화면이 "설정이 없습니다".
+#voice.azure.key=
+#voice.azure.region=
