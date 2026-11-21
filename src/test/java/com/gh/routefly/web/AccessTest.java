@@ -45,6 +45,26 @@ public class AccessTest {
     }
 
     @Test
+    public void botUserAgentsGroupedAcrossManyAddresses() {
+        // 2026-11-21: "그 밖의 로봇" 이 주소 1,800곳에 1 ~ 2화면씩 나눠 /c/ 를 긁음 - 많이 연 곳 표에는 안 나오니 글별로 묶어 이름을 봄(테스트용 글)
+        Access.reset();
+        long t = System.currentTimeMillis();
+        String bot = "Mozilla/5.0 (compatible; ExampleBot/1.0; +https://example.com/bot)";
+        assertEquals("그 밖의 로봇", Access.kind(bot, null, false));
+        for (int i = 0; i < 30; i++) Access.page("/c/x" + i, "203.0.113." + i, bot, null, false, t);
+        Access.page("/c/y", "203.0.113.200", bot + "<script>", null, false, t);
+        Access.page("/m/설악산", "198.51.100.7", NEW, "ko-KR", false, t);   // 사람은 이 표에 안 나옴
+        String h = Access.section(t);
+        assertTrue("30곳이 한 줄", h.contains("<td>그 밖의 로봇</td><td style=\"word-break:break-all\">" + ShareServlet.esc(bot) + "</td><td class=\"num\">30</td><td class=\"num\">30</td>"));
+        assertTrue("글은 이스케이프", h.contains("&lt;script&gt;") && !h.contains("<script>"));
+        String part = h.substring(h.indexOf("로봇 브라우저 글"), h.indexOf("결과 번호"));
+        assertFalse("사람 글은 이 표에 없음", part.contains(ShareServlet.esc(NEW)));
+        assertFalse("주소는 내보내지 않음", h.contains("203.0.113"));
+        assertTrue("없는 날은 없음", Access.uaTable(java.util.List.of(), java.util.List.of("AI 수집"), 10).endsWith("<p class=\"dim\">없음</p>"));
+        Access.reset();
+    }
+
+    @Test
     public void statsPagePutsItUnderHumanCheckAndRefreshes() throws Exception {
         String page = StatsServlet.page(new java.util.TreeMap<>(), 30, java.util.Map.of());
         int check = page.indexOf("사람 확인"), access = page.indexOf("오늘 접속 분석"), daily = page.indexOf("<h2>날마다");

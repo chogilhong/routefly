@@ -196,6 +196,9 @@ final class Access {
                 b.append("<tr><td style=\"word-break:break-all\">").append(ShareServlet.esc(e.getKey())).append("</td><td class=\"num\">").append(e.getValue()[0]).append("</td><td class=\"num\">").append(e.getValue()[1]).append("</td></tr>");
             b.append("</table>");
         }
+        // 로봇 브라우저 글(2026-11-21 홍TV님 - 새벽부터 "그 밖의 로봇" 이 /c/ 를 주소 1,800곳에 나눠 긁음: 곳마다 1 ~ 2화면이라 위 "많이 연 곳" 에 안 나와 이름을 몰랐음)
+        // 그 밖의 로봇 · AI 수집을 브라우저 글별로 묶음 - 막을지(robots.txt · nginx) 정할 때 이름을 보려고. 로봇의 글이라 개인정보 아님
+        b.append(uaTable(sources.values(), List.of("그 밖의 로봇", "AI 수집"), 10));
         // 결과 번호 · 404 · 공격
         StringBuilder sb = new StringBuilder();
         for (var e : status.entrySet()) { if (sb.length() > 0) sb.append(" · "); sb.append(e.getKey()).append(" ").append(n(e.getValue())); }
@@ -206,6 +209,28 @@ final class Access {
         b.append("<p style=\"margin:0\">").append(atk.isEmpty() ? "🛡 공격 시도로 보이는 경로 없음" : "⚠ 공격 시도로 보이는 경로: " + ShareServlet.esc(join(top(atk, 5)))).append("</p>");
         b.append("<p class=\"dim\" style=\"margin:8px 0 0\">메모리에서만 셈 - 서버를 다시 켜면 처음부터. 주소는 그 날만 쓰는 해시. nginx 에서 막은 수집기(크롬 124)는 여기 오지 않음. 5분마다 저절로 새로 고침.</p></section>");
         return b.toString();
+    }
+
+    /** 순수 함수 - 그 종류의 곳들을 브라우저 글별로 묶은 표(화면 많은 차례 k 줄). 없으면 "없음". */
+    static String uaTable(java.util.Collection<Source> all, List<String> kinds, int k) {
+        Map<String, int[]> by = new HashMap<>();
+        for (Source s : all) {
+            if (!kinds.contains(s.kind)) continue;
+            int[] c = by.computeIfAbsent(s.kind + "\t" + (s.ua == null ? "(없음)" : s.ua), x -> new int[2]);
+            c[0] += s.pages;
+            c[1]++;
+        }
+        List<Map.Entry<String, int[]>> l = new ArrayList<>(by.entrySet());
+        l.sort((x, y) -> y.getValue()[0] != x.getValue()[0] ? y.getValue()[0] - x.getValue()[0] : x.getKey().compareTo(y.getKey()));
+        StringBuilder b = new StringBuilder("<p style=\"margin:10px 0 4px\"><b>로봇 브라우저 글</b> <span class=\"dim\">- ").append(String.join(" · ", kinds)).append("을 글별로 묶음(여러 곳에 나눠 와도 한 줄)</span></p>");
+        if (l.isEmpty()) return b.append("<p class=\"dim\">없음</p>").toString();
+        b.append("<table class=\"st\"><tr><th>종류</th><th>브라우저 글</th><th class=\"num\">화면</th><th class=\"num\">곳</th></tr>");
+        for (var e : l.subList(0, Math.min(k, l.size()))) {
+            String[] p = e.getKey().split("\t", 2);
+            b.append("<tr><td>").append(p[0]).append("</td><td style=\"word-break:break-all\">").append(ShareServlet.esc(p[1])).append("</td><td class=\"num\">").append(e.getValue()[0])
+                    .append("</td><td class=\"num\">").append(e.getValue()[1]).append("</td></tr>");
+        }
+        return b.append("</table>").toString();
     }
 
     private static <K> List<Map.Entry<K, Integer>> top(Map<K, Integer> m, int k) {
