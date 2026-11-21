@@ -155,8 +155,9 @@ public class CoursePageTest {
                 ShareServlet.page("t", "d", "https://r.kr/s/a", "https://r.kr/c/a", "https://r.kr/img/og.png", "https://r.kr/#c=a").contains("<link rel=\"canonical\" href=\"https://r.kr/c/a\">"));
         assertEquals("/c/", Stats.pageKey("/c/knps-77"));
         // AhrefsBot 은 전부 막음(2026-11-21 홍TV님 "막아" - /c/ 를 나눠 긁던 SEO 수집기), 그 밖은 API 만 빼고 그대로
-        assertTrue("AhrefsBot 막기 · 나머지는 그대로", SitemapServlet.robots("https://r.kr/routefly")
-                .startsWith("User-agent: AhrefsBot\nDisallow: /\n\nUser-agent: *\nDisallow: /routefly/api/\nAllow: /\nSitemap: https://r.kr/routefly/sitemap.xml\n"));
+        // SERankingBacklinksBot 도(2026-11-21 23시 /m/ 119번 - 홍TV님 "막아")
+        assertTrue("AhrefsBot · SERankingBacklinksBot 막기 · 나머지는 그대로", SitemapServlet.robots("https://r.kr/routefly")
+                .startsWith("User-agent: AhrefsBot\nDisallow: /\n\nUser-agent: SERankingBacklinksBot\nDisallow: /\n\nUser-agent: *\nDisallow: /routefly/api/\nAllow: /\nSitemap: https://r.kr/routefly/sitemap.xml\n"));
         assertTrue("다음 웹마스터도구 확인 줄은 robots.txt 맨 아래", SitemapServlet.robots("https://r.kr/routefly")
                 .endsWith("\n#DaumWebMasterTool:e657a6d3b5a3bc76c259c18ecd78af8ae7d569dcaca333f0644af9989bc4ec56:1T0ZRs6bn/unEVfM5aXupg==\n"));
         JsonObject gaya = JsonParser.parseString("{\"id\":\"가야산\",\"name\":\"가야산\",\"lat\":35.822544,\"lon\":128.122849}").getAsJsonObject();

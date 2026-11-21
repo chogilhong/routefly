@@ -99,8 +99,9 @@ public class SitemapServlet extends HttpServlet {
     /**
      * 막는 로봇(robots.txt 를 지키는 것만 - 지키지 않으면 nginx). AhrefsBot - SEO 분석 업체 수집기, 2026-11-21 새벽부터 코스 페이지(/c/)를
      * 1,800곳에 1 ~ 2화면씩 나눠 하루 3천 번 가까이 긁음(/stats 로봇 브라우저 글로 이름 확인) - 검색 노출과 상관없고 DB 만 읽음 → 홍TV님 "막아".
+     * SERankingBacklinksBot - SE Ranking(SEO 업체) 백링크 수집기, 2026-11-21 23:04 ~ 23:20 코스 모음(/m/)만 119번(한 곳) → 홍TV님 "막아".
      */
-    static final List<String> BLOCKED_BOTS = List.of("AhrefsBot");
+    static final List<String> BLOCKED_BOTS = List.of("AhrefsBot", "SERankingBacklinksBot");
 
     /** 순수 함수 - robots.txt(막는 로봇은 전부, 그 밖은 API 만 빼고, 사이트맵 주소, 다음 확인 줄). */
     static String robots(String base) {
