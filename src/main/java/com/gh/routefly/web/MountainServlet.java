@@ -1296,20 +1296,21 @@ public class MountainServlet extends HttpServlet {
                         .append(chipFor(c, dist, asc, steep, false)).append("</b>").append(madeLine(id, false)).append("<span>")
                         .append(String.format(Locale.ROOT, "%.2fkm", dist / 1000.0))
                         .append(asc != null ? String.format(Locale.KOREA, " · 오르막 %,dm", asc) : "")
-                        .append(SteepRank.slopeText(dist, asc, steep, false))   // 각도 · 경사 · 가파른 1km - 가파른 산 순위와 같은 기준(2026-10-18 홍TV님 "통일")
                         .append(" · 약 ").append(timeOf(c, false))
                         .append(str(c, "summit_miss") != null ? " · ⚠ " + esc(str(c, "summit_miss")) + " 정상 미포함" : "")   // 이름의 정상까지 안 가는 선(2026-10-30 코스 점검)
                         .append(str(c, "summit_off") != null ? " · ⚠ " + esc(str(c, "summit_off")) + " 정상에 안 감" : "")   // 이 산 정상을 안 지나는 옆 봉우리 코스(2026-11-20, markOff)
-                        .append("</span><span class=\"go\">")
-                        .append("<a href=\"").append(REL).append("/index.html?lang=ko#c=").append(esc(id)).append("&amp;m=").append(esc(enc(name))).append("\">fly(3D)</a>")
-                        .append("<a href=\"").append(REL).append("/hike.html?lang=ko#c=").append(esc(id)).append(revArg(c)).append("&amp;m=").append(esc(enc(name))).append("\">따라가기</a>");   // m= - 따라가기의 ‹ 가 이 화면으로
+                        // 줄 정리(2026-11-21 홍TV님 "고급지게" 2번): 거리 · 오르막 · 시간 · 난이도만 보이고(각도 · 경사는 코스 페이지 /c/ 에), 단추는 따라가기 하나 + 나머지는 "더 보기"
+                        .append("</span><div class=\"go\">")
+                        .append("<a class=\"main\" href=\"").append(REL).append("/hike.html?lang=ko#c=").append(esc(id)).append(revArg(c)).append("&amp;m=").append(esc(enc(name))).append("\">따라가기</a>")   // m= - 따라가기의 ‹ 가 이 화면으로
+                        .append("<details class=\"more\"><summary>더 보기</summary><div class=\"mo\">")
+                        .append("<a href=\"").append(REL).append("/index.html?lang=ko#c=").append(esc(id)).append("&amp;m=").append(esc(enc(name))).append("\">fly(3D)</a>");
                 double[] th = trailhead(c, peak);
                 if (th != null) b.append("<a class=\"way\" href=\"").append(esc(kakaoTo(str(peak, "name") + " 들머리", th)))
                         .append("\" target=\"_blank\" rel=\"noopener\">🚌 가는 길</a>");   // 카카오맵 길찾기(대중교통 · 차)
                 if (th != null) b.append(tmapA(str(peak, "name") + " 들머리", th, "way"));   // 🚗 티맵(휴대폰만, 2026-11-09)
                 if (th != null) b.append("<a class=\"way kmap\" href=\"").append(esc(kakaoRoad(th)))
                         .append("\" target=\"_blank\" rel=\"noopener\" title=\"들머리 근처 실제 사진(카카오맵 로드뷰) - 처음 가는 입구를 미리\">로드뷰</a>");   // 2026-11-02 홍TV님
-                b.append("</span></li>");
+                b.append("</div></details></div></li>");   // 📈 고도 · ⚖️ 견주기도 js 가 .mo 에 넣음(course-kit boardButtons · cmp)
             }
             b.append("</ul>");
         }

@@ -1241,7 +1241,7 @@
     /** 산 페이지 코스마다 "📈 고도" - 누르면 그 코스 자료(api/course)를 받아 안내판 그래프를 펼침. rel - 앱 뿌리 상대 주소, en - 영어. */
     function boardButtons(rel, en) {
         Array.prototype.forEach.call(document.querySelectorAll(".cs li[data-id]"), function (li) {
-            var go = li.querySelector(".go");
+            var go = li.querySelector(".go .mo") || li.querySelector(".go");   // 산 페이지는 "더 보기" 안(2026-11-21 줄 정리)
             if (!go) return;
             var btn = el("button", "boardBtn", en ? "📈 Elevation" : "📈 고도"), box = el("div", "board rfBoardBox"), loaded = false;
             btn.type = "button";
@@ -1383,7 +1383,7 @@
             panel.scrollIntoView({ behavior: "smooth", block: "start" });
         }
         Array.prototype.forEach.call(list.querySelectorAll("li[data-id]"), function (li) {
-            var go = li.querySelector(".go");
+            var go = li.querySelector(".go .mo") || li.querySelector(".go");   // 산 페이지는 "더 보기" 안(2026-11-21 줄 정리)
             if (!go) return;
             var b = el("button", "cmpBtn", en ? "⚖️ Compare" : "⚖️ 견주기");
             b.type = "button";

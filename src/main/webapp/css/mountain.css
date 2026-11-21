@@ -287,3 +287,10 @@ ol.ms { margin:0; padding:0; list-style:none; }
 .story .hook { margin:0 0 6px; font-size:17px; font-weight:bold; color:#ffd54f; }
 .story .watch { display:inline-flex; align-items:center; min-height:44px; padding:0 16px; border-radius:22px; border:1px solid var(--sky); color:var(--tx); text-decoration:none; font-weight:bold; font-size:14.5px; margin:4px 0 8px; }
 .story .src { margin:0; font-size:12px; color:var(--dim); }
+/* 코스 줄 정리(2026-11-21 홍TV님 "고급지게" 2번) - 따라가기 하나를 크게, 나머지(fly(3D) · 가는 길 · 티맵 · 로드뷰 · 📈 고도 · ⚖️ 견주기)는 "더 보기" 안 */
+.cs .go a.main { background:var(--sky); border-color:var(--sky); color:#062b30; font-weight:bold; }
+.cs .go details.more > summary { list-style:none; display:inline-flex; align-items:center; min-height:44px; box-sizing:border-box; padding:0 12px; border:1px solid var(--ln); border-radius:22px; color:var(--dim); font-size:14.5px; cursor:pointer; }
+.cs .go details.more > summary::-webkit-details-marker { display:none; }
+.cs .go details.more[open] { flex-basis:100%; }
+.cs .go details.more[open] > summary { color:var(--tx); }
+.cs .go .mo { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; margin-top:8px; }

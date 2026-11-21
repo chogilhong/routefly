@@ -174,17 +174,18 @@ final class MountainEn {
                         .append(esc(courseName(str(c, "name")))).append(" ").append(MountainServlet.chipFor(c, dist, asc, steep, true)).append(" <small lang=\"ko\">").append(esc(str(c, "name"))).append("</small></b>").append(MountainServlet.madeLine(id, true)).append("<span>")
                         .append(String.format(Locale.ROOT, "%.2f km", dist / 1000.0))
                         .append(asc != null ? String.format(Locale.US, " · %,d m ascent", asc) : "")
-                        .append(SteepRank.slopeText(dist, asc, steep, true))   // 순위와 같은 기준(2026-10-18)
                         .append(" · about ").append(MountainServlet.timeOf(c, true))
                         // 이름의 정상까지 안 가는 선 - 한국어 산 페이지와 같은 경고(2026-11-07 전체 점검: 영어 페이지에만 빠져 있었음)
                         .append(str(c, "summit_miss") != null ? " · ⚠ does not reach " + esc(courseName(str(c, "summit_miss"))) + " (" + esc(str(c, "summit_miss")) + ")" : "")
                         .append(str(c, "summit_off") != null ? " · ⚠ does not reach the summit of " + esc(name) : "")   // 한국어 "정상에 안 감" 과 같게(2026-11-20)
-                        .append("</span><span class=\"go\">")
-                        .append("<a href=\"").append(REL).append("/index.html?lang=en#c=").append(esc(id)).append("&amp;m=").append(esc(MountainServlet.enc(id(peak)))).append("\">3D fly-through</a>")   // m= - 3D 의 ‹ 가 이 페이지로(한국어와 같게, 2026-11-07)
-                        .append("<a href=\"").append(REL).append("/hike.html?lang=en#c=").append(esc(id)).append(MountainServlet.revArg(c)).append("&amp;m=").append(esc(MountainServlet.enc(id(peak)))).append("\">Follow (GPS)</a>");   // 따라가기 영어 · ‹ 는 이 페이지로
+                        // 한국어와 같은 줄 정리(2026-11-21): 따라가기 하나 + "More", 각도 · 경사는 코스 페이지에
+                        .append("</span><div class=\"go\">")
+                        .append("<a class=\"main\" href=\"").append(REL).append("/hike.html?lang=en#c=").append(esc(id)).append(MountainServlet.revArg(c)).append("&amp;m=").append(esc(MountainServlet.enc(id(peak)))).append("\">Follow (GPS)</a>")   // 따라가기 영어 · ‹ 는 이 페이지로
+                        .append("<details class=\"more\"><summary>More</summary><div class=\"mo\">")
+                        .append("<a href=\"").append(REL).append("/index.html?lang=en#c=").append(esc(id)).append("&amp;m=").append(esc(MountainServlet.enc(id(peak)))).append("\">3D fly-through</a>");   // m= - 3D 의 ‹ 가 이 페이지로(한국어와 같게, 2026-11-07)
                 double[] th = MountainServlet.trailhead(c, peak);
                 if (th != null) b.append("<a class=\"way\" href=\"").append(esc(googleTo(th))).append("\" target=\"_blank\" rel=\"noopener\">🚌 Directions</a>");
-                b.append("</span></li>");
+                b.append("</div></details></div></li>");
             }
             b.append("</ul>");
             b.append("<p class=\"stays\" id=\"esim\" hidden></p>");   // 📶 Korea eSIM 한 줄(설정 partner.airalo.url 이 있을 때 mountain-en.js 가 채움, 2026-11-03)

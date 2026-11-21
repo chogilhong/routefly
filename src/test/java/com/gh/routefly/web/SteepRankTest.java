@@ -144,8 +144,9 @@ public class SteepRankTest {
         JsonObject c = course("A코스", 2180, 485, 41.0);
         c.addProperty("course_id", "x-1");
         String ko = MountainServlet.page(p, List.of(c), new ArrayList<>(), null, "", java.time.LocalDate.now(WeatherServlet.KST).getMonthValue()), en = MountainEn.page(p, List.of(c), new ArrayList<>(), null, "");
-        assertTrue("산 페이지 코스 줄", ko.contains("2.18km · 오르막 485m · 각도 12.5° · 경사 22.2% · 가파른 1km 41.0% · 약 "));
-        assertTrue(en.contains("2.18 km · 485 m ascent · angle 12.5° · grade 22.2% · steepest 1 km 41.0% · about "));
+        // 2026-11-21 홍TV님 "고급지게" 2번 - 산 페이지 코스 줄은 거리 · 오르막 · 시간만, 각도 · 경사는 코스 페이지(/c/ - CoursePageServlet 난이도 칸이 slopeText)로
+        assertTrue("산 페이지 코스 줄", ko.contains("2.18km · 오르막 485m · 약 ") && !ko.contains("각도 12.5°"));
+        assertTrue(en.contains("2.18 km · 485 m ascent · about ") && !en.contains("angle 12.5°"));
         assertTrue("난이도도 어려움", ko.contains("<i class=\"lv lv3\">어려움</i>"));
     }
 }
