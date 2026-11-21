@@ -56,10 +56,15 @@ public class MountainHeroTest {
         assertEquals("사진이 없으면 칸 없음", "", MountainServlet.heroBlock(peak(), "..", false));
         // 지금 넣어 둔 사진(PC 가 채움)은 모두 쓸 수 있는 것이고 파일도 있음
         JsonObject all = JsonParser.parseString(new String(Files.readAllBytes(Paths.get("src/main/webapp/data/hero.json")), StandardCharsets.UTF_8)).getAsJsonObject().getAsJsonObject("heroes");
-        for (String id : all.keySet()) {
-            JsonObject h = MountainServlet.heroOk(all.get(id));
-            assertNotNull(id, h);
-            assertTrue(id, Files.exists(Paths.get("src/main/webapp/" + h.get("src").getAsString())));
+        for (String id : all.keySet()) {   // 사진 하나 또는 여러 장(2026-11-21)
+            JsonArray list = all.get(id).isJsonArray() ? all.getAsJsonArray(id) : new JsonArray();
+            if (!all.get(id).isJsonArray()) list.add(all.get(id));
+            assertTrue(id, list.size() >= 1 && list.size() <= 5);
+            for (com.google.gson.JsonElement e : list) {
+                JsonObject h = MountainServlet.heroOk(e);
+                assertNotNull(id, h);
+                assertTrue(id, Files.exists(Paths.get("src/main/webapp/" + h.get("src").getAsString())));
+            }
         }
         assertTrue(new String(Files.readAllBytes(Paths.get("src/main/webapp/css/mountain.css")), StandardCharsets.UTF_8).contains(".hero img {"));
     }
@@ -80,5 +85,30 @@ public class MountainHeroTest {
         assertTrue(OgServlet.creditOk(null, "Choi Kwang-mo, CC0"));
         byte[] old = OgServlet.photoJpg(new String[] {"a", "b", "c"}, new String[] {"a", "b", "c"}, null, "x");
         assertTrue("사진을 못 읽으면 예전 그림(png)", old.length > 0 && !OgServlet.jpeg(old));
+    }
+
+    @Test
+    public void 여러_장_무작위() {   // 2026-11-21 홍TV님 "3~5개를 놓고 랜덤으로 보이면" - 진행해
+        String b = OK.replace("dutasan.jpg", "dutasan-2.jpg").replace("손명권", "김지호");
+        String bad = OK.replace("dutasan.jpg", "dutasan-3.jpg").replace("kogl1", "cc-by-sa");
+        JsonArray peaks = new JsonArray();
+        peaks.add(peak());
+        JsonObject heroes = new JsonObject();
+        heroes.add("두타산", JsonParser.parseString("[" + OK + "," + bad + "," + b + "]"));
+        MountainServlet.withHero(peaks, heroes);
+        JsonObject p = peaks.get(0).getAsJsonObject();
+        assertEquals("쓸 수 있는 것만(CC BY-SA 뺌)", 2, p.getAsJsonArray("heroes").size());
+        assertEquals("공유 그림은 첫 장", "img/hero/dutasan.jpg", p.getAsJsonObject("hero").get("src").getAsString());
+        String two = MountainServlet.heroBlock(p, "..", false, 1);
+        assertTrue("고른 사진의 출처", two.contains("src=\"../img/hero/dutasan-2.jpg\"") && two.contains("<figcaption>사진: ⓒ한국관광콘텐츠랩 - 김지호 (공공누리 제1유형)</figcaption>"));
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        for (int i = 0; i < 200; i++) seen.add(MountainServlet.heroBlock(p, "..", false).replaceAll("(?s).*src=\"\\.\\./(img/hero/[^\"]+)\".*", "$1"));
+        assertEquals("열 때마다 둘 가운데 하나", java.util.Set.of("img/hero/dutasan.jpg", "img/hero/dutasan-2.jpg"), seen);
+        JsonArray none = new JsonArray();
+        none.add(peak());
+        JsonObject h2 = new JsonObject();
+        h2.add("두타산", JsonParser.parseString("[" + bad + "]"));
+        MountainServlet.withHero(none, h2);
+        assertEquals("", MountainServlet.heroBlock(none.get(0).getAsJsonObject(), "..", false));
     }
 }

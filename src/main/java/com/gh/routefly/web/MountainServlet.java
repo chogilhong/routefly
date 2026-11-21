@@ -660,19 +660,34 @@ public class MountainServlet extends HttpServlet {
         return h;
     }
 
-    /** 순수 함수 - 산마다 대표 사진(hero)을 붙임(id 로 맞춤 - withShorts 와 같게). */
+    /**
+     * 순수 함수 - 산마다 대표 사진을 붙임(id 로 맞춤 - withShorts 와 같게). hero.json 의 값은 사진 하나({…}) 또는 여러 장([{…}, …], 2026-11-21 홍TV님
+     * "3~5개를 놓고 랜덤으로") - 쓸 수 있는 것만 heroes 로, 첫 장은 hero(공유 그림 바탕 - 같은 링크에 늘 같은 그림).
+     */
     static void withHero(JsonArray peaks, JsonObject heroes) {
         for (JsonElement e : peaks) {
             JsonObject o = e.getAsJsonObject();
             String id = str(o, "id") != null ? str(o, "id") : str(o, "name");
-            JsonObject h = id == null ? null : heroOk(heroes.get(id));
-            if (h != null) o.add("hero", h);
+            JsonElement v = id == null ? null : heroes.get(id);
+            JsonArray ok = new JsonArray();
+            if (v != null && v.isJsonArray()) for (JsonElement x : v.getAsJsonArray()) { if (heroOk(x) != null) ok.add(x); }
+            else if (heroOk(v) != null) ok.add(v);
+            if (ok.isEmpty()) continue;
+            o.add("hero", ok.get(0));
+            o.add("heroes", ok);
         }
     }
 
-    /** 순수 함수 - 산 페이지 맨 위 대표 사진 칸(사진이 없으면 ""). rel - 앱 뿌리 상대 주소. 출처는 사진 바로 아래. */
+    /** 산 페이지 맨 위 대표 사진 칸 - 여러 장이면 열 때마다 하나를 무작위로(서버가 골라 보냄 - 화면에서 바꾸면 깜박이고 두 번 받음). */
     static String heroBlock(JsonObject peak, String rel, boolean en) {
-        JsonObject h = peak.has("hero") ? heroOk(peak.get("hero")) : null;
+        int n = peak.has("heroes") && peak.get("heroes").isJsonArray() ? peak.getAsJsonArray("heroes").size() : 1;
+        return heroBlock(peak, rel, en, n > 1 ? java.util.concurrent.ThreadLocalRandom.current().nextInt(n) : 0);
+    }
+
+    /** 순수 함수 - 대표 사진 칸(사진이 없으면 ""). pick - heroes 의 몇 번째(없으면 hero). rel - 앱 뿌리 상대 주소. 출처는 그 사진의 것. */
+    static String heroBlock(JsonObject peak, String rel, boolean en, int pick) {
+        JsonArray all = peak.has("heroes") && peak.get("heroes").isJsonArray() ? peak.getAsJsonArray("heroes") : null;
+        JsonObject h = all != null && pick >= 0 && pick < all.size() ? heroOk(all.get(pick)) : peak.has("hero") ? heroOk(peak.get("hero")) : null;
         if (h == null) return "";
         String alt = str(h, "alt") != null ? str(h, "alt") : (en ? MountainEn.name(peak) + " view" : MountainEn.id(peak) + " 풍경");
         return "<figure class=\"hero\"><img src=\"" + rel + "/" + str(h, "src") + "\" width=\"" + h.get("w").getAsInt() + "\" height=\"" + h.get("h").getAsInt()
