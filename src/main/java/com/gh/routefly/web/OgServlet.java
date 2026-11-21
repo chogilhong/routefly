@@ -80,7 +80,7 @@ public class OgServlet extends HttpServlet {
         if (png == null) {
             try {
                 JsonObject hero = peak.has("hero") ? MountainServlet.heroOk(peak.get("hero")) : null;   // 대표 사진(data/hero.json)이 있으면 바탕으로(2026-11-21 "고급지게" 5번)
-                png = hero != null ? photoPng(en ? english(peak) : korean(peak), english(peak), photo(hero.get("src").getAsString()), hero.get("credit").getAsString())
+                png = hero != null ? photoJpg(en ? english(peak) : korean(peak), english(peak), photo(hero.get("src").getAsString()), hero.get("credit").getAsString())
                         : png(en ? english(peak) : korean(peak), english(peak), logo());
             } catch (Exception | Error e) {   // 글꼴 · 그래픽 장치가 없는 서버 - 기본 그림으로
                 log.warn("[OG] 그림을 못 그림 {} - {}", id, e.toString());
@@ -92,7 +92,7 @@ public class OgServlet extends HttpServlet {
             resp.sendRedirect(req.getContextPath() + "/img/og.jpg?v=3");
             return;
         }
-        resp.setContentType("image/png");
+        resp.setContentType(jpeg(png) ? "image/jpeg" : "image/png");   // 사진 바탕은 jpg(2026-11-21 PC: png 1.4MB 안팎) - 주소는 .png 그대로
         resp.setHeader("Cache-Control", "public, max-age=86400");
         resp.setContentLength(png.length);
         resp.getOutputStream().write(png);
@@ -170,9 +170,10 @@ public class OgServlet extends HttpServlet {
 
     /**
      * 사진 바탕 그림(2026-11-21 홍TV님 "고급지게" 5번) - 대표 사진을 1200 × 630 에 꽉 차게(가운데를 잘라), 아래쪽을 어둡게 덮고 흰 글로 산 이름 · 높이,
-     * 오른쪽 아래에 사진 출처(공공누리 1유형 · CC0 - 출처 표시). 사진을 못 읽으면(null) 예전 그림.
+     * 오른쪽 아래에 사진 출처(공공누리 1유형 · CC0 - 출처 표시). 사진을 못 읽으면(null) 예전 그림(png).
+     * 사진이라 jpg(품질 0.85)로 - png 는 1.4 ~ 1.7MB 였음(2026-11-21 PC).
      */
-    static byte[] photoPng(String[] lines, String[] fallback, BufferedImage photo, String credit) throws IOException {
+    static byte[] photoJpg(String[] lines, String[] fallback, BufferedImage photo, String credit) throws IOException {
         if (photo == null) return png(lines, fallback, null);
         Set<String> installed = new HashSet<>(Arrays.asList(GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames()));
         String all = lines[0] + lines[1] + credit, face = fontFor(all, installed);
@@ -203,8 +204,22 @@ public class OgServlet extends HttpServlet {
         g.drawString(cr, W - 30 - g.getFontMetrics().stringWidth(cr), H - 24);
         g.dispose();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        ImageIO.write(img, "png", out);
+        javax.imageio.ImageWriter w = ImageIO.getImageWritersByFormatName("jpg").next();
+        javax.imageio.ImageWriteParam prm = w.getDefaultWriteParam();
+        prm.setCompressionMode(javax.imageio.ImageWriteParam.MODE_EXPLICIT);
+        prm.setCompressionQuality(0.85f);
+        try (javax.imageio.stream.ImageOutputStream ios = ImageIO.createImageOutputStream(out)) {
+            w.setOutput(ios);
+            w.write(null, new javax.imageio.IIOImage(img, null, null), prm);
+        } finally {
+            w.dispose();
+        }
         return out.toByteArray();
+    }
+
+    /** 순수 함수 - jpg 인지(앞 두 바이트 FF D8). */
+    static boolean jpeg(byte[] b) {
+        return b != null && b.length > 2 && (b[0] & 0xFF) == 0xFF && (b[1] & 0xFF) == 0xD8;
     }
 
     /** 순수 함수 - 꽉 채우기(cover): 사진 sw × sh 에서 tw × th 비율로 가운데를 자를 칸 [x, y, w, h]. */

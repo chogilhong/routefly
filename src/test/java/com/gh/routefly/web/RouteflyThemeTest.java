@@ -61,6 +61,15 @@ public class RouteflyThemeTest {
         // 입력 칸은 흰 바탕 · 진한 테두리(2026-11-21 홍TV님 "테두리 주고 안은 하얗게 해") - 산악회 방 · 사무실 · 별거 별거 · 안부
         for (String p : new String[] {"party.html", "party-office.html", "tools.html", "anbu.html"})
             assertTrue(p, read("src/main/webapp/" + p).contains("{ background:#fff; color:var(--tx); border-color:rgba(0,0,0,0.45); color-scheme:light; }"));
+        // 밝은 모드 읽기 힘든 곳 고침(2026-11-21 PC 확인) - 고른 날 단추 · 산불 안내 · 물때 링크 · 계산기 창 · 안부 보호자 칸
+        assertTrue(read("src/main/webapp/css/mountain.css").contains(":root[data-theme=\"light\"] .days button:not(.on)"));
+        assertTrue(read("src/main/webapp/hike.html").contains(":root[data-theme=\"light\"] #courseNote, :root[data-theme=\"light\"] #courseNote a { color:#9c3d00; }"));
+        String tl = read("src/main/webapp/tools.html");
+        assertTrue(tl.contains(":root[data-theme=\"light\"] .tip a { color:var(--sky); }") && tl.contains(":root[data-theme=\"light\"] .ccshow { background:#fff;"));
+        String ab = read("src/main/webapp/anbu.html");
+        assertTrue(ab.contains(":root[data-theme=\"light\"] input[type=tel], :root[data-theme=\"light\"] input[type=text] { background:#fff;"));
+        for (String p : new String[] {"party.html", "party-office.html", "tools.html", "anbu.html"})
+            assertFalse("빈 선택자 없음 " + p, read("src/main/webapp/" + p).contains(":root[data-theme=\"light\"]  {"));
         assertFalse("게임 판은 어두운 그림이라 다크 그대로", read("src/main/webapp/games.html").contains("rf-light.css"));
         String css = read("src/main/webapp/css/rf-light.css");
         assertTrue(css.contains(":root[data-theme=\"light\"] { --bg:#eef2f6; --panel:#ffffff; --tx:#18212c;") && css.contains("--onsky:#ffffff;"));

@@ -69,10 +69,12 @@ public class MountainHeroTest {
         assertArrayEquals("넓은 사진은 양옆을", new int[] {100, 0, 1200, 630}, OgServlet.cover(1400, 630, 1200, 630));
         assertArrayEquals("높은 사진은 위아래를", new int[] {0, 185, 1200, 630}, OgServlet.cover(1200, 1000, 1200, 630));
         BufferedImage photo = new BufferedImage(1600, 1067, BufferedImage.TYPE_INT_RGB);
-        byte[] png = OgServlet.photoPng(new String[] {"Dutasan", "Korea's 100 Famous Mountains · 1,353 m", "x"}, new String[] {"Dutasan", "x", "x"}, photo, "KOGL Type 1");
+        byte[] png = OgServlet.photoJpg(new String[] {"Dutasan", "Korea's 100 Famous Mountains · 1,353 m", "x"}, new String[] {"Dutasan", "x", "x"}, photo, "KOGL Type 1");
         BufferedImage out = ImageIO.read(new ByteArrayInputStream(png));
         assertEquals(1200, out.getWidth());
         assertEquals(630, out.getHeight());
-        assertTrue("사진을 못 읽으면 예전 그림", OgServlet.photoPng(new String[] {"a", "b", "c"}, new String[] {"a", "b", "c"}, null, "x").length > 0);
+        assertTrue("사진 바탕은 jpg(가볍게 - 2026-11-21 PC: png 1.4MB)", OgServlet.jpeg(png));
+        byte[] old = OgServlet.photoJpg(new String[] {"a", "b", "c"}, new String[] {"a", "b", "c"}, null, "x");
+        assertTrue("사진을 못 읽으면 예전 그림(png)", old.length > 0 && !OgServlet.jpeg(old));
     }
 }

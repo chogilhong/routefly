@@ -1,5 +1,5 @@
 {
- "_note": "산 페이지 맨 위 대표 사진 · 공유 그림 바탕(2026-11-21 홍TV님 \"고급지게\" 1 · 5번 - MountainServlet.heroBlock · OgServlet.photoPng). 산 id(mountains100.json) → {src: img/hero/<영문 · 숫자 · ->.jpg, w, h: 사진 크기(px), credit: 출처 글 그대로, license: kogl1(공공누리 제1유형) 또는 cc0, alt: 사진 설명(없으면 \"<산> 풍경\")}. 잘라 쓰므로 CC BY-SA(그대로만)는 넣지 않음, \"AI 사용 금지\" 사진도 넣지 않음. 사진은 PC 가 docs/youtube/v2/썸네일.md 바탕 사진에서 골라 가로 1600px 안팎 jpg(200KB 안팎)로 줄여 넣음.",
+ "_note": "산 페이지 맨 위 대표 사진 · 공유 그림 바탕(2026-11-21 홍TV님 \"고급지게\" 1 · 5번 - MountainServlet.heroBlock · OgServlet.photoJpg). 산 id(mountains100.json) → {src: img/hero/<영문 · 숫자 · ->.jpg, w, h: 사진 크기(px), credit: 출처 글 그대로, license: kogl1(공공누리 제1유형) 또는 cc0, alt: 사진 설명(없으면 \"<산> 풍경\")}. 잘라 쓰므로 CC BY-SA(그대로만)는 넣지 않음, \"AI 사용 금지\" 사진도 넣지 않음. 사진은 PC 가 docs/youtube/v2/썸네일.md 바탕 사진에서 골라 가로 1600px 안팎 jpg(200KB 안팎)로 줄여 넣음.",
  "heroes": {
   "계룡산": {"src": "img/hero/gyeryongsan.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 김지호 (공공누리 제1유형)", "license": "kogl1", "alt": "계룡산 - 갑사계곡"},
   "공작산": {"src": "img/hero/gongjaksan.jpg", "w": 1600, "h": 1200, "credit": "「수타사(홍천군 동면)IMG 3767.jpg」 최광모(Choe Kwangmo), CC0 (Wikimedia Commons)", "license": "cc0", "alt": "공작산 - 수타사"},
