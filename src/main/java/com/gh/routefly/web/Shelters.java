@@ -134,20 +134,24 @@ final class Shelters {
         if (list.isEmpty()) return "";
         String park = list.get(0).has("park") ? list.get(0).get("park").getAsString() : null;   // 한 칸은 한 공원(ofPark)
         String url = reserveHref(d, park);
-        boolean tab = url != null && url.contains("?deptId=");
+        boolean tab = url != null && url.contains("?deptId="), book = false;
         StringBuilder b = new StringBuilder("<section class=\"shelters\"><h2>").append(en ? "Shelters (Korea National Park Service)" : "대피소(국립공원공단)").append("</h2><ul class=\"tips\">");
         for (JsonObject s : list) {
             String nm = s.get("name").getAsString();
             b.append("<li><a href=\"").append(rel).append("/hike.html?lang=").append(en ? "en" : "ko").append("&amp;q=").append(MountainServlet.enc(nm)).append("\">")
                     .append(en ? ShareServlet.esc(MountainEn.courseName(nm)) + " <small lang=\"ko\">" + ShareServlet.esc(nm) + "</small>" : ShareServlet.esc(nm)).append("</a>");   // 영어 - 코스 이름과 같은 규칙(대피소 → shelter, 나머지 로마자, 2026-11-19 PC)
-            if (url != null && s.get("reserve").getAsBoolean()) b.append(" · <a href=\"").append(ShareServlet.esc(url)).append("\" target=\"_blank\" rel=\"noopener\">").append(en ? "Book ›" : "예약 ›").append("</a>");
+            book |= s.get("reserve").getAsBoolean();
             b.append("</li>");
         }
-        b.append("</ul><p class=\"dim\">").append(en
+        b.append("</ul>");
+        // 예약은 칸에 하나만(2026-11-21 홍TV님 "대피소마다 각각 예약을 두면 헷갈려. 공단예약시스템 열기로 해서 하나만 둬") - 예약 받는 대피소가 있는 산만
+        if (url != null && book) b.append("<p class=\"shOpen\"><a href=\"").append(ShareServlet.esc(url)).append("\" target=\"_blank\" rel=\"noopener\">")
+                .append(en ? "Open the KNPS booking system ›" : "공단 예약시스템 열기 ›").append("</a></p>");
+        b.append("<p class=\"dim\">").append(en
                 ? "Tap a shelter name for trails that pass it. Fees and open dates are on the KNPS booking page."
-                : "대피소 이름을 누르면 그 대피소를 지나는 코스. 요금 · 예약 가능 날짜는 공단 예약 화면에서 확인하세요.")
-                .append(!tab ? "" : en ? " Book › opens the " + ShareServlet.esc(MountainEn.courseName(park)) + " tab - tap the tab once more to see free places by date."
-                        : " 예약 › 은 공단 예약 화면의 " + ShareServlet.esc(park) + " 탭으로 엽니다 - 그 탭을 한 번 더 누르면 날짜별 남은 자리가 나옵니다.")   // 2026-11-21 홍TV님 "지리산으로 와야 하는데"
+                : "대피소 이름을 누르면 그 대피소를 지나는 코스. 요금 · 예약 가능 날짜는 공단 예약시스템에서 확인하세요.")
+                .append(!(tab && book) ? "" : en ? " It opens on the " + ShareServlet.esc(MountainEn.courseName(park)) + " tab - tap the tab once more to see free places by date."
+                        : " " + ShareServlet.esc(park) + " 탭이 골라진 채 열리니, 그 탭을 한 번 더 누르면 날짜별 남은 자리가 나옵니다.")   // 2026-11-21 홍TV님 "지리산으로 와야 하는데" - 바로 표가 뜨는 주소는 없음(PC 조사)
                 .append("</p></section>");
         return b.toString();
     }

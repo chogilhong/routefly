@@ -36,22 +36,20 @@ public class ShelterLinkTest {
         assertTrue("대피소가 없는 산은 빈 것", Shelters.ofPark(d, "계룡산").isEmpty());
         assertEquals("빈 칸이면 글 없음", "", Shelters.block(d, Shelters.ofPark(d, "계룡산"), "..", false));
         String h = Shelters.block(d, sorak, "..", false);
-        // 예약 › 은 그 산 탭이 골라진 공단 화면(?deptId= - 설악산 B03, 2026-11-21 홍TV님 "지리산으로 와야 하는데" · PC 조사)
-        assertTrue(h.contains("<a href=\"../hike.html?lang=ko&amp;q=" + MountainServlet.enc("소청대피소") + "\">소청대피소</a> · <a href=\""
-                + d.get("reserveUrl").getAsString() + "?deptId=B03\" target=\"_blank\" rel=\"noopener\">예약 ›</a>"));
-        assertTrue(h.contains("예약 › 은 공단 예약 화면의 설악산 탭으로 엽니다 - 그 탭을 한 번 더 누르면 날짜별 남은 자리가 나옵니다."));
+        // 예약은 칸에 하나 "공단 예약시스템 열기 ›"(2026-11-21 홍TV님 "대피소마다 각각 예약을 두면 헷갈려") - 그 산 탭이 골라진 공단 화면(?deptId= - 설악산 B03)
+        assertTrue(h.contains("<a href=\"../hike.html?lang=ko&amp;q=" + MountainServlet.enc("소청대피소") + "\">소청대피소</a></li>"));
+        assertFalse("대피소마다 예약 › 없음", h.contains("예약 ›</a>"));
+        assertTrue(h.contains("</ul><p class=\"shOpen\"><a href=\"" + d.get("reserveUrl").getAsString() + "?deptId=B03\" target=\"_blank\" rel=\"noopener\">공단 예약시스템 열기 ›</a></p>"));
+        assertEquals("하나만", h.indexOf("공단 예약시스템 열기"), h.lastIndexOf("공단 예약시스템 열기"));
+        assertTrue(h.contains("설악산 탭이 골라진 채 열리니, 그 탭을 한 번 더 누르면 날짜별 남은 자리가 나옵니다."));
         assertEquals(d.get("reserveUrl").getAsString() + "?deptId=B01", Shelters.reserveHref(d, "지리산"));
         assertEquals("탭 값이 없는 산은 첫 주소", d.get("reserveUrl").getAsString(), Shelters.reserveHref(d, "북한산"));
         assertTrue(h.startsWith("<section class=\"shelters\"><h2>대피소(국립공원공단)</h2>"));
-        // 예약 화면에 없는 대피소는 이름(검색 링크)만
-        for (JsonObject s : sorak)
-            if (!s.get("reserve").getAsBoolean()) {
-                String nm = s.get("name").getAsString();
-                assertTrue(nm, h.contains(">" + nm + "</a></li>"));
-            }
+        // 대피소 줄은 모두 이름(검색 링크)만
+        for (JsonObject s : sorak) assertTrue(s.get("name").getAsString(), h.contains(">" + s.get("name").getAsString() + "</a></li>"));
         String en = Shelters.block(d, sorak, "../..", true);
         assertTrue(en.contains("../../hike.html?lang=en&amp;q="));
-        assertTrue(en.contains(">Book ›</a>"));
+        assertTrue(en.contains(">Open the KNPS booking system ›</a></p>") && !en.contains("Book ›"));
         assertTrue("영어 이름 + 한글", en.contains(">Socheong shelter <small lang=\"ko\">소청대피소</small></a>"));
         assertEquals("화면 enName 과 같은 값(course-kit.test.js)", "Je 2yeonhwabong shelter", MountainEn.courseName("제2연화봉대피소"));
     }
@@ -77,7 +75,7 @@ public class ShelterLinkTest {
         JsonObject seorak = JsonParser.parseString("{\"id\":\"설악산\",\"name\":\"설악산\",\"summit\":\"대청봉\",\"lat\":38.119,\"lon\":128.465}").getAsJsonObject();
         String ko = MountainServlet.page(seorak, new java.util.ArrayList<>(), new java.util.ArrayList<>(), null, "", 11);
         assertTrue(ko.contains("<h2>대피소(국립공원공단)</h2>"));
-        assertTrue(ko.contains(">소청대피소</a> · <a href="));
+        assertTrue(ko.contains(">소청대피소</a></li>") && ko.contains(">공단 예약시스템 열기 ›</a></p>"));   // 예약은 칸에 하나(2026-11-21)
         String en = MountainEn.page(seorak, new java.util.ArrayList<>(), new java.util.ArrayList<>(), null, "https://r.kr");
         assertTrue(en.contains("<h2>Shelters (Korea National Park Service)</h2>"));
         JsonObject gyeryong = JsonParser.parseString("{\"id\":\"계룡산\",\"name\":\"계룡산\",\"lat\":36.34,\"lon\":127.2}").getAsJsonObject();
@@ -87,7 +85,7 @@ public class ShelterLinkTest {
         JsonArray pois = real.getAsJsonArray("pois");
         String cp = CoursePageServlet.page(c, null, null, null, null, pois, true, "https://r.kr", List.of());
         assertTrue(cp.contains("<a href=\"../hike.html?lang=ko&amp;q=" + MountainServlet.enc("수렴동대피소") + "\">수렴동대피소</a>"));
-        assertTrue(cp.contains(">소청대피소</a> · <a href="));
+        assertTrue("코스 페이지도 예약은 하나", cp.contains(">소청대피소</a></li>") && cp.contains("?deptId=B03\" target=\"_blank\" rel=\"noopener\">공단 예약시스템 열기 ›</a></p>"));
         assertFalse("이 코스가 안 지나는 대피소는 없음", cp.contains(">희운각대피소</a>"));
         // 따라가기 검색 맨 위 예약 카드 - 예약 받는 대피소만(RF.shelterOf 는 course-kit.test.js 가 봄)
         String hike = new String(Files.readAllBytes(Paths.get("src/main/webapp/js/hike.js")), StandardCharsets.UTF_8);
