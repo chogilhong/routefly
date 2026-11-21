@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>시안 - 이 산 이야기(두타산)</title>
+<style>
+/* 산 페이지(css/mountain.css)와 같은 색 · 칸 모양 - 시안 확인용 */
+:root { --bg:#11161d; --panel:#1a212b; --tx:#e9eef4; --dim:#9aa6b4; --ln:rgba(255,255,255,0.12); --sky:#38d9ea; }
+* { box-sizing:border-box; }
+html, body { margin:0; background:var(--bg); color:var(--tx); font-family:Arial,"Malgun Gothic",sans-serif; line-height:1.6; }
+main { max-width:760px; margin:0 auto; padding:18px 16px 40px; }
+h1 { font-size:20px; margin:0 0 6px; }
+h2 { font-size:17px; margin:0 0 8px; }
+a { color:var(--sky); }
+.dim { color:var(--dim); font-size:13px; }
+.label { font-size:12.5px; color:#ffd54f; font-weight:bold; margin:22px 0 6px; letter-spacing:.02em; }
+section { background:var(--panel); border:1px solid var(--ln); border-radius:12px; padding:14px 16px; margin-bottom:14px; }
+.tips { margin:0; padding-left:1.2em; font-size:.92rem; line-height:1.55; }
+.tips li { margin:.35em 0; list-style:disc; }
+/* 새 칸 */
+.story p { margin:0 0 10px; font-size:15px; line-height:1.7; word-break:keep-all; }
+.story details { border-top:1px solid var(--ln); }
+.story summary { list-style:none; cursor:pointer; padding:10px 0; color:var(--sky); font-size:14px; min-height:44px; display:flex; align-items:center; gap:6px; }
+.story summary::-webkit-details-marker { display:none; }
+.story summary .fa { transition:transform .15s; }
+.story details[open] summary .fa { transform:rotate(180deg); }
+.story ul { margin:0 0 10px; padding-left:1.1em; font-size:14.5px; line-height:1.65; color:var(--tx); }
+.story ul li { margin:.3em 0; word-break:keep-all; }
+.story .watch { display:inline-flex; align-items:center; min-height:44px; padding:0 16px; border-radius:22px; border:1px solid var(--sky); color:var(--tx); text-decoration:none; font-weight:bold; font-size:14.5px; margin:4px 0 8px; }
+.story .src { margin:0; font-size:12px; color:var(--dim); }
+</style>
+</head>
+<body>
+<main>
+<h1>시안 - 산 페이지 "이 산 이야기" 칸 (두타산)</h1>
+<p class="dim">2026-11-21 · 산 페이지와 같은 색 · 칸 모양. 글은 대본(docs/youtube/v2/두타산.md)의 확인된 사실만.</p>
+
+<p class="label">지금</p>
+<section>
+<h2>▶ 이 산 이야기</h2>
+<ul class="tips"><li><a href="#">밟으면 흔들리는 바위가 있다고? 두타산 이야기 ›</a></li></ul>
+</section>
+
+<p class="label">바꾸면 (처음 모습 - 접힘)</p>
+<section class="story">
+<h2>이 산 이야기</h2>
+<p>속세의 번뇌를 털고 불도를 닦는다는 뜻의 이름, 두타산(1,352.7m). 북동쪽 무릉계곡에는 1,500평 너른 무릉반석과 쌍폭, 밟으면 바위가 흔들린다는 전설의 3단 용추폭포가 이어집니다.</p>
+<details>
+<summary>더 보기 <span class="fa">▾</span></summary>
+<ul>
+<li>동북쪽 쉰움산 꼭대기 너럭바위에는 우물처럼 파인 구멍이 50여 개 - 가물면 기우제를 지냈다고 전합니다.</li>
+<li>계곡 어귀 삼화사는 고려 태조 왕건이 "삼국이 화합했다" 는 뜻으로 이름을 고쳤다는 이야기가 전하고, 삼층석탑과 철조 노사나불 좌상은 보물입니다.</li>
+<li>1414년 쌓은 두타산성은 한 바퀴 도는 데 이레가 걸릴 만큼 컸다고 하며, 고려 이승휴는 이 산 아래에서 『제왕운기』를 썼습니다.</li>
+</ul>
+</details>
+<a class="watch" href="#">▶ 영상으로 보기 (2분 33초)</a>
+<p class="src">자료: 한국민족문화대백과사전 · 국가유산청 · 산림청 100대 명산</p>
+</section>
+
+<p class="label">바꾸면 ("더 보기" 를 누른 모습)</p>
+<section class="story">
+<h2>이 산 이야기</h2>
+<p>속세의 번뇌를 털고 불도를 닦는다는 뜻의 이름, 두타산(1,352.7m). 북동쪽 무릉계곡에는 1,500평 너른 무릉반석과 쌍폭, 밟으면 바위가 흔들린다는 전설의 3단 용추폭포가 이어집니다.</p>
+<details open>
+<summary>접기 <span class="fa">▾</span></summary>
+<ul>
+<li>동북쪽 쉰움산 꼭대기 너럭바위에는 우물처럼 파인 구멍이 50여 개 - 가물면 기우제를 지냈다고 전합니다.</li>
+<li>계곡 어귀 삼화사는 고려 태조 왕건이 "삼국이 화합했다" 는 뜻으로 이름을 고쳤다는 이야기가 전하고, 삼층석탑과 철조 노사나불 좌상은 보물입니다.</li>
+<li>1414년 쌓은 두타산성은 한 바퀴 도는 데 이레가 걸릴 만큼 컸다고 하며, 고려 이승휴는 이 산 아래에서 『제왕운기』를 썼습니다.</li>
+</ul>
+</details>
+<a class="watch" href="#">▶ 영상으로 보기 (2분 33초)</a>
+<p class="src">자료: 한국민족문화대백과사전 · 국가유산청 · 산림청 100대 명산</p>
+</section>
+
+<p class="dim">바뀌는 점: 제목의 ▶ 를 빼고(영상만이 아니라 글 칸이라), 처음엔 두 문장만 보임. "더 보기" 세 줄은 접혀 있어 페이지가 길어지지 않음. 영상은 큰 단추로.
+글은 대본의 근거 줄에 있는 사실만 쓰고, 전설은 "~전합니다 · ~다고 하며" 로 사실과 나눔.</p>
+</main>
+</body>
+</html>
