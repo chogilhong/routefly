@@ -58,9 +58,9 @@ public class RouteflyThemeTest {
             assertTrue(p, s > 0 && s > h.indexOf("</style>"));   // 화면 <style> 뒤 · 그리기 전
         }
         assertTrue("개인정보처리방침에 저장 이름", read("src/main/webapp/privacy.html").contains("rf-theme") && read("src/main/webapp/privacy-en.html").contains("rf-theme"));
-        // 입력 칸은 안쪽 다크 그대로 · 테두리만(2026-11-21 홍TV님) - 산악회 방 · 사무실 · 별거 별거 · 안부
+        // 입력 칸은 흰 바탕 · 진한 테두리(2026-11-21 홍TV님 "테두리 주고 안은 하얗게 해") - 산악회 방 · 사무실 · 별거 별거 · 안부
         for (String p : new String[] {"party.html", "party-office.html", "tools.html", "anbu.html"})
-            assertTrue(p, read("src/main/webapp/" + p).contains("{ color:#eef2f7; border-color:rgba(0,0,0,0.45); color-scheme:dark; }"));
+            assertTrue(p, read("src/main/webapp/" + p).contains("{ background:#fff; color:var(--tx); border-color:rgba(0,0,0,0.45); color-scheme:light; }"));
         assertFalse("게임 판은 어두운 그림이라 다크 그대로", read("src/main/webapp/games.html").contains("rf-light.css"));
         String css = read("src/main/webapp/css/rf-light.css");
         assertTrue(css.contains(":root[data-theme=\"light\"] { --bg:#eef2f6; --panel:#ffffff; --tx:#18212c;") && css.contains("--onsky:#ffffff;"));
