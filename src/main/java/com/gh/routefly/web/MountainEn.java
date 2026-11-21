@@ -358,6 +358,7 @@ final class MountainEn {
                 + "<meta property=\"og:url\" content=\"" + esc(url) + "\"><meta property=\"og:image\" content=\"" + esc(og != null ? og : base + "/img/og.jpg?v=3") + "\">"
                 + "<meta property=\"og:image:width\" content=\"1200\"><meta property=\"og:image:height\" content=\"630\">"
                 + MountainServlet.icons(REL)
+                + "<script src=\"" + REL + "/" + AssetVersion.of("js/rf-theme.js") + "\"></script>"   // 밝은 · 다크 모드를 그리기 전에(2026-11-21 홍TV님)
                 + "<link rel=\"stylesheet\" href=\"" + REL + "/" + AssetVersion.of("css/course-kit.css") + "\"><link rel=\"stylesheet\" href=\"" + REL + "/" + AssetVersion.of("css/mountain.css") + "\"></head><body>";   // ?v= 판(war 에서만, 2026-11-01)
     }
 

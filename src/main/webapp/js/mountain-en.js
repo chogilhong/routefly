@@ -41,6 +41,7 @@
         tb.title = "Text size";
         tb.setAttribute("aria-label", "Text size");
         if (lt) tools.appendChild(lt);
+        if (RF.themeButton) tools.appendChild(RF.themeButton());   // ☀️ · 🌙 Light · dark mode(2026-11-21, 한국어와 같게)
         tools.appendChild(tb);
         crumb.insertBefore(tools, crumb.firstChild);   // 앞에 두어야 h1 글과 같은 줄 오른쪽(뒤에 두면 다음 줄로 밀림)
     }

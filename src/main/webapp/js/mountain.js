@@ -204,6 +204,7 @@
         var tools = document.createElement("span"), lt = window.RF.langToggle("ko"), tb = window.RF.textButton();
         tools.className = "rfTools";
         if (lt) tools.appendChild(lt);
+        if (window.RF.themeButton) tools.appendChild(window.RF.themeButton());   // ☀️ · 🌙 밝은 · 다크 모드(2026-11-21 홍TV님)
         tools.appendChild(tb);
         crumb.insertBefore(tools, crumb.firstChild);   // 앞에 두어야 h1 글과 같은 줄 오른쪽(뒤에 두면 다음 줄로 밀림)
     }

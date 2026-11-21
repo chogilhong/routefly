@@ -4837,6 +4837,35 @@
     function textLabel(v, en) { var a = (en === undefined ? LANG === "en" : en) ? "A" : "가"; return v >= 1.4 ? a + "++" : v >= 1.2 ? a + "+" : a; }
     /** 순수 함수 - 다음 글자 크기(140% 다음은 100%). */
     function nextTextScale(v) { return TEXT_STEPS[(TEXT_STEPS.indexOf(v) + 1) % TEXT_STEPS.length]; }
+    /**
+     * 다크 · 밝은 모드(2026-11-21 홍TV님 "드론플라이 처럼") - <html data-theme> 를 js/rf-theme.js 가 그리기 전에 붙이고, 이 단추가 바꿔 기억(rf-theme).
+     * 기본은 다크. 단추는 지금 모드의 반대를 보임(다크일 때 ☀️ = 밝은 모드로).
+     */
+    var THEME_KEY = "rf-theme";
+    /** 순수 함수 - 다음 모드(light ↔ dark, 모르는 값은 다크로 보고 light). */
+    function nextTheme(t) { return t === "light" ? "dark" : "light"; }
+    function paintThemeBtns() {
+        var light = document.documentElement.getAttribute("data-theme") === "light", en = document.documentElement.lang === "en" || LANG === "en";
+        var name = light ? (en ? "Dark mode" : "다크 모드로") : (en ? "Light mode" : "밝은 모드로");
+        Array.prototype.forEach.call(document.querySelectorAll(".rfThemeBtn"), function (b) { b.textContent = light ? "🌙" : "☀️"; b.title = name; b.setAttribute("aria-label", name); });
+        var meta = document.querySelector("meta[name=theme-color]");
+        if (meta) meta.setAttribute("content", light ? "#eef2f6" : "#11161d");
+    }
+    /** ☀️ · 🌙 단추 - 누르면 모드를 바꾸고 이 기기에 기억. */
+    function themeButton() {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "rfThemeBtn";
+        b.addEventListener("click", function (e) {
+            e.preventDefault();
+            var n = nextTheme(document.documentElement.getAttribute("data-theme"));
+            document.documentElement.setAttribute("data-theme", n);
+            try { localStorage.setItem(THEME_KEY, n); } catch (err) { /* 이번만 */ }
+            paintThemeBtns();
+        });
+        setTimeout(paintThemeBtns, 0);   // 화면에 붙인 뒤 글 · 이름을 칠함
+        return b;
+    }
     /** "가+" 단추 - 누를 때마다 다음 크기. 모든 화면이 같은 설정을 씁니다. */
     function textButton() {
         var b = document.createElement("button");
@@ -6838,7 +6867,7 @@
     global.RF = {
         LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, endsHigh: endsHigh, videoOpts: videoOpts, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, PARKS: PARKS, parkOf: parkOf, mountainOf: mountainOf, regionNames: regionNames, stampKey: stampKey, summitName: summitName, shelterOf: shelterOf, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, urlQuery: urlQuery, peakHref: peakHref, canonicalHref: canonicalHref, tmapHref: tmapHref, csvRows: csvRows, mergeRows: mergeRows, backupDue: backupDue, saveCsvFile: saveCsvFile, readCsvFile: readCsvFile, tmapLinks: tmapLinks, setCanonical: setCanonical, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakGapM: peakGapM, peakCourses: peakCourses, isClosedTrail: isClosedTrail, isHiddenCourse: isHiddenCourse, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, nearestExit: nearestExit, gpsGap: gpsGap, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, fillTrackEle: fillTrackEle, trimTrack: trimTrack, gpxTracks: gpxTracks, trackStats: trackStats, splitTrack: splitTrack, joinTracks: joinTracks, joinPlan: joinPlan, trackGpx: trackGpx, submitAgree: submitAgree, submitBody: submitBody, submitProblem: submitProblem, submitFail: submitFail, submitSheet: submitSheet, courseName: courseName, courseSource: courseSource, sourceText: sourceText, cutMiddle: cutMiddle, osmRoute: osmRoute, WALK_WAYS: WALK_WAYS, trailsToElements: trailsToElements, overlapShare: overlapShare, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
-        sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, titledName: titledName, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, tapPick: tapPick, closeLoop: closeLoop, loopTrack: loopTrack, reverseTrack: reverseTrack, longestJump: longestJump, simplifyTrack: simplifyTrack, JOIN_GAP_M: JOIN_GAP_M, pxToLine: pxToLine, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, legMs: legMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, wxCols: wxCols, wxTable: wxTable, kmaLink: kmaLink, pcpText: pcpText, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap,
+        sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, titledName: titledName, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, tapPick: tapPick, closeLoop: closeLoop, loopTrack: loopTrack, reverseTrack: reverseTrack, longestJump: longestJump, simplifyTrack: simplifyTrack, JOIN_GAP_M: JOIN_GAP_M, pxToLine: pxToLine, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, legMs: legMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, nextTheme: nextTheme, themeButton: themeButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, wxCols: wxCols, wxTable: wxTable, kmaLink: kmaLink, pcpText: pcpText, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap,
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },
         cellCenter: cellCenter, warnName: warnName, safetyRows: safetyRows, safetyAlert: safetyAlert, safetyRender: safetyRender, rainNews: rainNews,
         setLang: setLang, isEn: isEn, tr: tr, pageLang: pageLang, applyEn: applyEn,
