@@ -282,3 +282,8 @@ ol.ms { margin:0; padding:0; list-style:none; }
 .cp .dqC li { list-style: none; margin: 2px 0; line-height: 1.5; }
 .cp .dqGo { margin: 4px 0 0; font-size: 0.94rem; }
 .cp .dqNote { margin: 10px 0; padding: 10px 12px; border-radius: 10px; background: rgba(56, 189, 248, 0.12); line-height: 1.55; }
+/* 이 산 이야기 예고 칸(2026-11-21 홍TV님 시안 승인 - docs/youtube/v2/mock-story-두타산.html) */
+.story p { margin:0 0 10px; font-size:15px; line-height:1.7; word-break:keep-all; }
+.story .hook { margin:0 0 6px; font-size:17px; font-weight:bold; color:#ffd54f; }
+.story .watch { display:inline-flex; align-items:center; min-height:44px; padding:0 16px; border-radius:22px; border:1px solid var(--sky); color:var(--tx); text-decoration:none; font-weight:bold; font-size:14.5px; margin:4px 0 8px; }
+.story .src { margin:0; font-size:12px; color:var(--dim); }

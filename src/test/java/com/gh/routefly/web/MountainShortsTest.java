@@ -53,10 +53,33 @@ public class MountainShortsTest {
             if (id.equals("계룡산")) gyeryong = e.getAsJsonObject();
             if (id.equals("가야산")) gaya = e.getAsJsonObject();
         }
+        // 한국어: 예고 칸(2026-11-21 홍TV님 시안 승인) - 제목의 물음 · 볼거리 이름 · 단추 · 자료. 길이를 모르는 영상은 길이를 적지 않음
         String ko = MountainServlet.shortsBlock(gyeryong, false);
-        assertEquals("<section class=\"shorts\"><h2>▶ 이 산 이야기</h2><ul class=\"tips\"><li><a href=\"https://www.youtube.com/shorts/Elzwl8pQ8vQ\" target=\"_blank\" rel=\"noopener\">"
-                + "닭볏 쓴 용이 사는 산? 계룡산 이야기 ›</a></li></ul></section>", ko);
+        assertEquals("<section class=\"shorts story\"><h2>이 산 이야기</h2><p class=\"hook\">닭볏 쓴 용이 사는 산?</p>"
+                + "<p>무학대사 · 중악단 · 동학사 · 갑사 - 그 이야기를 짧은 영상에 담았습니다.</p>"
+                + "<a class=\"watch\" href=\"https://www.youtube.com/shorts/Elzwl8pQ8vQ\" target=\"_blank\" rel=\"noopener\" title=\"닭볏 쓴 용이 사는 산? 계룡산 이야기\">▶ 영상으로 보기</a>"
+                + "<p class=\"src\">자료: 한국민족문화대백과사전 · 국가유산청 · 산림청 100대 명산</p></section>", ko);
+        // 길이를 아는 영상(두타산 153.0초)은 문장과 단추에 길이
+        JsonObject duta = null;
+        for (JsonElement e : peaks) if (e.getAsJsonObject().get("id").getAsString().equals("두타산")) duta = e.getAsJsonObject();
+        String dk = MountainServlet.shortsBlock(duta, false);
+        assertTrue(dk, dk.contains("<p class=\"hook\">밟으면 흔들리는 바위가 있다고?</p><p>무릉계곡 · 용추폭포 · 삼화사 - 그 이야기를 2분 33초 영상에 담았습니다.</p>"));
+        assertTrue(dk, dk.contains(">▶ 영상으로 보기 (2분 33초)</a>"));
+        assertEquals("2분 33초", MountainServlet.clock(153.0));
+        assertEquals("1분 49초", MountainServlet.clock(108.6));
+        assertEquals("2분", MountainServlet.clock(120.2));
+        assertEquals("45초", MountainServlet.clock(45));
+        // 15곳 모두 예고 칸(볼거리가 빠진 산이 없게)
+        for (String id : videos.keySet()) {
+            JsonObject p = new JsonObject();
+            p.add("shorts", videos.getAsJsonArray(id));
+            assertTrue(id, MountainServlet.shortsBlock(p, false).startsWith("<section class=\"shorts story\">"));
+        }
+        // 볼거리가 없으면 옛 링크 칸, 영어는 늘 링크 칸
+        JsonObject old = JsonParser.parseString("{\"shorts\":[{\"id\":\"Elzwl8pQ8vQ\",\"title\":\"t?\"}]}").getAsJsonObject();
+        assertTrue(MountainServlet.shortsBlock(old, false).startsWith("<section class=\"shorts\"><h2>▶ 이 산 이야기</h2><ul class=\"tips\">"));
         assertTrue(MountainServlet.shortsBlock(gyeryong, true).contains("▶ Story of this mountain (in Korean)"));
+        assertFalse(MountainServlet.shortsBlock(gyeryong, true).contains("story"));
         assertEquals("영상이 없는 산은 칸 없음", "", MountainServlet.shortsBlock(gaya, false));
         // 페이지에 실제로 붙음(한국어 · 영어)
         assertTrue(MountainServlet.page(gyeryong, new ArrayList<>(), new ArrayList<>(), null, "", 11).contains("youtube.com/shorts/Elzwl8pQ8vQ"));
@@ -68,7 +91,7 @@ public class MountainShortsTest {
         c.addProperty("name", "계룡산 · 삼불봉 → 관음봉");
         c.addProperty("distance_m", 1820);
         String withCourse = MountainServlet.page(gyeryong, new ArrayList<>(java.util.List.of(c)), new ArrayList<>(), null, "", 11);
-        assertTrue(withCourse.contains("</ul></section><p class=\"jump\"><a href=\"#trails\">🥾 코스 1개 바로 보기 ↓</a></p>"));
+        assertTrue(withCourse.contains("</p></section><p class=\"jump\"><a href=\"#trails\">🥾 코스 1개 바로 보기 ↓</a></p>"));
         assertTrue(MountainEn.page(gyeryong, new ArrayList<>(java.util.List.of(c)), new ArrayList<>(), null, "https://r.kr").contains("</ul></section><p class=\"jump\"><a href=\"#trails\">🥾 See the 1 trail"));
         // 이상한 영상 ID 는 링크로 만들지 않음
         JsonObject bad = JsonParser.parseString("{\"shorts\":[{\"id\":\"x\\\" onclick=\\\"y\",\"title\":\"t\"}]}").getAsJsonObject();

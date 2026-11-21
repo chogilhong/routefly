@@ -658,6 +658,10 @@ public class MountainServlet extends HttpServlet {
      */
     static String shortsBlock(JsonObject peak, boolean en) {
         if (!peak.has("shorts") || !peak.get("shorts").isJsonArray()) return "";
+        if (!en) {
+            String story = storyBlock(peak.getAsJsonArray("shorts"));
+            if (story != null) return story;
+        }
         StringBuilder b = new StringBuilder("<section class=\"shorts\"><h2>").append(en ? "▶ Story of this mountain (in Korean)" : "▶ 이 산 이야기").append("</h2><ul class=\"tips\">");
         for (JsonElement e : peak.getAsJsonArray("shorts")) {
             JsonObject v = e.getAsJsonObject();
@@ -666,6 +670,41 @@ public class MountainServlet extends HttpServlet {
             b.append("<li><a href=\"https://www.youtube.com/shorts/").append(vid).append("\" target=\"_blank\" rel=\"noopener\">").append(esc(str(v, "title"))).append(" ›</a></li>");
         }
         return b.append("</ul></section>").toString();
+    }
+
+    /**
+     * 순수 함수 - 한국어 "이 산 이야기" 예고 칸(2026-11-21 홍TV님 시안 docs/youtube/v2/mock-story-두타산.html 승인 - "동일 내용이면 느낌이 덜 온다"):
+     * 영상 제목의 물음(? 까지)을 크게, 볼거리 이름만 늘어놓고(답은 영상에서), 큰 "영상으로 보기" 단추, 자료 기관. 첫 영상에 볼거리(sights)가 없거나 ID 가 이상하면 null(옛 링크 칸).
+     * 길이(sec)는 확인된 영상만 - 없으면 길이를 적지 않음.
+     */
+    static String storyBlock(JsonArray shorts) {
+        if (shorts.size() == 0 || !shorts.get(0).isJsonObject()) return null;
+        JsonObject v = shorts.get(0).getAsJsonObject();
+        String vid = str(v, "id"), title = str(v, "title");
+        if (vid == null || !vid.matches("[A-Za-z0-9_-]{6,20}") || title == null || !v.has("sights") || !v.get("sights").isJsonArray()) return null;
+        List<String> sights = new ArrayList<>();
+        for (JsonElement e : v.getAsJsonArray("sights")) if (e.isJsonPrimitive() && !e.getAsString().isBlank()) sights.add(esc(e.getAsString()));
+        if (sights.isEmpty()) return null;
+        int q = title.indexOf('?');
+        String hook = q > 0 ? title.substring(0, q + 1) : title;
+        String len = v.has("sec") && v.get("sec").isJsonPrimitive() ? clock(v.get("sec").getAsDouble()) : null;
+        StringBuilder b = new StringBuilder("<section class=\"shorts story\"><h2>이 산 이야기</h2><p class=\"hook\">").append(esc(hook)).append("</p><p>")
+                .append(String.join(" · ", sights)).append(" - 그 이야기를 ").append(len != null ? len + " " : "짧은 ").append("영상에 담았습니다.</p>")
+                .append("<a class=\"watch\" href=\"https://www.youtube.com/shorts/").append(vid).append("\" target=\"_blank\" rel=\"noopener\" title=\"").append(esc(title))
+                .append("\">▶ 영상으로 보기").append(len != null ? " (" + len + ")" : "").append("</a>");
+        if (v.has("src") && v.get("src").isJsonArray()) {
+            List<String> src = new ArrayList<>();
+            for (JsonElement e : v.getAsJsonArray("src")) if (e.isJsonPrimitive()) src.add(esc(e.getAsString()));
+            if (!src.isEmpty()) b.append("<p class=\"src\">자료: ").append(String.join(" · ", src)).append("</p>");
+        }
+        return b.append("</section>").toString();
+    }
+
+    /** 순수 함수 - 영상 길이(초) → "2분 33초"(반올림, 1분이 안 되면 "45초"). 0 이하는 null. */
+    static String clock(double sec) {
+        long t = Math.round(sec);
+        if (t <= 0) return null;
+        return t >= 60 ? (t / 60) + "분" + (t % 60 > 0 ? " " + (t % 60) + "초" : "") : t + "초";
     }
 
     /**
