@@ -138,6 +138,9 @@ input.bad, .agree.bad { border-color:#ff6b6b !important; }
 #phase { font-size:14.5px; line-height:1.6; margin:8px 0 0; }
 a.tel { color:var(--sky); }
 .vh { position:absolute !important; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+/* 밝은 모드 - 입력 칸은 안쪽을 다크 그대로(어두운 바탕 · 밝은 글), 테두리만 진하게(2026-11-21 홍TV님 "테두리만 쳐 줘. 안쪽은 다크모드와 동일하게") */
+:root[data-theme="light"] input[type=text], :root[data-theme="light"] input[type=time], :root[data-theme="light"] input[type=tel], :root[data-theme="light"] input[type=date], :root[data-theme="light"] select, :root[data-theme="light"] input[type=number] { color:#eef2f7; border-color:rgba(0,0,0,0.45); color-scheme:dark; }
+:root[data-theme="light"] input[type=text]::placeholder, :root[data-theme="light"] input[type=time]::placeholder, :root[data-theme="light"] input[type=tel]::placeholder, :root[data-theme="light"] input[type=date]::placeholder, :root[data-theme="light"] input[type=number]::placeholder { color:#9aa6b4; }
 </style>
 <script src="js/rf-theme.js"></script><link rel="stylesheet" href="css/rf-light.css"><!-- 밝은 · 다크 모드(2026-11-21 홍TV님) -->
 </head>

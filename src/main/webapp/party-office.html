@@ -57,6 +57,9 @@ tr.warn td { background:rgba(255,212,59,0.14); }
 #mineSel { flex:1 1 220px; min-height:44px; padding:0 10px; border-radius:10px; border:1px solid var(--sky); background:#0f141a; color:var(--tx); font-size:16px; font-weight:bold; }
 #mineBar button { min-height:44px; }
 .vh { position:absolute !important; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+/* 밝은 모드 - 입력 칸은 안쪽을 다크 그대로(어두운 바탕 · 밝은 글), 테두리만 진하게(2026-11-21 홍TV님 "테두리만 쳐 줘. 안쪽은 다크모드와 동일하게") */
+:root[data-theme="light"] input[type=text], :root[data-theme="light"] #linkBox, :root[data-theme="light"] #mineSel { color:#eef2f7; border-color:rgba(0,0,0,0.45); color-scheme:dark; }
+:root[data-theme="light"] input[type=text]::placeholder { color:#9aa6b4; }
 </style>
 <script src="js/rf-theme.js"></script><link rel="stylesheet" href="css/rf-light.css"><!-- 밝은 · 다크 모드(2026-11-21 홍TV님) -->
 </head>
