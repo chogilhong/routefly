@@ -242,7 +242,7 @@
         }
         show(lines);
         if (hours.length) {   // hourly table like the KMA site (2026-10-30)
-            out.appendChild(RF.wxTable(RF.wxCols(wx.hours, day, true), true));
+            out.appendChild(RF.wxTable(RF.wxCols(wx.hours, day, true, 24), true));   // 24 hours, across midnight (2026-11-21)
             var src = document.createElement("div");
             src.className = "dim";
             src.textContent = "Korea Meteorological Administration short-term forecast (issued " + wx.base + " KST) for a 5 km grid around the summit. The summit can be colder and windier.";

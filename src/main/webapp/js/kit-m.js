@@ -733,14 +733,18 @@
     /**
      * 순수 함수 - 그 날(day "2026-10-30")의 시간별 칸 [{h, icon, word, tmp, pop, pcp, wsd, reh, arrow, dir}] - 날씨누리 표의 한 열씩.
      * arrow 는 바람이 불어 가는 쪽 화살표(VEC 는 불어오는 쪽), dir 은 "북서" 처럼 불어오는 쪽 이름(…풍).
+     * max 가 있으면 그 날 첫 시각부터 다음 날로 이어 max 칸까지(2026-11-21 홍TV님 "23시로 끊어지잖아" - 오늘 밤 산행 · 새벽 출발도 보이게),
+     * 다음 날 칸은 nd(그 날짜의 일, 예 "22")가 붙음.
      */
-    function wxCols(hours, day, en) {
+    function wxCols(hours, day, en, max) {
         var arrows = ["↓", "↙", "←", "↖", "↑", "↗", "→", "↘"];
-        return (hours || []).filter(function (h) { return String(h.t).slice(0, 10) === day; }).map(function (h) {
+        var list = (hours || []).filter(function (h) { return max ? String(h.t).slice(0, 10) >= day : String(h.t).slice(0, 10) === day; });
+        if (max) list = list.slice(0, max);
+        return list.map(function (h) {
             var w = weatherWord(h.sky, h.pty), sp = w.indexOf(" "), v = h.vec != null && isFinite(h.vec) ? ((+h.vec % 360) + 360) % 360 : null;
             var word = sp > 0 ? w.slice(sp + 1) : w;
             if (en) word = { "맑음": "Clear", "구름많음": "Mostly cloudy", "흐림": "Overcast", "비": "Rain", "비/눈": "Rain/snow", "눈": "Snow", "소나기": "Showers" }[word] || word;
-            return { h: String(h.t).slice(11, 13), icon: sp > 0 ? w.slice(0, sp) : w, word: word, tmp: h.tmp, pop: h.pop, pcp: pcpText(h.pcp, en), wsd: h.wsd, reh: h.reh,
+            return { h: String(h.t).slice(11, 13), nd: String(h.t).slice(0, 10) !== day ? String(+String(h.t).slice(8, 10)) : null, icon: sp > 0 ? w.slice(0, sp) : w, word: word, tmp: h.tmp, pop: h.pop, pcp: pcpText(h.pcp, en), wsd: h.wsd, reh: h.reh,
                 arrow: v == null ? "" : arrows[Math.round(v / 45) % 8], dir: v == null ? "" : (en ? DIR16_EN : DIR16)[Math.round(v / 22.5) % 16] };
         });
     }
@@ -752,7 +756,7 @@
         wrap.setAttribute("tabindex", "0");   // 키보드로도 옆으로
         wrap.setAttribute("role", "region");
         wrap.setAttribute("aria-label", t("시간별 날씨 - 옆으로 밀어 보기", "Hourly weather - scroll sideways"));
-        var rows = [[t("시각", "Time"), function (c) { return c.h + t("시", ""); }], [t("날씨", "Sky"), function (c) { return c.icon; }, function (c) { return c.word; }],
+        var rows = [[t("시각", "Time"), function (c) { return (c.nd && (c.h === "00" || c === cols[0]) ? c.nd + t("일 ", "th ") : "") + c.h + t("시", ""); }],   // 다음 날로 넘어가는 칸에 날짜 [t("날씨", "Sky"), function (c) { return c.icon; }, function (c) { return c.word; }],
             [t("기온", "Temp"), function (c) { return c.tmp != null ? c.tmp + "°" : "-"; }], [t("강수확률", "Rain %"), function (c) { return c.pop != null ? c.pop + "%" : "-"; }],
             [t("강수량", "Rain"), function (c) { return c.pcp; }], [t("바람", "Wind"), function (c) { return (c.arrow ? c.arrow + " " : "") + (c.wsd != null ? c.wsd : "-"); },
                 function (c) { return (c.dir ? c.dir + t("풍 ", " wind ") : "") + (c.wsd != null ? c.wsd + "m/s" : ""); }],
@@ -767,8 +771,9 @@
                 if (!i) td.scope = "col";
                 td.textContent = r[1](c);
                 if (r[2]) { td.title = r[2](c); td.setAttribute("aria-label", r[2](c)); }
-                if (i === 3 && c.pop >= 60) td.className = "wet";
-                if (i === 5 && c.wsd >= 9) td.className = "windy";   // 9m/s 넘으면 능선은 더 셈
+                if (c.nd && c.h === "00") td.classList.add("nd");   // 날이 바뀌는 칸 - 왼쪽 선
+                if (i === 3 && c.pop >= 60) td.classList.add("wet");
+                if (i === 5 && c.wsd >= 9) td.classList.add("windy");   // 9m/s 넘으면 능선은 더 셈
                 tr.appendChild(td);
             });
             tb.appendChild(tr);

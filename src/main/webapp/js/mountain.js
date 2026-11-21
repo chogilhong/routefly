@@ -351,7 +351,7 @@
         winds.forEach(function (n) { lines.push(n.text); });   // 강풍(2026-10-16 홍TV님) - 정상 둘레 격자라 정상 바람에 가까움
         show(lines);
         // 시간마다 가로 표 - 기상청 날씨누리 동네예보처럼(2026-10-30 홍TV님 "참고해", 예전엔 3시간마다 글 줄)
-        if (hours.length) out.appendChild(RF.wxTable(RF.wxCols(wx.hours, day, false), false));
+        if (hours.length) out.appendChild(RF.wxTable(RF.wxCols(wx.hours, day, false, 24), false));   // 24시간 - 자정을 넘어 이어서(2026-11-21 홍TV님)
         var src = document.createElement("div");
         src.className = "dim";
         src.textContent = "기상청 단기예보(" + wx.base + " 발표) · 정상 둘레 5km 격자 - 정상은 이보다 춥고 바람이 셀 수 있습니다."

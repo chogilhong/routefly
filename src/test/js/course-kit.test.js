@@ -1602,6 +1602,8 @@ eq("pcpText 강수량 글", ["강수없음", "1mm 미만", "1.0mm", "30.0~50.0mm
     var c = RF.wxCols(hs, "2026-10-30", false);
     eq("wxCols 그 날 시간마다 - 북서풍은 남동쪽으로 부는 화살표", [c.length, c[0].h, c[0].icon, c[0].word, c[0].arrow, c[0].dir, c[1].word, c[1].arrow, c[1].dir, c[1].pcp],
         [2, "05", "☀️", "맑음", "↘", "북서", "비", "←", "동", "1mm"]);
+    var c24 = RF.wxCols(hs, "2026-10-30", false, 24);
+    eq("wxCols 24칸 - 자정 넘어 다음 날로 이어 붙임(2026-11-21 홍TV님 \"23시로 끊어지잖아\")", [c24.length, c24[0].nd, c24[2].h, c24[2].nd, RF.wxCols(hs, "2026-10-30", false, 2).length], [3, null, "00", "31", 2]);
     eq("wxCols 영어 · 풍향 없으면 빈칸", [RF.wxCols(hs, "2026-10-30", true)[0].word, RF.wxCols(hs, "2026-10-30", true)[0].dir, RF.wxCols(hs, "2026-10-31", false)[0].arrow], ["Clear", "NW", ""]);
 })();
 eq("kmaLink 행정동이 있으면 동네예보, 없으면 첫 화면", [RF.kmaLink({ code: "2815552000", name: "인천광역시 영종구 영종1동" }, 37.48441, 126.56), RF.kmaLink(null, 37.4, 126.5), RF.kmaLink({ code: "x", name: "a" }, 37.4, 126.5)],
