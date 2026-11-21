@@ -187,9 +187,12 @@ public class MountainServlet extends HttpServlet {
             double dLat = 0.05, dLon = 0.05 / Math.cos(Math.toRadians(lat));
             JsonArray rows = CourseQueries.list(c, new double[] {lon - dLon, lat - dLat, lon + dLon, lat + dLat}, "hike", null);
             courses = near(rows, peak, NEAR_M, MAX_COURSES * 2);   // 정상 이름만 같은 다른 산길을 뺀 뒤에도 30개가 차게 넉넉히(2026-10-30 점검)
+            List<JsonObject> far = near(rows, peak, NEAR_M, FAR_M, FAR_MAX);   // 들머리 · 끝이 2 ~ 5km 인 원점회귀 · 종주 - 정상을 지날 때만 아래에서 남김(2026-11-21)
             JsonArray picked = new JsonArray();
             courses.forEach(picked::add);
+            far.forEach(picked::add);
             Steep.fill(c, picked, Peaks.tops(getServletContext()), Peaks.named(getServletContext()));   // 가장 가파른 1km(난이도) · 정상을 지나면 최고 높이는 공식 값(2026-10-16)
+            courses.addAll(through(far, peak));
             courses.removeIf(o -> o.has("summit_miss_m") && o.get("summit_miss_m").getAsDouble() > Peaks.HIDE_MISS_M);   // 이름만 이 산 정상인 다른 산길(2026-10-30)
             courses = markOff(courses, peak);   // 이 산 정상에 안 가는 코스는 표시 · 뒤로(2026-11-20)
             if (courses.size() > MAX_COURSES) courses = new ArrayList<>(courses.subList(0, MAX_COURSES));
@@ -432,8 +435,29 @@ public class MountainServlet extends HttpServlet {
         return near(rows, peak, nearM, MAX_COURSES);
     }
 
+    /**
+     * 들머리 · 끝이 정상에서 NEAR_M 넘게 ~ FAR_M 안인 코스도 후보로(많아야 FAR_MAX 개) - 선이 정상을 지나면(through) 산 페이지에 넣음.
+     * 2026-11-21 PC: /m/백운산(정선) - 동강자연휴양림에서 백운산 정상을 지나 되돌아오는 원점회귀(u-20261121-161922, 들머리가 정상에서 약 2.3km)가 빠졌음.
+     * 산 페이지 DB 조회 칸(±0.05°)이 약 5.5km 라 FAR_M 은 그 안.
+     */
+    static final double FAR_M = 5000;
+    static final int FAR_MAX = 20;
+
+    /** 순수 함수 - 선이 이 산 정상을 지나는 코스만(Steep.fill 의 passes 에 이 산 id). passes 가 없으면(점을 못 읽음) 넣지 않음. */
+    static List<JsonObject> through(List<JsonObject> far, JsonObject peak) {
+        com.google.gson.JsonPrimitive id = new com.google.gson.JsonPrimitive(MountainEn.id(peak));
+        List<JsonObject> out = new ArrayList<>();
+        for (JsonObject o : far) if (o.has("passes") && o.get("passes").isJsonArray() && o.getAsJsonArray("passes").contains(id)) out.add(o);
+        return out;
+    }
+
     /** max - 가까운 차례로 많아야 몇 개. */
     static List<JsonObject> near(JsonArray rows, JsonObject peak, double nearM, int max) {
+        return near(rows, peak, -1, nearM, max);
+    }
+
+    /** minM 넘게(이미 near 에 든 것은 빼려고) ~ nearM 안. */
+    static List<JsonObject> near(JsonArray rows, JsonObject peak, double minM, double nearM, int max) {
         List<double[]> tops = tops(peak);
         List<Object[]> hit = new ArrayList<>();
         for (JsonElement e : rows) {
@@ -445,7 +469,7 @@ public class MountainServlet extends HttpServlet {
                 d = Math.min(d, gap(c, "end_lat", "end_lon", t));
                 d = Math.min(d, gap(c, "start_lat", "start_lon", t));
             }
-            if (d <= nearM) hit.add(new Object[] {c, d});
+            if (d > minM && d <= nearM) hit.add(new Object[] {c, d});
         }
         hit.sort(Comparator.comparingDouble(o -> (Double) o[1]));
         List<JsonObject> out = new ArrayList<>();

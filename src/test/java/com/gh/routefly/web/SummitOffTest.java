@@ -70,6 +70,24 @@ public class SummitOffTest {
         assertFalse(on.has("summit_off") || unknown.has("summit_off") || miss.has("summit_off"));
         assertEquals("정상에 가는 코스가 앞", List.of(on, unknown, miss, off), got);
 
+        // 들머리 · 끝이 2km 넘게 떨어진 원점회귀도 정상을 지나면 산 페이지에(2026-11-21 PC - 운영 u-20261121-161922: 들머리 37.259615, 128.596859, 정상에서 약 2.3km)
+        JsonArray rows = new JsonArray();
+        JsonObject loop = new JsonObject(), farOff = new JsonObject(), close = new JsonObject();
+        for (JsonObject o : List.of(loop, farOff)) { o.addProperty("start_lat", 37.259615); o.addProperty("start_lon", 128.596859); o.addProperty("end_lat", 37.259631); o.addProperty("end_lon", 128.596878); }
+        loop.addProperty("name", "정선 백운산 · 동강자연휴양림 → 나리소전망대 점재교 백운산 칠족령 → 동강자연휴양림");
+        farOff.addProperty("name", "같은 들머리 · 정상 안 감");
+        close.addProperty("name", "정선 백운산 · 점재교 → 백운산");   // 운영 u-20261121-150912 끝 37.280061, 128.596079
+        close.addProperty("start_lat", 37.276265); close.addProperty("start_lon", 128.610881); close.addProperty("end_lat", 37.280061); close.addProperty("end_lon", 128.596079);
+        rows.add(loop); rows.add(farOff); rows.add(close);
+        assertEquals("2km 안은 가까운 코스 하나", List.of(close), MountainServlet.near(rows, baek, MountainServlet.NEAR_M, 30));
+        List<JsonObject> far = MountainServlet.near(rows, baek, MountainServlet.NEAR_M, MountainServlet.FAR_M, MountainServlet.FAR_MAX);
+        assertEquals("2 ~ 5km 후보 둘(가까운 것은 빠짐)", 2, far.size());
+        JsonArray pass = new JsonArray();
+        pass.add("백운산(정선)");
+        loop.add("passes", pass);
+        farOff.add("passes", new JsonArray());
+        assertEquals("정상을 지나는 원점회귀만", List.of(loop), MountainServlet.through(far, baek));
+
         // 문답: 정상에 안 가는 코스는 "정상까지 가는 코스" 로 세지 않음(2026-11-21 PC - 백운산(정선) 문답이 푯대봉 코스를 정상 코스로 적었음)
         List<String[]> qa = MountainServlet.faq(baek, "백운산(정선)", List.of(off), null);
         assertEquals("정상까지 가는 코스는 아직 찾지 못했습니다. 둘레 코스 1개는 정상에 가지 않으니 코스 칸의 ⚠ 표시를 보세요.", qa.get(0)[1]);
@@ -88,6 +106,9 @@ public class SummitOffTest {
         String m = new String(Files.readAllBytes(Paths.get("src/main/java/com/gh/routefly/web/MountainServlet.java")), StandardCharsets.UTF_8);
         String s = new String(Files.readAllBytes(Paths.get("src/main/java/com/gh/routefly/web/Steep.java")), StandardCharsets.UTF_8);
         assertTrue(m.contains("courses = markOff(courses, peak);"));
+        // 2 ~ 5km 후보도 Steep.fill(passes) 에 넣고, 정상을 지나는 것만 더함 - markOff 앞(2026-11-21)
+        int far = m.indexOf("far.forEach(picked::add);"), fill = m.indexOf("Steep.fill(c, picked,"), add = m.indexOf("courses.addAll(through(far, peak));"), off = m.indexOf("courses = markOff(courses, peak);");
+        assertTrue(far > 0 && far < fill && fill < add && add < off);
         assertTrue(s.contains("PASSED.put(id, Peaks.passed(pa, pb, named));") && s.contains("o.add(\"passes\", pa);"));
     }
 
