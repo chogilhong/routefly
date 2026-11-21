@@ -66,6 +66,13 @@
 - "해설: AI 음성(…)" 바로 아래: `안내: 전설 · 옛이야기는 전해 오는 이야기로 소개합니다. 높이 · 코스는 routefly 앱 값(2026-11 기준)입니다.`
 - 해시태그는 6 ~ 8개(15개를 넘으면 유튜브가 모두 무시). 이미 올린 15편에 붙일 줄은 `설명란-더하기.md`.
 
+## 3-3. 영상 도구가 있는 곳(2026-11-21)
+
+- PC `C:\GH\workspace\tools\video\` - GitHub 비공개 저장소 chogilhong/tools 의 `video/` 폴더(홍TV님 "노트북이 오래 돼서" - 다른 노트북에서도 clone 해서 쓰게).
+  스크립트(make_v2 · make_thumbs · make_bgm · whisper_check …)와 산마다 대본 사본 · photos.tsv · extra.tsv 만 저장소에, 사진 · 목소리 · 영상(photos · vrew · out · _thumbs)은 PC 에만(.gitignore).
+  설치 · 쓰는 법은 그 저장소 `video/README.md`. 예전 폴더 `C:\GH\workspace\video-tools` 는 다음 영상 한 편 뒤 지울지 홍TV님이 정함.
+- 이 문서들의 "올릴 파일(PC)" 경로는 tools\video\shorts\… 로 고침(2026-11-21).
+
 ## 4. 순서(산마다)
 
 1. PC: 사진 목록(v2\<산>\photos.tsv · extra.tsv) - 콘텐츠랩 · 국가유산포털 · 백과사전 미디어 · 위키미디어, 사진마다 ID · 제목 · 촬영자 · 조건 · 크기 · 본 내용.
