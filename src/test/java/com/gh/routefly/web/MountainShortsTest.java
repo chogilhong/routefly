@@ -47,6 +47,12 @@ public class MountainShortsTest {
         assertEquals("n2BHPYH3QXQ", videos.getAsJsonArray("주왕산").get(0).getAsJsonObject().get("id").getAsString());
         assertEquals("s9D8pcz0RvY", videos.getAsJsonArray("지리산").get(0).getAsJsonObject().get("id").getAsString());
         assertEquals("JkNWEU9SGgM", videos.getAsJsonArray("대암산").get(0).getAsJsonObject().get("id").getAsString());   // 2026-11-22 새 산
+        assertEquals("nqLq_YegQXk", videos.getAsJsonArray("재약산").get(0).getAsJsonObject().get("id").getAsString());
+        // 물음표 없는 제목은 hook 을 큰 글로(2026-11-22 홍TV님 "전부다 ? 가 있는 것 같아")
+        JsonObject jy = new JsonObject();
+        jy.add("shorts", videos.getAsJsonArray("재약산"));
+        String jh = MountainServlet.shortsBlock(jy, false);
+        assertTrue(jh, jh.contains("<p class=\"hook\">여름엔 얼고 겨울엔 녹는다!</p><p>얼음골 · 사자평 · 표충사 - 그 이야기를 2분 31초 영상에 담았습니다.</p>"));
         MountainServlet.withShorts(peaks, videos);
         JsonObject gyeryong = null, gaya = null;
         for (JsonElement e : peaks) {

@@ -748,7 +748,8 @@ public class MountainServlet extends HttpServlet {
         for (JsonElement e : v.getAsJsonArray("sights")) if (e.isJsonPrimitive() && !e.getAsString().isBlank()) sights.add(esc(e.getAsString()));
         if (sights.isEmpty()) return null;
         int q = title.indexOf('?');
-        String hook = q > 0 ? title.substring(0, q + 1) : title;
+        // 큰 글은 hook 이 있으면 그것(물음표 없는 제목 - 2026-11-22 홍TV님 "전부다 ? 가 있는 것 같아"), 없으면 제목의 ? 까지
+        String hook = str(v, "hook") != null && !str(v, "hook").isBlank() ? str(v, "hook") : q > 0 ? title.substring(0, q + 1) : title;
         String len = v.has("sec") && v.get("sec").isJsonPrimitive() ? clock(v.get("sec").getAsDouble()) : null;
         StringBuilder b = new StringBuilder("<section class=\"shorts story\"><h2>이 산 이야기</h2><p class=\"hook\">").append(esc(hook)).append("</p><p>")
                 .append(String.join(" · ", sights)).append(" - 그 이야기를 ").append(len != null ? len + " " : "짧은 ").append("영상에 담았습니다.</p>")
