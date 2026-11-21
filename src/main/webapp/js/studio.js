@@ -107,7 +107,7 @@
                 "<b>✂️ 앞 · 뒤 자르기</b> · <b>🕳️ 가운데 지우기</b> · <b>➗ 나누기</b> · <b>🔗 잇기</b> · <b>↔ 뒤집기</b> · <b>⭕ 원점회귀로</b> · <b>📍 점 고치기</b>. 잘못했으면 <b>↶ 되돌리기</b>.",
                 "높이 그래프에 손가락 · 마우스를 대면 지도에 그 자리가 보입니다. 다 고쳤으면 <b>💾 GPX 저장</b>."]] },
             own ? { icon: "⬆", title: ["코스로 올리기 (운영자)"], body: [[
-                "<b>⬆ 코스로 올리기</b>: 선 모양과 이름만 서버로 - 1시간 안(매시 7분)에 코스 목록에 들어갑니다. 누구나 보는 코스가 되니 집 근처는 먼저 자르세요.",
+                "<b>⬆ 코스로 올리기</b>: 선 모양과 이름만 서버로 - 1시간 안(매시 37분)에 코스 목록에 들어갑니다. 누구나 보는 코스가 되니 집 근처는 먼저 자르세요.",
                 "<b>📨 받은 GPX</b>에 등산객이 보낸 길이 쌓입니다(30일 지나면 저절로 지움). 열어 점검하고 올리면 받은 목록에서 빠집니다."]] }
                 : { icon: "📮", title: ["routefly 에 보내기"], body: [[
                 "<b>📮 routefly 에 코스 보내기</b>를 누르면 운영자가 확인한 뒤 코스 목록에 넣습니다.",
@@ -1119,14 +1119,14 @@
             var name = String((r && r.name) || "").trim();
             if (!name) return;
             var st = RF.trackStats(c.track);
-            return ask("\"" + name + "\" (" + km(st.dist) + " km) 을(를) routefly 코스로 올릴까요?\n" + RF.sourceText({ kind: "maker", text: r.maker || "routefly", checked: !!r.maker }) + "\n\n누구나 보는 코스가 됩니다. 선 모양 · 이름 · 만든 이만 올라가고 시각은 올라가지 않습니다. 1시간 안(매시 7분)에 코스 목록에 들어갑니다.", { ok: "올리기" }).then(function (ok) {
+            return ask("\"" + name + "\" (" + km(st.dist) + " km) 을(를) routefly 코스로 올릴까요?\n" + RF.sourceText({ kind: "maker", text: r.maker || "routefly", checked: !!r.maker }) + "\n\n누구나 보는 코스가 됩니다. 선 모양 · 이름 · 만든 이만 올라가고 시각은 올라가지 않습니다. 1시간 안(매시 37분)에 코스 목록에 들어갑니다.", { ok: "올리기" }).then(function (ok) {
                 if (!ok) return;
                 return fetch("api/course-upload", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
                     body: JSON.stringify({ name: name, kind: $("kind").value, maker: r.maker, gpx: RF.trackGpx(name, $("kind").value, c.track) }) })
                     .then(function (res) { return res.json().catch(function () { return { success: false, message: "HTTP " + res.status }; }); })
                     .then(function (j) {
                         if (!j || j.success === false) throw new Error(j && j.message || "?");
-                        msg("⬆ 올렸습니다 - 1시간 안(매시 7분)에 코스 목록에 들어갑니다. 코스 ID " + j.id, 9000);
+                        msg("⬆ 올렸습니다 - 1시간 안(매시 37분)에 코스 목록에 들어갑니다. 코스 ID " + j.id, 9000);
                         if (c.sub) { var id = c.sub; delete c.sub; subDone(id); }   // 받은 GPX 를 올렸으면 받은 목록에서 지움
                     });
             });

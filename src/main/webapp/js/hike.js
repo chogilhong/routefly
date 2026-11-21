@@ -1423,14 +1423,14 @@
             name = String(name || "").trim();
             if (!name) return;
             var kind = /^(hike|walk|bike)$/.test(r.kind) ? r.kind : "hike";
-            return hAsk(T("\"" + name + "\" 을(를) routefly 코스로 올릴까요?\n\n누구나 보는 코스가 됩니다. 앞 단계에서 자른 부분은 올라가지 않습니다.\n시각 · 사진 메모는 올라가지 않고 선 모양만 올라갑니다. 1시간 안(매시 7분)에 코스 목록에 들어갑니다.",
-                "Upload \"" + name + "\" as a routefly course?\n\nEveryone will see it. The parts you trimmed are not uploaded.\nOnly the line is uploaded - no times or photo notes. It appears in the list within an hour (at :07)."), { ok: T("올리기", "Upload") }).then(function (ok) {
+            return hAsk(T("\"" + name + "\" 을(를) routefly 코스로 올릴까요?\n\n누구나 보는 코스가 됩니다. 앞 단계에서 자른 부분은 올라가지 않습니다.\n시각 · 사진 메모는 올라가지 않고 선 모양만 올라갑니다. 1시간 안(매시 37분)에 코스 목록에 들어갑니다.",
+                "Upload \"" + name + "\" as a routefly course?\n\nEveryone will see it. The parts you trimmed are not uploaded.\nOnly the line is uploaded - no times or photo notes. It appears in the list within an hour (at :37)."), { ok: T("올리기", "Upload") }).then(function (ok) {
                 if (!ok) return;
                 return fetch("api/course-upload", { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify({ name: name, kind: kind, gpx: toGpx(r) }) })
                     .then(function (res) { return res.json().catch(function () { return { success: false, message: "HTTP " + res.status }; }); })
                     .then(function (j) {
                         if (!j || j.success === false) throw new Error(j && j.message || "?");
-                        toast(T("⬆ 올렸습니다 - 1시간 안(매시 7분)에 코스 목록에 들어갑니다. 코스 ID " + j.id, "⬆ Uploaded - it appears within an hour (at :07). Course ID " + j.id), 8000);
+                        toast(T("⬆ 올렸습니다 - 1시간 안(매시 37분)에 코스 목록에 들어갑니다. 코스 ID " + j.id, "⬆ Uploaded - it appears within an hour (at :37). Course ID " + j.id), 8000);
                     });
             });
         }).catch(function (e) { toast(T("올리지 못했습니다: ", "Upload failed: ") + (e && e.message || e), 6000); }); }
