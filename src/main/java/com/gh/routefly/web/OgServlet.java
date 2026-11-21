@@ -79,7 +79,9 @@ public class OgServlet extends HttpServlet {
         byte[] png = cache.get(cacheKey);
         if (png == null) {
             try {
-                png = png(en ? english(peak) : korean(peak), english(peak), logo());
+                JsonObject hero = peak.has("hero") ? MountainServlet.heroOk(peak.get("hero")) : null;   // 대표 사진(data/hero.json)이 있으면 바탕으로(2026-11-21 "고급지게" 5번)
+                png = hero != null ? photoPng(en ? english(peak) : korean(peak), english(peak), photo(hero.get("src").getAsString()), hero.get("credit").getAsString())
+                        : png(en ? english(peak) : korean(peak), english(peak), logo());
             } catch (Exception | Error e) {   // 글꼴 · 그래픽 장치가 없는 서버 - 기본 그림으로
                 log.warn("[OG] 그림을 못 그림 {} - {}", id, e.toString());
                 png = FAILED;   // 못 그린 것도 기억(2026-11-01 점검: 요청마다 다시 그리며 경고를 남겼음) - 다시 배포하면 새로
@@ -166,6 +168,64 @@ public class OgServlet extends HttpServlet {
         return out.toByteArray();
     }
 
+    /**
+     * 사진 바탕 그림(2026-11-21 홍TV님 "고급지게" 5번) - 대표 사진을 1200 × 630 에 꽉 차게(가운데를 잘라), 아래쪽을 어둡게 덮고 흰 글로 산 이름 · 높이,
+     * 오른쪽 아래에 사진 출처(공공누리 1유형 · CC0 - 출처 표시). 사진을 못 읽으면(null) 예전 그림.
+     */
+    static byte[] photoPng(String[] lines, String[] fallback, BufferedImage photo, String credit) throws IOException {
+        if (photo == null) return png(lines, fallback, null);
+        Set<String> installed = new HashSet<>(Arrays.asList(GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames()));
+        String all = lines[0] + lines[1] + credit, face = fontFor(all, installed);
+        if (face == null && !(lines[0] + lines[1]).chars().allMatch(c -> c < 0x1100)) lines = fallback;
+        String fam = face != null ? face : Font.SANS_SERIF;
+        BufferedImage img = new BufferedImage(W, H, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = img.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        int[] c = cover(photo.getWidth(), photo.getHeight(), W, H);
+        g.drawImage(photo, 0, 0, W, H, c[0], c[1], c[0] + c[2], c[1] + c[3], null);
+        g.setPaint(new GradientPaint(0, H * 0.35f, new Color(0, 0, 0, 0), 0, H, new Color(0, 0, 0, 190)));
+        g.fillRect(0, 0, W, H);
+        g.setColor(Color.WHITE);
+        int size = 110;
+        Font tf = new Font(fam, Font.BOLD, size);
+        while (g.getFontMetrics(tf).stringWidth(lines[0]) > W - 140 && size > 60) tf = new Font(fam, Font.BOLD, size -= 6);
+        g.setFont(tf);
+        g.drawString(lines[0], 70, H - 150);
+        int s2 = 40;
+        while (g.getFontMetrics(new Font(fam, Font.PLAIN, s2)).stringWidth(lines[1]) > W - 140 && s2 > 28) s2 -= 2;
+        g.setFont(new Font(fam, Font.PLAIN, s2));
+        g.drawString(fit(g, lines[1], W - 140), 70, H - 85);
+        g.setFont(new Font(fam, Font.PLAIN, 20));
+        g.setColor(new Color(255, 255, 255, 210));
+        String cr = fit(g, ((lines[0] + lines[1]).chars().allMatch(ch -> ch < 0x1100) ? "Photo: " : "사진: ") + credit, W - 60);   // 영어 그림은 Photo
+        g.drawString(cr, W - 30 - g.getFontMetrics().stringWidth(cr), H - 24);
+        g.dispose();
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ImageIO.write(img, "png", out);
+        return out.toByteArray();
+    }
+
+    /** 순수 함수 - 꽉 채우기(cover): 사진 sw × sh 에서 tw × th 비율로 가운데를 자를 칸 [x, y, w, h]. */
+    static int[] cover(int sw, int sh, int tw, int th) {
+        if ((long) sw * th > (long) sh * tw) {   // 사진이 더 넓음 - 양옆을 자름
+            int w = (int) Math.round((double) sh * tw / th);
+            return new int[] {(sw - w) / 2, 0, w, sh};
+        }
+        int h = (int) Math.round((double) sw * th / tw);
+        return new int[] {0, (sh - h) / 2, sw, h};
+    }
+
+    /** 대표 사진 파일(img/hero/…jpg) - 못 읽으면 null. */
+    private BufferedImage photo(String src) {
+        try (InputStream in = getServletContext().getResourceAsStream("/" + src)) {
+            return in == null ? null : ImageIO.read(in);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     /** 로고 둘레의 흰 바탕을 투명하게(바탕 그라데이션이 달라 네모가 보였음) - 밝고 색이 거의 없는 점일수록 투명. */
     static BufferedImage cutout(BufferedImage src) {
         BufferedImage out = new BufferedImage(src.getWidth(), src.getHeight(), BufferedImage.TYPE_INT_ARGB);
@@ -207,6 +267,7 @@ public class OgServlet extends HttpServlet {
             p = new JsonArray();
         }
         MountainServlet.withElev(p, MountainServlet.readElev(getServletContext()));   // 공식 높이(data/peak-elev.json)
+        MountainServlet.withHero(p, MountainServlet.readHero(getServletContext()));   // 대표 사진(data/hero.json)
         peaks = p;
         return p;
     }

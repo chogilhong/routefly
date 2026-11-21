@@ -277,6 +277,7 @@ public class MountainServlet extends HttpServlet {
         withElev(p, readElev(getServletContext()));
         withInfo(p, readInfo(getServletContext()));
         withShorts(p, readShorts(getServletContext()));
+        withHero(p, readHero(getServletContext()));   // 맨 위 대표 사진(data/hero.json - 2026-11-21 "고급지게" 1번)
         JsonObject sea = readSeason(getServletContext());
         withSeason(p, sea);
         withFishing(p, readArray(getServletContext(), "/data/tidefly-points.json"));
@@ -630,6 +631,52 @@ public class MountainServlet extends HttpServlet {
             o.addProperty("reason", str(v.getAsJsonObject(), "reason"));
             if (str(v.getAsJsonObject(), "sub") != null) o.addProperty("reason_sub", str(v.getAsJsonObject(), "sub"));
         }
+    }
+
+    /** data/hero.json 의 heroes {산 id: {src, w, h, credit, license, alt?}} - 없거나 못 읽으면 빈 것. */
+    static JsonObject readHero(jakarta.servlet.ServletContext ctx) {
+        try (InputStream in = ctx.getResourceAsStream("/data/hero.json")) {
+            JsonElement e = in == null ? null : JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+            return e != null && e.isJsonObject() && e.getAsJsonObject().has("heroes") ? e.getAsJsonObject().getAsJsonObject("heroes") : new JsonObject();
+        } catch (Exception e) {
+            return new JsonObject();
+        }
+    }
+
+    /**
+     * 순수 함수 - 쓸 수 있는 대표 사진이면 그대로, 아니면 null. 사진 파일은 img/hero/ 아래 영문 · 숫자 이름의 jpg(서버 공유 그림도 읽음),
+     * 크기(w · h - 화면이 밀리지 않게), 출처(credit)가 꼭 있고, 공공누리 1유형(kogl1) · CC0(cc0)만 - 잘라 쓰므로 CC BY-SA(그대로만)는 안 씀.
+     */
+    static JsonObject heroOk(JsonElement e) {
+        if (e == null || !e.isJsonObject()) return null;
+        JsonObject h = e.getAsJsonObject();
+        String src = str(h, "src"), credit = str(h, "credit"), lic = str(h, "license");
+        if (src == null || !src.matches("img/hero/[a-z0-9-]{1,40}\\.jpg") || credit == null || credit.isBlank() || !("kogl1".equals(lic) || "cc0".equals(lic))) return null;
+        try {
+            if (h.get("w").getAsInt() <= 0 || h.get("h").getAsInt() <= 0) return null;
+        } catch (Exception x) {
+            return null;
+        }
+        return h;
+    }
+
+    /** 순수 함수 - 산마다 대표 사진(hero)을 붙임(id 로 맞춤 - withShorts 와 같게). */
+    static void withHero(JsonArray peaks, JsonObject heroes) {
+        for (JsonElement e : peaks) {
+            JsonObject o = e.getAsJsonObject();
+            String id = str(o, "id") != null ? str(o, "id") : str(o, "name");
+            JsonObject h = id == null ? null : heroOk(heroes.get(id));
+            if (h != null) o.add("hero", h);
+        }
+    }
+
+    /** 순수 함수 - 산 페이지 맨 위 대표 사진 칸(사진이 없으면 ""). rel - 앱 뿌리 상대 주소. 출처는 사진 바로 아래. */
+    static String heroBlock(JsonObject peak, String rel, boolean en) {
+        JsonObject h = peak.has("hero") ? heroOk(peak.get("hero")) : null;
+        if (h == null) return "";
+        String alt = str(h, "alt") != null ? str(h, "alt") : (en ? MountainEn.name(peak) + " view" : MountainEn.id(peak) + " 풍경");
+        return "<figure class=\"hero\"><img src=\"" + rel + "/" + str(h, "src") + "\" width=\"" + h.get("w").getAsInt() + "\" height=\"" + h.get("h").getAsInt()
+                + "\" alt=\"" + esc(alt) + "\" fetchpriority=\"high\" decoding=\"async\"><figcaption>" + (en ? "Photo: " : "사진: ") + esc(str(h, "credit")) + "</figcaption></figure>";
     }
 
     /** data/shorts.json 의 videos {산 id: [{id, title}]}(홍TV님이 올린 유튜브 쇼츠, 2026-11-19) - 없거나 못 읽으면 빈 것. */
@@ -1262,6 +1309,7 @@ public class MountainServlet extends HttpServlet {
                 .append(topNm == null && summit != null && !summit.equals(str(peak, "name")) ? " · 도장 자리 " + esc(summit) : "")
                 .append(top != null ? String.format(Locale.KOREA, " · 코스 최고점 약 %,dm", top) : "").append("</p>");
         if (closed(peak) != null) b.append("<p class=\"closedNote\">⛔ ").append(esc(closed(peak))).append("</p>");
+        b.append(heroBlock(peak, REL, false));   // 대표 사진(data/hero.json, 2026-11-21 홍TV님 "고급지게" 1번) - 사진이 있는 산만
         // 코스 목록은 날씨 · 챙길 것 · 안전 · 숙소 칸 아래라 한 번에 내려가는 링크(2026-11-02 홍TV님 점검: 폰에서 코스를 찾느라 길게 밀었음).
         // 설명 바로 아래 - 날씨 칸 아래에 두었더니 화면이 그 아래 넣는 🎒 챙길 것에 밀려 첫 화면 밖으로 나갔음(점검 6차)
         b.append(shortsBlock(peak, false));   // ▶ 이 산 이야기(유튜브 쇼츠, data/shorts.json) - "코스 n개 바로 보기" 바로 위(2026-11-20 홍TV님 "바로 위로 옮겨줘", 전에는 선정 이유 아래)
