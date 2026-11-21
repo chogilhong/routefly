@@ -879,6 +879,27 @@ curl -s -o /dev/null -w '%{http_code}\n' -A 'Mozilla/5.0 (Windows NT 10.0; Win64
 
   2026-11-06 서버 확인: 124.0.6367.207 · 124.0.0.0 · 124.0.6367.91 은 403, 최신 크롬(152)은 200. 앞 파일 두 벌 - `.bak-20261106`(124.0.0.0 한 줄) · `.bak-20261106b`(넓힌 모양, 스크립트가 두 번 돎).
 
+- 2026-11-21 넓힘(홍TV님 "막아"): 옛 아이폰(iOS 13.2.3, 2019년)을 흉내 내는 수집기 - /stats "수집기 의심" 에 16화면 · 16곳(js 안 돎, 곳마다 /c/ 1화면),
+  같은 날 PC 로그 요약 "옛 아이폰 흉내(iOS 13.2.3) 67 / 63곳". 브라우저 글이 글자 하나까지 같은 것만 막음(진짜 iOS 13.2.3 사용자는 거의 없음).
+  주의: 크롬 개발자 도구의 아이폰 흉내 모드가 이 글을 쓰면 우리도 403 - 화면 확인은 창 폭만 줄여서. 지금 서버의 파일:
+
+```bash
+sudo cp /etc/nginx/conf.d/routefly-scraper.conf /etc/nginx/conf.d/routefly-scraper.conf.bak-20261121
+sudo tee /etc/nginx/conf.d/routefly-scraper.conf > /dev/null <<'NGX'
+map $http_user_agent $rf_scraper {
+    default 0;
+    "~Chrome/124\.0\.[0-9.]+ Safari/537\.36$" 1;
+    "~iPhone OS 13_2_3 like Mac OS X\) AppleWebKit/605\.1\.15 \(KHTML, like Gecko\) Version/13\.0\.3 Mobile/15E148 Safari/604\.1$" 1;
+}
+NGX
+sudo nginx -t && sudo systemctl reload nginx
+curl -s -o /dev/null -w '%{http_code}\n' -A 'Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1' https://routefly.kr/routefly/hike.html   # 403
+curl -s -o /dev/null -w '%{http_code}\n' -A 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36' https://routefly.kr/routefly/hike.html   # 403(그대로)
+curl -s -o /dev/null -w '%{http_code}\n' -A 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1' https://routefly.kr/routefly/hike.html   # 200(요즘 아이폰)
+```
+
+  되돌리기: `sudo cp /etc/nginx/conf.d/routefly-scraper.conf.bak-20261121 /etc/nginx/conf.d/routefly-scraper.conf && sudo nginx -t && sudo systemctl reload nginx`
+
 - 다른 브라우저 글을 더 막으려면 `routefly-scraper.conf` 의 map 에 줄을 더하고 `sudo nginx -t && sudo systemctl reload nginx`.
 - 브라우저 글을 바꿔 다시 오면 다음은 코스 페이지(/c/)에도 한 곳당 횟수 제한(SecurityFilter 는 지금 /api · /s 만).
 - 되돌리기: `sudo rm /etc/nginx/conf.d/routefly-scraper.conf && sudo cp /etc/nginx/sites-available/routefly.bak-20261028 /etc/nginx/sites-available/routefly && sudo nginx -t && sudo systemctl reload nginx`

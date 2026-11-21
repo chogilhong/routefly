@@ -43,7 +43,7 @@ public class MountainShortsTest {
         assertEquals("DbQOtOK3rnk", videos.getAsJsonArray("오대산").get(0).getAsJsonObject().get("id").getAsString());
         assertEquals("GKlusMikJvI", videos.getAsJsonArray("적상산").get(0).getAsJsonObject().get("id").getAsString());
         assertEquals("R8yW3K7rDvk", videos.getAsJsonArray("두타산").get(0).getAsJsonObject().get("id").getAsString());   // 새 산(2026-11-21)
-        assertEquals("kHbzHsNjBQQ", videos.getAsJsonArray("주왕산").get(0).getAsJsonObject().get("id").getAsString());
+        assertEquals("n2BHPYH3QXQ", videos.getAsJsonArray("주왕산").get(0).getAsJsonObject().get("id").getAsString());
         assertEquals("s9D8pcz0RvY", videos.getAsJsonArray("지리산").get(0).getAsJsonObject().get("id").getAsString());
         MountainServlet.withShorts(peaks, videos);
         JsonObject gyeryong = null, gaya = null;
