@@ -1058,9 +1058,12 @@ public class MountainServlet extends HttpServlet {
      * 순수 함수 - 산 페이지 문답(있는 자료로만): 코스 수 · 가장 짧은 / 긴 코스, 정상 높이, 걸리는 시간, 주차장, 날씨 · 일출. 2026-10-15.
      * parking: 들머리 3km 안 주차장 수(null 이면 그 문답은 뺌).
      */
-    static List<String[]> faq(JsonObject peak, String name, List<JsonObject> courses, Integer parking) {
+    static List<String[]> faq(JsonObject peak, String name, List<JsonObject> all, Integer parking) {
         List<String[]> out = new ArrayList<>();
         String summit = str(peak, "summit");
+        List<JsonObject> courses = toSummit(all);   // 정상에 안 가는 옆 봉우리 코스는 빼고 셈(2026-11-21 PC: /m/백운산(정선) 문답이 푯대봉 코스를 "정상까지" 로 적었음)
+        if (courses.isEmpty() && !all.isEmpty())
+            out.add(new String[] {name + " 등산코스는 몇 개인가요?", "정상까지 가는 코스는 아직 찾지 못했습니다. 둘레 코스 " + all.size() + "개는 정상에 가지 않으니 코스 칸의 ⚠ 표시를 보세요."});
         if (!courses.isEmpty()) {
             JsonObject lo = null, hi = null;
             double loH = Double.MAX_VALUE, hiH = -1;
@@ -1087,6 +1090,13 @@ public class MountainServlet extends HttpServlet {
                     "가장 최근 기상청 관측은 " + line + "입니다. 해마다 며칠씩 달라지니 가기 전 날씨누리 현황을 확인하세요."});
         }
         out.add(new String[] {name + " 날씨와 일출 시간은?", "이 페이지의 '날씨 · 미세먼지 · 일출 · 일몰' 칸에서 오늘부터 10일 뒤까지의 날씨와 그 날 일출 · 일몰 시각을 볼 수 있습니다(기상청 · 에어코리아)."});
+        return out;
+    }
+
+    /** 순수 함수 - 이 산 정상까지 가는 코스만(옆 봉우리 summit_off · 이름의 정상을 안 가는 summit_miss 는 뺌). 문답(한국어 · 영어)이 씀. */
+    static List<JsonObject> toSummit(List<JsonObject> courses) {
+        List<JsonObject> out = new ArrayList<>();
+        for (JsonObject c : courses) if (str(c, "summit_off") == null && str(c, "summit_miss") == null) out.add(c);
         return out;
     }
 

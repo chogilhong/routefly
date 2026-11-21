@@ -82,8 +82,12 @@ final class MountainEn {
     }
 
     /** 순수 함수 - 영어 문답(있는 자료로만). */
-    static List<String[]> faq(JsonObject peak, String name, List<JsonObject> courses, Integer parking) {
+    static List<String[]> faq(JsonObject peak, String name, List<JsonObject> all, Integer parking) {
         List<String[]> out = new ArrayList<>();
+        List<JsonObject> courses = MountainServlet.toSummit(all);   // 정상에 안 가는 코스는 빼고(한국어 문답과 같게, 2026-11-21)
+        if (courses.isEmpty() && !all.isEmpty())
+            out.add(new String[] {"How many hiking trails go up " + name + "?", "No trail to the summit has been found yet. The " + all.size() + " nearby trail" + (all.size() > 1 ? "s do" : " does")
+                    + " not reach the summit - see the ⚠ marks in the trail list."});
         if (!courses.isEmpty()) {
             JsonObject lo = null, hi = null;
             double loH = Double.MAX_VALUE, hiH = -1;

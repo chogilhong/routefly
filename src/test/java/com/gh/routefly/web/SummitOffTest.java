@@ -70,6 +70,13 @@ public class SummitOffTest {
         assertFalse(on.has("summit_off") || unknown.has("summit_off") || miss.has("summit_off"));
         assertEquals("정상에 가는 코스가 앞", List.of(on, unknown, miss, off), got);
 
+        // 문답: 정상에 안 가는 코스는 "정상까지 가는 코스" 로 세지 않음(2026-11-21 PC - 백운산(정선) 문답이 푯대봉 코스를 정상 코스로 적었음)
+        List<String[]> qa = MountainServlet.faq(baek, "백운산(정선)", List.of(off), null);
+        assertEquals("정상까지 가는 코스는 아직 찾지 못했습니다. 둘레 코스 1개는 정상에 가지 않으니 코스 칸의 ⚠ 표시를 보세요.", qa.get(0)[1]);
+        assertFalse("시간 문답도 없음", qa.stream().anyMatch(q -> q[0].contains("몇 시간")));
+        assertTrue(MountainEn.faq(baek, "Baegunsan", List.of(off), null).get(0)[1].startsWith("No trail to the summit has been found yet. The 1 nearby trail does not reach"));
+        assertEquals("정상 코스만 셈", "정상까지 가는 코스 1개를 소개합니다.", MountainServlet.faq(baek, "백운산(정선)", List.of(off, miss, courseRow(on)), null).get(0)[1].substring(0, 21));
+
         // 페이지 글(한국어 · 영어)
         assertTrue(MountainServlet.page(baek, new ArrayList<>(List.of(courseRow(off))), new ArrayList<>(), null, "", 11).contains(" · ⚠ 백운산 정상에 안 감"));
         assertTrue(MountainEn.page(baek, new ArrayList<>(List.of(courseRow(off))), new ArrayList<>(), null, "https://r.kr").contains(" · ⚠ does not reach the summit of Baegunsan"));
