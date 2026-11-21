@@ -898,6 +898,7 @@ curl -s -o /dev/null -w '%{http_code}\n' -A 'Mozilla/5.0 (Macintosh; Intel Mac O
 curl -s -o /dev/null -w '%{http_code}\n' -A 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1' https://routefly.kr/routefly/hike.html   # 200(요즘 아이폰)
 ```
 
+  2026-11-21 서버 적용(홍TV님): nginx -t ok · reload, 서버 curl 403 · 403 · 200 / PC curl 도 같음(옛 아이폰 바꾸기 전 200 → 403).
   되돌리기: `sudo cp /etc/nginx/conf.d/routefly-scraper.conf.bak-20261121 /etc/nginx/conf.d/routefly-scraper.conf && sudo nginx -t && sudo systemctl reload nginx`
 
 - 다른 브라우저 글을 더 막으려면 `routefly-scraper.conf` 의 map 에 줄을 더하고 `sudo nginx -t && sudo systemctl reload nginx`.
