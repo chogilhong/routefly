@@ -134,8 +134,8 @@ public class StatsTest {
         days.put("2026-10-20", JsonParser.parseString("{\"pages\":{\"/hike.html\":9,\"/c/\":3},\"uniq\":5,\"bots\":1,"
                 + "\"dev\":{\"모바일\":8,\"PC\":4},\"devUniq\":{\"모바일\":3,\"PC\":2}}").getAsJsonObject());
         String h = StatsServlet.page(days, 30, null);
-        assertTrue("날마다 표 - 모바일 · PC 칸", h.contains("<tr><td>2026-10-20</td><td class=\"num\">5</td><td class=\"num\">3</td><td class=\"num\">2</td><td class=\"num\">-</td><td class=\"num\">12</td><td class=\"num\">1</td></tr>"));   // 앱 칸(2026-11-11 부터 셈) - 그 전 날은 -
-        assertTrue("세기 전 날은 -", h.contains("<tr><td>2026-10-19</td><td class=\"num\">4</td><td class=\"num\">-</td><td class=\"num\">-</td>"));
+        assertTrue("날마다 표 - 모바일 · PC 칸", h.contains("<tr><td>2026-10-20</td><td class=\"num\">5</td><td class=\"num\">-</td><td class=\"num\">3</td><td class=\"num\">2</td><td class=\"num\">-</td><td class=\"num\">12</td><td class=\"num\">1</td></tr>"));   // 앱 칸(2026-11-11 부터 셈) - 그 전 날은 -
+        assertTrue("세기 전 날은 -", h.contains("<tr><td>2026-10-19</td><td class=\"num\">4</td><td class=\"num\">-</td><td class=\"num\">-</td><td class=\"num\">-</td>"));
         assertTrue("화면 이름 칸(이름 아래 주소 - 2026-11-02 화면별 그래프)", h.contains("<td>따라가기<br><small class=\"dim\">/hike.html</small></td><td class=\"num\">14</td>"));
         assertTrue(h.contains("<td>모바일</td><td class=\"num\">3</td>"));
     }
@@ -296,6 +296,9 @@ public class StatsTest {
         assertEquals("확인용", SeenServlet.why(null, chrome + " routefly-check", "ko-KR"));
         String pa = StatsServlet.page(days, 30, null);
         assertTrue("날마다 표 앱 칸", pa.contains("<th class=\"num\">앱</th>") && pa.contains("<td>2026-11-11</td>"));
+        // 방문자 옆 사람 확인(2026-11-21 홍TV님) - 화면 js 가 돈 사람(jsUniq 모바일 20 + PC 5)
+        assertTrue("사람 확인 칸", pa.contains("<th class=\"num\">방문자</th><th class=\"num\">사람 확인</th>")
+                && pa.contains("<tr><td>2026-11-11</td><td class=\"num\">40</td><td class=\"num\">25</td><td class=\"num\">30</td><td class=\"num\">10</td><td class=\"num\">4</td>"));
         String pg = StatsServlet.page(days, 30, null);
         assertTrue("날마다 위", pg.indexOf("사람 확인") > 0 && pg.indexOf("사람 확인") < pg.indexOf("<h2>날마다"));
         assertFalse("늘 펼침", pg.contains("<summary><h2>사람 확인"));

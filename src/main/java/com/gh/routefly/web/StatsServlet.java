@@ -176,7 +176,9 @@ public class StatsServlet extends HttpServlet {
             if (d.has("botKinds")) for (var e : d.getAsJsonObject("botKinds").entrySet()) bots.merge(e.getKey(), e.getValue().getAsInt(), Integer::sum);
             if (d.has("engines")) for (var e : d.getAsJsonObject("engines").entrySet()) engines.merge(e.getKey(), e.getValue().getAsInt(), Integer::sum);
             if (d.has("devUniq")) for (var e : d.getAsJsonObject("devUniq").entrySet()) devs.merge(e.getKey(), e.getValue().getAsInt(), Integer::sum);
-            rows.append("<tr><td>").append(last.get(i)).append("</td><td class=\"num\">").append(n(u)).append("</td><td class=\"num\">").append(dev(d, "모바일")).append("</td><td class=\"num\">").append(dev(d, "PC"))
+            Integer hu = humans(d);   // 사람 확인 - 방문자 바로 옆(2026-11-21 홍TV님 "방문자 옆에 사람 확인 넣어줘")
+            rows.append("<tr><td>").append(last.get(i)).append("</td><td class=\"num\">").append(n(u)).append("</td><td class=\"num\">").append(hu == null ? "-" : n(hu))
+                    .append("</td><td class=\"num\">").append(dev(d, "모바일")).append("</td><td class=\"num\">").append(dev(d, "PC"))
                     .append("</td><td class=\"num\">").append(d.has("jsApp") ? n(d.get("jsApp").getAsInt()) : "-")   // 앱으로 들어온 사람(사람 확인 중, 2026-11-11 부터)
                     .append("</td><td class=\"num\">").append(n(views)).append("</td><td class=\"num\">").append(n(b)).append("</td></tr>");
         }
@@ -200,7 +202,7 @@ public class StatsServlet extends HttpServlet {
         out.append(trend(days, n));
         out.append(checkTable(days, last));   // 날마다 위 · 늘 펼침(2026-10-22 홍TV님)
         out.append(Access.section(System.currentTimeMillis()));   // 오늘 접속 분석 - 사람 확인 아래(2026-10-29 홍TV님)
-        out.append("<section><h2>날마다</h2><table class=\"st\"><tr><th>날짜</th><th class=\"num\">방문자</th><th class=\"num\">모바일</th><th class=\"num\">PC</th><th class=\"num\">앱</th><th class=\"num\">화면</th><th class=\"num\">로봇</th></tr>").append(rows).append("</table></section>");
+        out.append("<section><h2>날마다</h2><table class=\"st\"><tr><th>날짜</th><th class=\"num\">방문자</th><th class=\"num\">사람 확인</th><th class=\"num\">모바일</th><th class=\"num\">PC</th><th class=\"num\">앱</th><th class=\"num\">화면</th><th class=\"num\">로봇</th></tr>").append(rows).append("</table></section>");
         out.append(top("모바일 · PC 방문자(" + last.size() + "일 - 10-20 부터 셈)", devs, 5))
                 .append(top("인기 산 페이지(" + last.size() + "일)", mountains, 20))
                 .append(top("인기 산 페이지 - 영어(" + last.size() + "일 - /en/m/, 외국 손님)", enMountains, 20))
@@ -360,12 +362,7 @@ public class StatsServlet extends HttpServlet {
             JsonObject o = days.get(d.toString());
             dates.add(d.toString());
             uniq.add(o == null ? 0 : o.get("uniq").getAsInt());
-            Integer hm = null;
-            if (o != null && o.has("jsUniq")) {
-                hm = 0;
-                for (var e : o.getAsJsonObject("jsUniq").entrySet()) hm += e.getValue().getAsInt();
-            }
-            human.add(hm);
+            human.add(o == null ? null : humans(o));
             int v = 0;
             if (o != null) for (var e : o.getAsJsonObject("pages").entrySet()) v += e.getValue().getAsInt();
             views.add(v);
@@ -533,6 +530,14 @@ public class StatsServlet extends HttpServlet {
     }
 
     /** 날마다 표의 모바일 · PC 방문자 칸 - 세기 전 날(10-20 전)은 "-". */
+    /** 그 날 사람 확인 수 - 화면 js 가 돈 방문자(jsUniq 기기마다 합). 세기 전 날(10-22 전)은 null. 방문 추세 주황 선 · 날마다 표가 함께 씀. */
+    static Integer humans(JsonObject d) {
+        if (!d.has("jsUniq")) return null;
+        int h = 0;
+        for (var e : d.getAsJsonObject("jsUniq").entrySet()) h += e.getValue().getAsInt();
+        return h;
+    }
+
     private static String dev(JsonObject d, String k) {
         if (!d.has("devUniq")) return "-";
         JsonObject o = d.getAsJsonObject("devUniq");
