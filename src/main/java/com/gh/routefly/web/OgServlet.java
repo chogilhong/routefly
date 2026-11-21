@@ -80,8 +80,8 @@ public class OgServlet extends HttpServlet {
         if (png == null) {
             try {
                 JsonObject hero = peak.has("hero") ? MountainServlet.heroOk(peak.get("hero")) : null;   // 대표 사진(data/hero.json)이 있으면 바탕으로(2026-11-21 "고급지게" 5번)
-                png = hero != null ? photoJpg(en ? english(peak) : korean(peak), english(peak), photo(hero.get("src").getAsString()), hero.get("credit").getAsString())
-                        : png(en ? english(peak) : korean(peak), english(peak), logo());
+                png = hero != null ? photoJpg(en ? english(peak) : korean(peak), english(peak), photo(hero.get("src").getAsString()), hero.get("credit").getAsString()) : null;
+                if (png == null) png = png(en ? english(peak) : korean(peak), english(peak), logo());   // 사진이 없거나 출처를 그릴 글꼴이 없음 - 예전 그림
             } catch (Exception | Error e) {   // 글꼴 · 그래픽 장치가 없는 서버 - 기본 그림으로
                 log.warn("[OG] 그림을 못 그림 {} - {}", id, e.toString());
                 png = FAILED;   // 못 그린 것도 기억(2026-11-01 점검: 요청마다 다시 그리며 경고를 남겼음) - 다시 배포하면 새로
@@ -172,12 +172,14 @@ public class OgServlet extends HttpServlet {
      * 사진 바탕 그림(2026-11-21 홍TV님 "고급지게" 5번) - 대표 사진을 1200 × 630 에 꽉 차게(가운데를 잘라), 아래쪽을 어둡게 덮고 흰 글로 산 이름 · 높이,
      * 오른쪽 아래에 사진 출처(공공누리 1유형 · CC0 - 출처 표시). 사진을 못 읽으면(null) 예전 그림(png).
      * 사진이라 jpg(품질 0.85)로 - png 는 1.4 ~ 1.7MB 였음(2026-11-21 PC).
+     * 출처(한글)를 그릴 글꼴이 없으면 null - 출처가 네모(□)로 깨진 사진 그림은 내보내지 않음(2026-11-21 운영 PC 확인: 서버에 한글 글꼴 없음). 부른 곳이 예전 그림으로.
      */
     static byte[] photoJpg(String[] lines, String[] fallback, BufferedImage photo, String credit) throws IOException {
         if (photo == null) return png(lines, fallback, null);
         Set<String> installed = new HashSet<>(Arrays.asList(GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames()));
         String all = lines[0] + lines[1] + credit, face = fontFor(all, installed);
         if (face == null && !(lines[0] + lines[1]).chars().allMatch(c -> c < 0x1100)) lines = fallback;
+        if (!creditOk(face, credit)) return null;
         String fam = face != null ? face : Font.SANS_SERIF;
         BufferedImage img = new BufferedImage(W, H, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = img.createGraphics();
@@ -215,6 +217,11 @@ public class OgServlet extends HttpServlet {
             w.dispose();
         }
         return out.toByteArray();
+    }
+
+    /** 순수 함수 - 출처 글을 그릴 수 있는지: 한글 글꼴(face)이 있거나 출처가 모두 영문 · 기호(0x1100 아래)일 때만. */
+    static boolean creditOk(String face, String credit) {
+        return face != null || credit.chars().allMatch(ch -> ch < 0x1100);
     }
 
     /** 순수 함수 - jpg 인지(앞 두 바이트 FF D8). */
