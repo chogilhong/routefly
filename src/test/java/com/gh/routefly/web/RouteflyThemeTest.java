@@ -57,6 +57,7 @@ public class RouteflyThemeTest {
             int s = h.indexOf("<script src=\"js/rf-theme.js\"></script><link rel=\"stylesheet\" href=\"css/rf-light.css\">");
             assertTrue(p, s > 0 && s > h.indexOf("</style>"));   // 화면 <style> 뒤 · 그리기 전
         }
+        assertTrue("개인정보처리방침에 저장 이름", read("src/main/webapp/privacy.html").contains("rf-theme") && read("src/main/webapp/privacy-en.html").contains("rf-theme"));
         assertFalse("게임 판은 어두운 그림이라 다크 그대로", read("src/main/webapp/games.html").contains("rf-light.css"));
         String css = read("src/main/webapp/css/rf-light.css");
         assertTrue(css.contains(":root[data-theme=\"light\"] { --bg:#eef2f6; --panel:#ffffff; --tx:#18212c;") && css.contains("--onsky:#ffffff;"));
