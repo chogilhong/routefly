@@ -36,10 +36,14 @@ public class VoiceServletTest {
     }
 
     @Test
-    public void 화면() {
+    public void 화면() throws Exception {
         String p = VoiceServlet.page();
         assertTrue(p.contains("<meta name=\"robots\" content=\"noindex\">"));
         assertTrue("/check/ 아래라 한 칸 위", p.contains("<script src=\"../js/voice.js\"></script>"));
         assertTrue(p.contains("id=\"vcText\"") && p.contains("id=\"vcVoice\"") && p.contains("id=\"vcWav\"") && p.contains("id=\"vcSrt\""));
+        // 전체 듣기 중에는 같은 단추가 ⏹ 멈춤(2026-11-21 홍TV님), 다 들으면 되돌아옴
+        String js = new String(java.nio.file.Files.readAllBytes(java.nio.file.Path.of("src/main/webapp/js/voice.js")), java.nio.charset.StandardCharsets.UTF_8).replace("\r\n", "\n");
+        assertTrue(js.contains("if (audio && $('vcPlay').textContent === '⏹ 멈춤') { stop(); return; }") && js.contains("audio.onended = stop;")
+                && js.contains("if (all) $('vcPlay').textContent = '⏹ 멈춤';"));
     }
 }

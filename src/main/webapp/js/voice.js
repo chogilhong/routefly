@@ -147,12 +147,21 @@
   }
 
   var audio = null;
+  /** 듣기 멈춤 - 전체 듣기 단추는 듣는 동안 "⏹ 멈춤"(2026-11-21 홍TV님 "전체 듣기 하다가 멈추려면?"). */
+  function stop() {
+    if (audio) { audio.pause(); URL.revokeObjectURL(audio.src); audio = null; }
+    $('vcPlay').textContent = '🔊 전체 듣기';
+  }
+  function play(wav, all) {
+    stop();
+    audio = new Audio(URL.createObjectURL(new Blob([wav], { type: 'audio/wav' })));
+    audio.onended = stop;
+    if (all) $('vcPlay').textContent = '⏹ 멈춤';
+    audio.play();
+  }
   function playParts(parts) {
     var j = joinWav(parts, 0);
-    if (!j) return;
-    if (audio) { audio.pause(); URL.revokeObjectURL(audio.src); }
-    audio = new Audio(URL.createObjectURL(new Blob([j.wav], { type: 'audio/wav' })));
-    audio.play();
+    if (j) play(j.wav, false);
   }
 
   function download(data, type, name) {
@@ -174,11 +183,10 @@
     $('vcVoice').addEventListener('change', function () { save('vcVoice', $('vcVoice').value); render(); });
     $('vcMake').onclick = function () { make(); };
     $('vcPlay').onclick = function () {
+      if (audio && $('vcPlay').textContent === '⏹ 멈춤') { stop(); return; }
       var j = joined();
       if (!j) return;
-      if (audio) { audio.pause(); URL.revokeObjectURL(audio.src); }
-      audio = new Audio(URL.createObjectURL(new Blob([j.wav], { type: 'audio/wav' })));
-      audio.play();
+      play(j.wav, true);
       info('전체 ' + j.times[j.times.length - 1][1].toFixed(1) + '초');
     };
     $('vcWav').onclick = function () { var j = joined(); if (j) download(j.wav, 'audio/wav', fileName() + '.wav'); };
