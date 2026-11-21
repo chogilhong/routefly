@@ -46,6 +46,7 @@ public class MountainShortsTest {
         assertEquals("nc2cHCHNr_k", videos.getAsJsonArray("백운산(정선)").get(0).getAsJsonObject().get("id").getAsString());
         assertEquals("n2BHPYH3QXQ", videos.getAsJsonArray("주왕산").get(0).getAsJsonObject().get("id").getAsString());
         assertEquals("s9D8pcz0RvY", videos.getAsJsonArray("지리산").get(0).getAsJsonObject().get("id").getAsString());
+        assertEquals("JkNWEU9SGgM", videos.getAsJsonArray("대암산").get(0).getAsJsonObject().get("id").getAsString());   // 2026-11-22 새 산
         MountainServlet.withShorts(peaks, videos);
         JsonObject gyeryong = null, gaya = null;
         for (JsonElement e : peaks) {
