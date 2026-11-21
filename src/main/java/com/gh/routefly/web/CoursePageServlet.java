@@ -441,7 +441,7 @@ public class CoursePageServlet extends HttpServlet {
         if (!svg.isEmpty()) b.append("<section><h2>고도 그림</h2>").append(svg).append("</section>");
         // 🏅 국립공원 스탬프투어 인증지(data/np-stamps.json - 국립공원공단 공식 목록, 2026-10-28)
         if (stamps != null && !stamps.isEmpty()) {
-            b.append("<section><h2>🏅 국립공원 스탬프투어 인증지</h2><ul class=\"tips\">");
+            b.append("<section><h2>국립공원 스탬프투어 인증지</h2><ul class=\"tips\">");
             for (Object[] s : stamps)
                 b.append("<li><b>").append(esc((String) s[0])).append("</b> <span>").append(String.format(Locale.ROOT, "%.1fkm", (Integer) s[3] / 1000.0))
                         .append((Integer) s[2] > 50 ? " · 길에서 " + s[2] + "m" : "").append("</span></li>");

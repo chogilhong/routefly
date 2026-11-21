@@ -1037,7 +1037,8 @@ public class MountainServlet extends HttpServlet {
      * 다른 칸을 펼 때 같이 접히지 않게 한 묶음(name="kind")에서 뺌. data-keep - 접어도 검색 칸은 제목 아래에 남음(course-kit staySearch).
      */
     static String staySearchBox(String value, boolean en) {
-        return "<section id=\"staySearch\"><details class=\"fold kind\" open data-keep=\"1\"><summary><span class=\"ft\">" + (en ? "🏨 Find lodging near a place" : "🏨 근처 숙소 찾기") + "</span>"
+        // 산 · 코스 페이지(value 있음) 칸 제목은 그림 글자 없이(2026-11-21 홍TV님 "고급지게" 3번), 코스 모음(/m/) 메뉴 줄은 다른 줄처럼 🏨 그대로
+        return "<section id=\"staySearch\"><details class=\"fold kind\" open data-keep=\"1\"><summary><span class=\"ft\">" + (value != null ? "" : "🏨 ") + (en ? "Find lodging near a place" : "근처 숙소 찾기") + "</span>"
                 + "<span class=\"fs\">" + (en ? (value != null ? "Trailhead · county office · station" : "County office · station · terminal · mountain") : value != null ? "들머리 · 군청 · 역 이름으로" : "군청 · 역 · 산 이름으로")
                 + "</span><span class=\"fa\">▾</span></summary><div class=\"fb\">"
                 + "<form id=\"ssForm\" class=\"ssForm\" role=\"search\"><input id=\"ssQ\" type=\"search\" maxlength=\"30\"" + (value != null ? " value=\"" + esc(value) + "\"" : "")

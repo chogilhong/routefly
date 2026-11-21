@@ -27,7 +27,7 @@ public class NpStampTest {
         c.addProperty("course_id", "x-1"); c.addProperty("name", "시험 <코스>"); c.addProperty("kind", "hike"); c.addProperty("distance_m", 222);
         c.addProperty("start_lat", 38.0); c.addProperty("start_lon", 128.001); c.addProperty("end_lat", 38.002); c.addProperty("end_lon", 128.001);
         String html = CoursePageServlet.page(c, null, null, dist, new Double[] {100.0, 110.0, 120.0}, new JsonArray(), true, "https://routefly.kr/routefly", on);
-        assertTrue(html.contains("🏅 국립공원 스탬프투어 인증지") && html.contains("가까운센터"));
+        assertTrue(html.contains("<h2>국립공원 스탬프투어 인증지</h2>") && html.contains("가까운센터"));
         assertFalse("없으면 칸 없음", CoursePageServlet.page(c, null, null, dist, new Double[] {100.0, 110.0, 120.0}, new JsonArray(), true, "https://routefly.kr/routefly").contains("스탬프투어"));
     }
 

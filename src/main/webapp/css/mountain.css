@@ -1,7 +1,9 @@
 /* 산 소개 페이지(/m/ - MountainServlet) - 안내(about.html)와 같은 색 */
-:root { --bg:#11161d; --panel:#1a212b; --tx:#e9eef4; --dim:#9aa6b4; --ln:rgba(255,255,255,0.12); --sky:#38d9ea; }
+:root { --bg:#11161d; --panel:#1a212b; --tx:#e9eef4; --dim:#9aa6b4; --ln:rgba(255,255,255,0.12); --sky:#38d9ea; 
+        /* 글꼴(2026-11-21 홍TV님 "고급지게" 3번) - 내려받지 않고 기기에 있는 것: Pretendard(깔려 있으면) → 아이폰 · 맥 → 안드로이드 · 윈도 */
+        --font:"Pretendard","Pretendard Variable",system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",Arial,sans-serif; }
 * { box-sizing:border-box; }
-html, body { margin:0; background:var(--bg); color:var(--tx); font-family:Arial,"Malgun Gothic",sans-serif; line-height:1.6; }
+html, body { margin:0; background:var(--bg); color:var(--tx); font-family:var(--font); line-height:1.6; }
 main { max-width:760px; margin:0 auto; padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 40px); }
 h1 { font-size:24px; margin:0 0 4px; word-break:keep-all; }   /* 낱말 가운데서 줄을 바꾸지 않음(2026-11-03 홍TV님 점검) */
 h1.idx { font-size:min(24px, 5.6vw); word-break:keep-all; }   /* 코스 모음 제목 - 360px 에서도 한 줄(한/EN · 가 는 설명 줄로) */
@@ -39,7 +41,7 @@ ul { margin:0; padding:0; list-style:none; }
 /* 글자 크기(RF.textButton) */
 .rfz main { zoom: var(--rfz); }
 .rfTextBtn { min-width:44px; height:44px; padding:0 8px; border-radius:22px; border:1px solid var(--ln); background:rgba(255,255,255,0.06); color:var(--tx);
-             font:bold 13px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }
+             font:bold 13px var(--font); cursor:pointer; }
 /* 로고(img/logo-dark.svg) - 목록 맨 위 · 페이지 아래 "열기" */
 .logo { display:inline-block; margin:0 0 8px -6px; }
 .logo img { display:block; width:256px; max-width:66vw; height:auto; }
@@ -83,9 +85,9 @@ ul { margin:0; padding:0; list-style:none; }
 .fold.sec[open] > summary { margin-bottom:10px; }
 /* 날씨 날짜 고르기(2026-10-15) */
 .days { display:flex; flex-wrap:wrap; gap:6px; margin:0 0 10px; min-height:44px; }   /* 서버가 둔 빈 줄도 단추 높이만큼(2026-11-02 점검 - 늦게 끼워 넣어 아래가 밀렸음) */
-.days button { min-height:44px; padding:0 12px; border-radius:22px; border:1px solid var(--ln); background:rgba(255,255,255,0.04); color:var(--tx); font:14px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }   /* 날씨 날짜 단추 44px(2026-10-29 PC: 31px) */
+.days button { min-height:44px; padding:0 12px; border-radius:22px; border:1px solid var(--ln); background:rgba(255,255,255,0.04); color:var(--tx); font:14px var(--font); cursor:pointer; }   /* 날씨 날짜 단추 44px(2026-10-29 PC: 31px) */
 .days button.on { background:var(--sky); border-color:var(--sky); color:#062b30; font-weight:bold; }
-.days select { color-scheme:dark; padding:6px 10px; border-radius:14px; border:1px solid var(--ln); background:rgba(255,255,255,0.04); color:var(--tx); font:13px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }
+.days select { color-scheme:dark; padding:6px 10px; border-radius:14px; border:1px solid var(--ln); background:rgba(255,255,255,0.04); color:var(--tx); font:13px var(--font); cursor:pointer; }
 .days select.on { background:var(--sky); border-color:var(--sky); color:#062b30; font-weight:bold; }
 .days select option { background:var(--panel); color:var(--tx); font-weight:normal; }
 .cs li[hidden] { display:none; }
@@ -123,11 +125,11 @@ ul { margin:0; padding:0; list-style:none; }
 /* 오른쪽 위 한/EN · 글자 크기(2026-10-15 홍TV님) */
 .rfTools { float:right; display:inline-flex; gap:6px; align-items:center; margin-left:8px; }
 .rfLang { display:inline-flex; height:44px; border:1px solid rgba(255,255,255,0.45); border-radius:22px; overflow:hidden; text-decoration:none;
-          font:bold 13px Arial,"Malgun Gothic",sans-serif; }   /* 타이드플라이 머리 한/EN 과 같은 모양(2026-11-17 홍TV님 "동일하게") - 흰 테두리, 고른 쪽은 흰 바탕 */
+          font:bold 13px var(--font); }   /* 타이드플라이 머리 한/EN 과 같은 모양(2026-11-17 홍TV님 "동일하게") - 흰 테두리, 고른 쪽은 흰 바탕 */
 .rfLang span { display:inline-flex; align-items:center; justify-content:center; min-width:44px; padding:0 8px; box-sizing:border-box; color:#fff; background:transparent; }
 .rfLang span.on { color:#08394d; background:#fff; }
 /* 📥 신호 없을 때 보기(오프라인 저장 - 2026-10-15) */
-.offline button { height:44px; padding:0 14px; border-radius:18px; border:1px solid var(--sky); background:rgba(56,217,234,0.12); color:var(--tx); font:bold 14px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }
+.offline button { height:44px; padding:0 14px; border-radius:18px; border:1px solid var(--sky); background:rgba(56,217,234,0.12); color:var(--tx); font:bold 14px var(--font); cursor:pointer; }
 .offline button:disabled { opacity:0.6; }
 /* 난이도 · 📈 고도(공단 탐방로 안내판처럼 - 2026-10-15) */
 .cs .go button.boardBtn { min-height:44px; font-size:14.5px; padding:0 12px; border:1px solid var(--ln); border-radius:22px; background:none; color:var(--sky); cursor:pointer; }
@@ -222,7 +224,7 @@ ul { margin:0; padding:0; list-style:none; }
 .ssForm.ssOutside { margin:4px 0 10px 24px; }   /* 칸을 접어도 남는 검색 칸 - 펼친 칸 안(.fb)과 같은 들여쓰기 */
 .ssForm input { flex:1; min-width:0; min-height:44px; padding:0 12px; border-radius:12px; border:1px solid rgba(255,255,255,0.32); background:#2b3747; color:var(--tx); font-size:16px; }   /* 코스 모음 찾기 칸과 같게 밝게(2026-11-18 PC: 숙소 찾기만 바탕 그대로) */
 .ssForm input::placeholder { color:#aab6c4; }
-.ssForm button, .ssAlt { min-height:44px; padding:0 16px; border-radius:22px; border:1px solid var(--sky); background:rgba(56,217,234,0.12); color:var(--tx); font:bold 15px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }
+.ssForm button, .ssAlt { min-height:44px; padding:0 16px; border-radius:22px; border:1px solid var(--sky); background:rgba(56,217,234,0.12); color:var(--tx); font:bold 15px var(--font); cursor:pointer; }
 .ssAlt { margin:4px 6px 0 0; font-weight:normal; }
 .ssAt { font-weight:bold; margin:6px 0; }
 .ssLinks { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0; }
@@ -260,7 +262,7 @@ a.kma { display:inline-block; margin-top:6px; min-height:44px; line-height:44px;
 form.mSearch { display:flex; gap:8px; margin:0 0 16px; }
 form.mSearch input[type=search] { flex:1; min-width:0; min-height:44px; box-sizing:border-box; padding:0 12px; font-size:16px; color:inherit; background:#2b3747; border:1px solid rgba(255,255,255,0.32); border-radius:22px; }   /* 바탕과 구분되게 조금 밝게(2026-11-18 홍TV님 "조금 더 하얗게") */
 form.mSearch input[type=search]::placeholder { color:#aab6c4; }
-form.mSearch button { min-height:44px; padding:0 16px; border-radius:22px; border:1px solid var(--sky); background:rgba(56,217,234,0.12); color:var(--tx); font:bold 15px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }   /* 아래 숙소 찾기 단추(.ssForm button)와 같게(2026-11-18 홍TV님 "버튼도 아래로 통일해 줘") */
+form.mSearch button { min-height:44px; padding:0 16px; border-radius:22px; border:1px solid var(--sky); background:rgba(56,217,234,0.12); color:var(--tx); font:bold 15px var(--font); cursor:pointer; }   /* 아래 숙소 찾기 단추(.ssForm button)와 같게(2026-11-18 홍TV님 "버튼도 아래로 통일해 줘") */
 @media (max-width:420px) { form.mSearch input[type=search]::placeholder { font-size:13px; } }   /* 예시 5개(지리산 · 설악산 · 대진항 · 쭈꾸미 · 광어)가 360px 칸(230px)에 다 보이게 - 16px 은 265px 로 잘렸음(2026-11-16 PC). 친 글은 16px 그대로(아이폰 확대 막음) */
 /* 🚗 티맵(2026-11-09) - 휴대폰에서만 js 가 hidden 을 뗌. .go a 의 display 가 hidden 을 이기지 않게 */
 a.tmap[hidden] { display:none !important; }

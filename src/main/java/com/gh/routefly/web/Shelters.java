@@ -121,7 +121,7 @@ final class Shelters {
     static String block(JsonObject d, List<JsonObject> list, String rel, boolean en) {
         if (list.isEmpty()) return "";
         String url = d.has("reserveUrl") ? d.get("reserveUrl").getAsString() : null;
-        StringBuilder b = new StringBuilder("<section class=\"shelters\"><h2>").append(en ? "🏠 Shelters (Korea National Park Service)" : "🏠 대피소(국립공원공단)").append("</h2><ul class=\"tips\">");
+        StringBuilder b = new StringBuilder("<section class=\"shelters\"><h2>").append(en ? "Shelters (Korea National Park Service)" : "대피소(국립공원공단)").append("</h2><ul class=\"tips\">");
         for (JsonObject s : list) {
             String nm = s.get("name").getAsString();
             b.append("<li><a href=\"").append(rel).append("/hike.html?lang=").append(en ? "en" : "ko").append("&amp;q=").append(MountainServlet.enc(nm)).append("\">")

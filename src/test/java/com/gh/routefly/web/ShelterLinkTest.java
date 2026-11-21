@@ -38,7 +38,7 @@ public class ShelterLinkTest {
         String h = Shelters.block(d, sorak, "..", false);
         assertTrue(h.contains("<a href=\"../hike.html?lang=ko&amp;q=" + MountainServlet.enc("소청대피소") + "\">소청대피소</a> · <a href=\""
                 + d.get("reserveUrl").getAsString() + "\" target=\"_blank\" rel=\"noopener\">예약 ›</a>"));
-        assertTrue(h.startsWith("<section class=\"shelters\"><h2>🏠 대피소(국립공원공단)</h2>"));
+        assertTrue(h.startsWith("<section class=\"shelters\"><h2>대피소(국립공원공단)</h2>"));
         // 예약 화면에 없는 대피소는 이름(검색 링크)만
         for (JsonObject s : sorak)
             if (!s.get("reserve").getAsBoolean()) {
@@ -72,10 +72,10 @@ public class ShelterLinkTest {
         Shelters.load(ctx);
         JsonObject seorak = JsonParser.parseString("{\"id\":\"설악산\",\"name\":\"설악산\",\"summit\":\"대청봉\",\"lat\":38.119,\"lon\":128.465}").getAsJsonObject();
         String ko = MountainServlet.page(seorak, new java.util.ArrayList<>(), new java.util.ArrayList<>(), null, "", 11);
-        assertTrue(ko.contains("<h2>🏠 대피소(국립공원공단)</h2>"));
+        assertTrue(ko.contains("<h2>대피소(국립공원공단)</h2>"));
         assertTrue(ko.contains(">소청대피소</a> · <a href="));
         String en = MountainEn.page(seorak, new java.util.ArrayList<>(), new java.util.ArrayList<>(), null, "https://r.kr");
-        assertTrue(en.contains("<h2>🏠 Shelters (Korea National Park Service)</h2>"));
+        assertTrue(en.contains("<h2>Shelters (Korea National Park Service)</h2>"));
         JsonObject gyeryong = JsonParser.parseString("{\"id\":\"계룡산\",\"name\":\"계룡산\",\"lat\":36.34,\"lon\":127.2}").getAsJsonObject();
         assertFalse("대피소 없는 산은 칸 없음", MountainServlet.page(gyeryong, new java.util.ArrayList<>(), new java.util.ArrayList<>(), null, "", 11).contains("class=\"shelters\""));
         JsonObject real = json("src/test/resources/shelters/course-knps-4016-55eabbcc-pois.json");
