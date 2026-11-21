@@ -1,20 +1,97 @@
 {
  "_note": "산 페이지 맨 위 대표 사진 · 공유 그림 바탕(2026-11-21 홍TV님 \"고급지게\" 1 · 5번 - MountainServlet.heroBlock · OgServlet.photoJpg). 산 id(mountains100.json) → 사진 하나 {…} 또는 여러 장 [{…}, …](2026-11-21 홍TV님 \"3~5개를 놓고 랜덤으로\" - 산 페이지는 열 때마다 하나를 무작위로, 공유 그림은 첫 장 고정). 사진 하나는 {src: img/hero/<영문 · 숫자 · ->.jpg, w, h: 사진 크기(px), credit: 출처 글 그대로, license: kogl1(공공누리 제1유형) 또는 cc0, alt: 사진 설명(없으면 \"<산> 풍경\")}. 잘라 쓰므로 CC BY-SA(그대로만)는 넣지 않음, \"AI 사용 금지\" 사진도 넣지 않음. 사진은 PC 가 docs/youtube/v2/썸네일.md 바탕 사진에서 골라 가로 1600px 안팎 jpg(200KB 안팎)로 줄여 넣음.",
  "heroes": {
-  "계룡산": {"src": "img/hero/gyeryongsan.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 김지호 (공공누리 제1유형)", "license": "kogl1", "alt": "계룡산 - 갑사계곡"},
-  "공작산": {"src": "img/hero/gongjaksan.jpg", "w": 1600, "h": 1200, "credit": "「수타사(홍천군 동면)IMG 3767.jpg」 최광모(Choe Kwangmo), CC0 (Wikimedia Commons)", "license": "cc0", "alt": "공작산 - 수타사"},
-  "금산": {"src": "img/hero/geumsan.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 박성근 (공공누리 제1유형)", "license": "kogl1", "alt": "금산 풍경"},
-  "가리왕산": {"src": "img/hero/gariwangsan.jpg", "w": 1600, "h": 1200, "credit": "ⓒ한국관광콘텐츠랩 - 홍정표 (공공누리 제1유형)", "license": "kogl1", "alt": "가리왕산 풍경"},
-  "명성산": {"src": "img/hero/myeongseongsan.jpg", "w": 1600, "h": 898, "credit": "ⓒ한국관광콘텐츠랩 - 라이브스튜디오 (공공누리 제1유형)", "license": "kogl1", "alt": "명성산 풍경"},
-  "강천산": {"src": "img/hero/gangcheonsan.jpg", "w": 1600, "h": 1068, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 김지호 (공공누리 제1유형)", "license": "kogl1", "alt": "강천산 풍경"},
-  "용문산": {"src": "img/hero/yongmunsan.jpg", "w": 800, "h": 532, "credit": "「양평 용문사 은행나무」 국가유산청 (공공누리 제1유형)", "license": "kogl1", "alt": "용문산 - 양평 용문사 은행나무"},
-  "오봉산": {"src": "img/hero/obongsan.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 이범수 (공공누리 제1유형)", "license": "kogl1", "alt": "오봉산 - 춘천 청평사"},
-  "칠갑산": {"src": "img/hero/chilgapsan.jpg", "w": 945, "h": 754, "credit": "「청양 장곡사 상 대웅전」 국가유산청 (공공누리 제1유형)", "license": "kogl1", "alt": "칠갑산 - 청양 장곡사 상 대웅전"},
-  "오대산": {"src": "img/hero/odaesan.jpg", "w": 1600, "h": 1150, "credit": "ⓒ한국관광콘텐츠랩 - 박상훈 (공공누리 제1유형)", "license": "kogl1", "alt": "오대산 풍경"},
-  "지리산": {"src": "img/hero/jirisan.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 배근한 (공공누리 제1유형)", "license": "kogl1", "alt": "지리산 풍경"},
-  "적상산": {"src": "img/hero/jeoksangsan.jpg", "w": 1600, "h": 1076, "credit": "ⓒ한국관광콘텐츠랩 - 조영권 (공공누리 제1유형)", "license": "kogl1", "alt": "적상산 풍경"},
-  "두타산": {"src": "img/hero/dutasan.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사, 김지호 (공공누리 제1유형)", "license": "kogl1", "alt": "두타산 - 동해 용추폭포"},
-  "주왕산": {"src": "img/hero/juwangsan.jpg", "w": 1600, "h": 1068, "credit": "ⓒ한국관광콘텐츠랩 - 오태윤 (공공누리 제1유형)", "license": "kogl1", "alt": "주왕산 - 물안개핀 주산지"},
-  "백운산(정선)": {"src": "img/hero/baegunsan-jeongseon.jpg", "w": 1600, "h": 1066, "credit": "「평창 백룡동굴」 국가유산청 (공공누리 제1유형)", "license": "kogl1", "alt": "백운산(정선) - 평창 백룡동굴"}
+  "계룡산": [
+   {"src": "img/hero/gyeryongsan.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 김지호 (공공누리 제1유형)", "license": "kogl1", "alt": "계룡산 - 갑사계곡"},
+   {"src": "img/hero/gyeryongsan-2.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 전형준 (공공누리 제1유형)", "license": "kogl1", "alt": "계룡산 - 남매탑_계룡산"},
+   {"src": "img/hero/gyeryongsan-3.jpg", "w": 1600, "h": 1070, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사, 김지호 (공공누리 제1유형)", "license": "kogl1", "alt": "계룡산 - 동학사"}
+  ],
+  "공작산": [
+   {"src": "img/hero/gongjaksan.jpg", "w": 1600, "h": 1200, "credit": "「수타사(홍천군 동면)IMG 3767.jpg」 최광모(Choe Kwangmo), CC0 (Wikimedia Commons)", "license": "cc0", "alt": "공작산 - 수타사"},
+   {"src": "img/hero/gongjaksan-2.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 황성훈 (공공누리 제1유형)", "license": "kogl1", "alt": "공작산 - 홍천 수타사"},
+   {"src": "img/hero/gongjaksan-3.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 강원지사 모먼트스튜디오 (공공누리 제1유형)", "license": "kogl1", "alt": "공작산 - 홍천 수타사"},
+   {"src": "img/hero/gongjaksan-4.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 이범수 (공공누리 제1유형)", "license": "kogl1", "alt": "공작산 풍경"}
+  ],
+  "금산": [
+   {"src": "img/hero/geumsan.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 박성근 (공공누리 제1유형)", "license": "kogl1", "alt": "금산 풍경"},
+   {"src": "img/hero/geumsan-2.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 박성근 (공공누리 제1유형)", "license": "kogl1", "alt": "금산 풍경"},
+   {"src": "img/hero/geumsan-3.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 김지호 (공공누리 제1유형)", "license": "kogl1", "alt": "금산 - 남해 금산 보리암"},
+   {"src": "img/hero/geumsan-4.jpg", "w": 1600, "h": 968, "credit": "ⓒ한국관광콘텐츠랩 - 오정균 (공공누리 제1유형)", "license": "kogl1", "alt": "금산 - 보리암 일출"}
+  ],
+  "가리왕산": [
+   {"src": "img/hero/gariwangsan.jpg", "w": 1600, "h": 1200, "credit": "ⓒ한국관광콘텐츠랩 - 홍정표 (공공누리 제1유형)", "license": "kogl1", "alt": "가리왕산 풍경"},
+   {"src": "img/hero/gariwangsan-2.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 홍정표 (공공누리 제1유형)", "license": "kogl1", "alt": "가리왕산 풍경"},
+   {"src": "img/hero/gariwangsan-3.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 홍정표 (공공누리 제1유형)", "license": "kogl1", "alt": "가리왕산 풍경"}
+  ],
+  "명성산": [
+   {"src": "img/hero/myeongseongsan.jpg", "w": 1600, "h": 898, "credit": "ⓒ한국관광콘텐츠랩 - 라이브스튜디오 (공공누리 제1유형)", "license": "kogl1", "alt": "명성산 풍경"},
+   {"src": "img/hero/myeongseongsan-2.jpg", "w": 1200, "h": 810, "credit": "[명성산] 한국민족문화대백과사전 (공공누리 제1유형)", "license": "kogl1", "alt": "명성산 풍경"},
+   {"src": "img/hero/myeongseongsan-3.jpg", "w": 1600, "h": 1068, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 이범수 (공공누리 제1유형)", "license": "kogl1", "alt": "명성산 - 산정호수"},
+   {"src": "img/hero/myeongseongsan-4.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 송재근 (공공누리 제1유형)", "license": "kogl1", "alt": "명성산 - 삼부연폭포"}
+  ],
+  "강천산": [
+   {"src": "img/hero/gangcheonsan.jpg", "w": 1600, "h": 1068, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 김지호 (공공누리 제1유형)", "license": "kogl1", "alt": "강천산 풍경"},
+   {"src": "img/hero/gangcheonsan-2.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 김지호 (공공누리 제1유형)", "license": "kogl1", "alt": "강천산 - 병풍폭포"},
+   {"src": "img/hero/gangcheonsan-3.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 김지호 (공공누리 제1유형)", "license": "kogl1", "alt": "강천산 - 강천사"},
+   {"src": "img/hero/gangcheonsan-4.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 김지호 (공공누리 제1유형)", "license": "kogl1", "alt": "강천산 풍경"}
+  ],
+  "용문산": [
+   {"src": "img/hero/yongmunsan.jpg", "w": 800, "h": 532, "credit": "「양평 용문사 은행나무」 국가유산청 (공공누리 제1유형)", "license": "kogl1", "alt": "용문산 - 양평 용문사 은행나무"},
+   {"src": "img/hero/yongmunsan-2.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 김지호 (공공누리 제1유형)", "license": "kogl1", "alt": "용문산 - 양평 용문사"},
+   {"src": "img/hero/yongmunsan-3.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 김지호 (공공누리 제1유형)", "license": "kogl1", "alt": "용문산 - 양평 용문사"},
+   {"src": "img/hero/yongmunsan-4.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 박성근 (공공누리 제1유형)", "license": "kogl1", "alt": "용문산 - 사나사"}
+  ],
+  "오봉산": [
+   {"src": "img/hero/obongsan.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 이범수 (공공누리 제1유형)", "license": "kogl1", "alt": "오봉산 - 춘천 청평사"},
+   {"src": "img/hero/obongsan-2.jpg", "w": 1556, "h": 1034, "credit": "「춘천 청평사 고려선원」 국가유산청 (공공누리 제1유형)", "license": "kogl1", "alt": "오봉산 - 춘천 청평사 고려선원"},
+   {"src": "img/hero/obongsan-3.jpg", "w": 1256, "h": 834, "credit": "「춘천 청평사 고려선원」 국가유산청 (공공누리 제1유형)", "license": "kogl1", "alt": "오봉산 - 춘천 청평사 고려선원"},
+   {"src": "img/hero/obongsan-4.jpg", "w": 1193, "h": 792, "credit": "「춘천 청평사 고려선원」 국가유산청 (공공누리 제1유형)", "license": "kogl1", "alt": "오봉산 - 춘천 청평사 고려선원"}
+  ],
+  "칠갑산": [
+   {"src": "img/hero/chilgapsan.jpg", "w": 945, "h": 754, "credit": "「청양 장곡사 상 대웅전」 국가유산청 (공공누리 제1유형)", "license": "kogl1", "alt": "칠갑산 - 청양 장곡사 상 대웅전"},
+   {"src": "img/hero/chilgapsan-2.jpg", "w": 1600, "h": 912, "credit": "ⓒ한국관광콘텐츠랩 - 김순자 (공공누리 제1유형)", "license": "kogl1", "alt": "칠갑산 - 천장호 전경"},
+   {"src": "img/hero/chilgapsan-3.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 김지호 (공공누리 제1유형)", "license": "kogl1", "alt": "칠갑산 풍경"},
+   {"src": "img/hero/chilgapsan-4.jpg", "w": 1600, "h": 900, "credit": "ⓒ한국관광콘텐츠랩 - 김석태 (공공누리 제1유형)", "license": "kogl1", "alt": "칠갑산 - 천장호 출렁다리"}
+  ],
+  "오대산": [
+   {"src": "img/hero/odaesan.jpg", "w": 1600, "h": 1150, "credit": "ⓒ한국관광콘텐츠랩 - 박상훈 (공공누리 제1유형)", "license": "kogl1", "alt": "오대산 풍경"},
+   {"src": "img/hero/odaesan-2.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 김지호 (공공누리 제1유형)", "license": "kogl1", "alt": "오대산 - 구룡폭포_오대산"},
+   {"src": "img/hero/odaesan-3.jpg", "w": 1600, "h": 1200, "credit": "ⓒ한국관광콘텐츠랩 - 강원지사 모먼트스튜디오 (공공누리 제1유형)", "license": "kogl1", "alt": "오대산 - 오대산국립공원"}
+  ],
+  "지리산": [
+   {"src": "img/hero/jirisan.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 배근한 (공공누리 제1유형)", "license": "kogl1", "alt": "지리산 풍경"},
+   {"src": "img/hero/jirisan-2.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 김지호 (공공누리 제1유형)", "license": "kogl1", "alt": "지리산 풍경"},
+   {"src": "img/hero/jirisan-3.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 김지호 (공공누리 제1유형)", "license": "kogl1", "alt": "지리산 풍경"},
+   {"src": "img/hero/jirisan-4.jpg", "w": 1600, "h": 1200, "credit": "ⓒ한국관광콘텐츠랩 - 비디비디 스튜디오 (공공누리 제1유형)", "license": "kogl1", "alt": "지리산 - 구례 화엄사"}
+  ],
+  "적상산": [
+   {"src": "img/hero/jeoksangsan.jpg", "w": 1600, "h": 1076, "credit": "ⓒ한국관광콘텐츠랩 - 조영권 (공공누리 제1유형)", "license": "kogl1", "alt": "적상산 풍경"},
+   {"src": "img/hero/jeoksangsan-2.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 이범수 (공공누리 제1유형)", "license": "kogl1", "alt": "적상산 풍경"},
+   {"src": "img/hero/jeoksangsan-3.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 이범수 (공공누리 제1유형)", "license": "kogl1", "alt": "적상산 - 안국사"},
+   {"src": "img/hero/jeoksangsan-4.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 이범수 (공공누리 제1유형)", "license": "kogl1", "alt": "적상산 - 적상산성"}
+  ],
+  "두타산": [
+   {"src": "img/hero/dutasan.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사, 김지호 (공공누리 제1유형)", "license": "kogl1", "alt": "두타산 - 동해 용추폭포"},
+   {"src": "img/hero/dutasan-2.jpg", "w": 1600, "h": 1068, "credit": "ⓒ한국관광콘텐츠랩 - 손명권 (공공누리 제1유형)", "license": "kogl1", "alt": "두타산 풍경"},
+   {"src": "img/hero/dutasan-3.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 홍정표 (공공누리 제1유형)", "license": "kogl1", "alt": "두타산 - 무릉계곡"},
+   {"src": "img/hero/dutasan-4.jpg", "w": 1600, "h": 1200, "credit": "「동해 무릉계곡」 국가유산청 (공공누리 제1유형)", "license": "kogl1", "alt": "두타산 - 동해 무릉계곡"}
+  ],
+  "주왕산": [
+   {"src": "img/hero/juwangsan.jpg", "w": 1600, "h": 1068, "credit": "ⓒ한국관광콘텐츠랩 - 오태윤 (공공누리 제1유형)", "license": "kogl1", "alt": "주왕산 - 물안개핀 주산지"},
+   {"src": "img/hero/juwangsan-2.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사, 엠엠피 김진규 (공공누리 제1유형)", "license": "kogl1", "alt": "주왕산 - 주왕산국립공원"},
+   {"src": "img/hero/juwangsan-3.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 이범수 (공공누리 제1유형)", "license": "kogl1", "alt": "주왕산 - 청송 대전사"},
+   {"src": "img/hero/juwangsan-4.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 이범수 (공공누리 제1유형)", "license": "kogl1", "alt": "주왕산 - 주왕암"}
+  ],
+  "백운산(정선)": [
+   {"src": "img/hero/baegunsan-jeongseon.jpg", "w": 1600, "h": 1066, "credit": "「평창 백룡동굴」 국가유산청 (공공누리 제1유형)", "license": "kogl1", "alt": "백운산(정선) - 평창 백룡동굴"},
+   {"src": "img/hero/baegunsan-jeongseon-2.jpg", "w": 1600, "h": 1066, "credit": "「백운산 칠족령」 국가유산청 (공공누리 제1유형)", "license": "kogl1", "alt": "백운산(정선) 풍경"},
+   {"src": "img/hero/baegunsan-jeongseon-3.jpg", "w": 1600, "h": 1198, "credit": "ⓒ한국관광콘텐츠랩 - 정상호 (공공누리 제1유형)", "license": "kogl1", "alt": "백운산(정선) - 나리소"},
+   {"src": "img/hero/baegunsan-jeongseon-4.jpg", "w": 1600, "h": 1066, "credit": "「백운산 칠족령」 국가유산청 (공공누리 제1유형)", "license": "kogl1", "alt": "백운산(정선) 풍경"}
+  ],
+  "대암산": [
+   {"src": "img/hero/daeamsan.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 황성훈 (공공누리 제1유형)", "license": "kogl1", "alt": "대암산 - 대암산용늪"},
+   {"src": "img/hero/daeamsan-2.jpg", "w": 1600, "h": 900, "credit": "「대암산·대우산 천연보호구역」 국가유산청 (공공누리 제1유형)", "license": "kogl1", "alt": "대암산 풍경"},
+   {"src": "img/hero/daeamsan-3.jpg", "w": 1600, "h": 802, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 김지호 (공공누리 제1유형)", "license": "kogl1", "alt": "대암산 - 을지전망대"}
+  ]
  }
 }
