@@ -12,6 +12,7 @@
     var EN = LANG === "en", T = RF.tr;
     RF.setLang(LANG);
     if (EN) { document.documentElement.lang = "en"; document.title = "routefly - Handy tools"; RF.applyEn(document); }
+    $("top").appendChild(RF.themeButton());   // ☀️ · 🌙(2026-11-21)
     $("top").appendChild(RF.textButton());
     var openFromLink = null;   // ?open=t-… 로 연 칸(아래에서 씀 - 맨 위에 두어야 값이 지워지지 않음)
     if (EN) $("backLink").setAttribute("href", "en/m/");

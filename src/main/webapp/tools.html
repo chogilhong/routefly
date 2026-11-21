@@ -28,7 +28,7 @@ section { background:var(--panel); border:1px solid var(--ln); border-radius:14p
 section h2 { margin:0 0 8px; font-size:17px; }
 .tip { font-size:13px; color:var(--dim); line-height:1.55; margin:8px 0 0; word-break:keep-all; }
 .tip a { color:#38d9ea; }   /* 어두운 바탕에 기본 파랑은 대비 1.7(점검 11차 D7) */
-.btn { display:block; width:100%; height:50px; border-radius:12px; border:0; background:var(--sky); color:#062b30; font:bold 16px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }
+.btn { display:block; width:100%; height:50px; border-radius:12px; border:0; background:var(--sky); color:var(--onsky,#062b30); font:bold 16px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }
 #pcBox { display:none; height:540px; margin-top:10px; border:1px solid var(--ln); border-radius:10px; overflow:hidden; background:#fff; }
 /* 카카오 창 글자를 1.2배로(창 안 글자 크기는 바꿀 수 없어 창을 통째로 키움 - 2026-10-18 홍TV님 "잘 안 보여") */
 #pcBox .zoom { height:450px; transform-origin:0 0; }   /* 배율은 js(fitZoom) - 카카오 창은 폭이 300px 아래로 줄지 않음 */
@@ -111,7 +111,7 @@ h2.grp { margin:22px 2px 0; font-size:14px; color:var(--dim); font-weight:bold; 
 .ccgrid { display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-top:10px; }
 .ccgrid button { height:64px; border-radius:14px; border:1px solid var(--ln); background:rgba(255,255,255,0.07); color:var(--tx); font:bold 26px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }
 .ccgrid button.op { background:rgba(56,217,234,0.14); color:var(--sky); border-color:rgba(56,217,234,0.45); }
-.ccgrid button.eq { background:var(--sky); color:#062b30; }
+.ccgrid button.eq { background:var(--sky); color:var(--onsky,#062b30); }
 .mgwrap { margin-top:10px; height:300px; overflow:hidden; border-radius:12px; background:#000; position:relative; }
 .mgwrap video { width:100%; height:100%; object-fit:cover; transform-origin:50% 50%; }
 .gcl { list-style:none; margin:10px 0 0; padding:0; }
@@ -129,6 +129,7 @@ h2.grp { margin:22px 2px 0; font-size:14px; color:var(--dim); font-weight:bold; 
 #toast { position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom) + 24px); transform:translateX(-50%); max-width:90%; background:rgba(0,0,0,0.85);
          color:#fff; padding:10px 16px; border-radius:12px; font-size:15px; display:none; z-index:9; text-align:center; }
 </style>
+<script src="js/rf-theme.js"></script><link rel="stylesheet" href="css/rf-light.css"><!-- 밝은 · 다크 모드(2026-11-21 홍TV님) -->
 </head>
 <body>
 <div id="top">

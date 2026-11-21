@@ -46,7 +46,7 @@ button, select, input[type=text] { font:15px Arial,"Malgun Gothic",sans-serif; }
 .row > * { flex:1 1 auto; }
 .b { min-height:44px; padding:0 10px; border-radius:9px; border:1px solid var(--ln); background:rgba(255,255,255,0.07); color:var(--tx); cursor:pointer; }
 .b:hover { border-color:var(--sky); }
-.b.main { background:var(--sky); color:#062b30; font-weight:bold; border:0; }
+.b.main { background:var(--sky); color:var(--onsky,#062b30); font-weight:bold; border:0; }
 /* 🗺 안내도에서 고르기 - 어두운 바탕에서 보이게(2026-11-16 홍TV님 "색이 안 보여" - 브라우저 기본 파랑이었음), 국립공원은 누르기 쉬운 알약 */
 #guideBox a { color:var(--sky); }
 #guideBox .parks { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
@@ -85,6 +85,7 @@ label.sl .nud { flex:0 0 auto; min-width:44px; min-height:40px; padding:0; font-
   #side { width:auto; border-left:0; }
 }
 </style>
+<script src="js/rf-theme.js"></script><link rel="stylesheet" href="css/rf-light.css"><!-- 밝은 · 다크 모드(2026-11-21 홍TV님) -->
 </head>
 <body>
 <div id="top"><a href="m/" id="backBtn">‹ 뒤로</a><h1>📐 GPX 편집</h1><button type="button" id="helpBtn" data-onboard title="처음 안내 다시 보기">❓ 사용법</button></div>

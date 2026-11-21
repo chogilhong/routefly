@@ -1,0 +1,18 @@
+/*
+ * routefly 앱 화면 밝은 모드(2026-11-21 홍TV님 "드론플라이 처럼 라이트모드, 다크모드 추가해. 루트플라이에").
+ * js/rf-theme.js 가 <html data-theme> 를 그리기 전에 붙이고, ☀️ · 🌙 단추(course-kit themeButton)가 바꿈. 기본은 다크(각 화면 <style> 의 :root 그대로).
+ * 화면마다 같은 이름의 색(--bg · --panel · --tx · --dim · --ln · --sky …)을 쓰므로 여기서 한 번에 바꿈(:root[data-theme] 가 :root 보다 우선).
+ * 지도 위 띠(빨강 · 초록 · 주황 바탕 + 흰 글)는 지도 위라 두 모드 모두 그대로. 산 페이지(/m/)는 css/mountain.css 에 같은 색.
+ */
+:root[data-theme="light"] { --bg:#eef2f6; --panel:#ffffff; --tx:#18212c; --dim:#566271; --ln:rgba(0,0,0,0.13); --sky:#0b7285;
+    --warn:#c92a2a; --red:#c92a2a; --yel:#8a5a00; --fill:#8a5a00; --green:#2b8a3e; color-scheme:light; }
+:root[data-theme="dark"] { color-scheme:dark; }
+:root[data-theme="light"] img[src*="logo-dark.svg"] { content:url(../img/logo.svg); }   /* 글자가 어두운 로고 */
+.rfThemeBtn { min-width:40px; height:34px; padding:0 6px; border-radius:17px; border:1px solid var(--ln); background:transparent; color:var(--tx); font-size:16px; line-height:1; cursor:pointer; flex:0 0 auto; }
+:root[data-theme="light"] .rfTextBtn { color:var(--tx); border-color:var(--ln); background:rgba(0,0,0,0.03); }
+:root[data-theme="light"] { --onsky:#ffffff; }   /* 하늘색 바탕 단추의 글(다크는 #062b30 - 각 화면 color:var(--onsky,#062b30)) */
+/* 지도 위 알림 칸(#mapWrap #msg - 공원 · 노선): 밝은 칸 + 그림자 */
+:root[data-theme="light"] #mapWrap > #msg { background:rgba(255,255,255,0.95); color:var(--tx); box-shadow:0 2px 10px rgba(0,0,0,0.18); }
+/* 안부: 시각 고르기 · 아직 안 남김 글 */
+:root[data-theme="light"] .tsel select { background:#fff; color:var(--tx); }
+:root[data-theme="light"] .status.todo b { color:#9a6700; }

@@ -48,12 +48,13 @@ input[type=time], input[type=tel], input[type=text] { width:100%; height:46px; b
 .tsel b { font-size:18px; }
 .chk { display:flex; gap:8px; align-items:center; color:var(--tx); font-size:15px; margin-top:12px; min-height:44px; cursor:pointer; }   /* 줄 전체를 눌러도 됨(label) */
 .chk input { width:24px; height:24px; flex:none; margin:0; }   /* 2026-11-03 홍TV님 점검 */
-.save { margin-top:12px; width:100%; height:50px; border-radius:12px; border:0; background:var(--sky); color:#062b30; font:bold 16px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }
+.save { margin-top:12px; width:100%; height:50px; border-radius:12px; border:0; background:var(--sky); color:var(--onsky,#062b30); font:bold 16px Arial,"Malgun Gothic",sans-serif; cursor:pointer; }
 .tip { font-size:13px; color:var(--dim); line-height:1.55; margin:8px 0 0; }
 .log { font-size:13px; color:var(--dim); margin-top:6px; }
 #toast { position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom) + 24px); transform:translateX(-50%); max-width:90%; background:rgba(0,0,0,0.85);
          color:#fff; padding:10px 16px; border-radius:12px; font-size:15px; display:none; z-index:9; text-align:center; }
 </style>
+<script src="js/rf-theme.js"></script><link rel="stylesheet" href="css/rf-light.css"><!-- 밝은 · 다크 모드(2026-11-21 홍TV님) -->
 </head>
 <body>
 <div id="top">

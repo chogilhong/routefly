@@ -47,4 +47,25 @@ public class RouteflyThemeTest {
         String fn = kit.substring(kit.indexOf("function nextTheme("), kit.indexOf("function paintThemeBtns("));
         assertTrue(fn.contains("return t === \"light\" ? \"dark\" : \"light\";"));
     }
+
+    @Test
+    public void 앱_화면도_같은_모드() throws Exception {   // 2단계(2026-11-21 홍TV님 "계속해") - 따라가기 · 공원 · 노선 · 도장 · 별거 별거 · 안부 · 산악회 · 안내 …
+        String[] pages = {"hike.html", "park.html", "route.html", "series.html", "tools.html", "anbu.html", "party.html", "party-office.html", "studio.html", "feedback.html",
+                "about.html", "about-en.html", "privacy.html", "privacy-en.html", "terms.html", "terms-en.html", "lbs-terms.html", "lbs-terms-en.html", "party-guide.html", "party-guide-en.html"};
+        for (String p : pages) {
+            String h = read("src/main/webapp/" + p);
+            int s = h.indexOf("<script src=\"js/rf-theme.js\"></script><link rel=\"stylesheet\" href=\"css/rf-light.css\">");
+            assertTrue(p, s > 0 && s > h.indexOf("</style>"));   // 화면 <style> 뒤 · 그리기 전
+        }
+        assertFalse("게임 판은 어두운 그림이라 다크 그대로", read("src/main/webapp/games.html").contains("rf-light.css"));
+        String css = read("src/main/webapp/css/rf-light.css");
+        assertTrue(css.contains(":root[data-theme=\"light\"] { --bg:#eef2f6; --panel:#ffffff; --tx:#18212c;") && css.contains("--onsky:#ffffff;"));
+        assertTrue("하늘색 단추 글은 밝은 모드에서 흰색", read("src/main/webapp/hike.html").contains("#bar button.main { background:var(--sky); border-color:var(--sky); color:var(--onsky,#062b30);"));
+        String sw = read("src/main/webapp/sw.js");
+        assertTrue("산속(오프라인)에서도", sw.contains("\"js/rf-theme.js\", \"css/rf-light.css\"]"));
+        for (String js : new String[] {"hike", "park", "route", "series", "tools", "anbu", "party"}) {
+            assertTrue(js, read("src/main/webapp/js/" + js + ".js").contains("themeButton()"));
+            assertTrue("kit-" + js, read("src/main/webapp/js/kit-" + js + ".js").contains("function themeButton("));
+        }
+    }
 }

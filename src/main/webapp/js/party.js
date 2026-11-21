@@ -1623,6 +1623,7 @@
 (function () {
     var top = document.getElementById("top");
     if (!top) return;
+    if (window.RF && RF.themeButton) top.appendChild(RF.themeButton());   // ☀️ · 🌙(2026-11-21)
     if (window.RF && RF.textButton) top.appendChild(RF.textButton());
     var en = /[?&]lang=en\b/.test(location.search), b = document.createElement("button");
     b.type = "button";
@@ -1632,8 +1633,8 @@
     b.setAttribute("aria-label", b.title);
     b.setAttribute("lang", en ? "ko" : "en");
     // .rfTextBtn 모양(그 클래스는 글자 크기 단추가 글을 바꿔 쓰므로 안 씀)
-    b.style.cssText = "flex:0 0 auto;min-width:44px;height:34px;padding:0 8px;border-radius:17px;border:1px solid rgba(255,255,255,0.18);"
-        + "background:rgba(255,255,255,0.06);color:#e9eef4;font:bold 13px Arial,'Malgun Gothic',sans-serif;cursor:pointer;white-space:nowrap";
+    b.style.cssText = "flex:0 0 auto;min-width:44px;height:34px;padding:0 8px;border-radius:17px;border:1px solid var(--ln);"
+        + "background:transparent;color:var(--tx);font:bold 13px Arial,'Malgun Gothic',sans-serif;cursor:pointer;white-space:nowrap";
     b.addEventListener("click", function () {
         var u = new URLSearchParams(location.search);   // c= · s= 등은 그대로
         u.set("lang", en ? "ko" : "en");

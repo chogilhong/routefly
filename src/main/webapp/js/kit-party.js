@@ -229,6 +229,35 @@
     function textLabel(v, en) { var a = (en === undefined ? LANG === "en" : en) ? "A" : "가"; return v >= 1.4 ? a + "++" : v >= 1.2 ? a + "+" : a; }
     /** 순수 함수 - 다음 글자 크기(140% 다음은 100%). */
     function nextTextScale(v) { return TEXT_STEPS[(TEXT_STEPS.indexOf(v) + 1) % TEXT_STEPS.length]; }
+    /**
+     * 다크 · 밝은 모드(2026-11-21 홍TV님 "드론플라이 처럼") - <html data-theme> 를 js/rf-theme.js 가 그리기 전에 붙이고, 이 단추가 바꿔 기억(rf-theme).
+     * 기본은 다크. 단추는 지금 모드의 반대를 보임(다크일 때 ☀️ = 밝은 모드로).
+     */
+    var THEME_KEY = "rf-theme";
+    /** 순수 함수 - 다음 모드(light ↔ dark, 모르는 값은 다크로 보고 light). */
+    function nextTheme(t) { return t === "light" ? "dark" : "light"; }
+    function paintThemeBtns() {
+        var light = document.documentElement.getAttribute("data-theme") === "light", en = document.documentElement.lang === "en" || LANG === "en";
+        var name = light ? (en ? "Dark mode" : "다크 모드로") : (en ? "Light mode" : "밝은 모드로");
+        Array.prototype.forEach.call(document.querySelectorAll(".rfThemeBtn"), function (b) { b.textContent = light ? "🌙" : "☀️"; b.title = name; b.setAttribute("aria-label", name); });
+        var meta = document.querySelector("meta[name=theme-color]");
+        if (meta) meta.setAttribute("content", light ? "#eef2f6" : "#11161d");
+    }
+    /** ☀️ · 🌙 단추 - 누르면 모드를 바꾸고 이 기기에 기억. */
+    function themeButton() {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "rfThemeBtn";
+        b.addEventListener("click", function (e) {
+            e.preventDefault();
+            var n = nextTheme(document.documentElement.getAttribute("data-theme"));
+            document.documentElement.setAttribute("data-theme", n);
+            try { localStorage.setItem(THEME_KEY, n); } catch (err) { /* 이번만 */ }
+            paintThemeBtns();
+        });
+        setTimeout(paintThemeBtns, 0);   // 화면에 붙인 뒤 글 · 이름을 칠함
+        return b;
+    }
     /** "가+" 단추 - 누를 때마다 다음 크기. 모든 화면이 같은 설정을 씁니다. */
     function textButton() {
         var b = document.createElement("button");
@@ -476,6 +505,7 @@
         notifyDeploy: notifyDeploy,
         baseStyle: baseStyle,
         textButton: textButton,
+        themeButton: themeButton,
         setLang: setLang,
         applyEn: applyEn,
         partyAlerts: partyAlerts,

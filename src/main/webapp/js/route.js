@@ -342,4 +342,4 @@
 })();
 
 // 글자 크기 "가+" - 위 줄 오른쪽(2026-10-14 홍TV님, 같은 설정이 모든 화면에)
-(function () { var top = document.getElementById("top"); if (top && window.RF && RF.textButton) top.appendChild(RF.textButton()); })();
+(function () { var top = document.getElementById("top"); if (top && window.RF && RF.themeButton) top.appendChild(RF.themeButton()); if (top && window.RF && RF.textButton) top.appendChild(RF.textButton());   /* ☀️ · 🌙(2026-11-21) */ })();

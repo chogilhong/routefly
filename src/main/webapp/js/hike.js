@@ -3934,6 +3934,7 @@
     // 글자 크기 "가+"(2026-10-14 홍TV님: 핸드폰에서 글씨가 작음) - 코스 고르기 머리 · 아래 창 제목마다. 새 단추 줄은 만들지 않음
     (function () {
         var h1 = document.querySelector("#pick .pickTop");   // 제목 줄(h1 밖 - 단추가 제목 글에 섞이지 않게)
+        if (h1 && RF.themeButton) h1.appendChild(RF.themeButton());   // ☀️ · 🌙 밝은 · 다크 모드(2026-11-21 홍TV님)
         if (h1) h1.appendChild(RF.textButton());
         Array.prototype.forEach.call(document.querySelectorAll(".sheet .sbox > h2, #safety .sbox > h2"), function (h) { h.appendChild(RF.textButton()); });
     })();
