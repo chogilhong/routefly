@@ -92,6 +92,13 @@
    {"src": "img/hero/daeamsan.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 황성훈 (공공누리 제1유형)", "license": "kogl1", "alt": "대암산 - 대암산용늪"},
    {"src": "img/hero/daeamsan-2.jpg", "w": 1600, "h": 900, "credit": "「대암산·대우산 천연보호구역」 국가유산청 (공공누리 제1유형)", "license": "kogl1", "alt": "대암산 풍경"},
    {"src": "img/hero/daeamsan-3.jpg", "w": 1600, "h": 802, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 김지호 (공공누리 제1유형)", "license": "kogl1", "alt": "대암산 - 을지전망대"}
+  ],
+  "재약산": [
+   {"src": "img/hero/jaeyaksan.jpg", "w": 1600, "h": 1066, "credit": "「밀양 남명리 얼음골」 국가유산청 (공공누리 제1유형)", "license": "kogl1", "alt": "재약산 - 밀양 남명리 얼음골"},
+   {"src": "img/hero/jaeyaksan-2.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 이범수 (공공누리 제1유형)", "license": "kogl1", "alt": "재약산 - 밀양 표충사"},
+   {"src": "img/hero/jaeyaksan-3.jpg", "w": 1600, "h": 712, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 김지호 (공공누리 제1유형)", "license": "kogl1", "alt": "재약산 - 밀양 표충사"},
+   {"src": "img/hero/jaeyaksan-4.jpg", "w": 1200, "h": 838, "credit": "[천황산] 한국민족문화대백과사전 (공공누리 제1유형)", "license": "kogl1", "alt": "재약산 - 천황산"},
+   {"src": "img/hero/jaeyaksan-5.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 이범수 (공공누리 제1유형)", "license": "kogl1", "alt": "재약산 - 호박소계곡"}
   ]
  }
 }
