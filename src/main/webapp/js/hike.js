@@ -4855,7 +4855,7 @@
         if (!now0.f) { toast(T("위치를 찾은 뒤에 만들 수 있습니다.", "Available once your location is found.")); return; }
         if (photoReady && photoReady.f === now0.f && photoReady.body === now0.body) {   // 이미 만든 사진 - 바로 보냅니다
             sharePhoto(photoReady).then(function (r) { if (r !== "again") btn.textContent = PHOTO_LABEL; })
-                .catch(function (e) { toast(T("보내기 실패: ", "Send failed: ") + (e && e.message || e), 5000); });
+                .catch(function (e) { toast(T("보내지 못했습니다: ", "Could not send: ") + (e && e.message || e), 5000); });
             return;
         }
         btn.disabled = true;

@@ -303,7 +303,7 @@
         });
         out.className = "";
     }
-    show([sunLine(Date.now()), "날씨 불러오는 중…"]);
+    show([sunLine(Date.now()), "날씨를 받는 중…"]);   // 다른 칸과 같은 말(~를 받는 중… · ~를 받지 못했습니다, 2026-11-21 "고급지게" 6번)
     // 날짜 줄은 서버가 자리를 미리 둠(2026-11-02 홍TV님 점검: 늦게 끼워 넣어 아래가 밀렸음 - 폰 CLS 0.098). 옛 화면이면 만들어 넣음
     var tabs = out.parentNode.querySelector(".days");
     if (!tabs) {

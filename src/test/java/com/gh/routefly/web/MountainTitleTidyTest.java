@@ -22,6 +22,9 @@ public class MountainTitleTidyTest {
         assertTrue("코스 모음 메뉴 줄은 그대로", MountainServlet.staySearchBox(null, false).contains("<span class=\"ft\">🏨 근처 숙소 찾기</span>"));
         assertTrue(read("src/main/webapp/js/mountain.js").contains("offlineBox({ title: \"신호 없을 때 보기\""));
         assertTrue(read("src/main/webapp/js/mountain-en.js").contains("offlineBox({ title: \"Save for no signal\""));
+        // 6번 마무리 - 기다림 · 실패 말을 "~를 받는 중…" · "~하지 못했습니다" 로
+        assertTrue(read("src/main/webapp/js/mountain.js").contains("\"날씨를 받는 중…\"") && !read("src/main/webapp/js/mountain.js").contains("날씨 불러오는 중"));
+        assertFalse(read("src/main/webapp/js/hike.js").contains("보내기 실패"));
         String ms = read("src/main/java/com/gh/routefly/web/MountainServlet.java");
         assertTrue("안전 칸은 그대로", ms.contains("<h2>⛑️ 오늘의 산행 안전</h2>") && ms.contains("<h2>⚠ 산행 안전 팁</h2>"));
     }
