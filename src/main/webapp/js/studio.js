@@ -328,7 +328,12 @@
             dot.style.background = i === sel ? "#38d9ea" : x.color;
             b.textContent = x.name;
             sp.textContent = km(RF.trackStats(x.track).dist) + " km";
-            it.appendChild(dot); it.appendChild(b); it.appendChild(sp);
+            // 줄마다 ✕ - 목록에서 빼기(2026-11-21 홍TV님 "✕ 단추 좋아" - 고치기 칸 맨 아래 🗑 를 찾기 어려웠음). 줄 고르기와 겹치지 않게 stopPropagation
+            var x0 = document.createElement("button");
+            x0.type = "button"; x0.className = "x"; x0.textContent = "✕"; x0.title = "목록에서 빼기"; x0.setAttribute("aria-label", x.name + " 목록에서 빼기");
+            x0.onclick = function (e) { e.stopPropagation(); removeAt(i); };
+            x0.onkeydown = function (e) { e.stopPropagation(); };
+            it.appendChild(dot); it.appendChild(b); it.appendChild(sp); it.appendChild(x0);
             it.onclick = function () { pick(i, true); };
             it.onkeydown = function (e) { if (e.key === "Enter") pick(i, true); };
             box.appendChild(it);
@@ -728,19 +733,20 @@
         closeTool();
         draw(true);
     };
-    $("delBtn").onclick = function () {
-        var c = cur();
+    /** 목록에서 i 번째 길 빼기 - 고치기 칸 🗑 와 줄마다 ✕ 가 함께 씀. 뺀 길이 고른 길보다 앞이면 고른 자리를 한 칸 당김. */
+    function removeAt(i) {
+        var c = tracks[i];
         if (!c) return;
         ask("\"" + c.name + "\" 을(를) 목록에서 뺄까요? 파일 · 내 기록은 그대로입니다(↶ 되돌리기로 되살림).", { ok: "빼기" }).then(function (ok) {
             if (!ok) return;
             push();
-            var at = sel;
-            tracks.splice(at, 1);
-            sel = tracks.length ? Math.min(at, tracks.length - 1) : -1;
+            tracks.splice(i, 1);
+            sel = !tracks.length ? -1 : i < sel ? sel - 1 : Math.min(sel, tracks.length - 1);
             closeTool();
             draw(true);
         });
-    };
+    }
+    $("delBtn").onclick = function () { if (cur()) removeAt(sel); };
 
     // ---- 지도에 새 길 그리기(3단계) - 찍은 점 사이를 OpenStreetMap 걷는 길로(이 브라우저가 Overpass 에 직접 물음 - 서버 주소가 막혀도 됨)
     var OVERPASS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter", "https://overpass.private.coffee/api/interpreter"];
