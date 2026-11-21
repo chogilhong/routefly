@@ -53,13 +53,13 @@ public class MountainShortsTest {
             if (id.equals("계룡산")) gyeryong = e.getAsJsonObject();
             if (id.equals("가야산")) gaya = e.getAsJsonObject();
         }
-        // 한국어: 예고 칸(2026-11-21 홍TV님 시안 승인) - 제목의 물음 · 볼거리 이름 · 단추 · 자료. 길이를 모르는 영상은 길이를 적지 않음
+        // 한국어: 예고 칸(2026-11-21 홍TV님 시안 승인) - 제목의 물음 · 볼거리 이름 · 단추 · 자료 · 길이(PC ffprobe 151.6초)
         String ko = MountainServlet.shortsBlock(gyeryong, false);
         assertEquals("<section class=\"shorts story\"><h2>이 산 이야기</h2><p class=\"hook\">닭볏 쓴 용이 사는 산?</p>"
-                + "<p>무학대사 · 중악단 · 동학사 · 갑사 - 그 이야기를 짧은 영상에 담았습니다.</p>"
-                + "<a class=\"watch\" href=\"https://www.youtube.com/shorts/Elzwl8pQ8vQ\" target=\"_blank\" rel=\"noopener\" title=\"닭볏 쓴 용이 사는 산? 계룡산 이야기\">▶ 영상으로 보기</a>"
+                + "<p>무학대사 · 중악단 · 동학사 · 갑사 - 그 이야기를 2분 32초 영상에 담았습니다.</p>"
+                + "<a class=\"watch\" href=\"https://www.youtube.com/shorts/Elzwl8pQ8vQ\" target=\"_blank\" rel=\"noopener\" title=\"닭볏 쓴 용이 사는 산? 계룡산 이야기\">▶ 영상으로 보기 (2분 32초)</a>"
                 + "<p class=\"src\">자료: 한국민족문화대백과사전 · 국가유산청 · 산림청 100대 명산</p></section>", ko);
-        // 길이를 아는 영상(두타산 153.0초)은 문장과 단추에 길이
+        // 두타산 153.1초
         JsonObject duta = null;
         for (JsonElement e : peaks) if (e.getAsJsonObject().get("id").getAsString().equals("두타산")) duta = e.getAsJsonObject();
         String dk = MountainServlet.shortsBlock(duta, false);
@@ -74,7 +74,11 @@ public class MountainShortsTest {
             JsonObject p = new JsonObject();
             p.add("shorts", videos.getAsJsonArray(id));
             assertTrue(id, MountainServlet.shortsBlock(p, false).startsWith("<section class=\"shorts story\">"));
+            assertTrue("길이도 모두(PC ffprobe 2026-11-21) " + id, videos.getAsJsonArray(id).get(0).getAsJsonObject().has("sec"));
         }
+        // 길이가 없으면 "짧은 영상" · 단추에 길이 없음
+        JsonObject nolen = JsonParser.parseString("{\"shorts\":[{\"id\":\"Elzwl8pQ8vQ\",\"title\":\"t?\",\"sights\":[\"a\"]}]}").getAsJsonObject();
+        assertTrue(MountainServlet.shortsBlock(nolen, false).contains("<p>a - 그 이야기를 짧은 영상에 담았습니다.</p>") && MountainServlet.shortsBlock(nolen, false).contains(">▶ 영상으로 보기</a>"));
         // 볼거리가 없으면 옛 링크 칸, 영어는 늘 링크 칸
         JsonObject old = JsonParser.parseString("{\"shorts\":[{\"id\":\"Elzwl8pQ8vQ\",\"title\":\"t?\"}]}").getAsJsonObject();
         assertTrue(MountainServlet.shortsBlock(old, false).startsWith("<section class=\"shorts\"><h2>▶ 이 산 이야기</h2><ul class=\"tips\">"));
