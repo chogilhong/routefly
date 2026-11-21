@@ -1,6 +1,12 @@
 {
  "_note": "국립공원공단_국립공원 대피소(공공데이터포털 2982556, 이용허락범위 제한 없음) 22곳 - tools/shelters/build.js 가 src/test/resources/shelters 원본에서 만듦. reserve 는 공단 예약 화면에 있는 13곳(2026-11-19 PC 확인). 고치지 말고 다시 만드세요.",
  "reserveUrl": "https://reservation.knps.or.kr/reservation/shelter/searchSimpleShelterReservation.do",
+ "reserveDept": {
+  "지리산": "B01",
+  "설악산": "B03",
+  "덕유산": "B05",
+  "소백산": "B12"
+ },
  "shelters": [
   {
    "name": "장터목대피소",

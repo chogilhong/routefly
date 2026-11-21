@@ -13,6 +13,8 @@ const DBF = path.join(ROOT, 'src/test/resources/shelters/국립공원_대피소.
 const RESERVE = ['벽소령대피소', '세석대피소', '장터목대피소', '로타리대피소', '치밭목대피소', '연하천대피소', '노고단대피소',
   '수렴동대피소', '소청대피소', '희운각대피소', '양폭대피소', '삿갓재대피소', '제2연화봉대피소'];
 const RESERVE_URL = 'https://reservation.knps.or.kr/reservation/shelter/searchSimpleShelterReservation.do';
+// 공단 예약 화면의 산 탭 값(data-dept-id) - ?deptId= 로 열면 그 산 탭이 골라진 채 열림(표는 탭을 한 번 더 눌러야, PC 조사 2026-11-21 src/test/resources/shelters/knps-reservation-notes.md)
+const RESERVE_DEPT = { '지리산': 'B01', '설악산': 'B03', '덕유산': 'B05', '소백산': 'B12' };
 
 /** 순수 함수 - 사무소 이름 → 산 페이지 이름(mountains100 의 id): 지리산경남 · 전북 · 전남 → 지리산, 북한산도봉 → 도봉산, 소백산북부 → 소백산. */
 function parkOf(office) {
@@ -46,7 +48,7 @@ function build() {
     return { name, park: parkOf(v[2]), addr: v[4], lat: +(+v[6]).toFixed(6), lon: +(+v[5]).toFixed(6), reserve: RESERVE.indexOf(name) >= 0 };
   });
   return { _note: '국립공원공단_국립공원 대피소(공공데이터포털 2982556, 이용허락범위 제한 없음) 22곳 - tools/shelters/build.js 가 src/test/resources/shelters 원본에서 만듦. reserve 는 공단 예약 화면에 있는 13곳(2026-11-19 PC 확인). 고치지 말고 다시 만드세요.',
-    reserveUrl: RESERVE_URL, shelters: out };
+    reserveUrl: RESERVE_URL, reserveDept: RESERVE_DEPT, shelters: out };
 }
 
 module.exports = { build, parkOf, cleanName, RESERVE };

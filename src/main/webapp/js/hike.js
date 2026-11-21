@@ -4046,13 +4046,14 @@
         if (sh && sh.reserve && shelterData.reserveUrl) {
             var sa = document.createElement("a");
             sa.className = "it guide";
-            sa.href = shelterData.reserveUrl;
+            var dept = shelterData.reserveDept && /^[A-Z0-9]{1,8}$/.test(shelterData.reserveDept[sh.park] || "") ? shelterData.reserveDept[sh.park] : null;
+            sa.href = shelterData.reserveUrl + (dept ? "?deptId=" + dept : "");   // 그 산 탭이 골라진 채(Shelters.reserveHref 와 같은 규칙, 2026-11-21)
             sa.target = "_blank";
             sa.rel = "noopener";
             var sb = document.createElement("b");
             sb.textContent = "🏠 " + (EN ? RF.enName(sh.name) + " (" + sh.name + ")" : sh.name) + T(" 예약(국립공원공단)", " booking (KNPS)");   // 영어 - 산 · 코스 페이지와 같은 규칙(enName = MountainEn.courseName)
             var ss = document.createElement("span");
-            ss.textContent = T(sh.park + " · 요금 · 예약 가능 날짜는 공단 예약 화면에서 · 아래는 이 대피소를 지나는 코스", RF.enName(sh.park) + " · fees and open dates on the KNPS page · trails below pass this shelter");   // 공원 이름도 영어(Seoraksan - 2026-11-19 PC)
+            ss.textContent = T(sh.park + " · 요금 · 예약 가능 날짜는 공단 예약 화면에서" + (dept ? "(" + sh.park + " 탭을 한 번 더 누르면 날짜별 표)" : "") + " · 아래는 이 대피소를 지나는 코스", RF.enName(sh.park) + " · fees and open dates on the KNPS page" + (dept ? " (tap the " + RF.enName(sh.park) + " tab once more for dates)" : "") + " · trails below pass this shelter");   // 공원 이름도 영어(Seoraksan - 2026-11-19 PC)
             sa.appendChild(sb);
             sa.appendChild(ss);
             box.appendChild(sa);

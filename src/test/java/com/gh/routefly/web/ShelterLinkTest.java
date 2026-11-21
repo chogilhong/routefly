@@ -36,8 +36,12 @@ public class ShelterLinkTest {
         assertTrue("대피소가 없는 산은 빈 것", Shelters.ofPark(d, "계룡산").isEmpty());
         assertEquals("빈 칸이면 글 없음", "", Shelters.block(d, Shelters.ofPark(d, "계룡산"), "..", false));
         String h = Shelters.block(d, sorak, "..", false);
+        // 예약 › 은 그 산 탭이 골라진 공단 화면(?deptId= - 설악산 B03, 2026-11-21 홍TV님 "지리산으로 와야 하는데" · PC 조사)
         assertTrue(h.contains("<a href=\"../hike.html?lang=ko&amp;q=" + MountainServlet.enc("소청대피소") + "\">소청대피소</a> · <a href=\""
-                + d.get("reserveUrl").getAsString() + "\" target=\"_blank\" rel=\"noopener\">예약 ›</a>"));
+                + d.get("reserveUrl").getAsString() + "?deptId=B03\" target=\"_blank\" rel=\"noopener\">예약 ›</a>"));
+        assertTrue(h.contains("예약 › 은 공단 예약 화면의 설악산 탭으로 엽니다 - 그 탭을 한 번 더 누르면 날짜별 남은 자리가 나옵니다."));
+        assertEquals(d.get("reserveUrl").getAsString() + "?deptId=B01", Shelters.reserveHref(d, "지리산"));
+        assertEquals("탭 값이 없는 산은 첫 주소", d.get("reserveUrl").getAsString(), Shelters.reserveHref(d, "북한산"));
         assertTrue(h.startsWith("<section class=\"shelters\"><h2>대피소(국립공원공단)</h2>"));
         // 예약 화면에 없는 대피소는 이름(검색 링크)만
         for (JsonObject s : sorak)
@@ -89,6 +93,7 @@ public class ShelterLinkTest {
         String hike = new String(Files.readAllBytes(Paths.get("src/main/webapp/js/hike.js")), StandardCharsets.UTF_8);
         assertTrue(hike.contains("var sh = from ? null : RF.shelterOf(shelterData, lastQ);"));
         assertTrue(hike.contains("if (sh && sh.reserve && shelterData.reserveUrl) {"));
+        assertTrue("따라가기 검색 카드도 그 산 탭", hike.contains("sa.href = shelterData.reserveUrl + (dept ? \"?deptId=\" + dept : \"\");"));
         assertTrue("영어 카드 공원 이름도 영어", hike.contains("RF.enName(sh.park) + \" · fees and open dates"));
         assertTrue("영어 카드도 같은 이름 규칙", hike.contains("EN ? RF.enName(sh.name) + \" (\" + sh.name + \")\" : sh.name"));
     }

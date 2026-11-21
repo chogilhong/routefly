@@ -118,9 +118,23 @@ final class Shelters {
      * 순수 함수 - "🏠 대피소" 칸. 이름은 따라가기 검색(그 대피소를 지나는 코스)으로, 예약 받는 곳은 "예약 ›"(새 창).
      * rel - 앱 안 상대 주소 앞부분(".." 등). 없으면 빈 글.
      */
+    /**
+     * 순수 함수 - 예약 링크 주소: 공단 예약 화면 + 그 산 탭(?deptId=, data/knps-shelters.json reserveDept). 탭 값이 없는 산은 예약 화면 첫 주소.
+     * 공단 화면은 탭이 골라진 채 열리고 표는 탭을 한 번 더 눌러야 뜸(PC 조사 2026-11-21 - 바로 표가 뜨는 주소는 없음). 따라가기 검색 카드(hike.js)도 같은 규칙.
+     */
+    static String reserveHref(JsonObject d, String park) {
+        String url = d.has("reserveUrl") ? d.get("reserveUrl").getAsString() : null;
+        if (url == null) return null;
+        JsonObject dept = d.has("reserveDept") && d.get("reserveDept").isJsonObject() ? d.getAsJsonObject("reserveDept") : null;
+        String id = dept != null && park != null && dept.has(park) ? dept.get(park).getAsString() : null;
+        return id != null && id.matches("[A-Z0-9]{1,8}") ? url + "?deptId=" + id : url;
+    }
+
     static String block(JsonObject d, List<JsonObject> list, String rel, boolean en) {
         if (list.isEmpty()) return "";
-        String url = d.has("reserveUrl") ? d.get("reserveUrl").getAsString() : null;
+        String park = list.get(0).has("park") ? list.get(0).get("park").getAsString() : null;   // 한 칸은 한 공원(ofPark)
+        String url = reserveHref(d, park);
+        boolean tab = url != null && url.contains("?deptId=");
         StringBuilder b = new StringBuilder("<section class=\"shelters\"><h2>").append(en ? "Shelters (Korea National Park Service)" : "대피소(국립공원공단)").append("</h2><ul class=\"tips\">");
         for (JsonObject s : list) {
             String nm = s.get("name").getAsString();
@@ -131,7 +145,10 @@ final class Shelters {
         }
         b.append("</ul><p class=\"dim\">").append(en
                 ? "Tap a shelter name for trails that pass it. Fees and open dates are on the KNPS booking page."
-                : "대피소 이름을 누르면 그 대피소를 지나는 코스. 요금 · 예약 가능 날짜는 공단 예약 화면에서 확인하세요.").append("</p></section>");
+                : "대피소 이름을 누르면 그 대피소를 지나는 코스. 요금 · 예약 가능 날짜는 공단 예약 화면에서 확인하세요.")
+                .append(!tab ? "" : en ? " Book › opens the " + ShareServlet.esc(MountainEn.courseName(park)) + " tab - tap the tab once more to see free places by date."
+                        : " 예약 › 은 공단 예약 화면의 " + ShareServlet.esc(park) + " 탭으로 엽니다 - 그 탭을 한 번 더 누르면 날짜별 남은 자리가 나옵니다.")   // 2026-11-21 홍TV님 "지리산으로 와야 하는데"
+                .append("</p></section>");
         return b.toString();
     }
 }
