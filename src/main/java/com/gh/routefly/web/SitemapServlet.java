@@ -96,10 +96,18 @@ public class SitemapServlet extends HttpServlet {
      */
     static final String DAUM_PIN = "#DaumWebMasterTool:e657a6d3b5a3bc76c259c18ecd78af8ae7d569dcaca333f0644af9989bc4ec56:1T0ZRs6bn/unEVfM5aXupg==";
 
-    /** 순수 함수 - robots.txt(API 는 빼고, 사이트맵 주소, 다음 확인 줄). */
+    /**
+     * 막는 로봇(robots.txt 를 지키는 것만 - 지키지 않으면 nginx). AhrefsBot - SEO 분석 업체 수집기, 2026-11-21 새벽부터 코스 페이지(/c/)를
+     * 1,800곳에 1 ~ 2화면씩 나눠 하루 3천 번 가까이 긁음(/stats 로봇 브라우저 글로 이름 확인) - 검색 노출과 상관없고 DB 만 읽음 → 홍TV님 "막아".
+     */
+    static final List<String> BLOCKED_BOTS = List.of("AhrefsBot");
+
+    /** 순수 함수 - robots.txt(막는 로봇은 전부, 그 밖은 API 만 빼고, 사이트맵 주소, 다음 확인 줄). */
     static String robots(String base) {
         String path = base.replaceFirst("^https?://[^/]+", "");
-        return "User-agent: *\nDisallow: " + path + "/api/\nAllow: /\nSitemap: " + base + "/sitemap.xml\n\n" + DAUM_PIN + "\n";
+        StringBuilder blocked = new StringBuilder();
+        for (String bot : BLOCKED_BOTS) blocked.append("User-agent: ").append(bot).append("\nDisallow: /\n\n");
+        return blocked + "User-agent: *\nDisallow: " + path + "/api/\nAllow: /\nSitemap: " + base + "/sitemap.xml\n\n" + DAUM_PIN + "\n";
     }
 
     /**
