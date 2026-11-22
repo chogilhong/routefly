@@ -9,9 +9,13 @@
     var ua = navigator.userAgent || "";
     // 크롬에서 열린 뒤 - ?rfh= 를 # 으로 되돌림
     var m = /[?&]rfh=([^&]*)/.exec(location.search);
-    if (m && /^#[A-Za-z0-9=_-]{1,80}$/.test(safeDecode(m[1]))) {   // # 뒤 조각만 되돌림(다른 주소 · 경로로 바꾸지 못하게, 2026-10-29 점검)
+    if (m) {
+        // # 뒤 조각만 되돌림(다른 주소 · 경로로 바꾸지 못하게, 2026-10-29 점검). 사무실 여럿 #ks=열쇠.열쇠…(점 · 700자까지)도 -
+        // 2026-11-22 점검: 점이 든 #ks= 는 맞지 않아 되돌리지 않았고, 사무실 열쇠가 주소창 · 방문 기록의 ?rfh= 에 그대로 남았음. 맞지 않아도 rfh 는 늘 지움
+        // 따라가기 #c=…&m=%EC… 처럼 & · % 가 든 조각도(같은 점검 - 산 페이지 따라가기 링크가 크롬에서 코스 없이 열렸음). # 로 시작하는 조각만이라 주소 · 경로는 그대로
+        var h = safeDecode(m[1]), ok = /^#[A-Za-z0-9=_.&%-]{1,720}$/.test(h);
         var rest = location.search.replace(/([?&])rfh=[^&]*&?/, "$1").replace(/[?&]$/, "");
-        try { history.replaceState(null, "", location.pathname + rest + decodeURIComponent(m[1])); } catch (e) { /* 그대로 */ }
+        try { history.replaceState(null, "", location.pathname + rest + (ok ? h : "")); } catch (e) { /* 그대로 */ }
     }
     if (!/KAKAOTALK/i.test(ua)) return;
     var android = /Android/i.test(ua), en = /[?&]lang=en/.test(location.search);
