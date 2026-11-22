@@ -7,7 +7,7 @@
 <title>routefly 기록 보기</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=2"><link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
 <meta name="theme-color" content="#11161d">
-<!-- 기록 보기(trip.html): 📂 GPX 열기(💾 GPX 파일 저장으로 만든 사진 · 메모 든 GPX, 시계 · 다른 앱 GPX) 또는 📒 내 기록(?rec=시작시각) -
+<!-- 기록 보기(trip.html, 코스 모음 "📂 GPX 열기"): 📂 GPX 열기(💾 GPX 파일 저장으로 만든 사진 · 메모 든 GPX, 시계 · 다른 앱 GPX) -
      왼쪽 지도(지나온 선 · 사진 표시) + 고도 · 속도 그래프, 오른쪽 사진 목록. 표시 · 사진을 누르면 서로 따라가고, 🔍 는 사진만 크게(‹ › 로 넘김).
      파일 · 사진은 이 기기 안에서만 읽음(서버로 보내지 않음) -->
 <link rel="manifest" href="manifest.json">
@@ -69,7 +69,7 @@ body { display:flex; flex-direction:column; height:100dvh; }
 </head>
 <body>
 <div id="top">
-    <a id="back" href="hike.html#rec" data-en="‹ Records">‹ 내 기록</a>
+    <a id="back" href="m/" data-en-href="en/m/" data-en="‹ Trails">‹ 코스 모음</a>
     <h1 id="title" data-en="View record">기록 보기</h1>
     <button type="button" id="openBtn" data-en="📂 Open GPX">📂 GPX 열기</button>
     <input type="file" id="gpxFile" accept=".gpx,application/gpx+xml,application/xml,text/xml" hidden>

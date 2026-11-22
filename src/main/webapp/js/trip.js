@@ -1,6 +1,6 @@
 /*
  * 기록 보기(trip.html, 2026-11-22 홍TV님 "램블러 화면 같은 것을 만들어줘 - gpx 저장한 것을 열어볼 수 있게, 사진 등 클릭하면 옆에 보이게, 확대하면 사진만").
- * 📂 GPX 열기(RF.gpxRecord - 💾 GPX 파일 저장의 사진 · 메모 · 요약까지) 또는 📒 내 기록(?rec=시작 ms - IndexedDB rf-records · rf-photos).
+ * 코스 모음 "📂 GPX 열기" 로 들어와 📂 GPX 열기(RF.gpxRecord - 💾 GPX 파일 저장의 사진 · 메모 · 요약까지).
  * 왼쪽 지도: 지나온 선 · 출발(초록) · 도착(빨강) · 사진(보라 📷) · 메모(파랑 📝) 표시, 아래 고도 · 속도 그래프(RF.profile).
  * 오른쪽(폰은 아래): 사진 · 메모 카드 - 표시를 누르면 그 카드가 주황 테두리로 보이게 넘어가고, 카드를 누르면 지도가 그 자리로. 🔍 는 사진만 크게(‹ › · 화살표 키).
  * 모두 이 기기 안에서만(서버로 보내지 않음). 지도는 V-World 지도 + 지형 음영(위성 아님), 출처 표시 그대로.
@@ -168,28 +168,5 @@
                 } catch (e) { return Promise.resolve(null); }
             });
         }).catch(function () { alert(T("파일을 읽지 못했습니다.", "Could not read the file.")); });
-    });
-
-    // 📒 내 기록에서 열기(?rec=시작 ms) - 따라가기의 IndexedDB 를 읽기만
-    function idb(name, store, key) {
-        return new Promise(function (resolve) {
-            if (!window.indexedDB) { resolve(null); return; }
-            var r = indexedDB.open(name, 1);
-            r.onupgradeneeded = function () { r.result.createObjectStore(store); };
-            r.onerror = function () { resolve(null); };
-            r.onsuccess = function () {
-                try {
-                    var q = r.result.transaction(store, "readonly").objectStore(store).get(key);
-                    q.onsuccess = function () { r.result.close(); resolve(q.result || null); };
-                    q.onerror = function () { r.result.close(); resolve(null); };
-                } catch (e) { r.result.close(); resolve(null); }
-            };
-        });
-    }
-    var recAt = +(new URLSearchParams(location.search).get("rec") || 0);
-    if (recAt) idb("rf-records", "r", "list").then(function (list) {
-        var rec = (list || []).filter(function (r) { return r && r.start === recAt; })[0];
-        if (!rec) { $("side").innerHTML = "<p class=\"empty\">" + T("이 기기에서 그 기록을 찾지 못했습니다.", "That record is not on this device.") + "</p>"; return; }
-        show(rec, function (id) { return idb("rf-photos", "p", id).then(function (b) { return b ? URL.createObjectURL(b) : null; }); });
     });
 })();

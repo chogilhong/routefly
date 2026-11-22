@@ -1552,9 +1552,10 @@ public class MountainServlet extends HttpServlet {
         b.append("</div>").append(staySearchBox(null, false)).append("<section id=\"weekend\" hidden></section>").append(steep)
                 .append("<section id=\"gearIdx\" hidden></section>")   // 🎒 산행 시 챙길 것(js/mountain.js - 계절 기준, 산 페이지는 그 산 오르막까지 - 2026-10-18 홍TV님)
                 .append(tips()).append("<section id=\"fun\" class=\"fun\" hidden></section>")
-                // 📐 GPX 편집(2026-10-31 홍TV님 "코스 모음 > 산악회 방 위에 둬") - 2026-11-02 홍TV님 "누구나": 모두에게 보임(전에는 rf-admin 기기만).
-                // 운영자 기기는 편집 화면에서 ⬆ 코스로 올리기, 손님은 📮 routefly 에 코스 보내기
-                .append("<a class=\"anbuLink studioLink\" id=\"studioLink\" href=\"" + REL + "/studio.html\">📐 GPX 편집 <small>GPX 열기 · 자르기 · 잇기 · 지도에 길 그리기 · routefly 에 코스 보내기 - PC 에서 편함</small> ›</a>")
+                // 📂 GPX 열기(2026-11-22 홍TV님 "GPX 열기를 GPX 편집 위에, trip.html 연결") - 기록 보기: 지도 · 사진 카드 · 고도 그래프, 파일은 이 기기 안에서만
+                .append("<a class=\"anbuLink gpxOpenLink\" href=\"" + REL + "/trip.html\">📂 GPX 열기 <small>내 기록 · 시계 · 다른 앱의 GPX 를 지도 · 사진 · 고도 그래프로 - 파일은 이 기기 안에서만 읽음</small> ›</a>")
+                // 📐 GPX 편집(2026-10-31 홍TV님 "코스 모음 > 산악회 방 위에 둬") - 2026-11-22 홍TV님 "GPX 편집은 나만 보이게": 숨겨 두고 운영자 기기(api/course-upload owner)만 mountain.js 가 보임
+                .append("<a class=\"anbuLink studioLink\" id=\"studioLink\" hidden href=\"" + REL + "/studio.html\">📐 GPX 편집 <small>GPX 열기 · 자르기 · 잇기 · 지도에 길 그리기 · 코스로 올리기 - PC 에서 편함</small> ›</a>")
                 .append(PartyServlet.enabled() ? "<a class=\"anbuLink partyLink\" href=\"" + REL + "/party.html?lang=ko\">🧑‍🤝‍🧑 산악회 방 <small>안내 산악회 · 인솔자 - 좌석 · 탑승 확인 · 인솔자가 회원 위치 확인 · SOS · 호차 · 차량번호</small> ›</a>" : "")   // 2026-10-20 홍TV님 - 켜졌을 때만
                 .append(PartyServlet.enabled() ? "<a class=\"anbuLink partyLink\" href=\"" + REL + "/party-office.html\">🏢 회사 사무실 <small>안내 산악회 · 여행사 - 여러 방을 한 화면에 · 회사 코드 · 승인 · 엑셀 내려받기</small> ›</a>" : "")   // 2026-10-29 홍TV님 "산악회 방 만들기 외에 더 없잖아" - 바로 가는 입구
                 .append("<a class=\"anbuLink\" href=\"").append(REL).append("/anbu.html?lang=ko\">🏠 오늘의 안부 <small>하루 한 번 '잘 지내요' · 보호자에게 문자 · 매일 알림</small> ›</a>")

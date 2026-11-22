@@ -30,7 +30,7 @@ DB 는 routefly-batch 가 채우고, 웹은 읽기만 합니다 - 산악회 방 
   예외(2026-11-22 홍TV님 "모두 작업해" - 유튜버들이 앱 화면 · 코스를 영상에 많이 씀): 📷 사진 넣기(사진 속 위치 · 찍은 때로 기록의 자리 - RF.exifInfo · photoPlace, 여러 장 · 지도에 작은 그림) ·
   🎬 영상용(투명 PNG 경로 · 고도 · 요약, 초록 바탕 고도 영상, 3D 비행 영상 index.html?video=1&rec=1 → app.js videoRecord → hike.html#vid, 위성 없이 출처 줄 늘) ·
   🔗 공개 기록 링크(RecordShareServlet · record.html, 처음 · 끝 300m 늘 뺌 · 시각 · 사진 없음 · 1년, 폴더 record.shareDir). 사진 · 영상은 폰 안에서만.
-  내 기록 📤 GPX 보내기(📮 코스 등록 · 💾 사진 · 메모 든 GPX - RF.recordGpx/gpxRecord) · 🖥 기록 보기 trip.html(램블러 화면처럼 지도 · 사진 카드 · 그래프 · 🔍 사진만, 이 기기 안에서만).
+  내 기록 📤 GPX 보내기(📮 코스 등록 · 💾 사진 · 메모 든 GPX - RF.recordGpx/gpxRecord) · 📂 GPX 열기 → 기록 보기 trip.html(코스 모음 입구, 램블러 화면처럼 지도 · 사진 카드 · 그래프 · 🔍 사진만, 이 기기 안에서만). 📐 GPX 편집 입구는 운영자 기기만(2026-11-22).
   산악회 예약 · 모집 · 입금 화면(카페 산악회용 등)은 만들지 않습니다(2026-11-12 홍TV님 "우리는 우리 일만 하자. 현재대로") - 예약은 산악회 쪽, routefly 는 출발 당일부터.
   예외(2026-11-15 홍TV님 "tidefly 를 routefly 앱 안의 기능으로 전부 옮겨줘" · "/routefly/tidefly.html 로 해"): 🎣 타이드플라이(바다낚시 물때 · 바람 · 파고) -
   `tidefly.html` · `js/tidefly.js`(+ tidefly-early.js) · `css/tidefly.css` · `/api/tidefly`(`com.gh.routefly.tidefly`). 규칙 · 자료는 `docs/tidefly/README.md` 를 따릅니다

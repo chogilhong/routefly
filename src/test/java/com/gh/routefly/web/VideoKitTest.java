@@ -109,7 +109,7 @@ public class VideoKitTest {
         assertTrue("🔍 사진만 크게 · ‹ › 넘김", js.contains("z.onclick = function (e) { e.stopPropagation(); big(i); };") && html.contains("id=\"bigPrev\"") && html.contains("id=\"bigNext\""));
         assertTrue("고도 · 속도 그래프", js.contains("prof = RF.profile($(\"prof\"), rc, { speed: RF.speedProfile(rc), labels: false });"));
         assertTrue("지도 출처(OSM) 그대로", js.contains("customAttribution: \"© OpenStreetMap contributors"));
-        assertTrue("📈 기록 창에서 크게 보기", hike.contains("location.href = \"trip.html?rec=\" + rec.start"));
+        assertFalse("🖥 크게 보기는 뺌(2026-11-22 홍TV님 원복) - 입구는 코스 모음 📂 GPX 열기", hike.contains("trip.html?rec=") || js.contains("?rec="));
         assertTrue(read("src/main/webapp/js/kit-trip.js").contains("function gpxRecord("));
     }
 

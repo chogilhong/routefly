@@ -101,8 +101,10 @@ public class StudioPublicTest {
     public void statsNameAndEntry() throws Exception {
         assertEquals("GPX 편집", StatsServlet.pageName("/studio.html"));
         String ms = read("src/main/java/com/gh/routefly/web/MountainServlet.java");
-        assertTrue("코스 모음 입구는 누구나", ms.contains("id=\\\"studioLink\\\" href=") && !ms.contains("id=\\\"studioLink\\\" style=\\\"display:none\\\""));
-        assertFalse("숨긴 입구를 보이던 스크립트는 뺌", read("src/main/webapp/js/mountain.js").contains("studioLink"));
+        // 2026-11-22 홍TV님 "GPX 편집은 나만 보이게" - 숨겨 두고 운영자 기기(api/course-upload owner)만 보임, 위에 📂 GPX 열기(기록 보기 trip.html)
+        assertTrue("코스 모음 GPX 편집 입구는 숨김", ms.contains("id=\\\"studioLink\\\" hidden href="));
+        assertTrue("운영자 기기만 보임", read("src/main/webapp/js/mountain.js").contains(".then(function (j) { if (j && j.owner) studioA.hidden = false; })"));
+        assertTrue("📂 GPX 열기가 GPX 편집 위", ms.indexOf("/trip.html\\\">📂 GPX 열기") > 0 && ms.indexOf("/trip.html\\\">📂 GPX 열기") < ms.indexOf("id=\\\"studioLink\\\""));
     }
 
     private static HttpServletRequest req(String method, String path, String id, String body) {
