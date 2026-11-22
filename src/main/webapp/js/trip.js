@@ -100,7 +100,7 @@
                     if (vector) {   // 공원 탐방로 - 기록 선 아래, 연한 회청색(parkTrails)
                         map.addSource("parktr", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
                         map.addLayer({ id: "parktr", type: "line", source: "parktr", layout: { "line-join": "round", "line-cap": "round" },
-                            paint: { "line-color": "#6f8aa3", "line-opacity": 0.4, "line-width": ["interpolate", ["linear"], ["zoom"], 9, 0.8, 13, 1.8, 16, 3] } }, under);   // 연하게(2026-11-23 PC: 짙어 보임)
+                            paint: { "line-color": "#56728c", "line-opacity": 0.5, "line-width": ["interpolate", ["linear"], ["zoom"], 9, 0.9, 13, 2, 16, 3.2] } }, under);   // 중간 진하기(2026-11-23 PC: 처음 0.55 #3b5b78 은 짙고, 0.4 #6f8aa3 은 거의 안 보임)
                     }
                     map.addLayer({ id: "trk-halo", type: "line", source: "trk", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": "#fff", "line-width": 8, "line-opacity": 0.8 } }, under);
                     map.addLayer({ id: "trk", type: "line", source: "trk", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": ["coalesce", ["get", "color"], "#5b45ff"], "line-width": 4.5 } }, under);   // 구간 색(segData)
