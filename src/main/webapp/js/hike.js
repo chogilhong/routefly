@@ -2048,6 +2048,32 @@
             end.area = j.region.name;
             food.href = RF.afterHikeLinks(p, end, EN).links[0].href;
         }).catch(function () { /* 이름으로 찾기 그대로 */ });
+        // 📺 TV 맛집(2026-11-22 홍TV님 "백반기행 등 TV 에 나온 유명한 맛집" · 30km) - 같은 좌표 규칙, 있으면 🍜 옆에 단추, 누르면 목록(가까운 순 · 나온 프로그램)
+        if (food && at) getJson("api/food?lat=" + (+at[0]).toFixed(4) + "&lon=" + (+at[1]).toFixed(4)).then(function (j) {
+            var list = j && j.food || [];
+            if (!list.length || !box.contains(food)) return;
+            var btn = document.createElement("a"), ul = document.createElement("div");
+            btn.href = "#";
+            btn.textContent = T("📺 TV 맛집 " + list.length + "곳", "📺 TV-featured food (" + list.length + ")");
+            ul.className = "tvFood";
+            ul.hidden = true;
+            list.forEach(function (f) {
+                var row = document.createElement(f.url ? "a" : "div");
+                if (f.url) { row.href = f.url; row.target = "_blank"; row.rel = "noopener"; }
+                var nm = document.createElement("span"), meta = document.createElement("small");
+                nm.textContent = f.name;
+                meta.textContent = [f.kind, f.dist_m != null ? RF.km(f.dist_m) + "km" : "", (f.shows || []).join("·")].filter(Boolean).join(" · ");
+                row.appendChild(nm); row.appendChild(meta); ul.appendChild(row);
+            });
+            var src = document.createElement("small");
+            src.className = "src";
+            src.textContent = T("카카오에서 프로그램 이름으로 찾은 곳 · 직선 30km 안 · 가까운 순. 방송 출연은 가게 정보에서 확인하세요.",
+                "Places Kakao returns for the show names · within 30 km (straight line) · nearest first. Check the shop page for the broadcast.");
+            ul.appendChild(src);
+            btn.addEventListener("click", function (e) { e.preventDefault(); ul.hidden = !ul.hidden; });
+            food.parentNode.insertBefore(btn, food.nextSibling);
+            btn.parentNode.insertBefore(ul, btn.nextSibling);
+        }).catch(function () { /* 🍜 단추만 */ });
     }
 
     /**

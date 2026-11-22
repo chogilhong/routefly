@@ -123,6 +123,8 @@ public class StaysServlet extends HttpServlet {
                 String name = str(d, "place_name");
                 if (name == null || y == null || x == null || parse(String.valueOf(y), String.valueOf(x)) == null) continue;
                 s.addProperty("name", Party.clean(name, 60));
+                String grp = str(d, "category_group_code");   // FD6 음식점 · CE7 카페 · AD5 숙박(TV 맛집이 음식점만 고를 때 씀, 2026-11-22)
+                if (grp != null && grp.matches("[A-Z]{2}\\d")) s.addProperty("group", grp);
                 String cat = str(d, "category_name");   // "여행 > 숙박 > 호텔" → 호텔
                 if (cat != null && cat.contains(">")) s.addProperty("kind", Party.clean(cat.substring(cat.lastIndexOf('>') + 1).trim(), 20));
                 String addr = str(d, "road_address_name");
