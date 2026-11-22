@@ -243,9 +243,13 @@ html.rfwait body { visibility:hidden; }   /* 앱을 처음 열 때 서버에 닿
 #doneNext small { display:block; margin-top:6px; color:var(--dim); font-size:12px; line-height:1.5; }
 #doneNext .tvFood { flex-basis:100%; display:flex; flex-direction:column; border:1px solid var(--ln); border-radius:10px; overflow:hidden; }
 #doneNext .tvFood[hidden] { display:none; }
-#doneNext .tvFood a, #doneNext .tvFood div { display:flex; justify-content:space-between; align-items:center; gap:8px; min-height:40px; padding:0 12px; border:0; border-radius:0; border-bottom:1px solid var(--ln); background:transparent; color:var(--tx); text-decoration:none; font-size:14px; }
-#doneNext .tvFood small { display:inline; margin:0; text-align:right; }
-#doneNext .tvFood small.src { display:block; padding:4px 12px; text-align:left; }
+#doneNext .tvFood .tvRow { display:flex; align-items:center; gap:6px; padding:6px 8px 6px 12px; border-bottom:1px solid var(--ln); }
+#doneNext .tvFood .tvRow > a:first-child, #doneNext .tvFood .tvRow > span:first-child { flex:1; min-width:0; display:flex; flex-direction:column; align-items:flex-start; min-height:0; padding:0; border:0; border-radius:0; background:transparent; color:var(--tx); text-decoration:none; font-size:14px; }
+#doneNext .tvFood .tvRow b { font-weight:600; color:var(--tx); font-size:14px; margin:0; }
+#doneNext .tvFood .tvRow small { display:block; margin:2px 0 0; }
+#doneNext .tvFood .go { display:flex; gap:4px; flex-shrink:0; }
+#doneNext .tvFood .go a { display:inline-flex; align-items:center; min-height:36px; padding:0 8px; border-radius:8px; border:1px solid var(--ln); background:rgba(255,255,255,0.06); color:var(--tx); text-decoration:none; font-size:12px; white-space:nowrap; }
+#doneNext .tvFood small.src { display:block; padding:4px 12px; text-align:left; margin:0; }
 .sheet .fam { display:block; text-align:center; color:var(--sky); font-size:14.5px; padding:8px 0 10px; }   /* 귀가 확인 알림 뒤 가족에게(2026-10-14) */
 .sheet .sms { background:rgba(255,255,255,0.08); color:var(--tx); border:1px solid var(--ln); font-size:15px; }
 .sheet .big[hidden] { display:none; }   /* hidden 이 .big 의 display:block 에 밀려 시험 걷기 끝에도 "자랑하기" 가 보였음(2026-11-01) */

@@ -1998,6 +1998,15 @@
         $("doneBackupLater").onclick = function () { box.hidden = true; mark(true); };
     }
 
+    /** 📺 TV 맛집 줄의 길찾기 단추 하나(https 는 새 창, tmap:// 은 그대로). */
+    function navLink(text, href) {
+        var a = document.createElement("a");
+        a.textContent = text;
+        a.href = href;
+        if (/^https:/.test(href)) { a.target = "_blank"; a.rel = "noopener"; }
+        return a;
+    }
+
     /**
      * 폰 앱 주소(kakaomap:// 등)를 먼저 열어 보고, 1.5초 안에 이 화면이 가려지지 않으면(앱이 없음) 웹 주소로(2026-11-22 홍TV님 맛집 A안).
      * web 은 누를 때의 a.href - 동네 이름을 늦게 받아 바뀐 주소도 그대로 씀.
@@ -2057,13 +2066,21 @@
             btn.textContent = T("📺 TV 맛집 " + list.length + "곳", "📺 TV-featured food (" + list.length + ")");
             ul.className = "tvFood";
             ul.hidden = true;
+            var phone = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
             list.forEach(function (f) {
-                var row = document.createElement(f.url ? "a" : "div");
-                if (f.url) { row.href = f.url; row.target = "_blank"; row.rel = "noopener"; }
-                var nm = document.createElement("span"), meta = document.createElement("small");
+                var row = document.createElement("div"), info = document.createElement(f.url ? "a" : "span"), go = document.createElement("span");
+                row.className = "tvRow";
+                if (f.url) { info.href = f.url; info.target = "_blank"; info.rel = "noopener"; }   // 이름을 누르면 카카오맵 가게 화면(사진 · 후기)
+                var nm = document.createElement("b"), meta = document.createElement("small");
                 nm.textContent = f.name;
                 meta.textContent = [f.kind, f.dist_m != null ? RF.km(f.dist_m) + "km" : "", (f.shows || []).join("·")].filter(Boolean).join(" · ");
-                row.appendChild(nm); row.appendChild(meta); ul.appendChild(row);
+                info.appendChild(nm); info.appendChild(meta);
+                // 길찾기(2026-11-22 홍TV님 "길찾기나 티맵으로 연결해줘") - 폰은 🚗 티맵 + 🧭 카카오맵 길찾기, PC 는 카카오맵만. 출발은 그 앱이 지금 위치로
+                var nmq = String(f.name).replace(/[,/?#&]/g, " ").trim();
+                if (phone) go.appendChild(navLink("🚗 " + T("티맵", "TMAP"), RF.tmapHref(nmq, f.lat, f.lon)));
+                go.appendChild(navLink("🧭 " + T("길찾기", "Route"), "https://map.kakao.com/link/to/" + encodeURIComponent(nmq) + "," + (+f.lat).toFixed(6) + "," + (+f.lon).toFixed(6)));
+                go.className = "go";
+                row.appendChild(info); row.appendChild(go); ul.appendChild(row);
             });
             var src = document.createElement("small");
             src.className = "src";

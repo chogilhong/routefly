@@ -80,6 +80,10 @@ public class FoodServletTest {
         assertTrue("카카오 검색 결과라고 밝힘", js.contains("방송 출연은 가게 정보에서 확인하세요."));
         assertTrue("글은 textContent 로만", js.contains("nm.textContent = f.name;") && !js.contains("innerHTML = f."));
         assertTrue(html.contains("#doneNext .tvFood[hidden] { display:none; }"));
+        assertTrue("줄마다 길찾기 - 폰은 🚗 티맵 + 🧭 카카오맵, PC 는 카카오맵만(2026-11-22 홍TV님)",
+            js.contains("if (phone) go.appendChild(navLink(\"🚗 \" + T(\"티맵\", \"TMAP\"), RF.tmapHref(nmq, f.lat, f.lon)));")
+            && js.contains("go.appendChild(navLink(\"🧭 \" + T(\"길찾기\", \"Route\"), \"https://map.kakao.com/link/to/\" + encodeURIComponent(nmq)")
+            && html.contains("#doneNext .tvFood .go a {"));
         assertFalse("쿠팡 문구 · 근처 맛집 목록 없음", js.contains("RF.COUPANG_NOTE") || js.contains("nearFood"));
         assertFalse("쿠팡 · 다음 산 고르기 없음", kit.contains("afterHikeGear") || kit.contains("⛰️ 다음 산 고르기"));
         assertTrue("후원은 그대로", js.contains("$(\"doneDonate\").hidden = false;"));
