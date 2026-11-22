@@ -35,7 +35,7 @@ public class FoodServletTest {
 
     /** 카카오 답 모양으로 만든 테스트 데이터(실제 가게 아님): 음식점만 · 같은 가게 한 번(프로그램 모음) · 30km 넘으면 뺌 · 가까운 순. */
     @Test
-    public void bodyTopFiveWithinRadius() {
+    public void bodyTopFiveWithinRadius() throws Exception {
         String a = "{\"documents\":["
             + "{\"place_name\":\"시험국밥\",\"category_name\":\"음식점 > 한식 > 국밥\",\"category_group_code\":\"FD6\",\"x\":\"126.60\",\"y\":\"37.48\",\"place_url\":\"http://place.map.kakao.com/1\"},"
             + "{\"place_name\":\"시험펜션\",\"category_name\":\"여행 > 숙박 > 펜션\",\"category_group_code\":\"AD5\",\"x\":\"126.56\",\"y\":\"37.48\",\"place_url\":\"http://place.map.kakao.com/2\"},"
