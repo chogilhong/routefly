@@ -110,6 +110,29 @@
         });
     }
 
+    /** 우리 지도 아이콘(RF.MAP_ICONS) 하나를 캔버스로 그려 넣음 - 흰 테 동그라미 + 흰 글자. 모르는 이름이면 그냥 둠. */
+    function iconImage(id) {
+        var ic = RF.MAP_ICONS[id];
+        if (!ic || map.hasImage(id)) return;
+        var r = window.devicePixelRatio > 1 ? 2 : 1, n = 22 * r, cv = document.createElement("canvas"), g = cv.getContext("2d");
+        cv.width = cv.height = n;
+        g.beginPath(); g.arc(n / 2, n / 2, n / 2 - r, 0, Math.PI * 2);
+        g.fillStyle = ic[0]; g.fill(); g.lineWidth = 1.5 * r; g.strokeStyle = "#fff"; g.stroke();
+        g.fillStyle = "#fff"; g.strokeStyle = "#fff"; g.lineWidth = 1.6 * r;
+        var c = n / 2, u = r;   // 가운데 · 1단위(22칸 기준)
+        g.beginPath();
+        if (ic[1] === "house") {   // 지붕 세모 + 몸통 네모
+            g.moveTo(c, c - 6 * u); g.lineTo(c + 6 * u, c); g.lineTo(c + 4 * u, c); g.lineTo(c + 4 * u, c + 5 * u); g.lineTo(c - 4 * u, c + 5 * u); g.lineTo(c - 4 * u, c); g.lineTo(c - 6 * u, c); g.closePath(); g.fill();
+        } else if (ic[1] === "drop") {   // 물방울
+            g.moveTo(c, c - 6 * u); g.bezierCurveTo(c + 5 * u, c, c + 5 * u, c + 5 * u, c, c + 5 * u); g.bezierCurveTo(c - 5 * u, c + 5 * u, c - 5 * u, c, c, c - 6 * u); g.fill();
+        } else if (ic[1] === "eye") {   // 눈(전망)
+            g.ellipse(c, c, 6.5 * u, 3.8 * u, 0, 0, Math.PI * 2); g.stroke(); g.beginPath(); g.arc(c, c, 2 * u, 0, Math.PI * 2); g.fill();
+        } else {
+            g.font = "bold " + (13 * r) + "px sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(ic[1], c, c + u);
+        }
+        map.addImage(id, g.getImageData(0, 0, n, n), { pixelRatio: r });
+    }
+
     /** 첫 글자 층 id(없으면 undefined - 맨 위에 그음). */
     function firstSymbol() {
         var ls = (map.getStyle() && map.getStyle().layers) || [];
@@ -235,7 +258,8 @@
         var fold = function () { var at = document.querySelector(".maplibregl-ctrl-attrib"); if (at) at.classList.remove("maplibregl-compact-show"); };
         fold();
         map.once("load", function () { fold(); setContour(contourOn); });
-        map.on("idle", markPeaks);   // 지도 조각이 더 오면 지나간 봉우리를 더 찾음
+        map.on("idle", markPeaks);
+        map.on("styleimagemissing", function (e) { iconImage(e.id); });   // 대피소 · 절 등 아이콘(우리 지도 poi-hike)   // 지도 조각이 더 오면 지나간 봉우리를 더 찾음
         return map;
     });
 

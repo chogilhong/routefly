@@ -53,6 +53,8 @@ V-World 화면은 영상 · 다시 배포에 조건이 있어(약관 제13 · 19
 | 글꼴 | `vendor/fonts/Noto Sans Regular/*.pbf`(OFL, protomaps/basemaps-assets) - 숫자 · 로마자 · 기호(▲ 는 9472-9727)만. 한글은 폰 글꼴(localIdeographFontFamily) |
 | 주소 | `api/map-config` 의 `basemapUrl`(설정 map.basemap.url - 같은 사이트 경로나 https, .pmtiles 로 끝날 때만) |
 | 서비스워커 | `.pmtiles` 는 캐시하지 않고 서버로 |
+| 대피소 · 절 등 | `poi-hike` 층(2026-11-22) - OpenMapTiles v3.15 poi: 산장(class lodging · subclass alpine_hut) · 쉼터(shelter) · 절(place_of_worship · subclass buddhist) · 전망대(attraction · viewpoint) · 약수터(drinking_water). 확대 12 ~ 13 은 중요한 것만, 14 부터 모두. 아이콘은 trip.js 가 캔버스로 그림(RF.MAP_ICONS) |
+| 지나간 봉우리 | 기록 선 150m 안 봉우리는 `peak-on` 층(크게 · 진하게) - trip.js 가 지도 조각이 올 때마다 RF.peaksNear 로 찾음 |
 
 ### PC(로컬)에서 먼저 보기
 1. `target\basemap\korea.pmtiles` 를 `wtpwebapps\routefly\tiles\korea.pmtiles` 로 복사(톰캣 기본 서블릿이 Range 를 받음)

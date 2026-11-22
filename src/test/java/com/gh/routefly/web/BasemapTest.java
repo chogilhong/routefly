@@ -44,6 +44,7 @@ public class BasemapTest {
             && js.contains("var CONTOUR_KEY = \"rf-contour\"") && js.contains("thresholds: RF.CONTOUR_STEPS") && js.contains("RF.contourPaint(true)")
             && js.contains("if (window.mlcontour) map.addControl(contourControl(), \"top-right\");") && js.contains("setContour(contourOn); });"));
         assertTrue("따라가기도 같은 간격 · 색(두 벌 안 둠)", read("src/main/webapp/js/hike.js").contains("CONTOUR_STEPS = RF.CONTOUR_STEPS;") && read("src/main/webapp/js/hike.js").contains("var contourPaint = RF.contourPaint;"));
+        assertTrue("대피소 · 절 등 아이콘은 필요할 때 그려 넣음(2026-11-22 홍TV님)", js.contains("map.on(\"styleimagemissing\", function (e) { iconImage(e.id); });") && js.contains("var ic = RF.MAP_ICONS[id];"));
         assertTrue("OSM 출처는 한 번만 - 우리 지도는 바탕 출처에 이미 있음(2026-11-22 PC)", js.contains("customAttribution: (style ? \"\" : \"© OpenStreetMap contributors | \") + "));
         assertTrue(html.contains("<script src=\"vendor/pmtiles-4.5.0/pmtiles.js\"></script>"));
         assertTrue("지도 파일은 캐시하지 않음(Range)", sw.contains("if (/\\.pmtiles(?:[?#]|$)/.test(url)) return;"));

@@ -320,6 +320,14 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
             { name: "제석봉", lat: 35.3380, lon: 127.7300 }], lat, lon, 150), ["천왕봉|1915", "제석봉|"]);
         eq("속도 선 - 거리 칸마다 평균, 빈 칸 · null 은 뺌", RF.speedBuckets([2, 4, null, 6, 10], [0, 100, 200, 600, 900], 1000, 4), [[0.125, 3], [0.625, 6], [0.875, 10]]);
         eq("속도 선 - 자료가 없으면 빈 목록", [RF.speedBuckets(null, [], 10, 4), RF.speedBuckets([1], [0], 0, 4)], [[], []]);
+        var poi = vs.layers[ids.indexOf("poi-hike")], icon = poi && poi.layout["icon-image"];
+        eq("대피소 · 절 등 - poi 층, 지나간 봉우리 층 바로 앞, 확대 12부터", [poi && poi["source-layer"], ids.indexOf("poi-hike") === ids.indexOf("peak-on") - 1, poi && poi.minzoom], ["poi", true, 12]);
+        eq("대피소 · 절 등 - OpenMapTiles class · subclass 와 아이콘(그리는 그림이 다 있음)", [JSON.stringify(icon.slice(1, -1)),
+            icon.filter(function (v, k) { return typeof v === "string" && k > 0 && k % 2 === 0; }).concat(icon[icon.length - 1] ? [icon[icon.length - 1]] : []).every(function (id) { return !!RF.MAP_ICONS[id]; })],
+            [JSON.stringify([["all", ["==", ["get", "class"], "lodging"], ["==", ["get", "subclass"], "alpine_hut"]], "rf-hut", ["==", ["get", "class"], "shelter"], "rf-hut",
+                ["all", ["==", ["get", "class"], "place_of_worship"], ["==", ["get", "subclass"], "buddhist"]], "rf-temple",
+                ["all", ["==", ["get", "class"], "attraction"], ["==", ["get", "subclass"], "viewpoint"]], "rf-view", ["==", ["get", "class"], "drinking_water"], "rf-water"]), true]);
+        eq("대피소 · 절 등 - 아이콘이 없는 것(교회 · 식당 등)은 안 그림", [icon[icon.length - 1], JSON.stringify(poi.filter)], ["", JSON.stringify(["!=", icon, ""])]);
         eq("등고선 - 간격 · 밝은 바탕은 갈색", [RF.CONTOUR_STEPS[13], RF.contourPaint(true).color, RF.contourPaint(false).color], [[20, 100], "#8a5a2b", "#ffffff"]);
     })();
     eq("트립 - trip.com 이 아니면 null", [RF.tripLink("https://www.agoda.com/x", 1, 2, "a"), RF.tripLink("https://kr.trip.com.evil.kr/x", 1, 2, "a"), RF.tripLink("https://kr.trip.com/", NaN, 2, "a")], [null, null, null]);
