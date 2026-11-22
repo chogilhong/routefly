@@ -48,6 +48,11 @@ public class MountainShortsTest {
         assertEquals("s9D8pcz0RvY", videos.getAsJsonArray("지리산").get(0).getAsJsonObject().get("id").getAsString());
         assertEquals("JkNWEU9SGgM", videos.getAsJsonArray("대암산").get(0).getAsJsonObject().get("id").getAsString());   // 2026-11-22 새 산
         assertEquals("nqLq_YegQXk", videos.getAsJsonArray("재약산").get(0).getAsJsonObject().get("id").getAsString());
+        assertEquals("NowM2MZfCDI", videos.getAsJsonArray("태백산").get(0).getAsJsonObject().get("id").getAsString());
+        JsonObject tb = new JsonObject();
+        tb.add("shorts", videos.getAsJsonArray("태백산"));
+        String th = MountainServlet.shortsBlock(tb, false);
+        assertTrue(th, th.contains("<p class=\"hook\">산꼭대기에서 하늘에 제사를 지낸다!</p><p>천제단 · 주목 · 망경사 - 그 이야기를 2분 28초 영상에 담았습니다.</p>"));
         // 물음표 없는 제목은 hook 을 큰 글로(2026-11-22 홍TV님 "전부다 ? 가 있는 것 같아")
         JsonObject jy = new JsonObject();
         jy.add("shorts", videos.getAsJsonArray("재약산"));
