@@ -2330,6 +2330,18 @@
         return Math.max(0, c.asc[c.asc.length - 1] - c.asc[i]);
     }
 
+    /**
+     * 순수 함수 - 거리 재기 "코스 따라"(2026-11-22 홍TV님 "직선거리, 이은거리가 같네 … 1km마다 점이 있잖아"): 찍은 처음 · 끝 점(a, b {lat, lon})이
+     * 코스 선에서 maxOff(m) 안이면 코스 위 두 자리 사이 거리(코스 1km 점과 같은 셈)와 그 방향 오르막 · 내리막(코스 고도, climbBetween). 멀면 null.
+     */
+    function courseBetween(c, a, b, maxOff) {
+        if (!c || !c.lat || c.lat.length < 2) return null;
+        var sa = snap(c, a.lat, a.lon), sb = snap(c, b.lat, b.lon);
+        if (!(sa.off <= maxOff) || !(sb.off <= maxOff)) return null;
+        var fwd = sb.d >= sa.d, cl = c.asc ? climbBetween(c, sa.d, sb.d) : null;
+        return { m: Math.abs(sb.d - sa.d), up: cl ? (fwd ? cl.up : cl.down) : null, down: cl ? (fwd ? cl.down : cl.up) : null };
+    }
+
     /** 순수 함수 - 코스 위 d0 → d1 사이에 오른 · 내려간 높이(m). 코스 고도로 셉니다(GPS 고도는 많이 흔들림). */
     function climbBetween(c, d0, d1) {
         var i0 = indexAt(c, Math.min(d0, d1)), i1 = indexAt(c, Math.max(d0, d1));
@@ -4207,6 +4219,7 @@
         speedProfile: speedProfile,
         measureSamples: measureSamples,
         measureZoom: measureZoom,
+        courseBetween: courseBetween,
         measureSum: measureSum,
         routeEnds: routeEnds,
         routeFlips: routeFlips,

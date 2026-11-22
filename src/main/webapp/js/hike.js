@@ -616,11 +616,17 @@
             box.textContent = pts.length ? T("한 점 더 찍으세요(지도를 누름).", "Tap one more point on the map.") : T("📏 지도를 눌러 점을 찍으세요 - 직선 · 이은 거리 · 오르막", "📏 Tap the map to add points - straight line, path and climb");
             return;
         }
-        function show(m) {
-            box.textContent = T("직선 ", "Straight ") + measureLen(m.line) + " · " + T("이은 거리 ", "Path ") + measureLen(m.path)
-                + (pts.length > 2 ? T("(점 ", " (") + pts.length + T("개)", " points)") : "") + "\n"
-                + (m.up == null ? T("오르막 · 내리막 - 지형 높이를 읽는 중…", "Climb · descent - reading terrain…")
-                    : T("오르막 ", "Climb ") + Math.round(m.up) + "m · " + T("내리막 ", "Descent ") + Math.round(m.down) + "m" + T("(지형 자료 · 참고용)", " (terrain data, rough)"));
+        // 처음 · 끝 점이 따라가는 코스 50m 안이면 코스 따라 거리 · 오르막(코스 1km 점과 같은 셈) - 맨 위 줄
+        var along = c ? RF.courseBetween(c, pts[0], pts[pts.length - 1], 50) : null;
+        var head = along ? T("코스 따라 ", "Along course ") + measureLen(along.m)
+            + (along.up != null ? " · " + T("오르막 ", "climb ") + Math.round(along.up) + "m · " + T("내리막 ", "descent ") + Math.round(along.down) + "m" : "") + "\n" : "";
+        // 점이 둘이면 찍은 점 이은 거리 = 직선이라 직선만(2026-11-22 홍TV님 "직선거리, 이은거리가 같네")
+        function show(m, failed) {
+            box.textContent = head + T("직선 ", "Straight ") + measureLen(m.line)
+                + (pts.length > 2 ? " · " + T("찍은 점 " + pts.length + "개 이은 거리 ", pts.length + " tapped points joined ") + measureLen(m.path) : "") + "\n"
+                + (failed ? T("찍은 선 오르막 - 지형 높이를 못 읽었습니다(오프라인 등).", "Climb on the tapped line - could not read terrain (offline?).")
+                    : m.up == null ? T("찍은 선 오르막 · 내리막 - 지형 높이를 읽는 중…", "Climb on the tapped line - reading terrain…")
+                    : T("찍은 선 오르막 ", "Tapped line climb ") + Math.round(m.up) + "m · " + T("내리막 ", "descent ") + Math.round(m.down) + "m" + T("(지형 자료 · 참고용)", " (terrain data, rough)"));
         }
         var smp = RF.measureSamples(pts, 30, 300), path = RF.measureSum(pts, []).path;
         var z = RF.measureZoom(Math.max(30, path / 300), pts[0].lat, cfg.vworldKey ? 12 : 15);   // 긴 거리는 덜 자세한 타일(받는 장 수를 줄임)
@@ -628,8 +634,7 @@
         Promise.all(smp.map(function (p) { return demElev(p.lat, p.lon, z); })).then(function (eles) {
             if (run !== measure.run || !measure.on) return;   // 그 사이 점을 더 찍었거나 껐음
             var m = RF.measureSum(pts, eles);
-            if (m.up == null) box.textContent = box.textContent.split("\n")[0] + "\n" + T("오르막 - 지형 높이를 못 읽었습니다(오프라인 등).", "Climb - could not read terrain (offline?).");
-            else show(m);
+            show(m, m.up == null);
         });
     }
 

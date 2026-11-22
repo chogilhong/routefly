@@ -595,6 +595,14 @@ eq("거리 재기 타일 줌 - 산길(30m 간격)은 가장 자세히(12), 200km
     var j = RF.gpxCheck([[35, 127], [35.001, 127], [35.005, 127]], []);
     eq("곧은 선 200m 넘는 곳 수 · 가장 긴 것", [j.jumps, Math.round(j.longest), j.same], [1, Math.round(RF.distM(35.001, 127, 35.005, 127)), null]);
 })();
+(function () {   // 거리 재기 "코스 따라"(2026-11-22 홍TV님 "직선거리, 이은거리가 같네 … 1km마다 점이 있잖아")
+    var c = RF.recordCourse({ name: "t", track: [[35, 127, 0, 100], [35.001, 127, 1, 150], [35.002, 127, 2, 140], [35.003, 127, 3, 200]] });
+    var A = { lat: 35, lon: 127.0002 }, B = { lat: 35.003, lon: 127.0002 };   // 코스에서 약 18m
+    var f = RF.courseBetween(c, A, B, 50), r = RF.courseBetween(c, B, A, 50);
+    eq("코스 따라 거리 = 코스 위 두 자리 사이", Math.round(f.m), Math.round(c.total));
+    eq("오르막 · 내리막은 코스 고도로, 거꾸로 재면 바뀜", [f.up, f.down, r.up, r.down], [110, 10, 10, 110]);
+    eq("코스에서 50m 넘게 떨어진 점이면 null", RF.courseBetween(c, { lat: 35, lon: 127.002 }, B, 50), null);
+})();
 eq("cumAscent 5m 넘게 바뀔 때만(배치와 같게)", RF.cumAscent ? RF.cumAscent([100, 102, 104, 106, 103, 110, null, 120]) : null, [0, 0, 0, 6, 6, 6, 6, 20]);
 eq("routeEnds", ["지리산둘레길 가탄-송정", "지리산둘레길 (가탄-송정) · 송정리 → 가탄마을민박", "백두대간 17구간 · 창옥봉에서", "DMZ 평화의 길 4코스 · 농업체험까지", "이름만"].map(function (n) {
     var e = RF.routeEnds(n); return e.from + "|" + e.to; }), ["가탄|송정", "송정리|가탄마을민박", "창옥봉|null", "null|농업체험", "null|null"]);

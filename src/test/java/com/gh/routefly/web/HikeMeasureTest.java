@@ -26,6 +26,9 @@ public class HikeMeasureTest {
         assertTrue("높이는 바탕 음영과 같은 지형 타일 · 약 30m 마다 300점까지", js.contains("RF.measureSamples(pts, 30, 300)") && js.contains("src.getDemTile(z, tx, ty)"));
         assertTrue("긴 거리는 덜 자세한 타일(받는 장 수를 줄임)", js.contains("var z = RF.measureZoom(Math.max(30, path / 300), pts[0].lat, cfg.vworldKey ? 12 : 15);"));
         assertTrue("칸은 지도 위쪽 - 낮은 지도 가운데를 가리지 않게", html.contains("#measureBox { position:absolute; left:66px; right:64px; top:10px;"));
+        assertTrue("처음 · 끝 점이 코스 50m 안이면 코스 따라(2026-11-22 홍TV님 - 직선 · 이은 거리가 같게 나왔음)", js.contains("var along = c ? RF.courseBetween(c, pts[0], pts[pts.length - 1], 50) : null;")
+                && kit.contains("function courseBetween(c, a, b, maxOff)"));
+        assertTrue("점이 둘이면 직선만", js.contains("(pts.length > 2 ? \" · \" + T(\"찍은 점 \" + pts.length + \"개 이은 거리 \""));
         assertTrue("늦게 온 높이는 버림", js.contains("if (run !== measure.run || !measure.on) return;"));
         assertTrue("누른 자리로 지도가 옮겨 가지 않게", js.contains("if (measure.on) setFollow(false);"));
         assertTrue(js.contains("$(\"measureUndo\").addEventListener(\"click\", function () { measure.pts.pop(); drawMeasure(); });"));
