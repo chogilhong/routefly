@@ -71,6 +71,12 @@ public class MountainServlet extends HttpServlet {
             resp.sendRedirect(req.getContextPath() + (en ? "/en/m/" : "/m/"));
             return;
         }
+        String fixed = slashFix(path, req.getRequestURI(), req.getQueryString());
+        if (fixed != null) {   // /m/두타산/ → /m/두타산 - 끝 "/" 면 상대 주소(../data/…)가 한 칸 어긋나 404 였음(2026-11-22 /stats: /m/data/agoda-cities.json)
+            resp.setStatus(HttpServletResponse.SC_MOVED_PERMANENTLY);
+            resp.setHeader("Location", fixed);
+            return;
+        }
         String name = decode(path.replaceFirst("^/", ""));
         if (name == null) { resp.sendError(HttpServletResponse.SC_NOT_FOUND); return; }   // 잘못된 % 꼴(2026-11-01 점검: 500 이었음)
         name = name.trim();
@@ -109,6 +115,16 @@ public class MountainServlet extends HttpServlet {
         resp.setHeader("Cache-Control", failed ? "no-store" : "public, max-age=600");
         resp.getWriter().print(withFire(page(peak, courses, nearby(all, peak, NEARBY_MAX, NEARBY_M), parking(courses), base,
                 seasonMonth(all, season, java.time.LocalDate.now(WeatherServlet.KST))), System.currentTimeMillis()));
+    }
+
+    /**
+     * 순수 함수 - 산 페이지 주소 끝의 "/" 를 뺀 주소(받은 그대로의 % 꼴 · ? 뒤 유지), 고칠 것이 없으면 null.
+     * pathInfo "/" (코스 모음 /m/)는 그대로. uri - 요청 주소(앱 이름 포함, 인코딩 그대로).
+     */
+    static String slashFix(String pathInfo, String uri, String query) {
+        if (pathInfo == null || pathInfo.length() < 2 || !pathInfo.endsWith("/") || uri == null || !uri.endsWith("/")) return null;
+        String u = uri.replaceFirst("/+$", "");
+        return u + (query != null && !query.isEmpty() ? "?" + query : "");
     }
 
     /** 영어 페이지(/en/m/ · /en/m/seoraksan). */
