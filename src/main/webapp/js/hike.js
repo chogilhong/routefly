@@ -2561,14 +2561,11 @@
         $("recViewClose").onclick = function () { $("recView").style.display = "none"; };
         $("recView3d").disabled = rc.lat.length < 2;
         $("recView3d").onclick = function () { fly3d(rec); };
-        var pub = pubOf(rec);
-        $("recViewPubOff").hidden = !pub;
-        $("recViewPubOff").onclick = function () { pubOff(rec); };
     }
 
     // ------------------------------------------------------------------ 🛩 3D 비행 영상(2026-11-22 홍TV님 - 유튜버들이 앱 화면 · 코스를 영상에 많이 씀)
     // 처음 · 끝 VID_TRIM_M 을 늘 잘라(집 · 주차한 곳) 씀. 영상에는 지도 출처 줄이 늘 들어감(app.js videoRecord), 위성은 쓰지 않음.
-    // 그림 · 고도 영상 · 공개 링크 만들기(🎬 영상용)는 뺌(2026-11-22 홍TV님 "나머지는 모두 삭제").
+    // 그림 · 고도 영상 · 공개 링크 만들기(🎬 영상용)는 뺌(2026-11-22 홍TV님 "나머지는 모두 삭제"), 공개 링크 끄기 단추도 뺌(홍TV님) - 이미 만든 링크는 1년 뒤 서버가 저절로 지움.
     var VID_TRIM_M = 300;
     /** 영상용 기록 - 튐을 거르고 처음 · 끝을 자르고, 남은 구간 때의 사진만. 너무 짧으면 null. */
     function vidCourse(rec) {
@@ -2596,31 +2593,6 @@
                 .then(function () { location.href = "index.html?video=1&rec=1&secs=" + secs + (EN ? "&lang=en" : "") + "#c=" + encodeURIComponent(id); });
         } catch (e) { hAlert(T("영상을 준비하지 못했습니다: ", "Could not prepare the video: ") + (e && e.message || e)); }
     }
-    /**
-     * 🔗 예전에 만든 공개 기록 링크 끄기(만들기는 2026-11-22 뺌) - 지우는 열쇠는 이 기기(rf-pub)에만, 서버(api/record-share/delete)에서 바로 지움. 그대로 두면 1년 뒤 저절로.
-     */
-    var PUB_KEY = "rf-pub";
-    function pubAll() { try { return JSON.parse(localStorage.getItem(PUB_KEY) || "{}") || {}; } catch (e) { return {}; } }
-    function pubOf(rec) { return pubAll()[recKey(rec)] || null; }
-    function pubSave(rec, v) { var all = pubAll(); if (v) all[recKey(rec)] = v; else delete all[recKey(rec)]; try { localStorage.setItem(PUB_KEY, JSON.stringify(all)); } catch (e) { /* 이번만 */ } }
-    function pubOff(rec) {
-        var cur = pubOf(rec);
-        if (!cur) return;
-        hAsk(T("공개 링크를 끌까요? 서버에서 바로 지워지고, 보낸 링크는 열리지 않습니다.", "Turn off the public link? It is deleted from the server right away and the link stops working."), { ok: T("공개 끄기", "Turn off"), danger: true }).then(function (ok) {
-            if (!ok) return;
-            return pubPost("api/record-share/delete", { id: cur.id, key: cur.key }).then(function () {
-                pubSave(rec, null);
-                $("recViewPubOff").hidden = true;
-                toast(T("공개 링크를 껐습니다.", "Public link turned off."), 3000);
-            });
-        }).catch(function (e) { hAlert(e && e.message || String(e)); });
-    }
-    function pubPost(url, body) {
-        return fetch(url, { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify(body) })
-            .then(function (r) { return r.json().catch(function () { return { success: false, message: "HTTP " + r.status }; }); })
-            .then(function (j) { if (!j || j.success === false) throw new Error(j && j.message || "?"); return j; });
-    }
-
     /** 3D 화면이 만든 영상(rf-video "last")을 보내기 · 저장 - 한 번 보내면 지움. */
     function vidReady() {
         if (!window.indexedDB) return;

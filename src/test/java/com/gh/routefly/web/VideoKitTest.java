@@ -56,7 +56,7 @@ public class VideoKitTest {
         assertTrue("기록 창은 [🛩 3D 비행 영상] [📂 GPX 열기] [닫기], 🎬 영상용(그림 · 고도 영상 · 공개 링크 만들기)은 뺌(2026-11-22 홍TV님 \"나머지는 모두 삭제\")",
             html.contains("<button type=\"button\" id=\"recView3d\" data-en=\"🛩 3D flight video\">🛩 3D 비행 영상</button>\n            <button type=\"button\" id=\"recViewMap\" data-en=\"📂 Open GPX\">📂 GPX 열기</button>")
             && !html.contains("vidSheet") && !html.contains("recViewVideo") && !js.contains("vidRouteImage") && !js.contains("recordCanvas") && !js.contains("pubSend"));
-        assertTrue("예전 공개 링크가 있는 기록만 끄는 단추", js.contains("$(\"recViewPubOff\").hidden = !pub;") && js.contains("pubPost(\"api/record-share/delete\", { id: cur.id, key: cur.key })"));
+        assertFalse("공개 링크 끄기 단추도 뺌(2026-11-22 홍TV님)", html.contains("recViewPubOff") || js.contains("api/record-share"));
         assertTrue("3D 영상은 처음 · 끝 300m 늘 빼고, 산행 중에는 안 넘어감", js.contains("var tr = RF.trimEnds(RF.cleanTrack(rec.track, rec.kind === \"bike\"), VID_TRIM_M);") && js.contains("var VID_TRIM_M = 300;")
             && js.contains("if (hike.running) { toast(T(\"산행 중에는 3D 영상을 만들지 않습니다."));
         assertTrue("만든 3D 영상은 이 폰에 저장 - 앱은 갤러리(영상 Movies/routefly), 브라우저는 내려받기, 옛 앱은 공유 창",
