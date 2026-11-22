@@ -280,10 +280,23 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
     eq("요약 - 옛 것(3000)을 새 것(5800)으로", RF.mergeLog([{ start: 1, courseId: "a", walked: 3000 }], [{ start: 1, courseId: "a", walked: 5800 }])[0].walked, 5800);
     eq("결산 - 직접 지운 산행만 뺌", RF.dropLog([{ start: 1, courseId: "a" }, { start: 2, courseId: "a" }, { start: 1, courseId: "b" }], { start: 1, courseId: "a" }).map(function (e) { return e.start + e.courseId; }).join(), "2a,1b");
     eq("트립 - 들머리", RF.tripLink("https://kr.trip.com/?Allianceid=1&SID=2&trip_sub1=routefly&curr=KRW&locale=ko-KR", 35.3070131, 127.6136087, "지리산 중산리"),
-        "https://kr.trip.com/hotels/list?cityId=0&searchType=LM&searchWord=%EC%A7%80%EB%A6%AC%EC%82%B0%20%EC%A4%91%EC%82%B0%EB%A6%AC&searchValue=13%7C0*13*35.307013%7C127.613609%7C%EC%A7%80%EB%A6%AC%EC%82%B0%20%EC%A4%91%EC%82%B0%EB%A6%AC%7C0%7C1&Allianceid=1&SID=2&trip_sub1=routefly&curr=KRW&locale=ko-KR");
+        "https://kr.trip.com/hotels/list?cityId=7730&searchType=LM&searchWord=%EC%A7%80%EB%A6%AC%EC%82%B0%20%EC%A4%91%EC%82%B0%EB%A6%AC&searchValue=13%7C0*13*35.307013%7C127.613609%7C%EC%A7%80%EB%A6%AC%EC%82%B0%20%EC%A4%91%EC%82%B0%EB%A6%AC%7C0%7C1&Allianceid=1&SID=2&trip_sub1=routefly&curr=KRW&locale=ko-KR");
     eq("트립 - 옛 검색 칸은 버림 · ? 앞 / 없어도", RF.tripLink("https://kr.trip.com?Allianceid=1&city=88097&checkIn=2026-10-28&lat=1&listFilters=x", 38.17, 128.49, "설악산|소공원").indexOf("city=88097") < 0 && RF.tripLink("https://kr.trip.com?listFilters=x", 1, 2, "a").indexOf("listFilters=x") < 0 && RF.tripLink("https://kr.trip.com?Allianceid=1", 38.17, 128.49, "a").indexOf("Allianceid=1") > 0, true);
     eq("트립 - 이름의 | 는 빈칸", RF.tripLink("https://kr.trip.com/?a=1", 38.17, 128.49, "설악산|소공원").indexOf("%7C%EC%84%A4%EC%95%85%EC%82%B0%20%EC%86%8C%EA%B3%B5%EC%9B%90%7C") > 0, true);
-    eq("트립 - 도시 번호: 영종도 덕기봉은 인천 410(cityId=0 은 0곳, 2026-11-22 PC) · 표에 없는 곳은 0 그대로", [RF.tripCityId(37.481203, 126.555306), RF.tripCityId(35.3070131, 127.6136087), RF.tripLink("https://kr.trip.com/?a=1", 37.481203, 126.555306, "인천 영종구").indexOf("/hotels/list?cityId=410&searchType=LM&") > 0], [410, 0, true]);
+    eq("트립 - 도시 번호: 가장 가까운 도시(덕기봉 → 인천 410 · 가야산 → 합천 · 성주 쪽 · 인제 → 인제군 72359) · 좌표 이상하면 0", [RF.tripCityId(37.481203, 126.555306), [77790, 79257].indexOf(RF.tripCityId(35.800936, 128.097542)) >= 0, RF.tripCityId(38.0694675, 128.1706991), RF.tripCityId(NaN, 1), RF.tripLink("https://kr.trip.com/?a=1", 37.481203, 126.555306, "인천 영종구").indexOf("/hotels/list?cityId=410&searchType=LM&") > 0], [410, true, 72359, 0, true]);
+    (function () {   // 표는 PC 가 받은 트립닷컴 검색창 응답 원문 그대로(지어내지 않음)
+        var dir = require("path").join(__dirname, "../resources/trip"), seen = {};
+        require("fs").readdirSync(dir).filter(function (f) { return /^keywords-.+\.json$/.test(f); }).forEach(function (f) {
+            JSON.parse(require("fs").readFileSync(require("path").join(dir, f), "utf8").replace(/^\uFEFF/, "")).data.mainKeywordList.keywords.forEach(function (k) {
+                var c = k.keyword.keywordContentInfo, sub = (c.displayTexts.filter(function (x) { return x.key === "SUB_TITLE"; })[0] || {}).value || "";
+                if (c.tripType !== "CT" || sub.indexOf("대한민국") !== 0) return;
+                var n = c.coordinateItemList.filter(function (x) { return x.coordinateType === "NORMAL"; })[0];
+                seen[c.keywordId] = [c.keywordId, c.keyword, +n.latitude, +n.longitude];
+            });
+        });
+        eq("트립 - 도시 표 = 응답 원문의 대한민국 도시", RF.TRIP_CITIES.map(function (c) { return JSON.stringify(c) === JSON.stringify(seen[c[0]]); }).indexOf(false), -1);
+        eq("트립 - 응답의 대한민국 도시는 모두 표에", Object.keys(seen).length, RF.TRIP_CITIES.length);
+    })();
     eq("트립 - trip.com 이 아니면 null", [RF.tripLink("https://www.agoda.com/x", 1, 2, "a"), RF.tripLink("https://kr.trip.com.evil.kr/x", 1, 2, "a"), RF.tripLink("https://kr.trip.com/", NaN, 2, "a")], [null, null, null]);
     eq("공원 - 다른 산", RF.parkOf("지리봉 1코스"), null);
     eq("공원 - 한려해상", RF.parkOf("한려해상 · 금산 → 쌍홍문"), "한려해상");
