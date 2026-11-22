@@ -1798,7 +1798,27 @@
             shareBlob(blob, name, text, url);
         }, "image/png");
     }
-    /** 파일(그림 · 영상)을 공유 창으로 - 앱은 공유 창, 브라우저는 navigator.share, 안 되면 내려받기(2026-11-22 영상용 그림 · 영상도). */
+    /**
+     * 🎬 영상용 그림 · 영상은 공유 창 대신 이 폰에 저장(2026-11-22 홍TV님 "경로 ~ 고도 영상까지 전부 카톡 연결이던데"):
+     * 앱은 갤러리(그림 Pictures/routefly · 영상 Movies/routefly - RfGallery.saveMedia), 브라우저는 내려받기(다운로드 폴더).
+     * 옛 앱(saveMedia 없음 · 안드로이드 9 이하)은 전처럼 공유 창.
+     */
+    function saveMedia(blob, name, text) {
+        var down = function () {
+            var a = document.createElement("a");
+            a.href = URL.createObjectURL(blob); a.download = name;
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(function () { URL.revokeObjectURL(a.href); }, 10000);
+            toast(T("💾 저장했습니다(다운로드 폴더): ", "💾 Saved (Downloads): ") + name, 5000);
+        };
+        if (!NATIVE) { down(); return; }
+        if (!GALLERY) { shareBlob(blob, name, text); return; }
+        blobToBase64(blob).then(function (b64) { return GALLERY.saveMedia({ data: b64, name: name }); }).then(function () {
+            toast(T("💾 갤러리 routefly 앨범에 저장했습니다.", "💾 Saved to the gallery (routefly album)."), 5000);
+        }).catch(function () { shareBlob(blob, name, text); });   // 옛 앱 - 공유 창으로
+    }
+
+    /** 파일(그림 · 영상)을 공유 창으로 - 앱은 공유 창, 브라우저는 navigator.share, 안 되면 내려받기(카드 · 옛 앱의 영상용). */
     function shareBlob(blob, name, text, url) {
             if (FS && SHARE) {
                 blobToBase64(blob).then(function (b64) { return nativeShareFile(name, b64, url ? text + "\n" + url : text); })
@@ -2637,19 +2657,26 @@
         vidBrand(g, W, H);
         return cv;
     }
+    /** 영상용 그림(투명 PNG)을 이 폰에 저장. */
+    function vidSaveCanvas(cv, name) {
+        cv.toBlob(function (blob) {
+            if (!blob) { toast(T("그림을 만들지 못했습니다.", "Could not make the image."), 3000); return; }
+            saveMedia(blob, name, NM(vidRec.name) + " - routefly");
+        }, "image/png");
+    }
     function vidName(rec, what, ext) { return "routefly-" + stamp(rec.start) + "-" + what + "-" + ($("vidShape").value === "wide" ? "16x9" : "9x16") + "." + ext; }
     $("vidRoute").addEventListener("click", function () {
         var rc = vidRec && vidCourse(vidRec), z = vidSize();
-        if (rc) shareCanvas(vidRouteImage(rc, z[0], z[1]), vidName(vidRec, "route", "png"), NM(vidRec.name) + " - routefly");
+        if (rc) vidSaveCanvas(vidRouteImage(rc, z[0], z[1]), vidName(vidRec, "route", "png"));
     });
     $("vidProfile").addEventListener("click", function () {
         var rc = vidRec && vidCourse(vidRec), z = vidSize(), cv = rc && vidProfile(rc, z[0], z[1]);
         if (rc && !cv) { hAlert(T("이 기록에는 높이 자료가 없습니다.", "This record has no elevation data.")); return; }
-        if (cv) shareCanvas(cv, vidName(vidRec, "elevation", "png"), NM(vidRec.name) + " - routefly");
+        if (cv) vidSaveCanvas(cv, vidName(vidRec, "elevation", "png"));
     });
     $("vidSum").addEventListener("click", function () {
         var z = vidSize();
-        if (vidRec) shareCanvas(vidSummary(vidRec, z[0], z[1]), vidName(vidRec, "summary", "png"), NM(vidRec.name) + " - routefly");
+        if (vidRec) vidSaveCanvas(vidSummary(vidRec, z[0], z[1]), vidName(vidRec, "summary", "png"));
     });
     /** 캔버스를 durMs 동안 그리며 영상 파일로(MediaRecorder) - mp4 가 되면 mp4, 아니면 webm. */
     function recordCanvas(cv, durMs, draw) {
@@ -2678,8 +2705,8 @@
         toast(T("🎞 고도 영상을 만드는 중(" + VID_SECS + "초) - 화면을 켜 둔 채 기다려 주세요.", "🎞 Making the elevation video (" + VID_SECS + " s) - keep the screen on."), VID_SECS * 1000);
         recordCanvas(cv, VID_SECS * 1000, function (k) { vidProfile(rc, z[0], z[1], k, VID_GREEN, cv); }).then(function (blob) {
             var ext = blob.type === "video/mp4" ? "mp4" : "webm";
-            return hAlert(T("영상이 준비됐습니다. 초록 바탕은 편집 앱의 크로마키로 지우세요.", "The video is ready. Remove the green background with your editor's chroma key."), { ok: T("보내기 · 저장", "Send · save") })
-                .then(function () { shareBlob(blob, vidName(vidRec, "elevation", ext), NM(vidRec.name) + " - routefly"); });
+            return hAlert(T("영상이 준비됐습니다. 초록 바탕은 편집 앱의 크로마키로 지우세요.", "The video is ready. Remove the green background with your editor's chroma key."), { ok: T("💾 저장", "💾 Save") })
+                .then(function () { saveMedia(blob, vidName(vidRec, "elevation", ext), NM(vidRec.name) + " - routefly"); });
         }).catch(function (e) { hAlert(e && e.message || String(e)); }).then(function () { btn.disabled = false; });
     });
     var VID_GREEN = "#00b140";   // 크로마키 초록(방송용 표준에 가까운 값 - 편집 앱이 지움)
@@ -2762,8 +2789,8 @@
             q.onsuccess = function () {
                 var v = q.result;
                 if (!v || !v.blob) { db.close(); return; }
-                hAlert(T("🛩 3D 비행 영상이 준비됐습니다.", "🛩 The 3D flight video is ready."), { ok: T("보내기 · 저장", "Send · save") }).then(function () {
-                    shareBlob(v.blob, v.name, (v.title ? v.title + " - " : "") + "routefly");
+                hAlert(T("🛩 3D 비행 영상이 준비됐습니다.", "🛩 The 3D flight video is ready."), { ok: T("💾 저장", "💾 Save") }).then(function () {
+                    saveMedia(v.blob, v.name, (v.title ? v.title + " - " : "") + "routefly");
                     try { db.transaction("v", "readwrite").objectStore("v").delete("last"); } catch (e) { /* 다음에 덮어씀 */ }
                 });
             };

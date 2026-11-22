@@ -54,6 +54,61 @@ public class RfGalleryPlugin extends Plugin {
         }).start();
     }
 
+    private static final int MAX_MEDIA_B64 = 160_000_000;   // 영상 120MB 남짓까지
+
+    /**
+     * 🎬 영상용 그림 · 영상을 갤러리에(2026-11-22 홍TV님 "전부 카톡 연결이던데" - 공유 창 대신 저장).
+     * saveMedia({data: base64, name: "routefly-….png|jpg|webm|mp4"}) - 그림은 Pictures/routefly, 영상은 Movies/routefly. 이름 끝으로 종류를 정함.
+     */
+    @PluginMethod
+    public void saveMedia(PluginCall call) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) { call.reject("android 10+ only", "old"); return; }
+        String data = call.getString("data"), n = call.getString("name");
+        if (data == null || data.isEmpty() || data.length() > MAX_MEDIA_B64) { call.reject("bad data", "fail"); return; }
+        if (n == null || !n.matches("[A-Za-z0-9_.-]{1,100}\\.(png|jpg|webm|mp4)")) { call.reject("bad name", "fail"); return; }
+        final String name = n, ext = n.substring(n.lastIndexOf('.') + 1);
+        final boolean video = ext.equals("webm") || ext.equals("mp4");
+        final String mime = video ? "video/" + ext : ext.equals("png") ? "image/png" : "image/jpeg";
+        final byte[] bytes;
+        try {
+            bytes = Base64.decode(data, Base64.DEFAULT);
+        } catch (IllegalArgumentException e) {
+            call.reject("bad data", "fail");
+            return;
+        }
+        final ContentResolver cr = getContext().getContentResolver();
+        new Thread(() -> {
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) insertMedia(cr, bytes, name, mime, video);
+                call.resolve();
+            } catch (IOException | RuntimeException e) {
+                call.reject("save failed", "fail");
+            }
+        }).start();
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.Q)
+    private static void insertMedia(ContentResolver cr, byte[] bytes, String name, String mime, boolean video) throws IOException {
+        ContentValues v = new ContentValues();
+        v.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
+        v.put(MediaStore.MediaColumns.MIME_TYPE, mime);
+        v.put(MediaStore.MediaColumns.RELATIVE_PATH, (video ? Environment.DIRECTORY_MOVIES : Environment.DIRECTORY_PICTURES) + "/routefly");
+        v.put(MediaStore.MediaColumns.IS_PENDING, 1);
+        Uri u = cr.insert(video ? MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+                                : MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY), v);
+        if (u == null) throw new IOException("insert failed");
+        try (OutputStream o = cr.openOutputStream(u)) {
+            if (o == null) throw new IOException("open failed");
+            o.write(bytes);
+        } catch (IOException | RuntimeException e) {
+            cr.delete(u, null, null);
+            throw e;
+        }
+        v.clear();
+        v.put(MediaStore.MediaColumns.IS_PENDING, 0);
+        cr.update(u, v, null, null);
+    }
+
     /** MediaStore 에 넣기 - 다 쓸 때까지 IS_PENDING 으로 숨기고, 실패하면 만든 줄을 지움. */
     @RequiresApi(api = Build.VERSION_CODES.Q)
     private static void insert(ContentResolver cr, byte[] jpeg, String name) throws IOException {

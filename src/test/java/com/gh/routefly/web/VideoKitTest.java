@@ -52,6 +52,13 @@ public class VideoKitTest {
     @Test
     public void 영상용_그림과_영상() throws Exception {
         String js = read("src/main/webapp/js/hike.js"), app = read("src/main/webapp/js/app.js"), html = read("src/main/webapp/hike.html");
+        String plug = read("app/android/app/src/main/java/kr/routefly/app/RfGalleryPlugin.java");
+        assertTrue("영상용 그림 · 영상은 공유 창 대신 이 폰에 저장 - 앱은 갤러리(그림 Pictures · 영상 Movies /routefly), 브라우저는 내려받기, 옛 앱은 공유 창(2026-11-22 홍TV님 \"전부 카톡 연결\")",
+            js.contains("return GALLERY.saveMedia({ data: b64, name: name });") && js.contains("}).catch(function () { shareBlob(blob, name, text); });")
+            && js.contains("if (!NATIVE) { down(); return; }") && js.contains("vidSaveCanvas(vidRouteImage(rc, z[0], z[1]), vidName(vidRec, \"route\", \"png\"));")
+            && js.contains("saveMedia(blob, vidName(vidRec, \"elevation\", ext)") && js.contains("saveMedia(v.blob, v.name,")
+            && plug.contains("public void saveMedia(PluginCall call)") && plug.contains("(video ? Environment.DIRECTORY_MOVIES : Environment.DIRECTORY_PICTURES) + \"/routefly\""));
+        assertTrue("기록 창 단추는 📂 GPX 열기(trip.html)", read("src/main/webapp/hike.html").contains("<button type=\"button\" id=\"recViewMap\" data-en=\"📂 Open GPX\">📂 GPX 열기</button>"));
         for (String id : new String[] {"vidRoute", "vidProfile", "vidSum", "vidProfileMov", "vid3d", "vidPub", "vidTrim", "vidShape"}) assertTrue(id, html.contains("id=\"" + id + "\""));
         assertTrue("처음 · 끝 300m 빼기가 기본", html.contains("<input type=\"checkbox\" id=\"vidTrim\" checked>") && js.contains("var VID_TRIM_M = 300"));
         assertTrue("고도 영상은 초록 바탕", js.contains("var cv = vidProfile(rc, z[0], z[1], 0, VID_GREEN);"));
