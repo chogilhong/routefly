@@ -59,8 +59,54 @@ V-World 화면은 영상 · 다시 배포에 조건이 있어(약관 제13 · 19
 2. PC 설정 파일에 `map.basemap.url=tiles/korea.pmtiles` (홍TV님이 넣음 - 설정 파일은 Claude 가 열지 않음)
 3. http://localhost:8080/routefly/trip.html 에서 GPX 를 열어 보기
 
-### 운영 서버(홍TV님 결정 뒤)
-1. 서버 디스크 남은 양 확인(df -h /) - 파일 약 362MB
-2. `/opt/routefly/tiles/korea.pmtiles` 로 올림(scp, 홍TV님)
-3. nginx 에 `location /routefly/tiles/ { alias /opt/routefly/tiles/; add_header Cache-Control "public, max-age=604800"; }` (정적 파일이라 Range 는 기본으로 됨)
-4. 운영 설정 `map.basemap.url=/routefly/tiles/korea.pmtiles` 후 톰캣 재시작
+### 운영 서버 (2026-11-22 - 서버 명령은 홍TV님)
+
+운영 설정에는 이미 `map.basemap.url=tiles/korea.pmtiles` 가 들어 있습니다. trip.html(/routefly/trip.html) 기준 상대 주소라 `/routefly/tiles/korea.pmtiles` 로 갑니다.
+파일이 없는 동안은 trip.js 가 머리를 못 읽고 V-World 바탕으로 그립니다(2a07db20). 파일을 올리면 톰캣 재시작 없이 저절로 우리 지도로 바뀝니다.
+디스크: / 77G 중 63G 남음(2026-11-22 PC) - 파일 361.5 MB(379,031,395 바이트).
+
+파일 자리는 `/var/www/routefly/tiles/` 입니다. `/opt/routefly` 는 설정 파일(config.properties) 자리라 nginx(www-data)가 읽도록 권한을 넓히지 않습니다.
+
+1. PC(PowerShell)에서 올리기
+
+```powershell
+scp -i <키.pem> target\basemap\korea.pmtiles ubuntu@routefly.kr:~
+```
+
+2. 서버에서 자리 잡기
+
+```bash
+sudo mkdir -p /var/www/routefly/tiles
+sudo install -o root -g root -m 644 ~/korea.pmtiles /var/www/routefly/tiles/korea.pmtiles && rm ~/korea.pmtiles
+ls -l /var/www/routefly/tiles/korea.pmtiles      # 379031395 바이트
+```
+
+3. nginx - `/etc/nginx/sites-available/routefly` 의 443 server 블록(certbot 이 만든 것) 안 `location / {` 바로 위에 넣기
+
+```nginx
+    # 바탕 지도 파일(2026-11-22) - 정적 파일이라 Range(206)는 nginx 가 기본으로 받음. gzip 하지 않음(octet-stream 은 gzip_types 밖)
+    location /routefly/tiles/ {
+        alias /var/www/routefly/tiles/;
+        add_header Cache-Control "public, max-age=86400" always;
+        # location 에 add_header 를 쓰면 server 쪽 add_header(HSTS)가 이어지지 않으니 여기 다시 적음
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        add_header X-Content-Type-Options nosniff always;
+    }
+```
+
+```bash
+sudo cp /etc/nginx/sites-available/routefly ~/nginx-site.bak-20261122
+sudo nano /etc/nginx/sites-available/routefly
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+4. 확인(서버나 PC 어디서든)
+
+```bash
+curl -s -o /dev/null -A routefly-check -r 0-16383 -w "%{http_code} %{size_download}\n" https://routefly.kr/routefly/tiles/korea.pmtiles   # 206 16384
+curl -sI -A routefly-check https://routefly.kr/routefly/tiles/korea.pmtiles | grep -iE "strict-transport|cache-control|accept-ranges"
+```
+
+그 뒤 내 기록 → 📂 GPX 열기에서 바탕이 우리 지도(숲 · 물 · 길 · ▲ 봉우리)로 바뀌고, 출처가 "© OpenMapTiles © OpenStreetMap contributors" 인지 봅니다.
+
+다시 만들어 올릴 때는 같은 이름으로 바꿔 넣습니다. 하루 캐시라 섞일 수 있는 조각은 pmtiles.js 가 ETag 로 알아채고 다시 받습니다.
