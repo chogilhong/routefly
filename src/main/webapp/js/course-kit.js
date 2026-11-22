@@ -2563,8 +2563,9 @@
      * 돌려줌 {rec: {name, kind, start, end, up, kcal, steps, courseId, track:[[위도, 경도, ms, 높이]], notes:[{t, lat, lon, ele, text, photo}]}, photos: {열쇠: base64}}.
      * 사진 열쇠는 사진 글의 지문으로 새로 만듦(같은 파일을 두 번 넣어도 같은 열쇠).
      * any - 기록 보기(trip.html)처럼 시각 없는 코스 GPX 도 받음(2026-11-22 홍TV님 "왜 안 열리지?"): 점 시각 null, 경로(rtept)도, 이름만 있는 지점은 그 이름을 메모로.
+     * file - 파일 이름. GPX 안에 이름이 없으면(트랭글 등 - metadata · trk 에 name 없음) 이것에서 .gpx 를 뗀 것을 이름으로(2026-11-22 PC: 제목이 "GPX" 로만 보였음).
      */
-    function gpxRecord(text, any) {
+    function gpxRecord(text, any, file) {
         text = String(text || "");
         var un = function (x) { return String(x).replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, "\"").replace(/&#39;/g, "'").replace(/&amp;/g, "&"); };
         var tag = function (body, t) { var m = new RegExp("<" + t + "(?:\\s[^>]*)?>([\\s\\S]*?)</" + t + ">").exec(body); return m ? m[1].trim() : null; };
@@ -2581,7 +2582,7 @@
         if (timed.length === track.length) track.sort(function (a, b) { return a[2] - b[2]; });   // 시각이 다 있을 때만 차례를 시각으로(코스 파일은 그대로)
         var meta = tag(text, "metadata") || "", sumText = tag(meta, "rf:record"), sum = {};
         try { sum = sumText ? JSON.parse(un(sumText)) || {} : {}; } catch (e) { sum = {}; }
-        var name = un(tag(meta, "name") || tag(tag(text, "trk") || "", "name") || "GPX");
+        var name = un(tag(meta, "name") || tag(tag(text, "trk") || "", "name") || "") || String(file || "").replace(/\.gpx$/i, "").trim() || "GPX";
         var notes = [], photos = {}, wr = /<wpt\b([^>]*?)(?:\/>|>([\s\S]*?)<\/wpt>)/g;
         while ((m = wr.exec(text))) {
             var la = attr(m[1], "lat"), lo = attr(m[1], "lon"), b = m[2] || "";

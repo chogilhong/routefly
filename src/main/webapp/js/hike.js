@@ -1002,7 +1002,7 @@
     function openGpxText(text, name) {
         // 걸은 기록 GPX(시각이 든 점 - 시계 · 폰 앱 · routefly 💾 GPX 파일 저장)면 먼저 물음: 📒 내 기록에 넣어 지도 위 사진 · 고도 · 속도 그래프로 볼지(2026-11-22 홍TV님 - 램블러 화면처럼)
         var got = null;
-        try { got = RF.gpxRecord(text); } catch (e) { got = null; }
+        try { got = RF.gpxRecord(text, false, name); } catch (e) { got = null; }
         if (got) {
             var np = Object.keys(got.photos).length, nm = got.rec.notes.length;
             hAsk(T("걸은 기록이 든 GPX 입니다" + (nm ? "(사진 " + np + "장 · 메모 " + (nm - np) + "개)" : "") + ".\n📒 내 기록에 넣어 지도 · 사진 · 고도 그래프로 볼까요?\n\"따라가기로\" 는 이 길을 코스처럼 따라 걷습니다.",
@@ -3410,6 +3410,7 @@
         } else finishRecord(true);
         hikeFlag(false);
         setTimeout(window.rfGpxInbox, 1500);   // 걷는 중 앱이 받아 둔 GPX 가 있으면 이제 엶(rfGpxInbox 는 기록 중엔 그대로 둠)
+        if (wasSim) simAttr(false);
         if (wasSim) hike.fix = null;   // 시험 걷기 위치는 버림 - SOS · 산악회 방이 가짜 위치(앞당긴 시계라 "방금")를 쓰던 것(2026-11-02 홍TV님 점검)
         hike.sim = false;
         compassOff();   // 2026-10-10 점검: 다 걸은 뒤에도 센서를 계속 받던 것
@@ -3877,7 +3878,28 @@
     }
 
     /** 모의 산행 - 코스를 따라 걷는 위치를 만들어 onFix 에 넣습니다(약간 흔들리게). */
+    /**
+     * 시험 걷기 중에는 지도 출처를 아래에 한 줄로 늘 보임(2026-11-22 홍TV님 - 사용자가 화면을 녹화해 영상으로 올려도 출처가 남게).
+     * 글은 출처 단추(ⓘ)의 글 그대로 - 지금 켜진 바탕(위성 · 밝은 지도)만 들어 있음. on=false 면 숨김.
+     */
+    function simAttr(on) {
+        if (!map) return;
+        var box = map.getContainer(), el = box.querySelector(".sim-attr");
+        if (!on) { if (el) el.hidden = true; return; }
+        if (!el) {
+            var corner = box.querySelector(".maplibregl-ctrl-bottom-right");
+            if (!corner) return;
+            el = document.createElement("div");
+            el.className = "maplibregl-ctrl sim-attr";
+            corner.appendChild(el);
+        }
+        var inner = box.querySelector(".maplibregl-ctrl-attrib-inner");
+        var t = inner ? inner.textContent.replace(/\s+/g, " ").trim() : "";
+        if (el.textContent !== t) el.textContent = t;
+        el.hidden = !t;
+    }
     function simStep() {
+        simAttr(true);   // 바탕을 바꾸면 글도 따라 바뀜
         var nowP = performance.now(), dtReal = nowP - hike.simLast;
         hike.simLast = nowP;
         hike.simClock += dtReal * SIM_CLOCK;

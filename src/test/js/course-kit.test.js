@@ -1140,6 +1140,10 @@ tick().then(function () {
         var cg = '<gpx><wpt lat="37.05" lon="127"><name>갈림길</name></wpt><trk><name>코스</name><trkseg><trkpt lat="37" lon="127"><ele>100</ele></trkpt><trkpt lat="37.1" lon="127"><ele>300</ele></trkpt></trkseg></trk></gpx>';
         var any = RF.gpxRecord(cg, true);
         eq("기록 보기는 시각 없는 코스 GPX 도(2026-11-22 홍TV님 \"왜 안 열리지?\") - 점 · 지점 이름", [any.rec.track, any.rec.start, any.rec.notes.map(function (n) { return n.text; })], [[[37, 127, null, 100], [37.1, 127, null, 300]], null, ["갈림길"]]);
+        var noName = '<gpx><trk><trkseg><trkpt lat="37" lon="127"></trkpt><trkpt lat="37.1" lon="127"></trkpt></trkseg></trk></gpx>';
+        eq("GPX 안에 이름이 없으면 파일 이름(.gpx 뗌) - 트랭글(2026-11-22 PC) · 안에 있으면 그것 · 둘 다 없으면 GPX",
+            [RF.gpxRecord(noName, true, "성중종주_20240515_024407.GPX").rec.name, any.rec.name, RF.gpxRecord(cg, true, "x.gpx").rec.name, RF.gpxRecord(noName, true).rec.name],
+            ["성중종주_20240515_024407", "코스", "코스", "GPX"]);
         eq("경로(rte)만 있는 GPX 도", RF.gpxRecord('<gpx><rte><rtept lat="37" lon="127"/><rtept lat="37.2" lon="127"/></rte></gpx>', true).rec.track.length, 2);
         eq("같은 사진은 같은 열쇠 · 시각 없는 코스 GPX 는 기록이 아님", [RF.gpxRecord(gx).rec.notes[0].photo === back.rec.notes[0].photo, RF.gpxRecord('<gpx><trk><trkseg><trkpt lat="37" lon="127"></trkpt><trkpt lat="37.1" lon="127"></trkpt></trkseg></trk></gpx>')], [true, null]);
         eq("짧으면 남는 것 없음 · 0m 면 그대로", [RF.trimEnds(line, 600).length, RF.trimEnds(line, 0).length], [0, 11]);

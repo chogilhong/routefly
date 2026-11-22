@@ -97,14 +97,14 @@ public class VideoKitTest {
         assertFalse("🎁 routefly 기록으로 없음", js.contains("🎁 routefly 기록으로") || js.contains("function shareRecord("));
         assertTrue("📮 코스 등록 - 이름이 올라간다는 안내", js.contains("📮 routefly 에 보내 코스 등록하기") && js.contains("\\\"만든 이: (적은 이름)\\\" 으로 내 이름이 함께 보입니다"));
         assertTrue("💾 사진 · 메모까지 든 GPX", js.contains("💾 GPX 파일 저장") && js.contains("saveGpxText(rec, RF.recordGpx(rec, ph));"));
-        assertTrue("받은 GPX 기록은 내 기록으로", js.contains("try { got = RF.gpxRecord(text); } catch (e) { got = null; }") && js.contains("if (ok) importGpxRecord(got); else openGpxCourse(text, name);"));
+        assertTrue("받은 GPX 기록은 내 기록으로", js.contains("try { got = RF.gpxRecord(text, false, name); } catch (e) { got = null; }") && js.contains("if (ok) importGpxRecord(got); else openGpxCourse(text, name);"));
     }
 
     /** 기록 보기 trip.html(2026-11-22 홍TV님 "램블러 화면 같은 것") - GPX · 내 기록을 지도 · 사진 카드 · 그래프로, 표시 ↔ 카드 서로 따라감, 🔍 사진만 크게. */
     @Test
     public void 기록_보기_화면() throws Exception {
         String js = read("src/main/webapp/js/trip.js"), html = read("src/main/webapp/trip.html"), hike = read("src/main/webapp/js/hike.js");
-        assertTrue("GPX 는 이 기기 안에서 읽음 · 시각 없는 코스 GPX 도(홍TV님 \"왜 안 열리지?\")", js.contains("var got = RF.gpxRecord(text, true);") && !js.contains("fetch(\"api/record") && html.contains("<meta name=\"robots\" content=\"noindex, nofollow\">"));
+        assertTrue("GPX 는 이 기기 안에서 읽음 · 시각 없는 코스 GPX 도(홍TV님 \"왜 안 열리지?\")", js.contains("var got = RF.gpxRecord(text, true, f.name);") && !js.contains("fetch(\"api/record") && html.contains("<meta name=\"robots\" content=\"noindex, nofollow\">"));
         assertTrue("표시를 누르면 카드 · 카드를 누르면 지도", js.contains("select(i, false, true); });") && js.contains("card.onclick = function () { select(i, true, false); };"));
         assertTrue("🔍 사진만 크게 · ‹ › 넘김", js.contains("z.onclick = function (e) { e.stopPropagation(); big(i); };") && html.contains("id=\"bigPrev\"") && html.contains("id=\"bigNext\""));
         assertTrue("고도 · 속도 그래프", js.contains("prof = RF.profile($(\"prof\"), rc, { speed: RF.speedProfile(rc), labels: false });"));
@@ -158,6 +158,18 @@ public class VideoKitTest {
             try (var st = Files.list(dir)) { st.forEach(x -> x.toFile().delete()); }
             Files.deleteIfExists(dir);
         }
+    }
+
+    /** 시험 걷기 중 출처 한 줄(2026-11-22 홍TV님 - 녹화한 영상에도 출처가 남게): 걷는 동안 늘 보이고 끝내면 숨김. */
+    @Test
+    public void simWalkShowsAttribution() throws Exception {
+        String js = read("src/main/webapp/js/hike.js"), html = read("src/main/webapp/hike.html");
+        int step = js.indexOf("function simStep() {");
+        assertTrue("시험 걷기 한 걸음마다 출처 줄을 보임", step > 0 && js.indexOf("simAttr(true);", step) - step < 60 && js.indexOf("simAttr(true);", step) > step);
+        assertTrue("끝내면 숨김", js.contains("if (wasSim) simAttr(false);"));
+        assertTrue("글은 출처 단추 글 그대로(켜진 바탕만)", js.contains("box.querySelector(\".maplibregl-ctrl-attrib-inner\")"));
+        assertTrue("지도 아래 오른쪽 칸에", js.contains("box.querySelector(\".maplibregl-ctrl-bottom-right\")"));
+        assertTrue("눌러도 지도를 막지 않는 모양", html.contains(".sim-attr { font-size:10px;") && html.contains("pointer-events:none; }") && html.contains(".sim-attr[hidden] { display:none; }"));
     }
 
     private static Map<String, Object> call(RecordShareServlet s, String method, String path, String id, String body, String ip) throws Exception {
