@@ -749,6 +749,26 @@
     $("delBtn").onclick = function () { if (cur()) removeAt(sel); };
 
     // ---- 지도에 새 길 그리기(3단계) - 찍은 점 사이를 OpenStreetMap 걷는 길로(이 브라우저가 Overpass 에 직접 물음 - 서버 주소가 막혀도 됨)
+    /**
+     * 우리 서버의 OSM 걷는 길(/api/walk-ways - routefly-batch 가 내 준 칸 파일, 2026-11-22 홍TV님 "방법 1 로 해"). 공용 Overpass 보다 먼저 -
+     * 송산처럼 준비된 코스가 없는 산도 몇 초 안에 길을 따라 이음. 자료가 없으면(404 · 실패) 예전처럼 공용 Overpass(아래).
+     * 둘레는 overpass() 와 같게(0.002° 칸), 서버 한도(0.06°)를 넘으면 바로 Overpass 로.
+     */
+    var localCache = {};
+    function localWays(a, b, sig) {
+        var pad = 0.004, r = function (v, up) { return (up ? Math.ceil(v / 0.002) : Math.floor(v / 0.002)) * 0.002; };
+        var bb = [r(Math.min(a[1], b[1]) - pad * 1.25), r(Math.min(a[0], b[0]) - pad), r(Math.max(a[1], b[1]) + pad * 1.25, 1), r(Math.max(a[0], b[0]) + pad, 1)];
+        if (bb[2] - bb[0] > 0.06 || bb[3] - bb[1] > 0.06) return Promise.reject(new Error("넓음"));
+        var key = bb.map(function (v) { return v.toFixed(3); }).join(",");
+        if (!localCache[key]) {
+            localCache[key] = fetch("api/walk-ways?bbox=" + key, { headers: { Accept: "application/json" }, signal: sig }).then(function (res) {
+                if (!res.ok) throw new Error("HTTP " + res.status);
+                return res.json();
+            }).then(function (j) { return (j && j.elements) || []; });
+            localCache[key].catch(function () { delete localCache[key]; });
+        }
+        return localCache[key];
+    }
     var OVERPASS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter", "https://overpass.private.coffee/api/interpreter"];
     var osmCache = {};
     function overpass(a, b, sig) {
@@ -783,7 +803,7 @@
         return trailCache[key];
     }
     /**
-     * 두 점 사이 길 - ① 우리 코스 선(빠르고 막히지 않음) ② OpenStreetMap(Overpass) ③ 곧은 선.
+     * 두 점 사이 길 - ① 우리 코스 선(빠르고 막히지 않음) ② 우리 서버 OSM 걷는 길(/api/walk-ways, 2026-11-22) - 없을 때만 공용 OpenStreetMap(Overpass) ③ 곧은 선.
      * 2026-10-31 PC: 공용 Overpass 가 PC 에서도 시간 초과 · 429 였음. 여러 점을 빨리 찍어도 한 구간씩 차례로 물음(segQ).
      * 2026-11-02 홍TV님: 수백 km 떨어진 곳을 찍으면 "길 찾는 중…" 에 멈추고 "다 그림" 이 안 눌렸음 -
      *   곧은 거리가 SNAP_MAX_M 넘으면 묻지 않고 곧은 선, 한 구간 SNAP_WAIT_MS 넘게 걸리면 멈추고 곧은 선, 기다리는 구간은 "다 그림" · 점 빼기 · 그만으로 멈춤(ph.ctl).
@@ -813,11 +833,16 @@
             tr = tr.filter(function (t) { return bike ? t.kind === "bike" : t.kind !== "bike"; });
             var r = tr.length ? RF.osmRoute(RF.trailsToElements(tr), a, b, 150) : { error: "x" };
             if (!r.error) return { pts: [a].concat(r.pts, [b]), via: "routefly" };
-            return overpass(a, b, sig).then(function (el) {
+            // 우리 서버 OSM 길 먼저 - 자료가 없을 때(404 · 실패)만 공용 Overpass. 자료는 있는데 길을 못 찾으면 같은 OSM 이라 바로 곧은 선
+            return localWays(a, b, sig).then(function (el) {
                 var o = RF.osmRoute(el, a, b, 200);
                 if (o.error) return { pts: [a, b], straight: true, note: "곧은 선으로 이었습니다: " + o.error };
                 return { pts: [a].concat(o.pts, [b]), via: "osm" };
-            }, function (e) { return { pts: [a, b], straight: true, note: "곧은 선으로 이었습니다: " + e.message }; });
+            }, function () { return overpass(a, b, sig).then(function (el) {
+                var o = RF.osmRoute(el, a, b, 200);
+                if (o.error) return { pts: [a, b], straight: true, note: "곧은 선으로 이었습니다: " + o.error };
+                return { pts: [a].concat(o.pts, [b]), via: "osm" };
+            }, function (e) { return { pts: [a, b], straight: true, note: "곧은 선으로 이었습니다: " + e.message }; }); });
         });
     }
     /** 아직 길을 찾는 구간 수. */

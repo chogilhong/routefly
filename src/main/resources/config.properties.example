@@ -197,3 +197,7 @@ course.submitDir=
 # 키와 지역(리소스를 만든 곳, 예: koreacentral)은 Azure 포털 "키 및 엔드포인트" 에서. 값은 운영 서버 · PC 설정에만(저장소 · 대화에 적지 않음). 비우면 화면이 "설정이 없습니다".
 #voice.azure.key=
 #voice.azure.region=
+
+# GPX 편집 "길 따라 잇기" 가 쓰는 우리 서버 OSM 걷는 길(2026-11-22, /api/walk-ways - WalkWaysServlet).
+# routefly-batch 의 osm.webDir 과 같은 경로(예: /app/routefly/batch/data/osm-web). 비우면 화면이 예전처럼 공용 Overpass 로 묻습니다.
+walk.dir=
