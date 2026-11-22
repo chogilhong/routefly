@@ -87,6 +87,8 @@ public class FoodServletTest {
         assertFalse("쿠팡 문구 · 근처 맛집 목록 없음", js.contains("RF.COUPANG_NOTE") || js.contains("nearFood"));
         assertFalse("쿠팡 · 다음 산 고르기 없음", kit.contains("afterHikeGear") || kit.contains("⛰️ 다음 산 고르기"));
         assertTrue("후원은 그대로", js.contains("$(\"doneDonate\").hidden = false;"));
+        assertTrue("🏨 트립닷컴도 동네를 받으면 시 · 군 · 구 검색으로 다시(2026-11-22 홍TV님 \"인천 영종구로 조회\")",
+            js.contains("r.links.forEach(function (x, i) { if (/^🏨/.test(x.text) && again[i] && nx.children[i]) nx.children[i].href = again[i].href; });"));
         assertTrue("방침", read("src/main/webapp/privacy.html").contains("TV 프로그램 이름(백반기행 등)으로 둘레 30km") && read("src/main/webapp/privacy-en.html").contains("within 30 km under TV show names"));
     }
 }

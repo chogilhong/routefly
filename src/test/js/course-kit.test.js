@@ -1036,6 +1036,9 @@ tick().then(function () {
     eq("다음은 - 맛집은 카카오맵 앱을 끝 지점 둘레 검색으로 먼저(송산 → 하늘도시가 안 나왔음) · 좌표 없으면 앱 없음",
         [ah.links[1].app, RF.afterHikeLinks({}, { name: "x", lat: 37.4801234, lon: 126.5609876 }, false).links[0].app],
         ["kakaomap://search?q=" + encodeURIComponent("맛집") + "&p=38.100000,128.500000", "kakaomap://search?q=" + encodeURIComponent("맛집") + "&p=37.480123,126.560988"]);
+    eq("트립 검색어는 시 · 군 · 구(영종도 덕기봉 → 인천 영종구, 2026-11-22 홍TV님)", [RF.areaWide("인천광역시 영종구 영종동"), RF.areaWide("경상북도 성주군 가천면"), RF.areaWide("서울특별시 종로구 청운효자동"), RF.areaWide("세종특별자치시 조치원읍"), RF.areaWide(""), RF.areaWide("x")], ["인천 영종구", "경상북도 성주군", "서울 종로구", "세종 조치원읍", "", ""]);
+    var tw = RF.afterHikeLinks({ trip: "https://kr.trip.com/?Allianceid=1" }, { name: "덕기봉", lat: 37.481203, lon: 126.555306, area: "인천광역시 영종구 영종동" }, false).links[0].href;
+    eq("트립 - 동네를 알면 그 시 · 군 · 구로 찾음(좌표는 끝 지점)", [tw.indexOf("searchWord=" + encodeURIComponent("인천 영종구")) > 0, tw.indexOf("37.481203%7C126.555306") > 0], [true, true]);
     eq("다음은 - 영어는 이름도 영어(검색은 한글)", [RF.afterHikeLinks({}, { name: "설악산 대청봉" }, true).links[0].text, RF.afterHikeLinks({}, { name: "설악산 대청봉" }, true).links[0].href.indexOf(encodeURIComponent("설악산")) > 0], ["🍜 Food near Seoraksan Daecheongbong", true]);
     eq("다음은 - 제휴 설정 없으면 맛집만(쿠팡 설정이 있어도 안 나옴)", RF.afterHikeLinks({ coupang: { knee: ["https://link.coupang.com/k"] } }, { name: "북한산" }, false).links.length, 1);
     // 인솔자 지금 할 일 · 회원 탑승 카드(2026-10-28 추천 2)

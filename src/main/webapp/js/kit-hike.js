@@ -4141,6 +4141,14 @@
      * p - api/partners, end - {lat, lon, name: "설악산 오색"(날머리)}. → {links: [{text, href, sponsored, app}], affiliate}.
      * 맛집은 카카오맵 검색(제휴 아님), 숙소는 트립닷컴(날머리 좌표 검색) · 아고다({lat}{lon}). 쿠팡 · 다음 산 고르기는 뺌(2026-11-22 홍TV님 "맛집, 근처 숙소, 후원하기 빼고 모두 삭제").
      */
+    /** 순수 함수 - 카카오 행정동 이름 "인천광역시 영종구 영종동" → 넓은 이름 "인천 영종구"(시 · 도 줄임 + 시 · 군 · 구). 모르면 "". */
+    function areaWide(area) {
+        var w = String(area || "").replace(/\s+/g, " ").trim().split(" ");
+        if (w.length < 2) return "";
+        var top = w[0].replace(/(특별자치시|특별자치도|특별시|광역시)$/, "");
+        return (top + " " + w[1]).slice(0, 30);
+    }
+
     function afterHikeLinks(p, end, en) {
         var T = function (ko, e) { return en ? e : ko; }, out = [], af = false;
         p = p || {};
@@ -4150,7 +4158,8 @@
         // app - 카카오맵 앱을 끝 지점 둘레 "맛집" 검색으로(2026-11-22 홍TV님 "송산 바로 옆 영종 하늘도시가 하나도 안 보이네" - 글자 검색은 둘레를 중심으로 찾지 않음).
         //       화면이 앱을 먼저 열어 보고, 안 열리면 href(웹 글자 검색)로. 좌표는 서버로 가지 않고 폰의 카카오맵 앱에만 감
         // 차례는 🏨 숙소 → 🍜 맛집(2026-11-22 홍TV님 "근처 숙소, 덕기봉 맛집, TV 맛집 순으로" - 📺 TV 맛집은 화면이 맨 뒤에 붙임)
-        var trip = p.trip && ok ? tripLink(p.trip, end.lat, end.lon, name) : null;
+        // 트립닷컴 검색어는 넓게 시 · 군 · 구(2026-11-22 홍TV님 "크게 봐서 영종도, 인천 영종구로 조회하지" - 봉우리 이름으로는 숙소가 안 나왔음), 동네를 모르면 이름
+        var trip = p.trip && ok ? tripLink(p.trip, end.lat, end.lon, areaWide(end.area) || name) : null;
         if (trip) { out.push({ text: T("🏨 근처 숙소(트립닷컴)", "🏨 Stays nearby (Trip.com)"), href: trip, sponsored: true }); af = true; }
         else if (p.agoda && ok && /\{lat\}/.test(p.agoda)) {
             out.push({ text: T("🏨 근처 숙소(아고다)", "🏨 Stays nearby (Agoda)"), href: p.agoda.replace(/\{lat\}/g, (+end.lat).toFixed(5)).replace(/\{lon\}/g, (+end.lon).toFixed(5)), sponsored: true });

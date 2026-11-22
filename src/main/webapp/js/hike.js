@@ -2055,7 +2055,10 @@
         if (food && at) getJson("api/wx?regionOnly=1&lat=" + (+at[0]).toFixed(4) + "&lon=" + (+at[1]).toFixed(4)).then(function (j) {
             if (!j || !j.region || !j.region.name) return;
             end.area = j.region.name;
-            food.href = RF.afterHikeLinks(p, end, EN).links[fi].href;
+            var again = RF.afterHikeLinks(p, end, EN).links;
+            food.href = again[fi].href;
+            // 🏨 트립닷컴도 그 시 · 군 · 구 이름으로 다시(2026-11-22 홍TV님 "인천 영종구로 조회")
+            r.links.forEach(function (x, i) { if (/^🏨/.test(x.text) && again[i] && nx.children[i]) nx.children[i].href = again[i].href; });
         }).catch(function () { /* 이름으로 찾기 그대로 */ });
         // 📺 TV 맛집(2026-11-22 홍TV님 "백반기행 등 TV 에 나온 유명한 맛집" · 30km) - 같은 좌표 규칙, 있으면 🍜 · 🏨 뒤에 단추, 누르면 목록(가까운 순 · 나온 프로그램)
         if (food && at) getJson("api/food?lat=" + (+at[0]).toFixed(4) + "&lon=" + (+at[1]).toFixed(4)).then(function (j) {
