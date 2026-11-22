@@ -16,6 +16,10 @@
 
     var map = null, cfgP = null, marks = [], cards = [], urls = [], items = [], pick = -1, prof = null, rc = null;
     var vector = false, peakKeys = [], PEAK_NEAR_M = 150;   // 우리 지도일 때 기록이 지나간 봉우리(150m 안)
+    // 표시별 보이기 · 숨기기(2026-11-22 홍TV님 "마커 별로 숨기고 보이고") - 이 화면 동안만(저장하지 않음)
+    var KINDS = [["photo", "📷", "사진", "Photos"], ["memo", "📝", "메모", "Notes"], ["rf-hut", "🏠", "대피소 · 산장", "Shelters · huts"],
+        ["rf-temple", "卍", "절", "Temples"], ["rf-view", "👁", "전망대", "Viewpoints"], ["rf-water", "💧", "약수터", "Drinking water"]];
+    var hidden = {};
     var CONTOUR_KEY = "rf-contour", contourOn = false, demContour = null, contourCfg = null;   // 등고선 - 따라가기와 같은 기억(rf-contour) · 간격 · 색
     try { contourOn = localStorage.getItem(CONTOUR_KEY) === "1"; } catch (e) { /* 기본 끔 */ }
 
@@ -46,6 +50,7 @@
         prof = RF.profile($("prof"), rc, { speed: RF.speedProfile(rc), labels: false });
         var narrow = window.matchMedia && window.matchMedia("(max-width: 760px)").matches;   // 폰 세로는 그래프가 지도를 많이 가려 접어 두고 📈 단추로
         $("graph").hidden = narrow; $("graphBtn").hidden = !narrow;
+        placeKit();
         items = (rec.notes || []).map(function (n, i) { return { n: n, d: rc.pois[i] ? rc.pois[i].dist_m : null, url: null }; });
         if (!items.length) $("side").innerHTML = "<p class=\"empty\">" + T("이 기록에는 사진 · 메모가 없습니다.", "This record has no photos or notes.") + "</p>";
         items.forEach(function (it, i) {
@@ -107,6 +112,9 @@
                 it.mark = new maplibregl.Marker({ element: d, anchor: "bottom" }).setLngLat([it.n.lon, it.n.lat]).addTo(map);
                 marks.push(it.mark);
             });
+            kindBar();
+            placeKit();
+            if (map.loaded()) applyKinds(); else map.once("load", applyKinds);
         });
     }
 
@@ -131,6 +139,36 @@
             g.font = "bold " + (13 * r) + "px sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(ic[1], c, c + u);
         }
         map.addImage(id, g.getImageData(0, 0, n, n), { pixelRatio: r });
+    }
+
+    /** 이 기록 · 이 지도에 있는 표시 종류만 단추로(사진 · 메모는 있을 때, 대피소 등은 우리 지도일 때) + 모두 숨기기 · 보이기. */
+    function kindBar() {
+        var bar = $("kinds"), has = { photo: items.some(function (it) { return it.n.photo; }), memo: items.some(function (it) { return !it.n.photo; }) };
+        bar.innerHTML = "";
+        var list = KINDS.filter(function (k) { return k[0] === "photo" || k[0] === "memo" ? has[k[0]] : vector; });
+        bar.hidden = !list.length;
+        list.forEach(function (k) {
+            var b = document.createElement("button"), on = !hidden[k[0]], name = T(k[2], k[3]);
+            b.type = "button"; b.className = "kind" + (on ? "" : " off"); b.textContent = k[1];
+            b.title = (on ? T("숨기기: ", "Hide: ") : T("보이기: ", "Show: ")) + name;
+            b.setAttribute("aria-label", name); b.setAttribute("aria-pressed", on ? "true" : "false");
+            b.onclick = function () { hidden[k[0]] = on; applyKinds(); kindBar(); };
+            bar.appendChild(b);
+        });
+        if (!list.length) return;
+        var any = list.some(function (k) { return !hidden[k[0]]; }), all = document.createElement("button");
+        all.type = "button"; all.className = "all";
+        all.textContent = any ? T("모두 숨기기", "Hide all") : T("모두 보이기", "Show all");
+        all.onclick = function () { list.forEach(function (k) { hidden[k[0]] = any; }); applyKinds(); kindBar(); };
+        bar.appendChild(all);
+    }
+
+    /** 숨긴 종류를 지도에 반영 - 사진 · 메모 표시는 감추고, 대피소 등은 poi-hike 층 거름으로. */
+    function applyKinds() {
+        items.forEach(function (it) { if (it.mark) it.mark.getElement().style.display = hidden[it.n.photo ? "photo" : "memo"] ? "none" : ""; });
+        if (map && map.getLayer("poi-hike")) {
+            map.setFilter("poi-hike", RF.poiShowFilter(map.getLayoutProperty("poi-hike", "icon-image"), Object.keys(hidden).filter(function (k) { return hidden[k] && /^rf-/.test(k); })));
+        }
     }
 
     /** 첫 글자 층 id(없으면 undefined - 맨 위에 그음). */
@@ -230,8 +268,17 @@
         if ($("big").style.display !== "flex") return;
         if (e.key === "Escape") bigClose(); else if (e.key === "ArrowLeft") step(-1); else if (e.key === "ArrowRight") step(1);
     });
-    $("graphClose").onclick = function () { $("graph").hidden = true; $("graphBtn").hidden = false; };
-    $("graphBtn").onclick = function () { $("graph").hidden = false; $("graphBtn").hidden = true; };
+    $("graphClose").onclick = function () { $("graph").hidden = true; $("graphBtn").hidden = false; placeKit(); };
+    $("graphBtn").onclick = function () { $("graph").hidden = false; $("graphBtn").hidden = true; placeKit(); };
+    /** 표시 단추 줄 · 로고(mapKit)를 열린 그래프와 겹치지 않게 - 좌우로 겹치면 그래프 위로, 아니면 CSS 자리(왼쪽 아래). */
+    function placeKit() {
+        var k = $("mapKit"), g = $("graph");
+        k.style.bottom = "";
+        if (g.hidden) return;
+        var kr = k.getBoundingClientRect(), gr = g.getBoundingClientRect();
+        if (kr.right > gr.left && kr.left < gr.right && kr.bottom > gr.top) k.style.bottom = (g.parentNode.getBoundingClientRect().bottom - gr.top + 8) + "px";
+    }
+    window.addEventListener("resize", placeKit);
 
     // 지도(V-World 지도 + 지형 음영 - 위성은 쓰지 않음). 우리 바탕 지도 파일(map.basemap.url)이 설정되면 그것(2026-11-22 바탕 지도 2단계 - 기록 보기만 먼저)
     // 파일이 아직 서버에 없거나(404) 못 읽으면 V-World 바탕으로(2026-11-22 PC: 설정이 파일보다 먼저 들어가 운영 기록 보기가 바탕 없이 지형 음영만 보였음)

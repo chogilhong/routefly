@@ -35,6 +35,13 @@ body { display:flex; flex-direction:column; height:100dvh; }
 #contourBtn { font-size:16px; line-height:1; opacity:0.6; }   /* 〰️ 등고선(2026-11-22) - 켜면 진하게 · 파란 테 */
 #contourBtn.on { opacity:1; box-shadow:inset 0 0 0 2px #38d9ea; }
 #graphBtn { position:absolute; left:10px; bottom:26px; z-index:2; height:40px; padding:0 12px; border-radius:20px; border:1px solid var(--ln); background:rgba(17,22,29,0.86); color:var(--tx); font-family:inherit; font-size:14px; cursor:pointer; }
+#mapKit { position:absolute; left:10px; bottom:34px; z-index:2; display:flex; flex-direction:column; align-items:flex-start; gap:6px; pointer-events:none; }
+#kinds { display:flex; align-items:center; gap:4px; padding:4px 6px; border-radius:18px; background:rgba(17,22,29,0.82); border:1px solid var(--ln); pointer-events:auto; }
+#kinds[hidden] { display:none; }
+#kinds .kind { width:32px; height:30px; border-radius:15px; border:0; background:rgba(255,255,255,0.14); color:#fff; font-size:15px; cursor:pointer; font-family:inherit; }
+#kinds .kind.off { opacity:0.35; text-decoration:line-through; }
+#kinds .all { height:30px; padding:0 10px; border-radius:15px; border:0; background:none; color:var(--tx); font-size:13px; font-weight:bold; cursor:pointer; font-family:inherit; white-space:nowrap; }
+#brand { display:block; width:132px; height:auto; filter:drop-shadow(0 0 2px #fff) drop-shadow(0 0 1px #fff); }   /* 밝은 지도용 로고(글자 어두움) - 테두리로 어느 바탕에서나 보이게 */
 #stat { position:absolute; left:10px; top:10px; z-index:2; background:rgba(17,22,29,0.86); border:1px solid var(--ln); border-radius:10px; padding:6px 10px; font-size:13px; max-width:calc(100% - 70px); }
 #stat:empty { display:none; }
 #side { flex:0 0 380px; background:#f4f6f8; color:#1b2430; overflow-y:auto; border-left:1px solid var(--ln); }
@@ -65,6 +72,8 @@ body { display:flex; flex-direction:column; height:100dvh; }
   #graph { left:10px; right:10px; width:auto; bottom:10px; }
   #prof { height:96px; }
   #graphBtn { bottom:10px; }
+  #mapKit { bottom:58px; }   /* 폰 세로는 📈 그래프 단추 위 */
+  #brand { width:110px; }
 }
 </style>
 <script src="js/rf-theme.js"></script><link rel="stylesheet" href="css/rf-light.css">
@@ -81,6 +90,9 @@ body { display:flex; flex-direction:column; height:100dvh; }
         <div id="map"></div>
         <div id="stat"></div>
         <div id="graph" hidden><div class="gh"><span data-en="Elevation (green) · speed (red)">고도(초록) · 속도(빨강)</span><button type="button" id="graphClose" data-en-aria-label="Hide graph" aria-label="그래프 닫기">✕</button></div><div id="prof"></div></div>
+        <!-- 지도 왼쪽 아래: 표시별 보이기 · 숨기기 + routefly 로고(2026-11-22 홍TV님 "지도에 routefly 표시") -->
+        <div id="mapKit"><div id="kinds" role="group" data-en-aria-label="Show · hide markers" aria-label="표시 보이기 · 숨기기" hidden></div>
+            <img id="brand" src="img/logo.svg" alt="routefly" width="132" height="41"></div>
         <button type="button" id="graphBtn" hidden data-en="📈 Graph">📈 그래프</button>
     </div>
     <div id="side"><p class="empty" data-en="Open a GPX file (📂) - a file saved with 💾 Save GPX in routefly shows its photos and notes here. Files are read only on this device.">📂 GPX 열기로 파일을 고르세요. routefly "💾 GPX 파일 저장" 으로 만든 파일은 사진 · 메모까지 여기에 보입니다. 파일은 이 기기 안에서만 읽습니다.</p></div>

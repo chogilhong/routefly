@@ -205,7 +205,7 @@
                 // 대피소 · 절 · 전망대 · 약수터(2026-11-22 홍TV님 "대피소, 절 등 표시해줘") - OpenMapTiles v3.15 poi 층: 산장 tourism=alpine_hut → class lodging · subclass alpine_hut,
                 // 쉼터 amenity=shelter → class shelter, 절 amenity=place_of_worship → class place_of_worship · subclass 는 religion(buddhist), 전망대 → class attraction · subclass viewpoint,
                 // 약수터 amenity=drinking_water → class drinking_water. 확대 12 ~ 13 은 중요한 것만, 14 부터 모두(OMT). 아이콘 그림은 화면이 그려 넣음(rf-hut 등 - 받는 글꼴에 그림 글자가 없음)
-                { id: "poi-hike", type: "symbol", source: "omt", "source-layer": "poi", minzoom: 12, filter: ["!=", hikePoiIcon, ""],
+                { id: "poi-hike", type: "symbol", source: "omt", "source-layer": "poi", minzoom: 12, filter: poiShowFilter(hikePoiIcon, []),
                     layout: { "icon-image": hikePoiIcon, "icon-size": 1, "icon-allow-overlap": false, "text-field": ko, "text-font": F, "text-size": 11,
                         "text-anchor": "top", "text-offset": [0, 0.9], "text-optional": true },
                     paint: { "text-color": ["match", hikePoiIcon, "rf-temple", "#8b1e1e", "rf-water", "#1f5f8b", "#5a3510"], "text-halo-color": "#fffdf5", "text-halo-width": 1.4 } },
@@ -219,6 +219,12 @@
 
     /** 우리 지도 poi-hike 층 아이콘(이름 → 동그라미 색 · 안 그림). 화면이 캔버스로 그려 map.addImage - 집 · 눈 · 물방울은 선으로(글꼴마다 ⌂ 등이 뭉개짐), 절은 卍(한자라 폰 글꼴에 있음). */
     var MAP_ICONS = { "rf-hut": ["#7a4a1c", "house"], "rf-temple": ["#b23b2e", "卍"], "rf-view": ["#2f7d4f", "eye"], "rf-water": ["#2a73b8", "drop"] };
+
+    /** 순수 함수 - 우리 지도 poi-hike 층 거름: 아이콘이 있고(icon = 층의 icon-image 식) 숨긴 것(hidden - "rf-hut" 등)이 아닌 것만(2026-11-22 홍TV님 "마커 별로 숨기고 보이고"). */
+    function poiShowFilter(icon, hidden) {
+        var f = ["!=", icon, ""];
+        return hidden && hidden.length ? ["all", f, ["!", ["in", icon, ["literal", hidden.slice()]]]] : f;
+    }
 
     /** 봉우리 하나를 가리키는 열쇠(이름|높이) - 지도 타일 안 봉우리와 peaksNear 가 같은 열쇠를 씀. */
     var PEAK_KEY_EXPR = ["concat", ["to-string", ["get", "name"]], "|", ["to-string", ["get", "ele"]]];
@@ -914,6 +920,7 @@
         contourPaint: contourPaint,
         peaksNear: peaksNear,
         MAP_ICONS: MAP_ICONS,
+        poiShowFilter: poiShowFilter,
         peakOnFilter: peakOnFilter,
         profile: profile,
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },

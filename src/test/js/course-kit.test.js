@@ -328,6 +328,7 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
                 ["all", ["==", ["get", "class"], "place_of_worship"], ["==", ["get", "subclass"], "buddhist"]], "rf-temple",
                 ["all", ["==", ["get", "class"], "attraction"], ["==", ["get", "subclass"], "viewpoint"]], "rf-view", ["==", ["get", "class"], "drinking_water"], "rf-water"]), true]);
         eq("대피소 · 절 등 - 아이콘이 없는 것(교회 · 식당 등)은 안 그림", [icon[icon.length - 1], JSON.stringify(poi.filter)], ["", JSON.stringify(["!=", icon, ""])]);
+        eq("표시 숨기기 - 숨긴 아이콘만 거름에 더함", [RF.poiShowFilter("I", []), RF.poiShowFilter("I", ["rf-temple"])], [["!=", "I", ""], ["all", ["!=", "I", ""], ["!", ["in", "I", ["literal", ["rf-temple"]]]]]]);
         eq("등고선 - 간격 · 밝은 바탕은 갈색", [RF.CONTOUR_STEPS[13], RF.contourPaint(true).color, RF.contourPaint(false).color], [[20, 100], "#8a5a2b", "#ffffff"]);
     })();
     eq("트립 - trip.com 이 아니면 null", [RF.tripLink("https://www.agoda.com/x", 1, 2, "a"), RF.tripLink("https://kr.trip.com.evil.kr/x", 1, 2, "a"), RF.tripLink("https://kr.trip.com/", NaN, 2, "a")], [null, null, null]);
