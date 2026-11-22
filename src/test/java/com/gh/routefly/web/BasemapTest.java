@@ -42,7 +42,7 @@ public class BasemapTest {
         assertTrue("속도 선은 거리 100칸 평균(톱니 줄이기)", read("src/main/webapp/js/course-kit.js").contains("speedBuckets(opts.speed, c.dist, c.total, SPEED_BUCKETS).forEach("));
         assertTrue("등고선 켜기 · 끄기 - 따라가기와 같은 라이브러리 · 기억 · 간격 · 색", html.contains("<script src=\"vendor/maplibre-contour-0.1.1/maplibre-contour.min.js\"></script>")
             && js.contains("var CONTOUR_KEY = \"rf-contour\"") && js.contains("thresholds: RF.CONTOUR_STEPS") && js.contains("RF.contourPaint(true)")
-            && js.contains("if (window.mlcontour) map.addControl(contourControl(), \"top-right\");") && js.contains("setContour(contourOn); });"));
+            && js.contains("if (window.mlcontour) map.addControl(contourControl(), \"top-right\");") && js.contains("fold(); setContour(contourOn);"));
         assertTrue("따라가기도 같은 간격 · 색(두 벌 안 둠)", read("src/main/webapp/js/hike.js").contains("CONTOUR_STEPS = RF.CONTOUR_STEPS;") && read("src/main/webapp/js/hike.js").contains("var contourPaint = RF.contourPaint;"));
         assertTrue("대피소 · 절 등 아이콘은 필요할 때 그려 넣음(2026-11-22 홍TV님)", js.contains("map.on(\"styleimagemissing\", function (e) { iconImage(e.id); });") && js.contains("var ic = RF.MAP_ICONS[id];"));
         assertTrue("지도에 routefly 로고(아이콘 + 글자, 밝은 지도용)", html.contains("<img id=\"brand\" src=\"img/logo.svg\" alt=\"routefly\""));
@@ -57,6 +57,9 @@ public class BasemapTest {
             && js.contains("map.setLayoutProperty(\"rf-hut\", \"visibility\", hidden[\"rf-hut\"] ? \"none\" : \"visible\");"));
         assertTrue("구간 색 · 봉우리 대피소 누르면 그래프에(2026-11-23 홍TV님)", js.contains("if (fam) return RF.trackSegments(rc, fam.huts.concat(fam.peaks), SEG_NEAR_M, SEG_GAP_M);")
             && js.contains("\"line-color\": [\"coalesce\", [\"get\", \"color\"], \"#5b45ff\"]") && js.contains("map.on(\"click\", id, pickPlace);") && js.contains("if (prof) prof.set(q.d);"));
+        assertTrue("지도 모양만 준비되면 그림 - load · map.loaded() 를 기다리지 않음(2026-11-23 PC: 일찍 연 GPX 가 안 그려졌음)",
+            js.contains("map.once(\"style.load\", function () { styleOk = true;") && js.contains("whenStyle(draw);") && js.contains("whenStyle(applyKinds);")
+            && !js.contains("map.loaded()") && !js.contains("once(\"load\""));
         assertTrue("OSM 출처는 한 번만 - 우리 지도는 바탕 출처에 이미 있음(2026-11-22 PC)", js.contains("customAttribution: (style ? \"\" : \"© OpenStreetMap contributors | \") + "));
         assertTrue(html.contains("<script src=\"vendor/pmtiles-4.5.0/pmtiles.js\"></script>"));
         assertTrue("지도 파일은 캐시하지 않음(Range)", sw.contains("if (/\\.pmtiles(?:[?#]|$)/.test(url)) return;"));

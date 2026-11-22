@@ -18,6 +18,7 @@
     var vector = false, peakKeys = [], PEAK_NEAR_M = 150;
     // 공단 대피소 · 100대 명산 정상(늘 보임, RF.famousMarks)과 겹치는 OSM 것(300m 안)은 숨김 - 두 번 그리지 않게
     var fam = null, famGj = null, famSet = false, dropPeaks = [], dropHuts = [], SAME_M = 300;
+    var styleOk = false, styleQ = [];   // 지도 모양 준비(whenStyle)
     var SEG_NEAR_M = 200, SEG_GAP_M = 300, PICK_NEAR_M = 300, popup = null;   // 구간 끊는 곳(선에서 200m 안 · 300m 넘게 떨어진 것만) · 누른 곳 찾기   // 우리 지도일 때 기록이 지나간 봉우리(150m 안)
     // 표시별 보이기 · 숨기기(2026-11-22 홍TV님 "마커 별로 숨기고 보이고") - 이 화면 동안만(저장하지 않음)
     var KINDS = [["photo", "📷", "사진", "Photos"], ["memo", "📝", "메모", "Notes"], ["rf-hut", "🏠", "대피소 · 산장", "Shelters · huts"],
@@ -104,7 +105,7 @@
                 line.geometry.coordinates.forEach(function (q) { b.extend(q); });
                 map.fitBounds(b, { padding: 50, duration: 0, maxZoom: 15 });
             };
-            if (map.loaded()) draw(); else map.once("load", draw);
+            whenStyle(draw);
             [[0, "#2fb344"], [rc.lat.length - 1, "#ff5c5c"]].forEach(function (e) {
                 var d = document.createElement("div");
                 d.className = "end"; d.style.background = e[1];
@@ -121,7 +122,7 @@
             });
             kindBar();
             placeKit();
-            if (map.loaded()) applyKinds(); else map.once("load", applyKinds);
+            whenStyle(applyKinds);
         });
     }
 
@@ -178,6 +179,9 @@
         }
         if (map && map.getLayer("rf-hut")) map.setLayoutProperty("rf-hut", "visibility", hidden["rf-hut"] ? "none" : "visible");   // 🏠 단추는 공단 대피소도
     }
+
+    /** 지도 모양(style)이 준비되면 fn - 이미 됐으면 바로. */
+    function whenStyle(fn) { if (styleOk) fn(); else styleQ.push(fn); }
 
     /** 첫 글자 층 id(없으면 undefined - 맨 위에 그음). */
     function firstSymbol() {
@@ -260,7 +264,7 @@
             fam = { peaks: [], huts: [] };
             gj.features.forEach(function (f) { var c = f.geometry.coordinates; fam[f.properties.kind === "hut" ? "huts" : "peaks"].push({ name: f.properties.name, lon: c[0], lat: c[1] }); });
             famGj = gj;
-            if (map.isStyleLoaded()) markPeaks();
+            if (styleOk) markPeaks();
         }).catch(function () { /* 자료가 없으면 OSM 것만 */ });
     }
 
@@ -376,7 +380,9 @@
         // 출처는 ⓘ 로 접어 둠(노선 · 탐방 안내도와 같게 - 폰에서 펼친 출처가 사진 표시를 가렸음), ⓘ 를 누르면 보임
         var fold = function () { var at = document.querySelector(".maplibregl-ctrl-attrib"); if (at) at.classList.remove("maplibregl-compact-show"); };
         fold();
-        map.once("load", function () { fold(); setContour(contourOn); });
+        // 지도 모양(style)만 준비되면 선 · 층을 더함 - "load" 는 모든 조각(지형 등)을 받은 뒤라 늦거나 지형 조각이 실패하면 오지 않아,
+        // 그 전에 연 GPX 가 그려지지 않았음(2026-11-23 PC: 새로 연 뒤 3초에 열면 선 없음 · 전국 화면). 지도의 loaded 값도 조각을 받는 동안 늘 거짓이라 쓰지 않음
+        map.once("style.load", function () { styleOk = true; fold(); setContour(contourOn); var q = styleQ; styleQ = []; q.forEach(function (fn) { fn(); }); });
         if (vector) loadMarks();
         map.on("idle", markPeaks);
         map.on("styleimagemissing", function (e) { iconImage(e.id); });
