@@ -5,7 +5,7 @@
 # 서버 · 화면은 아직 건드리지 않습니다(2단계에서 trip.html 에만 붙여 봄). 자세한 것은 docs/basemap/README.md.
 #
 # 받는 것(모두 -Work 폴더 안, 처음 한 번):
-#   planetiler.jar v0.10.2(GitHub onthegomap/planetiler) · 남한 OSM(Geofabrik south-korea) ·
+#   planetiler.jar v0.10.2(GitHub onthegomap/planetiler) · 남한 OSM(Geofabrik asia/south-korea-latest.osm.pbf, 이 스크립트가 직접) ·
 #   Planetiler --download 가 받는 바다 · 호수 · Natural Earth 자료(합쳐 1GB 남짓 - 바다 다각형이 가장 큼)
 # 출처 표시(지도에 붙일 때): "© OpenMapTiles © OpenStreetMap contributors"
 #
@@ -17,6 +17,7 @@ param(
     [string]$Version = "v0.10.2",
     [int]$MaxZoom = 14,
     [string]$Heap = "4g",
+    [string]$OsmUrl = "https://download.geofabrik.de/asia/south-korea-latest.osm.pbf",
     [switch]$Force
 )
 $ErrorActionPreference = "Stop"
@@ -33,10 +34,18 @@ Write-Host ("planetiler.jar SHA-256: " + (Get-FileHash $jar -Algorithm SHA256).H
 if ((Test-Path $out) -and -not $Force) { Write-Host "이미 있음(다시 만들려면 -Force): $out" }
 else {
     $t0 = Get-Date
+    # 남한 OSM 은 우리가 먼저 받음(2026-11-22 PC: --area=south-korea 는 v0.10.2 가 Geofabrik 지역 목록 JSON 의 바뀐 칸 iso3166-1:alpha2 를 못 읽어 바로 실패)
+    $src = Join-Path $Work "data\sources"
+    New-Item -ItemType Directory -Force -Path $src | Out-Null
+    $pbf = Join-Path $src "south-korea.osm.pbf"
+    if (-not (Test-Path $pbf) -or $Force) {
+        Write-Host "남한 OSM 받기(Geofabrik)"
+        Invoke-WebRequest -UseBasicParsing -Uri $OsmUrl -OutFile $pbf
+    }
     Push-Location $Work
     try {
-        # --area=south-korea : Geofabrik 남한 자료를 data\sources 에 받음 / --download : 바다 · 호수 · Natural Earth 도
-        & $Java "-Xmx$Heap" -jar $jar --download --area=south-korea --maxzoom=$MaxZoom --output=$out --force
+        # --osm_path · --osm_url 로 남한 자료를 바로 줌(지역 목록을 묻지 않음) / --download : 바다 · 호수 · Natural Earth 만 더 받음
+        & $Java "-Xmx$Heap" -jar $jar --download --osm_path=$pbf --osm_url=$OsmUrl --maxzoom=$MaxZoom --output=$out --force
         if ($LASTEXITCODE -ne 0) { throw "Planetiler 실패(종료 코드 $LASTEXITCODE)" }
     } finally { Pop-Location }
     Write-Host ("걸린 시간: " + [math]::Round(((Get-Date) - $t0).TotalMinutes, 1) + "분")
