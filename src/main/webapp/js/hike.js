@@ -2392,7 +2392,7 @@
                 row.appendChild(a); row.appendChild(b); sum.appendChild(row);
             });
         $("recView").style.display = "flex";   // 그래프 이름표 자리를 재려면 먼저 보여야 합니다
-        if (rc.lat.length > 1) RF.profile($("recViewProfile"), rc, {}).set(rc.total);   // 다 걸은 기록이라 끝까지 색칠
+        if (rc.lat.length > 1) RF.profile($("recViewProfile"), rc, { speed: RF.speedProfile(rc) }).set(rc.total);   // 다 걸은 기록이라 끝까지 색칠 · 붉은 선은 속도
         else $("recViewProfile").textContent = "";
         $("recViewMap").disabled = rc.lat.length < 2;
         $("recViewCard").disabled = rc.lat.length < 2;

@@ -704,6 +704,96 @@
     }
 
     /**
+     * 순수 함수 - "내 기록" 하나(rec.track: [[위도, 경도, 시각, 고도|null], …], rec.notes) → 고도 그래프 · 지도에 그릴 코스 모양.
+     * 점은 10m 보다 가까우면 솎고(끝점은 남김), 사진 · 메모는 가장 가까운 기록 점의 거리에 이름표로 둡니다.
+     */
+    /**
+     * 순수 함수 - 기록 점에서 GPS 튐 빼기(2026-10-28 PC: 10-23 지리산 기록 카드에 긴 직선 왕복 - 튐 걸러내기 전에 저장된 옛 기록).
+     * 앞 점에서 걸어서 못 가는 빠르기(걷기 10 · 자전거 25 m/s)로 100m 넘게 나갔다가 다시 앞 점 둘레로 돌아온 점(5개까지 이어진 것도)은 버림 - onFix 규칙과 같은 생각.
+     * track: [[위도, 경도, ms, 고도], …].
+     */
+    function cleanTrack(tr, bike) {
+        var lim = bike ? 25 : 10, out = [], i = 0;
+        tr = tr || [];
+        // 첫 점이 튐(폰이 옛 위치 · 기지국 위치를 먼저 줌, 2026-10-28 버그 점검) - 첫 점은 앞 점이 없어 아래에서 못 거름
+        if (tr.length >= 3) {
+            var d01 = distM(tr[0][0], tr[0][1], tr[1][0], tr[1][1]), d12 = distM(tr[1][0], tr[1][1], tr[2][0], tr[2][1]);
+            if (d01 > 100 && d12 < d01 * 0.5 && d01 / Math.max(1, (tr[1][2] - tr[0][2]) / 1000) > lim) i = 1;
+        }
+        while (i < tr.length) {
+            var a = out[out.length - 1], skip = 0;
+            if (a) for (var k = 1; k <= 5 && i + k < tr.length; k++) {
+                var f = tr[i], l = tr[i + k - 1], b = tr[i + k];
+                var dOut = distM(a[0], a[1], f[0], f[1]), dBack = distM(l[0], l[1], b[0], b[1]), dAB = distM(a[0], a[1], b[0], b[1]);
+                var vOut = dOut / Math.max(1, (f[2] - a[2]) / 1000), vBack = dBack / Math.max(1, (b[2] - l[2]) / 1000);
+                if (dOut > 100 && dBack > 100 && dAB < Math.min(dOut, dBack) * 0.5 && (vOut > lim || vBack > lim)) { skip = k; break; }
+            }
+            if (skip) { i += skip; continue; }
+            out.push(tr[i]);
+            i++;
+        }
+        return out;
+    }
+
+    /**
+     * 위치가 끊긴 구간(크롬 화면 꺼짐 등) - 이만큼 넘게 벌어지면 카드 · 지도에서 점선.
+     * 2026-11-15 홍TV님 덕기봉 앱 기록(화면 끔): 6분 공백 뒤 218m 앞 한 점이 300m 가 안 돼 숲을 가로지르는 실선 → 100m. 쉬느라 서 있던 공백은 거의 안 움직여 실선 그대로.
+     */
+    var GAP_MS = 60000, GAP_M = 100;
+
+    function recordCourse(rec) {
+        var c = { id: "rec", course: { name: rec.name, kind: rec.kind }, lon: [], lat: [], ele: [], dist: [], time: [], gap: [], markers: [], pois: [], junctions: [] };
+        var tr = cleanTrack(rec.track, rec.kind === "bike"), last = null, d = 0;
+        tr.forEach(function (p, i) {
+            var step = last ? distM(last[0], last[1], p[0], p[1]) : 0;
+            if (last && step < GPX_SPACING_M && i < tr.length - 1) return;
+            d += step;
+            c.lat.push(+p[0]); c.lon.push(+p[1]); c.ele.push(p[3] == null ? null : +p[3]); c.dist.push(d);
+            c.time.push(typeof p[2] === "number" ? p[2] : null);   // 속도 그래프(speedProfile)
+            c.gap.push(!!(last && step > GAP_M && p[2] - last[2] > GAP_MS));   // 앞 점에서 여기까지가 끊긴 구간
+            last = p;
+        });
+        c.total = d;
+        c.asc = cumAscent(c.ele);
+        (rec.notes || []).forEach(function (n) {
+            var best = 0, bd = Infinity;
+            for (var i = 0; i < c.lat.length; i++) {
+                var x = distM(n.lat, n.lon, c.lat[i], c.lon[i]);
+                if (x < bd) { bd = x; best = i; }
+            }
+            var nm = n.text ? n.text.replace(/\s+/g, " ").slice(0, 20) : "사진";
+            c.pois.push({ name: (n.photo ? "📷 " : "📝 ") + nm, lat: n.lat, lon: n.lon, ele_m: n.ele, dist_m: c.dist[best] || 0, off_route_m: 0 });
+        });
+        return c;
+    }
+
+    /**
+     * 순수 함수 - 기록의 이동 시간 · 휴식 시간 · 이동 중 평균 속도(2026-11-22 홍TV님 - 램블러 기록 요약을 보고). track [[위도, 경도, ms, …]].
+     * 점 → 다음 점 사이마다 앞 점에서 MOVE_WINDOW_MS 뒤까지 · 뒤 점에서 MOVE_WINDOW_MS 앞부터(없으면 끝 점) 곧은 거리로 빠르기를 보고, 둘 다 MOVE_MIN_MS(m/s)
+     * 넘을 때만 이동 - 쉬는 동안 GPS 가 몇 m 씩 튀어도 2분 사이 옮겨 간 거리는 작아 이동으로 세지 않고, 쉬기 바로 앞 · 뒤 사이도 쉼으로 남음. 시각이 없으면 null.
+     * 돌려줌 {moveMs, restMs, moveM(이동 사이 거리 합), kmh(moveM / moveMs, 이동 시간이 없으면 null)}.
+     */
+    /**
+     * 순수 함수 - 기록 그래프에 겹쳐 그릴 속도(km/h, 2026-11-22 홍TV님 - 램블러 그래프처럼 고도 + 속도). c = recordCourse.
+     * 점마다 앞뒤 1분(SPEED_HALF_MS) 사이 거리 / 시간 - GPS 가 튀는 점 하나로 들쭉날쭉하지 않게. 시각이 없는 점은 null, 모두 없으면 null.
+     */
+    var SPEED_HALF_MS = 60000;
+    function speedProfile(c) {
+        var t = c && c.time, n = t ? t.length : 0, out = [], a = 0, b = 0, any = false;
+        for (var i = 0; i < n; i++) {
+            if (t[i] == null) { out.push(null); continue; }
+            while (a < i && (t[a] == null || t[i] - t[a] > SPEED_HALF_MS)) a++;
+            if (b < i) b = i;
+            while (b < n - 1 && t[b + 1] != null && t[b + 1] - t[i] <= SPEED_HALF_MS) b++;
+            var dt = t[b] - t[a], v = dt > 0 ? (c.dist[b] - c.dist[a]) / dt * 3600 : null;
+            if (v != null) any = true;
+            out.push(v);
+        }
+        return any ? out : null;
+    }
+
+    var MOVE_WINDOW_MS = 120000, MOVE_MIN_MS = 0.2;   // 0.2 m/s = 시속 0.72km - 가파른 오르막을 천천히 오를 때도 이동으로, 2분에 24m 못 가면 쉼
+    /**
      * 2026-10-08 (홍TV님 - 다른 앱 · 친구가 준 GPX 를 열어 따라가기): GPX 글 → /api/course 와 같은 모양
      * {course: {name, kind}, points: [[경도, 위도, 고도|null, 누적 거리]], pois: [{seq, name, lat, lon, ele_m, dist_m}]}.
      * 규칙은 routefly-batch 의 GpxReader · CourseMath.thin 과 같습니다 - 이름공간은 보지 않고 태그 이름만, trk/trkseg/trkpt 를
@@ -1861,6 +1951,20 @@
             + '<g clip-path="url(#' + uid + 'c)"><polygon points="0,' + PH + ' ' + pts.join(" ") + ' ' + PW + ',' + PH + '" fill="url(#' + uid + 'g)"/>'
             + '<polyline points="' + pts.join(" ") + '" fill="none" stroke="' + LINE_COLOR + '" stroke-width="2.5" vector-effect="non-scaling-stroke"/></g>'
             + '<line class="cursor" x1="0" x2="0" y1="0" y2="' + PH + '" stroke="rgba(255,255,255,0.8)" stroke-width="1" vector-effect="non-scaling-stroke"/>';
+        // 속도(opts.speed = speedProfile, 내 기록 그래프만) - 붉은 가는 선, 높이와 따로 0 ~ 최고 속도로(2026-11-22 홍TV님 - 램블러 그래프처럼)
+        var spd = (opts.speed || []).filter(function (v) { return v != null; }), smax = spd.length ? Math.max.apply(null, spd) : 0;
+        if (smax > 0 && c.total > 0) {
+            var sp = [];
+            opts.speed.forEach(function (v, k) { if (v != null) sp.push((c.dist[k] / c.total * PW).toFixed(1) + "," + ((1 - v / (smax * 1.15)) * PH).toFixed(1)); });
+            var pl = document.createElementNS(NS, "polyline");
+            pl.setAttribute("points", sp.join(" "));
+            pl.setAttribute("fill", "none");
+            pl.setAttribute("stroke", "#ff6b6b");
+            pl.setAttribute("stroke-width", "1.5");
+            pl.setAttribute("vector-effect", "non-scaling-stroke");
+            pl.setAttribute("class", "speed");
+            svg.insertBefore(pl, svg.querySelector(".cursor"));
+        }
         // 자료가 끊긴 구간(opts.gaps = courseGaps) - 그래프에 붉은 띠(2026-10-30 홍TV님 "추천한 것 작업해줘")
         (opts.gaps || []).forEach(function (g) {
             if (!(c.total > 0) || g.at == null) return;
@@ -1954,6 +2058,10 @@
         var top = c.course && c.course.ele_max_m != null && +c.course.ele_max_m >= max ? +c.course.ele_max_m : max;
         var capMax = el("div", "rf-cap", tr("최고 ", "top ") + num(top) + "m"); capMax.style.cssText = "left:3px;top:0"; box.appendChild(capMax);
         var capTot = el("div", "rf-cap", km(c.total) + "km"); capTot.style.cssText = "right:3px;bottom:1px"; box.appendChild(capTot);
+        if (smax > 0 && c.total > 0) {
+            var capSpd = el("div", "rf-cap", tr("빨강 속도 · 최고 ", "red speed · max ") + num(smax, 1) + "km/h");
+            capSpd.style.cssText = "right:3px;top:0;color:#ff8787"; box.appendChild(capSpd);
+        }
         var me = el("div", "rf-me");
         box.appendChild(me);
 

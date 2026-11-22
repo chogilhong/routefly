@@ -2395,13 +2395,14 @@
     }
 
     function recordCourse(rec) {
-        var c = { id: "rec", course: { name: rec.name, kind: rec.kind }, lon: [], lat: [], ele: [], dist: [], gap: [], markers: [], pois: [], junctions: [] };
+        var c = { id: "rec", course: { name: rec.name, kind: rec.kind }, lon: [], lat: [], ele: [], dist: [], time: [], gap: [], markers: [], pois: [], junctions: [] };
         var tr = cleanTrack(rec.track, rec.kind === "bike"), last = null, d = 0;
         tr.forEach(function (p, i) {
             var step = last ? distM(last[0], last[1], p[0], p[1]) : 0;
             if (last && step < GPX_SPACING_M && i < tr.length - 1) return;
             d += step;
             c.lat.push(+p[0]); c.lon.push(+p[1]); c.ele.push(p[3] == null ? null : +p[3]); c.dist.push(d);
+            c.time.push(typeof p[2] === "number" ? p[2] : null);   // 속도 그래프(speedProfile)
             c.gap.push(!!(last && step > GAP_M && p[2] - last[2] > GAP_MS));   // 앞 점에서 여기까지가 끊긴 구간
             last = p;
         });
@@ -2425,6 +2426,25 @@
      * 넘을 때만 이동 - 쉬는 동안 GPS 가 몇 m 씩 튀어도 2분 사이 옮겨 간 거리는 작아 이동으로 세지 않고, 쉬기 바로 앞 · 뒤 사이도 쉼으로 남음. 시각이 없으면 null.
      * 돌려줌 {moveMs, restMs, moveM(이동 사이 거리 합), kmh(moveM / moveMs, 이동 시간이 없으면 null)}.
      */
+    /**
+     * 순수 함수 - 기록 그래프에 겹쳐 그릴 속도(km/h, 2026-11-22 홍TV님 - 램블러 그래프처럼 고도 + 속도). c = recordCourse.
+     * 점마다 앞뒤 1분(SPEED_HALF_MS) 사이 거리 / 시간 - GPS 가 튀는 점 하나로 들쭉날쭉하지 않게. 시각이 없는 점은 null, 모두 없으면 null.
+     */
+    var SPEED_HALF_MS = 60000;
+    function speedProfile(c) {
+        var t = c && c.time, n = t ? t.length : 0, out = [], a = 0, b = 0, any = false;
+        for (var i = 0; i < n; i++) {
+            if (t[i] == null) { out.push(null); continue; }
+            while (a < i && (t[a] == null || t[i] - t[a] > SPEED_HALF_MS)) a++;
+            if (b < i) b = i;
+            while (b < n - 1 && t[b + 1] != null && t[b + 1] - t[i] <= SPEED_HALF_MS) b++;
+            var dt = t[b] - t[a], v = dt > 0 ? (c.dist[b] - c.dist[a]) / dt * 3600 : null;
+            if (v != null) any = true;
+            out.push(v);
+        }
+        return any ? out : null;
+    }
+
     var MOVE_WINDOW_MS = 120000, MOVE_MIN_MS = 0.2;   // 0.2 m/s = 시속 0.72km - 가파른 오르막을 천천히 오를 때도 이동으로, 2분에 24m 못 가면 쉼
     function moveStats(track) {
         var t = (track || []).filter(function (p) { return p && typeof p[2] === "number"; });
@@ -5175,6 +5195,20 @@
             + '<g clip-path="url(#' + uid + 'c)"><polygon points="0,' + PH + ' ' + pts.join(" ") + ' ' + PW + ',' + PH + '" fill="url(#' + uid + 'g)"/>'
             + '<polyline points="' + pts.join(" ") + '" fill="none" stroke="' + LINE_COLOR + '" stroke-width="2.5" vector-effect="non-scaling-stroke"/></g>'
             + '<line class="cursor" x1="0" x2="0" y1="0" y2="' + PH + '" stroke="rgba(255,255,255,0.8)" stroke-width="1" vector-effect="non-scaling-stroke"/>';
+        // 속도(opts.speed = speedProfile, 내 기록 그래프만) - 붉은 가는 선, 높이와 따로 0 ~ 최고 속도로(2026-11-22 홍TV님 - 램블러 그래프처럼)
+        var spd = (opts.speed || []).filter(function (v) { return v != null; }), smax = spd.length ? Math.max.apply(null, spd) : 0;
+        if (smax > 0 && c.total > 0) {
+            var sp = [];
+            opts.speed.forEach(function (v, k) { if (v != null) sp.push((c.dist[k] / c.total * PW).toFixed(1) + "," + ((1 - v / (smax * 1.15)) * PH).toFixed(1)); });
+            var pl = document.createElementNS(NS, "polyline");
+            pl.setAttribute("points", sp.join(" "));
+            pl.setAttribute("fill", "none");
+            pl.setAttribute("stroke", "#ff6b6b");
+            pl.setAttribute("stroke-width", "1.5");
+            pl.setAttribute("vector-effect", "non-scaling-stroke");
+            pl.setAttribute("class", "speed");
+            svg.insertBefore(pl, svg.querySelector(".cursor"));
+        }
         // 자료가 끊긴 구간(opts.gaps = courseGaps) - 그래프에 붉은 띠(2026-10-30 홍TV님 "추천한 것 작업해줘")
         (opts.gaps || []).forEach(function (g) {
             if (!(c.total > 0) || g.at == null) return;
@@ -5268,6 +5302,10 @@
         var top = c.course && c.course.ele_max_m != null && +c.course.ele_max_m >= max ? +c.course.ele_max_m : max;
         var capMax = el("div", "rf-cap", tr("최고 ", "top ") + num(top) + "m"); capMax.style.cssText = "left:3px;top:0"; box.appendChild(capMax);
         var capTot = el("div", "rf-cap", km(c.total) + "km"); capTot.style.cssText = "right:3px;bottom:1px"; box.appendChild(capTot);
+        if (smax > 0 && c.total > 0) {
+            var capSpd = el("div", "rf-cap", tr("빨강 속도 · 최고 ", "red speed · max ") + num(smax, 1) + "km/h");
+            capSpd.style.cssText = "right:3px;top:0;color:#ff8787"; box.appendChild(capSpd);
+        }
         var me = el("div", "rf-me");
         box.appendChild(me);
 
@@ -6925,7 +6963,7 @@
     global.RF = {
         LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, endsHigh: endsHigh, videoOpts: videoOpts, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, PARKS: PARKS, parkOf: parkOf, mountainOf: mountainOf, regionNames: regionNames, stampKey: stampKey, summitName: summitName, shelterOf: shelterOf, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, urlQuery: urlQuery, peakHref: peakHref, canonicalHref: canonicalHref, tmapHref: tmapHref, csvRows: csvRows, mergeRows: mergeRows, backupDue: backupDue, saveCsvFile: saveCsvFile, readCsvFile: readCsvFile, tmapLinks: tmapLinks, setCanonical: setCanonical, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakGapM: peakGapM, peakCourses: peakCourses, isClosedTrail: isClosedTrail, isHiddenCourse: isHiddenCourse, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, nearestExit: nearestExit, gpsGap: gpsGap, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, fillTrackEle: fillTrackEle, trimTrack: trimTrack, gpxTracks: gpxTracks, trackStats: trackStats, splitTrack: splitTrack, joinTracks: joinTracks, joinPlan: joinPlan, trackGpx: trackGpx, submitAgree: submitAgree, submitBody: submitBody, submitProblem: submitProblem, submitFail: submitFail, submitSheet: submitSheet, courseName: courseName, courseSource: courseSource, sourceText: sourceText, cutMiddle: cutMiddle, osmRoute: osmRoute, WALK_WAYS: WALK_WAYS, trailsToElements: trailsToElements, overlapShare: overlapShare, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
-        sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, moveStats: moveStats, measureSamples: measureSamples, measureSum: measureSum, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, titledName: titledName, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, tapPick: tapPick, closeLoop: closeLoop, loopTrack: loopTrack, reverseTrack: reverseTrack, longestJump: longestJump, simplifyTrack: simplifyTrack, JOIN_GAP_M: JOIN_GAP_M, pxToLine: pxToLine, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, legMs: legMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, nextTheme: nextTheme, themeButton: themeButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, wxCols: wxCols, wxTable: wxTable, kmaLink: kmaLink, pcpText: pcpText, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap,
+        sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, moveStats: moveStats, speedProfile: speedProfile, measureSamples: measureSamples, measureSum: measureSum, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, titledName: titledName, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, tapPick: tapPick, closeLoop: closeLoop, loopTrack: loopTrack, reverseTrack: reverseTrack, longestJump: longestJump, simplifyTrack: simplifyTrack, JOIN_GAP_M: JOIN_GAP_M, pxToLine: pxToLine, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, legMs: legMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, nextTheme: nextTheme, themeButton: themeButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, wxCols: wxCols, wxTable: wxTable, kmaLink: kmaLink, pcpText: pcpText, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap,
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },
         cellCenter: cellCenter, warnName: warnName, safetyRows: safetyRows, safetyAlert: safetyAlert, safetyRender: safetyRender, rainNews: rainNews,
         setLang: setLang, isEn: isEn, tr: tr, pageLang: pageLang, applyEn: applyEn,
