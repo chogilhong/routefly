@@ -1159,6 +1159,20 @@
         return t.filter(function (p, i) { return keep[i]; });
     }
 
+    /**
+     * 순수 함수 - 점 사이가 stepM 넘으면 사이에 점을 더 둠(높이 그래프가 맞게). 단 maxM(곧은 선 한도 JOIN_GAP_M) 넘는 사이는 그대로 -
+     * 2026-11-22 점검: GPX 편집 "다 그림" 이 곧은 선 위에도 30m 마다 점을 채워 longestJump · 서버 CourseUploadServlet.check 가 그린 곧은 선을 못 잡았음.
+     */
+    function densify(track, stepM, maxM) {
+        var t = track || [], out = t.length ? [t[0]] : [];
+        for (var i = 1; i < t.length; i++) {
+            var a = t[i - 1], b = t[i], d = distM(a[0], a[1], b[0], b[1]), k = d <= maxM ? Math.floor(d / stepM) : 0;
+            for (var j = 1; j <= k; j++) out.push([a[0] + (b[0] - a[0]) * j / (k + 1), a[1] + (b[1] - a[1]) * j / (k + 1)]);
+            out.push(b);
+        }
+        return out;
+    }
+
     function longestJump(track) {
         var t = track || [], best = { m: 0, at: 0 }, d = 0;
         for (var i = 1; i < t.length; i++) {
@@ -1682,6 +1696,7 @@
         loopTrack: loopTrack,
         reverseTrack: reverseTrack,
         longestJump: longestJump,
+        densify: densify,
         simplifyTrack: simplifyTrack,
         JOIN_GAP_M: JOIN_GAP_M,
         distM: distM,

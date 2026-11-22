@@ -939,13 +939,8 @@
         if (waiting()) { stopWaiting(drawing); msg("길 찾기를 멈추고 그 구간은 곧은 선으로 이었습니다.", 5000); }
         var t = draftTrack();
         if (t.length < 2) return;
-        // 점 사이가 30m 넘으면 사이에 점을 더 둠(곧은 선 · 긴 길 마디도 높이 그래프가 맞게)
-        var dense = [t[0]];
-        for (var i = 1; i < t.length; i++) {
-            var a = t[i - 1], b = t[i], d = RF.distM(a[0], a[1], b[0], b[1]), k = Math.floor(d / 30);
-            for (var j = 1; j <= k; j++) dense.push([a[0] + (b[0] - a[0]) * j / (k + 1), a[1] + (b[1] - a[1]) * j / (k + 1)]);
-            dense.push(b);
-        }
+        // 점 사이가 30m 넘으면 사이에 점을 더 둠(높이 그래프가 맞게) - 곧은 선 한도(JOIN_GAP_M) 넘는 사이는 채우지 않아 올리기 · 보내기 검사에 걸림
+        var dense = RF.densify(t, 30, RF.JOIN_GAP_M);
         var d0 = drawing;
         d0.finishing = true;
         drawPanel();
@@ -954,7 +949,9 @@
             drawDraft();
             drawPanel();
             add("새 길 " + new Date().toLocaleDateString("ko-KR"), tr);
-            msg("새 길을 목록에 넣었습니다. 이름을 고치고 저장하거나 " + (owner ? "코스로 올리세요." : "routefly 에 보내세요."), 6000);
+            var jump = RF.longestJump(tr);
+            if (jump.m > RF.JOIN_GAP_M) msg("새 길을 목록에 넣었습니다. 다만 " + jumpText(jump) + "이 있어, 저장은 되지만 " + (owner ? "코스로 올리" : "routefly 에 보내") + "려면 ✏️ 로 그 사이에 점을 더 찍어 길을 따라 그려 주세요.", 10000);
+            else msg("새 길을 목록에 넣었습니다. 이름을 고치고 저장하거나 " + (owner ? "코스로 올리세요." : "routefly 에 보내세요."), 6000);
             draw(true);
         });
     }
@@ -1109,12 +1106,24 @@
         });
     }
 
+    /** "1.20 km 지점에 350 m 곧은 선". */
+    function jumpText(jump) {
+        return km(jump.at) + " km 지점에 " + (jump.m < 1000 ? Math.round(jump.m) + " m" : km(jump.m) + " km") + " 곧은 선";
+    }
+    /**
+     * 곧은 선(이웃 점 사이 JOIN_GAP_M 넘게)이 든 길은 코스로 올리거나 보내지 않음(2026-11-16 홍TV님) - 서버(CourseUploadServlet.check)도 같은 한도.
+     * 2026-11-22 점검: 📮 보내기는 이 검사 없이 서버에서만 막혀 창을 다 채운 뒤에야 알았음. 막았으면 true.
+     */
+    function jumpBlocked(c, what) {
+        var jump = RF.longestJump(c.track);
+        if (jump.m <= RF.JOIN_GAP_M) return false;
+        msg(jumpText(jump) + "이 있어 " + what + " 수 없습니다. ✂ 자르기 · 📍 점 고치기 · ✏️ 그리기로 그 사이를 고쳐 주세요.", 9000);
+        return true;
+    }
+
     $("upBtn").onclick = function () {
         var c = cur();
-        if (!c) return;
-        // 곧은 선(이웃 점 사이 JOIN_GAP_M 넘게)이 든 길은 코스로 올리지 않음(2026-11-16 홍TV님) - 서버(CourseUploadServlet.check)도 같은 한도
-        var jump = RF.longestJump(c.track);
-        if (jump.m > RF.JOIN_GAP_M) { msg(km(jump.at) + " km 지점에 " + (jump.m < 1000 ? Math.round(jump.m) + " m" : km(jump.m) + " km") + " 곧은 선이 있어 코스로 올릴 수 없습니다. ✂ 자르기 · 📍 점 고치기 · ✏️ 그리기로 그 사이를 고쳐 주세요.", 9000); return; }
+        if (!c || jumpBlocked(c, "코스로 올릴")) return;
         nameForm(c).then(function (r) {
             var name = String((r && r.name) || "").trim();
             if (!name) return;
@@ -1136,7 +1145,7 @@
     // 보내도 편집 중인 길은 그대로(창만 닫힘). 앞 · 뒤 자르기는 이 화면의 ✂ 도구로 먼저 - 창 안내에 "집 근처는 먼저 자르세요".
     $("sendBtn").onclick = function () {
         var c = cur();
-        if (!c) return;
+        if (!c || jumpBlocked(c, "routefly 에 보낼")) return;
         RF.submitSheet({ name: c.name, kind: $("kind").value, track: c.track, sent: function (t) { msg("📮 " + t, 9000); } });
     };
     window.addEventListener("resize", function () { if (cur()) profile(); });

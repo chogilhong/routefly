@@ -227,7 +227,7 @@ public class CheckupRound11Test {
         assertTrue(e, e != null && e.contains("곧은 선"));
         String st = read("src/main/webapp/js/studio.js");
         assertTrue("잇기는 멀면 막고 알림", st.contains("if (preview.far) { msg(farText(preview.gap), 9000); return; }") && st.contains("if (far) msg(farText(pl.gap), 9000);"));
-        assertTrue("올리기 전 확인", st.contains("if (jump.m > RF.JOIN_GAP_M) {"));
+        assertTrue("올리기 전 확인(2026-11-22 부터 📮 보내기와 같은 jumpBlocked)", st.contains("if (jump.m <= RF.JOIN_GAP_M) return false;") && st.contains("jumpBlocked(c, \"코스로 올릴\")"));
         assertTrue("길이 없으면 이름 칸 비움", st.contains("if (!c) $(\"name\").value = \"\";"));
         assertTrue("가까운 끝끼리 저절로(뒤집기 · 앞에)", st.contains("var pl = RF.joinPlan(c.track, tracks[+jw.value].track), far = pl.gap > RF.JOIN_GAP_M;") && !st.contains("붙일 길을 뒤집어서(끝 → 처음)"));
     }

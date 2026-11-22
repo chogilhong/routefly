@@ -579,6 +579,11 @@ eq("사진 · 메모마다 출발부터 거리(같은 차례 - 사진 → 지도
     notes: [{ lat: 35.002, lon: 127, photo: "p1" }, { lat: 35.00101, lon: 127, text: "메모" }] }).pois.map(function (p) { return Math.round(p.dist_m); }),
     [Math.round(RF.distM(35, 127, 35.001, 127) + RF.distM(35.001, 127, 35.002, 127)), Math.round(RF.distM(35, 127, 35.001, 127))]);
 eq("거리 재기 타일 줌 - 산길(30m 간격)은 가장 자세히(12), 200km 는 9", [RF.measureZoom(30, 35, 12), RF.measureZoom(660, 35, 12), RF.measureZoom(30, 35, 15)], [12, 9, 14]);
+(function () {   // GPX 편집 "다 그림" 점 채우기 - 곧은 선 한도 넘는 사이는 채우지 않음(2026-11-22 점검: 그린 곧은 선이 검사를 피했음)
+    var near = [[35, 127], [35.001, 127]], far = [[35, 127], [35.004, 127]];   // 111m · 445m
+    eq("200m 안 사이는 30m 마다 채움", RF.densify(near, 30, RF.JOIN_GAP_M).length, 2 + Math.floor(RF.distM(35, 127, 35.001, 127) / 30));
+    eq("200m 넘는 곧은 선은 그대로 - longestJump 가 잡음", [RF.densify(far, 30, RF.JOIN_GAP_M).length, Math.round(RF.longestJump(RF.densify(far, 30, RF.JOIN_GAP_M)).m)], [2, Math.round(RF.distM(35, 127, 35.004, 127))]);
+})();
 eq("cumAscent 5m 넘게 바뀔 때만(배치와 같게)", RF.cumAscent ? RF.cumAscent([100, 102, 104, 106, 103, 110, null, 120]) : null, [0, 0, 0, 6, 6, 6, 6, 20]);
 eq("routeEnds", ["지리산둘레길 가탄-송정", "지리산둘레길 (가탄-송정) · 송정리 → 가탄마을민박", "백두대간 17구간 · 창옥봉에서", "DMZ 평화의 길 4코스 · 농업체험까지", "이름만"].map(function (n) {
     var e = RF.routeEnds(n); return e.from + "|" + e.to; }), ["가탄|송정", "송정리|가탄마을민박", "창옥봉|null", "null|농업체험", "null|null"]);
