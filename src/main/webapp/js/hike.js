@@ -593,11 +593,11 @@
      */
     var measure = { on: false, pts: [], run: 0 };
 
-    /** 지형 타일 한 장에서 그 자리 높이(m) - 못 읽으면 null. */
-    function demElev(lat, lon) {
+    /** 지형 타일(줌 z) 한 장에서 그 자리 높이(m) - 못 읽으면 null. */
+    function demElev(lat, lon, z) {
         var src = demSource();
         if (!src) return Promise.resolve(null);
-        var z = cfg.vworldKey ? 12 : 15, n = Math.pow(2, z), r = lat * Math.PI / 180;
+        var n = Math.pow(2, z), r = lat * Math.PI / 180;
         var x = (lon + 180) / 360 * n, y = (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * n, tx = Math.floor(x), ty = Math.floor(y);
         return src.getDemTile(z, tx, ty).then(function (t) {
             var px = Math.min(t.width - 1, Math.floor((x - tx) * t.width)), py = Math.min(t.height - 1, Math.floor((y - ty) * t.height)), v = t.data[py * t.width + px];
@@ -622,9 +622,10 @@
                 + (m.up == null ? T("오르막 · 내리막 - 지형 높이를 읽는 중…", "Climb · descent - reading terrain…")
                     : T("오르막 ", "Climb ") + Math.round(m.up) + "m · " + T("내리막 ", "Descent ") + Math.round(m.down) + "m" + T("(지형 자료 · 참고용)", " (terrain data, rough)"));
         }
-        var smp = RF.measureSamples(pts, 30, 300);
+        var smp = RF.measureSamples(pts, 30, 300), path = RF.measureSum(pts, []).path;
+        var z = RF.measureZoom(Math.max(30, path / 300), pts[0].lat, cfg.vworldKey ? 12 : 15);   // 긴 거리는 덜 자세한 타일(받는 장 수를 줄임)
         show(RF.measureSum(pts, []));
-        Promise.all(smp.map(function (p) { return demElev(p.lat, p.lon); })).then(function (eles) {
+        Promise.all(smp.map(function (p) { return demElev(p.lat, p.lon, z); })).then(function (eles) {
             if (run !== measure.run || !measure.on) return;   // 그 사이 점을 더 찍었거나 껐음
             var m = RF.measureSum(pts, eles);
             if (m.up == null) box.textContent = box.textContent.split("\n")[0] + "\n" + T("오르막 - 지형 높이를 못 읽었습니다(오프라인 등).", "Climb - could not read terrain (offline?).");
@@ -2397,22 +2398,7 @@
         $("recViewMap").disabled = rc.lat.length < 2;
         $("recViewCard").disabled = rc.lat.length < 2;
         $("recViewCard").onclick = function () { shareCard(rec); };
-        $("recViewMap").onclick = function () {
-            if (!mapReady) { toast(T("지도가 아직 준비되지 않았습니다.", "The map is not ready yet."), 2500); return; }
-            mapReady.then(function () {
-                map.getSource("recTrack").setData(RF.recordLines(rc));   // 이어 걸은 곳 실선 · 끊긴 구간 점선
-                var nGap = rc.gap.filter(Boolean).length;
-                if (nGap) toast(T("보라 점선 " + nGap + "곳은 위치가 끊긴 구간입니다(화면 꺼짐 · 신호 없음) - 그 사이는 기록이 없어 곧게 이었습니다.", "The " + nGap + " dashed purple part(s) are gaps where location stopped (screen off / no signal) - drawn straight."), 7000);
-                var b = new maplibregl.LngLatBounds();
-                for (var i = 0; i < rc.lon.length; i++) b.extend([rc.lon[i], rc.lat[i]]);
-                setFollow(false);
-                map.fitBounds(b, { padding: 50, duration: 0, maxZoom: 16 });
-                $("recClear").style.display = "block";
-            });
-            $("recView").style.display = "none";
-            $("recSheet").style.display = "none";
-            hidePick();   // 코스를 고르기 전(내 기록으로 바로 온 때)에도 지도가 보이게
-        };
+        $("recViewMap").onclick = function () { recordOnMap(rc, null); };
         $("recViewClose").onclick = function () { $("recView").style.display = "none"; };
     }
 
@@ -2568,18 +2554,64 @@
         }).then(function () { btn.disabled = false; });
     });
 
-    /** 기록 하나의 사진 · 메모 보기. 사진을 누르면 크게(새 창). */
+    /**
+     * 기록 선을 지도에(보라 - 이어 걸은 곳 실선 · 끊긴 구간 점선). note 가 있으면 그 사진 · 메모 자리에 표시를 두고 그리로(2026-11-22 홍TV님 - 램블러처럼
+     * 사진 → 지도 자리 · 출발부터 거리 · 고도), 없으면 기록 전체가 보이게. 📒 내 기록 "🗺 지도" · 사진 · 메모 "🗺 지도에서" 가 함께 씀.
+     */
+    var noteMark = null;
+    function recordOnMap(rc, note) {
+        if (!mapReady) { toast(T("지도가 아직 준비되지 않았습니다.", "The map is not ready yet."), 2500); return; }
+        mapReady.then(function () {
+            map.getSource("recTrack").setData(RF.recordLines(rc));   // 이어 걸은 곳 실선 · 끊긴 구간 점선
+            if (noteMark) { noteMark.remove(); noteMark = null; }
+            setFollow(false);
+            if (note) {
+                var e = document.createElement("div");
+                e.className = "noteMark";
+                e.textContent = note.photo ? "📷" : "📝";
+                e.setAttribute("aria-label", note.label);
+                noteMark = marker(e, [note.lon, note.lat]).setPopup(new maplibregl.Popup({ offset: 16, closeButton: false }).setText(note.label)).togglePopup();
+                map.jumpTo({ center: [note.lon, note.lat], zoom: Math.max(map.getZoom(), 15) });
+            } else {
+                var nGap = rc.gap.filter(Boolean).length;
+                if (nGap) toast(T("보라 점선 " + nGap + "곳은 위치가 끊긴 구간입니다(화면 꺼짐 · 신호 없음) - 그 사이는 기록이 없어 곧게 이었습니다.", "The " + nGap + " dashed purple part(s) are gaps where location stopped (screen off / no signal) - drawn straight."), 7000);
+                var b = new maplibregl.LngLatBounds();
+                for (var i = 0; i < rc.lon.length; i++) b.extend([rc.lon[i], rc.lat[i]]);
+                map.fitBounds(b, { padding: 50, duration: 0, maxZoom: 16 });
+            }
+            $("recClear").style.display = "block";
+        });
+        $("recView").style.display = "none";
+        $("recSheet").style.display = "none";
+        $("notesSheet").style.display = "none";
+        hidePick();   // 코스를 고르기 전(내 기록으로 바로 온 때)에도 지도가 보이게
+    }
+
+    /** 기록 하나의 사진 · 메모 보기. 사진을 누르면 크게(새 창), "🗺 지도에서" 는 그 자리(출발부터 거리 · 해발)를 지도에. */
     function showNotes(rec) {
-        var box = $("notesList"), urls = [];
+        var box = $("notesList"), urls = [], rc = RF.recordCourse(rec);
         box.innerHTML = "";
         $("notesTitle").textContent = "📝 " + NM(rec.name);
-        rec.notes.forEach(function (n) {
+        rec.notes.forEach(function (n, i) {
             var row = document.createElement("div"), t = document.createElement("div"), sm = document.createElement("small");
             row.className = "noteRow";
             t.className = "nt";
-            sm.textContent = clock(n.t) + (n.ele != null ? T(" · 해발 ", " · elev. ") + num(n.ele) + "m" : "");
+            var at = rc.pois[i] && rc.lat.length > 1 ? rc.pois[i].dist_m : null;   // recordCourse 가 사진 · 메모마다 가장 가까운 기록 점의 거리(같은 차례)
+            var info = clock(n.t) + (at != null ? T(" · 출발부터 ", " · from start ") + km(at) + "km" : "") + (n.ele != null ? T(" · 해발 ", " · elev. ") + num(n.ele) + "m" : "");
+            sm.textContent = info;
             t.appendChild(sm);
             t.appendChild(document.createTextNode(n.text || ""));
+            if (rc.lat.length > 1 && n.lat != null && n.lon != null) {
+                var go = document.createElement("button");
+                go.type = "button";
+                go.className = "noteGo";
+                go.textContent = T("🗺 지도에서", "🗺 On map");
+                go.onclick = function () {
+                    urls.forEach(function (u) { URL.revokeObjectURL(u); });
+                    recordOnMap(rc, { lat: n.lat, lon: n.lon, photo: !!n.photo, label: (n.photo ? "📷 " : "📝 ") + info + (n.text ? "\n" + n.text : "") });
+                };
+                t.appendChild(go);
+            }
             if (n.photo) {
                 var img = document.createElement("img");
                 img.alt = T("사진", "Photo");
@@ -4555,6 +4587,7 @@
     $("backupFile").addEventListener("change", function () { if (this.files && this.files[0]) backupLoad(this.files[0]); });
     function clearRecLine() {
         if (mapReady) mapReady.then(function () { map.getSource("recTrack").setData({ type: "FeatureCollection", features: [] }); });
+        if (noteMark) { noteMark.remove(); noteMark = null; }
         $("recClear").style.display = "none";
     }
     $("recClear").addEventListener("click", function () {

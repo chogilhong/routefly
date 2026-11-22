@@ -24,6 +24,8 @@ public class HikeMeasureTest {
         // 켠 때만 누른 자리를 점으로 - 지도 클릭은 거리 재기만 씀
         assertTrue(js.contains("if (!measure.on) return;\n                    measure.pts.push({ lat: e.lngLat.lat, lon: e.lngLat.lng });"));
         assertTrue("높이는 바탕 음영과 같은 지형 타일 · 약 30m 마다 300점까지", js.contains("RF.measureSamples(pts, 30, 300)") && js.contains("src.getDemTile(z, tx, ty)"));
+        assertTrue("긴 거리는 덜 자세한 타일(받는 장 수를 줄임)", js.contains("var z = RF.measureZoom(Math.max(30, path / 300), pts[0].lat, cfg.vworldKey ? 12 : 15);"));
+        assertTrue("칸은 지도 위쪽 - 낮은 지도 가운데를 가리지 않게", html.contains("#measureBox { position:absolute; left:66px; right:64px; top:10px;"));
         assertTrue("늦게 온 높이는 버림", js.contains("if (run !== measure.run || !measure.on) return;"));
         assertTrue("누른 자리로 지도가 옮겨 가지 않게", js.contains("if (measure.on) setFollow(false);"));
         assertTrue(js.contains("$(\"measureUndo\").addEventListener(\"click\", function () { measure.pts.pop(); drawMeasure(); });"));

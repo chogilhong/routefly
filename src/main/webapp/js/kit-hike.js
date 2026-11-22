@@ -1589,6 +1589,16 @@
     }
 
     /**
+     * 순수 함수 - 거리 재기 높이를 읽을 지형 타일 줌: 타일 한 칸(256px 의 한 점)이 나눈 점 간격(stepM)의 절반쯤 되는 가장 낮은 줌, maxZ 까지.
+     * 긴 거리(나라 전체에서 200km)를 재도 타일 수백 장을 받지 않게(2026-11-22 화면 확인 - z12 타일을 점마다 받아 오르막이 한참 안 나왔음).
+     */
+    function measureZoom(stepM, lat, maxZ) {
+        var px = 40075016.7 * Math.cos(lat * Math.PI / 180) / 256;   // 줌 0 의 한 점(m)
+        var z = Math.ceil(Math.log(px / Math.max(1, stepM / 2)) / Math.LN2);
+        return Math.max(0, Math.min(maxZ, z));
+    }
+
+    /**
      * 순수 함수 - 거리 재기 값: line 처음 → 끝 직선(m), path 찍은 차례대로 이은 거리(m), up 이은 길의 오르막(m - 나눈 점 높이 eles 로 cumAscent, 5m 넘게 바뀔 때만 -
      * 코스 오르막과 같은 셈. 높이를 하나도 모르면 null), down 내리막(같은 셈을 거꾸로).
      */
@@ -4127,6 +4137,7 @@
         moveStats: moveStats,
         speedProfile: speedProfile,
         measureSamples: measureSamples,
+        measureZoom: measureZoom,
         measureSum: measureSum,
         routeEnds: routeEnds,
         routeFlips: routeFlips,

@@ -297,11 +297,11 @@ html.rfwait body { visibility:hidden; }   /* 앱을 처음 열 때 서버에 닿
 #contourBtn { position:absolute; right:10px; bottom:118px; z-index:2; width:44px; height:44px; border-radius:50%; border:0; background:#fff;
               font-size:20px; line-height:1; box-shadow:0 2px 8px rgba(0,0,0,0.45); opacity:0.75; }
 #contourBtn.on { opacity:1; box-shadow:0 0 0 3px #38d9ea, 0 2px 8px rgba(0,0,0,0.45); }
-/* 거리 재기(2026-11-22 홍TV님 - 램블러는 유료 기능) - 〰️ 위, 켜면 지도를 눌러 점을 찍고 아래 칸에 직선 · 이은 거리 · 오르막 */
+/* 거리 재기(2026-11-22 홍TV님 - 램블러는 유료 기능) - 〰️ 위, 켜면 지도를 눌러 점을 찍고 위 칸(나침반 오른쪽 · 출처 ⓘ 왼쪽 - 아래에 두면 낮은 지도 가운데를 가림)에 직선 · 이은 거리 · 오르막 */
 #measureBtn { position:absolute; right:10px; bottom:170px; z-index:2; width:44px; height:44px; border-radius:50%; border:0; background:#fff;
               font-size:20px; line-height:1; box-shadow:0 2px 8px rgba(0,0,0,0.45); opacity:0.75; }
 #measureBtn.on { opacity:1; box-shadow:0 0 0 3px #ffd43b, 0 2px 8px rgba(0,0,0,0.45); }
-#measureBox { position:absolute; left:10px; right:64px; bottom:66px; z-index:3; display:none; padding:8px 10px; border-radius:10px; background:rgba(20,24,30,0.92);
+#measureBox { position:absolute; left:66px; right:64px; top:10px; z-index:3; display:none; padding:8px 10px; border-radius:10px; background:rgba(20,24,30,0.92);
               color:#fff; font-size:14px; line-height:1.5; box-shadow:0 2px 8px rgba(0,0,0,0.45); }
 #measureText { white-space:pre-line; }
 #measureBox button { margin:6px 6px 0 0; height:34px; padding:0 12px; border-radius:8px; border:0; background:#ffd43b; color:#111; font-weight:bold; font-size:13px; }
@@ -322,6 +322,9 @@ html.rfwait body { visibility:hidden; }   /* 앱을 처음 열 때 서버에 닿
 .noteRow img { width:84px; height:84px; object-fit:cover; border-radius:8px; flex:none; cursor:pointer; }
 .noteRow .nt { flex:1; min-width:0; font-size:14px; line-height:1.5; white-space:pre-wrap; word-break:break-word; }
 .noteRow .nt small { display:block; color:var(--dim); font-size:12px; }
+.noteRow .noteGo { display:block; margin-top:6px; height:32px; padding:0 10px; border-radius:8px; border:0; background:#c77dff; color:#1b0b2a; font-weight:bold; font-size:13px; }
+.noteMark { font-size:22px; line-height:1; filter:drop-shadow(0 1px 2px rgba(0,0,0,0.7)); }
+.maplibregl-popup-content { white-space:pre-line; color:#111; font-size:13px; }
 #notesSheet { z-index:31; }
 #mapSaved { position:absolute; left:10px; bottom:12px; z-index:2; padding:4px 10px; border-radius:12px; background:rgba(17,22,29,0.85); color:#d0d7de; font-size:12px; pointer-events:none; }
 #mapSaved.no { color:#ffd8a8; }

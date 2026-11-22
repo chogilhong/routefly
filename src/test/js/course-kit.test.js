@@ -575,6 +575,10 @@ eq("노선 안내도 에서 · 까지", RF.routePlaces([{ course_id: "a", name: 
 eq("기록 속도 그래프 - 앞뒤 1분 사이 거리 / 시간(km/h)", RF.speedProfile({ dist: [0, 100, 200, 200, 200], time: [0, 60000, 120000, 180000, 240000] }), [6, 6, 3, 0, 0]);
 eq("기록 속도 그래프 - 시각이 없으면 null", RF.speedProfile({ dist: [0, 100], time: [null, null] }), null);
 eq("recordCourse 가 점마다 시각을 남김", RF.recordCourse({ name: "t", track: [[35, 127, 1000, 100], [35.001, 127, 61000, 110]] }).time, [1000, 61000]);
+eq("사진 · 메모마다 출발부터 거리(같은 차례 - 사진 → 지도에서)", RF.recordCourse({ name: "t", track: [[35, 127, 0, 100], [35.001, 127, 60000, 110], [35.002, 127, 120000, 120]],
+    notes: [{ lat: 35.002, lon: 127, photo: "p1" }, { lat: 35.00101, lon: 127, text: "메모" }] }).pois.map(function (p) { return Math.round(p.dist_m); }),
+    [Math.round(RF.distM(35, 127, 35.001, 127) + RF.distM(35.001, 127, 35.002, 127)), Math.round(RF.distM(35, 127, 35.001, 127))]);
+eq("거리 재기 타일 줌 - 산길(30m 간격)은 가장 자세히(12), 200km 는 9", [RF.measureZoom(30, 35, 12), RF.measureZoom(660, 35, 12), RF.measureZoom(30, 35, 15)], [12, 9, 14]);
 eq("cumAscent 5m 넘게 바뀔 때만(배치와 같게)", RF.cumAscent ? RF.cumAscent([100, 102, 104, 106, 103, 110, null, 120]) : null, [0, 0, 0, 6, 6, 6, 6, 20]);
 eq("routeEnds", ["지리산둘레길 가탄-송정", "지리산둘레길 (가탄-송정) · 송정리 → 가탄마을민박", "백두대간 17구간 · 창옥봉에서", "DMZ 평화의 길 4코스 · 농업체험까지", "이름만"].map(function (n) {
     var e = RF.routeEnds(n); return e.from + "|" + e.to; }), ["가탄|송정", "송정리|가탄마을민박", "창옥봉|null", "null|농업체험", "null|null"]);
