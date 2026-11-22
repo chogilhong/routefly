@@ -307,7 +307,7 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
     (function () {   // 기록 보기 다듬기(2026-11-22 홍TV님 1 ~ 3)
         var vs = RF.vectorStyle({ basemapUrl: "https://x/k.pmtiles", demUrl: "https://d/{z}/{x}/{y}.png" }, "https://x/f/");
         var ids = vs.layers.map(function (l) { return l.id; });
-        eq("봉우리 - 지나간 봉우리 층은 맨 뒤(글자 자리를 먼저), 처음에는 둘 다 빈 목록", [ids[ids.length - 1], JSON.stringify(vs.layers[ids.indexOf("peak-on")].filter), JSON.stringify(vs.layers[ids.indexOf("peak")].filter)],
+        eq("봉우리 - 지나간 봉우리 층은 늘 보이는 표시(rf-peak · rf-hut) 바로 앞, 처음에는 둘 다 빈 목록", [ids[ids.indexOf("rf-peak") - 1], JSON.stringify(vs.layers[ids.indexOf("peak-on")].filter), JSON.stringify(vs.layers[ids.indexOf("peak")].filter)],
             ["peak-on", JSON.stringify(RF.peakOnFilter([], true)), JSON.stringify(RF.peakOnFilter([], false))]);
         eq("봉우리 - 거름 모양", RF.peakOnFilter(["천왕봉|1915"], true), ["in", ["concat", ["to-string", ["get", "name"]], "|", ["to-string", ["get", "ele"]]], ["literal", ["천왕봉|1915"]]]);
         eq("봉우리 - 아닌 쪽은 ! 로 감쌈", RF.peakOnFilter(["a|1"], false)[0], "!");
@@ -329,6 +329,13 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
                 ["all", ["==", ["get", "class"], "attraction"], ["==", ["get", "subclass"], "viewpoint"]], "rf-view", ["==", ["get", "class"], "drinking_water"], "rf-water"]), true]);
         eq("대피소 · 절 등 - 아이콘이 없는 것(교회 · 식당 등)은 안 그림", [icon[icon.length - 1], JSON.stringify(poi.filter)], ["", JSON.stringify(["!=", icon, ""])]);
         eq("표시 숨기기 - 숨긴 아이콘만 거름에 더함", [RF.poiShowFilter("I", []), RF.poiShowFilter("I", ["rf-temple"])], [["!=", "I", ""], ["all", ["!=", "I", ""], ["!", ["in", "I", ["literal", ["rf-temple"]]]]]]);
+        eq("늘 보이는 표시 - 맨 뒤 두 층(글자 자리를 먼저), 멀리서도(대피소 8 · 봉우리 7)", [ids.slice(-2), vs.layers[ids.indexOf("rf-peak")].minzoom, vs.layers[ids.indexOf("rf-hut")].minzoom, vs.sources.marks.type], [["rf-peak", "rf-hut"], 7, 8, "geojson"]);
+        var fm = RF.famousMarks([{ id: "지리산", summit: "천왕봉", lat: 35.33, lon: 127.73, height: 1950 }, { id: "없는산", name: "없는산", lat: 36, lon: 128 }, { id: "x" }],
+            { "지리산": 1915 }, [{ name: "장터목대피소", lat: 35.3325, lon: 127.71 }, { name: "자리없음" }]);
+        eq("늘 보이는 표시 - 공식 높이만(GPS height 안 씀), 높이 없으면 이름만, 자리 없는 것 뺌", fm.features.map(function (f) { return [f.properties.kind, f.properties.label, f.geometry.coordinates]; }),
+            [["hut", "장터목대피소", [127.71, 35.3325]], ["peak", "▲ 천왕봉\n1915m", [127.73, 35.33]], ["peak", "▲ 없는산", [128, 36]]]);
+        eq("봉우리 - 겹치는 OSM 봉우리(drop)는 어느 층에도 안 그림", [RF.peakOnFilter(["a|1"], true, ["b|2"])[0], JSON.stringify(RF.peakOnFilter(["a|1"], false, ["b|2"])[1][2])], ["all", JSON.stringify(["literal", ["a|1", "b|2"]])]);
+        eq("대피소 - 공단 대피소와 겹치는 OSM 대피소는 이름으로 뺌", RF.poiShowFilter("I", [], ["로터리 대피소"]), ["all", ["!=", "I", ""], ["!", ["in", ["get", "name"], ["literal", ["로터리 대피소"]]]]]);
         eq("등고선 - 간격 · 밝은 바탕은 갈색", [RF.CONTOUR_STEPS[13], RF.contourPaint(true).color, RF.contourPaint(false).color], [[20, 100], "#8a5a2b", "#ffffff"]);
     })();
     eq("트립 - trip.com 이 아니면 null", [RF.tripLink("https://www.agoda.com/x", 1, 2, "a"), RF.tripLink("https://kr.trip.com.evil.kr/x", 1, 2, "a"), RF.tripLink("https://kr.trip.com/", NaN, 2, "a")], [null, null, null]);

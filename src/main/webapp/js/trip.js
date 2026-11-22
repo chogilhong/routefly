@@ -15,7 +15,9 @@
     if (EN) { document.documentElement.lang = "en"; document.title = "routefly - View record"; RF.applyEn(document); }
 
     var map = null, cfgP = null, marks = [], cards = [], urls = [], items = [], pick = -1, prof = null, rc = null;
-    var vector = false, peakKeys = [], PEAK_NEAR_M = 150;   // 우리 지도일 때 기록이 지나간 봉우리(150m 안)
+    var vector = false, peakKeys = [], PEAK_NEAR_M = 150;
+    // 공단 대피소 · 100대 명산 정상(늘 보임, RF.famousMarks)과 겹치는 OSM 것(300m 안)은 숨김 - 두 번 그리지 않게
+    var fam = null, famGj = null, famSet = false, dropPeaks = [], dropHuts = [], SAME_M = 300;   // 우리 지도일 때 기록이 지나간 봉우리(150m 안)
     // 표시별 보이기 · 숨기기(2026-11-22 홍TV님 "마커 별로 숨기고 보이고") - 이 화면 동안만(저장하지 않음)
     var KINDS = [["photo", "📷", "사진", "Photos"], ["memo", "📝", "메모", "Notes"], ["rf-hut", "🏠", "대피소 · 산장", "Shelters · huts"],
         ["rf-temple", "卍", "절", "Temples"], ["rf-view", "👁", "전망대", "Viewpoints"], ["rf-water", "💧", "약수터", "Drinking water"]];
@@ -170,8 +172,9 @@
     function applyKinds() {
         items.forEach(function (it) { if (it.mark) it.mark.getElement().style.display = hidden[it.n.photo ? "photo" : "memo"] ? "none" : ""; });
         if (map && map.getLayer("poi-hike")) {
-            map.setFilter("poi-hike", RF.poiShowFilter(map.getLayoutProperty("poi-hike", "icon-image"), Object.keys(hidden).filter(function (k) { return hidden[k] && /^rf-/.test(k); })));
+            map.setFilter("poi-hike", RF.poiShowFilter(map.getLayoutProperty("poi-hike", "icon-image"), Object.keys(hidden).filter(function (k) { return hidden[k] && /^rf-/.test(k); }), dropHuts));
         }
+        if (map && map.getLayer("rf-hut")) map.setLayoutProperty("rf-hut", "visibility", hidden["rf-hut"] ? "none" : "visible");   // 🏠 단추는 공단 대피소도
     }
 
     /** 첫 글자 층 id(없으면 undefined - 맨 위에 그음). */
@@ -183,16 +186,52 @@
 
     /** 지금 받아 둔 지도 조각에서 기록이 지나간 봉우리를 찾아 "peak-on"(크게)으로 - 새 조각이 올 때마다(idle) 더함. */
     function markPeaks() {
-        if (!vector || !rc || !map.getLayer("peak-on")) return;
-        var feats = map.querySourceFeatures("omt", { sourceLayer: "mountain_peak" }).map(function (f) {
-            var g = f.geometry && f.geometry.coordinates;
-            return g ? { name: f.properties.name, ele: f.properties.ele, lon: g[0], lat: g[1] } : null;
-        });
-        var add = RF.peaksNear(feats, rc.lat, rc.lon, PEAK_NEAR_M).filter(function (k) { return peakKeys.indexOf(k) < 0; });
-        if (!add.length) return;
-        peakKeys = peakKeys.concat(add);
-        map.setFilter("peak-on", RF.peakOnFilter(peakKeys, true));
-        map.setFilter("peak", RF.peakOnFilter(peakKeys, false));
+        if (!vector || !map.getLayer("peak-on")) return;
+        putMarks();
+        var pts = function (layer) {
+            return map.querySourceFeatures("omt", { sourceLayer: layer }).map(function (f) {
+                var g = f.geometry && f.geometry.coordinates;
+                return g ? { name: f.properties.name, ele: f.properties.ele, cls: f.properties["class"], sub: f.properties.subclass, lon: g[0], lat: g[1] } : null;
+            }).filter(Boolean);
+        };
+        var feats = pts("mountain_peak"), more = function (have, add) { return add.filter(function (k) { return have.indexOf(k) < 0; }); };
+        var addOn = rc ? more(peakKeys, RF.peaksNear(feats, rc.lat, rc.lon, PEAK_NEAR_M)) : [], addDrop = [], addHut = [];
+        if (fam) {
+            fam.peaks.forEach(function (p) {   // 같은 이름의 OSM 봉우리만(옆 봉우리는 그대로)
+                addDrop = addDrop.concat(more(dropPeaks.concat(addDrop), RF.peaksNear(feats.filter(function (f) { return f.name === p.name; }), [p.lat], [p.lon], SAME_M)));
+            });
+            var huts = pts("poi").filter(function (f) { return (f.cls === "lodging" && f.sub === "alpine_hut") || f.cls === "shelter"; });   // 이름이 달라도(로타리 · 로터리) 자리로
+            addHut = more(dropHuts, RF.peaksNear(huts, fam.huts.map(function (h) { return h.lat; }), fam.huts.map(function (h) { return h.lon; }), SAME_M)
+                .map(function (k) { return k.slice(0, k.lastIndexOf("|")); }));
+        }
+        if (addOn.length || addDrop.length) {
+            peakKeys = peakKeys.concat(addOn); dropPeaks = dropPeaks.concat(addDrop);
+            map.setFilter("peak-on", RF.peakOnFilter(peakKeys, true, dropPeaks));
+            map.setFilter("peak", RF.peakOnFilter(peakKeys, false, dropPeaks));
+        }
+        if (addHut.length) { dropHuts = dropHuts.concat(addHut); applyKinds(); }
+    }
+
+    /** 받아 둔 표시를 지도 marks 에 한 번(지도 모양이 준비된 뒤 - 자료가 먼저 오면 다음 idle 에). */
+    function putMarks() {
+        if (famSet || !famGj || !map.getSource("marks")) return;
+        famSet = true;
+        map.getSource("marks").setData(famGj);
+    }
+
+    /**
+     * 공단 대피소 · 100대 명산 정상 자료를 지도를 만들 때 바로 받음(우리 지도일 때 한 번). 못 받으면 그냥 OSM 것만.
+     * 지도 "load" 는 모든 조각(지형 등)을 받은 뒤라 늦어 쓰지 않음(2026-11-22: 늦게 받으면 멀리 본 첫 화면에 안 나왔음).
+     */
+    function loadMarks() {
+        var j = function (u) { return fetch(u).then(function (r) { return r.ok ? r.json() : null; }); };
+        Promise.all([j("data/mountains100.json"), j("data/peak-elev.json"), j("data/knps-shelters.json")]).then(function (d) {
+            var gj = RF.famousMarks(d[0] && d[0].peaks, d[1] && d[1].elev, d[2] && d[2].shelters);
+            fam = { peaks: [], huts: [] };
+            gj.features.forEach(function (f) { var c = f.geometry.coordinates; fam[f.properties.kind === "hut" ? "huts" : "peaks"].push({ name: f.properties.name, lon: c[0], lat: c[1] }); });
+            famGj = gj;
+            if (map.isStyleLoaded()) markPeaks();
+        }).catch(function () { /* 자료가 없으면 OSM 것만 */ });
     }
 
     /**
@@ -308,6 +347,7 @@
         var fold = function () { var at = document.querySelector(".maplibregl-ctrl-attrib"); if (at) at.classList.remove("maplibregl-compact-show"); };
         fold();
         map.once("load", function () { fold(); setContour(contourOn); });
+        if (vector) loadMarks();
         map.on("idle", markPeaks);
         map.on("styleimagemissing", function (e) { iconImage(e.id); });   // 대피소 · 절 등 아이콘(우리 지도 poi-hike)   // 지도 조각이 더 오면 지나간 봉우리를 더 찾음
         return map;
