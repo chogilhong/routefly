@@ -276,9 +276,11 @@
         return { type: "FeatureCollection", features: out };
     }
 
-    /** 순수 함수 - 구간 한 줄 글 "4.2 km · 1:45 · ↑520 ↓120 m"(없는 값 · 0 은 뺌). p = trackSegments 의 properties. */
+    /** 순수 함수 - 구간 한 줄 글 "4.24 km · 1시간 45분 · ↑520 ↓120 m"(없는 값 · 0 은 뺌). p = trackSegments 의 properties. */
     function segText(p) {
-        var mins = p.ms != null ? Math.round(p.ms / 60000) : null, t = mins != null ? Math.floor(mins / 60) + ":" + ("0" + mins % 60).slice(-2) : null;
+        // 걸린 시간은 "32분" · "4시간 19분"(2026-11-23 홍TV님 "0:32 는 뭐야?" - 시:분이 헷갈림)
+        var mins = p.ms != null ? Math.round(p.ms / 60000) : null;
+        var t = mins == null ? null : mins < 60 ? mins + tr("분", "m") : Math.floor(mins / 60) + tr("시간", "h") + (mins % 60 ? " " + mins % 60 + tr("분", "m") : "");
         var ud = [p.up ? "↑" + num(p.up) : null, p.down ? "↓" + num(p.down) : null].filter(Boolean).join(" ");   // 0 · 모름은 뺌
         ud = ud ? ud + " m" : null;
         return [km(p.m) + " km", t, ud].filter(Boolean).join(" · ");
@@ -1041,6 +1043,7 @@
         famousMarks: famousMarks,
         trackSegments: trackSegments,
         segText: segText,
+        SEG_COLORS: SEG_COLORS,
         peakOnFilter: peakOnFilter,
         profile: profile,
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },

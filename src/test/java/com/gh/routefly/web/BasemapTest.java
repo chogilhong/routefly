@@ -61,7 +61,9 @@ public class BasemapTest {
             js.contains("map.once(\"style.load\", function () { styleOk = true;") && js.contains("whenStyle(draw);") && js.contains("whenStyle(applyKinds);")
             && !js.contains("map.loaded()") && !js.contains("once(\"load\""));
         assertTrue("말풍선은 ✕ · 빈 곳 · Esc 로 닫힘(2026-11-23 PC)", js.contains("closeButton: true, closeOnClick: true") && js.contains("if (e.key === \"Escape\" && popup"));
-        assertTrue("구간 글 · 구간 표(2026-11-23 홍TV님 1 · 2)", js.contains("return { type: \"Feature\", properties: { t: RF.segText(f.properties), color: f.properties.color }")
+        assertTrue("구간 글 · 구간 표(2026-11-23 홍TV님 1 · 2)", js.contains("properties: { t: RF.segText(f.properties), color: f.properties.color, pill: \"rf-pill-\" + RF.SEG_COLORS.indexOf(f.properties.color) }")
+            && js.contains("\"icon-image\": [\"get\", \"pill\"], \"icon-text-fit\": \"both\"") && js.contains("if (/^rf-pill-\\d+$/.test(id)) { pillImage(id); return; }")
+            && js.contains("map.getLayer(\"peak-on\") ? \"peak-on\" : undefined);")
             && js.contains("segList(segs);") && js.contains("$(\"side\").insertBefore(box, $(\"side\").firstChild);") && js.contains("map.fitBounds(bb, { padding: fitPad(),") && html.contains("#segs .seg {")
             && js.contains("kb = k ? m.bottom - k.getBoundingClientRect().top + 12 : 0;"));
         assertTrue("OSM 출처는 한 번만 - 우리 지도는 바탕 출처에 이미 있음(2026-11-22 PC)", js.contains("customAttribution: (style ? \"\" : \"© OpenStreetMap contributors | \") + "));
