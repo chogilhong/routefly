@@ -201,3 +201,7 @@ course.submitDir=
 # GPX 편집 "길 따라 잇기" 가 쓰는 우리 서버 OSM 걷는 길(2026-11-22, /api/walk-ways - WalkWaysServlet).
 # routefly-batch 의 osm.webDir 과 같은 경로(예: /app/routefly/batch/data/osm-web). 비우면 화면이 예전처럼 공용 Overpass 로 묻습니다.
 walk.dir=
+
+# 공개 기록 링크(2026-11-22) - 따라가기 🎬 영상용 → 🔗 공개 기록 링크로 본인이 올린 길 모양(처음 · 끝 300m 뺌, 시각 없음) · 이름 · 숫자(.json)를 둘 폴더.
+# 비우면 /opt/routefly/record-share(없으면 "지금은 만들 수 없음" 으로 멈춤). 1년 지나면 저절로 지움. sudo install -d -o tomcat -g tomcat -m 0750 /opt/routefly/record-share
+record.shareDir=

@@ -1760,12 +1760,17 @@
     function shareCanvas(cv, name, text, url) {
         cv.toBlob(function (blob) {
             if (!blob) { toast(T("카드를 만들지 못했습니다.", "Could not make the card."), 3000); return; }
+            shareBlob(blob, name, text, url);
+        }, "image/png");
+    }
+    /** 파일(그림 · 영상)을 공유 창으로 - 앱은 공유 창, 브라우저는 navigator.share, 안 되면 내려받기(2026-11-22 영상용 그림 · 영상도). */
+    function shareBlob(blob, name, text, url) {
             if (FS && SHARE) {
                 blobToBase64(blob).then(function (b64) { return nativeShareFile(name, b64, url ? text + "\n" + url : text); })
                     .catch(function (e) { if (!/cancel/i.test(String(e && e.message || e))) toast(T("카드를 보내지 못했습니다.", "Could not send the card."), 4000); });
                 return;
             }
-            var file = new File([blob], name, { type: "image/png" });
+            var file = new File([blob], name, { type: blob.type || "image/png" });
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
                 navigator.share(url ? { files: [file], text: text, url: url } : { files: [file], text: text }).catch(function (e) {
                     if (e && e.name === "NotAllowedError") toast(T("카드가 준비됐습니다. 한 번 더 눌러 주세요.", "The card is ready. Tap once more."), 4000);
@@ -1780,7 +1785,6 @@
             if (url) (navigator.clipboard ? navigator.clipboard.writeText(text + "\n" + url) : Promise.reject()).then(function () {
                 toast(T("카드 그림을 내려받고 글 · 링크를 복사했습니다. 카톡에 그림을 올리고 붙여 넣으세요.", "Card image downloaded and text · link copied - paste it with the image."), 6000);
             }).catch(function () { hAskText(T("카드 그림을 내려받았습니다. 글 · 링크를 길게 눌러 복사하세요.", "Card image downloaded. Long-press to copy the text and link."), text + " " + url, { ok: T("닫기", "Close") }); });
-        }, "image/png");
     }
 
     /** 내려받기(공유 창이 없는 컴퓨터 브라우저 등). */
@@ -2450,8 +2454,239 @@
         $("recViewMap").disabled = rc.lat.length < 2;
         $("recViewCard").disabled = rc.lat.length < 2;
         $("recViewCard").onclick = function () { shareCard(rec); };
-        $("recViewMap").onclick = function () { recordOnMap(rc, null); };
+        $("recViewMap").onclick = function () { recordOnMap(rc, null, rec.notes); };
+        $("recViewPhotos").disabled = rc.lat.length < 2 || !(rec.track || []).some(function (p) { return typeof p[2] === "number"; });
+        $("recViewPhotos").onclick = function () { photoAddRec = rec; $("recPhotoFiles").value = ""; $("recPhotoFiles").click(); };
         $("recViewClose").onclick = function () { $("recView").style.display = "none"; };
+        $("recViewVideo").disabled = rc.lat.length < 2;
+        $("recViewVideo").onclick = function () { vidOpen(rec); };
+    }
+
+    // ------------------------------------------------------------------ 🎬 영상용(2026-11-22 홍TV님 - 유튜버들이 앱 화면 · 코스를 영상에 많이 씀)
+    // 기록에서 유튜브 · 쇼츠에 겹칠 그림(투명 PNG) · 움직이는 고도 영상(초록 바탕) · 3D 비행 영상 · 공개 기록 링크. 모두 처음 · 끝 VID_TRIM_M 을 잘라(집 · 주차한 곳) 씀.
+    // 지도 그림을 쓰지 않는 그림 · 고도 영상에는 지도 출처가 필요 없고, 3D 비행 영상은 출처 줄을 영상에 늘 넣음(app.js videoRecord). 위성은 쓰지 않음.
+    var VID_TRIM_M = 300, VID_SECS = 12, vidRec = null;
+    function vidOpen(rec) {
+        vidRec = rec;
+        $("vidPub").textContent = pubOf(rec) ? T("🔗 공개 기록 링크 보내기 · 끄기", "🔗 Share · turn off public link") : T("🔗 공개 기록 링크 만들기", "🔗 Make a public record link");
+        $("vidSheet").style.display = "flex";
+    }
+    $("vidClose").addEventListener("click", function () { $("vidSheet").style.display = "none"; });
+    /** 영상용 기록 - 튐을 거르고 처음 · 끝을 자르고(체크했을 때), 남은 구간 때의 사진만. 너무 짧으면 null. */
+    function vidCourse(rec) {
+        var tr = RF.cleanTrack(rec.track, rec.kind === "bike");
+        if ($("vidTrim").checked) tr = RF.trimEnds(tr, VID_TRIM_M);
+        if (tr.length < 2) { hAlert(T("기록이 짧아(처음 · 끝 " + VID_TRIM_M + "m 를 빼면 남는 것이 없음) 만들 수 없습니다.", "The record is too short (nothing left after trimming " + VID_TRIM_M + " m at each end).")); return null; }
+        var t0 = tr[0][2], t1 = tr[tr.length - 1][2];
+        var notes = (rec.notes || []).filter(function (n) { return n.lat != null && (!$("vidTrim").checked || n.t >= t0 && n.t <= t1); });
+        var rc = RF.recordCourse({ name: rec.name, kind: rec.kind, track: tr, notes: notes });
+        rc.notes = notes; rc.track = tr;
+        return rc;
+    }
+    function vidSize() { return $("vidShape").value === "wide" ? [1920, 1080] : [1080, 1920]; }
+    function vidCanvas(W, H) { var cv = document.createElement("canvas"); cv.width = W; cv.height = H; return cv; }
+    /** 글 - 영상 위에서 읽히게 흰 글 + 검은 그림자. */
+    function vidText(g, t, x, y, px, bold, align) {
+        g.save();
+        g.font = (bold ? "bold " : "") + px + "px sans-serif"; g.textAlign = align || "left"; g.textBaseline = "alphabetic";
+        g.shadowColor = "rgba(0,0,0,0.8)"; g.shadowBlur = Math.round(px / 4); g.fillStyle = "#fff";
+        g.fillText(t, x, y);
+        g.restore();
+    }
+    function vidBrand(g, W, H) { vidText(g, "routefly.kr", W - Math.round(W * 0.04), H - Math.round(H * 0.03), Math.round(Math.min(W, H) * 0.035), true, "right"); }
+    /** 🗺 지나온 선(투명 바탕) - 출발 초록 · 도착 빨강 · 사진 자리 흰 점. */
+    function vidRouteImage(rc, W, H) {
+        var cv = vidCanvas(W, H), g = cv.getContext("2d"), pad = Math.round(Math.min(W, H) * 0.12);
+        var lat = rc.lat.concat(rc.notes.map(function (n) { return n.lat; })), lon = rc.lon.concat(rc.notes.map(function (n) { return n.lon; }));
+        var all = RF.fitPath(lat, lon, W, H, pad), pts = all.slice(0, rc.lat.length), spots = all.slice(rc.lat.length), lw = Math.max(6, Math.round(Math.min(W, H) / 120));
+        g.lineJoin = "round"; g.lineCap = "round";
+        g.beginPath(); pts.forEach(function (q, i) { if (i) g.lineTo(q[0], q[1]); else g.moveTo(q[0], q[1]); });
+        g.strokeStyle = "rgba(0,0,0,0.5)"; g.lineWidth = lw * 2.4; g.stroke();
+        g.strokeStyle = "#38d9ea"; g.lineWidth = lw; g.stroke();
+        spots.forEach(function (q) { g.beginPath(); g.arc(q[0], q[1], lw * 1.3, 0, Math.PI * 2); g.fillStyle = "#fff"; g.fill(); g.lineWidth = lw * 0.5; g.strokeStyle = "rgba(0,0,0,0.6)"; g.stroke(); });
+        [[pts[0], "#2fb344"], [pts[pts.length - 1], "#ff5c5c"]].forEach(function (e) {
+            g.beginPath(); g.arc(e[0][0], e[0][1], lw * 1.8, 0, Math.PI * 2); g.fillStyle = e[1]; g.fill(); g.lineWidth = lw * 0.6; g.strokeStyle = "#fff"; g.stroke();
+        });
+        vidBrand(g, W, H);
+        return cv;
+    }
+    /** 📈 고도 그래프(아래 띠) - k(0 ~ 1)를 주면 거기까지 색칠 · 점 · 지금 거리 · 높이(고도 영상). 바탕 bg 가 없으면 투명. 높이 자료가 없으면 null. */
+    function vidProfile(rc, W, H, k, bg, cv) {
+        var e = rc.ele, have = e.filter(function (x) { return x != null; });
+        if (have.length < 2) return null;
+        cv = cv || vidCanvas(W, H);
+        var g = cv.getContext("2d"), lo = Math.min.apply(null, have), hi = Math.max.apply(null, have), span = Math.max(hi - lo, 30);
+        var x0 = Math.round(W * 0.06), x1 = Math.round(W * 0.94), y1 = Math.round(H * (W > H ? 0.9 : 0.86)), y0 = y1 - Math.round(H * (W > H ? 0.26 : 0.16));
+        var X = function (d) { return x0 + (x1 - x0) * d / (rc.total || 1); }, Y = function (v) { return y1 - (y1 - y0) * (v - lo) / span; };
+        g.clearRect(0, 0, W, H);
+        if (bg) { g.fillStyle = bg; g.fillRect(0, 0, W, H); }
+        var last = have[0], path = [];
+        for (var i = 0; i < e.length; i++) { if (e[i] != null) last = e[i]; path.push([X(rc.dist[i]), Y(last)]); }
+        function area(upto, fill) {
+            g.beginPath(); g.moveTo(x0, y1);
+            path.forEach(function (q, i) { if (rc.dist[i] <= upto) g.lineTo(q[0], q[1]); });
+            g.lineTo(X(Math.min(upto, rc.total)), y1); g.closePath(); g.fillStyle = fill; g.fill();
+        }
+        area(rc.total, "rgba(255,255,255,0.22)");
+        var d = k == null ? null : rc.total * k;
+        if (d != null) area(d, "rgba(56,217,234,0.55)");
+        g.beginPath(); path.forEach(function (q, i) { if (i) g.lineTo(q[0], q[1]); else g.moveTo(q[0], q[1]); });
+        g.lineJoin = "round"; g.strokeStyle = "rgba(0,0,0,0.45)"; g.lineWidth = 9; g.stroke(); g.strokeStyle = "#fff"; g.lineWidth = 4; g.stroke();
+        var px = Math.round(Math.min(W, H) * 0.032);
+        if (d != null) {
+            var p = RF.at(rc, d), cx = X(d), cy = Y(p.ele != null ? p.ele : lo);
+            g.beginPath(); g.arc(cx, cy, px * 0.45, 0, Math.PI * 2); g.fillStyle = "#ffb703"; g.fill(); g.lineWidth = 4; g.strokeStyle = "#fff"; g.stroke();
+            vidText(g, km(d) + " km" + (p.ele != null ? " · " + num(p.ele) + " m" : ""), x0, y0 - Math.round(px * 0.8), Math.round(px * 1.3), true);
+        } else {
+            vidText(g, T("최고 ", "Top ") + num(hi) + " m", x0, y0 - Math.round(px * 0.6), px, true);
+            vidText(g, km(rc.total) + " km", x1, y1 + Math.round(px * 1.3), px, true, "right");
+        }
+        vidBrand(g, W, H);
+        return cv;
+    }
+    /** 🧾 요약(왼쪽 위) - 산 이름 · 날짜 · 거리 · 시간 · 오른 높이 · 가장 높은 곳(기록 전체 값). */
+    function vidSummary(rec, W, H) {
+        var cv = vidCanvas(W, H), g = cv.getContext("2d"), px = Math.round(Math.min(W, H) * 0.045), x = Math.round(W * 0.06), y = Math.round(H * 0.08);
+        var rcAll = RF.recordCourse(rec), d = new Date(rec.start + 9 * 3600000), hiAll = rcAll.ele.some(function (v) { return v != null; }) ? RF.recordHighest(rcAll, cardPeaks.peaks, cardPeaks.elev) : null;
+        vidText(g, String(NM(rec.name) || ""), x, y + px, Math.round(px * 1.35), true);
+        vidText(g, d.getUTCFullYear() + "." + (d.getUTCMonth() + 1) + "." + d.getUTCDate(), x, y + px * 2.6, Math.round(px * 0.8));
+        [km(RF.recDist(rec)) + " km  ·  " + hhmmss(rec.end - rec.start),
+         (rec.up != null ? T("오른 높이 ", "Climb ") + num(rec.up) + " m" : "") + (hiAll != null ? (rec.up != null ? "  ·  " : "") + T("최고 ", "Top ") + num(hiAll) + " m" : "")]
+            .filter(Boolean).forEach(function (l, i) { vidText(g, l, x, y + px * (4 + i * 1.45), px, true); });
+        vidBrand(g, W, H);
+        return cv;
+    }
+    function vidName(rec, what, ext) { return "routefly-" + stamp(rec.start) + "-" + what + "-" + ($("vidShape").value === "wide" ? "16x9" : "9x16") + "." + ext; }
+    $("vidRoute").addEventListener("click", function () {
+        var rc = vidRec && vidCourse(vidRec), z = vidSize();
+        if (rc) shareCanvas(vidRouteImage(rc, z[0], z[1]), vidName(vidRec, "route", "png"), NM(vidRec.name) + " - routefly");
+    });
+    $("vidProfile").addEventListener("click", function () {
+        var rc = vidRec && vidCourse(vidRec), z = vidSize(), cv = rc && vidProfile(rc, z[0], z[1]);
+        if (rc && !cv) { hAlert(T("이 기록에는 높이 자료가 없습니다.", "This record has no elevation data.")); return; }
+        if (cv) shareCanvas(cv, vidName(vidRec, "elevation", "png"), NM(vidRec.name) + " - routefly");
+    });
+    $("vidSum").addEventListener("click", function () {
+        var z = vidSize();
+        if (vidRec) shareCanvas(vidSummary(vidRec, z[0], z[1]), vidName(vidRec, "summary", "png"), NM(vidRec.name) + " - routefly");
+    });
+    /** 캔버스를 durMs 동안 그리며 영상 파일로(MediaRecorder) - mp4 가 되면 mp4, 아니면 webm. */
+    function recordCanvas(cv, durMs, draw) {
+        var type = ["video/mp4;codecs=avc1.42E01E", "video/mp4", "video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"].filter(function (t) {
+            return window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t);
+        })[0];
+        if (!type || !cv.captureStream) return Promise.reject(new Error(T("이 브라우저는 영상 파일을 만들 수 없습니다. 크롬에서 열어 주세요.", "This browser can't make video files. Please use Chrome.")));
+        return new Promise(function (resolve) {
+            var mr = new MediaRecorder(cv.captureStream(30), { mimeType: type, videoBitsPerSecond: 6000000 }), chunks = [], t0 = performance.now();
+            mr.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
+            mr.onstop = function () { resolve(new Blob(chunks, { type: type.split(";")[0] })); };
+            mr.start(1000);
+            (function frame() {
+                var k = Math.min(1, (performance.now() - t0) / durMs);
+                draw(k);
+                if (k < 1) requestAnimationFrame(frame); else setTimeout(function () { mr.stop(); }, 400);
+            })();
+        });
+    }
+    $("vidProfileMov").addEventListener("click", function () {
+        var rc = vidRec && vidCourse(vidRec), z = vidSize(), btn = this;
+        if (!rc) return;
+        var cv = vidProfile(rc, z[0], z[1], 0, VID_GREEN);
+        if (!cv) { hAlert(T("이 기록에는 높이 자료가 없습니다.", "This record has no elevation data.")); return; }
+        btn.disabled = true;
+        toast(T("🎞 고도 영상을 만드는 중(" + VID_SECS + "초) - 화면을 켜 둔 채 기다려 주세요.", "🎞 Making the elevation video (" + VID_SECS + " s) - keep the screen on."), VID_SECS * 1000);
+        recordCanvas(cv, VID_SECS * 1000, function (k) { vidProfile(rc, z[0], z[1], k, VID_GREEN, cv); }).then(function (blob) {
+            var ext = blob.type === "video/mp4" ? "mp4" : "webm";
+            return hAlert(T("영상이 준비됐습니다. 초록 바탕은 편집 앱의 크로마키로 지우세요.", "The video is ready. Remove the green background with your editor's chroma key."), { ok: T("보내기 · 저장", "Send · save") })
+                .then(function () { shareBlob(blob, vidName(vidRec, "elevation", ext), NM(vidRec.name) + " - routefly"); });
+        }).catch(function (e) { hAlert(e && e.message || String(e)); }).then(function () { btn.disabled = false; });
+    });
+    var VID_GREEN = "#00b140";   // 크로마키 초록(방송용 표준에 가까운 값 - 편집 앱이 지움)
+    /** 🛩 3D 비행 영상 - 이 기록을 이 기기 GPX 로 넣고 3D 화면(index.html ?video=1&rec=1)에서 영상으로 만든 뒤 돌아옴(app.js videoRecord → hike.html#vid). */
+    $("vid3d").addEventListener("click", function () {
+        var rec = vidRec, rc = rec && vidCourse(rec);
+        if (!rc) return;
+        try {
+            var text = toGpx({ name: rec.name, kind: rec.kind, start: rec.start, track: rc.track, notes: [] }), id = RF.gpxId(text);
+            RF.storeGpx(id, RF.gpxToApi(text, NM(rec.name) + ".gpx"));
+            sessionStorage.setItem("rf-fly-rec", JSON.stringify({ name: String(NM(rec.name) || ""), stamp: stamp(rec.start),
+                photos: rc.notes.filter(function (n) { return n.photo; }).map(function (n) { return { lat: n.lat, lon: n.lon, photo: n.photo }; }) }));
+            var secs = Math.max(20, Math.min(60, Math.round(rc.total / 250)));   // 약 250m 에 1초, 20 ~ 60초
+            hAlert(T("3D 화면에서 " + secs + "초 동안 날며 영상을 만들고 이 화면으로 돌아옵니다. 화면을 켜 둔 채 기다려 주세요. 영상 모양은 지금 화면 모양 그대로입니다(폰을 세로로 들면 세로 영상).",
+                "The 3D screen flies for " + secs + " s while recording, then comes back here. Keep the screen on. The video has the shape of your screen (hold the phone upright for a vertical video)."), { ok: T("시작", "Start") })
+                .then(function () { location.href = "index.html?video=1&rec=1&secs=" + secs + (EN ? "&lang=en" : "") + "#c=" + encodeURIComponent(id); });
+        } catch (e) { hAlert(T("영상을 준비하지 못했습니다: ", "Could not prepare the video: ") + (e && e.message || e)); }
+    });
+    /**
+     * 🔗 공개 기록 링크(2026-11-22 홍TV님 - 영상 설명란에 넣을 링크): 본인이 누를 때만, 처음 · 끝 VID_TRIM_M 을 늘 빼고(집 · 주차한 곳) 길 모양(위치 · 높이, 시각 없음) ·
+     * 이름 · 날짜 · 거리 · 걸린 시간 · 오른 높이만 서버(api/record-share)에 둠. 사진 · 메모는 올리지 않음. 지우는 열쇠는 이 기기(rf-pub)에만 - "공개 끄기" 로 바로 지움, 1년 뒤 저절로.
+     */
+    var PUB_KEY = "rf-pub", PUB_MAX_PTS = 4000;
+    function pubAll() { try { return JSON.parse(localStorage.getItem(PUB_KEY) || "{}") || {}; } catch (e) { return {}; } }
+    function pubOf(rec) { return pubAll()[recKey(rec)] || null; }
+    function pubSave(rec, v) { var all = pubAll(); if (v) all[recKey(rec)] = v; else delete all[recKey(rec)]; try { localStorage.setItem(PUB_KEY, JSON.stringify(all)); } catch (e) { /* 이번만 */ } }
+    function pubUrl(id) { return new URL("record.html?id=" + encodeURIComponent(id), location.href).href; }
+    function pubSend(rec, id) {
+        var url = pubUrl(id), text = String(NM(rec.name) || "") + " - routefly";
+        if (SHARE) { Promise.resolve(SHARE.share({ text: text, url: url, dialogTitle: T("보내기", "Send") })).catch(function () { /* 닫음 */ }); return; }
+        if (navigator.share) { navigator.share({ text: text, url: url }).catch(function () { /* 닫음 */ }); return; }
+        hAskText(T("공개 기록 링크 - 길게 눌러 복사하세요.", "Public record link - long-press to copy."), url, { ok: T("닫기", "Close") });
+    }
+    $("vidPub").addEventListener("click", function () {
+        var rec = vidRec, cur = rec && pubOf(rec);
+        if (!rec) return;
+        if (cur) {
+            hAsk(T("공개 링크가 있습니다.\n" + pubUrl(cur.id), "This record has a public link.\n" + pubUrl(cur.id)), { ok: T("링크 보내기", "Send link"), cancel: T("공개 끄기", "Turn off") }).then(function (send) {
+                if (send) { pubSend(rec, cur.id); return; }
+                return hAsk(T("공개 링크를 끌까요? 서버에서 바로 지워지고, 보낸 링크는 열리지 않습니다.", "Turn off the public link? It is deleted from the server right away and the link stops working."), { ok: T("공개 끄기", "Turn off"), danger: true }).then(function (ok) {
+                    if (!ok) return;
+                    return pubPost("api/record-share/delete", { id: cur.id, key: cur.key }).then(function () {
+                        pubSave(rec, null); vidOpen(rec);
+                        toast(T("공개 링크를 껐습니다.", "Public link turned off."), 3000);
+                    });
+                });
+            }).catch(function (e) { hAlert(e && e.message || String(e)); });
+            return;
+        }
+        var tr = RF.trimEnds(RF.cleanTrack(rec.track, rec.kind === "bike"), VID_TRIM_M);
+        if (tr.length < 2) { hAlert(T("기록이 짧아(처음 · 끝 " + VID_TRIM_M + "m 를 빼면 남는 것이 없음) 공개할 수 없습니다.", "The record is too short to share.")); return; }
+        for (var tol = 5; tr.length > PUB_MAX_PTS && tol < 200; tol *= 2) tr = RF.simplifyTrack(tr, tol);
+        hAsk(T("공개 기록 링크를 만들까요?\n링크를 아는 누구나 봅니다: 길 모양(처음 · 끝 " + VID_TRIM_M + "m 는 빼고, 시각 없음) · 이름 · 날짜 · 거리 · 걸린 시간 · 오른 높이. 사진 · 메모는 올리지 않습니다.\n언제든 \"공개 끄기\" 로 지우고, 1년 뒤 저절로 지워집니다.",
+            "Make a public record link?\nAnyone with the link sees: the route shape (without the first · last " + VID_TRIM_M + " m, no times), name, date, distance, time and climb. Photos and notes are not uploaded.\nTurn it off any time; it is deleted after a year."), { ok: T("만들기", "Make") }).then(function (ok) {
+            if (!ok) return;
+            var d = new Date(rec.start + 9 * 3600000);
+            return pubPost("api/record-share", { name: String(NM(rec.name) || ""), kind: rec.kind || "hike", date: d.toISOString().slice(0, 10), dist_m: Math.round(RF.recDist(rec)),
+                time_ms: rec.end - rec.start, up_m: rec.up != null ? Math.round(rec.up) : null,
+                track: tr.map(function (p) { return [Math.round(p[0] * 1e6) / 1e6, Math.round(p[1] * 1e6) / 1e6, p[3] == null ? null : Math.round(p[3])]; }) }).then(function (j) {
+                pubSave(rec, { id: j.id, key: j.key });
+                vidOpen(rec);
+                pubSend(rec, j.id);
+            });
+        }).catch(function (e) { hAlert(T("만들지 못했습니다: ", "Could not make it: ") + (e && e.message || e)); });
+    });
+    function pubPost(url, body) {
+        return fetch(url, { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify(body) })
+            .then(function (r) { return r.json().catch(function () { return { success: false, message: "HTTP " + r.status }; }); })
+            .then(function (j) { if (!j || j.success === false) throw new Error(j && j.message || "?"); return j; });
+    }
+
+    /** 3D 화면이 만든 영상(rf-video "last")을 보내기 · 저장 - 한 번 보내면 지움. */
+    function vidReady() {
+        if (!window.indexedDB) return;
+        var r = indexedDB.open("rf-video", 1);
+        r.onupgradeneeded = function () { r.result.createObjectStore("v"); };
+        r.onsuccess = function () {
+            var db = r.result, q;
+            try { q = db.transaction("v", "readonly").objectStore("v").get("last"); } catch (e) { db.close(); return; }
+            q.onsuccess = function () {
+                var v = q.result;
+                if (!v || !v.blob) { db.close(); return; }
+                hAlert(T("🛩 3D 비행 영상이 준비됐습니다.", "🛩 The 3D flight video is ready."), { ok: T("보내기 · 저장", "Send · save") }).then(function () {
+                    shareBlob(v.blob, v.name, (v.title ? v.title + " - " : "") + "routefly");
+                    try { db.transaction("v", "readwrite").objectStore("v").delete("last"); } catch (e) { /* 다음에 덮어씀 */ }
+                });
+            };
+        };
     }
 
     // ------------------------------------------------------------------ 사진 · 메모 (2026-10-08 홍TV님 - 램블러처럼 기록에 사진 · 메모)
@@ -2509,7 +2744,7 @@
         return keep;
     }
     /** 사진을 긴 변 PHOTO_MAX px JPEG 로 줄입니다(저장 공간). */
-    var PHOTO_MAX = 1600;
+    var PHOTO_MAX = 1600, PHOTO_OLD_MS = 120000;
     function shrinkPhoto(file) {
         return new Promise(function (resolve, reject) {
             var img = new Image(), url = URL.createObjectURL(file);
@@ -2526,19 +2761,53 @@
         });
     }
 
+    /** 사진 파일 앞부분의 찍은 때 · 위치(RF.exifInfo, 2026-11-22) - 못 읽으면 null. 줄이기(shrinkPhoto) 전에 읽음 - 줄인 JPEG 에는 EXIF 가 없음. */
+    function readExif(file) {
+        if (!file || !file.slice) return Promise.resolve(null);
+        var part = file.slice(0, 262144);
+        return (part.arrayBuffer ? part.arrayBuffer() : new Response(part).arrayBuffer())
+            .then(function (b) { return RF.exifInfo(b, -new Date().getTimezoneOffset()); }, function () { return null; });
+    }
+
+    /**
+     * 지도의 사진 · 메모 표시(2026-11-22 홍TV님 - 📷 대신 사진 작은 그림, 누르면 크게). 사진은 IndexedDB 에서 읽어 그림 주소(objectURL)로 -
+     * 표시를 지울 때 dropMarks 가 그 주소도 놓음.
+     */
+    function noteEl(n) {
+        var el = document.createElement("div");
+        el.className = "noteMark";
+        el.textContent = n.photo ? "📷" : "📝";
+        el.title = n.text || T("사진", "Photo");
+        if (n.photo) photoGet(n.photo).then(function (blob) {
+            if (!blob) return;
+            var u = el.rfUrl = URL.createObjectURL(blob), im = new Image();
+            im.alt = el.title;
+            im.src = u;
+            el.textContent = "";
+            el.className = "noteMark thumb";
+            el.appendChild(im);
+            el.addEventListener("click", function (e) { e.stopPropagation(); photoBig(u, n.text); });
+        }).catch(function () { /* 📷 그대로 */ });
+        return el;
+    }
+    function dropMarks(list) {
+        (list || []).forEach(function (m) { var u = m.getElement().rfUrl; if (u) URL.revokeObjectURL(u); m.remove(); });
+    }
+    /** 사진 크게 - 누르면 닫힘(앱 웹뷰는 새 창 · 그림 주소를 못 열어 화면 안에서). */
+    function photoBig(url, text) {
+        $("photoBigImg").src = url;
+        $("photoBigText").textContent = text || "";
+        $("photoBig").style.display = "flex";
+    }
+    $("photoBig").addEventListener("click", function () { $("photoBig").style.display = "none"; $("photoBigImg").removeAttribute("src"); });
+
     function loadNotes() {
         try { return JSON.parse(localStorage.getItem(saveKey() + "-notes") || "[]"); } catch (e) { return []; }
     }
     var noteMarkers = [];
     function drawNoteMarkers() {
-        noteMarkers.forEach(function (m) { m.remove(); });
-        noteMarkers = (hike.notes || []).map(function (n) {
-            var el = document.createElement("div");
-            el.className = "noteMark";
-            el.textContent = n.photo ? "📷" : "📝";
-            el.title = n.text || T("사진", "Photo");
-            return marker(el, [n.lon, n.lat], "bottom");
-        });
+        dropMarks(noteMarkers);
+        noteMarkers = (hike.notes || []).map(function (n) { return marker(noteEl(n), [n.lon, n.lat], "bottom"); });
     }
 
     /**
@@ -2556,7 +2825,7 @@
         try { localStorage.setItem(GALLERY_KEY, this.checked ? "1" : "0"); } catch (e) { /* 이번만 */ }
     });
 
-    var noteFile = null;
+    var noteFile = null, noteFromGallery = false;
     $("noteBtn").addEventListener("click", function () {
         $("galleryRow").hidden = !GALLERY;   // 브라우저 · 옛 앱은 숨김
         $("galleryChk").checked = lsGet(GALLERY_KEY) !== "0";
@@ -2569,15 +2838,19 @@
         $("noteSheet").style.display = "flex";
     });
     $("notePhotoBtn").addEventListener("click", function () { $("notePhoto").value = ""; $("notePhoto").click(); });
-    $("notePhoto").addEventListener("change", function () {
+    $("notePickBtn").addEventListener("click", function () { $("notePick").value = ""; $("notePick").click(); });   // capture 없이 - 갤러리(2026-11-22 홍TV님 폰)
+    $("notePick").addEventListener("change", notePicked);
+    $("notePhoto").addEventListener("change", notePicked);
+    function notePicked() {
         var f = this.files && this.files[0];
         if (!f) return;
         noteFile = f;
+        noteFromGallery = this.id === "notePick";   // 갤러리에서 고른 사진은 갤러리에 또 넣지 않음
         var pv = $("notePreview");
         if (pv.src) URL.revokeObjectURL(pv.src);
         pv.src = URL.createObjectURL(f);
         pv.style.display = "block";
-    });
+    }
     $("noteCancel").addEventListener("click", function () { $("noteSheet").style.display = "none"; });
     $("noteSave").addEventListener("click", function () {
         var f = hike.fix, text = $("noteText").value.trim();
@@ -2591,12 +2864,18 @@
                      ele: ele != null ? Math.round(ele) : null, text: text || null, photo: null };
         var btn = $("noteSave");
         btn.disabled = true;
-        (noteFile ? shrinkPhoto(noteFile).then(function (blob) {
+        // 갤러리에서 고른 사진(2분 넘게 전에 찍음 · 사진 속 위치가 50m 넘게 떨어짐)은 찍힌 자리 · 때로(2026-11-22 홍TV님 - 몇 장 찍고 잘 나온 것을 골라)
+        (noteFile && !hike.sim ? readExif(noteFile) : Promise.resolve(null)).then(function (info) {
+            var old = info && (info.t != null && now() - info.t > PHOTO_OLD_MS || info.lat != null && RF.distM(info.lat, info.lon, f.lat, f.lon) > 50);
+            var pl = old ? RF.photoPlace(hike.track, info) : null;
+            if (pl) { note.t = pl.t; note.lat = pl.lat; note.lon = pl.lon; if (pl.ele != null) note.ele = Math.round(pl.ele); }
+        }).then(function () { return noteFile ? shrinkPhoto(noteFile).then(function (blob) {
             note.photo = "p" + note.t.toString(36) + Math.random().toString(36).slice(2, 6);
-            toGallery(noteFile, blob, note.t);
+            if (!noteFromGallery) toGallery(noteFile, blob, note.t);
             return photoPut(note.photo, blob);
-        }) : Promise.resolve()).then(function () {
+        }) : null; }).then(function () {
             hike.notes.push(note);
+            hike.notes.sort(function (a, b) { return a.t - b.t; });   // 찍은 때 차례(앞서 찍은 사진을 나중에 골라 넣어도)
             if (!hike.sim) try { localStorage.setItem(saveKey() + "-notes", JSON.stringify(hike.notes)); } catch (e) { /* 공간 부족 - 이번 산행 동안은 화면에 남음 */ }
             drawNoteMarkers();
             $("noteSheet").style.display = "none";
@@ -2610,17 +2889,19 @@
      * 기록 선을 지도에(보라 - 이어 걸은 곳 실선 · 끊긴 구간 점선). note 가 있으면 그 사진 · 메모 자리에 표시를 두고 그리로(2026-11-22 홍TV님 - 램블러처럼
      * 사진 → 지도 자리 · 출발부터 거리 · 고도), 없으면 기록 전체가 보이게. 📒 내 기록 "🗺 지도" · 사진 · 메모 "🗺 지도에서" 가 함께 씀.
      */
-    var noteMark = null;
-    function recordOnMap(rc, note) {
+    var noteMark = null, recMarks = [];
+    /** notes - 그 기록의 사진 · 메모 모두(작은 그림으로 함께, 2026-11-22). */
+    function recordOnMap(rc, note, notes) {
         if (!mapReady) { toast(T("지도가 아직 준비되지 않았습니다.", "The map is not ready yet."), 2500); return; }
         mapReady.then(function () {
             map.getSource("recTrack").setData(RF.recordLines(rc));   // 이어 걸은 곳 실선 · 끊긴 구간 점선
-            if (noteMark) { noteMark.remove(); noteMark = null; }
+            if (noteMark) { dropMarks([noteMark]); noteMark = null; }
+            dropMarks(recMarks);
+            recMarks = (notes || []).filter(function (n) { return n.lat != null && n.lon != null && !(note && n.lat === note.lat && n.lon === note.lon); })
+                .map(function (n) { return marker(noteEl(n), [n.lon, n.lat], "bottom"); });
             setFollow(false);
             if (note) {
-                var e = document.createElement("div");
-                e.className = "noteMark";
-                e.textContent = note.photo ? "📷" : "📝";
+                var e = noteEl({ photo: note.photo, text: note.label });
                 e.setAttribute("aria-label", note.label);
                 noteMark = marker(e, [note.lon, note.lat]).setPopup(new maplibregl.Popup({ offset: 16, closeButton: false }).setText(note.label)).togglePopup();
                 map.jumpTo({ center: [note.lon, note.lat], zoom: Math.max(map.getZoom(), 15) });
@@ -2638,6 +2919,78 @@
         $("notesSheet").style.display = "none";
         hidePick();   // 코스를 고르기 전(내 기록으로 바로 온 때)에도 지도가 보이게
     }
+
+    /**
+     * 📷 사진 넣기(2026-11-22 홍TV님 "몇 장 찍고 잘 나온 것을 골라 그 코스에" - 램블러처럼): 폰 카메라로 찍어 둔 사진을 산행 뒤 여러 장 골라 넣으면
+     * 사진 속 위치 · 찍은 때로 그 기록의 자리(RF.photoPlace)에 놓음. 미리보기에서 뺄 사진은 체크를 풂. 자리를 못 찾은 사진(다른 날 · 다른 곳)은 넣지 않음.
+     * 사진은 이 핸드폰(rf-photos)에만 - 서버로 보내지 않음.
+     */
+    var photoAddRec = null, photoPicks = [], PHOTO_PICK_MAX = 30;
+    $("recPhotoFiles").addEventListener("change", function () {
+        var rec = photoAddRec, files = Array.prototype.slice.call(this.files || [], 0, PHOTO_PICK_MAX), box = $("photoPickList");
+        if (!rec || !files.length) return;
+        if ((this.files || []).length > PHOTO_PICK_MAX) toast(T("한 번에 " + PHOTO_PICK_MAX + "장까지 넣습니다.", "Up to " + PHOTO_PICK_MAX + " photos at a time."), 4000);
+        photoPickClear();
+        var rc = RF.recordCourse(rec), have = {};
+        (rec.notes || []).forEach(function (n) { if (n.photo) have[n.t] = 1; });   // 같은 사진을 두 번 넣지 않게(찍은 때가 같으면)
+        $("photoPickTitle").textContent = "📷 " + NM(rec.name);
+        $("photoPick").style.display = "flex";
+        $("photoPickSave").disabled = true;
+        Promise.all(files.map(function (f) {
+            return readExif(f).then(function (info) {
+                var pl = RF.photoPlace(rec.track, info), row = document.createElement("label"), ck = document.createElement("input"), im = new Image(), sm = document.createElement("small");
+                var u = URL.createObjectURL(f), dup = pl && have[pl.t];
+                row.className = "pickRow";
+                ck.type = "checkbox";
+                ck.checked = !!pl && !dup;
+                ck.disabled = !pl;
+                im.src = u;
+                im.alt = f.name;
+                if (pl) {
+                    var at = RF.recordCourse({ track: rec.track, kind: rec.kind, notes: [pl] }).pois[0];
+                    sm.textContent = clock(pl.t) + (at && rc.lat.length > 1 ? T(" · 출발부터 ", " · from start ") + km(at.dist_m) + "km" : "") + (pl.ele != null ? T(" · 해발 ", " · elev. ") + num(pl.ele) + "m" : "")
+                        + (pl.how === "gps" ? T(" · 사진 속 위치", " · photo location") : T(" · 찍은 때로", " · by time")) + (dup ? T(" · 이미 넣은 사진", " · already added") : "");
+                } else sm.textContent = T("넣을 수 없음 - 이 산행 때 찍은 사진이 아닙니다(찍은 때 · 위치가 없거나 다름)", "Can't add - not taken during this hike (no or different time · location)");
+                row.appendChild(ck); row.appendChild(im); row.appendChild(sm);
+                return { file: f, place: pl, ck: ck, row: row, url: u };
+            });
+        })).then(function (list) {
+            list.sort(function (a, b) { return (a.place ? a.place.t : Infinity) - (b.place ? b.place.t : Infinity); });
+            photoPicks = list;
+            list.forEach(function (x) { box.appendChild(x.row); });
+            $("photoPickSave").disabled = !list.some(function (x) { return x.place; });
+        });
+    });
+    function photoPickClear() {
+        photoPicks.forEach(function (x) { URL.revokeObjectURL(x.url); });
+        photoPicks = [];
+        $("photoPickList").innerHTML = "";
+    }
+    $("photoPickCancel").addEventListener("click", function () { photoPickClear(); $("photoPick").style.display = "none"; });
+    $("photoPickSave").addEventListener("click", function () {
+        var rec = photoAddRec, pick = photoPicks.filter(function (x) { return x.place && x.ck.checked; }), btn = this;
+        if (!rec || !pick.length) { toast(T("넣을 사진을 골라 주세요.", "Pick photos to add."), 3000); return; }
+        btn.disabled = true;
+        var added = [];
+        pick.reduce(function (p, x) {   // 하나씩(큰 사진 여러 장을 한꺼번에 줄이면 폰 메모리가 모자람)
+            return p.then(function () { return shrinkPhoto(x.file); }).then(function (blob) {
+                var pl = x.place, n = { t: pl.t, lat: pl.lat, lon: pl.lon, ele: pl.ele != null ? Math.round(pl.ele) : null, text: null,
+                                        photo: "p" + pl.t.toString(36) + Math.random().toString(36).slice(2, 6) };
+                return photoPut(n.photo, blob).then(function () { added.push(n); });
+            });
+        }, Promise.resolve()).then(function () {
+            rec.notes = (rec.notes || []).concat(added).sort(function (a, b) { return a.t - b.t; });
+            return writeRecords(records());
+        }).then(function (ok) {
+            photoPickClear();
+            $("photoPick").style.display = "none";
+            if (ok) toast(T("📷 사진 " + added.length + "장을 기록에 넣었습니다.", "📷 Added " + added.length + " photo(s) to the record."), 4000);
+            showRecord(rec);
+            if ($("recSheet").style.display === "flex") showRecords();
+        }).catch(function (e) {
+            toast(T("사진을 넣지 못했습니다: ", "Could not add photos: ") + (e && e.message || e), 5000);
+        }).then(function () { btn.disabled = false; });
+    });
 
     /** 기록 하나의 사진 · 메모 보기. 사진을 누르면 크게(새 창), "🗺 지도에서" 는 그 자리(출발부터 거리 · 해발)를 지도에. */
     function showNotes(rec) {
@@ -2660,7 +3013,7 @@
                 go.textContent = T("🗺 지도에서", "🗺 On map");
                 go.onclick = function () {
                     urls.forEach(function (u) { URL.revokeObjectURL(u); });
-                    recordOnMap(rc, { lat: n.lat, lon: n.lon, photo: !!n.photo, label: (n.photo ? "📷 " : "📝 ") + info + (n.text ? "\n" + n.text : "") });
+                    recordOnMap(rc, { lat: n.lat, lon: n.lon, photo: n.photo, label: (n.photo ? "📷 " : "📝 ") + info + (n.text ? "\n" + n.text : "") }, rec.notes);
                 };
                 t.appendChild(go);
             }
@@ -2673,7 +3026,7 @@
                     var u = URL.createObjectURL(blob);
                     urls.push(u);
                     img.src = u;
-                    img.onclick = function () { window.open(u, "_blank"); };
+                    img.onclick = function () { photoBig(u, n.text); };
                 }).catch(function () { img.alt = T("(사진을 읽지 못함)", "(could not read photo)"); });
             }
             row.appendChild(t);
@@ -4640,7 +4993,8 @@
     $("backupFile").addEventListener("change", function () { if (this.files && this.files[0]) backupLoad(this.files[0]); });
     function clearRecLine() {
         if (mapReady) mapReady.then(function () { map.getSource("recTrack").setData({ type: "FeatureCollection", features: [] }); });
-        if (noteMark) { noteMark.remove(); noteMark = null; }
+        if (noteMark) { dropMarks([noteMark]); noteMark = null; }
+        dropMarks(recMarks); recMarks = [];
         $("recClear").style.display = "none";
     }
     $("recClear").addEventListener("click", function () {
@@ -5513,5 +5867,6 @@
         }
         route();
         window.rfGpxInbox();   // 앱이 받아 둔 GPX(카톡 · 파일 앱 "routefly 로 열기") - 주소의 코스보다 나중이라 받은 GPX 가 열림
+        if (location.hash === "#vid") { history.replaceState(null, "", location.pathname + location.search); vidReady(); }   // 3D 화면이 만든 영상(app.js videoRecord)
     });
 })();

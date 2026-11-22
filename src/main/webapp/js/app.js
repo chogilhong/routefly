@@ -1381,8 +1381,126 @@
         window.routeflyVideo = { ready: false, done: 0 };
         map.once("idle", function () {
             anim.d = VIDEO.from * c.total;
+            if (VIDEO.rec) videoRecord(c, credit.textContent);
             play();
             window.routeflyVideo.ready = true;
+        });
+    }
+
+    /**
+     * 내 기록 3D 비행 영상(2026-11-22 홍TV님 - 유튜버들이 램블러 화면을 영상에 쓰듯): 따라가기 "🎬 영상용 → 🛩 3D 비행 영상" 이 기록(처음 · 끝을 자른 것)을
+     * 이 기기 GPX 로 넣고 ?video=1&rec=1 로 엶. 지도 그림 + 지금 거리 · 높이 + 그 자리에 오면 그 사진(2.5초) + 출처 줄 + routefly.kr 을 한 그림에 겹쳐
+     * MediaRecorder 로 영상 파일을 만들고, IndexedDB rf-video 에 둔 뒤 따라가기(hike.html#vid)로 돌아가 보내기 · 저장(hike.js vidReady). 서버로 보내지 않음.
+     * 위성은 쓰지 않음(VIDEO.sat 없음 - V-World 위성은 유튜브 영상에 쓰지 않음, CLAUDE.md).
+     */
+    function videoRecord(c, credit) {
+        var info = {};
+        try { info = JSON.parse(sessionStorage.getItem("rf-fly-rec") || "{}") || {}; } catch (e) { /* 없음 */ }
+        var src = map.getCanvas(), k = Math.min(1, 1920 / Math.max(src.width, src.height)), W = Math.round(src.width * k / 2) * 2, H = Math.round(src.height * k / 2) * 2;
+        var out = document.createElement("canvas"), g = out.getContext("2d");
+        out.width = W; out.height = H;
+        var type = ["video/mp4;codecs=avc1.42E01E", "video/mp4", "video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"].filter(function (t) {
+            return window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t);
+        })[0];
+        if (!type || !out.captureStream) { show(T("이 브라우저는 영상 파일을 만들 수 없습니다. 크롬에서 열어 주세요.", "This browser can't make video files. Please use Chrome.")); return; }
+        // 사진 - 코스 위 거리(가장 가까운 점)와 그림
+        var photos = (info.photos || []).map(function (n) {
+            var bi = 0, bd = Infinity;
+            for (var i = 0; i < c.lat.length; i++) { var x = RF.distM(n.lat, n.lon, c.lat[i], c.lon[i]); if (x < bd) { bd = x; bi = i; } }
+            return { d: c.dist[bi], id: n.photo, img: null, shownAt: 0 };
+        });
+        photos.forEach(function (ph) { flyPhoto(ph.id).then(function (b) { if (!b) return; var im = new Image(); im.onload = function () { ph.img = im; }; im.src = URL.createObjectURL(b); }); });
+        var lines = wrapText(g, credit, W - 40, Math.max(16, Math.round(W / 70)));
+        function draw() {
+            g.drawImage(src, 0, 0, W, H);
+            var fs = Math.max(26, Math.round(W / 26)), p = at(c, anim.d), oe = RF.officialEleAt(c, anim.d);
+            g.save();
+            g.shadowColor = "rgba(0,0,0,0.75)"; g.shadowBlur = 8;
+            g.fillStyle = "#fff"; g.textBaseline = "top";
+            g.font = "bold " + fs + "px sans-serif";
+            g.fillText(km(anim.d) + " km", Math.round(fs * 0.7), Math.round(fs * 0.7));
+            g.font = "bold " + Math.round(fs * 0.75) + "px sans-serif";
+            var ele = oe != null ? oe : p && p.ele;
+            if (ele != null) g.fillText(T("해발 ", "elev. ") + num(ele) + " m", Math.round(fs * 0.7), Math.round(fs * 1.9));
+            g.textAlign = "right";
+            g.font = "bold " + Math.round(fs * 0.7) + "px sans-serif";
+            g.fillText("routefly.kr", W - Math.round(fs * 0.6), Math.round(fs * 0.7));
+            if (info.name) { g.font = Math.round(fs * 0.55) + "px sans-serif"; g.fillText(info.name, W - Math.round(fs * 0.6), Math.round(fs * 1.6), W * 0.6); }
+            g.restore();
+            // 그 사진 자리를 지나면 2.5초
+            var now = performance.now();
+            photos.forEach(function (ph) { if (!ph.shownAt && ph.img && anim.d >= ph.d) ph.shownAt = now; });
+            var on = photos.filter(function (ph) { return ph.shownAt && now - ph.shownAt < 2500; })[0];
+            if (on) {
+                var pw = Math.round(Math.min(W, H) * 0.42), ph2 = Math.round(pw * on.img.naturalHeight / on.img.naturalWidth), px = Math.round(W * 0.04), py = H - ph2 - Math.round(H * 0.12);
+                g.fillStyle = "#fff"; g.fillRect(px - 6, py - 6, pw + 12, ph2 + 12);
+                g.drawImage(on.img, px, py, pw, ph2);
+            }
+            // 출처 줄(늘 - OSM ODbL · 지형 · 등산로 자료)
+            var cs = Math.max(16, Math.round(W / 70));
+            g.save();
+            g.font = cs + "px sans-serif"; g.textBaseline = "bottom";
+            g.fillStyle = "rgba(0,0,0,0.55)"; g.fillRect(0, H - lines.length * (cs + 4) - 12, W, lines.length * (cs + 4) + 12);
+            g.fillStyle = "#fff";
+            lines.forEach(function (l, i) { g.fillText(l, 20, H - 6 - (lines.length - 1 - i) * (cs + 4)); });
+            g.restore();
+        }
+        var mr = new MediaRecorder(out.captureStream(30), { mimeType: type, videoBitsPerSecond: 8000000 }), chunks = [];
+        mr.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
+        mr.onstop = function () {
+            var mime = type.split(";")[0], name = "routefly-3d-" + (info.stamp || Date.now()) + (mime === "video/mp4" ? ".mp4" : ".webm");
+            flyVideoPut({ blob: new Blob(chunks, { type: mime }), name: name, title: info.name || "" }).then(function () {
+                location.href = "hike.html#vid";
+            }, function () { show(T("영상을 저장하지 못했습니다(핸드폰 저장 공간).", "Could not store the video (phone storage).")); });
+        };
+        mr.start(1000);
+        (function frame() {
+            draw();
+            if (window.routeflyVideo.done) { setTimeout(function () { draw(); mr.stop(); }, 600); return; }
+            requestAnimationFrame(frame);
+        })();
+    }
+    /** 긴 출처 글을 폭에 맞춰 줄로. */
+    function wrapText(g, text, w, fs) {
+        g.font = fs + "px sans-serif";
+        var out = [], line = "";
+        String(text || "").split(" ").forEach(function (word) {
+            var t = line ? line + " " + word : word;
+            if (line && g.measureText(t).width > w) { out.push(line); line = word; } else line = t;
+        });
+        if (line) out.push(line);
+        return out;
+    }
+    /** 따라가기의 사진 저장소(rf-photos)에서 한 장 - 같은 누리집이라 함께 씀. */
+    function flyPhoto(id) {
+        return new Promise(function (resolve) {
+            if (!window.indexedDB || !id) { resolve(null); return; }
+            var r = indexedDB.open("rf-photos", 1);
+            r.onupgradeneeded = function () { r.result.createObjectStore("p"); };
+            r.onerror = function () { resolve(null); };
+            r.onsuccess = function () {
+                try {
+                    var q = r.result.transaction("p", "readonly").objectStore("p").get(id);
+                    q.onsuccess = function () { r.result.close(); resolve(q.result || null); };
+                    q.onerror = function () { r.result.close(); resolve(null); };
+                } catch (e) { r.result.close(); resolve(null); }
+            };
+        });
+    }
+    /** 만든 영상을 따라가기에 넘김(IndexedDB rf-video "last" 하나만). */
+    function flyVideoPut(v) {
+        return new Promise(function (resolve, reject) {
+            var r = indexedDB.open("rf-video", 1);
+            r.onupgradeneeded = function () { r.result.createObjectStore("v"); };
+            r.onerror = function () { reject(r.error); };
+            r.onsuccess = function () {
+                try {
+                    var tx = r.result.transaction("v", "readwrite");
+                    tx.objectStore("v").put(v, "last");
+                    tx.oncomplete = function () { r.result.close(); resolve(); };
+                    tx.onerror = tx.onabort = function () { r.result.close(); reject(tx.error); };
+                } catch (e) { r.result.close(); reject(e); }
+            };
         });
     }
 
@@ -1426,7 +1544,8 @@
             center: [127.8, 36.3], zoom: 6.2, pitch: 0, maxPitch: 85,
             bounds: b0 || undefined, fitBoundsOptions: { padding: 40, maxZoom: 14 },   // #c= 면 그 코스 자리에서(위 center · zoom 대신)
             prefetchZoomDelta: 1,   // 확대 전 미리 받는 아래 단계 타일을 줄임(기본 4 - P1)
-            attributionControl: false, locale: RF.mapLocale()   // 단추 글 한국어(2026-11-03)
+            attributionControl: false, locale: RF.mapLocale(),   // 단추 글 한국어(2026-11-03)
+            canvasContextAttributes: VIDEO && VIDEO.rec ? { preserveDrawingBuffer: true } : undefined   // 내 기록 영상 - 지도 그림을 영상에 옮겨 그림(videoRecord)
         });
         if (/[?&]debug\b/.test(location.search)) window.routeflyDebug = { map: map, anim: anim, at: function (d) { return at(cur, d); } };   // 시험용
         map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");

@@ -1086,7 +1086,50 @@ tick().then(function () {
     eq("남설악 → 희운각대피소", RF.noteTrailName(PN, "kmp-2322010401-1", "설악산(대청봉) 1코스 · 남설악탐방지원센터 → 소청대피소"), "설악산(대청봉) 1코스 · 남설악탐방지원센터 → 희운각대피소");
     // 3D 영상 모드(?video=1 - 쇼츠 마무리 3D 비행, 2026-11-20 홍TV님)
     eq("영상 모드 설정", [RF.videoOpts("?lang=ko"), RF.videoOpts("?video=1"), RF.videoOpts("?video=1&secs=15&from=0.5&to=0.9&sat=1"), RF.videoOpts("?video=1&secs=999&from=0.8&to=0.2"), RF.videoOpts("?video=10")],
-        [null, { sat: false, secs: null, from: 0, to: 1 }, { sat: true, secs: 15, from: 0.5, to: 0.9 }, { sat: false, secs: 120, from: 0, to: 1 }, null]);
+        [null, { sat: false, secs: null, from: 0, to: 1, rec: false }, { sat: true, secs: 15, from: 0.5, to: 0.9, rec: false }, { sat: false, secs: 120, from: 0, to: 1, rec: false }, null]);
+    eq("영상 모드 - 내 기록 영상 만들기(rec=1)", RF.videoOpts("?video=1&rec=1&secs=40").rec, true);
+    // 사진 속 찍은 때 · 위치(EXIF) → 기록의 자리(2026-11-22 홍TV님 "몇 장 찍고 잘 나온 것을 골라 그 코스에"). 사진은 EXIF 2.3 규격대로 만든 작은 JPEG 머리
+    (function () {
+        /** TIFF(MM) 머리 + IFD0(ExifIFD · GPS 가리킴) + Exif(9003 · 9011) + GPS(1 · 2 · 3 · 4) → APP1 이 든 JPEG 앞부분. */
+        function jpeg(dt, off, gps) {
+            var b = [], put16 = function (v) { b.push((v >> 8) & 255, v & 255); }, put32 = function (v) { b.push((v >>> 24) & 255, (v >> 16) & 255, (v >> 8) & 255, v & 255); };
+            var strs = [], rats = [];
+            // 자리: 머리 8 · IFD0(2 + 2*12 + 4 = 30) · Exif IFD(2 + k*12 + 4) · GPS IFD(2 + 4*12 + 4 = 54) · 뒤에 글 · 분수
+            var exifN = off ? 2 : 1, ifd0 = 8, exifAt = ifd0 + 30, gpsAt = exifAt + 2 + exifN * 12 + 4, dataAt = gpsAt + (gps ? 54 : 6);
+            var data = [], dataOff = function (bytes) { var at = dataAt + data.length; data = data.concat(bytes); return at; };
+            var ascii = function (str) { var a = []; for (var i = 0; i < str.length; i++) a.push(str.charCodeAt(i)); a.push(0); return a; };
+            var rat3 = function (d, m, sec) { var a = []; [[d, 1], [m, 1], [Math.round(sec * 100), 100]].forEach(function (r) { [r[0], r[1]].forEach(function (v) { a.push((v >>> 24) & 255, (v >> 16) & 255, (v >> 8) & 255, v & 255); }); }); return a; };
+            var entry = function (tag, type, count, value) { put16(tag); put16(type); put32(count); put32(value); };
+            b.push(0x4D, 0x4D); put16(42); put32(ifd0);
+            put16(2); entry(0x8769, 4, 1, exifAt); entry(0x8825, 4, 1, gpsAt); put32(0);
+            put16(exifN); entry(0x9003, 2, 20, dataOff(ascii(dt))); if (off) { var oa = ascii(off); entry(0x9011, 2, oa.length, dataOff(oa)); } put32(0);
+            if (gps) {
+                put16(4);
+                entry(1, 2, 2, (gps[0] < 0 ? 0x53 : 0x4E) << 24);
+                entry(2, 5, 3, dataOff(rat3(Math.floor(Math.abs(gps[0])), Math.floor(Math.abs(gps[0]) * 60 % 60), Math.abs(gps[0]) * 3600 % 60)));
+                entry(3, 2, 2, (gps[1] < 0 ? 0x57 : 0x45) << 24);
+                entry(4, 5, 3, dataOff(rat3(Math.floor(Math.abs(gps[1])), Math.floor(Math.abs(gps[1]) * 60 % 60), Math.abs(gps[1]) * 3600 % 60)));
+                put32(0);
+            } else { put16(0); put32(0); }
+            var tiff = b.concat(data), app1 = [0x45, 0x78, 0x69, 0x66, 0, 0].concat(tiff), len = app1.length + 2;
+            return new Uint8Array([0xFF, 0xD8, 0xFF, 0xE1, (len >> 8) & 255, len & 255].concat(app1, [0xFF, 0xDA, 0, 2]));
+        }
+        var KST = function (y, mo, d, h, mi, se) { return Date.UTC(y, mo - 1, d, h - 9, mi, se); };
+        var a = RF.exifInfo(jpeg("2026:11:22 10:30:15", null, [37.6584, 126.9779]), 540);
+        eq("찍은 때(시간대 없음 - 기기 시간대 540분) · 위치", [a.t, Math.round(a.lat * 1e4) / 1e4, Math.round(a.lon * 1e4) / 1e4], [KST(2026, 11, 22, 10, 30, 15), 37.6584, 126.9779]);
+        eq("사진 속 시간대가 있으면 그것(+09:00 이면 기기 시간대 0 이어도 같음)", RF.exifInfo(jpeg("2026:11:22 10:30:15", "+09:00", null), 0), { t: KST(2026, 11, 22, 10, 30, 15), lat: null, lon: null });
+        eq("JPEG 아님 · EXIF 없는 JPEG", [RF.exifInfo(new Uint8Array([0x89, 0x50, 0x4E, 0x47])), RF.exifInfo(new Uint8Array([0xFF, 0xD8, 0xFF, 0xDA, 0, 2]))], [null, null]);
+        var t0 = KST(2026, 11, 22, 10, 0, 0), track = [[37.60, 127.00, t0, 100], [37.61, 127.00, t0 + 600000, 300], [37.62, 127.00, t0 + 1200000, 500]];
+        eq("위치 없으면 찍은 때로 - 앞뒤 점 사이를 시각으로 나눔", RF.photoPlace(track, { t: t0 + 300000, lat: null, lon: null }), { lat: 37.605, lon: 127, ele: 200, t: t0 + 300000, how: "time" });
+        eq("기록 앞 10분 안은 첫 점, 그보다 이르거나 다른 날은 넣지 않음", [RF.photoPlace(track, { t: t0 - 300000 }).lat, RF.photoPlace(track, { t: t0 - 900000 }), RF.photoPlace(track, { t: t0 + 86400000 })], [37.6, null, null]);
+        eq("사진 속 위치가 기록 500m 안이면 그 자리 · 높이는 가까운 기록 점", RF.photoPlace(track, { t: null, lat: 37.6101, lon: 127.001 }), { lat: 37.6101, lon: 127.001, ele: 300, t: t0 + 600000, how: "gps" });
+        eq("사진 속 위치가 멀면(다른 산) 찍은 때로", RF.photoPlace(track, { t: t0 + 1200000, lat: 35.1, lon: 129.0 }).how, "time");
+        // 처음 · 끝 자르기(집 · 주차한 곳) - 북쪽으로 약 111m 마다 11점(1.11km)
+        var line = [];
+        for (var i = 0; i <= 10; i++) line.push([37 + i * 0.001, 127, i, 0]);
+        eq("처음 · 끝 300m 자름", RF.trimEnds(line, 300).map(function (p) { return p[2]; }), [3, 4, 5, 6, 7]);
+        eq("짧으면 남는 것 없음 · 0m 면 그대로", [RF.trimEnds(line, 600).length, RF.trimEnds(line, 0).length], [0, 11]);
+    })();
     console.log((fails ? "FAILED " : "OK ") + (runs - fails) + "/" + runs);
     process.exit(fails ? 1 : 0);
 });

@@ -2430,6 +2430,108 @@
      * 순수 함수 - 기록 그래프에 겹쳐 그릴 속도(km/h, 2026-11-22 홍TV님 - 램블러 그래프처럼 고도 + 속도). c = recordCourse.
      * 점마다 앞뒤 1분(SPEED_HALF_MS) 사이 거리 / 시간 - GPS 가 튀는 점 하나로 들쭉날쭉하지 않게. 시각이 없는 점은 null, 모두 없으면 null.
      */
+    /**
+     * 순수 함수 - JPEG 사진 속 정보(EXIF)에서 찍은 때 · 위치(2026-11-22 홍TV님 "몇 장 찍고 잘 나온 것을 골라 그 코스에" - 램블러처럼 사진이 찍힌 자리에).
+     * buf = 파일 앞부분(ArrayBuffer · Uint8Array, 128KB 면 충분). tzMin = 찍은 기기의 시간대(분, 한국 540) - 사진에 시간대(OffsetTimeOriginal)가 있으면 그것을 씀.
+     * 돌려줌 {t: ms | null, lat, lon(없으면 null)} - JPEG · EXIF 가 아니면 null. 안드로이드는 다른 앱에 사진을 줄 때 위치를 빼는 일이 많아 t 가 주로 쓰임(photoPlace).
+     */
+    function exifInfo(buf, tzMin) {
+        var u8 = buf instanceof Uint8Array ? buf : new Uint8Array(buf || []), n = u8.length;
+        if (n < 4 || u8[0] !== 0xFF || u8[1] !== 0xD8) return null;
+        var o = 2;
+        while (o + 4 <= n) {
+            if (u8[o] !== 0xFF) return null;
+            var mk = u8[o + 1], len = (u8[o + 2] << 8) | u8[o + 3];
+            if (mk === 0xDA || mk === 0xD9) return null;   // 그림 자료 시작 - EXIF 없음
+            if (mk === 0xE1 && o + 10 <= n && u8[o + 4] === 0x45 && u8[o + 5] === 0x78 && u8[o + 6] === 0x69 && u8[o + 7] === 0x66) return exifTiff(u8, o + 10, Math.min(n, o + 2 + len), tzMin);
+            o += 2 + len;
+        }
+        return null;
+    }
+    function exifTiff(u8, base, end, tzMin) {
+        if (base + 8 > end) return null;
+        var le = u8[base] === 0x49;   // II = 작은 쪽 먼저
+        function u16(p) { return p + 2 > end ? 0 : le ? u8[p] | (u8[p + 1] << 8) : (u8[p] << 8) | u8[p + 1]; }
+        function u32(p) { return p + 4 > end ? 0 : le ? (u8[p] | (u8[p + 1] << 8) | (u8[p + 2] << 16)) + u8[p + 3] * 16777216 : u8[p] * 16777216 + ((u8[p + 1] << 16) | (u8[p + 2] << 8) | u8[p + 3]); }
+        /** IFD 한 칸들 → {tag: {type, count, at(값 자리)}}. */
+        function ifd(off) {
+            var out = {}, p = base + off, k = u16(p);
+            if (!off || p + 2 > end || k > 500) return out;
+            for (var i = 0; i < k; i++) {
+                var e = p + 2 + i * 12, type = u16(e + 2), count = u32(e + 4), size = ({ 1: 1, 2: 1, 3: 2, 4: 4, 5: 8, 7: 1, 9: 4, 10: 8 })[type] || 1;
+                out[u16(e)] = { type: type, count: count, at: size * count > 4 ? base + u32(e + 8) : e + 8 };
+            }
+            return out;
+        }
+        function text(x) {
+            if (!x || x.type !== 2) return null;
+            var s = "";
+            for (var i = 0; i < x.count && x.at + i < end && u8[x.at + i]; i++) s += String.fromCharCode(u8[x.at + i]);
+            return s;
+        }
+        function deg(x) {
+            if (!x || x.type !== 5 || x.count < 3) return null;
+            var v = 0;
+            for (var i = 0; i < 3; i++) { var a = u32(x.at + i * 8), b = u32(x.at + i * 8 + 4); if (!b) return null; v += a / b / Math.pow(60, i); }
+            return v;
+        }
+        var zero = ifd(u32(base + 4)), ex = zero[0x8769] ? ifd(u32(zero[0x8769].at)) : {}, gps = zero[0x8825] ? ifd(u32(zero[0x8825].at)) : {};
+        var dt = text(ex[0x9003]) || text(zero[0x0132]), off = text(ex[0x9011]), t = null;
+        var m = /^(\d{4}):(\d\d):(\d\d) (\d\d):(\d\d):(\d\d)/.exec(dt || "");
+        if (m && +m[1] > 1990) {
+            var zm = /^([+-])(\d\d):(\d\d)$/.exec(off || ""), tz = zm ? (zm[1] === "-" ? -1 : 1) * (+zm[2] * 60 + +zm[3]) : (tzMin == null ? 540 : tzMin);
+            t = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]) - tz * 60000;
+        }
+        var lat = deg(gps[2]), lon = deg(gps[4]);
+        if (lat != null && text(gps[1]) === "S") lat = -lat;
+        if (lon != null && text(gps[3]) === "W") lon = -lon;
+        if (lat == null || lon == null || (lat === 0 && lon === 0)) lat = lon = null;
+        return { t: t, lat: lat, lon: lon };
+    }
+
+    /**
+     * 순수 함수 - 사진을 기록의 어디에 놓을까. track [[위도, 경도, ms, 높이]], info = exifInfo.
+     * 사진 속 위치가 있고 기록에서 PHOTO_NEAR_M 안이면 그 자리(높이는 가장 가까운 기록 점) - "gps".
+     * 아니면 찍은 때로 기록의 그때 자리(앞뒤 점 사이를 시각으로 나눔) - 기록 앞 · 뒤 PHOTO_SLACK_MS 안이면 첫 · 끝 점 - "time".
+     * 둘 다 안 되면 null(다른 날 · 다른 곳 사진 - 넣지 않음). 돌려줌 {lat, lon, ele, t, how}.
+     */
+    var PHOTO_NEAR_M = 500, PHOTO_SLACK_MS = 10 * 60000;
+    function photoPlace(track, info) {
+        var tr = (track || []).filter(function (p) { return p && isFinite(p[0]) && isFinite(p[1]); });
+        if (!tr.length || !info) return null;
+        if (info.lat != null && info.lon != null) {
+            var bi = -1, bd = Infinity;
+            tr.forEach(function (p, i) { var d = distM(info.lat, info.lon, p[0], p[1]); if (d < bd) { bd = d; bi = i; } });
+            if (bd <= PHOTO_NEAR_M) return { lat: info.lat, lon: info.lon, ele: tr[bi][3] == null ? null : tr[bi][3], t: info.t != null ? info.t : tr[bi][2], how: "gps" };
+        }
+        if (info.t == null) return null;
+        var t = info.t, first = tr[0], last = tr[tr.length - 1];
+        if (t < first[2] - PHOTO_SLACK_MS || t > last[2] + PHOTO_SLACK_MS) return null;
+        if (t <= first[2]) return { lat: first[0], lon: first[1], ele: first[3] == null ? null : first[3], t: t, how: "time" };
+        if (t >= last[2]) return { lat: last[0], lon: last[1], ele: last[3] == null ? null : last[3], t: t, how: "time" };
+        for (var i = 1; i < tr.length; i++) {
+            if (tr[i][2] < t) continue;
+            var a = tr[i - 1], b = tr[i], k = b[2] > a[2] ? (t - a[2]) / (b[2] - a[2]) : 0;
+            return { lat: Math.round((a[0] + (b[0] - a[0]) * k) * 1e6) / 1e6, lon: Math.round((a[1] + (b[1] - a[1]) * k) * 1e6) / 1e6,
+                     ele: a[3] == null || b[3] == null ? (a[3] == null ? b[3] : a[3]) : Math.round(a[3] + (b[3] - a[3]) * k), t: t, how: "time" };
+        }
+        return null;
+    }
+
+    /**
+     * 순수 함수 - 기록의 처음 · 끝을 m 만큼 잘라 냄(2026-11-22 홍TV님 - 영상 · 공개 기록에 집 · 주차한 곳이 나오지 않게). 길이를 따라 잰 거리.
+     * 남는 것이 없으면(기록이 2m 보다 짧음) 빈 배열.
+     */
+    function trimEnds(track, m) {
+        var tr = track || [], n = tr.length;
+        if (n < 2 || !(m > 0)) return tr.slice();
+        var cum = [0];
+        for (var i = 1; i < n; i++) cum.push(cum[i - 1] + distM(tr[i - 1][0], tr[i - 1][1], tr[i][0], tr[i][1]));
+        var total = cum[n - 1];
+        if (total <= 2 * m) return [];
+        return tr.filter(function (p, i) { return cum[i] >= m && cum[i] <= total - m; });
+    }
+
     var SPEED_HALF_MS = 60000;
     function speedProfile(c) {
         var t = c && c.time, n = t ? t.length : 0, out = [], a = 0, b = 0, any = false;
@@ -4212,7 +4314,8 @@
         function num(k) { var m = new RegExp("[?&]" + k + "=([0-9.]+)").exec(q), v = m ? parseFloat(m[1]) : NaN; return isFinite(v) ? v : null; }
         var from = Math.min(Math.max(num("from") || 0, 0), 1), to = num("to") == null ? 1 : Math.min(Math.max(num("to"), 0), 1), secs = num("secs");
         if (to <= from) { from = 0; to = 1; }
-        return { sat: /[?&]sat=1(&|$)/.test(q), secs: secs == null ? null : Math.min(Math.max(secs, 3), 120), from: from, to: to };
+        // rec - 내 기록 3D 비행을 이 화면에서 영상 파일로 만듦(2026-11-22 홍TV님 - 유튜버용, app.js videoRecord)
+        return { sat: /[?&]sat=1(&|$)/.test(q), secs: secs == null ? null : Math.min(Math.max(secs, 3), 120), from: from, to: to, rec: /[?&]rec=1(&|$)/.test(q) };
     }
 
     function isTopName(name) { return /(봉|산|령|재|고개|峰|정상)(\s*\(.*\))?$/.test(String(name || "").trim()); }
@@ -7027,7 +7130,7 @@
     }
 
     global.RF = {
-        LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, endsHigh: endsHigh, videoOpts: videoOpts, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, PARKS: PARKS, parkOf: parkOf, mountainOf: mountainOf, regionNames: regionNames, stampKey: stampKey, summitName: summitName, shelterOf: shelterOf, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, urlQuery: urlQuery, peakHref: peakHref, canonicalHref: canonicalHref, tmapHref: tmapHref, csvRows: csvRows, mergeRows: mergeRows, backupDue: backupDue, saveCsvFile: saveCsvFile, readCsvFile: readCsvFile, tmapLinks: tmapLinks, setCanonical: setCanonical, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakGapM: peakGapM, peakCourses: peakCourses, isClosedTrail: isClosedTrail, isHiddenCourse: isHiddenCourse, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, nearestExit: nearestExit, gpsGap: gpsGap, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
+        LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, exifInfo: exifInfo, photoPlace: photoPlace, trimEnds: trimEnds, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, endsHigh: endsHigh, videoOpts: videoOpts, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, PARKS: PARKS, parkOf: parkOf, mountainOf: mountainOf, regionNames: regionNames, stampKey: stampKey, summitName: summitName, shelterOf: shelterOf, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, urlQuery: urlQuery, peakHref: peakHref, canonicalHref: canonicalHref, tmapHref: tmapHref, csvRows: csvRows, mergeRows: mergeRows, backupDue: backupDue, saveCsvFile: saveCsvFile, readCsvFile: readCsvFile, tmapLinks: tmapLinks, setCanonical: setCanonical, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakGapM: peakGapM, peakCourses: peakCourses, isClosedTrail: isClosedTrail, isHiddenCourse: isHiddenCourse, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, nearestExit: nearestExit, gpsGap: gpsGap, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, fillTrackEle: fillTrackEle, trimTrack: trimTrack, gpxTracks: gpxTracks, trackStats: trackStats, splitTrack: splitTrack, joinTracks: joinTracks, joinPlan: joinPlan, trackGpx: trackGpx, submitAgree: submitAgree, submitBody: submitBody, submitProblem: submitProblem, submitFail: submitFail, submitSheet: submitSheet, courseName: courseName, courseSource: courseSource, sourceText: sourceText, cutMiddle: cutMiddle, osmRoute: osmRoute, WALK_WAYS: WALK_WAYS, trailsToElements: trailsToElements, overlapShare: overlapShare, gpxCheck: gpxCheck, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
         sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, moveStats: moveStats, speedProfile: speedProfile, measureSamples: measureSamples, measureZoom: measureZoom, courseBetween: courseBetween, measureSum: measureSum, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, titledName: titledName, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, tapPick: tapPick, closeLoop: closeLoop, loopTrack: loopTrack, reverseTrack: reverseTrack, longestJump: longestJump, densify: densify, simplifyTrack: simplifyTrack, JOIN_GAP_M: JOIN_GAP_M, pxToLine: pxToLine, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, legMs: legMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, nextTheme: nextTheme, themeButton: themeButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, wxCols: wxCols, wxTable: wxTable, kmaLink: kmaLink, pcpText: pcpText, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap,
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },

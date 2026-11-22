@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow"><!-- 공개 기록 링크(2026-11-22 홍TV님) - 링크를 받은 사람만, 검색에는 내지 않음 -->
+<title>routefly 공개 기록</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=2"><link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
+<meta name="theme-color" content="#11161d">
+<!-- 공개 기록(record.html?id=…): 따라가기 "📒 내 기록 → 📈 → 🎬 영상용 → 🔗 공개 기록 링크" 로 본인이 만든 기록 - 길 모양(처음 · 끝 300m 뺌, 시각 없음) · 이름 · 날짜 · 거리 · 시간 · 오른 높이.
+     유튜브 설명란 등에 넣는 링크. "이 길 따라가기" 는 이 기기 GPX 로 넣어 따라가기로(서버에 다시 올리지 않음) -->
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="img/apple-icon-180.png">
+<link rel="stylesheet" href="vendor/maplibre-gl-5.24.0/maplibre-gl.css">
+<link rel="stylesheet" href="css/course-kit.css">
+<style>
+:root { --bg:#11161d; --panel:#1a212b; --tx:#eef2f7; --dim:#9aa6b4; --ln:rgba(255,255,255,0.12); --sky:#38d9ea; }
+* { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { margin:0; height:100%; background:var(--bg); color:var(--tx); font-family:Arial,"Malgun Gothic",sans-serif; overflow:hidden; }
+body { display:flex; flex-direction:column; height:100dvh; }
+#top { display:flex; align-items:center; gap:8px; padding:calc(env(safe-area-inset-top) + 8px) 10px 8px; background:var(--panel); border-bottom:1px solid var(--ln); flex:0 0 auto; }
+#back { flex:0 0 auto; display:inline-flex; align-items:center; height:44px; padding:0 12px; border-radius:20px; text-decoration:none;
+        background:rgba(56,217,234,0.16); border:1px solid var(--sky); color:var(--sky); font-size:14px; font-weight:bold; }
+#title { flex:1; min-width:0; margin:0; font-size:15px; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#mapWrap { position:relative; flex:1 1 auto; }
+#map { position:absolute; inset:0; }
+#msg { position:absolute; left:50%; top:40%; transform:translate(-50%,-50%); z-index:3; background:rgba(0,0,0,0.7); padding:10px 14px; border-radius:10px; font-size:14px; text-align:center; max-width:86%; }
+#sheet { flex:0 0 auto; background:var(--panel); border-top:1px solid var(--ln); padding:10px 12px calc(env(safe-area-inset-bottom) + 10px); }
+#stat { font-size:14px; color:var(--dim); margin-bottom:6px; }
+#prof { height:110px; }
+#follow { display:flex; align-items:center; justify-content:center; height:46px; margin-top:8px; border-radius:10px; background:var(--sky); color:#062b30; font-weight:bold; text-decoration:none; font-size:15px; }
+#follow[hidden] { display:none; }
+.tip { font-size:12px; color:var(--dim); margin:6px 0 0; line-height:1.5; }
+</style>
+<script src="js/rf-theme.js"></script><link rel="stylesheet" href="css/rf-light.css">
+</head>
+<body>
+<div id="top">
+    <a id="back" href="m/" data-en-href="en/m/" data-en="‹ Trails">‹ 코스 모음</a>
+    <h1 id="title" data-en="Shared record">공개 기록</h1>
+</div>
+<div id="mapWrap" role="main">
+    <div id="map"></div>
+    <div id="msg" data-en="Loading…">불러오는 중…</div>
+</div>
+<div id="sheet">
+    <div id="stat"></div>
+    <div id="prof"></div>
+    <a id="follow" href="hike.html" hidden data-en="Follow this route">이 길 따라가기</a>
+    <p class="tip" data-en="A record its owner chose to share (without the first and last 300 m). Check the trail's closures and the weather before you go.">걸은 사람이 공개한 기록입니다(처음 · 끝 300m 는 빠짐). 가기 전에 입산 통제 · 날씨를 꼭 확인하세요.</p>
+</div>
+<script src="vendor/maplibre-gl-5.24.0/maplibre-gl.js"></script>
+<script src="js/kit-record.js"></script>
+<script src="js/record.js"></script>
+<script src="js/seen.js"></script>
+</body>
+</html>
