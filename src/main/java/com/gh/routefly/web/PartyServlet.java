@@ -91,7 +91,7 @@ public class PartyServlet extends HttpServlet {
         String makeKey = missKey;
         boolean create = "/create".equals(path) && !owner(req);
         if (create && !reserve(CREATES, makeKey, CREATES_ALL, now)) { if (lookup) MISSES.give(missKey, now); Json.fail(resp, 429, "하루에 만들 수 있는 방 수를 넘었습니다. 내일 다시 해 주세요."); return; }
-        if ("/office/rename".equals(path) && !RENAMES.take(ip, now)) { if (lookup) MISSES.give(missKey, now); Json.fail(resp, 429, "이름을 너무 자주 바꿨습니다. 1시간 뒤 다시 해 주세요."); return; }   // 2026-10-29 보안 점검 - 바꿀 때마다 파일 둘을 다시 씀
+        if ("/office/rename".equals(path) && !RENAMES.take(makeKey, now)) { if (lookup) MISSES.give(missKey, now); Json.fail(resp, 429, "이름을 너무 자주 바꿨습니다. 1시간 뒤 다시 해 주세요."); return; }   // 2026-10-29 보안 점검 - 바꿀 때마다 파일 둘을 다시 씀. /48 로 셈(2026-11-22 점검: /64 를 바꿔 가며 한도를 피할 수 있었음)
         // 참가도 먼저 자리 잡기 - 실패하면 돌려줌(2026-11-01 점검: over 로 보고 끝난 뒤 take 하면 한꺼번에 보낸 요청이 모두 지나갔음)
         boolean join = "/join".equals(path);
         if (join && !JOINS.take(ip, now)) { if (lookup) MISSES.give(missKey, now); Json.fail(resp, 429, "한 곳에서 참가를 너무 많이 했습니다. 1시간 뒤 다시 해 주세요."); return; }
@@ -290,7 +290,9 @@ public class PartyServlet extends HttpServlet {
             p.net(m, str(in, "_net"));
             if (str(in, "drop") != null && !str(in, "drop").isBlank()) p.drop(m, null, str(in, "drop"));   // 하차 지점(2026-10-28)
             if (pickIn) p.pickup(m, null, str(in, "pickup"));   // 하산 탑승지
-            return withToken(p.view(m, now), m);
+            JsonObject jo = withToken(p.view(m, now), m);
+            if (bool(in, "onBus") && "hiker".equals(m.role) && !m.boarded && !m.cancelled && !m.room.departed) jo.addProperty("boardEarly", Party.BOARD_EARLY);   // 출발 1시간 전 전에 찍은 버스 QR - 참가만 됨(화면이 알림)
+            return jo;
         }
         Party.Member m = p.who(str(in, "token"), now);
         if (m == null) throw new IllegalArgumentException("방이 끝났거나 열쇠가 맞지 않습니다.");
@@ -321,7 +323,7 @@ public class PartyServlet extends HttpServlet {
                 out = p.view(m, now);
                 out.addProperty("sosKept", sosKept);   // false - 보낸 SOS 를 받지 않음(사무실 자리, 2026-11-02)
                 return out; }   // sos 가 없으면(앱 RfAlive) 그대로 - 앱으로 셈. 앱은 답을 읽지 않으니 방 전체 대신 ok 만(2026-10-28 속도 점검: 1시간 60번 × 14KB 버림)
-            case "/board" -> p.board(m);
+            case "/board" -> p.board(m, now);
             case "/aboard" -> p.aboard(m, on, bool(in, "apart"));   // apart - 따로 귀가
             case "/seat" -> { p.seat(m, integer(in, "id"), integer(in, "bus"), integer(in, "seat"), str(in, "stop")); p.officeDid(m, "seat", p.nickOf(m, integer(in, "id"), null, null), now); }
             case "/mark" -> {

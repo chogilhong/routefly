@@ -28,13 +28,33 @@
         [/이 회사의 방이 아니거나 이미 끝난 방입니다/, "This room isn't your company's, or it has already ended."],
         [/승인 기다리는 방입니다/, "This room is waiting for approval. If it's your club's room, tap \"Approve\" first."],
         [/이름을 너무 자주 바꿨습니다/, "The name was changed too often. Please try again in an hour."],
+        // 2026-11-22 산악회 점검 - 영어가 없어 "(Korean message)" 로 나오던 글
+        [/방 코드를 너무 많이 틀렸습니다/, "Too many wrong codes or links. Please try again in 10 minutes."],
+        [/묶을 사무실이 없습니다/, "There are no offices to group."],
+        [/묶음 링크가 맞지 않습니다/, "The group link doesn't match."],
+        [/사무실 링크가 맞지 않습니다/, "The office link doesn't match."],
+        [/지금은 묶음을 더 만들 수 없습니다/, "No more groups can be created right now."],
+        [/한 묶음에는 사무실을 (\d+)곳까지/, "A group holds up to $1 offices."],
+        [/관리자 기기에서만/, "Only the admin device can do this."],
+        [/이 회사의 방이 아닙니다/, "This room isn't your company's."],
+        [/요청을 읽지 못했습니다/, "Couldn't read the request."],
+        [/준비 중/, "Hiking club rooms are not open yet."],
         [/너무 많이|잠시 뒤/, "Too many requests. Please try again in a moment."]
     ];
     function em(e) {
         var t = e && e.message ? e.message : T("서버에 닿지 않습니다.", "Can't reach the server.");
         if (!EN) return t;
-        for (var i = 0; i < EN_MSG.length; i++) if (EN_MSG[i][0].test(t)) return EN_MSG[i][1];
+        for (var i = 0; i < EN_MSG.length; i++) {
+            var mm = t.match(EN_MSG[i][0]);
+            if (mm) return EN_MSG[i][1].replace(/\$(\d)/g, function (x, k) { return mm[+k] || ""; });
+        }
         return /[가-힣]/.test(t) ? t + " (Korean message)" : t;
+    }
+    /** 다른 곳에서 고치기를 켜 둔 방을 열 때 알림 글(left - 남은 ms). */
+    function editElsewhere(left) {
+        var min = Math.max(1, Math.ceil(left / 60000));
+        return T("✏️ 다른 곳에서 고치는 중입니다(남은 시간 " + min + "분).\n같은 방을 함께 고치면 나중에 고친 것만 남습니다. 방을 열까요?",
+            "✏️ Someone else is editing this room (" + min + " min left).\nIf you both edit, only the later change stays. Open the room?");
     }
     function officeOf(n) { return EN ? n + " office" : n + " 사무실"; }
 
@@ -581,8 +601,12 @@
         if (b.hasAttribute("data-open")) {
             // 사무실이 연 방은 이 탭에만 둠(party-kit set) - 이 기기에 참가한 내 방은 그대로라 묻지 않음(2026-10-29)
             RFParty.post("office/enter", { key: key, code: code }).then(function (j) {
-                RFParty.set({ code: j.code, token: j.token, role: j.role, name: j.name, office: true });
-                location.href = EN ? "party.html?lang=en" : "party.html";
+                // 사무실 자리는 하나 - 다른 기기에서 고치기를 켜 둔 방이면 먼저 알림(2026-11-22 홍TV님)
+                return (j.officeEdit && j.officeEditUntil ? ask(editElsewhere(j.officeEditUntil - Date.now()), { ok: T("열기", "Open") }) : Promise.resolve(true)).then(function (ok) {
+                    if (!ok) return;
+                    RFParty.set({ code: j.code, token: j.token, role: j.role, name: j.name, office: true });
+                    location.href = EN ? "party.html?lang=en" : "party.html";
+                });
             }).catch(function (e2) { msg(em(e2)); });
         } else {
             ask(T("\"" + name + "\" 방을 이 회사 화면에서 뺄까요? (방은 그대로, 사무실만 빠짐)", "Remove the room \"" + name + "\" from this company screen? (The room stays; only the office is removed.)"), { ok: T("빼기", "Remove"), danger: true }).then(function (ok) {

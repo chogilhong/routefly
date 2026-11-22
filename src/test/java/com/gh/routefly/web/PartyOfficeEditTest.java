@@ -152,11 +152,12 @@ public class PartyOfficeEditTest {
         call(p, "/notice", body(ot, "\"text\":\"하나\""), T0 + Party.OFFICE_EDIT_MS - 1);
         try { call(p, "/notice", body(ot, "\"text\":\"둘\""), T0 + Party.OFFICE_EDIT_MS); fail("30분 지남"); } catch (SecurityException x) { /* 맞음 */ }
         assertFalse(call(p, "/view", tok(ot), T0 + Party.OFFICE_EDIT_MS).get("officeEdit").getAsBoolean());
-        // 다시 켠 뒤 사무실 화면에서 방을 다시 엶 - 같은 자리, 고치기는 꺼짐
+        // 다시 켠 뒤 사무실 화면에서 방을 다시 엶 - 같은 자리, 고치기는 그대로(2026-11-22 홍TV님: 다른 직원이 열어도 꺼지지 않고 사무실 화면이 알림)
         call(p, "/office-edit", body(ot, "\"on\":true"), T0 + 2 * Party.OFFICE_EDIT_MS);
         String again = call(p, "/office/enter", "{\"key\":\"" + s[0] + "\",\"code\":\"" + s[1] + "\"}", T0 + 2 * Party.OFFICE_EDIT_MS).get("token").getAsString();
         assertEquals(ot, again);
-        try { call(p, "/notice", body(ot, "\"text\":\"셋\""), T0 + 2 * Party.OFFICE_EDIT_MS + 1); fail("다시 열면 꺼짐"); } catch (SecurityException x) { /* 맞음 */ }
+        call(p, "/notice", body(ot, "\"text\":\"셋\""), T0 + 2 * Party.OFFICE_EDIT_MS + 1);   // 다시 열어도 고치기 그대로
+        try { call(p, "/notice", body(ot, "\"text\":\"넷\""), T0 + 3 * Party.OFFICE_EDIT_MS); fail("켠 때부터 30분 지나면 꺼짐"); } catch (SecurityException x) { /* 맞음 */ }
     }
 
     /** 방 끝내기 · 산행 취소 - 사무실도 되지만(인솔자와 연락이 안 될 때) 고치기를 켠 뒤에만. */

@@ -42,16 +42,16 @@ public class PartyLogTest {
         Path dir = Files.createTempDirectory("partylog");
         try {
             PartyLog log = new PartyLog(dir);
-            log.add(T0, "ABCDEF", 3, "join role=hiker");
-            log.add(T0, "ABCDEF", 30, "join role=hiker");
-            log.add(T0, "ABCDEF", 3, "sos");
+            log.add(T0, "ABCDEF", T0, 3, "join role=hiker");
+            log.add(T0, "ABCDEF", T0, 30, "join role=hiker");
+            log.add(T0, "ABCDEF", T0, 3, "sos");
             assertEquals(3, log.lines().size());
             Path f;
             try (var s = Files.list(dir)) { f = s.findFirst().get(); }
             assertTrue(f.getFileName().toString().matches("party-member-\\d{4}-\\d{2}\\.log"));
             try { assertEquals("rw-------", java.nio.file.attribute.PosixFilePermissions.toString(Files.getPosixFilePermissions(f))); }
             catch (UnsupportedOperationException e) { /* POSIX 아님 */ }
-            assertEquals("member=3 만(30 은 그대로)", 2, log.purge("ABCDEF", 3));
+            assertEquals("member=3 만(30 은 그대로)", 2, log.purge("ABCDEF", T0, 3));
             assertEquals(1, log.lines().size());
             assertTrue(log.lines().get(0).contains("member=30"));
             log.sweep(T0 + 100L * 24 * 3600_000L);

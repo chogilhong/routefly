@@ -157,7 +157,7 @@ public class CheckupRound11Test {
         String party = read("src/main/java/com/gh/routefly/web/Party.java");
         String leave = party.substring(party.indexOf("    void leave(Member m, long now) {"), party.indexOf("private synchronized Member leaveLocked("));
         assertFalse("B10 leave 는 방 자물쇠를 잡지 않음", leave.contains("synchronized"));
-        assertTrue(leave.contains("memberLog.purge(gone.room.code, gone.id);"));
+        assertTrue(leave.contains("memberLog.purge(gone.room.code, gone.room.created, gone.id);"));
     }
 
     /** C1 ~ C11 - 호출 · 속도. */

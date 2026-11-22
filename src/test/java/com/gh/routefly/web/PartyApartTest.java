@@ -15,8 +15,8 @@ public class PartyApartTest {
         Party p = new Party();
         JsonObject room = j(create(p, T0));
         String code = room.get("code").getAsString(), lead = room.get("token").getAsString();
-        String a = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"철수\",\"onBus\":true,\"agree\":true}", T0).get("token").getAsString();
-        String b = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"영희\",\"onBus\":true,\"agree\":true}", T0).get("token").getAsString();
+        String a = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"철수\",\"onBus\":true,\"agree\":true}", DEPART - H / 2).get("token").getAsString();
+        String b = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"영희\",\"onBus\":true,\"agree\":true}", DEPART - H / 2).get("token").getAsString();
         departAll(p, lead, DEPART);
         call(p, "/loc", "{\"token\":\"" + a + "\",\"lat\":38.12,\"lon\":128.46}", DEPART + H);
 

@@ -88,7 +88,7 @@ public class ReviewRound5Test {
         Party p = new Party();
         JsonObject room = j(create(p, T0));
         String code = room.get("code").getAsString(), lead = room.get("token").getAsString();
-        String a = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"철수\",\"onBus\":true,\"agree\":true}", T0).get("token").getAsString();
+        String a = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"철수\",\"onBus\":true,\"agree\":true}", DEPART - H / 2).get("token").getAsString();
         departAll(p, lead, DEPART);
         call(p, "/loc", "{\"token\":\"" + a + "\",\"lat\":38.12,\"lon\":128.46,\"batt\":55}", DEPART + H);
         call(p, "/loc", "{\"token\":\"" + a + "\",\"lat\":38.121,\"lon\":128.461}", DEPART + H + 60_000);

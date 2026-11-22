@@ -22,12 +22,14 @@ import com.google.gson.JsonParser;
  * 회사 사무실(2026-10-28 홍TV님 "회사는 이 전체를 모니터링 가능해?" - 한라산 · 지리산 · 설악산 여러 방을 한 화면에).
  * 아이디 · 비밀번호 없이 비밀 사무실 링크(key)로 들어옴 - 예전 산악회 계정을 "번거롭다"고 뺀 것(c010921)과 같은 생각.
  * 회사 코드(code, 6글자)는 인솔자에게 주는 것: 방을 만들 때 넣으면 그 방이 회사 화면에 올라감.
- * 끝난 산행은 요약만(이름 · 좌표 없음) 200일 남김. 파일은 party.json 옆 office.json(권한 600), dir 이 null 이면 메모리(시험).
+ * 끝난 산행은 요약만(이름 · 좌표 없음) 200일 남김(취소 사유 글은 30일). 파일은 party.json 옆 office.json(권한 600), dir 이 null 이면 메모리(시험).
  */
 final class PartyOffice {
 
     private static final Logger log = LogManager.getLogger(PartyOffice.class);
     static final long KEEP_MS = 200L * 24 * 3600_000L;
+    /** 취소 사유(인솔자가 적은 자유 글)는 30일만(2026-11-22 홍TV님 "30일로 줄여") - 요약(날짜 · 인원)은 KEEP_MS 그대로. */
+    static final long WHY_KEEP_MS = 30L * 24 * 3600_000L;
     static final int MAX_OFFICES = 500, MAX_ENDED = 500;
     /** 1년 동안 사무실 화면을 안 열고, 올라온 방 · 끝난 산행도 없으면 지움(500곳이 차 아무도 못 만들게 되는 것을 막음, 2026-10-29 보안 점검). */
     static final long IDLE_MS = 365L * 24 * 3600_000L;
@@ -209,12 +211,14 @@ final class PartyOffice {
     /** 오래 안 쓴 빈 사무실 지우기 - linked: 지금 방이 올라온 회사 코드. 돌려줌: 지운 수. */
     synchronized int sweepIdle(long now, java.util.Set<String> linked) {
         int n = 0;
+        boolean changed = false;
         for (java.util.Iterator<Office> it = byCode.values().iterator(); it.hasNext();) {
             Office o = it.next();
-            o.ended.removeIf(x -> now - x.get("endedAt").getAsLong() > KEEP_MS);
+            changed |= o.ended.removeIf(x -> now - x.get("endedAt").getAsLong() > KEEP_MS);
+            changed |= trimWhy(o, now);
             if (now - o.seen > IDLE_MS && o.ended.isEmpty() && !linked.contains(o.code)) { it.remove(); n++; log.info("[OFFICE] 1년 안 쓴 빈 사무실 지움 code={}", o.code); }
         }
-        if (n > 0) save();
+        if (n > 0 || changed) save();   // 지난 요약만 지워도 파일에 씀(2026-11-22 점검: 사무실을 지울 때만 써서 파일에는 200일 넘게 남았음)
         int nb = bundles.size();   // 1년 안 쓴 묶음 · 빈 묶음도 지움
         bundles.values().removeIf(b -> now - b.seen > IDLE_MS || b.codes.stream().noneMatch(byCode::containsKey) && now - b.seen > 24 * 3600_000L);
         if (bundles.size() != nb) saveBundles();
@@ -225,12 +229,13 @@ final class PartyOffice {
         return byCode.containsKey(code);
     }
 
-    /** 끝난 산행 요약을 남김(이름 · 좌표 없음). 200일 지난 것 · 500개 넘는 것은 버림. */
+    /** 끝난 산행 요약을 남김(이름 · 좌표 없음). 200일 지난 것 · 500개 넘는 것은 버림. 취소 사유(자유 글)는 30일(WHY_KEEP_MS). */
     synchronized void ended(String code, JsonObject summary, long now) {
         Office o = byCode.get(code);
         if (o == null) return;
         o.ended.add(0, summary);
         o.ended.removeIf(x -> now - x.get("endedAt").getAsLong() > KEEP_MS);
+        trimWhy(o, now);
         while (o.ended.size() > MAX_ENDED) o.ended.remove(o.ended.size() - 1);
         save();
     }
@@ -240,20 +245,32 @@ final class PartyOffice {
      * 500건까지 통째로 깊은 복사한 뒤 표시만 보고 버렸음). 바뀌었을 때만 endedOf 로 베낌.
      */
     synchronized String endedSig(Office o, long now) {
-        int n = 0;
+        int n = 0, why = 0;
         long newest = 0;
         for (JsonObject x : o.ended) {
             long at = x.get("endedAt").getAsLong();
             if (now - at > KEEP_MS) continue;
             if (n++ == 0) newest = at;
+            if (x.has("why") && now - at <= WHY_KEEP_MS) why++;
         }
-        return n + ":" + newest;
+        return n + ":" + newest + ":" + why;   // why - 취소 사유가 30일 지나 빠지면 화면도 다시 받음
     }
 
     synchronized JsonArray endedOf(Office o, long now) {
         JsonArray a = new JsonArray();
-        for (JsonObject x : o.ended) if (now - x.get("endedAt").getAsLong() <= KEEP_MS) a.add(x.deepCopy());
+        for (JsonObject x : o.ended) if (now - x.get("endedAt").getAsLong() <= KEEP_MS) {
+            JsonObject c = x.deepCopy();
+            if (now - c.get("endedAt").getAsLong() > WHY_KEEP_MS) c.remove("why");   // 파일에서 지우기 전(sweepIdle 사이)에도 보이지 않게
+            a.add(c);
+        }
         return a;
+    }
+
+    /** 30일 지난 취소 사유를 지움 - 지운 것이 있으면 true(쓰는 것은 부른 곳). */
+    private static boolean trimWhy(Office o, long now) {
+        boolean c = false;
+        for (JsonObject x : o.ended) if (x.has("why") && now - x.get("endedAt").getAsLong() > WHY_KEEP_MS) { x.remove("why"); c = true; }
+        return c;
     }
 
     private void save() {

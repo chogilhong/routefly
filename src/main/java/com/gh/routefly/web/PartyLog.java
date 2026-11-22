@@ -38,8 +38,9 @@ final class PartyLog {
     }
 
     /** 한 줄 남김 - what 은 "join role=hiker" 처럼(빈칸 · 영문만, 이름 · 좌표를 넣지 않음). */
-    synchronized void add(long now, String room, int member, String what) {
-        String line = AT.format(Instant.ofEpochMilli(now)) + " " + what.split(" ", 2)[0] + " room=" + room + " member=" + member
+    /** rs - 방을 만든 때(ms, 36진수로 적음): 방 코드는 48시간 뒤 다시 쓰여 코드 · 회원 번호만으로는 앞 방의 다른 사람 줄까지 지웠음(2026-11-22 산악회 점검). */
+    synchronized void add(long now, String room, long rs, int member, String what) {
+        String line = AT.format(Instant.ofEpochMilli(now)) + " " + what.split(" ", 2)[0] + " room=" + room + " member=" + member + " rs=" + Long.toString(rs, 36)
                 + (what.contains(" ") ? " " + what.split(" ", 2)[1] : "");
         if (dir == null) { memory.add(line); return; }
         try {
@@ -53,9 +54,9 @@ final class PartyLog {
         if (now - lastSweep > 24 * 3600_000L) { lastSweep = now; sweep(now); }
     }
 
-    /** 동의 철회 - 그 방 그 회원의 줄을 모든 달 파일에서 지움. 돌려줌: 지운 줄 수. */
-    synchronized int purge(String room, int member) {
-        Pattern p = Pattern.compile(" room=" + Pattern.quote(room) + " member=" + member + "(?: |$)");
+    /** 동의 철회 - 그 방(코드 + 만든 때) 그 회원의 줄을 모든 달 파일에서 지움. rs 없는 옛 줄(2026-11-22 전)은 코드 · 번호로. 돌려줌: 지운 줄 수. */
+    synchronized int purge(String room, long rs, int member) {
+        Pattern p = Pattern.compile(" room=" + Pattern.quote(room) + " member=" + member + "(?: rs=" + Long.toString(rs, 36) + "(?: |$)|(?! rs=)(?: |$))");
         if (dir == null) {
             int before = memory.size();
             memory.removeIf(l -> p.matcher(l).find());

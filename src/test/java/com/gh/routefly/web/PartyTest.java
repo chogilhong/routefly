@@ -284,8 +284,8 @@ public class PartyTest {
         JsonObject room = j(create(p, T0));
         String code = room.get("code").getAsString(), lead = room.get("token").getAsString();
         String a = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"철수\",\"role\":\"hiker\",\"seat\":7,\"agree\":true}", T0).get("token").getAsString();
-        // 이미 참가한 폰으로 버스 QR · NFC 를 찍으면 탑승(2026-10-27 홍TV님 - "버스 탔어요" 단추 · 1시간 전 제한은 없앰)
-        assertTrue(call(p, "/board", tok(a), DEPART - 2 * H).get("boarded").getAsBoolean());
+        // 이미 참가한 폰으로 버스 QR · NFC 를 찍으면 탑승(2026-10-27 홍TV님 - "버스 탔어요" 단추는 없앰, 2026-11-22 - 출발 1시간 전부터)
+        assertTrue(call(p, "/board", tok(a), DEPART - H).get("boarded").getAsBoolean());
         assertFalse(call(p, "/view", tok(a), T0).has("boardFrom"));
         departAll(p, lead, T0);
         try { call(p, "/seat", "{\"token\":\"" + a + "\",\"seat\":4}", T0); fail("출발 뒤 회원"); } catch (IllegalStateException e) { assertTrue(e.getMessage().contains("인솔자")); }

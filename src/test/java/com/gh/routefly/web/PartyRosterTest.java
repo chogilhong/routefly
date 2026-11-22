@@ -59,7 +59,7 @@ public class PartyRosterTest {
         assertEquals(7, k.get("seat").getAsInt());
         assertFalse("링크로는 탑승 아님", k.get("boarded").getAsBoolean());
 
-        // 버스 QR · NFC(onBus)로 들어오면 바로 탑승(2026-10-27 홍TV님 - 시각 제한 없음)
+        // 버스 QR · NFC(onBus)로 들어오면 바로 탑승(2026-10-27 홍TV님, 2026-11-22 - 출발 1시간 전부터)
         JsonObject y = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"박영희\",\"onBus\":true,\"agree\":true}", DEPART - H / 2);
         assertTrue(y.get("boarded").getAsBoolean());
         JsonObject z = call(p, "/join", "{\"code\":\"" + code + "\",\"nick\":\"현장손님\",\"onBus\":true,\"agree\":true}", DEPART - H / 2);
@@ -67,7 +67,7 @@ public class PartyRosterTest {
         assertEquals("hiker", z.get("role").getAsString());
 
         // 출발: QR · NFC 를 안 찍었고 인솔자 체크도 없으면 취소 - 명단에만 있는 사람도(2026-10-27 홍TV님)
-        call(p, "/board", tok(a.get("token").getAsString()), T0);   // 링크로 먼저 참가한 폰이 버스에서 QR 을 찍음
+        call(p, "/board", tok(a.get("token").getAsString()), DEPART - H / 2);   // 링크로 먼저 참가한 폰이 버스에서 QR 을 찍음
         JsonObject d = departAll(p, lead, DEPART);
         assertEquals("안 탄 김철수(7번) · 명단만 김철수(6번)", 2, d.get("cancelledNow").getAsInt());
         JsonObject six = null;

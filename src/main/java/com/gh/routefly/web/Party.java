@@ -113,7 +113,7 @@ final class Party {
         boolean office;
         /**
          * 사무실 고치기가 켜진 때까지(2026-11-02 홍TV님) - 사무실 자리는 처음에 보기만, "✏️ 고치기 켜기" 를 누르면 OFFICE_EDIT_MS 동안 고칠 수 있음.
-         * 메모리에만(파일에 안 씀 - 서버를 다시 켜면 꺼짐), 사무실 화면에서 방을 다시 열어도 꺼짐(officeEnter).
+         * 메모리에만(파일에 안 씀 - 서버를 다시 켜면 꺼짐). 사무실 화면에서 방을 다시 열면 그대로 두고 알림(officeEnter, 2026-11-22).
          */
         long officeEditUntil;
         /** 마지막으로 앱에서 보냈나(2026-10-28 홍TV님 "크롬 안에 있는 웹도 보내나?") - 웹은 화면을 끄면 멈추므로 "10분 소식 없음" 경고는 앱 회원만. */
@@ -620,7 +620,7 @@ final class Party {
         if (n == null) throw new IllegalArgumentException("이름을 적어 주세요.");
         // 역할은 코드가 정함 - 공동 인솔자 코드면 인솔자, 방 코드면 산행 회원(보낸 role 은 보지 않음)
         role = code.trim().toUpperCase().equals(r.leadCode) ? "lead" : "hiker";
-        boolean boardNow = onBus && !r.departed;   // 버스 안 QR · NFC 로 들어오면 출발 탑승(2026-10-27 홍TV님 - "버스 탔어요" 단추는 없앰)
+        boolean boardNow = onBus && !r.departed && boardOpen(r, now);   // 버스 안 QR · NFC 로 들어오면 출발 탑승(2026-10-27 홍TV님 - "버스 탔어요" 단추는 없앰), 출발 1시간 전부터(2026-11-22)
         if ("hiker".equals(role)) {
             Member c = claim(r, n, bus, seat, stop, boardNow, now);
             if (c != null) return c;
@@ -814,6 +814,14 @@ final class Party {
         if (r.departed || m.boarded || r.departAt == 0) return true;
         long at = stopAt(r, m.stop);
         return now >= (at > 0 ? at : r.departAt);
+    }
+
+    /** 버스 QR · NFC 탑승을 받기 시작하는 때 - 방 출발 1시간 전(2026-11-22 홍TV님: 며칠 전 단톡방에 돈 QR 사진을 집에서 찍으면 탑승이 되어 집 위치가 인솔자에게 갔음). 출발 시각이 없는 방은 늘. */
+    static final long BOARD_EARLY_MS = HOUR;
+    static final String BOARD_EARLY = "버스 탑승 QR 은 출발 1시간 전부터 됩니다. 버스에 타서 다시 찍어 주세요.";
+
+    static boolean boardOpen(Room r, long now) {
+        return r.departAt == 0 || now >= r.departAt - BOARD_EARLY_MS;
     }
 
     /** 탑승지 출발 시각(ms) - 방 출발 날의 HH:MM, 방 출발보다 이르면 다음 날(자정을 넘는 경우). 시각이 없으면 0. */
@@ -1199,8 +1207,9 @@ final class Party {
     }
 
     /** 이미 참가한 폰으로 버스 안 QR · NFC 를 찍음 - 출발 탑승(2026-10-27 홍TV님 - "버스 탔어요" 단추 대신). 출발 뒤 · 취소된 사람은 그대로(인솔자가 되돌림). */
-    synchronized void board(Member m) {
+    synchronized void board(Member m, long now) {
         if (!"hiker".equals(m.role) || m.room.departed || m.cancelled) return;
+        if (!boardOpen(m.room, now)) throw new IllegalStateException(BOARD_EARLY);
         m.boarded = true;
         save();
     }
@@ -1374,7 +1383,7 @@ final class Party {
         // 확인자료 파기(달 파일 다시 쓰기)는 방 자물쇠 밖에서(점검 11차 B10, 2026-11-16 - SOS 뒤 나가기를 되풀이하면 자물쇠 안에서 파일을 다시 써
         // 모든 방 · SOS 가 잠깐씩 멈췄음). PartyLog 는 따로 자물쇠를 가짐. 이 요청이 끝나기 전에 지우므로 "즉시 파기" 는 그대로
         Member gone = leaveLocked(m, now);
-        if (gone != null) memberLog.purge(gone.room.code, gone.id);
+        if (gone != null) memberLog.purge(gone.room.code, gone.room.created, gone.id);
     }
 
     /** 방 자물쇠 안 - 지울 확인자료가 있으면 그 회원(아니면 null). */
@@ -1403,7 +1412,7 @@ final class Party {
     /** 회원 확인자료 한 줄 - 파기할 줄이 생겼다고 표시. */
     private void mlog(Member m, long now, String what) {
         m.logged = true;
-        memberLog.add(now, m.room.code, m.id, what);
+        memberLog.add(now, m.room.code, m.room.created, m.id, what);
     }
 
     /** SOS 를 켬 - 1분에 한 번만 남김(켜기 · 끄기를 되풀이해도 줄이 끝없이 늘지 않게, 2026-11-01 점검). */
@@ -1646,7 +1655,9 @@ final class Party {
         Room r = code == null ? null : rooms.get(code.trim().toUpperCase());
         if (r == null || !o.code.equals(r.officeCode)) throw new IllegalArgumentException("이 회사의 방이 아니거나 이미 끝난 방입니다.");
         if (r.officePending) throw new IllegalStateException("승인 기다리는 방입니다. 우리 산악회 방이 맞으면 먼저 \"승인\" 을 눌러 주세요.");
-        for (Member m : r.members.values()) if (m.office) { m.officeEditUntil = 0; return m; }   // 다시 열면 고치기는 꺼짐(보기부터)
+        // 다시 열어도 고치기는 그대로(2026-11-22 홍TV님 점검: 다른 직원이 같은 방을 열면 고치던 사람의 고치기가 말없이 꺼졌음).
+        // 켜져 있으면 사무실 화면이 "다른 곳에서 고치는 중(남은 ○분)" 이라고 알림. 30분이 지나면 저절로 보기(OFFICE_EDIT_MS)
+        for (Member m : r.members.values()) if (m.office) return m;
         Member m = add(r, clean(o.name + " 사무실", 12) != null ? clean(o.name + " 사무실", 12) : "사무실", "lead", now);
         m.office = true;
         save();

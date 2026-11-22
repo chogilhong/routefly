@@ -68,7 +68,7 @@
         [/(?:(\d+)호차 )?(\d+)번 자리는 이미 참가했습니다/, function (x, b, n) { return (b ? "Bus " + b + " seat " : "Seat ") + n + " already has a member."; }],
         [/(?:(\d+)호차 )?(\d+)번 자리에 참가한 사람이 없습니다/, function (x, b, n) { return "No one has joined " + (b ? "bus " + b + " seat " : "seat ") + n + "."; }],
         [/동의/, "You need to agree to share your location to join."],
-        [/출발 1시간 전부터/, "\"I'm on the bus\" opens 1 hour before departure."],
+        [/버스 탑승 QR 은 출발 1시간 전부터/, "The bus boarding QR works from 1 hour before departure. Scan it again on the bus."],   // 2026-11-22
         [/출발 때 탑승하지 않아/, "You weren't on the bus at departure, so you were dropped from this hike. Please contact your leader."],
         [/이미 출발한 방이라/, "This room has already departed, so you can't join. Please contact your leader."],
         [/인솔자만 지나온 길/, "Only leaders can see trails."],
@@ -91,6 +91,7 @@
         [/방 코드를 너무 많이 틀렸습니다/, "Too many wrong room codes. Please try again in 10 minutes."],
         [/참가를 너무 많이/, "Too many joins from one place. Please try again in 1 hour."],
         [/산행 이름을 적어/, "Please enter a hike name."],
+        [/회사 이름을 적어/, "Please enter the company name."],
         [/이름을 적어/, "Please enter your name."],
         [/명단에 "(.+)" 이\(가\) (\d+)명 있습니다/, "There are $2 people named \"$1\" on the list. Please also choose your seat number."],
         [/명단을 읽지 못했습니다/, "Couldn't read the list. Type names (and seat numbers), e.g. \"Kim 5 Lee 6\"."],
@@ -126,6 +127,25 @@
         [/모르는 표시입니다/, "Unknown mark."],
         [/없는 주소입니다/, "Unknown address."],
         [/방이 끝났습니다/, "The room has ended."],
+        // 2026-11-22 산악회 점검 - 영어가 없어 "(Korean message)" 로 나오던 글
+        [/1분 뒤에 다시 보내/, "Please wait 1 minute before sending again."],
+        [/SOS 를 켠 회원이 있어 방을 끝낼 수 없습니다/, "A member has SOS on, so the room can't end. Find that member or confirm they're back on the bus first."],
+        [/보낼 말을 적어/, "Please write a message."],
+        [/보조 인솔자 자리가 다 찼습니다\(차량 (\d+)대/, "All assistant leader spots are taken (one per bus - $1). Please check with the main leader."],
+        [/사무실 자리는 보기만 합니다/, "The office seat is view-only."],
+        [/이 방은 (\d+)명까지입니다/, "This room holds up to $1 people."],
+        [/이미 산행을 시작했습니다/, "The hike has already started."],
+        [/인솔자 연락처를 적어/, "Please enter the leader's phone number (members call it from the mountain)."],
+        [/인솔자 자신은 내보낼 수 없습니다/, "You can't remove yourself."],
+        [/내보낸 기기라 2시간/, "The leader removed this device, so it can't rejoin for 2 hours. If this is a mistake, contact your leader."],
+        [/인솔자는 "공지"/, "Leaders send messages with \"Notice\"."],
+        [/주 인솔자가 없는 방입니다/, "This room has no main leader."],
+        [/지금은 하차 안내가 없습니다/, "There is no drop-off notice right now."],
+        [/하차 지점을 골라/, "Please choose a drop-off point."],
+        [/회사 사무실은 내보낼 수 없습니다/, "The company office can't be removed."],
+        [/방은 주 인솔자\(또는 회사 사무실\)만 끝냅니다/, "Only the main leader (or the company office) can end the room."],
+        [/회사 코드를 찾지 못했습니다/, "Company code not found. Please check it with the company."],
+        [/이 회사의 방이 아(?:니거나|닙니다)/, "This room isn't this company's, or it has already ended."],
         [/^오류 (\d+)$/, "Error $1"]
     ];
     function enMsg(m) {
@@ -296,7 +316,8 @@
                 return;
             }
             // 이미 참가한 폰으로 버스 안 QR · NFC(&on=1)를 찍음 - 출발 탑승(2026-10-27 홍TV님 - "버스 탔어요" 단추 대신)
-            if (cur && cur.role !== "lead" && q.get("on") === "1") { RFParty.post("board", { token: cur.token }).catch(function () { /* 방이 끝났으면 따라가기가 알림 */ }).finally(function () { enterRoom(); }); return; }
+            // 출발 1시간 전 전이면 서버가 막음 - 그 글을 알림(2026-11-22 홍TV님). 방이 끝났으면 방 화면이 알림
+            if (cur && cur.role !== "lead" && q.get("on") === "1") { RFParty.post("board", { token: cur.token }).then(enterRoom, function (er) { (er && !er.ended && /1시간 전부터/.test(er.message || "") ? say(enMsg(er.message)) : Promise.resolve()).then(enterRoom); }); return; }
             if (cur) { enterRoom(); return; }
             show("start");
             if (q.get("c")) { appOpen(); $("mkSec").hidden = $("officeGo").hidden = true; $("mkShowRow").hidden = false; $("joinSec").hidden = false; $("joinShowRow").hidden = true; }
@@ -367,7 +388,7 @@
         RFParty.post("join", { code: code, nick: nick, role: role, bus: bus, seat: role === "hiker" ? seat : null, stop: role === "hiker" ? stop : null, drop: $("joinDropBox").hidden ? null : $("joinDrop").value, pickup: $("joinPickupBox").hidden ? null : $("joinPickup").value, onBus: q.get("on") === "1", agree: true }).then(function (j) {
             try { localStorage.setItem("rf-party-nick", nick); } catch (e) { /* 이번만 */ }
             RFParty.set({ code: j.code, token: j.token, role: j.role, name: j.name });
-            enterRoom(j);
+            (j.boardEarly ? say(enMsg(j.boardEarly)) : Promise.resolve()).then(function () { enterRoom(j); });   // 출발 1시간 전 전에 찍은 버스 QR - 참가만 됨
         }).catch(function (e) { joinErr(enMsg(e.message)); }).finally(function () { $("joinBtn").disabled = false; });
     });
 
