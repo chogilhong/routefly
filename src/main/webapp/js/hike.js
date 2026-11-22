@@ -2475,6 +2475,8 @@
         $("recViewClose").onclick = function () { $("recView").style.display = "none"; };
         $("recViewVideo").disabled = rc.lat.length < 2;
         $("recViewVideo").onclick = function () { vidOpen(rec); };
+        $("recViewBig").disabled = rc.lat.length < 2;
+        $("recViewBig").onclick = function () { location.href = "trip.html?rec=" + rec.start + (EN ? "&lang=en" : ""); };   // 기록 보기(2026-11-22 홍TV님 "램블러 화면 같은 것")
     }
 
     // ------------------------------------------------------------------ 🎬 영상용(2026-11-22 홍TV님 - 유튜버들이 앱 화면 · 코스를 영상에 많이 씀)

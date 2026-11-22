@@ -30,7 +30,9 @@ var BUNDLES = [
     // 2026-11-17 홍TV님 dronefly 허용구역 "길찾기, 티맵 연결해줘" - 티맵 고리(RF.tmapHref)를 그대로
     { out: "js/kit-dronefly.js", users: ["dronefly.html", "js/dronefly.js"] },
     // 2026-11-22 홍TV님 공개 기록 링크(record.html) - 길 모양을 GPX 로 바꿔 지도 · 고도 그래프 · 따라가기
-    { out: "js/kit-record.js", users: ["record.html", "js/record.js", "js/seen.js"] }
+    { out: "js/kit-record.js", users: ["record.html", "js/record.js", "js/seen.js"] },
+    // 2026-11-22 홍TV님 "램블러 화면 같은 것" - 기록 보기(trip.html): GPX · 내 기록을 지도 · 사진 목록 · 그래프로
+    { out: "js/kit-trip.js", users: ["trip.html", "js/trip.js", "js/seen.js"] }
 ];
 
 var HEAD = "/* 만든 파일 - 고치지 마세요. course-kit.js 를 고친 뒤 node tools/kit-split/split.js (이 화면이 쓰는 것만 남긴 course-kit) */\n";

@@ -100,6 +100,19 @@ public class VideoKitTest {
         assertTrue("받은 GPX 기록은 내 기록으로", js.contains("try { got = RF.gpxRecord(text); } catch (e) { got = null; }") && js.contains("if (ok) importGpxRecord(got); else openGpxCourse(text, name);"));
     }
 
+    /** 기록 보기 trip.html(2026-11-22 홍TV님 "램블러 화면 같은 것") - GPX · 내 기록을 지도 · 사진 카드 · 그래프로, 표시 ↔ 카드 서로 따라감, 🔍 사진만 크게. */
+    @Test
+    public void 기록_보기_화면() throws Exception {
+        String js = read("src/main/webapp/js/trip.js"), html = read("src/main/webapp/trip.html"), hike = read("src/main/webapp/js/hike.js");
+        assertTrue("GPX 는 이 기기 안에서 읽음", js.contains("var got = RF.gpxRecord(text);") && !js.contains("fetch(\"api/record") && html.contains("<meta name=\"robots\" content=\"noindex, nofollow\">"));
+        assertTrue("표시를 누르면 카드 · 카드를 누르면 지도", js.contains("select(i, false, true); });") && js.contains("card.onclick = function () { select(i, true, false); };"));
+        assertTrue("🔍 사진만 크게 · ‹ › 넘김", js.contains("z.onclick = function (e) { e.stopPropagation(); big(i); };") && html.contains("id=\"bigPrev\"") && html.contains("id=\"bigNext\""));
+        assertTrue("고도 · 속도 그래프", js.contains("prof = RF.profile($(\"prof\"), rc, { speed: RF.speedProfile(rc), labels: false });"));
+        assertTrue("지도 출처(OSM) 그대로", js.contains("customAttribution: \"© OpenStreetMap contributors"));
+        assertTrue("📈 기록 창에서 크게 보기", hike.contains("location.href = \"trip.html?rec=\" + rec.start"));
+        assertTrue(read("src/main/webapp/js/kit-trip.js").contains("function gpxRecord("));
+    }
+
     @Test
     public void 공개_기록_남길_것만() {
         JsonObject in = JsonParser.parseString("{\"name\":\"덕기봉 <b>\\n산행\",\"kind\":\"hike\",\"date\":\"2026-11-22\",\"dist_m\":5123.4,\"time_ms\":7200000,\"up_m\":612,"
