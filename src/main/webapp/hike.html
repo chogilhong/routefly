@@ -276,6 +276,8 @@ html.rfwait body { visibility:hidden; }   /* 앱을 처음 열 때 서버에 닿
 .sheet .sbtn button { flex:1; height:46px; border-radius:10px; border:1px solid var(--ln); background:rgba(255,255,255,0.06); color:var(--tx);
                       font-size:15px; font-weight:bold; }
 .sheet .sbtn button.main { flex:2; background:var(--sky); border-color:var(--sky); color:var(--onsky,#062b30); }
+#recView .sbtn button { white-space:nowrap; padding:0 4px; }   /* 두 단추 글자 한 줄 · 닫기는 좁게(2026-11-22 홍TV님) */
+#recView .sbtn button.main { flex:0 0 72px; }
 #recList .rec { display:flex; align-items:center; gap:8px; padding:10px 0; border-bottom:1px solid var(--ln); font-size:13.5px; }
 #recList .rec div { flex:1; min-width:0; }
 #recList .rec b { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -771,7 +773,7 @@ html.picking #pick { display:flex; }
         <div class="where" id="recViewSum"></div>
         <div id="recViewProfile"></div>
         <div class="sbtn">
-            <button type="button" id="recView3d" data-en="🛩 3D flight video">🛩 3D 비행 영상</button>
+            <button type="button" id="recView3d" data-en="🛩 3D flight">🛩 3D 비행</button>
             <button type="button" id="recViewMap" data-en="📂 Open GPX">📂 GPX 열기</button>
             <button type="button" id="recViewClose" class="main" data-en="Close">닫기</button>
         </div>
