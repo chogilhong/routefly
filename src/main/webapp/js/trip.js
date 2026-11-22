@@ -19,6 +19,8 @@
     // 공단 대피소 · 100대 명산 정상(늘 보임, RF.famousMarks)과 겹치는 OSM 것(300m 안)은 숨김 - 두 번 그리지 않게
     var fam = null, famGj = null, famSet = false, dropPeaks = [], dropHuts = [], SAME_M = 300;
     var styleOk = false, styleQ = [];   // 지도 모양 준비(whenStyle)
+    // 공원 탐방로(2026-11-23 홍TV님 "지리산 안내도 코스들을 그려줘 - 일단 표시만"): 기록이 국립공원 안이면 api/park?name=<공원> 의 탐방로 선을 연하게
+    var parkCands = [], parkShown = null, PARK_NEAR_M = 1500;
     var SEG_NEAR_M = 200, SEG_GAP_M = 300, PICK_NEAR_M = 300, popup = null;   // 구간 끊는 곳(선에서 200m 안 · 300m 넘게 떨어진 것만) · 누른 곳 찾기   // 우리 지도일 때 기록이 지나간 봉우리(150m 안)
     // 표시별 보이기 · 숨기기(2026-11-22 홍TV님 "마커 별로 숨기고 보이고") - 이 화면 동안만(저장하지 않음)
     var KINDS = [["photo", "📷", "사진", "Photos"], ["memo", "📝", "메모", "Notes"], ["rf-hut", "🏠", "대피소 · 산장", "Shelters · huts"],
@@ -95,6 +97,11 @@
                     map.addSource("trk", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
                     // 우리 지도는 글자(봉우리 · 마을 이름) 층 아래에 그어 선이 이름을 덮지 않게(2026-11-22 홍TV님 - 세석 · 촛대봉 이름이 선 밑에 깔렸음). V-World 그림 바탕에는 글자 층이 없음
                     var under = firstSymbol();
+                    if (vector) {   // 공원 탐방로 - 기록 선 아래, 연한 회청색(parkTrails)
+                        map.addSource("parktr", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+                        map.addLayer({ id: "parktr", type: "line", source: "parktr", layout: { "line-join": "round", "line-cap": "round" },
+                            paint: { "line-color": "#3b5b78", "line-opacity": 0.55, "line-width": ["interpolate", ["linear"], ["zoom"], 9, 1, 13, 2.2, 16, 3.5] } }, under);
+                    }
                     map.addLayer({ id: "trk-halo", type: "line", source: "trk", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": "#fff", "line-width": 8, "line-opacity": 0.8 } }, under);
                     map.addLayer({ id: "trk", type: "line", source: "trk", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": ["coalesce", ["get", "color"], "#5b45ff"], "line-width": 4.5 } }, under);   // 구간 색(segData)
                     // 구간 거리 · 시간 · 오르내림 글(우리 지도만 - 글꼴이 있음). 일반 봉우리 · 마을 이름보다 먼저, 대피소 · 명산보다 나중에 자리를 잡음
@@ -109,6 +116,7 @@
                     }
                 }
                 paintTrack();
+                parkTrails();
                 peakKeys = [];
                 markPeaks();
                 var b = new maplibregl.LngLatBounds();
@@ -248,6 +256,26 @@
         return { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: rc.lon.map(function (x, k) { return [x, rc.lat[k]]; }) } };
     }
 
+    /**
+     * 기록이 지나간 국립공원의 탐방로 선을 기록 선 아래에 연하게(우리 지도 · 대피소 자료가 있을 때). 공원은 폰 안에서 정하고(RF.recordPark) 서버에는 공원 이름만 보냄 -
+     * 기록 위치는 보내지 않음(개인정보처리방침). 같은 공원이면 다시 받지 않음, 공원 밖 기록이면 지움.
+     */
+    function parkTrails() {
+        if (!vector || !rc || !parkCands.length || !map.getSource("parktr")) return;
+        var park = RF.recordPark(rc, parkCands, PARK_NEAR_M);
+        if (park === parkShown) return;
+        parkShown = park;
+        map.getSource("parktr").setData({ type: "FeatureCollection", features: [] });
+        if (!park) return;
+        getJson("api/park?name=" + encodeURIComponent(park)).then(function (d) {
+            if (parkShown !== park || !d || !d.trails) return;
+            var f = d.trails.concat(d.others || []).filter(function (t) { return t.coords && t.coords.length > 1; }).map(function (t) {
+                return { type: "Feature", properties: { name: t.name }, geometry: { type: "LineString", coordinates: t.coords } };
+            });
+            map.getSource("parktr").setData({ type: "FeatureCollection", features: f });
+        }).catch(function () { /* 못 받으면 그냥 기록만 */ });
+    }
+
     /** 지도 맞춤 여백 - 그래프 · 왼쪽 아래 표시 단추 줄 · 로고(mapKit) 높이만큼 아래를 비움(구간을 가리지 않게, 2026-11-23 PC: 좁은 화면에서 단추 줄이 덮음). */
     function fitPad() {
         var g = $("graph"), k = $("mapKit"), m = $("map").getBoundingClientRect();
@@ -325,7 +353,7 @@
         if (famSet || !famGj || !map.getSource("marks")) return;
         famSet = true;
         map.getSource("marks").setData(famGj);
-        if (map.getSource("trk")) paintTrack();   // 자료가 늦게 오면 그때 구간 색으로
+        if (map.getSource("trk")) { paintTrack(); parkTrails(); }   // 자료가 늦게 오면 그때 구간 색 · 공원 탐방로
     }
 
     /**
@@ -336,6 +364,9 @@
         var j = function (u) { return fetch(u).then(function (r) { return r.ok ? r.json() : null; }); };
         Promise.all([j("data/mountains100.json"), j("data/peak-elev.json"), j("data/knps-shelters.json")]).then(function (d) {
             var gj = RF.famousMarks(d[0] && d[0].peaks, d[1] && d[1].elev, d[2] && d[2].shelters);
+            // 국립공원 찾기 후보 - 공단 대피소의 공원 · 국립공원 이름과 같은 100대 명산(지리산 천왕봉 등)
+            parkCands = ((d[2] && d[2].shelters) || []).map(function (s) { return { park: s.park, lat: s.lat, lon: s.lon }; })
+                .concat(((d[0] && d[0].peaks) || []).map(function (p) { return { park: p.id, lat: p.lat, lon: p.lon }; }));
             fam = { peaks: [], huts: [] };
             gj.features.forEach(function (f) { var c = f.geometry.coordinates; fam[f.properties.kind === "hut" ? "huts" : "peaks"].push({ name: f.properties.name, lon: c[0], lat: c[1] }); });
             famGj = gj;

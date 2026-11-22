@@ -345,6 +345,9 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
                 ["4.24 km · 1시간 45분 · ↑520 ↓1,200 m", "0.90 km", "1.00 km · 1시간 · ↑30 m"]);
             eq("구간 글 - 1시간 안은 분만", RF.segText({ m: 2110, ms: 1920000, up: 250, down: 0 }), "2.11 km · 32분 · ↑250 m");
             eq("구간 글 - 0 은 뺌", [RF.segText({ m: 1000, ms: null, up: 60, down: 0 }), RF.segText({ m: 1000, ms: null, up: 0, down: 0 })], ["1.00 km · ↑60 m", "1.00 km"]);
+            eq("공원 찾기 - 선에서 maxM 안 첫 국립공원, 국립공원이 아니면 건너뜀, 없으면 null", [
+                RF.recordPark(c, [{ park: "모악산", lat: 35.30, lon: 127.705 }, { park: "지리산", lat: 35.305, lon: 127.705 }], 1500),
+                RF.recordPark(c, [{ park: "지리산", lat: 35.40, lon: 127.705 }], 1500), RF.recordPark(c, [], 1500)], ["지리산", null, null]);
             eq("구간 색 - 선에서 먼 곳(약 330m) · 서로 가까운 곳(150m 안) · 끝 가까운 곳은 안 끊음", [RF.trackSegments(c, [stopAt(40, 0.003)], 200, 150).features.length,
                 RF.trackSegments(c, [stopAt(40), stopAt(45)], 200, 150).features.length, RF.trackSegments(c, [stopAt(2), stopAt(99)], 200, 150).features.length, RF.trackSegments(c, [], 200, 150).features.length], [1, 2, 1, 1]);
         })();

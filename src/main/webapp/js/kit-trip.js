@@ -125,6 +125,10 @@
     var PARK_NO = /([가-힣](?:공원|광장))\d+(?![\d)])/g;
     function numberedPark(name) { return name == null ? name : String(name).replace(NUMBERED_PARK, "$1").replace(PARK_NO, "$1"); }
 
+    /** 국립공원 이름(서버 ParkServlet.PARKS 와 같은 차례). */
+    var PARKS = ["지리산", "경주", "계룡산", "한려해상", "설악산", "속리산", "한라산", "내장산", "가야산", "덕유산", "오대산", "주왕산",
+        "태안해안", "다도해해상", "북한산", "치악산", "월악산", "소백산", "월출산", "변산반도", "무등산", "태백산", "팔공산"];
+
     /**
      * 안내도(탐방 안내도 park.html · 노선 안내도 route.html) 바탕 지도 - V-World 지도(위성은 숨겨 둠) + 지형 음영, 키가 없으면 음영만.
      * c: {demUrl, vworldKey} (/api/map-config).
@@ -274,6 +278,20 @@
                 up: up, down: up != null && net != null ? Math.max(0, Math.round(up - net)) : null, mid: [mid.lon, mid.lat] } });
         }
         return { type: "FeatureCollection", features: out };
+    }
+
+    /**
+     * 순수 함수 - 기록이 어느 국립공원 안인가(2026-11-23 홍TV님 "지리산 안내도 코스들을 그려줘"): cands [{park, lat, lon}](공단 대피소의 공원 ·
+     * 국립공원 이름과 같은 100대 명산 정상) 가운데 기록 선에서 maxM 안에 든 첫 공원 이름(PARKS 에 있는 것만), 없으면 null. 폰 안에서만 셈 - 서버로는 공원 이름만.
+     */
+    function recordPark(c, cands, maxM) {
+        for (var i = 0; i < (cands || []).length; i++) {
+            var p = cands[i];
+            if (!p || PARKS.indexOf(p.park) < 0 || typeof p.lat !== "number" || typeof p.lon !== "number") continue;
+            var q = snap(c, p.lat, p.lon);
+            if (q && q.off <= maxM) return p.park;
+        }
+        return null;
     }
 
     /** 순수 함수 - 구간 한 줄 글 "4.24 km · 1시간 45분 · ↑520 ↓120 m"(없는 값 · 0 은 뺌). p = trackSegments 의 properties. */
@@ -1042,6 +1060,7 @@
         poiShowFilter: poiShowFilter,
         famousMarks: famousMarks,
         trackSegments: trackSegments,
+        recordPark: recordPark,
         segText: segText,
         SEG_COLORS: SEG_COLORS,
         peakOnFilter: peakOnFilter,

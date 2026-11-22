@@ -66,6 +66,9 @@ public class BasemapTest {
             && js.contains("map.getLayer(\"peak-on\") ? \"peak-on\" : undefined);")
             && js.contains("segList(segs);") && js.contains("$(\"side\").insertBefore(box, $(\"side\").firstChild);") && js.contains("map.fitBounds(bb, { padding: fitPad(),") && html.contains("#segs .seg {")
             && js.contains("kb = k ? m.bottom - k.getBoundingClientRect().top + 12 : 0;"));
+        assertTrue("공원 탐방로 - 폰 안에서 공원을 정하고 이름만 보냄(2026-11-23 홍TV님), 방침에 적음", js.contains("var park = RF.recordPark(rc, parkCands, PARK_NEAR_M);")
+            && js.contains("getJson(\"api/park?name=\" + encodeURIComponent(park))") && read("src/main/webapp/privacy.html").contains("그 <b>공원 이름만</b> 보내 탐방로 선을 받습니다")
+            && read("src/main/webapp/privacy-en.html").contains("sends <b>only the national park name</b>"));
         assertTrue("OSM 출처는 한 번만 - 우리 지도는 바탕 출처에 이미 있음(2026-11-22 PC)", js.contains("customAttribution: (style ? \"\" : \"© OpenStreetMap contributors | \") + "));
         assertTrue(html.contains("<script src=\"vendor/pmtiles-4.5.0/pmtiles.js\"></script>"));
         assertTrue("지도 파일은 캐시하지 않음(Range)", sw.contains("if (/\\.pmtiles(?:[?#]|$)/.test(url)) return;"));
