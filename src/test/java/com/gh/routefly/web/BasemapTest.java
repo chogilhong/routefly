@@ -71,6 +71,10 @@ public class BasemapTest {
             && read("src/main/webapp/privacy-en.html").contains("sends <b>only the national park name</b>"));
         assertTrue("3D 화면 트립닷컴도 넓은 지역으로(2026-11-23 홍TV님 \"다른 곳도 동일하게\")", read("src/main/webapp/js/app.js").contains("RF.tripLink(p.trip, start.lat, start.lon, wide ||")
             && read("src/main/webapp/js/course-kit.js").contains("areaOf(pl.addr), agodaCity(pl.lat, pl.lon), areaWide(pl.addr));"));
+        String app = read("src/main/webapp/js/app.js"), stayPart = app.substring(app.indexOf("} else if (kind === \"stay\" || kind === \"food\") {"));
+        stayPart = stayPart.substring(0, stayPart.indexOf("$(\"guideBar\").addEventListener"));
+        assertTrue("3D 숙박 칸은 날씨 칸의 wxP 를 쓰지 않음 - 쓰면 숙박 칸 전체가 깨짐(2026-11-23 PC 운영 v347)", !stayPart.contains("wxP")
+            && stayPart.contains("var regionP = getJson(\"api/wx?regionOnly=1&lat=\" + start.lat.toFixed(4)") && stayPart.contains("Promise.all([partners(), regionP])"));
         assertTrue("OSM 출처는 한 번만 - 우리 지도는 바탕 출처에 이미 있음(2026-11-22 PC)", js.contains("customAttribution: (style ? \"\" : \"© OpenStreetMap contributors | \") + "));
         assertTrue(html.contains("<script src=\"vendor/pmtiles-4.5.0/pmtiles.js\"></script>"));
         assertTrue("지도 파일은 캐시하지 않음(Range)", sw.contains("if (/\\.pmtiles(?:[?#]|$)/.test(url)) return;"));

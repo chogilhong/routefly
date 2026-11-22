@@ -912,7 +912,9 @@
                     var ag = el("div", "gNote");
                     body.appendChild(ag);
                     // 트립닷컴 검색어는 산행 끝 화면과 같게 넓은 지역(시 · 도 + 시 · 군 · 구, RF.areaWide) - 들머리 행정동은 api/wx 가 이미 알려 줌(2026-11-23 홍TV님 "다른 곳도 동일하게")
-                    Promise.all([partners(), wxP.then(function (x) { return x.region && x.region.name; }, function () { return null; })]).then(function (pr) {
+                    // 행정동은 따로 받음 - 날씨 칸의 wxP 는 여기(숙박 칸)에 없음(2026-11-23 PC: wxP 를 불러 숙박 칸 전체가 "받지 못했습니다" 로 깨졌음). 못 받으면 이름 없이
+                    var regionP = getJson("api/wx?regionOnly=1&lat=" + start.lat.toFixed(4) + "&lon=" + start.lon.toFixed(4)).then(function (j) { return j && j.region && j.region.name; }, function () { return null; });
+                    Promise.all([partners(), regionP]).then(function (pr) {
                         var p = pr[0], wide = RF.areaWide(pr[1]);
                         if (!p.agoda && !p.trip) { ag.remove(); return; }
                         var at = function (u) { return u.replace(/\{lat\}/g, start.lat.toFixed(5)).replace(/\{lon\}/g, start.lon.toFixed(5)); };
