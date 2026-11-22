@@ -36,6 +36,7 @@ public class BasemapTest {
             js.contains("return file.getHeader().then(function () {") && js.contains("}, function () { return { cfg: cfg, style: null }; });") && js.contains("proto.add(file);"));
         assertTrue("없으면 지금 바탕", js.contains("style: style || RF.baseStyle(cfg)"));
         assertTrue("한글은 폰 글꼴", js.contains("localIdeographFontFamily:"));
+        assertTrue("OSM 출처는 한 번만 - 우리 지도는 바탕 출처에 이미 있음(2026-11-22 PC)", js.contains("customAttribution: (style ? \"\" : \"© OpenStreetMap contributors | \") + "));
         assertTrue(html.contains("<script src=\"vendor/pmtiles-4.5.0/pmtiles.js\"></script>"));
         assertTrue("지도 파일은 캐시하지 않음(Range)", sw.contains("if (/\\.pmtiles(?:[?#]|$)/.test(url)) return;"));
         for (String f : new String[] {   // 9472-9727 은 봉우리 ▲(U+25B2) - 없으면 404 뒤 폰 글꼴로 그렸음(2026-11-22 PC)

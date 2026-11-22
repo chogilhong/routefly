@@ -120,7 +120,8 @@ public class VideoKitTest {
         assertTrue("표시를 누르면 카드 · 카드를 누르면 지도", js.contains("select(i, false, true); });") && js.contains("card.onclick = function () { select(i, true, false); };"));
         assertTrue("🔍 사진만 크게 · ‹ › 넘김", js.contains("z.onclick = function (e) { e.stopPropagation(); big(i); };") && html.contains("id=\"bigPrev\"") && html.contains("id=\"bigNext\""));
         assertTrue("고도 · 속도 그래프", js.contains("prof = RF.profile($(\"prof\"), rc, { speed: RF.speedProfile(rc), labels: false });"));
-        assertTrue("지도 출처(OSM) 그대로", js.contains("customAttribution: \"© OpenStreetMap contributors"));
+        assertTrue("지도 출처(OSM) 그대로 - V-World 바탕은 여기서, 우리 지도는 바탕 출처에 있어 한 번만(2026-11-22)", js.contains("customAttribution: (style ? \"\" : \"© OpenStreetMap contributors | \") + ")
+            && read("src/main/webapp/js/course-kit.js").contains("attribution: \"© OpenMapTiles © OpenStreetMap contributors\""));
         assertFalse("🖥 크게 보기 단추는 뺀 그대로(2026-11-22 원복) - 내 기록은 🗺 지도 단추 하나로 trip.html 에 엶(2026-11-22 홍TV님 \"trip.html 화면에서 열어\")", hike.contains("🖥"));
         assertTrue(hike.contains("location.href = \"trip.html?rec=\"") && js.contains("new URLSearchParams(location.search).get(\"rec\")"));
         assertTrue(read("src/main/webapp/js/kit-trip.js").contains("function gpxRecord("));

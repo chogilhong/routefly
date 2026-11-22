@@ -155,7 +155,8 @@
         map = new maplibregl.Map({ container: "map", style: style || RF.baseStyle(cfg), center: [127.8, 36.3], zoom: 6.5, locale: RF.mapLocale(), attributionControl: false,
             localIdeographFontFamily: "'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif" });   // 한글 지명은 폰 글꼴로
         map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
-        map.addControl(new maplibregl.AttributionControl({ compact: true, customAttribution: "© OpenStreetMap contributors | <a href=\"" + T("about.html", "about-en.html") + "\">" + T("안내", "About") + "</a>" }), "top-right");
+        // 우리 지도는 바탕 출처에 "© OpenStreetMap contributors" 가 이미 있어 한 번만(2026-11-22 PC: 두 번 보였음). V-World 바탕일 때는 여기서 붙임
+        map.addControl(new maplibregl.AttributionControl({ compact: true, customAttribution: (style ? "" : "© OpenStreetMap contributors | ") + "<a href=\"" + T("about.html", "about-en.html") + "\">" + T("안내", "About") + "</a>" }), "top-right");
         map.addControl(new maplibregl.ScaleControl({ maxWidth: 90 }), "bottom-left");
         // 출처는 ⓘ 로 접어 둠(노선 · 탐방 안내도와 같게 - 폰에서 펼친 출처가 사진 표시를 가렸음), ⓘ 를 누르면 보임
         var fold = function () { var at = document.querySelector(".maplibregl-ctrl-attrib"); if (at) at.classList.remove("maplibregl-compact-show"); };
