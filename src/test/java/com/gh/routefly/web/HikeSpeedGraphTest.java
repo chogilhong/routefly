@@ -12,7 +12,7 @@ import org.junit.Test;
 public class HikeSpeedGraphTest {
 
     private static String read(String p) throws Exception {
-        return new String(Files.readAllBytes(Paths.get(p)), StandardCharsets.UTF_8);
+        return new String(Files.readAllBytes(Paths.get(p)), StandardCharsets.UTF_8).replace("\r\n", "\n");   // PC git 은 CRLF 로 체크아웃
     }
 
     @Test

@@ -1123,7 +1123,7 @@ sudo tar czf ~/hongtv-www-$(date +%F).tgz -C /var/www hongtv && sudo rm -rf /var
 보호조치 증명(접근 제한 · 확인자료 party.log 200일 · 방 끝나면 지움), 이용약관(참가 화면의 동의 글 + 개인정보처리방침 #party).
 신고를 못 하면 그날 `party.enabled` 를 끔(아래).
 
-party.html(+ /api/party) - 인솔자가 방을 만들고 회원 · 운전자가 방 코드로 참가(위치 제공 동의), 인솔자 · 운전자가 회원 위치 · SOS · 탑승 · 배터리를 봄.
+party.html(+ /api/party) - 인솔자가 방을 만들고 회원이 방 코드 · 링크 · QR · NFC 로 참가(위치 제공 동의), 인솔자(보조 인솔자 포함)가 회원 위치 · SOS · 탑승 · 배터리를 봄(운전자 역할은 2026-10-27 뺌).
 war 에는 늘 들어 있지만 설정을 켜기 전에는 "준비 중" 화면만 나오고 API 는 404 입니다.
 
 - 켜기(신고 수리 뒤): `/opt/routefly/config.properties` 에 `party.enabled=true` 한 줄(이미 있는지 `sudo grep -c '^party.enabled=' …` 가 0 인지 먼저) → `sudo systemctl restart tomcat`
@@ -1132,7 +1132,8 @@ war 에는 늘 들어 있지만 설정을 켜기 전에는 "준비 중" 화면�
 - 회사 사무실 파일(2026-10-28): 같은 폴더의 office.json(600) - 회사 이름 · 회사 코드 · 사무실 열쇠(비밀 링크)와 끝난 산행 숫자 요약(200일, 이름 · 위치 없음). 백업 대상, 열쇠가 들어 있으니 밖으로 옮기지 않음.
   별명 · 좌석 · 탑승지 · 탑승 표시 · 열쇠만(좌표 없음). 방이 끝나면 그 방을 지움. 백업 · 스냅샷에도 들어가니 서버 밖으로 옮기지 않음
 - 확인자료(위치정보 이용 · 제공 사실): `/opt/tomcat/logs/party.log`(달마다 party-YYYY-MM.log.gz, 200일 뒤 지움) - 참가 · 나감 · 방 끝 · SOS, 좌표 · 별명 없음
-- 들어가는 곳: 아직 화면에 링크 없음(주소 https://routefly.kr/routefly/party.html). 켠 뒤 따라가기 · 별거 별거에 입구를 넣음
+- 들어가는 곳(2026-11-22 고침): 따라가기 맨 아래(방 · 사무실), 산 페이지 · 코스 모음(party.enabled 일 때만). 주소 https://routefly.kr/routefly/party.html
+- 확인자료는 위 party.log(방 단위)와 함께 회원마다 party-log/party-member-YYYY-MM.log(좌표 없음, 200일, 동의 철회 때 그 회원 줄 지움 - PartyLog)
 - 개인정보처리방침(privacy.html#party)에 미리 적어 둠 - 켜는 날 "준비 중" 글을 빼고 시행일을 적음(방침 10장: 7일 전 알림)
 
 ### 13-1. 익명 코스 통계 표 (2026-10-21 홍TV님 - 산악회 방 지나온 길)
