@@ -1998,6 +1998,20 @@
         $("doneBackupLater").onclick = function () { box.hidden = true; mark(true); };
     }
 
+    /**
+     * 폰 앱 주소(kakaomap:// 등)를 먼저 열어 보고, 1.5초 안에 이 화면이 가려지지 않으면(앱이 없음) 웹 주소로(2026-11-22 홍TV님 맛집 A안).
+     * web 은 누를 때의 a.href - 동네 이름을 늦게 받아 바뀐 주소도 그대로 씀.
+     */
+    function appOrWeb(app, web) {
+        var left = false, onHide = function () { if (document.hidden) left = true; };
+        document.addEventListener("visibilitychange", onHide);
+        setTimeout(function () {
+            document.removeEventListener("visibilitychange", onHide);
+            if (!left && !document.hidden) window.open(web, "_blank", "noopener");
+        }, 1500);
+        location.href = app;
+    }
+
     /** 산행을 마친 화면 "다음은?"(2026-10-28 홍TV님 추천) - 끝낸 자리(마지막 위치, 없으면 코스 끝) 근처 맛집 · 숙소 · 다음 산. */
     function doneNext(p, rec) {
         var last = rec.track && rec.track.length ? rec.track[rec.track.length - 1] : null;
@@ -2016,6 +2030,7 @@
             a.href = x.href;
             a.textContent = x.text;
             if (/^https:/.test(x.href)) { a.target = "_blank"; a.rel = x.sponsored ? "noopener sponsored" : "noopener"; }
+            if (x.app && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) a.addEventListener("click", function (e) { e.preventDefault(); appOrWeb(x.app, a.href); });
             nx.appendChild(a);
         });
         box.appendChild(b);

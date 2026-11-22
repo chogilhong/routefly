@@ -170,6 +170,9 @@ public class VideoKitTest {
         assertTrue("글은 출처 단추 글 그대로(켜진 바탕만)", js.contains("box.querySelector(\".maplibregl-ctrl-attrib-inner\")"));
         assertTrue("아래 왼쪽 축척 위에 - 오른쪽은 ⌖ 단추에 가렸음(2026-11-22 PC)", js.contains("box.querySelector(\".maplibregl-ctrl-bottom-left\")") && js.contains("corner.insertBefore(el, corner.firstChild);"));
         assertTrue("라벨을 뗀 짧은 줄(셈은 course-kit.test.js attrShort)", js.contains("var t = inner ? RF.attrShort(inner.textContent) : \"\";"));
+        assertTrue("맛집은 폰에서 카카오맵 앱(끝 지점 둘레)을 먼저, 1.5초 안에 안 가려지면 웹 검색(2026-11-22 홍TV님 A안)",
+            js.contains("if (x.app && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) a.addEventListener(\"click\", function (e) { e.preventDefault(); appOrWeb(x.app, a.href); });")
+            && js.contains("if (!left && !document.hidden) window.open(web, \"_blank\", \"noopener\");") && js.contains("        location.href = app;\n    }"));
         assertTrue("시험 걷기 끝에는 카드 · GPX 단추 없음(2026-11-22 홍TV님)", js.contains("$(\"doneCard\").style.display = $(\"doneGpx\").style.display = sim ? \"none\" : \"\";"));
         assertTrue("눌러도 지도를 막지 않는 모양", html.contains(".sim-attr { font-size:9px;") && html.contains("max-width:calc(100vw - 90px)") && html.contains("pointer-events:none; }") && html.contains(".sim-attr[hidden] { display:none; }"));
     }

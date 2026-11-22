@@ -1032,7 +1032,10 @@ tick().then(function () {
     var ae = RF.afterHikeLinks({ agoda: "https://www.agoda.com/search?lat={lat}&lon={lon}&cid=1" }, { lat: 38.1, lon: 128.5, name: "x" }, true);
     eq("다음은 - 영어 · 아고다 좌표 · 쿠팡 없음", [ae.links.length, ae.links[1].href, ae.links[2].href, ae.coupang], [3, "https://www.agoda.com/search?lat=38.10000&lon=128.50000&cid=1", "en/m/", false]);
     eq("다음은 - 맛집은 그 동네(행정동) 이름으로 찾음(덕기봉 → 전북이 나왔음)", RF.afterHikeLinks({}, { name: "덕기봉", area: "인천광역시 중구 운서동" }, false).links[0],
-        { text: "🍜 덕기봉 맛집", href: "https://map.kakao.com/link/search/" + encodeURIComponent("인천광역시 중구 운서동 맛집"), sponsored: false });
+        { text: "🍜 덕기봉 맛집", href: "https://map.kakao.com/link/search/" + encodeURIComponent("인천광역시 중구 운서동 맛집"), sponsored: false, app: null });
+    eq("다음은 - 맛집은 카카오맵 앱을 끝 지점 둘레 검색으로 먼저(송산 → 하늘도시가 안 나왔음) · 좌표 없으면 앱 없음",
+        [ah.links[0].app, RF.afterHikeLinks({}, { name: "x", lat: 37.4801234, lon: 126.5609876 }, false).links[0].app],
+        ["kakaomap://search?q=" + encodeURIComponent("맛집") + "&p=38.100000,128.500000", "kakaomap://search?q=" + encodeURIComponent("맛집") + "&p=37.480123,126.560988"]);
     eq("다음은 - 영어는 이름도 영어(검색은 한글)", [RF.afterHikeLinks({}, { name: "설악산 대청봉" }, true).links[0].text, RF.afterHikeLinks({}, { name: "설악산 대청봉" }, true).links[0].href.indexOf(encodeURIComponent("설악산")) > 0], ["🍜 Food near Seoraksan Daecheongbong", true]);
     // 쿠팡 - 회복 용품 + 오늘 산행 · 계절에 맞는 것(2026-10-28 홍TV님 "a, b")
     var CP = { crampon: ["https://link.coupang.com/c"], knee: ["https://link.coupang.com/k"], warm: ["https://link.coupang.com/w"], sun: ["https://link.coupang.com/s"], stick: ["https://link.coupang.com/t"], recovery: ["https://link.coupang.com/r"] };
