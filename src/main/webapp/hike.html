@@ -353,6 +353,7 @@ html.rfwait body { visibility:hidden; }   /* 앱을 처음 열 때 서버에 닿
 /* "괜찮으세요?" · 긴급 신고는 늘 맨 위(점검 11차 A4, 2026-11-16) - 정상 도착 카드 · 안내판 · 길 안내 칸(30, DOM 뒤쪽)과 확인 창(rf-dialog 9999)이 가렸음 */
 #stillSheet, #sosSheet { z-index:10000; }
 #recView { z-index:31; }
+#vidSheet, #photoPick { z-index:32; }   /* 📈 기록 창(31) 위에서 여는 창 - 30 이면 뒤에 열려 안 보였음(2026-11-22 홍TV님 "영상용 이 클릭 안되는데") */
 #recClear { position:absolute; left:50%; transform:translateX(-50%); bottom:14px; z-index:2; display:none; height:40px; padding:0 12px; border-radius:20px;
             border:0; background:#c77dff; color:#1b0b2a; font-weight:bold; font-size:13px; box-shadow:0 2px 8px rgba(0,0,0,0.45); cursor:pointer; }
 #recViewProfile { position:relative; height:110px; margin:8px 0 4px; }   /* 내 기록 창 위에서 열립니다 */

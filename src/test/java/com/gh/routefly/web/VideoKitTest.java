@@ -62,6 +62,7 @@ public class VideoKitTest {
         assertTrue("지도 그림을 옮겨 그리려면 영상 만들 때만 preserveDrawingBuffer",
                 app.contains("canvasContextAttributes: VIDEO && VIDEO.rec ? { preserveDrawingBuffer: true } : undefined"));
         assertTrue("만든 영상을 따라가기로 넘겨 보내기", app.contains("location.href = \"hike.html#vid\";") && js.contains("if (location.hash === \"#vid\") {"));
+        assertTrue("기록 창(31) 위로 - 뒤에 열려 안 보였음(홍TV님)", html.contains("#recView { z-index:31; }") && html.contains("#vidSheet, #photoPick { z-index:32; }"));
         assertTrue("그림 · 영상 같은 보내기", js.contains("function shareBlob(blob, name, text, url) {"));
     }
 
