@@ -50,7 +50,7 @@ V-World 화면은 영상 · 다시 배포에 조건이 있어(약관 제13 · 19
 |---|---|
 | 지도 모양 | `RF.vectorStyle`(course-kit.js) - OpenMapTiles 양식의 숲 · 물 · 길 · 산길(점선) · 봉우리(▲ 이름 · 높이) · 마을 이름 + 지금 지형 음영 |
 | 파일 읽기 | `vendor/pmtiles-4.5.0/pmtiles.js`(BSD-3) - 지도 프로그램이 `pmtiles://` 주소를 Range 조각으로 받음 |
-| 글꼴 | `vendor/fonts/Noto Sans Regular/*.pbf`(OFL, protomaps/basemaps-assets) - 숫자 · 로마자만. 한글은 폰 글꼴(localIdeographFontFamily) |
+| 글꼴 | `vendor/fonts/Noto Sans Regular/*.pbf`(OFL, protomaps/basemaps-assets) - 숫자 · 로마자 · 기호(▲ 는 9472-9727)만. 한글은 폰 글꼴(localIdeographFontFamily) |
 | 주소 | `api/map-config` 의 `basemapUrl`(설정 map.basemap.url - 같은 사이트 경로나 https, .pmtiles 로 끝날 때만) |
 | 서비스워커 | `.pmtiles` 는 캐시하지 않고 서버로 |
 

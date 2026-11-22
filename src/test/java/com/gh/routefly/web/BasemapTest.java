@@ -36,7 +36,8 @@ public class BasemapTest {
         assertTrue("한글은 폰 글꼴", js.contains("localIdeographFontFamily:"));
         assertTrue(html.contains("<script src=\"vendor/pmtiles-4.5.0/pmtiles.js\"></script>"));
         assertTrue("지도 파일은 캐시하지 않음(Range)", sw.contains("if (/\\.pmtiles(?:[?#]|$)/.test(url)) return;"));
-        for (String f : new String[] {"pmtiles-4.5.0/pmtiles.js", "pmtiles-4.5.0/LICENSE", "fonts/OFL.txt", "fonts/Noto Sans Regular/0-255.pbf", "fonts/Noto Sans Regular/8192-8447.pbf"})
+        for (String f : new String[] {   // 9472-9727 은 봉우리 ▲(U+25B2) - 없으면 404 뒤 폰 글꼴로 그렸음(2026-11-22 PC)
+                "pmtiles-4.5.0/pmtiles.js", "pmtiles-4.5.0/LICENSE", "fonts/OFL.txt", "fonts/Noto Sans Regular/0-255.pbf", "fonts/Noto Sans Regular/8192-8447.pbf", "fonts/Noto Sans Regular/9472-9727.pbf"})
             assertTrue(f, Files.size(Path.of("src/main/webapp/vendor/" + f)) > 100);
         assertTrue("안내 페이지 사용 조건(한 · 영)", read("src/main/webapp/about.html").contains("© OpenMapTiles © OpenStreetMap contributors(ODbL)") && read("src/main/webapp/about-en.html").contains("map font Noto Sans (SIL OFL 1.1)"));
     }
