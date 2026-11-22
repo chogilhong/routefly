@@ -304,6 +304,24 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
         eq("바탕 지도 - 산길 · 봉우리 · 물 · 숲 층, 글자는 받은 글꼴(Noto Sans Regular)만", [["path", "peak", "water", "wood"].every(function (id) { return vs.layers.some(function (l) { return l.id === id; }); }),
             vs.layers.filter(function (l) { return l.type === "symbol"; }).every(function (l) { return JSON.stringify(l.layout["text-font"]) === '["Noto Sans Regular"]'; })], [true, true]);
     })();
+    (function () {   // 기록 보기 다듬기(2026-11-22 홍TV님 1 ~ 3)
+        var vs = RF.vectorStyle({ basemapUrl: "https://x/k.pmtiles", demUrl: "https://d/{z}/{x}/{y}.png" }, "https://x/f/");
+        var ids = vs.layers.map(function (l) { return l.id; });
+        eq("봉우리 - 지나간 봉우리 층은 맨 뒤(글자 자리를 먼저), 처음에는 둘 다 빈 목록", [ids[ids.length - 1], JSON.stringify(vs.layers[ids.indexOf("peak-on")].filter), JSON.stringify(vs.layers[ids.indexOf("peak")].filter)],
+            ["peak-on", JSON.stringify(RF.peakOnFilter([], true)), JSON.stringify(RF.peakOnFilter([], false))]);
+        eq("봉우리 - 거름 모양", RF.peakOnFilter(["천왕봉|1915"], true), ["in", ["concat", ["to-string", ["get", "name"]], "|", ["to-string", ["get", "ele"]]], ["literal", ["천왕봉|1915"]]]);
+        eq("봉우리 - 아닌 쪽은 ! 로 감쌈", RF.peakOnFilter(["a|1"], false)[0], "!");
+        var lat = [35.3360, 35.3370, 35.3380], lon = [127.7300, 127.7300, 127.7300];
+        eq("봉우리 - 선에서 150m 안만, 이름 없는 것 · 같은 것 두 번은 뺌", RF.peaksNear([
+            { name: "천왕봉", ele: 1915, lat: 35.3370, lon: 127.7310 },   // 약 91m
+            { name: "먼봉", ele: 1000, lat: 35.3370, lon: 127.7330 },     // 약 272m
+            { name: "", ele: 900, lat: 35.3370, lon: 127.7300 },
+            { name: "천왕봉", ele: 1915, lat: 35.3370, lon: 127.7310 },
+            { name: "제석봉", lat: 35.3380, lon: 127.7300 }], lat, lon, 150), ["천왕봉|1915", "제석봉|"]);
+        eq("속도 선 - 거리 칸마다 평균, 빈 칸 · null 은 뺌", RF.speedBuckets([2, 4, null, 6, 10], [0, 100, 200, 600, 900], 1000, 4), [[0.125, 3], [0.625, 6], [0.875, 10]]);
+        eq("속도 선 - 자료가 없으면 빈 목록", [RF.speedBuckets(null, [], 10, 4), RF.speedBuckets([1], [0], 0, 4)], [[], []]);
+        eq("등고선 - 간격 · 밝은 바탕은 갈색", [RF.CONTOUR_STEPS[13], RF.contourPaint(true).color, RF.contourPaint(false).color], [[20, 100], "#8a5a2b", "#ffffff"]);
+    })();
     eq("트립 - trip.com 이 아니면 null", [RF.tripLink("https://www.agoda.com/x", 1, 2, "a"), RF.tripLink("https://kr.trip.com.evil.kr/x", 1, 2, "a"), RF.tripLink("https://kr.trip.com/", NaN, 2, "a")], [null, null, null]);
     eq("공원 - 다른 산", RF.parkOf("지리봉 1코스"), null);
     eq("공원 - 한려해상", RF.parkOf("한려해상 · 금산 → 쌍홍문"), "한려해상");

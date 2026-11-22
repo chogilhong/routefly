@@ -310,6 +310,22 @@
     }
 
     var SPEED_HALF_MS = 60000;
+
+    /**
+     * 순수 함수 - 그래프에 그릴 속도 선을 거리 n 칸마다 평균으로(2026-11-22 홍TV님 - 12시간 기록에서 붉은 선이 톱니처럼 흔들려 읽기 어려웠음).
+     * 돌려줌 [[칸 가운데 거리 비율 0 ~ 1, 평균 km/h]], 점이 없는 칸은 뺌. "최고" 숫자는 그래프가 원래 값(speedProfile)으로 따로 셈.
+     */
+    function speedBuckets(speed, dist, total, n) {
+        var sum = [], cnt = [], out = [];
+        if (!speed || !(total > 0) || !(n > 0)) return out;
+        speed.forEach(function (v, k) {
+            if (v == null || dist[k] == null) return;
+            var b = Math.min(n - 1, Math.max(0, Math.floor(dist[k] / total * n)));
+            sum[b] = (sum[b] || 0) + v; cnt[b] = (cnt[b] || 0) + 1;
+        });
+        for (var b = 0; b < n; b++) if (cnt[b]) out.push([(b + 0.5) / n, sum[b] / cnt[b]]);
+        return out;
+    }
     function speedProfile(c) {
         var t = c && c.time, n = t ? t.length : 0, out = [], a = 0, b = 0, any = false;
         for (var i = 0; i < n; i++) {
@@ -732,6 +748,7 @@
         });
     }
 
+    var SPEED_BUCKETS = 100;   // 그래프 폭을 100칸으로 - 35km 면 칸마다 350m, 5km 면 50m
     function profile(box, c, opts) {
         opts = opts || {};
         box.textContent = "";
@@ -768,7 +785,7 @@
         var spd = (opts.speed || []).filter(function (v) { return v != null; }), smax = spd.length ? Math.max.apply(null, spd) : 0;
         if (smax > 0 && c.total > 0) {
             var sp = [];
-            opts.speed.forEach(function (v, k) { if (v != null) sp.push((c.dist[k] / c.total * PW).toFixed(1) + "," + ((1 - v / (smax * 1.15)) * PH).toFixed(1)); });
+            speedBuckets(opts.speed, c.dist, c.total, SPEED_BUCKETS).forEach(function (q) { sp.push((q[0] * PW).toFixed(1) + "," + ((1 - q[1] / (smax * 1.15)) * PH).toFixed(1)); });
             var pl = document.createElementNS(NS, "polyline");
             pl.setAttribute("points", sp.join(" "));
             pl.setAttribute("fill", "none");

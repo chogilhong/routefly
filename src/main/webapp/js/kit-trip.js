@@ -163,6 +163,7 @@
             return l;
         };
         var cls = function (list) { return ["match", ["get", "class"], list, true, false]; };
+        var peakText = ["case", ["has", "ele"], ["concat", "▲ ", ko, "\n", ["to-string", ["get", "ele"]], "m"], ["concat", "▲ ", ko]];
         return {
             version: 8,
             glyphs: fonts + "{fontstack}/{range}.pbf",
@@ -189,15 +190,46 @@
                     layout: { "symbol-placement": "line", "text-field": ko, "text-font": F, "text-size": 11 }, paint: { "text-color": "#5a4a3a", "text-halo-color": "#fff", "text-halo-width": 1.2 } },
                 { id: "water-name", type: "symbol", source: "omt", "source-layer": "water_name",
                     layout: { "text-field": ko, "text-font": F, "text-size": 11 }, paint: { "text-color": "#3f6f8f", "text-halo-color": "#fff", "text-halo-width": 1 } },
-                { id: "peak", type: "symbol", source: "omt", "source-layer": "mountain_peak", minzoom: 10,
-                    layout: { "text-field": ["case", ["has", "ele"], ["concat", "▲ ", ko, "\n", ["to-string", ["get", "ele"]], "m"], ["concat", "▲ ", ko]], "text-font": F,
-                        "text-size": 11, "text-anchor": "top", "text-offset": [0, 0.2] },
+                { id: "peak", type: "symbol", source: "omt", "source-layer": "mountain_peak", minzoom: 10, filter: peakOnFilter([], false),
+                    layout: { "text-field": peakText, "text-font": F, "text-size": 11, "text-anchor": "top", "text-offset": [0, 0.2] },
                     paint: { "text-color": "#6b3d1e", "text-halo-color": "#fffdf5", "text-halo-width": 1.4 } },
                 { id: "place", type: "symbol", source: "omt", "source-layer": "place", filter: cls(["city", "town", "village", "hamlet", "suburb"]),
                     layout: { "text-field": ko, "text-font": F, "text-size": ["match", ["get", "class"], "city", 16, "town", 14, 12] },
-                    paint: { "text-color": "#333", "text-halo-color": "#fff", "text-halo-width": 1.5 } }
+                    paint: { "text-color": "#333", "text-halo-color": "#fff", "text-halo-width": 1.5 } },
+                // 기록이 지나간 봉우리는 조금 크게 · 진하게(2026-11-22 홍TV님) - 어느 봉우리인지는 화면이 peaksNear 로 찾아 setFilter. 맨 뒤 층이라 글자 자리를 먼저 잡음
+                { id: "peak-on", type: "symbol", source: "omt", "source-layer": "mountain_peak", minzoom: 9, filter: peakOnFilter([], true),
+                    layout: { "text-field": peakText, "text-font": F, "text-size": 13.5, "text-anchor": "top", "text-offset": [0, 0.2], "symbol-sort-key": ["-", 0, ["coalesce", ["get", "ele"], 0]] },
+                    paint: { "text-color": "#4a2208", "text-halo-color": "#fffdf5", "text-halo-width": 2 } }
             ]
         };
+    }
+
+    /** 봉우리 하나를 가리키는 열쇠(이름|높이) - 지도 타일 안 봉우리와 peaksNear 가 같은 열쇠를 씀. */
+    var PEAK_KEY_EXPR = ["concat", ["to-string", ["get", "name"]], "|", ["to-string", ["get", "ele"]]];
+    function peakFeatureKey(props) { return String(props && props.name != null ? props.name : "") + "|" + String(props && props.ele != null ? props.ele : ""); }
+
+    /** 순수 함수 - 우리 지도 봉우리 층의 거름: on 이면 keys 에 든 봉우리만, 아니면 keys 밖 봉우리만(같은 봉우리를 두 번 그리지 않게). */
+    function peakOnFilter(keys, on) {
+        var has = ["in", PEAK_KEY_EXPR, ["literal", (keys || []).slice()]];
+        return on ? has : ["!", has];
+    }
+
+    /**
+     * 순수 함수 - 기록이 지나간 봉우리(2026-11-22 홍TV님 "지나간 큰 봉우리는 글을 조금 크게"): 지도 타일의 봉우리 [{name, ele, lon, lat}] 가운데
+     * 기록 선(lat[] · lon[])에서 maxM 안에 든 것의 열쇠(peakFeatureKey) 목록, 이름이 없으면 뺌. 선 점은 10m 남짓 간격이라 점까지 거리로 봄.
+     */
+    function peaksNear(peaks, lat, lon, maxM) {
+        var out = [], seen = {}, n = Math.min(lat.length, lon.length), dLat = maxM / 111000;
+        (peaks || []).forEach(function (p) {
+            if (!p || p.name == null || p.name === "" || typeof p.lat !== "number" || typeof p.lon !== "number") return;
+            var key = peakFeatureKey(p), dLon = dLat / Math.max(0.1, Math.cos(p.lat * Math.PI / 180));
+            if (seen[key]) return;
+            for (var i = 0; i < n; i++) {
+                if (Math.abs(lat[i] - p.lat) > dLat || Math.abs(lon[i] - p.lon) > dLon) continue;
+                if (distM(p.lat, p.lon, lat[i], lon[i]) <= maxM) { seen[key] = true; out.push(key); return; }
+            }
+        });
+        return out;
     }
 
     /**
@@ -341,6 +373,29 @@
     }
 
     var SPEED_HALF_MS = 60000;
+
+    /** 등고선 간격(확대 → [가는 선 m, 굵은 선 m]) - 따라가기 · 기록 보기가 함께 씀(2026-11-22). */
+    var CONTOUR_STEPS = { 11: [100, 500], 12: [50, 250], 13: [20, 100] };
+    /** 순수 함수 - 바탕에 맞는 등고선 색 · 진하기(위성 · 어두운 바탕은 흰 선, 밝은 지도 · 지형만은 갈색 선). */
+    function contourPaint(light) {
+        return light ? { color: "#8a5a2b", opacity: 0.6 } : { color: "#ffffff", opacity: 0.4 };
+    }
+
+    /**
+     * 순수 함수 - 그래프에 그릴 속도 선을 거리 n 칸마다 평균으로(2026-11-22 홍TV님 - 12시간 기록에서 붉은 선이 톱니처럼 흔들려 읽기 어려웠음).
+     * 돌려줌 [[칸 가운데 거리 비율 0 ~ 1, 평균 km/h]], 점이 없는 칸은 뺌. "최고" 숫자는 그래프가 원래 값(speedProfile)으로 따로 셈.
+     */
+    function speedBuckets(speed, dist, total, n) {
+        var sum = [], cnt = [], out = [];
+        if (!speed || !(total > 0) || !(n > 0)) return out;
+        speed.forEach(function (v, k) {
+            if (v == null || dist[k] == null) return;
+            var b = Math.min(n - 1, Math.max(0, Math.floor(dist[k] / total * n)));
+            sum[b] = (sum[b] || 0) + v; cnt[b] = (cnt[b] || 0) + 1;
+        });
+        for (var b = 0; b < n; b++) if (cnt[b]) out.push([(b + 0.5) / n, sum[b] / cnt[b]]);
+        return out;
+    }
     function speedProfile(c) {
         var t = c && c.time, n = t ? t.length : 0, out = [], a = 0, b = 0, any = false;
         for (var i = 0; i < n; i++) {
@@ -574,6 +629,7 @@
         });
     }
 
+    var SPEED_BUCKETS = 100;   // 그래프 폭을 100칸으로 - 35km 면 칸마다 350m, 5km 면 50m
     function profile(box, c, opts) {
         opts = opts || {};
         box.textContent = "";
@@ -610,7 +666,7 @@
         var spd = (opts.speed || []).filter(function (v) { return v != null; }), smax = spd.length ? Math.max.apply(null, spd) : 0;
         if (smax > 0 && c.total > 0) {
             var sp = [];
-            opts.speed.forEach(function (v, k) { if (v != null) sp.push((c.dist[k] / c.total * PW).toFixed(1) + "," + ((1 - v / (smax * 1.15)) * PH).toFixed(1)); });
+            speedBuckets(opts.speed, c.dist, c.total, SPEED_BUCKETS).forEach(function (q) { sp.push((q[0] * PW).toFixed(1) + "," + ((1 - q[1] / (smax * 1.15)) * PH).toFixed(1)); });
             var pl = document.createElementNS(NS, "polyline");
             pl.setAttribute("points", sp.join(" "));
             pl.setAttribute("fill", "none");
@@ -838,6 +894,10 @@
         baseStyle: baseStyle,
         vectorStyle: vectorStyle,
         speedProfile: speedProfile,
+        CONTOUR_STEPS: CONTOUR_STEPS,
+        contourPaint: contourPaint,
+        peaksNear: peaksNear,
+        peakOnFilter: peakOnFilter,
         profile: profile,
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },
         setLang: setLang,

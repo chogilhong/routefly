@@ -36,6 +36,14 @@ public class BasemapTest {
             js.contains("return file.getHeader().then(function () {") && js.contains("}, function () { return { cfg: cfg, style: null }; });") && js.contains("proto.add(file);"));
         assertTrue("없으면 지금 바탕", js.contains("style: style || RF.baseStyle(cfg)"));
         assertTrue("한글은 폰 글꼴", js.contains("localIdeographFontFamily:"));
+        assertTrue("기록 선은 글자 층 아래(봉우리 이름을 덮지 않게, 2026-11-22 홍TV님)", js.contains("var under = firstSymbol();") && js.contains("paint: { \"line-color\": \"#5b45ff\", \"line-width\": 4.5 } }, under);"));
+        assertTrue("지나간 봉우리 크게 - 지도 조각이 올 때마다 찾음", js.contains("map.on(\"idle\", markPeaks);") && js.contains("RF.peaksNear(feats, rc.lat, rc.lon, PEAK_NEAR_M)")
+            && js.contains("map.setFilter(\"peak-on\", RF.peakOnFilter(peakKeys, true));") && js.contains("map.setFilter(\"peak\", RF.peakOnFilter(peakKeys, false));"));
+        assertTrue("속도 선은 거리 100칸 평균(톱니 줄이기)", read("src/main/webapp/js/course-kit.js").contains("speedBuckets(opts.speed, c.dist, c.total, SPEED_BUCKETS).forEach("));
+        assertTrue("등고선 켜기 · 끄기 - 따라가기와 같은 라이브러리 · 기억 · 간격 · 색", html.contains("<script src=\"vendor/maplibre-contour-0.1.1/maplibre-contour.min.js\"></script>")
+            && js.contains("var CONTOUR_KEY = \"rf-contour\"") && js.contains("thresholds: RF.CONTOUR_STEPS") && js.contains("RF.contourPaint(true)")
+            && js.contains("if (window.mlcontour) map.addControl(contourControl(), \"top-right\");") && js.contains("setContour(contourOn); });"));
+        assertTrue("따라가기도 같은 간격 · 색(두 벌 안 둠)", read("src/main/webapp/js/hike.js").contains("CONTOUR_STEPS = RF.CONTOUR_STEPS;") && read("src/main/webapp/js/hike.js").contains("var contourPaint = RF.contourPaint;"));
         assertTrue("OSM 출처는 한 번만 - 우리 지도는 바탕 출처에 이미 있음(2026-11-22 PC)", js.contains("customAttribution: (style ? \"\" : \"© OpenStreetMap contributors | \") + "));
         assertTrue(html.contains("<script src=\"vendor/pmtiles-4.5.0/pmtiles.js\"></script>"));
         assertTrue("지도 파일은 캐시하지 않음(Range)", sw.contains("if (/\\.pmtiles(?:[?#]|$)/.test(url)) return;"));

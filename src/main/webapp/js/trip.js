@@ -15,6 +15,9 @@
     if (EN) { document.documentElement.lang = "en"; document.title = "routefly - View record"; RF.applyEn(document); }
 
     var map = null, cfgP = null, marks = [], cards = [], urls = [], items = [], pick = -1, prof = null, rc = null;
+    var vector = false, peakKeys = [], PEAK_NEAR_M = 150;   // 우리 지도일 때 기록이 지나간 봉우리(150m 안)
+    var CONTOUR_KEY = "rf-contour", contourOn = false, demContour = null, contourCfg = null;   // 등고선 - 따라가기와 같은 기억(rf-contour) · 간격 · 색
+    try { contourOn = localStorage.getItem(CONTOUR_KEY) === "1"; } catch (e) { /* 기본 끔 */ }
 
     function getJson(url) {
         return fetch(url, { headers: { "Accept": "application/json" } }).then(function (r) { return r.ok ? r.json() : {}; });
@@ -78,9 +81,13 @@
                 if (map.getSource("trk")) map.getSource("trk").setData(line);
                 else {
                     map.addSource("trk", { type: "geojson", data: line });
-                    map.addLayer({ id: "trk-halo", type: "line", source: "trk", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": "#fff", "line-width": 8, "line-opacity": 0.8 } });
-                    map.addLayer({ id: "trk", type: "line", source: "trk", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": "#5b45ff", "line-width": 4.5 } });
+                    // 우리 지도는 글자(봉우리 · 마을 이름) 층 아래에 그어 선이 이름을 덮지 않게(2026-11-22 홍TV님 - 세석 · 촛대봉 이름이 선 밑에 깔렸음). V-World 그림 바탕에는 글자 층이 없음
+                    var under = firstSymbol();
+                    map.addLayer({ id: "trk-halo", type: "line", source: "trk", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": "#fff", "line-width": 8, "line-opacity": 0.8 } }, under);
+                    map.addLayer({ id: "trk", type: "line", source: "trk", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": "#5b45ff", "line-width": 4.5 } }, under);
                 }
+                peakKeys = [];
+                markPeaks();
                 var b = new maplibregl.LngLatBounds();
                 line.geometry.coordinates.forEach(function (q) { b.extend(q); });
                 map.fitBounds(b, { padding: 50, duration: 0, maxZoom: 15 });
@@ -101,6 +108,70 @@
                 marks.push(it.mark);
             });
         });
+    }
+
+    /** 첫 글자 층 id(없으면 undefined - 맨 위에 그음). */
+    function firstSymbol() {
+        var ls = (map.getStyle() && map.getStyle().layers) || [];
+        for (var i = 0; i < ls.length; i++) if (ls[i].type === "symbol") return ls[i].id;
+        return undefined;
+    }
+
+    /** 지금 받아 둔 지도 조각에서 기록이 지나간 봉우리를 찾아 "peak-on"(크게)으로 - 새 조각이 올 때마다(idle) 더함. */
+    function markPeaks() {
+        if (!vector || !rc || !map.getLayer("peak-on")) return;
+        var feats = map.querySourceFeatures("omt", { sourceLayer: "mountain_peak" }).map(function (f) {
+            var g = f.geometry && f.geometry.coordinates;
+            return g ? { name: f.properties.name, ele: f.properties.ele, lon: g[0], lat: g[1] } : null;
+        });
+        var add = RF.peaksNear(feats, rc.lat, rc.lon, PEAK_NEAR_M).filter(function (k) { return peakKeys.indexOf(k) < 0; });
+        if (!add.length) return;
+        peakKeys = peakKeys.concat(add);
+        map.setFilter("peak-on", RF.peakOnFilter(peakKeys, true));
+        map.setFilter("peak", RF.peakOnFilter(peakKeys, false));
+    }
+
+    /**
+     * 등고선 켜기 · 끄기(2026-11-22 홍TV님 "등고선을 보이고 안 보이고") - 따라가기(hike.js setContour)와 같은 지형 타일 · 간격(RF.CONTOUR_STEPS) · 색(RF.contourPaint),
+     * 켠 것은 같은 기억(rf-contour). 기록 선 · 글자 아래에 그음.
+     */
+    function setContour(on) {
+        contourOn = !!on;
+        try { localStorage.setItem(CONTOUR_KEY, contourOn ? "1" : "0"); } catch (e) { /* 기억 못 해도 됨 */ }
+        if (contourOn && !map.getSource("contours") && window.mlcontour) {
+            if (!demContour) {
+                demContour = new mlcontour.DemSource({ url: contourCfg.demUrl, encoding: "terrarium", maxzoom: contourCfg.vworldKey && !vector ? 12 : 15, worker: true });
+                demContour.setupMaplibre(maplibregl);
+            }
+            map.addSource("contours", { type: "vector", maxzoom: 15, tiles: [demContour.contourProtocolUrl({
+                thresholds: RF.CONTOUR_STEPS, overzoom: 1, contourLayer: "contours", elevationKey: "ele", levelKey: "level" })] });
+            var cp = RF.contourPaint(true);   // 기록 보기 바탕은 둘 다 밝음(우리 지도 · V-World 일반 지도)
+            map.addLayer({ id: "contours", type: "line", source: "contours", "source-layer": "contours", minzoom: 11,
+                paint: { "line-color": cp.color, "line-opacity": cp.opacity, "line-width": ["match", ["get", "level"], 1, 1.4, 0.7] } },
+                map.getLayer("trk-halo") ? "trk-halo" : firstSymbol());
+        }
+        if (map.getLayer("contours")) map.setLayoutProperty("contours", "visibility", contourOn ? "visible" : "none");
+        var b = $("contourBtn");
+        if (!b) return;
+        b.classList.toggle("on", contourOn);
+        b.setAttribute("aria-pressed", contourOn ? "true" : "false");
+        b.title = contourOn ? T("등고선 끄기", "Hide contour lines") : T("등고선 켜기(가까이 보면 20m 간격)", "Show contour lines (20 m apart when zoomed in)");
+        b.setAttribute("aria-label", b.title);
+    }
+
+    /** 지도 오른쪽 위 단추 묶음에 〰️ 등고선 단추(MapLibre 단추 모양). */
+    function contourControl() {
+        return {
+            onAdd: function () {
+                var g = document.createElement("div"), b = document.createElement("button");
+                g.className = "maplibregl-ctrl maplibregl-ctrl-group";
+                b.type = "button"; b.id = "contourBtn"; b.textContent = "〰️";
+                b.addEventListener("click", function () { setContour(!contourOn); });
+                g.appendChild(b);
+                return g;
+            },
+            onRemove: function () { /* 이 화면에서는 떼지 않음 */ }
+        };
     }
 
     /** 사진 · 메모 하나를 고름 - 지도 표시 주황 · 카드 주황 테두리, fly(카드를 누름)면 지도를 그리로, scroll(표시를 누름)이면 카드를 보이게. */
@@ -152,16 +223,19 @@
         }, function () { return { cfg: cfg, style: null }; });
     }).then(function (o) {
         var cfg = o.cfg, style = o.style;
+        vector = !!style; contourCfg = cfg;
         map = new maplibregl.Map({ container: "map", style: style || RF.baseStyle(cfg), center: [127.8, 36.3], zoom: 6.5, locale: RF.mapLocale(), attributionControl: false,
             localIdeographFontFamily: "'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif" });   // 한글 지명은 폰 글꼴로
         map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
+        if (window.mlcontour) map.addControl(contourControl(), "top-right");
         // 우리 지도는 바탕 출처에 "© OpenStreetMap contributors" 가 이미 있어 한 번만(2026-11-22 PC: 두 번 보였음). V-World 바탕일 때는 여기서 붙임
         map.addControl(new maplibregl.AttributionControl({ compact: true, customAttribution: (style ? "" : "© OpenStreetMap contributors | ") + "<a href=\"" + T("about.html", "about-en.html") + "\">" + T("안내", "About") + "</a>" }), "top-right");
         map.addControl(new maplibregl.ScaleControl({ maxWidth: 90 }), "bottom-left");
         // 출처는 ⓘ 로 접어 둠(노선 · 탐방 안내도와 같게 - 폰에서 펼친 출처가 사진 표시를 가렸음), ⓘ 를 누르면 보임
         var fold = function () { var at = document.querySelector(".maplibregl-ctrl-attrib"); if (at) at.classList.remove("maplibregl-compact-show"); };
         fold();
-        map.once("load", fold);
+        map.once("load", function () { fold(); setContour(contourOn); });
+        map.on("idle", markPeaks);   // 지도 조각이 더 오면 지나간 봉우리를 더 찾음
         return map;
     });
 
