@@ -107,14 +107,12 @@
                     // 구간 거리 · 시간 · 오르내림 글(우리 지도만 - 글꼴이 있음). 일반 봉우리 · 마을 이름보다 먼저, 대피소 · 명산보다 나중에 자리를 잡음
                     if (vector) {
                         map.addSource("seglbl", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-                        // 구간 색 둥근 띠 + 흰 글(2026-11-23 홍TV님 "표시를 더 잘 보이게"), 가운데가 막히면 위 · 아래 · 옆으로 비킴.
-                        // 일반 · 지나간 봉우리 이름보다 먼저 자리를 잡고(rf-hut 앞), 공단 대피소 · 100대 명산보다는 나중
-                        // (2026-11-23 PC: 노고단 → 연하천 글이 반야봉 · 노루목 등 지나간 봉우리 이름에 밀려 처음 화면 · 한 단계 가까이 모두 없었음.
-                        //  선을 따라 놓는 방식은 짧은 구간에서 글이 선보다 길어 더 빠져 쓰지 않음)
-                        map.addLayer({ id: "seglbl", type: "symbol", source: "seglbl", layout: { "text-field": ["get", "t"], "text-font": ["Noto Sans Regular"], "text-size": 12.5, "text-max-width": 30,
-                                "icon-image": ["get", "pill"], "icon-text-fit": "both", "icon-text-fit-padding": [3, 7, 3, 7],
-                                "text-variable-anchor": ["center", "top", "bottom", "left", "right"], "text-radial-offset": 1.2 },
-                            paint: { "text-color": "#ffffff" } }, map.getLayer("rf-hut") ? "rf-hut" : undefined);
+                        // 구간 색 글 + 흰 테두리, 글자만 조금 크게(2026-11-23 홍TV님 "이렇게까지 진하게 할 필요는 없어. 처음보다 글씨를 조금 더 크게 · 반야봉도 가려지네 ·
+                        // 구간 표에 이미 정보가 있으니 영 아니다 싶으면 표시 안 해도 되고") - 가운데가 막히면 위 · 아래 · 옆으로 비키고, 그래도 막히면 빠짐.
+                        // 일반 봉우리 · 마을 이름보다는 먼저, 대피소 · 절 · 지나간 봉우리(반야봉 등) · 공단 대피소 · 100대 명산보다는 나중(poi-hike 앞)
+                        map.addLayer({ id: "seglbl", type: "symbol", source: "seglbl", layout: { "text-field": ["get", "t"], "text-font": ["Noto Sans Regular"], "text-size": 13, "text-max-width": 30,
+                                "text-variable-anchor": ["center", "top", "bottom", "left", "right"], "text-radial-offset": 1 },
+                            paint: { "text-color": ["get", "color"], "text-halo-color": "#fffdf5", "text-halo-width": 2.2 } }, map.getLayer("poi-hike") ? "poi-hike" : undefined);
                     }
                 }
                 paintTrack();
@@ -148,7 +146,6 @@
 
     /** 우리 지도 아이콘(RF.MAP_ICONS) 하나를 캔버스로 그려 넣음 - 흰 테 동그라미 + 흰 글자. 모르는 이름이면 그냥 둠. */
     function iconImage(id) {
-        if (/^rf-pill-\d+$/.test(id)) { pillImage(id); return; }
         var ic = RF.MAP_ICONS[id];
         if (!ic || map.hasImage(id)) return;
         var r = window.devicePixelRatio > 1 ? 2 : 1, n = 22 * r, cv = document.createElement("canvas"), g = cv.getContext("2d");
@@ -203,18 +200,6 @@
 
     /** 지도 모양(style)이 준비되면 fn - 이미 됐으면 바로. */
     function whenStyle(fn) { if (styleOk) fn(); else styleQ.push(fn); }
-
-    /** 구간 글 띠(rf-pill-<색 차례>) - 구간 색 둥근 네모 + 흰 테, 글 길이에 맞춰 늘어남(stretch · content). */
-    function pillImage(id) {
-        var color = RF.SEG_COLORS[+id.slice(8)];
-        if (!color || map.hasImage(id)) return;
-        var r = window.devicePixelRatio > 1 ? 2 : 1, w = 24 * r, h = 20 * r, rad = 9 * r, cv = document.createElement("canvas"), g = cv.getContext("2d");
-        cv.width = w; cv.height = h;
-        g.beginPath();
-        if (g.roundRect) g.roundRect(r, r, w - 2 * r, h - 2 * r, rad); else g.rect(r, r, w - 2 * r, h - 2 * r);   // 옛 브라우저는 네모
-        g.fillStyle = color; g.fill(); g.lineWidth = 1.5 * r; g.strokeStyle = "#fff"; g.stroke();
-        map.addImage(id, g.getImageData(0, 0, w, h), { pixelRatio: r, stretchX: [[rad, w - rad]], stretchY: [[rad, h - rad]], content: [rad, r * 3, w - rad, h - r * 3] });
-    }
 
     /** 첫 글자 층 id(없으면 undefined - 맨 위에 그음). */
     function firstSymbol() {
@@ -291,7 +276,7 @@
         map.getSource("trk").setData(fc);
         if (map.getLayer("trk")) map.setPaintProperty("trk", "line-width", 4.5);
         if (map.getSource("seglbl")) map.getSource("seglbl").setData({ type: "FeatureCollection", features: segs.length > 1 ? segs.map(function (f) {
-            return { type: "Feature", properties: { t: RF.segText(f.properties), color: f.properties.color, pill: "rf-pill-" + RF.SEG_COLORS.indexOf(f.properties.color) }, geometry: { type: "Point", coordinates: f.properties.mid } };
+            return { type: "Feature", properties: { t: RF.segText(f.properties), color: f.properties.color }, geometry: { type: "Point", coordinates: f.properties.mid } };
         }) : [] });
         segList(segs);
     }

@@ -1062,7 +1062,6 @@
         trackSegments: trackSegments,
         recordPark: recordPark,
         segText: segText,
-        SEG_COLORS: SEG_COLORS,
         peakOnFilter: peakOnFilter,
         profile: profile,
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },
