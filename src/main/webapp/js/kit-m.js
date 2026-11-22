@@ -1618,6 +1618,24 @@
         return "https://map.kakao.com/link/map/" + encodeURIComponent(nm) + "," + a.toFixed(6) + "," + o.toFixed(6);
     }
 
+    /**
+     * 트립닷컴 도시 번호(cityId) - 0 이면 "일치하는 숙소가 없습니다"(2026-11-22 PC 확인: 덕기봉 cityId=0 → 0곳, 410 → 인천 숙소 417곳 · 검색 좌표에서 가까운 순).
+     * 값은 트립닷컴 검색창이 준 것만 넣음(지어내지 않음): id · 그 검색 결과의 좌표 · 이 둘레 km 안이면 그 도시로. 더 넣을 것은 PC 가 검색창(getHotelKeywords)에서 받아 옴.
+     */
+    var TRIP_CITIES = [
+        { id: 410, name: "인천(영종도)", lat: 37.5000629, lon: 126.5358479, km: 25 }   // 검색창 "Yeongjong" → Yeongjong Island, Incheon(cityId=410, 2026-11-22 PC)
+    ];
+
+    /** 순수 함수 - 좌표에 맞는 트립닷컴 도시 번호(표의 둘레 안 가장 가까운 것), 없으면 0(지금까지와 같음). */
+    function tripCityId(lat, lon) {
+        var best = 0, bd = Infinity;
+        TRIP_CITIES.forEach(function (c) {
+            var d = distM(+lat, +lon, c.lat, c.lon);
+            if (d <= c.km * 1000 && d < bd) { bd = d; best = c.id; }
+        });
+        return best;
+    }
+
     function tripLink(base, lat, lon, name) {
         var m = /^https:\/\/((?:[a-z0-9-]+\.)*trip\.com)(?=[\/?#]|$)/i.exec(String(base || ""));
         if (!m || !isFinite(lat) || !isFinite(lon)) return null;
@@ -1628,7 +1646,7 @@
         });
         var nm = String(name || "").replace(/[|*&#?=]/g, " ").replace(/\s+/g, " ").trim().slice(0, 30) || "들머리";
         var la = (+lat).toFixed(6), lo = (+lon).toFixed(6);
-        return "https://" + m[1].toLowerCase() + "/hotels/list?" + ["cityId=0", "searchType=LM", "searchWord=" + encodeURIComponent(nm),
+        return "https://" + m[1].toLowerCase() + "/hotels/list?" + ["cityId=" + tripCityId(lat, lon), "searchType=LM", "searchWord=" + encodeURIComponent(nm),
             "searchValue=" + encodeURIComponent("13|0*13*" + la + "|" + lo + "|" + nm + "|0|1")].concat(keep).join("&");
     }
 
