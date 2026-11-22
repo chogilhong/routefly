@@ -536,7 +536,50 @@
         $("layerBtn").setAttribute("aria-label", light ? T("위성사진으로", "Satellite view") : T("밝은 지도로", "Light map"));
         $("layerBtn").title = light ? T("위성사진으로", "Satellite view") : T("밝은 지도로(햇빛 아래에서 잘 보임)", "Light map (easier to see in sunlight)");
         document.body.classList.toggle("lightmap", light);
+        if (map.getLayer("contours")) {
+            var cp = contourPaint(light);
+            map.setPaintProperty("contours", "line-color", cp.color);
+            map.setPaintProperty("contours", "line-opacity", cp.opacity);
+        }
         if (!quiet) toast(light ? T("밝은 지도", "Light map") : T("위성사진", "Satellite"), 1500);
+    }
+
+    /**
+     * 등고선 켜기 · 끄기(2026-11-22 홍TV님 - 램블러 플러스 전용 기능을 보고): 바탕 음영과 같은 지형 타일(cfg.demUrl)로 maplibre-contour 가
+     * 일꾼에서 등고선을 그림(새 자료 · 키 없음, 끈 동안은 받지 않음). 줌마다 간격(m) [가는 선, 굵은 선]. 글자(높이 숫자)는 지도 글꼴이 없어 넣지 않음.
+     * 켠 것은 이 기기에 기억(rf-contour - 개인정보 방침 2장).
+     */
+    var CONTOUR_KEY = "rf-contour", CONTOUR_STEPS = { 11: [100, 500], 12: [50, 250], 13: [20, 100] };
+    var contourOn = false, demContour = null;
+    try { contourOn = localStorage.getItem(CONTOUR_KEY) === "1"; } catch (e) { /* 기본 끔 */ }
+
+    /** 순수 함수 - 바탕에 맞는 등고선 색 · 진하기(위성 · 어두운 바탕은 흰 선, 밝은 지도 · 지형만은 갈색 선). */
+    function contourPaint(light) {
+        return light ? { color: "#8a5a2b", opacity: 0.6 } : { color: "#ffffff", opacity: 0.4 };
+    }
+
+    function setContour(on, quiet) {
+        contourOn = !!on;
+        try { localStorage.setItem(CONTOUR_KEY, contourOn ? "1" : "0"); } catch (e) { /* 기억 못 해도 됨 */ }
+        if (contourOn && !map.getSource("contours") && window.mlcontour) {
+            if (!demContour) {
+                demContour = new mlcontour.DemSource({ url: cfg.demUrl, encoding: "terrarium", maxzoom: cfg.vworldKey ? 12 : 15, worker: true });
+                demContour.setupMaplibre(maplibregl);
+            }
+            map.addSource("contours", { type: "vector", maxzoom: 15, tiles: [demContour.contourProtocolUrl({
+                thresholds: CONTOUR_STEPS, overzoom: 1, contourLayer: "contours", elevationKey: "ele", levelKey: "level" })] });
+            var cp = contourPaint(basemap === "light" || !cfg.vworldKey);
+            map.addLayer({ id: "contours", type: "line", source: "contours", "source-layer": "contours", minzoom: 11,
+                paint: { "line-color": cp.color, "line-opacity": cp.opacity, "line-width": ["match", ["get", "level"], 1, 1.4, 0.7] } },
+                map.getLayer("trails") ? "trails" : undefined);   // 코스 · 등산로 선 아래
+        }
+        if (map.getLayer("contours")) map.setLayoutProperty("contours", "visibility", contourOn ? "visible" : "none");
+        var b = $("contourBtn");
+        b.classList.toggle("on", contourOn);
+        b.setAttribute("aria-pressed", contourOn ? "true" : "false");
+        b.title = contourOn ? T("등고선 끄기", "Hide contour lines") : T("등고선 켜기(가까이 보면 20m 간격)", "Show contour lines (20 m apart when zoomed in)");
+        if (!quiet) toast(contourOn ? T("등고선 켬 - 가까이 볼수록 촘촘(굵은 선 100m · 250m · 500m 마다)", "Contours on - denser as you zoom in")
+            : T("등고선 끔", "Contours off"), 2200);
     }
 
     var doneK = 0;   // 지금 지나온 길 색의 자리(0.2% 단위) - 처음 선은 progressGradient(0)
@@ -634,6 +677,7 @@
                 map.addLayer({ id: "guide", type: "line", source: "guide",
                     paint: { "line-color": "#ff5d5d", "line-width": 3, "line-dasharray": [1.5, 1.2] } });
                 if (cfg.vworldKey) setBasemap(basemap, true);
+                if (contourOn) setContour(true, true);
                 resolve();
             });
         });
@@ -3858,6 +3902,7 @@
                 : "길찾기 뒤 이 화면으로 돌아오거나 다시 열면 그대로 이어집니다.");
     }
     $("layerBtn").addEventListener("click", function () { setBasemap(basemap === "light" ? "sat" : "light"); });
+    $("contourBtn").addEventListener("click", function () { if (map) setContour(!contourOn); });
     $("navBtn").addEventListener("click", openNav);
     $("navClose").addEventListener("click", function () {
         $("navSheet").style.display = "none";
