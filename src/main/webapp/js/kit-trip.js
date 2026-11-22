@@ -243,20 +243,23 @@
      * 순수 함수 - GPX 글 → 내 기록 하나(시각이 든 trkpt 가 2개 넘을 때만 - 걸은 기록, 코스 파일은 null). recordGpx 로 만든 것은 요약 · 사진까지.
      * 돌려줌 {rec: {name, kind, start, end, up, kcal, steps, courseId, track:[[위도, 경도, ms, 높이]], notes:[{t, lat, lon, ele, text, photo}]}, photos: {열쇠: base64}}.
      * 사진 열쇠는 사진 글의 지문으로 새로 만듦(같은 파일을 두 번 넣어도 같은 열쇠).
+     * any - 기록 보기(trip.html)처럼 시각 없는 코스 GPX 도 받음(2026-11-22 홍TV님 "왜 안 열리지?"): 점 시각 null, 경로(rtept)도, 이름만 있는 지점은 그 이름을 메모로.
      */
-    function gpxRecord(text) {
+    function gpxRecord(text, any) {
         text = String(text || "");
         var un = function (x) { return String(x).replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, "\"").replace(/&#39;/g, "'").replace(/&amp;/g, "&"); };
         var tag = function (body, t) { var m = new RegExp("<" + t + "(?:\\s[^>]*)?>([\\s\\S]*?)</" + t + ">").exec(body); return m ? m[1].trim() : null; };
         var attr = function (head, a) { var m = new RegExp("\\b" + a + "\\s*=\\s*[\"']([^\"']+)[\"']").exec(head); return m ? +m[1] : NaN; };
         var track = [], re = /<trkpt\b([^>]*?)(?:\/>|>([\s\S]*?)<\/trkpt>)/g, m;
+        if (any && !/<trkpt\b/.test(text)) re = /<rtept\b([^>]*?)(?:\/>|>([\s\S]*?)<\/rtept>)/g;   // 경로(rte)만 있는 코스 파일
         while ((m = re.exec(text))) {
             var lat = attr(m[1], "lat"), lon = attr(m[1], "lon"), body = m[2] || "", tm = tag(body, "time"), el = tag(body, "ele"), t = tm ? Date.parse(tm) : NaN;
-            if (!isFinite(lat) || !isFinite(lon) || !isFinite(t)) continue;
-            track.push([lat, lon, t, el != null && isFinite(+el) ? +el : null]);
+            if (!isFinite(lat) || !isFinite(lon) || (!isFinite(t) && !any)) continue;
+            track.push([lat, lon, isFinite(t) ? t : null, el != null && isFinite(+el) ? +el : null]);
         }
         if (track.length < 2) return null;
-        track.sort(function (a, b) { return a[2] - b[2]; });
+        var timed = track.filter(function (p) { return p[2] != null; });
+        if (timed.length === track.length) track.sort(function (a, b) { return a[2] - b[2]; });   // 시각이 다 있을 때만 차례를 시각으로(코스 파일은 그대로)
         var meta = tag(text, "metadata") || "", sumText = tag(meta, "rf:record"), sum = {};
         try { sum = sumText ? JSON.parse(un(sumText)) || {} : {}; } catch (e) { sum = {}; }
         var name = un(tag(meta, "name") || tag(tag(text, "trk") || "", "name") || "GPX");
@@ -272,13 +275,15 @@
                 n.photo = "g" + (h >>> 0).toString(36) + c.length.toString(36);
                 photos[n.photo] = c;
             }
+            if (!n.photo && !n.text && any && !/<type>photo<\/type>/.test(b)) { var wn = tag(b, "name"); if (wn) n.text = un(wn); }   // 코스 파일의 지점 이름(갈림길 · 정상 등)
             if (!n.photo && !n.text) continue;   // 이름만 있는 지점(출발 · 정상 표시 등)은 기록 메모가 아님
             if (n.t == null) n.t = track[0][2];
             notes.push(n);
         }
-        notes.sort(function (a, b) { return a.t - b.t; });
+        if (timed.length === track.length) notes.sort(function (a, b) { return a.t - b.t; });
         var kind = /^(hike|walk|bike)$/.test(sum.kind) ? sum.kind : /^(hike|walk|bike)$/.test(tag(tag(text, "trk") || "", "type") || "") ? tag(tag(text, "trk"), "type") : "hike";
-        return { rec: { name: name, kind: kind, start: isFinite(sum.start) ? +sum.start : track[0][2], end: isFinite(sum.end) ? +sum.end : track[track.length - 1][2],
+        var t0 = timed.length ? timed[0][2] : null, t1 = timed.length ? timed[timed.length - 1][2] : null;
+        return { rec: { name: name, kind: kind, start: isFinite(sum.start) && sum.start !== null ? +sum.start : t0, end: isFinite(sum.end) && sum.end !== null ? +sum.end : t1,
                         up: isFinite(sum.up) && sum.up !== null ? +sum.up : null, kcal: isFinite(sum.kcal) && sum.kcal !== null ? +sum.kcal : null, steps: isFinite(sum.steps) && sum.steps !== null ? +sum.steps : null,
                         courseId: typeof sum.courseId === "string" ? sum.courseId : null, track: track, notes: notes }, photos: photos };
     }

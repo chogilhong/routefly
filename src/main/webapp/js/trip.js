@@ -38,7 +38,8 @@
         if (rc.lat.length < 2) { $("side").innerHTML = "<p class=\"empty\">" + T("점이 모자라 그릴 수 없습니다.", "Not enough points to draw.") + "</p>"; return; }
         $("title").textContent = NM(rec.name) || T("기록 보기", "View record");
         document.title = (NM(rec.name) || "") + T(" - routefly 기록 보기", " - routefly record");
-        $("stat").textContent = when(rec.start) + " · " + RF.km(rc.total) + " km · " + hm(rec.end - rec.start) + (rec.up != null ? T(" · 오른 높이 ", " · climb ") + RF.num(rec.up) + " m" : "");
+        $("stat").textContent = (rec.start != null ? when(rec.start) + " · " : "") + RF.km(rc.total) + " km" + (rec.start != null && rec.end != null && rec.end > rec.start ? " · " + hm(rec.end - rec.start) : "")
+            + (rec.up != null ? T(" · 오른 높이 ", " · climb ") + RF.num(rec.up) + " m" : rc.asc && rc.asc.length ? T(" · 오르막 ", " · ascent ") + RF.num(rc.asc[rc.asc.length - 1]) + " m" : "");
         prof = RF.profile($("prof"), rc, { speed: RF.speedProfile(rc), labels: false });
         var narrow = window.matchMedia && window.matchMedia("(max-width: 760px)").matches;   // 폰 세로는 그래프가 지도를 많이 가려 접어 두고 📈 단추로
         $("graph").hidden = narrow; $("graphBtn").hidden = !narrow;
@@ -48,7 +49,8 @@
             var card = document.createElement("div"), ph = document.createElement("div"), tx = document.createElement("div"), tm = document.createElement("div");
             card.className = "card";
             tm.className = "tm";
-            tm.textContent = when(it.n.t) + (it.d != null ? T(" · 출발부터 ", " · from start ") + RF.km(it.d) + " km" : "") + (it.n.ele != null ? T(" · 해발 ", " · elev. ") + RF.num(it.n.ele) + " m" : "");
+            tm.textContent = [it.n.t != null ? when(it.n.t) : "", it.d != null ? T("출발부터 ", "from start ") + RF.km(it.d) + " km" : "", it.n.ele != null ? T("해발 ", "elev. ") + RF.num(it.n.ele) + " m" : ""]
+                .filter(Boolean).join(" · ");
             tx.className = "tx";
             tx.appendChild(tm);
             if (it.n.text) tx.appendChild(document.createTextNode(it.n.text));
@@ -93,7 +95,7 @@
                 var d = document.createElement("div");
                 d.className = "pin" + (it.n.photo ? "" : " memo");
                 d.textContent = it.n.photo ? "📷" : "📝";
-                d.title = when(it.n.t) + (it.n.text ? " · " + it.n.text : "");
+                d.title = (it.n.t != null ? when(it.n.t) : "") + (it.n.text ? " · " + it.n.text : "");
                 d.addEventListener("click", function (e) { e.stopPropagation(); select(i, false, true); });
                 it.mark = new maplibregl.Marker({ element: d, anchor: "bottom" }).setLngLat([it.n.lon, it.n.lat]).addTo(map);
                 marks.push(it.mark);
@@ -119,7 +121,7 @@
         if (!it || !it.url) return;
         select(i, false, false);
         $("bigImg").src = it.url;
-        $("bigCap").textContent = when(it.n.t) + (it.n.text ? " · " + it.n.text : "");
+        $("bigCap").textContent = (it.n.t != null ? when(it.n.t) : "") + (it.n.text ? " · " + it.n.text : "");
         $("big").style.display = "flex";
     }
     function step(k) {
@@ -158,8 +160,8 @@
         if (!f) return;
         if (f.size > 8 * 1024 * 1024) { alert(T("파일이 너무 큽니다(8MB 까지).", "The file is too big (8 MB max).")); return; }
         f.text().then(function (text) {
-            var got = RF.gpxRecord(text);
-            if (!got) { alert(T("걸은 기록(시각이 든 점)이 없는 GPX 입니다. 코스 파일은 따라가기에서 📂 GPX 열기로 여세요.", "This GPX has no walked record (points with times). Open course files in Follow → 📂 Open GPX.")); return; }
+            var got = RF.gpxRecord(text, true);   // 시각 없는 코스 GPX 도(선 · 지점 · 고도만, 속도 · 시간 없이)
+            if (!got) { alert(T("GPX 에 길(점)이 없습니다.", "The GPX has no track points.")); return; }
             show(got.rec, function (id) {
                 try {
                     var bin = atob(got.photos[id]), u8 = new Uint8Array(bin.length);

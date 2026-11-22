@@ -104,7 +104,7 @@ public class VideoKitTest {
     @Test
     public void 기록_보기_화면() throws Exception {
         String js = read("src/main/webapp/js/trip.js"), html = read("src/main/webapp/trip.html"), hike = read("src/main/webapp/js/hike.js");
-        assertTrue("GPX 는 이 기기 안에서 읽음", js.contains("var got = RF.gpxRecord(text);") && !js.contains("fetch(\"api/record") && html.contains("<meta name=\"robots\" content=\"noindex, nofollow\">"));
+        assertTrue("GPX 는 이 기기 안에서 읽음 · 시각 없는 코스 GPX 도(홍TV님 \"왜 안 열리지?\")", js.contains("var got = RF.gpxRecord(text, true);") && !js.contains("fetch(\"api/record") && html.contains("<meta name=\"robots\" content=\"noindex, nofollow\">"));
         assertTrue("표시를 누르면 카드 · 카드를 누르면 지도", js.contains("select(i, false, true); });") && js.contains("card.onclick = function () { select(i, true, false); };"));
         assertTrue("🔍 사진만 크게 · ‹ › 넘김", js.contains("z.onclick = function (e) { e.stopPropagation(); big(i); };") && html.contains("id=\"bigPrev\"") && html.contains("id=\"bigNext\""));
         assertTrue("고도 · 속도 그래프", js.contains("prof = RF.profile($(\"prof\"), rc, { speed: RF.speedProfile(rc), labels: false });"));
