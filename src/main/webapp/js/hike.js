@@ -2529,8 +2529,6 @@
         $("recViewCard").disabled = rc.lat.length < 2;
         $("recViewCard").onclick = function () { shareCard(rec); };
         $("recViewMap").onclick = function () { recordOnMap(rc, null, rec.notes); };
-        $("recViewPhotos").disabled = rc.lat.length < 2 || !(rec.track || []).some(function (p) { return typeof p[2] === "number"; });
-        $("recViewPhotos").onclick = function () { photoAddRec = rec; $("recPhotoFiles").value = ""; $("recPhotoFiles").click(); };
         $("recViewClose").onclick = function () { $("recView").style.display = "none"; };
         $("recViewVideo").disabled = rc.lat.length < 2;
         $("recViewVideo").onclick = function () { vidOpen(rec); };
@@ -2835,13 +2833,6 @@
         });
     }
 
-    /** 사진 파일 앞부분의 찍은 때 · 위치(RF.exifInfo, 2026-11-22) - 못 읽으면 null. 줄이기(shrinkPhoto) 전에 읽음 - 줄인 JPEG 에는 EXIF 가 없음. */
-    function readExif(file) {
-        if (!file || !file.slice) return Promise.resolve(null);
-        var part = file.slice(0, 262144);
-        return (part.arrayBuffer ? part.arrayBuffer() : new Response(part).arrayBuffer())
-            .then(function (b) { return RF.exifInfo(b, -new Date().getTimezoneOffset()); }, function () { return null; });
-    }
 
     /**
      * 지도의 사진 · 메모 표시(2026-11-22 홍TV님 - 📷 대신 사진 작은 그림, 누르면 크게). 사진은 IndexedDB 에서 읽어 그림 주소(objectURL)로 -
@@ -3039,78 +3030,6 @@
         $("notesSheet").style.display = "none";
         hidePick();   // 코스를 고르기 전(내 기록으로 바로 온 때)에도 지도가 보이게
     }
-
-    /**
-     * 📷 사진 넣기(2026-11-22 홍TV님 "몇 장 찍고 잘 나온 것을 골라 그 코스에" - 램블러처럼): 폰 카메라로 찍어 둔 사진을 산행 뒤 여러 장 골라 넣으면
-     * 사진 속 위치 · 찍은 때로 그 기록의 자리(RF.photoPlace)에 놓음. 미리보기에서 뺄 사진은 체크를 풂. 자리를 못 찾은 사진(다른 날 · 다른 곳)은 넣지 않음.
-     * 사진은 이 핸드폰(rf-photos)에만 - 서버로 보내지 않음.
-     */
-    var photoAddRec = null, photoPicks = [], PHOTO_PICK_MAX = 30;
-    $("recPhotoFiles").addEventListener("change", function () {
-        var rec = photoAddRec, files = Array.prototype.slice.call(this.files || [], 0, PHOTO_PICK_MAX), box = $("photoPickList");
-        if (!rec || !files.length) return;
-        if ((this.files || []).length > PHOTO_PICK_MAX) toast(T("한 번에 " + PHOTO_PICK_MAX + "장까지 넣습니다.", "Up to " + PHOTO_PICK_MAX + " photos at a time."), 4000);
-        photoPickClear();
-        var rc = RF.recordCourse(rec), have = {};
-        (rec.notes || []).forEach(function (n) { if (n.photo) have[n.t] = 1; });   // 같은 사진을 두 번 넣지 않게(찍은 때가 같으면)
-        $("photoPickTitle").textContent = "📷 " + NM(rec.name);
-        $("photoPick").style.display = "flex";
-        $("photoPickSave").disabled = true;
-        Promise.all(files.map(function (f) {
-            return readExif(f).then(function (info) {
-                var pl = RF.photoPlace(rec.track, info), row = document.createElement("label"), ck = document.createElement("input"), im = new Image(), sm = document.createElement("small");
-                var u = URL.createObjectURL(f), dup = pl && have[pl.t];
-                row.className = "pickRow";
-                ck.type = "checkbox";
-                ck.checked = !!pl && !dup;
-                ck.disabled = !pl;
-                im.src = u;
-                im.alt = f.name;
-                if (pl) {
-                    var at = RF.recordCourse({ track: rec.track, kind: rec.kind, notes: [pl] }).pois[0];
-                    sm.textContent = clock(pl.t) + (at && rc.lat.length > 1 ? T(" · 출발부터 ", " · from start ") + km(at.dist_m) + "km" : "") + (pl.ele != null ? T(" · 해발 ", " · elev. ") + num(pl.ele) + "m" : "")
-                        + (pl.how === "gps" ? T(" · 사진 속 위치", " · photo location") : T(" · 찍은 때로", " · by time")) + (dup ? T(" · 이미 넣은 사진", " · already added") : "");
-                } else sm.textContent = T("넣을 수 없음 - 이 산행 때 찍은 사진이 아닙니다(찍은 때 · 위치가 없거나 다름)", "Can't add - not taken during this hike (no or different time · location)");
-                row.appendChild(ck); row.appendChild(im); row.appendChild(sm);
-                return { file: f, place: pl, ck: ck, row: row, url: u };
-            });
-        })).then(function (list) {
-            list.sort(function (a, b) { return (a.place ? a.place.t : Infinity) - (b.place ? b.place.t : Infinity); });
-            photoPicks = list;
-            list.forEach(function (x) { box.appendChild(x.row); });
-            $("photoPickSave").disabled = !list.some(function (x) { return x.place; });
-        });
-    });
-    function photoPickClear() {
-        photoPicks.forEach(function (x) { URL.revokeObjectURL(x.url); });
-        photoPicks = [];
-        $("photoPickList").innerHTML = "";
-    }
-    $("photoPickCancel").addEventListener("click", function () { photoPickClear(); $("photoPick").style.display = "none"; });
-    $("photoPickSave").addEventListener("click", function () {
-        var rec = photoAddRec, pick = photoPicks.filter(function (x) { return x.place && x.ck.checked; }), btn = this;
-        if (!rec || !pick.length) { toast(T("넣을 사진을 골라 주세요.", "Pick photos to add."), 3000); return; }
-        btn.disabled = true;
-        var added = [];
-        pick.reduce(function (p, x) {   // 하나씩(큰 사진 여러 장을 한꺼번에 줄이면 폰 메모리가 모자람)
-            return p.then(function () { return shrinkPhoto(x.file); }).then(function (blob) {
-                var pl = x.place, n = { t: pl.t, lat: pl.lat, lon: pl.lon, ele: pl.ele != null ? Math.round(pl.ele) : null, text: null,
-                                        photo: "p" + pl.t.toString(36) + Math.random().toString(36).slice(2, 6) };
-                return photoPut(n.photo, blob).then(function () { added.push(n); });
-            });
-        }, Promise.resolve()).then(function () {
-            rec.notes = (rec.notes || []).concat(added).sort(function (a, b) { return a.t - b.t; });
-            return writeRecords(records());
-        }).then(function (ok) {
-            photoPickClear();
-            $("photoPick").style.display = "none";
-            if (ok) toast(T("📷 사진 " + added.length + "장을 기록에 넣었습니다.", "📷 Added " + added.length + " photo(s) to the record."), 4000);
-            showRecord(rec);
-            if ($("recSheet").style.display === "flex") showRecords();
-        }).catch(function (e) {
-            toast(T("사진을 넣지 못했습니다: ", "Could not add photos: ") + (e && e.message || e), 5000);
-        }).then(function () { btn.disabled = false; });
-    });
 
     /** 기록 하나의 사진 · 메모 보기. 사진을 누르면 크게(새 창), "🗺 지도에서" 는 그 자리(출발부터 거리 · 해발)를 지도에. */
     function showNotes(rec) {

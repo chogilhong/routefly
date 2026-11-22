@@ -344,10 +344,6 @@ html.rfwait body { visibility:hidden; }   /* 앱을 처음 열 때 서버에 닿
 #photoBig { position:fixed; inset:0; z-index:60; display:none; flex-direction:column; align-items:center; justify-content:center; gap:8px; background:rgba(0,0,0,0.92); cursor:zoom-out; }
 #photoBig img { max-width:96vw; max-height:84dvh; object-fit:contain; border-radius:6px; }
 #photoBig p { margin:0; color:#eef2f6; font-size:14px; max-width:92vw; text-align:center; white-space:pre-line; }
-#photoPickList .pickRow { display:flex; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid var(--ln); }
-#photoPickList .pickRow input { width:22px; height:22px; flex:none; }
-#photoPickList .pickRow img { width:64px; height:64px; object-fit:cover; border-radius:6px; flex:none; }
-#photoPickList .pickRow small { color:var(--dim); font-size:12.5px; line-height:1.45; }
 #vidSheet .vidRow { display:flex; gap:10px; align-items:center; flex-wrap:wrap; font-size:14px; }
 #vidSheet select { height:38px; border-radius:8px; background:rgba(255,255,255,0.06); color:var(--tx); border:1px solid var(--ln); font-family:inherit; padding:0 6px; }
 .noteRow { display:flex; gap:10px; padding:8px 0; border-bottom:1px solid var(--ln); align-items:flex-start; }
@@ -368,7 +364,7 @@ html.rfwait body { visibility:hidden; }   /* 앱을 처음 열 때 서버에 닿
 /* "괜찮으세요?" · 긴급 신고는 늘 맨 위(점검 11차 A4, 2026-11-16) - 정상 도착 카드 · 안내판 · 길 안내 칸(30, DOM 뒤쪽)과 확인 창(rf-dialog 9999)이 가렸음 */
 #stillSheet, #sosSheet { z-index:10000; }
 #recView { z-index:31; }
-#vidSheet, #photoPick { z-index:32; }   /* 📈 기록 창(31) 위에서 여는 창 - 30 이면 뒤에 열려 안 보였음(2026-11-22 홍TV님 "영상용 이 클릭 안되는데") */
+#vidSheet { z-index:32; }   /* 📈 기록 창(31) 위에서 여는 창 - 30 이면 뒤에 열려 안 보였음(2026-11-22 홍TV님 "영상용 이 클릭 안되는데") */
 #recClear { position:absolute; left:50%; transform:translateX(-50%); bottom:14px; z-index:2; display:none; height:40px; padding:0 12px; border-radius:20px;
             border:0; background:#c77dff; color:#1b0b2a; font-weight:bold; font-size:13px; box-shadow:0 2px 8px rgba(0,0,0,0.45); cursor:pointer; }
 #recViewProfile { position:relative; height:110px; margin:8px 0 4px; }   /* 내 기록 창 위에서 열립니다 */
@@ -782,24 +778,9 @@ html.picking #pick { display:flex; }
             <button type="button" id="recViewCard" data-en-title="Share record card image" title="기록 카드 그림 공유" data-en="🖼 Card">🖼 카드</button>
             <button type="button" id="recViewClose" class="main" data-en="Close">닫기</button>
         </div>
-        <!-- 2026-11-22 홍TV님: 폰 카메라로 찍은 사진을 골라 기록의 찍힌 자리에 · 유튜브 영상용 그림 · 영상 -->
+        <!-- 2026-11-22 홍TV님: 유튜브 영상용 그림 · 영상. 📷 사진 넣기는 뺌(홍TV님 "내 기록에서 사진 넣기는 빼" - 사진은 따라가기 중 📝 📷 찍기로) -->
         <div class="sbtn">
-            <button type="button" id="recViewPhotos" data-en-title="Add photos taken during this hike - placed where they were taken" title="이 산행 때 찍은 사진을 골라 넣기 - 찍힌 자리에 놓음" data-en="📷 Add photos">📷 사진 넣기</button>
             <button type="button" id="recViewVideo" data-en-title="Images and videos for YouTube · shorts" title="유튜브 · 쇼츠에 쓸 그림 · 영상" data-en="🎬 For video">🎬 영상용</button>
-        </div>
-        <input type="file" id="recPhotoFiles" accept="image/*" multiple hidden>
-    </div>
-</div>
-
-<!-- 2026-11-22: 사진 여러 장 넣기 - 미리보기에서 뺄 것은 체크를 풂 -->
-<div id="photoPick" class="sheet">
-    <div class="sbox">
-        <h2 id="photoPickTitle" data-en="📷 Add photos">📷 사진 넣기</h2>
-        <p class="tip" data-en="Each photo goes where it was taken (photo location, or the time it was taken matched to this record). Untick the ones to leave out. Photos stay on this phone.">사진마다 찍힌 자리에 놓습니다(사진 속 위치, 없으면 찍은 때를 이 기록에 맞춤). 뺄 사진은 체크를 푸세요. 사진은 이 핸드폰에만 남습니다.</p>
-        <div id="photoPickList"></div>
-        <div class="sbtn">
-            <button type="button" id="photoPickCancel" data-en="Cancel">취소</button>
-            <button type="button" id="photoPickSave" class="main" data-en="Add">넣기</button>
         </div>
     </div>
 </div>

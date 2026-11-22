@@ -37,10 +37,7 @@ public class VideoKitTest {
     @Test
     public void 사진_넣기_화면() throws Exception {
         String js = read("src/main/webapp/js/hike.js"), html = read("src/main/webapp/hike.html");
-        assertTrue("여러 장 고르기", html.contains("<input type=\"file\" id=\"recPhotoFiles\" accept=\"image/*\" multiple hidden>") && html.contains("id=\"photoPick\""));
-        assertTrue("EXIF 는 줄이기 전 원본에서", js.contains("var pl = RF.photoPlace(rec.track, info)") && js.contains("return RF.exifInfo(b, -new Date().getTimezoneOffset());"));
-        assertTrue("자리를 못 찾은 사진은 못 고름", js.contains("ck.checked = !!pl && !dup;") && js.contains("ck.disabled = !pl;"));
-        assertTrue("넣은 뒤 찍은 때 차례 · 저장", js.contains("rec.notes = (rec.notes || []).concat(added).sort(function (a, b) { return a.t - b.t; });") && js.contains("return writeRecords(records());"));
+        assertTrue("내 기록 📷 사진 넣기는 뺌(2026-11-22 홍TV님 - 사진은 따라가기 중 📝 📷 찍기로만)", !html.contains("recViewPhotos") && !html.contains("photoPick") && !js.contains("photoPlace") && !js.contains("readExif"));
         assertTrue("지도에 사진 작은 그림 · 크게", js.contains("el.className = \"noteMark thumb\";") && js.contains("photoBig(u, n.text);") && html.contains("<div id=\"photoBig\""));
         assertTrue("산행 중은 📷 찍기만(갤러리 고르기 뺌) · 여러 장 쌓았다가 남기기로 모두 지금 자리에(2026-11-22 홍TV님)",
                 !html.contains("notePick") && html.contains("<input type=\"file\" id=\"notePhoto\" accept=\"image/*\" capture=\"environment\" hidden>")
@@ -63,7 +60,7 @@ public class VideoKitTest {
         assertTrue("지도 그림을 옮겨 그리려면 영상 만들 때만 preserveDrawingBuffer",
                 app.contains("canvasContextAttributes: VIDEO && VIDEO.rec ? { preserveDrawingBuffer: true } : undefined"));
         assertTrue("만든 영상을 따라가기로 넘겨 보내기", app.contains("location.href = \"hike.html#vid\";") && js.contains("if (location.hash === \"#vid\") {"));
-        assertTrue("기록 창(31) 위로 - 뒤에 열려 안 보였음(홍TV님)", html.contains("#recView { z-index:31; }") && html.contains("#vidSheet, #photoPick { z-index:32; }"));
+        assertTrue("기록 창(31) 위로 - 뒤에 열려 안 보였음(홍TV님)", html.contains("#recView { z-index:31; }") && html.contains("#vidSheet { z-index:32; }"));
         assertTrue("그림 · 영상 같은 보내기", js.contains("function shareBlob(blob, name, text, url) {"));
     }
 
