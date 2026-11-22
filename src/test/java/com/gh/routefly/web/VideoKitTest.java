@@ -69,6 +69,7 @@ public class VideoKitTest {
                 app.contains("canvasContextAttributes: VIDEO && VIDEO.rec ? { preserveDrawingBuffer: true } : undefined"));
         assertTrue("만든 영상을 따라가기로 넘겨 저장", app.contains("location.href = \"hike.html#vid\";") && js.contains("if (location.hash === \"#vid\") {"));
         assertTrue("기록 창(31)", html.contains("#recView { z-index:31; }"));
+        assertTrue("GPX 를 열 때 묻는 글도 지금 단추(📂 GPX 열기)에 맞춤", js.contains("📒 내 기록에 넣을까요? 넣은 뒤 내 기록 → 📂 GPX 열기로 지도 · 사진 · 고도 그래프를 봅니다.") && !js.contains("내 기록에 넣어 지도 · 사진 · 고도 그래프로 볼까요?"));
         assertTrue("닫기 단추가 보이게(2026-11-22 홍TV님) - 기기 옮기기 QR 창은 흰 바탕에 어두운 단추 · GPX 보내기 창은 위아래 넓게",
             html.contains("id=\"xferClose\" style=\"min-height:48px;width:100%;padding:0 18px;border-radius:10px;border:0;background:#1b2430;color:#fff;")
             && js.contains("style=\"display:block;width:100%;margin:12px 0 0;min-height:52px;font-size:16px\">' + T(\"닫기\", \"Close\")"));
