@@ -344,8 +344,6 @@ html.rfwait body { visibility:hidden; }   /* 앱을 처음 열 때 서버에 닿
 #photoBig { position:fixed; inset:0; z-index:60; display:none; flex-direction:column; align-items:center; justify-content:center; gap:8px; background:rgba(0,0,0,0.92); cursor:zoom-out; }
 #photoBig img { max-width:96vw; max-height:84dvh; object-fit:contain; border-radius:6px; }
 #photoBig p { margin:0; color:#eef2f6; font-size:14px; max-width:92vw; text-align:center; white-space:pre-line; }
-#vidSheet .vidRow { display:flex; gap:10px; align-items:center; flex-wrap:wrap; font-size:14px; }
-#vidSheet select { height:38px; border-radius:8px; background:rgba(255,255,255,0.06); color:var(--tx); border:1px solid var(--ln); font-family:inherit; padding:0 6px; }
 .noteRow { display:flex; gap:10px; padding:8px 0; border-bottom:1px solid var(--ln); align-items:flex-start; }
 .noteRow img { width:84px; height:84px; object-fit:cover; border-radius:8px; flex:none; cursor:pointer; }
 .noteRow .nt { flex:1; min-width:0; font-size:14px; line-height:1.5; white-space:pre-wrap; word-break:break-word; }
@@ -364,7 +362,6 @@ html.rfwait body { visibility:hidden; }   /* 앱을 처음 열 때 서버에 닿
 /* "괜찮으세요?" · 긴급 신고는 늘 맨 위(점검 11차 A4, 2026-11-16) - 정상 도착 카드 · 안내판 · 길 안내 칸(30, DOM 뒤쪽)과 확인 창(rf-dialog 9999)이 가렸음 */
 #stillSheet, #sosSheet { z-index:10000; }
 #recView { z-index:31; }
-#vidSheet { z-index:32; }   /* 📈 기록 창(31) 위에서 여는 창 - 30 이면 뒤에 열려 안 보였음(2026-11-22 홍TV님 "영상용 이 클릭 안되는데") */
 #recClear { position:absolute; left:50%; transform:translateX(-50%); bottom:14px; z-index:2; display:none; height:40px; padding:0 12px; border-radius:20px;
             border:0; background:#c77dff; color:#1b0b2a; font-weight:bold; font-size:13px; box-shadow:0 2px 8px rgba(0,0,0,0.45); cursor:pointer; }
 #recViewProfile { position:relative; height:110px; margin:8px 0 4px; }   /* 내 기록 창 위에서 열립니다 */
@@ -774,30 +771,12 @@ html.picking #pick { display:flex; }
         <div class="where" id="recViewSum"></div>
         <div id="recViewProfile"></div>
         <div class="sbtn">
+            <button type="button" id="recView3d" data-en="🛩 3D flight video">🛩 3D 비행 영상</button>
             <button type="button" id="recViewMap" data-en="📂 Open GPX">📂 GPX 열기</button>
             <button type="button" id="recViewClose" class="main" data-en="Close">닫기</button>
         </div>
-        <!-- 2026-11-22 홍TV님: 유튜브 영상용 그림 · 영상. 📷 사진 넣기는 뺌(홍TV님 "내 기록에서 사진 넣기는 빼" - 사진은 따라가기 중 📝 📷 찍기로) -->
-        <div class="sbtn">
-            <button type="button" id="recViewVideo" data-en-title="Images and videos for YouTube · shorts" title="유튜브 · 쇼츠에 쓸 그림 · 영상" data-en="🎬 For video">🎬 영상용</button>
-        </div>
-    </div>
-</div>
-
-<!-- 🎬 영상용(2026-11-22 홍TV님 - 유튜브 · 쇼츠에 쓸 그림 · 영상 · 공개 링크) -->
-<div id="vidSheet" class="sheet">
-    <div class="sbox">
-        <h2 data-en="🎬 For video">🎬 영상용</h2>
-        <div class="vidRow">
-            <select id="vidShape" data-en-aria-label="Shape" aria-label="모양"><option value="tall" data-en="Vertical 9:16 (shorts)">세로 9:16(쇼츠)</option><option value="wide" data-en="Horizontal 16:9">가로 16:9</option></select>
-            <label><input type="checkbox" id="vidTrim" checked> <span data-en="Leave out first · last 300 m">처음 · 끝 300m 빼기</span></label>
-        </div>
-        <p class="tip" data-en="Images have a transparent background - lay them over your video in an editor (CapCut, Vrew …). Leaving out the ends keeps your home or parking spot off the video.">그림은 바탕이 투명해 편집 앱(캡컷 · Vrew 등)에서 영상 위에 겹치면 됩니다. 처음 · 끝을 빼면 집 · 주차한 곳이 영상에 나오지 않습니다.</p>
-        <div class="sbtn"><button type="button" id="vidRoute" data-en="🗺 Route">🗺 경로 그림</button><button type="button" id="vidProfile" data-en="📈 Elevation">📈 고도 그림</button><button type="button" id="vidSum" data-en="🧾 Summary">🧾 요약 그림</button></div>
-        <div class="sbtn"><button type="button" id="vidProfileMov" data-en="🎞 Elevation video">🎞 고도 영상</button><button type="button" id="vid3d" data-en="🛩 3D flight video">🛩 3D 비행 영상</button></div>
-        <p class="tip" data-en="Elevation video: a moving dot on a green background (remove it with chroma key). 3D flight video: flies over your record with distance, height and your photos; the map source line stays in the video. No satellite images.">고도 영상: 초록 바탕에 점이 움직임(크로마키로 지움). 3D 비행 영상: 내 기록 위를 날며 거리 · 높이 · 사진이 나옴, 지도 출처 줄은 영상에 늘 들어감(위성 사진은 쓰지 않음).</p>
-        <button type="button" class="big sms" id="vidPub" style="width:100%;font-family:inherit;cursor:pointer" data-en="🔗 Make a public record link">🔗 공개 기록 링크 만들기</button>
-        <div class="sbtn"><button type="button" id="vidClose" class="main" data-en="Close">닫기</button></div>
+        <!-- 2026-11-22 홍TV님 "3D 비행 영상을 맨 왼쪽으로, 나머지는 모두 삭제" - 🎬 영상용(그림 · 고도 영상 · 공개 링크 만들기)은 뺌. 예전에 만든 공개 링크가 있는 기록만 끄는 단추 -->
+        <button type="button" class="big sms" id="recViewPubOff" hidden style="width:100%;font-family:inherit;cursor:pointer" data-en="🔗 Turn off the public link">🔗 공개 기록 링크 끄기</button>
     </div>
 </div>
 

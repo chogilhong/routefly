@@ -2559,161 +2559,32 @@
             location.href = "trip.html?rec=" + encodeURIComponent(recKey(rec)) + (EN ? "&lang=en" : "");
         };
         $("recViewClose").onclick = function () { $("recView").style.display = "none"; };
-        $("recViewVideo").disabled = rc.lat.length < 2;
-        $("recViewVideo").onclick = function () { vidOpen(rec); };
+        $("recView3d").disabled = rc.lat.length < 2;
+        $("recView3d").onclick = function () { fly3d(rec); };
+        var pub = pubOf(rec);
+        $("recViewPubOff").hidden = !pub;
+        $("recViewPubOff").onclick = function () { pubOff(rec); };
     }
 
-    // ------------------------------------------------------------------ 🎬 영상용(2026-11-22 홍TV님 - 유튜버들이 앱 화면 · 코스를 영상에 많이 씀)
-    // 기록에서 유튜브 · 쇼츠에 겹칠 그림(투명 PNG) · 움직이는 고도 영상(초록 바탕) · 3D 비행 영상 · 공개 기록 링크. 모두 처음 · 끝 VID_TRIM_M 을 잘라(집 · 주차한 곳) 씀.
-    // 지도 그림을 쓰지 않는 그림 · 고도 영상에는 지도 출처가 필요 없고, 3D 비행 영상은 출처 줄을 영상에 늘 넣음(app.js videoRecord). 위성은 쓰지 않음.
-    var VID_TRIM_M = 300, VID_SECS = 12, vidRec = null;
-    function vidOpen(rec) {
-        vidRec = rec;
-        $("vidPub").textContent = pubOf(rec) ? T("🔗 공개 기록 링크 보내기 · 끄기", "🔗 Share · turn off public link") : T("🔗 공개 기록 링크 만들기", "🔗 Make a public record link");
-        $("vidSheet").style.display = "flex";
-    }
-    $("vidClose").addEventListener("click", function () { $("vidSheet").style.display = "none"; });
-    /** 영상용 기록 - 튐을 거르고 처음 · 끝을 자르고(체크했을 때), 남은 구간 때의 사진만. 너무 짧으면 null. */
+    // ------------------------------------------------------------------ 🛩 3D 비행 영상(2026-11-22 홍TV님 - 유튜버들이 앱 화면 · 코스를 영상에 많이 씀)
+    // 처음 · 끝 VID_TRIM_M 을 늘 잘라(집 · 주차한 곳) 씀. 영상에는 지도 출처 줄이 늘 들어감(app.js videoRecord), 위성은 쓰지 않음.
+    // 그림 · 고도 영상 · 공개 링크 만들기(🎬 영상용)는 뺌(2026-11-22 홍TV님 "나머지는 모두 삭제").
+    var VID_TRIM_M = 300;
+    /** 영상용 기록 - 튐을 거르고 처음 · 끝을 자르고, 남은 구간 때의 사진만. 너무 짧으면 null. */
     function vidCourse(rec) {
-        var tr = RF.cleanTrack(rec.track, rec.kind === "bike");
-        if ($("vidTrim").checked) tr = RF.trimEnds(tr, VID_TRIM_M);
+        var tr = RF.trimEnds(RF.cleanTrack(rec.track, rec.kind === "bike"), VID_TRIM_M);
         if (tr.length < 2) { hAlert(T("기록이 짧아(처음 · 끝 " + VID_TRIM_M + "m 를 빼면 남는 것이 없음) 만들 수 없습니다.", "The record is too short (nothing left after trimming " + VID_TRIM_M + " m at each end).")); return null; }
         var t0 = tr[0][2], t1 = tr[tr.length - 1][2];
-        var notes = (rec.notes || []).filter(function (n) { return n.lat != null && (!$("vidTrim").checked || n.t >= t0 && n.t <= t1); });
+        var notes = (rec.notes || []).filter(function (n) { return n.lat != null && n.t >= t0 && n.t <= t1; });
         var rc = RF.recordCourse({ name: rec.name, kind: rec.kind, track: tr, notes: notes });
         rc.notes = notes; rc.track = tr;
         return rc;
     }
-    function vidSize() { return $("vidShape").value === "wide" ? [1920, 1080] : [1080, 1920]; }
-    function vidCanvas(W, H) { var cv = document.createElement("canvas"); cv.width = W; cv.height = H; return cv; }
-    /** 글 - 영상 위에서 읽히게 흰 글 + 검은 그림자. */
-    function vidText(g, t, x, y, px, bold, align) {
-        g.save();
-        g.font = (bold ? "bold " : "") + px + "px sans-serif"; g.textAlign = align || "left"; g.textBaseline = "alphabetic";
-        g.shadowColor = "rgba(0,0,0,0.8)"; g.shadowBlur = Math.round(px / 4); g.fillStyle = "#fff";
-        g.fillText(t, x, y);
-        g.restore();
-    }
-    function vidBrand(g, W, H) { vidText(g, "routefly.kr", W - Math.round(W * 0.04), H - Math.round(H * 0.03), Math.round(Math.min(W, H) * 0.035), true, "right"); }
-    /** 🗺 지나온 선(투명 바탕) - 출발 초록 · 도착 빨강 · 사진 자리 흰 점. */
-    function vidRouteImage(rc, W, H) {
-        var cv = vidCanvas(W, H), g = cv.getContext("2d"), pad = Math.round(Math.min(W, H) * 0.12);
-        var lat = rc.lat.concat(rc.notes.map(function (n) { return n.lat; })), lon = rc.lon.concat(rc.notes.map(function (n) { return n.lon; }));
-        var all = RF.fitPath(lat, lon, W, H, pad), pts = all.slice(0, rc.lat.length), spots = all.slice(rc.lat.length), lw = Math.max(6, Math.round(Math.min(W, H) / 120));
-        g.lineJoin = "round"; g.lineCap = "round";
-        g.beginPath(); pts.forEach(function (q, i) { if (i) g.lineTo(q[0], q[1]); else g.moveTo(q[0], q[1]); });
-        g.strokeStyle = "rgba(0,0,0,0.5)"; g.lineWidth = lw * 2.4; g.stroke();
-        g.strokeStyle = "#38d9ea"; g.lineWidth = lw; g.stroke();
-        spots.forEach(function (q) { g.beginPath(); g.arc(q[0], q[1], lw * 1.3, 0, Math.PI * 2); g.fillStyle = "#fff"; g.fill(); g.lineWidth = lw * 0.5; g.strokeStyle = "rgba(0,0,0,0.6)"; g.stroke(); });
-        [[pts[0], "#2fb344"], [pts[pts.length - 1], "#ff5c5c"]].forEach(function (e) {
-            g.beginPath(); g.arc(e[0][0], e[0][1], lw * 1.8, 0, Math.PI * 2); g.fillStyle = e[1]; g.fill(); g.lineWidth = lw * 0.6; g.strokeStyle = "#fff"; g.stroke();
-        });
-        vidBrand(g, W, H);
-        return cv;
-    }
-    /** 📈 고도 그래프(아래 띠) - k(0 ~ 1)를 주면 거기까지 색칠 · 점 · 지금 거리 · 높이(고도 영상). 바탕 bg 가 없으면 투명. 높이 자료가 없으면 null. */
-    function vidProfile(rc, W, H, k, bg, cv) {
-        var e = rc.ele, have = e.filter(function (x) { return x != null; });
-        if (have.length < 2) return null;
-        cv = cv || vidCanvas(W, H);
-        var g = cv.getContext("2d"), lo = Math.min.apply(null, have), hi = Math.max.apply(null, have), span = Math.max(hi - lo, 30);
-        var x0 = Math.round(W * 0.06), x1 = Math.round(W * 0.94), y1 = Math.round(H * (W > H ? 0.9 : 0.86)), y0 = y1 - Math.round(H * (W > H ? 0.26 : 0.16));
-        var X = function (d) { return x0 + (x1 - x0) * d / (rc.total || 1); }, Y = function (v) { return y1 - (y1 - y0) * (v - lo) / span; };
-        g.clearRect(0, 0, W, H);
-        if (bg) { g.fillStyle = bg; g.fillRect(0, 0, W, H); }
-        var last = have[0], path = [];
-        for (var i = 0; i < e.length; i++) { if (e[i] != null) last = e[i]; path.push([X(rc.dist[i]), Y(last)]); }
-        function area(upto, fill) {
-            g.beginPath(); g.moveTo(x0, y1);
-            path.forEach(function (q, i) { if (rc.dist[i] <= upto) g.lineTo(q[0], q[1]); });
-            g.lineTo(X(Math.min(upto, rc.total)), y1); g.closePath(); g.fillStyle = fill; g.fill();
-        }
-        area(rc.total, "rgba(255,255,255,0.22)");
-        var d = k == null ? null : rc.total * k;
-        if (d != null) area(d, "rgba(56,217,234,0.55)");
-        g.beginPath(); path.forEach(function (q, i) { if (i) g.lineTo(q[0], q[1]); else g.moveTo(q[0], q[1]); });
-        g.lineJoin = "round"; g.strokeStyle = "rgba(0,0,0,0.45)"; g.lineWidth = 9; g.stroke(); g.strokeStyle = "#fff"; g.lineWidth = 4; g.stroke();
-        var px = Math.round(Math.min(W, H) * 0.032);
-        if (d != null) {
-            var p = RF.at(rc, d), cx = X(d), cy = Y(p.ele != null ? p.ele : lo);
-            g.beginPath(); g.arc(cx, cy, px * 0.45, 0, Math.PI * 2); g.fillStyle = "#ffb703"; g.fill(); g.lineWidth = 4; g.strokeStyle = "#fff"; g.stroke();
-            vidText(g, km(d) + " km" + (p.ele != null ? " · " + num(p.ele) + " m" : ""), x0, y0 - Math.round(px * 0.8), Math.round(px * 1.3), true);
-        } else {
-            vidText(g, T("최고 ", "Top ") + num(hi) + " m", x0, y0 - Math.round(px * 0.6), px, true);
-            vidText(g, km(rc.total) + " km", x1, y1 + Math.round(px * 1.3), px, true, "right");
-        }
-        vidBrand(g, W, H);
-        return cv;
-    }
-    /** 🧾 요약(왼쪽 위) - 산 이름 · 날짜 · 거리 · 시간 · 오른 높이 · 가장 높은 곳(기록 전체 값). */
-    function vidSummary(rec, W, H) {
-        var cv = vidCanvas(W, H), g = cv.getContext("2d"), px = Math.round(Math.min(W, H) * 0.045), x = Math.round(W * 0.06), y = Math.round(H * 0.08);
-        var rcAll = RF.recordCourse(rec), d = new Date(rec.start + 9 * 3600000), hiAll = rcAll.ele.some(function (v) { return v != null; }) ? RF.recordHighest(rcAll, cardPeaks.peaks, cardPeaks.elev) : null;
-        vidText(g, String(NM(rec.name) || ""), x, y + px, Math.round(px * 1.35), true);
-        vidText(g, d.getUTCFullYear() + "." + (d.getUTCMonth() + 1) + "." + d.getUTCDate(), x, y + px * 2.6, Math.round(px * 0.8));
-        [km(RF.recDist(rec)) + " km  ·  " + hhmmss(rec.end - rec.start),
-         (rec.up != null ? T("오른 높이 ", "Climb ") + num(rec.up) + " m" : "") + (hiAll != null ? (rec.up != null ? "  ·  " : "") + T("최고 ", "Top ") + num(hiAll) + " m" : "")]
-            .filter(Boolean).forEach(function (l, i) { vidText(g, l, x, y + px * (4 + i * 1.45), px, true); });
-        vidBrand(g, W, H);
-        return cv;
-    }
-    /** 영상용 그림(투명 PNG)을 이 폰에 저장. */
-    function vidSaveCanvas(cv, name) {
-        cv.toBlob(function (blob) {
-            if (!blob) { toast(T("그림을 만들지 못했습니다.", "Could not make the image."), 3000); return; }
-            saveMedia(blob, name, NM(vidRec.name) + " - routefly");
-        }, "image/png");
-    }
-    function vidName(rec, what, ext) { return "routefly-" + stamp(rec.start) + "-" + what + "-" + ($("vidShape").value === "wide" ? "16x9" : "9x16") + "." + ext; }
-    $("vidRoute").addEventListener("click", function () {
-        var rc = vidRec && vidCourse(vidRec), z = vidSize();
-        if (rc) vidSaveCanvas(vidRouteImage(rc, z[0], z[1]), vidName(vidRec, "route", "png"));
-    });
-    $("vidProfile").addEventListener("click", function () {
-        var rc = vidRec && vidCourse(vidRec), z = vidSize(), cv = rc && vidProfile(rc, z[0], z[1]);
-        if (rc && !cv) { hAlert(T("이 기록에는 높이 자료가 없습니다.", "This record has no elevation data.")); return; }
-        if (cv) vidSaveCanvas(cv, vidName(vidRec, "elevation", "png"));
-    });
-    $("vidSum").addEventListener("click", function () {
-        var z = vidSize();
-        if (vidRec) vidSaveCanvas(vidSummary(vidRec, z[0], z[1]), vidName(vidRec, "summary", "png"));
-    });
-    /** 캔버스를 durMs 동안 그리며 영상 파일로(MediaRecorder) - mp4 가 되면 mp4, 아니면 webm. */
-    function recordCanvas(cv, durMs, draw) {
-        var type = ["video/mp4;codecs=avc1.42E01E", "video/mp4", "video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"].filter(function (t) {
-            return window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t);
-        })[0];
-        if (!type || !cv.captureStream) return Promise.reject(new Error(T("이 브라우저는 영상 파일을 만들 수 없습니다. 크롬에서 열어 주세요.", "This browser can't make video files. Please use Chrome.")));
-        return new Promise(function (resolve) {
-            var mr = new MediaRecorder(cv.captureStream(30), { mimeType: type, videoBitsPerSecond: 6000000 }), chunks = [], t0 = performance.now();
-            mr.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
-            mr.onstop = function () { resolve(new Blob(chunks, { type: type.split(";")[0] })); };
-            mr.start(1000);
-            (function frame() {
-                var k = Math.min(1, (performance.now() - t0) / durMs);
-                draw(k);
-                if (k < 1) requestAnimationFrame(frame); else setTimeout(function () { mr.stop(); }, 400);
-            })();
-        });
-    }
-    $("vidProfileMov").addEventListener("click", function () {
-        var rc = vidRec && vidCourse(vidRec), z = vidSize(), btn = this;
-        if (!rc) return;
-        var cv = vidProfile(rc, z[0], z[1], 0, VID_GREEN);
-        if (!cv) { hAlert(T("이 기록에는 높이 자료가 없습니다.", "This record has no elevation data.")); return; }
-        btn.disabled = true;
-        toast(T("🎞 고도 영상을 만드는 중(" + VID_SECS + "초) - 화면을 켜 둔 채 기다려 주세요.", "🎞 Making the elevation video (" + VID_SECS + " s) - keep the screen on."), VID_SECS * 1000);
-        recordCanvas(cv, VID_SECS * 1000, function (k) { vidProfile(rc, z[0], z[1], k, VID_GREEN, cv); }).then(function (blob) {
-            var ext = blob.type === "video/mp4" ? "mp4" : "webm";
-            return hAlert(T("영상이 준비됐습니다. 초록 바탕은 편집 앱의 크로마키로 지우세요.", "The video is ready. Remove the green background with your editor's chroma key."), { ok: T("💾 저장", "💾 Save") })
-                .then(function () { saveMedia(blob, vidName(vidRec, "elevation", ext), NM(vidRec.name) + " - routefly"); });
-        }).catch(function (e) { hAlert(e && e.message || String(e)); }).then(function () { btn.disabled = false; });
-    });
-    var VID_GREEN = "#00b140";   // 크로마키 초록(방송용 표준에 가까운 값 - 편집 앱이 지움)
     /** 🛩 3D 비행 영상 - 이 기록을 이 기기 GPX 로 넣고 3D 화면(index.html ?video=1&rec=1)에서 영상으로 만든 뒤 돌아옴(app.js videoRecord → hike.html#vid). */
-    $("vid3d").addEventListener("click", function () {
-        var rec = vidRec, rc = rec && vidCourse(rec);
+    function fly3d(rec) {
+        var rc = rec && vidCourse(rec);
         if (!rc) return;
+        if (hike.running) { toast(T("산행 중에는 3D 영상을 만들지 않습니다. 산행을 마친 뒤 해 주세요.", "Finish the hike first to make the 3D video."), 4000); return; }
         try {
             var text = toGpx({ name: rec.name, kind: rec.kind, start: rec.start, track: rc.track, notes: [] }), id = RF.gpxId(text);
             RF.storeGpx(id, RF.gpxToApi(text, NM(rec.name) + ".gpx"));
@@ -2724,54 +2595,26 @@
                 "The 3D screen flies for " + secs + " s while recording, then comes back here. Keep the screen on. The video has the shape of your screen (hold the phone upright for a vertical video)."), { ok: T("시작", "Start") })
                 .then(function () { location.href = "index.html?video=1&rec=1&secs=" + secs + (EN ? "&lang=en" : "") + "#c=" + encodeURIComponent(id); });
         } catch (e) { hAlert(T("영상을 준비하지 못했습니다: ", "Could not prepare the video: ") + (e && e.message || e)); }
-    });
+    }
     /**
-     * 🔗 공개 기록 링크(2026-11-22 홍TV님 - 영상 설명란에 넣을 링크): 본인이 누를 때만, 처음 · 끝 VID_TRIM_M 을 늘 빼고(집 · 주차한 곳) 길 모양(위치 · 높이, 시각 없음) ·
-     * 이름 · 날짜 · 거리 · 걸린 시간 · 오른 높이만 서버(api/record-share)에 둠. 사진 · 메모는 올리지 않음. 지우는 열쇠는 이 기기(rf-pub)에만 - "공개 끄기" 로 바로 지움, 1년 뒤 저절로.
+     * 🔗 예전에 만든 공개 기록 링크 끄기(만들기는 2026-11-22 뺌) - 지우는 열쇠는 이 기기(rf-pub)에만, 서버(api/record-share/delete)에서 바로 지움. 그대로 두면 1년 뒤 저절로.
      */
-    var PUB_KEY = "rf-pub", PUB_MAX_PTS = 4000;
+    var PUB_KEY = "rf-pub";
     function pubAll() { try { return JSON.parse(localStorage.getItem(PUB_KEY) || "{}") || {}; } catch (e) { return {}; } }
     function pubOf(rec) { return pubAll()[recKey(rec)] || null; }
     function pubSave(rec, v) { var all = pubAll(); if (v) all[recKey(rec)] = v; else delete all[recKey(rec)]; try { localStorage.setItem(PUB_KEY, JSON.stringify(all)); } catch (e) { /* 이번만 */ } }
-    function pubUrl(id) { return new URL("record.html?id=" + encodeURIComponent(id), location.href).href; }
-    function pubSend(rec, id) {
-        var url = pubUrl(id), text = String(NM(rec.name) || "") + " - routefly";
-        if (SHARE) { Promise.resolve(SHARE.share({ text: text, url: url, dialogTitle: T("보내기", "Send") })).catch(function () { /* 닫음 */ }); return; }
-        if (navigator.share) { navigator.share({ text: text, url: url }).catch(function () { /* 닫음 */ }); return; }
-        hAskText(T("공개 기록 링크 - 길게 눌러 복사하세요.", "Public record link - long-press to copy."), url, { ok: T("닫기", "Close") });
-    }
-    $("vidPub").addEventListener("click", function () {
-        var rec = vidRec, cur = rec && pubOf(rec);
-        if (!rec) return;
-        if (cur) {
-            hAsk(T("공개 링크가 있습니다.\n" + pubUrl(cur.id), "This record has a public link.\n" + pubUrl(cur.id)), { ok: T("링크 보내기", "Send link"), cancel: T("공개 끄기", "Turn off") }).then(function (send) {
-                if (send) { pubSend(rec, cur.id); return; }
-                return hAsk(T("공개 링크를 끌까요? 서버에서 바로 지워지고, 보낸 링크는 열리지 않습니다.", "Turn off the public link? It is deleted from the server right away and the link stops working."), { ok: T("공개 끄기", "Turn off"), danger: true }).then(function (ok) {
-                    if (!ok) return;
-                    return pubPost("api/record-share/delete", { id: cur.id, key: cur.key }).then(function () {
-                        pubSave(rec, null); vidOpen(rec);
-                        toast(T("공개 링크를 껐습니다.", "Public link turned off."), 3000);
-                    });
-                });
-            }).catch(function (e) { hAlert(e && e.message || String(e)); });
-            return;
-        }
-        var tr = RF.trimEnds(RF.cleanTrack(rec.track, rec.kind === "bike"), VID_TRIM_M);
-        if (tr.length < 2) { hAlert(T("기록이 짧아(처음 · 끝 " + VID_TRIM_M + "m 를 빼면 남는 것이 없음) 공개할 수 없습니다.", "The record is too short to share.")); return; }
-        for (var tol = 5; tr.length > PUB_MAX_PTS && tol < 200; tol *= 2) tr = RF.simplifyTrack(tr, tol);
-        hAsk(T("공개 기록 링크를 만들까요?\n링크를 아는 누구나 봅니다: 길 모양(처음 · 끝 " + VID_TRIM_M + "m 는 빼고, 시각 없음) · 이름 · 날짜 · 거리 · 걸린 시간 · 오른 높이. 사진 · 메모는 올리지 않습니다.\n언제든 \"공개 끄기\" 로 지우고, 1년 뒤 저절로 지워집니다.",
-            "Make a public record link?\nAnyone with the link sees: the route shape (without the first · last " + VID_TRIM_M + " m, no times), name, date, distance, time and climb. Photos and notes are not uploaded.\nTurn it off any time; it is deleted after a year."), { ok: T("만들기", "Make") }).then(function (ok) {
+    function pubOff(rec) {
+        var cur = pubOf(rec);
+        if (!cur) return;
+        hAsk(T("공개 링크를 끌까요? 서버에서 바로 지워지고, 보낸 링크는 열리지 않습니다.", "Turn off the public link? It is deleted from the server right away and the link stops working."), { ok: T("공개 끄기", "Turn off"), danger: true }).then(function (ok) {
             if (!ok) return;
-            var d = new Date(rec.start + 9 * 3600000);
-            return pubPost("api/record-share", { name: String(NM(rec.name) || ""), kind: rec.kind || "hike", date: d.toISOString().slice(0, 10), dist_m: Math.round(RF.recDist(rec)),
-                time_ms: rec.end - rec.start, up_m: rec.up != null ? Math.round(rec.up) : null,
-                track: tr.map(function (p) { return [Math.round(p[0] * 1e6) / 1e6, Math.round(p[1] * 1e6) / 1e6, p[3] == null ? null : Math.round(p[3])]; }) }).then(function (j) {
-                pubSave(rec, { id: j.id, key: j.key });
-                vidOpen(rec);
-                pubSend(rec, j.id);
+            return pubPost("api/record-share/delete", { id: cur.id, key: cur.key }).then(function () {
+                pubSave(rec, null);
+                $("recViewPubOff").hidden = true;
+                toast(T("공개 링크를 껐습니다.", "Public link turned off."), 3000);
             });
-        }).catch(function (e) { hAlert(T("만들지 못했습니다: ", "Could not make it: ") + (e && e.message || e)); });
-    });
+        }).catch(function (e) { hAlert(e && e.message || String(e)); });
+    }
     function pubPost(url, body) {
         return fetch(url, { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify(body) })
             .then(function (r) { return r.json().catch(function () { return { success: false, message: "HTTP " + r.status }; }); })

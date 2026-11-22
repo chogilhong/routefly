@@ -53,22 +53,22 @@ public class VideoKitTest {
     public void 영상용_그림과_영상() throws Exception {
         String js = read("src/main/webapp/js/hike.js"), app = read("src/main/webapp/js/app.js"), html = read("src/main/webapp/hike.html");
         String plug = read("app/android/app/src/main/java/kr/routefly/app/RfGalleryPlugin.java");
-        assertTrue("영상용 그림 · 영상은 공유 창 대신 이 폰에 저장 - 앱은 갤러리(그림 Pictures · 영상 Movies /routefly), 브라우저는 내려받기, 옛 앱은 공유 창(2026-11-22 홍TV님 \"전부 카톡 연결\")",
+        assertTrue("기록 창은 [🛩 3D 비행 영상] [📂 GPX 열기] [닫기], 🎬 영상용(그림 · 고도 영상 · 공개 링크 만들기)은 뺌(2026-11-22 홍TV님 \"나머지는 모두 삭제\")",
+            html.contains("<button type=\"button\" id=\"recView3d\" data-en=\"🛩 3D flight video\">🛩 3D 비행 영상</button>\n            <button type=\"button\" id=\"recViewMap\" data-en=\"📂 Open GPX\">📂 GPX 열기</button>")
+            && !html.contains("vidSheet") && !html.contains("recViewVideo") && !js.contains("vidRouteImage") && !js.contains("recordCanvas") && !js.contains("pubSend"));
+        assertTrue("예전 공개 링크가 있는 기록만 끄는 단추", js.contains("$(\"recViewPubOff\").hidden = !pub;") && js.contains("pubPost(\"api/record-share/delete\", { id: cur.id, key: cur.key })"));
+        assertTrue("3D 영상은 처음 · 끝 300m 늘 빼고, 산행 중에는 안 넘어감", js.contains("var tr = RF.trimEnds(RF.cleanTrack(rec.track, rec.kind === \"bike\"), VID_TRIM_M);") && js.contains("var VID_TRIM_M = 300;")
+            && js.contains("if (hike.running) { toast(T(\"산행 중에는 3D 영상을 만들지 않습니다."));
+        assertTrue("만든 3D 영상은 이 폰에 저장 - 앱은 갤러리(영상 Movies/routefly), 브라우저는 내려받기, 옛 앱은 공유 창",
             js.contains("return GALLERY.saveMedia({ data: b64, name: name });") && js.contains("}).catch(function () { shareBlob(blob, name, text); });")
-            && js.contains("if (!NATIVE) { down(); return; }") && js.contains("vidSaveCanvas(vidRouteImage(rc, z[0], z[1]), vidName(vidRec, \"route\", \"png\"));")
-            && js.contains("saveMedia(blob, vidName(vidRec, \"elevation\", ext)") && js.contains("saveMedia(v.blob, v.name,")
+            && js.contains("if (!NATIVE) { down(); return; }") && js.contains("saveMedia(v.blob, v.name,")
             && plug.contains("public void saveMedia(PluginCall call)") && plug.contains("(video ? Environment.DIRECTORY_MOVIES : Environment.DIRECTORY_PICTURES) + \"/routefly\""));
-        assertTrue("기록 창 단추는 📂 GPX 열기(trip.html)", read("src/main/webapp/hike.html").contains("<button type=\"button\" id=\"recViewMap\" data-en=\"📂 Open GPX\">📂 GPX 열기</button>"));
-        for (String id : new String[] {"vidRoute", "vidProfile", "vidSum", "vidProfileMov", "vid3d", "vidPub", "vidTrim", "vidShape"}) assertTrue(id, html.contains("id=\"" + id + "\""));
-        assertTrue("처음 · 끝 300m 빼기가 기본", html.contains("<input type=\"checkbox\" id=\"vidTrim\" checked>") && js.contains("var VID_TRIM_M = 300"));
-        assertTrue("고도 영상은 초록 바탕", js.contains("var cv = vidProfile(rc, z[0], z[1], 0, VID_GREEN);"));
         assertTrue("3D 화면으로 - 위성 없이(sat 없음)", js.contains("location.href = \"index.html?video=1&rec=1&secs=\" + secs") && !js.contains("video=1&rec=1&sat=1"));
         assertTrue("3D 영상은 출처 줄을 늘 영상에", app.contains("if (VIDEO.rec) videoRecord(c, credit.textContent);") && app.contains("lines.forEach(function (l, i) { g.fillText(l, 20,"));
         assertTrue("지도 그림을 옮겨 그리려면 영상 만들 때만 preserveDrawingBuffer",
                 app.contains("canvasContextAttributes: VIDEO && VIDEO.rec ? { preserveDrawingBuffer: true } : undefined"));
-        assertTrue("만든 영상을 따라가기로 넘겨 보내기", app.contains("location.href = \"hike.html#vid\";") && js.contains("if (location.hash === \"#vid\") {"));
-        assertTrue("기록 창(31) 위로 - 뒤에 열려 안 보였음(홍TV님)", html.contains("#recView { z-index:31; }") && html.contains("#vidSheet { z-index:32; }"));
-        assertTrue("그림 · 영상 같은 보내기", js.contains("function shareBlob(blob, name, text, url) {"));
+        assertTrue("만든 영상을 따라가기로 넘겨 저장", app.contains("location.href = \"hike.html#vid\";") && js.contains("if (location.hash === \"#vid\") {"));
+        assertTrue("기록 창(31)", html.contains("#recView { z-index:31; }"));
     }
 
     @Test

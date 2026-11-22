@@ -2519,27 +2519,6 @@
      */
     var JOIN_GAP_M = 200;
     /**
-     * 순수 함수 - 점 줄이기(더글러스-퓨커, tolM 미터 안에서 모양이 같게 - 점검 11차 E6). 처음 · 끝은 늘 남기고 남긴 점의 시각 · 높이는 그대로.
-     * 올리기 전 큰 GPX(점 몇 만 개)를 가볍게. track: [[위도, 경도, 시각, 높이]…].
-     */
-    function simplifyTrack(track, tolM) {
-        var t = track || [], n = t.length;
-        if (n < 3) return t.slice();
-        var lat0 = t[0][0] * Math.PI / 180, kx = 111320 * Math.cos(lat0), ky = 110540;
-        var xy = t.map(function (p) { return [p[1] * kx, p[0] * ky]; }), keep = new Array(n), stack = [[0, n - 1]];
-        keep[0] = keep[n - 1] = true;
-        while (stack.length) {
-            var se = stack.pop(), a = se[0], b = se[1], ax = xy[a][0], ay = xy[a][1], dx = xy[b][0] - ax, dy = xy[b][1] - ay, L = dx * dx + dy * dy, far = -1, fd = tolM;
-            for (var i = a + 1; i < b; i++) {
-                var px = xy[i][0] - ax, py = xy[i][1] - ay, u = L ? Math.max(0, Math.min(1, (px * dx + py * dy) / L)) : 0, d = Math.hypot(px - u * dx, py - u * dy);
-                if (d > fd) { fd = d; far = i; }
-            }
-            if (far > 0) { keep[far] = true; stack.push([a, far], [far, b]); }
-        }
-        return t.filter(function (p, i) { return keep[i]; });
-    }
-
-    /**
      * 순수 함수 - 받은 GPX 가 이미 있는 코스인지(2026-11-01 홍TV님 "없는 코스면 점검해서 올림"): track([위도, 경도, …] 점들) 가운데
      * routefly 코스 선(/api/trails: [{coords:[[경도, 위도]…]}]) 어느 마디에서 m(기본 30m) 안에 있는 점의 몫(0~1). 점이 없으면 0.
      * 마디는 0.002° 칸에 나눠 두고 그 점 칸과 둘레 칸의 마디만 견줌.
@@ -4406,7 +4385,6 @@
         parkRules: parkRules,
         rulesText: rulesText,
         gateAlerts: gateAlerts,
-        simplifyTrack: simplifyTrack,
         climbBetween: climbBetween,
         kcal: kcal,
         steps: steps,
