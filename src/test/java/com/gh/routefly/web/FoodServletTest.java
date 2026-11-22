@@ -54,6 +54,21 @@ public class FoodServletTest {
         assertEquals("같은 가게는 한 번 · 나온 프로그램 모음", "[\"백반기행\",\"생생정보\"]", second.getAsJsonArray("shows").toString());
         assertEquals("거리는 우리가 셈", Math.round(MountainServlet.distM(37.48, 126.555306, 37.48, 126.60)), second.get("dist_m").getAsLong());
         assertFalse("group 은 화면에 안 보냄", second.has("group"));
+        // 실제 답(PC 가 받은 우리 api/food, 2026-11-22): 30km 안 · 가까운 순 · 프로그램 적힘 · 20곳까지 · 펜션 · 카페 없음
+        for (String m : new String[] {"deokgibong", "gayasan", "seoraksan"}) {
+            JsonObject real = com.google.gson.JsonParser.parseString(read("src/test/resources/food/tv30-" + m + ".json").replace("\uFEFF", "")).getAsJsonObject();
+            JsonArray food = real.getAsJsonArray("food");
+            assertTrue(m, food.size() > 0 && food.size() <= FoodServlet.ROWS && real.get("radius_km").getAsInt() == 30);
+            long last = -1;
+            for (int i = 0; i < food.size(); i++) {
+                JsonObject f = food.get(i).getAsJsonObject();
+                long d = f.get("dist_m").getAsLong();
+                assertTrue(m + " 가까운 순 · 30km 안", d >= last && d <= FoodServlet.RADIUS_M);
+                last = d;
+                assertTrue(m + " 프로그램 적힘", f.getAsJsonArray("shows").size() > 0 && FoodServlet.SHOWS.contains(f.getAsJsonArray("shows").get(0).getAsString()));
+                assertFalse(m + " 펜션 · 카페 없음", f.get("kind").getAsString().matches(".*(펜션|카페).*") || f.has("group"));
+            }
+        }
     }
 
     /** 산행 끝 창: 🍜 · 🏨 · ☕ 만, 📺 TV 맛집은 있으면 🍜 옆에 단추 → 목록(쿠팡 · 다음 산 · 근처 맛집 목록은 뺀 그대로). */
