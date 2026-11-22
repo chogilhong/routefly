@@ -2834,6 +2834,7 @@
         noteFile = null;
         $("noteText").value = "";
         $("notePreview").style.display = "none";
+        noteHaveShow();
         $("noteWhere").textContent = T("지금 자리 · ", "Here · ") + clock(now()) + (c ? " · " + km(hike.d) + T("km 지점", " km along") : "") + (f.acc != null ? T(" · 오차 ±", " · ±") + Math.round(f.acc) + "m" : "");
         $("noteSheet").style.display = "flex";
     });
@@ -2851,7 +2852,36 @@
         pv.src = URL.createObjectURL(f);
         pv.style.display = "block";
     }
-    $("noteCancel").addEventListener("click", function () { $("noteSheet").style.display = "none"; });
+    $("noteCancel").addEventListener("click", function () { $("noteSheet").style.display = "none"; noteHaveClear(); });
+    /**
+     * 이번 산행에 앞서 남긴 사진 · 메모를 창 안에 작은 그림 줄로(2026-11-22 홍TV님 "남기기를 하고 다시 촬영을 했어 … 기존에 남긴 사진도 같이 보여줘").
+     * 새것이 앞, 누르면 크게(사진) · 메모 글. 창을 닫을 때 그림 주소를 놓음.
+     */
+    var noteHaveUrls = [];
+    function noteHaveClear() { noteHaveUrls.forEach(function (u) { URL.revokeObjectURL(u); }); noteHaveUrls = []; $("noteHave").innerHTML = ""; }
+    function noteHaveShow() {
+        noteHaveClear();
+        var list = (hike.notes || []).slice().reverse(), box = $("noteHave");
+        $("noteHaveBox").hidden = !list.length;
+        if (!list.length) return;
+        $("noteHaveTitle").textContent = T("이번 산행에 남긴 것 " + list.length + "개 - 누르면 크게", "Added on this hike: " + list.length + " - tap to enlarge");
+        list.forEach(function (n) {
+            var b = document.createElement("button");
+            b.type = "button";
+            b.title = clock(n.t) + (n.text ? " · " + n.text : "");
+            b.textContent = n.photo ? "📷" : "📝 " + String(n.text || "").slice(0, 12);
+            if (n.photo) photoGet(n.photo).then(function (blob) {
+                if (!blob) return;
+                var u = URL.createObjectURL(blob), im = new Image();
+                noteHaveUrls.push(u);
+                im.src = u; im.alt = b.title;
+                b.textContent = ""; b.appendChild(im);
+                b.onclick = function () { photoBig(u, b.title); };
+            }).catch(function () { /* 📷 그대로 */ });
+            else b.onclick = function () { hAlert(b.title); };
+            box.appendChild(b);
+        });
+    }
     $("noteSave").addEventListener("click", function () {
         var f = hike.fix, text = $("noteText").value.trim();
         // 알림 창으로(2026-11-01 홍TV님 "사진 없이 남기기를 누르면 반응이 없어" - 안내 글이 이 창 아래에 떠서 안 보였음)
@@ -2879,6 +2909,7 @@
             if (!hike.sim) try { localStorage.setItem(saveKey() + "-notes", JSON.stringify(hike.notes)); } catch (e) { /* 공간 부족 - 이번 산행 동안은 화면에 남음 */ }
             drawNoteMarkers();
             $("noteSheet").style.display = "none";
+            noteHaveClear();
             toast(EN ? (note.photo ? "📷 Photo" : "📝 Note") + " saved (" + hike.notes.length + ")." : (note.photo ? "📷 사진" : "📝 메모") + "을 남겼습니다(" + hike.notes.length + "개).", 2500);
         }).catch(function (e) {
             toast(T("남기지 못했습니다: ", "Could not save: ") + (e && e.message || e), 5000);

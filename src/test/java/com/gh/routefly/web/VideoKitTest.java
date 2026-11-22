@@ -46,6 +46,8 @@ public class VideoKitTest {
         assertTrue("찍기 · 갤러리 고르기 둘(capture 가 있으면 카메라로만 감 - 홍TV님 폰)", html.contains("<input type=\"file\" id=\"notePick\" accept=\"image/*\" hidden>")
                 && html.contains("id=\"notePickBtn\"") && js.contains("if (!noteFromGallery) toGallery(noteFile, blob, note.t);"));
         assertTrue("주머니 모드 단추는 📴(테마 🌙 와 다르게 - 2026-11-22 홍TV님)", html.contains("aria-label=\"주머니 모드\"") && html.contains("은 그대로\">📴</button>"));
+        assertTrue("사진 · 메모 창에 이번 산행에 앞서 남긴 것(홍TV님)", html.contains("<div id=\"noteHaveBox\" hidden>") && js.contains("        noteHaveShow();\n")
+                && js.contains("var list = (hike.notes || []).slice().reverse()") && js.contains("b.onclick = function () { photoBig(u, b.title); };"));
         assertTrue("표시를 지우면 그림 주소도 놓음", js.contains("function dropMarks(list) {") && js.contains("dropMarks(recMarks); recMarks = [];"));
     }
 

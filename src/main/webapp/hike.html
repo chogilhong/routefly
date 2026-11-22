@@ -322,6 +322,10 @@ html.rfwait body { visibility:hidden; }   /* 앱을 처음 열 때 서버에 닿
 /* 사진 작은 그림 표시 · 크게 보기 · 여러 장 넣기(2026-11-22 홍TV님) */
 .noteMark.thumb { width:42px; height:42px; border:2px solid #fff; border-radius:8px; overflow:hidden; background:#1c232c; }
 .noteMark.thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+#noteHave { display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; }
+#noteHave > * { flex:none; width:58px; height:58px; border-radius:8px; border:1px solid var(--ln); background:rgba(255,255,255,0.06); overflow:hidden; cursor:pointer;
+                display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--dim); text-align:center; line-height:1.25; padding:0; font-family:inherit; }
+#noteHave img { width:100%; height:100%; object-fit:cover; display:block; }
 #photoBig { position:fixed; inset:0; z-index:60; display:none; flex-direction:column; align-items:center; justify-content:center; gap:8px; background:rgba(0,0,0,0.92); cursor:zoom-out; }
 #photoBig img { max-width:96vw; max-height:84dvh; object-fit:contain; border-radius:6px; }
 #photoBig p { margin:0; color:#eef2f6; font-size:14px; max-width:92vw; text-align:center; white-space:pre-line; }
@@ -734,6 +738,8 @@ html.picking #pick { display:flex; }
         <!-- 앱만(RfGallery - 2026-11-01): 찍은 사진을 폰 갤러리 routefly 앨범에도 -->
         <label id="galleryRow" hidden><input type="checkbox" id="galleryChk"> <span data-en="Also save photos to the gallery (routefly album)">사진을 갤러리(routefly 앨범)에도 저장</span></label>
         <img id="notePreview" data-en-alt="Selected photo" alt="고른 사진">
+        <!-- 2026-11-22 홍TV님 "기존에 남긴 사진도 같이 보여줘" - 이번 산행에 앞서 남긴 사진 · 메모(누르면 크게) -->
+        <div id="noteHaveBox" hidden><p class="tip" id="noteHaveTitle"></p><div id="noteHave"></div></div>
         <p class="tip" data-en="Photos and notes stay on this phone (My records). Notes become waypoints when you save GPX.">사진 · 메모는 이 핸드폰에만 남습니다(내 기록). GPX 로 저장하면 메모가 지점으로 들어갑니다.</p>
         <div class="sbtn">
             <button type="button" id="noteCancel" data-en="Cancel">취소</button>
