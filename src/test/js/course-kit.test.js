@@ -307,7 +307,7 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
     (function () {   // 기록 보기 다듬기(2026-11-22 홍TV님 1 ~ 3)
         var vs = RF.vectorStyle({ basemapUrl: "https://x/k.pmtiles", demUrl: "https://d/{z}/{x}/{y}.png" }, "https://x/f/");
         var ids = vs.layers.map(function (l) { return l.id; });
-        eq("봉우리 - 지나간 봉우리 층은 늘 보이는 표시(rf-peak · rf-hut) 바로 앞, 처음에는 둘 다 빈 목록", [ids[ids.indexOf("rf-peak") - 1], JSON.stringify(vs.layers[ids.indexOf("peak-on")].filter), JSON.stringify(vs.layers[ids.indexOf("peak")].filter)],
+        eq("봉우리 - 지나간 봉우리 층은 늘 보이는 표시(rf-hut · rf-peak) 바로 앞, 처음에는 둘 다 빈 목록", [ids[ids.indexOf("rf-hut") - 1], JSON.stringify(vs.layers[ids.indexOf("peak-on")].filter), JSON.stringify(vs.layers[ids.indexOf("peak")].filter)],
             ["peak-on", JSON.stringify(RF.peakOnFilter([], true)), JSON.stringify(RF.peakOnFilter([], false))]);
         eq("봉우리 - 거름 모양", RF.peakOnFilter(["천왕봉|1915"], true), ["in", ["concat", ["to-string", ["get", "name"]], "|", ["to-string", ["get", "ele"]]], ["literal", ["천왕봉|1915"]]]);
         eq("봉우리 - 아닌 쪽은 ! 로 감쌈", RF.peakOnFilter(["a|1"], false)[0], "!");
@@ -329,7 +329,18 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
                 ["all", ["==", ["get", "class"], "attraction"], ["==", ["get", "subclass"], "viewpoint"]], "rf-view", ["==", ["get", "class"], "drinking_water"], "rf-water"]), true]);
         eq("대피소 · 절 등 - 아이콘이 없는 것(교회 · 식당 등)은 안 그림", [icon[icon.length - 1], JSON.stringify(poi.filter)], ["", JSON.stringify(["!=", icon, ""])]);
         eq("표시 숨기기 - 숨긴 아이콘만 거름에 더함", [RF.poiShowFilter("I", []), RF.poiShowFilter("I", ["rf-temple"])], [["!=", "I", ""], ["all", ["!=", "I", ""], ["!", ["in", "I", ["literal", ["rf-temple"]]]]]]);
-        eq("늘 보이는 표시 - 맨 뒤 두 층(글자 자리를 먼저), 멀리서도(대피소 8 · 봉우리 7)", [ids.slice(-2), vs.layers[ids.indexOf("rf-peak")].minzoom, vs.layers[ids.indexOf("rf-hut")].minzoom, vs.sources.marks.type], [["rf-peak", "rf-hut"], 7, 8, "geojson"]);
+        eq("늘 보이는 표시 - 맨 뒤 두 층(글자 자리를 먼저), 멀리서도(대피소 8 · 봉우리 7)", [ids.slice(-2), vs.layers[ids.indexOf("rf-peak")].minzoom, vs.layers[ids.indexOf("rf-hut")].minzoom, vs.sources.marks.type], [["rf-hut", "rf-peak"], 7, 8, "geojson"]);
+        (function () {   // 구간 색(2026-11-23 홍TV님 "안내도처럼")
+            var lat = [], lon = [];
+            for (var i = 0; i <= 100; i++) { lat.push(35.30); lon.push(127.70 + i * 0.0001); }   // 동쪽으로 약 9m 씩 100칸(약 910m)
+            var c = RF.recordCourse({ name: "t", track: lat.map(function (a, k) { return [a, lon[k], k * 10000, 1000]; }) });
+            var stopAt = function (k, offLat) { return { lat: 35.30 + (offLat || 0), lon: 127.70 + k * 0.0001 }; };
+            var s1 = RF.trackSegments(c, [stopAt(40), stopAt(70)], 200, 150);
+            eq("구간 색 - 쉼터 두 곳에서 끊어 세 구간 · 색이 다르고 끝점을 함께 씀", [s1.features.length, s1.features.map(function (f) { return f.properties.color; }), s1.features[0].geometry.coordinates.slice(-1)[0][0] === s1.features[1].geometry.coordinates[0][0]],
+                [3, RF.SEG_COLORS.slice(0, 3), true]);
+            eq("구간 색 - 선에서 먼 곳(약 330m) · 서로 가까운 곳(150m 안) · 끝 가까운 곳은 안 끊음", [RF.trackSegments(c, [stopAt(40, 0.003)], 200, 150).features.length,
+                RF.trackSegments(c, [stopAt(40), stopAt(45)], 200, 150).features.length, RF.trackSegments(c, [stopAt(2), stopAt(99)], 200, 150).features.length, RF.trackSegments(c, [], 200, 150).features.length], [1, 2, 1, 1]);
+        })();
         var fm = RF.famousMarks([{ id: "지리산", summit: "천왕봉", lat: 35.33, lon: 127.73, height: 1950 }, { id: "없는산", name: "없는산", lat: 36, lon: 128 }, { id: "x" }],
             { "지리산": 1915 }, [{ name: "장터목대피소", lat: 35.3325, lon: 127.71 }, { name: "자리없음" }]);
         eq("늘 보이는 표시 - 공식 높이만(GPS height 안 씀), 높이 없으면 이름만, 자리 없는 것 뺌", fm.features.map(function (f) { return [f.properties.kind, f.properties.label, f.geometry.coordinates]; }),

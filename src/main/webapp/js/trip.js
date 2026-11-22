@@ -17,7 +17,8 @@
     var map = null, cfgP = null, marks = [], cards = [], urls = [], items = [], pick = -1, prof = null, rc = null;
     var vector = false, peakKeys = [], PEAK_NEAR_M = 150;
     // 공단 대피소 · 100대 명산 정상(늘 보임, RF.famousMarks)과 겹치는 OSM 것(300m 안)은 숨김 - 두 번 그리지 않게
-    var fam = null, famGj = null, famSet = false, dropPeaks = [], dropHuts = [], SAME_M = 300;   // 우리 지도일 때 기록이 지나간 봉우리(150m 안)
+    var fam = null, famGj = null, famSet = false, dropPeaks = [], dropHuts = [], SAME_M = 300;
+    var SEG_NEAR_M = 200, SEG_GAP_M = 300, PICK_NEAR_M = 300, popup = null;   // 구간 끊는 곳(선에서 200m 안 · 300m 넘게 떨어진 것만) · 누른 곳 찾기   // 우리 지도일 때 기록이 지나간 봉우리(150m 안)
     // 표시별 보이기 · 숨기기(2026-11-22 홍TV님 "마커 별로 숨기고 보이고") - 이 화면 동안만(저장하지 않음)
     var KINDS = [["photo", "📷", "사진", "Photos"], ["memo", "📝", "메모", "Notes"], ["rf-hut", "🏠", "대피소 · 산장", "Shelters · huts"],
         ["rf-temple", "卍", "절", "Temples"], ["rf-view", "👁", "전망대", "Viewpoints"], ["rf-water", "💧", "약수터", "Drinking water"]];
@@ -37,6 +38,7 @@
         marks.forEach(function (m) { m.remove(); });
         urls.forEach(function (u) { URL.revokeObjectURL(u); });
         marks = []; cards = []; urls = []; items = []; pick = -1;
+        if (popup) { popup.remove(); popup = null; }
         $("side").innerHTML = "";
     }
 
@@ -88,13 +90,13 @@
         cfgP.then(function () {
             var line = { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: rc.lon.map(function (x, k) { return [x, rc.lat[k]]; }) } };
             var draw = function () {
-                if (map.getSource("trk")) map.getSource("trk").setData(line);
+                if (map.getSource("trk")) map.getSource("trk").setData(segData());
                 else {
-                    map.addSource("trk", { type: "geojson", data: line });
+                    map.addSource("trk", { type: "geojson", data: segData() });
                     // 우리 지도는 글자(봉우리 · 마을 이름) 층 아래에 그어 선이 이름을 덮지 않게(2026-11-22 홍TV님 - 세석 · 촛대봉 이름이 선 밑에 깔렸음). V-World 그림 바탕에는 글자 층이 없음
                     var under = firstSymbol();
                     map.addLayer({ id: "trk-halo", type: "line", source: "trk", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": "#fff", "line-width": 8, "line-opacity": 0.8 } }, under);
-                    map.addLayer({ id: "trk", type: "line", source: "trk", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": "#5b45ff", "line-width": 4.5 } }, under);
+                    map.addLayer({ id: "trk", type: "line", source: "trk", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": ["coalesce", ["get", "color"], "#5b45ff"], "line-width": 4.5 } }, under);   // 구간 색(segData)
                 }
                 peakKeys = [];
                 markPeaks();
@@ -212,11 +214,39 @@
         if (addHut.length) { dropHuts = dropHuts.concat(addHut); applyKinds(); }
     }
 
+    /** 기록 선 - 우리 지도에서 공단 대피소 · 100대 명산 정상 자료가 있으면 그곳(선에서 200m 안)에서 끊어 구간마다 다른 색, 없으면 한 색. */
+    function segData() {
+        if (!rc) return { type: "FeatureCollection", features: [] };
+        if (fam) return RF.trackSegments(rc, fam.huts.concat(fam.peaks), SEG_NEAR_M, SEG_GAP_M);
+        return { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: rc.lon.map(function (x, k) { return [x, rc.lat[k]]; }) } };
+    }
+
+    /**
+     * 봉우리 · 대피소 · 절 등을 누르면(2026-11-23 홍TV님 "봉들 대피소를 클릭하면 카메라처럼 그래프에 위치 표시") 기록 위 가장 가까운 자리를 그래프에 표시하고
+     * 이름 · 출발부터 거리 · 해발을 작은 창으로. 선에서 멀면(PICK_NEAR_M 넘음) 이름과 "이 기록에서 떨어짐" 만.
+     */
+    function pickPlace(e) {
+        var f = e.features && e.features[0];
+        if (!f || !rc) return;
+        var g = f.geometry.coordinates, nm = String(f.properties.name || f.properties.label || "").replace(/^▲ /, "").split("\n")[0];
+        var q = RF.snap(rc, g[1], g[0]), box = document.createElement("div"), b = document.createElement("b"), t = document.createElement("div");
+        b.textContent = nm;
+        box.appendChild(b); box.appendChild(t);
+        if (q && q.off <= PICK_NEAR_M) {
+            var p = RF.at(rc, q.d);
+            t.textContent = T("출발부터 ", "from start ") + RF.km(q.d) + " km" + (p.ele != null ? T(" · 기록 해발 ", " · recorded elev. ") + RF.num(Math.round(p.ele)) + " m" : "");
+            if (prof) prof.set(q.d);
+        } else t.textContent = T("이 기록에서 떨어진 곳", "Away from this record");
+        if (popup) popup.remove();
+        popup = new maplibregl.Popup({ closeButton: false, offset: 12, className: "placePop" }).setLngLat(g).setDOMContent(box).addTo(map);
+    }
+
     /** 받아 둔 표시를 지도 marks 에 한 번(지도 모양이 준비된 뒤 - 자료가 먼저 오면 다음 idle 에). */
     function putMarks() {
         if (famSet || !famGj || !map.getSource("marks")) return;
         famSet = true;
         map.getSource("marks").setData(famGj);
+        if (map.getSource("trk")) map.getSource("trk").setData(segData());   // 자료가 늦게 오면 그때 구간 색으로
     }
 
     /**
@@ -349,7 +379,15 @@
         map.once("load", function () { fold(); setContour(contourOn); });
         if (vector) loadMarks();
         map.on("idle", markPeaks);
-        map.on("styleimagemissing", function (e) { iconImage(e.id); });   // 대피소 · 절 등 아이콘(우리 지도 poi-hike)   // 지도 조각이 더 오면 지나간 봉우리를 더 찾음
+        map.on("styleimagemissing", function (e) { iconImage(e.id); });
+        if (vector) {
+            var PLACES = ["rf-peak", "rf-hut", "peak-on", "peak", "poi-hike"];
+            PLACES.forEach(function (id) {
+                map.on("click", id, pickPlace);
+                map.on("mouseenter", id, function () { map.getCanvas().style.cursor = "pointer"; });
+                map.on("mouseleave", id, function () { map.getCanvas().style.cursor = ""; });
+            });
+        }   // 대피소 · 절 등 아이콘(우리 지도 poi-hike)   // 지도 조각이 더 오면 지나간 봉우리를 더 찾음
         return map;
     });
 

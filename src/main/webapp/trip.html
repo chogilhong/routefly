@@ -42,6 +42,8 @@ body { display:flex; flex-direction:column; height:100dvh; }
 #kinds .kind.off { opacity:0.35; text-decoration:line-through; }
 #kinds .all { height:30px; padding:0 10px; border-radius:15px; border:0; background:none; color:var(--tx); font-size:13px; font-weight:bold; cursor:pointer; font-family:inherit; white-space:nowrap; }
 #brand { display:block; width:132px; height:auto; filter:drop-shadow(0 0 2px #fff) drop-shadow(0 0 1px #fff); }   /* 밝은 지도용 로고(글자 어두움) - 테두리로 어느 바탕에서나 보이게 */
+.placePop .maplibregl-popup-content { padding:6px 10px; border-radius:8px; font-size:12.5px; line-height:1.45; color:#1b2430; }   /* 봉우리 · 대피소 누름(2026-11-23) */
+.placePop b { font-size:13.5px; }
 #stat { position:absolute; left:10px; top:10px; z-index:2; background:rgba(17,22,29,0.86); border:1px solid var(--ln); border-radius:10px; padding:6px 10px; font-size:13px; max-width:calc(100% - 70px); }
 #stat:empty { display:none; }
 #side { flex:0 0 380px; background:#f4f6f8; color:#1b2430; overflow-y:auto; border-left:1px solid var(--ln); }

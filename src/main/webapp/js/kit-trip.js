@@ -214,13 +214,13 @@
                 { id: "peak-on", type: "symbol", source: "omt", "source-layer": "mountain_peak", minzoom: 9, filter: peakOnFilter([], true),
                     layout: { "text-field": peakText, "text-font": F, "text-size": 13.5, "text-anchor": "top", "text-offset": [0, 0.2], "symbol-sort-key": ["-", 0, ["coalesce", ["get", "ele"], 0]] },
                     paint: { "text-color": "#4a2208", "text-halo-color": "#fffdf5", "text-halo-width": 2 } },
-                // 멀리 봐도 보이게(확대 7부터) - 맨 뒤라 글자 자리를 가장 먼저 잡음
-                { id: "rf-peak", type: "symbol", source: "marks", minzoom: 7, filter: ["==", ["get", "kind"], "peak"],
-                    layout: { "text-field": ["get", "label"], "text-font": F, "text-size": 13.5, "text-anchor": "top", "text-offset": [0, 0.2] },
-                    paint: { "text-color": "#4a2208", "text-halo-color": "#fffdf5", "text-halo-width": 2 } },
+                // 멀리 봐도 보이게 - 맨 뒤 층일수록 글자 자리를 먼저 잡음: 명산 정상(맨 뒤) > 공단 대피소(2026-11-23 PC: 처음 화면에서 천왕봉이 장터목에 밀려 빠졌음)
                 { id: "rf-hut", type: "symbol", source: "marks", minzoom: 8, filter: ["==", ["get", "kind"], "hut"],
                     layout: { "icon-image": "rf-hut", "text-field": ["get", "label"], "text-font": F, "text-size": 11.5, "text-anchor": "top", "text-offset": [0, 0.9], "text-optional": true },
-                    paint: { "text-color": "#5a3510", "text-halo-color": "#fffdf5", "text-halo-width": 1.6 } }
+                    paint: { "text-color": "#5a3510", "text-halo-color": "#fffdf5", "text-halo-width": 1.6 } },
+                { id: "rf-peak", type: "symbol", source: "marks", minzoom: 7, filter: ["==", ["get", "kind"], "peak"],
+                    layout: { "text-field": ["get", "label"], "text-font": F, "text-size": 13.5, "text-anchor": "top", "text-offset": [0, 0.2] },
+                    paint: { "text-color": "#4a2208", "text-halo-color": "#fffdf5", "text-halo-width": 2 } }
             ]
         };
     }
@@ -234,6 +234,33 @@
         if (hidden && hidden.length) f.push(["!", ["in", icon, ["literal", hidden.slice()]]]);
         if (dropNames && dropNames.length) f.push(["!", ["in", ["get", "name"], ["literal", dropNames.slice()]]]);   // 공단 대피소(rf-hut 층)와 겹치는 OSM 대피소
         return f.length === 2 ? f[1] : f;
+    }
+
+    /** 구간 색(탐방 안내도처럼 구간마다 다른 색 - 바탕의 초록 · 갈색 · 파랑 물과 헷갈리지 않는 진한 색). */
+    var SEG_COLORS = ["#e8590c", "#5b45ff", "#d6336c", "#1c7ed6", "#9c36b5", "#f59f00", "#0b7285", "#c92a2a"];
+
+    /**
+     * 순수 함수 - 기록 선을 지나간 쉼터 · 정상에서 끊어 구간마다 다른 색으로(2026-11-23 홍TV님 "안내도처럼 코스를 전부 다른 색으로").
+     * c = recordCourse, stops = [{lat, lon}](공단 대피소 · 100대 명산 정상), 선에서 maxM 안인 것만 끊는 곳으로, 끊는 곳끼리 minGapM 보다 가까우면 하나로.
+     * 돌려줌 GeoJSON 선 목록(properties.color). 끊을 곳이 없으면 선 하나(첫 색).
+     */
+    function trackSegments(c, stops, maxM, minGapM) {
+        var n = c.lat.length, cuts = [];
+        (stops || []).forEach(function (s) {
+            var q = snap(c, s.lat, s.lon);
+            if (q && q.off <= maxM && q.d > minGapM && q.d < c.total - minGapM) cuts.push(q.d);
+        });
+        cuts.sort(function (a, b) { return a - b; });
+        var at0 = [0];
+        cuts.forEach(function (d) { if (d - c.dist[at0[at0.length - 1]] >= minGapM) { var i = indexAt(c, d) + 1; if (i > at0[at0.length - 1] && i < n - 1) at0.push(i); } });
+        at0.push(n - 1);
+        var out = [];
+        for (var k = 0; k + 1 < at0.length; k++) {
+            var co = [];
+            for (var i = at0[k]; i <= at0[k + 1]; i++) co.push([c.lon[i], c.lat[i]]);   // 끝점을 다음 구간과 함께 써서 이어짐
+            if (co.length >= 2) out.push({ type: "Feature", properties: { color: SEG_COLORS[k % SEG_COLORS.length], seg: k }, geometry: { type: "LineString", coordinates: co } });
+        }
+        return { type: "FeatureCollection", features: out };
     }
 
     /** 봉우리 하나를 가리키는 열쇠(이름|높이) - 지도 타일 안 봉우리와 peaksNear 가 같은 열쇠를 씀. */
@@ -574,6 +601,44 @@
         var head = [f(o.mountain), f(o.title)].filter(Boolean).join(" ");
         var route = [f(o.start), f(o.top), f(o.end)].filter(Boolean).join(" → ");
         return head && route ? head + " · " + route : head || route;
+    }
+
+    /**
+     * GPS 위치 → 코스 위 진행 거리 d 와 코스에서 벗어난 거리 off(m).
+     * 같은 길을 오가거나 도는 코스에서 엉뚱한 쪽에 붙지 않게, 지난 자리(prevD) 앞뒤 800m 를 먼저 보고
+     * 거기서 멀면(80m 넘게) 전체에서 다시 찾습니다.
+     */
+    function snap(c, lat, lon, prevD) {
+        var kx = 111320 * Math.cos(lat * Math.PI / 180), ky = 110540;
+        function search(i0, i1) {
+            var best = { d: 0, off: Infinity }, cands = [];
+            for (var i = Math.max(0, i0); i < Math.min(c.lon.length - 1, i1); i++) {
+                var ax = (c.lon[i] - lon) * kx, ay = (c.lat[i] - lat) * ky;
+                var bx = (c.lon[i + 1] - lon) * kx, by = (c.lat[i + 1] - lat) * ky;
+                var dx = bx - ax, dy = by - ay, len2 = dx * dx + dy * dy;
+                var t = len2 > 0 ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / len2)) : 0;
+                var px = ax + dx * t, py = ay + dy * t, off = Math.sqrt(px * px + py * py);
+                var cand = { d: c.dist[i] + (c.dist[i + 1] - c.dist[i]) * t, off: off };
+                if (off < best.off) best = cand;
+                if (prevD != null) cands.push(cand);
+            }
+            // 같은 길을 갔다가 되돌아오는 코스(갔던 길로 내려옴)에서는 두 자리가 똑같이 가깝습니다 - 지난 자리에 가까운 쪽으로
+            // (먼저 지나간 자리에 붙으면 진행 거리가 뒤로 튀어 "되돌아감" 으로 잘못 봅니다)
+            if (prevD != null) {
+                var minOff = best.off;
+                cands.forEach(function (q) {
+                    if (q.off <= minOff + 10 && Math.abs(q.d - prevD) < Math.abs(best.d - prevD)) best = q;
+                });
+            }
+            return best;
+        }
+        if (prevD != null && isFinite(prevD)) {
+            var near = search(indexAt(c, prevD - 800), indexAt(c, prevD + 800) + 1);
+            if (near.off <= 80) return near;
+            var all = search(0, c.lon.length);
+            return all.off + 30 < near.off ? all : near;
+        }
+        return search(0, c.lon.length);
     }
 
     /** 코스 길이에 맞는 km 표시 간격(1 · 2 · 5 · 10 · 20 · 50km) - 표시가 20개 안쪽이 되게. */
@@ -944,6 +1009,8 @@
         gpxRecord: gpxRecord,
         baseStyle: baseStyle,
         vectorStyle: vectorStyle,
+        at: at,
+        snap: snap,
         speedProfile: speedProfile,
         CONTOUR_STEPS: CONTOUR_STEPS,
         contourPaint: contourPaint,
@@ -951,6 +1018,7 @@
         MAP_ICONS: MAP_ICONS,
         poiShowFilter: poiShowFilter,
         famousMarks: famousMarks,
+        trackSegments: trackSegments,
         peakOnFilter: peakOnFilter,
         profile: profile,
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },
