@@ -1000,6 +1000,36 @@
     $("gpxOpen").addEventListener("click", function () { $("gpxFile").value = ""; $("gpxFile").click(); });
     /** GPX 글 → 이 기기에 두고 따라가기로 엶(📂 GPX 열기 · 앱이 받은 GPX 가 함께 씀). */
     function openGpxText(text, name) {
+        // 걸은 기록 GPX(시각이 든 점 - 시계 · 폰 앱 · routefly 💾 GPX 파일 저장)면 먼저 물음: 📒 내 기록에 넣어 지도 위 사진 · 고도 · 속도 그래프로 볼지(2026-11-22 홍TV님 - 램블러 화면처럼)
+        var got = null;
+        try { got = RF.gpxRecord(text); } catch (e) { got = null; }
+        if (got) {
+            var np = Object.keys(got.photos).length, nm = got.rec.notes.length;
+            hAsk(T("걸은 기록이 든 GPX 입니다" + (nm ? "(사진 " + np + "장 · 메모 " + (nm - np) + "개)" : "") + ".\n📒 내 기록에 넣어 지도 · 사진 · 고도 그래프로 볼까요?\n\"따라가기로\" 는 이 길을 코스처럼 따라 걷습니다.",
+                "This GPX holds a walked record" + (nm ? " (" + np + " photos · " + (nm - np) + " notes)" : "") + ".\nAdd it to 📒 My records to see it on the map with photos and graphs?\n\"Follow\" walks it as a course."),
+                { ok: T("📒 내 기록에 넣기", "📒 Add to records"), cancel: T("따라가기로", "Follow") }).then(function (ok) {
+                if (ok) importGpxRecord(got); else openGpxCourse(text, name);
+            });
+            return;
+        }
+        openGpxCourse(text, name);
+    }
+    /** 받은 GPX 기록을 내 기록에(사진은 rf-photos 에) - 같은 기록(시작 시각 · 코스)이면 하나로. */
+    function importGpxRecord(got) {
+        recordsReady.then(function () {
+            return Promise.all(Object.keys(got.photos).map(function (id) {
+                try { return photoPut(id, b64Blob(got.photos[id], "image/jpeg")).catch(function () { /* 그 사진만 */ }); } catch (e) { return null; }
+            }));
+        }).then(function () {
+            return writeRecords(RF.mergeRecords(records(), [got.rec], REC_MAX));
+        }).then(function (ok) {
+            if (!ok) return;
+            toast(T("📒 내 기록에 넣었습니다 - " + NM(got.rec.name), "📒 Added to My records - " + NM(got.rec.name)), 5000);
+            var r = records().filter(function (x) { return recKey(x) === recKey(got.rec); })[0] || got.rec;
+            showRecord(r);
+        }).catch(function (e) { toast(T("기록을 넣지 못했습니다: ", "Could not add the record: ") + (e && e.message || e), 6000); });
+    }
+    function openGpxCourse(text, name) {
         try {
             var api = RF.gpxToApi(text, name), id = gpxId(text);
             storeGpx(id, api);
@@ -1468,8 +1498,6 @@
         return out;
     }
 
-    // 내 기록 → 코스로 올리기(관리자만, 2026-10-31 홍TV님). 서버가 점만 다시 써 올림 폴더에 두면 배치(courseImport)가 매시 :07 에 코스로
-    var upOwner = false, upOwnerP = null;
     /**
      * 올리기 전 앞 · 뒤 자르기(관리자만, 2026-10-31 홍TV님 "앱 안에서 자르는 기능 지금 만들어 줘") - 집 앞 · 주차장 가는 길 등을 뺌.
      * 선 그림(남는 길 파랑 · 자를 길 회색, 출발 초록 · 도착 빨강)과 밀대 둘. 남은 점 [위도, 경도, 시각, 높이] 로 resolve, 취소면 null.
@@ -1584,30 +1612,6 @@
         });
     }
 
-    function uploadCourse(r0) {
-        var r = r0;
-        trimSheet(r0).then(function (kept) {
-            if (!kept) return;
-            r = { name: r0.name, kind: r0.kind, start: r0.start, track: kept };   // 자른 길만 · 사진 메모 없이
-            return goUpload();
-        });
-        function goUpload() { return hAskText(T("코스로 올릴 이름(목록에 이대로 보임)\n예: 송산 · 송산리 마을회관 → 송산 정상", "Course name as shown in the list\ne.g. Songsan · village hall → summit"), NM(r.name), { ok: T("다음", "Next") }).then(function (name) {
-            name = String(name || "").trim();
-            if (!name) return;
-            var kind = /^(hike|walk|bike)$/.test(r.kind) ? r.kind : "hike";
-            return hAsk(T("\"" + name + "\" 을(를) routefly 코스로 올릴까요?\n\n누구나 보는 코스가 됩니다. 앞 단계에서 자른 부분은 올라가지 않습니다.\n시각 · 사진 메모는 올라가지 않고 선 모양만 올라갑니다. 1시간 안(매시 37분)에 코스 목록에 들어갑니다.",
-                "Upload \"" + name + "\" as a routefly course?\n\nEveryone will see it. The parts you trimmed are not uploaded.\nOnly the line is uploaded - no times or photo notes. It appears in the list within an hour (at :37)."), { ok: T("올리기", "Upload") }).then(function (ok) {
-                if (!ok) return;
-                return fetch("api/course-upload", { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify({ name: name, kind: kind, gpx: toGpx(r) }) })
-                    .then(function (res) { return res.json().catch(function () { return { success: false, message: "HTTP " + res.status }; }); })
-                    .then(function (j) {
-                        if (!j || j.success === false) throw new Error(j && j.message || "?");
-                        toast(T("⬆ 올렸습니다 - 1시간 안(매시 37분)에 코스 목록에 들어갑니다. 코스 ID " + j.id, "⬆ Uploaded - it appears within an hour (at :37). Course ID " + j.id), 8000);
-                    });
-            });
-        }).catch(function (e) { toast(T("올리지 못했습니다: ", "Upload failed: ") + (e && e.message || e), 6000); }); }
-    }
-
     /** 순수 함수 - 기록 → GPX 1.1 글. */
     function toGpx(rec) {
         var esc = function (x) { return String(x).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); };
@@ -1640,18 +1644,42 @@
         return n || "track";
     }
 
+    /**
+     * GPX 파일에 넣을 사진 - 기록의 사진을 긴 변 max px JPEG 로 줄여 base64. 합쳐 GPX_PHOTO_BYTES 를 넘으면 더 작게(받는 쪽 GPX 열기 · 앱 받기 한도 5MB).
+     */
+    var GPX_PHOTO_BYTES = 4000000, GPX_PHOTO_STEPS = [[1024, 0.72], [720, 0.6], [480, 0.5]];
+    function gpxPhotos(rec) {
+        var ids = (rec.notes || []).map(function (n) { return n.photo; }).filter(Boolean), blobs = {};
+        return Promise.all(ids.map(function (id) { return photoGet(id).then(function (b) { if (b) blobs[id] = b; }, function () { /* 없는 사진 */ }); })).then(function () {
+            function at(k) {
+                var out = {}, size = 0, st = GPX_PHOTO_STEPS[k];
+                return Object.keys(blobs).reduce(function (p, id) {
+                    return p.then(function () { return shrinkPhoto(blobs[id], st[0], st[1]); }).then(blobToBase64).then(function (b64) { out[id] = b64; size += b64.length; });
+                }, Promise.resolve()).then(function () { return size > GPX_PHOTO_BYTES && k + 1 < GPX_PHOTO_STEPS.length ? at(k + 1) : size > GPX_PHOTO_BYTES ? {} : out; });
+            }
+            return ids.length ? at(0) : {};
+        });
+    }
+    /** 💾 GPX 파일 저장 - 사진 · 메모까지(RF.recordGpx, 2026-11-22 홍TV님). */
     function downloadGpx(rec) {
+        toast(T("GPX 파일을 만드는 중…", "Making the GPX file…"), 3000);
+        gpxPhotos(rec).then(function (ph) {
+            if ((rec.notes || []).some(function (n) { return n.photo; }) && !Object.keys(ph).length) toast(T("사진이 많아 GPX 에는 메모만 넣었습니다.", "Too many photos - the GPX has notes only."), 5000);
+            saveGpxText(rec, RF.recordGpx(rec, ph));
+        }).catch(function (e) { toast(T("GPX 를 만들지 못했습니다: ", "Could not make the GPX: ") + (e && e.message || e), 5000); });
+    }
+    function saveGpxText(rec, text) {
         var d = new Date(rec.start);
         var name = "routefly-" + d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0")
             + "-" + gpxSlug(rec) + ".gpx";
         // 2026-10-23 홍TV님 지리산: 이은 코스 ID(구간 5개)를 그대로 넣어 파일 이름이 250자를 넘어 앱 · 크롬에서 저장이 안 됐음
         if (FS && SHARE) {   // 앱 - 공유 창으로(파일 저장 · 다른 앱으로 보내기)
-            nativeShareFile(name, btoa(unescape(encodeURIComponent(toGpx(rec)))), rec.name)
+            nativeShareFile(name, btoa(unescape(encodeURIComponent(text))), rec.name)
                 .catch(function (e) { toast(T("GPX 를 보내지 못했습니다: ", "Could not send the GPX: ") + (e && e.message || e), 5000); });
             return;
         }
         // 핸드폰 브라우저 - 공유 창(카카오톡 · 메일 · 드라이브 · 다른 등산 앱 …). 브라우저마다 받는 파일 종류가 달라 되는 것으로
-        var text = toGpx(rec), file = null;
+        var file = null;
         if (navigator.canShare) {
             ["application/gpx+xml", "application/xml", "text/xml", "text/plain"].some(function (type) {
                 var f = new File([text], name, { type: type });
@@ -2117,18 +2145,8 @@
     function drawRecords() {
         cardPeaksLoad();
         var box = $("recList"), list = records();
-        if (upOwnerP == null) {   // 처음 열 때 한 번만 물음(관리자 기기인가) - 맞으면 단추를 넣어 다시 그림
-            upOwnerP = getJson("api/course-upload").then(function (j) {
-                upOwner = !!j.owner;
-                if (upOwner) drawRecords();
-            }).catch(function () { /* 남으로 */ });
-        }
         box.innerHTML = "";
-        // GPX 편집(studio.html)은 누구나(2026-11-02 홍TV님 "GPX 편집을 누구나" - 점검 6차: 여기만 관리자에게만 보였음)
-        var se = document.createElement("p");
-        se.innerHTML = T('<a href="studio.html" style="color:#38d9ea;font-weight:bold">📐 GPX 편집 열기</a> <span class="tip">- 자르기 · 나누기 · 잇기 · ' + (upOwner ? "코스로 올리기" : "routefly 에 보내기") + ', PC 에서 편함</span>',
-            '<a href="studio.html" style="color:#38d9ea;font-weight:bold">📐 Open GPX editor</a> <span class="tip">- trim · split · join · ' + (upOwner ? "publish as a course" : "send to routefly") + ' (Korean only, easier on a PC)</span>');
-        box.appendChild(se);
+        // GPX 편집 고리 · 관리자 올리기 단추는 뺌(2026-11-22 홍TV님 "내 기록에서 GPX 편집 열기 삭제, 코스로 삭제") - GPX 편집 화면 자체는 그대로
         drawRecStats(list);
         if (!list.length) {
             box.insertAdjacentHTML("beforeend", T('<p class="tip">아직 기록이 없습니다. 시작했다가 "끝내기" 를 누르면 남습니다.</p>', '<p class="tip">No records yet. Start a hike and tap "Finish" to save one.</p>'));   // 위의 📐 GPX 편집 고리를 지우지 않게(2026-10-31 PC)
@@ -2142,7 +2160,7 @@
             sp.textContent = d.getFullYear() + "." + (d.getMonth() + 1) + "." + d.getDate() + " · " + km(RF.recDist(r)) + "km · " + hhmmss(r.end - r.start)
                 + (r.kcal != null ? " · " + num(r.kcal) + "kcal" : "") + (r.steps != null ? " · " + num(r.steps) + T("보", " steps") : "");
             info.appendChild(b); info.appendChild(sp);
-            var g = document.createElement("button"); g.textContent = T("📤 보내기", "📤 Send"); g.title = T("이 기록 보내기 - routefly 기록(친구) · GPX 파일", "Send this record - routefly record (friend) or GPX file"); g.onclick = function () { sendSheet(r); };
+            var g = document.createElement("button"); g.textContent = T("📤 GPX 보내기", "📤 Send GPX"); g.title = T("routefly 에 보내 코스 등록하기 · GPX 파일 저장(사진 · 메모까지)", "Send to routefly as a course · save a GPX file (with photos · notes)"); g.onclick = function () { sendSheet(r); };
             if (r.notes && r.notes.length) {
                 var nb = document.createElement("button"); nb.textContent = "📝 " + r.notes.length; nb.title = T("사진 · 메모 보기", "View photos · notes");
                 nb.onclick = function () { showNotes(r); };
@@ -2150,7 +2168,7 @@
             }
             var v = document.createElement("button"); v.textContent = "📈"; v.title = T("고도 그래프 · 지도에 보기", "Elevation chart · show on map");
             v.onclick = function () { showRecord(r); };
-            var x = document.createElement("button"); x.textContent = T("지우기", "Delete");
+            var x = document.createElement("button"); x.textContent = "✕"; x.className = "recDel"; x.title = T("이 기록 지우기", "Delete this record"); x.setAttribute("aria-label", x.title);   // 2026-11-22 홍TV님 "지우기는 X 버튼으로"
             x.onclick = function () {
                 hAsk(T("이 기록을 지울까요?\n산행 결산에서도 빠집니다.", "Delete this record?\nIt is also removed from the hiking summary."), { ok: T("지우기", "Delete"), danger: true }).then(function (ok) {
                     if (!ok) return;
@@ -2165,11 +2183,6 @@
             };
             if (info) row.appendChild(info);
             row.appendChild(v); row.appendChild(g);
-            if (upOwner) {   // 관리자(운영자) 기기만 - 이 기록을 코스로 올리기(2026-10-31 홍TV님 "일단 나만 보이게")
-                var u = document.createElement("button"); u.textContent = T("⬆ 코스로", "⬆ Course"); u.title = T("이 기록을 routefly 코스로 올리기(관리자만)", "Upload this record as a routefly course (admin only)");
-                u.onclick = function () { uploadCourse(r); };
-                row.appendChild(u);
-            }
             row.appendChild(x);
             box.appendChild(row);
         });
@@ -2233,42 +2246,35 @@
         saveFile(text, name, "application/json");
     }
     /**
-     * 기록 하나를 친구에게(2026-10-31 홍TV님 "기록 하나만 보내 주기 - 해야겠는데") - 그 기록 · 사진만 든 routefly 파일.
-     * 받는 사람은 routefly → 📒 내 기록 → 📂 백업 불러오기로 넣음(자기 기록에 합쳐짐, 도장 · 찜은 건드리지 않음).
+     * 📤 GPX 보내기(2026-11-22 홍TV님 - 친구에게 routefly 기록 파일로 보내기는 빼고 둘): 📮 routefly 에 보내 코스 등록하기 · 💾 GPX 파일 저장(사진 · 메모 · 요약까지 - 받은 사람이
+     * routefly 로 열면 내 기록처럼 지도 · 사진 · 고도 · 속도 그래프로 봄, 다른 앱은 선 · 지점만).
      */
-    function shareRecord(r) {
-        buildBackup([r]).then(function (o) {
-            var d = new Date(r.start), name = "routefly-record-" + d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0") + "-" + gpxSlug(r) + ".json";
-            toast(T("기록 파일(사진 " + Object.keys(o.photos).length + "장) - 받는 사람은 routefly → 📒 내 기록 → 📂 백업 불러오기로 넣습니다.",
-                "Record file (" + Object.keys(o.photos).length + " photos) - the receiver opens routefly → 📒 My records → 📂 Restore backup."), 8000);
-            return shareJson(JSON.stringify(o), name, NM(r.name) + T(" - routefly 기록", " - routefly record"));
-        }).catch(function (e) { toast(T("기록을 보내지 못했습니다: ", "Could not send the record: ") + (e && e.message || e), 6000); });
-    }
-    /** 보내기 고르기 - routefly 기록으로(사진 포함) / GPX 파일로. */
     function sendSheet(r) {
         var wrap = document.createElement("div");
         wrap.setAttribute("role", "dialog");
-        wrap.setAttribute("aria-label", T("기록 보내기", "Send record"));
+        wrap.setAttribute("aria-label", T("GPX 보내기", "Send GPX"));
         wrap.style.cssText = "position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:12px";
         var box = document.createElement("div");
         box.style.cssText = "background:#1b2430;color:#e9eef4;border-radius:14px;padding:14px;width:min(420px,100%);font-size:15px";
         var bs = "display:block;width:100%;text-align:left;margin:8px 0 0;padding:12px;line-height:1.4";
-        box.innerHTML = '<b style="font-size:17px">' + T("📤 기록 보내기", "📤 Send record") + '</b><p class="tip" style="margin:6px 0 0"></p>'
-            + '<button type="button" class="a" style="' + bs + '"><b>' + T("🎁 routefly 기록으로", "🎁 As a routefly record") + '</b><br><span class="tip">' + T("함께 간 친구에게 - 사진까지, 친구 routefly 내 기록에 그대로", "For a friend - with photos, straight into their routefly records") + '</span></button>'
-            + '<button type="button" class="g" style="' + bs + '"><b>' + T("🗺 GPX 파일로", "🗺 As a GPX file") + '</b><br><span class="tip">' + T("다른 등산 앱 · 지도(gpx.studio)에서 열기 - 선 · 시각 · 높이만. 카카오톡으로는 보낼 수 없습니다. 메일 · 드라이브 · 내 파일로 보내세요", "Open in other apps or maps (gpx.studio) - line, times, elevation only. KakaoTalk does not accept GPX - use email, Drive or Files") + '</span></button>'
-            + (upOwner ? "" : '<button type="button" class="c" style="' + bs + '"><b>' + T("📮 routefly 에 코스로 보내기", "📮 Send to routefly as a course") + '</b><br><span class="tip">' + T("없는 코스면 점검해 공개 코스로 올립니다 - 선 모양 · 이름만", "If it's a new trail we check it and publish it - line and name only") + '</span></button>')
+        box.innerHTML = '<b style="font-size:17px">' + T("📤 GPX 보내기", "📤 Send GPX") + '</b><p class="tip" style="margin:6px 0 0"></p>'
+            + '<button type="button" class="c" style="' + bs + '"><b>' + T("📮 routefly 에 보내 코스 등록하기", "📮 Send to routefly to add as a course") + '</b><br><span class="tip">'
+            + T("운영자가 점검해 없는 코스면 누구나 보는 공개 코스로 올립니다. 올라가면 코스 화면 · 산 페이지에 \"만든 이: (적은 이름)\" 으로 내 이름이 함께 보입니다. 선 모양 · 코스 이름 · 이름만 보내고 시각 · 사진은 보내지 않습니다.",
+                "We check it and, if it's a new trail, publish it as a public course. Your name is shown as \"Made by\" on the course and mountain pages. Only the line, course name and your name are sent - no times or photos.") + '</span></button>'
+            + '<button type="button" class="g" style="' + bs + '"><b>' + T("💾 GPX 파일 저장", "💾 Save GPX file") + '</b><br><span class="tip">'
+            + T("선 · 시각 · 높이에 사진 · 메모까지 한 파일로 - 받은 사람이 routefly 로 열면 지도 위 사진 · 고도 · 속도 그래프로 봅니다(다른 등산 앱은 선 · 지점만). 카카오톡으로는 보낼 수 없습니다. 메일 · 드라이브 · 내 파일로 보내세요",
+                "Line, times, elevation plus photos and notes in one file - opened in routefly it shows photos on the map with elevation and speed graphs (other apps show the line and points). KakaoTalk does not accept GPX - use email, Drive or Files") + '</span></button>'
             + '<button type="button" class="n" style="display:block;width:100%;margin:12px 0 0">' + T("닫기", "Close") + '</button>';
         box.querySelector("p").textContent = NM(r.name);
         wrap.appendChild(box);
         document.body.appendChild(wrap);
         function close() { wrap.remove(); }
-        box.querySelector(".a").onclick = function () { close(); shareRecord(r); };
+        box.querySelector(".c").onclick = function () { close(); submitSheet(r); };
         box.querySelector(".g").onclick = function () { close(); downloadGpx(r); };
-        if (box.querySelector(".c")) box.querySelector(".c").onclick = function () { close(); submitSheet(r); };   // 관리자는 ⬆ 코스로 를 그대로 씀
         box.querySelector(".n").onclick = close;
         wrap.addEventListener("click", function (e) { if (e.target === wrap) close(); });
         wrap.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
-        box.querySelector(".a").focus();
+        box.querySelector(".c").focus();
     }
     /**
      * 📮 routefly 에 코스로 보내기(2026-11-01 홍TV님 "등산객이 GPX 를 보내 주면 없는 코스면 점검해서 올림 - 보낸 사람 이름을 코스 이름 앞에").
@@ -2754,16 +2760,16 @@
     }
     /** 사진을 긴 변 PHOTO_MAX px JPEG 로 줄입니다(저장 공간). */
     var PHOTO_MAX = 1600, PHOTO_OLD_MS = 120000;
-    function shrinkPhoto(file) {
+    function shrinkPhoto(file, max, q) {   // max · q - GPX 파일에 넣을 때 더 작게(gpxPhotos)
         return new Promise(function (resolve, reject) {
             var img = new Image(), url = URL.createObjectURL(file);
             img.onload = function () {
-                var k = Math.min(1, PHOTO_MAX / Math.max(img.naturalWidth, img.naturalHeight));
+                var k = Math.min(1, (max || PHOTO_MAX) / Math.max(img.naturalWidth, img.naturalHeight));
                 var cv = document.createElement("canvas");
                 cv.width = Math.round(img.naturalWidth * k); cv.height = Math.round(img.naturalHeight * k);
                 cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
                 URL.revokeObjectURL(url);
-                cv.toBlob(function (b) { if (b) resolve(b); else reject(new Error("사진을 줄이지 못했습니다.")); }, "image/jpeg", 0.8);
+                cv.toBlob(function (b) { if (b) resolve(b); else reject(new Error("사진을 줄이지 못했습니다.")); }, "image/jpeg", q || 0.8);
             };
             img.onerror = function () { URL.revokeObjectURL(url); reject(new Error("사진을 읽지 못했습니다.")); };
             img.src = url;

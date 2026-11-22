@@ -1130,6 +1130,14 @@ tick().then(function () {
         var line = [];
         for (var i = 0; i <= 10; i++) line.push([37 + i * 0.001, 127, i, 0]);
         eq("처음 · 끝 300m 자름", RF.trimEnds(line, 300).map(function (p) { return p[2]; }), [3, 4, 5, 6, 7]);
+        // GPX 파일 저장 - 사진 · 메모 · 요약까지 넣고 다시 읽음(2026-11-22 홍TV님)
+        var rec = { name: "송산 · 동쪽 <들머리> → 덕기봉", kind: "hike", start: t0, end: t0 + 1200000, up: 78, kcal: 27, steps: 463, courseId: "kmp-1",
+                    track: track, notes: [{ t: t0 + 300000, lat: 37.605, lon: 127, ele: 200, text: "쉼 & 물", photo: "p1" }, { t: t0 + 600000, lat: 37.61, lon: 127, ele: 300, text: null, photo: "p2" }] };
+        var gx = RF.recordGpx(rec, { p1: "/9j/AAAA", p2: "/9j/BBBB" }), back = RF.gpxRecord(gx);
+        eq("GPX - 다른 앱이 읽는 선 · 지점 그대로", [/<trkpt lat="37.6" lon="127"><ele>100<\/ele><time>/.test(gx), /<name>쉼 &amp; 물<\/name>/.test(gx), /<rf:photo>\/9j\/AAAA<\/rf:photo>/.test(gx)], [true, true, true]);
+        eq("GPX → 기록 - 이름 · 요약 · 점 · 메모 · 사진", [back.rec.name, back.rec.kind, back.rec.start, back.rec.end, back.rec.up, back.rec.kcal, back.rec.steps, back.rec.courseId, back.rec.track, back.rec.notes.map(function (n) { return [n.t, n.lat, n.ele, n.text, back.photos[n.photo]]; })],
+            [rec.name, "hike", t0, t0 + 1200000, 78, 27, 463, "kmp-1", track, [[t0 + 300000, 37.605, 200, "쉼 & 물", "/9j/AAAA"], [t0 + 600000, 37.61, 300, null, "/9j/BBBB"]]]);
+        eq("같은 사진은 같은 열쇠 · 시각 없는 코스 GPX 는 기록이 아님", [RF.gpxRecord(gx).rec.notes[0].photo === back.rec.notes[0].photo, RF.gpxRecord('<gpx><trk><trkseg><trkpt lat="37" lon="127"></trkpt><trkpt lat="37.1" lon="127"></trkpt></trkseg></trk></gpx>')], [true, null]);
         eq("짧으면 남는 것 없음 · 0m 면 그대로", [RF.trimEnds(line, 600).length, RF.trimEnds(line, 0).length], [0, 11]);
     })();
     console.log((fails ? "FAILED " : "OK ") + (runs - fails) + "/" + runs);

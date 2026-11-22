@@ -26,9 +26,12 @@ public class StudioListRemoveTest {
         // 2026-11-21 PC: 서버 courseImport 는 따로 매시 37분(docs/deploy-lightsail.md) - 화면 안내는 옛 "매시 7분" 이었음(GPX 편집 · 따라가기 함께)
         String deploy = Files.readString(Path.of("docs/deploy-lightsail.md"));
         assertTrue(deploy.contains("courseImport 만 매시 37분에 따로 돌립니다"));
-        for (String f : new String[] {"src/main/webapp/studio.html", "src/main/webapp/js/studio.js", "src/main/webapp/js/hike.js"}) {
+        for (String f : new String[] {"src/main/webapp/studio.html", "src/main/webapp/js/studio.js"}) {
             String s = Files.readString(Path.of(f));
             assertTrue(f, s.contains("매시 37분") && !s.contains("매시 7분") && !s.contains("(at :07)"));
         }
+        // 따라가기 내 기록의 ⬆ 코스로(관리자 올리기)는 2026-11-22 홍TV님이 뺌 - 옛 시각 글도 남지 않게
+        String hike = Files.readString(Path.of("src/main/webapp/js/hike.js"));
+        assertTrue(!hike.contains("매시 7분") && !hike.contains("(at :07)") && !hike.contains("function uploadCourse("));
     }
 }

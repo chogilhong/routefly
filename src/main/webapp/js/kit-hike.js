@@ -1430,6 +1430,76 @@
         return tr.filter(function (p, i) { return cum[i] >= m && cum[i] <= total - m; });
     }
 
+    /**
+     * 순수 함수 - 기록 → 사진 · 메모까지 든 GPX 1.1(2026-11-22 홍TV님 "GPX 파일 저장 - 사진, 메모 등 모든 정보를 저장해서 공유", 램블러 화면처럼 보이게).
+     * 다른 앱은 선(trk) · 지점(wpt 이름 · 메모 · 시각)만 읽고, routefly 는 &lt;extensions&gt; 의 rf:photo(JPEG base64) · rf:record(요약)까지 읽어 내 기록으로 넣음(gpxRecord).
+     * photos - {사진 열쇠: base64(앞의 data: 없이)}, 없는 사진은 빼고 메모만.
+     */
+    var RF_GPX_NS = "https://routefly.kr/gpx/1";
+    function recordGpx(rec, photos) {
+        var esc = function (x) { return String(x).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); };
+        var iso = function (t) { return new Date(t).toISOString(); };
+        var tr = (rec.track || []).map(function (p) {
+            return '<trkpt lat="' + p[0] + '" lon="' + p[1] + '">' + (p[3] != null ? "<ele>" + p[3] + "</ele>" : "") + (typeof p[2] === "number" ? "<time>" + iso(p[2]) + "</time>" : "") + "</trkpt>";
+        }).join("\n");
+        var wpts = (rec.notes || []).filter(function (n) { return n && isFinite(n.lat) && isFinite(n.lon); }).map(function (n) {
+            var b64 = n.photo && photos && photos[n.photo], nm = n.text ? n.text.replace(/\s+/g, " ").slice(0, 30) : "사진";
+            return '<wpt lat="' + n.lat + '" lon="' + n.lon + '">' + (n.ele != null ? "<ele>" + n.ele + "</ele>" : "") + (n.t ? "<time>" + iso(n.t) + "</time>" : "")
+                + "<name>" + esc(nm) + "</name>" + (n.text ? "<desc>" + esc(n.text) + "</desc>" : "") + (n.photo ? "<type>photo</type>" : "")
+                + (b64 ? "<extensions><rf:photo>" + String(b64).replace(/[^A-Za-z0-9+/=]/g, "") + "</rf:photo></extensions>" : "") + "</wpt>";
+        }).join("\n");
+        var sum = { kind: rec.kind || "hike", start: rec.start, end: rec.end, up: rec.up != null ? rec.up : null, kcal: rec.kcal != null ? rec.kcal : null, steps: rec.steps != null ? rec.steps : null, courseId: rec.courseId || null };
+        return '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="routefly" xmlns="http://www.topografix.com/GPX/1/1" xmlns:rf="' + RF_GPX_NS + '">\n'
+            + "<metadata><name>" + esc(rec.name || "") + "</name>" + (rec.start ? "<time>" + iso(rec.start) + "</time>" : "")
+            + "<extensions><rf:record>" + esc(JSON.stringify(sum)) + "</rf:record></extensions></metadata>\n"
+            + (wpts ? wpts + "\n" : "")
+            + "<trk><name>" + esc(rec.name || "") + "</name><type>" + esc(rec.kind || "hike") + "</type><trkseg>\n" + tr + "\n</trkseg></trk>\n</gpx>\n";
+    }
+
+    /**
+     * 순수 함수 - GPX 글 → 내 기록 하나(시각이 든 trkpt 가 2개 넘을 때만 - 걸은 기록, 코스 파일은 null). recordGpx 로 만든 것은 요약 · 사진까지.
+     * 돌려줌 {rec: {name, kind, start, end, up, kcal, steps, courseId, track:[[위도, 경도, ms, 높이]], notes:[{t, lat, lon, ele, text, photo}]}, photos: {열쇠: base64}}.
+     * 사진 열쇠는 사진 글의 지문으로 새로 만듦(같은 파일을 두 번 넣어도 같은 열쇠).
+     */
+    function gpxRecord(text) {
+        text = String(text || "");
+        var un = function (x) { return String(x).replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, "\"").replace(/&#39;/g, "'").replace(/&amp;/g, "&"); };
+        var tag = function (body, t) { var m = new RegExp("<" + t + "(?:\\s[^>]*)?>([\\s\\S]*?)</" + t + ">").exec(body); return m ? m[1].trim() : null; };
+        var attr = function (head, a) { var m = new RegExp("\\b" + a + "\\s*=\\s*[\"']([^\"']+)[\"']").exec(head); return m ? +m[1] : NaN; };
+        var track = [], re = /<trkpt\b([^>]*?)(?:\/>|>([\s\S]*?)<\/trkpt>)/g, m;
+        while ((m = re.exec(text))) {
+            var lat = attr(m[1], "lat"), lon = attr(m[1], "lon"), body = m[2] || "", tm = tag(body, "time"), el = tag(body, "ele"), t = tm ? Date.parse(tm) : NaN;
+            if (!isFinite(lat) || !isFinite(lon) || !isFinite(t)) continue;
+            track.push([lat, lon, t, el != null && isFinite(+el) ? +el : null]);
+        }
+        if (track.length < 2) return null;
+        track.sort(function (a, b) { return a[2] - b[2]; });
+        var meta = tag(text, "metadata") || "", sumText = tag(meta, "rf:record"), sum = {};
+        try { sum = sumText ? JSON.parse(un(sumText)) || {} : {}; } catch (e) { sum = {}; }
+        var name = un(tag(meta, "name") || tag(tag(text, "trk") || "", "name") || "GPX");
+        var notes = [], photos = {}, wr = /<wpt\b([^>]*?)(?:\/>|>([\s\S]*?)<\/wpt>)/g;
+        while ((m = wr.exec(text))) {
+            var la = attr(m[1], "lat"), lo = attr(m[1], "lon"), b = m[2] || "";
+            if (!isFinite(la) || !isFinite(lo)) continue;
+            var wt = tag(b, "time"), we = tag(b, "ele"), desc = tag(b, "desc"), ph = tag(b, "rf:photo"), n = { t: wt ? Date.parse(wt) : null, lat: la, lon: lo, ele: we != null && isFinite(+we) ? Math.round(+we) : null, text: desc ? un(desc) : null, photo: null };
+            if (n.t != null && !isFinite(n.t)) n.t = null;
+            if (ph && /^[A-Za-z0-9+/=\s]+$/.test(ph)) {
+                var h = 5381, c = ph.replace(/\s+/g, "");
+                for (var i = 0; i < c.length; i += 7) h = ((h << 5) + h + c.charCodeAt(i)) | 0;
+                n.photo = "g" + (h >>> 0).toString(36) + c.length.toString(36);
+                photos[n.photo] = c;
+            }
+            if (!n.photo && !n.text) continue;   // 이름만 있는 지점(출발 · 정상 표시 등)은 기록 메모가 아님
+            if (n.t == null) n.t = track[0][2];
+            notes.push(n);
+        }
+        notes.sort(function (a, b) { return a.t - b.t; });
+        var kind = /^(hike|walk|bike)$/.test(sum.kind) ? sum.kind : /^(hike|walk|bike)$/.test(tag(tag(text, "trk") || "", "type") || "") ? tag(tag(text, "trk"), "type") : "hike";
+        return { rec: { name: name, kind: kind, start: isFinite(sum.start) ? +sum.start : track[0][2], end: isFinite(sum.end) ? +sum.end : track[track.length - 1][2],
+                        up: isFinite(sum.up) && sum.up !== null ? +sum.up : null, kcal: isFinite(sum.kcal) && sum.kcal !== null ? +sum.kcal : null, steps: isFinite(sum.steps) && sum.steps !== null ? +sum.steps : null,
+                        courseId: typeof sum.courseId === "string" ? sum.courseId : null, track: track, notes: notes }, photos: photos };
+    }
+
     var SPEED_HALF_MS = 60000;
     function speedProfile(c) {
         var t = c && c.time, n = t ? t.length : 0, out = [], a = 0, b = 0, any = false;
@@ -4284,6 +4354,8 @@
         exifInfo: exifInfo,
         photoPlace: photoPlace,
         trimEnds: trimEnds,
+        recordGpx: recordGpx,
+        gpxRecord: gpxRecord,
         isGpxId: isGpxId,
         gpxId: gpxId,
         storeGpx: storeGpx,

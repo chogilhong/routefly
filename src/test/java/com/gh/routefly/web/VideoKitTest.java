@@ -86,6 +86,20 @@ public class VideoKitTest {
         assertTrue(read("src/main/webapp/privacy.html").contains("\"🍜 맛집\" 은 코스 끝 점") && read("src/main/webapp/privacy-en.html").contains("The \"🍜 Food\" link after a hike"));
     }
 
+    /** 내 기록 줄 정리(2026-11-22 홍TV님): GPX 편집 열기 · ⬆ 코스로 · 🎁 routefly 기록으로 뺌, 📤 GPX 보내기 = 📮 코스 등록 · 💾 GPX 파일 저장(사진 · 메모까지), 지우기는 ✕. */
+    @Test
+    public void 내_기록_GPX_보내기() throws Exception {
+        String js = read("src/main/webapp/js/hike.js");
+        int a = js.indexOf("    function drawRecords() {"), b = js.indexOf("    function drawRecStats(", a);
+        String rows = js.substring(a, b);
+        assertFalse("GPX 편집 고리 · 코스로 단추 없음", rows.contains("studio.html") || rows.contains("⬆ 코스로") || js.contains("function uploadCourse(") || js.contains("var upOwner"));
+        assertTrue(rows.contains("g.textContent = T(\"📤 GPX 보내기\", \"📤 Send GPX\");") && rows.contains("x.textContent = \"✕\";"));
+        assertFalse("🎁 routefly 기록으로 없음", js.contains("🎁 routefly 기록으로") || js.contains("function shareRecord("));
+        assertTrue("📮 코스 등록 - 이름이 올라간다는 안내", js.contains("📮 routefly 에 보내 코스 등록하기") && js.contains("\\\"만든 이: (적은 이름)\\\" 으로 내 이름이 함께 보입니다"));
+        assertTrue("💾 사진 · 메모까지 든 GPX", js.contains("💾 GPX 파일 저장") && js.contains("saveGpxText(rec, RF.recordGpx(rec, ph));"));
+        assertTrue("받은 GPX 기록은 내 기록으로", js.contains("try { got = RF.gpxRecord(text); } catch (e) { got = null; }") && js.contains("if (ok) importGpxRecord(got); else openGpxCourse(text, name);"));
+    }
+
     @Test
     public void 공개_기록_남길_것만() {
         JsonObject in = JsonParser.parseString("{\"name\":\"덕기봉 <b>\\n산행\",\"kind\":\"hike\",\"date\":\"2026-11-22\",\"dist_m\":5123.4,\"time_ms\":7200000,\"up_m\":612,"
