@@ -2050,7 +2050,7 @@
             end.area = j.region.name;
             food.href = RF.afterHikeLinks(p, end, EN).links[0].href;
         }).catch(function () { /* 이름으로 찾기 그대로 */ });
-        // 둘레 3km 맛집 5곳을 이 창에 바로(2026-11-22 홍TV님 B안 - 송산 옆 영종 하늘도시가 안 보였음). 같은 좌표 규칙, 누르면 카카오맵 가게 화면
+        // 둘레 5km 맛집 5곳(가까운 순)을 이 창에 바로(2026-11-22 홍TV님 B안 - 송산 옆 영종 하늘도시가 안 보였음, "5km 해"). 같은 좌표 규칙, 누르면 카카오맵 가게 화면
         if (food && at) getJson("api/food?lat=" + (+at[0]).toFixed(4) + "&lon=" + (+at[1]).toFixed(4)).then(function (j) {
             var list = j && j.food || [];
             if (!list.length || !box.contains(food)) return;
@@ -2066,7 +2066,7 @@
             });
             var src = document.createElement("small");
             src.className = "src";
-            src.textContent = T("둘레 3km · 카카오 검색 차례", "Within 3 km · Kakao search order");
+            src.textContent = T("둘레 5km · 카카오 맛집 검색 앞 5곳 · 가까운 순", "Within 5 km · top 5 of Kakao search · nearest first");
             ul.appendChild(src);
             food.parentNode.insertBefore(ul, food.nextSibling);
         }).catch(function () { /* 🍜 단추만 */ });
