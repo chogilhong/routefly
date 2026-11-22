@@ -1668,13 +1668,20 @@
             saveGpxText(rec, RF.recordGpx(rec, ph));
         }).catch(function (e) { toast(T("GPX 를 만들지 못했습니다: ", "Could not make the GPX: ") + (e && e.message || e), 5000); });
     }
+    /** GPX 를 보낼 때 함께 가는 글 - 받는 쪽(PC)이 바로 기록 보기로 열게(2026-11-22 홍TV님 "PC 에서는 코스 모음 📂 GPX 열기로" 한 줄). */
+    function gpxShareText(rec) {
+        return NM(rec.name) + T(" - routefly 기록", " - routefly record") + "\n"
+            + T("PC 에서는 routefly 코스 모음 📂 GPX 열기로 보세요(지도 · 사진 · 그래프): ", "On a PC, open it with 📂 Open GPX on the routefly trails page (map · photos · graph): ")
+            + new URL(EN ? "en/m/" : "m/", location.href).href;
+    }
+
     function saveGpxText(rec, text) {
         var d = new Date(rec.start);
         var name = "routefly-" + d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0")
             + "-" + gpxSlug(rec) + ".gpx";
         // 2026-10-23 홍TV님 지리산: 이은 코스 ID(구간 5개)를 그대로 넣어 파일 이름이 250자를 넘어 앱 · 크롬에서 저장이 안 됐음
         if (FS && SHARE) {   // 앱 - 공유 창으로(파일 저장 · 다른 앱으로 보내기)
-            nativeShareFile(name, btoa(unescape(encodeURIComponent(text))), rec.name)
+            nativeShareFile(name, btoa(unescape(encodeURIComponent(text))), gpxShareText(rec))
                 .catch(function (e) { toast(T("GPX 를 보내지 못했습니다: ", "Could not send the GPX: ") + (e && e.message || e), 5000); });
             return;
         }
@@ -1688,7 +1695,7 @@
             });
         }
         if (file) {
-            navigator.share({ files: [file], title: NM(rec.name), text: NM(rec.name) + T(" - routefly 기록", " - routefly record") }).catch(function (e) {
+            navigator.share({ files: [file], title: NM(rec.name), text: gpxShareText(rec) }).catch(function (e) {
                 if (e && e.name === "AbortError") return;   // 사용자가 닫음
                 saveFile(text, name);   // 공유가 막히면 내려받기로
             });

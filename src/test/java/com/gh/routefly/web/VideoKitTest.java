@@ -93,6 +93,8 @@ public class VideoKitTest {
         assertFalse("GPX 편집 고리 · 코스로 단추 없음", rows.contains("studio.html") || rows.contains("⬆ 코스로") || js.contains("function uploadCourse(") || js.contains("var upOwner"));
         assertTrue(rows.contains("g.textContent = T(\"📤 GPX 보내기\", \"📤 Send GPX\");") && rows.contains("x.textContent = \"✕\";"));
         assertFalse("🎁 routefly 기록으로 없음", js.contains("🎁 routefly 기록으로") || js.contains("function shareRecord("));
+        assertTrue("GPX 보낼 때 글에 PC 여는 법 · 코스 모음 주소(2026-11-22 홍TV님) - 앱 공유 · 폰 브라우저 공유 둘 다", js.contains("PC 에서는 routefly 코스 모음 📂 GPX 열기로 보세요")
+                && js.contains("nativeShareFile(name, btoa(unescape(encodeURIComponent(text))), gpxShareText(rec))") && js.contains("navigator.share({ files: [file], title: NM(rec.name), text: gpxShareText(rec) })"));
         assertTrue("📮 코스 등록 - 이름이 올라간다는 안내", js.contains("📮 routefly 에 보내 코스 등록하기") && js.contains("\\\"만든 이: (적은 이름)\\\" 으로 내 이름이 함께 보입니다"));
         assertTrue("💾 사진 · 메모까지 든 GPX", js.contains("💾 GPX 파일 저장") && js.contains("saveGpxText(rec, RF.recordGpx(rec, ph));"));
         assertTrue("받은 GPX 기록은 내 기록으로", js.contains("try { got = RF.gpxRecord(text, false, name); } catch (e) { got = null; }") && js.contains("if (ok) importGpxRecord(got); else openGpxCourse(text, name);"));
