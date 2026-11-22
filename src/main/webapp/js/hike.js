@@ -612,8 +612,9 @@
         if (pts.length > 1) feats.push({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: pts.map(function (p) { return [p.lon, p.lat]; }) } });
         if (map.getSource("measure")) map.getSource("measure").setData({ type: "FeatureCollection", features: feats });
         var box = $("measureText");
+        $("measureUndo").hidden = !pts.length;   // 찍은 점이 있을 때만(2026-11-22 홍TV님 "점이 하나라도 찍혀 있을 때 나오게 해")
         if (pts.length < 2) {
-            box.textContent = pts.length ? T("한 점 더 찍으세요(지도를 누름).", "Tap one more point on the map.") : T("📏 지도를 눌러 점을 찍으세요 - 직선 · 이은 거리 · 오르막", "📏 Tap the map to add points - straight line, path and climb");
+            box.textContent = pts.length ? T("한 점 더 찍으세요(지도를 누름).", "Tap one more point on the map.") : T("📏 지도를 눌러 점을 찍으세요 - 직선 · 코스 따라 거리 · 오르막", "📏 Tap the map to add points - straight line, distance along the course, climb");
             return;
         }
         // 처음 · 끝 점이 따라가는 코스 50m 안이면 코스 따라 거리 · 오르막(코스 1km 점과 같은 셈) - 맨 위 줄
