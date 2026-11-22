@@ -2018,8 +2018,6 @@
         var cn = String(rec.name || ""), tail = (/→\s*([^→·]+?)\s*$/.exec(cn) || [])[1];
         var end = last ? { lat: last[0], lon: last[1] } : (c && c.lat && c.lat.length ? { lat: c.lat[c.lat.length - 1], lon: c.lon[c.lon.length - 1] } : {});
         end.name = [RF.parkOf(cn), tail].filter(Boolean).join(" ") || cn.split("→")[0].trim();
-        end.up = rec.up;
-        end.month = new Date(Date.now() + 9 * 3600000).getUTCMonth() + 1;   // 한국 달
         var r = RF.afterHikeLinks(p, end, EN), box = $("doneNext");
         box.textContent = "";
         var b = document.createElement("b"), nx = document.createElement("div");
@@ -2034,9 +2032,9 @@
             nx.appendChild(a);
         });
         box.appendChild(b);
-        if (r.affiliate || r.coupang) {   // 제휴 표시는 링크 앞에(2026-11-12 점검 - 공정위 심사지침 "처음에")
+        if (r.affiliate) {   // 제휴 표시는 링크 앞에(2026-11-12 점검 - 공정위 심사지침 "처음에"). 쿠팡은 뺌(2026-11-22 홍TV님)
             var sm = document.createElement("small");
-            sm.textContent = (r.affiliate ? T("숙소는 제휴 링크 - 예약하면 routefly 가 수수료를 받습니다. ", "Stay links are affiliate links - routefly earns a commission if you book. ") : "") + (r.coupang ? RF.COUPANG_NOTE : "");
+            sm.textContent = T("숙소는 제휴 링크 - 예약하면 routefly 가 수수료를 받습니다. ", "Stay links are affiliate links - routefly earns a commission if you book. ");
             box.appendChild(sm);
         }
         box.appendChild(nx);
@@ -2050,26 +2048,6 @@
             end.area = j.region.name;
             food.href = RF.afterHikeLinks(p, end, EN).links[0].href;
         }).catch(function () { /* 이름으로 찾기 그대로 */ });
-        // 둘레 5km 맛집 5곳(가까운 순)을 이 창에 바로(2026-11-22 홍TV님 B안 - 송산 옆 영종 하늘도시가 안 보였음, "5km 해"). 같은 좌표 규칙, 누르면 카카오맵 가게 화면
-        if (food && at) getJson("api/food?lat=" + (+at[0]).toFixed(4) + "&lon=" + (+at[1]).toFixed(4)).then(function (j) {
-            var list = j && j.food || [];
-            if (!list.length || !box.contains(food)) return;
-            var ul = document.createElement("div");
-            ul.className = "nearFood";
-            list.forEach(function (f) {
-                var row = document.createElement(f.url ? "a" : "div");
-                if (f.url) { row.href = f.url; row.target = "_blank"; row.rel = "noopener"; }
-                var nm = document.createElement("span"), meta = document.createElement("small");
-                nm.textContent = f.name;
-                meta.textContent = [f.kind, f.dist_m != null ? RF.km(f.dist_m) + "km" : ""].filter(Boolean).join(" · ");
-                row.appendChild(nm); row.appendChild(meta); ul.appendChild(row);
-            });
-            var src = document.createElement("small");
-            src.className = "src";
-            src.textContent = T("둘레 5km · 카카오 맛집 검색 앞 5곳 · 가까운 순", "Within 5 km · top 5 of Kakao search · nearest first");
-            ul.appendChild(src);
-            food.parentNode.insertBefore(ul, food.nextSibling);
-        }).catch(function () { /* 🍜 단추만 */ });
     }
 
     /**

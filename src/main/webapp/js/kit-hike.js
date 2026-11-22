@@ -3946,9 +3946,6 @@
         return String(word || "").split(" → ").map(function (w) { return one[w] || wfEn(w); }).join(" → ");
     }
 
-    /** 쿠팡 파트너스 링크를 보일 때 함께 붙이는 문구(공정거래위원회 추천 · 보증 심사지침 - 경제적 이해관계 표시). */
-    var COUPANG_NOTE = "이 안내는 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.";
-
     // ------------------------------------------------------------------ 찜 · 통계 · 백업(2026-10-15 홍TV님)
 
     /** 찜한 코스 - 이 기기 localStorage "rf-fav" [{id, name, kind, dist, asc, t}], 새로 찜한 것이 앞. */
@@ -4141,39 +4138,11 @@
 
     /**
      * 순수 함수 - 산행을 마친 화면의 "다음은?" 줄(2026-10-28 홍TV님 추천 - 수익: 끝난 때가 가장 반가운 때, 안전 화면에는 광고 없이).
-     * p - api/partners, end - {lat, lon, name: "설악산 오색"(날머리), up: 오른 높이 m, month: 1~12}. → {links: [{text, href, sponsored}], coupang, affiliate}.
-     * 맛집은 카카오맵 검색(제휴 아님), 숙소는 트립닷컴(날머리 좌표 검색) · 아고다({lat}{lon}), 쿠팡은 무릎 보호대 · 스틱, 다음 산은 산 모음(광고 있는 쪽).
+     * p - api/partners, end - {lat, lon, name: "설악산 오색"(날머리)}. → {links: [{text, href, sponsored, app}], affiliate}.
+     * 맛집은 카카오맵 검색(제휴 아님), 숙소는 트립닷컴(날머리 좌표 검색) · 아고다({lat}{lon}). 쿠팡 · 다음 산 고르기는 뺌(2026-11-22 홍TV님 "맛집, 근처 숙소, 후원하기 빼고 모두 삭제").
      */
-    /**
-     * 순수 함수 - 산행을 마친 화면의 쿠팡 물건(2026-10-28 홍TV님 "a, b"). coupang - api/partners 의 coupang, up - 오늘 오른 높이(m), month - 1~12.
-     * recovery: 산행 뒤 회복 용품 배열(설정 partner.coupang.recovery, "이름|주소" 면 이름마다 - names 는 api/partners 의 coupangNames). gear: 다음 산행에 맞는 것 하나 -
-     * 한겨울(12~2월) 아이젠 → 오늘 오르막 800m 넘으면 무릎 보호대 → 11 · 3월 보온 → 6~8월 모자 · 선크림 → 400m 넘으면 스틱 → 무릎 보호대 · 스틱. 링크가 없는 것은 건너뜀.
-     */
-    function afterHikeGear(coupang, up, month, names) {
-        var cp = coupang || {}, first = function (k) { var u = cp[k] && cp[k][0]; return /^https:\/\//.test(u || "") ? u : null; };
-        var NAMES = { crampon: "🧊 아이젠", knee: "🦵 무릎 보호대", warm: "🔥 보온병 · 핫팩", sun: "🧢 모자 · 선크림", stick: "🥢 등산 스틱" };
-        up = +up || 0; month = +month || 0;
-        var order = [];
-        if (month === 12 || month === 1 || month === 2) order.push("crampon");
-        if (up >= 800) order.push("knee");
-        if (month === 11 || month === 3 || month === 12 || month === 1 || month === 2) order.push("warm");
-        if (month >= 6 && month <= 8) order.push("sun");
-        if (up >= 400) order.push("stick");
-        order.push("knee", "stick");
-        var gear = null;
-        for (var i = 0; i < order.length && !gear; i++) if (first(order[i])) gear = { key: order[i], label: NAMES[order[i]], href: first(order[i]) };
-        // 회복 용품 - 이름이 있으면 이름마다 단추(폼롤러 · 마사지건 · 콘드로이친, 2026-10-28 홍TV님), 없으면 "산행 뒤 회복 용품" 하나
-        var recovery = [], ru = cp.recovery || [], rn = (names && names.recovery) || [];
-        for (var j = 0; j < ru.length && j < 3; j++) {
-            if (!/^https:\/\//.test(ru[j] || "")) continue;
-            if (rn[j]) recovery.push({ key: "recovery", label: "🧴 " + rn[j], href: ru[j] });
-            else if (!recovery.length) recovery.push({ key: "recovery", label: "🧴 산행 뒤 회복 용품", href: ru[j] });
-        }
-        return { recovery: recovery, gear: gear };
-    }
-
     function afterHikeLinks(p, end, en) {
-        var T = function (ko, e) { return en ? e : ko; }, out = [], co = false, af = false;
+        var T = function (ko, e) { return en ? e : ko; }, out = [], af = false;
         p = p || {};
         end = end || {};
         var name = String(end.name || "").replace(/\s+/g, " ").trim().slice(0, 30), ok = isFinite(end.lat) && isFinite(end.lon) && end.lat !== null && end.lon !== null;
@@ -4188,12 +4157,7 @@
             out.push({ text: T("🏨 근처 숙소(아고다)", "🏨 Stays nearby (Agoda)"), href: p.agoda.replace(/\{lat\}/g, (+end.lat).toFixed(5)).replace(/\{lon\}/g, (+end.lon).toFixed(5)), sponsored: true });
             af = true;
         }
-        if (!en) {   // 쿠팡(한국어만) - 회복 용품 하나 + 오늘 산행 · 계절에 맞는 것 하나(2026-10-28 홍TV님 "a, b 로 하자")
-            var pick = afterHikeGear(p.coupang, end.up, end.month, p.coupangNames);
-            pick.recovery.concat(pick.gear ? [pick.gear] : []).forEach(function (x) { out.push({ text: x.label + "(쿠팡)", href: x.href, sponsored: true }); co = true; });
-        }
-        out.push({ text: T("⛰️ 다음 산 고르기", "⛰️ Pick your next mountain"), href: en ? "en/m/" : "m/", sponsored: false });
-        return { links: out, coupang: co, affiliate: af };
+        return { links: out, affiliate: af };
     }
 
     /**
@@ -4502,7 +4466,6 @@
         npStampKey: npStampKey,
         npStampsOn: npStampsOn,
         npStampsDue: npStampsDue,
-        COUPANG_NOTE: COUPANG_NOTE,
         planText: planText,
         fireNote: fireNote,
         parkClose: parkClose,

@@ -1,6 +1,8 @@
 package com.gh.routefly.web;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.nio.charset.StandardCharsets;
@@ -11,7 +13,10 @@ import org.junit.Test;
 
 import com.google.gson.JsonObject;
 
-/** 산행 끝 🍜 근처 맛집(2026-11-22 홍TV님 B안 - 송산 옆 영종 하늘도시가 카카오 글자 검색에 안 나왔음). */
+/**
+ * 산행 끝 🍜 · TV 맛집 자료 확인(2026-11-22 홍TV님): 근처 맛집 목록은 뺌(🍜 단추만), api/food 는 TV 프로그램 이름으로 20km 안을
+ * 카카오에서 찾는 자료 확인용(화면은 아직 안 씀).
+ */
 public class FoodServletTest {
 
     private static String read(String p) throws Exception {
@@ -20,43 +25,44 @@ public class FoodServletTest {
 
     @Test
     public void kakaoKeywordAroundEnd() {
-        assertEquals("카카오 키워드 맛집 · 둘레 5km · 정확도 순 15곳",
-            "https://dapi.kakao.com/v2/local/search/keyword.json?query=%EB%A7%9B%EC%A7%91&x=126.560988&y=37.480123&radius=5000&sort=accuracy&size=15",
-            FoodServlet.url(37.4801234, 126.5609876));
+        assertEquals("카카오 키워드 = 프로그램 이름 · 둘레 20km · 정확도 순 15곳",
+            "https://dapi.kakao.com/v2/local/search/keyword.json?query=%EB%B0%B1%EB%B0%98%EA%B8%B0%ED%96%89&x=126.560988&y=37.480123&radius=20000&sort=accuracy&size=15",
+            FoodServlet.url(37.4801234, 126.5609876, "백반기행"));
+        assertEquals("빈칸은 무시", "생활의달인", FoodServlet.show(" 생활의 달인 "));
+        assertNull("정해 둔 이름만 카카오로 보냄", FoodServlet.show("아무 글"));
+        assertNull(FoodServlet.show(null));
     }
 
-    /** 카카오 답 모양으로 만든 테스트 데이터(실제 가게 아님) - 카카오 차례 앞 5곳 → 가까운 순 · 5km 넘는 곳 뺌 · 못 받으면 unavailable. */
+    /** 카카오 답 모양으로 만든 테스트 데이터(실제 가게 아님) - 20km 넘는 곳 뺌 · 가까운 순 · 못 받으면 unavailable. */
     @Test
     public void bodyTopFiveWithinRadius() {
-        int[] dist = {900, 5500, 300, 1500, 600, 1200, 100, 2000};
+        int[] dist = {9000, 25000, 300, 15000, 600};
         StringBuilder k = new StringBuilder("{\"documents\":[");
-        for (int i = 0; i < 8; i++) {
+        for (int i = 0; i < dist.length; i++) {
             if (i > 0) k.append(',');
             k.append("{\"place_name\":\"시험식당").append(i).append("\",\"category_name\":\"음식점 > 한식 > 국밥\",\"x\":\"126.56\",\"y\":\"37.48\",\"distance\":\"")
              .append(dist[i]).append("\",\"place_url\":\"http://place.map.kakao.com/").append(100 + i).append("\"}");
         }
         k.append("],\"meta\":{}}");
         JsonObject out = FoodServlet.body(StaysServlet.kakaoStays(k.toString()));
-        assertEquals(5, out.getAsJsonArray("food").size());
         StringBuilder names = new StringBuilder();
-        for (int i = 0; i < 5; i++) names.append(out.getAsJsonArray("food").get(i).getAsJsonObject().get("name").getAsString().replace("시험식당", ""));
-        assertEquals("5km 넘는 곳(1) 빼고 카카오 차례 앞 5곳(0 2 3 4 5)을 가까운 순으로 - 100m 인 6 은 6번째라 안 들어감", "24053", names.toString());
-        assertEquals("국밥", out.getAsJsonArray("food").get(0).getAsJsonObject().get("kind").getAsString());
+        for (int i = 0; i < out.getAsJsonArray("food").size(); i++) names.append(out.getAsJsonArray("food").get(i).getAsJsonObject().get("name").getAsString().replace("시험식당", ""));
+        assertEquals("20km 넘는 곳(1) 빼고 가까운 순", "2403", names.toString());
         assertEquals("https://place.map.kakao.com/102", out.getAsJsonArray("food").get(0).getAsJsonObject().get("url").getAsString());
-        assertEquals(5, out.get("radius_km").getAsInt());
+        assertEquals(20, out.get("radius_km").getAsInt());
         JsonObject none = FoodServlet.body(null);
         assertTrue(none.get("unavailable").getAsBoolean() && none.getAsJsonArray("food").size() == 0);
     }
 
+    /** 산행 끝 창: 🍜 맛집 · 숙소 · 후원만(쿠팡 · 다음 산 · 근처 맛집 목록 뺌, 2026-11-22 홍TV님). */
     @Test
     public void doneSheetShowsList() throws Exception {
-        String js = read("src/main/webapp/js/hike.js"), html = read("src/main/webapp/hike.html");
-        assertTrue("같은 좌표 규칙(코스 끝 점 · 5km 칸 가운데)으로 api/food", js.contains("if (food && at) getJson(\"api/food?lat=\" + (+at[0]).toFixed(4) + \"&lon=\" + (+at[1]).toFixed(4))"));
-        assertTrue("🍜 단추 바로 뒤에 목록, 누르면 카카오맵 가게 화면", js.contains("food.parentNode.insertBefore(ul, food.nextSibling);") && js.contains("if (f.url) { row.href = f.url; row.target = \"_blank\"; row.rel = \"noopener\"; }"));
-        assertTrue("거리는 m 를 km 로", js.contains("RF.km(f.dist_m) + \"km\""));
-        assertTrue("화면 글도 5km · 가까운 순", js.contains("둘레 5km · 카카오 맛집 검색 앞 5곳 · 가까운 순"));
-        assertTrue("글은 textContent 로만", js.contains("nm.textContent = f.name;"));
-        assertTrue(html.contains("#doneNext .nearFood { flex-basis:100%;"));
-        assertTrue("개인정보처리방침", read("src/main/webapp/privacy.html").contains("둘레 5km 맛집") && read("src/main/webapp/privacy-en.html").contains("restaurants within 5 km"));
+        String js = read("src/main/webapp/js/hike.js"), html = read("src/main/webapp/hike.html"), kit = read("src/main/webapp/js/course-kit.js");
+        assertFalse("근처 맛집 목록 없음", js.contains("api/food") || js.contains("nearFood") || html.contains("nearFood"));
+        assertFalse("쿠팡 문구 없음", js.contains("RF.COUPANG_NOTE"));
+        assertTrue("제휴 표시는 숙소만", js.contains("if (r.affiliate) {   // 제휴 표시는 링크 앞에"));
+        assertFalse("쿠팡 · 다음 산 고르기 없음", kit.contains("afterHikeGear") || kit.contains("⛰️ 다음 산 고르기"));
+        assertTrue("후원은 그대로", js.contains("$(\"doneDonate\").hidden = false;"));
+        assertFalse("방침에서도 둘레 맛집 목록 문장 뺌", read("src/main/webapp/privacy.html").contains("둘레 5km 맛집"));
     }
 }
