@@ -138,6 +138,9 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
         eq("알림 - 풀리면 지움(다시 울릴 수 있게)", [r3.msgs.length, !!r3.fired.sos3, !!r3.fired.quiet1].join(), "0,false,false");
         lead.members[2].sos = true;
         eq("알림 - 다시 SOS 면 다시", RF.partyAlerts(lead, r3.fired).msgs.join("|"), "🆘 SOS - 민수 님");
+        // 보조 인솔자 SOS 도 폰 알림(2026-11-22 산악회 점검 - 회원만 보던 줄 뒤에 있어 빠졌음), 내 SOS 는 빼고
+        var L2 = { role: "lead", me: 10, now: D, departed: true, departedAt: D, endAt: E, members: [{ id: 10, role: "lead", nick: "대장", sos: true }, { id: 11, role: "lead", nick: "보조", sos: true }] };
+        eq("알림 - 보조 인솔자 SOS(내 것 빼고)", RF.partyAlerts(L2, {}).msgs.join("|"), "🆘 SOS - 보조 님 (인솔자)");
         // 📵 연락 끊긴 회원 단계 경보(2026-11-11) - 10분 → 30분(전화) → 60분 🚨, 늦게 처음 보면 가장 높은 단계 하나만, 소식이 오면 풀림
         var Q = { role: "lead", now: D + 2 * 3600000, departed: true, departedAt: D, endAt: E, members: [{ id: 8, role: "hiker", nick: "새벽", app: true, seen: 700, batt: 40 }] };
         var q1 = RF.partyAlerts(Q, {});

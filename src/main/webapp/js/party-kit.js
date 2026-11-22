@@ -171,7 +171,7 @@
      * SOS 끄기도(2026-11-03 홍TV님 점검: 못 보낸 끄기는 30초 뒤 · 위치가 없으면 영영 안 가 인솔자에게 SOS 가 남았음) - 갈 때까지 살핌 타이머도 둠.
      */
     function failed(sos, changed) {
-        if (!sos && !changed) return;
+        if (!sos && !changed && !offPending) return;   // 끄기를 기다리는 중이면 실패한 보내기도 다시(2026-11-22 산악회 점검)
         lastSos = null;
         retryAt = Date.now() + RETRY_MS;
         if (!sos) { offPending = true; sosKeep(); }
@@ -211,6 +211,9 @@
     function sos(on) {
         var p = get();
         if (!p) return;
+        // 켜 둔 SOS 를 끄면 서버가 받았다고 할 때까지 살핌 타이머로 다시(2026-11-22 산악회 점검: 다시 연 화면 · 시간 초과 뒤에는 lastSos 가 null 이라
+        // 끄기가 실패해도 다시 보내지 않았고 타이머도 멈춰, 위치가 없으면 인솔자 화면에 SOS 가 남고 방을 끝낼 수 없었음)
+        if (p.sos && !on) offPending = true;
         p.sos = !!on;
         set(p);
         sosKeep();

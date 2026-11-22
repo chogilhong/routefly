@@ -319,9 +319,10 @@
         if (s.role === "lead" && !s.officeMe) {
             var groups = {};   // 하산 마감마다(하산 탑승지 시각 · 없으면 방 하산 마감) 아직 안 탄 사람 수
             (s.members || []).forEach(function (m) {
+                // SOS 는 취소 · 하산 탑승 회원 것도 울림(2026-11-03 홍TV님 - 서버는 받는데 인솔자 알림이 없었음). 명단에 없는 SOS 는 따로 표시.
+                // 보조 인솔자(role lead)의 SOS 도 - 2026-11-22 산악회 점검: 회원만 보는 줄 앞에 있어 보조 인솔자 SOS 는 폰 알림 · 진동 · 음성이 없었음(방 화면 sosAlert 만). 내 SOS 는 빼고
+                if (m.sos && m.id !== s.me) hit("sos" + m.id, (en ? "🆘 SOS - " + m.nick : "🆘 SOS - " + m.nick + " 님") + (m.role !== "hiker" ? (en ? " (leader)" : " (인솔자)") : m.cancelled ? (en ? " (not on bus)" : " (안 탐)") : m.sosOdd ? (en ? " (not on the roster)" : " (명단에 없는 참가자)") : ""));
                 if (m.role !== "hiker") return;
-                // SOS 는 취소 · 하산 탑승 회원 것도 울림(2026-11-03 홍TV님 - 서버는 받는데 인솔자 알림이 없었음). 명단에 없는 SOS 는 따로 표시
-                if (m.sos) hit("sos" + m.id, (en ? "🆘 SOS - " + m.nick : "🆘 SOS - " + m.nick + " 님") + (m.cancelled ? (en ? " (not on bus)" : " (안 탐)") : m.sosOdd ? (en ? " (not on the roster)" : " (명단에 없는 참가자)") : ""));
                 if (m.cancelled || m.aboard) return;
                 var at = m.pickup && s.pickupAt && s.pickupAt[m.pickup] || s.endAt;
                 if (at) { var gk = m.pickup && s.pickupAt && s.pickupAt[m.pickup] ? m.pickup : ""; groups[gk] = groups[gk] || { at: at, n: 0 }; groups[gk].n++; }

@@ -57,7 +57,24 @@ settle(P.ping(true)).then(function (r) {
     return new Promise(function (r) { setTimeout(r, 10); });
 }).then(function () {
     eq("살피는 타이머가 SOS ping", [calls.length, calls[2].url, calls[2].body.sos], [3, "api/party/ping", true]);
+    // SOS 끄기는 서버가 받을 때까지 살핌 타이머로 다시(2026-11-22 산악회 점검: 끄기가 실패하면 다시 안 가 인솔자 화면에 SOS 가 남았음)
+    down = true;
+    NOW += 40000;
     P.sos(false);
-    eq("SOS 를 끄면 타이머 멈춤", live().length, 0);
+    eq("SOS 를 꺼도 끄기가 갈 때까지 타이머", live().length, 1);
+    live()[0].f();
+    return new Promise(function (r) { setTimeout(r, 10); });
+}).then(function () {
+    eq("끄기 ping - 신호 없음으로 실패", [calls.length, calls[3].body.sos], [4, false]);
+    eq("실패해도 타이머 남음", live().length, 1);
+    NOW += 15000;
+    down = false;
+    live()[0].f();
+    return new Promise(function (r) { setTimeout(r, 10); });
+}).then(function () {
+    eq("다시 보낸 끄기가 감", [calls.length, calls[4].body.sos], [5, false]);
+    NOW += 15000;
+    live()[0].f();
+    eq("끄기가 가면 타이머 멈춤", live().length, 0);
     console.log("OK " + n);
 }).catch(function (e) { console.error(e); process.exit(1); });
