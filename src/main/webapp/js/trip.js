@@ -242,7 +242,10 @@
             if (prof) prof.set(q.d);
         } else t.textContent = T("이 기록에서 떨어진 곳", "Away from this record");
         if (popup) popup.remove();
-        popup = new maplibregl.Popup({ closeButton: false, offset: 12, className: "placePop" }).setLngLat(g).setDOMContent(box).addTo(map);
+        // 빈 곳을 누르거나 ✕ · Esc 로 닫힘(2026-11-23 PC: 닫는 단추가 없어 닫기 어려웠음)
+        popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, offset: 12, className: "placePop" }).setLngLat(g).setDOMContent(box).addTo(map);
+        var x = popup.getElement().querySelector(".maplibregl-popup-close-button");
+        if (x) { x.setAttribute("aria-label", T("닫기", "Close")); x.title = T("닫기", "Close"); }
     }
 
     /** 받아 둔 표시를 지도 marks 에 한 번(지도 모양이 준비된 뒤 - 자료가 먼저 오면 다음 idle 에). */
@@ -341,6 +344,7 @@
     $("bigNext").onclick = function () { step(1); };
     $("bigImg").onclick = bigClose;
     document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && popup && $("big").style.display !== "flex") { popup.remove(); popup = null; return; }   // 봉우리 · 대피소 말풍선
         if ($("big").style.display !== "flex") return;
         if (e.key === "Escape") bigClose(); else if (e.key === "ArrowLeft") step(-1); else if (e.key === "ArrowRight") step(1);
     });

@@ -60,6 +60,7 @@ public class BasemapTest {
         assertTrue("지도 모양만 준비되면 그림 - load · map.loaded() 를 기다리지 않음(2026-11-23 PC: 일찍 연 GPX 가 안 그려졌음)",
             js.contains("map.once(\"style.load\", function () { styleOk = true;") && js.contains("whenStyle(draw);") && js.contains("whenStyle(applyKinds);")
             && !js.contains("map.loaded()") && !js.contains("once(\"load\""));
+        assertTrue("말풍선은 ✕ · 빈 곳 · Esc 로 닫힘(2026-11-23 PC)", js.contains("closeButton: true, closeOnClick: true") && js.contains("if (e.key === \"Escape\" && popup"));
         assertTrue("OSM 출처는 한 번만 - 우리 지도는 바탕 출처에 이미 있음(2026-11-22 PC)", js.contains("customAttribution: (style ? \"\" : \"© OpenStreetMap contributors | \") + "));
         assertTrue(html.contains("<script src=\"vendor/pmtiles-4.5.0/pmtiles.js\"></script>"));
         assertTrue("지도 파일은 캐시하지 않음(Range)", sw.contains("if (/\\.pmtiles(?:[?#]|$)/.test(url)) return;"));
