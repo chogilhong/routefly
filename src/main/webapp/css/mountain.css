@@ -200,8 +200,10 @@ ul { margin:0; padding:0; list-style:none; }
 .closedNote { margin:8px 0 12px; padding:10px 12px; border-radius:10px; background:rgba(255,135,135,0.10); border:1px solid rgba(255,135,135,0.45); font-size:14.5px; }
 #gearIdx .fb { padding:4px 0 10px; }   /* 🎒 추천 상품(/m/ - 2026-10-18, 2026-11-03 상품 하나만) */
 /* 코스 소개 페이지(/c/ - CoursePageServlet, 2026-10-19). 산 페이지 코스 이름은 그 페이지로 가는 링크 */
-.cs b a { color:inherit; text-decoration:none; }
-.cs b a:hover { text-decoration:underline; }
+/* 코스 이름 = 코스 페이지 링크 - 밑줄 · › 로 누를 수 있게 보이게(2026-11-22 홍TV님 "그냥 글자만 있는 것 같아서 클릭할 생각을 못할 것 같아") */
+.cs b a { color:inherit; text-decoration:underline; text-decoration-color:var(--sky); text-decoration-thickness:2px; text-underline-offset:4px; }
+.cs b a::after { content:" ›"; color:var(--sky); text-decoration:none; display:inline-block; margin-left:2px; }
+.cs b a:hover { color:var(--sky); }
 .cp .sum { display:grid; grid-template-columns:auto 1fr; gap:4px 14px; margin:0 0 14px; font-size:14.5px; }
 .cp .sum dt { color:var(--dim); }
 .cp .sum dd { margin:0; min-width:0; overflow-wrap:anywhere; }
