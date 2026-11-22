@@ -62,7 +62,8 @@ public class BasemapTest {
             && !js.contains("map.loaded()") && !js.contains("once(\"load\""));
         assertTrue("말풍선은 ✕ · 빈 곳 · Esc 로 닫힘(2026-11-23 PC)", js.contains("closeButton: true, closeOnClick: true") && js.contains("if (e.key === \"Escape\" && popup"));
         assertTrue("구간 글 · 구간 표(2026-11-23 홍TV님 1 · 2)", js.contains("return { type: \"Feature\", properties: { t: RF.segText(f.properties), color: f.properties.color }")
-            && js.contains("segList(segs);") && js.contains("$(\"side\").insertBefore(box, $(\"side\").firstChild);") && js.contains("map.fitBounds(bb, { padding: fitPad(),") && html.contains("#segs .seg {"));
+            && js.contains("segList(segs);") && js.contains("$(\"side\").insertBefore(box, $(\"side\").firstChild);") && js.contains("map.fitBounds(bb, { padding: fitPad(),") && html.contains("#segs .seg {")
+            && js.contains("kb = k ? m.bottom - k.getBoundingClientRect().top + 12 : 0;"));
         assertTrue("OSM 출처는 한 번만 - 우리 지도는 바탕 출처에 이미 있음(2026-11-22 PC)", js.contains("customAttribution: (style ? \"\" : \"© OpenStreetMap contributors | \") + "));
         assertTrue(html.contains("<script src=\"vendor/pmtiles-4.5.0/pmtiles.js\"></script>"));
         assertTrue("지도 파일은 캐시하지 않음(Range)", sw.contains("if (/\\.pmtiles(?:[?#]|$)/.test(url)) return;"));

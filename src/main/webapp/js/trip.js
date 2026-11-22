@@ -231,10 +231,11 @@
         return { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: rc.lon.map(function (x, k) { return [x, rc.lat[k]]; }) } };
     }
 
-    /** 지도 맞춤 여백 - 그래프가 열려 있으면 그 높이만큼 아래를 비움(구간을 그래프가 가리지 않게). */
+    /** 지도 맞춤 여백 - 그래프 · 왼쪽 아래 표시 단추 줄 · 로고(mapKit) 높이만큼 아래를 비움(구간을 가리지 않게, 2026-11-23 PC: 좁은 화면에서 단추 줄이 덮음). */
     function fitPad() {
-        var g = $("graph"), m = $("map").getBoundingClientRect(), gb = g.hidden ? 0 : m.bottom - g.getBoundingClientRect().top + 20;
-        return { top: 60, left: 60, right: 60, bottom: Math.max(60, Math.min(gb, m.height * 0.5)) };
+        var g = $("graph"), k = $("mapKit"), m = $("map").getBoundingClientRect();
+        var gb = g.hidden ? 0 : m.bottom - g.getBoundingClientRect().top + 20, kb = k ? m.bottom - k.getBoundingClientRect().top + 12 : 0;
+        return { top: 60, left: 40, right: 60, bottom: Math.max(60, Math.min(Math.max(gb, kb), m.height * 0.55)) };
     }
 
     /** 기록 선 · 구간 글 · 구간 목록을 지금 자료(segData)로 다시 그림. */
