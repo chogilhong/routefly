@@ -297,6 +297,14 @@ html.rfwait body { visibility:hidden; }   /* 앱을 처음 열 때 서버에 닿
 #contourBtn { position:absolute; right:10px; bottom:118px; z-index:2; width:44px; height:44px; border-radius:50%; border:0; background:#fff;
               font-size:20px; line-height:1; box-shadow:0 2px 8px rgba(0,0,0,0.45); opacity:0.75; }
 #contourBtn.on { opacity:1; box-shadow:0 0 0 3px #38d9ea, 0 2px 8px rgba(0,0,0,0.45); }
+/* 거리 재기(2026-11-22 홍TV님 - 램블러는 유료 기능) - 〰️ 위, 켜면 지도를 눌러 점을 찍고 아래 칸에 직선 · 이은 거리 · 오르막 */
+#measureBtn { position:absolute; right:10px; bottom:170px; z-index:2; width:44px; height:44px; border-radius:50%; border:0; background:#fff;
+              font-size:20px; line-height:1; box-shadow:0 2px 8px rgba(0,0,0,0.45); opacity:0.75; }
+#measureBtn.on { opacity:1; box-shadow:0 0 0 3px #ffd43b, 0 2px 8px rgba(0,0,0,0.45); }
+#measureBox { position:absolute; left:10px; right:64px; bottom:66px; z-index:3; display:none; padding:8px 10px; border-radius:10px; background:rgba(20,24,30,0.92);
+              color:#fff; font-size:14px; line-height:1.5; box-shadow:0 2px 8px rgba(0,0,0,0.45); }
+#measureText { white-space:pre-line; }
+#measureBox button { margin:6px 6px 0 0; height:34px; padding:0 12px; border-radius:8px; border:0; background:#ffd43b; color:#111; font-weight:bold; font-size:13px; }
 #noteBtn { position:absolute; left:12px; top:118px; z-index:2; width:44px; height:44px; border-radius:50%; border:0; background:#fff;
            font-size:20px; line-height:1; box-shadow:0 2px 8px rgba(0,0,0,0.45); display:none; }
 /* 🌙 주머니 모드(2026-11-03 홍TV님) - 📝 아래 단추, 누르면 화면 전체를 검게(OLED 는 거의 꺼짐). 지도 그리기만 쉬고 GPS · 기록 · 음성 · 알림 · SOS 는 그대로 */
@@ -402,6 +410,8 @@ html.picking #pick { display:flex; }
     <button type="button" id="recClear" data-en="Clear record line ✕" data-en-title="Remove the record line from the map" title="지도에서 기록 선 지우기">기록 선 지우기 ✕</button>
     <button type="button" id="voice" data-en-title="Voice guide detailed · short · off (junctions, points, every 1 km, off-trail, arrival)" data-en-aria-label="Change voice guide" class="on" aria-label="음성 안내 바꾸기" title="음성 안내 자세히 · 짧게 · 끄기(갈림길 · 지점 · 1km 마다 · 코스 이탈 · 도착)">🔊</button>
     <button type="button" id="layerBtn" data-en-title="Light map (easier to see in sunlight)" data-en-aria-label="Switch light map · satellite" aria-label="밝은 지도 · 위성사진 바꾸기" title="밝은 지도로(햇빛 아래에서 잘 보임)">🗺️</button>
+    <button type="button" id="measureBtn" data-en-title="Measure distance - straight line, path and climb" data-en-aria-label="Measure distance" aria-label="거리 재기" aria-pressed="false" title="거리 재기 - 직선거리 · 이은 거리 · 오르막">📏</button>
+    <div id="measureBox" role="status" aria-live="polite"><div id="measureText"></div><button type="button" id="measureUndo" data-en="↶ Undo point">↶ 점 하나 빼기</button><button type="button" id="measureEnd" data-en="✕ Done">✕ 끝</button></div>
     <button type="button" id="contourBtn" data-en-title="Contour lines on · off" data-en-aria-label="Contour lines" aria-label="등고선" aria-pressed="false" title="등고선 켜기 · 끄기">〰️</button>
     <button type="button" id="follow" data-en-title="Follow my location" data-en-aria-label="Follow my location" class="on" aria-label="내 위치 따라가기" title="내 위치 따라가기">⌖</button>
     <button type="button" id="pocketBtn" data-en-title="Pocket mode - black screen, map paused; GPS, recording, voice and alerts keep going" data-en-aria-label="Pocket mode" aria-label="주머니 모드" title="주머니 모드 - 화면을 검게, 지도는 쉬고 GPS · 기록 · 음성 · 알림은 그대로">🌙</button>

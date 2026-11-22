@@ -558,14 +558,19 @@
         return light ? { color: "#8a5a2b", opacity: 0.6 } : { color: "#ffffff", opacity: 0.4 };
     }
 
+    /** 등고선 · 거리 재기 높이가 함께 쓰는 지형 타일(바탕 음영과 같은 주소 · maxzoom). 라이브러리가 없으면 null. */
+    function demSource() {
+        if (!demContour && window.mlcontour) {
+            demContour = new mlcontour.DemSource({ url: cfg.demUrl, encoding: "terrarium", maxzoom: cfg.vworldKey ? 12 : 15, worker: true });
+            demContour.setupMaplibre(maplibregl);
+        }
+        return demContour;
+    }
+
     function setContour(on, quiet) {
         contourOn = !!on;
         try { localStorage.setItem(CONTOUR_KEY, contourOn ? "1" : "0"); } catch (e) { /* 기억 못 해도 됨 */ }
-        if (contourOn && !map.getSource("contours") && window.mlcontour) {
-            if (!demContour) {
-                demContour = new mlcontour.DemSource({ url: cfg.demUrl, encoding: "terrarium", maxzoom: cfg.vworldKey ? 12 : 15, worker: true });
-                demContour.setupMaplibre(maplibregl);
-            }
+        if (contourOn && !map.getSource("contours") && demSource()) {
             map.addSource("contours", { type: "vector", maxzoom: 15, tiles: [demContour.contourProtocolUrl({
                 thresholds: CONTOUR_STEPS, overzoom: 1, contourLayer: "contours", elevationKey: "ele", levelKey: "level" })] });
             var cp = contourPaint(basemap === "light" || !cfg.vworldKey);
@@ -580,6 +585,65 @@
         b.title = contourOn ? T("등고선 끄기", "Hide contour lines") : T("등고선 켜기(가까이 보면 20m 간격)", "Show contour lines (20 m apart when zoomed in)");
         if (!quiet) toast(contourOn ? T("등고선 켬 - 가까이 볼수록 촘촘(굵은 선 100m · 250m · 500m 마다)", "Contours on - denser as you zoom in")
             : T("등고선 끔", "Contours off"), 2200);
+    }
+
+    /**
+     * 거리 재기(2026-11-22 홍TV님 - 램블러 플러스 전용 "직선거리 · 경로거리"): 📏 을 켜고 지도를 누르면 점을 찍어 직선(처음 → 끝) · 이은 거리 · 오르막 · 내리막.
+     * 높이는 바탕 음영과 같은 지형 타일(demSource)을 약 30m 마다(300점까지) 읽어 코스 오르막과 같은 셈(RF.measureSum). 점은 이 화면에만(저장 · 전송 없음).
+     */
+    var measure = { on: false, pts: [], run: 0 };
+
+    /** 지형 타일 한 장에서 그 자리 높이(m) - 못 읽으면 null. */
+    function demElev(lat, lon) {
+        var src = demSource();
+        if (!src) return Promise.resolve(null);
+        var z = cfg.vworldKey ? 12 : 15, n = Math.pow(2, z), r = lat * Math.PI / 180;
+        var x = (lon + 180) / 360 * n, y = (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * n, tx = Math.floor(x), ty = Math.floor(y);
+        return src.getDemTile(z, tx, ty).then(function (t) {
+            var px = Math.min(t.width - 1, Math.floor((x - tx) * t.width)), py = Math.min(t.height - 1, Math.floor((y - ty) * t.height)), v = t.data[py * t.width + px];
+            return isFinite(v) ? v : null;
+        }).catch(function () { return null; });
+    }
+
+    function measureLen(m) { return m >= 1000 ? km(m) + "km" : Math.round(m) + "m"; }
+
+    function drawMeasure() {
+        var pts = measure.pts, run = ++measure.run, feats = pts.map(function (p) { return { type: "Feature", properties: {}, geometry: { type: "Point", coordinates: [p.lon, p.lat] } }; });
+        if (pts.length > 1) feats.push({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: pts.map(function (p) { return [p.lon, p.lat]; }) } });
+        if (map.getSource("measure")) map.getSource("measure").setData({ type: "FeatureCollection", features: feats });
+        var box = $("measureText");
+        if (pts.length < 2) {
+            box.textContent = pts.length ? T("한 점 더 찍으세요(지도를 누름).", "Tap one more point on the map.") : T("📏 지도를 눌러 점을 찍으세요 - 직선 · 이은 거리 · 오르막", "📏 Tap the map to add points - straight line, path and climb");
+            return;
+        }
+        function show(m) {
+            box.textContent = T("직선 ", "Straight ") + measureLen(m.line) + " · " + T("이은 거리 ", "Path ") + measureLen(m.path)
+                + (pts.length > 2 ? T("(점 ", " (") + pts.length + T("개)", " points)") : "") + "\n"
+                + (m.up == null ? T("오르막 · 내리막 - 지형 높이를 읽는 중…", "Climb · descent - reading terrain…")
+                    : T("오르막 ", "Climb ") + Math.round(m.up) + "m · " + T("내리막 ", "Descent ") + Math.round(m.down) + "m" + T("(지형 자료 · 참고용)", " (terrain data, rough)"));
+        }
+        var smp = RF.measureSamples(pts, 30, 300);
+        show(RF.measureSum(pts, []));
+        Promise.all(smp.map(function (p) { return demElev(p.lat, p.lon); })).then(function (eles) {
+            if (run !== measure.run || !measure.on) return;   // 그 사이 점을 더 찍었거나 껐음
+            var m = RF.measureSum(pts, eles);
+            if (m.up == null) box.textContent = box.textContent.split("\n")[0] + "\n" + T("오르막 - 지형 높이를 못 읽었습니다(오프라인 등).", "Climb - could not read terrain (offline?).");
+            else show(m);
+        });
+    }
+
+    function setMeasure(on) {
+        measure.on = !!on;
+        measure.pts = [];
+        var b = $("measureBtn");
+        b.classList.toggle("on", measure.on);
+        b.setAttribute("aria-pressed", measure.on ? "true" : "false");
+        $("measureBox").style.display = measure.on ? "block" : "none";
+        if (map) {
+            map.getCanvas().style.cursor = measure.on ? "crosshair" : "";
+            if (measure.on) setFollow(false);   // 누른 자리로 지도가 옮겨 가지 않게
+            drawMeasure();
+        }
     }
 
     var doneK = 0;   // 지금 지나온 길 색의 자리(0.2% 단위) - 처음 선은 progressGradient(0)
@@ -678,6 +742,17 @@
                     paint: { "line-color": "#ff5d5d", "line-width": 3, "line-dasharray": [1.5, 1.2] } });
                 if (cfg.vworldKey) setBasemap(basemap, true);
                 if (contourOn) setContour(true, true);
+                // 거리 재기 선 · 점(노랑 점선 - 코스 · 기록 선과 헷갈리지 않게)
+                map.addSource("measure", { type: "geojson", data: empty });
+                map.addLayer({ id: "measure-line", type: "line", source: "measure", filter: ["==", ["geometry-type"], "LineString"],
+                    paint: { "line-color": "#ffd43b", "line-width": 3, "line-dasharray": [2, 1] } });
+                map.addLayer({ id: "measure-pt", type: "circle", source: "measure", filter: ["==", ["geometry-type"], "Point"],
+                    paint: { "circle-radius": 5, "circle-color": "#ffd43b", "circle-stroke-color": "#111", "circle-stroke-width": 1.5 } });
+                map.on("click", function (e) {
+                    if (!measure.on) return;
+                    measure.pts.push({ lat: e.lngLat.lat, lon: e.lngLat.lng });
+                    drawMeasure();
+                });
                 resolve();
             });
         });
@@ -3903,6 +3978,9 @@
     }
     $("layerBtn").addEventListener("click", function () { setBasemap(basemap === "light" ? "sat" : "light"); });
     $("contourBtn").addEventListener("click", function () { if (map) setContour(!contourOn); });
+    $("measureBtn").addEventListener("click", function () { if (map) setMeasure(!measure.on); });
+    $("measureEnd").addEventListener("click", function () { setMeasure(false); });
+    $("measureUndo").addEventListener("click", function () { measure.pts.pop(); drawMeasure(); });
     $("navBtn").addEventListener("click", openNav);
     $("navClose").addEventListener("click", function () {
         $("navSheet").style.display = "none";

@@ -1528,6 +1528,35 @@
         return asc;
     }
 
+    /**
+     * 거리 재기(2026-11-22 홍TV님 - 램블러 플러스 전용 "직선거리 · 경로거리"): 지도에 찍은 점들(pts [{lat, lon}]) 사이를 stepM 마다 나눈 점(높이를 물을 자리).
+     * 점은 많아도 maxN 개까지(stepM 을 늘림). 순수 함수.
+     */
+    function measureSamples(pts, stepM, maxN) {
+        var total = 0, i;
+        for (i = 1; i < pts.length; i++) total += distM(pts[i - 1].lat, pts[i - 1].lon, pts[i].lat, pts[i].lon);
+        if (maxN && total / stepM > maxN) stepM = total / maxN;
+        var out = pts.length ? [{ lat: pts[0].lat, lon: pts[0].lon }] : [];
+        for (i = 1; i < pts.length; i++) {
+            var a = pts[i - 1], b = pts[i], d = distM(a.lat, a.lon, b.lat, b.lon), n = Math.max(1, Math.ceil(d / stepM));
+            for (var k = 1; k <= n; k++) out.push({ lat: a.lat + (b.lat - a.lat) * k / n, lon: a.lon + (b.lon - a.lon) * k / n });
+        }
+        return out;
+    }
+
+    /**
+     * 순수 함수 - 거리 재기 값: line 처음 → 끝 직선(m), path 찍은 차례대로 이은 거리(m), up 이은 길의 오르막(m - 나눈 점 높이 eles 로 cumAscent, 5m 넘게 바뀔 때만 -
+     * 코스 오르막과 같은 셈. 높이를 하나도 모르면 null), down 내리막(같은 셈을 거꾸로).
+     */
+    function measureSum(pts, eles) {
+        var path = 0, i;
+        for (i = 1; i < pts.length; i++) path += distM(pts[i - 1].lat, pts[i - 1].lon, pts[i].lat, pts[i].lon);
+        var line = pts.length > 1 ? distM(pts[0].lat, pts[0].lon, pts[pts.length - 1].lat, pts[pts.length - 1].lon) : 0;
+        var known = (eles || []).some(function (e) { return e != null; });
+        var up = known ? cumAscent(eles)[eles.length - 1] : null, down = known ? cumAscent(eles.slice().reverse())[eles.length - 1] : null;
+        return { line: line, path: path, up: up, down: down };
+    }
+
     /** 순수 함수 - 코스 이름을 거꾸로: "송산 · 들머리 → 정상" → "송산 · 정상 → 들머리". 화살표가 없으면 "(거꾸로)" 를 붙입니다. */
     function reverseName(name) {
         name = name || "";
@@ -4033,6 +4062,8 @@
         kindOf: kindOf,
         groupPois: groupPois,
         declutter: declutter,
+        measureSamples: measureSamples,
+        measureSum: measureSum,
         routeEnds: routeEnds,
         routeFlips: routeFlips,
         parseJoinId: parseJoinId,

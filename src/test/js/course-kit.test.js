@@ -552,6 +552,16 @@ eq("노선 안내도 에서 · 까지", RF.routePlaces([{ course_id: "a", name: 
     { course_id: "c", name: "백두대간 18구간 · 삼각점까지" }, { course_id: "d", name: "DMZ 평화의 길 19-1코스 · 승라부대까지" }],
     { a: [[128, 36.9], [128.05, 36.9]], b: [[128.0501, 36.9001], [128.1, 36.85]], c: [[128.1, 36.85], [128.15, 36.8]], d: [[129, 38], [129.1, 38]] })
     .map(function (p) { return p.name + ":" + p.start + (p.last ? ":끝" : ""); }), ["창옥봉:1", "승라부대:-1:끝"]);
+(function () {   // 거리 재기(2026-11-22 홍TV님 - 램블러 플러스 전용 기능): 직선 · 이은 거리 · 오르막 · 내리막
+    var A = { lat: 35, lon: 127 }, B = { lat: 35.01, lon: 127 }, C = { lat: 35.01, lon: 127.01 }, m = RF.measureSum([A, B, C], [100, 104, 110, 108, 120, 100]);
+    eq("거리 재기 이은 거리 = 두 구간 합", Math.round(m.path), Math.round(RF.distM(35, 127, 35.01, 127) + RF.distM(35.01, 127, 35.01, 127.01)));
+    eq("거리 재기 직선 = 처음 → 끝", Math.round(m.line), Math.round(RF.distM(35, 127, 35.01, 127.01)));
+    eq("거리 재기 오르막 · 내리막(5m 넘게 바뀔 때만)", [m.up, m.down], [20, 20]);
+    eq("높이를 모르면 오르막 null", RF.measureSum([A, B], [null, null]).up, null);
+    eq("점 하나면 0", RF.measureSum([A], []).path + RF.measureSum([A], []).line, 0);
+    eq("나눈 점 - 500m 마다(끝 포함)", RF.measureSamples([A, B, C], 500).length, 6);
+    eq("나눈 점은 maxN 개까지", RF.measureSamples([A, B, C], 500, 2).length, 4);
+})();
 eq("cumAscent 5m 넘게 바뀔 때만(배치와 같게)", RF.cumAscent ? RF.cumAscent([100, 102, 104, 106, 103, 110, null, 120]) : null, [0, 0, 0, 6, 6, 6, 6, 20]);
 eq("routeEnds", ["지리산둘레길 가탄-송정", "지리산둘레길 (가탄-송정) · 송정리 → 가탄마을민박", "백두대간 17구간 · 창옥봉에서", "DMZ 평화의 길 4코스 · 농업체험까지", "이름만"].map(function (n) {
     var e = RF.routeEnds(n); return e.from + "|" + e.to; }), ["가탄|송정", "송정리|가탄마을민박", "창옥봉|null", "null|농업체험", "null|null"]);

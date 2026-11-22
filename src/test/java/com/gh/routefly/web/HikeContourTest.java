@@ -27,7 +27,7 @@ public class HikeContourTest {
         assertTrue(html.contains("id=\"contourBtn\"") && html.contains("#contourBtn.on"));
         // 바탕 음영과 같은 지형 타일 · 같은 maxzoom - 새 자료나 키 없음, 끈 동안은 층을 만들지 않음
         assertTrue(js.contains("new mlcontour.DemSource({ url: cfg.demUrl, encoding: \"terrarium\", maxzoom: cfg.vworldKey ? 12 : 15, worker: true })"));
-        assertTrue(js.contains("if (contourOn && !map.getSource(\"contours\") && window.mlcontour)"));
+        assertTrue(js.contains("if (contourOn && !map.getSource(\"contours\") && demSource())"));
         assertTrue("코스 · 등산로 선 아래", js.contains("map.getLayer(\"trails\") ? \"trails\" : undefined"));
         assertTrue("켠 것 기억 · 지도가 뜨면 다시", js.contains("var CONTOUR_KEY = \"rf-contour\"") && js.contains("if (contourOn) setContour(true, true);"));
         assertTrue("바탕을 바꾸면 선 색도", js.contains("map.setPaintProperty(\"contours\", \"line-color\", cp.color);"));
