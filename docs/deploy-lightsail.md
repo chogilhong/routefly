@@ -1204,3 +1204,14 @@ Invoke-WebRequest -UseBasicParsing -Method Post -Uri https://api.indexnow.org/in
   페이지 글(예상 시간 · 숙소 칸 등)을 크게 바꾸면 PAGE_CHANGED 를 그 날로 올리고, 배포 뒤 위 IndexNow 를 한 번 보냄. 구글은 IndexNow 를 받지 않아 사이트맵 lastmod 로 다시 읽음
   (서치 콘솔 → 사이트맵 → sitemap.xml 다시 제출은 홍TV님, 급한 페이지 몇 개는 URL 검사 → 색인 생성 요청).
 
+
+## 걷는 길 자료를 웹에 내 주기 (2026-11-22 - GPX 편집 "길 따라 잇기")
+
+routefly-batch 가 만드는 OSM 걷는 길 칸 파일을 웹(톰캣)이 읽게 함 - GPX 편집이 공용 Overpass 대신 이 자료로 길을 이음(`/api/walk-ways`, WalkWaysServlet).
+
+- 배치 `batch.properties`: `osm.webDir=/app/routefly/batch/data/osm-web` → forestTrail 이 칸 목차를 쓸 때 그 폴더에 하드 링크로 내 줌(WebTiles, 폴더 755 · 파일 644, 바로 앞 판 하나 남김). 로그 "[OSM] 웹(GPX 편집)이 읽을 걷는 길 칸 파일을 … 에 내 줬습니다".
+- 웹 `/opt/routefly/config.properties`: `walk.dir=/app/routefly/batch/data/osm-web` → 톰캣 재시작.
+- 톰캣이 들어갈 수 있게 `/app/routefly` 는 o+x(drwxr-x--x). 확인 `sudo -u tomcat namei -l /app/routefly/batch/data/osm-web`.
+- 같은 날 `/app/routefly/batch/data` 아래 777 폴더(첫 설치 복사 때 생김)는 `sudo find /app/routefly/batch/data -perm -o+w -exec chmod o-w {} +` 로 줄임 - 웹은 batch/data 에 쓰지 않음(웹이 쓰는 곳은 /opt/routefly).
+- 2026-11-22 13:22 처음 내 줌(tiles-1793593259000-611630978-v1), `api/walk-ways?bbox=127.000,37.500,127.010,37.510` → elements 1495, GPX 편집 우면산 숲길 400m 를 5초 안에 이음(PC 확인).
+- 자료(pbf)가 바뀌면 forestTrail 다음 회차가 새 칸 목차를 만들며 함께 내 줌. 설정을 비우면 웹은 예전처럼 공용 Overpass.
