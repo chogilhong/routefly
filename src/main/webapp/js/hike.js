@@ -2350,7 +2350,7 @@
             + '<button type="button" class="g" style="' + bs + '"><b>' + T("💾 GPX 파일 저장", "💾 Save GPX file") + '</b><br><span class="tip">'
             + T("선 · 시각 · 높이에 사진 · 메모까지 한 파일로 - 받은 사람이 routefly 로 열면 지도 위 사진 · 고도 · 속도 그래프로 봅니다(다른 등산 앱은 선 · 지점만). 카카오톡으로는 보낼 수 없습니다. 메일 · 드라이브 · 내 파일로 보내세요",
                 "Line, times, elevation plus photos and notes in one file - opened in routefly it shows photos on the map with elevation and speed graphs (other apps show the line and points). KakaoTalk does not accept GPX - use email, Drive or Files") + '</span></button>'
-            + '<button type="button" class="n" style="display:block;width:100%;margin:12px 0 0">' + T("닫기", "Close") + '</button>';
+            + '<button type="button" class="n" style="display:block;width:100%;margin:12px 0 0;min-height:52px;font-size:16px">' + T("닫기", "Close") + '</button>';   // 위아래 넓게(2026-11-22 홍TV님)
         box.querySelector("p").textContent = NM(r.name);
         wrap.appendChild(box);
         document.body.appendChild(wrap);
