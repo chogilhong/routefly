@@ -31,7 +31,9 @@ public class BasemapTest {
     @Test
     public void tripUsesBasemapWhenSet() throws Exception {
         String js = read("src/main/webapp/js/trip.js"), html = read("src/main/webapp/trip.html"), sw = read("src/main/webapp/sw.js");
-        assertTrue("설정이 있고 pmtiles 를 읽었을 때만", js.contains("if (c.basemapUrl && window.pmtiles) {") && js.contains("maplibregl.addProtocol(\"pmtiles\", new pmtiles.Protocol().tile);"));
+        assertTrue("설정이 있고 pmtiles 를 읽었을 때만", js.contains("if (!c.basemapUrl || !window.pmtiles) return { cfg: cfg, style: null };") && js.contains("maplibregl.addProtocol(\"pmtiles\", proto.tile);"));
+        assertTrue("파일 머리를 못 읽으면(404 - 설정이 파일보다 먼저) V-World 바탕으로(2026-11-22 PC)",
+            js.contains("return file.getHeader().then(function () {") && js.contains("}, function () { return { cfg: cfg, style: null }; });") && js.contains("proto.add(file);"));
         assertTrue("없으면 지금 바탕", js.contains("style: style || RF.baseStyle(cfg)"));
         assertTrue("한글은 폰 글꼴", js.contains("localIdeographFontFamily:"));
         assertTrue(html.contains("<script src=\"vendor/pmtiles-4.5.0/pmtiles.js\"></script>"));

@@ -140,12 +140,18 @@
     $("graphBtn").onclick = function () { $("graph").hidden = false; $("graphBtn").hidden = true; };
 
     // 지도(V-World 지도 + 지형 음영 - 위성은 쓰지 않음). 우리 바탕 지도 파일(map.basemap.url)이 설정되면 그것(2026-11-22 바탕 지도 2단계 - 기록 보기만 먼저)
+    // 파일이 아직 서버에 없거나(404) 못 읽으면 V-World 바탕으로(2026-11-22 PC: 설정이 파일보다 먼저 들어가 운영 기록 보기가 바탕 없이 지형 음영만 보였음)
     cfgP = getJson("api/map-config").catch(function () { return {}; }).then(function (c) {
-        var cfg = { demUrl: c.demUrl || "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png", vworldKey: c.vworldKey || null }, style = null;
-        if (c.basemapUrl && window.pmtiles) {
-            maplibregl.addProtocol("pmtiles", new pmtiles.Protocol().tile);   // 파일 하나에서 필요한 조각만 Range 로 받음
-            style = RF.vectorStyle({ basemapUrl: new URL(c.basemapUrl, location.href).href, demUrl: cfg.demUrl }, new URL("vendor/fonts/", location.href).href);
-        }
+        var cfg = { demUrl: c.demUrl || "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png", vworldKey: c.vworldKey || null };
+        if (!c.basemapUrl || !window.pmtiles) return { cfg: cfg, style: null };
+        var url = new URL(c.basemapUrl, location.href).href, file = new pmtiles.PMTiles(url), proto = new pmtiles.Protocol();
+        return file.getHeader().then(function () {
+            proto.add(file);   // 머리를 읽은 그 파일을 지도도 씀(머리를 두 번 받지 않음)
+            maplibregl.addProtocol("pmtiles", proto.tile);   // 파일 하나에서 필요한 조각만 Range 로 받음
+            return { cfg: cfg, style: RF.vectorStyle({ basemapUrl: url, demUrl: cfg.demUrl }, new URL("vendor/fonts/", location.href).href) };
+        }, function () { return { cfg: cfg, style: null }; });
+    }).then(function (o) {
+        var cfg = o.cfg, style = o.style;
         map = new maplibregl.Map({ container: "map", style: style || RF.baseStyle(cfg), center: [127.8, 36.3], zoom: 6.5, locale: RF.mapLocale(), attributionControl: false,
             localIdeographFontFamily: "'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif" });   // 한글 지명은 폰 글꼴로
         map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
