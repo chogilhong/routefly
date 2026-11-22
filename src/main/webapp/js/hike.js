@@ -2057,7 +2057,7 @@
             end.area = j.region.name;
             food.href = RF.afterHikeLinks(p, end, EN).links[0].href;
         }).catch(function () { /* 이름으로 찾기 그대로 */ });
-        // 📺 TV 맛집(2026-11-22 홍TV님 "백반기행 등 TV 에 나온 유명한 맛집" · 30km) - 같은 좌표 규칙, 있으면 🍜 옆에 단추, 누르면 목록(가까운 순 · 나온 프로그램)
+        // 📺 TV 맛집(2026-11-22 홍TV님 "백반기행 등 TV 에 나온 유명한 맛집" · 30km) - 같은 좌표 규칙, 있으면 🍜 · 🏨 뒤에 단추, 누르면 목록(가까운 순 · 나온 프로그램)
         if (food && at) getJson("api/food?lat=" + (+at[0]).toFixed(4) + "&lon=" + (+at[1]).toFixed(4)).then(function (j) {
             var list = j && j.food || [];
             if (!list.length || !box.contains(food)) return;
@@ -2088,8 +2088,8 @@
                 "Places Kakao returns for the show names · within 30 km (straight line) · nearest first. Check the shop page for the broadcast.");
             ul.appendChild(src);
             btn.addEventListener("click", function (e) { e.preventDefault(); ul.hidden = !ul.hidden; });
-            food.parentNode.insertBefore(btn, food.nextSibling);
-            btn.parentNode.insertBefore(ul, btn.nextSibling);
+            food.parentNode.appendChild(btn);   // 맨 뒤 - 🏨 숙소가 위로(2026-11-22 홍TV님 "숙소를 위로 올려"), 펼친 목록은 그 아래
+            food.parentNode.appendChild(ul);
         }).catch(function () { /* 🍜 단추만 */ });
     }
 

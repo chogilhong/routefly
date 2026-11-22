@@ -76,7 +76,7 @@ public class FoodServletTest {
     public void doneSheetShowsList() throws Exception {
         String js = read("src/main/webapp/js/hike.js"), html = read("src/main/webapp/hike.html"), kit = read("src/main/webapp/js/course-kit.js");
         assertTrue("같은 좌표 규칙으로 api/food", js.contains("if (food && at) getJson(\"api/food?lat=\" + (+at[0]).toFixed(4) + \"&lon=\" + (+at[1]).toFixed(4))"));
-        assertTrue("🍜 바로 뒤 단추 · 그 뒤 목록(처음엔 접힘)", js.contains("food.parentNode.insertBefore(btn, food.nextSibling);") && js.contains("btn.parentNode.insertBefore(ul, btn.nextSibling);") && js.contains("ul.hidden = true;"));
+        assertTrue("🍜 · 🏨 뒤에 단추 · 그 아래 목록(처음엔 접힘) - 숙소가 위로(2026-11-22 홍TV님)", js.contains("food.parentNode.appendChild(btn);") && js.contains("food.parentNode.appendChild(ul);") && js.contains("ul.hidden = true;"));
         assertTrue("카카오 검색 결과라고 밝힘", js.contains("방송 출연은 가게 정보에서 확인하세요."));
         assertTrue("글은 textContent 로만", js.contains("nm.textContent = f.name;") && !js.contains("innerHTML = f."));
         assertTrue(html.contains("#doneNext .tvFood[hidden] { display:none; }"));
