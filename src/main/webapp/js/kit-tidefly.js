@@ -132,12 +132,13 @@
      * 순수 함수 - "🏨 근처 숙소 찾기"(/m/, 2026-10-29 홍TV님 "산청군청 근처 숙소") 예약 단추들: 설정된 제휴(트립닷컴 · 아고다 · 호텔스컴바인) + 카카오맵 숙소 검색(제휴 아님). 여기어때 · 야놀자는 뺌(2026-10-30 홍TV님).
      * q - 찾은 장소 이름, lat · lon - 그 좌표. → [{text, href, sponsored}]
      */
-    function stayLinks(p, q, lat, lon, en, area, agodaCity) {
+    function stayLinks(p, q, lat, lon, en, area, agodaCity, wide) {
         p = p || {};
         // area - 주소의 시 · 군 · 구(예: 산청군). 아고다 검색어로(장소 이름 "산청군청" 보다 결과가 많음, 2026-10-29). 없으면 장소 이름
         var kw = String(area || q || "").replace(/\s+/g, " ").trim().slice(0, 20);
         var out = [], ok = isFinite(lat) && isFinite(lon) && lat !== null && lon !== null, nm = String(q || "").replace(/\s+/g, " ").trim().slice(0, 30);
-        var trip = p.trip && ok ? tripLink(p.trip, lat, lon, nm) : null;
+        // 트립닷컴 검색어는 산행 끝 화면 · 3D 와 같게 넓은 지역(wide - "경남 산청군", RF.areaWide), 모르면 장소 이름(2026-11-23 홍TV님 "다른 곳도 동일하게")
+        var trip = p.trip && ok ? tripLink(p.trip, lat, lon, wide || nm) : null;
         if (trip) out.push({ text: en ? "🏨 Trip.com" : "🏨 트립닷컴", href: trip, sponsored: true });
         function fill(u) { return u.replace(/\{q\}/g, encodeURIComponent(nm)).replace(/\{lat\}/g, ok ? (+lat).toFixed(5) : "").replace(/\{lon\}/g, ok ? (+lon).toFixed(5) : ""); }
         // 제휴 링크가 설정되면 그것(🏨, 수수료), 아직이면 그 사이트 첫 화면(🔎, 제휴 아님 - 2026-10-29). 여기어때 · 야놀자는 뺌(2026-10-30 홍TV님 "빼줘")
@@ -209,8 +210,8 @@
             return citiesP;
         }
         function agodaCity(lat, lon) { return nearCity(cities, lat, lon); }
-        function links(p, q, lat, lon, area, city) {
-            var row = el("p", null, "ssLinks"), ls = stayLinks(p, q, lat, lon, en, area, city), spon = false;
+        function links(p, q, lat, lon, area, city, wide) {
+            var row = el("p", null, "ssLinks"), ls = stayLinks(p, q, lat, lon, en, area, city, wide), spon = false;
             ls.forEach(function (x) {
                 var a = el("a", x.text + " ›");
                 a.href = x.href; a.target = "_blank"; a.rel = x.sponsored ? "noopener sponsored" : "noopener";
@@ -276,7 +277,7 @@
                 });
                 out.appendChild(alt);
             }
-            links(p, stayWord(lastQ, pl.name), pl.lat, pl.lon, areaOf(pl.addr), agodaCity(pl.lat, pl.lon));   // 트립닷컴 · 호텔스컴바인 · 카카오맵 검색어는 산 이름(있으면)
+            links(p, stayWord(lastQ, pl.name), pl.lat, pl.lon, areaOf(pl.addr), agodaCity(pl.lat, pl.lon), areaWide(pl.addr));   // 트립닷컴 · 호텔스컴바인 · 카카오맵 검색어는 산 이름(있으면)
             var list = el("ul", null, "wl ssList");
             list.appendChild(el("li", T("근처 숙소를 찾는 중…", "Finding lodging nearby…")));
             out.appendChild(list);
@@ -447,6 +448,19 @@
     // 웹 앱은 화면을 끄면 위치가 멈춰 산악회 방 · 따라가기는 routefly 앱이 맞음). PC 등 다른 기기는 그대로. 크롬 메뉴의 "앱 설치"는 남음
     if (global.addEventListener && global.navigator && /Android/i.test(navigator.userAgent || "") && !global.Capacitor)
         global.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); });
+
+    /**
+     * 순수 함수 - 산행을 마친 화면의 "다음은?" 줄(2026-10-28 홍TV님 추천 - 수익: 끝난 때가 가장 반가운 때, 안전 화면에는 광고 없이).
+     * p - api/partners, end - {lat, lon, name: "설악산 오색"(날머리)}. → {links: [{text, href, sponsored, app}], affiliate}.
+     * 맛집은 카카오맵 검색(제휴 아님), 숙소는 트립닷컴(날머리 좌표 검색) · 아고다({lat}{lon}). 쿠팡 · 다음 산 고르기는 뺌(2026-11-22 홍TV님 "맛집, 근처 숙소, 후원하기 빼고 모두 삭제").
+     */
+    /** 순수 함수 - 카카오 행정동 이름 "인천광역시 영종구 영종동" → 넓은 이름 "인천 영종구"(시 · 도 줄임 + 시 · 군 · 구). 모르면 "". */
+    function areaWide(area) {
+        var w = String(area || "").replace(/\s+/g, " ").trim().split(" ");
+        if (w.length < 2) return "";
+        var top = w[0].replace(/(특별자치시|특별자치도|특별시|광역시)$/, "");
+        return (top + " " + w[1]).slice(0, 30);
+    }
 
     /**
      * 순수 함수 - 작은 지도(지도 조각 그림을 이어 붙임 - 지도 라이브러리 없이): 가운데 c{lat,lon} 와 점들이 w × h 안에 다 들어가는 가장 큰 줌(6~16).

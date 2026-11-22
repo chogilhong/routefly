@@ -1472,12 +1472,13 @@
      * 순수 함수 - "🏨 근처 숙소 찾기"(/m/, 2026-10-29 홍TV님 "산청군청 근처 숙소") 예약 단추들: 설정된 제휴(트립닷컴 · 아고다 · 호텔스컴바인) + 카카오맵 숙소 검색(제휴 아님). 여기어때 · 야놀자는 뺌(2026-10-30 홍TV님).
      * q - 찾은 장소 이름, lat · lon - 그 좌표. → [{text, href, sponsored}]
      */
-    function stayLinks(p, q, lat, lon, en, area, agodaCity) {
+    function stayLinks(p, q, lat, lon, en, area, agodaCity, wide) {
         p = p || {};
         // area - 주소의 시 · 군 · 구(예: 산청군). 아고다 검색어로(장소 이름 "산청군청" 보다 결과가 많음, 2026-10-29). 없으면 장소 이름
         var kw = String(area || q || "").replace(/\s+/g, " ").trim().slice(0, 20);
         var out = [], ok = isFinite(lat) && isFinite(lon) && lat !== null && lon !== null, nm = String(q || "").replace(/\s+/g, " ").trim().slice(0, 30);
-        var trip = p.trip && ok ? tripLink(p.trip, lat, lon, nm) : null;
+        // 트립닷컴 검색어는 산행 끝 화면 · 3D 와 같게 넓은 지역(wide - "경남 산청군", RF.areaWide), 모르면 장소 이름(2026-11-23 홍TV님 "다른 곳도 동일하게")
+        var trip = p.trip && ok ? tripLink(p.trip, lat, lon, wide || nm) : null;
         if (trip) out.push({ text: en ? "🏨 Trip.com" : "🏨 트립닷컴", href: trip, sponsored: true });
         function fill(u) { return u.replace(/\{q\}/g, encodeURIComponent(nm)).replace(/\{lat\}/g, ok ? (+lat).toFixed(5) : "").replace(/\{lon\}/g, ok ? (+lon).toFixed(5) : ""); }
         // 제휴 링크가 설정되면 그것(🏨, 수수료), 아직이면 그 사이트 첫 화면(🔎, 제휴 아님 - 2026-10-29). 여기어때 · 야놀자는 뺌(2026-10-30 홍TV님 "빼줘")
@@ -1549,8 +1550,8 @@
             return citiesP;
         }
         function agodaCity(lat, lon) { return nearCity(cities, lat, lon); }
-        function links(p, q, lat, lon, area, city) {
-            var row = el("p", null, "ssLinks"), ls = stayLinks(p, q, lat, lon, en, area, city), spon = false;
+        function links(p, q, lat, lon, area, city, wide) {
+            var row = el("p", null, "ssLinks"), ls = stayLinks(p, q, lat, lon, en, area, city, wide), spon = false;
             ls.forEach(function (x) {
                 var a = el("a", x.text + " ›");
                 a.href = x.href; a.target = "_blank"; a.rel = x.sponsored ? "noopener sponsored" : "noopener";
@@ -1616,7 +1617,7 @@
                 });
                 out.appendChild(alt);
             }
-            links(p, stayWord(lastQ, pl.name), pl.lat, pl.lon, areaOf(pl.addr), agodaCity(pl.lat, pl.lon));   // 트립닷컴 · 호텔스컴바인 · 카카오맵 검색어는 산 이름(있으면)
+            links(p, stayWord(lastQ, pl.name), pl.lat, pl.lon, areaOf(pl.addr), agodaCity(pl.lat, pl.lon), areaWide(pl.addr));   // 트립닷컴 · 호텔스컴바인 · 카카오맵 검색어는 산 이름(있으면)
             var list = el("ul", null, "wl ssList");
             list.appendChild(el("li", T("근처 숙소를 찾는 중…", "Finding lodging nearby…")));
             out.appendChild(list);

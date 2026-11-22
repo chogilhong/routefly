@@ -911,14 +911,16 @@
                 if (!food) {   // 아고다 제휴 링크(설정 partner.agoda.url - 2026-10-15). {lat} · {lon} 은 들머리 좌표로
                     var ag = el("div", "gNote");
                     body.appendChild(ag);
-                    partners().then(function (p) {
+                    // 트립닷컴 검색어는 산행 끝 화면과 같게 넓은 지역(시 · 도 + 시 · 군 · 구, RF.areaWide) - 들머리 행정동은 api/wx 가 이미 알려 줌(2026-11-23 홍TV님 "다른 곳도 동일하게")
+                    Promise.all([partners(), wxP.then(function (x) { return x.region && x.region.name; }, function () { return null; })]).then(function (pr) {
+                        var p = pr[0], wide = RF.areaWide(pr[1]);
                         if (!p.agoda && !p.trip) { ag.remove(); return; }
                         var at = function (u) { return u.replace(/\{lat\}/g, start.lat.toFixed(5)).replace(/\{lon\}/g, start.lon.toFixed(5)); };
                         // 링크에 {lat} · {lon} 이 있을 때만 "들머리 근처"(2026-10-28 - 트립닷컴 제휴 링크는 좌표 없이 숙소 첫 화면일 수 있음)
                         var near = function (u, ko, en, koAny, enAny) { return /\{lat\}/.test(u || "") ? T(ko, en) : T(koAny, enAny); };
                         // 트립닷컴은 들머리 좌표 · 이름으로 숙소 검색(RF.tripLink, 2026-10-28) - 이름은 "지리산 백무동" 처럼 공원 + 들머리(카드에 "…에서 직선 거리")
                         var cn = String(c.course && c.course.name || ""), head = (/·\s*([^→·]+?)\s*→/.exec(cn) || [])[1];
-                        var tripUrl = p.trip && RF.tripLink(p.trip, start.lat, start.lon, [RF.parkOf(cn), head].filter(Boolean).join(" ") || cn.split("→")[0]);
+                        var tripUrl = p.trip && RF.tripLink(p.trip, start.lat, start.lon, wide || [RF.parkOf(cn), head].filter(Boolean).join(" ") || cn.split("→")[0]);
                         [[p.agoda, near(p.agoda, "🏨 아고다에서 들머리 근처 숙소 더 보기 ›", "🏨 More stays near the trailhead on Agoda ›", "🏨 아고다에서 숙소 찾기 ›", "🏨 Find stays on Agoda ›")],
                             [tripUrl || p.trip, tripUrl ? T("🏨 트립닷컴에서 들머리 근처 숙소 더 보기 ›", "🏨 More stays near the trailhead on Trip.com ›") : T("🏨 트립닷컴에서 숙소 찾기 ›", "🏨 Find stays on Trip.com ›")]].forEach(function (x) {   // 트립닷컴(2026-10-28 승인)
                             if (!x[0]) return;

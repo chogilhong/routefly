@@ -2369,6 +2369,19 @@
     }
 
     /**
+     * 순수 함수 - 산행을 마친 화면의 "다음은?" 줄(2026-10-28 홍TV님 추천 - 수익: 끝난 때가 가장 반가운 때, 안전 화면에는 광고 없이).
+     * p - api/partners, end - {lat, lon, name: "설악산 오색"(날머리)}. → {links: [{text, href, sponsored, app}], affiliate}.
+     * 맛집은 카카오맵 검색(제휴 아님), 숙소는 트립닷컴(날머리 좌표 검색) · 아고다({lat}{lon}). 쿠팡 · 다음 산 고르기는 뺌(2026-11-22 홍TV님 "맛집, 근처 숙소, 후원하기 빼고 모두 삭제").
+     */
+    /** 순수 함수 - 카카오 행정동 이름 "인천광역시 영종구 영종동" → 넓은 이름 "인천 영종구"(시 · 도 줄임 + 시 · 군 · 구). 모르면 "". */
+    function areaWide(area) {
+        var w = String(area || "").replace(/\s+/g, " ").trim().split(" ");
+        if (w.length < 2) return "";
+        var top = w[0].replace(/(특별자치시|특별자치도|특별시|광역시)$/, "");
+        return (top + " " + w[1]).slice(0, 30);
+    }
+
+    /**
      * 순수 함수 - 코스 선에서 점 사이가 minM(기본 250m) 넘게 뛰는 곳(자료가 끊긴 구간) [{at(누적 m), m}] - 따라가기가 알림(2026-10-30 홍TV님 "끊어짐 없이"
      * - 코스 점검(tools/course-audit) 에서 공단 공식 선도 2곳: 설악산 양폭대피소 → 무너미고개 344m · 지리산 추성동 → 천왕봉 315m). c: {lon, lat, dist}.
      */
@@ -2512,6 +2525,7 @@
         pageLang: pageLang,
         applyEn: applyEn,
         favButton: favButton,
+        areaWide: areaWide,
         tripLink: tripLink,
         airText: airText,
         COUPANG_NOTE: COUPANG_NOTE,

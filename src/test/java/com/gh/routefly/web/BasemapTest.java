@@ -69,6 +69,8 @@ public class BasemapTest {
         assertTrue("공원 탐방로 - 폰 안에서 공원을 정하고 이름만 보냄(2026-11-23 홍TV님), 방침에 적음", js.contains("var park = RF.recordPark(rc, parkCands, PARK_NEAR_M);")
             && js.contains("getJson(\"api/park?name=\" + encodeURIComponent(park))") && read("src/main/webapp/privacy.html").contains("그 <b>공원 이름만</b> 보내 탐방로 선을 받습니다")
             && read("src/main/webapp/privacy-en.html").contains("sends <b>only the national park name</b>"));
+        assertTrue("3D 화면 트립닷컴도 넓은 지역으로(2026-11-23 홍TV님 \"다른 곳도 동일하게\")", read("src/main/webapp/js/app.js").contains("RF.tripLink(p.trip, start.lat, start.lon, wide ||")
+            && read("src/main/webapp/js/course-kit.js").contains("areaOf(pl.addr), agodaCity(pl.lat, pl.lon), areaWide(pl.addr));"));
         assertTrue("OSM 출처는 한 번만 - 우리 지도는 바탕 출처에 이미 있음(2026-11-22 PC)", js.contains("customAttribution: (style ? \"\" : \"© OpenStreetMap contributors | \") + "));
         assertTrue(html.contains("<script src=\"vendor/pmtiles-4.5.0/pmtiles.js\"></script>"));
         assertTrue("지도 파일은 캐시하지 않음(Range)", sw.contains("if (/\\.pmtiles(?:[?#]|$)/.test(url)) return;"));
