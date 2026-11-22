@@ -4149,14 +4149,15 @@
         // 검색어는 그 동네(행정동 - end.area, 2026-11-22 홍TV님 "덕기봉 맛집인데 전북이 나오네": 봉우리 이름만으로는 카카오가 다른 지방 가게를 냄). 동네를 모르면 이름
         // app - 카카오맵 앱을 끝 지점 둘레 "맛집" 검색으로(2026-11-22 홍TV님 "송산 바로 옆 영종 하늘도시가 하나도 안 보이네" - 글자 검색은 둘레를 중심으로 찾지 않음).
         //       화면이 앱을 먼저 열어 보고, 안 열리면 href(웹 글자 검색)로. 좌표는 서버로 가지 않고 폰의 카카오맵 앱에만 감
-        if (name) out.push({ text: T("🍜 " + name + " 맛집", "🍜 Food near " + enName(name)), href: "https://map.kakao.com/link/search/" + encodeURIComponent((end.area ? String(end.area).replace(/\s+/g, " ").trim().slice(0, 40) : name) + " 맛집"), sponsored: false,
-            app: ok ? "kakaomap://search?q=" + encodeURIComponent("맛집") + "&p=" + (+end.lat).toFixed(6) + "," + (+end.lon).toFixed(6) : null });
+        // 차례는 🏨 숙소 → 🍜 맛집(2026-11-22 홍TV님 "근처 숙소, 덕기봉 맛집, TV 맛집 순으로" - 📺 TV 맛집은 화면이 맨 뒤에 붙임)
         var trip = p.trip && ok ? tripLink(p.trip, end.lat, end.lon, name) : null;
         if (trip) { out.push({ text: T("🏨 근처 숙소(트립닷컴)", "🏨 Stays nearby (Trip.com)"), href: trip, sponsored: true }); af = true; }
         else if (p.agoda && ok && /\{lat\}/.test(p.agoda)) {
             out.push({ text: T("🏨 근처 숙소(아고다)", "🏨 Stays nearby (Agoda)"), href: p.agoda.replace(/\{lat\}/g, (+end.lat).toFixed(5)).replace(/\{lon\}/g, (+end.lon).toFixed(5)), sponsored: true });
             af = true;
         }
+        if (name) out.push({ text: T("🍜 " + name + " 맛집", "🍜 Food near " + enName(name)), href: "https://map.kakao.com/link/search/" + encodeURIComponent((end.area ? String(end.area).replace(/\s+/g, " ").trim().slice(0, 40) : name) + " 맛집"), sponsored: false,
+            app: ok ? "kakaomap://search?q=" + encodeURIComponent("맛집") + "&p=" + (+end.lat).toFixed(6) + "," + (+end.lon).toFixed(6) : null });
         return { links: out, affiliate: af };
     }
 

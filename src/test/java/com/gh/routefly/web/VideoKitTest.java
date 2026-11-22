@@ -81,7 +81,7 @@ public class VideoKitTest {
     public void 맛집은_그_동네로() throws Exception {
         String js = read("src/main/webapp/js/hike.js"), wx = read("src/main/java/com/gh/routefly/web/WxServlet.java");
         assertTrue("코스 끝 점 · 없으면 5km 칸 가운데만", js.contains("RF.cellCenter(end.lat, end.lon) : null;")
-                && js.contains("food.href = RF.afterHikeLinks(p, end, EN).links[0].href;"));
+                && js.contains("food.href = RF.afterHikeLinks(p, end, EN).links[fi].href;") && js.contains("var fi = r.links.map(function (x) { return /^🍜/.test(x.text); }).indexOf(true), food = fi >= 0 ? nx.children[fi] : null,"));
         assertTrue("서버는 행정동만", wx.contains("if (\"1\".equals(req.getParameter(\"regionOnly\"))) {"));
         assertTrue(read("src/main/webapp/privacy.html").contains("\"🍜 맛집\" 은 코스 끝 점") && read("src/main/webapp/privacy-en.html").contains("The \"🍜 Food\" link after a hike"));
     }

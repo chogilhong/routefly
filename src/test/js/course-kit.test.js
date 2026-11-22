@@ -1026,15 +1026,15 @@ tick().then(function () {
     eq("명단 - 2호차 15번 · 이름 끝 숫자", [rh("홍길동 2호차 15번 김철수2 5"), rh("홍길동 2호차15번")], ["홍길동 2-15\n김철수2 5", "홍길동 2-15"]);
     // 산행을 마친 화면 "다음은?"(2026-10-28)
     var ah = RF.afterHikeLinks({ trip: "https://kr.trip.com/hotels/?Allianceid=1&SID=2", coupang: { knee: ["https://link.coupang.com/a/x"] } }, { lat: 38.1, lon: 128.5, name: "설악산 오색" }, false);
-    eq("다음은 - 맛집 · 숙소만(쿠팡 · 다음 산은 뺌, 2026-11-22 홍TV님)", [ah.links.map(function (x) { return x.text + (x.sponsored ? "*" : ""); }), ah.coupang], [["🍜 설악산 오색 맛집", "🏨 근처 숙소(트립닷컴)*"], undefined]);
-    eq("다음은 - 맛집은 카카오맵 검색", ah.links[0].href, "https://map.kakao.com/link/search/" + encodeURIComponent("설악산 오색 맛집"));
-    eq("다음은 - 제휴 표시", [ah.affiliate, ah.links[1].href.indexOf("Allianceid=1") > 0], [true, true]);
+    eq("다음은 - 숙소 → 맛집 차례만(쿠팡 · 다음 산은 뺌, 2026-11-22 홍TV님)", [ah.links.map(function (x) { return x.text + (x.sponsored ? "*" : ""); }), ah.coupang], [["🏨 근처 숙소(트립닷컴)*", "🍜 설악산 오색 맛집"], undefined]);
+    eq("다음은 - 맛집은 카카오맵 검색", ah.links[1].href, "https://map.kakao.com/link/search/" + encodeURIComponent("설악산 오색 맛집"));
+    eq("다음은 - 제휴 표시", [ah.affiliate, ah.links[0].href.indexOf("Allianceid=1") > 0], [true, true]);
     var ae = RF.afterHikeLinks({ agoda: "https://www.agoda.com/search?lat={lat}&lon={lon}&cid=1" }, { lat: 38.1, lon: 128.5, name: "x" }, true);
-    eq("다음은 - 영어 · 아고다 좌표", [ae.links.length, ae.links[1].href], [2, "https://www.agoda.com/search?lat=38.10000&lon=128.50000&cid=1"]);
+    eq("다음은 - 영어 · 아고다 좌표", [ae.links.length, ae.links[0].href], [2, "https://www.agoda.com/search?lat=38.10000&lon=128.50000&cid=1"]);
     eq("다음은 - 맛집은 그 동네(행정동) 이름으로 찾음(덕기봉 → 전북이 나왔음)", RF.afterHikeLinks({}, { name: "덕기봉", area: "인천광역시 중구 운서동" }, false).links[0],
         { text: "🍜 덕기봉 맛집", href: "https://map.kakao.com/link/search/" + encodeURIComponent("인천광역시 중구 운서동 맛집"), sponsored: false, app: null });
     eq("다음은 - 맛집은 카카오맵 앱을 끝 지점 둘레 검색으로 먼저(송산 → 하늘도시가 안 나왔음) · 좌표 없으면 앱 없음",
-        [ah.links[0].app, RF.afterHikeLinks({}, { name: "x", lat: 37.4801234, lon: 126.5609876 }, false).links[0].app],
+        [ah.links[1].app, RF.afterHikeLinks({}, { name: "x", lat: 37.4801234, lon: 126.5609876 }, false).links[0].app],
         ["kakaomap://search?q=" + encodeURIComponent("맛집") + "&p=38.100000,128.500000", "kakaomap://search?q=" + encodeURIComponent("맛집") + "&p=37.480123,126.560988"]);
     eq("다음은 - 영어는 이름도 영어(검색은 한글)", [RF.afterHikeLinks({}, { name: "설악산 대청봉" }, true).links[0].text, RF.afterHikeLinks({}, { name: "설악산 대청봉" }, true).links[0].href.indexOf(encodeURIComponent("설악산")) > 0], ["🍜 Food near Seoraksan Daecheongbong", true]);
     eq("다음은 - 제휴 설정 없으면 맛집만(쿠팡 설정이 있어도 안 나옴)", RF.afterHikeLinks({ coupang: { knee: ["https://link.coupang.com/k"] } }, { name: "북한산" }, false).links.length, 1);
