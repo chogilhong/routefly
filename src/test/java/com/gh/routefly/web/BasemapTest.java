@@ -49,6 +49,8 @@ public class BasemapTest {
         assertTrue("표시별 보이기 · 숨기기 - 사진 · 메모는 표시를 감추고 대피소 등은 층 거름으로, 그래프와 안 겹치게",
             js.contains("it.mark.getElement().style.display = hidden[it.n.photo ? \"photo\" : \"memo\"] ? \"none\" : \"\";")
             && js.contains("map.setFilter(\"poi-hike\", RF.poiShowFilter(map.getLayoutProperty(\"poi-hike\", \"icon-image\")") && js.contains("kindBar();\n            placeKit();"));
+        assertTrue("카드에 마우스 → 지도 표시 주황(2026-11-22 홍TV님)", js.contains("card.addEventListener(\"mouseenter\", function () { if (it.mark) it.mark.getElement().classList.add(\"hover\"); });")
+            && js.contains("card.addEventListener(\"mouseleave\", function () { if (it.mark) it.mark.getElement().classList.remove(\"hover\"); });") && html.contains(".pin.on, .pin.hover {"));
         assertTrue("OSM 출처는 한 번만 - 우리 지도는 바탕 출처에 이미 있음(2026-11-22 PC)", js.contains("customAttribution: (style ? \"\" : \"© OpenStreetMap contributors | \") + "));
         assertTrue(html.contains("<script src=\"vendor/pmtiles-4.5.0/pmtiles.js\"></script>"));
         assertTrue("지도 파일은 캐시하지 않음(Range)", sw.contains("if (/\\.pmtiles(?:[?#]|$)/.test(url)) return;"));

@@ -77,6 +77,9 @@
             }
             card.appendChild(tx);
             card.onclick = function () { select(i, true, false); };
+            // 카드에 마우스를 올리면 지도 위 그 표시도 주황으로 크게(2026-11-22 홍TV님 "사진에 마우스가 가면 거꾸로 지도상의 카메라가 활성화")
+            card.addEventListener("mouseenter", function () { if (it.mark) it.mark.getElement().classList.add("hover"); });
+            card.addEventListener("mouseleave", function () { if (it.mark) it.mark.getElement().classList.remove("hover"); });
             $("side").appendChild(card);
             cards.push(card);
         });

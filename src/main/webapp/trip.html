@@ -55,7 +55,9 @@ body { display:flex; flex-direction:column; height:100dvh; }
 .card .tm { color:#5b6672; font-size:12px; }
 .pin { width:26px; height:26px; border-radius:6px; background:var(--pin); border:2px solid #fff; color:#fff; font-size:14px; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 4px rgba(0,0,0,0.5); cursor:pointer; }
 .pin.memo { background:#2f6fd1; }
-.pin.on { width:40px; height:40px; background:var(--pick); font-size:20px; z-index:5; }
+.pin.on, .pin.hover { width:40px; height:40px; background:var(--pick); font-size:20px; z-index:5; }
+.pin.hover { box-shadow:0 0 0 4px rgba(255,138,0,0.45), 0 1px 4px rgba(0,0,0,0.5); }   /* 카드에 마우스(2026-11-22) */
+.card:not(.on):hover { border-color:rgba(255,138,0,0.55); }
 .end { width:14px; height:14px; border-radius:50%; border:2px solid #fff; box-shadow:0 1px 3px rgba(0,0,0,0.6); }
 #big { position:fixed; inset:0; z-index:50; background:#000; display:none; align-items:center; justify-content:center; }
 #big img { max-width:100vw; max-height:100dvh; object-fit:contain; }
