@@ -1318,6 +1318,30 @@
     }
 
     /**
+     * 순수 함수 - 기록의 이동 시간 · 휴식 시간 · 이동 중 평균 속도(2026-11-22 홍TV님 - 램블러 기록 요약을 보고). track [[위도, 경도, ms, …]].
+     * 점 → 다음 점 사이마다 앞 점에서 MOVE_WINDOW_MS 뒤까지 · 뒤 점에서 MOVE_WINDOW_MS 앞부터(없으면 끝 점) 곧은 거리로 빠르기를 보고, 둘 다 MOVE_MIN_MS(m/s)
+     * 넘을 때만 이동 - 쉬는 동안 GPS 가 몇 m 씩 튀어도 2분 사이 옮겨 간 거리는 작아 이동으로 세지 않고, 쉬기 바로 앞 · 뒤 사이도 쉼으로 남음. 시각이 없으면 null.
+     * 돌려줌 {moveMs, restMs, moveM(이동 사이 거리 합), kmh(moveM / moveMs, 이동 시간이 없으면 null)}.
+     */
+    var MOVE_WINDOW_MS = 120000, MOVE_MIN_MS = 0.2;   // 0.2 m/s = 시속 0.72km - 가파른 오르막을 천천히 오를 때도 이동으로, 2분에 24m 못 가면 쉼
+    function moveStats(track) {
+        var t = (track || []).filter(function (p) { return p && typeof p[2] === "number"; });
+        if (t.length < 2) return null;
+        var move = 0, rest = 0, dist = 0, j = 1, k = 0;
+        function fast(a, b) { var w = t[b][2] - t[a][2]; return w > 0 && distM(t[a][0], t[a][1], t[b][0], t[b][1]) / (w / 1000) >= MOVE_MIN_MS; }
+        for (var i = 0; i < t.length - 1; i++) {
+            if (j <= i) j = i + 1;
+            while (j < t.length - 1 && t[j][2] - t[i][2] < MOVE_WINDOW_MS) j++;   // 앞 점에서 2분 뒤
+            while (k + 1 <= i && t[i + 1][2] - t[k + 1][2] >= MOVE_WINDOW_MS) k++;   // 뒤 점에서 2분 앞
+            var dt = t[i + 1][2] - t[i][2];
+            if (dt <= 0) continue;
+            var going = fast(i, j) && fast(k, i + 1);
+            if (going) { move += dt; dist += distM(t[i][0], t[i][1], t[i + 1][0], t[i + 1][1]); } else rest += dt;
+        }
+        return { moveMs: move, restMs: rest, moveM: dist, kmh: move > 0 ? dist / (move / 3600000) / 1000 : null };
+    }
+
+    /**
      * 2026-10-08 (홍TV님 - 다른 앱 · 친구가 준 GPX 를 열어 따라가기): GPX 글 → /api/course 와 같은 모양
      * {course: {name, kind}, points: [[경도, 위도, 고도|null, 누적 거리]], pois: [{seq, name, lat, lon, ele_m, dist_m}]}.
      * 규칙은 routefly-batch 의 GpxReader · CourseMath.thin 과 같습니다 - 이름공간은 보지 않고 태그 이름만, trk/trkseg/trkpt 를
@@ -4062,6 +4086,7 @@
         kindOf: kindOf,
         groupPois: groupPois,
         declutter: declutter,
+        moveStats: moveStats,
         measureSamples: measureSamples,
         measureSum: measureSum,
         routeEnds: routeEnds,
@@ -4108,6 +4133,7 @@
         mergeRecords: mergeRecords,
         mergeStore: mergeStore,
         photoIds: photoIds,
+        cleanTrack: cleanTrack,
         trackTake: trackTake,
         recDist: recDist,
         dropLog: dropLog,

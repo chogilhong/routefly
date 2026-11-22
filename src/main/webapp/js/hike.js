@@ -2378,9 +2378,11 @@
         $("recViewTitle").textContent = "📈 " + NM(rec.name);
         sum.innerHTML = "";
         var d = new Date(rec.start + 9 * 3600000);   // 날짜도 시각(clock)처럼 한국 시간(2026-11-03 홍TV님 점검: 폰 날짜 + 한국 시각이 섞였음)
-        var eles = rc.ele.filter(function (e) { return e != null; });
+        var eles = rc.ele.filter(function (e) { return e != null; }), mv = RF.moveStats(RF.cleanTrack(rec.track, rec.kind === "bike"));
         [[T("날짜", "Date"), d.getUTCFullYear() + "." + (d.getUTCMonth() + 1) + "." + d.getUTCDate() + " " + clock(rec.start)],
          [T("거리", "Distance"), km(RF.recDist(rec)) + " km"], [T("걸린 시간", "Time"), hhmmss(rec.end - rec.start)]]   // 카드와 같은 규칙(2026-10-28 PC)
+            .concat(mv && mv.moveMs > 0 ? [[T("이동 시간", "Moving time"), hhmmss(mv.moveMs)], [T("휴식 시간", "Rest time"), hhmmss(mv.restMs)],
+                [T("평균 속도(이동 중)", "Avg speed (moving)"), num(mv.kmh, 1) + " km/h"]] : [])   // 2026-11-22 홍TV님 - 램블러 요약처럼(RF.moveStats)
             .concat(rec.up != null ? [[T("오른 높이", "Climb"), num(rec.up) + " m"]] : [])
             .concat(eles.length ? [[T("가장 높은 곳", "Highest"), num(RF.recordHighest(rc, cardPeaks.peaks, cardPeaks.elev)) + " m"]] : [])
             .concat(rec.kcal != null ? [[T("칼로리(추정)", "Calories (est.)"), num(rec.kcal) + " kcal"]] : [])

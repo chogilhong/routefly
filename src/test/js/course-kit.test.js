@@ -562,6 +562,16 @@ eq("노선 안내도 에서 · 까지", RF.routePlaces([{ course_id: "a", name: 
     eq("나눈 점 - 500m 마다(끝 포함)", RF.measureSamples([A, B, C], 500).length, 6);
     eq("나눈 점은 maxN 개까지", RF.measureSamples([A, B, C], 500, 2).length, 4);
 })();
+(function () {   // 내 기록 이동 · 휴식 시간 · 평균 속도(2026-11-22 홍TV님 - 램블러 요약을 보고)
+    var M = 60000, t = [[35, 127, 0], [35.001, 127, 1 * M]];   // 111m 를 1분(시속 6.7km) - 이동
+    for (var k = 1; k <= 10; k++) t.push([35.001 + (k % 2 ? 0.00003 : 0), 127, (1 + k) * M]);   // 10분 동안 3m 안에서 튐 - 쉼
+    t.push([35.002, 127, 13 * M]);   // 다시 111m 를 2분 - 이동
+    var s = RF.moveStats(t);
+    eq("이동 3분 · 쉼 10분", [s.moveMs / M, s.restMs / M], [3, 10]);
+    eq("이동 중 평균 속도 = 이동 거리 / 이동 시간", Math.round(s.kmh * 100) / 100, Math.round((RF.distM(35, 127, 35.001, 127) + RF.distM(35.001, 127, 35.002, 127)) / 180 * 3.6 * 100) / 100);
+    eq("아주 느린 오르막(15m 를 1분 - 0.25m/s)은 이동", RF.moveStats([[35, 127, 0], [35.00016, 127, M]]).moveMs, M);
+    eq("시각이 없으면 null", RF.moveStats([[35, 127], [35.1, 127]]), null);
+})();
 eq("cumAscent 5m 넘게 바뀔 때만(배치와 같게)", RF.cumAscent ? RF.cumAscent([100, 102, 104, 106, 103, 110, null, 120]) : null, [0, 0, 0, 6, 6, 6, 6, 20]);
 eq("routeEnds", ["지리산둘레길 가탄-송정", "지리산둘레길 (가탄-송정) · 송정리 → 가탄마을민박", "백두대간 17구간 · 창옥봉에서", "DMZ 평화의 길 4코스 · 농업체험까지", "이름만"].map(function (n) {
     var e = RF.routeEnds(n); return e.from + "|" + e.to; }), ["가탄|송정", "송정리|가탄마을민박", "창옥봉|null", "null|농업체험", "null|null"]);
