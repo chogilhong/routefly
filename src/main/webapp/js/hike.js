@@ -1027,10 +1027,14 @@
         if (!P || !P.take) return;
         // 걷는 중(기록 중)에는 코스를 바꾸지 않음 - 앱에 맡긴 채 두고 산행을 끝낼 때 다시 부름
         if (hike.running) { toast(T("받은 GPX 는 지금 산행(기록)을 끝내면 열립니다.", "The received GPX opens when you finish this hike."), 6000); return; }
-        P.take().then(function (r) {
+        function got(r) {
+            if (r && (r.text || r.error)) window.rfGpxGot = true;   // early.js 가 코스 모음으로 넘기지 않게
             if (r && r.text) openGpxText(r.text, r.name || "shared.gpx");
             else if (r && r.error) toast(r.error, 6000);
-        }).catch(function () { /* 옛 앱 - 플러그인 없음 */ });
+        }
+        // 앱을 처음 열 때 early.js 가 먼저 가져간 것(코스 모음으로 넘길지 보려고)
+        if (window.rfGpxEarly) { var e = window.rfGpxEarly; window.rfGpxEarly = null; got(e); return; }
+        P.take().then(got).catch(function () { /* 옛 앱 - 플러그인 없음 */ });
     };
 
     // 걷는 중 입산 통제 · 하산 시각 알림(그 산 안내가 있을 때만) - 60 · 30 · 10분 앞과 지난 때, 화면 · 소리
