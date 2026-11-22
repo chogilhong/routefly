@@ -100,7 +100,7 @@
                     if (vector) {   // 공원 탐방로 - 기록 선 아래, 연한 회청색(parkTrails)
                         map.addSource("parktr", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
                         map.addLayer({ id: "parktr", type: "line", source: "parktr", layout: { "line-join": "round", "line-cap": "round" },
-                            paint: { "line-color": "#3b5b78", "line-opacity": 0.55, "line-width": ["interpolate", ["linear"], ["zoom"], 9, 1, 13, 2.2, 16, 3.5] } }, under);
+                            paint: { "line-color": "#6f8aa3", "line-opacity": 0.4, "line-width": ["interpolate", ["linear"], ["zoom"], 9, 0.8, 13, 1.8, 16, 3] } }, under);   // 연하게(2026-11-23 PC: 짙어 보임)
                     }
                     map.addLayer({ id: "trk-halo", type: "line", source: "trk", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": "#fff", "line-width": 8, "line-opacity": 0.8 } }, under);
                     map.addLayer({ id: "trk", type: "line", source: "trk", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": ["coalesce", ["get", "color"], "#5b45ff"], "line-width": 4.5 } }, under);   // 구간 색(segData)
@@ -108,11 +108,13 @@
                     if (vector) {
                         map.addSource("seglbl", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
                         // 구간 색 둥근 띠 + 흰 글(2026-11-23 홍TV님 "표시를 더 잘 보이게"), 가운데가 막히면 위 · 아래 · 옆으로 비킴.
-                        // 일반 봉우리 · 마을 이름보다 먼저 자리를 잡고(peak-on 앞), 대피소 · 명산 · 지나간 봉우리보다는 나중(파란 구간 글이 반야봉 · 노루목 이름에 밀려 빠졌음)
+                        // 일반 · 지나간 봉우리 이름보다 먼저 자리를 잡고(rf-hut 앞), 공단 대피소 · 100대 명산보다는 나중
+                        // (2026-11-23 PC: 노고단 → 연하천 글이 반야봉 · 노루목 등 지나간 봉우리 이름에 밀려 처음 화면 · 한 단계 가까이 모두 없었음.
+                        //  선을 따라 놓는 방식은 짧은 구간에서 글이 선보다 길어 더 빠져 쓰지 않음)
                         map.addLayer({ id: "seglbl", type: "symbol", source: "seglbl", layout: { "text-field": ["get", "t"], "text-font": ["Noto Sans Regular"], "text-size": 12.5, "text-max-width": 30,
                                 "icon-image": ["get", "pill"], "icon-text-fit": "both", "icon-text-fit-padding": [3, 7, 3, 7],
                                 "text-variable-anchor": ["center", "top", "bottom", "left", "right"], "text-radial-offset": 1.2 },
-                            paint: { "text-color": "#ffffff" } }, map.getLayer("peak-on") ? "peak-on" : undefined);
+                            paint: { "text-color": "#ffffff" } }, map.getLayer("rf-hut") ? "rf-hut" : undefined);
                     }
                 }
                 paintTrack();

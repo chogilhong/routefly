@@ -61,9 +61,9 @@ public class BasemapTest {
             js.contains("map.once(\"style.load\", function () { styleOk = true;") && js.contains("whenStyle(draw);") && js.contains("whenStyle(applyKinds);")
             && !js.contains("map.loaded()") && !js.contains("once(\"load\""));
         assertTrue("말풍선은 ✕ · 빈 곳 · Esc 로 닫힘(2026-11-23 PC)", js.contains("closeButton: true, closeOnClick: true") && js.contains("if (e.key === \"Escape\" && popup"));
-        assertTrue("구간 글 · 구간 표(2026-11-23 홍TV님 1 · 2)", js.contains("properties: { t: RF.segText(f.properties), color: f.properties.color, pill: \"rf-pill-\" + RF.SEG_COLORS.indexOf(f.properties.color) }")
+        assertTrue("구간 글 · 구간 표(2026-11-23 홍TV님 1 · 2)", js.contains("properties: { t: RF.segText(f.properties), color: f.properties.color, pill: \"rf-pill-\" + RF.SEG_COLORS.indexOf(f.properties.color) }, geometry: { type: \"Point\", coordinates: f.properties.mid } };")
             && js.contains("\"icon-image\": [\"get\", \"pill\"], \"icon-text-fit\": \"both\"") && js.contains("if (/^rf-pill-\\d+$/.test(id)) { pillImage(id); return; }")
-            && js.contains("map.getLayer(\"peak-on\") ? \"peak-on\" : undefined);")
+            && js.contains("paint: { \"text-color\": \"#ffffff\" } }, map.getLayer(\"rf-hut\") ? \"rf-hut\" : undefined);")
             && js.contains("segList(segs);") && js.contains("$(\"side\").insertBefore(box, $(\"side\").firstChild);") && js.contains("map.fitBounds(bb, { padding: fitPad(),") && html.contains("#segs .seg {")
             && js.contains("kb = k ? m.bottom - k.getBoundingClientRect().top + 12 : 0;"));
         assertTrue("공원 탐방로 - 폰 안에서 공원을 정하고 이름만 보냄(2026-11-23 홍TV님), 방침에 적음", js.contains("var park = RF.recordPark(rc, parkCands, PARK_NEAR_M);")
