@@ -242,25 +242,46 @@
     /**
      * 순수 함수 - 기록 선을 지나간 쉼터 · 정상에서 끊어 구간마다 다른 색으로(2026-11-23 홍TV님 "안내도처럼 코스를 전부 다른 색으로").
      * c = recordCourse, stops = [{lat, lon}](공단 대피소 · 100대 명산 정상), 선에서 maxM 안인 것만 끊는 곳으로, 끊는 곳끼리 minGapM 보다 가까우면 하나로.
-     * 돌려줌 GeoJSON 선 목록(properties.color). 끊을 곳이 없으면 선 하나(첫 색).
+     * 돌려줌 GeoJSON 선 목록 - properties: color, seg(차례), from · to(구간 처음 · 끝 이름 - 끊은 곳 이름, 기록 처음 · 끝은 null),
+     * d(구간 처음까지 거리), m(거리), ms(걸린 시간 - 시각이 없으면 null), up · down(오르막 · 내리막 m - cumAscent 와 같은 셈, 높이가 없으면 null), mid(구간 가운데 [경도, 위도]).
+     * 끊을 곳이 없으면 선 하나(첫 색). 2026-11-23 홍TV님 "구간마다 거리 · 시간 · 구간 목록"
      */
     function trackSegments(c, stops, maxM, minGapM) {
         var n = c.lat.length, cuts = [];
         (stops || []).forEach(function (s) {
             var q = snap(c, s.lat, s.lon);
-            if (q && q.off <= maxM && q.d > minGapM && q.d < c.total - minGapM) cuts.push(q.d);
+            if (q && q.off <= maxM && q.d > minGapM && q.d < c.total - minGapM) cuts.push({ d: q.d, name: s.name || null });
         });
-        cuts.sort(function (a, b) { return a - b; });
-        var at0 = [0];
-        cuts.forEach(function (d) { if (d - c.dist[at0[at0.length - 1]] >= minGapM) { var i = indexAt(c, d) + 1; if (i > at0[at0.length - 1] && i < n - 1) at0.push(i); } });
-        at0.push(n - 1);
+        cuts.sort(function (a, b) { return a.d - b.d; });
+        var at0 = [0], names = [null], asc = c.asc || cumAscent(c.ele);
+        cuts.forEach(function (q) {
+            if (q.d - c.dist[at0[at0.length - 1]] < minGapM) return;
+            var i = indexAt(c, q.d) + 1;
+            if (i > at0[at0.length - 1] && i < n - 1) { at0.push(i); names.push(q.name); }
+        });
+        at0.push(n - 1); names.push(null);
         var out = [];
         for (var k = 0; k + 1 < at0.length; k++) {
-            var co = [];
-            for (var i = at0[k]; i <= at0[k + 1]; i++) co.push([c.lon[i], c.lat[i]]);   // 끝점을 다음 구간과 함께 써서 이어짐
-            if (co.length >= 2) out.push({ type: "Feature", properties: { color: SEG_COLORS[k % SEG_COLORS.length], seg: k }, geometry: { type: "LineString", coordinates: co } });
+            var a = at0[k], b = at0[k + 1], co = [];
+            for (var i = a; i <= b; i++) co.push([c.lon[i], c.lat[i]]);   // 끝점을 다음 구간과 함께 써서 이어짐
+            if (co.length < 2) continue;
+            var up = asc[b] != null && asc[a] != null ? Math.round(asc[b] - asc[a]) : null;
+            var net = c.ele[a] != null && c.ele[b] != null ? c.ele[b] - c.ele[a] : null;
+            var mid = at(c, (c.dist[a] + c.dist[b]) / 2);
+            out.push({ type: "Feature", geometry: { type: "LineString", coordinates: co }, properties: {
+                color: SEG_COLORS[k % SEG_COLORS.length], seg: k, from: names[k], to: names[k + 1], d: Math.round(c.dist[a]), m: Math.round(c.dist[b] - c.dist[a]),
+                ms: c.time && c.time[a] != null && c.time[b] != null && c.time[b] >= c.time[a] ? c.time[b] - c.time[a] : null,
+                up: up, down: up != null && net != null ? Math.max(0, Math.round(up - net)) : null, mid: [mid.lon, mid.lat] } });
         }
         return { type: "FeatureCollection", features: out };
+    }
+
+    /** 순수 함수 - 구간 한 줄 글 "4.2 km · 1:45 · ↑520 ↓120 m"(없는 값 · 0 은 뺌). p = trackSegments 의 properties. */
+    function segText(p) {
+        var mins = p.ms != null ? Math.round(p.ms / 60000) : null, t = mins != null ? Math.floor(mins / 60) + ":" + ("0" + mins % 60).slice(-2) : null;
+        var ud = [p.up ? "↑" + num(p.up) : null, p.down ? "↓" + num(p.down) : null].filter(Boolean).join(" ");   // 0 · 모름은 뺌
+        ud = ud ? ud + " m" : null;
+        return [km(p.m) + " km", t, ud].filter(Boolean).join(" · ");
     }
 
     /** 봉우리 하나를 가리키는 열쇠(이름|높이) - 지도 타일 안 봉우리와 peaksNear 가 같은 열쇠를 씀. */
@@ -1019,6 +1040,7 @@
         poiShowFilter: poiShowFilter,
         famousMarks: famousMarks,
         trackSegments: trackSegments,
+        segText: segText,
         peakOnFilter: peakOnFilter,
         profile: profile,
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },

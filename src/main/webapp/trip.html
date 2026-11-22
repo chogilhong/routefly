@@ -49,6 +49,13 @@ body { display:flex; flex-direction:column; height:100dvh; }
 #stat { position:absolute; left:10px; top:10px; z-index:2; background:rgba(17,22,29,0.86); border:1px solid var(--ln); border-radius:10px; padding:6px 10px; font-size:13px; max-width:calc(100% - 70px); }
 #stat:empty { display:none; }
 #side { flex:0 0 380px; background:#f4f6f8; color:#1b2430; overflow-y:auto; border-left:1px solid var(--ln); }
+#segs { margin:12px; background:#fff; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.15); padding:6px 0; }   /* 구간 표(2026-11-23) */
+#segs .sh { padding:4px 12px 6px; font-size:13px; font-weight:bold; color:#5b6672; }
+#segs .seg { display:grid; grid-template-columns:14px 1fr; column-gap:8px; width:100%; padding:7px 12px; border:0; border-top:1px solid #eef1f4; background:none; text-align:left; cursor:pointer; font-family:inherit; color:#1b2430; }
+#segs .seg:hover, #segs .seg.on { background:#fff4e6; }
+#segs .dot { grid-row:1 / span 2; align-self:center; width:12px; height:12px; border-radius:50%; }
+#segs .nm { font-size:13.5px; font-weight:bold; }
+#segs .st { font-size:12.5px; color:#5b6672; }
 #side .empty { padding:24px 16px; color:#5b6672; font-size:14px; line-height:1.6; }
 .card { margin:12px; background:#fff; border:3px solid transparent; border-radius:8px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.15); cursor:pointer; }
 .card.on { border-color:var(--pick); }

@@ -338,6 +338,12 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
             var s1 = RF.trackSegments(c, [stopAt(40), stopAt(70)], 200, 150);
             eq("구간 색 - 쉼터 두 곳에서 끊어 세 구간 · 색이 다르고 끝점을 함께 씀", [s1.features.length, s1.features.map(function (f) { return f.properties.color; }), s1.features[0].geometry.coordinates.slice(-1)[0][0] === s1.features[1].geometry.coordinates[0][0]],
                 [3, RF.SEG_COLORS.slice(0, 3), true]);
+            var s2 = RF.trackSegments(c, [{ lat: 35.30, lon: 127.704, name: "가대피소" }], 200, 150), q0 = s2.features[0].properties, q1 = s2.features[1].properties;
+            eq("구간 - 이름(처음 · 끝은 null) · 거리 · 걸린 시간 · 구간 처음 거리", [q0.from, q0.to, q1.from, q1.to, q0.m + q1.m === Math.round(c.total), q0.ms + q1.ms, q1.d === q0.m],
+                [null, "가대피소", "가대피소", null, true, 1000000, true]);
+            eq("구간 글 - 거리 · 시:분 · 오르내림, 없는 값은 뺌", [RF.segText({ m: 4240, ms: 6300000, up: 520, down: 1200 }), RF.segText({ m: 900, ms: null, up: null, down: null }), RF.segText({ m: 1000, ms: 3590000, up: 30, down: null })],
+                ["4.24 km · 1:45 · ↑520 ↓1,200 m", "0.90 km", "1.00 km · 1:00 · ↑30 m"]);
+            eq("구간 글 - 0 은 뺌", [RF.segText({ m: 1000, ms: null, up: 60, down: 0 }), RF.segText({ m: 1000, ms: null, up: 0, down: 0 })], ["1.00 km · ↑60 m", "1.00 km"]);
             eq("구간 색 - 선에서 먼 곳(약 330m) · 서로 가까운 곳(150m 안) · 끝 가까운 곳은 안 끊음", [RF.trackSegments(c, [stopAt(40, 0.003)], 200, 150).features.length,
                 RF.trackSegments(c, [stopAt(40), stopAt(45)], 200, 150).features.length, RF.trackSegments(c, [stopAt(2), stopAt(99)], 200, 150).features.length, RF.trackSegments(c, [], 200, 150).features.length], [1, 2, 1, 1]);
         })();

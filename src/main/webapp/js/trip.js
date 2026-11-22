@@ -91,14 +91,20 @@
         cfgP.then(function () {
             var line = { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: rc.lon.map(function (x, k) { return [x, rc.lat[k]]; }) } };
             var draw = function () {
-                if (map.getSource("trk")) map.getSource("trk").setData(segData());
-                else {
-                    map.addSource("trk", { type: "geojson", data: segData() });
+                if (!map.getSource("trk")) {
+                    map.addSource("trk", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
                     // 우리 지도는 글자(봉우리 · 마을 이름) 층 아래에 그어 선이 이름을 덮지 않게(2026-11-22 홍TV님 - 세석 · 촛대봉 이름이 선 밑에 깔렸음). V-World 그림 바탕에는 글자 층이 없음
                     var under = firstSymbol();
                     map.addLayer({ id: "trk-halo", type: "line", source: "trk", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": "#fff", "line-width": 8, "line-opacity": 0.8 } }, under);
                     map.addLayer({ id: "trk", type: "line", source: "trk", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": ["coalesce", ["get", "color"], "#5b45ff"], "line-width": 4.5 } }, under);   // 구간 색(segData)
+                    // 구간 거리 · 시간 · 오르내림 글(우리 지도만 - 글꼴이 있음). 일반 봉우리 · 마을 이름보다 먼저, 대피소 · 명산보다 나중에 자리를 잡음
+                    if (vector) {
+                        map.addSource("seglbl", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+                        map.addLayer({ id: "seglbl", type: "symbol", source: "seglbl", layout: { "text-field": ["get", "t"], "text-font": ["Noto Sans Regular"], "text-size": 11.5, "text-max-width": 14 },
+                            paint: { "text-color": ["get", "color"], "text-halo-color": "#fffdf5", "text-halo-width": 2 } }, map.getLayer("poi-hike") ? "poi-hike" : undefined);
+                    }
                 }
+                paintTrack();
                 peakKeys = [];
                 markPeaks();
                 var b = new maplibregl.LngLatBounds();
@@ -225,6 +231,54 @@
         return { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: rc.lon.map(function (x, k) { return [x, rc.lat[k]]; }) } };
     }
 
+    /** 지도 맞춤 여백 - 그래프가 열려 있으면 그 높이만큼 아래를 비움(구간을 그래프가 가리지 않게). */
+    function fitPad() {
+        var g = $("graph"), m = $("map").getBoundingClientRect(), gb = g.hidden ? 0 : m.bottom - g.getBoundingClientRect().top + 20;
+        return { top: 60, left: 60, right: 60, bottom: Math.max(60, Math.min(gb, m.height * 0.5)) };
+    }
+
+    /** 기록 선 · 구간 글 · 구간 목록을 지금 자료(segData)로 다시 그림. */
+    function paintTrack() {
+        var fc = segData(), segs = fc.features || [];
+        map.getSource("trk").setData(fc);
+        if (map.getLayer("trk")) map.setPaintProperty("trk", "line-width", 4.5);
+        if (map.getSource("seglbl")) map.getSource("seglbl").setData({ type: "FeatureCollection", features: segs.length > 1 ? segs.map(function (f) {
+            return { type: "Feature", properties: { t: RF.segText(f.properties), color: f.properties.color }, geometry: { type: "Point", coordinates: f.properties.mid } };
+        }) : [] });
+        segList(segs);
+    }
+
+    /**
+     * 오른쪽(폰은 아래) 맨 위 구간 표(2026-11-23 홍TV님 "구간 목록") - 색 · "노고단대피소 → 연하천대피소" · 거리 · 걸린 시간 · 오르내림.
+     * 누르면 그 구간을 지도에 맞추고 굵게, 그래프는 구간 가운데로. 구간이 하나뿐이면(끊은 곳 없음) 표를 두지 않음.
+     */
+    function segList(segs) {
+        var old = $("segs");
+        if (old) old.remove();
+        if (segs.length < 2) return;
+        var box = document.createElement("div"), h = document.createElement("div");
+        box.id = "segs"; h.className = "sh"; h.textContent = T("구간 ", "Sections ") + segs.length;
+        box.appendChild(h);
+        segs.forEach(function (f) {
+            var p = f.properties, b = document.createElement("button"), dot = document.createElement("span"), nm = document.createElement("span"), st = document.createElement("span");
+            b.type = "button"; b.className = "seg";
+            dot.className = "dot"; dot.style.background = p.color;
+            nm.className = "nm"; nm.textContent = (p.from || T("출발", "Start")) + " → " + (p.to || T("도착", "Finish"));
+            st.className = "st"; st.textContent = RF.segText(p);
+            b.appendChild(dot); b.appendChild(nm); b.appendChild(st);
+            b.onclick = function () {
+                var bb = new maplibregl.LngLatBounds();
+                f.geometry.coordinates.forEach(function (q) { bb.extend(q); });
+                map.fitBounds(bb, { padding: fitPad(), duration: 600, maxZoom: 15 });
+                map.setPaintProperty("trk", "line-width", ["case", ["==", ["get", "seg"], p.seg], 8, 4.5]);
+                Array.prototype.forEach.call(box.querySelectorAll(".seg"), function (x) { x.classList.toggle("on", x === b); });
+                if (prof) prof.set(p.d + p.m / 2);
+            };
+            box.appendChild(b);
+        });
+        $("side").insertBefore(box, $("side").firstChild);
+    }
+
     /**
      * 봉우리 · 대피소 · 절 등을 누르면(2026-11-23 홍TV님 "봉들 대피소를 클릭하면 카메라처럼 그래프에 위치 표시") 기록 위 가장 가까운 자리를 그래프에 표시하고
      * 이름 · 출발부터 거리 · 해발을 작은 창으로. 선에서 멀면(PICK_NEAR_M 넘음) 이름과 "이 기록에서 떨어짐" 만.
@@ -253,7 +307,7 @@
         if (famSet || !famGj || !map.getSource("marks")) return;
         famSet = true;
         map.getSource("marks").setData(famGj);
-        if (map.getSource("trk")) map.getSource("trk").setData(segData());   // 자료가 늦게 오면 그때 구간 색으로
+        if (map.getSource("trk")) paintTrack();   // 자료가 늦게 오면 그때 구간 색으로
     }
 
     /**
