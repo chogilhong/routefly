@@ -2073,6 +2073,57 @@
         return { version: 8, sources: sources, layers: layers };
     }
 
+    /**
+     * 순수 함수 - 우리 바탕 지도(OSM → Planetiler 벡터 PMTiles, OpenMapTiles 양식 - docs/basemap/README.md)의 지도 모양(2026-11-22 홍TV님 "지도 작업을 계속 하자고", 2단계 기록 보기).
+     * c - api/map-config(basemapUrl · demUrl), fonts - 글꼴 폴더의 절대 주소(…/vendor/fonts/). 색 · 굵기는 우리가 정함(램블러 · OpenTopoMap 을 따라 하지 않음).
+     * 한글 글자는 폰 글꼴로 그림(지도 프로그램 localIdeographFontFamily) - 받는 글꼴은 숫자 · 로마자(Noto Sans, OFL)만. 지형 음영은 지금처럼 demUrl.
+     */
+    function vectorStyle(c, fonts) {
+        var src = "pmtiles://" + c.basemapUrl, ko = ["coalesce", ["get", "name:ko"], ["get", "name"]], F = ["Noto Sans Regular"];
+        var line = function (id, filter, color, w, extra) {
+            var l = { id: id, type: "line", source: "omt", "source-layer": "transportation", filter: filter,
+                layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": color, "line-width": w } };
+            for (var k in extra || {}) l.paint[k] = extra[k];
+            return l;
+        };
+        var cls = function (list) { return ["match", ["get", "class"], list, true, false]; };
+        return {
+            version: 8,
+            glyphs: fonts + "{fontstack}/{range}.pbf",
+            sources: {
+                omt: { type: "vector", url: src, attribution: "© OpenMapTiles © OpenStreetMap contributors" },
+                hillshade: { type: "raster-dem", tiles: [c.demUrl], encoding: "terrarium", tileSize: 256, maxzoom: 15, attribution: tr("지형: ", "Terrain: ") + "Terrain Tiles (AWS Open Data)" }
+            },
+            layers: [
+                { id: "bg", type: "background", paint: { "background-color": "#f2efe6" } },
+                { id: "landuse", type: "fill", source: "omt", "source-layer": "landuse", filter: cls(["residential", "suburb", "neighbourhood", "commercial", "retail", "industrial"]), paint: { "fill-color": "#e9e2d6" } },
+                { id: "farm", type: "fill", source: "omt", "source-layer": "landcover", filter: cls(["farmland", "grass"]), paint: { "fill-color": "#e6ecd3" } },
+                { id: "wood", type: "fill", source: "omt", "source-layer": "landcover", filter: cls(["wood", "forest"]), paint: { "fill-color": "#cfe0bd" } },
+                { id: "rock", type: "fill", source: "omt", "source-layer": "landcover", filter: cls(["rock", "sand", "ice"]), paint: { "fill-color": "#e4e0d8" } },
+                { id: "park", type: "line", source: "omt", "source-layer": "park", paint: { "line-color": "#5f8f4e", "line-width": 1.2, "line-dasharray": [3, 2], "line-opacity": 0.7 } },
+                { id: "water", type: "fill", source: "omt", "source-layer": "water", paint: { "fill-color": "#a8cbe0" } },
+                { id: "waterway", type: "line", source: "omt", "source-layer": "waterway", paint: { "line-color": "#8bb8d6", "line-width": ["interpolate", ["linear"], ["zoom"], 10, 0.5, 15, 2] } },
+                { id: "hillshade", type: "hillshade", source: "hillshade", paint: { "hillshade-exaggeration": 0.4, "hillshade-shadow-color": "#4a5544", "hillshade-highlight-color": "#fffdf5" } },
+                { id: "boundary", type: "line", source: "omt", "source-layer": "boundary", filter: ["<=", ["get", "admin_level"], 6], paint: { "line-color": "#9a8fa6", "line-width": 1, "line-dasharray": [4, 2, 1, 2] } },
+                line("path", cls(["path", "track"]), "#a0522d", ["interpolate", ["linear"], ["zoom"], 12, 0.8, 16, 2], { "line-dasharray": [2, 1.5] }),
+                line("road-minor", cls(["minor", "service", "tertiary"]), "#ffffff", ["interpolate", ["linear"], ["zoom"], 10, 0.6, 16, 4]),
+                line("road-major", cls(["primary", "secondary", "trunk", "motorway"]), "#f4c96b", ["interpolate", ["linear"], ["zoom"], 7, 0.8, 16, 6]),
+                line("rail", cls(["rail", "transit"]), "#8a8a8a", 1, { "line-dasharray": [3, 3] }),
+                { id: "road-name", type: "symbol", source: "omt", "source-layer": "transportation_name", minzoom: 13,
+                    layout: { "symbol-placement": "line", "text-field": ko, "text-font": F, "text-size": 11 }, paint: { "text-color": "#5a4a3a", "text-halo-color": "#fff", "text-halo-width": 1.2 } },
+                { id: "water-name", type: "symbol", source: "omt", "source-layer": "water_name",
+                    layout: { "text-field": ko, "text-font": F, "text-size": 11 }, paint: { "text-color": "#3f6f8f", "text-halo-color": "#fff", "text-halo-width": 1 } },
+                { id: "peak", type: "symbol", source: "omt", "source-layer": "mountain_peak", minzoom: 10,
+                    layout: { "text-field": ["case", ["has", "ele"], ["concat", "▲ ", ko, "\n", ["to-string", ["get", "ele"]], "m"], ["concat", "▲ ", ko]], "text-font": F,
+                        "text-size": 11, "text-anchor": "top", "text-offset": [0, 0.2] },
+                    paint: { "text-color": "#6b3d1e", "text-halo-color": "#fffdf5", "text-halo-width": 1.4 } },
+                { id: "place", type: "symbol", source: "omt", "source-layer": "place", filter: cls(["city", "town", "village", "hamlet", "suburb"]),
+                    layout: { "text-field": ko, "text-font": F, "text-size": ["match", ["get", "class"], "city", 16, "town", 14, 12] },
+                    paint: { "text-color": "#333", "text-halo-color": "#fff", "text-halo-width": 1.5 } }
+            ]
+        };
+    }
+
     /** 순수 함수 - 코스를 끝까지 갔다고 볼까(가장 멀리 간 곳이 코스 길이의 90% 넘음). */
     function isComplete(dMax, total) { return total > 0 && dMax >= total * 0.9; }
 
@@ -7264,7 +7315,7 @@
     }
 
     global.RF = {
-        LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, exifInfo: exifInfo, photoPlace: photoPlace, trimEnds: trimEnds, recordGpx: recordGpx, gpxRecord: gpxRecord, attrShort: attrShort, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, endsHigh: endsHigh, videoOpts: videoOpts, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, PARKS: PARKS, parkOf: parkOf, mountainOf: mountainOf, regionNames: regionNames, stampKey: stampKey, summitName: summitName, shelterOf: shelterOf, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, stampOf: stampOf, safeDecode: safeDecode, urlQuery: urlQuery, peakHref: peakHref, canonicalHref: canonicalHref, tmapHref: tmapHref, csvRows: csvRows, mergeRows: mergeRows, backupDue: backupDue, saveCsvFile: saveCsvFile, readCsvFile: readCsvFile, tmapLinks: tmapLinks, setCanonical: setCanonical, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakGapM: peakGapM, peakCourses: peakCourses, isClosedTrail: isClosedTrail, isHiddenCourse: isHiddenCourse, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, nearestExit: nearestExit, gpsGap: gpsGap, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
+        LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, exifInfo: exifInfo, photoPlace: photoPlace, trimEnds: trimEnds, recordGpx: recordGpx, gpxRecord: gpxRecord, attrShort: attrShort, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, endsHigh: endsHigh, videoOpts: videoOpts, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, PARKS: PARKS, parkOf: parkOf, mountainOf: mountainOf, regionNames: regionNames, stampKey: stampKey, summitName: summitName, shelterOf: shelterOf, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, vectorStyle: vectorStyle, stampOf: stampOf, safeDecode: safeDecode, urlQuery: urlQuery, peakHref: peakHref, canonicalHref: canonicalHref, tmapHref: tmapHref, csvRows: csvRows, mergeRows: mergeRows, backupDue: backupDue, saveCsvFile: saveCsvFile, readCsvFile: readCsvFile, tmapLinks: tmapLinks, setCanonical: setCanonical, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakGapM: peakGapM, peakCourses: peakCourses, isClosedTrail: isClosedTrail, isHiddenCourse: isHiddenCourse, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, nearestExit: nearestExit, gpsGap: gpsGap, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, fillTrackEle: fillTrackEle, trimTrack: trimTrack, gpxTracks: gpxTracks, trackStats: trackStats, splitTrack: splitTrack, joinTracks: joinTracks, joinPlan: joinPlan, trackGpx: trackGpx, submitAgree: submitAgree, submitBody: submitBody, submitProblem: submitProblem, submitFail: submitFail, submitSheet: submitSheet, courseName: courseName, courseSource: courseSource, sourceText: sourceText, cutMiddle: cutMiddle, osmRoute: osmRoute, WALK_WAYS: WALK_WAYS, trailsToElements: trailsToElements, overlapShare: overlapShare, gpxCheck: gpxCheck, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
         sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, moveStats: moveStats, speedProfile: speedProfile, measureSamples: measureSamples, measureZoom: measureZoom, courseBetween: courseBetween, measureSum: measureSum, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, titledName: titledName, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, tapPick: tapPick, closeLoop: closeLoop, loopTrack: loopTrack, reverseTrack: reverseTrack, longestJump: longestJump, densify: densify, simplifyTrack: simplifyTrack, JOIN_GAP_M: JOIN_GAP_M, pxToLine: pxToLine, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, legMs: legMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, nextTheme: nextTheme, themeButton: themeButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, wxCols: wxCols, wxTable: wxTable, kmaLink: kmaLink, pcpText: pcpText, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap,
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },

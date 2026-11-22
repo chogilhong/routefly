@@ -139,10 +139,15 @@
     $("graphClose").onclick = function () { $("graph").hidden = true; $("graphBtn").hidden = false; };
     $("graphBtn").onclick = function () { $("graph").hidden = false; $("graphBtn").hidden = true; };
 
-    // 지도(V-World 지도 + 지형 음영 - 위성은 쓰지 않음)
+    // 지도(V-World 지도 + 지형 음영 - 위성은 쓰지 않음). 우리 바탕 지도 파일(map.basemap.url)이 설정되면 그것(2026-11-22 바탕 지도 2단계 - 기록 보기만 먼저)
     cfgP = getJson("api/map-config").catch(function () { return {}; }).then(function (c) {
-        var cfg = { demUrl: c.demUrl || "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png", vworldKey: c.vworldKey || null };
-        map = new maplibregl.Map({ container: "map", style: RF.baseStyle(cfg), center: [127.8, 36.3], zoom: 6.5, locale: RF.mapLocale(), attributionControl: false });
+        var cfg = { demUrl: c.demUrl || "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png", vworldKey: c.vworldKey || null }, style = null;
+        if (c.basemapUrl && window.pmtiles) {
+            maplibregl.addProtocol("pmtiles", new pmtiles.Protocol().tile);   // 파일 하나에서 필요한 조각만 Range 로 받음
+            style = RF.vectorStyle({ basemapUrl: new URL(c.basemapUrl, location.href).href, demUrl: cfg.demUrl }, new URL("vendor/fonts/", location.href).href);
+        }
+        map = new maplibregl.Map({ container: "map", style: style || RF.baseStyle(cfg), center: [127.8, 36.3], zoom: 6.5, locale: RF.mapLocale(), attributionControl: false,
+            localIdeographFontFamily: "'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif" });   // 한글 지명은 폰 글꼴로
         map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
         map.addControl(new maplibregl.AttributionControl({ compact: true, customAttribution: "© OpenStreetMap contributors | <a href=\"" + T("about.html", "about-en.html") + "\">" + T("안내", "About") + "</a>" }), "top-right");
         map.addControl(new maplibregl.ScaleControl({ maxWidth: 90 }), "bottom-left");

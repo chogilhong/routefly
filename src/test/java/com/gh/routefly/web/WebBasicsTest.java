@@ -71,10 +71,10 @@ public class WebBasicsTest {
 
     @Test
     public void mapConfigDefaults() {
-        JsonObject j = MapConfigServlet.body(null, null);
+        JsonObject j = MapConfigServlet.body(null, null, null);
         assertTrue(j.get("vworldKey").isJsonNull());
         assertEquals(MapConfigServlet.DEFAULT_DEM_URL, j.get("demUrl").getAsString());
-        JsonObject k = MapConfigServlet.body("KEY", "https://x/{z}/{x}/{y}.png");
+        JsonObject k = MapConfigServlet.body("KEY", "https://x/{z}/{x}/{y}.png", null);
         assertEquals("KEY", k.get("vworldKey").getAsString());
         assertEquals("https://x/{z}/{x}/{y}.png", k.get("demUrl").getAsString());
     }

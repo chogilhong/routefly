@@ -297,6 +297,13 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
         eq("트립 - 도시 표 = 응답 원문의 대한민국 도시", RF.TRIP_CITIES.map(function (c) { return JSON.stringify(c) === JSON.stringify(seen[c[0]]); }).indexOf(false), -1);
         eq("트립 - 응답의 대한민국 도시는 모두 표에", Object.keys(seen).length, RF.TRIP_CITIES.length);
     })();
+    (function () {   // 바탕 지도 2단계 - 우리 지도 파일 모양(2026-11-22)
+        var vs = RF.vectorStyle({ basemapUrl: "https://routefly.kr/routefly/tiles/korea.pmtiles", demUrl: "https://d/{z}/{x}/{y}.png" }, "https://routefly.kr/routefly/vendor/fonts/");
+        eq("바탕 지도 - 파일 · 글꼴 · 출처(OpenMapTiles · OSM 늘)", [vs.sources.omt.url, vs.glyphs, vs.sources.omt.attribution, vs.sources.hillshade.tiles[0]],
+            ["pmtiles://https://routefly.kr/routefly/tiles/korea.pmtiles", "https://routefly.kr/routefly/vendor/fonts/{fontstack}/{range}.pbf", "© OpenMapTiles © OpenStreetMap contributors", "https://d/{z}/{x}/{y}.png"]);
+        eq("바탕 지도 - 산길 · 봉우리 · 물 · 숲 층, 글자는 받은 글꼴(Noto Sans Regular)만", [["path", "peak", "water", "wood"].every(function (id) { return vs.layers.some(function (l) { return l.id === id; }); }),
+            vs.layers.filter(function (l) { return l.type === "symbol"; }).every(function (l) { return JSON.stringify(l.layout["text-font"]) === '["Noto Sans Regular"]'; })], [true, true]);
+    })();
     eq("트립 - trip.com 이 아니면 null", [RF.tripLink("https://www.agoda.com/x", 1, 2, "a"), RF.tripLink("https://kr.trip.com.evil.kr/x", 1, 2, "a"), RF.tripLink("https://kr.trip.com/", NaN, 2, "a")], [null, null, null]);
     eq("공원 - 다른 산", RF.parkOf("지리봉 1코스"), null);
     eq("공원 - 한려해상", RF.parkOf("한려해상 · 금산 → 쌍홍문"), "한려해상");

@@ -41,3 +41,26 @@ V-World 화면은 영상 · 다시 배포에 조건이 있어(약관 제13 · 19
 ## 다시 만들기
 
 몇 달에 한 번 PC 에서 `-Force` 로 다시 만들어 올립니다(OSM 이 바뀐 만큼). 주기는 1 · 2단계를 본 뒤 정합니다.
+
+## 2단계 - 기록 보기(trip.html)에 붙이기 (2026-11-22)
+
+화면 쪽은 들어가 있고, 설정 `map.basemap.url` 이 비어 있으면 지금 바탕(V-World · 지형 음영) 그대로입니다.
+
+| 무엇 | 어디 |
+|---|---|
+| 지도 모양 | `RF.vectorStyle`(course-kit.js) - OpenMapTiles 양식의 숲 · 물 · 길 · 산길(점선) · 봉우리(▲ 이름 · 높이) · 마을 이름 + 지금 지형 음영 |
+| 파일 읽기 | `vendor/pmtiles-4.5.0/pmtiles.js`(BSD-3) - 지도 프로그램이 `pmtiles://` 주소를 Range 조각으로 받음 |
+| 글꼴 | `vendor/fonts/Noto Sans Regular/*.pbf`(OFL, protomaps/basemaps-assets) - 숫자 · 로마자만. 한글은 폰 글꼴(localIdeographFontFamily) |
+| 주소 | `api/map-config` 의 `basemapUrl`(설정 map.basemap.url - 같은 사이트 경로나 https, .pmtiles 로 끝날 때만) |
+| 서비스워커 | `.pmtiles` 는 캐시하지 않고 서버로 |
+
+### PC(로컬)에서 먼저 보기
+1. `target\basemap\korea.pmtiles` 를 `wtpwebapps\routefly\tiles\korea.pmtiles` 로 복사(톰캣 기본 서블릿이 Range 를 받음)
+2. PC 설정 파일에 `map.basemap.url=tiles/korea.pmtiles` (홍TV님이 넣음 - 설정 파일은 Claude 가 열지 않음)
+3. http://localhost:8080/routefly/trip.html 에서 GPX 를 열어 보기
+
+### 운영 서버(홍TV님 결정 뒤)
+1. 서버 디스크 남은 양 확인(df -h /) - 파일 약 362MB
+2. `/opt/routefly/tiles/korea.pmtiles` 로 올림(scp, 홍TV님)
+3. nginx 에 `location /routefly/tiles/ { alias /opt/routefly/tiles/; add_header Cache-Control "public, max-age=604800"; }` (정적 파일이라 Range 는 기본으로 됨)
+4. 운영 설정 `map.basemap.url=/routefly/tiles/korea.pmtiles` 후 톰캣 재시작

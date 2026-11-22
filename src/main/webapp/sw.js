@@ -7,7 +7,7 @@
  *   - MapLibre(vendor): 바뀌지 않으므로 받아 둔 것 먼저
  *   - 판 붙은 js · css(js/x.js?v=내용 해시 - war 만들 때 tools/minify/version.js 가 붙임, 2026-11-01): 내용이 바뀌면 주소가 바뀌므로 받아 둔 것 먼저
  */
-var SHELL = "rf-shell-v319", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
+var SHELL = "rf-shell-v320", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
 var TILE_KEEP = 1500;   // 지나가며 본 타일은 이만큼만 남깁니다(저장 공간)
 // 2026-10-09 점검: API 캐시도 한도 - 지도를 움직일 때마다 목록 주소(bbox)가 하나씩 늘어 끝없이 커졌습니다.
 // 오프라인 저장한 코스는 OFFLINE 캐시에 따로 있어 지워지지 않습니다.
@@ -243,6 +243,7 @@ self.addEventListener("fetch", function (e) {
     // 오프라인 저장(hike.js saveOffline)이 받는 타일은 OFFLINE 캐시에 들어가므로 여기에는 넣지 않습니다(두 번 저장되던 것)
     if (isTile(url)) { e.respondWith(cacheFirst(req, req.cache === "no-store" ? null : TILES)); return; }
     if (url.indexOf(self.location.origin) !== 0) return;   // 그 밖의 다른 사이트는 손대지 않음
+    if (/\.pmtiles(?:[?#]|$)/.test(url)) return;   // 바탕 지도 파일(2026-11-22) - 조각(Range) 요청이라 캐시에 담지 않고 서버로
     if (url.indexOf("/api/course-submit") >= 0) return;   // 받은 GPX(관리자 - GPX 편집)는 받아 두지 않고 서버로 - 지운 것이 옛 목록으로 보이거나 GPX 가 캐시에 남지 않게(2026-11-01)
     if (url.indexOf("/api/rain") >= 0) return;   // 걷는 중 비구름(2026-11-14) - 산속에서 받아 둔 옛 비를 지금 비처럼 보이지 않게 늘 서버로
     if (url.indexOf("/api/tidefly") >= 0) return;   // 출조 판단 ○ △ ✕ · 물때(점검 10차 A2) - 늦을 때 받아 둔 옛 판단을 지금 것처럼 보이지 않게 늘 서버로

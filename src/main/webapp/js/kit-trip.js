@@ -150,6 +150,57 @@
     }
 
     /**
+     * 순수 함수 - 우리 바탕 지도(OSM → Planetiler 벡터 PMTiles, OpenMapTiles 양식 - docs/basemap/README.md)의 지도 모양(2026-11-22 홍TV님 "지도 작업을 계속 하자고", 2단계 기록 보기).
+     * c - api/map-config(basemapUrl · demUrl), fonts - 글꼴 폴더의 절대 주소(…/vendor/fonts/). 색 · 굵기는 우리가 정함(램블러 · OpenTopoMap 을 따라 하지 않음).
+     * 한글 글자는 폰 글꼴로 그림(지도 프로그램 localIdeographFontFamily) - 받는 글꼴은 숫자 · 로마자(Noto Sans, OFL)만. 지형 음영은 지금처럼 demUrl.
+     */
+    function vectorStyle(c, fonts) {
+        var src = "pmtiles://" + c.basemapUrl, ko = ["coalesce", ["get", "name:ko"], ["get", "name"]], F = ["Noto Sans Regular"];
+        var line = function (id, filter, color, w, extra) {
+            var l = { id: id, type: "line", source: "omt", "source-layer": "transportation", filter: filter,
+                layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": color, "line-width": w } };
+            for (var k in extra || {}) l.paint[k] = extra[k];
+            return l;
+        };
+        var cls = function (list) { return ["match", ["get", "class"], list, true, false]; };
+        return {
+            version: 8,
+            glyphs: fonts + "{fontstack}/{range}.pbf",
+            sources: {
+                omt: { type: "vector", url: src, attribution: "© OpenMapTiles © OpenStreetMap contributors" },
+                hillshade: { type: "raster-dem", tiles: [c.demUrl], encoding: "terrarium", tileSize: 256, maxzoom: 15, attribution: tr("지형: ", "Terrain: ") + "Terrain Tiles (AWS Open Data)" }
+            },
+            layers: [
+                { id: "bg", type: "background", paint: { "background-color": "#f2efe6" } },
+                { id: "landuse", type: "fill", source: "omt", "source-layer": "landuse", filter: cls(["residential", "suburb", "neighbourhood", "commercial", "retail", "industrial"]), paint: { "fill-color": "#e9e2d6" } },
+                { id: "farm", type: "fill", source: "omt", "source-layer": "landcover", filter: cls(["farmland", "grass"]), paint: { "fill-color": "#e6ecd3" } },
+                { id: "wood", type: "fill", source: "omt", "source-layer": "landcover", filter: cls(["wood", "forest"]), paint: { "fill-color": "#cfe0bd" } },
+                { id: "rock", type: "fill", source: "omt", "source-layer": "landcover", filter: cls(["rock", "sand", "ice"]), paint: { "fill-color": "#e4e0d8" } },
+                { id: "park", type: "line", source: "omt", "source-layer": "park", paint: { "line-color": "#5f8f4e", "line-width": 1.2, "line-dasharray": [3, 2], "line-opacity": 0.7 } },
+                { id: "water", type: "fill", source: "omt", "source-layer": "water", paint: { "fill-color": "#a8cbe0" } },
+                { id: "waterway", type: "line", source: "omt", "source-layer": "waterway", paint: { "line-color": "#8bb8d6", "line-width": ["interpolate", ["linear"], ["zoom"], 10, 0.5, 15, 2] } },
+                { id: "hillshade", type: "hillshade", source: "hillshade", paint: { "hillshade-exaggeration": 0.4, "hillshade-shadow-color": "#4a5544", "hillshade-highlight-color": "#fffdf5" } },
+                { id: "boundary", type: "line", source: "omt", "source-layer": "boundary", filter: ["<=", ["get", "admin_level"], 6], paint: { "line-color": "#9a8fa6", "line-width": 1, "line-dasharray": [4, 2, 1, 2] } },
+                line("path", cls(["path", "track"]), "#a0522d", ["interpolate", ["linear"], ["zoom"], 12, 0.8, 16, 2], { "line-dasharray": [2, 1.5] }),
+                line("road-minor", cls(["minor", "service", "tertiary"]), "#ffffff", ["interpolate", ["linear"], ["zoom"], 10, 0.6, 16, 4]),
+                line("road-major", cls(["primary", "secondary", "trunk", "motorway"]), "#f4c96b", ["interpolate", ["linear"], ["zoom"], 7, 0.8, 16, 6]),
+                line("rail", cls(["rail", "transit"]), "#8a8a8a", 1, { "line-dasharray": [3, 3] }),
+                { id: "road-name", type: "symbol", source: "omt", "source-layer": "transportation_name", minzoom: 13,
+                    layout: { "symbol-placement": "line", "text-field": ko, "text-font": F, "text-size": 11 }, paint: { "text-color": "#5a4a3a", "text-halo-color": "#fff", "text-halo-width": 1.2 } },
+                { id: "water-name", type: "symbol", source: "omt", "source-layer": "water_name",
+                    layout: { "text-field": ko, "text-font": F, "text-size": 11 }, paint: { "text-color": "#3f6f8f", "text-halo-color": "#fff", "text-halo-width": 1 } },
+                { id: "peak", type: "symbol", source: "omt", "source-layer": "mountain_peak", minzoom: 10,
+                    layout: { "text-field": ["case", ["has", "ele"], ["concat", "▲ ", ko, "\n", ["to-string", ["get", "ele"]], "m"], ["concat", "▲ ", ko]], "text-font": F,
+                        "text-size": 11, "text-anchor": "top", "text-offset": [0, 0.2] },
+                    paint: { "text-color": "#6b3d1e", "text-halo-color": "#fffdf5", "text-halo-width": 1.4 } },
+                { id: "place", type: "symbol", source: "omt", "source-layer": "place", filter: cls(["city", "town", "village", "hamlet", "suburb"]),
+                    layout: { "text-field": ko, "text-font": F, "text-size": ["match", ["get", "class"], "city", 16, "town", 14, 12] },
+                    paint: { "text-color": "#333", "text-halo-color": "#fff", "text-halo-width": 1.5 } }
+            ]
+        };
+    }
+
+    /**
      * 순수 함수 - "내 기록" 하나(rec.track: [[위도, 경도, 시각, 고도|null], …], rec.notes) → 고도 그래프 · 지도에 그릴 코스 모양.
      * 점은 10m 보다 가까우면 솎고(끝점은 남김), 사진 · 메모는 가장 가까운 기록 점의 거리에 이름표로 둡니다.
      */
@@ -785,6 +836,7 @@
         recordCourse: recordCourse,
         gpxRecord: gpxRecord,
         baseStyle: baseStyle,
+        vectorStyle: vectorStyle,
         speedProfile: speedProfile,
         profile: profile,
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },

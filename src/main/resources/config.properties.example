@@ -26,6 +26,9 @@ map.vworld.key=
 # 3D 지형(고도) 타일. routefly-batch 의 dem.url 과 같은 것을 쓰면 고도 그래프와 지형이 맞습니다.
 # 비우면 아래 기본값(AWS Open Data Terrain Tiles, Terrarium 형식).
 map.dem.url=https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png
+# 우리 바탕 지도 파일(벡터 PMTiles, docs/basemap/README.md) - 비우면 지금 바탕(V-World · 지형 음영) 그대로. 같은 사이트 경로나 https, .pmtiles 로 끝남
+#   운영: nginx 가 /opt/routefly/tiles 를 /routefly/tiles/ 로 내줌 → /routefly/tiles/korea.pmtiles · PC 개발: wtpwebapps\routefly\tiles\korea.pmtiles → tiles/korea.pmtiles
+#map.basemap.url=
 
 # ---------------------------------------------------------------- 숙박 · 날씨(2026-10-14, fly(3D) 안내 버튼)
 # 공공데이터포털 일반 인증키(Decoding). 서버에서만 쓰고 브라우저로 내려가지 않습니다. 비우면 숙박 · 날씨 칸에 "준비 중".
