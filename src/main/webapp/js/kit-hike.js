@@ -4088,7 +4088,8 @@
         p = p || {};
         end = end || {};
         var name = String(end.name || "").replace(/\s+/g, " ").trim().slice(0, 30), ok = isFinite(end.lat) && isFinite(end.lon) && end.lat !== null && end.lon !== null;
-        if (name) out.push({ text: T("🍜 " + name + " 맛집", "🍜 Food near " + enName(name)), href: "https://map.kakao.com/link/search/" + encodeURIComponent(name + " 맛집"), sponsored: false });
+        // 검색어는 그 동네(행정동 - end.area, 2026-11-22 홍TV님 "덕기봉 맛집인데 전북이 나오네": 봉우리 이름만으로는 카카오가 다른 지방 가게를 냄). 동네를 모르면 이름
+        if (name) out.push({ text: T("🍜 " + name + " 맛집", "🍜 Food near " + enName(name)), href: "https://map.kakao.com/link/search/" + encodeURIComponent((end.area ? String(end.area).replace(/\s+/g, " ").trim().slice(0, 40) : name) + " 맛집"), sponsored: false });
         var trip = p.trip && ok ? tripLink(p.trip, end.lat, end.lon, name) : null;
         if (trip) { out.push({ text: T("🏨 근처 숙소(트립닷컴)", "🏨 Stays nearby (Trip.com)"), href: trip, sponsored: true }); af = true; }
         else if (p.agoda && ok && /\{lat\}/.test(p.agoda)) {

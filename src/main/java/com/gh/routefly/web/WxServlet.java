@@ -44,6 +44,14 @@ public class WxServlet extends HttpServlet {
             return;
         }
         String ip = SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For"));
+        // 행정동만(2026-11-22 홍TV님 "덕기봉 맛집인데 전북이 나오네" - 산행 끝 "🍜 맛집" 을 그 동네 이름으로 찾게). 화면은 코스 끝 자리를 보냄(내 위치 아님)
+        if ("1".equals(req.getParameter("regionOnly"))) {
+            JsonObject r = region(at[0], at[1], ip), o = new JsonObject();
+            o.addProperty("success", true);
+            if (r != null) o.add("region", r);
+            Json.write(resp, HttpServletResponse.SC_OK, o, false);
+            return;
+        }
         JsonObject out = answer(at[0], at[1], System.currentTimeMillis(), () -> {
             // 기상청 날씨누리 링크용 행정동(2026-10-30 홍TV님) - 셋과 함께 물음(2026-11-02 홍TV님 점검: 셋을 다 받은 뒤에 물어 그만큼 늦었음). 못 받으면 없이
             CompletableFuture<JsonObject> rgF = start(() -> region(at[0], at[1], ip));

@@ -1997,6 +1997,15 @@
         }
         box.appendChild(nx);
         box.hidden = false;
+        // 🍜 맛집은 그 동네(행정동)로 다시(2026-11-22 홍TV님 "덕기봉 맛집인데 전북이 나오네") - 서버에는 코스 끝 점(공개된 코스 자료)만,
+        // 코스가 없으면 끝낸 자리의 고정 5km 칸 가운데만(걷는 중 비구름과 같은 규칙 - 내 위치 그대로는 보내지 않음)
+        var food = r.links[0] && /^🍜/.test(r.links[0].text) ? nx.firstChild : null, ce = c && c.lat && c.lat.length ? c.lat.length - 1 : -1;
+        var at = ce >= 0 ? [c.lat[ce], c.lon[ce]] : isFinite(end.lat) ? RF.cellCenter(end.lat, end.lon) : null;
+        if (food && at) getJson("api/wx?regionOnly=1&lat=" + (+at[0]).toFixed(4) + "&lon=" + (+at[1]).toFixed(4)).then(function (j) {
+            if (!j || !j.region || !j.region.name) return;
+            end.area = j.region.name;
+            food.href = RF.afterHikeLinks(p, end, EN).links[0].href;
+        }).catch(function () { /* 이름으로 찾기 그대로 */ });
     }
 
     /**

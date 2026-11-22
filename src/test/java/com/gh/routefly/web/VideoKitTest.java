@@ -75,6 +75,16 @@ public class VideoKitTest {
         assertTrue("검색에 내지 않음", read("src/main/webapp/record.html").contains("<meta name=\"robots\" content=\"noindex, nofollow\">"));
     }
 
+    /** 산행 끝 🍜 맛집 - 봉우리 이름만으로는 다른 지방(덕기봉 → 전북 익산)이 나와 그 동네(행정동)로(2026-11-22 홍TV님). 셈은 course-kit.test.js afterHikeLinks. */
+    @Test
+    public void 맛집은_그_동네로() throws Exception {
+        String js = read("src/main/webapp/js/hike.js"), wx = read("src/main/java/com/gh/routefly/web/WxServlet.java");
+        assertTrue("코스 끝 점 · 없으면 5km 칸 가운데만", js.contains("RF.cellCenter(end.lat, end.lon) : null;")
+                && js.contains("food.href = RF.afterHikeLinks(p, end, EN).links[0].href;"));
+        assertTrue("서버는 행정동만", wx.contains("if (\"1\".equals(req.getParameter(\"regionOnly\"))) {"));
+        assertTrue(read("src/main/webapp/privacy.html").contains("\"🍜 맛집\" 은 코스 끝 점") && read("src/main/webapp/privacy-en.html").contains("The \"🍜 Food\" link after a hike"));
+    }
+
     @Test
     public void 공개_기록_남길_것만() {
         JsonObject in = JsonParser.parseString("{\"name\":\"덕기봉 <b>\\n산행\",\"kind\":\"hike\",\"date\":\"2026-11-22\",\"dist_m\":5123.4,\"time_ms\":7200000,\"up_m\":612,"
