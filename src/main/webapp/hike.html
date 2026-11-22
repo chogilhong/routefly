@@ -328,7 +328,11 @@ html.rfwait body { visibility:hidden; }   /* 앱을 처음 열 때 서버에 닿
              border:1px solid #222; border-radius:22px; background:#000; color:#8a8a8a; font:inherit; font-size:14px; }   /* 글자 #555 → #8a8a8a(대비 2.8 → 5.6, 점검 11차 D4) - 주머니 모드라 밝지 않게 */
 #noteText { width:100%; min-height:70px; box-sizing:border-box; border-radius:10px; border:1px solid var(--ln); background:rgba(255,255,255,0.06);
             color:var(--tx); font:inherit; font-size:15px; padding:8px 10px; resize:vertical; }
-#notePreview { display:none; max-width:100%; max-height:200px; border-radius:10px; margin:8px 0 0; }
+#notePreview { display:flex; gap:6px; flex-wrap:wrap; margin:8px 0 0; }
+#notePreview:empty { display:none; }
+#notePreview > span { position:relative; width:72px; height:72px; border-radius:8px; overflow:hidden; border:1px solid var(--ln); }
+#notePreview img { width:100%; height:100%; object-fit:cover; display:block; }
+#notePreview button { position:absolute; top:2px; right:2px; width:24px; height:24px; padding:0; border-radius:12px; border:0; background:rgba(0,0,0,0.65); color:#fff; font-size:13px; cursor:pointer; }
 .noteMark { font-size:18px; line-height:1; filter:drop-shadow(0 1px 2px rgba(0,0,0,0.7)); cursor:pointer; }
 /* 사진 작은 그림 표시 · 크게 보기 · 여러 장 넣기(2026-11-22 홍TV님) */
 .noteMark.thumb { width:42px; height:42px; border:2px solid #fff; border-radius:8px; overflow:hidden; background:#1c232c; }
@@ -740,16 +744,14 @@ html.picking #pick { display:flex; }
         <h2 data-en="📝 Add photo · note">📝 사진 · 메모 남기기</h2>
         <p class="tip" id="noteWhere" data-en="Here">지금 자리</p>
         <textarea id="noteText" data-en-placeholder="Note (optional) - e.g. rested here, refilled water, junction: left" maxlength="500" placeholder="메모(선택) - 예: 여기서 쉼, 물 보충, 갈림길 왼쪽"></textarea>
-        <!-- 2026-11-22 홍TV님 폰: capture 가 있으면 안드로이드는 카메라로만 가서 갤러리 사진을 못 골랐음 - 찍기 · 고르기 두 단추 -->
+        <!-- 2026-11-22 홍TV님 "따라가기 중 📝 → 📷 찍기 → 남기기 만 가능하게 · 여러 장도": 갤러리 고르기는 뺌(지난 사진은 내 기록 📷 사진 넣기), 찍을 때마다 아래 줄에 쌓였다가 남기기로 모두 지금 자리에 -->
         <div class="sbtn" style="margin-top:8px">
-            <button type="button" class="photo" id="notePhotoBtn" data-en="📷 Take">📷 찍기</button>
-            <button type="button" class="photo" id="notePickBtn" data-en="🖼 Pick from gallery">🖼 갤러리에서 고르기</button>
+            <button type="button" class="photo" id="notePhotoBtn" data-en="📷 Take (more than one is OK)">📷 찍기(여러 장 가능)</button>
         </div>
         <input type="file" id="notePhoto" accept="image/*" capture="environment" hidden>
-        <input type="file" id="notePick" accept="image/*" hidden>
         <!-- 앱만(RfGallery - 2026-11-01): 찍은 사진을 폰 갤러리 routefly 앨범에도 -->
         <label id="galleryRow" hidden><input type="checkbox" id="galleryChk"> <span data-en="Also save photos to the gallery (routefly album)">사진을 갤러리(routefly 앨범)에도 저장</span></label>
-        <img id="notePreview" data-en-alt="Selected photo" alt="고른 사진">
+        <div id="notePreview"></div>
         <!-- 2026-11-22 홍TV님 "기존에 남긴 사진도 같이 보여줘" - 이번 산행에 앞서 남긴 사진 · 메모(누르면 크게) -->
         <div id="noteHaveBox" hidden><p class="tip" id="noteHaveTitle"></p><div id="noteHave"></div></div>
         <p class="tip" data-en="Photos and notes stay on this phone (My records). Notes become waypoints when you save GPX.">사진 · 메모는 이 핸드폰에만 남습니다(내 기록). GPX 로 저장하면 메모가 지점으로 들어갑니다.</p>

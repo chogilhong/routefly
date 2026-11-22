@@ -41,10 +41,11 @@ public class VideoKitTest {
         assertTrue("EXIF 는 줄이기 전 원본에서", js.contains("var pl = RF.photoPlace(rec.track, info)") && js.contains("return RF.exifInfo(b, -new Date().getTimezoneOffset());"));
         assertTrue("자리를 못 찾은 사진은 못 고름", js.contains("ck.checked = !!pl && !dup;") && js.contains("ck.disabled = !pl;"));
         assertTrue("넣은 뒤 찍은 때 차례 · 저장", js.contains("rec.notes = (rec.notes || []).concat(added).sort(function (a, b) { return a.t - b.t; });") && js.contains("return writeRecords(records());"));
-        assertTrue("산행 중 갤러리 사진도 찍힌 자리에", js.contains("var pl = old ? RF.photoPlace(hike.track, info) : null;"));
         assertTrue("지도에 사진 작은 그림 · 크게", js.contains("el.className = \"noteMark thumb\";") && js.contains("photoBig(u, n.text);") && html.contains("<div id=\"photoBig\""));
-        assertTrue("찍기 · 갤러리 고르기 둘(capture 가 있으면 카메라로만 감 - 홍TV님 폰)", html.contains("<input type=\"file\" id=\"notePick\" accept=\"image/*\" hidden>")
-                && html.contains("id=\"notePickBtn\"") && js.contains("if (!noteFromGallery) toGallery(noteFile, blob, note.t);"));
+        assertTrue("산행 중은 📷 찍기만(갤러리 고르기 뺌) · 여러 장 쌓았다가 남기기로 모두 지금 자리에(2026-11-22 홍TV님)",
+                !html.contains("notePick") && html.contains("<input type=\"file\" id=\"notePhoto\" accept=\"image/*\" capture=\"environment\" hidden>")
+                && js.contains("noteFiles.push(f);") && js.contains("return { t: t0 + i, lat: base.lat, lon: base.lon, ele: base.ele, text: i === 0 ? text || null : null, photo: null, file: file };")
+                && js.contains("toGallery(note.file, blob, note.t);") && !js.contains("PHOTO_OLD_MS"));
         assertTrue("주머니 모드 단추는 📴(테마 🌙 와 다르게 - 2026-11-22 홍TV님)", html.contains("aria-label=\"주머니 모드\"") && html.contains("은 그대로\">📴</button>"));
         assertTrue("사진 · 메모 창에 이번 산행에 앞서 남긴 것(홍TV님)", html.contains("<div id=\"noteHaveBox\" hidden>") && js.contains("        noteHaveShow();\n")
                 && js.contains("var list = (hike.notes || []).slice().reverse()") && js.contains("b.onclick = function () { photoBig(u, b.title); };"));

@@ -2818,7 +2818,7 @@
         return keep;
     }
     /** 사진을 긴 변 PHOTO_MAX px JPEG 로 줄입니다(저장 공간). */
-    var PHOTO_MAX = 1600, PHOTO_OLD_MS = 120000;
+    var PHOTO_MAX = 1600;
     function shrinkPhoto(file, max, q) {   // max · q - GPX 파일에 넣을 때 더 작게(gpxPhotos)
         return new Promise(function (resolve, reject) {
             var img = new Image(), url = URL.createObjectURL(file);
@@ -2899,34 +2899,43 @@
         try { localStorage.setItem(GALLERY_KEY, this.checked ? "1" : "0"); } catch (e) { /* 이번만 */ }
     });
 
-    var noteFile = null, noteFromGallery = false;
+    var noteFiles = [], notePrevUrls = [];   // 이번 창에서 찍은 사진들(2026-11-22 홍TV님 "여러장은 안 돼?") - 남기기로 모두 지금 자리에
     $("noteBtn").addEventListener("click", function () {
         $("galleryRow").hidden = !GALLERY;   // 브라우저 · 옛 앱은 숨김
         $("galleryChk").checked = lsGet(GALLERY_KEY) !== "0";
         var f = hike.fix;
         if (!f) { toast(T("아직 위치를 받지 못했습니다. GPS 를 잡은 뒤 다시 누르세요.", "No location yet. Try again once GPS has a fix."), 4000); return; }
-        noteFile = null;
+        noteFiles = [];
+        notePrevShow();
         $("noteText").value = "";
-        $("notePreview").style.display = "none";
         noteHaveShow();
         $("noteWhere").textContent = T("지금 자리 · ", "Here · ") + clock(now()) + (c ? " · " + km(hike.d) + T("km 지점", " km along") : "") + (f.acc != null ? T(" · 오차 ±", " · ±") + Math.round(f.acc) + "m" : "");
         $("noteSheet").style.display = "flex";
     });
     $("notePhotoBtn").addEventListener("click", function () { $("notePhoto").value = ""; $("notePhoto").click(); });
-    $("notePickBtn").addEventListener("click", function () { $("notePick").value = ""; $("notePick").click(); });   // capture 없이 - 갤러리(2026-11-22 홍TV님 폰)
-    $("notePick").addEventListener("change", notePicked);
-    $("notePhoto").addEventListener("change", notePicked);
-    function notePicked() {
+    $("notePhoto").addEventListener("change", function () {
         var f = this.files && this.files[0];
         if (!f) return;
-        noteFile = f;
-        noteFromGallery = this.id === "notePick";   // 갤러리에서 고른 사진은 갤러리에 또 넣지 않음
-        var pv = $("notePreview");
-        if (pv.src) URL.revokeObjectURL(pv.src);
-        pv.src = URL.createObjectURL(f);
-        pv.style.display = "block";
+        noteFiles.push(f);   // 찍을 때마다 쌓음 - 다시 📷 찍기를 누르면 한 장 더
+        notePrevShow();
+    });
+    /** 찍어 둔 사진 작은 그림 줄(✕ 로 한 장 빼기). */
+    function notePrevShow() {
+        notePrevUrls.forEach(function (u) { URL.revokeObjectURL(u); });
+        notePrevUrls = [];
+        var box = $("notePreview");
+        box.textContent = "";
+        noteFiles.forEach(function (f, i) {
+            var w = document.createElement("span"), im = new Image(), x = document.createElement("button"), u = URL.createObjectURL(f);
+            notePrevUrls.push(u);
+            im.src = u; im.alt = T("찍은 사진 ", "Photo ") + (i + 1);
+            x.type = "button"; x.textContent = "✕"; x.setAttribute("aria-label", T("이 사진 빼기", "Remove this photo"));
+            x.onclick = function () { noteFiles.splice(i, 1); notePrevShow(); };
+            w.appendChild(im); w.appendChild(x); box.appendChild(w);
+        });
+        $("noteSave").textContent = noteFiles.length > 1 ? T("남기기(사진 " + noteFiles.length + "장)", "Save (" + noteFiles.length + " photos)") : T("남기기", "Save");
     }
-    $("noteCancel").addEventListener("click", function () { $("noteSheet").style.display = "none"; noteHaveClear(); });
+    $("noteCancel").addEventListener("click", function () { $("noteSheet").style.display = "none"; noteHaveClear(); noteFiles = []; notePrevShow(); });
     /**
      * 이번 산행에 앞서 남긴 사진 · 메모를 창 안에 작은 그림 줄로(2026-11-22 홍TV님 "남기기를 하고 다시 촬영을 했어 … 기존에 남긴 사진도 같이 보여줘").
      * 새것이 앞, 누르면 크게(사진) · 메모 글. 창을 닫을 때 그림 주소를 놓음.
@@ -2960,31 +2969,37 @@
         var f = hike.fix, text = $("noteText").value.trim();
         // 알림 창으로(2026-11-01 홍TV님 "사진 없이 남기기를 누르면 반응이 없어" - 안내 글이 이 창 아래에 떠서 안 보였음)
         if (!f) { hAlert(T("아직 위치를 받지 못했습니다. GPS 를 잡은 뒤 다시 눌러 주세요.", "No location yet. Try again once GPS has a fix.")); return; }
-        if (!text && !noteFile) { hAlert(T("메모를 쓰거나 📷 사진을 찍어(골라) 주세요.", "Write a note or take (pick) a 📷 photo.")); return; }
+        if (!text && !noteFiles.length) { hAlert(T("메모를 쓰거나 📷 사진을 찍어(골라) 주세요.", "Write a note or take (pick) a 📷 photo.")); return; }
         // 해발: 코스 위면 코스 고도(GPS 고도는 흔들림 - README), 벗어나 있으면 GPS 고도
         var at = c && hike.off <= OFF_ROUTE_M ? RF.at(c, hike.d) : null;
         var ele = at && at.ele != null ? at.ele : f.alt;
-        var note = { t: now(), lat: Math.round(f.lat * 1e6) / 1e6, lon: Math.round(f.lon * 1e6) / 1e6,
-                     ele: ele != null ? Math.round(ele) : null, text: text || null, photo: null };
+        // 찍은 사진은 모두 지금 자리 · 지금 때(2026-11-22 홍TV님 "여러 장을 찍으면 그것도 같이 그 지점에"), 메모 글은 첫 장에(사진이 없으면 메모만)
+        var t0 = now(), base = { lat: Math.round(f.lat * 1e6) / 1e6, lon: Math.round(f.lon * 1e6) / 1e6, ele: ele != null ? Math.round(ele) : null };
+        var files = noteFiles.slice(), made = (files.length ? files : [null]).map(function (file, i) {
+            return { t: t0 + i, lat: base.lat, lon: base.lon, ele: base.ele, text: i === 0 ? text || null : null, photo: null, file: file };
+        });
         var btn = $("noteSave");
         btn.disabled = true;
-        // 갤러리에서 고른 사진(2분 넘게 전에 찍음 · 사진 속 위치가 50m 넘게 떨어짐)은 찍힌 자리 · 때로(2026-11-22 홍TV님 - 몇 장 찍고 잘 나온 것을 골라)
-        (noteFile && !hike.sim ? readExif(noteFile) : Promise.resolve(null)).then(function (info) {
-            var old = info && (info.t != null && now() - info.t > PHOTO_OLD_MS || info.lat != null && RF.distM(info.lat, info.lon, f.lat, f.lon) > 50);
-            var pl = old ? RF.photoPlace(hike.track, info) : null;
-            if (pl) { note.t = pl.t; note.lat = pl.lat; note.lon = pl.lon; if (pl.ele != null) note.ele = Math.round(pl.ele); }
-        }).then(function () { return noteFile ? shrinkPhoto(noteFile).then(function (blob) {
-            note.photo = "p" + note.t.toString(36) + Math.random().toString(36).slice(2, 6);
-            if (!noteFromGallery) toGallery(noteFile, blob, note.t);
-            return photoPut(note.photo, blob);
-        }) : null; }).then(function () {
-            hike.notes.push(note);
+        made.reduce(function (p, note) {   // 한 장씩 차례로 줄여 담음(폰 메모리)
+            return p.then(function () {
+                if (!note.file) return null;
+                return shrinkPhoto(note.file).then(function (blob) {
+                    note.photo = "p" + note.t.toString(36) + Math.random().toString(36).slice(2, 6);
+                    toGallery(note.file, blob, note.t);
+                    return photoPut(note.photo, blob);
+                });
+            });
+        }, Promise.resolve()).then(function () {
+            made.forEach(function (note) { delete note.file; hike.notes.push(note); });
+            var nPhoto = made.filter(function (n) { return n.photo; }).length;
             hike.notes.sort(function (a, b) { return a.t - b.t; });   // 찍은 때 차례(앞서 찍은 사진을 나중에 골라 넣어도)
             if (!hike.sim) try { localStorage.setItem(saveKey() + "-notes", JSON.stringify(hike.notes)); } catch (e) { /* 공간 부족 - 이번 산행 동안은 화면에 남음 */ }
             drawNoteMarkers();
             $("noteSheet").style.display = "none";
             noteHaveClear();
-            toast(EN ? (note.photo ? "📷 Photo" : "📝 Note") + " saved (" + hike.notes.length + ")." : (note.photo ? "📷 사진" : "📝 메모") + "을 남겼습니다(" + hike.notes.length + "개).", 2500);
+            noteFiles = [];
+            notePrevShow();
+            toast(EN ? (nPhoto ? "📷 " + nPhoto + " photo(s)" : "📝 Note") + " saved here (" + hike.notes.length + ")." : (nPhoto ? "📷 사진 " + nPhoto + "장" : "📝 메모") + "을 이 자리에 남겼습니다(모두 " + hike.notes.length + "개).", 2500);
         }).catch(function (e) {
             toast(T("남기지 못했습니다: ", "Could not save: ") + (e && e.message || e), 5000);
         }).then(function () { btn.disabled = false; });
