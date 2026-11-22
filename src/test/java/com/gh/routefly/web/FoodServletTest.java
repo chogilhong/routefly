@@ -76,10 +76,10 @@ public class FoodServletTest {
     public void doneSheetShowsList() throws Exception {
         String js = read("src/main/webapp/js/hike.js"), html = read("src/main/webapp/hike.html"), kit = read("src/main/webapp/js/course-kit.js");
         assertTrue("같은 좌표 규칙으로 api/food", js.contains("if (food && at) getJson(\"api/food?lat=\" + (+at[0]).toFixed(4) + \"&lon=\" + (+at[1]).toFixed(4))"));
-        assertTrue("🍜 · 🏨 뒤에 단추 · 그 아래 목록(처음엔 접힘) - 숙소가 위로(2026-11-22 홍TV님)", js.contains("food.parentNode.appendChild(btn);") && js.contains("food.parentNode.appendChild(ul);") && js.contains("ul.hidden = true;"));
+        assertTrue("🏨 · 🍜 단추 아래 목록, 처음부터 펼침 - 누르는 단추 없음(2026-11-22 홍TV님)", js.contains("food.parentNode.appendChild(ul);   // 🏨 · 🍜 단추 아래") && js.contains("ul.appendChild(head);") && !js.contains("ul.hidden = true;") && !js.contains("ul.hidden = !ul.hidden"));
         assertTrue("카카오 검색 결과라고 밝힘", js.contains("방송 출연은 가게 정보에서 확인하세요."));
         assertTrue("글은 textContent 로만", js.contains("nm.textContent = f.name;") && !js.contains("innerHTML = f."));
-        assertTrue(html.contains("#doneNext .tvFood[hidden] { display:none; }"));
+        assertTrue(html.contains("#doneNext .tvFood .tvHead {"));
         assertTrue("줄마다 길찾기 - 폰은 🚗 티맵 + 🧭 카카오맵, PC 는 카카오맵만(2026-11-22 홍TV님)",
             js.contains("if (phone) go.appendChild(navLink(\"🚗 \" + T(\"티맵\", \"TMAP\"), RF.tmapHref(nmq, f.lat, f.lon)));")
             && js.contains("go.appendChild(navLink(\"🧭 \" + T(\"길찾기\", \"Route\"), \"https://map.kakao.com/link/to/\" + encodeURIComponent(nmq)")

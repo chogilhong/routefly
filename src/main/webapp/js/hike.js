@@ -2060,15 +2060,16 @@
             // 🏨 트립닷컴도 그 시 · 군 · 구 이름으로 다시(2026-11-22 홍TV님 "인천 영종구로 조회")
             r.links.forEach(function (x, i) { if (/^🏨/.test(x.text) && again[i] && nx.children[i]) nx.children[i].href = again[i].href; });
         }).catch(function () { /* 이름으로 찾기 그대로 */ });
-        // 📺 TV 맛집(2026-11-22 홍TV님 "백반기행 등 TV 에 나온 유명한 맛집" · 30km) - 같은 좌표 규칙, 있으면 🍜 · 🏨 뒤에 단추, 누르면 목록(가까운 순 · 나온 프로그램)
+        // 📺 TV 맛집(2026-11-22 홍TV님 "백반기행 등 TV 에 나온 유명한 맛집" · 30km) - 같은 좌표 규칙, 있으면 🏨 · 🍜 단추 아래에 목록(가까운 순 · 나온 프로그램)
         if (food && at) getJson("api/food?lat=" + (+at[0]).toFixed(4) + "&lon=" + (+at[1]).toFixed(4)).then(function (j) {
             var list = j && j.food || [];
             if (!list.length || !box.contains(food)) return;
-            var btn = document.createElement("a"), ul = document.createElement("div");
-            btn.href = "#";
-            btn.textContent = T("📺 TV 맛집 " + list.length + "곳", "📺 TV-featured food (" + list.length + ")");
+            // 처음부터 펼쳐 보임(2026-11-22 홍TV님 "근처 숙소 · 맛집은 페이지 이동이고 TV 맛집은 아래 목록이니 처음부터 보여줘") - 누르는 단추 대신 목록 머리
+            var ul = document.createElement("div"), head = document.createElement("div");
             ul.className = "tvFood";
-            ul.hidden = true;
+            head.className = "tvHead";
+            head.textContent = T("📺 TV 맛집 " + list.length + "곳", "📺 TV-featured food (" + list.length + ")");
+            ul.appendChild(head);
             var phone = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
             list.forEach(function (f) {
                 var row = document.createElement("div"), info = document.createElement(f.url ? "a" : "span"), go = document.createElement("span");
@@ -2090,9 +2091,7 @@
             src.textContent = T("카카오에서 프로그램 이름으로 찾은 곳 · 직선 30km 안 · 가까운 순. 방송 출연은 가게 정보에서 확인하세요.",
                 "Places Kakao returns for the show names · within 30 km (straight line) · nearest first. Check the shop page for the broadcast.");
             ul.appendChild(src);
-            btn.addEventListener("click", function (e) { e.preventDefault(); ul.hidden = !ul.hidden; });
-            food.parentNode.appendChild(btn);   // 맨 뒤 - 🏨 숙소가 위로(2026-11-22 홍TV님 "숙소를 위로 올려"), 펼친 목록은 그 아래
-            food.parentNode.appendChild(ul);
+            food.parentNode.appendChild(ul);   // 🏨 · 🍜 단추 아래
         }).catch(function () { /* 🍜 단추만 */ });
     }
 
