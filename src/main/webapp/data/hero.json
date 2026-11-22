@@ -99,6 +99,13 @@
    {"src": "img/hero/jaeyaksan-3.jpg", "w": 1600, "h": 712, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 김지호 (공공누리 제1유형)", "license": "kogl1", "alt": "재약산 - 밀양 표충사"},
    {"src": "img/hero/jaeyaksan-4.jpg", "w": 1200, "h": 838, "credit": "[천황산] 한국민족문화대백과사전 (공공누리 제1유형)", "license": "kogl1", "alt": "재약산 - 천황산"},
    {"src": "img/hero/jaeyaksan-5.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 한국관광공사 이범수 (공공누리 제1유형)", "license": "kogl1", "alt": "재약산 - 호박소계곡"}
+  ],
+  "태백산": [
+   {"src": "img/hero/taebaeksan.jpg", "w": 1200, "h": 858, "credit": "[태백 태백산 천제단] 한국민족문화대백과사전 (공공누리 제1유형)", "license": "kogl1", "alt": "태백산 풍경"},
+   {"src": "img/hero/taebaeksan-2.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 김구남 (공공누리 제1유형)", "license": "kogl1", "alt": "태백산 풍경"},
+   {"src": "img/hero/taebaeksan-3.jpg", "w": 1600, "h": 1068, "credit": "ⓒ한국관광콘텐츠랩 - IR 스튜디오 (공공누리 제1유형)", "license": "kogl1", "alt": "태백산 풍경"},
+   {"src": "img/hero/taebaeksan-4.jpg", "w": 1600, "h": 1066, "credit": "ⓒ한국관광콘텐츠랩 - 박병갑 (공공누리 제1유형)", "license": "kogl1", "alt": "태백산 - 태백산의 상고대"},
+   {"src": "img/hero/taebaeksan-5.jpg", "w": 1200, "h": 800, "credit": "[태백산 송이재] 한국민족문화대백과사전 (공공누리 제1유형)", "license": "kogl1", "alt": "태백산 풍경"}
   ]
  }
 }
