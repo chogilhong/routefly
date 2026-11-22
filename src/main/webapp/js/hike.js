@@ -970,20 +970,40 @@
     //      코스 ID "gpx-<글자 지문>" 으로 엽니다. 새로 고침 · 이어서 산행도 서버 코스처럼 됩니다. 서버에는 올리지 않습니다.
     var isGpxId = RF.isGpxId, gpxId = RF.gpxId, storeGpx = RF.storeGpx, storedGpx = RF.storedGpx;   // course-kit(코스 미리보기와 같이 씀)
     $("gpxOpen").addEventListener("click", function () { $("gpxFile").value = ""; $("gpxFile").click(); });
-    $("gpxFile").addEventListener("change", function () {
-        var f = this.files && this.files[0];
-        if (!f) return;
-        if (f.size > 5 * 1024 * 1024) { toast(T("GPX 가 너무 큽니다(5MB 까지).", "The GPX file is too big (5 MB max)."), 5000); return; }
-        f.text().then(function (text) {
-            var api = RF.gpxToApi(text, f.name), id = gpxId(text);
+    /** GPX 글 → 이 기기에 두고 따라가기로 엶(📂 GPX 열기 · 앱이 받은 GPX 가 함께 씀). */
+    function openGpxText(text, name) {
+        try {
+            var api = RF.gpxToApi(text, name), id = gpxId(text);
             storeGpx(id, api);
             toast(T("GPX 를 열었습니다 - ", "Opened GPX - ") + NM(api.course.name) + " · " + km(api.points[api.points.length - 1][3]) + "km"
                 + (api.pois.length ? T(" · 지점 " + api.pois.length + "개", " · " + api.pois.length + " points") : ""), 5000);
             location.hash = "c=" + encodeURIComponent(id);
-        }).catch(function (e) {
+        } catch (e) {
+            toast(T("GPX 를 열지 못했습니다: ", "Could not open the GPX: ") + (e && e.message || e), 6000);
+        }
+    }
+    $("gpxFile").addEventListener("change", function () {
+        var f = this.files && this.files[0];
+        if (!f) return;
+        if (f.size > 5 * 1024 * 1024) { toast(T("GPX 가 너무 큽니다(5MB 까지).", "The GPX file is too big (5 MB max)."), 5000); return; }
+        f.text().then(function (text) { openGpxText(text, f.name); }, function (e) {
             toast(T("GPX 를 열지 못했습니다: ", "Could not open the GPX: ") + (e && e.message || e), 6000);
         });
     });
+    /**
+     * 앱이 받은 GPX(2026-11-22 홍TV님 - 카톡 · 파일 앱 "routefly 로 열기 · 공유", MainActivity.openGpx → RfGpx 플러그인에 맡김).
+     * 화면이 뜰 때 한 번, 따라가기 화면이 떠 있을 때 받으면 앱이 바로 부름. 한 번 가져가면 앱에서 비워짐. 브라우저에서는 아무 일 없음.
+     */
+    window.rfGpxInbox = function () {
+        var P = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.RfGpx;
+        if (!P || !P.take) return;
+        // 걷는 중(기록 중)에는 코스를 바꾸지 않음 - 앱에 맡긴 채 두고 산행을 끝낼 때 다시 부름
+        if (hike.running) { toast(T("받은 GPX 는 지금 산행(기록)을 끝내면 열립니다.", "The received GPX opens when you finish this hike."), 6000); return; }
+        P.take().then(function (r) {
+            if (r && r.text) openGpxText(r.text, r.name || "shared.gpx");
+            else if (r && r.error) toast(r.error, 6000);
+        }).catch(function () { /* 옛 앱 - 플러그인 없음 */ });
+    };
 
     // 걷는 중 입산 통제 · 하산 시각 알림(그 산 안내가 있을 때만) - 60 · 30 · 10분 앞과 지난 때, 화면 · 소리
     var rules = null, ruleSaid = {}, ruleOf = null, ruleDay = null;   // ruleOf - [산 안내, 코스 이름들]: 한국 날짜가 바뀌면 다시 셈(여러 날 산행 - 계절 · 그날 시각, 2026-11-02 홍TV님 점검)
@@ -2958,6 +2978,7 @@
             else clearSaved(doneId);
         } else finishRecord(true);
         hikeFlag(false);
+        setTimeout(window.rfGpxInbox, 1500);   // 걷는 중 앱이 받아 둔 GPX 가 있으면 이제 엶(rfGpxInbox 는 기록 중엔 그대로 둠)
         if (wasSim) hike.fix = null;   // 시험 걷기 위치는 버림 - SOS · 산악회 방이 가짜 위치(앞당긴 시계라 "방금")를 쓰던 것(2026-11-02 홍TV님 점검)
         hike.sim = false;
         compassOff();   // 2026-10-10 점검: 다 걸은 뒤에도 센서를 계속 받던 것
@@ -5459,5 +5480,6 @@
             } catch (e) { /* 그냥 목록 */ }
         }
         route();
+        window.rfGpxInbox();   // 앱이 받아 둔 GPX(카톡 · 파일 앱 "routefly 로 열기") - 주소의 코스보다 나중이라 받은 GPX 가 열림
     });
 })();

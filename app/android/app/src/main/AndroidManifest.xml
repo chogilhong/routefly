@@ -22,6 +22,28 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- GPX 받기(2026-11-22 홍TV님 "폰, 시계 등으로도 gpx 를 만들어서 공유를 하더라고"): 카톡 · 파일 앱의 "다른 앱으로 열기" · "공유" 에 routefly 가 나옴.
+                 안드로이드는 .gpx 의 MIME 을 모르는 일이 많아 application/octet-stream 도 받고, MainActivity.openGpx 가 <gpx 로 가려냄(아니면 알림) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:mimeType="application/gpx+xml" />
+                <data android:mimeType="application/gpx" />
+                <data android:mimeType="application/octet-stream" />
+                <data android:mimeType="text/xml" />
+                <data android:mimeType="application/xml" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/gpx+xml" />
+                <data android:mimeType="application/gpx" />
+                <data android:mimeType="application/octet-stream" />
+                <data android:mimeType="text/xml" />
+                <data android:mimeType="application/xml" />
+            </intent-filter>
+
             <!-- 앱 링크(2026-10-20 홍TV님): 카톡 · 문자 · QR · NFC 의 산악회 방 참가 링크를 앱이 깔린 폰에서는 앱으로 엶(MainActivity.openLink).
                  autoVerify - 서버 https://routefly.kr/.well-known/assetlinks.json 에 이 앱의 서명 지문이 있어야 "항상 앱으로"(없으면 고르는 창) -->
             <intent-filter android:autoVerify="true">

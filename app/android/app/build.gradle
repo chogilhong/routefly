@@ -7,8 +7,8 @@ android {
         applicationId "kr.routefly.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 2   // 2026-11-17 Play 첫 판(원스토어는 1) - 두 스토어 번호를 한 줄로, 올릴 때마다 +1
-        versionName "1.0.1"
+        versionCode 3   // 2026-11-17 Play 첫 판 2(원스토어는 1) - 두 스토어 번호를 한 줄로, 올릴 때마다 +1. 3: 2026-11-22 GPX 받기(카톡 · 파일 앱 "routefly 로 열기 · 공유")
+        versionName "1.0.2"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
