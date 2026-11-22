@@ -1144,6 +1144,9 @@ tick().then(function () {
         eq("GPX 안에 이름이 없으면 파일 이름(.gpx 뗌) - 트랭글(2026-11-22 PC) · 안에 있으면 그것 · 둘 다 없으면 GPX",
             [RF.gpxRecord(noName, true, "성중종주_20240515_024407.GPX").rec.name, any.rec.name, RF.gpxRecord(cg, true, "x.gpx").rec.name, RF.gpxRecord(noName, true).rec.name],
             ["성중종주_20240515_024407", "코스", "코스", "GPX"]);
+        eq("시험 걷기 출처 줄은 라벨만 떼고 출처는 모두(OSM 포함) · 안내 · MapLibre 빼고 · 같은 것 한 번",
+            RF.attrShort("위성사진: 국토교통부 V-World | 지형: Terrain Tiles (AWS Open Data) | 등산로: 산림청 등산로정보 | 걷기길: 한국관광공사 두루누비 | 지명 · 자전거길: © OpenStreetMap contributors | 안내 | MapLibre | 위성사진: 국토교통부 V-World"),
+            "국토교통부 V-World · Terrain Tiles (AWS Open Data) · 산림청 등산로정보 · 한국관광공사 두루누비 · © OpenStreetMap contributors");
         eq("경로(rte)만 있는 GPX 도", RF.gpxRecord('<gpx><rte><rtept lat="37" lon="127"/><rtept lat="37.2" lon="127"/></rte></gpx>', true).rec.track.length, 2);
         eq("같은 사진은 같은 열쇠 · 시각 없는 코스 GPX 는 기록이 아님", [RF.gpxRecord(gx).rec.notes[0].photo === back.rec.notes[0].photo, RF.gpxRecord('<gpx><trk><trkseg><trkpt lat="37" lon="127"></trkpt><trkpt lat="37.1" lon="127"></trkpt></trkseg></trk></gpx>')], [true, null]);
         eq("짧으면 남는 것 없음 · 0m 면 그대로", [RF.trimEnds(line, 600).length, RF.trimEnds(line, 0).length], [0, 11]);

@@ -168,8 +168,10 @@ public class VideoKitTest {
         assertTrue("시험 걷기 한 걸음마다 출처 줄을 보임", step > 0 && js.indexOf("simAttr(true);", step) - step < 60 && js.indexOf("simAttr(true);", step) > step);
         assertTrue("끝내면 숨김", js.contains("if (wasSim) simAttr(false);"));
         assertTrue("글은 출처 단추 글 그대로(켜진 바탕만)", js.contains("box.querySelector(\".maplibregl-ctrl-attrib-inner\")"));
-        assertTrue("지도 아래 오른쪽 칸에", js.contains("box.querySelector(\".maplibregl-ctrl-bottom-right\")"));
-        assertTrue("눌러도 지도를 막지 않는 모양", html.contains(".sim-attr { font-size:10px;") && html.contains("pointer-events:none; }") && html.contains(".sim-attr[hidden] { display:none; }"));
+        assertTrue("아래 왼쪽 축척 위에 - 오른쪽은 ⌖ 단추에 가렸음(2026-11-22 PC)", js.contains("box.querySelector(\".maplibregl-ctrl-bottom-left\")") && js.contains("corner.insertBefore(el, corner.firstChild);"));
+        assertTrue("라벨을 뗀 짧은 줄(셈은 course-kit.test.js attrShort)", js.contains("var t = inner ? RF.attrShort(inner.textContent) : \"\";"));
+        assertTrue("시험 걷기 끝에는 카드 · GPX 단추 없음(2026-11-22 홍TV님)", js.contains("$(\"doneCard\").style.display = $(\"doneGpx\").style.display = sim ? \"none\" : \"\";"));
+        assertTrue("눌러도 지도를 막지 않는 모양", html.contains(".sim-attr { font-size:9px;") && html.contains("max-width:calc(100vw - 90px)") && html.contains("pointer-events:none; }") && html.contains(".sim-attr[hidden] { display:none; }"));
     }
 
     private static Map<String, Object> call(RecordShareServlet s, String method, String path, String id, String body, String ip) throws Exception {

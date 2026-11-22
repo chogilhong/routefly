@@ -1457,6 +1457,19 @@
     }
 
     /**
+     * 순수 함수 - 지도 출처 글(ⓘ 의 "라벨: 출처 | …") → 짧은 한 줄 "출처 · 출처"(시험 걷기 녹화용, 2026-11-22 PC: 그대로 두면 네 줄로 꺾였음).
+     * 라벨(위성사진: · 등산로: 등)과 안내 · MapLibre 링크 글만 빼고, 출처 이름(© OpenStreetMap contributors 등)은 모두 남김. 같은 것은 한 번.
+     */
+    function attrShort(text) {
+        var out = [];
+        String(text || "").split("|").forEach(function (p) {
+            p = p.replace(/\s+/g, " ").trim().replace(/^[^:©]{1,24}:\s*/, "");
+            if (p && !/^(안내|Info|MapLibre)$/.test(p) && out.indexOf(p) < 0) out.push(p);
+        });
+        return out.join(" · ");
+    }
+
+    /**
      * 순수 함수 - GPX 글 → 내 기록 하나(시각이 든 trkpt 가 2개 넘을 때만 - 걸은 기록, 코스 파일은 null). recordGpx 로 만든 것은 요약 · 사진까지.
      * 돌려줌 {rec: {name, kind, start, end, up, kcal, steps, courseId, track:[[위도, 경도, ms, 높이]], notes:[{t, lat, lon, ele, text, photo}]}, photos: {열쇠: base64}}.
      * 사진 열쇠는 사진 글의 지문으로 새로 만듦(같은 파일을 두 번 넣어도 같은 열쇠).
@@ -4362,6 +4375,7 @@
         trimEnds: trimEnds,
         recordGpx: recordGpx,
         gpxRecord: gpxRecord,
+        attrShort: attrShort,
         isGpxId: isGpxId,
         gpxId: gpxId,
         storeGpx: storeGpx,

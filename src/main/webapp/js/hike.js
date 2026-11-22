@@ -1963,6 +1963,7 @@
         $("doneCard").onclick = function () { shareCard(rec); };
         $("doneBrag").onclick = function () { bragCard(rec); };
         $("doneBrag").hidden = !!sim;   // 시험 걷기는 자랑하지 않음
+        $("doneCard").style.display = $("doneGpx").style.display = sim ? "none" : "";   // 시험 걷기는 카드 · GPX 도 없음 - 걷지 않은 길 · 앞당긴 시각이 진짜 기록처럼 나감(2026-11-22 홍TV님)
         $("doneGpx").textContent = canShareFiles() ? T("📤 GPX 보내기", "📤 Send GPX") : T("GPX 저장", "Save GPX");
         $("doneSheet").style.display = "flex";
         if (!sim && BG) {   // 앱인데 기록이 끊겼으면 배터리 안내를 다시(2026-11-15 덕기봉)
@@ -3880,21 +3881,22 @@
     /** 모의 산행 - 코스를 따라 걷는 위치를 만들어 onFix 에 넣습니다(약간 흔들리게). */
     /**
      * 시험 걷기 중에는 지도 출처를 아래에 한 줄로 늘 보임(2026-11-22 홍TV님 - 사용자가 화면을 녹화해 영상으로 올려도 출처가 남게).
-     * 글은 출처 단추(ⓘ)의 글 그대로 - 지금 켜진 바탕(위성 · 밝은 지도)만 들어 있음. on=false 면 숨김.
+     * 글은 출처 단추(ⓘ)의 글에서 라벨만 뗀 짧은 줄(RF.attrShort) - 지금 켜진 바탕(위성 · 밝은 지도)만 들어 있음. on=false 면 숨김.
+     * 자리는 아래 왼쪽 축척 위(아래 오른쪽은 ⌖ 단추에 가렸음, 2026-11-22 PC).
      */
     function simAttr(on) {
         if (!map) return;
         var box = map.getContainer(), el = box.querySelector(".sim-attr");
         if (!on) { if (el) el.hidden = true; return; }
         if (!el) {
-            var corner = box.querySelector(".maplibregl-ctrl-bottom-right");
+            var corner = box.querySelector(".maplibregl-ctrl-bottom-left");
             if (!corner) return;
             el = document.createElement("div");
             el.className = "maplibregl-ctrl sim-attr";
-            corner.appendChild(el);
+            corner.insertBefore(el, corner.firstChild);
         }
         var inner = box.querySelector(".maplibregl-ctrl-attrib-inner");
-        var t = inner ? inner.textContent.replace(/\s+/g, " ").trim() : "";
+        var t = inner ? RF.attrShort(inner.textContent) : "";
         if (el.textContent !== t) el.textContent = t;
         el.hidden = !t;
     }
