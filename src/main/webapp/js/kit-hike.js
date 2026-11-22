@@ -2398,6 +2398,74 @@
             hasEle: t.some(function (p) { return p[3] != null; }) };
     }
 
+    /**
+     * 순수 함수 - 이웃 두 점 사이가 가장 먼 곳 {m, at(그 앞까지 거리 m)} - 곧은 선(산을 가로지르는 선)이 든 길을 코스로 만들지 않게(2026-11-16 홍TV님
+     * "이런 코스는 만들면 안 돼잖아": 🔗 잇기가 2km 떨어진 두 끝을 곧은 선으로 이었음). track: [[위도, 경도, …]…]. 점이 둘 안 되면 {m: 0, at: 0}.
+     */
+    var JOIN_GAP_M = 200;
+    /**
+     * 순수 함수 - 받은 GPX 가 이미 있는 코스인지(2026-11-01 홍TV님 "없는 코스면 점검해서 올림"): track([위도, 경도, …] 점들) 가운데
+     * routefly 코스 선(/api/trails: [{coords:[[경도, 위도]…]}]) 어느 마디에서 m(기본 30m) 안에 있는 점의 몫(0~1). 점이 없으면 0.
+     * 마디는 0.002° 칸에 나눠 두고 그 점 칸과 둘레 칸의 마디만 견줌.
+     */
+    function overlapShare(track, trails, m) {
+        var lim = m || 30, cell = 0.002, grid = {}, pts = (track || []).filter(function (p) { return p && isFinite(p[0]) && isFinite(p[1]); });
+        if (!pts.length) return 0;
+        (trails || []).forEach(function (t) {
+            var c = t && t.coords || [];
+            for (var i = 1; i < c.length; i++) {
+                var a = c[i - 1], b = c[i], seg = [+a[1], +a[0], +b[1], +b[0]];
+                var y0 = Math.floor(Math.min(seg[0], seg[2]) / cell), y1 = Math.floor(Math.max(seg[0], seg[2]) / cell);
+                var x0 = Math.floor(Math.min(seg[1], seg[3]) / cell), x1 = Math.floor(Math.max(seg[1], seg[3]) / cell);
+                if ((y1 - y0 + 1) * (x1 - x0 + 1) > 400) continue;   // 이상하게 긴 마디(자료 오류)는 뺌
+                for (var y = y0; y <= y1; y++) for (var x = x0; x <= x1; x++) (grid[y + ":" + x] = grid[y + ":" + x] || []).push(seg);
+            }
+        });
+        var hit = 0;
+        pts.forEach(function (p) {
+            var ky = 110540, kx = 111320 * Math.cos(p[0] * Math.PI / 180), gy = Math.floor(p[0] / cell), gx = Math.floor(p[1] / cell), near = false;
+            for (var dy = -1; dy <= 1 && !near; dy++) for (var dx = -1; dx <= 1 && !near; dx++) {
+                (grid[(gy + dy) + ":" + (gx + dx)] || []).some(function (s) {
+                    var ax = (s[1] - p[1]) * kx, ay = (s[0] - p[0]) * ky, bx = (s[3] - p[1]) * kx, by = (s[2] - p[0]) * ky, vx = bx - ax, vy = by - ay, l2 = vx * vx + vy * vy;
+                    var u = l2 ? Math.max(0, Math.min(1, -(ax * vx + ay * vy) / l2)) : 0;
+                    near = Math.hypot(ax + u * vx, ay + u * vy) <= lim;
+                    return near;
+                });
+            }
+            if (near) hit++;
+        });
+        return hit / pts.length;
+    }
+
+    /**
+     * 순수 함수 - 남에게서 받은 GPX 점검(2026-11-22 홍TV님 - 폰 · 시계로 만든 GPX 를 주고받음). track [[위도, 경도], …], trails = /api/trails 의 [{id, name, coords:[[경도, 위도]]}].
+     * jumps: 이웃 점 사이가 JOIN_GAP_M 넘는 곧은 선 수 · longest(m) - 손으로 그린 길이나 GPS 가 끊긴 곳.
+     * same: 서로 80% 넘게 겹치고(GPX 점의 80% 가 그 코스 30m 안 · 그 코스 점의 80% 가 GPX 30m 안) 길이도 비슷한(짧은 쪽이 긴 쪽의 80% 넘게 - 코스 선은 점 간격이
+     * 고르지 않아 점 몫만으로는 훨씬 긴 코스도 같다고 볼 수 있음) routefly 코스 가운데 가장 많이 겹치는 것 {id, name, share} 또는 null.
+     */
+    var SAME_SHARE = 0.8;
+    function gpxCheck(track, trails) {
+        var t = track || [], jumps = 0, longest = 0, best = null, len = 0;
+        for (var i = 1; i < t.length; i++) {
+            var g = distM(t[i - 1][0], t[i - 1][1], t[i][0], t[i][1]);
+            len += g;
+            if (g > JOIN_GAP_M) jumps++;
+            if (g > longest) longest = g;
+        }
+        var line = [{ coords: t.map(function (p) { return [p[1], p[0]]; }) }];
+        (trails || []).forEach(function (tr) {
+            if (!tr || !tr.coords || tr.coords.length < 2) return;
+            var tl = 0;
+            for (var k = 1; k < tr.coords.length; k++) tl += distM(tr.coords[k - 1][1], tr.coords[k - 1][0], tr.coords[k][1], tr.coords[k][0]);
+            if (Math.min(tl, len) < SAME_SHARE * Math.max(tl, len)) return;
+            var a = overlapShare(t, [tr]);
+            if (a < SAME_SHARE) return;
+            var b = overlapShare(tr.coords.map(function (p) { return [p[1], p[0]]; }), line), s = Math.min(a, b);
+            if (b >= SAME_SHARE && (!best || s > best.share)) best = { id: tr.id, name: tr.name, share: s };
+        });
+        return { jumps: jumps, longest: longest, same: best };
+    }
+
     /** 순수 함수 - 길 → GPX 1.1 글(이름 · 종류 · 점마다 높이 · 시각이 있으면). */
     /**
      * 순수 함수 - 올릴 코스 이름 "북한산 숨은벽 · 밤골 → 백운대 → 우이동"(2026-11-01 홍TV님 "[산 · 코스 이름] 들머리 - 정상 - 날머리").
@@ -4127,6 +4195,7 @@
         submitSheet: submitSheet,
         courseSource: courseSource,
         sourceText: sourceText,
+        gpxCheck: gpxCheck,
         turnWord: turnWord,
         nationalPoint: nationalPoint,
         sunset: sunset,

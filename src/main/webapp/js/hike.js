@@ -880,7 +880,29 @@
             map.getSource("trails").setData({ type: "FeatureCollection", features: trails.map(function (t) {
                 return { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: t.lon.map(function (lon, i) { return [lon, t.lat[i]]; }) } };
             }) });
+            if (isGpxId(id) && !hike.running) gpxReport(j.trails || []);
         }).catch(function () { /* 주변 길은 없어도 됩니다 */ });
+    }
+
+    /**
+     * 받은 · 연 GPX 점검 한 줄(2026-11-22 홍TV님 - 폰 · 시계로 만든 GPX 를 주고받음, RF.gpxCheck): 곧은 선(손으로 그린 길 · GPS 끊김)을 알리고,
+     * routefly 코스와 같은 길이면 공식 코스(공식 시간 · 위험 알림 · 대피소 · 통제)로 따라갈지 물음. 한 GPX 에 한 번(이 화면을 연 동안).
+     */
+    var gpxReported = {};
+    function gpxReport(apiTrails) {
+        var id = c.id;
+        if (gpxReported[id]) return;
+        gpxReported[id] = 1;
+        var chk = RF.gpxCheck(c.lat.map(function (la, i) { return [la, c.lon[i]]; }), apiTrails);
+        if (chk.jumps) toast(T("⚠ 이 GPX 에는 곧은 선이 " + chk.jumps + "곳 있습니다(가장 긴 것 " + (chk.longest < 1000 ? Math.round(chk.longest) + "m" : km(chk.longest) + "km")
+            + ") - 손으로 그렸거나 GPS 가 끊긴 곳이라 실제 길과 다를 수 있습니다. 현지 길 · 안내판을 따르세요.",
+            "⚠ This GPX has " + chk.jumps + " straight line(s) (longest " + (chk.longest < 1000 ? Math.round(chk.longest) + " m" : km(chk.longest) + " km")
+            + ") - drawn by hand or GPS gaps, so they may not match the real trail. Follow local trails and signs."), 9000);
+        if (chk.same) hAsk(T("이 GPX 는 routefly 의 \"" + NM(chk.same.name) + "\" 코스와 같은 길입니다(" + Math.round(chk.same.share * 100) + "% 겹침).\n공식 코스로 따라가면 공식 시간 · 위험 알림 · 대피소 · 통제 안내도 함께 나옵니다. 공식 코스로 바꿀까요?",
+            "This GPX follows routefly's \"" + NM(chk.same.name) + "\" course (" + Math.round(chk.same.share * 100) + "% overlap).\nThe official course also gives official times, hazard alerts, shelters and closures. Switch to it?"),
+            { ok: T("공식 코스로", "Use official course"), cancel: T("받은 GPX 그대로", "Keep this GPX") }).then(function (yes) {
+                if (yes && c && c.id === id && !hike.running) location.hash = "c=" + encodeURIComponent(chk.same.id);
+            });
     }
 
     /** 가장 가까운 등산로 자리 - 지금 코스와 주변 길 가운데. {lat, lon, off, name(다른 길이면)} */

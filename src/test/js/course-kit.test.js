@@ -584,6 +584,17 @@ eq("거리 재기 타일 줌 - 산길(30m 간격)은 가장 자세히(12), 200km
     eq("200m 안 사이는 30m 마다 채움", RF.densify(near, 30, RF.JOIN_GAP_M).length, 2 + Math.floor(RF.distM(35, 127, 35.001, 127) / 30));
     eq("200m 넘는 곧은 선은 그대로 - longestJump 가 잡음", [RF.densify(far, 30, RF.JOIN_GAP_M).length, Math.round(RF.longestJump(RF.densify(far, 30, RF.JOIN_GAP_M)).m)], [2, Math.round(RF.distM(35, 127, 35.004, 127))]);
 })();
+(function () {   // 받은 GPX 점검(2026-11-22 홍TV님 - 폰 · 시계로 만든 GPX): 곧은 선 · 같은 routefly 코스
+    var g = []; for (var i = 0; i <= 20; i++) g.push([35 + i * 0.0005, 127]);   // 약 1.1km, 55m 간격
+    var same = { id: "frst-1", name: "같은 길", coords: g.map(function (p) { return [p[1] + 0.0001, p[0]]; }) };   // 동쪽으로 약 9m
+    var part = { id: "frst-2", name: "앞 절반만", coords: g.slice(0, 10).map(function (p) { return [p[1], p[0]]; }) };
+    var longer = { id: "frst-3", name: "더 긴 길", coords: g.concat([[35.02, 127], [35.03, 127]]).map(function (p) { return [p[1], p[0]]; }) };
+    var r = RF.gpxCheck(g, [part, longer, same]);
+    eq("같은 길만 같은 코스(앞 절반 · 훨씬 긴 길은 아님)", [r.same && r.same.id, r.jumps], ["frst-1", 0]);
+    eq("점 몫은 넘어도 길이가 훨씬 길면 같은 코스 아님", RF.gpxCheck(g, [longer]).same, null);
+    var j = RF.gpxCheck([[35, 127], [35.001, 127], [35.005, 127]], []);
+    eq("곧은 선 200m 넘는 곳 수 · 가장 긴 것", [j.jumps, Math.round(j.longest), j.same], [1, Math.round(RF.distM(35.001, 127, 35.005, 127)), null]);
+})();
 eq("cumAscent 5m 넘게 바뀔 때만(배치와 같게)", RF.cumAscent ? RF.cumAscent([100, 102, 104, 106, 103, 110, null, 120]) : null, [0, 0, 0, 6, 6, 6, 6, 20]);
 eq("routeEnds", ["지리산둘레길 가탄-송정", "지리산둘레길 (가탄-송정) · 송정리 → 가탄마을민박", "백두대간 17구간 · 창옥봉에서", "DMZ 평화의 길 4코스 · 농업체험까지", "이름만"].map(function (n) {
     var e = RF.routeEnds(n); return e.from + "|" + e.to; }), ["가탄|송정", "송정리|가탄마을민박", "창옥봉|null", "null|농업체험", "null|null"]);
