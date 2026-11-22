@@ -1315,6 +1315,16 @@ public class MountainServlet extends HttpServlet {
     }
 
     /** 순수 함수 - 산 페이지. month - 지금 달(벚꽃 · 철쭉 · 단풍 칸을 지금 철이면 위로, 2026-11-14) - 철이 끝났으면 0({@link #seasonMonth}). */
+    /**
+     * "📐 이 산 GPX 만들기" - 이 산 자리에서 GPX 편집을 엶(?at=위도,경도, 2026-11-22 홍TV님 - 송산처럼 준비된 코스가 없는 길도 그려 쓰게).
+     * 정상 좌표가 없으면 "".
+     */
+    static String studioHere(JsonObject peak) {
+        if (peak == null || !peak.has("lat") || !peak.has("lon") || peak.get("lat").isJsonNull() || peak.get("lon").isJsonNull()) return "";
+        String at = String.format(java.util.Locale.ROOT, "%.5f,%.5f", peak.get("lat").getAsDouble(), peak.get("lon").getAsDouble());
+        return "<p class=\"studioHere\"><a href=\"" + REL + "/studio.html?at=" + at + "\">📐 이 산 GPX 만들기 <small class=\"dim\">지도에 길을 그려 내 코스로 - 등산로를 따라 이어 줌</small> ›</a></p>";
+    }
+
     static String page(JsonObject peak, List<JsonObject> courses, List<Object[]> nearby, Integer parking, String base, int month) {
         courses = upward(courses, peak);   // 정상에서 시작하게 적힌 코스는 들머리부터(오르막 · 시간 · 문답 · 링크)
         String name = str(peak, "id") != null ? str(peak, "id") : str(peak, "name"), summit = str(peak, "summit");   // id = 지역 붙은 이름(백운산(광양))
@@ -1395,6 +1405,7 @@ public class MountainServlet extends HttpServlet {
             }
             b.append("</ul>");
         }
+        b.append(studioHere(peak));
         if (!courses.isEmpty()) b.append("<p class=\"dim\">☆ 를 누르면 그 코스를 찜(즐겨찾기)합니다(★). 찜한 코스는 따라가기 첫 화면 \"★ 찜한 코스\" 에 모여 바로 고를 수 있고, "
                 + "다시 누르면 풀립니다. 이 핸드폰에만 저장됩니다(따라가기 📒 내 기록 → 💾 백업 저장으로 옮길 수 있음). "
                 + "🚌 가는 길은 카카오맵에서 지금 자리부터 그 코스 들머리까지 대중교통 · 차 길찾기를 엽니다. "

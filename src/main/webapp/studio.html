@@ -61,6 +61,12 @@ button, select, input[type=text] { font:15px Arial,"Malgun Gothic",sans-serif; }
 #list .it span { font-size:12.5px; color:var(--dim); white-space:nowrap; }
 #list .it .x { flex:0 0 32px; height:32px; border:0; border-radius:6px; background:transparent; color:var(--dim); font-size:15px; cursor:pointer; }
 #list .it .x:hover, #list .it .x:focus-visible { color:#ff8787; background:rgba(232,80,91,0.12); }
+/* 산 · 동네 찾기 · 내 위치(2026-11-22 홍TV님 - 송산처럼 준비된 코스가 없는 산을 그리려면 늘 나라 전체에서 손으로 찾아야 했음) */
+#findForm { display:flex; gap:6px; margin-top:6px; }
+#findQ { flex:1 1 auto; min-width:0; height:44px; border-radius:9px; border:1px solid var(--ln); background:#0f1720; color:var(--tx); padding:0 10px; }
+#found { list-style:none; margin:6px 0 0; padding:0; }
+#found button { width:100%; text-align:left; margin-top:4px; }
+#found small { color:var(--dim); }
 #name { width:100%; height:40px; border-radius:8px; border:1px solid var(--ln); background:#0f1720; color:var(--tx); padding:0 10px; }
 .st { width:100%; border-collapse:collapse; margin-top:8px; font-size:14px; }
 .st td { padding:4px 2px; border-top:1px solid var(--ln); }
@@ -111,6 +117,8 @@ label.sl .nud { flex:0 0 auto; min-width:44px; min-height:40px; padding:0; font-
             <h2>열기</h2>
             <div class="row"><button class="b main" id="openBtn" type="button">📂 GPX 열기</button><button class="b" id="recBtn" type="button">📒 내 기록에서</button></div>
             <div class="row" style="margin-top:6px"><button class="b" id="drawBtn" type="button">✏️ 지도에 새 길 그리기</button></div>
+            <form id="findForm" role="search"><input type="text" id="findQ" placeholder="산 · 동네 이름(예: 송산)" aria-label="산 · 동네 이름으로 지도 옮기기" autocomplete="off" maxlength="30"><button class="b" type="submit" title="찾기" aria-label="찾기">🔍</button><button class="b" id="hereBtn" type="button" title="내 위치로" aria-label="내 위치로">📍</button></form>
+            <ul id="found"></ul>
             <div class="row" style="margin-top:6px"><button class="b" id="guideBtn" type="button" hidden>🗺 안내도에서 고르기</button></div><!-- 관리자 기기만(2026-11-16 홍TV님 "'안내도 열기' 이런 것이 있어야 하지 않아?") -->
             <div id="guideBox" hidden></div>
             <div id="drawBox"></div>

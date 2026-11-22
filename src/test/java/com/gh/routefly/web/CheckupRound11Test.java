@@ -107,7 +107,7 @@ public class CheckupRound11Test {
     public void GPX_편집_작업_저장_과_방향() throws Exception {
         String js = read("src/main/webapp/js/studio.js");
         assertTrue("A11 고칠 때 · 열 때 저장 예약", js.contains("$(\"undoBtn\").disabled = false; markWork(); }") && js.contains("sel = tracks.length - 1;\n        markWork();"));
-        assertTrue("A11 되살린 뒤 안내도 길", js.contains("restoreWork().then(openFromGuide);") && js.contains("indexedDB.open(\"rf-studio\", 1)"));
+        assertTrue("A11 되살린 뒤 안내도 길", js.contains("restoreWork().then(openFromGuide)") && js.contains("indexedDB.open(\"rf-studio\", 1)"));
         assertTrue("A12", js.contains("(!parts || parts.length === 1) && get(\"rev\") === \"1\""));
         assertTrue("A15", js.contains("c.track = RF.reverseTrack(c.track);") && read("src/main/webapp/js/course-kit.js").contains("? reverseTrack(b) : b;"));   // 잇기의 뒤집기는 RF.joinPlan 안(2026-11-16)
     }

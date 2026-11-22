@@ -1299,6 +1299,49 @@
             try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* 주소는 그대로 */ }   // 새로 고침 때 또 넣지 않게
         }).catch(function (e) { msg("안내도 길을 받지 못했습니다: " + (e && e.message || e), 7000); });
     }
-    restoreWork().then(openFromGuide);   // 지난 작업을 먼저 되살린 뒤 안내도에서 가져온 길을 그 뒤에
+    /**
+     * 산 · 동네 이름으로 지도 옮기기 · 📍 내 위치(2026-11-22 홍TV님 - 송산처럼 준비된 코스가 없는 산은 늘 나라 전체에서 손으로 찾아야 했음).
+     * 이름은 서버 /api/place(카카오 · V-World, 찾는 말은 남기지 않음 - PlaceServlet), 내 위치는 이 기기 GPS(서버로 보내지 않음).
+     */
+    function goTo(lat, lon, z) {
+        if (!mapOk) { setTimeout(function () { goTo(lat, lon, z); }, 300); return; }
+        map.jumpTo({ center: [lon, lat], zoom: z || 15 });
+    }
+    var findNo = 0;
+    $("findForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var q = $("findQ").value.trim(), my = ++findNo, box = $("found");
+        if (q.length < 2) { msg("두 글자 이상 적어 주세요."); return; }
+        $("findQ").blur();
+        box.textContent = "찾는 중…";
+        fetch("api/place?q=" + encodeURIComponent(q), { headers: { Accept: "application/json" } }).then(function (r) { return r.json(); }).then(function (d) {
+            if (my !== findNo) return;
+            var ps = (d && d.places) || [];
+            box.textContent = ps.length ? "" : "찾지 못했습니다. 다른 이름으로 찾아 주세요.";
+            ps.forEach(function (p) {
+                var li = document.createElement("li"), b = document.createElement("button"), sm = document.createElement("small");
+                b.type = "button";
+                b.className = "b";
+                b.textContent = p.name + " ";
+                sm.textContent = p.addr || "";
+                b.appendChild(sm);
+                b.onclick = function () { box.textContent = ""; goTo(p.lat, p.lon, 15); msg("✏️ 지도에 새 길 그리기로 길을 그리세요.", 5000); };
+                li.appendChild(b);
+                box.appendChild(li);
+            });
+        }).catch(function () { if (my === findNo) box.textContent = "찾기를 하지 못했습니다. 잠시 뒤 다시 해 주세요."; });
+    });
+    $("hereBtn").addEventListener("click", function () {
+        if (!navigator.geolocation) { msg("이 기기에서는 위치를 쓸 수 없습니다."); return; }
+        msg("내 위치를 찾는 중…", 8000);
+        navigator.geolocation.getCurrentPosition(function (p) { goTo(p.coords.latitude, p.coords.longitude, 16); msg("내 위치로 옮겼습니다.", 2500); },
+            function () { msg("위치를 받지 못했습니다(위치 권한 · GPS 를 확인해 주세요).", 6000); }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+    });
+    /** ?at=위도,경도 로 열면 그 자리로(산 페이지 "📐 이 산 GPX 만들기" - 2026-11-22). 되살린 길 · 안내도 길을 다 넣은 뒤에. */
+    function openAt() {
+        var m = /[?&]at=(-?\d{1,2}\.\d+),(-?\d{1,3}\.\d+)/.exec(location.search);
+        if (m && +m[1] > 32 && +m[1] < 39.5 && +m[2] > 123 && +m[2] < 133) goTo(+m[1], +m[2], 15);   // 우리나라 안만
+    }
+    restoreWork().then(openFromGuide).then(openAt);   // 지난 작업을 먼저 되살린 뒤 안내도에서 가져온 길을 그 뒤에, 산 자리는 마지막에
     if (/[?&]debug\b/.test(location.search)) window.routeflyStudio = { get mapOk() { return mapOk; }, get map() { return map; }, get tracks() { return tracks; } };   // 시험용
 })();
