@@ -107,7 +107,8 @@ public class VideoKitTest {
         assertTrue("🔍 사진만 크게 · ‹ › 넘김", js.contains("z.onclick = function (e) { e.stopPropagation(); big(i); };") && html.contains("id=\"bigPrev\"") && html.contains("id=\"bigNext\""));
         assertTrue("고도 · 속도 그래프", js.contains("prof = RF.profile($(\"prof\"), rc, { speed: RF.speedProfile(rc), labels: false });"));
         assertTrue("지도 출처(OSM) 그대로", js.contains("customAttribution: \"© OpenStreetMap contributors"));
-        assertFalse("🖥 크게 보기는 뺌(2026-11-22 홍TV님 원복) - 입구는 코스 모음 📂 GPX 열기", hike.contains("trip.html?rec=") || js.contains("?rec="));
+        assertFalse("🖥 크게 보기 단추는 뺀 그대로(2026-11-22 원복) - 내 기록은 🗺 지도 단추 하나로 trip.html 에 엶(2026-11-22 홍TV님 \"trip.html 화면에서 열어\")", hike.contains("🖥"));
+        assertTrue(hike.contains("location.href = \"trip.html?rec=\"") && js.contains("new URLSearchParams(location.search).get(\"rec\")"));
         assertTrue(read("src/main/webapp/js/kit-trip.js").contains("function gpxRecord("));
     }
 

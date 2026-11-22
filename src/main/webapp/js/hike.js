@@ -2526,9 +2526,11 @@
         if (rc.lat.length > 1) RF.profile($("recViewProfile"), rc, { speed: RF.speedProfile(rc) }).set(rc.total);   // 다 걸은 기록이라 끝까지 색칠 · 붉은 선은 속도
         else $("recViewProfile").textContent = "";
         $("recViewMap").disabled = rc.lat.length < 2;
-        $("recViewCard").disabled = rc.lat.length < 2;
-        $("recViewCard").onclick = function () { shareCard(rec); };
-        $("recViewMap").onclick = function () { recordOnMap(rc, null, rec.notes); };
+        // 🗺 지도는 기록 보기 화면(trip.html)으로(2026-11-22 홍TV님 "routefly/trip.html 화면에서 열어" - 따라가기 지도에 그리면 산행 화면처럼 보였음). 🖼 카드 단추는 뺌
+        $("recViewMap").onclick = function () {
+            if (hike.running) { toast(T("산행 중에는 기록 보기로 넘어가지 않습니다. 산행을 마친 뒤 열어 주세요.", "Finish the hike first to open the record view."), 4000); return; }
+            location.href = "trip.html?rec=" + encodeURIComponent(recKey(rec)) + (EN ? "&lang=en" : "");
+        };
         $("recViewClose").onclick = function () { $("recView").style.display = "none"; };
         $("recViewVideo").disabled = rc.lat.length < 2;
         $("recViewVideo").onclick = function () { vidOpen(rec); };

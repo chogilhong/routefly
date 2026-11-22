@@ -158,6 +158,39 @@
         return map;
     });
 
+    /** 이 기기의 IndexedDB 에서 하나 읽기(따라가기와 같은 저장소 · 이름) - 없거나 못 읽으면 null. */
+    function idbGet(name, store, key) {
+        return new Promise(function (resolve) {
+            if (!window.indexedDB) { resolve(null); return; }
+            var r = indexedDB.open(name, 1);
+            r.onupgradeneeded = function () { r.result.createObjectStore(store); };   // 따라가기와 같은 모양(처음이면 빈 저장소)
+            r.onerror = function () { resolve(null); };
+            r.onsuccess = function () {
+                var db = r.result;
+                try {
+                    var q = db.transaction(store, "readonly").objectStore(store).get(key);
+                    q.onsuccess = function () { db.close(); resolve(q.result == null ? null : q.result); };
+                    q.onerror = function () { db.close(); resolve(null); };
+                } catch (e) { db.close(); resolve(null); }
+            };
+        });
+    }
+
+    // 📒 내 기록의 🗺 지도로 들어옴(?rec=시작 시각|코스 - 따라가기 recKey, 2026-11-22 홍TV님): 이 기기의 기록 · 사진으로 그림, 뒤로는 따라가기 내 기록
+    var recParam = new URLSearchParams(location.search).get("rec");
+    if (recParam) {
+        $("back").href = EN ? "hike.html?lang=en" : "hike.html";
+        $("back").textContent = T("‹ 내 기록", "‹ My records");
+        idbGet("rf-records", "r", "list").then(function (list) {
+            if (!Array.isArray(list)) { try { list = JSON.parse(localStorage.getItem("rf-records") || "[]"); } catch (e) { list = []; } }   // 따라가기가 IndexedDB 를 못 쓸 때 남기는 곳
+            var rec = list.filter(function (r) { return r && r.start + "|" + (r.courseId || "") === recParam; })[0];
+            if (!rec) { $("side").innerHTML = "<p class=\"empty\">" + T("이 기기에서 그 기록을 찾지 못했습니다.", "That record is not on this device.") + "</p>"; return; }
+            show(rec, function (id) {
+                return idbGet("rf-photos", "p", id).then(function (blob) { return blob ? URL.createObjectURL(blob) : null; });
+            });
+        });
+    }
+
     // 📂 GPX 열기 - 이 기기 안에서만 읽음
     $("openBtn").onclick = function () { $("gpxFile").value = ""; $("gpxFile").click(); };
     $("gpxFile").addEventListener("change", function () {
