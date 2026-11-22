@@ -1049,6 +1049,9 @@ final class Party {
         }
         // 여기부터 SOS 가 아님 - 안 탐 · 하산 탑승 · 출발 전은 위치를 받지 않음(SOS 때 받은 위치는 지움, 집 위치가 인솔자에게 가지 않게 - 2026-10-27)
         unSos(m);
+        // 위치 보내기를 그만둔(동의 철회 · /leave) 회원 - 늦게 온 · 다시 보낸 요청이 위치를 되살리지 않게(2026-11-22 산악회 점검: 철회 뒤 위치가 다시 저장돼 인솔자에게 보였음)
+        // SOS 는 그만둔 뒤에도 받음(ReviewRound7Test leaveTurnsOffSos) - 위치만 막음
+        if (!sos && "hiker".equals(m.role) && m.listed) { if (was) sosOff(m, now); return false; }
         if (m.cancelled || m.aboard || !started(m, now)) {
             sosOff(m, now);
             if (m.cancelled && !was) throw new IllegalArgumentException("출발 때 탑승하지 않아 이 산행에서 빠졌습니다. 인솔자에게 연락해 주세요.");
@@ -1179,6 +1182,7 @@ final class Party {
             return true;
         }
         if (Boolean.FALSE.equals(sos)) unSos(m);
+        if (!Boolean.TRUE.equals(sos) && "hiker".equals(m.role) && m.listed) { if (Boolean.FALSE.equals(sos) && was) sosOff(m, now); return true; }   // 위치 보내기를 그만둔 회원 - 켜짐 · 배터리도 받지 않음(loc 와 같음, SOS 는 받음)
         if (m.cancelled || m.aboard || !started(m, now)) {   // SOS 끄기만 - 끄면 SOS 때 받은 위치도 지움
             if (Boolean.FALSE.equals(sos) && was) { m.seen = now; sosOff(m, now); }
             return true;

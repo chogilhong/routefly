@@ -83,16 +83,18 @@ public class PartyServlet extends HttpServlet {
         boolean lookup = "/info".equals(path) || "/join".equals(path) || "/create".equals(path) || "/link".equals(path)
                 || (path != null && path.startsWith("/office/") && !"/office/create".equals(path));
         String missKey = missKey(ip);
-        if (lookup && MISSES.over(missKey, now)) { Json.fail(resp, 429, "방 코드를 너무 많이 틀렸습니다. 10분 뒤 다시 해 주세요."); return; }
+        // 틀린 횟수도 먼저 자리 잡기 - 맞으면 돌려줌(2026-11-22 점검: over 로 보고 틀린 뒤 take 하면 한꺼번에 보낸 요청이 모두 쳐 보기를 했음)
+        if (lookup && !MISSES.take(missKey, now)) { Json.fail(resp, 429, "방 코드를 너무 많이 틀렸습니다. 10분 뒤 다시 해 주세요."); return; }
+        boolean missed = false;
         // 만들기 한도는 먼저 셈(자리 잡기) - 실패하면 돌려줌(2026-10-29 보안 점검: over 로 보고 끝난 뒤 take 하면 한꺼번에 보낸 요청이 모두 지나갔음)
         // 만들기 · 사무실 한도는 /48 로 셈(2026-11-01 점검: /64 마다 따로 세어 /56 하나로 서버 전체 하루 한도를 다 쓸 수 있었음)
         String makeKey = missKey;
         boolean create = "/create".equals(path) && !owner(req);
-        if (create && !reserve(CREATES, makeKey, CREATES_ALL, now)) { Json.fail(resp, 429, "하루에 만들 수 있는 방 수를 넘었습니다. 내일 다시 해 주세요."); return; }
-        if ("/office/rename".equals(path) && !RENAMES.take(ip, now)) { Json.fail(resp, 429, "이름을 너무 자주 바꿨습니다. 1시간 뒤 다시 해 주세요."); return; }   // 2026-10-29 보안 점검 - 바꿀 때마다 파일 둘을 다시 씀
+        if (create && !reserve(CREATES, makeKey, CREATES_ALL, now)) { if (lookup) MISSES.give(missKey, now); Json.fail(resp, 429, "하루에 만들 수 있는 방 수를 넘었습니다. 내일 다시 해 주세요."); return; }
+        if ("/office/rename".equals(path) && !RENAMES.take(ip, now)) { if (lookup) MISSES.give(missKey, now); Json.fail(resp, 429, "이름을 너무 자주 바꿨습니다. 1시간 뒤 다시 해 주세요."); return; }   // 2026-10-29 보안 점검 - 바꿀 때마다 파일 둘을 다시 씀
         // 참가도 먼저 자리 잡기 - 실패하면 돌려줌(2026-11-01 점검: over 로 보고 끝난 뒤 take 하면 한꺼번에 보낸 요청이 모두 지나갔음)
         boolean join = "/join".equals(path);
-        if (join && !JOINS.take(ip, now)) { Json.fail(resp, 429, "한 곳에서 참가를 너무 많이 했습니다. 1시간 뒤 다시 해 주세요."); return; }
+        if (join && !JOINS.take(ip, now)) { if (lookup) MISSES.give(missKey, now); Json.fail(resp, 429, "한 곳에서 참가를 너무 많이 했습니다. 1시간 뒤 다시 해 주세요."); return; }
         boolean office = "/office/create".equals(path) && !owner(req);
         if (office && !reserve(OFFICES, makeKey, OFFICES_ALL, now)) { Json.fail(resp, 429, "하루에 만들 수 있는 사무실 수를 넘었습니다. 내일 다시 해 주세요."); return; }
         boolean ok = false;
@@ -103,6 +105,7 @@ public class PartyServlet extends HttpServlet {
             if (create) { CREATES.give(makeKey, now); CREATES_ALL.give("*", now); }
             if (office) { OFFICES.give(makeKey, now); OFFICES_ALL.give("*", now); }
             if (join) JOINS.give(ip, now);
+            if (lookup) MISSES.give(missKey, now);
             Json.fail(resp, 400, "요청을 읽지 못했습니다.");
             return;
         }
@@ -115,10 +118,10 @@ public class PartyServlet extends HttpServlet {
         } catch (Party.Ended e) {
             Json.fail(resp, 410, e.getMessage());
         } catch (IllegalArgumentException | IllegalStateException e) {
-            if (lookup && e.getMessage() != null && e.getMessage().contains("찾지 못했습니다")) MISSES.take(missKey, now);   // 없는 코드 - 하나씩 쳐 보기 막기
+            if (lookup && e.getMessage() != null && e.getMessage().contains("찾지 못했습니다")) missed = true;   // 없는 코드 - 하나씩 쳐 보기 막기
             Json.fail(resp, 400, e.getMessage());
         } catch (SecurityException e) {
-            if (lookup && path.startsWith("/office/")) MISSES.take(missKey, now);   // 틀린 사무실 링크 - 하나씩 쳐 보기 막기
+            if (lookup && path.startsWith("/office/")) missed = true;   // 틀린 사무실 링크 - 하나씩 쳐 보기 막기
             Json.fail(resp, 403, e.getMessage());
         } catch (RuntimeException e) {   // 칸 꼴이 틀림(Gson 등) - 내부 글은 내보내지 않음
             Json.fail(resp, 400, "요청을 읽지 못했습니다.");
@@ -126,6 +129,7 @@ public class PartyServlet extends HttpServlet {
             if (!ok && create) { CREATES.give(makeKey, now); CREATES_ALL.give("*", now); }
             if (!ok && office) { OFFICES.give(makeKey, now); OFFICES_ALL.give("*", now); }
             if (!ok && join) JOINS.give(ip, now);
+            if (lookup && !missed) MISSES.give(missKey, now);   // 틀린 것만 남김
         }
     }
 

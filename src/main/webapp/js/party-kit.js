@@ -69,7 +69,18 @@
         if (LN) {   // 앱 - 화면이 꺼져 있어도
             Promise.resolve(LN.schedule({ notifications: [{ id: alId++, title: "routefly 산악회 방", body: text }] })).catch(function () { /* 권한 없음 */ });
         } else if (document.hidden && g.Notification && Notification.permission === "granted") {
-            try { new Notification("routefly 산악회 방", { body: text, tag: "rf-party-" + (alId++) }); } catch (e) { /* 안드로이드 크롬은 서비스워커로만 - 진동 · 소리로 갈음 */ }
+            // 안드로이드 크롬은 new Notification 이 막혀(예외) 서비스워커 showNotification 으로만 뜸 - 2026-11-22 산악회 점검: 웹 인솔자에게 "폰 알림을 켰습니다" 라고
+            // 알려 놓고 화면을 끄면 SOS · 소식 없음 · 하산 마감이 아무것도 안 왔음. 서비스워커(sw-reg.js)가 있으면 그것으로, 없으면 예전처럼
+            var opt = { body: text, tag: "rf-party-" + (alId++), renotify: true, requireInteraction: text.indexOf("🆘") >= 0, vibrate: [400, 150, 400, 150, 400] };
+            var sw = navigator.serviceWorker;
+            if (sw && sw.getRegistration) {
+                Promise.resolve(sw.getRegistration()).then(function (reg) {
+                    if (reg && reg.showNotification) return reg.showNotification("routefly 산악회 방", opt);
+                    new Notification("routefly 산악회 방", opt);
+                }).catch(function () { /* 알림을 못 띄움 - 화면을 켜면 띠 · 소리 */ });
+            } else {
+                try { new Notification("routefly 산악회 방", opt); } catch (e) { /* 없음 */ }
+            }
         }
     }
     /** 알림 켜기(인솔자 화면 단추 - 사용자가 눌러야 권한 창을 띄울 수 있음). */
@@ -117,6 +128,10 @@
         var p = get();
         if (!p || lat == null || lon == null) return null;
         var now = Date.now(), sos = !!p.sos;
+        // 방이 "위치를 보내지 않음" 이라고 한 동안(출발 전 · 하산 탑승 · 따로 귀가 · 취소)은 따라가기 위치도 보내지 않음 - SOS 는 늘(2026-11-22 산악회 점검:
+        // 띠는 "위치는 더 보내지 않습니다" 인데 따라가기 onFix 가 30 ~ 90초마다 좌표를 보냈음 - 서버가 버리긴 했지만). 방 화면이 새로 오면(lastView) 다시 봄. SOS 끄기는 ping 이 보냄
+        var lv = g.RFParty.lastView, v = lv && lv.token === p.token ? lv.j : null;
+        if (!sos && lastSos !== true && v && v.role !== "lead" && (v.cancelled || v.aboard || v.locOn === false)) return null;
         anchor = stay(anchor, lat, lon, now);
         if (stuck()) {   // 보내는 중 - SOS 를 켜고 끈 것 · 꼭 보낼 것은 끝난 뒤 다시(2026-10-20 시험: 위치 보내는 사이 누른 SOS 가 빠졌음)
             if (force || sos !== lastSos) again = [lat, lon, acc];

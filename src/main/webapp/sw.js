@@ -7,7 +7,7 @@
  *   - MapLibre(vendor): 바뀌지 않으므로 받아 둔 것 먼저
  *   - 판 붙은 js · css(js/x.js?v=내용 해시 - war 만들 때 tools/minify/version.js 가 붙임, 2026-11-01): 내용이 바뀌면 주소가 바뀌므로 받아 둔 것 먼저
  */
-var SHELL = "rf-shell-v293", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
+var SHELL = "rf-shell-v294", API = "rf-api-v1", TILES = "rf-tiles-rt-v1", OFFLINE = "rf-offline-v1";
 var TILE_KEEP = 1500;   // 지나가며 본 타일은 이만큼만 남깁니다(저장 공간)
 // 2026-10-09 점검: API 캐시도 한도 - 지도를 움직일 때마다 목록 주소(bbox)가 하나씩 늘어 끝없이 커졌습니다.
 // 오프라인 저장한 코스는 OFFLINE 캐시에 따로 있어 지워지지 않습니다.
@@ -252,4 +252,15 @@ self.addEventListener("fetch", function (e) {
     if (url.indexOf("/s/") >= 0) return;   // 공유 링크는 서버로
     if (url.indexOf("/check/") >= 0) return;   // 점검 화면(관리자 - 높이 점검 등)도 받아 두지 않고 서버로(2026-11-01 점검)
     e.respondWith(networkFirst(e, SHELL));
+});
+
+// 산악회 방 알림을 누르면(2026-11-22 산악회 점검 - 안드로이드 크롬은 party-kit.js 가 서비스워커 showNotification 으로 띄움): 열린 방 · 따라가기 화면으로, 없으면 방 화면을 엶
+self.addEventListener("notificationclick", function (e) {
+    var tag = e.notification && e.notification.tag || "";
+    e.notification.close();
+    if (tag.indexOf("rf-party-") !== 0) return;
+    e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (list) {
+        for (var i = 0; i < list.length; i++) if (/\/(party|hike)\.html/.test(list[i].url) && list[i].focus) return list[i].focus();
+        return self.clients.openWindow ? self.clients.openWindow("party.html") : null;
+    }));
 });

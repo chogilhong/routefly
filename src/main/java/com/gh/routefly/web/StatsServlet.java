@@ -66,9 +66,10 @@ public class StatsServlet extends HttpServlet {
         long now = System.currentTimeMillis();
         String want = RouteflyConfig.get("stats.key"), key = req.getParameter("key"), see = cookie(req, SEE_COOKIE);
         if (allowed(want == null ? null : seeToken(want), see)) return true;
-        if (KEY_MISSES.over(ip, now)) { resp.sendError(429); return false; }
-        if (allowed(want, key)) return true;
-        if (key != null) KEY_MISSES.take(ip, now);
+        // 열쇠를 넣었으면 먼저 한 번 셈(자리 잡기) - 맞으면 돌려줌(2026-11-22 점검: over 로 본 뒤 take 하면 한꺼번에 보낸 요청이 모두 지나갔음)
+        boolean counted = key != null && KEY_MISSES.take(ip, now);
+        if (key != null ? !counted : KEY_MISSES.over(ip, now)) { resp.sendError(429); return false; }
+        if (allowed(want, key)) { if (counted) KEY_MISSES.give(ip, now); return true; }
         if (see != null) {
             String secure = req.isSecure() || "https".equalsIgnoreCase(req.getHeader("X-Forwarded-Proto")) ? "; Secure" : "";
             for (String path : new String[] {"/stats", "/check"})

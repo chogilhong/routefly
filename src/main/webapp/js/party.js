@@ -286,7 +286,11 @@
                 }
                 ask(T("다른 방(" + want + ") 참가 링크입니다.\n지금 방(" + (cur.name || cur.code) + ")에서 나가고 그 방으로 갈까요?",
                     "This link is for another room (" + want + ").\nLeave your current room (" + (cur.name || cur.code) + ") and go there?"), { ok: T("그 방으로", "Go there"), cancel: T("지금 방에 있기", "Stay here") }).then(function (ok) {
-                    if (ok) RFParty.post("leave", { token: cur.token }).catch(function () { /* 이미 끝났어도 */ }).finally(function () { RFParty.clear(); start(); });
+                    // 지금 방 나가기는 서버가 받았거나 방이 끝났을 때만(2026-11-22 산악회 점검 - 연결이 없으면 폰만 잊고 서버는 위치를 계속 보였음)
+                    if (ok) RFParty.post("leave", { token: cur.token }).then(function () { RFParty.clear(); start(); }, function (e) {
+                        if (e && (e.ended || e.status === 410)) { RFParty.clear(); start(); }
+                        else say(T("연결이 안 돼 지금 방에서 나가지 못했습니다. 신호가 잡히면 링크를 다시 눌러 주세요.", "No connection - could not leave your current room. Open the link again when you have signal.")).then(enterRoom);
+                    });
                     else enterRoom();
                 });
                 return;
@@ -893,7 +897,7 @@
                         + " <button type=\"button\" class=\"undo\" data-apart=\"" + m.id + "\">" + T("🚶 따로 귀가", "🚶 Home sep.") + "</button>";
             else if (m.listed && !s.departed)
                 st += " <button type=\"button\" class=\"undo\" data-board=\"" + m.id + "\" data-on=\"" + (m.boarded ? 0 : 1) + "\">" + (m.boarded ? T("↩ 안 탐", "↩ Not on") : T("✅ 탔음", "✅ On bus")) + "</button>";
-            var dsel = (s.drops || []).length && m.role === "hiker" && !m.cancelled ? "<br><select class=\"dropSel\" data-drop=\"" + m.id + "\"" + (officeLocked(s) ? " disabled" : "") + " aria-label=\"" + T("하차 지점", "Drop-off") + "\">" + ["", ].concat(s.drops, ["버스 대기"]).map(function (x) { return "<option value=\"" + esc(x) + "\"" + ((m.drop || "") === x ? " selected" : "") + ">" + (x ? "⬇ " + esc(x) : T("⬇ 하차 미정", "⬇ unset")) + "</option>"; }).join("") + "</select>" : (m.drop ? "<br><small>⬇ " + esc(m.drop) + "</small>" : "");
+            var dsel = (s.drops || []).length && m.role === "hiker" && !m.cancelled ? "<br><select class=\"dropSel\" data-drop=\"" + m.id + "\"" + (officeLocked(s) ? " disabled" : "") + " aria-label=\"" + T("하차 지점", "Drop-off") + "\">" + ["", ].concat(s.drops, ["버스 대기"]).map(function (x) { return "<option value=\"" + esc(x) + "\"" + ((m.drop || "") === x ? " selected" : "") + ">" + (x ? "⬇ " + esc(x === "버스 대기" ? T("버스 대기", "Stay on bus") : x) : T("⬇ 하차 미정", "⬇ unset")) + "</option>"; }).join("") + "</select>" : (m.drop ? "<br><small>⬇ " + esc(m.drop) + "</small>" : "");
             if ((s.pickups || []).length && m.role === "hiker" && !m.cancelled)   // 하산 탑승지(2026-10-28)
                 dsel += "<br><select class=\"pickSel\" data-pick=\"" + m.id + "\"" + (officeLocked(s) ? " disabled" : "") + " aria-label=\"" + T("하산 탑승지", "Return pickup") + "\">" + [""].concat(s.pickups).map(function (x) {
                     var i = s.pickups.indexOf(x), t = i >= 0 ? (s.pickupTimes || [])[i] : "";
@@ -1059,7 +1063,7 @@
         if (!(s.drops || []).length) return "";
         var c = {}, order = (s.drops || []).concat(["버스 대기", ""]);
         (s.members || []).forEach(function (m) { if (m.role === "hiker" && !m.cancelled) { var k = m.drop || ""; c[k] = (c[k] || 0) + 1; } });
-        return order.filter(function (k) { return c[k]; }).map(function (k) { return (k ? esc(k) : T("미정", "unset")) + " " + c[k]; }).join(" · ");
+        return order.filter(function (k) { return c[k]; }).map(function (k) { return (k === "버스 대기" ? T("버스 대기", "Stay on bus") : k ? esc(k) : T("미정", "unset")) + " " + c[k]; }).join(" · ");   // 영어 화면 "버스 대기"(2026-11-22 점검)
     }
     function stopOptions(sel, stops, cur, none, s) {
         sel.innerHTML = "<option value=\"\">" + (none || T("없음", "None")) + "</option>" + (stops || []).map(function (x) { return "<option value=\"" + esc(x) + "\"" + (x === cur ? " selected" : "") + ">" + esc(stopLabel(s, x)) + "</option>"; }).join("");

@@ -202,7 +202,12 @@
             var done = state.aboard || state.cancelled;
             (done ? Promise.resolve(true) : ask(T("인솔자에게 위치 보내기를 그만둘까요?\n인솔자 명단에는 이름이 남고, 위치만 더 가지 않습니다.", "Stop sending your location to the leader?\nYour name stays on the leader's list; only your location stops."), { danger: true })).then(function (ok) {
                 if (!ok) return;
-                RFParty.post("leave", { token: p.token }).catch(function () { /* 이미 끝났어도 */ }).finally(function () { RFParty.clear(); hide(); });
+                // 서버가 받았거나 방이 이미 끝났을 때만 이 폰에서 지움(2026-11-22 산악회 점검: 연결이 없을 때 누르면 폰만 방을 잊고 서버는 마지막 위치 · 지나온 길을
+                // 인솔자에게 계속 보였음 - 방 화면 quit() 과 같게). 연결이 안 되면 띠를 남기고 다시 누르게
+                RFParty.post("leave", { token: p.token }).then(function () { RFParty.clear(); hide(); }, function (er) {
+                    if (er && (er.ended || er.status === 410)) { RFParty.clear(); hide(); return; }
+                    say(T("연결이 안 돼 위치 보내기를 그만두지 못했습니다. 신호가 잡히면 다시 눌러 주세요.", "No connection - could not stop sharing. Tap again when you have signal."));
+                });
             });
         }
     });

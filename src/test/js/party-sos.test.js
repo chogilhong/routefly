@@ -76,5 +76,17 @@ settle(P.ping(true)).then(function (r) {
     NOW += 15000;
     live()[0].f();
     eq("끄기가 가면 타이머 멈춤", live().length, 0);
+    // 방이 "위치 보내지 않음"(하산 탑승 · 취소 · 출발 전)이면 따라가기 위치도 안 보냄, SOS 는 보냄(2026-11-22 산악회 점검)
+    P.lastView = { token: "tok", j: { role: "hiker", members: [], aboard: true } };
+    NOW += 60000;
+    eq("하산 탑승 - 위치 안 보냄", P.fix(37.5, 127, 10), null);
+    P.lastView.j = { role: "hiker", members: [], locOn: false };
+    eq("출발 전 - 위치 안 보냄", P.fix(37.5, 127, 10), null);
+    P.sos(true);
+    var sent = P.fix(37.5, 127, 10);
+    assert(sent, "SOS 는 늘 보냄"); n++;
+    return settle(sent);
+}).then(function () {
+    eq("SOS 위치는 감", [calls[calls.length - 1].url, calls[calls.length - 1].body.sos], ["api/party/loc", true]);
     console.log("OK " + n);
 }).catch(function (e) { console.error(e); process.exit(1); });
