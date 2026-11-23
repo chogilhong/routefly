@@ -25,6 +25,7 @@ public class TripHoverTest {
         assertTrue("그래프 위 마우스 · 손가락", js.contains("$(\"prof\").addEventListener(\"mousemove\", profMove);")
                 && js.contains("hoverAt(Math.max(0, Math.min(1, x / r.width)) * rc.total);") && js.contains("$(\"prof\").addEventListener(\"mouseleave\", hoverOff);"));
         assertTrue("지도 선에서 14px 안일 때만", js.contains("if (q && q.off <= mpp * 14) hoverAt(q.d); else hoverOff();"));
+        assertTrue("1시간 안은 \"35분\" (0시간 빼기)", js.contains("return (m >= 60 ? Math.floor(m / 60) + T(\"시간 \", \"h \") : \"\") + (m % 60) + T(\"분\", \"m\");"));
         assertTrue("기록을 새로 그리면 점을 치움", js.contains("labels: false });\n        hoverOff();"));
     }
 

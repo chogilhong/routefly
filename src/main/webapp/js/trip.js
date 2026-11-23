@@ -41,7 +41,7 @@
     function two(n) { return (n < 10 ? "0" : "") + n; }
     /** 한국 시각 "2026. 11. 20. 11:33". */
     function when(t) { var d = new Date(t + 9 * 3600000); return d.getUTCFullYear() + ". " + (d.getUTCMonth() + 1) + ". " + d.getUTCDate() + ". " + two(d.getUTCHours()) + ":" + two(d.getUTCMinutes()); }
-    function hm(ms) { var m = Math.round(ms / 60000); return Math.floor(m / 60) + T("시간 ", "h ") + (m % 60) + T("분", "m"); }
+    function hm(ms) { var m = Math.round(ms / 60000); return (m >= 60 ? Math.floor(m / 60) + T("시간 ", "h ") : "") + (m % 60) + T("분", "m"); }   // 1시간 안은 "35분"(2026-11-23 홍TV님)
 
     function clear() {
         marks.forEach(function (m) { m.remove(); });
