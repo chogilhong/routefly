@@ -4712,7 +4712,11 @@
         });
     });
     $("myRecords").addEventListener("click", showRecords);
-    $("recClose").addEventListener("click", function () { $("recSheet").style.display = "none"; });
+    $("recClose").addEventListener("click", function () {
+        $("recSheet").style.display = "none";
+        // 주소의 #rec(기록 보기 "‹ 내 기록" · 코스 미리보기 "📒 내 기록" 으로 들어올 때 붙음)도 지움 - 새로 고침 · 북마크 · 보낸 주소에서 내 기록 창이 다시 뜨지 않게(2026-11-24 홍TV님). 다른 # 은 그대로
+        if (/^#rec$/.test(location.hash)) { try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* 주소만 못 지움 */ } }
+    });
     $("backupSave").addEventListener("click", backupSave);
     $("xferGet").addEventListener("click", xferReceive);
     $("xferSend").addEventListener("click", function () {
