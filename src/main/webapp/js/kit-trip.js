@@ -322,11 +322,64 @@
     }
 
     /**
+     * 순수 함수 - 기록의 이동 시간 · 휴식 시간 · 이동 중 평균 속도(2026-11-22 홍TV님 - 램블러 기록 요약을 보고). track [[위도, 경도, ms, …]].
+     * 점 → 다음 점 사이마다 앞 점에서 MOVE_WINDOW_MS 뒤까지 · 뒤 점에서 MOVE_WINDOW_MS 앞부터(없으면 끝 점) 곧은 거리로 빠르기를 보고, 둘 다 MOVE_MIN_MS(m/s)
+     * 넘을 때만 이동 - 쉬는 동안 GPS 가 몇 m 씩 튀어도 2분 사이 옮겨 간 거리는 작아 이동으로 세지 않고, 쉬기 바로 앞 · 뒤 사이도 쉼으로 남음. 시각이 없으면 null.
+     * 돌려줌 {moveMs, restMs, moveM(이동 사이 거리 합), kmh(moveM / moveMs, 이동 시간이 없으면 null)}.
+     */
+    /**
+     * 순수 함수 - 기록 그래프에 겹쳐 그릴 속도(km/h, 2026-11-22 홍TV님 - 램블러 그래프처럼 고도 + 속도). c = recordCourse.
+     * 점마다 앞뒤 1분(SPEED_HALF_MS) 사이 거리 / 시간 - GPS 가 튀는 점 하나로 들쭉날쭉하지 않게. 시각이 없는 점은 null, 모두 없으면 null.
+     */
+    /**
+     * 순수 함수 - 기록의 처음 · 끝을 m 만큼 잘라 냄(2026-11-22 홍TV님 - 영상 · 공개 기록에 집 · 주차한 곳이 나오지 않게). 길이를 따라 잰 거리.
+     * 남는 것이 없으면(기록이 2m 보다 짧음) 빈 배열.
+     */
+    function trimEnds(track, m) {
+        var tr = track || [], n = tr.length;
+        if (n < 2 || !(m > 0)) return tr.slice();
+        var cum = [0];
+        for (var i = 1; i < n; i++) cum.push(cum[i - 1] + distM(tr[i - 1][0], tr[i - 1][1], tr[i][0], tr[i][1]));
+        var total = cum[n - 1];
+        if (total <= 2 * m) return [];
+        return tr.filter(function (p, i) { return cum[i] >= m && cum[i] <= total - m; });
+    }
+
+    /**
      * 순수 함수 - 기록 → 사진 · 메모까지 든 GPX 1.1(2026-11-22 홍TV님 "GPX 파일 저장 - 사진, 메모 등 모든 정보를 저장해서 공유", 램블러 화면처럼 보이게).
      * 다른 앱은 선(trk) · 지점(wpt 이름 · 메모 · 시각)만 읽고, routefly 는 &lt;extensions&gt; 의 rf:photo(JPEG base64) · rf:record(요약)까지 읽어 내 기록으로 넣음(gpxRecord).
      * photos - {사진 열쇠: base64(앞의 data: 없이)}, 없는 사진은 빼고 메모만.
      */
     var RF_GPX_NS = "https://routefly.kr/gpx/1";
+    /**
+     * 🛩 3D 비행 영상 준비(2026-11-22 홍TV님 - 내 기록, 2026-11-23 홍TV님 - 코스 모음에서 연 GPX 파일도): 튐을 거르고 처음 · 끝 FLY_TRIM_M 을 늘 잘라(집 · 주차한 곳)
+     * 이 기기 GPX(storeGpx)로 넣고, 3D 화면(app.js videoRecord)이 읽을 이름 · 사진 자리를 sessionStorage "rf-fly-rec" 에 둠.
+     * 사진은 남은 구간의 것만(시각이 있으면 그 사이, 시각 없는 GPX 는 잘라 낸 처음 · 끝 점에서 FLY_TRIM_M 밖). 사진 그림은 3D 화면이 IndexedDB rf-photos 에서 읽음.
+     * 돌려줌 {secs, url, msg} - 영상 길이(약 250m 에 1초, 20 ~ 60초) · 3D 화면 주소 · 묻는 글. 남는 점이 2개보다 적으면 {short: 안내 글}.
+     */
+    var FLY_TRIM_M = 300;
+    function flyStart(rec, en) {
+        var L = function (ko, e) { return en ? e : ko; }, name = String((en && rec.name != null ? enName(rec.name) : rec.name) || "");   // RF.nameIn 과 같은 이름
+        var all = cleanTrack(rec.track, rec.kind === "bike"), tr = trimEnds(all, FLY_TRIM_M);
+        if (tr.length < 2) return { short: L("기록이 짧아(처음 · 끝 " + FLY_TRIM_M + "m 를 빼면 남는 것이 없음) 만들 수 없습니다.", "The record is too short (nothing left after trimming " + FLY_TRIM_M + " m at each end).") };
+        var t0 = tr[0][2], t1 = tr[tr.length - 1][2], timed = typeof t0 === "number" && typeof t1 === "number";
+        var notes = (rec.notes || []).filter(function (n) {
+            if (n.lat == null || n.lon == null) return false;
+            if (timed) return n.t >= t0 && n.t <= t1;
+            return distM(n.lat, n.lon, all[0][0], all[0][1]) > FLY_TRIM_M && distM(n.lat, n.lon, all[all.length - 1][0], all[all.length - 1][1]) > FLY_TRIM_M;
+        });
+        var rc = recordCourse({ name: rec.name, kind: rec.kind, track: tr, notes: [] });
+        var text = recordGpx({ name: rec.name, kind: rec.kind, start: rec.start, track: tr, notes: [] }, {}), id = gpxId(text);
+        storeGpx(id, gpxToApi(text, name + ".gpx"));
+        var d = new Date(typeof rec.start === "number" ? rec.start : Date.now()), p = function (n) { return (n < 10 ? "0" : "") + n; };
+        sessionStorage.setItem("rf-fly-rec", JSON.stringify({ name: name, stamp: d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + "-" + p(d.getHours()) + p(d.getMinutes()),
+            photos: notes.filter(function (n) { return n.photo; }).map(function (n) { return { lat: n.lat, lon: n.lon, photo: n.photo }; }) }));
+        var secs = Math.max(20, Math.min(60, Math.round(rc.total / 250)));
+        return { secs: secs, url: "index.html?video=1&rec=1&secs=" + secs + (en ? "&lang=en" : "") + "#c=" + encodeURIComponent(id),
+            msg: L("3D 화면에서 " + secs + "초 동안 날며 영상을 만들고 따라가기 화면으로 돌아옵니다. 화면을 켜 둔 채 기다려 주세요. 영상 모양은 지금 화면 모양 그대로입니다(폰을 세로로 들면 세로 영상).",
+                "The 3D screen flies for " + secs + " s while recording, then comes back to the hike screen. Keep the screen on. The video has the shape of your screen (hold the phone upright for a vertical video).") };
+    }
+
     function recordGpx(rec, photos) {
         var esc = function (x) { return String(x).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); };
         var iso = function (t) { return new Date(t).toISOString(); };
@@ -478,6 +531,137 @@
         });
         return Math.round(hit != null ? hit : best);
     }
+    /**
+     * 불러온 GPX 를 이 기기에 둡니다(따라가기 · 코스 미리보기가 같이 씀). 코스 ID "gpx-<글자 지문>"(같은 파일은 같은 ID),
+     * 최근 GPX_KEEP 개만. 서버에는 올리지 않습니다.
+     */
+    var GPX_PREFIX = "gpx-", GPX_LIST_KEY = "rf-gpx-list", GPX_KEEP = 10;
+    function gpxId(text) {
+        var h = 5381;
+        for (var i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) | 0;
+        return GPX_PREFIX + (h >>> 0).toString(36) + "-" + text.length.toString(36);
+    }
+    function storeGpx(id, api) {
+        var list;
+        try { list = JSON.parse(localStorage.getItem(GPX_LIST_KEY) || "[]"); } catch (e) { list = []; }
+        list = [id].concat(list.filter(function (x) { return x !== id; }));
+        list.slice(GPX_KEEP).forEach(function (old) { try { localStorage.removeItem("rf-" + old); } catch (e) { /* 무시 */ } });
+        localStorage.setItem("rf-" + id, JSON.stringify(api));   // 공간이 모자라면 여기서 던집니다(부르는 쪽이 알림)
+        localStorage.setItem(GPX_LIST_KEY, JSON.stringify(list.slice(0, GPX_KEEP)));
+    }
+    var GPX_JOIN_M = 60;   // 구간(trk · trkseg) 끝끼리 이 안이면 이어진 길
+
+    /**
+     * 순수 함수 - 여러 구간을 한 줄로. 가장 긴 구간에서 시작해 끝이 GPX_JOIN_M 안에 닿는 구간만(필요하면 뒤집어) 붙입니다.
+     * 떨어진 구간(옆 가지 · 다른 날 기록)은 뺍니다 - 다 이으면 빈 곳이 곧은 선으로 지도에 그려지고 거리에도 들어갑니다
+     * (komount 돌산 4: trk 3개, 빈 곳 241m · 1,396m - 배치는 1.75km, 다 이으면 3.67km).
+     */
+    function joinSegments(segs) {
+        if (!segs.length) return [];
+        var len = function (s) { var d = 0; for (var i = 1; i < s.length; i++) d += distM(s[i - 1][0], s[i - 1][1], s[i][0], s[i][1]); return d; };
+        var rest = segs.slice().sort(function (a, b) { return len(b) - len(a); });
+        var line = rest.shift().slice();
+        for (;;) {
+            var best = null;
+            rest.forEach(function (s, k) {
+                var h = line[0], t = line[line.length - 1], a = s[0], z = s[s.length - 1];
+                [[distM(t[0], t[1], a[0], a[1]), "tail", false], [distM(t[0], t[1], z[0], z[1]), "tail", true],
+                 [distM(h[0], h[1], z[0], z[1]), "head", false], [distM(h[0], h[1], a[0], a[1]), "head", true]].forEach(function (o) {
+                    if (o[0] <= GPX_JOIN_M && (!best || o[0] < best.d)) best = { k: k, d: o[0], at: o[1], rev: o[2] };
+                });
+            });
+            if (!best) break;
+            var s = rest.splice(best.k, 1)[0].slice();
+            if (best.rev) s.reverse();
+            line = best.at === "tail" ? line.concat(s) : s.concat(line);
+        }
+        return line;
+    }
+
+    // 2026-10-09 점검: 남이 준 파일이라 크기 · 지점 수에 한도(지점마다 모든 점을 훑어서, 지점이 아주 많으면 화면이 멈춤)
+    var GPX_MAX_CHARS = 30 * 1024 * 1024, GPX_MAX_WPT = 1000;
+    function gpxToApi(text, fileName) {
+        if (String(text || "").length > GPX_MAX_CHARS) throw new Error("GPX 파일이 너무 큽니다(30MB 까지).");
+        var doc = new DOMParser().parseFromString(String(text || ""), "application/xml");
+        var root = doc.documentElement;
+        if (!root || (root.localName || root.nodeName) !== "gpx" || doc.getElementsByTagName("parsererror").length) {
+            throw new Error("GPX 파일이 아닙니다.");
+        }
+        function kids(el, name) {
+            var out = [];
+            if (!el) return out;
+            for (var n = el.firstElementChild; n; n = n.nextElementSibling) if ((n.localName || n.nodeName) === name) out.push(n);
+            return out;
+        }
+        function first(el, name) { return kids(el, name)[0] || null; }
+        function txt(el) { var t = el && el.textContent != null ? el.textContent.trim() : ""; return t === "" ? null : t; }
+        function numOf(s) { var v = s == null || String(s).trim() === "" ? NaN : Number(s); return v; }
+        function valid(lat, lon) { return isFinite(lat) && isFinite(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180 && !(lat === 0 && lon === 0); }
+        function point(el) {
+            var lat = numOf(el.getAttribute("lat")), lon = numOf(el.getAttribute("lon")), e = numOf(txt(first(el, "ele")));
+            return valid(lat, lon) ? [lat, lon, isFinite(e) ? e : null] : null;
+        }
+        var segs = [];
+        kids(root, "trk").forEach(function (t) { kids(t, "trkseg").forEach(function (s) {
+            var seg = [];
+            kids(s, "trkpt").forEach(function (p) { var q = point(p); if (q) seg.push(q); });
+            if (seg.length) segs.push(seg);
+        }); });
+        if (!segs.length) kids(root, "rte").forEach(function (r) {
+            var seg = [];
+            kids(r, "rtept").forEach(function (p) { var q = point(p); if (q) seg.push(q); });
+            if (seg.length) segs.push(seg);
+        });
+        var raw = joinSegments(segs);
+        if (raw.length < 2) throw new Error("GPX 에 경로 점이 2개보다 적습니다(trk · rte).");
+        // 솎기 - CourseMath.thin 과 같은 규칙
+        var pts = [raw[0]], kept = raw[0], last = raw.length - 1;
+        for (var i = 1; i < last; i++) {
+            if (distM(kept[0], kept[1], raw[i][0], raw[i][1]) >= GPX_SPACING_M) { pts.push(raw[i]); kept = raw[i]; }
+        }
+        if (pts.length > 1 && distM(kept[0], kept[1], raw[last][0], raw[last][1]) < GPX_SPACING_M / 2) pts[pts.length - 1] = raw[last];
+        else pts.push(raw[last]);
+        var points = [], d = 0;
+        pts.forEach(function (p, k) {
+            if (k) d += distM(pts[k - 1][0], pts[k - 1][1], p[0], p[1]);
+            points.push([p[1], p[0], p[2] == null ? null : Math.round(p[2] * 10) / 10, Math.round(d)]);
+        });
+        var pois = [];
+        kids(root, "wpt").slice(0, GPX_MAX_WPT).forEach(function (w) {
+            var lat = numOf(w.getAttribute("lat")), lon = numOf(w.getAttribute("lon")), nm = txt(first(w, "name"));
+            if (nm && nm.length > 80) nm = nm.slice(0, 80);
+            if (!valid(lat, lon) || nm == null) return;
+            var best = 0, bd = Infinity;
+            points.forEach(function (p, k) { var x = distM(lat, lon, p[1], p[0]); if (x < bd) { bd = x; best = k; } });
+            var e = numOf(txt(first(w, "ele")));
+            pois.push({ name: nm, lat: lat, lon: lon, ele_m: isFinite(e) ? e : null, dist_m: points[best][3], off_route_m: Math.round(bd) });
+        });
+        pois.sort(function (a, b) { return a.dist_m - b.dist_m; });
+        pois.forEach(function (p, k) { p.seq = k + 1; });
+        var name = txt(first(first(root, "metadata"), "name")) || txt(first(first(root, "trk"), "name")) || txt(first(first(root, "rte"), "name"))
+            || String(fileName || "GPX").replace(/\.gpx$/i, "");
+        var type = (txt(first(first(root, "trk"), "type")) || "").toLowerCase();
+        var kind = /bik|cycl|자전거|ride/.test(type) ? "bike" : /walk|걷기/.test(type) ? "walk" : "hike";
+        // 요약 칸(서버 코스와 같은 이름) - 목록 · 코스 미리보기 거리 줄이 씁니다(없으면 "-km · 약 NaN분")
+        var up = 0, down = 0, ref = null, lo = null, hi = null;
+        points.forEach(function (p) {
+            var e = p[2];
+            if (e == null) return;
+            lo = lo == null ? e : Math.min(lo, e);
+            hi = hi == null ? e : Math.max(hi, e);
+            // GPS 고도 흔들림은 3m 넘게 바뀔 때만 셉니다
+            if (ref == null) ref = e;
+            else if (e - ref >= 3) { up += e - ref; ref = e; }
+            else if (ref - e >= 3) { down += ref - e; ref = e; }
+        });
+        var a = pts[0], z = pts[pts.length - 1];
+        var course = { name: name, kind: kind, distance_m: points[points.length - 1][3], point_cnt: points.length,
+                       ascent_m: hi == null ? null : Math.round(up), descent_m: hi == null ? null : Math.round(down),
+                       ele_min_m: lo == null ? null : Math.round(lo), ele_max_m: hi == null ? null : Math.round(hi),
+                       start_lat: a[0], start_lon: a[1], end_lat: z[0], end_lon: z[1] };
+        return { course: course, points: points, pois: pois };
+    }
+
     /**
      * 누적 오르막(m) - 남은 오르막을 빨리 구하려고 미리 셉니다. 배치(CourseMath.elevation, course.ascentThresholdM 5m)와 같게
      * 5m 넘게 바뀔 때만 셉니다 - 2026-10-12 PC: 노선 안내도 "오르막 1,012m"(DB) · 따라가기 "남은 오르막 1,191m"(잔 오르내림까지 더함)이 달랐음.
@@ -928,7 +1112,9 @@
         var mv = rec.track && rec.track.length ? moveStats(cleanTrack(rec.track, rec.kind === "bike")) : null;
         if (mv && mv.moveMs > 0) out.push([L("이동 시간", "Moving time"), hms(mv.moveMs)], [L("휴식 시간", "Rest time"), hms(mv.restMs)],
             [L("평균 속도(이동 중)", "Avg speed (moving)"), num(mv.kmh, 1) + " km/h"]);
-        if (has(rec.up)) out.push([L("오른 높이", "Climb"), num(rec.up) + " m"]);
+        // 오른 높이 - 기록 값, 없으면(다른 앱 GPX 파일) 점 높이로 센 오르막(2026-11-23 PC: 파일로 열면 줄이 없었음)
+        var up = has(rec.up) ? rec.up : rc.asc && rc.asc.length ? rc.asc[rc.asc.length - 1] : null;
+        if (has(up)) out.push([L("오른 높이", "Climb"), num(up) + " m"]);
         if (rc.ele.some(function (e) { return e != null; })) out.push([L("가장 높은 곳", "Highest"), num(recordHighest(rc, peaks, elev)) + " m"]);
         if (has(rec.kcal)) out.push([L("칼로리(추정)", "Calories (est.)"), num(rec.kcal) + " kcal"]);
         return out;
@@ -1026,6 +1212,7 @@
         num: num,
         km: km,
         recordCourse: recordCourse,
+        flyStart: flyStart,
         gpxRecord: gpxRecord,
         baseStyle: baseStyle,
         at: at,

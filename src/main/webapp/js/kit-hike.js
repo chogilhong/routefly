@@ -1348,6 +1348,35 @@
      * photos - {사진 열쇠: base64(앞의 data: 없이)}, 없는 사진은 빼고 메모만.
      */
     var RF_GPX_NS = "https://routefly.kr/gpx/1";
+    /**
+     * 🛩 3D 비행 영상 준비(2026-11-22 홍TV님 - 내 기록, 2026-11-23 홍TV님 - 코스 모음에서 연 GPX 파일도): 튐을 거르고 처음 · 끝 FLY_TRIM_M 을 늘 잘라(집 · 주차한 곳)
+     * 이 기기 GPX(storeGpx)로 넣고, 3D 화면(app.js videoRecord)이 읽을 이름 · 사진 자리를 sessionStorage "rf-fly-rec" 에 둠.
+     * 사진은 남은 구간의 것만(시각이 있으면 그 사이, 시각 없는 GPX 는 잘라 낸 처음 · 끝 점에서 FLY_TRIM_M 밖). 사진 그림은 3D 화면이 IndexedDB rf-photos 에서 읽음.
+     * 돌려줌 {secs, url, msg} - 영상 길이(약 250m 에 1초, 20 ~ 60초) · 3D 화면 주소 · 묻는 글. 남는 점이 2개보다 적으면 {short: 안내 글}.
+     */
+    var FLY_TRIM_M = 300;
+    function flyStart(rec, en) {
+        var L = function (ko, e) { return en ? e : ko; }, name = String((en && rec.name != null ? enName(rec.name) : rec.name) || "");   // RF.nameIn 과 같은 이름
+        var all = cleanTrack(rec.track, rec.kind === "bike"), tr = trimEnds(all, FLY_TRIM_M);
+        if (tr.length < 2) return { short: L("기록이 짧아(처음 · 끝 " + FLY_TRIM_M + "m 를 빼면 남는 것이 없음) 만들 수 없습니다.", "The record is too short (nothing left after trimming " + FLY_TRIM_M + " m at each end).") };
+        var t0 = tr[0][2], t1 = tr[tr.length - 1][2], timed = typeof t0 === "number" && typeof t1 === "number";
+        var notes = (rec.notes || []).filter(function (n) {
+            if (n.lat == null || n.lon == null) return false;
+            if (timed) return n.t >= t0 && n.t <= t1;
+            return distM(n.lat, n.lon, all[0][0], all[0][1]) > FLY_TRIM_M && distM(n.lat, n.lon, all[all.length - 1][0], all[all.length - 1][1]) > FLY_TRIM_M;
+        });
+        var rc = recordCourse({ name: rec.name, kind: rec.kind, track: tr, notes: [] });
+        var text = recordGpx({ name: rec.name, kind: rec.kind, start: rec.start, track: tr, notes: [] }, {}), id = gpxId(text);
+        storeGpx(id, gpxToApi(text, name + ".gpx"));
+        var d = new Date(typeof rec.start === "number" ? rec.start : Date.now()), p = function (n) { return (n < 10 ? "0" : "") + n; };
+        sessionStorage.setItem("rf-fly-rec", JSON.stringify({ name: name, stamp: d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + "-" + p(d.getHours()) + p(d.getMinutes()),
+            photos: notes.filter(function (n) { return n.photo; }).map(function (n) { return { lat: n.lat, lon: n.lon, photo: n.photo }; }) }));
+        var secs = Math.max(20, Math.min(60, Math.round(rc.total / 250)));
+        return { secs: secs, url: "index.html?video=1&rec=1&secs=" + secs + (en ? "&lang=en" : "") + "#c=" + encodeURIComponent(id),
+            msg: L("3D 화면에서 " + secs + "초 동안 날며 영상을 만들고 따라가기 화면으로 돌아옵니다. 화면을 켜 둔 채 기다려 주세요. 영상 모양은 지금 화면 모양 그대로입니다(폰을 세로로 들면 세로 영상).",
+                "The 3D screen flies for " + secs + " s while recording, then comes back to the hike screen. Keep the screen on. The video has the shape of your screen (hold the phone upright for a vertical video).") };
+    }
+
     function recordGpx(rec, photos) {
         var esc = function (x) { return String(x).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); };
         var iso = function (t) { return new Date(t).toISOString(); };
@@ -4303,8 +4332,8 @@
         fromApi: fromApi,
         gpxToApi: gpxToApi,
         recordCourse: recordCourse,
-        trimEnds: trimEnds,
         recordGpx: recordGpx,
+        flyStart: flyStart,
         gpxRecord: gpxRecord,
         attrShort: attrShort,
         isGpxId: isGpxId,
@@ -4414,7 +4443,6 @@
         mergeRecords: mergeRecords,
         mergeStore: mergeStore,
         photoIds: photoIds,
-        cleanTrack: cleanTrack,
         trackTake: trackTake,
         recDist: recDist,
         dropLog: dropLog,

@@ -2384,3 +2384,16 @@ eq("점검 11차 A8 - 공단 난이도 띄어쓰기 없음(운영 설악산 \"�
     eq("선이 지나는 조각 - 같은 조각은 한 번, 많으면 max 개", [RM.tilesAlong([37.72238, 37.7224, 37.6], [127.01044, 127.0105, 127.01], 12, 40), RM.tilesAlong([37.72238, 37.6], [127.01044, 127.01], 12, 1)],
         [[[3493, 1583], [3493, 1585]], [[3493, 1583]]]);
 })();
+
+// 기록 보기 요약(RF.recordSummary, 2026-11-23 홍TV님 "GPX 열기 화면에 두 번째 정보") - 다른 앱 GPX 파일(오른 높이 값 없음)은 점 높이로 센 오르막
+(function () {
+    var t0 = Date.UTC(2026, 9, 23, 0, 33), tr = [];
+    for (var i = 0; i < 60; i++) tr.push([35.3 + i * 0.0005, 127.7 + i * 0.0004, t0 + i * 60000, 600 + i * 10]);
+    var file = { name: "파일", start: t0, end: t0 + 3540000, track: tr }, asc = RF.recordCourse(file).asc;
+    var rows = RF.recordSummary(file, [], {}, false), keys = rows.map(function (r) { return r[0]; });
+    eq("요약 줄 - 날짜(한국 시간) · 거리 · 걸린 · 이동 · 휴식 · 평균 속도 · 오른 높이 · 가장 높은 곳", keys, ["날짜", "거리", "걸린 시간", "이동 시간", "휴식 시간", "평균 속도(이동 중)", "오른 높이", "가장 높은 곳"]);
+    eq("요약 - 날짜 · 오른 높이(점 높이로 센 오르막)", [rows[0][1], rows[6][1]], ["2026.10.23 09:33", RF.num(asc[asc.length - 1]) + " m"]);
+    file.up = 777; file.kcal = 500;
+    var r2 = RF.recordSummary(file, [], {}, true);
+    eq("요약 - 기록의 오른 높이 · 칼로리가 있으면 그 값, 영어", [r2[6], r2[r2.length - 1]], [["Climb", "777 m"], ["Calories (est.)", "500 kcal"]]);
+})();

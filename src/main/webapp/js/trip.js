@@ -631,6 +631,40 @@
         });
     }
 
+    function photoBlob(b64) {
+        try {
+            var bin = atob(b64), u8 = new Uint8Array(bin.length);
+            for (var i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+            return new Blob([u8], { type: "image/jpeg" });
+        } catch (e) { return null; }
+    }
+
+    /**
+     * 연 GPX 파일로 🛩 3D 비행 영상(2026-11-23 홍TV님) - 내 기록과 같은 준비(RF.flyStart: 처음 · 끝 300m 자름). 파일 속 사진은 3D 화면이 읽는 이 기기 사진 저장소(rf-photos)에
+     * 넣어 둠(내 기록에 없는 사진은 따라가기가 나중에 저절로 지움 - hike.js gcPhotos). 영상은 따라가기 화면(hike.html#vid)에서 저장 · 보내기.
+     */
+    function flyFile(got) {
+        var f;
+        try { f = RF.flyStart(got.rec, EN); } catch (e) { alert(T("영상을 준비하지 못했습니다: ", "Could not prepare the video: ") + (e && e.message || e)); return; }
+        if (f.short) { alert(f.short); return; }
+        if (!confirm(f.msg)) return;
+        var ids = Object.keys(got.photos || {});
+        new Promise(function (resolve) {
+            if (!ids.length || !window.indexedDB) { resolve(); return; }
+            var r = indexedDB.open("rf-photos", 1);
+            r.onupgradeneeded = function () { r.result.createObjectStore("p"); };
+            r.onerror = function () { resolve(); };
+            r.onsuccess = function () {
+                var db = r.result;
+                try {
+                    var tx = db.transaction("p", "readwrite"), st = tx.objectStore("p");
+                    ids.forEach(function (id) { var b = photoBlob(got.photos[id]); if (b) st.put(b, id); });
+                    tx.oncomplete = tx.onerror = tx.onabort = function () { db.close(); resolve(); };
+                } catch (e) { db.close(); resolve(); }
+            };
+        }).then(function () { location.href = f.url; });
+    }
+
     // 📂 GPX 열기 - 이 기기 안에서만 읽음
     $("openBtn").onclick = function () { $("gpxFile").value = ""; $("gpxFile").click(); };
     $("gpxFile").addEventListener("change", function () {
@@ -641,12 +675,12 @@
             var got = RF.gpxRecord(text, true, f.name);   // 시각 없는 코스 GPX 도(선 · 지점 · 고도만, 속도 · 시간 없이)
             if (!got) { alert(T("GPX 에 길(점)이 없습니다.", "The GPX has no track points.")); return; }
             show(got.rec, function (id) {
-                try {
-                    var bin = atob(got.photos[id]), u8 = new Uint8Array(bin.length);
-                    for (var i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
-                    return Promise.resolve(URL.createObjectURL(new Blob([u8], { type: "image/jpeg" })));
-                } catch (e) { return Promise.resolve(null); }
+                var b = photoBlob(got.photos[id]);
+                return Promise.resolve(b ? URL.createObjectURL(b) : null);
             });
+            // 연 GPX 파일도 🛩 3D 영상(2026-11-23 홍TV님) - 보내기 · 삭제는 내 기록에만 있어 숨김
+            $("recBtns").hidden = false; $("rec-send").hidden = true; $("rec-del").hidden = true;
+            $("rec-fly").onclick = function () { flyFile(got); };
         }).catch(function () { alert(T("파일을 읽지 못했습니다.", "Could not read the file.")); });
     });
 })();

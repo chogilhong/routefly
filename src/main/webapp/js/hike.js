@@ -1609,26 +1609,6 @@
         });
     }
 
-    /** 순수 함수 - 기록 → GPX 1.1 글. */
-    function toGpx(rec) {
-        var esc = function (x) { return String(x).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); };
-        var pts = rec.track.map(function (p) {
-            return '<trkpt lat="' + p[0] + '" lon="' + p[1] + '">' + (p[3] != null ? "<ele>" + p[3] + "</ele>" : "")
-                + "<time>" + new Date(p[2]).toISOString() + "</time></trkpt>";
-        }).join("\n");
-        // 2026-10-08: 사진 · 메모는 지점(wpt)으로 - 이름은 메모 앞 30자(없으면 "사진"), 사진 자체는 GPX 에 넣지 않습니다
-        var wpts = (rec.notes || []).map(function (n) {
-            var nm = n.text ? n.text.replace(/\s+/g, " ").slice(0, 30) : "사진";
-            return '<wpt lat="' + n.lat + '" lon="' + n.lon + '">' + (n.ele != null ? "<ele>" + n.ele + "</ele>" : "")
-                + "<time>" + new Date(n.t).toISOString() + "</time><name>" + esc(nm) + "</name>"
-                + (n.text ? "<desc>" + esc(n.text) + "</desc>" : "") + (n.photo ? "<type>photo</type>" : "") + "</wpt>";
-        }).join("\n");
-        return '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="routefly" xmlns="http://www.topografix.com/GPX/1/1">\n'
-            + "<metadata><name>" + esc(rec.name) + "</name><time>" + new Date(rec.start).toISOString() + "</time></metadata>\n"
-            + (wpts ? wpts + "\n" : "")
-            + "<trk><name>" + esc(rec.name) + "</name><type>" + esc(rec.kind || "hike") + "</type><trkseg>\n" + pts + "\n</trkseg></trk>\n</gpx>\n";
-    }
-
     /** 공유 창으로 파일을 보낼 수 있는가(앱 · 핸드폰 브라우저). 단추 이름에만 씁니다. */
     function canShareFiles() {
         if (FS && SHARE) return true;
@@ -2550,33 +2530,16 @@
     }
 
     // ------------------------------------------------------------------ 🛩 3D 비행 영상(2026-11-22 홍TV님 - 유튜버들이 앱 화면 · 코스를 영상에 많이 씀)
-    // 처음 · 끝 VID_TRIM_M 을 늘 잘라(집 · 주차한 곳) 씀. 영상에는 지도 출처 줄이 늘 들어감(app.js videoRecord), 위성은 쓰지 않음.
+    // 처음 · 끝 300m 를 늘 잘라 씀(RF.flyStart - 기록 보기 화면의 GPX 파일과 함께). 영상에는 지도 출처 줄이 늘 들어감(app.js videoRecord), 위성은 쓰지 않음.
     // 그림 · 고도 영상 · 공개 링크 만들기(🎬 영상용)는 뺌(2026-11-22 홍TV님 "나머지는 모두 삭제"), 공개 링크 끄기 단추도 뺌(홍TV님) - 이미 만든 링크는 1년 뒤 서버가 저절로 지움.
-    var VID_TRIM_M = 300;
-    /** 영상용 기록 - 튐을 거르고 처음 · 끝을 자르고, 남은 구간 때의 사진만. 너무 짧으면 null. */
-    function vidCourse(rec) {
-        var tr = RF.trimEnds(RF.cleanTrack(rec.track, rec.kind === "bike"), VID_TRIM_M);
-        if (tr.length < 2) { hAlert(T("기록이 짧아(처음 · 끝 " + VID_TRIM_M + "m 를 빼면 남는 것이 없음) 만들 수 없습니다.", "The record is too short (nothing left after trimming " + VID_TRIM_M + " m at each end).")); return null; }
-        var t0 = tr[0][2], t1 = tr[tr.length - 1][2];
-        var notes = (rec.notes || []).filter(function (n) { return n.lat != null && n.t >= t0 && n.t <= t1; });
-        var rc = RF.recordCourse({ name: rec.name, kind: rec.kind, track: tr, notes: notes });
-        rc.notes = notes; rc.track = tr;
-        return rc;
-    }
     /** 🛩 3D 비행 영상 - 이 기록을 이 기기 GPX 로 넣고 3D 화면(index.html ?video=1&rec=1)에서 영상으로 만든 뒤 돌아옴(app.js videoRecord → hike.html#vid). */
     function fly3d(rec) {
-        var rc = rec && vidCourse(rec);
-        if (!rc) return;
+        if (!rec) return;
         if (hike.running) { toast(T("산행 중에는 3D 영상을 만들지 않습니다. 산행을 마친 뒤 해 주세요.", "Finish the hike first to make the 3D video."), 4000); return; }
         try {
-            var text = toGpx({ name: rec.name, kind: rec.kind, start: rec.start, track: rc.track, notes: [] }), id = RF.gpxId(text);
-            RF.storeGpx(id, RF.gpxToApi(text, NM(rec.name) + ".gpx"));
-            sessionStorage.setItem("rf-fly-rec", JSON.stringify({ name: String(NM(rec.name) || ""), stamp: stamp(rec.start),
-                photos: rc.notes.filter(function (n) { return n.photo; }).map(function (n) { return { lat: n.lat, lon: n.lon, photo: n.photo }; }) }));
-            var secs = Math.max(20, Math.min(60, Math.round(rc.total / 250)));   // 약 250m 에 1초, 20 ~ 60초
-            hAlert(T("3D 화면에서 " + secs + "초 동안 날며 영상을 만들고 이 화면으로 돌아옵니다. 화면을 켜 둔 채 기다려 주세요. 영상 모양은 지금 화면 모양 그대로입니다(폰을 세로로 들면 세로 영상).",
-                "The 3D screen flies for " + secs + " s while recording, then comes back here. Keep the screen on. The video has the shape of your screen (hold the phone upright for a vertical video)."), { ok: T("시작", "Start") })
-                .then(function () { location.href = "index.html?video=1&rec=1&secs=" + secs + (EN ? "&lang=en" : "") + "#c=" + encodeURIComponent(id); });
+            var f = RF.flyStart(rec, EN);
+            if (f.short) { hAlert(f.short); return; }
+            hAlert(f.msg, { ok: T("시작", "Start") }).then(function () { location.href = f.url; });
         } catch (e) { hAlert(T("영상을 준비하지 못했습니다: ", "Could not prepare the video: ") + (e && e.message || e)); }
     }
     /** 3D 화면이 만든 영상(rf-video "last")을 보내기 · 저장 - 한 번 보내면 지움. */
