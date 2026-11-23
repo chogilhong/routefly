@@ -92,16 +92,13 @@
 
     /**
      * 3D 비행 영상 바탕을 우리 지도로(2026-11-23 홍TV님 "3D 비행 영상 바탕을 우리 지도로") - RFMap.open 의 모양 위에 3D 지형 · 하늘을 얹음.
-     * 날며 보는 영상이라 작은 길 이름 · 아파트 단지 · 동 이름만 뺌(기울어진 화면에 많으면 어지러움). 위성(V-World)은 영상에 쓰지 않음.
-     * 마을 · 강 · 구 · 큰길 이름은 다시 넣음(2026-11-23 홍TV님 "다 빼고 나니까 너무 밋밋한데").
+     * 우리 지도의 층을 모두 그대로 씀(2026-11-23 홍TV님 "3D 비행에 뺀 것 다 넣어도 되겠어" - 작은 길 · 아파트 · 생활 시설 · 가게 · 산길 글자도). 위성(V-World)은 영상에 쓰지 않음.
      */
-    var VIDEO_DROP = ["road-name", "rf-complex", "rf-apt", "poi-city", "poi-bus", "rf-shop", "rf-trail-label"];   // 아파트 단지 · 동 이름 · 생활 시설 · 가게 · 산길 글자는 뺌(2026-11-23 홍TV님 "빼줘", 산길 선은 그대로)
     function videoStyle(cfg, vs) {
         var st = buildStyle(cfg), out = Object.assign({}, vs, { terrain: st.terrain, sky: st.sky });
         var t = Object.assign({}, st.sources.terrain);
         delete t.attribution;   // 지형 출처는 우리 지도의 음영(hillshade) 자료에 이미 있음 - 두 번 나오지 않게(2026-11-23 PC)
         out.sources = Object.assign({}, vs.sources, { terrain: t });
-        out.layers = vs.layers.filter(function (l) { return VIDEO_DROP.indexOf(l.id) < 0; });
         return out;
     }
 
