@@ -204,7 +204,8 @@
         // 지나간 "…산" 정상(2026-11-23 홍TV님 "불암산 · 수락산 · 사패산 같은 곳에서도 구간을 끊기") - 새로 찾으면 구간을 다시 나눔
         if (rc) {
             var newNamed = RF.stopsAlong(rc, feats.filter(function (f) { return /산$/.test(f.name || "") && !namedPeaks.some(function (n) { return n.name === f.name; }); }), PEAK_NEAR_M)
-                .map(function (q) { return { name: q.s.name, lat: q.s.lat, lon: q.s.lon }; });
+                .map(function (q) { return { name: q.s.name, lat: q.s.lat, lon: q.s.lon }; })
+                .filter(function (q, k, all) { return all.findIndex(function (o) { return o.name === q.name; }) === k; });   // 같은 봉우리가 이웃 조각마다 들어 있어 한 번만(2026-11-23 PC: 사패산 ×4)
             if (newNamed.length) { namedPeaks = namedPeaks.concat(newNamed); if (map.getSource("trk")) paintTrack(); }
         }
         if (addOn.length || addDrop.length) {
