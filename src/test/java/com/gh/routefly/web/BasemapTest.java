@@ -101,6 +101,8 @@ public class BasemapTest {
             && js.contains("var feats = pts(\"mountain_peak\").concat(tileFeats)") && read("src/main/webapp/vendor/rfmap-1.0.0/rfmap.js").contains("basemapFile = file;"));
         assertTrue("처음 화면은 전체 맞춤보다 0.1 더 가깝게(2026-11-23 홍TV님 \"휠 한 칸 키운 것에서 조금 줄여\")", js.contains("var FIRST_ZOOM_UP = 0.1;") && js.contains("map.cameraForBounds(b, { padding: fitPad(), maxZoom: 15 });") && js.indexOf("kindBar();   // 단추 줄 · 로고를 먼저") >= 0 && js.indexOf("kindBar();   // 단추 줄 · 로고를 먼저") < js.indexOf("whenStyle(draw);")
             && js.contains("map.jumpTo({ center: cam.center, zoom: Math.min(15, cam.zoom + FIRST_ZOOM_UP), bearing: 0 });"));
+        assertTrue("지나간 봉우리는 늘 보이는 표시에도 - 처음 화면(확대 12 아래)에서도 사패산(2026-11-23 홍TV님 \"사패산은 보여야지\")", js.contains("function marksData() { return { type: \"FeatureCollection\", features: famGj.features.concat(passMarks) }; }")
+            && js.contains("if (famSet) map.getSource(\"marks\").setData(marksData());") && js.contains("map.getSource(\"marks\").setData(marksData());"));
         assertTrue("점검용 지도 엿보기는 ?debug=map 일 때만", js.contains("if (/[?&]debug=map(?:&|$)/.test(location.search)) {") && js.indexOf("window.__rfMap") > js.indexOf("debug=map"));
         assertTrue("OSM 출처는 한 번만 - 우리 지도는 바탕 출처에 이미 있음(2026-11-22 PC)", js.contains("customAttribution: (style ? \"\" : \"© OpenStreetMap contributors | \") + "));
         assertTrue(html.contains("<script src=\"vendor/pmtiles-4.5.0/pmtiles.js\"></script>"));

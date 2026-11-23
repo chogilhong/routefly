@@ -19,6 +19,7 @@
     var vector = false, peakKeys = [], PEAK_NEAR_M = 150, tileFeats = [];   // tileFeats - 선이 지나는 확대 12 조각의 봉우리(RFMap.tilePeaks)
     // 공단 대피소 · 100대 명산 정상(늘 보임, RF.famousMarks)과 겹치는 OSM 것(300m 안)은 숨김 - 두 번 그리지 않게
     var fam = null, famGj = null, famSet = false, dropPeaks = [], dropHuts = [], SAME_M = 300;
+    var passMarks = [];   // 지나간 봉우리 표시(rf-peak 층) - markPeaks 가 채움
     var styleOk = false, styleQ = [];   // 지도 모양 준비(whenStyle)
     // 공원 탐방로(2026-11-23 홍TV님 "지리산 안내도 코스들을 그려줘 - 일단 표시만"): 기록이 국립공원 안이면 api/park?name=<공원> 의 탐방로 선을 연하게
     var parkCands = [], parkShown = null, PARK_NEAR_M = 1500;
@@ -113,7 +114,8 @@
                 }
                 paintTrack();
                 parkTrails();
-                peakKeys = []; namedPeaks = []; tileFeats = [];
+                peakKeys = []; namedPeaks = []; tileFeats = []; passMarks = [];
+                if (famSet) map.getSource("marks").setData(marksData());   // 앞 기록의 지나간 봉우리 지움
                 markPeaks();
                 // 처음 화면(확대 10 ~ 11) 조각에는 작은 봉우리가 빠져 있어, 선이 지나는 확대 12 조각을 지도 파일에서 바로 읽어 처음부터 나눔(2026-11-23 PC 운영 v360 - 사패산)
                 var forRc = rc;
@@ -219,6 +221,16 @@
             peakKeys = peakKeys.concat(addOn); dropPeaks = dropPeaks.concat(addDrop);
             map.setFilter("peak-on", RFMap.peakOnFilter(peakKeys, true, dropPeaks));
             map.setFilter("peak", RFMap.peakOnFilter(peakKeys, false, dropPeaks));
+            // 지나간 봉우리는 늘 보이는 표시(rf-peak)에도 - 지도 파일은 사패산 같은 봉우리를 확대 12 조각부터 담아, 처음 화면(12 아래)에서 안 보였음(2026-11-23 홍TV님 "사패산은 보여야지")
+            var seen = {};
+            passMarks = feats.filter(function (f) {
+                var k = RFMap.peakKey(f);
+                if (seen[k] || peakKeys.indexOf(k) < 0 || dropPeaks.indexOf(k) >= 0) return false;
+                return (seen[k] = true);
+            }).map(function (f) {
+                return { type: "Feature", properties: { kind: "peak", name: f.name, label: "▲ " + f.name + (f.ele != null ? "\n" + f.ele + "m" : "") }, geometry: { type: "Point", coordinates: [f.lon, f.lat] } };
+            });
+            if (famSet) map.getSource("marks").setData(marksData());
         }
         if (addHut.length) { dropHuts = dropHuts.concat(addHut); applyKinds(); }
     }
@@ -376,10 +388,13 @@
     }
 
     /** 받아 둔 표시를 지도 marks 에 한 번(지도 모양이 준비된 뒤 - 자료가 먼저 오면 다음 idle 에). */
+    /** 늘 보이는 표시 자료 = 공단 대피소 · 100대 명산(famGj) + 기록이 지나간 봉우리(passMarks). */
+    function marksData() { return { type: "FeatureCollection", features: famGj.features.concat(passMarks) }; }
+
     function putMarks() {
         if (famSet || !famGj || !map.getSource("marks")) return;
         famSet = true;
-        map.getSource("marks").setData(famGj);
+        map.getSource("marks").setData(marksData());
         if (map.getSource("trk")) { paintTrack(); parkTrails(); }   // 자료가 늦게 오면 그때 구간 색 · 공원 탐방로
     }
 
