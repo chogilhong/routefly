@@ -80,7 +80,7 @@ public class VideoKitTest {
         assertTrue("지도 그림을 옮겨 그리려면 영상 만들 때만 preserveDrawingBuffer",
                 app.contains("canvasContextAttributes: VIDEO && VIDEO.rec ? { preserveDrawingBuffer: true } : undefined"));
         assertTrue("만든 영상을 따라가기로 넘겨 저장", app.contains("location.href = \"hike.html#vid\";") && js.contains("if (location.hash === \"#vid\") {"));
-        assertTrue("GPX 를 열 때 묻는 글도 지금 단추(📂 GPX 열기)에 맞춤", js.contains("📒 내 기록에 넣을까요? 넣은 뒤 내 기록 → 📂 GPX 열기로 지도 · 사진 · 고도 그래프를 봅니다.") && !js.contains("내 기록에 넣어 지도 · 사진 · 고도 그래프로 볼까요?"));
+        assertTrue("GPX 를 열 때 묻는 글도 지금 단추(🗺 기록 보기, 2026-11-24)에 맞춤", js.contains("📒 내 기록에 넣을까요? 넣은 뒤 내 기록 → 🗺 기록 보기로 지도 · 사진 · 고도 그래프를 봅니다.") && !js.contains("내 기록에 넣어 지도 · 사진 · 고도 그래프로 볼까요?"));
         assertTrue("닫기 단추가 보이게(2026-11-22 홍TV님) - 기기 옮기기 QR 창은 흰 바탕에 어두운 단추(GPX 보내기 창은 2026-11-23 없앰)",
             html.contains("id=\"xferClose\" style=\"min-height:48px;width:100%;padding:0 18px;border-radius:10px;border:0;background:#1b2430;color:#fff;"));
     }
@@ -112,7 +112,7 @@ public class VideoKitTest {
         int a = js.indexOf("    function drawRecords() {"), b = js.indexOf("    function drawRecStats(", a);
         String rows = js.substring(a, b);
         assertFalse("GPX 편집 고리 · 코스로 단추 없음", rows.contains("studio.html") || rows.contains("⬆ 코스로") || js.contains("function uploadCourse(") || js.contains("var upOwner"));
-        assertTrue("줄마다 [📂 GPX 열기] [✕] - 📈 · 📤 GPX 보내기는 기록 보기 화면으로(2026-11-23 홍TV님)", rows.contains("v.textContent = T(\"📂 GPX 열기\", \"📂 Open GPX\");") && rows.contains("v.onclick = function () { openTrip(r); };")
+        assertTrue("줄마다 [🗺 기록 보기] [✕](2026-11-24 이름 - 도장 옆 📂 GPX 열기와 헷갈림) - 📈 · 📤 GPX 보내기는 기록 보기 화면으로(2026-11-23 홍TV님)", rows.contains("v.textContent = T(\"🗺 기록 보기\", \"🗺 View record\");") && !rows.contains("T(\"📂 GPX 열기\", \"📂 Open GPX\")") && rows.contains("v.onclick = function () { openTrip(r); };")
             && rows.contains("x.textContent = \"✕\";") && !rows.contains("v.textContent = \"📈\"") && !rows.contains("T(\"📤 GPX 보내기\""));
         assertFalse("🎁 routefly 기록으로 없음", js.contains("🎁 routefly 기록으로") || js.contains("function shareRecord("));
         assertTrue("GPX 보낼 때 글에 PC 여는 법 · 코스 모음 주소(2026-11-22 홍TV님) - 앱 공유 · 폰 브라우저 공유 둘 다", js.contains("PC 에서는 routefly 코스 모음 📂 GPX 열기로 보세요")

@@ -1002,8 +1002,8 @@
         try { got = RF.gpxRecord(text, false, name); } catch (e) { got = null; }
         if (got) {
             var np = Object.keys(got.photos).length, nm = got.rec.notes.length;
-            hAsk(T("걸은 기록이 든 GPX 입니다" + (nm ? "(사진 " + np + "장 · 메모 " + (nm - np) + "개)" : "") + ".\n📒 내 기록에 넣을까요? 넣은 뒤 내 기록 → 📂 GPX 열기로 지도 · 사진 · 고도 그래프를 봅니다.\n\"따라가기로\" 는 이 길을 코스처럼 따라 걷습니다.",   // 문구를 지금 단추에 맞춤(2026-11-22 홍TV님 - 🗺 지도 단추는 📂 GPX 열기로 바뀜)
-                "This GPX holds a walked record" + (nm ? " (" + np + " photos · " + (nm - np) + " notes)" : "") + ".\nAdd it to 📒 My records? Then open it with 📂 Open GPX there to see the map, photos and graphs.\n\"Follow\" walks it as a course."),
+            hAsk(T("걸은 기록이 든 GPX 입니다" + (nm ? "(사진 " + np + "장 · 메모 " + (nm - np) + "개)" : "") + ".\n📒 내 기록에 넣을까요? 넣은 뒤 내 기록 → 🗺 기록 보기로 지도 · 사진 · 고도 그래프를 봅니다.\n\"따라가기로\" 는 이 길을 코스처럼 따라 걷습니다.",   // 문구를 지금 단추에 맞춤(2026-11-22 홍TV님 - 🗺 지도 단추는 📂 GPX 열기로 바뀜)
+                "This GPX holds a walked record" + (nm ? " (" + np + " photos · " + (nm - np) + " notes)" : "") + ".\nAdd it to 📒 My records? Then open it with 🗺 View record there to see the map, photos and graphs.\n\"Follow\" walks it as a course."),
                 { ok: T("📒 내 기록에 넣기", "📒 Add to records"), cancel: T("따라가기로", "Follow") }).then(function (ok) {
                 if (ok) importGpxRecord(got); else openGpxCourse(text, name);
             });
@@ -2118,8 +2118,9 @@
                 nb.onclick = function () { showNotes(r); };
                 row.appendChild(info); info = null; row.appendChild(nb);
             }
-            // 📈 · 📤 GPX 보내기 대신 📂 GPX 열기 하나(2026-11-23 홍TV님) - 기록 보기 화면(trip.html)에 요약 · 그래프 · 🛩 3D 영상 · 📤 GPX 보내기 · ✕ 삭제
-            var v = document.createElement("button"); v.textContent = T("📂 GPX 열기", "📂 Open GPX"); v.title = T("지도 · 고도 그래프 · 사진으로 보기", "View on map · elevation chart · photos");
+            // 📈 · 📤 GPX 보내기 대신 단추 하나(2026-11-23 홍TV님) - 기록 보기 화면(trip.html)에 요약 · 그래프 · 🛩 3D 영상 · 💾 저장 · 📐 GPX 편집 · ✕ 삭제
+            // 이름은 🗺 기록 보기(2026-11-24 홍TV님 - 도장 옆 📂 GPX 열기(파일 열어 따라가기)와 이름이 같아 헷갈림, 들어가는 화면 이름과 같게)
+            var v = document.createElement("button"); v.textContent = T("🗺 기록 보기", "🗺 View record"); v.title = T("지도 · 고도 그래프 · 사진으로 보기", "View on map · elevation chart · photos");
             v.onclick = function () { openTrip(r); };
             var x = document.createElement("button"); x.textContent = "✕"; x.className = "recDel"; x.title = T("이 기록 지우기", "Delete this record"); x.setAttribute("aria-label", x.title);   // 2026-11-22 홍TV님 "지우기는 X 버튼으로"
             x.onclick = function () { delRecord(r); };
@@ -2185,7 +2186,7 @@
         }).catch(function (e) { toast(T("GPX 를 만들지 못했습니다: ", "Could not make the GPX: ") + (e && e.message || e), 5000); });
     }
 
-    /** 📂 GPX 열기 - 기록 보기 화면(trip.html ?rec=기록 열쇠)으로. 산행 중에는 넘어가지 않음. */
+    /** 🗺 기록 보기 - 기록 보기 화면(trip.html ?rec=기록 열쇠)으로. 산행 중에는 넘어가지 않음. */
     function openTrip(rec) {
         if (hike.running) { toast(T("산행 중에는 기록 보기로 넘어가지 않습니다. 산행을 마친 뒤 열어 주세요.", "Finish the hike first to open the record view."), 4000); return; }
         location.href = "trip.html?rec=" + encodeURIComponent(recKey(rec)) + (EN ? "&lang=en" : "");
