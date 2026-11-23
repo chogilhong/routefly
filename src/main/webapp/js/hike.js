@@ -2245,6 +2245,14 @@
         $("recSheet").style.display = "flex";
     }
 
+    /** 운영자 기기인가(/api/course-upload GET 의 owner - /stats 쿠키, 서버가 확인) - 한 번만 묻고 기억. park.js · route.js 의 studioLink 와 같은 물음. */
+    var ownerP = null;
+    function ownerDevice() {
+        if (!ownerP) ownerP = fetch("api/course-upload", { headers: { Accept: "application/json" }, cache: "no-store" }).then(function (r) { return r.ok ? r.json() : {}; })
+            .then(function (j) { return !!(j && j.owner); }).catch(function () { return false; });
+        return ownerP;
+    }
+
     /** 기록 지우기(묻고) - 내 기록 ✕ · 기록 보기 화면의 ✕ 삭제(#recdo=del). 지운 뒤 내 기록 목록을 그림. */
     function delRecord(r) {
         hAsk(T("이 기록을 지울까요?\n산행 결산에서도 빠집니다.", "Delete this record?\nIt is also removed from the hiking summary."), { ok: T("지우기", "Delete"), danger: true }).then(function (ok) {
@@ -4542,12 +4550,25 @@
                 };
                 it.classList.add("hasfly");
                 it.appendChild(fly);
+                // 📐 GPX 편집(💾 GPX 저장)으로 - 운영자 기기만(2026-11-23 홍TV님 "코스번호를 알아야 열텐데") - 숨겨 두고 운영자면 아래에서 보임
+                var ed = document.createElement("a");
+                ed.className = "fly studio";
+                ed.hidden = true;
+                ed.textContent = "📐";
+                ed.title = "GPX 편집 · 💾 GPX 저장(운영자 기기만)";
+                ed.setAttribute("aria-label", ed.title);
+                ed.href = "studio.html#c=" + encodeURIComponent(r.course_id) + (r.title ? "&title=" + encodeURIComponent(r.title) : "");
+                ed.onclick = function (e) { e.stopPropagation(); };
+                it.appendChild(ed);
             }
             it.onclick = function () {
                 fromList = true;   // 대표 코스는 길 이름 · 들머리 이름도(탐방 안내도 대표 코스와 같게 - "3구간 이어 걷기" 대신)
                 location.hash = "#c=" + encodeURIComponent(r.course_id) + (r.title ? "&title=" + encodeURIComponent(r.title) : "") + (r.head ? "&head=" + encodeURIComponent(r.head) : "");
             };
             box.appendChild(it);
+        });
+        ownerDevice().then(function (own) {   // 운영자 기기면 줄마다 📐 를 보이고 fly(3D) 를 왼쪽으로 비킴
+            if (own) Array.prototype.forEach.call(box.querySelectorAll("a.studio"), function (a) { a.hidden = false; a.parentNode.classList.add("hased"); });
         });
         // fly(3D) 에서 "‹ 뒤로" 로 돌아왔으면 목록을 그 자리로(2026-10-13 PC: 맨 위로 갔음) - 한 번만
         try {
