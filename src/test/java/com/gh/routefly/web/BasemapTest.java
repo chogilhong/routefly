@@ -103,6 +103,10 @@ public class BasemapTest {
             && js.contains("map.jumpTo({ center: cam.center, zoom: Math.min(15, cam.zoom + FIRST_ZOOM_UP), bearing: 0 });"));
         assertTrue("지나간 봉우리는 늘 보이는 표시에도 - 처음 화면(확대 12 아래)에서도 사패산(2026-11-23 홍TV님 \"사패산은 보여야지\")", js.contains("function marksData() { return { type: \"FeatureCollection\", features: famGj.features.concat(passMarks) }; }")
             && js.contains("if (famSet) map.getSource(\"marks\").setData(marksData());") && js.contains("map.getSource(\"marks\").setData(marksData());"));
+        assertTrue("탐방로 선 위 글자 - 거리 · 표준 시간(우리 공식), 선을 따라 눕혀 씀, 기록 선에는 안 씀(2026-11-23 홍TV님 \"네이버처럼\")",
+            js.contains("var lab = t.distance_m > 0 ? RF.segText({ m: t.distance_m, ms: RF.standardMs(\"hike\", t.distance_m, t.ascent_m) }) : \"\";")
+            && js.contains("map.addLayer({ id: \"parktr-label\", type: \"symbol\", source: \"parktr\", minzoom: 12,") && js.contains("\"symbol-placement\": \"line\"")
+            && !js.contains("source: \"trk\", layout: { \"symbol-placement\""));
         assertTrue("점검용 지도 엿보기는 ?debug=map 일 때만", js.contains("if (/[?&]debug=map(?:&|$)/.test(location.search)) {") && js.indexOf("window.__rfMap") > js.indexOf("debug=map"));
         assertTrue("OSM 출처는 한 번만 - 우리 지도는 바탕 출처에 이미 있음(2026-11-22 PC)", js.contains("customAttribution: (style ? \"\" : \"© OpenStreetMap contributors | \") + "));
         assertTrue(html.contains("<script src=\"vendor/pmtiles-4.5.0/pmtiles.js\"></script>"));

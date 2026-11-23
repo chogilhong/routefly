@@ -107,6 +107,11 @@
                         map.addSource("parktr", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
                         map.addLayer({ id: "parktr", type: "line", source: "parktr", layout: { "line-join": "round", "line-cap": "round" },
                             paint: { "line-color": "#56728c", "line-opacity": 0.5, "line-width": ["interpolate", ["linear"], ["zoom"], 9, 0.9, 13, 2, 16, 3.2] } }, under);   // 중간 진하기(2026-11-23 PC: 처음 0.55 #3b5b78 은 짙고, 0.4 #6f8aa3 은 거의 안 보임)
+                        // 탐방로 길 위 글자(선을 따라 눕혀 씀) - 글자 층 맨 앞(봉우리 · 역 · 마을 이름에 자리를 내줌), 확대 12부터
+                        map.addLayer({ id: "parktr-label", type: "symbol", source: "parktr", minzoom: 12, filter: ["!=", ["get", "label"], ""],
+                            layout: { "symbol-placement": "line", "symbol-spacing": 250, "text-field": ["get", "label"], "text-font": ["Noto Sans Regular"], "text-size": 11,
+                                "text-keep-upright": true, "text-max-angle": 35, "text-padding": 2 },
+                            paint: { "text-color": "#3d5a73", "text-halo-color": "#fffdf5", "text-halo-width": 1.4 } }, under);
                     }
                     map.addLayer({ id: "trk-halo", type: "line", source: "trk", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": "#fff", "line-width": 8, "line-opacity": 0.8 } }, under);
                     map.addLayer({ id: "trk", type: "line", source: "trk", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": ["coalesce", ["get", "color"], "#5b45ff"], "line-width": 4.5 } }, under);   // 구간 색(segData)
@@ -256,7 +261,9 @@
         getJson("api/park?name=" + encodeURIComponent(park)).then(function (d) {
             if (parkShown !== park || !d || !d.trails) return;
             var f = d.trails.concat(d.others || []).filter(function (t) { return t.coords && t.coords.length > 1; }).map(function (t) {
-                return { type: "Feature", properties: { name: t.name }, geometry: { type: "LineString", coordinates: t.coords } };
+                // 길 위 글자 "거리 · 표준 시간"(2026-11-23 홍TV님 "네이버처럼 - 탐방로 · 우리 코스 선에", 기록 선은 그대로) - 내리막 자료가 없어 오르막까지만 셈
+                var lab = t.distance_m > 0 ? RF.segText({ m: t.distance_m, ms: RF.standardMs("hike", t.distance_m, t.ascent_m) }) : "";
+                return { type: "Feature", properties: { name: t.name, label: lab }, geometry: { type: "LineString", coordinates: t.coords } };
             });
             map.getSource("parktr").setData({ type: "FeatureCollection", features: f });
         }).catch(function () { /* 못 받으면 그냥 기록만 */ });

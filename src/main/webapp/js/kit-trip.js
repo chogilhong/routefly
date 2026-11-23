@@ -610,6 +610,8 @@
     var KINDS_EN = { hike: { label: "Hiking", act: "Hike", sos: "hiking" }, walk: { label: "Walking", act: "Walk", sos: "walking" },
                      bike: { label: "Cycling", act: "Ride", sos: "cycling" }, trek: { label: "Hiking · Walking", act: "Hike", sos: "hiking" } };
 
+    function kindOf(k) { return KINDS[k] || KINDS.hike; }
+
     /**
      * 글자 크기(2026-10-14 홍TV님: 핸드폰에서 글씨가 작음) - 100 → 120 → 140%, 이 기기에 저장(rf-text).
      * 지도 · 그래프는 그대로 두고 글 칸(안내 칸 · 아래 창 · 목록 · 안내 화면)만 CSS zoom 으로 키웁니다(<html class="rfz"> + --rfz).
@@ -638,6 +640,11 @@
     if (global.addEventListener && global.navigator && /Android/i.test(navigator.userAgent || "") && !global.Capacitor)
         global.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); });
 
+    /** 순수 함수 - 표준 소요 시간(ms): 거리 ÷ 빠르기 + 오르막 ÷ climb + 내리막 ÷ down(KINDS). descM 이 없으면 내리막 0. */
+    function standardMs(kind, distM, ascM, descM) {
+        var k = kindOf(kind);
+        return (distM / 1000 / k.kmh + (k.climb ? (+ascM || 0) / k.climb : 0) + (k.down ? (+descM || 0) / k.down : 0)) * 3600000;
+    }
     // ------------------------------------------------------------------ ① 고도 그래프
 
     var PW = 1000, PH = 100;
@@ -956,6 +963,7 @@
         stopsAlong: stopsAlong,
         recordPark: recordPark,
         segText: segText,
+        standardMs: standardMs,
         distM: distM,
         profile: profile,
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },
