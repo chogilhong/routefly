@@ -79,7 +79,7 @@ public class StudioPublicTest {
     @Test
     public void tilesAndAttribution() throws Exception {
         String js = read("src/main/webapp/js/studio.js");
-        assertTrue("OSM 출처는 늘", js.contains("customAttribution: \"© OpenStreetMap contributors\""));
+        assertTrue("OSM 출처는 늘 - 우리 지도일 때는 그 지도 파일 출처에 있어 한 번만(2026-11-24)", js.contains("customAttribution: ours ? undefined : \"© OpenStreetMap contributors\""));
         assertTrue(js.contains("attribution: b.id === \"sat\" ? \"위성사진: 국토교통부 V-World\" : \"지도: 국토교통부 V-World\""));
         assertTrue(js.contains("attribution: \"지형: Terrain Tiles (AWS Open Data)\""));
         // 남의 공용 타일(OSM · OpenTopoMap · Waymarked)은 pub 없이 - 손님 화면에는 소스를 넣지 않음

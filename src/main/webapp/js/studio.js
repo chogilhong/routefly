@@ -213,10 +213,21 @@
                 if (inp.type === "radio") p.base = inp.value; else p.over[inp.value] = inp.checked ? 1 : 0;
                 try { localStorage.setItem(MAPKEY, JSON.stringify(p)); } catch (e) { /* 이번만 */ }
                 BASES.forEach(function (b) { if (map.getLayer(b.id)) map.setLayoutProperty(b.id, "visibility", p.base === b.id ? "visible" : "none"); });
+                if (inp.type === "radio") attrib(p.base === "rf");
                 if (ourStyle) ourStyle.layers.forEach(function (l) { if (map.getLayer(OUR + l.id)) map.setLayoutProperty(OUR + l.id, "visibility", p.base === "rf" && (!l.layout || l.layout.visibility !== "none") ? "visible" : "none"); });
                 OVERS.forEach(function (o) { if (map.getLayer(o.id)) map.setLayoutProperty(o.id, "visibility", p.over[o.id] ? "visible" : "none"); });
             };
         });
+    }
+    /**
+     * 출처 칸 - 우리 지도일 때는 그 지도 파일 출처(© OpenMapTiles © OpenStreetMap contributors)가 이미 나와 "© OpenStreetMap contributors" 를 따로 붙이지 않음
+     * (2026-11-24 홍TV님: 우리 지도를 고르면 두 번 나왔음 - 기록 보기 trip.js 와 같게). 다른 바탕일 때는 늘 붙임(CLAUDE.md). 바탕을 바꿀 때마다 새로 닮.
+     */
+    var attribCtl = null;
+    function attrib(ours) {
+        if (attribCtl) map.removeControl(attribCtl);
+        attribCtl = new maplibregl.AttributionControl({ compact: true, customAttribution: ours ? undefined : "© OpenStreetMap contributors" });
+        map.addControl(attribCtl, "bottom-right");
     }
     var cfgVw = false;
     var EMPTY = { type: "FeatureCollection", features: [] };
@@ -233,7 +244,7 @@
             map = new maplibregl.Map({ container: "map", style: style(cfg), center: [127.8, 36.3], zoom: 6.2, locale: RF.mapLocale(), attributionControl: false, dragRotate: false, pitchWithRotate: false });
             map.touchZoomRotate.disableRotation();
             if (ourStyle) map.on("styleimagemissing", function (e) { RFMap.iconImage(map, e.id); });   // 우리 지도 아이콘(봉우리 · 대피소 · 역 등)
-            map.addControl(new maplibregl.AttributionControl({ compact: true, customAttribution: "© OpenStreetMap contributors" }), "bottom-right");
+            attrib(mapPref().base === "rf");
             // 폰(600px 밑)은 출처를 ⓘ 로 접어 둠(누르면 펼쳐짐 - 따라가기 foldAttrib 와 같게, 2026-11-02 홍TV님 점검: 처음에 두 줄로 펼쳐져 지도 10% 를 가렸음). PC 는 그대로
             if (window.matchMedia && window.matchMedia("(max-width: 599px)").matches) {
                 var foldAttrib = function () { var a = document.querySelector("#map .maplibregl-ctrl-attrib"); if (a) a.classList.remove("maplibregl-compact-show"); };
