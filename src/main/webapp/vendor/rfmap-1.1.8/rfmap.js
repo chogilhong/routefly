@@ -11,7 +11,7 @@
  */
 (function (global) {
     "use strict";
-    var VERSION = "1.1.7";
+    var VERSION = "1.1.8";
     // 이 파일이 있는 폴더(글꼴 · 자료 기본 자리) - node 테스트에서는 빈 글자
     var BASE = (function () {
         try { var s = global.document && global.document.currentScript; return s && s.src ? new URL(".", s.src).href : ""; } catch (e) { return ""; }
@@ -42,8 +42,9 @@
         var cls = function (list) { return ["match", ["get", "class"], list, true, false]; };
         var hikePoiIcon = ["case",
             ["all", ["==", ["get", "class"], "lodging"], ["==", ["get", "subclass"], "alpine_hut"]], "rf-hut",
-            // OSM 쉼터(amenity=shelter → class shelter)는 그리지 않음 - 공원 정자 · 비 가림 쉼터까지 같은 값이라 도시가 "쉼터 찾는 지도" 처럼 됨(2026-11-23 홍TV님
-            // "지리산, 한라산, 설악산, 덕유산 등 그곳에서만 보이게"). 대피소는 공단 대피소(rf-hut 층, 앱이 채움)와 OSM 산장(alpine_hut)만
+            // OSM 쉼터(amenity=shelter → class shelter)는 이름에 "대피소" 가 든 것만(isHutPoi) - 공원 정자 · 비 가림 쉼터까지 같은 값이라 도시가 "쉼터 찾는 지도" 처럼 됐음
+            // (2026-11-23 홍TV님 "지리산, 한라산, 설악산, 덕유산 등 그곳에서만 보이게"). 한라산 대피소(삼각봉 · 속밭 · 탐라계곡)는 OSM 에 shelter 로 들어 있음(2026-11-23 PC)
+            ["all", ["==", ["get", "class"], "shelter"], ["in", HUT_NAME, ["to-string", ["get", "name"]]], ["!", ["in", HUT_NOT, ["to-string", ["get", "name"]]]]], "rf-hut",
             ["all", ["==", ["get", "class"], "place_of_worship"], ["==", ["get", "subclass"], "buddhist"]], "rf-temple",
             ["all", ["==", ["get", "class"], "attraction"], ["==", ["get", "subclass"], "viewpoint"]], "rf-view",
             ["==", ["get", "class"], "drinking_water"], "rf-water",
@@ -384,6 +385,12 @@
     }
 
     /** 봉우리 하나를 가리키는 열쇠(이름|높이) - 지도 타일 안 봉우리와 peaksNear 가 같은 열쇠를 씀. */
+    /** 대피소로 그릴 OSM poi 인가(지도 모양 hikePoiIcon 의 rf-hut 두 줄과 같은 조건 - 앱이 공단 대피소와 겹치는 것을 찾을 때 씀). 민방위 대피소는 뺌. */
+    var HUT_NAME = "대피소", HUT_NOT = "민방위";
+    function isHutPoi(cls, sub, name) {
+        name = name == null ? "" : String(name);
+        return (cls === "lodging" && sub === "alpine_hut") || (cls === "shelter" && name.indexOf(HUT_NAME) >= 0 && name.indexOf(HUT_NOT) < 0);
+    }
     var PEAK_KEY_EXPR = ["concat", ["to-string", ["get", "name"]], "|", ["to-string", ["get", "ele"]]];
     function peakFeatureKey(props) { return String(props && props.name != null ? props.name : "") + "|" + String(props && props.ele != null ? props.ele : ""); }
 
@@ -478,7 +485,7 @@
     }
 
     global.RFMap = {
-        VERSION: VERSION, open: vectorBasemap, style: vectorStyle, ICONS: MAP_ICONS, iconImage: mapIconImage, poiShowFilter: poiShowFilter,
+        VERSION: VERSION, isHutPoi: isHutPoi, open: vectorBasemap, style: vectorStyle, ICONS: MAP_ICONS, iconImage: mapIconImage, poiShowFilter: poiShowFilter,
         peakOnFilter: peakOnFilter, PEAK_KEY_EXPR: PEAK_KEY_EXPR, peakKey: peakFeatureKey, peaksNear: peaksNear,
         mvtPoints: mvtPoints, tilesAlong: tilesAlong, tileLonLat: tileLonLat, tilePeaks: trackTilePeaks, shopList: shopList, demEle: demEle, terrariumEle: terrariumEle, tilePixel: tilePixel, CONTOUR_STEPS: CONTOUR_STEPS, contourPaint: contourPaint
     };

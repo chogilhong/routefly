@@ -10,7 +10,7 @@ import java.nio.file.Path;
 
 import org.junit.Test;
 
-/** 바탕 지도 2단계(2026-11-22 홍TV님 "지도 작업을 계속 하자고") - 우리 지도 파일(PMTiles)을 기록 보기(trip.html)에. 모양 셈은 course-kit.test.js(RM.style - 우리 지도 패키지 vendor/rfmap-1.1.7). */
+/** 바탕 지도 2단계(2026-11-22 홍TV님 "지도 작업을 계속 하자고") - 우리 지도 파일(PMTiles)을 기록 보기(trip.html)에. 모양 셈은 course-kit.test.js(RM.style - 우리 지도 패키지 vendor/rfmap-1.1.8). */
 public class BasemapTest {
 
     private static String read(String p) throws Exception {
@@ -31,7 +31,7 @@ public class BasemapTest {
     @Test
     public void tripUsesBasemapWhenSet() throws Exception {
         String js = read("src/main/webapp/js/trip.js"), html = read("src/main/webapp/trip.html"), sw = read("src/main/webapp/sw.js");
-        String kit = read("src/main/webapp/vendor/rfmap-1.1.7/rfmap.js");   // 지도 모양 · 아이콘은 우리 지도 패키지(2026-11-23 course-kit 에서 옮김)
+        String kit = read("src/main/webapp/vendor/rfmap-1.1.8/rfmap.js");   // 지도 모양 · 아이콘은 우리 지도 패키지(2026-11-23 course-kit 에서 옮김)
         assertTrue("설정이 있고 pmtiles 를 읽었을 때만 - 기록 보기 · 3D 영상이 같은 RFMap.open", js.contains("return RFMap.open(c.basemapUrl, cfg.demUrl, { lang: LANG }).then(")
             && kit.contains("if (!basemapUrl || !global.pmtiles || !global.maplibregl) return Promise.resolve(null);") && kit.contains("global.maplibregl.addProtocol(\"pmtiles\", proto.tile);"));
         assertTrue("파일 머리를 못 읽으면(404 - 설정이 파일보다 먼저) V-World 바탕으로(2026-11-22 PC)",
@@ -41,12 +41,13 @@ public class BasemapTest {
         assertTrue("기록 선은 글자 층 아래(봉우리 이름을 덮지 않게, 2026-11-22 홍TV님)", js.contains("var under = firstSymbol();") && js.contains("paint: { \"line-color\": [\"coalesce\", [\"get\", \"color\"], \"#5b45ff\"], \"line-width\": 4.5 } }, under);"));
         assertTrue("지나간 봉우리 크게 - 지도 조각이 올 때마다 찾음", js.contains("map.on(\"idle\", markPeaks);") && js.contains("RFMap.peaksNear(feats, rc.lat, rc.lon, PEAK_NEAR_M)")
             && js.contains("map.setFilter(\"peak-on\", RFMap.peakOnFilter(peakKeys, true, dropPeaks));") && js.contains("map.setFilter(\"peak\", RFMap.peakOnFilter(peakKeys, false, dropPeaks));")
-            && js.contains("if (map.getLayer(\"rf-summit\")) map.setFilter(\"rf-summit\", RFMap.peakOnFilter(peakKeys, false, dropPeaks));"));
+            && js.contains("if (map.getLayer(\"rf-summit\")) map.setFilter(\"rf-summit\", RFMap.peakOnFilter(peakKeys, false, dropPeaks));")
+            && js.contains("var huts = pts(\"poi\").filter(function (f) { return RFMap.isHutPoi(f.cls, f.sub, f.name); });"));
         assertTrue("속도 선은 거리 100칸 평균(톱니 줄이기)", read("src/main/webapp/js/course-kit.js").contains("speedBuckets(opts.speed, c.dist, c.total, SPEED_BUCKETS).forEach("));
         assertTrue("등고선 켜기 · 끄기 - 따라가기와 같은 라이브러리 · 기억 · 간격 · 색", html.contains("<script src=\"vendor/maplibre-contour-0.1.1/maplibre-contour.min.js\"></script>")
             && js.contains("var CONTOUR_KEY = \"rf-contour\"") && js.contains("thresholds: RFMap.CONTOUR_STEPS") && js.contains("RFMap.contourPaint(true)")
             && js.contains("if (window.mlcontour) map.addControl(contourControl(), \"top-right\");") && js.contains("fold(); setContour(contourOn);"));
-        assertTrue("따라가기도 같은 간격 · 색(두 벌 안 둠)", read("src/main/webapp/js/hike.js").contains("CONTOUR_STEPS = RFMap.CONTOUR_STEPS;") && read("src/main/webapp/js/hike.js").contains("var contourPaint = RFMap.contourPaint;") && read("src/main/webapp/hike.html").contains("<script src=\"vendor/rfmap-1.1.7/rfmap.js\"></script>"));
+        assertTrue("따라가기도 같은 간격 · 색(두 벌 안 둠)", read("src/main/webapp/js/hike.js").contains("CONTOUR_STEPS = RFMap.CONTOUR_STEPS;") && read("src/main/webapp/js/hike.js").contains("var contourPaint = RFMap.contourPaint;") && read("src/main/webapp/hike.html").contains("<script src=\"vendor/rfmap-1.1.8/rfmap.js\"></script>"));
         assertTrue("대피소 · 절 등 아이콘은 필요할 때 그려 넣음(2026-11-22 홍TV님)", js.contains("map.on(\"styleimagemissing\", function (e) { RFMap.iconImage(map, e.id); });") && kit.contains("var ic = MAP_ICONS[id];"));
         assertTrue("지도에 routefly 로고(아이콘 + 글자, 밝은 지도용)", html.contains("<img id=\"brand\" src=\"img/logo.svg\" alt=\"routefly\""));
         assertTrue("표시별 보이기 · 숨기기 - 사진 · 메모는 표시를 감추고 대피소 등은 층 거름으로, 그래프와 안 겹치게",
@@ -84,22 +85,22 @@ public class BasemapTest {
             && read("src/main/webapp/index.html").contains("<script src=\"vendor/pmtiles-4.5.0/pmtiles.js\"></script>"));
         assertTrue("구간: 지나간 …산 정상에서도 끊기 · 1km 안은 하나로 · 역 단추(2026-11-23 홍TV님 1 · 2 · 도시 안내)", js.contains("SEG_GAP_M = 1000") && js.contains("fam.huts.concat(fam.peaks, namedPeaks)")
             && js.contains("return /산$/.test(f.name || \"\")") && !js.contains("\"rf-rail\", \"🚉\"")
-            && read("src/main/webapp/vendor/rfmap-1.1.7/rfmap.js").contains("\"rf-rail\": [\"#ffffff\", \"dot\"],") && read("src/main/webapp/vendor/rfmap-1.1.7/rfmap.js").contains("cityPoi(\"poi-city\", 15, [\"!=\", cityPoiIcon, \"rf-bus\"]), cityPoi(\"poi-bus\", 16, [\"==\", cityPoiIcon, \"rf-bus\"]),") && read("src/main/webapp/vendor/rfmap-1.1.7/rfmap.js").contains("[\"concat\", ko, \"역\"], ko]") && app.contains("var VIDEO_DROP = [\"road-name\", \"rf-complex\", \"rf-apt\", \"poi-city\", \"poi-bus\", \"rf-shop\", \"rf-trail-label\"];")
+            && read("src/main/webapp/vendor/rfmap-1.1.8/rfmap.js").contains("\"rf-rail\": [\"#ffffff\", \"dot\"],") && read("src/main/webapp/vendor/rfmap-1.1.8/rfmap.js").contains("cityPoi(\"poi-city\", 15, [\"!=\", cityPoiIcon, \"rf-bus\"]), cityPoi(\"poi-bus\", 16, [\"==\", cityPoiIcon, \"rf-bus\"]),") && read("src/main/webapp/vendor/rfmap-1.1.8/rfmap.js").contains("[\"concat\", ko, \"역\"], ko]") && app.contains("var VIDEO_DROP = [\"road-name\", \"rf-complex\", \"rf-apt\", \"poi-city\", \"poi-bus\", \"rf-shop\", \"rf-trail-label\"];")
             && app.contains("map.setFilter(\"peak\", [\"!\", [\"in\", [\"get\", \"name\"], [\"literal\", videoPeakNames.concat(own)]]]);")
             && app.contains("map.setFilter(\"rf-peak\", [\"all\", [\"==\", [\"get\", \"kind\"], \"peak\"], [\"!\", [\"in\", [\"get\", \"name\"], [\"literal\", own]]]]);"));
         assertTrue("봉우리 찾기는 idle 만 믿지 않고 조각을 받을 때도(2026-11-23 PC 불수사도북 z12.95 - 사패산에서 안 나뉨)", js.contains("if (e.sourceId !== \"omt\" || !e.isSourceLoaded) return;")
             && js.contains("clearTimeout(peakT); peakT = setTimeout(markPeaks, 400);"));
-        assertTrue("구 이름 자료 - 지도 파일에서 뽑은 구 이름만(…구), 서울 · 부산 등(2026-11-23 홍TV님)", read("src/main/webapp/vendor/rfmap-1.1.7/data/gu-labels.json").contains("\"name\":\"종로구\"")
-            && read("src/main/webapp/vendor/rfmap-1.1.7/data/gu-labels.json").contains("\"name\":\"노원구\"") && read("src/main/webapp/vendor/rfmap-1.1.7/data/gu-labels.json").contains("\"name\":\"해운대구\"")
-            && !read("src/main/webapp/vendor/rfmap-1.1.7/data/gu-labels.json").contains("동\",\"name_en"));
-        assertTrue("더하기 층(아파트 단지 이름)은 바탕 옆 -extra.pmtiles 가 있을 때만 - 지도 만들기 도구는 tools 저장소 map/(2026-11-23 홍TV님)", read("src/main/webapp/vendor/rfmap-1.1.7/rfmap.js").contains("var extraUrl = url.replace(/\\.pmtiles$/, \"-extra.pmtiles\")")
-            && read("src/main/webapp/vendor/rfmap-1.1.7/rfmap.js").contains("extraUrl: ok ? extraUrl : null") && read("docs/basemap/README.md").contains("korea-extra.pmtiles"));
-        String sub = read("src/main/webapp/vendor/rfmap-1.1.7/data/subway-lines.json"), raw = read("src/test/resources/subway/routes.json");
+        assertTrue("구 이름 자료 - 지도 파일에서 뽑은 구 이름만(…구), 서울 · 부산 등(2026-11-23 홍TV님)", read("src/main/webapp/vendor/rfmap-1.1.8/data/gu-labels.json").contains("\"name\":\"종로구\"")
+            && read("src/main/webapp/vendor/rfmap-1.1.8/data/gu-labels.json").contains("\"name\":\"노원구\"") && read("src/main/webapp/vendor/rfmap-1.1.8/data/gu-labels.json").contains("\"name\":\"해운대구\"")
+            && !read("src/main/webapp/vendor/rfmap-1.1.8/data/gu-labels.json").contains("동\",\"name_en"));
+        assertTrue("더하기 층(아파트 단지 이름)은 바탕 옆 -extra.pmtiles 가 있을 때만 - 지도 만들기 도구는 tools 저장소 map/(2026-11-23 홍TV님)", read("src/main/webapp/vendor/rfmap-1.1.8/rfmap.js").contains("var extraUrl = url.replace(/\\.pmtiles$/, \"-extra.pmtiles\")")
+            && read("src/main/webapp/vendor/rfmap-1.1.8/rfmap.js").contains("extraUrl: ok ? extraUrl : null") && read("docs/basemap/README.md").contains("korea-extra.pmtiles"));
+        String sub = read("src/main/webapp/vendor/rfmap-1.1.8/data/subway-lines.json"), raw = read("src/test/resources/subway/routes.json");
         assertTrue("지하철 노선 색 - 받은 OSM 자료의 colour 그대로(1호선 · 2호선 · 의정부경전철)", sub.contains("\"ref\":\"1\",\"name\":\"수도권 전철 1호선\",\"colour\":\"#004A85\"")
             && sub.contains("\"colour\":\"#00A23F\"") && sub.contains("\"colour\":\"#F0831E\"") && raw.contains("\"colour\": \"#004A85\"") && raw.contains("\"colour\": \"#F0831E\""));
         assertTrue("지나간 …산은 이름마다 한 번만(이웃 조각에 같은 봉우리가 겹쳐 있음)", js.contains(".filter(function (q, k, all) { return all.findIndex(function (o) { return o.name === q.name; }) === k; });"));
         assertTrue("처음 화면부터 작은 봉우리(사패산)에서 나눔 - 선이 지나는 확대 12 조각을 지도 파일에서 바로 읽음(2026-11-23 PC 운영 v360)", js.contains("RFMap.tilePeaks(rc.lat, rc.lon).then(function (f) { if (rc === forRc && f.length) { tileFeats = f; markPeaks(); } });")
-            && js.contains("var feats = pts(\"mountain_peak\").concat(tileFeats)") && read("src/main/webapp/vendor/rfmap-1.1.7/rfmap.js").contains("basemapFile = file;"));
+            && js.contains("var feats = pts(\"mountain_peak\").concat(tileFeats)") && read("src/main/webapp/vendor/rfmap-1.1.8/rfmap.js").contains("basemapFile = file;"));
         assertTrue("처음 화면은 전체 맞춤보다 0.1 더 가깝게(2026-11-23 홍TV님 \"휠 한 칸 키운 것에서 조금 줄여\")", js.contains("var FIRST_ZOOM_UP = 0.1;") && js.contains("map.cameraForBounds(b, { padding: fitPad(), maxZoom: 15 });") && js.indexOf("kindBar();   // 단추 줄 · 로고를 먼저") >= 0 && js.indexOf("kindBar();   // 단추 줄 · 로고를 먼저") < js.indexOf("whenStyle(draw);")
             && js.contains("map.jumpTo({ center: cam.center, zoom: Math.min(15, cam.zoom + FIRST_ZOOM_UP), bearing: 0 });"));
         assertTrue("지나간 봉우리는 늘 보이는 표시에도 - 처음 화면(확대 12 아래)에서도 사패산(2026-11-23 홍TV님 \"사패산은 보여야지\")", js.contains("function marksData() { return { type: \"FeatureCollection\", features: famGj.features.concat(passMarks) }; }")
@@ -109,7 +110,7 @@ public class BasemapTest {
             && js.contains("map.addLayer({ id: \"parktr-label\", type: \"symbol\", source: \"parktr\", minzoom: 12,") && js.contains("\"symbol-placement\": \"line\"")
             && !js.contains("source: \"trk\", layout: { \"symbol-placement\""));
         assertTrue("같은 건물 가게는 \"외 n곳\" + 누르면 목록(패키지 shopList, 기록 보기에서 켬)", js.contains("if (vector) RFMap.shopList(map);")
-            && read("src/main/webapp/vendor/rfmap-1.1.7/rfmap.js").contains("function shopList(map, layer) {"));
+            && read("src/main/webapp/vendor/rfmap-1.1.8/rfmap.js").contains("function shopList(map, layer) {"));
         assertTrue("장소 말풍선 - 기록 밖이면 선에서 거리, 누른 자리 지형 해발(약), 확대 · 축소하면 닫힘(2026-11-23 홍TV님)", js.contains("T(\" km 떨어진 곳\", \" km from this record\")")
             && js.contains("RFMap.demEle(contourCfg.demUrl, g[0], g[1])") && js.contains("map.once(\"zoomstart\", function () { if (popup === pp) { popup.remove(); popup = null; } });")
             && !js.contains("T(\"이 기록에서 떨어진 곳\""));
@@ -118,7 +119,7 @@ public class BasemapTest {
         assertTrue(html.contains("<script src=\"vendor/pmtiles-4.5.0/pmtiles.js\"></script>"));
         assertTrue("지도 파일은 캐시하지 않음(Range)", sw.contains("if (/\\.pmtiles(?:[?#]|$)/.test(url)) return;"));
         for (String f : new String[] {   // 9472-9727 은 봉우리 ▲(U+25B2) - 없으면 404 뒤 폰 글꼴로 그렸음(2026-11-22 PC)
-                "pmtiles-4.5.0/pmtiles.js", "pmtiles-4.5.0/LICENSE", "rfmap-1.1.7/fonts/OFL.txt", "rfmap-1.1.7/fonts/Noto Sans Regular/0-255.pbf", "rfmap-1.1.7/fonts/Noto Sans Regular/8192-8447.pbf", "rfmap-1.1.7/fonts/Noto Sans Regular/9472-9727.pbf", "rfmap-1.1.7/fonts/Noto Sans Regular/8448-8703.pbf", "rfmap-1.1.7/rfmap.js", "rfmap-1.1.7/data/gu-labels.json", "rfmap-1.1.7/data/subway-lines.json", "rfmap-1.1.7/data/stations.json"})
+                "pmtiles-4.5.0/pmtiles.js", "pmtiles-4.5.0/LICENSE", "rfmap-1.1.8/fonts/OFL.txt", "rfmap-1.1.8/fonts/Noto Sans Regular/0-255.pbf", "rfmap-1.1.8/fonts/Noto Sans Regular/8192-8447.pbf", "rfmap-1.1.8/fonts/Noto Sans Regular/9472-9727.pbf", "rfmap-1.1.8/fonts/Noto Sans Regular/8448-8703.pbf", "rfmap-1.1.8/rfmap.js", "rfmap-1.1.8/data/gu-labels.json", "rfmap-1.1.8/data/subway-lines.json", "rfmap-1.1.8/data/stations.json"})
             assertTrue(f, Files.size(Path.of("src/main/webapp/vendor/" + f)) > 100);
         assertTrue("안내 페이지 사용 조건(한 · 영)", read("src/main/webapp/about.html").contains("© OpenMapTiles © OpenStreetMap contributors(ODbL)") && read("src/main/webapp/about-en.html").contains("map font Noto Sans (SIL OFL 1.1)"));
         assertTrue("지도 파일의 OSM 자료는 ODbL 로 제공(한 · 영, 2026-11-23 홍TV님)", read("src/main/webapp/about.html").contains("에 든 OpenStreetMap 자료는\n                <a href=\"https://opendatacommons.org/licenses/odbl/1-0/\"")
