@@ -21,6 +21,14 @@ eq("지도 모양 - 영어(c.lang en)면 구 이름도 영어", JSON.stringify(M
     JSON.stringify(["coalesce", ["get", "name_en"], ["get", "name"]]));
 eq("지도 모양 - 더하기 층은 extraUrl 이 있을 때만", [ids.indexOf("rf-complex"), M.style({ basemapUrl: "a.pmtiles", demUrl: "d", extraUrl: "a-extra.pmtiles" }, "f/").sources.rfx.url], [-1, "pmtiles://a-extra.pmtiles"]);
 eq("지도 모양 - 늘 보이는 표시가 맨 뒤(글자 자리를 먼저)", ids.slice(-2), ["rf-hut", "rf-peak"]);
+var st = vs.layers[ids.indexOf("rf-station")];
+eq("역 - 미리 뽑은 자리(data/stations.json)로 확대 10 부터, 지도 파일 역(poi-hike) 바로 앞, 흰 동그라미", [vs.sources.stations.data, st.minzoom, ids.indexOf("rf-station") === ids.indexOf("poi-hike") - 1, st.layout["icon-image"]],
+    ["data/stations.json", 10, true, "rf-rail"]);
+var vx = M.style({ basemapUrl: "a.pmtiles", demUrl: "d", extraUrl: "a-extra.pmtiles" }, "f/"), xid = vx.layers.map(function (l) { return l.id; }), tl = vx.layers[xid.indexOf("rf-trail-label")];
+eq("산림청 등산로(더하기 층 rf_trail) - 선은 길 층 바로 위 12 부터, 글자는 13 부터 \"↑오름 거리 ↓내림\", 더하기 층이 없으면 없음", [xid.indexOf("rf-trail") === xid.indexOf("path") + 1,
+    vx.layers[xid.indexOf("rf-trail")]["source-layer"], tl.minzoom, tl.layout["symbol-placement"], JSON.stringify(tl.layout["text-field"][2]).indexOf("PMNTN") < 0, ids.indexOf("rf-trail")],
+    [true, "rf_trail", 13, "line", true, -1]);
+eq("산림청 등산로 글자 - 오름 · 내림 시간이 있을 때", JSON.stringify(tl.layout["text-field"][2]), JSON.stringify(["concat", "↑", ["to-string", ["get", "up"]], "분 ", ["to-string", ["get", "km"]], "km ↓", ["to-string", ["get", "down"]], "분"]));
 var city = vs.layers[ids.indexOf("poi-city")], bus = vs.layers[ids.indexOf("poi-bus")], cityIcon = city.layout["icon-image"];
 eq("생활 시설 - 식당 · 카페 · 가게 · 병원 등 확대 15, 버스 정류장 16, 등산 표시 앞(글자 자리를 내줌), 건물은 14 부터", [city.minzoom, bus.minzoom, ids.indexOf("poi-city") < ids.indexOf("poi-hike"),
     vs.layers[ids.indexOf("building")]["source-layer"], vs.layers[ids.indexOf("building")].minzoom, cityIcon[0], cityIcon[1][1]], [15, 16, true, "building", 14, "match", "class"]);
@@ -33,7 +41,9 @@ var u8 = new Uint8Array(fs.readFileSync(tile)), sp = M.mvtPoints(u8, "mountain_p
 eq("조각 읽기 - 운영 지도 파일의 사패산(551m, 127.01045 · 37.72238)", [sp.props.ele, Math.round(g[0] * 1e5) / 1e5, Math.round(g[1] * 1e5) / 1e5], [551, 127.01045, 37.72238]);
 eq("선이 지나는 조각", M.tilesAlong([37.72238, 37.7224, 37.6], [127.01044, 127.0105, 127.01], 12, 40), [[3493, 1583], [3493, 1585]]);
 eq("등고선", [M.CONTOUR_STEPS[13], M.contourPaint(true).color], [[20, 100], "#8a5a2b"]);
-var dir = path.dirname(src), gu = JSON.parse(fs.readFileSync(path.join(dir, "data/gu-labels.json"), "utf8")), sub = JSON.parse(fs.readFileSync(path.join(dir, "data/subway-lines.json"), "utf8"));
+var dir = path.dirname(src), stn = JSON.parse(fs.readFileSync(path.join(dir, "data/stations.json"), "utf8")), gu = JSON.parse(fs.readFileSync(path.join(dir, "data/gu-labels.json"), "utf8")), sub = JSON.parse(fs.readFileSync(path.join(dir, "data/subway-lines.json"), "utf8"));
+eq("자료 - 역은 수도권 600곳 남짓, 회룡 · 망월사 · 도봉산 포함, 같은 이름은 400m 안에 하나만", [stn.features.length > 600, ["회룡", "망월사", "도봉산"].every(function (n) { return stn.features.some(function (f) { return f.properties.name === n; }); }),
+    stn.features.filter(function (f) { return f.properties.name === "회룡"; }).length <= 2], [true, true, true]);
 eq("자료 - 구 이름은 …구만 · 노선은 OSM 색", [gu.features.length > 90, gu.features.every(function (f) { return /구$/.test(f.properties.name); }), sub.features.filter(function (f) { return f.properties.ref === "1"; })[0].properties.colour],
     [true, true, "#004A85"]);
 eq("글꼴 - 숫자 · 로마자 · ▲(9472-9727) 조각 + OFL", ["0-255.pbf", "9472-9727.pbf"].map(function (f) { return fs.existsSync(path.join(dir, "fonts/Noto Sans Regular", f)); }).concat(fs.existsSync(path.join(dir, "fonts/OFL.txt"))), [true, true, true]);

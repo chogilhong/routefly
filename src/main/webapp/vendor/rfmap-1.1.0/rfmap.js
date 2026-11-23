@@ -68,6 +68,7 @@
                 omt: { type: "vector", url: src, attribution: "© OpenMapTiles © OpenStreetMap contributors" },
                 marks: { type: "geojson", data: { type: "FeatureCollection", features: [] } },   // 공단 대피소 · 100대 명산 정상(화면이 famousMarks 로 채움)
                 subway: { type: "geojson", data: data + "subway-lines.json" },   // 지하철 노선(OSM, ODbL - 바탕 출처 줄의 OpenStreetMap 에 들어감)
+                stations: { type: "geojson", data: data + "stations.json" },   // 역 자리(수도권 612곳) - 지도 파일은 확대 12 조각부터라 미리 뽑아 둠(map/stations.py)
                 gu: { type: "geojson", data: data + "gu-labels.json" },   // 구 이름 자리 - 우리 지도 파일은 확대 14 조각에만 있어(OMT place borough) 미리 뽑아 둠(tools/basemap/gu-labels.py)
                 hillshade: { type: "raster-dem", tiles: [c.demUrl], encoding: "terrarium", tileSize: 256, maxzoom: 15, attribution: tr("지형: ", "Terrain: ") + "Terrain Tiles (AWS Open Data)" }
             },
@@ -114,6 +115,13 @@
                 { id: "place", type: "symbol", source: "omt", "source-layer": "place", filter: cls(["city", "town", "village", "hamlet", "suburb"]),
                     layout: { "text-field": ko, "text-font": F, "text-size": ["match", ["get", "class"], "city", 16, "town", 14, 12] },
                     paint: { "text-color": "#333", "text-halo-color": "#fff", "text-halo-width": 1.5 } },
+                // 역(2026-11-23 홍TV님 "지하철 노선과 역도 보이게") - 기록을 처음 열 때(확대 10 ~ 11)도 흰 동그라미 + "○○역". 확대 12 부터는 지도 파일의 역(poi-hike)과 같은 자리라 하나만 보임
+                { id: "rf-station", type: "symbol", source: "stations", minzoom: 10,
+                    layout: { "icon-image": "rf-rail", "icon-size": ["interpolate", ["linear"], ["zoom"], 10, 0.75, 13, 1], "text-font": F, "text-size": ["interpolate", ["linear"], ["zoom"], 10, 10, 13, 11],
+                        "text-field": tr(["case", ["!=", ["slice", ["get", "name"], ["max", 0, ["-", ["length", ["get", "name"]], 1]]], "역"], ["concat", ["get", "name"], "역"], ["get", "name"]],
+                            ["coalesce", ["get", "name_en"], ["get", "name"]]),
+                        "text-anchor": "top", "text-offset": [0, 0.5], "text-optional": true },
+                    paint: { "text-color": "#1f4e8c", "text-halo-color": "#fffdf5", "text-halo-width": 1.4 } },
                 // 대피소 · 절 · 전망대 · 약수터(2026-11-22 홍TV님 "대피소, 절 등 표시해줘") - OpenMapTiles v3.15 poi 층: 산장 tourism=alpine_hut → class lodging · subclass alpine_hut,
                 // 쉼터 amenity=shelter → class shelter, 절 amenity=place_of_worship → class place_of_worship · subclass 는 religion(buddhist), 전망대 → class attraction · subclass viewpoint,
                 // 약수터 amenity=drinking_water → class drinking_water. 확대 12 ~ 13 은 중요한 것만, 14 부터 모두(OMT). 아이콘 그림은 화면이 그려 넣음(rf-hut 등 - 받는 글꼴에 그림 글자가 없음)
@@ -146,6 +154,16 @@
             };
             var at = style.layers.map(function (l) { return l.id; }).indexOf("peak");
             style.layers.splice(at, 0, label("rf-apt", "apartment", 15, 10.5, "#7a7287"), label("rf-complex", "complex", 14, 12.5, "#5d5470"));
+            // 산림청 등산로(전국 - 더하기 층 rf_trail, 2026-11-23 홍TV님 "네이버처럼 자료로") - OSM 에 없는 산길도. 선은 길 층 바로 위, 글자는 "↑오름 거리 ↓내림"(네이버와 같은 칸 - 산림청 PMNTN_UPPL · LT · GODN)
+            var ids = function () { return style.layers.map(function (l) { return l.id; }); };
+            style.layers.splice(ids().indexOf("path") + 1, 0, { id: "rf-trail", type: "line", source: "rfx", "source-layer": "rf_trail", minzoom: 12,
+                layout: { "line-join": "round", "line-cap": "round" },
+                paint: { "line-color": "#5f8f6a", "line-opacity": 0.85, "line-width": ["interpolate", ["linear"], ["zoom"], 12, 1, 15, 2.4] } });
+            var num = function (k) { return ["to-string", ["get", k]]; };
+            style.layers.splice(ids().indexOf("rf-apt"), 0, { id: "rf-trail-label", type: "symbol", source: "rfx", "source-layer": "rf_trail", minzoom: 13, filter: ["has", "km"],
+                layout: { "symbol-placement": "line", "symbol-spacing": 250, "text-font": F, "text-size": 10.5, "text-keep-upright": true, "text-max-angle": 35, "text-padding": 2,
+                    "text-field": ["case", ["all", ["has", "up"], ["has", "down"]], ["concat", "↑", num("up"), tr("분 ", "min "), num("km"), "km ↓", num("down"), tr("분", "min")], ["concat", num("km"), "km"]] },
+                paint: { "text-color": "#3f6b4b", "text-halo-color": "#fffdf5", "text-halo-width": 1.4 } });
         }
         return style;
     }

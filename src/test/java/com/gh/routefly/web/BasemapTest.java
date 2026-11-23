@@ -112,7 +112,7 @@ public class BasemapTest {
         assertTrue(html.contains("<script src=\"vendor/pmtiles-4.5.0/pmtiles.js\"></script>"));
         assertTrue("지도 파일은 캐시하지 않음(Range)", sw.contains("if (/\\.pmtiles(?:[?#]|$)/.test(url)) return;"));
         for (String f : new String[] {   // 9472-9727 은 봉우리 ▲(U+25B2) - 없으면 404 뒤 폰 글꼴로 그렸음(2026-11-22 PC)
-                "pmtiles-4.5.0/pmtiles.js", "pmtiles-4.5.0/LICENSE", "rfmap-1.1.0/fonts/OFL.txt", "rfmap-1.1.0/fonts/Noto Sans Regular/0-255.pbf", "rfmap-1.1.0/fonts/Noto Sans Regular/8192-8447.pbf", "rfmap-1.1.0/fonts/Noto Sans Regular/9472-9727.pbf", "rfmap-1.1.0/rfmap.js", "rfmap-1.1.0/data/gu-labels.json", "rfmap-1.1.0/data/subway-lines.json"})
+                "pmtiles-4.5.0/pmtiles.js", "pmtiles-4.5.0/LICENSE", "rfmap-1.1.0/fonts/OFL.txt", "rfmap-1.1.0/fonts/Noto Sans Regular/0-255.pbf", "rfmap-1.1.0/fonts/Noto Sans Regular/8192-8447.pbf", "rfmap-1.1.0/fonts/Noto Sans Regular/9472-9727.pbf", "rfmap-1.1.0/rfmap.js", "rfmap-1.1.0/data/gu-labels.json", "rfmap-1.1.0/data/subway-lines.json", "rfmap-1.1.0/data/stations.json"})
             assertTrue(f, Files.size(Path.of("src/main/webapp/vendor/" + f)) > 100);
         assertTrue("안내 페이지 사용 조건(한 · 영)", read("src/main/webapp/about.html").contains("© OpenMapTiles © OpenStreetMap contributors(ODbL)") && read("src/main/webapp/about-en.html").contains("map font Noto Sans (SIL OFL 1.1)"));
     }
