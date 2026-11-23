@@ -14,6 +14,8 @@ import java.util.Map;
  * <pre>
  * .claude\run-tests.ps1 -Run web.MountainHeightProbe                      → 백운산 · 송산 · 사패산 · 대청봉 · 덕기봉
  * .claude\run-tests.ps1 -Run web.MountainHeightProbe 설악산 가야산          → 그 산 이름들로
+ * .claude\run-tests.ps1 -Run web.MountainHeightProbe --all                → 모든 산(500개씩 쪽마다) → target/mountain-height-all/all-p&lt;n&gt;.xml
+ *   (tools 저장소 map/forest-summits.py 가 봉우리 높이로 읽음 - 크고 다시 받을 수 있어 커밋하지 않음, 2026-11-23 홍TV님 "정상 높이는 보여줘야지")
  * </pre>
  *
  * 키: config.properties 의 mountain.serviceKey, 없으면 tour.serviceKey 를 RouteflyConfig 로 읽음(화면 · 파일에 키를 쓰지 않음).
@@ -36,10 +38,14 @@ public final class MountainHeightProbe {
             System.out.println("mountain.serviceKey · tour.serviceKey 가 비어 있습니다.");
             return;
         }
+        String enc = URLEncoder.encode(key, StandardCharsets.UTF_8);
+        if (args.length == 1 && "--all".equals(args[0])) {
+            all(key, enc);
+            return;
+        }
         String[] names = args.length > 0 ? args : new String[] { "백운산", "송산", "사패산", "대청봉", "덕기봉" };
         Path dir = Path.of("src", "test", "resources", "mountain-height");
         Files.createDirectories(dir);
-        String enc = URLEncoder.encode(key, StandardCharsets.UTF_8);
         for (int i = 0; i < names.length; i++) {
             if (i > 0) Thread.sleep(700);
             String name = names[i];
@@ -57,5 +63,27 @@ public final class MountainHeightProbe {
             if (!items.isEmpty()) System.out.println("   칸: " + new java.util.TreeSet<>(items.get(0).keySet()));
         }
         System.out.println("저장: " + dir.toAbsolutePath());
+    }
+
+    /** 모든 산을 500개씩 받아 target/mountain-height-all/all-p<n>.xml 로(키 지움). 한 쪽이 500개보다 적으면 끝, 많아야 20쪽. */
+    private static void all(String key, String enc) throws Exception {
+        Path dir = Path.of("target", "mountain-height-all");
+        Files.createDirectories(dir);
+        int total = 0;
+        for (int page = 1; page <= 20; page++) {
+            if (page > 1) Thread.sleep(700);
+            String text = OpenApi.get(BASE + "?serviceKey=" + enc + "&pageNo=" + page + "&numOfRows=500", "MTN-HGHT-PROBE");
+            if (text == null) {
+                System.out.println(page + "쪽 : 받지 못함(로그 [MTN-HGHT-PROBE])");
+                return;
+            }
+            text = PetTourProbe.scrub(text, key);
+            Files.writeString(dir.resolve("all-p" + page + ".xml"), text, StandardCharsets.UTF_8);
+            int n = MountainInfoProbe.items(text).size();
+            total += n;
+            System.out.println(page + "쪽 : item " + n);
+            if (n < 500) break;
+        }
+        System.out.println("모두 " + total + "개 - 저장: " + dir.toAbsolutePath());
     }
 }
