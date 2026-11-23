@@ -90,6 +90,18 @@
 
     // ------------------------------------------------------------------ 지도
 
+    /**
+     * 3D 비행 영상 바탕을 우리 지도로(2026-11-23 홍TV님 "3D 비행 영상 바탕을 우리 지도로") - RF.vectorBasemap 의 모양 위에 3D 지형 · 하늘을 얹음.
+     * 날며 보는 영상이라 글은 봉우리 · 대피소 · 절 등만(길 · 마을 · 물 이름은 뺌 - 기울어진 화면에 많으면 어지러움). 위성(V-World)은 영상에 쓰지 않음.
+     */
+    var VIDEO_DROP = ["road-name", "place", "water-name"];
+    function videoStyle(cfg, vs) {
+        var st = buildStyle(cfg), out = Object.assign({}, vs, { terrain: st.terrain, sky: st.sky });
+        out.sources = Object.assign({}, vs.sources, { terrain: st.sources.terrain });
+        out.layers = vs.layers.filter(function (l) { return VIDEO_DROP.indexOf(l.id) < 0; });
+        return out;
+    }
+
     function buildStyle(cfg) {
         var demSource = {
             type: "raster-dem", tiles: [cfg.demUrl], encoding: "terrarium", tileSize: 256, maxzoom: 14,
@@ -1374,13 +1386,33 @@
     var ATTR_TRAILS = T("등산로: 산림청 등산로정보 | 걷기길: 한국관광공사 두루누비 | 봉우리 · 국가숲길: 한국등산·트레킹지원센터 | 지명 · 자전거길 · 등산 노선: ",
         "Trails: Korea Forest Service | Walking: Korea Tourism Organization Durunubi | Peaks · forest trails: Korea Hiking & Trekking Center | Places · bike paths: ");
 
+    var videoVec = false;   // 영상 바탕이 우리 지도인가(출처 줄에 OpenMapTiles)
+
+    /**
+     * 영상 바탕(우리 지도)의 대피소 · 100대 명산 표시(RF.famousFetch, 기록 보기와 같은 자료) · 아이콘 그림. 같은 이름의 OSM 봉우리 · 대피소는 숨겨 두 번 안 나오게.
+     */
+    function videoMarks() {
+        map.on("styleimagemissing", function (e) { RF.mapIconImage(map, e.id); });
+        RF.famousFetch().then(function (f) {
+            var put = function () {
+                if (!map.getSource("marks")) { map.once("styledata", put); return; }
+                map.getSource("marks").setData(f.gj);
+                var names = function (kind) { return f.gj.features.filter(function (x) { return x.properties.kind === kind; }).map(function (x) { return x.properties.name; }); };
+                if (map.getLayer("peak")) map.setFilter("peak", ["!", ["in", ["get", "name"], ["literal", names("peak")]]]);
+                if (map.getLayer("poi-hike")) map.setFilter("poi-hike", RF.poiShowFilter(map.getLayoutProperty("poi-hike", "icon-image"), [], names("hut")));
+            };
+            put();
+        });
+    }
+
     /** 영상 모드 - 출처 줄을 늘 보이고(지도 출처 단추는 숨김), 지도가 다 그려지면 from 부터 to 까지 secs 초에 날고 끝나면 window.routeflyVideo.done. */
     function videoRun(c) {
         if (VIDEO.secs) c.plan.durationMs = VIDEO.secs * 1000 / (VIDEO.to - VIDEO.from);
         anim.speedIdx = SPEEDS.indexOf(1);
         var credit = $("videoCredit");
         credit.hidden = false;
-        credit.textContent = (VIDEO.sat ? T("위성사진: 국토교통부 V-World | ", "Satellite: MOLIT V-World | ") : "") + T("지형: ", "Terrain: ") + "Terrain Tiles (AWS Open Data) | "
+        credit.textContent = (VIDEO.sat ? T("위성사진: 국토교통부 V-World | ", "Satellite: MOLIT V-World | ") : "") + (videoVec ? T("지도: ", "Map: ") + "© OpenMapTiles | " : "")
+            + T("지형: ", "Terrain: ") + "Terrain Tiles (AWS Open Data) | "
             + ATTR_TRAILS + "© OpenStreetMap contributors";
         window.routeflyVideo = { ready: false, done: 0 };
         map.once("idle", function () {
@@ -1536,7 +1568,7 @@
         return isFinite(w) ? [[w, s], [e, n]] : null;
     }
 
-    function start(cfg, first) {
+    function start(cfg, first, vs) {
         var b0 = startBounds(first);
         if (VIDEO) {
             if (!VIDEO.sat) cfg = Object.assign({}, cfg, { vworldKey: null });   // 위성 없이 지형 음영만(buildStyle 의 키 없는 그림)
@@ -1544,13 +1576,14 @@
         }
         map = new maplibregl.Map({
             container: "map",
-            style: buildStyle(cfg),
+            style: vs ? videoStyle(cfg, vs) : buildStyle(cfg),
             center: [127.8, 36.3], zoom: 6.2, pitch: 0, maxPitch: 85,
             bounds: b0 || undefined, fitBoundsOptions: { padding: 40, maxZoom: 14 },   // #c= 면 그 코스 자리에서(위 center · zoom 대신)
             prefetchZoomDelta: 1,   // 확대 전 미리 받는 아래 단계 타일을 줄임(기본 4 - P1)
             attributionControl: false, locale: RF.mapLocale(),   // 단추 글 한국어(2026-11-03)
             canvasContextAttributes: VIDEO && VIDEO.rec ? { preserveDrawingBuffer: true } : undefined   // 내 기록 영상 - 지도 그림을 영상에 옮겨 그림(videoRecord)
         });
+        if (vs) videoMarks();
         if (/[?&]debug\b/.test(location.search)) window.routeflyDebug = { map: map, anim: anim, at: function (d) { return at(cur, d); } };   // 시험용
         map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
         // 출처 표시(지형 · 위성사진 이용 조건)는 아래 판에 가리지 않게 확대 버튼 아래에 둡니다.
@@ -1809,5 +1842,11 @@
         new Promise(function (ok) { setTimeout(function () { ok(null); }, 3000); })]) : null;
     Promise.all([getJson("api/map-config")
         .catch(function () { return { demUrl: "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png", vworldKey: null }; }), firstData])
-        .then(function (r) { start(r[0], r[1]); });
+        .then(function (r) {
+            // 영상(위성 없음)은 우리 지도 파일이 있으면 그것을 바탕으로(없거나 못 읽으면 전처럼 지형 음영만)
+            (VIDEO && !VIDEO.sat ? RF.vectorBasemap(r[0].basemapUrl, r[0].demUrl) : Promise.resolve(null)).then(function (vs) {
+                videoVec = !!vs;
+                start(r[0], r[1], vs);
+            });
+        });
 })();

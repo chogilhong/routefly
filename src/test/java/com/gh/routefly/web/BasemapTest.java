@@ -31,9 +31,11 @@ public class BasemapTest {
     @Test
     public void tripUsesBasemapWhenSet() throws Exception {
         String js = read("src/main/webapp/js/trip.js"), html = read("src/main/webapp/trip.html"), sw = read("src/main/webapp/sw.js");
-        assertTrue("설정이 있고 pmtiles 를 읽었을 때만", js.contains("if (!c.basemapUrl || !window.pmtiles) return { cfg: cfg, style: null };") && js.contains("maplibregl.addProtocol(\"pmtiles\", proto.tile);"));
+        String kit = read("src/main/webapp/js/course-kit.js");
+        assertTrue("설정이 있고 pmtiles 를 읽었을 때만 - 기록 보기 · 3D 영상이 같은 RF.vectorBasemap", js.contains("return RF.vectorBasemap(c.basemapUrl, cfg.demUrl).then(")
+            && kit.contains("if (!basemapUrl || !global.pmtiles || !global.maplibregl) return Promise.resolve(null);") && kit.contains("global.maplibregl.addProtocol(\"pmtiles\", proto.tile);"));
         assertTrue("파일 머리를 못 읽으면(404 - 설정이 파일보다 먼저) V-World 바탕으로(2026-11-22 PC)",
-            js.contains("return file.getHeader().then(function () {") && js.contains("}, function () { return { cfg: cfg, style: null }; });") && js.contains("proto.add(file);"));
+            kit.contains("return file.getHeader().then(function () {") && kit.contains("}, function () { return null; });") && kit.contains("proto.add(file);"));
         assertTrue("없으면 지금 바탕", js.contains("style: style || RF.baseStyle(cfg)"));
         assertTrue("한글은 폰 글꼴", js.contains("localIdeographFontFamily:"));
         assertTrue("기록 선은 글자 층 아래(봉우리 이름을 덮지 않게, 2026-11-22 홍TV님)", js.contains("var under = firstSymbol();") && js.contains("paint: { \"line-color\": [\"coalesce\", [\"get\", \"color\"], \"#5b45ff\"], \"line-width\": 4.5 } }, under);"));
@@ -44,7 +46,7 @@ public class BasemapTest {
             && js.contains("var CONTOUR_KEY = \"rf-contour\"") && js.contains("thresholds: RF.CONTOUR_STEPS") && js.contains("RF.contourPaint(true)")
             && js.contains("if (window.mlcontour) map.addControl(contourControl(), \"top-right\");") && js.contains("fold(); setContour(contourOn);"));
         assertTrue("따라가기도 같은 간격 · 색(두 벌 안 둠)", read("src/main/webapp/js/hike.js").contains("CONTOUR_STEPS = RF.CONTOUR_STEPS;") && read("src/main/webapp/js/hike.js").contains("var contourPaint = RF.contourPaint;"));
-        assertTrue("대피소 · 절 등 아이콘은 필요할 때 그려 넣음(2026-11-22 홍TV님)", js.contains("map.on(\"styleimagemissing\", function (e) { iconImage(e.id); });") && js.contains("var ic = RF.MAP_ICONS[id];"));
+        assertTrue("대피소 · 절 등 아이콘은 필요할 때 그려 넣음(2026-11-22 홍TV님)", js.contains("map.on(\"styleimagemissing\", function (e) { RF.mapIconImage(map, e.id); });") && kit.contains("var ic = MAP_ICONS[id];"));
         assertTrue("지도에 routefly 로고(아이콘 + 글자, 밝은 지도용)", html.contains("<img id=\"brand\" src=\"img/logo.svg\" alt=\"routefly\""));
         assertTrue("표시별 보이기 · 숨기기 - 사진 · 메모는 표시를 감추고 대피소 등은 층 거름으로, 그래프와 안 겹치게",
             js.contains("it.mark.getElement().style.display = hidden[it.n.photo ? \"photo\" : \"memo\"] ? \"none\" : \"\";")
@@ -52,7 +54,7 @@ public class BasemapTest {
         assertTrue("카드에 마우스 → 지도 표시 주황(2026-11-22 홍TV님)", js.contains("card.addEventListener(\"mouseenter\", function () { if (it.mark) it.mark.getElement().classList.add(\"hover\"); });")
             && js.contains("card.addEventListener(\"mouseleave\", function () { if (it.mark) it.mark.getElement().classList.remove(\"hover\"); });") && html.contains(".pin.on, .pin.hover {"));
         assertTrue("공단 대피소 · 100대 명산 정상은 처음부터(지도 load 를 기다리지 않음), 겹치는 OSM 것은 숨김(2026-11-22 홍TV님)",
-            js.contains("if (vector) loadMarks();") && js.contains("RF.famousMarks(d[0] && d[0].peaks, d[1] && d[1].elev, d[2] && d[2].shelters)")
+            js.contains("if (vector) loadMarks();") && js.contains("Promise.all([RF.famousFetch(), photosP])") && kit.contains("return { gj: famousMarks(peaks, elev, shelters), peaks: peaks, elev: elev, shelters: shelters };")
             && js.contains("map.setFilter(\"peak\", RF.peakOnFilter(peakKeys, false, dropPeaks));") && js.contains("Object.keys(hidden).filter(function (k) { return hidden[k] && /^rf-/.test(k); }), dropHuts));")
             && js.contains("map.setLayoutProperty(\"rf-hut\", \"visibility\", hidden[\"rf-hut\"] ? \"none\" : \"visible\");"));
         assertTrue("구간 색 · 봉우리 대피소 누르면 그래프에(2026-11-23 홍TV님)", js.contains("if (fam) return RF.trackSegments(rc, fam.huts.concat(fam.peaks), SEG_NEAR_M, SEG_GAP_M);")
@@ -76,6 +78,9 @@ public class BasemapTest {
         assertTrue("대피소 사진 - 말풍선 · 사진 목록(기록 위 거리 차례), CC BY-SA 는 자르지 않음, 출처 늘(2026-11-23 홍TV님)", js.contains("RF.stopsAlong(rc, fam.huts.filter(function (h) { return hutPhotos[h.name]; }), HUT_CARD_M)")
             && js.contains("var hp = hutPhotoAt(g[1], g[0]);") && js.contains("(p.sa ? \" asis\" : \"\")") && html.contains(".hutImg.asis { object-fit:contain !important;")
             && read("src/main/webapp/data/shelter-photos.json").contains("\"photos\":"));
+        assertTrue("3D 비행 영상 바탕 = 우리 지도(2026-11-23 홍TV님) - 위성 없을 때만, 길 · 마을 · 물 이름 뺌, 출처 줄에 OpenMapTiles", app.contains("(VIDEO && !VIDEO.sat ? RF.vectorBasemap(r[0].basemapUrl, r[0].demUrl) : Promise.resolve(null))")
+            && app.contains("var VIDEO_DROP = [\"road-name\", \"place\", \"water-name\"];") && app.contains("(videoVec ? T(\"지도: \", \"Map: \") + \"© OpenMapTiles | \" : \"\")")
+            && read("src/main/webapp/index.html").contains("<script src=\"vendor/pmtiles-4.5.0/pmtiles.js\"></script>"));
         assertTrue("OSM 출처는 한 번만 - 우리 지도는 바탕 출처에 이미 있음(2026-11-22 PC)", js.contains("customAttribution: (style ? \"\" : \"© OpenStreetMap contributors | \") + "));
         assertTrue(html.contains("<script src=\"vendor/pmtiles-4.5.0/pmtiles.js\"></script>"));
         assertTrue("지도 파일은 캐시하지 않음(Range)", sw.contains("if (/\\.pmtiles(?:[?#]|$)/.test(url)) return;"));

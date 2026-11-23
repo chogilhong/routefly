@@ -138,29 +138,6 @@
         });
     }
 
-    /** 우리 지도 아이콘(RF.MAP_ICONS) 하나를 캔버스로 그려 넣음 - 흰 테 동그라미 + 흰 글자. 모르는 이름이면 그냥 둠. */
-    function iconImage(id) {
-        var ic = RF.MAP_ICONS[id];
-        if (!ic || map.hasImage(id)) return;
-        var r = window.devicePixelRatio > 1 ? 2 : 1, n = 22 * r, cv = document.createElement("canvas"), g = cv.getContext("2d");
-        cv.width = cv.height = n;
-        g.beginPath(); g.arc(n / 2, n / 2, n / 2 - r, 0, Math.PI * 2);
-        g.fillStyle = ic[0]; g.fill(); g.lineWidth = 1.5 * r; g.strokeStyle = "#fff"; g.stroke();
-        g.fillStyle = "#fff"; g.strokeStyle = "#fff"; g.lineWidth = 1.6 * r;
-        var c = n / 2, u = r;   // 가운데 · 1단위(22칸 기준)
-        g.beginPath();
-        if (ic[1] === "house") {   // 지붕 세모 + 몸통 네모
-            g.moveTo(c, c - 6 * u); g.lineTo(c + 6 * u, c); g.lineTo(c + 4 * u, c); g.lineTo(c + 4 * u, c + 5 * u); g.lineTo(c - 4 * u, c + 5 * u); g.lineTo(c - 4 * u, c); g.lineTo(c - 6 * u, c); g.closePath(); g.fill();
-        } else if (ic[1] === "drop") {   // 물방울
-            g.moveTo(c, c - 6 * u); g.bezierCurveTo(c + 5 * u, c, c + 5 * u, c + 5 * u, c, c + 5 * u); g.bezierCurveTo(c - 5 * u, c + 5 * u, c - 5 * u, c, c, c - 6 * u); g.fill();
-        } else if (ic[1] === "eye") {   // 눈(전망)
-            g.ellipse(c, c, 6.5 * u, 3.8 * u, 0, 0, Math.PI * 2); g.stroke(); g.beginPath(); g.arc(c, c, 2 * u, 0, Math.PI * 2); g.fill();
-        } else {
-            g.font = "bold " + (13 * r) + "px sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(ic[1], c, c + u);
-        }
-        map.addImage(id, g.getImageData(0, 0, n, n), { pixelRatio: r });
-    }
-
     /** 이 기록 · 이 지도에 있는 표시 종류만 단추로(사진 · 메모는 있을 때, 대피소 등은 우리 지도일 때) + 모두 숨기기 · 보이기. */
     function kindBar() {
         var bar = $("kinds"), has = { photo: items.some(function (it) { return it.n.photo; }), memo: items.some(function (it) { return !it.n.photo; }) };
@@ -395,14 +372,14 @@
      * 지도 "load" 는 모든 조각(지형 등)을 받은 뒤라 늦어 쓰지 않음(2026-11-22: 늦게 받으면 멀리 본 첫 화면에 안 나왔음).
      */
     function loadMarks() {
-        var j = function (u) { return fetch(u).then(function (r) { return r.ok ? r.json() : null; }); };
-        Promise.all([j("data/mountains100.json"), j("data/peak-elev.json"), j("data/knps-shelters.json"), j("data/shelter-photos.json").catch(function () { return null; })]).then(function (d) {
+        var photosP = fetch("data/shelter-photos.json").then(function (r) { return r.ok ? r.json() : null; }, function () { return null; });
+        Promise.all([RF.famousFetch(), photosP]).then(function (d) {
+            var f0 = d[0], gj = f0.gj;
             hutPhotos = {};
-            ((d[3] && d[3].photos) || []).forEach(function (p) { if (p && p.name && /^img\/shelter\/[\w.-]+\.(?:jpe?g|png|webp)$/.test(p.file || "")) hutPhotos[p.name] = p; });
-            var gj = RF.famousMarks(d[0] && d[0].peaks, d[1] && d[1].elev, d[2] && d[2].shelters);
+            ((d[1] && d[1].photos) || []).forEach(function (p) { if (p && p.name && /^img\/shelter\/[\w.-]+\.(?:jpe?g|png|webp)$/.test(p.file || "")) hutPhotos[p.name] = p; });
             // 국립공원 찾기 후보 - 공단 대피소의 공원 · 국립공원 이름과 같은 100대 명산(지리산 천왕봉 등)
-            parkCands = ((d[2] && d[2].shelters) || []).map(function (s) { return { park: s.park, lat: s.lat, lon: s.lon }; })
-                .concat(((d[0] && d[0].peaks) || []).map(function (p) { return { park: p.id, lat: p.lat, lon: p.lon }; }));
+            parkCands = f0.shelters.map(function (s) { return { park: s.park, lat: s.lat, lon: s.lon }; })
+                .concat(f0.peaks.map(function (p) { return { park: p.id, lat: p.lat, lon: p.lon }; }));
             fam = { peaks: [], huts: [] };
             gj.features.forEach(function (f) { var c = f.geometry.coordinates; fam[f.properties.kind === "hut" ? "huts" : "peaks"].push({ name: f.properties.name, lon: c[0], lat: c[1] }); });
             famGj = gj;
@@ -504,13 +481,7 @@
     // 파일이 아직 서버에 없거나(404) 못 읽으면 V-World 바탕으로(2026-11-22 PC: 설정이 파일보다 먼저 들어가 운영 기록 보기가 바탕 없이 지형 음영만 보였음)
     cfgP = getJson("api/map-config").catch(function () { return {}; }).then(function (c) {
         var cfg = { demUrl: c.demUrl || "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png", vworldKey: c.vworldKey || null };
-        if (!c.basemapUrl || !window.pmtiles) return { cfg: cfg, style: null };
-        var url = new URL(c.basemapUrl, location.href).href, file = new pmtiles.PMTiles(url), proto = new pmtiles.Protocol();
-        return file.getHeader().then(function () {
-            proto.add(file);   // 머리를 읽은 그 파일을 지도도 씀(머리를 두 번 받지 않음)
-            maplibregl.addProtocol("pmtiles", proto.tile);   // 파일 하나에서 필요한 조각만 Range 로 받음
-            return { cfg: cfg, style: RF.vectorStyle({ basemapUrl: url, demUrl: cfg.demUrl }, new URL("vendor/fonts/", location.href).href) };
-        }, function () { return { cfg: cfg, style: null }; });
+        return RF.vectorBasemap(c.basemapUrl, cfg.demUrl).then(function (style) { return { cfg: cfg, style: style }; });
     }).then(function (o) {
         var cfg = o.cfg, style = o.style;
         vector = !!style; contourCfg = cfg;
@@ -529,7 +500,7 @@
         map.once("style.load", function () { styleOk = true; fold(); setContour(contourOn); var q = styleQ; styleQ = []; q.forEach(function (fn) { fn(); }); });
         if (vector) loadMarks();
         map.on("idle", markPeaks);
-        map.on("styleimagemissing", function (e) { iconImage(e.id); });
+        map.on("styleimagemissing", function (e) { RF.mapIconImage(map, e.id); });
         if (vector) {
             var PLACES = ["rf-peak", "rf-hut", "peak-on", "peak", "poi-hike"];
             PLACES.forEach(function (id) {

@@ -317,6 +317,53 @@
         return [km(p.m) + " km", t, ud].filter(Boolean).join(" · ");
     }
 
+    /**
+     * 우리 바탕 지도(PMTiles) 준비 - 파일 머리를 먼저 읽고 되면 pmtiles:// 를 지도 프로그램에 걸고 RF.vectorStyle 을, 못 읽으면(404 등) null.
+     * 기록 보기(trip.js) · 3D 비행 영상(app.js)이 함께 씀(2026-11-23). basemapUrl - api/map-config 값(페이지 기준 상대 주소 가능), demUrl - 지형 타일.
+     */
+    var pmtilesOn = false;
+    function vectorBasemap(basemapUrl, demUrl) {
+        if (!basemapUrl || !global.pmtiles || !global.maplibregl) return Promise.resolve(null);
+        var url = new URL(basemapUrl, location.href).href, file = new global.pmtiles.PMTiles(url), proto = new global.pmtiles.Protocol();
+        return file.getHeader().then(function () {
+            proto.add(file);   // 머리를 읽은 그 파일을 지도도 씀(머리를 두 번 받지 않음)
+            if (!pmtilesOn) { global.maplibregl.addProtocol("pmtiles", proto.tile); pmtilesOn = true; }   // 파일 하나에서 필요한 조각만 Range 로 받음
+            return vectorStyle({ basemapUrl: url, demUrl: demUrl }, new URL("vendor/fonts/", location.href).href);
+        }, function () { return null; });
+    }
+
+    /** 공단 대피소 · 100대 명산 정상 자료(famousMarks 의 바탕)를 한 번에 받음 - {gj, peaks, elev, shelters}, 하나라도 못 받으면 그 칸은 빈 것. */
+    function famousFetch() {
+        var j = function (u) { return fetch(u).then(function (r) { return r.ok ? r.json() : null; }, function () { return null; }); };
+        return Promise.all([j("data/mountains100.json"), j("data/peak-elev.json"), j("data/knps-shelters.json")]).then(function (d) {
+            var peaks = (d[0] && d[0].peaks) || [], elev = (d[1] && d[1].elev) || {}, shelters = (d[2] && d[2].shelters) || [];
+            return { gj: famousMarks(peaks, elev, shelters), peaks: peaks, elev: elev, shelters: shelters };
+        });
+    }
+
+    /** 우리 지도 아이콘(MAP_ICONS) 하나를 캔버스로 그려 map.addImage(styleimagemissing 때) - 흰 테 동그라미 + 흰 그림. 모르는 이름 · 이미 있으면 그냥 둠. */
+    function mapIconImage(map, id) {
+        var ic = MAP_ICONS[id];
+        if (!ic || map.hasImage(id)) return;
+        var r = global.devicePixelRatio > 1 ? 2 : 1, n = 22 * r, cv = document.createElement("canvas"), g = cv.getContext("2d");
+        cv.width = cv.height = n;
+        g.beginPath(); g.arc(n / 2, n / 2, n / 2 - r, 0, Math.PI * 2);
+        g.fillStyle = ic[0]; g.fill(); g.lineWidth = 1.5 * r; g.strokeStyle = "#fff"; g.stroke();
+        g.fillStyle = "#fff"; g.strokeStyle = "#fff"; g.lineWidth = 1.6 * r;
+        var c = n / 2, u = r;   // 가운데 · 1단위(22칸 기준)
+        g.beginPath();
+        if (ic[1] === "house") {   // 지붕 세모 + 몸통 네모
+            g.moveTo(c, c - 6 * u); g.lineTo(c + 6 * u, c); g.lineTo(c + 4 * u, c); g.lineTo(c + 4 * u, c + 5 * u); g.lineTo(c - 4 * u, c + 5 * u); g.lineTo(c - 4 * u, c); g.lineTo(c - 6 * u, c); g.closePath(); g.fill();
+        } else if (ic[1] === "drop") {   // 물방울
+            g.moveTo(c, c - 6 * u); g.bezierCurveTo(c + 5 * u, c, c + 5 * u, c + 5 * u, c, c + 5 * u); g.bezierCurveTo(c - 5 * u, c + 5 * u, c - 5 * u, c, c, c - 6 * u); g.fill();
+        } else if (ic[1] === "eye") {   // 눈(전망)
+            g.ellipse(c, c, 6.5 * u, 3.8 * u, 0, 0, Math.PI * 2); g.stroke(); g.beginPath(); g.arc(c, c, 2 * u, 0, Math.PI * 2); g.fill();
+        } else {
+            g.font = "bold " + (13 * r) + "px sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(ic[1], c, c + u);
+        }
+        map.addImage(id, g.getImageData(0, 0, n, n), { pixelRatio: r });
+    }
+
     /** 봉우리 하나를 가리키는 열쇠(이름|높이) - 지도 타일 안 봉우리와 peaksNear 가 같은 열쇠를 씀. */
     var PEAK_KEY_EXPR = ["concat", ["to-string", ["get", "name"]], "|", ["to-string", ["get", "ele"]]];
     function peakFeatureKey(props) { return String(props && props.name != null ? props.name : "") + "|" + String(props && props.ele != null ? props.ele : ""); }
@@ -1062,16 +1109,17 @@
         recordCourse: recordCourse,
         gpxRecord: gpxRecord,
         baseStyle: baseStyle,
-        vectorStyle: vectorStyle,
         at: at,
         snap: snap,
         speedProfile: speedProfile,
         CONTOUR_STEPS: CONTOUR_STEPS,
         contourPaint: contourPaint,
         peaksNear: peaksNear,
-        MAP_ICONS: MAP_ICONS,
         poiShowFilter: poiShowFilter,
         famousMarks: famousMarks,
+        vectorBasemap: vectorBasemap,
+        famousFetch: famousFetch,
+        mapIconImage: mapIconImage,
         trackSegments: trackSegments,
         stopsAlong: stopsAlong,
         recordPark: recordPark,

@@ -646,6 +646,187 @@
     }
 
     /**
+     * 순수 함수 - 우리 바탕 지도(OSM → Planetiler 벡터 PMTiles, OpenMapTiles 양식 - docs/basemap/README.md)의 지도 모양(2026-11-22 홍TV님 "지도 작업을 계속 하자고", 2단계 기록 보기).
+     * c - api/map-config(basemapUrl · demUrl), fonts - 글꼴 폴더의 절대 주소(…/vendor/fonts/). 색 · 굵기는 우리가 정함(램블러 · OpenTopoMap 을 따라 하지 않음).
+     * 한글 글자는 폰 글꼴로 그림(지도 프로그램 localIdeographFontFamily) - 받는 글꼴은 숫자 · 로마자(Noto Sans, OFL)만. 지형 음영은 지금처럼 demUrl.
+     */
+    function vectorStyle(c, fonts) {
+        var src = "pmtiles://" + c.basemapUrl, ko = ["coalesce", ["get", "name:ko"], ["get", "name"]], F = ["Noto Sans Regular"];
+        var line = function (id, filter, color, w, extra) {
+            var l = { id: id, type: "line", source: "omt", "source-layer": "transportation", filter: filter,
+                layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": color, "line-width": w } };
+            for (var k in extra || {}) l.paint[k] = extra[k];
+            return l;
+        };
+        var cls = function (list) { return ["match", ["get", "class"], list, true, false]; };
+        var hikePoiIcon = ["case",
+            ["all", ["==", ["get", "class"], "lodging"], ["==", ["get", "subclass"], "alpine_hut"]], "rf-hut",
+            ["==", ["get", "class"], "shelter"], "rf-hut",
+            ["all", ["==", ["get", "class"], "place_of_worship"], ["==", ["get", "subclass"], "buddhist"]], "rf-temple",
+            ["all", ["==", ["get", "class"], "attraction"], ["==", ["get", "subclass"], "viewpoint"]], "rf-view",
+            ["==", ["get", "class"], "drinking_water"], "rf-water", ""];
+        var peakText = ["case", ["has", "ele"], ["concat", "▲ ", ko, "\n", ["to-string", ["get", "ele"]], "m"], ["concat", "▲ ", ko]];
+        return {
+            version: 8,
+            glyphs: fonts + "{fontstack}/{range}.pbf",
+            sources: {
+                omt: { type: "vector", url: src, attribution: "© OpenMapTiles © OpenStreetMap contributors" },
+                marks: { type: "geojson", data: { type: "FeatureCollection", features: [] } },   // 공단 대피소 · 100대 명산 정상(화면이 famousMarks 로 채움)
+                hillshade: { type: "raster-dem", tiles: [c.demUrl], encoding: "terrarium", tileSize: 256, maxzoom: 15, attribution: tr("지형: ", "Terrain: ") + "Terrain Tiles (AWS Open Data)" }
+            },
+            layers: [
+                { id: "bg", type: "background", paint: { "background-color": "#f2efe6" } },
+                { id: "landuse", type: "fill", source: "omt", "source-layer": "landuse", filter: cls(["residential", "suburb", "neighbourhood", "commercial", "retail", "industrial"]), paint: { "fill-color": "#e9e2d6" } },
+                { id: "farm", type: "fill", source: "omt", "source-layer": "landcover", filter: cls(["farmland", "grass"]), paint: { "fill-color": "#e6ecd3" } },
+                { id: "wood", type: "fill", source: "omt", "source-layer": "landcover", filter: cls(["wood", "forest"]), paint: { "fill-color": "#cfe0bd" } },
+                { id: "rock", type: "fill", source: "omt", "source-layer": "landcover", filter: cls(["rock", "sand", "ice"]), paint: { "fill-color": "#e4e0d8" } },
+                { id: "park", type: "line", source: "omt", "source-layer": "park", paint: { "line-color": "#5f8f4e", "line-width": 1.2, "line-dasharray": [3, 2], "line-opacity": 0.7 } },
+                { id: "water", type: "fill", source: "omt", "source-layer": "water", paint: { "fill-color": "#a8cbe0" } },
+                { id: "waterway", type: "line", source: "omt", "source-layer": "waterway", paint: { "line-color": "#8bb8d6", "line-width": ["interpolate", ["linear"], ["zoom"], 10, 0.5, 15, 2] } },
+                { id: "hillshade", type: "hillshade", source: "hillshade", paint: { "hillshade-exaggeration": 0.4, "hillshade-shadow-color": "#4a5544", "hillshade-highlight-color": "#fffdf5" } },
+                { id: "boundary", type: "line", source: "omt", "source-layer": "boundary", filter: ["<=", ["get", "admin_level"], 6], paint: { "line-color": "#9a8fa6", "line-width": 1, "line-dasharray": [4, 2, 1, 2] } },
+                line("path", cls(["path", "track"]), "#a0522d", ["interpolate", ["linear"], ["zoom"], 12, 0.8, 16, 2], { "line-dasharray": [2, 1.5] }),
+                line("road-minor", cls(["minor", "service", "tertiary"]), "#ffffff", ["interpolate", ["linear"], ["zoom"], 10, 0.6, 16, 4]),
+                line("road-major", cls(["primary", "secondary", "trunk", "motorway"]), "#f4c96b", ["interpolate", ["linear"], ["zoom"], 7, 0.8, 16, 6]),
+                line("rail", cls(["rail", "transit"]), "#8a8a8a", 1, { "line-dasharray": [3, 3] }),
+                { id: "road-name", type: "symbol", source: "omt", "source-layer": "transportation_name", minzoom: 13,
+                    layout: { "symbol-placement": "line", "text-field": ko, "text-font": F, "text-size": 11 }, paint: { "text-color": "#5a4a3a", "text-halo-color": "#fff", "text-halo-width": 1.2 } },
+                { id: "water-name", type: "symbol", source: "omt", "source-layer": "water_name",
+                    layout: { "text-field": ko, "text-font": F, "text-size": 11 }, paint: { "text-color": "#3f6f8f", "text-halo-color": "#fff", "text-halo-width": 1 } },
+                { id: "peak", type: "symbol", source: "omt", "source-layer": "mountain_peak", minzoom: 10, filter: peakOnFilter([], false),
+                    layout: { "text-field": peakText, "text-font": F, "text-size": 11, "text-anchor": "top", "text-offset": [0, 0.2] },
+                    paint: { "text-color": "#6b3d1e", "text-halo-color": "#fffdf5", "text-halo-width": 1.4 } },
+                { id: "place", type: "symbol", source: "omt", "source-layer": "place", filter: cls(["city", "town", "village", "hamlet", "suburb"]),
+                    layout: { "text-field": ko, "text-font": F, "text-size": ["match", ["get", "class"], "city", 16, "town", 14, 12] },
+                    paint: { "text-color": "#333", "text-halo-color": "#fff", "text-halo-width": 1.5 } },
+                // 대피소 · 절 · 전망대 · 약수터(2026-11-22 홍TV님 "대피소, 절 등 표시해줘") - OpenMapTiles v3.15 poi 층: 산장 tourism=alpine_hut → class lodging · subclass alpine_hut,
+                // 쉼터 amenity=shelter → class shelter, 절 amenity=place_of_worship → class place_of_worship · subclass 는 religion(buddhist), 전망대 → class attraction · subclass viewpoint,
+                // 약수터 amenity=drinking_water → class drinking_water. 확대 12 ~ 13 은 중요한 것만, 14 부터 모두(OMT). 아이콘 그림은 화면이 그려 넣음(rf-hut 등 - 받는 글꼴에 그림 글자가 없음)
+                { id: "poi-hike", type: "symbol", source: "omt", "source-layer": "poi", minzoom: 12, filter: poiShowFilter(hikePoiIcon, []),
+                    layout: { "icon-image": hikePoiIcon, "icon-size": 1, "icon-allow-overlap": false, "text-field": ko, "text-font": F, "text-size": 11,
+                        "text-anchor": "top", "text-offset": [0, 0.9], "text-optional": true },
+                    paint: { "text-color": ["match", hikePoiIcon, "rf-temple", "#8b1e1e", "rf-water", "#1f5f8b", "#5a3510"], "text-halo-color": "#fffdf5", "text-halo-width": 1.4 } },
+                // 기록이 지나간 봉우리는 조금 크게 · 진하게(2026-11-22 홍TV님) - 어느 봉우리인지는 화면이 peaksNear 로 찾아 setFilter. 맨 뒤 층이라 글자 자리를 먼저 잡음
+                { id: "peak-on", type: "symbol", source: "omt", "source-layer": "mountain_peak", minzoom: 9, filter: peakOnFilter([], true),
+                    layout: { "text-field": peakText, "text-font": F, "text-size": 13.5, "text-anchor": "top", "text-offset": [0, 0.2], "symbol-sort-key": ["-", 0, ["coalesce", ["get", "ele"], 0]] },
+                    paint: { "text-color": "#4a2208", "text-halo-color": "#fffdf5", "text-halo-width": 2 } },
+                // 멀리 봐도 보이게 - 맨 뒤 층일수록 글자 자리를 먼저 잡음: 명산 정상(맨 뒤) > 공단 대피소(2026-11-23 PC: 처음 화면에서 천왕봉이 장터목에 밀려 빠졌음)
+                { id: "rf-hut", type: "symbol", source: "marks", minzoom: 8, filter: ["==", ["get", "kind"], "hut"],
+                    layout: { "icon-image": "rf-hut", "text-field": ["get", "label"], "text-font": F, "text-size": 11.5, "text-anchor": "top", "text-offset": [0, 0.9], "text-optional": true },
+                    paint: { "text-color": "#5a3510", "text-halo-color": "#fffdf5", "text-halo-width": 1.6 } },
+                { id: "rf-peak", type: "symbol", source: "marks", minzoom: 7, filter: ["==", ["get", "kind"], "peak"],
+                    layout: { "text-field": ["get", "label"], "text-font": F, "text-size": 13.5, "text-anchor": "top", "text-offset": [0, 0.2] },
+                    paint: { "text-color": "#4a2208", "text-halo-color": "#fffdf5", "text-halo-width": 2 } }
+            ]
+        };
+    }
+
+    /** 우리 지도 poi-hike 층 아이콘(이름 → 동그라미 색 · 안 그림). 화면이 캔버스로 그려 map.addImage - 집 · 눈 · 물방울은 선으로(글꼴마다 ⌂ 등이 뭉개짐), 절은 卍(한자라 폰 글꼴에 있음). */
+    var MAP_ICONS = { "rf-hut": ["#7a4a1c", "house"], "rf-temple": ["#b23b2e", "卍"], "rf-view": ["#2f7d4f", "eye"], "rf-water": ["#2a73b8", "drop"] };
+
+    /** 순수 함수 - 우리 지도 poi-hike 층 거름: 아이콘이 있고(icon = 층의 icon-image 식) 숨긴 것(hidden - "rf-hut" 등)이 아닌 것만(2026-11-22 홍TV님 "마커 별로 숨기고 보이고"). */
+    function poiShowFilter(icon, hidden, dropNames) {
+        var f = ["all", ["!=", icon, ""]];
+        if (hidden && hidden.length) f.push(["!", ["in", icon, ["literal", hidden.slice()]]]);
+        if (dropNames && dropNames.length) f.push(["!", ["in", ["get", "name"], ["literal", dropNames.slice()]]]);   // 공단 대피소(rf-hut 층)와 겹치는 OSM 대피소
+        return f.length === 2 ? f[1] : f;
+    }
+
+    /**
+     * 우리 바탕 지도(PMTiles) 준비 - 파일 머리를 먼저 읽고 되면 pmtiles:// 를 지도 프로그램에 걸고 RF.vectorStyle 을, 못 읽으면(404 등) null.
+     * 기록 보기(trip.js) · 3D 비행 영상(app.js)이 함께 씀(2026-11-23). basemapUrl - api/map-config 값(페이지 기준 상대 주소 가능), demUrl - 지형 타일.
+     */
+    var pmtilesOn = false;
+    function vectorBasemap(basemapUrl, demUrl) {
+        if (!basemapUrl || !global.pmtiles || !global.maplibregl) return Promise.resolve(null);
+        var url = new URL(basemapUrl, location.href).href, file = new global.pmtiles.PMTiles(url), proto = new global.pmtiles.Protocol();
+        return file.getHeader().then(function () {
+            proto.add(file);   // 머리를 읽은 그 파일을 지도도 씀(머리를 두 번 받지 않음)
+            if (!pmtilesOn) { global.maplibregl.addProtocol("pmtiles", proto.tile); pmtilesOn = true; }   // 파일 하나에서 필요한 조각만 Range 로 받음
+            return vectorStyle({ basemapUrl: url, demUrl: demUrl }, new URL("vendor/fonts/", location.href).href);
+        }, function () { return null; });
+    }
+
+    /** 공단 대피소 · 100대 명산 정상 자료(famousMarks 의 바탕)를 한 번에 받음 - {gj, peaks, elev, shelters}, 하나라도 못 받으면 그 칸은 빈 것. */
+    function famousFetch() {
+        var j = function (u) { return fetch(u).then(function (r) { return r.ok ? r.json() : null; }, function () { return null; }); };
+        return Promise.all([j("data/mountains100.json"), j("data/peak-elev.json"), j("data/knps-shelters.json")]).then(function (d) {
+            var peaks = (d[0] && d[0].peaks) || [], elev = (d[1] && d[1].elev) || {}, shelters = (d[2] && d[2].shelters) || [];
+            return { gj: famousMarks(peaks, elev, shelters), peaks: peaks, elev: elev, shelters: shelters };
+        });
+    }
+
+    /** 우리 지도 아이콘(MAP_ICONS) 하나를 캔버스로 그려 map.addImage(styleimagemissing 때) - 흰 테 동그라미 + 흰 그림. 모르는 이름 · 이미 있으면 그냥 둠. */
+    function mapIconImage(map, id) {
+        var ic = MAP_ICONS[id];
+        if (!ic || map.hasImage(id)) return;
+        var r = global.devicePixelRatio > 1 ? 2 : 1, n = 22 * r, cv = document.createElement("canvas"), g = cv.getContext("2d");
+        cv.width = cv.height = n;
+        g.beginPath(); g.arc(n / 2, n / 2, n / 2 - r, 0, Math.PI * 2);
+        g.fillStyle = ic[0]; g.fill(); g.lineWidth = 1.5 * r; g.strokeStyle = "#fff"; g.stroke();
+        g.fillStyle = "#fff"; g.strokeStyle = "#fff"; g.lineWidth = 1.6 * r;
+        var c = n / 2, u = r;   // 가운데 · 1단위(22칸 기준)
+        g.beginPath();
+        if (ic[1] === "house") {   // 지붕 세모 + 몸통 네모
+            g.moveTo(c, c - 6 * u); g.lineTo(c + 6 * u, c); g.lineTo(c + 4 * u, c); g.lineTo(c + 4 * u, c + 5 * u); g.lineTo(c - 4 * u, c + 5 * u); g.lineTo(c - 4 * u, c); g.lineTo(c - 6 * u, c); g.closePath(); g.fill();
+        } else if (ic[1] === "drop") {   // 물방울
+            g.moveTo(c, c - 6 * u); g.bezierCurveTo(c + 5 * u, c, c + 5 * u, c + 5 * u, c, c + 5 * u); g.bezierCurveTo(c - 5 * u, c + 5 * u, c - 5 * u, c, c, c - 6 * u); g.fill();
+        } else if (ic[1] === "eye") {   // 눈(전망)
+            g.ellipse(c, c, 6.5 * u, 3.8 * u, 0, 0, Math.PI * 2); g.stroke(); g.beginPath(); g.arc(c, c, 2 * u, 0, Math.PI * 2); g.fill();
+        } else {
+            g.font = "bold " + (13 * r) + "px sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(ic[1], c, c + u);
+        }
+        map.addImage(id, g.getImageData(0, 0, n, n), { pixelRatio: r });
+    }
+
+    /** 봉우리 하나를 가리키는 열쇠(이름|높이) - 지도 타일 안 봉우리와 peaksNear 가 같은 열쇠를 씀. */
+    var PEAK_KEY_EXPR = ["concat", ["to-string", ["get", "name"]], "|", ["to-string", ["get", "ele"]]];
+    function peakFeatureKey(props) { return String(props && props.name != null ? props.name : "") + "|" + String(props && props.ele != null ? props.ele : ""); }
+
+    /** 순수 함수 - 우리 지도 봉우리 층의 거름: on 이면 keys 에 든 봉우리만, 아니면 keys 밖 봉우리만(같은 봉우리를 두 번 그리지 않게). */
+    function peakOnFilter(keys, on, drop) {
+        var has = ["in", PEAK_KEY_EXPR, ["literal", (keys || []).slice()]];
+        if (!drop || !drop.length) return on ? has : ["!", has];
+        // drop - 100대 명산 정상과 겹치는 OSM 봉우리(우리 rf-peak 가 공식 높이로 대신 보임): 어느 층에도 안 그림
+        return on ? ["all", has, ["!", ["in", PEAK_KEY_EXPR, ["literal", drop.slice()]]]] : ["!", ["in", PEAK_KEY_EXPR, ["literal", (keys || []).concat(drop)]]];
+    }
+
+    /**
+     * 순수 함수 - 멀리 봐도 늘 보일 표시(2026-11-22 홍TV님 "대피소는 처음부터 나오게 · 천왕봉 등 유명 봉우리 포함"): 국립공원 대피소(knps-shelters.json, 공단 공공데이터)와
+     * 100대 명산 정상(mountains100.json 의 정상 자리 + peak-elev.json 공식 높이 - GPS 높이 height 는 쓰지 않음). 돌려줌 GeoJSON {features: [{properties: {kind: "hut" | "peak", name, label}}]}.
+     */
+    function famousMarks(peaks, elev, shelters) {
+        var f = [];
+        (shelters || []).forEach(function (s) {
+            if (typeof s.lat === "number" && typeof s.lon === "number" && s.name) f.push({ type: "Feature", properties: { kind: "hut", name: s.name, label: s.name }, geometry: { type: "Point", coordinates: [s.lon, s.lat] } });
+        });
+        (peaks || []).forEach(function (p) {
+            if (typeof p.lat !== "number" || typeof p.lon !== "number") return;
+            var nm = p.summit || p.name, h = elev && elev[p.id];
+            f.push({ type: "Feature", properties: { kind: "peak", name: nm, label: "▲ " + nm + (typeof h === "number" ? "\n" + h + "m" : "") }, geometry: { type: "Point", coordinates: [p.lon, p.lat] } });
+        });
+        return { type: "FeatureCollection", features: f };
+    }
+
+    /**
+     * 순수 함수 - 기록이 지나간 봉우리(2026-11-22 홍TV님 "지나간 큰 봉우리는 글을 조금 크게"): 지도 타일의 봉우리 [{name, ele, lon, lat}] 가운데
+     * 기록 선(lat[] · lon[])에서 maxM 안에 든 것의 열쇠(peakFeatureKey) 목록, 이름이 없으면 뺌. 선 점은 10m 남짓 간격이라 점까지 거리로 봄.
+     */
+    function peaksNear(peaks, lat, lon, maxM) {
+        var out = [], seen = {}, n = Math.min(lat.length, lon.length), dLat = maxM / 111000;
+        (peaks || []).forEach(function (p) {
+            if (!p || p.name == null || p.name === "" || typeof p.lat !== "number" || typeof p.lon !== "number") return;
+            var key = peakFeatureKey(p), dLon = dLat / Math.max(0.1, Math.cos(p.lat * Math.PI / 180));
+            if (seen[key]) return;
+            for (var i = 0; i < n; i++) {
+                if (Math.abs(lat[i] - p.lat) > dLat || Math.abs(lon[i] - p.lon) > dLon) continue;
+                if (distM(p.lat, p.lon, lat[i], lon[i]) <= maxM) { seen[key] = true; out.push(key); return; }
+            }
+        });
+        return out;
+    }
+
+    /**
      * 순수 함수 - 이름 검색 결과에서 그 길 코스만(이름이 길 이름으로 시작 - "해파랑길 1코스 · …"), "n코스" 번호 순.
      * 길 이름의 띄어쓰기는 무시("DMZ 평화의 길" · "DMZ평화의길"). 2026-10-11 코리아둘레길 완주.
      */
@@ -2504,6 +2685,10 @@
         personSvg: personSvg,
         groupPois: groupPois,
         declutter: declutter,
+        poiShowFilter: poiShowFilter,
+        vectorBasemap: vectorBasemap,
+        famousFetch: famousFetch,
+        mapIconImage: mapIconImage,
         parseJoinId: parseJoinId,
         titledName: titledName,
         noteTrailName: noteTrailName,
