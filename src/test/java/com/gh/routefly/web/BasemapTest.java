@@ -61,9 +61,7 @@ public class BasemapTest {
             js.contains("map.once(\"style.load\", function () { styleOk = true;") && js.contains("whenStyle(draw);") && js.contains("whenStyle(applyKinds);")
             && !js.contains("map.loaded()") && !js.contains("once(\"load\""));
         assertTrue("말풍선은 ✕ · 빈 곳 · Esc 로 닫힘(2026-11-23 PC)", js.contains("closeButton: true, closeOnClick: true") && js.contains("if (e.key === \"Escape\" && popup"));
-        assertTrue("구간 글 · 구간 표(2026-11-23 홍TV님 1 · 2)", js.contains("properties: { t: RF.segText(f.properties), color: f.properties.color }, geometry: { type: \"Point\", coordinates: f.properties.mid } };")
-            && js.contains("\"text-size\": 13,") && js.contains("paint: { \"text-color\": [\"get\", \"color\"], \"text-halo-color\": \"#fffdf5\", \"text-halo-width\": 2.2 } }, map.getLayer(\"poi-hike\") ? \"poi-hike\" : undefined);")
-            && !js.contains("rf-pill")
+        assertTrue("구간 표(2026-11-23 홍TV님 1 · 2) - 지도 위 구간 글은 뺌(2026-11-23 홍TV님 \"오른쪽에 있으니 안 보여줘도 돼\")", !js.contains("seglbl") && !js.contains("rf-pill")
             && js.contains("segList(segs);") && js.contains("$(\"side\").insertBefore(box, $(\"side\").firstChild);") && js.contains("map.fitBounds(bb, { padding: fitPad(),") && html.contains("#segs .seg {")
             && js.contains("kb = k ? m.bottom - k.getBoundingClientRect().top + 12 : 0;"));
         assertTrue("공원 탐방로 - 폰 안에서 공원을 정하고 이름만 보냄(2026-11-23 홍TV님), 방침에 적음", js.contains("var park = RF.recordPark(rc, parkCands, PARK_NEAR_M);")
@@ -75,6 +73,9 @@ public class BasemapTest {
         stayPart = stayPart.substring(0, stayPart.indexOf("$(\"guideBar\").addEventListener"));
         assertTrue("3D 숙박 칸은 날씨 칸의 wxP 를 쓰지 않음 - 쓰면 숙박 칸 전체가 깨짐(2026-11-23 PC 운영 v347)", !stayPart.contains("wxP")
             && stayPart.contains("var regionP = getJson(\"api/wx?regionOnly=1&lat=\" + start.lat.toFixed(4)") && stayPart.contains("Promise.all([partners(), regionP])"));
+        assertTrue("대피소 사진 - 말풍선 · 사진 목록(기록 위 거리 차례), CC BY-SA 는 자르지 않음, 출처 늘(2026-11-23 홍TV님)", js.contains("RF.stopsAlong(rc, fam.huts.filter(function (h) { return hutPhotos[h.name]; }), HUT_CARD_M)")
+            && js.contains("var hp = hutPhotoAt(g[1], g[0]);") && js.contains("(p.sa ? \" asis\" : \"\")") && html.contains(".hutImg.asis { object-fit:contain !important;")
+            && read("src/main/webapp/data/shelter-photos.json").contains("\"photos\":"));
         assertTrue("OSM 출처는 한 번만 - 우리 지도는 바탕 출처에 이미 있음(2026-11-22 PC)", js.contains("customAttribution: (style ? \"\" : \"© OpenStreetMap contributors | \") + "));
         assertTrue(html.contains("<script src=\"vendor/pmtiles-4.5.0/pmtiles.js\"></script>"));
         assertTrue("지도 파일은 캐시하지 않음(Range)", sw.contains("if (/\\.pmtiles(?:[?#]|$)/.test(url)) return;"));

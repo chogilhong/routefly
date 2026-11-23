@@ -21,6 +21,8 @@
     var styleOk = false, styleQ = [];   // 지도 모양 준비(whenStyle)
     // 공원 탐방로(2026-11-23 홍TV님 "지리산 안내도 코스들을 그려줘 - 일단 표시만"): 기록이 국립공원 안이면 api/park?name=<공원> 의 탐방로 선을 연하게
     var parkCands = [], parkShown = null, PARK_NEAR_M = 1500;
+    // 대피소 사진(2026-11-23 홍TV님 "대피소 사진을 클릭하면 보여줘 · 대피소가 있는 산은 옆에 사진을 · 내 사진과 위치로 비교해 자리를"): data/shelter-photos.json
+    var hutPhotos = {}, HUT_CARD_M = 300;
     var SEG_NEAR_M = 200, SEG_GAP_M = 300, PICK_NEAR_M = 300, popup = null;   // 구간 끊는 곳(선에서 200m 안 · 300m 넘게 떨어진 것만) · 누른 곳 찾기   // 우리 지도일 때 기록이 지나간 봉우리(150m 안)
     // 표시별 보이기 · 숨기기(2026-11-22 홍TV님 "마커 별로 숨기고 보이고") - 이 화면 동안만(저장하지 않음)
     var KINDS = [["photo", "📷", "사진", "Photos"], ["memo", "📝", "메모", "Notes"], ["rf-hut", "🏠", "대피소 · 산장", "Shelters · huts"],
@@ -104,16 +106,7 @@
                     }
                     map.addLayer({ id: "trk-halo", type: "line", source: "trk", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": "#fff", "line-width": 8, "line-opacity": 0.8 } }, under);
                     map.addLayer({ id: "trk", type: "line", source: "trk", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": ["coalesce", ["get", "color"], "#5b45ff"], "line-width": 4.5 } }, under);   // 구간 색(segData)
-                    // 구간 거리 · 시간 · 오르내림 글(우리 지도만 - 글꼴이 있음). 일반 봉우리 · 마을 이름보다 먼저, 대피소 · 명산보다 나중에 자리를 잡음
-                    if (vector) {
-                        map.addSource("seglbl", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-                        // 구간 색 글 + 흰 테두리, 글자만 조금 크게(2026-11-23 홍TV님 "이렇게까지 진하게 할 필요는 없어. 처음보다 글씨를 조금 더 크게 · 반야봉도 가려지네 ·
-                        // 구간 표에 이미 정보가 있으니 영 아니다 싶으면 표시 안 해도 되고") - 가운데가 막히면 위 · 아래 · 옆으로 비키고, 그래도 막히면 빠짐.
-                        // 일반 봉우리 · 마을 이름보다는 먼저, 대피소 · 절 · 지나간 봉우리(반야봉 등) · 공단 대피소 · 100대 명산보다는 나중(poi-hike 앞)
-                        map.addLayer({ id: "seglbl", type: "symbol", source: "seglbl", layout: { "text-field": ["get", "t"], "text-font": ["Noto Sans Regular"], "text-size": 13, "text-max-width": 30,
-                                "text-variable-anchor": ["center", "top", "bottom", "left", "right"], "text-radial-offset": 1 },
-                            paint: { "text-color": ["get", "color"], "text-halo-color": "#fffdf5", "text-halo-width": 2.2 } }, map.getLayer("poi-hike") ? "poi-hike" : undefined);
-                    }
+                    // 구간 거리 · 시간 · 오르내림은 지도에 쓰지 않고 오른쪽 구간 표에만(2026-11-23 홍TV님 "저 거리 부분은 지도에서 안 보이게 해. 오른쪽에 있으니")
                 }
                 paintTrack();
                 parkTrails();
@@ -140,6 +133,7 @@
             });
             kindBar();
             placeKit();
+            hutCards();
             whenStyle(applyKinds);
         });
     }
@@ -275,9 +269,6 @@
         var fc = segData(), segs = fc.features || [];
         map.getSource("trk").setData(fc);
         if (map.getLayer("trk")) map.setPaintProperty("trk", "line-width", 4.5);
-        if (map.getSource("seglbl")) map.getSource("seglbl").setData({ type: "FeatureCollection", features: segs.length > 1 ? segs.map(function (f) {
-            return { type: "Feature", properties: { t: RF.segText(f.properties), color: f.properties.color }, geometry: { type: "Point", coordinates: f.properties.mid } };
-        }) : [] });
         segList(segs);
     }
 
@@ -312,6 +303,60 @@
         $("side").insertBefore(box, $("side").firstChild);
     }
 
+    /** 공단 대피소 사진 - (lat, lon) 에서 HUT_CARD_M 안 공단 대피소(fam.huts)에 사진이 있으면 그것, 없으면 null(OSM 대피소 이름이 달라도 자리로). */
+    function hutPhotoAt(lat, lon) {
+        if (!fam) return null;
+        for (var i = 0; i < fam.huts.length; i++) {
+            var h = fam.huts[i];
+            if (hutPhotos[h.name] && RF.distM(lat, lon, h.lat, h.lon) <= HUT_CARD_M) return hutPhotos[h.name];
+        }
+        return null;
+    }
+
+    /** 대피소 사진 그림 - CC BY-SA 등 바꿈 금지(sa)는 자르지 않고 그대로(contain), 공공누리 제1유형 · CC0 는 칸에 맞게. */
+    function hutImg(p, cls) {
+        var im = new Image();
+        im.src = p.file; im.alt = p.name; im.loading = "lazy"; im.className = "hutImg " + cls + (p.sa ? " asis" : "");
+        return im;
+    }
+
+    /** 사진 출처 한 줄(제목 · 작가 · 라이선스, 원본 링크) - 늘 함께 보임. */
+    function hutCredit(p) {
+        var d = document.createElement("div"), a = document.createElement("a");
+        d.className = "hutCredit";
+        d.appendChild(document.createTextNode(T("사진: ", "Photo: ") + [p.title, p.author].filter(Boolean).join(" · ") + " · "));
+        a.textContent = p.license; a.target = "_blank"; a.rel = "noopener";
+        if (/^https:\/\//.test(p.url || "")) a.href = p.url;
+        d.appendChild(a);
+        return d;
+    }
+
+    /**
+     * 기록이 지나간 공단 대피소의 사진을 오른쪽 사진 목록에 - 내 사진 · 메모 카드 사이, 기록 위 거리 차례로(RF.stopsAlong). 누르면 지도가 그리로 · 그래프 표시.
+     * 사진이 없는 대피소는 카드를 두지 않음. 기록 · 자료가 바뀔 때마다 다시 넣음.
+     */
+    function hutCards() {
+        Array.prototype.forEach.call(document.querySelectorAll("#side .card.hut"), function (x) { x.remove(); });
+        if (!rc || !fam) return;
+        RF.stopsAlong(rc, fam.huts.filter(function (h) { return hutPhotos[h.name]; }), HUT_CARD_M).forEach(function (q) {
+            var p = hutPhotos[q.s.name], card = document.createElement("div"), ph = document.createElement("div"), tx = document.createElement("div"), tm = document.createElement("div");
+            card.className = "card hut"; ph.className = "ph"; tx.className = "tx"; tm.className = "tm";
+            ph.appendChild(hutImg(p, "card"));
+            tm.textContent = "🏠 " + T("출발부터 ", "from start ") + RF.km(q.d) + " km";
+            tx.appendChild(tm); tx.appendChild(document.createTextNode(q.s.name)); tx.appendChild(hutCredit(p));
+            card.appendChild(ph); card.appendChild(tx);
+            card.onclick = function (e) {
+                if (e.target.tagName === "A") return;   // 라이선스 링크는 그대로
+                map.easeTo({ center: [q.s.lon, q.s.lat], zoom: Math.max(map.getZoom(), 14), duration: 600 });
+                if (prof) prof.set(q.d);
+            };
+            // 내 사진 · 메모 카드 가운데 거리가 더 먼 첫 카드 앞에(없으면 맨 뒤)
+            var after = null;
+            for (var i = 0; i < items.length; i++) if (items[i].d != null && items[i].d > q.d) { after = cards[i]; break; }
+            $("side").insertBefore(card, after);
+        });
+    }
+
     /**
      * 봉우리 · 대피소 · 절 등을 누르면(2026-11-23 홍TV님 "봉들 대피소를 클릭하면 카메라처럼 그래프에 위치 표시") 기록 위 가장 가까운 자리를 그래프에 표시하고
      * 이름 · 출발부터 거리 · 해발을 작은 창으로. 선에서 멀면(PICK_NEAR_M 넘음) 이름과 "이 기록에서 떨어짐" 만.
@@ -323,6 +368,8 @@
         var q = RF.snap(rc, g[1], g[0]), box = document.createElement("div"), b = document.createElement("b"), t = document.createElement("div");
         b.textContent = nm;
         box.appendChild(b); box.appendChild(t);
+        var hp = hutPhotoAt(g[1], g[0]);   // 공단 대피소(300m 안)면 그 사진을 말풍선에
+        if (hp) { box.appendChild(hutImg(hp, "pop")); box.appendChild(hutCredit(hp)); }
         if (q && q.off <= PICK_NEAR_M) {
             var p = RF.at(rc, q.d);
             t.textContent = T("출발부터 ", "from start ") + RF.km(q.d) + " km" + (p.ele != null ? T(" · 기록 해발 ", " · recorded elev. ") + RF.num(Math.round(p.ele)) + " m" : "");
@@ -349,7 +396,9 @@
      */
     function loadMarks() {
         var j = function (u) { return fetch(u).then(function (r) { return r.ok ? r.json() : null; }); };
-        Promise.all([j("data/mountains100.json"), j("data/peak-elev.json"), j("data/knps-shelters.json")]).then(function (d) {
+        Promise.all([j("data/mountains100.json"), j("data/peak-elev.json"), j("data/knps-shelters.json"), j("data/shelter-photos.json").catch(function () { return null; })]).then(function (d) {
+            hutPhotos = {};
+            ((d[3] && d[3].photos) || []).forEach(function (p) { if (p && p.name && /^img\/shelter\/[\w.-]+\.(?:jpe?g|png|webp)$/.test(p.file || "")) hutPhotos[p.name] = p; });
             var gj = RF.famousMarks(d[0] && d[0].peaks, d[1] && d[1].elev, d[2] && d[2].shelters);
             // 국립공원 찾기 후보 - 공단 대피소의 공원 · 국립공원 이름과 같은 100대 명산(지리산 천왕봉 등)
             parkCands = ((d[2] && d[2].shelters) || []).map(function (s) { return { park: s.park, lat: s.lat, lon: s.lon }; })
@@ -358,6 +407,7 @@
             gj.features.forEach(function (f) { var c = f.geometry.coordinates; fam[f.properties.kind === "hut" ? "huts" : "peaks"].push({ name: f.properties.name, lon: c[0], lat: c[1] }); });
             famGj = gj;
             if (styleOk) markPeaks();
+            hutCards();
         }).catch(function () { /* 자료가 없으면 OSM 것만 */ });
     }
 

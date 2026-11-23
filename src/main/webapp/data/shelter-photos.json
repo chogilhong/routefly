@@ -1,0 +1,4 @@
+{
+  "_note": "국립공원 대피소 사진(2026-11-23 홍TV님 \"대피소 사진을 클릭하면 보여줘 · 대피소가 있는 산은 옆에 사진을\") - 기록 보기(trip.js)가 대피소 말풍선과 사진 목록(기록 위 거리 차례)에 씀. name 은 data/knps-shelters.json 의 이름과 똑같이. file 은 img/shelter/ 아래(jpg · png · webp). 이용 조건을 확인한 사진만: 공공누리 제1유형 · CC0 · CC BY · CC BY-SA(바꿈 금지 sa:true - 자르지 않고 그대로 보임). 'AI 사용 금지' 표시 사진 · 공단 예약 화면(tabShelter) 사진 · 나무위키는 쓰지 않음. 칸: name · file · title · author · license · url(원본 https) · sa",
+  "photos": []
+}

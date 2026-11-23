@@ -247,7 +247,7 @@
      * 순수 함수 - 기록 선을 지나간 쉼터 · 정상에서 끊어 구간마다 다른 색으로(2026-11-23 홍TV님 "안내도처럼 코스를 전부 다른 색으로").
      * c = recordCourse, stops = [{lat, lon}](공단 대피소 · 100대 명산 정상), 선에서 maxM 안인 것만 끊는 곳으로, 끊는 곳끼리 minGapM 보다 가까우면 하나로.
      * 돌려줌 GeoJSON 선 목록 - properties: color, seg(차례), from · to(구간 처음 · 끝 이름 - 끊은 곳 이름, 기록 처음 · 끝은 null),
-     * d(구간 처음까지 거리), m(거리), ms(걸린 시간 - 시각이 없으면 null), up · down(오르막 · 내리막 m - cumAscent 와 같은 셈, 높이가 없으면 null), mid(구간 가운데 [경도, 위도]).
+     * d(구간 처음까지 거리), m(거리), ms(걸린 시간 - 시각이 없으면 null), up · down(오르막 · 내리막 m - cumAscent 와 같은 셈, 높이가 없으면 null).
      * 끊을 곳이 없으면 선 하나(첫 색). 2026-11-23 홍TV님 "구간마다 거리 · 시간 · 구간 목록"
      */
     function trackSegments(c, stops, maxM, minGapM) {
@@ -271,13 +271,26 @@
             if (co.length < 2) continue;
             var up = asc[b] != null && asc[a] != null ? Math.round(asc[b] - asc[a]) : null;
             var net = c.ele[a] != null && c.ele[b] != null ? c.ele[b] - c.ele[a] : null;
-            var mid = at(c, (c.dist[a] + c.dist[b]) / 2);
             out.push({ type: "Feature", geometry: { type: "LineString", coordinates: co }, properties: {
                 color: SEG_COLORS[k % SEG_COLORS.length], seg: k, from: names[k], to: names[k + 1], d: Math.round(c.dist[a]), m: Math.round(c.dist[b] - c.dist[a]),
                 ms: c.time && c.time[a] != null && c.time[b] != null && c.time[b] >= c.time[a] ? c.time[b] - c.time[a] : null,
-                up: up, down: up != null && net != null ? Math.max(0, Math.round(up - net)) : null, mid: [mid.lon, mid.lat] } });
+                up: up, down: up != null && net != null ? Math.max(0, Math.round(up - net)) : null } });
         }
         return { type: "FeatureCollection", features: out };
+    }
+
+    /**
+     * 순수 함수 - 기록 선에서 maxM 안에 있는 곳(stops [{lat, lon, …}])을 기록 위 거리 차례로 [{s: 그곳, d: 출발부터 m}](2026-11-23 홍TV님 "대피소 사진을
+     * 사용자가 찍은 사진과 위치로 비교해서 위치 선정" - 사진 카드 사이에 끼울 자리).
+     */
+    function stopsAlong(c, stops, maxM) {
+        var out = [];
+        (stops || []).forEach(function (s) {
+            if (!s || typeof s.lat !== "number" || typeof s.lon !== "number") return;
+            var q = snap(c, s.lat, s.lon);
+            if (q && q.off <= maxM) out.push({ s: s, d: Math.round(q.d) });
+        });
+        return out.sort(function (a, b) { return a.d - b.d; });
     }
 
     /**
@@ -1060,9 +1073,11 @@
         poiShowFilter: poiShowFilter,
         famousMarks: famousMarks,
         trackSegments: trackSegments,
+        stopsAlong: stopsAlong,
         recordPark: recordPark,
         segText: segText,
         peakOnFilter: peakOnFilter,
+        distM: distM,
         profile: profile,
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },
         setLang: setLang,
