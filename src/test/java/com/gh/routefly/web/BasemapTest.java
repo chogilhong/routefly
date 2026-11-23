@@ -79,11 +79,11 @@ public class BasemapTest {
             && js.contains("var hp = hutPhotoAt(g[1], g[0]);") && js.contains("(p.sa ? \" asis\" : \"\")") && html.contains(".hutImg.asis { object-fit:contain !important;")
             && read("src/main/webapp/data/shelter-photos.json").contains("\"photos\":"));
         assertTrue("3D 비행 영상 바탕 = 우리 지도(2026-11-23 홍TV님) - 위성 없을 때만, 길 · 마을 · 물 이름 뺌, 출처 줄에 OpenMapTiles", app.contains("(VIDEO && !VIDEO.sat ? RFMap.open(r[0].basemapUrl, r[0].demUrl, { lang: LANG }) : Promise.resolve(null))")
-            && app.contains("var VIDEO_DROP = [\"road-name\", \"road-name-major\", \"place\", \"water-name\", \"gu-name\"];") && app.contains("(videoVec ? T(\"지도: \", \"Map: \") + \"© OpenMapTiles | \" : \"\")")
+            && app.contains("var VIDEO_DROP = [\"road-name\", \"road-name-major\", \"place\", \"water-name\", \"gu-name\", \"rf-complex\", \"rf-apt\"];") && app.contains("(videoVec ? T(\"지도: \", \"Map: \") + \"© OpenMapTiles | \" : \"\")")
             && read("src/main/webapp/index.html").contains("<script src=\"vendor/pmtiles-4.5.0/pmtiles.js\"></script>"));
         assertTrue("구간: 지나간 …산 정상에서도 끊기 · 1km 안은 하나로 · 역 단추(2026-11-23 홍TV님 1 · 2 · 도시 안내)", js.contains("SEG_GAP_M = 1000") && js.contains("fam.huts.concat(fam.peaks, namedPeaks)")
             && js.contains("return /산$/.test(f.name || \"\")") && !js.contains("\"rf-rail\", \"🚉\"")
-            && read("src/main/webapp/vendor/rfmap-1.0.0/rfmap.js").contains("\"rf-rail\": [\"#ffffff\", \"dot\"] };") && read("src/main/webapp/vendor/rfmap-1.0.0/rfmap.js").contains("[\"concat\", ko, \"역\"], ko]") && app.contains("var VIDEO_DROP = [\"road-name\", \"road-name-major\", \"place\", \"water-name\", \"gu-name\"];")
+            && read("src/main/webapp/vendor/rfmap-1.0.0/rfmap.js").contains("\"rf-rail\": [\"#ffffff\", \"dot\"] };") && read("src/main/webapp/vendor/rfmap-1.0.0/rfmap.js").contains("[\"concat\", ko, \"역\"], ko]") && app.contains("var VIDEO_DROP = [\"road-name\", \"road-name-major\", \"place\", \"water-name\", \"gu-name\", \"rf-complex\", \"rf-apt\"];")
             && app.contains("map.setFilter(\"peak\", [\"!\", [\"in\", [\"get\", \"name\"], [\"literal\", videoPeakNames.concat(own)]]]);")
             && app.contains("map.setFilter(\"rf-peak\", [\"all\", [\"==\", [\"get\", \"kind\"], \"peak\"], [\"!\", [\"in\", [\"get\", \"name\"], [\"literal\", own]]]]);"));
         assertTrue("봉우리 찾기는 idle 만 믿지 않고 조각을 받을 때도(2026-11-23 PC 불수사도북 z12.95 - 사패산에서 안 나뉨)", js.contains("if (e.sourceId !== \"omt\" || !e.isSourceLoaded) return;")
