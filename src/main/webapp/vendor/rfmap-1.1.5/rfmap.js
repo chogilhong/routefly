@@ -11,7 +11,7 @@
  */
 (function (global) {
     "use strict";
-    var VERSION = "1.1.4";
+    var VERSION = "1.1.5";
     // 이 파일이 있는 폴더(글꼴 · 자료 기본 자리) - node 테스트에서는 빈 글자
     var BASE = (function () {
         try { var s = global.document && global.document.currentScript; return s && s.src ? new URL(".", s.src).href : ""; } catch (e) { return ""; }
@@ -157,6 +157,11 @@
                         paint: { "text-color": color, "text-halo-color": "#fffdf5", "text-halo-width": 1.3 } };
                 };
                 style.layers.splice(ids().indexOf("peak"), 0, label("rf-apt", "apartment", 15, 10.5, "#7a7287"), label("rf-complex", "complex", 14, 12.5, "#5d5470"));
+            }
+            if (has("rf_summit")) {   // 산림청 정상부 봉우리(2026-11-23 홍TV님 "정상부 지점으로 봉우리 이름 넣어줘") - OSM 봉우리가 없는 산(영종 백운산 · 송산 등)만 들어 있음. 바탕 봉우리(peak)와 같은 모양, 그 바로 뒤
+                style.layers.splice(ids().indexOf("peak") + 1, 0, { id: "rf-summit", type: "symbol", source: "rfx", "source-layer": "rf_summit", minzoom: 11,
+                    layout: { "text-field": peakText, "text-font": F, "text-size": 11, "text-anchor": "top", "text-offset": [0, 0.2] },
+                    paint: { "text-color": "#6b3d1e", "text-halo-color": "#fffdf5", "text-halo-width": 1.4 } });
             }
             if (has("rf_shop")) {   // 가게(상가정보 - 2026-11-23 홍TV님 "지도 툴을 완성") - 확대 16 부터, OSM 의 같은 종류(식당 · 카페 · 가게 · 병원 · 학교 · 숙소)는 이것으로 갈음
                 var shopIcon = ["match", ["get", "kind"], "food", "rf-food", "cafe", "rf-cafe", "shop", "rf-shop", "bed", "rf-bed", "med", "rf-med", "school", "rf-school", "svc", "rf-svc", ""];

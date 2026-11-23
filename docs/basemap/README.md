@@ -1,7 +1,7 @@
 # routefly 바탕 지도(벡터 PMTiles) - C-2
 
 2026-11-23 지도 만드는 도구는 tools 저장소 `map/` 으로 옮겼습니다(짜임 · 층 목록 · 쓰는 법은 거기 README). 이 문서는 routefly 에 붙이는 쪽만 남깁니다.
-지도 모양(색 · 글자 · 층) · 글꼴 · 구 이름 · 지하철 노선 자료도 같은 날 패키지(tools `map/rfmap`, `window.RFMap`)로 옮겼습니다. routefly 는 `node map/rfmap/sync.js` 가 복사한 `vendor/rfmap-1.1.4/` 을 씁니다(직접 고치지 않음).
+지도 모양(색 · 글자 · 층) · 글꼴 · 구 이름 · 지하철 노선 자료도 같은 날 패키지(tools `map/rfmap`, `window.RFMap`)로 옮겼습니다. routefly 는 `node map/rfmap/sync.js` 가 복사한 `vendor/rfmap-1.1.5/` 을 씁니다(직접 고치지 않음).
 
 | 서버 파일(`/var/www/routefly/tiles/`) | 무엇 | 없으면 |
 |---|---|---|
@@ -58,7 +58,7 @@ V-World 화면은 영상 · 다시 배포에 조건이 있어(약관 제13 · 19
 |---|---|
 | 지도 모양 | `RF.vectorStyle`(course-kit.js) - OpenMapTiles 양식의 숲 · 물 · 길 · 산길(점선) · 봉우리(▲ 이름 · 높이) · 마을 이름 + 지금 지형 음영 |
 | 파일 읽기 | `vendor/pmtiles-4.5.0/pmtiles.js`(BSD-3) - 지도 프로그램이 `pmtiles://` 주소를 Range 조각으로 받음 |
-| 글꼴 | `vendor/rfmap-1.1.4/fonts/Noto Sans Regular/*.pbf`(우리 지도 패키지 - tools 저장소 map/rfmap, 2026-11-23)(OFL, protomaps/basemaps-assets) - 숫자 · 로마자 · 기호(▲ 는 9472-9727)만. 한글은 폰 글꼴(localIdeographFontFamily) |
+| 글꼴 | `vendor/rfmap-1.1.5/fonts/Noto Sans Regular/*.pbf`(우리 지도 패키지 - tools 저장소 map/rfmap, 2026-11-23)(OFL, protomaps/basemaps-assets) - 숫자 · 로마자 · 기호(▲ 는 9472-9727)만. 한글은 폰 글꼴(localIdeographFontFamily) |
 | 주소 | `api/map-config` 의 `basemapUrl`(설정 map.basemap.url - 같은 사이트 경로나 https, .pmtiles 로 끝날 때만) |
 | 서비스워커 | `.pmtiles` 는 캐시하지 않고 서버로 |
 | 대피소 · 절 등 | `poi-hike` 층(2026-11-22) - OpenMapTiles v3.15 poi: 산장(class lodging · subclass alpine_hut) · 쉼터(shelter) · 절(place_of_worship · subclass buddhist) · 전망대(attraction · viewpoint) · 약수터(drinking_water). 확대 12 ~ 13 은 중요한 것만, 14 부터 모두. 아이콘은 trip.js 가 캔버스로 그림(RF.MAP_ICONS) |
