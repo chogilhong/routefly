@@ -673,6 +673,7 @@
             sources: {
                 omt: { type: "vector", url: src, attribution: "© OpenMapTiles © OpenStreetMap contributors" },
                 marks: { type: "geojson", data: { type: "FeatureCollection", features: [] } },   // 공단 대피소 · 100대 명산 정상(화면이 famousMarks 로 채움)
+                subway: { type: "geojson", data: "data/subway-lines.json" },   // 지하철 노선(OSM, ODbL - 바탕 출처 줄의 OpenStreetMap 에 들어감)
                 gu: { type: "geojson", data: "data/gu-labels.json" },   // 구 이름 자리 - 우리 지도 파일은 확대 14 조각에만 있어(OMT place borough) 미리 뽑아 둠(tools/basemap/gu-labels.py)
                 hillshade: { type: "raster-dem", tiles: [c.demUrl], encoding: "terrarium", tileSize: 256, maxzoom: 15, attribution: tr("지형: ", "Terrain: ") + "Terrain Tiles (AWS Open Data)" }
             },
@@ -691,6 +692,9 @@
                 line("road-minor", cls(["minor", "service", "tertiary"]), "#ffffff", ["interpolate", ["linear"], ["zoom"], 10, 0.6, 16, 4]),
                 line("road-major", cls(["primary", "secondary", "trunk", "motorway"]), "#f4c96b", ["interpolate", ["linear"], ["zoom"], 7, 0.8, 16, 6]),
                 line("rail", cls(["rail", "transit"]), "#8a8a8a", 1, { "line-dasharray": [3, 3] }),
+                // 지하철 노선 색 선(2026-11-23 홍TV님 "지하철 노선끼리 선을 연결 · 노선표 색") - OSM 노선 관계의 colour 그대로(tools/basemap/subway-lines.py, 수도권만)
+                { id: "subway", type: "line", source: "subway", minzoom: 9, layout: { "line-join": "round", "line-cap": "round" },
+                    paint: { "line-color": ["get", "colour"], "line-opacity": 0.9, "line-width": ["interpolate", ["linear"], ["zoom"], 9, 1, 12, 2.2, 15, 4] } },
                 // 큰길(고속도로 · 국도 · 큰 도로) 이름은 더 멀리서부터(2026-11-23 홍TV님 "큰길 이름 · 도시 안내"), 고속도로는 이름이 없으면 번호(ref)
                 { id: "road-name-major", type: "symbol", source: "omt", "source-layer": "transportation_name", minzoom: 11, filter: cls(["motorway", "trunk", "primary"]),
                     layout: { "symbol-placement": "line", "text-field": ["coalesce", ["get", "name:ko"], ["get", "name"], ["get", "ref"]], "text-font": F, "text-size": 11.5 },

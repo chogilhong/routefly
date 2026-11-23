@@ -91,6 +91,9 @@ public class BasemapTest {
         assertTrue("구 이름 자료 - 지도 파일에서 뽑은 구 이름만(…구), 서울 · 부산 등(2026-11-23 홍TV님)", read("src/main/webapp/data/gu-labels.json").contains("\"name\":\"종로구\"")
             && read("src/main/webapp/data/gu-labels.json").contains("\"name\":\"노원구\"") && read("src/main/webapp/data/gu-labels.json").contains("\"name\":\"해운대구\"")
             && !read("src/main/webapp/data/gu-labels.json").contains("동\",\"name_en") && read("tools/basemap/gu-labels.py").contains("endswith(\"구\")"));
+        String sub = read("src/main/webapp/data/subway-lines.json"), raw = read("src/test/resources/subway/routes.json");
+        assertTrue("지하철 노선 색 - 받은 OSM 자료의 colour 그대로(1호선 · 2호선 · 의정부경전철)", sub.contains("\"ref\":\"1\",\"name\":\"수도권 전철 1호선\",\"colour\":\"#004A85\"")
+            && sub.contains("\"colour\":\"#00A23F\"") && sub.contains("\"colour\":\"#F0831E\"") && raw.contains("\"colour\": \"#004A85\"") && raw.contains("\"colour\": \"#F0831E\""));
         assertTrue("점검용 지도 엿보기는 ?debug=map 일 때만", js.contains("if (/[?&]debug=map(?:&|$)/.test(location.search)) {") && js.indexOf("window.__rfMap") > js.indexOf("debug=map"));
         assertTrue("OSM 출처는 한 번만 - 우리 지도는 바탕 출처에 이미 있음(2026-11-22 PC)", js.contains("customAttribution: (style ? \"\" : \"© OpenStreetMap contributors | \") + "));
         assertTrue(html.contains("<script src=\"vendor/pmtiles-4.5.0/pmtiles.js\"></script>"));
