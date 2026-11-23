@@ -495,6 +495,11 @@
         vector = !!style; contourCfg = cfg;
         map = new maplibregl.Map({ container: "map", style: style || RF.baseStyle(cfg), center: [127.8, 36.3], zoom: 6.5, locale: RF.mapLocale(), attributionControl: false,
             localIdeographFontFamily: "'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif" });   // 한글 지명은 폰 글꼴로
+        // 점검용 - 주소에 ?debug=map 일 때만 콘솔에서 지도 · 봉우리 찾기 상태를 봄(2026-11-23 PC 에서만 사패산 · 역이 안 보여서). 이 기기 안에서만, 보내는 것 없음
+        if (/[?&]debug=map(?:&|$)/.test(location.search)) {
+            window.__rfMap = map;
+            window.__rfPeaks = function () { return { peakKeys: peakKeys, namedPeaks: namedPeaks, dropPeaks: dropPeaks, dropHuts: dropHuts, fam: !!fam, rc: !!rc, vector: vector }; };
+        }
         map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
         if (window.mlcontour) map.addControl(contourControl(), "top-right");
         // 우리 지도는 바탕 출처에 "© OpenStreetMap contributors" 가 이미 있어 한 번만(2026-11-22 PC: 두 번 보였음). V-World 바탕일 때는 여기서 붙임

@@ -328,6 +328,10 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
                 ["all", ["==", ["get", "class"], "place_of_worship"], ["==", ["get", "subclass"], "buddhist"]], "rf-temple",
                 ["all", ["==", ["get", "class"], "attraction"], ["==", ["get", "subclass"], "viewpoint"]], "rf-view", ["==", ["get", "class"], "drinking_water"], "rf-water",
                 ["==", ["get", "class"], "railway"], "rf-rail"]), true]);
+        var gu = vs.layers[ids.indexOf("gu-name")];
+        eq("구 이름 - 미리 뽑아 둔 자료(data/gu-labels.json) · 확대 10부터 · 봉우리 층 바로 앞(봉우리 · 역 · 마을 이름에 자리를 내줌)",
+            [gu && gu.source, vs.sources.gu.data, gu && gu.minzoom, ids.indexOf("gu-name") === ids.indexOf("peak") - 1, JSON.stringify(gu.layout["text-field"])],
+            ["gu", "data/gu-labels.json", 10, true, JSON.stringify(["get", "name"])]);
         var rm = vs.layers[ids.indexOf("road-name-major")], rn = vs.layers[ids.indexOf("road-name")];
         eq("큰길 이름은 확대 11부터(고속도로 · 국도 · 큰 도로), 나머지 길 이름은 13부터 - 겹치지 않게 서로 거름", [rm.minzoom, JSON.stringify(rm.filter), rn.minzoom, rn.filter[0]],
             [11, JSON.stringify(["match", ["get", "class"], ["motorway", "trunk", "primary"], true, false]), 13, "!"]);

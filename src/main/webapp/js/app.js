@@ -94,7 +94,7 @@
      * 3D 비행 영상 바탕을 우리 지도로(2026-11-23 홍TV님 "3D 비행 영상 바탕을 우리 지도로") - RF.vectorBasemap 의 모양 위에 3D 지형 · 하늘을 얹음.
      * 날며 보는 영상이라 글은 봉우리 · 대피소 · 절 등만(길 · 마을 · 물 이름은 뺌 - 기울어진 화면에 많으면 어지러움). 위성(V-World)은 영상에 쓰지 않음.
      */
-    var VIDEO_DROP = ["road-name", "road-name-major", "place", "water-name"];
+    var VIDEO_DROP = ["road-name", "road-name-major", "place", "water-name", "gu-name"];
     function videoStyle(cfg, vs) {
         var st = buildStyle(cfg), out = Object.assign({}, vs, { terrain: st.terrain, sky: st.sky });
         var t = Object.assign({}, st.sources.terrain);

@@ -673,6 +673,7 @@
             sources: {
                 omt: { type: "vector", url: src, attribution: "© OpenMapTiles © OpenStreetMap contributors" },
                 marks: { type: "geojson", data: { type: "FeatureCollection", features: [] } },   // 공단 대피소 · 100대 명산 정상(화면이 famousMarks 로 채움)
+                gu: { type: "geojson", data: "data/gu-labels.json" },   // 구 이름 자리 - 우리 지도 파일은 확대 14 조각에만 있어(OMT place borough) 미리 뽑아 둠(tools/basemap/gu-labels.py)
                 hillshade: { type: "raster-dem", tiles: [c.demUrl], encoding: "terrarium", tileSize: 256, maxzoom: 15, attribution: tr("지형: ", "Terrain: ") + "Terrain Tiles (AWS Open Data)" }
             },
             layers: [
@@ -698,6 +699,11 @@
                     layout: { "symbol-placement": "line", "text-field": ko, "text-font": F, "text-size": 11 }, paint: { "text-color": "#5a4a3a", "text-halo-color": "#fff", "text-halo-width": 1.2 } },
                 { id: "water-name", type: "symbol", source: "omt", "source-layer": "water_name",
                     layout: { "text-field": ko, "text-font": F, "text-size": 11 }, paint: { "text-color": "#3f6f8f", "text-halo-color": "#fff", "text-halo-width": 1 } },
+                // 구 이름(2026-11-23 홍TV님 "종로구, 도봉구, 강북구, 노원구 등 구역 표시도") - 국토부 지도처럼 옅고 크게, 봉우리 · 역 · 마을 이름에 자리를 내줌(앞 층). 구 경계선은 boundary 층(admin_level 6)
+                { id: "gu-name", type: "symbol", source: "gu", minzoom: 10,
+                    layout: { "text-field": tr(["get", "name"], ["coalesce", ["get", "name_en"], ["get", "name"]]), "text-font": F,
+                        "text-size": ["interpolate", ["linear"], ["zoom"], 10, 13, 12, 17, 15, 21], "text-letter-spacing": 0.08, "text-allow-overlap": true, "text-ignore-placement": true },   // 국토부처럼 늘 깔림 - 다른 글자 자리는 막지 않음
+                    paint: { "text-color": "#76688c", "text-opacity": 0.8, "text-halo-color": "#fffdf5", "text-halo-width": 1.4 } },
                 { id: "peak", type: "symbol", source: "omt", "source-layer": "mountain_peak", minzoom: 10, filter: peakOnFilter([], false),
                     layout: { "text-field": peakText, "text-font": F, "text-size": 11, "text-anchor": "top", "text-offset": [0, 0.2] },
                     paint: { "text-color": "#6b3d1e", "text-halo-color": "#fffdf5", "text-halo-width": 1.4 } },
