@@ -2397,3 +2397,7 @@ eq("점검 11차 A8 - 공단 난이도 띄어쓰기 없음(운영 설악산 \"�
     var r2 = RF.recordSummary(file, [], {}, true);
     eq("요약 - 기록의 오른 높이 · 칼로리가 있으면 그 값, 영어", [r2[6], r2[r2.length - 1]], [["Climb", "777 m"], ["Calories (est.)", "500 kcal"]]);
 })();
+
+// 3D 비행 영상 지형 돋움(RF.videoRelief, 2026-11-23 홍TV님 "고저가 잘 표현이 안 되어") - 낮은 산일수록 더 돋움
+eq("영상 돋움 - 높이 차 500m 아래 2.0 · 1,000m 아래 1.8 · 그 위 1.5 · 높이 없으면 1.5",
+    [RF.videoRelief([100, null, 450]), RF.videoRelief([33, 836]), RF.videoRelief([600, 1915]), RF.videoRelief([]), RF.videoRelief([null])], [2.0, 1.8, 1.5, 1.5, 1.5]);

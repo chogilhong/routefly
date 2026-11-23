@@ -71,6 +71,10 @@ public class VideoKitTest {
             && js.contains("if (!NATIVE) { down(); return; }") && js.contains("saveMedia(v.blob, v.name,")
             && plug.contains("public void saveMedia(PluginCall call)") && plug.contains("(video ? Environment.DIRECTORY_MOVIES : Environment.DIRECTORY_PICTURES) + \"/routefly\""));
         assertTrue("3D 화면으로 - 위성 없이(sat 없음)", ck.contains("url: \"index.html?video=1&rec=1&secs=\" + secs") && !ck.contains("video=1&rec=1&sat=1") && !js.contains("video=1&rec=1&sat=1"));
+        assertTrue("영상에서만 지형을 코스 높낮이에 맞춰 더 돋움 · 음영 진하게(2026-11-23 홍TV님 \"고저가 잘 표현이 안 되어\")",
+            app.contains("if (map.getTerrain && map.getTerrain()) map.setTerrain({ source: \"terrain\", exaggeration: RF.videoRelief(c.ele) });")
+            && app.contains("if (map.getLayer(\"hillshade\")) map.setPaintProperty(\"hillshade\", \"hillshade-exaggeration\", 0.75);")
+            && read("src/main/webapp/js/kit-app.js").contains("function videoRelief(ele)"));
         assertTrue("3D 영상은 출처 줄을 늘 영상에", app.contains("if (VIDEO.rec) videoRecord(c, credit.textContent);") && app.contains("lines.forEach(function (l, i) { g.fillText(l, 20,"));
         assertTrue("지도 그림을 옮겨 그리려면 영상 만들 때만 preserveDrawingBuffer",
                 app.contains("canvasContextAttributes: VIDEO && VIDEO.rec ? { preserveDrawingBuffer: true } : undefined"));

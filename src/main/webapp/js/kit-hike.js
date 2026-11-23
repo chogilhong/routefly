@@ -280,7 +280,6 @@
         return parts.length ? "공단 기준 " + parts.join(" · ") + (part ? " (공단 시간은 전체 구간 기준 - 이 선은 그 일부)" : "") : null;
     }
 
-    /** 코스 미리보기 1× 의 비행 시간(ms) - 코스 길이에 맞춰 20초 ~ 90초. 시험 걷기 1× 도 같은 시간에 코스를 다 걷습니다. */
     function flightMs(totalM) {
         var k = Math.max(totalM / 1000, 0.5);
         return Math.max(20000, Math.min(k * 2500, 90000));

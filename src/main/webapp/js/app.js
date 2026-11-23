@@ -1429,6 +1429,9 @@
             + ATTR_TRAILS + "© OpenStreetMap contributors";
         window.routeflyVideo = { ready: false, done: 0 };
         videoPeakFilter();
+        // 영상에서만 지형을 코스 높낮이에 맞춰 더 돋우고 음영을 진하게(2026-11-23 홍TV님 "고저가 잘 표현이 안 되어서 실감이 조금 덜하네")
+        if (map.getTerrain && map.getTerrain()) map.setTerrain({ source: "terrain", exaggeration: RF.videoRelief(c.ele) });
+        if (map.getLayer("hillshade")) map.setPaintProperty("hillshade", "hillshade-exaggeration", 0.75);
         map.once("idle", function () {
             anim.d = VIDEO.from * c.total;
             if (VIDEO.rec) videoRecord(c, credit.textContent);

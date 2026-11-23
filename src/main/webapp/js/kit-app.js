@@ -281,6 +281,17 @@
     }
 
     /** 코스 미리보기 1× 의 비행 시간(ms) - 코스 길이에 맞춰 20초 ~ 90초. 시험 걷기 1× 도 같은 시간에 코스를 다 걷습니다. */
+    /**
+     * 순수 함수 - 3D 비행 영상의 지형 돋움 배수(2026-11-23 홍TV님 "고저가 잘 표현이 안 되어서 실감이 조금 덜하네" - 불수사도북처럼 낮은 산이 평평해 보였음).
+     * 코스 높이 차(가장 높은 곳 - 가장 낮은 곳)가 작을수록 더 돋움: 500m 아래 2.0 · 1,000m 아래 1.8 · 그 위 1.5(보통 화면은 1.25 그대로). 높이가 없으면 1.5.
+     */
+    function videoRelief(ele) {
+        var e = (ele || []).filter(function (v) { return v != null && isFinite(v); });
+        if (!e.length) return 1.5;
+        var d = Math.max.apply(null, e) - Math.min.apply(null, e);
+        return d < 500 ? 2.0 : d < 1000 ? 1.8 : 1.5;
+    }
+
     function flightMs(totalM) {
         var k = Math.max(totalM / 1000, 0.5);
         return Math.max(20000, Math.min(k * 2500, 90000));
@@ -2521,6 +2532,7 @@
         spotText: spotText,
         spotSummary: spotSummary,
         flightMs: flightMs,
+        videoRelief: videoRelief,
         summitIndex: summitIndex,
         showName: showName,
         at: at,
