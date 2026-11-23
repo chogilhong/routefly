@@ -23,5 +23,6 @@ public class TripFileEditTest {
                 && tjs.contains("location.href = \"studio.html#file\";"));
         assertTrue("편집기는 받아 넣고 바로 지움", sjs.contains("if (location.hash === \"#file\") return openFromFile();")
                 && sjs.contains("o = JSON.parse(sessionStorage.getItem(\"rf-studio-in\") || \"null\"); sessionStorage.removeItem(\"rf-studio-in\");"));
+        for (String page : new String[] {"privacy.html", "privacy-en.html"}) assertTrue("개인정보처리방침에 저장 열쇠 " + page, read("src/main/webapp/" + page).contains("(rf-studio-in,"));
     }
 }
