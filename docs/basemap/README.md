@@ -1,5 +1,12 @@
 # routefly 바탕 지도(벡터 PMTiles) - C-2
 
+2026-11-23 지도 만드는 도구는 tools 저장소 `map/` 으로 옮겼습니다(짜임 · 층 목록 · 쓰는 법은 거기 README). 이 문서는 routefly 에 붙이는 쪽만 남깁니다.
+
+| 서버 파일(`/var/www/routefly/tiles/`) | 무엇 | 없으면 |
+|---|---|---|
+| `korea.pmtiles` | 바탕(OpenMapTiles 양식) | V-World 바탕으로 그림 |
+| `korea-extra.pmtiles` | 더하기 층 - 아파트 단지 · 동 이름(tools `map/extra.yml`) | 바탕만(화면이 머리를 못 읽으면 건너뜀) |
+
 2026-11-22 홍TV님 "이거 하자고". OSM 타일 서버(tile.openstreetmap.org · OpenTopoMap)는 이용 규칙 때문에 손님 화면에 못 쓰고(운영자 기기만),
 V-World 화면은 영상 · 다시 배포에 조건이 있어(약관 제13 · 19조, PC 확인), 우리 서버에 우리 바탕 지도를 둡니다.
 램블러 출처 줄(© Mapterhorn | © OpenMapTiles © OpenStreetMap contributors)로 보아 같은 종류의 방법입니다. 램블러의 색 · 아이콘 · 글꼴은 따라 하지 않습니다.
@@ -8,7 +15,7 @@ V-World 화면은 영상 · 다시 배포에 조건이 있어(약관 제13 · 19
 
 | 단계 | 할 일 | 누가 |
 |---|---|---|
-| 1 | `tools/basemap/build-korea.ps1` 로 korea.pmtiles 를 만들고 크기 · 걸린 시간을 잼 | PC Claude |
+| 1 | tools 저장소 `map/build-korea.ps1`(2026-11-23 routefly `tools/basemap/` 에서 옮김) 로 korea.pmtiles 를 만들고 크기 · 걸린 시간을 잼 | PC Claude |
 | 2 | 서버에 파일을 두고(nginx 가 Range 요청으로 내줌) trip.html 에만 붙여 봄. 글꼴(glyphs) · 아이콘(sprite)도 우리 서버에 | 웹 Claude(코드) · PC(배포) |
 | 3 | 마음에 들면 따라가기 · GPX 편집 · 3D 영상으로 넓힘 | 홍TV님 결정 뒤 |
 

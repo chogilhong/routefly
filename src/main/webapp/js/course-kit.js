@@ -2096,7 +2096,7 @@
             ["==", ["get", "class"], "drinking_water"], "rf-water",
             ["==", ["get", "class"], "railway"], "rf-rail", ""];   // 기차 · 지하철역(OMT poi class railway - 2026-11-23 홍TV님 "지하철역 · 도시 안내")
         var peakText = ["case", ["has", "ele"], ["concat", "▲ ", ko, "\n", ["to-string", ["get", "ele"]], "m"], ["concat", "▲ ", ko]];
-        return {
+        var style = {
             version: 8,
             glyphs: fonts + "{fontstack}/{range}.pbf",
             sources: {
@@ -2165,6 +2165,18 @@
                     paint: { "text-color": "#4a2208", "text-halo-color": "#fffdf5", "text-halo-width": 2 } }
             ]
         };
+        if (c.extraUrl) {   // 더하기 층 - 아파트 단지(확대 14 ~) · 아파트 동(15 ~) 이름, 봉우리 층 바로 앞(봉우리 · 역 · 대피소에 자리를 내줌)
+            // 출처는 바탕 줄(© OpenMapTiles © OpenStreetMap contributors)에 OSM 이 이미 있어 따로 안 붙임(두 번 보이지 않게)
+            style.sources.rfx = { type: "vector", url: "pmtiles://" + c.extraUrl };
+            var label = function (id, kind, minzoom, size, color) {
+                return { id: id, type: "symbol", source: "rfx", "source-layer": "rf_label", minzoom: minzoom, filter: ["==", ["get", "kind"], kind],
+                    layout: { "text-field": tr(["get", "name"], ["coalesce", ["get", "name_en"], ["get", "name"]]), "text-font": F, "text-size": size, "text-max-width": 7, "text-padding": 3 },
+                    paint: { "text-color": color, "text-halo-color": "#fffdf5", "text-halo-width": 1.3 } };
+            };
+            var at = style.layers.map(function (l) { return l.id; }).indexOf("peak");
+            style.layers.splice(at, 0, label("rf-apt", "apartment", 15, 10.5, "#7a7287"), label("rf-complex", "complex", 14, 12.5, "#5d5470"));
+        }
+        return style;
     }
 
     /** 우리 지도 poi-hike 층 아이콘(이름 → 동그라미 색 · 안 그림). 화면이 캔버스로 그려 map.addImage - 집 · 눈 · 물방울은 선으로(글꼴마다 ⌂ 등이 뭉개짐), 절은 卍(한자라 폰 글꼴에 있음). */
@@ -2358,11 +2370,17 @@
     function vectorBasemap(basemapUrl, demUrl) {
         if (!basemapUrl || !global.pmtiles || !global.maplibregl) return Promise.resolve(null);
         var url = new URL(basemapUrl, location.href).href, file = new global.pmtiles.PMTiles(url), proto = new global.pmtiles.Protocol();
+        // 더하기 층(아파트 단지 이름 등 - tools 저장소 map/extra.yml) - 바탕 옆 "-extra.pmtiles", 없으면 바탕만(2026-11-23 홍TV님)
+        var extraUrl = url.replace(/\.pmtiles$/, "-extra.pmtiles"), extra = new global.pmtiles.PMTiles(extraUrl);
+        var extraOk = extraUrl === url ? Promise.resolve(false) : extra.getHeader().then(function () { return true; }, function () { return false; });
         return file.getHeader().then(function () {
             proto.add(file);   // 머리를 읽은 그 파일을 지도도 씀(머리를 두 번 받지 않음)
             basemapFile = file;
             if (!pmtilesOn) { global.maplibregl.addProtocol("pmtiles", proto.tile); pmtilesOn = true; }   // 파일 하나에서 필요한 조각만 Range 로 받음
-            return vectorStyle({ basemapUrl: url, demUrl: demUrl }, new URL("vendor/fonts/", location.href).href);
+            return extraOk.then(function (ok) {
+                if (ok) proto.add(extra);
+                return vectorStyle({ basemapUrl: url, demUrl: demUrl, extraUrl: ok ? extraUrl : null }, new URL("vendor/fonts/", location.href).href);
+            });
         }, function () { return null; });
     }
 

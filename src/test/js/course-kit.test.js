@@ -331,6 +331,11 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
         var sw = vs.layers[ids.indexOf("subway")];
         eq("지하철 노선 - 미리 만든 자료(data/subway-lines.json)의 OSM 색 그대로 · 철길 바로 위", [sw && sw.source, vs.sources.subway.data, JSON.stringify(sw.paint["line-color"]), ids.indexOf("subway") === ids.indexOf("rail") + 1],
             ["subway", "data/subway-lines.json", JSON.stringify(["get", "colour"]), true]);
+        var vx = RF.vectorStyle({ basemapUrl: "https://x/k.pmtiles", demUrl: "https://d/{z}/{x}/{y}.png", extraUrl: "https://x/k-extra.pmtiles" }, "https://x/f/"), xid = vx.layers.map(function (l) { return l.id; });
+        eq("더하기 층(아파트 단지 14 · 동 15) - 파일이 있을 때만, 봉우리 층 바로 앞, 출처는 바탕 줄에", [vs.sources.rfx, ids.indexOf("rf-complex"), vx.sources.rfx.url, vx.sources.rfx.attribution,
+            xid.indexOf("rf-complex") === xid.indexOf("peak") - 1, xid.indexOf("rf-apt") === xid.indexOf("rf-complex") - 1, vx.layers[xid.indexOf("rf-complex")].minzoom, vx.layers[xid.indexOf("rf-apt")].minzoom,
+            vx.layers[xid.indexOf("rf-complex")]["source-layer"], JSON.stringify(vx.layers[xid.indexOf("rf-apt")].filter)],
+            [undefined, -1, "pmtiles://https://x/k-extra.pmtiles", undefined, true, true, 14, 15, "rf_label", JSON.stringify(["==", ["get", "kind"], "apartment"])]);
         var gu = vs.layers[ids.indexOf("gu-name")];
         eq("구 이름 - 미리 뽑아 둔 자료(data/gu-labels.json) · 확대 10부터 · 봉우리 층 바로 앞(봉우리 · 역 · 마을 이름에 자리를 내줌)",
             [gu && gu.source, vs.sources.gu.data, gu && gu.minzoom, ids.indexOf("gu-name") === ids.indexOf("peak") - 1, JSON.stringify(gu.layout["text-field"])],

@@ -90,7 +90,9 @@ public class BasemapTest {
             && js.contains("clearTimeout(peakT); peakT = setTimeout(markPeaks, 400);"));
         assertTrue("구 이름 자료 - 지도 파일에서 뽑은 구 이름만(…구), 서울 · 부산 등(2026-11-23 홍TV님)", read("src/main/webapp/data/gu-labels.json").contains("\"name\":\"종로구\"")
             && read("src/main/webapp/data/gu-labels.json").contains("\"name\":\"노원구\"") && read("src/main/webapp/data/gu-labels.json").contains("\"name\":\"해운대구\"")
-            && !read("src/main/webapp/data/gu-labels.json").contains("동\",\"name_en") && read("tools/basemap/gu-labels.py").contains("endswith(\"구\")"));
+            && !read("src/main/webapp/data/gu-labels.json").contains("동\",\"name_en"));
+        assertTrue("더하기 층(아파트 단지 이름)은 바탕 옆 -extra.pmtiles 가 있을 때만 - 지도 만들기 도구는 tools 저장소 map/(2026-11-23 홍TV님)", read("src/main/webapp/js/course-kit.js").contains("var extraUrl = url.replace(/\\.pmtiles$/, \"-extra.pmtiles\")")
+            && read("src/main/webapp/js/course-kit.js").contains("extraUrl: ok ? extraUrl : null") && read("docs/basemap/README.md").contains("korea-extra.pmtiles"));
         String sub = read("src/main/webapp/data/subway-lines.json"), raw = read("src/test/resources/subway/routes.json");
         assertTrue("지하철 노선 색 - 받은 OSM 자료의 colour 그대로(1호선 · 2호선 · 의정부경전철)", sub.contains("\"ref\":\"1\",\"name\":\"수도권 전철 1호선\",\"colour\":\"#004A85\"")
             && sub.contains("\"colour\":\"#00A23F\"") && sub.contains("\"colour\":\"#F0831E\"") && raw.contains("\"colour\": \"#004A85\"") && raw.contains("\"colour\": \"#F0831E\""));
