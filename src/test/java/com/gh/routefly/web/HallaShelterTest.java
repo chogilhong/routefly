@@ -23,7 +23,10 @@ public class HallaShelterTest {
     @Test
     public void 한라산_대피소_자료와_지도_표시() throws Exception {
         JsonArray s = JsonParser.parseString(read("src/main/webapp/data/halla-shelters.json")).getAsJsonObject().getAsJsonArray("shelters");
-        assertEquals(4, s.size());
+        java.util.List<String> names = new java.util.ArrayList<>();
+        for (JsonElement e : s) names.add(e.getAsJsonObject().get("name").getAsString());
+        assertEquals("관리소 「공원시설안내」의 대피소 가운데 자리를 아는 것만(평궤는 자리 확인 뒤, 탐라계곡은 목록에 없음)",
+            java.util.List.of("윗세오름대피소", "삼각봉대피소", "속밭대피소", "진달래밭대피소"), names);
         for (JsonElement e : s) {
             JsonObject o = e.getAsJsonObject();
             double lat = o.get("lat").getAsDouble(), lon = o.get("lon").getAsDouble();
