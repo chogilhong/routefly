@@ -87,6 +87,7 @@ public class BasemapTest {
             && js.contains("return /산$/.test(f.name || \"\")") && !js.contains("\"rf-rail\", \"🚉\"")
             && read("src/main/webapp/vendor/rfmap-1.1.8/rfmap.js").contains("\"rf-rail\": [\"#ffffff\", \"dot\"],") && read("src/main/webapp/vendor/rfmap-1.1.8/rfmap.js").contains("cityPoi(\"poi-city\", 15, [\"!=\", cityPoiIcon, \"rf-bus\"]), cityPoi(\"poi-bus\", 16, [\"==\", cityPoiIcon, \"rf-bus\"]),") && read("src/main/webapp/vendor/rfmap-1.1.8/rfmap.js").contains("[\"concat\", ko, \"역\"], ko]")
             && app.contains("map.setFilter(\"peak\", [\"!\", [\"in\", [\"get\", \"name\"], [\"literal\", videoPeakNames.concat(own)]]]);")
+            && app.contains("if (map.getLayer(\"rf-summit\")) map.setFilter(\"rf-summit\", [\"!\", [\"in\", [\"get\", \"name\"], [\"literal\", videoPeakNames.concat(own)]]]);")
             && app.contains("map.setFilter(\"rf-peak\", [\"all\", [\"==\", [\"get\", \"kind\"], \"peak\"], [\"!\", [\"in\", [\"get\", \"name\"], [\"literal\", own]]]]);"));
         assertTrue("봉우리 찾기는 idle 만 믿지 않고 조각을 받을 때도(2026-11-23 PC 불수사도북 z12.95 - 사패산에서 안 나뉨)", js.contains("if (e.sourceId !== \"omt\" || !e.isSourceLoaded) return;")
             && js.contains("clearTimeout(peakT); peakT = setTimeout(markPeaks, 400);"));

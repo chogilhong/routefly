@@ -1394,6 +1394,8 @@
         if (!map || !map.getLayer("peak")) return;
         var own = cur && cur.pois ? cur.pois.map(function (p) { return String(p.name || ""); }) : [];
         map.setFilter("peak", ["!", ["in", ["get", "name"], ["literal", videoPeakNames.concat(own)]]]);
+        // 더하기 층 봉우리(rf-summit - 산림청 정상 · 바탕에서 옮긴 봉우리)도 같은 거름(2026-11-23 PC: 도착 "덕기봉" 📍 와 "▲ 덕기봉 89m" 가 한데 겹침)
+        if (map.getLayer("rf-summit")) map.setFilter("rf-summit", ["!", ["in", ["get", "name"], ["literal", videoPeakNames.concat(own)]]]);
         // 100대 명산 표시(우리 자료)도 코스 지점과 같은 이름이면 숨김(2026-11-23 PC: 도착 "천왕봉 …m" 📍 와 "▲ 천왕봉 1915m" 가 위아래 두 번)
         if (map.getLayer("rf-peak")) map.setFilter("rf-peak", ["all", ["==", ["get", "kind"], "peak"], ["!", ["in", ["get", "name"], ["literal", own]]]]);
     }
