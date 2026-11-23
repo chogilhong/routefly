@@ -11,7 +11,7 @@
  */
 (function (global) {
     "use strict";
-    var VERSION = "1.1.3";
+    var VERSION = "1.1.4";
     // 이 파일이 있는 폴더(글꼴 · 자료 기본 자리) - node 테스트에서는 빈 글자
     var BASE = (function () {
         try { var s = global.document && global.document.currentScript; return s && s.src ? new URL(".", s.src).href : ""; } catch (e) { return ""; }
@@ -167,7 +167,8 @@
                         // 이름은 한 줄에 길게(10em), "외 n곳" 은 조금 작게 - 강남처럼 빽빽한 곳에서 두 줄 · 큰 글자로 화면이 꽉 찼음(2026-11-23 PC)
                         "text-field": ["format", ["case", ["==", ["get", "name"], "업소명없음"], ["coalesce", ["get", "sub"], ""], ["get", "name"]], {},
                             ["case", [">", ["coalesce", ["get", "n"], 1], 1], ["concat", tr(" 외 ", " +"), ["to-string", ["-", ["get", "n"], 1]], tr("곳", "")], ""], { "font-scale": 0.85 }],   // 같은 건물(같은 점) 가게는 "대표 외 n곳" - 누르면 목록(shopList)
-                        "text-optional": true, "text-max-width": 10, "icon-padding": 0, "text-padding": 0 },   // 이름 없는 업소는 업종으로, 같은 건물 가게끼리 덜 밀리게 여백 0(2026-11-23 PC)
+                        "text-optional": true, "text-max-width": 10, "icon-padding": 0, "text-padding": 0,
+                        "symbol-sort-key": ["-", 0, ["coalesce", ["get", "n"], 1]] },   // 가게가 많은 건물(n 큰 점)부터 자리를 잡음(2026-11-23 PC: 18곳 건물이 옆 글자에 밀림)   // 이름 없는 업소는 업종으로, 같은 건물 가게끼리 덜 밀리게 여백 0(2026-11-23 PC)
                     paint: { "text-color": ["match", ["get", "kind"], "food", "#c2410c", "cafe", "#8b5a2b", "shop", "#6b46c1", "bed", "#9c4221", "med", "#c53030", "school", "#2b6cb0", "#4a5568"],
                         "text-halo-color": "#fffdf5", "text-halo-width": 1.3 } });
             }
@@ -412,6 +413,42 @@
         return light ? { color: "#8a5a2b", opacity: 0.6 } : { color: "#ffffff", opacity: 0.4 };
     }
 
+    /** 순수 함수 - Terrarium 지형 그림 한 칸(r, g, b) → 해발 m(AWS Terrain Tiles 의 식: r·256 + g + b/256 − 32768). */
+    function terrariumEle(r, g, b) { return r * 256 + g + b / 256 - 32768; }
+
+    /** 순수 함수 - 위경도가 든 확대 z 조각과 그 안 칸(256칸 기준) → {x, y, px, py}. */
+    function tilePixel(lon, lat, z) {
+        var n = Math.pow(2, z), fx = (lon + 180) / 360 * n, r = lat * Math.PI / 180, fy = (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * n;
+        var x = Math.floor(fx), y = Math.floor(fy);
+        return { x: x, y: y, px: Math.min(255, Math.floor((fx - x) * 256)), py: Math.min(255, Math.floor((fy - y) * 256)) };
+    }
+
+    /**
+     * 한 자리의 지형 해발(m) - 지도 음영에 쓰는 지형 그림(demUrl, Terrarium 256칸)을 한 장 받아 그 칸 값을 읽음 → Promise(m | null). 약 30m 격자라 "약" 으로 보여 줄 값.
+     * 2026-11-23 홍TV님 "높이 넣어주고" - OSM 에 봉우리 · 높이가 없는 곳(영종 백운산 등)도 누른 자리의 해발을.
+     */
+    function demEle(demUrl, lon, lat, z) {
+        z = z || 14;
+        var t = tilePixel(lon, lat, z), url = String(demUrl || "").replace("{z}", z).replace("{x}", t.x).replace("{y}", t.y);
+        return new Promise(function (resolve) {
+            if (!url || !global.Image || !global.document) return resolve(null);
+            var img = new global.Image();
+            img.crossOrigin = "anonymous";
+            img.onload = function () {
+                try {
+                    var cv = global.document.createElement("canvas");
+                    cv.width = img.width; cv.height = img.height;
+                    var g = cv.getContext("2d");
+                    g.drawImage(img, 0, 0);
+                    var k = img.width / 256, d = g.getImageData(Math.floor(t.px * k), Math.floor(t.py * k), 1, 1).data;
+                    resolve(terrariumEle(d[0], d[1], d[2]));
+                } catch (e) { resolve(null); }
+            };
+            img.onerror = function () { resolve(null); };
+            img.src = url;
+        });
+    }
+
     /**
      * 가게 점을 누르면 그 자리(같은 건물) 가게 목록 창 - shops.py 가 묶은 list(가게 · 업종 줄들). 앱이 지도를 만든 뒤 한 번 부름(2026-11-23 홍TV님 - 같은 건물 18곳이 하나만 보였음).
      * 글은 textContent 로만 넣음(자료 글자를 HTML 로 읽지 않음).
@@ -436,6 +473,6 @@
     global.RFMap = {
         VERSION: VERSION, open: vectorBasemap, style: vectorStyle, ICONS: MAP_ICONS, iconImage: mapIconImage, poiShowFilter: poiShowFilter,
         peakOnFilter: peakOnFilter, PEAK_KEY_EXPR: PEAK_KEY_EXPR, peakKey: peakFeatureKey, peaksNear: peaksNear,
-        mvtPoints: mvtPoints, tilesAlong: tilesAlong, tileLonLat: tileLonLat, tilePeaks: trackTilePeaks, shopList: shopList, CONTOUR_STEPS: CONTOUR_STEPS, contourPaint: contourPaint
+        mvtPoints: mvtPoints, tilesAlong: tilesAlong, tileLonLat: tileLonLat, tilePeaks: trackTilePeaks, shopList: shopList, demEle: demEle, terrariumEle: terrariumEle, tilePixel: tilePixel, CONTOUR_STEPS: CONTOUR_STEPS, contourPaint: contourPaint
     };
 })(typeof window !== "undefined" ? window : this);

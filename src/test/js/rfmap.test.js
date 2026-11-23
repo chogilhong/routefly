@@ -14,7 +14,7 @@ function eq(name, got, want) {
     if (JSON.stringify(got) !== JSON.stringify(want)) { fails++; console.log("FAIL " + name + ": " + JSON.stringify(got) + " (기대 " + JSON.stringify(want) + ")"); }
 }
 var vs = M.style({ basemapUrl: "https://x/k.pmtiles", demUrl: "https://d/{z}/{x}/{y}.png" }, "https://x/f/"), ids = vs.layers.map(function (l) { return l.id; });
-eq("판 · 내보내는 것", [M.VERSION, Object.keys(M).sort()], ["1.1.3", ["CONTOUR_STEPS", "ICONS", "PEAK_KEY_EXPR", "VERSION", "contourPaint", "iconImage", "mvtPoints", "open", "peakKey", "peakOnFilter", "peaksNear", "poiShowFilter", "shopList", "style", "tileLonLat", "tilePeaks", "tilesAlong"]]);
+eq("판 · 내보내는 것", [M.VERSION, Object.keys(M).sort()], ["1.1.4", ["CONTOUR_STEPS", "ICONS", "PEAK_KEY_EXPR", "VERSION", "contourPaint", "demEle", "iconImage", "mvtPoints", "open", "peakKey", "peakOnFilter", "peaksNear", "poiShowFilter", "shopList", "style", "terrariumEle", "tileLonLat", "tilePeaks", "tilePixel", "tilesAlong"]]);
 eq("지도 모양 - 바탕 · 지형 · 글꼴 · 출처", [vs.sources.omt.url, vs.sources.hillshade.tiles[0], vs.glyphs, vs.sources.omt.attribution], ["pmtiles://https://x/k.pmtiles", "https://d/{z}/{x}/{y}.png", "https://x/f/{fontstack}/{range}.pbf", "© OpenMapTiles © OpenStreetMap contributors"]);
 eq("지도 모양 - 자료 폴더는 c.data(없으면 이 패키지 data/)", [vs.sources.gu.data, M.style({ basemapUrl: "a.pmtiles", demUrl: "d", data: "https://y/d/" }, "f/").sources.subway.data], ["data/gu-labels.json", "https://y/d/subway-lines.json"]);
 eq("지도 모양 - 영어(c.lang en)면 구 이름도 영어", JSON.stringify(M.style({ basemapUrl: "a.pmtiles", demUrl: "d", lang: "en" }, "f/").layers.filter(function (l) { return l.id === "gu-name"; })[0].layout["text-field"]),
@@ -40,6 +40,7 @@ eq("산림청 산길 글자 - 등산 표시(poi-hike) 바로 앞, 가운데 점�
     mid["source-layer"], mid.layout["symbol-placement"], tl["source-layer"], tl.layout["text-max-angle"]], [true, "rf_trail_mid", undefined, "rf_trail", 25]);
 eq("가게 - 이름 없는 업소(업소명없음)는 업종으로, 같은 점 여러 곳은 \"외 n곳\"", [JSON.stringify(sh.layout["text-field"][1][1]), JSON.stringify(sh.layout["text-field"][3][1]), sh.layout["text-field"][4]["font-scale"], sh.layout["text-max-width"], sh.layout["text-size"]],
     [JSON.stringify(["==", ["get", "name"], "업소명없음"]), JSON.stringify([">", ["coalesce", ["get", "n"], 1], 1]), 0.85, 10, 10]);
+eq("가게 - 가게가 많은 건물부터 자리를 잡음", JSON.stringify(sh.layout["symbol-sort-key"]), JSON.stringify(["-", 0, ["coalesce", ["get", "n"], 1]]));
 eq("산림청 등산로 글자 - 오름 · 내림 시간이 있을 때", JSON.stringify(tl.layout["text-field"][2]), JSON.stringify(["concat", "↑", ["to-string", ["get", "up"]], "분 ", ["to-string", ["get", "km"]], "km ↓", ["to-string", ["get", "down"]], "분"]));
 var city = vs.layers[ids.indexOf("poi-city")], bus = vs.layers[ids.indexOf("poi-bus")], cityIcon = city.layout["icon-image"];
 eq("생활 시설 - 식당 · 카페 · 가게 · 병원 등 확대 15, 버스 정류장 16, 등산 표시 앞(글자 자리를 내줌), 건물은 14 부터", [city.minzoom, bus.minzoom, ids.indexOf("poi-city") < ids.indexOf("poi-hike"),
@@ -52,6 +53,8 @@ eq("봉우리 - 선에서 150m 안만", M.peaksNear([{ name: "가", ele: 1, lat:
 var u8 = new Uint8Array(fs.readFileSync(tile)), sp = M.mvtPoints(u8, "mountain_peak").filter(function (p) { return p.props.name === "사패산"; })[0], g = M.tileLonLat(12, 3493, 1583, sp.x, sp.y, sp.extent);
 eq("조각 읽기 - 운영 지도 파일의 사패산(551m, 127.01045 · 37.72238)", [sp.props.ele, Math.round(g[0] * 1e5) / 1e5, Math.round(g[1] * 1e5) / 1e5], [551, 127.01045, 37.72238]);
 eq("선이 지나는 조각", M.tilesAlong([37.72238, 37.7224, 37.6], [127.01044, 127.0105, 127.01], 12, 40), [[3493, 1583], [3493, 1585]]);
+eq("지형 해발 - Terrarium 식(0 m 는 128·0·0, 1 m 는 128·1·0) · 조각 칸", [M.terrariumEle(128, 0, 0), M.terrariumEle(128, 1, 0), M.terrariumEle(128, 255, 128), M.tilePixel(127.01044, 37.72238, 12)],
+    [0, 1, 255.5, { x: 3493, y: 1583, px: 24, py: 242 }]);
 eq("등고선", [M.CONTOUR_STEPS[13], M.contourPaint(true).color], [[20, 100], "#8a5a2b"]);
 var dir = path.dirname(src), stn = JSON.parse(fs.readFileSync(path.join(dir, "data/stations.json"), "utf8")), gu = JSON.parse(fs.readFileSync(path.join(dir, "data/gu-labels.json"), "utf8")), sub = JSON.parse(fs.readFileSync(path.join(dir, "data/subway-lines.json"), "utf8"));
 eq("자료 - 역은 수도권 600곳 남짓, 회룡 · 망월사 · 도봉산 포함, 같은 이름은 400m 안에 하나만", [stn.features.length > 600, ["회룡", "망월사", "도봉산"].every(function (n) { return stn.features.some(function (f) { return f.properties.name === n; }); }),

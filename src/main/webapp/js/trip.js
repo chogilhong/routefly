@@ -371,7 +371,7 @@
 
     /**
      * 봉우리 · 대피소 · 절 등을 누르면(2026-11-23 홍TV님 "봉들 대피소를 클릭하면 카메라처럼 그래프에 위치 표시") 기록 위 가장 가까운 자리를 그래프에 표시하고
-     * 이름 · 출발부터 거리 · 해발을 작은 창으로. 선에서 멀면(PICK_NEAR_M 넘음) 이름과 "이 기록에서 떨어짐" 만.
+     * 이름 · 출발부터 거리 · 해발을 작은 창으로. 선에서 멀면(PICK_NEAR_M 넘음) 이름 · 선에서 거리 · 지형 해발. 확대 · 축소하면 닫힘.
      */
     function pickPlace(e) {
         var f = e.features && e.features[0];
@@ -386,10 +386,18 @@
             var p = RF.at(rc, q.d);
             t.textContent = T("출발부터 ", "from start ") + RF.km(q.d) + " km" + (p.ele != null ? T(" · 기록 해발 ", " · recorded elev. ") + RF.num(Math.round(p.ele)) + " m" : "");
             if (prof) prof.set(q.d);
-        } else t.textContent = T("이 기록에서 떨어진 곳", "Away from this record");
+        } else if (q) t.textContent = T("기록 선에서 ", "") + RF.km(q.off) + T(" km 떨어진 곳", " km from this record");   // 기록 밖 장소 - 선에서 얼마나 먼지(2026-11-23 홍TV님 "'이 기록에서 떨어진 곳' 뭐야?")
+        // 누른 자리의 지형 해발(약 30m 격자 - "약") - OSM 에 높이가 없는 곳도(2026-11-23 홍TV님 "높이 넣어주고"). 봉우리는 이름 아래 높이가 이미 있어 그대로
+        var h = document.createElement("div");
+        box.appendChild(h);
+        if (contourCfg && contourCfg.demUrl) RFMap.demEle(contourCfg.demUrl, g[0], g[1]).then(function (m) {
+            if (m != null && m > -100) h.textContent = T("해발 약 ", "elev. about ") + RF.num(Math.round(m)) + " m" + T("(지형 자료)", " (terrain data)");
+        });
         if (popup) popup.remove();
         // 빈 곳을 누르거나 ✕ · Esc 로 닫힘(2026-11-23 PC: 닫는 단추가 없어 닫기 어려웠음)
         popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, offset: 12, className: "placePop" }).setLngLat(g).setDOMContent(box).addTo(map);
+        var pp = popup;
+        map.once("zoomstart", function () { if (popup === pp) { popup.remove(); popup = null; } });   // 확대 · 축소하면 닫힘(2026-11-23 홍TV님 "지도를 축소해도 그대로 있네")
         var x = popup.getElement().querySelector(".maplibregl-popup-close-button");
         if (x) { x.setAttribute("aria-label", T("닫기", "Close")); x.title = T("닫기", "Close"); }
     }
