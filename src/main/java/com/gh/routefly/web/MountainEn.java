@@ -150,6 +150,7 @@ final class MountainEn {
         b.append(MountainServlet.heroBlock(peak, REL, true));   // 대표 사진(한국어 페이지와 같게, 2026-11-21)
         // 설명 바로 아래 - 날씨 칸 위(한국어 페이지와 같은 자리, 2026-11-03 홍TV님 점검: 날씨 칸 뒤라 첫 화면 밖이었음)
         b.append(MountainServlet.shortsBlock(peak, true));   // ▶ 이 산 이야기(한국어 쇼츠) - 한국어 페이지와 같게 "See the n trails" 바로 위(2026-11-20)
+        b.append(MountainServlet.flightBlock(peak, true));   // 🛩 3D traverse video(2026-11-23)
         if (!courses.isEmpty()) b.append("<p class=\"jump\"><a href=\"#trails\">🥾 See the ").append(courses.size()).append(courses.size() == 1 ? " trail" : " trails").append(" ↓</a></p>");
         b.append("<section id=\"wx\" data-lat=\"").append(peak.get("lat").getAsDouble()).append("\" data-lon=\"").append(peak.get("lon").getAsDouble())
                 .append("\"><h2>Weather · Air quality · Sunrise &amp; Sunset</h2><div class=\"days\" role=\"group\" aria-label=\"Pick a day\"></div><p class=\"dim\" id=\"wxBody\">Weather, air quality, sunrise and sunset (KMA · AirKorea) for today and the next few days appear here.</p></section>");

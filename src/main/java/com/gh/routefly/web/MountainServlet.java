@@ -293,6 +293,7 @@ public class MountainServlet extends HttpServlet {
         withElev(p, readElev(getServletContext()));
         withInfo(p, readInfo(getServletContext()));
         withShorts(p, readShorts(getServletContext()));
+        withFlights(p, readJsonVideos(getServletContext(), "/data/flights.json"));   // 🛩 3D 종주 영상(2026-11-23)
         withHero(p, readHero(getServletContext()));   // 맨 위 대표 사진(data/hero.json - 2026-11-21 "고급지게" 1번)
         JsonObject sea = readSeason(getServletContext());
         withSeason(p, sea);
@@ -718,6 +719,49 @@ public class MountainServlet extends HttpServlet {
         } catch (Exception e) {
             return new JsonObject();
         }
+    }
+
+    /** data/flights.json 처럼 {videos: {산 id: [...]}} 모양 파일의 videos - 없거나 못 읽으면 빈 것. */
+    static JsonObject readJsonVideos(jakarta.servlet.ServletContext ctx, String path) {
+        try (InputStream in = ctx.getResourceAsStream(path)) {
+            JsonElement e = in == null ? null : JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+            return e != null && e.isJsonObject() && e.getAsJsonObject().has("videos") ? e.getAsJsonObject().getAsJsonObject("videos") : new JsonObject();
+        } catch (Exception e) {
+            return new JsonObject();
+        }
+    }
+
+    /** 순수 함수 - 산마다 3D 종주 영상 목록(flights)을 붙임(id 로 맞춤 - withShorts 와 같게). */
+    static void withFlights(JsonArray peaks, JsonObject videos) {
+        for (JsonElement e : peaks) {
+            JsonObject o = e.getAsJsonObject();
+            String id = str(o, "id") != null ? str(o, "id") : str(o, "name");
+            JsonElement v = id == null ? null : videos.get(id);
+            if (v != null && v.isJsonArray() && v.getAsJsonArray().size() > 0) o.add("flights", v.getAsJsonArray());
+        }
+    }
+
+    /**
+     * 순수 함수 - "🛩 3D 종주 영상" 칸(영상이 없으면 ""). 2026-11-23 홍TV님 - 홍TV님 GPS 기록으로 만든 3D 비행 영상(유튜브) 링크와 내 GPX 로 만드는 법 한 줄.
+     * 쇼츠 칸처럼 유튜브로 가는 링크만(페이지에 영상을 심지 않음). 영어 페이지는 한국어 글자 영상이라고 적음.
+     */
+    static String flightBlock(JsonObject peak, boolean en) {
+        if (!peak.has("flights") || !peak.get("flights").isJsonArray()) return "";
+        StringBuilder b = new StringBuilder();
+        for (JsonElement e : peak.getAsJsonArray("flights")) {
+            if (!e.isJsonObject()) continue;
+            JsonObject v = e.getAsJsonObject();
+            String vid = str(v, "id"), title = str(v, "title");
+            if (vid == null || !vid.matches("[A-Za-z0-9_-]{6,20}") || title == null) continue;
+            String len = v.has("sec") && v.get("sec").isJsonPrimitive() ? clock(v.get("sec").getAsDouble()) : null;
+            String km = v.has("km") && v.get("km").isJsonPrimitive() ? (v.get("km").getAsDouble() == Math.rint(v.get("km").getAsDouble()) ? "약 " + (long) v.get("km").getAsDouble() : String.valueOf(v.get("km").getAsDouble())) + "km" : null;
+            b.append("<li><a href=\"https://www.youtube.com/watch?v=").append(vid).append("\" target=\"_blank\" rel=\"noopener\">").append(esc(title))
+                    .append(str(v, "route") != null ? " - " + esc(str(v, "route")) : "").append(km != null ? " · " + km : "").append(len != null ? " (" + len + ")" : "").append(" ›</a></li>");
+        }
+        if (b.length() == 0) return "";
+        return "<section class=\"shorts flight\"><h2>" + (en ? "🛩 3D traverse video (Korean captions)" : "🛩 3D 종주 영상") + "</h2><ul class=\"tips\">" + b
+                + "</ul><p class=\"src\">" + (en ? "Made from a GPS record with routefly 🛩 3D video - make one from your own GPX: 📒 My records → 📂 Open GPX → 🛩 3D video."
+                        : "GPS 기록으로 routefly 🛩 3D 영상을 만들었습니다 - 내 GPX 로도 됩니다: 📒 내 기록 → 📂 GPX 열기 → 🛩 3D 영상.") + "</p></section>";
     }
 
     /** 순수 함수 - 산마다 쇼츠 목록(shorts)을 붙임(id 로 맞춤 - withInfo 와 같게). */
@@ -1355,6 +1399,7 @@ public class MountainServlet extends HttpServlet {
         // 코스 목록은 날씨 · 챙길 것 · 안전 · 숙소 칸 아래라 한 번에 내려가는 링크(2026-11-02 홍TV님 점검: 폰에서 코스를 찾느라 길게 밀었음).
         // 설명 바로 아래 - 날씨 칸 아래에 두었더니 화면이 그 아래 넣는 🎒 챙길 것에 밀려 첫 화면 밖으로 나갔음(점검 6차)
         b.append(shortsBlock(peak, false));   // ▶ 이 산 이야기(유튜브 쇼츠, data/shorts.json) - "코스 n개 바로 보기" 바로 위(2026-11-20 홍TV님 "바로 위로 옮겨줘", 전에는 선정 이유 아래)
+        b.append(flightBlock(peak, false));   // 🛩 3D 종주 영상(data/flights.json, 2026-11-23) - 이 산 이야기 바로 아래
         if (!courses.isEmpty()) b.append("<p class=\"jump\"><a href=\"#trails\">🥾 코스 ").append(courses.size()).append("개 바로 보기 ↓</a></p>");
         b.append(APP_SLOT);   // 원스토어 띠도 첫 화면에(2026-11-10 홍TV님 "제일 아래에 있네") - foot 의 칸은 js 가 맨 앞 칸 하나만 채워 두 번 안 나옴
         boolean seasonUp = seasonNow(peak, month);   // 지금 철(그 산에 관측이 있는 벚꽃 · 철쭉 · 단풍)이면 칸을 첫 화면(날씨 칸 위)으로(2026-11-14 홍TV님 "제철에 보여주는 거야?")
