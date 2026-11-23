@@ -748,9 +748,15 @@
                 var b = photoBlob(got.photos[id]);
                 return Promise.resolve(b ? URL.createObjectURL(b) : null);
             });
-            // 연 GPX 파일도 🛩 3D 영상(2026-11-23 홍TV님) - 저장 · GPX 편집 · 삭제는 내 기록에만 있어 숨김
-            $("recBtns").hidden = false; $("rec-save").hidden = true; $("rec-edit").hidden = true; $("rec-del").hidden = true;
+            // 연 GPX 파일도 🛩 3D 영상(2026-11-23 홍TV님) · 📐 GPX 편집(2026-11-24 홍TV님 "넣어줘") - 저장 · 삭제는 내 기록에만 있어 숨김
+            $("recBtns").hidden = false; $("rec-save").hidden = true; $("rec-edit").hidden = false; $("rec-del").hidden = true;
             $("rec-fly").onclick = function () { flyFile(got); };
+            // 보고 있던 길을 이 탭의 sessionStorage 로 GPX 편집에 넘김(이 기기 안에서만, 서버로 안 감 - 사진은 빼고 선 · 시각 · 높이만). 너무 커서 못 담으면 알림
+            $("rec-edit").onclick = function () {
+                try { sessionStorage.setItem("rf-studio-in", JSON.stringify({ name: got.rec.name || f.name, track: got.rec.track })); }
+                catch (e) { alert(T("길이 너무 커서 넘기지 못했습니다. GPX 편집에서 📂 열기로 이 파일을 여세요.", "The track is too big to pass on. Open this file with 📂 Open in the GPX editor.")); return; }
+                location.href = "studio.html#file";
+            };
         }).catch(function () { alert(T("파일을 읽지 못했습니다.", "Could not read the file.")); });
     });
 })();

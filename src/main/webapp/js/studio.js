@@ -1394,6 +1394,7 @@
      * 고친 뒤 운영자는 ⬆ 코스로 올리기, 다른 사람은 📮 등록 요청. 기록은 이 기기 안에서만 읽음.
      */
     function openFromRecord() {
+        if (location.hash === "#file") return openFromFile();
         var m = /^#rec=(.+)$/.exec(location.hash);
         if (!m) return;
         var key = RF.safeDecode(m[1]);
@@ -1406,6 +1407,18 @@
             draw(true);
             return ownerP.then(function () { msg("내 기록을 열었습니다(" + km(RF.trackStats(cur().track).dist) + " km). 집 근처는 ✂ 로 자른 뒤 " + (owner ? "⬆ 코스로 올리세요." : "📮 등록 요청하세요."), 8000); });
         });
+    }
+    /**
+     * 기록 보기에서 📂 GPX 열기로 연 파일의 📐 GPX 편집(#file, 2026-11-24 홍TV님) - trip.js 가 sessionStorage "rf-studio-in" 에 둔 {name, track} 를 목록에 넣고 바로 지움(이 기기 안에서만).
+     */
+    function openFromFile() {
+        var o = null;
+        try { o = JSON.parse(sessionStorage.getItem("rf-studio-in") || "null"); sessionStorage.removeItem("rf-studio-in"); } catch (e) { /* 없음 */ }
+        try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* 주소는 그대로 */ }   // 새로 고침 때 또 넣지 않게
+        if (!o || !Array.isArray(o.track) || o.track.length < 2) { msg("넘겨받은 GPX 가 없습니다. 📂 열기로 파일을 여세요.", 6000); return; }
+        add(String(o.name || "GPX"), o.track.map(function (p) { return [p[0], p[1], p[2] != null ? p[2] : null, p[3] != null ? p[3] : null]; }));
+        draw(true);
+        return ownerP.then(function () { msg("연 GPX 를 넣었습니다(" + km(RF.trackStats(cur().track).dist) + " km). 고친 뒤 💾 저장하거나 " + (owner ? "⬆ 코스로 올리세요." : "📮 등록 요청하세요."), 8000); });
     }
     restoreWork().then(openFromGuide).then(openFromRecord).then(openAt);   // 지난 작업을 먼저 되살린 뒤 안내도에서 가져온 길을 그 뒤에, 산 자리는 마지막에
     if (/[?&]debug\b/.test(location.search)) window.routeflyStudio = { get mapOk() { return mapOk; }, get map() { return map; }, get tracks() { return tracks; } };   // 시험용
