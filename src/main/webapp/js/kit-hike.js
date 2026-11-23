@@ -1388,7 +1388,8 @@
                 + "<name>" + esc(nm) + "</name>" + (n.text ? "<desc>" + esc(n.text) + "</desc>" : "") + (n.photo ? "<type>photo</type>" : "")
                 + (b64 ? "<extensions><rf:photo>" + String(b64).replace(/[^A-Za-z0-9+/=]/g, "") + "</rf:photo></extensions>" : "") + "</wpt>";
         }).join("\n");
-        var sum = { kind: rec.kind || "hike", start: rec.start, end: rec.end, up: rec.up != null ? rec.up : null, kcal: rec.kcal != null ? rec.kcal : null, steps: rec.steps != null ? rec.steps : null, courseId: rec.courseId || null };
+        var sum = { kind: rec.kind || "hike", start: rec.start, end: rec.end, up: rec.up != null ? rec.up : null, kcal: rec.kcal != null ? rec.kcal : null, steps: rec.steps != null ? rec.steps : null, courseId: rec.courseId || null,
+            via: rec.via === "app" || rec.via === "web" ? rec.via : null, saver: typeof rec.saver === "boolean" ? rec.saver : null };   // via · saver - 어디서 기록했나(2026-11-23)
         return '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="routefly" xmlns="http://www.topografix.com/GPX/1/1" xmlns:rf="' + RF_GPX_NS + '">\n'
             + "<metadata><name>" + esc(rec.name || "") + "</name>" + (rec.start ? "<time>" + iso(rec.start) + "</time>" : "")
             + "<extensions><rf:record>" + esc(JSON.stringify(sum)) + "</rf:record></extensions></metadata>\n"
@@ -1456,7 +1457,8 @@
         var t0 = timed.length ? timed[0][2] : null, t1 = timed.length ? timed[timed.length - 1][2] : null;
         return { rec: { name: name, kind: kind, start: isFinite(sum.start) && sum.start !== null ? +sum.start : t0, end: isFinite(sum.end) && sum.end !== null ? +sum.end : t1,
                         up: isFinite(sum.up) && sum.up !== null ? +sum.up : null, kcal: isFinite(sum.kcal) && sum.kcal !== null ? +sum.kcal : null, steps: isFinite(sum.steps) && sum.steps !== null ? +sum.steps : null,
-                        courseId: typeof sum.courseId === "string" ? sum.courseId : null, track: track, notes: notes }, photos: photos };
+                        courseId: typeof sum.courseId === "string" ? sum.courseId : null, via: sum.via === "app" || sum.via === "web" ? sum.via : null,
+                        saver: typeof sum.saver === "boolean" ? sum.saver : null, track: track, notes: notes }, photos: photos };
     }
 
     var SPEED_HALF_MS = 60000;

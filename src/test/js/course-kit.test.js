@@ -1209,6 +1209,9 @@ tick().then(function () {
         eq("GPX - 다른 앱이 읽는 선 · 지점 그대로", [/<trkpt lat="37.6" lon="127"><ele>100<\/ele><time>/.test(gx), /<name>쉼 &amp; 물<\/name>/.test(gx), /<rf:photo>\/9j\/AAAA<\/rf:photo>/.test(gx)], [true, true, true]);
         eq("GPX → 기록 - 이름 · 요약 · 점 · 메모 · 사진", [back.rec.name, back.rec.kind, back.rec.start, back.rec.end, back.rec.up, back.rec.kcal, back.rec.steps, back.rec.courseId, back.rec.track, back.rec.notes.map(function (n) { return [n.t, n.lat, n.ele, n.text, back.photos[n.photo]]; })],
             [rec.name, "hike", t0, t0 + 1200000, 78, 27, 463, "kmp-1", track, [[t0 + 300000, 37.605, 200, "쉼 & 물", "/9j/AAAA"], [t0 + 600000, 37.61, 300, null, "/9j/BBBB"]]]);
+        // 어디서 기록했나(via app · web, 배터리 절약 saver - 2026-11-23 PC: 끊김 원인을 가리려고) - 없으면 null, 이상한 값은 버림
+        var gv = RF.gpxRecord(RF.recordGpx(Object.assign({}, rec, { via: "app", saver: false }), {})).rec, gw = RF.gpxRecord(RF.recordGpx(Object.assign({}, rec, { via: "x" }), {})).rec;
+        eq("GPX - 기록한 곳 · 배터리 절약", [gv.via, gv.saver, back.rec.via, back.rec.saver, gw.via], ["app", false, null, null, null]);
         var cg = '<gpx><wpt lat="37.05" lon="127"><name>갈림길</name></wpt><trk><name>코스</name><trkseg><trkpt lat="37" lon="127"><ele>100</ele></trkpt><trkpt lat="37.1" lon="127"><ele>300</ele></trkpt></trkseg></trk></gpx>';
         var any = RF.gpxRecord(cg, true);
         eq("기록 보기는 시각 없는 코스 GPX 도(2026-11-22 홍TV님 \"왜 안 열리지?\") - 점 · 지점 이름", [any.rec.track, any.rec.start, any.rec.notes.map(function (n) { return n.text; })], [[[37, 127, null, 100], [37.1, 127, null, 300]], null, ["갈림길"]]);

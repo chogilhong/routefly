@@ -1936,6 +1936,9 @@
         rec.kcal = ef.kcal;
         rec.steps = ef.steps;
         rec.up = Math.max(ef.up, RF.trackClimb(hike.track));   // 코스 밖(새 길 · 들머리 가는 길)도 GPS 높이로(2026-10-17 송산 0m)
+        // 어디서 기록했나(2026-11-23 PC: 지리산 기록이 앱 · 크롬 중 어느 쪽인지 GPX 로 못 가려 끊김 원인을 못 봄) - app 앱 · web 브라우저, 배터리 절약 모드
+        rec.via = NATIVE ? "app" : "web";
+        rec.saver = !!batterySave;
         rec.track = RF.fillTrackEle(c, hike.track);   // GPX 보내기에 높이 - GPS 높이가 없는 점은 코스 지형 높이로(2026-10-31 홍TV님 gpx.studio 높이 0)
         var tip = document.querySelector("#doneSheet .tip");   // 시험 걷기는 "기록은 이 핸드폰에 남습니다" 안내를 숨김(2026-10-28 PC)
         if (tip) tip.hidden = !!sim;

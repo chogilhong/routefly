@@ -122,6 +122,7 @@ public class VideoKitTest {
         assertTrue("📮 등록 요청 - 이름이 올라간다는 안내는 보내는 창(RF.submitSheet)에", read("src/main/webapp/js/course-kit.js").contains("보내는 사람 이름(올리면 코스 화면에 \\\"만든 이\\\" 로 보임 · 비우면 익명)")
             && js.contains("function submitSheet(r) {\n        RF.submitSheet({"));
         assertTrue("💾 사진 · 메모까지 든 GPX", js.contains("saveGpxText(rec, RF.recordGpx(rec, ph));"));
+        assertTrue("기록에 어디서 기록했나(앱 · 브라우저) · 배터리 절약을 남김(2026-11-23 PC - 끊김 원인 가리기)", js.contains("rec.via = NATIVE ? \"app\" : \"web\";") && js.contains("rec.saver = !!batterySave;"));
         assertTrue("받은 GPX 기록은 내 기록으로", js.contains("try { got = RF.gpxRecord(text, false, name); } catch (e) { got = null; }") && js.contains("if (ok) importGpxRecord(got); else openGpxCourse(text, name);"));
     }
 
