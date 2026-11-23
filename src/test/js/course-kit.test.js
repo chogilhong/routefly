@@ -326,7 +326,11 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
             icon.filter(function (v, k) { return typeof v === "string" && k > 0 && k % 2 === 0; }).concat(icon[icon.length - 1] ? [icon[icon.length - 1]] : []).every(function (id) { return !!RF.MAP_ICONS[id]; })],
             [JSON.stringify([["all", ["==", ["get", "class"], "lodging"], ["==", ["get", "subclass"], "alpine_hut"]], "rf-hut", ["==", ["get", "class"], "shelter"], "rf-hut",
                 ["all", ["==", ["get", "class"], "place_of_worship"], ["==", ["get", "subclass"], "buddhist"]], "rf-temple",
-                ["all", ["==", ["get", "class"], "attraction"], ["==", ["get", "subclass"], "viewpoint"]], "rf-view", ["==", ["get", "class"], "drinking_water"], "rf-water"]), true]);
+                ["all", ["==", ["get", "class"], "attraction"], ["==", ["get", "subclass"], "viewpoint"]], "rf-view", ["==", ["get", "class"], "drinking_water"], "rf-water",
+                ["==", ["get", "class"], "railway"], "rf-rail"]), true]);
+        var rm = vs.layers[ids.indexOf("road-name-major")], rn = vs.layers[ids.indexOf("road-name")];
+        eq("큰길 이름은 확대 11부터(고속도로 · 국도 · 큰 도로), 나머지 길 이름은 13부터 - 겹치지 않게 서로 거름", [rm.minzoom, JSON.stringify(rm.filter), rn.minzoom, rn.filter[0]],
+            [11, JSON.stringify(["match", ["get", "class"], ["motorway", "trunk", "primary"], true, false]), 13, "!"]);
         eq("대피소 · 절 등 - 아이콘이 없는 것(교회 · 식당 등)은 안 그림", [icon[icon.length - 1], JSON.stringify(poi.filter)], ["", JSON.stringify(["!=", icon, ""])]);
         eq("표시 숨기기 - 숨긴 아이콘만 거름에 더함", [RF.poiShowFilter("I", []), RF.poiShowFilter("I", ["rf-temple"])], [["!=", "I", ""], ["all", ["!=", "I", ""], ["!", ["in", "I", ["literal", ["rf-temple"]]]]]]);
         eq("늘 보이는 표시 - 맨 뒤 두 층(글자 자리를 먼저), 멀리서도(대피소 8 · 봉우리 7)", [ids.slice(-2), vs.layers[ids.indexOf("rf-peak")].minzoom, vs.layers[ids.indexOf("rf-hut")].minzoom, vs.sources.marks.type], [["rf-hut", "rf-peak"], 7, 8, "geojson"]);
@@ -350,6 +354,9 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
             eq("공원 찾기 - 선에서 maxM 안 첫 국립공원, 국립공원이 아니면 건너뜀, 없으면 null", [
                 RF.recordPark(c, [{ park: "모악산", lat: 35.30, lon: 127.705 }, { park: "지리산", lat: 35.305, lon: 127.705 }], 1500),
                 RF.recordPark(c, [{ park: "지리산", lat: 35.40, lon: 127.705 }], 1500), RF.recordPark(c, [], 1500)], ["지리산", null, null]);
+            eq("구간 - 끊는 곳끼리 1km 안이면 앞쪽만(2026-11-23 홍TV님 \"1km 보다 짧은 구간은 앞에 붙이기\")", RF.trackSegments(c, [{ name: "가", lat: 35.30, lon: 127.7040 }, { name: "나", lat: 35.30, lon: 127.7050 }], 200, 300).features.map(function (f) { return f.properties.to; }), ["가", null]);
+            eq("구간 - 같은 두 곳도 1km 기준이면 앞쪽(가) 하나만 · 처음에서 1km 안도 안 끊음", [RF.trackSegments(c, [{ name: "가", lat: 35.30, lon: 127.7040 }, { name: "나", lat: 35.30, lon: 127.7046 }], 200, 100).features.length,
+                RF.trackSegments(c, [{ name: "가", lat: 35.30, lon: 127.7040 }], 200, 1000).features.length], [2, 1]);
             eq("구간 색 - 선에서 먼 곳(약 330m) · 서로 가까운 곳(150m 안) · 끝 가까운 곳은 안 끊음", [RF.trackSegments(c, [stopAt(40, 0.003)], 200, 150).features.length,
                 RF.trackSegments(c, [stopAt(40), stopAt(45)], 200, 150).features.length, RF.trackSegments(c, [stopAt(2), stopAt(99)], 200, 150).features.length, RF.trackSegments(c, [], 200, 150).features.length], [1, 2, 1, 1]);
         })();

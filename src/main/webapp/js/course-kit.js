@@ -2093,7 +2093,8 @@
             ["==", ["get", "class"], "shelter"], "rf-hut",
             ["all", ["==", ["get", "class"], "place_of_worship"], ["==", ["get", "subclass"], "buddhist"]], "rf-temple",
             ["all", ["==", ["get", "class"], "attraction"], ["==", ["get", "subclass"], "viewpoint"]], "rf-view",
-            ["==", ["get", "class"], "drinking_water"], "rf-water", ""];
+            ["==", ["get", "class"], "drinking_water"], "rf-water",
+            ["==", ["get", "class"], "railway"], "rf-rail", ""];   // 기차 · 지하철역(OMT poi class railway - 2026-11-23 홍TV님 "지하철역 · 도시 안내")
         var peakText = ["case", ["has", "ele"], ["concat", "▲ ", ko, "\n", ["to-string", ["get", "ele"]], "m"], ["concat", "▲ ", ko]];
         return {
             version: 8,
@@ -2118,7 +2119,11 @@
                 line("road-minor", cls(["minor", "service", "tertiary"]), "#ffffff", ["interpolate", ["linear"], ["zoom"], 10, 0.6, 16, 4]),
                 line("road-major", cls(["primary", "secondary", "trunk", "motorway"]), "#f4c96b", ["interpolate", ["linear"], ["zoom"], 7, 0.8, 16, 6]),
                 line("rail", cls(["rail", "transit"]), "#8a8a8a", 1, { "line-dasharray": [3, 3] }),
-                { id: "road-name", type: "symbol", source: "omt", "source-layer": "transportation_name", minzoom: 13,
+                // 큰길(고속도로 · 국도 · 큰 도로) 이름은 더 멀리서부터(2026-11-23 홍TV님 "큰길 이름 · 도시 안내"), 고속도로는 이름이 없으면 번호(ref)
+                { id: "road-name-major", type: "symbol", source: "omt", "source-layer": "transportation_name", minzoom: 11, filter: cls(["motorway", "trunk", "primary"]),
+                    layout: { "symbol-placement": "line", "text-field": ["coalesce", ["get", "name:ko"], ["get", "name"], ["get", "ref"]], "text-font": F, "text-size": 11.5 },
+                    paint: { "text-color": "#6b4a1a", "text-halo-color": "#fff", "text-halo-width": 1.5 } },
+                { id: "road-name", type: "symbol", source: "omt", "source-layer": "transportation_name", minzoom: 13, filter: ["!", cls(["motorway", "trunk", "primary"])],
                     layout: { "symbol-placement": "line", "text-field": ko, "text-font": F, "text-size": 11 }, paint: { "text-color": "#5a4a3a", "text-halo-color": "#fff", "text-halo-width": 1.2 } },
                 { id: "water-name", type: "symbol", source: "omt", "source-layer": "water_name",
                     layout: { "text-field": ko, "text-font": F, "text-size": 11 }, paint: { "text-color": "#3f6f8f", "text-halo-color": "#fff", "text-halo-width": 1 } },
@@ -2134,7 +2139,7 @@
                 { id: "poi-hike", type: "symbol", source: "omt", "source-layer": "poi", minzoom: 12, filter: poiShowFilter(hikePoiIcon, []),
                     layout: { "icon-image": hikePoiIcon, "icon-size": 1, "icon-allow-overlap": false, "text-field": ko, "text-font": F, "text-size": 11,
                         "text-anchor": "top", "text-offset": [0, 0.9], "text-optional": true },
-                    paint: { "text-color": ["match", hikePoiIcon, "rf-temple", "#8b1e1e", "rf-water", "#1f5f8b", "#5a3510"], "text-halo-color": "#fffdf5", "text-halo-width": 1.4 } },
+                    paint: { "text-color": ["match", hikePoiIcon, "rf-temple", "#8b1e1e", "rf-water", "#1f5f8b", "rf-rail", "#1f4e8c", "#5a3510"], "text-halo-color": "#fffdf5", "text-halo-width": 1.4 } },
                 // 기록이 지나간 봉우리는 조금 크게 · 진하게(2026-11-22 홍TV님) - 어느 봉우리인지는 화면이 peaksNear 로 찾아 setFilter. 맨 뒤 층이라 글자 자리를 먼저 잡음
                 { id: "peak-on", type: "symbol", source: "omt", "source-layer": "mountain_peak", minzoom: 9, filter: peakOnFilter([], true),
                     layout: { "text-field": peakText, "text-font": F, "text-size": 13.5, "text-anchor": "top", "text-offset": [0, 0.2], "symbol-sort-key": ["-", 0, ["coalesce", ["get", "ele"], 0]] },
@@ -2151,7 +2156,7 @@
     }
 
     /** 우리 지도 poi-hike 층 아이콘(이름 → 동그라미 색 · 안 그림). 화면이 캔버스로 그려 map.addImage - 집 · 눈 · 물방울은 선으로(글꼴마다 ⌂ 등이 뭉개짐), 절은 卍(한자라 폰 글꼴에 있음). */
-    var MAP_ICONS = { "rf-hut": ["#7a4a1c", "house"], "rf-temple": ["#b23b2e", "卍"], "rf-view": ["#2f7d4f", "eye"], "rf-water": ["#2a73b8", "drop"] };
+    var MAP_ICONS = { "rf-hut": ["#7a4a1c", "house"], "rf-temple": ["#b23b2e", "卍"], "rf-view": ["#2f7d4f", "eye"], "rf-water": ["#2a73b8", "drop"], "rf-rail": ["#2b5797", "train"] };
 
     /** 순수 함수 - 우리 지도 poi-hike 층 거름: 아이콘이 있고(icon = 층의 icon-image 식) 숨긴 것(hidden - "rf-hut" 등)이 아닌 것만(2026-11-22 홍TV님 "마커 별로 숨기고 보이고"). */
     function poiShowFilter(icon, hidden, dropNames) {
@@ -2277,6 +2282,9 @@
             g.moveTo(c, c - 6 * u); g.lineTo(c + 6 * u, c); g.lineTo(c + 4 * u, c); g.lineTo(c + 4 * u, c + 5 * u); g.lineTo(c - 4 * u, c + 5 * u); g.lineTo(c - 4 * u, c); g.lineTo(c - 6 * u, c); g.closePath(); g.fill();
         } else if (ic[1] === "drop") {   // 물방울
             g.moveTo(c, c - 6 * u); g.bezierCurveTo(c + 5 * u, c, c + 5 * u, c + 5 * u, c, c + 5 * u); g.bezierCurveTo(c - 5 * u, c + 5 * u, c - 5 * u, c, c, c - 6 * u); g.fill();
+        } else if (ic[1] === "train") {   // 전동차 앞모습(몸통 · 창 · 바퀴)
+            g.fillRect(c - 5 * u, c - 6 * u, 10 * u, 9 * u); g.fillStyle = ic[0]; g.fillRect(c - 3.5 * u, c - 4.5 * u, 7 * u, 3.5 * u);
+            g.fillStyle = "#fff"; g.arc(c - 3 * u, c + 5 * u, 1.4 * u, 0, Math.PI * 2); g.arc(c + 3 * u, c + 5 * u, 1.4 * u, 0, Math.PI * 2); g.fill();
         } else if (ic[1] === "eye") {   // 눈(전망)
             g.ellipse(c, c, 6.5 * u, 3.8 * u, 0, 0, Math.PI * 2); g.stroke(); g.beginPath(); g.arc(c, c, 2 * u, 0, Math.PI * 2); g.fill();
         } else {
@@ -5771,7 +5779,7 @@
         }
         return {
             set: function (d) {
-                var x = d / c.total * PW;
+                var x = Math.max(0, Math.min(PW, d / c.total * PW));   // 처음 · 끝을 넘지 않게(2026-11-23 PC: 3D 영상에서 막대 너비가 -0.1 로 경고)
                 cursor.setAttribute("x1", x.toFixed(1));
                 cursor.setAttribute("x2", x.toFixed(1));
                 done.setAttribute("width", x.toFixed(1));

@@ -905,7 +905,7 @@
         }
         return {
             set: function (d) {
-                var x = d / c.total * PW;
+                var x = Math.max(0, Math.min(PW, d / c.total * PW));   // 처음 · 끝을 넘지 않게(2026-11-23 PC: 3D 영상에서 막대 너비가 -0.1 로 경고)
                 cursor.setAttribute("x1", x.toFixed(1));
                 cursor.setAttribute("x2", x.toFixed(1));
                 done.setAttribute("width", x.toFixed(1));

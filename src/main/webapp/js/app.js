@@ -94,7 +94,7 @@
      * 3D 비행 영상 바탕을 우리 지도로(2026-11-23 홍TV님 "3D 비행 영상 바탕을 우리 지도로") - RF.vectorBasemap 의 모양 위에 3D 지형 · 하늘을 얹음.
      * 날며 보는 영상이라 글은 봉우리 · 대피소 · 절 등만(길 · 마을 · 물 이름은 뺌 - 기울어진 화면에 많으면 어지러움). 위성(V-World)은 영상에 쓰지 않음.
      */
-    var VIDEO_DROP = ["road-name", "place", "water-name"];
+    var VIDEO_DROP = ["road-name", "road-name-major", "place", "water-name"];
     function videoStyle(cfg, vs) {
         var st = buildStyle(cfg), out = Object.assign({}, vs, { terrain: st.terrain, sky: st.sky });
         var t = Object.assign({}, st.sources.terrain);
@@ -1389,6 +1389,14 @@
         "Trails: Korea Forest Service | Walking: Korea Tourism Organization Durunubi | Peaks · forest trails: Korea Hiking & Trekking Center | Places · bike paths: ");
 
     var videoVec = false;   // 영상 바탕이 우리 지도인가(출처 줄에 OpenMapTiles)
+    var videoPeakNames = [];   // 100대 명산 정상 이름(우리 표시가 따로 그림)
+
+    /** 영상 바탕의 OSM 봉우리 가운데 100대 명산 · 지금 코스 지점(📍)과 이름이 같은 것은 숨김 - 두 번 나오지 않게(2026-11-23 PC: "개천문 1,676m" 가 📍 와 ▲ 로 두 번). */
+    function videoPeakFilter() {
+        if (!map || !map.getLayer("peak")) return;
+        var own = cur && cur.pois ? cur.pois.map(function (p) { return String(p.name || ""); }) : [];
+        map.setFilter("peak", ["!", ["in", ["get", "name"], ["literal", videoPeakNames.concat(own)]]]);
+    }
 
     /**
      * 영상 바탕(우리 지도)의 대피소 · 100대 명산 표시(RF.famousFetch, 기록 보기와 같은 자료) · 아이콘 그림. 같은 이름의 OSM 봉우리 · 대피소는 숨겨 두 번 안 나오게.
@@ -1400,7 +1408,8 @@
                 if (!map.getSource("marks")) { map.once("styledata", put); return; }
                 map.getSource("marks").setData(f.gj);
                 var names = function (kind) { return f.gj.features.filter(function (x) { return x.properties.kind === kind; }).map(function (x) { return x.properties.name; }); };
-                if (map.getLayer("peak")) map.setFilter("peak", ["!", ["in", ["get", "name"], ["literal", names("peak")]]]);
+                videoPeakNames = names("peak");
+                videoPeakFilter();
                 if (map.getLayer("poi-hike")) map.setFilter("poi-hike", RF.poiShowFilter(map.getLayoutProperty("poi-hike", "icon-image"), [], names("hut")));
             };
             put();
@@ -1417,6 +1426,7 @@
             + T("지형: ", "Terrain: ") + "Terrain Tiles (AWS Open Data) | "
             + ATTR_TRAILS + "© OpenStreetMap contributors";
         window.routeflyVideo = { ready: false, done: 0 };
+        videoPeakFilter();
         map.once("idle", function () {
             anim.d = VIDEO.from * c.total;
             if (VIDEO.rec) videoRecord(c, credit.textContent);

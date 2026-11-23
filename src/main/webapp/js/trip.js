@@ -23,10 +23,12 @@
     var parkCands = [], parkShown = null, PARK_NEAR_M = 1500;
     // 대피소 사진(2026-11-23 홍TV님 "대피소 사진을 클릭하면 보여줘 · 대피소가 있는 산은 옆에 사진을 · 내 사진과 위치로 비교해 자리를"): data/shelter-photos.json
     var hutPhotos = {}, HUT_CARD_M = 300;
-    var SEG_NEAR_M = 200, SEG_GAP_M = 300, PICK_NEAR_M = 300, popup = null;   // 구간 끊는 곳(선에서 200m 안 · 300m 넘게 떨어진 것만) · 누른 곳 찾기   // 우리 지도일 때 기록이 지나간 봉우리(150m 안)
+    // 구간: 끊는 곳끼리 · 처음 · 끝에서 1km 안이면 끊지 않음(2026-11-23 홍TV님 "1km 보다 짧은 구간은 앞에 붙이기" - 전에는 300m)
+    var namedPeaks = [];   // 기록이 지나간 "…산" 정상(지도 조각에서 찾음, 불암산 · 수락산 등) - 구간 끊는 곳에 더함
+    var SEG_NEAR_M = 200, SEG_GAP_M = 1000, PICK_NEAR_M = 300, popup = null;   // 구간 끊는 곳(선에서 200m 안 · 300m 넘게 떨어진 것만) · 누른 곳 찾기   // 우리 지도일 때 기록이 지나간 봉우리(150m 안)
     // 표시별 보이기 · 숨기기(2026-11-22 홍TV님 "마커 별로 숨기고 보이고") - 이 화면 동안만(저장하지 않음)
     var KINDS = [["photo", "📷", "사진", "Photos"], ["memo", "📝", "메모", "Notes"], ["rf-hut", "🏠", "대피소 · 산장", "Shelters · huts"],
-        ["rf-temple", "卍", "절", "Temples"], ["rf-view", "👁", "전망대", "Viewpoints"], ["rf-water", "💧", "약수터", "Drinking water"]];
+        ["rf-temple", "卍", "절", "Temples"], ["rf-view", "👁", "전망대", "Viewpoints"], ["rf-water", "💧", "약수터", "Drinking water"], ["rf-rail", "🚉", "역", "Stations"]];
     var hidden = {};
     var CONTOUR_KEY = "rf-contour", contourOn = false, demContour = null, contourCfg = null;   // 등고선 - 따라가기와 같은 기억(rf-contour) · 간격 · 색
     try { contourOn = localStorage.getItem(CONTOUR_KEY) === "1"; } catch (e) { /* 기본 끔 */ }
@@ -110,7 +112,7 @@
                 }
                 paintTrack();
                 parkTrails();
-                peakKeys = [];
+                peakKeys = []; namedPeaks = [];
                 markPeaks();
                 var b = new maplibregl.LngLatBounds();
                 line.geometry.coordinates.forEach(function (q) { b.extend(q); });
@@ -199,6 +201,12 @@
             addHut = more(dropHuts, RF.peaksNear(huts, fam.huts.map(function (h) { return h.lat; }), fam.huts.map(function (h) { return h.lon; }), SAME_M)
                 .map(function (k) { return k.slice(0, k.lastIndexOf("|")); }));
         }
+        // 지나간 "…산" 정상(2026-11-23 홍TV님 "불암산 · 수락산 · 사패산 같은 곳에서도 구간을 끊기") - 새로 찾으면 구간을 다시 나눔
+        if (rc) {
+            var newNamed = RF.stopsAlong(rc, feats.filter(function (f) { return /산$/.test(f.name || "") && !namedPeaks.some(function (n) { return n.name === f.name; }); }), PEAK_NEAR_M)
+                .map(function (q) { return { name: q.s.name, lat: q.s.lat, lon: q.s.lon }; });
+            if (newNamed.length) { namedPeaks = namedPeaks.concat(newNamed); if (map.getSource("trk")) paintTrack(); }
+        }
         if (addOn.length || addDrop.length) {
             peakKeys = peakKeys.concat(addOn); dropPeaks = dropPeaks.concat(addDrop);
             map.setFilter("peak-on", RF.peakOnFilter(peakKeys, true, dropPeaks));
@@ -210,7 +218,7 @@
     /** 기록 선 - 우리 지도에서 공단 대피소 · 100대 명산 정상 자료가 있으면 그곳(선에서 200m 안)에서 끊어 구간마다 다른 색, 없으면 한 색. */
     function segData() {
         if (!rc) return { type: "FeatureCollection", features: [] };
-        if (fam) return RF.trackSegments(rc, fam.huts.concat(fam.peaks), SEG_NEAR_M, SEG_GAP_M);
+        if (fam) return RF.trackSegments(rc, fam.huts.concat(fam.peaks, namedPeaks), SEG_NEAR_M, SEG_GAP_M);
         return { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: rc.lon.map(function (x, k) { return [x, rc.lat[k]]; }) } };
     }
 
