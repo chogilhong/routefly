@@ -14,7 +14,7 @@ function eq(name, got, want) {
     if (JSON.stringify(got) !== JSON.stringify(want)) { fails++; console.log("FAIL " + name + ": " + JSON.stringify(got) + " (기대 " + JSON.stringify(want) + ")"); }
 }
 var vs = M.style({ basemapUrl: "https://x/k.pmtiles", demUrl: "https://d/{z}/{x}/{y}.png" }, "https://x/f/"), ids = vs.layers.map(function (l) { return l.id; });
-eq("판 · 내보내는 것", [M.VERSION, Object.keys(M).sort()], ["1.1.5", ["CONTOUR_STEPS", "ICONS", "PEAK_KEY_EXPR", "VERSION", "contourPaint", "demEle", "iconImage", "mvtPoints", "open", "peakKey", "peakOnFilter", "peaksNear", "poiShowFilter", "shopList", "style", "terrariumEle", "tileLonLat", "tilePeaks", "tilePixel", "tilesAlong"]]);
+eq("판 · 내보내는 것", [M.VERSION, Object.keys(M).sort()], ["1.1.6", ["CONTOUR_STEPS", "ICONS", "PEAK_KEY_EXPR", "VERSION", "contourPaint", "demEle", "iconImage", "mvtPoints", "open", "peakKey", "peakOnFilter", "peaksNear", "poiShowFilter", "shopList", "style", "terrariumEle", "tileLonLat", "tilePeaks", "tilePixel", "tilesAlong"]]);
 eq("지도 모양 - 바탕 · 지형 · 글꼴 · 출처", [vs.sources.omt.url, vs.sources.hillshade.tiles[0], vs.glyphs, vs.sources.omt.attribution], ["pmtiles://https://x/k.pmtiles", "https://d/{z}/{x}/{y}.png", "https://x/f/{fontstack}/{range}.pbf", "© OpenMapTiles © OpenStreetMap contributors"]);
 eq("지도 모양 - 자료 폴더는 c.data(없으면 이 패키지 data/)", [vs.sources.gu.data, M.style({ basemapUrl: "a.pmtiles", demUrl: "d", data: "https://y/d/" }, "f/").sources.subway.data], ["data/gu-labels.json", "https://y/d/subway-lines.json"]);
 eq("지도 모양 - 영어(c.lang en)면 구 이름도 영어", JSON.stringify(M.style({ basemapUrl: "a.pmtiles", demUrl: "d", lang: "en" }, "f/").layers.filter(function (l) { return l.id === "gu-name"; })[0].layout["text-field"]),
@@ -33,7 +33,7 @@ eq("가게(상가정보 rf_shop) - 확대 16, OSM 생활 시설 바로 위, 아�
     shIcon.filter(function (v, k) { return typeof v === "string" && k > 2 && k % 2 === 1 && v; }).every(function (id) { return !!M.ICONS[id]; }), JSON.stringify(vcity.filter[vcity.filter.length - 1][1][2][1])],
     [16, true, true, JSON.stringify(["rf-food", "rf-cafe", "rf-shop", "rf-med", "rf-school", "rf-bed"])]);
 var sm = vx.layers[xid.indexOf("rf-summit")];
-eq("산림청 정상부 봉우리(rf_summit) - 바탕 봉우리 바로 뒤, 확대 11 부터 같은 \"▲ 이름\" 모양, 더하기 층 없으면 없음", [xid.indexOf("rf-summit") === xid.indexOf("peak") + 1, sm["source-layer"], sm.minzoom,
+eq("산림청 정상부 봉우리(rf_summit) - 등산 표시(poi-hike) 바로 뒤(정자보다 먼저 자리), 확대 11 부터 바탕 봉우리와 같은 \"▲ 이름\" 모양, 더하기 층 없으면 없음", [xid.indexOf("rf-summit") === xid.indexOf("poi-hike") + 1, sm["source-layer"], sm.minzoom,
     JSON.stringify(sm.layout["text-field"]) === JSON.stringify(vs.layers[ids.indexOf("peak")].layout["text-field"]), ids.indexOf("rf-summit"), M.style({ basemapUrl: "a.pmtiles", demUrl: "d", extraUrl: "a-extra.pmtiles", extraLayers: ["rf_label", "rf_shop"] }, "f/").layers.map(function (l) { return l.id; }).indexOf("rf-summit")],
     [true, "rf_summit", 11, true, -1, -1]);
 var vo = M.style({ basemapUrl: "a.pmtiles", demUrl: "d", extraUrl: "a-extra.pmtiles", extraLayers: ["rf_label"] }, "f/"), oid = vo.layers.map(function (l) { return l.id; });

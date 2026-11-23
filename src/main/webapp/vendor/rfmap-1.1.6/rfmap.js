@@ -11,7 +11,7 @@
  */
 (function (global) {
     "use strict";
-    var VERSION = "1.1.5";
+    var VERSION = "1.1.6";
     // 이 파일이 있는 폴더(글꼴 · 자료 기본 자리) - node 테스트에서는 빈 글자
     var BASE = (function () {
         try { var s = global.document && global.document.currentScript; return s && s.src ? new URL(".", s.src).href : ""; } catch (e) { return ""; }
@@ -158,8 +158,9 @@
                 };
                 style.layers.splice(ids().indexOf("peak"), 0, label("rf-apt", "apartment", 15, 10.5, "#7a7287"), label("rf-complex", "complex", 14, 12.5, "#5d5470"));
             }
-            if (has("rf_summit")) {   // 산림청 정상부 봉우리(2026-11-23 홍TV님 "정상부 지점으로 봉우리 이름 넣어줘") - OSM 봉우리가 없는 산(영종 백운산 · 송산 등)만 들어 있음. 바탕 봉우리(peak)와 같은 모양, 그 바로 뒤
-                style.layers.splice(ids().indexOf("peak") + 1, 0, { id: "rf-summit", type: "symbol", source: "rfx", "source-layer": "rf_summit", minzoom: 11,
+            if (has("rf_summit")) {   // 산림청 정상부 봉우리(2026-11-23 홍TV님 "정상부 지점으로 봉우리 이름 넣어줘") - OSM 봉우리가 없는 산(영종 백운산 · 송산 등)만 들어 있음. 바탕 봉우리(peak)와 같은 모양.
+                // 자리는 등산 표시(poi-hike) 뒤 - 정자 · 전망대보다 먼저 자리를 잡음(2026-11-23 PC: 확대 14 에서 송산이 옆 정자에 밀려 빠짐)
+                style.layers.splice(ids().indexOf("poi-hike") + 1, 0, { id: "rf-summit", type: "symbol", source: "rfx", "source-layer": "rf_summit", minzoom: 11,
                     layout: { "text-field": peakText, "text-font": F, "text-size": 11, "text-anchor": "top", "text-offset": [0, 0.2] },
                     paint: { "text-color": "#6b3d1e", "text-halo-color": "#fffdf5", "text-halo-width": 1.4 } });
             }
