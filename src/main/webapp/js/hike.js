@@ -2169,6 +2169,22 @@
         });
     }
 
+    /**
+     * 코스 기록 보기(trip.html?c=)의 💾 GPX 저장(2026-11-24 홍TV님 "너가 보기에 다운받을 수 있는 것만") - #coursegpx=코스 ID[&title=] 로 넘어와 여기서 저장(앱 공유 창 · 브라우저 내려받기는 내 기록 💾 와 같음).
+     * 받아도 되는 코스(RF.courseGpxFree)만, 운영자 기기는 모두. GPX 머리에 출처 한 줄(RF.courseGpxCredit). 주소의 # 는 바로 지움.
+     */
+    function courseGpx(id, title) {
+        try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* 주소만 못 지움 */ }
+        Promise.all([getJson("api/course?id=" + encodeURIComponent(id)), ownerDevice()]).then(function (a) {
+            var c = RF.fromApi(id, a[0]), src = (c.course && c.course.source) || null;
+            if (!a[1] && !RF.courseGpxFree(id, src)) { toast(T("이 코스는 자료 이용 조건 때문에 GPX 로 받을 수 없습니다.", "This course cannot be downloaded as GPX because of its data terms."), 6000); return; }
+            var t = RF.courseTrack(c, false), name = title || (c.course && c.course.name) || id;
+            if (t.length < 2) throw new Error(T("선이 없습니다", "no track"));
+            toast(T("GPX 파일을 만드는 중… 카카오톡으로는 보낼 수 없습니다. 메일 · 드라이브 · 내 파일로 보내세요", "Making the GPX file… KakaoTalk does not accept GPX files - use email, Drive or My Files."), 6000);
+            saveGpxText({ start: Date.now(), name: name }, RF.trackGpx(name, c.course && c.course.kind, t, { wpt: true, en: EN, credit: RF.courseGpxCredit(id, src, EN) }));
+        }).catch(function (e) { toast(T("GPX 를 만들지 못했습니다: ", "Could not make the GPX: ") + (e && e.message || e), 5000); });
+    }
+
     /** 📂 GPX 열기 - 기록 보기 화면(trip.html ?rec=기록 열쇠)으로. 산행 중에는 넘어가지 않음. */
     function openTrip(rec) {
         if (hike.running) { toast(T("산행 중에는 기록 보기로 넘어가지 않습니다. 산행을 마친 뒤 열어 주세요.", "Finish the hike first to open the record view."), 4000); return; }
@@ -4426,14 +4442,15 @@
                 };
                 it.classList.add("hasfly");
                 it.appendChild(fly);
-                // 📐 GPX 편집(💾 GPX 저장)으로 - 운영자 기기만(2026-11-23 홍TV님 "코스번호를 알아야 열텐데") - 숨겨 두고 운영자면 아래에서 보임
+                // 📐 코스 기록 보기(trip.html?c=) - 누구나(2026-11-24 홍TV님 "모두에게 열어주고"): 지도 · 그래프 · 구간 · 🛩 3D, 받아도 되는 코스만 💾 GPX 저장, 운영자는 📐 GPX 편집도
+                // (2026-11-23 운영자 기기만 GPX 편집으로 가던 것을 바꿈)
                 var ed = document.createElement("a");
                 ed.className = "fly studio";
-                ed.hidden = true;
                 ed.textContent = "📐";
-                ed.title = "GPX 편집 · 💾 GPX 저장(운영자 기기만)";
+                ed.title = T("코스 자세히 보기(지도 · 높이 그래프 · 구간)", "Course details (map · elevation · sections)");
                 ed.setAttribute("aria-label", ed.title);
-                ed.href = "studio.html#c=" + encodeURIComponent(r.course_id) + (r.title ? "&title=" + encodeURIComponent(r.title) : "");
+                ed.href = "trip.html?c=" + encodeURIComponent(r.course_id) + (r.title ? "&title=" + encodeURIComponent(r.title) : "") + (EN ? "&lang=en" : "");
+                it.classList.add("hased");
                 ed.onclick = function (e) { e.stopPropagation(); };
                 it.appendChild(ed);
             }
@@ -4442,9 +4459,6 @@
                 location.hash = "#c=" + encodeURIComponent(r.course_id) + (r.title ? "&title=" + encodeURIComponent(r.title) : "") + (r.head ? "&head=" + encodeURIComponent(r.head) : "");
             };
             box.appendChild(it);
-        });
-        ownerDevice().then(function (own) {   // 운영자 기기면 줄마다 📐 를 보이고 fly(3D) 를 왼쪽으로 비킴
-            if (own) Array.prototype.forEach.call(box.querySelectorAll("a.studio"), function (a) { a.hidden = false; a.parentNode.classList.add("hased"); });
         });
         // fly(3D) 에서 "‹ 뒤로" 로 돌아왔으면 목록을 그 자리로(2026-10-13 PC: 맨 위로 갔음) - 한 번만
         try {
@@ -5572,6 +5586,8 @@
             if (/^#rec\b/.test(location.hash)) showRecords();   // 코스 미리보기의 '📒 내 기록'
             var rd = /^#recdo=(fly|save|del):(.+)$/.exec(location.hash);
             if (rd) recDo(rd[1], decodeURIComponent(rd[2]));
+            var cg = /^#coursegpx=([^&]+)(?:&title=(.*))?$/.exec(location.hash);
+            if (cg) courseGpx(RF.safeDecode(cg[1]), cg[2] ? RF.safeDecode(cg[2]) : "");
         }
     }
     window.addEventListener("hashchange", route);

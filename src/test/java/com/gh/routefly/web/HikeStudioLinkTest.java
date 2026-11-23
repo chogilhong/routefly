@@ -17,12 +17,11 @@ public class HikeStudioLinkTest {
 
     @Test
     public void 운영자_기기만_목록에서_GPX_편집으로() throws Exception {
+        // 2026-11-24 홍TV님 "모두에게 열어주고": 줄마다 📐 → 코스 기록 보기(trip.html?c=), 누구나. GPX 편집은 그 화면에서 운영자만(TripCourseTest)
         String js = read("src/main/webapp/js/hike.js"), html = read("src/main/webapp/hike.html");
-        assertTrue("줄마다 숨긴 📐 - 그 코스 ID 로 studio.html#c=", js.contains("ed.className = \"fly studio\";\n                ed.hidden = true;")
-                && js.contains("ed.href = \"studio.html#c=\" + encodeURIComponent(r.course_id)") && js.contains("ed.onclick = function (e) { e.stopPropagation(); };"));
-        assertTrue("운영자 기기(서버 /api/course-upload owner)일 때만 보임", js.contains("if (own) Array.prototype.forEach.call(box.querySelectorAll(\"a.studio\"), function (a) { a.hidden = false;")
-                && js.contains("ownerP = fetch(\"api/course-upload\", { headers: { Accept: \"application/json\" }, cache: \"no-store\" })"));
-        assertTrue("숨김이 display 에 덮이지 않게 · fly(3D) 와 겹치지 않게", html.contains("#pickList .it .fly[hidden] { display:none; }") && html.contains("#pickList .it.hased .fly:not(.studio) { right:56px; }"));
-        assertTrue("GPX 편집은 #c= · &title= 로 받은 길을 엶", read("src/main/webapp/js/studio.js").contains("var id = get(\"c\");"));
+        assertTrue("줄마다 📐 - 그 코스 ID 로 trip.html?c=", js.contains("ed.className = \"fly studio\";")
+                && js.contains("ed.href = \"trip.html?c=\" + encodeURIComponent(r.course_id)") && js.contains("ed.onclick = function (e) { e.stopPropagation(); };"));
+        assertFalse("숨겨 두지 않음 · 운영자만 보이던 것은 지움", js.contains("ed.hidden = true;") || js.contains("querySelectorAll(\"a.studio\")"));
+        assertTrue("fly(3D) 와 겹치지 않게", js.contains("it.classList.add(\"hased\");") && html.contains("#pickList .it.hased .fly:not(.studio) { right:56px; }"));
     }
 }

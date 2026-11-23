@@ -2404,3 +2404,17 @@ eq("점검 11차 A8 - 공단 난이도 띄어쓰기 없음(운영 설악산 \"�
 // 3D 비행 영상 지형 돋움(RF.videoRelief, 2026-11-23 홍TV님 "고저가 잘 표현이 안 되어") - 낮은 산일수록 더 돋움
 eq("영상 돋움 - 높이 차 500m 아래 2.0 · 1,000m 아래 1.8 · 그 위 1.5 · 높이 없으면 1.5",
     [RF.videoRelief([100, null, 450]), RF.videoRelief([33, 836]), RF.videoRelief([600, 1915]), RF.videoRelief([]), RF.videoRelief([null])], [2.0, 1.8, 1.5, 1.5, 1.5]);
+
+// 코스 GPX 💾 저장 - 받아도 되는 출처만(RF.courseGpxFree, 2026-11-24 홍TV님 "너가 보기에 다운받을 수 있는 것만. 걸리는 것은 못 받게")
+eq("받아도 되는 코스 - 산림청 · 국립공원 · 등산트레킹센터 · OSM · routefly 가 만든 코스",
+    ["frst-4182025-a1", "frst-900003-b2", "knps-12", "kmp-1100-3", "kmf-2-77", "osmh-35-2", "osmb-7-1", "osmgap-1"].map(function (id) { return RF.courseGpxFree(id, null); }),
+    [true, true, true, true, true, true, true, true]);
+eq("못 받는 코스 - 두루누비 · 다른 사람이 보낸 코스 · 만든 이 모름 · 내 GPX · 모르는 것",
+    [RF.courseGpxFree("drnb-T_ROUTE_MNG0000000001", null), RF.courseGpxFree("u-20261116-003325", { kind: "maker", text: "시험대장", checked: true }),
+     RF.courseGpxFree("u-20261116-003325", null), RF.courseGpxFree("gpx-abc", null), RF.courseGpxFree("zzz-1", null), RF.courseGpxFree("", null)],
+    [false, false, false, false, false, false]);
+eq("routefly 가 만든 코스는 받음", RF.courseGpxFree("u-20261116-003325", { kind: "maker", text: "routefly", en: "routefly", checked: false }), true);
+eq("이은 코스는 조각이 모두 되어야", [RF.courseGpxFree("frst-1-a,osmh-2-b", null), RF.courseGpxFree("frst-1-a,drnb-3", null)], [true, false]);
+eq("출처 한 줄", [RF.courseGpxCredit("frst-1-a", null, false), RF.courseGpxCredit("osmh-2-b", null, true), RF.courseGpxCredit("u-1", { kind: "maker", text: "routefly", en: "routefly" }, false)],
+    ["출처: 산림청 (공공데이터) · 지명: © OpenStreetMap contributors (ODbL) · routefly", "Source: © OpenStreetMap contributors (ODbL) · routefly", "출처: routefly · 지명: © OpenStreetMap contributors (ODbL)"]);
+eq("GPX 머리에 출처", /<metadata><name>송산<\/name><desc>출처: 산림청 \(공공데이터\)/.test(RF.trackGpx("송산", "hike", [[37.1, 126.7, null, 10], [37.2, 126.8, null, 20]], { wpt: true, credit: RF.courseGpxCredit("frst-1", null, false) })), true);

@@ -105,7 +105,7 @@
         $("graph").hidden = narrow; $("graphBtn").hidden = !narrow;
         placeKit();
         items = (rec.notes || []).map(function (n, i) { return { n: n, d: rc.pois[i] ? rc.pois[i].dist_m : null, url: null }; });
-        if (!items.length) $("side").insertAdjacentHTML("beforeend", "<p class=\"empty\">" + T("이 기록에는 사진 · 메모가 없습니다.", "This record has no photos or notes.") + "</p>");
+        if (!items.length && !courseParam) $("side").insertAdjacentHTML("beforeend", "<p class=\"empty\">" + T("이 기록에는 사진 · 메모가 없습니다.", "This record has no photos or notes.") + "</p>");   // 코스 보기(?c=)는 사진이 없는 게 보통이라 안 씀
         items.forEach(function (it, i) {
             var card = document.createElement("div"), ph = document.createElement("div"), tx = document.createElement("div"), tm = document.createElement("div");
             card.className = "card";
@@ -664,6 +664,31 @@
                 return idbGet("rf-photos", "p", id).then(function (blob) { return blob ? URL.createObjectURL(blob) : null; });
             });
         });
+    }
+
+    // 📐 코스 기록 보기(?c=코스 ID[&title=] - 따라가기 코스 목록의 📐, 2026-11-24 홍TV님 "모두에게 열어주고"): 지도 · 그래프 · 구간 · 마우스 따라가기는 누구나,
+    // 🛩 3D 는 코스 3D 화면(목록 fly(3D) 와 같은 주소), 💾 GPX 저장은 받아도 되는 코스(RF.courseGpxFree)만 · 운영자 기기는 모두(따라가기 #coursegpx 가 저장), 📐 GPX 편집은 운영자 기기만. 삭제는 없음
+    var courseParam = recParam ? null : new URLSearchParams(location.search).get("c");
+    if (courseParam) {
+        var cTitle = new URLSearchParams(location.search).get("title") || "", cQ = "#c=" + encodeURIComponent(courseParam) + (cTitle ? "&title=" + encodeURIComponent(cTitle) : "");
+        $("back").href = EN ? "hike.html?lang=en" : "hike.html";
+        $("back").textContent = T("‹ 코스 목록", "‹ Courses");
+        $("openBtn").hidden = true;
+        $("rec-del").hidden = $("rec-save").hidden = $("rec-edit").hidden = true;   // 운영자 · 받아도 되는지 안 뒤에 보임
+        $("recBtns").hidden = false;
+        $("rec-fly").onclick = function () { location.href = "index.html" + cQ + "&from=hike" + (EN ? "&lang=en" : ""); };
+        $("rec-save").onclick = function () { location.href = (EN ? "hike.html?lang=en" : "hike.html") + "#coursegpx=" + encodeURIComponent(courseParam) + (cTitle ? "&title=" + encodeURIComponent(cTitle) : ""); };
+        $("rec-edit").onclick = function () { location.href = "studio.html" + cQ; };
+        var ownP = fetch("api/course-upload", { headers: { Accept: "application/json" }, cache: "no-store" }).then(function (r) { return r.ok ? r.json() : {}; })
+            .then(function (j) { return !!(j && j.owner); }).catch(function () { return false; });
+        Promise.all([getJson("api/course?id=" + encodeURIComponent(courseParam)), ownP]).then(function (a) {
+            var c = RF.fromApi(courseParam, a[0]), src = (c.course && c.course.source) || null, t = RF.courseTrack(c, false);
+            var name = cTitle || (c.course && c.course.name) || courseParam, got = t.length > 1 ? RF.gpxRecord(RF.trackGpx(name, c.course && c.course.kind, t), true, name) : null;
+            if (!got) { $("side").innerHTML = "<p class=\"empty\">" + T("코스 선을 받지 못했습니다.", "Could not load the course line.") + "</p>"; return; }
+            $("rec-save").hidden = !(a[1] || RF.courseGpxFree(courseParam, src));
+            $("rec-edit").hidden = !a[1];
+            show(got.rec, function () { return Promise.resolve(null); });
+        }).catch(function () { $("side").innerHTML = "<p class=\"empty\">" + T("코스를 받지 못했습니다.", "Could not load the course.") + "</p>"; });
     }
 
     function photoBlob(b64) {

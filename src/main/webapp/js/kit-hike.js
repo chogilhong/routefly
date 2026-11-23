@@ -2327,6 +2327,20 @@
         return out;
     }
 
+    /** 순수 함수 - 이은 코스 조각들의 서로 다른 코스 ID(같은 코스를 앞뒤로 쓰면 한 번만 받게 - 2026-10-30 점검: 밤골 8조각 · 4코스). */
+    /**
+     * 순수 함수 - 코스(fromApi · joinedCourse 꼴 {lat, lon, ele})를 GPX 편집의 길 점 [위도, 경도, 시각(없음), 높이]로. rev 면 거꾸로.
+     * 안내도에서 이어 고른 길을 GPX 편집으로 가져와 새 코스로 만들 때(2026-11-16 홍TV님 "안내도에서 여러개를 이어서 … 코스를 만들려고").
+     */
+    function courseTrack(c, rev) {
+        var out = [];
+        for (var i = 0; c && c.lat && i < c.lat.length; i++) {
+            var e = c.ele && typeof c.ele[i] === "number" && isFinite(c.ele[i]) ? Math.round(c.ele[i]) : null;
+            out.push([c.lat[i], c.lon[i], null, e]);
+        }
+        return rev ? out.reverse() : out;
+    }
+
     function partBases(parts) {
         var out = [];
         (parts || []).forEach(function (p) { if (out.indexOf(p.base) < 0) out.push(p.base); });
@@ -2629,12 +2643,54 @@
         return null;
     }
 
+    /**
+     * 순수 함수 - 코스 GPX 를 누구나 💾 저장해도 되는가(2026-11-24 홍TV님 "너가 보기에 다운받을 수 있는 것만. 걸리는 것은 못 받게").
+     * 되는 것: 공공데이터포털 "이용허락범위 제한 없음" 을 확인한 자료 - 국립공원공단(knps- · frst-9000NN 선형시설) · 산림청 등산로(frst-) ·
+     *   한국등산·트레킹지원센터(kmp- · kmf-)(routefly-batch docs/public-gpx-sources.md), OpenStreetMap(osm…, ODbL - 출처 표시하면 됨),
+     *   routefly 가 직접 만든 코스(u- 인데 만든 이가 "routefly" - 홍TV님).
+     * 안 되는 것: 두루누비(drnb- - API 이용 조건 미확인, 누리집 GPX 는 공공누리 4유형 변경금지 · 상업 금지), 다른 사람이 보낸 코스(u- + 만든 이 이름 - 동의는 "공개 코스" 까지), 내 GPX · 모르는 것.
+     * src - 서버가 준 course.source(CourseSource, 없으면 null). 이은 코스(쉼표 · @)는 조각 모두 되어야 함.
+     */
+    function courseGpxFree(id, src) {
+        var parts = parseJoinId(id), ids = parts && parts.length ? parts.map(function (p) { return p.base; }) : [String(id || "")];
+        return ids.every(function (b) {
+            if (b.indexOf("u-") === 0) return !parts && !!src && src.kind === "maker" && src.text === "routefly";
+            return /^(knps-|frst-|kmp-|kmf-|osm)/.test(b);
+        });
+    }
+    /** 순수 함수 - 💾 코스 GPX 에 넣는 출처 한 줄(코스 출처 + 지명 · 이름의 OpenStreetMap ODbL). */
+    function courseGpxCredit(id, src, en) {
+        var s = src || courseSource(id), who = s ? (en ? s.en || s.text : s.text) : "";
+        var osm = "© OpenStreetMap contributors (ODbL)";
+        if (!who || /^OpenStreetMap$/.test(who)) return (en ? "Source: " : "출처: ") + osm + " · routefly";
+        return (en ? "Source: " : "출처: ") + who + (s.kind === "maker" ? "" : en ? " (public data)" : " (공공데이터)") + (en ? " · names: " : " · 지명: ") + osm + (who === "routefly" ? "" : " · routefly");
+    }
+
     /** 순수 함수 - 출처 · 만든 이 글(CourseSource.line 과 같음): "출처: 국립공원공단" · "만든 이: 시험대장 (routefly 점검)" · 제휴는 "[제휴]". 없으면 "". */
     function sourceText(s, en) {
         if (!s || !s.text) return "";
         var t = (en && s.en) || s.text;
         if (s.kind !== "maker") return (en ? "Source: " : "출처: ") + t;
         return (en ? "Made by: " : "만든 이: ") + t + (s.partner ? (en ? " [Partner]" : " [제휴]") : s.checked ? (en ? " (checked by routefly)" : " (routefly 점검)") : "");
+    }
+
+    function trackGpx(name, kind, track, opt) {
+        var esc = function (x) { return String(x).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); };
+        var t = track || [], first = t[0] && t[0][2], wpts = "", meta = "";
+        // 💾 저장 파일에는 출발 · 정상(가장 높은 점) · 도착 표시와 만든 때(점검 11차 E6, 2026-11-16 홍TV님 "전부 작업해") - 올리기 · 보내기는 점만(서버가 trkpt 만 읽음)
+        if (opt && opt.wpt && t.length > 1) {
+            var hi = -1;
+            t.forEach(function (p, i) { if (p[3] != null && (hi < 0 || p[3] > t[hi][3])) hi = i; });
+            var w = function (p, nm) { return '<wpt lat="' + p[0] + '" lon="' + p[1] + '">' + (p[3] != null ? "<ele>" + Math.round(p[3] * 10) / 10 + "</ele>" : "") + "<name>" + esc(nm) + "</name></wpt>\n"; };
+            wpts = w(t[0], opt.en ? "Start" : "출발") + (hi > 0 && hi < t.length - 1 ? w(t[hi], opt.en ? "Highest point" : "가장 높은 곳") : "") + w(t[t.length - 1], opt.en ? "Finish" : "도착");
+            meta = "<metadata><name>" + esc(name || "GPX") + "</name>" + (opt.credit ? "<desc>" + esc(opt.credit) + "</desc>" : "") + (typeof first === "number" ? "<time>" + new Date(first).toISOString() + "</time>" : "") + "</metadata>\n";
+        }
+        return '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="routefly studio" xmlns="http://www.topografix.com/GPX/1/1">\n' + meta + wpts
+            + "<trk><name>" + esc(name || "GPX") + "</name>" + (kind ? "<type>" + esc(kind) + "</type>" : "") + "<trkseg>\n"
+            + (track || []).map(function (p) {
+                return '<trkpt lat="' + p[0] + '" lon="' + p[1] + '">' + (p[3] != null ? "<ele>" + Math.round(p[3] * 10) / 10 + "</ele>" : "")
+                    + (p[2] != null ? "<time>" + new Date(p[2]).toISOString() + "</time>" : "") + "</trkpt>";
+            }).join("\n") + "\n</trkseg></trk>\n</gpx>\n";
     }
 
     /**
@@ -4248,6 +4304,9 @@
         nextPoi: nextPoi,
         snap: snap,
         fillTrackEle: fillTrackEle,
+        trackGpx: trackGpx,
+        courseGpxFree: courseGpxFree,
+        courseGpxCredit: courseGpxCredit,
         courseSource: courseSource,
         sourceText: sourceText,
         gpxCheck: gpxCheck,
@@ -4353,6 +4412,7 @@
         shownGaps: shownGaps,
         joinedCourse: joinedCourse,
         partBases: partBases,
+        courseTrack: courseTrack,
         fixPart: fixPart,
         applyHead: applyHead,
         favJoinExtra: favJoinExtra,
