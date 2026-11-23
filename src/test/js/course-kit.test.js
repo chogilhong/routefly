@@ -6,7 +6,7 @@
 "use strict";
 var fs = require("fs"), path = require("path"), vm = require("vm");
 
-var sandbox = { window: {}, console: console, URL: URL, URLSearchParams: URLSearchParams };   // URL - canonicalHref(브라우저에 늘 있음)
+var sandbox = { window: {}, console: console, URL: URL, URLSearchParams: URLSearchParams, TextDecoder: TextDecoder };   // TextDecoder - mvtPoints(브라우저에 늘 있음)   // URL - canonicalHref(브라우저에 늘 있음)
 vm.createContext(sandbox);
 vm.runInContext(fs.readFileSync(path.join(__dirname, "../../main/webapp/js/course-kit.js"), "utf8"), sandbox);
 var RF = sandbox.window.RF;
@@ -2361,4 +2361,17 @@ eq("점검 11차 A8 - 공단 난이도 띄어쓰기 없음(운영 설악산 \"�
         try { new Function(fs.readFileSync(path.join(dir, f), "utf8")); } catch (e) { bad.push(f + ": " + e.message); }
     });
     eq("js/ 의 화면 파일 모두 문법 맞음", bad, []);
+})();
+
+// 지도 조각 직접 읽기(2026-11-23 PC 운영 v360 - 처음 화면 확대 10 ~ 11 에는 사패산이 없어 구간이 안 나뉨) - 운영 지도 파일의 확대 12 조각 그대로
+(function () {
+    var u8 = new Uint8Array(fs.readFileSync(path.join(__dirname, "../resources/basemap/omt-z12-3493-1583.pbf")));
+    var pk = RF.mvtPoints(u8, "mountain_peak"), sp = pk.filter(function (p) { return p.props.name === "사패산"; })[0];
+    var g = sp ? RF.tileLonLat(12, 3493, 1583, sp.x, sp.y, sp.extent) : [0, 0];
+    eq("조각 읽기 - 사패산 551m · 자리(지도 프로그램이 본 자리 127.01045, 37.72238)", [pk.length, sp && sp.props.ele, sp && sp.props["class"], Math.round(g[0] * 1e5) / 1e5, Math.round(g[1] * 1e5) / 1e5],
+        [25, 551, "peak", 127.01045, 37.72238]);
+    eq("조각 읽기 - 다른 층(역)도 이름 그대로, 없는 층은 빈 목록", [RF.mvtPoints(u8, "poi").filter(function (p) { return p.props["class"] === "railway"; }).map(function (p) { return p.props.name; }).slice(0, 3), RF.mvtPoints(u8, "없는층").length],
+        [["양주", "녹양", "가능"], 0]);
+    eq("선이 지나는 조각 - 같은 조각은 한 번, 많으면 max 개", [RF.tilesAlong([37.72238, 37.7224, 37.6], [127.01044, 127.0105, 127.01], 12, 40), RF.tilesAlong([37.72238, 37.6], [127.01044, 127.01], 12, 1)],
+        [[[3493, 1583], [3493, 1585]], [[3493, 1583]]]);
 })();

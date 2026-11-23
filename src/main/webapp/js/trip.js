@@ -15,7 +15,7 @@
     if (EN) { document.documentElement.lang = "en"; document.title = "routefly - View record"; RF.applyEn(document); }
 
     var map = null, cfgP = null, marks = [], cards = [], urls = [], items = [], pick = -1, prof = null, rc = null;
-    var vector = false, peakKeys = [], PEAK_NEAR_M = 150;
+    var vector = false, peakKeys = [], PEAK_NEAR_M = 150, tileFeats = [];   // tileFeats - 선이 지나는 확대 12 조각의 봉우리(RF.trackTilePeaks)
     // 공단 대피소 · 100대 명산 정상(늘 보임, RF.famousMarks)과 겹치는 OSM 것(300m 안)은 숨김 - 두 번 그리지 않게
     var fam = null, famGj = null, famSet = false, dropPeaks = [], dropHuts = [], SAME_M = 300;
     var styleOk = false, styleQ = [];   // 지도 모양 준비(whenStyle)
@@ -112,8 +112,11 @@
                 }
                 paintTrack();
                 parkTrails();
-                peakKeys = []; namedPeaks = [];
+                peakKeys = []; namedPeaks = []; tileFeats = [];
                 markPeaks();
+                // 처음 화면(확대 10 ~ 11) 조각에는 작은 봉우리가 빠져 있어, 선이 지나는 확대 12 조각을 지도 파일에서 바로 읽어 처음부터 나눔(2026-11-23 PC 운영 v360 - 사패산)
+                var forRc = rc;
+                RF.trackTilePeaks(rc.lat, rc.lon).then(function (f) { if (rc === forRc && f.length) { tileFeats = f; markPeaks(); } });
                 var b = new maplibregl.LngLatBounds();
                 line.geometry.coordinates.forEach(function (q) { b.extend(q); });
                 map.fitBounds(b, { padding: 50, duration: 0, maxZoom: 15 });
@@ -191,7 +194,7 @@
                 return g ? { name: f.properties.name, ele: f.properties.ele, cls: f.properties["class"], sub: f.properties.subclass, lon: g[0], lat: g[1] } : null;
             }).filter(Boolean);
         };
-        var feats = pts("mountain_peak"), more = function (have, add) { return add.filter(function (k) { return have.indexOf(k) < 0; }); };
+        var feats = pts("mountain_peak").concat(tileFeats), more = function (have, add) { return add.filter(function (k) { return have.indexOf(k) < 0; }); };
         var addOn = rc ? more(peakKeys, RF.peaksNear(feats, rc.lat, rc.lon, PEAK_NEAR_M)) : [], addDrop = [], addHut = [];
         if (fam) {
             fam.peaks.forEach(function (p) {   // 같은 이름의 OSM 봉우리만(옆 봉우리는 그대로)

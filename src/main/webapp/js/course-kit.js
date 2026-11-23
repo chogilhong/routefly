@@ -2259,12 +2259,108 @@
      * 우리 바탕 지도(PMTiles) 준비 - 파일 머리를 먼저 읽고 되면 pmtiles:// 를 지도 프로그램에 걸고 RF.vectorStyle 을, 못 읽으면(404 등) null.
      * 기록 보기(trip.js) · 3D 비행 영상(app.js)이 함께 씀(2026-11-23). basemapUrl - api/map-config 값(페이지 기준 상대 주소 가능), demUrl - 지형 타일.
      */
-    var pmtilesOn = false;
+    var pmtilesOn = false, basemapFile = null;   // 머리를 읽은 우리 지도 파일(trackTilePeaks 가 같은 파일에서 조각을 직접 읽음)
+
+    /**
+     * 순수 함수 - Mapbox 벡터 조각(MVT, protobuf) 한 장에서 layer 의 점(Point)만 꺼냄 → [{props, x, y, extent}].
+     * 지도 프로그램 밖에서 조각을 읽을 때(trackTilePeaks) - 점 · 이름 정도만 읽는 작은 해석기(선 · 면은 건너뜀).
+     */
+    function mvtPoints(u8, layer) {
+        var out = [];
+        var varint = function (b, st) { var v = 0, m = 1, c; do { c = b[st.p++]; v += (c & 127) * m; m *= 128; } while (c >= 128); return v; };
+        var skip = function (b, st, wt) { if (wt === 0) varint(b, st); else if (wt === 1) st.p += 8; else if (wt === 2) { var n = varint(b, st); st.p += n; } else if (wt === 5) st.p += 4; else throw new Error("mvt wire " + wt); };
+        var str = function (b, a, e) { return new TextDecoder("utf-8").decode(b.subarray(a, e)); };
+        var top = { p: 0 };
+        while (top.p < u8.length) {
+            var tag = varint(u8, top), f = Math.floor(tag / 8), wt = tag & 7;
+            if (f !== 3 || wt !== 2) { skip(u8, top, wt); continue; }
+            var len = varint(u8, top), end = top.p + len, st = { p: top.p }, name = null, keys = [], vals = [], feats = [], extent = 4096;
+            while (st.p < end) {
+                var t2 = varint(u8, st), f2 = Math.floor(t2 / 8), w2 = t2 & 7;
+                if (f2 === 1 && w2 === 2) { var n1 = varint(u8, st); name = str(u8, st.p, st.p + n1); st.p += n1; }
+                else if (f2 === 3 && w2 === 2) { var n3 = varint(u8, st); keys.push(str(u8, st.p, st.p + n3)); st.p += n3; }
+                else if (f2 === 5 && w2 === 0) extent = varint(u8, st);
+                else if ((f2 === 2 || f2 === 4) && w2 === 2) {
+                    var n2 = varint(u8, st), e2 = st.p + n2;
+                    if (f2 === 2) feats.push([st.p, e2]);
+                    else {   // 값(Value): 1 글자 · 2 float · 3 double · 4 int · 5 uint · 6 sint · 7 참거짓
+                        var v = null, sv = { p: st.p };
+                        while (sv.p < e2) {
+                            var t3 = varint(u8, sv), f3 = Math.floor(t3 / 8), w3 = t3 & 7;
+                            if (f3 === 1 && w3 === 2) { var n4 = varint(u8, sv); v = str(u8, sv.p, sv.p + n4); sv.p += n4; }
+                            else if (f3 === 2 && w3 === 5) { v = new DataView(u8.buffer, u8.byteOffset + sv.p, 4).getFloat32(0, true); sv.p += 4; }
+                            else if (f3 === 3 && w3 === 1) { v = new DataView(u8.buffer, u8.byteOffset + sv.p, 8).getFloat64(0, true); sv.p += 8; }
+                            else if ((f3 === 4 || f3 === 5) && w3 === 0) v = varint(u8, sv);
+                            else if (f3 === 6 && w3 === 0) { var zz = varint(u8, sv); v = zz % 2 ? -(zz + 1) / 2 : zz / 2; }
+                            else if (f3 === 7 && w3 === 0) v = !!varint(u8, sv);
+                            else skip(u8, sv, w3);
+                        }
+                        vals.push(v);
+                    }
+                    st.p = e2;
+                } else skip(u8, st, w2);
+            }
+            top.p = end;
+            if (name !== layer) continue;
+            feats.forEach(function (fe) {
+                var sf = { p: fe[0] }, tags = [], type = 0, geom = [];
+                while (sf.p < fe[1]) {
+                    var t4 = varint(u8, sf), f4 = Math.floor(t4 / 8), w4 = t4 & 7;
+                    if ((f4 === 2 || f4 === 4) && w4 === 2) { var n5 = varint(u8, sf), e5 = sf.p + n5, arr = f4 === 2 ? tags : geom; while (sf.p < e5) arr.push(varint(u8, sf)); }
+                    else if (f4 === 3 && w4 === 0) type = varint(u8, sf);
+                    else skip(u8, sf, w4);
+                }
+                if (type !== 1 || geom.length < 3 || (geom[0] & 7) !== 1) return;
+                var props = {};
+                for (var i = 0; i + 1 < tags.length; i += 2) props[keys[tags[i]]] = vals[tags[i + 1]];
+                var zx = function (u) { return u % 2 ? -(u + 1) / 2 : u / 2; };
+                out.push({ props: props, x: zx(geom[1]), y: zx(geom[2]), extent: extent });   // 점 여럿(MultiPoint)이면 첫 점만
+            });
+        }
+        return out;
+    }
+
+    /** 순수 함수 - 선의 점들이 지나는 확대 z 조각 [x, y] 목록(겹치지 않게, 많으면 max 개까지). */
+    function tilesAlong(lat, lon, z, max) {
+        var n = Math.pow(2, z), seen = {}, out = [];
+        for (var i = 0; i < Math.min(lat.length, lon.length); i++) {
+            var x = Math.floor((lon[i] + 180) / 360 * n), r = lat[i] * Math.PI / 180, y = Math.floor((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * n), k = x + "/" + y;
+            if (seen[k]) continue;
+            seen[k] = true; out.push([x, y]);
+            if (out.length >= max) break;
+        }
+        return out;
+    }
+
+    /** 순수 함수 - 조각 안 자리(px, py, extent) → [lon, lat]. */
+    function tileLonLat(z, x, y, px, py, extent) {
+        var n = Math.pow(2, z), lon = (x + px / extent) / n * 360 - 180, m = Math.PI * (1 - 2 * (y + py / extent) / n);
+        return [lon, Math.atan(Math.sinh(m)) * 180 / Math.PI];
+    }
+
+    /**
+     * 기록 선이 지나는 확대 12 조각의 봉우리(mountain_peak)를 지도 파일에서 바로 읽음 → Promise([{name, ele, cls, lon, lat}]).
+     * 처음 열 때(확대 10 ~ 11) 지도 조각에는 작은 봉우리(사패산 등)가 빠져 있어 구간이 안 나뉘었음(2026-11-23 PC 운영 v360). 우리 지도가 아니면 빈 목록.
+     */
+    function trackTilePeaks(lat, lon) {
+        if (!basemapFile) return Promise.resolve([]);
+        var Z = 12, tiles = tilesAlong(lat, lon, Z, 40);
+        return Promise.all(tiles.map(function (t) {
+            return basemapFile.getZxy(Z, t[0], t[1]).then(function (r) {
+                if (!r || !r.data) return [];
+                return mvtPoints(new Uint8Array(r.data), "mountain_peak").map(function (p) {
+                    var g = tileLonLat(Z, t[0], t[1], p.x, p.y, p.extent);
+                    return { name: p.props.name, ele: p.props.ele, cls: p.props["class"], lon: g[0], lat: g[1] };
+                });
+            }, function () { return []; });
+        })).then(function (all) { return [].concat.apply([], all); });
+    }
     function vectorBasemap(basemapUrl, demUrl) {
         if (!basemapUrl || !global.pmtiles || !global.maplibregl) return Promise.resolve(null);
         var url = new URL(basemapUrl, location.href).href, file = new global.pmtiles.PMTiles(url), proto = new global.pmtiles.Protocol();
         return file.getHeader().then(function () {
             proto.add(file);   // 머리를 읽은 그 파일을 지도도 씀(머리를 두 번 받지 않음)
+            basemapFile = file;
             if (!pmtilesOn) { global.maplibregl.addProtocol("pmtiles", proto.tile); pmtilesOn = true; }   // 파일 하나에서 필요한 조각만 Range 로 받음
             return vectorStyle({ basemapUrl: url, demUrl: demUrl }, new URL("vendor/fonts/", location.href).href);
         }, function () { return null; });
@@ -7486,7 +7582,7 @@
     global.RF = {
         LINE_COLOR: LINE_COLOR, num: num, km: km, hm: hm, notifyDeploy: notifyDeploy, searchPlaceholder: searchPlaceholder, fromApi: fromApi, gpxToApi: gpxToApi, recordCourse: recordCourse, trimEnds: trimEnds, recordGpx: recordGpx, gpxRecord: gpxRecord, attrShort: attrShort, isGpxId: isGpxId, gpxId: gpxId, storeGpx: storeGpx, storedGpx: storedGpx, isAccess: isAccess, isTopName: isTopName, endsHigh: endsHigh, videoOpts: videoOpts, reverseCourse: reverseCourse, reverseName: reverseName, cleanName: cleanName, nameParts: nameParts, infoText: infoText, nearSign: nearSign, signText: signText, spotIcon: spotIcon, PARKS: PARKS, parkOf: parkOf, mountainOf: mountainOf, regionNames: regionNames, stampKey: stampKey, summitName: summitName, shelterOf: shelterOf, guideMaps: guideMaps, routeGuides: routeGuides, baseStyle: baseStyle, vectorStyle: vectorStyle, stampOf: stampOf, safeDecode: safeDecode, urlQuery: urlQuery, peakHref: peakHref, canonicalHref: canonicalHref, tmapHref: tmapHref, csvRows: csvRows, mergeRows: mergeRows, backupDue: backupDue, saveCsvFile: saveCsvFile, readCsvFile: readCsvFile, tmapLinks: tmapLinks, setCanonical: setCanonical, snapOut: snapOut, gridCells: gridCells, GRID_DEG: GRID_DEG, stampsDue: stampsDue, peakKey: peakKey, peaksDue: peaksDue, peakGapM: peakGapM, peakCourses: peakCourses, isClosedTrail: isClosedTrail, isHiddenCourse: isHiddenCourse, centerCourses: centerCourses, isComplete: isComplete, seriesProgress: seriesProgress, trailCourses: trailCourses, chainOrder: chainOrder, geoOrder: geoOrder, azWord: azWord, spotText: spotText, dangerAhead: dangerAhead, viewAt: viewAt, spotKey: spotKey, spotSummary: spotSummary, nearSpot: nearSpot, nearestExit: nearestExit, gpsGap: gpsGap, flightMs: flightMs, summitIndex: summitIndex, showName: showName, nameText: nameText, dedupePois: dedupePois, at: at, grade: grade, ascentLeft: ascentLeft,
         nextPoi: nextPoi, snap: snap, fillTrackEle: fillTrackEle, trimTrack: trimTrack, gpxTracks: gpxTracks, trackStats: trackStats, splitTrack: splitTrack, joinTracks: joinTracks, joinPlan: joinPlan, trackGpx: trackGpx, submitAgree: submitAgree, submitBody: submitBody, submitProblem: submitProblem, submitFail: submitFail, submitSheet: submitSheet, courseName: courseName, courseSource: courseSource, sourceText: sourceText, cutMiddle: cutMiddle, osmRoute: osmRoute, WALK_WAYS: WALK_WAYS, trailsToElements: trailsToElements, overlapShare: overlapShare, gpxCheck: gpxCheck, turnWord: turnWord, bearingOf: bearingOf, utmk: utmk, nationalPoint: nationalPoint,
-        sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, moveStats: moveStats, speedProfile: speedProfile, speedBuckets: speedBuckets, CONTOUR_STEPS: CONTOUR_STEPS, contourPaint: contourPaint, peaksNear: peaksNear, MAP_ICONS: MAP_ICONS, poiShowFilter: poiShowFilter, famousMarks: famousMarks, vectorBasemap: vectorBasemap, famousFetch: famousFetch, mapIconImage: mapIconImage, trackSegments: trackSegments, stopsAlong: stopsAlong, recordPark: recordPark, segText: segText, SEG_COLORS: SEG_COLORS, peakOnFilter: peakOnFilter, measureSamples: measureSamples, measureZoom: measureZoom, courseBetween: courseBetween, measureSum: measureSum, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, titledName: titledName, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, tapPick: tapPick, closeLoop: closeLoop, loopTrack: loopTrack, reverseTrack: reverseTrack, longestJump: longestJump, densify: densify, simplifyTrack: simplifyTrack, JOIN_GAP_M: JOIN_GAP_M, pxToLine: pxToLine, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, legMs: legMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, nextTheme: nextTheme, themeButton: themeButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, wxCols: wxCols, wxTable: wxTable, kmaLink: kmaLink, pcpText: pcpText, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap,
+        sunset: sunset, sunrise: sunrise, KINDS: KINDS, kindOf: kindOf, personSvg: personSvg, groupPois: groupPois, declutter: declutter, courseNo: courseNo, cumAscent: cumAscent, moveStats: moveStats, speedProfile: speedProfile, speedBuckets: speedBuckets, CONTOUR_STEPS: CONTOUR_STEPS, contourPaint: contourPaint, peaksNear: peaksNear, mvtPoints: mvtPoints, tilesAlong: tilesAlong, tileLonLat: tileLonLat, trackTilePeaks: trackTilePeaks, MAP_ICONS: MAP_ICONS, poiShowFilter: poiShowFilter, famousMarks: famousMarks, vectorBasemap: vectorBasemap, famousFetch: famousFetch, mapIconImage: mapIconImage, trackSegments: trackSegments, stopsAlong: stopsAlong, recordPark: recordPark, segText: segText, SEG_COLORS: SEG_COLORS, peakOnFilter: peakOnFilter, measureSamples: measureSamples, measureZoom: measureZoom, courseBetween: courseBetween, measureSum: measureSum, routeEnds: routeEnds, routeFlips: routeFlips, joinId: joinId, parseJoinId: parseJoinId, splitTrails: splitTrails, sliceCourse: sliceCourse, titledName: titledName, endsText: endsText, dedupeSegs: dedupeSegs, mergeBare: mergeBare, gapFill: gapFill, flattenSel: flattenSel, chainShape: chainShape, planWalk: planWalk, trailHeads: trailHeads, viaTrim: viaTrim, noteTrailName: noteTrailName, officialName: officialName, courseAccess: courseAccess, officialMatches: officialMatches, dedupePlaceNames: dedupePlaceNames, SPOT_ZOOM: SPOT_ZOOM, spotsByZoom: spotsByZoom, headLoopName: headLoopName, loopExamples: loopExamples, aliasName: aliasName, nameNodes: nameNodes, headAlias: headAlias, parkRules: parkRules, rulesText: rulesText, gateAlerts: gateAlerts, chainPick: chainPick, tapPick: tapPick, closeLoop: closeLoop, loopTrack: loopTrack, reverseTrack: reverseTrack, longestJump: longestJump, densify: densify, simplifyTrack: simplifyTrack, JOIN_GAP_M: JOIN_GAP_M, pxToLine: pxToLine, reverseSel: reverseSel, joinCourses: joinCourses, routePlaces: routePlaces, placeName: placeName, peakNearM: peakNearM, climbBetween: climbBetween, kcal: kcal, steps: steps, standardMs: standardMs, legMs: legMs, lateAt: lateAt, joinDraw: joinDraw, textScale: textScale, nextTextScale: nextTextScale, textLabel: textLabel, textButton: textButton, nextTheme: nextTheme, themeButton: themeButton, fitPath: fitPath, scheduleRows: scheduleRows, weatherWord: weatherWord, wxCols: wxCols, wxTable: wxTable, kmaLink: kmaLink, pcpText: pcpText, summitTemp: summitTemp, distM: distM, recordSkip: recordSkip, JUNCTION: JUNCTION, kmStep: kmStep, poiIcon: poiIcon, profile: profile, miniMap: miniMap,
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },
         cellCenter: cellCenter, warnName: warnName, safetyRows: safetyRows, safetyAlert: safetyAlert, safetyRender: safetyRender, rainNews: rainNews,
         setLang: setLang, isEn: isEn, tr: tr, pageLang: pageLang, applyEn: applyEn,
