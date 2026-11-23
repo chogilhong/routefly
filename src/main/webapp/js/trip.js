@@ -125,6 +125,8 @@
                 if (cam) map.jumpTo({ center: cam.center, zoom: Math.min(15, cam.zoom + FIRST_ZOOM_UP), bearing: 0 });
                 else map.fitBounds(b, { padding: fitPad(), duration: 0, maxZoom: 15 });
             };
+            kindBar();   // 단추 줄 · 로고를 먼저 - draw 의 처음 맞춤(fitPad)이 그 높이를 재야 함(2026-11-23 PC: 처음 열 때만 끝점이 단추 줄에 걸침)
+            placeKit();
             whenStyle(draw);
             [[0, "#2fb344"], [rc.lat.length - 1, "#ff5c5c"]].forEach(function (e) {
                 var d = document.createElement("div");
@@ -140,8 +142,6 @@
                 it.mark = new maplibregl.Marker({ element: d, anchor: "bottom" }).setLngLat([it.n.lon, it.n.lat]).addTo(map);
                 marks.push(it.mark);
             });
-            kindBar();
-            placeKit();
             hutCards();
             whenStyle(applyKinds);
         });

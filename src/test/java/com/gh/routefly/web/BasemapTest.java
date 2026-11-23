@@ -50,7 +50,7 @@ public class BasemapTest {
         assertTrue("지도에 routefly 로고(아이콘 + 글자, 밝은 지도용)", html.contains("<img id=\"brand\" src=\"img/logo.svg\" alt=\"routefly\""));
         assertTrue("표시별 보이기 · 숨기기 - 사진 · 메모는 표시를 감추고 대피소 등은 층 거름으로, 그래프와 안 겹치게",
             js.contains("it.mark.getElement().style.display = hidden[it.n.photo ? \"photo\" : \"memo\"] ? \"none\" : \"\";")
-            && js.contains("map.setFilter(\"poi-hike\", RFMap.poiShowFilter(map.getLayoutProperty(\"poi-hike\", \"icon-image\")") && js.contains("kindBar();\n            placeKit();"));
+            && js.contains("map.setFilter(\"poi-hike\", RFMap.poiShowFilter(map.getLayoutProperty(\"poi-hike\", \"icon-image\")") && js.contains("placeKit();\n            whenStyle(draw);"));
         assertTrue("카드에 마우스 → 지도 표시 주황(2026-11-22 홍TV님)", js.contains("card.addEventListener(\"mouseenter\", function () { if (it.mark) it.mark.getElement().classList.add(\"hover\"); });")
             && js.contains("card.addEventListener(\"mouseleave\", function () { if (it.mark) it.mark.getElement().classList.remove(\"hover\"); });") && html.contains(".pin.on, .pin.hover {"));
         assertTrue("공단 대피소 · 100대 명산 정상은 처음부터(지도 load 를 기다리지 않음), 겹치는 OSM 것은 숨김(2026-11-22 홍TV님)",
@@ -99,7 +99,7 @@ public class BasemapTest {
         assertTrue("지나간 …산은 이름마다 한 번만(이웃 조각에 같은 봉우리가 겹쳐 있음)", js.contains(".filter(function (q, k, all) { return all.findIndex(function (o) { return o.name === q.name; }) === k; });"));
         assertTrue("처음 화면부터 작은 봉우리(사패산)에서 나눔 - 선이 지나는 확대 12 조각을 지도 파일에서 바로 읽음(2026-11-23 PC 운영 v360)", js.contains("RFMap.tilePeaks(rc.lat, rc.lon).then(function (f) { if (rc === forRc && f.length) { tileFeats = f; markPeaks(); } });")
             && js.contains("var feats = pts(\"mountain_peak\").concat(tileFeats)") && read("src/main/webapp/vendor/rfmap-1.0.0/rfmap.js").contains("basemapFile = file;"));
-        assertTrue("처음 화면은 전체 맞춤보다 0.1 더 가깝게(2026-11-23 홍TV님 \"휠 한 칸 키운 것에서 조금 줄여\")", js.contains("var FIRST_ZOOM_UP = 0.1;") && js.contains("map.cameraForBounds(b, { padding: fitPad(), maxZoom: 15 });")
+        assertTrue("처음 화면은 전체 맞춤보다 0.1 더 가깝게(2026-11-23 홍TV님 \"휠 한 칸 키운 것에서 조금 줄여\")", js.contains("var FIRST_ZOOM_UP = 0.1;") && js.contains("map.cameraForBounds(b, { padding: fitPad(), maxZoom: 15 });") && js.indexOf("kindBar();   // 단추 줄 · 로고를 먼저") >= 0 && js.indexOf("kindBar();   // 단추 줄 · 로고를 먼저") < js.indexOf("whenStyle(draw);")
             && js.contains("map.jumpTo({ center: cam.center, zoom: Math.min(15, cam.zoom + FIRST_ZOOM_UP), bearing: 0 });"));
         assertTrue("점검용 지도 엿보기는 ?debug=map 일 때만", js.contains("if (/[?&]debug=map(?:&|$)/.test(location.search)) {") && js.indexOf("window.__rfMap") > js.indexOf("debug=map"));
         assertTrue("OSM 출처는 한 번만 - 우리 지도는 바탕 출처에 이미 있음(2026-11-22 PC)", js.contains("customAttribution: (style ? \"\" : \"© OpenStreetMap contributors | \") + "));
