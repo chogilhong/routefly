@@ -40,7 +40,8 @@ public class BasemapTest {
         assertTrue("한글은 폰 글꼴", js.contains("localIdeographFontFamily:"));
         assertTrue("기록 선은 글자 층 아래(봉우리 이름을 덮지 않게, 2026-11-22 홍TV님)", js.contains("var under = firstSymbol();") && js.contains("paint: { \"line-color\": [\"coalesce\", [\"get\", \"color\"], \"#5b45ff\"], \"line-width\": 4.5 } }, under);"));
         assertTrue("지나간 봉우리 크게 - 지도 조각이 올 때마다 찾음", js.contains("map.on(\"idle\", markPeaks);") && js.contains("RFMap.peaksNear(feats, rc.lat, rc.lon, PEAK_NEAR_M)")
-            && js.contains("map.setFilter(\"peak-on\", RFMap.peakOnFilter(peakKeys, true, dropPeaks));") && js.contains("map.setFilter(\"peak\", RFMap.peakOnFilter(peakKeys, false, dropPeaks));"));
+            && js.contains("map.setFilter(\"peak-on\", RFMap.peakOnFilter(peakKeys, true, dropPeaks));") && js.contains("map.setFilter(\"peak\", RFMap.peakOnFilter(peakKeys, false, dropPeaks));")
+            && js.contains("if (map.getLayer(\"rf-summit\")) map.setFilter(\"rf-summit\", RFMap.peakOnFilter(peakKeys, false, dropPeaks));"));
         assertTrue("속도 선은 거리 100칸 평균(톱니 줄이기)", read("src/main/webapp/js/course-kit.js").contains("speedBuckets(opts.speed, c.dist, c.total, SPEED_BUCKETS).forEach("));
         assertTrue("등고선 켜기 · 끄기 - 따라가기와 같은 라이브러리 · 기억 · 간격 · 색", html.contains("<script src=\"vendor/maplibre-contour-0.1.1/maplibre-contour.min.js\"></script>")
             && js.contains("var CONTOUR_KEY = \"rf-contour\"") && js.contains("thresholds: RFMap.CONTOUR_STEPS") && js.contains("RFMap.contourPaint(true)")

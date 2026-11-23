@@ -226,6 +226,8 @@
             peakKeys = peakKeys.concat(addOn); dropPeaks = dropPeaks.concat(addDrop);
             map.setFilter("peak-on", RFMap.peakOnFilter(peakKeys, true, dropPeaks));
             map.setFilter("peak", RFMap.peakOnFilter(peakKeys, false, dropPeaks));
+            // 더하기 층 봉우리(rf-summit)에도 바탕 봉우리를 옮겨 담은 것이 있어(같은 이름|높이 - tools forest-summits.py) 같은 거름: 지나간 봉우리 · 100대 명산과 두 번 안 보이게
+            if (map.getLayer("rf-summit")) map.setFilter("rf-summit", RFMap.peakOnFilter(peakKeys, false, dropPeaks));
             // 지나간 봉우리는 늘 보이는 표시(rf-peak)에도 - 지도 파일은 사패산 같은 봉우리를 확대 12 조각부터 담아, 처음 화면(12 아래)에서 안 보였음(2026-11-23 홍TV님 "사패산은 보여야지")
             var seen = {};
             passMarks = feats.filter(function (f) {
