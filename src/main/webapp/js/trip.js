@@ -64,6 +64,27 @@
         });
     }
 
+    /**
+     * 마우스 따라가기(2026-11-23 홍TV님 "GPX 편집처럼 자료보기에서도 마우스 움직임을 따라가게") - 출발부터 d 미터 자리를 지도의 노란 점 · 그래프 세로선 · 그래프 머리 한 줄로.
+     * 그래프 위(마우스 · 손가락)와 지도의 선 가까이(마우스)에서 부름. 시각이 있는 기록이면 출발부터 걸린 시간도.
+     */
+    var hov = null;
+    function hoverAt(d) {
+        if (!rc || !map) return;
+        var p = RF.at(rc, d);
+        if (!hov) { var el = document.createElement("div"); el.className = "hov"; hov = new maplibregl.Marker({ element: el }).setLngLat([p.lon, p.lat]).addTo(map); }
+        else hov.setLngLat([p.lon, p.lat]);
+        if (prof) prof.set(d);
+        var i = 0;
+        while (i < rc.dist.length - 1 && rc.dist[i + 1] <= d) i++;
+        var t0 = rc.time && rc.time[0], ti = rc.time && rc.time[i], el2 = typeof t0 === "number" && typeof ti === "number" ? ti - t0 : null;
+        $("profTip").textContent = RF.km(d) + " km" + (p.ele != null ? T(" · 해발 ", " · elev. ") + RF.num(Math.round(p.ele)) + " m" : "") + (el2 != null ? " · " + hm(el2) : "");
+    }
+    function hoverOff() {
+        if (hov) { hov.remove(); hov = null; }
+        if ($("profTip")) $("profTip").textContent = "";
+    }
+
     /** 기록 하나 그리기. photoUrl(id) → 약속(그림 주소 | null). */
     function show(rec, photoUrl) {
         clear();
@@ -75,6 +96,7 @@
         $("stat").textContent = (rec.start != null ? when(rec.start) + " · " : "") + RF.km(rc.total) + " km" + (rec.start != null && rec.end != null && rec.end > rec.start ? " · " + hm(rec.end - rec.start) : "")
             + (rec.up != null ? T(" · 오른 높이 ", " · climb ") + RF.num(rec.up) + " m" : rc.asc && rc.asc.length ? T(" · 오르막 ", " · ascent ") + RF.num(rc.asc[rc.asc.length - 1]) + " m" : "");
         prof = RF.profile($("prof"), rc, { speed: RF.speedProfile(rc), labels: false });
+        hoverOff();
         var sum = document.createElement("div");
         sum.id = "sumTbl";
         $("side").appendChild(sum);
@@ -572,6 +594,17 @@
         // 그 전에 연 GPX 가 그려지지 않았음(2026-11-23 PC: 새로 연 뒤 3초에 열면 선 없음 · 전국 화면). 지도의 loaded 값도 조각을 받는 동안 늘 거짓이라 쓰지 않음
         map.once("style.load", function () { styleOk = true; fold(); setContour(contourOn); var q = styleQ; styleQ = []; q.forEach(function (fn) { fn(); }); });
         if (vector) loadMarks();
+        // 지도의 선 가까이에서 마우스를 움직이면 그 자리를 그래프 · 노란 점으로(2026-11-23 홍TV님 "GPX 편집처럼 마우스 움직임을 따라가게") - 화면에서 약 14px 안
+        var hovRaf = 0;
+        map.on("mousemove", function (e) {
+            if (!rc || hovRaf) return;
+            hovRaf = requestAnimationFrame(function () {
+                hovRaf = 0;
+                var q = RF.snap(rc, e.lngLat.lat, e.lngLat.lng), mpp = 40075016 * Math.cos(e.lngLat.lat * Math.PI / 180) / (512 * Math.pow(2, map.getZoom()));
+                if (q && q.off <= mpp * 14) hoverAt(q.d); else hoverOff();
+            });
+        });
+        map.getCanvas().addEventListener("mouseleave", hoverOff);
         map.on("idle", markPeaks);
         // 조각을 받을 때마다도(0.4초 모아 한 번) - "idle" 은 지형 · 사진 표시가 계속 그려지면 늦거나 안 와, 확대해도 사패산에서 안 나뉘고 ▲ 이름도 안 보였음(2026-11-23 PC 불수사도북 z12.95)
         var peakT = 0;
@@ -664,6 +697,16 @@
             };
         }).then(function () { location.href = f.url; });
     }
+
+    // 그래프 위에서 움직이면(마우스 · 손가락) 그 자리를 지도에(GPX 편집 profHover 와 같은 일)
+    function profMove(e) {
+        if (!rc) return;
+        var r = $("prof").getBoundingClientRect(), x = (e.touches ? e.touches[0].clientX : e.clientX) - r.left;
+        hoverAt(Math.max(0, Math.min(1, x / r.width)) * rc.total);
+    }
+    $("prof").addEventListener("mousemove", profMove);
+    $("prof").addEventListener("touchmove", function (e) { profMove(e); e.preventDefault(); }, { passive: false });
+    $("prof").addEventListener("mouseleave", hoverOff);
 
     // 📂 GPX 열기 - 이 기기 안에서만 읽음
     $("openBtn").onclick = function () { $("gpxFile").value = ""; $("gpxFile").click(); };
