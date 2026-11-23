@@ -28,6 +28,14 @@ var vx = M.style({ basemapUrl: "a.pmtiles", demUrl: "d", extraUrl: "a-extra.pmti
 eq("산림청 등산로(더하기 층 rf_trail) - 선은 길 층 바로 위 12 부터, 글자는 13 부터 \"↑오름 거리 ↓내림\", 더하기 층이 없으면 없음", [xid.indexOf("rf-trail") === xid.indexOf("path") + 1,
     vx.layers[xid.indexOf("rf-trail")]["source-layer"], tl.minzoom, tl.layout["symbol-placement"], JSON.stringify(tl.layout["text-field"][2]).indexOf("PMNTN") < 0, ids.indexOf("rf-trail")],
     [true, "rf_trail", 13, "line", true, -1]);
+var sh = vx.layers[xid.indexOf("rf-shop")], shIcon = sh.layout["icon-image"], vcity = vx.layers[xid.indexOf("poi-city")];
+eq("가게(상가정보 rf_shop) - 확대 16, OSM 생활 시설 바로 위, 아이콘은 모두 그림이 있음, OSM 의 식당 · 카페 · 가게 · 병원 · 학교 · 숙소는 뺌", [sh.minzoom, xid.indexOf("rf-shop") === xid.indexOf("poi-city") + 1,
+    shIcon.filter(function (v, k) { return typeof v === "string" && k > 2 && k % 2 === 1 && v; }).every(function (id) { return !!M.ICONS[id]; }), JSON.stringify(vcity.filter[vcity.filter.length - 1][1][2][1])],
+    [16, true, true, JSON.stringify(["rf-food", "rf-cafe", "rf-shop", "rf-med", "rf-school", "rf-bed"])]);
+var vo = M.style({ basemapUrl: "a.pmtiles", demUrl: "d", extraUrl: "a-extra.pmtiles", extraLayers: ["rf_label"] }, "f/"), oid = vo.layers.map(function (l) { return l.id; });
+eq("더하기 층 - 파일에 든 층만(가게 · 산길 없는 옛 파일이면 OSM 가게 그대로)", [oid.indexOf("rf-shop"), oid.indexOf("rf-trail"), oid.indexOf("rf-complex") > 0, JSON.stringify(vo.layers[oid.indexOf("poi-city")].filter) === JSON.stringify(vs.layers[ids.indexOf("poi-city")].filter)],
+    [-1, -1, true, true]);
+eq("산림청 산길 글자 - 등산 표시(poi-hike) 바로 앞, 굽은 길에도(꺾임 60)", [xid.indexOf("rf-trail-label") === xid.indexOf("poi-hike") - 1, tl.layout["text-max-angle"]], [true, 60]);
 eq("산림청 등산로 글자 - 오름 · 내림 시간이 있을 때", JSON.stringify(tl.layout["text-field"][2]), JSON.stringify(["concat", "↑", ["to-string", ["get", "up"]], "분 ", ["to-string", ["get", "km"]], "km ↓", ["to-string", ["get", "down"]], "분"]));
 var city = vs.layers[ids.indexOf("poi-city")], bus = vs.layers[ids.indexOf("poi-bus")], cityIcon = city.layout["icon-image"];
 eq("생활 시설 - 식당 · 카페 · 가게 · 병원 등 확대 15, 버스 정류장 16, 등산 표시 앞(글자 자리를 내줌), 건물은 14 부터", [city.minzoom, bus.minzoom, ids.indexOf("poi-city") < ids.indexOf("poi-hike"),

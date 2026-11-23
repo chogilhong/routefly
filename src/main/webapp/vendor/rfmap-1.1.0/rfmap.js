@@ -51,6 +51,7 @@
             ["restaurant", "fast_food", "bar", "beer", "ice_cream", "bakery"], "rf-food", "cafe", "rf-cafe", ["shop", "grocery", "clothing_store", "alcohol_shop"], "rf-shop",
             ["hospital", "doctors", "dentist", "pharmacy"], "rf-med", ["school", "college", "kindergarten", "library"], "rf-school", "bank", "rf-bank", "bus", "rf-bus",
             ["town_hall", "police", "post", "fire_station"], "rf-gov", "park", "rf-park", "parking", "rf-parking", "lodging", "rf-bed", ""];
+        var SHOP_ICONS = ["rf-food", "rf-cafe", "rf-shop", "rf-med", "rf-school", "rf-bed"];   // 가게 층(rf_shop)이 있으면 OSM 의 이 종류는 그리지 않음(같은 가게 두 번)
         var cityPoi = function (id, minzoom, more) {
             return { id: id, type: "symbol", source: "omt", "source-layer": "poi", minzoom: minzoom,
                 filter: ["all", ["!=", cityPoiIcon, ""], ["==", hikePoiIcon, ""], ["has", "name"], more],
@@ -144,26 +145,40 @@
                     paint: { "text-color": "#4a2208", "text-halo-color": "#fffdf5", "text-halo-width": 2 } }
             ]
         };
-        if (c.extraUrl) {   // 더하기 층 - 아파트 단지(확대 14 ~) · 아파트 동(15 ~) 이름, 봉우리 층 바로 앞(봉우리 · 역 · 대피소에 자리를 내줌)
-            // 출처는 바탕 줄(© OpenMapTiles © OpenStreetMap contributors)에 OSM 이 이미 있어 따로 안 붙임(두 번 보이지 않게)
-            style.sources.rfx = { type: "vector", url: "pmtiles://" + c.extraUrl };
-            var label = function (id, kind, minzoom, size, color) {
-                return { id: id, type: "symbol", source: "rfx", "source-layer": "rf_label", minzoom: minzoom, filter: ["==", ["get", "kind"], kind],
-                    layout: { "text-field": tr(["get", "name"], ["coalesce", ["get", "name_en"], ["get", "name"]]), "text-font": F, "text-size": size, "text-max-width": 7, "text-padding": 3 },
-                    paint: { "text-color": color, "text-halo-color": "#fffdf5", "text-halo-width": 1.3 } };
-            };
-            var at = style.layers.map(function (l) { return l.id; }).indexOf("peak");
-            style.layers.splice(at, 0, label("rf-apt", "apartment", 15, 10.5, "#7a7287"), label("rf-complex", "complex", 14, 12.5, "#5d5470"));
-            // 산림청 등산로(전국 - 더하기 층 rf_trail, 2026-11-23 홍TV님 "네이버처럼 자료로") - OSM 에 없는 산길도. 선은 길 층 바로 위, 글자는 "↑오름 거리 ↓내림"(네이버와 같은 칸 - 산림청 PMNTN_UPPL · LT · GODN)
+        if (c.extraUrl) {   // 더하기 층(tools 저장소 map/extra.yml) - 든 층만(c.extraLayers, 없으면 셋 다 있다고 봄)
+            // 출처는 바탕 줄(© OpenMapTiles © OpenStreetMap contributors)에 OSM 이 이미 있어 따로 안 붙임(두 번 보이지 않게). 가게 · 산길은 공공 자료(출처는 화면의 안내 페이지)
+            var has = function (id) { return !c.extraLayers || c.extraLayers.indexOf(id) >= 0; };
             var ids = function () { return style.layers.map(function (l) { return l.id; }); };
-            style.layers.splice(ids().indexOf("path") + 1, 0, { id: "rf-trail", type: "line", source: "rfx", "source-layer": "rf_trail", minzoom: 12,
-                layout: { "line-join": "round", "line-cap": "round" },
-                paint: { "line-color": "#5f8f6a", "line-opacity": 0.85, "line-width": ["interpolate", ["linear"], ["zoom"], 12, 1, 15, 2.4] } });
-            var num = function (k) { return ["to-string", ["get", k]]; };
-            style.layers.splice(ids().indexOf("rf-apt"), 0, { id: "rf-trail-label", type: "symbol", source: "rfx", "source-layer": "rf_trail", minzoom: 13, filter: ["has", "km"],
-                layout: { "symbol-placement": "line", "symbol-spacing": 250, "text-font": F, "text-size": 10.5, "text-keep-upright": true, "text-max-angle": 35, "text-padding": 2,
-                    "text-field": ["case", ["all", ["has", "up"], ["has", "down"]], ["concat", "↑", num("up"), tr("분 ", "min "), num("km"), "km ↓", num("down"), tr("분", "min")], ["concat", num("km"), "km"]] },
-                paint: { "text-color": "#3f6b4b", "text-halo-color": "#fffdf5", "text-halo-width": 1.4 } });
+            style.sources.rfx = { type: "vector", url: "pmtiles://" + c.extraUrl };
+            if (has("rf_label")) {   // 아파트 단지(확대 14 ~) · 아파트 동(15 ~) 이름, 봉우리 층 바로 앞(봉우리 · 역 · 대피소에 자리를 내줌)
+                var label = function (id, kind, minzoom, size, color) {
+                    return { id: id, type: "symbol", source: "rfx", "source-layer": "rf_label", minzoom: minzoom, filter: ["==", ["get", "kind"], kind],
+                        layout: { "text-field": tr(["get", "name"], ["coalesce", ["get", "name_en"], ["get", "name"]]), "text-font": F, "text-size": size, "text-max-width": 7, "text-padding": 3 },
+                        paint: { "text-color": color, "text-halo-color": "#fffdf5", "text-halo-width": 1.3 } };
+                };
+                style.layers.splice(ids().indexOf("peak"), 0, label("rf-apt", "apartment", 15, 10.5, "#7a7287"), label("rf-complex", "complex", 14, 12.5, "#5d5470"));
+            }
+            if (has("rf_shop")) {   // 가게(상가정보 - 2026-11-23 홍TV님 "지도 툴을 완성") - 확대 16 부터, OSM 의 같은 종류(식당 · 카페 · 가게 · 병원 · 학교 · 숙소)는 이것으로 갈음
+                var shopIcon = ["match", ["get", "kind"], "food", "rf-food", "cafe", "rf-cafe", "shop", "rf-shop", "bed", "rf-bed", "med", "rf-med", "school", "rf-school", "svc", "rf-svc", ""];
+                var city = style.layers[ids().indexOf("poi-city")];
+                city.filter = city.filter.concat([["!", ["in", cityPoiIcon, ["literal", SHOP_ICONS]]]]);
+                style.layers.splice(ids().indexOf("poi-city") + 1, 0, { id: "rf-shop", type: "symbol", source: "rfx", "source-layer": "rf_shop", minzoom: 16, filter: ["!=", shopIcon, ""],
+                    layout: { "icon-image": shopIcon, "icon-size": 1, "text-field": ["get", "name"], "text-font": F, "text-size": 10.5, "text-anchor": "top", "text-offset": [0, 0.8],
+                        "text-optional": true, "text-max-width": 7 },
+                    paint: { "text-color": ["match", ["get", "kind"], "food", "#c2410c", "cafe", "#8b5a2b", "shop", "#6b46c1", "bed", "#9c4221", "med", "#c53030", "school", "#2b6cb0", "#4a5568"],
+                        "text-halo-color": "#fffdf5", "text-halo-width": 1.3 } });
+            }
+            if (has("rf_trail")) {   // 산림청 등산로(전국 - 2026-11-23 홍TV님 "네이버처럼 자료로") - OSM 에 없는 산길도. 선은 길 층 바로 위, 글자는 "↑오름 거리 ↓내림"(네이버와 같은 칸 - 산림청 PMNTN_UPPL · LT · GODN)
+                style.layers.splice(ids().indexOf("path") + 1, 0, { id: "rf-trail", type: "line", source: "rfx", "source-layer": "rf_trail", minzoom: 12,
+                    layout: { "line-join": "round", "line-cap": "round" },
+                    paint: { "line-color": "#5f8f6a", "line-opacity": 0.85, "line-width": ["interpolate", ["linear"], ["zoom"], 12, 1, 15, 2.4] } });
+                var num = function (k) { return ["to-string", ["get", k]]; };
+                // 글자 자리는 마을 · 가게 이름보다 먼저, 등산 표시 · 봉우리보다는 뒤(poi-hike 바로 앞). 굽은 짧은 길에도 놓이게 글자를 줄이고 꺾임을 넉넉히(2026-11-23 PC: 송산에서 못 놓음)
+                style.layers.splice(ids().indexOf("poi-hike"), 0, { id: "rf-trail-label", type: "symbol", source: "rfx", "source-layer": "rf_trail", minzoom: 13, filter: ["has", "km"],
+                    layout: { "symbol-placement": "line", "symbol-spacing": 200, "text-font": F, "text-size": 10, "text-keep-upright": true, "text-max-angle": 60, "text-padding": 0,
+                        "text-field": ["case", ["all", ["has", "up"], ["has", "down"]], ["concat", "↑", num("up"), tr("분 ", "min "), num("km"), "km ↓", num("down"), tr("분", "min")], ["concat", num("km"), "km"]] },
+                    paint: { "text-color": "#3f6b4b", "text-halo-color": "#fffdf5", "text-halo-width": 1.4 } });
+            }
         }
         return style;
     }
@@ -172,6 +187,7 @@
     var MAP_ICONS = { "rf-hut": ["#7a4a1c", "house"], "rf-temple": ["#b23b2e", "卍"], "rf-view": ["#2f7d4f", "eye"], "rf-water": ["#2a73b8", "drop"], "rf-rail": ["#ffffff", "dot"],
         // 생활 시설(작은 동그라미 18칸) - 그림은 선 · 면으로, 글자는 한 자 · 기호만(폰 글꼴에 늘 있음)
         "rf-food": ["#ea580c", "fork", 18], "rf-cafe": ["#8b5a2b", "cup", 18], "rf-shop": ["#7c3aed", "bag", 18], "rf-med": ["#dc2626", "cross", 18], "rf-school": ["#2563eb", "학", 18],
+        "rf-svc": ["#64748b", "dot2", 18],
         "rf-bank": ["#16a34a", "₩", 18], "rf-bus": ["#1971c2", "bus", 18], "rf-gov": ["#4b5563", "관", 18], "rf-park": ["#2f7d4f", "tree", 18], "rf-parking": ["#3b5bdb", "P", 18], "rf-bed": ["#9c4221", "숙", 18] };   // 역은 국토부 지도처럼 작은 흰 동그라미(2026-11-23 홍TV님 "🚉 아이콘은 없어도 돼")
 
     /** 순수 함수 - 우리 지도 poi-hike 층 거름: 아이콘이 있고(icon = 층의 icon-image 식) 숨긴 것(hidden - "rf-hut" 등)이 아닌 것만(2026-11-22 홍TV님 "마커 별로 숨기고 보이고"). */
@@ -288,14 +304,17 @@
         var url = new URL(basemapUrl, location.href).href, file = new global.pmtiles.PMTiles(url), proto = new global.pmtiles.Protocol();
         // 더하기 층(아파트 단지 이름 등 - tools 저장소 map/extra.yml) - 바탕 옆 "-extra.pmtiles", 없으면 바탕만(2026-11-23 홍TV님)
         var extraUrl = url.replace(/\.pmtiles$/, "-extra.pmtiles"), extra = new global.pmtiles.PMTiles(extraUrl);
-        var extraOk = extraUrl === url ? Promise.resolve(false) : extra.getHeader().then(function () { return true; }, function () { return false; });
+        // 어떤 층이 들었는지는 파일 안내(metadata vector_layers)로 - 판에 따라 층이 다를 수 있어 있는 층만 그림(예: 가게 층 없는 옛 파일이면 OSM 가게를 그대로)
+        var extraOk = extraUrl === url ? Promise.resolve(false) : extra.getHeader().then(function () {
+            return extra.getMetadata().then(function (m) { return ((m && m.vector_layers) || []).map(function (l) { return l.id; }); }, function () { return []; });
+        }, function () { return false; });
         return file.getHeader().then(function () {
             proto.add(file);   // 머리를 읽은 그 파일을 지도도 씀(머리를 두 번 받지 않음)
             basemapFile = file;
             if (!pmtilesOn) { global.maplibregl.addProtocol("pmtiles", proto.tile); pmtilesOn = true; }   // 파일 하나에서 필요한 조각만 Range 로 받음
             return extraOk.then(function (ok) {
                 if (ok) proto.add(extra);
-                return vectorStyle({ basemapUrl: url, demUrl: demUrl, extraUrl: ok ? extraUrl : null, lang: opts.lang });
+                return vectorStyle({ basemapUrl: url, demUrl: demUrl, extraUrl: ok ? extraUrl : null, extraLayers: ok || null, lang: opts.lang });
             });
         }, function () { return null; });
     }
@@ -337,6 +356,8 @@
         } else if (ic[1] === "bus") {   // 버스 - 몸통 · 창 · 바퀴
             g.fillRect(c - 5 * u, c - 6 * u, 10 * u, 10 * u); g.fillStyle = ic[0]; g.fillRect(c - 3.5 * u, c - 4.5 * u, 7 * u, 3.5 * u); g.fillStyle = "#fff";
             g.fillRect(c - 4.5 * u, c + 4 * u, 2.5 * u, 2 * u); g.fillRect(c + 2 * u, c + 4 * u, 2.5 * u, 2 * u);
+        } else if (ic[1] === "dot2") {   // 미용 · 수리 · 노래방 등 - 흰 작은 동그라미
+            g.arc(c, c, 3.2 * u, 0, Math.PI * 2); g.fill();
         } else if (ic[1] === "tree") {   // 나무
             g.moveTo(c, c - 7 * u); g.lineTo(c + 5.5 * u, c + 2 * u); g.lineTo(c - 5.5 * u, c + 2 * u); g.closePath(); g.fill(); g.fillRect(c - 1.2 * u, c + 2 * u, 2.4 * u, 4.5 * u);
         } else {

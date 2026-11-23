@@ -38,7 +38,9 @@ RFMap.open("tiles/korea.pmtiles", "https://…/{z}/{x}/{y}.png", { lang: "ko" })
 
 지도 모양의 층 id(앱이 거름 · 숨기기에 씀): `building`(14 ~) · `peak` · `peak-on` · `poi-hike`(대피소 · 절 · 전망대 · 약수터 · 역) · `poi-city`(식당 · 카페 · 가게 · 병원 · 학교 · 은행 · 관공서 · 공원 · 주차장 · 숙소, 15 ~) · `poi-bus`(버스 정류장, 16 ~) · `rf-hut` · `rf-peak`(source `marks` - 앱이 채움) · `gu-name` · `subway` · `rf-complex` · `rf-apt` · `road-name` · `road-name-major` · `place` · `water-name`.
 
-판 기록: 1.0.0(2026-11-23) 처음 - routefly 에서 옮김 / 1.1.0(2026-11-23) 건물 · 생활 시설 · 버스 정류장("지도 툴을 완성").
+더하기 층이 있으면(파일 안내의 vector_layers 로 든 층만): `rf-complex` · `rf-apt`(아파트) · `rf-shop`(가게, 16 ~ - 있으면 OSM 의 식당 · 카페 · 가게 · 병원 · 학교 · 숙소는 그리지 않음) · `rf-trail` · `rf-trail-label`(산림청 산길 "↑오름 거리 ↓내림") · 역은 `rf-station`(data/stations.json, 10 ~).
+
+판 기록: 1.0.0(2026-11-23) 처음 - routefly 에서 옮김 / 1.1.0(2026-11-23) 건물 · 생활 시설 · 버스 정류장 · 역(처음 화면부터) · 산림청 산길 · 상가정보 가게 · ↑↓ 글꼴 조각(8448-8703)("지도 툴을 완성").
 
 ## 판 올리기
 
