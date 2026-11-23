@@ -756,7 +756,10 @@ public class MountainServlet extends HttpServlet {
             String len = v.has("sec") && v.get("sec").isJsonPrimitive() ? clock(v.get("sec").getAsDouble()) : null;
             String km = v.has("km") && v.get("km").isJsonPrimitive() ? (v.get("km").getAsDouble() == Math.rint(v.get("km").getAsDouble()) ? "약 " + (long) v.get("km").getAsDouble() : String.valueOf(v.get("km").getAsDouble())) + "km" : null;
             b.append("<li><a href=\"https://www.youtube.com/watch?v=").append(vid).append("\" target=\"_blank\" rel=\"noopener\">").append(esc(title))
-                    .append(str(v, "route") != null ? " - " + esc(str(v, "route")) : "").append(km != null ? " · " + km : "").append(len != null ? " (" + len + ")" : "").append(" ›</a></li>");
+                    .append(str(v, "route") != null ? " - " + esc(str(v, "route")) : "").append(km != null ? " · " + km : "").append(len != null ? " (" + len + ")" : "").append(" ›</a>");
+            String course = str(v, "course");   // 그 종주 코스 화면(영상 → 같은 코스 3D · 따라가기, 2026-11-23) - 한국어 /m/산 은 ../c/, 영어 /en/m/산 은 ../../c/
+            if (course != null && CourseQueries.validId(course)) b.append(" · <a href=\"").append(en ? "../.." : REL).append("/c/").append(course).append("\">").append(en ? "▶ This trail" : "▶ 이 코스 보기").append("</a>");
+            b.append("</li>");
         }
         if (b.length() == 0) return "";
         return "<section class=\"shorts flight\"><h2>" + (en ? "🛩 3D traverse video (Korean captions)" : "🛩 3D 종주 영상") + "</h2><ul class=\"tips\">" + b

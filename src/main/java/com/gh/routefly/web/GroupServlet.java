@@ -71,6 +71,45 @@ public class GroupServlet extends HttpServlet {
         }
     }
 
+    /** 정해 둔 코스 묶음(ids) 한도 - 종주 묶음처럼 손으로 고른 코스(2026-11-23). */
+    static final int IDS_LIMIT = 20;
+
+    /** 순수 함수 - ids=코스 ID 들(쉼표) → 목록(규칙에 맞는 것만, 같은 것은 한 번, 차례 그대로, 많아야 IDS_LIMIT). 하나라도 규칙에 안 맞거나 비면 null. */
+    static List<String> idList(String s) {
+        if (s == null || s.isBlank()) return null;
+        List<String> out = new ArrayList<>();
+        for (String id : s.split(",")) {
+            id = id.trim();
+            if (!CourseQueries.validId(id)) return null;
+            if (!out.contains(id)) out.add(id);
+        }
+        return out.isEmpty() || out.size() > IDS_LIMIT ? null : out;
+    }
+
+    /** 손으로 고른 코스 묶음(series.json 의 ids - "종주" 묶음, 2026-11-23 홍TV님) - 코스 ID 에 묶음 앞부분이 없는 코스(u- 올린 코스 등)를 차례 그대로. */
+    private void ids(HttpServletRequest req, HttpServletResponse resp, String raw) throws IOException {
+        List<String> ids = idList(raw);
+        if (ids == null) {
+            Json.fail(resp, HttpServletResponse.SC_BAD_REQUEST, "ids 는 쉼표로 이은 코스 ID 입니다(" + IDS_LIMIT + "개까지).");
+            return;
+        }
+        String key = ResultCache.key("ids", String.join(",", ids)), ver = ResultCache.LISTS.version();
+        if (ResultCache.LISTS.send(req, resp, key, ver)) return;
+        try (Connection c = Db.open()) {
+            JsonArray got = Json.rows(c, "SELECT " + CourseQueries.LIST_COLUMNS + " FROM route_course WHERE course_id IN (" + String.join(",", java.util.Collections.nCopies(ids.size(), "?")) + ")",
+                    ids.toArray());
+            JsonArray courses = new JsonArray();
+            for (String id : ids) for (com.google.gson.JsonElement e : got) if (id.equals(e.getAsJsonObject().get("course_id").getAsString())) courses.add(e);   // series.json 차례 그대로
+            JsonObject out = new JsonObject();
+            out.addProperty("success", true);
+            out.add("courses", courses);
+            ResultCache.LISTS.ok(req, resp, key, ver, out);
+        } catch (Exception e) {
+            log.warn("[GROUP] 코스 묶음 조회 실패 ids={} - {}", ids.size(), e.toString());
+            Json.fail(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "코스를 읽지 못했습니다.");
+        }
+    }
+
     /** 둘레길 한 노선 코스 수 한도(서해랑길 공식 109). */
     static final int TRAIL_LIMIT = 150;
 
@@ -135,6 +174,10 @@ public class GroupServlet extends HttpServlet {
         String trail = req.getParameter("trail");
         if (trail != null) {
             trail(req, resp, trail);
+            return;
+        }
+        if (req.getParameter("ids") != null) {
+            ids(req, resp, req.getParameter("ids"));
             return;
         }
         String p = req.getParameter("prefix");

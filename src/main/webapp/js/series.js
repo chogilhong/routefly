@@ -23,7 +23,7 @@
         return RF.enName(s).replace(/\s+/g, " ").trim();
     }
     var GROUP_EN = { "국토종주 자전거길": "Cross-country bike paths", "국가숲길": "National forest trails", "코리아둘레길": "Korea Dulle-gil",
-                     "100대 명산": "100 Famous Mountains", "백두대간 · 정맥": "Baekdudaegan · Jeongmaek ridges" };
+                     "100대 명산": "100 Famous Mountains", "백두대간 · 정맥": "Baekdudaegan · Jeongmaek ridges", "종주": "Ridge traverses" };
     var UNIT_EN = { "인증센터": "checkpoints", "코스": "trails", "정상": "summits", "구간": "sections" };
     function gTitle(g) { return EN ? GROUP_EN[g.title] || NM(g.title) : g.title; }
     function gUnit(g) { return EN ? UNIT_EN[g.unit] || g.unit : g.unit; }
@@ -412,7 +412,7 @@
         d.groups.forEach(function (g) {
             g.series.forEach(function (s) {
                 // 백두대간 · 정맥: 공식 구간 수가 없어 앱에 있는 구간(api/group)으로 셈
-                if (s.q || (s.prefix && s.courses == null && !s.centers)) named.push(s);
+                if (s.q || s.fixed || (s.prefix && s.courses == null && !s.centers)) named.push(s);   // fixed - 손으로 고른 코스(종주, 2026-11-23)
                 if (s.summits) files.push(s);
             });
         });
@@ -423,7 +423,8 @@
         return Promise.all(peaksReady.concat(named.map(function (s) {
             // 코리아둘레길은 노선 안내도(route.html)와 같은 곳(api/group?trail= - 두루누비 drnb- 만)에서 셈(2026-11-03 코스 점검: 이름 검색(api/courses 의 q)은
             // 다른 자료의 같은 이름 코스까지 300개 안에서 섞여 길 모음 · 노선 안내도의 코스 수가 달랐음). 선은 필요 없어 lines=0
-            var url = s.q ? "api/group?trail=" + encodeURIComponent(s.match || s.name) + "&lines=0" : "api/group?prefix=" + encodeURIComponent(s.prefix);
+            var url = s.q ? "api/group?trail=" + encodeURIComponent(s.match || s.name) + "&lines=0"
+                : s.fixed ? "api/group?ids=" + encodeURIComponent(s.fixed.join(",")) : "api/group?prefix=" + encodeURIComponent(s.prefix);
             return getJson(url).then(function (j) { return j.courses; }, function () { return []; }).then(function (all) {
                 s.list = s.q ? RF.trailCourses(all, s.match || s.name) : all;
                 s.ids = s.list.map(function (c) { return c.course_id; });

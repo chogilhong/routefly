@@ -53,7 +53,7 @@ public class GroupServletTest {
     public void seriesJsonPrefixesAreValid() throws Exception {
         String txt = new String(Files.readAllBytes(Paths.get("src/main/webapp/data/series.json")), StandardCharsets.UTF_8);
         JsonObject d = JsonParser.parseString(txt).getAsJsonObject();
-        int n = 0, named = 0, peaks = 0, certs = 0, seriesCerts = 0;
+        int n = 0, named = 0, peaks = 0, certs = 0, seriesCerts = 0, fixed = 0;
         for (JsonElement g : d.getAsJsonArray("groups")) {
             if (g.getAsJsonObject().has("cert")) {   // 공식 인증 링크 - 나라 · 공공기관(https)만
                 String u = g.getAsJsonObject().getAsJsonObject("cert").get("url").getAsString();
@@ -74,6 +74,13 @@ public class GroupServletTest {
                     named++;
                     continue;
                 }
+                if (o.has("fixed")) {   // 손으로 고른 코스(종주, 2026-11-23) - api/group?ids= 가 받는 모양
+                    java.util.List<String> ids = new java.util.ArrayList<>();
+                    for (JsonElement id : o.getAsJsonArray("fixed")) ids.add(id.getAsString());
+                    assertEquals(ids, GroupServlet.idList(String.join(",", ids)));
+                    fixed++;
+                    continue;
+                }
                 if (o.has("summits")) {   // 100대 명산 - 정상 목록 파일(코스 묶음 아님)
                     assertTrue(Files.exists(Paths.get("src/main/webapp/" + o.get("summits").getAsString())));
                     peaks++;
@@ -87,6 +94,13 @@ public class GroupServletTest {
         assertEquals("국토종주 13 + 국가숲길 6 + 백두대간 · 정맥 9", 28, n);
         assertEquals("코리아둘레길 4", 4, named);
         assertEquals("100대 명산 1", 1, peaks);
+        assertEquals("종주(손으로 고른 코스) 1", 1, fixed);
+        assertNull("ids - 규칙에 안 맞는 ID 가 하나라도 있으면 받지 않음", GroupServlet.idList("u-1,../x"));
+        assertEquals("ids - 같은 것은 한 번, 차례 그대로", java.util.List.of("u-2", "u-1"), GroupServlet.idList(" u-2 ,u-1,u-2"));
+        assertNull("ids - 비거나 너무 많으면 받지 않음", GroupServlet.idList(String.join(",", java.util.Collections.nCopies(1, "")) ));
+        StringBuilder many = new StringBuilder();
+        for (int i = 0; i <= GroupServlet.IDS_LIMIT; i++) many.append(i == 0 ? "" : ",").append("u-").append(i);
+        assertNull(GroupServlet.idList(many.toString()));
         assertEquals("공식 인증 링크 - 국토종주 · 코리아둘레길", 2, certs);
         assertEquals("길 하나의 인증 링크 - 지리산둘레길", 1, seriesCerts);
     }
