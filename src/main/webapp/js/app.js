@@ -97,7 +97,9 @@
     var VIDEO_DROP = ["road-name", "place", "water-name"];
     function videoStyle(cfg, vs) {
         var st = buildStyle(cfg), out = Object.assign({}, vs, { terrain: st.terrain, sky: st.sky });
-        out.sources = Object.assign({}, vs.sources, { terrain: st.sources.terrain });
+        var t = Object.assign({}, st.sources.terrain);
+        delete t.attribution;   // 지형 출처는 우리 지도의 음영(hillshade) 자료에 이미 있음 - 두 번 나오지 않게(2026-11-23 PC)
+        out.sources = Object.assign({}, vs.sources, { terrain: t });
         out.layers = vs.layers.filter(function (l) { return VIDEO_DROP.indexOf(l.id) < 0; });
         return out;
     }
