@@ -708,8 +708,10 @@
                 // 쉼터 amenity=shelter → class shelter, 절 amenity=place_of_worship → class place_of_worship · subclass 는 religion(buddhist), 전망대 → class attraction · subclass viewpoint,
                 // 약수터 amenity=drinking_water → class drinking_water. 확대 12 ~ 13 은 중요한 것만, 14 부터 모두(OMT). 아이콘 그림은 화면이 그려 넣음(rf-hut 등 - 받는 글꼴에 그림 글자가 없음)
                 { id: "poi-hike", type: "symbol", source: "omt", "source-layer": "poi", minzoom: 12, filter: poiShowFilter(hikePoiIcon, []),
-                    layout: { "icon-image": hikePoiIcon, "icon-size": 1, "icon-allow-overlap": false, "text-field": ko, "text-font": F, "text-size": 11,
-                        "text-anchor": "top", "text-offset": [0, 0.9], "text-optional": true },
+                    layout: { "icon-image": hikePoiIcon, "icon-size": 1, "icon-allow-overlap": false, "text-font": F, "text-size": 11,
+                        // 역은 국토부 지도처럼 "○○역"(이름이 역으로 안 끝나면 붙임 - OSM 지하철역 이름은 "노원" 처럼 역이 없음, 2026-11-23 홍TV님)
+                        "text-field": ["case", ["all", ["==", hikePoiIcon, "rf-rail"], ["!=", ["slice", ko, ["max", 0, ["-", ["length", ko], 1]]], "역"]], ["concat", ko, "역"], ko],
+                        "text-anchor": "top", "text-offset": ["case", ["==", hikePoiIcon, "rf-rail"], ["literal", [0, 0.5]], ["literal", [0, 0.9]]], "text-optional": true },
                     paint: { "text-color": ["match", hikePoiIcon, "rf-temple", "#8b1e1e", "rf-water", "#1f5f8b", "rf-rail", "#1f4e8c", "#5a3510"], "text-halo-color": "#fffdf5", "text-halo-width": 1.4 } },
                 // 기록이 지나간 봉우리는 조금 크게 · 진하게(2026-11-22 홍TV님) - 어느 봉우리인지는 화면이 peaksNear 로 찾아 setFilter. 맨 뒤 층이라 글자 자리를 먼저 잡음
                 { id: "peak-on", type: "symbol", source: "omt", "source-layer": "mountain_peak", minzoom: 9, filter: peakOnFilter([], true),
@@ -727,7 +729,7 @@
     }
 
     /** 우리 지도 poi-hike 층 아이콘(이름 → 동그라미 색 · 안 그림). 화면이 캔버스로 그려 map.addImage - 집 · 눈 · 물방울은 선으로(글꼴마다 ⌂ 등이 뭉개짐), 절은 卍(한자라 폰 글꼴에 있음). */
-    var MAP_ICONS = { "rf-hut": ["#7a4a1c", "house"], "rf-temple": ["#b23b2e", "卍"], "rf-view": ["#2f7d4f", "eye"], "rf-water": ["#2a73b8", "drop"], "rf-rail": ["#2b5797", "train"] };
+    var MAP_ICONS = { "rf-hut": ["#7a4a1c", "house"], "rf-temple": ["#b23b2e", "卍"], "rf-view": ["#2f7d4f", "eye"], "rf-water": ["#2a73b8", "drop"], "rf-rail": ["#ffffff", "dot"] };   // 역은 국토부 지도처럼 작은 흰 동그라미(2026-11-23 홍TV님 "🚉 아이콘은 없어도 돼")
 
     /** 순수 함수 - 우리 지도 poi-hike 층 거름: 아이콘이 있고(icon = 층의 icon-image 식) 숨긴 것(hidden - "rf-hut" 등)이 아닌 것만(2026-11-22 홍TV님 "마커 별로 숨기고 보이고"). */
     function poiShowFilter(icon, hidden, dropNames) {
@@ -765,6 +767,14 @@
     function mapIconImage(map, id) {
         var ic = MAP_ICONS[id];
         if (!ic || map.hasImage(id)) return;
+        if (ic[1] === "dot") {   // 역 - 작은 흰 동그라미 + 진한 테(12칸)
+            var rr = global.devicePixelRatio > 1 ? 2 : 1, m = 12 * rr, cd = document.createElement("canvas"), gd = cd.getContext("2d");
+            cd.width = cd.height = m;
+            gd.beginPath(); gd.arc(m / 2, m / 2, m / 2 - 1.5 * rr, 0, Math.PI * 2);
+            gd.fillStyle = ic[0]; gd.fill(); gd.lineWidth = 2 * rr; gd.strokeStyle = "#3a4654"; gd.stroke();
+            map.addImage(id, gd.getImageData(0, 0, m, m), { pixelRatio: rr });
+            return;
+        }
         var r = global.devicePixelRatio > 1 ? 2 : 1, n = 22 * r, cv = document.createElement("canvas"), g = cv.getContext("2d");
         cv.width = cv.height = n;
         g.beginPath(); g.arc(n / 2, n / 2, n / 2 - r, 0, Math.PI * 2);
@@ -776,9 +786,6 @@
             g.moveTo(c, c - 6 * u); g.lineTo(c + 6 * u, c); g.lineTo(c + 4 * u, c); g.lineTo(c + 4 * u, c + 5 * u); g.lineTo(c - 4 * u, c + 5 * u); g.lineTo(c - 4 * u, c); g.lineTo(c - 6 * u, c); g.closePath(); g.fill();
         } else if (ic[1] === "drop") {   // 물방울
             g.moveTo(c, c - 6 * u); g.bezierCurveTo(c + 5 * u, c, c + 5 * u, c + 5 * u, c, c + 5 * u); g.bezierCurveTo(c - 5 * u, c + 5 * u, c - 5 * u, c, c, c - 6 * u); g.fill();
-        } else if (ic[1] === "train") {   // 전동차 앞모습(몸통 · 창 · 바퀴)
-            g.fillRect(c - 5 * u, c - 6 * u, 10 * u, 9 * u); g.fillStyle = ic[0]; g.fillRect(c - 3.5 * u, c - 4.5 * u, 7 * u, 3.5 * u);
-            g.fillStyle = "#fff"; g.arc(c - 3 * u, c + 5 * u, 1.4 * u, 0, Math.PI * 2); g.arc(c + 3 * u, c + 5 * u, 1.4 * u, 0, Math.PI * 2); g.fill();
         } else if (ic[1] === "eye") {   // 눈(전망)
             g.ellipse(c, c, 6.5 * u, 3.8 * u, 0, 0, Math.PI * 2); g.stroke(); g.beginPath(); g.arc(c, c, 2 * u, 0, Math.PI * 2); g.fill();
         } else {
