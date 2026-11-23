@@ -79,11 +79,11 @@ public class BasemapTest {
             && js.contains("var hp = hutPhotoAt(g[1], g[0]);") && js.contains("(p.sa ? \" asis\" : \"\")") && html.contains(".hutImg.asis { object-fit:contain !important;")
             && read("src/main/webapp/data/shelter-photos.json").contains("\"photos\":"));
         assertTrue("3D 비행 영상 바탕 = 우리 지도(2026-11-23 홍TV님) - 위성 없을 때만, 길 · 마을 · 물 이름 뺌, 출처 줄에 OpenMapTiles", app.contains("(VIDEO && !VIDEO.sat ? RFMap.open(r[0].basemapUrl, r[0].demUrl, { lang: LANG }) : Promise.resolve(null))")
-            && app.contains("var VIDEO_DROP = [\"road-name\", \"road-name-major\", \"place\", \"water-name\", \"gu-name\", \"rf-complex\", \"rf-apt\"];") && app.contains("(videoVec ? T(\"지도: \", \"Map: \") + \"© OpenMapTiles | \" : \"\")")
+            && app.contains("var VIDEO_DROP = [\"road-name\", \"rf-complex\", \"rf-apt\"];") && app.contains("(videoVec ? T(\"지도: \", \"Map: \") + \"© OpenMapTiles | \" : \"\")")
             && read("src/main/webapp/index.html").contains("<script src=\"vendor/pmtiles-4.5.0/pmtiles.js\"></script>"));
         assertTrue("구간: 지나간 …산 정상에서도 끊기 · 1km 안은 하나로 · 역 단추(2026-11-23 홍TV님 1 · 2 · 도시 안내)", js.contains("SEG_GAP_M = 1000") && js.contains("fam.huts.concat(fam.peaks, namedPeaks)")
             && js.contains("return /산$/.test(f.name || \"\")") && !js.contains("\"rf-rail\", \"🚉\"")
-            && read("src/main/webapp/vendor/rfmap-1.0.0/rfmap.js").contains("\"rf-rail\": [\"#ffffff\", \"dot\"] };") && read("src/main/webapp/vendor/rfmap-1.0.0/rfmap.js").contains("[\"concat\", ko, \"역\"], ko]") && app.contains("var VIDEO_DROP = [\"road-name\", \"road-name-major\", \"place\", \"water-name\", \"gu-name\", \"rf-complex\", \"rf-apt\"];")
+            && read("src/main/webapp/vendor/rfmap-1.0.0/rfmap.js").contains("\"rf-rail\": [\"#ffffff\", \"dot\"] };") && read("src/main/webapp/vendor/rfmap-1.0.0/rfmap.js").contains("[\"concat\", ko, \"역\"], ko]") && app.contains("var VIDEO_DROP = [\"road-name\", \"rf-complex\", \"rf-apt\"];")
             && app.contains("map.setFilter(\"peak\", [\"!\", [\"in\", [\"get\", \"name\"], [\"literal\", videoPeakNames.concat(own)]]]);")
             && app.contains("map.setFilter(\"rf-peak\", [\"all\", [\"==\", [\"get\", \"kind\"], \"peak\"], [\"!\", [\"in\", [\"get\", \"name\"], [\"literal\", own]]]]);"));
         assertTrue("봉우리 찾기는 idle 만 믿지 않고 조각을 받을 때도(2026-11-23 PC 불수사도북 z12.95 - 사패산에서 안 나뉨)", js.contains("if (e.sourceId !== \"omt\" || !e.isSourceLoaded) return;")
@@ -99,7 +99,7 @@ public class BasemapTest {
         assertTrue("지나간 …산은 이름마다 한 번만(이웃 조각에 같은 봉우리가 겹쳐 있음)", js.contains(".filter(function (q, k, all) { return all.findIndex(function (o) { return o.name === q.name; }) === k; });"));
         assertTrue("처음 화면부터 작은 봉우리(사패산)에서 나눔 - 선이 지나는 확대 12 조각을 지도 파일에서 바로 읽음(2026-11-23 PC 운영 v360)", js.contains("RFMap.tilePeaks(rc.lat, rc.lon).then(function (f) { if (rc === forRc && f.length) { tileFeats = f; markPeaks(); } });")
             && js.contains("var feats = pts(\"mountain_peak\").concat(tileFeats)") && read("src/main/webapp/vendor/rfmap-1.0.0/rfmap.js").contains("basemapFile = file;"));
-        assertTrue("처음 화면은 전체 맞춤보다 0.1 더 가깝게(2026-11-23 홍TV님 \"휠 한 칸 키운 것에서 조금 줄여\")", js.contains("var FIRST_ZOOM_UP = 0.1;")
+        assertTrue("처음 화면은 전체 맞춤보다 0.1 더 가깝게(2026-11-23 홍TV님 \"휠 한 칸 키운 것에서 조금 줄여\")", js.contains("var FIRST_ZOOM_UP = 0.1;") && js.contains("map.cameraForBounds(b, { padding: fitPad(), maxZoom: 15 });")
             && js.contains("map.jumpTo({ center: cam.center, zoom: Math.min(15, cam.zoom + FIRST_ZOOM_UP), bearing: 0 });"));
         assertTrue("점검용 지도 엿보기는 ?debug=map 일 때만", js.contains("if (/[?&]debug=map(?:&|$)/.test(location.search)) {") && js.indexOf("window.__rfMap") > js.indexOf("debug=map"));
         assertTrue("OSM 출처는 한 번만 - 우리 지도는 바탕 출처에 이미 있음(2026-11-22 PC)", js.contains("customAttribution: (style ? \"\" : \"© OpenStreetMap contributors | \") + "));

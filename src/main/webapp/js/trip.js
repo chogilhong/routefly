@@ -121,9 +121,9 @@
                 var b = new maplibregl.LngLatBounds();
                 line.geometry.coordinates.forEach(function (q) { b.extend(q); });
                 // 처음 화면은 기록 전체를 맞춘 것보다 조금 가깝게(2026-11-23 홍TV님 "휠 한 칸 키운 것을 기본으로, 그 상태에서 조금 줄여" - 휠 한 칸은 약 0.15)
-                var cam = map.cameraForBounds(b, { padding: 50, maxZoom: 15 });
+                var cam = map.cameraForBounds(b, { padding: fitPad(), maxZoom: 15 });   // 아래는 단추 줄 · 로고 · 그래프만큼 비움(2026-11-23 PC: 끝점이 단추 줄 뒤로 들어감)
                 if (cam) map.jumpTo({ center: cam.center, zoom: Math.min(15, cam.zoom + FIRST_ZOOM_UP), bearing: 0 });
-                else map.fitBounds(b, { padding: 50, duration: 0, maxZoom: 15 });
+                else map.fitBounds(b, { padding: fitPad(), duration: 0, maxZoom: 15 });
             };
             whenStyle(draw);
             [[0, "#2fb344"], [rc.lat.length - 1, "#ff5c5c"]].forEach(function (e) {

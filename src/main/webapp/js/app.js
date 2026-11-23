@@ -92,9 +92,10 @@
 
     /**
      * 3D 비행 영상 바탕을 우리 지도로(2026-11-23 홍TV님 "3D 비행 영상 바탕을 우리 지도로") - RFMap.open 의 모양 위에 3D 지형 · 하늘을 얹음.
-     * 날며 보는 영상이라 글은 봉우리 · 대피소 · 절 등만(길 · 마을 · 물 이름은 뺌 - 기울어진 화면에 많으면 어지러움). 위성(V-World)은 영상에 쓰지 않음.
+     * 날며 보는 영상이라 작은 길 이름 · 아파트 단지 · 동 이름만 뺌(기울어진 화면에 많으면 어지러움). 위성(V-World)은 영상에 쓰지 않음.
+     * 마을 · 강 · 구 · 큰길 이름은 다시 넣음(2026-11-23 홍TV님 "다 빼고 나니까 너무 밋밋한데").
      */
-    var VIDEO_DROP = ["road-name", "road-name-major", "place", "water-name", "gu-name", "rf-complex", "rf-apt"];   // 아파트 단지 · 동 이름도 뺌(2026-11-23 홍TV님 "빼줘")
+    var VIDEO_DROP = ["road-name", "rf-complex", "rf-apt"];   // 아파트 단지 · 동 이름은 뺌(2026-11-23 홍TV님 "빼줘")
     function videoStyle(cfg, vs) {
         var st = buildStyle(cfg), out = Object.assign({}, vs, { terrain: st.terrain, sky: st.sky });
         var t = Object.assign({}, st.sources.terrain);
