@@ -204,7 +204,8 @@ html.rfwait body { visibility:hidden; }   /* 앱을 처음 열 때 서버에 닿
 #pickList .msg.sec small { display:block; font-size:13px; margin-top:2px; }
 #pickList .msg.fortune small { font-size:15px; color:var(--tx); margin-top:4px; }   /* 🔮 한마디 글은 읽히게 */
 
-#toast { position:fixed; left:50%; bottom:120px; transform:translateX(-50%); z-index:20; display:none; max-width:calc(100% - 32px); white-space:pre-line;
+/* 알림 글은 모든 창(내 기록 30 · 보내는 창 9000) 위로 - 기록 보기에서 💾 GPX 저장으로 넘어오면 내 기록 창 뒤에 깔려 안 보였음(2026-11-23 PC). 글만이라 누름은 막지 않음 */
+#toast { position:fixed; left:50%; bottom:120px; transform:translateX(-50%); z-index:9600; pointer-events:none; display:none; max-width:calc(100% - 32px); white-space:pre-line;
          padding:10px 14px; border-radius:10px; background:rgba(0,0,0,0.85); color:#fff; font-size:14px; line-height:1.45; text-align:center; }
 .maplibregl-ctrl-attrib { font-size:10px; }
 .sim-attr { font-size:9px; line-height:1.3; color:#fff; background:rgba(0,0,0,.6); padding:2px 6px; border-radius:4px; max-width:calc(100vw - 90px); pointer-events:none; }

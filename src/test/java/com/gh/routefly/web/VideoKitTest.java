@@ -114,6 +114,7 @@ public class VideoKitTest {
                 && js.contains("nativeShareFile(name, btoa(unescape(encodeURIComponent(text))), gpxShareText(rec))") && js.contains("navigator.share({ files: [file], title: NM(rec.name), text: gpxShareText(rec) })"));
         // 2026-11-23 홍TV님: 📤 GPX 보내기 창은 없애고 기록 보기 화면에 [💾 GPX 저장] [📮 등록 요청] 단추로
         assertFalse("보내기 창 없음", js.contains("function sendSheet("));
+        assertTrue("알림 글은 모든 창 위로(2026-11-23 PC: 💾 GPX 저장 알림이 내 기록 창 뒤에 깔림)", read("src/main/webapp/hike.html").contains("#toast { position:fixed; left:50%; bottom:120px; transform:translateX(-50%); z-index:9600; pointer-events:none;"));
         assertTrue("📮 등록 요청 - 이름이 올라간다는 안내는 보내는 창(RF.submitSheet)에", read("src/main/webapp/js/course-kit.js").contains("보내는 사람 이름(올리면 코스 화면에 \\\"만든 이\\\" 로 보임 · 비우면 익명)")
             && js.contains("function submitSheet(r) {\n        RF.submitSheet({"));
         assertTrue("💾 사진 · 메모까지 든 GPX", js.contains("saveGpxText(rec, RF.recordGpx(rec, ph));"));
