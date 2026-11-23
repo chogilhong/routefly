@@ -92,8 +92,8 @@ public class StudioPublicTest {
             if (row.contains("tiles: [")) assertTrue(m.group(1) + " 출처", row.contains("attr: \"") && row.contains("© OpenStreetMap contributors"));
             n++;
         }
-        assertEquals("바탕 5 · 겹침 3", 8, n);
-        assertTrue(js.contains("function usable(x) { return owner || !!x.pub; }"));
+        assertEquals("바탕 6(우리 지도 2026-11-24) · 겹침 3", 9, n);
+        assertTrue("운영자는 모두 · 손님은 pub 만(우리 지도는 파일을 읽었을 때만)", js.contains("function usable(x) { return (owner || !!x.pub) && (!x.ours || !!ourStyle); }"));
         assertTrue("지도 글 · 고르기 칸 모두 거름", js.contains("if (!usable(b)) return;") && js.contains("if (!o.tiles || !usable(o)) return;") && js.contains("|| !usable(b)) return;") && js.contains("if (usable(o)) h +="));
     }
 

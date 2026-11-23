@@ -30,7 +30,7 @@ function hikeStyle(key, hold) {
 }
 function kitStyle(key) { return vm.runInNewContext(fn(KIT, "baseStyle") + " baseStyle(c);", { c: { demUrl: "d", vworldKey: key }, tr: function (k) { return k; } }); }
 function studioStyle(key) {
-    return vm.runInNewContext(fn(STUDIO, "style") + " style(cfg);", { cfg: { demUrl: "d", vworldKey: key }, BASES: [], OVERS: [], usable: function () { return true; },
+    return vm.runInNewContext(fn(STUDIO, "style") + " style(cfg);", { cfg: { demUrl: "d", vworldKey: key }, BASES: [], OVERS: [], usable: function () { return true; }, ourStyle: null, OUR: "rfm-",
         mapPref: function () { return { base: "sat", over: { hillshade: 1 } }; }, encodeURIComponent: encodeURIComponent });
 }
 [["키 있음", "k", { max: 12, min: 9 }], ["키 없음(음영이 바탕)", null, { max: 15, min: 0 }]].forEach(function (c) {

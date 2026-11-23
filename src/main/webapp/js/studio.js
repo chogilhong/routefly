@@ -131,6 +131,8 @@
         { id: "base", name: "🗺️ 밝은 지도(V-World)", vw: true, pub: true },
         { id: "osm", name: "🧭 OpenStreetMap", tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"], max: 19, attr: "지도: © OpenStreetMap contributors" },
         { id: "topo", name: "⛰️ OpenTopoMap(등고선)", tiles: ["https://a.tile.opentopomap.org/{z}/{x}/{y}.png", "https://b.tile.opentopomap.org/{z}/{x}/{y}.png", "https://c.tile.opentopomap.org/{z}/{x}/{y}.png"], max: 17, attr: "지도: © OpenTopoMap (CC-BY-SA) · © OpenStreetMap contributors" },
+        // 우리 지도(2026-11-24 홍TV님 "좋은 생각이야" - 코스를 고친 뒤 따라가기 · 영상에서 어떻게 보일지 그 자리에서 봄). 설정 map.basemap.url 이 있고 파일을 읽었을 때만(ours)
+        { id: "rf", name: "🏞️ 우리 지도(따라가기 · 영상과 같음)", ours: true, pub: true },
         { id: "none", name: "지형 음영만", pub: true }
     ];
     var OVERS = [
@@ -139,8 +141,11 @@
         { id: "hillshade", name: "🏔️ 지형 음영", pub: true }
     ];
     var MAPKEY = "rf-studio-map";
-    /** 이 기기에서 고를 수 있는 바탕 · 겹침인가 - 운영자는 모두, 손님은 pub 만(위 까닭). */
-    function usable(x) { return owner || !!x.pub; }
+    /** 이 기기에서 고를 수 있는 바탕 · 겹침인가 - 운영자는 모두, 손님은 pub 만(위 까닭). 우리 지도는 그 파일을 읽었을 때만. */
+    function usable(x) { return (owner || !!x.pub) && (!x.ours || !!ourStyle); }
+    var ourStyle = null, OUR = "rfm-";   // 우리 지도 모양(RFMap.open) - 층 · 소스 이름에 rfm- 를 붙여 편집 층(bg · hillshade 등)과 겹치지 않게
+    /** 우리 지도 층인가(고를 때 한꺼번에 보이기 · 숨기기). */
+    function isOurs(id) { return id.indexOf(OUR) === 0; }
     /** 기억해 둔 고름 - 키가 없어 V-World 를 못 쓰거나 손님이 못 쓰는 바탕이면 운영자는 OpenTopoMap, 손님은 지형 음영만. */
     function mapPref() {
         var p = null;
@@ -167,12 +172,26 @@
         });
         layers.push({ id: "hillshade", type: "hillshade", source: "hillshade", minzoom: cfg.vworldKey ? 9 : 0, layout: { visibility: pref.over && pref.over.hillshade ? "visible" : "none" },
             paint: { "hillshade-exaggeration": 0.3, "hillshade-shadow-color": "#3d4a3a", "hillshade-highlight-color": "#fbf7ea" } });
+        // 우리 지도는 제 바탕색 · 음영 · 글이 다 있어 지형 음영 겹침 위에 통째로 - 숨긴 층의 지도 조각은 받지 않음(고를 때만 받음)
+        if (ourStyle) {
+            Object.keys(ourStyle.sources).forEach(function (k) { sources[OUR + k] = ourStyle.sources[k]; });
+            ourStyle.layers.forEach(function (l) {
+                var c = JSON.parse(JSON.stringify(l));
+                c.id = OUR + l.id;
+                if (l.source) c.source = OUR + l.source;
+                c.layout = c.layout || {};
+                c.layout.visibility = pref.base === "rf" && (!l.layout || l.layout.visibility !== "none") ? "visible" : "none";
+                layers.push(c);
+            });
+        }
         OVERS.forEach(function (o) {
             if (!o.tiles || !usable(o)) return;
             sources[o.id] = { type: "raster", tileSize: 256, maxzoom: 18, tiles: o.tiles, attribution: o.attr };
             layers.push({ id: o.id, type: "raster", source: o.id, layout: { visibility: pref.over && pref.over[o.id] ? "visible" : "none" }, paint: { "raster-opacity": 0.9 } });
         });
-        return { version: 8, sources: sources, layers: layers };
+        var st = { version: 8, sources: sources, layers: layers };
+        if (ourStyle && ourStyle.glyphs) st.glyphs = ourStyle.glyphs;   // 우리 지도 글(지명 · 봉우리)
+        return st;
     }
     /** 🗺 지도 고르기 칸 - 바탕 하나 + 겹침 여럿, 이 기기에 기억. */
     function mapMenu() {
@@ -194,6 +213,7 @@
                 if (inp.type === "radio") p.base = inp.value; else p.over[inp.value] = inp.checked ? 1 : 0;
                 try { localStorage.setItem(MAPKEY, JSON.stringify(p)); } catch (e) { /* 이번만 */ }
                 BASES.forEach(function (b) { if (map.getLayer(b.id)) map.setLayoutProperty(b.id, "visibility", p.base === b.id ? "visible" : "none"); });
+                if (ourStyle) ourStyle.layers.forEach(function (l) { if (map.getLayer(OUR + l.id)) map.setLayoutProperty(OUR + l.id, "visibility", p.base === "rf" && (!l.layout || l.layout.visibility !== "none") ? "visible" : "none"); });
                 OVERS.forEach(function (o) { if (map.getLayer(o.id)) map.setLayoutProperty(o.id, "visibility", p.over[o.id] ? "visible" : "none"); });
             };
         });
@@ -203,11 +223,16 @@
     function startMap() {
         if (!window.maplibregl) { msg("지도를 띄우지 못했습니다(그래프 · 도구는 됩니다).", 6000); return; }
         fetch("api/map-config", { headers: { Accept: "application/json" } }).then(function (r) { return r.json(); }).catch(function () { return {}; }).then(function (j) {
+            // 우리 지도 파일(map.basemap.url)이 있으면 그 모양을 먼저 - 없거나 못 읽으면(404 등) 목록에 안 나옴
+            var dem = j.demUrl || "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
+            return (window.RFMap ? RFMap.open(j.basemapUrl, dem) : Promise.resolve(null)).catch(function () { return null; }).then(function (s) { ourStyle = s; return j; });
+        }).then(function (j) {
             var cfg = { demUrl: j.demUrl || "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png", vworldKey: j.vworldKey || null };
             hasSat = cfgVw = !!cfg.vworldKey;   // 바탕 고름(mapPref)이 먼저 앎
             demUrl = cfg.demUrl;
             map = new maplibregl.Map({ container: "map", style: style(cfg), center: [127.8, 36.3], zoom: 6.2, locale: RF.mapLocale(), attributionControl: false, dragRotate: false, pitchWithRotate: false });
             map.touchZoomRotate.disableRotation();
+            if (ourStyle) map.on("styleimagemissing", function (e) { RFMap.iconImage(map, e.id); });   // 우리 지도 아이콘(봉우리 · 대피소 · 역 등)
             map.addControl(new maplibregl.AttributionControl({ compact: true, customAttribution: "© OpenStreetMap contributors" }), "bottom-right");
             // 폰(600px 밑)은 출처를 ⓘ 로 접어 둠(누르면 펼쳐짐 - 따라가기 foldAttrib 와 같게, 2026-11-02 홍TV님 점검: 처음에 두 줄로 펼쳐져 지도 10% 를 가렸음). PC 는 그대로
             if (window.matchMedia && window.matchMedia("(max-width: 599px)").matches) {
