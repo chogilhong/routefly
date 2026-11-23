@@ -56,7 +56,7 @@ public class BasemapTest {
         assertTrue("카드에 마우스 → 지도 표시 주황(2026-11-22 홍TV님)", js.contains("card.addEventListener(\"mouseenter\", function () { if (it.mark) it.mark.getElement().classList.add(\"hover\"); });")
             && js.contains("card.addEventListener(\"mouseleave\", function () { if (it.mark) it.mark.getElement().classList.remove(\"hover\"); });") && html.contains(".pin.on, .pin.hover {"));
         assertTrue("공단 대피소 · 100대 명산 정상은 처음부터(지도 load 를 기다리지 않음), 겹치는 OSM 것은 숨김(2026-11-22 홍TV님)",
-            js.contains("if (vector) loadMarks();") && js.contains("Promise.all([RF.famousFetch(), photosP])") && read("src/main/webapp/js/course-kit.js").contains("return { gj: famousMarks(peaks, elev, shelters), peaks: peaks, elev: elev, shelters: shelters };")
+            js.contains("if (vector) loadMarks();") && js.contains("Promise.all([RF.famousFetch(), photosP])") && read("src/main/webapp/js/course-kit.js").contains("return { gj: famousMarks(peaks, elev, shelters.concat(halla)), peaks: peaks, elev: elev, shelters: shelters };")
             && js.contains("map.setFilter(\"peak\", RFMap.peakOnFilter(peakKeys, false, dropPeaks));") && js.contains("Object.keys(hidden).filter(function (k) { return hidden[k] && /^rf-/.test(k); }), dropHuts));")
             && js.contains("map.setLayoutProperty(\"rf-hut\", \"visibility\", hidden[\"rf-hut\"] ? \"none\" : \"visible\");"));
         assertTrue("구간 색 · 봉우리 대피소 누르면 그래프에(2026-11-23 홍TV님)", js.contains("if (fam) return RF.trackSegments(rc, fam.huts.concat(fam.peaks, namedPeaks), SEG_NEAR_M, SEG_GAP_M);")

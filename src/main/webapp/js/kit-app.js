@@ -645,12 +645,13 @@
             .slice(0, max || 3).map(function (x) { return x.g; });
     }
 
-    /** 공단 대피소 · 100대 명산 정상 자료(famousMarks 의 바탕)를 한 번에 받음 - {gj, peaks, elev, shelters}, 하나라도 못 받으면 그 칸은 빈 것. */
+    /** 공단 대피소 · 한라산 대피소 · 100대 명산 정상 자료(famousMarks 의 바탕)를 한 번에 받음 - {gj, peaks, elev, shelters}, 하나라도 못 받으면 그 칸은 빈 것. */
     function famousFetch() {
         var j = function (u) { return fetch(u).then(function (r) { return r.ok ? r.json() : null; }, function () { return null; }); };
-        return Promise.all([j("data/mountains100.json"), j("data/peak-elev.json"), j("data/knps-shelters.json")]).then(function (d) {
-            var peaks = (d[0] && d[0].peaks) || [], elev = (d[1] && d[1].elev) || {}, shelters = (d[2] && d[2].shelters) || [];
-            return { gj: famousMarks(peaks, elev, shelters), peaks: peaks, elev: elev, shelters: shelters };
+        // 한라산 대피소(data/halla-shelters.json - 제주도 관리라 공단 자료에 없음, 2026-11-23 홍TV님 "한라산은 별도로")는 지도 표시(gj)에만 - shelters(국립공원 찾기 후보)는 공단 것만
+        return Promise.all([j("data/mountains100.json"), j("data/peak-elev.json"), j("data/knps-shelters.json"), j("data/halla-shelters.json")]).then(function (d) {
+            var peaks = (d[0] && d[0].peaks) || [], elev = (d[1] && d[1].elev) || {}, shelters = (d[2] && d[2].shelters) || [], halla = (d[3] && d[3].shelters) || [];
+            return { gj: famousMarks(peaks, elev, shelters.concat(halla)), peaks: peaks, elev: elev, shelters: shelters };
         });
     }
 

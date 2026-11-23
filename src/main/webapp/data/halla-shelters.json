@@ -1,0 +1,9 @@
+{
+  "_note": "한라산국립공원 대피소(제주특별자치도 관리 - 국립공원공단 대피소 knps-shelters.json 에 없음, 2026-11-23 홍TV님 \"한라산은 별도로 넣어줘\"). 지도 표시(RF.famousFetch → 기록 보기 · 3D 영상의 rf-hut)에만 씀 - 예약 · 검색 카드에는 안 씀(한라산 대피소는 숙박 · 예약 없음). 자리는 OpenStreetMap(© OpenStreetMap contributors, ODbL) - 2026-11-23 PC 가 바탕 지도 poi 에서 읽은 값(소수 4자리). 진달래밭 · 평궤대피소는 자리를 확인하면 더함.",
+  "shelters": [
+    { "name": "윗세오름대피소", "park": "한라산", "lat": 33.3619, "lon": 126.5175, "src": "osm 윗세오름2대피소(lodging/alpine_hut)" },
+    { "name": "삼각봉대피소", "park": "한라산", "lat": 33.3768, "lon": 126.5306, "src": "osm 삼각봉 대피소(shelter)" },
+    { "name": "속밭대피소", "park": "한라산", "lat": 33.3802, "lon": 126.5812, "src": "osm 속밭대피소(shelter)" },
+    { "name": "탐라계곡대피소", "park": "한라산", "lat": 33.4001, "lon": 126.5398, "src": "osm 탐라계곡대피소(shelter)" }
+  ]
+}
