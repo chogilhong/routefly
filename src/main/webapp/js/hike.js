@@ -549,11 +549,11 @@
      * 일꾼에서 등고선을 그림(새 자료 · 키 없음, 끈 동안은 받지 않음). 줌마다 간격(m) [가는 선, 굵은 선]. 글자(높이 숫자)는 지도 글꼴이 없어 넣지 않음.
      * 켠 것은 이 기기에 기억(rf-contour - 개인정보 방침 2장).
      */
-    var CONTOUR_KEY = "rf-contour", CONTOUR_STEPS = RF.CONTOUR_STEPS;   // 간격 · 색은 기록 보기(trip.js)와 함께 RF 에
+    var CONTOUR_KEY = "rf-contour", CONTOUR_STEPS = RFMap.CONTOUR_STEPS;   // 간격 · 색은 기록 보기(trip.js)와 함께 우리 지도 패키지(RFMap)에
     var contourOn = false, demContour = null;
     try { contourOn = localStorage.getItem(CONTOUR_KEY) === "1"; } catch (e) { /* 기본 끔 */ }
 
-    var contourPaint = RF.contourPaint;
+    var contourPaint = RFMap.contourPaint;
 
     /** 등고선 · 거리 재기 높이가 함께 쓰는 지형 타일(바탕 음영과 같은 주소 · maxzoom). 라이브러리가 없으면 null. */
     function demSource() {

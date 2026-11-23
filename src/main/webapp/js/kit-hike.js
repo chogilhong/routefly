@@ -1433,13 +1433,6 @@
 
     var SPEED_HALF_MS = 60000;
 
-    /** 등고선 간격(확대 → [가는 선 m, 굵은 선 m]) - 따라가기 · 기록 보기가 함께 씀(2026-11-22). */
-    var CONTOUR_STEPS = { 11: [100, 500], 12: [50, 250], 13: [20, 100] };
-    /** 순수 함수 - 바탕에 맞는 등고선 색 · 진하기(위성 · 어두운 바탕은 흰 선, 밝은 지도 · 지형만은 갈색 선). */
-    function contourPaint(light) {
-        return light ? { color: "#8a5a2b", opacity: 0.6 } : { color: "#ffffff", opacity: 0.4 };
-    }
-
     /**
      * 순수 함수 - 그래프에 그릴 속도 선을 거리 n 칸마다 평균으로(2026-11-22 홍TV님 - 12시간 기록에서 붉은 선이 톱니처럼 흔들려 읽기 어려웠음).
      * 돌려줌 [[칸 가운데 거리 비율 0 ~ 1, 평균 km/h]], 점이 없는 칸은 뺌. "최고" 숫자는 그래프가 원래 값(speedProfile)으로 따로 셈.
@@ -4391,8 +4384,6 @@
         declutter: declutter,
         moveStats: moveStats,
         speedProfile: speedProfile,
-        CONTOUR_STEPS: CONTOUR_STEPS,
-        contourPaint: contourPaint,
         measureSamples: measureSamples,
         measureZoom: measureZoom,
         courseBetween: courseBetween,

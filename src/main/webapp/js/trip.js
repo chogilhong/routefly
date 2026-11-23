@@ -15,7 +15,7 @@
     if (EN) { document.documentElement.lang = "en"; document.title = "routefly - View record"; RF.applyEn(document); }
 
     var map = null, cfgP = null, marks = [], cards = [], urls = [], items = [], pick = -1, prof = null, rc = null;
-    var vector = false, peakKeys = [], PEAK_NEAR_M = 150, tileFeats = [];   // tileFeats - 선이 지나는 확대 12 조각의 봉우리(RF.trackTilePeaks)
+    var vector = false, peakKeys = [], PEAK_NEAR_M = 150, tileFeats = [];   // tileFeats - 선이 지나는 확대 12 조각의 봉우리(RFMap.tilePeaks)
     // 공단 대피소 · 100대 명산 정상(늘 보임, RF.famousMarks)과 겹치는 OSM 것(300m 안)은 숨김 - 두 번 그리지 않게
     var fam = null, famGj = null, famSet = false, dropPeaks = [], dropHuts = [], SAME_M = 300;
     var styleOk = false, styleQ = [];   // 지도 모양 준비(whenStyle)
@@ -116,7 +116,7 @@
                 markPeaks();
                 // 처음 화면(확대 10 ~ 11) 조각에는 작은 봉우리가 빠져 있어, 선이 지나는 확대 12 조각을 지도 파일에서 바로 읽어 처음부터 나눔(2026-11-23 PC 운영 v360 - 사패산)
                 var forRc = rc;
-                RF.trackTilePeaks(rc.lat, rc.lon).then(function (f) { if (rc === forRc && f.length) { tileFeats = f; markPeaks(); } });
+                RFMap.tilePeaks(rc.lat, rc.lon).then(function (f) { if (rc === forRc && f.length) { tileFeats = f; markPeaks(); } });
                 var b = new maplibregl.LngLatBounds();
                 line.geometry.coordinates.forEach(function (q) { b.extend(q); });
                 map.fitBounds(b, { padding: 50, duration: 0, maxZoom: 15 });
@@ -169,7 +169,7 @@
     function applyKinds() {
         items.forEach(function (it) { if (it.mark) it.mark.getElement().style.display = hidden[it.n.photo ? "photo" : "memo"] ? "none" : ""; });
         if (map && map.getLayer("poi-hike")) {
-            map.setFilter("poi-hike", RF.poiShowFilter(map.getLayoutProperty("poi-hike", "icon-image"), Object.keys(hidden).filter(function (k) { return hidden[k] && /^rf-/.test(k); }), dropHuts));
+            map.setFilter("poi-hike", RFMap.poiShowFilter(map.getLayoutProperty("poi-hike", "icon-image"), Object.keys(hidden).filter(function (k) { return hidden[k] && /^rf-/.test(k); }), dropHuts));
         }
         if (map && map.getLayer("rf-hut")) map.setLayoutProperty("rf-hut", "visibility", hidden["rf-hut"] ? "none" : "visible");   // 🏠 단추는 공단 대피소도
     }
@@ -195,13 +195,13 @@
             }).filter(Boolean);
         };
         var feats = pts("mountain_peak").concat(tileFeats), more = function (have, add) { return add.filter(function (k) { return have.indexOf(k) < 0; }); };
-        var addOn = rc ? more(peakKeys, RF.peaksNear(feats, rc.lat, rc.lon, PEAK_NEAR_M)) : [], addDrop = [], addHut = [];
+        var addOn = rc ? more(peakKeys, RFMap.peaksNear(feats, rc.lat, rc.lon, PEAK_NEAR_M)) : [], addDrop = [], addHut = [];
         if (fam) {
             fam.peaks.forEach(function (p) {   // 같은 이름의 OSM 봉우리만(옆 봉우리는 그대로)
-                addDrop = addDrop.concat(more(dropPeaks.concat(addDrop), RF.peaksNear(feats.filter(function (f) { return f.name === p.name; }), [p.lat], [p.lon], SAME_M)));
+                addDrop = addDrop.concat(more(dropPeaks.concat(addDrop), RFMap.peaksNear(feats.filter(function (f) { return f.name === p.name; }), [p.lat], [p.lon], SAME_M)));
             });
             var huts = pts("poi").filter(function (f) { return (f.cls === "lodging" && f.sub === "alpine_hut") || f.cls === "shelter"; });   // 이름이 달라도(로타리 · 로터리) 자리로
-            addHut = more(dropHuts, RF.peaksNear(huts, fam.huts.map(function (h) { return h.lat; }), fam.huts.map(function (h) { return h.lon; }), SAME_M)
+            addHut = more(dropHuts, RFMap.peaksNear(huts, fam.huts.map(function (h) { return h.lat; }), fam.huts.map(function (h) { return h.lon; }), SAME_M)
                 .map(function (k) { return k.slice(0, k.lastIndexOf("|")); }));
         }
         // 지나간 "…산" 정상(2026-11-23 홍TV님 "불암산 · 수락산 · 사패산 같은 곳에서도 구간을 끊기") - 새로 찾으면 구간을 다시 나눔
@@ -213,8 +213,8 @@
         }
         if (addOn.length || addDrop.length) {
             peakKeys = peakKeys.concat(addOn); dropPeaks = dropPeaks.concat(addDrop);
-            map.setFilter("peak-on", RF.peakOnFilter(peakKeys, true, dropPeaks));
-            map.setFilter("peak", RF.peakOnFilter(peakKeys, false, dropPeaks));
+            map.setFilter("peak-on", RFMap.peakOnFilter(peakKeys, true, dropPeaks));
+            map.setFilter("peak", RFMap.peakOnFilter(peakKeys, false, dropPeaks));
         }
         if (addHut.length) { dropHuts = dropHuts.concat(addHut); applyKinds(); }
     }
@@ -401,7 +401,7 @@
     }
 
     /**
-     * 등고선 켜기 · 끄기(2026-11-22 홍TV님 "등고선을 보이고 안 보이고") - 따라가기(hike.js setContour)와 같은 지형 타일 · 간격(RF.CONTOUR_STEPS) · 색(RF.contourPaint),
+     * 등고선 켜기 · 끄기(2026-11-22 홍TV님 "등고선을 보이고 안 보이고") - 따라가기(hike.js setContour)와 같은 지형 타일 · 간격(RFMap.CONTOUR_STEPS) · 색(RFMap.contourPaint),
      * 켠 것은 같은 기억(rf-contour). 기록 선 · 글자 아래에 그음.
      */
     function setContour(on) {
@@ -413,8 +413,8 @@
                 demContour.setupMaplibre(maplibregl);
             }
             map.addSource("contours", { type: "vector", maxzoom: 15, tiles: [demContour.contourProtocolUrl({
-                thresholds: RF.CONTOUR_STEPS, overzoom: 1, contourLayer: "contours", elevationKey: "ele", levelKey: "level" })] });
-            var cp = RF.contourPaint(true);   // 기록 보기 바탕은 둘 다 밝음(우리 지도 · V-World 일반 지도)
+                thresholds: RFMap.CONTOUR_STEPS, overzoom: 1, contourLayer: "contours", elevationKey: "ele", levelKey: "level" })] });
+            var cp = RFMap.contourPaint(true);   // 기록 보기 바탕은 둘 다 밝음(우리 지도 · V-World 일반 지도)
             map.addLayer({ id: "contours", type: "line", source: "contours", "source-layer": "contours", minzoom: 11,
                 paint: { "line-color": cp.color, "line-opacity": cp.opacity, "line-width": ["match", ["get", "level"], 1, 1.4, 0.7] } },
                 map.getLayer("trk-halo") ? "trk-halo" : firstSymbol());
@@ -493,7 +493,7 @@
     // 파일이 아직 서버에 없거나(404) 못 읽으면 V-World 바탕으로(2026-11-22 PC: 설정이 파일보다 먼저 들어가 운영 기록 보기가 바탕 없이 지형 음영만 보였음)
     cfgP = getJson("api/map-config").catch(function () { return {}; }).then(function (c) {
         var cfg = { demUrl: c.demUrl || "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png", vworldKey: c.vworldKey || null };
-        return RF.vectorBasemap(c.basemapUrl, cfg.demUrl).then(function (style) { return { cfg: cfg, style: style }; });
+        return RFMap.open(c.basemapUrl, cfg.demUrl, { lang: LANG }).then(function (style) { return { cfg: cfg, style: style }; });
     }).then(function (o) {
         var cfg = o.cfg, style = o.style;
         vector = !!style; contourCfg = cfg;
@@ -523,7 +523,7 @@
             if (e.sourceId !== "omt" || !e.isSourceLoaded) return;
             clearTimeout(peakT); peakT = setTimeout(markPeaks, 400);
         });
-        map.on("styleimagemissing", function (e) { RF.mapIconImage(map, e.id); });
+        map.on("styleimagemissing", function (e) { RFMap.iconImage(map, e.id); });
         if (vector) {
             var PLACES = ["rf-peak", "rf-hut", "peak-on", "peak", "poi-hike"];
             PLACES.forEach(function (id) {

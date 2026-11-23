@@ -91,7 +91,7 @@
     // ------------------------------------------------------------------ 지도
 
     /**
-     * 3D 비행 영상 바탕을 우리 지도로(2026-11-23 홍TV님 "3D 비행 영상 바탕을 우리 지도로") - RF.vectorBasemap 의 모양 위에 3D 지형 · 하늘을 얹음.
+     * 3D 비행 영상 바탕을 우리 지도로(2026-11-23 홍TV님 "3D 비행 영상 바탕을 우리 지도로") - RFMap.open 의 모양 위에 3D 지형 · 하늘을 얹음.
      * 날며 보는 영상이라 글은 봉우리 · 대피소 · 절 등만(길 · 마을 · 물 이름은 뺌 - 기울어진 화면에 많으면 어지러움). 위성(V-World)은 영상에 쓰지 않음.
      */
     var VIDEO_DROP = ["road-name", "road-name-major", "place", "water-name", "gu-name"];
@@ -1404,7 +1404,7 @@
      * 영상 바탕(우리 지도)의 대피소 · 100대 명산 표시(RF.famousFetch, 기록 보기와 같은 자료) · 아이콘 그림. 같은 이름의 OSM 봉우리 · 대피소는 숨겨 두 번 안 나오게.
      */
     function videoMarks() {
-        map.on("styleimagemissing", function (e) { RF.mapIconImage(map, e.id); });
+        map.on("styleimagemissing", function (e) { RFMap.iconImage(map, e.id); });
         RF.famousFetch().then(function (f) {
             var put = function () {
                 if (!map.getSource("marks")) { map.once("styledata", put); return; }
@@ -1412,7 +1412,7 @@
                 var names = function (kind) { return f.gj.features.filter(function (x) { return x.properties.kind === kind; }).map(function (x) { return x.properties.name; }); };
                 videoPeakNames = names("peak");
                 videoPeakFilter();
-                if (map.getLayer("poi-hike")) map.setFilter("poi-hike", RF.poiShowFilter(map.getLayoutProperty("poi-hike", "icon-image"), [], names("hut")));
+                if (map.getLayer("poi-hike")) map.setFilter("poi-hike", RFMap.poiShowFilter(map.getLayoutProperty("poi-hike", "icon-image"), [], names("hut")));
             };
             put();
         });
@@ -1858,7 +1858,7 @@
         .catch(function () { return { demUrl: "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png", vworldKey: null }; }), firstData])
         .then(function (r) {
             // 영상(위성 없음)은 우리 지도 파일이 있으면 그것을 바탕으로(없거나 못 읽으면 전처럼 지형 음영만)
-            (VIDEO && !VIDEO.sat ? RF.vectorBasemap(r[0].basemapUrl, r[0].demUrl) : Promise.resolve(null)).then(function (vs) {
+            (VIDEO && !VIDEO.sat ? RFMap.open(r[0].basemapUrl, r[0].demUrl, { lang: LANG }) : Promise.resolve(null)).then(function (vs) {
                 videoVec = !!vs;
                 start(r[0], r[1], vs);
             });

@@ -10,6 +10,9 @@ var sandbox = { window: {}, console: console, URL: URL, URLSearchParams: URLSear
 vm.createContext(sandbox);
 vm.runInContext(fs.readFileSync(path.join(__dirname, "../../main/webapp/js/course-kit.js"), "utf8"), sandbox);
 var RF = sandbox.window.RF;
+// 우리 지도 패키지(tools 저장소 map/rfmap 을 sync.js 로 복사한 것) - 지도 모양 · 봉우리 거름 · 조각 읽기(2026-11-23 course-kit 에서 옮김)
+vm.runInContext(fs.readFileSync(path.join(__dirname, "../../main/webapp/vendor/rfmap-1.0.0/rfmap.js"), "utf8"), sandbox);
+var RM = sandbox.window.RFMap;
 
 var fails = 0, runs = 0;
 function eq(name, got, want) {
@@ -298,21 +301,21 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
         eq("트립 - 응답의 대한민국 도시는 모두 표에", Object.keys(seen).length, RF.TRIP_CITIES.length);
     })();
     (function () {   // 바탕 지도 2단계 - 우리 지도 파일 모양(2026-11-22)
-        var vs = RF.vectorStyle({ basemapUrl: "https://routefly.kr/routefly/tiles/korea.pmtiles", demUrl: "https://d/{z}/{x}/{y}.png" }, "https://routefly.kr/routefly/vendor/fonts/");
+        var vs = RM.style({ basemapUrl: "https://routefly.kr/routefly/tiles/korea.pmtiles", demUrl: "https://d/{z}/{x}/{y}.png" }, "https://routefly.kr/routefly/vendor/fonts/");
         eq("바탕 지도 - 파일 · 글꼴 · 출처(OpenMapTiles · OSM 늘)", [vs.sources.omt.url, vs.glyphs, vs.sources.omt.attribution, vs.sources.hillshade.tiles[0]],
             ["pmtiles://https://routefly.kr/routefly/tiles/korea.pmtiles", "https://routefly.kr/routefly/vendor/fonts/{fontstack}/{range}.pbf", "© OpenMapTiles © OpenStreetMap contributors", "https://d/{z}/{x}/{y}.png"]);
         eq("바탕 지도 - 산길 · 봉우리 · 물 · 숲 층, 글자는 받은 글꼴(Noto Sans Regular)만", [["path", "peak", "water", "wood"].every(function (id) { return vs.layers.some(function (l) { return l.id === id; }); }),
             vs.layers.filter(function (l) { return l.type === "symbol"; }).every(function (l) { return JSON.stringify(l.layout["text-font"]) === '["Noto Sans Regular"]'; })], [true, true]);
     })();
     (function () {   // 기록 보기 다듬기(2026-11-22 홍TV님 1 ~ 3)
-        var vs = RF.vectorStyle({ basemapUrl: "https://x/k.pmtiles", demUrl: "https://d/{z}/{x}/{y}.png" }, "https://x/f/");
+        var vs = RM.style({ basemapUrl: "https://x/k.pmtiles", demUrl: "https://d/{z}/{x}/{y}.png" }, "https://x/f/");
         var ids = vs.layers.map(function (l) { return l.id; });
         eq("봉우리 - 지나간 봉우리 층은 늘 보이는 표시(rf-hut · rf-peak) 바로 앞, 처음에는 둘 다 빈 목록", [ids[ids.indexOf("rf-hut") - 1], JSON.stringify(vs.layers[ids.indexOf("peak-on")].filter), JSON.stringify(vs.layers[ids.indexOf("peak")].filter)],
-            ["peak-on", JSON.stringify(RF.peakOnFilter([], true)), JSON.stringify(RF.peakOnFilter([], false))]);
-        eq("봉우리 - 거름 모양", RF.peakOnFilter(["천왕봉|1915"], true), ["in", ["concat", ["to-string", ["get", "name"]], "|", ["to-string", ["get", "ele"]]], ["literal", ["천왕봉|1915"]]]);
-        eq("봉우리 - 아닌 쪽은 ! 로 감쌈", RF.peakOnFilter(["a|1"], false)[0], "!");
+            ["peak-on", JSON.stringify(RM.peakOnFilter([], true)), JSON.stringify(RM.peakOnFilter([], false))]);
+        eq("봉우리 - 거름 모양", RM.peakOnFilter(["천왕봉|1915"], true), ["in", ["concat", ["to-string", ["get", "name"]], "|", ["to-string", ["get", "ele"]]], ["literal", ["천왕봉|1915"]]]);
+        eq("봉우리 - 아닌 쪽은 ! 로 감쌈", RM.peakOnFilter(["a|1"], false)[0], "!");
         var lat = [35.3360, 35.3370, 35.3380], lon = [127.7300, 127.7300, 127.7300];
-        eq("봉우리 - 선에서 150m 안만, 이름 없는 것 · 같은 것 두 번은 뺌", RF.peaksNear([
+        eq("봉우리 - 선에서 150m 안만, 이름 없는 것 · 같은 것 두 번은 뺌", RM.peaksNear([
             { name: "천왕봉", ele: 1915, lat: 35.3370, lon: 127.7310 },   // 약 91m
             { name: "먼봉", ele: 1000, lat: 35.3370, lon: 127.7330 },     // 약 272m
             { name: "", ele: 900, lat: 35.3370, lon: 127.7300 },
@@ -323,7 +326,7 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
         var poi = vs.layers[ids.indexOf("poi-hike")], icon = poi && poi.layout["icon-image"];
         eq("대피소 · 절 등 - poi 층, 지나간 봉우리 층 바로 앞, 확대 12부터", [poi && poi["source-layer"], ids.indexOf("poi-hike") === ids.indexOf("peak-on") - 1, poi && poi.minzoom], ["poi", true, 12]);
         eq("대피소 · 절 등 - OpenMapTiles class · subclass 와 아이콘(그리는 그림이 다 있음)", [JSON.stringify(icon.slice(1, -1)),
-            icon.filter(function (v, k) { return typeof v === "string" && k > 0 && k % 2 === 0; }).concat(icon[icon.length - 1] ? [icon[icon.length - 1]] : []).every(function (id) { return !!RF.MAP_ICONS[id]; })],
+            icon.filter(function (v, k) { return typeof v === "string" && k > 0 && k % 2 === 0; }).concat(icon[icon.length - 1] ? [icon[icon.length - 1]] : []).every(function (id) { return !!RM.ICONS[id]; })],
             [JSON.stringify([["all", ["==", ["get", "class"], "lodging"], ["==", ["get", "subclass"], "alpine_hut"]], "rf-hut", ["==", ["get", "class"], "shelter"], "rf-hut",
                 ["all", ["==", ["get", "class"], "place_of_worship"], ["==", ["get", "subclass"], "buddhist"]], "rf-temple",
                 ["all", ["==", ["get", "class"], "attraction"], ["==", ["get", "subclass"], "viewpoint"]], "rf-view", ["==", ["get", "class"], "drinking_water"], "rf-water",
@@ -331,7 +334,7 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
         var sw = vs.layers[ids.indexOf("subway")];
         eq("지하철 노선 - 미리 만든 자료(data/subway-lines.json)의 OSM 색 그대로 · 철길 바로 위", [sw && sw.source, vs.sources.subway.data, JSON.stringify(sw.paint["line-color"]), ids.indexOf("subway") === ids.indexOf("rail") + 1],
             ["subway", "data/subway-lines.json", JSON.stringify(["get", "colour"]), true]);
-        var vx = RF.vectorStyle({ basemapUrl: "https://x/k.pmtiles", demUrl: "https://d/{z}/{x}/{y}.png", extraUrl: "https://x/k-extra.pmtiles" }, "https://x/f/"), xid = vx.layers.map(function (l) { return l.id; });
+        var vx = RM.style({ basemapUrl: "https://x/k.pmtiles", demUrl: "https://d/{z}/{x}/{y}.png", extraUrl: "https://x/k-extra.pmtiles" }, "https://x/f/"), xid = vx.layers.map(function (l) { return l.id; });
         eq("더하기 층(아파트 단지 14 · 동 15) - 파일이 있을 때만, 봉우리 층 바로 앞, 출처는 바탕 줄에", [vs.sources.rfx, ids.indexOf("rf-complex"), vx.sources.rfx.url, vx.sources.rfx.attribution,
             xid.indexOf("rf-complex") === xid.indexOf("peak") - 1, xid.indexOf("rf-apt") === xid.indexOf("rf-complex") - 1, vx.layers[xid.indexOf("rf-complex")].minzoom, vx.layers[xid.indexOf("rf-apt")].minzoom,
             vx.layers[xid.indexOf("rf-complex")]["source-layer"], JSON.stringify(vx.layers[xid.indexOf("rf-apt")].filter)],
@@ -344,7 +347,7 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
         eq("큰길 이름은 확대 11부터(고속도로 · 국도 · 큰 도로), 나머지 길 이름은 13부터 - 겹치지 않게 서로 거름", [rm.minzoom, JSON.stringify(rm.filter), rn.minzoom, rn.filter[0]],
             [11, JSON.stringify(["match", ["get", "class"], ["motorway", "trunk", "primary"], true, false]), 13, "!"]);
         eq("대피소 · 절 등 - 아이콘이 없는 것(교회 · 식당 등)은 안 그림", [icon[icon.length - 1], JSON.stringify(poi.filter)], ["", JSON.stringify(["!=", icon, ""])]);
-        eq("표시 숨기기 - 숨긴 아이콘만 거름에 더함", [RF.poiShowFilter("I", []), RF.poiShowFilter("I", ["rf-temple"])], [["!=", "I", ""], ["all", ["!=", "I", ""], ["!", ["in", "I", ["literal", ["rf-temple"]]]]]]);
+        eq("표시 숨기기 - 숨긴 아이콘만 거름에 더함", [RM.poiShowFilter("I", []), RM.poiShowFilter("I", ["rf-temple"])], [["!=", "I", ""], ["all", ["!=", "I", ""], ["!", ["in", "I", ["literal", ["rf-temple"]]]]]]);
         eq("늘 보이는 표시 - 맨 뒤 두 층(글자 자리를 먼저), 멀리서도(대피소 8 · 봉우리 7)", [ids.slice(-2), vs.layers[ids.indexOf("rf-peak")].minzoom, vs.layers[ids.indexOf("rf-hut")].minzoom, vs.sources.marks.type], [["rf-hut", "rf-peak"], 7, 8, "geojson"]);
         (function () {   // 구간 색(2026-11-23 홍TV님 "안내도처럼")
             var lat = [], lon = [];
@@ -376,9 +379,9 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
             { "지리산": 1915 }, [{ name: "장터목대피소", lat: 35.3325, lon: 127.71 }, { name: "자리없음" }]);
         eq("늘 보이는 표시 - 공식 높이만(GPS height 안 씀), 높이 없으면 이름만, 자리 없는 것 뺌", fm.features.map(function (f) { return [f.properties.kind, f.properties.label, f.geometry.coordinates]; }),
             [["hut", "장터목대피소", [127.71, 35.3325]], ["peak", "▲ 천왕봉\n1915m", [127.73, 35.33]], ["peak", "▲ 없는산", [128, 36]]]);
-        eq("봉우리 - 겹치는 OSM 봉우리(drop)는 어느 층에도 안 그림", [RF.peakOnFilter(["a|1"], true, ["b|2"])[0], JSON.stringify(RF.peakOnFilter(["a|1"], false, ["b|2"])[1][2])], ["all", JSON.stringify(["literal", ["a|1", "b|2"]])]);
-        eq("대피소 - 공단 대피소와 겹치는 OSM 대피소는 이름으로 뺌", RF.poiShowFilter("I", [], ["로터리 대피소"]), ["all", ["!=", "I", ""], ["!", ["in", ["get", "name"], ["literal", ["로터리 대피소"]]]]]);
-        eq("등고선 - 간격 · 밝은 바탕은 갈색", [RF.CONTOUR_STEPS[13], RF.contourPaint(true).color, RF.contourPaint(false).color], [[20, 100], "#8a5a2b", "#ffffff"]);
+        eq("봉우리 - 겹치는 OSM 봉우리(drop)는 어느 층에도 안 그림", [RM.peakOnFilter(["a|1"], true, ["b|2"])[0], JSON.stringify(RM.peakOnFilter(["a|1"], false, ["b|2"])[1][2])], ["all", JSON.stringify(["literal", ["a|1", "b|2"]])]);
+        eq("대피소 - 공단 대피소와 겹치는 OSM 대피소는 이름으로 뺌", RM.poiShowFilter("I", [], ["로터리 대피소"]), ["all", ["!=", "I", ""], ["!", ["in", ["get", "name"], ["literal", ["로터리 대피소"]]]]]);
+        eq("등고선 - 간격 · 밝은 바탕은 갈색", [RM.CONTOUR_STEPS[13], RM.contourPaint(true).color, RM.contourPaint(false).color], [[20, 100], "#8a5a2b", "#ffffff"]);
     })();
     eq("트립 - trip.com 이 아니면 null", [RF.tripLink("https://www.agoda.com/x", 1, 2, "a"), RF.tripLink("https://kr.trip.com.evil.kr/x", 1, 2, "a"), RF.tripLink("https://kr.trip.com/", NaN, 2, "a")], [null, null, null]);
     eq("공원 - 다른 산", RF.parkOf("지리봉 1코스"), null);
@@ -2371,12 +2374,12 @@ eq("점검 11차 A8 - 공단 난이도 띄어쓰기 없음(운영 설악산 \"�
 // 지도 조각 직접 읽기(2026-11-23 PC 운영 v360 - 처음 화면 확대 10 ~ 11 에는 사패산이 없어 구간이 안 나뉨) - 운영 지도 파일의 확대 12 조각 그대로
 (function () {
     var u8 = new Uint8Array(fs.readFileSync(path.join(__dirname, "../resources/basemap/omt-z12-3493-1583.pbf")));
-    var pk = RF.mvtPoints(u8, "mountain_peak"), sp = pk.filter(function (p) { return p.props.name === "사패산"; })[0];
-    var g = sp ? RF.tileLonLat(12, 3493, 1583, sp.x, sp.y, sp.extent) : [0, 0];
+    var pk = RM.mvtPoints(u8, "mountain_peak"), sp = pk.filter(function (p) { return p.props.name === "사패산"; })[0];
+    var g = sp ? RM.tileLonLat(12, 3493, 1583, sp.x, sp.y, sp.extent) : [0, 0];
     eq("조각 읽기 - 사패산 551m · 자리(지도 프로그램이 본 자리 127.01045, 37.72238)", [pk.length, sp && sp.props.ele, sp && sp.props["class"], Math.round(g[0] * 1e5) / 1e5, Math.round(g[1] * 1e5) / 1e5],
         [25, 551, "peak", 127.01045, 37.72238]);
-    eq("조각 읽기 - 다른 층(역)도 이름 그대로, 없는 층은 빈 목록", [RF.mvtPoints(u8, "poi").filter(function (p) { return p.props["class"] === "railway"; }).map(function (p) { return p.props.name; }).slice(0, 3), RF.mvtPoints(u8, "없는층").length],
+    eq("조각 읽기 - 다른 층(역)도 이름 그대로, 없는 층은 빈 목록", [RM.mvtPoints(u8, "poi").filter(function (p) { return p.props["class"] === "railway"; }).map(function (p) { return p.props.name; }).slice(0, 3), RM.mvtPoints(u8, "없는층").length],
         [["양주", "녹양", "가능"], 0]);
-    eq("선이 지나는 조각 - 같은 조각은 한 번, 많으면 max 개", [RF.tilesAlong([37.72238, 37.7224, 37.6], [127.01044, 127.0105, 127.01], 12, 40), RF.tilesAlong([37.72238, 37.6], [127.01044, 127.01], 12, 1)],
+    eq("선이 지나는 조각 - 같은 조각은 한 번, 많으면 max 개", [RM.tilesAlong([37.72238, 37.7224, 37.6], [127.01044, 127.0105, 127.01], 12, 40), RM.tilesAlong([37.72238, 37.6], [127.01044, 127.01], 12, 1)],
         [[[3493, 1583], [3493, 1585]], [[3493, 1583]]]);
 })();
