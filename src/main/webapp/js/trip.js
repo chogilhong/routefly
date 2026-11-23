@@ -550,6 +550,7 @@
             clearTimeout(peakT); peakT = setTimeout(markPeaks, 400);
         });
         map.on("styleimagemissing", function (e) { RFMap.iconImage(map, e.id); });
+        if (vector) RFMap.shopList(map);   // 가게 점을 누르면 그 건물 가게 목록(같은 점 "외 n곳", 2026-11-23 홍TV님)
         if (vector) {
             var PLACES = ["rf-peak", "rf-hut", "peak-on", "peak", "poi-hike"];
             PLACES.forEach(function (id) {

@@ -11,7 +11,7 @@
  */
 (function (global) {
     "use strict";
-    var VERSION = "1.1.1";
+    var VERSION = "1.1.2";
     // 이 파일이 있는 폴더(글꼴 · 자료 기본 자리) - node 테스트에서는 빈 글자
     var BASE = (function () {
         try { var s = global.document && global.document.currentScript; return s && s.src ? new URL(".", s.src).href : ""; } catch (e) { return ""; }
@@ -163,7 +163,8 @@
                 var city = style.layers[ids().indexOf("poi-city")];
                 city.filter = city.filter.concat([["!", ["in", cityPoiIcon, ["literal", SHOP_ICONS]]]]);
                 style.layers.splice(ids().indexOf("poi-city") + 1, 0, { id: "rf-shop", type: "symbol", source: "rfx", "source-layer": "rf_shop", minzoom: 16, filter: ["!=", shopIcon, ""],
-                    layout: { "icon-image": shopIcon, "icon-size": 1, "text-field": ["case", ["==", ["get", "name"], "업소명없음"], ["coalesce", ["get", "sub"], ""], ["get", "name"]], "text-font": F, "text-size": 10.5, "text-anchor": "top", "text-offset": [0, 0.8],
+                    layout: { "icon-image": shopIcon, "icon-size": 1, "text-field": ["concat", ["case", ["==", ["get", "name"], "업소명없음"], ["coalesce", ["get", "sub"], ""], ["get", "name"]],
+                            ["case", [">", ["coalesce", ["get", "n"], 1], 1], ["concat", tr(" 외 ", " +"), ["to-string", ["-", ["get", "n"], 1]], tr("곳", "")], ""]],   // 같은 건물(같은 점) 가게는 "대표 외 n곳" - 누르면 목록(shopList) "text-font": F, "text-size": 10.5, "text-anchor": "top", "text-offset": [0, 0.8],
                         "text-optional": true, "text-max-width": 7, "icon-padding": 0, "text-padding": 0 },   // 이름 없는 업소는 업종으로, 같은 건물 가게끼리 덜 밀리게 여백 0(2026-11-23 PC)
                     paint: { "text-color": ["match", ["get", "kind"], "food", "#c2410c", "cafe", "#8b5a2b", "shop", "#6b46c1", "bed", "#9c4221", "med", "#c53030", "school", "#2b6cb0", "#4a5568"],
                         "text-halo-color": "#fffdf5", "text-halo-width": 1.3 } });
@@ -409,9 +410,30 @@
         return light ? { color: "#8a5a2b", opacity: 0.6 } : { color: "#ffffff", opacity: 0.4 };
     }
 
+    /**
+     * 가게 점을 누르면 그 자리(같은 건물) 가게 목록 창 - shops.py 가 묶은 list(가게 · 업종 줄들). 앱이 지도를 만든 뒤 한 번 부름(2026-11-23 홍TV님 - 같은 건물 18곳이 하나만 보였음).
+     * 글은 textContent 로만 넣음(자료 글자를 HTML 로 읽지 않음).
+     */
+    function shopList(map, layer) {
+        layer = layer || "rf-shop";
+        map.on("click", layer, function (e) {
+            var f = e.features && e.features[0], p = f && f.properties;
+            if (!p) return;
+            var box = global.document.createElement("div"), head = global.document.createElement("b"), ul = global.document.createElement("div");
+            box.style.cssText = "max-height:240px;overflow:auto;font-size:12px;line-height:1.5;color:#222";
+            head.textContent = (p.n > 1 ? p.n + "곳" : p.name) + (p.sub && !(p.n > 1) ? " · " + p.sub : "");
+            box.appendChild(head);
+            String(p.list || "").split("\n").filter(Boolean).forEach(function (row) { var d = global.document.createElement("div"); d.textContent = row; ul.appendChild(d); });
+            box.appendChild(ul);
+            new global.maplibregl.Popup({ closeButton: true, maxWidth: "260px" }).setLngLat(f.geometry.coordinates).setDOMContent(box).addTo(map);
+        });
+        map.on("mouseenter", layer, function () { map.getCanvas().style.cursor = "pointer"; });
+        map.on("mouseleave", layer, function () { map.getCanvas().style.cursor = ""; });
+    }
+
     global.RFMap = {
         VERSION: VERSION, open: vectorBasemap, style: vectorStyle, ICONS: MAP_ICONS, iconImage: mapIconImage, poiShowFilter: poiShowFilter,
         peakOnFilter: peakOnFilter, PEAK_KEY_EXPR: PEAK_KEY_EXPR, peakKey: peakFeatureKey, peaksNear: peaksNear,
-        mvtPoints: mvtPoints, tilesAlong: tilesAlong, tileLonLat: tileLonLat, tilePeaks: trackTilePeaks, CONTOUR_STEPS: CONTOUR_STEPS, contourPaint: contourPaint
+        mvtPoints: mvtPoints, tilesAlong: tilesAlong, tileLonLat: tileLonLat, tilePeaks: trackTilePeaks, shopList: shopList, CONTOUR_STEPS: CONTOUR_STEPS, contourPaint: contourPaint
     };
 })(typeof window !== "undefined" ? window : this);

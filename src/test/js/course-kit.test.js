@@ -11,7 +11,7 @@ vm.createContext(sandbox);
 vm.runInContext(fs.readFileSync(path.join(__dirname, "../../main/webapp/js/course-kit.js"), "utf8"), sandbox);
 var RF = sandbox.window.RF;
 // 우리 지도 패키지(tools 저장소 map/rfmap 을 sync.js 로 복사한 것) - 지도 모양 · 봉우리 거름 · 조각 읽기(2026-11-23 course-kit 에서 옮김)
-vm.runInContext(fs.readFileSync(path.join(__dirname, "../../main/webapp/vendor/rfmap-1.1.1/rfmap.js"), "utf8"), sandbox);
+vm.runInContext(fs.readFileSync(path.join(__dirname, "../../main/webapp/vendor/rfmap-1.1.2/rfmap.js"), "utf8"), sandbox);
 var RM = sandbox.window.RFMap;
 
 var fails = 0, runs = 0;
