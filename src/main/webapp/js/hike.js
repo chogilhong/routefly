@@ -1639,7 +1639,8 @@
     }
     /** 💾 GPX 파일 저장 - 사진 · 메모까지(RF.recordGpx, 2026-11-22 홍TV님). */
     function downloadGpx(rec) {
-        toast(T("GPX 파일을 만드는 중…", "Making the GPX file…"), 3000);
+        // 카톡 안내는 📤 보내기 창에 있던 것(2026-11-11 홍TV님: 앱에서 GPX 를 카톡 나와의 채팅으로 보내면 말없이 안 들어감) - 창을 없애 여기로(2026-11-23)
+        toast(T("GPX 파일을 만드는 중… 카카오톡으로는 보낼 수 없습니다. 메일 · 드라이브 · 내 파일로 보내세요", "Making the GPX file… KakaoTalk does not accept GPX files - use email, Drive or My Files."), 6000);
         gpxPhotos(rec).then(function (ph) {
             if ((rec.notes || []).some(function (n) { return n.photo; }) && !Object.keys(ph).length) toast(T("사진이 많아 GPX 에는 메모만 넣었습니다.", "Too many photos - the GPX has notes only."), 5000);
             saveGpxText(rec, RF.recordGpx(rec, ph));
@@ -2256,7 +2257,7 @@
     }
 
     /**
-     * 기록 보기 화면(trip.html)의 🛩 3D 영상 · 📤 GPX 보내기 · ✕ 삭제(2026-11-23 홍TV님) - 따라가기로 #recdo=무엇:기록 열쇠 로 넘어와 여기서 함
+     * 기록 보기 화면(trip.html)의 🛩 3D 영상 · 💾 GPX 저장 · 📮 등록 요청 · ✕ 삭제(2026-11-23 홍TV님) - 따라가기로 #recdo=무엇:기록 열쇠 로 넘어와 여기서 함
      * (3D 영상 · 보내기 · 지우기는 이 화면의 것 하나만 두려고). 주소의 #recdo 는 바로 지워 다시 열어도 되풀이하지 않음.
      */
     function recDo(what, key) {
@@ -2266,7 +2267,8 @@
             var r = records().filter(function (x) { return recKey(x) === key; })[0];
             if (!r) { toast(T("이 기기에서 그 기록을 찾지 못했습니다.", "That record is not on this device."), 5000); return; }
             if (what === "fly") fly3d(r);
-            else if (what === "send") sendSheet(r);
+            else if (what === "save") downloadGpx(r);
+            else if (what === "submit") submitSheet(r);
             else delRecord(r);
         });
     }
@@ -2332,37 +2334,6 @@
             if (!(e && e.name === "AbortError")) saveFile(text, name, "application/json");
         });
         saveFile(text, name, "application/json");
-    }
-    /**
-     * 📤 GPX 보내기(2026-11-22 홍TV님 - 친구에게 routefly 기록 파일로 보내기는 빼고 둘): 📮 routefly 에 보내 코스 등록하기 · 💾 GPX 파일 저장(사진 · 메모 · 요약까지 - 받은 사람이
-     * routefly 로 열면 내 기록처럼 지도 · 사진 · 고도 · 속도 그래프로 봄, 다른 앱은 선 · 지점만).
-     */
-    function sendSheet(r) {
-        var wrap = document.createElement("div");
-        wrap.setAttribute("role", "dialog");
-        wrap.setAttribute("aria-label", T("GPX 보내기", "Send GPX"));
-        wrap.style.cssText = "position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:12px";
-        var box = document.createElement("div");
-        box.style.cssText = "background:#1b2430;color:#e9eef4;border-radius:14px;padding:14px;width:min(420px,100%);font-size:15px";
-        var bs = "display:block;width:100%;text-align:left;margin:8px 0 0;padding:12px;line-height:1.4";
-        box.innerHTML = '<b style="font-size:17px">' + T("📤 GPX 보내기", "📤 Send GPX") + '</b><p class="tip" style="margin:6px 0 0"></p>'
-            + '<button type="button" class="c" style="' + bs + '"><b>' + T("📮 routefly 에 보내 코스 등록하기", "📮 Send to routefly to add as a course") + '</b><br><span class="tip">'
-            + T("운영자가 점검해 없는 코스면 누구나 보는 공개 코스로 올립니다. 올라가면 코스 화면 · 산 페이지에 \"만든 이: (적은 이름)\" 으로 내 이름이 함께 보입니다. 선 모양 · 코스 이름 · 이름만 보내고 시각 · 사진은 보내지 않습니다.",
-                "We check it and, if it's a new trail, publish it as a public course. Your name is shown as \"Made by\" on the course and mountain pages. Only the line, course name and your name are sent - no times or photos.") + '</span></button>'
-            + '<button type="button" class="g" style="' + bs + '"><b>' + T("💾 GPX 파일 저장", "💾 Save GPX file") + '</b><br><span class="tip">'
-            + T("선 · 시각 · 높이에 사진 · 메모까지 한 파일로 - 받은 사람이 routefly 로 열면 지도 위 사진 · 고도 · 속도 그래프로 봅니다(다른 등산 앱은 선 · 지점만). 카카오톡으로는 보낼 수 없습니다. 메일 · 드라이브 · 내 파일로 보내세요",
-                "Line, times, elevation plus photos and notes in one file - opened in routefly it shows photos on the map with elevation and speed graphs (other apps show the line and points). KakaoTalk does not accept GPX - use email, Drive or Files") + '</span></button>'
-            + '<button type="button" class="n" style="display:block;width:100%;margin:12px 0 0;min-height:52px;font-size:16px">' + T("닫기", "Close") + '</button>';   // 위아래 넓게(2026-11-22 홍TV님)
-        box.querySelector("p").textContent = NM(r.name);
-        wrap.appendChild(box);
-        document.body.appendChild(wrap);
-        function close() { wrap.remove(); }
-        box.querySelector(".c").onclick = function () { close(); submitSheet(r); };
-        box.querySelector(".g").onclick = function () { close(); downloadGpx(r); };
-        box.querySelector(".n").onclick = close;
-        wrap.addEventListener("click", function (e) { if (e.target === wrap) close(); });
-        wrap.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
-        box.querySelector(".c").focus();
     }
     /**
      * 📮 routefly 에 코스로 보내기(2026-11-01 홍TV님 "등산객이 GPX 를 보내 주면 없는 코스면 점검해서 올림 - 보낸 사람 이름을 코스 이름 앞에").
@@ -5699,7 +5670,7 @@
         else {
             showPick();
             if (/^#rec\b/.test(location.hash)) showRecords();   // 코스 미리보기의 '📒 내 기록'
-            var rd = /^#recdo=(fly|send|del):(.+)$/.exec(location.hash);
+            var rd = /^#recdo=(fly|save|submit|del):(.+)$/.exec(location.hash);
             if (rd) recDo(rd[1], decodeURIComponent(rd[2]));
         }
     }
