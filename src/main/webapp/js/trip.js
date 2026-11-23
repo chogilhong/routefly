@@ -15,6 +15,7 @@
     if (EN) { document.documentElement.lang = "en"; document.title = "routefly - View record"; RF.applyEn(document); }
 
     var map = null, cfgP = null, marks = [], cards = [], urls = [], items = [], pick = -1, prof = null, rc = null;
+    var FIRST_ZOOM_UP = 0.1;   // 처음 화면 - 전체 맞춤보다 이만큼 더 확대
     var vector = false, peakKeys = [], PEAK_NEAR_M = 150, tileFeats = [];   // tileFeats - 선이 지나는 확대 12 조각의 봉우리(RFMap.tilePeaks)
     // 공단 대피소 · 100대 명산 정상(늘 보임, RF.famousMarks)과 겹치는 OSM 것(300m 안)은 숨김 - 두 번 그리지 않게
     var fam = null, famGj = null, famSet = false, dropPeaks = [], dropHuts = [], SAME_M = 300;
@@ -119,7 +120,10 @@
                 RFMap.tilePeaks(rc.lat, rc.lon).then(function (f) { if (rc === forRc && f.length) { tileFeats = f; markPeaks(); } });
                 var b = new maplibregl.LngLatBounds();
                 line.geometry.coordinates.forEach(function (q) { b.extend(q); });
-                map.fitBounds(b, { padding: 50, duration: 0, maxZoom: 15 });
+                // 처음 화면은 기록 전체를 맞춘 것보다 조금 가깝게(2026-11-23 홍TV님 "휠 한 칸 키운 것을 기본으로, 그 상태에서 조금 줄여" - 휠 한 칸은 약 0.15)
+                var cam = map.cameraForBounds(b, { padding: 50, maxZoom: 15 });
+                if (cam) map.jumpTo({ center: cam.center, zoom: Math.min(15, cam.zoom + FIRST_ZOOM_UP), bearing: 0 });
+                else map.fitBounds(b, { padding: 50, duration: 0, maxZoom: 15 });
             };
             whenStyle(draw);
             [[0, "#2fb344"], [rc.lat.length - 1, "#ff5c5c"]].forEach(function (e) {
