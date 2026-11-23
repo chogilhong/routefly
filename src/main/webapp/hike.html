@@ -276,8 +276,6 @@ html.rfwait body { visibility:hidden; }   /* 앱을 처음 열 때 서버에 닿
 .sheet .sbtn button { flex:1; height:46px; border-radius:10px; border:1px solid var(--ln); background:rgba(255,255,255,0.06); color:var(--tx);
                       font-size:15px; font-weight:bold; }
 .sheet .sbtn button.main { flex:2; background:var(--sky); border-color:var(--sky); color:var(--onsky,#062b30); }
-#recView .sbtn button { white-space:nowrap; padding:0 4px; }   /* 두 단추 글자 한 줄 · 닫기는 좁게(2026-11-22 홍TV님) */
-#recView .sbtn button.main { flex:0 0 72px; }
 #recList .rec { display:flex; align-items:center; gap:8px; padding:10px 0; border-bottom:1px solid var(--ln); font-size:13.5px; }
 #recList .rec div { flex:1; min-width:0; }
 #recList .rec b { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -363,10 +361,8 @@ html.rfwait body { visibility:hidden; }   /* 앱을 처음 열 때 서버에 닿
 .vh { position:absolute !important; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
 /* "괜찮으세요?" · 긴급 신고는 늘 맨 위(점검 11차 A4, 2026-11-16) - 정상 도착 카드 · 안내판 · 길 안내 칸(30, DOM 뒤쪽)과 확인 창(rf-dialog 9999)이 가렸음 */
 #stillSheet, #sosSheet { z-index:10000; }
-#recView { z-index:31; }
 #recClear { position:absolute; left:50%; transform:translateX(-50%); bottom:14px; z-index:2; display:none; height:40px; padding:0 12px; border-radius:20px;
             border:0; background:#c77dff; color:#1b0b2a; font-weight:bold; font-size:13px; box-shadow:0 2px 8px rgba(0,0,0,0.45); cursor:pointer; }
-#recViewProfile { position:relative; height:110px; margin:8px 0 4px; }   /* 내 기록 창 위에서 열립니다 */
 #turn { position:absolute; left:66px; right:10px; top:10px; z-index:3; display:none; padding:10px 12px; border-radius:10px;
         background:rgba(26,115,232,0.95); color:#fff; font-size:15px; font-weight:bold; box-shadow:0 2px 8px rgba(0,0,0,0.5); }
 #offroute { display:none; align-items:center; gap:10px; }
@@ -766,19 +762,6 @@ html.picking #pick { display:flex; }
     </div>
 </div>
 
-<!-- 2026-10-09: 기록 하나 보기 - 요약 · 고도 그래프 · 지도에 선 -->
-<div id="recView" class="sheet">
-    <div class="sbox">
-        <h2 id="recViewTitle" data-en="Record">기록</h2>
-        <div class="where" id="recViewSum"></div>
-        <div id="recViewProfile"></div>
-        <div class="sbtn">
-            <button type="button" id="recView3d" data-en="🛩 3D flight">🛩 3D 비행</button>
-            <button type="button" id="recViewMap" data-en="📂 Open GPX">📂 GPX 열기</button>
-            <button type="button" id="recViewClose" class="main" data-en="Close">닫기</button>
-        </div>
-    </div>
-</div>
 
 <!-- 사진 크게(2026-11-22) - 누르면 닫힘 -->
 <div id="photoBig" role="dialog" data-en-aria-label="Photo" aria-label="사진"><img id="photoBigImg" alt=""><p id="photoBigText"></p></div>

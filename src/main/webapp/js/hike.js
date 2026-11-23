@@ -1023,7 +1023,7 @@
             if (!ok) return;
             toast(T("📒 내 기록에 넣었습니다 - " + NM(got.rec.name), "📒 Added to My records - " + NM(got.rec.name)), 5000);
             var r = records().filter(function (x) { return recKey(x) === recKey(got.rec); })[0] || got.rec;
-            showRecord(r);
+            openTrip(r);   // 넣은 기록을 기록 보기 화면으로(2026-11-23 - 내 기록 📈 창은 기록 보기로 옮김)
         }).catch(function (e) { toast(T("기록을 넣지 못했습니다: ", "Could not add the record: ") + (e && e.message || e), 6000); });
     }
     function openGpxCourse(text, name) {
@@ -2243,33 +2243,58 @@
             sp.textContent = d.getFullYear() + "." + (d.getMonth() + 1) + "." + d.getDate() + " · " + km(RF.recDist(r)) + "km · " + hhmmss(r.end - r.start)
                 + (r.kcal != null ? " · " + num(r.kcal) + "kcal" : "") + (r.steps != null ? " · " + num(r.steps) + T("보", " steps") : "");
             info.appendChild(b); info.appendChild(sp);
-            var g = document.createElement("button"); g.textContent = T("📤 GPX 보내기", "📤 Send GPX"); g.title = T("routefly 에 보내 코스 등록하기 · GPX 파일 저장(사진 · 메모까지)", "Send to routefly as a course · save a GPX file (with photos · notes)"); g.onclick = function () { sendSheet(r); };
             if (r.notes && r.notes.length) {
                 var nb = document.createElement("button"); nb.textContent = "📝 " + r.notes.length; nb.title = T("사진 · 메모 보기", "View photos · notes");
                 nb.onclick = function () { showNotes(r); };
                 row.appendChild(info); info = null; row.appendChild(nb);
             }
-            var v = document.createElement("button"); v.textContent = "📈"; v.title = T("고도 그래프 · 지도에 보기", "Elevation chart · show on map");
-            v.onclick = function () { showRecord(r); };
+            // 📈 · 📤 GPX 보내기 대신 📂 GPX 열기 하나(2026-11-23 홍TV님) - 기록 보기 화면(trip.html)에 요약 · 그래프 · 🛩 3D 영상 · 📤 GPX 보내기 · ✕ 삭제
+            var v = document.createElement("button"); v.textContent = T("📂 GPX 열기", "📂 Open GPX"); v.title = T("지도 · 고도 그래프 · 사진으로 보기", "View on map · elevation chart · photos");
+            v.onclick = function () { openTrip(r); };
             var x = document.createElement("button"); x.textContent = "✕"; x.className = "recDel"; x.title = T("이 기록 지우기", "Delete this record"); x.setAttribute("aria-label", x.title);   // 2026-11-22 홍TV님 "지우기는 X 버튼으로"
-            x.onclick = function () {
-                hAsk(T("이 기록을 지울까요?\n산행 결산에서도 빠집니다.", "Delete this record?\nIt is also removed from the hiking summary."), { ok: T("지우기", "Delete"), danger: true }).then(function (ok) {
-                    if (!ok) return;
-                    var l = records(), at = l.indexOf(r);   // 창이 떠 있는 사이 목록이 바뀌었을 수 있어 그 기록을 다시 찾음
-                    if (at < 0) return;
-                    l.splice(at, 1);
-                    // 직접 지운 기록은 결산에서도 뺌(2026-10-28 홍TV님) - 30개가 넘어 저절로 밀려난 기록은 결산에 남음
-                    try { localStorage.setItem(LOG_KEY, JSON.stringify(RF.dropLog(readLog(), r))); } catch (e) { /* 저장 공간 */ }
-                    writeRecords(l).then(gcPhotos);
-                    drawRecords();
-                });
-            };
+            x.onclick = function () { delRecord(r); };
             if (info) row.appendChild(info);
-            row.appendChild(v); row.appendChild(g);
+            row.appendChild(v);
             row.appendChild(x);
             box.appendChild(row);
         });
         $("recSheet").style.display = "flex";
+    }
+
+    /** 기록 지우기(묻고) - 내 기록 ✕ · 기록 보기 화면의 ✕ 삭제(#recdo=del). 지운 뒤 내 기록 목록을 그림. */
+    function delRecord(r) {
+        hAsk(T("이 기록을 지울까요?\n산행 결산에서도 빠집니다.", "Delete this record?\nIt is also removed from the hiking summary."), { ok: T("지우기", "Delete"), danger: true }).then(function (ok) {
+            if (!ok) return;
+            var l = records(), at = l.indexOf(r);   // 창이 떠 있는 사이 목록이 바뀌었을 수 있어 그 기록을 다시 찾음
+            if (at < 0) return;
+            l.splice(at, 1);
+            // 직접 지운 기록은 결산에서도 뺌(2026-10-28 홍TV님) - 30개가 넘어 저절로 밀려난 기록은 결산에 남음
+            try { localStorage.setItem(LOG_KEY, JSON.stringify(RF.dropLog(readLog(), r))); } catch (e) { /* 저장 공간 */ }
+            writeRecords(l).then(gcPhotos);
+            drawRecords();
+        });
+    }
+
+    /**
+     * 기록 보기 화면(trip.html)의 🛩 3D 영상 · 📤 GPX 보내기 · ✕ 삭제(2026-11-23 홍TV님) - 따라가기로 #recdo=무엇:기록 열쇠 로 넘어와 여기서 함
+     * (3D 영상 · 보내기 · 지우기는 이 화면의 것 하나만 두려고). 주소의 #recdo 는 바로 지워 다시 열어도 되풀이하지 않음.
+     */
+    function recDo(what, key) {
+        try { history.replaceState(null, "", location.pathname + location.search + "#rec"); } catch (e) { /* 주소만 못 지움 */ }
+        recordsReady.then(function () {
+            showRecords();
+            var r = records().filter(function (x) { return recKey(x) === key; })[0];
+            if (!r) { toast(T("이 기기에서 그 기록을 찾지 못했습니다.", "That record is not on this device."), 5000); return; }
+            if (what === "fly") fly3d(r);
+            else if (what === "send") sendSheet(r);
+            else delRecord(r);
+        });
+    }
+
+    /** 📂 GPX 열기 - 기록 보기 화면(trip.html ?rec=기록 열쇠)으로. 산행 중에는 넘어가지 않음. */
+    function openTrip(rec) {
+        if (hike.running) { toast(T("산행 중에는 기록 보기로 넘어가지 않습니다. 산행을 마친 뒤 열어 주세요.", "Finish the hike first to open the record view."), 4000); return; }
+        location.href = "trip.html?rec=" + encodeURIComponent(recKey(rec)) + (EN ? "&lang=en" : "");
     }
 
     /** 내 기록 통계(2026-10-15 홍TV님) - 올해 · 남아 있는 기록 전체(최근 30개). */
@@ -2522,42 +2547,6 @@
                 toast(T("📤 보냈습니다 - 기록 " + o.records.length + "개. 받는 기기 화면에서 \"합칠까요?\" 에 확인을 누르세요.", "📤 Sent - " + o.records.length + " records. Confirm \"merge\" on the receiving device."), 8000);
             });
         }).catch(function (e) { toast(T("보내지 못했습니다: ", "Could not send: ") + ((e && e.message) || e), 7000); });
-    }
-
-    /**
-     * 기록 하나 보기(2026-10-09) - 요약, 고도 그래프(사진 · 메모 자리 표시), "지도에 보기" 는 지금 지도에 보라 선으로 그리고
-     * 그 범위로 옮깁니다(코스는 그대로, 다시 누르면 선을 지움). 기록에 고도가 없으면 그래프 대신 안내 글.
-     */
-    function showRecord(rec) {
-        var rc = RF.recordCourse(rec), sum = $("recViewSum");
-        $("recViewTitle").textContent = "📈 " + NM(rec.name);
-        sum.innerHTML = "";
-        var d = new Date(rec.start + 9 * 3600000);   // 날짜도 시각(clock)처럼 한국 시간(2026-11-03 홍TV님 점검: 폰 날짜 + 한국 시각이 섞였음)
-        var eles = rc.ele.filter(function (e) { return e != null; }), mv = RF.moveStats(RF.cleanTrack(rec.track, rec.kind === "bike"));
-        [[T("날짜", "Date"), d.getUTCFullYear() + "." + (d.getUTCMonth() + 1) + "." + d.getUTCDate() + " " + clock(rec.start)],
-         [T("거리", "Distance"), km(RF.recDist(rec)) + " km"], [T("걸린 시간", "Time"), hhmmss(rec.end - rec.start)]]   // 카드와 같은 규칙(2026-10-28 PC)
-            .concat(mv && mv.moveMs > 0 ? [[T("이동 시간", "Moving time"), hhmmss(mv.moveMs)], [T("휴식 시간", "Rest time"), hhmmss(mv.restMs)],
-                [T("평균 속도(이동 중)", "Avg speed (moving)"), num(mv.kmh, 1) + " km/h"]] : [])   // 2026-11-22 홍TV님 - 램블러 요약처럼(RF.moveStats)
-            .concat(rec.up != null ? [[T("오른 높이", "Climb"), num(rec.up) + " m"]] : [])
-            .concat(eles.length ? [[T("가장 높은 곳", "Highest"), num(RF.recordHighest(rc, cardPeaks.peaks, cardPeaks.elev)) + " m"]] : [])
-            .concat(rec.kcal != null ? [[T("칼로리(추정)", "Calories (est.)"), num(rec.kcal) + " kcal"]] : [])
-            .forEach(function (r) {
-                var row = document.createElement("div"), a = document.createElement("span"), b = document.createElement("b");
-                a.textContent = r[0]; b.textContent = r[1];
-                row.appendChild(a); row.appendChild(b); sum.appendChild(row);
-            });
-        $("recView").style.display = "flex";   // 그래프 이름표 자리를 재려면 먼저 보여야 합니다
-        if (rc.lat.length > 1) RF.profile($("recViewProfile"), rc, { speed: RF.speedProfile(rc) }).set(rc.total);   // 다 걸은 기록이라 끝까지 색칠 · 붉은 선은 속도
-        else $("recViewProfile").textContent = "";
-        $("recViewMap").disabled = rc.lat.length < 2;
-        // 🗺 지도는 기록 보기 화면(trip.html)으로(2026-11-22 홍TV님 "routefly/trip.html 화면에서 열어" - 따라가기 지도에 그리면 산행 화면처럼 보였음). 🖼 카드 단추는 뺌
-        $("recViewMap").onclick = function () {
-            if (hike.running) { toast(T("산행 중에는 기록 보기로 넘어가지 않습니다. 산행을 마친 뒤 열어 주세요.", "Finish the hike first to open the record view."), 4000); return; }
-            location.href = "trip.html?rec=" + encodeURIComponent(recKey(rec)) + (EN ? "&lang=en" : "");
-        };
-        $("recViewClose").onclick = function () { $("recView").style.display = "none"; };
-        $("recView3d").disabled = rc.lat.length < 2;
-        $("recView3d").onclick = function () { fly3d(rec); };
     }
 
     // ------------------------------------------------------------------ 🛩 3D 비행 영상(2026-11-22 홍TV님 - 유튜버들이 앱 화면 · 코스를 영상에 많이 씀)
@@ -2873,7 +2862,6 @@
             }
             $("recClear").style.display = "block";
         });
-        $("recView").style.display = "none";
         $("recSheet").style.display = "none";
         $("notesSheet").style.display = "none";
         hidePick();   // 코스를 고르기 전(내 기록으로 바로 온 때)에도 지도가 보이게
@@ -4347,7 +4335,7 @@
      * 움직임 없음(stillSheet)은 "괜찮아요" 를 대신 누르지 않게 Esc 로 닫지 않음.
      */
     var SHEET_ESC = { sosSheet: "sosClose", summitSheet: "summitClose", doneSheet: "doneClose", boardSheet: "boardClose", sumSheet: "sumClose", shareSheet: "shareClose",
-        checkSheet: "checkNo", endSheet: "endNo", navSheet: "navClose", saveSheet: "saveClose", noteSheet: "noteCancel", notesSheet: "notesClose", recView: "recViewClose",
+        checkSheet: "checkNo", endSheet: "endNo", navSheet: "navClose", saveSheet: "saveClose", noteSheet: "noteCancel", notesSheet: "notesClose",
         recSheet: "recClose", safety: "safetyNo" };
     var sheetStack = [];   // 열린 창 [{el, back}] - 맨 뒤가 맨 위
     function sheetSeen(el) {
@@ -5748,6 +5736,8 @@
         else {
             showPick();
             if (/^#rec\b/.test(location.hash)) showRecords();   // 코스 미리보기의 '📒 내 기록'
+            var rd = /^#recdo=(fly|send|del):(.+)$/.exec(location.hash);
+            if (rd) recDo(rd[1], decodeURIComponent(rd[2]));
         }
     }
     window.addEventListener("hashchange", route);

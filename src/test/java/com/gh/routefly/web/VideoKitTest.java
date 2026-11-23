@@ -53,10 +53,14 @@ public class VideoKitTest {
     public void 영상용_그림과_영상() throws Exception {
         String js = read("src/main/webapp/js/hike.js"), app = read("src/main/webapp/js/app.js"), html = read("src/main/webapp/hike.html");
         String plug = read("app/android/app/src/main/java/kr/routefly/app/RfGalleryPlugin.java");
-        assertTrue("기록 창은 [🛩 3D 비행 영상] [📂 GPX 열기] [닫기], 🎬 영상용(그림 · 고도 영상 · 공개 링크 만들기)은 뺌(2026-11-22 홍TV님 \"나머지는 모두 삭제\")",
-            html.contains("<button type=\"button\" id=\"recView3d\" data-en=\"🛩 3D flight\">🛩 3D 비행</button>\n            <button type=\"button\" id=\"recViewMap\" data-en=\"📂 Open GPX\">📂 GPX 열기</button>")
+        String trip = read("src/main/webapp/trip.html"), tjs = read("src/main/webapp/js/trip.js");
+        assertTrue("내 기록 📈 창은 없애고 기록 보기 화면에 [🛩 3D 영상] [📤 GPX 보내기] [✕ 삭제](2026-11-23 홍TV님), 🎬 영상용(그림 · 고도 영상 · 공개 링크 만들기)은 뺌(2026-11-22 홍TV님 \"나머지는 모두 삭제\")",
+            !html.contains("recView") && !js.contains("recView") && !js.contains("function showRecord(")
+            && trip.contains("<span id=\"recBtns\" hidden><button type=\"button\" id=\"rec-fly\" data-en=\"🛩 3D video\">🛩 3D 영상</button><button type=\"button\" id=\"rec-send\" data-en=\"📤 Send GPX\">📤 GPX 보내기</button>")
+            && tjs.contains("$(\"openBtn\").hidden = true;") && trip.contains("#openBtn[hidden] { display:none; }") && trip.contains("#recBtns[hidden] { display:none; }") && tjs.contains("location.href = (EN ? \"hike.html?lang=en\" : \"hike.html\") + \"#recdo=\" + k + \":\" + encodeURIComponent(recParam);")
+            && js.contains("var rd = /^#recdo=(fly|send|del):(.+)$/.exec(location.hash);") && js.contains("if (what === \"fly\") fly3d(r);\n            else if (what === \"send\") sendSheet(r);\n            else delRecord(r);")
+            && tjs.contains("RF.recordSummary(curRec, famRaw ? famRaw.peaks : [], famRaw ? famRaw.elev : {}, EN)")
             && !html.contains("vidSheet") && !html.contains("recViewVideo") && !js.contains("vidRouteImage") && !js.contains("recordCanvas") && !js.contains("pubSend"));
-        assertTrue("기록 창 단추 글자는 한 줄, 닫기는 좁게(2026-11-22 홍TV님)", html.contains("#recView .sbtn button { white-space:nowrap;") && html.contains("#recView .sbtn button.main { flex:0 0 72px; }"));
         assertFalse("공개 링크 끄기 단추도 뺌(2026-11-22 홍TV님)", html.contains("recViewPubOff") || js.contains("api/record-share"));
         assertTrue("3D 영상은 처음 · 끝 300m 늘 빼고, 산행 중에는 안 넘어감", js.contains("var tr = RF.trimEnds(RF.cleanTrack(rec.track, rec.kind === \"bike\"), VID_TRIM_M);") && js.contains("var VID_TRIM_M = 300;")
             && js.contains("if (hike.running) { toast(T(\"산행 중에는 3D 영상을 만들지 않습니다."));
@@ -69,7 +73,6 @@ public class VideoKitTest {
         assertTrue("지도 그림을 옮겨 그리려면 영상 만들 때만 preserveDrawingBuffer",
                 app.contains("canvasContextAttributes: VIDEO && VIDEO.rec ? { preserveDrawingBuffer: true } : undefined"));
         assertTrue("만든 영상을 따라가기로 넘겨 저장", app.contains("location.href = \"hike.html#vid\";") && js.contains("if (location.hash === \"#vid\") {"));
-        assertTrue("기록 창(31)", html.contains("#recView { z-index:31; }"));
         assertTrue("GPX 를 열 때 묻는 글도 지금 단추(📂 GPX 열기)에 맞춤", js.contains("📒 내 기록에 넣을까요? 넣은 뒤 내 기록 → 📂 GPX 열기로 지도 · 사진 · 고도 그래프를 봅니다.") && !js.contains("내 기록에 넣어 지도 · 사진 · 고도 그래프로 볼까요?"));
         assertTrue("닫기 단추가 보이게(2026-11-22 홍TV님) - 기기 옮기기 QR 창은 흰 바탕에 어두운 단추 · GPX 보내기 창은 위아래 넓게",
             html.contains("id=\"xferClose\" style=\"min-height:48px;width:100%;padding:0 18px;border-radius:10px;border:0;background:#1b2430;color:#fff;")
@@ -103,7 +106,8 @@ public class VideoKitTest {
         int a = js.indexOf("    function drawRecords() {"), b = js.indexOf("    function drawRecStats(", a);
         String rows = js.substring(a, b);
         assertFalse("GPX 편집 고리 · 코스로 단추 없음", rows.contains("studio.html") || rows.contains("⬆ 코스로") || js.contains("function uploadCourse(") || js.contains("var upOwner"));
-        assertTrue(rows.contains("g.textContent = T(\"📤 GPX 보내기\", \"📤 Send GPX\");") && rows.contains("x.textContent = \"✕\";"));
+        assertTrue("줄마다 [📂 GPX 열기] [✕] - 📈 · 📤 GPX 보내기는 기록 보기 화면으로(2026-11-23 홍TV님)", rows.contains("v.textContent = T(\"📂 GPX 열기\", \"📂 Open GPX\");") && rows.contains("v.onclick = function () { openTrip(r); };")
+            && rows.contains("x.textContent = \"✕\";") && !rows.contains("v.textContent = \"📈\"") && !rows.contains("T(\"📤 GPX 보내기\""));
         assertFalse("🎁 routefly 기록으로 없음", js.contains("🎁 routefly 기록으로") || js.contains("function shareRecord("));
         assertTrue("GPX 보낼 때 글에 PC 여는 법 · 코스 모음 주소(2026-11-22 홍TV님) - 앱 공유 · 폰 브라우저 공유 둘 다", js.contains("PC 에서는 routefly 코스 모음 📂 GPX 열기로 보세요")
                 && js.contains("nativeShareFile(name, btoa(unescape(encodeURIComponent(text))), gpxShareText(rec))") && js.contains("navigator.share({ files: [file], title: NM(rec.name), text: gpxShareText(rec) })"));

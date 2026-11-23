@@ -428,6 +428,24 @@
         return any ? out : null;
     }
 
+    var MOVE_WINDOW_MS = 120000, MOVE_MIN_MS = 0.2;   // 0.2 m/s = 시속 0.72km - 가파른 오르막을 천천히 오를 때도 이동으로, 2분에 24m 못 가면 쉼
+    function moveStats(track) {
+        var t = (track || []).filter(function (p) { return p && typeof p[2] === "number"; });
+        if (t.length < 2) return null;
+        var move = 0, rest = 0, dist = 0, j = 1, k = 0;
+        function fast(a, b) { var w = t[b][2] - t[a][2]; return w > 0 && distM(t[a][0], t[a][1], t[b][0], t[b][1]) / (w / 1000) >= MOVE_MIN_MS; }
+        for (var i = 0; i < t.length - 1; i++) {
+            if (j <= i) j = i + 1;
+            while (j < t.length - 1 && t[j][2] - t[i][2] < MOVE_WINDOW_MS) j++;   // 앞 점에서 2분 뒤
+            while (k + 1 <= i && t[i + 1][2] - t[k + 1][2] >= MOVE_WINDOW_MS) k++;   // 뒤 점에서 2분 앞
+            var dt = t[i + 1][2] - t[i][2];
+            if (dt <= 0) continue;
+            var going = fast(i, j) && fast(k, i + 1);
+            if (going) { move += dt; dist += distM(t[i][0], t[i][1], t[i + 1][0], t[i + 1][1]); } else rest += dt;
+        }
+        return { moveMs: move, restMs: rest, moveM: dist, kmh: move > 0 ? dist / (move / 3600000) / 1000 : null };
+    }
+
     /**
      * 2026-10-08 (홍TV님 - 다른 앱 · 친구가 준 GPX 를 열어 따라가기): GPX 글 → /api/course 와 같은 모양
      * {course: {name, kind}, points: [[경도, 위도, 고도|null, 누적 거리]], pois: [{seq, name, lat, lon, ele_m, dist_m}]}.
@@ -438,6 +456,28 @@
      */
     var GPX_SPACING_M = 10;
 
+    /**
+     * 순수 함수 - 기록의 가장 높은 곳(2026-10-28 PC: 지리산 기록이 1,950m - 천왕봉 1,915m). GPS 높이는 앞뒤 5점 가운뎃값으로 튐을 누르고,
+     * 그 자리가 100대 명산 정상(peaks: mountains100 의 {id, lat, lon}) 200m 안이면 공식 높이(elev: peak-elev.json 의 elev)로.
+     */
+    function recordHighest(rc, peaks, elev) {
+        var e = rc && rc.ele || [], best = null, at = -1;
+        for (var i = 0; i < e.length; i++) {
+            var w = [];
+            for (var j = Math.max(0, i - 2); j <= Math.min(e.length - 1, i + 2); j++) if (e[j] != null) w.push(e[j]);
+            if (!w.length) continue;
+            w.sort(function (x, y) { return x - y; });
+            var m = w[Math.floor(w.length / 2)];
+            if (best == null || m > best) { best = m; at = i; }
+        }
+        if (best == null) return null;
+        var hit = null, hd = 200;
+        (peaks || []).forEach(function (p) {
+            var id = p.id || p.name, d = distM(rc.lat[at], rc.lon[at], p.lat, p.lon);
+            if (elev && elev[id] != null && d <= hd) { hd = d; hit = +elev[id]; }
+        });
+        return Math.round(hit != null ? hit : best);
+    }
     /**
      * 누적 오르막(m) - 남은 오르막을 빨리 구하려고 미리 셉니다. 배치(CourseMath.elevation, course.ascentThresholdM 5m)와 같게
      * 5m 넘게 바뀔 때만 셉니다 - 2026-10-12 PC: 노선 안내도 "오르막 1,012m"(DB) · 따라가기 "남은 오르막 1,191m"(잔 오르내림까지 더함)이 달랐음.
@@ -860,6 +900,39 @@
         };
     }
 
+    /**
+     * 산행 결산(2026-10-15 홍TV님) - 기록(최근 30개, 걸은 길 포함)과 따로, 끝낸 산행마다 요약 한 줄을 오래 남김(localStorage "rf-log").
+     * 순수 함수 - 기록 → 요약 {start, end, walked, up, courseId, name, kind}.
+     */
+    /** 순수 함수 - 기록의 거리: 걸은 거리와 코스 진행 가운데 큰 값(2026-10-28 - 화면이 꺼져 짧게 남은 옛 기록, 카드 · 목록 · 합계가 같은 값). */
+    function recDist(r) { return Math.max(+(r && r.walked) || 0, +(r && r.done) || 0); }
+
+    /**
+     * 순수 함수 - 기록 요약 줄 [[이름, 값]](2026-11-23 홍TV님 "GPX 열기 화면에 두 번째 정보" - 내 기록 📈 창에 있던 것을 기록 보기 trip.html 로 옮김).
+     * 날짜 · 시각은 한국 시간, 이동 · 휴식 · 평균 속도는 moveStats, 가장 높은 곳은 recordHighest(100대 명산 정상 근처면 공식 높이). en - 영어 이름.
+     */
+    function recordSummary(rec, peaks, elev, en) {
+        var L = function (ko, e) { return en ? e : ko; };
+        var hms = function (ms) {
+            var s = Math.max(0, Math.floor(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, x = s % 60;
+            return h + ":" + (m < 10 ? "0" : "") + m + ":" + (x < 10 ? "0" : "") + x;
+        };
+        var rc = recordCourse(rec), out = [], has = function (v) { return v != null && isFinite(v); };
+        if (has(rec.start)) {
+            var d = new Date(rec.start + 9 * 3600000);
+            out.push([L("날짜", "Date"), d.getUTCFullYear() + "." + (d.getUTCMonth() + 1) + "." + d.getUTCDate() + " "
+                + (d.getUTCHours() < 10 ? "0" : "") + d.getUTCHours() + ":" + (d.getUTCMinutes() < 10 ? "0" : "") + d.getUTCMinutes()]);
+        }
+        out.push([L("거리", "Distance"), km(recDist(rec) || rc.total) + " km"]);
+        if (has(rec.start) && has(rec.end) && rec.end > rec.start) out.push([L("걸린 시간", "Time"), hms(rec.end - rec.start)]);
+        var mv = rec.track && rec.track.length ? moveStats(cleanTrack(rec.track, rec.kind === "bike")) : null;
+        if (mv && mv.moveMs > 0) out.push([L("이동 시간", "Moving time"), hms(mv.moveMs)], [L("휴식 시간", "Rest time"), hms(mv.restMs)],
+            [L("평균 속도(이동 중)", "Avg speed (moving)"), num(mv.kmh, 1) + " km/h"]);
+        if (has(rec.up)) out.push([L("오른 높이", "Climb"), num(rec.up) + " m"]);
+        if (rc.ele.some(function (e) { return e != null; })) out.push([L("가장 높은 곳", "Highest"), num(recordHighest(rc, peaks, elev)) + " m"]);
+        if (has(rec.kcal)) out.push([L("칼로리(추정)", "Calories (est.)"), num(rec.kcal) + " kcal"]);
+        return out;
+    }
     // ------------------------------------------------------------------ 로마자(Roman.java 를 옮김 - 영어 화면의 지점 이름, 2026-10-16)
     var RO_INI = ["g", "kk", "n", "d", "tt", "r", "m", "b", "pp", "s", "ss", "", "j", "jj", "ch", "k", "t", "p", "h"];
     var RO_VOW = ["a", "ae", "ya", "yae", "eo", "e", "yeo", "ye", "o", "wa", "wae", "oe", "yo", "u", "wo", "we", "wi", "yu", "eu", "ui", "i"];
@@ -972,6 +1045,7 @@
         tr: tr,
         pageLang: pageLang,
         applyEn: applyEn,
+        recordSummary: recordSummary,
         mapLocale: mapLocale
     };
 })(window);

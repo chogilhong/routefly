@@ -51,9 +51,23 @@
         $("side").innerHTML = "";
     }
 
+    /** 기록 요약 표(2026-11-23 홍TV님 "GPX 열기 화면에 두 번째 정보" - 내 기록 📈 창에 있던 것) - 100대 명산 자료가 오면 가장 높은 곳을 공식 높이로 다시 씀. */
+    var curRec = null, famRaw = null;
+    function drawSum() {
+        var el = $("sumTbl");
+        if (!el || !curRec) return;
+        el.innerHTML = "";
+        RF.recordSummary(curRec, famRaw ? famRaw.peaks : [], famRaw ? famRaw.elev : {}, EN).forEach(function (r) {
+            var row = document.createElement("div"), a = document.createElement("span"), b = document.createElement("b");
+            a.textContent = r[0]; b.textContent = r[1];
+            row.appendChild(a); row.appendChild(b); el.appendChild(row);
+        });
+    }
+
     /** 기록 하나 그리기. photoUrl(id) → 약속(그림 주소 | null). */
     function show(rec, photoUrl) {
         clear();
+        curRec = rec;
         rc = RF.recordCourse(rec);
         if (rc.lat.length < 2) { $("side").innerHTML = "<p class=\"empty\">" + T("점이 모자라 그릴 수 없습니다.", "Not enough points to draw.") + "</p>"; return; }
         $("title").textContent = NM(rec.name) || T("기록 보기", "View record");
@@ -61,11 +75,15 @@
         $("stat").textContent = (rec.start != null ? when(rec.start) + " · " : "") + RF.km(rc.total) + " km" + (rec.start != null && rec.end != null && rec.end > rec.start ? " · " + hm(rec.end - rec.start) : "")
             + (rec.up != null ? T(" · 오른 높이 ", " · climb ") + RF.num(rec.up) + " m" : rc.asc && rc.asc.length ? T(" · 오르막 ", " · ascent ") + RF.num(rc.asc[rc.asc.length - 1]) + " m" : "");
         prof = RF.profile($("prof"), rc, { speed: RF.speedProfile(rc), labels: false });
+        var sum = document.createElement("div");
+        sum.id = "sumTbl";
+        $("side").appendChild(sum);
+        drawSum();
         var narrow = window.matchMedia && window.matchMedia("(max-width: 760px)").matches;   // 폰 세로는 그래프가 지도를 많이 가려 접어 두고 📈 단추로
         $("graph").hidden = narrow; $("graphBtn").hidden = !narrow;
         placeKit();
         items = (rec.notes || []).map(function (n, i) { return { n: n, d: rc.pois[i] ? rc.pois[i].dist_m : null, url: null }; });
-        if (!items.length) $("side").innerHTML = "<p class=\"empty\">" + T("이 기록에는 사진 · 메모가 없습니다.", "This record has no photos or notes.") + "</p>";
+        if (!items.length) $("side").insertAdjacentHTML("beforeend", "<p class=\"empty\">" + T("이 기록에는 사진 · 메모가 없습니다.", "This record has no photos or notes.") + "</p>");
         items.forEach(function (it, i) {
             var card = document.createElement("div"), ph = document.createElement("div"), tx = document.createElement("div"), tm = document.createElement("div");
             card.className = "card";
@@ -423,6 +441,8 @@
         var photosP = fetch("data/shelter-photos.json").then(function (r) { return r.ok ? r.json() : null; }, function () { return null; });
         Promise.all([RF.famousFetch(), photosP]).then(function (d) {
             var f0 = d[0], gj = f0.gj;
+            famRaw = f0;
+            drawSum();   // 가장 높은 곳 - 100대 명산 정상 근처면 공식 높이로
             hutPhotos = {};
             ((d[1] && d[1].photos) || []).forEach(function (p) { if (p && p.name && /^img\/shelter\/[\w.-]+\.(?:jpe?g|png|webp)$/.test(p.file || "")) hutPhotos[p.name] = p; });
             // 국립공원 찾기 후보 - 공단 대피소의 공원 · 국립공원 이름과 같은 100대 명산(지리산 천왕봉 등)
@@ -595,6 +615,12 @@
     if (recParam) {
         $("back").href = EN ? "hike.html?lang=en" : "hike.html";
         $("back").textContent = T("‹ 내 기록", "‹ My records");
+        // 내 기록에서 들어오면 📂 GPX 열기 대신 🛩 3D 영상 · 📤 GPX 보내기 · ✕ 삭제(2026-11-23 홍TV님) - 하는 일은 따라가기 내 기록이 함(hike.html#recdo=무엇:기록 열쇠)
+        $("openBtn").hidden = true;
+        $("recBtns").hidden = false;
+        ["fly", "send", "del"].forEach(function (k) {
+            $("rec-" + k).onclick = function () { location.href = (EN ? "hike.html?lang=en" : "hike.html") + "#recdo=" + k + ":" + encodeURIComponent(recParam); };
+        });
         idbGet("rf-records", "r", "list").then(function (list) {
             if (!Array.isArray(list)) { try { list = JSON.parse(localStorage.getItem("rf-records") || "[]"); } catch (e) { list = []; } }   // 따라가기가 IndexedDB 를 못 쓸 때 남기는 곳
             var rec = list.filter(function (r) { return r && r.start + "|" + (r.courseId || "") === recParam; })[0];

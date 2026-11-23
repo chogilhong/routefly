@@ -17,11 +17,12 @@ public class HikeMoveStatsTest {
 
     @Test
     public void 기록_요약에_이동_휴식_속도() throws Exception {
-        String js = read("src/main/webapp/js/hike.js"), kit = read("src/main/webapp/js/kit-hike.js");
-        assertTrue("튄 점을 뺀 기록으로", js.contains("mv = RF.moveStats(RF.cleanTrack(rec.track, rec.kind === \"bike\"))"));
-        assertTrue(js.contains("[T(\"이동 시간\", \"Moving time\"), hhmmss(mv.moveMs)], [T(\"휴식 시간\", \"Rest time\"), hhmmss(mv.restMs)]"));
-        assertTrue("이동 시간이 없으면 줄을 안 보임", js.contains(".concat(mv && mv.moveMs > 0 ?"));
-        assertTrue(js.contains("[T(\"평균 속도(이동 중)\", \"Avg speed (moving)\"), num(mv.kmh, 1) + \" km/h\"]"));
-        assertTrue("따라가기 화면이 받는 kit 에", kit.contains("function moveStats(track)") && kit.contains("var MOVE_WINDOW_MS = 120000, MOVE_MIN_MS = 0.2;"));
+        // 2026-11-23 홍TV님: 내 기록 📈 창의 요약은 기록 보기 화면(trip.html)으로 - RF.recordSummary
+        String js = read("src/main/webapp/js/course-kit.js"), kit = read("src/main/webapp/js/kit-trip.js");
+        assertTrue("튄 점을 뺀 기록으로", js.contains("moveStats(cleanTrack(rec.track, rec.kind === \"bike\"))"));
+        assertTrue(js.contains("[L(\"이동 시간\", \"Moving time\"), hms(mv.moveMs)], [L(\"휴식 시간\", \"Rest time\"), hms(mv.restMs)]"));
+        assertTrue("이동 시간이 없으면 줄을 안 보임", js.contains("if (mv && mv.moveMs > 0) out.push("));
+        assertTrue(js.contains("[L(\"평균 속도(이동 중)\", \"Avg speed (moving)\"), num(mv.kmh, 1) + \" km/h\"]"));
+        assertTrue("기록 보기 화면이 받는 kit 에", kit.contains("function moveStats(track)") && kit.contains("var MOVE_WINDOW_MS = 120000, MOVE_MIN_MS = 0.2;") && kit.contains("function recordSummary(rec, peaks, elev, en)"));
     }
 }

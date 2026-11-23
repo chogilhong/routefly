@@ -95,12 +95,11 @@ assert(!/[^(]\$\("loadFail"\)\.hidden/.test(HIKE.replace(/if \(\$\("loadFail"\)\
     assert(/endSaved\(doneId\);[^\n]*\n\s*var stored = finishRecord\(\);/.test(HIKE), "stopHike 가 기록 쓰기 전에 부름"); n++;
 })();
 
-// ---- 12: 기록 보기 날짜도 한국 시간(이 파일은 TZ 를 뉴욕으로 - 한국 시각 01:30 이면 뉴욕은 전날)
+// ---- 12: 기록 보기 날짜도 한국 시간(이 파일은 TZ 를 뉴욕으로 - 한국 시각 01:30 이면 뉴욕은 전날). 2026-11-23 요약은 RF.recordSummary(기록 보기 trip.html)
 (function () {
-    var NY = new Date(Date.UTC(2026, 10, 2, 16, 30));   // 한국 11/3 01:30
-    var m = /var d = new Date\(rec\.start \+ 9 \* 3600000\);[^\n]*\n[^\n]*\n\s*\[\[T\("날짜", "Date"\), (d\.getUTCFullYear\(\)[^\]]*?) \+ " " \+ clock/.exec(HIKE);
-    assert(m, "showRecord 날짜 줄"); n++;
-    eq("한국 날짜", vm.runInNewContext("var d = new Date(" + NY.getTime() + " + 9 * 3600000); " + m[1], {}), "2026.11.3");
+    var NY = new Date(Date.UTC(2026, 10, 2, 16, 30)).getTime();   // 한국 11/3 01:30
+    var rows = kit("js/course-kit.js").recordSummary({ start: NY, end: NY + 3600000, track: [[37.5, 127, NY], [37.501, 127, NY + 3600000]] }, [], {}, false);
+    eq("한국 날짜 · 시각", rows[0], ["날짜", "2026.11.3 01:30"]);
 })();
 
 // ---- 7: 방 만들기 출발 · 하산 마감은 한국 시간(이 파일은 뉴욕 시간대)
