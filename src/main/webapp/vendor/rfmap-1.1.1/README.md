@@ -17,7 +17,7 @@ routefly 의 지도 모양 · 글꼴 · 지도 자료를 한 묶음으로 둔 �
 ```html
 <script src="vendor/maplibre-gl-5.24.0/maplibre-gl.js"></script>
 <script src="vendor/pmtiles-4.5.0/pmtiles.js"></script>
-<script src="vendor/rfmap-1.1.0/rfmap.js"></script>
+<script src="vendor/rfmap-1.1.1/rfmap.js"></script>
 <script>
 RFMap.open("tiles/korea.pmtiles", "https://…/{z}/{x}/{y}.png", { lang: "ko" }).then(function (style) {
     var map = new maplibregl.Map({ container: "map", style: style || 다른_바탕, localIdeographFontFamily: "'Noto Sans KR', sans-serif" });
@@ -40,9 +40,11 @@ RFMap.open("tiles/korea.pmtiles", "https://…/{z}/{x}/{y}.png", { lang: "ko" })
 
 더하기 층이 있으면(파일 안내의 vector_layers 로 든 층만): `rf-complex` · `rf-apt`(아파트) · `rf-shop`(가게, 16 ~ - 있으면 OSM 의 식당 · 카페 · 가게 · 병원 · 학교 · 숙소는 그리지 않음) · `rf-trail` · `rf-trail-label`(산림청 산길 "↑오름 거리 ↓내림") · 역은 `rf-station`(data/stations.json, 10 ~).
 
-판 기록: 1.0.0(2026-11-23) 처음 - routefly 에서 옮김 / 1.1.0(2026-11-23) 건물 · 생활 시설 · 버스 정류장 · 역(처음 화면부터) · 산림청 산길 · 상가정보 가게 · ↑↓ 글꼴 조각(8448-8703)("지도 툴을 완성").
+판 기록: 1.0.0(2026-11-23) 처음 - routefly 에서 옮김 / 1.1.0(2026-11-23) 건물 · 생활 시설 · 버스 정류장 · 역(처음 화면부터) · 산림청 산길 · 상가정보 가게 · ↑↓ 글꼴 조각(8448-8703)("지도 툴을 완성") / 1.1.1(2026-11-23) 산길 글자를 구간 가운데 점에 가로로(rf_trail_mid) · 이름 없는 업소는 업종으로 · 가게 여백 0.
 
 ## 판 올리기
+
+- 고칠 때마다 판을 올립니다(1.1.0 → 1.1.1 처럼). 앱은 `vendor/rfmap-<판>/` 주소로 받아서, 판이 같으면 브라우저가 옛 rfmap.js 를 계속 씀(2026-11-23 PC: 1.1.0 을 고친 뒤 옛 것이 남음).
 
 - 고치면 `test/rfmap.test.js` 를 돌리고, 쓰는 앱에 `sync.js` 로 복사해 그 앱 테스트도 돌립니다(routefly: course-kit.test.js 가 vendor 복사본으로 지도 모양을 자세히 봄).
 - 앱이 바뀐 걸 바로 받게 하려면 `VERSION` 을 올립니다 → 폴더 이름이 `rfmap-<새 판>` 이 되니 앱의 `<script src>` · 서비스워커 캐시 목록도 함께 바꿉니다.

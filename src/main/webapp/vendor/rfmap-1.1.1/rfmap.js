@@ -11,7 +11,7 @@
  */
 (function (global) {
     "use strict";
-    var VERSION = "1.1.0";
+    var VERSION = "1.1.1";
     // 이 파일이 있는 폴더(글꼴 · 자료 기본 자리) - node 테스트에서는 빈 글자
     var BASE = (function () {
         try { var s = global.document && global.document.currentScript; return s && s.src ? new URL(".", s.src).href : ""; } catch (e) { return ""; }
@@ -163,8 +163,8 @@
                 var city = style.layers[ids().indexOf("poi-city")];
                 city.filter = city.filter.concat([["!", ["in", cityPoiIcon, ["literal", SHOP_ICONS]]]]);
                 style.layers.splice(ids().indexOf("poi-city") + 1, 0, { id: "rf-shop", type: "symbol", source: "rfx", "source-layer": "rf_shop", minzoom: 16, filter: ["!=", shopIcon, ""],
-                    layout: { "icon-image": shopIcon, "icon-size": 1, "text-field": ["get", "name"], "text-font": F, "text-size": 10.5, "text-anchor": "top", "text-offset": [0, 0.8],
-                        "text-optional": true, "text-max-width": 7 },
+                    layout: { "icon-image": shopIcon, "icon-size": 1, "text-field": ["case", ["==", ["get", "name"], "업소명없음"], ["coalesce", ["get", "sub"], ""], ["get", "name"]], "text-font": F, "text-size": 10.5, "text-anchor": "top", "text-offset": [0, 0.8],
+                        "text-optional": true, "text-max-width": 7, "icon-padding": 0, "text-padding": 0 },   // 이름 없는 업소는 업종으로, 같은 건물 가게끼리 덜 밀리게 여백 0(2026-11-23 PC)
                     paint: { "text-color": ["match", ["get", "kind"], "food", "#c2410c", "cafe", "#8b5a2b", "shop", "#6b46c1", "bed", "#9c4221", "med", "#c53030", "school", "#2b6cb0", "#4a5568"],
                         "text-halo-color": "#fffdf5", "text-halo-width": 1.3 } });
             }
@@ -173,11 +173,17 @@
                     layout: { "line-join": "round", "line-cap": "round" },
                     paint: { "line-color": "#5f8f6a", "line-opacity": 0.85, "line-width": ["interpolate", ["linear"], ["zoom"], 12, 1, 15, 2.4] } });
                 var num = function (k) { return ["to-string", ["get", k]]; };
-                // 글자 자리는 마을 · 가게 이름보다 먼저, 등산 표시 · 봉우리보다는 뒤(poi-hike 바로 앞). 굽은 짧은 길에도 놓이게 글자를 줄이고 꺾임을 넉넉히(2026-11-23 PC: 송산에서 못 놓음)
-                style.layers.splice(ids().indexOf("poi-hike"), 0, { id: "rf-trail-label", type: "symbol", source: "rfx", "source-layer": "rf_trail", minzoom: 13, filter: ["has", "km"],
-                    layout: { "symbol-placement": "line", "symbol-spacing": 200, "text-font": F, "text-size": 10, "text-keep-upright": true, "text-max-angle": 60, "text-padding": 0,
-                        "text-field": ["case", ["all", ["has", "up"], ["has", "down"]], ["concat", "↑", num("up"), tr("분 ", "min "), num("km"), "km ↓", num("down"), tr("분", "min")], ["concat", num("km"), "km"]] },
-                    paint: { "text-color": "#3f6b4b", "text-halo-color": "#fffdf5", "text-halo-width": 1.4 } });
+                // 글자 자리는 마을 · 가게 이름보다 먼저, 등산 표시 · 봉우리보다는 뒤(poi-hike 바로 앞).
+                // 구간 가운데 점(rf_trail_mid)이 있으면 그 점에 가로로 반듯하게 - 굽은 선을 따라 쓰면 글자끼리 붙고 엉킴(2026-11-23 PC: 송산 · 설악산). 없는 옛 파일이면 곧은 곳에만 선을 따라
+                var trailText = ["case", ["all", ["has", "up"], ["has", "down"]], ["concat", "↑", num("up"), tr("분 ", "min "), num("km"), "km ↓", num("down"), tr("분", "min")], ["concat", num("km"), "km"]];
+                var mid = has("rf_trail_mid") && !!c.extraLayers;
+                style.layers.splice(ids().indexOf("poi-hike"), 0, mid
+                    ? { id: "rf-trail-label", type: "symbol", source: "rfx", "source-layer": "rf_trail_mid", minzoom: 13, filter: ["has", "km"],
+                        layout: { "text-field": trailText, "text-font": F, "text-size": 10.5, "text-padding": 2 },
+                        paint: { "text-color": "#2f5f3e", "text-halo-color": "#fffdf5", "text-halo-width": 1.8 } }
+                    : { id: "rf-trail-label", type: "symbol", source: "rfx", "source-layer": "rf_trail", minzoom: 13, filter: ["has", "km"],
+                        layout: { "symbol-placement": "line", "symbol-spacing": 250, "text-font": F, "text-size": 10, "text-keep-upright": true, "text-max-angle": 25, "text-padding": 2, "text-field": trailText },
+                        paint: { "text-color": "#3f6b4b", "text-halo-color": "#fffdf5", "text-halo-width": 1.4 } });
             }
         }
         return style;
