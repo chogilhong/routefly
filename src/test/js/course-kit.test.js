@@ -11,7 +11,7 @@ vm.createContext(sandbox);
 vm.runInContext(fs.readFileSync(path.join(__dirname, "../../main/webapp/js/course-kit.js"), "utf8"), sandbox);
 var RF = sandbox.window.RF;
 // 우리 지도 패키지(tools 저장소 map/rfmap 을 sync.js 로 복사한 것) - 지도 모양 · 봉우리 거름 · 조각 읽기(2026-11-23 course-kit 에서 옮김)
-vm.runInContext(fs.readFileSync(path.join(__dirname, "../../main/webapp/vendor/rfmap-1.1.6/rfmap.js"), "utf8"), sandbox);
+vm.runInContext(fs.readFileSync(path.join(__dirname, "../../main/webapp/vendor/rfmap-1.1.7/rfmap.js"), "utf8"), sandbox);
 var RM = sandbox.window.RFMap;
 
 var fails = 0, runs = 0;
@@ -327,7 +327,7 @@ eq("문장대", RF.poiIcon("문장대"), "🗻");
         eq("대피소 · 절 등 - poi 층, 지나간 봉우리 층 바로 앞, 확대 12부터", [poi && poi["source-layer"], ids.indexOf("poi-hike") === ids.indexOf("peak-on") - 1, poi && poi.minzoom], ["poi", true, 12]);
         eq("대피소 · 절 등 - OpenMapTiles class · subclass 와 아이콘(그리는 그림이 다 있음)", [JSON.stringify(icon.slice(1, -1)),
             icon.filter(function (v, k) { return typeof v === "string" && k > 0 && k % 2 === 0; }).concat(icon[icon.length - 1] ? [icon[icon.length - 1]] : []).every(function (id) { return !!RM.ICONS[id]; })],
-            [JSON.stringify([["all", ["==", ["get", "class"], "lodging"], ["==", ["get", "subclass"], "alpine_hut"]], "rf-hut", ["==", ["get", "class"], "shelter"], "rf-hut",
+            [JSON.stringify([["all", ["==", ["get", "class"], "lodging"], ["==", ["get", "subclass"], "alpine_hut"]], "rf-hut",
                 ["all", ["==", ["get", "class"], "place_of_worship"], ["==", ["get", "subclass"], "buddhist"]], "rf-temple",
                 ["all", ["==", ["get", "class"], "attraction"], ["==", ["get", "subclass"], "viewpoint"]], "rf-view", ["==", ["get", "class"], "drinking_water"], "rf-water",
                 ["==", ["get", "class"], "railway"], "rf-rail"]), true]);

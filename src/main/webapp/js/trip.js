@@ -211,7 +211,7 @@
             fam.peaks.forEach(function (p) {   // 같은 이름의 OSM 봉우리만(옆 봉우리는 그대로)
                 addDrop = addDrop.concat(more(dropPeaks.concat(addDrop), RFMap.peaksNear(feats.filter(function (f) { return f.name === p.name; }), [p.lat], [p.lon], SAME_M)));
             });
-            var huts = pts("poi").filter(function (f) { return (f.cls === "lodging" && f.sub === "alpine_hut") || f.cls === "shelter"; });   // 이름이 달라도(로타리 · 로터리) 자리로
+            var huts = pts("poi").filter(function (f) { return f.cls === "lodging" && f.sub === "alpine_hut"; });   // 지도에 그리는 OSM 대피소는 산장만(rfmap 1.1.7 - 쉼터는 안 그림)   // 이름이 달라도(로타리 · 로터리) 자리로
             addHut = more(dropHuts, RFMap.peaksNear(huts, fam.huts.map(function (h) { return h.lat; }), fam.huts.map(function (h) { return h.lon; }), SAME_M)
                 .map(function (k) { return k.slice(0, k.lastIndexOf("|")); }));
         }

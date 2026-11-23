@@ -11,7 +11,7 @@
  */
 (function (global) {
     "use strict";
-    var VERSION = "1.1.6";
+    var VERSION = "1.1.7";
     // 이 파일이 있는 폴더(글꼴 · 자료 기본 자리) - node 테스트에서는 빈 글자
     var BASE = (function () {
         try { var s = global.document && global.document.currentScript; return s && s.src ? new URL(".", s.src).href : ""; } catch (e) { return ""; }
@@ -42,7 +42,8 @@
         var cls = function (list) { return ["match", ["get", "class"], list, true, false]; };
         var hikePoiIcon = ["case",
             ["all", ["==", ["get", "class"], "lodging"], ["==", ["get", "subclass"], "alpine_hut"]], "rf-hut",
-            ["==", ["get", "class"], "shelter"], "rf-hut",
+            // OSM 쉼터(amenity=shelter → class shelter)는 그리지 않음 - 공원 정자 · 비 가림 쉼터까지 같은 값이라 도시가 "쉼터 찾는 지도" 처럼 됨(2026-11-23 홍TV님
+            // "지리산, 한라산, 설악산, 덕유산 등 그곳에서만 보이게"). 대피소는 공단 대피소(rf-hut 층, 앱이 채움)와 OSM 산장(alpine_hut)만
             ["all", ["==", ["get", "class"], "place_of_worship"], ["==", ["get", "subclass"], "buddhist"]], "rf-temple",
             ["all", ["==", ["get", "class"], "attraction"], ["==", ["get", "subclass"], "viewpoint"]], "rf-view",
             ["==", ["get", "class"], "drinking_water"], "rf-water",
