@@ -14,7 +14,7 @@ function eq(name, got, want) {
     if (JSON.stringify(got) !== JSON.stringify(want)) { fails++; console.log("FAIL " + name + ": " + JSON.stringify(got) + " (기대 " + JSON.stringify(want) + ")"); }
 }
 var vs = M.style({ basemapUrl: "https://x/k.pmtiles", demUrl: "https://d/{z}/{x}/{y}.png" }, "https://x/f/"), ids = vs.layers.map(function (l) { return l.id; });
-eq("판 · 내보내는 것", [M.VERSION, Object.keys(M).sort()], ["1.1.2", ["CONTOUR_STEPS", "ICONS", "PEAK_KEY_EXPR", "VERSION", "contourPaint", "iconImage", "mvtPoints", "open", "peakKey", "peakOnFilter", "peaksNear", "poiShowFilter", "shopList", "style", "tileLonLat", "tilePeaks", "tilesAlong"]]);
+eq("판 · 내보내는 것", [M.VERSION, Object.keys(M).sort()], ["1.1.3", ["CONTOUR_STEPS", "ICONS", "PEAK_KEY_EXPR", "VERSION", "contourPaint", "iconImage", "mvtPoints", "open", "peakKey", "peakOnFilter", "peaksNear", "poiShowFilter", "shopList", "style", "tileLonLat", "tilePeaks", "tilesAlong"]]);
 eq("지도 모양 - 바탕 · 지형 · 글꼴 · 출처", [vs.sources.omt.url, vs.sources.hillshade.tiles[0], vs.glyphs, vs.sources.omt.attribution], ["pmtiles://https://x/k.pmtiles", "https://d/{z}/{x}/{y}.png", "https://x/f/{fontstack}/{range}.pbf", "© OpenMapTiles © OpenStreetMap contributors"]);
 eq("지도 모양 - 자료 폴더는 c.data(없으면 이 패키지 data/)", [vs.sources.gu.data, M.style({ basemapUrl: "a.pmtiles", demUrl: "d", data: "https://y/d/" }, "f/").sources.subway.data], ["data/gu-labels.json", "https://y/d/subway-lines.json"]);
 eq("지도 모양 - 영어(c.lang en)면 구 이름도 영어", JSON.stringify(M.style({ basemapUrl: "a.pmtiles", demUrl: "d", lang: "en" }, "f/").layers.filter(function (l) { return l.id === "gu-name"; })[0].layout["text-field"]),
@@ -38,8 +38,8 @@ eq("더하기 층 - 파일에 든 층만(가게 · 산길 없는 옛 파일이�
 var vm = M.style({ basemapUrl: "a.pmtiles", demUrl: "d", extraUrl: "a-extra.pmtiles", extraLayers: ["rf_label", "rf_shop", "rf_trail", "rf_trail_mid"] }, "f/"), mid = vm.layers[vm.layers.map(function (l) { return l.id; }).indexOf("rf-trail-label")];
 eq("산림청 산길 글자 - 등산 표시(poi-hike) 바로 앞, 가운데 점이 있으면 그 점에 가로로, 없으면 곧은 곳(꺾임 25)에만 선을 따라", [xid.indexOf("rf-trail-label") === xid.indexOf("poi-hike") - 1,
     mid["source-layer"], mid.layout["symbol-placement"], tl["source-layer"], tl.layout["text-max-angle"]], [true, "rf_trail_mid", undefined, "rf_trail", 25]);
-eq("가게 - 이름 없는 업소(업소명없음)는 업종으로, 같은 점 여러 곳은 \"외 n곳\"", [JSON.stringify(sh.layout["text-field"][1][1]), JSON.stringify(sh.layout["text-field"][2][1])],
-    [JSON.stringify(["==", ["get", "name"], "업소명없음"]), JSON.stringify([">", ["coalesce", ["get", "n"], 1], 1])]);
+eq("가게 - 이름 없는 업소(업소명없음)는 업종으로, 같은 점 여러 곳은 \"외 n곳\"", [JSON.stringify(sh.layout["text-field"][1][1]), JSON.stringify(sh.layout["text-field"][3][1]), sh.layout["text-field"][4]["font-scale"], sh.layout["text-max-width"], sh.layout["text-size"]],
+    [JSON.stringify(["==", ["get", "name"], "업소명없음"]), JSON.stringify([">", ["coalesce", ["get", "n"], 1], 1]), 0.85, 10, 10]);
 eq("산림청 등산로 글자 - 오름 · 내림 시간이 있을 때", JSON.stringify(tl.layout["text-field"][2]), JSON.stringify(["concat", "↑", ["to-string", ["get", "up"]], "분 ", ["to-string", ["get", "km"]], "km ↓", ["to-string", ["get", "down"]], "분"]));
 var city = vs.layers[ids.indexOf("poi-city")], bus = vs.layers[ids.indexOf("poi-bus")], cityIcon = city.layout["icon-image"];
 eq("생활 시설 - 식당 · 카페 · 가게 · 병원 등 확대 15, 버스 정류장 16, 등산 표시 앞(글자 자리를 내줌), 건물은 14 부터", [city.minzoom, bus.minzoom, ids.indexOf("poi-city") < ids.indexOf("poi-hike"),

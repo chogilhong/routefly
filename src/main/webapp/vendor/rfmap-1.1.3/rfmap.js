@@ -11,7 +11,7 @@
  */
 (function (global) {
     "use strict";
-    var VERSION = "1.1.2";
+    var VERSION = "1.1.3";
     // 이 파일이 있는 폴더(글꼴 · 자료 기본 자리) - node 테스트에서는 빈 글자
     var BASE = (function () {
         try { var s = global.document && global.document.currentScript; return s && s.src ? new URL(".", s.src).href : ""; } catch (e) { return ""; }
@@ -163,9 +163,11 @@
                 var city = style.layers[ids().indexOf("poi-city")];
                 city.filter = city.filter.concat([["!", ["in", cityPoiIcon, ["literal", SHOP_ICONS]]]]);
                 style.layers.splice(ids().indexOf("poi-city") + 1, 0, { id: "rf-shop", type: "symbol", source: "rfx", "source-layer": "rf_shop", minzoom: 16, filter: ["!=", shopIcon, ""],
-                    layout: { "icon-image": shopIcon, "icon-size": 1, "text-field": ["concat", ["case", ["==", ["get", "name"], "업소명없음"], ["coalesce", ["get", "sub"], ""], ["get", "name"]],
-                            ["case", [">", ["coalesce", ["get", "n"], 1], 1], ["concat", tr(" 외 ", " +"), ["to-string", ["-", ["get", "n"], 1]], tr("곳", "")], ""]],   // 같은 건물(같은 점) 가게는 "대표 외 n곳" - 누르면 목록(shopList) "text-font": F, "text-size": 10.5, "text-anchor": "top", "text-offset": [0, 0.8],
-                        "text-optional": true, "text-max-width": 7, "icon-padding": 0, "text-padding": 0 },   // 이름 없는 업소는 업종으로, 같은 건물 가게끼리 덜 밀리게 여백 0(2026-11-23 PC)
+                    layout: { "icon-image": shopIcon, "icon-size": 0.9, "text-font": F, "text-size": 10, "text-anchor": "top", "text-offset": [0, 0.75],
+                        // 이름은 한 줄에 길게(10em), "외 n곳" 은 조금 작게 - 강남처럼 빽빽한 곳에서 두 줄 · 큰 글자로 화면이 꽉 찼음(2026-11-23 PC)
+                        "text-field": ["format", ["case", ["==", ["get", "name"], "업소명없음"], ["coalesce", ["get", "sub"], ""], ["get", "name"]], {},
+                            ["case", [">", ["coalesce", ["get", "n"], 1], 1], ["concat", tr(" 외 ", " +"), ["to-string", ["-", ["get", "n"], 1]], tr("곳", "")], ""], { "font-scale": 0.85 }],   // 같은 건물(같은 점) 가게는 "대표 외 n곳" - 누르면 목록(shopList)
+                        "text-optional": true, "text-max-width": 10, "icon-padding": 0, "text-padding": 0 },   // 이름 없는 업소는 업종으로, 같은 건물 가게끼리 덜 밀리게 여백 0(2026-11-23 PC)
                     paint: { "text-color": ["match", ["get", "kind"], "food", "#c2410c", "cafe", "#8b5a2b", "shop", "#6b46c1", "bed", "#9c4221", "med", "#c53030", "school", "#2b6cb0", "#4a5568"],
                         "text-halo-color": "#fffdf5", "text-halo-width": 1.3 } });
             }
