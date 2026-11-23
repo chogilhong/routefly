@@ -508,6 +508,12 @@
         map.once("style.load", function () { styleOk = true; fold(); setContour(contourOn); var q = styleQ; styleQ = []; q.forEach(function (fn) { fn(); }); });
         if (vector) loadMarks();
         map.on("idle", markPeaks);
+        // 조각을 받을 때마다도(0.4초 모아 한 번) - "idle" 은 지형 · 사진 표시가 계속 그려지면 늦거나 안 와, 확대해도 사패산에서 안 나뉘고 ▲ 이름도 안 보였음(2026-11-23 PC 불수사도북 z12.95)
+        var peakT = 0;
+        map.on("sourcedata", function (e) {
+            if (e.sourceId !== "omt" || !e.isSourceLoaded) return;
+            clearTimeout(peakT); peakT = setTimeout(markPeaks, 400);
+        });
         map.on("styleimagemissing", function (e) { RF.mapIconImage(map, e.id); });
         if (vector) {
             var PLACES = ["rf-peak", "rf-hut", "peak-on", "peak", "poi-hike"];

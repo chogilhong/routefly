@@ -86,6 +86,8 @@ public class BasemapTest {
             && read("src/main/webapp/js/course-kit.js").contains("\"rf-rail\": [\"#ffffff\", \"dot\"] };") && read("src/main/webapp/js/course-kit.js").contains("[\"concat\", ko, \"역\"], ko]") && app.contains("var VIDEO_DROP = [\"road-name\", \"road-name-major\", \"place\", \"water-name\"];")
             && app.contains("map.setFilter(\"peak\", [\"!\", [\"in\", [\"get\", \"name\"], [\"literal\", videoPeakNames.concat(own)]]]);")
             && app.contains("map.setFilter(\"rf-peak\", [\"all\", [\"==\", [\"get\", \"kind\"], \"peak\"], [\"!\", [\"in\", [\"get\", \"name\"], [\"literal\", own]]]]);"));
+        assertTrue("봉우리 찾기는 idle 만 믿지 않고 조각을 받을 때도(2026-11-23 PC 불수사도북 z12.95 - 사패산에서 안 나뉨)", js.contains("if (e.sourceId !== \"omt\" || !e.isSourceLoaded) return;")
+            && js.contains("clearTimeout(peakT); peakT = setTimeout(markPeaks, 400);"));
         assertTrue("OSM 출처는 한 번만 - 우리 지도는 바탕 출처에 이미 있음(2026-11-22 PC)", js.contains("customAttribution: (style ? \"\" : \"© OpenStreetMap contributors | \") + "));
         assertTrue(html.contains("<script src=\"vendor/pmtiles-4.5.0/pmtiles.js\"></script>"));
         assertTrue("지도 파일은 캐시하지 않음(Range)", sw.contains("if (/\\.pmtiles(?:[?#]|$)/.test(url)) return;"));
