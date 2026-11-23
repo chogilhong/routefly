@@ -95,7 +95,7 @@
      * 날며 보는 영상이라 작은 길 이름 · 아파트 단지 · 동 이름만 뺌(기울어진 화면에 많으면 어지러움). 위성(V-World)은 영상에 쓰지 않음.
      * 마을 · 강 · 구 · 큰길 이름은 다시 넣음(2026-11-23 홍TV님 "다 빼고 나니까 너무 밋밋한데").
      */
-    var VIDEO_DROP = ["road-name", "rf-complex", "rf-apt"];   // 아파트 단지 · 동 이름은 뺌(2026-11-23 홍TV님 "빼줘")
+    var VIDEO_DROP = ["road-name", "rf-complex", "rf-apt", "poi-city", "poi-bus"];   // 아파트 단지 · 동 이름 · 생활 시설(식당 · 가게 등)은 뺌(2026-11-23 홍TV님 "빼줘")
     function videoStyle(cfg, vs) {
         var st = buildStyle(cfg), out = Object.assign({}, vs, { terrain: st.terrain, sky: st.sky });
         var t = Object.assign({}, st.sources.terrain);

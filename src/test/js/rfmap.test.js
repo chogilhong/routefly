@@ -14,13 +14,17 @@ function eq(name, got, want) {
     if (JSON.stringify(got) !== JSON.stringify(want)) { fails++; console.log("FAIL " + name + ": " + JSON.stringify(got) + " (기대 " + JSON.stringify(want) + ")"); }
 }
 var vs = M.style({ basemapUrl: "https://x/k.pmtiles", demUrl: "https://d/{z}/{x}/{y}.png" }, "https://x/f/"), ids = vs.layers.map(function (l) { return l.id; });
-eq("판 · 내보내는 것", [M.VERSION, Object.keys(M).sort()], ["1.0.0", ["CONTOUR_STEPS", "ICONS", "PEAK_KEY_EXPR", "VERSION", "contourPaint", "iconImage", "mvtPoints", "open", "peakKey", "peakOnFilter", "peaksNear", "poiShowFilter", "style", "tileLonLat", "tilePeaks", "tilesAlong"]]);
+eq("판 · 내보내는 것", [M.VERSION, Object.keys(M).sort()], ["1.1.0", ["CONTOUR_STEPS", "ICONS", "PEAK_KEY_EXPR", "VERSION", "contourPaint", "iconImage", "mvtPoints", "open", "peakKey", "peakOnFilter", "peaksNear", "poiShowFilter", "style", "tileLonLat", "tilePeaks", "tilesAlong"]]);
 eq("지도 모양 - 바탕 · 지형 · 글꼴 · 출처", [vs.sources.omt.url, vs.sources.hillshade.tiles[0], vs.glyphs, vs.sources.omt.attribution], ["pmtiles://https://x/k.pmtiles", "https://d/{z}/{x}/{y}.png", "https://x/f/{fontstack}/{range}.pbf", "© OpenMapTiles © OpenStreetMap contributors"]);
 eq("지도 모양 - 자료 폴더는 c.data(없으면 이 패키지 data/)", [vs.sources.gu.data, M.style({ basemapUrl: "a.pmtiles", demUrl: "d", data: "https://y/d/" }, "f/").sources.subway.data], ["data/gu-labels.json", "https://y/d/subway-lines.json"]);
 eq("지도 모양 - 영어(c.lang en)면 구 이름도 영어", JSON.stringify(M.style({ basemapUrl: "a.pmtiles", demUrl: "d", lang: "en" }, "f/").layers.filter(function (l) { return l.id === "gu-name"; })[0].layout["text-field"]),
     JSON.stringify(["coalesce", ["get", "name_en"], ["get", "name"]]));
 eq("지도 모양 - 더하기 층은 extraUrl 이 있을 때만", [ids.indexOf("rf-complex"), M.style({ basemapUrl: "a.pmtiles", demUrl: "d", extraUrl: "a-extra.pmtiles" }, "f/").sources.rfx.url], [-1, "pmtiles://a-extra.pmtiles"]);
 eq("지도 모양 - 늘 보이는 표시가 맨 뒤(글자 자리를 먼저)", ids.slice(-2), ["rf-hut", "rf-peak"]);
+var city = vs.layers[ids.indexOf("poi-city")], bus = vs.layers[ids.indexOf("poi-bus")], cityIcon = city.layout["icon-image"];
+eq("생활 시설 - 식당 · 카페 · 가게 · 병원 등 확대 15, 버스 정류장 16, 등산 표시 앞(글자 자리를 내줌), 건물은 14 부터", [city.minzoom, bus.minzoom, ids.indexOf("poi-city") < ids.indexOf("poi-hike"),
+    vs.layers[ids.indexOf("building")]["source-layer"], vs.layers[ids.indexOf("building")].minzoom, cityIcon[0], cityIcon[1][1]], [15, 16, true, "building", 14, "match", "class"]);
+eq("생활 시설 - 아이콘 이름은 모두 그림이 있음", cityIcon.filter(function (v, k) { return typeof v === "string" && k > 2 && k % 2 === 1 && v; }).every(function (id) { return !!M.ICONS[id]; }), true);
 var poi = vs.layers[ids.indexOf("poi-hike")].layout["icon-image"];
 eq("아이콘 - poi 층이 쓰는 이름은 모두 그림이 있음", poi.filter(function (v, k) { return typeof v === "string" && k > 0 && k % 2 === 0 && v; }).every(function (id) { return !!M.ICONS[id]; }), true);
 eq("봉우리 열쇠 · 거름", [M.peakKey({ name: "사패산", ele: 551 }), M.peakOnFilter(["a|1"], true)[0], M.peakOnFilter(["a|1"], false)[0]], ["사패산|551", "in", "!"]);

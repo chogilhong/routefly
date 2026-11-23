@@ -11,7 +11,7 @@
  */
 (function (global) {
     "use strict";
-    var VERSION = "1.0.0";
+    var VERSION = "1.1.0";
     // 이 파일이 있는 폴더(글꼴 · 자료 기본 자리) - node 테스트에서는 빈 글자
     var BASE = (function () {
         try { var s = global.document && global.document.currentScript; return s && s.src ? new URL(".", s.src).href : ""; } catch (e) { return ""; }
@@ -47,6 +47,19 @@
             ["all", ["==", ["get", "class"], "attraction"], ["==", ["get", "subclass"], "viewpoint"]], "rf-view",
             ["==", ["get", "class"], "drinking_water"], "rf-water",
             ["==", ["get", "class"], "railway"], "rf-rail", ""];   // 기차 · 지하철역(OMT poi class railway - 2026-11-23 홍TV님 "지하철역 · 도시 안내")
+        var cityPoiIcon = ["match", ["get", "class"],   // 생활 시설 아이콘(OpenMapTiles v3.15 poi class)
+            ["restaurant", "fast_food", "bar", "beer", "ice_cream", "bakery"], "rf-food", "cafe", "rf-cafe", ["shop", "grocery", "clothing_store", "alcohol_shop"], "rf-shop",
+            ["hospital", "doctors", "dentist", "pharmacy"], "rf-med", ["school", "college", "kindergarten", "library"], "rf-school", "bank", "rf-bank", "bus", "rf-bus",
+            ["town_hall", "police", "post", "fire_station"], "rf-gov", "park", "rf-park", "parking", "rf-parking", "lodging", "rf-bed", ""];
+        var cityPoi = function (id, minzoom, more) {
+            return { id: id, type: "symbol", source: "omt", "source-layer": "poi", minzoom: minzoom,
+                filter: ["all", ["!=", cityPoiIcon, ""], ["==", hikePoiIcon, ""], ["has", "name"], more],
+                layout: { "icon-image": cityPoiIcon, "icon-size": 1, "text-field": ko, "text-font": F, "text-size": 10.5, "text-anchor": "top", "text-offset": [0, 0.8],
+                    "text-optional": true, "text-max-width": 7, "symbol-sort-key": ["coalesce", ["get", "rank"], 99] },
+                paint: { "text-color": ["match", cityPoiIcon, "rf-food", "#c2410c", "rf-cafe", "#8b5a2b", "rf-shop", "#6b46c1", "rf-med", "#c53030", "rf-school", "#2b6cb0",
+                    "rf-bank", "#2f855a", "rf-bus", "#1971c2", "rf-park", "#2f7d4f", "rf-parking", "#3b5bdb", "rf-bed", "#9c4221", "#4a5568"],
+                    "text-halo-color": "#fffdf5", "text-halo-width": 1.3 } };
+        };
         var peakText = ["case", ["has", "ele"], ["concat", "▲ ", ko, "\n", ["to-string", ["get", "ele"]], "m"], ["concat", "▲ ", ko]];
         var style = {
             version: 8,
@@ -68,6 +81,9 @@
                 { id: "water", type: "fill", source: "omt", "source-layer": "water", paint: { "fill-color": "#a8cbe0" } },
                 { id: "waterway", type: "line", source: "omt", "source-layer": "waterway", paint: { "line-color": "#8bb8d6", "line-width": ["interpolate", ["linear"], ["zoom"], 10, 0.5, 15, 2] } },
                 { id: "hillshade", type: "hillshade", source: "hillshade", paint: { "hillshade-exaggeration": 0.4, "hillshade-shadow-color": "#4a5544", "hillshade-highlight-color": "#fffdf5" } },
+                // 건물(2026-11-23 홍TV님 "지도 툴을 완성하는거야") - 확대 14 부터 옅게, 16 부터 또렷이(OpenMapTiles building)
+                { id: "building", type: "fill", source: "omt", "source-layer": "building", minzoom: 14,
+                    paint: { "fill-color": "#e4ddd2", "fill-outline-color": "#cfc5b6", "fill-opacity": ["interpolate", ["linear"], ["zoom"], 14, 0.45, 16, 1] } },
                 { id: "boundary", type: "line", source: "omt", "source-layer": "boundary", filter: ["<=", ["get", "admin_level"], 6], paint: { "line-color": "#9a8fa6", "line-width": 1, "line-dasharray": [4, 2, 1, 2] } },
                 line("path", cls(["path", "track"]), "#a0522d", ["interpolate", ["linear"], ["zoom"], 12, 0.8, 16, 2], { "line-dasharray": [2, 1.5] }),
                 line("road-minor", cls(["minor", "service", "tertiary"]), "#ffffff", ["interpolate", ["linear"], ["zoom"], 10, 0.6, 16, 4]),
@@ -84,6 +100,9 @@
                     layout: { "symbol-placement": "line", "text-field": ko, "text-font": F, "text-size": 11 }, paint: { "text-color": "#5a4a3a", "text-halo-color": "#fff", "text-halo-width": 1.2 } },
                 { id: "water-name", type: "symbol", source: "omt", "source-layer": "water_name",
                     layout: { "text-field": ko, "text-font": F, "text-size": 11 }, paint: { "text-color": "#3f6f8f", "text-halo-color": "#fff", "text-halo-width": 1 } },
+                // 생활 시설(2026-11-23 홍TV님 "지도 툴을 완성 - 근처 식당 등까지") - 식당 · 카페 · 가게 · 병원 · 학교 · 은행 · 버스 정류장 · 관공서 · 공원 · 주차장 · 숙소.
+                // OpenMapTiles poi 의 class 그대로, 이름 있는 것만, 확대 15 부터(버스 정류장은 poi-bus 16 부터). 등산 표시(poi-hike)와 겹치는 것은 빼고, 글자 자리는 다른 이름들에 내줌(앞 층)
+                cityPoi("poi-city", 15, ["!=", cityPoiIcon, "rf-bus"]), cityPoi("poi-bus", 16, ["==", cityPoiIcon, "rf-bus"]),
                 // 구 이름(2026-11-23 홍TV님 "종로구, 도봉구, 강북구, 노원구 등 구역 표시도") - 국토부 지도처럼 옅고 크게, 봉우리 · 역 · 마을 이름에 자리를 내줌(앞 층). 구 경계선은 boundary 층(admin_level 6)
                 { id: "gu-name", type: "symbol", source: "gu", minzoom: 10,
                     layout: { "text-field": tr(["get", "name"], ["coalesce", ["get", "name_en"], ["get", "name"]]), "text-font": F,
@@ -132,7 +151,10 @@
     }
 
     /** 우리 지도 poi-hike 층 아이콘(이름 → 동그라미 색 · 안 그림). 화면이 캔버스로 그려 map.addImage - 집 · 눈 · 물방울은 선으로(글꼴마다 ⌂ 등이 뭉개짐), 절은 卍(한자라 폰 글꼴에 있음). */
-    var MAP_ICONS = { "rf-hut": ["#7a4a1c", "house"], "rf-temple": ["#b23b2e", "卍"], "rf-view": ["#2f7d4f", "eye"], "rf-water": ["#2a73b8", "drop"], "rf-rail": ["#ffffff", "dot"] };   // 역은 국토부 지도처럼 작은 흰 동그라미(2026-11-23 홍TV님 "🚉 아이콘은 없어도 돼")
+    var MAP_ICONS = { "rf-hut": ["#7a4a1c", "house"], "rf-temple": ["#b23b2e", "卍"], "rf-view": ["#2f7d4f", "eye"], "rf-water": ["#2a73b8", "drop"], "rf-rail": ["#ffffff", "dot"],
+        // 생활 시설(작은 동그라미 18칸) - 그림은 선 · 면으로, 글자는 한 자 · 기호만(폰 글꼴에 늘 있음)
+        "rf-food": ["#ea580c", "fork", 18], "rf-cafe": ["#8b5a2b", "cup", 18], "rf-shop": ["#7c3aed", "bag", 18], "rf-med": ["#dc2626", "cross", 18], "rf-school": ["#2563eb", "학", 18],
+        "rf-bank": ["#16a34a", "₩", 18], "rf-bus": ["#1971c2", "bus", 18], "rf-gov": ["#4b5563", "관", 18], "rf-park": ["#2f7d4f", "tree", 18], "rf-parking": ["#3b5bdb", "P", 18], "rf-bed": ["#9c4221", "숙", 18] };   // 역은 국토부 지도처럼 작은 흰 동그라미(2026-11-23 홍TV님 "🚉 아이콘은 없어도 돼")
 
     /** 순수 함수 - 우리 지도 poi-hike 층 거름: 아이콘이 있고(icon = 층의 icon-image 식) 숨긴 것(hidden - "rf-hut" 등)이 아닌 것만(2026-11-22 홍TV님 "마커 별로 숨기고 보이고"). */
     function poiShowFilter(icon, hidden, dropNames) {
@@ -272,12 +294,12 @@
             map.addImage(id, gd.getImageData(0, 0, m, m), { pixelRatio: rr });
             return;
         }
-        var r = global.devicePixelRatio > 1 ? 2 : 1, n = 22 * r, cv = document.createElement("canvas"), g = cv.getContext("2d");
+        var r = global.devicePixelRatio > 1 ? 2 : 1, n = (ic[2] || 22) * r, cv = document.createElement("canvas"), g = cv.getContext("2d");
         cv.width = cv.height = n;
         g.beginPath(); g.arc(n / 2, n / 2, n / 2 - r, 0, Math.PI * 2);
         g.fillStyle = ic[0]; g.fill(); g.lineWidth = 1.5 * r; g.strokeStyle = "#fff"; g.stroke();
         g.fillStyle = "#fff"; g.strokeStyle = "#fff"; g.lineWidth = 1.6 * r;
-        var c = n / 2, u = r;   // 가운데 · 1단위(22칸 기준)
+        var c = n / 2, u = r * (ic[2] || 22) / 22;   // 가운데 · 1단위(22칸 기준, 작은 아이콘은 줄여서)
         g.beginPath();
         if (ic[1] === "house") {   // 지붕 세모 + 몸통 네모
             g.moveTo(c, c - 6 * u); g.lineTo(c + 6 * u, c); g.lineTo(c + 4 * u, c); g.lineTo(c + 4 * u, c + 5 * u); g.lineTo(c - 4 * u, c + 5 * u); g.lineTo(c - 4 * u, c); g.lineTo(c - 6 * u, c); g.closePath(); g.fill();
@@ -285,8 +307,22 @@
             g.moveTo(c, c - 6 * u); g.bezierCurveTo(c + 5 * u, c, c + 5 * u, c + 5 * u, c, c + 5 * u); g.bezierCurveTo(c - 5 * u, c + 5 * u, c - 5 * u, c, c, c - 6 * u); g.fill();
         } else if (ic[1] === "eye") {   // 눈(전망)
             g.ellipse(c, c, 6.5 * u, 3.8 * u, 0, 0, Math.PI * 2); g.stroke(); g.beginPath(); g.arc(c, c, 2 * u, 0, Math.PI * 2); g.fill();
+        } else if (ic[1] === "fork") {   // 포크 · 나이프
+            g.moveTo(c - 3 * u, c - 6 * u); g.lineTo(c - 3 * u, c + 6 * u); g.moveTo(c - 5 * u, c - 6 * u); g.lineTo(c - 5 * u, c - 2 * u); g.lineTo(c - 1 * u, c - 2 * u); g.lineTo(c - 1 * u, c - 6 * u);
+            g.moveTo(c + 3.5 * u, c + 6 * u); g.lineTo(c + 3.5 * u, c - 6 * u); g.quadraticCurveTo(c + 6 * u, c - 3 * u, c + 3.5 * u, c); g.stroke();
+        } else if (ic[1] === "cup") {   // 찻잔
+            g.fillRect(c - 5 * u, c - 3 * u, 8 * u, 7 * u); g.arc(c + 4 * u, c + 0.5 * u, 2.2 * u, -Math.PI / 2, Math.PI / 2); g.stroke();
+        } else if (ic[1] === "bag") {   // 장바구니
+            g.fillRect(c - 5 * u, c - 2 * u, 10 * u, 8 * u); g.moveTo(c - 2.5 * u, c - 2 * u); g.arc(c, c - 2 * u, 2.5 * u, Math.PI, 0); g.stroke();
+        } else if (ic[1] === "cross") {   // 병원 십자
+            g.fillRect(c - 1.8 * u, c - 6 * u, 3.6 * u, 12 * u); g.fillRect(c - 6 * u, c - 1.8 * u, 12 * u, 3.6 * u);
+        } else if (ic[1] === "bus") {   // 버스 - 몸통 · 창 · 바퀴
+            g.fillRect(c - 5 * u, c - 6 * u, 10 * u, 10 * u); g.fillStyle = ic[0]; g.fillRect(c - 3.5 * u, c - 4.5 * u, 7 * u, 3.5 * u); g.fillStyle = "#fff";
+            g.fillRect(c - 4.5 * u, c + 4 * u, 2.5 * u, 2 * u); g.fillRect(c + 2 * u, c + 4 * u, 2.5 * u, 2 * u);
+        } else if (ic[1] === "tree") {   // 나무
+            g.moveTo(c, c - 7 * u); g.lineTo(c + 5.5 * u, c + 2 * u); g.lineTo(c - 5.5 * u, c + 2 * u); g.closePath(); g.fill(); g.fillRect(c - 1.2 * u, c + 2 * u, 2.4 * u, 4.5 * u);
         } else {
-            g.font = "bold " + (13 * r) + "px sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(ic[1], c, c + u);
+            g.font = "bold " + (13 * n / 22) + "px sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(ic[1], c, c + u);
         }
         map.addImage(id, g.getImageData(0, 0, n, n), { pixelRatio: r });
     }
