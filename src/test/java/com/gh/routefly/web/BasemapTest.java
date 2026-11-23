@@ -121,5 +121,7 @@ public class BasemapTest {
                 "pmtiles-4.5.0/pmtiles.js", "pmtiles-4.5.0/LICENSE", "rfmap-1.1.6/fonts/OFL.txt", "rfmap-1.1.6/fonts/Noto Sans Regular/0-255.pbf", "rfmap-1.1.6/fonts/Noto Sans Regular/8192-8447.pbf", "rfmap-1.1.6/fonts/Noto Sans Regular/9472-9727.pbf", "rfmap-1.1.6/fonts/Noto Sans Regular/8448-8703.pbf", "rfmap-1.1.6/rfmap.js", "rfmap-1.1.6/data/gu-labels.json", "rfmap-1.1.6/data/subway-lines.json", "rfmap-1.1.6/data/stations.json"})
             assertTrue(f, Files.size(Path.of("src/main/webapp/vendor/" + f)) > 100);
         assertTrue("안내 페이지 사용 조건(한 · 영)", read("src/main/webapp/about.html").contains("© OpenMapTiles © OpenStreetMap contributors(ODbL)") && read("src/main/webapp/about-en.html").contains("map font Noto Sans (SIL OFL 1.1)"));
+        assertTrue("지도 파일의 OSM 자료는 ODbL 로 제공(한 · 영, 2026-11-23 홍TV님)", read("src/main/webapp/about.html").contains("에 든 OpenStreetMap 자료는\n                <a href=\"https://opendatacommons.org/licenses/odbl/1-0/\"")
+            && read("src/main/webapp/about-en.html").contains("is provided under the\n                <a href=\"https://opendatacommons.org/licenses/odbl/1-0/\""));
     }
 }
