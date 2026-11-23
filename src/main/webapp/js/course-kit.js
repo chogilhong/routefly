@@ -4916,7 +4916,7 @@
         return tr("보내지 못했습니다(HTTP " + status + "). 잠시 뒤 다시 보내 주세요.", "Could not send (HTTP " + status + "). Please try again later.");
     }
     /**
-     * 보내기 창 - o = {name, kind, track, trim(track) → Promise(자른 점 | null) (있을 때만 ✂ 단추), sent(알림 글)}.
+     * 보내기 창 - o = {name, kind, track, sent(알림 글)}. 앞 · 뒤 자르기는 GPX 편집의 ✂ 도구로 먼저(2026-11-24 - 따라가기 내 기록의 등록 요청은 GPX 편집으로 옮김).
      * 보내도 화면의 기록 · 편집 중인 길은 그대로(창만 닫힘). 보낸 사람 이름은 이 기기에 기억(rf-submit-sender).
      */
     function submitSheet(o) {
@@ -4937,7 +4937,7 @@
             + '<p class="tip" style="margin:10px 0 6px">' + tr("길 모양 · 코스 이름 · 보낸 사람 이름을 routefly 가 점검해 공개 코스로 올릴 수 있습니다. 시각 · 사진 · 메모는 보내지 않습니다. 집 근처 출발 · 도착 부분은 먼저 자르세요.",
                 "routefly may review the line, course name and your name and publish them as a public course. Times, photos and photo notes are not sent. Trim the start and end near your home first.")
             + ' <a href="' + tr("privacy.html", "privacy-en.html") + '#course-submit" target="_blank" rel="noopener" style="color:#38d9ea">' + tr("개인정보처리방침", "Privacy policy") + '</a></p>'
-            + '<p style="display:flex;gap:8px;align-items:center;margin:0">' + (o.trim ? '<button type="button" class="tr">' + tr("✂ 앞 · 뒤 자르기", "✂ Trim start and end") + '</button>' : "") + '<span class="km tip"></span></p>'
+            + '<p style="margin:0"><span class="km tip"></span></p>'
             + '<label style="display:flex;gap:8px;align-items:flex-start;margin-top:10px"><input type="checkbox" class="ag" style="margin-top:3px"><span class="agt"></span></label>'
             + '<p class="er" role="alert" style="color:#ff8787;margin:8px 0 0"></p>'
             + '<p style="display:flex;gap:8px;margin:12px 0 0"><button type="button" class="no" style="flex:1">' + tr("취소", "Cancel") + '</button><button type="button" class="go main" style="flex:1">' + tr("보내기", "Send") + '</button></p>';
@@ -4947,12 +4947,8 @@
         box.querySelector(".kd").value = /^(hike|walk|bike)$/.test(o.kind) ? o.kind : "hike";
         wrap.appendChild(box);
         document.body.appendChild(wrap);
-        function shown() { box.querySelector(".km").textContent = km(trackStats(track).dist) + " km" + (track !== o.track ? tr(" (자름)", " (trimmed)") : ""); }
         function close() { wrap.remove(); }
-        shown();
-        if (o.trim) box.querySelector(".tr").onclick = function () {
-            o.trim(track).then(function (kept) { if (kept) { track = kept; shown(); } });
-        };
+        box.querySelector(".km").textContent = km(trackStats(track).dist) + " km";
         box.querySelector(".no").onclick = close;
         wrap.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
         var go = box.querySelector(".go"), er = box.querySelector(".er");   // 알림(toast)은 이 창 아래에 깔려 창 안에 씀

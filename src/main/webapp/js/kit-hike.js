@@ -2532,16 +2532,6 @@
         return best;
     }
 
-    /** 순수 함수 - 길 요약: 거리(m) · 오르막 · 내리막(10m 문턱, trackClimb) · 걸린 시간(ms, 시각이 있을 때) · 점 수. */
-    function trackStats(track) {
-        var t = track || [], d = 0;
-        for (var i = 1; i < t.length; i++) d += distM(t[i - 1][0], t[i - 1][1], t[i][0], t[i][1]);
-        var t0 = null, t1 = null;
-        t.forEach(function (p) { if (p[2] != null) { if (t0 == null) t0 = p[2]; t1 = p[2]; } });
-        return { dist: d, up: trackClimb(t), down: trackClimb(t.slice().reverse()), ms: t0 != null && t1 > t0 ? t1 - t0 : null, n: t.length,
-            hasEle: t.some(function (p) { return p[3] != null; }) };
-    }
-
     /**
      * 순수 함수 - 이웃 두 점 사이가 가장 먼 곳 {m, at(그 앞까지 거리 m)} - 곧은 선(산을 가로지르는 선)이 든 길을 코스로 만들지 않게(2026-11-16 홍TV님
      * "이런 코스는 만들면 안 돼잖아": 🔗 잇기가 2km 떨어진 두 끝을 곧은 선으로 이었음). track: [[위도, 경도, …]…]. 점이 둘 안 되면 {m: 0, at: 0}.
@@ -2645,132 +2635,6 @@
         var t = (en && s.en) || s.text;
         if (s.kind !== "maker") return (en ? "Source: " : "출처: ") + t;
         return (en ? "Made by: " : "만든 이: ") + t + (s.partner ? (en ? " [Partner]" : " [제휴]") : s.checked ? (en ? " (checked by routefly)" : " (routefly 점검)") : "");
-    }
-
-    function trackGpx(name, kind, track, opt) {
-        var esc = function (x) { return String(x).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); };
-        var t = track || [], first = t[0] && t[0][2], wpts = "", meta = "";
-        // 💾 저장 파일에는 출발 · 정상(가장 높은 점) · 도착 표시와 만든 때(점검 11차 E6, 2026-11-16 홍TV님 "전부 작업해") - 올리기 · 보내기는 점만(서버가 trkpt 만 읽음)
-        if (opt && opt.wpt && t.length > 1) {
-            var hi = -1;
-            t.forEach(function (p, i) { if (p[3] != null && (hi < 0 || p[3] > t[hi][3])) hi = i; });
-            var w = function (p, nm) { return '<wpt lat="' + p[0] + '" lon="' + p[1] + '">' + (p[3] != null ? "<ele>" + Math.round(p[3] * 10) / 10 + "</ele>" : "") + "<name>" + esc(nm) + "</name></wpt>\n"; };
-            wpts = w(t[0], opt.en ? "Start" : "출발") + (hi > 0 && hi < t.length - 1 ? w(t[hi], opt.en ? "Highest point" : "가장 높은 곳") : "") + w(t[t.length - 1], opt.en ? "Finish" : "도착");
-            meta = "<metadata><name>" + esc(name || "GPX") + "</name>" + (typeof first === "number" ? "<time>" + new Date(first).toISOString() + "</time>" : "") + "</metadata>\n";
-        }
-        return '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="routefly studio" xmlns="http://www.topografix.com/GPX/1/1">\n' + meta + wpts
-            + "<trk><name>" + esc(name || "GPX") + "</name>" + (kind ? "<type>" + esc(kind) + "</type>" : "") + "<trkseg>\n"
-            + (track || []).map(function (p) {
-                return '<trkpt lat="' + p[0] + '" lon="' + p[1] + '">' + (p[3] != null ? "<ele>" + Math.round(p[3] * 10) / 10 + "</ele>" : "")
-                    + (p[2] != null ? "<time>" + new Date(p[2]).toISOString() + "</time>" : "") + "</trkpt>";
-            }).join("\n") + "\n</trkseg></trk>\n</gpx>\n";
-    }
-
-    /**
-     * 📮 routefly 에 코스 보내기 - 따라가기 내 기록(hike.js)과 GPX 편집(studio.js, 2026-11-02 홍TV님 "GPX 편집을 누구나 - 올리기 대신 보내기")이 같이 씀.
-     * 서버(CourseSubmitServlet)가 받는 한도: 본문 3MB(CourseUploadServlet.MAX_BODY) · 점 10~5만 개 · 이름 2~60자 - 보내기 전에 여기서 먼저 알려 줌(서버도 다시 봄).
-     * 동의 글에 "내가 직접 걸은 기록" 을 넣음(2026-11-02 홍TV님) - 서버의 agree:true 뜻은 그대로.
-     */
-    var SUBMIT_MAX_BODY = 3 * 1024 * 1024, SUBMIT_MAX_POINTS = 50000, SUBMIT_SENDER_KEY = "rf-submit-sender";
-    function submitAgree() {
-        return tr("내가 직접 걸은 기록입니다(다른 앱 · 사이트에서 받은 남의 기록은 보내지 마세요). 위 내용을 읽었고 보내는 데 동의합니다",
-            "This is a track I walked myself (please do not send other people's tracks taken from other apps or sites). I have read the above and agree to send it");
-    }
-    /** 순수 함수 - 보낼 본문(시각은 빼고 선 모양 · 높이만, agree:true). */
-    function submitBody(name, sender, kind, note, track) {
-        return { name: name, sender: sender, kind: kind, note: note, agree: true,
-            gpx: trackGpx(name, kind, (track || []).map(function (p) { return [p[0], p[1], null, p[3]]; })) };
-    }
-    /** 순수 함수 - 보내기 전 점검: 보내도 되면 null, 아니면 까닭(서버 한도와 같음). bodyLen = JSON 본문 글자 수. */
-    function submitProblem(name, track, bodyLen) {
-        var n = (track || []).length;
-        if (String(name || "").trim().length < 2 || String(name).trim().length > 60) return tr("코스 이름을 2~60자로 적어 주세요.", "Please enter a course name (2-60 characters).");
-        if (n < 10) return tr("기록 점이 너무 적습니다(10개 넘게).", "Too few points (needs more than 10).");
-        if (n > SUBMIT_MAX_POINTS) return tr("기록 점이 너무 많습니다(5만 개까지) - 길을 나눠 보내 주세요.", "Too many points (up to 50,000) - please split the track.");
-        if (bodyLen > SUBMIT_MAX_BODY) return tr("GPX 가 너무 큽니다(3MB 까지) - 길을 나눠 보내 주세요.", "The GPX is too big (up to 3 MB) - please split the track.");
-        return null;
-    }
-    /** 순수 함수 - JSON 이 아닌 실패 응답(nginx · 요청 제한 등)의 말. */
-    function submitFail(status) {
-        if (status === 429) return tr("요청이 너무 잦습니다. 잠시 뒤(오늘 더 못 보내면 내일) 다시 보내 주세요.", "Too many requests. Please try again later (or tomorrow).");
-        if (status === 413) return tr("GPX 가 너무 큽니다 - 길을 나눠 보내 주세요.", "The GPX is too big - please split the track.");
-        return tr("보내지 못했습니다(HTTP " + status + "). 잠시 뒤 다시 보내 주세요.", "Could not send (HTTP " + status + "). Please try again later.");
-    }
-    /**
-     * 보내기 창 - o = {name, kind, track, trim(track) → Promise(자른 점 | null) (있을 때만 ✂ 단추), sent(알림 글)}.
-     * 보내도 화면의 기록 · 편집 중인 길은 그대로(창만 닫힘). 보낸 사람 이름은 이 기기에 기억(rf-submit-sender).
-     */
-    function submitSheet(o) {
-        var track = o.track || [], sender = "";
-        try { sender = localStorage.getItem(SUBMIT_SENDER_KEY) || ""; } catch (e) { /* 처음 */ }
-        var wrap = document.createElement("div");
-        wrap.setAttribute("role", "dialog");
-        wrap.setAttribute("aria-label", tr("코스로 보내기", "Send as a course"));
-        wrap.style.cssText = "position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:12px";
-        var box = document.createElement("div");
-        box.style.cssText = "background:#1b2430;color:#e9eef4;border-radius:14px;padding:14px;width:min(440px,100%);max-height:96vh;overflow:auto;font-size:15px";
-        var ls = "display:block;margin-top:10px", is = "display:block;width:100%;box-sizing:border-box;margin-top:4px;padding:9px;border-radius:8px;border:1px solid #3a4655;background:#0f1720;color:#e9eef4;font-size:15px";
-        box.innerHTML = '<b style="font-size:17px">' + tr("📮 routefly 에 코스로 보내기", "📮 Send to routefly as a course") + '</b>'
-            + '<label style="' + ls + '">' + tr("코스 이름", "Course name") + '<input type="text" class="nm" maxlength="60" style="' + is + '"></label>'
-            + '<label style="' + ls + '">' + tr("보내는 사람 이름(올리면 코스 화면에 \"만든 이\" 로 보임 · 비우면 익명)", "Your name (shown as \"Made by\" on the course screens if published · leave empty to stay anonymous)") + '<input type="text" class="sd" maxlength="20" style="' + is + '"></label>'
-            + '<label style="' + ls + '">' + tr("종류", "Type") + '<select class="kd" style="' + is + '"><option value="hike">' + tr("⛰️ 등산", "⛰️ Hiking") + '</option><option value="walk">' + tr("🚶 걷기", "🚶 Walking") + '</option><option value="bike">' + tr("🚴 자전거", "🚴 Cycling") + '</option></select></label>'
-            + '<label style="' + ls + '">' + tr("메모(골라서 - 들머리 · 주차 등)", "Note (optional - trailhead, parking, etc.)") + '<textarea class="nt" maxlength="200" rows="2" style="' + is + '"></textarea></label>'
-            + '<p class="tip" style="margin:10px 0 6px">' + tr("길 모양 · 코스 이름 · 보낸 사람 이름을 routefly 가 점검해 공개 코스로 올릴 수 있습니다. 시각 · 사진 · 메모는 보내지 않습니다. 집 근처 출발 · 도착 부분은 먼저 자르세요.",
-                "routefly may review the line, course name and your name and publish them as a public course. Times, photos and photo notes are not sent. Trim the start and end near your home first.")
-            + ' <a href="' + tr("privacy.html", "privacy-en.html") + '#course-submit" target="_blank" rel="noopener" style="color:#38d9ea">' + tr("개인정보처리방침", "Privacy policy") + '</a></p>'
-            + '<p style="display:flex;gap:8px;align-items:center;margin:0">' + (o.trim ? '<button type="button" class="tr">' + tr("✂ 앞 · 뒤 자르기", "✂ Trim start and end") + '</button>' : "") + '<span class="km tip"></span></p>'
-            + '<label style="display:flex;gap:8px;align-items:flex-start;margin-top:10px"><input type="checkbox" class="ag" style="margin-top:3px"><span class="agt"></span></label>'
-            + '<p class="er" role="alert" style="color:#ff8787;margin:8px 0 0"></p>'
-            + '<p style="display:flex;gap:8px;margin:12px 0 0"><button type="button" class="no" style="flex:1">' + tr("취소", "Cancel") + '</button><button type="button" class="go main" style="flex:1">' + tr("보내기", "Send") + '</button></p>';
-        box.querySelector(".agt").textContent = submitAgree();
-        box.querySelector(".nm").value = String(o.name || "").slice(0, 60);
-        box.querySelector(".sd").value = sender;
-        box.querySelector(".kd").value = /^(hike|walk|bike)$/.test(o.kind) ? o.kind : "hike";
-        wrap.appendChild(box);
-        document.body.appendChild(wrap);
-        function shown() { box.querySelector(".km").textContent = km(trackStats(track).dist) + " km" + (track !== o.track ? tr(" (자름)", " (trimmed)") : ""); }
-        function close() { wrap.remove(); }
-        shown();
-        if (o.trim) box.querySelector(".tr").onclick = function () {
-            o.trim(track).then(function (kept) { if (kept) { track = kept; shown(); } });
-        };
-        box.querySelector(".no").onclick = close;
-        wrap.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
-        var go = box.querySelector(".go"), er = box.querySelector(".er");   // 알림(toast)은 이 창 아래에 깔려 창 안에 씀
-        go.onclick = function () {
-            var name = box.querySelector(".nm").value.trim(), kind = box.querySelector(".kd").value;
-            sender = box.querySelector(".sd").value.trim();
-            var body = JSON.stringify(submitBody(name, sender, kind, box.querySelector(".nt").value.trim(), track));
-            var why = submitProblem(name, track, body.length);
-            if (why) { er.textContent = why; return; }
-            if (!box.querySelector(".ag").checked) { er.textContent = tr("안내를 읽고 동의에 체크해 주세요.", "Please read the notice and tick the box."); return; }
-            er.textContent = "";
-            try { if (sender) localStorage.setItem(SUBMIT_SENDER_KEY, sender); else localStorage.removeItem(SUBMIT_SENDER_KEY); } catch (e) { /* 이번만 */ }
-            go.disabled = true;
-            fetch("api/course-submit", { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: body })
-                .then(function (res) { return res.json().catch(function () { return { success: false, message: submitFail(res.status) }; }); })
-                .then(function (j) {
-                    if (!j || j.success === false) throw new Error(j && j.message || "?");
-                    close();
-                    if (o.sent) o.sent(tr("보냈습니다 - 점검 뒤 코스 목록에 올라갑니다(이미 있는 코스면 올리지 않을 수 있습니다)", "Sent - after review it will appear in the course list (we may skip it if the trail already exists)"));
-                })
-                .catch(function (e) { go.disabled = false; er.textContent = tr("보내지 못했습니다: ", "Could not send: ") + (e && e.message || e); });
-        };
-        box.querySelector(".nm").focus();
-    }
-
-    /**
-     * 순수 함수 - 기록 점들의 앞 · 뒤를 자름(코스로 올리기 전, 2026-10-31 홍TV님 "앱 안에서 자르는 기능 - 관리자만").
-     * cut0 · cut1 = 앞 · 뒤에서 뺄 거리(m). 남는 점 · 남는 길이 · 자른 자리(앞 · 뒤 점 번호). 남는 점이 2개 안 되면 track 은 빈 배열.
-     */
-    function trimTrack(track, cut0, cut1) {
-        var t = track || [], cum = [0];
-        for (var i = 1; i < t.length; i++) cum.push(cum[i - 1] + distM(t[i - 1][0], t[i - 1][1], t[i][0], t[i][1]));
-        var total = cum.length ? cum[cum.length - 1] : 0, a = 0, b = t.length - 1;
-        while (a < t.length && cum[a] < (cut0 || 0)) a++;
-        while (b >= 0 && total - cum[b] < (cut1 || 0)) b--;
-        var ok = b - a >= 1;
-        return { track: ok ? t.slice(a, b + 1) : [], from: a, to: b, total: total, kept: ok ? cum[b] - cum[a] : 0 };
     }
 
     /**
@@ -4384,8 +4248,6 @@
         nextPoi: nextPoi,
         snap: snap,
         fillTrackEle: fillTrackEle,
-        trimTrack: trimTrack,
-        submitSheet: submitSheet,
         courseSource: courseSource,
         sourceText: sourceText,
         gpxCheck: gpxCheck,

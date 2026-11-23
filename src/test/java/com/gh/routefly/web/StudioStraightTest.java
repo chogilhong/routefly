@@ -24,7 +24,7 @@ public class StudioStraightTest {
         String js = read("src/main/webapp/js/studio.js");
         assertTrue(js.contains("var dense = RF.densify(t, 30, RF.JOIN_GAP_M);"));
         assertFalse("예전 채우기(한도 없이 30m 마다)가 남지 않게", js.contains("k = Math.floor(d / 30);"));
-        assertTrue("올리기 · 보내기 둘 다 같은 검사", js.contains("if (!c || jumpBlocked(c, \"코스로 올릴\")) return;") && js.contains("if (!c || jumpBlocked(c, \"routefly 에 보낼\")) return;"));
+        assertTrue("올리기 · 보내기 둘 다 같은 검사", js.contains("if (!c || jumpBlocked(c, \"코스로 올릴\")) return;") && js.contains("if (!c || jumpBlocked(c, \"등록 요청할\")) return;"));
         assertTrue("다 그린 뒤 곧은 선을 알림", js.contains("if (jump.m > RF.JOIN_GAP_M) msg(\"새 길을 목록에 넣었습니다. 다만 \""));
         // 서버 한도와 같음
         assertTrue(CourseUploadServlet.JUMP_MAX_M == 200 && read("src/main/webapp/js/course-kit.js").contains("var JOIN_GAP_M = 200;"));

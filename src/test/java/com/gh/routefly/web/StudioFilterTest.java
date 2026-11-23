@@ -13,7 +13,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-/** GPX 편집 화면은 운영자 기기만(2026-11-23 홍TV님 "코스번호를 알더라도 나만 접근하게 해") - 손님은 따라가기로 돌려보냄. */
+/** GPX 편집 화면 - 2026-11-23 운영자 기기만이었다가 2026-11-24 홍TV님 "다른 사람들은 '등록 요청'" 으로 손님도 들어옴(no-store 만). 코스번호(#c=)로 열기만 운영자(studio.js openGuideNow). */
 public class StudioFilterTest {
 
     @Test
@@ -29,7 +29,9 @@ public class StudioFilterTest {
                 });
         FilterChain chain = (rq, rs) -> did.add("chain");
         new StudioFilter().doFilter(req, res, chain);
-        assertEquals(List.of("Cache-Control: no-store", "redirect hike.html"), did);
+        assertEquals("손님도 들어옴(돌려보내지 않음)", List.of("Cache-Control: no-store", "chain"), did);
+        String js = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("src/main/webapp/js/studio.js")), java.nio.charset.StandardCharsets.UTF_8);
+        assertTrue("#c= 코스 열기는 운영자 기기만", js.contains("function openFromGuide() { return ownerP.then(openGuideNow); }") && js.contains("if (!owner) { try { history.replaceState(null, \"\", location.pathname + location.search); } catch (e) { /* 주소는 그대로 */ } return; }"));
         assertArrayEquals("studio.html 만 거름", new String[] {"/studio.html"}, StudioFilter.class.getAnnotation(jakarta.servlet.annotation.WebFilter.class).urlPatterns());
     }
 }

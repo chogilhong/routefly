@@ -648,10 +648,12 @@
     if (recParam) {
         $("back").href = (EN ? "hike.html?lang=en" : "hike.html") + "#rec";   // 따라가기의 📒 내 기록 창을 열어 둠(2026-11-23 홍TV님 - 따라가기 첫 화면만 나왔음)
         $("back").textContent = T("‹ 내 기록", "‹ My records");
-        // 내 기록에서 들어오면 📂 GPX 열기 대신 🛩 3D 영상 · 💾 GPX 저장 · 📮 등록 요청 · ✕ 삭제(2026-11-23 홍TV님 - 📤 GPX 보내기 창의 두 가지를 단추로) - 하는 일은 따라가기 내 기록이 함(hike.html#recdo=무엇:기록 열쇠)
+        // 내 기록에서 들어오면 📂 GPX 열기 대신 🛩 3D 영상 · 💾 GPX 저장 · 📐 GPX 편집 · ✕ 삭제(2026-11-23 홍TV님 - 📤 GPX 보내기 창의 두 가지를 단추로) - 하는 일은 따라가기 내 기록이 함(hike.html#recdo=무엇:기록 열쇠)
+        // 📐 GPX 편집(2026-11-24 홍TV님 "'등록 요청'을 'GPX 편집' 으로 바꾸고") - 이 기록을 GPX 편집에서 열어 고친 뒤 운영자는 ⬆ 코스로 올리기, 다른 사람은 📮 등록 요청
         $("openBtn").hidden = true;
         $("recBtns").hidden = false;
-        ["fly", "save", "submit", "del"].forEach(function (k) {
+        $("rec-edit").onclick = function () { location.href = "studio.html#rec=" + encodeURIComponent(recParam); };
+        ["fly", "save", "del"].forEach(function (k) {
             $("rec-" + k).onclick = function () { location.href = (EN ? "hike.html?lang=en" : "hike.html") + "#recdo=" + k + ":" + encodeURIComponent(recParam); };
         });
         idbGet("rf-records", "r", "list").then(function (list) {
@@ -721,8 +723,8 @@
                 var b = photoBlob(got.photos[id]);
                 return Promise.resolve(b ? URL.createObjectURL(b) : null);
             });
-            // 연 GPX 파일도 🛩 3D 영상(2026-11-23 홍TV님) - 저장 · 등록 요청 · 삭제는 내 기록에만 있어 숨김
-            $("recBtns").hidden = false; $("rec-save").hidden = true; $("rec-submit").hidden = true; $("rec-del").hidden = true;
+            // 연 GPX 파일도 🛩 3D 영상(2026-11-23 홍TV님) - 저장 · GPX 편집 · 삭제는 내 기록에만 있어 숨김
+            $("recBtns").hidden = false; $("rec-save").hidden = true; $("rec-edit").hidden = true; $("rec-del").hidden = true;
             $("rec-fly").onclick = function () { flyFile(got); };
         }).catch(function () { alert(T("파일을 읽지 못했습니다.", "Could not read the file.")); });
     });

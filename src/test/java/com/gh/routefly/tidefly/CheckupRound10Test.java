@@ -186,7 +186,7 @@ public class CheckupRound10Test {
         String st = read("src/main/webapp/js/studio.js"), hk = read("src/main/webapp/js/hike.js");
         assertTrue(st.contains("step = 10, max") && st.contains("class=\"b nud\"") && st.contains("        nudgeWire(box);\n        box.querySelector(\".tno\").onclick = closeTool;"));
         assertTrue(st.contains("inp.dispatchEvent(new Event(\"input\"));"));
-        assertTrue(hk.contains("full = RF.trimTrack(t, 0, 0), step = 10;") && hk.contains("nudgeRow(T(\"앞에서 자르기\"") && hk.contains("box.querySelectorAll(\".nud\")"));
+        assertFalse("따라가기 자르기 창은 없음 - 등록 요청이 GPX 편집(✂ 밀대 10m)으로 옮김(2026-11-24)", hk.contains("function trimSheet(") || hk.contains("function nudgeRow("));
         assertFalse("50m 칸은 없음", st.contains("total > 5000 ? 50 : 10") || hk.contains("full.total > 5000 ? 50 : 10"));
     }
 

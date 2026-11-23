@@ -96,7 +96,7 @@ function plain(x) { return JSON.parse(JSON.stringify(x)); }   // vm 안에서 �
 function studioCards(own, small) { return plain(vm.runInNewContext("(function () {" + fn(STUDIO, "studioCards") + " return studioCards(" + own + ", " + small + "); })()", {})); }
 var guest = studioCards(false, false), boss = studioCards(true, false), phone = studioCards(false, true);
 eq("네 장", guest.length, 4);
-eq("장 제목(손님)", guest.map(function (c) { return c.title[0]; }), ["GPX 편집", "시작하기", "고치기", "routefly 에 보내기"]);
+eq("장 제목(손님)", guest.map(function (c) { return c.title[0]; }), ["GPX 편집", "시작하기", "고치기", "등록 요청"]);
 eq("운영자는 마지막 장만 다름", boss.map(function (c) { return c.title[0]; }), ["GPX 편집", "시작하기", "고치기", "코스로 올리기 (운영자)"]);
 ok("손님 마지막 장 - 운영자 확인 · 집 근처 자르기", /운영자가 확인한 뒤 코스 목록에/.test(guest[3].body[0].join(" ")) && /집 근처는 먼저 자르세요/.test(guest[3].body[0].join(" ")));
 ok("운영자 마지막 장 - 받은 GPX", /📨 받은 GPX/.test(boss[3].body[0].join(" ")));
@@ -124,7 +124,7 @@ eq("첫 장만 보임", visiblePage(box).length, 1);
 eq("첫 장 제목", visiblePage(box)[0].children[1].textContent, "GPX 편집");
 next.click(); next.click(); next.click();
 eq("마지막 장 - 시작하기, 건너뛰기 숨김", [next.textContent, skip.style.visibility], ["시작하기", "hidden"]);
-eq("마지막 장 제목", visiblePage(box)[0].children[1].textContent, "routefly 에 보내기");
+eq("마지막 장 제목", visiblePage(box)[0].children[1].textContent, "등록 요청");
 next.click();
 eq("시작하기로 닫힘", box.hidden, true);
 eq("다시 보지 않기", data[KEY], "1");

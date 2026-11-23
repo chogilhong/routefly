@@ -36,8 +36,8 @@ public class StudioPublicTest {
         String page = read("src/main/webapp/studio.html"), js = read("src/main/webapp/js/studio.js");
         // 처음 모양은 손님 화면 - 올리기 · 받은 GPX 는 숨김, 보내기와 그 안내가 보임
         assertTrue(page.contains("id=\"upBtn\" type=\"button\" hidden>⬆ 코스로 올리기"));
-        assertTrue(page.contains("id=\"sendBtn\" type=\"button\">📮 routefly 에 코스 보내기"));
-        assertTrue(page.contains("<p class=\"tip\" id=\"sendTip\">📮 보내면 운영자가 확인한 뒤 코스 목록에 넣습니다. 집 근처는 먼저 자르세요.</p>"));
+        assertTrue(page.contains("id=\"sendBtn\" type=\"button\">📮 등록 요청"));
+        assertTrue(page.contains("<p class=\"tip\" id=\"sendTip\">📮 등록 요청하면 운영자가 확인한 뒤 코스 목록에 넣습니다. 집 근처는 먼저 ✂ 로 자르세요.</p>"));
         assertTrue(page.contains("<p class=\"tip\" id=\"upTip\" hidden>⬆ 코스로:"));
         assertTrue(page.contains("<section id=\"subSec\" hidden>"));
         assertTrue("지도 도구 줄도 보내기", page.contains("id=\"upTool\" data-go=\"#sendBtn\""));
@@ -70,10 +70,9 @@ public class StudioPublicTest {
         String kit = read("src/main/webapp/js/course-kit.js"), hike = read("src/main/webapp/js/hike.js");
         assertTrue(kit.contains("내가 직접 걸은 기록입니다(다른 앱 · 사이트에서 받은 남의 기록은 보내지 마세요). 위 내용을 읽었고 보내는 데 동의합니다"));
         assertTrue("서버 동의 뜻은 그대로", kit.contains("agree: true"));
-        assertTrue("따라가기도 같은 창", hike.contains("RF.submitSheet({ name: r.name"));
+        assertFalse("따라가기 내 기록의 보내기 창은 없음 - 📐 GPX 편집으로(2026-11-24)", hike.contains("RF.submitSheet("));
         assertFalse("동의 글을 따로 두지 않음", hike.contains("보내는 데 동의합니다"));
-        assertTrue("방침에 GPX 편집 보내기", read("src/main/webapp/privacy.html").contains("📐 GPX 편집 → \"📮 routefly 에 코스 보내기\""));
-        assertTrue(read("src/main/webapp/privacy-en.html").contains("📐 GPX editor → \"📮 Send a course to routefly\""));
+        assertTrue("방침에 GPX 편집 등록 요청", read("src/main/webapp/privacy.html").contains("📐 GPX 편집 → \"📮 등록 요청\"") && read("src/main/webapp/privacy-en.html").contains("📐 GPX editor → \"📮 Submit course\""));
     }
 
     @Test
@@ -89,7 +88,9 @@ public class StudioPublicTest {
             String row = m.group();
             boolean shared = row.contains("openstreetmap.org") || row.contains("opentopomap.org") || row.contains("waymarkedtrails.org");
             assertEquals(m.group(1), !shared, row.contains("pub: true"));
-            if (row.contains("tiles: [")) assertTrue(m.group(1) + " 출처", row.contains("attr: \"") && row.contains("© OpenStreetMap contributors"));
+            // 바탕은 제 출처에 OSM, 겹침(Waymarked)은 OSM 을 빼고(바탕 쪽에 늘 한 번 - 2026-11-24 홍TV님 두 번 보였음)
+            boolean over = row.contains("waymarkedtrails.org");
+            if (row.contains("tiles: [")) assertTrue(m.group(1) + " 출처", row.contains("attr: \"") && (over ? row.contains("© waymarkedtrails.org (CC-BY-SA)\" }") && !row.contains("OpenStreetMap contributors") : row.contains("© OpenStreetMap contributors")));
             n++;
         }
         assertEquals("바탕 6(우리 지도 2026-11-24) · 겹침 3", 9, n);

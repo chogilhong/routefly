@@ -54,11 +54,12 @@ public class VideoKitTest {
         String js = read("src/main/webapp/js/hike.js"), app = read("src/main/webapp/js/app.js"), html = read("src/main/webapp/hike.html");
         String plug = read("app/android/app/src/main/java/kr/routefly/app/RfGalleryPlugin.java");
         String trip = read("src/main/webapp/trip.html"), tjs = read("src/main/webapp/js/trip.js");
-        assertTrue("내 기록 📈 창은 없애고 기록 보기 화면에 [🛩 3D 영상] [💾 GPX 저장] [📮 등록 요청] [✕ 삭제](2026-11-23 홍TV님), 🎬 영상용(그림 · 고도 영상 · 공개 링크 만들기)은 뺌(2026-11-22 홍TV님 \"나머지는 모두 삭제\")",
+        assertTrue("내 기록 📈 창은 없애고 기록 보기 화면에 [🛩 3D 영상] [💾 GPX 저장] [📐 GPX 편집(2026-11-24, 📮 등록 요청 대신)] [✕ 삭제](2026-11-23 홍TV님), 🎬 영상용(그림 · 고도 영상 · 공개 링크 만들기)은 뺌(2026-11-22 홍TV님 \"나머지는 모두 삭제\")",
             !html.contains("recView") && !js.contains("recView") && !js.contains("function showRecord(")
-            && trip.contains("<span id=\"recBtns\" hidden><button type=\"button\" id=\"rec-fly\" data-en=\"🛩 3D video\">🛩 3D 영상</button><button type=\"button\" id=\"rec-save\" data-en=\"💾 Save GPX\">💾 GPX 저장</button><button type=\"button\" id=\"rec-submit\" data-en=\"📮 Submit course\">📮 등록 요청</button>")
+            && trip.contains("<span id=\"recBtns\" hidden><button type=\"button\" id=\"rec-fly\" data-en=\"🛩 3D video\">🛩 3D 영상</button><button type=\"button\" id=\"rec-save\" data-en=\"💾 Save GPX\">💾 GPX 저장</button><button type=\"button\" id=\"rec-edit\" data-en=\"📐 Edit GPX\">📐 GPX 편집</button>")
             && tjs.contains("$(\"openBtn\").hidden = true;") && trip.contains("#openBtn[hidden] { display:none; }") && trip.contains("#recBtns[hidden] { display:none; }") && tjs.contains("location.href = (EN ? \"hike.html?lang=en\" : \"hike.html\") + \"#recdo=\" + k + \":\" + encodeURIComponent(recParam);")
-            && js.contains("var rd = /^#recdo=(fly|save|submit|del):(.+)$/.exec(location.hash);") && js.contains("if (what === \"fly\") fly3d(r);\n            else if (what === \"save\") downloadGpx(r);\n            else if (what === \"submit\") submitSheet(r);\n            else delRecord(r);")
+            && js.contains("var rd = /^#recdo=(fly|save|del):(.+)$/.exec(location.hash);") && js.contains("if (what === \"fly\") fly3d(r);\n            else if (what === \"save\") downloadGpx(r);\n            else delRecord(r);")
+            && tjs.contains("$(\"rec-edit\").onclick = function () { location.href = \"studio.html#rec=\" + encodeURIComponent(recParam); };")
             && tjs.contains("RF.recordSummary(curRec, famRaw ? famRaw.peaks : [], famRaw ? famRaw.elev : {}, EN)")
             && !html.contains("vidSheet") && !html.contains("recViewVideo") && !js.contains("vidRouteImage") && !js.contains("recordCanvas") && !js.contains("pubSend"));
         assertFalse("공개 링크 끄기 단추도 뺌(2026-11-22 홍TV님)", html.contains("recViewPubOff") || js.contains("api/record-share"));
@@ -119,8 +120,8 @@ public class VideoKitTest {
         // 2026-11-23 홍TV님: 📤 GPX 보내기 창은 없애고 기록 보기 화면에 [💾 GPX 저장] [📮 등록 요청] 단추로
         assertFalse("보내기 창 없음", js.contains("function sendSheet("));
         assertTrue("알림 글은 모든 창 위로(2026-11-23 PC: 💾 GPX 저장 알림이 내 기록 창 뒤에 깔림)", read("src/main/webapp/hike.html").contains("#toast { position:fixed; left:50%; bottom:120px; transform:translateX(-50%); z-index:9600; pointer-events:none;"));
-        assertTrue("📮 등록 요청 - 이름이 올라간다는 안내는 보내는 창(RF.submitSheet)에", read("src/main/webapp/js/course-kit.js").contains("보내는 사람 이름(올리면 코스 화면에 \\\"만든 이\\\" 로 보임 · 비우면 익명)")
-            && js.contains("function submitSheet(r) {\n        RF.submitSheet({"));
+        assertTrue("📮 등록 요청 - 이름이 올라간다는 안내는 보내는 창(RF.submitSheet, GPX 편집에서)에", read("src/main/webapp/js/course-kit.js").contains("보내는 사람 이름(올리면 코스 화면에 \\\"만든 이\\\" 로 보임 · 비우면 익명)")
+            && !js.contains("function submitSheet("));
         assertTrue("💾 사진 · 메모까지 든 GPX", js.contains("saveGpxText(rec, RF.recordGpx(rec, ph));"));
         assertTrue("기록에 어디서 기록했나(앱 · 브라우저) · 배터리 절약을 남김(2026-11-23 PC - 끊김 원인 가리기)", js.contains("rec.via = NATIVE ? \"app\" : \"web\";") && js.contains("rec.saver = !!batterySave;"));
         assertTrue("받은 GPX 기록은 내 기록으로", js.contains("try { got = RF.gpxRecord(text, false, name); } catch (e) { got = null; }") && js.contains("if (ok) importGpxRecord(got); else openGpxCourse(text, name);"));

@@ -1,6 +1,7 @@
 /*
  * GPX 편집(studio.html, 2026-10-31 홍TV님 "/routefly/studio.html · GPX 편집 - PC 가 주 무대, 폰에서도. 작업해줘").
- * 2026-11-23 홍TV님 "코스번호를 알더라도 나만 접근하게 해": 화면 자체를 운영자 기기만(서버 StudioFilter - 손님은 hike.html 로). 아래 손님 갈래(📮 보내기)는 그 전 것.
+ * 2026-11-23 홍TV님 "코스번호를 알더라도 나만 접근하게 해": 화면 자체를 운영자 기기만으로 했다가, 2026-11-24 홍TV님 "'등록 요청'을 'GPX 편집' 으로 바꾸고 나만 '코스 올리기',
+ * 다른 사람들은 '등록 요청'": 화면은 다시 누구나(기록 보기 📐 GPX 편집 · 파일 · 그리기), #c= 코스 열기만 운영자 기기(openGuideNow).
  * 2026-11-02 홍TV님 "GPX 편집을 누구나": 열기 · 그리기 · 고치기 · 저장은 누구나. 운영자 기기만 "⬆ 코스로 올리기" · "📨 받은 GPX"(서버도 운영자 쿠키를 봄 - 403),
  * 다른 사람은 그 자리에 "📮 routefly 에 코스 보내기"(따라가기 내 기록 보내기와 같은 RF.submitSheet · /api/course-submit).
  * 길(track)은 [위도, 경도, 시각ms|null, 높이|null] 점 배열. 읽기 · 요약 · 나누기 · 잇기 · 쓰기는 course-kit(RF.gpxTracks 등 - node 테스트).
@@ -68,16 +69,17 @@
 
     // ---- 관리자 기기인가(/api/course-upload GET - 운영자 쿠키). 2026-11-02 홍TV님 "누구나": 아니어도 편집기를 띄우고 올리기 대신 보내기
     var owner = false;
-    fetch("api/course-upload", { headers: { Accept: "application/json" }, cache: "no-store" }).then(function (r) { return r.json(); }).then(function (j) {
+    var ownerP = fetch("api/course-upload", { headers: { Accept: "application/json" }, cache: "no-store" }).then(function (r) { return r.json(); }).then(function (j) {
         owner = !!(j && j.owner);
     }).catch(function () { /* 못 물으면 운영자가 아닌 것으로 - 편집은 그대로 */ }).then(function () {
         $("upBtn").hidden = $("upTip").hidden = !owner;
         $("guideBtn").hidden = !owner;   // 안내도의 "📐 GPX 편집으로" 도 관리자 기기에만 보여 짝을 맞춤
         $("sendBtn").hidden = $("sendTip").hidden = owner;
         $("upTool").setAttribute("data-go", owner ? "#upBtn" : "#sendBtn");
-        $("upTool").title = owner ? "코스로 올리기" : "routefly 에 코스 보내기";
+        $("upTool").title = owner ? "코스로 올리기" : "등록 요청";
+        $("upTool").setAttribute("aria-label", $("upTool").title);
         $("upTool").textContent = owner ? "⬆" : "📮";
-        $("saveH").textContent = owner ? "저장 · 올리기" : "저장 · 보내기";
+        $("saveH").textContent = owner ? "저장 · 올리기" : "저장 · 등록 요청";
         $("app").hidden = false;
         startMap();
         if (owner) loadSubs();
@@ -110,8 +112,8 @@
             own ? { icon: "⬆", title: ["코스로 올리기 (운영자)"], body: [[
                 "<b>⬆ 코스로 올리기</b>: 선 모양과 이름만 서버로 - 1시간 안(매시 37분)에 코스 목록에 들어갑니다. 누구나 보는 코스가 되니 집 근처는 먼저 자르세요.",
                 "<b>📨 받은 GPX</b>에 등산객이 보낸 길이 쌓입니다(30일 지나면 저절로 지움). 열어 점검하고 올리면 받은 목록에서 빠집니다."]] }
-                : { icon: "📮", title: ["routefly 에 보내기"], body: [[
-                "<b>📮 routefly 에 코스 보내기</b>를 누르면 운영자가 확인한 뒤 코스 목록에 넣습니다.",
+                : { icon: "📮", title: ["등록 요청"], body: [[
+                "<b>📮 등록 요청</b>을 누르면 운영자가 확인한 뒤 코스 목록에 넣습니다.",
                 "집 근처는 먼저 자르세요(출발 · 도착이 집이면 사는 곳이 드러납니다)."]] }
         ];
     }
@@ -135,9 +137,11 @@
         { id: "rf", name: "🏞️ 우리 지도(따라가기 · 영상과 같음)", ours: true, pub: true },
         { id: "none", name: "지형 음영만", pub: true }
     ];
+    // 겹침 출처에는 OSM 을 따로 적지 않음 - 바탕 쪽(출처 칸의 "© OpenStreetMap contributors" · 우리 지도 파일 출처 · OSM · OpenTopoMap 바탕)에 늘 한 번 있음
+    // (2026-11-24 홍TV님: 우리 지도 + 등산로 노선을 켜면 OSM 이 두 번 나왔음)
     var OVERS = [
-        { id: "hikeov", name: "🥾 등산로 노선(Waymarked Trails)", tiles: ["https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png"], attr: "등산로: © waymarkedtrails.org (CC-BY-SA) · © OpenStreetMap contributors" },
-        { id: "bikeov", name: "🚴 자전거길 노선(Waymarked Trails)", tiles: ["https://tile.waymarkedtrails.org/cycling/{z}/{x}/{y}.png"], attr: "자전거길: © waymarkedtrails.org (CC-BY-SA) · © OpenStreetMap contributors" },
+        { id: "hikeov", name: "🥾 등산로 노선(Waymarked Trails)", tiles: ["https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png"], attr: "등산로: © waymarkedtrails.org (CC-BY-SA)" },
+        { id: "bikeov", name: "🚴 자전거길 노선(Waymarked Trails)", tiles: ["https://tile.waymarkedtrails.org/cycling/{z}/{x}/{y}.png"], attr: "자전거길: © waymarkedtrails.org (CC-BY-SA)" },
         { id: "hillshade", name: "🏔️ 지형 음영", pub: true }
     ];
     var MAPKEY = "rf-studio-map";
@@ -1012,8 +1016,8 @@
             drawPanel();
             add("새 길 " + new Date().toLocaleDateString("ko-KR"), tr);
             var jump = RF.longestJump(tr);
-            if (jump.m > RF.JOIN_GAP_M) msg("새 길을 목록에 넣었습니다. 다만 " + jumpText(jump) + "이 있어, 저장은 되지만 " + (owner ? "코스로 올리" : "routefly 에 보내") + "려면 ✏️ 로 그 사이에 점을 더 찍어 길을 따라 그려 주세요.", 10000);
-            else msg("새 길을 목록에 넣었습니다. 이름을 고치고 저장하거나 " + (owner ? "코스로 올리세요." : "routefly 에 보내세요."), 6000);
+            if (jump.m > RF.JOIN_GAP_M) msg("새 길을 목록에 넣었습니다. 다만 " + jumpText(jump) + "이 있어, 저장은 되지만 " + (owner ? "코스로 올리" : "등록 요청하") + "려면 ✏️ 로 그 사이에 점을 더 찍어 길을 따라 그려 주세요.", 10000);
+            else msg("새 길을 목록에 넣었습니다. 이름을 고치고 저장하거나 " + (owner ? "코스로 올리세요." : "등록 요청하세요."), 6000);
             draw(true);
         });
     }
@@ -1207,7 +1211,7 @@
     // 보내도 편집 중인 길은 그대로(창만 닫힘). 앞 · 뒤 자르기는 이 화면의 ✂ 도구로 먼저 - 창 안내에 "집 근처는 먼저 자르세요".
     $("sendBtn").onclick = function () {
         var c = cur();
-        if (!c || jumpBlocked(c, "routefly 에 보낼")) return;
+        if (!c || jumpBlocked(c, "등록 요청할")) return;
         RF.submitSheet({ name: c.name, kind: $("kind").value, track: c.track, sent: function (t) { msg("📮 " + t, 9000); } });
     };
     window.addEventListener("resize", function () { if (cur()) profile(); });
@@ -1315,10 +1319,16 @@
     /** 산 · 공원 이름의 탐방 안내도 주소. */
     function guideHref(name) { return "park.html?name=" + encodeURIComponent(name); }
 
-    function openFromGuide() {
+    function openFromGuide() { return ownerP.then(openGuideNow); }
+    /**
+     * #c= 코스 열기는 운영자 기기만(2026-11-23 홍TV님 "코스번호를 알더라도 나만" - 2026-11-24 손님도 GPX 편집을 쓰게 되어 화면 대신 이 길만 막음).
+     * 손님은 주소의 #c= 를 지우고 아무것도 열지 않음(내 기록 · GPX 파일 · 그리기는 그대로).
+     */
+    function openGuideNow() {
         var h = location.hash.replace(/^#/, ""), get = function (k) { var m = new RegExp("(?:^|&)" + k + "=([^&]*)").exec(h); return m ? RF.safeDecode(m[1]) : ""; };
         var id = get("c");
         if (!id) return;
+        if (!owner) { try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* 주소는 그대로 */ } return; }
         var parts = RF.parseJoinId(id), json = function (u) { return fetch(u, { headers: { Accept: "application/json" } }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }); };
         var bases = parts ? RF.partBases(parts) : null;
         var got = parts ? Promise.all(bases.map(function (b) { return json("api/course?id=" + encodeURIComponent(b)); })).then(function (rs) { return RF.partAnswers(parts, bases, rs); })
@@ -1332,7 +1342,7 @@
             var title = get("title"), name = title || (c.course && c.course.name) || "안내도 길";
             add(RF.nameText ? RF.nameText(name) : name, t);
             draw(true);
-            msg("안내도에서 고른 길을 열었습니다(" + km(RF.trackStats(t).dist) + " km). 이름을 정해 " + (owner ? "코스로 올리세요." : "routefly 에 보내세요."), 7000);
+            msg("안내도에서 고른 길을 열었습니다(" + km(RF.trackStats(t).dist) + " km). 이름을 정해 코스로 올리세요.", 7000);
             try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* 주소는 그대로 */ }   // 새로 고침 때 또 넣지 않게
         }).catch(function (e) { msg("안내도 길을 받지 못했습니다: " + (e && e.message || e), 7000); });
     }
@@ -1379,6 +1389,24 @@
         var m = /[?&]at=(-?\d{1,2}\.\d+),(-?\d{1,3}\.\d+)/.exec(location.search);
         if (m && +m[1] > 32 && +m[1] < 39.5 && +m[2] > 123 && +m[2] < 133) goTo(+m[1], +m[2], 15);   // 우리나라 안만
     }
-    restoreWork().then(openFromGuide).then(openAt);   // 지난 작업을 먼저 되살린 뒤 안내도에서 가져온 길을 그 뒤에, 산 자리는 마지막에
+    /**
+     * 기록 보기(trip.html)의 📐 GPX 편집으로 들어옴(#rec=시작 시각|코스 - 따라가기 recKey, 2026-11-24 홍TV님): 이 기기의 내 기록에서 그 기록을 목록에 넣음.
+     * 고친 뒤 운영자는 ⬆ 코스로 올리기, 다른 사람은 📮 등록 요청. 기록은 이 기기 안에서만 읽음.
+     */
+    function openFromRecord() {
+        var m = /^#rec=(.+)$/.exec(location.hash);
+        if (!m) return;
+        var key = RF.safeDecode(m[1]);
+        try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* 주소는 그대로 */ }   // 새로 고침 때 또 넣지 않게
+        return myRecords().then(function (recs) {
+            var r = recs.filter(function (x) { return x && x.start + "|" + (x.courseId || "") === key; })[0];
+            if (!r || !Array.isArray(r.track) || r.track.length < 2) { msg("이 기기(브라우저)에서 그 기록을 찾지 못했습니다.", 6000); return; }
+            add(r.name || "기록", r.track.map(function (p) { return [p[0], p[1], p[2] != null ? p[2] : null, p[3] != null ? p[3] : null]; }));
+            if (/^(hike|walk|bike)$/.test(r.kind)) $("kind").value = r.kind;
+            draw(true);
+            return ownerP.then(function () { msg("내 기록을 열었습니다(" + km(RF.trackStats(cur().track).dist) + " km). 집 근처는 ✂ 로 자른 뒤 " + (owner ? "⬆ 코스로 올리세요." : "📮 등록 요청하세요."), 8000); });
+        });
+    }
+    restoreWork().then(openFromGuide).then(openFromRecord).then(openAt);   // 지난 작업을 먼저 되살린 뒤 안내도에서 가져온 길을 그 뒤에, 산 자리는 마지막에
     if (/[?&]debug\b/.test(location.search)) window.routeflyStudio = { get mapOk() { return mapOk; }, get map() { return map; }, get tracks() { return tracks; } };   // 시험용
 })();

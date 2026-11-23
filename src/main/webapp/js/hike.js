@@ -1495,120 +1495,6 @@
         return out;
     }
 
-    /**
-     * 올리기 전 앞 · 뒤 자르기(관리자만, 2026-10-31 홍TV님 "앱 안에서 자르는 기능 지금 만들어 줘") - 집 앞 · 주차장 가는 길 등을 뺌.
-     * 선 그림(남는 길 파랑 · 자를 길 회색, 출발 초록 · 도착 빨강)과 밀대 둘. 남은 점 [위도, 경도, 시각, 높이] 로 resolve, 취소면 null.
-     */
-    /** 자르기 밀대 한 줄 - 양옆 − · ＋ 는 10m 씩(밀대만으로는 긴 길에서 1px 이 100m 넘음). k - "0" 앞 · "1" 뒤. */
-    function nudgeRow(label, k, top) {
-        var bs = 'style="flex:0 0 auto;min-width:44px;min-height:40px;font-size:18px"';
-        return '<label style="display:block;margin-top:' + top + '">' + label + ' <b class="c' + k + '"></b><span style="display:flex;align-items:center;gap:6px;margin-top:4px">'
-            + '<button type="button" class="nud" data-r="' + k + '" data-d="-1" ' + bs + ' aria-label="' + label + ' 10m −">−</button>'
-            + '<input type="range" class="r' + k + '" min="0" step="10" style="flex:1 1 auto;min-width:0">'
-            + '<button type="button" class="nud" data-r="' + k + '" data-d="1" ' + bs + ' aria-label="' + label + ' 10m +">＋</button></span></label>';
-    }
-
-    function trimSheet(r) {
-        return new Promise(function (done) {
-            var t = r.track || [], full = RF.trimTrack(t, 0, 0), step = 10;   // 10m 칸 + 양옆 − · ＋ 단추(2026-11-15 홍TV님 "미세하게 조정이 안 돼네" - GPX 편집 studio.js slider 와 같게)
-            var wrap = document.createElement("div");
-            wrap.setAttribute("role", "dialog");
-            wrap.setAttribute("aria-label", T("앞 · 뒤 자르기", "Trim start and end"));
-            wrap.style.cssText = "position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:12px";
-            var box = document.createElement("div");
-            box.style.cssText = "background:#1b2430;color:#e9eef4;border-radius:14px;padding:14px;width:min(440px,100%);max-height:96vh;overflow:auto;font-size:15px";
-            box.innerHTML = '<b style="font-size:17px">' + T("✂️ 앞 · 뒤 자르기", "✂️ Trim start and end") + '</b>'
-                + '<p class="tip" style="margin:6px 0">' + T("집 앞 · 주차장 · 들머리 가는 길처럼 코스가 아닌 부분을 빼 주세요. 파란 선만 올라갑니다.", "Remove parts that aren't the course (home, parking, approach). Only the blue line is uploaded.") + '</p>'
-                + (window.maplibregl && cfg ? '<div class="tmap" style="width:100%;height:min(52vh,360px);border-radius:10px;overflow:hidden"></div>' : "")
-                + '<svg viewBox="-6 -6 112 112" style="width:100%;height:auto;background:#0f1720;border-radius:10px' + (window.maplibregl && cfg ? ";display:none" : "") + '"></svg>'
-                + nudgeRow(T("앞에서 자르기", "Cut from start"), "0", "10px") + nudgeRow(T("뒤에서 자르기", "Cut from end"), "1", "6px")
-                + '<p class="kept" style="margin:8px 0;font-weight:bold"></p>'
-                + '<p style="display:flex;gap:8px;margin:0"><button type="button" class="no" style="flex:1">' + T("취소", "Cancel") + '</button><button type="button" class="go main" style="flex:1">' + T("다음", "Next") + '</button></p>';
-            wrap.appendChild(box);
-            document.body.appendChild(wrap);
-            var svg = box.querySelector("svg"), r0 = box.querySelector(".r0"), r1 = box.querySelector(".r1");
-            Array.prototype.forEach.call(box.querySelectorAll(".nud"), function (b) {
-                b.addEventListener("click", function (e) {
-                    e.preventDefault();
-                    var inp = box.querySelector(".r" + b.getAttribute("data-r"));
-                    inp.value = Math.min(+inp.max, Math.max(0, +inp.value + +b.getAttribute("data-d") * step));
-                    inp.dispatchEvent(new Event("input"));
-                });
-            });
-            r0.max = r1.max = Math.max(0, Math.floor(full.total / step) * step);
-            r0.value = r1.value = 0;
-            var lat0 = t.reduce(function (a, p) { return a + p[0]; }, 0) / Math.max(1, t.length), kx = Math.cos(lat0 * Math.PI / 180);
-            var xs = t.map(function (p) { return p[1] * kx; }), ys = t.map(function (p) { return -p[0]; });
-            var minX = Math.min.apply(null, xs), minY = Math.min.apply(null, ys), w = Math.max(Math.max.apply(null, xs) - minX, 1e-6), h = Math.max(Math.max.apply(null, ys) - minY, 1e-6), S = 100 / Math.max(w, h);
-            function X(i) { return ((xs[i] - minX) * S + (100 - w * S) / 2).toFixed(2); }
-            function Y(i) { return ((ys[i] - minY) * S + (100 - h * S) / 2).toFixed(2); }
-            function path(a, b) { var d = ""; for (var i = a; i <= b; i++) d += (i > a ? "L" : "M") + X(i) + " " + Y(i); return d; }
-            var res = null, tm = null;
-            // 배경 지도(2026-10-31 홍TV님 "지도 깔아줘") - 따라가기 지도와 같은 바탕, 끌기 · 확대 됨. 못 띄우면 선 그림(svg)
-            function geo(a, b) { var c = []; for (var i = a; i <= b; i++) c.push([t[i][1], t[i][0]]); return { type: "Feature", geometry: { type: "LineString", coordinates: c } }; }
-            function pt(i, k) { return { type: "Feature", properties: { k: k }, geometry: { type: "Point", coordinates: [t[i][1], t[i][0]] } }; }
-            if (box.querySelector(".tmap")) {
-                try {
-                    var lo = t.map(function (p) { return p[1]; }), la = t.map(function (p) { return p[0]; });
-                    tm = new maplibregl.Map({ container: box.querySelector(".tmap"), style: buildStyle(cfg), attributionControl: false, locale: RF.mapLocale(), dragRotate: false, pitchWithRotate: false, touchPitch: false,
-                        bounds: [[Math.min.apply(null, lo), Math.min.apply(null, la)], [Math.max.apply(null, lo), Math.max.apply(null, la)]], fitBoundsOptions: { padding: 28 } });
-                    tm.touchZoomRotate.disableRotation();
-                    tm.addControl(new maplibregl.AttributionControl({ compact: true }), "top-right");   // 아래 오른쪽이면 출발점(초록)을 가렸음(2026-10-31 PC)
-                    // 출처는 ⓘ 로 접어 둠(MapLibre 는 처음에 펼쳐 둠 - 펼친 상자가 위 오른쪽 끝점을 가릴 수 있었음, 2026-10-31 PC). 누르면 펼쳐짐
-                    var foldT = function () { var a = box.querySelector(".maplibregl-ctrl-attrib"); if (a) a.classList.remove("maplibregl-compact-show"); };
-                    foldT();
-                    tm.once("styledata", foldT);
-                    var bb = [[Math.min.apply(null, lo), Math.min.apply(null, la)], [Math.max.apply(null, lo), Math.max.apply(null, la)]];
-                    tm.on("load", function () {
-                        // 처음 열 때 선 전체에 맞춤 - 창이 막 붙은 때라 크기가 덜 잡혀 출발점이 밖으로 벗어나 보였음(2026-10-31 PC)
-                        tm.resize();
-                        foldT();
-                        tm.fitBounds(bb, { padding: { top: 40, bottom: 28, left: 28, right: 40 }, duration: 0 });
-                        tm.addSource("tAll", { type: "geojson", data: geo(0, t.length - 1) });
-                        tm.addSource("tKeep", { type: "geojson", data: geo(0, t.length - 1) });
-                        tm.addSource("tEnds", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-                        tm.addLayer({ id: "tAll", type: "line", source: "tAll", paint: { "line-color": "#8a95a5", "line-width": 4, "line-dasharray": [1.5, 1] } });
-                        tm.addLayer({ id: "tKeep", type: "line", source: "tKeep", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#22b8cf", "line-width": 5 } });
-                        tm.addLayer({ id: "tEnds", type: "circle", source: "tEnds", paint: { "circle-radius": 7, "circle-stroke-width": 2, "circle-stroke-color": "#fff",
-                            "circle-color": ["match", ["get", "k"], "s", "#2ecc71", "#ff4d4f"] } });
-                        draw();
-                    });
-                } catch (e) {   // 지도를 못 띄우면 선 그림으로
-                    tm = null;
-                    box.querySelector(".tmap").remove();
-                    svg.style.display = "";
-                }
-            }
-            function draw() {
-                if (+r0.value + +r1.value > full.total - step) { if (this === r0) r0.value = Math.max(0, full.total - step - r1.value); else r1.value = Math.max(0, full.total - step - r0.value); }
-                res = RF.trimTrack(t, +r0.value, +r1.value);
-                box.querySelector(".c0").textContent = km(+r0.value) + " km";
-                box.querySelector(".c1").textContent = km(+r1.value) + " km";
-                box.querySelector(".kept").textContent = T("올릴 길 ", "Kept ") + km(res.kept) + " / " + km(full.total) + " km";
-                var html = '<path d="' + path(0, t.length - 1) + '" fill="none" stroke="#5b6675" stroke-width="1.6" stroke-linejoin="round"/>';
-                if (res.track.length) {
-                    html += '<path d="' + path(res.from, res.to) + '" fill="none" stroke="#22b8cf" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>'
-                        + '<circle cx="' + X(res.from) + '" cy="' + Y(res.from) + '" r="3" fill="#2ecc71" stroke="#fff" stroke-width=".8"/>'
-                        + '<circle cx="' + X(res.to) + '" cy="' + Y(res.to) + '" r="3" fill="#ff4d4f" stroke="#fff" stroke-width=".8"/>';
-                }
-                svg.innerHTML = html;
-                if (tm && tm.getSource("tKeep")) {
-                    tm.getSource("tKeep").setData(res.track.length ? geo(res.from, res.to) : { type: "FeatureCollection", features: [] });
-                    tm.getSource("tEnds").setData({ type: "FeatureCollection", features: res.track.length ? [pt(res.from, "s"), pt(res.to, "e")] : [] });
-                }
-                box.querySelector(".go").disabled = res.track.length < 2;
-            }
-            function close(v) { if (tm) tm.remove(); wrap.remove(); done(v); }
-            r0.addEventListener("input", draw);
-            r1.addEventListener("input", draw);
-            box.querySelector(".no").onclick = function () { close(null); };
-            box.querySelector(".go").onclick = function () { close(res && res.track.length >= 2 ? res.track : null); };
-            wrap.addEventListener("keydown", function (e) { if (e.key === "Escape") close(null); });
-            draw();
-            r0.focus();
-        });
-    }
-
     /** 공유 창으로 파일을 보낼 수 있는가(앱 · 핸드폰 브라우저). 단추 이름에만 씁니다. */
     function canShareFiles() {
         if (FS && SHARE) return true;
@@ -2268,7 +2154,7 @@
     }
 
     /**
-     * 기록 보기 화면(trip.html)의 🛩 3D 영상 · 💾 GPX 저장 · 📮 등록 요청 · ✕ 삭제(2026-11-23 홍TV님) - 따라가기로 #recdo=무엇:기록 열쇠 로 넘어와 여기서 함
+     * 기록 보기 화면(trip.html)의 🛩 3D 영상 · 💾 GPX 저장 · ✕ 삭제(2026-11-23 홍TV님 - 📮 등록 요청은 2026-11-24 📐 GPX 편집으로 옮김) - 따라가기로 #recdo=무엇:기록 열쇠 로 넘어와 여기서 함
      * (3D 영상 · 보내기 · 지우기는 이 화면의 것 하나만 두려고). 주소의 #recdo 는 바로 지워 다시 열어도 되풀이하지 않음.
      */
     function recDo(what, key) {
@@ -2279,7 +2165,6 @@
             if (!r) { toast(T("이 기기에서 그 기록을 찾지 못했습니다.", "That record is not on this device."), 5000); return; }
             if (what === "fly") fly3d(r);
             else if (what === "save") downloadGpx(r);
-            else if (what === "submit") submitSheet(r);
             else delRecord(r);
         });
     }
@@ -2345,15 +2230,6 @@
             if (!(e && e.name === "AbortError")) saveFile(text, name, "application/json");
         });
         saveFile(text, name, "application/json");
-    }
-    /**
-     * 📮 routefly 에 코스로 보내기(2026-11-01 홍TV님 "등산객이 GPX 를 보내 주면 없는 코스면 점검해서 올림 - 보낸 사람 이름을 코스 이름 앞에").
-     * 2026-11-01 홍TV님: 보낸 사람 이름은 코스 이름에 넣지 않고 코스 화면의 "만든 이: …" 한 줄로(CourseSource).
-     * 선 모양(시각 없이) · 코스 이름 · 보낸 사람 이름 · 메모만 /api/course-submit 으로. 사진 · 사진 메모는 보내지 않음.
-     * 창은 GPX 편집(studio.js)과 같이 쓰는 RF.submitSheet(2026-11-02 홍TV님 "GPX 편집을 누구나") - 여기서는 ✂ 앞 · 뒤 자르기를 붙임.
-     */
-    function submitSheet(r) {
-        RF.submitSheet({ name: r.name, kind: r.kind, track: r.track || [], trim: function (t) { return trimSheet({ track: t }); }, sent: function (t) { toast(t, 9000); } });
     }
     function b64Blob(s, type) {
         var bin = atob(s), u = new Uint8Array(bin.length);
@@ -5694,7 +5570,7 @@
         else {
             showPick();
             if (/^#rec\b/.test(location.hash)) showRecords();   // 코스 미리보기의 '📒 내 기록'
-            var rd = /^#recdo=(fly|save|submit|del):(.+)$/.exec(location.hash);
+            var rd = /^#recdo=(fly|save|del):(.+)$/.exec(location.hash);
             if (rd) recDo(rd[1], decodeURIComponent(rd[2]));
         }
     }
