@@ -28,7 +28,7 @@
     var SEG_NEAR_M = 200, SEG_GAP_M = 1000, PICK_NEAR_M = 300, popup = null;   // 구간 끊는 곳(선에서 200m 안 · 300m 넘게 떨어진 것만) · 누른 곳 찾기   // 우리 지도일 때 기록이 지나간 봉우리(150m 안)
     // 표시별 보이기 · 숨기기(2026-11-22 홍TV님 "마커 별로 숨기고 보이고") - 이 화면 동안만(저장하지 않음)
     var KINDS = [["photo", "📷", "사진", "Photos"], ["memo", "📝", "메모", "Notes"], ["rf-hut", "🏠", "대피소 · 산장", "Shelters · huts"],
-        ["rf-temple", "卍", "절", "Temples"], ["rf-view", "👁", "전망대", "Viewpoints"], ["rf-water", "💧", "약수터", "Drinking water"]]];   // 역은 단추 없이 늘 보임(2026-11-23 홍TV님 "🚉 아이콘은 없어도 돼. 국토부처럼")
+        ["rf-temple", "卍", "절", "Temples"], ["rf-view", "👁", "전망대", "Viewpoints"], ["rf-water", "💧", "약수터", "Drinking water"]];   // 역은 단추 없이 늘 보임(2026-11-23 홍TV님 "🚉 아이콘은 없어도 돼. 국토부처럼")
     var hidden = {};
     var CONTOUR_KEY = "rf-contour", contourOn = false, demContour = null, contourCfg = null;   // 등고선 - 따라가기와 같은 기억(rf-contour) · 간격 · 색
     try { contourOn = localStorage.getItem(CONTOUR_KEY) === "1"; } catch (e) { /* 기본 끔 */ }

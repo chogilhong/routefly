@@ -2346,3 +2346,12 @@ eq("점검 11차 A8 - 공단 난이도 띄어쓰기 없음(운영 설악산 \"�
     eq("출발 · 가장 높은 곳 · 도착 wpt + metadata, 이름 꺾쇠는 바꿈", [/<wpt lat="37" lon="127"><ele>10<\/ele><name>출발<\/name>/.test(g), /<name>가장 높은 곳<\/name>/.test(g), /<name>도착<\/name>/.test(g),
         /<metadata><name>시험 &lt;길&gt;<\/name><time>2026-11-16T00:00:00.000Z<\/time><\/metadata>/.test(g), /<wpt/.test(RF.trackGpx("x", "hike", [[37, 127, null, 1], [37.1, 127, null, 1]]))], [true, true, true, true, false]);
 })();
+
+// 화면 js 문법 - 고친 뒤 괄호 하나가 남아 기록 보기(trip.js)가 통째로 안 열린 적 있음(2026-11-23 v356 웹 Claude). 실행은 않고 읽기만(new Function).
+(function () {
+    var dir = path.join(__dirname, "../../main/webapp/js"), bad = [];
+    fs.readdirSync(dir).filter(function (f) { return /\.js$/.test(f); }).forEach(function (f) {
+        try { new Function(fs.readFileSync(path.join(dir, f), "utf8")); } catch (e) { bad.push(f + ": " + e.message); }
+    });
+    eq("js/ 의 화면 파일 모두 문법 맞음", bad, []);
+})();
