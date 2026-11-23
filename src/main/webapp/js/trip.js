@@ -613,7 +613,7 @@
     // 📒 내 기록의 🗺 지도로 들어옴(?rec=시작 시각|코스 - 따라가기 recKey, 2026-11-22 홍TV님): 이 기기의 기록 · 사진으로 그림, 뒤로는 따라가기 내 기록
     var recParam = new URLSearchParams(location.search).get("rec");
     if (recParam) {
-        $("back").href = EN ? "hike.html?lang=en" : "hike.html";
+        $("back").href = (EN ? "hike.html?lang=en" : "hike.html") + "#rec";   // 따라가기의 📒 내 기록 창을 열어 둠(2026-11-23 홍TV님 - 따라가기 첫 화면만 나왔음)
         $("back").textContent = T("‹ 내 기록", "‹ My records");
         // 내 기록에서 들어오면 📂 GPX 열기 대신 🛩 3D 영상 · 💾 GPX 저장 · 📮 등록 요청 · ✕ 삭제(2026-11-23 홍TV님 - 📤 GPX 보내기 창의 두 가지를 단추로) - 하는 일은 따라가기 내 기록이 함(hike.html#recdo=무엇:기록 열쇠)
         $("openBtn").hidden = true;

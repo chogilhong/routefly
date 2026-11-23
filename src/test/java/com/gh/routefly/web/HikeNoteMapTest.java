@@ -26,7 +26,7 @@ public class HikeNoteMapTest {
                 && js.contains("if (hike.running) { toast(T(\"산행 중에는 기록 보기로 넘어가지 않습니다.") && !html.contains("recViewCard") && !js.contains("recViewCard"));
         assertTrue("기록 보기는 이 기기의 같은 저장소(rf-records r list · rf-photos p)에서 그 기록을 찾음 · 뒤로는 내 기록",
                 trip.contains("idbGet(\"rf-records\", \"r\", \"list\")") && trip.contains("r.start + \"|\" + (r.courseId || \"\") === recParam")
-                && trip.contains("idbGet(\"rf-photos\", \"p\", id)") && trip.contains("$(\"back\").href = EN ? \"hike.html?lang=en\" : \"hike.html\";")
+                && trip.contains("idbGet(\"rf-photos\", \"p\", id)") && trip.contains("$(\"back\").href = (EN ? \"hike.html?lang=en\" : \"hike.html\") + \"#rec\";")
                 && js.contains("function recKey(r) { return r ? r.start + \"|\" + (r.courseId || \"\") : \"\"; }"));
         assertTrue("사진 · 메모 🗺 지도에서는 그대로 따라가기 지도에(한 곳)", js.indexOf("setData(RF.recordLines(rc))") == js.lastIndexOf("setData(RF.recordLines(rc))"));
         assertTrue("자리 표시 · 말풍선", js.contains("noteMark = marker(e, [note.lon, note.lat]).setPopup("));
