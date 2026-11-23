@@ -1,5 +1,6 @@
 /*
  * GPX 편집(studio.html, 2026-10-31 홍TV님 "/routefly/studio.html · GPX 편집 - PC 가 주 무대, 폰에서도. 작업해줘").
+ * 2026-11-23 홍TV님 "코스번호를 알더라도 나만 접근하게 해": 화면 자체를 운영자 기기만(서버 StudioFilter - 손님은 hike.html 로). 아래 손님 갈래(📮 보내기)는 그 전 것.
  * 2026-11-02 홍TV님 "GPX 편집을 누구나": 열기 · 그리기 · 고치기 · 저장은 누구나. 운영자 기기만 "⬆ 코스로 올리기" · "📨 받은 GPX"(서버도 운영자 쿠키를 봄 - 403),
  * 다른 사람은 그 자리에 "📮 routefly 에 코스 보내기"(따라가기 내 기록 보내기와 같은 RF.submitSheet · /api/course-submit).
  * 길(track)은 [위도, 경도, 시각ms|null, 높이|null] 점 배열. 읽기 · 요약 · 나누기 · 잇기 · 쓰기는 course-kit(RF.gpxTracks 등 - node 테스트).
