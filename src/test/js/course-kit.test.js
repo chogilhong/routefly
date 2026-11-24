@@ -1279,8 +1279,12 @@ tick().then(function () {
     W.scrollY = 0; went = [];
     RF.foldMemory(fakeDoc([mk("등산")]), "/m/");
     eq("돌아오면 보던 자리로", went, [1234]);
-    W.scrollY = 0; ev.load();
-    eq("다 읽은 뒤 맨 위로 밀렸으면 한 번 더", went, [1234, 1234]);
+    W.scrollY = 1567; ev.load();
+    eq("다 읽은 뒤 위 칸이 붙어 밀렸으면 한 번 더(맨 위가 아니어도)", went, [1234, 1234]);
+    W.scrollY = 1234; ev.load();
+    eq("자리가 맞으면 그대로", went, [1234, 1234]);
+    W.scrollY = 1500; ev.wheel(); ev.load();
+    eq("손님이 손대면 더 맞추지 않음", went, [1234, 1234]);
     went = [];
     RF.foldMemory(fakeDoc([mk("등산")], "?open=peaks"), "/m/");
     eq("?open= 주소는 자리도 그대로", went, []);

@@ -1048,8 +1048,19 @@
         var yk = "rf-fold-y:" + key, y = null;
         try { y = parseInt(store.getItem(yk), 10); } catch (e) { /* 처음 · 막힘 */ }
         if (fresh && y > 0 && global.scrollTo) {
+            // 위쪽에 늦게 붙는 칸(앱 받기 · 산불 안내 · 최근 본 산)이 생기면 브라우저가 화면을 스스로 내려(스크롤 앵커링) 자리가 밀렸음(2026-11-24 PC: 폰 1186 → 1519, 영어 467 → 525).
+            // 되살리는 동안(약 2.5초)만 앵커링을 끄고 몇 번 다시 맞춤 - 손님이 손대면(누름 · 휠 · 키) 바로 그만
+            var root = doc.documentElement, stop = false, fix = function () { if (!stop && Math.abs((global.scrollY || 0) - y) > 2) global.scrollTo(0, y); };
+            if (root && root.style) root.style.overflowAnchor = "none";
             global.scrollTo(0, y);
-            if (global.addEventListener) global.addEventListener("load", function () { if (global.scrollY < 4) global.scrollTo(0, y); });
+            if (global.addEventListener) {
+                ["wheel", "touchstart", "keydown", "mousedown"].forEach(function (n) { global.addEventListener(n, function () { stop = true; }, { once: true, passive: true }); });
+                global.addEventListener("load", fix);
+            }
+            if (global.setTimeout) {
+                [300, 1000, 2000].forEach(function (ms) { global.setTimeout(fix, ms); });
+                global.setTimeout(function () { if (root && root.style) root.style.overflowAnchor = ""; }, 2500);
+            }
         }
         if (global.addEventListener) global.addEventListener("pagehide", function () { try { store.setItem(yk, String(Math.round(global.scrollY || 0))); } catch (e) { /* 이번만 */ } });
         doc.addEventListener("toggle", function (e) {
