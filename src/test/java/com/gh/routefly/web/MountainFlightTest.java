@@ -30,6 +30,10 @@ public class MountainFlightTest {
             assertTrue(id, found);
         }
         assertEquals("RlOjuH9X8R4", videos.getAsJsonArray("지리산").get(0).getAsJsonObject().get("id").getAsString());
+        String cp = read("src/main/webapp/js/course-page.js");
+        assertTrue("산 페이지에서 \"▶ 이 코스 보기\" 로 온 코스 페이지의 ‹ 는 그 산 페이지로 뒤로 가기(2026-11-25 홍TV님 \"이 경우에는 2로 가게\")",
+            cp.contains("if (r && r.origin === location.origin) m = /\\/m\\/([^\\/?#]+)\\/?$/.exec(r.pathname);")
+            && cp.contains("a.addEventListener(\"click\", function (e) { if (history.length > 1) { e.preventDefault(); history.back(); } });"));
         assertEquals("화대종주(2026-11-25 홍TV님, 코스 u-20261116-003832)", "21m34J3c518", videos.getAsJsonArray("지리산").get(1).getAsJsonObject().get("id").getAsString());
         assertEquals("MtTrpzZRLgM", videos.getAsJsonArray("북한산").get(0).getAsJsonObject().get("id").getAsString());
         assertEquals("MtTrpzZRLgM", videos.getAsJsonArray("도봉산").get(0).getAsJsonObject().get("id").getAsString());
