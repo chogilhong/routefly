@@ -1289,6 +1289,9 @@ tick().then(function () {
     RF.foldMemory(fakeDoc([mk("등산")], "?open=peaks"), "/m/");
     eq("?open= 주소는 자리도 그대로", went, []);
     delete W.addEventListener; delete W.scrollTo;
+    // 코스 보기 "지금 들머리" 날씨 한 줄(trip.js infoBox, 2026-11-24) - 운영 api/wx 실제 응답(백담사 둘레)의 첫 시각
+    var wxj = JSON.parse(fs.readFileSync(path.join(__dirname, "../resources/wx/wx-baekdam.json"), "utf8")), hs = wxj.weather.hours, c0 = RF.wxCols(hs, String(hs[0].t).slice(0, 10), false, 1)[0];
+    eq("지금 들머리 - 첫 시각 한 칸", [c0.icon, c0.word, c0.tmp, c0.pop, c0.dir, c0.wsd], ["☀️", "맑음", -7, 0, "서", 8.6]);
     eq("기억 열쇠는 개인정보처리방침에(한 · 영)", ["privacy.html", "privacy-en.html"].map(function (f) { return fs.readFileSync(path.join(__dirname, "../../main/webapp/" + f), "utf8").indexOf("(rf-fold:") >= 0; }), [true, true]);
 }).then(function () {
     console.log((fails ? "FAILED " : "OK ") + (runs - fails) + "/" + runs);

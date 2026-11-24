@@ -99,6 +99,24 @@
         if (lv) p.appendChild(lv);
         box.appendChild(p);
         if (off) { var q = document.createElement("p"); q.className = "ci"; q.textContent = "🏞 " + off; box.appendChild(q); }
+        // 들머리 일출 · 일몰과 지금 날씨 한 줄(2026-11-24 홍TV님 - 오래 머무는 화면이라 산 페이지 · 따라가기와 같은 자료로). 받지 못하면 일출 · 일몰만
+        var sun = document.createElement("p"), lat0 = c.lat[0], lon0 = c.lon[0];
+        sun.className = "ci wx";
+        var clock = function (ms) { var d = new Date(ms + 9 * 3600000); return d.getUTCHours() + ":" + String(d.getUTCMinutes()).padStart(2, "0"); };
+        var rise = RF.sunrise(Date.now(), lat0, lon0), set = RF.sunset(Date.now(), lat0, lon0);
+        sun.textContent = T("🌅 일출 ", "🌅 Sunrise ") + (rise ? clock(rise) : "-") + T(" · 🌇 일몰 ", " · 🌇 Sunset ") + (set ? clock(set) : "-");
+        box.appendChild(sun);
+        getJson("api/wx?lat=" + (+lat0).toFixed(4) + "&lon=" + (+lon0).toFixed(4)).then(function (x) {
+            var w = x && x.weather, hours = w && !w.unavailable ? w.hours || [] : [];
+            if (!hours.length || !sun.isConnected) return;
+            var col = RF.wxCols(hours, String(hours[0].t).slice(0, 10), EN, 1)[0];
+            if (!col) return;
+            sun.textContent += T(" · 지금 들머리 ", " · Now at the start ") + col.icon + " " + col.word + (col.tmp != null ? " " + col.tmp + "℃" : "")
+                + (col.pop != null ? T(" · 강수 ", " · rain ") + col.pop + "%" : "") + (col.wsd != null ? T(" · 바람 ", " · wind ") + (col.dir ? col.dir + " " : "") + col.wsd + "m/s" : "");
+            var src = document.createElement("span");
+            src.className = "src"; src.textContent = T(" (기상청 단기예보)", " (KMA forecast)");
+            sun.appendChild(src);
+        }).catch(function () { /* 날씨 없이 일출 · 일몰만 */ });
         var pts = [];
         (c.spots || []).forEach(function (s) {
             if (s.dist_m == null || (s.kind !== "danger" && s.kind !== "view")) return;

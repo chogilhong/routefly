@@ -97,6 +97,8 @@
                     note.textContent = en ? "Ad · Coupang Partners" : "광고 · 쿠팡 파트너스";
                     note.style.cssText = "margin:0 0 4px;font-size:12px;color:var(--dim,#6b7684)";
                     a.href = f.href; a.target = "_blank"; a.rel = "noopener sponsored";
+                    // 누름 수를 자리별로(2026-11-24 홍TV님 - /stats "광고 카드 누름"): 서버가 이 화면 주소로 자리 이름만 셈, 누른 사람 정보는 보내지 않음
+                    a.addEventListener("click", function () { try { if (navigator.sendBeacon) navigator.sendBeacon(root + "api/adclick"); } catch (e) { /* 못 세도 그만 */ } });
                     a.style.cssText = "display:block;text-decoration:none;color:inherit;line-height:0;border-radius:10px;overflow:hidden;background:#fff";
                     img.src = f.img; img.alt = f.name; img.loading = "lazy";
                     img.style.cssText = "display:block;width:160px;max-width:100%;height:auto";

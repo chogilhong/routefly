@@ -1703,6 +1703,31 @@
         return e;
     }
 
+    /** 순수 함수 - 그날 해 지는 시각(ms, 그 위치 기준). 극지방처럼 해가 안 지면 null. (Almanac for Computers 공식) */
+    function sunset(dateMs, lat, lon) { return sunTime(dateMs, lat, lon, false); }
+    /** 순수 함수 - 그 날 해 뜨는 시각(산 소개 페이지, 2026-10-14). 계산은 sunset 과 같음. */
+    function sunrise(dateMs, lat, lon) { return sunTime(dateMs, lat, lon, true); }
+
+    function sunTime(dateMs, lat, lon, rise) {
+        // 그 자리의 날짜로(경도로 어림한 현지 시각) - UTC 날짜를 쓰면 한국 아침 9시 전은 전날 일몰이 나왔음(2026-10-14 PC: 08:00 출발에 일몰 경고)
+        var r = Math.PI / 180, d = new Date(dateMs + lon / 15 * 3600000);
+        var start = Date.UTC(d.getUTCFullYear(), 0, 0), N = Math.floor((Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - start) / 86400000);
+        var lngHour = lon / 15, t = N + ((rise ? 6 : 18) - lngHour) / 24;
+        var Mn = 0.9856 * t - 3.289;
+        var L = (Mn + 1.916 * Math.sin(Mn * r) + 0.020 * Math.sin(2 * Mn * r) + 282.634 + 360) % 360;
+        var RA = (Math.atan(0.91764 * Math.tan(L * r)) / r + 360) % 360;
+        RA = (RA + (Math.floor(L / 90) * 90 - Math.floor(RA / 90) * 90)) / 15;
+        var sinDec = 0.39782 * Math.sin(L * r), cosDec = Math.cos(Math.asin(sinDec));
+        var cosH = (Math.cos(90.833 * r) - sinDec * Math.sin(lat * r)) / (cosDec * Math.cos(lat * r));
+        if (cosH > 1 || cosH < -1) return null;
+        var H = (rise ? 360 - Math.acos(cosH) / r : Math.acos(cosH) / r) / 15;
+        var UT = ((H + RA - 0.06571 * t - 6.622 - lngHour) % 24 + 24) % 24;
+        var day = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()), out = day + UT * 3600000;
+        // UT 는 0~24시라 해 뜨는 시각(한국 아침 = 전날 UTC 저녁)은 하루 뒤로 나옴 - 현지 날짜가 그 날이 되게 맞춤
+        var local = Math.floor((out + lngHour * 3600000 - day) / 86400000);
+        return out - local * 86400000;
+    }
+
     /**
      * 종류별 이름 · 표준 빠르기 - 예상 시간에 씁니다. 등산 · 장거리(hike · trek)는 국립공원공단 기준 1km 에 34분(쉬는 시간 포함, 오르막 · 내리막 따로 더하지 않음 -
      * 2026-11-04 홍TV님 "공단과 동일하게 해. 산에서 휴식 시간도 산행이라고 봐야지": 공단 공식 시간 560개가 경사와 상관없이 1km 중앙 34분, MountainServlet.MIN_PER_KM).
@@ -1760,6 +1785,41 @@
         return standardMs(c.course && c.course.kind, Math.abs(d1 - d0), cl.up, cl.down);
     }
 
+    /** 순수 함수 - 기상청 하늘(sky 1 · 3 · 4) · 강수 형태(pty 0 ~ 4) → "☀️ 맑음" 같은 말. */
+    function weatherWord(sky, pty) {
+        var p = { 1: "🌧 비", 2: "🌨 비/눈", 3: "❄️ 눈", 4: "🌦 소나기" }[+pty];
+        if (p) return p;
+        return { 1: "☀️ 맑음", 3: "⛅ 구름많음", 4: "☁️ 흐림" }[+sky] || "-";
+    }
+
+    // ── 기상청 날씨누리처럼 시간별 가로 표(2026-10-30 홍TV님 "참고해" - 날씨누리 동네예보 화면) ──
+    var DIR16 = ["북", "북북동", "북동", "동북동", "동", "동남동", "남동", "남남동", "남", "남남서", "남서", "서남서", "서", "서북서", "북서", "북북서"];
+    var DIR16_EN = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+    /** 순수 함수 - 강수량 글("강수없음" · "1mm 미만" · "1.0mm" · "30.0~50.0mm") → 칸 글. */
+    function pcpText(p, en) {
+        var t = String(p == null ? "" : p).trim();
+        if (!t || /없음/.test(t) || t === "0") return "-";
+        if (/미만/.test(t)) return en ? "<1mm" : "1mm 미만";
+        return t.replace(/\.0(?=mm|~)/g, "");
+    }
+    /**
+     * 순수 함수 - 그 날(day "2026-10-30")의 시간별 칸 [{h, icon, word, tmp, pop, pcp, wsd, reh, arrow, dir}] - 날씨누리 표의 한 열씩.
+     * arrow 는 바람이 불어 가는 쪽 화살표(VEC 는 불어오는 쪽), dir 은 "북서" 처럼 불어오는 쪽 이름(…풍).
+     * max 가 있으면 그 날 첫 시각부터 다음 날로 이어 max 칸까지(2026-11-21 홍TV님 "23시로 끊어지잖아" - 오늘 밤 산행 · 새벽 출발도 보이게),
+     * 다음 날 칸은 nd(그 날짜의 일, 예 "22")가 붙음.
+     */
+    function wxCols(hours, day, en, max) {
+        var arrows = ["↓", "↙", "←", "↖", "↑", "↗", "→", "↘"];
+        var list = (hours || []).filter(function (h) { return max ? String(h.t).slice(0, 10) >= day : String(h.t).slice(0, 10) === day; });
+        if (max) list = list.slice(0, max);
+        return list.map(function (h) {
+            var w = weatherWord(h.sky, h.pty), sp = w.indexOf(" "), v = h.vec != null && isFinite(h.vec) ? ((+h.vec % 360) + 360) % 360 : null;
+            var word = sp > 0 ? w.slice(sp + 1) : w;
+            if (en) word = { "맑음": "Clear", "구름많음": "Mostly cloudy", "흐림": "Overcast", "비": "Rain", "비/눈": "Rain/snow", "눈": "Snow", "소나기": "Showers" }[word] || word;
+            return { h: String(h.t).slice(11, 13), nd: String(h.t).slice(0, 10) !== day ? String(+String(h.t).slice(8, 10)) : null, icon: sp > 0 ? w.slice(0, sp) : w, word: word, tmp: h.tmp, pop: h.pop, pcp: pcpText(h.pcp, en), wsd: h.wsd, reh: h.reh,
+                arrow: v == null ? "" : arrows[Math.round(v / 45) % 8], dir: v == null ? "" : (en ? DIR16_EN : DIR16)[Math.round(v / 22.5) % 16] };
+        });
+    }
     // ------------------------------------------------------------------ ① 고도 그래프
 
     var PW = 1000, PH = 100;
@@ -2201,6 +2261,8 @@
         ownerDevice: ownerDevice,
         courseGpxFree: courseGpxFree,
         courseGpxCredit: courseGpxCredit,
+        sunset: sunset,
+        sunrise: sunrise,
         speedProfile: speedProfile,
         famousMarks: famousMarks,
         famousFetch: famousFetch,
@@ -2211,6 +2273,7 @@
         climbBetween: climbBetween,
         standardMs: standardMs,
         legMs: legMs,
+        wxCols: wxCols,
         distM: distM,
         profile: profile,
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },

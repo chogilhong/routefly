@@ -55,6 +55,8 @@ final class Stats {
     private static final Set<String> seen = new HashSet<>();
     /** 그 날 화면 js 가 돈 방문자 · 보안 머리글이 빠진 방문자(사람 확인, 2026-10-22) - seen 처럼 날이 바뀌면 버림. */
     private static final Set<String> jsSeen = new HashSet<>(), susSeen = new HashSet<>(), appSeen = new HashSet<>(), appSigSeen = new HashSet<>();   // appSeen - 그 가운데 routefly 앱 안(2026-11-11)
+    /** 그 날 광고 카드를 누른 (사람 해시 | 자리) - 한 사람이 한 자리를 여러 번 눌러도 한 번(2026-11-24). */
+    private static final Set<String> adSeen = new HashSet<>();
     private static byte[] salt = new byte[16];
     private static boolean loaded = false, dirty = false;
 
@@ -159,6 +161,34 @@ final class Stats {
         dirty = true;
     }
 
+    /**
+     * 순수 함수 - 광고 카드를 누른 화면(Referer 경로)의 자리 이름(2026-11-24 홍TV님 "광고 자리별 누름 수"). 자리가 없는 화면 · 모르는 주소는 null(세지 않음).
+     * 주소 · 산 이름은 남기지 않고 자리 종류만.
+     */
+    static String adArea(String referer) {
+        String p = SeenServlet.page(referer);
+        if (p.contains("/en/m/")) return p.endsWith("/en/m/") ? "코스 모음(영어)" : "산 페이지(영어)";
+        if (p.contains("/m/")) return p.endsWith("/m/") ? "코스 모음" : "산 페이지";
+        if (p.contains("/c/")) return "코스 페이지";
+        String[][] pages = {{"/hike.html", "따라가기 목록"}, {"/trip.html", "기록 보기 카드"}, {"/series.html", "도장"}, {"/tools.html", "별거별거"}, {"/games.html", "게임"},
+            {"/tidefly.html", "출조"}, {"/dronefly.html", "드론"}, {"/party.html", "산악회 방"}, {"/party-office.html", "회사 사무실"}, {"/party-guide.html", "산악회 안내"}, {"/party-guide-en.html", "산악회 안내"}};
+        for (String[] a : pages) if (p.endsWith(a[0])) return a[1];
+        return null;
+    }
+
+    /** 광고 카드 누름 한 번 - 그 날 사람으로 센 방문자만, 한 사람 · 한 자리 하루 한 번(아무나 되풀이해 부풀리지 못하게). 센 것이면 true. */
+    static synchronized boolean adClick(String ip, String area) {
+        load();
+        if (area == null || !today.equals(LocalDate.now(WeatherServlet.KST).toString())) return false;
+        String h = hash(ip);
+        JsonObject day = DAYS.get(today);
+        if (day == null || !seen.contains(h) || adSeen.size() >= SEEN_MAX || !adSeen.add(h + "|" + area)) return false;
+        if (!day.has("adClicks")) day.add("adClicks", new JsonObject());
+        add(day.getAsJsonObject("adClicks"), area);
+        dirty = true;
+        return true;
+    }
+
     /** 그 날 화면 방문으로 센 사람인가(앱 신호 까닭 가르기). */
     static synchronized boolean seenToday(String ip) {
         load();
@@ -255,6 +285,7 @@ final class Stats {
             susSeen.clear();
             appSeen.clear();
             appSigSeen.clear();
+            adSeen.clear();
             new SecureRandom().nextBytes(salt);
         }
         JsonObject day = DAYS.computeIfAbsent(d, k -> {
