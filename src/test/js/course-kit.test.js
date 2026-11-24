@@ -1269,6 +1269,7 @@ tick().then(function () {
     var f2 = [mk("등산", true), mk("⛰️ 100대 명산", true)];
     RF.foldMemory(fakeDoc(f2), "/m/");
     eq("다 접고 나갔으면(검색해서 들어감) 접힌 채", f2.map(function (x) { return x.open; }), [false, false]);
+    eq("기억 열쇠는 개인정보처리방침에(한 · 영)", ["privacy.html", "privacy-en.html"].map(function (f) { return fs.readFileSync(path.join(__dirname, "../../main/webapp/" + f), "utf8").indexOf("(rf-fold:") >= 0; }), [true, true]);
 }).then(function () {
     console.log((fails ? "FAILED " : "OK ") + (runs - fails) + "/" + runs);
     process.exit(fails ? 1 : 0);
