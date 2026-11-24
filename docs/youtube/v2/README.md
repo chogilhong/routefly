@@ -98,6 +98,7 @@
 4. PC: make_v2 <산> --voice --srt --bright → whisper 확인 · 미리보기 → 홍TV님 올리기(1판은 일부공개 그대로)
 5. 웹 Claude: data/shorts.json 의 영상 ID 를 새 것으로
 6. PC: make_thumbs 로 `out\thumb-<산>.jpg`(물음 · 바탕은 `썸네일.md` 표에 더함) → 홍TV님: PC YouTube 스튜디오에서 미리보기 이미지 업로드(2026-11-21)
+7. 웹 Claude: 올리기 파일이 커밋되면 `node tools/youtube/fb.js <산>` → `<산>-페이스북.txt`(릴스 글 + 첫 댓글) 커밋 → PC: v2\<산>\out 에 복사 → 홍TV님: 페이스북 릴스로 올리기(mp4 원본 직접, 2026-11-24)
 
 ## 5. 대표 코스 후보(운영 /m/<산> 2026-11-20 - 정상까지 가는 코스, 2 ~ 10km 짧은 차례)
 
