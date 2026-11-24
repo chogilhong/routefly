@@ -41,4 +41,17 @@ public class PickWideAdsTest {
         assertTrue("CSS 도 1200px 아래는 숨김", css.contains(".adRail { display:none; }\n@media (min-width:1200px) {"));
         assertTrue("코스 모음 한 · 영", read("src/main/java/com/gh/routefly/web/MountainServlet.java").contains(".append(Ads.rails())") && read("src/main/java/com/gh/routefly/web/MountainEn.java").contains(".append(Ads.rails())"));
     }
+
+    /** 산 페이지(/m/산 · /en/m/산)도 PC 양옆 광고(2026-11-24 홍TV님 "넣어줘. 승인나면 구글 그 전에는 쿠팡으로") - 한 페이지에 한 쌍. 승인 전 쿠팡 · 뒤 애드센스는 ads.js(위 시험). */
+    @Test
+    public void 산_페이지_양옆_광고() throws Exception {
+        com.google.gson.JsonObject gaya = com.google.gson.JsonParser.parseString("{\"id\":\"가야산\",\"name\":\"가야산\",\"lat\":35.822544,\"lon\":128.122849}").getAsJsonObject();
+        String ko = MountainServlet.page(gaya, java.util.List.of(), java.util.List.of(), null, "https://r.kr", java.time.LocalDate.now(WeatherServlet.KST).getMonthValue());
+        String en = MountainEn.page(gaya, java.util.List.of(), java.util.List.of(), null, "https://r.kr");
+        String pair = "<div class=\"adSpot adRail left\" data-where=\"side\"></div><div class=\"adSpot adRail right\" data-where=\"side\"></div>";
+        for (String h : new String[] {ko, en}) {
+            assertEquals("한 쌍", 1, h.split(java.util.regex.Pattern.quote(pair), -1).length - 1);
+            assertTrue("ads.js", h.contains("js/ads.js"));
+        }
+    }
 }

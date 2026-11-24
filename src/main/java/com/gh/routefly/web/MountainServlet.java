@@ -1468,6 +1468,7 @@ public class MountainServlet extends HttpServlet {
         b.append(foldSec(reasonBlock(peak, name)));   // 산림청 선정 이유(data/mountain-info.json 이 있을 때만, 2026-11-07)
         // 광고 한 칸(설정이 있을 때만, 2026-10-28) - 코스 목록 다음 · 자주 묻는 질문 앞(2026-11-07 전체 점검 4단계: 맨 아래라 거의 안 보였음).
         // 코스 단추 · 따라가기와 붙지 않게 안내 글 뒤에, 한 페이지 한 칸만
+        b.append(Ads.rails());   // PC 넓은 화면 양옆 광고 - 산 페이지도(2026-11-24 홍TV님 "넣어줘. 승인나면 구글 그 전에는 쿠팡으로"), 폰 · 앱은 없음 - 화면 양옆 고정이라 HTML 자리는 상관없음
         b.append(Ads.box("m"));
         List<String[]> qa = faq(peak, name, courses, parking);   // 자주 묻는 질문(2026-10-15 홍TV님 - 검색 결과에 문답으로)
         if (!qa.isEmpty()) {

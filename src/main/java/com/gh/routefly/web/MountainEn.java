@@ -198,6 +198,7 @@ final class MountainEn {
         String trails = b.substring(trails0);
         b.setLength(trails0);
         b.append(MountainServlet.foldSec(trails));
+        b.append(Ads.rails());   // PC 넓은 화면 양옆 광고 - 한국어 산 페이지와 같이(2026-11-24)
         b.append(Ads.box("m", true));   // 광고 - 영어 산 페이지에도(설정이 있을 때만, 2026-10-29), 한국어처럼 FAQ 앞(2026-11-07)
         List<String[]> qa = faq(peak, name, courses, parking);
         StringBuilder f = new StringBuilder("<section class=\"faq\"><h2>").append(esc(name)).append(" FAQ</h2><dl>");
