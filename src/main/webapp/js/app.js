@@ -19,6 +19,7 @@
     // 화면 말(2026-10-17 홍TV님 - 3D 영어): ?lang=en · 따라가기에서 고른 말(rf-lang)을 그대로
     var LANG = (function () { var s = null; try { s = localStorage.getItem("rf-lang"); } catch (e) { /* 없음 */ } return RF.pageLang(location.search, s); })();
     if (/[?&]lang=(en|ko)\b/.test(location.search)) { try { localStorage.setItem("rf-lang", LANG); } catch (e) { /* 이번만 */ } }
+    var demNow = null;   // 지형 그림 주소(start 에서) - 영상의 높이 글 · 그래프가 지형 높이를 읽음
     var VIDEO = RF.videoOpts(location.search);   // 영상 모드(?video=1 - 쇼츠 마무리 3D 비행 녹화용, 2026-11-20): 단추 · 칸 숨김, 출처 늘 보임, 기본 위성 없음, 저절로 날기
     var EN = LANG === "en", T = RF.tr, NM = RF.nameIn;
     RF.setLang(LANG);
@@ -1464,14 +1465,22 @@
         });
         photos.forEach(function (ph) { flyPhoto(ph.id).then(function (b) { if (!b) return; var im = new Image(); im.onload = function () { ph.img = im; }; im.src = URL.createObjectURL(b); }); });
         var lines = wrapText(g, credit, W - 40, Math.max(16, Math.round(W / 70)));
-        var vp = RF.videoProfile(c.dist, c.ele, c.total, 400);   // 오른쪽 아래 고도 그래프(2026-11-25 홍TV님 - 기록 보기 그래프처럼, 지금 자리까지 색이 참)
+        // 높이는 기록 보기와 같이 지형 자료 높이(RF.terrainEles - 폰 GPS 높이는 약 25m 높음, 2026-11-25 홍TV님 "둘 다 해"). 받는 동안(6초까지)은 해발 · 그래프를 숨김,
+        // 못 받으면 기록 높이 그대로. 비행(카메라)은 그대로 c 를 씀 - 높이 글 · 그래프만 ec
+        var ec = c, eleReady = false, vp = null, vpTop = null, fam = null;
+        var setTop = function () { if (vp) vpTop = RF.recordHighest(ec, fam ? fam.peaks : [], fam ? fam.elev : {}); };
+        Promise.race([RF.terrainEles(c.lat, c.lon, demNow).catch(function () { return null; }), new Promise(function (ok) { setTimeout(function () { ok(null); }, 6000); })]).then(function (e) {
+            if (e) ec = { lat: c.lat, lon: c.lon, dist: c.dist, total: c.total, ele: e, pois: c.pois };
+            vp = RF.videoProfile(ec.dist, ec.ele, ec.total, 400);   // 오른쪽 아래 고도 그래프(2026-11-25 홍TV님 - 기록 보기 그래프처럼, 지금 자리까지 색이 참)
+            setTop();
+            eleReady = true;
+        });
         // "최고" 는 기록 보기 요약 "가장 높은 곳" 과 같은 값(RF.recordHighest - 100대 명산 정상 200m 안이면 공식 높이, 2026-11-25 홍TV님 "일치해야지")
-        var vpTop = vp ? RF.recordHighest(c, [], {}) : null;   // 정상 자료를 받기 전 - 요약과 같은 식(튐을 누른 선 높이)
         // 왼쪽 위 "해발" 도 100대 명산 정상 50m 안에서는 공식 높이(코스 지점 공식 높이가 없는 GPX · 이은 코스 - 정상에서 1,897 이 아니라 1,915)
         var topPeaks = [];
         RF.famousFetch().then(function (f) {
-            var h = vp ? RF.recordHighest(c, f.peaks, f.elev) : null;
-            if (h != null) vpTop = h;
+            fam = f;
+            setTop();
             topPeaks = f.peaks.filter(function (pk) { return f.elev[pk.id || pk.name] != null; }).map(function (pk) { return { lat: pk.lat, lon: pk.lon, ele: +f.elev[pk.id || pk.name] }; });
         }, function () { /* 선 높이 그대로 */ });
         /** 고도 그래프 - 지나온 곳은 코스 선 색으로 채우고 지금 자리에 점, 위에 최고 높이(기록 보기 그래프와 같은 모양). */
@@ -1509,7 +1518,7 @@
         }
         function draw() {
             g.drawImage(src, 0, 0, W, H);
-            var fs = Math.max(26, Math.round(W / 26)), p = at(c, anim.d), oe = RF.officialEleAt(c, anim.d);
+            var fs = Math.max(26, Math.round(W / 26)), p = eleReady ? at(ec, anim.d) : null, oe = eleReady ? RF.officialEleAt(c, anim.d) : null;
             g.save();
             g.shadowColor = "rgba(0,0,0,0.75)"; g.shadowBlur = 8;
             g.fillStyle = "#fff"; g.textBaseline = "top";
@@ -1632,6 +1641,7 @@
 
     function start(cfg, first, vs) {
         var b0 = startBounds(first);
+        demNow = cfg.demUrl;   // 3D 영상의 높이 글 · 그래프(videoRecord - RF.terrainEles)
         if (VIDEO) {
             if (!VIDEO.sat) cfg = Object.assign({}, cfg, { vworldKey: null });   // 위성 없이 지형 음영만(buildStyle 의 키 없는 그림)
             document.documentElement.classList.add("video");

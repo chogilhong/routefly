@@ -1564,12 +1564,16 @@
     /**
      * 순수 함수 - 기록의 가장 높은 곳(2026-10-28 PC: 지리산 기록이 1,950m - 천왕봉 1,915m). GPS 높이는 앞뒤 5점 가운뎃값으로 튐을 누르고,
      * 그 자리가 100대 명산 정상(peaks: mountains100 의 {id, lat, lon}) 200m 안이면 공식 높이(elev: peak-elev.json 의 elev)로.
+     * 가운뎃값은 HIGH_NEAR_M 안의 점끼리만(2026-11-25 홍TV님 "덕기봉 85m" - 점이 드문 기록의 마지막 정상 점 하나가 210m 앞의 낮은 점들과 묶여 48m 가 됐음).
      */
+    var HIGH_NEAR_M = 150;   // 지리산 기록 튐(약 110m 간격 점)은 묶고, 덕기봉 210m 앞 정상 점은 따로
     function recordHighest(rc, peaks, elev) {
         var e = rc && rc.ele || [], best = null, at = -1;
         for (var i = 0; i < e.length; i++) {
             var w = [];
-            for (var j = Math.max(0, i - 2); j <= Math.min(e.length - 1, i + 2); j++) if (e[j] != null) w.push(e[j]);
+            for (var j = Math.max(0, i - 2); j <= Math.min(e.length - 1, i + 2); j++) {
+                if (e[j] != null && (j === i || !rc.lat || distM(rc.lat[i], rc.lon[i], rc.lat[j], rc.lon[j]) <= HIGH_NEAR_M)) w.push(e[j]);
+            }
             if (!w.length) continue;
             w.sort(function (x, y) { return x - y; });
             var m = w[Math.floor(w.length / 2)];

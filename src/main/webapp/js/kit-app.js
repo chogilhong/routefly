@@ -768,6 +768,51 @@
         var span = max - min || 1;
         return { min: min, max: max, pts: pick.map(function (k) { return [Math.round(dist[k] / total * 1000) / 1000, Math.round((ele[k] - min) / span * 1000) / 1000]; }) };
     }
+    /**
+     * 기록 · GPX 높이를 지형 자료 높이로(2026-11-25 홍TV님 "둘 다 해" - 폰 GPS 높이는 지구 타원체 기준이라 우리나라에서 약 25m 높음: 덕기봉 GPS 111m · 실제 약 85m).
+     * 지도 음영 · 3D 와 같은 지형 그림(demUrl, Terrarium)을 확대 z(기본 14 - 약 10m 칸) 조각으로 받아 점마다 그 칸 값을 읽음(조각 번호 · 화소는 RFMap.tilePixel · terrariumEle).
+     * 돌려줌 Promise(점마다 m 배열 | null) - 조각이 TERRAIN_MAX_TILES 보다 많거나 한 점이라도 못 읽으면 null(그때는 기록 높이 그대로). 서버로는 아무것도 보내지 않음.
+     */
+    var TERRAIN_MAX_TILES = 120;
+    function terrainEles(lat, lon, demUrl, z) {
+        var M = window.RFMap;
+        z = z || 14;
+        if (!M || !M.tilePixel || !M.terrariumEle || !demUrl || !lat || !lat.length || !window.Image || !window.document) return Promise.resolve(null);
+        var tiles = {}, at = lat.map(function (la, i) {
+            var t = M.tilePixel(lon[i], la, z), k = t.x + "/" + t.y;
+            if (!tiles[k]) tiles[k] = { x: t.x, y: t.y, d: null };
+            return { k: k, px: t.px, py: t.py };
+        });
+        var keys = Object.keys(tiles);
+        if (keys.length > TERRAIN_MAX_TILES) return Promise.resolve(null);
+        return Promise.all(keys.map(function (k) {
+            var t = tiles[k], url = String(demUrl).replace("{z}", z).replace("{x}", t.x).replace("{y}", t.y);
+            return new Promise(function (resolve) {
+                var img = new window.Image();
+                img.crossOrigin = "anonymous";
+                img.onload = function () {
+                    try {
+                        var cv = window.document.createElement("canvas");
+                        cv.width = img.width; cv.height = img.height;
+                        var g = cv.getContext("2d");
+                        g.drawImage(img, 0, 0);
+                        t.d = g.getImageData(0, 0, img.width, img.height);
+                    } catch (e) { /* 못 읽음 */ }
+                    resolve();
+                };
+                img.onerror = function () { resolve(); };
+                img.src = url;
+            });
+        })).then(function () {
+            var out = at.map(function (a) {
+                var d = tiles[a.k].d;
+                if (!d) return null;
+                var k = d.width / 256, i = (Math.floor(a.py * k) * d.width + Math.floor(a.px * k)) * 4, e = M.terrariumEle(d.data[i], d.data[i + 1], d.data[i + 2]);
+                return e > -100 ? Math.round(e * 10) / 10 : null;
+            });
+            return out.some(function (e) { return e == null; }) ? null : out;
+        });
+    }
     var SPEED_HALF_MS = 60000;
 
     /**
@@ -812,12 +857,16 @@
     /**
      * 순수 함수 - 기록의 가장 높은 곳(2026-10-28 PC: 지리산 기록이 1,950m - 천왕봉 1,915m). GPS 높이는 앞뒤 5점 가운뎃값으로 튐을 누르고,
      * 그 자리가 100대 명산 정상(peaks: mountains100 의 {id, lat, lon}) 200m 안이면 공식 높이(elev: peak-elev.json 의 elev)로.
+     * 가운뎃값은 HIGH_NEAR_M 안의 점끼리만(2026-11-25 홍TV님 "덕기봉 85m" - 점이 드문 기록의 마지막 정상 점 하나가 210m 앞의 낮은 점들과 묶여 48m 가 됐음).
      */
+    var HIGH_NEAR_M = 150;   // 지리산 기록 튐(약 110m 간격 점)은 묶고, 덕기봉 210m 앞 정상 점은 따로
     function recordHighest(rc, peaks, elev) {
         var e = rc && rc.ele || [], best = null, at = -1;
         for (var i = 0; i < e.length; i++) {
             var w = [];
-            for (var j = Math.max(0, i - 2); j <= Math.min(e.length - 1, i + 2); j++) if (e[j] != null) w.push(e[j]);
+            for (var j = Math.max(0, i - 2); j <= Math.min(e.length - 1, i + 2); j++) {
+                if (e[j] != null && (j === i || !rc.lat || distM(rc.lat[i], rc.lon[i], rc.lat[j], rc.lon[j]) <= HIGH_NEAR_M)) w.push(e[j]);
+            }
             if (!w.length) continue;
             w.sort(function (x, y) { return x - y; });
             var m = w[Math.floor(w.length / 2)];
@@ -2570,6 +2619,7 @@
         gpxToApi: gpxToApi,
         vidBackUrl: vidBackUrl,
         videoProfile: videoProfile,
+        terrainEles: terrainEles,
         isGpxId: isGpxId,
         gpxId: gpxId,
         storeGpx: storeGpx,

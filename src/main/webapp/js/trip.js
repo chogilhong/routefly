@@ -16,6 +16,8 @@
 
     var rcBox = null;   // 선을 둘러싼 네모 [남, 북, 서, 동] - 마우스 따라가기가 먼저 봄
     var courseInfo = null;   // 코스 보기(?c=)의 코스 자료(RF.fromApi) - 예상 시간 · 난이도 · 지점(점검 14차 C3)
+    var DEM_DEFAULT = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
+    var mapCfgP = null;   // api/map-config(한 번 받음) - 지도 · 지형 높이(terrainRec)가 같이 씀
     var map = null, cfgP = null, marks = [], cards = [], urls = [], items = [], pick = -1, prof = null, rc = null;
     var FIRST_ZOOM_UP = 0.1;   // 처음 화면 - 전체 맞춤보다 이만큼 더 확대
     var vector = false, peakKeys = [], PEAK_NEAR_M = 150, tileFeats = [];   // tileFeats - 선이 지나는 확대 12 조각의 봉우리(RFMap.tilePeaks)
@@ -649,8 +651,9 @@
 
     // 지도(V-World 지도 + 지형 음영 - 위성은 쓰지 않음). 우리 바탕 지도 파일(map.basemap.url)이 설정되면 그것(2026-11-22 바탕 지도 2단계 - 기록 보기만 먼저)
     // 파일이 아직 서버에 없거나(404) 못 읽으면 V-World 바탕으로(2026-11-22 PC: 설정이 파일보다 먼저 들어가 운영 기록 보기가 바탕 없이 지형 음영만 보였음)
-    cfgP = getJson("api/map-config").catch(function () { return {}; }).then(function (c) {
-        var cfg = { demUrl: c.demUrl || "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png", vworldKey: c.vworldKey || null };
+    mapCfgP = getJson("api/map-config").catch(function () { return {}; });
+    cfgP = mapCfgP.then(function (c) {
+        var cfg = { demUrl: c.demUrl || DEM_DEFAULT, vworldKey: c.vworldKey || null };
         // 바탕 지도 파일 확인이 오래 걸리면(산속 느린 통신) 8초 뒤 V-World 바탕으로(점검 14차 C9 - 전에는 지도가 끝없이 비었음)
         var late = new Promise(function (ok) { setTimeout(function () { ok(null); }, 8000); });
         return Promise.race([RFMap.open(c.basemapUrl, cfg.demUrl, { lang: LANG }).catch(function () { return null; }), late]).then(function (style) { return { cfg: cfg, style: style }; });
@@ -711,6 +714,19 @@
         return map;
     });
 
+    /**
+     * 내 기록 · 연 GPX 의 높이를 지형 자료 높이로(RF.terrainEles, 2026-11-25 홍TV님 "둘 다 해" - 폰 GPS 높이는 우리나라에서 약 25m 높음).
+     * 요약 · 그래프 · 해발 · 🛩 3D 영상이 같은 높이. 6초 안에 못 받거나 못 읽으면 기록 높이 그대로. 코스 보기(?c=)는 서버 코스 높이 그대로.
+     */
+    function terrainRec(rec) {
+        if (!rec || !rec.track || !rec.track.length) return Promise.resolve(rec);
+        var late = new Promise(function (resolve) { setTimeout(function () { resolve(null); }, 6000); });
+        var work = mapCfgP.then(function (c) {   // 지도(바탕 파일 확인 - 8초까지)를 기다리지 않고 설정만
+            return RF.terrainEles(rec.track.map(function (p) { return +p[0]; }), rec.track.map(function (p) { return +p[1]; }), c.demUrl || DEM_DEFAULT);
+        }).catch(function () { return null; });
+        return Promise.race([work, late]).then(function (e) { return RF.withEles(rec, e); });
+    }
+
     /** 이 기기의 IndexedDB 에서 하나 읽기(따라가기와 같은 저장소 · 이름) - 없거나 못 읽으면 null. */
     function idbGet(name, store, key) {
         return new Promise(function (resolve) {
@@ -747,8 +763,10 @@
         RF.myRecords().then(function (list) {   // IndexedDB · localStorage(따라가기가 IndexedDB 를 못 쓸 때 남기는 곳) - GPX 편집과 같은 읽기(점검 14차 F2)
             var rec = list.filter(function (r) { return r && RF.recKey(r) === recParam; })[0];
             if (!rec) { $("side").innerHTML = "<p class=\"empty\">" + T("이 기기에서 그 기록을 찾지 못했습니다.", "That record is not on this device.") + "</p>"; return; }
-            show(rec, function (id) {
-                return idbGet("rf-photos", "p", id).then(function (blob) { return blob ? URL.createObjectURL(blob) : null; });
+            terrainRec(rec).then(function (r) {
+                show(r, function (id) {
+                    return idbGet("rf-photos", "p", id).then(function (blob) { return blob ? URL.createObjectURL(blob) : null; });
+                });
             });
         });
     }
@@ -874,9 +892,12 @@
         var f = { name: fname };
         var got = RF.gpxRecord(text, true, f.name);   // 시각 없는 코스 GPX 도(선 · 지점 · 고도만, 속도 · 시간 없이)
         if (!got) { alert(T("GPX 에 길(점)이 없습니다.", "The GPX has no track points.")); return; }
-        show(got.rec, function (id) {
-            var b = photoBlob(got.photos[id]);
-            return Promise.resolve(b ? URL.createObjectURL(b) : null);
+        terrainRec(got.rec).then(function (r) {
+            got.rec = r;   // 🛩 3D 영상도 지형 높이로(flyFile 이 누를 때 got.rec 를 씀)
+            show(r, function (id) {
+                var b = photoBlob(got.photos[id]);
+                return Promise.resolve(b ? URL.createObjectURL(b) : null);
+            });
         });
         // 연 GPX 파일도 🛩 3D 영상(2026-11-23 홍TV님) · 📐 GPX 편집(2026-11-24 홍TV님 "넣어줘") - 저장 · 삭제는 내 기록에만 있어 숨김
         $("recBtns").hidden = false; $("rec-save").hidden = true; $("rec-edit").hidden = EN; $("rec-del").hidden = true;   // GPX 편집은 한국어 화면만

@@ -77,14 +77,19 @@ public class VideoKitTest {
             && app.contains("if (map.getLayer(\"hillshade\")) map.setPaintProperty(\"hillshade\", \"hillshade-exaggeration\", 0.75);")
             && read("src/main/webapp/js/kit-app.js").contains("function videoRelief(ele)"));
         assertTrue("3D 영상 오른쪽 아래 고도 그래프 - 지금 자리까지 색이 참(2026-11-25 홍TV님, 점은 course-kit.test.js videoProfile)",
-            app.contains("var vp = RF.videoProfile(c.dist, c.ele, c.total, 400);") && app.contains("var done = Math.max(0, Math.min(1, anim.d / c.total)), cx = gx + done * gw;")
+            app.contains("vp = RF.videoProfile(ec.dist, ec.ele, ec.total, 400);") && app.contains("var done = Math.max(0, Math.min(1, anim.d / c.total)), cx = gx + done * gw;")
             && app.contains("var cs = Math.max(16, Math.round(W / 70));\n            drawProfile(cs);"));
         assertTrue("그래프 \"최고\" 는 요약 \"가장 높은 곳\" 과 같은 RF.recordHighest - 기록 보기 · 3D 영상 모두, 영상 해발도 정상 50m 안은 공식 높이(2026-11-25 홍TV님 \"일치해야지\")",
             read("src/main/webapp/js/trip.js").contains("top: RF.recordHighest(rc, famRaw ? famRaw.peaks : [], famRaw ? famRaw.elev : {}) });")
             && read("src/main/webapp/js/trip.js").contains("drawProf();   // 그래프 \"최고\" 도 같은 값으로")
             && read("src/main/webapp/js/course-kit.js").contains("var top = opts.top != null ? opts.top : c.course && c.course.ele_max_m != null")
-            && app.contains("var vpTop = vp ? RF.recordHighest(c, [], {}) : null;") && app.contains("var h = vp ? RF.recordHighest(c, f.peaks, f.elev) : null;")
+            && app.contains("var setTop = function () { if (vp) vpTop = RF.recordHighest(ec, fam ? fam.peaks : [], fam ? fam.elev : {}); };")
             && app.contains("g.fillText(T(\"최고 \", \"Max \") + num(vpTop) + \" m\"") && app.contains("if (RF.distM(p.lat, p.lon, pk.lat, pk.lon) <= 50) oe = pk.ele;"));
+        assertTrue("내 기록 · 연 GPX · 3D 영상 높이는 지형 자료 높이(폰 GPS 높이는 약 25m 높음 - 덕기봉 111 → 90, 2026-11-25 홍TV님 \"둘 다 해\", 셈은 course-kit.test.js withEles · recordHighest)",
+            read("src/main/webapp/js/trip.js").contains("terrainRec(rec).then(function (r) {") && read("src/main/webapp/js/trip.js").contains("terrainRec(got.rec).then(function (r) {")
+            && read("src/main/webapp/js/trip.js").contains("return Promise.race([work, late]).then(function (e) { return RF.withEles(rec, e); });")
+            && read("src/main/webapp/js/course-kit.js").contains("function terrainEles(lat, lon, demUrl, z) {")
+            && app.contains("Promise.race([RF.terrainEles(c.lat, c.lon, demNow)") && app.contains("p = eleReady ? at(ec, anim.d) : null"));
         assertTrue("3D 영상은 출처 줄을 늘 영상에", app.contains("if (VIDEO.rec) videoRecord(c, credit.textContent);") && app.contains("lines.forEach(function (l, i) { g.fillText(l, 20,"));
         assertTrue("지도 그림을 옮겨 그리려면 영상 만들 때만 preserveDrawingBuffer",
                 app.contains("canvasContextAttributes: VIDEO && VIDEO.rec ? { preserveDrawingBuffer: true } : undefined"));
