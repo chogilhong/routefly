@@ -131,6 +131,9 @@ public class Checkup14Test {
         for (String f : new String[] {"trip.js", "studio.js", "hike.js", "park.js", "route.js", "mountain.js"})
             assertFalse(f, read("src/main/webapp/js/" + f).contains("fetch(\"api/course-upload\", { headers: { Accept: \"application/json\" }, cache: \"no-store\" })")
                     || read("src/main/webapp/js/" + f).contains("fetch(\"../api/course-upload\""));
+        // 📊 옆 "자세히" 는 PC 넓은 화면만(2026-11-24 홍TV님 "이거 해줘") - 폰은 그림만
+        assertTrue(hk.contains("edTx.textContent = T(\" 자세히\", \" Details\");") && read("src/main/webapp/hike.html").contains("#pickList .it .fly .edTx { display:none;")
+                && read("src/main/webapp/hike.html").contains("@media (min-width:900px) {\n  #pickList .it .fly .edTx { display:inline; }"));
         assertFalse(read("src/main/webapp/hike.html").contains(".adRail { display:none; }") || read("src/main/webapp/css/mountain.css").contains(".adRail { display:none; }"));
     }
 }

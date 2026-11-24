@@ -4469,6 +4469,10 @@
                 var ed = document.createElement("a");
                 ed.className = "fly studio";
                 ed.textContent = "📊";   // 자세히 보기(2026-11-24 점검 14차 C5 - 기록 보기의 📐 GPX 편집과 같은 그림이라 헷갈렸음)
+                var edTx = document.createElement("span");   // PC 넓은 화면은 글자도(2026-11-24 홍TV님 "이거 해줘" - 그림만으로는 무엇인지 몰랐음), 폰은 글자 칸이 좁아 그림만(CSS)
+                edTx.className = "edTx";
+                edTx.textContent = T(" 자세히", " Details");
+                ed.appendChild(edTx);
                 ed.title = T("코스 자세히 보기(지도 · 높이 그래프 · 구간)", "Course details (map · elevation · sections)");
                 ed.setAttribute("aria-label", ed.title);
                 ed.href = "trip.html?c=" + encodeURIComponent(r.course_id) + (r.title ? "&title=" + encodeURIComponent(r.title) : "") + (EN ? "&lang=en" : "");

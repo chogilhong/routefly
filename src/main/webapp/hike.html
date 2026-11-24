@@ -195,6 +195,12 @@ html.rfwait body { visibility:hidden; }   /* 앱을 처음 열 때 서버에 닿
 #pickList .it.hased { padding-right:130px; }   /* 운영자 기기 - fly(3D) 옆에 📐(GPX 편집) */
 #pickList .it.hased .fly:not(.studio) { right:56px; }
 #pickList .it .fly.studio { right:10px; padding:0 8px; }
+#pickList .it .fly .edTx { display:none; font-size:13px; color:inherit; }   /* 📊 옆 "자세히" - PC 넓은 화면만(아래 900px) */
+@media (min-width:900px) {
+  #pickList .it .fly .edTx { display:inline; }
+  #pickList .it.hased { padding-right:190px; }
+  #pickList .it.hased .fly:not(.studio) { right:104px; }
+}
 #pickList .it .fly[hidden] { display:none; }
 #pickList .it .fly { position:absolute; right:10px; top:50%; transform:translateY(-50%); height:34px; line-height:34px; padding:0 10px; border-radius:8px;
                      border:1px solid var(--ln); background:rgba(255,255,255,0.06); color:var(--tx); text-decoration:none; font-size:13px; white-space:nowrap; }
