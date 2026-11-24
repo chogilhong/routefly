@@ -41,31 +41,36 @@
     if (boxes.length) { var ins0 = boxes[0].querySelector("ins.adsbygoogle"); load(ins0 && ins0.getAttribute("data-ad-client"), boxes); }
     if (!spots.length || !window.fetch) return;
     var en = document.documentElement.lang === "en", byWhere = {};
+    function makeBox(spot, a) {
+        var rail = spot.classList.contains("adRail");
+        var box = document.createElement("aside"), note = document.createElement("p"), ins = document.createElement("ins");
+        box.className = "adBox";
+        box.setAttribute("aria-label", en ? "Ad" : "광고");
+        box.style.cssText = rail ? "margin:0" : "margin:18px 0 8px";
+        note.className = "adNote";
+        note.textContent = en ? "Ad" : "광고";
+        note.style.cssText = "margin:0 0 4px;font-size:12px;color:#8a94a0";
+        ins.className = "adsbygoogle";
+        ins.style.display = "block";
+        ins.setAttribute("data-ad-client", a.client);
+        ins.setAttribute("data-ad-slot", a.slot);
+        ins.setAttribute("data-ad-format", rail ? "vertical" : "auto");   // 양옆은 세로 광고
+        if (!rail) ins.setAttribute("data-full-width-responsive", "true");
+        box.appendChild(note);
+        box.appendChild(ins);
+        spot.appendChild(box);
+        return box;
+    }
+    function whenShown(el, f) {
+        if (el.offsetWidth > 0) { f(); return; }
+        var t = setInterval(function () { if (!el.parentNode) { clearInterval(t); return; } if (el.offsetWidth > 0) { clearInterval(t); f(); } }, 2000);
+    }
     spots.forEach(function (s) { var w = s.getAttribute("data-where"); (byWhere[w] = byWhere[w] || []).push(s); });
     Object.keys(byWhere).forEach(function (where) {
         fetch(root + "api/ad?where=" + encodeURIComponent(where)).then(function (r) { return r.ok ? r.json() : {}; }).then(function (a) {
             if (!a || !/^ca-pub-\d{10,20}$/.test(a.client || "") || !/^\d{6,12}$/.test(a.slot || "")) { drop(byWhere[where]); return; }
-            var made = byWhere[where].map(function (spot) {
-                var rail = spot.classList.contains("adRail");
-                var box = document.createElement("aside"), note = document.createElement("p"), ins = document.createElement("ins");
-                box.className = "adBox";
-                box.setAttribute("aria-label", en ? "Ad" : "광고");
-                box.style.cssText = rail ? "margin:0" : "margin:18px 0 8px";
-                note.className = "adNote";
-                note.textContent = en ? "Ad" : "광고";
-                note.style.cssText = "margin:0 0 4px;font-size:12px;color:#8a94a0";
-                ins.className = "adsbygoogle";
-                ins.style.display = "block";
-                ins.setAttribute("data-ad-client", a.client);
-                ins.setAttribute("data-ad-slot", a.slot);
-                ins.setAttribute("data-ad-format", rail ? "vertical" : "auto");   // 양옆은 세로 광고
-                if (!rail) ins.setAttribute("data-full-width-responsive", "true");
-                box.appendChild(note);
-                box.appendChild(ins);
-                spot.appendChild(box);
-                return box;
-            });
-            load(a.client, made);
+            // 숨은 자리(따라가기에 코스를 연 채로 들어와 목록이 안 보일 때)는 보일 때 채움 - 애드센스는 폭이 0 인 칸을 못 채움
+            byWhere[where].forEach(function (spot) { whenShown(spot, function () { load(a.client, [makeBox(spot, a)]); }); });
         }).catch(function () { /* 광고 없이 */ });
     });
 })();

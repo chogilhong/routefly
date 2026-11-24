@@ -23,7 +23,9 @@ public class AdsTest {
         assertTrue(SecurityFilter.cspFor("/m/설악산").contains("pagead2.googlesyndication.com"));
         assertTrue(SecurityFilter.cspFor("/c/knps-1").contains("pagead2.googlesyndication.com"));
         assertTrue(SecurityFilter.cspFor("/en/m/seoraksan").contains("googlesyndication"));
-        for (String safe : new String[] {"/hike.html", "/party.html", "/party-office.html", "/index.html", "/api/party/view"})
+        // 따라가기(hike.html)는 2026-11-24 홍TV님 "1, 2 화면에서만 광고를 사이드에" - 코스 목록 양옆 자리 때문에 곳을 엶(광고 칸은 목록 안에만, PickWideAdsTest)
+        assertTrue(SecurityFilter.cspFor("/hike.html").contains("googlesyndication"));
+        for (String safe : new String[] {"/party.html", "/party-office.html", "/index.html", "/api/party/view"})
             assertFalse(safe, SecurityFilter.cspFor(safe).contains("googlesyndication"));
         assertTrue("화면 안 스크립트는 그대로 막음", SecurityFilter.cspFor("/m/x").contains("script-src 'self' https:") && !SecurityFilter.cspFor("/m/x").contains("unsafe-inline' https://pagead"));
     }

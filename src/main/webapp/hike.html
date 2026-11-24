@@ -203,6 +203,14 @@ html.rfwait body { visibility:hidden; }   /* 앱을 처음 열 때 서버에 닿
 #pickList .tapHint { padding:8px 14px 2px; font-size:13px; }
 #pickList .it.hasfly { cursor:pointer; }
 @media (hover:hover) { #pickList .it.hasfly:hover { background:rgba(127,127,127,0.10); } #pickList .it.hasfly:hover .go { background:var(--sky); color:var(--onsky,#062b30); } }
+/* 코스 목록 PC 양옆 광고(2026-11-24 홍TV님 "목록에서만") - #pick 안이라 코스를 열면(따라가기 지도) 함께 숨음. 1200px 아래 · 앱은 없음(js/ads.js 가 지움) */
+.adRail { display:none; }
+@media (min-width:1200px) {
+  #pick > .adRail { display:block; position:fixed; top:90px; width:160px; min-height:600px; z-index:11; }
+  #pick > .adRail.left { left:calc(50% - 380px - 190px); }
+  #pick > .adRail.right { right:calc(50% - 380px - 190px); }
+  .adRail .adNote { margin:0 0 4px; font-size:12px; color:#8a94a0; }
+}
 /* PC(넓은 화면)는 코스 모음(/m/)처럼 가운데 760px - 2026-11-24 홍TV님 "첫 화면처럼 좌우 사이즈를 줄여줘". 폰은 그대로 */
 @media (min-width:900px) {
   #pick { align-items:center; }
@@ -524,6 +532,7 @@ html.picking #pick { display:flex; }
     <div id="pickList"><div class="msg" data-en="Search by mountain name, or tap &quot;Near me&quot; at a trailhead.">산 이름으로 찾거나, 산 입구에서 "내 주변 코스" 를 누르세요.</div></div>
     <!-- ⛰️ 코스 모음(/m/ - 2026-10-15 홍TV님) -->
     <!-- 늘 보이는 아랫줄(2026-10-11 PC: 사용법 링크가 안내 글 안에만 있어 지난 검색 목록이 떠 있으면 안 보였음) -->
+    <div class="adSpot adRail left" data-where="side"></div><div class="adSpot adRail right" data-where="side"></div>
     <div id="pickFoot" data-en="&lt;a href=&quot;#&quot; data-onboard&gt;❓ Help&lt;/a&gt; · &lt;a href=&quot;about-en.html&quot;&gt;⚠ Safety · sources&lt;/a&gt; · &lt;a href=&quot;terms-en.html&quot;&gt;Terms&lt;/a&gt; · &lt;a href=&quot;privacy-en.html&quot;&gt;Privacy&lt;/a&gt; · &lt;a href=&quot;lbs-terms-en.html&quot;&gt;Location terms&lt;/a&gt; · &lt;a href=&quot;party.html?lang=en&quot;&gt;🧑‍🤝‍🧑 Hiking club room&lt;/a&gt; · &lt;a href=&quot;party-office.html?lang=en&quot;&gt;🏢 Company office&lt;/a&gt; · &lt;a href=&quot;feedback.html?from=/hike.html&amp;amp;lang=en&quot;&gt;📮 Feedback&lt;/a&gt;"><a href="#" data-onboard>❓ 사용법</a> · <a href="about.html" title="안전 · 출처 안내">⚠ 안전 · 출처</a> · <a href="terms.html">이용약관</a> · <a href="privacy.html">개인정보처리방침</a> · <a href="lbs-terms.html">위치기반서비스 이용약관</a> · <a href="party.html?lang=ko" title="안내 산악회 - 인솔자가 회원 위치 · SOS 를 봄(참가 · 동의한 사람만)">🧑‍🤝‍🧑 산악회 방</a> · <a href="party-office.html" title="안내 산악회 · 여행사 - 여러 방을 한 화면에">🏢 회사 사무실</a> · <a href="feedback.html?from=/hike.html">📮 의견 보내기</a></div>
 </div>
 
@@ -837,6 +846,7 @@ html.picking #pick { display:flex; }
 <script src="js/rf-dialog.js"></script>
 <script src="js/party-kit.js"></script>
 <script src="js/hike.js"></script>
+<script src="js/ads.js" defer></script><!-- 코스 목록(#pick) PC 양옆 광고만(2026-11-24 홍TV님 "목록에서만") - 1200px 넘을 때 · 앱 제외, 코스를 열면 목록째 숨음 -->
 <script src="js/party-bar.js"></script>
 <script src="js/onboard.js"></script>
 <script src="js/app-store.js"></script>

@@ -62,7 +62,8 @@ public class SecurityFilter extends HttpFilter {
     /** 순수 함수 - 이 경로에 줄 CSP. */
     static String cspFor(String path) {
         if ("/tools.html".equals(path)) return CSP_TOOLS;
-        return path != null && (path.startsWith("/m/") || path.startsWith("/en/m/") || path.startsWith("/c/") || "/m".equals(path) || "/series.html".equals(path)) ? CSP_ADS : CSP;
+        // 따라가기(hike.html)는 코스 목록 양옆 광고 때문에(2026-11-24 홍TV님 "목록에서만, 세 번째(따라가기 지도) 화면에서는 광고는 달지 않아") - 광고 칸은 목록(#pick) 안에만, PC 1200px 넘을 때 · 앱 제외(js/ads.js)
+        return path != null && (path.startsWith("/m/") || path.startsWith("/en/m/") || path.startsWith("/c/") || "/m".equals(path) || "/series.html".equals(path) || "/hike.html".equals(path)) ? CSP_ADS : CSP;
     }
 
     @Override

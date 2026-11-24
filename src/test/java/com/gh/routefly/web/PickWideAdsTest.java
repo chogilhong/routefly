@@ -22,7 +22,11 @@ public class PickWideAdsTest {
         assertTrue("PC 900px 넘으면 가운데 760px", html.contains("@media (min-width:900px) {\n  #pick { align-items:center; }")
                 && html.contains("#pick > header, #pick > #pickList, #pick > #pickFoot, #pick > [data-app-store] { width:100%; max-width:760px; box-sizing:border-box; }"));
         assertTrue("줄마다 ▶ 따라가기 · 맨 위 한 줄", js.contains("go.textContent = T(\"▶ 따라가기\", \"▶ Follow\");") && js.contains("hint.className = \"msg tapHint\";"));
-        assertFalse("따라가기 화면(hike.html)에는 광고를 넣지 않음", html.contains("js/ads.js") || html.contains("adRail"));
+        // 2026-11-24 홍TV님 "목록에서만, 세 번째(따라가기 지도) 화면에서는 광고는 달지 않아" - 양옆 자리는 목록(#pick) 안에만
+        int pick = html.indexOf("<div id=\"pick\">"), rails = html.indexOf("<div class=\"adSpot adRail left\" data-where=\"side\"></div><div class=\"adSpot adRail right\" data-where=\"side\"></div>"), foot = html.indexOf("<div id=\"pickFoot\"");
+        assertTrue("양옆 자리는 목록 안(코스를 열면 함께 숨음)", pick > 0 && rails > pick && rails < foot && html.indexOf("adRail", foot + 1) < 0);
+        assertTrue("ads.js · 1200px 아래 숨김", html.contains("<script src=\"js/ads.js\" defer></script>") && html.contains(".adRail { display:none; }\n@media (min-width:1200px) {\n  #pick > .adRail { display:block;"));
+        assertTrue("숨은 자리는 보일 때 채움", read("src/main/webapp/js/ads.js").contains("whenShown(spot, function () { load(a.client, [makeBox(spot, a)]); });"));
     }
 
     @Test

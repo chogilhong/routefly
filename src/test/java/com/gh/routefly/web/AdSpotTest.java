@@ -15,7 +15,7 @@ public class AdSpotTest {
         Map<String, String> cfg = Map.of("adsense.client", "ca-pub-0000000000000000", "adsense.slot.m", "1111111111", "adsense.slot.tools", "2222222222");
         assertEquals("2222222222", Ads.spot("tools", cfg::get).get("slot").getAsString());
         assertEquals("산 페이지 칸을 같이 씀", "1111111111", Ads.spot("series", cfg::get).get("slot").getAsString());
-        assertTrue("모르는 자리", Ads.spot("hike", cfg::get).entrySet().isEmpty());
+        assertTrue("모르는 자리", Ads.spot("hike", cfg::get).entrySet().isEmpty());   // 따라가기 목록 양옆은 "side"
         assertTrue("설정 없음", Ads.spot("tools", k -> null).entrySet().isEmpty());
         assertTrue("꼴이 틀림", Ads.spot("tools", Map.of("adsense.client", "x", "adsense.slot.m", "1111111111")::get).entrySet().isEmpty());
     }
@@ -25,7 +25,7 @@ public class AdSpotTest {
         assertTrue(SecurityFilter.cspFor("/series.html").contains("pagead2.googlesyndication.com"));
         String tools = SecurityFilter.cspFor("/tools.html");
         assertTrue(tools.contains("kakaocdn.net") && tools.contains("pagead2.googlesyndication.com"));
-        assertFalse("따라가기 화면에는 광고 곳 없음", SecurityFilter.cspFor("/hike.html").contains("googlesyndication"));
+        assertFalse("산악회 방에는 광고 곳 없음", SecurityFilter.cspFor("/party.html").contains("googlesyndication"));   // 따라가기는 2026-11-24 코스 목록 양옆 때문에 엶(AdsTest)
     }
 
     @Test
