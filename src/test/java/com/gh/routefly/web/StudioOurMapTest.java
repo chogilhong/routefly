@@ -24,7 +24,10 @@ public class StudioOurMapTest {
                 && js.contains("return (owner || !!x.pub) && (!x.ours || !!ourStyle);"));
         assertTrue("설정 map.basemap.url 로 모양을 먼저 읽음", js.contains("RFMap.open(j.basemapUrl, dem)") && js.contains("ourStyle = s;"));
         assertTrue("층 · 소스 이름에 rfm- (편집 층과 안 겹침) · 고른 때만 보임", js.contains("sources[OUR + k] = ourStyle.sources[k];") && js.contains("c.id = OUR + l.id;")
-                && js.contains("c.layout.visibility = ourVis(l, pref.base);"));
+                && js.contains("c.layout.visibility = ourVis(l, base);") && js.contains("ourStyle.layers.forEach(function (l) { layers.push(ourLayer(l, pref.base)); });"));
+        // 바탕으로 고를 때만 소스를 넣음(점검 14차 D4) - 처음 그림은 우리 지도가 고른 바탕일 때만, 나중에 고르면 겹침 아래에 넣음
+        assertTrue("고를 때만 넣음", js.contains("if (ourStyle && pref.base === \"rf\") {") && js.contains("if (p.base === \"rf\") addOurs(p.base);")
+                && js.contains("if (!map.getSource(OUR + k)) map.addSource(OUR + k, ourStyle.sources[k]);"));
         assertTrue("고르면 한꺼번에 보이기 · 숨기기", js.contains("map.setLayoutProperty(OUR + l.id, \"visibility\", ourVis(l, p.base));"));
         assertTrue("출처 두 번 막기 - 처음 · 바탕을 바꿀 때 출처 칸을 새로", js.contains("attrib(mapPref().base === \"rf\");") && js.contains("if (inp.type === \"radio\") attrib(p.base === \"rf\");")
                 && js.contains("if (attribCtl) map.removeControl(attribCtl);"));

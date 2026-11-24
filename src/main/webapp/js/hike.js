@@ -1454,7 +1454,7 @@
     // 2026-11-01 점검: 읽기가 한 번 실패하면(옮긴 뒤라 localStorage 는 빈 목록) 산행을 마칠 때 IndexedDB 의 기록 30개를 [새 기록] 하나로 덮고
     // gcPhotos 가 옛 사진까지 지웠습니다. recBad 동안은 쓰기 전에 다시 읽어 합치고, 그래도 못 읽으면 IndexedDB 를 덮지 않고(localStorage 에만) 사진도 지우지 않음
     var recBad = false;
-    function recKey(r) { return r ? r.start + "|" + (r.courseId || "") : ""; }
+    var recKey = RF.recKey;   // 기록 보기 · GPX 편집과 같은 열쇠(점검 14차 F2)
 
     function records() { return recCache.slice(); }
 
@@ -2132,13 +2132,8 @@
         $("recSheet").style.display = "flex";
     }
 
-    /** 운영자 기기인가(/api/course-upload GET 의 owner - /stats 쿠키, 서버가 확인) - 한 번만 묻고 기억. park.js · route.js 의 studioLink 와 같은 물음. */
-    var ownerP = null;
-    function ownerDevice() {
-        if (!ownerP) ownerP = fetch("api/course-upload", { headers: { Accept: "application/json" }, cache: "no-store" }).then(function (r) { return r.ok ? r.json() : {}; })
-            .then(function (j) { return !!(j && j.owner); }).catch(function () { return false; });
-        return ownerP;
-    }
+    /** 운영자 기기인가(/api/course-upload GET 의 owner - /stats 쿠키, 서버가 확인) - 한 번만 묻고 기억. 여러 화면이 같이 씀(RF.ownerDevice, 점검 14차 F2). */
+    var ownerDevice = function () { return RF.ownerDevice(); };
 
     /** 기록 지우기(묻고) - 내 기록 ✕ · 기록 보기 화면의 ✕ 삭제(#recdo=del). 지운 뒤 내 기록 목록을 그림. */
     function delRecord(r) {
@@ -2541,9 +2536,18 @@
     function photoBig(url, text) {
         $("photoBigImg").src = url;
         $("photoBigText").textContent = text || "";
+        if ($("photoBig").style.display !== "flex") photoBigFrom = document.activeElement;
         $("photoBig").style.display = "flex";
+        $("photoBig").focus();   // 키보드 · 화면 읽기가 사진 창으로, Esc 로 닫고 누른 곳으로 돌아감(점검 14차 C9)
     }
-    $("photoBig").addEventListener("click", function () { $("photoBig").style.display = "none"; $("photoBigImg").removeAttribute("src"); });
+    var photoBigFrom = null;
+    function photoBigClose() {
+        $("photoBig").style.display = "none"; $("photoBigImg").removeAttribute("src");
+        if (photoBigFrom && photoBigFrom.focus) try { photoBigFrom.focus(); } catch (e) { /* 지워진 칸 */ }
+        photoBigFrom = null;
+    }
+    $("photoBig").addEventListener("click", photoBigClose);
+    $("photoBig").addEventListener("keydown", function (e) { if (e.key === "Escape" || e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); photoBigClose(); } });
 
     function loadNotes() {
         try { return JSON.parse(localStorage.getItem(saveKey() + "-notes") || "[]"); } catch (e) { return []; }

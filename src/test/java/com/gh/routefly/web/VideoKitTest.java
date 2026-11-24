@@ -57,7 +57,7 @@ public class VideoKitTest {
         assertTrue("내 기록 📈 창은 없애고 기록 보기 화면에 [🛩 3D 영상] [💾 GPX 저장] [📐 GPX 편집(2026-11-24, 📮 등록 요청 대신)] [✕ 삭제](2026-11-23 홍TV님), 🎬 영상용(그림 · 고도 영상 · 공개 링크 만들기)은 뺌(2026-11-22 홍TV님 \"나머지는 모두 삭제\")",
             !html.contains("recView") && !js.contains("recView") && !js.contains("function showRecord(")
             && trip.contains("<button type=\"button\" id=\"rec-fly\" data-en=\"🛩 3D video\">🛩 3D 영상</button><button type=\"button\" id=\"rec-save\" data-en=\"💾 Save GPX\">💾 GPX 저장</button><button type=\"button\" id=\"rec-edit\" data-en=\"📐 Edit GPX\">📐 GPX 편집</button>")
-            && tjs.contains("$(\"openBtn\").hidden = true;") && trip.contains("#openBtn[hidden] { display:none; }") && trip.contains("#recBtns[hidden] { display:none; }") && tjs.contains("location.href = (EN ? \"hike.html?lang=en\" : \"hike.html\") + \"#recdo=\" + k + \":\" + encodeURIComponent(recParam);")
+            && tjs.contains("$(\"openBtn\").hidden = true;") && trip.contains("#openBtn[hidden] { display:none; }") && trip.contains("#recBtns[hidden] { display:none; }") && tjs.contains("var u = (EN ? \"hike.html?lang=en\" : \"hike.html\") + \"#recdo=\" + k + \":\" + encodeURIComponent(recParam); if (k === \"del\") location.replace(u); else location.href = u;")
             && js.contains("var rd = /^#recdo=(fly|save|del):(.+)$/.exec(location.hash);") && js.contains("if (what === \"fly\") fly3d(r);\n            else if (what === \"save\") downloadGpx(r);\n            else delRecord(r);")
             && tjs.contains("$(\"rec-edit\").onclick = function () { location.href = \"studio.html#rec=\" + encodeURIComponent(recParam); };")
             && tjs.contains("RF.recordSummary(curRec, famRaw ? famRaw.peaks : [], famRaw ? famRaw.elev : {}, EN)")

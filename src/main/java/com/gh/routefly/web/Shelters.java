@@ -115,10 +115,6 @@ final class Shelters {
     }
 
     /**
-     * 순수 함수 - "🏠 대피소" 칸. 이름은 따라가기 검색(그 대피소를 지나는 코스)으로, 예약 받는 곳은 "예약 ›"(새 창).
-     * rel - 앱 안 상대 주소 앞부분(".." 등). 없으면 빈 글.
-     */
-    /**
      * 순수 함수 - 예약 링크 주소: 공단 예약 화면 + 그 산 탭(?deptId=, data/knps-shelters.json reserveDept). 탭 값이 없는 산은 예약 화면 첫 주소.
      * 공단 화면은 탭이 골라진 채 열리고 표는 탭을 한 번 더 눌러야 뜸(PC 조사 2026-11-21 - 바로 표가 뜨는 주소는 없음). 따라가기 검색 카드(hike.js)도 같은 규칙.
      */
@@ -130,6 +126,10 @@ final class Shelters {
         return id != null && id.matches("[A-Z0-9]{1,8}") ? url + "?deptId=" + id : url;
     }
 
+    /**
+     * 순수 함수 - "🏠 대피소" 칸. 이름은 따라가기 검색(그 대피소를 지나는 코스)으로, 예약 받는 곳은 "예약 ›"(새 창).
+     * rel - 앱 안 상대 주소 앞부분(".." 등). 없으면 빈 글.
+     */
     static String block(JsonObject d, List<JsonObject> list, String rel, boolean en) {
         if (list.isEmpty()) return "";
         String park = list.get(0).has("park") ? list.get(0).get("park").getAsString() : null;   // 한 칸은 한 공원(ofPark)

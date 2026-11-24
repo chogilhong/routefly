@@ -139,8 +139,7 @@
     }
     // 📐 GPX 편집 고리는 운영자 기기만(2026-11-22 홍TV님 "GPX 편집은 나만 보이게") - 서버가 /stats 쿠키로 확인(api/course-upload owner). 편집 화면도 서버가 다시 확인
     var studioA = document.getElementById("studioLink");
-    if (studioA) fetch("../api/course-upload", { headers: { Accept: "application/json" }, cache: "no-store" }).then(function (r) { return r.ok ? r.json() : {}; })
-        .then(function (j) { if (j && j.owner) studioA.hidden = false; }).catch(function () { /* 숨긴 채 */ });
+    if (studioA && window.RF && window.RF.ownerDevice) window.RF.ownerDevice("../").then(function (own) { if (own) studioA.hidden = false; });   // 숨긴 채 - 못 물으면 false
 
     // 제휴 · 후원 링크(api/partners) - 한 번만 받아 ☕ 후원 줄과 🎒 추천 상품(쿠팡)이 함께 씀
     var partnersP = fetch("../api/partners").then(function (r) { return r.json(); });

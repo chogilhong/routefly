@@ -48,6 +48,16 @@
         });
     }
 
+    /**
+     * "3시간 5분" - 2026-10-09 점검: 분을 먼저 반올림하고 시 · 분을 나눕니다(예전에는 3시간 59분 40초가 "3시간 0분").
+     * withZeroHour 면 1시간 안 될 때도 "0시간 40분".
+     */
+    function hm(ms, withZeroHour) {
+        var m = Math.max(0, Math.round(ms / 60000)), h = Math.floor(m / 60);
+        if (LANG === "en") return (h || withZeroHour ? h + " h " : "") + (m % 60) + " min";
+        return (h || withZeroHour ? h + "시간 " : "") + (m % 60) + "분";
+    }
+
     /** 화면에 쓸 장소 이름 - "설악산국립공원사무소남설악탐방지원센터" → "남설악탐방지원센터", "중청 대피소" → "중청대피소". */
     /**
      * 순수 함수 - "…정상" 이름 줄이기: 봉우리 이름이 있으면 그 봉 이름("지리산 천왕봉 정상" · "천왕봉정상" → 천왕봉),
@@ -144,6 +154,33 @@
         var cut = n.replace(/^\S{0,12}?(국립공원(관리)?(공단|사무소)?|도립공원(관리)?사무소|군립공원(관리)?사무소|관리사무소)\s*(?=\S*(탐방지원센터|탐방안내소|안내소|안내센터|분소|매표소))/, "").trim();
         if (cut.length < 2) cut = n;
         return cut.replace(/\s+(탐방지원센터|탐방안내소|안내소|분소|매표소|대피소|휴게소|주차장|폭포)$/, "$1");
+    }
+
+    /** 공단 오름 시간이 선 1km 에 이보다 길면 선이 공식 구간의 일부(2026-10-30 점검: 공단 코스 147개는 40 ~ 55분, 설악산 소공원 → 희운각 1.47km 에 230분). */
+    var INFO_PART_MIN_PER_KM = 65;
+
+    /** 순수 함수 - 공단 시간이 이 선(distM) 전체가 아니라 더 긴 공식 구간 것인가. 거리 · 시간이 없으면 false. */
+    function infoPartial(info, distM) {
+        return !!info && +info.up_min > 0 && +distM > 0 && +info.up_min / (+distM / 1000) > INFO_PART_MIN_PER_KM;
+    }
+
+    /**
+     * 공식 정보(국립공원 탐방로 자료) → "공단 기준 오름 4시간 · 내림 3시간 · 난이도 2.27". 없으면 null.
+     * info: {up_min, down_min, level} (api/course 의 info).
+     * distM - 선 길이(있으면 공단 시간이 더 긴 공식 구간 것일 때 그렇다고 덧붙임 - infoPartial).
+     */
+    function infoText(info, distM) {
+        if (!info) return null;
+        var parts = [], part = infoPartial(info, distM);
+        if (LANG === "en") {
+            if (+info.up_min > 0) parts.push("up " + hm(+info.up_min * 60000));
+            if (+info.down_min > 0) parts.push("down " + hm(+info.down_min * 60000));
+            return parts.length ? "Park service: " + parts.join(" · ") + (part ? " (for the whole official route - this line is only part of it)" : "") : null;
+        }
+        if (+info.up_min > 0) parts.push("오름 " + hm(+info.up_min * 60000));
+        if (+info.down_min > 0) parts.push("내림 " + hm(+info.down_min * 60000));
+        if (info.level != null && String(info.level).trim()) parts.push("난이도 " + String(info.level).trim());
+        return parts.length ? "공단 기준 " + parts.join(" · ") + (part ? " (공단 시간은 전체 구간 기준 - 이 선은 그 일부)" : "") : null;
     }
 
     /**
@@ -815,6 +852,7 @@
      * 최근 GPX_KEEP 개만. 서버에는 올리지 않습니다.
      */
     var GPX_PREFIX = "gpx-", GPX_LIST_KEY = "rf-gpx-list", GPX_KEEP = 10;
+    function isGpxId(id) { return String(id).indexOf(GPX_PREFIX) === 0; }
     function gpxId(text) {
         var h = 5381;
         for (var i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) | 0;
@@ -1351,6 +1389,39 @@
         return rev ? out.reverse() : out;
     }
 
+    /** 순수 함수 - 기록 하나의 열쇠 "시작 시각|코스 ID" - 따라가기 내 기록 · 기록 보기 ?rec= · GPX 편집 #rec= 가 같이 씀(점검 14차 F2 - 같은 식 여러 벌). 없으면 "". */
+    function recKey(r) { return r ? r.start + "|" + (r.courseId || "") : ""; }
+
+    /** 이 기기의 내 기록 목록(따라가기가 쓰는 IndexedDB rf-records, 못 쓰는 기기는 localStorage rf-records) - 기록 보기 · GPX 편집이 같이 씀. 못 읽으면 []. */
+    function myRecords() {
+        var local = function () { try { var a = JSON.parse(localStorage.getItem("rf-records") || "[]"); return Array.isArray(a) ? a : []; } catch (e) { return []; } };
+        return new Promise(function (resolve) {
+            if (!global.indexedDB) { resolve(null); return; }
+            var r = indexedDB.open("rf-records", 1);
+            r.onupgradeneeded = function () { r.result.createObjectStore("r"); };   // 따라가기와 같은 모양(처음이면 빈 저장소)
+            r.onerror = function () { resolve(null); };
+            r.onsuccess = function () {
+                var db = r.result;
+                try {
+                    var q = db.transaction("r", "readonly").objectStore("r").get("list");
+                    q.onsuccess = function () { db.close(); resolve(Array.isArray(q.result) ? q.result : null); };
+                    q.onerror = function () { db.close(); resolve(null); };
+                } catch (e) { db.close(); resolve(null); }
+            };
+        }).then(function (list) {   // 따라가기가 IndexedDB 를 못 써 localStorage 에만 남긴 기록도 합침(따라가기 recordsReady 와 같게, 30개)
+            var ls = local();
+            return list ? (ls.length ? mergeRecords(list, ls, 30) : list) : ls;
+        });
+    }
+
+    /** 운영자 기기인가 - GET api/course-upload 의 owner(서버가 /stats 쿠키로 확인). 한 번만 묻고 기억(점검 14차 F2 - 화면마다 같은 물음 여섯 벌). root - 앞 경로("../" 등). */
+    var ownerQ = null;
+    function ownerDevice(root) {
+        if (!ownerQ) ownerQ = fetch((root || "") + "api/course-upload", { headers: { Accept: "application/json" }, cache: "no-store" }).then(function (r) { return r.ok ? r.json() : {}; })
+            .then(function (j) { return !!(j && j.owner); }).catch(function () { return false; });
+        return ownerQ;
+    }
+
     /**
      * 코스 하나를 받아 fromApi 꼴로(이은 코스 · 자른 구간이면 조각마다 받아 joinedCourse) - GPX 편집 · 코스 보기 · 코스 GPX 저장이 같이 씀
      * (점검 14차 A5, 2026-11-24: 코스 보기 · GPX 저장이 이은 ID 를 api/course 에 한 번에 물어 400 으로 실패했음). json(url) → Promise(JSON, 실패면 reject).
@@ -1474,6 +1545,14 @@
         };
     }
 
+    /** 순수 함수 - 코스 위 d0 → d1 사이에 오른 · 내려간 높이(m). 코스 고도로 셉니다(GPS 고도는 많이 흔들림). */
+    function climbBetween(c, d0, d1) {
+        var i0 = indexAt(c, Math.min(d0, d1)), i1 = indexAt(c, Math.max(d0, d1));
+        var up = c.asc[i1] - c.asc[i0], e0 = c.ele ? c.ele[i0] : null, e1 = c.ele ? c.ele[i1] : null;
+        var down = e0 == null || e1 == null ? 0 : Math.max(0, up - (e1 - e0));
+        return { up: Math.max(0, up), down: down };
+    }
+
     /**
      * 순수 함수 - 소모 칼로리(kcal) 추정. 몸무게 kg × (평지 거리 + 오른 높이 + 내려간 높이).
      *   걷기 · 등산: 0.7 kcal/kg/km, 오르막 0.0094 kcal/kg/m(몸을 1m 들어 올리는 일 ÷ 효율 25%), 내리막 그 1/3
@@ -1516,6 +1595,21 @@
     }
 
     /**
+     * 순수 함수 - 코스 ID → 출처 {kind:"source", text, en, checked:false}(서버 CourseSource.of 와 같은 앞부분 - 2026-11-01 홍TV님).
+     * 서버 답의 course.source 가 먼저이고, 이것은 그 칸이 없을 때(받아 둔 옛 코스 · 내 GPX)만. 이은 코스는 첫 구간 것. 올린 코스(u-)는 만든 이를 몰라 null, 모르는 앞부분도 null.
+     */
+    function courseSource(id) {
+        var parts = parseJoinId(id), base = parts && parts.length ? parts[0].base : String(id || "");
+        var P = [["knps-", "국립공원공단", "Korea National Park Service"], ["frst-", "산림청", "Korea Forest Service"],
+                 ["drnb-", "한국관광공사 두루누비", "Korea Tourism Organization Durunubi"],
+                 ["kmp-", "한국등산·트레킹지원센터", "Korea Hiking & Trekking Support Center"], ["kmf-", "한국등산·트레킹지원센터", "Korea Hiking & Trekking Support Center"],
+                 ["osm", "OpenStreetMap", "OpenStreetMap"]];
+        if (isGpxId(base)) return { kind: "source", text: "내 GPX", en: "My GPX", checked: false };
+        for (var i = 0; i < P.length; i++) if (base.indexOf(P[i][0]) === 0) return { kind: "source", text: P[i][1], en: P[i][2], checked: false };
+        return null;
+    }
+
+    /**
      * 순수 함수 - 코스 GPX 를 누구나 💾 저장해도 되는가(2026-11-24 홍TV님 "너가 보기에 다운받을 수 있는 것만. 걸리는 것은 못 받게").
      * 되는 것: 공공데이터포털 "이용허락범위 제한 없음" 을 확인한 자료 - 국립공원공단(knps- · frst-9000NN 선형시설) · 산림청 등산로(frst-) ·
      *   한국등산·트레킹지원센터(kmp- · kmf-)(routefly-batch docs/public-gpx-sources.md), OpenStreetMap(osm…, ODbL - 출처 표시하면 됨),
@@ -1530,6 +1624,14 @@
             return /^(knps-|frst-|kmp-|kmf-|osm)/.test(b);
         });
     }
+    /** 순수 함수 - 💾 코스 GPX 에 넣는 출처 한 줄(코스 출처 + 지명 · 이름의 OpenStreetMap ODbL). */
+    function courseGpxCredit(id, src, en) {
+        var s = src || courseSource(id), who = s ? (en ? s.en || s.text : s.text) : "";
+        var osm = "© OpenStreetMap contributors (ODbL)";
+        if (!who || /^OpenStreetMap$/.test(who)) return (en ? "Source: " : "출처: ") + osm + " · routefly";
+        return (en ? "Source: " : "출처: ") + who + (s.kind === "maker" ? "" : en ? " (public data)" : " (공공데이터)") + (en ? " · names: " : " · 지명: ") + osm + (who === "routefly" ? "" : " · routefly");
+    }
+
     function trackGpx(name, kind, track, opt) {
         var esc = function (x) { return String(x).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); };
         var t = track || [], first = t[0] && t[0][2], wpts = "", meta = "";
@@ -1652,6 +1754,12 @@
         var k = kindOf(kind);
         return (distM / 1000 / k.kmh + (k.climb ? (+ascM || 0) / k.climb : 0) + (k.down ? (+descM || 0) / k.down : 0)) * 3600000;
     }
+    /** 순수 함수 - 코스 위 d0 → d1 표준 소요 시간(ms) - 그 사이 오르막 · 내리막(climbBetween)을 함께(2026-11-03 홍TV님). */
+    function legMs(c, d0, d1) {
+        var cl = climbBetween(c, d0, d1);
+        return standardMs(c.course && c.course.kind, Math.abs(d1 - d0), cl.up, cl.down);
+    }
+
     // ------------------------------------------------------------------ ① 고도 그래프
 
     var PW = 1000, PH = 100;
@@ -1962,6 +2070,67 @@
         return roman(s).replace(/([a-z])(\d)/g, "$1 $2").replace(/\s+/g, " ").replace(/ ([)\],])/g, "$1").replace(/([(\[]) /g, "$1").trim();
     }
 
+    // ------------------------------------------------------------------ 난이도 · 안내판 고도 그래프(2026-10-15 홍TV님 - 국립공원 탐방로 안내판처럼)
+
+    /** 5단계 - 색은 공단 탐방로 안내판 범례(매우쉬움 연두 · 쉬움 초록 · 보통 주황 · 어려움 자주 · 매우어려움 검정)에 맞춤. MountainServlet.LEVELS 와 같음. */
+    // 영어는 한국어 단계 그대로(2026-11-02 홍TV님 점검: 쉬움이 "Moderate" 로 한 칸씩 밀려 보였음)
+    var LEVELS = [{ ko: "매우 쉬움", en: "Very easy", color: "#a3c93a" }, { ko: "쉬움", en: "Easy", color: "#3fae5c" }, { ko: "보통", en: "Moderate", color: "#e8822a" },
+                  { ko: "어려움", en: "Hard", color: "#a23a6b" }, { ko: "매우 어려움", en: "Very hard", color: "#3a3f46" }];
+    /** 구간 경사(%) 단계 경계 - 안내판 구간 색 · 음성. 코스 난이도는 시간 · 오르막 총량(HOUR_STEPS · ASC_STEPS). MountainServlet 과 같은 값. */
+    var SLOPE_STEPS = [5, 10, 18, 28], HOUR_STEPS = [1.5, 3, 5, 8], ASC_STEPS = [300, 700, 1100, 1500], STEEP_STEPS = [20, 28, 36, 46];
+    function stepOf(v, steps) { var i = 0; while (i < steps.length && v >= steps[i]) i++; return i; }
+
+    /**
+     * 순수 함수 - 등산 코스 난이도 0~4(routefly 기준 - 공단 공식 등급이 아님). 표준 시간(4km/h + 오르막 600m/h) · 오르막 총량 ·
+     * 가장 가파른 1km 경사(steep %, 오르막 · 내리막 - 서버 Steep 이 목록에 steep_pct 로 줌, 없으면 뺌) 가운데 높은 단계.
+     * 코스가 길어지거나 오르막이 늘면 절대 내려가지 않음 - 2026-10-16 홍TV님: 예전 기준(전체 평균 경사)은 남설악 → 대청봉(4.7km · 1,273m)이 어려움인데
+     * 대청봉 → 가라피로 이어 내려가는 10.5km · 1,480m 코스가 평균 경사가 묽어져 보통이었음. 가파른 구간은 📈 고도 · 📋 안내판의 구간 경사로 봄.
+     */
+    function difficulty(distM, ascM, steep) {
+        distM = +distM || 0;
+        ascM = +ascM || 0;
+        if (distM <= 0) return null;
+        var base = Math.max(stepOf(distM / 1000 / 4 + ascM / 600, HOUR_STEPS), stepOf(ascM, ASC_STEPS));
+        // 가파름은 한 단계까지 올림(2026-10-16 PC: 문턱 12 · 18 · 25 · 32% 로는 설악산 57 중 47 이 매우 어려움 - 산길은 1km 30 ~ 40% 가 흔함).
+        // 다만 가장 가파른 1km 가 36% 이상이면 짧아도 적어도 어려움(2026-10-18 홍TV님: 내장사 → 신선봉 2.2km · 41% 가 보통) - MountainServlet.difficulty 와 같음
+        if (steep == null || !isFinite(+steep)) return base;
+        var s = stepOf(+steep, STEEP_STEPS);
+        return Math.max(base, Math.min(s, s >= 3 ? Math.max(base + 1, 3) : base + 1));
+    }
+
+    /** 순수 함수 - 가장 가파른 1km 구간 경사(%, 오르막 · 내리막) - Steep.steepest 와 같음. 1km 보다 짧으면 처음 ~ 끝, 300m 보다 짧거나 고도가 없으면 null. */
+    function steepest(dist, ele) {
+        var p = [];
+        for (var i = 0; i < (dist || []).length; i++) if (ele[i] != null) p.push([+dist[i], +ele[i]]);
+        if (p.length < 2) return null;
+        var total = p[p.length - 1][0] - p[0][0], best = 0;
+        if (total < 300) return null;
+        if (total < 1000) best = Math.abs(p[p.length - 1][1] - p[0][1]) / total * 100;
+        else for (var a = 0, b = 0; a < p.length; a++) {
+            if (b < a) b = a;
+            while (b < p.length && p[b][0] - p[a][0] < 1000) b++;
+            if (b >= p.length) break;
+            best = Math.max(best, Math.abs(p[b][1] - p[a][1]) / (p[b][0] - p[a][0]) * 100);
+        }
+        return Math.round(best * 10) / 10;
+    }
+
+    /** 난이도 표(i.lv) - 거리가 없으면 null. MountainServlet.levelChip 과 같은 모양. */
+    function levelChip(distM, ascM, en, steep, info) {
+        // 공단 공식 난이도가 있으면 그것 하나만(2026-11-03 홍TV님 점검: 한 코스에 "매우 쉬움" 칩과 공단 "보통(2.57)" 이 함께 나와 헷갈렸음)
+        var off = info && info.level != null ? String(info.level).trim() : "";
+        if (off) {
+            var k = officialLevel(off), o = el("i", "lv" + (k != null ? " lv" + k : ""), en ? "Park service: " + (k != null ? LEVELS[k].en + off.replace(/^[^(]*/, " ").replace(/^ $/, "") : off) : "공단 " + off);
+            o.title = en ? "Official difficulty (Korea National Park Service)" : "국립공원공단 공식 난이도";
+            return o;
+        }
+        var lv = difficulty(distM, ascM, steep);
+        if (lv == null) return null;
+        var i = el("i", "lv lv" + lv, en ? LEVELS[lv].en : LEVELS[lv].ko);
+        i.title = en ? "Difficulty (routefly estimate from time and total ascent)" : "난이도(걸리는 시간 · 오르막 총량으로 어림 - 공단 공식 등급 아님)";
+        return i;
+    }
+
     /**
      * MapLibre 지도 단추 글(확대 · 축소 · 북쪽 · 출처 · 내 위치) - 한국어 화면은 한국어(2026-11-03 홍TV님 점검: 한국어 화면에 "Zoom in" 이 나왔음).
      * 영어 화면은 undefined(MapLibre 기본 영어). new maplibregl.Map({ locale: RF.mapLocale() }).
@@ -1975,6 +2144,28 @@
                  "NavigationControl.ResetBearing": "끌면 지도 돌리기, 누르면 북쪽을 위로",
                  "NavigationControl.ZoomIn": "확대", "NavigationControl.ZoomOut": "축소",
                  "TerrainControl.Enable": "지형 켜기", "TerrainControl.Disable": "지형 끄기" };
+    }
+
+    /** 순수 함수 - 공단 난이도 글("보통(2.57)" · "매우 어려움") → LEVELS 차례(0 ~ 4). 모르는 말이면 null. MountainServlet.officialLevel 과 같음. */
+    function officialLevel(text) {
+        // 띄어쓰기는 모두 빼고 견줌 - 공단은 "매우어려움" 으로 보냄(점검 11차 A8, MountainServlet.officialLevel 과 같게)
+        var t = String(text == null ? "" : text).replace(/\(.*$/, "").replace(/\s+/g, "");
+        for (var i = 0; i < LEVELS.length; i++) if (t === LEVELS[i].ko.replace(/ /g, "")) return i;
+        return null;
+    }
+
+    /** 순수 함수 - 기록 합치기: 같은 시작 시각 · 코스는 하나로(지금 것을 남김), 최근 것부터 max 개. */
+    function mergeRecords(cur, add, max) {
+        var seen = {}, out = [];
+        (cur || []).concat(add || []).forEach(function (r) {
+            if (!r || typeof r.start !== "number" || !Array.isArray(r.track)) return;
+            var k = recKey(r);
+            if (seen[k]) return;
+            seen[k] = 1;
+            out.push(r);
+        });
+        out.sort(function (a, b) { return b.start - a.start; });
+        return out.slice(0, max);
     }
 
     /**
@@ -1993,15 +2184,23 @@
     global.RF = {
         num: num,
         km: km,
+        hm: hm,
+        fromApi: fromApi,
         recordCourse: recordCourse,
         flyStart: flyStart,
         gpxRecord: gpxRecord,
+        infoText: infoText,
         baseStyle: baseStyle,
         at: at,
         snap: snap,
+        indexAt: indexAt,
         trackGpx: trackGpx,
         courseFetch: courseFetch,
+        recKey: recKey,
+        myRecords: myRecords,
+        ownerDevice: ownerDevice,
         courseGpxFree: courseGpxFree,
+        courseGpxCredit: courseGpxCredit,
         speedProfile: speedProfile,
         famousMarks: famousMarks,
         famousFetch: famousFetch,
@@ -2009,7 +2208,9 @@
         stopsAlong: stopsAlong,
         recordPark: recordPark,
         segText: segText,
+        climbBetween: climbBetween,
         standardMs: standardMs,
+        legMs: legMs,
         distM: distM,
         profile: profile,
         nameIn: function (s) { return LANG === "en" && s != null ? enName(s) : s; },
@@ -2018,7 +2219,9 @@
         pageLang: pageLang,
         applyEn: applyEn,
         recordSummary: recordSummary,
+        levelChip: levelChip,
         mapLocale: mapLocale,
+        steepest: steepest,
         courseTrack: courseTrack
     };
 })(window);

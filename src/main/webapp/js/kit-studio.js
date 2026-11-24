@@ -926,6 +926,39 @@
         return rev ? out.reverse() : out;
     }
 
+    /** 순수 함수 - 기록 하나의 열쇠 "시작 시각|코스 ID" - 따라가기 내 기록 · 기록 보기 ?rec= · GPX 편집 #rec= 가 같이 씀(점검 14차 F2 - 같은 식 여러 벌). 없으면 "". */
+    function recKey(r) { return r ? r.start + "|" + (r.courseId || "") : ""; }
+
+    /** 이 기기의 내 기록 목록(따라가기가 쓰는 IndexedDB rf-records, 못 쓰는 기기는 localStorage rf-records) - 기록 보기 · GPX 편집이 같이 씀. 못 읽으면 []. */
+    function myRecords() {
+        var local = function () { try { var a = JSON.parse(localStorage.getItem("rf-records") || "[]"); return Array.isArray(a) ? a : []; } catch (e) { return []; } };
+        return new Promise(function (resolve) {
+            if (!global.indexedDB) { resolve(null); return; }
+            var r = indexedDB.open("rf-records", 1);
+            r.onupgradeneeded = function () { r.result.createObjectStore("r"); };   // 따라가기와 같은 모양(처음이면 빈 저장소)
+            r.onerror = function () { resolve(null); };
+            r.onsuccess = function () {
+                var db = r.result;
+                try {
+                    var q = db.transaction("r", "readonly").objectStore("r").get("list");
+                    q.onsuccess = function () { db.close(); resolve(Array.isArray(q.result) ? q.result : null); };
+                    q.onerror = function () { db.close(); resolve(null); };
+                } catch (e) { db.close(); resolve(null); }
+            };
+        }).then(function (list) {   // 따라가기가 IndexedDB 를 못 써 localStorage 에만 남긴 기록도 합침(따라가기 recordsReady 와 같게, 30개)
+            var ls = local();
+            return list ? (ls.length ? mergeRecords(list, ls, 30) : list) : ls;
+        });
+    }
+
+    /** 운영자 기기인가 - GET api/course-upload 의 owner(서버가 /stats 쿠키로 확인). 한 번만 묻고 기억(점검 14차 F2 - 화면마다 같은 물음 여섯 벌). root - 앞 경로("../" 등). */
+    var ownerQ = null;
+    function ownerDevice(root) {
+        if (!ownerQ) ownerQ = fetch((root || "") + "api/course-upload", { headers: { Accept: "application/json" }, cache: "no-store" }).then(function (r) { return r.ok ? r.json() : {}; })
+            .then(function (j) { return !!(j && j.owner); }).catch(function () { return false; });
+        return ownerQ;
+    }
+
     /**
      * 코스 하나를 받아 fromApi 꼴로(이은 코스 · 자른 구간이면 조각마다 받아 joinedCourse) - GPX 편집 · 코스 보기 · 코스 GPX 저장이 같이 씀
      * (점검 14차 A5, 2026-11-24: 코스 보기 · GPX 저장이 이은 ID 를 api/course 에 한 번에 물어 400 으로 실패했음). json(url) → Promise(JSON, 실패면 reject).
@@ -1673,6 +1706,20 @@
                  "TerrainControl.Enable": "지형 켜기", "TerrainControl.Disable": "지형 끄기" };
     }
 
+    /** 순수 함수 - 기록 합치기: 같은 시작 시각 · 코스는 하나로(지금 것을 남김), 최근 것부터 max 개. */
+    function mergeRecords(cur, add, max) {
+        var seen = {}, out = [];
+        (cur || []).concat(add || []).forEach(function (r) {
+            if (!r || typeof r.start !== "number" || !Array.isArray(r.track)) return;
+            var k = recKey(r);
+            if (seen[k]) return;
+            seen[k] = 1;
+            out.push(r);
+        });
+        out.sort(function (a, b) { return b.start - a.start; });
+        return out.slice(0, max);
+    }
+
     global.RF = {
         num: num,
         km: km,
@@ -1690,6 +1737,9 @@
         joinPlan: joinPlan,
         trackGpx: trackGpx,
         courseFetch: courseFetch,
+        recKey: recKey,
+        myRecords: myRecords,
+        ownerDevice: ownerDevice,
         submitSheet: submitSheet,
         courseName: courseName,
         sourceText: sourceText,

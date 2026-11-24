@@ -43,6 +43,7 @@ body { display:flex; flex-direction:column; height:100dvh; }
 #kinds[hidden] { display:none; }
 #kinds .kind { width:32px; height:30px; border-radius:15px; border:0; background:rgba(255,255,255,0.14); color:#fff; font-size:15px; cursor:pointer; font-family:inherit; }
 #kinds .kind.off { opacity:0.35; text-decoration:line-through; }
+@media (pointer: coarse) { #kinds .kind { width:44px; height:44px; border-radius:22px; } #kinds .all { height:44px !important; } #graph .gh button { width:44px; height:44px; } }   /* 손가락 누름 자리 44px(점검 14차 C9) */
 #kinds .all { height:30px; padding:0 10px; border-radius:15px; border:0; background:none; color:var(--tx); font-size:13px; font-weight:bold; cursor:pointer; font-family:inherit; white-space:nowrap; }
 #brand { display:block; width:132px; height:auto; filter:drop-shadow(0 0 2px #fff) drop-shadow(0 0 1px #fff); }   /* 밝은 지도용 로고(글자 어두움) - 테두리로 어느 바탕에서나 보이게 */
 .placePop .maplibregl-popup-content { padding:6px 10px; border-radius:8px; font-size:12.5px; line-height:1.45; color:#1b2430; }   /* 봉우리 · 대피소 누름(2026-11-23) */
@@ -59,6 +60,11 @@ body { display:flex; flex-direction:column; height:100dvh; }
 #segs .dot { grid-row:1 / span 2; align-self:center; width:12px; height:12px; border-radius:50%; }
 #segs .nm { font-size:13.5px; font-weight:bold; }
 #segs .st { font-size:12.5px; color:#5b6672; }
+#cInfo { margin:12px; background:#fff; border-radius:14px; box-shadow:0 2px 10px rgba(16,24,40,0.08); padding:10px 14px; font-size:13.5px; line-height:1.6; }   /* 코스 보기 정보(점검 14차 C3) */
+#cInfo .ci { margin:0 0 4px; } #cInfo .ci .lv { margin-left:4px; }
+#cInfo .pts { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+#cInfo .pts button { min-height:36px; padding:4px 10px; border-radius:16px; border:1px solid #dfe3e8; background:#f7f9fb; color:#1b2430; font-family:inherit; font-size:12.5px; cursor:pointer; }
+#cInfo .pts button.dg { border-color:#ffc9c9; background:#fff5f5; }
 #openBtn[hidden] { display:none; }   /* 내 기록에서 들어오면 숨김 - 위 display 가 hidden 을 덮지 않게 */
 #recBtns { display:flex; gap:6px; flex:0 0 auto; }
 #recBtns[hidden] { display:none; }
@@ -137,7 +143,7 @@ body { display:flex; flex-direction:column; height:100dvh; }
         <!-- 🛩 3D 영상 예시(2026-11-23 홍TV님 "루트플라이에서 활용" 5번) - 파일을 열면 이 칸은 지워짐(trip.js clear) -->
         <p class="empty" id="flyEx" data-en="🛩 Open a GPX and tap 🛩 3D video to make a flight video like these (YouTube): &lt;a href=&quot;https://www.youtube.com/watch?v=RlOjuH9X8R4&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Jirisan Seong-Jung traverse&lt;/a&gt; · &lt;a href=&quot;https://www.youtube.com/watch?v=MtTrpzZRLgM&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Bul-Su-Sa-Do-Buk traverse&lt;/a&gt;">🛩 GPX 를 열고 🛩 3D 영상을 누르면 이런 비행 영상을 만들 수 있습니다(유튜브): <a href="https://www.youtube.com/watch?v=RlOjuH9X8R4" target="_blank" rel="noopener">지리산 성중종주</a> · <a href="https://www.youtube.com/watch?v=MtTrpzZRLgM" target="_blank" rel="noopener">불수사도북</a></p></div>
 </div>
-<div id="big" role="dialog" data-en-aria-label="Photo" aria-label="사진"><img id="bigImg" alt=""><p id="bigCap"></p>
+<div id="big" role="dialog" aria-modal="true" data-en-aria-label="Photo" aria-label="사진"><img id="bigImg" alt=""><p id="bigCap"></p>
     <button type="button" id="bigPrev" data-en-aria-label="Previous photo" aria-label="앞 사진">‹</button><button type="button" id="bigNext" data-en-aria-label="Next photo" aria-label="다음 사진">›</button>
     <button type="button" id="bigClose" data-en-aria-label="Close" aria-label="닫기">✕</button></div>
 <script src="vendor/maplibre-gl-5.24.0/maplibre-gl.js"></script>

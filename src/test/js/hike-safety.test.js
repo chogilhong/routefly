@@ -118,7 +118,9 @@ has("loadSaved 도 savedFresh", "return savedFresh(s) && !s.ended ? s : null;");
 has("처음 지우기도 savedFresh", "if (!savedFresh(v)) old.push(k);");
 
 // 8: 기록 쓰기 - 늘 다시 읽어 합침(탭 둘이 서로 덮지 않게), 이 화면에 보였는데 없는 것만 지운 것
-var recKeyLine = /\n    function recKey\(r\) \{[^\n]*\}\n/.exec(js)[0];
+// 기록 열쇠는 course-kit 한 벌(RF.recKey, 점검 14차 F2) - hike.js 는 그것을 씀
+has("hike.js 는 RF.recKey", "var recKey = RF.recKey;");
+var recKeyLine = /\n    function recKey\(r\) \{[^\n]*\}\n/.exec(fs.readFileSync(path.join(__dirname, "../../main/webapp/js/course-kit.js"), "utf8").replace(/\r\n/g, "\n"))[0];
 function recSandbox(store, opt) {
     opt = opt || {};
     var ls = {}, toasts = [];

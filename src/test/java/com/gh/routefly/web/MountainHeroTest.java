@@ -83,8 +83,8 @@ public class MountainHeroTest {
         assertTrue(OgServlet.creditOk("Malgun Gothic", "ⓒ한국관광콘텐츠랩 - 김지호 (공공누리 제1유형)"));
         assertFalse(OgServlet.creditOk(null, "ⓒ한국관광콘텐츠랩 - 김지호 (공공누리 제1유형)"));
         assertTrue(OgServlet.creditOk(null, "Choi Kwang-mo, CC0"));
-        byte[] old = OgServlet.photoJpg(new String[] {"a", "b", "c"}, new String[] {"a", "b", "c"}, null, "x");
-        assertTrue("사진을 못 읽으면 예전 그림(png)", old.length > 0 && !OgServlet.jpeg(old));
+        // 사진을 못 읽으면 null - 부른 곳(doGet)이 로고 있는 예전 그림으로(점검 14차 2026-11-24)
+        assertNull(OgServlet.photoJpg(new String[] {"a", "b", "c"}, new String[] {"a", "b", "c"}, null, "x"));
     }
 
     @Test

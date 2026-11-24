@@ -67,11 +67,16 @@
         }).catch(function () { /* 되살리지 못함 */ });
     }
 
+    // ---- 지도 설정 · 우리 지도 파일 확인은 운영자 확인과 함께 받음(점검 14차 D3 - 전에는 운영자 확인 → 지도 설정 → 지도 파일을 차례로 기다려 첫 화면이 늦었음)
+    var mapCfgP = fetch("api/map-config", { headers: { Accept: "application/json" } }).then(function (r) { return r.json(); }).catch(function () { return {}; }).then(function (j) {
+        // 우리 지도 파일(map.basemap.url)이 있으면 그 모양을 먼저 - 없거나 못 읽으면(404 등) 목록에 안 나옴
+        var dem = j.demUrl || "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
+        return (window.RFMap ? RFMap.open(j.basemapUrl, dem) : Promise.resolve(null)).catch(function () { return null; }).then(function (s) { ourStyle = s; return j; });
+    });
     // ---- 관리자 기기인가(/api/course-upload GET - 운영자 쿠키). 2026-11-02 홍TV님 "누구나": 아니어도 편집기를 띄우고 올리기 대신 보내기
     var owner = false;
-    var ownerP = fetch("api/course-upload", { headers: { Accept: "application/json" }, cache: "no-store" }).then(function (r) { return r.json(); }).then(function (j) {
-        owner = !!(j && j.owner);
-    }).catch(function () { /* 못 물으면 운영자가 아닌 것으로 - 편집은 그대로 */ }).then(function () {
+    var ownerP = RF.ownerDevice().then(function (own) {   // 못 물으면 운영자가 아닌 것으로 - 편집은 그대로(RF.ownerDevice, 점검 14차 F2)
+        owner = own;
         $("upBtn").hidden = $("upTip").hidden = !owner;
         $("guideBtn").hidden = !owner;   // 안내도의 "📐 GPX 편집으로" 도 관리자 기기에만 보여 짝을 맞춤
         $("sendBtn").hidden = $("sendTip").hidden = owner;
@@ -150,6 +155,26 @@
     var ourStyle = null, OUR = "rfm-";   // 우리 지도 모양(RFMap.open) - 층 · 소스 이름에 rfm- 를 붙여 편집 층(bg · hillshade 등)과 겹치지 않게
     /** 우리 지도 층 l 을 보일지 - 바탕이 우리 지도이고 그 층이 원래 숨김이 아닐 때. 처음 그림(style) · 바탕 바꾸기(mapMenu)가 같이 씀(점검 14차 - 같은 식 두 벌). */
     function ourVis(l, base) { return base === "rf" && (!l.layout || l.layout.visibility !== "none") ? "visible" : "none"; }
+    var ourOn = false;   // 우리 지도 소스 · 층을 지도에 넣었나(처음 그림이나 바탕으로 처음 고를 때)
+    /** 우리 지도 층 l 의 복사본(rfm- 이름 · 보이기). */
+    function ourLayer(l, base) {
+        var c = JSON.parse(JSON.stringify(l));
+        c.id = OUR + l.id;
+        if (l.source) c.source = OUR + l.source;
+        c.layout = c.layout || {};
+        c.layout.visibility = ourVis(l, base);
+        return c;
+    }
+    /** 바탕으로 처음 고를 때 우리 지도 소스 · 층을 넣음 - 겹침(OVERS) · 편집 선 아래. */
+    function addOurs(base) {
+        if (!ourStyle || ourOn || !map) return;
+        var before = OVERS.map(function (o) { return o.id; }).filter(function (id) { return map.getLayer(id); })[0] || (map.getLayer("others") ? "others" : undefined);
+        try {
+            Object.keys(ourStyle.sources).forEach(function (k) { if (!map.getSource(OUR + k)) map.addSource(OUR + k, ourStyle.sources[k]); });
+            ourStyle.layers.forEach(function (l) { if (!map.getLayer(OUR + l.id)) map.addLayer(ourLayer(l, base), before); });
+            ourOn = true;
+        } catch (e) { msg("우리 지도를 넣지 못했습니다. 잠시 뒤 다시 골라 주세요.", 5000); }   // 지도 모양을 아직 못 읽음
+    }
     /** 기억해 둔 고름 - 키가 없어 V-World 를 못 쓰거나 손님이 못 쓰는 바탕이면 운영자는 OpenTopoMap, 손님은 지형 음영만. */
     function mapPref() {
         var p = null;
@@ -176,17 +201,11 @@
         });
         layers.push({ id: "hillshade", type: "hillshade", source: "hillshade", minzoom: cfg.vworldKey ? 9 : 0, layout: { visibility: pref.over && pref.over.hillshade ? "visible" : "none" },
             paint: { "hillshade-exaggeration": 0.3, "hillshade-shadow-color": "#3d4a3a", "hillshade-highlight-color": "#fbf7ea" } });
-        // 우리 지도는 제 바탕색 · 음영 · 글이 다 있어 지형 음영 겹침 위에 통째로 - 숨긴 층의 지도 조각은 받지 않음(고를 때만 받음)
-        if (ourStyle) {
+        // 우리 지도는 제 바탕색 · 음영 · 글이 다 있어 지형 음영 겹침 위에 통째로. 바탕으로 고를 때만 넣음(점검 14차 D4 - 숨겨도 소스를 넣으면 노선 · 역 자료 등을 받았음)
+        if (ourStyle && pref.base === "rf") {
             Object.keys(ourStyle.sources).forEach(function (k) { sources[OUR + k] = ourStyle.sources[k]; });
-            ourStyle.layers.forEach(function (l) {
-                var c = JSON.parse(JSON.stringify(l));
-                c.id = OUR + l.id;
-                if (l.source) c.source = OUR + l.source;
-                c.layout = c.layout || {};
-                c.layout.visibility = ourVis(l, pref.base);
-                layers.push(c);
-            });
+            ourStyle.layers.forEach(function (l) { layers.push(ourLayer(l, pref.base)); });
+            ourOn = true;
         }
         OVERS.forEach(function (o) {
             if (!o.tiles || !usable(o)) return;
@@ -218,6 +237,7 @@
                 try { localStorage.setItem(MAPKEY, JSON.stringify(p)); } catch (e) { /* 이번만 */ }
                 BASES.forEach(function (b) { if (map.getLayer(b.id)) map.setLayoutProperty(b.id, "visibility", p.base === b.id ? "visible" : "none"); });
                 if (inp.type === "radio") attrib(p.base === "rf");
+                if (p.base === "rf") addOurs(p.base);
                 if (ourStyle) ourStyle.layers.forEach(function (l) { if (map.getLayer(OUR + l.id)) map.setLayoutProperty(OUR + l.id, "visibility", ourVis(l, p.base)); });
                 OVERS.forEach(function (o) { if (map.getLayer(o.id)) map.setLayoutProperty(o.id, "visibility", p.over[o.id] ? "visible" : "none"); });
             };
@@ -232,16 +252,16 @@
         if (attribCtl) map.removeControl(attribCtl);
         attribCtl = new maplibregl.AttributionControl({ compact: true, customAttribution: ours ? undefined : "© OpenStreetMap contributors" });
         map.addControl(attribCtl, "bottom-right");
+        if (phone()) foldAttrib();   // 바탕을 바꿔 새로 단 출처도 폰에서는 접음(점검 14차 C8 - 2026-11-02 에 고친 것이 바탕 바꾸기에서 다시 펼쳐졌음)
     }
+    /** 폰(600px 밑) - 출처를 ⓘ 로 접어 둠(누르면 펼쳐짐 - 따라가기 foldAttrib 와 같게, 2026-11-02 홍TV님 점검: 처음에 두 줄로 펼쳐져 지도 10% 를 가렸음). PC 는 그대로. */
+    function phone() { return !!(window.matchMedia && window.matchMedia("(max-width: 599px)").matches); }
+    function foldAttrib() { var a = document.querySelector("#map .maplibregl-ctrl-attrib"); if (a) a.classList.remove("maplibregl-compact-show"); }
     var cfgVw = false;
     var EMPTY = { type: "FeatureCollection", features: [] };
     function startMap() {
         if (!window.maplibregl) { msg("지도를 띄우지 못했습니다(그래프 · 도구는 됩니다).", 6000); return; }
-        fetch("api/map-config", { headers: { Accept: "application/json" } }).then(function (r) { return r.json(); }).catch(function () { return {}; }).then(function (j) {
-            // 우리 지도 파일(map.basemap.url)이 있으면 그 모양을 먼저 - 없거나 못 읽으면(404 등) 목록에 안 나옴
-            var dem = j.demUrl || "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
-            return (window.RFMap ? RFMap.open(j.basemapUrl, dem) : Promise.resolve(null)).catch(function () { return null; }).then(function (s) { ourStyle = s; return j; });
-        }).then(function (j) {
+        mapCfgP.then(function (j) {
             var cfg = { demUrl: j.demUrl || "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png", vworldKey: j.vworldKey || null };
             hasSat = cfgVw = !!cfg.vworldKey;   // 바탕 고름(mapPref)이 먼저 앎
             demUrl = cfg.demUrl;
@@ -249,10 +269,7 @@
             map.touchZoomRotate.disableRotation();
             if (ourStyle) map.on("styleimagemissing", function (e) { RFMap.iconImage(map, e.id); });   // 우리 지도 아이콘(봉우리 · 대피소 · 역 등)
             attrib(mapPref().base === "rf");
-            // 폰(600px 밑)은 출처를 ⓘ 로 접어 둠(누르면 펼쳐짐 - 따라가기 foldAttrib 와 같게, 2026-11-02 홍TV님 점검: 처음에 두 줄로 펼쳐져 지도 10% 를 가렸음). PC 는 그대로
-            if (window.matchMedia && window.matchMedia("(max-width: 599px)").matches) {
-                var foldAttrib = function () { var a = document.querySelector("#map .maplibregl-ctrl-attrib"); if (a) a.classList.remove("maplibregl-compact-show"); };
-                foldAttrib();
+            if (phone()) {   // 처음 그릴 때 펼쳐지는 것도 다시 접음
                 map.once("styledata", foldAttrib);
                 map.once("load", foldAttrib);
             }
@@ -473,6 +490,20 @@
         sel = tracks.length - 1;
         markWork();
     }
+    /** 순수 함수 - 두 길이 같은가(점 수 · 처음 · 가운데 · 끝 자리가 같음). */
+    function sameTrack(a, b) {
+        if (!a || !b || a.length !== b.length || a.length < 2) return false;
+        return [0, a.length >> 1, a.length - 1].every(function (i) { return +a[i][0] === +b[i][0] && +a[i][1] === +b[i][1]; });
+    }
+    /**
+     * 같은 길이 이미 목록에 있으면 그것을 고르기만(점검 14차 C7 - 되살린 작업에 기록 · 안내도 · 넘겨받은 GPX 가 한 번 더 들어갔음), 없으면 넣음.
+     * 이미 있었으면 true.
+     */
+    function addOnce(name, track) {
+        for (var i = 0; i < tracks.length; i++) if (sameTrack(tracks[i].track, track)) { sel = i; return true; }
+        add(name, track);
+        return false;
+    }
 
     // ---- 열기: 파일 · 끌어다 놓기 · 내 기록(IndexedDB rf-records - 따라가기와 같은 저장소)
     function readFiles(files) {
@@ -496,22 +527,7 @@
     mw.addEventListener("dragleave", function () { if (--depth <= 0) { depth = 0; mw.classList.remove("over"); } });
     mw.addEventListener("drop", function (e) { e.preventDefault(); depth = 0; mw.classList.remove("over"); readFiles(e.dataTransfer && e.dataTransfer.files); });
 
-    function myRecords() {
-        return new Promise(function (resolve) {
-            if (!window.indexedDB) { resolve([]); return; }
-            var r = indexedDB.open("rf-records", 1);
-            r.onupgradeneeded = function () { r.result.createObjectStore("r"); };
-            r.onerror = function () { resolve([]); };
-            r.onsuccess = function () {
-                var db = r.result;
-                try {
-                    var q = db.transaction("r", "readonly").objectStore("r").get("list");
-                    q.onsuccess = function () { db.close(); resolve(Array.isArray(q.result) ? q.result : []); };
-                    q.onerror = function () { db.close(); resolve([]); };
-                } catch (e) { db.close(); resolve([]); }
-            };
-        });
-    }
+    var myRecords = RF.myRecords;   // 따라가기 IndexedDB + localStorage(못 쓰는 기기) - 기록 보기와 같은 읽기(점검 14차 F2: 전에는 IndexedDB 만 봐 localStorage 에만 있는 기기에서 못 찾음)
     $("recBtn").onclick = function () {
         myRecords().then(function (recs) {
             recs = recs.filter(function (r) { return r && Array.isArray(r.track) && r.track.length > 1; });
@@ -528,7 +544,7 @@
                 b.style.cssText = "display:block;width:100%;text-align:left;margin-top:8px;padding:8px 10px";
                 b.textContent = d.getFullYear() + "." + (d.getMonth() + 1) + "." + d.getDate() + " · " + String(r.name || "기록").replace(/^.* · (?=.* · )/, "") + " · " + km(RF.trackStats(r.track).dist) + " km";
                 b.onclick = function () {
-                    add(r.name || "기록", r.track.map(function (p) { return [p[0], p[1], p[2] != null ? p[2] : null, p[3] != null ? p[3] : null]; }));
+                    addOnce(r.name || "기록", r.track.map(function (p) { return [p[0], p[1], p[2] != null ? p[2] : null, p[3] != null ? p[3] : null]; }));
                     wrap.remove();
                     draw(true);
                 };
@@ -1328,7 +1344,12 @@
         var h = location.hash.replace(/^#/, ""), get = function (k) { var m = new RegExp("(?:^|&)" + k + "=([^&]*)").exec(h); return m ? RF.safeDecode(m[1]) : ""; };
         var id = get("c");
         if (!id) return;
-        if (!owner) { try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* 주소는 그대로 */ } return; }
+        if (!owner) {
+            try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* 주소는 그대로 */ }
+            // 말없이 빈 화면이던 것에 한 줄(점검 14차 C9)
+            msg("코스 번호로 바로 여는 것은 운영자 기기만 됩니다. 받아도 되는 코스는 따라가기 📊 자세히의 💾 GPX 저장으로 받은 뒤 📂 열기로 여세요.", 9000);
+            return;
+        }
         var parts = RF.parseJoinId(id), json = function (u) { return fetch(u, { headers: { Accept: "application/json" } }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }); };
         msg("안내도에서 고른 길을 받는 중…", 8000);
         RF.courseFetch(id, json).then(function (c) {
@@ -1336,7 +1357,7 @@
             var t = RF.courseTrack(c, (!parts || parts.length === 1) && get("rev") === "1");
             if (t.length < 2) throw new Error("선이 없습니다");
             var title = get("title"), name = title || (c.course && c.course.name) || "안내도 길";
-            add(RF.nameText ? RF.nameText(name) : name, t);
+            addOnce(RF.nameText ? RF.nameText(name) : name, t);
             draw(true);
             msg("안내도에서 고른 길을 열었습니다(" + km(RF.trackStats(t).dist) + " km). 이름을 정해 코스로 올리세요.", 7000);
             try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* 주소는 그대로 */ }   // 새로 고침 때 또 넣지 않게
@@ -1396,9 +1417,9 @@
         var key = RF.safeDecode(m[1]);
         try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* 주소는 그대로 */ }   // 새로 고침 때 또 넣지 않게
         return myRecords().then(function (recs) {
-            var r = recs.filter(function (x) { return x && x.start + "|" + (x.courseId || "") === key; })[0];
+            var r = recs.filter(function (x) { return x && RF.recKey(x) === key; })[0];
             if (!r || !Array.isArray(r.track) || r.track.length < 2) { msg("이 기기(브라우저)에서 그 기록을 찾지 못했습니다.", 6000); return; }
-            add(r.name || "기록", r.track.map(function (p) { return [p[0], p[1], p[2] != null ? p[2] : null, p[3] != null ? p[3] : null]; }));
+            addOnce(r.name || "기록", r.track.map(function (p) { return [p[0], p[1], p[2] != null ? p[2] : null, p[3] != null ? p[3] : null]; }));
             if (/^(hike|walk|bike)$/.test(r.kind)) $("kind").value = r.kind;
             draw(true);
             return ownerP.then(function () { msg("내 기록을 열었습니다(" + km(RF.trackStats(cur().track).dist) + " km). 집 근처는 ✂ 로 자른 뒤 " + (owner ? "⬆ 코스로 올리세요." : "📮 등록 요청하세요."), 8000); });
@@ -1412,7 +1433,7 @@
         try { o = JSON.parse(sessionStorage.getItem("rf-studio-in") || "null"); sessionStorage.removeItem("rf-studio-in"); } catch (e) { /* 없음 */ }
         try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* 주소는 그대로 */ }   // 새로 고침 때 또 넣지 않게
         if (!o || !Array.isArray(o.track) || o.track.length < 2) { msg("넘겨받은 GPX 가 없습니다. 📂 열기로 파일을 여세요.", 6000); return; }
-        add(String(o.name || "GPX"), o.track.map(function (p) { return [p[0], p[1], p[2] != null ? p[2] : null, p[3] != null ? p[3] : null]; }));
+        addOnce(String(o.name || "GPX"), o.track.map(function (p) { return [p[0], p[1], p[2] != null ? p[2] : null, p[3] != null ? p[3] : null]; }));
         draw(true);
         return ownerP.then(function () { msg("연 GPX 를 넣었습니다(" + km(RF.trackStats(cur().track).dist) + " km). 고친 뒤 💾 저장하거나 " + (owner ? "⬆ 코스로 올리세요." : "📮 등록 요청하세요."), 8000); });
     }

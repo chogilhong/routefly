@@ -170,12 +170,12 @@ public class OgServlet extends HttpServlet {
 
     /**
      * 사진 바탕 그림(2026-11-21 홍TV님 "고급지게" 5번) - 대표 사진을 1200 × 630 에 꽉 차게(가운데를 잘라), 아래쪽을 어둡게 덮고 흰 글로 산 이름 · 높이,
-     * 오른쪽 아래에 사진 출처(공공누리 1유형 · CC0 - 출처 표시). 사진을 못 읽으면(null) 예전 그림(png).
+     * 오른쪽 아래에 사진 출처(공공누리 1유형 · CC0 - 출처 표시). 사진을 못 읽으면(null) null - 부른 곳이 로고 있는 예전 그림(png)으로.
      * 사진이라 jpg(품질 0.85)로 - png 는 1.4 ~ 1.7MB 였음(2026-11-21 PC).
      * 출처(한글)를 그릴 글꼴이 없으면 null - 출처가 네모(□)로 깨진 사진 그림은 내보내지 않음(2026-11-21 운영 PC 확인: 서버에 한글 글꼴 없음). 부른 곳이 예전 그림으로.
      */
     static byte[] photoJpg(String[] lines, String[] fallback, BufferedImage photo, String credit) throws IOException {
-        if (photo == null) return png(lines, fallback, null);
+        if (photo == null) return null;   // 점검 14차(2026-11-24): 부른 곳이 로고 있는 예전 그림으로(전에는 여기서 로고 없이 그렸음)
         Set<String> installed = new HashSet<>(Arrays.asList(GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames()));
         String all = lines[0] + lines[1] + credit, face = fontFor(all, installed);
         if (face == null && !(lines[0] + lines[1]).chars().allMatch(c -> c < 0x1100)) lines = fallback;

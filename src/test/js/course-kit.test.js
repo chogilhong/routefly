@@ -1237,6 +1237,16 @@ tick().then(function () {
         eq("courseFetch 이은 코스는 두 조각 길이를 거의 더한 만큼", cs[1].lat.length >= one.lat.length + two.lat.length - 2, true);
     });
 }).then(function () {
+    // 점검 14차 F2: 기록 열쇠 · 내 기록 읽기 · 운영자 물음은 course-kit 한 벌(RF.recKey · myRecords · ownerDevice)
+    eq("recKey", [RF.recKey({ start: 5, courseId: "knps-1" }), RF.recKey({ start: 5 }), RF.recKey(null)], ["5|knps-1", "5|", ""]);
+    var asked = 0, ls = { "rf-records": JSON.stringify([{ start: 1, track: [[1, 2], [3, 4]] }]) };
+    sandbox.localStorage = { getItem: function (k) { return ls[k] || null; } };
+    sandbox.fetch = function (u, o) { asked++; eq("운영자 물음 주소 · 캐시 안 함", [u, o.cache], ["../api/course-upload", "no-store"]); return Promise.resolve({ ok: true, json: function () { return Promise.resolve({ owner: true }); } }); };
+    return Promise.all([RF.ownerDevice("../"), RF.ownerDevice("../"), RF.myRecords()]).then(function (v) {
+        eq("운영자 물음은 한 번만 · 답 기억", [v[0], v[1], asked], [true, true, 1]);
+        eq("IndexedDB 가 없는 기기는 localStorage 의 기록", v[2].map(RF.recKey), ["1|"]);
+    });
+}).then(function () {
     console.log((fails ? "FAILED " : "OK ") + (runs - fails) + "/" + runs);
     process.exit(fails ? 1 : 0);
 });

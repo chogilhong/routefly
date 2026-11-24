@@ -67,3 +67,13 @@
 .lv.nmLv { flex:0 0 auto; }   /* 따라가기 "다음 지점" 줄 오른쪽 난이도(2026-10-18 - 제목 칸은 좁아 옮김) */
 /* 자판(Tab) · 외부 자판으로 움직일 때 지금 칸이 보이게(2026-10-21 원스토어 전 점검 - 손가락으로 누를 때는 안 나옴) */
 :focus-visible { outline: 2px solid #4dabf7; outline-offset: 2px; }
+/* 광고 표시 글 · PC 넓은 화면 양옆 광고(2026-11-24 홍TV님 - 가운데 글 760px 밖 빈 자리) - 코스 모음(/m/ · /c/) · 따라가기 목록이 같이 씀(점검 14차 F2: 두 벌이던 것).
+   1200px 아래(폰 · 태블릿)와 앱은 없음(js/ads.js 가 지움). .adNote 는 밝은 바탕에서도 읽히게(#8a94a0 는 대비 2.6:1) */
+.adNote { margin:0 0 4px; font-size:12px; color:var(--dim, #6b7684); }
+.adRail { display:none; }
+@media (min-width:1200px) {
+  .adRail { display:block; position:fixed; top:90px; width:160px; min-height:600px; z-index:11; }
+  .adRail.left { left:calc(50% - 380px - 190px); }
+  .adRail.right { right:calc(50% - 380px - 190px); }
+  .adRail .adBox { border:0; padding:0; }
+}

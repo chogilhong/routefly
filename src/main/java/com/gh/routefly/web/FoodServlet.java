@@ -39,6 +39,15 @@ public class FoodServlet extends HttpServlet {
     private static final OpenApi.Cache<JsonArray> CACHE = new OpenApi.Cache<>(2000, 24L * 60 * 60 * 1000);
     /** 기억에 없어 카카오에 새로 묻는 횟수 상한(프로그램마다 한 번 셈) - 주소마다 한 시간 80번, 하루 3,000번(설정 quota.food.ip · .day). */
     private static final OutQuota QUOTA = OutQuota.of("food", 80, 3000);
+    /** 함께 기다리는 한도(밀리초) - 하나 묻기 마감(6초)보다 조금 길게. */
+    static final long WAIT_MS = 8_000;
+    /** 카카오 묻기 일꾼 - 4개, 줄 16개(넘치면 그 프로그램만 빠짐). 데몬이라 톰캣이 내려갈 때 붙잡지 않음. */
+    private static final java.util.concurrent.ThreadPoolExecutor POOL = new java.util.concurrent.ThreadPoolExecutor(4, 4, 0, java.util.concurrent.TimeUnit.MILLISECONDS,
+            new java.util.concurrent.ArrayBlockingQueue<>(16), r -> {
+                Thread t = new Thread(r, "food-kakao");
+                t.setDaemon(true);
+                return t;
+            }, new java.util.concurrent.ThreadPoolExecutor.AbortPolicy());
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -50,24 +59,48 @@ public class FoodServlet extends HttpServlet {
         long now = System.currentTimeMillis();
         String kakao = RouteflyConfig.get("kakao.restKey");
         String ip = SecurityFilter.clientIp(req.getRemoteAddr(), req.getHeader("CF-Connecting-IP"), req.getHeader("X-Forwarded-For"));
-        Map<String, JsonArray> byShow = new LinkedHashMap<>();
+        // 점검 14차 D7(2026-11-24): 프로그램 넷을 차례로(최대 6초 × 4) 묻던 것을 함께 묻고 8초까지만 기다림. 못 받은 프로그램이 있으면 답을 남기지 않음.
+        Map<String, java.util.concurrent.Future<JsonArray>> jobs = new LinkedHashMap<>();
+        boolean partial = false;
         for (String show : SHOWS) {
             String key = show + "@" + StaysServlet.cacheKey(at[0], at[1]);
             JsonArray got = CACHE.get(key, now);
-            if (got == null && kakao != null && QUOTA.allow(ip, now)) {
-                String t = OpenApi.get(url(at[0], at[1], show), "FOOD-KAKAO", java.time.Duration.ofSeconds(6), "Authorization", "KakaoAK " + kakao);
-                got = t == null ? null : StaysServlet.kakaoStays(t);
-                if (got == null && t != null) OpenApi.warn("FOOD-KAKAO", t);
-                if (got != null) CACHE.put(key, got, now);
+            if (got != null) { jobs.put(show, java.util.concurrent.CompletableFuture.completedFuture(got)); continue; }
+            if (kakao == null || !QUOTA.allow(ip, now)) { partial |= kakao != null; continue; }
+            try {
+                jobs.put(show, POOL.submit(() -> {
+                    String t = OpenApi.get(url(at[0], at[1], show), "FOOD-KAKAO", java.time.Duration.ofSeconds(6), "Authorization", "KakaoAK " + kakao);
+                    JsonArray a = t == null ? null : StaysServlet.kakaoStays(t);
+                    if (a == null && t != null) OpenApi.warn("FOOD-KAKAO", t);
+                    if (a != null) CACHE.put(key, a, System.currentTimeMillis());
+                    return a;
+                }));
+            } catch (java.util.concurrent.RejectedExecutionException e) {
+                partial = true;   // 줄이 꽉 참 - 그 프로그램만 빠짐
             }
-            if (got != null) byShow.put(show, got);
+        }
+        Map<String, JsonArray> byShow = new LinkedHashMap<>();
+        long until = System.currentTimeMillis() + WAIT_MS;
+        for (var e : jobs.entrySet()) {
+            JsonArray got = null;
+            try {
+                got = e.getValue().get(Math.max(0, until - System.currentTimeMillis()), java.util.concurrent.TimeUnit.MILLISECONDS);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                e.getValue().cancel(true);
+            } catch (Exception ex) {
+                e.getValue().cancel(true);   // 시간이 다 됨 - 그 프로그램만 빠짐
+            }
+            if (got != null) byShow.put(e.getKey(), got);
+            else partial = true;
         }
         JsonObject out = new JsonObject();
         out.addProperty("success", true);
         out.add("food", byShow.isEmpty() ? new JsonArray() : merge(byShow, at[0], at[1]));
         if (byShow.isEmpty()) out.addProperty("unavailable", true);
         else { out.addProperty("radius_km", RADIUS_M / 1000); out.addProperty("source", "카카오"); }
-        Json.okPrivate(req, resp, out);
+        if (partial && !byShow.isEmpty()) Json.write(resp, HttpServletResponse.SC_OK, out, false);   // 일부만 - 1분 동안 이 답이 남지 않게
+        else Json.okPrivate(req, resp, out);
     }
 
     /** 순수 함수 - 카카오 키워드(프로그램 이름), 둘레 30km 사각형(왼쪽 아래 경도 · 위도, 오른쪽 위 경도 · 위도), 정확도 순 15곳(한 쪽 최대). */

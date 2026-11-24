@@ -236,10 +236,6 @@
     }
 
     /**
-     * 공식 정보(국립공원 탐방로 자료) → "공단 기준 오름 4시간 · 내림 3시간 · 난이도 2.27". 없으면 null.
-     * info: {up_min, down_min, level} (api/course 의 info).
-     */
-    /**
      * 순수 함수 - 자료가 끊긴 구간(courseGaps 와 같은 기준)의 선 GeoJSON(FeatureCollection) - 지도에 붉은 점선으로(2026-10-30).
      * 등산 · 장거리 코스만(kind hike · trek) - 내 GPX · 걷기 · 자전거의 곧은 길은 빼고. c: {lon, lat, course.kind, id}.
      */
@@ -265,7 +261,11 @@
         return !!info && +info.up_min > 0 && +distM > 0 && +info.up_min / (+distM / 1000) > INFO_PART_MIN_PER_KM;
     }
 
-    /** distM - 선 길이(있으면 공단 시간이 더 긴 공식 구간 것일 때 그렇다고 덧붙임 - infoPartial). */
+    /**
+     * 공식 정보(국립공원 탐방로 자료) → "공단 기준 오름 4시간 · 내림 3시간 · 난이도 2.27". 없으면 null.
+     * info: {up_min, down_min, level} (api/course 의 info).
+     * distM - 선 길이(있으면 공단 시간이 더 긴 공식 구간 것일 때 그렇다고 덧붙임 - infoPartial).
+     */
     function infoText(info, distM) {
         if (!info) return null;
         var parts = [], part = infoPartial(info, distM);

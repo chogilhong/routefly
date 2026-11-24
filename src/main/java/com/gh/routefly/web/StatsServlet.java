@@ -530,7 +530,6 @@ public class StatsServlet extends HttpServlet {
         return b.append("</table></section>").toString();
     }
 
-    /** 날마다 표의 모바일 · PC 방문자 칸 - 세기 전 날(10-20 전)은 "-". */
     /** 그 날 사람 확인 수 - 화면 js 가 돈 방문자(jsUniq 기기마다 합). 세기 전 날(10-22 전)은 null. 방문 추세 주황 선 · 날마다 표가 함께 씀. */
     static Integer humans(JsonObject d) {
         if (!d.has("jsUniq")) return null;
@@ -539,6 +538,7 @@ public class StatsServlet extends HttpServlet {
         return h;
     }
 
+    /** 날마다 표의 모바일 · PC 방문자 칸 - 세기 전 날(10-20 전)은 "-". */
     private static String dev(JsonObject d, String k) {
         if (!d.has("devUniq")) return "-";
         JsonObject o = d.getAsJsonObject("devUniq");

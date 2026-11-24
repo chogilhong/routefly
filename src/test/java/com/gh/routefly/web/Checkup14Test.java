@@ -94,4 +94,43 @@ public class Checkup14Test {
                 && ads.contains("/^https:\\/\\/(link\\.coupang\\.com|coupa\\.ng)\\//"));
         assertTrue("쿠팡 문구는 course-kit 과 같은 글", ads.contains(read("src/main/webapp/js/course-kit.js").replaceAll("(?s).*var COUPANG_NOTE = \"([^\"]+)\".*", "$1")));
     }
+
+    @Test
+    public void 단계4_코스보기_편집_정리() throws Exception {
+        String tj = read("src/main/webapp/js/trip.js"), st = read("src/main/webapp/js/studio.js"), kit = read("src/main/webapp/js/course-kit.js"), hk = read("src/main/webapp/js/hike.js");
+        // F1 정상 통제(대암산)는 "정상에 안 감" 을 붙이지 않음 - 통제 정상은 passes 에 들 수 없음
+        com.google.gson.JsonObject daeam = com.google.gson.JsonParser.parseString("{\"id\":\"대암산\",\"name\":\"대암산\",\"closed\":\"군 통제구역\"}").getAsJsonObject();
+        com.google.gson.JsonObject a = com.google.gson.JsonParser.parseString("{\"name\":\"가\",\"passes\":[]}").getAsJsonObject(), b = com.google.gson.JsonParser.parseString("{\"name\":\"나\",\"passes\":[\"x\"]}").getAsJsonObject();
+        java.util.List<com.google.gson.JsonObject> got = MountainServlet.markOff(new java.util.ArrayList<>(java.util.List.of(a, b)), daeam);
+        assertEquals(java.util.List.of(a, b), got);
+        assertFalse(a.has("summit_off") || b.has("summit_off"));
+        daeam.remove("closed");
+        MountainServlet.markOff(new java.util.ArrayList<>(java.util.List.of(a, b)), daeam);
+        assertTrue("통제가 아니면 그대로 표시", a.has("summit_off") && b.has("summit_off"));
+        // D7 맛집 카카오 넷을 함께 · 8초 마감 · 일부만 받으면 남기지 않음
+        String food = read("src/main/java/com/gh/routefly/web/FoodServlet.java");
+        assertEquals(8_000, FoodServlet.WAIT_MS);
+        assertTrue(food.contains("jobs.put(show, POOL.submit(() -> {") && food.contains("if (partial && !byShow.isEmpty()) Json.write(resp, HttpServletResponse.SC_OK, out, false);"));
+        // 작은 것: 목소리 rate 400 · 공유 그림 사진 없으면 null(MountainHeroTest)
+        assertTrue(read("src/main/java/com/gh/routefly/web/VoiceServlet.java").contains("json(resp, 400, err(\"rate 는 숫자입니다\"));"));
+        // C3 코스 보기 정보 칸 · D2 바로 저장(앱은 따라가기) · D5 마우스 따라가기 가볍게 · C9 사진 창 · 지우기 replace · 지도 8초
+        assertTrue(tj.contains("if (courseParam && courseInfo) infoBox(courseInfo);") && tj.contains("courseInfo = c;")
+                && tj.contains("lv = off ? null : RF.levelChip(c.total, asc, EN, RF.steepest(c.dist, c.ele), null);") && tj.contains("RF.hm(RF.legMs(c, 0, c.total))"));
+        assertTrue(tj.contains("if (window.Capacitor || !gpxText) {") && tj.contains("new Blob([gpxText], { type: \"application/gpx+xml\" })")
+                && tj.contains("credit: RF.courseGpxCredit(courseParam, src, EN)"));
+        assertTrue(tj.contains("var i = RF.indexAt(rc, d);") && tj.contains("var q = RF.snap(rc, lat, lon, hovD);") && tj.contains("lat < rcBox[0] - dy"));
+        assertTrue(tj.contains("$(\"bigClose\").focus();") && read("src/main/webapp/trip.html").contains("<div id=\"big\" role=\"dialog\" aria-modal=\"true\""));
+        assertTrue(read("src/main/webapp/trip.html").contains("@media (pointer: coarse) { #kinds .kind { width:44px; height:44px;"));
+        assertTrue(hk.contains("$(\"photoBig\").focus();") && hk.contains("if (e.key === \"Escape\" || e.key === \"Enter\" || e.key === \" \") { e.preventDefault(); e.stopPropagation(); photoBigClose(); }"));
+        // C7 같은 길 두 번 · C8 출처 접기 · D3 지도 설정 함께 받기
+        assertEquals("안내도 · 기록(두 곳) · 넘겨받은 GPX", 4, st.split(java.util.regex.Pattern.quote("addOnce("), -1).length - 2);
+        assertTrue(st.contains("        if (phone()) foldAttrib();") && st.contains("var mapCfgP = fetch(\"api/map-config\"") && st.contains("        mapCfgP.then(function (j) {"));
+        assertTrue("지도 설정을 운영자 확인보다 먼저 묻기 시작", st.indexOf("var mapCfgP = fetch(") < st.indexOf("var ownerP = RF.ownerDevice()"));
+        // F2 한 벌로: 시간 글 · 운영자 물음 · 기록 열쇠 · 내 기록 읽기 · 광고 자리 CSS
+        assertTrue(kit.contains("recKey: recKey, myRecords: myRecords, ownerDevice: ownerDevice,") && !tj.contains("function hm("));
+        for (String f : new String[] {"trip.js", "studio.js", "hike.js", "park.js", "route.js", "mountain.js"})
+            assertFalse(f, read("src/main/webapp/js/" + f).contains("fetch(\"api/course-upload\", { headers: { Accept: \"application/json\" }, cache: \"no-store\" })")
+                    || read("src/main/webapp/js/" + f).contains("fetch(\"../api/course-upload\""));
+        assertFalse(read("src/main/webapp/hike.html").contains(".adRail { display:none; }") || read("src/main/webapp/css/mountain.css").contains(".adRail { display:none; }"));
+    }
 }

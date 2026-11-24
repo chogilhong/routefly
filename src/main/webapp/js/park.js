@@ -988,11 +988,8 @@
      * 📐 고른 길을 GPX 편집으로(2026-11-16 홍TV님 "안내도에서 여러개를 이어서 … 코스를 만들려고") - 관리자 기기(/api/course-upload 의 owner)에만.
      * 따라가기 주소(hike.html#c=…)의 # 뒤를 그대로 GPX 편집(studio.html)에 넘김. park.js · route.js 같은 셈(둘 다 고침).
      */
-    var ownerP = null;
     function studioLink(row, followHref) {
-        if (!ownerP) ownerP = fetch("api/course-upload", { headers: { Accept: "application/json" }, cache: "no-store" }).then(function (r) { return r.ok ? r.json() : {}; })
-            .then(function (j) { return !!(j && j.owner); }).catch(function () { return false; });
-        ownerP.then(function (own) {
+        RF.ownerDevice().then(function (own) {   // 한 번만 묻고 기억(점검 14차 F2)
             if (!own || !row.isConnected) return;   // 그 사이 다른 길을 골라 칸이 바뀌었으면 넣지 않음
             var p = document.createElement("div"), a = document.createElement("a");
             p.className = "tip studio";

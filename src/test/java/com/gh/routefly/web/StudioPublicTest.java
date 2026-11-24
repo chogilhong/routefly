@@ -104,7 +104,7 @@ public class StudioPublicTest {
         String ms = read("src/main/java/com/gh/routefly/web/MountainServlet.java");
         // 2026-11-22 홍TV님 "GPX 편집은 나만 보이게" - 숨겨 두고 운영자 기기(api/course-upload owner)만 보임, 위에 📂 GPX 열기(기록 보기 trip.html)
         assertTrue("코스 모음 GPX 편집 입구는 숨김", ms.contains("id=\\\"studioLink\\\" hidden href="));
-        assertTrue("운영자 기기만 보임", read("src/main/webapp/js/mountain.js").contains(".then(function (j) { if (j && j.owner) studioA.hidden = false; })"));
+        assertTrue("운영자 기기만 보임", read("src/main/webapp/js/mountain.js").contains("window.RF.ownerDevice(\"../\").then(function (own) { if (own) studioA.hidden = false; });"));   // 물음은 course-kit 한 벌(점검 14차 F2)
         assertTrue("📂 GPX 열기가 GPX 편집 위", ms.indexOf("/trip.html\\\">📂 GPX 열기") > 0 && ms.indexOf("/trip.html\\\">📂 GPX 열기") < ms.indexOf("id=\\\"studioLink\\\""));
     }
 

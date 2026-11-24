@@ -425,6 +425,14 @@
         return (sel || []).slice().reverse().map(function (s) { return { id: s.id, rev: !s.rev }; });
     }
 
+    /** 운영자 기기인가 - GET api/course-upload 의 owner(서버가 /stats 쿠키로 확인). 한 번만 묻고 기억(점검 14차 F2 - 화면마다 같은 물음 여섯 벌). root - 앞 경로("../" 등). */
+    var ownerQ = null;
+    function ownerDevice(root) {
+        if (!ownerQ) ownerQ = fetch((root || "") + "api/course-upload", { headers: { Accept: "application/json" }, cache: "no-store" }).then(function (r) { return r.ok ? r.json() : {}; })
+            .then(function (j) { return !!(j && j.owner); }).catch(function () { return false; });
+        return ownerQ;
+    }
+
     function indexAt(c, d) {
         var dist = c.dist, lo = 0, hi = dist.length - 1;
         if (d <= 0) return 0;
@@ -650,6 +658,7 @@
         setCanonical: setCanonical,
         trailCourses: trailCourses,
         nameText: nameText,
+        ownerDevice: ownerDevice,
         declutter: declutter,
         courseNo: courseNo,
         routeEnds: routeEnds,

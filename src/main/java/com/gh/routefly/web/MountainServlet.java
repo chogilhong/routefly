@@ -227,6 +227,8 @@ public class MountainServlet extends HttpServlet {
      * (2026-11-20 홍TV님 "고쳐 줘"). passes(Steep.fill - 선이 지나는 산 id)가 없으면(점을 못 읽음) 그대로. 이름의 정상을 안 가는 summit_miss 는 이미 따로 표시.
      */
     static List<JsonObject> markOff(List<JsonObject> courses, JsonObject peak) {
+        // 점검 14차 F1(2026-11-24): 정상 통제(대암산)는 Peaks.named 에서 빠져 passes 에 들 수 없음 - 모든 코스에 "정상에 안 감" 이 붙던 것을 건너뜀(⛔ 안내가 따로 있음)
+        if (closed(peak) != null) return courses;
         String id = MountainEn.id(peak), name = str(peak, "name");
         List<JsonObject> on = new ArrayList<>(), off = new ArrayList<>();
         for (JsonObject o : courses) {
@@ -461,7 +463,7 @@ public class MountainServlet extends HttpServlet {
     static final double FAR_M = 5000;
     static final int FAR_MAX = 20;
 
-    /** 순수 함수 - 선이 이 산 정상을 지나는 코스만(Steep.fill 의 passes 에 이 산 id). passes 가 없으면(점을 못 읽음) 넣지 않음. */
+    /** 순수 함수 - 선이 이 산 정상을 지나는 코스만(Steep.fill 의 passes 에 이 산 id). passes 가 없으면(점을 못 읽음) 넣지 않음. 정상 통제(대암산)는 passes 에 없어 늘 빔. */
     static List<JsonObject> through(List<JsonObject> far, JsonObject peak) {
         com.google.gson.JsonPrimitive id = new com.google.gson.JsonPrimitive(MountainEn.id(peak));
         List<JsonObject> out = new ArrayList<>();
@@ -1195,15 +1197,15 @@ public class MountainServlet extends HttpServlet {
     }
 
     /**
-     * 🏨 근처 숙소 찾기 칸(산 페이지). "🏨 근처 숙소(트립닷컴) ›" 한 줄은 뺌(2026-11-03 홍TV님 - 찾기 칸에 트립닷컴 · 아고다 · 호텔스컴바인이 다 있음).
-     * 코스 모음(/m/)처럼 검색 칸을 처음부터 펴 두고, 접어도 검색 칸은 남김(2026-11-03 홍TV님 "아래 검색 창만 남겨. 코스 모음 처럼"). 산 이름(숙박 거점)은 미리 채움.
-     */
-    /**
      * 🚗 쏘카 한 줄 자리(설정 partner.socar.url 이 있고 휴대폰일 때 mountain.js 가 채움, 2026-11-03) - 🏨 근처 숙소 찾기 칸 바로 아래
      * (2026-11-20 홍TV님 "쏘카는 제일 하단 근처 숙소 찾기 아래로", 전에는 코스 안내 글 아래). 코스가 있는 산만.
      */
     static final String SOCAR = "<p class=\"stays\" id=\"socar\" hidden></p>";
 
+    /**
+     * 🏨 근처 숙소 찾기 칸(산 페이지). "🏨 근처 숙소(트립닷컴) ›" 한 줄은 뺌(2026-11-03 홍TV님 - 찾기 칸에 트립닷컴 · 아고다 · 호텔스컴바인이 다 있음).
+     * 코스 모음(/m/)처럼 검색 칸을 처음부터 펴 두고, 접어도 검색 칸은 남김(2026-11-03 홍TV님 "아래 검색 창만 남겨. 코스 모음 처럼"). 산 이름(숙박 거점)은 미리 채움.
+     */
     static String staysBlock(JsonObject peak, boolean en) {
         return staySearchBox(stayPrefill(str(peak, "id") != null ? str(peak, "id") : str(peak, "name")), en);
     }

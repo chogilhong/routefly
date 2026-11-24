@@ -14,6 +14,8 @@
     RF.setLang(LANG);
     if (EN) { document.documentElement.lang = "en"; document.title = "routefly - View record"; RF.applyEn(document); }
 
+    var rcBox = null;   // 선을 둘러싼 네모 [남, 북, 서, 동] - 마우스 따라가기가 먼저 봄
+    var courseInfo = null;   // 코스 보기(?c=)의 코스 자료(RF.fromApi) - 예상 시간 · 난이도 · 지점(점검 14차 C3)
     var map = null, cfgP = null, marks = [], cards = [], urls = [], items = [], pick = -1, prof = null, rc = null;
     var FIRST_ZOOM_UP = 0.1;   // 처음 화면 - 전체 맞춤보다 이만큼 더 확대
     var vector = false, peakKeys = [], PEAK_NEAR_M = 150, tileFeats = [];   // tileFeats - 선이 지나는 확대 12 조각의 봉우리(RFMap.tilePeaks)
@@ -41,7 +43,6 @@
     function two(n) { return (n < 10 ? "0" : "") + n; }
     /** 한국 시각 "2026. 11. 20. 11:33". */
     function when(t) { var d = new Date(t + 9 * 3600000); return d.getUTCFullYear() + ". " + (d.getUTCMonth() + 1) + ". " + d.getUTCDate() + ". " + two(d.getUTCHours()) + ":" + two(d.getUTCMinutes()); }
-    function hm(ms) { var m = Math.round(ms / 60000); return (m >= 60 ? Math.floor(m / 60) + T("시간 ", "h ") : "") + (m % 60) + T("분", "m"); }   // 1시간 안은 "35분"(2026-11-23 홍TV님)
 
     function clear() {
         marks.forEach(function (m) { m.remove(); });
@@ -75,14 +76,49 @@
         if (!hov) { var el = document.createElement("div"); el.className = "hov"; hov = new maplibregl.Marker({ element: el }).setLngLat([p.lon, p.lat]).addTo(map); }
         else hov.setLngLat([p.lon, p.lat]);
         if (prof) prof.set(d);
-        var i = 0;
-        while (i < rc.dist.length - 1 && rc.dist[i + 1] <= d) i++;
+        var i = RF.indexAt(rc, d);   // 반으로 나눠 찾기(점검 14차 D5 - 긴 기록에서 움직일 때마다 앞에서부터 셌음)
         var t0 = rc.time && rc.time[0], ti = rc.time && rc.time[i], el2 = typeof t0 === "number" && typeof ti === "number" ? ti - t0 : null;
-        $("profTip").textContent = RF.km(d) + " km" + (p.ele != null ? T(" · 해발 ", " · elev. ") + RF.num(Math.round(p.ele)) + " m" : "") + (el2 != null ? " · " + hm(el2) : "");
+        $("profTip").textContent = RF.km(d) + " km" + (p.ele != null ? T(" · 해발 ", " · elev. ") + RF.num(Math.round(p.ele)) + " m" : "") + (el2 != null ? " · " + RF.hm(el2) : "");
     }
     function hoverOff() {
         if (hov) { hov.remove(); hov = null; }
         if ($("profTip")) $("profTip").textContent = "";
+    }
+
+    /**
+     * 코스 보기 정보 칸(점검 14차 C3 - 받은 코스 정보를 버리고 선만 썼음): 예상 시간(따라가기 표준 시간 · 공단 시간) · 난이도 · 오르막 · 내리막,
+     * 위험 · 조망 지점과 지나는 곳 - 누르면 그 자리를 지도 · 그래프에(마우스 따라가기와 같은 노란 점).
+     */
+    function infoBox(c) {
+        var box = document.createElement("div"), asc = c.asc && c.asc.length ? c.asc[c.asc.length - 1] : 0, down = RF.climbBetween(c, 0, c.total).down;
+        box.id = "cInfo";
+        // 오른 높이는 위 요약 표에 있어 내리막만(두 숫자가 셈 방법 차이로 조금 달라 헷갈리지 않게). 공단 정보가 있으면 난이도는 그 줄에 - 칩은 routefly 어림일 때만
+        var p = document.createElement("p"), off = RF.infoText(c.info, c.total), lv = off ? null : RF.levelChip(c.total, asc, EN, RF.steepest(c.dist, c.ele), null);
+        p.className = "ci";
+        p.textContent = T("⏱ 예상 ", "⏱ About ") + RF.hm(RF.legMs(c, 0, c.total)) + T(" · 내리막 ", " · down ") + RF.num(Math.round(down)) + " m ";
+        if (lv) p.appendChild(lv);
+        box.appendChild(p);
+        if (off) { var q = document.createElement("p"); q.className = "ci"; q.textContent = "🏞 " + off; box.appendChild(q); }
+        var pts = [];
+        (c.spots || []).forEach(function (s) {
+            if (s.dist_m == null || (s.kind !== "danger" && s.kind !== "view")) return;
+            pts.push({ d: +s.dist_m, dg: s.kind === "danger", t: (s.kind === "danger" ? "⚠️ " : "🔭 ") + (NM(s.name) || T(s.kind === "danger" ? "위험" : "조망점", s.kind === "danger" ? "Danger" : "Viewpoint")) });
+        });
+        (c.pois || []).forEach(function (q) { if (q.name && q.dist_m != null) pts.push({ d: +q.dist_m, t: "📍 " + NM(q.name) }); });
+        pts.sort(function (a, b) { return a.d - b.d; });
+        if (pts.length) {
+            var w = document.createElement("div");
+            w.className = "pts";
+            pts.slice(0, 40).forEach(function (o) {
+                var b = document.createElement("button");
+                b.type = "button"; if (o.dg) b.className = "dg";
+                b.textContent = o.t + " · " + RF.km(o.d) + " km";
+                b.onclick = function () { hoverAt(o.d); var q = RF.at(rc, o.d); if (map) map.easeTo({ center: [q.lon, q.lat], duration: 500 }); };
+                w.appendChild(b);
+            });
+            box.appendChild(w);
+        }
+        $("side").appendChild(box);
     }
 
     /** 기록 하나 그리기. photoUrl(id) → 약속(그림 주소 | null). */
@@ -90,10 +126,11 @@
         clear();
         curRec = rec;
         rc = RF.recordCourse(rec);
+        rcBox = [Math.min.apply(null, rc.lat), Math.max.apply(null, rc.lat), Math.min.apply(null, rc.lon), Math.max.apply(null, rc.lon)];
         if (rc.lat.length < 2) { $("side").innerHTML = "<p class=\"empty\">" + T("점이 모자라 그릴 수 없습니다.", "Not enough points to draw.") + "</p>"; return; }
         $("title").textContent = NM(rec.name) || T("기록 보기", "View record");
         document.title = (NM(rec.name) || "") + (courseParam ? T(" - routefly 코스 보기", " - routefly course") : T(" - routefly 기록 보기", " - routefly record"));   // 코스 보기는 그 이름(점검 14차 C6)
-        $("stat").textContent = (rec.start != null ? when(rec.start) + " · " : "") + RF.km(rc.total) + " km" + (rec.start != null && rec.end != null && rec.end > rec.start ? " · " + hm(rec.end - rec.start) : "")
+        $("stat").textContent = (rec.start != null ? when(rec.start) + " · " : "") + RF.km(rc.total) + " km" + (rec.start != null && rec.end != null && rec.end > rec.start ? " · " + RF.hm(rec.end - rec.start) : "")
             + (rec.up != null ? T(" · 오른 높이 ", " · climb ") + RF.num(rec.up) + " m" : rc.asc && rc.asc.length ? T(" · 오르막 ", " · ascent ") + RF.num(rc.asc[rc.asc.length - 1]) + " m" : "");
         prof = RF.profile($("prof"), rc, { speed: RF.speedProfile(rc), labels: false });
         hoverOff();
@@ -101,6 +138,7 @@
         sum.id = "sumTbl";
         $("side").appendChild(sum);
         drawSum();
+        if (courseParam && courseInfo) infoBox(courseInfo);
         var narrow = window.matchMedia && window.matchMedia("(max-width: 760px)").matches;   // 폰 세로는 그래프가 지도를 많이 가려 접어 두고 📈 단추로
         if (courseParam) narrow = false;   // 코스 보기는 높이 그래프가 핵심이라 폰에서도 펼쳐 둠(점검 14차 C4)
         $("graph").hidden = narrow; $("graphBtn").hidden = !narrow;
@@ -543,12 +581,19 @@
         select(i, false, false);
         $("bigImg").src = it.url;
         $("bigCap").textContent = (it.n.t != null ? when(it.n.t) : "") + (it.n.text ? " · " + it.n.text : "");
+        if ($("big").style.display !== "flex") bigFrom = document.activeElement;
         $("big").style.display = "flex";
+        $("bigClose").focus();   // 키보드 · 화면 읽기가 사진 창 안에서(점검 14차 C9), 닫으면 누른 곳으로
     }
     function step(k) {
         for (var j = pick + k; j >= 0 && j < items.length; j += k) if (items[j].url) { big(j); return; }
     }
-    function bigClose() { $("big").style.display = "none"; $("bigImg").removeAttribute("src"); }
+    var bigFrom = null;
+    function bigClose() {
+        $("big").style.display = "none"; $("bigImg").removeAttribute("src");
+        if (bigFrom && bigFrom.focus) try { bigFrom.focus(); } catch (e) { /* 지워진 칸 */ }
+        bigFrom = null;
+    }
     $("bigClose").onclick = bigClose;
     $("bigPrev").onclick = function () { step(-1); };
     $("bigNext").onclick = function () { step(1); };
@@ -574,7 +619,9 @@
     // 파일이 아직 서버에 없거나(404) 못 읽으면 V-World 바탕으로(2026-11-22 PC: 설정이 파일보다 먼저 들어가 운영 기록 보기가 바탕 없이 지형 음영만 보였음)
     cfgP = getJson("api/map-config").catch(function () { return {}; }).then(function (c) {
         var cfg = { demUrl: c.demUrl || "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png", vworldKey: c.vworldKey || null };
-        return RFMap.open(c.basemapUrl, cfg.demUrl, { lang: LANG }).then(function (style) { return { cfg: cfg, style: style }; });
+        // 바탕 지도 파일 확인이 오래 걸리면(산속 느린 통신) 8초 뒤 V-World 바탕으로(점검 14차 C9 - 전에는 지도가 끝없이 비었음)
+        var late = new Promise(function (ok) { setTimeout(function () { ok(null); }, 8000); });
+        return Promise.race([RFMap.open(c.basemapUrl, cfg.demUrl, { lang: LANG }).catch(function () { return null; }), late]).then(function (style) { return { cfg: cfg, style: style }; });
     }).then(function (o) {
         var cfg = o.cfg, style = o.style;
         vector = !!style; contourCfg = cfg;
@@ -598,13 +645,17 @@
         map.once("style.load", function () { styleOk = true; fold(); setContour(contourOn); var q = styleQ; styleQ = []; q.forEach(function (fn) { fn(); }); });
         if (vector) loadMarks();
         // 지도의 선 가까이에서 마우스를 움직이면 그 자리를 그래프 · 노란 점으로(2026-11-23 홍TV님 "GPX 편집처럼 마우스 움직임을 따라가게") - 화면에서 약 14px 안
-        var hovRaf = 0;
+        var hovRaf = 0, hovD = null;
         map.on("mousemove", function (e) {
             if (!rc || hovRaf) return;
             hovRaf = requestAnimationFrame(function () {
                 hovRaf = 0;
-                var q = RF.snap(rc, e.lngLat.lat, e.lngLat.lng), mpp = 40075016 * Math.cos(e.lngLat.lat * Math.PI / 180) / (512 * Math.pow(2, map.getZoom()));
-                if (q && q.off <= mpp * 14) hoverAt(q.d); else hoverOff();
+                var lat = e.lngLat.lat, lon = e.lngLat.lng, mpp = 40075016 * Math.cos(lat * Math.PI / 180) / (512 * Math.pow(2, map.getZoom())), tol = mpp * 14;
+                // 점검 14차 D5: 선을 둘러싼 네모(+여유) 밖이면 선을 훑지 않음, 안이면 지난 자리 앞뒤부터(RF.snap prevD)
+                var dy = tol / 110540, dx = tol / (111320 * Math.cos(lat * Math.PI / 180));
+                if (!rcBox || lat < rcBox[0] - dy || lat > rcBox[1] + dy || lon < rcBox[2] - dx || lon > rcBox[3] + dx) { hovD = null; hoverOff(); return; }
+                var q = RF.snap(rc, lat, lon, hovD);
+                if (q && q.off <= tol) { hovD = q.d; hoverAt(q.d); } else { hovD = null; hoverOff(); }
             });
         });
         map.getCanvas().addEventListener("mouseleave", hoverOff);
@@ -658,11 +709,11 @@
         $("rec-edit").onclick = function () { location.href = "studio.html#rec=" + encodeURIComponent(recParam); };
         if (EN) $("rec-edit").hidden = true;   // GPX 편집은 한국어 화면만(점검 14차 C6)
         ["fly", "save", "del"].forEach(function (k) {
-            $("rec-" + k).onclick = function () { location.href = (EN ? "hike.html?lang=en" : "hike.html") + "#recdo=" + k + ":" + encodeURIComponent(recParam); };
+            // 지우기는 이 화면을 뒤로 가기 기록에서 바꿈 - 지운 기록 화면으로 되돌아오지 않게(점검 14차 C9)
+            $("rec-" + k).onclick = function () { var u = (EN ? "hike.html?lang=en" : "hike.html") + "#recdo=" + k + ":" + encodeURIComponent(recParam); if (k === "del") location.replace(u); else location.href = u; };
         });
-        idbGet("rf-records", "r", "list").then(function (list) {
-            if (!Array.isArray(list)) { try { list = JSON.parse(localStorage.getItem("rf-records") || "[]"); } catch (e) { list = []; } }   // 따라가기가 IndexedDB 를 못 쓸 때 남기는 곳
-            var rec = list.filter(function (r) { return r && r.start + "|" + (r.courseId || "") === recParam; })[0];
+        RF.myRecords().then(function (list) {   // IndexedDB · localStorage(따라가기가 IndexedDB 를 못 쓸 때 남기는 곳) - GPX 편집과 같은 읽기(점검 14차 F2)
+            var rec = list.filter(function (r) { return r && RF.recKey(r) === recParam; })[0];
             if (!rec) { $("side").innerHTML = "<p class=\"empty\">" + T("이 기기에서 그 기록을 찾지 못했습니다.", "That record is not on this device.") + "</p>"; return; }
             show(rec, function (id) {
                 return idbGet("rf-photos", "p", id).then(function (blob) { return blob ? URL.createObjectURL(blob) : null; });
@@ -690,10 +741,18 @@
             if (navigator.share) { navigator.share({ title: ttl, url: url }).catch(function () { /* 닫음 */ }); return; }
             (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(function () { alert(T("주소를 복사했습니다.", "Link copied.")); }, function () { prompt(T("이 주소를 복사하세요", "Copy this link"), url); });
         };
-        $("rec-save").onclick = function () { location.href = (EN ? "hike.html?lang=en" : "hike.html") + "#coursegpx=" + encodeURIComponent(courseParam) + (cTitle ? "&title=" + encodeURIComponent(cTitle) : ""); };
+        var gpxText = null, gpxName = null;   // 받아 둔 코스로 만든 GPX - 💾 가 그 자리에서 저장(점검 14차 D2)
+        $("rec-save").onclick = function () {
+            // 앱은 파일 저장 · 공유 창을 따라가기가 맡음(그대로), 브라우저는 이미 받은 코스로 바로 - 따라가기 페이지를 다시 열고 같은 코스를 또 받지 않음
+            if (window.Capacitor || !gpxText) { location.href = (EN ? "hike.html?lang=en" : "hike.html") + "#coursegpx=" + encodeURIComponent(courseParam) + (cTitle ? "&title=" + encodeURIComponent(cTitle) : ""); return; }
+            if (!confirm(T("\"" + NM(gpxName) + "\" 코스를 GPX 파일로 저장할까요?", "Save \"" + NM(gpxName) + "\" as a GPX file?"))) return;
+            var a = document.createElement("a"), u = URL.createObjectURL(new Blob([gpxText], { type: "application/gpx+xml" }));
+            a.href = u; a.download = "routefly-" + String(courseParam).replace(/[^\w-]+/g, "_").slice(0, 60) + ".gpx";
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(function () { URL.revokeObjectURL(u); }, 10000);
+        };
         $("rec-edit").onclick = function () { location.href = "studio.html" + cQ; };
-        var ownP = fetch("api/course-upload", { headers: { Accept: "application/json" }, cache: "no-store" }).then(function (r) { return r.ok ? r.json() : {}; })
-            .then(function (j) { return !!(j && j.owner); }).catch(function () { return false; });
+        var ownP = RF.ownerDevice();
         // 이은 코스(대표 코스 - 쉼표 · @ 든 ID)도 조각마다 받아 이음(RF.courseFetch, 점검 14차 A5)
         var cJson = function (u) { return fetch(u, { headers: { Accept: "application/json" } }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }); };
         Promise.all([RF.courseFetch(courseParam, cJson), ownP]).then(function (a) {
@@ -701,7 +760,9 @@
             var name = (c.course && c.course.name) || cTitle || courseParam, got = t.length > 1 ? RF.gpxRecord(RF.trackGpx(name, c.course && c.course.kind, t), true, name) : null;
             if (!got) { $("side").innerHTML = "<p class=\"empty\">" + T("코스 선을 받지 못했습니다.", "Could not load the course line.") + "</p>"; return; }
             $("rec-save").hidden = !(a[1] || RF.courseGpxFree(courseParam, src));
+            if (!$("rec-save").hidden) { gpxName = name; gpxText = RF.trackGpx(name, c.course && c.course.kind, t, { wpt: true, en: EN, credit: RF.courseGpxCredit(courseParam, src, EN) }); }   // 따라가기 courseGpx 와 같은 파일
             $("rec-edit").hidden = !a[1] || EN;
+            courseInfo = c;   // RF.courseFetch 가 이미 fromApi 꼴(거리 · 높이 · 지점 · 공단 정보)
             show(got.rec, function () { return Promise.resolve(null); });
         }).catch(function () { $("side").innerHTML = "<p class=\"empty\">" + T("코스를 받지 못했습니다.", "Could not load the course.") + "</p>"; });
     }

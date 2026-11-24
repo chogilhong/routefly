@@ -1554,6 +1554,14 @@
         return (sel || []).slice().reverse().map(function (s) { return { id: s.id, rev: !s.rev }; });
     }
 
+    /** 운영자 기기인가 - GET api/course-upload 의 owner(서버가 /stats 쿠키로 확인). 한 번만 묻고 기억(점검 14차 F2 - 화면마다 같은 물음 여섯 벌). root - 앞 경로("../" 등). */
+    var ownerQ = null;
+    function ownerDevice(root) {
+        if (!ownerQ) ownerQ = fetch((root || "") + "api/course-upload", { headers: { Accept: "application/json" }, cache: "no-store" }).then(function (r) { return r.ok ? r.json() : {}; })
+            .then(function (j) { return !!(j && j.owner); }).catch(function () { return false; });
+        return ownerQ;
+    }
+
     /**
      * 순수 함수 - 코스(점 · 이름표)의 [가장 낮은, 가장 높은] 높이(m, 모르면 null). 이은 코스 · 자른 구간이 같이 씀.
      * 지나는 정상의 공식 높이(서버가 이름표에 ele_official 로 붙임)도 최고에 - 이은 코스는 선 높이만 봐서 백운대 836m 가 808m 로 보였음(2026-10-30 PC).
@@ -1862,6 +1870,7 @@
         isHiddenCourse: isHiddenCourse,
         spotText: spotText,
         nameText: nameText,
+        ownerDevice: ownerDevice,
         declutter: declutter,
         routeEnds: routeEnds,
         routeFlips: routeFlips,

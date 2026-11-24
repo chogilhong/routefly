@@ -32,7 +32,7 @@ public class BasemapTest {
     public void tripUsesBasemapWhenSet() throws Exception {
         String js = read("src/main/webapp/js/trip.js"), html = read("src/main/webapp/trip.html"), sw = read("src/main/webapp/sw.js");
         String kit = read("src/main/webapp/vendor/rfmap-1.1.8/rfmap.js");   // 지도 모양 · 아이콘은 우리 지도 패키지(2026-11-23 course-kit 에서 옮김)
-        assertTrue("설정이 있고 pmtiles 를 읽었을 때만 - 기록 보기 · 3D 영상이 같은 RFMap.open", js.contains("return RFMap.open(c.basemapUrl, cfg.demUrl, { lang: LANG }).then(")
+        assertTrue("설정이 있고 pmtiles 를 읽었을 때만 - 기록 보기 · 3D 영상이 같은 RFMap.open", js.contains("return Promise.race([RFMap.open(c.basemapUrl, cfg.demUrl, { lang: LANG }).catch(function () { return null; }), late]).then(")   // 8초 넘으면 V-World(점검 14차 C9)
             && kit.contains("if (!basemapUrl || !global.pmtiles || !global.maplibregl) return Promise.resolve(null);") && kit.contains("global.maplibregl.addProtocol(\"pmtiles\", proto.tile);"));
         assertTrue("파일 머리를 못 읽으면(404 - 설정이 파일보다 먼저) V-World 바탕으로(2026-11-22 PC)",
             kit.contains("return file.getHeader().then(function () {") && kit.contains("}, function () { return null; });") && kit.contains("proto.add(file);"));

@@ -102,7 +102,13 @@ public class VoiceServlet extends HttpServlet {
             return;
         }
         String text = str(in, "text"), voice = str(in, "voice");
-        int rate = in.has("rate") && in.get("rate").isJsonPrimitive() ? in.get("rate").getAsInt() : 0;
+        int rate;
+        try {
+            rate = in.has("rate") && in.get("rate").isJsonPrimitive() ? in.get("rate").getAsInt() : 0;
+        } catch (NumberFormatException e) {
+            json(resp, 400, err("rate 는 숫자입니다"));   // 점검 14차(2026-11-24): 전에는 500
+            return;
+        }
         String bad = check(text, voice, rate);
         if (bad != null) { json(resp, 400, err(bad)); return; }
         try {

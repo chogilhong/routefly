@@ -31,7 +31,8 @@ public class StudioFilterTest {
         new StudioFilter().doFilter(req, res, chain);
         assertEquals("손님도 들어옴(돌려보내지 않음)", List.of("Cache-Control: no-store", "chain"), did);
         String js = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("src/main/webapp/js/studio.js")), java.nio.charset.StandardCharsets.UTF_8);
-        assertTrue("#c= 코스 열기는 운영자 기기만", js.contains("function openFromGuide() { return ownerP.then(openGuideNow); }") && js.contains("if (!owner) { try { history.replaceState(null, \"\", location.pathname + location.search); } catch (e) { /* 주소는 그대로 */ } return; }"));
+        assertTrue("#c= 코스 열기는 운영자 기기만", js.contains("function openFromGuide() { return ownerP.then(openGuideNow); }") && js.contains("        if (!owner) {\n            try { history.replaceState(null, \"\", location.pathname + location.search); } catch (e) { /* 주소는 그대로 */ }\n")
+                && js.contains("msg(\"코스 번호로 바로 여는 것은 운영자 기기만 됩니다."));   // 손님에게 한 줄(점검 14차 C9)
         assertArrayEquals("studio.html 만 거름", new String[] {"/studio.html"}, StudioFilter.class.getAnnotation(jakarta.servlet.annotation.WebFilter.class).urlPatterns());
     }
 }

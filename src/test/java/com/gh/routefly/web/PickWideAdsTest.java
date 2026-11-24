@@ -25,13 +25,14 @@ public class PickWideAdsTest {
         // 2026-11-24 홍TV님 "목록에서만, 세 번째(따라가기 지도) 화면에서는 광고는 달지 않아" - 양옆 자리는 목록(#pick) 안에만
         int pick = html.indexOf("<div id=\"pick\">"), rails = html.indexOf("<div class=\"adSpot adRail left\" data-where=\"side\"></div><div class=\"adSpot adRail right\" data-where=\"side\"></div>"), foot = html.indexOf("<div id=\"pickFoot\"");
         assertTrue("양옆 자리는 목록 안(코스를 열면 함께 숨음)", pick > 0 && rails > pick && rails < foot && html.indexOf("adRail", foot + 1) < 0);
-        assertTrue("ads.js · 1200px 아래 숨김", html.contains("<script src=\"js/ads.js\" defer></script>") && html.contains(".adRail { display:none; }\n@media (min-width:1200px) {\n  #pick > .adRail { display:block;"));
+        assertTrue("ads.js · 1200px 아래 숨김", html.contains("<script src=\"js/ads.js\" defer></script>") && html.contains("<link rel=\"stylesheet\" href=\"css/course-kit.css\">")
+                && read("src/main/webapp/css/course-kit.css").contains(".adRail { display:none; }\n@media (min-width:1200px) {\n  .adRail { display:block;"));   // 모양은 코스 모음과 한 벌(점검 14차 F2)
         assertTrue("숨은 자리는 보일 때 채움", read("src/main/webapp/js/ads.js").contains("whenShown(spot, function () { load(a.client, [makeBox(spot, a)]); });"));
     }
 
     @Test
     public void 코스_모음_양옆_광고는_PC_만() throws Exception {
-        String rails = Ads.rails(), ads = read("src/main/webapp/js/ads.js"), css = read("src/main/webapp/css/mountain.css");
+        String rails = Ads.rails(), ads = read("src/main/webapp/js/ads.js"), css = read("src/main/webapp/css/course-kit.css");   // 코스 모음 · 따라가기 목록이 같이 쓰는 한 벌(점검 14차 F2)
         assertTrue("빈 자리 둘 + ads.js", rails.contains("<div class=\"adSpot adRail left\" data-where=\"side\"></div><div class=\"adSpot adRail right\" data-where=\"side\"></div>") && rails.contains("js/ads.js"));
         Map<String, String> cfg = Map.of("adsense.client", "ca-pub-1234567890123456", "adsense.slot.m", "1111111111");
         assertEquals("양옆 칸이 따로 없으면 산 페이지 칸", "1111111111", Ads.spot("side", cfg::get).get("slot").getAsString());
