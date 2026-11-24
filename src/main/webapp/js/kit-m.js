@@ -1031,6 +1031,26 @@
     }
 
     /** 접는 칸(details.kind · details.group)은 하나를 펴면 같은 줄의 나머지는 접힘(2026-10-15 홍TV님) - name 속성이 없는 브라우저 · 나중에 붙인 칸까지. */
+    /**
+     * 코스 모음(/m/ · /en/m/)의 접는 칸(등산 · 걷기 · 자전거 · 100대 명산 …) 펼침을 이 탭에 기억했다가 다시 오면 그대로(2026-11-24 홍TV님
+     * "검색해서 들어간 것이면 돌아와도 그대로. 100대 명산을 펼쳐서 링크 타고 들어갔으면 돌아와도 펼쳐져 있는 상태로" - 전에는 산 페이지 ‹ 코스 모음 이 늘 100대 명산을 펼쳤음).
+     * 칸은 제목 글(.ft)로 알아봄. 주소에 ?open= 이 있으면(옛 링크 · 가파른 산 순위) 그 뜻대로 두고 되살리지 않음. key - 화면마다(주소 경로).
+     */
+    function foldMemory(doc, key) {
+        var sel = "details.fold[name=\"kind\"], details.fold[name=\"group\"]", k = "rf-fold:" + key, store = global.sessionStorage;
+        var title = function (d) { var t = d.querySelector("summary .ft"); return t ? t.textContent.trim() : ""; };
+        var saved = null;
+        try { saved = JSON.parse(store.getItem(k) || "null"); } catch (e) { /* 처음 · 막힘 */ }
+        if (Array.isArray(saved) && !/[?&]open=/.test((doc.location && doc.location.search) || ""))
+            Array.prototype.forEach.call(doc.querySelectorAll(sel), function (d) { var on = saved.indexOf(title(d)) >= 0; if (d.open !== on) d.open = on; });
+        doc.addEventListener("toggle", function (e) {
+            if (!e.target || !e.target.matches || !e.target.matches(sel)) return;
+            var open = [];
+            Array.prototype.forEach.call(doc.querySelectorAll(sel), function (d) { if (d.open) open.push(title(d)); });
+            try { store.setItem(k, JSON.stringify(open)); } catch (err) { /* 이번만 */ }
+        }, true);
+    }
+
     function foldOne(doc) {
         doc.addEventListener("toggle", function (e) {
             var d = e.target;
@@ -1746,6 +1766,7 @@
         easyOk: easyOk,
         langToggle: langToggle,
         foldOne: foldOne,
+        foldMemory: foldMemory,
         wfEn: wfEn,
         regionEn: regionEn,
         weekendWordEn: weekendWordEn,

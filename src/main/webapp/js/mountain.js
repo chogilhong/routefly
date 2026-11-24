@@ -213,6 +213,7 @@
         crumb.insertBefore(tools, crumb.firstChild);   // 앞에 두어야 h1 글과 같은 줄 오른쪽(뒤에 두면 다음 줄로 밀림)
     }
     if (window.RF) window.RF.foldOne(document);   // 하나를 펴면 나머지는 접힘(주말 칸 · 등산 · 걷기 · 자전거)
+    if (window.RF) window.RF.foldMemory(document, location.pathname);   // 펼친 칸을 기억했다가 산 페이지에서 돌아오면 그대로(2026-11-24 홍TV님)
     // ☆ 찜(2026-10-15) - 코스마다. 따라가기 첫 화면에 모아 보임(이 기기 rf-fav)
     if (window.RF) Array.prototype.forEach.call(document.querySelectorAll(".cs li[data-id]"), function (li) {
         var go = li.querySelector(".go");

@@ -63,6 +63,7 @@
         if (RF.esimLine) RF.esimLine(document.getElementById("esim"), p.airalo);   // 📶 Korea eSIM(Airalo, 2026-11-03)
     }).catch(function () { /* 링크 없이 */ });
     RF.foldOne(document);   // 하나를 펴면 나머지는 접힘(/m/ 과 같음)
+    RF.foldMemory(document, location.pathname);   // 펼친 칸을 기억했다가 돌아오면 그대로(한국어 /m/ 과 같음, 2026-11-24)
     RF.boardButtons("../..", true);   // 📈 Elevation(한국어 화면과 같음)
     RF.compareButtons("../..", true);   // ⚖️ Compare
     RF.recentFold({ key: "rf-recent-en", title: "🕘 Recently viewed", strip: / Hiking Trails$/, sub: function (l) { return l.slice(0, 3).map(function (x) { return x.name; }).join(" · ") + (l.length > 3 ? " +" + (l.length - 3) : ""); } });

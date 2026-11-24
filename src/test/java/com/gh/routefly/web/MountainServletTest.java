@@ -62,7 +62,7 @@ public class MountainServletTest {
         assertTrue("문답 - 주차장", html.contains("들머리 3km 안에 주차장 7곳이 있습니다"));
         assertTrue("문답 - 높이", html.contains("정상 칠불봉은 해발 약 1,433m 입니다"));
         assertTrue("문답 구조 정보", html.contains("\"@type\":\"FAQPage\"") && html.contains("\"acceptedAnswer\""));
-        assertTrue("위 줄은 코스 모음으로(100대 명산 펼침)", html.contains("<p class=\"crumb\"><a href=\"../m/?open=peaks\">‹ 코스 모음</a></p>"));
+        assertTrue("위 줄은 코스 모음으로(펼친 칸은 코스 모음이 기억 - RF.foldMemory, 2026-11-24)", html.contains("<p class=\"crumb\"><a href=\"../m/\">‹ 코스 모음</a></p>"));
         assertTrue("날씨 칸 좌표", html.contains("data-lat=\"35.822544\""));
         assertFalse("스크립트는 파일로만(CSP)", html.matches("(?s).*<script>.*"));
         assertTrue("산행 안전 팁(영어판과 짝 - 2026-10-18)", html.contains("<h2 class=\"ft\">⚠ 산행 안전 팁</h2>") && html.contains("다목적위치표지판(국가지점번호)") && html.contains("📨 가족에게 산행 계획 알리기"));

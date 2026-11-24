@@ -91,7 +91,7 @@ public class MountainServlet extends HttpServlet {
         }
         if (name.isEmpty()) {
             resp.setHeader("Cache-Control", "public, max-age=600");   // 10분 - 1시간이면 배포한 문구가 늦게 보였음(2026-10-17 PC)
-            // ?open=peaks - 산 페이지의 "‹ 코스 모음" 으로 오면 등산 › 100대 명산을 펼친 채(2026-10-15 홍TV님)
+            // ?open=peaks - 예전 산 페이지 "‹ 코스 모음" 링크(2026-10-15, 검색 · 북마크에 남은 주소)는 100대 명산을 펼친 채. 지금 링크는 /m/ - 펼친 칸은 RF.foldMemory 가 되살림(2026-11-24)
             resp.getWriter().print(withFire(indexPage(all, seriesGroups(), base, "peaks".equals(req.getParameter("open")), SteepRank.html(steepRank(all), false, SteepRank.openOf(req.getParameter("open"))),
                     seasonFold(all, season, java.time.LocalDate.now(WeatherServlet.KST))), System.currentTimeMillis()));
             return;
@@ -444,7 +444,7 @@ public class MountainServlet extends HttpServlet {
     /** 순수 함수 - 같은 이름 산 고르기. */
     static String choosePage(String name, List<JsonObject> same, String base) {
         StringBuilder b = new StringBuilder(head(name + " 등산코스", "100대 명산 " + name + " " + same.size() + "곳 - 지역을 고르세요.", base + "/m/" + enc(name), base));
-        b.append("<main><p class=\"crumb\"><a href=\"").append(REL).append("/m/?open=peaks\">‹ 코스 모음</a></p><h1>").append(esc(name))
+        b.append("<main><p class=\"crumb\"><a href=\"").append(REL).append("/m/\">‹ 코스 모음</a></p><h1>").append(esc(name))
                 .append(" 등산코스</h1><p class=\"lead\">100대 명산에 ").append(esc(name)).append("이 ").append(same.size()).append("곳 있습니다.</p><section><ul class=\"ms\">");
         for (JsonObject o : same) b.append("<li><a href=\"").append(REL).append("/m/").append(esc(enc(str(o, "id")))).append("\">").append(esc(str(o, "id"))).append("</a></li>");
         return b.append("</ul></section>").append(foot(base)).toString();
@@ -1390,7 +1390,7 @@ public class MountainServlet extends HttpServlet {
                 + "오늘 날씨와 일출 · 일몰. 3D 지형 위로 코스를 미리 날아 보고 핸드폰으로 따라 걷기.";
         String enPath = "/en/m/" + Roman.slug(name);
         StringBuilder b = new StringBuilder(head(title, desc, url, base, base + enPath, base + "/og/m/" + enc(name) + ".png"));   // 산마다 공유 그림(2026-10-15)
-        b.append("<main><p class=\"crumb\"><a href=\"").append(REL).append("/m/?open=peaks\">‹ 코스 모음</a></p>");
+        b.append("<main><p class=\"crumb\"><a href=\"").append(REL).append("/m/\">‹ 코스 모음</a></p>");   // 펼친 칸은 코스 모음이 기억했다가 그대로(RF.foldMemory, 2026-11-24 홍TV님 - 전에는 ?open=peaks 로 늘 100대 명산을 펼쳤음)
         b.append("<h1>").append(esc(name)).append(" 등산코스</h1>");
         Integer height = MountainServlet.elev(peak);
         b.append(jsonLd(peak, name, url));

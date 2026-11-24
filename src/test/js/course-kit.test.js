@@ -1247,6 +1247,29 @@ tick().then(function () {
         eq("IndexedDB 가 없는 기기는 localStorage 의 기록", v[2].map(RF.recKey), ["1|"]);
     });
 }).then(function () {
+    // 코스 모음 접는 칸 기억(RF.foldMemory, 2026-11-24 홍TV님 "100대 명산을 펼쳐서 링크 타고 들어갔으면 돌아와도 펼쳐져 있는 상태로")
+    var mk = function (t, open) { return { open: !!open, querySelector: function () { return { textContent: " " + t + " " }; }, matches: function () { return true; } }; };
+    var fakeDoc = function (ds, search) { var h = null; return { ds: ds, location: { search: search || "" }, querySelectorAll: function () { return ds; },
+        addEventListener: function (n, f) { h = f; }, fire: function (d) { h({ target: d }); } }; };
+    var ss = {}; sandbox.window.sessionStorage = { getItem: function (k) { return ss[k] || null; }, setItem: function (k, v) { ss[k] = v; } };
+    var a = [mk("등산"), mk("⛰️ 100대 명산"), mk("걷기")], d1 = fakeDoc(a);
+    RF.foldMemory(d1, "/m/");
+    eq("처음(기억 없음)은 서버가 준 그대로", a.map(function (x) { return x.open; }), [false, false, false]);
+    a[0].open = a[1].open = true; d1.fire(a[1]);
+    var b2 = [mk("등산"), mk("⛰️ 100대 명산"), mk("걷기")];
+    RF.foldMemory(fakeDoc(b2), "/m/");
+    eq("펼치고 나갔다 오면 펼친 채", b2.map(function (x) { return x.open; }), [true, true, false]);
+    var c2 = [mk("등산", true), mk("⛰️ 100대 명산", true), mk("걷기")];
+    RF.foldMemory(fakeDoc(c2, "?open=steep"), "/m/");
+    eq("?open= 이 있으면 그 뜻대로(되살리지 않음)", c2.map(function (x) { return x.open; }), [true, true, false]);
+    var e2 = [mk("등산", true), mk("⛰️ 100대 명산", true)];
+    RF.foldMemory(fakeDoc(e2), "/en/m/");
+    eq("화면마다 따로(영어는 기억 없음 - 그대로)", e2.map(function (x) { return x.open; }), [true, true]);
+    ss["rf-fold:/m/"] = "[]";
+    var f2 = [mk("등산", true), mk("⛰️ 100대 명산", true)];
+    RF.foldMemory(fakeDoc(f2), "/m/");
+    eq("다 접고 나갔으면(검색해서 들어감) 접힌 채", f2.map(function (x) { return x.open; }), [false, false]);
+}).then(function () {
     console.log((fails ? "FAILED " : "OK ") + (runs - fails) + "/" + runs);
     process.exit(fails ? 1 : 0);
 });
